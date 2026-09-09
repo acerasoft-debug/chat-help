@@ -1657,6 +1657,36 @@ dönmek zorundadir"*).
     satır; (2) UA'yı 95 karaktere kırpıp etiketi **kırpılmış** metinden hesapladı ve
     tabloda Googlebot'a "[SAYILIR]" yazdı, oysa süzgeç tam metne bakıp atlıyordu.
     *Aracın kendi kırpması ölçümü yalanlıyordu.*
+- **Oversize tişörtün beden serisi iki basamak AŞAĞI kayar** (operatör, 9 Eyl 2026:
+  *"Balenciaga dahil tüm Oversize tshirtlerin lot dağılımını 1 XXS, 3 XS, 3 S,
+  2 M ve 1 L yap"*). `S×1 · M×3 · L×3 · XL×2 · XXL×1` → `XXS×1 · XS×3 · S×3 ·
+  M×2 · L×1`. Aynı 1-3-3-2-1 eğrisi, aynı 10'luk paket; değişen yalnızca
+  merdivendeki yer — oversize bir tişörtte nominal XS, normal kalıpta M gibi
+  duruyor, yani düz kalıp serisiyle kurulan lot beden eğrisinin **yanlış
+  yarısını** satıyor.
+- **Kapsam kataloğu OKUYARAK bulundu, tahminle değil.** 170 tişörtün yalnızca
+  **4'ünün adında** oversize geçiyor (2 Dolce & Gabbana, 2 DSQUARED2) ve hiçbir
+  ilan boxy/relaxed/loose/large-fit demiyor. **Balenciaga'nın 10 tişörtünün
+  adında kalıp bilgisi yok** — operatörün markayı ayrıca yazmasının sebebi bu.
+  Küme = 4 + 10 = **14 ilan**; ad süzgeci tek başına 4'te kalırdı.
+  *"Tüm X" denen bir işte önce X'in kaç tane olduğunu say.*
+- Araç: `set-product.yml` + `product-fixes/oversize-tshirt-lot.json` (id ile
+  `expect:1`, önce `dry_run=true`). Her ilan **kendi paket son ekini korudu**
+  (Balenciaga `10/pack`, diğer 4'ü `10 pcs/pack`): istenen yalnızca dağılımdı ve
+  iki yazım katalogda zaten yan yana duruyor. Yan not: `vestra_sizes_label()`
+  yalnız `<rakam>/pack` kalıbını çeviriyor, yani `10 pcs/pack` yazan 122 ilanda
+  "pack" kelimesi hiçbir dile çevrilmiyor — bu işten önce de böyleydi,
+  dokunulmadı.
+- **Yeni dizge ayrıştırıcıdan geçiyor:** `vestra_size_options()` iki yazım için de
+  `[XXS, XS, S, M, L]` veriyor — `XXS×1` içindeki `X`, "ad × adet" kalıbının
+  çarpım işaretiyle karışmıyor (yerelde ölçüldü). Paket 10 kaldığı için MOQ'lar
+  (10 ve 20) hâlâ tam paket, `size_step` kuralı kımıldamıyor.
+- **Geri okundu:** yazma "14 alan guncellendi" dedi, ama kanıt sunucudan tekrar
+  çekilen liste — 170 tişörtün **tam 14'ü** yeni dağılımda (10 Balenciaga + 4 adı
+  oversize olan), kalan 156 aynen duruyor. Arada bir doğrulama koşusu
+  `dial tcp: i/o timeout` ile düştü: SSH hiç bağlanmadı, yani o koşu **veri
+  hakkında hiçbir şey söylemiyor** — ikinci runner'la tekrarlandı (runner IP'si
+  notunun aynısı).
 - **Katalogdan gizli ürün: `unlisted`** (operatör kararı, 2 Eyl 2026 — Musterstück
   `lac-l1212-musterstueck`). `vestra_products()` varsayılan olarak `unlisted` kayıtları
   **atar**; her açık liste (vitrin, fiyat listeleri, katalog dosyaları, sitemap,
