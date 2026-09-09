@@ -27,7 +27,7 @@ on:
         required: false
         default: "false"
       mail_for:
-        description: "mailcfg ile: olay geçmişi sorulacak adres (boş = operatör test kutusu)"
+        description: "mailcfg ile: olay geçmişi sorulacak adres. MÜŞTERİ adresini buraya YAZMAYIN — girdi herkese açık: 'account:<isim parçası>' ya da 'offer:<teklif ref>' yazın, adres kayıttan çözülür. Boş = operatör test kutusu"
         required: false
         default: ""
       mail_subject:
@@ -329,12 +329,46 @@ jobs:
                  "ulasti" demek DEGIL. Betigin "GONDERILDI" satiri da yalnizca
                  "Brevo isteği kabul etti" demek; teslim, bounce, spam ve
                  "hic ulasmadi" ancak burada ayrisiyor.
-                 Adres: IN_MAIL_FOR, verilmezse operatorun test kutusu. */
+                 Adres: IN_MAIL_FOR, verilmezse operatorun test kutusu.
+
+                 'account:<isim parcasi>' / 'offer:<ref>' — adres KAYITTAN cozulur.
+                 Sebep iki katmanli. (1) Musteri adresi is akisi girdisine
+                 YAZILMAZ: girdi calisma basliginda kalici ve herkese acik
+                 (buyer_reply'in to=account:/to=order: bicimi tam bu yuzden var).
+                 (2) Bos birakildiginda bu blok sessizce OPERATORUN kutusunu
+                 sorguluyor ve basligi "BREVO OLAY GECMISI: a***@gmail.com" diye
+                 basiyor -- musterinin mektubunu arayan biri bunu "musteriye olay
+                 yok" diye okur. Bu depoda "kontrol yanlis yere bakiyordu" hatasi
+                 alti kez yasandi; cozulen adresin NEREDEN geldigi artik yaziliyor. */
               $who = trim((string)getenv('IN_MAIL_FOR'));
-              if ($who === '') $who = 'acerasoft@gmail.com';
+              $whoSrc = 'girdi';
+              if (stripos($who, 'offer:') === 0) {
+                $oref = trim(substr($who, 6));
+                require_once $doc."/inc/offers.php";
+                $orow = vestra_offer_row($oref);
+                if (!$orow) { fwrite(STDERR, "mail_for=offer:{$oref} -- teklif bulunamadi\n"); exit(1); }
+                $who = trim((string)($orow['email'] ?? '')); $whoSrc = "teklif {$oref}";
+              } elseif (stripos($who, 'account:') === 0) {
+                $needle = strtolower(trim(substr($who, 8)));
+                $hits = [];
+                foreach (auth_accounts() as $a) {
+                  $hay = strtolower(($a['company'] ?? '').' '.($a['name'] ?? ''));
+                  if ($needle !== '' && str_contains($hay, $needle)) $hits[] = $a;
+                }
+                /* Tek hesap degilse DUR: yanlis kutunun olaylarina bakip
+                   "mektup gitmemis" demek, gitmis bir mektubu yok saymak olur. */
+                if (count($hits) !== 1) {
+                  fwrite(STDERR, "mail_for=account:{$needle} -> ".count($hits)." hesap\n");
+                  foreach ($hits as $h) fwrite(STDERR, "   ".($h['company'] ?? $h['name'] ?? '?')."\n");
+                  exit(1);
+                }
+                $who = trim((string)($hits[0]['email'] ?? ''));
+                $whoSrc = 'hesap '.trim((string)($hits[0]['company'] ?? $hits[0]['name'] ?? '?'));
+              }
+              if ($who === '') { $who = 'acerasoft@gmail.com'; $whoSrc = 'VARSAYILAN operator test kutusu'; }
               if ($apiKey === '') { echo "  (anahtar yok -- olay gecmisi sorulamiyor)\n"; }
               else {
-                echo "===== BREVO OLAY GECMISI: ".m($who)." (son 2 gun) =====\n";
+                echo "===== BREVO OLAY GECMISI: ".m($who)."  [kaynak: {$whoSrc}] (son 2 gun) =====\n";
                 $ch = curl_init('https://api.brevo.com/v3/smtp/statistics/events?'.http_build_query([
                   'email' => $who,
                   'startDate' => gmdate('Y-m-d', strtotime('-2 days')),

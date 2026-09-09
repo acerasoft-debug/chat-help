@@ -818,6 +818,30 @@ sunucu tarafında **ayrıca** reddedilir — düğmenin görünmemesi yetki değ
 Gerekçe: belge alıcının elinde; kaydını silmek var olan bir faturayı dayanaksız
 bırakır. Sıra: **önce faturayı düzelt (kalemi çıkar), sonra teklifi sil.**
 
+**Yanlışlıkla silinen teklif YEDEKTEN geri gelir** (9 Eyl 2026, O9FBF5 /
+AlexaShop S.A.S / Gucci XJDEZ; operatör: *"biraz önce yanlış yazdığımdan teklifi
+sildim … müşteriye teklif gönder"*).
+- Silmenin aldığı `offers.csv.bak-del-<zaman>` kopyası **geri dönüşün tek dürüst
+  yolu**: satırı elle yeniden yazmak, alıcının hiç vermediği bir birim fiyatı ve
+  zaman damgasını uydurmak olurdu — KURAL 3'ün teklif hâli. **Yedekte yoksa iş
+  DURUR**, "muhtemelen böyleydi" diye kayıt yazılmaz. Sunucuda 12 yedek vardı ve
+  satır 11:56'daki silmenin kopyasında duruyordu (alıcının 11:28'deki teklifi,
+  10 × €80).
+- Yol: `seller-products.yml` → `admin_mode=offer_restore` (`issue_ref=<ref>`,
+  `offer_price=<birim>`, `offer_apply` varsayılan **false**). Karşı teklif
+  **panelin çağırdığı fonksiyondan** geçiyor (`vestra_offer_respond($ref,
+  'counter', $p, null, 'VESTRA')` — `admin.php:1196`'nın birebir aynısı), yani
+  KURAL 4'ün tur sayacı, fiyat tavanı, tek kullanımlık kabul token'ı ve mektup
+  tek yerde kalıyor; ikinci bir pazarlık yolu yazılmadı.
+- **Satır EKLENİR, dosya yeniden yazılmaz.** `vestra_read_csv()` satırları ters
+  çeviriyor (`vestra_order_delete`/`vestra_order_set_shipping`'in aynı tuzağı);
+  okuyup yeniden yazmak bütün listenin sırasını sessizce değiştirirdi. Sütun
+  sırası **dosyanın kendi başlığından** kurulur, yedeğin sırasından değil.
+- Kuru koşu varsayılan (KURAL 18) ve iki kayıt da **geri okunur**: `offers.csv`
+  satırı (adet + birim eşleşiyor mu) ve `offer_responses.json` (`durum=counter`,
+  `sıra=buyer`, token üretildi mi — token yoksa mektuptaki kabul düğmesi çalışmaz
+  ve bunu ancak alıcı fark ederdi).
+
 **KURAL 5h — Fatura müşterinin KENDİ harfleriyle çıkar (CJK gömülü yazı tipi)**
 (operatör, 7 Eyl 2026: *"çin karakterlerini faturaya yazamıyorum … fatura çin
 adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kayıt 5 Eyl 2026).
