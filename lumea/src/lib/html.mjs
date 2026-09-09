@@ -1,5 +1,9 @@
 import { site, localeMeta } from '../../data/site.mjs';
 import { t, fmt } from '../../data/i18n.mjs';
+import { art, motifForCategory } from './art.mjs';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import nodePath from 'node:path';
 
 /* ------------------------------------------------------------------ utils */
 export const esc = (s) =>
@@ -46,6 +50,19 @@ export const CURRENCY_SYMBOL = { EUR: '€', CHF: 'CHF' };
 export function money(amount, currency = 'EUR') {
   return currency === 'CHF' ? `CHF ${amount}` : `${amount} €`;
 }
+
+/* ---------------------------------------------------------------- imagery */
+const IMG_DIR = nodePath.resolve(nodePath.dirname(fileURLToPath(import.meta.url)), '../../data/images');
+/** Real photography wins when data/images/<slug>.jpg|webp exists; otherwise a generated composition. */
+export function media({ slug, motif, accent, label = '', alt = '', className = '', w = 800, h = 600 }) {
+  for (const ext of ['jpg', 'webp', 'png']) {
+    if (existsSync(nodePath.join(IMG_DIR, `${slug}.${ext}`))) {
+      return `<div class="media ${className}"><img src="${withBase(`/assets/img/${slug}.${ext}`)}" alt="${attr(alt)}" loading="lazy" width="${w}" height="${h}"></div>`;
+    }
+  }
+  return `<div class="media ${className}">${art({ motif, accent, seed: slug, w, h, label })}</div>`;
+}
+export { motifForCategory };
 
 /* ------------------------------------------------------------- structured */
 export function jsonLd(obj) {
@@ -279,7 +296,7 @@ export function serviceCard(locale, s, currency = 'EUR') {
   const c = s.i18n[locale];
   const L = t[locale];
   return `<a class="card" href="${withBase(pathFor(locale, { t: 'service', slug: s.slug }))}">
-    <div class="swatch" style="background:${s.accent}"></div>
+    ${media({ slug: s.slug, motif: motifForCategory[s.category], accent: s.accent, alt: c.name, className: 'card__media' })}
     <div class="card__top">
       <div>
         <h3>${esc(c.name)}</h3>
@@ -298,6 +315,7 @@ export function serviceCard(locale, s, currency = 'EUR') {
 export function cityCard(locale, city, countries) {
   const L = t[locale];
   return `<a class="card" href="${withBase(pathFor(locale, { t: 'city', city: city.slug }))}">
+    ${media({ slug: `city-${city.slug}`, motif: 'skyline', accent: { DE: '#a78d5e', AT: '#8f9b8a', CH: '#8fa0ad', ES: '#c49a6c' }[city.country], label: city.name[locale].charAt(0), alt: city.name[locale], className: 'card__media card__media--wide', w: 800, h: 450 })}
     <div class="card__top">
       <div>
         <span class="card__tag">${esc(countries[city.country][locale])}</span>

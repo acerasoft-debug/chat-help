@@ -7,7 +7,7 @@ import { testimonials } from '../../data/testimonials.mjs';
 import { prive, priveTiers } from '../../data/prive.mjs';
 import { articles, journalMeta } from '../../data/journal.mjs';
 import {
-  esc, attr, layout, pathFor, withBase, absolute, money, sectionHead, accordion,
+  esc, attr, layout, pathFor, withBase, absolute, money, sectionHead, accordion, media, motifForCategory,
   serviceCard, cityCard, therapistCard, crumbs, faqLd, breadcrumbLd
 } from './html.mjs';
 
@@ -132,16 +132,7 @@ export function homePage(locale) {
       )}</p>
     </div>
     <div class="hero__aside">
-      <div class="hero__art" aria-hidden="true">
-        <svg viewBox="0 0 600 600" width="100%" height="100%" fill="none">
-          <circle cx="300" cy="300" r="258" stroke="url(#gA)" stroke-width="1.2"/>
-          <circle cx="300" cy="300" r="205" stroke="url(#gA)" stroke-width=".9" opacity=".7"/>
-          <circle cx="300" cy="300" r="150" stroke="url(#gA)" stroke-width=".7" opacity=".5"/>
-          <path d="M60 330c80-120 200-160 480-60" stroke="url(#gA)" stroke-width="1.1" opacity=".8"/>
-          <path d="M40 420c120-90 300-110 520-20" stroke="url(#gA)" stroke-width=".8" opacity=".5"/>
-          <defs><linearGradient id="gA" x1="0" x2="1"><stop stop-color="#c9a961" stop-opacity="0"/><stop offset=".5" stop-color="#c9a961"/><stop offset="1" stop-color="#c9a961" stop-opacity="0"/></linearGradient></defs>
-        </svg>
-      </div>
+      ${media({ slug: 'hero-home', motif: 'leaves', accent: '#c4ab7a', alt: '', className: 'hero__photo', w: 1000, h: 800 })}
       ${quickBook(locale)}
       <div class="ticker" id="liveTicker" data-just="${attr(L.conv.justBooked)}" data-ago="${attr(L.conv.ago)}" data-live="${attr(L.conv.liveNow)}" aria-live="polite">
         <span class="ticker__dot"></span><span class="ticker__text">${esc(L.conv.justBooked)} …</span>
@@ -360,7 +351,7 @@ ${crumbs(locale, [
 <section class="section section--tight">
   <div class="wrap" style="display:grid;grid-template-columns:1.35fr .65fr;gap:clamp(28px,4vw,64px);align-items:start">
     <div>
-      <div class="swatch" style="background:${s.accent};max-width:120px"></div>
+      ${media({ slug: s.slug, motif: motifForCategory[s.category], accent: s.accent, alt: c.name, className: 'banner', w: 1200, h: 400 })}
       <p class="eyebrow">${esc(categories.find((x) => x.slug === s.category)[locale])}</p>
       <h1 style="font-size:clamp(2.2rem,4.6vw,3.6rem)">${esc(c.name)}</h1>
       <p class="lede" style="margin-top:.8rem">${esc(c.tagline)}</p>
@@ -530,6 +521,7 @@ ${crumbs(locale, [
 <section class="hero" style="padding-block:clamp(32px,5vw,64px)">
   <div class="wrap hero__grid">
     <div>
+      ${media({ slug: `city-${city.slug}`, motif: 'skyline', accent: { DE: '#a78d5e', AT: '#8f9b8a', CH: '#8fa0ad', ES: '#c49a6c' }[city.country], label: cityName.charAt(0), alt: cityName, className: 'banner banner--tall', w: 1200, h: 450 })}
       <p class="eyebrow">${esc(countries[city.country][locale])}</p>
       <h1>${esc(fmt(L.city.heroTitle, { city: cityName }))}</h1>
       <p class="hero__sub">${esc(fmt(L.city.intro, { count: city.therapists, city: cityName }))}</p>
@@ -619,6 +611,7 @@ ${crumbs(locale, [
 <section class="hero" style="padding-block:clamp(28px,4vw,56px)">
   <div class="wrap hero__grid">
     <div>
+      ${media({ slug: s.slug, motif: motifForCategory[s.category], accent: s.accent, alt: c.name, className: 'banner banner--tall', w: 1200, h: 450 })}
       <p class="eyebrow">${esc(countries[city.country][locale])} · ${esc(cityName)}</p>
       <h1 style="font-size:clamp(2.1rem,4.4vw,3.4rem)">${esc(title)}</h1>
       <p class="hero__sub">${esc(c.short)}</p>
@@ -1388,6 +1381,7 @@ function articleCard(locale, a) {
   const c = a[locale];
   const J = journalMeta[locale];
   return `<a class="card" href="${withBase(pathFor(locale, { t: 'article', slug: a.slug }))}">
+    ${media({ slug: `journal-${a.slug}`, motif: ['leaves','droplets','waves','pebbles'][Math.abs(a.slug.length) % 4], accent: '#b9a27a', alt: a[locale].title, className: 'card__media card__media--wide', w: 800, h: 450 })}
     <span class="card__tag">${esc(serviceBySlug[a.service].i18n[locale].name)}</span>
     <h3 style="margin-top:.4rem">${esc(c.title)}</h3>
     <p>${esc(c.excerpt)}</p>

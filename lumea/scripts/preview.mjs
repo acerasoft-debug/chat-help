@@ -53,7 +53,7 @@ const out = `<title>LUMÉA</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700&display=swap">
 <style>${css}
-.preview-note{position:fixed;top:0;left:0;right:0;z-index:90;background:#16130f;color:#c9a961;font:600 .68rem/1.4 Inter,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;text-align:center;padding:.35rem .6rem}
+.preview-note{position:fixed;top:0;left:0;right:0;z-index:90;background:#f1f1ef;color:#7b7e86;border-bottom:1px solid rgba(36,38,43,.08);font:600 .68rem/1.4 Inter,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;text-align:center;padding:.35rem .6rem}
 .header{top:24px}.nav{inset:97px 0 auto}body{padding-top:24px}</style>
 <div class="preview-note">Vorschau · Preview · Statische Demo — API/Backend nicht verbunden</div>
 <div id="chromeHeader">${rewrite(chrome.header)}</div>
