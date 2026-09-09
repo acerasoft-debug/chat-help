@@ -1,0 +1,17 @@
+[
+  {"match":"dsq-101213",         "expect":1, "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10 pcs/pack"},
+  {"match":"dsq-101237",         "expect":1, "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10 pcs/pack"},
+  {"match":"dgn-g8nc5zg7byh",    "expect":1, "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10 pcs/pack"},
+  {"match":"dgn-g8ob1tg7b2m",    "expect":1, "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10 pcs/pack"},
+
+  {"match":"blc-612966",         "expect":1, "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack"},
+  {"match":"blc-612966tlvb3",    "expect":1, "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack"},
+  {"match":"blc-612966tlvf1",    "expect":1, "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack"},
+  {"match":"blc-612966tmvg7",    "expect":1, "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack"},
+  {"match":"blc-612966tnvn4",    "expect":1, "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack"},
+  {"match":"blc-612966tnvn4w",   "expect":1, "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack"},
+  {"match":"blc-641675tlvf9",    "expect":1, "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack"},
+  {"match":"blc-676589",         "expect":1, "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack"},
+  {"match":"blc-676589tlvg70901","expect":1, "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack"},
+  {"match":"blc-tnvg9",          "expect":1, "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack"}
+]
