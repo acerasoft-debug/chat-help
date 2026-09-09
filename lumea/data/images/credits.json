@@ -63,7 +63,7 @@
     "fetchedAt": "2026-09-09"
   },
   "city-berlin": {
-    "author": "א (Aleph)\n\nCreator: Johann Gottfried Schadow",
+    "author": "\u05d0 (Aleph)\n\nCreator: Johann Gottfried Schadow",
     "source": "Wikimedia Commons",
     "license": "CC BY-SA 2.5",
     "page": "https://commons.wikimedia.org/wiki/File:Brandenburg_Gate_Quadriga_at_Night.jpg",
@@ -84,7 +84,7 @@
     "fetchedAt": "2026-09-09"
   },
   "city-frankfurt": {
-    "author": "Jörg Braukmann",
+    "author": "J\u00f6rg Braukmann",
     "source": "Wikimedia Commons",
     "license": "CC BY-SA 4.0",
     "page": "https://commons.wikimedia.org/wiki/File:Frankfurt_Skyline_2022_bei_Nacht.jpg",
@@ -119,7 +119,7 @@
     "fetchedAt": "2026-09-09"
   },
   "city-innsbruck": {
-    "author": "böhringer friedrich",
+    "author": "b\u00f6hringer friedrich",
     "source": "Wikimedia Commons",
     "license": "CC BY-SA 2.5",
     "page": "https://commons.wikimedia.org/wiki/File:Innsbruck_Panorama_Nordkette_3.jpg",
@@ -196,7 +196,7 @@
     "fetchedAt": "2026-09-09"
   },
   "anti-cellulite": {
-    "author": "Petar Milošević",
+    "author": "Petar Milo\u0161evi\u0107",
     "source": "Wikimedia Commons",
     "license": "CC BY-SA 4.0",
     "page": "https://commons.wikimedia.org/wiki/File:Dead_Sea_salt_crystals.jpg",
@@ -293,13 +293,6 @@
     "page": "https://commons.wikimedia.org/wiki/File:Palma_de_Mallorca_Royal_Palace_La_Almudaina_Cathedral.jpg",
     "fetchedAt": "2026-09-09"
   },
-  "deep-tissue": {
-    "author": "Pudelek",
-    "source": "Wikimedia Commons",
-    "license": "CC BY-SA 4.0",
-    "page": "https://commons.wikimedia.org/wiki/File:Polish_boundary_stones_near_Burg_river.jpg",
-    "fetchedAt": "2026-09-09"
-  },
   "thai-yoga": {
     "author": "Diego Delso",
     "source": "Wikimedia Commons",
@@ -322,17 +315,10 @@
     "fetchedAt": "2026-09-09"
   },
   "journal-cellulite-was-massage-wirklich-kann": {
-    "author": "Ввласенко",
+    "author": "\u0412\u0432\u043b\u0430\u0441\u0435\u043d\u043a\u043e",
     "source": "Wikimedia Commons",
     "license": "CC BY-SA 3.0",
     "page": "https://commons.wikimedia.org/wiki/File:Air_Olive_1.JPG",
-    "fetchedAt": "2026-09-09"
-  },
-  "journal-zuhause-vorbereiten-mobile-massage": {
-    "author": "Alvesgaspar",
-    "source": "Wikimedia Commons",
-    "license": "CC BY-SA 4.0",
-    "page": "https://commons.wikimedia.org/wiki/File:Castelo_Novo_April_2015-2a.jpg",
     "fetchedAt": "2026-09-09"
   }
 }

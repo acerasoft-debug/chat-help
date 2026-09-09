@@ -41,10 +41,15 @@ for (const p of PAGES) {
   pages[p] = { title, main, globals, header, footer, extras, locale };
   if (!chrome) chrome = { header, footer, extras, locale };
 }
+// Every photo is embedded exactly once (window.__img); pages reference it by name and the router resolves it.
+const IMG = {};
 const inlineImg = (s) => s.replace(/ srcset="[^"]*" sizes="[^"]*"/g, '').replace(/src="\/assets\/img\/([^"]+)"/g, (m, f) => {
   const small = f.replace(/\.(jpe?g|png|webp)$/i, '.sm.$1');
   for (const cand of [small, f]) {
-    try { const b = readFileSync(path.join(DIST, 'assets/img', cand)); return `src="data:image/${cand.endsWith('.png') ? 'png' : cand.endsWith('.webp') ? 'webp' : 'jpeg'};base64,${b.toString('base64')}"`; } catch { /* next */ }
+    try {
+      if (!IMG[cand]) IMG[cand] = `data:image/${cand.endsWith('.png') ? 'png' : cand.endsWith('.webp') ? 'webp' : 'jpeg'};base64,${readFileSync(path.join(DIST, 'assets/img', cand)).toString('base64')}`;
+      return `src="" data-pimg="${cand}"`;
+    } catch { /* next */ }
   }
   return m;
 });
@@ -66,11 +71,12 @@ const out = `<title>LUMÉA</title>
 <div id="chromeHeader">${rewrite(chrome.header)}</div>
 <main id="main">${rewrite(pages['/de/'].main)}</main>
 <div id="chromeFooter">${rewrite(chrome.footer)}${rewrite(chrome.extras)}</div>
-<script>window.__lumeaData=${data};window.__pages=${JSON.stringify(Object.fromEntries(Object.entries(pages).map(([k, v]) => [k, { t: v.title, m: rewrite(v.main), g: v.globals, h: rewrite(v.header), f: rewrite(v.footer), x: rewrite(v.extras), l: v.locale }])))};window.__notFound=${JSON.stringify(rewrite(notFound))};</script>
+<script>window.__lumeaData=${data};window.__img=IMGMAP;window.__pages=${JSON.stringify(Object.fromEntries(Object.entries(pages).map(([k, v]) => [k, { t: v.title, m: rewrite(v.main), g: v.globals, h: rewrite(v.header), f: rewrite(v.footer), x: rewrite(v.extras), l: v.locale }])))};window.__notFound=${JSON.stringify(rewrite(notFound))};</script>
 <script>
 (function(){
   var body=document.body; body.dataset.base='#'; body.dataset.locale='de';
   function norm(h){ h=(h||'').replace(/^#/,''); if(!h||h[0]!=='/') return null; h=h.split('?')[0]; if(!/\\/$/.test(h)) h+='/'; return h; }
+  function resolveImgs(){ document.querySelectorAll('img[data-pimg]').forEach(function(i){ i.src=(window.__img||{})[i.dataset.pimg]||''; }); }
   function render(){
     var p=norm(location.hash)||'/de/'; var q=(location.hash.split('?')[1]||'');
     var pg=window.__pages[p];
@@ -80,6 +86,7 @@ const out = `<title>LUMÉA</title>
     document.getElementById('chromeHeader').innerHTML=pg.h; document.getElementById('chromeFooter').innerHTML=pg.f+pg.x;
     main.innerHTML=pg.m;
     try{ (0,eval)(pg.g); }catch(e){}
+    resolveImgs();
     history.replaceState(null,'',location.pathname+(q?'?'+q:'')+location.hash);
     if(window.__lumeaBoot) window.__lumeaBoot();
     window.scrollTo(0,0);
@@ -88,10 +95,10 @@ const out = `<title>LUMÉA</title>
   var origSearch=Object.getOwnPropertyDescriptor(Location.prototype,'search');
   window.addEventListener('hashchange',render);
   document.addEventListener('click',function(e){ var a=e.target.closest('a[href^="#/"]'); if(a){ if(a.getAttribute('href')===location.hash){e.preventDefault();render();} } });
-  render();
+  render(); resolveImgs();
 })();
 </script>
 <script>${js.replace('new URLSearchParams(location.search)', "new URLSearchParams((location.hash.split('?')[1]||''))").replace(/new URLSearchParams\(location\.search\)/g, "new URLSearchParams((location.hash.split('?')[1]||''))")}</script>`;
 
-writeFileSync(path.join(DIST, 'preview.html'), out);
+writeFileSync(path.join(DIST, 'preview.html'), out.replace('window.__img=IMGMAP;', () => `window.__img=${JSON.stringify(IMG)};`));
 console.log(`preview.html → ${(Buffer.byteLength(out) / 1048576).toFixed(2)} MB, ${Object.keys(pages).length} pages`);
