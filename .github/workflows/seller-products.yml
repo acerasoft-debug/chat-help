@@ -946,7 +946,22 @@ jobs:
                 $su = (string)($p['seller_uid'] ?? '');
                 $sLabel = $su === '' ? '(satici yok -- demo/platform)' : (($byId[$su]['company'] ?? $byId[$su]['name'] ?? '?')." (id={$su})");
                 if ($su !== '' && !isset($byId[$su])) $sLabel = "*** HESAP BULUNAMADI (id={$su}) ***";
+                /* FIYAT da yaziliyor: marka kipi bunu basmiyordu ve "bu markanin
+                   fiyatlarini su tabana cek" gibi bir is her seferinde once
+                   ayri bir okuma gerektiriyordu. Kademe merdiveni de basiliyor
+                   -- vitrindeki rakam en dusuk kademe (vestra_from_price), yani
+                   yalniz 'list' okuyan bir gozlem yaniltir. */
+                $tiers = [];
+                foreach ((array)($p['tiers'] ?? []) as $tr) {
+                  $tiers[] = (int)($tr['min'] ?? 0).'@'.number_format((float)($tr['price'] ?? 0), 2, '.', '');
+                }
                 echo "  ".($p['id']??'?')." | ".($p['name']??'?')." | cat=".($p['cat']??'?')
+                   ." | mode=".($p['mode'] ?? 'sale')
+                   ." | list=".(isset($p['list']) ? number_format((float)$p['list'], 2, '.', '') : '-')
+                   ." | price=".(isset($p['price']) ? number_format((float)$p['price'], 2, '.', '') : '-')
+                   ." | from=".number_format((float)vestra_from_price($p), 2, '.', '')
+                   ." | moq=".($p['moq'] ?? '-')
+                   ." | kademe=".($tiers ? implode(' ', $tiers) : '-')
                    ." | sample_price=".(!empty($p['sample_price'])?$p['sample_price']:'-')
                    ." | status=".($p['status']??'approved')
                    ." | satici: {$sLabel}\n";
