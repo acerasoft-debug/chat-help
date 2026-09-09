@@ -1,17 +1,3 @@
 {
-  "mode": "choose",
-  "choices": {
-    "hero-home": "1",
-    "signature-lumea": "1",
-    "duo-couples": "5",
-    "hot-stone": "3",
-    "aromatherapy": "1",
-    "lymphatic-drainage": "aromatherapy#4",
-    "reflexology": "aromatherapy#3",
-    "lifting-facial": "5",
-    "signature-facial": "lifting-facial#3",
-    "eye-decollete": "lifting-facial#4",
-    "classic-swedish": "4",
-    "deep-tissue": "head-neck-shoulder#6"
-  }
+  "mode": "auto"
 }
