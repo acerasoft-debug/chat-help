@@ -784,6 +784,8 @@ return array (
   'Track in My orders →' => 'Acompanhar em As minhas encomendas →',
   'Tracking' => 'Seguimento',
   'Tracking number' => 'Número de seguimento',
+  'Carrier' => 'Transportadora',
+  'Service' => 'Serviço',
   'Tracking number (optional)' => 'Número de seguimento (opcional)',
   'Tracking/note updated' => 'Seguimento/nota atualizados',
   'Tracksuits' => 'Fatos de treino',

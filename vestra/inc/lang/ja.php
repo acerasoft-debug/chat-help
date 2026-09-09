@@ -784,6 +784,8 @@ return array (
   'Track in My orders →' => '「マイオーダー」で確認 →',
   'Tracking' => '追跡',
   'Tracking number' => '追跡番号',
+  'Carrier' => '配送業者',
+  'Service' => 'サービス',
   'Tracking number (optional)' => '追跡番号（任意）',
   'Tracking/note updated' => '追跡番号・備考を更新しました',
   'Tracksuits' => 'トラックスーツ',

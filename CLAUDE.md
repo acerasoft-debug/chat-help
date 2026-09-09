@@ -532,6 +532,75 @@ ama karar bilinçli bir istisna için.
   karar**: biri operatörün bilinçli KURAL 2g istisnası, diğeri KURAL 3'ün
   zaten zorunlu tuttuğu, uydurulamayan bir gerçek.
 
+**KURAL 2h — Bazı ülkelerden kayıt olan ALICI'nın kapısı kayıtta AÇIK doğar:
+S.Arabistan, Japonya, Avustralya, Singapur** (operatör, 8 Eyl 2026, aynı gün üç
+kez büyüdü: *"arabistandaan girenler direkt fiyatlari görebilsinler ve siparis
+edebilsinler"* → *"japonya, avustralya da ayni olsun"* → *"singapur da"*).
+KURAL 2g'nin tam tersi yöne bakan kardeşi: o kapatır, bu açar — ve açan bir
+kural yanlış eşleşirse operatörün hakkında hiçbir karar vermediği bir firmaya
+toptan fiyatı ve sipariş hakkını verir.
+
+- **Liste TEK yerde:** `vestra_auto_open_countries()` (`inc/security.php`),
+  ISO koduyla anahtarlı. Yeni ülke = **bir satır**, kapıda yeni bir dal değil.
+  Ülke başına ayrı fonksiyon yazılmadı çünkü kural bir öğleden sonrada üç kez
+  büyüdü; beşincisi de gelecek.
+- **Ölçüt IP değil, hesabın KAYITLI ÜLKESİ** (operatör seçimi). IP tek bir
+  isteğe ait: seyahatteki Japon alıcı sipariş ortasında erişimini kaybederdi,
+  Tokyo çıkışlı bir VPN ise kazanırdı. Beyan edilen ülke hesap yaşadıkça geçerli
+  ve gerçek bir ticari kaydın uyması gereken şey zaten o.
+- **Kapının ikinci bir tanımı YAZILMADI.** Promo hesabının kullandığı **aynı**
+  alan açıyor: `kyb_status='approved'` → `auth_user_approved()` → fiyat, sipariş,
+  line sheet, dropship. Bu depoda altı kez kontrolün kendisi yanlış yere baktı;
+  `auth_prices_unlocked()`'a ülke dalı eklemek yedincisi olurdu. Sitede
+  `status==='active'` diye ayrıca bakan **tek bir yer bile yok** (arandı).
+- **Yalnızca ALICI.** Operatörün cümlesi fiyat görmek ve sipariş vermek üzerine;
+  ikisi de alıcı yolu. Satıcıda `kyb_status` daha ağır bir şey söylüyor
+  (ödeme/güven) ve ilan kapısı zaten ayrı (KURAL 2f) — o ülkelerden gelen satıcı
+  eski akışta, yani **değişiklik değil, mevcut hâl**.
+- **Yalnızca KAYITTA.** Profil kaydetmede ülkeyi "Japan" yapmak hesabın **kendi
+  kapısını açması** olurdu. Türkiye kontrolü `buyer.php`/`seller.php`'de de var
+  çünkü o KAPATIR; bu oraya bilerek eklenmedi (test §9 bunu tutuyor).
+- **Çıplak ISO kodu kabul ediliyor** (`SA`, `JP`, `AU`, `SG`): kayıt formunun
+  kendi placeholder'ı `DE`, yani tam bu şekli istiyor — reddetmek, formun
+  dediğini yapan kullanıcıyı elerdi. **Eşleşme TAM, alt dize değil**, ve her
+  ülkenin kendi yakın-komşu tuzağı testte adıyla duruyor:
+  - `SA` — günlük dilde "SA" çoğu zaman **Güney Afrika** demek; onun ISO'su `ZA`.
+  - `AU` — **Avusturya** (`AT`) klasik karışma; `Österreich`/`Autriche` de.
+  - `JP` — `JA` bir **dil** kodu, Japonya'nın kodu değil; Jamaika `JM`.
+  - `SG` — Senegal `SN`, Sri Lanka `LK`.
+  Ayrıca eyalet adı ülke değil (`South Australia`, `Western Australia`) ve
+  şirket adı ülke değil (`Saudi Arabia Trading Co.`). Bu, Türkiye kuralındaki
+  Türkmenistan'ın ve mango/zara dersinin aynı sınıfı.
+- **Gevşek eşleştirmenin bedeli ölçüldü.** Falsifikasyon koşusunda `in_array`
+  yerine `str_contains` konunca **21 iddia** düştü ve içlerinden biri şuydu:
+  Portekizce `austrália` dizgesi `tr` içeriyor, yani alt dize eşleşmesiyle
+  **`TR` (Türkiye) Avustralya sayılıp kapıyı AÇIYORDU** — KURAL 2g'nin tam
+  tersi. Açan bir kuralda bulanık eşleşme böyle bir şey.
+- **Sessiz kapı yok.** Hesapta gerekçe duruyor (`kyb_auto='country:JP'` gibi;
+  promo hesabında bu alan hiç yoktu ve aylar sonra "bu hesap neden açık?"
+  sorusunun cevabı hiçbir yerde durmuyordu) ve operatöre giden kayıt bildirimi
+  konuda rozet, gövdede gerekçe taşıyor. Rozet **yalnızca** otomatik onayda
+  basılıyor — her kayıtta aynı cümleyi yazan bildirim okunmamayı öğretir
+  (KURAL 2c). **Ülke adı ISO kodundan çözülüyor** (`vestra_country_of_cc`), elle
+  yazılmıyor: liste büyüdüğünde yanlış ülkeyi söyleyen bir satır kalırdı.
+- **`vestra_cc_of_country()`'ye S.Arabistan ve Singapur eklendi** (Japonya/
+  Avustralya zaten vardı): panelin "beyan edilen ülke ≠ kayıt IP'sinin ülkesi"
+  karşılaştırması o haritadan okuyor ve haritada olmayan ad **sessiz geçiyor** —
+  yani kapısı kendiliğinden açılan iki ülke, tam da bakılması gereken yerde
+  hiçbir zaman karşılaştırılmıyordu.
+- **Kayıt mektubu ayrı gövde** (`vestra_ack_text($lang,$name,$type,$approved)`):
+  varsayılan metin *"Our team will review them and activate your account"*
+  diyor ve bu hesapta **yapılmayacak** bir işi bekletiyor — KURAL 2b'nin aynısı
+  (kapı açıkken belgeyi sebep göstermek). Yeni gövde hesabın açık olduğunu
+  söylüyor, düğme belge sayfasına değil **kataloga** gidiyor, belge yine
+  isteniyor ama *"does not hold up your ordering"* diye. 5 dilde yazılı ve
+  **hiçbir ülke adı gömülü değil** — dört ülkeye dört metin yazmak, beşincisi
+  eklendiğinde sessizce eksik kalırdı (test bunu da tutuyor).
+  `cron_pending_accounts.php` bu hesabı "onay bekliyor" diye **yazmıyor**
+  (kapısı açık), "açık ama belgesiz" listesinde **duruyor** — doğru olan bu.
+- Test: `tests/auto_open_country_test.php` (171 iddia). Düşebildiği doğrulandı:
+  eşleştirici alt dizeye çevrilip üç değişiklik geri alınınca **21 kırmızı**.
+
 **KURAL 3 — Malın nereden gönderildiği tahmin edilmez, yazılır.**
 
 - `vestra_ships_from()` **yalnızca** ilandaki `ships_from` alanını okur; yoksa
@@ -557,9 +626,34 @@ ama karar bilinçli bir istisna için.
 **KURAL 4 — Pazarlığın sınırları** (operatör kararı, 31 Ağu 2026). Hepsi tek
 doğrulayıcıda: `vestra_offer_price_error()` + `vestra_offer_turn()`.
 
-- **En fazla 3 karşı teklif**, iki tarafın **toplamı** (`VESTRA_OFFER_MAX_COUNTERS`).
-  Dolunca yalnızca kabul/ret kalır ve karşı teklif alanı **hiç görünmez** —
-  gösterilip reddedilen bir alan, olmayan bir alandan kötü.
+- **En fazla 5 karşı teklif**, iki tarafın **toplamı** (`VESTRA_OFFER_MAX_COUNTERS`;
+  31 Ağu 2026'da 3'tü, **9 Eyl 2026'da 5'e çıkarıldı** — operatör: *"teklif
+  edilebilecek sayıyı 5'e çıkar"*). Dolunca yalnızca kabul/ret kalır ve karşı
+  teklif alanı **hiç görünmez** — gösterilip reddedilen bir alan, olmayan bir
+  alandan kötü. **Rakam hiçbir metne gömülü değil**: panel, alıcı paneli ve
+  mektuplar ("bu son tur", "kalan tur var") sabitten okuyor, o yüzden 3→5
+  tek satırda oldu. `tests/offers_rounds_test.php` mekanizmayı kendi tanımladığı
+  bir değerle sınıyor, **sevk edilen 5'i ise kaynaktan** doğruluyor — escrow
+  tavanının beş gün koddan farklı kalması (KURAL 6) bu iki ayrı iddianın sebebi.
+- **Reddedilen teklife satıcı DAHA İYİ fiyatla dönebilir** (operatör, 9 Eyl
+  2026: alıcı €100'ü reddetti, operatör €90 gönderilmesini istedi). Kapalı bir
+  pazarlığı yeniden açmak ticarette olağan ve engellemek, kaybedilen müşteriyi
+  geri kazanmanın tek yolunu kapatırdı. Sınırlar aynen duruyor: **yalnız
+  `decline`** (kabul edilmiş teklif **asla** açılmaz — orada uzlaşılan fiyat,
+  sipariş satırı ve fatura var, yasağın var olma sebebi o), **yalnız `counter`**
+  (reddedilmiş bir teklifi kabul etmek, alıcıyı *hayır* dediği fiyattan bağlamak
+  olurdu), yön kuralı (yeni teklif öncekinden **ucuz** olmak zorunda) ve tur
+  sayacı — yeniden açmak bedava tur üretmiyor.
+- **Alıcının kabulü/reddi pazarlık geçmişini SİLİYORDU** (9 Eyl 2026'da bulundu).
+  `vestra_offer_accept_counter()` ve `vestra_offer_decline_counter()` kaydı
+  sıfırdan kuruyor ve `counters` düşüyordu. İki sonucu vardı: (1) alıcının kendi
+  panelindeki tur çizelgesi (`buyer.php`, "round i/N") kabulden/retten sonra
+  **boşalıyordu** — oysa kural "kim ne teklif etti sorusunun cevabı kayıtta
+  durmazsa uzlaşılan fiyat da savunulamaz" diyor; (2) sayaç `counters` yoksa
+  `counter_price`'a bakıp **1** dönüyor, yani her ret tur hakkını **sessizce
+  iade ediyordu**. İkincisi reddedilmiş teklif yeniden açılamadığı sürece
+  görünmüyordu; yeniden açma eklenince "reddet → yeniden aç" **sonsuz tur**
+  üretirdi. *Yeni bir kapı açmadan önce, kapalıyken görünmeyen ne varsa onu ara.*
 - **Alıcı** teklifi ürünün **yarısından az** olamaz; **satıcı** karşı teklifi
   ürünün **normal fiyatından fazla** olamaz.
 - **Alıcı her turda yükselmeli, satıcı her turda düşmeli.** Pazarlık daralmak
@@ -748,6 +842,40 @@ kaydı çıkarır; dosya **önce zaman damgalı yedeklenir**. Alıcıya bildirim
 sunucu tarafında **ayrıca** reddedilir — düğmenin görünmemesi yetki değildir.
 Gerekçe: belge alıcının elinde; kaydını silmek var olan bir faturayı dayanaksız
 bırakır. Sıra: **önce faturayı düzelt (kalemi çıkar), sonra teklifi sil.**
+
+**Yanlışlıkla silinen teklif YEDEKTEN geri gelir** (9 Eyl 2026, O9FBF5 /
+AlexaShop S.A.S / Gucci XJDEZ; operatör: *"biraz önce yanlış yazdığımdan teklifi
+sildim … müşteriye teklif gönder"*).
+- Silmenin aldığı `offers.csv.bak-del-<zaman>` kopyası **geri dönüşün tek dürüst
+  yolu**: satırı elle yeniden yazmak, alıcının hiç vermediği bir birim fiyatı ve
+  zaman damgasını uydurmak olurdu — KURAL 3'ün teklif hâli. **Yedekte yoksa iş
+  DURUR**, "muhtemelen böyleydi" diye kayıt yazılmaz. Sunucuda 12 yedek vardı ve
+  satır 11:56'daki silmenin kopyasında duruyordu (alıcının 11:28'deki teklifi,
+  10 × €80).
+- Yol: `seller-products.yml` → `admin_mode=offer_restore` (`issue_ref=<ref>`,
+  `offer_price=<birim>`, `offer_apply` varsayılan **false**). Karşı teklif
+  **panelin çağırdığı fonksiyondan** geçiyor (`vestra_offer_respond($ref,
+  'counter', $p, null, 'VESTRA')` — `admin.php:1196`'nın birebir aynısı), yani
+  KURAL 4'ün tur sayacı, fiyat tavanı, tek kullanımlık kabul token'ı ve mektup
+  tek yerde kalıyor; ikinci bir pazarlık yolu yazılmadı.
+- **Satır EKLENİR, dosya yeniden yazılmaz.** `vestra_read_csv()` satırları ters
+  çeviriyor (`vestra_order_delete`/`vestra_order_set_shipping`'in aynı tuzağı);
+  okuyup yeniden yazmak bütün listenin sırasını sessizce değiştirirdi. Sütun
+  sırası **dosyanın kendi başlığından** kurulur, yedeğin sırasından değil.
+- Kuru koşu varsayılan (KURAL 18) ve iki kayıt da **geri okunur**: `offers.csv`
+  satırı (adet + birim eşleşiyor mu) ve `offer_responses.json` (`durum=counter`,
+  `sıra=buyer`, token üretildi mi — token yoksa mektuptaki kabul düğmesi çalışmaz
+  ve bunu ancak alıcı fark ederdi).
+- **Silme PAZARLIK KAYDINI da yedekliyor artık** (9 Eyl 2026'da bulundu).
+  `delete_offer` yalnız `offers.csv`'yi kopyalıyordu; `offer_responses.json`'daki
+  kayıt **yedeksiz siliniyordu**, yani kimin kaç kez ne teklif ettiği geri
+  dönülmez şekilde yok oluyordu. O9FBF5 aynı gün **iki kez** silindi ve her
+  seferinde tur geçmişi gitti: satır yedekten geri geldi, **pazarlık gelmedi** —
+  ikinci geri yüklemede alıcının kendi verdiği karşı teklif artık okunamıyordu.
+  Şimdi `data/offer_backups/<ref>-<zaman>.json` (yalnız silinen kayıt; `data/`
+  zaten tarayıcıya kapalı — `.htaccess` + `RewriteRule ^data/`).
+  *Bir kaydı geri getiren yolu yazarken, o kaydın YANINDA duran ve yedeklenmeyen
+  ne varsa onu da sor.*
 
 **KURAL 5h — Fatura müşterinin KENDİ harfleriyle çıkar (CJK gömülü yazı tipi)**
 (operatör, 7 Eyl 2026: *"çin karakterlerini faturaya yazamıyorum … fatura çin
@@ -1614,6 +1742,159 @@ dönmek zorundadir"*).
     satır; (2) UA'yı 95 karaktere kırpıp etiketi **kırpılmış** metinden hesapladı ve
     tabloda Googlebot'a "[SAYILIR]" yazdı, oysa süzgeç tam metne bakıp atlıyordu.
     *Aracın kendi kırpması ölçümü yalanlıyordu.*
+- **Oversize tişörtün beden serisi iki basamak AŞAĞI kayar** (operatör, 9 Eyl 2026:
+  *"Balenciaga dahil tüm Oversize tshirtlerin lot dağılımını 1 XXS, 3 XS, 3 S,
+  2 M ve 1 L yap"*). `S×1 · M×3 · L×3 · XL×2 · XXL×1` → `XXS×1 · XS×3 · S×3 ·
+  M×2 · L×1`. Aynı 1-3-3-2-1 eğrisi, aynı 10'luk paket; değişen yalnızca
+  merdivendeki yer — oversize bir tişörtte nominal XS, normal kalıpta M gibi
+  duruyor, yani düz kalıp serisiyle kurulan lot beden eğrisinin **yanlış
+  yarısını** satıyor.
+- **Kapsam kataloğu OKUYARAK bulundu, tahminle değil.** 170 tişörtün yalnızca
+  **4'ünün adında** oversize geçiyor (2 Dolce & Gabbana, 2 DSQUARED2) ve hiçbir
+  ilan boxy/relaxed/loose/large-fit demiyor. **Balenciaga'nın 10 tişörtünün
+  adında kalıp bilgisi yok** — operatörün markayı ayrıca yazmasının sebebi bu.
+  Küme = 4 + 10 = **14 ilan**; ad süzgeci tek başına 4'te kalırdı.
+  *"Tüm X" denen bir işte önce X'in kaç tane olduğunu say.*
+- Araç: `set-product.yml` + `product-fixes/oversize-tshirt-lot.json` (id ile
+  `expect:1`, önce `dry_run=true`). Her ilan **kendi paket son ekini korudu**
+  (Balenciaga `10/pack`, diğer 4'ü `10 pcs/pack`): istenen yalnızca dağılımdı ve
+  iki yazım katalogda zaten yan yana duruyor. Yan not: `vestra_sizes_label()`
+  yalnız `<rakam>/pack` kalıbını çeviriyor, yani `10 pcs/pack` yazan 122 ilanda
+  "pack" kelimesi hiçbir dile çevrilmiyor — bu işten önce de böyleydi,
+  dokunulmadı.
+- **Yeni dizge ayrıştırıcıdan geçiyor:** `vestra_size_options()` iki yazım için de
+  `[XXS, XS, S, M, L]` veriyor — `XXS×1` içindeki `X`, "ad × adet" kalıbının
+  çarpım işaretiyle karışmıyor (yerelde ölçüldü). Paket 10 kaldığı için MOQ'lar
+  (10 ve 20) hâlâ tam paket, `size_step` kuralı kımıldamıyor.
+- **Geri okundu:** yazma "14 alan guncellendi" dedi, ama kanıt sunucudan tekrar
+  çekilen liste — 170 tişörtün **tam 14'ü** yeni dağılımda (10 Balenciaga + 4 adı
+  oversize olan), kalan 156 aynen duruyor. Arada bir doğrulama koşusu
+  `dial tcp: i/o timeout` ile düştü: SSH hiç bağlanmadı, yani o koşu **veri
+  hakkında hiçbir şey söylemiyor** — ikinci runner'la tekrarlandı (runner IP'si
+  notunun aynısı).
+- **AMA BEDEN SERİSİ İKİ YERDE YAZILI ve yalnızca biri değişti.** `sizes` alanı
+  düzeldi, `desc` metni eski seriyi yazmaya devam etti:
+  *"Original Balenciaga, model 612966TLVF1. S×1 · M×3 · L×3 · XL×2 · XXL×1 ·
+  10/pack. EEA stock…"* — yani ürün sayfası aynı ürün için **spec satırında bir,
+  bir paragraf altında başka** dağılım gösteriyordu. Operatör bunu gördü ve
+  "bunu da verdiğim gibi yap" dedi; ben değişikliği uygulanmış sanıyordum çünkü
+  **elimdeki aracın yazdığı alanı** doğrulamıştım, o olgunun **başka nereye
+  yazıldığını** hiç sormamıştım. KURAL 5f'in üç katmanı ve KURAL 11'in SSS/sabit
+  ayrışmasıyla aynı sınıf. *Bir alanı değiştirmeden önce "bu bilgi başka nerede
+  yazılı?" diye sor; geri okuma yalnız yazdığın alanı doğruluyorsa yarım.*
+- Sonda: `inspect-products.yml` → `fit_scan=true`. İki şey basıyor: (1) hangi
+  ilan **kalıp beyan ediyor** (geniş: oversize/boxy/relaxed/loose/large fit —
+  dar: slim/regular/classic), kanıt cümlesiyle; (2) `desc` ile `sizes`'ın
+  **çeliştiği** her ilan, iki seri + tam açıklama metniyle. Düzeltme metni bu
+  çıktıdan, **sunucunun kendi dizgesinden** kuruldu (şablondan yeniden yazılmadı).
+  10 Balenciaga düzeltildi, geri okundu: markadaki çelişki 12 → **2**.
+- **Katalog genelinde 35 ilanda bu çelişki vardı; 10'u benimdi, 25'i ÖNCEDEN
+  duruyordu** (BALMAIN 14, Burberry 9, Balenciaga 2). Onlarda `sizes` bambaşka
+  bir seri yazıyor (ör. `S×2 · M×2 · L×2 · XL×2 · XXL×2`) ya da hiç seri yok,
+  açıklama ise her ilanda aynı `S×1 · M×3 · L×3 · XL×2 · XXL×1` kalıbını
+  tekrarlıyor — yani açıklama **şablondan** basılmış ve ilanın kendi serisiyle
+  hiç hizalanmamış. Operatör kararı bekliyor: düzeltmek `desc`'i her ilanın
+  `sizes`'ından yeniden yazmak demek.
+- **Kalıp taraması "hangileri gerçekten oversize" sorusunu KAPATTI:** 670 ürünün
+  yalnızca **6 beyanı** geniş kalıba işaret ediyor ve altısı da zaten değiştirilen
+  4 üründen geliyor (ikisi hem adda hem açıklamada eşleşti). **Katalogda başka
+  hiçbir ürün oversize/boxy/relaxed demiyor**; 37 beyan ise tersini, dar kalıbı
+  söylüyor. Yani kanıta dayanarak değiştirilecek başka model yok.
+- **Ama iki DSQUARED2 kendi içinde çelişiyor:** `dsq-101213` adı *"Graphic
+  T-Shirt (Oversized)"*, açıklaması *"100% cotton, **regular fit**"*;
+  `dsq-101237` adı *"Oversized Fit T-Shirt"*, açıklaması yine *"regular fit"*.
+  İkisi de yeni seriyi **adına bakarak** aldı. Hangisinin doğru olduğunu satıcı
+  bilir — bu yüzden açıklama **değiştirilmedi**, operatör kararına bırakıldı.
+- **Fotoğraf ekleme (9 Eyl 2026, `blc-612966tlvf1`):** operatörün gönderdiği 3
+  tedarikçi fotoğrafı (paket, hangtag, yıkama etiketi) ilana eklendi; mevcut iki
+  kare **başta bırakıldı** (istenen eklemekti, kapağı değiştirmek değil).
+  Telefon fotoğrafı **olduğu gibi yayına konmaz**: EXIF piksele uygulanıp
+  (Orientation) tamamen atıldı — marka/model/firmware/çekim saati ve (boş da
+  olsa) bir GPS bloğu taşıyordu; 4000×3000 / ~5 MB kareler 1600 px / ~200 KB'a
+  indirildi.
+- **`fetch-external-images.yml` MOD C doğrudan görsel adresini indiremiyordu:**
+  yalnızca ürün SAYFASI bekliyor, Shopify JSON'u yoksa HTML'de ilk `<img>`
+  arıyordu — JPEG baytlarında etiket bulamayınca "gorsel bulunamadi" diyordu.
+  Artık yanıtın kendisi görselse doğrudan kullanıyor; **hem content-type hem
+  sihirli baytlar** (sunucular JPEG'e `application/octet-stream` diyebiliyor,
+  yalnız uzantıya bakmak da bir HTML hata sayfasını `.jpg` diye kaydettirir).
+- **Fotoğraflardaki etiketler bir uyuşmazlık gösteriyor, operatör kararı
+  bekliyor:** hangtag `CATEGORY-STYLE 612966 / FABRIC TLVF1 / COLOUR 1069`
+  (siyah) — ilanla birebir. Ama paket ve etiket kareleri **612965**
+  (`FABRIC TLVF1 / COLOUR 9014`, pembe grafiti baskılı beyaz tişört) yazıyor,
+  yani ilanın kodundan **farklı bir stil numarası**. Beyaz model ayrı bir
+  artikelse kendi ilanını hak ediyor; aynı ilanda durursa alıcı 612966 sipariş
+  edip vitrinde 612965 görüyor.
+- **KURAL 19 — Konuşmanın satıcısı değişince THREAD ID'si de değişir** (operatör,
+  9 Eyl 2026: *"bu yazismanin ve ürünlerin saticisini tyrex olarak degistir"* —
+  AlexaShop S.A.S ↔ GARAGE LE PARIS, Ralph Lauren polo + Lacoste TH6709).
+  - Thread id **satıcıdan türeyen bir özet**: `vestra_msg_thread_id()` =
+    `md5(alıcı|satıcı|ilan)`. Yalnız `seller_uid`'i değiştirip id'yi bırakmak
+    **sessiz bir bozulma**: kayıt yeni satıcının panelinde görünür, ama bir
+    sonraki mesajda `vestra_msg_send()` yeni id'yi hesaplar, bulamaz ve aynı
+    taraflar için **İKİNCİ bir thread** açar — konuşma ikiye bölünür. Tek yazıcı
+    `seller-products.yml` → `admin_mode=thread_seller`; id'yi yeniden hesaplar,
+    yedekler, **geri okur**. Varsayılan kuru koşu.
+  - **İki durum taşımayı DURDURUR** (ve biri durursa hiçbir şey yazılmaz):
+    (1) eski satıcı o konuşmada **yazmışsa** — mesajlar `from` ile imzalı,
+    thread'i başka firmaya vermek o cümleleri de ona yazdırmak olur;
+    (2) aynı alıcı + yeni satıcı + ilan için **zaten thread varsa** — iki geçmişi
+    birleştirmek yeniden adlandırma değil, ayrı bir karar.
+  - `read`/`ping` haritaları **uid başına**; eskisininki devredilmez, silinir —
+    TYREX gerçekten okumadı, okunmamış görsün.
+  - **İlanın `seller` (görünen ad) alanı YOK, yalnız `seller_uid` var** — kayıt
+    açılıp bakıldı. Olsaydı ikinci kopya olurdu ve aynı gün `desc`/`sizes`'ta
+    yaşanan hatanın aynısı çıkardı: bir alanı değiştirip diğerini bırakmak.
+  - **Kimliği ID'den değil KAYITTAN doğrula:** ilan id'si `lac-pima-tshirt` ama
+    ürün **"Basic Crew Neck T-Shirt" (TH6709)**; `lac-pima-vneck` ayrı bir ilan
+    (TH6710). Id yanıltıcı; operatörün panelde gördüğü ad kayıtla doğrulandı,
+    yoksa yanlış ilanın satıcısı değiştirilecekti.
+  - **Kapsam dışı bırakılan, operatör kararı bekliyor:** aynı polo ilanında
+    **Ecokemet ↔ GARAGE LE PARIS** konuşması var (`84b19582d29558dd`, 5 mesaj,
+    2'si GARAGE LE PARIS'in kendi yazısı, en son 9 Eyl 08:04). İlan TYREX'e
+    geçtiği için o alıcı, artık TYREX'in olan bir ürün hakkında GARAGE LE
+    PARIS'le konuşmaya devam ediyor. Taşımak yukarıdaki (1) kuralına takılıyor.
+- **KURAL 20 — Her pakette TAŞIYICI + SERVİS + takip BAĞLANTISI; bağlantı
+  numaradan TÜRETİLİR** (operatör, 9 Eyl 2026: *"bu gönderim numarasini ekle
+  link ile beraber ups express saver"* + *"her pakette gönderici kargo bölümüde
+  olsun"* — O39419 / SK Ventures).
+  - O güne kadar `tracking` **çıplak bir dizgeydi**: alıcı sipariş sayfasında ve
+    mektupta 18 karakter görüyor, hangi firmanın taşıdığını ve nereye bakacağını
+    bilmiyordu. Taşıyıcı, servis adı ve bağlantı **üç ayrı olgu** ve üçü de
+    eksikti. Alanlar: `order_statuses.json[ref].ship_carrier` / `.ship_service`.
+  - **Bağlantı KAYDA YAZILMAZ.** `vestra_order_shipment()` onu numaradan kurar;
+    elle yapıştırılan bir URL aynı olgunun ikinci kopyası olurdu ve numara
+    değişince eski pakete bakmaya devam ederdi — `desc`/`sizes` ve thread-id
+    hatalarının aynı sınıfı. Test bunu tutuyor: kayda sahte bir `url` konsa bile
+    yok sayılıyor.
+  - **Çıkarım bilerek DAR: yalnız UPS** (`1Z` + 16 alfanümerik, başka hiçbir
+    taşıyıcının kullanmadığı kalıp). DHL'in 10 hanesi, FedEx'in 12 hanesi başka
+    numaralara benziyor; oradan tahmin yürütmek alıcıya **başka bir paketin** ya
+    da hiçbir şeyin sayfasını açar — bağlantı olmamasından kötü. Onlarda
+    taşıyıcıyı operatör yazar (mango/zara dersinin kargo hâli).
+  - **1Z sağlama basamağı BİLEREK doğrulanmıyor.** Algoritmayı sınayacak
+    güvenilir bir referans numaram yoktu; yanlış yazılmış bir sağlama **geçerli**
+    numaraları reddederdi — hiç kontrol etmemekten kötü bir arıza. Biçim kontrolü
+    kesin ve yanlış ret üretemez. *Doğrulayamadığın bir kontrolü koyma.*
+  - **Tek çözücü:** sipariş kartı, satıcı formu, admin formu ve "gönderildi"
+    mektubu dördü de `vestra_order_shipment()` okuyor. Mektup kendi başına
+    çözseydi sayfa ile e-posta iki ayrı şey yazabilirdi (KURAL 5f'in üç katmanı).
+  - **Alan formda YOKSA kayıtlı değer KORUNUR** (`array_key_exists`). Sipariş
+    listesindeki küçük durum formu taşıyıcı taşımıyor; koşulsuz yazsaydık
+    listeden durum değiştirmek kayıtlı taşıyıcıyı **sessizce silerdi**
+    (KURAL 4b'nin "işaretsiz kutucuk hiç gönderilmez" dersi).
+  - Panel dışından: `seller-products.yml` → `admin_mode=ship`
+    (`issue_ref=<sipariş>`, `ship_spec=tracking=…|carrier=ups|service=…|status=shipped`).
+    Kuru koşu varsayılan ve **mektubu önizler**; `status=shipped` verilirse
+    müşteriye gider. Yazma `vestra_order_set_shipment()` — panelle aynı kayıt,
+    geri okunuyor.
+  - `Carrier` / `Service` **8 sözlüğe birden** eklendi (KURAL 10).
+  - Test: `tests/shipment_test.php` (62 iddia). Düşebildiği doğrulandı: çıkarım
+    alt dizeye gevşetilince **8 kırmızı**, bağlantı kayıttan okunursa **2**.
+  - **Canlı (9 Eyl 2026):** O39419 `preparing → shipped`, UPS · Express Saver ·
+    `1ZY0089E0495346496`, mektup **teslim edildi** (Brevo `delivered`). CLAUDE.md
+    bu alıcıya *"numara girilince size gelir"* sözünün verildiğini zaten
+    kaydediyordu; tutulan söz o.
 - **Katalogdan gizli ürün: `unlisted`** (operatör kararı, 2 Eyl 2026 — Musterstück
   `lac-l1212-musterstueck`). `vestra_products()` varsayılan olarak `unlisted` kayıtları
   **atar**; her açık liste (vitrin, fiyat listeleri, katalog dosyaları, sitemap,

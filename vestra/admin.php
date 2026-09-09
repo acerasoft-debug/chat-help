@@ -339,7 +339,21 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     }
     if($okDel){
       $rs=vestra_read_json('offer_responses.json');
-      if(isset($rs[$ref])){ unset($rs[$ref]); vestra_write_json('offer_responses.json',$rs); }
+      if(isset($rs[$ref])){
+        /* PAZARLIK KAYDI DA YEDEKLENIR. offers.csv yedekleniyordu ama BU dosya
+           yedeklenmiyordu -- yani silme, alicinin ve saticinin verdigi butun
+           karsi teklifleri (kim, kac, ne zaman) GERI DONULMEZ sekilde yok
+           ediyordu. 9 Eyl 2026'da O9FBF5 iki kez silindi ve her seferinde
+           tur gecmisi kayboldu: satir yedekten geri geldi, pazarlik gelmedi.
+           Yalnizca silinen kayit yaziliyor, dosyanin tamami degil: baska
+           tekliflerin kaydini herkese acik olmayan ama gereksiz bir kopyaya
+           tasimanin sebebi yok. */
+        $bdir=vestra_data_dir().'/offer_backups';
+        if(!is_dir($bdir)) @mkdir($bdir,0775,true);
+        @file_put_contents($bdir.'/'.$ref.'-'.date('Ymd_His').'.json',
+          json_encode($rs[$ref], JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), LOCK_EX);
+        unset($rs[$ref]); vestra_write_json('offer_responses.json',$rs);
+      }
     }
     header('Location: /admin?tab=offers&msg='.($okDel?'offer_deleted':'offer_del_fail')); exit;
   }
@@ -1236,6 +1250,20 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $prev=$all[$ref]['status']??'pending';
       $prevTrk=trim((string)($all[$ref]['tracking']??'')); $newTrk=trim((string)($_POST['tracking']??''));
       $all[$ref]=array_merge($all[$ref]??[],['status'=>$st,'tracking'=>$newTrk,'updated_at'=>date('c')]);
+      /* Tasiyici + servis (operator, 9 Eyl 2026). Alanlar YALNIZCA formda
+         varsa yazilir: bu isleyici siparis listesindeki kucuk durum
+         formundan da cagriliyor ve orada kutular yok -- her gonderimde
+         yazsaydik, listeden durum degistirmek kayitli tasiyiciyi sessizce
+         silerdi (KURAL 4b'nin "isaretsiz kutucuk hic gonderilmez" dersi). */
+      if(array_key_exists('ship_carrier',$_POST)){
+        $c=strtolower(trim((string)$_POST['ship_carrier']));
+        if($c==='' ) unset($all[$ref]['ship_carrier']);
+        elseif(isset(vestra_carriers()[$c])) $all[$ref]['ship_carrier']=$c;
+      }
+      if(array_key_exists('ship_service',$_POST)){
+        $sv=trim(preg_replace('/\s+/',' ',(string)$_POST['ship_service']));
+        if($sv==='') unset($all[$ref]['ship_service']); else $all[$ref]['ship_service']=mb_substr($sv,0,60);
+      }
       $all[$ref]['history'][] = vestra_order_history_entry($st, 'admin');
       vestra_write_json('order_statuses.json',$all);
       /* Invoice flow: on "paid", tell the buyer + the sellers whose SKUs are in the order,
@@ -1298,7 +1326,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
         if($sRow && !empty($sRow['email'])){
           $buyerAcc=auth_find((string)$sRow['email']);
           require_once __DIR__.'/inc/email_templates.php';
-          [$subj,$body,$opts]=vestra_tpl_order_shipped($sRow['name']?:($sRow['company']?:'there'), $ref, $newTrk, (bool)$buyerAcc);
+          [$subj,$body,$opts]=vestra_tpl_order_shipped($sRow['name']?:($sRow['company']?:'there'), $ref, $newTrk, (bool)$buyerAcc, vestra_order_shipment($all[$ref]??null));
           vestra_send_mail($sRow['email'],$subj,$body,'','',null,'',$opts);
           if($buyerAcc){
             require_once __DIR__.'/inc/push.php';
@@ -3816,9 +3844,22 @@ elseif($tab==='orders'):
       <select name="status" style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
         <?= vestra_order_status_options((string)$vstatus) ?>
       </select>
-      <input name="tracking" value="<?= htmlspecialchars($vst['tracking']??'') ?>" placeholder="Tracking no." style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
+      <?php $vshp = vestra_order_shipment($vst); ?>
+      <select name="ship_carrier" style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
+        <option value="">Carrier —</option>
+        <?php foreach(vestra_carriers() as $ck=>$cv): if($ck==='other') continue; ?>
+          <option value="<?= htmlspecialchars($ck) ?>"<?= $vshp['carrier']===$ck?' selected':'' ?>><?= htmlspecialchars($cv['name']) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <input name="ship_service" value="<?= htmlspecialchars($vshp['service']) ?>" placeholder="Service (e.g. Express Saver)" style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
+      <input name="tracking" value="<?= htmlspecialchars($vshp['tracking']) ?>" placeholder="Tracking no." style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
       <button class="abtn primary" type="submit">Save</button>
     </form>
+    <?php if($vshp['url']!==''): ?>
+      <div class="ahint" style="margin-top:8px">🚚 <?= htmlspecialchars($vshp['carrier_name']) ?><?= $vshp['service']!==''?' · '.htmlspecialchars($vshp['service']):'' ?> — <a href="<?= htmlspecialchars($vshp['url']) ?>" target="_blank" rel="noopener nofollow"><?= htmlspecialchars($vshp['tracking']) ?></a></div>
+    <?php elseif($vshp['tracking']!=='' && $vshp['carrier']===''): ?>
+      <div class="ahint" style="margin-top:8px">⚠ Carrier not set — the buyer sees the number but no tracking link.</div>
+    <?php endif; ?>
     <?php
       /* Havale dekontu (2 Eyl 2026): musteri panelden yukledi ya da operator
          e-postadan iliştirdi -- ikisi de vestra_receipt_store()'dan gecer, tek

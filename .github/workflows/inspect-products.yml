@@ -50,6 +50,10 @@ on:
         description: "true = toptan fiyat listesini sekmeyle ayrılmış olarak dök (marka, art.no, ad, kategori, beden, MOQ, toptan, perakende, kaynak)"
         required: false
         default: "false"
+      fit_scan:
+        description: "true = KALIP TARAMASI: ad + açıklama + özelliklerde oversize/boxy/relaxed/slim... geçen ürünleri, kanıt cümlesiyle ve mevcut beden serisiyle yaz (KURAL 2h'nin kapsam sorusu)"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -81,13 +85,14 @@ jobs:
           INSPECT_LANG: ${{ github.event.inputs.lang_scan }}
           INSPECT_PLIST: ${{ github.event.inputs.price_list }}
           INSPECT_PAUDIT: ${{ github.event.inputs.price_audit }}
+          INSPECT_FIT: ${{ github.event.inputs.fit_scan }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 3m
-          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT
+          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT,INSPECT_FIT
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
@@ -111,6 +116,7 @@ jobs:
             $langscan = strtolower(trim((string)getenv("INSPECT_LANG")))    === 'true';
             $plist    = strtolower(trim((string)getenv("INSPECT_PLIST")))   === 'true';
             $paudit   = strtolower(trim((string)getenv("INSPECT_PAUDIT")))  === 'true';
+            $fitscan  = strtolower(trim((string)getenv("INSPECT_FIT")))     === 'true';
 
             /* Bir urunun gosterdigi TUM gorseller: kapak listesi, tekil 'image' ve her
                renk varyantinin kendi fotosu. Varyant fotolari da sayilmali -- katalogda
@@ -375,6 +381,113 @@ jobs:
                 printf("  %-26s %-7s %-52s [%s]\n", $h[0], $h[1], mb_substr($h[2], 0, 52), $h[3]);
               if (count($hits) > 80) printf("  ... ve %d alan daha\n", count($hits) - 80);
               if (!$hits) echo "  Turkce metin bulunamadi.\n";
+            }
+
+            /* KALIP TARAMASI -- "hangi urunler gercekten oversize?" (operator, 9 Eyl 2026).
+               KURAL 2h'nin lot dagilimi kalipa bagli: oversize bir tisortte nominal XS,
+               duz kalipta M gibi duruyor. Kapsami ADA bakarak secmek eksik kaliyor --
+               170 tisortun yalnizca 4'unun adinda "Oversized" geciyor, Balenciaga'nin
+               10 tisortunun adinda kalip hic yazmiyor.
+               Bu tarama ADIN otesine bakiyor: aciklama ve ozellik alanlari da kalibi
+               yaziyor olabilir ve orasi urunun KENDI kaydi -- hatirlamaya ya da disaridan
+               tahmine gore eleme yapmanin alternatifi bu (blocklist tarafindaki
+               'worksout' dersinin ayni sinifi).
+               SALT OKUNUR ve KARAR VERMEZ: bulduklarini kanit cumlesiyle yazar, hangi
+               ilanin seri degistirecegine insan bakar -- "regular fit" yazan bir ilani
+               oversize sanmak, sessizce yanlis beden gondermek olurdu. */
+            if ($fitscan) {
+              $prods = vestra_products();
+              /* Iki kume AYRI raporlanir: oversize'a isaret edenler ve TERSINE isaret
+                 edenler (slim/regular). Yalnizca birini aramak, "hicbir sey bulunamadi"
+                 ile "hepsi duz kalip" arasindaki farki gizlerdi. */
+              $wide   = ['oversize','oversized','boxy','relaxed fit','relaxed','loose fit','loose',
+                         'large fit','wide fit','baggy','dropped shoulder','drop shoulder'];
+              $narrow = ['slim fit','slim','regular fit','classic fit','fitted','tailored fit'];
+              $rows = [];
+              foreach ($prods as $p2) {
+                $bn = trim((string)($p2['brand'] ?? ''));
+                if ($bf !== '' && $bf !== '*' && stripos($bn, $bf) === false) continue;
+                if ($cf !== '' && strcasecmp(trim((string)($p2['cat'] ?? '')), $cf) !== 0) continue;
+                /* specs bir dizi olabiliyor (etiket => deger); duz metne cevrilip
+                   birlikte taraniyor, yoksa kalip oradaysa hic gorunmezdi. */
+                $specTxt = '';
+                if (!empty($p2['specs']) && is_array($p2['specs'])) {
+                  foreach ($p2['specs'] as $k => $v) {
+                    $specTxt .= ' '.(is_string($k) ? $k.': ' : '').(is_scalar($v) ? (string)$v : '');
+                  }
+                }
+                $fields = [
+                  'ad'   => (string)($p2['name'] ?? ''),
+                  'aciklama' => (string)($p2['desc'] ?? ''),
+                  'ozellik'  => trim($specTxt),
+                ];
+                foreach ($fields as $fname => $val) {
+                  if (trim($val) === '') continue;
+                  $plain = mb_strtolower($val);
+                  foreach ([['GENIS', $wide], ['DAR', $narrow]] as [$tag, $words]) {
+                    foreach ($words as $w) {
+                      /* Kelime siniri: "loose" kelimesi "blouse" icinde, "slim" de
+                         "slimline" icinde gecmesin -- bu depoda mango/zara dersi. */
+                      if (!preg_match('/(?<![a-z])'.preg_quote($w, '/').'(?![a-z])/u', $plain, $m, PREG_OFFSET_CAPTURE)) continue;
+                      /* Kanit cumlesi: eslesmenin etrafindan bir parca. Yalnizca
+                         "eslesti" yazan bir rapor, okuyani kaynaga geri gonderir. */
+                      $off = max(0, $m[0][1] - 40);
+                      $ctx = trim(preg_replace('/\s+/u', ' ', mb_strcut($val, $off, 110)));
+                      $rows[] = [(string)($p2['id'] ?? '?'), $bn, (string)($p2['name'] ?? ''),
+                                 $tag, $w, $fname, $ctx, (string)($p2['sizes'] ?? '')];
+                      continue 3;   // urun basina TEK satir yeter
+                    }
+                  }
+                }
+              }
+              echo "\n===== KALIP TARAMASI =====\n";
+              printf("taranan urun: %d   kalip belirten: %d\n", count($prods), count($rows));
+              $g = array_values(array_filter($rows, fn($r) => $r[3] === 'GENIS'));
+              $d = array_values(array_filter($rows, fn($r) => $r[3] === 'DAR'));
+              printf("\n-- GENIS kalip (oversize/boxy/relaxed...) : %d --\n", count($g));
+              foreach ($g as $r) {
+                printf("  %-26s %-16s %-40s [%s@%s]\n      kanit: %s\n      beden: %s\n",
+                       $r[0], $r[1], mb_substr($r[2], 0, 40), $r[4], $r[5], $r[6], $r[7]);
+              }
+              if (!$g) echo "  (yok)\n";
+              printf("\n-- DAR kalip (slim/regular...) : %d --\n", count($d));
+              foreach ($d as $r) {
+                printf("  %-26s %-16s %-40s [%s@%s]\n      beden: %s\n",
+                       $r[0], $r[1], mb_substr($r[2], 0, 40), $r[4], $r[5], $r[7]);
+              }
+              if (!$d) echo "  (yok)\n";
+              echo "\nNOT: kalip belirtmeyen urun kaydinda BILGI YOK demektir, 'duz kalip' demek degil.\n";
+
+              /* BEDEN SERISI IKI YERDE YAZILI: 'sizes' alani ve 'desc' metni.
+                 9 Eyl 2026'da 14 ilanda 'sizes' yeni seriye cekildi ama ACIKLAMA
+                 eski seriyi tasimaya devam etti -- urun sayfasi ayni urun icin iki
+                 farkli beden dagilimi gosteriyordu ve operator once bunu gordu.
+                 Bu depoda tekrar eden ders (KURAL 5f'in uc katmani, KURAL 11'in
+                 SSS/sabit ayrismasi): ayni olgu iki yere yazilirsa er gec ayrisir.
+                 Burada birlestirmek mumkun degil -- desc serbest metin, satici da
+                 yaziyor -- o yuzden en azindan CELISKI GORUNUR olmali. */
+              $runOf = function (string $s): string {
+                $re = '/(?:XXS|XS|S|M|L|XL|XXL|XXXL|XXXXL)\s*[×xX*]\s*\d+(?:\s*[·,\-]\s*(?:XXS|XS|S|M|L|XL|XXL|XXXL|XXXXL)\s*[×xX*]\s*\d+)+/u';
+                return preg_match($re, $s, $m) ? preg_replace('/\s+/u', ' ', trim($m[0])) : '';
+              };
+              $clash = [];
+              foreach ($prods as $p2) {
+                $bn = trim((string)($p2['brand'] ?? ''));
+                if ($bf !== '' && $bf !== '*' && stripos($bn, $bf) === false) continue;
+                if ($cf !== '' && strcasecmp(trim((string)($p2['cat'] ?? '')), $cf) !== 0) continue;
+                $dsc = (string)($p2['desc'] ?? '');
+                $rd  = $runOf($dsc);
+                if ($rd === '') continue;                 // aciklamada seri yok: celiski de yok
+                $rs = $runOf((string)($p2['sizes'] ?? ''));
+                if ($rs !== '' && $rs === $rd) continue;  // ikisi ayni: sorun yok
+                $clash[] = [(string)($p2['id'] ?? '?'), $bn, $rs, $rd, $dsc];
+              }
+              printf("\n-- ACIKLAMA ile BEDEN ALANI CELISIYOR : %d --\n", count($clash));
+              foreach ($clash as $c) {
+                printf("  %-26s %-16s\n      sizes    : %s\n      aciklama : %s\n      desc     : %s\n",
+                       $c[0], $c[1], $c[2] !== '' ? $c[2] : '(seri yok)', $c[3], $c[4]);
+              }
+              if (!$clash) echo "  (yok -- iki alan her urunde ayni seriyi yaziyor)\n";
             }
 
             /* Ozet EN SONDA: kutuk cok uzarsa API yalnizca sonunu veriyor, bas taraf

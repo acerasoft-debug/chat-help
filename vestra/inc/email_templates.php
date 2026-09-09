@@ -1339,19 +1339,40 @@ function vestra_tpl_escrow_info(string $salutation, float $cap, float $feeRate, 
  * already paid in full and the sentence is simply false. Receipt confirmation is
  * still asked for, without the reason attached.
  */
-function vestra_tpl_order_shipped(string $buyerName, string $ref, string $tracking = '', bool $hasAccount = false): array {
+function vestra_tpl_order_shipped(string $buyerName, string $ref, string $tracking = '', bool $hasAccount = false, array $shipment = []): array {
     $buyerName = vestra_display_name($buyerName);
     if ($buyerName === '') $buyerName = 'Customer';
+    /* Taşıyıcı/servis/bağlantı vestra_order_shipment()'tan gelir — mektup kendi
+       başına ÇÖZMEZ. Çözseydi sipariş sayfası ile mektup iki ayrı şey yazabilirdi
+       (operatör, 9 Eyl 2026: "her pakette gönderici kargo bölümüde olsun").
+       $tracking ayrı parametre olarak duruyor: eski çağıranlar kırılmasın. */
+    $carrier = trim((string)($shipment['carrier_name'] ?? ''));
+    $service = trim((string)($shipment['service'] ?? ''));
+    $trkUrl  = trim((string)($shipment['url'] ?? ''));
     $rows = [['label'=>'Order ref', 'value'=>$ref]];
+    if ($carrier !== '') $rows[] = ['label'=>'Carrier', 'value'=>$carrier.($service !== '' ? ' · '.$service : '')];
+    elseif ($service !== '') $rows[] = ['label'=>'Service', 'value'=>$service];
     if ($tracking !== '') $rows[] = ['label'=>'Tracking number', 'value'=>$tracking, 'strong'=>true];
     $opts = ['badge'=>'🚚 Shipped', 'rows'=>$rows];
-    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders'];
+    /* Ana düğme TAKİP sayfasına gider: bu mektubu alan kişinin yapmak istediği
+       tek şey o. Panel bağlantısı ikincil kalır — "tek işlevi olan bir mektubun
+       düğmesi o işlev olmalı" (karşı teklif mektubunun aynı dersi). */
+    if ($trkUrl !== '')      $opts['button'] = ['label'=>'Track this shipment', 'url'=>$trkUrl];
+    elseif ($hasAccount)     $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders'];
+    if ($trkUrl !== '' && $hasAccount) $opts['button_alt'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders'];
 
+    $carrierLine = '';
+    if ($carrier !== '' || $service !== '') {
+        $carrierLine = "Carrier: ".($carrier !== '' ? $carrier : '—').($service !== '' ? " ".$service : '')."\n";
+    }
     $subject = "VESTRA — your order {$ref} has shipped";
     $body =
         "Hello {$buyerName},\n\n"
       . "Good news — your order {$ref} has been shipped.\n\n"
-      . ($tracking !== '' ? "Tracking number: {$tracking}\n\n" : '')
+      . $carrierLine
+      . ($tracking !== '' ? "Tracking number: {$tracking}\n" : '')
+      . ($trkUrl !== '' ? "Track it here: {$trkUrl}\n" : '')
+      . ($carrierLine !== '' || $tracking !== '' ? "\n" : '')
       . ($hasAccount
           ? "Once the goods arrive and you have inspected them, please confirm receipt in your buyer dashboard:\nhttps://vestrasales.com/buyer?tab=orders\n\n"
           : "If anything about the delivery needs our attention, simply reply to this e-mail.\n\n")

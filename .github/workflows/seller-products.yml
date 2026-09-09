@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -38,6 +38,30 @@ on:
         description: "issue_redraft ile: faturanın sıra numarasını bu sayıya çeker (ör: 102 -> INV-2026-000102) ve satıcının sayacını oradan devam ettirir. Boş = numaraya dokunma."
         required: false
         default: ""
+      move_to:
+        description: "admin_mode=thread_seller: konusmalarin YENI saticisi — hesap uid'i ya da firma adindan bir parca (ör: tyrex)"
+        required: false
+        default: ""
+      move_threads:
+        description: "admin_mode=thread_seller: tasinacak thread id'leri (virgulle). 'ilan:<listing_id>' yazarsaniz O ILANIN tum thread'leri."
+        required: false
+        default: ""
+      move_apply:
+        description: "admin_mode=thread_seller: 'true' = KAYDET. Varsayilan kuru kosu — ne olacagini yazar, dosyaya dokunmaz."
+        required: false
+        default: "false"
+      ship_spec:
+        description: "admin_mode=ship: gönderim bilgisi — 'tracking=<no>|carrier=ups|service=Express Saver|status=shipped'. status=shipped verilirse MÜŞTERİYE 'gönderildi' MEKTUBU GİDER. offer_apply=true demedikçe kuru koşu."
+        required: false
+        default: ""
+      offer_price:
+        description: "admin_mode=offer_restore: karşı teklif BİRİM fiyatı (ör: 100). Boş = yalnız kaydı geri yükle, teklif verme, MÜŞTERİYE HİÇBİR ŞEY GİTMEZ."
+        required: false
+        default: ""
+      offer_apply:
+        description: "admin_mode=offer_restore: 'true' = KAYDET (ve fiyat verildiyse karşı teklifi işleyip MÜŞTERİYE MEKTUP GÖNDER). Varsayılan kuru koşu."
+        required: false
+        default: "false"
       issue_pubkey:
         description: "admin_mode=issue için: kesilen PDF'in şifreleneceği RSA public key (PEM, base64). Depo herkese açık, PDF şifresiz dönmez."
         required: false
@@ -906,6 +930,494 @@ jobs:
             php -l /tmp/vestra_seller_apply.php
             php /tmp/vestra_seller_apply.php
             rm -f /tmp/vestra_seller_apply.php
+
+      - name: Konuşmanın satıcısını taşı
+        if: ${{ github.event.inputs.admin_mode == 'thread_seller' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          MV_TO: ${{ github.event.inputs.move_to }}
+          MV_TH: ${{ github.event.inputs.move_threads }}
+          MV_GO: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: MV_TO,MV_TH,MV_GO
+          script: |
+            set -e
+            cat > /tmp/vestra_mvseller.php <<'PHPEOF'
+            <?php
+            /* Bir konusmayi baska bir saticiya tasi.
+             *
+             * TEK ONEMLI TUZAK: thread'in id'si SATICIDAN TUREEN bir ozet --
+             * vestra_msg_thread_id() = md5(alici|satici|ilan). Yalnizca 'seller_uid'
+             * alanini degistirip id'yi oldugu gibi birakmak sessiz bir bozulma olur:
+             * kayit yeni saticinin panelinde gorunur ama bir sonraki mesajda
+             * vestra_msg_send() yeni id'yi hesaplar, o id'yi bulamaz ve AYNI taraflar
+             * icin IKINCI bir thread acar -- konusma ikiye boluner. Bu yuzden id de
+             * yeniden hesaplaniyor.
+             *
+             * Yazma yollari sunucudaki tek kaynaktan gecer (vestra_msg_threads /
+             * vestra_msg_save_threads); dosya bicimini burada elle kurmuyoruz. */
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/products.php";
+            require_once $doc."/inc/messages.php";
+
+            $to   = trim((string)getenv('MV_TO'));
+            $sel  = trim((string)getenv('MV_TH'));
+            $go   = strtolower(trim((string)getenv('MV_GO'))) === 'true';
+            if ($to === '' || $sel === '') { fwrite(STDERR, "move_to ve move_threads zorunlu\n"); exit(1); }
+
+            /* Hedef hesap: once tam uid, sonra firma/ad icinde parca. Birden fazla
+               hesap eslesirse DUR -- yanlis satici, yanlis panele dusen bir konusma
+               ve (ilan da tasinirsa) yanlis tuzel kisiden fatura demek. */
+            $accs = auth_accounts();
+            $hit = [];
+            foreach ($accs as $a) {
+              if (($a['id'] ?? '') === $to) { $hit = [$a]; break; }
+              $hay = strtolower(($a['company'] ?? '').' '.($a['name'] ?? ''));
+              if (stripos($hay, strtolower($to)) !== false) $hit[] = $a;
+            }
+            if (count($hit) !== 1) {
+              fwrite(STDERR, "hedef satici tek degil ('{$to}' -> ".count($hit)." hesap)\n");
+              foreach ($hit as $a) fwrite(STDERR, "   ".($a['id']??'?')." | ".($a['company']??'')." | ".($a['name']??'')."\n");
+              exit(1);
+            }
+            $newUid  = (string)$hit[0]['id'];
+            $newName = trim(($hit[0]['company'] ?? '') ?: ($hit[0]['name'] ?? ''));
+            echo "hedef satici: {$newName}  (uid {$newUid})\n\n";
+
+            $threads = vestra_msg_threads();
+            $byId = [];
+            foreach ($threads as $i => $t) $byId[(string)($t['id'] ?? '')] = $i;
+
+            /* Secim: id listesi ya da 'ilan:<listing_id>' (o ilanin TUM konusmalari).
+               Ilan biciminin sebebi: bir ilan el degistirdiginde geride kalan tek bir
+               konusma, artik satmadigi bir urun hakkinda eski saticiya mektup
+               gondermeye devam eder. */
+            $want = [];
+            foreach (preg_split('/[,\s]+/', $sel) as $tok) {
+              $tok = trim($tok); if ($tok === '') continue;
+              if (stripos($tok, 'ilan:') === 0) {
+                $lid = substr($tok, 5);
+                foreach ($threads as $t) if ((string)($t['listing_id'] ?? '') === $lid) $want[] = (string)($t['id'] ?? '');
+              } else $want[] = $tok;
+            }
+            $want = array_values(array_unique(array_filter($want)));
+            if (!$want) { fwrite(STDERR, "secilen thread yok\n"); exit(1); }
+
+            $nameOf = function (string $uid) use ($accs): string {
+              foreach ($accs as $a) if (($a['id'] ?? '') === $uid) return trim(($a['company'] ?? '') ?: ($a['name'] ?? '')) ?: $uid;
+              return $uid;
+            };
+            $plan = []; $stop = 0;
+            foreach ($want as $tid) {
+              if (!isset($byId[$tid])) { echo "  ATLANDI {$tid}: thread yok\n"; $stop++; continue; }
+              $t = $threads[$byId[$tid]];
+              $old = (string)($t['seller_uid'] ?? '');
+              $buy = (string)($t['buyer_uid'] ?? '');
+              $lid = (string)($t['listing_id'] ?? '');
+              $msgs = (array)($t['messages'] ?? []);
+              echo "  {$tid} | ilan={$lid} | alici=".$nameOf($buy)." | satici=".$nameOf($old)." | mesaj=".count($msgs)."\n";
+              if ($old === $newUid) { echo "      zaten bu saticida — atlandi\n"; continue; }
+
+              /* ESKI SATICI BU KONUSMADA YAZDIYSA TASIMA. Mesajlar 'from' ile
+                 imzali; thread'i baska bir firmaya vermek, o cumleleri de ona
+                 yazdirmak olur. Kim ne yazdiysa o yazmis kalir. */
+              $wrote = 0;
+              foreach ($msgs as $m) if ((string)($m['from'] ?? '') === $old) $wrote++;
+              if ($wrote > 0) {
+                echo "      DURDU: eski satici bu konusmada {$wrote} mesaj YAZMIS.\n";
+                echo "      Tasimak o sozleri baska firmaya mal etmek olurdu — operator karari gerekiyor.\n";
+                $stop++; continue;
+              }
+
+              $newId = vestra_msg_thread_id($buy, $newUid, $lid);
+              if (isset($byId[$newId]) && $newId !== $tid) {
+                echo "      DURDU: bu alici+yeni satici+ilan icin ZATEN thread var ({$newId}).\n";
+                echo "      Iki gecmisi birlestirmek yeniden adlandirma degil, ayri bir karar.\n";
+                $stop++; continue;
+              }
+              echo "      -> satici ".$nameOf($old)." => {$newName} | id {$tid} => {$newId}\n";
+              $plan[] = ['i'=>$byId[$tid], 'old'=>$old, 'newId'=>$newId];
+            }
+
+            if ($stop > 0) { fwrite(STDERR, "\n{$stop} thread durdu — hicbir sey yazilmadi (hepsi ya da hicbiri).\n"); exit(1); }
+            if (!$plan)    { echo "\ndegisecek thread yok.\n"; exit(0); }
+            if (!$go)      { echo "\nKURU KOSU — hicbir sey kaydedilmedi. Uygulamak icin move_apply=true.\n"; exit(0); }
+
+            $bak = $doc.'/data/messages.json.bak-'.date('Ymd-His');
+            @copy($doc.'/data/messages.json', $bak);
+            echo "\nyedek: {$bak}\n";
+            foreach ($plan as $p) {
+              $i = $p['i'];
+              $threads[$i]['seller_uid'] = $newUid;
+              $threads[$i]['id']         = $p['newId'];
+              /* Okuma imleci ve zil damgasi UID BASINA tutuluyor. Eskisininkini yeni
+                 saticiya devretmek, hic okumadigi mesajlari okunmus gostermek olurdu;
+                 birakmak da olmayan bir hesabi kayitta tutar. Silinir: TYREX gercekten
+                 okumadi, okunmamis gorsun. */
+              foreach (['read','ping'] as $k) if (isset($threads[$i][$k][$p['old']])) unset($threads[$i][$k][$p['old']]);
+            }
+            vestra_msg_save_threads($threads);
+
+            /* GERI OKU: yazma sessizce basarisiz olabilir (izin, disk) ve
+               "kaydedildi" yazan bir satir tek basina kanit degil. */
+            $after = vestra_msg_threads(); $ok = 0;
+            foreach ($plan as $p) {
+              foreach ($after as $t) {
+                if ((string)($t['id'] ?? '') === $p['newId'] && (string)($t['seller_uid'] ?? '') === $newUid) { $ok++; break; }
+              }
+            }
+            printf("KAYDEDILDI — %d/%d thread yeni saticida ve yeni id ile geri okundu.\n", $ok, count($plan));
+            exit($ok === count($plan) ? 0 : 1);
+            PHPEOF
+            php -l /tmp/vestra_mvseller.php
+            php /tmp/vestra_mvseller.php; RC=$?
+            rm -f /tmp/vestra_mvseller.php
+            exit $RC
+
+      - name: Siparişe taşıyıcı / servis / takip numarası yaz (ship)
+        if: ${{ github.event.inputs.admin_mode == 'ship' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SH_REF:  ${{ github.event.inputs.issue_ref }}
+          SH_SPEC: ${{ github.event.inputs.ship_spec }}
+          SH_GO:   ${{ github.event.inputs.offer_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: SH_REF,SH_SPEC,SH_GO
+          script: |
+            set -e
+            cat > /tmp/vestra_shipment.php <<'PHPEOF'
+            <?php
+            /* Siparise tasiyici + servis + takip numarasi yazar; istenirse durumu
+             * 'shipped' yapar ve ALICIYA mektup gonderir.
+             *
+             * Panelde bu kutular var; bu yol panel disindan ayni kaydi yazmak icin
+             * (KURAL 5b/5i'deki admin_mode desenlerinin aynisi). Yazma TEK
+             * fonksiyondan: vestra_order_set_shipment() -- ikinci bir yazici,
+             * panelle er gec ayrisir.
+             *
+             * MEKTUP: gonderim yolu vestra_tpl_order_shipped() ile ayni sablonu
+             * kullanir (admin.php ve seller.php de oyle). Kuru kosu VARSAYILAN
+             * (KURAL 18): mektup musteriye gidiyor. */
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require_once $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/email_templates.php";
+            require_once $doc."/inc/notify.php";
+
+            $ref  = trim((string)getenv('SH_REF'));
+            $spec = (string)getenv('SH_SPEC');
+            $go   = strtolower(trim((string)getenv('SH_GO'))) === 'true';
+            if ($ref === '') { fwrite(STDERR, "issue_ref bos -- siparis referansi gerekli\n"); exit(1); }
+
+            $F = [];
+            foreach (explode('|', $spec) as $part) {
+              $part = trim($part); if ($part === '') continue;
+              $kv = explode('=', $part, 2);
+              if (count($kv) === 2) $F[strtolower(trim($kv[0]))] = trim($kv[1]);
+            }
+            $E = fn(string $k) => (string)($F[$k] ?? '');
+
+            /* Siparis GERCEKTEN var mi. orders.csv'de olmayan bir ref'e durum
+               yazmak, hicbir yerde gorunmeyen bir kayit birakir. */
+            $oRow = null;
+            foreach (vestra_read_csv('orders.csv') as $r) if ((string)($r['ref'] ?? '') === $ref) { $oRow = $r; break; }
+            if (!$oRow) { fwrite(STDERR, "siparis bulunamadi: {$ref}\n"); exit(1); }
+
+            $mask = fn(string $e) => $e === '' ? '' : preg_replace('/^(.).*(@.*)$/', '$1***$2', $e);
+            $all  = vestra_read_json('order_statuses.json');
+            $cur  = (array)($all[$ref] ?? []);
+            $prevStatus = (string)($cur['status'] ?? 'pending');
+            $before = vestra_order_shipment($cur);
+
+            echo "== GONDERIM BILGISI ==\n";
+            echo "siparis   : {$ref} | ".(string)($oRow['company'] ?? '')." | ".$mask((string)($oRow['email'] ?? ''))."\n";
+            echo "durum     : {$prevStatus}\n";
+            echo "onceki    : tasiyici=".($before['carrier_name'] ?: '-')." servis=".($before['service'] ?: '-')
+               . " takip=".($before['tracking'] ?: '-')."\n";
+
+            /* Yazilmayan alan KORUNUR: null gecince vestra_order_set_shipment
+               dokunmuyor. Bos dizge ise SILER -- ikisi ayri niyet. */
+            $trk = array_key_exists('tracking', $F) ? $E('tracking') : null;
+            $car = array_key_exists('carrier',  $F) ? $E('carrier')  : null;
+            $svc = array_key_exists('service',  $F) ? $E('service')  : null;
+            $wantStatus = strtolower($E('status'));
+            if ($wantStatus !== '' && !in_array($wantStatus, vestra_order_settable_statuses(), true)) {
+              fwrite(STDERR, "gecersiz durum: {$wantStatus} (gecerli: ".implode(', ', vestra_order_settable_statuses()).")\n"); exit(1);
+            }
+
+            /* ONIZLEME: yazmadan once cozulen tasiyici ve BAGLANTIYI goster.
+               "Numarayi yazdim" demek yetmez -- alicinin tiklayacagi sey bu. */
+            $preview = vestra_order_shipment(array_merge($cur, array_filter([
+              'tracking'     => $trk,
+              'ship_carrier' => $car,
+              'ship_service' => $svc,
+            ], fn($v) => $v !== null)));
+            echo "yeni      : tasiyici=".($preview['carrier_name'] ?: '-')." servis=".($preview['service'] ?: '-')
+               . " takip=".($preview['tracking'] ?: '-')."\n";
+            echo "baglanti  : ".($preview['url'] !== '' ? $preview['url'] : '*** YOK -- tasiyici cozulmedi, alici duz metin gorur ***')."\n";
+            echo "durum     : ".($wantStatus !== '' ? "{$prevStatus} -> {$wantStatus}" : "degismiyor")."\n";
+
+            $buyerAcc = auth_find((string)($oRow['email'] ?? ''));
+            $willMail = $wantStatus === 'shipped'
+                     && ($prevStatus !== 'shipped' || ($preview['tracking'] !== '' && $preview['tracking'] !== $before['tracking']));
+            echo "mektup    : ".($willMail ? 'GIDECEK (aliciya)' : 'gitmeyecek')."\n";
+            if ($willMail) {
+              [$mS, $mB] = vestra_tpl_order_shipped((string)($oRow['name'] ?: ($oRow['company'] ?: 'there')),
+                              $ref, $preview['tracking'], (bool)$buyerAcc, $preview);
+              echo "--- mektup onizlemesi ---\nKonu: {$mS}\n{$mB}\n--- son ---\n";
+            }
+
+            if (!$go) { echo "\noffer_apply=false — HICBIR SEY YAZILMADI, HICBIR MEKTUP GITMEDI.\n"; exit(0); }
+
+            $res = vestra_order_set_shipment($ref, $trk, $car, $svc);
+            if (empty($res['ok'])) { fwrite(STDERR, "YAZILAMADI: ".((string)($res['error'] ?? '?'))."\n"); exit(1); }
+            $after = $res['shipment'];
+            echo "\nKAYDEDILDI (geri okundu): tasiyici=".($after['carrier_name'] ?: '-')
+               . " servis=".($after['service'] ?: '-')." takip=".($after['tracking'] ?: '-')."\n";
+            echo "baglanti  : ".($after['url'] !== '' ? $after['url'] : 'YOK')."\n";
+
+            if ($wantStatus !== '') {
+              $all2 = vestra_read_json('order_statuses.json');
+              $all2[$ref] = array_merge((array)($all2[$ref] ?? []), ['status' => $wantStatus, 'updated_at' => date('c')]);
+              if ($wantStatus === 'shipped' && empty($all2[$ref]['shipped_at'])) $all2[$ref]['shipped_at'] = date('c');
+              $all2[$ref]['history'][] = vestra_order_history_entry($wantStatus, 'admin',
+                  $after['tracking'] !== '' ? trim(($after['carrier_name'] !== '' ? $after['carrier_name'].' ' : '').$after['tracking']) : '');
+              vestra_write_json('order_statuses.json', $all2);
+              $back = vestra_read_json('order_statuses.json');
+              $now  = (string)($back[$ref]['status'] ?? '');
+              if ($now !== $wantStatus) { fwrite(STDERR, "GERI OKUMA: durum '{$now}', beklenen '{$wantStatus}'\n"); exit(1); }
+              echo "durum     : {$now} (geri okundu)\n";
+            }
+
+            if ($willMail && !empty($oRow['email'])) {
+              [$mS, $mB, $mO] = vestra_tpl_order_shipped((string)($oRow['name'] ?: ($oRow['company'] ?: 'there')),
+                                  $ref, $after['tracking'], (bool)$buyerAcc, $after);
+              $sent = vestra_send_mail((string)$oRow['email'], $mS, $mB, '', '', null, '', $mO);
+              echo "mektup    : ".($sent ? 'GONDERILDI' : '*** SAGLAYICI REDDETTI ***')."\n";
+              if ($buyerAcc) {
+                require_once $doc."/inc/push.php";
+                vestra_push_send((string)$buyerAcc['id'], 'VESTRA — order shipped 🚚',
+                  'Order '.$ref.($after['tracking'] !== '' ? ' · '.trim($after['carrier_name'].' '.$after['tracking']) : '').' is on its way.',
+                  '/buyer?tab=orders');
+              }
+              if (!$sent) exit(1);
+            }
+            PHPEOF
+            php -l /tmp/vestra_shipment.php
+            php /tmp/vestra_shipment.php; RC=$?
+            rm -f /tmp/vestra_shipment.php
+            exit $RC
+
+      - name: Silinmiş teklifi yedekten geri yükle (+ karşı teklif)
+        if: ${{ github.event.inputs.admin_mode == 'offer_restore' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          OR_REF:   ${{ github.event.inputs.issue_ref }}
+          OR_PRICE: ${{ github.event.inputs.offer_price }}
+          OR_GO:    ${{ github.event.inputs.offer_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: OR_REF,OR_PRICE,OR_GO
+          script: |
+            set -e
+            cat > /tmp/vestra_offrestore.php <<'PHPEOF'
+            <?php
+            /* Panelden SILINMIS bir teklifi kendi yedeginden geri yukler ve
+             * istenirse karsi teklifi isler.
+             *
+             * NEDEN VAR: Admin > Offers > Sil, teklifi offers.csv'den ve
+             * offer_responses.json'dan cikarir (KURAL 5g) -- ama SILMEDEN ONCE
+             * offers.csv'yi 'offers.csv.bak-del-<zaman>' olarak kopyalar. Yanlislikla
+             * silinen bir teklifin satiri o yedekte DURUYOR. Geri donusun tek dogru
+             * yolu odur: satiri elle yeniden yazmak, alicinin hic vermedigi bir
+             * rakami/zaman damgasini uydurmak olurdu (KURAL 3'un teklif hali).
+             * Yedek yoksa is DURUR -- "muhtemelen boyleydi" diye bir kayit yazilmaz.
+             *
+             * KARSI TEKLIF ayni fonksiyondan geciyor: vestra_offer_respond($ref,
+             * 'counter', $price, null, 'VESTRA') -- admin.php:1196'nin BIREBIR aynisi.
+             * Ikinci bir kesim/pazarlik yolu yazilmadi: KURAL 4'un tur sayaci, fiyat
+             * tavani, token uretimi ve mektubu tek yerde kalmali.
+             *
+             * KURU KOSU VARSAYILAN (KURAL 18): mektup musteriye gidiyor, o yuzden
+             * offer_apply=true denmedikce hicbir sey yazilmaz ve hicbir sey gonderilmez. */
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require_once $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/offers.php";
+            /* invoice.php AYRICA: offers.php onu yalnizca fonksiyon GOVDESINDE
+               require ediyor, yani cagrilmadikca yuklenmiyor ve
+               function_exists('vestra_invoices_for_ref') FALSE donuyordu --
+               teshis KESILMIS bir faturaya "KESILMEDI" diyordu (CLAUDE.md). */
+            require_once $doc."/inc/invoice.php";
+
+            $ref   = trim((string)getenv('OR_REF'));
+            $pIn   = trim((string)getenv('OR_PRICE'));
+            $go    = strtolower(trim((string)getenv('OR_GO'))) === 'true';
+            if ($ref === '') { fwrite(STDERR, "issue_ref bos -- geri yuklenecek teklif referansi gerekli\n"); exit(1); }
+
+            /* Gunluk herkese acik. Is bilgisi (ref, urun, adet, fiyat, firma) acik
+               kalir -- aramanin amaci o; kisiye ait olan maskeli (diag-live'in
+               2 Eyl 2026 dersi: bir satiri "oldugu gibi bas" yapan adim, alicinin
+               adresini herkese acik gunluge yazdi). */
+            $maskMail = fn(string $e) => $e === '' ? '' : preg_replace('/^(.).*(@.*)$/', '$1***$2', $e);
+            $show = function (string $k, string $v) use ($maskMail): string {
+              $k = strtolower($k);
+              if ($v === '') return '';
+              if ($k === 'email' || str_ends_with($k, '_email')) return $maskMail($v);
+              if (in_array($k, ['name','contact','phone','address'], true)) return mb_substr($v,0,1).'*** ('.mb_strlen($v).' karakter)';
+              if (in_array($k, ['message','note','notes'], true)) return '[maskeli, '.mb_strlen($v).' karakter]';
+              return mb_substr($v, 0, 120);
+            };
+
+            echo "== TEKLIF GERI YUKLEME ==\n";
+            echo "ref            : {$ref}\n";
+
+            $live = vestra_offer_row($ref);
+            $row  = $live;
+            $needRestore = ($live === null);
+            echo "offers.csv     : ".($live ? "ref ZATEN VAR (geri yukleme gerekmiyor)" : "ref YOK -- silinmis")."\n";
+
+            $bakName = ''; $bakRows = 0;
+            if ($needRestore) {
+              /* Yedekler zaman damgali (bak-del-Ymd_His), yani ADIN tersten
+                 siralanmasi = en yeniden en eskiye. En yeni yedek, en son silmenin
+                 ONCESINI tutar: aranan satir orada olmali. */
+              $dir  = vestra_data_dir();
+              $baks = glob($dir.'/offers.csv.bak-del-*') ?: [];
+              rsort($baks, SORT_STRING);
+              echo "yedek dosya    : ".count($baks)." adet\n";
+              foreach ($baks as $b) {
+                $base = basename($b);
+                $rows = vestra_read_csv($base);          /* not: bu okuyucu satirlari TERS cevirir */
+                foreach ($rows as $r) {
+                  if ((string)($r['ref'] ?? '') !== $ref) continue;
+                  $row = $r; $bakName = $base; $bakRows = count($rows); break 2;
+                }
+              }
+              if (!$row) {
+                fwrite(STDERR, "\nHICBIR YEDEKTE YOK: {$ref}\n");
+                foreach ($baks as $b) fwrite(STDERR, "   ".basename($b)."  ".count(vestra_read_csv(basename($b)))." satir\n");
+                fwrite(STDERR, "Kayit uydurulmaz -- alicinin verdigi rakam ve zaman damgasi ancak kendi kaydindan gelir.\n");
+                exit(1);
+              }
+              echo "bulundugu yedek: {$bakName}  ({$bakRows} satir)\n";
+            }
+
+            echo "satir          :\n";
+            foreach ($row as $k => $v) {
+              $sv = $show((string)$k, trim((string)$v));
+              if ($sv !== '') printf("   %-12s %s\n", $k, $sv);
+            }
+
+            $qty  = (int)($row['qty'] ?? 0);
+            $unit = (float)($row['offer_unit'] ?? 0);
+            $lst  = vestra_listing_by_sku((string)($row['sku'] ?? ''));
+            $refP = vestra_offer_ref_price($lst);
+            echo "ilan           : ".($lst ? ((string)($lst['id'] ?? '?')." | ".trim(((string)($lst['brand'] ?? '')).' '.((string)($lst['name'] ?? '')))
+                                             ." | MOQ ".(int)($lst['moq'] ?? 0)) : "SKU KATALOGDA COZULMEDI")."\n";
+            echo "referans fiyat : ".($refP > 0 ? "EUR ".number_format($refP,2)."/adet (karsi teklif tavani)" : "cozulemedi -- tavan uygulanmaz")."\n";
+
+            /* Yanit kaydi: silme onu da temizliyor. Kalmis bir kayit, silmenin
+               yarim kaldigini gosterir ve karsi teklif SIRASI'ni bozar. */
+            $rs = vestra_read_json('offer_responses.json');
+            echo "yanit kaydi    : ".(isset($rs[$ref]) ? "VAR (durum ".((string)($rs[$ref]['status'] ?? '?'))
+                                       .", sira ".vestra_offer_turn($rs[$ref]).")" : "yok")."\n";
+            $invs = vestra_invoices_for_ref($ref);
+            echo "fatura         : ".($invs ? "KESILMIS: ".implode(', ', array_map(fn($i)=>(string)($i['no'] ?? '?'), $invs)) : "yok")."\n";
+            if ($invs) { fwrite(STDERR, "faturasi kesilmis bir teklif geri yuklenmez -- once fatura yolu (KURAL 5f)\n"); exit(1); }
+
+            $price = 0.0; $wantCounter = false;
+            if ($pIn !== '') {
+              $price = (float)str_replace(',', '.', $pIn);
+              $wantCounter = true;
+              $pErr = vestra_offer_price_error($lst, 'seller', $price, null);
+              echo "karsi teklif   : EUR ".number_format($price,2)."/adet x {$qty} = EUR ".number_format($price*$qty,2)
+                 . "   (alicinin teklifi: EUR ".number_format($unit,2)."/adet = EUR ".number_format($unit*$qty,2).")\n";
+              echo "KURAL 4        : ".($pErr === null ? "GECERLI" : "RED -- ".$pErr)."\n";
+              if ($pErr !== null) exit(1);
+            } else {
+              echo "karsi teklif   : ISTENMEDI (offer_price bos) -- yalnizca kayit geri yuklenir, MUSTERIYE HICBIR SEY GITMEZ\n";
+            }
+
+            $buyerAcc = auth_find((string)($row['email'] ?? ''));
+            echo "alici hesabi   : ".($buyerAcc ? ((string)($buyerAcc['company'] ?? $buyerAcc['name'] ?? '?')
+                                       ." | mektup dili: ".vestra_user_lang($buyerAcc)) : "hesap yok -- mektup Ingilizce gider")."\n";
+
+            if (!$go) {
+              echo "\noffer_apply=false — HICBIR SEY YAZILMADI, HICBIR MEKTUP GITMEDI.\n";
+              exit(0);
+            }
+
+            /* --- YAZMA --- */
+            if ($needRestore) {
+              $f = vestra_data_dir().'/offers.csv';
+              if (!is_file($f)) { fwrite(STDERR, "offers.csv yok\n"); exit(1); }
+              if (!@copy($f, $f.'.bak-restore-'.date('Ymd_His'))) { fwrite(STDERR, "yedek alinamadi -- yazilmadi\n"); exit(1); }
+              /* Basliktan okunan SIRA ile yazilir, satirin kendi sirasiyla degil:
+                 yedek eski bir semadan geliyorsa sutunlar kayardi. Eksik sutun bos
+                 kalir, fazlasi atilir. */
+              $fh = @fopen($f, 'r'); $head = $fh ? fgetcsv($fh, null, ',', '"', '\\') : null;
+              if ($fh) fclose($fh);
+              if (!$head) { fwrite(STDERR, "offers.csv basligi okunamadi\n"); exit(1); }
+              $out = [];
+              foreach ($head as $h) $out[] = (string)($row[$h] ?? '');
+              /* EKLEME: mevcut satirlarin tek baytina dokunmaz. Dosyayi yeniden
+                 yazmak, okuyucunun ters cevirmesi yuzunden butun listenin sirasini
+                 degistirirdi -- geri yukleme, gorunmeyen bir yan etki tasimamali. */
+              $ap = @fopen($f, 'a');
+              if (!$ap) { fwrite(STDERR, "offers.csv yazilamadi\n"); exit(1); }
+              fputcsv($ap, $out, ',', '"', '\\'); fclose($ap);
+
+              /* GERI OKU: "yazildi" diyen bir satir tek basina kanit degil. */
+              $back = vestra_offer_row($ref);
+              if (!$back) { fwrite(STDERR, "GERI OKUMA BASARISIZ -- satir offers.csv'de gorunmuyor\n"); exit(1); }
+              if ((int)($back['qty'] ?? 0) !== $qty || abs((float)($back['offer_unit'] ?? 0) - $unit) > 0.004) {
+                fwrite(STDERR, "GERI OKUMA UYUSMUYOR: qty ".(int)($back['qty'] ?? 0)." unit ".(float)($back['offer_unit'] ?? 0)."\n"); exit(1);
+              }
+              echo "\nGERI YUKLENDI — {$ref} offers.csv'de, {$qty} x EUR ".number_format((float)$back['offer_unit'],2)." geri okundu.\n";
+            }
+
+            if (!$wantCounter) { echo "karsi teklif verilmedi (offer_price bos).\n"; exit(0); }
+
+            /* Panelin cagirdigi fonksiyonun AYNISI (admin.php:1196):
+               aktor null, gonderen etiketi 'VESTRA'. */
+            $res = vestra_offer_respond($ref, 'counter', $price, null, 'VESTRA');
+            if (empty($res['ok'])) { fwrite(STDERR, "KARSI TEKLIF ISLENEMEDI: ".((string)($res['error'] ?? '?'))."\n"); exit(1); }
+            echo "karsi teklif islendi. mektup: ".($res['mailed'] === null ? 'GONDERILMEDI (adres yok/kapali)'
+                                                   : ($res['mailed'] ? 'GONDERILDI' : '*** SAGLAYICI REDDETTI ***'))."\n";
+
+            $rs2 = vestra_read_json('offer_responses.json');
+            $now = $rs2[$ref] ?? null;
+            if (!$now) { fwrite(STDERR, "GERI OKUMA: yanit kaydi yazilmamis\n"); exit(1); }
+            printf("geri okundu    : durum=%s  karsi=%s  sira=%s  kalan tur=%d  token=%s\n",
+              (string)($now['status'] ?? '?'), number_format((float)($now['counter_price'] ?? 0), 2),
+              vestra_offer_turn($now), vestra_offer_counters_left($now),
+              empty($now['accept_token']) ? 'YOK -- kabul dugmesi calismaz!' : 'uretildi');
+            exit(($res['mailed'] === false) ? 1 : 0);
+            PHPEOF
+            php -l /tmp/vestra_offrestore.php
+            php /tmp/vestra_offrestore.php; RC=$?
+            rm -f /tmp/vestra_offrestore.php
+            exit $RC
 
       - name: Listele
         if: ${{ github.event.inputs.admin_mode == '' }}
