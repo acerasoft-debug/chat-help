@@ -1793,6 +1793,47 @@ dönmek zorundadir"*).
     2'si GARAGE LE PARIS'in kendi yazısı, en son 9 Eyl 08:04). İlan TYREX'e
     geçtiği için o alıcı, artık TYREX'in olan bir ürün hakkında GARAGE LE
     PARIS'le konuşmaya devam ediyor. Taşımak yukarıdaki (1) kuralına takılıyor.
+- **KURAL 20 — Her pakette TAŞIYICI + SERVİS + takip BAĞLANTISI; bağlantı
+  numaradan TÜRETİLİR** (operatör, 9 Eyl 2026: *"bu gönderim numarasini ekle
+  link ile beraber ups express saver"* + *"her pakette gönderici kargo bölümüde
+  olsun"* — O39419 / SK Ventures).
+  - O güne kadar `tracking` **çıplak bir dizgeydi**: alıcı sipariş sayfasında ve
+    mektupta 18 karakter görüyor, hangi firmanın taşıdığını ve nereye bakacağını
+    bilmiyordu. Taşıyıcı, servis adı ve bağlantı **üç ayrı olgu** ve üçü de
+    eksikti. Alanlar: `order_statuses.json[ref].ship_carrier` / `.ship_service`.
+  - **Bağlantı KAYDA YAZILMAZ.** `vestra_order_shipment()` onu numaradan kurar;
+    elle yapıştırılan bir URL aynı olgunun ikinci kopyası olurdu ve numara
+    değişince eski pakete bakmaya devam ederdi — `desc`/`sizes` ve thread-id
+    hatalarının aynı sınıfı. Test bunu tutuyor: kayda sahte bir `url` konsa bile
+    yok sayılıyor.
+  - **Çıkarım bilerek DAR: yalnız UPS** (`1Z` + 16 alfanümerik, başka hiçbir
+    taşıyıcının kullanmadığı kalıp). DHL'in 10 hanesi, FedEx'in 12 hanesi başka
+    numaralara benziyor; oradan tahmin yürütmek alıcıya **başka bir paketin** ya
+    da hiçbir şeyin sayfasını açar — bağlantı olmamasından kötü. Onlarda
+    taşıyıcıyı operatör yazar (mango/zara dersinin kargo hâli).
+  - **1Z sağlama basamağı BİLEREK doğrulanmıyor.** Algoritmayı sınayacak
+    güvenilir bir referans numaram yoktu; yanlış yazılmış bir sağlama **geçerli**
+    numaraları reddederdi — hiç kontrol etmemekten kötü bir arıza. Biçim kontrolü
+    kesin ve yanlış ret üretemez. *Doğrulayamadığın bir kontrolü koyma.*
+  - **Tek çözücü:** sipariş kartı, satıcı formu, admin formu ve "gönderildi"
+    mektubu dördü de `vestra_order_shipment()` okuyor. Mektup kendi başına
+    çözseydi sayfa ile e-posta iki ayrı şey yazabilirdi (KURAL 5f'in üç katmanı).
+  - **Alan formda YOKSA kayıtlı değer KORUNUR** (`array_key_exists`). Sipariş
+    listesindeki küçük durum formu taşıyıcı taşımıyor; koşulsuz yazsaydık
+    listeden durum değiştirmek kayıtlı taşıyıcıyı **sessizce silerdi**
+    (KURAL 4b'nin "işaretsiz kutucuk hiç gönderilmez" dersi).
+  - Panel dışından: `seller-products.yml` → `admin_mode=ship`
+    (`issue_ref=<sipariş>`, `ship_spec=tracking=…|carrier=ups|service=…|status=shipped`).
+    Kuru koşu varsayılan ve **mektubu önizler**; `status=shipped` verilirse
+    müşteriye gider. Yazma `vestra_order_set_shipment()` — panelle aynı kayıt,
+    geri okunuyor.
+  - `Carrier` / `Service` **8 sözlüğe birden** eklendi (KURAL 10).
+  - Test: `tests/shipment_test.php` (62 iddia). Düşebildiği doğrulandı: çıkarım
+    alt dizeye gevşetilince **8 kırmızı**, bağlantı kayıttan okunursa **2**.
+  - **Canlı (9 Eyl 2026):** O39419 `preparing → shipped`, UPS · Express Saver ·
+    `1ZY0089E0495346496`, mektup **teslim edildi** (Brevo `delivered`). CLAUDE.md
+    bu alıcıya *"numara girilince size gelir"* sözünün verildiğini zaten
+    kaydediyordu; tutulan söz o.
 - **Katalogdan gizli ürün: `unlisted`** (operatör kararı, 2 Eyl 2026 — Musterstück
   `lac-l1212-musterstueck`). `vestra_products()` varsayılan olarak `unlisted` kayıtları
   **atar**; her açık liste (vitrin, fiyat listeleri, katalog dosyaları, sitemap,
