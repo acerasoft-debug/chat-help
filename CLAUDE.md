@@ -1740,6 +1740,35 @@ dönmek zorundadir"*).
   yani ilanın kodundan **farklı bir stil numarası**. Beyaz model ayrı bir
   artikelse kendi ilanını hak ediyor; aynı ilanda durursa alıcı 612966 sipariş
   edip vitrinde 612965 görüyor.
+- **KURAL 19 — Konuşmanın satıcısı değişince THREAD ID'si de değişir** (operatör,
+  9 Eyl 2026: *"bu yazismanin ve ürünlerin saticisini tyrex olarak degistir"* —
+  AlexaShop S.A.S ↔ GARAGE LE PARIS, Ralph Lauren polo + Lacoste TH6709).
+  - Thread id **satıcıdan türeyen bir özet**: `vestra_msg_thread_id()` =
+    `md5(alıcı|satıcı|ilan)`. Yalnız `seller_uid`'i değiştirip id'yi bırakmak
+    **sessiz bir bozulma**: kayıt yeni satıcının panelinde görünür, ama bir
+    sonraki mesajda `vestra_msg_send()` yeni id'yi hesaplar, bulamaz ve aynı
+    taraflar için **İKİNCİ bir thread** açar — konuşma ikiye bölünür. Tek yazıcı
+    `seller-products.yml` → `admin_mode=thread_seller`; id'yi yeniden hesaplar,
+    yedekler, **geri okur**. Varsayılan kuru koşu.
+  - **İki durum taşımayı DURDURUR** (ve biri durursa hiçbir şey yazılmaz):
+    (1) eski satıcı o konuşmada **yazmışsa** — mesajlar `from` ile imzalı,
+    thread'i başka firmaya vermek o cümleleri de ona yazdırmak olur;
+    (2) aynı alıcı + yeni satıcı + ilan için **zaten thread varsa** — iki geçmişi
+    birleştirmek yeniden adlandırma değil, ayrı bir karar.
+  - `read`/`ping` haritaları **uid başına**; eskisininki devredilmez, silinir —
+    TYREX gerçekten okumadı, okunmamış görsün.
+  - **İlanın `seller` (görünen ad) alanı YOK, yalnız `seller_uid` var** — kayıt
+    açılıp bakıldı. Olsaydı ikinci kopya olurdu ve aynı gün `desc`/`sizes`'ta
+    yaşanan hatanın aynısı çıkardı: bir alanı değiştirip diğerini bırakmak.
+  - **Kimliği ID'den değil KAYITTAN doğrula:** ilan id'si `lac-pima-tshirt` ama
+    ürün **"Basic Crew Neck T-Shirt" (TH6709)**; `lac-pima-vneck` ayrı bir ilan
+    (TH6710). Id yanıltıcı; operatörün panelde gördüğü ad kayıtla doğrulandı,
+    yoksa yanlış ilanın satıcısı değiştirilecekti.
+  - **Kapsam dışı bırakılan, operatör kararı bekliyor:** aynı polo ilanında
+    **Ecokemet ↔ GARAGE LE PARIS** konuşması var (`84b19582d29558dd`, 5 mesaj,
+    2'si GARAGE LE PARIS'in kendi yazısı, en son 9 Eyl 08:04). İlan TYREX'e
+    geçtiği için o alıcı, artık TYREX'in olan bir ürün hakkında GARAGE LE
+    PARIS'le konuşmaya devam ediyor. Taşımak yukarıdaki (1) kuralına takılıyor.
 - **Katalogdan gizli ürün: `unlisted`** (operatör kararı, 2 Eyl 2026 — Musterstück
   `lac-l1212-musterstueck`). `vestra_products()` varsayılan olarak `unlisted` kayıtları
   **atar**; her açık liste (vitrin, fiyat listeleri, katalog dosyaları, sitemap,
