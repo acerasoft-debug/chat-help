@@ -19,34 +19,37 @@ import { articles } from '../data/journal.mjs';
 const OUT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../data/images');
 mkdirSync(OUT, { recursive: true });
 const FORCE = process.argv.includes('--force');
+const PLAN = existsSync(path.join(OUT, 'plan.json')) ? JSON.parse(readFileSync(path.join(OUT, 'plan.json'), 'utf8')) : { mode: 'auto' };
+const MODE = process.argv.includes('--candidates') ? 'candidates' : process.argv.includes('--choose') ? 'choose' : PLAN.mode || 'auto';
+const CAND_DIR = path.join(OUT, 'candidates');
 const UA = 'LUMEA-image-fetch/1.0 (https://github.com/acerasoft-debug/chat-help; concierge@lumea.spa)';
 
 /* Curated queries per slug — still life and nature first (they photograph reliably), people last. */
 const Q = {
-  'hero-home': ['orchid white flower', 'lotus flower', 'water lily'],
-  'signature-lumea': ['lotus flower', 'orchid', 'candle flame'],
-  'anti-cellulite': ['salt crystals', 'coffee beans', 'sea salt'],
-  'lymphatic-drainage': ['calm lake reflection', 'water ripples', 'still water'],
-  'body-sculpt-wrap': ['sea foam waves', 'kelp underwater', 'ocean wave'],
-  'cupping-fascia': ['bamboo forest', 'glass sphere', 'bamboo'],
-  'aromatherapy': ['lavender field', 'lavender', 'essential oil bottle'],
-  'hot-stone': ['stacked stones', 'pebbles beach', 'basalt columns'],
-  'lomi-lomi': ['plumeria', 'frangipani flower', 'hibiscus'],
-  'duo-couples': ['rose petals', 'pink roses close up', 'peony'],
-  'classic-swedish': ['eucalyptus leaves', 'fern leaf', 'green leaves'],
-  'deep-tissue': ['zen stones water', 'massage stones', 'black pebbles'],
-  'sports-recovery': ['running track', 'athletics track', 'runner sunrise'],
-  'prenatal': ['pregnant silhouette', 'pregnancy belly', 'maternity'],
-  'thai-yoga': ['Wat Arun', 'thai temple', 'frangipani'],
-  'reflexology': ['sand ripples', 'pebbles beach', 'beach sand'],
-  'head-neck-shoulder': ['head massage', 'scalp massage', 'massage relaxation'],
-  'signature-facial': ['white rose', 'camellia', 'peony white'],
-  'hydra-glow': ['water drops', 'dewdrops leaf', 'water droplets macro'],
-  'lifting-facial': ['rose quartz', 'quartz crystal', 'jade stone'],
-  'enzyme-peel': ['papaya', 'pineapple', 'lemon slices'],
-  'mens-facial': ['shaving brush', 'barber shop', 'razor shaving'],
-  'eye-decollete': ['chamomile flowers', 'aloe vera', 'cucumber'],
-  'hifu-lifting': ['white marble texture', 'silk fabric', 'abstract light'],
+  'hero-home': ["deepcat:"Massage" spa relaxation woman", "deepcat:"Spas" massage", "massage therapy spa"],
+  'signature-lumea': ["deepcat:"Massage" back oil", "deepcat:"Massage" relaxation", "massage spa candles"],
+  'anti-cellulite': ["deepcat:"Massage" legs", "deepcat:"Massage" thigh", "anti-cellulite massage"],
+  'lymphatic-drainage': ["deepcat:"Massage" lymphatic", "lymphatic drainage", "deepcat:"Massage" legs gentle"],
+  'body-sculpt-wrap': ["deepcat:"Spas" body wrap", "body wrap spa", "deepcat:"Spas" treatment"],
+  'cupping-fascia': ["deepcat:"Cupping therapy"", "cupping therapy back", "cupping massage"],
+  'aromatherapy': ["deepcat:"Massage" aromatherapy", "deepcat:"Massage" oil", "aromatherapy massage"],
+  'hot-stone': ["deepcat:"Hot stone massage"", "hot stone massage back", "deepcat:"Massage" stones"],
+  'lomi-lomi': ["deepcat:"Massage" lomi lomi", "deepcat:"Massage" hawaiian", "deepcat:"Massage" forearm"],
+  'duo-couples': ["deepcat:"Massage" couple", "couple massage spa", "deepcat:"Spas" couple"],
+  'classic-swedish': ["deepcat:"Swedish massage"", "deepcat:"Massage" back", "deepcat:"Massage" table"],
+  'deep-tissue': ["deepcat:"Massage" deep tissue", "deepcat:"Massage" back shoulders", "deep tissue massage"],
+  'sports-recovery': ["deepcat:"Sports massage"", "sports massage athlete", "deepcat:"Massage" physiotherapy"],
+  'prenatal': ["deepcat:"Massage" pregnancy", "pregnancy massage", "deepcat:"Massage" prenatal"],
+  'thai-yoga': ["deepcat:"Thai massage"", "thai massage stretch", "deepcat:"Massage" thai"],
+  'reflexology': ["deepcat:"Foot massage"", "deepcat:"Reflexology"", "foot massage spa"],
+  'head-neck-shoulder': ["deepcat:"Head massage"", "deepcat:"Massage" head", "deepcat:"Massage" shoulders neck"],
+  'signature-facial': ["deepcat:"Facials"", "facial treatment spa", "deepcat:"Facial massage""],
+  'hydra-glow': ["deepcat:"Facials" mask", "facial skin care treatment", "deepcat:"Skin care""],
+  'lifting-facial': ["deepcat:"Facial massage"", "facial massage spa", "deepcat:"Facials" massage"],
+  'enzyme-peel': ["deepcat:"Facials" mask", "facial mask spa", "deepcat:"Skin care" mask"],
+  'mens-facial': ["deepcat:"Facials" man", "deepcat:"Barbershops" shave", "barber hot towel"],
+  'eye-decollete': ["deepcat:"Facials" eyes", "facial treatment eye", "deepcat:"Spas" facial"],
+  'hifu-lifting': ["deepcat:"Facials" device", "ultrasound face treatment", "aesthetic treatment face"],
   'journal-cellulite-was-massage-wirklich-kann': ['olive branch', 'almond blossom', 'coconut'],
   'journal-zuhause-vorbereiten-mobile-massage': ['tea cup wooden table', 'cozy blanket', 'reading nook'],
   'journal-lymphdrainage-nach-dem-flug': ['airplane wing clouds', 'airplane window', 'clouds from above'],
@@ -82,7 +85,8 @@ async function unsplash(q) {
   return { url: `${p.urls.raw}&w=1600&q=80&fm=jpg&fit=max`, credit: { author: p.user.name, source: 'Unsplash', license: 'Unsplash License', page: p.links.html } };
 }
 const OK_LICENSE = /^(cc0|cc[ -]by([ -]sa)?([ -][0-9.]+)?|public domain|pd[ -]?[a-z0-9-]*)$/i;
-const REJECT = /\b(1[0-8]\d\d|19\d\d|200[0-4])\b|black[ -]and[ -]white|monochrome|grayscale|painting|engraving|drawing|lithograph|map|stereo|postcard|war|military|soldier|medical|disease|hospital|edema|patient|sign|poster|logo|diagram|screenshot|scan|document|book|coin|stamp|statue|portrait|nude|naked/i;
+const SUBJECT = /massage|spa|wellness|beauty|facial|skin|physiother|yoga|cupping|reflexolog|salon|treatment|barber|therap/i;
+const REJECT = /\b(1[0-8]\d\d|19\d\d|200[0-4])\b|black[ -]and[ -]white|monochrome|grayscale|painting|engraving|drawing|lithograph|map|stereo|postcard|war|military|soldier|medical|disease|hospital|edema|patient|sign|poster|logo|diagram|screenshot|scan|document|book|coin|stamp|statue|nude|naked|erotic|sex|brothel|prostitut|cartoon|illustration|clip ?art|anime|drawing|manga|comic|advertis|screenshot|meme/i;
 const SIGNATURE_SPAM = /\.(gif|tiff?)$/i;
 async function commonsSearch(q, qualityOnly) {
   const search = `${q} filetype:bitmap filemime:image/jpeg fileres:>1600${qualityOnly ? ' hastemplate:QualityImage' : ''}`;
@@ -95,27 +99,75 @@ async function commons(q) {
   // Treatments: reviewed "Quality images" only — a generated composition beats a mediocre photo.
   // Cities: the open pool is allowed as a fallback (landmark photos are abundant and safe).
   let titles = await commonsSearch(q, true);
-  if (!titles.length && currentSlug.startsWith('city-')) titles = await commonsSearch(q, false);
+  if ((!titles.length && currentSlug.startsWith('city-')) || MODE === 'candidates' || /deepcat:/.test(q)) titles = titles.concat(await commonsSearch(q, false));
+  titles = [...new Set(titles)];
   if (!titles.length) return null;
   const info = await (await get(`https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=1600&format=json&titles=${encodeURIComponent(titles.join('|'))}`)).json();
   const pages = Object.values(info.query?.pages || {}).map((p) => ({ title: p.title, ii: p.imageinfo?.[0] })).filter((p) => p.ii);
   pages.sort((a, b) => titles.indexOf(a.title) - titles.indexOf(b.title));
+  const hits = [];
   for (const p of pages) {
     const m = p.ii.extmetadata || {};
     const lic = (m.LicenseShortName?.value || '').trim();
     const cats = m.Categories?.value || '';
     const year = Number((m.DateTimeOriginal?.value || '').match(/\b(1[0-9]{3}|20[0-9]{2})\b/)?.[1] || 2020);
     const ratio = p.ii.width / p.ii.height;
-    if (ratio < 1.2 || ratio > 2.1 || p.ii.width < 1600 || !OK_LICENSE.test(lic) || REJECT.test(cats) || year < 2006 || REJECTED.has(p.ii.descriptionurl)) continue;
-    return { url: p.ii.thumburl, credit: { author: (m.Artist?.value || '').replace(/<[^>]+>/g, '').trim() || 'Wikimedia Commons', source: 'Wikimedia Commons', license: lic, page: p.ii.descriptionurl } };
+    const subjectOk = currentSlug.startsWith('city-') || currentSlug.startsWith('journal-') || SUBJECT.test(cats + ' ' + p.title);
+    if (ratio < 1.15 || ratio > 2.2 || p.ii.width < 1400 || !OK_LICENSE.test(lic) || REJECT.test(cats + ' ' + p.title) || year < 2006 || !subjectOk || REJECTED.has(p.ii.descriptionurl)) continue;
+    hits.push({ url: p.ii.thumburl, small: p.ii.thumburl.replace(/\/1600px-/, '/640px-'), credit: { author: (m.Artist?.value || '').replace(/<[^>]+>/g, '').trim() || 'Wikimedia Commons', source: 'Wikimedia Commons', license: lic, page: p.ii.descriptionurl }, title: p.title });
+    if (hits.length >= 8) break;
   }
-  return null;
+  if (!hits.length) return null;
+  return MODE === 'candidates' ? hits : hits[0];
 }
 const provider = process.env.PEXELS_API_KEY ? pexels : process.env.UNSPLASH_ACCESS_KEY ? unsplash : commons;
 console.log(`provider: ${provider.name}`);
 
 let done = 0, skipped = 0, missing = [];
+const WANTED = PLAN.slugs && PLAN.slugs.length ? PLAN.slugs : Object.keys(Q);
+
+/* --- candidates mode: small thumbs of up to 6 options per slug for a human pick --- */
+if (MODE === 'candidates') {
+  mkdirSync(CAND_DIR, { recursive: true });
+  const manifest = {};
+  for (const slug of WANTED) {
+    currentSlug = slug;
+    const seen = new Set(); const list = [];
+    for (const q of Q[slug] || []) {
+      let hits = null;
+      try { hits = await provider(q); } catch (e) { console.log(`  ! ${slug} "${q}": ${e.message}`); }
+      for (const h of hits || []) { if (!seen.has(h.credit.page) && list.length < 6) { seen.add(h.credit.page); list.push(h); } }
+      if (list.length >= 6) break;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    manifest[slug] = [];
+    for (let i = 0; i < list.length; i++) {
+      const h = list[i];
+      const f = path.join(CAND_DIR, `${slug}--${i + 1}.jpg`);
+      try { await download(h.small, f); manifest[slug].push({ n: i + 1, url: h.url, credit: h.credit, title: h.title }); } catch (e) { console.log(`  ! ${slug} cand ${i + 1}: ${e.message}`); }
+    }
+    console.log(`  ${slug}: ${manifest[slug].length} candidates`);
+  }
+  writeFileSync(path.join(OUT, 'candidates.json'), JSON.stringify(manifest, null, 2));
+  process.exit(0);
+}
+
+/* --- choose mode: download the human-picked candidate at full size --- */
+if (MODE === 'choose') {
+  const manifest = JSON.parse(readFileSync(path.join(OUT, 'candidates.json'), 'utf8'));
+  for (const [slug, n] of Object.entries(PLAN.choices || {})) {
+    const pick = (manifest[slug] || []).find((c) => c.n === Number(n));
+    if (!pick) { console.log(`  – ${slug}: choice ${n} not found`); continue; }
+    try { await download(pick.url, path.join(OUT, `${slug}.jpg`)); credits[slug] = { ...pick.credit, fetchedAt: new Date().toISOString().slice(0, 10) }; done++; console.log(`  ✓ ${slug} ← #${n} ${pick.title}`); }
+    catch (e) { console.log(`  ! ${slug}: ${e.message}`); }
+  }
+  writeFileSync(path.join(OUT, 'credits.json'), JSON.stringify(credits, null, 2));
+  console.log(`${done} chosen photos fetched`);
+  process.exit(0);
+}
+
 for (const [slug, queries] of Object.entries(Q)) {
+  if (!WANTED.includes(slug)) continue;
   const file = path.join(OUT, `${slug}.jpg`);
   currentSlug = slug;
   if (existsSync(file) && !FORCE) { skipped++; continue; }
