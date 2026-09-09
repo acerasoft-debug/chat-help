@@ -12,7 +12,14 @@
  {
   "match": "blc-612966tlvf1",
   "expect": 1,
-  "desc": "Original Balenciaga, model 612966TLVF1. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack. EEA stock with full invoice trail."
+  "desc": "Original Balenciaga, model 612966TLVF1. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack. EEA stock with full invoice trail.",
+  "images": [
+   "/uploads/balenciaga-burberry/balenciag-612966tlvf1.jpg",
+   "/uploads/balenciaga-burberry/balenciaga-612966tlvf1.jpg",
+   "/uploads/balenciaga-burberry/blcg-612966tlvf1-packshot.jpg",
+   "/uploads/balenciaga-burberry/blcg-612966tlvf1-hangtag.jpg",
+   "/uploads/balenciaga-burberry/blcg-612966tlvf1-label.jpg"
+  ]
  },
  {
   "match": "blc-612966tmvg7",
