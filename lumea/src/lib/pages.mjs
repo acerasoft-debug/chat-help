@@ -1198,9 +1198,20 @@ const LEGAL = {
   }
 };
 
+import { readFileSync, existsSync as fsExists } from 'node:fs';
+import { fileURLToPath as toPath } from 'node:url';
+const CREDITS_FILE = new URL('../../data/images/credits.json', import.meta.url);
+const imageCredits = () => (fsExists(toPath(CREDITS_FILE)) ? JSON.parse(readFileSync(CREDITS_FILE, 'utf8')) : {});
+
 export function legalPage(locale, which) {
   const d = LEGAL[locale][which];
-  return simplePage(locale, { t: which }, d.title, d.desc, d.blocks, { cta: false });
+  const blocks = [...d.blocks];
+  if (which === 'imprint') {
+    const credits = imageCredits();
+    const list = Object.entries(credits).map(([slug, c]) => `${slug}: ${c.author} — ${c.source} (${c.license})`);
+    if (list.length) blocks.push({ h: { de: 'Bildnachweise', en: 'Image credits', es: 'Créditos de imagen', fr: 'Crédits photo', it: 'Crediti fotografici' }[locale], list });
+  }
+  return simplePage(locale, { t: which }, d.title, d.desc, blocks, { cta: false });
 }
 
 export function contactPage(locale) {

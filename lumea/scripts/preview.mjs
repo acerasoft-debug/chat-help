@@ -41,7 +41,10 @@ for (const p of PAGES) {
   pages[p] = { title, main, globals, header, footer, extras, locale };
   if (!chrome) chrome = { header, footer, extras, locale };
 }
-const rewrite = (s) => s.replace(/(href|action)="\/(?!\/)/g, '$1="#/');
+const inlineImg = (s) => s.replace(/src="\/assets\/img\/([^"]+)"/g, (m, f) => {
+  try { const b = readFileSync(path.join(DIST, 'assets/img', f)); return `src="data:image/${f.endsWith('.png') ? 'png' : f.endsWith('.webp') ? 'webp' : 'jpeg'};base64,${b.toString('base64')}"`; } catch { return m; }
+});
+const rewrite = (s) => inlineImg(s.replace(/(href|action)="\/(?!\/)/g, '$1="#/'));
 
 const css = read('assets/styles.css');
 const js = read('assets/app.js');

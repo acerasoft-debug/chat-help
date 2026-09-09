@@ -1,0 +1,33 @@
+name: LUMÉA — fetch images
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Re-fetch images that already exist'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: lumea } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Fetch licensed photography
+        env:
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+        run: node scripts/fetch-images.mjs ${{ inputs.force && '--force' || '' }}
+      - name: Commit images
+        run: |
+          git config user.name "lumea-images[bot]"
+          git config user.email "concierge@lumea.spa"
+          git add data/images
+          git diff --cached --quiet || git commit -m "LUMÉA: refresh licensed photography (data/images)"
+          git push
