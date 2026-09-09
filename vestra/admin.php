@@ -339,7 +339,21 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     }
     if($okDel){
       $rs=vestra_read_json('offer_responses.json');
-      if(isset($rs[$ref])){ unset($rs[$ref]); vestra_write_json('offer_responses.json',$rs); }
+      if(isset($rs[$ref])){
+        /* PAZARLIK KAYDI DA YEDEKLENIR. offers.csv yedekleniyordu ama BU dosya
+           yedeklenmiyordu -- yani silme, alicinin ve saticinin verdigi butun
+           karsi teklifleri (kim, kac, ne zaman) GERI DONULMEZ sekilde yok
+           ediyordu. 9 Eyl 2026'da O9FBF5 iki kez silindi ve her seferinde
+           tur gecmisi kayboldu: satir yedekten geri geldi, pazarlik gelmedi.
+           Yalnizca silinen kayit yaziliyor, dosyanin tamami degil: baska
+           tekliflerin kaydini herkese acik olmayan ama gereksiz bir kopyaya
+           tasimanin sebebi yok. */
+        $bdir=vestra_data_dir().'/offer_backups';
+        if(!is_dir($bdir)) @mkdir($bdir,0775,true);
+        @file_put_contents($bdir.'/'.$ref.'-'.date('Ymd_His').'.json',
+          json_encode($rs[$ref], JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), LOCK_EX);
+        unset($rs[$ref]); vestra_write_json('offer_responses.json',$rs);
+      }
     }
     header('Location: /admin?tab=offers&msg='.($okDel?'offer_deleted':'offer_del_fail')); exit;
   }

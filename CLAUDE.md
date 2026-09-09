@@ -866,6 +866,16 @@ sildim … müşteriye teklif gönder"*).
   satırı (adet + birim eşleşiyor mu) ve `offer_responses.json` (`durum=counter`,
   `sıra=buyer`, token üretildi mi — token yoksa mektuptaki kabul düğmesi çalışmaz
   ve bunu ancak alıcı fark ederdi).
+- **Silme PAZARLIK KAYDINI da yedekliyor artık** (9 Eyl 2026'da bulundu).
+  `delete_offer` yalnız `offers.csv`'yi kopyalıyordu; `offer_responses.json`'daki
+  kayıt **yedeksiz siliniyordu**, yani kimin kaç kez ne teklif ettiği geri
+  dönülmez şekilde yok oluyordu. O9FBF5 aynı gün **iki kez** silindi ve her
+  seferinde tur geçmişi gitti: satır yedekten geri geldi, **pazarlık gelmedi** —
+  ikinci geri yüklemede alıcının kendi verdiği karşı teklif artık okunamıyordu.
+  Şimdi `data/offer_backups/<ref>-<zaman>.json` (yalnız silinen kayıt; `data/`
+  zaten tarayıcıya kapalı — `.htaccess` + `RewriteRule ^data/`).
+  *Bir kaydı geri getiren yolu yazarken, o kaydın YANINDA duran ve yedeklenmeyen
+  ne varsa onu da sor.*
 
 **KURAL 5h — Fatura müşterinin KENDİ harfleriyle çıkar (CJK gömülü yazı tipi)**
 (operatör, 7 Eyl 2026: *"çin karakterlerini faturaya yazamıyorum … fatura çin
