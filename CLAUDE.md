@@ -2210,6 +2210,39 @@ sekili tüm dillere cevir ve varyasyonlari ile beraber koy underwaere"*).
   markalı"* dediği ve başlık da öyle dediği için VESTRA'da marka **Visatin**
   basılıyor.
 
+**KURAL 21c — SONUÇ: 104 ilan hazır, CANLIYA YAZILMADI.** Operatörün NBB
+katalogu için koyduğu şart (*"siteye atmadan önce test olarak göster bana"*)
+bu parti için de geçerli sayıldı: `build_batch` sunucuda `test_batch.json`
+üretti, VESTRA'ya **hiçbir şey yazılmadı**.
+
+| | Visatin | Q-EN |
+|---|---:|---:|
+| Taranan ürün | 76 | 38 |
+| Fotoğrafında Türkçe → **elendi** | 4 | 6 |
+| Fiyatı/modeli çözülemeyen | 0 | 0 |
+| **Hazır ilan** | **72** | **32** |
+
+- Visatin'in **12**'si 6'lı asorti paket (`moq=6`, `… · 6/pack`, beden seçici
+  kapalı); geri kalanı tek ilan. Kategoriler: gecelik → `Sleepwear`,
+  sabahlık → `Loungewear`.
+- **Visatin'in 72 ilanının 68'inde RENK YOK** — tedarikçi vermemiş. Dördünde
+  var (11006/11009/11014/11015) çünkü orada renk **beden alanına** yazılmış ve
+  değere bakan ayrım onu yakaladı. Fotoğraftan renk **uydurulmadı** (NBB 730
+  dersi). Alıcı bu ilanlarda renk çipi görmeyecek.
+- Q-EN'de her ilan tam renk + beden taşıyor (345 varyant).
+
+**Operatör kararı bekleyen üç şey:**
+1. **Marka adı:** Visatin ürün sayfasının marka alanı **"REAL PASSIONE"**
+   diyor, başlık **"VİSATİN"** diyor, `/marka/visatin` yok. VESTRA'da
+   **Visatin** basılıyor — operatörün kendi cümlesi ve başlık öyle diyor.
+2. **`%95 BAMBOO - %5 ELASTAN`** Q-EN kartlarının **hepsinde** var.
+   "ELASTAN" Türkçe (ve Almanca) yazım, `%95` da Türkçe gösterim; kartın geri
+   kalanı baştan sona İngilizce (CODE / SIZE / BIG SIZE / COLORS / BAMBOO /
+   "IN PACK 3 PIECES"). Bunu "fotoğrafta Türkçe" saymak **32 Q-EN ilanının
+   tamamını** eler. Elenmedi, karar operatörün.
+3. **Elenen 10 ilanın başka fotoğrafı yok** (ürün başına tek kare). Tedarikçi
+   yeni kare vermedikçe yayımlanamazlar.
+
 **KURAL 21c — TEDARİKÇİ TARİFESİ ÜÇ AYRI YERDEN AKIYORDU** (10 Eyl 2026).
 3 Eylül'de Pili Pérez'de bu bir kez kaydedildi (*"ilk iki koşu 335 satırın
 fiyatını herkese açık günlüğe yazdı"*) ama kural yalnızca **şifreli pakete**
