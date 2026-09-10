@@ -1481,14 +1481,22 @@ jobs:
                       colors alani listeyi DEGISTIRIR, eklemez, ve 10 Eyl
                       2026'da kuru kosu tam da bunu yakaladi (6 -> 5). */
                    ." | renk=".(($__c = array_values(array_filter((array)($p['colors'] ?? []), 'is_string'))) ? implode('/', $__c) : '-')
-                   /* min_colors OLMADAN renk secici HIC cizilmiyor
-                      (vestra_is_colorqty_listing: colors + min_colors + size_step>1),
-                      yani "renkler ilanda var" ile "alici renk secebiliyor"
-                      ayri iki sey. Sayim bunu soylemedigi surece ilkine bakip
-                      ikincisi sanilir -- 10 Eyl 2026'da tam bu oldu. */
-                   ." | min_renk=".((int)($p['min_colors'] ?? 0) > 0
-                        ? (int)$p['min_colors'].(vestra_is_colorqty_listing($p) ? '' : ' (SECICI YOK)')
-                        : '- (renk secici YOK)')
+                   /* "Renkler ilanda var" ile "alici renk SECEBILIYOR" ayri iki
+                      sey; sayim bunu soylemedigi surece ilkine bakip ikincisi
+                      sanilir -- 10 Eyl 2026'da tam bu oldu.
+                      Satir, sayfanin sordugu AYNI fonksiyondan okuyor
+                      (vestra_colors_selectable). Onceki hali "min_colors bossa
+                      secici YOK" diyordu ve bu, ayni gun renk secimi bolme
+                      opt-in'i ile acilinca YANLIS cevap vermeye basladi: kutu
+                      cizilirken sonda "YOK" derdi. Kendi kopyasini tasiyan bir
+                      teshis, kaynak degisince sessizce yalan soyler. */
+                   ." | renk_secici=".(vestra_is_colorqty_listing($p)
+                        ? 'adet/renk (min '.(int)$p['min_colors'].')'
+                        : (vestra_colors_selectable($p)
+                            ? 'VAR'.((int)($p['min_colors'] ?? 0) > 0
+                                 ? ' (min '.(int)$p['min_colors'].')'
+                                 : ' (min yok — bolme opt-in)')
+                            : 'YOK'))
                    ." | sample_price=".(!empty($p['sample_price'])?$p['sample_price']:'-')
                    ." | status=".($p['status']??'approved')
                    ." | satici: {$sLabel}\n";
