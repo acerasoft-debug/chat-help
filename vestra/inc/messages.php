@@ -97,11 +97,36 @@ function vestra_msg_thread_owner(string $id, string $uid): bool {
    boundary. The phone check only fires on a digit run long enough to actually BE a phone
    number (9–15 digits once separators are stripped) so ordinary quantities/prices/SKUs
    (routinely 2–7 digits in this catalog) pass through untouched. */
+/* BIR BAGLANTININ ICINDEKI RAKAM DIZISI TELEFON DEGILDIR (operator, 10 Eyl 2026:
+   AlexaShop ↔ TYREX thread'inde bir Amazon urun linki PHONE diye bloklandi).
+   Amazon adresin sonuna `qid=1757497000` -- bir Unix zaman damgasi -- koyuyor;
+   telefon suzgeci 9-15 haneli her diziyi numara sayiyor ve link gitmiyordu.
+   Satici urun gostermek icin link atamaz hale gelmisti.
+
+   MASKELEME TELEFON KONTROLU ICIN, YALNIZ ONUN ICIN: e-posta ve IBAN kontrolu
+   ham metne bakmaya devam ediyor -- bir linkin icine gomulmus mailto: adresi ya
+   da IBAN hala platform disina cikma girisimidir.
+
+   TERS YON: mesajlasma/arama servisleri MASKELENMEZ. `wa.me/33612345678` ya da
+   `t.me/+33...` tam olarak yasaklanan seydir; maskelenseydi suzgec onlari da
+   goremezdi. `tel:`/`sms:`/`callto:` zaten http baglantisi degil, hic
+   dokunulmuyor. Sadece YOL ve SORGU siliniyor, ana makine adi kaliyor: gercek
+   bir numara ana makinede degil, orada durur. */
+function vestra_msg_mask_link_digits(string $text): string {
+    $out = preg_replace_callback('~\bhttps?://\S+|\bwww\.\S+~i', function (array $m): string {
+        $u = $m[0];
+        if (preg_match('~(?:wa\.me|whatsapp|t\.me|telegram|m\.me|messenger|signal\.me|viber|skype|line\.me|kakao)~i', $u)) return $u;
+        return preg_replace('~^((?:https?://)?[^/?#\s]+).*$~i', '$1', $u) ?? $u;
+    }, $text);
+    return $out ?? $text;
+}
+
 function vestra_msg_flag_offplatform(string $text): ?string {
     if (preg_match('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i', $text)) return 'email';
     if (preg_match('/\b[A-Z]{2}\d{2}(?:[ -]?[A-Z0-9]{4}){2,7}(?:[ -]?[A-Z0-9]{1,3})?\b/i', $text)) return 'iban';
-    if (preg_match('/(?:\+|\b00)\s?\d[\d \-.()]{5,15}\d\b/', $text)) return 'phone';
-    if (preg_match('/(?<![\d.,])(\d[\d \-.\/]{6,20}\d)(?![\d.,])/', $text, $m)) {
+    $probe = vestra_msg_mask_link_digits($text);
+    if (preg_match('/(?:\+|\b00)\s?\d[\d \-.()]{5,15}\d\b/', $probe)) return 'phone';
+    if (preg_match('/(?<![\d.,])(\d[\d \-.\/]{6,20}\d)(?![\d.,])/', $probe, $m)) {
         $digits = preg_replace('/\D/', '', $m[1]);
         if (strlen($digits) >= 9 && strlen($digits) <= 15) return 'phone';
     }
