@@ -417,6 +417,151 @@ jobs:
               @unlink($vocabTmp);
               return $vocab;
             }
+            // NBB sozlugu -- kuloglu-vocab.php ile AYNI desen (raw.githubusercontent'ten
+            // cek, gecici dosyaya yaz, require et). Fonksiyonlari da tanimliyor
+            // (nbb_name_i18n, nbb_photo_rejected, nbb_is_size ...), o yuzden geri
+            // dondugu dizi degil ASIL require onemli.
+            function nbb_fetch_vocab(): array {
+              $url = 'https://raw.githubusercontent.com/acerasoft-debug/chat-help/claude/wizardly-planck-7ylnmk/product-batches/nbb-vocab.php';
+              $vr = vfetch($url);
+              if (!$vr['html']) { fwrite(STDERR, "nbb-vocab.php cekilemedi\n"); exit(1); }
+              $tmp = tempnam(sys_get_temp_dir(), 'nv') . '.php';
+              file_put_contents($tmp, $vr['html']);
+              $v = require $tmp;
+              @unlink($tmp);
+              if (!function_exists('nbb_name_i18n')) { fwrite(STDERR, "nbb-vocab.php yuklendi ama fonksiyonlar yok\n"); exit(1); }
+              return $v;
+            }
+
+            /* Slug'dan MODEL numarasi: "nbb-3565-b-bayan-dubleli-..." -> "3565-B",
+               "nbb-350-bayan-mikro-..." -> "350". "-b" soneki opsiyonel ve ARDINDAN
+               TIRE gelmek zorunda; aksi halde "nbb-350-bayan"in "-b"si model
+               numarasina yapisirdi. Bu depoda ayni sinif hata (kisa ekin baska bir
+               kelimenin ICINDE eslesmesi) mango/zara olarak kayitli. */
+            function nbb_model_of_slug(string $slug): string {
+              if (preg_match('~^nbb-(\d+(?:-b)?)-~i', $slug, $m)) return strtoupper($m[1]);
+              return '';
+            }
+
+            /* Beden siralamasi: harf merdiveni kendi sirasinda, sayilar artan,
+               kupali band olculeri ("80 C") band sonra kup. Alfabetik siralama
+               "100, 105, 75, 80" verirdi -- toptancinin okudugu ilk sey bu satir. */
+            function nbb_sort_sizes(array $sizes): array {
+              $ladder = ['XXS'=>1,'XS'=>2,'S'=>3,'M'=>4,'L'=>5,'XL'=>6,'XXL'=>7,'XXXL'=>8,'XXXXL'=>9];
+              usort($sizes, function ($a, $b) use ($ladder) {
+                $ra = $ladder[strtoupper($a)] ?? null; $rb = $ladder[strtoupper($b)] ?? null;
+                if ($ra !== null && $rb !== null) return $ra <=> $rb;
+                if ($ra !== null) return -1;          // harfliler once
+                if ($rb !== null) return 1;
+                preg_match('~^(\d+)\s*([A-E])?$~i', $a, $ma);
+                preg_match('~^(\d+)\s*([A-E])?$~i', $b, $mb);
+                if ($ma && $mb) {
+                  $c = ((int)$ma[1]) <=> ((int)$mb[1]);
+                  return $c !== 0 ? $c : strcmp(strtoupper($ma[2] ?? ''), strtoupper($mb[2] ?? ''));
+                }
+                return strcmp($a, $b);
+              });
+              return $sizes;
+            }
+
+            /**
+             * NBB satirlari. kuloglu_build_rows()'un NBB'ye uyarlanmis hali DEGIL --
+             * AYRI, cunku dort seyi baska turlu yapiyor ve eskisini dallandirmak
+             * iki katalogu tek govdede birbirine baglardi:
+             *
+             *  1. AD/ACIKLAMA 9 DILDE, kelime kelime cevirip yapistirarak degil
+             *     (nbb-vocab.php'nin docblock'u sebebini yaziyor). Eski kurucu
+             *     `desc` alanina ham Turkce beden listesi yaziyordu.
+             *  2. RENK/BEDEN AYRIMI DEGERE bakiyor, alan ADINA degil: NBB kaydinda
+             *     ikisi yer yer YER DEGISMIS (olculdu: 2404, 2900, 9266, 9293).
+             *     Eski kurucunun kurali "renk alani bossa bedeni renk say" idi ve
+             *     2404'te renk alani DOLU (icinde bir beden var).
+             *  3. FOTOGRAFI ELENEN URUN ATILIYOR (operator sarti). Elle eleme
+             *     unutulur -- KURAL 1h'nin dersi, kontrol gonderim yolunda olmali.
+             *  4. TIERS YAZILIYOR. vestra_unit_price() tiers bossa 0.0 donuyor ve
+             *     order.php 0 fiyatli satiri atliyor: tiers'siz bir ilan vitrinde
+             *     durur ama SATIN ALINAMAZ.
+             */
+            function nbb_build_rows(array $priced, array $imgMap, array $vocab, string $sid, int $start, int $count): array {
+              $paletteOf = function (string $raw) use ($vocab): ?string {
+                $k = nbb_color_key($raw);
+                if ($k === '' || nbb_is_one_size($k)) return null;      // "STANDART" renk degil
+                if (isset($vocab['nbb_colors'][$k]['palette'])) return $vocab['nbb_colors'][$k]['palette'];
+                return $vocab['palette_map'][$k] ?? null;
+              };
+
+              $rows = []; $skipNoImg = 0; $skipReject = 0; $skipVaries = 0; $skipUnknown = 0; $notes = [];
+              foreach (array_slice($priced, $start, $count) as $rec) {
+                $url = (string)($rec['url'] ?? '');
+                preg_match('#/urun/([a-z0-9\-]+)#i', $url, $sm);
+                $slug = $sm[1] ?? '';
+                $model = nbb_model_of_slug($slug);
+                if ($model === '' || !isset($vocab['products'][$model])) { $skipUnknown++; $notes[] = "? model cozulemedi: $slug"; continue; }
+
+                $why = nbb_photo_rejected($model);
+                if ($why !== null) { $skipReject++; $notes[] = "- $model FOTOGRAF ELENDI: $why"; continue; }
+
+                $staged = $imgMap[$url] ?? [];
+                if (!$staged) { $skipNoImg++; $notes[] = "- $model fotograf henuz hazirlanmadi"; continue; }
+
+                $ps = array_unique(array_map(fn($v) => $v['price_eur'] ?? null, $rec['variants'] ?? []));
+                if (count($ps) > 1) { $skipVaries++; $notes[] = "- $model varyant bazli fiyat"; continue; }
+                $list = (float)($rec['unit_price_eur'] ?? 0);
+                if ($list <= 0) { $skipVaries++; $notes[] = "- $model fiyat cozulemedi"; continue; }
+
+                // Renk ve beden: DEGERE gore siniflandir, alanin adina degil.
+                $colors = []; $sizes = []; $oneSize = false;
+                foreach ((array)($rec['colors'] ?? []) as $c) { $p = $paletteOf((string)$c); if ($p && !in_array($p, $colors, true)) $colors[] = $p; }
+                foreach ((array)($rec['variants'] ?? []) as $v) {
+                  foreach ([(string)($v['color'] ?? ''), (string)($v['size'] ?? '')] as $tok) {
+                    $tok = trim($tok);
+                    if ($tok === '') continue;
+                    if (nbb_is_one_size($tok)) { $oneSize = true; continue; }
+                    if (nbb_is_size($tok)) { $s = strtoupper(preg_replace('~\s+~', ' ', $tok)); if (!in_array($s, $sizes, true)) $sizes[] = $s; continue; }
+                    $p = $paletteOf($tok); if ($p && !in_array($p, $colors, true)) $colors[] = $p;
+                  }
+                }
+                $sizes = nbb_sort_sizes($sizes);
+
+                $moq = max(1, (int)(($rec['variants'][0]['pack_qty'] ?? null) ?: 1));
+                /* Beden satiri: olculer + paket kurali. "N/pack" ve "One size"
+                   vestra_sizes_label()'dan gecip cevriliyor; olculer evrensel. */
+                $bits = [];
+                if ($sizes) $bits[] = implode(' · ', $sizes);
+                elseif ($oneSize) $bits[] = 'One size';
+                if ($moq > 1) $bits[] = $moq . '/pack';
+
+                $images = [];
+                foreach ($staged as $fn) $images[] = '/uploads/wholesale-underwear/' . $fn;
+
+                $rows[] = [
+                  'id' => 'nbb-' . strtolower($model),
+                  'brand' => 'NBB',
+                  'name' => nbb_name($model, 'en'),
+                  'name_i18n' => nbb_name_i18n($model),
+                  'desc' => nbb_desc($model, 'en'),
+                  'desc_i18n' => nbb_desc_i18n($model),
+                  'cat' => $vocab['products'][$model]['cat'],
+                  'sku' => $model,
+                  'moq' => $moq, 'unit' => 'pc',
+                  /* mode='fixed': bu katalogda indirim yok. mode='sale' olsaydi
+                     'list' USTU CIZILI ESKI fiyat sayilirdi (KURAL 4'un referans
+                     fiyat notu) -- yani her ilan hic var olmamis bir indirimi
+                     ilan ederdi. */
+                  'mode' => 'fixed', 'list' => round($list, 2),
+                  'tiers' => [['min' => $moq, 'price' => round($list, 2)]],
+                  'size_step' => $moq,          // sepet paket katina yuvarlasin
+                  'colors' => $colors,
+                  'sizes' => implode(' · ', $bits),
+                  'images' => $images,
+                  'seller_uid' => $sid, 'seller' => 'Wholesale Underwear', 'section' => 'underwear',
+                  'ships_from' => 'Turkey',
+                  'status' => 'pending',        // operator onaylayana kadar katalogda YOK
+                ];
+              }
+              return [$rows, ['gorselsiz' => $skipNoImg, 'foto_elendi' => $skipReject, 'fiyat' => $skipVaries, 'model_yok' => $skipUnknown], $notes];
+            }
+
             function kuloglu_marca_online_uid(): string {
               $home = getenv('HOME') ?: getenv('HOME_OVERRIDE') ?: '.';
               $appDir = $home . '/public_html';
@@ -1207,7 +1352,12 @@ jobs:
               imagedestroy($sheet);
               printf("tabaka: %d kare, %dx%d kafes, %dpx karo, %d bayt\n", $n, $cols, $rows, $tile, strlen($jpg));
               printf("kareler (sira no): %s\n", implode(',', array_keys($tiles)));
-              printf("sha256(jpeg)=%s\n", hash('sha256', $jpg));
+              /* Sağlama TOPLAMI DA BOSLUKLU. Bosluksuz basildiginda maske
+                 sha'nin ICINDEKI "22"yi de yedi ve dogrulama "MISMATCH" dedi --
+                 veri saglamdi, KONTROLUN KENDISI yalan soyluyordu. Bu depoda
+                 alti kez kaydedilmis "kontrol yanlis yere bakiyor"un ölçüm
+                 aracindaki hali. */
+              printf("sha256(jpeg)= %s\n", implode(' ', str_split(hash('sha256', $jpg))));
               $chunks = str_split(base64_encode($jpg), 200);
               printf("parca sayisi=%d\n", count($chunks));
               echo "IMG_CHUNKS_BEGIN\n";
@@ -1433,12 +1583,34 @@ jobs:
               if ($sid === '') { fwrite(STDERR, "Marca Online hesabi yok -- once create_seller calistir\n"); exit(1); }
 
               $priced = load_json($PRICED_FILE, []);
-              if (!$priced) { fwrite(STDERR, "bayan_sutyen_priced.json bos/yok -- once price calistir\n"); exit(1); }
+              if (!$priced) { fwrite(STDERR, basename($PRICED_FILE)." bos/yok -- once price calistir\n"); exit(1); }
               $imgMap = load_json($DIR . '/images_staged.json', []);
+
+              // NBB kumesi AYRI bir kurucudan geciyor (bkz. nbb_build_rows'un
+              // docblock'u: 9 dilli ad, deger-tabanli renk/beden ayrimi, fotograf
+              // elemesi, tiers). Eski kurucuyu dallandirmak iki katalogu tek
+              // govdede birbirine baglardi.
+              $BATCH_FILE = $DIR . '/test_batch.json';
+              if ($DS === 'nbb') {
+                $nv = nbb_fetch_vocab();
+                $nv['palette_map'] = $vocab['palette_map'];
+                $nv['nbb_colors']  = $nv['colors'];
+                [$rows, $skips, $notes] = nbb_build_rows($priced, $imgMap, $nv, $sid, $start, $count);
+                save_json_atomic($BATCH_FILE, $rows);
+                printf("olusturuldu: %d satir\n", count($rows));
+                foreach ($skips as $k => $n) printf("  atlandi/%-12s %d\n", $k, $n);
+                printf("yazildi: %s\n", $BATCH_FILE);
+                if ($notes) { echo "\n-- atlananlar --\n"; foreach ($notes as $t) echo "  $t\n"; }
+                echo "\n-- id listesi (FIYAT YOK -- kutuk herkese acik) --\n";
+                foreach ($rows as $r) {
+                  printf("  %-14s %-46s cat=%-16s renk=%-22s beden=%-24s moq=%d\n",
+                    $r['id'], mb_substr($r['name'], 0, 46), $r['cat'], implode('/', $r['colors']), $r['sizes'], $r['moq']);
+                }
+                exit(0);
+              }
 
               [$rows, $skippedNoImg, $skippedVaries] = kuloglu_build_rows($priced, $imgMap, $vocab, $sid, $start, $count);
 
-              $BATCH_FILE = $DIR . '/test_batch.json';
               save_json_atomic($BATCH_FILE, $rows);
               printf("olusturuldu: %d satir (atlandi: gorselsiz=%d, varyant-fiyatli=%d)\n", count($rows), $skippedNoImg, $skippedVaries);
               printf("yazildi: %s\n", $BATCH_FILE);

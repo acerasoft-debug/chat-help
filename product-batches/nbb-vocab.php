@@ -182,6 +182,43 @@ const NBB_PRODUCTS = [
 '9293'  => ['cat'=>'Socks & Hosiery', 'type'=>'trouser_socks',      'attrs'=>['d40']],
 ];
 
+/**
+ * FOTOGRAFI ELENEN URUNLER — operatorun sarti: *"resmin üstünde türkce
+ * ifadeler varsa koyma"* (10 Eyl 2026).
+ *
+ * 47 karenin HEPSI goz ile incelendi (kontakt sayfasi, `kuloglu: sheet`,
+ * 10 Eyl 2026; supheli dordu 480px'te tekrar bakildi). Kaynaktan
+ * cevaplanamayacak tek sorunun cevabi bu liste.
+ *
+ * NBB'de her urunun TEK fotografi var, yani elenen kare = YAYIMLANMAYAN ILAN.
+ * Liste bu yuzden `nbb_photo_rejected()` uzerinden GONDERIM/YAZMA yolunda
+ * okunuyor, bir yorumda durmuyor: elle eleme unutulur (KURAL 1h'nin dersi).
+ *
+ * Neden elendikleri, tek tek — "Turkce var" demek yetmez, hangi metin oldugu
+ * yazilmali ki tedarikci bir gun kareyi degistirdiginde karar gozden gecirilebilsin:
+ */
+const NBB_PHOTO_REJECT = [
+  '1117' => 'Fotograf urun degil, AMBALAJ TARAMASI: "İçinizi Rahat Etsin", '
+          . '"GARSON SÜTYEN", "11-14 Yaş". (Ayrica: 11-14 yas = cocuk urunu, '
+          . 'operator karari bekliyor.)',
+  '2006' => 'Alt bantta Turkce: "S (36-40) - M (40-44)" + "Beyaz, siyah, ten".',
+  '2007' => 'Alt bantta Turkce: "S-M-L" + "Beyaz, siyah, ten".',
+  '2465' => 'Sol kenarda "Slip korse", alt bantta "Toparlayıcı, silikonlu" + '
+          . '"Beyaz, siyah, ten".',
+  '9267' => 'Ambalaj kartlarinda "Unisex / 2 Beden" ve "3 Beden" — "beden" Turkce.',
+];
+
+/**
+ * GECEN ama not dusulen kare (elenmedi, gerekce kayda gecsin):
+ *   9001 — sag altta "NBB Lingerie®" logosu. Latin harfli ve "Lingerie"
+ *          Ingilizce; ustelik SATTIGIMIZ markanin kendi logosu. Operatorun
+ *          sarti Turkce ifadeler; marka logosu o degil. Elemek, urunun
+ *          markasini gostermeyi yasaklamak olurdu.
+ */
+function nbb_photo_rejected(string $model): ?string {
+    return NBB_PHOTO_REJECT[strtoupper(trim($model))] ?? null;
+}
+
 /* NBB'de gecen ve kuloglu-vocab.php'de HENUZ OLMAYAN uc renk. Digerleri
    (NEON'lar dahil) orada zaten var -- ikinci bir kopya yazmak, bu deponun
    tekrar tekrar kaydettigi "ayni olgu iki yerde" hatasi olurdu. */
@@ -284,3 +321,15 @@ function nbb_is_size(string $raw): bool {
 function nbb_is_one_size(string $raw): bool {
     return in_array(trim(mb_strtoupper($raw)), ['STANDART', 'STD', 'TEK EBAT', 'TEK BEDEN'], true);
 }
+
+/* Dizi olarak da doner: workflow bu dosyayi raw.githubusercontent'ten cekip
+   `require` ediyor (kuloglu-vocab.php ile ayni desen). Fonksiyonlar zaten
+   require ile tanimlaniyor; bu dondurulen dizi tablolara sabit adi yazmadan
+   erismek isteyen cagiran icin. */
+return [
+  'types'    => NBB_TYPES,
+  'attrs'    => NBB_ATTRS,
+  'products' => NBB_PRODUCTS,
+  'reject'   => NBB_PHOTO_REJECT,
+  'colors'   => NBB_EXTRA_COLORS,
+];
