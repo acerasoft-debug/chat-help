@@ -1886,6 +1886,113 @@ alim 300 eur olacak sekilde"* · *"siteye atmadan önce test olarak göster bana
   %50 kâr bilinirken satış fiyatını basmak maliyeti de ele verir; önizleme
   operatörün kendi sunucusunda, dizine kapalı ve bağlantısız bir adreste.
 
+**KURAL 21 — CANLIYA YAZILDI (10 Eyl 2026, operatör: *"canliya yaz"*).**
+47 üründen **42'si** `listings.json`'a indi, hepsi **`status=pending`** —
+yani sunucuda duruyor, katalogda **görünmüyor**. Operatörün "önce göster"
+şartı ile "canlıya yaz" talimatı böyle birlikte karşılandı: onay düğmesi
+`Admin ▸ Products`'ta, önizleme operatörün kendi ekranı.
+
+| | |
+|---|---:|
+| Taranan NBB ürünü | 47 |
+| Fotoğrafında Türkçe metin → **elendi** | 5 |
+| **Yazılan ilan** | **42** |
+| 9 dilde ad + açıklama | 42/42 |
+| Bölme `underwear`, satıcı `Wholesale Underwear`, `ships_from=Turkey` | 42/42 |
+
+- **Elenen 5 fotoğraf** ve gerekçeleri `nbb_photo_rejected()`'ta (yorumda
+  değil — elle eleme unutulur, KURAL 1h). 47 karenin **hepsi göz ile**
+  incelendi (`kuloglu: sheet` kontakt sayfası); şüpheli dördü 480px'te tekrar.
+  `9001` **geçti**: üzerindeki "NBB Lingerie®" Latin harfli ve **sattığımız
+  markanın kendi logosu** — Türkçe ifade değil.
+- **`1117` operatör kararı bekliyor:** ambalaj taramasında *"11-14 Yaş"*
+  yazıyor, yani bu bir **çocuk** ürünü (Kidswear), bu bölmenin işi değil.
+- **Ad/açıklama kelime kelime çevrilmedi.** `product-batches/nbb-vocab.php`:
+  giysi türü her dilde TAM isim tamlaması + özellikler VİRGÜLLE ayrılmış liste
+  ("Trägerloser BH, Mikrofaser, wattiert — 3520"). Sıfat sırası, sıfatın
+  isimden sonra gelmesi, cinsiyet/belirlilik uyumu diye bir sorun kalmıyor ve
+  48. ürün iki anahtara mal oluyor, dokuz yeni cümleye değil.
+- **Renk/beden AYRIMI DEĞERE bakıyor, alanın adına değil.** NBB kaydında ikisi
+  yer yer yer değişmiş (ölçüldü: 2404, 2900, 9266, 9293 — 2404'ün RENK alanında
+  bir BEDEN var). Eski kurucunun kuralı "renk alanı boşsa bedeni renk say" idi
+  ve bu vakaların hiçbirini yakalamıyordu.
+- **`tiers` yazılıyor.** `vestra_unit_price()` tiers boşsa **0.0** dönüyor ve
+  `order.php` 0 fiyatlı satırı atlıyor: tiers'siz bir ilan vitrinde durur ama
+  **satın alınamaz**. Eski kurucu hiç yazmıyordu.
+- **`mode='fixed'`** — `sale`'de `list` üstü çizili ESKİ fiyattır (KURAL 4),
+  yani her ilan hiç var olmamış bir indirim ilan ederdi.
+
+**Bu iş dört dersi yeniden öğretti; üçü bu deponun kendi kayıtlarının tekrarı:**
+
+1. **`desc` ile `moq` çelişti — Balenciaga'nın (9 Eyl) birebir aynısı, üç gün
+   sonra ve benim yeni kodumda.** Açıklama *"paket halinde, tek parça değil"*
+   diyordu; sunucudaki gerçek kayıtta **yalnız çorap satırları paketli**
+   (6/12/24), sütyen/gecelik/atlet `pack_qty=1`. Düzeltme: cümle **rakama
+   bağlı** (`NBB_DESC_FMT` / `NBB_DESC_FMT_NOPACK`), kurucu gerçek paket
+   adedini geçiriyor. **Uydurma bir paket adedi de "düzeltirdi" ve daha kötü
+   olurdu** (KURAL 3); toptan şartını marka asgarisi tutuyor, tek ilanın adedi
+   değil. *Yerel testim beni doğrulamıştı çünkü `pack_qty`'yi kendim
+   uydurmuştum — yakalayan şey ÇIKTIYI OKUMAK oldu.*
+2. **Actions maskesi ETİKETİ de yiyor — aynı gün ÜÇ kez.** Kontakt sayfasının
+   parça numarası (`C0022`, `C0220`…), sonra `sha256=` satırı, sonra şifreli
+   paketin numarası+`CHK=`si. Gövdeyi boşluklamak yetmiyor: **yükü ADRESLEYEN
+   ve DOĞRULAYAN alanlar da boşluklanmalı.** Maskelenmiş gövde kontrol
+   toplamında yakalanır; maskelenmiş **etiket sessizce kaybolur**, maskelenmiş
+   **sağlama ise sağlam veriye "MISMATCH" dedirtir**.
+3. **`raw.githubusercontent` BİR CDN ve kopyası BAYAT olabiliyor.** Paket
+   düzeltmesi 12:37'de push edildi, 12:40'taki koşu **eski** `nbb-vocab.php`'yi
+   çekti ve PHP kullanıcı fonksiyonlarına **fazla argümanı sessizce yok
+   saydığı** için hiçbir hata çıkmadı — doğru kaynak, doğru çağrı, yanlış çıktı.
+   `nbb_fetch_vocab()` artık çektiği şeyin **şeklini denetliyor**
+   (`ReflectionFunction`: 3 parametre + NOPACK tablosu) ve tutmazsa **durup
+   CDN'i adıyla söylüyor**. *Ağdan çektiğin bağımlılığın SÜRÜMÜNÜ doğrula.*
+4. **Yazmayı doğrulayan sonda `vestra_products()` okuyordu** — o
+   `vestra_live_listings()`'ten geçiyor ve **yalnız `approved`** döndürüyor,
+   yani taze bir parti orada **0** görünür ve "0", *"yazılmadı"* ile
+   *"yazıldı, onay bekliyor"* arasında hiçbir ayrım yapmaz.
+   `inspect-products.yml` → **`raw_scan=true`** ham `vestra_listings()` okuyor:
+   durum dağılımı, bölme dağılımı, her satırda tiers var mı, kaç satır
+   gerçekten 9 dil taşıyor. **Kendi eklediğim blok ilk koşuda `$brand`/`$cat`
+   yazdı, oysa bu dosyanın değişkenleri `$bf`/`$cf`** — ikisi de tanımsız,
+   PHP'de `null !== ''` DOĞRU, ve süzgeç bütün katalogu eledi: *"722 kayıt,
+   filtreye uyan 0"*. Yani tam da önlemek için yazdığım hata, aynı blokta.
+   Yakalanma sebebi **iki sayının çelişmesi** (722 ham = add-products'ın
+   dediği, ama süzgeç 0) — *çelişkiyi çözmeden hiçbirine inanma.*
+
+**Açık kalan, operatör kararı bekleyen:**
+- **`1117`** çocuk ürünü (11-14 yaş) — bu bölmede mi kalmalı?
+- **`2404`** beş NEON rengi paletin `Other` yakalayıcısına düşüyor, yani alıcı
+  beş renk yerine **tek bir çok renkli nokta** görüyor. Palet kararı eski
+  (nadir ton başına yeni swatch açılmıyor); bu ilanda bedeli görünür oluyor.
+- **`730`** (erkek slip 3'lü) kaydında **hiç renk yok** — tedarikçi vermemiş.
+  Fotoğrafta mavi/beyaz/bordo görünüyor ama **fotoğraftan renk uydurulmadı**.
+- **`nbb-9001` bir ara `approved` durumundaydı** (geri okumada 41 pending + 1
+  approved). `pending`'e çekildi ve son durum **42/42 pending**; ama **sebebi
+  bulunamadı** — `add-products.yml`'deki geçiş döngünün içinde ve doğru yerde.
+  Uydurma bir açıklama yazmaktansa çözülmemiş olarak kaydediliyor.
+- **Ürün başına TEK fotoğraf var.** Yeni bir kare gelmedikçe elenen 5 ilan
+  yayımlanamaz; ve geçen 42 ilanın hiçbirinde ikinci açı yok.
+
+**Yapılan diğer kablolama:**
+- `/b2b/intimates` — bölmenin SEO sayfası. **`underwear` DEĞİL**, çünkü
+  "Underwear" zaten bir taksonomi yaprağı ve `vestra_seo_resolve()` kategoriye
+  ÖNCE bakıyor: aynı slug verilseydi o adresin ne gösterdiği **stoka bağlı**
+  olurdu (bugün bölme, o yaprağa bir ilan girince kategori). Etiket yine
+  "Underwear". Taksonomi grubu (`Underwear & Socks`) ayakkabıdaki birleşimin
+  aynısını aldı; kural artık grup→bölme tablosu, gövdeye gömülü bir bayrak değil.
+- `vestra_sizes_label()` **"One size"** çeviriyor (NBB çoraplarının bedeni
+  `STANDART`). Rakamlar ve harf merdiveni bilerek çevrilmiyor. Kalıp **dar**:
+  yalnız tek başına duran değer.
+- `add-products.yml` ve `scripts/set_product.php` artık `name_i18n`/`desc_i18n`
+  taşıyor ve **`vlang_list()`'e karşı doğruluyor**; ikisi de `inc/i18n.php`'yi
+  **açıkça** require ediyor (KURAL 15 — kardeş bir dosyanın require'ına
+  yaslanma; `function_exists` ile geçiştirmek daha kötü olurdu, çünkü dosya
+  yüklenmemişse doğrulama SESSİZCE atlanır).
+- `build_batch` ve `export_enc` artık **tek satır kaynağından** okuyor
+  (`kuloglu_rows_for`). Bir süre ayrışmışlardı: operatörün gördüğü önizleme
+  yeni kurucudan, sunucuya inen paket ESKİ kurucudan geliyordu — KURAL 5f/5n'in
+  "iki kesim yolu ayrışır ve ayrışma belgede görünür" dersinin katalog hâli.
+
 ## Operasyonel notlar
 
 - Deploy `claude/wizardly-planck-7ylnmk` dalına **push ile** tetiklenir.
