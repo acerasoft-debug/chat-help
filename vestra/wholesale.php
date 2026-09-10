@@ -41,7 +41,7 @@ $_ldItems = [];
 foreach (array_slice($items, 0, 30) as $i => $p) {
     $_ldItems[] = [
         '@type' => 'ListItem', 'position' => $i + 1,
-        'name'  => trim(($p['brand'] ?? '').' '.($p['name'] ?? '')),
+        'name'  => vestra_product_title($p),
         'url'   => 'https://vestrasales.com/product?id='.rawurlencode((string)($p['id'] ?? '')),
     ];
 }
@@ -103,12 +103,12 @@ $moqs = array_filter(array_map(fn($p) => (int)($p['moq'] ?? 0), $items));
           <div class="wsthumb">
             <?php if ($img): ?>
               <img src="<?= htmlspecialchars($img) ?>" loading="lazy"
-                   alt="<?= htmlspecialchars(trim(($p['brand'] ?? '').' '.($p['name'] ?? ''))) ?>">
+                   alt="<?= htmlspecialchars(vestra_product_title($p)) ?>">
             <?php else: echo vestra_brand_card($p['brand'] ?? $brand); endif; ?>
           </div>
           <div class="wsbody">
             <span class="wsbrand"><?= htmlspecialchars((string)($p['brand'] ?? '')) ?></span>
-            <span class="wsname"><?= htmlspecialchars((string)($p['name'] ?? '')) ?></span>
+            <span class="wsname"><?= htmlspecialchars(vestra_product_name($p)) ?></span>
             <span class="wsmeta"><?= htmlspecialchars((string)($p['cat'] ?? '')) ?> · MOQ <?= (int)($p['moq'] ?? 0) ?></span>
           </div>
         </a>

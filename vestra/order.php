@@ -84,7 +84,7 @@ foreach($cart as $it){
   }
   $unit=vestra_unit_price($p,$qty); if($unit<=0) continue;
   $line=$qty*$unit; $subtotal+=$line;
-  $lines[]=['sku'=>$p['sku'],'brand'=>$p['brand'],'name'=>$p['name'],'qty'=>$qty,'unit'=>$unit,'line'=>$line,'colors'=>$colors,'seller_uid'=>$p['seller_uid']??''];
+  $lines[]=['sku'=>$p['sku'],'brand'=>$p['brand'],'name'=>vestra_product_name($p),'qty'=>$qty,'unit'=>$unit,'line'=>$line,'colors'=>$colors,'seller_uid'=>$p['seller_uid']??''];
 }
 if(!$lines){ header('Location: /cart'); exit; }
 

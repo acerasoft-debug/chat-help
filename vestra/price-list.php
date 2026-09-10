@@ -227,17 +227,17 @@ if (!$PRICES) {
       $href = '/product?id='.rawurlencode($id);
       /* One searchable haystack per row for the filter box, so a buyer typing an article
          number finds it without the page reloading or the server being asked again. */
-      $hay = mb_strtolower($ident.' '.$id.' '.($p['name'] ?? '').' '.($p['cat'] ?? '').' '.$b);
+      $hay = mb_strtolower($ident.' '.$id.' '.vestra_product_name($p).' '.($p['cat'] ?? '').' '.$b);
     ?>
     <div class="pc-row" data-q="<?= htmlspecialchars($hay) ?>">
       <a class="pc-ph" href="<?= htmlspecialchars($href) ?>">
         <?php if ($img !== ''): ?>
-          <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars((string)($p['name'] ?? '')) ?>" loading="lazy" decoding="async">
+          <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars(vestra_product_name($p)) ?>" loading="lazy" decoding="async">
         <?php else: ?><span class="none"><?= t('no photo') ?></span><?php endif; ?>
       </a>
       <div>
         <span class="pc-art"><?= htmlspecialchars($ident) ?></span><span class="pc-ref"><?= htmlspecialchars($id) ?></span>
-        <div class="pc-name"><a href="<?= htmlspecialchars($href) ?>"><?= htmlspecialchars((string)($p['name'] ?? '')) ?></a></div>
+        <div class="pc-name"><a href="<?= htmlspecialchars($href) ?>"><?= htmlspecialchars(vestra_product_name($p)) ?></a></div>
         <div class="pc-cat"><?= htmlspecialchars((string)($p['cat'] ?? '')) ?></div>
       </div>
       <div class="pc-sizes">

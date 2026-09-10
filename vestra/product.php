@@ -14,10 +14,10 @@ if(!$p){ http_response_code(404); $PAGE=t('Not found'); $NOINDEX=true; require _
    part of the catalogue, so search engines are told not to index it either. */
 if (!empty($p['unlisted'])) $NOINDEX = true;
 
-$PAGE = trim(($p['brand'] ?? '').' '.($p['name'] ?? '')) ?: ($p['name'] ?? 'Product');
+$PAGE = vestra_product_title($p) ?: (vestra_product_name($p) ?: 'Product');
 /* Photo alt text. Now that robots.txt lets image crawlers into /uploads, alt text is the
    only description these files carry — an empty one costs the listing image search. */
-$_imgAlt = trim(($p['brand'] ?? '').' '.($p['name'] ?? ''));
+$_imgAlt = vestra_product_title($p);
 $_pcat = $p['cat'] ?? 'fashion'; $_pmoq = (int)($p['moq'] ?? 0); $_punit = $p['unit'] ?? 'pc';
 $META = sprintf(t('%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering across Europe.'),
         $PAGE, $_pcat, $_pmoq ? "MOQ {$_pmoq} {$_punit}. " : '');
@@ -146,7 +146,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
       <div class="vzoom-panel" id="vzoomPanel" aria-hidden="true"><div class="vzoom-surface" id="vzoomSurface"></div><span class="vzoom-badge" id="vzoomBadge">1:1</span></div>
       <div class="vzoom-full" id="vzoomFull" role="dialog" aria-modal="true" aria-label="<?= htmlspecialchars(t('Zoom')) ?>">
         <button class="vzoom-close" id="vzoomClose" aria-label="<?= htmlspecialchars(t('Close')) ?>">&times;</button>
-        <div class="vzoom-stage" id="vzoomStage"><img id="vzoomFullImg" alt="<?= htmlspecialchars($p['name']) ?>" draggable="false"></div>
+        <div class="vzoom-stage" id="vzoomStage"><img id="vzoomFullImg" alt="<?= htmlspecialchars(vestra_product_name($p)) ?>" draggable="false"></div>
         <div class="vzoom-bar"><b id="vzoomPct">100%</b><i id="vzoomTip"><?= htmlspecialchars(t('Double-tap or pinch to zoom · drag to pan')) ?></i></div>
       </div>
       <?php endif; ?>
@@ -167,9 +167,9 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
     <!-- ── Product info ───────────────────────────────────────────────────── -->
     <div class="pinfo">
       <span class="acc" style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700"><?= htmlspecialchars($p['brand']) ?></span>
-      <h1 style="margin:6px 0 10px"><?= htmlspecialchars($p['name']) ?></h1>
-      <?php if(!empty($p['desc'])): ?>
-        <p style="color:var(--mut);margin:0 0 18px;line-height:1.65"><?= htmlspecialchars($p['desc']) ?></p>
+      <h1 style="margin:6px 0 10px"><?= htmlspecialchars(vestra_product_name($p)) ?></h1>
+      <?php if(vestra_product_desc($p) !== ''): ?>
+        <p style="color:var(--mut);margin:0 0 18px;line-height:1.65"><?= htmlspecialchars(vestra_product_desc($p)) ?></p>
       <?php endif; ?>
       <?php /* SATILDI: satin alma kutusundan ONCE ve en gorunur yerde. Sayfa
                ayakta kaliyor (SEO ve gelen baglantilar), yalnizca satis kapali. */
@@ -575,7 +575,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         </div>
         <?php endif; ?>
         <script>
-        var P=<?= json_encode(['id'=>$p['id'],'brand'=>$p['brand'],'name'=>$p['name'],'sku'=>$p['sku'],'unitLabel'=>$p['unit'],'moq'=>(int)$p['moq'],'step'=>(int)($p['size_step']??0),'minColors'=>(int)($p['min_colors']??0),'tiers'=>array_map(function($t){return ['min'=>(int)$t['min'],'price'=>(float)$t['price']];},$p['tiers'])]) ?>;
+        var P=<?= json_encode(['id'=>$p['id'],'brand'=>$p['brand'],'name'=>vestra_product_name($p),'sku'=>$p['sku'],'unitLabel'=>$p['unit'],'moq'=>(int)$p['moq'],'step'=>(int)($p['size_step']??0),'minColors'=>(int)($p['min_colors']??0),'tiers'=>array_map(function($t){return ['min'=>(int)$t['min'],'price'=>(float)$t['price']];},$p['tiers'])]) ?>;
         function step(){ return P.step||(P.moq>=100?100:(P.moq>=50?50:10)); }
         function unitPrice(q){ var pr=P.tiers[0].price; P.tiers.forEach(function(t){ if(q>=t.min) pr=t.price; }); return pr; }
         function tierLabel(q){ var lab='—'; P.tiers.forEach(function(t,i){ if(q>=t.min){ var n=P.tiers[i+1]; lab=t.min+(n?'–'+(n.min-1):'+'); } }); return lab; }
@@ -717,7 +717,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         $rimg = $rimgs[0] ?? ''; ?>
         <a class="scard" href="/product?id=<?= urlencode($rp['id']) ?>">
           <div class="sthumb" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($rp)) ?>,#0e0e11)">
-            <?php if ($rimg): ?><img src="<?= htmlspecialchars($rimg) ?>" alt="<?= htmlspecialchars(trim(($rp['brand'] ?? '').' '.($rp['name'] ?? ''))) ?>" loading="lazy" class="sthumbi"><?php endif; ?>
+            <?php if ($rimg): ?><img src="<?= htmlspecialchars($rimg) ?>" alt="<?= htmlspecialchars(vestra_product_title($rp)) ?>" loading="lazy" class="sthumbi"><?php endif; ?>
             <?php if (!empty($rp['verified'])): ?><span class="svbadge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span><?php endif; ?>
             <?php if (!$rimg) echo vestra_brand_card($rp['brand'] ?? ''); ?>
             <?php $rmode = vestra_display_mode($rp); ?>
@@ -726,7 +726,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           </div>
           <div class="sbody">
             <span class="sbrand"><?= htmlspecialchars($rp['brand'] ?? '') ?></span>
-            <span class="stitle"><?= htmlspecialchars($rp['name'] ?? '') ?></span>
+            <span class="stitle"><?= htmlspecialchars(vestra_product_name($rp)) ?></span>
             <span class="smeta"><?= htmlspecialchars($rp['cat'] ?? '') ?> · MOQ <b><?= $rp['moq'] ?? '?' ?></b> <?= htmlspecialchars($rp['unit'] ?? 'pc') ?></span>
             <div class="sprice">
               <?php if (!$PRICES): ?>
