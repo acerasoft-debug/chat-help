@@ -766,6 +766,55 @@ function vestra_product_desc(array $p): string {
 }
 /* Marka + ad, tek yerde: alt metinlerde, sayfa basliklarinda ve belge
    satirlarinda ayni sira kullanilsin. */
+/**
+ * GERIYE DONUS (operator, 10 Eyl 2026: *"kataloglarda geriye dogru donus koy"*).
+ *
+ * Urun sayfasindan listeye donerken BIRAKILAN YERE donuyor: sorgu dizesi
+ * korunuyor, yani suzgec, arama ve sayfa numarasi kaybolmuyor. Tarayicinin geri
+ * dugmesi bunu zaten yapiyor -- ama sayfaya bir baglantiyla gelen (kampanya
+ * mektubu, Google, paylasilan link) ziyaretcide gidilecek bir "geri" yok ve
+ * musteri katalogu bastan aramak zorunda kaliyordu.
+ *
+ * REFERRER HAM KULLANILMIYOR. Yalnizca (a) KENDI alan adimiz ve (b) BILINEN bir
+ * liste yolu kabul ediliyor:
+ *   - ham referrer'i href'e basmak acik yonlendirme kapisidir (baska bir siteye
+ *     "geri" diye gonderen bir dugme),
+ *   - "javascript:" / "data:" gibi bir sema XSS'e acilir,
+ *   - ve disaridan gelen icin "geri" zaten dogru yer degil: o zaman katalog.
+ * Sema/host atiliyor, yalnizca yol + sorgu geri veriliyor; boylece cikan adres
+ * her zaman bizim sitemizde kaliyor.
+ */
+function vestra_back_link(string $fallback = '/shop'): array {
+    $out = ['url' => $fallback, 'label' => t('Back to catalog')];
+    $ref = trim((string)($_SERVER['HTTP_REFERER'] ?? ''));
+    if ($ref === '') return $out;
+
+    $u = @parse_url($ref);
+    if (!is_array($u) || !isset($u['path'])) return $out;
+    $scheme = strtolower((string)($u['scheme'] ?? ''));
+    if ($scheme !== '' && $scheme !== 'http' && $scheme !== 'https') return $out;
+
+    /* Ayni alan adi mi: www. onekini iki tarafta da atiyoruz, yoksa
+       www'dan gelen her ziyaretci "yabanci" sayilirdi. */
+    $host = strtolower((string)($u['host'] ?? ''));
+    $self = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+    $strip = fn(string $h): string => preg_replace('/^www\./', '', preg_replace('/:\d+$/', '', $h)) ?? $h;
+    if ($host !== '' && $self !== '' && $strip($host) !== $strip($self)) return $out;
+
+    $path = '/'.ltrim((string)$u['path'], '/');
+    /* Liste sayfalari. Urun sayfasindan urun sayfasina "geri" anlamsiz; panel ve
+       sepet zaten kendi navigasyonunu tasiyor. */
+    $ok = false;
+    foreach (['/shop', '/b2b/', '/wholesale/', '/price-list', '/price-lists', '/groups', '/journal', '/search'] as $pre) {
+        if ($path === $pre || str_starts_with($path, rtrim($pre, '/').'/') || str_starts_with($path, $pre)) { $ok = true; break; }
+    }
+    if (!$ok) return $out;
+
+    $q = isset($u['query']) && $u['query'] !== '' ? '?'.$u['query'] : '';
+    return ['url' => $path.$q, 'label' => $path === '/shop' || str_starts_with($path, '/shop')
+                                          ? t('Back to catalog') : t('Back')];
+}
+
 function vestra_product_title(array $p): string {
     return trim(trim((string)($p['brand'] ?? '')).' '.vestra_product_name($p));
 }

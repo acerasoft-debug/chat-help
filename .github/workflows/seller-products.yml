@@ -1473,6 +1473,8 @@ jobs:
                    ." | price=".(isset($p['price']) ? number_format((float)$p['price'], 2, '.', '') : '-')
                    ." | from=".number_format((float)vestra_from_price($p), 2, '.', '')
                    ." | moq=".($p['moq'] ?? '-')
+                   ." | paket=".(isset($p['size_step']) ? (int)$p['size_step'].'li' : '-')
+                   ." | beden=".(trim((string)($p['sizes'] ?? '')) !== '' ? trim((string)$p['sizes']) : '-')
                    ." | kademe=".($tiers ? implode(' ', $tiers) : '-')
                    /* RENKLER de yaziliyor: "diger renkleri de ekle" isi
                       MEVCUT listeyi bilmeden yapilamaz -- set_product'in

@@ -88,6 +88,14 @@ header nav{display:flex;align-items:center;justify-content:space-between;height:
 .phead p{color:var(--mut);margin:0}
 .crumbs{font-size:13px;color:var(--mut);margin-bottom:14px}
 .crumbs a:hover{color:var(--ink)}
+/* Geriye donus: kirintilarin basinda, tiklama alani genis (mobilde parmakla
+   isabet etmesi gerekiyor) ve ayrilmis bir cip gorunumu -- ayni satirdaki
+   duz kirinti baglantilariyla karismasin. */
+.crumb-back{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;margin-right:4px;
+  border:1px solid var(--line);border-radius:999px;color:var(--ink);font-weight:600;
+  transition:border-color .2s var(--ease),background .2s var(--ease)}
+.crumb-back:hover{border-color:var(--acc);background:rgba(201,168,106,.08)}
+.crumb-sep{margin-right:4px;opacity:.5}
 
 /* toolbar */
 .toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:18px 0 26px}

@@ -87,7 +87,16 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
 }
 ?>
 <div class="wrap">
+  <?php /* GERIYE DONUS (operator, 10 Eyl 2026). Tarayicinin geri dugmesi
+           listeye doner ama kampanya mektubundan / Google'dan / paylasilan
+           linkten gelen ziyaretcide gidilecek bir "geri" yok -- onlarda
+           katalogun kendisine dusuyor. Adres vestra_back_link()'ten:
+           ham referrer basilmiyor, yalnizca kendi sitemizdeki bir liste
+           yolu + sorgu dizesi (suzgec ve sayfa numarasi korunur). */
+        $__back = vestra_back_link(); ?>
   <div class="crumbs" style="margin-top:24px">
+    <a class="crumb-back" href="<?= htmlspecialchars($__back['url']) ?>">← <?= htmlspecialchars($__back['label']) ?></a>
+    <span class="crumb-sep">·</span>
     <a href="/"><?= t('Home') ?></a> · <a href="/shop"><?= t('Catalog') ?></a> · <?= htmlspecialchars($p['brand']) ?>
   </div>
 
