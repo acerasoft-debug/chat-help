@@ -958,6 +958,15 @@ jobs:
                    gosteriyor; 120'lik bir sinir tam da aradigim harfi kesiyordu.
                    Sinir yuksek, cunku bu sayfa markalarin TAM dizini. */
                 foreach (array_slice($brands, 0, 600) as $b) echo "     /marka/".$b."\n";
+                /* KATEGORI baglantilari. Markasi olmayan bir uretici (Visatin'in
+                   /marka/ sayfasi 404 ve marka dizininde adi hic gecmiyor) ancak
+                   kategori yolundan toplanabilir; hangi kategoride durdugunu
+                   TAHMIN etmek yerine urun sayfasinin kendi kirinti yolundan
+                   okuyoruz. Ust sinir marka listesindeki ile ayni sebeple var. */
+                preg_match_all('~/kategori/([a-z0-9\-]+)~i', $r['html'], $cm);
+                $cats = array_values(array_unique($cm[1] ?? []));
+                printf("  essiz /kategori/ link: %d\n", count($cats));
+                foreach (array_slice($cats, 0, 400) as $c) echo "     /kategori/".$c."\n";
               }
               echo "\nSALT OKUNUR -- hicbir dosyaya yazilmadi\n";
               return;
