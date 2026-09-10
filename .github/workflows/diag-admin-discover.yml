@@ -967,8 +967,15 @@ jobs:
             // KDV'siz taban fiyat kullanilir (Kuloglu'nin "Fiyat" alani zaten KDV
             // haric) -- Turk KDV'si sinir otesi bir toptan alimda alicidan tahsil
             // edilecek bir sey degil, maliyet tabanina karismamali.
-            // %100 kar = satis fiyati maliyetin TAM IKI KATI ("yuzde yuz kar
-            // koyarmisin" -- maliyete eklenen kar, maliyetin kendisi kadar).
+            //
+            // KAR ORANI ARTIK PARAMETRE: price|<yuzde>, varsayilan 50.
+            // 4 Eyl 2026'da %100 sabitti ("satis = maliyet x 2"). Operator
+            // 10 Eyl 2026'da NBB icin *"satis fiyatinin üstüne yüzde 50 kär
+            // koyarak"* dedi -- yani carpan 1.5. Sabit birakip yeni bir mod
+            // yazmak, ayni olguyu iki yere yazmak olurdu (bu depoda `desc`/`sizes`
+            // ve dort mektup govdesi ayni dersi verdi); tek carpan, disaridan.
+            // Oran her kosuda LOG'a basiliyor: yanlis oranla fiyatlanmis bir
+            // katalog, rakama bakip anlasilmaz -- etikete bakip anlasilir.
             if ($mode === 'price') {
               function kuloglu_try_eur_sources(): array {
                 return [
@@ -1004,12 +1011,22 @@ jobs:
               $rate = $rateInfo['rate']; $rateDate = $rateInfo['date'];
               printf("kur: 1 EUR = %s TRY (kaynak=%s, tarih=%s)\n", $rate, $rateSource, $rateDate ?: '?');
 
-              $existing = load_json($OUT_FILE, []);
-              if (!$existing) { fwrite(STDERR, "bayan_sutyen.json bos/yok -- once crawl calistir\n"); exit(1); }
+              /* Kar orani: price|<yuzde>. Varsayilan 50 = operatorun 10 Eyl 2026
+                 karari. Sinir konuyor cunku elle girilen bir "500" katalogu
+                 sessizce satilamaz hale getirirdi (KURAL 5m'deki KDV tavaninin
+                 aynisi); 0 gecerli bir deger DEGIL -- maliyetine satmak bir
+                 karar olurdu, yazim hatasi olmasi cok daha muhtemel. */
+              $marginPct = $arg1 !== '' ? (float)$arg1 : 50.0;
+              if ($marginPct <= 0 || $marginPct > 400) { fwrite(STDERR, "kar orani 0-400 arasinda olmali: {$marginPct}\n"); exit(1); }
+              $mult = 1 + ($marginPct / 100);
+              printf("kar orani: %%%s  (carpan %.4f -- satis = maliyet x %.4f)\n", rtrim(rtrim(number_format($marginPct,2,'.',''), '0'), '.'), $mult, $mult);
 
-              $toEur = function (?float $try) use ($rate): ?float {
+              $existing = load_json($OUT_FILE, []);
+              if (!$existing) { fwrite(STDERR, basename($OUT_FILE)." bos/yok -- once crawl calistir\n"); exit(1); }
+
+              $toEur = function (?float $try) use ($rate, $mult): ?float {
                 if ($try === null || $try <= 0) return null;
-                return round(($try / $rate) * 2, 2);   // maliyet=TRY/kur, satis=maliyet*2 (%100 kar)
+                return round(($try / $rate) * $mult, 2);   // maliyet=TRY/kur, satis=maliyet*carpan
               };
               $priced = []; $allEur = [];
               foreach ($existing as $rec) {
@@ -1020,7 +1037,12 @@ jobs:
                   if ($v['price_eur'] !== null) $allEur[] = $v['price_eur'];
                 }
                 unset($v);
+                /* Oran KAYDA da giriyor. Aylar sonra "bu fiyat hangi karla
+                   kuruldu" sorusunun cevabi, rakamdan geri hesaplanacak bir sey
+                   olmamali -- yuvarlama yuzunden geri bolme baska bir sayi verir
+                   (KURAL 5p'nin EUR asli dersi). */
                 $rec['eur_rate_used'] = $rate; $rec['eur_rate_date'] = $rateDate; $rec['eur_rate_source'] = $rateSource;
+                $rec['eur_margin_pct'] = $marginPct;
                 $priced[] = $rec;
               }
               save_json_atomic($PRICED_FILE, $priced);
