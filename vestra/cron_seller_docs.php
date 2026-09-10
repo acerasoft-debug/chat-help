@@ -44,7 +44,7 @@ $mask = function (string $e): string {
 $label = fn(array $a) => (trim((string)($a['company'] ?? '')) ?: trim((string)($a['name'] ?? '')) ?: '(no name)');
 $reload = fn(string $uid) => vestra_seller_docs_account($uid);
 
-$acts = ['stamped'=>[], 'reminded'=>[], 'suspended'=>[], 'awaiting'=>[], 'running'=>0, 'clear'=>0, 'nolisting'=>0, 'exempt'=>0];
+$acts = ['stamped'=>[], 'reminded'=>[], 'suspended'=>[], 'awaiting'=>[], 'opened'=>[], 'running'=>0, 'clear'=>0, 'nolisting'=>0, 'exempt'=>0];
 
 foreach (auth_accounts() as $a) {
     if (($a['type'] ?? '') !== 'seller') continue;
@@ -52,6 +52,17 @@ foreach (auth_accounts() as $a) {
     if ($st === 'deleted' || $st === 'pending_email' || empty($a['email_verified'])) continue;
     $uid = (string)($a['id'] ?? '');
     if ($uid === '') continue;
+
+    /* Eksik zorunlu istek satirlarini burada da AC. Satici sayfasi ve panel
+       de aciyor, ama ikisi de birinin o sayfayi ACMASINI bekliyor — oysa bu
+       cron zaten her satici icin belge KOVALIYOR. Satir yoksa satici belgeyi
+       veremez ve yine de sure isliyordu: istenmeyen bir belge yuzunden askiya
+       alinmak, kuralin degil tuzagin tarifi (KURAL 2f). Idempotent. */
+    if ($added = auth_ensure_required_doc_requests($uid, !$DRY)) {
+        /* $a yeniden okunmuyor: ensure yalnizca doc_requests'e ekliyor, asagida
+           kullanilan alanlarin (company/status/listings) hicbirine dokunmuyor. */
+        $acts['opened'][] = ['company' => (string)($a['company'] ?? $a['name'] ?? ''), 'types' => $added];
+    }
 
     $listings = vestra_seller_listings($uid);
     $g = auth_seller_doc_grace($a, $listings, $now);
@@ -123,6 +134,9 @@ printf("satici: belgesi tam=%d | ilani yok=%d | MUAF=%d | sure isliyor=%d | basl
        $acts['clear'], $acts['nolisting'], $acts['exempt'], $acts['running'], count($acts['stamped']), count($acts['reminded']),
        count($acts['suspended']), count($acts['awaiting']), $DRY ? '   (KURU KOSU: hicbir sey yazilmadi, gonderilmedi)' : '');
 foreach ($acts['awaiting'] as $a) printf("  BEKLIYOR %-30s askida, belgesini yukledi -> Admin > Users > Activate\n", $mask((string)$a['email']));
+/* Acilan eksik istek satirlari: bu bir DUZELTME, kovalama degil -- satirsiz bir
+   saticidan belge beklenirken sure isliyordu. */
+foreach ($acts['opened'] as $o) printf("  ISTEK AC %-30s eksik satir acildi: %s\n", mb_substr($o['company'], 0, 30), implode(' + ', $o['types']));
 
 /* Operatore mektup: aski, onay bekleyen VE saatin basladigi gun. Saat gunu de
    yaziliyor cunku aski uc gun sonra kendiliginden geliyor -- operator kimin

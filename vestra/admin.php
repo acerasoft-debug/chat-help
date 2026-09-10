@@ -3169,7 +3169,14 @@ elseif($tab==='documents'):
 </div>
 
 <!-- Document requests list -->
-<?php $docReqs=$selUser['doc_requests']??[];
+<?php
+/* Satici sayfasiyla AYNI tamamlama: panel de tabloyu kayitli satirlardan
+   ciziyor, yani eksik bir istek burada da gorunmuyordu ve operator
+   "e-postayla gelen kimligi ekle" (KURAL 2d) diyecegi satiri bulamiyordu. */
+if (auth_ensure_required_doc_requests((string)($selUser['id'] ?? ''))) {
+    foreach (auth_accounts() as $__a) { if (($__a['id'] ?? '') === ($selUser['id'] ?? '')) { $selUser = $__a; break; } }
+}
+$docReqs=$selUser['doc_requests']??[];
 if(!$docReqs): ?>
   <div class="acard"><div class="aempty">No documents requested yet for this user.</div></div>
 <?php else: foreach(array_reverse($docReqs) as $req): $st=$req['status']??'requested'; ?>

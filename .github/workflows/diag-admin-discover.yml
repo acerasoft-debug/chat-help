@@ -295,6 +295,16 @@ jobs:
             $CATEGORY_PATH = trim($dsBits[1] ?? '') ?: '/kategori/bayan-sutyen';
             if ($CATEGORY_PATH[0] !== '/') { fwrite(STDERR, "kaynak yol '/' ile baslamali: {$CATEGORY_PATH}\n"); exit(1); }
             $CATEGORY_URL = $BASE . $CATEGORY_PATH;
+            /* Ucuncu alan: SLUG ONEKI. Bir markanin kendi sayfasi varsa
+               (NBB, Q-EN) gerek yok; Visatin'in yok ve urunleri 'fantazi-gecelik'
+               kategorisinde baska sekiz ureticiyle karisik duruyor. Suzgec
+               LISTELEME aninda uygulaniyor, cunku kuyruga giren her URL bir
+               istek demek: onek sonradan uygulansa Visatin icin 9 uretici
+               bosuna cekilirdi. Bos birakildiginda davranis aynen eskisi gibi. */
+            $SLUG_PREFIX = strtolower(trim($dsBits[2] ?? ''));
+            if ($SLUG_PREFIX !== '' && !preg_match('~^[a-z0-9\-]{2,40}$~', $SLUG_PREFIX)) {
+              fwrite(STDERR, "gecersiz slug oneki: {$SLUG_PREFIX}\n"); exit(1);
+            }
             $UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 
             $raw = trim((string)getenv('KULOGLU'));
@@ -402,6 +412,34 @@ jobs:
               return $declared !== null && $declared !== ($rec['variant_count_parsed'] ?? null);
             }
 
+            /**
+             * TEDARIKCI TARIFESINI MASKELE -- kutuk herkese acik.
+             *
+             * CLAUDE.md 3 Eyl 2026'da bunu bir kez kaydetti (Pili Perez: "ilk iki
+             * kosu 335 satirin fiyatini herkese acik gunluge yazdi", gunlukler
+             * silindi) ama kural yalniz SIFRELI PAKET icin uygulanmisti; 'crawl'
+             * ve 'status' modlarinin ornek kayit dokumu her seferinde ham
+             * `price_try` basiyordu ve kimse bakmamisti. 10 Eyl 2026'da Q-EN
+             * partisinde yeniden oldu (kosu 34492757261, gunlugu silindi).
+             *
+             * Ornegin KENDISI degerli: cikarimin sekli (kac varyant, hangi
+             * alanlar, fotograf var mi) ancak bakarak dogrulanir. Degerli
+             * olmayan tek sey RAKAM -- o yuzden rakam gidiyor, sekil kaliyor.
+             * Tek yazici: her doken yol bunu cagirir, yoksa ucuncu bir dokum
+             * yolu yarin ayni sizintiyi yeniden acar.
+             */
+            function kuloglu_mask_prices($v) {
+              if (is_array($v)) {
+                $out = [];
+                foreach ($v as $k => $x) {
+                  $out[$k] = (is_string($k) && preg_match('~(price|fiyat)~i', $k) && (is_int($x) || is_float($x) || is_string($x)))
+                    ? '***' : kuloglu_mask_prices($x);
+                }
+                return $out;
+              }
+              return $v;
+            }
+
             // build_batch ve export_enc'in İKİSİ de ayni satirlari uretmeli -- ayri kopyalar
             // ikinci bir duzenlemede ayrisirdi (bu depoda tam olarak wholesale.php/b2b.php CSS'i
             // basina geldi, KURAL 10). Ceviri sozlugu product-batches/kuloglu-vocab.php'den
@@ -417,19 +455,20 @@ jobs:
               @unlink($vocabTmp);
               return $vocab;
             }
-            // NBB sozlugu -- kuloglu-vocab.php ile AYNI desen (raw.githubusercontent'ten
-            // cek, gecici dosyaya yaz, require et). Fonksiyonlari da tanimliyor
-            // (nbb_name_i18n, nbb_photo_rejected, nbb_is_size ...), o yuzden geri
-            // dondugu dizi degil ASIL require onemli.
-            function nbb_fetch_vocab(): array {
-              $url = 'https://raw.githubusercontent.com/acerasoft-debug/chat-help/claude/wizardly-planck-7ylnmk/product-batches/nbb-vocab.php';
+            // Kuloglu ic camasiri sozlugu -- kuloglu-vocab.php ile AYNI desen
+            // (raw.githubusercontent'ten cek, gecici dosyaya yaz, require et).
+            // Fonksiyonlari da tanimliyor (ku_classify, ku_name_i18n,
+            // ku_photo_rejected, ku_is_size ...), o yuzden geri dondugu dizi
+            // degil ASIL require onemli.
+            function ku_fetch_vocab(): array {
+              $url = 'https://raw.githubusercontent.com/acerasoft-debug/chat-help/claude/wizardly-planck-7ylnmk/product-batches/kuloglu-underwear-vocab.php';
               $vr = vfetch($url);
-              if (!$vr['html']) { fwrite(STDERR, "nbb-vocab.php cekilemedi\n"); exit(1); }
-              $tmp = tempnam(sys_get_temp_dir(), 'nv') . '.php';
+              if (!$vr['html']) { fwrite(STDERR, "kuloglu-underwear-vocab.php cekilemedi\n"); exit(1); }
+              $tmp = tempnam(sys_get_temp_dir(), 'kv') . '.php';
               file_put_contents($tmp, $vr['html']);
               $v = require $tmp;
               @unlink($tmp);
-              if (!function_exists('nbb_name_i18n')) { fwrite(STDERR, "nbb-vocab.php yuklendi ama fonksiyonlar yok\n"); exit(1); }
+              if (!function_exists('ku_name_i18n')) { fwrite(STDERR, "sozluk yuklendi ama fonksiyonlar yok\n"); exit(1); }
               /* SEKIL DENETIMI -- raw.githubusercontent BIR CDN ve kopyasi BAYAT
                  olabiliyor. 10 Eyl 2026'da tam bu oldu: nbb_desc()'e paket adedi
                  parametresi eklendi, uc dakika sonra kosan export BAYAT kopyayi
@@ -437,32 +476,36 @@ jobs:
                  yok saydigi icin hicbir hata cikmadi -- 42 ilanin aciklamasi,
                  MOQ'su 1 olanlar dahil, "paket halinde satilir" diye yazildi ve
                  canliya oyle indi.
-                 Bir bagimliligi ag uzerinden cekiyorsan SURUMUNU DOGRULA: burada
-                 beklenen imza (3 parametre) ve NOPACK tablosunun varligi. */
-              $ref = new ReflectionFunction('nbb_desc');
-              if ($ref->getNumberOfParameters() < 3 || !defined('NBB_DESC_FMT_NOPACK')) {
-                fwrite(STDERR, "nbb-vocab.php BAYAT (nbb_desc paket adedi almiyor / NOPACK tablosu yok) -- "
-                             . "raw.githubusercontent onbellegi. Birkac dakika bekleyip tekrar calistirin.\n");
-                exit(1);
+                 Bir bagimliligi ag uzerinden cekiyorsan SURUMUNU DOGRULA. Kontrol
+                 ARTIK uc-uretici surumunu ariyor: eski (yalniz NBB) kopya
+                 ku_classify/ku_sku tanimlamiyor ve `makers` anahtari tasimiyor. */
+              foreach (['ku_classify','ku_sku','ku_sizes_from_title','ku_photo_rejected','ku_model_of_slug'] as $fn) {
+                if (!function_exists($fn)) {
+                  fwrite(STDERR, "sozluk BAYAT: {$fn}() yok -- raw.githubusercontent onbellegi. "
+                               . "Birkac dakika bekleyip tekrar calistirin.\n");
+                  exit(1);
+                }
+              }
+              if (!isset($v['makers']['visatin'], $v['makers']['qen'])) {
+                fwrite(STDERR, "sozluk BAYAT: uretici tablosunda visatin/qen yok.\n"); exit(1);
+              }
+              $ref = new ReflectionFunction('ku_desc');
+              if ($ref->getNumberOfParameters() < 4 || !defined('KU_DESC_FMT_NOPACK')) {
+                fwrite(STDERR, "sozluk BAYAT: ku_desc marka/paket almiyor.\n"); exit(1);
               }
               return $v;
-            }
-
-            /* Slug'dan MODEL numarasi: "nbb-3565-b-bayan-dubleli-..." -> "3565-B",
-               "nbb-350-bayan-mikro-..." -> "350". "-b" soneki opsiyonel ve ARDINDAN
-               TIRE gelmek zorunda; aksi halde "nbb-350-bayan"in "-b"si model
-               numarasina yapisirdi. Bu depoda ayni sinif hata (kisa ekin baska bir
-               kelimenin ICINDE eslesmesi) mango/zara olarak kayitli. */
-            function nbb_model_of_slug(string $slug): string {
-              if (preg_match('~^nbb-(\d+(?:-b)?)-~i', $slug, $m)) return strtoupper($m[1]);
-              return '';
             }
 
             /* Beden siralamasi: harf merdiveni kendi sirasinda, sayilar artan,
                kupali band olculeri ("80 C") band sonra kup. Alfabetik siralama
                "100, 105, 75, 80" verirdi -- toptancinin okudugu ilk sey bu satir. */
-            function nbb_sort_sizes(array $sizes): array {
-              $ladder = ['XXS'=>1,'XS'=>2,'S'=>3,'M'=>4,'L'=>5,'XL'=>6,'XXL'=>7,'XXXL'=>8,'XXXXL'=>9];
+            function ku_sort_sizes(array $sizes): array {
+              /* "3XL"/"4XL" tedarikcinin ikinci yazimi; merdivende XXXL/XXXXL ile
+                 AYNI basamakta duruyorlar ki "XXL, 3XL, 4XL" dogru sirayla
+                 basilsin (aksi halde harfli olmayan dal calisir ve alfabetik
+                 siralanip "3XL, 4XL, XXL" cikardi). */
+              $ladder = ['XXS'=>1,'XS'=>2,'S'=>3,'M'=>4,'L'=>5,'XL'=>6,'XXL'=>7,
+                         'XXXL'=>8,'3XL'=>8,'XXXXL'=>9,'4XL'=>9,'5XL'=>10,'6XL'=>11];
               usort($sizes, function ($a, $b) use ($ladder) {
                 $ra = $ladder[strtoupper($a)] ?? null; $rb = $ladder[strtoupper($b)] ?? null;
                 if ($ra !== null && $rb !== null) return $ra <=> $rb;
@@ -480,49 +523,76 @@ jobs:
             }
 
             /**
-             * NBB satirlari. kuloglu_build_rows()'un NBB'ye uyarlanmis hali DEGIL --
-             * AYRI, cunku dort seyi baska turlu yapiyor ve eskisini dallandirmak
-             * iki katalogu tek govdede birbirine baglardi:
+             * Kuloglu ic camasiri satirlari (NBB, Visatin, Q-EN).
+             * kuloglu_build_rows()'un uyarlanmis hali DEGIL -- AYRI, cunku dort
+             * seyi baska turlu yapiyor ve eskisini dallandirmak iki katalogu tek
+             * govdede birbirine baglardi:
              *
              *  1. AD/ACIKLAMA 9 DILDE, kelime kelime cevirip yapistirarak degil
-             *     (nbb-vocab.php'nin docblock'u sebebini yaziyor). Eski kurucu
-             *     `desc` alanina ham Turkce beden listesi yaziyordu.
-             *  2. RENK/BEDEN AYRIMI DEGERE bakiyor, alan ADINA degil: NBB kaydinda
-             *     ikisi yer yer YER DEGISMIS (olculdu: 2404, 2900, 9266, 9293).
-             *     Eski kurucunun kurali "renk alani bossa bedeni renk say" idi ve
-             *     2404'te renk alani DOLU (icinde bir beden var).
+             *     (sozlugun docblock'u sebebini yaziyor). Eski kurucu `desc`
+             *     alanina ham Turkce beden listesi yaziyordu.
+             *  2. RENK/BEDEN AYRIMI DEGERE bakiyor, alan ADINA degil: kayitta
+             *     ikisi yer yer YER DEGISMIS (olculdu: NBB 2404, 2900, 9266,
+             *     9293; Visatin'de renk alani bos, RENK BEDEN ALANINDA --
+             *     "b:KIRMIZI", "b:SİYAH"). Eski kurucunun kurali "renk alani
+             *     bossa bedeni renk say" idi ve 2404'te renk alani DOLU.
              *  3. FOTOGRAFI ELENEN URUN ATILIYOR (operator sarti). Elle eleme
              *     unutulur -- KURAL 1h'nin dersi, kontrol gonderim yolunda olmali.
              *  4. TIERS YAZILIYOR. vestra_unit_price() tiers bossa 0.0 donuyor ve
              *     order.php 0 fiyatli satiri atliyor: tiers'siz bir ilan vitrinde
              *     durur ama SATIN ALINAMAZ.
              */
-            function nbb_build_rows(array $priced, array $imgMap, array $vocab, string $sid, int $start, int $count): array {
+            function ku_build_rows(string $maker, array $priced, array $imgMap, array $vocab, string $sid, int $start, int $count): array {
+              $mk = $vocab['makers'][$maker] ?? null;
+              if (!$mk) { fwrite(STDERR, "bilinmeyen uretici: {$maker}\n"); exit(1); }
+
               $paletteOf = function (string $raw) use ($vocab): ?string {
-                $k = nbb_color_key($raw);
-                if ($k === '' || nbb_is_one_size($k)) return null;      // "STANDART" renk degil
-                if (isset($vocab['nbb_colors'][$k]['palette'])) return $vocab['nbb_colors'][$k]['palette'];
+                $k = ku_color_key($raw);
+                // "STANDART" ve "ASORTİ" renk DEGIL -- ikisi de swatch uretmemeli.
+                if ($k === '' || ku_is_one_size($k) || ku_is_assorted($k)) return null;
+                if (isset($vocab['ku_colors'][$k]['palette'])) return $vocab['ku_colors'][$k]['palette'];
                 return $vocab['palette_map'][$k] ?? null;
               };
 
+              /* MODEL SAYIMI, DILIMDEN ONCE ve TUM kume uzerinde: bir artikel
+                 numarasi kumede bir kez mi geciyor iki kez mi, SKU'nun sekli
+                 buna bagli (ku_sku). Dilim uzerinden saymak, ayni urunu hangi
+                 partide islediginize gore FARKLI bir SKU uretirdi -- yani ayni
+                 ilan iki kosuda iki ayri ilan olurdu. */
+              $modelCount = [];
+              foreach ($priced as $rec) {
+                preg_match('#/urun/([a-z0-9\-]+)#i', (string)($rec['url'] ?? ''), $am);
+                $m = ku_model_of_slug($maker, $am[1] ?? '');
+                if ($m !== '') $modelCount[$m] = ($modelCount[$m] ?? 0) + 1;
+              }
+
               $rows = []; $skipNoImg = 0; $skipReject = 0; $skipVaries = 0; $skipUnknown = 0; $notes = [];
+              $byId = [];   // CAKISMA DENETIMI, asagida
               foreach (array_slice($priced, $start, $count) as $rec) {
                 $url = (string)($rec['url'] ?? '');
                 preg_match('#/urun/([a-z0-9\-]+)#i', $url, $sm);
-                $slug = $sm[1] ?? '';
-                $model = nbb_model_of_slug($slug);
-                if ($model === '' || !isset($vocab['products'][$model])) { $skipUnknown++; $notes[] = "? model cozulemedi: $slug"; continue; }
+                $slug  = $sm[1] ?? '';
+                $title = (string)($rec['title'] ?? '');
+                $model = ku_model_of_slug($maker, $slug);
+                if ($model === '') { $skipUnknown++; $notes[] = "? model cozulemedi: $slug"; continue; }
 
-                $why = nbb_photo_rejected($model);
-                if ($why !== null) { $skipReject++; $notes[] = "- $model FOTOGRAF ELENDI: $why"; continue; }
+                $packQty = max(1, (int)($rec['pack_qty'] ?? 1));
+                /* SKU model numarasi DEGIL: tedarikci ayni numarayi iki urunde
+                   kullaniyor (olculdu). Ayrinti sozlukte, ku_sku(). */
+                $sku  = ku_sku($model, $title, $packQty, ($modelCount[$model] ?? 1) > 1);
+                $spec = ku_classify($maker, $sku, $title);
+                if (!$spec) { $skipUnknown++; $notes[] = "? tur cozulemedi ($sku): $title"; continue; }
+
+                $why = ku_photo_rejected($maker, $sku);
+                if ($why !== null) { $skipReject++; $notes[] = "- $sku FOTOGRAF ELENDI: $why"; continue; }
 
                 $staged = $imgMap[$url] ?? [];
-                if (!$staged) { $skipNoImg++; $notes[] = "- $model fotograf henuz hazirlanmadi"; continue; }
+                if (!$staged) { $skipNoImg++; $notes[] = "- $sku fotograf henuz hazirlanmadi"; continue; }
 
                 $ps = array_unique(array_map(fn($v) => $v['price_eur'] ?? null, $rec['variants'] ?? []));
-                if (count($ps) > 1) { $skipVaries++; $notes[] = "- $model varyant bazli fiyat"; continue; }
+                if (count($ps) > 1) { $skipVaries++; $notes[] = "- $sku varyant bazli fiyat"; continue; }
                 $list = (float)($rec['unit_price_eur'] ?? 0);
-                if ($list <= 0) { $skipVaries++; $notes[] = "- $model fiyat cozulemedi"; continue; }
+                if ($list <= 0) { $skipVaries++; $notes[] = "- $sku fiyat cozulemedi"; continue; }
 
                 // Renk ve beden: DEGERE gore siniflandir, alanin adina degil.
                 $colors = []; $sizes = []; $oneSize = false;
@@ -531,16 +601,42 @@ jobs:
                   foreach ([(string)($v['color'] ?? ''), (string)($v['size'] ?? '')] as $tok) {
                     $tok = trim($tok);
                     if ($tok === '') continue;
-                    if (nbb_is_one_size($tok)) { $oneSize = true; continue; }
-                    if (nbb_is_size($tok)) { $s = strtoupper(preg_replace('~\s+~', ' ', $tok)); if (!in_array($s, $sizes, true)) $sizes[] = $s; continue; }
+                    if (ku_is_one_size($tok)) { $oneSize = true; continue; }
+                    if (ku_is_size($tok)) { $s = strtoupper(preg_replace('~\s+~', ' ', $tok)); if (!in_array($s, $sizes, true)) $sizes[] = $s; continue; }
                     $p = $paletteOf($tok); if ($p && !in_array($p, $colors, true)) $colors[] = $p;
                   }
                 }
-                $sizes = nbb_sort_sizes($sizes);
+                /* Varyant tablosu BOS olan asorti paketlerde bedenler yalniz
+                   BASLIKTA duruyor ("... GECELİK M-L-XL 6 LI"). Onlari atmak,
+                   tedarikcinin yazdigi bir olguyu silmek olurdu; uydurmak da
+                   yasak -- okunan sey basligin kendisi. */
+                if (!$sizes) $sizes = ku_sizes_from_title($title);
+                $sizes = ku_sort_sizes($sizes);
 
-                $moq = max(1, (int)(($rec['variants'][0]['pack_qty'] ?? null) ?: 1));
+                /* "ASORTİ" tedarikcinin renk alanina yazdigi, renk OLMAYAN
+                   deger: paket karisik renk geliyor demek. Palet karsiligi yok
+                   ve olmamali (uydurma renk basmak yasak, NBB 730 dersi) -- ama
+                   SESSIZCE dusurmek de alicidan bir olguyu gizlemek olurdu:
+                   renksiz gorunen bir ilan, tek renk sanilir. Ozellik olarak
+                   ADA giriyor, ve yalnizca cozulmus hicbir renk yoksa. */
+                $rawTokens = array_merge(
+                  array_map('strval', (array)($rec['colors'] ?? [])),
+                  array_map(fn($v) => (string)($v['color'] ?? ''), (array)($rec['variants'] ?? []))
+                );
+                foreach ($rawTokens as $tok) {
+                  if (!$colors && preg_match('~ASORT[İI]~u', mb_strtoupper($tok))
+                      && !in_array('assorted_colours', $spec['attrs'], true)) {
+                    $spec['attrs'][] = 'assorted_colours';
+                    break;
+                  }
+                }
+
+                $moq = $packQty;
                 /* Beden satiri: olculer + paket kurali. "N/pack" ve "One size"
-                   vestra_sizes_label()'dan gecip cevriliyor; olculer evrensel. */
+                   vestra_sizes_label()'dan gecip cevriliyor; olculer evrensel.
+                   "N/pack" ayrica KURAL 21b'nin beden secicisini KAPATIYOR:
+                   asorti paketin karisimi sabittir, sectirmek ilan edilen
+                   paketin icerigiyle celisen bir siparis uretirdi. */
                 $bits = [];
                 if ($sizes) $bits[] = implode(' · ', $sizes);
                 elseif ($oneSize) $bits[] = 'One size';
@@ -549,18 +645,19 @@ jobs:
                 $images = [];
                 foreach ($staged as $fn) $images[] = '/uploads/wholesale-underwear/' . $fn;
 
+                $id = $mk['id'] . '-' . strtolower($sku);
                 $rows[] = [
-                  'id' => 'nbb-' . strtolower($model),
-                  'brand' => 'NBB',
-                  'name' => nbb_name($model, 'en'),
-                  'name_i18n' => nbb_name_i18n($model),
+                  'id' => $id,
+                  'brand' => $mk['label'],
+                  'name' => ku_name($spec, $sku, 'en'),
+                  'name_i18n' => ku_name_i18n($spec, $sku),
                   /* Paket adedi aciklamaya GECIRILIYOR: 1'lik bir ilanda
                      "paket halinde satilir" yazmak, ilanin kendi MOQ'suyla
                      celisen bir metin olurdu (Balenciaga'nin desc/sizes dersi). */
-                  'desc' => nbb_desc($model, 'en', $moq),
-                  'desc_i18n' => nbb_desc_i18n($model, $moq),
-                  'cat' => $vocab['products'][$model]['cat'],
-                  'sku' => $model,
+                  'desc' => ku_desc($spec, $mk['label'], 'en', $moq),
+                  'desc_i18n' => ku_desc_i18n($spec, $mk['label'], $moq),
+                  'cat' => $spec['cat'],
+                  'sku' => $sku,
                   'moq' => $moq, 'unit' => 'pc',
                   /* mode='fixed': bu katalogda indirim yok. mode='sale' olsaydi
                      'list' USTU CIZILI ESKI fiyat sayilirdi (KURAL 4'un referans
@@ -576,6 +673,19 @@ jobs:
                   'ships_from' => 'Turkey',
                   'status' => 'pending',        // operator onaylayana kadar katalogda YOK
                 ];
+
+                /* CAKISMA: iki ilan ayni id/SKU'yu tasiyamaz. Tedarikci ayni
+                   artikel numarasini iki urunde kullaniyor (Q-EN 705/706/800,
+                   Visatin 4060/4074) ve ku_sku() bunu ayiriyor -- ama kurali
+                   gelecekte asan bir vaka SESSIZCE bir ilani ezerdi: siparis
+                   satirinin renk/beden haritasi SKU ile anahtarli. Sessiz
+                   ezme yerine is DURUYOR. */
+                if (isset($byId[$id])) {
+                  fwrite(STDERR, "CAKISMA: iki urun ayni id/SKU uretti ({$id})\n"
+                               . "  1: {$byId[$id]}\n  2: {$title}\n");
+                  exit(1);
+                }
+                $byId[$id] = $title;
               }
               return [$rows, ['gorselsiz' => $skipNoImg, 'foto_elendi' => $skipReject, 'fiyat' => $skipVaries, 'model_yok' => $skipUnknown], $notes];
             }
@@ -590,12 +700,22 @@ jobs:
              * kurucuyu cagiriyordu; onizlemede dogru, pakette yanlis satirlar
              * demekti.
              */
+            /* IC CAMASIRI KUMELERI -- TEK liste. Iki yerde ayri ayri yazili
+               kalsaydi (kurucu ve build_batch dali) yeni bir uretici eklendiginde
+               birinde unutulur ve o uretici sessizce ESKI kurucudan gecerdi:
+               9 dilli ad yok, fotograf elemesi yok, tiers yok. Bu depo ayni
+               ayrisma hatasini fatura kesiminde iki kez kaydetti. */
+            function kuloglu_underwear_makers(): array { return ['nbb','visatin','qen']; }
+
             function kuloglu_rows_for(string $ds, array $priced, array $imgMap, array $vocab, string $sid, int $start, int $count): array {
-              if ($ds === 'nbb') {
-                $nv = nbb_fetch_vocab();
+              /* Ic camasiri ureticileri. Liste TEK yerde: yeni bir uretici
+                 (sozlukte KU_MAKERS'a bir satir) buraya da bir kelime ekliyor,
+                 kurucuya yeni bir dal degil. */
+              if (in_array($ds, kuloglu_underwear_makers(), true)) {
+                $nv = ku_fetch_vocab();
                 $nv['palette_map'] = $vocab['palette_map'];
-                $nv['nbb_colors']  = $nv['colors'];
-                [$rows, $skips, $notes] = nbb_build_rows($priced, $imgMap, $nv, $sid, $start, $count);
+                $nv['ku_colors']   = $nv['colors'];
+                [$rows, $skips, $notes] = ku_build_rows($ds, $priced, $imgMap, $nv, $sid, $start, $count);
                 return [$rows, $skips, $notes];
               }
               [$rows, $noImg, $varies] = kuloglu_build_rows($priced, $imgMap, $vocab, $sid, $start, $count);
@@ -921,7 +1041,8 @@ jobs:
                kendisi yanlis yere bakti; iki veri kumesi olan bir tarayicida
                "638 kayit" satirini yanlis kumede okumak ayni sinifin yeni hali.
                Sayilar degil, KAYNAK yaziliyor -- fiyat/adet log'a girmez. */
-            printf("[kume] %s   kaynak=%s   kayit dosyasi=%s\n", $DS, $CATEGORY_PATH, basename($OUT_FILE));
+            printf("[kume] %s   kaynak=%s   kayit dosyasi=%s%s\n", $DS, $CATEGORY_PATH, basename($OUT_FILE),
+              $SLUG_PREFIX !== '' ? "   slug oneki={$SLUG_PREFIX}" : '');
 
             /* Bir listeleme sayfasinin gercekten urun tasiyip tasimadigini olcer.
                NBB'nin site genelindeki urunleri once BULUNMALI: tarayici kategori
@@ -940,13 +1061,46 @@ jobs:
                   printf("  baslik: %s\n", trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES, 'UTF-8')));
                 preg_match_all('~/urun/([a-z0-9\-]+)~i', $r['html'], $mm);
                 $slugs = array_values(array_unique($mm[1] ?? []));
-                $nbb = array_values(array_filter($slugs, fn($s) => stripos($s, 'nbb') === 0));
-                printf("  essiz /urun/ link: %d   (bunlarin 'nbb' ile baslayani: %d)\n", count($slugs), count($nbb));
+                /* Aranan uretici arg2 ile verilir. Markasi olmayan bir uretici
+                   (Visatin) ancak kategori sayfalarinda kac urunle gectigine
+                   BAKILARAK bulunabilir; "herhalde su kategoridedir" demek
+                   KURAL 3'un tarayici hali olurdu. Varsayilan 'nbb', cunku
+                   bu sonda oraya bakarak yazildi. */
+                $pref = strtolower(trim((string)$arg2)) ?: 'nbb';
+                $hit = array_values(array_filter($slugs, fn($s) => stripos($s, $pref) === 0));
+                printf("  essiz /urun/ link: %d   (bunlarin '%s' ile baslayani: %d)\n", count($slugs), $pref, count($hit));
+                foreach (array_slice($hit, 0, 300) as $s) echo "     [".$pref."] /urun/".$s."\n";
                 /* Sayfalama: 'paginate' modunda dogrulanan gercek parametre ?tp=N */
                 $hasNext = preg_match('~<link[^>]+rel=["\']next["\']~i', $r['html'])
                         || preg_match('~[?&]tp=\d~', $r['html']);
                 echo "  sayfalama izi: ".($hasNext ? "VAR (?tp=)" : "yok")."\n";
                 foreach (array_slice($slugs, 0, 8) as $s) echo "     /urun/".$s."\n";
+                /* MARKA baglantilari. Bir markanin sitedeki gercek slug'ini
+                   TAHMIN etmek zorunda kalmamak icin: '/marka/visatin' 404
+                   dondu ve dogru yazimin ne oldugu sayfanin kendisinde yaziyor.
+                   Ust sinir var, cunku marka menusu yuzlerce satir olabilir. */
+                preg_match_all('~/marka/([a-z0-9\-]+)~i', $r['html'], $bm);
+                $brands = array_values(array_unique($bm[1] ?? []));
+                printf("  essiz /marka/ link: %d\n", count($brands));
+                /* Liste alfabetik geliyor ve get_job_logs yalniz KUYRUGU
+                   gosteriyor; 120'lik bir sinir tam da aradigim harfi kesiyordu.
+                   Sinir yuksek, cunku bu sayfa markalarin TAM dizini. */
+                if (count($brands) <= 30 || $arg2 === 'brands')
+                  foreach (array_slice($brands, 0, 600) as $b) echo "     /marka/".$b."\n";
+                /* KATEGORI baglantilari. Markasi olmayan bir uretici (Visatin'in
+                   /marka/ sayfasi 404 ve marka dizininde adi hic gecmiyor) ancak
+                   kategori yolundan toplanabilir; hangi kategoride durdugunu
+                   TAHMIN etmek yerine urun sayfasinin kendi kirinti yolundan
+                   okuyoruz. Ust sinir marka listesindeki ile ayni sebeple var. */
+                preg_match_all('~/kategori/([a-z0-9\-]+)~i', $r['html'], $cm);
+                $cats = array_values(array_unique($cm[1] ?? []));
+                printf("  essiz /kategori/ link: %d\n", count($cats));
+                /* Liste yalnizca ISTENDIGINDE basiliyor. Her sayfada ayni 96
+                   satirlik genel menu var ve uc URL'lik bir kosuda 288 satir
+                   olusturuyor; get_job_logs yalniz KUYRUGU gosterdigi icin
+                   olcumun kendisi kuyruktan dusuyordu -- aracin kendi gurultusu
+                   olcumu yiyor (rtl-check dersinin aynisi). */
+                if ($arg2 === 'cats') foreach (array_slice($cats, 0, 400) as $c) echo "     /kategori/".$c."\n";
               }
               echo "\nSALT OKUNUR -- hicbir dosyaya yazilmadi\n";
               return;
@@ -968,20 +1122,28 @@ jobs:
                 printf("  brand          : %s\n", $p['brand']);
                 printf("  title          : %s\n", $p['title']);
                 printf("  category       : %s\n", $p['category']);
-                printf("  unit_price_try : %s\n", var_export($p['unit_price_try'], true));
+                /* Fiyat RAKAMI basilmaz -- tedarikci tarifesi, kutuk herkese acik.
+                   Bu modun isi cikarimin CALISIP calismadigini gostermek: alan
+                   cozuldu mu, paket adediyle tutarli mi. Ikisi de rakamsiz
+                   soylenebiliyor. */
+                $unitOk = $p['unit_price_try'] !== null;
+                $packOk = $p['pack_price_try'] !== null;
+                printf("  unit_price_try : %s\n", $unitOk ? 'VAR' : 'YOK');
                 printf("  pack_qty       : %s\n", var_export($p['pack_qty'], true));
-                printf("  pack_price_try : %s  (unit*qty = %s)\n", var_export($p['pack_price_try'], true),
-                  ($p['unit_price_try']!==null && $p['pack_qty']!==null) ? round($p['unit_price_try']*$p['pack_qty'],2) : 'n/a');
+                printf("  pack_price_try : %s  (unit*qty ile tutuyor mu: %s)\n", $packOk ? 'VAR' : 'YOK',
+                  ($unitOk && $packOk && $p['pack_qty']!==null)
+                    ? (abs(round($p['unit_price_try']*$p['pack_qty'],2) - round($p['pack_price_try'],2)) < 0.01 ? 'EVET' : '*** HAYIR ***')
+                    : 'n/a');
                 printf("  colors (%d)    : %s\n", count($p['colors']), implode(' | ', $p['colors']));
                 printf("  sizes (%d)     : %s\n", count($p['sizes']), implode(' | ', $p['sizes']));
                 printf("  variants decl=%s parsed=%d\n", var_export($p['variant_count_declared'], true), $p['variant_count_parsed']);
                 $priceset = array_unique(array_map(fn($v)=>$v['price_try'], $p['variants']));
                 $qtyset   = array_unique(array_map(fn($v)=>$v['pack_qty'], $p['variants']));
-                printf("  variant price set : %s\n", implode(', ', $priceset));
+                printf("  variant price set : %d ayri deger (rakam basilmaz)\n", count($priceset));
                 printf("  variant qty set   : %s\n", implode(', ', $qtyset));
                 printf("  UNIFORM PRICING?  : %s\n", (count($priceset)<=1 && count($qtyset)<=1) ? 'EVET (tek fiyat/adet)' : '*** HAYIR - varyant bazli farkli ***');
-                foreach (array_slice($p['variants'],0,3) as $v) printf("    - %-16s %-8s %8s TL  x%s\n", $v['color'], $v['size'], $v['price_try'], $v['pack_qty']);
-                if (count($p['variants'])>3) { echo "    ...\n"; foreach (array_slice($p['variants'],-2) as $v) printf("    - %-16s %-8s %8s TL  x%s\n", $v['color'], $v['size'], $v['price_try'], $v['pack_qty']); }
+                foreach (array_slice($p['variants'],0,3) as $v) printf("    - %-16s %-8s %8s TL  x%s\n", $v['color'], $v['size'], '***', $v['pack_qty']);
+                if (count($p['variants'])>3) { echo "    ...\n"; foreach (array_slice($p['variants'],-2) as $v) printf("    - %-16s %-8s %8s TL  x%s\n", $v['color'], $v['size'], '***', $v['pack_qty']); }
                 printf("  images (%d)    : %s\n", count($p['images']), $p['image_match_note'] ?? '');
                 foreach ($p['images'] as $im) echo "    - {$im['url']}".($im['thumb']?' [thumb]':' [full]')."\n";
               }
@@ -1046,6 +1208,7 @@ jobs:
               // arg1 (optional): max pages safety cap, default 40.
               $maxPages = $arg1 !== '' ? (int)$arg1 : 40;
               $seen = [];
+              $seenRaw = [];   // suzgecten GECMEYENLER dahil: sayfalamanin bittigini bu soyler
               $pageLog = [];
               $pageNum = 1;
               $consecutiveEmpty = 0;
@@ -1062,12 +1225,27 @@ jobs:
                   break;
                 }
                 preg_match_all('#/urun/[a-z0-9\-]+#i', $r['html'], $pm);
-                $onPage = array_values(array_unique($pm[0]));
-                $newCount = 0;
+                $onPageAll = array_values(array_unique($pm[0]));
+                /* Onek suzgeci. "Bu sayfada urun var mi" sorusu SUZGECTEN ONCE
+                   sorulmali: yalnizca esleseni saymak, uretici bir-iki sayfa
+                   atlayinca "iki ardisik sayfada yeni yok" deyip sayfalamayi
+                   erken kapatirdi -- yani kategorinin geri kalani hic gorulmezdi. */
+                $onPage = $SLUG_PREFIX === ''
+                  ? $onPageAll
+                  : array_values(array_filter($onPageAll, fn($p) => stripos(substr($p, 6), $SLUG_PREFIX) === 0));
+                $newCount = 0; $rawNew = 0;
+                foreach ($onPageAll as $p) { if (!isset($seenRaw[$p])) { $seenRaw[$p]=true; $rawNew++; } }
                 foreach ($onPage as $p) { $abs = $BASE.$p; if (!isset($seen[$abs])) { $seen[$abs]=true; $newCount++; } }
-                $pageLog[] = ['page'=>$pageNum, 'url'=>$pageUrl, 'http'=>$r['code'], 'bytes'=>strlen($r['html']), 'on_page'=>count($onPage), 'new'=>$newCount];
-                printf("sayfa %-3d http=%s bayt=%-7d bu_sayfada=%-4d yeni=%-4d toplam=%-5d\n", $pageNum, $r['code'], strlen($r['html']), count($onPage), $newCount, count($seen));
-                if ($newCount === 0) { $consecutiveEmpty++; } else { $consecutiveEmpty = 0; }
+                $pageLog[] = ['page'=>$pageNum, 'url'=>$pageUrl, 'http'=>$r['code'], 'bytes'=>strlen($r['html']),
+                              'on_page'=>count($onPageAll), 'matched'=>count($onPage), 'raw_new'=>$rawNew, 'new'=>$newCount];
+                printf("sayfa %-3d http=%s bayt=%-7d bu_sayfada=%-4d%s yeni=%-4d toplam=%-5d\n",
+                  $pageNum, $r['code'], strlen($r['html']), count($onPageAll),
+                  $SLUG_PREFIX === '' ? ' ' : sprintf(" onege_uyan=%-4d", count($onPage)), $newCount, count($seen));
+                /* Sayfalamanin bitisi HAM sayima gore: suzgec 0 dondurdugu icin
+                   durmak, arananin ilerideki sayfalarda olmasi durumunda listeyi
+                   sessizce yarim birakirdi. Onek verilmediginde $seenRaw ile
+                   $seen ayni kumeyi sayiyor, yani eski davranis birebir ayni. */
+                if ($rawNew === 0) { $consecutiveEmpty++; } else { $consecutiveEmpty = 0; }
                 if ($consecutiveEmpty >= 2) { echo "iki ardisik sayfada yeni urun yok -- sayfalama bitti kabul edildi\n"; break; }
                 $pageNum++;
               }
@@ -1135,9 +1313,9 @@ jobs:
                 echo "\nBu partideki hatalar:\n";
                 foreach ($thisBatchFails as $f) printf("  %-90s http=%-4s %s\n", $f['url'], $f['http_code'], $f['reason']);
               }
-              echo "\n-- bu partiden 2 ornek kayit --\n";
+              echo "\n-- bu partiden 2 ornek kayit (FIYATLAR MASKELI) --\n";
               $sample = array_slice(array_filter($slice, fn($u)=>isset($byUrl[$u]) ), 0, 2);
-              foreach ($sample as $u) echo json_encode($byUrl[$u], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT)."\n";
+              foreach ($sample as $u) echo json_encode(kuloglu_mask_prices($byUrl[$u]), JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT)."\n";
               exit(0);
             }
 
@@ -1232,16 +1410,23 @@ jobs:
               }
               save_json_atomic($PRICED_FILE, $priced);
               printf("yazildi: %s (%d kayit)\n", $PRICED_FILE, count($priced));
-              if ($allEur) {
-                sort($allEur);
-                $n = count($allEur);
-                printf("varyant EUR fiyati -- min=%.2f orta=%.2f maks=%.2f (n=%d)\n", $allEur[0], $allEur[intdiv($n,2)], $allEur[$n-1], $n);
-              }
-              echo "\n-- 3 ornek kayit (TRY -> EUR) --\n";
+              /* RAKAM BASILMIYOR. Bu adim tedarikcinin TRY tarifesini okuyor ve
+                 kutuk herkese acik; ustelik kar orani CLAUDE.md'de yazili, yani
+                 EUR satis fiyatini basmak maliyeti de ele verir (3 Eyl 2026'da
+                 Pili Perez'de tam bu oldu). Ceviri "calisti mi" sorusu rakamsiz
+                 cevaplanabiliyor: kac kayit fiyatlandi, kacinda fiyat COZULEMEDI,
+                 kur ne. Cozulemeyenin kendisi asil bilgi -- fiyatsiz bir kayit
+                 ilan olamaz. */
+              if ($allEur) printf("EUR fiyati cozulen varyant: %d\n", count($allEur));
+              $noPrice = 0;
+              foreach ($priced as $rec) if (($rec['unit_price_eur'] ?? 0) <= 0) $noPrice++;
+              printf("birim fiyati COZULEMEYEN kayit: %d\n", $noPrice);
+              echo "\n-- 3 ornek kayit (FIYAT MASKELI) --\n";
               foreach (array_slice($priced, 0, 3) as $rec) {
                 printf("  %s\n    TRY birim=%s -> EUR birim=%s   (varyant sayisi=%d)\n",
                   mb_substr($rec['title'] ?? $rec['url'], 0, 60),
-                  var_export($rec['unit_price_try'] ?? null, true), var_export($rec['unit_price_eur'] ?? null, true),
+                  ($rec['unit_price_try'] ?? null) !== null ? 'VAR' : 'YOK',
+                  ($rec['unit_price_eur'] ?? null) !== null ? 'VAR' : 'YOK',
                   count($rec['variants'] ?? []));
               }
               exit(0);
@@ -1310,17 +1495,30 @@ jobs:
               $existing = load_json($OUT_FILE, []);
               if (!$existing) { fwrite(STDERR, basename($OUT_FILE)." bos/yok -- once crawl calistir\n"); exit(1); }
               $slice = array_slice($existing, $start, $count);
-              printf("toplam=%d, bu dilim [%d..%d)\n\n", count($existing), $start, $start + count($slice));
+              printf("toplam=%d, bu dilim [%d..%d)\n", count($existing), $start, $start + count($slice));
+              /* URUN BASINA TEK SATIR. Eskiden alti satirdi ve get_job_logs
+                 kuyrugu ~3,5 KB'de kesiyor: 114 urunluk bir kumede dokum
+                 OKUNAMIYORDU, yani cikarimi dogrulamak icin yazilmis mod
+                 dogrulanamiyordu. Kategori tekrar ettigi icin basliga cikti;
+                 fotograf URL'i dustu (staging'in isi, gozle bakmanin degil). */
+              $lastCat = null;
               foreach ($slice as $i => $rec) {
+                $cat = (string)($rec['category'] ?? '?');
+                if ($cat !== $lastCat) { printf("\n== %s ==\n", $cat); $lastCat = $cat; }
                 $imgs = array_values(array_filter($rec['images'] ?? [], fn($im) => empty($im['thumb'])));
                 if (!$imgs) $imgs = $rec['images'] ?? [];
                 $sz = array_values(array_unique(array_filter(array_map(fn($v) => (string)($v['size'] ?? ''), $rec['variants'] ?? []))));
                 $co = array_values(array_unique(array_filter(array_map(fn($v) => (string)($v['color'] ?? ''), $rec['variants'] ?? []))));
-                printf("[%d] %s\n", $start + $i, (string)($rec['title'] ?? '?'));
-                printf("    kat=%s | slug=%s\n", (string)($rec['category'] ?? '?'), basename(parse_url((string)($rec['url'] ?? ''), PHP_URL_PATH) ?: '?'));
-                printf("    beden=%s\n", $sz ? implode(' / ', $sz) : '(yok)');
-                printf("    renk =%s\n", $co ? implode(' / ', $co) : '(yok)');
-                printf("    foto =%d  ilk=%s\n\n", count($imgs), (string)($imgs[0]['url'] ?? '-'));
+                /* PAKET ADEDI de basiliyor. Basligin "6 LI" demesi yetmez:
+                   aciklama metni bu rakamdan kuruluyor ve ikisi ayrisirsa
+                   ilan kendi MOQ'suyla celisir (Balenciaga'nin desc/sizes
+                   dersi, 9 Eyl 2026). Rakam FIYAT DEGIL, tarife sizdirmaz. */
+                $pq = (int)($rec['pack_qty'] ?? 0);
+                printf("[%d] f%d%s%s%s | %s\n", $start + $i, count($imgs),
+                  $pq > 1 ? ' x'.$pq : '',
+                  $sz ? ' b:'.implode('/', $sz) : '',
+                  $co ? ' r:'.implode('/', $co) : '',
+                  (string)($rec['title'] ?? '?'));
               }
               exit(0);
             }
@@ -1626,12 +1824,12 @@ jobs:
               if (!$priced) { fwrite(STDERR, basename($PRICED_FILE)." bos/yok -- once price calistir\n"); exit(1); }
               $imgMap = load_json($DIR . '/images_staged.json', []);
 
-              // NBB kumesi AYRI bir kurucudan geciyor (bkz. nbb_build_rows'un
-              // docblock'u: 9 dilli ad, deger-tabanli renk/beden ayrimi, fotograf
-              // elemesi, tiers). Eski kurucuyu dallandirmak iki katalogu tek
-              // govdede birbirine baglardi.
+              // Ic camasiri kumeleri AYRI bir kurucudan geciyor (bkz.
+              // ku_build_rows'un docblock'u: 9 dilli ad, deger-tabanli renk/beden
+              // ayrimi, fotograf elemesi, tiers). Eski kurucuyu dallandirmak iki
+              // katalogu tek govdede birbirine baglardi.
               $BATCH_FILE = $DIR . '/test_batch.json';
-              if ($DS === 'nbb') {
+              if (in_array($DS, kuloglu_underwear_makers(), true)) {
                 [$rows, $skips, $notes] = kuloglu_rows_for($DS, $priced, $imgMap, $vocab, $sid, $start, $count);
                 save_json_atomic($BATCH_FILE, $rows);
                 printf("olusturuldu: %d satir\n", count($rows));
@@ -1724,7 +1922,14 @@ jobs:
               $pkg = ['key' => base64_encode($encKey), 'iv' => base64_encode($iv), 'data' => base64_encode($cipher)];
               $pkgJson = json_encode($pkg);
 
-              printf("olusturuldu: %d satir (atlandi: gorselsiz=%d, varyant-fiyatli=%d)\n", count($rows), $skippedNoImg, $skippedVaries);
+              /* Sayac YUKARIDA, kurucunun kendi $skips dokumunden basildi. Burada
+                 ikinci bir ozet satiri vardi ve eski kurucunun degiskenlerini
+                 ($skippedNoImg/$skippedVaries) okuyordu -- bu dalda tanimsizlar,
+                 yani her kosuda "gorselsiz=0, varyant-fiyatli=0" yaziyor ve iki
+                 PHP uyarisi birakiyordu. Hep ayni seyi yazan bir sayac olcum
+                 degil; atilanlarin GEREKCESI ise (foto elendi, model cozulemedi)
+                 hic basilmiyordu -- build_batch onlari zaten yaziyor. */
+              if ($notes) { echo "\n-- atlananlar --\n"; foreach ($notes as $t) echo "  $t\n"; }
               echo "\n-- id listesi (fiyatsiz) --\n";
               foreach ($rows as $r) printf("  %-45s cat=%-10s renk=%-20s beden=%-30s ships_from=%s\n", $r['id'], $r['cat'], implode('/', $r['colors']), $r['sizes'], $r['ships_from']);
               /* Paketin sha256'si de BOSLUKLU: bosluksuz basildiginda maske
@@ -1812,8 +2017,8 @@ jobs:
                 }));
                 printf("iki eksenli (renk+beden) urun sayisi: %d\n", count($twoAxis));
                 if ($twoAxis) {
-                  echo "-- 2 ornek iki eksenli kayit --\n";
-                  foreach (array_slice($twoAxis, 0, 2) as $rec) echo json_encode($rec, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT)."\n";
+                  echo "-- 2 ornek iki eksenli kayit (FIYATLAR MASKELI) --\n";
+                  foreach (array_slice($twoAxis, 0, 2) as $rec) echo json_encode(kuloglu_mask_prices($rec), JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT)."\n";
                 }
               }
               if ($failures) {

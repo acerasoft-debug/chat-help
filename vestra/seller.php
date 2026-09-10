@@ -1361,6 +1361,15 @@ function sellerSend(btn){
 <?php
 } elseif($tab==='kyc'){
   $kybSt    = $AUTH_USER['kyb_status'] ?? 'pending';
+  /* Eksik zorunlu istek satirlarini burada AC (KURAL 2). Tablo hesabin kayitli
+     satirlarindan ciziliyor ve yukleme formu istek ID'sine bagli: satir yoksa
+     dugme de yok, yani ustteki "her satici iki belge verir" cumlesi dogruyken
+     kimligi verecek yol kapaliydi. Idempotent -- eksik yoksa hicbir sey
+     yazmiyor, yani her sayfa acilisinda accounts.json'a yazan bir okuma yolu
+     olusmuyor. */
+  if (auth_ensure_required_doc_requests((string)($AUTH_USER['id'] ?? ''))) {
+      $AUTH_USER = auth_user();   // taze satirlarla yeniden oku
+  }
   $docReqs  = $AUTH_USER['doc_requests'] ?? [];
   /* Kayittan gelen vat_cert satirini GIZLE: artik istenmiyor (vergi kimligi numara
      olarak aliniyor, bkz. inc/auth.php) ama mevcut hesaplarin kaydinda duruyor ve
