@@ -459,9 +459,16 @@ function ku_classify(string $maker, string $sku, string $title): ?array {
  *        slug'da boyle yaziyor); bazi satirlarda yazmayi atlamis.
  *  -N  : kaydin kendi `pack_qty` degeri, yani "6'li asorti" olan ilan.
  */
-function ku_sku(string $model, string $title, int $packQty): string {
+function ku_sku(string $model, string $title, int $packQty, bool $ambiguous): string {
     $s = strtoupper(trim($model));
     if ($s === '') return '';
+    /* $ambiguous: bu model numarasi kumede BIRDEN FAZLA urunde geciyor mu.
+       Ek YALNIZCA o zaman basiliyor. Kosulsuz eklemek, tek basina duran bir
+       urune tedarikcinin hic yazmadigi bir sonek uydurmak olurdu: Visatin'in
+       BATTAL geceliklerinin cogunun ikizi YOK ve artikel numaralari duz
+       "10009". SKU alicinin gordugu uretici referansi; olmayan bir sonek
+       eklemek onu yanlis bir numaraya bakmaya yollar (KURAL 3). */
+    if (!$ambiguous) return $s;
     if (preg_match('~BATTAL~u', mb_strtoupper($title)) && !preg_match('~-B$~', $s)) $s .= '-B';
     if ($packQty > 1) $s .= '-' . $packQty;
     return $s;

@@ -455,19 +455,20 @@ jobs:
               @unlink($vocabTmp);
               return $vocab;
             }
-            // NBB sozlugu -- kuloglu-vocab.php ile AYNI desen (raw.githubusercontent'ten
-            // cek, gecici dosyaya yaz, require et). Fonksiyonlari da tanimliyor
-            // (nbb_name_i18n, nbb_photo_rejected, nbb_is_size ...), o yuzden geri
-            // dondugu dizi degil ASIL require onemli.
-            function nbb_fetch_vocab(): array {
-              $url = 'https://raw.githubusercontent.com/acerasoft-debug/chat-help/claude/wizardly-planck-7ylnmk/product-batches/nbb-vocab.php';
+            // Kuloglu ic camasiri sozlugu -- kuloglu-vocab.php ile AYNI desen
+            // (raw.githubusercontent'ten cek, gecici dosyaya yaz, require et).
+            // Fonksiyonlari da tanimliyor (ku_classify, ku_name_i18n,
+            // ku_photo_rejected, ku_is_size ...), o yuzden geri dondugu dizi
+            // degil ASIL require onemli.
+            function ku_fetch_vocab(): array {
+              $url = 'https://raw.githubusercontent.com/acerasoft-debug/chat-help/claude/wizardly-planck-7ylnmk/product-batches/kuloglu-underwear-vocab.php';
               $vr = vfetch($url);
-              if (!$vr['html']) { fwrite(STDERR, "nbb-vocab.php cekilemedi\n"); exit(1); }
-              $tmp = tempnam(sys_get_temp_dir(), 'nv') . '.php';
+              if (!$vr['html']) { fwrite(STDERR, "kuloglu-underwear-vocab.php cekilemedi\n"); exit(1); }
+              $tmp = tempnam(sys_get_temp_dir(), 'kv') . '.php';
               file_put_contents($tmp, $vr['html']);
               $v = require $tmp;
               @unlink($tmp);
-              if (!function_exists('nbb_name_i18n')) { fwrite(STDERR, "nbb-vocab.php yuklendi ama fonksiyonlar yok\n"); exit(1); }
+              if (!function_exists('ku_name_i18n')) { fwrite(STDERR, "sozluk yuklendi ama fonksiyonlar yok\n"); exit(1); }
               /* SEKIL DENETIMI -- raw.githubusercontent BIR CDN ve kopyasi BAYAT
                  olabiliyor. 10 Eyl 2026'da tam bu oldu: nbb_desc()'e paket adedi
                  parametresi eklendi, uc dakika sonra kosan export BAYAT kopyayi
@@ -475,31 +476,30 @@ jobs:
                  yok saydigi icin hicbir hata cikmadi -- 42 ilanin aciklamasi,
                  MOQ'su 1 olanlar dahil, "paket halinde satilir" diye yazildi ve
                  canliya oyle indi.
-                 Bir bagimliligi ag uzerinden cekiyorsan SURUMUNU DOGRULA: burada
-                 beklenen imza (3 parametre) ve NOPACK tablosunun varligi. */
-              $ref = new ReflectionFunction('nbb_desc');
-              if ($ref->getNumberOfParameters() < 3 || !defined('NBB_DESC_FMT_NOPACK')) {
-                fwrite(STDERR, "nbb-vocab.php BAYAT (nbb_desc paket adedi almiyor / NOPACK tablosu yok) -- "
-                             . "raw.githubusercontent onbellegi. Birkac dakika bekleyip tekrar calistirin.\n");
-                exit(1);
+                 Bir bagimliligi ag uzerinden cekiyorsan SURUMUNU DOGRULA. Kontrol
+                 ARTIK uc-uretici surumunu ariyor: eski (yalniz NBB) kopya
+                 ku_classify/ku_sku tanimlamiyor ve `makers` anahtari tasimiyor. */
+              foreach (['ku_classify','ku_sku','ku_sizes_from_title','ku_photo_rejected','ku_model_of_slug'] as $fn) {
+                if (!function_exists($fn)) {
+                  fwrite(STDERR, "sozluk BAYAT: {$fn}() yok -- raw.githubusercontent onbellegi. "
+                               . "Birkac dakika bekleyip tekrar calistirin.\n");
+                  exit(1);
+                }
+              }
+              if (!isset($v['makers']['visatin'], $v['makers']['qen'])) {
+                fwrite(STDERR, "sozluk BAYAT: uretici tablosunda visatin/qen yok.\n"); exit(1);
+              }
+              $ref = new ReflectionFunction('ku_desc');
+              if ($ref->getNumberOfParameters() < 4 || !defined('KU_DESC_FMT_NOPACK')) {
+                fwrite(STDERR, "sozluk BAYAT: ku_desc marka/paket almiyor.\n"); exit(1);
               }
               return $v;
-            }
-
-            /* Slug'dan MODEL numarasi: "nbb-3565-b-bayan-dubleli-..." -> "3565-B",
-               "nbb-350-bayan-mikro-..." -> "350". "-b" soneki opsiyonel ve ARDINDAN
-               TIRE gelmek zorunda; aksi halde "nbb-350-bayan"in "-b"si model
-               numarasina yapisirdi. Bu depoda ayni sinif hata (kisa ekin baska bir
-               kelimenin ICINDE eslesmesi) mango/zara olarak kayitli. */
-            function nbb_model_of_slug(string $slug): string {
-              if (preg_match('~^nbb-(\d+(?:-b)?)-~i', $slug, $m)) return strtoupper($m[1]);
-              return '';
             }
 
             /* Beden siralamasi: harf merdiveni kendi sirasinda, sayilar artan,
                kupali band olculeri ("80 C") band sonra kup. Alfabetik siralama
                "100, 105, 75, 80" verirdi -- toptancinin okudugu ilk sey bu satir. */
-            function nbb_sort_sizes(array $sizes): array {
+            function ku_sort_sizes(array $sizes): array {
               $ladder = ['XXS'=>1,'XS'=>2,'S'=>3,'M'=>4,'L'=>5,'XL'=>6,'XXL'=>7,'XXXL'=>8,'XXXXL'=>9];
               usort($sizes, function ($a, $b) use ($ladder) {
                 $ra = $ladder[strtoupper($a)] ?? null; $rb = $ladder[strtoupper($b)] ?? null;
@@ -518,49 +518,75 @@ jobs:
             }
 
             /**
-             * NBB satirlari. kuloglu_build_rows()'un NBB'ye uyarlanmis hali DEGIL --
-             * AYRI, cunku dort seyi baska turlu yapiyor ve eskisini dallandirmak
-             * iki katalogu tek govdede birbirine baglardi:
+             * Kuloglu ic camasiri satirlari (NBB, Visatin, Q-EN).
+             * kuloglu_build_rows()'un uyarlanmis hali DEGIL -- AYRI, cunku dort
+             * seyi baska turlu yapiyor ve eskisini dallandirmak iki katalogu tek
+             * govdede birbirine baglardi:
              *
              *  1. AD/ACIKLAMA 9 DILDE, kelime kelime cevirip yapistirarak degil
-             *     (nbb-vocab.php'nin docblock'u sebebini yaziyor). Eski kurucu
-             *     `desc` alanina ham Turkce beden listesi yaziyordu.
-             *  2. RENK/BEDEN AYRIMI DEGERE bakiyor, alan ADINA degil: NBB kaydinda
-             *     ikisi yer yer YER DEGISMIS (olculdu: 2404, 2900, 9266, 9293).
-             *     Eski kurucunun kurali "renk alani bossa bedeni renk say" idi ve
-             *     2404'te renk alani DOLU (icinde bir beden var).
+             *     (sozlugun docblock'u sebebini yaziyor). Eski kurucu `desc`
+             *     alanina ham Turkce beden listesi yaziyordu.
+             *  2. RENK/BEDEN AYRIMI DEGERE bakiyor, alan ADINA degil: kayitta
+             *     ikisi yer yer YER DEGISMIS (olculdu: NBB 2404, 2900, 9266,
+             *     9293; Visatin'de renk alani bos, RENK BEDEN ALANINDA --
+             *     "b:KIRMIZI", "b:SİYAH"). Eski kurucunun kurali "renk alani
+             *     bossa bedeni renk say" idi ve 2404'te renk alani DOLU.
              *  3. FOTOGRAFI ELENEN URUN ATILIYOR (operator sarti). Elle eleme
              *     unutulur -- KURAL 1h'nin dersi, kontrol gonderim yolunda olmali.
              *  4. TIERS YAZILIYOR. vestra_unit_price() tiers bossa 0.0 donuyor ve
              *     order.php 0 fiyatli satiri atliyor: tiers'siz bir ilan vitrinde
              *     durur ama SATIN ALINAMAZ.
              */
-            function nbb_build_rows(array $priced, array $imgMap, array $vocab, string $sid, int $start, int $count): array {
+            function ku_build_rows(string $maker, array $priced, array $imgMap, array $vocab, string $sid, int $start, int $count): array {
+              $mk = $vocab['makers'][$maker] ?? null;
+              if (!$mk) { fwrite(STDERR, "bilinmeyen uretici: {$maker}\n"); exit(1); }
+
               $paletteOf = function (string $raw) use ($vocab): ?string {
-                $k = nbb_color_key($raw);
-                if ($k === '' || nbb_is_one_size($k)) return null;      // "STANDART" renk degil
-                if (isset($vocab['nbb_colors'][$k]['palette'])) return $vocab['nbb_colors'][$k]['palette'];
+                $k = ku_color_key($raw);
+                if ($k === '' || ku_is_one_size($k)) return null;      // "STANDART" renk degil
+                if (isset($vocab['ku_colors'][$k]['palette'])) return $vocab['ku_colors'][$k]['palette'];
                 return $vocab['palette_map'][$k] ?? null;
               };
 
+              /* MODEL SAYIMI, DILIMDEN ONCE ve TUM kume uzerinde: bir artikel
+                 numarasi kumede bir kez mi geciyor iki kez mi, SKU'nun sekli
+                 buna bagli (ku_sku). Dilim uzerinden saymak, ayni urunu hangi
+                 partide islediginize gore FARKLI bir SKU uretirdi -- yani ayni
+                 ilan iki kosuda iki ayri ilan olurdu. */
+              $modelCount = [];
+              foreach ($priced as $rec) {
+                preg_match('#/urun/([a-z0-9\-]+)#i', (string)($rec['url'] ?? ''), $am);
+                $m = ku_model_of_slug($maker, $am[1] ?? '');
+                if ($m !== '') $modelCount[$m] = ($modelCount[$m] ?? 0) + 1;
+              }
+
               $rows = []; $skipNoImg = 0; $skipReject = 0; $skipVaries = 0; $skipUnknown = 0; $notes = [];
+              $byId = [];   // CAKISMA DENETIMI, asagida
               foreach (array_slice($priced, $start, $count) as $rec) {
                 $url = (string)($rec['url'] ?? '');
                 preg_match('#/urun/([a-z0-9\-]+)#i', $url, $sm);
-                $slug = $sm[1] ?? '';
-                $model = nbb_model_of_slug($slug);
-                if ($model === '' || !isset($vocab['products'][$model])) { $skipUnknown++; $notes[] = "? model cozulemedi: $slug"; continue; }
+                $slug  = $sm[1] ?? '';
+                $title = (string)($rec['title'] ?? '');
+                $model = ku_model_of_slug($maker, $slug);
+                if ($model === '') { $skipUnknown++; $notes[] = "? model cozulemedi: $slug"; continue; }
 
-                $why = nbb_photo_rejected($model);
-                if ($why !== null) { $skipReject++; $notes[] = "- $model FOTOGRAF ELENDI: $why"; continue; }
+                $packQty = max(1, (int)($rec['pack_qty'] ?? 1));
+                /* SKU model numarasi DEGIL: tedarikci ayni numarayi iki urunde
+                   kullaniyor (olculdu). Ayrinti sozlukte, ku_sku(). */
+                $sku  = ku_sku($model, $title, $packQty, ($modelCount[$model] ?? 1) > 1);
+                $spec = ku_classify($maker, $sku, $title);
+                if (!$spec) { $skipUnknown++; $notes[] = "? tur cozulemedi ($sku): $title"; continue; }
+
+                $why = ku_photo_rejected($maker, $sku);
+                if ($why !== null) { $skipReject++; $notes[] = "- $sku FOTOGRAF ELENDI: $why"; continue; }
 
                 $staged = $imgMap[$url] ?? [];
-                if (!$staged) { $skipNoImg++; $notes[] = "- $model fotograf henuz hazirlanmadi"; continue; }
+                if (!$staged) { $skipNoImg++; $notes[] = "- $sku fotograf henuz hazirlanmadi"; continue; }
 
                 $ps = array_unique(array_map(fn($v) => $v['price_eur'] ?? null, $rec['variants'] ?? []));
-                if (count($ps) > 1) { $skipVaries++; $notes[] = "- $model varyant bazli fiyat"; continue; }
+                if (count($ps) > 1) { $skipVaries++; $notes[] = "- $sku varyant bazli fiyat"; continue; }
                 $list = (float)($rec['unit_price_eur'] ?? 0);
-                if ($list <= 0) { $skipVaries++; $notes[] = "- $model fiyat cozulemedi"; continue; }
+                if ($list <= 0) { $skipVaries++; $notes[] = "- $sku fiyat cozulemedi"; continue; }
 
                 // Renk ve beden: DEGERE gore siniflandir, alanin adina degil.
                 $colors = []; $sizes = []; $oneSize = false;
@@ -569,16 +595,42 @@ jobs:
                   foreach ([(string)($v['color'] ?? ''), (string)($v['size'] ?? '')] as $tok) {
                     $tok = trim($tok);
                     if ($tok === '') continue;
-                    if (nbb_is_one_size($tok)) { $oneSize = true; continue; }
-                    if (nbb_is_size($tok)) { $s = strtoupper(preg_replace('~\s+~', ' ', $tok)); if (!in_array($s, $sizes, true)) $sizes[] = $s; continue; }
+                    if (ku_is_one_size($tok)) { $oneSize = true; continue; }
+                    if (ku_is_size($tok)) { $s = strtoupper(preg_replace('~\s+~', ' ', $tok)); if (!in_array($s, $sizes, true)) $sizes[] = $s; continue; }
                     $p = $paletteOf($tok); if ($p && !in_array($p, $colors, true)) $colors[] = $p;
                   }
                 }
-                $sizes = nbb_sort_sizes($sizes);
+                /* Varyant tablosu BOS olan asorti paketlerde bedenler yalniz
+                   BASLIKTA duruyor ("... GECELİK M-L-XL 6 LI"). Onlari atmak,
+                   tedarikcinin yazdigi bir olguyu silmek olurdu; uydurmak da
+                   yasak -- okunan sey basligin kendisi. */
+                if (!$sizes) $sizes = ku_sizes_from_title($title);
+                $sizes = ku_sort_sizes($sizes);
 
-                $moq = max(1, (int)(($rec['variants'][0]['pack_qty'] ?? null) ?: 1));
+                /* "ASORTİ" tedarikcinin renk alanina yazdigi, renk OLMAYAN
+                   deger: paket karisik renk geliyor demek. Palet karsiligi yok
+                   ve olmamali (uydurma renk basmak yasak, NBB 730 dersi) -- ama
+                   SESSIZCE dusurmek de alicidan bir olguyu gizlemek olurdu:
+                   renksiz gorunen bir ilan, tek renk sanilir. Ozellik olarak
+                   ADA giriyor, ve yalnizca cozulmus hicbir renk yoksa. */
+                $rawTokens = array_merge(
+                  array_map('strval', (array)($rec['colors'] ?? [])),
+                  array_map(fn($v) => (string)($v['color'] ?? ''), (array)($rec['variants'] ?? []))
+                );
+                foreach ($rawTokens as $tok) {
+                  if (!$colors && preg_match('~ASORT[İI]~u', mb_strtoupper($tok))
+                      && !in_array('assorted_colours', $spec['attrs'], true)) {
+                    $spec['attrs'][] = 'assorted_colours';
+                    break;
+                  }
+                }
+
+                $moq = $packQty;
                 /* Beden satiri: olculer + paket kurali. "N/pack" ve "One size"
-                   vestra_sizes_label()'dan gecip cevriliyor; olculer evrensel. */
+                   vestra_sizes_label()'dan gecip cevriliyor; olculer evrensel.
+                   "N/pack" ayrica KURAL 21b'nin beden secicisini KAPATIYOR:
+                   asorti paketin karisimi sabittir, sectirmek ilan edilen
+                   paketin icerigiyle celisen bir siparis uretirdi. */
                 $bits = [];
                 if ($sizes) $bits[] = implode(' · ', $sizes);
                 elseif ($oneSize) $bits[] = 'One size';
@@ -587,18 +639,19 @@ jobs:
                 $images = [];
                 foreach ($staged as $fn) $images[] = '/uploads/wholesale-underwear/' . $fn;
 
+                $id = $mk['id'] . '-' . strtolower($sku);
                 $rows[] = [
-                  'id' => 'nbb-' . strtolower($model),
-                  'brand' => 'NBB',
-                  'name' => nbb_name($model, 'en'),
-                  'name_i18n' => nbb_name_i18n($model),
+                  'id' => $id,
+                  'brand' => $mk['label'],
+                  'name' => ku_name($spec, $sku, 'en'),
+                  'name_i18n' => ku_name_i18n($spec, $sku),
                   /* Paket adedi aciklamaya GECIRILIYOR: 1'lik bir ilanda
                      "paket halinde satilir" yazmak, ilanin kendi MOQ'suyla
                      celisen bir metin olurdu (Balenciaga'nin desc/sizes dersi). */
-                  'desc' => nbb_desc($model, 'en', $moq),
-                  'desc_i18n' => nbb_desc_i18n($model, $moq),
-                  'cat' => $vocab['products'][$model]['cat'],
-                  'sku' => $model,
+                  'desc' => ku_desc($spec, $mk['label'], 'en', $moq),
+                  'desc_i18n' => ku_desc_i18n($spec, $mk['label'], $moq),
+                  'cat' => $spec['cat'],
+                  'sku' => $sku,
                   'moq' => $moq, 'unit' => 'pc',
                   /* mode='fixed': bu katalogda indirim yok. mode='sale' olsaydi
                      'list' USTU CIZILI ESKI fiyat sayilirdi (KURAL 4'un referans
@@ -614,6 +667,19 @@ jobs:
                   'ships_from' => 'Turkey',
                   'status' => 'pending',        // operator onaylayana kadar katalogda YOK
                 ];
+
+                /* CAKISMA: iki ilan ayni id/SKU'yu tasiyamaz. Tedarikci ayni
+                   artikel numarasini iki urunde kullaniyor (Q-EN 705/706/800,
+                   Visatin 4060/4074) ve ku_sku() bunu ayiriyor -- ama kurali
+                   gelecekte asan bir vaka SESSIZCE bir ilani ezerdi: siparis
+                   satirinin renk/beden haritasi SKU ile anahtarli. Sessiz
+                   ezme yerine is DURUYOR. */
+                if (isset($byId[$id])) {
+                  fwrite(STDERR, "CAKISMA: iki urun ayni id/SKU uretti ({$id})\n"
+                               . "  1: {$byId[$id]}\n  2: {$title}\n");
+                  exit(1);
+                }
+                $byId[$id] = $title;
               }
               return [$rows, ['gorselsiz' => $skipNoImg, 'foto_elendi' => $skipReject, 'fiyat' => $skipVaries, 'model_yok' => $skipUnknown], $notes];
             }
@@ -628,12 +694,22 @@ jobs:
              * kurucuyu cagiriyordu; onizlemede dogru, pakette yanlis satirlar
              * demekti.
              */
+            /* IC CAMASIRI KUMELERI -- TEK liste. Iki yerde ayri ayri yazili
+               kalsaydi (kurucu ve build_batch dali) yeni bir uretici eklendiginde
+               birinde unutulur ve o uretici sessizce ESKI kurucudan gecerdi:
+               9 dilli ad yok, fotograf elemesi yok, tiers yok. Bu depo ayni
+               ayrisma hatasini fatura kesiminde iki kez kaydetti. */
+            function kuloglu_underwear_makers(): array { return ['nbb','visatin','qen']; }
+
             function kuloglu_rows_for(string $ds, array $priced, array $imgMap, array $vocab, string $sid, int $start, int $count): array {
-              if ($ds === 'nbb') {
-                $nv = nbb_fetch_vocab();
+              /* Ic camasiri ureticileri. Liste TEK yerde: yeni bir uretici
+                 (sozlukte KU_MAKERS'a bir satir) buraya da bir kelime ekliyor,
+                 kurucuya yeni bir dal degil. */
+              if (in_array($ds, kuloglu_underwear_makers(), true)) {
+                $nv = ku_fetch_vocab();
                 $nv['palette_map'] = $vocab['palette_map'];
-                $nv['nbb_colors']  = $nv['colors'];
-                [$rows, $skips, $notes] = nbb_build_rows($priced, $imgMap, $nv, $sid, $start, $count);
+                $nv['ku_colors']   = $nv['colors'];
+                [$rows, $skips, $notes] = ku_build_rows($ds, $priced, $imgMap, $nv, $sid, $start, $count);
                 return [$rows, $skips, $notes];
               }
               [$rows, $noImg, $varies] = kuloglu_build_rows($priced, $imgMap, $vocab, $sid, $start, $count);
@@ -1735,12 +1811,12 @@ jobs:
               if (!$priced) { fwrite(STDERR, basename($PRICED_FILE)." bos/yok -- once price calistir\n"); exit(1); }
               $imgMap = load_json($DIR . '/images_staged.json', []);
 
-              // NBB kumesi AYRI bir kurucudan geciyor (bkz. nbb_build_rows'un
-              // docblock'u: 9 dilli ad, deger-tabanli renk/beden ayrimi, fotograf
-              // elemesi, tiers). Eski kurucuyu dallandirmak iki katalogu tek
-              // govdede birbirine baglardi.
+              // Ic camasiri kumeleri AYRI bir kurucudan geciyor (bkz.
+              // ku_build_rows'un docblock'u: 9 dilli ad, deger-tabanli renk/beden
+              // ayrimi, fotograf elemesi, tiers). Eski kurucuyu dallandirmak iki
+              // katalogu tek govdede birbirine baglardi.
               $BATCH_FILE = $DIR . '/test_batch.json';
-              if ($DS === 'nbb') {
+              if (in_array($DS, kuloglu_underwear_makers(), true)) {
                 [$rows, $skips, $notes] = kuloglu_rows_for($DS, $priced, $imgMap, $vocab, $sid, $start, $count);
                 save_json_atomic($BATCH_FILE, $rows);
                 printf("olusturuldu: %d satir\n", count($rows));
