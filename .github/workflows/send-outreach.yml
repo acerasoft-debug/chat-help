@@ -344,8 +344,19 @@ jobs:
             if ($IS_NEWCOLL && $NC_LETTER === 'shoes') {
                 $ncShoes = 0; $ncUnder = 0; $ncBrand = [];
                 foreach (vestra_products() as $ncP) {
-                    if (strtolower(trim((string)($ncP['section'] ?? ''))) === 'footwear') $ncShoes++;
-                    if (str_contains(strtolower((string)($ncP['cat'] ?? '')), 'underwear')) $ncUnder++;
+                    /* IKISI DE BOLMEDEN sayiliyor. Ic giyim once 'cat' icinde
+                       "underwear" arayarak sayiliyordu ve bu 146 ilanlik bolmeden
+                       yalnizca 16'sini goruyordu: kategori yapraklari Bras, Basics,
+                       Socks & Hosiery, Sleepwear, Lingerie -- hicbirinde o kelime
+                       gecmiyor. Ayni cumlenin iki satirini iki ayri kurala
+                       baglamak, birini sessizce eksik birakti (10 Eyl 2026, 200
+                       mektup "16 artikel" diyerek gitti).
+                       Okuyucu vestra_product_section(): ham alan okunsaydi
+                       'section' alani hic girilmemis ilanlar hicbir bolmeye
+                       dusmezdi. */
+                    $ncSec = vestra_product_section($ncP);
+                    if ($ncSec === 'footwear')  $ncShoes++;
+                    if ($ncSec === 'underwear') $ncUnder++;
                     $ncB = trim((string)($ncP['brand'] ?? ''));
                     if ($ncB !== '') $ncBrand[$ncB] = ($ncBrand[$ncB] ?? 0) + 1;
                 }

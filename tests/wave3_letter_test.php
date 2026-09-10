@@ -70,9 +70,12 @@ $t('girdi ADIM env\'inde',          str_contains($wf, 'SEND_NC_LETTER: ${{ githu
 $t('envs listesinde',              str_contains($wf, 'SEND_NC_LETTER,'));
 $t('shoes secilince shoes sablonu', str_contains($wf, 'vestra_tpl_new_collection_shoes($lang, $company, $NC_FACTS)'));
 $t('winter varsayilan kaliyor',    str_contains($wf, 'vestra_tpl_new_collection($lang, $company)'));
-/* Rakamlar canli kayittan: sayim kodu workflow'da olmali. */
-$t('ayakkabi CANLI sayiliyor',     str_contains($wf, "=== 'footwear') \$ncShoes++"));
-$t('ic giyim CANLI sayiliyor',     str_contains($wf, "'underwear')) \$ncUnder++"));
+/* Rakamlar canli kayittan: sayim kodu workflow'da olmali. Iki iddia da
+   olcutu birlikte tasiyor -- bkz. bolum 7: ic giyim eskiden 'cat' metninden
+   sayiliyordu ve bolmenin 146 ilanindan 16'sini goruyordu. */
+$t('ayakkabi CANLI sayiliyor',     str_contains($wf, "\$ncSec === 'footwear')  \$ncShoes++"));
+$t('ic giyim CANLI sayiliyor',     str_contains($wf, "\$ncSec === 'underwear') \$ncUnder++"));
+$t('sayim canli katalogu geziyor', str_contains($wf, 'foreach (vestra_products() as $ncP)'));
 $t('iki bolum de bossa DURUYOR',   str_contains($wf, 'ayakkabi ve ic giyim ikisi de 0'));
 $t('markalar ozet satirinda basiliyor', str_contains($wf, 'MEKTUPTAKI MARKALAR'));
 /* "Premium" iki yerde ayni sey olmali: leadi premium sayan sozluk, mektupta
@@ -89,6 +92,18 @@ $t('alan adi eslesmesi eliyor',    str_contains($wf, 'isset($SELLER_DOM[$slDom])
 /* gmail'deki bir satici, gmail'deki her leadi elemesin. */
 $t('serbest posta saglayicisi muaf', str_contains($wf, '!isset($NC_SHARED[$slDom])'));
 $t('elenen sayisi ozet satirinda', str_contains($wf, 'SATICI: kendi satici hesabimiz oldugu icin elenen'));
+
+echo "\n== 7. Iki satir da AYNI olcutten: bolme ==\n";
+/* Ayakkabi bolmeden, ic giyim ise 'cat' icinde "underwear" arayarak
+   sayiliyordu. Ic giyim bolmesinin kategori yapraklari Bras / Basics /
+   Socks & Hosiery / Sleepwear / Lingerie -- hicbirinde o kelime gecmiyor,
+   yani 146 ilanin 16'si sayiliyordu ve 200 mektup oyle gitti. Ayni cumlenin
+   iki satirini iki ayri kurala baglamak tam da bunu uretir. */
+$t('ic giyim BOLMEDEN sayiliyor',   str_contains($wf, "if (\$ncSec === 'underwear') \$ncUnder++;"));
+$t('ayakkabi BOLMEDEN sayiliyor',   str_contains($wf, "if (\$ncSec === 'footwear')  \$ncShoes++;"));
+$t('okuyucu cagriliyor, ham alan degil', str_contains($wf, '$ncSec = vestra_product_section($ncP);'));
+$t("'cat' icinde underwear aramasi KALKTI",
+   !str_contains($wf, "str_contains(strtolower((string)(\$ncP['cat'] ?? '')), 'underwear')"));
 
 echo "\n{$ok} ok, {$bad} hata\n";
 exit($bad ? 1 : 0);

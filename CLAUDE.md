@@ -3033,6 +3033,37 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   "≥2 colours" etiketi doğruydu; dokunulmadı.
 - Uygulandı: run `34529155791`, 5 alan, zaman damgalı yedek.
 
+**3. parti (İKİNCİ mektup) gönderildi — 200/250, kalan 50 KOTAYA takıldı**
+(operatör, 10 Eyl 2026: *"kampanya gönder 2. email almayanlara yeni ürünler ve
+brandslerden.."* + *"250 ad."*).
+- Kip: `send-outreach` → `new_collection=true` + `newcoll_letter=shoes`.
+  Bu kip **ilk mektubu almış ama ikinciyi almamış** leadleri seçiyor
+  (`last_newcontacted`/`last_newcollection_at` damgası), yani "yeni emaillere
+  gönderme" şartı kipin kendisinden geliyor; satıcı hesapları ayrıca eleniyor.
+  Kuru koşu **250** verdi (de=74, fr=17, nl=57, en=102).
+- **Gerçek gönderim koşu başına 50'ye kırpılıyor** (`!$DRY && $COUNT > 50`),
+  yani 250 için **5 koşu** gerekiyor. Damga koşular arasında da tutuyor, o
+  yüzden ikinci koşu birincinin gönderdiğini seçmiyor — `add-and-send`'in
+  2 Eylül'deki çift gönderim tuzağı burada YOK.
+- Koşular sırayla (paralel değil — `leads.json` oku-değiştir-yaz):
+  `34538049383` 50, `34538425397` 50, `34538544847` 50, `34538677138` 50,
+  **`34538804541` 0** — *"istenen 50, ayrılan pay düşüldükten sonra
+  kullanılabilir 4 (toplam kalan 64)"*. Kapı **hep ya da hiç**: 4 mektup
+  gönderip yarım parti bırakmıyor. **Toplam 200 gönderildi, 0 hata.**
+  Kalan 50, kota yenilenince tek koşu.
+- Mektubun rakamları canlı sayıldı: **ayakkabı 335 artikel**, iç giyim, ve
+  markalar Burberry, Givenchy, BALMAIN, Dolce & Gabbana, Fendi, Balenciaga.
+  DNS süzgeci 13 adayı posta alamayan alan adı diye eledi.
+- **İÇ GİYİM SAYISI EKSİKTİ ve 200 mektup öyle gitti.** Ayakkabı **bölmeden**
+  sayılıyordu, iç giyim ise `cat` metninde "underwear" arayarak — o bölmenin
+  kategori yaprakları **Bras / Basics / Socks & Hosiery / Sleepwear /
+  Lingerie**, hiçbirinde o kelime geçmiyor. Sonuç: 146 ilanlık bölmeden
+  **16** sayıldı. Yalan değil (16 artikel gerçekten var) ama sunduğumuz
+  koleksiyonu küçük gösteriyor. Düzeltildi: iki satır da
+  `vestra_product_section()`'dan sayılıyor. *Aynı cümlenin iki satırını iki
+  ayrı ölçüte bağlamak, birini sessizce eksik bırakır.*
+  Test: `wave3_letter_test.php §7` (eski sayım geri konunca 3 kırmızı).
+
 **KURAL 22 — Toplu ZAM ayrı bir araçtır ve TEKRARLANAMAZ** (operatör, 10 Eyl
 2026: *"underwear ürünlerine yüzde 20 zam yap bütün ürünlere"*).
 - `set-prices.yml` yalnızca **indirim** biliyordu (`discount_pct`). Zam onun
