@@ -39,13 +39,22 @@ printf("\n%d durum, %d yanlis\n", count($cases), $bad);
    2026'ya kadar cagirmiyordu: "79,90" is_numeric'e takilip "gecersiz fiyat"
    diye REDDEDILIYORDU (sessiz kayip degil, ama kullaniciya kendi dogru
    yazdigi rakami yanlis diye geri veren bir arac). */
-$sp = (string)@file_get_contents(__DIR__.'/../.github/workflows/set-prices.yml');
+/* Uygulayici 10 Eyl 2026'da workflow'un ICINDEN scripts/set_prices.php'ye
+   tasindi (zam aritmetigi test edilebilsin diye). Kablo denetimi de oraya
+   bakiyor; workflow yalnizca dosyayi tasiyor. Dosya YOKSA bu blok sessizce
+   yesil kalmasin diye once varligi olculuyor. */
+$spf = __DIR__.'/../scripts/set_prices.php';
+$sp  = (string)@file_get_contents($spf);
 $wire = [
+  'set-prices: uygulayici dosya var'               => is_file($spf) && $sp !== '',
+  'set-prices: workflow bu dosyayi tasiyor'        => str_contains(
+      (string)@file_get_contents(__DIR__.'/../.github/workflows/set-prices.yml'), 'scripts/set_prices.php'),
   'set-prices: para alanlari icin cozumleyici var' => str_contains($sp, '$money = function (string $v): string {'),
   'set-prices: vestra_price_input cagriliyor'      => str_contains($sp, 'vestra_price_input($v)'),
   'set-prices: price gecirildi'                    => str_contains($sp, '$price   = $money($price);'),
   'set-prices: list_price gecirildi'               => str_contains($sp, '$listP   = $money($listP);'),
   'set-prices: discount_pct gecirildi'             => str_contains($sp, '$discPct = $money($discPct);'),
+  'set-prices: markup_pct gecirildi'               => str_contains($sp, '$markPct = $money($markPct);'),
   /* moq/step ctype_digit ile dogrulaniyor: iki ondalik eklemek gecerli bir
      MOQ'yu gecersiz yapardi, o yuzden onlar BILEREK gecmiyor. */
   'set-prices: moq cozumleyiciden GECMIYOR'        => !str_contains($sp, '$moq   = $money($moq);'),

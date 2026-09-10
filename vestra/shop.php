@@ -473,7 +473,14 @@ footer a{color:#d8bd86}
              data-price="<?= !$PRICES ? '' : ($dmode==='offer' ? 999999 : $from) ?>"
              data-search="<?= htmlspecialchars(strtolower(vestra_product_title($p).' '.($p['sku']??'').' '.($p['cat']??''))) ?>"
              data-name="<?= htmlspecialchars(vestra_product_name($p)) ?>">
-            <div class="sthumb<?= (function_exists('vestra_is_sold_out') && vestra_is_sold_out($p)) ? ' sthumb-sold' : '' ?>" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11)">
+            <?php /* FOTOGRAFLI KART ile MARKA KARTI ayri zeminler (operator, 10 Eyl
+                     2026: "katalog fotolarini daha estetik yap"). Olculdu: katalog
+                     fotograflarinin %94'u BEYAZ zeminli packshot (35 dosyanin 33'u,
+                     kenar pikselleri > 225). Koyu gradyan + object-fit:cover ikisi de
+                     bu fotograflar icin yanlisti -- kolu/etegi kirpiyor ve beyaz
+                     zemin koyu kartin icinde sert bir kutu gibi duruyordu. Fotograf
+                     varsa acik "studyo" zemini + contain, yoksa eski marka gradyani. */ ?>
+            <div class="sthumb<?= $img0 ? ' sphoto' : '' ?><?= (function_exists('vestra_is_sold_out') && vestra_is_sold_out($p)) ? ' sthumb-sold' : '' ?>"<?= $img0 ? '' : ' style="background:linear-gradient(135deg,'.htmlspecialchars(vestra_accent($p)).',#0e0e11)"' ?>>
               <?php /* SATILDI serdi: kart katalogda KALIYOR (marka burada satiliyor
                        bilgisi ve SEO degeri korunsun) ama satilamadigi ilk bakista
                        belli olsun -- alici urun sayfasina girip anlamasin. */

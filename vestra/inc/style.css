@@ -746,6 +746,20 @@ a.msghead-s:hover{color:var(--acc)}
   background:linear-gradient(transparent,rgba(0,0,0,.55));pointer-events:none;z-index:3}
 .sthumbi{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;transition:transform .45s ease}
 .scard:hover .sthumbi{transform:scale(1.06)}
+/* FOTOGRAFLI KART. Katalog fotograflarinin %94'u beyaz zeminli packshot
+   (olculdu: 35 dosyanin 33'unde kenar pikselleri > 225), yani:
+     - cover KIRPIYOR: kol, etek, ayakkabinin burnu disarida kaliyordu;
+     - koyu gradyan zemin uzerinde beyaz bir packshot sert bir kutu gibi duruyor;
+     - ve .sthumb::after'in %55'lik siyah perdesi beyaz urunun altini kirletiyordu.
+   Fotografli karta acik studyo zemini, contain ve nefes payi veriliyor; marka
+   karti (fotografsiz) eski koyu gradyanda kaliyor -- iki tile iki ayri is yapiyor. */
+.sthumb.sphoto{background:linear-gradient(178deg,#fbfaf8 0%,#f2efea 78%,#eae6df 100%)}
+.sthumb.sphoto .sthumbi{object-fit:contain;padding:8% 8% 11%}
+.sthumb.sphoto::after{height:30%;background:linear-gradient(transparent,rgba(20,16,10,.20))}
+/* Zoom daha kucuk: contain'de buyuk zoom urunu kirpmaya baslar. */
+.scard:hover .sthumb.sphoto .sthumbi{transform:scale(1.035)}
+.sthumb.sphoto .svbadge{background:rgba(28,120,72,.10);color:#1f7a4c;border-color:rgba(28,120,72,.28)}
+.sthumb.sphoto .sbname{color:#2a251c;text-shadow:none}
 /* Photo reveal (approved members only): the brand tile stays the card front; on hover
    (desktop) or while centered in view (touch, .sreveal via JS) the first product photo
    fades in with a slow settle-zoom. Sits above the brand name (z2), below badges (z4). */
@@ -1004,8 +1018,9 @@ a.msghead-s:hover{color:var(--acc)}
 .wsgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
 .wscard{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column}
 .wscard:hover{box-shadow:0 6px 20px rgba(60,50,30,.10)}
-.wsthumb{aspect-ratio:3/4;background:linear-gradient(135deg,#2a2a30,#0e0e11);position:relative;overflow:hidden}
-.wsthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.wsthumb{aspect-ratio:3/4;background:linear-gradient(178deg,#fbfaf8,#f0ede8);position:relative;overflow:hidden}
+/* Marka/b2b vitrinindeki kartlar da ayni packshot'lari gosteriyor: ayni karar. */
+.wsthumb img{width:100%;height:100%;object-fit:contain;padding:7%;display:block}
 .wsbody{padding:11px 12px 13px;display:flex;flex-direction:column;gap:3px}
 .wsbrand{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--acc);font-weight:700}
 .wsname{font-size:13px;line-height:1.35;color:var(--ink)}

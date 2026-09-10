@@ -2914,6 +2914,63 @@ kapsam soruldu, **"yalnız Marca Online"** seçildi).
     kapalı doğar. Ürün sayfası düğmesi, `/dropship`, ödeme ve API aynı
     fonksiyondan geçer. Test: `tests/dropship_section_test.php`; canlı sayım:
     `diag-live` → `dropship_probe=true` ("bolme yasagi footwear: N").
+**KURAL 22 — Toplu ZAM ayrı bir araçtır ve TEKRARLANAMAZ** (operatör, 10 Eyl
+2026: *"underwear ürünlerine yüzde 20 zam yap bütün ürünlere"*).
+- `set-prices.yml` yalnızca **indirim** biliyordu (`discount_pct`). Zam onun
+  aynası değil: indirim tabanı olarak `list`'i okuyup **değiştirmiyordu**, yani
+  iş yanlışlıkla iki kez koşsa sonuç aynı kalıyordu. Zamda taban bugünkü
+  fiyattır ve zam onu değiştirir — ikinci koşu %20 değil **%44** eder. Bu yüzden
+  her ilana `markup_at` + `markup_pct` damgası düşüyor: **aynı yüzde 24 saat
+  içinde ikinci kez uygulanmaz** (`force=true` ile aşılır, farklı bir yüzde
+  takılmaz). Çıktı da her koşuda bunu yazıyor.
+- **Bölme süzgeci eklendi** (`section`: premium/footwear/underwear). "Underwear
+  ürünleri" marka da kategori de değil: `Underwear & Socks` grubunun altında 8
+  kategori yaprağı var ve marka ile süzmek yanlış küme verirdi. Süzgeç
+  `vestra_product_section()`'ı çağırıyor — ham `$p['section']` okunsaydı alanı
+  hiç girilmemiş ilanlar hiçbir bölmeye düşmezdi. **Yazım hatası olan bölme
+  reddediliyor**; yoksa `underwaer` yazan bir koşu "0 ürün" deyip **yeşil**
+  biterdi ve yazım hatası ile "bu bölmede ürün yok" aynı görüntü olurdu.
+- **`list` de aynı oranda yükseliyor.** İndirimli bir üründe üstü çizili rakam
+  sabit kalsaydı indirim yüzdesi kendiliğinden erir, hatta `list` < fiyat olup
+  rozet eksiye düşerdi (`vestra_discount`). `mode`'a **dokunulmuyor**: zam
+  indirim değil, `sale` `sale` kalır, `offer` `offer`.
+- **`eur_margin_pct` damgası da güncelleniyor.** NBB ithalatı her kayda kâr
+  oranını yazıyor (maliyet × 1.5 → 50). Zamdan sonra fiyat o oranı taşımıyor;
+  damgayı olduğu gibi bırakmak kaydın **kendi kendini yalanlaması** olurdu ve
+  bir sonraki ithalat `price|50` ile fiyatı sessizce geri indirirdi. Yeni oran
+  bileşik: 1.5 × 1.2 = 1.8 → **%80**. *NBB yeniden ithal edilirse `price|80`.*
+- **Numune fiyatına dokunulmuyor** (tek parça ayrı bir karar) ama sessiz
+  değil: kaç üründe olduğu çıktıda yazıyor.
+- **Uygulayıcı PHP workflow'un içinden `scripts/set_prices.php`'ye taşındı**
+  (`set-product.yml` ile aynı desen). Sebep tek kelimeyle: gömülü heredoc
+  **test edilemiyordu** ve bu kod canlı kataloğun fiyatlarını yazıyor.
+  Test: `tests/set_prices_markup_test.php` (50 iddia; kum havuzunda betiği
+  gerçekten koşturuyor). Üç sabotajla düşebilirliği doğrulandı: damga kapalı
+  → 4 kırmızı, `list` yükselmiyor → 8, bölme süzgeci yok → 6.
+- `price_input_test.php`'nin kablo denetimi de yeni dosyaya bakıyor —
+  davranış değişmedi, **yeri** değişti; testi güncellemek şart (bu depoda
+  "davranış bilerek değiştiyse testi de düzelt" kaydı var).
+
+**Katalogta GERİ dönüş + fotoğraf zemini** (operatör, 10 Eyl 2026:
+*"kataloglarda geriye dogru dönüs koy ve yapabliyorsan katalog fotolarini daha
+estetik ya"*).
+- `vestra_back_link()` (`inc/products.php`) — ürün sayfasının kırıntı satırında
+  `← Back to catalog`. Hedef **Referer**'dan geliyor ama Referer başkasının
+  yazdığı bir başlık: yabancı alan adı, `javascript:`/`data:` şeması ve site
+  içinde bile **liste olmayan** yollar (sepet, panel, ürün) `/shop`'a düşüyor.
+  Kabul edilen önekler tam eşitlik ya da `/` ile devam: düz `str_starts_with`
+  ile `/shop` öneki **`/shopping-cart`**'ı da yakalıyordu — mango/zara dersinin
+  aynısı, testte iki yönü de var (`tests/back_link_test.php`, 31 iddia).
+  Sorgu parametreleri korunuyor: `/shop?section=footwear`'dan girip "geri"
+  deyince kataloğun başına değil **bulunduğu yere** dönüyor.
+- **Etiket iki sözlük anahtarından** (`Back`, `Back to catalog`) — ikisi de 8
+  dilde zaten vardı, yeni anahtar eklenmedi (KURAL 10).
+- **Fotoğraf zemini ölçümle seçildi:** katalogdaki 35 fotoğrafın **33'ü** beyaz
+  fonlu paket çekimi (kenar pikseli ortalaması > 225). `object-fit: cover` +
+  koyu zemin bunları kırpıyor ve ürünü karartıyordu; artık fotoğraflı karo
+  açık stüdyo zemini + `contain` (`.sthumb.sphoto`), yani ürün **kırpılmıyor**.
+  Fotoğrafsız karo eski koyu degradeyi koruyor — orada kırpılacak bir şey yok.
+
 - **Actions günlüğü gizli değerleri HER YERDE maskeler:** `DEPLOY_PORT`="22"
   yüzünden `1225` → `1***5`, `222` → `***`, fiyat `22.95` → `***.95`, base64'ün
   içi dahil. Loga base64 basarken karakter arası boşluk koy (`|spaced`); günlükten

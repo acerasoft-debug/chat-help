@@ -804,15 +804,18 @@ function vestra_back_link(string $fallback = '/shop'): array {
     $path = '/'.ltrim((string)$u['path'], '/');
     /* Liste sayfalari. Urun sayfasindan urun sayfasina "geri" anlamsiz; panel ve
        sepet zaten kendi navigasyonunu tasiyor. */
+    /* Duz str_starts_with YETMEZ: '/shop' oneki '/shopping-cart'i da yakalardi ve
+       "geri" dugmesi sepete goturur. Ya TAM esitlik ya da '/' ile devam eden yol --
+       bu depoda ayni ders blocklist'te mango/zara olarak duruyor. */
     $ok = false;
-    foreach (['/shop', '/b2b/', '/wholesale/', '/price-list', '/price-lists', '/groups', '/journal', '/search'] as $pre) {
-        if ($path === $pre || str_starts_with($path, rtrim($pre, '/').'/') || str_starts_with($path, $pre)) { $ok = true; break; }
+    foreach (['/shop', '/b2b', '/wholesale', '/price-list', '/price-lists', '/groups', '/journal', '/search'] as $pre) {
+        if ($path === $pre || str_starts_with($path, $pre.'/')) { $ok = true; break; }
     }
     if (!$ok) return $out;
 
     $q = isset($u['query']) && $u['query'] !== '' ? '?'.$u['query'] : '';
-    return ['url' => $path.$q, 'label' => $path === '/shop' || str_starts_with($path, '/shop')
-                                          ? t('Back to catalog') : t('Back')];
+    return ['url' => $path.$q,
+            'label' => ($path === '/shop' || str_starts_with($path, '/shop/')) ? t('Back to catalog') : t('Back')];
 }
 
 function vestra_product_title(array $p): string {
