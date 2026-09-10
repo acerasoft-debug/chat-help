@@ -279,18 +279,18 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $bytes = vestra_render_invoice_pdf($p['meta'], $p['items'], $p['seller'], '', true);
       $tmp = sys_get_temp_dir().'/VESTRA-DRAFT-'.$ref.'.pdf';
       @file_put_contents($tmp, $bytes);
-      $goods=(float)array_sum(array_column($p['items'],'line'));
-      $shp=(float)($p['meta']['shipping'] ?? 0);
-      $lines='';
-      foreach($p['items'] as $it){ $lines.=sprintf("  %-14s %4d x EUR %s = EUR %s\n",$it['sku'],$it['qty'],number_format($it['unit'],2),number_format($it['line'],2)); }
+      /* RAKAMLAR VE BIRIM TEK KAYNAKTAN: vestra_invoice_letter_amounts(), yani
+         PDF'i cizen yukun kendisi. Burasi "EUR" sabitiyle yaziliydi ve teklif
+         faturasi USD kesilebilir olunca operatore giden taslak, DOLAR tutarlarin
+         ustune "EUR" yazdi (9 Eyl 2026, OCD7D2 — operator: "email usd ye
+         cevrilmis fakat eur yaziyor buyuk hata"). Rakam dogruydu, etiket
+         yalandi: yanlis rakam sorgulanir, yanlis etikete inanilir. */
+      $lines = vestra_invoice_letter_amounts($p['meta'], $p['items']);
       /* Mektup INGILIZCE (operator karari, 1 Eyl 2026: "sadece ingilizce yap
          ve yazismalarda turkce kullanma") -- belgenin dili neyse mektubun da
          o olsun, taslak ile kesim arasinda dil farki kalmasin. */
       $ok = vestra_send_mail($tto, "VESTRA — DRAFT invoice {$ref} (test, not sent to the buyer)",
-        "Draft of the document to be issued is attached.\n\n".$lines
-       ."\n  Goods total : EUR ".number_format($goods,2)."\n"
-       .($shp>0 ? "  Shipping    : EUR ".number_format($shp,2)."\n" : '')
-       ."  TOTAL DUE   : EUR ".number_format($goods+$shp,2)."\n\n"
+        "Draft of the document to be issued is attached.\n\n".$lines."\n"
        ."This is a DRAFT: no number was burned, nothing was written to disk, nothing went to the buyer.\n"
        ."If it is correct, issue it from the panel with '\xf0\x9f\x94\x81 Redraft & email'.\n\n— VESTRA",
         '','',null,'',['attachments'=>[['name'=>'DRAFT-'.$ref.'.pdf','path'=>$tmp]]]);
@@ -527,15 +527,11 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
            bir belgenin yanina euro rakamlar koyardi -- bu deponun tekrar tekrar
            kaydettigi "sayfada bir, kasada baska rakam". $__op zaten kesilen
            belgenin yuku. */
-        $q=(int)($orow['qty']??0);
-        $mcur = strtoupper(trim((string)($__op['meta']['currency'] ?? 'EUR'))) ?: 'EUR';
-        $u    = (float)($__op['items'][0]['unit'] ?? vestra_offer_agreed_unit($ref));
-        $fxn  = trim((string)($__op['meta']['fx_note'] ?? ''));
         $iv_att = is_file((string)($iv['path']??'')) ? ['attachments'=>[['name'=>'Invoice-'.$iv['no'].'.pdf','path'=>$iv['path']]]] : [];
         vestra_send_mail($orow['email'], "VESTRA — invoice for {$ref}",
           "Hello ".(($orow['company']??'')?:'there').",\n\nStock is confirmed and your invoice ({$iv['no']}) for the agreed offer is ready.\n\n"
-         ."Reference : {$ref}\nProduct   : ".($orow['product']??'')."\nQuantity  : {$q}\nAgreed    : {$mcur} ".number_format($u,2)."/unit  (total {$mcur} ".number_format($u*$q,2).")\n"
-         .($fxn!==''? "  ({$fxn})\n" : '')."\n"
+         ."Reference : {$ref}\nProduct   : ".($orow['product']??'')."\n\n"
+         .vestra_invoice_letter_amounts($__op['meta'], $__op['items'])."\n"
          ."Download it under My offers and pay by bank transfer to the account shown on the invoice. Your goods ship as soon as the payment arrives.\n\n"
          ."View: https://vestrasales.com/buyer?tab=offers&view=".rawurlencode($ref)."\n\n— VESTRA · vestrasales.com",
           '','',null,'',$iv_att);

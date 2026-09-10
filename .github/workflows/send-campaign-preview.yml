@@ -1684,7 +1684,7 @@ jobs:
                 echo "KESILDI: fatura ".$r['no']." (ayni numara, yeniden yazildi)\n";
                 echo "  uyeler : ".implode(', ', $r['refs'])."\n";
                 echo "  satici : ".$r['seller']."\n";
-                echo "  toplam : EUR ".number_format((float)$r['total'],2)."\n";
+                echo "  toplam : ".($r['currency'] ?? 'EUR')." ".number_format((float)$r['total'],2)."\n";
                 echo "  aliciya gonderildi : ".(!empty($r['sent']) ? 'EVET' : (empty($r['notified']) ? 'hayir (notify=false, bilerek)' : '*** HAYIR ***'))."\n";
                 echo "  operatore kopya    : ".(!empty($r['copied']) ? 'EVET' : 'hayir')."\n";
                 /* Mektup ISTENDIGI halde gitmediyse is KIRMIZI biter: belge
@@ -1712,7 +1712,7 @@ jobs:
               $sh2 = (float)($p['meta']['shipping'] ?? 0);
               echo "TASLAK: ".count($p['items'])." kalem, uyeler: ".implode(', ', $p['refs'])."\n";
               echo "  mal ".number_format($goods,2)." + kargo ".number_format($sh2,2)
-                 ." = ".number_format($goods+$sh2,2)." EUR\n";
+                 ." = ".number_format($goods+$sh2,2)." ".$pCur."\n";
               echo "  satici: ".vestra_invoice_issuer_name($p['seller'],'Acerasoft LLC')."\n";
               echo "  para birimi : ".$pCur.($pCur !== 'EUR'
                    ? "  (".trim((string)($p['meta']['fx_note'] ?? 'kur notu YOK')).")" : '')."\n";
@@ -1729,10 +1729,11 @@ jobs:
               /* INGILIZCE (operator karari, 1 Eyl 2026): taslak ile kesilen
                  belge arasinda dil farki kalmasin. */
               $subject = "VESTRA — DRAFT invoice {$iref} (test, not sent to the buyer)";
-              $body = "Draft of the document to be issued is attached.\n\n".$lines
-                    ."\n  Goods total : EUR ".number_format($goods,2)."\n"
-                    .($sh2 > 0 ? "  Shipping    : EUR ".number_format($sh2,2)."\n" : '')
-                    ."  TOTAL DUE   : EUR ".number_format($goods+$sh2,2)."\n\n"
+              /* Para blogu TEK KAYNAKTAN (vestra_invoice_letter_amounts): kalemler,
+                 toplamlar, KDV ve cevrim notu, PDF'i cizen yukun kendisinden.
+                 Bu govde de "EUR" sabitiyle yaziliydi. */
+              $body = "Draft of the document to be issued is attached.\n\n"
+                    .vestra_invoice_letter_amounts($p['meta'], $p['items'])."\n"
                     ."This is a DRAFT: no number was burned, nothing was written to disk, nothing went to the buyer.\n\n— VESTRA";
               $opts = ['attachments' => [['name'=>'DRAFT-'.$iref.'.pdf','path'=>$tmp]]];
             } elseif ($letter === 'order_gate') {
@@ -2013,11 +2014,8 @@ jobs:
               echo "  KAYIT DEGISMEDI: numara yanmadi, diske yazilmadi, musteriye gitmedi.\n";
 
               $subject = "VESTRA — DRAFT combined invoice ".$p['meta']['ref']." (test, not sent to the buyer)";
-              $body = "Draft of the combined document to be issued is attached.\n\n".$lines
-                    ."\n  Goods total : {$pCur} ".number_format($goods,2)."\n"
-                    .($sh2 > 0 ? "  Shipping    : {$pCur} ".number_format($sh2,2)."\n" : '')
-                    ."  TOTAL DUE   : {$pCur} ".number_format($grand,2)."\n"
-                    .($vatBlock !== '' ? "\n".$vatBlock : '')
+              $body = "Draft of the combined document to be issued is attached.\n\n"
+                    .vestra_invoice_letter_amounts($p['meta'], $p['items'])
                     ."\nThis is a DRAFT: no number was burned, nothing was written to disk, nothing went to the buyer.\n\n— VESTRA";
               $opts = ['attachments' => [['name'=>'DRAFT-'.$p['meta']['ref'].'.pdf','path'=>$tmp]]];
             } elseif ($letter === 'brand_catalog') {

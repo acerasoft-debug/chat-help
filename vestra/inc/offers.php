@@ -751,35 +751,18 @@ function vestra_offers_combined_invoice_issue(array $refs, string $sellerPick = 
     $goods = round((float)$p['total'], 2);
     $grand = round($goods + $shp, 2);
 
-    /* MEKTUP BELGENIN PARA BIRIMINI YAZAR. Burasi "EUR" sabitiyle yaziliydi ve
-       teklif faturasi hep EUR oldugu surece dogruydu; USD secilebilir olunca
-       ayni mektup dolar bir belgenin yanina euro rakamlar koyardi. Birim
-       YUKTEN okunuyor, cunku yuku ceviren de belgeyi cizen de ayni yer. */
+    /* PARA BLOGU TEK KAYNAKTAN: vestra_invoice_letter_amounts() -- kalemler,
+       toplamlar, KDV ayrimi ve cevrim notu, hepsi PDF'i cizen yukten. Bu blok
+       bu depoda DORT kez ayri ayri yaziliydi ve dorduncusu (panelin 'Test'
+       taslagi) EUR sabitinde kaldi: operator dolar tutarlarin ustunde "EUR"
+       yazan bir taslak aldi. Dordunu de ayni fonksiyona baglamak, besinci
+       kopyanin dogmasini da engelliyor. */
     $cur = strtoupper(trim((string)($p['meta']['currency'] ?? 'EUR'))) ?: 'EUR';
-    $lines = '';
-    foreach ($p['items'] as $it) {
-        $lines .= sprintf("  %-14s %4d x %s %s = %s %s\n", (string)$it['sku'], (int)$it['qty'],
-                  $cur, number_format((float)$it['unit'], 2), $cur, number_format((float)$it['line'], 2));
-    }
-    $tot = "  Goods total : {$cur} ".number_format($goods, 2)."  ({$p['qty']} pcs)\n"
-         . ($shp > 0 ? "  Shipping    : {$cur} ".number_format($shp, 2)."\n" : '')
-         . "  TOTAL DUE   : {$cur} ".number_format($grand, 2)."\n";
-    /* Kur notu mektupta da: belgede zaten yaziyor (fx_note), ama parayi
-       gonderen kisi cogu zaman once mektuba bakiyor ve "neden 4.680 degil
-       5.439" sorusunun cevabi ikisinde de durmali. */
-    if ($cur !== 'EUR' && trim((string)($p['meta']['fx_note'] ?? '')) !== '') {
-        $tot .= "  (".trim((string)$p['meta']['fx_note']).")\n";
-    }
-    /* KDV FIYATIN ICINDE ise mektup da ayirir (KURAL 5i). Hesap cizicinin
-       hesabinin AYNISI -- net asagi yuvarlanir, vergi FARKTAN bulunur; iki
-       ayri yuvarlama toplami bir kurus kaydirir ve mektup ile belge celisirdi. */
+    $tot = vestra_invoice_letter_amounts($p['meta'], $p['items']);
+    /* Cagirana donen ozet rakamlar (panel mesaji, is akisi ciktisi) burayi
+       okuyor; govdeyi tek fonksiyona tasirken bu satiri dusurmek "undefined
+       variable" degil, RAPORLANAN KDV ORANINI sifirlamak olurdu. */
     $vr = round((float)($p['meta']['vat_rate'] ?? 0), 2);
-    if ($vr > 0 && !empty($p['meta']['vat_included']) && $grand > 0) {
-        $net = round($grand / (1 + $vr / 100), 2);
-        $lbl = rtrim(rtrim(number_format($vr, 2, '.', ''), '0'), '.');
-        $tot .= "  (Taxable amount {$cur} ".number_format($net, 2)
-             .  ", VAT {$lbl}% {$cur} ".number_format(round($grand - $net, 2), 2)." — included above)\n";
-    }
 
     $subject = "VESTRA — your invoice {$iv['no']} is ready";
     /* Odeme sonrasi HABER VERME yolu mektupta yaziyor (operator, 7 Eyl 2026:
@@ -790,7 +773,7 @@ function vestra_offers_combined_invoice_issue(array $refs, string $sellerPick = 
        kutuyu bulamayan musteri cevapsiz kalmasin. */
     $body = "Hello ".((string)($p['meta']['buyer']['company'] ?? '') ?: 'there').",\n\n"
           . "Your invoice ({$iv['no']}) for the accepted offers is ready — the PDF is attached.\n\n"
-          . $lines."\n".$tot."\n"
+          . $tot."\n"
           . "Please pay by bank transfer to the account shown on the invoice, quoting reference {$primary}.\n\n"
           . "Once you have sent the transfer, please let us know: upload the payment confirmation on your order page, or simply reply to this e-mail. We will confirm receipt and your goods ship as soon as the payment arrives.\n\n"
           . "Your order page: https://vestrasales.com/buyer?tab=orders&view=".rawurlencode($primary)."\n"
@@ -1023,19 +1006,17 @@ function vestra_offer_invoice_redraft_apply(string $ref, ?float $ship = null, ?a
        ayni numarayla, yani alicinin elindeki belgeyle celisen bir duzeltme
        mektubu. Bu deponun uc katman dersinin (KURAL 5f) dorduncu katmani. */
     $cur = strtoupper(trim((string)($p['meta']['currency'] ?? 'EUR'))) ?: 'EUR';
-    $goods = 0.0; $lines = '';
-    foreach ($p['items'] as $it) {
-        $goods += (float)$it['line'];
-        $lines .= sprintf("  %-16s %4d x %s %s = %s %s\n", $it['sku'], (int)$it['qty'],
-                  $cur, number_format((float)$it['unit'], 2), $cur, number_format((float)$it['line'], 2));
-    }
+    /* Cagirana donen 'total' bunlari okuyor. Govde tek fonksiyona tasindi ama
+       ozet rakam burada kaliyor: dusurmek "undefined variable" degil, panele ve
+       is akisina RAPORLANAN TUTARI sifirlamak olurdu. Belge hangi birimdeyse
+       bu rakam da o birimde -- $p zaten cevrilmis yuk. */
+    $goods = 0.0;
+    foreach ($p['items'] as $it) $goods += (float)($it['line'] ?? 0);
     $shp  = (float)($p['meta']['shipping'] ?? 0);
     $subj = "VESTRA — your invoice {$iv['no']} is ready";
     $body = "Hello ".(($p['meta']['buyer']['company'] ?? '') ?: 'there').",\n\n"
           ."Your invoice ({$iv['no']}) is ready — the corrected PDF is attached and replaces any earlier copy of the same invoice number.\n\n"
-          .$lines."\n  Goods total : {$cur} ".number_format($goods, 2)."\n"
-          .($shp > 0 ? "  Shipping    : {$cur} ".number_format($shp, 2)."\n" : '')
-          ."  TOTAL DUE   : {$cur} ".number_format($goods + $shp, 2)."\n\n"
+          .vestra_invoice_letter_amounts($p['meta'], $p['items'])."\n"
           ."Please pay by bank transfer to the account shown on the invoice, quoting reference ".$p['meta']['ref'].".\n"
           ."You can also download it any time under My offers.\n\n"
           ."View: https://vestrasales.com/buyer?tab=offers\n\n— VESTRA · vestrasales.com";

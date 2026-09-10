@@ -232,15 +232,98 @@ $t('çevrilmemiş hali taşınıyor',      substr_count($ofs, "\$out['base'] = [
 $t('sipariş satırı base okuyor',      str_contains($ofs, "if (isset(\$p['base']['meta'], \$p['base']['items'])"));
 /* MEKTUP BELGENIN birimini yazmalı: EUR sabitiyle yazılı bir mektup, dolar
    bir belgenin yanına euro rakamlar koyardı ("sayfada bir, kasada başka"). */
-/* HICBIR mektupta gomulu "EUR" kalmamali. Bu iddia yazildiginda REDRAFT
-   mektubunu yakaladi (KURAL 5f'nin dorduncu katmani): belge kayittan yeniden
-   kuruluyor, yani kayitli birim USD iken PDF dolar, mektup euro olurdu. */
-$t('birleşik mektup birimi yükten',   str_contains($ofs, "\$cur = strtoupper(trim((string)(\$p['meta']['currency'] ?? 'EUR'))) ?: 'EUR';")
-                                   && !str_contains($ofs, 'TOTAL DUE   : EUR'));
-$t('redraft mektubu da yükten',       substr_count($ofs, "\$cur = strtoupper(trim((string)(\$p['meta']['currency'] ?? 'EUR'))) ?: 'EUR';") >= 2
-                                   && !str_contains($ofs, 'Goods total : EUR '));
-$t('tek teklif mektubu da yükten',    str_contains($adm, "\$mcur = strtoupper(trim((string)(\$__op['meta']['currency'] ?? 'EUR')))")
-                                   && !str_contains($adm, 'Agreed    : EUR '));
+/* PARA BLOGU TEK GOVDEDE (9 Eyl 2026). Bu blok DORT kez ayri ayri yaziliydi ve
+   her kopya para biriminin adini KENDISI seciyordu -- dordu de "EUR" sabitiyle.
+   Uc tanesi USD eklenirken duzeltildi, DORDUNCUSU (panelin 📧 Test taslagi)
+   gozden kacti ve operator dolar tutarlarin ustunde "EUR" yazan bir taslak aldı:
+   *"email usd ye cevrilmis fakat eur yaziyor buyuk hata"*. Rakam dogruydu,
+   etiket yalandi — yanlis rakam sorgulanir, yanlis etikete inanilir.
+   Iddia artik YAZIMI degil OZELLIGI koruyor: her mektup ortak govdeyi cagiriyor
+   ve hicbir yerde tutarin yanina gomulu birim kalmadi. (Onceki hali cagriyi
+   birebir metinle sabitliyordu ve ortak govdeye gecerken, davranis DOGRULANMISKEN
+   kirmizi dondu.) */
+$callers = ['offers.php'=>$ofs, 'admin.php'=>$adm,
+            'send-campaign-preview.yml'=>$src('../.github/workflows/send-campaign-preview.yml')];
+foreach ($callers as $f => $body) {
+    $t("{$f}: ortak para bloğunu çağırıyor", str_contains($body, 'vestra_invoice_letter_amounts('));
+}
+/* Tutarin YANINA gomulu birim: bu kaliplarin hicbiri kalmamali. Teklif/pazarlik
+   metinlerindeki "EUR" kapsam DISI — teklif kaydi gercekten EUR ve orada birim
+   sabit olmali (mango/zara dersi: tarama dar tutulur). */
+foreach (['Goods total : EUR', 'TOTAL DUE   : EUR', 'Shipping    : EUR',
+          'x EUR %s = EUR %s', 'Taxable amount (excl. VAT) : EUR'] as $bad) {
+    foreach ($callers as $f => $body) {
+        $t("{$f}: \"{$bad}\" kalmadı", !str_contains($body, $bad));
+    }
+}
+/* Ortak gövde BELGENİN birimini basıyor ve kendi kopyasını kurmuyor. */
+$t('ortak gövde tek yerde tanımlı',   substr_count($inv, 'function vestra_invoice_letter_amounts(') === 1);
+$t('gövde birimi yükten okuyor',      str_contains($inv, "\$cur   = strtoupper(trim((string)(\$meta['currency'] ?? 'EUR'))) ?: 'EUR';"));
+
+echo "\n== 8. Belge İKİ para birimini de taşır: kur, kaynağı, tarihi ve EUR aslı ==\n";
+/* Operatör, 9 Eyl 2026: *"faturada eur ve usd kuru zamani yazilmali"*.
+ * Eski not kuru ve kur tarihini yazıyordu ama (a) belgenin kendi tarihini HİÇ
+ * yazmıyordu ve (b) EUR aslını hiç göstermiyordu. OCD7D2'de kur **4 Eylül**,
+ * belge **9 Eylül** — okuyan, 4 Eylül kurunun 9 Eylül tarihli bir belgede ne
+ * işi olduğunu soramıyordu bile. Ve dolar tutarından EUR aslını geri bölmek
+ * YUVARLAMA yüzünden başka bir sayı verir; asıl, çevrimden ÖNCE saklanmalı. */
+$m8 = ['ref'=>'CURT8','date'=>'2026-09-09T11:00:00+00:00','shipping'=>30.0,
+       'buyer'=>['company'=>'X','name'=>'','country'=>'DE','address'=>'a','vat'=>'','reg'=>'']];
+$i8 = [['sku'=>'616036-XJDC-L','brand'=>'Gucci','name'=>'Tee','colors'=>[],'qty'=>10,'unit'=>105.0,'line'=>1050.0]];
+$c8 = vestra_invoice_convert_payload($m8, $i8, 'EUR', 'USD', $fx);
+$n8 = (string)($c8['meta']['fx_note'] ?? '');
+$t('kur notu kuru yazıyor',           str_contains($n8, '1 EUR = 1.1622 USD'));
+$t('kur notu KAYNAĞI yazıyor',        str_contains($n8, 'ECB'));
+$t('kur notu KUR TARİHİNİ yazıyor',   str_contains($n8, '4 September 2026'));
+$t('kur notu BELGE TARİHİNİ yazıyor', str_contains($n8, '9 September 2026'));
+/* "in force" iddiası doğrulanamaz (aradaki bir ECB yayınını kaçırmış
+   olabiliriz); doğrulanabilir olan "o tarihte ya da öncesinde yayımlanmış
+   SON kur" — yazılan da bu. */
+$t('doğrulanamaz "in force" iddiası yok', !str_contains($n8, 'in force on the order date.')
+                                       && str_contains($n8, 'last rate published on or before'));
+/* EUR ASLI: mal 1.050 + kargo 30 = 1.080,00. */
+$t('kur notu EUR aslını yazıyor',     str_contains($n8, 'Original total: EUR 1,080.00'));
+$t('EUR aslı ayrı alanda da var',     abs((float)($c8['meta']['fx_src_total'] ?? 0) - 1080.00) < 0.005);
+/* Geri bölme YANLIŞ olurdu: 1,255.17 / 1.1622 = 1,079.99… — bir kuruş sapar.
+   Asıl, çevrimden önce saklandığı için tam. */
+$usdGrand = round(array_sum(array_column($c8['items'],'line')) + (float)$c8['meta']['shipping'], 2);
+$t('geri bölme aslı VERMİYOR (bu yüzden saklanıyor)',
+   abs(round($usdGrand / 1.1622, 2) - 1080.00) > 0.001);
+/* Belgeye gerçekten basılıyor mu — kaynakta değil, ÇİZİLMİŞ PDF'te ara. */
+$pdf8 = vestra_render_invoice_pdf($c8['meta'], $c8['items'], ['id'=>'s1','company'=>'S'], 'INV-T8', false);
+/* SARMA TUZAĞI (KURAL 5j'nin dersi): not artık üç satıra bölünüyor ve
+   "9 September 2026" tam olarak "9 September" / "2026" diye ikiye ayrılıyor —
+   bitişik arayan bir iddia belgede DURAN bir metni "yok" der. Çizilen şey
+   satırlardır, o yüzden iddia da satırlara bakıyor: hepsi belgede olmalı,
+   yani notun tek kelimesi bile düşmemeli. */
+$w8 = vestra_invoice_wrap($n8, 300, 7.5);
+/* Karşılaştırma CP1252'ye çevrilerek yapılıyor: çizici Latin metni WinAnsi'ye
+   dönüştürüyor (KURAL 5h), yani uzun tire (—) belgede 0x97 olarak duruyor ve
+   ham UTF-8 aramak onu taşıyan satırı "yok" gösterir. İlk ölçümümde tam bu
+   oldu: üç satırın ikisi bulundu, tire taşıyanı bulunamadı — belgede DURUYORDU. */
+$cp8 = fn(string $v) => (string)iconv('UTF-8', 'CP1252//TRANSLIT//IGNORE', $v);
+$t('kur notu BELGEDE, satır satır tam', $w8 !== [] && count(array_filter($w8, fn($l) => !str_contains($pdf8, $cp8($l)))) === 0);
+$t('kur notu BELGEDE basılı',         str_contains($pdf8, '1 EUR = 1.1622 USD'));
+$t('EUR aslı BELGEDE basılı',         str_contains($pdf8, 'Original total: EUR 1,080.00'));
+$t('belge tarihi de BELGEDE',         str_contains(implode(' ', $w8), '9 September 2026'));
+/* Mektup da aynı notu taşıyor: parayı gönderen kişi çoğu zaman önce mektuba
+   bakıyor ve "neden 1.080 değil 1.255" sorusu ikisinde de cevaplanmalı. */
+$L8 = vestra_invoice_letter_amounts($c8['meta'], $c8['items']);
+$t('mektup USD etiketliyor',          str_contains($L8, 'TOTAL DUE   : USD 1,255.17'));
+/* "EUR" kelimesi mektupta VAR ve olmalı — kur notu EUR aslını yazıyor. Yasak
+   olan şey ÖDENECEK tutarın euro etiketlenmesi; iddia da tam onu arıyor.
+   (İlk yazımda ': EUR ' diye genel arayınca kendi kur notumu yakaladım —
+   fazla geniş bir tarama, doğru davranışı hata sayar.) */
+$t('mektupta ödenecek tutar EUR DEĞİL', !str_contains($L8, 'EUR 1,255.17')
+                                     && !str_contains($L8, 'TOTAL DUE   : EUR')
+                                     && !str_contains($L8, 'Goods total : EUR'));
+$t('mektup kur notunu taşıyor',       str_contains($L8, '1 EUR = 1.1622 USD')
+                                   && str_contains($L8, 'Original total: EUR 1,080.00'));
+/* EUR belgede hiçbir çevrim notu olmamalı — olmayan bir çevrimi anlatan not,
+   okuyanı hangi kurun uygulandığını aramaya yollar. */
+$L8e = vestra_invoice_letter_amounts($m8 + ['currency'=>'EUR'], $i8);
+$t('EUR mektubunda kur notu YOK',     !str_contains($L8e, 'converted from'));
+$t('EUR mektubu EUR etiketliyor',      str_contains($L8e, 'TOTAL DUE   : EUR 1,080.00'));
 /* Panelde SEÇENEK: bir ekranda görünmeyen seçenek olmayan seçenektir. */
 $t('teklif satırında seçici var',     str_contains($adm, 'Faturayı <?= htmlspecialchars($__c) ?> kes'));
 $t('birleşik çubukta da var',         str_contains($adm, '<?= htmlspecialchars($__c) ?> kes</option>'));

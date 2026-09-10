@@ -1120,6 +1120,54 @@ sorundu.**
   numarası taşıyorlar, kütük herkese açık. *"Banka bilgileri neden yok"
   sorusunun cevabı, numarayı yakmadan önce okunan satırda durmalı.*
 
+**KURAL 5o — Mektubun para bloğunu TEK gövde basar; birimi ÇAĞIRAN seçemez**
+(operatör, 9 Eyl 2026: *"email usd ye cevrilmis fakat eur yaziyor büyük hata"*).
+- Aynı blok bu depoda **DÖRT** kez ayrı ayrı yazılıydı — panelin `📧 Test`
+  taslağı, iş akışının `invoice_draft` gövdesi, birleşik kesim mektubu ve
+  redraft mektubu — ve **her kopya para biriminin adını kendisi seçiyordu**,
+  dördü de `EUR` sabitiyle. Teklif faturası USD öğrenince üçü düzeltildi,
+  **dördüncüsü gözden kaçtı** ve operatöre giden taslak dolar tutarların üstüne
+  `10 x EUR 122.03 = EUR 1,220.30` yazdı. *Rakam doğruydu, etiket yalandı —
+  yanlış rakam sorgulanır, yanlış etikete inanılır.*
+- Tek gövde: `vestra_invoice_letter_amounts($meta, $items)` (`inc/invoice.php`).
+  Kalemler, toplamlar, KDV ayrımı ve kur notu — hepsi **PDF'i çizen yükten**.
+  Birim artık çağıranın verebileceği bir karar değil. Yerleşim de ortak: aynı
+  belge hakkındaki dört mektup sütun genişliğinde bile ayrışmamalı.
+- **Aynı hatanın beşinci kopyası doğmasın diye tarama testte:** `Goods total :
+  EUR`, `TOTAL DUE   : EUR`, `x EUR %s = EUR %s` gibi kalıplar üç dosyada birden
+  aranıyor. **Teklif/pazarlık metinlerindeki `EUR` kapsam DIŞI** — teklif kaydı
+  gerçekten EUR ve orada birim sabit olmalı (mango/zara dersi: tarama dar tutulur).
+- **Ders (bu iş sırasında iki kez tekrarlandı):** *bir olguyu düzeltirken "bu
+  aynı şey başka nerede yazılı?" diye sor.* `desc`/`sizes` ve KURAL 5f'in üç
+  katmanıyla aynı sınıf; burada dördüncü kopya, ilk üçü düzeltilirken hiç
+  aranmadığı için kaldı.
+
+**KURAL 5p — Belge İKİ para birimini de taşır: kur, kaynağı, iki tarih ve EUR aslı**
+(operatör, 9 Eyl 2026: *"faturada eur ve usd kuru zamani yazilmali"*).
+- Eski `fx_note` kuru ve **kur tarihini** yazıyordu ama (a) **belgenin kendi
+  tarihini** hiç yazmıyordu, (b) **EUR aslını** hiç göstermiyordu. OCD7D2'de kur
+  **4 Eylül**, belge **9 Eylül** (ECB yalnız iş günlerinde yayımlıyor ve
+  tablomuzun en yenisi o gün olmayabiliyor) — okuyan, 4 Eylül kurunun 9 Eylül
+  tarihli bir belgede ne işi olduğunu **soramıyordu bile**.
+- Yeni not: `Amounts converted from EUR at 1 EUR = 1.1622 USD. Rate: ECB,
+  4 September 2026 — the last rate published on or before the order date,
+  9 September 2026. Original total: EUR 1,080.00.`
+- **"in force on the order date" iddiası kaldırıldı**: doğrulanamaz (aradaki bir
+  ECB yayınını kaçırmış olabiliriz). Doğrulanabilir olan şey *"o tarihte ya da
+  öncesinde yayımlanmış SON kur"* — yazılan da bu. KURAL 3'ün kur hâli.
+- **EUR aslı çevrimden ÖNCE saklanıyor** (`fx_src_total`; not içinde de yazılı).
+  Dolar tutarından geri bölmek **yuvarlama yüzünden başka bir sayı verir**
+  (1.255,17 / 1,1622 = 1.079,99…) — test bunu ayrıca doğruluyor.
+- Not hem **belgede** hem **mektupta**: parayı gönderen kişi çoğu zaman önce
+  mektuba bakıyor ve *"neden 1.080 değil 1.255"* sorusu ikisinde de cevaplanmalı.
+- **Ölçüm tuzağı (yaşandı):** not artık üç satıra sarılıyor ve `9 September 2026`
+  tam olarak `9 September` / `2026` diye ikiye ayrılıyor; ayrıca uzun tire (—)
+  belgede **CP1252** olarak duruyor (KURAL 5h). Bitişik UTF-8 arayan ilk iddiam
+  belgede **duran** bir metni "yok" dedi. İddia artık **sarılmış satırlara** ve
+  **CP1252 karşılığına** bakıyor.
+- Test: `invoice_currency_test.php §7–§8` (124 iddia). Düşebildiği doğrulandı:
+  operatörün aldığı hatanın birebir aynısı geri konunca **9 kırmızı**.
+
 **KURAL 5k — Siparişe NAVLUN yazılabilir; tutar ile TOPLAM birlikte hareket eder**
 (operatör, 7 Eyl 2026: *"kargo bölümü yok kargo eklemek gerekiyor 100 usd
 ekleyelim"* — VES-6B53D265).

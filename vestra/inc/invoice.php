@@ -1404,6 +1404,62 @@ function vestra_order_set_invoice_seller(string $ref, string $uid): bool {
    sessizce yanlış rakam basmak olurdu. */
 function vestra_invoice_currencies(): array { return ['EUR', 'USD']; }
 
+/**
+ * The money block every invoice letter prints: item lines, then the totals.
+ *
+ * Written because the same block existed FOUR times — the panel's "Test" draft, the
+ * workflow's invoice_draft body, the combined issue letter and the redraft letter — and
+ * each one decided for itself what to call the currency. Every one of them said "EUR",
+ * hard-coded, because for a long time that was the only currency an invoice could carry.
+ * When offer invoices learned USD (KURAL 5i), three were fixed and the fourth was not,
+ * and the operator received a draft reading "10 x EUR 122.03 = EUR 1,220.30" over amounts
+ * that were dollars. The figures were right; the labels were a lie, which is worse than a
+ * wrong figure — a wrong figure gets questioned, a wrong label gets believed.
+ *
+ * So the label is no longer a decision any caller gets to make. It comes from the payload
+ * that drew the PDF, which is the only thing that can be right by construction.
+ *
+ * Layout is shared too, deliberately: four letters about the same document should not
+ * differ in column width and wording. The VAT split and the conversion note ride along
+ * when the meta carries them, so no caller can forget either — the VAT arithmetic is the
+ * renderer's (net rounded down, tax from the difference), because two separate roundings
+ * put the letter a cent away from its own attachment.
+ */
+function vestra_invoice_letter_amounts(array $meta, array $items): string {
+    $cur   = strtoupper(trim((string)($meta['currency'] ?? 'EUR'))) ?: 'EUR';
+    $goods = 0.0;
+    $out   = '';
+    foreach ($items as $it) {
+        $goods += (float)($it['line'] ?? 0);
+        $out   .= sprintf("  %-16s %4d x %s %s = %s %s\n", (string)($it['sku'] ?? ''), (int)($it['qty'] ?? 0),
+                          $cur, number_format((float)($it['unit'] ?? 0), 2),
+                          $cur, number_format((float)($it['line'] ?? 0), 2));
+    }
+    $goods = round($goods, 2);
+    $ship  = round((float)($meta['shipping'] ?? 0), 2);
+    $disc  = round((float)($meta['discount'] ?? 0), 2);
+    $grand = round($goods + $ship - $disc, 2);
+
+    $out .= "\n  Goods total : {$cur} ".number_format($goods, 2)."\n";
+    if ($ship > 0) $out .= "  Shipping    : {$cur} ".number_format($ship, 2)."\n";
+    if ($disc > 0) $out .= "  Discount    : -{$cur} ".number_format($disc, 2)."\n";
+    $out .= "  TOTAL DUE   : {$cur} ".number_format($grand, 2)."\n";
+
+    $vr = round((float)($meta['vat_rate'] ?? 0), 2);
+    if ($vr > 0 && !empty($meta['vat_included']) && $grand > 0) {
+        $net = round($grand / (1 + $vr / 100), 2);
+        $lbl = rtrim(rtrim(number_format($vr, 2, '.', ''), '0'), '.');
+        $out .= "  (Taxable amount {$cur} ".number_format($net, 2)
+              . ", VAT {$lbl}% {$cur} ".number_format(round($grand - $net, 2), 2)." — included above)\n";
+    }
+    /* CEVRIM DAYANAGI MEKTUPTA DA. Belgede zaten yazili, ama parayi gonderen
+       kisi cogu zaman once mektuba bakiyor ve "neden 1.080 degil 1.255"
+       sorusunun cevabi ikisinde de durmali (operator, 9 Eyl 2026). */
+    $fxn = trim((string)($meta['fx_note'] ?? ''));
+    if ($fxn !== '') $out .= "\n  ".$fxn."\n";
+    return $out;
+}
+
 /** Operatörün seçtiği fatura para birimi; '' = siparişin kendi para birimi. */
 function vestra_order_invoice_currency(string $ref): string {
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
@@ -1457,6 +1513,16 @@ function vestra_invoice_convert_payload(array $meta, array $items, string $from,
     $rate = (float)($fx['usd'] ?? 0);
     if ($rate <= 0) return ['error' => 'no exchange rate stamped for this order date'];
 
+    /* KAYNAK BIRIMDEKI GENEL TOPLAM, cevrimden ONCE. Belge iki para birimini
+       birden tasimak zorunda (operator, 9 Eyl 2026: "faturada eur ve usd kuru
+       zamani yazilmali"): alicinin muhasebecisi ve gumruk komisyoncusu
+       "bu dolar rakami hangi euro tutarindan cikti" sorusunu belgenin
+       kendisinden cevaplayabilmeli. Sonradan hesaplanamaz -- cevrilmis
+       rakamdan geri bolmek yuvarlama yuzunden BASKA bir sayi verir. */
+    $srcGoods = 0.0;
+    foreach ($items as $it) $srcGoods += (float)($it['line'] ?? 0);
+    $srcGrand = round($srcGoods + (float)($meta['shipping'] ?? 0) - (float)($meta['discount'] ?? 0), 2);
+
     $conv = fn(float $v) => round($v * $rate, 2);
     $out  = [];
     foreach ($items as $it) {
@@ -1477,11 +1543,28 @@ function vestra_invoice_convert_payload(array $meta, array $items, string $from,
     $src   = vestra_fx_source_label((string)($fx['source'] ?? ''));
     $dateS = trim((string)($fx['date'] ?? ''));
     if ($dateS !== '' && ($ts = strtotime($dateS))) $dateS = date('j F Y', $ts);
-    $meta['fx_note'] = 'Amounts converted from '.$from.' at 1 '.$from.' = '.number_format($rate, 4).' '.$to
-        . (($src !== '' || $dateS !== '') ? ' ('.trim($src.' '.$dateS).')' : '')
-        . ', the rate in force on the order date.';
+    /* BELGENIN kendi tarihi: kurun BAGLI OLDUGU gun. Kur tarihi bundan ESKI
+       olabiliyor -- ECB yalniz is gunlerinde yayimliyor ve tablomuzun en
+       yenisi o gunku olmayabilir. Eski metin "the rate in force on the order
+       date" diyordu ve iki tarihten HICBIRINI yazmiyordu: okuyan, 4 Eylul
+       kurunun 9 Eylul tarihli bir belgede ne isi oldugunu soramiyordu bile.
+       Ayrica "in force" iddiasi dogrulanamaz (aradaki bir yayini kacirmis
+       olabiliriz); dogrulanabilir olan sey "o tarihte ya da oncesinde
+       YAYIMLANMIS SON kur" -- yazilan da bu. */
+    $docDate = trim((string)($meta['date'] ?? ''));
+    if ($docDate !== '' && ($dts = strtotime($docDate))) $docDate = date('j F Y', $dts);
+
+    $meta['fx_note'] = 'Amounts converted from '.$from.' at 1 '.$from.' = '.number_format($rate, 4).' '.$to.'.'
+        . ' Rate: '.(trim($src) !== '' ? $src : 'source not stated').($dateS !== '' ? ', '.$dateS : '')
+        . ($docDate !== '' ? ' — the last rate published on or before the order date, '.$docDate.'.' : '.')
+        . ' Original total: '.$from.' '.number_format($srcGrand, 2).'.';
     $meta['fx_rate']  = $rate;
     $meta['fx_from']  = $from;
+    /* Kaynak birimdeki toplam ve iki tarih AYRI ALANLARDA da duruyor: mektuplar
+       ve teshis bunlari cumlenin icinden ayiklamak zorunda kalmasin. */
+    $meta['fx_src_total'] = $srcGrand;
+    $meta['fx_date']      = $dateS;
+    $meta['fx_doc_date']  = $docDate;
     return ['meta' => $meta, 'items' => $out];
 }
 

@@ -50,6 +50,17 @@ function vestra_from_price($p){ return 0.0; }
    AYNISI -- uydurma bir liste, olculen davranisi degistirirdi. */
 if(!function_exists('vestra_invoice_currencies')) { function vestra_invoice_currencies(){ return ['EUR','USD']; } }
 
+/* Mektuplarin ORTAK para blogu (vestra_invoice_letter_amounts). GERCEK govde
+   invoice.php'den yukleniyor, stub degil: kalemleri, toplamlari, KDV ayrimini ve
+   kur notunu bu fonksiyon basiyor ve olculmek istenen sey tam olarak ONUN
+   ciktisi. Bir stub yazsaydim, "mektup dogru birimi yaziyor mu" sorusunu kendi
+   yazdigim metne sormus olurdum. Ustte tanimlaniyor cunku birlesik kesim
+   testleri asagidaki eval dongusunden ONCE kosuyor. */
+if (!function_exists('vestra_invoice_letter_amounts')) {
+  $__isrc = (string)@file_get_contents(__DIR__.'/../vestra/inc/invoice.php');
+  if (preg_match('/^function vestra_invoice_letter_amounts\(.*?^}/ms', $__isrc, $__m)) eval($__m[0]);
+}
+
 preg_match_all('/^function \w+\(.*?^}/ms', $src, $fns);
 foreach ($fns[0] as $f) eval($strip($f));
 
