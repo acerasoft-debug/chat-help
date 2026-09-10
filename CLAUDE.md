@@ -1381,6 +1381,27 @@ ardından ident no ya da sku numarası koy, mağaza ismi yapma"*).
 - Test: `tests/msg_seller_ident_test.php` (21 iddia). Her iki yönü de tutar —
   gizlenmesi gereken ad ve *görünmeye devam etmesi* gereken alıcı/Support.
 
+**KURAL 8b — Bir BAĞLANTININ içindeki rakam dizisi telefon numarası değildir**
+(operatör, 10 Eyl 2026: AlexaShop ↔ TYREX konuşmasında bir Amazon ürün linki
+**PHONE** diye engellendi — *"buna istisna yap ve linki gönder"*).
+- Amazon adresin sonuna `qid=1757497000` koyuyor (Unix zaman damgası); süzgeç
+  9–15 haneli **her** diziyi numara sayıyordu, yani satıcı müşteriye ürün
+  sayfası **gösteremiyordu**. Aynı link 10:07 ve 10:09'da iki kez engellendi.
+- Çözüm `vestra_msg_mask_link_digits()`: telefon kontrolü **maskelenmiş** bir
+  kopyaya bakıyor — bağlantının **yolu ve sorgu dizesi** atılıyor, **ana makine
+  adı kalıyor** (numaranın kendisi alan adıysa yine yakalanır).
+- **E-posta ve IBAN kontrolü HAM metne bakmaya devam ediyor:** linkin içine
+  gömülü bir `mailto:` ya da IBAN hâlâ platform dışına çıkma girişimidir.
+- **Ters yön bilerek korunuyor:** `wa.me/33612345678`, `t.me/+33…`,
+  `api.whatsapp.com/send?phone=…` maskelenmiyor — yasaklanan şeyin ta kendisi;
+  `tel:`/`sms:` zaten http bağlantısı değil, maskeye hiç girmiyor.
+- Teşhis: `diag-messages.yml` → `blocked=true` — son 10 engellenen deneme: kim,
+  hangi thread/ilan, hangi kural, metindeki **bağlantılar** (sorgu atılmış) ve
+  *"bugünün süzgecinden geçer miydi"*. **Serbest metin BASILMIYOR**: engellenen
+  metin zaten telefon/e-posta taşıyor olabilir ve bu günlük herkese açık.
+- Test: `tests/msg_link_filter_test.php` (24 iddia, iki yön). Düzeltme geri
+  alınınca **5 iddia kırmızıya** dönüyor.
+
 **KURAL 14 — Talep panosu ("Anfragen"): ÖRNEK ile GERÇEK talep karışmaz**
 (operatör, 8 Eyl 2026: *"sitenin anfragen bölümüne yeni anfragen lar ekle"*).
 - `requests.php` iki liste basıyor: `requests.csv`'den gelen **gerçek** alıcı
