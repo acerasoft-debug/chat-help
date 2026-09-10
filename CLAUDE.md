@@ -1880,6 +1880,71 @@ dönmek zorundadir"*).
     bilinçli bir karar; KURAL 9 (ince içerik alan adına zarar verir) ve
     KURAL 2c (her gün "hiçbir şey" yazan bildirim okunmamayı öğretir)
     yüzünden kendiliğinden yapılmadı.
+  - **Bağlantı bloğu artık ÜSTTE ve koleksiyonun KENDİSİ listenin başında**
+    (operatör, 10 Eyl 2026: *"Perezin linkine ayakkabilari koy oraya
+    yönlensin.... üst bölümde dursun"*). İki ayrı kusurdu: (1) blok **en
+    sondaydı**, kapanış cümlesinin hemen üstünde — rapor markaları ve rakamları
+    sayıyor ama *"peki bunları nerede göreceğim"* sorusunun cevabı yalnızca
+    sonuna kadar okuyana ulaşıyordu; (2) blok **BÖLMEyi hiç vermiyordu**, yalnız
+    marka ve kategori sayfalarını, yani 335 ayakkabılık rapor okuyucuyu
+    "Pili Pérez"e ve "Sneakers"a yolluyor, **ayakkabı koleksiyonuna**
+    yollamıyordu. `$sections` toplanıp **ilk** basılıyor (bölme → marka →
+    kategori: genişten dara). Bölme bağlantısı da diğerleri gibi
+    `vestra_seo_resolve()` ile kapılı (KURAL 9), her koşuda yeniden.
+  - **Yayımlanmış raporu YENİDEN KURMA yolu:** `journal-seed.yml` →
+    `rebuild_auto=true` (`rebuild_apply` varsayılan **false**). Aynı kurucuyu
+    `$now = makalenin created damgası` ve `ignorePrevious=true` ile çağırır.
+    O bayrak **yalnız burada** gerekli: pencere son otomatik rapordan başlıyor
+    ve makalenin **kendisi** o rapor, yani vermezsek pencere sıfır genişlikte
+    çıkıp kurucu atlıyor. **Günlük koşu bu bayrağı ASLA vermez** — testte
+    iddia var; verseydi her sabah aynı ilanları yeniden duyururdu.
+  - **Yalnız METİN taşınır: `slug`/`id`/`created`/`published`/`cover` makalenin
+    kimliğidir.** Kurucu her çağrılışında **yeni bir slug üretiyor** ve mevcut
+    slug alınmış olduğu için `-2` ekliyor; yükü olduğu gibi yazsaydık makalenin
+    **adresi değişir**, yayımlanmış her bağlantı 404 olurdu. Yazma geri okunuyor
+    ve slug/created/cover değişmişse iş **kırmızı** biter.
+  - **Ölçüm karakterle, baytla değil.** "Blok üst yarıda mı" iddiası ilk koşuda
+    `ru` ve `ja`'da düştü: `strpos` **bayt** sayıyor, `mb_strlen` **karakter**.
+    Kod doğruydu, ölçünün birimi yanlıştı — `mb_strpos`/`mb_substr`.
+  - **Canlı sonuç (10 Eyl 2026):** 8 Eylül raporu yerinde yeniden kuruldu.
+    Bağlantılar EN'de **%62 → %21**, sekiz çevirinin **hepsi** üst yarıda,
+    liste artık **Footwear — /b2b/footwear** ile açılıyor; slug ve created
+    değişmedi. Test: `journal_auto_test.php §6` (54 iddia).
+- **Journal makalesi KENDİ figürlerini taşır; konusu genel değilse havuz
+  kullanılmaz** (10 Eyl 2026, Amazon yazısı). Dosya kuralı
+  `uploads/journal/art-<slug>-{cover,1..N}.svg`; ad slug'a bağlı olduğu için
+  başka yazıya sızmıyor, `credits.json`'da sanatçı olmadığı için genel havuza
+  da girmiyor. Kredili havuz **genel moda fotoğrafçılığı**; devir yapısını
+  anlatan bir yazının yanındaki askılık fotoğrafı dolgu gibi okunuyor — bu
+  mekanizma tam bunun için var.
+  - `<title>` = alt metni, `<desc>` = altyazı; **ikisi farklı olmalı** ve alt
+    **140 karakterde kırpılıyor** (`vestra_journal_photo_desc`). İki başlığım
+    cümle ortasından kesildi, kısaltıldı — kırpılmış bir alt, gören
+    okuyucunun görmediği bir kusur.
+  - **XML yorumunun içinde `--` GEÇERSİZ.** İki dosya bu yüzden
+    well-formed değildi; tarayıcı yutuyor, `svg_meta` regex olduğu için o da
+    yutuyordu, yani hata **hiçbir yerde görünmüyordu**. Yazdıktan sonra
+    `ElementTree` ile ayrıştır.
+  - **Çizimi OKUYARAK değil, ÇİZDİREREK doğrula.** Beş figür ekran görüntüsü
+    alınıp iki kez düzeltildi: `⊕` işareti "tescilli marka" değil **"ekle"**
+    diye okunuyordu, bir kilit ait olduğu şirket çerçevesinden **kopuk**
+    duruyordu, ve bir ok başı çizgisiyle **buluşmuyordu**. Üçü de kaynakta
+    doğru görünüyordu.
+  - Kapak `viewBox 0 0 800 520` + `slice`; **21:9 kırpma yalnız y 88..431'i**
+    bırakıyor, motif oraya sığmalı. Kırpmayı önizlerken bandı **doğru yere
+    hizala** — ilk önizlememde y 0..342'yi gösterdim ve kapağı yanlış yerden
+    yargıladım.
+- **Konu hakkında hafızadan yazma; kural değişmiş olabilir** (10 Eyl 2026,
+  Amazon yazısı). Operatör *"Amazon hesaplarinin satisi ve alisi… yasal olmasi
+  icin ne yapilir"* dedi. Araştırıldı: Amazon'un Business Solutions
+  Agreement'ı **24 Ağustos 2026'da** (yayın 29 Mayıs) değişip hakların
+  **devrini/temlikini ve teminata verilmesini açıkça yasakladı** — yani
+  "hesap satmak" artık gri alan değil. Hafızadan yazsaydım yazı **üç hafta
+  eski** bir dünyayı anlatacaktı. Birincil kaynaklar (Seller Central, BSA PDF)
+  bu ortamda **egress engelli**; birden çok ikincil kaynak karşılaştırıldı ve
+  metinde tarih/atıf **yazılı**. Şu an ayakta olan alıcı şirketlerin **adı
+  verilmedi** — doğrulanamıyor, ve yanlış bir isim listesi yazının en kolay
+  çürüyen yeri olurdu (KURAL 3'ün yazı hâli).
 - **Trafik sayacı GOOGLE'IN YARISINI ziyaretçi sayıyordu** (operatör, 8 Eyl 2026:
   *"US · Mountain View, böyle biri sürekli siteye giriyor her gün — gerçek bir
   kişi mi yoksa google bot mu? araştır ve IP'sine bak"*).
