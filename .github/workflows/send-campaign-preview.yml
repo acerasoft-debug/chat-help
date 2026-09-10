@@ -1714,6 +1714,17 @@ jobs:
               echo "  mal ".number_format($goods,2)." + kargo ".number_format($sh2,2)
                  ." = ".number_format($goods+$sh2,2)." EUR\n";
               echo "  satici: ".vestra_invoice_issuer_name($p['seller'],'Acerasoft LLC')."\n";
+              echo "  para birimi : ".$pCur.($pCur !== 'EUR'
+                   ? "  (".trim((string)($p['meta']['fx_note'] ?? 'kur notu YOK')).")" : '')."\n";
+              /* Odeme kutusu birlesik taslakla AYNI sekilde raporlanir: kesilmis
+                 bir belgeyi yeniden cizerken de "banka bilgileri neden yok"
+                 sorusunun cevabi burada gorulmeli. Satir SAYISI, satirlar degil
+                 -- kutuk herkese acik. */
+              $__payAcc = $p['seller'] ?: vestra_platform_seller();
+              $__rails  = vestra_payment_rails($__payAcc, $pCur);
+              echo "  odeme kutusu : ".($__rails
+                   ? 'CIKAR ('.count($__rails).' satir)'
+                   : '*** CIKMAZ *** — '.$pCur.' icin bu hesapta ray yok')."\n";
               echo "  pdf: ".strlen($bytes)." bayt\n";
               /* INGILIZCE (operator karari, 1 Eyl 2026): taslak ile kesilen
                  belge arasinda dil farki kalmasin. */
