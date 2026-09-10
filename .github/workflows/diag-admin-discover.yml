@@ -412,6 +412,34 @@ jobs:
               return $declared !== null && $declared !== ($rec['variant_count_parsed'] ?? null);
             }
 
+            /**
+             * TEDARIKCI TARIFESINI MASKELE -- kutuk herkese acik.
+             *
+             * CLAUDE.md 3 Eyl 2026'da bunu bir kez kaydetti (Pili Perez: "ilk iki
+             * kosu 335 satirin fiyatini herkese acik gunluge yazdi", gunlukler
+             * silindi) ama kural yalniz SIFRELI PAKET icin uygulanmisti; 'crawl'
+             * ve 'status' modlarinin ornek kayit dokumu her seferinde ham
+             * `price_try` basiyordu ve kimse bakmamisti. 10 Eyl 2026'da Q-EN
+             * partisinde yeniden oldu (kosu 34492757261, gunlugu silindi).
+             *
+             * Ornegin KENDISI degerli: cikarimin sekli (kac varyant, hangi
+             * alanlar, fotograf var mi) ancak bakarak dogrulanir. Degerli
+             * olmayan tek sey RAKAM -- o yuzden rakam gidiyor, sekil kaliyor.
+             * Tek yazici: her doken yol bunu cagirir, yoksa ucuncu bir dokum
+             * yolu yarin ayni sizintiyi yeniden acar.
+             */
+            function kuloglu_mask_prices($v) {
+              if (is_array($v)) {
+                $out = [];
+                foreach ($v as $k => $x) {
+                  $out[$k] = (is_string($k) && preg_match('~(price|fiyat)~i', $k) && (is_int($x) || is_float($x) || is_string($x)))
+                    ? '***' : kuloglu_mask_prices($x);
+                }
+                return $out;
+              }
+              return $v;
+            }
+
             // build_batch ve export_enc'in İKİSİ de ayni satirlari uretmeli -- ayri kopyalar
             // ikinci bir duzenlemede ayrisirdi (bu depoda tam olarak wholesale.php/b2b.php CSS'i
             // basina geldi, KURAL 10). Ceviri sozlugu product-batches/kuloglu-vocab.php'den
@@ -1012,20 +1040,28 @@ jobs:
                 printf("  brand          : %s\n", $p['brand']);
                 printf("  title          : %s\n", $p['title']);
                 printf("  category       : %s\n", $p['category']);
-                printf("  unit_price_try : %s\n", var_export($p['unit_price_try'], true));
+                /* Fiyat RAKAMI basilmaz -- tedarikci tarifesi, kutuk herkese acik.
+                   Bu modun isi cikarimin CALISIP calismadigini gostermek: alan
+                   cozuldu mu, paket adediyle tutarli mi. Ikisi de rakamsiz
+                   soylenebiliyor. */
+                $unitOk = $p['unit_price_try'] !== null;
+                $packOk = $p['pack_price_try'] !== null;
+                printf("  unit_price_try : %s\n", $unitOk ? 'VAR' : 'YOK');
                 printf("  pack_qty       : %s\n", var_export($p['pack_qty'], true));
-                printf("  pack_price_try : %s  (unit*qty = %s)\n", var_export($p['pack_price_try'], true),
-                  ($p['unit_price_try']!==null && $p['pack_qty']!==null) ? round($p['unit_price_try']*$p['pack_qty'],2) : 'n/a');
+                printf("  pack_price_try : %s  (unit*qty ile tutuyor mu: %s)\n", $packOk ? 'VAR' : 'YOK',
+                  ($unitOk && $packOk && $p['pack_qty']!==null)
+                    ? (abs(round($p['unit_price_try']*$p['pack_qty'],2) - round($p['pack_price_try'],2)) < 0.01 ? 'EVET' : '*** HAYIR ***')
+                    : 'n/a');
                 printf("  colors (%d)    : %s\n", count($p['colors']), implode(' | ', $p['colors']));
                 printf("  sizes (%d)     : %s\n", count($p['sizes']), implode(' | ', $p['sizes']));
                 printf("  variants decl=%s parsed=%d\n", var_export($p['variant_count_declared'], true), $p['variant_count_parsed']);
                 $priceset = array_unique(array_map(fn($v)=>$v['price_try'], $p['variants']));
                 $qtyset   = array_unique(array_map(fn($v)=>$v['pack_qty'], $p['variants']));
-                printf("  variant price set : %s\n", implode(', ', $priceset));
+                printf("  variant price set : %d ayri deger (rakam basilmaz)\n", count($priceset));
                 printf("  variant qty set   : %s\n", implode(', ', $qtyset));
                 printf("  UNIFORM PRICING?  : %s\n", (count($priceset)<=1 && count($qtyset)<=1) ? 'EVET (tek fiyat/adet)' : '*** HAYIR - varyant bazli farkli ***');
-                foreach (array_slice($p['variants'],0,3) as $v) printf("    - %-16s %-8s %8s TL  x%s\n", $v['color'], $v['size'], $v['price_try'], $v['pack_qty']);
-                if (count($p['variants'])>3) { echo "    ...\n"; foreach (array_slice($p['variants'],-2) as $v) printf("    - %-16s %-8s %8s TL  x%s\n", $v['color'], $v['size'], $v['price_try'], $v['pack_qty']); }
+                foreach (array_slice($p['variants'],0,3) as $v) printf("    - %-16s %-8s %8s TL  x%s\n", $v['color'], $v['size'], '***', $v['pack_qty']);
+                if (count($p['variants'])>3) { echo "    ...\n"; foreach (array_slice($p['variants'],-2) as $v) printf("    - %-16s %-8s %8s TL  x%s\n", $v['color'], $v['size'], '***', $v['pack_qty']); }
                 printf("  images (%d)    : %s\n", count($p['images']), $p['image_match_note'] ?? '');
                 foreach ($p['images'] as $im) echo "    - {$im['url']}".($im['thumb']?' [thumb]':' [full]')."\n";
               }
@@ -1195,9 +1231,9 @@ jobs:
                 echo "\nBu partideki hatalar:\n";
                 foreach ($thisBatchFails as $f) printf("  %-90s http=%-4s %s\n", $f['url'], $f['http_code'], $f['reason']);
               }
-              echo "\n-- bu partiden 2 ornek kayit --\n";
+              echo "\n-- bu partiden 2 ornek kayit (FIYATLAR MASKELI) --\n";
               $sample = array_slice(array_filter($slice, fn($u)=>isset($byUrl[$u]) ), 0, 2);
-              foreach ($sample as $u) echo json_encode($byUrl[$u], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT)."\n";
+              foreach ($sample as $u) echo json_encode(kuloglu_mask_prices($byUrl[$u]), JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT)."\n";
               exit(0);
             }
 
@@ -1872,8 +1908,8 @@ jobs:
                 }));
                 printf("iki eksenli (renk+beden) urun sayisi: %d\n", count($twoAxis));
                 if ($twoAxis) {
-                  echo "-- 2 ornek iki eksenli kayit --\n";
-                  foreach (array_slice($twoAxis, 0, 2) as $rec) echo json_encode($rec, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT)."\n";
+                  echo "-- 2 ornek iki eksenli kayit (FIYATLAR MASKELI) --\n";
+                  foreach (array_slice($twoAxis, 0, 2) as $rec) echo json_encode(kuloglu_mask_prices($rec), JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT)."\n";
                 }
               }
               if ($failures) {
