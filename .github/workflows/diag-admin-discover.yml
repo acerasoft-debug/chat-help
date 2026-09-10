@@ -954,7 +954,10 @@ jobs:
                 preg_match_all('~/marka/([a-z0-9\-]+)~i', $r['html'], $bm);
                 $brands = array_values(array_unique($bm[1] ?? []));
                 printf("  essiz /marka/ link: %d\n", count($brands));
-                foreach (array_slice($brands, 0, 120) as $b) echo "     /marka/".$b."\n";
+                /* Liste alfabetik geliyor ve get_job_logs yalniz KUYRUGU
+                   gosteriyor; 120'lik bir sinir tam da aradigim harfi kesiyordu.
+                   Sinir yuksek, cunku bu sayfa markalarin TAM dizini. */
+                foreach (array_slice($brands, 0, 600) as $b) echo "     /marka/".$b."\n";
               }
               echo "\nSALT OKUNUR -- hicbir dosyaya yazilmadi\n";
               return;
