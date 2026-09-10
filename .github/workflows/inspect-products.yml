@@ -179,6 +179,21 @@ jobs:
               arsort($sz);
               echo "beden dizgeleri (".count($sz)." farkli):\n";
               foreach ($sz as $k => $v) printf("   %2d x  %s\n", $v, $k);
+              /* Beden SECICISI canlida kac ilanda cikiyor? Bu satir iki isi
+                 birden yapiyor: deploy'un yeni fonksiyonu gercekten sunucuya
+                 indirdigini kanitliyor, ve "30/42" tahminimi OLCUME ceviriyor. */
+              if (function_exists('vestra_sizes_selectable')) {
+                  $pick = 0; $fixed = 0; $one = 0;
+                  foreach ($sel as $p) {
+                      $s = trim((string)($p['sizes'] ?? ''));
+                      if (vestra_sizes_selectable($p)) { $pick++; }
+                      elseif (vestra_sizes_has_pack($s) || vestra_sizes_has_run($s)) { $fixed++; }
+                      else { $one++; }
+                  }
+                  printf("beden secici: %d ilanda VAR | %d paket/seri (sabit) | %d tek beden\n", $pick, $fixed, $one);
+              } else {
+                  echo "beden secici: *** vestra_sizes_selectable YOK -- deploy inmemis ***\n";
+              }
               echo "\n-- ornek kayit (FIYAT YOK) --\n";
               foreach (array_slice($sel, 0, 3) as $p) {
                 printf("  %s  [%s]  durum=%s  bolme=%s  satici=%s  ships=%s\n",
