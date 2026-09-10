@@ -1474,6 +1474,11 @@ jobs:
                    ." | from=".number_format((float)vestra_from_price($p), 2, '.', '')
                    ." | moq=".($p['moq'] ?? '-')
                    ." | kademe=".($tiers ? implode(' ', $tiers) : '-')
+                   /* RENKLER de yaziliyor: "diger renkleri de ekle" isi
+                      MEVCUT listeyi bilmeden yapilamaz -- set_product'in
+                      colors alani listeyi DEGISTIRIR, eklemez, ve 10 Eyl
+                      2026'da kuru kosu tam da bunu yakaladi (6 -> 5). */
+                   ." | renk=".(($__c = array_values(array_filter((array)($p['colors'] ?? []), 'is_string'))) ? implode('/', $__c) : '-')
                    ." | sample_price=".(!empty($p['sample_price'])?$p['sample_price']:'-')
                    ." | status=".($p['status']??'approved')
                    ." | satici: {$sLabel}\n";
