@@ -916,6 +916,31 @@ jobs:
             /* Kurucu SAF: diske hicbir sey yazmaz (bkz. journal_auto.php). */
             $art = vestra_journal_auto_build();
             echo "  su an kursa: ".(isset($art['skip']) ? 'YAZI YOK -- '.$art['skip'] : 'YAZARDI -- '.$art['title'])."\n";
+
+            /* "YAZI YOK -- yeni ilan 0" DOGRU MU? Bu satiri tek basina okumak
+               iki ayri durumu ayirt ETMIYOR: (a) gercekten yeni urun yok,
+               (b) urunler eklendi ama `added_at` tasimadigi icin dedektor onlari
+               goremiyor (journal_auto.php: "added_at yoksa urun yeni sayilmaz").
+               Ikisi de "0" yaziyor ve operator icin ikisi de "otomasyon
+               calismamis" gibi gorunuyor. Katalogun kendi tarihleri basiliyor:
+               kac ilanda alan var, en yenileri hangi gunden. Kisi verisi yok. */
+            $prods = vestra_products(true);
+            $withTs = []; $noTs = 0;
+            foreach ($prods as $p) {
+              $ts = strtotime((string)($p['added_at'] ?? ''));
+              if ($ts) $withTs[] = $ts; else $noTs++;
+            }
+            rsort($withTs);
+            echo "  katalog: ".count($prods)." ilan | added_at VAR ".count($withTs)." | YOK ".$noTs
+               . ($noTs > 0 ? "  <- bunlar rapora HIC giremez" : '')."\n";
+            $days = [];
+            foreach (array_slice($withTs, 0, 40) as $ts) { $d = gmdate('Y-m-d', $ts); $days[$d] = ($days[$d] ?? 0) + 1; }
+            echo "  en yeni eklemeler: ".($days ? '' : '(added_at tasiyan ilan yok)')."\n";
+            foreach (array_slice($days, 0, 5, true) as $d => $n) echo "    ".$d."  ".$n." ilan\n";
+            /* Pencerenin kendisi: rapor bu andan itibaren neyi sayiyor? */
+            $since = vestra_journal_auto_last_ts();
+            echo "  pencere: ".($since ? gmdate('Y-m-d H:i', $since).' UTC (son rapor)' : 'ilk rapor -- '.VESTRA_JOURNAL_AUTO_DAYS.' gun geriye')
+               . " -> simdi | esik ".VESTRA_JOURNAL_AUTO_MIN."\n";
             PJEOF
               echo "-- journal deposu --"
               php -l /tmp/diag_journal.php >/dev/null 2>&1 && php /tmp/diag_journal.php
