@@ -2003,6 +2003,97 @@ fotoğraf kuralı değişmedi.
   yeni kurucudan, sunucuya inen paket ESKİ kurucudan geliyordu — KURAL 5f/5n'in
   "iki kesim yolu ayrışır ve ayrışma belgede görünür" dersinin katalog hâli.
 
+**KURAL 21b — Alıcı BEDEN seçiyor; kapı sunucuda, ölçüt ilanın kendi verisi**
+(operatör, 10 Eyl 2026: *"ayrica nbb ürünlerinin beden secimlerinide koy"*).
+- O güne kadar sitede **toptan tarafında beden seçimi hiç yoktu**: `sizes`
+  yalnızca "Size mix" satırında basılıyordu, `vestra_size_options()` ise
+  **sadece dropship** yolundan çağrılıyordu — ve iç çamaşırı dropship'e kapalı
+  (KURAL 21), yani o ayrıştırıcı bu 42 ilanın dizgelerini **hiç görmemişti**.
+- **Ölçüm önce:** `inspect-products.yml` → `raw_scan` artık beden dizgelerinin
+  **tam dağılımını** basıyor. 42 ilanda **22 farklı dizge** çıktı ve mevcut
+  ayrıştırıcı ikisini birden bozuyordu:
+  - `75 B · 75 C · 80 B · 80 C · 85 B · 85 C · 90 B · 90 C` → **`[75, 80, 85, 90]`**.
+    Kap harfi merdivende olmadığı için `vestra_size_norm()` onu **sessizce
+    atıyordu**: 8 seçenekli bir sütyen 4 seçeneğe iniyor, alıcı B ile C arasında
+    seçim yapamıyordu.
+  - `S · L · XL · XXL · 3/pack` → **`[S, L, XL, XXL, 3]`**. `/` ayıraç
+    sınıfında olduğu için `3/pack` önce `3` + `pack` oluyor, `3` de sayısal
+    beden gibi normalize ediliyordu — alıcı o ilanda **hiç olmayan** bir bedeni
+    seçebilirdi. `2 · 3 · 4 · 5 · 6/pack` aynı şekilde `6`'yı beden yapıyordu.
+- **Seçici, karışımı SABİT OLMAYAN ilanda çıkıyor** (`vestra_sizes_selectable`):
+  paket eki (`… /pack`, `… /seri`) ya da açık dağılım (`S×1 · M×3 · L×3`) varsa
+  **seçim yok** — ikisinde de karışım ilanın kendisinde yazılı ve seçtirmek,
+  ilan edilen paketin içeriğiyle çelişen bir sipariş üretirdi (KURAL 4b'nin
+  MOQ/paket adımı dersi). Tek bedende de kutu çıkmıyor. Sonuç: **42 ilanın
+  30'unda** seçici var, 6'sı tek beden, 6'sı paket.
+- **Bölme opt-in** (`vestra_size_pick_sections()` = `['underwear']`). Giyim
+  kataloğunun neredeyse tamamı açık seri satıyor, yani şekil kuralı zaten
+  eleyecekti; ama 600+ ilanın satın alma akışını sessizce değiştirmek
+  istenenin dışındaydı. Yeni bölme = **bir satır**.
+- **Kapı SUNUCUDA.** Sepet localStorage'da; elle düzenlenmiş bir sepet ilanda
+  olmayan bir beden taşıyabilir. `/order` aynı fonksiyonu çağırıp kesişim
+  alıyor. Canlı ölçüm (yerel kum havuzu, onaylı alıcı oturumu): beden yok →
+  `?err=sizes`, uydurma `XXXL` → `?err=sizes`, geçerli seçim → geçiyor ve
+  sıradaki **marka asgarisi** kapısına takılıyor (€500, KURAL 21), giyim
+  ilanı bedensiz → **eskisi gibi** sipariş oluyor.
+- **Seçim sipariş kaydına giriyor:** `Sizes — SKU: S, M.` parçası, `Colours`'un
+  yanına. Sipariş tablosunda yeni **Sizes** sütunu, sipariş PDF'inde ve fatura
+  toplama listesinde rengin yanında. PDF'te **tek alt satır**: ayrı bir blok
+  yazsaydım satır yüksekliği hesabı yalnız bir blok sayıyor ve ikincisi bir
+  sonraki satırın üzerine binerdi (yükseklik koşulu da `colors`'tan `$sub`'a
+  çevrildi, yoksa rengi olmayıp bedeni olan satır taşardı).
+- **Bu iş, YILLARDIR CANLI olan bir hatayı açığa çıkardı:**
+  `vestra_order_notes_colors()` kalıbı `'/^Colours — …/'` idi, oysa `order.php`
+  notları **her zaman** `Payment: …` ile açıyor (çoğu zaman `Deliver to: …` de
+  araya giriyor). Yani kalıp **hiçbir gerçek siparişe uymuyordu** ve
+  `vestra_order_lines()` her zaman **boş** bir renk haritası döndürüyordu:
+  alıcının seçtiği renkler CSV'ye yazılıyor, ama sipariş tablosunda, sipariş
+  PDF'inde ve fatura satırında **hiç görünmüyordu**. Ölçüldü: gerçek bir not
+  dizgesiyle `[]`, yalnızca "Colours" ile BAŞLAYAN kurgusal bir dizgeyle
+  çalışıyordu. Beden aynı yoldan geçtiği için **önce bu düzeltilmeliydi** —
+  yoksa yeni alan da "yazılan ama hiç okunmayan" olurdu (KURAL 5j'nin sipariş
+  hâli). Kalıp artık başa bağlı değil ve parça metinden temizleniyor.
+- 5 yeni metin **9 dilde**. `.sizechip` renk noktası taşımadığı için `.colorchip`
+  dolgusunu eşitliyor ve rakamları `tabular-nums` ile hizalıyor.
+- **Teklif tarafına EKLENMEDİ**, bilerek: NBB ilanları `mode='fixed'` ve teklif
+  kapalı, ayrıca teklif kaydı (`offers.csv`) beden sütunu taşımıyor — yarım
+  bağlanmış bir alan, değeri düşen bir kutu olurdu.
+- Test: `tests/size_pick_test.php` (97 iddia). Beden dizgeleri **uydurulmadı**,
+  22'sinin hepsi canlıdan alındı — bu depoda kendi uydurduğum `pack_qty`
+  değerleriyle yeşil kalan bir test canlıda yanlış metin üretmişti. Düşebildiği
+  doğrulandı: paket stripi kaldırılınca **4 kırmızı**, bant+kap dalı kapanınca
+  **1**, not kalıbı eski hâline döndürülünce **6**, showroom listesi boşalınca
+  **1**. *İlk falsifikasyon denememde perl kaçışım hiç eşleşmemişti ve "iddia
+  düşmüyor" sanmıştım — değiştirmenin GERÇEKTEN uygulandığını doğrula.*
+- **Yerelde çizdirildi** (`php -S` + onaylı alıcı oturumu, kaynak okumak ölçüm
+  değil): NBB'de 4 çip, sütyende **8 çip (kap harfleriyle)**, çorapta
+  (`One size · 12/pack`) kutu **yok**, giyimde kutu **yok**, Almanca
+  *"Größen wählen"* basılıyor, PHP uyarısı **0**.
+
+**Showroom başlığında satıcının KAYITLI ÜLKESİ — yalnız Marca Online'da gizli**
+(operatör, 10 Eyl 2026: *"Basics · Turkey marca online dan bunu cikar"*;
+kapsam soruldu, **"yalnız Marca Online"** seçildi).
+- Satır `showroom.php`'de: `42 live listings · <ilk 4 kategori> · <ülke> ·
+  Member since <yıl>`. Operatörün gördüğü "Basics · Turkey" bu satırın kuyruğu.
+- **`ships_from` DEĞİL.** İkisi ayrı olgu, ayrı karar: `ships_from=Turkey` 42
+  ilanın kartında ve ürün sayfasında bayrağıyla **duruyor** çünkü alıcının
+  gümrük/teslim için okuduğu satır o ve KURAL 3 onu zorunlu tutuyor. Gizlenen
+  şey satıcının **kayıt ülkesi**.
+- Ölçüt **hesap ID'si** (`0cb79eb883f2a0fa`, sunucudan ölçüldü — 42 ilanın
+  42'si), şirket adı değil: ad bir metin, kimlik değil, ve ada göre eşleşme bu
+  depoda mango/zara dersini bir kez verdi. Hesap bayrağı
+  `showroom_hide_country` kodun varsayılanını **ezer** (KURAL 2f'nin
+  `doc_grace_exempt` deseni).
+- **Yan bulgu, CLAUDE.md'nin kendi notu YANLIŞTI:** KURAL 2g'nin "Marca Online"
+  istisnası *"`company` alanı hiçbir müşteri ekranında tek başına
+  görünmüyor"* diyordu. `inc/invoice.php:430` bunun aksini zaten yazıyor ve
+  kod haklı: **`showroom.php` `company`'yi H1 olarak basıyor.** Yani alıcı
+  ürün sayfasında satıcıyı **"Wholesale Underwear"** görüyor, *Showroom →*
+  bağlantısına basınca **"Marca Online"** başlıklı bir sayfaya düşüyor. Aynı
+  satıcı, iki ad. Operatöre soruldu, **başlık bu turda değiştirilmedi** —
+  yalnız ülke çıkarıldı; başlığı `seller` adına çevirmek ayrı bir karar ve
+  operatör kararı bekliyor.
+
 ## Operasyonel notlar
 
 - Deploy `claude/wizardly-planck-7ylnmk` dalına **push ile** tetiklenir.

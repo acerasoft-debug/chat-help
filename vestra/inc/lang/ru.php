@@ -1239,4 +1239,9 @@ return array (
   'Your cart has %1$s of %2$s — add %3$s to place the order.' => 'В корзине %1$s из %2$s — добавьте %3$s, чтобы оформить заказ.',
   'One size' => 'Один размер',
   'Wholesale intimates, ordered by the pack' => 'Бельё оптом, заказ упаковками',
+  'Sizes' => 'Размеры',
+  'Choose your sizes' => 'Выберите размеры',
+  'at least one' => 'хотя бы один',
+  'Choose at least one size.' => 'Выберите хотя бы один размер.',
+  'Size selection missing — open the product page, choose at least one size and add the item again.' => 'Размер не выбран — откройте страницу товара, выберите хотя бы один размер и добавьте товар снова.',
 );

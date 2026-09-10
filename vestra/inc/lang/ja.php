@@ -1239,4 +1239,9 @@ return array (
   'Your cart has %1$s of %2$s — add %3$s to place the order.' => 'カート内の %2$s は %1$s です。ご注文には %3$s 分の追加が必要です。',
   'One size' => 'フリーサイズ',
   'Wholesale intimates, ordered by the pack' => 'インナーの卸売 — パック単位でのご注文',
+  'Sizes' => 'サイズ',
+  'Choose your sizes' => 'サイズを選択',
+  'at least one' => '1つ以上',
+  'Choose at least one size.' => 'サイズを1つ以上選択してください。',
+  'Size selection missing — open the product page, choose at least one size and add the item again.' => 'サイズが未選択です — 商品ページを開き、サイズを1つ以上選んでから再度カートに追加してください。',
 );

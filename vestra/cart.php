@@ -42,6 +42,10 @@ if (stripe_available()) {
     <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
       <?= t('Colour selection missing — open the product page, choose at least the required number of colours and add the item again.') ?></div>
   <?php endif; ?>
+  <?php if(isset($_GET['err']) && $_GET['err']==='sizes'): ?>
+    <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
+      <?= t('Size selection missing — open the product page, choose at least one size and add the item again.') ?></div>
+  <?php endif; ?>
   <?php if(isset($_GET['err']) && $_GET['err']==='escrow'): ?>
     <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
       <?= t('Secure escrow couldn’t be started for this cart — it’s available only when all items are from a single verified seller. Please choose bank transfer instead.') ?></div>
@@ -280,7 +284,10 @@ function render(){
   c.forEach(function(x){
     var line=x.qty*x.unit; sub+=line;
     var cols = (x.colors && x.colors.length) ? ' · '+x.colors.map(esc).join(', ') : '';
-    rows+='<tr><td><b>'+esc(x.brand)+'</b> — '+esc(x.name)+'<div class="hint">SKU '+esc(x.sku)+cols+'</div></td>'+
+    /* Secilen bedenler burada da gorunmeli: alici sepette gordugu seyi onayliyor
+       ve /order ayni listeyi ilana karsi yeniden dogruluyor. */
+    var szs  = (x.sizes  && x.sizes.length)  ? ' · '+<?= json_encode(t('Sizes')) ?>+': '+x.sizes.map(esc).join(', ') : '';
+    rows+='<tr><td><b>'+esc(x.brand)+'</b> — '+esc(x.name)+'<div class="hint">SKU '+esc(x.sku)+cols+szs+'</div></td>'+
       '<td>'+Number(x.qty)+' '+esc(x.unitLabel)+'</td><td class="r">'+eur(x.unit)+'</td><td class="r">'+eur(line)+'</td>'+
       '<td class="x" data-remove-id="'+esc(x.id)+'" title="<?= htmlspecialchars(t('Remove')) ?>">✕</td></tr>';
   });

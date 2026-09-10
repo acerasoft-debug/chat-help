@@ -1239,4 +1239,9 @@ return array (
   'Your cart has %1$s of %2$s — add %3$s to place the order.' => 'سلتك تحتوي على %1$s من %2$s — أضف %3$s لإتمام الطلب.',
   'One size' => 'مقاس واحد',
   'Wholesale intimates, ordered by the pack' => 'ملابس داخلية بالجملة، الطلب بالعبوة',
+  'Sizes' => 'المقاسات',
+  'Choose your sizes' => 'اختر المقاسات',
+  'at least one' => 'واحد على الأقل',
+  'Choose at least one size.' => 'اختر مقاساً واحداً على الأقل.',
+  'Size selection missing — open the product page, choose at least one size and add the item again.' => 'لم يتم اختيار مقاس — افتح صفحة المنتج واختر مقاساً واحداً على الأقل ثم أضف الصنف مرة أخرى.',
 );

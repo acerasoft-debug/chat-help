@@ -1518,12 +1518,40 @@ function vestra_size_norm(string $tok): string {
     return '';
 }
 
+/* Paket eki. TEK kalip: vestra_sizes_label() de bunu kullaniyor, cunku "hangi
+   parca pakettir" sorusunun iki ayri cevabi olamaz -- bu depo ayni olgunun
+   ikinci kopyasinin ne ettigini yeterince kaydetti. */
+const VESTRA_SIZE_PACK_RE = '~(\d+)\s*(?:pcs|pieces|adet)?\s*/\s*(pack|paket|packs|seri|series|serie)\b~iu';
+
+/* Ilan bir PAKET/SERI mi satiyor? Oyleyse bedenlerin karisimi SABIT ve alici
+   secemez -- sectirmek, ilan edilen paketin icerigiyle celisen bir siparis
+   uretirdi (KURAL 4b'nin MOQ/paket adimi dersinin beden hali). */
+function vestra_sizes_has_pack(string $s): bool {
+    return (bool)preg_match(VESTRA_SIZE_PACK_RE, $s);
+}
+
+/* Ilan ACIK bir dagilim mi yaziyor ("S×1 · M×3 · L×3")? O da sabit bir seri.
+   Kalip yine TEK: asagida ayristirici da bunu kullaniyor. */
+const VESTRA_SIZE_RUN_RE = '~([A-Za-z0-9]{1,5})\s*[×xX*]\s*\d+~u';
+
+function vestra_sizes_has_run(string $s): bool {
+    return (bool)preg_match(VESTRA_SIZE_RUN_RE, $s);
+}
+
 function vestra_size_options(array $p): array {
     $s = trim((string)($p['sizes'] ?? ''));
     if ($s === '') return [];
     /* "os" disindakiler govde eslesmesi: /u kipinde \b harfli ekleri de kelime
        sayiyor, "Einheitsgröße" sonuna sinir koymak eslesmeyi kacirtiyordu. */
     if (preg_match('~(one\s?size|einheitsgr|tek\s?beden|taille\s?unique|\bos\b)~iu', $s)) return ['One size'];
+
+    /* Paket ekini bedenlerden AYIR. Canlida "S · L · XL · XXL · 3/pack" vardi
+       ve ayristirici "3"u BEDEN sayiyordu: '/' ayirac sinifinda, yani
+       "3/pack" once "3" + "pack" oluyor, sonra "3" sayisal beden gibi
+       normalize ediliyordu. Alici o ilanda hic olmayan bir "3" bedenini
+       secebilirdi. "2 · 3 · 4 · 5 · 6/pack" ayni sekilde 6'yi beden yapiyordu.
+       Olculdu (10 Eyl 2026, 42 NBB ilani, 22 farkli beden dizgesi). */
+    $s = trim((string)preg_replace(VESTRA_SIZE_PACK_RE, ' ', $s));
 
     $push = function (array &$out, string $tok): void {
         $n = vestra_size_norm($tok);
@@ -1533,7 +1561,7 @@ function vestra_size_options(array $p): array {
     /* 1) Acik dagilim -- "S×1 · M×3 · XL×2". Carpimdan ONCEKI ad bedendir; sonraki
           sayi karton adedi ve tek parca alan ortagi ilgilendirmiyor. */
     $out = [];
-    if (preg_match_all('~([A-Za-z0-9]{1,5})\s*[×xX*]\s*\d+~u', $s, $m)) {
+    if (preg_match_all(VESTRA_SIZE_RUN_RE, $s, $m)) {
         foreach ($m[1] as $tok) $push($out, $tok);
         if (count($out) > 1) return $out;
     }
@@ -1565,10 +1593,80 @@ function vestra_size_options(array $p): array {
           ("Cartons of 10") beden gibi gorunmedigi icin kendiliginden eleniyor. */
     $out = [];
     foreach (preg_split('~[·,;/|]+~u', $s) ?: [] as $part) {
-        foreach (preg_split('~\s+~u', trim($part)) ?: [] as $tok) $push($out, $tok);
+        $part = trim($part);
+        /* Bant + kap TEK bedendir: "75 B" ile "75 C" ayri artikel, ayri stok.
+           Bosluktan bolunce kap harfi merdivende olmadigi icin vestra_size_norm
+           onu SESSIZCE atiyordu ve 8 secenekli bir sutyen 4 secenege iniyordu
+           (canli olcum, 10 Eyl 2026: "75 B · 75 C · 80 B · 80 C · 85 B · 85 C ·
+           90 B · 90 C" -> [75, 80, 85, 90]). Alicinin B ile C arasinda secim
+           yapmasi imkansizdi ve sectigi "75" hangi kap oldugunu soylemiyordu. */
+        if (preg_match('~^(\d{2,3})\s*([A-J])$~iu', $part, $m)) {
+            $n = $m[1].' '.strtoupper($m[2]);
+            if (!in_array($n, $out, true)) $out[] = $n;
+            continue;
+        }
+        foreach (preg_split('~\s+~u', $part) ?: [] as $tok) $push($out, $tok);
     }
     /* Tek bir sayi ("Cartons of 10") beden degil, adet. Iki ve uzeri gercek bir liste. */
     return count($out) > 1 ? $out : [];
+}
+
+/* ── Alicinin SECEBILECEGI bedenler ────────────────────────────────────────
+ *
+ * Bos donmesi "bu ilanin bedeni yok" demek degil, "secilecek bir sey yok"
+ * demek. Uc ayri sebep:
+ *
+ *   1. Ilan bir PAKET/SERI satiyor ("… · 3/pack", "One size · 12/pack") ya da
+ *      ACIK bir dagilim yaziyor ("S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack").
+ *      Ikisinde de karisim SABIT; sectirmek, ilan edilen paketin icerigiyle
+ *      celisen bir siparis uretirdi. Giyim katalogunun neredeyse tamami bu
+ *      sekilde -- yani orada beden secici CIKMAZ ve bu bilincli.
+ *   2. Tek beden ("One size", ya da yalniz "L").
+ *   3. Bolme opt-in DEGIL. Operator bunu NBB/ic camasiri icin istedi
+ *      (10 Eyl 2026); 600'den fazla mevcut giyim ilaninin satin alma akisini
+ *      sessizce degistirmek istenenin disindaydi. Yeni bolme = bir satir.
+ *
+ * TEK karar noktasi: urun sayfasi, sepet ve /order ayni fonksiyonu cagiriyor.
+ * Kutuyu gizlemek kapi degildir -- /offer ucunun dersi (KURAL 4b).
+ */
+function vestra_size_pick_sections(): array { return ['underwear']; }
+
+/* ── Showroom basliginda saticinin KAYITLI ULKESI ──────────────────────────
+ *
+ * Operator karari, 10 Eyl 2026: showroom basligindaki "… · Basics · Turkey ·
+ * Member since 2026" satirindan ULKE cikarilsin, ve YALNIZ Marca Online
+ * hesabinda ("marca online dan bunu cikar", kapsam soruldu ve "yalniz Marca
+ * Online" secildi).
+ *
+ * Bu alan, ilanin `ships_from` alani DEGIL. Ikisi ayri olgu ve ikisi ayri
+ * karar: `ships_from=Turkey` 42 NBB ilaninin kartinda ve urun sayfasinda
+ * bayragiyla DURUYOR, cunku aliciyi ilgilendiren gumruk/teslim bilgisi o ve
+ * KURAL 3 onu zorunlu tutuyor. Burada gizlenen sey saticinin KAYIT ulkesi.
+ *
+ * Olcut hesap ID'si, sirket adi degil: ad bir metin, kimlik degil -- ve bu
+ * depoda ada gore eslesme mango/zara dersini bir kez verdi. UID sunucudan
+ * olculdu (10 Eyl 2026, 42 ilanin 42'si), tahmin edilmedi.
+ *
+ * Hesap bayragi `showroom_hide_country` kodun varsayilanini EZER (KURAL 2f'nin
+ * `doc_grace_exempt` deseni), yani yarin baska bir hesap icin panelden ya da
+ * bir is akisindan yazilabilir; bugun yazan bir yol yok ve olmadigi icin de
+ * kodda tek satirlik varsayilan liste duruyor.
+ */
+function vestra_showroom_hide_country_uids(): array { return ['0cb79eb883f2a0fa']; }
+
+function vestra_showroom_hides_country(array $acc): bool {
+    if (array_key_exists('showroom_hide_country', $acc)) return !empty($acc['showroom_hide_country']);
+    return in_array((string)($acc['id'] ?? ''), vestra_showroom_hide_country_uids(), true);
+}
+
+function vestra_sizes_selectable(array $p): array {
+    $s = trim((string)($p['sizes'] ?? ''));
+    if ($s === '') return [];
+    if (!in_array(vestra_product_section($p), vestra_size_pick_sections(), true)) return [];
+    if (vestra_sizes_has_pack($s) || vestra_sizes_has_run($s)) return [];
+    $o = vestra_size_options($p);
+    if (count($o) < 2 || $o === ['One size']) return [];
+    return $o;
 }
 
 /* ── Ilanin renkleri ───────────────────────────────────────────────────────

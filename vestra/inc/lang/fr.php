@@ -1243,4 +1243,9 @@ return array (
   'Your cart has %1$s of %2$s — add %3$s to place the order.' => 'Votre panier contient %1$s de %2$s — ajoutez %3$s pour commander.',
   'One size' => 'Taille unique',
   'Wholesale intimates, ordered by the pack' => 'Lingerie en gros, commande par lot',
+  'Sizes' => 'Tailles',
+  'Choose your sizes' => 'Choisissez vos tailles',
+  'at least one' => 'au moins une',
+  'Choose at least one size.' => 'Choisissez au moins une taille.',
+  'Size selection missing — open the product page, choose at least one size and add the item again.' => 'Sélection de taille manquante — ouvrez la fiche produit, choisissez au moins une taille et ajoutez de nouveau l’article.',
 );

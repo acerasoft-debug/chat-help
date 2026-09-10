@@ -426,6 +426,23 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           </tbody>
         </table>
         <div class="order-box">
+          <?php /* Beden secimi. Yalnizca karisimi SABIT OLMAYAN ilanda cikiyor
+                   (vestra_sizes_selectable): paket/acik seri satan bir ilanda
+                   sectirmek, ilan edilen paketin icerigiyle celisen bir siparis
+                   uretirdi. Kapi sunucuda da var (/order); burasi yalnizca
+                   kutuyu ciziyor -- "dugmeyi gizlemek kapi degildir". */
+                $pickSizes = vestra_sizes_selectable($p); ?>
+          <?php if($pickSizes): ?>
+          <div style="margin-bottom:14px">
+            <label class="hint"><?= t('Choose your sizes') ?> — <?= t('at least one') ?></label>
+            <div class="colorpick" id="ordSizes">
+              <?php foreach($pickSizes as $sz): ?>
+              <label class="colorchip sizechip"><input type="checkbox" value="<?= htmlspecialchars($sz) ?>" onchange="recalc()"><?= htmlspecialchars(vestra_sizes_label($sz)) ?></label>
+              <?php endforeach; ?>
+            </div>
+            <div class="warn" id="szwarn" style="display:none;margin-top:8px"><?= t('Choose at least one size.') ?></div>
+          </div>
+          <?php endif; ?>
           <?php $colorQtyMode = !empty($p['colors']) && !empty($p['min_colors']) && (int)($p['size_step']??0) > 1; ?>
           <?php if($colorQtyMode): $cqStep=(int)$p['size_step']; ?>
           <div style="margin-bottom:14px">
@@ -598,6 +615,12 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           return Array.prototype.map.call(el.querySelectorAll('input:checked'), function(i){return i.value;}); }
         function cqTotal(){ var s=cqSelects(), t=0; if(!s) return 0;
           Array.prototype.forEach.call(s,function(x){t+=parseInt(x.value)||0;}); return t; }
+        /* Secilen bedenler. Kutu hic cizilmediyse (paket/tek beden/giyim) bu
+           [] doner ve hicbir kontrol devreye girmez -- yani mevcut ilanlarin
+           satin alma akisi degismiyor. */
+        function ordSizes(){ var el=document.getElementById('ordSizes'); if(!el) return [];
+          return Array.prototype.map.call(el.querySelectorAll('input:checked'), function(i){return i.value;}); }
+        function needSizes(){ return !!document.getElementById('ordSizes'); }
         function recalc(){
           var cq=!!cqSelects(), warn=document.getElementById('warn'), btn=document.getElementById('addBtn');
           /* SATILDI olan urunde "Add to order" dugmesi hic basilmiyor, yani btn
@@ -609,7 +632,10 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           if(cq){ var t=cqTotal(); document.getElementById('qty').value=t;
             var tt=document.getElementById('cqtotal'); if(tt) tt.textContent=t; }
           var q=parseInt(document.getElementById('qty').value)||0;
-          if(P.minColors>0 && ordColors().length<P.minColors){ warn.style.display='block'; warn.textContent=<?= json_encode(vestra_colours_warn((int)($p['min_colors']??0))) ?>; setDisabled(true); }
+          var szw=document.getElementById('szwarn'), szMissing=needSizes() && ordSizes().length===0;
+          if(szw) szw.style.display = szMissing ? 'block' : 'none';
+          if(szMissing){ warn.style.display='none'; setDisabled(true); }
+          else if(P.minColors>0 && ordColors().length<P.minColors){ warn.style.display='block'; warn.textContent=<?= json_encode(vestra_colours_warn((int)($p['min_colors']??0))) ?>; setDisabled(true); }
           else if(q<P.moq){ warn.style.display='block'; warn.textContent='<?= addslashes(t('Minimum order is')) ?> '+P.moq+' '+P.unitLabel+'.'; setDisabled(true); }
           else { warn.style.display='none'; setDisabled(false); }
           var u=unitPrice(q);
@@ -620,7 +646,8 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         }
         function addToOrder(){ var q=parseInt(document.getElementById('qty').value)||0; if(q<P.moq) return; var u=unitPrice(q);
           var cols=ordColors(); if(P.minColors>0 && cols.length<P.minColors){ recalc(); return; }
-          VCart.add({id:P.id,brand:P.brand,name:P.name,sku:P.sku,unitLabel:P.unitLabel,qty:q,unit:u,colors:cols});
+          var szs=ordSizes(); if(needSizes() && szs.length===0){ recalc(); return; }
+          VCart.add({id:P.id,brand:P.brand,name:P.name,sku:P.sku,unitLabel:P.unitLabel,qty:q,unit:u,colors:cols,sizes:szs});
           var b=document.getElementById('addBtn'); b.textContent='✓ '+<?= json_encode(t('Added to order')) ?>; setTimeout(function(){b.textContent=<?= json_encode(t('Add to order')) ?>;},1400); }
         recalc();
         </script>

@@ -1239,4 +1239,9 @@ return array (
   'Your cart has %1$s of %2$s — add %3$s to place the order.' => 'O seu carrinho tem %1$s de %2$s — adicione %3$s para encomendar.',
   'One size' => 'Tamanho único',
   'Wholesale intimates, ordered by the pack' => 'Roupa interior por grosso, encomenda por pack',
+  'Sizes' => 'Tamanhos',
+  'Choose your sizes' => 'Escolha os tamanhos',
+  'at least one' => 'pelo menos um',
+  'Choose at least one size.' => 'Escolha pelo menos um tamanho.',
+  'Size selection missing — open the product page, choose at least one size and add the item again.' => 'Falta a seleção de tamanho — abra a página do produto, escolha pelo menos um tamanho e adicione o artigo novamente.',
 );
