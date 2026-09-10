@@ -1406,17 +1406,24 @@ jobs:
               $existing = load_json($OUT_FILE, []);
               if (!$existing) { fwrite(STDERR, basename($OUT_FILE)." bos/yok -- once crawl calistir\n"); exit(1); }
               $slice = array_slice($existing, $start, $count);
-              printf("toplam=%d, bu dilim [%d..%d)\n\n", count($existing), $start, $start + count($slice));
+              printf("toplam=%d, bu dilim [%d..%d)\n", count($existing), $start, $start + count($slice));
+              /* URUN BASINA TEK SATIR. Eskiden alti satirdi ve get_job_logs
+                 kuyrugu ~3,5 KB'de kesiyor: 114 urunluk bir kumede dokum
+                 OKUNAMIYORDU, yani cikarimi dogrulamak icin yazilmis mod
+                 dogrulanamiyordu. Kategori tekrar ettigi icin basliga cikti;
+                 fotograf URL'i dustu (staging'in isi, gozle bakmanin degil). */
+              $lastCat = null;
               foreach ($slice as $i => $rec) {
+                $cat = (string)($rec['category'] ?? '?');
+                if ($cat !== $lastCat) { printf("\n== %s ==\n", $cat); $lastCat = $cat; }
                 $imgs = array_values(array_filter($rec['images'] ?? [], fn($im) => empty($im['thumb'])));
                 if (!$imgs) $imgs = $rec['images'] ?? [];
                 $sz = array_values(array_unique(array_filter(array_map(fn($v) => (string)($v['size'] ?? ''), $rec['variants'] ?? []))));
                 $co = array_values(array_unique(array_filter(array_map(fn($v) => (string)($v['color'] ?? ''), $rec['variants'] ?? []))));
-                printf("[%d] %s\n", $start + $i, (string)($rec['title'] ?? '?'));
-                printf("    kat=%s | slug=%s\n", (string)($rec['category'] ?? '?'), basename(parse_url((string)($rec['url'] ?? ''), PHP_URL_PATH) ?: '?'));
-                printf("    beden=%s\n", $sz ? implode(' / ', $sz) : '(yok)');
-                printf("    renk =%s\n", $co ? implode(' / ', $co) : '(yok)');
-                printf("    foto =%d  ilk=%s\n\n", count($imgs), (string)($imgs[0]['url'] ?? '-'));
+                printf("[%d] f%d%s%s | %s\n", $start + $i, count($imgs),
+                  $sz ? ' b:'.implode('/', $sz) : '',
+                  $co ? ' r:'.implode('/', $co) : '',
+                  (string)($rec['title'] ?? '?'));
               }
               exit(0);
             }

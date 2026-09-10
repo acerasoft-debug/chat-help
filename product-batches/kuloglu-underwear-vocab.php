@@ -1,6 +1,16 @@
 <?php
 /**
- * VESTRA — NBB ic camasiri katalogu: urun ADI ve ACIKLAMASI, 9 dilde.
+ * VESTRA — Kuloglu ic camasiri katalogu: urun ADI ve ACIKLAMASI, 9 dilde.
+ *
+ * ── NEDEN URETICI BASINA AYRI DOSYA DEGIL ────────────────────────────────────
+ * Dosya once yalniz NBB icindi (`nbb-vocab.php`). 10 Eyl 2026'da operator
+ * *"ayni siteden visatin ve Q-EN markali urunleride cek"* dedi. Ikinci ve
+ * ucuncu bir dosya acmak, giysi turlerinin ve ozelliklerin 9 DILLIK
+ * tablosunu iki kez daha kopyalamak olurdu -- ve "Nachthemd"i bir gun
+ * duzelten kisi ucunden yalniz birini duzeltirdi. Bu depo ayni hatayi
+ * `desc`/`sizes`'ta, faturanin uc katmaninda ve dort mektup govdesinde
+ * kaydetti. Bu yuzden KELIMELER ORTAK, yalnizca URUN TABLOSU uretici basina:
+ * KU_PRODUCTS['nbb'], ['visatin'], ['qen'].
  *
  * (operator, 10 Eyl 2026: *"tüm dillere cevrilecek"*, ve adin da cevrilip
  * cevrilmeyecegi ayrica soruldu — cevap **evet**. 4 Eylul'deki Kuloglu isinde
@@ -17,8 +27,8 @@
  * yani yedi dilde bozuk, birinde dogru.
  *
  * Bunun yerine ad IKI parcadan kuruluyor:
- *   NBB_TYPES  — giysinin kendisi, dilin kendi TAM isim tamlamasi olarak
- *   NBB_ATTRS  — ozellikler, VIRGULLE AYRILMIS bir liste olarak
+ *   KU_TYPES  — giysinin kendisi, dilin kendi TAM isim tamlamasi olarak
+ *   KU_ATTRS  — ozellikler, VIRGULLE AYRILMIS bir liste olarak
  * "Sutyen, mikrofiber, dolgulu — 3520" kalibinda sifat sirasi diye bir sorun
  * yok: liste her dilde ayni sekilde dogru okunuyor ve toptan kataloglarinin
  * gercekten kullandigi yazim bu. Ayrica OLCEKLENIYOR: 48. urun geldiginde
@@ -38,7 +48,7 @@
  */
 
 /* Giysi turu — her dilde TAM isim tamlamasi. Adin ilk parcasi. */
-const NBB_TYPES = [
+const KU_TYPES = [
 'training_bra'      => ['en'=>'First bra','fr'=>'Soutien-gorge d’initiation','es'=>'Sujetador de iniciación','it'=>'Reggiseno per ragazza','de'=>'Erster BH','pt'=>'Sutiã de iniciação','ru'=>'Бюстгальтер для девочек','ar'=>'حمالة صدر أولى','ja'=>'ファーストブラ'],
 'bandeau_bra'       => ['en'=>'Bandeau bra','fr'=>'Soutien-gorge bandeau','es'=>'Sujetador bandeau','it'=>'Reggiseno a fascia','de'=>'Bandeau-BH','pt'=>'Sutiã bandeau','ru'=>'Бюстгальтер-бандо','ar'=>'حمالة صدر بدون حمالات كتف','ja'=>'バンドゥブラ'],
 'bandeau'           => ['en'=>'Bandeau top','fr'=>'Bustier','es'=>'Top bandeau','it'=>'Top a fascia','de'=>'Bandeau-Top','pt'=>'Top bandeau','ru'=>'Топ-бандо','ar'=>'توب بندو','ja'=>'バンドゥトップ'],
@@ -70,7 +80,7 @@ const NBB_TYPES = [
 
 /* Ozellikler — virgulle ayrilmis liste olarak eklenir, sifat sirasi sorunu yok.
    Ceviri "sozluk karsiligi" degil, o dilin KENDI perakende terimi. */
-const NBB_ATTRS = [
+const KU_ATTRS = [
 'combed_cotton'   => ['en'=>'combed cotton','fr'=>'coton peigné','es'=>'algodón peinado','it'=>'cotone pettinato','de'=>'gekämmte Baumwolle','pt'=>'algodão penteado','ru'=>'чесаный хлопок','ar'=>'قطن ممشط','ja'=>'コーマ綿'],
 'microfibre'      => ['en'=>'microfibre','fr'=>'microfibre','es'=>'microfibra','it'=>'microfibra','de'=>'Mikrofaser','pt'=>'microfibra','ru'=>'микрофибра','ar'=>'ألياف دقيقة','ja'=>'マイクロファイバー'],
 'satin'           => ['en'=>'satin','fr'=>'satin','es'=>'satén','it'=>'raso','de'=>'Satin','pt'=>'cetim','ru'=>'сатин','ar'=>'ساتان','ja'=>'サテン'],
@@ -101,7 +111,7 @@ const NBB_ATTRS = [
 /* Birlestirme: ozellik ayraci ve model numarasindan onceki isaret.
    Japonca'da liste ayraci "・", Arapca'da Arap virgulu "،" -- ASCII virgul
    ikisinde de yabanci duruyor. Tire her dilde ayni (U+2014). */
-const NBB_JOIN = [
+const KU_JOIN = [
   'en'=>[', ', ' — '], 'fr'=>[', ', ' — '], 'es'=>[', ', ' — '], 'it'=>[', ', ' — '],
   'de'=>[', ', ' — '], 'pt'=>[', ', ' — '], 'ru'=>[', ', ' — '], 'ar'=>['، ', ' — '],
   'ja'=>['・',  ' — '],
@@ -114,7 +124,7 @@ const NBB_JOIN = [
    idi ve ozellik listesi yuzunden yanlis okunuyordu: "Strapless bra, microfibre,
    padded by NBB" cumlesinde "by NBB" son sifata baglaniyor -- yani sutyen degil,
    DOLGU NBB'ye aitmis gibi. Ozellik listesi noktayla kapaniyor artik. */
-const NBB_DESC_FMT = [
+const KU_DESC_FMT = [
   'en'=>'%1$s. NBB, wholesale only — ordered by the pack, not by the piece.',
   'fr'=>'%1$s. NBB, vente en gros uniquement — commande par lot, non à l’unité.',
   'es'=>'%1$s. NBB, solo venta al por mayor — se pide por paquete, no por unidad.',
@@ -143,7 +153,7 @@ const NBB_DESC_FMT = [
  * marka basina asgari sepet tutariyla (KURAL 21, 500 EUR) tutuluyor, tek
  * ilanin adediyle degil.
  */
-const NBB_DESC_FMT_NOPACK = [
+const KU_DESC_FMT_NOPACK = [
   'en'=>'%1$s. NBB, wholesale only.',
   'fr'=>'%1$s. NBB, vente en gros uniquement.',
   'es'=>'%1$s. NBB, solo venta al por mayor.',
@@ -251,7 +261,7 @@ function nbb_photo_rejected(string $model): ?string {
 /* NBB'de gecen ve kuloglu-vocab.php'de HENUZ OLMAYAN uc renk. Digerleri
    (NEON'lar dahil) orada zaten var -- ikinci bir kopya yazmak, bu deponun
    tekrar tekrar kaydettigi "ayni olgu iki yerde" hatasi olurdu. */
-const NBB_EXTRA_COLORS = [
+const KU_EXTRA_COLORS = [
 'SAHRA'    => ['en'=>'Sahara','fr'=>'Sahara','es'=>'Sahara','it'=>'Sahara','de'=>'Sahara','pt'=>'Saara','ru'=>'Песочный','ar'=>'صحراوي','ja'=>'サハラ', 'palette'=>'Beige'],
 'BRONZ'    => ['en'=>'Bronze','fr'=>'Bronze','es'=>'Bronce','it'=>'Bronzo','de'=>'Bronze','pt'=>'Bronze','ru'=>'Бронзовый','ar'=>'برونزي','ja'=>'ブロンズ', 'palette'=>'Brown'],
 'AÇIK GRİ' => ['en'=>'Light Grey','fr'=>'Gris clair','es'=>'Gris claro','it'=>'Grigio chiaro','de'=>'Hellgrau','pt'=>'Cinza claro','ru'=>'Светло-серый','ar'=>'رمادي فاتح','ja'=>'ライトグレー', 'palette'=>'Grey'],
@@ -263,14 +273,14 @@ const NBB_EXTRA_COLORS = [
 function nbb_phrase(string $model, string $lang): string {
     $p = NBB_PRODUCTS[$model] ?? null;
     if (!$p) return '';
-    $type = NBB_TYPES[$p['type']][$lang] ?? NBB_TYPES[$p['type']]['en'] ?? '';
+    $type = KU_TYPES[$p['type']][$lang] ?? KU_TYPES[$p['type']]['en'] ?? '';
     if ($type === '') return '';
     $bits = [];
     foreach ($p['attrs'] as $a) {
-        $v = NBB_ATTRS[$a][$lang] ?? NBB_ATTRS[$a]['en'] ?? '';
+        $v = KU_ATTRS[$a][$lang] ?? KU_ATTRS[$a]['en'] ?? '';
         if ($v !== '') $bits[] = $v;
     }
-    [$sep] = NBB_JOIN[$lang] ?? NBB_JOIN['en'];
+    [$sep] = KU_JOIN[$lang] ?? KU_JOIN['en'];
     return $bits ? $type . $sep . implode($sep, $bits) : $type;
 }
 
@@ -278,7 +288,7 @@ function nbb_phrase(string $model, string $lang): string {
 function nbb_name(string $model, string $lang): string {
     $ph = nbb_phrase($model, $lang);
     if ($ph === '') return '';
-    [, $dash] = NBB_JOIN[$lang] ?? NBB_JOIN['en'];
+    [, $dash] = KU_JOIN[$lang] ?? KU_JOIN['en'];
     return $ph . $dash . $model;
 }
 
@@ -287,7 +297,7 @@ function nbb_name(string $model, string $lang): string {
 function nbb_desc(string $model, string $lang, int $packQty = 1): string {
     $ph = nbb_phrase($model, $lang);
     if ($ph === '') return '';
-    $tbl = $packQty > 1 ? NBB_DESC_FMT : NBB_DESC_FMT_NOPACK;
+    $tbl = $packQty > 1 ? KU_DESC_FMT : KU_DESC_FMT_NOPACK;
     $fmt = $tbl[$lang] ?? $tbl['en'];
     /* Cumle basi buyuk harf: parca kucuk harfle basliyor ("wire-free bra") ve
        Ingilizce/Almanca cumle basinda buyuk olmali. mb_ ile, cunku Turkce'den
@@ -298,7 +308,7 @@ function nbb_desc(string $model, string $lang, int $packQty = 1): string {
 /** Tum diller icin ad haritasi: ['en'=>..., 'fr'=>..., ...] — `name_i18n` alani. */
 function nbb_name_i18n(string $model): array {
     $out = [];
-    foreach (array_keys(NBB_JOIN) as $lang) {
+    foreach (array_keys(KU_JOIN) as $lang) {
         $v = nbb_name($model, $lang);
         if ($v !== '') $out[$lang] = $v;
     }
@@ -306,7 +316,7 @@ function nbb_name_i18n(string $model): array {
 }
 function nbb_desc_i18n(string $model, int $packQty = 1): array {
     $out = [];
-    foreach (array_keys(NBB_JOIN) as $lang) {
+    foreach (array_keys(KU_JOIN) as $lang) {
         $v = nbb_desc($model, $lang, $packQty);
         if ($v !== '') $out[$lang] = $v;
     }
@@ -359,9 +369,9 @@ function nbb_is_one_size(string $raw): bool {
    require ile tanimlaniyor; bu dondurulen dizi tablolara sabit adi yazmadan
    erismek isteyen cagiran icin. */
 return [
-  'types'    => NBB_TYPES,
-  'attrs'    => NBB_ATTRS,
+  'types'    => KU_TYPES,
+  'attrs'    => KU_ATTRS,
   'products' => NBB_PRODUCTS,
   'reject'   => NBB_PHOTO_REJECT,
-  'colors'   => NBB_EXTRA_COLORS,
+  'colors'   => KU_EXTRA_COLORS,
 ];
