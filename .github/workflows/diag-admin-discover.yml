@@ -1922,7 +1922,14 @@ jobs:
               $pkg = ['key' => base64_encode($encKey), 'iv' => base64_encode($iv), 'data' => base64_encode($cipher)];
               $pkgJson = json_encode($pkg);
 
-              printf("olusturuldu: %d satir (atlandi: gorselsiz=%d, varyant-fiyatli=%d)\n", count($rows), $skippedNoImg, $skippedVaries);
+              /* Sayac YUKARIDA, kurucunun kendi $skips dokumunden basildi. Burada
+                 ikinci bir ozet satiri vardi ve eski kurucunun degiskenlerini
+                 ($skippedNoImg/$skippedVaries) okuyordu -- bu dalda tanimsizlar,
+                 yani her kosuda "gorselsiz=0, varyant-fiyatli=0" yaziyor ve iki
+                 PHP uyarisi birakiyordu. Hep ayni seyi yazan bir sayac olcum
+                 degil; atilanlarin GEREKCESI ise (foto elendi, model cozulemedi)
+                 hic basilmiyordu -- build_batch onlari zaten yaziyor. */
+              if ($notes) { echo "\n-- atlananlar --\n"; foreach ($notes as $t) echo "  $t\n"; }
               echo "\n-- id listesi (fiyatsiz) --\n";
               foreach ($rows as $r) printf("  %-45s cat=%-10s renk=%-20s beden=%-30s ships_from=%s\n", $r['id'], $r['cat'], implode('/', $r['colors']), $r['sizes'], $r['ships_from']);
               /* Paketin sha256'si de BOSLUKLU: bosluksuz basildiginda maske
