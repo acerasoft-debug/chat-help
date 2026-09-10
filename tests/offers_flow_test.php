@@ -34,6 +34,11 @@ function vestra_send_mail($to,$s,$b,...$r){ global $MAIL; $MAIL[]=[$to,$s]; retu
 function vestra_tpl_offer_response($l,$act,$bn,$p,$r,$cp,$url=null){ global $LASTURL; $LASTURL=$url; return ["subj-$act","body",[]]; }
 function vestra_tpl_offer_counter_accepted($l,$bn,$p,$r,$u,$q){ return ["agreed","body",[]]; }
 
+/* Fatura para birimi izin listesi (KURAL 5i). Gercek govde invoice.php'de ve
+   test kosumu require'lari SILIYOR; teklif yuku onu cagiriyor. Stub gercegin
+   AYNISI -- uydurma bir liste, olculen davranisi degistirirdi. */
+if(!function_exists('vestra_invoice_currencies')) { function vestra_invoice_currencies(){ return ['EUR','USD']; } }
+
 /* offers.php'deki BUTUN fonksiyonlari gercek govdeleriyle yukle */
 preg_match_all('/^function \w+\(.*?^}/ms', $src, $fns);
 foreach ($fns[0] as $f) eval($strip($f));

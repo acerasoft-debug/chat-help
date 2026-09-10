@@ -195,5 +195,66 @@ $t('seçici kur damgasını gösteriyor',     str_contains($adm, 'kur damgası y
 $wf = (string)@file_get_contents(__DIR__.'/../.github/workflows/seller-products.yml');
 $t('iş akışı da hatayı ayırt ediyor',     str_contains($wf, "isset(\$issued['error'])"));
 
+echo "\n== 7. TEKLIF faturası da başka para biriminde kesilebilir ==\n";
+/* Operatör, 9 Eyl 2026 (OCD7D2): "ayrica direkt usd ye cevirme buttonu eksik".
+ * Bu makine tamamen SIPARIS kapsamındaydı; kabul edilmiş bir teklif yalnızca
+ * EUR kesilebiliyordu. Boş bir soyutlama değil, ölçülmüş bir sonucu vardı:
+ * kurasyonlu ilanda (seller_uid boş) faturayı PLATFORM kesiyor, platformun
+ * hesabı ABD hesabı (hesap no + ABA, IBAN YOK), dolayısıyla EUR belgede
+ * vestra_payment_rails BOŞ dönüyor ve belge ödeme kutusuz çıkıyor — alıcı
+ * parayı nereye göndereceğini faturadan öğrenemiyor. Aynı gün canlı sunucuda
+ * ölçüldü: EUR -> kutu YOK, USD -> kutu VAR (6 satır). */
+$ofs = $src('inc/offers.php');
+$t('teklifte okuyucu var',            str_contains($ofs, 'function vestra_offer_invoice_currency(string $ref)'));
+$t('teklifte yazıcı var',             str_contains($ofs, 'function vestra_offer_set_invoice_currency(string $ref, string $cur)'));
+/* Izin listesi TEK yerden: teklif tarafı kendi listesini tanımlasaydı bir gün
+   sipariş USD, teklif başka bir şey kabul ederdi. */
+$t('aynı izin listesini okuyor',      str_contains($ofs, "in_array(\$c, vestra_invoice_currencies(), true)"));
+$t('tanınmayan birim YAZILMIYOR',     str_contains($ofs, "if (\$cur !== '' && !in_array(\$cur, vestra_invoice_currencies(), true)) return false;"));
+/* Kur TEKLIFIN TARIHININ kuru ve damga SIPARIS kaydına düşüyor: kabul edilen
+   teklif zaten kendi ref'iyle orders'a iniyor, yani ikinci bir damga yeri
+   aynı satış için er ya da geç iki farklı kur demekti. */
+$t('damga tek yerde (order_statuses)', str_contains($ofs, 'function vestra_offer_fx_ensure(')
+                                    && str_contains($ofs, 'vestra_order_fx_stamp($ref, $offerTs)'));
+$t('damga yoksa null döner',          str_contains($ofs, "if (strlen(\$offerTs) < 10) return null;"));
+/* Çevrim TEK kurucudan: ikinci bir çevrim yolu, aynı satışta iki farklı rakam. */
+$t('aynı çevirici çağrılıyor',        substr_count($ofs, '$conv = vestra_invoice_convert_payload(') === 2);
+$t('kurucu para birimi alıyor',       str_contains($ofs, 'string $currencyOverride = \'\''));
+$t('birleşik kurucu da alıyor',       substr_count($ofs, 'string $currencyOverride = \'\'') >= 2);
+/* Çevrilemeyen belge KESILMEZ — ve hiçbir numara yakılmadan durur. */
+$t('kesim çevrilemezse duruyor',      str_contains($ofs, "if (!empty(\$p['currency_error'])) {\n        return ['error' => (string)\$p['currency_error']];"));
+$t('birleşik kesim de duruyor',       str_contains($ofs, "Kur damgası yok, belge çevrilemedi: "));
+/* SIPARIS SATIRI teklifin kendi biriminde kalmalı: belge USD olabilir ama
+   orders.csv EUR'dur (KURAL 5i "siparişin para birimi kayıttır"). Çevrilmiş
+   rakamları oraya EUR diye yazmak, alıcının sipariş sayfası ile faturasını
+   iki ayrı rakama bölerdi. */
+$t('çevrilmemiş hali taşınıyor',      substr_count($ofs, "\$out['base'] = ['meta' => \$meta, 'items' => \$items]") >= 1);
+$t('sipariş satırı base okuyor',      str_contains($ofs, "if (isset(\$p['base']['meta'], \$p['base']['items'])"));
+/* MEKTUP BELGENIN birimini yazmalı: EUR sabitiyle yazılı bir mektup, dolar
+   bir belgenin yanına euro rakamlar koyardı ("sayfada bir, kasada başka"). */
+/* HICBIR mektupta gomulu "EUR" kalmamali. Bu iddia yazildiginda REDRAFT
+   mektubunu yakaladi (KURAL 5f'nin dorduncu katmani): belge kayittan yeniden
+   kuruluyor, yani kayitli birim USD iken PDF dolar, mektup euro olurdu. */
+$t('birleşik mektup birimi yükten',   str_contains($ofs, "\$cur = strtoupper(trim((string)(\$p['meta']['currency'] ?? 'EUR'))) ?: 'EUR';")
+                                   && !str_contains($ofs, 'TOTAL DUE   : EUR'));
+$t('redraft mektubu da yükten',       substr_count($ofs, "\$cur = strtoupper(trim((string)(\$p['meta']['currency'] ?? 'EUR'))) ?: 'EUR';") >= 2
+                                   && !str_contains($ofs, 'Goods total : EUR '));
+$t('tek teklif mektubu da yükten',    str_contains($adm, "\$mcur = strtoupper(trim((string)(\$__op['meta']['currency'] ?? 'EUR')))")
+                                   && !str_contains($adm, 'Agreed    : EUR '));
+/* Panelde SEÇENEK: bir ekranda görünmeyen seçenek olmayan seçenektir. */
+$t('teklif satırında seçici var',     str_contains($adm, 'Faturayı <?= htmlspecialchars($__c) ?> kes'));
+$t('birleşik çubukta da var',         str_contains($adm, '<?= htmlspecialchars($__c) ?> kes</option>'));
+$t('taslak formdakini taşıyor',       str_contains($adm, 'vestra_offer_invoice_payload($ref, $pick, $vn, $sh, $vr, $cu)'));
+$t('kesim kayda yazıyor',             str_contains($adm, "\$rs[\$ref]['invoice_currency']=\$cu;"));
+$t('birleşik kesim de yazıyor',       str_contains($ofs, "\$rs[\$primary]['invoice_currency'] = \$cw;"));
+/* Onay penceresi belgenin birimini söylüyor: kesimden sonra değiştirilemez. */
+$t('onay metni birimi söylüyor',      str_contains($adm, 'Document currency: '));
+/* KURAL 15: gövde invoice.php'nin fonksiyonlarını çağırıyorsa require'ı KENDİ
+   içinde olmalı — kardeş bir fonksiyonun require'ına yaslanmak, çağırma sırası
+   değişince veriye bağlı bir fatal demek. */
+$t('kurucu kendi require\'ını yapıyor',
+   str_contains($ofs, "string \$currencyOverride = ''): ?array {\n    /* KENDI require'i")
+   && str_contains(explode('function vestra_offer_invoice_payload(', $ofs)[1] ?? '', "require_once __DIR__.'/invoice.php';"));
+
 printf("\n%d ok, %d hata\n", $ok, $fail);
 exit($fail ? 1 : 0);

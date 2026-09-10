@@ -223,8 +223,19 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
        "21" yazip Draft'a bastiginda belgede KDV satiri CIKMIYORDU ve
        kontrol adiminin kendisi yanlis belgeyi gosteriyordu. */
     $vr = array_key_exists('vat_rate',$_POST) ? round(max(0.0, min(100.0, vestra_price_input($_POST['vat_rate']))),2) : null;
-    $p = vestra_offer_invoice_payload($ref, $pick, $vn, $sh, $vr);
+    /* PARA BIRIMI de ayni desen: taslak formda O AN secili olani tasir, kayda
+       gecmez. Bu satir olmasaydi operator USD secip Draft'a bastiginda EUR bir
+       belge gorurdu -- kontrol adiminin kendisi yanlis belgeyi gosterir
+       (KURAL 5m'de KDV oraniyla birebir yasandi). */
+    $cu = strtoupper(trim((string)($_POST['currency'] ?? '')));
+    $p = vestra_offer_invoice_payload($ref, $pick, $vn, $sh, $vr, $cu);
     if(!$p){ header('Location: /admin?tab=invoices&msg=invoice_none'); exit; }
+    /* Cevrilemeyen taslak CIZILMEZ: EUR bir belgeyi "USD taslagi" diye
+       gostermek, operatorun kontrol ettigi belge ile aliciya gidecek belgeyi
+       ayirir. Sebep ekranda yaziyor. */
+    if(!empty($p['currency_error'])){
+      header('Location: /admin?tab=invoices&msg=invoice_cur_err&err='.urlencode(substr((string)$p['currency_error'],0,120))); exit;
+    }
     $bytes = vestra_render_invoice_pdf($p['meta'], $p['items'], $p['seller'], '', true);
     header('Content-Type: application/pdf');
     header('Content-Disposition: inline; filename="DRAFT-'.$ref.'.pdf"');
@@ -391,13 +402,24 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     /* KDV ORANI birlesik cubuktan. Tavan %100: yazim hatasiyla girilen bir
        "210" matrahi negatife dogru ezer (tek satirlik yolda da ayni sinir). */
     $vr = array_key_exists('vat_rate',$_POST) ? round(max(0.0, min(100.0, vestra_price_input($_POST['vat_rate']))),2) : null;
+    /* PARA BIRIMI: kutu cubukta HEP var, o yuzden bos gonderim "EUR" demek --
+       null degil '' geciliyor ve kesim onu kayda yaziyor. */
+    $cu = array_key_exists('currency',$_POST) ? strtoupper(trim((string)$_POST['currency'])) : null;
+    if($cu!==null && $cu!=='' && !in_array($cu, vestra_invoice_currencies(), true)){
+      header('Location: /admin?tab=invoices&msg=invoice_cur_bad'); exit;
+    }
     /* TASLAK yalnizca CIZER; kesim ayri govdede (asagida) ve yuku KENDISI
        kurar. Yuku burada bir kez daha kurmak, iki kurulus arasinda fark
        dogabilecek tek yeri yaratmak olurdu. */
     if($act==='combine_preview_offer_invoice'){
-      $p = vestra_offers_combined_invoice_payload($refs, $pick, $vn, $sh, false, $vr);
+      $p = vestra_offers_combined_invoice_payload($refs, $pick, $vn, $sh, false, $vr, (string)($cu ?? ''));
       if(!empty($p['error'])){
         header('Location: /admin?tab=invoices&msg=combine_bad&why='.rawurlencode($p['error'])); exit;
+      }
+      /* Cevrilemeyen taslak cizilmez -- kontrol adimi yanlis belgeyi
+         gostermesin (tek satirlik yolla ayni gerekce). */
+      if(!empty($p['currency_error'])){
+        header('Location: /admin?tab=invoices&msg=combine_bad&why='.rawurlencode('Kur damgası yok: '.$p['currency_error'])); exit;
       }
       $bytes = vestra_render_invoice_pdf($p['meta'], $p['items'], $p['seller'], '', true);
       header('Content-Type: application/pdf');
@@ -411,7 +433,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
        fonksiyonu cagiriyor. Iki ayri kesim yolu zamanla ayrisir ve ayrisma
        BELGEDE gorunur (KURAL 5f'nin dersi); burada elle yazilmis bir kopya
        vardi, kaldirildi. */
-    $r = vestra_offers_combined_invoice_issue($refs, $pick, $vn, $sh, $vr);
+    $r = vestra_offers_combined_invoice_issue($refs, $pick, $vn, $sh, $vr, true, '', $cu);
     if(!empty($r['error'])){
       header('Location: /admin?tab=invoices&msg=combine_bad&why='.rawurlencode($r['error'])); exit;
     }
@@ -470,8 +492,27 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $vr = round(max(0.0, min(100.0, vestra_price_input($_POST['vat_rate']))), 2);
       if(abs($vr - (float)($rs[$ref]['invoice_vat_rate'] ?? 0)) > 0.004){ $rs[$ref]['invoice_vat_rate']=$vr; $dirty=true; }
     }
+    /* PARA BIRIMI (KURAL 5i). Kardesleriyle ayni yerde kayda geciyor cunku
+       belge onu KAYITTAN okuyor -- ve redraft ayni numarayla yeniden cizerken
+       de oradan okuyacak. Taninmayan bir birim yazilmaz; bos = EUR. */
+    if(array_key_exists('currency',$_POST)){
+      $cu = strtoupper(trim((string)$_POST['currency']));
+      if($cu!=='' && !in_array($cu, vestra_invoice_currencies(), true)){
+        header('Location: /admin?tab=invoices&msg=invoice_cur_bad'); exit;
+      }
+      $cuNow = (string)($rs[$ref]['invoice_currency'] ?? '');
+      if($cu !== $cuNow){
+        if($cu==='' || $cu==='EUR') unset($rs[$ref]['invoice_currency'],$rs[$ref]['invoice_currency_by'],$rs[$ref]['invoice_currency_at']);
+        else { $rs[$ref]['invoice_currency']=$cu; $rs[$ref]['invoice_currency_by']='operator'; $rs[$ref]['invoice_currency_at']=date('c'); }
+        $dirty=true;
+      }
+    }
     if($dirty) vestra_write_json('offer_responses.json',$rs);
     $iv=vestra_offer_issue_invoice($ref, true);
+    /* Kur damgasi yoksa HICBIR NUMARA YANMADAN duruyor; sebep ekranda. */
+    if(is_array($iv) && !empty($iv['error'])){
+      header('Location: /admin?tab=invoices&msg=invoice_cur_err&err='.urlencode(substr((string)$iv['error'],0,120))); exit;
+    }
     $issued = $iv && ($iv['no'] ?? '') !== '';
     if($issued){
       /* Faturalanan teklif ORDERS'a da duser (tek satir; idempotent).
@@ -481,11 +522,20 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $orow=vestra_offer_row($ref);
       if($orow && filter_var($orow['email']??'',FILTER_VALIDATE_EMAIL)){
         require_once __DIR__.'/inc/notify.php';
-        $u=vestra_offer_agreed_unit($ref); $q=(int)($orow['qty']??0);
+        /* RAKAM VE BIRIM BELGEDEN, kayittan degil. Burasi "EUR" sabitiyle
+           yaziliydi; teklif faturasi USD kesilebilir olunca ayni mektup dolar
+           bir belgenin yanina euro rakamlar koyardi -- bu deponun tekrar tekrar
+           kaydettigi "sayfada bir, kasada baska rakam". $__op zaten kesilen
+           belgenin yuku. */
+        $q=(int)($orow['qty']??0);
+        $mcur = strtoupper(trim((string)($__op['meta']['currency'] ?? 'EUR'))) ?: 'EUR';
+        $u    = (float)($__op['items'][0]['unit'] ?? vestra_offer_agreed_unit($ref));
+        $fxn  = trim((string)($__op['meta']['fx_note'] ?? ''));
         $iv_att = is_file((string)($iv['path']??'')) ? ['attachments'=>[['name'=>'Invoice-'.$iv['no'].'.pdf','path'=>$iv['path']]]] : [];
         vestra_send_mail($orow['email'], "VESTRA — invoice for {$ref}",
           "Hello ".(($orow['company']??'')?:'there').",\n\nStock is confirmed and your invoice ({$iv['no']}) for the agreed offer is ready.\n\n"
-         ."Reference : {$ref}\nProduct   : ".($orow['product']??'')."\nQuantity  : {$q}\nAgreed    : EUR ".number_format($u,2)."/unit  (total EUR ".number_format($u*$q,2).")\n\n"
+         ."Reference : {$ref}\nProduct   : ".($orow['product']??'')."\nQuantity  : {$q}\nAgreed    : {$mcur} ".number_format($u,2)."/unit  (total {$mcur} ".number_format($u*$q,2).")\n"
+         .($fxn!==''? "  ({$fxn})\n" : '')."\n"
          ."Download it under My offers and pay by bank transfer to the account shown on the invoice. Your goods ship as soon as the payment arrives.\n\n"
          ."View: https://vestrasales.com/buyer?tab=offers&view=".rawurlencode($ref)."\n\n— VESTRA · vestrasales.com",
           '','',null,'',$iv_att);
@@ -4178,6 +4228,28 @@ elseif($tab==='invoices'): ?>
                placeholder="KDV %% (fiyata dahil, boş = yok)"
                title="KDV oranı — fiyatlar BRÜT kabul edilir. Toplam değişmez; belgede matrah ve KDV tutarı toplamın altında ayrışır. Boşsa KDV satırı hiç basılmaz."
                style="margin-top:4px;width:100%;max-width:200px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:11px">
+        <?php /* FATURA PARA BIRIMI (KURAL 5i). Siparislerde vardi, TEKLIFLERDE
+                 YOKTU -- yani kabul edilmis bir teklif ancak EUR kesilebiliyordu.
+                 Kurasyonlu ilanda faturayi platform kesiyor ve platformun banka
+                 hesabi ABD hesabi (hesap no + ABA, IBAN yok), dolayisiyla EUR bir
+                 belgede odeme kutusu hic cikmiyor: alici parayi nereye
+                 gonderecegini belgeden ogrenemiyor. Cevrim TEKLIF TARIHININ
+                 damgali kuruyla; damga yoksa kesim durur, uyari asagida. */
+              $__fcur = vestra_offer_invoice_currency($fref);
+              $__ffx  = ($__fcur!=='' && $__fcur!=='EUR') ? vestra_offer_fx_ensure($fref) : null; ?>
+        <select name="currency" form="<?= htmlspecialchars($fFid) ?>"
+                title="Fatura hangi para biriminde kesilsin? Teklif kaydı EUR kalır; tutarlar teklif tarihindeki kurla çevrilir ve belge kuru yazar."
+                style="margin-top:4px;width:100%;max-width:200px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:11px">
+          <option value="">— EUR (teklifin birimi) —</option>
+          <?php foreach(vestra_invoice_currencies() as $__c): if($__c==='EUR') continue; ?>
+            <option value="<?= htmlspecialchars($__c) ?>"<?= $__fcur===$__c?' selected':'' ?>>Faturayı <?= htmlspecialchars($__c) ?> kes</option>
+          <?php endforeach; ?>
+        </select>
+        <?php if($__fcur!=='' && $__fcur!=='EUR'): ?>
+          <div class="ahint" style="font-size:10.5px;margin-top:2px"><?= $__ffx
+            ? htmlspecialchars('@ '.vestra_order_fx_note($__ffx))
+            : '<b style="color:var(--bad)">kur damgası yok — kesim durur</b>' ?></div>
+        <?php endif; ?>
       </td>
       <td>
         <?php /* _action GIZLI ALANDA DEGIL, dugmelerin uzerinde: iki dugme ayni
@@ -4194,7 +4266,11 @@ elseif($tab==='invoices'): ?>
           <button class="abtn" type="submit" name="_action" value="preview_offer_invoice" formtarget="_blank" style="font-size:12px"
                   title="Kesilecek belgenin birebir taslağı — numara yakmaz, kaydetmez, müşteriye hiçbir şey gitmez">👁 Draft</button>
           <button class="abtn primary" type="submit" name="_action" value="issue_offer_invoice" style="font-size:12px"
-                  onclick="var s=this.form.elements.seller_uid;return confirm('Issue the invoice for offer <?= htmlspecialchars($fref) ?> at <?= htmlspecialchars(eur($fu)) ?>/unit (total <?= htmlspecialchars(eur($fu*$fq)) ?>)?\n\nIssuer: '+s.options[s.selectedIndex].text+'\n\nThis burns the number, stores the PDF and EMAILS THE BUYER. Check the draft (👁) first.\nThe seller cannot be changed afterwards.')">✓ Approve &amp; issue</button>
+                  <?php /* Onay metni SECILI para birimini de soyluyor: agreed
+                           fiyat EUR ama belge USD kesilecekse operator bunu
+                           basmadan once gormeli -- belgeyi kestikten sonra
+                           birim degistirilemez (numara yanmis olur). */ ?>
+                  onclick="var s=this.form.elements.seller_uid,c=this.form.elements.currency,cv=c?c.value:'';return confirm('Issue the invoice for offer <?= htmlspecialchars($fref) ?> at <?= htmlspecialchars(eur($fu)) ?>/unit (total <?= htmlspecialchars(eur($fu*$fq)) ?>)?\n\nIssuer: '+s.options[s.selectedIndex].text+'\nDocument currency: '+(cv&&cv!=='EUR'?cv+' (converted at the offer-date rate)':'EUR')+'\n\nThis burns the number, stores the PDF and EMAILS THE BUYER. Check the draft (👁) first.\nThe seller and the currency cannot be changed afterwards.')">✓ Approve &amp; issue</button>
         </form>
       </td>
     </tr>
@@ -4226,6 +4302,17 @@ elseif($tab==='invoices'): ?>
            style="font-size:11px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);width:80px">
     <input name="vat_note" maxlength="200" list="vatnotes" placeholder='VAT satırı (örn. "TVA non applicable — article 293 B du CGI")'
            style="font-size:11px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:260px">
+    <?php /* PARA BIRIMI de burada olmak ZORUNDA -- KDV oraninin bir gun once
+             ogrettigi ders: bir alan kardeslerinin durdugu her yerde olmali.
+             Yoksa birlesik fatura yalnizca EUR kesilebilir, yani platformun
+             (ABD hesabi) kestigi her birlesik belge odeme kutusuz cikardi. */ ?>
+    <select name="currency" title="Birleşik fatura hangi para biriminde kesilsin? Teklif kayıtları EUR kalır; çevrim birincil teklifin tarihindeki kurla yapılır."
+            style="font-size:11px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)">
+      <option value="">— EUR —</option>
+      <?php foreach(vestra_invoice_currencies() as $__c): if($__c==='EUR') continue; ?>
+        <option value="<?= htmlspecialchars($__c) ?>"><?= htmlspecialchars($__c) ?> kes</option>
+      <?php endforeach; ?>
+    </select>
     <button class="abtn" type="submit" name="_action" value="combine_preview_offer_invoice" formtarget="_blank" style="font-size:12px"
             title="Birleşik belgenin birebir taslağı — numara yakmaz, kaydetmez, müşteriye hiçbir şey gitmez">👁 Draft</button>
     <button class="abtn primary" type="submit" name="_action" value="combine_issue_offer_invoice" style="font-size:12px"

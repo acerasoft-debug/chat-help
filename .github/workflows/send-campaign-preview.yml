@@ -1700,11 +1700,14 @@ jobs:
               $bytes = vestra_render_invoice_pdf($p['meta'], $p['items'], $p['seller'], '', true);
               $tmp = sys_get_temp_dir().'/VESTRA-DRAFT-'.$iref.'.pdf';
               file_put_contents($tmp, $bytes);
+              /* Ozet BELGENIN birimini yazar: EUR sabiti, dolar bir belgenin
+                 yanina euro rakam koyardi (panelin mektuplariyla ayni ders). */
+              $pCur = strtoupper(trim((string)($p['meta']['currency'] ?? 'EUR'))) ?: 'EUR';
               $goods = 0.0; $lines = '';
               foreach ($p['items'] as $it) {
                 $goods += (float)$it['line'];
-                $lines .= sprintf("  %-16s %4d x EUR %s = EUR %s\n", $it['sku'], (int)$it['qty'],
-                          number_format((float)$it['unit'],2), number_format((float)$it['line'],2));
+                $lines .= sprintf("  %-16s %4d x %s %s = %s %s\n", $it['sku'], (int)$it['qty'],
+                          $pCur, number_format((float)$it['unit'],2), $pCur, number_format((float)$it['line'],2));
               }
               $sh2 = (float)($p['meta']['shipping'] ?? 0);
               echo "TASLAK: ".count($p['items'])." kalem, uyeler: ".implode(', ', $p['refs'])."\n";
@@ -1803,6 +1806,7 @@ jobs:
                  birlestirip gosterir.
                  spec: refs=<r1,r2,r3> | ship=<EUR> | vat=<yuzde, fiyata DAHIL>
                        | seller=<uid, ilanlar farkli saticidaysa zorunlu>
+                       | cur=<EUR|USD; belge bu birimde, kur TEKLIFIN tarihinin>
                        | apply=true (GERCEK KESIM) | notify=false (aliciya yollama)
                  HICBIR SEY KAYDEDILMEZ: numara yanmaz, diske yazilmaz, kayit
                  degismez, musteriye gitmez. Oran ve kargo yalnizca bu ciziME
@@ -1819,6 +1823,18 @@ jobs:
               $cVat  = trim($E('vat')) !== ''
                      ? round(max(0.0, min(100.0, (float)str_replace(',','.',$E('vat')))),2) : null;
               $cSel  = preg_replace('/[^A-Za-z0-9_-]/','',trim($E('seller')));
+              /* PARA BIRIMI (KURAL 5i). Panelde acilir liste var, burada YOKTU:
+                 yani is akisindan kesilen her birlesik belge zorunlu olarak EUR
+                 cikiyordu -- ve kurasyonlu ilanda faturayi kesen PLATFORM'un
+                 EUR rayi yok (ABD hesabi), yani o belge ODEME KUTUSUZ cikardi.
+                 Bos = kayitli secim neyse o. Taninmayan birim kabul EDILMEZ:
+                 cevrilemeyecegi bilinen bir birimi almak, belgeye sessizce
+                 yanlis rakam basmak olurdu. */
+              $cCur = strtoupper(trim($E('cur')));
+              if ($cCur !== '' && !in_array($cCur, vestra_invoice_currencies(), true)) {
+                fwrite(STDERR, "invoice_combine_draft: taninmayan para birimi '{$cCur}' — yalniz "
+                             . implode(', ', vestra_invoice_currencies())."\n"); exit(1);
+              }
 
               /* Hangi satici? Panelde acilir liste var, burada YOKTU: kurucu
                  "ilanlar farkli saticilara ait, listeden secin" diyor ama
@@ -1851,7 +1867,7 @@ jobs:
                  notify=false -> belge kesilir, ALICIYA mektup gitmez. */
               if (strtolower(trim($E('apply'))) === 'true') {
                 $notify = strtolower(trim($E('notify'))) !== 'false';
-                $r = vestra_offers_combined_invoice_issue($cRefs, $cSel, null, $cShip, $cVat, $notify, $to);
+                $r = vestra_offers_combined_invoice_issue($cRefs, $cSel, null, $cShip, $cVat, $notify, $to, $cCur !== '' ? $cCur : null);
                 if (!empty($r['error'])) { fwrite(STDERR, "invoice_combine_draft(apply): ".$r['error']."\n"); exit(1); }
                 echo "KESILDI: fatura ".$r['no']."\n";
                 echo "  birincil ref : ".$r['primary']."\n";
@@ -1914,8 +1930,14 @@ jobs:
                 echo "  Duzeltme gerekiyorsa: reply_letter=invoice_draft (AYNI numarayla yeniden yazar).\n\n";
               }
 
-              $p = vestra_offers_combined_invoice_payload($cRefs, $cSel, null, $cShip, false, $cVat);
+              $p = vestra_offers_combined_invoice_payload($cRefs, $cSel, null, $cShip, false, $cVat, $cCur);
               if (!empty($p['error'])) { fwrite(STDERR, "invoice_combine_draft: ".$p['error']."\n"); exit(1); }
+              /* Cevrilemeyen taslak CIZILMEZ: EUR bir belgeyi "USD taslagi" diye
+                 gostermek, kontrol adiminin kendisini yalan yapar (KURAL 5d). */
+              if (!empty($p['currency_error'])) {
+                fwrite(STDERR, "invoice_combine_draft: kur damgasi yok — ".$p['currency_error']
+                             . " (Admin > Orders > Fetch missing rates)\n"); exit(1);
+              }
 
               $bytes = vestra_render_invoice_pdf($p['meta'], $p['items'], $p['seller'], '', true);
               $tmp = sys_get_temp_dir().'/VESTRA-DRAFT-birlesik-'.$p['meta']['ref'].'.pdf';

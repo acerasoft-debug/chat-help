@@ -348,11 +348,82 @@ function vestra_offer_invoice_seller(string $ref, ?array $listing = null, string
     return vestra_platform_seller();
 }
 
+/* Teklif faturasinin PARA BIRIMI (KURAL 5i, siparislerdekiyle ayni kural).
+ *
+ * Teklifler bastan sona EUR: pazarlik EUR, uzlasilan birim EUR, kayit EUR.
+ * Belgenin hangi birimde kesilecegi AYRI bir operator karari ve teklifin kendi
+ * kaydinda durur -- siparislerdeki order_statuses.json[ref].invoice_currency ile
+ * ayni desen, ayni izin listesi (vestra_invoice_currencies: yalniz EUR, USD).
+ * Cevrilemeyecegi bilinen bir birimi kabul etmek, belgeye sessizce yanlis rakam
+ * basmak olurdu.
+ *
+ * Neden gerekti: kurasyonlu katalog ilanlarinda (seller_uid bos) faturayi
+ * PLATFORM kesiyor ve platformun banka hesabi ABD hesabi -- hesap no + ABA var,
+ * IBAN yok. vestra_payment_rails para birimine gore ray seciyor, yani EUR bir
+ * belgede odeme kutusu HIC CIKMIYOR (dogru davranis: bir euro faturaya ABD
+ * routing'i basmak, aliciyi alamayan bir yola yollar). Siparislerde bunun caresi
+ * "USD'ye cevir" dugmesiydi; TEKLIFLERDE o dugme hic yoktu, dolayisiyla kabul
+ * edilmis bir teklif ancak odeme kutusuz bir belge uretebiliyordu.
+ */
+function vestra_offer_invoice_currency(string $ref): string {
+    require_once __DIR__.'/invoice.php';
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    $rs  = vestra_read_json('offer_responses.json');
+    $c   = strtoupper(trim((string)($rs[$ref]['invoice_currency'] ?? '')));
+    return in_array($c, vestra_invoice_currencies(), true) ? $c : '';
+}
+
+/** Secimi kaydeder. '' secimi kaldirir. Taninmayan birim YAZILMAZ (false doner). */
+function vestra_offer_set_invoice_currency(string $ref, string $cur): bool {
+    require_once __DIR__.'/invoice.php';
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    if ($ref === '') return false;
+    $cur = strtoupper(trim($cur));
+    if ($cur !== '' && !in_array($cur, vestra_invoice_currencies(), true)) return false;
+    $rs = vestra_read_json('offer_responses.json');
+    if (!isset($rs[$ref]) || !is_array($rs[$ref])) return false;   // olmayan teklife secim yazilmaz
+    if ($cur === '') {
+        unset($rs[$ref]['invoice_currency'], $rs[$ref]['invoice_currency_by'], $rs[$ref]['invoice_currency_at']);
+    } else {
+        $rs[$ref]['invoice_currency']    = $cur;
+        $rs[$ref]['invoice_currency_by'] = 'operator';
+        $rs[$ref]['invoice_currency_at'] = date('c');
+    }
+    vestra_write_json('offer_responses.json', $rs);
+    return true;
+}
+
+/* KUR DAMGASI teklife de dusuyor -- ve ayni dosyaya, ayni anahtarla.
+ * Kabul edilen teklif ORDERS'a kendi ref'iyle iniyor (vestra_offer_order_ensure),
+ * yani order_statuses.json[<teklif ref>] zaten o teklifin kaydi. Damga oraya
+ * yaziliyor: ikinci bir damga yeri, ayni satis icin er ya da gec iki farkli kur
+ * demekti. Tarih TEKLIFIN tarihi -- belgenin ustune basilan tarih o, ve bugunun
+ * kuruyla cevirmek gecmis bir uzlasmayi bugunun kuruyla yeniden fiyatlamak olur.
+ * Damga bulunamazsa null doner ve cevrim REDDEDILIR (KURAL 3'un kur hali). */
+function vestra_offer_fx_ensure(string $ref, string $offerTs = ''): ?array {
+    require_once __DIR__.'/fx_orders.php';
+    $have = vestra_order_fx($ref);
+    if ($have) return $have;
+    if ($offerTs === '') {
+        $row = vestra_offer_row($ref);
+        $offerTs = (string)($row['timestamp'] ?? '');
+    }
+    if (strlen($offerTs) < 10) return null;
+    return vestra_order_fx_stamp($ref, $offerTs);
+}
+
 /* Teklifin FATURA yuku: alici blogu + tek satir + fatura kesecek satici.
  * Uc yerde (operator kabulu, alici kabulu, panelden onayli kesim) elle
  * kuruluyordu; ucu de ayni rakami uretmek ZORUNDA, cunku ayni belge.
  * Ayri kopyalar zamanla ayrisir ve ayrisma faturada gorunur. */
-function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = '', ?string $vatNoteOverride = null, ?float $shippingOverride = null, ?float $vatRateOverride = null): ?array {
+function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = '', ?string $vatNoteOverride = null, ?float $shippingOverride = null, ?float $vatRateOverride = null, string $currencyOverride = ''): ?array {
+    /* KENDI require'i: bu govde vestra_invoice_currencies() ve
+       vestra_invoice_convert_payload() cagiriyor. Dosya bugun zaten yuklu
+       geliyor (vestra_offer_invoice_seller kendi require'ini yapiyor) ama
+       KARDES bir fonksiyonun require'ine yaslanmak, KURAL 15'in admin.php'de
+       kaydettigi fatal'in ta kendisi: cagirma sirasi degisince fonksiyon
+       tanimsiz kalir ve hata VERIYE BAGLI olur. */
+    require_once __DIR__.'/invoice.php';
     $offerRow = vestra_offer_row($ref);
     if (!$offerRow) return null;
     $listing  = vestra_listing_by_sku($offerRow['sku'] ?? '');
@@ -389,9 +460,18 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
              : (float)($rs[$ref]['invoice_vat_rate'] ?? 0);
     $vatRate = round(max(0.0, min(100.0, $vatRate)), 2);
 
-    return [
-        'meta' => [
+    /* PARA BIRIMI. Teklifin kendi kaydi EUR; belgenin birimi operator karari.
+       Cevrim SIPARIS/TEKLIF TARIHININ damgali kuruyla, TEK kurucudan
+       (vestra_invoice_convert_payload -- siparis faturasinin da kullandigi).
+       Ikinci bir cevrim yolu, ayni satista er ya da gec iki farkli rakam
+       demektir. Damga yoksa cevrim degil GEREKCE doner ve kesim yolu durur. */
+    $baseCur = 'EUR';
+    $ovrCur  = strtoupper(trim($currencyOverride));
+    $wantCur = in_array($ovrCur, vestra_invoice_currencies(), true) ? $ovrCur : vestra_offer_invoice_currency($ref);
+
+    $meta = [
             'ref' => $ref, 'date' => $offerRow['timestamp'] ?? date('c'),
+            'currency' => $baseCur,
             'vat_note' => trim($vatNote),
             'shipping' => round(max(0.0, $shipping), 2),
             'vat_rate' => $vatRate,
@@ -405,8 +485,8 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
                 'country' => (string)($buyerAcc['country'] ?? ''),
                 'address' => (string)($buyerAcc['address'] ?? ''),
             ],
-        ],
-        'items' => [[
+    ];
+    $items = [[
             'sku'    => $listing['sku'] ?? ($offerRow['sku'] ?? ''),
             'brand'  => $listing['brand'] ?? '',
             'name'   => $listing['name'] ?? ($offerRow['product'] ?? ''),
@@ -416,11 +496,37 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
                teklifin toplami, pazarlik sonrasi artik dogru degil. */
             'unit'   => round($unit, 2),
             'line'   => round($unit * $qty, 2),
-        ]],
-        'seller' => $sellerAcc,
-        'unit'   => round($unit, 2),
-        'qty'    => $qty,
-    ];
+    ]];
+
+    $out = ['meta' => $meta, 'items' => $items, 'seller' => $sellerAcc,
+            'unit' => round($unit, 2), 'qty' => $qty];
+    if ($wantCur === '' || $wantCur === $baseCur) return $out;
+
+    /* Damgayi burada ARIYORUZ ama uydurmuyoruz: vestra_offer_fx_ensure yalniz
+       yerel ECB gecmisine bakiyor, aga cikmiyor ve bulamazsa null donuyor. */
+    $conv = vestra_invoice_convert_payload($meta, $items, $baseCur, $wantCur, vestra_offer_fx_ensure($ref, (string)($offerRow['timestamp'] ?? '')));
+    if (isset($conv['error'])) {
+        /* Cevrilemeyen belge SESSIZCE EUR kesilmez -- operator USD istedi, EUR
+           bir belge alsaydi farki ancak alici gorurdu. Yuk gerekcesiyle
+           isaretleniyor; taslak bunu yaziyor, kesim yolu buna bakip duruyor.
+           Siparis tarafindaki 'currency_error' ile ayni anahtar, ayni sebeple. */
+        $out['currency_error'] = $conv['error'];
+        $out['want_currency']  = $wantCur;
+        return $out;
+    }
+    $out['meta']  = $conv['meta'];
+    $out['items'] = $conv['items'];
+    /* 'unit' ve 'qty' cagiranin mektup/ekran metni icin okudugu rakamlar --
+       cevrilmis belgede EUR birim birakmak, mektubun belgeden BASKA bir rakam
+       yazmasi demekti (bu depoda tekrar tekrar kaydedilen hata). */
+    $out['unit'] = (float)($conv['items'][0]['unit'] ?? $out['unit']);
+    /* CEVRILMEMIS HALI DE TASINIYOR. Belge baska bir birimde kesilebilir ama
+       SIPARIS KAYDI teklifin kendi biriminde kalmak zorunda (KURAL 5i'nin
+       "siparisin para birimi kayittir, degismez" kurali): orders.csv'ye
+       cevrilmis rakamlari EUR diye yazmak, alicinin siparis sayfasi ile
+       faturasini iki ayri rakama bolerdi. */
+    $out['base'] = ['meta' => $meta, 'items' => $items];
+    return $out;
 }
 
 /* SECILEN TEKLIFLERDEN TEK FATURA (operator karari, 1 Eyl 2026: "urunler
@@ -449,7 +555,7 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
 /* $allowInvoiced YALNIZCA redraft icin: kesilmis belgeyi AYNI numarayla
  * yeniden cizerken uyeler elbette faturali gorunur -- normal kesimde ise bu
  * kontrol ikinci numara yakilmasini onluyor, acik kalmali. */
-function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickOverride = '', ?string $vatNoteOverride = null, ?float $shippingOverride = null, bool $allowInvoiced = false, ?float $vatRateOverride = null): array {
+function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickOverride = '', ?string $vatNoteOverride = null, ?float $shippingOverride = null, bool $allowInvoiced = false, ?float $vatRateOverride = null, string $currencyOverride = ''): array {
     require_once __DIR__.'/invoice.php';
     $refs = array_values(array_unique(array_filter(array_map(
         fn($r) => preg_replace('/[^A-Za-z0-9_-]/', '', (string)$r), $refs))));
@@ -508,11 +614,18 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
              : (float)($rs[$primary]['invoice_vat_rate'] ?? 0);
     $vatRate = round(max(0.0, min(100.0, $vatRate)), 2);
 
+    /* PARA BIRIMI de BIRINCIL ref'ten -- vat_note/shipping/vat_rate ile ayni
+       kayit, ayni desen. KURAL 5m'in dersi tam buydu: bir alan kardeslerinin
+       durdugu HER YERDE olmali; birlesik yolda eksik kalan KDV orani, birlesik
+       faturanin hicbir zaman KDV tasiyamamasina yol acmisti. */
+    $curPick = strtoupper(trim($currencyOverride));
+    $wantCur = in_array($curPick, vestra_invoice_currencies(), true)
+             ? $curPick : vestra_offer_invoice_currency($primary);
+
     $buyerAcc = auth_find($buyerRow['email'] ?? '') ?: [];
-    return [
-        'refs' => $refs,
-        'meta' => [
+    $meta = [
             'ref' => $primary, 'date' => date('c'),
+            'currency' => 'EUR',
             'vat_note' => trim((string)$vatNote),
             'shipping' => round(max(0.0, $shipping), 2),
             'vat_rate' => $vatRate,
@@ -526,13 +639,38 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
                 'country' => (string)($buyerAcc['country'] ?? ''),
                 'address' => (string)($buyerAcc['address'] ?? ''),
             ],
-        ],
+    ];
+
+    $out = [
+        'refs'   => $refs,
+        'meta'   => $meta,
         'items'  => $items,
         'seller' => $sellerAcc,
         'seller_pick' => $pick,
         'total'  => round(array_sum(array_column($items, 'line')), 2),
         'qty'    => (int)array_sum(array_column($items, 'qty')),
     ];
+    if ($wantCur === '' || $wantCur === 'EUR') return $out;
+
+    /* Kur damgasi BIRINCIL ref'in: belge onun adina kesiliyor, tarihi ve
+       numarasi ondan geliyor. Uyelerin tarihleri farkli olabilir ama tek
+       belge tek kur tasir -- uye basina ayri kur, ayni belgede birbirini
+       tutmayan satirlar demekti. */
+    $conv = vestra_invoice_convert_payload($meta, $items, 'EUR', $wantCur, vestra_offer_fx_ensure($primary));
+    if (isset($conv['error'])) {
+        /* Birlesik yolda gerekce YUKUN ICINDE donuyor, ['error'=>…] olarak
+           DEGIL: cagiran (panel ve is akisi) refleri, saticiyi ve tutari
+           yazabilsin diye -- "kur yok" diyen bir ret, hangi teklifler icin
+           oldugunu da soylemeli (KURAL 5n'in ret metni dersi). */
+        $out['currency_error'] = $conv['error'];
+        $out['want_currency']  = $wantCur;
+        return $out;
+    }
+    $out['meta']  = $conv['meta'];
+    $out['items'] = $conv['items'];
+    $out['total'] = round(array_sum(array_column($conv['items'], 'line')), 2);
+    $out['base']  = ['meta' => $meta, 'items' => $items];   // siparis satiri bundan yazilir
+    return $out;
 }
 
 /* BIRLESIK FATURAYI KES -- panelin ✓ Approve dugmesinin ve is akisinin ORTAK
@@ -555,7 +693,7 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
  *
  * Doner: ['error'=>...] ya da ['ok'=>true, 'no', 'path', 'primary', 'refs',
  * 'seller', 'total', 'shipping', 'grand', 'notified', 'sent', 'copied']. */
-function vestra_offers_combined_invoice_issue(array $refs, string $sellerPick = '', ?string $vatNote = null, ?float $shipping = null, ?float $vatRate = null, bool $notify = true, string $copyTo = ''): array {
+function vestra_offers_combined_invoice_issue(array $refs, string $sellerPick = '', ?string $vatNote = null, ?float $shipping = null, ?float $vatRate = null, bool $notify = true, string $copyTo = '', ?string $currency = null): array {
     require_once __DIR__.'/invoice.php';
     require_once __DIR__.'/notify.php';
 
@@ -571,8 +709,16 @@ function vestra_offers_combined_invoice_issue(array $refs, string $sellerPick = 
         if (!$known) return ['error' => "Satıcı hesabı bulunamadı: {$pick}"];
     }
 
-    $p = vestra_offers_combined_invoice_payload($refs, $pick, $vatNote, $shipping, false, $vatRate);
+    $p = vestra_offers_combined_invoice_payload($refs, $pick, $vatNote, $shipping, false, $vatRate, (string)($currency ?? ''));
     if (!empty($p['error'])) return ['error' => $p['error']];
+    /* CEVRILEMEYEN BELGE KESILMEZ -- ve bu KAYITTAN ONCE duruyor. Sirasi
+       onemli: asagisi once kaydi yaziyor (uyeleri baglayarak), sonra belgeyi
+       kesiyor. Cevrim burada reddedilmeseydi teklifler bir gruba baglanmis
+       ama faturasiz kalirdi ve o grup bir daha ayni sekilde kurulamazdi. */
+    if (!empty($p['currency_error'])) {
+        return ['error' => 'Kur damgası yok, belge çevrilemedi: '.$p['currency_error']
+                          .' — Admin ▸ Orders ▸ ⟳ Fetch missing rates ile kuru çekin ya da faturayı EUR kesin.'];
+    }
 
     $primary = (string)$p['meta']['ref'];
     $rs = vestra_read_json('offer_responses.json');
@@ -584,6 +730,14 @@ function vestra_offers_combined_invoice_issue(array $refs, string $sellerPick = 
     /* Oran da kayda gecer: redraft belgeyi KAYITTAN yeniden kurar. Yazilmasaydi
        kesilen belge KDV'li, ayni numarayla yeniden cizileni KDV'siz olurdu. */
     if ($vatRate !== null) $rs[$primary]['invoice_vat_rate'] = $vatRate;
+    /* Para birimi de kayda gecer, ayni sebeple: redraft belgeyi KAYITTAN
+       yeniden kuruyor. Yazilmasaydi kesilen belge USD, ayni numarayla yeniden
+       cizileni EUR olurdu -- ayni numara, iki tutar. */
+    if ($currency !== null) {
+        $cw = strtoupper(trim($currency));
+        if ($cw === '' || $cw === 'EUR') unset($rs[$primary]['invoice_currency']);
+        else                             $rs[$primary]['invoice_currency'] = $cw;
+    }
     $rs[$primary]['invoice_members'] = $p['refs'];
     foreach ($p['refs'] as $r) { if ($r !== $primary) $rs[$r]['invoice_group_ref'] = $primary; }
     vestra_write_json('offer_responses.json', $rs);
@@ -597,14 +751,25 @@ function vestra_offers_combined_invoice_issue(array $refs, string $sellerPick = 
     $goods = round((float)$p['total'], 2);
     $grand = round($goods + $shp, 2);
 
+    /* MEKTUP BELGENIN PARA BIRIMINI YAZAR. Burasi "EUR" sabitiyle yaziliydi ve
+       teklif faturasi hep EUR oldugu surece dogruydu; USD secilebilir olunca
+       ayni mektup dolar bir belgenin yanina euro rakamlar koyardi. Birim
+       YUKTEN okunuyor, cunku yuku ceviren de belgeyi cizen de ayni yer. */
+    $cur = strtoupper(trim((string)($p['meta']['currency'] ?? 'EUR'))) ?: 'EUR';
     $lines = '';
     foreach ($p['items'] as $it) {
-        $lines .= sprintf("  %-14s %4d x EUR %s = EUR %s\n", (string)$it['sku'], (int)$it['qty'],
-                  number_format((float)$it['unit'], 2), number_format((float)$it['line'], 2));
+        $lines .= sprintf("  %-14s %4d x %s %s = %s %s\n", (string)$it['sku'], (int)$it['qty'],
+                  $cur, number_format((float)$it['unit'], 2), $cur, number_format((float)$it['line'], 2));
     }
-    $tot = "  Goods total : EUR ".number_format($goods, 2)."  ({$p['qty']} pcs)\n"
-         . ($shp > 0 ? "  Shipping    : EUR ".number_format($shp, 2)."\n" : '')
-         . "  TOTAL DUE   : EUR ".number_format($grand, 2)."\n";
+    $tot = "  Goods total : {$cur} ".number_format($goods, 2)."  ({$p['qty']} pcs)\n"
+         . ($shp > 0 ? "  Shipping    : {$cur} ".number_format($shp, 2)."\n" : '')
+         . "  TOTAL DUE   : {$cur} ".number_format($grand, 2)."\n";
+    /* Kur notu mektupta da: belgede zaten yaziyor (fx_note), ama parayi
+       gonderen kisi cogu zaman once mektuba bakiyor ve "neden 4.680 degil
+       5.439" sorusunun cevabi ikisinde de durmali. */
+    if ($cur !== 'EUR' && trim((string)($p['meta']['fx_note'] ?? '')) !== '') {
+        $tot .= "  (".trim((string)$p['meta']['fx_note']).")\n";
+    }
     /* KDV FIYATIN ICINDE ise mektup da ayirir (KURAL 5i). Hesap cizicinin
        hesabinin AYNISI -- net asagi yuvarlanir, vergi FARKTAN bulunur; iki
        ayri yuvarlama toplami bir kurus kaydirir ve mektup ile belge celisirdi. */
@@ -612,8 +777,8 @@ function vestra_offers_combined_invoice_issue(array $refs, string $sellerPick = 
     if ($vr > 0 && !empty($p['meta']['vat_included']) && $grand > 0) {
         $net = round($grand / (1 + $vr / 100), 2);
         $lbl = rtrim(rtrim(number_format($vr, 2, '.', ''), '0'), '.');
-        $tot .= "  (Taxable amount EUR ".number_format($net, 2)
-             .  ", VAT {$lbl}% EUR ".number_format(round($grand - $net, 2), 2)." — included above)\n";
+        $tot .= "  (Taxable amount {$cur} ".number_format($net, 2)
+             .  ", VAT {$lbl}% {$cur} ".number_format(round($grand - $net, 2), 2)." — included above)\n";
     }
 
     $subject = "VESTRA — your invoice {$iv['no']} is ready";
@@ -674,6 +839,17 @@ function vestra_offers_combined_invoice_issue(array $refs, string $sellerPick = 
  * uretmesin). Yazim basarisi geri OKUNARAK dogrulanmaz cunku append yalnizca
  * tek satir; basarisizlikta false doner ve cagiran operatore soyler. */
 function vestra_offer_order_ensure(array $p, bool $update = false): bool {
+    /* SIPARIS SATIRI HER ZAMAN TEKLIFIN KENDI PARA BIRIMINDE (EUR).
+       Belge baska bir birimde kesilmis olabilir -- o operatorun BELGE karari
+       (KURAL 5i) ve siparis kaydini degistirmez. Cevrilmis yuk buraya oldugu
+       gibi girseydi orders.csv'ye dolar rakamlari EUR olarak yazilir, alicinin
+       siparis sayfasi faturasindan baska bir tutar gosterir ve toplam denetimi
+       (diag-live "toplam farki") kirilirdi. Kurucular cevrilmemis hali 'base'
+       altinda tasiyor; burasi varsa ONU okuyor. */
+    if (isset($p['base']['meta'], $p['base']['items']) && is_array($p['base']['items'])) {
+        $p['meta']  = $p['base']['meta'];
+        $p['items'] = $p['base']['items'];
+    }
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($p['meta']['ref'] ?? ''));
     if ($ref === '' || empty($p['items'])) return false;
     /* $update=false: satir varsa DOKUNMA (ayni kesim iki kez calisirsa ikinci
@@ -837,19 +1013,25 @@ function vestra_offer_invoice_redraft_apply(string $ref, ?float $ship = null, ?a
        degismeli, yoksa ayni satis iki farkli rakam gosterir. */
     vestra_offer_order_ensure($p, true);
 
+    /* REDRAFT MEKTUBU DA BELGENIN BIRIMINI YAZAR. Bu satirlar "EUR" sabitiyle
+       yaziliydi; redraft belgeyi KAYITTAN yeniden kuruyor, yani kayitli
+       invoice_currency USD ise PDF dolar cikip mektup euro yazardi -- ustelik
+       ayni numarayla, yani alicinin elindeki belgeyle celisen bir duzeltme
+       mektubu. Bu deponun uc katman dersinin (KURAL 5f) dorduncu katmani. */
+    $cur = strtoupper(trim((string)($p['meta']['currency'] ?? 'EUR'))) ?: 'EUR';
     $goods = 0.0; $lines = '';
     foreach ($p['items'] as $it) {
         $goods += (float)$it['line'];
-        $lines .= sprintf("  %-16s %4d x EUR %s = EUR %s\n", $it['sku'], (int)$it['qty'],
-                  number_format((float)$it['unit'], 2), number_format((float)$it['line'], 2));
+        $lines .= sprintf("  %-16s %4d x %s %s = %s %s\n", $it['sku'], (int)$it['qty'],
+                  $cur, number_format((float)$it['unit'], 2), $cur, number_format((float)$it['line'], 2));
     }
     $shp  = (float)($p['meta']['shipping'] ?? 0);
     $subj = "VESTRA — your invoice {$iv['no']} is ready";
     $body = "Hello ".(($p['meta']['buyer']['company'] ?? '') ?: 'there').",\n\n"
           ."Your invoice ({$iv['no']}) is ready — the corrected PDF is attached and replaces any earlier copy of the same invoice number.\n\n"
-          .$lines."\n  Goods total : EUR ".number_format($goods, 2)."\n"
-          .($shp > 0 ? "  Shipping    : EUR ".number_format($shp, 2)."\n" : '')
-          ."  TOTAL DUE   : EUR ".number_format($goods + $shp, 2)."\n\n"
+          .$lines."\n  Goods total : {$cur} ".number_format($goods, 2)."\n"
+          .($shp > 0 ? "  Shipping    : {$cur} ".number_format($shp, 2)."\n" : '')
+          ."  TOTAL DUE   : {$cur} ".number_format($goods + $shp, 2)."\n\n"
           ."Please pay by bank transfer to the account shown on the invoice, quoting reference ".$p['meta']['ref'].".\n"
           ."You can also download it any time under My offers.\n\n"
           ."View: https://vestrasales.com/buyer?tab=offers\n\n— VESTRA · vestrasales.com";
@@ -881,6 +1063,15 @@ function vestra_offer_invoice_redraft_apply(string $ref, ?float $ship = null, ?a
 function vestra_offer_issue_invoice(string $ref, bool $force): ?array {
     $p = vestra_offer_invoice_payload($ref);
     if (!$p) return null;
+    /* CEVRILEMEYEN BELGE KESILMEZ. Operator USD sectiyse ve o teklifin
+       tarihine kur damgasi dusmediyse, sessizce EUR bir belge kesmek
+       "sayfada bir, kasada baska rakam"in fatura hali olurdu -- ustelik
+       numara YANMIS olarak, yani geri alinamaz. Hicbir numara yakilmadan
+       gerekce donuyor; panel bunu kirmizi bant olarak basiyor.
+       Siparis tarafinda ayni kural vestra_issue_order_invoices'ta. */
+    if (!empty($p['currency_error'])) {
+        return ['error' => (string)$p['currency_error']];
+    }
     require_once __DIR__.'/invoice.php';
     return vestra_ensure_invoice($p['meta'], $p['items'], $p['seller'], $force);
 }
