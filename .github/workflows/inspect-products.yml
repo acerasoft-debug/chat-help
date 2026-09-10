@@ -133,9 +133,15 @@ jobs:
                kullanilan sonda o listenin yedincisi olurdu. */
             if ($rawscan) {
               $all = function_exists('vestra_listings') ? vestra_listings() : [];
-              $sel = array_values(array_filter($all, function ($p) use ($brand, $cat) {
-                if ($brand !== '' && $brand !== '*' && strcasecmp(trim((string)($p['brand'] ?? '')), $brand) !== 0) return false;
-                if ($cat !== '' && strcasecmp(trim((string)($p['cat'] ?? '')), $cat) !== 0) return false;
+              /* Bu dosyanin suzgec degiskenleri $bf/$cf -- ilk yazimda $brand/$cat
+                 yazdim, ikisi de TANIMSIZ, ve PHP'de null !== '' DOGRU oldugu icin
+                 suzgec her satiri "eslesmedi" sayip 0 dondurdu. Cikti "722 kayit,
+                 filtreye uyan 0" idi: yazma basarili, sonda bos. Tam olarak bu
+                 dosyaya eklerken kacinmaya calistigim sey -- kontrolun kendisi
+                 yanlis yere bakiyor. */
+              $sel = array_values(array_filter($all, function ($p) use ($bf, $cf) {
+                if ($bf !== '' && $bf !== '*' && strcasecmp(trim((string)($p['brand'] ?? '')), $bf) !== 0) return false;
+                if ($cf !== '' && strcasecmp(trim((string)($p['cat'] ?? '')), $cf) !== 0) return false;
                 return true;
               }));
               printf("HAM listings.json: %d kayit, filtreye uyan %d\n\n", count($all), count($sel));
