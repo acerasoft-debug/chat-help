@@ -14,6 +14,18 @@ on:
         description: "true = MEVCUT makalelerin metnini de tohum dosyasindan tazele (elle yapilan duzenlemeleri EZER)"
         required: false
         default: "false"
+      rebuild_auto:
+        description: "true = YAYIMLANMIS otomatik stok raporunu ayni kurucuyla YENIDEN kur (yerlesim degistiginde)"
+        required: false
+        default: "false"
+      rebuild_slug:
+        description: "Yeniden kurulacak raporun slug'i (bos = en yeni otomatik rapor)"
+        required: false
+        default: ""
+      rebuild_apply:
+        description: "true = yaz. Varsayilan false: once neyin degisecegini gosterir"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -52,7 +64,7 @@ jobs:
       # photos: "0" indirmez, sadece sunucudaki havuzu listeler -- indirmeyi tekrarlamadan
       # "ne var elimizde" diye bakabilmek icin.
       - name: Editoryal fotograflari indir
-        if: ${{ github.event.inputs.photos != '' }}
+        if: ${{ github.event.inputs.photos != '' && github.event.inputs.rebuild_auto != 'true' }}
         uses: appleboy/ssh-action@v1.0.3
         env:
           PH_PER: ${{ github.event.inputs.photos }}
@@ -106,7 +118,160 @@ jobs:
             rm -f /tmp/vestra_jphotos.php
             exit $RC
 
+      # YAYIMLANMIS otomatik raporu ayni kurucuyla yeniden kurar.
+      #
+      # Neden gerekli: rapor dokuz dilde ve tamami koddan uretiliyor. Yerlesim
+      # degistiginde (10 Eyl 2026: baglantilar en alttan UST'e alindi) yayimlanmis
+      # yazi eski duzende kaliyor ve elle duzeltmek dokuz dilin metnini elde
+      # yeniden yazmak demek -- yani KURAL 3'un yasakladigi "elle yazilan olgu".
+      # Ayni kurucu, ayni pencere, ayni katalog; yalnizca duzen yeni.
+      #
+      # slug/id/created/published/cover KORUNUR: kurucu her cagrilisinda YENI bir
+      # slug uretiyor ve mevcut slug alinmis oldugu icin "-2" ekliyor. Oldugu gibi
+      # yazsaydik makalenin ADRESI degisir, yayimlanmis baglantilar 404 olurdu.
+      # Bu yuzden yalnizca metin alanlari (title/excerpt/body/i18n) tasiniyor.
+      - name: Otomatik raporu yeniden kur
+        if: ${{ github.event.inputs.rebuild_auto == 'true' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          RB_SLUG:  ${{ github.event.inputs.rebuild_slug }}
+          RB_APPLY: ${{ github.event.inputs.rebuild_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 10m
+          envs: RB_SLUG,RB_APPLY
+          script: |
+            cat > /tmp/vestra_jrebuild.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME");
+            require $home."/public_html/inc/products.php";
+            require_once $home."/public_html/inc/journal.php";
+            require_once $home."/public_html/inc/journal_auto.php";
+            foreach (['vestra_journal_auto_build','vestra_journal_save','vestra_journal_all'] as $fn)
+              if (!function_exists($fn)) { fwrite(STDERR,"HATA: {$fn}() yok\n"); exit(1); }
+
+            $wantSlug = trim((string)getenv('RB_SLUG'));
+            $apply    = strtolower(trim((string)getenv('RB_APPLY'))) === 'true';
+
+            /* Hedefi KAYITTAN sec, girdiden degil: slug bos birakilirsa en yeni
+               otomatik rapor. Elle yazilan bir slug yanlis makaleyi ezebilirdi. */
+            $auto = [];
+            foreach (vestra_journal_all() as $a)
+              if (($a['source'] ?? '') === VESTRA_JOURNAL_AUTO_FLAG) $auto[] = $a;
+            if (!$auto) { fwrite(STDERR,"HATA: yayimlanmis otomatik rapor YOK\n"); exit(1); }
+
+            echo "otomatik rapor sayisi: ".count($auto)."\n";
+            foreach ($auto as $a)
+              printf("   %-46s %s  %s\n", (string)($a['slug'] ?? '?'),
+                     substr((string)($a['created'] ?? '?'),0,16),
+                     !empty($a['published']) ? 'yayinda' : 'TASLAK');
+
+            $art = null;
+            foreach ($auto as $a) if ($wantSlug !== '' && ($a['slug'] ?? '') === $wantSlug) $art = $a;
+            if ($wantSlug !== '' && !$art) { fwrite(STDERR,"HATA: slug bulunamadi: {$wantSlug}\n"); exit(1); }
+            if (!$art) $art = $auto[0]; // vestra_journal_all() en yeniden eskiye
+
+            $created = strtotime((string)($art['created'] ?? ''));
+            if (!$created) { fwrite(STDERR,"HATA: makalenin created damgasi okunamadi\n"); exit(1); }
+
+            echo "\nhedef  : ".$art['slug']."\n";
+            echo "kuruldu: ".date('c', $created)."\n";
+            echo "mod    : ".($apply ? "YAZ" : "KURU KOSU -- hicbir sey yazilmayacak")."\n";
+
+            /* ignorePrevious=true SART: pencere "son otomatik rapordan beri" diye
+               kuruluyor ve bu makalenin KENDISI o rapor. Vermezsek pencere sifir
+               genislikte cikar ve kurucu "yeni ilan 0" deyip atlar. */
+            $new = vestra_journal_auto_build($created, VESTRA_JOURNAL_AUTO_DAYS, true);
+            if (isset($new['skip'])) { fwrite(STDERR,"HATA: kurucu atladi -- ".$new['skip']."\n"); exit(1); }
+
+            /* Baglanti blogu govdenin UST yarisinda mi? Olculen sey tam olarak
+               operatorun istedigi sey; "yazdim" demek yerine yerini olc.
+               KARAKTERLE olculuyor, baytla degil: strpos bayt sayar, mb_strlen
+               karakter -- ru/ja gibi cok baytli dillerde ikisini karistirmak
+               dogru bir gövdeyi "altta" gosterir. */
+            $where = function (string $body): string {
+              $pos = mb_strpos($body, 'https://vestrasales.com/');
+              if ($pos === false) return 'baglanti YOK';
+              $len = max(1, mb_strlen($body));
+              return sprintf('%%%d (%s yari)', (int)round($pos * 100 / $len), $pos * 2 < $len ? 'UST' : 'alt');
+            };
+            $firstLinks = function (string $body, int $n = 3): array {
+              $out = [];
+              foreach (explode("\n", $body) as $l)
+                if (strpos($l, 'https://vestrasales.com/') !== false) { $out[] = trim($l); if (count($out) >= $n) break; }
+              return $out;
+            };
+
+            $oldBody = (string)($art['body'] ?? '');
+            $newBody = (string)($new['body'] ?? '');
+            echo "\n--- EN ---\n";
+            printf("  baslik  once : %s\n", (string)($art['title'] ?? '?'));
+            printf("  baslik  sonra: %s\n", (string)($new['title'] ?? '?'));
+            printf("  govde   once : %d karakter, baglanti %s\n", mb_strlen($oldBody), $where($oldBody));
+            printf("  govde   sonra: %d karakter, baglanti %s\n", mb_strlen($newBody), $where($newBody));
+            echo "  yeni baglantilar:\n";
+            foreach ($firstLinks($newBody) as $l) echo "     ".$l."\n";
+
+            echo "\n--- diller ---\n";
+            foreach (array_keys((array)($new['i18n'] ?? [])) as $lg) {
+              $ob = (string)($art['i18n'][$lg]['body'] ?? '');
+              $nb = (string)($new['i18n'][$lg]['body'] ?? '');
+              printf("  %-3s once %-16s sonra %s\n", $lg, $where($ob), $where($nb));
+            }
+
+            if (!$apply) { echo "\nKURU KOSU -- hicbir sey yazilmadi\n"; exit(0); }
+
+            /* Yalniz METIN tasiniyor. slug/id/created/published/cover/category/author
+               makalenin kimligi; kurucunun urettigi kopyalari onlarin yerine gecerse
+               adres degisir ve yayimlanmis baglantilar kirilir. */
+            $save = [
+              'id'      => (string)($art['id'] ?? ''),
+              'title'   => (string)($new['title'] ?? ''),
+              'excerpt' => (string)($new['excerpt'] ?? ''),
+              'body'    => $newBody,
+              'i18n'    => (array)($new['i18n'] ?? []),
+            ];
+            if ($save['id'] === '') { fwrite(STDERR,"HATA: makalenin id'si yok -- yazmiyorum\n"); exit(1); }
+            vestra_journal_save($save);
+
+            /* GERI OKU. Bu depoda "kaydedildi" demek kaydedildigini gostermiyor
+               (KURAL 5c'nin billing_saved dersi). */
+            clearstatcache();
+            $back = vestra_journal_find((string)($art['slug'] ?? ''));
+            if (!$back) { fwrite(STDERR,"\nHATA: geri okuma -- slug kayboldu!\n"); exit(1); }
+            $bad = [];
+            if ((string)($back['body'] ?? '') !== $newBody) $bad[] = 'en govdesi yazilmadi';
+            if (empty($back['published']))                  $bad[] = 'yayin durumu kayboldu';
+            if ((string)($back['created'] ?? '') !== (string)($art['created'] ?? '')) $bad[] = 'created degisti';
+            if ((string)($back['cover'] ?? '')   !== (string)($art['cover'] ?? ''))   $bad[] = 'kapak degisti';
+            foreach (array_keys((array)($new['i18n'] ?? [])) as $lg) {
+              $nb = (string)($new['i18n'][$lg]['body'] ?? '');
+              if ((string)($back['i18n'][$lg]['body'] ?? '') !== $nb) $bad[] = $lg.' govdesi yazilmadi';
+              $p = mb_strpos($nb, 'https://vestrasales.com/');
+              if ($p === false || $p * 2 >= mb_strlen($nb)) $bad[] = $lg.' baglantisi UST yarida degil';
+            }
+            echo "\ngeri okuma:\n";
+            printf("  slug      : %s (degismedi)\n", (string)$back['slug']);
+            printf("  created   : %s\n", (string)($back['created'] ?? '?'));
+            printf("  updated   : %s\n", (string)($back['updated'] ?? '?'));
+            printf("  baglanti  : %s\n", $where((string)($back['body'] ?? '')));
+            if ($bad) { fwrite(STDERR,"\nHATA: ".implode('; ', $bad)."\n"); exit(1); }
+            echo "\nTAMAM -- https://vestrasales.com/journal?slug=".rawurlencode((string)$back['slug'])."\n";
+            PHPEOF
+            php -l /tmp/vestra_jrebuild.php
+            php /tmp/vestra_jrebuild.php; RC=$?
+            rm -f /tmp/vestra_jrebuild.php
+            exit $RC
+
+      # Yeniden kurma kosusunda tohumlama ATLANIR: istenen tek sey raporun
+      # duzeni; ayni kosuda tohum dosyasina da dokunmak, sorulmayan bir
+      # degisikligi de uygulamak olurdu.
       - name: Tohumla
+        if: ${{ github.event.inputs.rebuild_auto != 'true' }}
         uses: appleboy/ssh-action@v1.0.3
         env:
           SEED_REFRESH: ${{ github.event.inputs.refresh }}
