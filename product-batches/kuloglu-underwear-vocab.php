@@ -329,12 +329,33 @@ const KU_PRODUCTS = [
 ];
 const KU_PHOTO_REJECT = [
   'nbb'     => KU_NBB_PHOTO_REJECT,
-  /* Visatin/Q-EN kareleri kontakt sayfasindan GOZLE incelenip doldurulacak
-     (operator sarti: fotografta Turkce ifade varsa yayimlanmaz). Bos birakmak
-     "hepsi temiz" demek DEGIL -- kurucu, incelenmemis bir uretici icin
-     calistirilmamali; bakildiginda buraya yazilir. */
-  'visatin' => [],
-  'qen'     => [],
+  /* 114 karenin HEPSI goz ile incelendi (kontakt sayfasi, `kuloglu: sheet`,
+     10 Eyl 2026; supheli olan her kare 400-470px'te tekrar okundu). Gerekce
+     tek tek yaziliyor -- "Turkce var" demek yetmez: tedarikci bir gun kareyi
+     degistirdiginde karar gozden gecirilebilsin.
+
+     GECEN ama not dusulen kalip: Visatin'in her karesinde pembe bir bant var
+     ve uzerinde "VISATIN / Lingerie / CODE <no>" yaziyor -- Latin harfli,
+     Ingilizce, ve SATTIGIMIZ markanin kendi logosu. NBB 9001'in ("NBB
+     Lingerie®") aynisi; elemek, urunun markasini gostermeyi yasaklamak olurdu. */
+  'visatin' => [
+    '13100' => 'Fotograf urun degil, AMBALAJ ACILIMI (kutu flat): sol panelde '
+             . '"ÖNEMLİ!" basligiyla Turkce paragraf, altinda "Made in Türkiye".',
+    '13101' => 'Ayni ambalaj acilimi: "ÖNEMLİ!" + "Made in Türkiye".',
+    '13102' => 'Ayni ambalaj acilimi: "ÖNEMLİ!" + "Made in Türkiye".',
+    '13106' => 'Ayni ambalaj acilimi: "ÖNEMLİ!" + "Made in Türkiye".',
+  ],
+  /* Q-EN kartlari kendi basina Ingilizce (CODE / SIZE / BIG SIZE / COLORS /
+     BAMBOO / "IN PACK 3 PIECES - PANTIES"). Elenenler o kaliptan SAPANLAR. */
+  'qen'     => [
+    '300'   => 'Pembe bantta "JÜPON - UNDERSKIRT" -- "JÜPON" Turkce ve kareyi '
+             . 'basliklandiran yerde duruyor.',
+    '707'   => 'Kirmizi okla isaretlenmis "PETLİ" (Turkce, noktali İ ile).',
+    '707-B' => 'Kirmizi okla isaretlenmis "PETLİ".',
+    '708'   => 'Kirmizi okla isaretlenmis "PETLİ".',
+    '708-B' => 'Kirmizi okla isaretlenmis "PETLİ".',
+    '711'   => 'Kirmizi okla isaretlenmis "PETLİ".',
+  ],
 ];
 
 /* ── BASLIKTAN SINIFLANDIRMA ─────────────────────────────────────────────────
