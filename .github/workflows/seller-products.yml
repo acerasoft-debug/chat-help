@@ -1481,6 +1481,14 @@ jobs:
                       colors alani listeyi DEGISTIRIR, eklemez, ve 10 Eyl
                       2026'da kuru kosu tam da bunu yakaladi (6 -> 5). */
                    ." | renk=".(($__c = array_values(array_filter((array)($p['colors'] ?? []), 'is_string'))) ? implode('/', $__c) : '-')
+                   /* min_colors OLMADAN renk secici HIC cizilmiyor
+                      (vestra_needs_colors: colors + min_colors + size_step>1),
+                      yani "renkler ilanda var" ile "alici renk secebiliyor"
+                      ayri iki sey. Sayim bunu soylemedigi surece ilkine bakip
+                      ikincisi sanilir -- 10 Eyl 2026'da tam bu oldu. */
+                   ." | min_renk=".((int)($p['min_colors'] ?? 0) > 0
+                        ? (int)$p['min_colors'].(vestra_needs_colors($p) ? '' : ' (SECICI YOK)')
+                        : '- (renk secici YOK)')
                    ." | sample_price=".(!empty($p['sample_price'])?$p['sample_price']:'-')
                    ." | status=".($p['status']??'approved')
                    ." | satici: {$sLabel}\n";
