@@ -1892,6 +1892,15 @@ yani sunucuda duruyor, katalogda **görünmüyor**. Operatörün "önce göster"
 şartı ile "canlıya yaz" talimatı böyle birlikte karşılandı: onay düğmesi
 `Admin ▸ Products`'ta, önizleme operatörün kendi ekranı.
 
+**Aynı gün AÇILDI** (operatör: *"tüm ürünleri ac.... underwear e koy nbb leri"*):
+42 ilan `pending → approved`, `product-fixes/nbb-approve.json` +
+`set-product.yml`. Cümlenin ikinci yarısı **yazma gerektirmedi** — 42'sinin
+hepsi zaten `section=underwear` (bir önceki geri okumanın ölçtüğü değer,
+varsayım değil) ve `set_product.php`'nin `$ALLOWED` listesinde `section`
+**yok**. Yazamayacağı bir alanı düzeltme dosyasına koymak, hiç dokunmadığı
+bir şeye "başarılı" diyen bir koşu üretirdi. Elenen 5 ürün **açılmadı**:
+fotoğraf kuralı değişmedi.
+
 | | |
 |---|---:|
 | Taranan NBB ürünü | 47 |
@@ -1899,6 +1908,7 @@ yani sunucuda duruyor, katalogda **görünmüyor**. Operatörün "önce göster"
 | **Yazılan ilan** | **42** |
 | 9 dilde ad + açıklama | 42/42 |
 | Bölme `underwear`, satıcı `Wholesale Underwear`, `ships_from=Turkey` | 42/42 |
+| **Katalogda görünen (`approved`)** | **42/42** |
 
 - **Elenen 5 fotoğraf** ve gerekçeleri `nbb_photo_rejected()`'ta (yorumda
   değil — elle eleme unutulur, KURAL 1h). 47 karenin **hepsi göz ile**
