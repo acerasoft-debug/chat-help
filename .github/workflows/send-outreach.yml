@@ -691,6 +691,15 @@ jobs:
                           : ($IS_NEWCOLL ? ($NC_LETTER === 'shoes' ? 'IKINCI MEKTUP — ayakkabi + ic giyim' : 'YENI KOLEKSIYON — Winter 26/27')
                                          : 'Les Garage de Paris');
             if ($sellerSkipped) echo "SATICI: kendi satici hesabimiz oldugu icin elenen: {$sellerSkipped}\n";
+            /* Mektubun ICINDEKI rakamlar OZETTE de yazilir. Ilk surumde yalniz
+               dongunun ustunde basiliyordu ve 1900 satirlik bir kuru kosuda
+               kuyruktan dusuyordu -- yani gonderilmeden once okunacak sey tam
+               olarak gorunmeyen seydi (CLAUDE.md: get_job_logs kuyrugu ~55-78
+               satir). */
+            if ($IS_NEWCOLL && $NC_LETTER === 'shoes') {
+                echo "MEKTUP: ayakkabi ".(int)($NC_FACTS['shoes'] ?? 0)." artikel | ic giyim ".(int)($NC_FACTS['underwear'] ?? 0)." artikel\n";
+                echo "MEKTUPTAKI MARKALAR: ".((string)($NC_FACTS['brands'] ?? '') !== '' ? $NC_FACTS['brands'] : '(YOK)')."\n";
+            }
             echo $DRY ? "== DRY-RUN ({$MODE_LABEL}) — gonderim YOK, sadece secim listesi ==\n"
                       : "== GERCEK GONDERIM — {$MODE_LABEL} ==\n";
             /* Kota kapisi. Kampanya ile sifre sifirlama AYNI gunluk havuzdan iciyor ve
