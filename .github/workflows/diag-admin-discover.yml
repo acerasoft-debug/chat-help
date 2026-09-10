@@ -1070,7 +1070,7 @@ jobs:
             // kurulsun diye.
             if ($mode === 'vocab') {
               $existing = load_json($OUT_FILE, []);
-              if (!$existing) { fwrite(STDERR, "bayan_sutyen.json bos/yok -- once crawl calistir\n"); exit(1); }
+              if (!$existing) { fwrite(STDERR, basename($OUT_FILE)." bos/yok -- once crawl calistir\n"); exit(1); }
               $brands = []; $cats = []; $colors = []; $sizes = []; $words = [];
               foreach ($existing as $rec) {
                 if (!empty($rec['brand'])) $brands[$rec['brand']] = ($brands[$rec['brand']] ?? 0) + 1;
@@ -1108,10 +1108,42 @@ jobs:
             // Marka basina bir tane: kuyruk siralamasi genelde ayni markadan ard arda
             // geliyor, duz bir dilim (start/count) coğu zaman TEK markayi gosterirdi --
             // amac markalar arasi bir kalip olup olmadigini gormek.
+            // Kaydin BASLIK/KATEGORI/BEDEN/RENK dokumu -- ceviri tablosunu yazmak
+            // icin gereken tek sey bu. 'vocab' kelimeleri SAYIYOR ama hangi
+            // baslikta hangisinin gectigini gostermiyor; bir baslik "MİKRO 40
+            // DENYE" ise onu kelime kelime yapistirmak hicbir dilde dogru cumle
+            // vermez, urunun kendisini gormek gerekiyor.
+            //
+            // NE BASIYOR: baslik, kategori, url slug'i, beden/renk anahtarlari,
+            // fotograf sayisi ve ilk fotograf adresi. FIYAT YOK -- ucuncu-taraf
+            // tarifesi herkese acik gunluge girmez (3 Eyl 2026 dersi: sifreli
+            // paketin fiyatini iki kosu log'a yazdi). Basliklar zaten tedarikcinin
+            // acik sitesinde duruyor.
+            if ($mode === 'titles') {
+              $start = $arg1 !== '' ? (int)$arg1 : 0;
+              $count = $arg2 !== '' ? (int)$arg2 : 60;
+              $existing = load_json($OUT_FILE, []);
+              if (!$existing) { fwrite(STDERR, basename($OUT_FILE)." bos/yok -- once crawl calistir\n"); exit(1); }
+              $slice = array_slice($existing, $start, $count);
+              printf("toplam=%d, bu dilim [%d..%d)\n\n", count($existing), $start, $start + count($slice));
+              foreach ($slice as $i => $rec) {
+                $imgs = array_values(array_filter($rec['images'] ?? [], fn($im) => empty($im['thumb'])));
+                if (!$imgs) $imgs = $rec['images'] ?? [];
+                $sz = array_values(array_unique(array_filter(array_map(fn($v) => (string)($v['size'] ?? ''), $rec['variants'] ?? []))));
+                $co = array_values(array_unique(array_filter(array_map(fn($v) => (string)($v['color'] ?? ''), $rec['variants'] ?? []))));
+                printf("[%d] %s\n", $start + $i, (string)($rec['title'] ?? '?'));
+                printf("    kat=%s | slug=%s\n", (string)($rec['category'] ?? '?'), basename(parse_url((string)($rec['url'] ?? ''), PHP_URL_PATH) ?: '?'));
+                printf("    beden=%s\n", $sz ? implode(' / ', $sz) : '(yok)');
+                printf("    renk =%s\n", $co ? implode(' / ', $co) : '(yok)');
+                printf("    foto =%d  ilk=%s\n\n", count($imgs), (string)($imgs[0]['url'] ?? '-'));
+              }
+              exit(0);
+            }
+
             if ($mode === 'sample_images') {
               $count = $arg1 !== '' ? (int)$arg1 : 8;
               $existing = load_json($OUT_FILE, []);
-              if (!$existing) { fwrite(STDERR, "bayan_sutyen.json bos/yok -- once crawl calistir\n"); exit(1); }
+              if (!$existing) { fwrite(STDERR, basename($OUT_FILE)." bos/yok -- once crawl calistir\n"); exit(1); }
               $seenBrand = []; $n = 0;
               foreach ($existing as $rec) {
                 if ($n >= $count) break;
@@ -1144,7 +1176,7 @@ jobs:
               $start = $arg1 !== '' ? (int)$arg1 : 0;
               $count = $arg2 !== '' ? (int)$arg2 : 5;
               $existing = load_json($OUT_FILE, []);
-              if (!$existing) { fwrite(STDERR, "bayan_sutyen.json bos/yok -- once crawl calistir\n"); exit(1); }
+              if (!$existing) { fwrite(STDERR, basename($OUT_FILE)." bos/yok -- once crawl calistir\n"); exit(1); }
               $IMAGES_DIR = $DIR . '/images_staged';
               if (!is_dir($IMAGES_DIR)) @mkdir($IMAGES_DIR, 0700, true);
               $IMAGES_MAP_FILE = $DIR . '/images_staged.json';
@@ -1481,7 +1513,7 @@ jobs:
               }
               exit(0);
             }
-            fwrite(STDERR, "bilinmeyen mod: '{$mode}'. beklenen: fields|paginate|list_urls|crawl|price|vocab|sample_images|images|images_reset|create_seller|build_batch|export_enc|reset|status\n");
+            fwrite(STDERR, "bilinmeyen mod: '{$mode}'. beklenen: fields|paginate|list_urls|crawl|price|vocab|titles|probe_url|sample_images|images|images_reset|create_seller|build_batch|export_enc|reset|status\n");
             exit(1);
 
 

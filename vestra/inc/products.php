@@ -662,6 +662,52 @@ function vestra_section_note(string $s): string {
 function vestra_find($id){ foreach(vestra_products(true) as $p){ if($p['id']===$id) return $p; } return null; }
 function vestra_cats(){ $c=[]; foreach(vestra_products() as $p){ $c[$p['cat']]=1; } return array_keys($c); }
 function vestra_primary_image(array $p): string { if(!empty($p['images'])&&is_array($p['images'])) return $p['images'][0]; return $p['image']??''; }
+
+/* ── Ilanin adi ve aciklamasi, SAYFANIN DILINDE ───────────────────────────────
+ *
+ * (operator, 10 Eyl 2026, NBB ic camasiri katalogu: *"tüm dillere cevrilecek"*,
+ * ve adin da cevrilip cevrilmeyecegi ayrica soruldu -- cevap: evet.)
+ *
+ * Bu depoda ilanin `name`/`desc` alani HICBIR YERDE t()'den gecmiyordu; her
+ * sayfa ham dizgeyi basiyordu. Yani 4 Eylul'deki Kuloglu isinde baslik tek ve
+ * Ingilizce yazildi -- cevrilmedigi icin degil, cevrilmis bir basligin
+ * BASILACAGI YER olmadigi icin (product-batches/kuloglu-vocab.php'nin kendi
+ * olcumu). t() burada dogru arac DEGIL: t() site metinlerinin sozlugu, ilan
+ * adi ise ilanin kendi verisi -- her yeni urun sozluge 9 satir eklemek olurdu.
+ *
+ * Bu yuzden ceviri ILANIN UZERINDE duruyor (`name_i18n`, `desc_i18n`: dil kodu
+ * -> metin) ve okuyan TEK yer bu iki fonksiyon. Alan yoksa ya da o dil yoksa
+ * ilanin kendi `name`/`desc`'i basilir: 671 mevcut ilanin hicbirinde bu alan
+ * yok ve hicbiri degismemeli.
+ *
+ * ALAN EKLEMEK YETMEZ, OKUYAN YOL DA GEREKIR: bu depo "toplanan ama okunmayan
+ * alan"i bir kez yasadi (KURAL 5j -- platformun banka kunyesi panelde
+ * toplaniyordu, cizici o kaydi hic okumuyordu, alanlari doldurmak hicbir seyi
+ * degistirmiyordu). O yuzden cagri yerleri testle sayiliyor.
+ */
+function vestra_i18n_pick(array $map, string $fallback): string {
+    /* vlang() sureç icinde sabitleniyor; burada onu cagirmak dogru cunku her
+       istek tek bir dile ait. CLI'da (cron, toplu is) da 'en' donuyor. */
+    $lang = function_exists('vlang') ? vlang() : 'en';
+    $v = trim((string)($map[$lang] ?? ''));
+    return $v !== '' ? $v : $fallback;
+}
+function vestra_product_name(array $p): string {
+    $base = trim((string)($p['name'] ?? ''));
+    $m = $p['name_i18n'] ?? null;
+    return is_array($m) ? vestra_i18n_pick($m, $base) : $base;
+}
+function vestra_product_desc(array $p): string {
+    $base = trim((string)($p['desc'] ?? ''));
+    $m = $p['desc_i18n'] ?? null;
+    return is_array($m) ? vestra_i18n_pick($m, $base) : $base;
+}
+/* Marka + ad, tek yerde: alt metinlerde, sayfa basliklarinda ve belge
+   satirlarinda ayni sira kullanilsin. */
+function vestra_product_title(array $p): string {
+    return trim(trim((string)($p['brand'] ?? '')).' '.vestra_product_name($p));
+}
+
 /* Mask a seller/company name for viewers who are not yet approved (freigeschaltet):
    "Milano Fashion GmbH" → "M···". Never reveals more than the first letter. */
 function vestra_mask_seller(string $s): string {
