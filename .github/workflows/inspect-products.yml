@@ -163,6 +163,22 @@ jobs:
                  ilan vitrinde durur, SATIN ALINAMAZ. */
               if ($noTier) { echo "*** TIERS YOK (satin alinamaz) ***\n"; foreach (array_slice($noTier, 0, 20) as $m) echo "   $m\n"; }
               else echo "tiers   : hepsinde var\n";
+              /* Satici uid'i: showroom kurallari HESABA baglaniyor, ilanin
+                 gorunen adina degil ("Wholesale Underwear" bir metin, kimlik
+                 degil). Kisisel veri degil -- e-posta/token degil, hesap
+                 anahtari; CLAUDE.md zaten bir satici uid'ini acikca tasiyor. */
+              $uids = [];
+              foreach ($sel as $p) { $u = (string)($p['seller_uid'] ?? '(yok)'); $uids[$u] = ($uids[$u] ?? 0) + 1; }
+              echo "satici_uid: "; foreach ($uids as $k => $v) printf("%s=%d  ", $k, $v); echo "\n";
+              /* Beden dizgelerinin TAM dagilimi. Beden secici yazarken kaynak
+                 bu olmali: kendi uydurdugum ornek degerlerle calisan bir ayristirici,
+                 canlida bambaska bir dizgeyle karsilasir (bu depoda pack_qty ile
+                 birebir bu yasandi). */
+              $sz = [];
+              foreach ($sel as $p) { $s = trim((string)($p['sizes'] ?? '')); if ($s === '') $s = '(BOS)'; $sz[$s] = ($sz[$s] ?? 0) + 1; }
+              arsort($sz);
+              echo "beden dizgeleri (".count($sz)." farkli):\n";
+              foreach ($sz as $k => $v) printf("   %2d x  %s\n", $v, $k);
               echo "\n-- ornek kayit (FIYAT YOK) --\n";
               foreach (array_slice($sel, 0, 3) as $p) {
                 printf("  %s  [%s]  durum=%s  bolme=%s  satici=%s  ships=%s\n",
