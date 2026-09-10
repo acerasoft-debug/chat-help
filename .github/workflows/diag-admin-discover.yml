@@ -1404,16 +1404,23 @@ jobs:
               }
               save_json_atomic($PRICED_FILE, $priced);
               printf("yazildi: %s (%d kayit)\n", $PRICED_FILE, count($priced));
-              if ($allEur) {
-                sort($allEur);
-                $n = count($allEur);
-                printf("varyant EUR fiyati -- min=%.2f orta=%.2f maks=%.2f (n=%d)\n", $allEur[0], $allEur[intdiv($n,2)], $allEur[$n-1], $n);
-              }
-              echo "\n-- 3 ornek kayit (TRY -> EUR) --\n";
+              /* RAKAM BASILMIYOR. Bu adim tedarikcinin TRY tarifesini okuyor ve
+                 kutuk herkese acik; ustelik kar orani CLAUDE.md'de yazili, yani
+                 EUR satis fiyatini basmak maliyeti de ele verir (3 Eyl 2026'da
+                 Pili Perez'de tam bu oldu). Ceviri "calisti mi" sorusu rakamsiz
+                 cevaplanabiliyor: kac kayit fiyatlandi, kacinda fiyat COZULEMEDI,
+                 kur ne. Cozulemeyenin kendisi asil bilgi -- fiyatsiz bir kayit
+                 ilan olamaz. */
+              if ($allEur) printf("EUR fiyati cozulen varyant: %d\n", count($allEur));
+              $noPrice = 0;
+              foreach ($priced as $rec) if (($rec['unit_price_eur'] ?? 0) <= 0) $noPrice++;
+              printf("birim fiyati COZULEMEYEN kayit: %d\n", $noPrice);
+              echo "\n-- 3 ornek kayit (FIYAT MASKELI) --\n";
               foreach (array_slice($priced, 0, 3) as $rec) {
                 printf("  %s\n    TRY birim=%s -> EUR birim=%s   (varyant sayisi=%d)\n",
                   mb_substr($rec['title'] ?? $rec['url'], 0, 60),
-                  var_export($rec['unit_price_try'] ?? null, true), var_export($rec['unit_price_eur'] ?? null, true),
+                  ($rec['unit_price_try'] ?? null) !== null ? 'VAR' : 'YOK',
+                  ($rec['unit_price_eur'] ?? null) !== null ? 'VAR' : 'YOK',
                   count($rec['variants'] ?? []));
               }
               exit(0);
