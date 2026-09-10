@@ -814,6 +814,10 @@ function vestra_offers_combined_invoice_issue(array $refs, string $sellerPick = 
             'primary' => $primary, 'refs' => $p['refs'],
             'seller' => vestra_invoice_issuer_name($p['seller'], 'Acerasoft LLC'),
             'total' => $goods, 'shipping' => $shp, 'grand' => $grand,
+            /* Cagiran (panel mesaji, is akisi ozeti) tutarlari BASIYOR; birim
+               dondurulmeseydi her biri "EUR" tahmin ederdi ve dolar bir belgenin
+               yanina euro rakam yazardi. Rakami veren, biriminin de vermeli. */
+            'currency' => $cur,
             'vat_rate' => $vr, 'qty' => (int)$p['qty'],
             'notified' => $notify, 'sent' => $sent, 'copied' => $copied];
 }

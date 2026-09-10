@@ -1026,6 +1026,76 @@ adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kay
   **Yıllarca görünmedi çünkü bu alanlar ancak platform kendi künyesinden
   kesmeye başlayınca birlikte doldu.**
 - Test: `invoice_currency_test.php §5b`.
+- **Platform renderer'a İKİ AYRI ŞEKİLDE geliyor ve `$sellerAcc === null` diye
+  yazılmış her kontrol bunun yarısını kaçırıyordu** (9 Eyl 2026). Kurasyonlu
+  ilanın **SİPARİŞ** dilimi `null` geçiyor (`vestra_order_invoice_payloads`,
+  'vestra' anahtarına hesap konmuyor), aynı ilana verilen **TEKLİF** ise
+  platformun **KAYDINI** geçiriyor (`vestra_offer_invoice_seller` hiçbir zaman
+  null dönmez, `vestra_platform_seller()`'a düşer). Aynı mal, aynı kesen taraf,
+  iki farklı cevap. İki kontrol bu yüzden yanlış çalışıyordu: (1) ödeme kutusu
+  boşken operatörü **yanlış sayfaya** yollayan taslak notu (teklifte
+  `Admin ▸ Users` diyordu — platformun banka bilgisinin **duramayacağı** sayfa;
+  yanlış sayfaya yollayan bir yönerge, hiç yönergeden pahalıdır çünkü
+  uygulanır), (2) satıcı kutusu hesap dalından çiziliyor, yani aynı satış
+  sipariş olarak farklı bir künye taşıyordu. Tek ayırt edici artık
+  `vestra_invoice_is_platform_issuer()` ve ölçüt **hesap id'si**:
+  `auth_accounts()`'tan gelen her kayıtta var, `vestra_platform_seller()`'da
+  yok. **Ad testi bilerek yok** — operatör bir gün gerçek bir Acerasoft satıcı
+  hesabı açarsa o hesap *seller of record*'dur ama banka bilgisi yine
+  `Admin ▸ Users`'ta durur; feragat cümlesi bloğu daha geniş soruyu soruyor ve
+  ad kolunu kendi çağrı yerinde tutuyor. Test: `invoice_draft_test.php §6`
+  (42 iddia; iki çağrı yeri geri alınınca **3 kırmızı**).
+
+**KURAL 5i (devamı) — TEKLİF faturası da USD kesilebilir; kur TEKLİFİN tarihinin**
+(operatör, 9 Eyl 2026, OCD7D2: *"burada neden fatura yaparken banka bilgileri
+cikmiyor ?"* + *"ayrica direkt usd ye cevirme buttonu eksik"*). **İki cümle tek
+sorundu.**
+- **Ölçüm önce** (`diag-messages` → `billing_for=vestra`; sonda o güne kadar
+  yalnız **hesapları** arıyordu, yani kurasyonlu malda ödeme kutusunu belirleyen
+  tek kayıt, hiçbir sondanın bakamadığı kayıttı — eklendi). Platformun künyesi
+  **boş değil**: `bank_holder`, `bank_name` (*Choice Financial Group*),
+  `bank_bic`, `bank_account` **VAR (12 hane)**, `bank_routing` **VAR (9 hane)**,
+  ama `bank_iban` **BOŞ**. Sonuç: **EUR faturada ödeme kutusu ÇIKMAZ, USD
+  faturada ÇIKAR (6 satır).** Yani VESTRA'nın kendi hesabı bir **ABD hesabı** ve
+  euro rayı yok; `vestra_payment_rails` bir euro faturaya ABA routing basmak
+  yerine **hiçbir şey basmamayı** seçiyor (doğrusu bu: Avrupalı alıcı o yola
+  ödeyemez, kabul eden banka günler sonra iade eder).
+- KURAL 5i'nin bütün makinesi **sipariş** kapsamındaydı;
+  `vestra_offer_invoice_payload()` para birimi parametresi **hiç almıyordu**.
+  Yani kabul edilmiş bir teklif **yalnızca EUR** kesilebiliyor, ve kurasyonlu
+  ilanda faturayı platform kestiği için o belge **ödeme kutusuz** çıkıyordu.
+- Kurallar siparişteki gibi, **aynı** parçalarla: aynı izin listesi
+  (`vestra_invoice_currencies`), aynı tek çevirici
+  (`vestra_invoice_convert_payload`), kur **TEKLİFİN tarihinin damgası**.
+  Damga `order_statuses.json[<teklif ref>]`'e düşüyor — kabul edilen teklif
+  zaten kendi ref'iyle orders'a iniyor, **ikinci bir damga yeri** aynı satış
+  için er ya da geç iki farklı kur demekti. **Damga yoksa çevrim yok, fatura
+  YOK**: gerekçe döner, hiçbir numara yanmaz.
+- **Sipariş satırı teklifin kendi biriminde kalır.** Çevrilmiş yük olduğu gibi
+  `orders.csv`'ye girseydi dolar rakamları EUR diye yazılırdı. Kurucular
+  çevrilmemiş hâli `base` altında taşıyor, `vestra_offer_order_ensure()` onu
+  okuyor: belgenin birimi operatörün kararı, **siparişin kaydı değil**.
+- **Üç mektupta gömülü "EUR" vardı** ve üçü de düzeltildi (tek kesim, birleşik
+  kesim, KURAL 5f redraft'ı). En kötüsü **redraft**: belgeyi kayıttan yeniden
+  kuruyor, yani USD bir fatura **aynı numarayla** euro rakamlı bir gövdeyle
+  yeniden gönderilirdi.
+- **Kardeşlerinin durduğu HER YERE yazıldı** (KURAL 5m'in dersi): satır
+  seçicisi, birleştirme çubuğu, iki taslak yolu, iki kesim yolu ve iş akışında
+  `cur=` (`reply_letter=invoice_combine_draft`). KDV oranı bu dersi tam olarak
+  birleşik çubukta eksik kalarak vermişti.
+- `vestra_offer_invoice_payload()` artık `invoice.php`'yi **kendi** require
+  ediyor; kardeş bir fonksiyonun require'ına yaslanmak KURAL 15'in fatal'inin
+  küçük hâli.
+- Test: `invoice_currency_test.php §7` (90 iddia, kablolama) ve
+  `invoice_seller_pick_test.php §12` (toplam 130; **gerçek** çevirici gövdesiyle
+  aritmetik). Düşebildiği doğrulandı: çevrim kaldırılınca **11 kırmızı**.
+  `invoice_vat_test`'in kablolama iddiası çağrının **tam metnini** sabitliyordu
+  ve kurucuya kardeş bir alan eklenince, oran hâlâ doğru geçerken kırmızı döndü
+  — ölçtüğü şeyi değil, yazımını koruyan bir iddia; daraltıldı.
+- **Operatör kararı bekliyor:** ya platform künyesine bir **EUR/IBAN** hesabı
+  girilir (`Admin ▸ Orders ▸ Platform billing & bank details`), ya da
+  kurasyonlu maldan çıkan faturalar **USD** kesilir. Kod ikisini de destekliyor;
+  hangisinin doğru olduğunu VESTRA'nın hangi hesaba tahsilat yaptığı belirler.
 
 **KURAL 5k — Siparişe NAVLUN yazılabilir; tutar ile TOPLAM birlikte hareket eder**
 (operatör, 7 Eyl 2026: *"kargo bölümü yok kargo eklemek gerekiyor 100 usd
