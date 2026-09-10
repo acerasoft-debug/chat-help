@@ -1140,6 +1140,82 @@ jobs:
               exit(0);
             }
 
+            // KONTAKT SAYFASI — operatorun sarti: "resmin üstünde türkce ifadeler
+            // varsa koyma" (10 Eyl 2026). Bu KAYNAKTAN cevaplanamaz, BAKMAK
+            // gerekiyor; sunucuda OCR yok ve "muhtemelen temizdir" demek KURAL 3'un
+            // yasakladigi tahmin olurdu.
+            //
+            // NBB'de her urunun TEK fotografi var (olculdu), yani elenen bir kare
+            // = yayimlanmayan bir ilan. 47 kareyi tek tek cekmek 47 kosu demekti;
+            // bu mod hepsini tek bir tabakaya diziyor. Her karenin sol ust
+            // kosesinde KAYIT SIRA NUMARASI yaziyor -- numarasiz bir tabakada
+            // "ucuncu sirada metin var" cumlesi hangi urun oldugunu soylemez.
+            //
+            // Cikti base64 ve KARAKTER ARASI BOSLUKLU: Actions gunlugu gizli
+            // degerleri her yerde maskeliyor (DEPLOY_PORT="22" yuzunden base64'un
+            // icindeki "22" bile "***" oluyor) ve maskelenmis bir tabaka
+            // cozulemez.
+            if ($mode === 'sheet') {
+              if (!function_exists('imagecreatefromstring')) { fwrite(STDERR, "GD yok\n"); exit(1); }
+              $start = $arg1 !== '' ? (int)$arg1 : 0;
+              $count = $arg2 !== '' ? (int)$arg2 : 12;
+              $tile  = trim($parts[3] ?? '') !== '' ? max(120, min(480, (int)$parts[3])) : 300;
+              $existing = load_json($OUT_FILE, []);
+              if (!$existing) { fwrite(STDERR, basename($OUT_FILE)." bos/yok -- once crawl calistir\n"); exit(1); }
+              $slice = array_slice($existing, $start, $count);
+              $UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+              $tiles = [];
+              foreach ($slice as $i => $rec) {
+                $idx = $start + $i;
+                $imgs = array_values(array_filter($rec['images'] ?? [], fn($im) => empty($im['thumb'])));
+                if (!$imgs) $imgs = $rec['images'] ?? [];
+                $u = (string)($imgs[0]['url'] ?? '');
+                // Ayni guard: yalnizca tedarikcinin kendi alan adi.
+                if ($u === '' || !preg_match('#^https://www\.kuloglutekstil\.com\.tr/#', $u)) { printf("[%d] fotograf yok/dis adres, atlandi\n", $idx); continue; }
+                $ch = curl_init($u);
+                curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_FOLLOWLOCATION=>true, CURLOPT_MAXREDIRS=>5,
+                  CURLOPT_TIMEOUT=>25, CURLOPT_CONNECTTIMEOUT=>10, CURLOPT_USERAGENT=>$UA]);
+                $bin = curl_exec($ch); $hc = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+                $im = ($bin && $hc >= 200 && $hc < 300) ? @imagecreatefromstring($bin) : null;
+                if (!$im) { printf("[%d] indirilemedi (HTTP %s)\n", $idx, $hc ?: '000'); continue; }
+                // Kare kirpma "cover": fotografin TAMAMINI kucultmek yerine ortasini
+                // alsaydik ust/alt banda basilmis bir etiket kirpilip GORUNMEZ olurdu
+                // -- yani tam aradigimiz sey elenirdi. Bu yuzden "contain": kare
+                // tuvale sigdiriliyor, kenarlarda bosluk kaliyor.
+                $w = imagesx($im); $h = imagesy($im);
+                $sc = min($tile / max(1, $w), $tile / max(1, $h));
+                $nw = max(1, (int)round($w * $sc)); $nh = max(1, (int)round($h * $sc));
+                $t = imagecreatetruecolor($tile, $tile);
+                imagefilledrectangle($t, 0, 0, $tile, $tile, imagecolorallocate($t, 24, 24, 28));
+                imagecopyresampled($t, $im, (int)(($tile-$nw)/2), (int)(($tile-$nh)/2), 0, 0, $nw, $nh, $w, $h);
+                imagedestroy($im);
+                $lbl = (string)$idx;
+                imagefilledrectangle($t, 0, 0, 8 + 7*strlen($lbl), 18, imagecolorallocate($t, 0, 0, 0));
+                imagestring($t, 3, 4, 2, $lbl, imagecolorallocate($t, 255, 255, 255));
+                $tiles[$idx] = $t;
+              }
+              if (!$tiles) { fwrite(STDERR, "hic kare uretilemedi\n"); exit(1); }
+              $n = count($tiles); $cols = (int)ceil(sqrt($n)); $rows = (int)ceil($n / $cols);
+              $sheet = imagecreatetruecolor($cols * $tile, $rows * $tile);
+              imagefilledrectangle($sheet, 0, 0, $cols*$tile, $rows*$tile, imagecolorallocate($sheet, 24, 24, 28));
+              $k = 0;
+              foreach ($tiles as $t) {
+                imagecopy($sheet, $t, ($k % $cols) * $tile, intdiv($k, $cols) * $tile, 0, 0, $tile, $tile);
+                imagedestroy($t); $k++;
+              }
+              ob_start(); imagejpeg($sheet, null, 62); $jpg = ob_get_clean();
+              imagedestroy($sheet);
+              printf("tabaka: %d kare, %dx%d kafes, %dpx karo, %d bayt\n", $n, $cols, $rows, $tile, strlen($jpg));
+              printf("kareler (sira no): %s\n", implode(',', array_keys($tiles)));
+              printf("sha256(jpeg)=%s\n", hash('sha256', $jpg));
+              $chunks = str_split(base64_encode($jpg), 200);
+              printf("parca sayisi=%d\n", count($chunks));
+              echo "IMG_CHUNKS_BEGIN\n";
+              foreach ($chunks as $i => $c) printf("C%04d %s\n", $i, implode(' ', str_split($c)));
+              echo "IMG_CHUNKS_END\n";
+              exit(0);
+            }
+
             if ($mode === 'sample_images') {
               $count = $arg1 !== '' ? (int)$arg1 : 8;
               $existing = load_json($OUT_FILE, []);
@@ -1513,7 +1589,7 @@ jobs:
               }
               exit(0);
             }
-            fwrite(STDERR, "bilinmeyen mod: '{$mode}'. beklenen: fields|paginate|list_urls|crawl|price|vocab|titles|probe_url|sample_images|images|images_reset|create_seller|build_batch|export_enc|reset|status\n");
+            fwrite(STDERR, "bilinmeyen mod: '{$mode}'. beklenen: fields|paginate|list_urls|crawl|price|vocab|titles|probe_url|sheet|sample_images|images|images_reset|create_seller|build_batch|export_enc|reset|status\n");
             exit(1);
 
 
