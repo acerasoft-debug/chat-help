@@ -12,7 +12,20 @@ require __DIR__.'/../vestra/inc/pdf.php';   // gercek sinif + vestra_pdf_thumb
 /* products.php'den gelen iki kucuk yardimci -- dosyanin tamamini yuklemek
    vestra_data_dir vb. istiyor, stub sozlesmeyi karsiliyor. */
 function vestra_product_label(string $brand, string $name): string { return trim($brand.' '.$name); }
-function vestra_tax_id_hint(string $country): array { return ['label'=>'VAT ID','placeholder'=>'']; }
+/* 'short' ALANI SART: platform kutusu vergi kimligini "EIN: …" diye etiketliyor
+   ve stub onu tasimayinca PHP uyarisi verip etiketi bos birakti -- eksik bir stub,
+   olcumu sessizce degistirir. Gercek imza products.php:1104. */
+function vestra_tax_id_hint(string $country): array {
+    $c = strtoupper(trim($country));
+    return in_array($c, ['US','USA','UNITED STATES'], true)
+        ? ['label'=>'EIN (Federal Tax ID)','placeholder'=>'12-3456789','short'=>'EIN']
+        : ['label'=>'VAT ID','placeholder'=>'','short'=>'VAT ID'];
+}
+/* vestra_platform_seller() buradan okuyor. Bos bir dizine bakiyor: BANKA ALANI
+   OLMAYAN platform kaydi, yani odeme kutusunun cikmadigi hal -- olcmek istedigimiz
+   durum tam olarak bu. Canli dosyayi okumak testi sunucunun o anki verisine
+   baglardi ve bir gun IBAN girilince iddia sessizce anlamsizlasirdi. */
+function vestra_data_dir(): string { return sys_get_temp_dir().'/vestra_draft_test_nodata'; }
 
 $src   = file_get_contents(__DIR__.'/../vestra/inc/invoice.php');
 $strip = fn($s) => preg_replace("#require_once __DIR__\.'/[a-z_]+\.php';#", '', $s);
@@ -94,6 +107,60 @@ $t('Shipping satiri var',      str_contains($b4,'Shipping'));
 $t('Goods total ayristi',      str_contains($b4,'Goods total'));
 $t('genel toplam 950.00',      str_contains($b4,'950.00'));
 $t('kargosuz belgede Shipping satiri yok', !str_contains($real,'Shipping'));
+
+echo "\n== 6. PLATFORM KESERKEN: teklif ve siparis AYNI belgeyi vermeli ==\n";
+/* Platform renderer'a IKI AYRI SEKILDE geliyor ve bu fark canliya sizdi.
+   Kurasyonlu bir ilanin (seller_uid bos) SIPARIS dilimi null geciyor
+   (vestra_order_invoice_payloads), ayni ilana verilen TEKLIF ise platformun
+   KAYDINI geciriyor (vestra_offer_invoice_seller hicbir zaman null donmez).
+   `$sellerAcc === null` diye yazilmis her kontrol, ayni kesen taraf icin
+   siparis faturasinda dogru, teklif faturasinda YANLIS cevap veriyordu. */
+$platRec = ['company'=>'Acerasoft LLC','address'=>'8 The Green, Suite B, Dover, Delaware 19901',
+            'country'=>'US','vat_id'=>'61-2070643'];   // id YOK -- ayirt edici tam olarak bu
+$acctRec = ['id'=>'garage','company'=>'GARAGE LE PARIS','address'=>'Paris','country'=>'FR'];
+
+$t('platform kaydi (id yok) platform sayilir', vestra_invoice_is_platform_issuer($platRec));
+$t('null da platform sayilir',                 vestra_invoice_is_platform_issuer(null));
+$t('gercek hesap platform SAYILMAZ',          !vestra_invoice_is_platform_issuer($acctRec));
+/* Ad testi BILEREK yok: operator bir gun gercek bir Acerasoft SATICI hesabi
+   acarsa o hesabin banka bilgisi de Admin > Users'ta durur, platform
+   dosyasinda degil. Ad ile ayirmak onu yanlis sayfaya yollardi. */
+$t('adinda acerasoft gecen HESAP platform sayilmaz',
+   !vestra_invoice_is_platform_issuer(['id'=>'acc9','company'=>'Acerasoft LLC']));
+
+/* TASLAK NOTU: odeme kutusu bos kalinca operatoru DOGRU sayfaya yollamali.
+   Platformun banka alanlari Admin > Orders'ta; hesaplarinki Admin > Users'ta.
+   Bu iddia duzeltmeden ONCE dusuyor: teklif yolunda not "Users" diyordu. */
+$nPlat = vestra_invoice_draft_notes($meta, $items, $platRec, 'EUR')['notes'];
+$nPlat = implode(' | ', $nPlat);
+$t('platform notu Admin > Orders diyor',  str_contains($nPlat,'Admin > Orders'));
+$t('platform notu Users demiyor',        !str_contains($nPlat,'Admin > Users'));
+$nAcct = implode(' | ', vestra_invoice_draft_notes($meta, $items, $acctRec, 'EUR')['notes']);
+$t('hesap notu Admin > Users diyor',      str_contains($nAcct,'Admin > Users'));
+$t('hesap notu Orders demiyor',          !str_contains($nAcct,'Admin > Orders'));
+/* IBAN'i olan bir hesapta hicbir odeme uyarisi cikmamali -- olmayan bir
+   eksigi bildiren uyari, okunmamayi ogretir (KURAL 2c). */
+$nFull = implode(' | ', vestra_invoice_draft_notes($meta, $items, $seller, 'EUR')['notes']);
+$t('IBANi olan hesapta odeme uyarisi yok', !str_contains($nFull,'payment box'));
+
+/* SATICI KUTUSU: ayni kesen taraf, ayni kunye. Platform dali belgeye
+   support@vestrasales.com yaziyor; hesap dali (dogru olarak) yazmiyor --
+   oradaki adres bir GIRIS bilgisi. Duzeltmeden once teklif faturasi hesap
+   dalindan cikiyordu, yani ayni satis siparis olarak farkli bir satici
+   kutusu tasiyordu. */
+$bPlat = vestra_render_invoice_pdf($meta, $items, $platRec, 'INV-2026-000130', false);
+$t('platform kutusunda support adresi var', str_contains($bPlat,'support@vestrasales.com'));
+$t('platform kutusunda EIN var',            str_contains($bPlat,'61-2070643'));
+$t('hesap kutusunda support adresi YOK',   !str_contains($real,'support@vestrasales.com'));
+/* Feragat cumlesi: platform kendi adina satarken belge kendini yalanlamamali.
+   Sarma yuzunden bitisik gecmeyen bir parca araniyor (KURAL 5j: hic
+   dusemeyen bir iddia, iddia degildir). */
+$t('platform belgesinde feragat cumlesi YOK', !str_contains($bPlat,'operates the marketplace'));
+$t('satici belgesinde feragat cumlesi VAR',    str_contains($real,'operates the marketplace'));
+/* Ad arm'i hala geciyor: gercek bir Acerasoft hesabi da uclu satis degil. */
+$bAcer = vestra_render_invoice_pdf($meta, $items,
+          ['id'=>'acc9','company'=>'Acerasoft LLC','country'=>'US'], 'INV-2026-000131', false);
+$t('Acerasoft HESABINDA da feragat yok',      !str_contains($bAcer,'operates the marketplace'));
 
 echo "\n".($fail? "KALDI: $fail  (gecen: $ok)\n" : "hepsi gecti ($ok)\n");
 exit($fail?1:0);

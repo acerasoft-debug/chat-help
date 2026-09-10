@@ -138,6 +138,37 @@ function vestra_payment_rails(array $acc, string $currency): array {
 }
 
 /**
+ * Is VESTRA itself the party issuing this invoice?
+ *
+ * Two callers have to agree on the answer and for a long time they did not, because the
+ * platform reaches the renderer in TWO different shapes. An ORDER slice for curated stock
+ * passes null (vestra_order_invoice_payloads leaves $sellerAcc unset for the 'vestra' key),
+ * while an OFFER on the same stock passes the platform record itself — vestra_offer_invoice_
+ * seller() never returns null, it falls through to vestra_platform_seller(). So a check
+ * written as `$sellerAcc === null` is true for the order and false for the offer, on the
+ * same listing, for the same issuer.
+ *
+ * That is not academic: the draft note that tells the operator WHERE to fix a missing
+ * payment box read exactly that way, so an offer invoice issued by the platform sent them
+ * to Admin > Users > Edit billing details — a page that cannot hold the platform's bank
+ * details at all. An instruction that points at the wrong page costs more than no
+ * instruction, because it gets followed.
+ *
+ * The discriminator is the account id. Every record from auth_accounts() carries one;
+ * vestra_platform_seller() builds its array from constants and a JSON file and has none.
+ *
+ * Deliberately NOT a name test. "Is Acerasoft the seller of record" and "does this issuer's
+ * bank detail live in the platform file" are different questions with different answers: if
+ * the operator ever registers a real Acerasoft LLC seller account, that account is the seller
+ * of record AND its bank details are edited under Admin > Users like any other account's. The
+ * disclaimer block asks the first question and adds the name arm itself; this function answers
+ * only the second, so a name can never route a real account to the wrong settings page.
+ */
+function vestra_invoice_is_platform_issuer(?array $sellerAcc): bool {
+    return $sellerAcc === null || trim((string)($sellerAcc['id'] ?? '')) === '';
+}
+
+/**
  * IBAN'i saklanacak bicime getirir: bosluk/tire atilir, buyuk harfe cekilir.
  *
  * Banka ekstresi "FR76 3000 4008 2800 0123 4567 890" diye yazar, havale formu
@@ -471,8 +502,15 @@ function vestra_invoice_draft_notes(array $order, array $items, ?array $sellerAc
             /* Duzeltmenin YERI kesen tarafa gore degisiyor: platform kendi
                kunyesinden okuyor (Admin > Orders), satici hesabindan
                (Admin > Users). Yanlis sayfaya yollayan bir uyari, uyarilmamis
-               kadar ise yaramaz. */
-            $notes[] = $sellerAcc === null
+               kadar ise yaramaz.
+               "Platform mu kesiyor" sorusu burada `$sellerAcc === null` diye
+               soruluyordu ve TEKLIF faturasinda hep FALSE donuyordu: teklif yolu
+               (vestra_offer_invoice_seller) platformu null olarak degil, kendi
+               KAYDI olarak geciriyor. Yani kurasyonlu bir ilana verilen teklifte
+               operator "Admin > Users > Edit billing details"e yollaniyordu --
+               platformun banka bilgilerinin DURMADIGI sayfaya. Tek ayirt edici:
+               vestra_invoice_is_platform_issuer(). */
+            $notes[] = vestra_invoice_is_platform_issuer($sellerAcc)
                 ? 'NOTE - VESTRA is issuing this invoice but the platform has no '.$cur.' payment details on file, so the document has no payment box.'
                   . ' Fill them in under Admin > Orders > Platform billing & bank details (USD needs an account number and ABA routing), or the buyer gets a document with nowhere to pay.'
                 : 'NOTE - no payment details for '.$cur.' on the issuing account, so this invoice has no payment box.'
@@ -572,7 +610,12 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     $pdf->text($toX, $y, 10, 'Bill To (Buyer)', true);
     $y -= 15;
 
-    if ($sellerAcc) {
+    /* Kosul `if ($sellerAcc)` idi ve TEKLIF faturasinda platform kaydi bos olmadigi
+       icin SATICI HESABI dalina dusuyordu: ayni ilanin siparis faturasi platform
+       dalindan (support@vestrasales.com satiri dahil) cikarken teklif faturasi
+       ondan farkli bir satici kutusu tasiyordu -- ayni kesen taraf, iki belge, iki
+       kunye. Ayrim artik tek yerde. */
+    if (!vestra_invoice_is_platform_issuer($sellerAcc)) {
         $sellerLines = array_values(array_filter([
             vestra_invoice_issuer_name($sellerAcc),
             $sellerAcc['address'] ?? '',
@@ -965,7 +1008,11 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
        is not the seller of record for this sale" diyordu -- ayni belgede
        kendini yalanlayan iki beyan, ki bu blogun kendi yorumu bunun gumrukte ve
        bir ihtilafta belgeyi zayiflattigini yaziyor. */
-    $platformIsSeller = $sellerAcc === null
+    /* Iki ayri soru: "belgeyi platformun KENDI kaydi mi kesiyor" (banka bilgisinin
+       nerede duracagini belirler) ile "satici Acerasoft mu" (feragat cumlesinin
+       basilip basilmayacagini belirler). Ikincisi genis: operator bir gun gercek
+       bir Acerasoft satici hesabi acarsa o hesap da uclu satis DEGILDIR. */
+    $platformIsSeller = vestra_invoice_is_platform_issuer($sellerAcc)
         || stripos((string)($sellerAcc['company'] ?? ''), 'acerasoft') !== false;
 
     /* Beyanlar. Ustteki sevkiyat tablosuyla AYNI etiket/deger duzeni kullaniliyor --

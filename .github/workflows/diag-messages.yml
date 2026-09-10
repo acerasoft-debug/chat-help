@@ -663,7 +663,37 @@ jobs:
                alinamaz, ve ABD'de routing+hesap ikilisi ACH borclandirma icin
                tek basina yeterli. Degerin kendisi panelde okunur. */
             $bq = trim((string)getenv('IN_BILLING'));
-            if ($bq !== '') {
+            /* PLATFORMUN KENDI KUNYESI de buradan okunur ("vestra" / "platform").
+               Sonda uzun sure yalnizca HESAPLARI ariyordu, oysa kurasyonlu bir
+               ilanda (seller_uid bos) faturayi kesen taraf hicbir hesap DEGIL --
+               vestra_platform_seller(), data/platform_seller.json. Yani odeme
+               kutusunun bos cikmasinin en olasi sebebi, sondanin bakamadigi tek
+               kayitti. Ayni maskeleme: numara degil, VAR/YOK + hane sayisi. */
+            if ($bq !== '' && in_array(strtolower($bq), ['vestra','platform'], true)) {
+              require_once $doc.'/inc/invoice.php';
+              $P = vestra_platform_seller();
+              $has = function ($v) { $v = trim((string)$v); return $v === '' ? '*** BOS ***' : 'VAR ('.strlen($v).' hane)'; };
+              echo "===== PLATFORM KUNYESI (vestra_platform_seller) =====\n";
+              echo "  kaynak: data/platform_seller.json ".(is_readable($doc.'/data/platform_seller.json') ? 'VAR' : '*** YOK -- yalnizca koddaki kimlik doner, banka alani hic olmaz ***')."\n";
+              echo "  --- faturanin USTUNDE ---\n";
+              foreach (['company','address','country','vat_id','reg_number'] as $k) {
+                echo "    ".str_pad($k, 11).": ".((trim((string)($P[$k] ?? '')) !== '') ? $P[$k] : '(yok)')."\n";
+              }
+              echo "  --- ODEME KUTUSU (invoice.php: payment_rails) ---\n";
+              echo "    bank_holder: \"".($P['bank_holder'] ?? '')."\"".(trim((string)($P['bank_holder'] ?? '')) === '' ? '  <- BOS' : '')."\n";
+              echo "    bank_name  : \"".($P['bank_name'] ?? '')."\"\n";
+              echo "    bank_bic   : ".((trim((string)($P['bank_bic'] ?? '')) !== '') ? $P['bank_bic'] : '(yok)')."\n";
+              echo "    bank_iban  : ".$has($P['bank_iban'] ?? '')."   [NUMARA YAZDIRILMIYOR - panelden oku]\n";
+              echo "    bank_account/routing: ".$has($P['bank_account'] ?? '')." / ".$has($P['bank_routing'] ?? '')."\n";
+              /* ASIL CEVAP: kutu cikacak mi? Satir SAYISI basiliyor, satirlarin
+                 KENDISI degil -- rails IBAN'i ve hesap numarasini metin olarak
+                 tasiyor ve bu kutuk herkese acik. */
+              foreach (['EUR','USD'] as $c) {
+                $r = vestra_payment_rails($P, $c);
+                echo "    -> ".$c." faturasinda odeme kutusu: ".($r ? 'CIKAR ('.count($r).' satir)' : '*** CIKMAZ (bos) ***')."\n";
+              }
+              echo "\n";
+            } elseif ($bq !== '') {
               echo "===== FATURA KUNYESI: \"{$bq}\" =====\n";
               foreach (find_accounts($accounts, $bq) as $a) {
                 $has = function ($v) { $v = trim((string)$v); return $v === '' ? '*** BOS ***' : 'VAR ('.strlen($v).' hane)'; };
