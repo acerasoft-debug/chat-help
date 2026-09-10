@@ -1855,6 +1855,31 @@ dönmek zorundadir"*).
     bağlantılar yalnızca `vestra_seo_resolve()` ile **açıldığı doğrulanan**
     `/b2b` ve `/wholesale` sayfalarına (KURAL 9). Yazma **geri okunuyor**.
   - Test: `tests/journal_auto_test.php` (47 iddia).
+  - **10 Eyl 2026, operatör: *"journal icin yazdigim otomasyon calismamis"*.
+    ÖLÇÜLDÜ: otomasyon ÇALIŞIYOR.** `cron_probe` — crontab satırı kurulu
+    (`20 7 * * * … cron_journal.php`), **8 Eyl 14:20 UTC'de yazıyı YAYIMLADI**
+    (*"New in stock: 335 new lines from Pili Pérez"*, 9 dil, kapak, canlı URL),
+    **9 Eyl 14:20'de kuralı uygulayıp SUSTU** (`yeni ilan 0, eşik 3`), 10 Eyl
+    koşusu ise **daha gerçekleşmemişti** (sunucu yereli 00:41 MST, iş 07:20 MST
+    — 6,5 saat sonra). Yani "çalışmadı" diye görünen şey, kuralın kendisi.
+  - **Sebep katalogda:** 671 ilanın **en yenisi 3 Eylül** (o gün 40 ilan).
+    8 Eylül'den beri **hiç yeni ilan yok**, dolayısıyla malzeme yok. Aradaki
+    işler (beden serileri, fiyat/MOQ, satıcı değişiklikleri) **DÜZENLEME**;
+    kurucu yalnız **yeni ilan** sayıyor.
+  - **Sondaya eklendi, çünkü tek satır iki ayrı durumu gizliyordu:**
+    `yeni ilan 0` hem "hiç eklenmedi" hem "eklendi ama `added_at` yok" demek
+    olabiliyordu (`added_at` yoksa ürün yeni sayılmaz) ve ikisi de operatöre
+    "bozuk" görünür. Artık katalogun kendi tarihleri de basılıyor: kaç ilanda
+    alan var/yok, en yeni ekleme günleri ve **bir sonraki koşunun ölçeceği
+    pencere**. Ölçümde **3 ilanda `added_at` yok** — onlar hiçbir rapora
+    giremez (küçük ama gerçek boşluk).
+  - **Operatör kararı bekliyor:** günlük yayın isteniyorsa eşiği düşürmek
+    çözmez (sayı 0, 1-2 değil). Gerçek seçenek, "malzeme"nin tanımını
+    genişletmek — yeni ilanın yanına **fiyat/MOQ değişikliği, yeni renk, stok
+    tazeleme** eklemek. Bu, müşterinin gördüğü şeyi değiştirdiği için
+    bilinçli bir karar; KURAL 9 (ince içerik alan adına zarar verir) ve
+    KURAL 2c (her gün "hiçbir şey" yazan bildirim okunmamayı öğretir)
+    yüzünden kendiliğinden yapılmadı.
 - **Trafik sayacı GOOGLE'IN YARISINI ziyaretçi sayıyordu** (operatör, 8 Eyl 2026:
   *"US · Mountain View, böyle biri sürekli siteye giriyor her gün — gerçek bir
   kişi mi yoksa google bot mu? araştır ve IP'sine bak"*).
