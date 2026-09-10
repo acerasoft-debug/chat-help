@@ -539,8 +539,11 @@ jobs:
                   'brand' => 'NBB',
                   'name' => nbb_name($model, 'en'),
                   'name_i18n' => nbb_name_i18n($model),
-                  'desc' => nbb_desc($model, 'en'),
-                  'desc_i18n' => nbb_desc_i18n($model),
+                  /* Paket adedi aciklamaya GECIRILIYOR: 1'lik bir ilanda
+                     "paket halinde satilir" yazmak, ilanin kendi MOQ'suyla
+                     celisen bir metin olurdu (Balenciaga'nin desc/sizes dersi). */
+                  'desc' => nbb_desc($model, 'en', $moq),
+                  'desc_i18n' => nbb_desc_i18n($model, $moq),
                   'cat' => $vocab['products'][$model]['cat'],
                   'sku' => $model,
                   'moq' => $moq, 'unit' => 'pc',

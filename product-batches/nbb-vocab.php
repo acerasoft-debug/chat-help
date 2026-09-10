@@ -127,6 +127,35 @@ const NBB_DESC_FMT = [
 ];
 
 /**
+ * PAKETI OLMAYAN urunun aciklamasi — paket cumlesi YOK.
+ *
+ * Ilk yazimda tek metin vardi ve *"paket halinde, tek parca degil"* diyordu.
+ * Sunucudaki gercek kayit bunu YALANLADI: corap satirlari 6/12/24'luk paketli
+ * ama korsaj/sutyen/gecelik satirlarinin `pack_qty` degeri 1. Yani aciklama
+ * ilanin kendi MOQ'suyla celisen bir kural ilan ediyordu.
+ *
+ * Bu, bu deponun 9 Eyl 2026'da Balenciaga'da odedigi hatanin ta kendisi:
+ * `sizes` alani bir sey diyor, `desc` metni baska bir sey, ayni sayfada.
+ * *Bir olguyu yazmadan once "bu bilgi baska nerede yazili?" diye sor.*
+ *
+ * UYDURULMUS BIR PAKET ADEDI COZUM DEGIL (KURAL 3): tedarikci 1 diyorsa 1'dir;
+ * "herhalde 6'lidir" demek tam olarak yasak olan tahmindir. Toptan sarti zaten
+ * marka basina asgari sepet tutariyla (KURAL 21, 500 EUR) tutuluyor, tek
+ * ilanin adediyle degil.
+ */
+const NBB_DESC_FMT_NOPACK = [
+  'en'=>'%1$s. NBB, wholesale only.',
+  'fr'=>'%1$s. NBB, vente en gros uniquement.',
+  'es'=>'%1$s. NBB, solo venta al por mayor.',
+  'it'=>'%1$s. NBB, solo ingrosso.',
+  'de'=>'%1$s. NBB, nur Großhandel.',
+  'pt'=>'%1$s. NBB, apenas venda por grosso.',
+  'ru'=>'%1$s. NBB, только опт.',
+  'ar'=>'%1$s. NBB، بالجملة فقط.',
+  'ja'=>'%1$s。NBB、卸売専用。',
+];
+
+/**
  * 47 urun. Anahtar = model numarasi (baslikta "NBB <model> ..." olarak geciyor).
  * `cat` VESTRA taksonomisinin "Underwear & Socks" grubundan (vestra_all_cats()).
  * Tur ve ozellikler URUNUN KENDI BASLIGINDAN cikarildi -- uydurulmadi; baslikta
@@ -253,10 +282,13 @@ function nbb_name(string $model, string $lang): string {
     return $ph . $dash . $model;
 }
 
-function nbb_desc(string $model, string $lang): string {
+/* $packQty: ilanin GERCEK paket adedi. 1 (ya da verilmemis) ise paket cumlesi
+   BASILMAZ -- aciklama, ilanin MOQ'sunun soylemedigi bir kurali ilan etmez. */
+function nbb_desc(string $model, string $lang, int $packQty = 1): string {
     $ph = nbb_phrase($model, $lang);
     if ($ph === '') return '';
-    $fmt = NBB_DESC_FMT[$lang] ?? NBB_DESC_FMT['en'];
+    $tbl = $packQty > 1 ? NBB_DESC_FMT : NBB_DESC_FMT_NOPACK;
+    $fmt = $tbl[$lang] ?? $tbl['en'];
     /* Cumle basi buyuk harf: parca kucuk harfle basliyor ("wire-free bra") ve
        Ingilizce/Almanca cumle basinda buyuk olmali. mb_ ile, cunku Turkce'den
        gelen bir harf ASCII olmayabilir. */
@@ -272,10 +304,10 @@ function nbb_name_i18n(string $model): array {
     }
     return $out;
 }
-function nbb_desc_i18n(string $model): array {
+function nbb_desc_i18n(string $model, int $packQty = 1): array {
     $out = [];
     foreach (array_keys(NBB_JOIN) as $lang) {
-        $v = nbb_desc($model, $lang);
+        $v = nbb_desc($model, $lang, $packQty);
         if ($v !== '') $out[$lang] = $v;
     }
     return $out;
