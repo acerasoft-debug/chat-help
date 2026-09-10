@@ -53,7 +53,8 @@ $home = sys_get_temp_dir().'/vestra_setprices_test_'.getmypid();
 $run = function (array $in) use ($home, $root): array {
     $blob = array_merge([
         'brand'=>'*','cat'=>'','nameq'=>'','price'=>'','list_price'=>'','discount_pct'=>'',
-        'section'=>'','markup_pct'=>'','force'=>'false','moq'=>'','step'=>'','sizes'=>'',
+        'section'=>'','markup_pct'=>'','force'=>'false','show_prices'=>'true',
+        'moq'=>'','step'=>'','sizes'=>'',
         'offers'=>'','dry'=>'true',
     ], $in);
     $cmd = 'HOME='.escapeshellarg($home)
@@ -132,6 +133,16 @@ $t('FARKLI bir yuzde damgaya takilmaz (5.40->5.94)', abs($c['uw-1']['list'] - 5.
 $run(['section'=>'underwear','markup_pct'=>'10','force'=>'true','dry'=>'false']);
 $d = $byId();
 $t('force=true damgayi asiyor (5.94->6.53)',         abs($d['uw-1']['list'] - 6.53) < 0.001);
+
+echo "\n== 5b. Rakamlar varsayılan olarak günlüğe basılmaz ==\n";
+$seed();
+[, $q] = $run(['section'=>'underwear','markup_pct'=>'20','show_prices'=>'false']);
+$t('varsayilan: gercek fiyat ciktida YOK',        !str_contains($q, '4.50') && !str_contains($q, '5.40'));
+$t('varsayilan: numune rakami da YOK',            !str_contains($q, '9.90'));
+$t('gizlendigini SOYLUYOR',                       str_contains($q, 'rakamlar gizli'));
+$t('ilan kimligi yine gorunuyor',                 str_contains($q, 'uw-1'));
+[, $q2] = $run(['section'=>'underwear','markup_pct'=>'20','show_prices'=>'true']);
+$t('show_prices=true ile rakamlar basiliyor',     str_contains($q2, '4.50') && str_contains($q2, '5.40'));
 
 echo "\n== 6. Reddedilenler ==\n";
 $seed();

@@ -41,6 +41,7 @@ $discPct = trim((string)($in['discount_pct'] ?? ''));
 $sect  = strtolower(trim((string)($in['section'] ?? '')));
 $markPct = trim((string)($in['markup_pct'] ?? ''));
 $force = strtolower(trim((string)($in['force'] ?? 'false'))) === 'true';
+$showP = strtolower(trim((string)($in['show_prices'] ?? 'false'))) === 'true';
 $moq   = trim((string)($in['moq']   ?? ''));
 $step  = trim((string)($in['step']  ?? ''));
 $sizes = trim((string)($in['sizes'] ?? ''));
@@ -316,12 +317,22 @@ foreach ($all as $i => $p) {
         $line[] = "ATLANDI: fiyat alani yok (kademe de 'list' de bos)";
         $skipped++;
       } else {
-        $line[] = "ZAM %{$markPct}: ".($oL > 0 ? "list ".number_format($oL,2,'.','')."->".number_format($nL,2,'.','') : "list (yok)")
-                . ($det ? "  kademe ".implode(', ', $det) : "  (kademe yok)");
+        /* RAKAM VARSAYILAN OLARAK BASILMAZ. Actions gunlugu herkese acik ve NBB
+           katalogunun kar orani (maliyet x 1.5) CLAUDE.md'de yazili -- satis
+           fiyatini basmak tedarikcinin MALIYETINI de basar; katalog fiyatlari
+           zaten kayit kapisinin arkasinda (KURAL 19). Ayni ders 3 Eyl 2026'da
+           yasandi: ayakkabi partisinin 335 satirlik fiyati gunluge dustu ve
+           gunlukler silinmek zorunda kaldi. Sayilar gerekiyorsa
+           show_prices=true -- girdinin kendi metni ne yaptigini soyluyor. */
+        $line[] = $showP
+          ? "ZAM %{$markPct}: ".($oL > 0 ? "list ".number_format($oL,2,'.','')."->".number_format($nL,2,'.','') : "list (yok)")
+            . ($det ? "  kademe ".implode(', ', $det) : "  (kademe yok)")
+          : "ZAM %{$markPct}: ".($oL > 0 ? "list x{$f}" : "list (yok)")
+            . "  kademe: ".count($det)." adet  (rakamlar gizli -- show_prices=true)";
         /* Numune fiyati ayri bir rakam (tek parca), zam kapsaminda
            degil -- ama sessizce birakilmasin, operator gorsun. */
         if ((float)($p['sample_price'] ?? 0) > 0) {
-          $line[] = "  not: numune fiyati €".number_format((float)$p['sample_price'],2,'.','')." DOKUNULMADI";
+          $line[] = "  not: numune fiyati ".($showP ? "€".number_format((float)$p['sample_price'],2,'.','') : "(gizli)")." DOKUNULMADI";
           $sampleSeen++;
         }
         /* mode'a DOKUNULMUYOR: zam indirim degil. sale bir urun sale

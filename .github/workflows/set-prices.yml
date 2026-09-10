@@ -59,6 +59,13 @@ on:
         description: "true = aynı zam 24 saat içinde ikinci kez uygulanabilsin (markup_pct damgasını yok say)"
         required: false
         default: "false"
+      show_prices:
+        # Actions gunlugu HERKESE ACIK. NBB katalogunun kar orani kayitli
+        # (maliyet x 1.5), yani satis fiyatini basmak tedarikcinin maliyetini
+        # de basar; katalog fiyatlari zaten kayit kapisinin arkasinda (KURAL 19).
+        description: "true = zam satırlarında GERÇEK rakamları da yaz. Actions günlüğü herkese açık; kâr oranı bilinen bir katalogda fiyatı basmak tedarikçi maliyetini ele verir"
+        required: false
+        default: "false"
       size_step:
         description: "Koli/parti adimi (size_step): sepet adedi bu kata yuvarlar. MOQ ile birlikte dusun -- moq=20, step=8 birakirsaniz sepet 20'yi 24'e yuvarlar. Bos = dokunma."
         required: false
@@ -118,6 +125,7 @@ jobs:
           RAW_SECTION: ${{ github.event.inputs.section }}
           RAW_MARKUP_PCT: ${{ github.event.inputs.markup_pct }}
           RAW_FORCE: ${{ github.event.inputs.force }}
+          RAW_SHOW_PRICES: ${{ github.event.inputs.show_prices }}
           RAW_MOQ: ${{ github.event.inputs.moq }}
           RAW_STEP: ${{ github.event.inputs.size_step }}
           RAW_SIZES: ${{ github.event.inputs.sizes }}
@@ -128,7 +136,7 @@ jobs:
           import base64, json, os
           blob = {k: os.environ.get('RAW_'+k.upper(), '')
                   for k in ['brand','cat','nameq','price','list_price','discount_pct','section',
-                            'markup_pct','force','moq','step','sizes','offers','dry']}
+                            'markup_pct','force','show_prices','moq','step','sizes','offers','dry']}
           print('P_JSON=' + base64.b64encode(
               json.dumps(blob, ensure_ascii=False).encode('utf-8')).decode('ascii'))
           PY
