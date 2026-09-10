@@ -130,5 +130,51 @@ $dep = $src('.github/workflows/deploy-vestra.yml');
 $t('crontab satırı kuruluyor',    str_contains($dep, 'cron_journal.php') && str_contains($dep, 'VESTRA-SWEEP journal'));
 $t('deploy kanaryası kuru koşuyor', str_contains($dep, 'php cron_journal.php --dry'));
 
+echo "\n== 6. Bağlantılar ÜSTTE ve koleksiyonun kendisi listenin başında ==\n";
+/* Operatör, 10 Eyl 2026: *"Perezin linkine ayakkabilari koy oraya yönlensin....
+ * üst bölümde dursun"*. İki ayrı iddia: (a) blok gövdenin ÜST yarısında, (b)
+ * listenin ilk satırı BÖLME sayfası (ayakkabı koleksiyonu), markadan da
+ * kategoriden de önce. */
+$a6 = vestra_journal_auto_build(null, 3650, true);
+if (isset($a6['skip'])) {
+    echo "  ATLA: katalogda damgalı ilan yok (".$a6['skip'].")\n";
+} else {
+    $b6   = (string)($a6['body'] ?? '');
+    $head = vestra_journal_auto_strings('en')['links_head'];
+    /* mb_strpos + mb_strlen, ikisi birden: ilk yazımda strpos (BAYT) ile
+       mb_strlen (KARAKTER) karşılaştırdım ve Rusça/Japonca gövdeler kırmızı
+       döndü -- blok orada da üstteydi, ölçüm birimi farklıydı. Latin metinde
+       ikisi aynı olduğu için hata İngilizcede görünmüyordu. */
+    $pos  = mb_strpos($b6, $head);
+    $t('bağlantı bloğu gövdede',   $pos !== false);
+    /* "Üstte" ölçülebilir olmalı: blok gövdenin ilk yarısında başlamalı. Eskiden
+       kapanış cümlesinin hemen üstündeydi, yani hep son %10'da. */
+    $t('bağlantı bloğu ÜST yarıda', $pos !== false && $pos < mb_strlen($b6) / 2);
+    $t('intro hâlâ ilk paragraf',   str_starts_with($b6, vestra_journal_auto_strings('en')['intro']));
+    /* Bölme satırı listenin BAŞINDA. Katalogda ayakkabı varsa Footwear, yoksa
+       hangi bölme raporu domine ediyorsa o -- ama her hâlde markadan önce. */
+    if ($pos !== false) {
+        $after = trim(mb_substr($b6, $pos + mb_strlen($head)));
+        $first = trim(strtok($after, "\n"));
+        $t('ilk bağlantı satırı /b2b/ koleksiyonu', str_contains($first, 'https://vestrasales.com/b2b/'));
+        $t('bağlantı gerçekten çözülüyor (KURAL 9)',
+           preg_match('#/b2b/([a-z0-9-]+)#', $first, $mm) === 1 && (bool)vestra_seo_resolve($mm[1]));
+    }
+    /* Dokuz dilin HEPSİ aynı düzeni almalı: bir dilde üstte bir dilde altta
+       olan blok, aynı yazının iki farklı sürümü demektir. */
+    $bad = [];
+    foreach ((array)($a6['i18n'] ?? []) as $l => $tr) {
+        $bt = (string)($tr['body'] ?? '');
+        $ph = mb_strpos($bt, vestra_journal_auto_strings($l)['links_head']);
+        if ($ph === false || $ph >= mb_strlen($bt) / 2) $bad[] = $l;
+    }
+    $t('sekiz çeviride de ÜSTTE'.($bad ? ' ('.implode(',', $bad).')' : ''), $bad === []);
+}
+/* $ignorePrevious YALNIZCA yeniden kurma içindir: günlük koşu onu vermezse
+   pencere son rapordan başlar (aynı ilanlar yeniden duyurulmaz). */
+$cr6 = $src('vestra/cron_journal.php');
+$t('cron ignorePrevious VERMİYOR',  !str_contains($cr6, 'auto_build(null, VESTRA_JOURNAL_AUTO_DAYS, true)')
+                                 && !preg_match('/auto_build\([^)]*,\s*true\s*\)/', $cr6));
+
 printf("\n%d ok, %d hata\n", $ok, $fail);
 exit($fail ? 1 : 0);

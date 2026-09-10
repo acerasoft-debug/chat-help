@@ -271,9 +271,18 @@ function vestra_journal_auto_last_ts(): ?int {
  * Yazıyı kurar. SAF: diske hiçbir şey yazmaz, hiçbir şey yayımlamaz.
  * Döner: `['skip' => gerekçe]` ya da `vestra_journal_save()`'e verilebilecek kayıt.
  */
-function vestra_journal_auto_build(?int $now = null, int $days = VESTRA_JOURNAL_AUTO_DAYS): array {
+/**
+ * @param bool $ignorePrevious Pencereyi SON RAPORDAN değil, yalnız $days'ten kur.
+ *   Günlük koşu bunu ASLA vermez -- verseydi her sabah aynı ilanları yeniden
+ *   duyururdu, ki pencerenin son rapordan başlaması tam bunu önlemek içindi.
+ *   Tek kullanımı YAYIMLANMIŞ bir raporu yerinde YENİDEN KURMAK: yerleşim
+ *   düzeltildiğinde (bağlantılar üste alındı) eski yazı eski düzende kalıyor ve
+ *   elle düzeltmek dokuz dilin metnini elde yeniden yazmak demek. Aynı kurucu,
+ *   aynı pencere, aynı katalog -- yalnız düzen yeni.
+ */
+function vestra_journal_auto_build(?int $now = null, int $days = VESTRA_JOURNAL_AUTO_DAYS, bool $ignorePrevious = false): array {
     $now   = $now ?? time();
-    $since = vestra_journal_auto_last_ts();
+    $since = $ignorePrevious ? null : vestra_journal_auto_last_ts();
     $new   = vestra_journal_auto_new($days, $now, $since);
     /* Metindeki "son %d gün" GERÇEK pencereyi söylemeli: son rapor dün çıktıysa
        "son 7 gün" yazmak, okuyucuya bir haftalık liste vaat edip bir günlük
@@ -288,12 +297,20 @@ function vestra_journal_auto_build(?int $now = null, int $days = VESTRA_JOURNAL_
 
     $byBrand = [];
     $byCat   = [];
+    /* BÖLME (footwear / apparel …) ayrıca toplanıyor: raporun bağlantı bloğu
+       kategori ve marka sayfalarını veriyordu ama koleksiyonun KENDİSİNİ
+       vermiyordu. 335 ayakkabılık bir raporda okuyucunun aradığı sayfa
+       "Sneakers" ya da "Pili Pérez" değil, ayakkabı koleksiyonu. */
+    $sections = [];
     foreach ($new as $p) {
         $b = trim((string)($p['brand'] ?? '')) ?: '—';
         $c = trim((string)($p['cat'] ?? '')) ?: '—';
         $byBrand[$b][] = $p;
         $byCat[$c] = ($byCat[$c] ?? 0) + 1;
+        $sec = trim((string)($p['section'] ?? ''));
+        if ($sec !== '') $sections[$sec] = ($sections[$sec] ?? 0) + 1;
     }
+    arsort($sections);
     uasort($byBrand, fn($a, $b) => count($b) <=> count($a));
     arsort($byCat);
 
@@ -316,6 +333,17 @@ function vestra_journal_auto_build(?int $now = null, int $days = VESTRA_JOURNAL_
 
         $para = [];
         $para[] = $s['intro'];
+
+        /* BAĞLANTILAR ÜSTTE (operatör, 10 Eyl 2026: *"Perezin linkine ayakkabilari
+           koy oraya yönlensin.... üst bölümde dursun"*). Blok en sonda, kapanış
+           cümlesinin hemen üstündeydi: rapor markaları ve rakamları sayıyor, ama
+           "peki bunları nerede göreceğim" sorusunun cevabı ancak sonuna kadar
+           okuyanda kalıyordu. Bir stok raporunun işi okuyucuyu KATALOGA götürmek;
+           götüren satır, götürmesi gereken yerin başında durmalı.
+           İç bağlantılar YALNIZCA gerçekten çözülen sayfalara (KURAL 9): açılmayan
+           bir /b2b/… adresine bağlantı vermek okuyucuyu 404'e yollamak olurdu. */
+        $links = vestra_journal_auto_links(array_keys($byBrand), array_keys($byCat), $sections);
+        if ($links) $para[] = implode("\n", array_merge([$s['links_head']], $links));
 
         foreach ($byBrand as $brand => $items) {
             $cats = [];
@@ -360,11 +388,6 @@ function vestra_journal_auto_build(?int $now = null, int $days = VESTRA_JOURNAL_
             $para[] = implode("\n", $cl);
         }
 
-        /* İç bağlantılar YALNIZCA gerçekten çözülen sayfalara (KURAL 9): açılmayan
-           bir /b2b/… adresine bağlantı vermek okuyucuyu 404'e yollamak olurdu. */
-        $links = vestra_journal_auto_links(array_keys($byBrand), array_keys($byCat));
-        if ($links) $para[] = implode("\n", array_merge([$s['links_head']], $links));
-
         $para[] = $s['outro'];
 
         $body = implode("\n\n", $para);
@@ -388,13 +411,28 @@ function vestra_journal_auto_build(?int $now = null, int $days = VESTRA_JOURNAL_
     return $out;
 }
 
-/** Rapordaki marka/kategoriler için GERÇEKTEN açılan iniş sayfaları. */
-function vestra_journal_auto_links(array $brands, array $cats): array {
+/** Rapordaki bölme/marka/kategoriler için GERÇEKTEN açılan iniş sayfaları.
+ *
+ * Sıra bilinçli: önce BÖLME (ayakkabı/giyim koleksiyonu), sonra marka, sonra
+ * kategori. Bir stok raporunu okuyan kişi önce "bu malın tamamı nerede" diye
+ * soruyor; marka sayfası o sorunun dar, kategori sayfası daha da dar cevabı.
+ * Bölme satırı eskiden HİÇ yoktu — 335 ayakkabılık rapor okuyucuyu markaya ve
+ * "Sneakers"a yolluyor, ayakkabı koleksiyonunun kendisine yollamıyordu. */
+function vestra_journal_auto_links(array $brands, array $cats, array $sections = []): array {
     if (!function_exists('vestra_seo_resolve')) {
         $f = __DIR__.'/seo.php';
         if (is_readable($f)) require_once $f; else return [];
     }
     $out = [];
+    foreach (array_keys($sections) as $sec) {
+        $slug = function_exists('vestra_seo_cat_slug') ? vestra_seo_cat_slug((string)$sec) : '';
+        /* KURAL 9: yalnız çözülen adres. Bölme sayfası stokla açılıyor, yani
+           bugün açılan bir /b2b/footwear yarın stok biterse 404 olur ve rapor
+           onu yazmaz — kontrol her koşuda yeniden yapılıyor. */
+        if ($slug !== '' && vestra_seo_resolve($slug)) {
+            $out[] = ucfirst((string)$sec).' — https://vestrasales.com/b2b/'.$slug;
+        }
+    }
     foreach ($brands as $b) {
         $slug = function_exists('vestra_seo_cat_slug') ? vestra_seo_cat_slug((string)$b) : '';
         if ($slug !== '' && vestra_seo_resolve($slug)) $out[] = $b.' — https://vestrasales.com/wholesale/'.$slug;
