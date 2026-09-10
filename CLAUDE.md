@@ -3007,12 +3007,19 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
 *"en az alim 50 ad. olsun"* · *"f.perry polo da en az alim 56 ad. olsun"* ·
 *"8 li polo"* · *"sweater 10 lu"*).
 - **"Renkler ilanda var" ile "alıcı renk seçebiliyor" AYRI İKİ ŞEY.** Renk
-  seçici ancak `vestra_needs_colors()` evet derse çiziliyor: `colors` **ve**
+  seçici ancak `vestra_is_colorqty_listing()` evet derse çiziliyor: `colors` **ve**
   `min_colors` **ve** `size_step > 1`. Sweatshirt'te beş renk kayıtlıydı ama
   `min_colors` **0** idi — yani beş renk dosyada duruyor, hiçbir alıcı
   seçemiyordu. `min_colors=4` yazılınca hem seçici çıktı hem kural işledi.
   *Marka listesi rengi okuyup basıyordu ve tam bu yüzden fark edilmedi;
   sonda artık `min_renk` ve "SECICI YOK" da yazıyor.*
+- **O sondayı yazarken iki tuzağa birden basıldı, ikisi de kaydedildi:**
+  fonksiyonun adı `vestra_needs_colors` sanıldı (gerçeği
+  `vestra_is_colorqty_listing`), ve **iş buna rağmen YEŞİL bitti** — adım
+  `php …` sonrası `rm` çalıştırdığı için çıkış kodu eziliyordu, yani
+  `PHP OLUMCUL` yazan, hiçbir ürün basmayan bir koşu "success" göründü.
+  `set-product.yml` bu tuzağı zaten kaydetmişti; `seller-products.yml`'de
+  duruyordu. Artık `RC=$?` → `exit $RC`.
 - **Asgari alım paket adımının katı olmak zorunda** (KURAL 4b): sweatshirt
   10'lu paket → **50** (5 paket), polo 8'li → **56** (7 paket). Operatörün
   verdiği iki rakam da zaten tam kat; olmasaydı `set_product.php` reddederdi
