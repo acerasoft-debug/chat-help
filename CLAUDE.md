@@ -2210,17 +2210,47 @@ sekili tüm dillere cevir ve varyasyonlari ile beraber koy underwaere"*).
   markalı"* dediği ve başlık da öyle dediği için VESTRA'da marka **Visatin**
   basılıyor.
 
-**KURAL 21c — SONUÇ: 104 ilan hazır, CANLIYA YAZILMADI.** Operatörün NBB
-katalogu için koyduğu şart (*"siteye atmadan önce test olarak göster bana"*)
-bu parti için de geçerli sayıldı: `build_batch` sunucuda `test_batch.json`
-üretti, VESTRA'ya **hiçbir şey yazılmadı**.
+**KURAL 21c — SONUÇ: 104 ilan CANLIDA ve KATALOGDA** (10 Eyl 2026). Önce
+operatörün NBB katalogu için koyduğu şart uygulandı (*"siteye atmadan önce
+test olarak göster bana"*): `build_batch` sunucuda `test_batch.json` üretti,
+VESTRA'ya hiçbir şey yazılmadı, sonuç operatöre rapor edildi. Operatör isteği
+**birebir tekrarlayınca** paketler yazıldı (`status=pending`, katalogda
+görünmez), ardından operatör *"aprrove da bekleyen tüm ürünleri koabilirsin"*
+deyince **104'ü de açıldı**.
 
 | | Visatin | Q-EN |
 |---|---:|---:|
 | Taranan ürün | 76 | 38 |
 | Fotoğrafında Türkçe → **elendi** | 4 | 6 |
 | Fiyatı/modeli çözülemeyen | 0 | 0 |
-| **Hazır ilan** | **72** | **32** |
+| **Yazılan ilan** | **72** | **32** |
+
+**Geri okuma (`inspect-products` → `raw_scan`, yazmadan sonra):** katalog
+722 → **826**; `pending` **0** (yazma anında 104 idi, onaydan sonra
+`approved=814`); bölme `underwear` **42 → 146**; 9 dilde ad+açıklama
+**146/146**; `tiers` hepsinde var; satıcı `0cb79eb883f2a0fa` (Marca Online /
+*Wholesale Underwear*) 146; `ships_from=Turkey`. Beden seçici **30 → 96**
+ilan (12 Visatin 6'lı paketi doğru şekilde kapalı — KURAL 21b'nin sabit
+karışım kuralı).
+
+**Onay dosyasında ID uydurulmadı, DOĞRULATILDI.** Actions maskesi literal
+"22"yi her yerde yediği için `visatin-2122` günlükte `visatin-21***` diye
+basılıyor — yani onay listesine yazılacak 104 id'den biri **okunamıyordu**.
+Çıkarım (2120 ile 2127 arasında, "22" içeren tek değer) dosyaya yazıldı ama
+kanıt o değil: her satırda `expect:1` var ve kuru koşu **104/104 eşleşti**.
+Yanlış bir tahmin hiçbir şeye eşleşir, `set_product.php` de **hiçbir şey
+yazmaz**. *Okunamayan bir değeri tahmin etmek serbest; tahmini doğrulatmadan
+yazmak değil.*
+
+**21 Visatin ilanında BEDEN YOK ve bu bir ayrıştırıcı boşluğu DEĞİL** —
+tedarikçinin kendi kaydından doğrulandı (`titles`, 76 satır): 17'sinde
+varyant tablosu boş ve başlık (`… SATEN GECELİK BATTAL`) beden dizisi
+taşımıyor, 4'ünde (11006/11009/11014/11015) beden alanında duran tek değer
+bir **renk** (KIRMIZI/SİYAH) ve değere bakan ayrım onu renge taşıdı. Yani
+alıcı bu 21 ilanda beden çipi görmeyecek çünkü tedarikçi beden vermemiş.
+Fotoğraftan ya da "BATTAL" kelimesinden bir beden merdiveni **uydurulmadı**
+(KURAL 3). *Sayının kendisi kusur gibi görünüyordu; kaynağa bakmadan
+"düzeltmek" uydurma veri yazmak olurdu.*
 
 - Visatin'in **12**'si 6'lı asorti paket (`moq=6`, `… · 6/pack`, beden seçici
   kapalı); geri kalanı tek ilan. Kategoriler: gecelik → `Sleepwear`,
