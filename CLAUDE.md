@@ -1801,6 +1801,63 @@ dönmek zorundadir"*).
   korunduğu, CSS/JS'in paylaşıldığı ve ana sayfada elle yazılmış liste
   kalmadığı. RTL: `tests/render/rtl-check.js` 0 gerileme.
 
+**KURAL 21 — NBB iç çamaşırı kataloğu: operatör kararları, 10 Eyl 2026.**
+Operatörün aynı oturumdaki cümleleri (sırasıyla): *"sadece nbb ürünlerini tüm
+dilleri cevirip satis fiyatinin üstüne yüzde 50 kär koyarak satmani istiyorum"*
+· *"vestraya yeni bir katalog ekleyerek yap ancak estetik olmali underwear
+olarak"* · *"ayakkabi ve giysinin yanina gelecek"* · *"tüm dillere cevrilecek
+ayni zamanda resmin üstünde türkce ifadeler varsa koyma"* · *"premium
+yapmalisin"* · *"varyasyonlarida cevireceksin tüm dillere ve bedenleri ayni
+sekilde yap"* · *"sadece toptan olmali"* · *"komple marka secildiginde en az
+alim 300 eur olacak sekilde"* · *"siteye atmadan önce test olarak göster bana"*.
+
+- **Kâr %100 değil %50 oldu.** 4 Eyl 2026'daki karar (satış = maliyet × 2) bu
+  katalog için geçersiz; çarpan **1.5**. Oran artık sabit değil, parametre:
+  `price|<yüzde>` (varsayılan 50) ve her kayda `eur_margin_pct` damgalanıyor.
+  *Aynı olguyu ikinci bir moda yazmak, `desc`/`sizes` ve dört mektup gövdesinin
+  verdiği dersin tekrarı olurdu.*
+- **KAYNAK `/kategori/bayan-sutyen` DEĞİL.** Tarayıcı o yola **sabitlenmişti**;
+  operatörün verdiği ürün (`nbb-1901-butt-up-silikon-klot`) bir **külot** ve o
+  kategoride yok. Ölçüm: `/marka/nbb` → **47 ürün, hepsi NBB, sayfalama yok**.
+  Elimizdeki 638 kayıtlık sütyen kümesi NBB'nin yalnızca **26**'sını taşıyordu.
+  `kuloglu_ds='<ad>|<yol>'` ile ikinci kümeye açıldı; varsayılan boş bırakılınca
+  eski dosya adları **birebir** korunuyor (o dosyalar sunucuda dolu).
+- **Ölçülen NBB dağarcığı (47 ürün, `vocab`):** 14 kategori (sütyen 26, bikini-
+  tanga 5, fantazi-gecelik 4, çorap 4+1, boxer 2, korse/atlet/slip/patik 1'er),
+  **19 renk**, **33 beden**, **61 başlık kelimesi**. Mevcut sözlük yalnız sütyen
+  için kurulmuştu: ÇORAP, DENYE, GECELİK, JİPON, PANTOLON, PATİK, BOXER gibi
+  kelimeler **yok** — çünkü onlar Bayan Sütyen kategorisi dışından geliyor.
+  *"Sadece NBB" demek "daha az iş" demek değil; kapsam daralırken çeşit arttı.*
+- **Renk/beden alanları yine karışık:** `STANDART` renk listesinde duruyor
+  (renk değil), ve tedarikçi kodları (`SİYAH-500`, `SAHRA-51`, `TEN-57`,
+  `VİZON-86`, `BRONZ-38`) hem renk hem beden alanında geçiyor. 4 Eylül'de
+  kaydedilen "Kuloğlu rengi beden alanına yazıyor" tuzağının aynısı, yeni
+  kodlu hâliyle.
+- **BEDEN ÇEVİRİSİ GERÇEK BİR BOŞLUK.** `vestra_sizes_label()` yalnız
+  `<rakam>/pack|seri` kalıbını çeviriyor; `SERİ`, `PAKET`, `STANDART` gibi
+  **çıplak kelimeler** ham Türkçe basılırdı. Ayrıca `build_batch` `desc` alanına
+  `'Sizes: ' . <ham Türkçe>` yazıyor ve **`desc` hiçbir yerde `t()`'den
+  geçmiyor**. Sayısal/harfli bedenler (75, 80/85, S-M, XL, A/B/C kap) evrensel,
+  çevrilmez — sözlüğün kendi ilkesi bu.
+- **ÜRÜN ADI da çevrilecek mi:** `kuloglu-vocab.php`'nin kendi ölçümü *"bir
+  ilanın `name`/`desc` alanı hiçbir yerde `t()`'den geçmiyor"* diyor, yani
+  bugün çevrilmiş bir başlığın **basılacağı yer yok**. Operatör "tüm diller"
+  dediği için bu artık bir eksik: ya `name_i18n` alanı + basım yolu eklenecek,
+  ya da operatöre adların İngilizce kalacağı söylenecek. **Operatör kararı
+  bekliyor** — sessizce İngilizce bırakmak istenen şeyi vermemek olurdu.
+- **Sadece toptan:** `vestra_dropship_excluded_sections()`'a `underwear`
+  eklendi (ayakkabıyla aynı mekanizma). Tedarikçide satış birimi **paket**
+  (6'lı, 100'lü seri); tek parça diye bir şey yok.
+- **En az alım 300 EUR:** VESTRA'da bugün **sepet düzeyinde asgari tutar
+  kavramı yok** — mevcut MOQ tek ilanın *adedi*. Yeni bir kapı gerekiyor ve
+  okuması operatörle doğrulanmalı ("komple marka seçildiğinde").
+- **CANLIYA HİÇBİR ŞEY YAZILMADAN ÖNCE ÖNİZLEME** (*"siteye atmadan önce test
+  olarak göster bana"*) — KURAL 18'in katalog hâli. Fotoğrafta Türkçe metin
+  varsa o kare **yayına girmez**; tek fotoğrafı da elenen ilan yayımlanmaz.
+- **Tedarikçi maliyeti herkese açık günlüğe basılmaz** (3 Eyl 2026 dersi).
+  %50 kâr bilinirken satış fiyatını basmak maliyeti de ele verir; önizleme
+  operatörün kendi sunucusunda, dizine kapalı ve bağlantısız bir adreste.
+
 ## Operasyonel notlar
 
 - Deploy `claude/wizardly-planck-7ylnmk` dalına **push ile** tetiklenir.
