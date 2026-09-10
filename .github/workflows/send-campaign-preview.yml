@@ -1984,6 +1984,20 @@ jobs:
                    : "  (teklifin kendi birimi, cevrim yok)")."\n";
               if ($vatBlock !== '') echo $vatBlock; else echo "  KDV    : yok (vat= verilmedi)\n";
               echo "  satici : ".vestra_invoice_issuer_name($p['seller'],'Acerasoft LLC')."\n";
+              /* ODEME KUTUSU CIKACAK MI? Operatorun 9 Eyl 2026'da sordugu soru
+                 tam buydu ("neden fatura yaparken banka bilgileri cikmiyor")
+                 ve taslak ozeti bunu SOYLEMIYORDU -- cevabi ancak PDF acilip
+                 bakilarak ya da ayri bir sonda kosarak bulunabiliyordu.
+                 Kutuyu ciziciyle AYNI fonksiyon belirliyor (vestra_payment_rails),
+                 yani burada yazan sey belgede olanla ayni sey. Satir SAYISI
+                 basiliyor, satirlarin KENDISI degil: IBAN/hesap numarasi metin
+                 olarak iceriyorlar ve bu kutuk herkese acik. */
+              $__payAcc = $p['seller'] ?: vestra_platform_seller();
+              $__rails  = vestra_payment_rails($__payAcc, $pCur);
+              echo "  odeme kutusu : ".($__rails
+                   ? 'CIKAR ('.count($__rails).' satir)'
+                   : '*** CIKMAZ *** — '.$pCur.' icin bu hesapta ray yok'
+                     .' (EUR icin IBAN, USD icin hesap no + ABA gerekiyor)')."\n";
               echo "  pdf    : ".strlen($bytes)." bayt\n";
               echo "  KAYIT DEGISMEDI: numara yanmadi, diske yazilmadi, musteriye gitmedi.\n";
 

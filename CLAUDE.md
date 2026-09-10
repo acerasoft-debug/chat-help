@@ -1086,6 +1086,18 @@ sorundu.**
 - `vestra_offer_invoice_payload()` artık `invoice.php`'yi **kendi** require
   ediyor; kardeş bir fonksiyonun require'ına yaslanmak KURAL 15'in fatal'inin
   küçük hâli.
+- **Kendi hatam, kayda geçsin:** iş akışına `cur=` eklerken yaptığım toplu
+  değişiklik `replace(..., 1)` ile **ilk eşleşmeye** düştü, yani özet satırını
+  `invoice_combine_draft` yerine **`invoice_draft`** bloğuna yazdım. Ayrıştırma
+  ve kurucu çağrısı doğru yerdeydi; yalnızca **operatörün bakacağı satır**
+  yanlış yerdeydi. Canlı ilk koşu bu yüzden `= ... EUR` dedi — belge USD
+  çizilmiş olsa bile. Bu deponun altı kez kaydettiği "kontrol yanlış yere
+  bakıyor"un aynısı, üstelik en pahalı hâli: doğru çalışan bir özelliğe
+  "çalışmıyor" dedirtir. Özet artık **birimi ve `fx_note`'u** basıyor; çevrimin
+  gerçekten olup olmadığı toplamdan çıkarılmıyor, yazıyor. Bunun için
+  `vestra_offers_combined_invoice_issue()` kullandığı birimi de **döndürüyor**:
+  *rakam veren fonksiyon, biriminin de vermeli* — yoksa her çağıran EUR tahmin
+  eder.
 - Test: `invoice_currency_test.php §7` (90 iddia, kablolama) ve
   `invoice_seller_pick_test.php §12` (toplam 130; **gerçek** çevirici gövdesiyle
   aritmetik). Düşebildiği doğrulandı: çevrim kaldırılınca **11 kırmızı**.
