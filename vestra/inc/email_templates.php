@@ -1616,6 +1616,148 @@ function vestra_tpl_lead_followup(string $lang, string $company): array {
  * token is appended by the sender, but the sentence has to be in the text — a second
  * contact without a visible way out is what turns interest into a complaint.
  */
+/**
+ * UCUNCU PARTI — AYAKKABI, IC GIYIM ve PREMIUM MARKALAR (operator, 10 Eyl 2026:
+ * *"250 email gitsin ayyakkabi , underwear ve premium brands olarak"*).
+ *
+ * Kime: ilk mektubu almis ama IKINCI mektubu almamis leadler (workflow'un
+ * new_collection secimi). Winter 26/27 metni yerine bu metin gider; damga ayni
+ * (last_newcollection_at), cunku bu da o lead'in IKINCI mektubu -- iki ayri
+ * damga tutmak ayni firmaya ucuncu bir soguk mektup yolunu acardi.
+ *
+ * RAKAMLAR PARAMETREDEN, METNE GOMULU DEGIL. Cagiran onlari CANLI ilan
+ * kaydindan sayiyor (KURAL 13'un journal dersi: sunucuda uydurma rakam
+ * uretilmez). Bir sayi sifirsa O CUMLE HIC BASILMAZ -- "0 ayakkabi" yazan bir
+ * duyuru, duyurunun kendisini yalanlar.
+ *
+ * FIYAT LISTESI ARTIK KAPILI (KURAL 19): mektup "listede" demiyor, "kayitli
+ * isletmelere gosteriliyor, kayit ucretsiz" diyor. Aksi halde tiklayan
+ * musteri duvara carpar ve mektup yanlis soz vermis olur.
+ */
+function vestra_tpl_new_collection_shoes(string $lang, string $company, array $f): array {
+    $co     = trim($company);
+    $shoes  = (int)($f['shoes'] ?? 0);
+    $under  = (int)($f['underwear'] ?? 0);
+    $brands = trim((string)($f['brands'] ?? ''));
+
+    $L = [
+      'en' => ["VESTRA — footwear and underwear now open",
+        "Hello".($co !== '' ? " ".$co : '').",",
+        "We wrote to you earlier about VESTRA, our B2B wholesale marketplace for branded fashion. Two sections have opened since:",
+        "%SHOES%%UNDER%",
+        "Premium houses in stock today: %BRANDS%.",
+        "Trade prices per piece are shown to registered businesses — registration is free and we ask for your trade licence. If this is not relevant to your business, just say so and we will not write again.",
+        "%d articles of footwear, full size runs, shipping from stock.",
+        "%d articles of underwear, from stock."],
+      'de' => ["VESTRA — Schuhe und Wäsche jetzt freigeschaltet",
+        "Guten Tag".($co !== '' ? " ".$co : '').",",
+        "Wir hatten Ihnen zu VESTRA geschrieben, unserem B2B-Großhandelsmarktplatz für Markenmode. Seitdem sind zwei Bereiche dazugekommen:",
+        "%SHOES%%UNDER%",
+        "Premium-Häuser heute ab Lager: %BRANDS%.",
+        "Die Einkaufspreise je Stück sehen registrierte Betriebe — die Registrierung ist kostenlos, wir fragen die Gewerbeanmeldung ab. Falls es für Ihr Geschäft nicht passt, sagen Sie einfach Bescheid — dann schreiben wir nicht wieder.",
+        "%d Artikel Schuhe, volle Größenläufe, ab Lager lieferbar.",
+        "%d Artikel Wäsche, ab Lager."],
+      'fr' => ["VESTRA — chaussures et sous-vêtements désormais ouverts",
+        "Bonjour".($co !== '' ? " ".$co : '').",",
+        "Nous vous avions écrit au sujet de VESTRA, notre place de marché B2B de gros pour la mode de marque. Deux rayons se sont ouverts depuis :",
+        "%SHOES%%UNDER%",
+        "Maisons premium disponibles aujourd'hui : %BRANDS%.",
+        "Les prix de gros à la pièce sont réservés aux entreprises enregistrées — l'inscription est gratuite et nous demandons votre extrait Kbis. Si cela ne concerne pas votre activité, dites-le nous simplement et nous ne réécrirons pas.",
+        "%d références de chaussures, séries de tailles complètes, expédiables du stock.",
+        "%d références de sous-vêtements, du stock."],
+      'it' => ["VESTRA — calzature e intimo ora disponibili",
+        "Buongiorno".($co !== '' ? " ".$co : '').",",
+        "Le avevamo scritto a proposito di VESTRA, il nostro marketplace B2B all'ingrosso per la moda di marca. Da allora si sono aperti due reparti:",
+        "%SHOES%%UNDER%",
+        "Maison premium a magazzino oggi: %BRANDS%.",
+        "I prezzi all'ingrosso per pezzo sono riservati alle aziende registrate — l'iscrizione è gratuita e chiediamo la visura camerale. Se non riguarda la Sua attività, basta dircelo e non scriveremo più.",
+        "%d referenze di calzature, serie taglie complete, spedibili da magazzino.",
+        "%d referenze di intimo, da magazzino."],
+      'es' => ["VESTRA — calzado y ropa interior ya disponibles",
+        "Buenos días".($co !== '' ? " ".$co : '').",",
+        "Le escribimos sobre VESTRA, nuestro marketplace mayorista B2B de moda de marca. Desde entonces se han abierto dos secciones:",
+        "%SHOES%%UNDER%",
+        "Casas premium en stock hoy: %BRANDS%.",
+        "Los precios mayoristas por pieza se muestran a empresas registradas — el registro es gratuito y pedimos su licencia comercial. Si no tiene que ver con su negocio, díganoslo y no volveremos a escribir.",
+        "%d referencias de calzado, series de tallas completas, desde stock.",
+        "%d referencias de ropa interior, desde stock."],
+      'nl' => ["VESTRA — schoenen en ondergoed nu open",
+        "Goedendag".($co !== '' ? " ".$co : '').",",
+        "Wij schreven u eerder over VESTRA, onze B2B-groothandelsmarktplaats voor merkmode. Sindsdien zijn er twee afdelingen bijgekomen:",
+        "%SHOES%%UNDER%",
+        "Premiumhuizen vandaag uit voorraad: %BRANDS%.",
+        "Inkoopprijzen per stuk zijn zichtbaar voor geregistreerde bedrijven — registratie is gratis en wij vragen uw KvK-uittreksel. Past het niet bij uw zaak, laat het dan weten — dan schrijven wij niet opnieuw.",
+        "%d artikelen schoenen, volledige maatreeksen, uit voorraad leverbaar.",
+        "%d artikelen ondergoed, uit voorraad."],
+      'pt' => ["VESTRA — calçado e roupa interior agora abertos",
+        "Bom dia".($co !== '' ? " ".$co : '').",",
+        "Escrevemos-lhe sobre a VESTRA, o nosso marketplace grossista B2B de moda de marca. Entretanto abriram duas secções:",
+        "%SHOES%%UNDER%",
+        "Casas premium em stock hoje: %BRANDS%.",
+        "Os preços grossistas por peça são mostrados a empresas registadas — o registo é gratuito e pedimos a certidão permanente. Se não tiver a ver com o seu negócio, diga-nos e não voltaremos a escrever.",
+        "%d referências de calçado, séries de tamanhos completas, do stock.",
+        "%d referências de roupa interior, do stock."],
+      'pl' => ["VESTRA — obuwie i bielizna już dostępne",
+        "Dzień dobry".($co !== '' ? " ".$co : '').",",
+        "Pisaliśmy do Państwa o VESTRA — naszej hurtowej platformie B2B z modą markową. Od tego czasu otworzyły się dwa działy:",
+        "%SHOES%%UNDER%",
+        "Domy premium dostępne dziś z magazynu: %BRANDS%.",
+        "Ceny hurtowe za sztukę widzą zarejestrowane firmy — rejestracja jest bezpłatna, prosimy o wpis do rejestru działalności. Jeśli to nie dotyczy Państwa działalności, wystarczy dać znać — nie napiszemy ponownie.",
+        "%d pozycji obuwia, pełne rozpiętości rozmiarów, wysyłka z magazynu.",
+        "%d pozycji bielizny, z magazynu."],
+      'cs' => ["VESTRA — obuv a spodní prádlo nyní otevřeny",
+        "Dobrý den".($co !== '' ? " ".$co : '').",",
+        "Psali jsme Vám o VESTRA — našem velkoobchodním B2B tržišti se značkovou módou. Mezitím se otevřela dvě oddělení:",
+        "%SHOES%%UNDER%",
+        "Prémiové značky dnes skladem: %BRANDS%.",
+        "Velkoobchodní ceny za kus vidí registrované firmy — registrace je zdarma a žádáme živnostenský list. Pokud se to Vaší činnosti netýká, stačí dát vědět a znovu psát nebudeme.",
+        "%d položek obuvi, plné velikostní řady, skladem.",
+        "%d položek spodního prádla, skladem."],
+      'el' => ["VESTRA — υποδήματα και εσώρουχα τώρα διαθέσιμα",
+        "Καλημέρα".($co !== '' ? " ".$co : '').",",
+        "Σας είχαμε γράψει για τη VESTRA, τη χονδρική B2B πλατφόρμα μας για επώνυμη μόδα. Έκτοτε άνοιξαν δύο τμήματα:",
+        "%SHOES%%UNDER%",
+        "Premium οίκοι σε απόθεμα σήμερα: %BRANDS%.",
+        "Οι τιμές χονδρικής ανά τεμάχιο εμφανίζονται σε εγγεγραμμένες επιχειρήσεις — η εγγραφή είναι δωρεάν και ζητάμε την άδεια λειτουργίας. Αν δεν αφορά τη δραστηριότητά σας, πείτε μας το και δεν θα ξαναγράψουμε.",
+        "%d κωδικοί υποδημάτων, πλήρεις σειρές μεγεθών, από απόθεμα.",
+        "%d κωδικοί εσωρούχων, από απόθεμα."],
+      'ja' => ["VESTRA — フットウェアとインナーの取り扱いを開始",
+        ($co !== '' ? $co." " : '')."ご担当者様",
+        "先般、ブランドファッションのB2B卸売プラットフォーム VESTRA についてご案内いたしました。その後、二つの部門が加わりました。",
+        "%SHOES%%UNDER%",
+        "本日在庫のあるプレミアムブランド： %BRANDS%。",
+        "1点あたりの卸価格は登録企業様に表示されます。登録は無料で、商業登記書類を確認させていただきます。御社の取り扱いに合わない場合はお知らせください。以後ご連絡はいたしません。",
+        "フットウェア %d 型、フルサイズ展開、在庫からの出荷が可能です。",
+        "インナー %d 型、在庫からの出荷が可能です。"],
+      'ko' => ["VESTRA — 신발과 이너웨어 오픈",
+        ($co !== '' ? $co." " : '')."담당자님,",
+        "브랜드 패션 B2B 도매 플랫폼 VESTRA에 대해 앞서 안내드린 바 있습니다. 이후 두 개 부문이 추가되었습니다.",
+        "%SHOES%%UNDER%",
+        "오늘 재고 보유 프리미엄 브랜드: %BRANDS%.",
+        "장당 도매가는 등록된 사업자에게 표시됩니다. 등록은 무료이며 사업자등록증을 확인합니다. 귀사와 관련이 없다면 말씀만 주시면 다시 연락드리지 않겠습니다.",
+        "신발 %d개 품목, 전 사이즈 구성, 재고 출고 가능.",
+        "이너웨어 %d개 품목, 재고 출고 가능."],
+    ];
+
+    $d = $L[$lang] ?? $L['en'];
+    [$subject, $hi, $p1, $p2, $p3, $p4, $lineShoes, $lineUnder] = $d;
+
+    /* Sifir olan bolum HIC yazilmaz. */
+    $bullets = '';
+    if ($shoes > 0) $bullets .= "• ".sprintf($lineShoes, $shoes)."\n";
+    if ($under > 0) $bullets .= "• ".sprintf($lineUnder, $under)."\n";
+    $p2 = trim(str_replace(['%SHOES%%UNDER%'], [rtrim($bullets, "\n")], $p2));
+
+    /* Marka satiri ancak marka varsa. */
+    $p3 = $brands !== '' ? str_replace('%BRANDS%', $brands, $p3) : '';
+
+    $parts = array_values(array_filter([$hi, $p1, $p2, $p3, $p4], fn($x) => trim((string)$x) !== ''));
+    $body  = implode("\n\n", $parts)
+           . "\n\n—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com";
+
+    return [$subject, $body, ['button' => ['label' => 'VESTRA', 'url' => 'https://vestrasales.com/price-list']]];
+}
+
 function vestra_tpl_new_collection(string $lang, string $company): array {
     $co = trim($company);
     $L = [
