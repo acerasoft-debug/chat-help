@@ -2330,6 +2330,64 @@ kapsam soruldu, **"yalnız Marca Online"** seçildi).
   yalnız ülke çıkarıldı; başlığı `seller` adına çevirmek ayrı bir karar ve
   operatör kararı bekliyor.
 
+**KURAL 21d — Marca Online'ın ilanlarında GÖNDERİM YERİ satırı basılmaz**
+(operatör, 10 Eyl 2026: *"underwear ürünlerini türkiyeden gönderiliyor ibaresini
+kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
+
+- **Bu, bir gün önceki kararın GERİ ALINMASI.** Yukarıdaki showroom notu
+  *"`ships_from=Turkey` … DURUYOR, çünkü alıcının gümrük/teslim için okuduğu
+  satır o"* diyordu; artık ikisi de gizli. Eski not olduğu gibi bırakılmadı —
+  birbirini tutmayan iki kayıt hangisinin geçerli olduğunu okunamaz yapar.
+- **ALAN SİLİNMEZ, SATIR BASILMAZ — işin tamamı bu ayrımda.**
+  `vestra_ships_from()` boş alanda platform varsayılanı **`EU`** dönüyor, yani
+  kayıttan `Turkey`'i silmek satırı kaldırmaz, yerine **"Ships from EU" YAZAR**:
+  alıcının gümrük için okuduğu satırda doğru bir ifadeyi yanlış bir ifadeyle
+  değiştirmek. "Kaldır" talimatının yaptığı şey bu değil. Kayıt yerinde duruyor
+  (panel, fatura ve sevkiyat tarafı okumaya devam ediyor), yalnızca vitrin
+  susuyor.
+- **Ölçüt SATICI, bölme değil** (`vestra_hides_ships_from()`, hesap ID'siyle —
+  `showroom_hide_country`'nin aynı deseni; ad bir metin, kimlik değil). Bölmeye
+  bağlansaydı yarın gelen İspanyol bir iç çamaşırı tedarikçisinin **gerçek**
+  çıkış yeri de sessizce silinirdi. Hesap bayrağı `hide_ships_from` kodun
+  varsayılanını ezer.
+- **Satırı basan HER müşteri yolu karara soruyor:** ürün sayfası, katalog kartı
+  (ayırıcı `·` da düşüyor, yoksa kart "MOQ 6 pc ·" diye yarım biterdi), dropship
+  sayfası (bugün oraya bu ilanlar düşmüyor ama ölçüt bölme değil satıcı) ve
+  **günlük journal yazısı** — sonuncusu atlanırsa vitrinde susan satır yazının
+  içinden geri gelirdi (KURAL 8'in "panelde gizlenip mektupta yazılan ad" dersi).
+  **Operatör paneli TERSİ:** gerçeği basmaya devam ediyor ve yanına
+  *"· alıcıda gizli"* rozeti koyuyor — yoksa panel "Turkey" derken müşteri
+  hiçbir şey görür ve ikisinin aynı olduğu sanılırdı.
+- **Ölçüm tuzağına DÜŞTÜM ve kontrol grubu kurtardı.** İlk ölçümde ürün
+  sayfasını **girişsiz** çektim: hem gizli hem kontrol ürünü "0" verdi, çünkü o
+  blok **fiyat kapısının** arkasında — yani kapıyı ölçmüştüm, dalı değil
+  (KURAL 4b'nin birebir aynı tuzağı). Onaylı bir alıcı oturumuyla tekrar
+  ölçüldü: `calc` bloğu **iki üründe de** var, kontrol ürünü (başka satıcı,
+  **aynı ülke**) *"Ships from Turkey"* **yazıyor**, Marca Online ürünü **hiçbir
+  şey** yazmıyor. Müşteri yüzeylerinin taraması: ürün sayfası, `/shop?section=
+  underwear`, `/b2b/sleepwear`, `/wholesale/visatin`, `/price-list`,
+  `/catalog-csv` → **"Turkey" geçişi 0**, PHP uyarısı 0.
+- **Söylenen açık maliyet:** AB'li alıcı bu satırı gümrük ve teslim süresi için
+  okuyor; satır olmayınca malın AB dışından geldiğini sipariş anında göremiyor
+  (menşe zaten faturada, sevk belgesinde ve kolinin üstünde görünecek). Operatör
+  bunu bilerek istedi; KURAL 3 bundan **etkilenmedi** — o kural değerin
+  *uydurulmamasını* zorunlu tutuyor, gösterilmesini değil, ve değer kayıtta
+  duruyor.
+- Test: `tests/ships_from_hidden_test.php` (21 iddia). **İki yönü de** tutuyor:
+  gizlenmesi gereken ve *görünmeye devam etmesi* gereken (aynı ülkeden gönderen
+  başka bir satıcı) — tek yön yazılsaydı test yeşil kalır, ilgisiz bir
+  tedarikçinin çıkış yeri sessizce silinirdi. Düşebildiği doğrulandı: özellik
+  kapatılınca **2 kırmızı**, ölçüt bölmeye çevrilince **1**.
+- **Yan düzeltme:** `product_i18n_test.php` 10 Eylül'deki sözlük yeniden
+  adlandırmasından (`nbb-vocab.php` → `kuloglu-underwear-vocab.php`) beri
+  **fatal** ile düşüyordu ve fark edilmemişti. Dosya/sabit adları güncellendi;
+  ayrıca *"kullanılmayan tür/özellik yok"* iddiası yanlış **kümeye** bakıyordu —
+  sözlük artık üç üreticiye ortak, yani "Nachthemd" NBB'nin elle yazılmış
+  tablosunda geçmiyor. Ulaşılabilirlik artık `KU_PRODUCTS` + başlık
+  sınıflandırıcısı üzerinden ölçülüyor (38 tür, 32 özellik, **ulaşılmayan 0**) ve
+  ölü bir kelime enjekte edilerek hâlâ düşebildiği doğrulandı.
+  *Bir dosyayı yeniden adlandırırken "bu ada kim daha bakıyor?" diye sor.*
+
 ## Operasyonel notlar
 
 - Deploy `claude/wizardly-planck-7ylnmk` dalına **push ile** tetiklenir.

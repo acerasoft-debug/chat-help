@@ -495,7 +495,9 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           <div class="calc">
             <div class="unit"><?= t('Unit:') ?> <span id="uprice"><?= vestra_money($from) ?></span> · <span id="tier"></span></div>
             <div class="total" id="total"><?= vestra_money($from*$p['moq']) ?> <small><?= t('excl. taxes & shipping') ?></small></div>
+            <?php if (!vestra_hides_ships_from($p)): ?>
             <div class="hint" style="margin-top:6px"><?= vestra_ships_from_flag($p) ?> <?= htmlspecialchars(vestra_ships_from_label($p)) ?></div>
+            <?php endif; ?>
           </div>
           <div id="warn" class="warn" style="display:none"></div>
           <?php if($SOLD): ?>

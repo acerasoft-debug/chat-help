@@ -364,8 +364,12 @@ function vestra_journal_auto_build(?int $now = null, int $days = VESTRA_JOURNAL_
                 if ($cn !== '') $colorSet[mb_strtolower($cn)] = true;
             }
             $colors = count($colorSet);
+            /* Gunluk journal yazisi da bir MUSTERI yuzeyi: gizlenen gonderim yeri
+               burada basilsaydi vitrinde susan satir yazinin icinden geri gelirdi
+               (KURAL 8'in "panelde gizlenip mektupta yazilan ad" dersi). */
             $ships = [];
             foreach ($items as $p) {
+                if (function_exists('vestra_hides_ships_from') && vestra_hides_ships_from($p)) continue;
                 $sf = function_exists('vestra_ships_from') ? trim((string)vestra_ships_from($p)) : '';
                 if ($sf !== '') $ships[$sf] = true;
             }

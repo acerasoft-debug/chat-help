@@ -4995,6 +4995,14 @@ elseif($tab==='listings'):
         <span style="color:#c0392b" title="Not set — the product page falls back to “Ships from EU”">⚠ not set</span>
       <?php else: ?>
         <?= vestra_ships_from_flag($p) ?> <?= htmlspecialchars($__sf) ?>
+        <?php /* Kayit duruyor ama VITRIN bu satiri basmiyor (operator karari,
+                 10 Eyl 2026). Isaret sart: aksi halde panel "Turkey" derken
+                 musteri hicbir sey goruyor ve ikisinin ayni oldugu sanilirdi --
+                 bu depoda "panelde bir, ekranda baska" tam olarak boyle bir
+                 satirdan cikmisti. */
+              if (vestra_hides_ships_from($p)): ?>
+          <span class="ahint" title="Kayitli, ama urun sayfasinda ve katalog kartinda musteriye GOSTERILMIYOR">· alicida gizli</span>
+        <?php endif; ?>
       <?php endif; ?>
     </td>
     <td class="ac"><?= htmlspecialchars($p['seller']??'—') ?></td>

@@ -385,7 +385,12 @@ require __DIR__ . '/inc/head.php';
       <?php /* Transit suresi bolgeye gore degisiyor ama CIKIS noktasi degismiyor;
                alicinin gumruk beklentisi de tam buradan cikiyor, o yuzden sure
                satirinin hemen altinda duruyor. */ ?>
+      <?php /* Bugun buraya hicbir Marca Online ilani dusmuyor (ic camasiri dropship'e
+               kapali, KURAL 21) -- kontrol yine de burada, cunku olcut BOLME degil
+               SATICI: o kural bir gun degisirse satir sessizce geri gelirdi. */
+            if (!vestra_hides_ships_from($p)): ?>
       <div class="hint" style="margin-top:6px"><?= vestra_ships_from_flag($p) ?> <?= htmlspecialchars(vestra_ships_from_label($p)) ?></div>
+      <?php endif; ?>
       <label class="hint" style="margin-top:8px;display:block"><?= t('Quantity') ?></label>
       <input type="number" name="qty" value="1" min="1" style="width:90px">
       <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Buy now') ?> — <?= vestra_money((float)$dsUnit) ?></button>

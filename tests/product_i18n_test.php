@@ -18,7 +18,7 @@
 error_reporting(E_ALL & ~E_DEPRECATED);
 $root = __DIR__ . '/../vestra';
 require_once $root . '/inc/products.php';
-require_once __DIR__ . '/../product-batches/nbb-vocab.php';
+require_once __DIR__ . '/../product-batches/kuloglu-underwear-vocab.php';
 require_once __DIR__ . '/../product-batches/kuloglu-vocab.php';   // KULOGLU_COLORS: cakisma denetimi icin
 
 $ok = 0; $fail = 0;
@@ -93,12 +93,12 @@ $t('siparis satiri cozucuden geciyor',
    str_contains($src('order.php'), "'name'=>vestra_product_name(\$p),"));
 
 echo "\n== 4. NBB sozlugu: 47 urun x 9 dil ==\n";
-$langs = array_keys(NBB_JOIN);
+$langs = array_keys(KU_JOIN);
 $t('9 dil tanimli',                 count($langs) === 9);
-$t('47 urun',                       count(NBB_PRODUCTS) === 47);
+$t('47 urun',                       count(KU_NBB_PRODUCTS) === 47);
 $missing = []; $short = [];
-foreach (NBB_PRODUCTS as $model => $p) {
-    $n = nbb_name_i18n($model); $d = nbb_desc_i18n($model);
+foreach (KU_NBB_PRODUCTS as $model => $p) {
+    $n = ku_name_i18n($p, $model); $d = ku_desc_i18n($p, 'NBB');
     if (count($n) !== 9 || count($d) !== 9) { $missing[] = $model; continue; }
     foreach ($langs as $l) {
         /* Model numarasi her dilde adin icinde olmali: toptanci urunu ona gore
@@ -111,18 +111,31 @@ $t('model numarasi her dilde adda',  $short === []);
 /* Her turun ve her ozelligin 9 dili tam: eksik bir dil sessizce Ingilizce
    birakirdi ve karisik dilli bir baslik cikardi ("Trägerloser BH, padded"). */
 $gaps = [];
-foreach (['NBB_TYPES' => NBB_TYPES, 'NBB_ATTRS' => NBB_ATTRS] as $tbl => $rows) {
+foreach (['KU_TYPES' => KU_TYPES, 'KU_ATTRS' => KU_ATTRS] as $tbl => $rows) {
     foreach ($rows as $k => $row) {
         foreach ($langs as $l) if (trim((string)($row[$l] ?? '')) === '') $gaps[] = "$tbl/$k/$l";
     }
 }
 $t('tur ve ozellik tablolari 9 dilde tam', $gaps === [], );
+/* ULASILABILIRLIK, uc ureticinin TAMAMI uzerinden. Sozluk 10 Eyl 2026'da
+   nbb-vocab.php'den kuloglu-underwear-vocab.php'ye tasindi ve NBB / Visatin /
+   Q-EN'e ORTAK oldu (KURAL 21c). Bu iddia o gun NBB'nin elle yazilmis
+   tablosuna bakmaya devam etti ve kirmizi dondu -- kusur sozlukte degildi,
+   olcum yanlis KUMEYE bakiyordu: "Nachthemd" ya da "bambu" NBB'de gecmiyor,
+   Visatin/Q-EN'de geciyor.
+   Ulasilabilir = ya elle yazilmis bir urun kullaniyor (KU_PRODUCTS), ya da
+   baslik siniflandiricisi uretebiliyor (KU_TITLE_*). Ikisi de degilse kelime
+   gercekten olu: dokuz dile cevrilmis ama hicbir ilana basilamayan bir satir. */
 $t('kullanilmayan tur/ozellik yok',
    (function () {
-       $used = [];
-       foreach (NBB_PRODUCTS as $p) { $used['t'][$p['type']] = 1; foreach ($p['attrs'] as $a) $used['a'][$a] = 1; }
-       return !array_diff(array_keys(NBB_TYPES), array_keys($used['t'] ?? []))
-           && !array_diff(array_keys(NBB_ATTRS), array_keys($used['a'] ?? []));
+       $ut = []; $ua = [];
+       foreach (KU_PRODUCTS as $rows) {
+           foreach ($rows as $p) { $ut[$p['type']] = 1; foreach (($p['attrs'] ?? []) as $a) $ua[$a] = 1; }
+       }
+       foreach (KU_TITLE_TYPES as [$re, $k]) $ut[$k] = 1;
+       foreach (KU_TITLE_ATTRS as [$re, $k]) $ua[$k] = 1;
+       return !array_diff(array_keys(KU_TYPES), array_keys($ut))
+           && !array_diff(array_keys(KU_ATTRS), array_keys($ua));
    })());
 /* Kategoriler VESTRA taksonomisinin GERCEK yapraklari olmali: olmayan bir
    kategori t()'den gecmez, ham dizge basilir ve katalog var olmayan bir
@@ -130,37 +143,37 @@ $t('kullanilmayan tur/ozellik yok',
 $leaves = [];
 foreach (vestra_all_cats() as $g => $ls) foreach ((array)$ls as $l) $leaves[$l] = 1;
 $badCat = [];
-foreach (NBB_PRODUCTS as $m => $p) if (!isset($leaves[$p['cat']])) $badCat[] = "$m:{$p['cat']}";
+foreach (KU_NBB_PRODUCTS as $m => $p) if (!isset($leaves[$p['cat']])) $badCat[] = "$m:{$p['cat']}";
 $t('kategoriler taksonomide var', $badCat === []);
 
 echo "\n== 5. Tedarikci alanlarinin temizligi ==\n";
 /* Renk kodu: sondaki "-<rakam>" atiliyor. */
-$t('SİYAH-500 -> SİYAH',       nbb_color_key('SİYAH-500') === 'SİYAH');
-$t('TEN-57 -> TEN',            nbb_color_key('TEN-57') === 'TEN');
-$t('VİZON-86 -> VİZON',        nbb_color_key('VİZON-86') === 'VİZON');
+$t('SİYAH-500 -> SİYAH',       ku_color_key('SİYAH-500') === 'SİYAH');
+$t('TEN-57 -> TEN',            ku_color_key('TEN-57') === 'TEN');
+$t('VİZON-86 -> VİZON',        ku_color_key('VİZON-86') === 'VİZON');
 /* ...ama tireli GERCEK renk adlari bozulmuyor: kalip yalniz RAKAM ariyor.
    Bu deponun mango/zara dersinin renk hali -- gevsek bir kalip "GÜL KURUSU"nu
    ya da "NEON A.PEMBE"yi kirpardi. */
-$t('GÜL KURUSU bozulmuyor',    nbb_color_key('GÜL KURUSU') === 'GÜL KURUSU');
-$t('NEON A.PEMBE bozulmuyor',  nbb_color_key('NEON A.PEMBE') === 'NEON A.PEMBE');
-$t('KOYU YEŞİL bozulmuyor',    nbb_color_key('KOYU YEŞİL') === 'KOYU YEŞİL');
+$t('GÜL KURUSU bozulmuyor',    ku_color_key('GÜL KURUSU') === 'GÜL KURUSU');
+$t('NEON A.PEMBE bozulmuyor',  ku_color_key('NEON A.PEMBE') === 'NEON A.PEMBE');
+$t('KOYU YEŞİL bozulmuyor',    ku_color_key('KOYU YEŞİL') === 'KOYU YEŞİL');
 
 /* Beden mi renk mi: tedarikci kaydinda iki alan yer yer YER DEGISTIRMIS
    (olculdu: 2404, 2900, 9266, 9293). Alanin ADINA guvenilemez. */
-foreach (['S', 'M', 'XL', 'XXL', '75', '110', '2', '80 C', '75 B'] as $s) $t("beden: $s", nbb_is_size($s));
-foreach (['SİYAH', 'NEON TURUNCU', 'SAHRA-51', 'STANDART', 'BEYAZ', ''] as $c) $t("beden DEGIL: " . ($c ?: '(bos)'), !nbb_is_size($c));
-$t('STANDART tek beden',       nbb_is_one_size('STANDART') && !nbb_is_size('STANDART'));
-$t('SİYAH tek beden degil',    !nbb_is_one_size('SİYAH'));
+foreach (['S', 'M', 'XL', 'XXL', '75', '110', '2', '80 C', '75 B'] as $s) $t("beden: $s", ku_is_size($s));
+foreach (['SİYAH', 'NEON TURUNCU', 'SAHRA-51', 'STANDART', 'BEYAZ', ''] as $c) $t("beden DEGIL: " . ($c ?: '(bos)'), !ku_is_size($c));
+$t('STANDART tek beden',       ku_is_one_size('STANDART') && !ku_is_size('STANDART'));
+$t('SİYAH tek beden degil',    !ku_is_one_size('SİYAH'));
 
 /* Yeni renkler VESTRA paletine dusuyor: paletinde olmayan bir ad
    vestra_color_dots() tarafindan SESSIZCE atlanir -- renk hic gorunmez. */
 $pal = vestra_colors();
-foreach (NBB_EXTRA_COLORS as $k => $row) {
+foreach (KU_EXTRA_COLORS as $k => $row) {
     $t("$k -> palette " . $row['palette'], isset($pal[$row['palette']]));
     foreach ($langs as $l) if (trim((string)($row[$l] ?? '')) === '') { $t("$k/$l ceviri", false); }
 }
 $t('yeni renkler kuloglu-vocab ile cakismiyor',
-   !array_intersect(array_keys(NBB_EXTRA_COLORS), array_keys(KULOGLU_COLORS)));
+   !array_intersect(array_keys(KU_EXTRA_COLORS), array_keys(KULOGLU_COLORS)));
 
 printf("\n%d ok, %d hata\n", $ok, $fail);
 exit($fail ? 1 : 0);
