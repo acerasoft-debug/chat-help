@@ -1420,7 +1420,13 @@ jobs:
                 if (!$imgs) $imgs = $rec['images'] ?? [];
                 $sz = array_values(array_unique(array_filter(array_map(fn($v) => (string)($v['size'] ?? ''), $rec['variants'] ?? []))));
                 $co = array_values(array_unique(array_filter(array_map(fn($v) => (string)($v['color'] ?? ''), $rec['variants'] ?? []))));
-                printf("[%d] f%d%s%s | %s\n", $start + $i, count($imgs),
+                /* PAKET ADEDI de basiliyor. Basligin "6 LI" demesi yetmez:
+                   aciklama metni bu rakamdan kuruluyor ve ikisi ayrisirsa
+                   ilan kendi MOQ'suyla celisir (Balenciaga'nin desc/sizes
+                   dersi, 9 Eyl 2026). Rakam FIYAT DEGIL, tarife sizdirmaz. */
+                $pq = (int)($rec['pack_qty'] ?? 0);
+                printf("[%d] f%d%s%s%s | %s\n", $start + $i, count($imgs),
+                  $pq > 1 ? ' x'.$pq : '',
                   $sz ? ' b:'.implode('/', $sz) : '',
                   $co ? ' r:'.implode('/', $co) : '',
                   (string)($rec['title'] ?? '?'));
