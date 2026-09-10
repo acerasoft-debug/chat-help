@@ -18,6 +18,10 @@ on:
         description: "Pilot veri toplama — kuloglutekstil.com.tr 'Bayan Sütyen' kategorisini tarar, VESTRA'ya HİÇBİR ŞEY YAZMAZ, yalnızca sunucuda ~/kuloglu_import/*.json üretir (public_html DIŞI, repo'ya girmez). Format: 'MOD' ya da 'MOD|arg1' ya da 'MOD|arg1|arg2'. Modlar: fields|url1,url2,... (belirtilen ürün sayfalarını çek, alanları LOG'a yaz, dosyaya YAZMAZ — çıkarım deseni birkaç üründe doğrulamak için); paginate (kategori sayfasının gerçek sayfalama mekanizmasını teşhis eder, salt okunur); list_urls|maxPages (tüm sayfaları gezip essiz /urun/ linklerini product_urls.json'a yazar, varsayılan maxPages=40); crawl|start|count (product_urls.json'daki kuyruktan [start,start+count) dilimini çeker, bayan_sutyen.json'a ekler/birleştirir, hata verenleri failures.json'a yazar — zaten başarıyla çekilmiş URL'leri atlar, tekrar tekrar çağırmak güvenli); price (bayan_sutyen.json'daki TRY fiyatları EUR'a çevirir — sunucudan frankfurter.app/ECB günlük XML/açık piyasa sırasıyla güncel EUR/TRY kurunu çeker, %100 kâr uygular (satış=maliyet×2), bayan_sutyen_priced.json'a yazar; para birimi dönüşümü yalnızca bu tek seferlik alım hesaplaması için, sitenin canlı ziyaretçi para birimi sistemine (inc/money.php) dokunmaz); vocab (bayan_sutyen.json'daki tekrar eden, sonlu kelime dağarcığını döker — marka/kategori/renk/beden essiz listeleri + sayımı, başlıklarda marka/model dışı kelimeler — hiçbir şey yazmaz, yalnızca çeviri sözlüğü elle kurulurken referans için); sample_images|count (bayan_sutyen.json'dan MARKA BAŞINA bir örnek — başlık + ilk foto URL'i — döker, hiçbir şey indirmez; operatörün 'bazı ürünlerin fotoğrafının üzerinde Türkçe metin var' uyarısını taramak için gerçek URL'ler bulmaya yarar, seçilen URL'ler tek tek kuloglu_image girdisine verilip incelenir); images|start|count (fotoğrafları sunucuda indirir, GD ile yeniden kodlar — bu adım EXIF'i doğal olarak siler, kalite YÜKSEK tutulur [JPEG q=100] — ve ~/kuloglu_import/images_staged/ altına kaydeder; VESTRA'ya hiçbir şey YAZMAZ, yalnızca bir sonraki adımın [add-products.yml stage_from=] kullanacağı dosyaları hazırlar; varsayılan count=5, küçük bir denemeyle başlamak için); images_reset (yalnızca images_staged.json + o klasördeki dosyaları BOŞALTIR — çekim kalitesi/ayarı değiştiğinde 'zaten var' diye eski dosyaları korumaması için, 'reset'in fotoğraf karşılığı); create_seller (VESTRA'ya GERÇEK bir yazma — 'Marca Online' satıcı hesabını oluşturur, idempotent; inc/auth.php'yi yükler, diğer modların aksine); build_batch|start|count (bayan_sutyen_priced.json + images_staged.json + product-batches/kuloglu-vocab.php'yi [raw.githubusercontent.com'dan] add-products.yml satır formatına dönüştürür, yalnızca fotoğrafı zaten hazır ürünler için, test_batch.json'a yazar — VESTRA'ya HİÇBİR ŞEY YAZMAZ, yalnızca dosya üretir; fiyat log'a hiç basılmaz; renk yalnızca renk[] ve varyant.color'dan değil, boş color'lu bir varyantın size alanı palette_map'te çözülüyorsa oradan da toplanır (Kuloğlu bazı ürünlerde rengi 'beden' alanına yazıyor); her satıra ships_from='Turkey' basılır); export_enc|start|count (build_batch ile AYNI satırları üretir ama VESTRA'ya değil, add-products.yml'nin okuyacağı SIFRELI pakete — çünkü add-products.yml'nin 'file' girdisi actions/checkout'tan inen bir REPO yolu olmak zorunda, sunucudaki test_batch.json'a hiç erişemiyor, ve satır fiyatı Kuloğlu'nun gizli maliyetinin tam iki katı olduğu için depoya düz metin giremez; product-batches/pili-perez.enc ile AYNI anahtar/yöntem [RSA-OAEP + AES-256-CBC, özel anahtar sunucudan hiç çıkmaz] — yalnızca şifreli sonuç, ENC_CHUNKS_BEGIN/END arasında 100 karakterlik kendi kontrol toplamı (CHK=) taşıyan küçük parçalar halinde, log'a basılır -- tek bir uzun bloğu elle geri yazmak güvenilmez (denendi, uzunluk tuttu ama sha256 tutmadı); bunu product-batches/*.enc olarak commit edip add-products.yml'yi o dosyayla çalıştırmak gerekir); reset (bayan_sutyen.json + failures.json'ı BOŞALTIR, product_urls.json'a dokunmaz — çıkarım mantığı değiştiğinde eskiden 'zaten var' diye atlanacak kayıtları yeniden çektirmek için); status (üç dosyanın sayaç/özetini yazar, hiçbir şey çekmez). Kibarca: istekler arası ~300-400ms gecikme, paralel yok, makul timeout. Tam yük asla log'a basılmaz — yalnızca sayaç ve birkaç örnek."
         required: false
         default: ""
+      kuloglu_ds:
+        description: "VERI KUMESI: '<ad>|<kaynak yol>' (or. 'nbb|/marka/nbb'). BOS BIRAKILIRSA hicbir sey degismez -- mevcut 'Bayan Sutyen' kumesi ve onun dosya adlari (product_urls.json / bayan_sutyen.json / failures.json / bayan_sutyen_priced.json) AYNEN kullanilir. Neden gerekli: tarayici '/kategori/bayan-sutyen' yoluna SABITLENMISTI, yani baska bir kategori ya da marka sayfasi taranamiyordu; operatorun verdigi NBB urunu bir 'klot' ve o kategoride degil. Ad verildiginde kume kendi dosyalarini kullanir (<ad>_urls.json / <ad>.json / <ad>_failures.json / <ad>_priced.json), yani iki kume BIRBIRINI EZMEZ. Fotograf haritasi (images_staged.json) bilerek PAYLASILIR: anahtari foto URL'i, iki kume ayni fotografi paylasiyorsa ikinci kez indirilmemeli."
+        required: false
+        default: ""
       kuloglu_image:
         description: "Format: '<url>' ya da '<url>|maxSide'. Bir Kuloğlu ürün fotoğrafı URL'i verin — sunucudan çeker, İNCELEME için küçültür (varsayılan 220px/q60 — 'bu bir ürün fotoğrafı mı yoksa metin yoğun bir sayfa mı' ayrımı için; gerçekten metni OKUMAK gerekirse |maxSide ile büyütülür, örn. |450 — gerçek indirme/kaydetme adımı [images] buna dokunmuyor, tam kalite orada) ve IMG_CHUNKS_BEGIN/END arasında 100 karakterlik kendi kontrol toplamı (CHK=) taşıyan küçük parçalar halinde günlüğe basar. İlk denemede 520px q=82 bir taranmış katalog sayfasında 485 parça üretti — elle taşınamayacak kadar çok; export_enc'teki AYNI ders. Salt okunur, sunucuya hiçbir şey kaydetmez."
         required: false
@@ -248,6 +252,7 @@ jobs:
         if: ${{ github.event.inputs.kuloglu != '' }}
         env:
           KULOGLU: ${{ github.event.inputs.kuloglu }}
+          KULOGLU_DS: ${{ github.event.inputs.kuloglu_ds }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -255,7 +260,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 25m
-          envs: KULOGLU
+          envs: KULOGLU,KULOGLU_DS
           script: |
             cat > /tmp/vestra_kuloglu.php <<'PHPEOF'
             <?php
@@ -266,14 +271,29 @@ jobs:
             $home = getenv('HOME') ?: getenv('HOME_OVERRIDE') ?: '.';
             $DIR = $home . '/kuloglu_import';
             if (!is_dir($DIR)) { @mkdir($DIR, 0700, true); }
-            $URLS_FILE = $DIR . '/product_urls.json';
-            $OUT_FILE  = $DIR . '/bayan_sutyen.json';
-            $FAIL_FILE = $DIR . '/failures.json';
-            $PAGES_FILE = $DIR . '/category_pages.json'; // diagnostic record of which category pages were fetched
-            $PRICED_FILE = $DIR . '/bayan_sutyen_priced.json'; // TRY source + added EUR fields, from 'price' mode
+            /* VERI KUMESI. Bos girdi = 4 Eyl 2026'daki davranisin BIREBIR aynisi:
+               ayni dosya adlari, ayni kategori. Bir ad verildiginde kume kendi
+               dosyalarini kullanir, boylece NBB taramasi 638 kayitlik sutyen
+               kumesinin uzerine YAZMAZ. Varsayilanin dosya adlari korunuyor
+               cunku o dosyalar sunucuda DOLU; yeniden adlandirmak 638 kaydi
+               "yok" gostermek olurdu. */
+            $dsRaw  = trim((string)getenv('KULOGLU_DS'));
+            $dsBits = $dsRaw !== '' ? explode('|', $dsRaw) : [];
+            $DS     = strtolower(trim($dsBits[0] ?? '')) ?: 'bayan_sutyen';
+            if (!preg_match('~^[a-z0-9_]{1,40}$~', $DS)) { fwrite(STDERR, "gecersiz veri kumesi adi: {$DS}\n"); exit(1); }
+            $DEFAULT_DS = ($DS === 'bayan_sutyen');
+
+            $URLS_FILE = $DEFAULT_DS ? $DIR.'/product_urls.json' : $DIR."/{$DS}_urls.json";
+            $OUT_FILE  = $DIR . "/{$DS}.json";
+            $FAIL_FILE = $DEFAULT_DS ? $DIR.'/failures.json'     : $DIR."/{$DS}_failures.json";
+            $PAGES_FILE = $DIR . "/{$DS}_category_pages.json"; // diagnostic record of which category pages were fetched
+            $PRICED_FILE = $DIR . "/{$DS}_priced.json"; // TRY source + added EUR fields, from 'price' mode
 
             $BASE = 'https://www.kuloglutekstil.com.tr';
-            $CATEGORY_PATH = '/kategori/bayan-sutyen';
+            /* Kaynak yol da kumeyle geliyor. SABITLENMIS olmasi, operatorun
+               istedigi NBB klotlarinin hic taranamamasinin sebebiydi. */
+            $CATEGORY_PATH = trim($dsBits[1] ?? '') ?: '/kategori/bayan-sutyen';
+            if ($CATEGORY_PATH[0] !== '/') { fwrite(STDERR, "kaynak yol '/' ile baslamali: {$CATEGORY_PATH}\n"); exit(1); }
             $CATEGORY_URL = $BASE . $CATEGORY_PATH;
             $UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 
@@ -711,6 +731,41 @@ jobs:
             // modes
             // ---------------------------------------------------------------------
             if (defined('KULOGLU_NO_MAIN')) return;
+
+            /* HANGI KUMEYE BAKTIGINI HER KOSUDA YAZ. Bu depoda alti kez kontrolun
+               kendisi yanlis yere bakti; iki veri kumesi olan bir tarayicida
+               "638 kayit" satirini yanlis kumede okumak ayni sinifin yeni hali.
+               Sayilar degil, KAYNAK yaziliyor -- fiyat/adet log'a girmez. */
+            printf("[kume] %s   kaynak=%s   kayit dosyasi=%s\n", $DS, $CATEGORY_PATH, basename($OUT_FILE));
+
+            /* Bir listeleme sayfasinin gercekten urun tasiyip tasimadigini olcer.
+               NBB'nin site genelindeki urunleri once BULUNMALI: tarayici kategori
+               yoluna sabitliydi ve operatorun verdigi klot o kategoride degil.
+               Salt okunur, hicbir dosyaya yazmaz, tam yuku basmaz. */
+            if ($mode === 'probe_url') {
+              $urls = array_values(array_filter(array_map('trim', explode(',', $arg1))));
+              if (!$urls) { fwrite(STDERR, "probe_url|<url1>,<url2>... gerekli\n"); exit(1); }
+              foreach ($urls as $i => $u) {
+                if ($u[0] === '/') $u = $BASE . $u;
+                if ($i > 0) usleep(400000);
+                $r = vfetch($u);
+                printf("\n%s\n  http=%d  final=%s\n", $u, $r['code'], (string)($r['final'] ?? '?'));
+                if (!$r['html']) { echo "  govde YOK (err=".$r['err'].")\n"; continue; }
+                if (preg_match('~<title[^>]*>(.*?)</title>~is', $r['html'], $m))
+                  printf("  baslik: %s\n", trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES, 'UTF-8')));
+                preg_match_all('~/urun/([a-z0-9\-]+)~i', $r['html'], $mm);
+                $slugs = array_values(array_unique($mm[1] ?? []));
+                $nbb = array_values(array_filter($slugs, fn($s) => stripos($s, 'nbb') === 0));
+                printf("  essiz /urun/ link: %d   (bunlarin 'nbb' ile baslayani: %d)\n", count($slugs), count($nbb));
+                /* Sayfalama: 'paginate' modunda dogrulanan gercek parametre ?tp=N */
+                $hasNext = preg_match('~<link[^>]+rel=["\']next["\']~i', $r['html'])
+                        || preg_match('~[?&]tp=\d~', $r['html']);
+                echo "  sayfalama izi: ".($hasNext ? "VAR (?tp=)" : "yok")."\n";
+                foreach (array_slice($slugs, 0, 8) as $s) echo "     /urun/".$s."\n";
+              }
+              echo "\nSALT OKUNUR -- hicbir dosyaya yazilmadi\n";
+              return;
+            }
 
             if ($mode === 'fields') {
               // Diagnostic only — does not touch any file. arg1 = comma-separated URLs.
