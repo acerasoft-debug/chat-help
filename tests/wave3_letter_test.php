@@ -74,7 +74,13 @@ $t('winter varsayilan kaliyor',    str_contains($wf, 'vestra_tpl_new_collection(
 $t('ayakkabi CANLI sayiliyor',     str_contains($wf, "=== 'footwear') \$ncShoes++"));
 $t('ic giyim CANLI sayiliyor',     str_contains($wf, "'underwear')) \$ncUnder++"));
 $t('iki bolum de bossa DURUYOR',   str_contains($wf, 'ayakkabi ve ic giyim ikisi de 0'));
-$t('markalar kuru kosuda basiliyor', str_contains($wf, 'MARKALAR (mektupta yazacak)'));
+$t('markalar ozet satirinda basiliyor', str_contains($wf, 'MEKTUPTAKI MARKALAR'));
+/* "Premium" iki yerde ayni sey olmali: leadi premium sayan sozluk, mektupta
+   yazilan markalari da secmeli. Ilk surum en cok artikelli markalari aliyordu
+   ve tedarikci etiketlerini ("Pili Perez", "NBB") premium ev diye yazacakti --
+   canli kuru kosuda goruldu. */
+$t('markalar premium sozlugunden suzuluyor', str_contains($wf, 'vestra_premium_brandlist()'));
+$t('az artikelli marka listeye girmiyor',    str_contains($wf, 'if ($ncN < 10) continue;'));
 
 echo "\n== 6. Saticiya kampanya gitmez ==\n";
 $t('satici hesaplari toplaniyor',  str_contains($wf, "if ((\$sAcc['type'] ?? '') !== 'seller') continue;"));

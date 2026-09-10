@@ -350,12 +350,28 @@ jobs:
                     if ($ncB !== '') $ncBrand[$ncB] = ($ncBrand[$ncB] ?? 0) + 1;
                 }
                 arsort($ncBrand);
-                /* Tek ilanli bir marka "premium ev" diye sayilmaz: en az 10
-                   artikel, en fazla 6 ad. Liste mektupta aynen gorunuyor,
-                   o yuzden kuru kosuda da basiliyor -- gonderilmeden once
-                   okunacak tek yer orasi. */
+                /* "PREMIUM" KELIMESI OLCULUYOR, sayiya birakilmiyor. Ilk surum
+                   en cok artikelli markalari aliyordu ve mektupta "Premium
+                   houses: Pili Perez, NBB, ..." yazacakti -- ikisi de tedarikci
+                   etiketleri, premium ev degil. Suzgec leadleri premium sayan
+                   AYNI sozluk (vestra_premium_brandlist): kampanyanin iki yaninda
+                   iki ayri "premium" tanimi olsaydi mektup kendi hedefini
+                   yalanlardi. */
+                require_once $home."/public_html/inc/notify.php";
+                $ncPrem = [];
+                foreach (vestra_premium_brandlist() as $ncPB) {
+                    $ncPB = trim((string)$ncPB); if ($ncPB !== '') $ncPrem[mb_strtolower($ncPB)] = true;
+                }
+                /* Tek ilanli bir marka listeye girmez: en az 10 artikel, en cok
+                   6 ad. Liste mektupta AYNEN gorunuyor, o yuzden ozette de
+                   basiliyor -- gonderilmeden once okunacak tek yer orasi. */
                 $ncTop = [];
-                foreach ($ncBrand as $ncB => $ncN) { if ($ncN >= 10) $ncTop[] = $ncB; if (count($ncTop) >= 6) break; }
+                foreach ($ncBrand as $ncB => $ncN) {
+                    if ($ncN < 10) continue;
+                    if (!isset($ncPrem[mb_strtolower(trim((string)$ncB))])) continue;
+                    $ncTop[] = $ncB;
+                    if (count($ncTop) >= 6) break;
+                }
                 $NC_FACTS = ['shoes' => $ncShoes, 'underwear' => $ncUnder, 'brands' => implode(', ', $ncTop)];
                 echo "METIN: ayakkabi/ic giyim -- ayakkabi {$ncShoes} artikel, ic giyim {$ncUnder} artikel\n";
                 echo "MARKALAR (mektupta yazacak): ".($NC_FACTS['brands'] !== '' ? $NC_FACTS['brands'] : '(YOK)')."\n";
