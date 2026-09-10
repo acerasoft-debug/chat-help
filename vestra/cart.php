@@ -42,6 +42,10 @@ if (stripe_available()) {
     <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
       <?= t('Colour selection missing — open the product page, choose at least the required number of colours and add the item again.') ?></div>
   <?php endif; ?>
+  <?php if(isset($_GET['err']) && $_GET['err']==='sizes'): ?>
+    <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
+      <?= t('Size selection missing — open the product page, choose at least one size and add the item again.') ?></div>
+  <?php endif; ?>
   <?php if(isset($_GET['err']) && $_GET['err']==='escrow'): ?>
     <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
       <?= t('Secure escrow couldn’t be started for this cart — it’s available only when all items are from a single verified seller. Please choose bank transfer instead.') ?></div>
@@ -49,6 +53,17 @@ if (stripe_available()) {
   <?php if(isset($_GET['err']) && $_GET['err']==='escrow_max'): ?>
     <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
       <?= htmlspecialchars(sprintf(t('Card escrow accepts orders up to %s. This order is above that, so please choose bank transfer — the invoice carries the same buyer protection on delivery.'), '€'.number_format((float)VESTRA_ESCROW_MAX, 2))) ?></div>
+  <?php endif; ?>
+  <?php /* Sunucu marka-asgarisi kapisinin karsiligi (order.php). Sepet dolu
+           kaliyor: eksigi tamamlayip ayni sepetle devam edebilsin. Rakam
+           SABITTEN ve EUR -- gosterim birimine cevirmek, operatorun
+           "degismesin" dedigi esigi ekranda oynatirdi. */ ?>
+  <?php if(isset($_GET['err']) && $_GET['err']==='brandmin'):
+          $bmB = trim((string)($_GET['b'] ?? '')); $bmMin = vestra_brand_min_order($bmB); ?>
+    <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
+      <?= htmlspecialchars(sprintf(t('Minimum order for %1$s is %2$s.'),
+            $bmB !== '' ? $bmB : '—',
+            vestra_money($bmMin > 0 ? $bmMin : VESTRA_BRAND_MIN_ORDER_EUR, 'EUR'))) ?></div>
   <?php endif; ?>
   <?php /* Sunucu yetki kontrolunun karsiligi (order.php). Sepet dolu kaliyor:
            onay gelince ayni sepetle devam edebilsin. */ ?>
@@ -156,6 +171,10 @@ if (stripe_available()) {
           '<a href="/legal?doc=privacy" target="_blank" class="acc">'.t('Privacy Policy').'</a>',
           '<a href="/legal?doc=payments" target="_blank" class="acc">'.t('Payments &amp; Escrow').'</a>') ?></span>
       </label>
+      <?php /* Marka asgarisi -- eksik varsa BURADA yaziyor, dugmenin hemen ustunde.
+               Neyin eksik oldugunu soylemeyen bir engel alicinin sepeti birakmasina
+               yol aciyor; siparisi gonderip /cart'a geri dusmek de ayni sey. */ ?>
+      <div id="brandMinNote" class="banner" style="display:none;background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin:14px 0 0;max-width:680px"></div>
       <button class="btn btn-p" type="submit" style="margin-top:14px" id="placeBtn"><?= t('Place order request') ?></button>
       <span class="hint" style="margin-left:12px" id="placeHint"><?= t('No payment now — we confirm availability, then send your invoice.') ?></span>
     </form>
@@ -179,6 +198,16 @@ var PAY_LBL = {
      EUR uzerinden sinaniyor -- burada goruntuleme para birimine cevirmek, sinirla
      ekrandaki rakami farkli birimlere dusururdu. */
   escrowMax: <?= json_encode(sprintf(t('Card escrow accepts orders up to %s. Larger orders are paid by bank transfer.'), '€'.number_format((float)VESTRA_ESCROW_MAX, 2))) ?>
+};
+/* Marka basina asgari sepet tutari. Tablo SUNUCUDAKI tek kaynaktan basiliyor
+   (vestra_brand_min_orders) -- burada elle bir rakam yazmak, KURAL 6'nin escrow
+   tavaninda bes gun suren "ekranda bir, kasada baska" hatasinin aynisi olurdu.
+   Bu yalnizca ONIZLEME: gercek kapi order.php'de, yeniden fiyatlanmis satirlarda. */
+var BRAND_MIN = <?= json_encode(vestra_brand_min_orders(), JSON_UNESCAPED_UNICODE) ?: '{}' ?>;
+var BRAND_MIN_LBL = {
+  /* Iki cumle de 8 sozlukte; %1$s/%2$s/%3$s yerine JS'te sirayla degistiriliyor. */
+  min:   <?= json_encode(t('Minimum order for %1$s is %2$s.')) ?>,
+  short: <?= json_encode(t('Your cart has %1$s of %2$s — add %3$s to place the order.')) ?>
 };
 function eur(n){ return '€'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
@@ -219,6 +248,34 @@ function syncPay(c, net){
   if(btn)  btn.textContent = esc?PAY_LBL.escrowBtn:PAY_LBL.bankBtn;
   if(hint) hint.textContent= esc?PAY_LBL.escrowHint:PAY_LBL.bankHint;
 }
+/* PHP'deki vestra_brand_min_shortfall()'un aynisi: marka basina satir toplami,
+   esigin altinda kalanlar. Ayni tolerans (0.005) -- tam 500.00'lik bir sepet
+   kayan nokta yuzunden reddedilmesin. Karar SUNUCUDA; bu yalnizca alici
+   dugmeye basmadan once neyin eksik oldugunu gorsun diye. */
+function brandMinShort(c){
+  var have={}, out=[];
+  c.forEach(function(x){
+    var b=String(x.brand||'').trim(); if(!b) return;
+    have[b]=(have[b]||0)+Number(x.qty)*Number(x.unit);
+  });
+  Object.keys(have).forEach(function(b){
+    var min=Number(BRAND_MIN[b.toLowerCase()]||0);
+    if(min>0 && have[b] < min-0.005) out.push({brand:b, min:min, have:have[b], short:min-have[b]});
+  });
+  return out;
+}
+function syncBrandMin(c){
+  var note=document.getElementById('brandMinNote'), btn=document.getElementById('placeBtn');
+  if(!note) return;
+  var miss=brandMinShort(c);
+  if(!miss.length){ note.style.display='none'; note.textContent=''; if(btn) btn.disabled=false; return; }
+  note.style.display='';
+  note.innerHTML = miss.map(function(m){
+    return esc(BRAND_MIN_LBL.min.replace('%1$s', m.brand).replace('%2$s', eur(m.min))) + ' ' +
+           esc(BRAND_MIN_LBL.short.replace('%1$s', eur(m.have)).replace('%2$s', m.brand).replace('%3$s', eur(m.short)));
+  }).join('<br>');
+  if(btn) btn.disabled=true;
+}
 function render(){
   var c=VCart.all();
   document.getElementById('empty').style.display = c.length?'none':'block';
@@ -227,7 +284,10 @@ function render(){
   c.forEach(function(x){
     var line=x.qty*x.unit; sub+=line;
     var cols = (x.colors && x.colors.length) ? ' · '+x.colors.map(esc).join(', ') : '';
-    rows+='<tr><td><b>'+esc(x.brand)+'</b> — '+esc(x.name)+'<div class="hint">SKU '+esc(x.sku)+cols+'</div></td>'+
+    /* Secilen bedenler burada da gorunmeli: alici sepette gordugu seyi onayliyor
+       ve /order ayni listeyi ilana karsi yeniden dogruluyor. */
+    var szs  = (x.sizes  && x.sizes.length)  ? ' · '+<?= json_encode(t('Sizes')) ?>+': '+x.sizes.map(esc).join(', ') : '';
+    rows+='<tr><td><b>'+esc(x.brand)+'</b> — '+esc(x.name)+'<div class="hint">SKU '+esc(x.sku)+cols+szs+'</div></td>'+
       '<td>'+Number(x.qty)+' '+esc(x.unitLabel)+'</td><td class="r">'+eur(x.unit)+'</td><td class="r">'+eur(line)+'</td>'+
       '<td class="x" data-remove-id="'+esc(x.id)+'" title="<?= htmlspecialchars(t('Remove')) ?>">✕</td></tr>';
   });
@@ -252,6 +312,7 @@ function render(){
   document.getElementById('sub').textContent=eur(sub);
   var bfeeEl=document.getElementById('bfee'); if(bfeeEl) bfeeEl.textContent=eur(net*<?=VESTRA_FEE_BUYER?>);
   document.getElementById('grand').textContent=eur(net+efee);
+  syncBrandMin(c);   // dugmeyi de bu ayarliyor -- sepet her degistiginde yeniden
   document.getElementById('cartField').value=JSON.stringify(c);
 }
 

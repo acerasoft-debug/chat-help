@@ -471,8 +471,8 @@ footer a{color:#d8bd86}
              data-brand="<?= htmlspecialchars($p['brand']??'') ?>"
              data-mode="<?= htmlspecialchars($dmode) ?>"
              data-price="<?= !$PRICES ? '' : ($dmode==='offer' ? 999999 : $from) ?>"
-             data-search="<?= htmlspecialchars(strtolower(($p['brand']??'').' '.($p['name']??'').' '.($p['sku']??'').' '.($p['cat']??''))) ?>"
-             data-name="<?= htmlspecialchars($p['name']??'') ?>">
+             data-search="<?= htmlspecialchars(strtolower(vestra_product_title($p).' '.($p['sku']??'').' '.($p['cat']??''))) ?>"
+             data-name="<?= htmlspecialchars(vestra_product_name($p)) ?>">
             <div class="sthumb<?= (function_exists('vestra_is_sold_out') && vestra_is_sold_out($p)) ? ' sthumb-sold' : '' ?>" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11)">
               <?php /* SATILDI serdi: kart katalogda KALIYOR (marka burada satiliyor
                        bilgisi ve SEO degeri korunsun) ama satilamadigi ilk bakista
@@ -482,7 +482,7 @@ footer a{color:#d8bd86}
               <?php endif; ?>
               <?php /* The first photo is the one image search has to work with, so it names the
                         product; the second is the same garment on hover and stays decorative. */
-                     $_alt = trim(($p['brand'] ?? '').' '.($p['name'] ?? '')); ?>
+                     $_alt = vestra_product_title($p); ?>
               <?php if($img0): ?><img src="<?= htmlspecialchars($img0) ?>" alt="<?= htmlspecialchars($_alt) ?>" loading="lazy" class="sthumbi"><?php endif; ?>
               <?php if($img1): ?><img src="<?= htmlspecialchars($img1) ?>" alt="" loading="lazy" class="sthumbi sthumbi-reveal"><?php endif; ?>
               <?php if(!empty($p['verified'])): ?>
@@ -499,7 +499,7 @@ footer a{color:#d8bd86}
             </div>
             <div class="sbody">
               <span class="sbrand"><?= htmlspecialchars($p['brand']??'') ?></span>
-              <span class="stitle"><?= htmlspecialchars($p['name']??'') ?></span>
+              <span class="stitle"><?= htmlspecialchars(vestra_product_name($p)) ?></span>
               <span class="smeta"><?= htmlspecialchars($p['cat']??'') ?> &middot; SKU <?= htmlspecialchars($p['sku']??'') ?></span>
               <span class="smeta">MOQ <b><?= $p['moq']??'?' ?></b> <?= htmlspecialchars($p['unit']??'pc') ?> &middot; <?= vestra_ships_from_flag($p) ?> <?= htmlspecialchars(vestra_ships_from_label($p)) ?></span>
               <?php if(!empty($p['colors'])): ?><span class="smeta" style="margin-top:2px"><?= vestra_color_dots((array)$p['colors'], 7) ?></span><?php endif; ?>

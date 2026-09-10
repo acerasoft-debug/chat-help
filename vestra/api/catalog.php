@@ -81,6 +81,8 @@ function api_product(array $p): array {
         'name'        => (string)($p['name'] ?? ''),
         'category'    => (string)($p['cat'] ?? ''),
         'description' => (string)($p['desc'] ?? ''),
+        'name_i18n'   => is_array($p['name_i18n'] ?? null) ? $p['name_i18n'] : null,
+        'description_i18n' => is_array($p['desc_i18n'] ?? null) ? $p['desc_i18n'] : null,
         'unit'        => (string)($p['unit'] ?? 'pc'),
         'moq'         => (int)($p['moq'] ?? 0),
         'sizes'       => (string)($p['sizes'] ?? ''),

@@ -63,7 +63,7 @@ $PAGE = $dispName.' — '.t('Showroom'); $NAV = 'shop'; require __DIR__.'/inc/he
     <p style="color:var(--mut)">
       <?= count($items) ?> <?= t('live listings') ?>
       <?php if ($cats): ?> · <?= htmlspecialchars(implode(' · ', array_slice($cats, 0, 4))) ?><?php endif; ?>
-      <?php if (!$allHidden && !empty($sellerAcc['country'])): ?> · <?= htmlspecialchars($sellerAcc['country']) ?><?php endif; ?>
+      <?php if (!$allHidden && !vestra_showroom_hides_country($sellerAcc) && !empty($sellerAcc['country'])): ?> · <?= htmlspecialchars($sellerAcc['country']) ?><?php endif; ?>
       <?php if ($since): ?> · <?= t('Member since') ?> <?= $since ?><?php endif; ?>
     </p>
   </div>

@@ -1378,7 +1378,7 @@ if (function_exists('vestra_products') && function_exists('vestra_product_sectio
         if ($simg === '' || ($sp['id'] ?? '') === '') continue;
         $shoeByCat[(string)($sp['cat'] ?? 'Other')][] = [
             'id'  => (string)$sp['id'],
-            'name'=> (string)($sp['name'] ?? ''),
+            'name'=> vestra_product_name($sp),
             'cat' => (string)($sp['cat'] ?? ''),
             'img' => $simg,
         ];

@@ -32,7 +32,7 @@ if (empty($_SESSION['vadmin']) && !auth_user_approved($AUTH_USER)) {
 
 $fmt = $_GET['fmt'] ?? 'pdf';
 if (!in_array($fmt, ['pdf', 'xls', 'file'], true)) $fmt = 'pdf';
-$slug = strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $p['brand'].' '.$p['name']));
+$slug = strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', vestra_product_title($p)));
 
 /* The seller's own upload, streamed from disk. basename() is what keeps the stored
    path from reaching outside uploads/ — the record is written by us, but it is read
@@ -91,7 +91,7 @@ echo "\xEF\xBB\xBF"; // UTF-8 BOM so Excel decodes accents correctly
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 ?>
 <table border="1">
-  <tr><th colspan="9" style="background:#0e0e11;color:#fff;font-size:16px;text-align:left"><?= $h($p['brand'].' — '.$p['name']) ?></th></tr>
+  <tr><th colspan="9" style="background:#0e0e11;color:#fff;font-size:16px;text-align:left"><?= $h(($p['brand'] ?? '').' — '.vestra_product_name($p)) ?></th></tr>
   <tr>
     <td colspan="9" style="text-align:left">
       SKU <?= $h($p['sku']) ?> · <?= $h($p['cat']) ?> · MOQ <?= (int)$p['moq'] ?> <?= $h($unit) ?> · Pack <?= $pack ?> <?= $h($unit) ?> · <?= $h(vestra_sizes_label((string)($p['sizes'] ?? ''))) ?> · <?= $h(strip_tags((string)($p['origin'] ?? ''))) ?>
@@ -106,7 +106,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
     <td><?= $i + 1 ?></td>
     <td><?= $h($r['art']) ?></td>
     <td><?= $h($r['model']) ?></td>
-    <td><?= $h($p['brand'].' '.$p['name']) ?></td>
+    <td><?= $h(vestra_product_title($p)) ?></td>
     <td><?= $h($r['color']) ?></td>
     <td><?= (int)$p['moq'] ?> <?= $h($unit) ?></td>
     <td><?= $pack ?> <?= $h($unit) ?></td>

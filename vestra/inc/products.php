@@ -656,12 +656,120 @@ function vestra_section_note(string $s): string {
     ][strtolower(trim($s))] ?? '';
 }
 
+/* ── Marka basina asgari sepet tutari ─────────────────────────────────────────
+ *
+ * (operator, 10 Eyl 2026, uc adimda yerlesti: *"komple marka secildiginde en az
+ * alim 300 eur olacak sekilde"* -> *"en az alimi 500 usd yap"* -> kurun ne
+ * yapacagi anlatilinca *"eur yap"* + *"degismesin"*.)
+ *
+ * VESTRA'da bugune kadar asgari diye bir sey vardi ama TEK ILANIN adediydi
+ * (`moq`). Bu baska bir sey: sepetteki O MARKAYA ait satirlarin TOPLAM TUTARI.
+ * Kapsam uc okumadan secildi -- marka (bu), bolme degil, siparis toplami degil.
+ *
+ * RAKAM TEK SABITTE. KURAL 6 bunun bedelini zaten kaydetti: escrow tavani bes
+ * gun boyunca metne gomulu kaldi ve musteriye soylenen ile sepetin kabul ettigi
+ * ayri rakamlardi. Sayfa, sepet ve uyari metni ayni sabiti okuyor.
+ *
+ * BIRIM EUR ve CEVRILMIYOR. Katalogun her fiyati zaten EUR (TRY maliyet x 1.5),
+ * yani esik ile sepet ayni birimde: karsilastirma duz toplama. Ziyaretci sepeti
+ * baska bir gosterim biriminde gorebiliyor (vestra_money) ama ESIK EUR yazilir
+ * -- gosterim birimine cevrilmis bir esik, operatorun "degismesin" dedigi seyi
+ * tam da ekranda degistirirdi.
+ */
+const VESTRA_BRAND_MIN_ORDER_EUR = 500.0;
+
+/* Marka -> asgari tutar. Yeni marka = BIR SATIR, kapida yeni bir dal degil
+   (KURAL 2h'nin ulke listesiyle ayni sebep: kural bir gunde uc kez buyudu).
+   Anahtar karsilastirmasi kucuk harfe cekilerek yapiliyor, ASAGIDAKI okuyucuda. */
+function vestra_brand_min_orders(): array {
+    return ['nbb' => VESTRA_BRAND_MIN_ORDER_EUR];
+}
+
+/** Bu markanin asgari sepet tutari (EUR); yoksa 0.0 — yani kural o markaya islemez. */
+function vestra_brand_min_order(string $brand): float {
+    return (float)(vestra_brand_min_orders()[mb_strtolower(trim($brand))] ?? 0.0);
+}
+
+/**
+ * Sepet satirlarindan marka basina EKSIK tutari bulur. Saf: girdi satirlar,
+ * cikti eksikler. Sunucu kapisi (order.php) ve sepet uyarisi ayni cevabi
+ * okusun diye tek yer -- bu depoda ikinci bir kapi tanimi alti kez yanlis yere
+ * bakti (KURAL 2h).
+ *
+ * $lines: [['brand'=>string, 'line'=>float], ...]  ('line' = adet x birim)
+ * Doner : ['NBB' => ['min'=>500.0, 'have'=>320.5, 'short'=>179.5], ...]
+ *         YALNIZCA esigin altinda kalan markalar. Bos dizi = sepet gecer.
+ *
+ * Tolerans: kayan nokta yuzunden tam sinirdaki bir sepet (500.00) reddedilmesin.
+ */
+function vestra_brand_min_shortfall(array $lines): array {
+    $have = [];
+    foreach ($lines as $l) {
+        $b = trim((string)($l['brand'] ?? ''));
+        if ($b === '') continue;
+        $have[$b] = ($have[$b] ?? 0.0) + (float)($l['line'] ?? 0);
+    }
+    $out = [];
+    foreach ($have as $brand => $sum) {
+        $min = vestra_brand_min_order($brand);
+        if ($min <= 0 || $sum >= $min - 0.005) continue;
+        $out[$brand] = ['min' => $min, 'have' => round($sum, 2), 'short' => round($min - $sum, 2)];
+    }
+    return $out;
+}
+
 /* By id, INCLUDING unlisted items: the product page, cart, order and offer paths all come
    here with an id the buyer was given directly, and a link sent in a letter must keep
    working even though the item is not in the catalogue. */
 function vestra_find($id){ foreach(vestra_products(true) as $p){ if($p['id']===$id) return $p; } return null; }
 function vestra_cats(){ $c=[]; foreach(vestra_products() as $p){ $c[$p['cat']]=1; } return array_keys($c); }
 function vestra_primary_image(array $p): string { if(!empty($p['images'])&&is_array($p['images'])) return $p['images'][0]; return $p['image']??''; }
+
+/* ── Ilanin adi ve aciklamasi, SAYFANIN DILINDE ───────────────────────────────
+ *
+ * (operator, 10 Eyl 2026, NBB ic camasiri katalogu: *"tüm dillere cevrilecek"*,
+ * ve adin da cevrilip cevrilmeyecegi ayrica soruldu -- cevap: evet.)
+ *
+ * Bu depoda ilanin `name`/`desc` alani HICBIR YERDE t()'den gecmiyordu; her
+ * sayfa ham dizgeyi basiyordu. Yani 4 Eylul'deki Kuloglu isinde baslik tek ve
+ * Ingilizce yazildi -- cevrilmedigi icin degil, cevrilmis bir basligin
+ * BASILACAGI YER olmadigi icin (product-batches/kuloglu-vocab.php'nin kendi
+ * olcumu). t() burada dogru arac DEGIL: t() site metinlerinin sozlugu, ilan
+ * adi ise ilanin kendi verisi -- her yeni urun sozluge 9 satir eklemek olurdu.
+ *
+ * Bu yuzden ceviri ILANIN UZERINDE duruyor (`name_i18n`, `desc_i18n`: dil kodu
+ * -> metin) ve okuyan TEK yer bu iki fonksiyon. Alan yoksa ya da o dil yoksa
+ * ilanin kendi `name`/`desc`'i basilir: 671 mevcut ilanin hicbirinde bu alan
+ * yok ve hicbiri degismemeli.
+ *
+ * ALAN EKLEMEK YETMEZ, OKUYAN YOL DA GEREKIR: bu depo "toplanan ama okunmayan
+ * alan"i bir kez yasadi (KURAL 5j -- platformun banka kunyesi panelde
+ * toplaniyordu, cizici o kaydi hic okumuyordu, alanlari doldurmak hicbir seyi
+ * degistirmiyordu). O yuzden cagri yerleri testle sayiliyor.
+ */
+function vestra_i18n_pick(array $map, string $fallback): string {
+    /* vlang() sureç icinde sabitleniyor; burada onu cagirmak dogru cunku her
+       istek tek bir dile ait. CLI'da (cron, toplu is) da 'en' donuyor. */
+    $lang = function_exists('vlang') ? vlang() : 'en';
+    $v = trim((string)($map[$lang] ?? ''));
+    return $v !== '' ? $v : $fallback;
+}
+function vestra_product_name(array $p): string {
+    $base = trim((string)($p['name'] ?? ''));
+    $m = $p['name_i18n'] ?? null;
+    return is_array($m) ? vestra_i18n_pick($m, $base) : $base;
+}
+function vestra_product_desc(array $p): string {
+    $base = trim((string)($p['desc'] ?? ''));
+    $m = $p['desc_i18n'] ?? null;
+    return is_array($m) ? vestra_i18n_pick($m, $base) : $base;
+}
+/* Marka + ad, tek yerde: alt metinlerde, sayfa basliklarinda ve belge
+   satirlarinda ayni sira kullanilsin. */
+function vestra_product_title(array $p): string {
+    return trim(trim((string)($p['brand'] ?? '')).' '.vestra_product_name($p));
+}
+
 /* Mask a seller/company name for viewers who are not yet approved (freigeschaltet):
    "Milano Fashion GmbH" → "M···". Never reveals more than the first letter. */
 function vestra_mask_seller(string $s): string {
@@ -1361,7 +1469,7 @@ function vestra_requests(){
    exist in the data so old listings localise without a migration. */
 function vestra_sizes_label(string $sizes): string {
     if ($sizes === '') return '';
-    return preg_replace_callback(
+    $out = preg_replace_callback(
         '~(\d+)\s*/\s*(pack|paket|packs|seri|series|serie)\b~iu',
         function ($m) {
             $isSeries = stripos($m[2], 'ser') === 0;
@@ -1369,6 +1477,22 @@ function vestra_sizes_label(string $sizes): string {
         },
         $sizes
     ) ?? $sizes;
+    /* Ciplak beden KELIMELERI. Rakamlar (75, 80/85) ve harf merdiveni (S-XL,
+       A/B/C kap) her dilde ayni ve cevrilMEZ -- sozlugun kendi ilkesi bu. Ama
+       "tek beden" bir kelime, ve NBB katalogunda gercekten var: corap
+       satirlarinin bedeni "STANDART" (olculdu, 10 Eyl 2026). Tedarikcinin
+       Turkce yazimi da kabul ediliyor, cunku eski/ithal kayitlarda oyle
+       gecebiliyor ve o zaman goc gerekmesin.
+       Kalip DAR tutuldu: "standart" gunluk bir kelime ve serbest metinli bir
+       beden aciklamasinin ortasinda gecebilir; yalniz TEK BASINA duran deger
+       (ya da nokta/orta-nokta ile ayrilmis bir parca) cevriliyor. Genis bir
+       kalip, bu deponun mango/zara dersini beden alaninda tekrarlardi. */
+    $out = preg_replace_callback(
+        '~(^|[·|,;]\s*)(one\s?size|standart|tek\s?beden|tek\s?ebat)(?=\s*($|[·|,;]))~iu',
+        fn($m) => $m[1] . t('One size'),
+        $out
+    ) ?? $out;
+    return $out;
 }
 
 /* ── Tek parca satisi icin secilebilir beden / renk ────────────────────────
@@ -1394,12 +1518,40 @@ function vestra_size_norm(string $tok): string {
     return '';
 }
 
+/* Paket eki. TEK kalip: vestra_sizes_label() de bunu kullaniyor, cunku "hangi
+   parca pakettir" sorusunun iki ayri cevabi olamaz -- bu depo ayni olgunun
+   ikinci kopyasinin ne ettigini yeterince kaydetti. */
+const VESTRA_SIZE_PACK_RE = '~(\d+)\s*(?:pcs|pieces|adet)?\s*/\s*(pack|paket|packs|seri|series|serie)\b~iu';
+
+/* Ilan bir PAKET/SERI mi satiyor? Oyleyse bedenlerin karisimi SABIT ve alici
+   secemez -- sectirmek, ilan edilen paketin icerigiyle celisen bir siparis
+   uretirdi (KURAL 4b'nin MOQ/paket adimi dersinin beden hali). */
+function vestra_sizes_has_pack(string $s): bool {
+    return (bool)preg_match(VESTRA_SIZE_PACK_RE, $s);
+}
+
+/* Ilan ACIK bir dagilim mi yaziyor ("S×1 · M×3 · L×3")? O da sabit bir seri.
+   Kalip yine TEK: asagida ayristirici da bunu kullaniyor. */
+const VESTRA_SIZE_RUN_RE = '~([A-Za-z0-9]{1,5})\s*[×xX*]\s*\d+~u';
+
+function vestra_sizes_has_run(string $s): bool {
+    return (bool)preg_match(VESTRA_SIZE_RUN_RE, $s);
+}
+
 function vestra_size_options(array $p): array {
     $s = trim((string)($p['sizes'] ?? ''));
     if ($s === '') return [];
     /* "os" disindakiler govde eslesmesi: /u kipinde \b harfli ekleri de kelime
        sayiyor, "Einheitsgröße" sonuna sinir koymak eslesmeyi kacirtiyordu. */
     if (preg_match('~(one\s?size|einheitsgr|tek\s?beden|taille\s?unique|\bos\b)~iu', $s)) return ['One size'];
+
+    /* Paket ekini bedenlerden AYIR. Canlida "S · L · XL · XXL · 3/pack" vardi
+       ve ayristirici "3"u BEDEN sayiyordu: '/' ayirac sinifinda, yani
+       "3/pack" once "3" + "pack" oluyor, sonra "3" sayisal beden gibi
+       normalize ediliyordu. Alici o ilanda hic olmayan bir "3" bedenini
+       secebilirdi. "2 · 3 · 4 · 5 · 6/pack" ayni sekilde 6'yi beden yapiyordu.
+       Olculdu (10 Eyl 2026, 42 NBB ilani, 22 farkli beden dizgesi). */
+    $s = trim((string)preg_replace(VESTRA_SIZE_PACK_RE, ' ', $s));
 
     $push = function (array &$out, string $tok): void {
         $n = vestra_size_norm($tok);
@@ -1409,7 +1561,7 @@ function vestra_size_options(array $p): array {
     /* 1) Acik dagilim -- "S×1 · M×3 · XL×2". Carpimdan ONCEKI ad bedendir; sonraki
           sayi karton adedi ve tek parca alan ortagi ilgilendirmiyor. */
     $out = [];
-    if (preg_match_all('~([A-Za-z0-9]{1,5})\s*[×xX*]\s*\d+~u', $s, $m)) {
+    if (preg_match_all(VESTRA_SIZE_RUN_RE, $s, $m)) {
         foreach ($m[1] as $tok) $push($out, $tok);
         if (count($out) > 1) return $out;
     }
@@ -1441,10 +1593,80 @@ function vestra_size_options(array $p): array {
           ("Cartons of 10") beden gibi gorunmedigi icin kendiliginden eleniyor. */
     $out = [];
     foreach (preg_split('~[·,;/|]+~u', $s) ?: [] as $part) {
-        foreach (preg_split('~\s+~u', trim($part)) ?: [] as $tok) $push($out, $tok);
+        $part = trim($part);
+        /* Bant + kap TEK bedendir: "75 B" ile "75 C" ayri artikel, ayri stok.
+           Bosluktan bolunce kap harfi merdivende olmadigi icin vestra_size_norm
+           onu SESSIZCE atiyordu ve 8 secenekli bir sutyen 4 secenege iniyordu
+           (canli olcum, 10 Eyl 2026: "75 B · 75 C · 80 B · 80 C · 85 B · 85 C ·
+           90 B · 90 C" -> [75, 80, 85, 90]). Alicinin B ile C arasinda secim
+           yapmasi imkansizdi ve sectigi "75" hangi kap oldugunu soylemiyordu. */
+        if (preg_match('~^(\d{2,3})\s*([A-J])$~iu', $part, $m)) {
+            $n = $m[1].' '.strtoupper($m[2]);
+            if (!in_array($n, $out, true)) $out[] = $n;
+            continue;
+        }
+        foreach (preg_split('~\s+~u', $part) ?: [] as $tok) $push($out, $tok);
     }
     /* Tek bir sayi ("Cartons of 10") beden degil, adet. Iki ve uzeri gercek bir liste. */
     return count($out) > 1 ? $out : [];
+}
+
+/* ── Alicinin SECEBILECEGI bedenler ────────────────────────────────────────
+ *
+ * Bos donmesi "bu ilanin bedeni yok" demek degil, "secilecek bir sey yok"
+ * demek. Uc ayri sebep:
+ *
+ *   1. Ilan bir PAKET/SERI satiyor ("… · 3/pack", "One size · 12/pack") ya da
+ *      ACIK bir dagilim yaziyor ("S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack").
+ *      Ikisinde de karisim SABIT; sectirmek, ilan edilen paketin icerigiyle
+ *      celisen bir siparis uretirdi. Giyim katalogunun neredeyse tamami bu
+ *      sekilde -- yani orada beden secici CIKMAZ ve bu bilincli.
+ *   2. Tek beden ("One size", ya da yalniz "L").
+ *   3. Bolme opt-in DEGIL. Operator bunu NBB/ic camasiri icin istedi
+ *      (10 Eyl 2026); 600'den fazla mevcut giyim ilaninin satin alma akisini
+ *      sessizce degistirmek istenenin disindaydi. Yeni bolme = bir satir.
+ *
+ * TEK karar noktasi: urun sayfasi, sepet ve /order ayni fonksiyonu cagiriyor.
+ * Kutuyu gizlemek kapi degildir -- /offer ucunun dersi (KURAL 4b).
+ */
+function vestra_size_pick_sections(): array { return ['underwear']; }
+
+/* ── Showroom basliginda saticinin KAYITLI ULKESI ──────────────────────────
+ *
+ * Operator karari, 10 Eyl 2026: showroom basligindaki "… · Basics · Turkey ·
+ * Member since 2026" satirindan ULKE cikarilsin, ve YALNIZ Marca Online
+ * hesabinda ("marca online dan bunu cikar", kapsam soruldu ve "yalniz Marca
+ * Online" secildi).
+ *
+ * Bu alan, ilanin `ships_from` alani DEGIL. Ikisi ayri olgu ve ikisi ayri
+ * karar: `ships_from=Turkey` 42 NBB ilaninin kartinda ve urun sayfasinda
+ * bayragiyla DURUYOR, cunku aliciyi ilgilendiren gumruk/teslim bilgisi o ve
+ * KURAL 3 onu zorunlu tutuyor. Burada gizlenen sey saticinin KAYIT ulkesi.
+ *
+ * Olcut hesap ID'si, sirket adi degil: ad bir metin, kimlik degil -- ve bu
+ * depoda ada gore eslesme mango/zara dersini bir kez verdi. UID sunucudan
+ * olculdu (10 Eyl 2026, 42 ilanin 42'si), tahmin edilmedi.
+ *
+ * Hesap bayragi `showroom_hide_country` kodun varsayilanini EZER (KURAL 2f'nin
+ * `doc_grace_exempt` deseni), yani yarin baska bir hesap icin panelden ya da
+ * bir is akisindan yazilabilir; bugun yazan bir yol yok ve olmadigi icin de
+ * kodda tek satirlik varsayilan liste duruyor.
+ */
+function vestra_showroom_hide_country_uids(): array { return ['0cb79eb883f2a0fa']; }
+
+function vestra_showroom_hides_country(array $acc): bool {
+    if (array_key_exists('showroom_hide_country', $acc)) return !empty($acc['showroom_hide_country']);
+    return in_array((string)($acc['id'] ?? ''), vestra_showroom_hide_country_uids(), true);
+}
+
+function vestra_sizes_selectable(array $p): array {
+    $s = trim((string)($p['sizes'] ?? ''));
+    if ($s === '') return [];
+    if (!in_array(vestra_product_section($p), vestra_size_pick_sections(), true)) return [];
+    if (vestra_sizes_has_pack($s) || vestra_sizes_has_run($s)) return [];
+    $o = vestra_size_options($p);
+    if (count($o) < 2 || $o === ['One size']) return [];
+    return $o;
 }
 
 /* ── Ilanin renkleri ───────────────────────────────────────────────────────

@@ -91,6 +91,13 @@ jobs:
             $home = getenv("HOME"); $doc = $home."/public_html";
             require $doc."/inc/auth.php";
             require $doc."/inc/products.php";
+            /* vlang_list() BURADA gerekli (name_i18n dil dogrulamasi) ve i18n.php
+               products.php/auth.php tarafindan GARANTI EDILMIYOR. KURAL 15 tam
+               olarak bu: admin.php'nin FATURALAR sekmesi vestra_order_fx()
+               cagiriyordu ama inc/fx_orders.php yalnizca baska bir dalda
+               yukleniyordu, ve sayfa duguemeden bir form once oluyordu. Kardes
+               bir dosyanin require'ina yaslanma. */
+            require_once $doc."/inc/i18n.php";
             foreach (['vestra_listings','vestra_save_listings','vestra_data_dir'] as $fn)
               if (!function_exists($fn)) { fwrite(STDERR,"HATA: {$fn}() yok\n"); exit(1); }
 
@@ -179,6 +186,7 @@ jobs:
             }
 
             $errors = []; $clean = [];
+            $langKeys = array_keys(vlang_list());   // dongu disinda: satir basina yeniden kurmak bosuna
             foreach ($rows as $i => $r) {
               $ctx = "satir ".($i+1);
               $id    = strtolower(trim((string)($r['id'] ?? '')));
@@ -248,6 +256,32 @@ jobs:
                  olmadan Kuloğlu import'unun 3 test satırı tam olarak buna düştü, KURAL'ın
                  "sadece Wholesale Underwear yaz" gereğini karşılamadan. */
               if (!empty($r['seller']) && is_string($r['seller'])) $row['seller'] = trim($r['seller']);
+              /* Dil bazli ad/aciklama (KURAL 21). Ilan `name`/`desc`'i hicbir yerde
+                 t()'den gecmiyor -- ceviri ILANIN UZERINDE duruyor ve tek cozucu
+                 vestra_product_name()/_desc() okuyor. Bu gecis olmadan alan sessizce
+                 duserdi: "toplanan ama okunmayan alan"in tersi, YAZILMAYAN alan --
+                 batch dokuz dili tasir, sunucuya yalniz Ingilizcesi inerdi ve
+                 bunu ancak baska bir dilde gezen biri gorurdu.
+                 Deger dogrulaniyor: bilinen dil kodu + bos olmayan dizge. Bilinmeyen
+                 bir anahtar sessizce saklanmaz -- kayitta duran ama hicbir sayfanin
+                 okumadigi bir dil, "cevrildi" sanilan bir bosluktur. */
+              foreach (['name_i18n', 'desc_i18n'] as $k) {
+                if (!isset($r[$k])) continue;
+                if (!is_array($r[$k])) { $errors[]="{$ctx} ({$id}): {$k} dizi olmali"; continue 2; }
+                $m = [];
+                foreach ($r[$k] as $lang => $v) {
+                  if (!is_string($lang) || !in_array($lang, $langKeys, true)) { $errors[]="{$ctx} ({$id}): {$k} bilinmeyen dil '".(is_string($lang)?$lang:'?')."'"; continue 3; }
+                  if (!is_string($v) || trim($v) === '') { $errors[]="{$ctx} ({$id}): {$k}[{$lang}] bos"; continue 3; }
+                  $m[$lang] = trim($v);
+                }
+                if ($m) $row[$k] = $m;
+              }
+              /* Batch ilani ONAY BEKLER halde isteyebilir. Yalnizca DARALTIR:
+                 'pending' kabul ediliyor, baska hicbir deger degil. Bir batch
+                 dosyasinin kendini 'approved' ilan edebilmesi, operator onayini
+                 batch yazarina devretmek olurdu (KURAL 2f: ilan pending dogar,
+                 operator onaylamadan yayina cikmaz). */
+              if (($r['status'] ?? '') === 'pending') $row['status'] = 'pending';
               /* seller_email: satici hesabini e-postadan coz (teshis ciktisi id'yi 8 karaktere
                  maskeliyor, tam uid disaridan bilinmiyor). Paket sifreli oldugu icin adres
                  depoya acik girmiyor; cozumleme sunucuda. */

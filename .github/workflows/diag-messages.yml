@@ -731,6 +731,42 @@ jobs:
                bos doner) ve "[VESTRA doc]" satirlari (auth_store_doc_file'in
                yazdigi ret SEBEBI). Adres yok, uid'in ilk 8 hanesi var. */
             if (getenv('IN_UPLOAD') === 'true') {
+              /* KURAL 2 kapsami: auth_required_doc_types() TEK dogruluk kaynagi,
+                 ama seller.php ve admin.php tabloyu hesabin KAYITLI istek
+                 satirlarindan ciziyor. Istek satiri yoksa satir da yok, satir
+                 yoksa YUKLEME DUGMESI de yok -- yani belge istenmis gorunuyor
+                 (sayfanin ustundeki cumle "iki belge" diyor) ama verilecek yol
+                 kapali. Once kac hesapta oyle oldugunu SAY.
+                 E-posta BASILMIYOR; id kirpik, sirket adi acik (KURAL: kisiye
+                 ait olan maskeli, firma/durum acik). */
+              require_once $doc.'/inc/auth.php';
+              echo "===== BELGE ISTEGI KAPSAMI (KURAL 2) =====\n";
+              $accsD = auth_accounts();
+              $missAll = []; $okN = 0;
+              foreach ($accsD as $a) {
+                $ty   = (string)($a['type'] ?? 'buyer');
+                if ($ty !== 'seller' && $ty !== 'buyer') continue;
+                $need = auth_required_doc_types($ty);
+                $have = [];
+                foreach ((array)($a['doc_requests'] ?? []) as $r) {
+                  $t = (string)($r['type'] ?? '');
+                  if ($t !== '') $have[$t] = (string)($r['status'] ?? 'requested');
+                }
+                $miss = array_values(array_diff($need, array_keys($have)));
+                if (!$miss) { $okN++; continue; }
+                $missAll[] = ['id'=>substr((string)($a['id'] ?? '?'),0,8), 'tip'=>$ty,
+                              'sirket'=>(string)($a['company'] ?? $a['name'] ?? ''),
+                              'eksik'=>$miss, 'var'=>$have];
+              }
+              printf("  hesap: %d   tam: %d   EKSIK: %d\n", count($accsD), $okN, count($missAll));
+              foreach ($missAll as $m) {
+                printf("  - %s [%s] %-28s eksik=[%s]  mevcut=[%s]\n",
+                  $m['id'], $m['tip'], mb_substr($m['sirket'], 0, 28),
+                  implode(', ', $m['eksik']),
+                  implode(', ', array_map(fn($k, $v) => "$k:$v", array_keys($m['var']), $m['var'])));
+              }
+              if (!$missAll) echo "  (her hesapta gereken her istek satiri var)\n";
+              echo "\n";
               echo "===== YUKLEME SONDASI =====\n";
               echo "  php=".PHP_VERSION." sapi=".PHP_SAPI." ini=".(php_ini_loaded_file() ?: '(yok)')."\n";
               foreach (['upload_max_filesize','post_max_size','max_file_uploads','memory_limit','file_uploads','upload_tmp_dir'] as $k) {

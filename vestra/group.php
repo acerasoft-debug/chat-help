@@ -101,7 +101,7 @@ $GMINCOL = vestra_group_min_colors($p);
         <span class="bn"><?=htmlspecialchars($p['brand'])?></span>
       </div>
       <h1 style="margin:16px 0 4px"><?=htmlspecialchars($GTITLE)?></h1>
-      <p class="sub"><?=htmlspecialchars($p['desc'])?></p>
+      <p class="sub"><?=htmlspecialchars(vestra_product_desc($p))?></p>
 
       <?php /* Tek urunlu havuzda katalogdaki BUTUN fotograflar; karma havuzda
                modellerin kendi fotograflari (asagidaki blok). Ikisi birden

@@ -19,21 +19,40 @@ function vestra_product_by_sku(string $sku): ?array {
     return null;
 }
 
-/* order.php prefixes the buyer's free-text notes with "Colours — SKU: A, B | SKU2: C. " when
-   any line has a colour selection. Split that back out into a per-SKU colour map + the buyer's
-   own remaining note text. SKUs/colour names never contain '.', so splitting on the first
-   period reliably separates the auto-generated colour segment from free text. */
-function vestra_order_notes_colors(string $notes): array {
-    $colors = []; $rest = $notes;
-    if (preg_match('/^Colours — (.+?)\.\s*(.*)$/s', $notes, $m)) {
-        $rest = trim($m[2] ?? '');
-        foreach (explode(' | ', $m[1]) as $seg) {
-            if (preg_match('/^(\S+):\s*(.+)$/', trim($seg), $sm)) {
-                $colors[$sm[1]] = array_map('trim', explode(',', $sm[2]));
-            }
+/* order.php, alicinin serbest metnine "Colours — SKU: A, B | SKU2: C. " (ve
+   artik "Sizes — …") parcalarini ekliyor. Bunu SKU->deger haritasina geri
+   cevirir ve parcayi metinden cikarir. SKU, renk ve beden adlari '.' icermiyor,
+   yani ilk noktaya kadar okumak parcayi serbest metinden ayirmaya yetiyor.
+ *
+ * KALIP ARTIK BASA BAGLI DEGIL -- ve bu bir hata duzeltmesi, susleme degil.
+ * Eski surum '/^Colours — .../' idi, oysa order.php notlari HER ZAMAN
+ * "Payment: Bank transfer. " ile acıyor (ve cogu zaman "Deliver to: …" da
+ * araya giriyor). Yani kalip CANLI hicbir siparise uymuyordu ve
+ * vestra_order_lines() her zaman BOS bir renk haritasi donduruyordu: alicinin
+ * sectigi renkler CSV'ye yaziliyor, ama siparis tablosunda, sipariş PDF'inde
+ * ve fatura satirinda hicbir zaman gorunmuyordu. Olculdu (10 Eyl 2026): gercek
+ * bir not dizgesiyle [] doner, yalnizca "Colours" ile BASLAYAN kurgusal bir
+ * dizgeyle calisirdi. Beden secimi ayni yoldan gectigi icin bu once
+ * duzeltilmeliydi -- yoksa yeni alan da "yazilan ama hic okunmayan" olurdu. */
+function vestra_order_notes_map(string $notes, string $label): array {
+    $map = [];
+    $re = '/(?:^|\s)'.preg_quote($label, '/').' — (.+?)\.(?=\s|$)/su';
+    if (!preg_match($re, $notes, $m)) return [$map, $notes];
+    foreach (explode(' | ', $m[1]) as $seg) {
+        if (preg_match('/^(\S+):\s*(.+)$/', trim($seg), $sm)) {
+            $map[$sm[1]] = array_map('trim', explode(',', $sm[2]));
         }
     }
-    return ['colors' => $colors, 'notes' => $rest];
+    /* Parca cikarilinca geriye cift bosluk kaliyor ve bu metin hem alicinin
+       siparis sayfasinda hem operator panelinde OLDUGU GIBI basiliyor. */
+    $rest = (string)preg_replace($re, ' ', $notes, 1);
+    return [$map, trim((string)preg_replace('/[ \t]{2,}/', ' ', $rest))];
+}
+
+function vestra_order_notes_colors(string $notes): array {
+    [$colors, $rest] = vestra_order_notes_map($notes, 'Colours');
+    [$sizes,  $rest] = vestra_order_notes_map($rest,  'Sizes');
+    return ['colors' => $colors, 'sizes' => $sizes, 'notes' => $rest];
 }
 
 /**
@@ -65,6 +84,7 @@ function vestra_order_lines(array $orderRow): array {
             'brand' => $p['brand'] ?? '', 'name' => $p['name'] ?? t('Product no longer listed'),
             'image' => $p ? vestra_primary_image($p) : '', 'id' => $p['id'] ?? '', 'seller_uid' => $p['seller_uid'] ?? '',
             'colors' => $cn['colors'][$it['sku']] ?? [],
+            'sizes'  => $cn['sizes'][$it['sku']] ?? [],
         ];
     }
     return ['lines' => $out, 'notes' => $cn['notes']];
@@ -369,13 +389,14 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
 
     $h .= '<div class="odgrid">';
     // Line items
-    $h .= '<div><table class="ctable"><thead><tr><th>'.t('Product').'</th><th>'.t('Colours').'</th><th>'.t('Qty').'</th><th class="r">'.t('Unit').'</th><th class="r">'.t('Line total').'</th></tr></thead><tbody>';
+    $h .= '<div><table class="ctable"><thead><tr><th>'.t('Product').'</th><th>'.t('Colours').'</th><th>'.t('Sizes').'</th><th>'.t('Qty').'</th><th class="r">'.t('Unit').'</th><th class="r">'.t('Line total').'</th></tr></thead><tbody>';
     $subtotal = 0.0;
     foreach ($lines as $l) {
         $subtotal += $l['line'];
         $prod = $l['id'] ? '<a class="acc" href="/product?id='.urlencode($l['id']).'">'.htmlspecialchars(trim($l['brand'].' '.$l['name'])).'</a>' : htmlspecialchars(trim($l['brand'].' '.$l['name']));
         $h .= '<tr><td>'.$prod.'<div class="hint">SKU '.htmlspecialchars($l['sku']).'</div></td>'.
               '<td class="hint">'.htmlspecialchars(implode(', ', $l['colors'])).'</td>'.
+              '<td class="hint">'.htmlspecialchars(implode(', ', $l['sizes'] ?? [])).'</td>'.
               '<td>'.(int)$l['qty'].'</td><td class="r">'.eur($l['unit']).'</td><td class="r">'.eur($l['line']).'</td></tr>';
     }
     /* TOPLAM. Bu sayfa bugune kadar kalemleri gosteriyor ama TOPLAMI hic
@@ -958,15 +979,21 @@ function vestra_render_order_pdf(array $orderRow, array $lines, string $statusLa
         $need($rowH);
         $pdf->text($colSku, $y, 9, (string)($l['sku'] ?? ''));
         foreach ($descLines as $j => $dl) $pdf->text($colDesc, $y - ($j * 11), 9, $dl);
-        if (!empty($l['colors'])) {
-            foreach ($pdf->wrap(implode(', ', (array)$l['colors']), $colQty - $colDesc - 8, 8) as $j => $cl)
+        /* Renk ve beden TEK alt satirda birlesiyor. Ayri bir blok yazsaydim
+           satir yuksekligi hesabi (asagidaki `$y -= $rowH + …`) yalnizca BIR
+           blok sayiyor, yani ikincisi bir sonraki satirin uzerine binerdi. */
+        $sub = [];
+        if (!empty($l['colors'])) $sub[] = implode(', ', (array)$l['colors']);
+        if (!empty($l['sizes']))  $sub[] = t('Sizes').': '.implode(', ', (array)$l['sizes']);
+        if ($sub) {
+            foreach ($pdf->wrap(implode(' · ', $sub), $colQty - $colDesc - 8, 8) as $j => $cl)
                 $pdf->text($colDesc, $y - (count($descLines) * 11) - ($j * 10) + 1, 8, $cl);
         }
         $pdf->textR($colQty + 34, $y, 9, (string)(int)($l['qty'] ?? 0));
         $pdf->textR($colUnit + 40, $y, 9, eur($l['unit'] ?? 0));
         $pdf->textR($right - 4, $y, 9, eur($l['line'] ?? 0));
         $goods += (float)($l['line'] ?? 0);
-        $y -= $rowH + (!empty($l['colors']) ? 10 : 0);
+        $y -= $rowH + ($sub ? 10 : 0);
     }
 
     $need(70);
@@ -1070,7 +1097,14 @@ function vestra_render_order_sheet_pdf(array $orderRow, array $lines): string {
         }
 
         $nameLines = $pdf->wrap(trim($brand.' '.$name), $textW, 10, true);
-        $colLines  = $cols ? $pdf->wrap('Colours: '.implode(', ', $cols), $textW, 8.5) : [];
+        /* Beden, rengin YANINDA: toplama listesinde "hangi renk" ile "hangi
+           beden" ayni satirin iki yarisi. $rowH bu bloktan hesaplandigi icin
+           ayri bir liste eklemek satir yuksekligini de bozardi. */
+        $szs       = array_values(array_filter(array_map('trim', array_map('strval', (array)($l['sizes'] ?? []))), fn($c) => $c !== ''));
+        $subParts  = [];
+        if ($cols) $subParts[] = 'Colours: '.implode(', ', $cols);
+        if ($szs)  $subParts[] = 'Sizes: '.implode(', ', $szs);
+        $colLines  = $subParts ? $pdf->wrap(implode('   ', $subParts), $textW, 8.5) : [];
         $rowH = max($imgW, 14 + count($nameLines) * 12 + count($colLines) * 11) + 14;
 
         if ($y - $rowH < $bottom) { $pdf->addPage(); $y = VestraPdf::PAGE_H - 62; $header(); }

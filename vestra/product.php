@@ -14,10 +14,10 @@ if(!$p){ http_response_code(404); $PAGE=t('Not found'); $NOINDEX=true; require _
    part of the catalogue, so search engines are told not to index it either. */
 if (!empty($p['unlisted'])) $NOINDEX = true;
 
-$PAGE = trim(($p['brand'] ?? '').' '.($p['name'] ?? '')) ?: ($p['name'] ?? 'Product');
+$PAGE = vestra_product_title($p) ?: (vestra_product_name($p) ?: 'Product');
 /* Photo alt text. Now that robots.txt lets image crawlers into /uploads, alt text is the
    only description these files carry — an empty one costs the listing image search. */
-$_imgAlt = trim(($p['brand'] ?? '').' '.($p['name'] ?? ''));
+$_imgAlt = vestra_product_title($p);
 $_pcat = $p['cat'] ?? 'fashion'; $_pmoq = (int)($p['moq'] ?? 0); $_punit = $p['unit'] ?? 'pc';
 $META = sprintf(t('%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering across Europe.'),
         $PAGE, $_pcat, $_pmoq ? "MOQ {$_pmoq} {$_punit}. " : '');
@@ -146,7 +146,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
       <div class="vzoom-panel" id="vzoomPanel" aria-hidden="true"><div class="vzoom-surface" id="vzoomSurface"></div><span class="vzoom-badge" id="vzoomBadge">1:1</span></div>
       <div class="vzoom-full" id="vzoomFull" role="dialog" aria-modal="true" aria-label="<?= htmlspecialchars(t('Zoom')) ?>">
         <button class="vzoom-close" id="vzoomClose" aria-label="<?= htmlspecialchars(t('Close')) ?>">&times;</button>
-        <div class="vzoom-stage" id="vzoomStage"><img id="vzoomFullImg" alt="<?= htmlspecialchars($p['name']) ?>" draggable="false"></div>
+        <div class="vzoom-stage" id="vzoomStage"><img id="vzoomFullImg" alt="<?= htmlspecialchars(vestra_product_name($p)) ?>" draggable="false"></div>
         <div class="vzoom-bar"><b id="vzoomPct">100%</b><i id="vzoomTip"><?= htmlspecialchars(t('Double-tap or pinch to zoom · drag to pan')) ?></i></div>
       </div>
       <?php endif; ?>
@@ -167,9 +167,9 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
     <!-- ── Product info ───────────────────────────────────────────────────── -->
     <div class="pinfo">
       <span class="acc" style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700"><?= htmlspecialchars($p['brand']) ?></span>
-      <h1 style="margin:6px 0 10px"><?= htmlspecialchars($p['name']) ?></h1>
-      <?php if(!empty($p['desc'])): ?>
-        <p style="color:var(--mut);margin:0 0 18px;line-height:1.65"><?= htmlspecialchars($p['desc']) ?></p>
+      <h1 style="margin:6px 0 10px"><?= htmlspecialchars(vestra_product_name($p)) ?></h1>
+      <?php if(vestra_product_desc($p) !== ''): ?>
+        <p style="color:var(--mut);margin:0 0 18px;line-height:1.65"><?= htmlspecialchars(vestra_product_desc($p)) ?></p>
       <?php endif; ?>
       <?php /* SATILDI: satin alma kutusundan ONCE ve en gorunur yerde. Sayfa
                ayakta kaliyor (SEO ve gelen baglantilar), yalnizca satis kapali. */
@@ -199,6 +199,15 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <div class="spec-row"><span><?= t('SKU') ?></span><b><?= htmlspecialchars($p['sku']) ?></b></div>
         <div class="spec-row"><span><?= t('Category') ?></span><b><?= htmlspecialchars($p['cat']) ?></b></div>
         <div class="spec-row"><span><?= t('Min. order (MOQ)') ?></span><b><?= $p['moq'] ?> <?= htmlspecialchars($p['unit']) ?></b></div>
+        <?php /* Marka basina asgari SEPET tutari (KURAL 21). MOQ'nun yaninda duruyor
+                 cunku ikisi ayni soruyu cevapliyor ("en az ne alabilirim") ve ikisi
+                 AYRI: MOQ tek ilanin adedi, bu markanin sepetteki toplami. Rakam
+                 sabitten ve EUR -- sepette gecerli olan esik bu, gosterim birimine
+                 cevrilmis hali degil. */
+              $pMinBrand = vestra_brand_min_order((string)($p['brand'] ?? ''));
+              if ($pMinBrand > 0): ?>
+          <div class="spec-row"><span><?= t('Minimum order value') ?></span><b><?= htmlspecialchars(vestra_money($pMinBrand, 'EUR')) ?></b></div>
+        <?php endif; ?>
         <?php if(!empty($p['sizes'])): ?><div class="spec-row"><span><?= t('Size mix') ?></span><b><?= htmlspecialchars(vestra_sizes_label((string)$p['sizes'])) ?></b></div><?php endif; ?>
         <?php if(!empty($p['colors'])): ?><div class="spec-row"><span><?= t('Colours') ?></span><b style="display:flex;justify-content:flex-end"><?= vestra_color_dots((array)$p['colors'], 13) ?></b></div><?php endif; ?>
         <?php if(!empty($p['seller']) && empty($p['hide_seller'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?php
@@ -417,6 +426,23 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           </tbody>
         </table>
         <div class="order-box">
+          <?php /* Beden secimi. Yalnizca karisimi SABIT OLMAYAN ilanda cikiyor
+                   (vestra_sizes_selectable): paket/acik seri satan bir ilanda
+                   sectirmek, ilan edilen paketin icerigiyle celisen bir siparis
+                   uretirdi. Kapi sunucuda da var (/order); burasi yalnizca
+                   kutuyu ciziyor -- "dugmeyi gizlemek kapi degildir". */
+                $pickSizes = vestra_sizes_selectable($p); ?>
+          <?php if($pickSizes): ?>
+          <div style="margin-bottom:14px">
+            <label class="hint"><?= t('Choose your sizes') ?> — <?= t('at least one') ?></label>
+            <div class="colorpick" id="ordSizes">
+              <?php foreach($pickSizes as $sz): ?>
+              <label class="colorchip sizechip"><input type="checkbox" value="<?= htmlspecialchars($sz) ?>" onchange="recalc()"><?= htmlspecialchars(vestra_sizes_label($sz)) ?></label>
+              <?php endforeach; ?>
+            </div>
+            <div class="warn" id="szwarn" style="display:none;margin-top:8px"><?= t('Choose at least one size.') ?></div>
+          </div>
+          <?php endif; ?>
           <?php $colorQtyMode = !empty($p['colors']) && !empty($p['min_colors']) && (int)($p['size_step']??0) > 1; ?>
           <?php if($colorQtyMode): $cqStep=(int)$p['size_step']; ?>
           <div style="margin-bottom:14px">
@@ -566,7 +592,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         </div>
         <?php endif; ?>
         <script>
-        var P=<?= json_encode(['id'=>$p['id'],'brand'=>$p['brand'],'name'=>$p['name'],'sku'=>$p['sku'],'unitLabel'=>$p['unit'],'moq'=>(int)$p['moq'],'step'=>(int)($p['size_step']??0),'minColors'=>(int)($p['min_colors']??0),'tiers'=>array_map(function($t){return ['min'=>(int)$t['min'],'price'=>(float)$t['price']];},$p['tiers'])]) ?>;
+        var P=<?= json_encode(['id'=>$p['id'],'brand'=>$p['brand'],'name'=>vestra_product_name($p),'sku'=>$p['sku'],'unitLabel'=>$p['unit'],'moq'=>(int)$p['moq'],'step'=>(int)($p['size_step']??0),'minColors'=>(int)($p['min_colors']??0),'tiers'=>array_map(function($t){return ['min'=>(int)$t['min'],'price'=>(float)$t['price']];},$p['tiers'])]) ?>;
         function step(){ return P.step||(P.moq>=100?100:(P.moq>=50?50:10)); }
         function unitPrice(q){ var pr=P.tiers[0].price; P.tiers.forEach(function(t){ if(q>=t.min) pr=t.price; }); return pr; }
         function tierLabel(q){ var lab='—'; P.tiers.forEach(function(t,i){ if(q>=t.min){ var n=P.tiers[i+1]; lab=t.min+(n?'–'+(n.min-1):'+'); } }); return lab; }
@@ -589,6 +615,12 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           return Array.prototype.map.call(el.querySelectorAll('input:checked'), function(i){return i.value;}); }
         function cqTotal(){ var s=cqSelects(), t=0; if(!s) return 0;
           Array.prototype.forEach.call(s,function(x){t+=parseInt(x.value)||0;}); return t; }
+        /* Secilen bedenler. Kutu hic cizilmediyse (paket/tek beden/giyim) bu
+           [] doner ve hicbir kontrol devreye girmez -- yani mevcut ilanlarin
+           satin alma akisi degismiyor. */
+        function ordSizes(){ var el=document.getElementById('ordSizes'); if(!el) return [];
+          return Array.prototype.map.call(el.querySelectorAll('input:checked'), function(i){return i.value;}); }
+        function needSizes(){ return !!document.getElementById('ordSizes'); }
         function recalc(){
           var cq=!!cqSelects(), warn=document.getElementById('warn'), btn=document.getElementById('addBtn');
           /* SATILDI olan urunde "Add to order" dugmesi hic basilmiyor, yani btn
@@ -600,7 +632,10 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           if(cq){ var t=cqTotal(); document.getElementById('qty').value=t;
             var tt=document.getElementById('cqtotal'); if(tt) tt.textContent=t; }
           var q=parseInt(document.getElementById('qty').value)||0;
-          if(P.minColors>0 && ordColors().length<P.minColors){ warn.style.display='block'; warn.textContent=<?= json_encode(vestra_colours_warn((int)($p['min_colors']??0))) ?>; setDisabled(true); }
+          var szw=document.getElementById('szwarn'), szMissing=needSizes() && ordSizes().length===0;
+          if(szw) szw.style.display = szMissing ? 'block' : 'none';
+          if(szMissing){ warn.style.display='none'; setDisabled(true); }
+          else if(P.minColors>0 && ordColors().length<P.minColors){ warn.style.display='block'; warn.textContent=<?= json_encode(vestra_colours_warn((int)($p['min_colors']??0))) ?>; setDisabled(true); }
           else if(q<P.moq){ warn.style.display='block'; warn.textContent='<?= addslashes(t('Minimum order is')) ?> '+P.moq+' '+P.unitLabel+'.'; setDisabled(true); }
           else { warn.style.display='none'; setDisabled(false); }
           var u=unitPrice(q);
@@ -611,7 +646,8 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         }
         function addToOrder(){ var q=parseInt(document.getElementById('qty').value)||0; if(q<P.moq) return; var u=unitPrice(q);
           var cols=ordColors(); if(P.minColors>0 && cols.length<P.minColors){ recalc(); return; }
-          VCart.add({id:P.id,brand:P.brand,name:P.name,sku:P.sku,unitLabel:P.unitLabel,qty:q,unit:u,colors:cols});
+          var szs=ordSizes(); if(needSizes() && szs.length===0){ recalc(); return; }
+          VCart.add({id:P.id,brand:P.brand,name:P.name,sku:P.sku,unitLabel:P.unitLabel,qty:q,unit:u,colors:cols,sizes:szs});
           var b=document.getElementById('addBtn'); b.textContent='✓ '+<?= json_encode(t('Added to order')) ?>; setTimeout(function(){b.textContent=<?= json_encode(t('Add to order')) ?>;},1400); }
         recalc();
         </script>
@@ -708,7 +744,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         $rimg = $rimgs[0] ?? ''; ?>
         <a class="scard" href="/product?id=<?= urlencode($rp['id']) ?>">
           <div class="sthumb" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($rp)) ?>,#0e0e11)">
-            <?php if ($rimg): ?><img src="<?= htmlspecialchars($rimg) ?>" alt="<?= htmlspecialchars(trim(($rp['brand'] ?? '').' '.($rp['name'] ?? ''))) ?>" loading="lazy" class="sthumbi"><?php endif; ?>
+            <?php if ($rimg): ?><img src="<?= htmlspecialchars($rimg) ?>" alt="<?= htmlspecialchars(vestra_product_title($rp)) ?>" loading="lazy" class="sthumbi"><?php endif; ?>
             <?php if (!empty($rp['verified'])): ?><span class="svbadge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span><?php endif; ?>
             <?php if (!$rimg) echo vestra_brand_card($rp['brand'] ?? ''); ?>
             <?php $rmode = vestra_display_mode($rp); ?>
@@ -717,7 +753,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           </div>
           <div class="sbody">
             <span class="sbrand"><?= htmlspecialchars($rp['brand'] ?? '') ?></span>
-            <span class="stitle"><?= htmlspecialchars($rp['name'] ?? '') ?></span>
+            <span class="stitle"><?= htmlspecialchars(vestra_product_name($rp)) ?></span>
             <span class="smeta"><?= htmlspecialchars($rp['cat'] ?? '') ?> · MOQ <b><?= $rp['moq'] ?? '?' ?></b> <?= htmlspecialchars($rp['unit'] ?? 'pc') ?></span>
             <div class="sprice">
               <?php if (!$PRICES): ?>

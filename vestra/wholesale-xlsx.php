@@ -133,7 +133,7 @@ foreach ($byBrand as $brand => $list) {
             $brand,
             $ident,
             $id,
-            (string)($p['name'] ?? ''),
+            vestra_product_name($p),
             (string)($p['cat'] ?? ''),
             implode(' · ', array_values(array_filter(
                 array_map('trim', array_map('strval', (array)($p['colors'] ?? []))),

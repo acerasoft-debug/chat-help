@@ -8,6 +8,11 @@ register_shutdown_function(function(){
 $home = getenv("HOME");
 require $home."/public_html/inc/auth.php";
 require $home."/public_html/inc/products.php";
+/* vlang_list() burada gerekli (name_i18n/desc_i18n dil dogrulamasi) ve i18n.php
+   products.php tarafindan garanti edilmiyor -- KURAL 15. function_exists ile
+   gecistirmek daha da kotu olurdu: dosya yuklenmemisse dogrulama SESSIZCE
+   atlanir ve gecersiz bir dil kodu kayda girer. */
+require_once $home."/public_html/inc/i18n.php";
 /* vestra_offers_open() burada da aranıyor: 'offers' alanini yazan dal onu
    cagiriyor ve sunucudaki kod eskiyse hata apply'in ORTASINDA cikardi --
    yani bir kismi yazilmis bir listings.json. Preflight'ta durmasi, deploy'un
@@ -44,7 +49,7 @@ $haystack = function(array $p) use ($norm) {
   return $norm(implode('|', array_map('strval', $bits)));
 };
 
-$ALLOWED = ['cat','price','moq','tiers','offers','sizes','name','status','desc','sample_price','sample_platform_pay','seller_uid','seller','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','dropship_off','sale_list','ships_from','sold_out','preorder_ship',
+$ALLOWED = ['cat','price','moq','tiers','offers','sizes','name','name_i18n','desc','desc_i18n','status','sample_price','sample_platform_pay','seller_uid','seller','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','dropship_off','sale_list','ships_from','sold_out','preorder_ship',
             'group','group_target','group_price','group_deposit_pct','group_balance_days','group_extend_days','group_started','group_deadline','group_extended_to','group_min_qty','group_models','group_title','group_min_colors'];
 /* group_extended_to: cron_pool_sweep.php'nin bir havuzu KENDI koydugu tek seferlik
    uzatma tarihi (inc/products.php: vestra_group_deadline() bu alani group_deadline'in
@@ -475,6 +480,27 @@ foreach ($plan as [$i, $set, $m]) {
       $new = (int)$v; $old = (int)($p[$k] ?? 0);
       if ($old === $new) continue;
       $line[] = "{$k} {$old} -> {$new}";
+      $all[$i][$k] = $new;
+      $changes++;
+    } elseif ($k === 'name_i18n' || $k === 'desc_i18n') {
+      /* Dil bazli ad/aciklama (KURAL 21). Ilanin `name`/`desc` alani hicbir
+         yerde t()'den gecmiyor; ceviri ilanin UZERINDE duruyor ve tek cozucu
+         vestra_product_name()/_desc() okuyor.
+         Dogrulama: bilinen dil kodu + bos olmayan dizge. Bilinmeyen bir
+         anahtari sessizce saklamak, kayitta duran ama hicbir sayfanin
+         okumadigi bir "ceviri" birakirdi -- cevrildi sanilan bir bosluk. */
+      if (!is_array($v)) { echo "  ! {$m}: {$k} dizi olmali, atlandi\n"; continue; }
+      $langs = array_keys(vlang_list());
+      $new = []; $bad = '';
+      foreach ($v as $lg => $txt) {
+        if ($langs && !in_array((string)$lg, $langs, true)) { $bad = (string)$lg; break; }
+        if (!is_string($txt) || trim($txt) === '') { $bad = (string)$lg.' (bos)'; break; }
+        $new[(string)$lg] = trim($txt);
+      }
+      if ($bad !== '') { echo "  ! {$m}: {$k} gecersiz dil '{$bad}', atlandi\n"; continue; }
+      $old = is_array($p[$k] ?? null) ? $p[$k] : [];
+      if ($old === $new) continue;
+      $line[] = sprintf('%s (%d dil) -> (%d dil): %s', $k, count($old), count($new), mb_substr((string)($new['en'] ?? reset($new)), 0, 46));
       $all[$i][$k] = $new;
       $changes++;
     } elseif ($k === 'colors' || $k === 'images' || $k === 'group_models') {

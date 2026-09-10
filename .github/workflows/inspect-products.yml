@@ -54,6 +54,10 @@ on:
         description: "true = KALIP TARAMASI: ad + açıklama + özelliklerde oversize/boxy/relaxed/slim... geçen ürünleri, kanıt cümlesiyle ve mevcut beden serisiyle yaz (KURAL 2h'nin kapsam sorusu)"
         required: false
         default: "false"
+      raw_scan:
+        description: "true = HAM listings.json: ONAY BEKLEYEN (pending) ilanları da gösterir. Diğer bütün modlar vestra_products() okuyor ve o YALNIZCA approved döndürüyor — yeni yazılmış bir parti orada 0 görünür ve bu 'yazılmadı' diye okunur. Ayrıca dil bazlı ad/açıklamanın (name_i18n/desc_i18n) gerçekten KAYDA indiğini sayar: alan yazılmış ama saklanmamışsa ancak başka dilde gezen biri fark ederdi."
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -86,13 +90,14 @@ jobs:
           INSPECT_PLIST: ${{ github.event.inputs.price_list }}
           INSPECT_PAUDIT: ${{ github.event.inputs.price_audit }}
           INSPECT_FIT: ${{ github.event.inputs.fit_scan }}
+          INSPECT_RAW: ${{ github.event.inputs.raw_scan }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 3m
-          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT,INSPECT_FIT
+          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT,INSPECT_FIT,INSPECT_RAW
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
@@ -117,6 +122,90 @@ jobs:
             $plist    = strtolower(trim((string)getenv("INSPECT_PLIST")))   === 'true';
             $paudit   = strtolower(trim((string)getenv("INSPECT_PAUDIT")))  === 'true';
             $fitscan  = strtolower(trim((string)getenv("INSPECT_FIT")))     === 'true';
+            $rawscan  = strtolower(trim((string)getenv("INSPECT_RAW")))     === 'true';
+
+            /* HAM KAYIT: vestra_listings(), vestra_products() DEGIL.
+               vestra_live_listings() status==='approved' suzuyor, yani yeni
+               yazilmis ve onay bekleyen bir parti butun diger modlarda "0 urun"
+               gorunur -- ve "0", "yazilmadi" ile "yazildi ama henuz onaysiz"
+               arasinda hicbir ayrim yapmaz. Bu depo alti kez kontrolun yanlis
+               yere baktigini kaydetti; bir yazma adimini dogrulamak icin
+               kullanilan sonda o listenin yedincisi olurdu. */
+            if ($rawscan) {
+              $all = function_exists('vestra_listings') ? vestra_listings() : [];
+              /* Bu dosyanin suzgec degiskenleri $bf/$cf -- ilk yazimda $brand/$cat
+                 yazdim, ikisi de TANIMSIZ, ve PHP'de null !== '' DOGRU oldugu icin
+                 suzgec her satiri "eslesmedi" sayip 0 dondurdu. Cikti "722 kayit,
+                 filtreye uyan 0" idi: yazma basarili, sonda bos. Tam olarak bu
+                 dosyaya eklerken kacinmaya calistigim sey -- kontrolun kendisi
+                 yanlis yere bakiyor. */
+              $sel = array_values(array_filter($all, function ($p) use ($bf, $cf) {
+                if ($bf !== '' && $bf !== '*' && strcasecmp(trim((string)($p['brand'] ?? '')), $bf) !== 0) return false;
+                if ($cf !== '' && strcasecmp(trim((string)($p['cat'] ?? '')), $cf) !== 0) return false;
+                return true;
+              }));
+              printf("HAM listings.json: %d kayit, filtreye uyan %d\n\n", count($all), count($sel));
+              $byStatus = []; $i18nOk = 0; $i18nMissing = []; $noTier = []; $sections = [];
+              foreach ($sel as $p) {
+                $st = (string)($p['status'] ?? 'approved');
+                $byStatus[$st] = ($byStatus[$st] ?? 0) + 1;
+                $sections[(string)($p['section'] ?? '(yok)')] = ($sections[(string)($p['section'] ?? '(yok)')] ?? 0) + 1;
+                $n = is_array($p['name_i18n'] ?? null) ? count($p['name_i18n']) : 0;
+                $d = is_array($p['desc_i18n'] ?? null) ? count($p['desc_i18n']) : 0;
+                if ($n >= 9 && $d >= 9) $i18nOk++; else $i18nMissing[] = sprintf('%s (ad=%d desc=%d)', (string)($p['id'] ?? '?'), $n, $d);
+                if (empty($p['tiers'])) $noTier[] = (string)($p['id'] ?? '?');
+              }
+              echo "durum   : "; foreach ($byStatus as $k => $v) printf("%s=%d  ", $k, $v); echo "\n";
+              echo "bolme   : "; foreach ($sections as $k => $v) printf("%s=%d  ", $k, $v); echo "\n";
+              printf("9 dilde ad+aciklama: %d/%d\n", $i18nOk, count($sel));
+              if ($i18nMissing) { echo "*** EKSIK i18n ***\n"; foreach (array_slice($i18nMissing, 0, 20) as $m) echo "   $m\n"; }
+              /* tiers yoksa vestra_unit_price() 0 doner ve order.php satiri atlar:
+                 ilan vitrinde durur, SATIN ALINAMAZ. */
+              if ($noTier) { echo "*** TIERS YOK (satin alinamaz) ***\n"; foreach (array_slice($noTier, 0, 20) as $m) echo "   $m\n"; }
+              else echo "tiers   : hepsinde var\n";
+              /* Satici uid'i: showroom kurallari HESABA baglaniyor, ilanin
+                 gorunen adina degil ("Wholesale Underwear" bir metin, kimlik
+                 degil). Kisisel veri degil -- e-posta/token degil, hesap
+                 anahtari; CLAUDE.md zaten bir satici uid'ini acikca tasiyor. */
+              $uids = [];
+              foreach ($sel as $p) { $u = (string)($p['seller_uid'] ?? '(yok)'); $uids[$u] = ($uids[$u] ?? 0) + 1; }
+              echo "satici_uid: "; foreach ($uids as $k => $v) printf("%s=%d  ", $k, $v); echo "\n";
+              /* Beden dizgelerinin TAM dagilimi. Beden secici yazarken kaynak
+                 bu olmali: kendi uydurdugum ornek degerlerle calisan bir ayristirici,
+                 canlida bambaska bir dizgeyle karsilasir (bu depoda pack_qty ile
+                 birebir bu yasandi). */
+              $sz = [];
+              foreach ($sel as $p) { $s = trim((string)($p['sizes'] ?? '')); if ($s === '') $s = '(BOS)'; $sz[$s] = ($sz[$s] ?? 0) + 1; }
+              arsort($sz);
+              echo "beden dizgeleri (".count($sz)." farkli):\n";
+              foreach ($sz as $k => $v) printf("   %2d x  %s\n", $v, $k);
+              /* Beden SECICISI canlida kac ilanda cikiyor? Bu satir iki isi
+                 birden yapiyor: deploy'un yeni fonksiyonu gercekten sunucuya
+                 indirdigini kanitliyor, ve "30/42" tahminimi OLCUME ceviriyor. */
+              if (function_exists('vestra_sizes_selectable')) {
+                  $pick = 0; $fixed = 0; $one = 0;
+                  foreach ($sel as $p) {
+                      $s = trim((string)($p['sizes'] ?? ''));
+                      if (vestra_sizes_selectable($p)) { $pick++; }
+                      elseif (vestra_sizes_has_pack($s) || vestra_sizes_has_run($s)) { $fixed++; }
+                      else { $one++; }
+                  }
+                  printf("beden secici: %d ilanda VAR | %d paket/seri (sabit) | %d tek beden\n", $pick, $fixed, $one);
+              } else {
+                  echo "beden secici: *** vestra_sizes_selectable YOK -- deploy inmemis ***\n";
+              }
+              echo "\n-- ornek kayit (FIYAT YOK) --\n";
+              foreach (array_slice($sel, 0, 3) as $p) {
+                printf("  %s  [%s]  durum=%s  bolme=%s  satici=%s  ships=%s\n",
+                  (string)($p['id'] ?? '?'), (string)($p['cat'] ?? '?'), (string)($p['status'] ?? 'approved'),
+                  (string)($p['section'] ?? '-'), (string)($p['seller'] ?? '-'), (string)($p['ships_from'] ?? '-'));
+                printf("     en: %s\n", (string)($p['name'] ?? ''));
+                foreach (['de','ru','ja','ar'] as $lg) printf("     %s: %s\n", $lg, (string)(($p['name_i18n'][$lg] ?? '(yok)')));
+                printf("     beden: %s   renk: %s\n", (string)($p['sizes'] ?? '-'), implode('/', (array)($p['colors'] ?? [])));
+                printf("     desc/de: %s\n", (string)(($p['desc_i18n']['de'] ?? '(yok)')));
+              }
+              exit(0);
+            }
 
             /* Bir urunun gosterdigi TUM gorseller: kapak listesi, tekil 'image' ve her
                renk varyantinin kendi fotosu. Varyant fotolari da sayilmali -- katalogda

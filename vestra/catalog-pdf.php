@@ -56,7 +56,7 @@ if (!auth_user_approved($u)) {
   <tbody>
   <?php foreach(vestra_products() as $p): ?>
     <tr>
-      <td class="brandcell"><?=htmlspecialchars($p['brand'])?> — <?=htmlspecialchars($p['name'])?>
+      <td class="brandcell"><?=htmlspecialchars($p['brand'])?> — <?=htmlspecialchars(vestra_product_name($p))?>
         <div class="sku">SKU <?=htmlspecialchars($p['sku'])?></div></td>
       <td><?=htmlspecialchars($p['cat'])?></td>
       <td><?=htmlspecialchars($p['unit'])?></td>

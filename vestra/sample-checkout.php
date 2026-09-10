@@ -74,7 +74,7 @@ $rec = [
     'ref'            => $ref,
     'product_id'     => $p['id'],
     'brand'          => (string)($p['brand'] ?? ''),
-    'name'           => (string)($p['name'] ?? ''),
+    'name'           => vestra_product_name($p),
     'sku'            => (string)($p['sku'] ?? ''),
     'buyer_id'       => $user['id'] ?? '',
     'buyer_email'    => $user['email'] ?? '',
@@ -93,7 +93,7 @@ sample_save($rec);
 // EU-wide only — the sample price already includes shipping within the EU.
 $EU_COUNTRIES = ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE',
                   'IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE'];
-$lineName = 'Sample — ' . trim(($p['brand'] ?? '') . ' ' . ($p['name'] ?? ''));
+$lineName = 'Sample — ' . vestra_product_title($p);
 $lineDesc = 'EU-wide shipping included. ' . ($note !== '' ? 'Size/note: ' . $note : '');
 $successUrl = 'https://vestrasales.com/sample-confirm?ref=' . rawurlencode($ref) . '&paid=1';
 $cancelUrl  = 'https://vestrasales.com' . $backUrl;
