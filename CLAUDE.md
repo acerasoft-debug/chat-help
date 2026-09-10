@@ -347,6 +347,55 @@ gönderim listesine girmez** (7 Eyl 2026, 200 satırlık liste taraması).
   `auth_user_approved`). Belge **uyarı**dır. Bu yüzden hiçbir metinde "belgesiz hesap
   aktif edilemez" **yazmamalı** — 31 Ağu 2026'da kayıt notundaki o cümle düzeltildi.
 
+**KURAL 2 — İstek SATIRI yoksa belge verilemez; tablo zorunlu listeden tamamlanır**
+(operatör, 10 Eyl 2026: *"seller de sadece bir dokuman indirilebiliyor oysaki
+Trade Licence · Government ID (Passport / National ID) bu iki belge indirilmesi
+gerekli"*).
+- KURAL 2 zaten *"`auth_required_doc_types()` tek doğruluk kaynağıdır — kayıtta
+  açılan istekler, panel ve satıcıya giden mektup buradan okur"* diyor. **Okuyan
+  iki ekran bunu yapmıyordu:** `seller.php` ve `admin.php` tabloyu hesabın
+  **kayıtlı** `doc_requests` satırlarından çiziyordu. Yükleme formu istek
+  **ID'sine** bağlı olduğu için satır yoksa **düğme de yok** — sayfa üstte
+  "her satıcı iki belge verir" derken altta tek satır gösteriyor ve satıcının
+  kimliği verecek **hiçbir yolu** kalmıyordu.
+- **Satırın yok olma sebebi iki ayrı sınıf, ikisi de gerçek:** (1) hesap
+  `auth_register()` **dışında** açılmış — `create_seller`, `sync_lesgarage`,
+  `create_tyrex_migrate`; üçü de doğrudan `auth_save_accounts()` yazıyor ve
+  ikisi `'doc_requests'=>[]` diyor; (2) hesap `id_document` zorunlu listeye
+  girmeden önce kaydolmuş.
+- **Canlı ölçüm (aynı gün, 109 hesap): 105 tam, 4 EKSİK** —
+  TYREX / GARAGE LE PARIS / AZURE MIRROR'da `trade_licence` yok,
+  **Marca Online'da hiç satır yok** (create_seller ile açılmıştı, tam
+  beklendiği gibi). Sonda: `diag-messages.yml` → `upload_probe=true`.
+- Tek tamamlayıcı: `auth_ensure_required_doc_requests($uid, $apply=true)` —
+  eksik satırı açar, **mevcut satıra dokunmaz** (durum, dosya, operatör notu,
+  damgalar korunur; onaylanmış bir belgeyi `requested`'a döndürmek satıcıya
+  verdiği belgeyi tekrar sordurmak olurdu). Satırı `auth_doc_request_row()`
+  kuruyor ve **kayıt tarafı da artık ondan** okuyor — liste `auth_register()`
+  içinde ikinci kez elle yazılmıyordu ve iki kopya ayrışabiliyordu.
+- **Üç okuma yolu da çağırıyor:** satıcı Verification sayfası, panelin
+  Documents listesi ve `cron_seller_docs.php`. Cron şart: diğer ikisi birinin o
+  sayfayı **açmasını** bekliyor, oysa cron zaten her satıcıyı belge için
+  kovalıyor — satırsız bir satıcıdan belge beklenirken süre işliyordu, yani
+  istenmeyen bir belge yüzünden askıya alınmak (KURAL 2f'nin tuzağı). Cron
+  **kuru koşuda yazmıyor** (`!$DRY`); deploy kanaryası `--dry` ile koşuyor.
+- **`VESTRA_ACCOUNTS` artık `defined()` korumalı.** Korumasızken testin hesap
+  deposunu geçici dosyaya yönlendirmesi mümkün değildi ve ilk yazımda test
+  **gerçek `data/accounts.json`'a yazdı** (`putenv` ile env kurmuştum, oysa yol
+  bir SABİT ve env hiç okunmuyor). Üretimde davranış aynı.
+- **Çelişki çözülmeden karar verilmedi:** operatörün ekranındaki not
+  (*"Approved in bulk: account predates…"*) `set-mail-key.yml`'de yalnız
+  **alıcılara** işleyen bir toplu onaydan geliyor (`type !== 'buyer' → skip`),
+  ama başlık ve "iki belge" cümlesi `seller.php`'nin. Yani ekran ile ölçüm
+  birebir örtüşmüyor; **hangi hesap olduğu operatör kararı bekliyor.** Yapısal
+  kusur bundan bağımsız olarak gerçek ve düzeltildi.
+- Test: `tests/doc_request_coverage_test.php` (35 iddia, kum havuzu gerçek
+  depoya dokunmuyor). Düşebildiği doğrulandı: tamamlama kapatılınca **7
+  kırmızı**, mevcut satır ezilirse **3**. **Yerelde çizdirildi:** yalnız
+  onaylı `trade_licence` taşıyan bir satıcı hesabında sayfa artık **iki satır**
+  (Trade Licence + Government ID) ve ID satırında **yükleme alanı** basıyor,
+  PHP uyarısı 0.
+
 **KURAL 2b — "Hesabım aktive edilmedi" diyene, ÖNCE kapıya bak.** 1 Eylül
 2026'da Kerim Kuku "hesabım aktive edilmedi, toptan fiyatları göremiyorum" yazdı;
 sunucuda `operator_onayi=EVET`, `auth_prices_unlocked=ACIK` idi. Ona yeniden

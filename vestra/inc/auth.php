@@ -6,7 +6,11 @@
 
 /* Defined before the session bootstrap below, because auth_remember_restore()
    (called during that bootstrap) reads the accounts file. */
-define('VESTRA_ACCOUNTS', __DIR__.'/../data/accounts.json');
+/* Testin hesap deposunu gecici bir dosyaya yonlendirebilmesi icin korumali:
+   korumasizken bir test auth_save_accounts() cagirdiginda GERCEK
+   data/accounts.json'a yaziyordu. Uretimde davranis aynen ayni -- kimse
+   onceden tanimlamiyor. */
+if (!defined('VESTRA_ACCOUNTS')) define('VESTRA_ACCOUNTS', __DIR__.'/../data/accounts.json');
 
 /* IP block list — enforced here because auth.php is the one include EVERY page
    loads first, so a ban covers the whole site without each page opting in. */
@@ -340,21 +344,18 @@ function auth_register(array $d): array|string {
     /* Belge adlari kayit formunda SECILEN ulkeye gore: Gewerbeschein Almanya'nin
        belgesidir, Irlandali bir butik icin o kelime hicbir sey anlatmaz. Ulke
        bilinmiyorsa notr ifade tek basina kalir -- her yerde dogru olan odur. */
-    $docCc    = vestra_cc_of_country((string)($acc['country'] ?? ''));
-    $tradeLoc = auth_trade_doc_local_name($docCc);
-    /* "An account cannot be activated without it" ARTIK DOGRU DEGIL: kapiyi
-       operator onayi aciyor (auth_prices_unlocked -> auth_user_approved),
-       belge uyari olarak duruyor. Cumleyi oldugu gibi birakmak, her yeni
-       kayda soylediginin tersini yapan bir platform gostermek olurdu. */
-    $tradeTxt = 'Please upload your trade licence / business registration'
-              . ($tradeLoc !== '' ? ' ('.$tradeLoc.')' : '')
-              . '. We keep it on file for compliance; you can add it at any time.';
-    // Auto document requests on registration
-    $ts = date('c');
-    if($type === 'seller'){
-        $acc['doc_requests'] = [
-            ['id'=>bin2hex(random_bytes(4)),'type'=>'trade_licence','note'=>$tradeTxt,'status'=>'requested','requested_at'=>$ts],
-            /* company_reg BILEREK YOK. Ticari kayit belgesiyle buyuk olcude AYNI SEYI
+    $docCc = vestra_cc_of_country((string)($acc['country'] ?? ''));
+    /* Kayitta acilan istekler artik auth_required_doc_types() +
+       auth_doc_request_row()'dan kuruluyor — liste burada IKINCI kez elle
+       yazilmiyor. Eskiden oyleydi ve iki kopya birbirinden ayrilabiliyordu;
+       KURAL 2 zaten "tek dogruluk kaynagi" diyor, yazma tarafi da artik ondan
+       okuyor. Asagidaki uzun gerekce (neden company_reg/vat_cert/auth_letter
+       YOK) tarihsel kayit olarak duruyor. */
+    $acc['doc_requests'] = [];
+    foreach (auth_required_doc_types($type) as $__t) {
+        $acc['doc_requests'][] = auth_doc_request_row($__t, $docCc);
+    }
+    /* company_reg BILEREK YOK. Ticari kayit belgesiyle buyuk olcude AYNI SEYI
                kanitliyor, ve kucuk isletmelerin cogunda ayrica MEVCUT DEGIL: Almanya'da
                sahis sirketinin Gewerbeschein'i vardir ama Handelsregister kaydi yoktur.
                Var olmayan bir belgeyi sart kosmak, hedefledigimiz butik profilini tam
@@ -377,20 +378,13 @@ function auth_register(array $d): array|string {
                SATICIDAN ISTENEN: ticari kayit + kimlik. Digerleri
                auth_doc_types()'ta duruyor, operator supheli bir dosyada
                panelden tek tek yine isteyebilir. */
-            ['id'=>bin2hex(random_bytes(4)),'type'=>'id_document', 'note'=>'Please upload a government-issued ID: passport, national ID card, or driving licence.','status'=>'requested','requested_at'=>$ts],
-        ];
-    } elseif($type === 'buyer'){
-        /* ALICIDAN TEK BELGE: ticari kayit. Onceden company_reg ve vat_cert de
+    /* ALICIDAN TEK BELGE: ticari kayit. Onceden company_reg ve vat_cert de
            acilirdi, ama ikisi de HICBIR kapiyi acmiyordu -- auth_trade_unlocked()
            ve auth_prices_unlocked()'in ikisi de yalnizca trade_licence'a bakiyor.
            Yani alici, hicbir seyi degistirmeyen iki "Upload erforderlich" satiri
            goruyordu; katalogu gormek icin gerekli sanip ucunu birden toplamaya
            calisiyor, toplayamayinca birakiyordu. Saticida ucu de duruyor: orada
            para tasiniyor ve KYB gercekten gerekiyor. */
-        $acc['doc_requests'] = [
-            ['id'=>bin2hex(random_bytes(4)),'type'=>'trade_licence','note'=>$tradeTxt,'status'=>'requested','requested_at'=>$ts],
-        ];
-    }
     /* Where did this registration come from? Stamped ON the account, not only in
        the rolling security log: the log ages out, but "which country signed this
        account up, and was it behind a VPN" stays a fair question for as long as
@@ -647,6 +641,75 @@ function auth_required_doc_types(string $accType): array {
     return $accType === 'seller'
         ? ['trade_licence', 'id_document']   // ticari kayit + kimlik
         : ['trade_licence'];
+}
+
+/* Bir belge isteginin ACILIS satiri — kayit da, sonradan tamamlama da buradan
+   kurar. Not metni iki yerde ayri yazilsaydi ayni belge iki farkli cumleyle
+   istenirdi; bu depo ayni olgunun ikinci kopyasinin ne ettigini yeterince
+   kaydetti (dort mektup govdesi, desc/sizes, KURAL 5f'in uc katmani).
+   Ticari kayit belgesinin adi ULKEYE gore: "Gewerbeschein" Almanya'nin belgesi,
+   Irlandali bir butik icin o kelime hicbir sey anlatmaz. */
+function auth_doc_request_row(string $type, string $cc = ''): array {
+    if ($type === 'trade_licence') {
+        $loc  = auth_trade_doc_local_name($cc);
+        /* "Hesap bu belge olmadan aktif edilemez" cumlesi BILEREK yok: kapiyi
+           operator onayi aciyor (KURAL 2), belge uyari olarak duruyor. */
+        $note = 'Please upload your trade licence / business registration'
+              . ($loc !== '' ? ' ('.$loc.')' : '')
+              . '. We keep it on file for compliance; you can add it at any time.';
+    } elseif ($type === 'id_document') {
+        $note = 'Please upload a government-issued ID: passport, national ID card, or driving licence.';
+    } else {
+        $note = '';
+    }
+    return ['id' => bin2hex(random_bytes(4)), 'type' => $type, 'note' => $note,
+            'status' => 'requested', 'requested_at' => date('c')];
+}
+
+/**
+ * Hesapta EKSIK olan zorunlu belge isteklerini acar; eklenen tipleri dondurur.
+ *
+ * Neden gerekli: satici Verification sayfasi ve panel, tabloyu hesabin KAYITLI
+ * istek satirlarindan ciziyor — `auth_required_doc_types()`'tan degil. Satir
+ * yoksa tabloda satir yok, satir yoksa YUKLEME DUGMESI de yok (form istek
+ * ID'sine bagli). Yani sayfa ustte "her satici iki belge verir" diye yazarken
+ * altta tek satir gosteriyor ve saticinin kimligi verecek hicbir yolu
+ * kalmiyordu. Operator bunu canli bir hesapta gordu (10 Eyl 2026).
+ *
+ * Satirin YOK OLMA sebepleri iki ayri sinif ve ikisi de gercek:
+ *   1. Hesap `auth_register()` DISINDA acilmis — `create_seller`
+ *      (diag-admin-discover), `sync_lesgarage`, `create_tyrex_migrate`; ucu de
+ *      dogrudan `auth_save_accounts()` yaziyor ve ikisi `'doc_requests'=>[]`
+ *      diyor, yani hicbir istek hic acilmamis.
+ *   2. Hesap, `id_document` zorunlu listeye girmeden ONCE kaydolmus.
+ *
+ * IDEMPOTENT ve mevcut satira DOKUNMAZ: durum, dosya, operator notu ve damgalar
+ * oldugu gibi kalir. Yalnizca gercekten eksik olan tip icin yazar — yoksa her
+ * sayfa acilisinda accounts.json'a yazan bir okuma yolu olurdu.
+ */
+function auth_ensure_required_doc_requests(string $uid, bool $apply = true): array {
+    $list  = auth_accounts();
+    $added = [];
+    foreach ($list as &$a) {
+        if (($a['id'] ?? '') !== $uid) continue;
+        $need = auth_required_doc_types((string)($a['type'] ?? 'buyer'));
+        $have = [];
+        foreach ((array)($a['doc_requests'] ?? []) as $r) {
+            $t = (string)($r['type'] ?? '');
+            if ($t !== '') $have[$t] = true;
+        }
+        $cc = vestra_cc_of_country((string)($a['country'] ?? ''));
+        foreach ($need as $t) {
+            if (isset($have[$t])) continue;
+            $added[] = $t;
+            if (!isset($a['doc_requests']) || !is_array($a['doc_requests'])) $a['doc_requests'] = [];
+            $a['doc_requests'][] = auth_doc_request_row($t, $cc);
+        }
+        break;
+    }
+    unset($a);
+    if ($added && $apply) auth_save_accounts($list);
+    return $added;
 }
 
 function auth_doc_types(string $cc = ''): array {
