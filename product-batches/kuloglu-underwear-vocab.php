@@ -76,6 +76,20 @@ const KU_TYPES = [
 'trouser_socks'     => ['en'=>'Trouser socks','fr'=>'Mi-bas','es'=>'Media pantalón','it'=>'Gambaletto','de'=>'Kniestrumpf','pt'=>'Meia até ao joelho','ru'=>'Гольфы','ar'=>'جوارب تحت الركبة','ja'=>'ハイソックス'],
 'knee_highs'        => ['en'=>'Knee-high socks','fr'=>'Chaussettes montantes','es'=>'Calcetines altos','it'=>'Calzini alti','de'=>'Kniestrümpfe','pt'=>'Meias altas','ru'=>'Высокие носки','ar'=>'جوارب عالية','ja'=>'ニーハイソックス'],
 'no_show_socks'     => ['en'=>'No-show socks','fr'=>'Socquettes invisibles','es'=>'Calcetines invisibles','it'=>'Fantasmini','de'=>'Füßlinge','pt'=>'Meias invisíveis','ru'=>'Следки','ar'=>'جوارب خفية','ja'=>'フットカバー'],
+/* Visatin (saten gecelik/sabahlik) ve Q-EN (bambu ic giyim) ile gelen turler,
+   10 Eyl 2026. Hepsi 114 urunun GERCEK basliklarindan cikti; kataloglarda
+   olmayan bir tur buraya yazilmadi. */
+'robe'              => ['en'=>'Robe','fr'=>'Peignoir','es'=>'Bata','it'=>'Vestaglia','de'=>'Morgenmantel','pt'=>'Robe','ru'=>'Халат','ar'=>'روب','ja'=>'ガウン'],
+'bralette'          => ['en'=>'Bralette','fr'=>'Brassière','es'=>'Top sujetador','it'=>'Bralette','de'=>'Bralette','pt'=>'Top sutiã','ru'=>'Бралетт','ar'=>'برالیت','ja'=>'ブラレット'],
+'mens_boxer'        => ['en'=>'Men’s boxer briefs','fr'=>'Boxer homme','es'=>'Bóxer de hombre','it'=>'Boxer uomo','de'=>'Herren-Boxershorts','pt'=>'Boxer de homem','ru'=>'Мужские боксеры','ar'=>'بوكسر رجالي','ja'=>'メンズ ボクサーパンツ'],
+'thong'             => ['en'=>'Thong','fr'=>'String','es'=>'Tanga','it'=>'Perizoma','de'=>'String','pt'=>'Tanga','ru'=>'Стринги','ar'=>'سروال داخلي سترينغ','ja'=>'Tバック'],
+'trouser_liner'     => ['en'=>'Trouser lining shorts','fr'=>'Short de doublure','es'=>'Short forro para pantalón','it'=>'Sottopantalone','de'=>'Hosen-Unterhose','pt'=>'Calção de forro','ru'=>'Шорты-подкладка','ar'=>'شورت بطانة للبنطال','ja'=>'パンツ用インナーショーツ'],
+'leggings'          => ['en'=>'Leggings','fr'=>'Legging','es'=>'Leggings','it'=>'Leggings','de'=>'Leggings','pt'=>'Leggings','ru'=>'Легинсы','ar'=>'ليغنز','ja'=>'レギンス'],
+'capri_leggings'    => ['en'=>'Capri leggings','fr'=>'Legging capri','es'=>'Leggings capri','it'=>'Leggings capri','de'=>'Capri-Leggings','pt'=>'Leggings capri','ru'=>'Легинсы-капри','ar'=>'ليغنز كابري','ja'=>'カプリレギンス'],
+'short_leggings'    => ['en'=>'Short leggings','fr'=>'Legging court','es'=>'Leggings cortos','it'=>'Leggings corti','de'=>'Kurze Leggings','pt'=>'Leggings curtas','ru'=>'Короткие легинсы','ar'=>'ليغنز قصير','ja'=>'ショートレギンス'],
+'turtleneck_top'    => ['en'=>'Roll-neck top','fr'=>'Haut à col roulé','es'=>'Top de cuello alto','it'=>'Top a collo alto','de'=>'Rollkragen-Oberteil','pt'=>'Top de gola alta','ru'=>'Топ с высоким воротом','ar'=>'توب برقبة عالية','ja'=>'タートルネック トップ'],
+'crew_neck_top'     => ['en'=>'Crew-neck top','fr'=>'Haut col rond','es'=>'Top de cuello redondo','it'=>'Top girocollo','de'=>'Rundhals-Oberteil','pt'=>'Top de gola redonda','ru'=>'Топ с круглым вырезом','ar'=>'توب برقبة دائرية','ja'=>'クルーネック トップ'],
+'long_sleeve_top'   => ['en'=>'Long-sleeve top','fr'=>'Haut à manches longues','es'=>'Top de manga larga','it'=>'Top a maniche lunghe','de'=>'Langarm-Oberteil','pt'=>'Top de manga comprida','ru'=>'Топ с длинным рукавом','ar'=>'توب بأكمام طويلة','ja'=>'長袖トップ'],
 ];
 
 /* Ozellikler — virgulle ayrilmis liste olarak eklenir, sifat sirasi sorunu yok.
@@ -106,6 +120,19 @@ const KU_ATTRS = [
    ariyor. Rakam yer tutucudan giriyor, metne gomulu degil. */
 'd15'             => ['en'=>'15 denier','fr'=>'15 deniers','es'=>'15 deniers','it'=>'15 denari','de'=>'15 den','pt'=>'15 deniers','ru'=>'15 den','ar'=>'15 دينير','ja'=>'15デニール'],
 'd40'             => ['en'=>'40 denier','fr'=>'40 deniers','es'=>'40 deniers','it'=>'40 denari','de'=>'40 den','pt'=>'40 deniers','ru'=>'40 den','ar'=>'40 دينير','ja'=>'40デニール'],
+/* Visatin + Q-EN ile gelen ozellikler, 10 Eyl 2026. */
+'bamboo'          => ['en'=>'bamboo viscose','fr'=>'viscose de bambou','es'=>'viscosa de bambú','it'=>'viscosa di bambù','de'=>'Bambusviskose','pt'=>'viscose de bambu','ru'=>'бамбуковая вискоза','ar'=>'فيسكوز الخيزران','ja'=>'竹レーヨン'],
+'reversible'      => ['en'=>'reversible','fr'=>'réversible','es'=>'reversible','it'=>'reversibile','de'=>'wendbar','pt'=>'reversível','ru'=>'двусторонний','ar'=>'قابل للعكس','ja'=>'リバーシブル'],
+'sleeveless'      => ['en'=>'sleeveless','fr'=>'sans manches','es'=>'sin mangas','it'=>'senza maniche','de'=>'ärmellos','pt'=>'sem mangas','ru'=>'без рукавов','ar'=>'بدون أكمام','ja'=>'ノースリーブ'],
+'long_sleeve'     => ['en'=>'long sleeves','fr'=>'manches longues','es'=>'manga larga','it'=>'maniche lunghe','de'=>'lange Ärmel','pt'=>'manga comprida','ru'=>'длинный рукав','ar'=>'أكمام طويلة','ja'=>'長袖'],
+'short_sleeve'    => ['en'=>'short sleeves','fr'=>'manches courtes','es'=>'manga corta','it'=>'maniche corte','de'=>'kurze Ärmel','pt'=>'manga curta','ru'=>'короткий рукав','ar'=>'أكمام قصيرة','ja'=>'半袖'],
+'adjustable_straps'=>['en'=>'adjustable straps','fr'=>'bretelles réglables','es'=>'tirantes ajustables','it'=>'spalline regolabili','de'=>'verstellbare Träger','pt'=>'alças ajustáveis','ru'=>'регулируемые бретели','ar'=>'حمالات قابلة للتعديل','ja'=>'アジャスター付きストラップ'],
+'elastic_waist'   => ['en'=>'elasticated waist','fr'=>'taille élastiquée','es'=>'cintura elástica','it'=>'vita elasticizzata','de'=>'Gummibund','pt'=>'cintura elástica','ru'=>'эластичный пояс','ar'=>'خصر مطاطي','ja'=>'ゴムウエスト'],
+'two_pack'        => ['en'=>'two-pack','fr'=>'lot de deux','es'=>'pack de dos','it'=>'confezione da due','de'=>'Doppelpack','pt'=>'pack de dois','ru'=>'набор из двух','ar'=>'عبوة ثنائية','ja'=>'2枚組'],
+/* "ASORTİ": tedarikcinin renk alanina yazdigi, renk OLMAYAN deger. Rengi
+   uydurmak yerine ozellik olarak yaziliyor -- alici karisik gelecegini bilsin
+   (NBB 730'da renk hic verilmemisti ve fotograftan renk UYDURULMADI). */
+'assorted_colours'=> ['en'=>'assorted colours','fr'=>'coloris assortis','es'=>'colores surtidos','it'=>'colori assortiti','de'=>'sortierte Farben','pt'=>'cores sortidas','ru'=>'ассорти цветов','ar'=>'ألوان متنوعة','ja'=>'アソートカラー'],
 ];
 
 /* Birlestirme: ozellik ayraci ve model numarasindan onceki isaret.
@@ -125,15 +152,15 @@ const KU_JOIN = [
    padded by NBB" cumlesinde "by NBB" son sifata baglaniyor -- yani sutyen degil,
    DOLGU NBB'ye aitmis gibi. Ozellik listesi noktayla kapaniyor artik. */
 const KU_DESC_FMT = [
-  'en'=>'%1$s. NBB, wholesale only — ordered by the pack, not by the piece.',
-  'fr'=>'%1$s. NBB, vente en gros uniquement — commande par lot, non à l’unité.',
-  'es'=>'%1$s. NBB, solo venta al por mayor — se pide por paquete, no por unidad.',
-  'it'=>'%1$s. NBB, solo ingrosso — si ordina a confezione, non al pezzo.',
-  'de'=>'%1$s. NBB, nur Großhandel — Bestellung im Pack, nicht als Einzelstück.',
-  'pt'=>'%1$s. NBB, apenas venda por grosso — encomenda por pack, não à unidade.',
-  'ru'=>'%1$s. NBB, только опт — заказ упаковками, не поштучно.',
-  'ar'=>'%1$s. NBB، بالجملة فقط — يُطلب بالعبوة وليس بالقطعة.',
-  'ja'=>'%1$s。NBB、卸売専用 — 1点単位ではなくパック単位でのご注文となります。',
+  'en'=>'%1$s. %2$s, wholesale only — ordered by the pack, not by the piece.',
+  'fr'=>'%1$s. %2$s, vente en gros uniquement — commande par lot, non à l’unité.',
+  'es'=>'%1$s. %2$s, solo venta al por mayor — se pide por paquete, no por unidad.',
+  'it'=>'%1$s. %2$s, solo ingrosso — si ordina a confezione, non al pezzo.',
+  'de'=>'%1$s. %2$s, nur Großhandel — Bestellung im Pack, nicht als Einzelstück.',
+  'pt'=>'%1$s. %2$s, apenas venda por grosso — encomenda por pack, não à unidade.',
+  'ru'=>'%1$s. %2$s, только опт — заказ упаковками, не поштучно.',
+  'ar'=>'%1$s. %2$s، بالجملة فقط — يُطلب بالعبوة وليس بالقطعة.',
+  'ja'=>'%1$s。%2$s、卸売専用 — 1点単位ではなくパック単位でのご注文となります。',
 ];
 
 /**
@@ -154,15 +181,15 @@ const KU_DESC_FMT = [
  * ilanin adediyle degil.
  */
 const KU_DESC_FMT_NOPACK = [
-  'en'=>'%1$s. NBB, wholesale only.',
-  'fr'=>'%1$s. NBB, vente en gros uniquement.',
-  'es'=>'%1$s. NBB, solo venta al por mayor.',
-  'it'=>'%1$s. NBB, solo ingrosso.',
-  'de'=>'%1$s. NBB, nur Großhandel.',
-  'pt'=>'%1$s. NBB, apenas venda por grosso.',
-  'ru'=>'%1$s. NBB, только опт.',
-  'ar'=>'%1$s. NBB، بالجملة فقط.',
-  'ja'=>'%1$s。NBB、卸売専用。',
+  'en'=>'%1$s. %2$s, wholesale only.',
+  'fr'=>'%1$s. %2$s, vente en gros uniquement.',
+  'es'=>'%1$s. %2$s, solo venta al por mayor.',
+  'it'=>'%1$s. %2$s, solo ingrosso.',
+  'de'=>'%1$s. %2$s, nur Großhandel.',
+  'pt'=>'%1$s. %2$s, apenas venda por grosso.',
+  'ru'=>'%1$s. %2$s, только опт.',
+  'ar'=>'%1$s. %2$s، بالجملة فقط.',
+  'ja'=>'%1$s。%2$s、卸売専用。',
 ];
 
 /**
@@ -171,7 +198,7 @@ const KU_DESC_FMT_NOPACK = [
  * Tur ve ozellikler URUNUN KENDI BASLIGINDAN cikarildi -- uydurulmadi; baslikta
  * olmayan bir ozellik (kumas orani, kalip) buraya YAZILMIYOR.
  */
-const NBB_PRODUCTS = [
+const KU_NBB_PRODUCTS = [
 '1117'  => ['cat'=>'Bras',            'type'=>'training_bra',       'attrs'=>['combed_cotton']],
 '1901'  => ['cat'=>'Shapewear',       'type'=>'shaping_brief',      'attrs'=>['silicone']],
 '2006'  => ['cat'=>'Underwear',       'type'=>'brief',              'attrs'=>['tactel','seamless']],
@@ -230,13 +257,13 @@ const NBB_PRODUCTS = [
  * cevaplanamayacak tek sorunun cevabi bu liste.
  *
  * NBB'de her urunun TEK fotografi var, yani elenen kare = YAYIMLANMAYAN ILAN.
- * Liste bu yuzden `nbb_photo_rejected()` uzerinden GONDERIM/YAZMA yolunda
+ * Liste bu yuzden `ku_photo_rejected()` uzerinden GONDERIM/YAZMA yolunda
  * okunuyor, bir yorumda durmuyor: elle eleme unutulur (KURAL 1h'nin dersi).
  *
  * Neden elendikleri, tek tek — "Turkce var" demek yetmez, hangi metin oldugu
  * yazilmali ki tedarikci bir gun kareyi degistirdiginde karar gozden gecirilebilsin:
  */
-const NBB_PHOTO_REJECT = [
+const KU_NBB_PHOTO_REJECT = [
   '1117' => 'Fotograf urun degil, AMBALAJ TARAMASI: "İçinizi Rahat Etsin", '
           . '"GARSON SÜTYEN", "11-14 Yaş". (Ayrica: 11-14 yas = cocuk urunu, '
           . 'operator karari bekliyor.)',
@@ -254,8 +281,206 @@ const NBB_PHOTO_REJECT = [
  *          sarti Turkce ifadeler; marka logosu o degil. Elemek, urunun
  *          markasini gostermeyi yasaklamak olurdu.
  */
-function nbb_photo_rejected(string $model): ?string {
-    return NBB_PHOTO_REJECT[strtoupper(trim($model))] ?? null;
+function ku_photo_rejected(string $maker, string $model): ?string {
+    return (KU_PHOTO_REJECT[$maker] ?? [])[strtoupper(trim($model))] ?? null;
+}
+
+/* ── URETICILER ──────────────────────────────────────────────────────────────
+ *
+ * `slug` = tedarikci sitesindeki urun adresinin oneki, `label` = VESTRA'da
+ * basilacak marka adi, `id` = ilan id'sinin oneki.
+ *
+ * VISATIN'DE BIR CELISKI VAR ve uydurulmadan kayda geciyor: urun sayfasinin
+ * MARKA alani "REAL PASSIONE" diyor, BASLIK "VİSATİN <model>" diyor ve
+ * /marka/visatin diye bir sayfa YOK (marka dizininde de gecmiyor). Yani
+ * tedarikcinin kendi kaydinda Visatin tescilli bir marka degil, Real
+ * Passione'nin bir hatti gorunumunde. Operator *"visatin markali urunler"*
+ * dedigi ve baslik da oyle dedigi icin VESTRA'da marka **Visatin** basiliyor;
+ * celiski operator karari icin CLAUDE.md'ye yaziliyor.
+ */
+const KU_MAKERS = [
+  'nbb'     => ['label'=>'NBB',     'slug'=>'nbb',     'id'=>'nbb'],
+  'visatin' => ['label'=>'Visatin', 'slug'=>'visatin', 'id'=>'visatin'],
+  'qen'     => ['label'=>'Q-EN',    'slug'=>'q-en',    'id'=>'qen'],
+];
+
+/* Urun tablosu URETICI BASINA. Kelimeler (KU_TYPES/KU_ATTRS) ortak. */
+const KU_PRODUCTS = [
+  'nbb' => KU_NBB_PRODUCTS,
+  /* Visatin ve Q-EN'de elle yazilmis satir YOK: siniflandirma tedarikcinin
+     KENDI BASLIGINDAN kural tablosuyla cikiyor (asagida). 114 satiri elle
+     yazmak, 114 model numarasini elle kopyalamak demekti -- ve Actions
+     kutugu "22"yi maskeledigi icin numaralarin bir kismini dogru okumak
+     mumkun bile degildi. Kural tablosu hem daha kucuk hem yanlis
+     kopyalanamaz. */
+  'visatin' => [],
+  /* Q-EN'de TEK elle yazilmis satir. Tedarikcinin kendi basligi EKSIK:
+     "Q-EN 706 BAYAN BAMBU BATTAL KALIN ASKI ÇİFT YÖNLÜ" -- giysinin adi
+     (ATLET) hic yazmiyor, o yuzden kural tablosu ONU COZEMIYOR ve dogrusu
+     bu (cozemedigine bir tur atamak KURAL 3'un katalog hali olurdu).
+     Giysi TAHMIN EDILMEDI: ayni tedarikcinin ayni model numarali kardes
+     ilani "Q-EN 706 BAYAN BAMBU KALIN ASKI ÇİFT YÖNLÜ **ATLET**" diyor.
+     Yani tur, tedarikcinin kendi kaydindan okundu. */
+  'qen'     => [
+    '706-B' => ['cat'=>'Basics', 'type'=>'vest',
+                'attrs'=>['bamboo','plus_size','wide_straps','reversible']],
+  ],
+];
+const KU_PHOTO_REJECT = [
+  'nbb'     => KU_NBB_PHOTO_REJECT,
+  /* Visatin/Q-EN kareleri kontakt sayfasindan GOZLE incelenip doldurulacak
+     (operator sarti: fotografta Turkce ifade varsa yayimlanmaz). Bos birakmak
+     "hepsi temiz" demek DEGIL -- kurucu, incelenmemis bir uretici icin
+     calistirilmamali; bakildiginda buraya yazilir. */
+  'visatin' => [],
+  'qen'     => [],
+];
+
+/* ── BASLIKTAN SINIFLANDIRMA ─────────────────────────────────────────────────
+ *
+ * Tedarikcinin Turkce basligi duzenli ve bilesik: "Q-EN 712 BAYAN BAMBU
+ * BALIKÇI YAKA UZUNKOL ATLET". Tur ve ozellikler oradan cikiyor.
+ *
+ * KURAL: COZULEMEYEN BASLIK ATLANIR. Bir varsayilan tur koymak, tanimadigimiz
+ * bir giysiye tanidigimiz bir ad vermek olurdu -- KURAL 3'un katalog hali.
+ *
+ * Sira ONEMLI: ilk esleseme gore karar veriliyor, en OZEL kalip once. Ornegin
+ * "PANTOLON ASTARI" once gelmeli, yoksa "ASTAR" iceren bir baslik baska bir
+ * kolda yakalanabilir; "STRİNG KÜLOT" once gelmeli, yoksa "KÜLOT" onu yer.
+ */
+const KU_TITLE_TYPES = [
+  ['~SABAHLIK~u',                        'robe'],
+  ['~GECEL[İI]K~u',                      'nightdress'],
+  ['~KOMB[İI]NEZON~u',                   'slip'],
+  ['~J[İI]PON~u',                        'half_slip'],
+  ['~PANTOLON\s+ASTARI~u',               'trouser_liner'],
+  ['~STR[İI]NG~u',                       'thong'],
+  ['~K[ÜU]LOT~u',                        'brief'],
+  ['~ERKEK\b.*\bBOXER~u',                'mens_boxer'],
+  ['~BOXER~u',                           'shorts'],
+  ['~B[ÜU]ST[İI]YER~u',                  'bralette'],
+  ['~KAPR[İI]\s+TAYT~u',                 'capri_leggings'],
+  ['~(?:KISA|M[İI]N[İI])\s+TAYT~u',      'short_leggings'],
+  ['~TAYT~u',                            'leggings'],
+  ['~BALIK[ÇC]I\s+YAKA~u',               'turtleneck_top'],
+  ['~B[İI]S[İI]KLET\s+YAKA~u',           'crew_neck_top'],
+  ['~SIFIR\s+YAKA~u',                    'long_sleeve_top'],
+  ['~ERKEK\b.*\bATLET~u',                'mens_vest'],
+  ['~ATLET|FAN[İI]LA~u',                 'vest'],
+];
+
+/* Ozellikler: HEPSI toplanir, tablodaki sirayla basilir (sira, cumlenin
+   okunusudur: once kumas, sonra kalip, sonra detay, en sonda paket). */
+const KU_TITLE_ATTRS = [
+  ['~BAMBU~u',                       'bamboo'],
+  ['~SATEN~u',                       'satin'],
+  ['~BATTAL~u',                      'plus_size'],
+  ['~AYAR\s+ASKI~u',                 'adjustable_straps'],
+  ['~[İI]P\s+ASKI~u',                'spaghetti_straps'],
+  ['~KALIN\s+ASKI~u',                'wide_straps'],
+  ['~PEDL[İI]|KABLI~u',              'padded'],
+  ['~[ÇC][İI]FT\s+Y[ÖO]N~u',         'reversible'],
+  ['~SIFIR\s*KOL~u',                 'sleeveless'],
+  ['~UZUN\s*KOL~u',                  'long_sleeve'],
+  ['~KISA\s*KOL~u',                  'short_sleeve'],
+  ['~GE[ÇC]ME\s+BEL~u',              'elastic_waist'],
+  ['~\bMAX[İI]\b|\bUZUN\b(?!\s*KOL)~u','long_length'],
+  ['~\bM[İI]N[İI]\b~u',              'short_length'],
+  ['~ASORT[İI]~u',                   'assorted_colours'],
+  ['~\b2\s*L[İI]\b~u',               'two_pack'],
+  ['~\b3\s*L[ÜU]\b~u',               'three_pack'],
+];
+
+/* Tur -> VESTRA taksonomisi yapragi (vestra_all_cats(), "Underwear & Socks").
+   Her turun TEK kategorisi var: ayni giysiyi iki kategoriye koymak, katalogda
+   ayni urunu iki yerde gostermek olurdu. */
+const KU_TYPE_CAT = [
+  'robe'            => 'Loungewear',
+  'nightdress'      => 'Sleepwear',
+  'nightwear_set'   => 'Sleepwear',
+  'slip'            => 'Lingerie',
+  'half_slip'       => 'Lingerie',
+  'trouser_liner'   => 'Underwear',
+  'thong'           => 'Underwear',
+  'brief'           => 'Underwear',
+  'mens_boxer'      => 'Underwear',
+  'shorts'          => 'Underwear',
+  'bralette'        => 'Bras',
+  'capri_leggings'  => 'Basics',
+  'short_leggings'  => 'Basics',
+  'leggings'        => 'Basics',
+  'turtleneck_top'  => 'Basics',
+  'crew_neck_top'   => 'Basics',
+  'long_sleeve_top' => 'Basics',
+  'mens_vest'       => 'Basics',
+  'vest'            => 'Basics',
+];
+
+/**
+ * Baslik -> ['type'=>..., 'attrs'=>[...], 'cat'=>...] ya da COZULEMEDIYSE null.
+ * Elle yazilmis KU_PRODUCTS satiri varsa O KAZANIR: bir gun bir urun yanlis
+ * siniflanirsa duzeltmenin yeri tablodur, kuralin kendisi degil.
+ */
+function ku_classify(string $maker, string $sku, string $title): ?array {
+    $hand = KU_PRODUCTS[$maker][$sku] ?? null;
+    if ($hand) return $hand;
+    $t = mb_strtoupper(trim($title));
+    if ($t === '') return null;
+    $type = null;
+    foreach (KU_TITLE_TYPES as [$re, $key]) { if (preg_match($re, $t)) { $type = $key; break; } }
+    if ($type === null) return null;
+    $attrs = [];
+    foreach (KU_TITLE_ATTRS as [$re, $key]) { if (preg_match($re, $t)) $attrs[] = $key; }
+    /* Turun kendisi zaten soyluyorsa ozellik olarak TEKRAR yazilmaz:
+       "Long-sleeve top, long sleeves" gulunc olurdu. */
+    $implied = [
+      'long_sleeve_top' => ['long_sleeve'],
+      'capri_leggings'  => ['short_length','long_length'],
+      'short_leggings'  => ['short_length','long_length'],
+      'leggings'        => ['long_length'],
+      'thong'           => ['short_length'],
+    ][$type] ?? [];
+    $attrs = array_values(array_diff($attrs, $implied));
+    $cat = KU_TYPE_CAT[$type] ?? null;
+    if ($cat === null) return null;
+    return ['cat'=>$cat, 'type'=>$type, 'attrs'=>$attrs];
+}
+
+/**
+ * ILAN ANAHTARI (SKU). Model numarasi TEK BASINA yetmiyor: tedarikci ayni
+ * artikel numarasini iki ayri urunde kullaniyor ve olculdu --
+ * Q-EN 705/706/800 hem normal hem BATTAL hatti olarak, Visatin 4060/4074 hem
+ * tek hem 6'li asorti paket olarak listeleniyor. Ayni SKU iki ilanda
+ * durursa siparis satirinin renk/beden haritasi (SKU ile anahtarli) iki
+ * ilani birbirine karistirir.
+ *
+ * Iki ek de UYDURMA DEGIL, tedarikcinin kendi verisinden:
+ *  -B  : tedarikcinin KENDI konvansiyonu (700-B, 707-B, 708-B, 802-B, 804-B
+ *        slug'da boyle yaziyor); bazi satirlarda yazmayi atlamis.
+ *  -N  : kaydin kendi `pack_qty` degeri, yani "6'li asorti" olan ilan.
+ */
+function ku_sku(string $model, string $title, int $packQty): string {
+    $s = strtoupper(trim($model));
+    if ($s === '') return '';
+    if (preg_match('~BATTAL~u', mb_strtoupper($title)) && !preg_match('~-B$~', $s)) $s .= '-B';
+    if ($packQty > 1) $s .= '-' . $packQty;
+    return $s;
+}
+
+/**
+ * Baslikta yazan BEDEN LISTESI — "... GECELİK M-L-XL 6 LI" gibi.
+ * Yalnizca varyant tablosu BOS oldugunda kullanilir: tedarikcinin 6'li asorti
+ * paketlerinde varyant hic yok ve bedenler yalniz baslikta duruyor. Bulunan
+ * her parca gercek bir beden olmak zorunda (ku_is_size), yoksa "M-L-XL"
+ * benzeri her tireli dizge beden sanilirdi.
+ */
+function ku_sizes_from_title(string $title): array {
+    $t = mb_strtoupper(trim($title));
+    if (!preg_match('~\b([A-Z0-9]{1,4}(?:-[A-Z0-9]{1,4})+)\b~u', $t, $m)) return [];
+    $parts = explode('-', $m[1]);
+    if (count($parts) < 2) return [];
+    foreach ($parts as $p) if (!ku_is_size($p)) return [];
+    return array_values(array_unique($parts));
 }
 
 /* NBB'de gecen ve kuloglu-vocab.php'de HENUZ OLMAYAN uc renk. Digerleri
@@ -269,14 +494,18 @@ const KU_EXTRA_COLORS = [
 
 /* ── Kurucular ────────────────────────────────────────────────────────────── */
 
-/** "Wire-free bra, microfibre, moulded cup" — model numarasi YOK (desc bunu kullanir). */
-function nbb_phrase(string $model, string $lang): string {
-    $p = NBB_PRODUCTS[$model] ?? null;
-    if (!$p) return '';
-    $type = KU_TYPES[$p['type']][$lang] ?? KU_TYPES[$p['type']]['en'] ?? '';
+/**
+ * "Wire-free bra, microfibre, moulded cup" — model numarasi YOK (desc bunu
+ * kullanir). $spec, ku_classify()'in dondurdugu ['type'=>..,'attrs'=>[..]].
+ * Siniflandirmayi CAGIRAN yapiyor: kurucu ne elle yazilmis tabloyu ne de
+ * baslik kurallarini ikinci kez sormali -- ayni olguyu iki yerden okumak,
+ * bu deponun tekrar tekrar odedigi hata.
+ */
+function ku_phrase(array $spec, string $lang): string {
+    $type = KU_TYPES[$spec['type']][$lang] ?? KU_TYPES[$spec['type']]['en'] ?? '';
     if ($type === '') return '';
     $bits = [];
-    foreach ($p['attrs'] as $a) {
+    foreach ($spec['attrs'] ?? [] as $a) {
         $v = KU_ATTRS[$a][$lang] ?? KU_ATTRS[$a]['en'] ?? '';
         if ($v !== '') $bits[] = $v;
     }
@@ -285,42 +514,59 @@ function nbb_phrase(string $model, string $lang): string {
 }
 
 /** "Wire-free bra, microfibre, moulded cup — 3505" */
-function nbb_name(string $model, string $lang): string {
-    $ph = nbb_phrase($model, $lang);
+function ku_name(array $spec, string $model, string $lang): string {
+    $ph = ku_phrase($spec, $lang);
     if ($ph === '') return '';
     [, $dash] = KU_JOIN[$lang] ?? KU_JOIN['en'];
     return $ph . $dash . $model;
 }
 
 /* $packQty: ilanin GERCEK paket adedi. 1 (ya da verilmemis) ise paket cumlesi
-   BASILMAZ -- aciklama, ilanin MOQ'sunun soylemedigi bir kurali ilan etmez. */
-function nbb_desc(string $model, string $lang, int $packQty = 1): string {
-    $ph = nbb_phrase($model, $lang);
+   BASILMAZ -- aciklama, ilanin MOQ'sunun soylemedigi bir kurali ilan etmez.
+   $brand: marka adi metne GOMULU DEGIL, parametre -- dosya uc uretici birden
+   tasiyor ve 18 cumleyi uc kez kopyalamak, "NBB" yazan bir Visatin ilani
+   uretmenin en kolay yoluydu. */
+function ku_desc(array $spec, string $brand, string $lang, int $packQty = 1): string {
+    $ph = ku_phrase($spec, $lang);
     if ($ph === '') return '';
     $tbl = $packQty > 1 ? KU_DESC_FMT : KU_DESC_FMT_NOPACK;
     $fmt = $tbl[$lang] ?? $tbl['en'];
     /* Cumle basi buyuk harf: parca kucuk harfle basliyor ("wire-free bra") ve
        Ingilizce/Almanca cumle basinda buyuk olmali. mb_ ile, cunku Turkce'den
        gelen bir harf ASCII olmayabilir. */
-    return sprintf($fmt, mb_strtoupper(mb_substr($ph, 0, 1)) . mb_substr($ph, 1));
+    return sprintf($fmt, mb_strtoupper(mb_substr($ph, 0, 1)) . mb_substr($ph, 1), $brand);
 }
 
 /** Tum diller icin ad haritasi: ['en'=>..., 'fr'=>..., ...] — `name_i18n` alani. */
-function nbb_name_i18n(string $model): array {
+function ku_name_i18n(array $spec, string $model): array {
     $out = [];
     foreach (array_keys(KU_JOIN) as $lang) {
-        $v = nbb_name($model, $lang);
+        $v = ku_name($spec, $model, $lang);
         if ($v !== '') $out[$lang] = $v;
     }
     return $out;
 }
-function nbb_desc_i18n(string $model, int $packQty = 1): array {
+function ku_desc_i18n(array $spec, string $brand, int $packQty = 1): array {
     $out = [];
     foreach (array_keys(KU_JOIN) as $lang) {
-        $v = nbb_desc($model, $lang, $packQty);
+        $v = ku_desc($spec, $brand, $lang, $packQty);
         if ($v !== '') $out[$lang] = $v;
     }
     return $out;
+}
+
+/**
+ * Slug'dan MODEL numarasi. Onek uretici tablosundan geliyor:
+ * "nbb-3565-b-bayan-..." -> "3565-B", "q-en-707-b-bayan-..." -> "707-B",
+ * "visatin-11006-saten-..." -> "11006". "-b" soneki opsiyonel ve ARDINDAN
+ * TIRE gelmek zorunda; aksi halde "nbb-350-bayan"in "-b"si model numarasina
+ * yapisirdi (mango/zara dersi).
+ */
+function ku_model_of_slug(string $maker, string $slug): string {
+    $pre = KU_MAKERS[$maker]['slug'] ?? '';
+    if ($pre === '') return '';
+    if (preg_match('~^' . preg_quote($pre, '~') . '-(\d+(?:-b)?)-~i', $slug, $m)) return strtoupper($m[1]);
+    return '';
 }
 
 /* ── Tedarikci alanlarinin temizligi ──────────────────────────────────────── */
@@ -333,7 +579,7 @@ function nbb_desc_i18n(string $model, int $packQty = 1): array {
  * DIKKAT — yalnizca rakam: "GÜL-KURUSU" gibi tireli GERCEK renk adlarini
  * bozmamak icin kalip `-\d+$`. Bu, bu deponun mango/zara dersinin renk hali.
  */
-function nbb_color_key(string $raw): string {
+function ku_color_key(string $raw): string {
     $s = trim(mb_strtoupper($raw));
     return (string)preg_replace('~-\s*\d+$~u', '', $s);
 }
@@ -347,7 +593,7 @@ function nbb_color_key(string $raw): string {
  * Beden sayilanlar: harfli merdiven (S..XXXXL), ciplak sayi (70..110, 1..5),
  * ve "80 C" gibi kupali band olculeri.
  */
-function nbb_is_size(string $raw): bool {
+function ku_is_size(string $raw): bool {
     $s = trim(mb_strtoupper($raw));
     if ($s === '') return false;
     if (preg_match('~^(XXS|XS|S|M|L|XL|XXL|XXXL|XXXXL)$~u', $s)) return true;
@@ -358,9 +604,9 @@ function nbb_is_size(string $raw): bool {
 
 /**
  * "STANDART" tek beden demek, renk DEGIL -- ve tedarikci onu her iki alana da
- * yaziyor. Ayri bir kontrol, cunku nbb_is_size() yalnizca olculere bakiyor.
+ * yaziyor. Ayri bir kontrol, cunku ku_is_size() yalnizca olculere bakiyor.
  */
-function nbb_is_one_size(string $raw): bool {
+function ku_is_one_size(string $raw): bool {
     return in_array(trim(mb_strtoupper($raw)), ['STANDART', 'STD', 'TEK EBAT', 'TEK BEDEN'], true);
 }
 
@@ -369,9 +615,10 @@ function nbb_is_one_size(string $raw): bool {
    require ile tanimlaniyor; bu dondurulen dizi tablolara sabit adi yazmadan
    erismek isteyen cagiran icin. */
 return [
+  'makers'   => KU_MAKERS,
   'types'    => KU_TYPES,
   'attrs'    => KU_ATTRS,
-  'products' => NBB_PRODUCTS,
-  'reject'   => NBB_PHOTO_REJECT,
+  'products' => KU_PRODUCTS,
+  'reject'   => KU_PHOTO_REJECT,
   'colors'   => KU_EXTRA_COLORS,
 ];
