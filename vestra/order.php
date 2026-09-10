@@ -81,6 +81,11 @@ foreach($cart as $it){
     $colors = array_values(array_unique(array_intersect(
         array_map('strval', (array)($it['colors']??[])), (array)($p['colors']??[]) )));
     if(!empty($p['min_colors']) && count($colors) < (int)$p['min_colors']){ header('Location: /cart?err=colors'); exit; }
+    /* Minimumu OLMAYAN ama renk sectiren ilan (ic camasiri): en az bir renk
+       sart. Kapi SUNUCUDA, bedenin hemen asagidaki kardesiyle ayni gerekce --
+       sepet localStorage'dan geliyor ve kutuyu cizmemek kapi degildir. Ilan
+       renk sectirmiyorsa liste zaten [] ve hicbir sey degismiyor. */
+    if(!$colors && vestra_colors_selectable($p)){ header('Location: /cart?err=colors'); exit; }
   }
   /* Beden secimi. Kapi SUNUCUDA: urun sayfasindaki kutuyu gizlemek kapi degil
      (KURAL 4b'nin /offer dersi), ve sepet localStorage'dan geliyor -- elle

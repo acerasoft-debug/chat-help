@@ -1243,5 +1243,6 @@ return array (
   'Choose your sizes' => 'サイズを選択',
   'at least one' => '1つ以上',
   'Choose at least one size.' => 'サイズを1つ以上選択してください。',
+  'Choose at least one colour.' => 'カラーを1つ以上選択してください。',
   'Size selection missing — open the product page, choose at least one size and add the item again.' => 'サイズが未選択です — 商品ページを開き、サイズを1つ以上選んでから再度カートに追加してください。',
 );

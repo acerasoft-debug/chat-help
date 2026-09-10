@@ -2149,6 +2149,58 @@ fotoğraf kuralı değişmedi.
   (`One size · 12/pack`) kutu **yok**, giyimde kutu **yok**, Almanca
   *"Größen wählen"* basılıyor, PHP uyarısı **0**.
 
+**KURAL 21b (devamı) — RENK de seçilebilir; bir KISIT alanı ANAHTAR gibi
+kullanılıyordu** (operatör, 10 Eyl 2026: *"underwear varyasyonlarinda tek
+varyasyon secilebilir biri secilirken yoksa anlami kalmaz"*).
+- **Ölçüldü** (yerel, onaylı alıcı oturumu — girişsiz çekmek fiyat kapısını
+  ölçerdi): 146 iç çamaşırı ilanında **beden seçici çiziliyor, renk seçici
+  HİÇ çizilmiyor**. Alıcı renkleri spec alanındaki noktalar olarak görüyor ama
+  sipariş ederken seçemiyor; tek başına seçilen beden satıcıya hangi rengi
+  göndereceğini söylemiyor. Operatörün cümlesi tam bu.
+- **Sebep, `min_colors`'ın anahtar sanılmasıydı.** O alan *"en az kaç renk
+  seçilmeli"* demek — bir **sınır**, varlık bayrağı değil. `product.php` renk
+  kutusunu `!empty($p['min_colors'])` ile açıyordu; `ku_build_rows` bu alanı
+  hiç yazmıyor, dolayısıyla **"minimum yok" ile "seçim yok" aynı sanıldı.**
+  *Bir kısıt alanını anahtar olarak kullanmak, kısıtı olmayan her kaydı
+  özelliksiz bırakır.*
+- **Neden veri düzeltmesi değil kod düzeltmesi:** 146 ilana `min_colors=1`
+  yazmak da çalışırdı ve bu depoda alışılmış yol (`set-product.yml`) — ama
+  karışıklığı sürdürürdü: bir sonraki katalog yine sahte bir minimum yazmayı
+  *hatırlamak* zorunda kalırdı, ve "kuralın hatırlanmaya bırakılması yetmiyor".
+  Ayrıca `min_colors` yazmak `size_step>1` olan ilanları sessizce **adet-başına-
+  renk** kipine çevirirdi (bugün hiçbirinde tetiklenmiyor — ama bu bir tesadüf,
+  kural değil).
+- Tek karar noktası `vestra_colors_selectable()`; ürün sayfası **ve** `/order`
+  aynı fonksiyonu çağırıyor (kutuyu çizmemek kapı değildir). Açılmadığı üç hâl
+  bedendekilerin aynısı: **tek renk** (seçim değil, bilgi), **bölme opt-in
+  değil** (`vestra_color_pick_sections()` = `['underwear']` — 680 giyim/ayakkabı
+  ilanının satın alma akışını sessizce değiştirmek istenenin dışında), ve
+  **`min_colors` yazılı ilanlar eski yolda** (davranışları birebir korunuyor).
+  Beden listesiyle **aynı fonksiyon paylaşılmadı**: ortak liste, yarın bir
+  bölmede beden seçimini açmayı renk seçimini de sessizce açmaya çevirirdi.
+- **Kapı sunucuda ölçüldü** (`/order`, POST): beden var + renk yok →
+  `?err=colors`; renk var + beden yok → `?err=sizes`; ilanda **olmayan** bir
+  renk (`Purple`) → `?err=colors` (kesişim yakalıyor); ikisi de var → sipariş
+  geçiyor. **Kontrol ilanı** (giyim, renkli, `min_colors` yok) → eskisi gibi
+  geçiyor, akışı değişmedi.
+- **Çizdirildi:** düğme başlangıçta kapalı, **yalnız beden seçilince hâlâ
+  kapalı**, renk de seçilince açılıyor — operatörün "tek varyasyon anlamsız"
+  cümlesinin karşılığı bu. Masaüstü/mobil/Arapça, PHP uyarısı 0.
+- Yeni metin (`Choose at least one colour.`) **8 sözlüğe birden** eklendi,
+  kardeşinin (`…one size.`) hemen yanına — ikisi birlikte okunsun diye.
+- Test: `tests/color_pick_test.php` (18 iddia). **İki yönü de** tutuyor ve
+  ikisinin de düştüğü doğrulandı: özellik kapatılınca **3 kırmızı**, bütün
+  bölmelere açılınca **3 kırmızı**. İlk yazımda blok metnini birebir sabitleyen
+  bir iddia koymuştum — `invoice_vat_test`'in bir kez ödediği bedelin aynısı
+  (yazımı koruyan, ölçtüğünü korumayan iddia); olguya çevrildi.
+- **Bitişikte bulunan, OPERATÖR KARARI bekleyen boşluk:** €500 marka asgarisi
+  (KURAL 21) `vestra_brand_min_orders()`'ta **yalnız `nbb`** anahtarına bağlı.
+  Bölme o gün tek markalıydı; bugün **Visatin (72) ve Q-EN (32) asgarisiz** —
+  ölçüldü, tek bir €7,50'lik Q-EN atleti sipariş edilebiliyor. Bu, "sadece
+  toptan olmalı" kararıyla çelişiyor ama düzeltmek fiyat kararı: ya iki markaya
+  da €500, ya da asgariyi **bölme** düzeyine taşımak (KURAL 21'de üç seçenek
+  sunulup **marka** seçilmişti). Kendiliğinden değiştirilmedi.
+
 **KURAL 21c — Visatin ve Q-EN: aynı tedarikçiden iki marka daha** (operatör,
 10 Eyl 2026: *"ayni siteden visatin ve Q-EN markali ürünleride cek ve ayni
 sekili tüm dillere cevir ve varyasyonlari ile beraber koy underwaere"*).

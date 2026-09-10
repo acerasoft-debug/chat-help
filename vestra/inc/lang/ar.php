@@ -1243,5 +1243,6 @@ return array (
   'Choose your sizes' => 'اختر المقاسات',
   'at least one' => 'واحد على الأقل',
   'Choose at least one size.' => 'اختر مقاساً واحداً على الأقل.',
+  'Choose at least one colour.' => 'اختر لوناً واحداً على الأقل.',
   'Size selection missing — open the product page, choose at least one size and add the item again.' => 'لم يتم اختيار مقاس — افتح صفحة المنتج واختر مقاساً واحداً على الأقل ثم أضف الصنف مرة أخرى.',
 );
