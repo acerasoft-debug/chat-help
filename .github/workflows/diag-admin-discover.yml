@@ -295,6 +295,16 @@ jobs:
             $CATEGORY_PATH = trim($dsBits[1] ?? '') ?: '/kategori/bayan-sutyen';
             if ($CATEGORY_PATH[0] !== '/') { fwrite(STDERR, "kaynak yol '/' ile baslamali: {$CATEGORY_PATH}\n"); exit(1); }
             $CATEGORY_URL = $BASE . $CATEGORY_PATH;
+            /* Ucuncu alan: SLUG ONEKI. Bir markanin kendi sayfasi varsa
+               (NBB, Q-EN) gerek yok; Visatin'in yok ve urunleri 'fantazi-gecelik'
+               kategorisinde baska sekiz ureticiyle karisik duruyor. Suzgec
+               LISTELEME aninda uygulaniyor, cunku kuyruga giren her URL bir
+               istek demek: onek sonradan uygulansa Visatin icin 9 uretici
+               bosuna cekilirdi. Bos birakildiginda davranis aynen eskisi gibi. */
+            $SLUG_PREFIX = strtolower(trim($dsBits[2] ?? ''));
+            if ($SLUG_PREFIX !== '' && !preg_match('~^[a-z0-9\-]{2,40}$~', $SLUG_PREFIX)) {
+              fwrite(STDERR, "gecersiz slug oneki: {$SLUG_PREFIX}\n"); exit(1);
+            }
             $UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 
             $raw = trim((string)getenv('KULOGLU'));
@@ -921,7 +931,8 @@ jobs:
                kendisi yanlis yere bakti; iki veri kumesi olan bir tarayicida
                "638 kayit" satirini yanlis kumede okumak ayni sinifin yeni hali.
                Sayilar degil, KAYNAK yaziliyor -- fiyat/adet log'a girmez. */
-            printf("[kume] %s   kaynak=%s   kayit dosyasi=%s\n", $DS, $CATEGORY_PATH, basename($OUT_FILE));
+            printf("[kume] %s   kaynak=%s   kayit dosyasi=%s%s\n", $DS, $CATEGORY_PATH, basename($OUT_FILE),
+              $SLUG_PREFIX !== '' ? "   slug oneki={$SLUG_PREFIX}" : '');
 
             /* Bir listeleme sayfasinin gercekten urun tasiyip tasimadigini olcer.
                NBB'nin site genelindeki urunleri once BULUNMALI: tarayici kategori
@@ -1079,6 +1090,7 @@ jobs:
               // arg1 (optional): max pages safety cap, default 40.
               $maxPages = $arg1 !== '' ? (int)$arg1 : 40;
               $seen = [];
+              $seenRaw = [];   // suzgecten GECMEYENLER dahil: sayfalamanin bittigini bu soyler
               $pageLog = [];
               $pageNum = 1;
               $consecutiveEmpty = 0;
@@ -1095,12 +1107,27 @@ jobs:
                   break;
                 }
                 preg_match_all('#/urun/[a-z0-9\-]+#i', $r['html'], $pm);
-                $onPage = array_values(array_unique($pm[0]));
-                $newCount = 0;
+                $onPageAll = array_values(array_unique($pm[0]));
+                /* Onek suzgeci. "Bu sayfada urun var mi" sorusu SUZGECTEN ONCE
+                   sorulmali: yalnizca esleseni saymak, uretici bir-iki sayfa
+                   atlayinca "iki ardisik sayfada yeni yok" deyip sayfalamayi
+                   erken kapatirdi -- yani kategorinin geri kalani hic gorulmezdi. */
+                $onPage = $SLUG_PREFIX === ''
+                  ? $onPageAll
+                  : array_values(array_filter($onPageAll, fn($p) => stripos(substr($p, 6), $SLUG_PREFIX) === 0));
+                $newCount = 0; $rawNew = 0;
+                foreach ($onPageAll as $p) { if (!isset($seenRaw[$p])) { $seenRaw[$p]=true; $rawNew++; } }
                 foreach ($onPage as $p) { $abs = $BASE.$p; if (!isset($seen[$abs])) { $seen[$abs]=true; $newCount++; } }
-                $pageLog[] = ['page'=>$pageNum, 'url'=>$pageUrl, 'http'=>$r['code'], 'bytes'=>strlen($r['html']), 'on_page'=>count($onPage), 'new'=>$newCount];
-                printf("sayfa %-3d http=%s bayt=%-7d bu_sayfada=%-4d yeni=%-4d toplam=%-5d\n", $pageNum, $r['code'], strlen($r['html']), count($onPage), $newCount, count($seen));
-                if ($newCount === 0) { $consecutiveEmpty++; } else { $consecutiveEmpty = 0; }
+                $pageLog[] = ['page'=>$pageNum, 'url'=>$pageUrl, 'http'=>$r['code'], 'bytes'=>strlen($r['html']),
+                              'on_page'=>count($onPageAll), 'matched'=>count($onPage), 'raw_new'=>$rawNew, 'new'=>$newCount];
+                printf("sayfa %-3d http=%s bayt=%-7d bu_sayfada=%-4d%s yeni=%-4d toplam=%-5d\n",
+                  $pageNum, $r['code'], strlen($r['html']), count($onPageAll),
+                  $SLUG_PREFIX === '' ? ' ' : sprintf(" onege_uyan=%-4d", count($onPage)), $newCount, count($seen));
+                /* Sayfalamanin bitisi HAM sayima gore: suzgec 0 dondurdugu icin
+                   durmak, arananin ilerideki sayfalarda olmasi durumunda listeyi
+                   sessizce yarim birakirdi. Onek verilmediginde $seenRaw ile
+                   $seen ayni kumeyi sayiyor, yani eski davranis birebir ayni. */
+                if ($rawNew === 0) { $consecutiveEmpty++; } else { $consecutiveEmpty = 0; }
                 if ($consecutiveEmpty >= 2) { echo "iki ardisik sayfada yeni urun yok -- sayfalama bitti kabul edildi\n"; break; }
                 $pageNum++;
               }
