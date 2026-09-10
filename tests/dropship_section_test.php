@@ -43,6 +43,24 @@ echo "-- kural elle acmayi da eziyor --\n";
 $manual = $shoe; $manual['dropship'] = ['enabled'=>true, 'price'=>30.0];
 $t('elle "enabled:true" yazilmis ayakkabi da KAPALI',            vestra_dropship_of($manual) === null);
 
+/* IC CAMASIRI (operator, 10 Eyl 2026: "sadece toptan olmali").
+   Iki yon de tutuluyor: kapanmasi gereken KAPALI, ve kapanmamasi gereken ACIK.
+   Tek yon yazilsaydi excluded_sections'a 'premium' eklemek testi yesil birakir
+   ve butun katalogu sessizce dropship'e kapatirdi. */
+echo "-- ic camasiri bolmesi (toptan) --\n";
+$ic = [
+    'id'=>'nbb-test-1901', 'brand'=>'NBB', 'name'=>'Model 1901', 'cat'=>'Underwear', 'sku'=>'1901',
+    'list'=>9.90, 'moq'=>6, 'unit'=>'pack', 'mode'=>'fixed', 'status'=>'approved',
+    'tiers'=>[['min'=>1,'price'=>9.90]], 'images'=>['/uploads/kuloglu/nbb-1901.jpg'],
+    'section'=>'underwear',
+];
+$t('underwear kapali bolmeler arasinda',   in_array('underwear', vestra_dropship_excluded_sections(), true));
+$t('ic camasiri ilani dropship\'e KAPALI', vestra_dropship_of($ic) === null && !vestra_dropship_enabled($ic));
+$icManual = $ic; $icManual['dropship'] = ['enabled'=>true, 'price'=>14.0];
+$t('elle acilmis ic camasiri da KAPALI',   vestra_dropship_of($icManual) === null);
+$icPremium = $ic; $icPremium['section'] = 'premium';
+$t('AYNI ilan premium olsaydi ACIK olurdu', vestra_dropship_of($icPremium) !== null);
+
 echo "-- bolme adi cevrilebilir --\n";
 $t('vestra_section_label(footwear) = Footwear',                  vestra_section_label('footwear') === 'Footwear');
 

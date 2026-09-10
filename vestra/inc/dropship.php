@@ -199,9 +199,15 @@ function vestra_dropship_excluded_brands(): array {
  * (12-36 ciftlik surtido kutulari), tek cift cekip gondermek satici tarafinda
  * yok. Kural BOLMEYE bagli, tek tek ilana degil: yarin eklenecek her ayakkabi
  * ilani da kapali dogar, 335 ilana ayri ayri bayrak koyup 336.'yi unutmak yok.
+ *
+ * Ic camasiri (operator karari, 10 Eyl 2026: *"sadece toptan olmali"*): ayni
+ * gerekce, ayni mekanizma. Kuloglu tarafinda satis birimi PAKET (6'li, 100'lu
+ * seri) -- tek parca diye bir sey tedarikcide yok, yani acik birakmak satin
+ * alinamayacak bir dugme gostermek olurdu (KURAL 4b'nin dersi). Bolmeye
+ * baglandigi icin ilerideki her ic camasiri ilani da kapali dogar.
  */
 function vestra_dropship_excluded_sections(): array {
-    return ['footwear'];
+    return ['footwear', 'underwear'];
 }
 
 /* ── DROPSHIP ODEMESI: DURDURULDU, ama kurulu ────────────────────────────────
