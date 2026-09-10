@@ -2024,8 +2024,11 @@ fotoğraf kuralı değişmedi.
   paket eki (`… /pack`, `… /seri`) ya da açık dağılım (`S×1 · M×3 · L×3`) varsa
   **seçim yok** — ikisinde de karışım ilanın kendisinde yazılı ve seçtirmek,
   ilan edilen paketin içeriğiyle çelişen bir sipariş üretirdi (KURAL 4b'nin
-  MOQ/paket adımı dersi). Tek bedende de kutu çıkmıyor. Sonuç: **42 ilanın
-  30'unda** seçici var, 6'sı tek beden, 6'sı paket.
+  MOQ/paket adımı dersi). Tek bedende de kutu çıkmıyor. **Canlıda ölçüldü**
+  (`raw_scan`, deploy `2b2f8ef` sonrası): *"beden secici: **30** ilanda VAR |
+  **6** paket/seri (sabit) | **6** tek beden"*. Aynı satır deploy'un yeni
+  fonksiyonu gerçekten indirdiğini de kanıtlıyor — inmemişse sonda sıfır
+  demek yerine **"deploy inmemiş"** diyor.
 - **Bölme opt-in** (`vestra_size_pick_sections()` = `['underwear']`). Giyim
   kataloğunun neredeyse tamamı açık seri satıyor, yani şekil kuralı zaten
   eleyecekti; ama 600+ ilanın satın alma akışını sessizce değiştirmek
