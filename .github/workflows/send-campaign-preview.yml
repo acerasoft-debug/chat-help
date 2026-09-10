@@ -1726,6 +1726,13 @@ jobs:
                    ? 'CIKAR ('.count($__rails).' satir)'
                    : '*** CIKMAZ *** — '.$pCur.' icin bu hesapta ray yok')."\n";
               echo "  pdf: ".strlen($bytes)." bayt\n";
+              /* MEKTUBUN PARA BLOGU GUNLUGE DE BASILIYOR. Operatorun 9 Eyl
+                 2026'da yakaladigi hata (dolar tutarlarin ustunde "EUR")
+                 tam olarak burada gorunurdu ve gunluk onu HIC yazmiyordu:
+                 ozet PDF'i anlatiyor, mektubu anlatmiyordu. Kisi verisi yok --
+                 SKU, adet ve tutar, hepsi zaten yukarida basiliyor. */
+              echo "  --- mektubun para blogu ---\n";
+              foreach (explode("\n", rtrim(vestra_invoice_letter_amounts($p['meta'], $p['items']))) as $__bl) echo "  ".$__bl."\n";
               /* INGILIZCE (operator karari, 1 Eyl 2026): taslak ile kesilen
                  belge arasinda dil farki kalmasin. */
               $subject = "VESTRA — DRAFT invoice {$iref} (test, not sent to the buyer)";
@@ -2011,6 +2018,13 @@ jobs:
                    : '*** CIKMAZ *** — '.$pCur.' icin bu hesapta ray yok'
                      .' (EUR icin IBAN, USD icin hesap no + ABA gerekiyor)')."\n";
               echo "  pdf    : ".strlen($bytes)." bayt\n";
+              /* MEKTUBUN PARA BLOGU GUNLUGE DE BASILIYOR. Operatorun 9 Eyl
+                 2026'da yakaladigi hata (dolar tutarlarin ustunde "EUR")
+                 tam olarak burada gorunurdu ve gunluk onu HIC yazmiyordu:
+                 ozet PDF'i anlatiyor, mektubu anlatmiyordu. Kisi verisi yok --
+                 SKU, adet ve tutar, hepsi zaten yukarida basiliyor. */
+              echo "  --- mektubun para blogu ---\n";
+              foreach (explode("\n", rtrim(vestra_invoice_letter_amounts($p['meta'], $p['items']))) as $__bl) echo "  ".$__bl."\n";
               echo "  KAYIT DEGISMEDI: numara yanmadi, diske yazilmadi, musteriye gitmedi.\n";
 
               $subject = "VESTRA — DRAFT combined invoice ".$p['meta']['ref']." (test, not sent to the buyer)";
