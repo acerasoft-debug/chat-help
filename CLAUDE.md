@@ -1839,18 +1839,26 @@ alim 300 eur olacak sekilde"* · *"siteye atmadan önce test olarak göster bana
   `'Sizes: ' . <ham Türkçe>` yazıyor ve **`desc` hiçbir yerde `t()`'den
   geçmiyor**. Sayısal/harfli bedenler (75, 80/85, S-M, XL, A/B/C kap) evrensel,
   çevrilmez — sözlüğün kendi ilkesi bu.
-- **ÜRÜN ADI da çevrilecek mi:** `kuloglu-vocab.php`'nin kendi ölçümü *"bir
-  ilanın `name`/`desc` alanı hiçbir yerde `t()`'den geçmiyor"* diyor, yani
-  bugün çevrilmiş bir başlığın **basılacağı yer yok**. Operatör "tüm diller"
-  dediği için bu artık bir eksik: ya `name_i18n` alanı + basım yolu eklenecek,
-  ya da operatöre adların İngilizce kalacağı söylenecek. **Operatör kararı
-  bekliyor** — sessizce İngilizce bırakmak istenen şeyi vermemek olurdu.
+- **ÜRÜN ADI da 8 dilde** (operatör kararı, 10 Eyl 2026, açıkça soruldu).
+  `kuloglu-vocab.php`'nin kendi ölçümü *"bir ilanın `name`/`desc` alanı hiçbir
+  yerde `t()`'den geçmiyor"* diyor — yani bugün çevrilmiş bir başlığın
+  **basılacağı yer yok**. Ayakkabı ithalatında ad tek ve İngilizce bırakılmıştı;
+  operatör bu katalog için **aksini** seçti. Gereken: ilanda dil bazlı ad alanı
+  (`name_i18n`) ve onu **basan** yol — ürün sayfası, katalog kartı, sepet,
+  sipariş satırı, fatura ve line sheet. *Alan eklemek yetmez: bu depoda
+  "toplanan ama okunmayan alan" (KURAL 5j, platform künyesi) bir kez yaşandı.*
+  Ad çevrilirken `desc` de aynı sorunu taşıyor — ikisi birlikte çözülmeli.
 - **Sadece toptan:** `vestra_dropship_excluded_sections()`'a `underwear`
   eklendi (ayakkabıyla aynı mekanizma). Tedarikçide satış birimi **paket**
   (6'lı, 100'lü seri); tek parça diye bir şey yok.
-- **En az alım 300 EUR:** VESTRA'da bugün **sepet düzeyinde asgari tutar
-  kavramı yok** — mevcut MOQ tek ilanın *adedi*. Yeni bir kapı gerekiyor ve
-  okuması operatörle doğrulanmalı ("komple marka seçildiğinde").
+- **En az alım 300 EUR = SEPETTEKİ NBB TOPLAMI** (operatör kararı, 10 Eyl 2026;
+  üç okuma sunuldu, bu seçildi). VESTRA'da bugün **sepet düzeyinde asgari tutar
+  kavramı yok** — mevcut MOQ tek ilanın *adedi*, yani bu yeni bir kapı.
+  Ölçüt **marka**: sepetteki NBB satırlarının toplamı 300 EUR'nun altındaysa
+  sipariş onaylanamaz; diğer bölmelerin satırları bu toplama girmez. Kapı
+  **sunucuda** olmalı — düğmeyi gizlemek kapı değildir (KURAL 4b'nin `/offer`
+  dersi) — ve eksik tutar hem ürün sayfasında hem sepette **8 dilde** yazılmalı:
+  neyin eksik olduğunu söylemeyen bir engel, alıcıya sepeti terk ettirir.
 - **CANLIYA HİÇBİR ŞEY YAZILMADAN ÖNCE ÖNİZLEME** (*"siteye atmadan önce test
   olarak göster bana"*) — KURAL 18'in katalog hâli. Fotoğrafta Türkçe metin
   varsa o kare **yayına girmez**; tek fotoğrafı da elenen ilan yayımlanmaz.
