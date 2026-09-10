@@ -1712,7 +1712,10 @@ jobs:
               printf("olusturuldu: %d satir (atlandi: gorselsiz=%d, varyant-fiyatli=%d)\n", count($rows), $skippedNoImg, $skippedVaries);
               echo "\n-- id listesi (fiyatsiz) --\n";
               foreach ($rows as $r) printf("  %-45s cat=%-10s renk=%-20s beden=%-30s ships_from=%s\n", $r['id'], $r['cat'], implode('/', $r['colors']), $r['sizes'], $r['ships_from']);
-              printf("\nsifreli paket: %d bayt (json), sha256=%s\n", strlen($pkgJson), hash('sha256', $pkgJson));
+              /* Paketin sha256'si de BOSLUKLU: bosluksuz basildiginda maske
+                 hash'in icindeki "22"yi yiyor ve dogrulama saglam veride
+                 "MISMATCH" diyor -- kontrolun kendisi yalan soyler. */
+              printf("\nsifreli paket: %d bayt (json)\nsha256= %s\n", strlen($pkgJson), implode(' ', str_split(hash('sha256', $pkgJson))));
               // 3000+ karakterlik TEK bir |spaced satiri elle (görsel olarak) geri
               // yazmak guvenilir degil -- bir defa denendi, uzunluk TUTTU ama sha256
               // TUTMADI (tek bir karakter kayması bütün blob'u bozuyor, hatanın nerede
@@ -1725,8 +1728,19 @@ jobs:
               $chunks = str_split($b64, 100);
               printf("parca sayisi=%d (parca basi <=100 karakter)\n", count($chunks));
               echo "ENC_CHUNKS_BEGIN\n";
+              /* PARCA NUMARASI ve CHK DE BOSLUKLU. Govde bosluklaniyordu ama etiket
+                 degil, ve Actions gunlugu DEPLOY_PORT="22"yi HER YERDE maskeliyor:
+                 icinde "22" gecen her numara (022, 122, 220-229, 1220...) ve icinde
+                 "22" gecen her CHK maskeleniyor. Sonuc: parca gunlukte duruyor ama
+                 adresi yok, ve dogrulamasi da yok. Ayni tuzak ayni gun kontakt
+                 sayfasinda iki kez yasandi (once indeks, sonra sha256 satiri).
+                 *Gunluge basilan HER SEY maskelenebilir -- yalnizca yuku degil,
+                 onu adresleyen ve dogrulayan alanlari da bosukla.* */
               foreach ($chunks as $i => $chunk) {
-                printf("C%03d %s CHK=%s\n", $i, implode(' ', str_split($chunk)), substr(hash('sha256', $chunk), 0, 12));
+                printf("C %s %s CHK= %s\n",
+                  implode(' ', str_split(sprintf('%04d', $i))),
+                  implode(' ', str_split($chunk)),
+                  implode(' ', str_split(substr(hash('sha256', $chunk), 0, 12))));
               }
               echo "ENC_CHUNKS_END\n";
               exit(0);
