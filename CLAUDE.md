@@ -1851,14 +1851,34 @@ alim 300 eur olacak sekilde"* · *"siteye atmadan önce test olarak göster bana
 - **Sadece toptan:** `vestra_dropship_excluded_sections()`'a `underwear`
   eklendi (ayakkabıyla aynı mekanizma). Tedarikçide satış birimi **paket**
   (6'lı, 100'lü seri); tek parça diye bir şey yok.
-- **En az alım 300 EUR = SEPETTEKİ NBB TOPLAMI** (operatör kararı, 10 Eyl 2026;
-  üç okuma sunuldu, bu seçildi). VESTRA'da bugün **sepet düzeyinde asgari tutar
-  kavramı yok** — mevcut MOQ tek ilanın *adedi*, yani bu yeni bir kapı.
-  Ölçüt **marka**: sepetteki NBB satırlarının toplamı 300 EUR'nun altındaysa
-  sipariş onaylanamaz; diğer bölmelerin satırları bu toplama girmez. Kapı
-  **sunucuda** olmalı — düğmeyi gizlemek kapı değildir (KURAL 4b'nin `/offer`
-  dersi) — ve eksik tutar hem ürün sayfasında hem sepette **8 dilde** yazılmalı:
-  neyin eksik olduğunu söylemeyen bir engel, alıcıya sepeti terk ettirir.
+- **En az alım 500 EUR = SEPETTEKİ NBB TOPLAMI, SABİT** (operatör, 10 Eyl 2026,
+  aynı oturumda üç adımda yerleşti: *"komple marka secildiginde en az alim
+  300 eur olacak sekilde"* → *"en az alimi 500 usd yap"* → **kur dalgalanması
+  anlatılınca** → *"eur yap"* + *"degismesin"*). Kapsam okuması üç seçenek
+  sunulup seçildi: **marka** (sepetteki NBB satırları), bölme geneli değil,
+  sipariş toplamı değil. VESTRA'da bugün **sepet düzeyinde asgari tutar kavramı
+  yok** — mevcut MOQ tek ilanın *adedi*, yani bu yeni bir kapı.
+- **EUR olması kuru tamamen devre dışı bırakıyor ve karar bu yüzden verildi.**
+  Bu katalogun her fiyatı zaten EUR (TRY maliyet × 1.5 → EUR), yani eşik ile
+  sepet **aynı birimde**: karşılaştırma düz toplama, hiçbir çevrim yok.
+  USD bir eşik, EUR cinsinden gerçek minimumun **kurla dalgalanması** demekti
+  (500 USD bugün bir şey, üç ay sonra başka bir şey) ve beraberinde bir kur
+  kaynağı, bir "kur yoksa ne olacak" dalı ve alıcıya iki rakam birden yazma
+  yükü getiriyordu. Operatör bunu duyunca **EUR + değişmesin** dedi.
+  *Kaldırılan karmaşıklık, yazılmayan koddan daha değerli:* FX kesintisinde
+  kapının ne yapacağı diye bir soru artık **yok**.
+- Kapı **sunucuda** olmalı — düğmeyi gizlemek kapı değildir (KURAL 4b'nin
+  `/offer` dersi). Eksik tutar hem ürün sayfasında hem sepette **8 dilde**
+  yazılmalı: neyin eksik olduğunu söylemeyen bir engel, alıcıya sepeti terk
+  ettirir.
+- **Rakam tek sabitte** (KURAL 6'nın escrow tavanı dersi): eşiği bir mektuba ya
+  da sayfa metnine gömmek, beş gün boyunca müşteriye söylenenle sepetin kabul
+  ettiğinin ayrı kalmasına yol açmıştı. Sayfa, sepet ve uyarı metni aynı
+  sabitten okur.
+- **Gösterim birimi ayrı bir şey:** alıcı sepeti kendi seçtiği para biriminde
+  görebiliyor (`vestra_money`), ama eşik EUR ve **kayıt EUR**. Uyarı metni
+  eşiği EUR yazmalı — gösterim birimine çevrilmiş bir eşik, "değişmesin"
+  denen şeyi tam da ekranda değiştirirdi.
 - **CANLIYA HİÇBİR ŞEY YAZILMADAN ÖNCE ÖNİZLEME** (*"siteye atmadan önce test
   olarak göster bana"*) — KURAL 18'in katalog hâli. Fotoğrafta Türkçe metin
   varsa o kare **yayına girmez**; tek fotoğrafı da elenen ilan yayımlanmaz.
