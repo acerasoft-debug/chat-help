@@ -474,13 +474,22 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
             <span class="hint"><?= t('Min order') ?> <b><?= $p['moq'] ?> <?= htmlspecialchars($p['unit']) ?></b></span>
           </div>
           <?php else: ?>
-          <?php if(!empty($p['colors']) && !empty($p['min_colors'])): ?>
-          <div style="margin-bottom:14px"><label class="hint"><?= t('Choose your colours') ?> — <?= sprintf(t('at least %d'), (int)$p['min_colors']) ?></label>
+          <?php /* Renk secimi. Kosul artik `min_colors`'in DOLU olmasi degil --
+                   o alan bir SINIR ("en az kac renk"), varlik bayragi degil, ve
+                   anahtar gibi kullanildigi icin rengi olup minimumu olmayan 146
+                   ic camasiri ilaninda kutu HIC cizilmiyordu: alici renkleri
+                   goruyor ama secemiyordu. Karar tek yerde
+                   (vestra_colors_selectable) ve /order ayni fonksiyonu cagiriyor. */
+                $pickColors = vestra_colors_selectable($p);
+                $minColors  = (int)($p['min_colors'] ?? 0); ?>
+          <?php if($pickColors): ?>
+          <div style="margin-bottom:14px"><label class="hint"><?= t('Choose your colours') ?> — <?= $minColors > 0 ? sprintf(t('at least %d'), $minColors) : t('at least one') ?></label>
             <div class="colorpick" id="ordColors">
-              <?php $pal=vestra_colors(); foreach((array)$p['colors'] as $cn): ?>
+              <?php $pal=vestra_colors(); foreach($pickColors as $cn): ?>
               <label class="colorchip"><input type="checkbox" value="<?= htmlspecialchars($cn) ?>" onchange="recalc()"><span class="cdot" style="background:<?= $pal[$cn]??'#666' ?>"></span><?= htmlspecialchars(t($cn)) ?></label>
               <?php endforeach; ?>
             </div>
+            <div class="warn" id="clwarn" style="display:none;margin-top:8px"><?= t('Choose at least one colour.') ?></div>
           </div>
           <?php endif; ?>
           <div class="qtyrow">
@@ -632,6 +641,13 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         function ordSizes(){ var el=document.getElementById('ordSizes'); if(!el) return [];
           return Array.prototype.map.call(el.querySelectorAll('input:checked'), function(i){return i.value;}); }
         function needSizes(){ return !!document.getElementById('ordSizes'); }
+        /* Renk kutusu cizildiyse en az bir renk SART. min_colors YAZILI ilanda
+           sayiyi asagidaki eski dal dogruluyor; burasi minimumu OLMAYAN (ic
+           camasiri) ilan icin: "minimum yok" ile "secim gerekmiyor" ayni sey
+           degil -- satici hangi rengi gonderecegini bilmek zorunda. cqSelects()
+           varsa kutu adet-secici kipinde, onun kurali zaten min_colors. */
+        function needColors(){ return !cqSelects() && P.minColors<=0
+                                   && !!document.getElementById('ordColors'); }
         function recalc(){
           var cq=!!cqSelects(), warn=document.getElementById('warn'), btn=document.getElementById('addBtn');
           /* SATILDI olan urunde "Add to order" dugmesi hic basilmiyor, yani btn
@@ -645,7 +661,9 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           var q=parseInt(document.getElementById('qty').value)||0;
           var szw=document.getElementById('szwarn'), szMissing=needSizes() && ordSizes().length===0;
           if(szw) szw.style.display = szMissing ? 'block' : 'none';
-          if(szMissing){ warn.style.display='none'; setDisabled(true); }
+          var clw=document.getElementById('clwarn'), clMissing=needColors() && ordColors().length===0;
+          if(clw) clw.style.display = clMissing ? 'block' : 'none';
+          if(szMissing || clMissing){ warn.style.display='none'; setDisabled(true); }
           else if(P.minColors>0 && ordColors().length<P.minColors){ warn.style.display='block'; warn.textContent=<?= json_encode(vestra_colours_warn((int)($p['min_colors']??0))) ?>; setDisabled(true); }
           else if(q<P.moq){ warn.style.display='block'; warn.textContent='<?= addslashes(t('Minimum order is')) ?> '+P.moq+' '+P.unitLabel+'.'; setDisabled(true); }
           else { warn.style.display='none'; setDisabled(false); }
@@ -657,6 +675,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         }
         function addToOrder(){ var q=parseInt(document.getElementById('qty').value)||0; if(q<P.moq) return; var u=unitPrice(q);
           var cols=ordColors(); if(P.minColors>0 && cols.length<P.minColors){ recalc(); return; }
+          if(needColors() && cols.length===0){ recalc(); return; }
           var szs=ordSizes(); if(needSizes() && szs.length===0){ recalc(); return; }
           VCart.add({id:P.id,brand:P.brand,name:P.name,sku:P.sku,unitLabel:P.unitLabel,qty:q,unit:u,colors:cols,sizes:szs});
           var b=document.getElementById('addBtn'); b.textContent='✓ '+<?= json_encode(t('Added to order')) ?>; setTimeout(function(){b.textContent=<?= json_encode(t('Add to order')) ?>;},1400); }

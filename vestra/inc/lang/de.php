@@ -1248,5 +1248,6 @@ return array (
   'Choose your sizes' => 'Größen wählen',
   'at least one' => 'mindestens eine',
   'Choose at least one size.' => 'Bitte mindestens eine Größe wählen.',
+  'Choose at least one colour.' => 'Bitte mindestens eine Farbe wählen.',
   'Size selection missing — open the product page, choose at least one size and add the item again.' => 'Größenauswahl fehlt — öffnen Sie die Produktseite, wählen Sie mindestens eine Größe und legen Sie den Artikel erneut in die Bestellung.',
 );

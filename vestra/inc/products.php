@@ -1683,6 +1683,56 @@ function vestra_size_options(array $p): array {
  */
 function vestra_size_pick_sections(): array { return ['underwear']; }
 
+/* ── RENK secimi ───────────────────────────────────────────────────────────
+ *
+ * Operator, 10 Eyl 2026: *"underwear varyasyonlarinda tek varyasyon
+ * secilebilir, biri secilirken yoksa anlami kalmaz"*.
+ *
+ * OLCULDU (yerel, onayli alici oturumu): 146 ic camasiri ilaninda BEDEN
+ * secici ciziliyor, RENK secici HIC cizilmiyor -- alici renkleri yalnizca
+ * bilgi olarak (spec alanindaki noktalar) goruyor, siparis ederken
+ * secemiyor. Yani iki varyasyondan yalnizca biri secilebiliyordu.
+ *
+ * SEBEP, bir KISIT alaninin ANAHTAR gibi kullanilmasiydi: product.php renk
+ * kutusunu `!empty($p['min_colors'])` ile aciyor, `min_colors` ise "en az kac
+ * renk secilmeli" demek -- bir SINIR, bir varlik bayragi degil. Rengi olan
+ * ama minimumu olmayan ilan (ku_build_rows `min_colors` HIC yazmiyor) bu
+ * yuzden "renk secilemez" muamelesi goruyordu: "minimum yok" ile "secim yok"
+ * ayni sey sanilmisti.
+ *
+ * Cikmadigi haller, bedendeki kurallarin AYNISI:
+ *   1. Tek renk -- secim degil, bilgi. (Bedende de `count($o) < 2` boyle.)
+ *   2. Bolme opt-in DEGIL: operator bunu ic camasiri icin istedi ve 680
+ *      giyim/ayakkabi ilaninin satin alma akisini sessizce degistirmek
+ *      istenenin disinda. Yeni bolme = bir satir.
+ *   3. `min_colors` yazili ilanlar ESKI yolda kaliyor (o kutu zaten
+ *      ciziliyor ve kendi minimumunu dogruluyor) -- burasi yalnizca
+ *      minimumu olmayan ilanlari acmak icin.
+ *
+ * Beden listesiyle AYNI fonksiyonu paylasmiyor, bilerek: ikisi ayri olgu.
+ * Ortak bir liste yarin bir bolmede beden secimini acmayi renk secimini de
+ * sessizce acmaya cevirirdi.
+ *
+ * TEK karar noktasi: urun sayfasi ve /order ayni fonksiyonu cagiriyor --
+ * kutuyu cizmemek kapi degildir (KURAL 4b'nin /offer dersi).
+ */
+function vestra_color_pick_sections(): array { return ['underwear']; }
+
+function vestra_colors_selectable(array $p): array {
+    $c = [];
+    foreach ((array)($p['colors'] ?? []) as $cn) {
+        $cn = trim((string)$cn);
+        if ($cn !== '' && !in_array($cn, $c, true)) $c[] = $cn;
+    }
+    if (!$c) return [];
+    /* Minimum yazili ilan ZATEN seciliyordu: davranisi aynen koruyoruz, tek
+       renkli olsa bile. Bu dal olmasaydi bugun kutusu cikan ilanlarin bir
+       kismindan kutu sessizce kalkardi -- istenen bu degil. */
+    if (!empty($p['min_colors'])) return $c;
+    if (!in_array(vestra_product_section($p), vestra_color_pick_sections(), true)) return [];
+    return count($c) < 2 ? [] : $c;
+}
+
 /* ── Showroom basliginda saticinin KAYITLI ULKESI ──────────────────────────
  *
  * Operator karari, 10 Eyl 2026: showroom basligindaki "… · Basics · Turkey ·
