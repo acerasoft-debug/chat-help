@@ -1690,10 +1690,12 @@ function vestra_size_pick_sections(): array { return ['underwear']; }
  * hesabinda ("marca online dan bunu cikar", kapsam soruldu ve "yalniz Marca
  * Online" secildi).
  *
- * Bu alan, ilanin `ships_from` alani DEGIL. Ikisi ayri olgu ve ikisi ayri
- * karar: `ships_from=Turkey` 42 NBB ilaninin kartinda ve urun sayfasinda
- * bayragiyla DURUYOR, cunku aliciyi ilgilendiren gumruk/teslim bilgisi o ve
- * KURAL 3 onu zorunlu tutuyor. Burada gizlenen sey saticinin KAYIT ulkesi.
+ * Bu alan, ilanin `ships_from` alani DEGIL: ikisi ayri olgu ve ayri kararlar.
+ * Burada gizlenen sey saticinin KAYIT ulkesi. (Bir gun sonra, 10 Eyl 2026,
+ * operator gonderim yeri satirini da kaldirtti -- bkz. asagida
+ * vestra_hides_ships_from(). Bu not once "ships_from DURUYOR" diyordu ve
+ * artik oyle degil; guncellendi, cunku birbirini tutmayan iki kayit hangisinin
+ * gecerli oldugunu okunamaz yapar.)
  *
  * Olcut hesap ID'si, sirket adi degil: ad bir metin, kimlik degil -- ve bu
  * depoda ada gore eslesme mango/zara dersini bir kez verdi. UID sunucudan
@@ -1709,6 +1711,53 @@ function vestra_showroom_hide_country_uids(): array { return ['0cb79eb883f2a0fa'
 function vestra_showroom_hides_country(array $acc): bool {
     if (array_key_exists('showroom_hide_country', $acc)) return !empty($acc['showroom_hide_country']);
     return in_array((string)($acc['id'] ?? ''), vestra_showroom_hide_country_uids(), true);
+}
+
+/* ── Gonderim yeri satiri MUSTERIYE gosterilmiyor ──────────────────────────
+ *
+ * Operator karari, 10 Eyl 2026: "underwear urunlerini turkiyeden gonderiliyor
+ * ibaresini kaldir, marca online saticisi da belli olmasin turkiyeden geldigi".
+ *
+ * Bu, YUKARIDAKI notun bir gun once yazdigi kararin GERI ALINMASI: orada
+ * `ships_from=Turkey` bilerek DURUYORDU ve gizlenen yalnizca saticinin kayit
+ * ulkesiydi. Artik ikisi de gizli. Not oldugu gibi birakilmadi, cunku iki
+ * kayit birbirini tutmazsa hangisinin gecerli oldugu okunamaz.
+ *
+ * ALAN SILINMIYOR, SATIR BASILMIYOR -- ve bu ayrim isin kendisi:
+ * vestra_ships_from() bos alanda platform varsayilani 'EU' donuyor, yani
+ * kayittan 'Turkey'i silmek satiri kaldirmaz, yerine "Ships from EU" YAZAR.
+ * Alicinin gumruk icin okudugu satirda dogru bir ifadeyi yanlis bir ifadeyle
+ * degistirmek, "kaldir" talimatinin yaptigi sey degil. O yuzden kayit
+ * (`ships_from=Turkey`) yerinde duruyor -- operator panelinde gorunur, fatura
+ * ve sevkiyat tarafi okumaya devam eder -- yalnizca vitrin satiri susuyor.
+ *
+ * Olcut hesap ID'si (`showroom_hide_country`'nin ayni deseni): ad bir metin,
+ * kimlik degil. Bolme adina ('underwear') baglanmadi cunku gizlenecek sey
+ * bolme degil, o saticinin cikis ulkesi -- yarin Ispanyol bir ic camasiri
+ * tedarikcisi gelirse onun gercek cikis yerini sessizce silmek, kimsenin
+ * istemedigi bir bilgi kaybi olurdu.
+ */
+function vestra_hide_ships_from_uids(): array { return ['0cb79eb883f2a0fa']; }
+
+function vestra_hides_ships_from(array $p): bool {
+    $uid = trim((string)($p['seller_uid'] ?? ''));
+    if ($uid === '') return false;
+    /* Harita DONGU DISINDA, sureçte bir kez: shop.php tek sayfada yuzlerce kart
+       ciziyor ve kart basina auth_accounts() okumak add-products'ta dogrulamayi
+       dakikalara cikaran hatanin ta kendisiydi. */
+    static $flag = null;
+    if ($flag === null) {
+        $flag = [];
+        if (function_exists('auth_accounts')) {
+            foreach (auth_accounts() as $a) {
+                if (array_key_exists('hide_ships_from', $a)) {
+                    $flag[(string)($a['id'] ?? '')] = !empty($a['hide_ships_from']);
+                }
+            }
+        }
+    }
+    if (array_key_exists($uid, $flag)) return $flag[$uid];   // hesap bayragi kodu ezer
+    return in_array($uid, vestra_hide_ships_from_uids(), true);
 }
 
 function vestra_sizes_selectable(array $p): array {

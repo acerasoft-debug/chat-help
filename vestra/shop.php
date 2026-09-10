@@ -508,7 +508,10 @@ footer a{color:#d8bd86}
               <span class="sbrand"><?= htmlspecialchars($p['brand']??'') ?></span>
               <span class="stitle"><?= htmlspecialchars(vestra_product_name($p)) ?></span>
               <span class="smeta"><?= htmlspecialchars($p['cat']??'') ?> &middot; SKU <?= htmlspecialchars($p['sku']??'') ?></span>
-              <span class="smeta">MOQ <b><?= $p['moq']??'?' ?></b> <?= htmlspecialchars($p['unit']??'pc') ?> &middot; <?= vestra_ships_from_flag($p) ?> <?= htmlspecialchars(vestra_ships_from_label($p)) ?></span>
+              <span class="smeta">MOQ <b><?= $p['moq']??'?' ?></b> <?= htmlspecialchars($p['unit']??'pc') ?><?php
+                    /* Gonderim yeri gizli satirda ayirici da dusuyor: kalsaydi kart
+                       "MOQ 6 pc ·" diye yarim bir satirla biterdi. */
+                    if (!vestra_hides_ships_from($p)): ?> &middot; <?= vestra_ships_from_flag($p) ?> <?= htmlspecialchars(vestra_ships_from_label($p)) ?><?php endif; ?></span>
               <?php if(!empty($p['colors'])): ?><span class="smeta" style="margin-top:2px"><?= vestra_color_dots((array)$p['colors'], 7) ?></span><?php endif; ?>
               <div class="sprice">
                 <?php if(!$PRICES): ?>
