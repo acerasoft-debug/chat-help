@@ -88,6 +88,17 @@ foreach($cart as $it){
 }
 if(!$lines){ header('Location: /cart'); exit; }
 
+/* Marka basina asgari sepet tutari (KURAL 21; rakam VESTRA_BRAND_MIN_ORDER_EUR
+   -- buraya yazilmiyor, cunku bir gun degisir ve bu satir eskir). Kapi SUNUCUDA:
+   sepetteki uyari bir gorunum tercihi, dugmeyi gizlemek kapi degildir -- bu
+   depo bunu /offer ucunda bir kez ogrendi (KURAL 4b: sabit fiyatli, hicbir
+   yerinde teklif dugmesi olmayan bir ilana elle POST atan biri gercek bir
+   teklif birakabiliyordu). Olcum ISTEKTEN degil, YENIDEN FIYATLANMIS
+   satirlardan: alici ne gonderirse gondersin toplam katalogdan hesaplaniyor.
+   Sepet uyarisiyla ayni fonksiyon. */
+$brandShort = vestra_brand_min_shortfall($lines);
+if($brandShort){ header('Location: /cart?err=brandmin&b='.urlencode((string)array_key_first($brandShort))); exit; }
+
 /* ── Voucher ──────────────────────────────────────────────────────────────────
    Revalidated here from the stored record, never from what the cart posted: the page
    sends only the code, and the discount is recomputed against the freshly re-priced

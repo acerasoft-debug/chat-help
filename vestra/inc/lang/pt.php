@@ -1234,4 +1234,7 @@ return array (
   'Single-piece ordering is paused right now.' => 'As encomendas de peça única estão pausadas neste momento.',
   'Dropshipping is being reworked and card payment for single pieces is switched off for the moment. Wholesale ordering with the usual minimums is unaffected.' => 'O dropshipping está a ser reformulado e o pagamento com cartão por peça está desligado para já. A encomenda grossista com os mínimos habituais não é afetada.',
   'Go to the catalogue' => 'Ir para o catálogo',
+  'Minimum order value' => 'Valor mínimo de encomenda',
+  'Minimum order for %1$s is %2$s.' => 'A encomenda mínima de %1$s é de %2$s.',
+  'Your cart has %1$s of %2$s — add %3$s to place the order.' => 'O seu carrinho tem %1$s de %2$s — adicione %3$s para encomendar.',
 );

@@ -656,6 +656,68 @@ function vestra_section_note(string $s): string {
     ][strtolower(trim($s))] ?? '';
 }
 
+/* ── Marka basina asgari sepet tutari ─────────────────────────────────────────
+ *
+ * (operator, 10 Eyl 2026, uc adimda yerlesti: *"komple marka secildiginde en az
+ * alim 300 eur olacak sekilde"* -> *"en az alimi 500 usd yap"* -> kurun ne
+ * yapacagi anlatilinca *"eur yap"* + *"degismesin"*.)
+ *
+ * VESTRA'da bugune kadar asgari diye bir sey vardi ama TEK ILANIN adediydi
+ * (`moq`). Bu baska bir sey: sepetteki O MARKAYA ait satirlarin TOPLAM TUTARI.
+ * Kapsam uc okumadan secildi -- marka (bu), bolme degil, siparis toplami degil.
+ *
+ * RAKAM TEK SABITTE. KURAL 6 bunun bedelini zaten kaydetti: escrow tavani bes
+ * gun boyunca metne gomulu kaldi ve musteriye soylenen ile sepetin kabul ettigi
+ * ayri rakamlardi. Sayfa, sepet ve uyari metni ayni sabiti okuyor.
+ *
+ * BIRIM EUR ve CEVRILMIYOR. Katalogun her fiyati zaten EUR (TRY maliyet x 1.5),
+ * yani esik ile sepet ayni birimde: karsilastirma duz toplama. Ziyaretci sepeti
+ * baska bir gosterim biriminde gorebiliyor (vestra_money) ama ESIK EUR yazilir
+ * -- gosterim birimine cevrilmis bir esik, operatorun "degismesin" dedigi seyi
+ * tam da ekranda degistirirdi.
+ */
+const VESTRA_BRAND_MIN_ORDER_EUR = 500.0;
+
+/* Marka -> asgari tutar. Yeni marka = BIR SATIR, kapida yeni bir dal degil
+   (KURAL 2h'nin ulke listesiyle ayni sebep: kural bir gunde uc kez buyudu).
+   Anahtar karsilastirmasi kucuk harfe cekilerek yapiliyor, ASAGIDAKI okuyucuda. */
+function vestra_brand_min_orders(): array {
+    return ['nbb' => VESTRA_BRAND_MIN_ORDER_EUR];
+}
+
+/** Bu markanin asgari sepet tutari (EUR); yoksa 0.0 — yani kural o markaya islemez. */
+function vestra_brand_min_order(string $brand): float {
+    return (float)(vestra_brand_min_orders()[mb_strtolower(trim($brand))] ?? 0.0);
+}
+
+/**
+ * Sepet satirlarindan marka basina EKSIK tutari bulur. Saf: girdi satirlar,
+ * cikti eksikler. Sunucu kapisi (order.php) ve sepet uyarisi ayni cevabi
+ * okusun diye tek yer -- bu depoda ikinci bir kapi tanimi alti kez yanlis yere
+ * bakti (KURAL 2h).
+ *
+ * $lines: [['brand'=>string, 'line'=>float], ...]  ('line' = adet x birim)
+ * Doner : ['NBB' => ['min'=>500.0, 'have'=>320.5, 'short'=>179.5], ...]
+ *         YALNIZCA esigin altinda kalan markalar. Bos dizi = sepet gecer.
+ *
+ * Tolerans: kayan nokta yuzunden tam sinirdaki bir sepet (500.00) reddedilmesin.
+ */
+function vestra_brand_min_shortfall(array $lines): array {
+    $have = [];
+    foreach ($lines as $l) {
+        $b = trim((string)($l['brand'] ?? ''));
+        if ($b === '') continue;
+        $have[$b] = ($have[$b] ?? 0.0) + (float)($l['line'] ?? 0);
+    }
+    $out = [];
+    foreach ($have as $brand => $sum) {
+        $min = vestra_brand_min_order($brand);
+        if ($min <= 0 || $sum >= $min - 0.005) continue;
+        $out[$brand] = ['min' => $min, 'have' => round($sum, 2), 'short' => round($min - $sum, 2)];
+    }
+    return $out;
+}
+
 /* By id, INCLUDING unlisted items: the product page, cart, order and offer paths all come
    here with an id the buyer was given directly, and a link sent in a letter must keep
    working even though the item is not in the catalogue. */

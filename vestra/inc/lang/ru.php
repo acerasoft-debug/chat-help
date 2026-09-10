@@ -1234,4 +1234,7 @@ return array (
   'Single-piece ordering is paused right now.' => 'Заказ отдельных изделий сейчас приостановлен.',
   'Dropshipping is being reworked and card payment for single pieces is switched off for the moment. Wholesale ordering with the usual minimums is unaffected.' => 'Дропшиппинг перерабатывается, оплата картой за отдельные изделия пока отключена. Оптовый заказ с обычными минимумами работает как прежде.',
   'Go to the catalogue' => 'Перейти в каталог',
+  'Minimum order value' => 'Минимальная сумма заказа',
+  'Minimum order for %1$s is %2$s.' => 'Минимальный заказ %1$s — %2$s.',
+  'Your cart has %1$s of %2$s — add %3$s to place the order.' => 'В корзине %1$s из %2$s — добавьте %3$s, чтобы оформить заказ.',
 );

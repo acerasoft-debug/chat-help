@@ -1234,4 +1234,7 @@ return array (
   'Single-piece ordering is paused right now.' => '1点単位のご注文は現在停止しています。',
   'Dropshipping is being reworked and card payment for single pieces is switched off for the moment. Wholesale ordering with the usual minimums is unaffected.' => 'ドロップシッピングは見直し中で、1点単位のカード決済は現在停止しています。通常の最低数量による卸注文には影響ありません。',
   'Go to the catalogue' => 'カタログへ',
+  'Minimum order value' => '最低注文金額',
+  'Minimum order for %1$s is %2$s.' => '%1$s の最低注文額は %2$s です。',
+  'Your cart has %1$s of %2$s — add %3$s to place the order.' => 'カート内の %2$s は %1$s です。ご注文には %3$s 分の追加が必要です。',
 );

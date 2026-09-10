@@ -1239,4 +1239,7 @@ return array (
   'Single-piece ordering is paused right now.' => 'Einzelstück-Bestellungen sind derzeit pausiert.',
   'Dropshipping is being reworked and card payment for single pieces is switched off for the moment. Wholesale ordering with the usual minimums is unaffected.' => 'Das Dropshipping wird überarbeitet, die Kartenzahlung für Einzelstücke ist vorerst abgeschaltet. Der Großhandelsbestellweg mit den üblichen Mindestmengen ist davon nicht betroffen.',
   'Go to the catalogue' => 'Zum Katalog',
+  'Minimum order value' => 'Mindestbestellwert',
+  'Minimum order for %1$s is %2$s.' => 'Der Mindestbestellwert für %1$s beträgt %2$s.',
+  'Your cart has %1$s of %2$s — add %3$s to place the order.' => 'Ihr Warenkorb enthält %1$s von %2$s — fügen Sie %3$s hinzu, um zu bestellen.',
 );

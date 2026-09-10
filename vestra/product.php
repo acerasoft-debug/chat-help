@@ -199,6 +199,15 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <div class="spec-row"><span><?= t('SKU') ?></span><b><?= htmlspecialchars($p['sku']) ?></b></div>
         <div class="spec-row"><span><?= t('Category') ?></span><b><?= htmlspecialchars($p['cat']) ?></b></div>
         <div class="spec-row"><span><?= t('Min. order (MOQ)') ?></span><b><?= $p['moq'] ?> <?= htmlspecialchars($p['unit']) ?></b></div>
+        <?php /* Marka basina asgari SEPET tutari (KURAL 21). MOQ'nun yaninda duruyor
+                 cunku ikisi ayni soruyu cevapliyor ("en az ne alabilirim") ve ikisi
+                 AYRI: MOQ tek ilanin adedi, bu markanin sepetteki toplami. Rakam
+                 sabitten ve EUR -- sepette gecerli olan esik bu, gosterim birimine
+                 cevrilmis hali degil. */
+              $pMinBrand = vestra_brand_min_order((string)($p['brand'] ?? ''));
+              if ($pMinBrand > 0): ?>
+          <div class="spec-row"><span><?= t('Minimum order value') ?></span><b><?= htmlspecialchars(vestra_money($pMinBrand, 'EUR')) ?></b></div>
+        <?php endif; ?>
         <?php if(!empty($p['sizes'])): ?><div class="spec-row"><span><?= t('Size mix') ?></span><b><?= htmlspecialchars(vestra_sizes_label((string)$p['sizes'])) ?></b></div><?php endif; ?>
         <?php if(!empty($p['colors'])): ?><div class="spec-row"><span><?= t('Colours') ?></span><b style="display:flex;justify-content:flex-end"><?= vestra_color_dots((array)$p['colors'], 13) ?></b></div><?php endif; ?>
         <?php if(!empty($p['seller']) && empty($p['hide_seller'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?php
