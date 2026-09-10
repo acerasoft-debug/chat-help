@@ -104,6 +104,11 @@ jobs:
   set-prices:
     runs-on: ubuntu-latest
     steps:
+      # Uygulayici artik repodan (scripts/set_prices.php) geliyor; bu is uzun
+      # sure hic dosya okumadigi icin checkout adimi YOKTU ve ilk kosu
+      # "scripts/set_prices.php yok" diye dustu. Kod artik repoda: once indir.
+      - uses: actions/checkout@v4
+
       # The beden serisi value contains spaces and multibyte characters ("S×1 · M×2 ·
       # ... 10/paket"). Passed straight through the ssh action's envs, the remote
       # export line is not safely quoted, so the shell chokes on it and script_stop's
