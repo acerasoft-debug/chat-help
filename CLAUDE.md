@@ -3002,6 +3002,30 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
     kapalı doğar. Ürün sayfası düğmesi, `/dropship`, ödeme ve API aynı
     fonksiyondan geçer. Test: `tests/dropship_section_test.php`; canlı sayım:
     `diag-live` → `dropship_probe=true` ("bolme yasagi footwear: N").
+**Fred Perry M7535 / M3600 — asgari alım ve renk seçimi** (operatör, 10 Eyl
+2026: *"tüm renk varyasyonlarini koy"* · *"en az 4 renk secilmeli alirken"* ·
+*"en az alim 50 ad. olsun"* · *"f.perry polo da en az alim 56 ad. olsun"* ·
+*"8 li polo"* · *"sweater 10 lu"*).
+- **"Renkler ilanda var" ile "alıcı renk seçebiliyor" AYRI İKİ ŞEY.** Renk
+  seçici ancak `vestra_needs_colors()` evet derse çiziliyor: `colors` **ve**
+  `min_colors` **ve** `size_step > 1`. Sweatshirt'te beş renk kayıtlıydı ama
+  `min_colors` **0** idi — yani beş renk dosyada duruyor, hiçbir alıcı
+  seçemiyordu. `min_colors=4` yazılınca hem seçici çıktı hem kural işledi.
+  *Marka listesi rengi okuyup basıyordu ve tam bu yüzden fark edilmedi;
+  sonda artık `min_renk` ve "SECICI YOK" da yazıyor.*
+- **Asgari alım paket adımının katı olmak zorunda** (KURAL 4b): sweatshirt
+  10'lu paket → **50** (5 paket), polo 8'li → **56** (7 paket). Operatörün
+  verdiği iki rakam da zaten tam kat; olmasaydı `set_product.php` reddederdi
+  ("sepet 50 adedi 56'ya yuvarlar, ilan edilen minimum alınamaz").
+- **4 renk 5 pakete sığıyor** (50/10 = 5 ≥ 4) ve 5 renkten seçiliyor. Asgari
+  alım 20'de bırakılsaydı 2 paketle 4 renk **imkânsız** olurdu — ilan
+  alınamayan bir minimum ilan ederdi. Operatörün 50'si bu çelişkiyi kapattı.
+- **Beden satırı da güncellendi.** MOQ değişip etiket "min 48 pc" demeye devam
+  etseydi ilan yalan söylerdi (KURAL 6'nın escrow tavanı dersi, ilan hâli).
+- Polonun `min_colors`'ı **zaten 2**'ydi (kuru koşu satır basmadı), yani
+  "≥2 colours" etiketi doğruydu; dokunulmadı.
+- Uygulandı: run `34529155791`, 5 alan, zaman damgalı yedek.
+
 **KURAL 22 — Toplu ZAM ayrı bir araçtır ve TEKRARLANAMAZ** (operatör, 10 Eyl
 2026: *"underwear ürünlerine yüzde 20 zam yap bütün ürünlere"*).
 - `set-prices.yml` yalnızca **indirim** biliyordu (`discount_pct`). Zam onun
