@@ -1211,7 +1211,17 @@ jobs:
               $chunks = str_split(base64_encode($jpg), 200);
               printf("parca sayisi=%d\n", count($chunks));
               echo "IMG_CHUNKS_BEGIN\n";
-              foreach ($chunks as $i => $c) printf("C%04d %s\n", $i, implode(' ', str_split($c)));
+              /* PARCA NUMARASI DA BOSLUKLU. Ilk kosuda yalnizca govdeyi
+                 boslukladim ve tam 16 parca kayboldu: 22, 122, 220-229, 322,
+                 422, 522, 622 -- yani icinde "22" GECEN her numara. Actions
+                 gunlugu DEPLOY_PORT="22" degerini her yerde masklıyor ve
+                 maskeledigi sey govde degil ETIKETTI, yani parca gunlukte
+                 duruyordu ama adresi yoktu. Aracin kendi maskesi aktarimi
+                 bozuyordu; bu deponun "olcum aracinin kendi gurultusu" dersinin
+                 aynisi. */
+              foreach ($chunks as $i => $c) {
+                printf("C %s %s\n", implode(' ', str_split(sprintf('%04d', $i))), implode(' ', str_split($c)));
+              }
               echo "IMG_CHUNKS_END\n";
               exit(0);
             }
