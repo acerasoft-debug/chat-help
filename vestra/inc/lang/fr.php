@@ -1241,4 +1241,6 @@ return array (
   'Minimum order value' => 'Montant minimum de commande',
   'Minimum order for %1$s is %2$s.' => 'La commande minimum pour %1$s est de %2$s.',
   'Your cart has %1$s of %2$s — add %3$s to place the order.' => 'Votre panier contient %1$s de %2$s — ajoutez %3$s pour commander.',
+  'One size' => 'Taille unique',
+  'Wholesale intimates, ordered by the pack' => 'Lingerie en gros, commande par lot',
 );

@@ -1237,4 +1237,6 @@ return array (
   'Minimum order value' => 'Минимальная сумма заказа',
   'Minimum order for %1$s is %2$s.' => 'Минимальный заказ %1$s — %2$s.',
   'Your cart has %1$s of %2$s — add %3$s to place the order.' => 'В корзине %1$s из %2$s — добавьте %3$s, чтобы оформить заказ.',
+  'One size' => 'Один размер',
+  'Wholesale intimates, ordered by the pack' => 'Бельё оптом, заказ упаковками',
 );

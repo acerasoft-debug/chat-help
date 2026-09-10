@@ -1237,4 +1237,6 @@ return array (
   'Minimum order value' => 'الحد الأدنى لقيمة الطلب',
   'Minimum order for %1$s is %2$s.' => 'الحد الأدنى للطلب من %1$s هو %2$s.',
   'Your cart has %1$s of %2$s — add %3$s to place the order.' => 'سلتك تحتوي على %1$s من %2$s — أضف %3$s لإتمام الطلب.',
+  'One size' => 'مقاس واحد',
+  'Wholesale intimates, ordered by the pack' => 'ملابس داخلية بالجملة، الطلب بالعبوة',
 );

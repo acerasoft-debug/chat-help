@@ -1241,4 +1241,6 @@ return array (
   'Minimum order value' => 'Importe mínimo de pedido',
   'Minimum order for %1$s is %2$s.' => 'El pedido mínimo de %1$s es de %2$s.',
   'Your cart has %1$s of %2$s — add %3$s to place the order.' => 'Su cesta tiene %1$s de %2$s — añada %3$s para realizar el pedido.',
+  'One size' => 'Talla única',
+  'Wholesale intimates, ordered by the pack' => 'Lencería al por mayor, pedido por paquete',
 );

@@ -59,12 +59,31 @@ function vestra_seo_groups(): array {
     return $groups;
 }
 
-/* The two storefront collections as SEO pages. 'footwear' is the section field, and the
+/* The storefront collections as SEO pages. 'footwear' is the section field, and the
    Footwear taxonomy group is the same shelf seen from the category side; a shoe filed
    under an unexpected category still belongs to the collection, so the collection page
-   takes the union of the two. 'apparel' is everything else (section 'premium'). */
+   takes the union of the two. 'apparel' is everything else (section 'premium').
+
+   IC CAMASIRI BOLMESININ SLUG'I 'intimates', 'underwear' DEGIL — ve bu bilincli
+   bir secim, tembellik degil. 'Underwear' taksonomide ZATEN bir kategori yapragi
+   ("Underwear & Socks" grubunun altinda) ve vestra_seo_resolve() kategoriye
+   ONCE bakiyor. Ikisine ayni slug'i verseydim /b2b/underwear'in ne gosterdigi
+   O KATEGORIDE STOK OLUP OLMAMASINA bagli olurdu: bugun bolme sayfasi, yarin
+   o kategoriye bir ilan girince kategori sayfasi. Kampanya mektubundaki bir
+   bagalantinin anlami stok degisince degisemez. Etiket yine "Underwear"
+   (vestra_sections()); ayrisan yalniz adres. */
 function vestra_seo_collections(): array {
-    return ['apparel' => 'premium', 'footwear' => 'footwear'];
+    return ['apparel' => 'premium', 'footwear' => 'footwear', 'intimates' => 'underwear'];
+}
+
+/* Taksonomi grubu -> vitrin bolmesi. Bir urun beklenmedik bir kategoriye
+   dosyalanmis olsa bile bolmesi onu ait oldugu rafa koyuyor; grup sayfasi bu
+   yuzden iki kumenin BIRLESIMI. Eskiden yalnizca Footwear icin, govdenin
+   icinde `$isFootwear` diye yaziliydi -- ic camasiri bolmesi eklenince ayni
+   sey ikinci kez yazilacakti ve bu depo ayni olgunun ikinci kopyasinin ne
+   ettigini yeterince kaydetti. */
+function vestra_seo_group_sections(): array {
+    return ['footwear' => 'footwear', 'underwear & socks' => 'underwear'];
 }
 
 /**
@@ -88,10 +107,10 @@ function vestra_seo_resolve(string $slug): ?array {
     foreach (vestra_seo_groups() as $g => $kids) {
         if (vestra_seo_cat_slug($g) !== $slug) continue;
         $set = array_change_key_case($kids, CASE_LOWER);
-        $isFootwear = strcasecmp($g, 'Footwear') === 0;
-        $items = array_values(array_filter($all, function ($p) use ($set, $isFootwear) {
+        $groupSection = vestra_seo_group_sections()[strtolower(trim($g))] ?? null;
+        $items = array_values(array_filter($all, function ($p) use ($set, $groupSection) {
             if (isset($set[strtolower(trim((string)($p['cat'] ?? '')))])) return true;
-            return $isFootwear && vestra_product_section($p) === 'footwear';
+            return $groupSection !== null && vestra_product_section($p) === $groupSection;
         }));
         return $items ? ['kind' => 'group', 'name' => $g, 'slug' => $slug, 'items' => $items, 'cats' => vestra_seo_count_cats($items)] : null;
     }

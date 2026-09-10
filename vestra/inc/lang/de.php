@@ -1242,4 +1242,6 @@ return array (
   'Minimum order value' => 'Mindestbestellwert',
   'Minimum order for %1$s is %2$s.' => 'Der Mindestbestellwert für %1$s beträgt %2$s.',
   'Your cart has %1$s of %2$s — add %3$s to place the order.' => 'Ihr Warenkorb enthält %1$s von %2$s — fügen Sie %3$s hinzu, um zu bestellen.',
+  'One size' => 'Einheitsgröße',
+  'Wholesale intimates, ordered by the pack' => 'Wäsche im Großhandel, Bestellung im Pack',
 );

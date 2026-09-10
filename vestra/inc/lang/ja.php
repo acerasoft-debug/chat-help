@@ -1237,4 +1237,6 @@ return array (
   'Minimum order value' => '最低注文金額',
   'Minimum order for %1$s is %2$s.' => '%1$s の最低注文額は %2$s です。',
   'Your cart has %1$s of %2$s — add %3$s to place the order.' => 'カート内の %2$s は %1$s です。ご注文には %3$s 分の追加が必要です。',
+  'One size' => 'フリーサイズ',
+  'Wholesale intimates, ordered by the pack' => 'インナーの卸売 — パック単位でのご注文',
 );

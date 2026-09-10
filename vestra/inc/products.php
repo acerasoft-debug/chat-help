@@ -1469,7 +1469,7 @@ function vestra_requests(){
    exist in the data so old listings localise without a migration. */
 function vestra_sizes_label(string $sizes): string {
     if ($sizes === '') return '';
-    return preg_replace_callback(
+    $out = preg_replace_callback(
         '~(\d+)\s*/\s*(pack|paket|packs|seri|series|serie)\b~iu',
         function ($m) {
             $isSeries = stripos($m[2], 'ser') === 0;
@@ -1477,6 +1477,22 @@ function vestra_sizes_label(string $sizes): string {
         },
         $sizes
     ) ?? $sizes;
+    /* Ciplak beden KELIMELERI. Rakamlar (75, 80/85) ve harf merdiveni (S-XL,
+       A/B/C kap) her dilde ayni ve cevrilMEZ -- sozlugun kendi ilkesi bu. Ama
+       "tek beden" bir kelime, ve NBB katalogunda gercekten var: corap
+       satirlarinin bedeni "STANDART" (olculdu, 10 Eyl 2026). Tedarikcinin
+       Turkce yazimi da kabul ediliyor, cunku eski/ithal kayitlarda oyle
+       gecebiliyor ve o zaman goc gerekmesin.
+       Kalip DAR tutuldu: "standart" gunluk bir kelime ve serbest metinli bir
+       beden aciklamasinin ortasinda gecebilir; yalniz TEK BASINA duran deger
+       (ya da nokta/orta-nokta ile ayrilmis bir parca) cevriliyor. Genis bir
+       kalip, bu deponun mango/zara dersini beden alaninda tekrarlardi. */
+    $out = preg_replace_callback(
+        '~(^|[·|,;]\s*)(one\s?size|standart|tek\s?beden|tek\s?ebat)(?=\s*($|[·|,;]))~iu',
+        fn($m) => $m[1] . t('One size'),
+        $out
+    ) ?? $out;
+    return $out;
 }
 
 /* ── Tek parca satisi icin secilebilir beden / renk ────────────────────────
