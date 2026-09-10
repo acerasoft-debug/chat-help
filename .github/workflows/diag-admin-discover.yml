@@ -565,6 +565,28 @@ jobs:
               return [$rows, ['gorselsiz' => $skipNoImg, 'foto_elendi' => $skipReject, 'fiyat' => $skipVaries, 'model_yok' => $skipUnknown], $notes];
             }
 
+            /**
+             * SATIRLARIN TEK KAYNAGI. build_batch ve export_enc ayni listeyi
+             * uretmek zorunda: biri operatorun GORDUGU liste, digeri sunucuya
+             * INEN paket. Ayri ayri cagirdiklarinda ayrisirlar ve ayrisma
+             * katalogda gorunur -- bu depo ayni hatayi fatura kesiminde iki kez
+             * kaydetti (KURAL 5f, KURAL 5n: "iki kesim yolu ayrisir ve ayrisma
+             * belgede gorunur"). export_enc bir sure NBB kumesinde eski
+             * kurucuyu cagiriyordu; onizlemede dogru, pakette yanlis satirlar
+             * demekti.
+             */
+            function kuloglu_rows_for(string $ds, array $priced, array $imgMap, array $vocab, string $sid, int $start, int $count): array {
+              if ($ds === 'nbb') {
+                $nv = nbb_fetch_vocab();
+                $nv['palette_map'] = $vocab['palette_map'];
+                $nv['nbb_colors']  = $nv['colors'];
+                [$rows, $skips, $notes] = nbb_build_rows($priced, $imgMap, $nv, $sid, $start, $count);
+                return [$rows, $skips, $notes];
+              }
+              [$rows, $noImg, $varies] = kuloglu_build_rows($priced, $imgMap, $vocab, $sid, $start, $count);
+              return [$rows, ['gorselsiz' => $noImg, 'varyant_fiyat' => $varies], []];
+            }
+
             function kuloglu_marca_online_uid(): string {
               $home = getenv('HOME') ?: getenv('HOME_OVERRIDE') ?: '.';
               $appDir = $home . '/public_html';
@@ -1595,10 +1617,7 @@ jobs:
               // govdede birbirine baglardi.
               $BATCH_FILE = $DIR . '/test_batch.json';
               if ($DS === 'nbb') {
-                $nv = nbb_fetch_vocab();
-                $nv['palette_map'] = $vocab['palette_map'];
-                $nv['nbb_colors']  = $nv['colors'];
-                [$rows, $skips, $notes] = nbb_build_rows($priced, $imgMap, $nv, $sid, $start, $count);
+                [$rows, $skips, $notes] = kuloglu_rows_for($DS, $priced, $imgMap, $vocab, $sid, $start, $count);
                 save_json_atomic($BATCH_FILE, $rows);
                 printf("olusturuldu: %d satir\n", count($rows));
                 foreach ($skips as $k => $n) printf("  atlandi/%-12s %d\n", $k, $n);
@@ -1652,11 +1671,14 @@ jobs:
               if ($sid === '') { fwrite(STDERR, "Marca Online hesabi yok -- once create_seller calistir\n"); exit(1); }
 
               $priced = load_json($PRICED_FILE, []);
-              if (!$priced) { fwrite(STDERR, "bayan_sutyen_priced.json bos/yok -- once price calistir\n"); exit(1); }
+              if (!$priced) { fwrite(STDERR, basename($PRICED_FILE)." bos/yok -- once price calistir\n"); exit(1); }
               $imgMap = load_json($DIR . '/images_staged.json', []);
 
-              [$rows, $skippedNoImg, $skippedVaries] = kuloglu_build_rows($priced, $imgMap, $vocab, $sid, $start, $count);
+              [$rows, $skips, $notes] = kuloglu_rows_for($DS, $priced, $imgMap, $vocab, $sid, $start, $count);
               if (!$rows) { fwrite(STDERR, "0 satir olustu -- bos paket sifrelenmedi\n"); exit(1); }
+              printf("satir: %d", count($rows));
+              foreach ($skips as $k => $n) printf("   atlandi/%s=%d", $k, $n);
+              echo "\n";
 
               $home = getenv('HOME') ?: getenv('HOME_OVERRIDE') ?: '.';
               $kdir = $home . '/.vestra_import';
