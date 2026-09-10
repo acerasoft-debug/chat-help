@@ -2964,11 +2964,14 @@ kapsam soruldu, **"yalnız Marca Online"** seçildi).
   sabit kalsaydı indirim yüzdesi kendiliğinden erir, hatta `list` < fiyat olup
   rozet eksiye düşerdi (`vestra_discount`). `mode`'a **dokunulmuyor**: zam
   indirim değil, `sale` `sale` kalır, `offer` `offer`.
-- **`eur_margin_pct` damgası da güncelleniyor.** NBB ithalatı her kayda kâr
-  oranını yazıyor (maliyet × 1.5 → 50). Zamdan sonra fiyat o oranı taşımıyor;
-  damgayı olduğu gibi bırakmak kaydın **kendi kendini yalanlaması** olurdu ve
-  bir sonraki ithalat `price|50` ile fiyatı sessizce geri indirirdi. Yeni oran
-  bileşik: 1.5 × 1.2 = 1.8 → **%80**. *NBB yeniden ithal edilirse `price|80`.*
+- **`eur_margin_pct` damgası varsa güncelleniyor — ama canlıda YOKTU.** Kod
+  bileşik oranı yazıyor (1.5 × 1.2 = 1.8 → %80) ve testte ölçülü; canlı koşuda
+  **tek bir "kar orani" satırı basılmadı**, yani o damga `listings.json`'a hiç
+  inmiyor — ithalat tarafındaki `*_priced.json`'da kalıyor. Sonuç aynı yerde
+  bitiyor: **bir sonraki NBB/Q-EN ithalatı `price|50` ile koşarsa bu zammı
+  sessizce geri alır.** Yeni oran **%80**; ithalat o oranla koşulmalı.
+  *Bir alanın kodda okunuyor olması canlıda dolu olduğu anlamına gelmiyor —
+  bu depoda "toplanan ama okunmayan alan"ın ters yüzü.*
 - **Numune fiyatına dokunulmuyor** (tek parça ayrı bir karar) ama sessiz
   değil: kaç üründe olduğu çıktıda yazıyor.
 - **Uygulayıcı PHP workflow'un içinden `scripts/set_prices.php`'ye taşındı**
@@ -2977,6 +2980,14 @@ kapsam soruldu, **"yalnız Marca Online"** seçildi).
   Test: `tests/set_prices_markup_test.php` (50 iddia; kum havuzunda betiği
   gerçekten koşturuyor). Üç sabotajla düşebilirliği doğrulandı: damga kapalı
   → 4 kırmızı, `list` yükselmiyor → 8, bölme süzgeci yok → 6.
+- **UYGULANDI, 10 Eyl 2026** (run `34528478617`): bölme `underwear`, **146
+  ilan**, 292 alan (her ilanın `list`'i + bir kademesi), atlanan 0, zaman
+  damgalı yedek alındı. 146 = 42 NBB + Q-EN/Visatin partisi; `set-prices`
+  ilan **durumuna bakmıyor**, yani `pending` duranlar da zamlı doğuyor —
+  istenen bu, yoksa yayına eski fiyatla çıkarlardı.
+- **Workflow'un `checkout` adımı YOKTU** ve ilk koşu "scripts/set_prices.php
+  yok" diye düştü: bu iş bugüne kadar repodan hiçbir dosya okumuyordu. Bir
+  uygulayıcıyı workflow'un içinden dosyaya taşırken sorulacak ilk soru bu.
 - `price_input_test.php`'nin kablo denetimi de yeni dosyaya bakıyor —
   davranış değişmedi, **yeri** değişti; testi güncellemek şart (bu depoda
   "davranış bilerek değiştiyse testi de düzelt" kaydı var).
