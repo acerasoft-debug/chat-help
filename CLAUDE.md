@@ -2149,6 +2149,100 @@ fotoğraf kuralı değişmedi.
   (`One size · 12/pack`) kutu **yok**, giyimde kutu **yok**, Almanca
   *"Größen wählen"* basılıyor, PHP uyarısı **0**.
 
+**KURAL 21c — Visatin ve Q-EN: aynı tedarikçiden iki marka daha** (operatör,
+10 Eyl 2026: *"ayni siteden visatin ve Q-EN markali ürünleride cek ve ayni
+sekili tüm dillere cevir ve varyasyonlari ile beraber koy underwaere"*).
+
+- **Q-EN'in marka sayfası var, Visatin'in YOK.** `/marka/q-en` → 38 ürün.
+  `/marka/visatin` **404**, marka dizininde adı hiç geçmiyor, sunucu tarafında
+  arama JS ile çiziliyor (0 sonuç). Ürünler var ama kategoride duruyor:
+  `/kategori/fantazi-gecelik` içinde **76 Visatin**, sekiz başka üreticiyle
+  karışık. Hangi kategori olduğu **tahmin edilmedi** — aday kategorilerde
+  `visatin-` önekinin kaç kez geçtiği sayıldı.
+  Tarayıcıya üçüncü bir alan eklendi: `kuloglu_ds='<ad>|<yol>|<slug-öneki>'`.
+  Süzgeç **listeleme anında** çalışıyor (kuyruğa giren her URL sonradan bir
+  istek demek), ama **sayfalamanın bittiğine HAM sayım karar veriyor**:
+  süzülmüş sayı 0 diye durmak, üretici bir-iki sayfa atladığında listeyi
+  sessizce yarım bırakırdı. Ölçüldü — Visatin sayfa 6-11'de hiç yok, 4 ve
+  5'te var.
+- **Sözlük ÜÇ ÜRETİCİYE ORTAK.** `nbb-vocab.php` →
+  `product-batches/kuloglu-underwear-vocab.php`. İkinci ve üçüncü bir dosya,
+  giysi türlerinin ve özelliklerin **9 dillik** tablosunu iki kez daha
+  kopyalamak olurdu; "Nachthemd"i bir gün düzelten kişi üçünden yalnız birini
+  düzeltirdi (`desc`/`sizes`, faturanın üç katmanı ve dört mektup gövdesi aynı
+  dersi verdi). **Kelimeler ortak, yalnız ürün tablosu üretici başına.**
+  Marka adı da metne gömülü değil, parametre: 18 cümleyi üç kez kopyalamak
+  "NBB" yazan bir Visatin ilanı üretmenin en kolay yoluydu.
+- **114 ürünün hiçbiri elle yazılmadı.** Sınıflandırma tedarikçinin **kendi
+  Türkçe başlığından** kural tablosuyla çıkıyor (`KU_TITLE_TYPES` /
+  `KU_TITLE_ATTRS`). Sebebi yalnızca hacim değil: Actions kütüğü "22"yi
+  maskelediği için model numaralarının bir kısmı dökümden **doğru okunamıyor
+  bile** (`[***]`, `21***`). Kural tablosu hem daha küçük hem yanlış
+  kopyalanamaz. **Çözülemeyen başlık ATLANIR** — varsayılan bir tür koymak,
+  tanımadığımız bir giysiye tanıdığımız bir ad vermek olurdu.
+  Ölçüm: 32 gerçek başlığın **31'i** çözüldü. Tek ret doğru: `Q-EN 706 …
+  BATTAL KALIN ASKI ÇİFT YÖNLÜ` başlığında **giysinin adı yok**. Tek elle
+  yazılmış satır o; giysi **tahmin edilmedi**, aynı tedarikçinin aynı model
+  numaralı kardeş ilanı *"… ÇİFT YÖNLÜ **ATLET**"* diyor.
+- **Beş model numarası İKİ ürüne birden ait** (Q-EN 705/706/800 normal+BATTAL,
+  Visatin 4060/4074 tek+6'lı paket). Aynı SKU iki ilanda dururken sipariş
+  satırının renk/beden haritası (SKU ile anahtarlı) ikisini karıştırırdı.
+  İki ayırıcı da **ürünün kendi verisinden**: `-B` tedarikçinin kendi yazımı
+  (700-B, 707-B, 802-B slug'da böyle), `-N` kaydın kendi `pack_qty`'si.
+  **Ek yalnızca çakışma varsa basılıyor** ve çakışma **dilimden önce, tüm küme
+  üzerinde** sayılıyor: koşulsuz eklemek, ikizi olmayan Visatin geceliklerine
+  tedarikçinin hiç yazmadığı bir sonek uydurmak olurdu (SKU alıcının baktığı
+  üretici referansı). Kural bir gün yetmezse kurucu **duruyor** — sessizce bir
+  ilanı ezmiyor.
+- **"6 LI" paketlerde bedenler yalnız BAŞLIKTA.** O kayıtlarda varyant tablosu
+  boş; `pack_qty` **6** ve başlık `M-L-XL` diyor — ikisi tutuyor (ölçüldü).
+  Beden listesi başlıktan okunuyor, uydurulmuyor, ve `6/pack` eki KURAL 21b'nin
+  **beden seçicisini kapatıyor**: asorti paketin karışımı sabit, seçtirmek ilan
+  edilen paketin içeriğiyle çelişen bir sipariş üretirdi.
+- **"ASORTİ" renk değil ama sessizce de düşmez.** Tedarikçi renk alanına
+  yazıyor; palete zorlamak uydurma renk basmak olurdu (NBB 730 dersi), atmak
+  ise karışık gelen paketi tek renkli göstermek. Ada **özellik** olarak
+  giriyor, yalnız çözülmüş hiçbir renk yokken.
+- **Kayıtlı çelişki, operatör kararı bekliyor:** Visatin ürün sayfasının MARKA
+  alanı **"REAL PASSIONE"** diyor, BAŞLIK **"VİSATİN <model>"** diyor ve
+  `/marka/visatin` yok. Yani tedarikçinin kendi kaydında Visatin tescilli bir
+  marka değil, Real Passione'nin bir hattı görünümünde. Operatör *"visatin
+  markalı"* dediği ve başlık da öyle dediği için VESTRA'da marka **Visatin**
+  basılıyor.
+
+**KURAL 21c — TEDARİKÇİ TARİFESİ ÜÇ AYRI YERDEN AKIYORDU** (10 Eyl 2026).
+3 Eylül'de Pili Pérez'de bu bir kez kaydedildi (*"ilk iki koşu 335 satırın
+fiyatını herkese açık günlüğe yazdı"*) ama kural yalnızca **şifreli pakete**
+uygulanmıştı. Aynı gün Q-EN partisinde yeniden oldu ve sebep şuydu: sızıntı
+paketin değil, **dökümlerin** içindeydi.
+
+| Yer | Ne basıyordu |
+|---|---|
+| `crawl` → "2 örnek kayıt" | her varyantın ham `price_try`'ı |
+| `status` → "2 iki eksenli kayıt" | aynısı |
+| `fields` | `unit_price_try`, `pack_price_try`, varyant fiyat kümesi |
+| `price` → "3 örnek kayıt" | `TRY birim=331.2 → EUR birim=8.82` + min/orta/maks |
+
+İki koşunun günlüğü silindi (`34492757261`, `34495004354`). Düzeltme tek
+gövdede: `kuloglu_mask_prices()` — `price|fiyat` içeren her anahtarı `***`
+yapıyor, **şekli koruyor**. Örneğin kendisi değerli (çıkarımın doğru çalışıp
+çalışmadığı ancak bakarak görülür); değersiz olan tek şey rakam.
+`price` modu artık rakam yerine *"kaç kayıt fiyatlandı, kaçında fiyat
+ÇÖZÜLEMEDİ"* yazıyor — asıl bilgi zaten oydu, fiyatsız kayıt ilan olamıyor.
+**Kâr oranı CLAUDE.md'de yazılı olduğu için EUR satış fiyatı da maskeli:**
+bilinen oranla satış fiyatı maliyeti doğrudan ele veriyor.
+*Bir kuralı bir yerde uygulamak, kuralı uygulamak değildir; aynı olgunun
+BASILDIĞI her yeri ara.*
+
+**Ölçüm aracının kendi gürültüsü ölçümü yiyordu** (aynı gün, iki kez).
+`probe_url` her sayfada aynı **96 satırlık genel menüyü** basıyordu: üç URL'lik
+bir koşuda 288 satır, ve `get_job_logs` kuyruğu ~3,5 KB'de kestiği için asıl
+sayımlar kuyruktan düşüyordu. `titles` ise ürün başına **altı satır**
+basıyordu — 114 ürünlük kümede döküm hiç okunamıyor, yani çıkarımı doğrulamak
+için yazılmış mod kendisi doğrulanamıyordu. İkisi de sıkıştırıldı (kategori
+listesi yalnız istendiğinde, `titles` ürün başına tek satır). *rtl-check'in
+dersinin aynısı: aracın kendi gürültüsünü elemeden rapor okuma.*
+
 **Showroom başlığında satıcının KAYITLI ÜLKESİ — yalnız Marca Online'da gizli**
 (operatör, 10 Eyl 2026: *"Basics · Turkey marca online dan bunu cikar"*;
 kapsam soruldu, **"yalnız Marca Online"** seçildi).
