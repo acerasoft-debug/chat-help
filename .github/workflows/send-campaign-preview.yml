@@ -1684,7 +1684,7 @@ jobs:
                 echo "KESILDI: fatura ".$r['no']." (ayni numara, yeniden yazildi)\n";
                 echo "  uyeler : ".implode(', ', $r['refs'])."\n";
                 echo "  satici : ".$r['seller']."\n";
-                echo "  toplam : EUR ".number_format((float)$r['total'],2)."\n";
+                echo "  toplam : ".($r['currency'] ?? 'EUR')." ".number_format((float)$r['total'],2)."\n";
                 echo "  aliciya gonderildi : ".(!empty($r['sent']) ? 'EVET' : (empty($r['notified']) ? 'hayir (notify=false, bilerek)' : '*** HAYIR ***'))."\n";
                 echo "  operatore kopya    : ".(!empty($r['copied']) ? 'EVET' : 'hayir')."\n";
                 /* Mektup ISTENDIGI halde gitmediyse is KIRMIZI biter: belge
@@ -1700,25 +1700,47 @@ jobs:
               $bytes = vestra_render_invoice_pdf($p['meta'], $p['items'], $p['seller'], '', true);
               $tmp = sys_get_temp_dir().'/VESTRA-DRAFT-'.$iref.'.pdf';
               file_put_contents($tmp, $bytes);
+              /* Ozet BELGENIN birimini yazar: EUR sabiti, dolar bir belgenin
+                 yanina euro rakam koyardi (panelin mektuplariyla ayni ders). */
+              $pCur = strtoupper(trim((string)($p['meta']['currency'] ?? 'EUR'))) ?: 'EUR';
               $goods = 0.0; $lines = '';
               foreach ($p['items'] as $it) {
                 $goods += (float)$it['line'];
-                $lines .= sprintf("  %-16s %4d x EUR %s = EUR %s\n", $it['sku'], (int)$it['qty'],
-                          number_format((float)$it['unit'],2), number_format((float)$it['line'],2));
+                $lines .= sprintf("  %-16s %4d x %s %s = %s %s\n", $it['sku'], (int)$it['qty'],
+                          $pCur, number_format((float)$it['unit'],2), $pCur, number_format((float)$it['line'],2));
               }
               $sh2 = (float)($p['meta']['shipping'] ?? 0);
               echo "TASLAK: ".count($p['items'])." kalem, uyeler: ".implode(', ', $p['refs'])."\n";
               echo "  mal ".number_format($goods,2)." + kargo ".number_format($sh2,2)
-                 ." = ".number_format($goods+$sh2,2)." EUR\n";
+                 ." = ".number_format($goods+$sh2,2)." ".$pCur."\n";
               echo "  satici: ".vestra_invoice_issuer_name($p['seller'],'Acerasoft LLC')."\n";
+              echo "  para birimi : ".$pCur.($pCur !== 'EUR'
+                   ? "  (".trim((string)($p['meta']['fx_note'] ?? 'kur notu YOK')).")" : '')."\n";
+              /* Odeme kutusu birlesik taslakla AYNI sekilde raporlanir: kesilmis
+                 bir belgeyi yeniden cizerken de "banka bilgileri neden yok"
+                 sorusunun cevabi burada gorulmeli. Satir SAYISI, satirlar degil
+                 -- kutuk herkese acik. */
+              $__payAcc = $p['seller'] ?: vestra_platform_seller();
+              $__rails  = vestra_payment_rails($__payAcc, $pCur);
+              echo "  odeme kutusu : ".($__rails
+                   ? 'CIKAR ('.count($__rails).' satir)'
+                   : '*** CIKMAZ *** — '.$pCur.' icin bu hesapta ray yok')."\n";
               echo "  pdf: ".strlen($bytes)." bayt\n";
+              /* MEKTUBUN PARA BLOGU GUNLUGE DE BASILIYOR. Operatorun 9 Eyl
+                 2026'da yakaladigi hata (dolar tutarlarin ustunde "EUR")
+                 tam olarak burada gorunurdu ve gunluk onu HIC yazmiyordu:
+                 ozet PDF'i anlatiyor, mektubu anlatmiyordu. Kisi verisi yok --
+                 SKU, adet ve tutar, hepsi zaten yukarida basiliyor. */
+              echo "  --- mektubun para blogu ---\n";
+              foreach (explode("\n", rtrim(vestra_invoice_letter_amounts($p['meta'], $p['items']))) as $__bl) echo "  ".$__bl."\n";
               /* INGILIZCE (operator karari, 1 Eyl 2026): taslak ile kesilen
                  belge arasinda dil farki kalmasin. */
               $subject = "VESTRA — DRAFT invoice {$iref} (test, not sent to the buyer)";
-              $body = "Draft of the document to be issued is attached.\n\n".$lines
-                    ."\n  Goods total : EUR ".number_format($goods,2)."\n"
-                    .($sh2 > 0 ? "  Shipping    : EUR ".number_format($sh2,2)."\n" : '')
-                    ."  TOTAL DUE   : EUR ".number_format($goods+$sh2,2)."\n\n"
+              /* Para blogu TEK KAYNAKTAN (vestra_invoice_letter_amounts): kalemler,
+                 toplamlar, KDV ve cevrim notu, PDF'i cizen yukun kendisinden.
+                 Bu govde de "EUR" sabitiyle yaziliydi. */
+              $body = "Draft of the document to be issued is attached.\n\n"
+                    .vestra_invoice_letter_amounts($p['meta'], $p['items'])."\n"
                     ."This is a DRAFT: no number was burned, nothing was written to disk, nothing went to the buyer.\n\n— VESTRA";
               $opts = ['attachments' => [['name'=>'DRAFT-'.$iref.'.pdf','path'=>$tmp]]];
             } elseif ($letter === 'order_gate') {
@@ -1803,6 +1825,7 @@ jobs:
                  birlestirip gosterir.
                  spec: refs=<r1,r2,r3> | ship=<EUR> | vat=<yuzde, fiyata DAHIL>
                        | seller=<uid, ilanlar farkli saticidaysa zorunlu>
+                       | cur=<EUR|USD; belge bu birimde, kur TEKLIFIN tarihinin>
                        | apply=true (GERCEK KESIM) | notify=false (aliciya yollama)
                  HICBIR SEY KAYDEDILMEZ: numara yanmaz, diske yazilmaz, kayit
                  degismez, musteriye gitmez. Oran ve kargo yalnizca bu ciziME
@@ -1819,6 +1842,18 @@ jobs:
               $cVat  = trim($E('vat')) !== ''
                      ? round(max(0.0, min(100.0, (float)str_replace(',','.',$E('vat')))),2) : null;
               $cSel  = preg_replace('/[^A-Za-z0-9_-]/','',trim($E('seller')));
+              /* PARA BIRIMI (KURAL 5i). Panelde acilir liste var, burada YOKTU:
+                 yani is akisindan kesilen her birlesik belge zorunlu olarak EUR
+                 cikiyordu -- ve kurasyonlu ilanda faturayi kesen PLATFORM'un
+                 EUR rayi yok (ABD hesabi), yani o belge ODEME KUTUSUZ cikardi.
+                 Bos = kayitli secim neyse o. Taninmayan birim kabul EDILMEZ:
+                 cevrilemeyecegi bilinen bir birimi almak, belgeye sessizce
+                 yanlis rakam basmak olurdu. */
+              $cCur = strtoupper(trim($E('cur')));
+              if ($cCur !== '' && !in_array($cCur, vestra_invoice_currencies(), true)) {
+                fwrite(STDERR, "invoice_combine_draft: taninmayan para birimi '{$cCur}' — yalniz "
+                             . implode(', ', vestra_invoice_currencies())."\n"); exit(1);
+              }
 
               /* Hangi satici? Panelde acilir liste var, burada YOKTU: kurucu
                  "ilanlar farkli saticilara ait, listeden secin" diyor ama
@@ -1851,14 +1886,14 @@ jobs:
                  notify=false -> belge kesilir, ALICIYA mektup gitmez. */
               if (strtolower(trim($E('apply'))) === 'true') {
                 $notify = strtolower(trim($E('notify'))) !== 'false';
-                $r = vestra_offers_combined_invoice_issue($cRefs, $cSel, null, $cShip, $cVat, $notify, $to);
+                $r = vestra_offers_combined_invoice_issue($cRefs, $cSel, null, $cShip, $cVat, $notify, $to, $cCur !== '' ? $cCur : null);
                 if (!empty($r['error'])) { fwrite(STDERR, "invoice_combine_draft(apply): ".$r['error']."\n"); exit(1); }
                 echo "KESILDI: fatura ".$r['no']."\n";
                 echo "  birincil ref : ".$r['primary']."\n";
                 echo "  uyeler       : ".implode(', ', $r['refs'])."\n";
                 echo "  satici       : ".$r['seller']."\n";
                 echo "  mal ".number_format((float)$r['total'],2)." + kargo ".number_format((float)$r['shipping'],2)
-                   ." = ".number_format((float)$r['grand'],2)." EUR\n";
+                   ." = ".number_format((float)$r['grand'],2)." ".($r['currency'] ?? 'EUR')."\n";
                 if ((float)$r['vat_rate'] > 0) {
                   $rn = round((float)$r['grand'] / (1 + (float)$r['vat_rate']/100), 2);
                   echo "  matrah ".number_format($rn,2)."  KDV %".rtrim(rtrim(number_format((float)$r['vat_rate'],2,'.',''),'0'),'.')
@@ -1914,18 +1949,30 @@ jobs:
                 echo "  Duzeltme gerekiyorsa: reply_letter=invoice_draft (AYNI numarayla yeniden yazar).\n\n";
               }
 
-              $p = vestra_offers_combined_invoice_payload($cRefs, $cSel, null, $cShip, false, $cVat);
+              $p = vestra_offers_combined_invoice_payload($cRefs, $cSel, null, $cShip, false, $cVat, $cCur);
               if (!empty($p['error'])) { fwrite(STDERR, "invoice_combine_draft: ".$p['error']."\n"); exit(1); }
+              /* Cevrilemeyen taslak CIZILMEZ: EUR bir belgeyi "USD taslagi" diye
+                 gostermek, kontrol adiminin kendisini yalan yapar (KURAL 5d). */
+              if (!empty($p['currency_error'])) {
+                fwrite(STDERR, "invoice_combine_draft: kur damgasi yok — ".$p['currency_error']
+                             . " (Admin > Orders > Fetch missing rates)\n"); exit(1);
+              }
 
               $bytes = vestra_render_invoice_pdf($p['meta'], $p['items'], $p['seller'], '', true);
               $tmp = sys_get_temp_dir().'/VESTRA-DRAFT-birlesik-'.$p['meta']['ref'].'.pdf';
               file_put_contents($tmp, $bytes);
 
+              /* Ozet BELGENIN birimini yazar. Ilk yazimda bu blok EUR sabitiyle
+                 kaldi ve canli kosuda gunluk "= ... EUR" dedi -- oysa belge USD
+                 cizilmisti. Yanlis bir teshis satiri bu depoda alti kez yanlis
+                 karara goturdu; kur notu da basiliyor ki cevrimin GERCEKTEN
+                 olup olmadigi tek bakista gorulsun. */
+              $pCur = strtoupper(trim((string)($p['meta']['currency'] ?? 'EUR'))) ?: 'EUR';
               $goods = 0.0; $lines = '';
               foreach ($p['items'] as $it) {
                 $goods += (float)$it['line'];
-                $lines .= sprintf("  %-16s %4d x EUR %s = EUR %s\n", $it['sku'], (int)$it['qty'],
-                          number_format((float)$it['unit'],2), number_format((float)$it['line'],2));
+                $lines .= sprintf("  %-16s %4d x %s %s = %s %s\n", $it['sku'], (int)$it['qty'],
+                          $pCur, number_format((float)$it['unit'],2), $pCur, number_format((float)$it['line'],2));
               }
               $sh2   = (float)($p['meta']['shipping'] ?? 0);
               $grand = $goods + $sh2;
@@ -1944,24 +1991,45 @@ jobs:
                    bu depoda alti kez yanlis karara goturdu. */
                 $vatAmt = round($grand - $net, 2);
                 $lbl    = rtrim(rtrim(number_format($vr,2,'.',''),'0'),'.');
-                $vatBlock = "  Taxable amount (excl. VAT) : EUR ".number_format($net,2)."\n"
-                          . "  VAT {$lbl}% (included above)   : EUR ".number_format($vatAmt,2)."\n";
+                $vatBlock = "  Taxable amount (excl. VAT) : {$pCur} ".number_format($net,2)."\n"
+                          . "  VAT {$lbl}% (included above)   : {$pCur} ".number_format($vatAmt,2)."\n";
               }
               echo "TASLAK (birlesik, HIC kesilmemis kabuller): ".count($p['items'])." kalem\n";
               echo "  refler : ".implode(', ', $p['refs'])."\n";
               echo "  mal ".number_format($goods,2)." + kargo ".number_format($sh2,2)
-                 ." = ".number_format($grand,2)." EUR\n";
+                 ." = ".number_format($grand,2)." ".$pCur."\n";
+              echo "  para birimi : ".$pCur.($pCur !== 'EUR'
+                   ? "  (".trim((string)($p['meta']['fx_note'] ?? 'kur notu YOK -- belge kuru yazmiyor')).")"
+                   : "  (teklifin kendi birimi, cevrim yok)")."\n";
               if ($vatBlock !== '') echo $vatBlock; else echo "  KDV    : yok (vat= verilmedi)\n";
               echo "  satici : ".vestra_invoice_issuer_name($p['seller'],'Acerasoft LLC')."\n";
+              /* ODEME KUTUSU CIKACAK MI? Operatorun 9 Eyl 2026'da sordugu soru
+                 tam buydu ("neden fatura yaparken banka bilgileri cikmiyor")
+                 ve taslak ozeti bunu SOYLEMIYORDU -- cevabi ancak PDF acilip
+                 bakilarak ya da ayri bir sonda kosarak bulunabiliyordu.
+                 Kutuyu ciziciyle AYNI fonksiyon belirliyor (vestra_payment_rails),
+                 yani burada yazan sey belgede olanla ayni sey. Satir SAYISI
+                 basiliyor, satirlarin KENDISI degil: IBAN/hesap numarasi metin
+                 olarak iceriyorlar ve bu kutuk herkese acik. */
+              $__payAcc = $p['seller'] ?: vestra_platform_seller();
+              $__rails  = vestra_payment_rails($__payAcc, $pCur);
+              echo "  odeme kutusu : ".($__rails
+                   ? 'CIKAR ('.count($__rails).' satir)'
+                   : '*** CIKMAZ *** — '.$pCur.' icin bu hesapta ray yok'
+                     .' (EUR icin IBAN, USD icin hesap no + ABA gerekiyor)')."\n";
               echo "  pdf    : ".strlen($bytes)." bayt\n";
+              /* MEKTUBUN PARA BLOGU GUNLUGE DE BASILIYOR. Operatorun 9 Eyl
+                 2026'da yakaladigi hata (dolar tutarlarin ustunde "EUR")
+                 tam olarak burada gorunurdu ve gunluk onu HIC yazmiyordu:
+                 ozet PDF'i anlatiyor, mektubu anlatmiyordu. Kisi verisi yok --
+                 SKU, adet ve tutar, hepsi zaten yukarida basiliyor. */
+              echo "  --- mektubun para blogu ---\n";
+              foreach (explode("\n", rtrim(vestra_invoice_letter_amounts($p['meta'], $p['items']))) as $__bl) echo "  ".$__bl."\n";
               echo "  KAYIT DEGISMEDI: numara yanmadi, diske yazilmadi, musteriye gitmedi.\n";
 
               $subject = "VESTRA — DRAFT combined invoice ".$p['meta']['ref']." (test, not sent to the buyer)";
-              $body = "Draft of the combined document to be issued is attached.\n\n".$lines
-                    ."\n  Goods total : EUR ".number_format($goods,2)."\n"
-                    .($sh2 > 0 ? "  Shipping    : EUR ".number_format($sh2,2)."\n" : '')
-                    ."  TOTAL DUE   : EUR ".number_format($grand,2)."\n"
-                    .($vatBlock !== '' ? "\n".$vatBlock : '')
+              $body = "Draft of the combined document to be issued is attached.\n\n"
+                    .vestra_invoice_letter_amounts($p['meta'], $p['items'])
                     ."\nThis is a DRAFT: no number was burned, nothing was written to disk, nothing went to the buyer.\n\n— VESTRA";
               $opts = ['attachments' => [['name'=>'DRAFT-'.$p['meta']['ref'].'.pdf','path'=>$tmp]]];
             } elseif ($letter === 'brand_catalog') {

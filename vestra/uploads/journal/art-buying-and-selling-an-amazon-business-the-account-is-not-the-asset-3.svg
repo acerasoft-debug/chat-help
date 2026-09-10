@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img">
+  <title>Two tracks to the same gate: one passes through declaration and documents and opens, the other arrives unannounced and stops at a barrier</title>
+  <desc>The declared route is slower and it opens. The quiet one arrives at a barrier the buyer is standing behind.</desc>
+  <rect width="1200" height="675" fill="#3a2016"/>
+  <g stroke="#7a4026" stroke-width="1"><path d="M0 168h1200M0 337h1200M0 506h1200"/></g>
+  <!-- UST YOL: bildirilen degisiklik -->
+  <path d="M96 220h828" stroke="#f0c9a0" stroke-width="3"/>
+  <g fill="none" stroke="#f0c9a0" stroke-width="3">
+    <circle cx="150" cy="220" r="20"/>
+    <rect x="286" y="188" width="64" height="64" rx="10"/>
+    <rect x="450" y="182" width="58" height="76" rx="6"/>
+    <path d="M494 182v14h14"/>
+    <rect x="470" y="196" width="58" height="76" rx="6"/>
+    <path d="M514 196v14h14"/>
+    <circle cx="668" cy="220" r="26"/>
+    <path d="M656 220l9 10 19-21"/>
+  </g>
+  <g fill="#f0c9a0" opacity=".22">
+    <rect x="302" y="206" width="32" height="8" rx="4"/>
+    <rect x="302" y="224" width="24" height="8" rx="4"/>
+  </g>
+  <!-- Acik bariyer -->
+  <g fill="none" stroke="#f0c9a0" stroke-width="4">
+    <path d="M924 262V150"/>
+    <path d="M924 176l148-52"/>
+  </g>
+  <path d="M1072 200h84" stroke="#f0c9a0" stroke-width="3"/>
+  <path d="M1140 188l22 12-22 12z" fill="#f0c9a0"/>
+  <!-- ALT YOL: sessiz devir -->
+  <path d="M96 470h796" stroke="#f0c9a0" stroke-width="3" opacity=".55" stroke-dasharray="16 12"/>
+  <g fill="none" stroke="#f0c9a0" stroke-width="3" opacity=".55">
+    <circle cx="150" cy="470" r="20"/>
+    <rect x="286" y="438" width="64" height="64" rx="10"/>
+    <path d="M300 470h36M322 456l14 14-14 14"/>
+  </g>
+  <!-- Kapali bariyer -->
+  <g fill="none" stroke="#f0c9a0" stroke-width="4">
+    <path d="M924 400v112"/>
+    <path d="M924 434h156"/>
+  </g>
+  <g stroke="#f0c9a0" stroke-width="3" fill="none" opacity=".9">
+    <path d="M940 462h124M940 486h124"/>
+  </g>
+  <!-- Bariyerin ONUNDE bekleyen alici + stok -->
+  <g fill="none" stroke="#f0c9a0" stroke-width="3">
+    <circle cx="836" cy="422" r="18"/>
+    <path d="M812 470v-16a24 24 0 0 1 48 0v16"/>
+    <rect x="756" y="486" width="152" height="34" rx="6"/>
+    <rect x="756" y="528" width="152" height="34" rx="6"/>
+  </g>
+  <g fill="#f0c9a0" opacity=".2">
+    <rect x="772" y="496" width="58" height="14" rx="5"/>
+    <rect x="772" y="538" width="58" height="14" rx="5"/>
+  </g>
+</svg>

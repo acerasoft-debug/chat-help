@@ -138,6 +138,37 @@ function vestra_payment_rails(array $acc, string $currency): array {
 }
 
 /**
+ * Is VESTRA itself the party issuing this invoice?
+ *
+ * Two callers have to agree on the answer and for a long time they did not, because the
+ * platform reaches the renderer in TWO different shapes. An ORDER slice for curated stock
+ * passes null (vestra_order_invoice_payloads leaves $sellerAcc unset for the 'vestra' key),
+ * while an OFFER on the same stock passes the platform record itself — vestra_offer_invoice_
+ * seller() never returns null, it falls through to vestra_platform_seller(). So a check
+ * written as `$sellerAcc === null` is true for the order and false for the offer, on the
+ * same listing, for the same issuer.
+ *
+ * That is not academic: the draft note that tells the operator WHERE to fix a missing
+ * payment box read exactly that way, so an offer invoice issued by the platform sent them
+ * to Admin > Users > Edit billing details — a page that cannot hold the platform's bank
+ * details at all. An instruction that points at the wrong page costs more than no
+ * instruction, because it gets followed.
+ *
+ * The discriminator is the account id. Every record from auth_accounts() carries one;
+ * vestra_platform_seller() builds its array from constants and a JSON file and has none.
+ *
+ * Deliberately NOT a name test. "Is Acerasoft the seller of record" and "does this issuer's
+ * bank detail live in the platform file" are different questions with different answers: if
+ * the operator ever registers a real Acerasoft LLC seller account, that account is the seller
+ * of record AND its bank details are edited under Admin > Users like any other account's. The
+ * disclaimer block asks the first question and adds the name arm itself; this function answers
+ * only the second, so a name can never route a real account to the wrong settings page.
+ */
+function vestra_invoice_is_platform_issuer(?array $sellerAcc): bool {
+    return $sellerAcc === null || trim((string)($sellerAcc['id'] ?? '')) === '';
+}
+
+/**
  * IBAN'i saklanacak bicime getirir: bosluk/tire atilir, buyuk harfe cekilir.
  *
  * Banka ekstresi "FR76 3000 4008 2800 0123 4567 890" diye yazar, havale formu
@@ -471,8 +502,15 @@ function vestra_invoice_draft_notes(array $order, array $items, ?array $sellerAc
             /* Duzeltmenin YERI kesen tarafa gore degisiyor: platform kendi
                kunyesinden okuyor (Admin > Orders), satici hesabindan
                (Admin > Users). Yanlis sayfaya yollayan bir uyari, uyarilmamis
-               kadar ise yaramaz. */
-            $notes[] = $sellerAcc === null
+               kadar ise yaramaz.
+               "Platform mu kesiyor" sorusu burada `$sellerAcc === null` diye
+               soruluyordu ve TEKLIF faturasinda hep FALSE donuyordu: teklif yolu
+               (vestra_offer_invoice_seller) platformu null olarak degil, kendi
+               KAYDI olarak geciriyor. Yani kurasyonlu bir ilana verilen teklifte
+               operator "Admin > Users > Edit billing details"e yollaniyordu --
+               platformun banka bilgilerinin DURMADIGI sayfaya. Tek ayirt edici:
+               vestra_invoice_is_platform_issuer(). */
+            $notes[] = vestra_invoice_is_platform_issuer($sellerAcc)
                 ? 'NOTE - VESTRA is issuing this invoice but the platform has no '.$cur.' payment details on file, so the document has no payment box.'
                   . ' Fill them in under Admin > Orders > Platform billing & bank details (USD needs an account number and ABA routing), or the buyer gets a document with nowhere to pay.'
                 : 'NOTE - no payment details for '.$cur.' on the issuing account, so this invoice has no payment box.'
@@ -572,7 +610,12 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     $pdf->text($toX, $y, 10, 'Bill To (Buyer)', true);
     $y -= 15;
 
-    if ($sellerAcc) {
+    /* Kosul `if ($sellerAcc)` idi ve TEKLIF faturasinda platform kaydi bos olmadigi
+       icin SATICI HESABI dalina dusuyordu: ayni ilanin siparis faturasi platform
+       dalindan (support@vestrasales.com satiri dahil) cikarken teklif faturasi
+       ondan farkli bir satici kutusu tasiyordu -- ayni kesen taraf, iki belge, iki
+       kunye. Ayrim artik tek yerde. */
+    if (!vestra_invoice_is_platform_issuer($sellerAcc)) {
         $sellerLines = array_values(array_filter([
             vestra_invoice_issuer_name($sellerAcc),
             $sellerAcc['address'] ?? '',
@@ -965,7 +1008,11 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
        is not the seller of record for this sale" diyordu -- ayni belgede
        kendini yalanlayan iki beyan, ki bu blogun kendi yorumu bunun gumrukte ve
        bir ihtilafta belgeyi zayiflattigini yaziyor. */
-    $platformIsSeller = $sellerAcc === null
+    /* Iki ayri soru: "belgeyi platformun KENDI kaydi mi kesiyor" (banka bilgisinin
+       nerede duracagini belirler) ile "satici Acerasoft mu" (feragat cumlesinin
+       basilip basilmayacagini belirler). Ikincisi genis: operator bir gun gercek
+       bir Acerasoft satici hesabi acarsa o hesap da uclu satis DEGILDIR. */
+    $platformIsSeller = vestra_invoice_is_platform_issuer($sellerAcc)
         || stripos((string)($sellerAcc['company'] ?? ''), 'acerasoft') !== false;
 
     /* Beyanlar. Ustteki sevkiyat tablosuyla AYNI etiket/deger duzeni kullaniliyor --
@@ -1357,6 +1404,62 @@ function vestra_order_set_invoice_seller(string $ref, string $uid): bool {
    sessizce yanlış rakam basmak olurdu. */
 function vestra_invoice_currencies(): array { return ['EUR', 'USD']; }
 
+/**
+ * The money block every invoice letter prints: item lines, then the totals.
+ *
+ * Written because the same block existed FOUR times — the panel's "Test" draft, the
+ * workflow's invoice_draft body, the combined issue letter and the redraft letter — and
+ * each one decided for itself what to call the currency. Every one of them said "EUR",
+ * hard-coded, because for a long time that was the only currency an invoice could carry.
+ * When offer invoices learned USD (KURAL 5i), three were fixed and the fourth was not,
+ * and the operator received a draft reading "10 x EUR 122.03 = EUR 1,220.30" over amounts
+ * that were dollars. The figures were right; the labels were a lie, which is worse than a
+ * wrong figure — a wrong figure gets questioned, a wrong label gets believed.
+ *
+ * So the label is no longer a decision any caller gets to make. It comes from the payload
+ * that drew the PDF, which is the only thing that can be right by construction.
+ *
+ * Layout is shared too, deliberately: four letters about the same document should not
+ * differ in column width and wording. The VAT split and the conversion note ride along
+ * when the meta carries them, so no caller can forget either — the VAT arithmetic is the
+ * renderer's (net rounded down, tax from the difference), because two separate roundings
+ * put the letter a cent away from its own attachment.
+ */
+function vestra_invoice_letter_amounts(array $meta, array $items): string {
+    $cur   = strtoupper(trim((string)($meta['currency'] ?? 'EUR'))) ?: 'EUR';
+    $goods = 0.0;
+    $out   = '';
+    foreach ($items as $it) {
+        $goods += (float)($it['line'] ?? 0);
+        $out   .= sprintf("  %-16s %4d x %s %s = %s %s\n", (string)($it['sku'] ?? ''), (int)($it['qty'] ?? 0),
+                          $cur, number_format((float)($it['unit'] ?? 0), 2),
+                          $cur, number_format((float)($it['line'] ?? 0), 2));
+    }
+    $goods = round($goods, 2);
+    $ship  = round((float)($meta['shipping'] ?? 0), 2);
+    $disc  = round((float)($meta['discount'] ?? 0), 2);
+    $grand = round($goods + $ship - $disc, 2);
+
+    $out .= "\n  Goods total : {$cur} ".number_format($goods, 2)."\n";
+    if ($ship > 0) $out .= "  Shipping    : {$cur} ".number_format($ship, 2)."\n";
+    if ($disc > 0) $out .= "  Discount    : -{$cur} ".number_format($disc, 2)."\n";
+    $out .= "  TOTAL DUE   : {$cur} ".number_format($grand, 2)."\n";
+
+    $vr = round((float)($meta['vat_rate'] ?? 0), 2);
+    if ($vr > 0 && !empty($meta['vat_included']) && $grand > 0) {
+        $net = round($grand / (1 + $vr / 100), 2);
+        $lbl = rtrim(rtrim(number_format($vr, 2, '.', ''), '0'), '.');
+        $out .= "  (Taxable amount {$cur} ".number_format($net, 2)
+              . ", VAT {$lbl}% {$cur} ".number_format(round($grand - $net, 2), 2)." — included above)\n";
+    }
+    /* CEVRIM DAYANAGI MEKTUPTA DA. Belgede zaten yazili, ama parayi gonderen
+       kisi cogu zaman once mektuba bakiyor ve "neden 1.080 degil 1.255"
+       sorusunun cevabi ikisinde de durmali (operator, 9 Eyl 2026). */
+    $fxn = trim((string)($meta['fx_note'] ?? ''));
+    if ($fxn !== '') $out .= "\n  ".$fxn."\n";
+    return $out;
+}
+
 /** Operatörün seçtiği fatura para birimi; '' = siparişin kendi para birimi. */
 function vestra_order_invoice_currency(string $ref): string {
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
@@ -1410,6 +1513,16 @@ function vestra_invoice_convert_payload(array $meta, array $items, string $from,
     $rate = (float)($fx['usd'] ?? 0);
     if ($rate <= 0) return ['error' => 'no exchange rate stamped for this order date'];
 
+    /* KAYNAK BIRIMDEKI GENEL TOPLAM, cevrimden ONCE. Belge iki para birimini
+       birden tasimak zorunda (operator, 9 Eyl 2026: "faturada eur ve usd kuru
+       zamani yazilmali"): alicinin muhasebecisi ve gumruk komisyoncusu
+       "bu dolar rakami hangi euro tutarindan cikti" sorusunu belgenin
+       kendisinden cevaplayabilmeli. Sonradan hesaplanamaz -- cevrilmis
+       rakamdan geri bolmek yuvarlama yuzunden BASKA bir sayi verir. */
+    $srcGoods = 0.0;
+    foreach ($items as $it) $srcGoods += (float)($it['line'] ?? 0);
+    $srcGrand = round($srcGoods + (float)($meta['shipping'] ?? 0) - (float)($meta['discount'] ?? 0), 2);
+
     $conv = fn(float $v) => round($v * $rate, 2);
     $out  = [];
     foreach ($items as $it) {
@@ -1430,11 +1543,28 @@ function vestra_invoice_convert_payload(array $meta, array $items, string $from,
     $src   = vestra_fx_source_label((string)($fx['source'] ?? ''));
     $dateS = trim((string)($fx['date'] ?? ''));
     if ($dateS !== '' && ($ts = strtotime($dateS))) $dateS = date('j F Y', $ts);
-    $meta['fx_note'] = 'Amounts converted from '.$from.' at 1 '.$from.' = '.number_format($rate, 4).' '.$to
-        . (($src !== '' || $dateS !== '') ? ' ('.trim($src.' '.$dateS).')' : '')
-        . ', the rate in force on the order date.';
+    /* BELGENIN kendi tarihi: kurun BAGLI OLDUGU gun. Kur tarihi bundan ESKI
+       olabiliyor -- ECB yalniz is gunlerinde yayimliyor ve tablomuzun en
+       yenisi o gunku olmayabilir. Eski metin "the rate in force on the order
+       date" diyordu ve iki tarihten HICBIRINI yazmiyordu: okuyan, 4 Eylul
+       kurunun 9 Eylul tarihli bir belgede ne isi oldugunu soramiyordu bile.
+       Ayrica "in force" iddiasi dogrulanamaz (aradaki bir yayini kacirmis
+       olabiliriz); dogrulanabilir olan sey "o tarihte ya da oncesinde
+       YAYIMLANMIS SON kur" -- yazilan da bu. */
+    $docDate = trim((string)($meta['date'] ?? ''));
+    if ($docDate !== '' && ($dts = strtotime($docDate))) $docDate = date('j F Y', $dts);
+
+    $meta['fx_note'] = 'Amounts converted from '.$from.' at 1 '.$from.' = '.number_format($rate, 4).' '.$to.'.'
+        . ' Rate: '.(trim($src) !== '' ? $src : 'source not stated').($dateS !== '' ? ', '.$dateS : '')
+        . ($docDate !== '' ? ' — the last rate published on or before the order date, '.$docDate.'.' : '.')
+        . ' Original total: '.$from.' '.number_format($srcGrand, 2).'.';
     $meta['fx_rate']  = $rate;
     $meta['fx_from']  = $from;
+    /* Kaynak birimdeki toplam ve iki tarih AYRI ALANLARDA da duruyor: mektuplar
+       ve teshis bunlari cumlenin icinden ayiklamak zorunda kalmasin. */
+    $meta['fx_src_total'] = $srcGrand;
+    $meta['fx_date']      = $dateS;
+    $meta['fx_doc_date']  = $docDate;
     return ['meta' => $meta, 'items' => $out];
 }
 

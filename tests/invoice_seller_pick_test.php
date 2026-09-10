@@ -45,6 +45,22 @@ function vestra_send_mail($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,
 function vestra_invoice_issuer_name($acc,$fallback=''){ return (string)(($acc['invoice_name'] ?? '') ?: (($acc['company'] ?? '') ?: $fallback)); }
 function vestra_from_price($p){ return 0.0; }
 
+/* Fatura para birimi izin listesi (KURAL 5i). Gercek govde invoice.php'de ve
+   test kosumu require'lari SILIYOR; teklif yuku onu cagiriyor. Stub gercegin
+   AYNISI -- uydurma bir liste, olculen davranisi degistirirdi. */
+if(!function_exists('vestra_invoice_currencies')) { function vestra_invoice_currencies(){ return ['EUR','USD']; } }
+
+/* Mektuplarin ORTAK para blogu (vestra_invoice_letter_amounts). GERCEK govde
+   invoice.php'den yukleniyor, stub degil: kalemleri, toplamlari, KDV ayrimini ve
+   kur notunu bu fonksiyon basiyor ve olculmek istenen sey tam olarak ONUN
+   ciktisi. Bir stub yazsaydim, "mektup dogru birimi yaziyor mu" sorusunu kendi
+   yazdigim metne sormus olurdum. Ustte tanimlaniyor cunku birlesik kesim
+   testleri asagidaki eval dongusunden ONCE kosuyor. */
+if (!function_exists('vestra_invoice_letter_amounts')) {
+  $__isrc = (string)@file_get_contents(__DIR__.'/../vestra/inc/invoice.php');
+  if (preg_match('/^function vestra_invoice_letter_amounts\(.*?^}/ms', $__isrc, $__m)) eval($__m[0]);
+}
+
 preg_match_all('/^function \w+\(.*?^}/ms', $src, $fns);
 foreach ($fns[0] as $f) eval($strip($f));
 
@@ -453,6 +469,65 @@ $t('status korunur',   ($JSON['VES-2']['status'] ?? '') === 'pending');
 $t('tracking korunur', ($JSON['VES-2']['tracking'] ?? '') === '1Z9');
 $t('odeme saati korunur', ($JSON['VES-2']['payment_grace_start'] ?? 0) === 123);
 $t('ref temizlenir (yol gecisi yok)', vestra_order_set_invoice_seller('../../etc/passwd','vestra') === true && isset($JSON['etcpasswd']));
+
+echo "\n== 12. TEKLIF faturasi USD kesilebiliyor (kur TEKLIFIN tarihinin) ==\n";
+/* Operator, 9 Eyl 2026 (OCD7D2): "ayrica direkt usd ye cevirme buttonu eksik".
+ * Bu bolum KABLOYU degil ARITMETIGI olcuyor: gercek cevirici govdesi
+ * invoice.php'den yukleniyor, teklif yuku ondan geciyor.
+ *
+ * Neden onemli: kurasyonlu ilanda (seller_uid bos) faturayi PLATFORM kesiyor,
+ * platformun hesabi ABD hesabi (hesap no + ABA, IBAN yok). vestra_payment_rails
+ * para birimine gore ray seciyor -- EUR belgede kutu HIC cikmiyor. Yani teklif
+ * faturasinin USD kesilememesi, o belgenin odeme kutusuz cikmasi demekti. */
+$FXHAVE = ['usd'=>1.1622,'date'=>'2026-09-04','source'=>'ecb'];
+$FXSTAMPED = [];
+function vestra_order_fx(string $ref): ?array { global $FXHAVE; return $FXHAVE; }
+function vestra_order_fx_stamp(string $ref, string $ts, bool $live=false): ?array {
+  global $FXHAVE, $FXSTAMPED; $FXSTAMPED[] = [$ref,$ts]; return $FXHAVE;
+}
+/* Gercek cevirici + kaynak etiketi: stub yazsaydim olctugum sey kendi
+   aritmetigim olurdu (bu depoda "hic dusemeyen iddia" dersi). */
+foreach (['vestra_invoice_convert_payload','vestra_fx_source_label'] as $__fn) {
+  $__file = $__fn === 'vestra_fx_source_label' ? 'fx_orders.php' : 'invoice.php';
+  $__s = (string)@file_get_contents(__DIR__.'/../vestra/inc/'.$__file);
+  if (preg_match('/^function '.$__fn.'\(.*?^}/ms', $__s, $__m)) eval($strip($__m[0]));
+}
+
+$JSON = ['OF-1'=>['status'=>'accept','counter_price'=>12.00,'invoice_currency'=>'USD']];
+$p = vestra_offer_invoice_payload('OF-1');
+$t('belge para birimi USD',      ($p['meta']['currency'] ?? '') === 'USD');
+$t('birim cevrildi',             $p['items'][0]['unit'] === round(12.00 * 1.1622, 2));
+$t('satir = birim x adet',       $p['items'][0]['line'] === round($p['items'][0]['unit'] * (int)$p['items'][0]['qty'], 2));
+$t('kur notu belgede',           str_contains((string)($p['meta']['fx_note'] ?? ''), '1.1622'));
+$t('kur damgasi TEKLIF tarihiyle arandi', ($FXSTAMPED === []) || $FXSTAMPED[0][1] === '2026-08-30T10:00:00+00:00');
+/* Cagiranin mektup icin okudugu 'unit' de cevrilmis olmali: EUR birakilsaydi
+   mektup dolar belgenin yanina euro rakam yazardi. */
+$t('yukun unit alani da cevrildi', abs((float)$p['unit'] - round(12.00 * 1.1622, 2)) < 0.005);
+/* SIPARIS SATIRI teklifin kendi biriminde kalir (KURAL 5i). */
+$t('cevrilmemis hali tasiniyor',  isset($p['base']['items'][0]['unit']) && (float)$p['base']['items'][0]['unit'] === 12.00);
+$t('base para birimi EUR',        ($p['base']['meta']['currency'] ?? '') === 'EUR');
+/* EUR secildiginde hicbir sey cevrilmiyor ve 'base' de olusmuyor: cevrilmemis
+   bir yuke ikinci bir kopya eklemek, hangisinin dogru oldugunu sordururdu. */
+$JSON['OF-1']['invoice_currency'] = 'EUR';
+$pe = vestra_offer_invoice_payload('OF-1');
+$t('EUR secimi cevirmiyor',       ($pe['meta']['currency'] ?? '') === 'EUR' && $pe['items'][0]['unit'] === 12.00);
+$t('EUR yukunde base yok',        !isset($pe['base']));
+/* Override kayittan ONCE gelir: taslak formda O AN secili olani tasimali. */
+$po = vestra_offer_invoice_payload('OF-1','',null,null,null,'USD');
+$t('override kaydi eziyor',       ($po['meta']['currency'] ?? '') === 'USD');
+/* KUR DAMGASI YOKSA: cevrim yok, gerekce var, ve KESIM DURUYOR -- hicbir
+   numara yakilmadan. Uydurulmus kurla kesilmis bir belge geri alinamaz. */
+$FXHAVE = null;
+$JSON['OF-1']['invoice_currency'] = 'USD';
+$pn = vestra_offer_invoice_payload('OF-1');
+$t('damgasiz cevrim REDDEDILIYOR', !empty($pn['currency_error']));
+$t('damgasizda EUR rakam korunur', $pn['items'][0]['unit'] === 12.00);
+$t('istenen birim gerekcede',      ($pn['want_currency'] ?? '') === 'USD');
+$noBefore = $INV_NO;
+$iv = vestra_offer_issue_invoice('OF-1', true);
+$t('kesim gerekceyle DURDU',       is_array($iv) && !empty($iv['error']));
+$t('NUMARA YANMADI',               $INV_NO === $noBefore);
+$FXHAVE = ['usd'=>1.1622,'date'=>'2026-09-04','source'=>'ecb'];
 
 echo "\n".($fail? "KALDI: $fail  (gecen: $ok)\n" : "hepsi gecti ($ok)\n");
 exit($fail?1:0);

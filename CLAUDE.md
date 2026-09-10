@@ -1026,6 +1026,147 @@ adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kay
   **Yıllarca görünmedi çünkü bu alanlar ancak platform kendi künyesinden
   kesmeye başlayınca birlikte doldu.**
 - Test: `invoice_currency_test.php §5b`.
+- **Platform renderer'a İKİ AYRI ŞEKİLDE geliyor ve `$sellerAcc === null` diye
+  yazılmış her kontrol bunun yarısını kaçırıyordu** (9 Eyl 2026). Kurasyonlu
+  ilanın **SİPARİŞ** dilimi `null` geçiyor (`vestra_order_invoice_payloads`,
+  'vestra' anahtarına hesap konmuyor), aynı ilana verilen **TEKLİF** ise
+  platformun **KAYDINI** geçiriyor (`vestra_offer_invoice_seller` hiçbir zaman
+  null dönmez, `vestra_platform_seller()`'a düşer). Aynı mal, aynı kesen taraf,
+  iki farklı cevap. İki kontrol bu yüzden yanlış çalışıyordu: (1) ödeme kutusu
+  boşken operatörü **yanlış sayfaya** yollayan taslak notu (teklifte
+  `Admin ▸ Users` diyordu — platformun banka bilgisinin **duramayacağı** sayfa;
+  yanlış sayfaya yollayan bir yönerge, hiç yönergeden pahalıdır çünkü
+  uygulanır), (2) satıcı kutusu hesap dalından çiziliyor, yani aynı satış
+  sipariş olarak farklı bir künye taşıyordu. Tek ayırt edici artık
+  `vestra_invoice_is_platform_issuer()` ve ölçüt **hesap id'si**:
+  `auth_accounts()`'tan gelen her kayıtta var, `vestra_platform_seller()`'da
+  yok. **Ad testi bilerek yok** — operatör bir gün gerçek bir Acerasoft satıcı
+  hesabı açarsa o hesap *seller of record*'dur ama banka bilgisi yine
+  `Admin ▸ Users`'ta durur; feragat cümlesi bloğu daha geniş soruyu soruyor ve
+  ad kolunu kendi çağrı yerinde tutuyor. Test: `invoice_draft_test.php §6`
+  (42 iddia; iki çağrı yeri geri alınınca **3 kırmızı**).
+
+**KURAL 5i (devamı) — TEKLİF faturası da USD kesilebilir; kur TEKLİFİN tarihinin**
+(operatör, 9 Eyl 2026, OCD7D2: *"burada neden fatura yaparken banka bilgileri
+cikmiyor ?"* + *"ayrica direkt usd ye cevirme buttonu eksik"*). **İki cümle tek
+sorundu.**
+- **Ölçüm önce** (`diag-messages` → `billing_for=vestra`; sonda o güne kadar
+  yalnız **hesapları** arıyordu, yani kurasyonlu malda ödeme kutusunu belirleyen
+  tek kayıt, hiçbir sondanın bakamadığı kayıttı — eklendi). Platformun künyesi
+  **boş değil**: `bank_holder`, `bank_name` (*Choice Financial Group*),
+  `bank_bic`, `bank_account` **VAR (12 hane)**, `bank_routing` **VAR (9 hane)**,
+  ama `bank_iban` **BOŞ**. Sonuç: **EUR faturada ödeme kutusu ÇIKMAZ, USD
+  faturada ÇIKAR (6 satır).** Yani VESTRA'nın kendi hesabı bir **ABD hesabı** ve
+  euro rayı yok; `vestra_payment_rails` bir euro faturaya ABA routing basmak
+  yerine **hiçbir şey basmamayı** seçiyor (doğrusu bu: Avrupalı alıcı o yola
+  ödeyemez, kabul eden banka günler sonra iade eder).
+- KURAL 5i'nin bütün makinesi **sipariş** kapsamındaydı;
+  `vestra_offer_invoice_payload()` para birimi parametresi **hiç almıyordu**.
+  Yani kabul edilmiş bir teklif **yalnızca EUR** kesilebiliyor, ve kurasyonlu
+  ilanda faturayı platform kestiği için o belge **ödeme kutusuz** çıkıyordu.
+- Kurallar siparişteki gibi, **aynı** parçalarla: aynı izin listesi
+  (`vestra_invoice_currencies`), aynı tek çevirici
+  (`vestra_invoice_convert_payload`), kur **TEKLİFİN tarihinin damgası**.
+  Damga `order_statuses.json[<teklif ref>]`'e düşüyor — kabul edilen teklif
+  zaten kendi ref'iyle orders'a iniyor, **ikinci bir damga yeri** aynı satış
+  için er ya da geç iki farklı kur demekti. **Damga yoksa çevrim yok, fatura
+  YOK**: gerekçe döner, hiçbir numara yanmaz.
+- **Sipariş satırı teklifin kendi biriminde kalır.** Çevrilmiş yük olduğu gibi
+  `orders.csv`'ye girseydi dolar rakamları EUR diye yazılırdı. Kurucular
+  çevrilmemiş hâli `base` altında taşıyor, `vestra_offer_order_ensure()` onu
+  okuyor: belgenin birimi operatörün kararı, **siparişin kaydı değil**.
+- **Üç mektupta gömülü "EUR" vardı** ve üçü de düzeltildi (tek kesim, birleşik
+  kesim, KURAL 5f redraft'ı). En kötüsü **redraft**: belgeyi kayıttan yeniden
+  kuruyor, yani USD bir fatura **aynı numarayla** euro rakamlı bir gövdeyle
+  yeniden gönderilirdi.
+- **Kardeşlerinin durduğu HER YERE yazıldı** (KURAL 5m'in dersi): satır
+  seçicisi, birleştirme çubuğu, iki taslak yolu, iki kesim yolu ve iş akışında
+  `cur=` (`reply_letter=invoice_combine_draft`). KDV oranı bu dersi tam olarak
+  birleşik çubukta eksik kalarak vermişti.
+- `vestra_offer_invoice_payload()` artık `invoice.php`'yi **kendi** require
+  ediyor; kardeş bir fonksiyonun require'ına yaslanmak KURAL 15'in fatal'inin
+  küçük hâli.
+- **Kendi hatam, kayda geçsin:** iş akışına `cur=` eklerken yaptığım toplu
+  değişiklik `replace(..., 1)` ile **ilk eşleşmeye** düştü, yani özet satırını
+  `invoice_combine_draft` yerine **`invoice_draft`** bloğuna yazdım. Ayrıştırma
+  ve kurucu çağrısı doğru yerdeydi; yalnızca **operatörün bakacağı satır**
+  yanlış yerdeydi. Canlı ilk koşu bu yüzden `= ... EUR` dedi — belge USD
+  çizilmiş olsa bile. Bu deponun altı kez kaydettiği "kontrol yanlış yere
+  bakıyor"un aynısı, üstelik en pahalı hâli: doğru çalışan bir özelliğe
+  "çalışmıyor" dedirtir. Özet artık **birimi ve `fx_note`'u** basıyor; çevrimin
+  gerçekten olup olmadığı toplamdan çıkarılmıyor, yazıyor. Bunun için
+  `vestra_offers_combined_invoice_issue()` kullandığı birimi de **döndürüyor**:
+  *rakam veren fonksiyon, biriminin de vermeli* — yoksa her çağıran EUR tahmin
+  eder.
+- Test: `invoice_currency_test.php §7` (90 iddia, kablolama) ve
+  `invoice_seller_pick_test.php §12` (toplam 130; **gerçek** çevirici gövdesiyle
+  aritmetik). Düşebildiği doğrulandı: çevrim kaldırılınca **11 kırmızı**.
+  `invoice_vat_test`'in kablolama iddiası çağrının **tam metnini** sabitliyordu
+  ve kurucuya kardeş bir alan eklenince, oran hâlâ doğru geçerken kırmızı döndü
+  — ölçtüğü şeyi değil, yazımını koruyan bir iddia; daraltıldı.
+- **Canlı sonuç, aynı gün:** operatör panelden USD'yi seçip **INV-2026-1012**'yi
+  kesti — mal €1.050 + kargo €30 → **US$1.255,17**, kur `1 EUR = 1,1622 USD
+  (ECB 4 Eyl 2026)` belgede yazılı. Kesilmiş belge yeniden çizdirilip denetlendi
+  (`reply_letter=invoice_draft`, `ref=OCD7D2`): **ödeme kutusu ÇIKAR (6 satır)**.
+  Aynı teklifin EUR taslağı **ÇIKMAZ** diyordu; fark tek başına para biriminde.
+- **Kalıcı seçenek, operatör kararı:** platform künyesine bir **EUR/IBAN** hesabı
+  girilirse (`Admin ▸ Orders ▸ Platform billing & bank details`) kurasyonlu
+  maldan EUR fatura da ödeme kutulu çıkar. Kod ikisini de destekliyor; hangisinin
+  doğru olduğunu VESTRA'nın hangi hesaba tahsilat yaptığı belirler.
+- **Taslak özeti artık soruyu doğrudan cevaplıyor:** hem `invoice_combine_draft`
+  hem `invoice_draft` `odeme kutusu : CIKAR (n satir) / *** CIKMAZ ***` basıyor
+  ve bunu **çizicinin okuduğu aynı fonksiyondan** (`vestra_payment_rails`)
+  alıyor. Satır **sayısı** yazılıyor, satırların kendisi değil — IBAN ve hesap
+  numarası taşıyorlar, kütük herkese açık. *"Banka bilgileri neden yok"
+  sorusunun cevabı, numarayı yakmadan önce okunan satırda durmalı.*
+
+**KURAL 5o — Mektubun para bloğunu TEK gövde basar; birimi ÇAĞIRAN seçemez**
+(operatör, 9 Eyl 2026: *"email usd ye cevrilmis fakat eur yaziyor büyük hata"*).
+- Aynı blok bu depoda **DÖRT** kez ayrı ayrı yazılıydı — panelin `📧 Test`
+  taslağı, iş akışının `invoice_draft` gövdesi, birleşik kesim mektubu ve
+  redraft mektubu — ve **her kopya para biriminin adını kendisi seçiyordu**,
+  dördü de `EUR` sabitiyle. Teklif faturası USD öğrenince üçü düzeltildi,
+  **dördüncüsü gözden kaçtı** ve operatöre giden taslak dolar tutarların üstüne
+  `10 x EUR 122.03 = EUR 1,220.30` yazdı. *Rakam doğruydu, etiket yalandı —
+  yanlış rakam sorgulanır, yanlış etikete inanılır.*
+- Tek gövde: `vestra_invoice_letter_amounts($meta, $items)` (`inc/invoice.php`).
+  Kalemler, toplamlar, KDV ayrımı ve kur notu — hepsi **PDF'i çizen yükten**.
+  Birim artık çağıranın verebileceği bir karar değil. Yerleşim de ortak: aynı
+  belge hakkındaki dört mektup sütun genişliğinde bile ayrışmamalı.
+- **Aynı hatanın beşinci kopyası doğmasın diye tarama testte:** `Goods total :
+  EUR`, `TOTAL DUE   : EUR`, `x EUR %s = EUR %s` gibi kalıplar üç dosyada birden
+  aranıyor. **Teklif/pazarlık metinlerindeki `EUR` kapsam DIŞI** — teklif kaydı
+  gerçekten EUR ve orada birim sabit olmalı (mango/zara dersi: tarama dar tutulur).
+- **Ders (bu iş sırasında iki kez tekrarlandı):** *bir olguyu düzeltirken "bu
+  aynı şey başka nerede yazılı?" diye sor.* `desc`/`sizes` ve KURAL 5f'in üç
+  katmanıyla aynı sınıf; burada dördüncü kopya, ilk üçü düzeltilirken hiç
+  aranmadığı için kaldı.
+
+**KURAL 5p — Belge İKİ para birimini de taşır: kur, kaynağı, iki tarih ve EUR aslı**
+(operatör, 9 Eyl 2026: *"faturada eur ve usd kuru zamani yazilmali"*).
+- Eski `fx_note` kuru ve **kur tarihini** yazıyordu ama (a) **belgenin kendi
+  tarihini** hiç yazmıyordu, (b) **EUR aslını** hiç göstermiyordu. OCD7D2'de kur
+  **4 Eylül**, belge **9 Eylül** (ECB yalnız iş günlerinde yayımlıyor ve
+  tablomuzun en yenisi o gün olmayabiliyor) — okuyan, 4 Eylül kurunun 9 Eylül
+  tarihli bir belgede ne işi olduğunu **soramıyordu bile**.
+- Yeni not: `Amounts converted from EUR at 1 EUR = 1.1622 USD. Rate: ECB,
+  4 September 2026 — the last rate published on or before the order date,
+  9 September 2026. Original total: EUR 1,080.00.`
+- **"in force on the order date" iddiası kaldırıldı**: doğrulanamaz (aradaki bir
+  ECB yayınını kaçırmış olabiliriz). Doğrulanabilir olan şey *"o tarihte ya da
+  öncesinde yayımlanmış SON kur"* — yazılan da bu. KURAL 3'ün kur hâli.
+- **EUR aslı çevrimden ÖNCE saklanıyor** (`fx_src_total`; not içinde de yazılı).
+  Dolar tutarından geri bölmek **yuvarlama yüzünden başka bir sayı verir**
+  (1.255,17 / 1,1622 = 1.079,99…) — test bunu ayrıca doğruluyor.
+- Not hem **belgede** hem **mektupta**: parayı gönderen kişi çoğu zaman önce
+  mektuba bakıyor ve *"neden 1.080 değil 1.255"* sorusu ikisinde de cevaplanmalı.
+- **Ölçüm tuzağı (yaşandı):** not artık üç satıra sarılıyor ve `9 September 2026`
+  tam olarak `9 September` / `2026` diye ikiye ayrılıyor; ayrıca uzun tire (—)
+  belgede **CP1252** olarak duruyor (KURAL 5h). Bitişik UTF-8 arayan ilk iddiam
+  belgede **duran** bir metni "yok" dedi. İddia artık **sarılmış satırlara** ve
+  **CP1252 karşılığına** bakıyor.
+- Test: `invoice_currency_test.php §7–§8` (124 iddia). Düşebildiği doğrulandı:
+  operatörün aldığı hatanın birebir aynısı geri konunca **9 kırmızı**.
 
 **KURAL 5k — Siparişe NAVLUN yazılabilir; tutar ile TOPLAM birlikte hareket eder**
 (operatör, 7 Eyl 2026: *"kargo bölümü yok kargo eklemek gerekiyor 100 usd
@@ -1660,6 +1801,71 @@ dönmek zorundadir"*).
   korunduğu, CSS/JS'in paylaşıldığı ve ana sayfada elle yazılmış liste
   kalmadığı. RTL: `tests/render/rtl-check.js` 0 gerileme.
 
+**KURAL 21 — NBB iç çamaşırı kataloğu: operatör kararları, 10 Eyl 2026.**
+Operatörün aynı oturumdaki cümleleri (sırasıyla): *"sadece nbb ürünlerini tüm
+dilleri cevirip satis fiyatinin üstüne yüzde 50 kär koyarak satmani istiyorum"*
+· *"vestraya yeni bir katalog ekleyerek yap ancak estetik olmali underwear
+olarak"* · *"ayakkabi ve giysinin yanina gelecek"* · *"tüm dillere cevrilecek
+ayni zamanda resmin üstünde türkce ifadeler varsa koyma"* · *"premium
+yapmalisin"* · *"varyasyonlarida cevireceksin tüm dillere ve bedenleri ayni
+sekilde yap"* · *"sadece toptan olmali"* · *"komple marka secildiginde en az
+alim 300 eur olacak sekilde"* · *"siteye atmadan önce test olarak göster bana"*.
+
+- **Kâr %100 değil %50 oldu.** 4 Eyl 2026'daki karar (satış = maliyet × 2) bu
+  katalog için geçersiz; çarpan **1.5**. Oran artık sabit değil, parametre:
+  `price|<yüzde>` (varsayılan 50) ve her kayda `eur_margin_pct` damgalanıyor.
+  *Aynı olguyu ikinci bir moda yazmak, `desc`/`sizes` ve dört mektup gövdesinin
+  verdiği dersin tekrarı olurdu.*
+- **KAYNAK `/kategori/bayan-sutyen` DEĞİL.** Tarayıcı o yola **sabitlenmişti**;
+  operatörün verdiği ürün (`nbb-1901-butt-up-silikon-klot`) bir **külot** ve o
+  kategoride yok. Ölçüm: `/marka/nbb` → **47 ürün, hepsi NBB, sayfalama yok**.
+  Elimizdeki 638 kayıtlık sütyen kümesi NBB'nin yalnızca **26**'sını taşıyordu.
+  `kuloglu_ds='<ad>|<yol>'` ile ikinci kümeye açıldı; varsayılan boş bırakılınca
+  eski dosya adları **birebir** korunuyor (o dosyalar sunucuda dolu).
+- **Ölçülen NBB dağarcığı (47 ürün, `vocab`):** 14 kategori (sütyen 26, bikini-
+  tanga 5, fantazi-gecelik 4, çorap 4+1, boxer 2, korse/atlet/slip/patik 1'er),
+  **19 renk**, **33 beden**, **61 başlık kelimesi**. Mevcut sözlük yalnız sütyen
+  için kurulmuştu: ÇORAP, DENYE, GECELİK, JİPON, PANTOLON, PATİK, BOXER gibi
+  kelimeler **yok** — çünkü onlar Bayan Sütyen kategorisi dışından geliyor.
+  *"Sadece NBB" demek "daha az iş" demek değil; kapsam daralırken çeşit arttı.*
+- **Renk/beden alanları yine karışık:** `STANDART` renk listesinde duruyor
+  (renk değil), ve tedarikçi kodları (`SİYAH-500`, `SAHRA-51`, `TEN-57`,
+  `VİZON-86`, `BRONZ-38`) hem renk hem beden alanında geçiyor. 4 Eylül'de
+  kaydedilen "Kuloğlu rengi beden alanına yazıyor" tuzağının aynısı, yeni
+  kodlu hâliyle.
+- **BEDEN ÇEVİRİSİ GERÇEK BİR BOŞLUK.** `vestra_sizes_label()` yalnız
+  `<rakam>/pack|seri` kalıbını çeviriyor; `SERİ`, `PAKET`, `STANDART` gibi
+  **çıplak kelimeler** ham Türkçe basılırdı. Ayrıca `build_batch` `desc` alanına
+  `'Sizes: ' . <ham Türkçe>` yazıyor ve **`desc` hiçbir yerde `t()`'den
+  geçmiyor**. Sayısal/harfli bedenler (75, 80/85, S-M, XL, A/B/C kap) evrensel,
+  çevrilmez — sözlüğün kendi ilkesi bu.
+- **ÜRÜN ADI da 8 dilde** (operatör kararı, 10 Eyl 2026, açıkça soruldu).
+  `kuloglu-vocab.php`'nin kendi ölçümü *"bir ilanın `name`/`desc` alanı hiçbir
+  yerde `t()`'den geçmiyor"* diyor — yani bugün çevrilmiş bir başlığın
+  **basılacağı yer yok**. Ayakkabı ithalatında ad tek ve İngilizce bırakılmıştı;
+  operatör bu katalog için **aksini** seçti. Gereken: ilanda dil bazlı ad alanı
+  (`name_i18n`) ve onu **basan** yol — ürün sayfası, katalog kartı, sepet,
+  sipariş satırı, fatura ve line sheet. *Alan eklemek yetmez: bu depoda
+  "toplanan ama okunmayan alan" (KURAL 5j, platform künyesi) bir kez yaşandı.*
+  Ad çevrilirken `desc` de aynı sorunu taşıyor — ikisi birlikte çözülmeli.
+- **Sadece toptan:** `vestra_dropship_excluded_sections()`'a `underwear`
+  eklendi (ayakkabıyla aynı mekanizma). Tedarikçide satış birimi **paket**
+  (6'lı, 100'lü seri); tek parça diye bir şey yok.
+- **En az alım 300 EUR = SEPETTEKİ NBB TOPLAMI** (operatör kararı, 10 Eyl 2026;
+  üç okuma sunuldu, bu seçildi). VESTRA'da bugün **sepet düzeyinde asgari tutar
+  kavramı yok** — mevcut MOQ tek ilanın *adedi*, yani bu yeni bir kapı.
+  Ölçüt **marka**: sepetteki NBB satırlarının toplamı 300 EUR'nun altındaysa
+  sipariş onaylanamaz; diğer bölmelerin satırları bu toplama girmez. Kapı
+  **sunucuda** olmalı — düğmeyi gizlemek kapı değildir (KURAL 4b'nin `/offer`
+  dersi) — ve eksik tutar hem ürün sayfasında hem sepette **8 dilde** yazılmalı:
+  neyin eksik olduğunu söylemeyen bir engel, alıcıya sepeti terk ettirir.
+- **CANLIYA HİÇBİR ŞEY YAZILMADAN ÖNCE ÖNİZLEME** (*"siteye atmadan önce test
+  olarak göster bana"*) — KURAL 18'in katalog hâli. Fotoğrafta Türkçe metin
+  varsa o kare **yayına girmez**; tek fotoğrafı da elenen ilan yayımlanmaz.
+- **Tedarikçi maliyeti herkese açık günlüğe basılmaz** (3 Eyl 2026 dersi).
+  %50 kâr bilinirken satış fiyatını basmak maliyeti de ele verir; önizleme
+  operatörün kendi sunucusunda, dizine kapalı ve bağlantısız bir adreste.
+
 ## Operasyonel notlar
 
 - Deploy `claude/wizardly-planck-7ylnmk` dalına **push ile** tetiklenir.
@@ -1714,6 +1920,96 @@ dönmek zorundadir"*).
     bağlantılar yalnızca `vestra_seo_resolve()` ile **açıldığı doğrulanan**
     `/b2b` ve `/wholesale` sayfalarına (KURAL 9). Yazma **geri okunuyor**.
   - Test: `tests/journal_auto_test.php` (47 iddia).
+  - **10 Eyl 2026, operatör: *"journal icin yazdigim otomasyon calismamis"*.
+    ÖLÇÜLDÜ: otomasyon ÇALIŞIYOR.** `cron_probe` — crontab satırı kurulu
+    (`20 7 * * * … cron_journal.php`), **8 Eyl 14:20 UTC'de yazıyı YAYIMLADI**
+    (*"New in stock: 335 new lines from Pili Pérez"*, 9 dil, kapak, canlı URL),
+    **9 Eyl 14:20'de kuralı uygulayıp SUSTU** (`yeni ilan 0, eşik 3`), 10 Eyl
+    koşusu ise **daha gerçekleşmemişti** (sunucu yereli 00:41 MST, iş 07:20 MST
+    — 6,5 saat sonra). Yani "çalışmadı" diye görünen şey, kuralın kendisi.
+  - **Sebep katalogda:** 671 ilanın **en yenisi 3 Eylül** (o gün 40 ilan).
+    8 Eylül'den beri **hiç yeni ilan yok**, dolayısıyla malzeme yok. Aradaki
+    işler (beden serileri, fiyat/MOQ, satıcı değişiklikleri) **DÜZENLEME**;
+    kurucu yalnız **yeni ilan** sayıyor.
+  - **Sondaya eklendi, çünkü tek satır iki ayrı durumu gizliyordu:**
+    `yeni ilan 0` hem "hiç eklenmedi" hem "eklendi ama `added_at` yok" demek
+    olabiliyordu (`added_at` yoksa ürün yeni sayılmaz) ve ikisi de operatöre
+    "bozuk" görünür. Artık katalogun kendi tarihleri de basılıyor: kaç ilanda
+    alan var/yok, en yeni ekleme günleri ve **bir sonraki koşunun ölçeceği
+    pencere**. Ölçümde **3 ilanda `added_at` yok** — onlar hiçbir rapora
+    giremez (küçük ama gerçek boşluk).
+  - **Operatör kararı bekliyor:** günlük yayın isteniyorsa eşiği düşürmek
+    çözmez (sayı 0, 1-2 değil). Gerçek seçenek, "malzeme"nin tanımını
+    genişletmek — yeni ilanın yanına **fiyat/MOQ değişikliği, yeni renk, stok
+    tazeleme** eklemek. Bu, müşterinin gördüğü şeyi değiştirdiği için
+    bilinçli bir karar; KURAL 9 (ince içerik alan adına zarar verir) ve
+    KURAL 2c (her gün "hiçbir şey" yazan bildirim okunmamayı öğretir)
+    yüzünden kendiliğinden yapılmadı.
+  - **Bağlantı bloğu artık ÜSTTE ve koleksiyonun KENDİSİ listenin başında**
+    (operatör, 10 Eyl 2026: *"Perezin linkine ayakkabilari koy oraya
+    yönlensin.... üst bölümde dursun"*). İki ayrı kusurdu: (1) blok **en
+    sondaydı**, kapanış cümlesinin hemen üstünde — rapor markaları ve rakamları
+    sayıyor ama *"peki bunları nerede göreceğim"* sorusunun cevabı yalnızca
+    sonuna kadar okuyana ulaşıyordu; (2) blok **BÖLMEyi hiç vermiyordu**, yalnız
+    marka ve kategori sayfalarını, yani 335 ayakkabılık rapor okuyucuyu
+    "Pili Pérez"e ve "Sneakers"a yolluyor, **ayakkabı koleksiyonuna**
+    yollamıyordu. `$sections` toplanıp **ilk** basılıyor (bölme → marka →
+    kategori: genişten dara). Bölme bağlantısı da diğerleri gibi
+    `vestra_seo_resolve()` ile kapılı (KURAL 9), her koşuda yeniden.
+  - **Yayımlanmış raporu YENİDEN KURMA yolu:** `journal-seed.yml` →
+    `rebuild_auto=true` (`rebuild_apply` varsayılan **false**). Aynı kurucuyu
+    `$now = makalenin created damgası` ve `ignorePrevious=true` ile çağırır.
+    O bayrak **yalnız burada** gerekli: pencere son otomatik rapordan başlıyor
+    ve makalenin **kendisi** o rapor, yani vermezsek pencere sıfır genişlikte
+    çıkıp kurucu atlıyor. **Günlük koşu bu bayrağı ASLA vermez** — testte
+    iddia var; verseydi her sabah aynı ilanları yeniden duyururdu.
+  - **Yalnız METİN taşınır: `slug`/`id`/`created`/`published`/`cover` makalenin
+    kimliğidir.** Kurucu her çağrılışında **yeni bir slug üretiyor** ve mevcut
+    slug alınmış olduğu için `-2` ekliyor; yükü olduğu gibi yazsaydık makalenin
+    **adresi değişir**, yayımlanmış her bağlantı 404 olurdu. Yazma geri okunuyor
+    ve slug/created/cover değişmişse iş **kırmızı** biter.
+  - **Ölçüm karakterle, baytla değil.** "Blok üst yarıda mı" iddiası ilk koşuda
+    `ru` ve `ja`'da düştü: `strpos` **bayt** sayıyor, `mb_strlen` **karakter**.
+    Kod doğruydu, ölçünün birimi yanlıştı — `mb_strpos`/`mb_substr`.
+  - **Canlı sonuç (10 Eyl 2026):** 8 Eylül raporu yerinde yeniden kuruldu.
+    Bağlantılar EN'de **%62 → %21**, sekiz çevirinin **hepsi** üst yarıda,
+    liste artık **Footwear — /b2b/footwear** ile açılıyor; slug ve created
+    değişmedi. Test: `journal_auto_test.php §6` (54 iddia).
+- **Journal makalesi KENDİ figürlerini taşır; konusu genel değilse havuz
+  kullanılmaz** (10 Eyl 2026, Amazon yazısı). Dosya kuralı
+  `uploads/journal/art-<slug>-{cover,1..N}.svg`; ad slug'a bağlı olduğu için
+  başka yazıya sızmıyor, `credits.json`'da sanatçı olmadığı için genel havuza
+  da girmiyor. Kredili havuz **genel moda fotoğrafçılığı**; devir yapısını
+  anlatan bir yazının yanındaki askılık fotoğrafı dolgu gibi okunuyor — bu
+  mekanizma tam bunun için var.
+  - `<title>` = alt metni, `<desc>` = altyazı; **ikisi farklı olmalı** ve alt
+    **140 karakterde kırpılıyor** (`vestra_journal_photo_desc`). İki başlığım
+    cümle ortasından kesildi, kısaltıldı — kırpılmış bir alt, gören
+    okuyucunun görmediği bir kusur.
+  - **XML yorumunun içinde `--` GEÇERSİZ.** İki dosya bu yüzden
+    well-formed değildi; tarayıcı yutuyor, `svg_meta` regex olduğu için o da
+    yutuyordu, yani hata **hiçbir yerde görünmüyordu**. Yazdıktan sonra
+    `ElementTree` ile ayrıştır.
+  - **Çizimi OKUYARAK değil, ÇİZDİREREK doğrula.** Beş figür ekran görüntüsü
+    alınıp iki kez düzeltildi: `⊕` işareti "tescilli marka" değil **"ekle"**
+    diye okunuyordu, bir kilit ait olduğu şirket çerçevesinden **kopuk**
+    duruyordu, ve bir ok başı çizgisiyle **buluşmuyordu**. Üçü de kaynakta
+    doğru görünüyordu.
+  - Kapak `viewBox 0 0 800 520` + `slice`; **21:9 kırpma yalnız y 88..431'i**
+    bırakıyor, motif oraya sığmalı. Kırpmayı önizlerken bandı **doğru yere
+    hizala** — ilk önizlememde y 0..342'yi gösterdim ve kapağı yanlış yerden
+    yargıladım.
+- **Konu hakkında hafızadan yazma; kural değişmiş olabilir** (10 Eyl 2026,
+  Amazon yazısı). Operatör *"Amazon hesaplarinin satisi ve alisi… yasal olmasi
+  icin ne yapilir"* dedi. Araştırıldı: Amazon'un Business Solutions
+  Agreement'ı **24 Ağustos 2026'da** (yayın 29 Mayıs) değişip hakların
+  **devrini/temlikini ve teminata verilmesini açıkça yasakladı** — yani
+  "hesap satmak" artık gri alan değil. Hafızadan yazsaydım yazı **üç hafta
+  eski** bir dünyayı anlatacaktı. Birincil kaynaklar (Seller Central, BSA PDF)
+  bu ortamda **egress engelli**; birden çok ikincil kaynak karşılaştırıldı ve
+  metinde tarih/atıf **yazılı**. Şu an ayakta olan alıcı şirketlerin **adı
+  verilmedi** — doğrulanamıyor, ve yanlış bir isim listesi yazının en kolay
+  çürüyen yeri olurdu (KURAL 3'ün yazı hâli).
 - **Trafik sayacı GOOGLE'IN YARISINI ziyaretçi sayıyordu** (operatör, 8 Eyl 2026:
   *"US · Mountain View, böyle biri sürekli siteye giriyor her gün — gerçek bir
   kişi mi yoksa google bot mu? araştır ve IP'sine bak"*).
@@ -1800,6 +2096,33 @@ dönmek zorundadir"*).
   4 üründen geliyor (ikisi hem adda hem açıklamada eşleşti). **Katalogda başka
   hiçbir ürün oversize/boxy/relaxed demiyor**; 37 beyan ise tersini, dar kalıbı
   söylüyor. Yani kanıta dayanarak değiştirilecek başka model yok.
+- **KATALOG SUSUYORSA KAYNAK İNTERNETTİR — ve kalıbı taşıyan STİL NUMARASIDIR**
+  (operatör, 9 Eyl 2026: *"GG Print T-Shirt XJDEZ … bunlar oversize sanırım …
+  internetten araştır oversize olanların hepsine uygula"*).
+  - Katalogdaki **hiçbir Gucci ilanı kalıp belirtmiyor**, yani kendi verimiz bu
+    soruyu cevaplayamıyor. Operatör de "sanırım" dedi. Hafızadan "Gucci'ler
+    oversize'dır" demek KURAL 3'ün ta kendisi olurdu; araştırma yapıldı.
+  - **Bulgu: `616036` Gucci'nin OVERSIZE tişört silueti.** Beş ayrı kumaş kodunda
+    bağımsız kaynaklarla doğrulandı: `616036-XJDV9` *"in an oversize fit"*
+    (BUYMA), `616036-XJDC-L` *"The North Face x Gucci **Oversize** T-Shirt"*
+    (GOAT), `616036-XJDEZ-9791` *"Gucci x Doraemon **Oversized** T-shirt"*
+    (Kickscrew + Reversible + Solesense). Uygulananlar: `guc-t01`, `guc-t02`,
+    `guc-t03`, `guc-t04`, `guc-t07`.
+  - **KUMAŞ KODU TEK BAŞINA KALIBI TAŞIMAZ.** `guc-t06`'nın kodu `XJD3X` ama tam
+    kodu `548334-XJD3X-9095` — **farklı bir stil numarası**, SS22 Tiger, tarifi
+    *"slightly loose fit"*. Oversize değil, **dokunulmadı**. Kumaş kodundan
+    marka çıkarımı yapan bir kural bunu da değiştirirdi.
+  - **Çözülemeyenler bırakıldı:** `XJD3W`, `XJDVI`, `XJDX31`, `XJDXM`, `XJDXN`
+    hiçbir perakendecide indekslenmiyor, `guc-t12` ise iç SKU (`VS-GU-T01`).
+    D&G/Casablanca/BALMAIN/Burberry kodları da aranabilir değil. *Bulamamak,
+    "oversize değil" demek değil — bilmiyoruz demek, ve bilmediğimiz için
+    dokunmadık.*
+  - **Katalog adları güvenilmez:** `XJDEZ` bizde *"GG Print T-Shirt, White"*
+    yazıyor ama gerçek ürün **Doraemon x Gucci** (White/Blue). Kalıp kararı bu
+    yüzden **ada değil koda** dayandırıldı; arama yaparken de ad kullanılamaz.
+  - `desc` ile `sizes` **birlikte** yazıldı (aşağıdaki Balenciaga dersi); paket
+    son eki `10 pcs/pack` korundu. Kuru koşu 5 ilanda 10 alan dedi ve canlı
+    `desc` metinleri çıkarımla birebir uyuştu.
 - **Ama iki DSQUARED2 kendi içinde çelişiyor:** `dsq-101213` adı *"Graphic
   T-Shirt (Oversized)"*, açıklaması *"100% cotton, **regular fit**"*;
   `dsq-101237` adı *"Oversized Fit T-Shirt"*, açıklaması yine *"regular fit"*.

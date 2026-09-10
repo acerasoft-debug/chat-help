@@ -119,8 +119,14 @@ $t('kesim tek govdede', str_contains($ofs, 'function vestra_offers_combined_invo
 /* Kurucular: onizlemenin formdaki orani tasiyabilmesi icin override sart. */
 $t('tek satirlik kurucu override aliyor', str_contains($ofs, 'vestra_offer_invoice_payload(string $ref, string $sellerPickOverride') && str_contains($ofs, '?float $vatRateOverride = null'));
 $t('birlesik kurucu override aliyor',     substr_count($ofs, '?float $vatRateOverride = null') >= 2);
-$t('taslak yollari orani geciriyor',      str_contains($adm, 'vestra_offer_invoice_payload($ref, $pick, $vn, $sh, $vr)')
-                                       && str_contains($adm, 'vestra_offers_combined_invoice_payload($refs, $pick, $vn, $sh, false, $vr)'));
+/* Cagriyi TAM metniyle sabitlemek yerine ORANIN GECTIGI yer araniyor: iddia
+   "oran taslaga tasiniyor mu" demeli, "argumanlar bugun tam olarak sunlar"
+   dememeli. Ilk yazimda kapanis parantezi de iddiadaydi ve kurucuya kardes bir
+   alan (para birimi) eklenince iddia, oran hala geciyorken KIRMIZI dondu --
+   olcugu seyi degil, yazimini koruyan bir iddia. Prefix yine dar: $vr
+   dusurulurse ya da sirasi degisirse duser. */
+$t('taslak yollari orani geciriyor',      str_contains($adm, 'vestra_offer_invoice_payload($ref, $pick, $vn, $sh, $vr')
+                                       && str_contains($adm, 'vestra_offers_combined_invoice_payload($refs, $pick, $vn, $sh, false, $vr'));
 
 echo "\nTOPLAM: {$ok} gecti, {$fail} kaldi\n";
 exit($fail === 0 ? 0 : 1);

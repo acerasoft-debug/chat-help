@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid slice">
+  <title>An outer company frame crossing a boundary line while the small account frame inside it stays put</title>
+  <desc>Cover: the company changes hands, the contract inside it never moves.</desc>
+  <rect width="800" height="520" fill="#3a2016"/>
+  <g stroke="#7a4026" stroke-width="1" opacity=".9">
+    <path d="M0 130h800M0 260h800M0 390h800M200 0v520M400 0v520M600 0v520"/>
+  </g>
+  <!-- Devir sinirini gosteren dikey esik -->
+  <path d="M400 118v284" stroke="#f0c9a0" stroke-width="2" stroke-dasharray="10 12" opacity=".55"/>
+  <!-- SOL: eski sahiplik — sadece cerceve, ici bos -->
+  <g fill="none" stroke="#f0c9a0" stroke-width="3" opacity=".38">
+    <rect x="214" y="168" width="150" height="184" rx="14"/>
+  </g>
+  <g fill="#f0c9a0" opacity=".14">
+    <rect x="238" y="196" width="102" height="12" rx="6"/>
+    <rect x="238" y="222" width="70" height="12" rx="6"/>
+  </g>
+  <!-- SAG: yeni sahiplik — disi sirket, ici sozlesme (hesap) -->
+  <g fill="none" stroke="#f0c9a0" stroke-width="3">
+    <rect x="436" y="150" width="298" height="220" rx="16"/>
+    <rect x="486" y="204" width="130" height="112" rx="10"/>
+  </g>
+  <g fill="#f0c9a0" opacity=".24">
+    <rect x="506" y="228" width="90" height="10" rx="5"/>
+    <rect x="506" y="250" width="66" height="10" rx="5"/>
+    <rect x="506" y="272" width="78" height="10" rx="5"/>
+  </g>
+  <!-- Ic cerceve yerinde kaliyor: kilit halkasi -->
+  <g fill="none" stroke="#f0c9a0" stroke-width="3">
+    <path d="M636 246v-14a20 20 0 0 1 40 0v14"/>
+    <rect x="628" y="246" width="56" height="44" rx="8"/>
+  </g>
+  <!-- Sahiplik oku: disi cerceveyi esikten gecirir -->
+  <path d="M300 402h360" stroke="#f0c9a0" stroke-width="3"/>
+  <path d="M646 390l22 12-22 12z" fill="#f0c9a0"/>
+  <circle cx="289" cy="402" r="8" fill="#3a2016" stroke="#f0c9a0" stroke-width="3"/>
+</svg>

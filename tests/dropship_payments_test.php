@@ -98,8 +98,13 @@ $t('sipariş kaydı okuyucusu duruyor',             function_exists('dropship_al
 $t('API list ucu duruyor',                        str_contains($src('api/dropship.php'), "\$action === 'list'"));
 $t('API stock ucu duruyor',                       str_contains($src('api/dropship.php'), "\$action === 'stock'"));
 $t('panel sekmesi duruyor',                       str_contains($src('admin.php'), "elseif(\$tab==='dropship')"));
-/* Bölme yasağı (ayakkabı) ödeme anahtarından BAĞIMSIZ kalmalı: ikisi ayrı karar. */
-$t('ayakkabı yasağı yerinde',                     vestra_dropship_excluded_sections() === ['footwear']);
+/* Bölme yasağı ödeme anahtarından BAĞIMSIZ kalmalı: ikisi ayrı karar.
+   İddia listenin TAMAMINI sabitliyordu ve 10 Eyl 2026'da iç çamaşırı eklenince
+   kırmızıya döndü — oysa ölçmesi gereken şey "ayakkabı yasağı ödeme anahtarından
+   etkilenmiyor mu". Sabitlediği şey davranış değil, listenin o günkü uzunluğuydu
+   (bu depoda `invoice_vat_test`'te bir kez daha oldu). Daraltıldı: yasağın ORADA
+   olduğunu tutuyor, listeye kimin katıldığını değil. */
+$t('ayakkabı yasağı yerinde',                     in_array('footwear', vestra_dropship_excluded_sections(), true));
 
 echo "\n== 6. Ortak siparişten ÖNCE haberdar ==\n";
 $api = $src('api/dropship.php');
