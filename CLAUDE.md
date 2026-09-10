@@ -379,6 +379,12 @@ gerekli"*).
   kovalıyor — satırsız bir satıcıdan belge beklenirken süre işliyordu, yani
   istenmeyen bir belge yüzünden askıya alınmak (KURAL 2f'nin tuzağı). Cron
   **kuru koşuda yazmıyor** (`!$DRY`); deploy kanaryası `--dry` ile koşuyor.
+- **Mevcut 4 hesap ne zaman düzelir:** tamamlama bir **tetikleyiciyle** çalışıyor
+  (sayfa/panel açılışı ya da günlük cron), sonda ise dosyayı doğrudan okuyor —
+  yani deploy'dan hemen sonraki ölçüm hâlâ "4 eksik" der ve bu **doğrudur**.
+  Dördü de satıcı, dolayısıyla `cron_seller_docs.php`'nin bir sonraki koşusu
+  (13:50 UTC) hepsini açar; operatör hesabı `Admin ▸ Documents`'ta açarsa
+  **anında** düzelir. Sonda salt-okunur kalıyor: teşhis yazmaz.
 - **`VESTRA_ACCOUNTS` artık `defined()` korumalı.** Korumasızken testin hesap
   deposunu geçici dosyaya yönlendirmesi mümkün değildi ve ilk yazımda test
   **gerçek `data/accounts.json`'a yazdı** (`putenv` ile env kurmuştum, oysa yol
