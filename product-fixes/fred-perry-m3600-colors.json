@@ -1,4 +1,0 @@
-[
-  { "match": "fp-m3600-polo", "expect": 1,
-    "colors": ["White", "Green", "Black", "Navy", "Bordeaux"] }
-]
