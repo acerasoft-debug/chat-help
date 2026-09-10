@@ -430,6 +430,21 @@ jobs:
               $v = require $tmp;
               @unlink($tmp);
               if (!function_exists('nbb_name_i18n')) { fwrite(STDERR, "nbb-vocab.php yuklendi ama fonksiyonlar yok\n"); exit(1); }
+              /* SEKIL DENETIMI -- raw.githubusercontent BIR CDN ve kopyasi BAYAT
+                 olabiliyor. 10 Eyl 2026'da tam bu oldu: nbb_desc()'e paket adedi
+                 parametresi eklendi, uc dakika sonra kosan export BAYAT kopyayi
+                 cekti ve PHP kullanici fonksiyonlarina FAZLA argumani sessizce
+                 yok saydigi icin hicbir hata cikmadi -- 42 ilanin aciklamasi,
+                 MOQ'su 1 olanlar dahil, "paket halinde satilir" diye yazildi ve
+                 canliya oyle indi.
+                 Bir bagimliligi ag uzerinden cekiyorsan SURUMUNU DOGRULA: burada
+                 beklenen imza (3 parametre) ve NOPACK tablosunun varligi. */
+              $ref = new ReflectionFunction('nbb_desc');
+              if ($ref->getNumberOfParameters() < 3 || !defined('NBB_DESC_FMT_NOPACK')) {
+                fwrite(STDERR, "nbb-vocab.php BAYAT (nbb_desc paket adedi almiyor / NOPACK tablosu yok) -- "
+                             . "raw.githubusercontent onbellegi. Birkac dakika bekleyip tekrar calistirin.\n");
+                exit(1);
+              }
               return $v;
             }
 
