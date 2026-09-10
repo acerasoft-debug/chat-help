@@ -627,6 +627,12 @@ function ku_is_size(string $raw): bool {
     $s = trim(mb_strtoupper($raw));
     if ($s === '') return false;
     if (preg_match('~^(XXS|XS|S|M|L|XL|XXL|XXXL|XXXXL)$~u', $s)) return true;
+    /* Q-EN buyuk bedenleri "3XL / 4XL" diye yaziyor, NBB "XXXL" diye. Ayni
+       olcu, iki yazim. Taninmadigi surece varyanttan DUSUYORDU ve olculdu:
+       800-B, 802-B, 804-B onizlemede BEDENSIZ cikti -- yani ilan vitrinde
+       tek bir beden bile gostermeyecekti. Tedarikcinin kendi yazimi
+       korunuyor (XXXL'e cevirmek, ilanda olmayan bir etiket uydurmak olurdu). */
+    if (preg_match('~^[2-9]XL$~u', $s)) return true;
     if (preg_match('~^\d{1,3}$~u', $s)) return true;              // 70..110, 1..5
     if (preg_match('~^\d{2,3}\s*[A-E]$~u', $s)) return true;       // "80 C"
     return false;
@@ -638,6 +644,18 @@ function ku_is_size(string $raw): bool {
  */
 function ku_is_one_size(string $raw): bool {
     return in_array(trim(mb_strtoupper($raw)), ['STANDART', 'STD', 'TEK EBAT', 'TEK BEDEN'], true);
+}
+
+/**
+ * "ASORTİ" RENK DEGIL: paketin karisik renk geldigini soyluyor.
+ * Paletteki `Other` yakalayicisina birakmak olculdu ve YANLIS okunuyor --
+ * alici tek, adsiz bir renk gorur, oysa dogru bilgi "karisik". Renk olarak
+ * hic uretilmiyor; onun yerine ADA "assorted colours" ozelligi giriyor.
+ * (NBB 2404'un bes NEON renginin `Other`'a dusmesi CLAUDE.md'de zaten
+ * kayitli bir zayiflik; burada bedeli gorunur oluyor.)
+ */
+function ku_is_assorted(string $raw): bool {
+    return (bool)preg_match('~^ASORT[İI]~u', trim(mb_strtoupper($raw)));
 }
 
 /* Dizi olarak da doner: workflow bu dosyayi raw.githubusercontent'ten cekip

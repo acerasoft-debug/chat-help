@@ -500,7 +500,12 @@ jobs:
                kupali band olculeri ("80 C") band sonra kup. Alfabetik siralama
                "100, 105, 75, 80" verirdi -- toptancinin okudugu ilk sey bu satir. */
             function ku_sort_sizes(array $sizes): array {
-              $ladder = ['XXS'=>1,'XS'=>2,'S'=>3,'M'=>4,'L'=>5,'XL'=>6,'XXL'=>7,'XXXL'=>8,'XXXXL'=>9];
+              /* "3XL"/"4XL" tedarikcinin ikinci yazimi; merdivende XXXL/XXXXL ile
+                 AYNI basamakta duruyorlar ki "XXL, 3XL, 4XL" dogru sirayla
+                 basilsin (aksi halde harfli olmayan dal calisir ve alfabetik
+                 siralanip "3XL, 4XL, XXL" cikardi). */
+              $ladder = ['XXS'=>1,'XS'=>2,'S'=>3,'M'=>4,'L'=>5,'XL'=>6,'XXL'=>7,
+                         'XXXL'=>8,'3XL'=>8,'XXXXL'=>9,'4XL'=>9,'5XL'=>10,'6XL'=>11];
               usort($sizes, function ($a, $b) use ($ladder) {
                 $ra = $ladder[strtoupper($a)] ?? null; $rb = $ladder[strtoupper($b)] ?? null;
                 if ($ra !== null && $rb !== null) return $ra <=> $rb;
@@ -543,7 +548,8 @@ jobs:
 
               $paletteOf = function (string $raw) use ($vocab): ?string {
                 $k = ku_color_key($raw);
-                if ($k === '' || ku_is_one_size($k)) return null;      // "STANDART" renk degil
+                // "STANDART" ve "ASORTİ" renk DEGIL -- ikisi de swatch uretmemeli.
+                if ($k === '' || ku_is_one_size($k) || ku_is_assorted($k)) return null;
                 if (isset($vocab['ku_colors'][$k]['palette'])) return $vocab['ku_colors'][$k]['palette'];
                 return $vocab['palette_map'][$k] ?? null;
               };
