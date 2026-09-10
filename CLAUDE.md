@@ -1104,10 +1104,21 @@ sorundu.**
   `invoice_vat_test`'in kablolama iddiası çağrının **tam metnini** sabitliyordu
   ve kurucuya kardeş bir alan eklenince, oran hâlâ doğru geçerken kırmızı döndü
   — ölçtüğü şeyi değil, yazımını koruyan bir iddia; daraltıldı.
-- **Operatör kararı bekliyor:** ya platform künyesine bir **EUR/IBAN** hesabı
-  girilir (`Admin ▸ Orders ▸ Platform billing & bank details`), ya da
-  kurasyonlu maldan çıkan faturalar **USD** kesilir. Kod ikisini de destekliyor;
-  hangisinin doğru olduğunu VESTRA'nın hangi hesaba tahsilat yaptığı belirler.
+- **Canlı sonuç, aynı gün:** operatör panelden USD'yi seçip **INV-2026-1012**'yi
+  kesti — mal €1.050 + kargo €30 → **US$1.255,17**, kur `1 EUR = 1,1622 USD
+  (ECB 4 Eyl 2026)` belgede yazılı. Kesilmiş belge yeniden çizdirilip denetlendi
+  (`reply_letter=invoice_draft`, `ref=OCD7D2`): **ödeme kutusu ÇIKAR (6 satır)**.
+  Aynı teklifin EUR taslağı **ÇIKMAZ** diyordu; fark tek başına para biriminde.
+- **Kalıcı seçenek, operatör kararı:** platform künyesine bir **EUR/IBAN** hesabı
+  girilirse (`Admin ▸ Orders ▸ Platform billing & bank details`) kurasyonlu
+  maldan EUR fatura da ödeme kutulu çıkar. Kod ikisini de destekliyor; hangisinin
+  doğru olduğunu VESTRA'nın hangi hesaba tahsilat yaptığı belirler.
+- **Taslak özeti artık soruyu doğrudan cevaplıyor:** hem `invoice_combine_draft`
+  hem `invoice_draft` `odeme kutusu : CIKAR (n satir) / *** CIKMAZ ***` basıyor
+  ve bunu **çizicinin okuduğu aynı fonksiyondan** (`vestra_payment_rails`)
+  alıyor. Satır **sayısı** yazılıyor, satırların kendisi değil — IBAN ve hesap
+  numarası taşıyorlar, kütük herkese açık. *"Banka bilgileri neden yok"
+  sorusunun cevabı, numarayı yakmadan önce okunan satırda durmalı.*
 
 **KURAL 5k — Siparişe NAVLUN yazılabilir; tutar ile TOPLAM birlikte hareket eder**
 (operatör, 7 Eyl 2026: *"kargo bölümü yok kargo eklemek gerekiyor 100 usd
