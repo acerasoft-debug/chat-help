@@ -776,13 +776,22 @@ function vestra_product_desc(array $p): string {
  * musteri katalogu bastan aramak zorunda kaliyordu.
  *
  * REFERRER HAM KULLANILMIYOR. Yalnizca (a) KENDI alan adimiz ve (b) BILINEN bir
- * liste yolu kabul ediliyor:
+ * GEZINME yolu kabul ediliyor:
  *   - ham referrer'i href'e basmak acik yonlendirme kapisidir (baska bir siteye
  *     "geri" diye gonderen bir dugme),
  *   - "javascript:" / "data:" gibi bir sema XSS'e acilir,
  *   - ve disaridan gelen icin "geri" zaten dogru yer degil: o zaman katalog.
  * Sema/host atiliyor, yalnizca yol + sorgu geri veriliyor; boylece cikan adres
  * her zaman bizim sitemizde kaliyor.
+ *
+ * LISTE NEDEN HALA IZIN LISTESI (operator, 11 Eyl 2026: *"tam kataloga degil bir
+ * geri sayfaya nereden geldiyse oraya goturusun"*). Istenen "her yer" ama bu
+ * sitede GET ile IS YAPAN uclar var -- olculdu: `login?signout` oturumu kapatiyor,
+ * `offer-accept`, `verify`, `lead-unsubscribe` jeton harciyor. "Ayni alan adindaki
+ * her yolu kabul et" deseydik "geri" dugmesi bunlardan birini YENIDEN CAGIRABILIRDI.
+ * Izin listesi bu sinifi YAPISI GEREGI disarida tutuyor: jeton uclari gezinme
+ * sayfasi degil, yani listeye hic girmiyorlar. Liste tahminle degil OLCUMLE
+ * dolduruldu -- `grep 'product?id='` ile urune baglanti veren her sayfa sayildi.
  */
 function vestra_back_link(string $fallback = '/shop'): array {
     $out = ['url' => $fallback, 'label' => t('Back to catalog')];
@@ -801,19 +810,40 @@ function vestra_back_link(string $fallback = '/shop'): array {
     $strip = fn(string $h): string => preg_replace('/^www\./', '', preg_replace('/:\d+$/', '', $h)) ?? $h;
     if ($host !== '' && $self !== '' && $strip($host) !== $strip($self)) return $out;
 
-    $path = '/'.ltrim((string)$u['path'], '/');
-    /* Liste sayfalari. Urun sayfasindan urun sayfasina "geri" anlamsiz; panel ve
-       sepet zaten kendi navigasyonunu tasiyor. */
+    /* Ters bolu ONCE duzeltiliyor: '/\evil.com' bazi tarayicilarda '//evil.com'
+       diye normallesir ve sema-goreli bir adres olur -- yani site disina cikan bir
+       "geri". ltrim tek basina bunu kapatmiyor. Izin listesi de yakalardi ama
+       guvenlik listeyi hatirlamaya bagli kalmasin. */
+    $path = '/'.ltrim(str_replace('\\', '/', (string)$u['path']), '/');
+
+    /* Urune baglanti VEREN her sayfa (olculdu). Jeton/aksiyon uclari bilerek yok:
+       /login /verify /offer-accept /lead-unsubscribe -- bunlar gezilecek sayfa
+       degil ve "geri" onlari yeniden tetiklerdi. /admin de yok: operator paneli
+       kendi navigasyonunu tasiyor ve ?dl= gibi sorgulari var. */
     /* Duz str_starts_with YETMEZ: '/shop' oneki '/shopping-cart'i da yakalardi ve
        "geri" dugmesi sepete goturur. Ya TAM esitlik ya da '/' ile devam eden yol --
        bu depoda ayni ders blocklist'te mango/zara olarak duruyor. */
-    $ok = false;
-    foreach (['/shop', '/b2b', '/wholesale', '/price-list', '/price-lists', '/groups', '/journal', '/search'] as $pre) {
+    $ok = ($path === '/');            // ana sayfa: marka duvari ve kategori seridi urune gidiyor
+    if (!$ok) foreach (['/shop', '/b2b', '/wholesale', '/price-list', '/price-lists',
+                        '/groups', '/group', '/journal', '/search', '/showroom',
+                        '/dropship', '/dropshipping', '/requests', '/request',
+                        '/buyer', '/seller', '/product'] as $pre) {
         if ($path === $pre || str_starts_with($path, $pre.'/')) { $ok = true; break; }
     }
     if (!$ok) return $out;
 
     $q = isset($u['query']) && $u['query'] !== '' ? '?'.$u['query'] : '';
+
+    /* Kendine donen "geri" bozuk bir dugmedir: ayni urun sayfasi (ornegin
+       ?err=sizes ile kendine donmus bir gonderim) ya da birebir ayni adres. */
+    $selfUri = (string)($_SERVER['REQUEST_URI'] ?? '');
+    if ($path.$q === $selfUri) return $out;
+    if ($path === '/product' || str_starts_with($path, '/product/')) {
+        parse_str((string)($u['query'] ?? ''), $rq);
+        parse_str((string)(parse_url($selfUri, PHP_URL_QUERY) ?? ''), $sq);
+        if (($rq['id'] ?? '') !== '' && ($rq['id'] ?? '') === ($sq['id'] ?? '')) return $out;
+    }
+
     return ['url' => $path.$q,
             'label' => ($path === '/shop' || str_starts_with($path, '/shop/')) ? t('Back to catalog') : t('Back')];
 }

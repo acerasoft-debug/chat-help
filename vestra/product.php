@@ -95,10 +95,28 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
            yolu + sorgu dizesi (suzgec ve sayfa numarasi korunur). */
         $__back = vestra_back_link(); ?>
   <div class="crumbs" style="margin-top:24px">
-    <a class="crumb-back" href="<?= htmlspecialchars($__back['url']) ?>">← <?= htmlspecialchars($__back['label']) ?></a>
+    <a class="crumb-back" id="crumbBack" href="<?= htmlspecialchars($__back['url']) ?>">← <?= htmlspecialchars($__back['label']) ?></a>
     <span class="crumb-sep">·</span>
     <a href="/"><?= t('Home') ?></a> · <a href="/shop"><?= t('Catalog') ?></a> · <?= htmlspecialchars($p['brand']) ?>
   </div>
+  <?php /* GERCEK "bir sayfa geri" (operator, 11 Eyl 2026). href sunucudan gelen
+           adres -- dogru yere goturuyor ama adresi YENIDEN CEKIYOR, yani 200 urun
+           asagida tikladiysaniz listenin BASINA donuyorsunuz. Tarayicinin kendi
+           gecmisi kaydirma konumunu koruyor, o yuzden gercekten gezinerek gelmis
+           ziyaretcide history.back() tercih ediliyor.
+           href KALIYOR: JS'siz tarayici, orta tik ve "yeni sekmede ac" calissin
+           diye -- ve dogrudan gelende (referrer yok) zaten tek dogru yer o. */ ?>
+  <script>(function(){
+    var a=document.getElementById('crumbBack'); if(!a) return;
+    var r=document.referrer; if(!r) return;
+    try{ if(new URL(r).origin!==location.origin) return; }catch(e){ return; }
+    if(r===location.href) return;              // kendine donen geri, bozuk dugmedir
+    if(history.length<2) return;               // gecmis yoksa href dogru olan
+    a.addEventListener('click',function(e){
+      if(e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey) return; // yeni sekme bozulmasin
+      e.preventDefault(); history.back();
+    });
+  })();</script>
 
 <?php if(!$MEMBER): ?>
   <!-- Unregistered visitors get the product rendered but unreadable: the whole detail block

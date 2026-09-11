@@ -3609,14 +3609,63 @@ estetik ya"*).
 - `vestra_back_link()` (`inc/products.php`) — ürün sayfasının kırıntı satırında
   `← Back to catalog`. Hedef **Referer**'dan geliyor ama Referer başkasının
   yazdığı bir başlık: yabancı alan adı, `javascript:`/`data:` şeması ve site
-  içinde bile **liste olmayan** yollar (sepet, panel, ürün) `/shop`'a düşüyor.
+  içinde bile **liste olmayan** yollar `/shop`'a düşüyor.
   Kabul edilen önekler tam eşitlik ya da `/` ile devam: düz `str_starts_with`
   ile `/shop` öneki **`/shopping-cart`**'ı da yakalıyordu — mango/zara dersinin
-  aynısı, testte iki yönü de var (`tests/back_link_test.php`, 31 iddia).
+  aynısı, testte iki yönü de var (`tests/back_link_test.php`).
   Sorgu parametreleri korunuyor: `/shop?section=footwear`'dan girip "geri"
   deyince kataloğun başına değil **bulunduğu yere** dönüyor.
 - **Etiket iki sözlük anahtarından** (`Back`, `Back to catalog`) — ikisi de 8
-  dilde zaten vardı, yeni anahtar eklenmedi (KURAL 10).
+  dilde zaten vardı, yeni anahtar eklenmedi (KURAL 10). Yerelde çizdirildi:
+  `Zurück` / `Retour` / `Indietro` / `Atrás`.
+
+**"Geri" tam olarak BİR SAYFA geri olmalı** (operatör, 11 Eyl 2026: *"ürün
+sayfalarinda olan back to catalog tam kataloga degil bir geri sayfaya nereden
+geldiyse oraya götürsün"*).
+- **Sebep ölçüldü, tahmin edilmedi:** izin listesi yalnız 8 giriş taşıyordu ve
+  `grep 'product?id='` ile sayılınca ürüne bağlantı veren **altı sayfa daha**
+  çıktı — **ana sayfa** (marka duvarı + kategori şeridi), `showroom`, `group`,
+  `dropship`, `requests`, alıcı/satıcı paneli ve **ürün sayfasının kendisi**.
+  Hepsi kataloğun başına düşüyordu; operatörün şikâyeti tam bu küme.
+- **Liste NEDEN hâlâ izin listesi.** İstenen "her yer" ama bu sitede **GET ile
+  iş yapan uçlar** var — ölçüldü: `login?signout` **oturumu kapatıyor**,
+  `offer-accept` / `verify` / `lead-unsubscribe` jeton harcıyor. "Aynı alan
+  adındaki her yolu kabul et" deseydik "geri" düğmesi bunlardan birini yeniden
+  çağırabilirdi. İzin listesi bu sınıfı **yapısı gereği** dışarıda tutuyor:
+  jeton ucu gezinme sayfası değil, yani listeye hiç girmiyor. Falsifikasyon
+  bunu doğruladı — `$ok = true` yapılınca **13 kırmızı**, biri `/login?signout=1`.
+  *Panellerin GET parametreleri okundu* (`view`, `added`, `connect`, `dl_claim`):
+  hepsi salt-okunur, o yüzden `/buyer` ve `/seller` sorgusuyla kabul ediliyor.
+- **Kendine dönen "geri" bozuk düğmedir:** aynı ürün (ör. `?err=sizes` ile
+  kendine dönmüş bir gönderim) ve birebir aynı adres `/shop`'a düşüyor. BAŞKA
+  bir ürün sayfası kabul — A'dan B'ye geçtiyseniz "geri" A'dır.
+- **Asıl düzeltme JS tarafında: `history.back()`.** Sunucudan gelen adres doğru
+  yere götürüyor ama adresi **yeniden çekiyor** — 200 ürün aşağıda tıklayan
+  alıcı listenin **başına** dönüyor. Kaydırma konumunu yalnız tarayıcının kendi
+  geçmişi koruyor. `href` **kalıyor**: JS'siz tarayıcı, orta tık ve "yeni
+  sekmede aç" bozulmasın diye — ve doğrudan gelende (referrer yok) zaten tek
+  doğru yer o. Devralma yalnız **düz sol tıkta** (`button!==0`, meta/ctrl/shift/
+  alt hariç) ve yalnız referrer **aynı kökende + `history.length>1`** iken.
+- **Ters bolu normalizasyonu eklendi** (`\` → `/`): `/\evil.example` bazı
+  tarayıcılarda `//evil.example` diye çözülür, yani site dışına çıkan bir
+  "geri". İzin listesi bunu zaten kapatıyor; satır, listeyi bir gün genişleten
+  birinin kapıyı sessizce açmaması için duruyor.
+- **Yerelde ÇİZDİRİLDİ** (kaynak okumak ölçüm değil): 11 referrer durumu tek tek
+  çekildi — ana sayfa `/`, `/shop?section=underwear`, `/showroom?uid=abc`,
+  `/b2b/bras`, `/buyer?view=…`, `/requests`, başka ürün → hepsi **geldiği yere**;
+  aynı ürün, `/login?signout=1`, yabancı site, referrer yok → **`/shop`**.
+  PHP uyarısı **0**, betik sayfada basılıyor.
+- Test: `tests/back_link_test.php` (**56 iddia**). Dört sabotajla düşebildiği
+  doğrulandı: eski dar liste → **9 kırmızı**, kendine-dönüş muhafazası kalkınca
+  **3**, "her yolu kabul et" → **13**, `history.back()` bloğu silinince **6**.
+  **Bir iddiam hiç düşemiyordu ve falsifikasyon yakaladı:** düz `history.back()`
+  aranıyordu, o dizge bloğun **açıklama satırında** da geçiyor — blok tamamen
+  silinince bile yeşil kalıyordu; iddia artık kodun kendi satırına bağlı.
+  *Sabotajın GERÇEKTEN uygulandığını da doğrula:* ilk `perl -0pi` denemem hiçbir
+  şey değiştirmemişti ve "0 kırmızı" diyerek testi sağlam göstermişti.
+- **Davranış bilerek değiştiği için test de düzeltildi** (bu deponun kendi
+  kuralı): `/buyer → /shop`, `/product → /shop`, `/ → /shop` iddiaları artık
+  eski ve **istenmeyen** davranışı koruyordu.
 - **Fotoğraf zemini ölçümle seçildi:** katalogdaki 35 fotoğrafın **33'ü** beyaz
   fonlu paket çekimi (kenar pikseli ortalaması > 225). `object-fit: cover` +
   koyu zemin bunları kırpıyor ve ürünü karartıyordu; artık fotoğraflı karo
