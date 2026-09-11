@@ -205,8 +205,36 @@ jobs:
                 if ($bySec) { echo "bolme dagilimi:\n"; foreach ($bySec as $k => $v) echo "  {$k}: {$v}\n"; }
                 else echo "  (hicbir bolmede fiyat degisikligi yok)\n";
                 echo "yedekten bu yana EKLENEN ilan: {$newOnes}   SILINEN: {$gone}\n\n";
-                foreach (array_slice($rows, 0, 400) as $r) echo $r."\n";
-                if (count($rows) > 400) echo "  ... (".(count($rows)-400)." satir daha)\n";
+                /* Ornek satirlar KISA tutuluyor ve OZET SONA TEKRAR basiliyor:
+                   Actions kutugunun yalnizca sonu okunabiliyor, 400 satirlik bir
+                   liste bastaki ozeti kuyruktan dusuruyor (CLAUDE.md'nin
+                   get_job_logs notu). Sayim karar icin yeterli, liste ornek. */
+                foreach (array_slice($rows, 0, 12) as $r) echo $r."\n";
+                if (count($rows) > 12) echo "  ... (".(count($rows)-12)." satir daha)\n";
+                /* Oran dagilimi: kac ilan hangi carpanla degismis. Tek bir zam mi
+                   yoksa ust uste binmis iki zam mi oldugunu bu satir soyluyor. */
+                $byRatio = [];
+                foreach ($nowArr as $np) {
+                    $id = (string)($np['id'] ?? ''); if ($id === '' || !isset($byId[$id])) continue;
+                    $a = $lowest($byId[$id]); $b = $lowest($np);
+                    if ($a <= 0 || abs($a - $b) < 0.005) continue;
+                    $k = vestra_product_section($np).' x'.number_format($b / $a, 4);
+                    $byRatio[$k] = ($byRatio[$k] ?? 0) + 1;
+                }
+                ksort($byRatio);
+                echo "\n=== OZET (bolme x oran -> kac ilan) ===\n";
+                foreach ($byRatio as $k => $v) echo "  {$k}  ->  {$v} ilan\n";
+                $stamp = [];
+                foreach ($nowArr as $np) {
+                    if (!isset($np['markup_pct'])) continue;
+                    $k = vestra_product_section($np).' damga %'.(float)$np['markup_pct'];
+                    $stamp[$k] = ($stamp[$k] ?? 0) + 1;
+                }
+                ksort($stamp);
+                echo "=== ZAM DAMGALARI (bugun kayitta duran) ===\n";
+                if ($stamp) { foreach ($stamp as $k => $v) echo "  {$k}  ->  {$v} ilan\n"; }
+                else echo "  (damga yok)\n";
+                echo "FIYATI DEGISEN TOPLAM: ".count($rows)."\n";
                 exit(0);
             }
 
