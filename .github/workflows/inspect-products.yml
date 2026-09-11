@@ -6,6 +6,14 @@ on:
         description: "Marka filtresi — * = HEPSI. Boş bırakma: GitHub boş değeri 'verilmedi' sayıp varsayılanı uygular"
         required: false
         default: "*"
+      bak_diff:
+        # "Fiyatlari eskiye getir" denince once SORULACAK sey: gercekten ne
+        # degisti? Kor bir geri yukleme, operatorun KENDI istedigi degisiklikleri
+        # (Balmain tabani, Fred Perry asgarileri) de siler. Bu mod salt okunur:
+        # yedekle bugunku dosyayi karsilastirip FARKI bolme bolme yazar.
+        description: "YEDEKLE KARSILASTIR: 'list' = sunucudaki listings.json yedeklerini tarih/boyutla listeler. Bir yedek adi (ya da 20260910-204756 gibi damga) verilirse o yedekle bugünkü dosyanın FİYAT farkını bölme bölme yazar. Salt okunur."
+        required: false
+        default: ""
       cat:
         description: "Kategori filtresi, tam eşleşme (boş = hepsi)"
         required: false
@@ -42,14 +50,6 @@ on:
         description: "true = ürün adı/kategori/beden/renk alanlarında TÜRKÇE metin ara (toptan liste İngilizce olmalı)"
         required: false
         default: "false"
-      bak_diff:
-        # "Fiyatlari eskiye getir" denince once SORULACAK sey: gercekten ne
-        # degisti? Kor bir geri yukleme, operatorun KENDI istedigi degisiklikleri
-        # (Balmain tabani, Fred Perry asgarileri) de siler. Bu mod salt okunur:
-        # yedekle bugunku dosyayi karsilastirip FARKI bolme bolme yazar.
-        description: "YEDEKLE KARSILASTIR: 'list' = sunucudaki listings.json yedeklerini tarih/boyutla listeler. Bir yedek adi (ya da 20260910-204756 gibi damga) verilirse o yedekle bugünkü dosyanın FİYAT farkını bölme bölme yazar. Salt okunur."
-        required: false
-        default: ""
       price_audit:
         description: "true = FIYAT TUTARSIZLIK DENETIMI: her urunde ilan edilen fiyat (list) ile sepetin MOQ'da gercekten hesapladigi fiyati (vestra_unit_price) karsilastirir, farkli olanlari yazar. Gonderim/gorsel yok, salt okunur."
         required: false
