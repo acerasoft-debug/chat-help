@@ -3466,6 +3466,34 @@ Operatör: *"underwear i 20 zamla, digerlerini zaten cekmis olmamiz lazim"*.
   %20), diğer iki bölme dokunulmamış. *Aynı hedefe iki günde iki kez varıldı;
   farkı yaratan, ikinci seferde bölme süzgecinin verilmiş olması.*
 
+**KURAL 23 — Mesaj silinebilir; kimlik DİZİN NUMARASI değil, kaydın kendi
+içeriğidir** (operatör, 11 Eyl 2026: *"bu mesajlari sil ve silme özelligide koy
+mesajlara"*).
+- İki ayrı kayıt, iki ayrı silici: engellenen deneme kaydı
+  (`vestra_msg_blocked_delete`, `data/blocked_messages.json`) ve konuşmadaki tek
+  mesaj (`vestra_msg_delete`, `data/messages.json`). Panelde `Admin ▸ Messages`:
+  engellenen satırlarda ve her mesajın yanında 🗑.
+- **Anahtar içerikten türüyor** (`sha1(at|from|text)`), dizin numarasından
+  değil. Panel satırı çizdiği an ile silme isteğinin sunucuya vardığı an
+  arasında log'a yeni kayıt düşebilir — bu depoda aynı anda birden fazla oturum
+  yazıyor — ve kayan bir dizin **yanlış satırı** silerdi. Silinen şey bir
+  moderasyon izi olduğu için bunu kimse fark etmezdi. İçerik anahtarı ya doğru
+  satırı bulur ya **hiç** bulamaz. Test bunu araya kayıt sokarak ölçüyor
+  (`tests/msg_delete_test.php §2`; anahtar içerikten türemeyince 6 kırmızı).
+- **Önce yedek, sonra silme, sonra GERİ OKUMA.** Kopya
+  `data/message_backups/` altına zaman damgasıyla yazılıyor (KURAL 5g'nin teklif
+  silme şartı); yazma sessizce düşerse panel "silindi" demesin diye dosya geri
+  okunup anahtarın gittiği doğrulanıyor.
+- **`last_at` yeniden hesaplanıyor.** Son mesaj silindiğinde güncellenmezse
+  konuşma, artık var olmayan bir mesajın tarihiyle sıralanır. Konuşma
+  boşalırsa iplik de kapanır — tıklanabilir ama içeriksiz bir kayıt kalmasın.
+- **Silmek karşı tarafın gördüğünü geri almaz:** mesaj çoktan okunmuş ve
+  bildirim e-postası gitmiş olabilir. Onay metni bunu açıkça yazıyor; "sildim"
+  sanıp konuşmanın devamını ona göre kurmak olmayan bir şey varsaymak olurdu.
+- **CSRF alanı şart.** Panelde her POST global olarak doğrulanıyor
+  (`_csrf`); alanı unutan bir form `csrf_fail` ile döner, yani **düğme görünür
+  ama hiç çalışmaz**. İlk yazımda unutuldu, test kabloyu de denetliyor.
+
 **KURAL 22 — Toplu ZAM ayrı bir araçtır ve TEKRARLANAMAZ** (operatör, 10 Eyl
 2026: *"underwear ürünlerine yüzde 20 zam yap bütün ürünlere"*).
 - `set-prices.yml` yalnızca **indirim** biliyordu (`discount_pct`). Zam onun

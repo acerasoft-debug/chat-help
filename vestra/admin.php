@@ -368,6 +368,19 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     }
     header('Location: /admin?tab=offers&msg='.($okDel?'offer_deleted':'offer_del_fail')); exit;
   }
+  /* Mesaj silme (operator, 11 Eyl 2026). Anahtar kaydin ICERIGINDEN turuyor,
+     dizin numarasindan degil -- bkz. inc/messages.php'deki not. Silinen kayit
+     once zaman damgali yedege yaziliyor. */
+  if($act==='msg_blocked_del'){
+    require_once __DIR__.'/inc/messages.php';
+    $r=vestra_msg_blocked_delete((string)($_POST['key']??''));
+    header('Location: /admin?tab=messages&msg='.($r['ok']?'bmsg_deleted':'bmsg_del_fail')); exit;
+  }
+  if($act==='msg_del'){
+    require_once __DIR__.'/inc/messages.php';
+    $r=vestra_msg_delete((string)($_POST['tid']??''),(string)($_POST['key']??''));
+    header('Location: /admin?tab=messages&msg='.($r['ok']?(!empty($r['thread_gone'])?'msg_deleted_thread':'msg_deleted'):'msg_del_fail')); exit;
+  }
   /* Fatura ODENDI isareti: alici panelindeki "odenmesi gereken fatura"
      uyarisini kapatan tek sey. Birincil ref'in kaydinda durur. */
   if($act==='offer_invoice_paid_toggle'){
@@ -2508,6 +2521,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'offer_accept' =>'✓ Teklif kabul edildi ve alıcıya bildirildi. Fatura kesilmedi: Invoice approvals sekmesinden onaylayın.',
     'offer_decline'=>'Teklif reddedildi ve alıcıya bildirildi.',
     'offer_deleted'=>'✓ Teklif silindi (offers.csv yedeklendi). Onay kuyruğundan da düştü.',
+    'bmsg_deleted'=>'✓ Engellenen deneme kaydı silindi (kopyası data/message_backups altında).',
+    'bmsg_del_fail'=>'⚠ Kayıt silinemedi — sayfayı yenileyip tekrar deneyin (bu arada başka bir kayıt eklenmiş olabilir).',
+    'msg_deleted'=>'✓ Mesaj silindi (kopyası data/message_backups altında). Karşı taraf mesajı zaten görmüş olabilir.',
+    'msg_deleted_thread'=>'✓ Mesaj silindi; konuşmanın son mesajı olduğu için konuşma da kapandı.',
+    'msg_del_fail'=>'⚠ Mesaj silinemedi — sayfayı yenileyip tekrar deneyin.',
     'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
     'sec_blocked'=>'✓ IP engellendi — o ağdan gelen her istek artık 403 alıyor.',
@@ -5925,14 +5943,21 @@ elseif($tab==='messages'):
 <div class="acard" style="margin-bottom:16px;border-color:rgba(239,154,154,.35)">
   <div class="acard-hd"><h3 style="color:#c0392b">⚠️ Blocked off-platform attempts (<?= count($blockedMsgs) ?>)</h3></div>
   <div class="acard-body"><div class="atscroll"><table class="atable">
-    <?= arow(['When','Sender','Thread','Type','Attempted text'],true) ?>
-    <?php foreach(array_reverse($blockedMsgs) as $bm): ?>
+    <?= arow(['When','Sender','Thread','Type','Attempted text',''],true) ?>
+    <?php foreach(array_reverse($blockedMsgs) as $bm):
+      /* Anahtar satirin ICERIGINDEN turuyor: panel ile sunucu ayni kaydi
+         gosterdigi surece esleser, arada log'a yeni satir dusse bile kaymaz. */
+      $bmKey = vestra_msg_blocked_key($bm); ?>
     <?= arow([
       htmlspecialchars(substr($bm['at']??'',0,16)),
       '<b>'.htmlspecialchars($accLabel($bm['from']??'')).'</b>',
       htmlspecialchars($accLabel($bm['buyer_uid']??'')).' ↔ '.htmlspecialchars($accLabel($bm['seller_uid']??'')),
       abadge(strtoupper($bm['flag']??''),'#c0392b'),
       '<span style="font-size:11px;color:var(--mut)">'.htmlspecialchars(mb_substr($bm['text']??'',0,120)).'</span>',
+      '<form method="post" onsubmit="return confirm('.htmlspecialchars(json_encode('Bu engellenen deneme kaydı silinsin mi? Kopyası sunucuda yedeklenir.'), ENT_QUOTES).')" style="margin:0">'
+        .csrfField()
+        .'<input type="hidden" name="_action" value="msg_blocked_del"><input type="hidden" name="key" value="'.htmlspecialchars($bmKey).'">'
+        .'<button class="abtn abtn-sm" type="submit" title="Kaydı sil">🗑</button></form>',
     ]) ?>
     <?php endforeach; ?>
   </table></div></div>
@@ -5964,10 +5989,23 @@ elseif($tab==='messages'):
   <div class="acard-body">
     <details><summary style="cursor:pointer;font-size:12px;color:var(--acc)">Read conversation</summary>
       <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
-        <?php foreach(($th['messages']??[]) as $m): $isBuyer=($m['from']??'')===($th['buyer_uid']??''); ?>
+        <?php foreach(($th['messages']??[]) as $m): $isBuyer=($m['from']??'')===($th['buyer_uid']??'');
+          $mKey = vestra_msg_key($m); ?>
         <div style="font-size:12.5px;line-height:1.5">
           <b style="color:<?= $isBuyer?'#3366cc':'#9a7320' ?>"><?= htmlspecialchars($accLabel($m['from']??'')) ?></b>
           <span class="ahint" style="margin-left:6px"><?= htmlspecialchars(substr($m['at']??'',0,16)) ?></span>
+          <?php /* Silme KARSI TARAFIN gordugunu geri almaz -- mesaj coktan
+                   okunmus ve e-posta bildirimi gitmis olabilir. Onay metni
+                   bunu soyluyor; "sildim" sanip konusmanin devamini ona gore
+                   kurmak, olmayan bir sey varsaymak olurdu. */ ?>
+          <form method="post" style="display:inline;margin-left:6px"
+                onsubmit="return confirm('Bu mesaj silinsin mi?\n\nKopyası sunucuda yedeklenir. Karşı taraf mesajı zaten görmüş ve bildirim e-postasını almış olabilir — silmek onu geri almaz.')">
+            <?= csrfField() ?>
+            <input type="hidden" name="_action" value="msg_del">
+            <input type="hidden" name="tid" value="<?= htmlspecialchars($th['id']??'') ?>">
+            <input type="hidden" name="key" value="<?= htmlspecialchars($mKey) ?>">
+            <button class="abtn" type="submit" style="font-size:10px;padding:1px 6px;color:#c0392b" title="Mesajı sil">🗑</button>
+          </form>
           <div><?= htmlspecialchars($m['text']??'') ?></div>
         </div>
         <?php endforeach; ?>

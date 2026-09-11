@@ -170,6 +170,94 @@ function vestra_msg_blocked_log(): array {
     return is_array($d) ? $d : [];
 }
 
+/* ── SILME ────────────────────────────────────────────────────────────────
+ *
+ * Operator, 11 Eyl 2026: *"bu mesajlari sil ve silme ozelligide koy mesajlara"*.
+ *
+ * KIMLIK DIZIN NUMARASI DEGIL, KAYDIN KENDI ICERIGI. Panel satiri cizerken
+ * gordugu sira ile silme istegi sunucuya vardiginda ki sira ayni olmayabilir:
+ * bu depoda ayni anda birden fazla oturum yaziyor ve arada yeni bir engellenen
+ * mesaj log'a dusebilir. Numaraya gore silseydik kayan bir dizin YANLIS satiri
+ * silerdi -- ve silinen sey bir moderasyon kaydi oldugu icin bunu kimse fark
+ * etmezdi. Anahtar iceriginden turedigi icin ya dogru satiri bulur ya HIC
+ * bulamaz; ikisi de sessiz yanlis silmeden iyidir.
+ */
+function vestra_msg_blocked_key(array $e): string {
+    return substr(sha1(($e['at'] ?? '').'|'.($e['from'] ?? '').'|'.($e['text'] ?? '')), 0, 12);
+}
+function vestra_msg_key(array $m): string {
+    return substr(sha1(($m['at'] ?? '').'|'.($m['from'] ?? '').'|'.($m['text'] ?? '')), 0, 12);
+}
+
+/** Silinen kaydin zaman damgali kopyasi. Moderasyon izi geri donulmez sekilde
+ *  yok olmasin -- KURAL 5g'de teklif silmenin ayni sarti var. */
+function vestra_msg_backup(string $tag, array $rec): string {
+    $dir = dirname(__DIR__).'/data/message_backups';
+    if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    $f = $dir.'/'.$tag.'-'.date('Ymd_His').'.json';
+    @file_put_contents($f, json_encode($rec, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), LOCK_EX);
+    return $f;
+}
+
+/** Engellenen deneme kaydini siler. Doner: ['ok'=>bool,'error'=>string,'backup'=>string] */
+function vestra_msg_blocked_delete(string $key): array {
+    if ($key === '') return ['ok'=>false, 'error'=>'empty_key'];
+    $f = dirname(__DIR__).'/data/blocked_messages.json';
+    $log = vestra_msg_blocked_log();
+    $out = []; $hit = null;
+    foreach ($log as $e) {
+        if ($hit === null && is_array($e) && vestra_msg_blocked_key($e) === $key) { $hit = $e; continue; }
+        $out[] = $e;
+    }
+    if ($hit === null) return ['ok'=>false, 'error'=>'not_found'];
+    $bak = vestra_msg_backup('blocked-'.$key, $hit);
+    file_put_contents($f, json_encode(array_values($out), JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), LOCK_EX);
+    /* Yazdigini GERI OKU: dosya kilitli ya da disk dolu oldugunda
+       file_put_contents sessizce basarisiz olur ve panel "silindi" derdi. */
+    clearstatcache();
+    foreach (vestra_msg_blocked_log() as $e) {
+        if (is_array($e) && vestra_msg_blocked_key($e) === $key) return ['ok'=>false, 'error'=>'still_there', 'backup'=>$bak];
+    }
+    return ['ok'=>true, 'backup'=>$bak];
+}
+
+/** Bir konusmadaki TEK mesaji siler. Konusma bosalirsa konusma da gider --
+ *  tek mesaji silinmis bos bir iplik panelde tiklanabilir ama iceriksiz durur.
+ *  Doner: ['ok'=>bool,'error'=>string,'backup'=>string,'thread_gone'=>bool] */
+function vestra_msg_delete(string $threadId, string $key): array {
+    if ($threadId === '' || $key === '') return ['ok'=>false, 'error'=>'empty_key'];
+    $threads = vestra_msg_threads();
+    $hit = null; $goneThread = false; $out = [];
+    foreach ($threads as $t) {
+        if (($t['id'] ?? '') !== $threadId) { $out[] = $t; continue; }
+        $msgs = [];
+        foreach ((array)($t['messages'] ?? []) as $m) {
+            if ($hit === null && is_array($m) && vestra_msg_key($m) === $key) { $hit = $m; continue; }
+            $msgs[] = $m;
+        }
+        if ($hit === null) { $out[] = $t; continue; }
+        if (!$msgs) { $goneThread = true; continue; }
+        $t['messages'] = $msgs;
+        /* 'last_at' konusma listesini siralayan alan; son mesaj silindiginde
+           guncellenmezse iplik listede olmayan bir mesajin tarihiyle durur. */
+        $last = '';
+        foreach ($msgs as $m) { $a = (string)($m['at'] ?? ''); if ($a > $last) $last = $a; }
+        if ($last !== '') $t['last_at'] = $last;
+        $out[] = $t;
+    }
+    if ($hit === null) return ['ok'=>false, 'error'=>'not_found'];
+    $bak = vestra_msg_backup('msg-'.substr($threadId, 0, 16).'-'.$key, ['thread'=>$threadId, 'message'=>$hit]);
+    vestra_msg_save_threads($out);
+    clearstatcache();
+    foreach (vestra_msg_threads() as $t) {
+        if (($t['id'] ?? '') !== $threadId) continue;
+        foreach ((array)($t['messages'] ?? []) as $m) {
+            if (is_array($m) && vestra_msg_key($m) === $key) return ['ok'=>false, 'error'=>'still_there', 'backup'=>$bak];
+        }
+    }
+    return ['ok'=>true, 'backup'=>$bak, 'thread_gone'=>$goneThread];
+}
+
 function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, string $text, string $listingId=''): array {
     $text = trim(preg_replace('/[ \t]+/', ' ', (string)$text));
     if ($text === '' || $buyerUid === '' || $sellerUid === '') return ['ok'=>false, 'error'=>'empty'];
