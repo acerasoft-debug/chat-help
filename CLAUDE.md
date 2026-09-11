@@ -2990,6 +2990,48 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   göndermeyi göze almak gerekiyor; bir lead bunu hak etmiyor.
   Bu sınıf tekrar ederse doğru çözüm panele küçük bir `rename_lead` eylemi
   eklemektir (id ile bul, yalnız `company` alanını yaz, damgalara dokunma).
+**KURAL 23 — Müşteriye giden mektup YALNIZCA `support@vestrasales.com`'dan
+çıkar; operatörün Gmail'i gönderen olamaz** (operatör, 11 Eyl 2026:
+*"acerasoft@gmail.com dan hic bir müsteriye email gitmeyecek sadece
+support@vestrasales.com dan gidecek brevo üzerinden"*).
+- **Önce ölçüldü** (`diag-messages` → `mailcfg`): canlı ayar **zaten**
+  `mail_enabled=true | provider=brevo | from=support@vestrasales.com`. Yani
+  bugün hatalı bir mektup gitmiyor — bu bir düzeltme değil, bir **kapı**.
+- **Asıl bulgu kural değil KOPYAYDI:** aynı olgu **dört** yerde okunuyordu ve
+  dördüncüsü aynı şeyi söylemiyordu — `vestra_smtp_send`, `smtp_from` boşsa
+  **`smtp_user`'a düşüyordu**. API yolu bir gün kotayı doldurup SMTP yedeğine
+  düştüğünde müşteri mektubu SMTP kullanıcısının adresinden giderdi. Bu depoda
+  "aynı olgu birkaç yerde yazılı" hatası defalarca kayıtlı (`desc`/`sizes`,
+  faturanın üç katmanı, dört mektup gövdesi); buradaki bedeli müşterinin
+  kutusunda **yanlış gönderici** olurdu.
+- Tek karar noktası `vestra_mail_from(?array $cfg, string $candidate)`
+  (`inc/notify.php`) ve **saf**: ayarı çağıran okur, hangi adresin
+  kullanılacağına o karar verir. Üç gönderim yolu da (api / smtp / php-mail)
+  onu çağırıyor; hiçbiri `$from`'u artık doğrudan ayardan okumuyor.
+- **Ölçüt ALAN ADI, adres değil.** Operatörün cümlesi tek bir kutu yazıyor ama
+  kuralın anlamı "kişisel Gmail değil, şirket adresi": `sales@vestrasales.com`
+  yarın açılırsa engellenmemeli, `support@vestrasales.com.tr` ya da
+  `notvestrasales.com` ise **tam eşitlik** olmadığı için ev adresine düşer
+  (mango/zara dersi). Adres adını sabitlemek uydurma bir kısıt olurdu.
+- **Satıcının KENDİ transportu (`$cfg`) kapsam DIŞI**, bilerek: o özellik
+  "gerçekten onlardan gitsin" diye var ve kendi kimliklerini polislemek bize
+  düşmez. `$cfg !== null` ise aday adres aynen dönüyor.
+- **Zorlama sessiz değil:** ezildiğinde `error_log`'a düşüyor ve yerel kısım
+  **maskeli** (o kütük teşhis çıktısına giriyor, çıktı herkese açık).
+- **Operatörün Gmail'i ALICI olarak kalıyor** — `ops_email`, cron raporları,
+  `buyer_reply`'ın boş `to` varsayılanı hep onun kutusu. Kural gönderen
+  hakkında; teşhis mektubunu kendi kutusuna almak değişmedi.
+- Brevo'da **iki gönderici de hâlâ aktif** (`a***@gmail.com` / "Acerasoft LLC"
+  ve `s***@vestrasales.com` / "VESTRA"), yani sağlayıcı tarafı bu kuralı
+  zorlamıyor — zorlayan şey kod.
+- Test: `tests/mail_sender_test.php` (23 iddia, iki yön). Düşebildiği
+  doğrulandı: alan adı kontrolü kaldırılınca **6 kırmızı**, smtp yolu eski
+  hâline döndürülünce **4**. *İlk yazımda smtp kablolama iddiası `.*?` ile
+  yazılmıştı ve HİÇ DÜŞMÜYORDU: `vestra_smtp_send` dosyada `vestra_api_send`'den
+  önce geliyor, tembel nokta bir sonraki fonksiyonun çağrısına uzanıp orada
+  eşleşiyordu. Arama artık fonksiyon gövdesiyle sınırlı — "hiç düşemeyen bir
+  iddia, iddia değildir" bu depoda zaten kayıtlıydı ve bir kez daha oldu.*
+
 - Brevo **ücretsiz plan**; `credits` alanı `sendLimit` tipinde (günlük gönderim
   hakkı), 1 Eylül 2026'da **288**. Her test bir hak yiyor.
 - Brevo'da kayıtlı **tek gönderen adres operatörün kendi Gmail'i** ("Acerasoft LLC");
@@ -3238,6 +3280,21 @@ brandslerden.."* + *"250 ad."*).
   Test: `tests/set_prices_markup_test.php` (50 iddia; kum havuzunda betiği
   gerçekten koşturuyor). Üç sabotajla düşebilirliği doğrulandı: damga kapalı
   → 4 kırmızı, `list` yükselmiyor → 8, bölme süzgeci yok → 6.
+- **İKİNCİ ZAM: %80, TÜM KATALOG** (operatör, 11 Eyl 2026: *"fiyatlari yüzde 80
+  ekle üstüne"*; kapsam **soruldu** — cümlede marka/bölme yoktu ve 2 ilanla 827
+  ilan arasındaki fark geri alınamaz bir farktı — operatör **"tüm katalog"**
+  seçti). Run `34586885284`: **827 ilan, 1.662 alan**, numune fiyatlı 2 ürüne
+  dokunulmadı, zaman damgalı yedek. Geri okuma **underwear DIŞINDAN** yapıldı
+  (Fred Perry): polo €39 → **€70,20** (kademeler 63,90 / 57,60), sweatshirt
+  €39,90 → **€71,82** — hepsi tam ×1,8. *Kâr oranı bilinen bir katalogda fiyat
+  basmak maliyeti ele verir; doğrulama marjı kayıtlı OLMAYAN bir markadan
+  yapılır ve `show_prices` kapalı bırakılır.*
+- **Bileşik etki, operatöre söylenerek seçildi:** underwear dün %20 almıştı,
+  yani orada taban artık **2,16×**. İthalat tarafı için sonuç: maliyet ×1,5
+  ×1,2 ×1,8 = **×3,24**, yani bir sonraki Kuloğlu koşusu `price|224` ile
+  koşulmalı. `price|50` (hatta dünkü nota göre `price|80`) ile koşmak **iki
+  zammı birden sessizce geri alır**. *Damga `listings.json`'a inmediği için bu
+  sayıyı tutan tek yer burası.*
 - **UYGULANDI, 10 Eyl 2026** (run `34528478617`): bölme `underwear`, **146
   ilan**, 292 alan (her ilanın `list`'i + bir kademesi), atlanan 0, zaman
   damgalı yedek alındı. 146 = 42 NBB + Q-EN/Visatin partisi; `set-prices`

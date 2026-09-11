@@ -2571,6 +2571,42 @@ function vestra_email_deliverable(string $e): bool {
     return true;
 }
 
+/* Hangi adresten çıkıyoruz — TEK karar noktası (operatör, 11 Eyl 2026:
+ * "acerasoft@gmail.com dan hic bir müsteriye email gitmeyecek sadece
+ * support@vestrasales.com dan gidecek brevo üzerinden").
+ *
+ * Bu olgu DÖRT ayrı yerde okunuyordu ve dördü aynı şeyi söylemiyordu:
+ * vestra_api_send `mail_from`, PHP-mail yolu yine `mail_from`, vestra_smtp_send
+ * ise `smtp_from` — ve o sonuncusu boşsa **`smtp_user`'a düşüyordu**, yani
+ * SMTP kullanıcısı bir Gmail ise yedek yol müşteriye o adresten yazardı.
+ * Kuralın hatırlanmaya bırakılması yetmiyor; kontrol gönderim yolunda.
+ *
+ * Karar SAF: ayarı çağıran okur, hangi adresin kullanılacağına burası karar
+ * verir — böylece test edilebiliyor ve üç yol da aynı cevabı alıyor.
+ *
+ * İki şey BİLEREK dışarıda:
+ *  - Satıcının KENDİ transportu ($cfg): o özellik zaten "gerçekten onlardan
+ *    gitsin" diye var; kendi kimliklerini polislemek bize düşmez.
+ *  - Şirket alan adındaki BAŞKA bir kutu (sales@…): operatör yarın açarsa
+ *    engellememeli. Kural "kişisel Gmail değil, şirket adresi" — alan adı
+ *    testi bunun dürüst okuması; adres adı adı sabitlemek uydurma bir kısıt
+ *    olurdu. Alan adı dışındaki her şey ev adresine düşer. */
+function vestra_mail_platform_domain(): string { return 'vestrasales.com'; }
+function vestra_mail_house_address(): string { return 'support@vestrasales.com'; }
+function vestra_mail_from(?array $cfg, string $candidate): string {
+  $candidate = trim($candidate);
+  if($cfg!==null) return $candidate;                 // satıcının kendi transportu
+  $house = vestra_mail_house_address();
+  if($candidate==='') return $house;
+  $dom = strtolower((string)substr((string)strrchr($candidate,'@'), 1));
+  if($dom === vestra_mail_platform_domain()) return $candidate;
+  /* Sessizce düzeltmek, yanlış ayarı görünmez yapardı. Yerel kısım maskeli:
+     error_log satırları teşhis çıktısına giriyor ve o kütük herkese açık. */
+  error_log('[VESTRA Mail] platform gondericisi '.$house.' olarak zorlandi (ayarda: '
+            .preg_replace('/^(.).*(@.*)$/','$1***$2',$candidate).')');
+  return $house;
+}
+
 function vestra_send_mail($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$heroImage='',array $opts=[]){
   /* TRIM once, and carry the trimmed value onward. Validating the trimmed
      string but sending the raw one would pass a trailing space straight to
@@ -2622,7 +2658,7 @@ function vestra_send_mail($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,
     if(!$ok) error_log("[VESTRA Mail] SMTP send failed to {$to} — subject: {$subject}");
     return $ok;
   }
-  $from=vestra_cfg('mail_from','support@vestrasales.com');
+  $from=vestra_mail_from(null, (string)vestra_cfg('mail_from',''));
   $dispName=$fromName!==''?$fromName:'VESTRA';
   $boundary='vestra-'.bin2hex(random_bytes(12));
   $h ="From: {$dispName} <{$from}>\r\n";
@@ -2640,7 +2676,10 @@ function vestra_smtp_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,
   $g=fn($k,$d)=> $cfg!==null ? ($cfg[$k]??$d) : vestra_cfg($k,$d);
   $host=$g('smtp_host',''); $port=(int)$g('smtp_port',587);
   $user=$g('smtp_user',''); $pass=$g('smtp_pass','');
-  $from=$g('smtp_from','')?:$user; $name=$fromName!==''?$fromName:$g('smtp_name','VESTRA');
+  /* `smtp_from` boşsa eskiden `smtp_user`'a düşüyordu: SMTP kullanıcısı bir
+     Gmail ise yedek yol müşteriye o adresten yazardı. Artık aynı karardan
+     geçiyor — satıcının kendi transportunda ($cfg) davranış aynen korunuyor. */
+  $from=vestra_mail_from($cfg, (string)($g('smtp_from','')?:$user)); $name=$fromName!==''?$fromName:$g('smtp_name','VESTRA');
   if($host===''||$user===''||$pass===''||$from===''){ error_log('[VESTRA SMTP] smtp_host set but user/pass/from missing'); return false; }
 
   $fp=@fsockopen($host,$port,$errno,$errstr,15);
@@ -2690,7 +2729,7 @@ function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$
   $g=fn($k,$d)=> $cfg!==null ? ($cfg[$k]??$d) : vestra_cfg($k,$d);
   $provider=strtolower((string)$g('mail_api_provider','brevo'));
   $key=(string)$g('mail_api_key','');
-  $from=(string)$g('mail_from','support@vestrasales.com');
+  $from=vestra_mail_from($cfg, (string)$g('mail_from',''));
   $name=$fromName!==''?$fromName:(string)$g('smtp_name','VESTRA');
   if($key===''||$from===''){ error_log('[VESTRA API] mail_api_key or mail_from missing'); return false; }
 
