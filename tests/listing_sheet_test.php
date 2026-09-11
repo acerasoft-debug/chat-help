@@ -157,6 +157,53 @@ ok(!preg_match('/listing_colours[\s\S]{0,9000}?\$ladder\s*=\s*\[\[/', $wf),
 ok(str_contains($wf, "\$lcPrices = in_array(strtolower(trim(\$E('prices'))), ['on', 'true', '1', 'evet'], true);"),
    'fiyat girdisi ACIKCA istenmeli (varsayilan OFF)');
 
+/* ── 7b) Sortiment mektubunun FIYAT LISTESI EKI ──────────────────────────
+   Operator: *"ürünleri bir önceki email ile yaptigin gibi resim ile listele ve
+   link ver"*. `price_list` mektubu urunleri hic yazmiyordu; bu mektup zaten
+   yaziyor, o yuzden EK buraya geldi. Iki yon: eklendiginde SOYLENIYOR,
+   eklenmediginde OLMAYAN bir dosya ANILMIYOR. */
+$blk2 = [['p' => $polo, 'pairs' => $pp, 'rungs' => $lp, 'tag' => 'M3600'],
+         ['p' => $sweat, 'pairs' => $ps, 'rungs' => $ls, 'tag' => 'M7535']];
+[, $ba, ] = vestra_tpl_listing_colours('Guten Tag', $blk2, 'GARAGE LE PARIS', 'de', '', true, '', ['pdf', 'xlsx']);
+ok(str_contains($ba, 'Preisliste liegt als PDF und Excel bei'), 'ek SOYLENIYOR (de)');
+[, $baen, ] = vestra_tpl_listing_colours('Dear Sir', $blk2, 'GARAGE LE PARIS', 'en', '', true, '', ['xlsx']);
+ok(str_contains($baen, 'price list is attached as Excel'), 'ek SOYLENIYOR (en)');
+ok(!str_contains($baen, 'PDF'), 'eklenmeyen bicim ANILMIYOR');
+[, $bno, ] = vestra_tpl_listing_colours('Guten Tag', $blk2, 'GARAGE LE PARIS', 'de', '', true);
+ok(!str_contains($bno, 'Preisliste liegt'), 'ek yokken "ekte" CUMLESI yok');
+/* Ek, mektubun geri kalanini bozmuyor: urunler, fiyatlar ve kareler yerinde. */
+ok(str_contains($ba, '39,00 €') || str_contains($ba, '70,20 €'), 'ekli mektupta fiyatlar duruyor');
+ok(str_contains($ba, 'Alle Modelle') === false, 'marka sayfasi verilmediyse o satir yok');
+
+/* Kablolama: UC mektup da TEK ek ureticisinden geciyor. Ikinci bir kopya, bu
+   depoda defalarca kaydedilen ayrisma hatasinin ta kendisi olurdu. */
+ok(substr_count($wf, '$listAttach = function') === 1, 'ek ureticisi TEK tanim');
+/* Tanim satiri `$listAttach = function` seklinde, yani `$listAttach(` yalnizca
+   CAGRI yerlerini sayiyor: uc mektup, uc cagri. */
+ok(substr_count($wf, '$listAttach(') === 3, 'UC cagri yeri (brand_catalog, price_list, listing_colours)');
+/* ILK YAZIMIM DUSMUYORDU: `'wholesale-list.php', '%PDF'` dizgesi yalniz
+   ureticinin icinde geciyor, yani bir dala eklenen DOGRUDAN bir
+   `$genList('wholesale-list.php', …)` cagrisini hic gormuyordu -- sabotajla
+   olculdu, yesil kaldi. Olcut artik DALIN KENDISI: uc mektup dalinin hicbirinde
+   dogrudan uretec cagrisi olmamali. (docs_women'da eskiden beri duran tek
+   dogrudan cagri kapsam disi: o bir EK degil, mektubun kendi PDF'i.) */
+$branch = function (string $name) use ($wf): string {
+    $i = strpos($wf, "} elseif (\$letter === '{$name}') {");
+    if ($i === false) return '';
+    $j = strpos($wf, "} elseif (\$letter === '", $i + 20);
+    return substr($wf, $i, $j === false ? 4000 : $j - $i);
+};
+foreach (['brand_catalog', 'price_list', 'listing_colours'] as $br) {
+    $src = $branch($br);
+    ok($src !== '', "{$br} dali bulundu (yoksa asagidaki iddia bosa oluyordu)");
+    ok(!str_contains($src, '$genList('),
+       "{$br} dalinda DOGRUDAN uretec cagrisi yok -- ek tek govdeden");
+}
+ok(str_contains($wf, '$lcWant = $attachWant($E(\'attach\'), \'false\');'),
+   'sortiment mektubunda ek VARSAYILAN OLARAK YOK');
+ok(str_contains($wf, 'if (count($lcBrands) !== 1) {'),
+   'birden fazla markada ek KONMUYOR (liste mektubun kapsamini yalanlamasin)');
+
 /* ── 8) FIYAT LISTESI mektubu ────────────────────────────────────────────
    Kardes mektup: ayni alicinin "listenizi gonderin" istegine cevap. Iki yonu
    birden tutuluyor, cunku bu mektubun tek isi BIR KAPSAM IDDIASI:

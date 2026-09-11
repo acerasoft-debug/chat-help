@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: payment_final (SON CAGRI — satici sordu, cevap isteniyor; spec: suspend=true ile \"tekrarlananlarda askiya alma hakkimiz saklidir\" cumlesi. Saati DEGISTIRMEZ) | l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken kabul / karşı teklif / red; spec: offer_ref=&lt;ref&gt; — virgülle BİRDEN FAZLA ref verilebilir, AYNI alıcıya TEK mektup olur) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | order_address (SİPARİŞ: yeni siparişe teşekkür + TESLİMAT ADRESİ iste (Latin harf + yerel yazım + alıcı adı/telefon) + 'fatura adresiyle aynı mı' + 'faturanız hazırlanıp gönderilecek'; to=order:&lt;ref&gt; ŞART, ref/tutar kayıttan basılır; FATURASI KESİLMİŞ, gönderilmiş ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | order_invoice_soon (SİPARİŞ: 'faturanız hazırlanıyor, İLK İŞ GÜNÜ hesabınıza + e-postayla gelecek' + ilandan okunan ÖN SİPARİŞ sevk tarihi + Latin harfli adres isteği; to=order:&lt;ref&gt; ŞART; tarih GÖNDERİM ANINDA hesaplanır, şablona gömülü değil; FATURASI KESİLMİŞ ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | offer_accept (ALICININ kabulünü OPERATÖR ADINA kaydeder — alıcı kabulünü mesaj/e-posta ile bildirdiğinde; fiyat BİZİM karşı teklifimiz, kayıt 'accepted_by=operator' + dayanak metniyle düşer; spec: offer_ref=&lt;ref[,ref]&gt;, basis=&lt;neden&gt;, send=true) | payment_ask (SİPARİŞ: faturası kesilmiş ama ödenmemiş siparişte 'ödemeyi yapacak mısınız, ya da NE ZAMAN' — kibar, SAAT BAŞLATMAZ, tarih vermez; to=order:&lt;ref&gt; ŞART, spec: lang=fr|en, signer=&lt;persona&gt;; ödenmiş/gönderilmiş/iptal/escrow ya da dekontu yüklenmiş siparişte DURUR) | payment_notice (SİPARİŞ: faturası KESİLMİŞ, havale bekleyen siparişe 'havaleyi gönderince haber verin' — dekont yükleme bağlantısı + cevap yolu; SAAT BAŞLATMAZ (o payment_due'dur); to=order:&lt;ref&gt; ŞART; faturasız, ödenmiş, gönderilmiş, iptal, escrow ya da dekontu YÜKLENMİŞ siparişte DURUR) | order_gate (TEŞHİS: bir siparişe fatura düğmesinin neden çizilmediğini gate gate yazar — salt okunur; spec: ref=&lt;sipariş ref&gt;, apply=true ile GERÇEK KESİM, notify=false) | invoice_combine_draft (HENÜZ FATURALANMAMIŞ kabullerin BİRLEŞİK fatura TASLAĞI, operatöre e-postayla — numara yakmaz, kaydetmez, müşteriye gitmez; spec: refs=&lt;r1,r2,r3&gt;, ship=&lt;EUR&gt;, vat=&lt;yüzde, fiyata DAHİL&gt;, seller=&lt;uid&gt;) | msg_ping (MEVCUT son mesajın BİLDİRİMİNİ yeniden çalar — thread'e hiçbir şey eklemez, içerik taşımaz; spec: listing=<ilan id>/buyer=<alıcı adında geçen metin>/send(true|false)) | listing_colours (ALICI bir ilanda &quot;her renge fotoğraf yok&quot; dediğinde: renkleri ilanın KENDİ görselleriyle eşleştirir, eksik kalan renk varsa DURUR (mektubun tek iddiası budur), ve mektup İLANIN SATICISI adına çıkar — KURAL 8'in bilinçli istisnası, Reply-To yine support@vestrasales.com; spec: pid=&lt;ilan id; VIRGULLE birden fazla verilirse hepsi TEK &quot;bebildertes Sortimentsblatt&quot; mektubunda birlesir ve serit etiketi modeli de tasir&gt;, lang=en|de, prices=on (VARSAYILAN OFF — acikca istenmedikce mektup RAKAM TASIMAZ; kademeler sepetin kendi vestra_unit_price'indan okunur ve ilk basamak MOQ'da baslar), note=&lt;serbest paragraf&gt;, copy=true (mektubun BIREBIR AYNISINI yalnizca OPERATORE yollar — musteriye gitmez, inceleme adimi). Ilanlarin saticisi TEK degilse DURUR; alicinin fiyat kapisi KAPALIYKEN fiyat istenirse kosu UYARI basar) | price_list (FİYAT LİSTESİ: bütün katalog PDF + Excel EKTE, gövdede kalem/marka/bölme SAYILARI — tek satır fiyat yok, liste ekte; spec: brand=&lt;opsiyonel TAM ad&gt;, cat=&lt;opsiyonel alt dize&gt;, attach=both|pdf|xlsx, lang=en|de, signer. İmza VESTRA — katalog listesi birden fazla satıcının malını taşır) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
+        description: "ALICI CEVABI: payment_final (SON CAGRI — satici sordu, cevap isteniyor; spec: suspend=true ile \"tekrarlananlarda askiya alma hakkimiz saklidir\" cumlesi. Saati DEGISTIRMEZ) | l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken kabul / karşı teklif / red; spec: offer_ref=&lt;ref&gt; — virgülle BİRDEN FAZLA ref verilebilir, AYNI alıcıya TEK mektup olur) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | order_address (SİPARİŞ: yeni siparişe teşekkür + TESLİMAT ADRESİ iste (Latin harf + yerel yazım + alıcı adı/telefon) + 'fatura adresiyle aynı mı' + 'faturanız hazırlanıp gönderilecek'; to=order:&lt;ref&gt; ŞART, ref/tutar kayıttan basılır; FATURASI KESİLMİŞ, gönderilmiş ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | order_invoice_soon (SİPARİŞ: 'faturanız hazırlanıyor, İLK İŞ GÜNÜ hesabınıza + e-postayla gelecek' + ilandan okunan ÖN SİPARİŞ sevk tarihi + Latin harfli adres isteği; to=order:&lt;ref&gt; ŞART; tarih GÖNDERİM ANINDA hesaplanır, şablona gömülü değil; FATURASI KESİLMİŞ ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | offer_accept (ALICININ kabulünü OPERATÖR ADINA kaydeder — alıcı kabulünü mesaj/e-posta ile bildirdiğinde; fiyat BİZİM karşı teklifimiz, kayıt 'accepted_by=operator' + dayanak metniyle düşer; spec: offer_ref=&lt;ref[,ref]&gt;, basis=&lt;neden&gt;, send=true) | payment_ask (SİPARİŞ: faturası kesilmiş ama ödenmemiş siparişte 'ödemeyi yapacak mısınız, ya da NE ZAMAN' — kibar, SAAT BAŞLATMAZ, tarih vermez; to=order:&lt;ref&gt; ŞART, spec: lang=fr|en, signer=&lt;persona&gt;; ödenmiş/gönderilmiş/iptal/escrow ya da dekontu yüklenmiş siparişte DURUR) | payment_notice (SİPARİŞ: faturası KESİLMİŞ, havale bekleyen siparişe 'havaleyi gönderince haber verin' — dekont yükleme bağlantısı + cevap yolu; SAAT BAŞLATMAZ (o payment_due'dur); to=order:&lt;ref&gt; ŞART; faturasız, ödenmiş, gönderilmiş, iptal, escrow ya da dekontu YÜKLENMİŞ siparişte DURUR) | order_gate (TEŞHİS: bir siparişe fatura düğmesinin neden çizilmediğini gate gate yazar — salt okunur; spec: ref=&lt;sipariş ref&gt;, apply=true ile GERÇEK KESİM, notify=false) | invoice_combine_draft (HENÜZ FATURALANMAMIŞ kabullerin BİRLEŞİK fatura TASLAĞI, operatöre e-postayla — numara yakmaz, kaydetmez, müşteriye gitmez; spec: refs=&lt;r1,r2,r3&gt;, ship=&lt;EUR&gt;, vat=&lt;yüzde, fiyata DAHİL&gt;, seller=&lt;uid&gt;) | msg_ping (MEVCUT son mesajın BİLDİRİMİNİ yeniden çalar — thread'e hiçbir şey eklemez, içerik taşımaz; spec: listing=<ilan id>/buyer=<alıcı adında geçen metin>/send(true|false)) | listing_colours (ALICI bir ilanda &quot;her renge fotoğraf yok&quot; dediğinde: renkleri ilanın KENDİ görselleriyle eşleştirir, eksik kalan renk varsa DURUR (mektubun tek iddiası budur), ve mektup İLANIN SATICISI adına çıkar — KURAL 8'in bilinçli istisnası, Reply-To yine support@vestrasales.com; spec: pid=&lt;ilan id; VIRGULLE birden fazla verilirse hepsi TEK &quot;bebildertes Sortimentsblatt&quot; mektubunda birlesir ve serit etiketi modeli de tasir&gt;, lang=en|de, attach=both|pdf|xlsx (VARSAYILAN YOK — fiyat listesini PDF/Excel olarak EKLER; mektuptaki ilanların markasından üretilir, blokler birden fazla markadaysa ek konmaz), prices=on (VARSAYILAN OFF — acikca istenmedikce mektup RAKAM TASIMAZ; kademeler sepetin kendi vestra_unit_price'indan okunur ve ilk basamak MOQ'da baslar), note=&lt;serbest paragraf&gt;, copy=true (mektubun BIREBIR AYNISINI yalnizca OPERATORE yollar — musteriye gitmez, inceleme adimi). Ilanlarin saticisi TEK degilse DURUR; alicinin fiyat kapisi KAPALIYKEN fiyat istenirse kosu UYARI basar) | price_list (FİYAT LİSTESİ: bütün katalog PDF + Excel EKTE, gövdede kalem/marka/bölme SAYILARI — tek satır fiyat yok, liste ekte; spec: brand=&lt;opsiyonel TAM ad&gt;, cat=&lt;opsiyonel alt dize&gt;, attach=both|pdf|xlsx, lang=en|de, signer. İmza VESTRA — katalog listesi birden fazla satıcının malını taşır) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
         required: false
         default: ""
       reply_spec:
@@ -827,6 +827,65 @@ jobs:
             $genList = function (string $script, array $get) use ($doc): string {
               $_GET = $get;
               ob_start(); require $doc.'/'.$script; return (string)ob_get_clean();
+            };
+
+            /* Fiyat listesi EKLERINI kuran TEK gövde. Üç mektup istiyordu
+               (brand_catalog, price_list, listing_colours) ve ilk ikisi aynı
+               döngüyü ayrı ayrı taşıyordu; üçüncüsünü de kopyalamak, bu deponun
+               defalarca kaydettiği "aynı olgu birkaç yerde yazılı" hatası olurdu.
+               Ekler sitenin KENDİ üreteçlerinden: alıcının indirdiği dosya ile
+               postaladığımız aynı dosya.
+               İmza denetimi şart -- boş ya da yönlendirilmiş bir çıktı sessizce
+               0 baytlık ek olarak giderdi. Brevo eki base64 taşıyor (+%37) ve
+               ~10 MB'de kesiyor: aşan mektup HİÇ gitmez, o yüzden burada DURUR. */
+            $listAttach = function (array $want, string $brand, string $cat, string $slug) use ($genList): array {
+              $atts = []; $lines = [];
+              foreach ([
+                ['wholesale-list.php', '%PDF', 'pdf', 2000],
+                ['wholesale-xlsx.php', "PK\x03\x04", 'xlsx', 800],
+              ] as [$script, $sig, $ext, $min]) {
+                if (!in_array($ext, $want, true)) continue;
+                $bytes = $genList($script, ['brand' => $brand] + ($cat !== '' ? ['cat' => $cat] : []));
+                $pos = strpos($bytes, $sig);
+                if ($pos === false || strlen($bytes) - (int)$pos < $min) {
+                  fwrite(STDERR, "{$ext} uretilemedi (".strlen($bytes)." bayt, imza "
+                       . ($pos === false ? 'YOK' : 'konum '.$pos) . ") -- mektup gonderilmedi\n");
+                  fwrite(STDERR, "ilk 400 bayt: ".addcslashes(substr($bytes, 0, 400), "\0..\37")."\n");
+                  exit(1);
+                }
+                /* Kirpilan sey NE idi, yaziliyor: yalnizca bayt sayisini basmak
+                   "fazlalik vardi" der ama nedenini gizler. */
+                if ($pos > 0) {
+                  $lines[] = "UYARI: {$ext} oncesinde {$pos} bayt fazladan cikti vardi, kirpildi:";
+                  $lines[] = "  >>> ".addcslashes(substr($bytes, 0, min($pos, 400)), "\0..\37");
+                  $bytes = substr($bytes, $pos);
+                }
+                $name = 'VESTRA-'.($slug !== '' ? $slug.'-' : '').'price-list-'.date('Y-m').'.'.$ext;
+                file_put_contents('/tmp/'.$name, $bytes);
+                $atts[] = ['name' => $name, 'path' => '/tmp/'.$name];
+                /* PDF'e KAC FOTOGRAF gomuldugunu SAY: dosya boyutuna bakip
+                   "fotograflar var" demek tahmin olurdu (imageJpeg ayni goruntuyu
+                   md5 ile tekillestiriyor, boyut sayiyla orantili degil). */
+                $lines[] = "ek ({$ext})".str_pad('', 4 - min(4, strlen($ext)))." : ".number_format(strlen($bytes))." bayt -> {$name}"
+                         . ($ext === 'pdf' ? '  |  gomulu fotograf: '.preg_match_all('#/Subtype\s*/Image#', $bytes) : '');
+              }
+              $raw = array_sum(array_map(fn($a) => (int)@filesize($a['path']), $atts));
+              if ($atts) $lines[] = "ek toplam  : ".number_format($raw)." bayt (base64 ~".number_format((int)($raw * 1.37))." bayt)";
+              if ($raw * 1.37 > 9_500_000) {
+                fwrite(STDERR, "EKLER COK BUYUK -- mektup gonderilmedi. attach=xlsx ile tek dosya yollayin ya da daraltin.\n");
+                exit(1);
+              }
+              return [$atts, $lines];
+            };
+            /* attach= girdisini tek yerde okuyoruz: uc mektup ayni kelimeleri
+               kabul etsin (both|pdf|xlsx|false) ve biri digerinden ayrismasin. */
+            $attachWant = function (string $raw, string $default): array {
+              return match (strtolower(trim($raw)) ?: $default) {
+                'false', 'none', '0', 'off' => [],
+                'pdf'                       => ['pdf'],
+                'xlsx', 'excel'             => ['xlsx'],
+                default                     => ['pdf', 'xlsx'],
+              };
             };
 
             $to = trim($E('to'));
@@ -2165,51 +2224,11 @@ jobs:
                  sablon eki tek tek sayiyor, yoksa yalnizca Excel gonderilen bir
                  mektup "ekte PDF de var" der ve musteri olmayan dosyayi arar. */
               $atts = [];
-              $attachOpt = strtolower(trim($E('attach'))) ?: 'both';
-              $want = match ($attachOpt) {
-                'false', 'none', '0' => [],
-                'pdf'                => ['pdf'],
-                'xlsx', 'excel'      => ['xlsx'],
-                default              => ['pdf', 'xlsx'],
-              };
+              $want = $attachWant($E('attach'), 'both');
               if ($want) {
                 $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9]+/', '-', $brand.($catF !== '' ? '-'.$catF : '')), '-'));
-                foreach ([
-                  ['wholesale-list.php', '%PDF', 'pdf', 2000],
-                  ['wholesale-xlsx.php', "PK\x03\x04", 'xlsx', 800],
-                ] as [$script, $sig, $ext, $min]) {
-                  if (!in_array($ext, $want, true)) continue;
-                  $bytes = $genList($script, ['brand' => $brand] + ($catF !== '' ? ['cat' => $catF] : []));
-                  $pos = strpos($bytes, $sig);
-                  if ($pos === false || strlen($bytes) - (int)$pos < $min) {
-                    fwrite(STDERR, "{$ext} uretilemedi (".strlen($bytes)." bayt, imza "
-                         . ($pos === false ? 'YOK' : 'konum '.$pos) . ") -- mektup gonderilmedi\n");
-                    fwrite(STDERR, "ilk 400 bayt: ".addcslashes(substr($bytes, 0, 400), "\0..\37")."\n");
-                    exit(1);
-                  }
-                  /* Kirpilan sey NE idi, yaziliyor. Yalnizca bayt sayisini basmak
-                     "864 bayt fazlalik vardi" der ama nedenini gizler -- ilk
-                     kosuda tam olarak bu oldu. */
-                  if ($pos > 0) {
-                    echo "UYARI: {$ext} oncesinde {$pos} bayt fazladan cikti vardi, kirpildi:\n"
-                       . "  >>> ".addcslashes(substr($bytes, 0, min($pos, 400)), "\0..\37")."\n";
-                    $bytes = substr($bytes, $pos);
-                  }
-                  $name = 'VESTRA-'.$slug.'-wholesale-'.date('Y-m').'.'.$ext;
-                  $path = '/tmp/'.$name;
-                  file_put_contents($path, $bytes);
-                  $atts[] = ['name'=>$name, 'path'=>$path];
-                  /* PDF'e KAC FOTOGRAF gomuldugunu SAY. Dosya boyutuna bakip
-                     "fotograflar var" demek tahmin olurdu: imageJpeg ayni
-                     goruntuyu md5 ile tekillestiriyor ve kutu boyutuna gore
-                     yeniden kodlamiyor, yani boyut fotograf sayisiyla dogru
-                     orantili degil. XObject tanimlarini saymak dogrudan olcum. */
-                  $extra = '';
-                  if ($ext === 'pdf') {
-                    $extra = '  |  gomulu fotograf: '.preg_match_all('#/Subtype\s*/Image#', $bytes);
-                  }
-                  echo "ek ({$ext})   : ".strlen($bytes)." bayt -> {$name}{$extra}\n";
-                }
+                [$atts, $bcLines] = $listAttach($want, $brand, $catF, $slug);
+                foreach ($bcLines as $ln) echo $ln."\n";
               }
 
               echo "marka       : {$brand}".($catF !== '' ? "  (cat={$catF})" : "")."\n";
@@ -2282,48 +2301,15 @@ jobs:
               /* Ekler brand_catalog ile AYNI ureteclerden ve AYNI imza
                  kontrolunden geciyor -- bos ya da yonlendirilmis bir cikti
                  sessizce 0 baytlik ek olarak giderdi. */
-              $plAtts = []; $plAttach = strtolower(trim($E('attach'))) ?: 'both';
-              $plWant = match ($plAttach) {
-                'false', 'none', '0' => [],
-                'pdf'                => ['pdf'],
-                'xlsx', 'excel'      => ['xlsx'],
-                default              => ['pdf', 'xlsx'],
-              };
+              $plWant = $attachWant($E('attach'), 'both');
               /* Dosya adini MUSTERI goruyor: ilk canli kosu
                  "VESTRA-vestra-sweat-price-list.pdf" uretti -- 'vestra' onekten
                  sonra ikinci kez, 'sweat' ise yine benim arama parcam. Ad da
                  konu satiri gibi kapsamdan kuruluyor; kapsam yoksa hicbir sey
                  eklenmiyor (onek zaten VESTRA). */
               $plSlug = strtolower(trim(preg_replace('/[^A-Za-z0-9]+/', '-', (string)$plFactsScope), '-'));
-              $plSlug = $plSlug !== '' ? $plSlug.'-' : '';
-              foreach ([
-                ['wholesale-list.php', '%PDF', 'pdf', 2000],
-                ['wholesale-xlsx.php', "PK\x03\x04", 'xlsx', 800],
-              ] as [$plScript, $plSig, $plExt, $plMin]) {
-                if (!in_array($plExt, $plWant, true)) continue;
-                $plBytes = $genList($plScript, ['brand' => $plBrand] + ($plCat !== '' ? ['cat' => $plCat] : []));
-                $plPos = strpos($plBytes, $plSig);
-                if ($plPos === false || strlen($plBytes) - (int)$plPos < $plMin) {
-                  fwrite(STDERR, "{$plExt} uretilemedi (".strlen($plBytes)." bayt, imza "
-                       . ($plPos === false ? 'YOK' : 'konum '.$plPos) . ") -- mektup gonderilmedi\n");
-                  exit(1);
-                }
-                if ($plPos > 0) { echo "UYARI: {$plExt} oncesinde {$plPos} bayt fazladan cikti vardi, kirpildi\n"; $plBytes = substr($plBytes, $plPos); }
-                $plName = 'VESTRA-'.$plSlug.'price-list-'.date('Y-m').'.'.$plExt;
-                file_put_contents('/tmp/'.$plName, $plBytes);
-                $plAtts[] = ['name'=>$plName, 'path'=>'/tmp/'.$plName];
-                echo "ek ({$plExt})  : ".number_format(strlen($plBytes))." bayt -> {$plName}\n";
-              }
-              /* Brevo eki base64 ile tasiyor (+%33) ve toplamda ~10 MB'de
-                 kesiyor; asan mektup HIC gitmez. Sinir asilirsa is DURUYOR ve
-                 ne yapilacagini yaziyor -- sessizce PDF'i dusurmek, operatorun
-                 gonderdigini sandigi seyden baska bir mektup uretirdi. */
-              $plRaw = array_sum(array_map(fn($a) => (int)@filesize($a['path']), $plAtts));
-              echo "ek toplam   : ".number_format($plRaw)." bayt (base64 ~".number_format((int)($plRaw*1.37))." bayt)\n";
-              if ($plRaw * 1.37 > 9_500_000) {
-                fwrite(STDERR, "EKLER COK BUYUK -- mektup gonderilmedi. attach=xlsx ile tek dosya yollayin ya da brand=/cat= ile daraltin.\n");
-                exit(1);
-              }
+              [$plAtts, $plLines] = $listAttach($plWant, $plBrand, $plCat, $plSlug);
+              foreach ($plLines as $ln) echo $ln."\n";
 
               $plFacts = [
                 'articles'    => count($plRows),
@@ -2809,7 +2795,33 @@ jobs:
               if ($lcPrices && $acc && !auth_prices_unlocked($acc)) {
                 echo "UYARI  : mektup fiyat yaziyor ama alicinin sayfasi fiyati GOSTERMIYOR.\n";
               }
-              [$subject, $body, $opts] = vestra_tpl_listing_colours($salutation, $lcBlocks, $lcSellerName, $lcLang, trim($E('note')), $lcPrices, $lcMore);
+              /* FIYAT LISTESI EKI (operator, 11 Eyl 2026: *"ürünleri bir önceki
+                 email ile yaptigin gibi resim ile listele ve link ver"*). Ayri
+                 bir `price_list` mektubu urunleri HIC yazmiyordu -- yalniz
+                 "2 Artikel" deyip eke isaret ediyordu; bu mektup ise urunleri,
+                 fotograflari ve baglantilari zaten tasiyor. Ikisini birlestirmek
+                 yerine ikinci bir sablona fotograf/baglanti kopyalamak, bu
+                 deponun defalarca kaydettigi ikinci-kopya hatasi olurdu.
+                 Ek VARSAYILAN OLARAK YOK: mektup zaten her rakami tasiyor ve
+                 istenmedikce 300 KB tasimasinin sebebi yok.
+                 Liste MEKTUPTAKI ILANLARIN markasindan cikiyor; blokler birden
+                 fazla markadaysa ek KONMUYOR -- bu urunler hakkinda olmayan bir
+                 liste iliştirmek, mektubun kendi kapsamini yalanlardi. */
+              $lcAtts = []; $lcDone = [];
+              $lcWant = $attachWant($E('attach'), 'false');
+              if ($lcWant) {
+                if (count($lcBrands) !== 1) {
+                  echo "ek       : KONMADI -- mektup ".count($lcBrands)." markayi kapsiyor, tek marka listesi yanlis olurdu\n";
+                } else {
+                  $lcB = (string)reset($lcBrands);
+                  [$lcAtts, $lcLines] = $listAttach($lcWant, $lcB, '',
+                      strtolower(trim(preg_replace('/[^A-Za-z0-9]+/', '-', $lcB), '-')));
+                  foreach ($lcLines as $ln) echo $ln."\n";
+                  $lcDone = array_map(fn($a) => pathinfo($a['name'], PATHINFO_EXTENSION), $lcAtts);
+                }
+              }
+              [$subject, $body, $opts] = vestra_tpl_listing_colours($salutation, $lcBlocks, $lcSellerName, $lcLang, trim($E('note')), $lcPrices, $lcMore, $lcDone);
+              if ($lcAtts) $opts['attachments'] = $lcAtts;
               $fromName = $lcSellerName;
             } elseif ($letter === 'vat_doc_fr') {
               /* Varsayilan hitap 'Bonjour': hesaptaki ad ile e-postadaki ad
