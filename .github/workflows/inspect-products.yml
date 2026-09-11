@@ -42,6 +42,14 @@ on:
         description: "true = ürün adı/kategori/beden/renk alanlarında TÜRKÇE metin ara (toptan liste İngilizce olmalı)"
         required: false
         default: "false"
+      bak_diff:
+        # "Fiyatlari eskiye getir" denince once SORULACAK sey: gercekten ne
+        # degisti? Kor bir geri yukleme, operatorun KENDI istedigi degisiklikleri
+        # (Balmain tabani, Fred Perry asgarileri) de siler. Bu mod salt okunur:
+        # yedekle bugunku dosyayi karsilastirip FARKI bolme bolme yazar.
+        description: "YEDEKLE KARSILASTIR: 'list' = sunucudaki listings.json yedeklerini tarih/boyutla listeler. Bir yedek adi (ya da 20260910-204756 gibi damga) verilirse o yedekle bugünkü dosyanın FİYAT farkını bölme bölme yazar. Salt okunur."
+        required: false
+        default: ""
       price_audit:
         description: "true = FIYAT TUTARSIZLIK DENETIMI: her urunde ilan edilen fiyat (list) ile sepetin MOQ'da gercekten hesapladigi fiyati (vestra_unit_price) karsilastirir, farkli olanlari yazar. Gonderim/gorsel yok, salt okunur."
         required: false
@@ -89,6 +97,7 @@ jobs:
           INSPECT_LANG: ${{ github.event.inputs.lang_scan }}
           INSPECT_PLIST: ${{ github.event.inputs.price_list }}
           INSPECT_PAUDIT: ${{ github.event.inputs.price_audit }}
+          INSPECT_BAKDIFF: ${{ github.event.inputs.bak_diff }}
           INSPECT_FIT: ${{ github.event.inputs.fit_scan }}
           INSPECT_RAW: ${{ github.event.inputs.raw_scan }}
         with:
@@ -123,6 +132,79 @@ jobs:
             $paudit   = strtolower(trim((string)getenv("INSPECT_PAUDIT")))  === 'true';
             $fitscan  = strtolower(trim((string)getenv("INSPECT_FIT")))     === 'true';
             $rawscan  = strtolower(trim((string)getenv("INSPECT_RAW")))     === 'true';
+            $bakdiff  = trim((string)getenv("INSPECT_BAKDIFF"));
+
+            /* ── YEDEKLE FIYAT FARKI (salt okunur) ────────────────────────────
+               Cikti RAKAM DEGIL ORAN yaziyor (x1.20 gibi): Actions gunlugu
+               herkese acik ve ic giyim katalogunun kar orani kayitli, yani
+               satis fiyatini basmak maliyeti de basar (KURAL 22). Oran,
+               "neyin degistigi" sorusunu rakami ele vermeden cevapliyor.
+               HAM dosya okunuyor (vestra_listings), vestra_products() degil:
+               onaydan gecmemis ilanlar da yedekte duruyor ve fark oradaysa
+               gorunmesi gerek. */
+            if ($bakdiff !== '') {
+                $dir = vestra_data_dir();
+                $baks = glob($dir.'/listings.json.bak-*') ?: [];
+                usort($baks, fn($a,$b) => strcmp($b,$a));
+                if (strtolower($bakdiff) === 'list') {
+                    echo "listings.json yedekleri (yeniden eskiye):\n";
+                    foreach (array_slice($baks, 0, 40) as $b) {
+                        $n = @json_decode((string)@file_get_contents($b), true);
+                        echo "  ".basename($b)."  ".number_format((int)@filesize($b))." bayt  "
+                           . (is_array($n) ? count($n)." ilan" : "OKUNAMADI")."\n";
+                    }
+                    echo "toplam yedek: ".count($baks)."\n";
+                    exit(0);
+                }
+                $pick = '';
+                foreach ($baks as $b) { if (str_contains(basename($b), $bakdiff)) { $pick = $b; break; } }
+                if ($pick === '') { fwrite(STDERR, "HATA: yedek bulunamadi: '{$bakdiff}' -- bak_diff=list ile listeleyin\n"); exit(1); }
+                $oldArr = json_decode((string)@file_get_contents($pick), true);
+                if (!is_array($oldArr)) { fwrite(STDERR, "HATA: yedek okunamadi: {$pick}\n"); exit(1); }
+                $nowArr = vestra_listings();
+                echo "yedek : ".basename($pick)."  (".count($oldArr)." ilan)\n";
+                echo "bugun : listings.json          (".count($nowArr)." ilan)\n\n";
+                $byId = [];
+                foreach ($oldArr as $o) { $id = (string)($o['id'] ?? ''); if ($id !== '') $byId[$id] = $o; }
+                $lowest = function (array $p): float {
+                    $m = 0.0;
+                    if (!empty($p['tiers']) && is_array($p['tiers'])) {
+                        foreach ($p['tiers'] as $t) {
+                            if (is_array($t) && (float)($t['price'] ?? 0) > 0) {
+                                $m = ($m === 0.0) ? (float)$t['price'] : min($m, (float)$t['price']);
+                            }
+                        }
+                    }
+                    return $m > 0 ? $m : (float)($p['list'] ?? 0);
+                };
+                $bySec = []; $rows = []; $newOnes = 0; $gone = 0;
+                foreach ($nowArr as $np) {
+                    $id = (string)($np['id'] ?? ''); if ($id === '') continue;
+                    if (!isset($byId[$id])) { $newOnes++; continue; }
+                    $op = $byId[$id];
+                    $a = $lowest($op); $b = $lowest($np);
+                    if ($a <= 0 && $b <= 0) continue;
+                    if (abs($a - $b) < 0.005) continue;
+                    $sec = vestra_product_section($np);
+                    $bySec[$sec] = ($bySec[$sec] ?? 0) + 1;
+                    $rows[] = sprintf("  %-22s | %-9s | %-18s | oran x%s%s",
+                        $id, $sec, substr((string)($np['brand'] ?? '?'), 0, 18),
+                        $a > 0 ? number_format($b / $a, 4) : 'yeni fiyat',
+                        isset($np['markup_at']) ? '  [zam damgali]' : '');
+                }
+                foreach ($byId as $id => $op) {
+                    $still = false;
+                    foreach ($nowArr as $np) { if ((string)($np['id'] ?? '') === $id) { $still = true; break; } }
+                    if (!$still) $gone++;
+                }
+                echo "FIYATI DEGISEN ILAN: ".count($rows)."\n";
+                if ($bySec) { echo "bolme dagilimi:\n"; foreach ($bySec as $k => $v) echo "  {$k}: {$v}\n"; }
+                else echo "  (hicbir bolmede fiyat degisikligi yok)\n";
+                echo "yedekten bu yana EKLENEN ilan: {$newOnes}   SILINEN: {$gone}\n\n";
+                foreach (array_slice($rows, 0, 400) as $r) echo $r."\n";
+                if (count($rows) > 400) echo "  ... (".(count($rows)-400)." satir daha)\n";
+                exit(0);
+            }
 
             /* HAM KAYIT: vestra_listings(), vestra_products() DEGIL.
                vestra_live_listings() status==='approved' suzuyor, yani yeni
