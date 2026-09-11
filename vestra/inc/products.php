@@ -938,6 +938,32 @@ function vestra_parse_colorqty_tokens(array $p, array $tokens): ?array {
 }
 function vestra_unit_price($p,$qty){ if(empty($p['tiers'])) return 0.0; $price=$p['tiers'][0]['price']; foreach($p['tiers'] as $t){ if($qty>=$t['min']) $price=(float)$t['price']; } return $price; }
 function vestra_from_price($p){ if(empty($p['tiers'])) return 0.0; $m=null; foreach($p['tiers'] as $t){ $m=($m===null)?$t['price']:min($m,$t['price']); } return $m; }
+/* Kademe merdiveni, ALICININ GERCEKTEN ODEYECEGI hali: [['min'=>56,'price'=>70.20], ...].
+   Ham `tiers` bunun icin yeterli degildi ve her cagiran ayni duzeltmeleri kendi yapardi:
+   - ILK BASAMAK MOQ'DA BASLAR. Cogu ilanin ilk kademesi `min=1` yaziyor; "ab 1 Stuck"
+     yazan bir mektup ilan edilen minimumu yalanlar ve sepet o adedi zaten kabul etmez.
+     Fiyati yine sepetin kendi fonksiyonu veriyor (vestra_unit_price), yani MOQ'nun
+     altinda kalan bir kademe atlanmiyor -- o adette gecerli olan fiyat basiliyor.
+   - MOQ'nun ALTINDAKI basamaklar dusuyor: alinamayan bir adedin fiyatini yazmak,
+     kasanin uygulamadigi rakami ilan etmektir (KURAL 6).
+   - Fiyati DEGISTIRMEYEN basamak dusuyor; ayni rakami iki kez yazan merdiven okunmuyor.
+     YUKSELEN bir basamak DUSMUYOR: gizlemek, pahali tarafta eksik bilgi vermek olurdu. */
+function vestra_price_ladder(array $p): array {
+  $moq = max(1, (int)($p['moq'] ?? 0));
+  $rows = [['min' => $moq, 'price' => (float)vestra_unit_price($p, $moq)]];
+  foreach ((array)($p['tiers'] ?? []) as $t) {
+    $m = (int)($t['min'] ?? 0);
+    if ($m > $moq) $rows[] = ['min' => $m, 'price' => (float)($t['price'] ?? 0)];
+  }
+  usort($rows, fn($a, $b) => $a['min'] <=> $b['min']);
+  $out = []; $prev = null;
+  foreach ($rows as $r) {
+    if ($r['price'] <= 0) continue;
+    if ($prev !== null && abs($r['price'] - $prev) < 0.005) continue;
+    $out[] = $r; $prev = $r['price'];
+  }
+  return $out;
+}
 function vestra_discount($p){ if(($p['mode']??'')!=='sale'||empty($p['list'])) return 0; return (int)round(100*($p['list']-vestra_from_price($p))/$p['list']); }
 /* Bir urun ancak liste fiyati gercekten kademe fiyatinin USTUNDEyse "indirimli"dir.
    Veri kayiyor: kademe fiyatini guncelleyip 'list' alanina dokunmayinca mode='sale'
