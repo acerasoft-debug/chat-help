@@ -2264,6 +2264,17 @@ jobs:
                 if ($plC !== '') $plCats[$plC] = ($plCats[$plC] ?? 0) + 1;
               }
               arsort($plBrandCount); arsort($plSections); arsort($plCats);
+
+              /* Kapsam adi SUZGEC TOKEN'INDAN degil, gercekten eslesen KATEGORI
+                 ADLARINDAN kuruluyor. `cat=Sweat` bir arama parcasi; musteriye
+                 giden konu satirinda "Sweat — Preisliste" diye cikiyordu (ilk
+                 canli kosuda goruldu). Kategori adi kayitta duran seydir ve
+                 alicinin sitede gordugu ad da o. Uc ve uzeri kategoride token'a
+                 dusuyor: bes kategori adini konuya dizmek daha kotu.
+                 Konudan ONCE hesaplaniyor cunku ek DOSYA ADI da bunu kullaniyor. */
+              $plFactsScope = trim($plBrand . ($plBrand !== '' && $plCat !== '' ? ' ' : '')
+                            . ($plCat === '' ? '' : (count($plCats) > 0 && count($plCats) <= 2
+                               ? implode(' & ', array_keys($plCats)) : $plCat)));
               /* Marka adlari: en derin stoklu ILK ALTI. Hepsini yazmak govdeyi
                  yeniden listeye cevirirdi; liste zaten ekte. */
               $plNames = array_slice(array_keys($plBrandCount), 0, 6);
@@ -2278,8 +2289,13 @@ jobs:
                 'xlsx', 'excel'      => ['xlsx'],
                 default              => ['pdf', 'xlsx'],
               };
-              $plSlug = strtolower(trim(preg_replace('/[^A-Za-z0-9]+/', '-',
-                        ($plBrand !== '' ? $plBrand : 'vestra').($plCat !== '' ? '-'.$plCat : '')), '-'));
+              /* Dosya adini MUSTERI goruyor: ilk canli kosu
+                 "VESTRA-vestra-sweat-price-list.pdf" uretti -- 'vestra' onekten
+                 sonra ikinci kez, 'sweat' ise yine benim arama parcam. Ad da
+                 konu satiri gibi kapsamdan kuruluyor; kapsam yoksa hicbir sey
+                 eklenmiyor (onek zaten VESTRA). */
+              $plSlug = strtolower(trim(preg_replace('/[^A-Za-z0-9]+/', '-', (string)$plFactsScope), '-'));
+              $plSlug = $plSlug !== '' ? $plSlug.'-' : '';
               foreach ([
                 ['wholesale-list.php', '%PDF', 'pdf', 2000],
                 ['wholesale-xlsx.php', "PK\x03\x04", 'xlsx', 800],
@@ -2293,7 +2309,7 @@ jobs:
                   exit(1);
                 }
                 if ($plPos > 0) { echo "UYARI: {$plExt} oncesinde {$plPos} bayt fazladan cikti vardi, kirpildi\n"; $plBytes = substr($plBytes, $plPos); }
-                $plName = 'VESTRA-'.$plSlug.'-price-list-'.date('Y-m').'.'.$plExt;
+                $plName = 'VESTRA-'.$plSlug.'price-list-'.date('Y-m').'.'.$plExt;
                 file_put_contents('/tmp/'.$plName, $plBytes);
                 $plAtts[] = ['name'=>$plName, 'path'=>'/tmp/'.$plName];
                 echo "ek ({$plExt})  : ".number_format(strlen($plBytes))." bayt -> {$plName}\n";
@@ -2312,15 +2328,7 @@ jobs:
               $plFacts = [
                 'articles'    => count($plRows),
                 'brands'      => count($plBrandCount),
-                /* Kapsam adi SUZGEC TOKEN'INDAN degil, gercekten eslesen KATEGORI
-                   ADLARINDAN kuruluyor. `cat=Sweat` bir arama parcasi; musteriye
-                   giden konu satirinda "Sweat — Preisliste" diye cikiyordu (ilk
-                   canli kosuda goruldu). Kategori adi kayitta duran seydir ve
-                   alicinin sitede gordugu ad da o. Uc ve uzeri kategoride token'a
-                   dusuyor: bes kategori adini konuya dizmek daha kotu. */
-                'scope'       => trim($plBrand . ($plBrand !== '' && $plCat !== '' ? ' ' : '')
-                                 . ($plCat === '' ? '' : (count($plCats) > 0 && count($plCats) <= 2
-                                    ? implode(' & ', array_keys($plCats)) : $plCat))),
+                'scope'       => $plFactsScope,
                 'sections'    => $plSections,
                 'brand_names' => $plNames,
                 /* Hesabi acik olan alici ayni listeyi sitede de goruyor (KURAL 19:

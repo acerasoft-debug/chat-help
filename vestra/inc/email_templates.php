@@ -1536,7 +1536,11 @@ function vestra_tpl_price_list(string $salutation, array $facts, array $formats,
         ? ($de ? implode(' und ', $fmt) : implode(' and ', $fmt))
         : '';
 
+    /* Bolme satiri, cesidin NEREYE YAYILDIGINI gostermek icin var. Tek bolme
+       kaldiysa ve kapsam zaten konuda yaziliysa hicbir sey gostermiyor
+       ("Sortiment: Apparel 50" canli ilk kosuda tam boyle cikti) -- yazilmiyor. */
     $secTxt = '';
+    if ($scope !== '' && count($secs) < 2) $secs = [];
     if ($secs) {
         $bits = [];
         foreach ($secs as $label => $n) $bits[] = $label . ' ' . (int)$n;
