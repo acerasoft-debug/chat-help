@@ -1367,7 +1367,7 @@ function vestra_tpl_escrow_info(string $salutation, float $cap, float $feeRate, 
  * and not of listings in general. A sentence like that belongs to whoever can
  * vouch for it, so the template does not carry one of its own.
  */
-function vestra_tpl_listing_colours(string $salutation, array $blocks, string $sellerName, string $lang = 'en', string $note = '', bool $withPrices = false, string $moreUrl = ''): array {
+function vestra_tpl_listing_colours(string $salutation, array $blocks, string $sellerName, string $lang = 'en', string $note = '', bool $withPrices = false, string $moreUrl = '', array $formats = []): array {
     $de = ($lang === 'de');
     /* EUR printed as EUR. vestra_money() would convert into the *visitor's*
        display currency and there is no visitor here — that mistake is already on
@@ -1375,6 +1375,13 @@ function vestra_tpl_listing_colours(string $salutation, array $blocks, string $s
     $eur = fn(float $v): string => $de
         ? number_format($v, 2, ',', '.') . ' €'
         : 'EUR ' . number_format($v, 2, '.', ',');
+
+    /* Ek CUMLESI, gercekten iliştirilen bicimlerden yaziliyor -- istekten degil.
+       Olmayan bir dosyayi adiyla anan mektup, musteriyi onu aramaya yollar; ayni
+       kural fiyat listesi mektubunda da var. */
+    $fmt = array_values(array_filter(array_map(
+        fn($f) => ['pdf' => 'PDF', 'xlsx' => 'Excel'][strtolower((string)$f)] ?? '', $formats)));
+    $fmtTxt = $fmt ? ($de ? implode(' und ', $fmt) : implode(' and ', $fmt)) : '';
 
     $nCol = 0; $shots = []; $rows = []; $chunks = []; $firstUrl = '';
     foreach ($blocks as $b) {
@@ -1449,7 +1456,9 @@ function vestra_tpl_listing_colours(string $salutation, array $blocks, string $s
           . "der jeweiligen Produktseite"
           . ($withPrices ? ", die Staffelpreise stehen daneben" : "") . ".\n\n"
           . implode("\n", $chunks) . "\n"
-          . ($moreUrl !== '' ? "Alle Modelle dieser Marke: " . $moreUrl . "\n\n" : '')
+          . ($moreUrl !== '' ? "Alle Modelle dieser Marke: " . $moreUrl . "\n" : '')
+          . ($fmtTxt !== '' ? "Die vollständige Preisliste liegt als " . $fmtTxt . " bei.\n" : '')
+          . ($moreUrl !== '' || $fmtTxt !== '' ? "\n" : '')
           . ($note !== '' ? $note . "\n\n" : '')
           . "Brauchen Sie von einer Farbe eine weitere Ansicht oder ein Angebot über eine bestimmte "
           . "Zusammenstellung, schreiben Sie mir kurz.\n\n"
@@ -1468,7 +1477,9 @@ function vestra_tpl_listing_colours(string $salutation, array $blocks, string $s
           . "own picture, below in this e-mail and on the product page"
           . ($withPrices ? ", with the price ladder beside it" : "") . ".\n\n"
           . implode("\n", $chunks) . "\n"
-          . ($moreUrl !== '' ? "All models from this house: " . $moreUrl . "\n\n" : '')
+          . ($moreUrl !== '' ? "All models from this house: " . $moreUrl . "\n" : '')
+          . ($fmtTxt !== '' ? "The full price list is attached as " . $fmtTxt . ".\n" : '')
+          . ($moreUrl !== '' || $fmtTxt !== '' ? "\n" : '')
           . ($note !== '' ? $note . "\n\n" : '')
           . "If you need another view of one of them, or a quotation for a particular make-up, write "
           . "back and I will send it.\n\n"
