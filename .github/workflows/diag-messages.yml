@@ -58,6 +58,10 @@ on:
         description: "true = platform dışı temas nedeniyle ENGELLENEN mesaj denemeleri (son 10): kim, hangi thread, hangi kural, ve metindeki BAĞLANTILAR (sorgu dizesi atılmış). Serbest metin MASKELİ — engellenen metnin içinde zaten telefon/e-posta olabilir, o herkese açık günlüğe yazılmaz."
         required: false
         default: "false"
+      receipt_probe:
+        description: "true = OKUNDU onayı sondası: yeni fonksiyonlar sunucuya indi mi, gerçek konuşmalarda işaret kaç baloncukta çiziliyor, ve rozet KENDİ eyleminden yanan konuşma var mı. Mesaj METNİ, ad ve adres BASILMAZ — yalnız sayım."
+        required: false
+        default: "false"
       cron_probe:
         description: "true = zamanlanmış işler: crontab'daki VESTRA-SWEEP satırları, süpürücü kütüğünün son hâli ve journal cron'un ne yazdığı. 'Otomasyon çalışmadı' denince buraya bakılır"
         required: false
@@ -107,13 +111,14 @@ jobs:
           IN_ERRLOG:    ${{ github.event.inputs.errlog }}
           IN_CRON:      ${{ github.event.inputs.cron_probe }}
           IN_BLOCKED:   ${{ github.event.inputs.blocked }}
+          IN_RECEIPT:   ${{ github.event.inputs.receipt_probe }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS,IN_BILLING,IN_UPLOAD,IN_ERRLOG,IN_CRON,IN_BLOCKED
+          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS,IN_BILLING,IN_UPLOAD,IN_ERRLOG,IN_CRON,IN_BLOCKED,IN_RECEIPT
           script: |
             cat > /tmp/diag_msg.php <<'PHPEOF'
             <?php
@@ -986,6 +991,86 @@ jobs:
               echo "-- journal deposu --"
               php -l /tmp/diag_journal.php >/dev/null 2>&1 && php /tmp/diag_journal.php
               rm -f /tmp/diag_journal.php
+            fi
+
+            if [ "$IN_RECEIPT" = "true" ]; then
+              cat > /tmp/diag_receipt.php <<'PREOF'
+            <?php
+            /* OKUNDU ONAYI + ROZET SONDASI (11 Eyl 2026, KURAL 24).
+               "Calisiyor mu" sorusunun CANLI cevabi. Salt-okunur.
+
+               NE YAZILMAZ: mesaj metni, hesap adi, e-posta, thread id'sinin
+               tamami. Bu gunluk herkese acik (CLAUDE.md) ve bir konusmanin
+               kim-kiminle'si bile musteri iliskisini ele verir. Yalnizca
+               SAYIM basiliyor. */
+            $doc = getenv('HOME').'/public_html';
+            require $doc.'/inc/products.php';
+            require_once $doc.'/inc/auth.php';
+            require_once $doc.'/inc/messages.php';
+
+            /* 1) DEPLOY GERCEKTEN INDI MI. Dosyanin parse edilmesi yetmez —
+                  eski bir kopya da parse edilir (KURAL 21b'nin "deploy inmemis"
+                  dersi). Fonksiyon var mi diye SORULUYOR. */
+            $need = ['vestra_msg_read_upto', 'vestra_msg_other_uid', 'vestra_msg_poll_state'];
+            $miss = array_values(array_filter($need, fn($f) => !function_exists($f)));
+            echo "  yeni fonksiyonlar : ".($miss ? '*** EKSIK: '.implode(', ', $miss).' — DEPLOY INMEMIS ***'
+                                                 : 'HEPSI VAR ('.count($need).'/'.count($need).')')."\n";
+            $r = new ReflectionFunction('vestra_msg_post_system');
+            echo "  post_system param : ".$r->getNumberOfParameters()." (aktor icin 5 olmali)\n";
+            if ($miss) { echo "  --- sonda durdu: kod sunucuda degil ---\n"; exit(0); }
+
+            $threads = vestra_msg_threads();
+            echo "  konusma           : ".count($threads)."\n";
+
+            $tickTot = $tickSeen = $withTick = $supportSkip = 0;
+            $sysAll = $sysBy = 0; $selfLit = []; $badgeOn = 0;
+            foreach ($threads as $th) {
+                $bu = (string)($th['buyer_uid'] ?? ''); $su = (string)($th['seller_uid'] ?? '');
+                $msgs = (array)($th['messages'] ?? []);
+                foreach ($msgs as $m) {
+                    if (($m['from'] ?? '') !== 'system') continue;
+                    $sysAll++; if (($m['by'] ?? '') !== '') $sysBy++;
+                }
+                /* 2) ISARET GERCEKTEN CIZILIYOR MU — panel HTML'i uretilip
+                      SAYILIYOR, basilmiyor. Kaynakta `if` gormek olcum degil. */
+                if ($bu !== '') {
+                    $html = vestra_msg_panel_html('buyer', $bu, (string)($th['id'] ?? ''), $th, [$th]);
+                    $n  = preg_match_all('~class="msgtick( seen)?"~', $html, $mm);
+                    $sn = count(array_filter($mm[1] ?? [], fn($x) => $x !== ''));
+                    $tickTot += $n; $tickSeen += $sn; if ($n > 0) $withTick++;
+                    if ($su === VESTRA_SUPPORT_UID) $supportSkip++;
+                }
+                /* 3) ROZET: KENDI eyleminden yanan konusma KALDI MI. */
+                foreach ([$bu, $su] as $uid) {
+                    if ($uid === '' || !vestra_msg_unread($th, $uid)) continue;
+                    $badgeOn++;
+                    $seen = $th['read'][$uid] ?? 0; if (!is_int($seen)) $seen = 0;
+                    $onlyOwn = true;
+                    for ($i = max(0, $seen); $i < count($msgs); $i++) {
+                        $mm2 = $msgs[$i];
+                        if (($mm2['from'] ?? '') === $uid) continue;
+                        if (($mm2['by'] ?? '') === $uid) continue;
+                        $onlyOwn = false; break;
+                    }
+                    if ($onlyOwn) $selfLit[] = substr((string)($th['id'] ?? '?'), 0, 6);
+                }
+            }
+            echo "  onay isareti      : {$withTick} konusmada ciziliyor | toplam {$tickTot} baloncuk"
+               . " (okundu {$tickSeen} / gonderildi ".($tickTot - $tickSeen).")\n";
+            echo "  Support ipligi    : {$supportSkip} (isaret bilerek CIZILMIYOR)\n";
+            echo "  sistem karti      : {$sysAll} | aktor ('by') tasiyan {$sysBy}"
+               . " | aktorsuz ".($sysAll - $sysBy)." (kural oncesi eski kayit)\n";
+            echo "  yanan rozet       : {$badgeOn}\n";
+            echo "  KENDI eyleminden yanan: ".(count($selfLit) ? '*** '.count($selfLit).' — '.implode(', ', $selfLit).' ***' : '0  (dogru)')."\n";
+            /* 4) Yoklama ucu 'read' tasiyor mu — uctan uca tek eksik halka. */
+            $probe = $threads ? vestra_msg_poll_state($threads[0], (string)($threads[0]['buyer_uid'] ?? '')) : [];
+            echo "  yoklama anahtari  : ".implode(', ', array_keys($probe))."  ('read' olmali)\n";
+            PREOF
+              echo "-- okundu onayi sondasi --"
+              php -l /tmp/diag_receipt.php >/dev/null 2>&1 && php /tmp/diag_receipt.php
+              RC=$?
+              rm -f /tmp/diag_receipt.php
+              [ $RC -ne 0 ] && echo "  (sonda hata verdi: $RC)"
             fi
 
             if [ "$IN_BLOCKED" = "true" ]; then

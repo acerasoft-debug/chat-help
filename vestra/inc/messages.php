@@ -761,6 +761,16 @@ function vestra_msg_panel_html(string $role, string $uid, string $tid, ?array $t
         $otherUid    = vestra_msg_other_uid($thread, $uid);
         $readUpto    = vestra_msg_read_upto($thread, $otherUid);
         $showReceipt = $otherUid !== '' && $otherUid !== VESTRA_SUPPORT_UID;
+        if ($showReceipt) {
+            /* Iki cengel TEK yerde tanimli; baloncuklar <use> ile isaret ediyor.
+               `stroke`/`fill` disaridan miras aliniyor (SVG'de kalitimli), yani
+               renk CSS'te kaliyor ve isaret temada kendiliginde donuyor. */
+            $main .= '<svg width="0" height="0" class="msgtickdefs" aria-hidden="true" focusable="false"><defs>'
+                   . '<symbol id="vtick1" viewBox="0 0 12 11"><path d="M1.3 6.2 4.3 9.2 10.7 1.8"/></symbol>'
+                   . '<symbol id="vtick2" viewBox="0 0 17 11"><path d="M1.3 6.2 4.3 9.2 10.7 1.8"/>'
+                   . '<path d="M6.3 6.2 9.3 9.2 15.7 1.8"/></symbol>'
+                   . '</defs></svg>';
+        }
         $day = '';
         foreach ($thread['messages'] as $i => $m) {
             $at = (string)($m['at'] ?? '');
@@ -772,12 +782,18 @@ function vestra_msg_panel_html(string $role, string $uid, string $tid, ?array $t
             if ($mine && $showReceipt) {
                 $seen = $readUpto > $i;
                 $lbl  = $seen ? t('Read') : t('Sent');
-                /* role="img" + aria-label: cipsiz bir <span>'in aria-label'i her
-                   ekran okuyucuda seslendirilmiyor; gorsel olarak gizli ikinci bir
-                   metin kutusu ise yalniz burada kullanilacak bir yardimci sinif
-                   dogururdu. Isaret tek karakter, anlami etikette. */
-                $tick = ' <span class="msgtick'.($seen ? ' seen' : '').'" role="img"'
-                      . ' title="'.$h($lbl).'" aria-label="'.$h($lbl).'">'.($seen ? '✓✓' : '✓').'</span>';
+                /* Isaret CIZILIYOR, yazilmiyor. Duz '✓✓' iki ayri harf: yazi
+                   tipine gore araligi degisiyor, harf-boslugu hilesiyle
+                   sikistirilmasi gerekiyor ve bazi tiplerde kalin bir emoji
+                   olarak cikiyor. Cift cengel TEK sembol olarak tanimli (ustte,
+                   <defs>), her baloncuk yalnizca <use> ile ona isaret ediyor —
+                   30 mesajlik bir konusmada ayni yolu 30 kez gommemek icin.
+                   role="img" + aria-label: cipsiz bir <span>'in aria-label'i her
+                   ekran okuyucuda seslendirilmiyor. */
+                $tick = '<span class="msgtick'.($seen ? ' seen' : '').'" role="img"'
+                      . ' title="'.$h($lbl).'" aria-label="'.$h($lbl).'">'
+                      . '<svg class="'.($seen ? 'vt2' : 'vt1').'" aria-hidden="true">'
+                      . '<use href="#'.($seen ? 'vtick2' : 'vtick1').'"></use></svg></span>';
             }
             $main .= '<div class="msgbubblewrap'.($mine ? ' mine' : '').'"><div class="msgbubble'.($mine ? ' mine' : '').'">'
                    . nl2br($h($m['text'] ?? ''))

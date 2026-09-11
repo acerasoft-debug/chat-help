@@ -115,7 +115,39 @@ $t("etiket t('Read') / t('Sent')",           str_contains($src, "t('Read') : t('
    bir gostergedir -- bu depoda kendine donen "geri" dugmesi ayni sinifti. */
 $t('Support ipliginde onay cizilmiyor',     str_contains($src, "\$otherUid !== VESTRA_SUPPORT_UID"));
 $t('yoklama betigi read farkina da bakiyor', str_contains($src, 'typeof d.read==="number"&&d.read!==seen'));
-$t('.msgtick stili var',                    str_contains((string)file_get_contents($root.'/vestra/inc/style.css'), '.msgtick'));
+
+echo "\n== 5b. İşaret ÇİZİLİYOR, yazılmıyor ==\n";
+/* Duz '✓✓' iki ayri harf: yazi tipine gore arasi aciliyor, bazi tiplerde kalin
+   bir emoji olarak cikiyor. Cizim her yerde ayni. Sembol TEK kez tanimlanip
+   <use> ile cagriliyor — 30 mesajlik konusmada ayni yol 30 kez gomulmesin. */
+$render = function (array $msgs, array $read) use ($B, $S) {
+    $th = ['id'=>'t1', 'buyer_uid'=>$B, 'seller_uid'=>$S, 'listing_id'=>'',
+           'messages'=>$msgs, 'read'=>$read, 'last_at'=>'2026-09-11T10:00:00+00:00'];
+    $html = vestra_msg_panel_html('buyer', $B, 't1', $th, [$th]);
+    return substr($html, 0, strpos($html, '<script') ?: strlen($html)); // yoklama betigi haric
+};
+$vis = $render([$txt($B), $txt($B), $txt($S)], [$S=>1]);
+$t('sembol tanimi TEK kez basiliyor',       substr_count($vis, 'class="msgtickdefs"') === 1);
+$t('OKUNAN baloncukta cift cengel',         str_contains($vis, 'class="vt2" aria-hidden="true"><use href="#vtick2"'));
+$t('GONDERILEN baloncukta tek cengel',      str_contains($vis, 'class="vt1" aria-hidden="true"><use href="#vtick1"'));
+$t('duz ✓ karakteri KALMADI',               !str_contains($vis, '✓'));
+$t('iki sembol de tanimli',                 str_contains($vis, 'id="vtick1"') && str_contains($vis, 'id="vtick2"'));
+/* Renk/kalinlik CSS'te kaliyor: sembol kendi stroke'unu YAZMAMALI, yoksa
+   `.seen` rengi ve tema degisimi hicbir sey yapmaz (SVG'de bunlar kalitimli). */
+preg_match('~<svg width="0".*?</svg>~s', $vis, $dm);
+$t('sembol kendi rengini SABITLEMIYOR',     isset($dm[0]) && !str_contains($dm[0], 'stroke=') && !str_contains($dm[0], 'fill='));
+/* Karsi tarafin baloncugu ile sistem karti isaret TASIMAZ: ikisi de bizim degil.
+   DIKKAT — sayim kapanis tirnagina KADAR: `class="msgtick` oneki sembol kutusunun
+   `msgtickdefs`'ini de yakaliyordu ve ilk yazimda 2 yerine 3 saydi. Bu depoda
+   mango -> Mangobay dersinin testin KENDI icindeki hali. */
+$t('karsi tarafin baloncugunda isaret yok', preg_match_all('~class="msgtick( seen)?"~', $vis) === 2);
+$css = (string)file_get_contents($root.'/vestra/inc/style.css');
+$t('.msgtick rengi degiskenden',            str_contains($css, '.msgtick.seen{color:var(--acc)'));
+$t('cizim stroke/fill CSS tarafinda',       str_contains($css, '.msgtick svg{') && str_contains($css, 'stroke:currentColor'));
+/* Tek cengel cift olunca saat saga yasli oldugu icin satir SICRAR; sabit
+   genislik bunu tutuyor. */
+$t('isaret sabit genislikte',               str_contains($css, '.msgtick{min-width:'));
+$t('defs gorunmez (yer kaplamiyor)',        str_contains($css, '.msgtickdefs{position:absolute'));
 
 echo "\n== 6. Her çağrı yeri AKTÖRÜ geçiriyor ==\n";
 /* Eksik bir aktor sessiz bir gerilemedir: kart yine yazilir, yalniz yanlis rozet
