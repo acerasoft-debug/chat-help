@@ -3259,6 +3259,65 @@ fiyatlar ile beraber gönder"**).
   doğrulandı: merdiven MOQ yerine ham kademeden başlayınca **11 kırmızı**,
   fiyat varsayılanı `on` olunca **3**, şerit etiketi modeli bırakınca **2**.
 
+**`price_list` — fiyat listesi mektubu, ve KAPSAMIN daralması** (operatör,
+11 Eyl 2026, dört adımda yerleşti: *"ayrica liste gönder fiyatlari ile"* →
+*"sweater larida ayrica ekle emaile"* → **"adam sadece fred perry polo yu
+istiyor ancak sen f.perrey sweateri da gönder diger ürünleri degil!"** →
+*"anbei die Preisliste von F.Perrey nicht unsere — ben satici degilim"*).
+- **`brand_catalog`'un ikinci kopyası yazılmadı, ŞEKLİ farklı bir mektup
+  yazıldı.** O mektup her modeli gövdeye basıyor — tek marka için doğru,
+  800 kalemde okunmaz. `price_list` gövdede **sayı** tutuyor (kalem, marka,
+  bölme dağılımı) ve **tek satır fiyat yazmıyor**: fiyatlar ekte ve ikinci bir
+  yerde durmamalı. Paylaşılan şey paylaşılıyor: ekler sitenin **kendi**
+  üreteçlerinden (`wholesale-list.php` / `wholesale-xlsx.php`), yani alıcının
+  indirdiği dosya ile postaladığımız aynı dosya.
+- **Ek boyutu gönderimden ÖNCE ölçülüyor:** Brevo eki base64 taşıyor (+%37) ve
+  ~10 MB'de kesiyor — aşan mektup **hiç gitmez**. Sınır aşılırsa iş **durur** ve
+  ne yapılacağını yazar; sessizce PDF'i düşürmek, operatörün gönderdiğini
+  sandığından başka bir mektup üretirdi.
+- **KAPSAM DARALDI ve bu bir düzeltme değil, operatör kararı.** Önce "sweater'
+  ları da ekle" denince katalogdaki **50 sweatshirt/hoodie** (11 marka) ölçüldü
+  ve listesi hazırlandı; operatör **"diger ürünleri degil"** deyince o liste
+  **iptal edildi**. Müşteriye gitmemişti — yalnız operatörün kutusuna (`copy`).
+  *Kapsamı daraltan bir talimat, yapılmış işi çöpe atsa bile talimattır.*
+- **Bir MARKANIN listesi "BİZİM" listemiz değildir.** İlk sürüm *"anbei unsere
+  Preisliste"* diyordu; operatör **"ben satıcı değilim"** dedi. VESTRA pazar
+  yeri, malı satan taraf değil — marka kapsamlı listede cümle **markaya**
+  atfediliyor (`brand_scope`), katalogun tamamında "bizim" kalıyor (o liste
+  gerçekten VESTRA'nın kendi katalogu). Test iki yönü de tutuyor.
+- **ARAMA TOKEN'IM üç kez müşteriye giden metne sızdı, üçü de canlı koşuda
+  görüldü:** (1) konu satırı `Sweat — Preisliste` (oysa `cat=Sweat` benim
+  satır bulmak için yazdığım parça) → kapsam adı artık **eşleşen kategori
+  adlarından** kuruluyor, üç ve üzeri kategoride token'a düşüyor; (2) ek dosya
+  adı `VESTRA-vestra-sweat-price-list.pdf` — 'vestra' iki kez, 'sweat' yine
+  token → ad da kapsamdan kuruluyor; (3) `Marken u. a.: Fred Perry` ve
+  `Sortiment: Apparel 50` satırları, açılış cümlesi zaten aynı şeyi söylerken
+  ikinci/üçüncü kez yazıyordu → tek markalı/tek bölmeli listede basılmıyor.
+  *Girdi alanı ile müşterinin okuduğu metin arasındaki mesafe bir satır: süzgeç
+  için yazdığın kelimenin konu satırında ne işi olduğunu sor.*
+- **`copy=true` artık PAYLAŞILAN gönderim bloğunda** — her `reply_letter`'in
+  önizlenecek bir yeri var (KURAL 18). Kütüğe gövde basmak seçenek değildi:
+  hitap müşterinin adını taşıyor, kütük herkese açık. `send=true` ile birlikte
+  verilirse **kopya kazanır**: yanlışlıkla iki bayrak birden verilince müşteriye
+  gitmez.
+- **Kendi ölçüm hatam, iki kez:** "kopya, gönderim kapısından önce mi" iddiası
+  önce `send=false` satırını aradı — dosyada **altı** iş var ve `strpos` ilkini
+  buldu; sonra `$ok = vestra_send_mail($to, $subject, $body,` kalıbını aradı —
+  o da **iki** yerde. İddia doğru çalışan kodda iki kez kırmızı döndü. Ayırt
+  eden şey gönderen adı (`$fromName`); iddia artık paylaşılan bloğa özgü tek
+  satıra bağlı. *Bu deponun altı kez kaydettiği "kontrol yanlış yere bakıyor"un
+  yedinci ve sekizinci vakası, üstelik testin kendisinde.*
+- Canlı ölçüm (hepsi `copy=true`, müşteriye **hiçbiri gitmedi**): sweatshirt
+  listesi **50 kalem / 11 marka**, PDF 279 KB + Excel 11 KB; Fred Perry listesi
+  **2 kalem**, `VESTRA-fred-perry-price-list-2026-09.pdf/.xlsx`, gövde 632
+  karakter; alıcının fiyat kapısı **AÇIK** (yani ekteki rakamlar sayfada da
+  görünüyor). Bir koşu `dial tcp: i/o timeout` ile düştü — SSH hiç bağlanmadı,
+  yani o koşu mektup hakkında **hiçbir şey söylemiyor**; runner değişince geçti.
+- Test: `tests/listing_sheet_test.php` §8–9 (toplam 74 iddia). Düşebildiği
+  doğrulandı: gövdeye bir fiyat sızınca **1 kırmızı**, eklenmeyen bir biçim
+  adlanınca **3**, inceleme yolu dala geri taşınınca **3**, marka kapsamı yok
+  sayılınca **4**.
+
 **3. parti (İKİNCİ mektup) gönderildi — 200/250, kalan 50 KOTAYA takıldı**
 (operatör, 10 Eyl 2026: *"kampanya gönder 2. email almayanlara yeni ürünler ve
 brandslerden.."* + *"250 ad."*).
