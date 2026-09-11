@@ -3084,6 +3084,29 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
 - Polonun `min_colors`'ı **zaten 2**'ydi (kuru koşu satır basmadı), yani
   "≥2 colours" etiketi doğruydu; dokunulmadı.
 - Uygulandı: run `34529155791`, 5 alan, zaman damgalı yedek.
+- **Teklif mektubu GÖNDERİLDİ** (11 Eyl 2026 09:43 UTC, `shirtmaker@chello.at`,
+  GARAGE LE PARIS adına, Almanca). Gövde sayfadaki HER rakamı taşıyor: model,
+  renk, beden serisi, adet, UVP — artı bugün konan asgariler (10'lu karton /
+  50 ad. / ≥4 renk ve 8'li karton / 56 ad. / ≥2 renk). Taslakta duran
+  *"Teilmengen einzelner Farben sind möglich"* cümlesi **kaldırıldı**: ilanın
+  ≥4 renk kuralını yalanlıyordu — mektup, sitenin reddedeceği bir şeyi vaat
+  edemez.
+- **PDF eklenemedi, sebebi kayda geçsin:** Gmail aracı eki yalnız satır içi
+  base64 olarak alıyor; 1,8 MB'lık sayfa ~2,4 milyon karakter eder ve bu
+  ortam o boyuttaki çıktıyı dosyaya düşürüp bağlamdan kesiyor. Okunabilir
+  kalacak kadar küçültülmüş sürüm (2 sayfa JPEG, ~110 KB) bile tek çağrıda
+  taşınamadı; daha fazla küçültünce **tablo okunmaz** oluyor, yani belge
+  belge olmaktan çıkıyor. Mektup bu yüzden eksiz gitti ve sayfayı "istenirse
+  gönderiyoruz" diye yazıyor. *Üçüncü taraf tarifesini herkese açık
+  `uploads/` altına koyup link vermek bilerek YAPILMADI.*
+- **`Light Blue` mektuba EKLENMEDİ** (öneriyi ben açmıştım, geri aldım):
+  tarife sayfasının M3600 renkleri White, Green, Black, Navy, Bordeaux.
+  İlandaki 6. renk oradan gelmiyor. Fotoğrafa bakınca sebebi görülüyor —
+  sayfadaki ilk *"Color: White"* satırının fotoğrafı aslında **açık/buz
+  mavisi** bir polo. Yani ilanın 6 rengi tutarlı, ama tarife sayfasının
+  yazdığı ad "White"; mektupta sayfanın kendi adlandırması bırakıldı.
+  *Fotoğraf ile metin çelişince fotoğraf kazanır (Pili Pérez dersi) — ama
+  müşteriye giden metinde tedarikçinin kendi adlandırması esas alındı.*
 
 **3. parti (İKİNCİ mektup) gönderildi — 200/250, kalan 50 KOTAYA takıldı**
 (operatör, 10 Eyl 2026: *"kampanya gönder 2. email almayanlara yeni ürünler ve
