@@ -3202,6 +3202,46 @@ brandslerden.."* + *"250 ad."*).
   ayrı ölçüte bağlamak, birini sessizce eksik bırakır.*
   Test: `wave3_letter_test.php §7` (eski sayım geri konunca 3 kırmızı).
 
+**11 Eyl 2026 — KATALOG GENELİNDE %80 ZAM ve GERİ ALINMASI.** Operatör:
+*"yüzde 80 eklemeyi hemen geri al"* → *"tüm fiyatları dün geceki fiyatlara çek"*.
+- **Ne olmuş:** KURAL 22 ile eklenen `markup_pct` aracı **`80` ile ve bölme
+  süzgeci OLMADAN** koşulmuş. Ölçüm (`inspect-products` → `bak_diff`):
+  **827 ilanın fiyatı** değişmiş — footwear 335, premium 346, underwear 146,
+  üçünde de `markup_pct=80` damgası. Ayakkabı/markalı **×1,80**; iç çamaşırı
+  benim %20'min üstüne bindiği için **×2,16**.
+- **Geri alma FİYAT ALANLARIYLA SINIRLI.** Dosyanın tamamını yedekten geri
+  yüklemek yanlış olurdu: aynı gün yazılan fiyat dışı alanlar (Fred Perry'nin
+  asgari adedi, renk zorunluluğu, beden satırı) da silinirdi. `restore_from`
+  yalnız `list` + kademe fiyatları + zam damgasını geri yazar; `moq`, `sizes`,
+  `min_colors`, durum ve **yedekte olmayan ilanlar** korunur.
+  **Kademeler SIRAYLA eşleştirilir, `min` değerine göre değil** — Fred Perry'de
+  MOQ 20→50 olunca ilk kademenin `min`'i de değişmişti; `min`'e göre eşleştiren
+  bir geri yükleme o kademenin fiyatını hiç geri getiremezdi.
+- **Kum havuzu gerçek bir hata yakaladı:** geri yükleme bloğu sayaçlar
+  kurulmadan önce çalışıyordu, yani `$changes++` tanımsız değişkene yazıyor ve
+  blok bitince sıfırlanıyordu — *"GERI YUKLENEN: 827 ilan"* yazıp **hiçbir şeyi
+  kaydetmeyen** bir koşu. Canlıda bu, "geri aldım" raporu ile hâlâ zamlı duran
+  bir katalog demekti. Test: `set_prices_markup_test.php §5c` (17 iddia).
+- **Sonuç (run `34593409339`):** 827 alan geri yazıldı, yedek alındı; geri
+  okuma (`bak_diff`) **"FIYATI DEGISEN ILAN: 0"**, damga kalmadı.
+- **Bu iş iki sessiz araç hatası daha açığa çıkardı** (`bak_diff` iki koşu
+  boyunca hiç çalışmadı ve her ikisinde de **normal listeyi basıp yeşil bitti**,
+  yani "değişen bir şey yok" gibi okundu):
+  1. `workflow_dispatch` girdiyi **11. sırada** teslim etmedi — sonda, sorulmayan
+     bir soruya cevap verdi. Girdi öne alındı.
+  2. `appleboy/ssh-action` **yalnız `envs:` listesinde adı yazılı** değişkenleri
+     sunucuya geçiriyor; yeni değişken oraya eklenmemişti, uzakta `getenv()` boş
+     döndü. *Yeni bir sonda girdisi eklerken bu satır kontrol listesine girsin.*
+- **AÇIK DERS — araç, kapsamı kendisi sınırlamıyor.** `markup_pct` 24 saatlik
+  "aynı yüzde" damgası taşıyor ama **bölme/marka daraltması zorunlu değil**:
+  `brand=*` + bölme boş = tüm katalog, tek dispatch. 827 ilan tam bu yoldan
+  zamlandı. Gönderim tarafındaki 50'lik kırpma bunun aynısı için konmuştu;
+  fiyat tarafında karşılığı **yok**.
+- **Depoda aynı anda başka bir Claude oturumu çalışıyor**
+  (`claude/wizardly-planck-7ylnmk`, ayrı session). `listings.json`
+  oku-değiştir-yaz olduğu için bu, `add-and-send`'in paralel koşu uyarısının
+  fiyat hâli: iki oturum aynı dosyaya yazarsa biri diğerini ezer.
+
 **KURAL 22 — Toplu ZAM ayrı bir araçtır ve TEKRARLANAMAZ** (operatör, 10 Eyl
 2026: *"underwear ürünlerine yüzde 20 zam yap bütün ürünlere"*).
 - `set-prices.yml` yalnızca **indirim** biliyordu (`discount_pct`). Zam onun
