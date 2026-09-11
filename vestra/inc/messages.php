@@ -5,7 +5,14 @@
  * Off-platform contact info (email, IBAN) is detected and blocked before a message is stored —
  * all communication and payment must stay on VESTRA so buyer protection still applies.
  */
-function vestra_msg_file(): string { return dirname(__DIR__).'/data/messages.json'; }
+/* Yol bir SABIT'e alindi ki test kendi deposuna yonlendirebilsin. Korumasizken
+   `msg_delete_test.php` calismayi REDDEDIYORDU ("data/messages.json zaten var") --
+   yani mesajlasmanin silme testi bu depoda hicbir zaman kosmadi. KURAL 2'nin
+   `VESTRA_ACCOUNTS` icin verdigi kararin aynisi; uretimde davranis birebir ayni. */
+if (!defined('VESTRA_MESSAGES')) define('VESTRA_MESSAGES', dirname(__DIR__).'/data/messages.json');
+if (!defined('VESTRA_BLOCKED_MESSAGES')) define('VESTRA_BLOCKED_MESSAGES', dirname(__DIR__).'/data/blocked_messages.json');
+function vestra_msg_file(): string { return VESTRA_MESSAGES; }
+function vestra_msg_blocked_file(): string { return VESTRA_BLOCKED_MESSAGES; }
 
 /* Synthetic recipient for messages about platform listings that have no assigned
  * seller (demo / catalogue items). These threads route to the operator, who replies
@@ -141,7 +148,7 @@ function vestra_msg_flag_offplatform(string $text): ?string {
 /* Moderation trail: every blocked off-platform attempt is kept (server-side only, data/ is
    web-blocked) so the admin can spot repeat circumvention and act on the account. */
 function vestra_msg_log_blocked(string $fromUid, string $buyerUid, string $sellerUid, string $listingId, string $flag, string $text): void {
-    $f = dirname(__DIR__).'/data/blocked_messages.json';
+    $f = vestra_msg_blocked_file();
     $log = [];
     if (is_readable($f)) { $d = json_decode((string)file_get_contents($f), true); if (is_array($d)) $log = $d; }
     $log[] = ['at'=>date('c'), 'from'=>$fromUid, 'buyer_uid'=>$buyerUid, 'seller_uid'=>$sellerUid,
@@ -164,7 +171,7 @@ function vestra_msg_log_blocked(string $fromUid, string $buyerUid, string $selle
 }
 
 function vestra_msg_blocked_log(): array {
-    $f = dirname(__DIR__).'/data/blocked_messages.json';
+    $f = vestra_msg_blocked_file();
     if (!is_readable($f)) return [];
     $d = json_decode((string)file_get_contents($f), true);
     return is_array($d) ? $d : [];
@@ -202,7 +209,7 @@ function vestra_msg_backup(string $tag, array $rec): string {
 /** Engellenen deneme kaydini siler. Doner: ['ok'=>bool,'error'=>string,'backup'=>string] */
 function vestra_msg_blocked_delete(string $key): array {
     if ($key === '') return ['ok'=>false, 'error'=>'empty_key'];
-    $f = dirname(__DIR__).'/data/blocked_messages.json';
+    $f = vestra_msg_blocked_file();
     $log = vestra_msg_blocked_log();
     $out = []; $hit = null;
     foreach ($log as $e) {
@@ -372,11 +379,20 @@ function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, s
  * System messages carry structured meta and no free text, so they bypass the
  * off-platform filter and render as a prominent card in the viewer's language.
  */
-function vestra_msg_post_system(string $buyerUid, string $sellerUid, string $listingId, array $meta): string {
+function vestra_msg_post_system(string $buyerUid, string $sellerUid, string $listingId, array $meta, string $actorUid = ''): string {
     if ($buyerUid === '' || $sellerUid === '') return '';
     $threads = vestra_msg_threads();
     $id = vestra_msg_thread_id($buyerUid, $sellerUid, $listingId);
     $entry = ['from'=>'system', 'meta'=>$meta, 'text'=>'', 'at'=>date('c')];
+    /* KIM yol acti. Sistem karti 'from'=>'system' ile yaziliyor, yani hicbir
+       tarafin mesaji degil -- ve vestra_msg_unread() "benden olmayan her sey
+       okunmamistir" dedigi icin ALICI KENDI teklifini verdiginde KENDI rozeti
+       yaniyordu. Operatorun sikayeti tam buydu: "kendi mesaji okursa bildirim
+       kalksin, birsey yanmasin". Alan EKLEME: 'by' tasimayan eski kayitlar ve
+       insan eylemi olmayan kartlar (escrow supurucusu, operatorun cozdugu
+       talep) bugunku davranisi koruyor -- yani eksik bir 'by' fazla haber
+       verir, mesaji GIZLEMEZ. Yanlis yon bu olmali. */
+    if ($actorUid !== '') $entry['by'] = $actorUid;
     $found = false;
     foreach ($threads as &$t) {
         if (($t['id']??'') === $id) { $t['messages'][] = $entry; $t['last_at'] = date('c'); $found = true; break; }
@@ -533,15 +549,51 @@ function vestra_msg_mark_read(string $id, string $uid): void {
     unset($t);
     vestra_msg_save_threads($threads);
 }
-/* Unread ⇔ there is at least one message beyond what $uid has seen that they didn't send. */
+/* Unread ⇔ there is at least one message beyond what $uid has seen that they didn't send
+   AND didn't cause. Kendi eylemi kendi rozetini yakmaz. */
 function vestra_msg_unread(array $thread, string $uid): bool {
     $msgs = $thread['messages'] ?? [];
     $seen = $thread['read'][$uid] ?? 0;
     if (!is_int($seen)) $seen = 0; // legacy date-based markers → treat as unseen baseline
     for ($i = max(0, $seen); $i < count($msgs); $i++) {
-        if (($msgs[$i]['from'] ?? '') !== $uid) return true;
+        if (($msgs[$i]['from'] ?? '') === $uid) continue;                    // kendi yazdigi
+        if ($uid !== '' && ($msgs[$i]['by'] ?? '') === $uid) continue;       // kendi eyleminin karti
+        return true;
     }
     return false;
+}
+
+/* Karsi taraf KAC mesaji gormus. `read[uid]` mark_read'in yazdigi SAYIM'dir, yani
+   i. mesaj ancak read_upto > i ise okunmustur.
+   Iki savunma: (1) eski tarih tabanli isaret sayi degil -- okunmamis sayiliyor,
+   cunku "okundu" diye YANLIS bir sey yazmaktansa hic yazmamak dogru; (2) sayim
+   mesaj sayisina KIRPILIYOR: vestra_msg_delete() bir mesaji cikarirken read[]'i
+   yeniden hesaplamiyor, yani silme sonrasi isaret dizinin disina tasabiliyor.
+   Kirpma dogru cevabi veriyor -- karsi taraf silinen mesaji da gormustu, yani
+   kalanlarin hepsini gormus demektir. */
+function vestra_msg_read_upto(array $thread, string $otherUid): int {
+    if ($otherUid === '') return 0;
+    $n = $thread['read'][$otherUid] ?? 0;
+    if (!is_int($n)) return 0;
+    return max(0, min($n, count($thread['messages'] ?? [])));
+}
+
+/* Konusmada $uid'in MUHATABI. Tek yerde: okundu bilgisi, yoklama ve cizim ucu de
+   bunu cagiriyor -- ucu de kendi hesaplasaydi biri digerinden ayrisirdi. */
+function vestra_msg_other_uid(array $thread, string $uid): string {
+    return ($thread['buyer_uid'] ?? '') === $uid
+        ? (string)($thread['seller_uid'] ?? '')
+        : (string)($thread['buyer_uid'] ?? '');
+}
+
+/* 15 sn'lik yoklamanin gordugu durum. `last_at` YETMEZ: karsi taraf mesaji
+   okudugunda konusmaya hicbir sey eklenmiyor, yani onay isareti ancak sayfa elle
+   yenilenirse ✓✓'ye donerdi -- tam da bakan kisi icin bozuk gorunurdu. */
+function vestra_msg_poll_state(array $thread, string $uid): array {
+    return [
+        'last' => (string)($thread['last_at'] ?? ''),
+        'read' => vestra_msg_read_upto($thread, vestra_msg_other_uid($thread, $uid)),
+    ];
 }
 
 /* Display label for the OTHER party in a thread, from the point of view of $uid.
@@ -697,16 +749,39 @@ function vestra_msg_panel_html(string $role, string $uid, string $tid, ?array $t
             $main .= '<div class="banner msgerr">⚠ '.t('For your safety, sharing email addresses, phone numbers, or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so buyer protection still applies. Your message was not sent.').'</div>';
         }
         $main .= '<div class="msgthread" id="mThread">';
+        /* Okundu bilgisi: muhatabin gordugu mesaj SAYISI. i. baloncuk ancak
+           readUpto > i ise okunmus. Yalniz KENDI baloncuklarimizda ciziliyor --
+           karsi tarafin mesajinin yaninda "okundu" yazmak kendi kendine bilgi.
+           VESTRA Support ipliginde HIC cizilmiyor: operator panelinin mesaj
+           sekmesi butun konusmalari TEK sayfada listeliyor, yani "operator tam
+           bu ipligi okudu" diyebilecegimiz bir an yok ve isaret hicbir zaman
+           ilerleyemezdi. Asla ilerlemeyen bir gosterge bozuk bir gostergedir
+           (kendine donen "geri" dugmesiyle ayni sinif); yanlis "okundu" yazmak
+           kadar, "okunmadi"da donup kalmak da musteriyi yaniltir. */
+        $otherUid    = vestra_msg_other_uid($thread, $uid);
+        $readUpto    = vestra_msg_read_upto($thread, $otherUid);
+        $showReceipt = $otherUid !== '' && $otherUid !== VESTRA_SUPPORT_UID;
         $day = '';
-        foreach ($thread['messages'] as $m) {
+        foreach ($thread['messages'] as $i => $m) {
             $at = (string)($m['at'] ?? '');
             $d  = $at !== '' ? date('Y-m-d', strtotime($at) ?: 0) : '';
             if ($d !== '' && $d !== $day) { $day = $d; $main .= '<div class="msgday"><span>'.$h(vestra_msg_day_label($at)).'</span></div>'; }
             if (($m['from'] ?? '') === 'system') { $main .= vestra_msg_system_html($m, $role); continue; }
             $mine = ($m['from'] ?? '') === $uid;
+            $tick = '';
+            if ($mine && $showReceipt) {
+                $seen = $readUpto > $i;
+                $lbl  = $seen ? t('Read') : t('Sent');
+                /* role="img" + aria-label: cipsiz bir <span>'in aria-label'i her
+                   ekran okuyucuda seslendirilmiyor; gorsel olarak gizli ikinci bir
+                   metin kutusu ise yalniz burada kullanilacak bir yardimci sinif
+                   dogururdu. Isaret tek karakter, anlami etikette. */
+                $tick = ' <span class="msgtick'.($seen ? ' seen' : '').'" role="img"'
+                      . ' title="'.$h($lbl).'" aria-label="'.$h($lbl).'">'.($seen ? '✓✓' : '✓').'</span>';
+            }
             $main .= '<div class="msgbubblewrap'.($mine ? ' mine' : '').'"><div class="msgbubble'.($mine ? ' mine' : '').'">'
                    . nl2br($h($m['text'] ?? ''))
-                   . '<div class="msgtime">'.$h(vestra_msg_clock($at)).'</div></div></div>';
+                   . '<div class="msgtime">'.$h(vestra_msg_clock($at)).$tick.'</div></div></div>';
         }
         $main .= '</div>';
         $main .= '<form method="post" action="'.$base.'" class="msgcompose" id="mCompose">'
@@ -738,8 +813,13 @@ function vestra_msg_panel_html(string $role, string $uid, string $tid, ?array $t
               . 'if(fine)ta.addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();if(ta.value.trim()){if(f.requestSubmit)f.requestSubmit();else f.submit();}}});'
               . 'f.addEventListener("submit",function(){try{sessionStorage.removeItem(key);}catch(e){}});}'
               . 'var last='.json_encode((string)($thread['last_at'] ?? '')).';'
+              /* Okundu isareti de yoklanmali: karsi taraf okudugunda konusmaya
+                 hicbir sey eklenmiyor, yani 'last' DEGISMIYOR ve ✓ hicbir zaman
+                 ✓✓ olmazdi -- tam da bekleyen kisi icin bozuk gorunurdu. */
+              . 'var seen='.json_encode($readUpto ?? 0).';'
               . 'setInterval(function(){fetch('.json_encode($pollUrl).',{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){'
-              . 'if(d.last&&d.last!==last){try{if(ta&&ta.value.trim())sessionStorage.setItem(key,ta.value);}catch(e){}location.reload();}'
+              . 'var fresh=(d.last&&d.last!==last)||(typeof d.read==="number"&&d.read!==seen);'
+              . 'if(fresh){try{if(ta&&ta.value.trim())sessionStorage.setItem(key,ta.value);}catch(e){}location.reload();}'
               . '}).catch(function(){})},15000);'
               . '})();</script>';
     }

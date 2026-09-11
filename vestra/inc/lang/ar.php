@@ -1228,6 +1228,8 @@ return array (
   'Dec' => 'ديسمبر',
   '{d} {m}' => '{d} {m}',
   '{d} {m} {y}' => '{d} {m} {y}',
+  'Read' => 'مقروء',
+  'Sent' => 'مُرسَل',
   'Unread' => 'غير مقروء',
   'Back to conversations' => 'العودة إلى المحادثات',
   'Enter to send · Shift+Enter for a new line' => 'Enter للإرسال · Shift+Enter لسطر جديد',

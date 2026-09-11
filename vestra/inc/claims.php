@@ -308,10 +308,12 @@ function vestra_claim_notify(string $event, string $ref, array $orderRow, array 
             $sid = (string)($l['seller_uid'] ?? '');
             if ($sid === '' || isset($seen[$sid])) continue;
             $seen[$sid] = true;
+            /* Talebi ALICI acar, ama COZUMU operator yazar: 'resolved' kartini
+               hicbir taraf dogurmadi, ikisinin de rozeti yanmali. */
             vestra_msg_post_system($buyerAcc['id'], $sid, '', [
                 'kind'=>'claim', 'status'=>$event, 'ref'=>$ref, 'claim_ref'=>$claimRef,
                 'reason'=>$reasonLbl, 'outcome'=>(string)($claim['outcome'] ?? ''),
-            ]);
+            ], $event === 'opened' ? (string)$buyerAcc['id'] : '');
             $out['threads']++;
         }
     }

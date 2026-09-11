@@ -212,9 +212,10 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         $buyerAcc = auth_find($orderRow['email'] ?? '');
         if ($buyerAcc) {
             require_once __DIR__.'/inc/messages.php';
+            /* Karti SATICI dogurdu (gonderdi olarak isaretledi). */
             vestra_msg_post_system($buyerAcc['id'], $uid, '', [
                 'kind'=>'order','status'=>'shipped','ref'=>$ref,'tracking'=>$tracking,
-            ]);
+            ], $uid);
         }
         /* Push ping to the buyer's installed devices */
         if ($buyerAcc) {
@@ -295,7 +296,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
             $buyerAcc = auth_find($orderRow['email'] ?? '');
             if ($buyerAcc) {
                 require_once __DIR__.'/inc/messages.php';
-                vestra_msg_post_system($buyerAcc['id'], $uid, '', ['kind'=>'order','status'=>'paid','ref'=>$ref]);
+                vestra_msg_post_system($buyerAcc['id'], $uid, '', ['kind'=>'order','status'=>'paid','ref'=>$ref], $uid);
                 require_once __DIR__.'/inc/push.php';
                 vestra_push_send($buyerAcc['id'], 'VESTRA — payment confirmed 💶',
                     'Order '.$ref.' — payment received. Your goods are being prepared.', '/buyer?tab=orders');
@@ -373,7 +374,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
             $buyerAcc = auth_find($orderRow['email'] ?? '');
             if ($buyerAcc) {
                 require_once __DIR__.'/inc/messages.php';
-                vestra_msg_post_system($buyerAcc['id'], $uid, '', ['kind'=>'order','status'=>'delivered','ref'=>$ref]);
+                vestra_msg_post_system($buyerAcc['id'], $uid, '', ['kind'=>'order','status'=>'delivered','ref'=>$ref], $uid);
                 require_once __DIR__.'/inc/push.php';
                 vestra_push_send($buyerAcc['id'], 'VESTRA — order delivered 📦',
                     'Order '.$ref.' — please confirm receipt. Auto-release on '.$deadline.'.', '/buyer?tab=orders');
@@ -458,7 +459,8 @@ if (($_GET['tab']??'')==='messages' && !empty($_GET['thread']) && isset($_GET['p
     $t = vestra_msg_find_thread($_GET['thread']);
     $ok = $t && ($t['seller_uid']??'') === ($_SESSION['uid']??'');
     header('Content-Type: application/json');
-    echo json_encode(['last' => $ok ? ($t['last_at']??'') : '']);
+    /* Durumu tek gövde kuruyor (vestra_msg_poll_state) — alici paneliyle ayni. */
+    echo json_encode($ok ? vestra_msg_poll_state($t, (string)$_SESSION['uid']) : ['last'=>'', 'read'=>0]);
     exit;
 }
 // Mark an opened thread read here, before head.php computes the nav badge below —

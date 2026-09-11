@@ -1228,6 +1228,8 @@ return array (
   'Dec' => 'дек.',
   '{d} {m}' => '{d} {m}',
   '{d} {m} {y}' => '{d} {m} {y}',
+  'Read' => 'Прочитано',
+  'Sent' => 'Отправлено',
   'Unread' => 'Непрочитано',
   'Back to conversations' => 'Назад к диалогам',
   'Enter to send · Shift+Enter for a new line' => 'Enter — отправить · Shift+Enter — новая строка',

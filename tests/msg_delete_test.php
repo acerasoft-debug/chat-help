@@ -8,14 +8,14 @@
  * olduğu için kimse fark etmez. Aşağıda bu, araya yeni kayıt sokularak ölçülüyor.
  */
 $root = dirname(__DIR__);
-$data = $root.'/vestra/data';
-foreach ([$data.'/blocked_messages.json', $data.'/messages.json'] as $f) {
-    if (file_exists($f)) {
-        fwrite(STDERR, "ATLANAMAZ: {$f} zaten var. Test kendi verisini yaziyor; once tasiyin.\n");
-        exit(1);
-    }
-}
+/* Kum havuzu: depo YOLU artik sabit (VESTRA_MESSAGES / VESTRA_BLOCKED_MESSAGES),
+   o yuzden test gercek `vestra/data`'ya dokunmuyor. Eskiden dokunuyordu ve o
+   dosyalar var oldugu icin bu test HIC KOSMADI -- kosmayan bir test, hic
+   dusemeyen bir iddianin dosya halidir. */
+$data = sys_get_temp_dir().'/vestra_msgdel_'.getmypid();
 @mkdir($data, 0777, true);
+define('VESTRA_MESSAGES',         $data.'/messages.json');
+define('VESTRA_BLOCKED_MESSAGES', $data.'/blocked_messages.json');
 require_once $root.'/vestra/inc/messages.php';
 
 $ok = 0; $fail = 0;

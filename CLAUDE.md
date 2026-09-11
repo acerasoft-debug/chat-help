@@ -3525,6 +3525,78 @@ mesajlara"*).
   (`_csrf`); alanı unutan bir form `csrf_fail` ile döner, yani **düğme görünür
   ama hiç çalışmaz**. İlk yazımda unutuldu, test kabloyu de denetliyor.
 
+**KURAL 24 — Mesajda OKUNDU onayı; ve kendi eylemi kendi rozetini yakmaz**
+(operatör, 11 Eyl 2026: *"mesajlarda mesajin okunup okunmadigi müsteriye
+görünsün ayrica, kendi mesaji okursa bildirim kalksin birsey yanmasin"*).
+**İki ayrı iş, tek cümlede.**
+
+- **Rozet kusuru GERÇEKTİ ve sebebi sistem kartlarıydı.** `vestra_msg_unread()`
+  *"benden olmayan her şey okunmamıştır"* diyor; sistem kartı
+  (`vestra_msg_post_system`) `from='system'` ile yazılıyor ve **kimin yol
+  açtığını hiç kaydetmiyordu**. Sonuç: alıcı **kendi teklifini** verince
+  **kendi rozeti** yanıyordu. Kum havuzunda ölçüldü (gerçek giriş + gerçek
+  sayfa çizimi, kaynak okumak değil): kendi teklifinden sonra *alıcı YANIYOR ·
+  satıcı YANIYOR*; düzeltmeden sonra *alıcı SÖNÜK · satıcı YANIYOR*.
+  Kendi **metin** mesajı zaten yakmıyordu (`from === $uid`) — kaçan yalnız
+  kartlardı.
+- **Çözüm ALAN EKLEME:** karta `by` (aktör uid'i) düşüyor, `vestra_msg_unread()`
+  onu atlıyor. **`by` taşımayan kayıt bugünkü davranışı koruyor** — yani eksik
+  bir aktör **fazla haber verir, mesajı GİZLEMEZ**. Yanlış yön bu olmalı; 15.
+  çağrı yerini eklerken unutan kişi sessiz bir kayıp değil, fazladan bir rozet
+  üretir. Test çağrı yerlerini **elle listelemiyor**, kaynağı ayrıştırıp
+  sayıyor (14/14).
+- **Aktör her yerde aynı kişi değil ve tahmin edilmedi:** sipariş/teklif/kabul
+  kartlarında **alıcı**, gönderildi/ödendi/teslim kartlarında **satıcı**,
+  talebe teklifte **satıcı**. İki yerde bilerek **boş**: escrow süpürücüsü
+  insan eylemi değil; talebin **çözümünü** operatör yazıyor (`opened` alıcının,
+  `resolved` kimsenin) — orada iki rozetin de yanması doğru.
+- **Okundu onayı muhatabın gördüğü SAYIM'dan** (`vestra_msg_read_upto`):
+  `mark_read` mesaj **sayısını** yazıyor, yani i. baloncuk ancak `read_upto > i`
+  ise okunmuş. Yalnız **kendi** baloncuklarımızda çiziliyor; karşı tarafın
+  mesajının yanına "okundu" yazmak kendi kendine bilgidir.
+- **VESTRA Support ipliğinde HİÇ çizilmiyor.** Operatör panelinin mesaj sekmesi
+  bütün konuşmaları **tek sayfada** listeliyor, yani "operatör tam bu ipliği
+  okudu" diyebileceğimiz bir an yok ve işaret **hiçbir zaman ilerleyemezdi**.
+  Asla ilerlemeyen bir gösterge bozuk bir göstergedir — kendine dönen "geri"
+  düğmesiyle aynı sınıf. Admin panelinden damgalamak daha kötü olurdu: o sayfa
+  alıcı↔satıcı ipliklerini de gösteriyor, damgalamak müşteriye **satıcının**
+  okuduğunu söylerdi.
+- **Yoklama `last_at`'e bakmak YETMİYORDU.** Karşı taraf okuduğunda konuşmaya
+  hiçbir şey eklenmiyor, yani ✓ hiçbir zaman ✓✓ olmazdı — tam da bekleyen kişi
+  için bozuk görünürdü. Uç artık `read`'i de dönüyor ve durumu **tek gövde**
+  kuruyor (`vestra_msg_poll_state`); iki panel kendi hesaplasaydı biri
+  ötekinden ayrışırdı (dört mektup gövdesinin dersi).
+- **Silme `read[]`'i yeniden hesaplamıyor**, yani işaret dizinin dışına
+  taşabiliyor ve kırpılmasaydı gösterge **her mesajı "okundu"** diye basardı.
+  Kırpma doğru cevabı veriyor: karşı taraf silineni de görmüştü.
+  Eski **tarih tabanlı** işaret sayı değil → **okunmamış** sayılıyor; "okundu"
+  diye yanlış bir şey yazmaktansa hiç yazmamak doğru.
+- Fark renkle **değil** işaret sayısıyla veriliyor (✓ / ✓✓): yalnız renge
+  dayanan bir gösterge renk körlüğünde kayboluyor. `Read` / `Sent` **8 sözlüğe
+  birden** (KURAL 10); Almanca *Gelesen/Gesendet*, Japonca *既読/送信済み*.
+- **Yan kazanç: `msg_delete_test.php` ilk kez KOŞTU.** Depo yolu artık sabit
+  (`VESTRA_MESSAGES` / `VESTRA_BLOCKED_MESSAGES`, `defined()` korumalı —
+  KURAL 2'nin `VESTRA_ACCOUNTS` kararının aynısı), o yüzden test gerçek
+  `vestra/data`'ya dokunmuyor. Eskiden dokunuyordu ve o dosyalar var olduğu
+  için test kendini **reddediyordu**: KURAL 23'ün silme özelliği bu depoda hiç
+  sınanmamıştı (şimdi 30 iddia, hepsi yeşil). *Koşmayan bir test, hiç
+  düşemeyen bir iddianın dosya hâlidir.*
+- **Davranış bilerek değiştiği için `msg_panel_test` de düzeltildi:** iddia
+  `>09:12<` arıyordu, yani saatin **komşu karakterini**; onay işareti saatin
+  yanına girince kırmızı döndü. Olguya çevrildi (okunur saat ekranda) ve
+  saat kaldırılarak hâlâ düşebildiği doğrulandı.
+- **Canlı çizim** (kum havuzu kopyası, onaylı alıcı **ve** satıcı oturumu):
+  alıcının 09:10 mesajı **✓✓ Read**, 09:30 mesajı **✓ Sent**, satıcının
+  mesajında işaret **yok**; Almanca *Gesendet/Gelesen*, Arapça RTL doğru;
+  Support ipliğinde **0** işaret, kontrol ipliğinde **2**; yoklama
+  `{"last":…,"read":4}`; PHP uyarısı **0**.
+- Test: `tests/msg_read_receipt_test.php` (57 iddia, iki yön). Düşebildiği
+  doğrulandı: `by` atlaması kaldırılınca **3 kırmızı**, bir çağrı yerinden
+  aktör düşünce **1**, kırpma kalkınca **2**, yoklama eski hâline dönünce
+  **2**, Support muhafazası kalkınca **1**. *Her sabotajın GERÇEKTEN
+  uygulandığı ayrıca yazdırıldı — bu oturumda bir sabotaj sessizce hiç
+  uygulanmamış ve testi sağlam göstermişti.*
+
 **KURAL 22 — Toplu ZAM ayrı bir araçtır ve TEKRARLANAMAZ** (operatör, 10 Eyl
 2026: *"underwear ürünlerine yüzde 20 zam yap bütün ürünlere"*).
 - `set-prices.yml` yalnızca **indirim** biliyordu (`discount_pct`). Zam onun

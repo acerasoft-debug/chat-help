@@ -310,10 +310,11 @@ if(!empty($lines)){
         'Order '.$ref.' · '.$company.' · €'.number_format((float)$total,2), '/seller?tab=orders');
       if($buyerAcc){
         require_once __DIR__.'/inc/messages.php';
+        /* Karti ALICI dogurdu (siparisi o verdi) — kendi rozeti yanmasin. */
         vestra_msg_post_system($buyerAcc['id'], $sid, '', [
           'kind'=>'order','status'=>'placed','ref'=>$ref,
           'items'=>mb_substr($itemsSummary,0,160),'total'=>$total,
-        ]);
+        ], (string)$buyerAcc['id']);
       }
       foreach(auth_accounts() as $acc){
         if(($acc['id']??'')!==$sid||empty($acc['email'])) continue;

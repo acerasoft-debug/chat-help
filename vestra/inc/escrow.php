@@ -199,10 +199,12 @@ function escrow_fulfill(array $rec): void {
         $summary = implode(' · ', array_map(
             fn($l)=>$l['qty'].'× '.$l['brand'].' '.$l['name'].(!empty($l['colors'])?' ('.implode(', ',(array)$l['colors']).')':''), $items));
         try {
+            /* Stripe webhook'undan geliyor ama eylemi ALICI yapti (odemeyi o
+               tamamladi) — kendi rozeti yanmasin, saticininki yansin. */
             vestra_msg_post_system($buyerId, $seller['id'], '', [
                 'kind'=>'order', 'status'=>'paid_escrow', 'ref'=>$ref,
                 'items'=>mb_substr($summary,0,160), 'total'=>(float)($rec['total'] ?? 0),
-            ]);
+            ], (string)$buyerId);
         } catch (\Throwable $e) { error_log('[VESTRA Escrow] msg card failed '.$ref.': '.$e->getMessage()); }
     }
 }

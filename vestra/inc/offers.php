@@ -238,11 +238,13 @@ function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $a
 
     if ($notify && $buyerAcc) {
         require_once __DIR__.'/messages.php';
+        /* Yaniti veren taraf: satici kendi panelinden yanitliyorsa $actor odur
+           (operator yanitinda $actor null ve kart zaten yazilmiyor). */
         vestra_msg_post_system($buyerAcc['id'], $actor['id'] ?? '', $listing['id'] ?? '', [
             'kind' => 'offer_response', 'ref' => $ref, 'status' => $action,
             'counter_price' => $action === 'counter' ? $ctr : null,
             'product' => $prodName,
-        ]);
+        ], (string)($actor['id'] ?? ''));
         require_once __DIR__.'/push.php';
         $pushTxt = match ($action) {
             'accept'  => ['VESTRA — offer accepted ✓', $prodName.' — your offer was accepted.'],
@@ -1126,10 +1128,11 @@ function vestra_offer_decline_counter(string $ref, string $token): array {
     $buyerAcc = auth_find($offerRow['email'] ?? '');
     if ($buyerAcc) {
         require_once __DIR__.'/messages.php';
+        /* Karsi teklifi ALICI reddetti — kendi rozeti yanmasin. */
         vestra_msg_post_system($buyerAcc['id'], (string)($listing['seller_uid'] ?? ''), $listing['id'] ?? '', [
             'kind' => 'offer_response', 'ref' => $ref, 'status' => 'decline',
             'counter_price' => $unit, 'product' => $prodName,
-        ]);
+        ], (string)$buyerAcc['id']);
     }
     return ['ok' => true, 'error' => '', 'offer' => $offerRow, 'unit' => $unit];
 }
@@ -1244,10 +1247,11 @@ function vestra_offer_accept_counter(string $ref, string $token, ?string $onBeha
 
     if ($buyerAcc) {
         require_once __DIR__.'/messages.php';
+        /* Karsi teklifi ALICI kabul etti — kendi rozeti yanmasin. */
         vestra_msg_post_system($buyerAcc['id'], $sellerUid, $listing['id'] ?? '', [
             'kind' => 'offer_response', 'ref' => $ref, 'status' => 'accept',
             'counter_price' => $unit, 'product' => $prodName,
-        ]);
+        ], (string)$buyerAcc['id']);
         require_once __DIR__.'/push.php';
         vestra_push_send($buyerAcc['id'], 'VESTRA — counter offer accepted ✓',
             $prodName.' — agreed at €'.number_format($unit, 2).'/unit.', '/buyer?tab=offers');
@@ -1348,10 +1352,11 @@ function vestra_offer_counter_by_buyer(string $ref, string $token, float $price)
     $buyerAcc = auth_find($offerRow['email'] ?? '');
     if ($buyerAcc) {
         require_once __DIR__.'/messages.php';
+        /* Karsi teklifi ALICI verdi — kendi rozeti yanmasin. */
         vestra_msg_post_system($buyerAcc['id'], (string)($listing['seller_uid'] ?? ''), $listing['id'] ?? '', [
             'kind' => 'offer_response', 'ref' => $ref, 'status' => 'counter',
             'counter_price' => round($price, 2), 'product' => $prodName,
-        ]);
+        ], (string)$buyerAcc['id']);
     }
 
     if (!empty($offerRow['email']) && filter_var($offerRow['email'], FILTER_VALIDATE_EMAIL)) {
