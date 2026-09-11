@@ -3298,6 +3298,13 @@ listele ve link ver"*).
   ek cümlesi kendiliğinden düşüyor — bu yüzden cümle "gerçekten eklenen
   biçimden" yazılıyor). Özellik duruyor, **varsayılanı kapalı**: başka bir
   alıcıya liste istendiğinde `attach=both` yeter.
+- **GÖNDERİLDİ** (operatör: *"tmm simdi müsteriye gönder"*): 11 Eyl 2026 11:37
+  UTC, run `34594939210`, `shirtmaker@chello.at`, GARAGE LE PARIS adına,
+  Reply-To `support@vestrasales.com`, gövde 1.456 karakter, konu *"GARAGE LE
+  PARIS — bebildertes Sortiment: 11 Farben mit Preisen"*. Fiyatlar canlı
+  kayıttan: **39,00 / 35,50 / 32,00** ve **39,90**. Ek yok.
+  *Kütükteki "GONDERILDI" yalnızca **Brevo isteği kabul etti** demek* — bu
+  dosyanın kendi uyarısı: `delivered` bile posta kutusu kanıtı değil.
 
 **`price_list` — fiyat listesi mektubu, ve KAPSAMIN daralması** (operatör,
 11 Eyl 2026, dört adımda yerleşti: *"ayrica liste gönder fiyatlari ile"* →
