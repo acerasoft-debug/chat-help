@@ -3590,12 +3590,71 @@ görünsün ayrica, kendi mesaji okursa bildirim kalksin birsey yanmasin"*).
   mesajında işaret **yok**; Almanca *Gesendet/Gelesen*, Arapça RTL doğru;
   Support ipliğinde **0** işaret, kontrol ipliğinde **2**; yoklama
   `{"last":…,"read":4}`; PHP uyarısı **0**.
-- Test: `tests/msg_read_receipt_test.php` (57 iddia, iki yön). Düşebildiği
+- Test: `tests/msg_read_receipt_test.php` (67 iddia, iki yön). Düşebildiği
   doğrulandı: `by` atlaması kaldırılınca **3 kırmızı**, bir çağrı yerinden
   aktör düşünce **1**, kırpma kalkınca **2**, yoklama eski hâline dönünce
-  **2**, Support muhafazası kalkınca **1**. *Her sabotajın GERÇEKTEN
-  uygulandığı ayrıca yazdırıldı — bu oturumda bir sabotaj sessizce hiç
-  uygulanmamış ve testi sağlam göstermişti.*
+  **2**, Support muhafazası kalkınca **1**, çizim düz metne çevrilince **3**,
+  sembol her baloncuğa gömülünce **1**. *Her sabotajın GERÇEKTEN uygulandığı
+  ayrıca yazdırıldı — bu oturumda bir sabotaj sessizce hiç uygulanmamış ve
+  testi sağlam göstermişti.*
+
+**KURAL 24 (devamı) — işaret ÇİZİLİYOR, ve "çalışıyor mu" TARAYICIDA ölçüldü**
+(operatör, 11 Eyl 2026: *"calisip calismadigindan emin ol ve estetik yap"*).
+- **Düz `✓✓` iki ayrı harftir.** Yazı tipine göre araları açılıyor (harf-boşluğu
+  hilesiyle sıkıştırmak gerekiyordu), bazı tiplerde kalın bir emoji olarak
+  çıkıyor ve kalınlığı `font-weight`'e bağlı. Artık **SVG çizim**: tek çengel
+  (gönderildi, soluk) / çift çengel (okundu, vurgulu). Sembol `<defs>` içinde
+  **TEK kez** tanımlı, her baloncuk `<use>` ile işaret ediyor — 30 mesajlık bir
+  konuşmada aynı yolu 30 kez gömmemek için (311 bayt + baloncuk başına ~95).
+- **Sembol kendi `stroke`/`fill`'ini YAZMIYOR:** ikisi de SVG'de kalıtımlı, yani
+  renk CSS'te kalıyor ve `.seen` ile tema değişimi kendiliğinden işliyor.
+  Yazsaydı `.msgtick.seen{color:var(--acc)}` hiçbir şey yapmazdı. Testte iddia var.
+- **İşaret SABİT genişlikte (14px):** saat sağa yaslı, yani tek çengel çift
+  olunca satır gözle görülür şekilde sıçrardı.
+- **ÇALIŞTIĞI GERÇEK TARAYICIDA, UÇTAN UCA ölçüldü** (kum havuzu kopyası,
+  gerçek giriş — kaynak okumak ölçüm değil):
+  - alıcı sayfayı açık tutuyor, **satıcı okuyor** (yalnız sunucudaki kayıt
+    değişiyor, sayfaya dokunulmuyor) → işaret **15–30 sn içinde KENDİLİĞİNDEN**
+    ✓ → ✓✓ dönüyor. Yoklama `read`'i de taşıdığı için çalışıyor; `last_at`
+    okuma anında değişmediği için eski hâli **hiç dönmezdi**.
+  - **KONTROL GRUBU:** kimse okumadan 45 sn (3 yoklama) → işaret **değişmiyor**.
+    Tek yön ölçülseydi "her zaman ✓✓ basan" bir kusur da yeşil görünürdü.
+  - masaüstü / mobil / Almanca / Arapça RTL çizdirildi; yatay taşma yok, konsol
+    hatası yalnız bu ortamdan erişilemeyen Google Fonts.
+- **Canlı sonda: `diag-messages.yml` → `receipt_probe=true`.** Önce yeni
+  fonksiyonların sunucuya **indiğini** soruyor — dosyanın parse edilmesi yetmez,
+  **eski bir kopya da parse edilir** (KURAL 21b'nin "deploy inmemiş" dersi) —
+  sonra gerçek konuşmalarda işaretin kaç baloncukta çizildiğini ve rozetin
+  **KENDİ eyleminden yanan** bir konuşma bırakıp bırakmadığını sayıyor.
+  **Mesaj metni, ad, adres, thread id'sinin tamamı BASILMIYOR** — yalnız sayım.
+  Sonda **önce kum havuzunda** koşturuldu (bu depoda kontrolün kendisi altı kez
+  yanlış yere baktı) ve düzeltme geri alınarak **gerçekten kırmızı döndüğü**
+  doğrulandı: `0` → `*** 1 — TH1 ***`, yanan rozet 1 → 2.
+- **CANLI SONUÇ (11 Eyl 2026, run `34626325137`, deploy `9e2c9e47`):**
+
+  | | |
+  |---|---:|
+  | yeni fonksiyonlar | **3/3 VAR** (deploy indi) |
+  | `post_system` parametresi | **5** (aktör yolu canlıda) |
+  | konuşma | 30 |
+  | onay işareti çizilen konuşma | **18** · toplam **35 baloncuk** (okundu 16 / gönderildi 19) |
+  | Support ipliği (işaret bilerek yok) | 5 |
+  | yanan rozet | 20 |
+  | **KENDİ eyleminden yanan** | **0** |
+  | yoklama anahtarları | `last, read` |
+
+- **Dürüst sınır:** canlıdaki **13 sistem kartının 13'ü aktörsüz** — hepsi kural
+  konmadan önce yazılmış. Onlar eski davranışı koruyor (iki taraf da yanar) ve
+  bu **bilerek**: eksik bir aktör fazla haber verir, mesajı gizlemez. Aktör alanı
+  ancak **bundan sonra doğan** kartlarda görünecek; sonda o sayının yükselişini
+  gösteriyor.
+- **İki ölçüm tuzağı, ikisi de kendi testimde:**
+  1. **`every()` BOŞ dizide de TRUE.** İlk uçtan uca kontrolüm sayfa
+     yenilenirken diziyi boş yakaladı ve iddia **boşa geçti** — "dönüştü" dedi,
+     hiçbir şey ölçmemişti. Uzunluk şartı eklendi (`t.length === 3 && …`).
+  2. **`class="msgtick` öneki `msgtickdefs`'i de yakalıyordu** ve 2 yerine 3
+     saydı — mango/zara dersinin **testin kendi içindeki** hâli. Sayım artık
+     kapanış tırnağına kadar.
 
 **KURAL 22 — Toplu ZAM ayrı bir araçtır ve TEKRARLANAMAZ** (operatör, 10 Eyl
 2026: *"underwear ürünlerine yüzde 20 zam yap bütün ürünlere"*).
