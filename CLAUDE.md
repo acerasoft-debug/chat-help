@@ -3213,6 +3213,52 @@ operatör: *"bu ilana diger renkleride koy polonun"*).
   çözüldü (`buyer, active`, VAT kayıtlı), From `GARAGE LE PARIS`, konu doğru,
   **gönderilmedi**. KURAL 18: operatör "gönder" diyene kadar bekliyor.
 
+**Aynı mektup "bebildertes Sortimentsblatt" oldu: İKİ ilan, FİYATLARLA**
+(alıcı ikinci kez yazdı — *"bitte senden Sie und das bebilderte
+Sortimentsblatt"*; operatör: *"halen beildert diyor....adam"* + **"ilandaki
+fiyatlar ile beraber gönder"**).
+- **İkinci şablon yazılmadı.** İkinci istek, birincisinin üstüne fiyat ekliyor;
+  ayrı bir mektup yazmak aynı olguyu ikinci kez yazmak olurdu (`desc`/`sizes`,
+  faturanın üç katmanı, dört mektup gövdesi — bu ders bu depoda pahalıya
+  öğrenildi). `vestra_tpl_listing_colours` artık **blok listesi** alıyor: bir
+  ilan da, iki ilan da aynı gövdeden çıkıyor.
+- **Fiyat VARSAYILAN OLARAK YOK** (`prices=on` açıkça istenmeli). Kapısı kapalı
+  bir alıcıya rakam yazmak, sayfanın göstermediği fiyatı mektupta söylemektir —
+  KURAL 2b'nin birebir tersi. Koşu bu yüzden **alıcının fiyat kapısını da
+  basıyor**; bu alıcıda **AÇIK** çıktı, yani mektuptaki rakam sayfasındakiyle
+  aynı.
+- **Merdiven tek yerde: `vestra_price_ladder()`** (`inc/products.php`), o da
+  sepetin kendi `vestra_unit_price()`'ini çağırıyor. **İlk basamak MOQ'da
+  başlar:** ilanların çoğunda `tiers` ilk satırı `min=1` yazıyor ve "ab 1 Stück
+  70,20 €" **sepetin kabul etmediği** bir adedin fiyatını ilan ederdi. Fiyatı
+  değiştirmeyen basamak düşüyor; **yükselen basamak düşmüyor** (gizlemek, pahalı
+  tarafta eksik bilgi vermek olurdu).
+- **Vergi iddiası YOK.** Fiyatlar brüt (KURAL 5m) ama faturada KDV gerçekten
+  alınacak mı **fatura başına** bir karar ve AB içi ticari alıcıda çoğu zaman
+  ters yükleme. Her iki durumda da doğru olan tek cümle yazılıyor: *"pro Stück,
+  zzgl. Versand"*. Doğrulayamadığımız şey yazılmıyor.
+- **Şerit etiketi modeli de taşıyor** (`M3600 · Black` / `M7535 · Black`): aynı
+  renk adı iki modelde de var ve etiketsiz bir kare hangisinin olduğunu
+  söylemiyor. Etiket **ilanın kendi SKU'su**, başlıktan ayıklanmış bir parça
+  değil. Her karenin bağlantısı **kendi** ürün sayfasına gidiyor.
+- **Marka sayfası ancak GERÇEKTEN açılıyorsa** düğmeye ve gövdeye giriyor:
+  `wholesale.php`'nin kendi iki koşulu (slug çözülüyor mu + o markada canlı ilan
+  var mı) çağıran tarafta sorulup geçiliyor. Elle yazılan bir adres, son ilan
+  satıldığı gün 404 olurdu (KURAL 9).
+- **İnceleme adımının yeri: `copy=true`.** Mektup birebir kurulup **operatörün
+  kutusuna** gidiyor, müşteriye gitmiyor (`payment_due`'nun `copy_only`'siyle
+  aynı ilke). Kütüğe gövde basmak seçenek değildi: hitap müşterinin adını
+  taşıyor ve o kütük herkese açık.
+- Ölçüm (`send=false` run `34589855337`, `copy=true` run `34590116233`):
+  polo 6/6 renk-foto + kademe **56 / 96 / 192**, sweatshirt 5/5 + tek kademe
+  **50**, `/wholesale/fred-perry` **2 canlı ilanla açılıyor**, satıcı
+  GARAGE LE PARIS, kapı AÇIK, gövde 1.456 karakter. Kopya operatörün kutusunda
+  **okundu**: Almanca umlautlar, iki ilanın da asgarileri ve fiyatları yerinde.
+  **Müşteriye gitmedi** — KURAL 18, operatör "gönder" diyene kadar bekliyor.
+- Test: `tests/listing_sheet_test.php` (43 iddia, iki yön). Düşebildiği
+  doğrulandı: merdiven MOQ yerine ham kademeden başlayınca **11 kırmızı**,
+  fiyat varsayılanı `on` olunca **3**, şerit etiketi modeli bırakınca **2**.
+
 **3. parti (İKİNCİ mektup) gönderildi — 200/250, kalan 50 KOTAYA takıldı**
 (operatör, 10 Eyl 2026: *"kampanya gönder 2. email almayanlara yeni ürünler ve
 brandslerden.."* + *"250 ad."*).
