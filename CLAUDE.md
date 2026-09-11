@@ -3100,6 +3100,22 @@ support@vestrasales.com dan gidecek brevo üzerinden"*).
 2026: *"tüm renk varyasyonlarini koy"* · *"en az 4 renk secilmeli alirken"* ·
 *"en az alim 50 ad. olsun"* · *"f.perry polo da en az alim 56 ad. olsun"* ·
 *"8 li polo"* · *"sweater 10 lu"*).
+- **M7535 SWEATSHIRT'tir, sweater değil — ölçüldü, doğrulandı, DEĞİŞTİRİLMEDİ**
+  (operatör, 11 Eyl 2026: *"sweater mi sweatshirt mü kontrol et dogrusunu gir"*).
+  Bu maddedeki *"sweater 10 lu"* ve aşağıdaki *"f.perrey sweateri"* operatörün
+  **sohbet kısaltması**; ürünün adı değil. İki bağımsız kanıt: (1) operatörün
+  kendi Fred Perry tarifesi beş satırın beşinde de *"Fred Perry crew neck
+  sweatshirt"*, `Type: crew neck sweatshirt`, `Fabric: %100 COTTON` diyor;
+  (2) fotoğraf düz örme (looped-back) sweat kumaşı, ribanalı yaka/manşet/etek —
+  örgü (knit) yapısı yok. Canlı kayıt zaten doğru: `name=Fred Perry Crew Neck
+  Sweatshirt — M7535`, `cat=Hoodies & Sweatshirts`. **Kategori de doğru ve
+  önemli:** taksonomide kardeşi `Sweaters & Knitwear` var ve Almancası
+  *"Pullover & Strickwaren"* — oraya konsaydı Alman alıcı örgü kazak okurdu.
+  Baumgartner'a giden mektup ilanın `name`'ini bastığı için *"Sweatshirt"*
+  yazdı; 3. parti kampanya şablonu da 13 dilde sweatshirt/felpa/bluza/mikina/
+  スウェット diyor ve **200 adrese gitti** — yani yanlış bir "düzeltme" yalnız
+  ilanı değil, gönderilmiş mektupları da yalanlardı. *Operatörün kısaltmasını
+  ürün adı sanıp yeniden adlandırma.*
 - **"Renkler ilanda var" ile "alıcı renk seçebiliyor" AYRI İKİ ŞEY.** Renk
   seçici ancak `vestra_is_colorqty_listing()` evet derse çiziliyor: `colors` **ve**
   `min_colors` **ve** `size_step > 1`. Sweatshirt'te beş renk kayıtlıydı ama
