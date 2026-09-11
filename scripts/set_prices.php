@@ -42,6 +42,7 @@ $sect  = strtolower(trim((string)($in['section'] ?? '')));
 $markPct = trim((string)($in['markup_pct'] ?? ''));
 $force = strtolower(trim((string)($in['force'] ?? 'false'))) === 'true';
 $showP = strtolower(trim((string)($in['show_prices'] ?? 'false'))) === 'true';
+$restore = trim((string)($in['restore_from'] ?? ''));
 $moq   = trim((string)($in['moq']   ?? ''));
 $step  = trim((string)($in['step']  ?? ''));
 $sizes = trim((string)($in['sizes'] ?? ''));
@@ -86,7 +87,10 @@ echo "          teklif_al=".($offers === null ? '(dokunma)' : ($offers ? 'AC' : 
 echo "          dry_run=".($dry ? 'EVET (yazmaz)' : 'HAYIR (YAZAR)')."\n\n";
 
 if ($brand === '') { fwrite(STDERR, "HATA: marka bos\n"); exit(1); }
-if ($price === '' && $listP === '' && $discPct === '' && $markPct === '' && $moq === '' && $step === '' && $sizes === '' && $offers === null) {
+if ($restore !== '' && ($price !== '' || $listP !== '' || $discPct !== '' || $markPct !== '')) {
+  fwrite(STDERR, "HATA: restore_from; price/list_price/discount_pct/markup_pct ile birlikte kullanilamaz\n"); exit(1);
+}
+if ($price === '' && $listP === '' && $discPct === '' && $markPct === '' && $restore === '' && $moq === '' && $step === '' && $sizes === '' && $offers === null) {
   fwrite(STDERR, "HATA: price/list_price/discount_pct/markup_pct/moq/sizes/allow_offers hepsi bos -- yapacak is yok\n"); exit(1);
 }
 /* Bolme adi yazim hatasiyla gelirse HIC urun eslesmez ve is "0 urun"
@@ -153,8 +157,76 @@ if ($moq !== '' && $step !== '' && ((int)$moq % (int)$step) !== 0) {
 $all = vestra_listings();
 if (!count($all)) { fwrite(STDERR, "HATA: listings.json bos/okunamadi\n"); exit(1); }
 
+/* Sayaclar geri yukleme blogundan ONCE kurulmali: asagida kurulunca $changes++
+   tanimsiz degiskene yaziyordu ve blok bittikten sonra sifirlaniyordu -- yani
+   "GERI YUKLENEN: N ilan" yazip HICBIR SEY kaydetmeyen bir kosu. Kum havuzu
+   testi yakaladi (tests/set_prices_markup_test.php §5c). */
 $hits = 0; $changes = 0; $skipped = 0; $sampleSeen = 0;
-foreach ($all as $i => $p) {
+
+/* ── FIYATI YEDEKTEKI HALINE DONDUR ───────────────────────────────────────
+   Dosyanin TAMAMINI geri yuklemek YANLIS olurdu: yedekten bu yana yazilan
+   fiyat DISI alanlar (Fred Perry'nin asgari adedi, renk zorunlulugu, beden
+   satiri, onay durumu, yeni eklenen ilanlar) da silinirdi. Bu yuzden yalnizca
+   FIYAT alanlari geri yaziliyor: 'list', kademe fiyatlari ve zam damgasi.
+   Yedekte olmayan ilana DOKUNULMUYOR -- donecegi bir fiyat yok. */
+$restored = 0; $rMissing = 0; $rSame = 0;
+if ($restore !== '') {
+  $dirR = vestra_data_dir();
+  $baksR = glob($dirR.'/listings.json.bak-*') ?: [];
+  usort($baksR, fn($a,$b) => strcmp($b,$a));
+  $pickR = '';
+  foreach ($baksR as $b) { if (str_contains(basename($b), $restore)) { $pickR = $b; break; } }
+  if ($pickR === '') { fwrite(STDERR, "HATA: yedek bulunamadi: '{$restore}'\n"); exit(1); }
+  $oldArr = json_decode((string)@file_get_contents($pickR), true);
+  if (!is_array($oldArr) || !count($oldArr)) { fwrite(STDERR, "HATA: yedek okunamadi/bos: {$pickR}\n"); exit(1); }
+  $mapR = [];
+  foreach ($oldArr as $o) { $idO = (string)($o['id'] ?? ''); if ($idO !== '') $mapR[$idO] = $o; }
+  echo "GERI YUKLEME: ".basename($pickR)."  (".count($mapR)." ilan)\n";
+  echo "  yalnizca FIYAT alanlari yazilir: list + kademeler + zam damgasi.\n";
+  echo "  moq / beden / renk / durum / yeni ilanlar DOKUNULMAZ.\n\n";
+  foreach ($all as $i => $p) {
+    $idN = (string)($p['id'] ?? ''); if ($idN === '') continue;
+    if ($sect !== '' && vestra_product_section($p) !== $sect) continue;
+    if (!isset($mapR[$idN])) { $rMissing++; continue; }
+    $src = $mapR[$idN];
+    $touched = false; $what = [];
+    $oL = (float)($p['list'] ?? 0); $bL = (float)($src['list'] ?? 0);
+    if ($bL > 0 && abs($oL - $bL) >= 0.005) {
+      $all[$i]['list'] = $bL; $touched = true;
+      $what[] = $showP ? "list ".number_format($oL,2,'.','')."->".number_format($bL,2,'.','')
+                       : "list x".($bL > 0 ? number_format($oL / $bL, 3) : '?')." geri";
+    }
+    /* Kademeler SIRAYLA eslestiriliyor, min degerine gore DEGIL: bir kademenin
+       'min'i yedekten bu yana degismis olabilir (Fred Perry'de tam bu oldu --
+       moq 20'den 50'ye cikinca ilk kademenin min'i de degisti) ve min'e gore
+       eslestirseydim o kademenin fiyati geri gelmezdi. */
+    if (!empty($p['tiers']) && is_array($p['tiers']) && !empty($src['tiers']) && is_array($src['tiers'])) {
+      $srcT = array_values($src['tiers']); $k = 0; $n = 0;
+      foreach ($p['tiers'] as $ti => $t) {
+        if (!is_array($t) || !isset($srcT[$k]) || !is_array($srcT[$k])) { $k++; continue; }
+        $bp = (float)($srcT[$k]['price'] ?? 0);
+        if ($bp > 0 && abs((float)($t['price'] ?? 0) - $bp) >= 0.005) { $all[$i]['tiers'][$ti]['price'] = $bp; $n++; }
+        $k++;
+      }
+      if ($n) { $touched = true; $what[] = "kademe({$n}) geri"; }
+    }
+    /* Damga da geri: kalsaydi "ayni zam 24 saat icinde tekrar uygulanmaz"
+       korumasi, geri aldigimiz zammi bilerek yeniden uygulamayi engellerdi. */
+    foreach (['markup_pct','markup_at'] as $mk) {
+      if (isset($p[$mk]) && !isset($src[$mk])) { unset($all[$i][$mk]); $touched = true; }
+      elseif (isset($src[$mk]) && ($p[$mk] ?? null) !== $src[$mk]) { $all[$i][$mk] = $src[$mk]; $touched = true; }
+    }
+    if (isset($src['eur_margin_pct']) && ($p['eur_margin_pct'] ?? null) !== $src['eur_margin_pct']) {
+      $all[$i]['eur_margin_pct'] = $src['eur_margin_pct']; $touched = true;
+    }
+    if ($touched) { $restored++; $changes++; if ($restored <= 12) echo "  ".str_pad($idN, 24)." ".implode(' | ', $what)."\n"; }
+    else $rSame++;
+  }
+  if ($restored > 12) echo "  ... (".($restored - 12)." ilan daha)\n";
+  echo "\nGERI YUKLENEN: {$restored} ilan | zaten ayni: {$rSame} | yedekte yok (dokunulmadi): {$rMissing}\n";
+}
+
+foreach (($restore !== '' ? [] : $all) as $i => $p) {
   $b = (string)($p['brand'] ?? '');
   $c = (string)($p['cat'] ?? '');
   // '*' targets every listing. Sweeping with a single letter instead
@@ -413,7 +485,7 @@ if ($markPct !== '') {
   echo "        (force=true ile asilir).\n";
 }
 
-if (!$hits) {
+if (!$hits && $restore === '') {
   fwrite(STDERR, "\nUYARI: hicbir urun eslesmedi -- marka/kategori yazimini kontrol edin.\n");
   fwrite(STDERR, "Mevcut kategoriler:\n");
   $cats = [];

@@ -38,6 +38,14 @@ on:
         description: "Her urune KENDI mevcut fiyatindan yuzde indirim uygula (ör: 15). Mevcut fiyat 'was' (üstü çizili) olarak kalır, mode=sale olur -- indirim GÖRÜNÜR. price/list_price ile birlikte kullanılamaz. Boş = dokunma"
         required: false
         default: ""
+      restore_from:
+        # "Fiyatlari dun geceki haline cek" -- dosyanin TAMAMINI geri yuklemek
+        # yanlis olur: yedekten bu yana yazilan fiyat DISI alanlar (asgari adet,
+        # renk zorunlulugu, beden satiri, yeni ilanlar) da silinirdi. Bu mod
+        # YALNIZCA fiyat alanlarini geri yazar.
+        description: "FİYATLARI YEDEKTEKİ HÂLİNE DÖNDÜR: yedek damgası (ör. 20260910-204756). Sadece list + kademe fiyatları + zam damgası geri yazılır; moq/beden/renk/durum ve yeni ilanlar korunur. section ile bir bölmeye daraltılabilir"
+        required: false
+        default: ""
       section:
         # Bolme (vitrin bolmesi) marka da kategori de DEGIL: 'underwear' bolmesinde
         # NBB'nin ic camasiri kategorileri duruyor, 'footwear'da Pili Perez'in
@@ -128,6 +136,7 @@ jobs:
           RAW_LIST_PRICE: ${{ github.event.inputs.list_price }}
           RAW_DISCOUNT_PCT: ${{ github.event.inputs.discount_pct }}
           RAW_SECTION: ${{ github.event.inputs.section }}
+          RAW_RESTORE_FROM: ${{ github.event.inputs.restore_from }}
           RAW_MARKUP_PCT: ${{ github.event.inputs.markup_pct }}
           RAW_FORCE: ${{ github.event.inputs.force }}
           RAW_SHOW_PRICES: ${{ github.event.inputs.show_prices }}
@@ -141,7 +150,7 @@ jobs:
           import base64, json, os
           blob = {k: os.environ.get('RAW_'+k.upper(), '')
                   for k in ['brand','cat','nameq','price','list_price','discount_pct','section',
-                            'markup_pct','force','show_prices','moq','step','sizes','offers','dry']}
+                            'markup_pct','force','show_prices','restore_from','moq','step','sizes','offers','dry']}
           print('P_JSON=' + base64.b64encode(
               json.dumps(blob, ensure_ascii=False).encode('utf-8')).decode('ascii'))
           PY

@@ -144,6 +144,50 @@ $t('ilan kimligi yine gorunuyor',                 str_contains($q, 'uw-1'));
 [, $q2] = $run(['section'=>'underwear','markup_pct'=>'20','show_prices'=>'true']);
 $t('show_prices=true ile rakamlar basiliyor',     str_contains($q2, '4.50') && str_contains($q2, '5.40'));
 
+echo "\n== 5c. Yedekten FİYAT geri yükleme ==\n";
+$seed();
+/* Dun geceki hali: yedegi simdi al, sonra zam yap, sonra geri don. */
+$bak = dirname($listings).'/listings.json.bak-29991231-235959';
+copy($listings, $bak);
+$run(['section'=>'underwear','markup_pct'=>'20','dry'=>'false']);
+/* Zam DISI bir alan da degistir: geri yukleme buna DOKUNMAMALI. */
+$cur = json_decode((string)file_get_contents($listings), true);
+foreach ($cur as $k => $pp) { if ($pp['id'] === 'uw-1') { $cur[$k]['moq'] = 99; $cur[$k]['tiers'][0]['min'] = 99; } }
+file_put_contents($listings, json_encode($cur));
+$a = $byId();
+$t('once zam uygulandi (4.50 -> 5.40)',        abs($a['uw-1']['list'] - 5.40) < 0.001);
+[$rc, $out] = $run(['restore_from'=>'29991231','dry'=>'true']);
+$b = $byId();
+$t('DRY: fiyat geri YAZILMADI',                abs($b['uw-1']['list'] - 5.40) < 0.001);
+$t('DRY: kac ilan donecegini yaziyor',         str_contains($out, 'GERI YUKLENEN'));
+[$rc, $out] = $run(['restore_from'=>'29991231','dry'=>'false']);
+$t('kosu basarili',                            $rc === 0);
+$c = $byId();
+$t('list dun geceki degerine dondu (4.50)',    abs($c['uw-1']['list'] - 4.50) < 0.001);
+$t('kademe-1 dondu (4.50)',                    abs($c['uw-1']['tiers'][0]['price'] - 4.50) < 0.001);
+$t('kademe-2 dondu (4.20)',                    abs($c['uw-1']['tiers'][1]['price'] - 4.20) < 0.001);
+$t('zam damgasi SILINDI',                      !isset($c['uw-1']['markup_pct']) && !isset($c['uw-1']['markup_at']));
+$t('kar orani da geri (%50)',                  abs((float)$c['uw-1']['eur_margin_pct'] - 50.0) < 0.001);
+/* Asil sinav: fiyat DISI alanlar korunmali. */
+$t('moq 99 KORUNDU (fiyat disi alan)',         (int)$c['uw-1']['moq'] === 99);
+$t("kademe 'min' 99 KORUNDU",                  (int)$c['uw-1']['tiers'][0]['min'] === 99);
+$t('sale urunun modu bozulmadi',               ($c['uw-2']['mode'] ?? '') === 'sale');
+$t('premium urun yine ellenmedi',              abs($c['pr-1']['list'] - 89.90) < 0.001);
+/* Yedekte olmayan yeni ilana dokunulmaz. */
+$cur = json_decode((string)file_get_contents($listings), true);
+$cur[] = ['id'=>'uw-new','brand'=>'NBB','cat'=>'Bras','section'=>'underwear','mode'=>'fixed',
+          'moq'=>6,'list'=>3.33,'tiers'=>[['min'=>6,'price'=>3.33]]];
+file_put_contents($listings, json_encode($cur));
+[, $out] = $run(['restore_from'=>'29991231','dry'=>'false']);
+$d = $byId();
+$t('yedekte olmayan ilan DOKUNULMADI',         abs($d['uw-new']['list'] - 3.33) < 0.001);
+$t('yedekte olmayanlar sayiliyor',             str_contains($out, 'yedekte yok'));
+[$rc, $out] = $run(['restore_from'=>'yokboyle','dry'=>'false']);
+$t('olmayan yedek reddedildi',                 $rc !== 0 && str_contains($out, 'yedek bulunamadi'));
+[$rc, $out] = $run(['restore_from'=>'29991231','markup_pct'=>'20']);
+$t('restore + markup birlikte reddedildi',     $rc !== 0 && str_contains($out, 'birlikte kullanilamaz'));
+@unlink($bak);
+
 echo "\n== 6. Reddedilenler ==\n";
 $seed();
 [$rc, $out] = $run(['section'=>'underwear','markup_pct'=>'20','price'=>'9.90']);
