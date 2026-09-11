@@ -3399,6 +3399,37 @@ brandslerden.."* + *"250 ad."*).
   kullanılabilir 4 (toplam kalan 64)"*. Kapı **hep ya da hiç**: 4 mektup
   gönderip yarım parti bırakmıyor. **Toplam 200 gönderildi, 0 hata.**
   Kalan 50, kota yenilenince tek koşu.
+- **Kalan 50'nin devamı: 10 gitti, 34 SAATİ BEKLİYOR** (operatör, 11 Eyl 2026:
+  *"250 kampanya email göndrmeye devam et daha önce sadece 1 defa
+  gönderdiklerine"*). Darboğaz artık **kota değil, `newcoll_min_days=3`**:
+  kuru koşu (`34605177414`) *"uygun secilen: 11 / hedef: 50"* ve
+  *"YAS: ilk mektubun uzerinden 3 gun gecmedigi icin elenen: **34**"* dedi;
+  kota bol (255 kalan, 60 ayrılmış). **Eşik düşürülmedi:** mektup birinci
+  cümlesinde *"size daha önce yazmıştık"* diyor ve iki gün sonra gelen bir
+  ikinci mektup o cümleyi yalanlar, posta listesi gibi okunur — kuralın var
+  olma sebebi bu, ve "devam et" talimatı onu kaldırmıyor.
+- **`factoryoutlet.gr` yine elendi** (`skip_email_regex=/@factoryoutlet\.gr$/`).
+  Sebep bu dosyada zaten kayıtlı: firma adı kayıtta **"Αρχική"** ve
+  `vestra_tpl_new_collection_shoes()` selamlamayı `"Hello".($co!==''?" ".$co:'')`
+  diye kuruyor — yani mektup *"Γεια σας Αρχική,"* diye açardı. **Varsayımla
+  değil, şablona bakılarak** doğrulandı. Süzgeç `skip_names` yerine adres
+  regex'i: `strtolower` ASCII dışını değiştirmiyor, yani Yunanca bir girdi
+  teorik olarak çalışırdı ama Actions girdisinden sunucuya kadar kodlamanın
+  bozulmadığını **ölçemeden** güvenmek gerekirdi; ASCII bir desen bu riski
+  hiç doğurmuyor. Desen `@…$` ile **bağlandı** (mango/zara dersi).
+- Sonuç (run `34605357547`): **gönderildi 10, hata 0** — Hirmer (de), Galiano /
+  Base Blu / IL DUOMO / RBoutique (it), Louis Copeland (en), Jill et Juliette /
+  Blue Pacific (nl), INTRO (en), ADDITION ADELAIDE (ja). 250'lik partide
+  toplam **210** mektup.
+- **Bu 10 mektup, ilk 200'den FARKLI bir rakam taşıyor ve doğrusu bu:**
+  iç giyim **146** (ilk 200'de 16 yazıyordu — `cat` metninde "underwear" arayan
+  sayım hatası, aynı bölümde kayıtlı). Düzeltme aradaki günlerde inmişti;
+  geri alınmadı, çünkü 16 eksik bir sayıydı.
+- **Kalan 34 ne zaman uygun olur:** her lead kendi ilk mektubundan 3 gün sonra.
+  8 Eylül 16:53 partisi (Kiliwatch, Underground, Run Colors, Pilgrim Surf,
+  Good As Gold, FRAME, The Space, Story Online, Capsule …) bugün ~16:53 UTC'de,
+  10 Eylül'de eklenenler 13 Eylül'de. **Kendiliğinden gönderilmedi** — KURAL 18:
+  bir turdaki "gönder" bir sonraki mektubun izni değil.
 - Mektubun rakamları canlı sayıldı: **ayakkabı 335 artikel**, iç giyim, ve
   markalar Burberry, Givenchy, BALMAIN, Dolce & Gabbana, Fendi, Balenciaga.
   DNS süzgeci 13 adayı posta alamayan alan adı diye eledi.
