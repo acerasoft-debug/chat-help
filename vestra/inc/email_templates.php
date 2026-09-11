@@ -1552,6 +1552,11 @@ function vestra_tpl_price_list(string $salutation, array $facts, array $formats,
         foreach ($secs as $label => $n) $bits[] = $label . ' ' . (int)$n;
         $secTxt = implode(' · ', $bits);
     }
+    /* Marka satiri, listenin KIMLERI kapsadigini gostermek icin var. Liste zaten
+       tek bir markaninsa acilis cumlesi ve konu satiri onu iki kez soyluyor
+       ("anbei die Preisliste von Fred Perry" … "Marken u. a.: Fred Perry") --
+       ucuncusu gereksiz. Bolme satiriyla ayni sebep. */
+    if ($bscope !== '' && count($names) < 2) $names = [];
     $nameTxt = $names ? implode(', ', $names) : '';
 
     if ($de) {

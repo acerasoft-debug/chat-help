@@ -218,6 +218,10 @@ ok(!str_contains($fb, 'unsere Preisliste'), '"bizim listemiz" YAZMIYOR (satici b
 [, $fben, ] = vestra_tpl_price_list('Dear Sir', $fp, ['pdf'], '', 'en');
 ok(str_contains($fben, 'the Fred Perry price list is attached'), 'Ingilizcesi de markaya atfediliyor');
 ok(!str_contains($fben, 'our price list'), 'Ingilizcede de "our" yok');
+ok(!str_contains($fb, 'Marken u. a.'),
+   'tek markalik listede marka satiri TEKRAR EDILMIYOR (acilis cumlesi zaten soyluyor)');
+ok(!str_contains($fb, 'Sortiment:'),
+   'tek bolmelik listede bolme satiri da yazilmiyor');
 /* Ters yon: katalogun TAMAMINDA "bizim" dogru ve kalmali. */
 ok(str_contains($pb, 'unsere Preisliste'), 'kapsamsiz listede "unsere" KORUNUYOR');
 ok(str_contains($pb2, 'our price list'), 'kapsamsiz Ingilizcede "our" KORUNUYOR');
