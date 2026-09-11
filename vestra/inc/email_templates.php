@@ -1329,6 +1329,111 @@ function vestra_tpl_escrow_info(string $salutation, float $cap, float $feeRate, 
 }
 
 /**
+ * "Here is a photo of every colour we offer" — the answer to a buyer who found
+ * colours on a listing that had no picture behind them (BRITISHSTYLE on the
+ * Fred Perry M3600, 10 Sep 2026: "leider haben Sie nicht von allen angebotenen
+ * Farben ein Foto hier").
+ *
+ * The letter goes out under the LISTING'S SELLER, not a VESTRA persona: the
+ * operator asked for this one to come from the shop. That is a deliberate
+ * exception to KURAL 8, which hides the seller behind an ident inside platform
+ * messaging — this is an e-mail the operator chose to send in the seller's name.
+ *
+ * $pairs is [['colour'=>'Black','img'=>'https://…/m3600-black.jpg'], …] and the
+ * CALLER builds it by matching the listing's own colours against the listing's
+ * own images. Nothing here invents a pairing: a letter whose whole subject is
+ * "every colour has a photo now" cannot be the place where a colour gets
+ * attached to the wrong picture.
+ *
+ * No price. The buyer's trade prices sit behind the account gate; putting a
+ * number in an e-mail that the page may not show him is the same class of
+ * mistake as quoting a figure the cart does not honour (KURAL 6).
+ *
+ * $note is printed verbatim as its own paragraph, or not at all when empty. It
+ * exists because the one thing this particular buyer needs to hear — that Fred
+ * Perry runs one body colour with several tippings — is true of this listing and
+ * not of listings in general. A sentence like that belongs to whoever can vouch
+ * for it, so the template does not carry one of its own.
+ */
+function vestra_tpl_listing_colours(string $salutation, array $p, array $pairs, string $sellerName, string $lang = 'en', string $note = ''): array {
+    $name  = trim((string)($p['name'] ?? ''));
+    $url   = 'https://vestrasales.com/product?id=' . rawurlencode((string)($p['id'] ?? ''));
+    $n     = count($pairs);
+    $cols  = implode(', ', array_map(fn($x) => (string)$x['colour'], $pairs));
+
+    /* Minimum line: read from the listing, never typed. moq/min_colors/size_step
+       are the three numbers the cart actually enforces, and a letter that
+       disagrees with the cart sends the buyer to a checkout that refuses him. */
+    $moq  = (int)($p['moq'] ?? 0);
+    $minC = (int)($p['min_colors'] ?? 0);
+    $step = (int)($p['size_step'] ?? 0);
+    $minEn = $minCommon = '';
+    if ($moq > 0) {
+        $minEn = $moq . ' pieces';
+        if ($minC > 1)  $minEn .= ', from ' . $minC . ' colours';
+        if ($step > 1)  $minEn .= ', in cartons of ' . $step;
+        $minCommon = $moq . ' Stück';
+        if ($minC > 1)  $minCommon .= ', ab ' . $minC . ' Farben';
+        if ($step > 1)  $minCommon .= ', in Kartons zu ' . $step;
+    }
+
+    if ($lang === 'de') {
+        $subject = $name . ' — Fotos aller ' . $n . ' Farben';
+        $body = $salutation . ",\n\n"
+          . "Sie haben geschrieben, dass nicht zu jeder angebotenen Farbe ein Foto vorhanden war. "
+          . "Das stimmte, und es ist behoben: jede der {$n} angebotenen Farben hat jetzt ihr eigenes "
+          . "Foto — auf der Produktseite und unten in dieser E-Mail.\n\n"
+          . $name . "\n" . $url . "\n\n"
+          . "Farben: " . $cols . "\n"
+          . ($minCommon !== '' ? "Mindestabnahme: " . $minCommon . "\n" : '')
+          . "\n"
+          . ($note !== '' ? $note . "\n\n" : '')
+          . "Brauchen Sie von einer Farbe eine weitere Ansicht, schreiben Sie mir kurz.\n\n"
+          . "Mit freundlichen Grüßen\n\n"
+          . $sellerName . "\n"
+          . "über VESTRA – vestrasales.com";
+        $rowsLabel = ['Farben', 'Mindestabnahme'];
+        $shotsTitle = 'Alle ' . $n . ' Farben';
+        $btn = 'Zur Produktseite';
+        $badge = 'Fotos ergänzt';
+    } else {
+        $subject = $name . ' — photos of all ' . $n . ' colours';
+        $body = $salutation . ",\n\n"
+          . "You wrote that not every colour we offer had a photo behind it. You were right, and it "
+          . "is fixed: each of the {$n} colours now has its own picture — on the product page, and "
+          . "below in this e-mail.\n\n"
+          . $name . "\n" . $url . "\n\n"
+          . "Colours: " . $cols . "\n"
+          . ($minEn !== '' ? "Minimum: " . $minEn . "\n" : '')
+          . "\n"
+          . ($note !== '' ? $note . "\n\n" : '')
+          . "If you need another view of one of them, write back and I will send it.\n\n"
+          . "Kind regards,\n\n"
+          . $sellerName . "\n"
+          . "via VESTRA – vestrasales.com";
+        $rowsLabel = ['Colours', 'Minimum'];
+        $shotsTitle = 'All ' . $n . ' colours';
+        $btn = 'Open the product page';
+        $badge = 'Photos added';
+    }
+
+    $rows = [['label' => $rowsLabel[0], 'value' => $cols, 'strong' => true]];
+    if ($minEn !== '') $rows[] = ['label' => $rowsLabel[1], 'value' => $lang === 'de' ? $minCommon : $minEn];
+
+    $opts = [
+        'badge'       => $badge,
+        'rows'        => $rows,
+        /* Each shot is labelled with its colour. Most clients block remote
+           images by default, so the label has to carry the meaning on its own —
+           the strip stays readable as six colour names even with nothing loaded. */
+        'shots'       => array_map(fn($x) => ['img' => (string)$x['img'], 'label' => (string)$x['colour'], 'url' => $url], $pairs),
+        'shots_title' => $shotsTitle,
+        'button'      => ['label' => $btn, 'url' => $url],
+    ];
+    return [$subject, $body, $opts];
+}
+
+/**
  * "Your order has shipped" — ONE wording for both places that can mark an order
  * shipped: the seller panel (seller.php) and the admin panel (admin.php). Until
  * 2 Sep 2026 only the seller panel mailed the buyer; the admin path saved the

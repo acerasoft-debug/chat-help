@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: payment_final (SON CAGRI — satici sordu, cevap isteniyor; spec: suspend=true ile \"tekrarlananlarda askiya alma hakkimiz saklidir\" cumlesi. Saati DEGISTIRMEZ) | l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken kabul / karşı teklif / red; spec: offer_ref=&lt;ref&gt; — virgülle BİRDEN FAZLA ref verilebilir, AYNI alıcıya TEK mektup olur) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | order_address (SİPARİŞ: yeni siparişe teşekkür + TESLİMAT ADRESİ iste (Latin harf + yerel yazım + alıcı adı/telefon) + 'fatura adresiyle aynı mı' + 'faturanız hazırlanıp gönderilecek'; to=order:&lt;ref&gt; ŞART, ref/tutar kayıttan basılır; FATURASI KESİLMİŞ, gönderilmiş ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | order_invoice_soon (SİPARİŞ: 'faturanız hazırlanıyor, İLK İŞ GÜNÜ hesabınıza + e-postayla gelecek' + ilandan okunan ÖN SİPARİŞ sevk tarihi + Latin harfli adres isteği; to=order:&lt;ref&gt; ŞART; tarih GÖNDERİM ANINDA hesaplanır, şablona gömülü değil; FATURASI KESİLMİŞ ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | offer_accept (ALICININ kabulünü OPERATÖR ADINA kaydeder — alıcı kabulünü mesaj/e-posta ile bildirdiğinde; fiyat BİZİM karşı teklifimiz, kayıt 'accepted_by=operator' + dayanak metniyle düşer; spec: offer_ref=&lt;ref[,ref]&gt;, basis=&lt;neden&gt;, send=true) | payment_ask (SİPARİŞ: faturası kesilmiş ama ödenmemiş siparişte 'ödemeyi yapacak mısınız, ya da NE ZAMAN' — kibar, SAAT BAŞLATMAZ, tarih vermez; to=order:&lt;ref&gt; ŞART, spec: lang=fr|en, signer=&lt;persona&gt;; ödenmiş/gönderilmiş/iptal/escrow ya da dekontu yüklenmiş siparişte DURUR) | payment_notice (SİPARİŞ: faturası KESİLMİŞ, havale bekleyen siparişe 'havaleyi gönderince haber verin' — dekont yükleme bağlantısı + cevap yolu; SAAT BAŞLATMAZ (o payment_due'dur); to=order:&lt;ref&gt; ŞART; faturasız, ödenmiş, gönderilmiş, iptal, escrow ya da dekontu YÜKLENMİŞ siparişte DURUR) | order_gate (TEŞHİS: bir siparişe fatura düğmesinin neden çizilmediğini gate gate yazar — salt okunur; spec: ref=&lt;sipariş ref&gt;, apply=true ile GERÇEK KESİM, notify=false) | invoice_combine_draft (HENÜZ FATURALANMAMIŞ kabullerin BİRLEŞİK fatura TASLAĞI, operatöre e-postayla — numara yakmaz, kaydetmez, müşteriye gitmez; spec: refs=&lt;r1,r2,r3&gt;, ship=&lt;EUR&gt;, vat=&lt;yüzde, fiyata DAHİL&gt;, seller=&lt;uid&gt;) | msg_ping (MEVCUT son mesajın BİLDİRİMİNİ yeniden çalar — thread'e hiçbir şey eklemez, içerik taşımaz; spec: listing=<ilan id>/buyer=<alıcı adında geçen metin>/send(true|false)) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
+        description: "ALICI CEVABI: payment_final (SON CAGRI — satici sordu, cevap isteniyor; spec: suspend=true ile \"tekrarlananlarda askiya alma hakkimiz saklidir\" cumlesi. Saati DEGISTIRMEZ) | l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken kabul / karşı teklif / red; spec: offer_ref=&lt;ref&gt; — virgülle BİRDEN FAZLA ref verilebilir, AYNI alıcıya TEK mektup olur) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | order_address (SİPARİŞ: yeni siparişe teşekkür + TESLİMAT ADRESİ iste (Latin harf + yerel yazım + alıcı adı/telefon) + 'fatura adresiyle aynı mı' + 'faturanız hazırlanıp gönderilecek'; to=order:&lt;ref&gt; ŞART, ref/tutar kayıttan basılır; FATURASI KESİLMİŞ, gönderilmiş ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | order_invoice_soon (SİPARİŞ: 'faturanız hazırlanıyor, İLK İŞ GÜNÜ hesabınıza + e-postayla gelecek' + ilandan okunan ÖN SİPARİŞ sevk tarihi + Latin harfli adres isteği; to=order:&lt;ref&gt; ŞART; tarih GÖNDERİM ANINDA hesaplanır, şablona gömülü değil; FATURASI KESİLMİŞ ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | offer_accept (ALICININ kabulünü OPERATÖR ADINA kaydeder — alıcı kabulünü mesaj/e-posta ile bildirdiğinde; fiyat BİZİM karşı teklifimiz, kayıt 'accepted_by=operator' + dayanak metniyle düşer; spec: offer_ref=&lt;ref[,ref]&gt;, basis=&lt;neden&gt;, send=true) | payment_ask (SİPARİŞ: faturası kesilmiş ama ödenmemiş siparişte 'ödemeyi yapacak mısınız, ya da NE ZAMAN' — kibar, SAAT BAŞLATMAZ, tarih vermez; to=order:&lt;ref&gt; ŞART, spec: lang=fr|en, signer=&lt;persona&gt;; ödenmiş/gönderilmiş/iptal/escrow ya da dekontu yüklenmiş siparişte DURUR) | payment_notice (SİPARİŞ: faturası KESİLMİŞ, havale bekleyen siparişe 'havaleyi gönderince haber verin' — dekont yükleme bağlantısı + cevap yolu; SAAT BAŞLATMAZ (o payment_due'dur); to=order:&lt;ref&gt; ŞART; faturasız, ödenmiş, gönderilmiş, iptal, escrow ya da dekontu YÜKLENMİŞ siparişte DURUR) | order_gate (TEŞHİS: bir siparişe fatura düğmesinin neden çizilmediğini gate gate yazar — salt okunur; spec: ref=&lt;sipariş ref&gt;, apply=true ile GERÇEK KESİM, notify=false) | invoice_combine_draft (HENÜZ FATURALANMAMIŞ kabullerin BİRLEŞİK fatura TASLAĞI, operatöre e-postayla — numara yakmaz, kaydetmez, müşteriye gitmez; spec: refs=&lt;r1,r2,r3&gt;, ship=&lt;EUR&gt;, vat=&lt;yüzde, fiyata DAHİL&gt;, seller=&lt;uid&gt;) | msg_ping (MEVCUT son mesajın BİLDİRİMİNİ yeniden çalar — thread'e hiçbir şey eklemez, içerik taşımaz; spec: listing=<ilan id>/buyer=<alıcı adında geçen metin>/send(true|false)) | listing_colours (ALICI bir ilanda &quot;her renge fotoğraf yok&quot; dediğinde: renkleri ilanın KENDİ görselleriyle eşleştirir, eksik kalan renk varsa DURUR (mektubun tek iddiası budur), ve mektup İLANIN SATICISI adına çıkar — KURAL 8'in bilinçli istisnası, Reply-To yine support@vestrasales.com; spec: pid=&lt;ilan id, vars. fp-m3600-polo&gt;, lang=en|de, note=&lt;serbest paragraf&gt;) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
         required: false
         default: ""
       reply_spec:
@@ -2522,6 +2522,93 @@ jobs:
 
               [$subject, $body, $opts] = vestra_tpl_authenticity_sample(
                 $salutation, $prod, $sellerCc, $sellerVat, $escrowOk, $signer);
+            } elseif ($letter === 'listing_colours') {
+              /* "Sie haben nicht von allen angebotenen Farben ein Foto" -- bir ilanda
+                 SATILAN ama FOTOGRAFI OLMAYAN renk kalmissa, eksik kapatildiktan sonra
+                 aliciya giden cevap. Mektup ILANIN SATICISI adina cikiyor (operator
+                 istegi, 10 Eyl 2026): KURAL 8 satici adini platform MESAJLASMASINDA
+                 gizler, bu ise operatorun bilerek dukkanin adiyla yolladigi bir e-posta.
+                 Reply-To yine support@vestrasales.com -- alicinin cevabi saticinin
+                 gmail'ine degil platforma dusuyor.
+                 spec: pid(vars. fp-m3600-polo), lang(en|de), note(serbest paragraf) */
+              $pid = trim($E('pid')) !== '' ? trim($E('pid')) : 'fp-m3600-polo';
+              $prod = null;
+              foreach (vestra_products() as $pp) { if ((string)($pp['id'] ?? '') === $pid) { $prod = $pp; break; } }
+              if (!$prod) { fwrite(STDERR, "ILAN BULUNAMADI: {$pid}\n"); exit(1); }
+
+              $cols = array_values(array_filter(array_map('trim', array_map('strval', (array)($prod['colors'] ?? []))), fn($s) => $s !== ''));
+              $imgs = array_values(array_filter(array_map('trim', array_map('strval', (array)($prod['images'] ?? []))), fn($s) => $s !== ''));
+              if (!$cols) { fwrite(STDERR, "ilanda renk yok: {$pid}\n"); exit(1); }
+
+              /* Renk -> foto eslesmesi DOSYA ADINDAN. Uzun ad once denenir ve her
+                 dosya bir kez sahipleniliyor: "Light Blue" m3600-light-blue.jpg'i
+                 almadan once yalin bir "Blue" ayni dosyaya konamasin. Eslesme
+                 SINIRLI (ayirac ya da bas/son) -- duz alt dize bu depoda bir kez
+                 mango/zara dersini vermisti; burada bedeli, aliciya YANLIS rengin
+                 fotografini gostermek olurdu. */
+              $slugc = function (string $s): string {
+                $s = strtolower(trim($s));
+                return trim((string)preg_replace('/[^a-z0-9]+/', '-', $s), '-');
+              };
+              $byLen = $cols;
+              usort($byLen, fn($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+              $used = []; $hitOf = []; $missing = [];
+              foreach ($byLen as $c) {
+                $sl = $slugc($c); $hit = '';
+                foreach ($imgs as $im) {
+                  if (isset($used[$im]) || $sl === '') continue;
+                  $base = strtolower(basename($im));
+                  if (preg_match('/(^|[^a-z0-9])'.preg_quote($sl, '/').'([^a-z0-9]|$)/', $base)) { $hit = $im; break; }
+                }
+                if ($hit === '') { $missing[] = $c; continue; }
+                $used[$hit] = true; $hitOf[$c] = $hit;
+              }
+
+              $abs = fn(string $u) => preg_match('#^https?://#i', $u) ? $u
+                   : 'https://vestrasales.com'.(str_starts_with($u, '/') ? '' : '/').$u;
+              $pairs = [];
+              foreach ($cols as $c) if (isset($hitOf[$c])) $pairs[] = ['colour' => $c, 'img' => $abs($hitOf[$c])];
+
+              echo "ilan   : {$pid} | renk=".count($cols)." | foto=".count($imgs)."\n";
+              foreach ($pairs as $pr) echo "  eslesti: ".str_pad($pr['colour'], 12)." -> ".basename($pr['img'])."\n";
+              foreach (array_diff($imgs, array_keys($used)) as $orph) echo "  (renge baglanmayan foto: ".basename($orph).")\n";
+              /* Mektubun tek iddiasi "her rengin artik fotografi var". Iddia yanlissa
+                 mektup gonderilmez -- eksigi kapatmadan "kapattik" yazmak, sikayeti
+                 ikinci kez dogrulatmak olurdu. */
+              if ($missing) {
+                fwrite(STDERR, "FOTOGRAFI OLMAYAN RENK: ".implode(', ', $missing)
+                             . "\nMektup bu haliyle gonderilmez -- once fotograflari ekleyin.\n");
+                exit(1);
+              }
+
+              /* Gonderen adi: ILANIN saticisinin kayitli firma adi. Elle yazilmiyor --
+                 bir gun ilan baska saticiya gecerse (bu depoda gecti) mektup eski
+                 dukkanin adiyla cikardi. */
+              $lcSellerName = trim((string)($prod['seller'] ?? ''));
+              $lcSuid = (string)($prod['seller_uid'] ?? '');
+              if ($lcSuid !== '') {
+                foreach (auth_accounts() as $sa) {
+                  if ((string)($sa['id'] ?? '') !== $lcSuid) continue;
+                  $cand = trim((string)($sa['company'] ?? ''));
+                  if ($cand !== '') $lcSellerName = $cand;
+                  break;
+                }
+              }
+              if ($lcSellerName === '') { fwrite(STDERR, "satici adi cozulemedi ({$pid}) -- mektup kimin adina cikacagi belirsiz\n"); exit(1); }
+
+              $lcLang = strtolower(trim($E('lang'))) === 'de' ? 'de' : 'en';
+              /* Almanca mektup "Dear ..." diye baslamasin. Hitap PAYLASILAN blokta
+                 kuruluyor ve orasi Ingilizce; operator kendi yazmadiysa burada dile
+                 cevriliyor. Ad HESAPTAN geliyor: girdiye yazmak, musterinin soyadini
+                 herkese acik kosu basligina yazmak olurdu. */
+              if (trim($E('salutation')) === '' && $lcLang === 'de') {
+                $lcWho = $acc ? trim((string)($acc['name'] ?? '')) : '';
+                $salutation = $lcWho !== '' ? 'Guten Tag '.$lcWho : 'Guten Tag';
+              }
+              echo "satici : {$lcSellerName}  (From adi bu olacak; Reply-To support@vestrasales.com)\n";
+              echo "dil    : {$lcLang}\n";
+              [$subject, $body, $opts] = vestra_tpl_listing_colours($salutation, $prod, $pairs, $lcSellerName, $lcLang, trim($E('note')));
+              $fromName = $lcSellerName;
             } elseif ($letter === 'vat_doc_fr') {
               /* Varsayilan hitap 'Bonjour': hesaptaki ad ile e-postadaki ad
                  ayrisiyor ve yanlis soyadla hitap etmek, hitapsiz yazmaktan

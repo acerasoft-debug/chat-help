@@ -3108,6 +3108,69 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   *Fotoğraf ile metin çelişince fotoğraf kazanır (Pili Pérez dersi) — ama
   müşteriye giden metinde tedarikçinin kendi adlandırması esas alındı.*
 
+**Satılan her rengin FOTOĞRAFI olmalı — şikâyet müşteriden geldi** (11 Eyl 2026;
+alıcı BRITISHSTYLE / Michael Baumgartner, M3600 ilanının mesaj ipliğinde:
+*"leider haben Sie nicht von allen angebotenen Farben ein Foto hier"*, ardından
+operatör: *"bu ilana diger renkleride koy polonun"*).
+- **Ölçüm haklı çıkardı:** ilan **6 renk** satıyor (Black, White, Navy, Bordeaux,
+  Green, Light Blue) ama **3 fotoğraf** taşıyordu (navy, snow-white, green).
+  Üç renk, bakılacak hiçbir şey olmadan sipariş edilebiliyordu. *Renk listesine
+  bir ad eklemek ücretsiz, fotoğrafı eklemek değil — ikisi ayrı ayrı sayılmalı.*
+- **Kaynak operatörün kendi Fred Perry tarifesi** (PDF, 2 sayfa). M3600'ün
+  **9 satırı** var ama yalnız **5 gövde rengi adı**: tedarikçi gövdeyi
+  adlandırıyor, **kragen/manşet şeridini (tipping) hiç yazmıyor**, yani aynı ad
+  üç farklı artikelde tekrarlanıyor. Ayıran şey fotoğraf, o yüzden her kare
+  **okunmadı, ölçüldü**: `black #232124` (R=G=B, nötr siyah), `bordeaux #501e21`,
+  `light blue #d6dde5`.
+- **"Black" etiketli bir satır aslında MEVCUT NAVY'ydi:** `#23212c`, beyaz/kırmızı
+  şeritli — ilanda zaten duran navy fotoğrafının aynı giysisi. Onu "siyah" diye
+  koymak, şikâyetin tam konusu olan sayfaya **birbirinden ayırt edilemeyen iki
+  küçük resim** koymak olurdu. Gerçek nötr siyah seçildi.
+- **Fotoğraf yeniden çerçevelenmedi:** tarifedeki kareler zaten çerçevenin
+  %97-99'unu dolduruyor, ~0.91 dikey — canlı üç karenin aynı sıkı kadrajı; ve
+  1316-1698px, ürün sahnesinin istediği 1120px'in üstünde. Metadata taşımasın
+  diye temiz tuvale yeniden kodlandı. **Kapak değişmedi** (navy ilk sırada):
+  istenen eklemekti (Balenciaga dersi).
+- Yol: fotoğraflar repoya (`vestra/uploads/fredperry/`, deploy `uploads/`'u
+  **eklemeli** senkronluyor), sonra `set-product.yml` + `product-fixes/
+  m3600-colour-photos.json`. Geri okundu: `images (3) -> (6)`, Fred Perry'de
+  referans verilen kare **8 → 11**, **kayıp/bozuk 0**.
+
+**Cevap mektubu: `reply_letter=listing_colours`** (aynı gün; operatör:
+*"bu adama email gönderecektin les garage adi ilen"*).
+- **Mektup İLANIN SATICISI adına çıkıyor** (`GARAGE LE PARIS`) — bu, KURAL 8'in
+  **bilinçli istisnası**: o kural satıcı adını platform **mesajlaşmasında**
+  gizler, bu ise operatörün bilerek dükkânın adıyla yolladığı bir e-posta.
+  **Reply-To yine `support@vestrasales.com`** — alıcının cevabı satıcının kendi
+  gmail'ine değil platforma düşüyor. Ad **hesap kaydından** çözülüyor, metne
+  gömülü değil: ilan bir gün başka satıcıya geçerse (bu depoda geçti) mektup
+  eski dükkânın adıyla çıkardı.
+- **Mektubun tek iddiası "artık her rengin fotoğrafı var" ve iddia
+  DOĞRULANMADAN gönderilmiyor:** renk→foto eşleşmesi ilanın **kendi** renkleri
+  ile **kendi** görsellerinden kuruluyor; eşleşmeyen tek renk kalsa iş **DURUR**.
+  Eşleşme **sınırlı** (ayıraç/baş-son) ve **uzun ad önce**, her dosya bir kez:
+  `White` → `m3600-snow-white.jpg`, yalın bir `Blue` → `m3600-light-blue.jpg`'i
+  `Light Blue`'nun elinden **alamıyor**. Gevşetip düz `str_contains` yapınca
+  `Blue` bir "blueberry" dosyasıyla eşleşiyor — **ölçüldü**, varsayılmadı
+  (mango/zara dersinin fotoğraf hâli; bedeli burada alıcıya **yanlış rengin**
+  fotoğrafını göstermek).
+- **Fiyat YOK.** Alıcının toptan fiyatı hesap kapısının arkasında; sayfanın
+  göstermeyebileceği bir rakamı mektuba yazmak, sepetin kabul etmediği rakamı
+  yazmakla aynı sınıf (KURAL 6). Mektup **asgariyi** yazıyor ve onu da
+  `moq`/`min_colors`/`size_step`'ten **okuyor** — sepetin uyguladığı üç sayı.
+- **Markaya özel cümle şablona GÖMÜLMEDİ**, parametre (`note`): "Fred Perry aynı
+  gövde rengini farklı şeritle sürer" bu ilan için doğru, ilanlar için genel
+  olarak değil. Cümle **söz vermiyor** — "şerit sizin için önemliyse rengi
+  söyleyin, sipariş öncesi kesin ifadeyi teyit edeyim". Üç siyahtan birini
+  gösterip "gelecek olan budur" demek, tutamayacağımız bir söz olurdu.
+- Dil **Almanca** (alıcı Almanca yazdı, Avusturya); hitap paylaşılan blokta
+  İngilizce kuruluyor, `lang=de` verildiğinde **hesaptaki adla** Almancaya
+  çevriliyor — ad girdiye yazılmıyor (müşterinin soyadı herkese açık koşu
+  başlığına girmez).
+- Ölçüm (`send=false`, run `34583824299`): 6/6 renk eşleşti, alıcı hesaptan
+  çözüldü (`buyer, active`, VAT kayıtlı), From `GARAGE LE PARIS`, konu doğru,
+  **gönderilmedi**. KURAL 18: operatör "gönder" diyene kadar bekliyor.
+
 **3. parti (İKİNCİ mektup) gönderildi — 200/250, kalan 50 KOTAYA takıldı**
 (operatör, 10 Eyl 2026: *"kampanya gönder 2. email almayanlara yeni ürünler ve
 brandslerden.."* + *"250 ad."*).
