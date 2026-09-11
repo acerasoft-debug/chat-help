@@ -1523,6 +1523,12 @@ function vestra_tpl_price_list(string $salutation, array $facts, array $formats,
     $arts  = (int)($facts['articles'] ?? 0);
     $brnds = (int)($facts['brands'] ?? 0);
     $scope = trim((string)($facts['scope'] ?? ''));          // '' = whole catalogue
+    /* Bir MARKANIN listesi "bizim listemiz" degildir (operator, 11 Eyl 2026:
+       *"anbei die Preisliste von F.Perrey nicht unsere — ben satici degilim"*).
+       VESTRA pazar yeri; mali satan taraf degil. Marka kapsamli bir listede
+       cumle markaya atfediliyor, katalogun tamaminda "bizim" dogru kaliyor --
+       o liste gercekten VESTRA'nin kendi katalogu. */
+    $bscope = trim((string)($facts['brand_scope'] ?? ''));
     $secs  = (array)($facts['sections'] ?? []);              // ['Apparel' => 612, …]
     $names = (array)($facts['brand_names'] ?? []);
     $url   = trim((string)($facts['url'] ?? 'https://vestrasales.com/price-list'));
@@ -1552,9 +1558,11 @@ function vestra_tpl_price_list(string $salutation, array $facts, array $formats,
         $subject = ($scope !== '' ? $scope . ' — Preisliste' : 'VESTRA — Großhandels-Preisliste')
                  . ' (' . $arts . ' Artikel)';
         $body = $salutation . ",\n\n"
-          . ($fmtTxt !== ''
-              ? "anbei unsere Preisliste als {$fmtTxt}"
-              : "hier unsere Preisliste")
+          . ($bscope !== ''
+              ? ($fmtTxt !== '' ? "anbei die Preisliste von " . $bscope . " als {$fmtTxt}"
+                                : "hier die Preisliste von " . $bscope)
+              : ($fmtTxt !== '' ? "anbei unsere Preisliste als {$fmtTxt}"
+                                : "hier unsere Preisliste"))
           . ": " . $arts . " Artikel"
           . ($scope === '' && $brnds > 1 ? " von " . $brnds . " Marken" : "")
           . ", mit Staffelpreisen und Mindestabnahme je Artikel.\n\n"
@@ -1579,9 +1587,11 @@ function vestra_tpl_price_list(string $salutation, array $facts, array $formats,
         $subject = ($scope !== '' ? $scope . ' — price list' : 'VESTRA — wholesale price list')
                  . ' (' . $arts . ' articles)';
         $body = $salutation . ",\n\n"
-          . ($fmtTxt !== ''
-              ? "our price list is attached as {$fmtTxt}"
-              : "here is our price list")
+          . ($bscope !== ''
+              ? ($fmtTxt !== '' ? "the " . $bscope . " price list is attached as {$fmtTxt}"
+                                : "here is the " . $bscope . " price list")
+              : ($fmtTxt !== '' ? "our price list is attached as {$fmtTxt}"
+                                : "here is our price list"))
           . ": " . $arts . " articles"
           . ($scope === '' && $brnds > 1 ? " from " . $brnds . " houses" : "")
           . ", with tier prices and the minimum order quantity for each one.\n\n"

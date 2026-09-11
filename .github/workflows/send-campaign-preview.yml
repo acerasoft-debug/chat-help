@@ -2329,6 +2329,11 @@ jobs:
                 'articles'    => count($plRows),
                 'brands'      => count($plBrandCount),
                 'scope'       => $plFactsScope,
+                /* Marka kapsami AYRI tasiniyor: sablon "bizim listemiz" mi yoksa
+                   "<marka>'nin listesi" mi yazacagina buna bakarak karar veriyor
+                   (operator: pazar yeri satici degildir). Kapsam adindan cikarim
+                   yapmak marka ile kategori adini birbirine karistirirdi. */
+                'brand_scope' => $plBrand,
                 'sections'    => $plSections,
                 'brand_names' => $plNames,
                 /* Hesabi acik olan alici ayni listeyi sitede de goruyor (KURAL 19:

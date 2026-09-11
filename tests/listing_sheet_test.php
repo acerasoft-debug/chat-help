@@ -204,6 +204,24 @@ ok(str_contains($ns, 'Fred Perry — price list'), 'daraltilmis kapsam konuda');
 ok(!str_contains($nb, 'houses'), 'tek markada "kac marka" cumlesi yazilmiyor');
 ok(str_contains($nb, 'brand=Fred%20Perry'), 'hesaptaki liste adresi de daraltilmis');
 
+/* Marka kapsamli liste "BIZIM" degil, MARKANIN listesidir (operator, 11 Eyl
+   2026: *"anbei die Preisliste von F.Perrey nicht unsere — ben satici
+   degilim"*). VESTRA pazar yeri; mali satan taraf degil. Iki yon de tutuluyor:
+   marka verildiginde markaya atfediliyor, verilmediginde "bizim" kaliyor --
+   katalogun tamami gercekten VESTRA'nin kendi listesi. */
+$fp = ['articles' => 2, 'brands' => 1, 'scope' => 'Fred Perry', 'brand_scope' => 'Fred Perry',
+       'sections' => ['Apparel' => 2], 'brand_names' => ['Fred Perry'],
+       'url' => 'https://vestrasales.com/price-list?brand=Fred%20Perry'];
+[, $fb, ] = vestra_tpl_price_list('Guten Tag', $fp, ['pdf', 'xlsx'], 'Marco Bellini', 'de');
+ok(str_contains($fb, 'die Preisliste von Fred Perry'), 'marka listesi MARKAYA atfediliyor');
+ok(!str_contains($fb, 'unsere Preisliste'), '"bizim listemiz" YAZMIYOR (satici biz degiliz)');
+[, $fben, ] = vestra_tpl_price_list('Dear Sir', $fp, ['pdf'], '', 'en');
+ok(str_contains($fben, 'the Fred Perry price list is attached'), 'Ingilizcesi de markaya atfediliyor');
+ok(!str_contains($fben, 'our price list'), 'Ingilizcede de "our" yok');
+/* Ters yon: katalogun TAMAMINDA "bizim" dogru ve kalmali. */
+ok(str_contains($pb, 'unsere Preisliste'), 'kapsamsiz listede "unsere" KORUNUYOR');
+ok(str_contains($pb2, 'our price list'), 'kapsamsiz Ingilizcede "our" KORUNUYOR');
+
 /* ── 9) Kablolama: inceleme yolu PAYLASILAN blokta ───────────────────────── */
 ok(str_contains($wf, "if (strtolower(\$E('copy')) === 'true') {"),
    'copy=true inceleme yolu var');
