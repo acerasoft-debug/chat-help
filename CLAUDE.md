@@ -3259,6 +3259,39 @@ fiyatlar ile beraber gönder"**).
   doğrulandı: merdiven MOQ yerine ham kademeden başlayınca **11 kırmızı**,
   fiyat varsayılanı `on` olunca **3**, şerit etiketi modeli bırakınca **2**.
 
+**Sortiment mektubu fiyat listesini de TAŞIYOR; ek üreteci TEK gövdeye indi**
+(operatör, 11 Eyl 2026: *"ürünleri bir önceki email ile yaptigin gibi resim ile
+listele ve link ver"*).
+- Şikâyetin sebebi ölçülebilir: `price_list` mektubu **hiçbir ürünün adını
+  yazmıyordu** — "2 Artikel" deyip eke işaret ediyordu. `listing_colours` ise
+  ürünleri, 11 fotoğrafı ve ilan başına bağlantıyı zaten taşıyordu. Çözüm
+  **eki gösteren mektuba taşımak**; fotoğraf/bağlantı makinesini ikinci şablona
+  kopyalamak bu deponun defalarca ödediği hata olurdu.
+- **Ek VARSAYILAN OLARAK YOK** (`attach=both|pdf|xlsx`): mektup zaten her rakamı
+  taşıyor, istenmedikçe 300 KB taşımasının sebebi yok.
+- **Liste MEKTUPTAKİ İLANLARIN markasından** üretiliyor; blokler birden fazla
+  markadaysa **ek konmuyor** ve sebebi yazılıyor — o ürünler hakkında olmayan bir
+  liste iliştirmek mektubun kendi kapsamını yalanlardı.
+- **Üçüncü kopya doğmadan önce üçü birleştirildi:** `$listAttach` (workflow'da,
+  `$genList`'in yanında) — imza denetimi, "ne kırpıldı" satırı, PDF'e gömülü
+  fotoğraf sayısı ve Brevo'nun ~10 MB tavanı tek gövdede; `brand_catalog`,
+  `price_list` ve `listing_colours` üçü de onu çağırıyor.
+- **İddiam ilk sabotajda DÜŞMEDİ:** "ikinci kopya yok" kontrolü
+  `'wholesale-list.php', '%PDF'` dizgesini sayıyordu ve o dizge yalnız
+  üreticinin içinde geçiyor — bir dala eklenen **doğrudan** `$genList(...)`
+  çağrısını hiç görmüyordu, sabotaj yeşil kaldı. Ölçüt artık **dalın kendisi**:
+  üç mektup dalının hiçbirinde doğrudan üreteç çağrısı olmamalı (`docs_women`'ın
+  eskiden beri duran tek çağrısı kapsam dışı — o bir ek değil, mektubun kendi
+  PDF'i). *Hiç düşemeyen bir iddia, iddia değildir — bu dosyada kayıtlıydı ve
+  aynı gün üçüncü kez oldu.*
+- Canlı ölçüm (`copy=true`, müşteriye gitmedi): ekler
+  `VESTRA-fred-perry-price-list-2026-09.pdf` **14,7 KB / gömülü fotoğraf 2** +
+  `.xlsx` **5,0 KB**, gövde 1.456 → **1.513** karakter (eklenen tek cümle),
+  fiyatlar canlı kayıttan **39,00 / 35,50 / 32,00** ve **39,90**.
+- Test: `listing_sheet_test.php §7b` (toplam 90 iddia). Düşebildiği doğrulandı:
+  ek cümlesi istekten yazılınca **3 kırmızı**, çok markalı mektuba ek konunca
+  **1**, bir dala doğrudan üreteç çağrısı eklenince **1**.
+
 **`price_list` — fiyat listesi mektubu, ve KAPSAMIN daralması** (operatör,
 11 Eyl 2026, dört adımda yerleşti: *"ayrica liste gönder fiyatlari ile"* →
 *"sweater larida ayrica ekle emaile"* → **"adam sadece fred perry polo yu
