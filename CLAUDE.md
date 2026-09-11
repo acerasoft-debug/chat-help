@@ -3291,6 +3291,13 @@ listele ve link ver"*).
 - Test: `listing_sheet_test.php §7b` (toplam 90 iddia). Düşebildiği doğrulandı:
   ek cümlesi istekten yazılınca **3 kırmızı**, çok markalı mektuba ek konunca
   **1**, bir dala doğrudan üreteç çağrısı eklenince **1**.
+- **BAUMGARTNER'A GİDEN SÜRÜMDE EK YOK** (operatör, aynı gün, eki gördükten
+  sonra: *"liste yapmadan ürün resimleri olsun daha önce yaptigin gibi"*).
+  Yani `attach` **verilmiyor**; mektup ürünleri, 11 fotoğrafı, fiyatları ve
+  bağlantıları taşıyor, PDF/Excel taşımıyor (gövde 1.513 → **1.456** karakter,
+  ek cümlesi kendiliğinden düşüyor — bu yüzden cümle "gerçekten eklenen
+  biçimden" yazılıyor). Özellik duruyor, **varsayılanı kapalı**: başka bir
+  alıcıya liste istendiğinde `attach=both` yeter.
 
 **`price_list` — fiyat listesi mektubu, ve KAPSAMIN daralması** (operatör,
 11 Eyl 2026, dört adımda yerleşti: *"ayrica liste gönder fiyatlari ile"* →
