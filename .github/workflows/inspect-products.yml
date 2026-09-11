@@ -106,7 +106,11 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 3m
-          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT,INSPECT_FIT,INSPECT_RAW
+          # appleboy/ssh-action YALNIZ burada ADI YAZILI degiskenleri sunucuya
+          # gecirir. Yeni bir girdi eklerken bu satir unutulursa uzak tarafta
+          # getenv() bos doner ve mod SESSIZCE calismaz -- sonda, sorulmayan bir
+          # soruya "her sey normal" diye cevap verir.
+          envs: INSPECT_BAKDIFF,INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT,INSPECT_FIT,INSPECT_RAW
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
