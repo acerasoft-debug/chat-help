@@ -2990,6 +2990,48 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   göndermeyi göze almak gerekiyor; bir lead bunu hak etmiyor.
   Bu sınıf tekrar ederse doğru çözüm panele küçük bir `rename_lead` eylemi
   eklemektir (id ile bul, yalnız `company` alanını yaz, damgalara dokunma).
+**KURAL 23 — Müşteriye giden mektup YALNIZCA `support@vestrasales.com`'dan
+çıkar; operatörün Gmail'i gönderen olamaz** (operatör, 11 Eyl 2026:
+*"acerasoft@gmail.com dan hic bir müsteriye email gitmeyecek sadece
+support@vestrasales.com dan gidecek brevo üzerinden"*).
+- **Önce ölçüldü** (`diag-messages` → `mailcfg`): canlı ayar **zaten**
+  `mail_enabled=true | provider=brevo | from=support@vestrasales.com`. Yani
+  bugün hatalı bir mektup gitmiyor — bu bir düzeltme değil, bir **kapı**.
+- **Asıl bulgu kural değil KOPYAYDI:** aynı olgu **dört** yerde okunuyordu ve
+  dördüncüsü aynı şeyi söylemiyordu — `vestra_smtp_send`, `smtp_from` boşsa
+  **`smtp_user`'a düşüyordu**. API yolu bir gün kotayı doldurup SMTP yedeğine
+  düştüğünde müşteri mektubu SMTP kullanıcısının adresinden giderdi. Bu depoda
+  "aynı olgu birkaç yerde yazılı" hatası defalarca kayıtlı (`desc`/`sizes`,
+  faturanın üç katmanı, dört mektup gövdesi); buradaki bedeli müşterinin
+  kutusunda **yanlış gönderici** olurdu.
+- Tek karar noktası `vestra_mail_from(?array $cfg, string $candidate)`
+  (`inc/notify.php`) ve **saf**: ayarı çağıran okur, hangi adresin
+  kullanılacağına o karar verir. Üç gönderim yolu da (api / smtp / php-mail)
+  onu çağırıyor; hiçbiri `$from`'u artık doğrudan ayardan okumuyor.
+- **Ölçüt ALAN ADI, adres değil.** Operatörün cümlesi tek bir kutu yazıyor ama
+  kuralın anlamı "kişisel Gmail değil, şirket adresi": `sales@vestrasales.com`
+  yarın açılırsa engellenmemeli, `support@vestrasales.com.tr` ya da
+  `notvestrasales.com` ise **tam eşitlik** olmadığı için ev adresine düşer
+  (mango/zara dersi). Adres adını sabitlemek uydurma bir kısıt olurdu.
+- **Satıcının KENDİ transportu (`$cfg`) kapsam DIŞI**, bilerek: o özellik
+  "gerçekten onlardan gitsin" diye var ve kendi kimliklerini polislemek bize
+  düşmez. `$cfg !== null` ise aday adres aynen dönüyor.
+- **Zorlama sessiz değil:** ezildiğinde `error_log`'a düşüyor ve yerel kısım
+  **maskeli** (o kütük teşhis çıktısına giriyor, çıktı herkese açık).
+- **Operatörün Gmail'i ALICI olarak kalıyor** — `ops_email`, cron raporları,
+  `buyer_reply`'ın boş `to` varsayılanı hep onun kutusu. Kural gönderen
+  hakkında; teşhis mektubunu kendi kutusuna almak değişmedi.
+- Brevo'da **iki gönderici de hâlâ aktif** (`a***@gmail.com` / "Acerasoft LLC"
+  ve `s***@vestrasales.com` / "VESTRA"), yani sağlayıcı tarafı bu kuralı
+  zorlamıyor — zorlayan şey kod.
+- Test: `tests/mail_sender_test.php` (23 iddia, iki yön). Düşebildiği
+  doğrulandı: alan adı kontrolü kaldırılınca **6 kırmızı**, smtp yolu eski
+  hâline döndürülünce **4**. *İlk yazımda smtp kablolama iddiası `.*?` ile
+  yazılmıştı ve HİÇ DÜŞMÜYORDU: `vestra_smtp_send` dosyada `vestra_api_send`'den
+  önce geliyor, tembel nokta bir sonraki fonksiyonun çağrısına uzanıp orada
+  eşleşiyordu. Arama artık fonksiyon gövdesiyle sınırlı — "hiç düşemeyen bir
+  iddia, iddia değildir" bu depoda zaten kayıtlıydı ve bir kez daha oldu.*
+
 - Brevo **ücretsiz plan**; `credits` alanı `sendLimit` tipinde (günlük gönderim
   hakkı), 1 Eylül 2026'da **288**. Her test bir hak yiyor.
 - Brevo'da kayıtlı **tek gönderen adres operatörün kendi Gmail'i** ("Acerasoft LLC");
@@ -3171,6 +3213,111 @@ operatör: *"bu ilana diger renkleride koy polonun"*).
   çözüldü (`buyer, active`, VAT kayıtlı), From `GARAGE LE PARIS`, konu doğru,
   **gönderilmedi**. KURAL 18: operatör "gönder" diyene kadar bekliyor.
 
+**Aynı mektup "bebildertes Sortimentsblatt" oldu: İKİ ilan, FİYATLARLA**
+(alıcı ikinci kez yazdı — *"bitte senden Sie und das bebilderte
+Sortimentsblatt"*; operatör: *"halen beildert diyor....adam"* + **"ilandaki
+fiyatlar ile beraber gönder"**).
+- **İkinci şablon yazılmadı.** İkinci istek, birincisinin üstüne fiyat ekliyor;
+  ayrı bir mektup yazmak aynı olguyu ikinci kez yazmak olurdu (`desc`/`sizes`,
+  faturanın üç katmanı, dört mektup gövdesi — bu ders bu depoda pahalıya
+  öğrenildi). `vestra_tpl_listing_colours` artık **blok listesi** alıyor: bir
+  ilan da, iki ilan da aynı gövdeden çıkıyor.
+- **Fiyat VARSAYILAN OLARAK YOK** (`prices=on` açıkça istenmeli). Kapısı kapalı
+  bir alıcıya rakam yazmak, sayfanın göstermediği fiyatı mektupta söylemektir —
+  KURAL 2b'nin birebir tersi. Koşu bu yüzden **alıcının fiyat kapısını da
+  basıyor**; bu alıcıda **AÇIK** çıktı, yani mektuptaki rakam sayfasındakiyle
+  aynı.
+- **Merdiven tek yerde: `vestra_price_ladder()`** (`inc/products.php`), o da
+  sepetin kendi `vestra_unit_price()`'ini çağırıyor. **İlk basamak MOQ'da
+  başlar:** ilanların çoğunda `tiers` ilk satırı `min=1` yazıyor ve "ab 1 Stück
+  70,20 €" **sepetin kabul etmediği** bir adedin fiyatını ilan ederdi. Fiyatı
+  değiştirmeyen basamak düşüyor; **yükselen basamak düşmüyor** (gizlemek, pahalı
+  tarafta eksik bilgi vermek olurdu).
+- **Vergi iddiası YOK.** Fiyatlar brüt (KURAL 5m) ama faturada KDV gerçekten
+  alınacak mı **fatura başına** bir karar ve AB içi ticari alıcıda çoğu zaman
+  ters yükleme. Her iki durumda da doğru olan tek cümle yazılıyor: *"pro Stück,
+  zzgl. Versand"*. Doğrulayamadığımız şey yazılmıyor.
+- **Şerit etiketi modeli de taşıyor** (`M3600 · Black` / `M7535 · Black`): aynı
+  renk adı iki modelde de var ve etiketsiz bir kare hangisinin olduğunu
+  söylemiyor. Etiket **ilanın kendi SKU'su**, başlıktan ayıklanmış bir parça
+  değil. Her karenin bağlantısı **kendi** ürün sayfasına gidiyor.
+- **Marka sayfası ancak GERÇEKTEN açılıyorsa** düğmeye ve gövdeye giriyor:
+  `wholesale.php`'nin kendi iki koşulu (slug çözülüyor mu + o markada canlı ilan
+  var mı) çağıran tarafta sorulup geçiliyor. Elle yazılan bir adres, son ilan
+  satıldığı gün 404 olurdu (KURAL 9).
+- **İnceleme adımının yeri: `copy=true`.** Mektup birebir kurulup **operatörün
+  kutusuna** gidiyor, müşteriye gitmiyor (`payment_due`'nun `copy_only`'siyle
+  aynı ilke). Kütüğe gövde basmak seçenek değildi: hitap müşterinin adını
+  taşıyor ve o kütük herkese açık.
+- Ölçüm (`send=false` run `34589855337`, `copy=true` run `34590116233`):
+  polo 6/6 renk-foto + kademe **56 / 96 / 192**, sweatshirt 5/5 + tek kademe
+  **50**, `/wholesale/fred-perry` **2 canlı ilanla açılıyor**, satıcı
+  GARAGE LE PARIS, kapı AÇIK, gövde 1.456 karakter. Kopya operatörün kutusunda
+  **okundu**: Almanca umlautlar, iki ilanın da asgarileri ve fiyatları yerinde.
+  **Müşteriye gitmedi** — KURAL 18, operatör "gönder" diyene kadar bekliyor.
+- Test: `tests/listing_sheet_test.php` (43 iddia, iki yön). Düşebildiği
+  doğrulandı: merdiven MOQ yerine ham kademeden başlayınca **11 kırmızı**,
+  fiyat varsayılanı `on` olunca **3**, şerit etiketi modeli bırakınca **2**.
+
+**`price_list` — fiyat listesi mektubu, ve KAPSAMIN daralması** (operatör,
+11 Eyl 2026, dört adımda yerleşti: *"ayrica liste gönder fiyatlari ile"* →
+*"sweater larida ayrica ekle emaile"* → **"adam sadece fred perry polo yu
+istiyor ancak sen f.perrey sweateri da gönder diger ürünleri degil!"** →
+*"anbei die Preisliste von F.Perrey nicht unsere — ben satici degilim"*).
+- **`brand_catalog`'un ikinci kopyası yazılmadı, ŞEKLİ farklı bir mektup
+  yazıldı.** O mektup her modeli gövdeye basıyor — tek marka için doğru,
+  800 kalemde okunmaz. `price_list` gövdede **sayı** tutuyor (kalem, marka,
+  bölme dağılımı) ve **tek satır fiyat yazmıyor**: fiyatlar ekte ve ikinci bir
+  yerde durmamalı. Paylaşılan şey paylaşılıyor: ekler sitenin **kendi**
+  üreteçlerinden (`wholesale-list.php` / `wholesale-xlsx.php`), yani alıcının
+  indirdiği dosya ile postaladığımız aynı dosya.
+- **Ek boyutu gönderimden ÖNCE ölçülüyor:** Brevo eki base64 taşıyor (+%37) ve
+  ~10 MB'de kesiyor — aşan mektup **hiç gitmez**. Sınır aşılırsa iş **durur** ve
+  ne yapılacağını yazar; sessizce PDF'i düşürmek, operatörün gönderdiğini
+  sandığından başka bir mektup üretirdi.
+- **KAPSAM DARALDI ve bu bir düzeltme değil, operatör kararı.** Önce "sweater'
+  ları da ekle" denince katalogdaki **50 sweatshirt/hoodie** (11 marka) ölçüldü
+  ve listesi hazırlandı; operatör **"diger ürünleri degil"** deyince o liste
+  **iptal edildi**. Müşteriye gitmemişti — yalnız operatörün kutusuna (`copy`).
+  *Kapsamı daraltan bir talimat, yapılmış işi çöpe atsa bile talimattır.*
+- **Bir MARKANIN listesi "BİZİM" listemiz değildir.** İlk sürüm *"anbei unsere
+  Preisliste"* diyordu; operatör **"ben satıcı değilim"** dedi. VESTRA pazar
+  yeri, malı satan taraf değil — marka kapsamlı listede cümle **markaya**
+  atfediliyor (`brand_scope`), katalogun tamamında "bizim" kalıyor (o liste
+  gerçekten VESTRA'nın kendi katalogu). Test iki yönü de tutuyor.
+- **ARAMA TOKEN'IM üç kez müşteriye giden metne sızdı, üçü de canlı koşuda
+  görüldü:** (1) konu satırı `Sweat — Preisliste` (oysa `cat=Sweat` benim
+  satır bulmak için yazdığım parça) → kapsam adı artık **eşleşen kategori
+  adlarından** kuruluyor, üç ve üzeri kategoride token'a düşüyor; (2) ek dosya
+  adı `VESTRA-vestra-sweat-price-list.pdf` — 'vestra' iki kez, 'sweat' yine
+  token → ad da kapsamdan kuruluyor; (3) `Marken u. a.: Fred Perry` ve
+  `Sortiment: Apparel 50` satırları, açılış cümlesi zaten aynı şeyi söylerken
+  ikinci/üçüncü kez yazıyordu → tek markalı/tek bölmeli listede basılmıyor.
+  *Girdi alanı ile müşterinin okuduğu metin arasındaki mesafe bir satır: süzgeç
+  için yazdığın kelimenin konu satırında ne işi olduğunu sor.*
+- **`copy=true` artık PAYLAŞILAN gönderim bloğunda** — her `reply_letter`'in
+  önizlenecek bir yeri var (KURAL 18). Kütüğe gövde basmak seçenek değildi:
+  hitap müşterinin adını taşıyor, kütük herkese açık. `send=true` ile birlikte
+  verilirse **kopya kazanır**: yanlışlıkla iki bayrak birden verilince müşteriye
+  gitmez.
+- **Kendi ölçüm hatam, iki kez:** "kopya, gönderim kapısından önce mi" iddiası
+  önce `send=false` satırını aradı — dosyada **altı** iş var ve `strpos` ilkini
+  buldu; sonra `$ok = vestra_send_mail($to, $subject, $body,` kalıbını aradı —
+  o da **iki** yerde. İddia doğru çalışan kodda iki kez kırmızı döndü. Ayırt
+  eden şey gönderen adı (`$fromName`); iddia artık paylaşılan bloğa özgü tek
+  satıra bağlı. *Bu deponun altı kez kaydettiği "kontrol yanlış yere bakıyor"un
+  yedinci ve sekizinci vakası, üstelik testin kendisinde.*
+- Canlı ölçüm (hepsi `copy=true`, müşteriye **hiçbiri gitmedi**): sweatshirt
+  listesi **50 kalem / 11 marka**, PDF 279 KB + Excel 11 KB; Fred Perry listesi
+  **2 kalem**, `VESTRA-fred-perry-price-list-2026-09.pdf/.xlsx`, gövde 632
+  karakter; alıcının fiyat kapısı **AÇIK** (yani ekteki rakamlar sayfada da
+  görünüyor). Bir koşu `dial tcp: i/o timeout` ile düştü — SSH hiç bağlanmadı,
+  yani o koşu mektup hakkında **hiçbir şey söylemiyor**; runner değişince geçti.
+- Test: `tests/listing_sheet_test.php` §8–9 (toplam 74 iddia). Düşebildiği
+  doğrulandı: gövdeye bir fiyat sızınca **1 kırmızı**, eklenmeyen bir biçim
+  adlanınca **3**, inceleme yolu dala geri taşınınca **3**, marka kapsamı yok
+  sayılınca **4**.
+
 **3. parti (İKİNCİ mektup) gönderildi — 200/250, kalan 50 KOTAYA takıldı**
 (operatör, 10 Eyl 2026: *"kampanya gönder 2. email almayanlara yeni ürünler ve
 brandslerden.."* + *"250 ad."*).
@@ -3278,6 +3425,21 @@ brandslerden.."* + *"250 ad."*).
   Test: `tests/set_prices_markup_test.php` (50 iddia; kum havuzunda betiği
   gerçekten koşturuyor). Üç sabotajla düşebilirliği doğrulandı: damga kapalı
   → 4 kırmızı, `list` yükselmiyor → 8, bölme süzgeci yok → 6.
+- **İKİNCİ ZAM: %80, TÜM KATALOG** (operatör, 11 Eyl 2026: *"fiyatlari yüzde 80
+  ekle üstüne"*; kapsam **soruldu** — cümlede marka/bölme yoktu ve 2 ilanla 827
+  ilan arasındaki fark geri alınamaz bir farktı — operatör **"tüm katalog"**
+  seçti). Run `34586885284`: **827 ilan, 1.662 alan**, numune fiyatlı 2 ürüne
+  dokunulmadı, zaman damgalı yedek. Geri okuma **underwear DIŞINDAN** yapıldı
+  (Fred Perry): polo €39 → **€70,20** (kademeler 63,90 / 57,60), sweatshirt
+  €39,90 → **€71,82** — hepsi tam ×1,8. *Kâr oranı bilinen bir katalogda fiyat
+  basmak maliyeti ele verir; doğrulama marjı kayıtlı OLMAYAN bir markadan
+  yapılır ve `show_prices` kapalı bırakılır.*
+- **Bileşik etki, operatöre söylenerek seçildi:** underwear dün %20 almıştı,
+  yani orada taban artık **2,16×**. İthalat tarafı için sonuç: maliyet ×1,5
+  ×1,2 ×1,8 = **×3,24**, yani bir sonraki Kuloğlu koşusu `price|224` ile
+  koşulmalı. `price|50` (hatta dünkü nota göre `price|80`) ile koşmak **iki
+  zammı birden sessizce geri alır**. *Damga `listings.json`'a inmediği için bu
+  sayıyı tutan tek yer burası.*
 - **UYGULANDI, 10 Eyl 2026** (run `34528478617`): bölme `underwear`, **146
   ilan**, 292 alan (her ilanın `list`'i + bir kademesi), atlanan 0, zaman
   damgalı yedek alındı. 146 = 42 NBB + Q-EN/Visatin partisi; `set-prices`

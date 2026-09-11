@@ -95,11 +95,11 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: payment_final (SON CAGRI — satici sordu, cevap isteniyor; spec: suspend=true ile \"tekrarlananlarda askiya alma hakkimiz saklidir\" cumlesi. Saati DEGISTIRMEZ) | l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken kabul / karşı teklif / red; spec: offer_ref=&lt;ref&gt; — virgülle BİRDEN FAZLA ref verilebilir, AYNI alıcıya TEK mektup olur) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | order_address (SİPARİŞ: yeni siparişe teşekkür + TESLİMAT ADRESİ iste (Latin harf + yerel yazım + alıcı adı/telefon) + 'fatura adresiyle aynı mı' + 'faturanız hazırlanıp gönderilecek'; to=order:&lt;ref&gt; ŞART, ref/tutar kayıttan basılır; FATURASI KESİLMİŞ, gönderilmiş ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | order_invoice_soon (SİPARİŞ: 'faturanız hazırlanıyor, İLK İŞ GÜNÜ hesabınıza + e-postayla gelecek' + ilandan okunan ÖN SİPARİŞ sevk tarihi + Latin harfli adres isteği; to=order:&lt;ref&gt; ŞART; tarih GÖNDERİM ANINDA hesaplanır, şablona gömülü değil; FATURASI KESİLMİŞ ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | offer_accept (ALICININ kabulünü OPERATÖR ADINA kaydeder — alıcı kabulünü mesaj/e-posta ile bildirdiğinde; fiyat BİZİM karşı teklifimiz, kayıt 'accepted_by=operator' + dayanak metniyle düşer; spec: offer_ref=&lt;ref[,ref]&gt;, basis=&lt;neden&gt;, send=true) | payment_ask (SİPARİŞ: faturası kesilmiş ama ödenmemiş siparişte 'ödemeyi yapacak mısınız, ya da NE ZAMAN' — kibar, SAAT BAŞLATMAZ, tarih vermez; to=order:&lt;ref&gt; ŞART, spec: lang=fr|en, signer=&lt;persona&gt;; ödenmiş/gönderilmiş/iptal/escrow ya da dekontu yüklenmiş siparişte DURUR) | payment_notice (SİPARİŞ: faturası KESİLMİŞ, havale bekleyen siparişe 'havaleyi gönderince haber verin' — dekont yükleme bağlantısı + cevap yolu; SAAT BAŞLATMAZ (o payment_due'dur); to=order:&lt;ref&gt; ŞART; faturasız, ödenmiş, gönderilmiş, iptal, escrow ya da dekontu YÜKLENMİŞ siparişte DURUR) | order_gate (TEŞHİS: bir siparişe fatura düğmesinin neden çizilmediğini gate gate yazar — salt okunur; spec: ref=&lt;sipariş ref&gt;, apply=true ile GERÇEK KESİM, notify=false) | invoice_combine_draft (HENÜZ FATURALANMAMIŞ kabullerin BİRLEŞİK fatura TASLAĞI, operatöre e-postayla — numara yakmaz, kaydetmez, müşteriye gitmez; spec: refs=&lt;r1,r2,r3&gt;, ship=&lt;EUR&gt;, vat=&lt;yüzde, fiyata DAHİL&gt;, seller=&lt;uid&gt;) | msg_ping (MEVCUT son mesajın BİLDİRİMİNİ yeniden çalar — thread'e hiçbir şey eklemez, içerik taşımaz; spec: listing=<ilan id>/buyer=<alıcı adında geçen metin>/send(true|false)) | listing_colours (ALICI bir ilanda &quot;her renge fotoğraf yok&quot; dediğinde: renkleri ilanın KENDİ görselleriyle eşleştirir, eksik kalan renk varsa DURUR (mektubun tek iddiası budur), ve mektup İLANIN SATICISI adına çıkar — KURAL 8'in bilinçli istisnası, Reply-To yine support@vestrasales.com; spec: pid=&lt;ilan id, vars. fp-m3600-polo&gt;, lang=en|de, note=&lt;serbest paragraf&gt;) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
+        description: "ALICI CEVABI: payment_final (SON CAGRI — satici sordu, cevap isteniyor; spec: suspend=true ile \"tekrarlananlarda askiya alma hakkimiz saklidir\" cumlesi. Saati DEGISTIRMEZ) | l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken kabul / karşı teklif / red; spec: offer_ref=&lt;ref&gt; — virgülle BİRDEN FAZLA ref verilebilir, AYNI alıcıya TEK mektup olur) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | order_address (SİPARİŞ: yeni siparişe teşekkür + TESLİMAT ADRESİ iste (Latin harf + yerel yazım + alıcı adı/telefon) + 'fatura adresiyle aynı mı' + 'faturanız hazırlanıp gönderilecek'; to=order:&lt;ref&gt; ŞART, ref/tutar kayıttan basılır; FATURASI KESİLMİŞ, gönderilmiş ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | order_invoice_soon (SİPARİŞ: 'faturanız hazırlanıyor, İLK İŞ GÜNÜ hesabınıza + e-postayla gelecek' + ilandan okunan ÖN SİPARİŞ sevk tarihi + Latin harfli adres isteği; to=order:&lt;ref&gt; ŞART; tarih GÖNDERİM ANINDA hesaplanır, şablona gömülü değil; FATURASI KESİLMİŞ ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | offer_accept (ALICININ kabulünü OPERATÖR ADINA kaydeder — alıcı kabulünü mesaj/e-posta ile bildirdiğinde; fiyat BİZİM karşı teklifimiz, kayıt 'accepted_by=operator' + dayanak metniyle düşer; spec: offer_ref=&lt;ref[,ref]&gt;, basis=&lt;neden&gt;, send=true) | payment_ask (SİPARİŞ: faturası kesilmiş ama ödenmemiş siparişte 'ödemeyi yapacak mısınız, ya da NE ZAMAN' — kibar, SAAT BAŞLATMAZ, tarih vermez; to=order:&lt;ref&gt; ŞART, spec: lang=fr|en, signer=&lt;persona&gt;; ödenmiş/gönderilmiş/iptal/escrow ya da dekontu yüklenmiş siparişte DURUR) | payment_notice (SİPARİŞ: faturası KESİLMİŞ, havale bekleyen siparişe 'havaleyi gönderince haber verin' — dekont yükleme bağlantısı + cevap yolu; SAAT BAŞLATMAZ (o payment_due'dur); to=order:&lt;ref&gt; ŞART; faturasız, ödenmiş, gönderilmiş, iptal, escrow ya da dekontu YÜKLENMİŞ siparişte DURUR) | order_gate (TEŞHİS: bir siparişe fatura düğmesinin neden çizilmediğini gate gate yazar — salt okunur; spec: ref=&lt;sipariş ref&gt;, apply=true ile GERÇEK KESİM, notify=false) | invoice_combine_draft (HENÜZ FATURALANMAMIŞ kabullerin BİRLEŞİK fatura TASLAĞI, operatöre e-postayla — numara yakmaz, kaydetmez, müşteriye gitmez; spec: refs=&lt;r1,r2,r3&gt;, ship=&lt;EUR&gt;, vat=&lt;yüzde, fiyata DAHİL&gt;, seller=&lt;uid&gt;) | msg_ping (MEVCUT son mesajın BİLDİRİMİNİ yeniden çalar — thread'e hiçbir şey eklemez, içerik taşımaz; spec: listing=<ilan id>/buyer=<alıcı adında geçen metin>/send(true|false)) | listing_colours (ALICI bir ilanda &quot;her renge fotoğraf yok&quot; dediğinde: renkleri ilanın KENDİ görselleriyle eşleştirir, eksik kalan renk varsa DURUR (mektubun tek iddiası budur), ve mektup İLANIN SATICISI adına çıkar — KURAL 8'in bilinçli istisnası, Reply-To yine support@vestrasales.com; spec: pid=&lt;ilan id; VIRGULLE birden fazla verilirse hepsi TEK &quot;bebildertes Sortimentsblatt&quot; mektubunda birlesir ve serit etiketi modeli de tasir&gt;, lang=en|de, prices=on (VARSAYILAN OFF — acikca istenmedikce mektup RAKAM TASIMAZ; kademeler sepetin kendi vestra_unit_price'indan okunur ve ilk basamak MOQ'da baslar), note=&lt;serbest paragraf&gt;, copy=true (mektubun BIREBIR AYNISINI yalnizca OPERATORE yollar — musteriye gitmez, inceleme adimi). Ilanlarin saticisi TEK degilse DURUR; alicinin fiyat kapisi KAPALIYKEN fiyat istenirse kosu UYARI basar) | price_list (FİYAT LİSTESİ: bütün katalog PDF + Excel EKTE, gövdede kalem/marka/bölme SAYILARI — tek satır fiyat yok, liste ekte; spec: brand=&lt;opsiyonel TAM ad&gt;, cat=&lt;opsiyonel alt dize&gt;, attach=both|pdf|xlsx, lang=en|de, signer. İmza VESTRA — katalog listesi birden fazla satıcının malını taşır) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
         required: false
         default: ""
       reply_spec:
-        description: "ALICI CEVABI: alan=değer, | ile ayrık. to(adres YA DA account:<isim-parçası> YA DA order:<sipariş ref> — adres sunucudan, girdiye yazılmaz)/send(true|false)/salutation/vat/signer(varsayılan Marco Bellini)/for(seller_setup: mektubun VERİSİNİ veren satıcı — to farklıysa test demektir). to boş = operatör test kutusu. msg_reply KENDİ alanlarını kullanır (to= YOK): listing=<ilan id>/buyer=<alıcı adında geçen metin, thread'i bulmak için>/body=<mesaj metni>/send(true|false)"
+        description: "ALICI CEVABI: alan=değer, | ile ayrık. to(adres YA DA account:<isim-parçası> YA DA order:<sipariş ref> — adres sunucudan, girdiye yazılmaz)/send(true|false)/salutation/vat/signer(varsayılan Marco Bellini)/for(seller_setup: mektubun VERİSİNİ veren satıcı — to farklıysa test demektir). to boş = operatör test kutusu. copy=true = mektup MÜŞTERİYE GİTMEZ, birebir aynısı (ekleriyle) operatörün kutusuna gider — KURAL 18'in inceleme adımı; send=true ile birlikte verilirse kopya kazanır. msg_reply KENDİ alanlarını kullanır (to= YOK): listing=<ilan id>/buyer=<alıcı adında geçen metin, thread'i bulmak için>/body=<mesaj metni>/send(true|false)"
         required: false
         default: "send=false"
 
@@ -2226,6 +2226,142 @@ jobs:
               echo "ekler       : ".($done ? implode(', ', $done) : '(yok)')."\n";
               [$subject, $body, $opts] = vestra_tpl_brand_catalog($salutation, $brand, $groups, $shipsFrom, $done, $signer);
               if ($atts) $opts['attachments'] = $atts;
+            } elseif ($letter === 'price_list') {
+              /* "Fiyat listesini gonderin" — BUTUN katalog, PDF + Excel ekte.
+                 brand_catalog'dan farki kapsam ve GOVDENIN SEKLI: o mektup her
+                 modeli govdeye yaziyor (tek marka icin dogru), bu 800+ kalemde
+                 okunmaz olurdu. Paylasilan sey paylasiliyor: ekler sitenin KENDI
+                 ureteclerinden (wholesale-list.php / wholesale-xlsx.php), yani
+                 alicinin indirdigi liste ile postaladigimiz ayni dosya.
+                 spec: brand=<opsiyonel TAM ad>, cat=<opsiyonel alt dize>,
+                       attach=both|pdf|xlsx, lang=en|de, signer=<persona> */
+              $plBrand = trim($E('brand'));
+              $plCat   = trim($E('cat'));
+              $plLang  = strtolower(trim($E('lang'))) === 'de' ? 'de' : 'en';
+
+              /* Rakamlar CANLI kayittan sayiliyor. Listenin kapsamini abartmak,
+                 alicinin ilk kontrol edecegi tek iddiayi yanlis yapmaktir. */
+              $plRows = [];
+              foreach (vestra_products() as $p) {
+                if (vestra_export_price($p) <= 0) continue;          /* fiyatsiz kalem listeye de girmiyor */
+                if (trim((string)($p['brand'] ?? '')) === '') continue;
+                if ($plBrand !== '' && strcasecmp(trim((string)($p['brand'] ?? '')), $plBrand) !== 0) continue;
+                if ($plCat !== '' && stripos((string)($p['cat'] ?? ''), $plCat) === false) continue;
+                $plRows[] = $p;
+              }
+              if (!$plRows) {
+                fwrite(STDERR, "price_list: eslesen urun yok"
+                     . ($plBrand !== '' ? " (brand=\"{$plBrand}\" TAM eslesme ister)" : "")
+                     . ($plCat !== '' ? " (cat=\"{$plCat}\")" : "") . "\n");
+                exit(1);
+              }
+              $plBrandCount = []; $plSections = []; $plCats = [];
+              foreach ($plRows as $p) {
+                $plBrandCount[trim((string)($p['brand'] ?? ''))] = ($plBrandCount[trim((string)($p['brand'] ?? ''))] ?? 0) + 1;
+                $plSec = vestra_section_label(vestra_product_section($p));
+                if ($plSec !== '') $plSections[$plSec] = ($plSections[$plSec] ?? 0) + 1;
+                $plC = trim((string)($p['cat'] ?? ''));
+                if ($plC !== '') $plCats[$plC] = ($plCats[$plC] ?? 0) + 1;
+              }
+              arsort($plBrandCount); arsort($plSections); arsort($plCats);
+
+              /* Kapsam adi SUZGEC TOKEN'INDAN degil, gercekten eslesen KATEGORI
+                 ADLARINDAN kuruluyor. `cat=Sweat` bir arama parcasi; musteriye
+                 giden konu satirinda "Sweat — Preisliste" diye cikiyordu (ilk
+                 canli kosuda goruldu). Kategori adi kayitta duran seydir ve
+                 alicinin sitede gordugu ad da o. Uc ve uzeri kategoride token'a
+                 dusuyor: bes kategori adini konuya dizmek daha kotu.
+                 Konudan ONCE hesaplaniyor cunku ek DOSYA ADI da bunu kullaniyor. */
+              $plFactsScope = trim($plBrand . ($plBrand !== '' && $plCat !== '' ? ' ' : '')
+                            . ($plCat === '' ? '' : (count($plCats) > 0 && count($plCats) <= 2
+                               ? implode(' & ', array_keys($plCats)) : $plCat)));
+              /* Marka adlari: en derin stoklu ILK ALTI. Hepsini yazmak govdeyi
+                 yeniden listeye cevirirdi; liste zaten ekte. */
+              $plNames = array_slice(array_keys($plBrandCount), 0, 6);
+
+              /* Ekler brand_catalog ile AYNI ureteclerden ve AYNI imza
+                 kontrolunden geciyor -- bos ya da yonlendirilmis bir cikti
+                 sessizce 0 baytlik ek olarak giderdi. */
+              $plAtts = []; $plAttach = strtolower(trim($E('attach'))) ?: 'both';
+              $plWant = match ($plAttach) {
+                'false', 'none', '0' => [],
+                'pdf'                => ['pdf'],
+                'xlsx', 'excel'      => ['xlsx'],
+                default              => ['pdf', 'xlsx'],
+              };
+              /* Dosya adini MUSTERI goruyor: ilk canli kosu
+                 "VESTRA-vestra-sweat-price-list.pdf" uretti -- 'vestra' onekten
+                 sonra ikinci kez, 'sweat' ise yine benim arama parcam. Ad da
+                 konu satiri gibi kapsamdan kuruluyor; kapsam yoksa hicbir sey
+                 eklenmiyor (onek zaten VESTRA). */
+              $plSlug = strtolower(trim(preg_replace('/[^A-Za-z0-9]+/', '-', (string)$plFactsScope), '-'));
+              $plSlug = $plSlug !== '' ? $plSlug.'-' : '';
+              foreach ([
+                ['wholesale-list.php', '%PDF', 'pdf', 2000],
+                ['wholesale-xlsx.php', "PK\x03\x04", 'xlsx', 800],
+              ] as [$plScript, $plSig, $plExt, $plMin]) {
+                if (!in_array($plExt, $plWant, true)) continue;
+                $plBytes = $genList($plScript, ['brand' => $plBrand] + ($plCat !== '' ? ['cat' => $plCat] : []));
+                $plPos = strpos($plBytes, $plSig);
+                if ($plPos === false || strlen($plBytes) - (int)$plPos < $plMin) {
+                  fwrite(STDERR, "{$plExt} uretilemedi (".strlen($plBytes)." bayt, imza "
+                       . ($plPos === false ? 'YOK' : 'konum '.$plPos) . ") -- mektup gonderilmedi\n");
+                  exit(1);
+                }
+                if ($plPos > 0) { echo "UYARI: {$plExt} oncesinde {$plPos} bayt fazladan cikti vardi, kirpildi\n"; $plBytes = substr($plBytes, $plPos); }
+                $plName = 'VESTRA-'.$plSlug.'price-list-'.date('Y-m').'.'.$plExt;
+                file_put_contents('/tmp/'.$plName, $plBytes);
+                $plAtts[] = ['name'=>$plName, 'path'=>'/tmp/'.$plName];
+                echo "ek ({$plExt})  : ".number_format(strlen($plBytes))." bayt -> {$plName}\n";
+              }
+              /* Brevo eki base64 ile tasiyor (+%33) ve toplamda ~10 MB'de
+                 kesiyor; asan mektup HIC gitmez. Sinir asilirsa is DURUYOR ve
+                 ne yapilacagini yaziyor -- sessizce PDF'i dusurmek, operatorun
+                 gonderdigini sandigi seyden baska bir mektup uretirdi. */
+              $plRaw = array_sum(array_map(fn($a) => (int)@filesize($a['path']), $plAtts));
+              echo "ek toplam   : ".number_format($plRaw)." bayt (base64 ~".number_format((int)($plRaw*1.37))." bayt)\n";
+              if ($plRaw * 1.37 > 9_500_000) {
+                fwrite(STDERR, "EKLER COK BUYUK -- mektup gonderilmedi. attach=xlsx ile tek dosya yollayin ya da brand=/cat= ile daraltin.\n");
+                exit(1);
+              }
+
+              $plFacts = [
+                'articles'    => count($plRows),
+                'brands'      => count($plBrandCount),
+                'scope'       => $plFactsScope,
+                /* Marka kapsami AYRI tasiniyor: sablon "bizim listemiz" mi yoksa
+                   "<marka>'nin listesi" mi yazacagina buna bakarak karar veriyor
+                   (operator: pazar yeri satici degildir). Kapsam adindan cikarim
+                   yapmak marka ile kategori adini birbirine karistirirdi. */
+                'brand_scope' => $plBrand,
+                'sections'    => $plSections,
+                'brand_names' => $plNames,
+                /* Hesabi acik olan alici ayni listeyi sitede de goruyor (KURAL 19:
+                   girissiz acilmiyor). Adres tek yerde yazili, kapiyi bu mektup
+                   yeniden tanimlamiyor. */
+                'url'         => 'https://vestrasales.com/price-list'
+                               . ($plBrand !== '' ? '?brand='.rawurlencode($plBrand) : ''),
+              ];
+              if (trim($E('salutation')) === '' && $plLang === 'de') {
+                $plWho = $acc ? trim((string)($acc['name'] ?? '')) : '';
+                $salutation = $plWho !== '' ? 'Guten Tag '.$plWho : 'Guten Tag';
+              }
+              echo "kategori    : ".implode(' · ', array_map(fn($k, $v) => "{$k} {$v}", array_keys($plCats), $plCats))."\n";
+              echo "kapsam      : ".($plFacts['scope'] !== '' ? $plFacts['scope'] : 'TUM KATALOG')
+                 . " | ".$plFacts['articles']." kalem | ".$plFacts['brands']." marka\n";
+              echo "bolme       : ".implode(' · ', array_map(fn($k, $v) => "{$k} {$v}", array_keys($plSections), $plSections))."\n";
+              echo "dil         : {$plLang} | alicinin fiyat kapisi: "
+                 . ($acc ? (auth_prices_unlocked($acc) ? 'ACIK' : '*** KAPALI ***') : '(hesap yok)')."\n";
+              if ($acc && !auth_prices_unlocked($acc)) {
+                echo "UYARI       : mektup 'listeyi hesabinizda gorursunuz' diyor ama o hesabin kapisi KAPALI.\n";
+              }
+              $plDone = array_map(fn($a) => pathinfo($a['name'], PATHINFO_EXTENSION), $plAtts);
+              /* Imza VESTRA -- katalog listesi birden fazla saticinin malini
+                 tasiyor, tek bir dukkanin adini koymak baskasinin stogunu ona
+                 mal etmek olurdu. Ilan basina mektup (listing_colours) tam bu
+                 yuzden dukkanin adiyla cikiyor: orada yalniz o dukkanin mali var. */
+              [$subject, $body, $opts] = vestra_tpl_price_list($salutation, $plFacts, $plDone, $signer, $plLang);
+              if ($plAtts) $opts['attachments'] = $plAtts;
             } elseif ($letter === 'offer_preview') {
               /* Karsi teklif mektubunun ONIZLEMESI. HICBIR SEY YAZMAZ:
                  teklife yanit verilmez, token uretilmez, kayit degismez --
@@ -2523,22 +2659,25 @@ jobs:
               [$subject, $body, $opts] = vestra_tpl_authenticity_sample(
                 $salutation, $prod, $sellerCc, $sellerVat, $escrowOk, $signer);
             } elseif ($letter === 'listing_colours') {
-              /* "Sie haben nicht von allen angebotenen Farben ein Foto" -- bir ilanda
-                 SATILAN ama FOTOGRAFI OLMAYAN renk kalmissa, eksik kapatildiktan sonra
-                 aliciya giden cevap. Mektup ILANIN SATICISI adina cikiyor (operator
-                 istegi, 10 Eyl 2026): KURAL 8 satici adini platform MESAJLASMASINDA
-                 gizler, bu ise operatorun bilerek dukkanin adiyla yolladigi bir e-posta.
-                 Reply-To yine support@vestrasales.com -- alicinin cevabi saticinin
-                 gmail'ine degil platforma dusuyor.
-                 spec: pid(vars. fp-m3600-polo), lang(en|de), note(serbest paragraf) */
-              $pid = trim($E('pid')) !== '' ? trim($E('pid')) : 'fp-m3600-polo';
-              $prod = null;
-              foreach (vestra_products() as $pp) { if ((string)($pp['id'] ?? '') === $pid) { $prod = $pp; break; } }
-              if (!$prod) { fwrite(STDERR, "ILAN BULUNAMADI: {$pid}\n"); exit(1); }
-
-              $cols = array_values(array_filter(array_map('trim', array_map('strval', (array)($prod['colors'] ?? []))), fn($s) => $s !== ''));
-              $imgs = array_values(array_filter(array_map('trim', array_map('strval', (array)($prod['images'] ?? []))), fn($s) => $s !== ''));
-              if (!$cols) { fwrite(STDERR, "ilanda renk yok: {$pid}\n"); exit(1); }
+              /* BEBILDERTES SORTIMENTSBLATT -- bir ya da daha cok ilanin HER
+                 rengini fotografiyla, istenirse fiyat kademeleriyle yazan cevap.
+                 Iki mesabi birden karsiliyor (BRITISHSTYLE, 10-11 Eyl 2026):
+                 "nicht von allen angebotenen Farben ein Foto" ve ardindan
+                 "bitte senden Sie und das bebilderte Sortimentsblatt".
+                 Mektup ILANIN SATICISI adina cikiyor (operator istegi): KURAL 8
+                 satici adini platform MESAJLASMASINDA gizler, bu ise operatorun
+                 bilerek dukkanin adiyla yolladigi bir e-posta. Reply-To yine
+                 support@vestrasales.com -- alicinin cevabi saticinin gmail'ine
+                 degil platforma dusuyor.
+                 spec: pid(virgullu liste, vars. fp-m3600-polo), lang(en|de),
+                       prices(on|off, VARSAYILAN OFF), note(serbest paragraf) */
+              $pidsRaw = trim($E('pid')) !== '' ? trim($E('pid')) : 'fp-m3600-polo';
+              $pids = array_values(array_filter(array_map('trim', explode(',', $pidsRaw)), fn($s) => $s !== ''));
+              /* Fiyat VARSAYILAN OLARAK YOK ve acikca istenmeli. Kapali bir hesaba
+                 fiyat yazmak, sayfanin gostermedigi rakami mektupta soylemek olur
+                 (KURAL 2b'nin tersi); varsayilani "on" yapmak bir sonraki kosuda
+                 bunu sessizce yapardi. */
+              $lcPrices = in_array(strtolower(trim($E('prices'))), ['on', 'true', '1', 'evet'], true);
 
               /* Renk -> foto eslesmesi DOSYA ADINDAN. Uzun ad once denenir ve her
                  dosya bir kez sahipleniliyor: "Light Blue" m3600-light-blue.jpg'i
@@ -2550,51 +2689,105 @@ jobs:
                 $s = strtolower(trim($s));
                 return trim((string)preg_replace('/[^a-z0-9]+/', '-', $s), '-');
               };
-              $byLen = $cols;
-              usort($byLen, fn($a, $b) => mb_strlen($b) <=> mb_strlen($a));
-              $used = []; $hitOf = []; $missing = [];
-              foreach ($byLen as $c) {
-                $sl = $slugc($c); $hit = '';
-                foreach ($imgs as $im) {
-                  if (isset($used[$im]) || $sl === '') continue;
-                  $base = strtolower(basename($im));
-                  if (preg_match('/(^|[^a-z0-9])'.preg_quote($sl, '/').'([^a-z0-9]|$)/', $base)) { $hit = $im; break; }
-                }
-                if ($hit === '') { $missing[] = $c; continue; }
-                $used[$hit] = true; $hitOf[$c] = $hit;
-              }
-
               $abs = fn(string $u) => preg_match('#^https?://#i', $u) ? $u
                    : 'https://vestrasales.com'.(str_starts_with($u, '/') ? '' : '/').$u;
-              $pairs = [];
-              foreach ($cols as $c) if (isset($hitOf[$c])) $pairs[] = ['colour' => $c, 'img' => $abs($hitOf[$c])];
 
-              echo "ilan   : {$pid} | renk=".count($cols)." | foto=".count($imgs)."\n";
-              foreach ($pairs as $pr) echo "  eslesti: ".str_pad($pr['colour'], 12)." -> ".basename($pr['img'])."\n";
-              foreach (array_diff($imgs, array_keys($used)) as $orph) echo "  (renge baglanmayan foto: ".basename($orph).")\n";
-              /* Mektubun tek iddiasi "her rengin artik fotografi var". Iddia yanlissa
-                 mektup gonderilmez -- eksigi kapatmadan "kapattik" yazmak, sikayeti
-                 ikinci kez dogrulatmak olurdu. */
-              if ($missing) {
-                fwrite(STDERR, "FOTOGRAFI OLMAYAN RENK: ".implode(', ', $missing)
+              $lcBlocks = []; $lcSellers = []; $lcBrands = []; $lcMissAll = [];
+              foreach ($pids as $pid) {
+                $prod = null;
+                foreach (vestra_products() as $pp) { if ((string)($pp['id'] ?? '') === $pid) { $prod = $pp; break; } }
+                if (!$prod) { fwrite(STDERR, "ILAN BULUNAMADI: {$pid}\n"); exit(1); }
+
+                $cols = array_values(array_filter(array_map('trim', array_map('strval', (array)($prod['colors'] ?? []))), fn($s) => $s !== ''));
+                $imgs = array_values(array_filter(array_map('trim', array_map('strval', (array)($prod['images'] ?? []))), fn($s) => $s !== ''));
+                if (!$cols) { fwrite(STDERR, "ilanda renk yok: {$pid}\n"); exit(1); }
+
+                $byLen = $cols;
+                usort($byLen, fn($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+                $used = []; $hitOf = []; $missing = [];
+                foreach ($byLen as $c) {
+                  $sl = $slugc($c); $hit = '';
+                  foreach ($imgs as $im) {
+                    if (isset($used[$im]) || $sl === '') continue;
+                    $base = strtolower(basename($im));
+                    if (preg_match('/(^|[^a-z0-9])'.preg_quote($sl, '/').'([^a-z0-9]|$)/', $base)) { $hit = $im; break; }
+                  }
+                  if ($hit === '') { $missing[] = $c; continue; }
+                  $used[$hit] = true; $hitOf[$c] = $hit;
+                }
+                $pairs = [];
+                foreach ($cols as $c) if (isset($hitOf[$c])) $pairs[] = ['colour' => $c, 'img' => $abs($hitOf[$c])];
+
+                /* Fiyat merdiveni TEK yerden: vestra_price_ladder() (inc/products.php),
+                   o da sepetin kendi vestra_unit_price'ini cagiriyor. Ilk basamagin
+                   MOQ'da baslamasi ve fiyati degistirmeyen basamagin dusmesi orada
+                   yazili ve testli -- burada ikinci kez yazilsaydi mektup ile sayfa
+                   bir gun iki ayri merdiven gosterirdi. */
+                $rungs = vestra_price_ladder($prod);
+                if ($lcPrices && !$rungs) { fwrite(STDERR, "fiyat cozulemedi: {$pid} -- fiyatli mektup yazilamaz\n"); exit(1); }
+
+                /* Serit etiketi: birden cok ilanda ayni renk adi iki kez geciyor
+                   ("Black" hem poloda hem sweatshirt'te), yani etiket modeli de
+                   tasimali. Model KAYITTAN: ilanin kendi SKU'su, yoksa id'si --
+                   basliktan ayiklanmis bir parca degil. */
+                $tag = trim((string)($prod['sku'] ?? ''));
+                if ($tag === '') $tag = (string)($prod['id'] ?? '');
+
+                $sn = trim((string)($prod['seller'] ?? ''));
+                $suid = (string)($prod['seller_uid'] ?? '');
+                if ($suid !== '') {
+                  foreach (auth_accounts() as $sa) {
+                    if ((string)($sa['id'] ?? '') !== $suid) continue;
+                    $cand = trim((string)($sa['company'] ?? ''));
+                    if ($cand !== '') $sn = $cand;
+                    break;
+                  }
+                }
+                if ($sn !== '') $lcSellers[$sn] = true;
+                $bn = trim((string)($prod['brand'] ?? ''));
+                if ($bn !== '') $lcBrands[strtolower($bn)] = $bn;
+
+                echo "ilan   : {$pid} | renk=".count($cols)." | foto=".count($imgs)." | etiket={$tag}\n";
+                foreach ($pairs as $pr) echo "  eslesti: ".str_pad($pr['colour'], 12)." -> ".basename($pr['img'])."\n";
+                foreach (array_diff($imgs, array_keys($used)) as $orph) echo "  (renge baglanmayan foto: ".basename($orph).")\n";
+                foreach ($rungs as $r) echo "  kademe : ab ".str_pad((string)$r['min'], 4)." -> ".number_format($r['price'], 2, ',', '.')." EUR\n";
+                if ($missing) { $lcMissAll[] = $pid.': '.implode(', ', $missing); continue; }
+
+                $lcBlocks[] = ['p' => $prod, 'pairs' => $pairs, 'rungs' => $rungs, 'tag' => $tag];
+              }
+
+              /* Mektubun tek iddiasi "her rengin artik fotografi var". Iddia
+                 yanlissa mektup gonderilmez -- eksigi kapatmadan "kapattik"
+                 yazmak, sikayeti ikinci kez dogrulatmak olurdu. */
+              if ($lcMissAll) {
+                fwrite(STDERR, "FOTOGRAFI OLMAYAN RENK -> ".implode(' | ', $lcMissAll)
                              . "\nMektup bu haliyle gonderilmez -- once fotograflari ekleyin.\n");
                 exit(1);
               }
-
-              /* Gonderen adi: ILANIN saticisinin kayitli firma adi. Elle yazilmiyor --
-                 bir gun ilan baska saticiya gecerse (bu depoda gecti) mektup eski
-                 dukkanin adiyla cikardi. */
-              $lcSellerName = trim((string)($prod['seller'] ?? ''));
-              $lcSuid = (string)($prod['seller_uid'] ?? '');
-              if ($lcSuid !== '') {
-                foreach (auth_accounts() as $sa) {
-                  if ((string)($sa['id'] ?? '') !== $lcSuid) continue;
-                  $cand = trim((string)($sa['company'] ?? ''));
-                  if ($cand !== '') $lcSellerName = $cand;
-                  break;
-                }
+              if (!$lcBlocks) { fwrite(STDERR, "ilan yok\n"); exit(1); }
+              /* Tek From adi olmak zorunda: iki ayri dukkanin ilanini tek mektupta
+                 birlestirmek, hangisinin yazdigi belirsiz bir mektup uretirdi. */
+              if (count($lcSellers) !== 1) {
+                fwrite(STDERR, "ilanlarin saticisi TEK degil (".implode(' / ', array_keys($lcSellers)).") -- mektup kimin adina cikacagi belirsiz\n");
+                exit(1);
               }
-              if ($lcSellerName === '') { fwrite(STDERR, "satici adi cozulemedi ({$pid}) -- mektup kimin adina cikacagi belirsiz\n"); exit(1); }
+              $lcSellerName = (string)array_key_first($lcSellers);
+
+              /* Marka sayfasi ancak GERCEKTEN aciliyorsa butona konuyor: sayfanin
+                 kendi kosullari (wholesale.php) -- slug cozuluyor mu ve o markada
+                 canli ilan var mi. Elle yazilan bir adres, son ilan satildigi gun
+                 404 olurdu (KURAL 9). */
+              $lcMore = '';
+              if (count($lcBrands) === 1) {
+                $bn = (string)reset($lcBrands);
+                $bslug = vestra_brand_slug($bn);
+                $bcnt = 0;
+                foreach (vestra_products() as $pp) if (strcasecmp(trim((string)($pp['brand'] ?? '')), $bn) === 0) $bcnt++;
+                if ($bslug !== '' && vestra_brand_from_slug($bslug) !== null && $bcnt > 0) {
+                  $lcMore = 'https://vestrasales.com/wholesale/'.rawurlencode($bslug);
+                }
+                echo "marka  : {$bn} -> ".($lcMore !== '' ? $lcMore." ({$bcnt} canli ilan)" : "sayfa ACILMIYOR, butona konmadi")."\n";
+              }
 
               $lcLang = strtolower(trim($E('lang'))) === 'de' ? 'de' : 'en';
               /* Almanca mektup "Dear ..." diye baslamasin. Hitap PAYLASILAN blokta
@@ -2605,9 +2798,18 @@ jobs:
                 $lcWho = $acc ? trim((string)($acc['name'] ?? '')) : '';
                 $salutation = $lcWho !== '' ? 'Guten Tag '.$lcWho : 'Guten Tag';
               }
+              /* FIYAT KAPISI: mektup rakam tasiyorsa alicinin o rakami SAYFADA da
+                 gorebiliyor olmasi gerekir. Kapali hesapta mektup fiyat yaziyor,
+                 sayfa kilit gosteriyor -- KURAL 2b'nin birebir tersi. Is
+                 DURDURULMUYOR (kapiyi acmak operatorun karari) ama kosu bunu
+                 acikca yaziyor, cunku gonder demeden once bilinmesi gereken sey bu. */
+              $lcGate = $acc ? (auth_prices_unlocked($acc) ? 'ACIK' : '*** KAPALI ***') : '(hesap yok)';
               echo "satici : {$lcSellerName}  (From adi bu olacak; Reply-To support@vestrasales.com)\n";
-              echo "dil    : {$lcLang}\n";
-              [$subject, $body, $opts] = vestra_tpl_listing_colours($salutation, $prod, $pairs, $lcSellerName, $lcLang, trim($E('note')));
+              echo "dil    : {$lcLang} | fiyat: ".($lcPrices ? 'VAR' : 'yok')." | alicinin fiyat kapisi: {$lcGate}\n";
+              if ($lcPrices && $acc && !auth_prices_unlocked($acc)) {
+                echo "UYARI  : mektup fiyat yaziyor ama alicinin sayfasi fiyati GOSTERMIYOR.\n";
+              }
+              [$subject, $body, $opts] = vestra_tpl_listing_colours($salutation, $lcBlocks, $lcSellerName, $lcLang, trim($E('note')), $lcPrices, $lcMore);
               $fromName = $lcSellerName;
             } elseif ($letter === 'vat_doc_fr') {
               /* Varsayilan hitap 'Bonjour': hesaptaki ad ile e-postadaki ad
@@ -2627,6 +2829,23 @@ jobs:
             echo "govde  : ".mb_strlen($body)." karakter\n";
 
             echo "imza   : {$fromName}\n";
+            /* copy=true: mektup MUSTERIYE GITMEZ, birebir aynisi operatorun
+               kutusuna gider -- KURAL 18'in inceleme adimi. Kutuge govde basmak
+               secenek degildi: hitap musterinin adini tasiyor ve bu kutuk herkese
+               acik. payment_due'nun copy_only'siyle ayni ilke: onek yok, aciklama
+               satiri yok, ekler dahil; musterinin gorecegi ne ise o.
+               PAYLASILAN blokta duruyor, tek bir dalin icinde degil: her
+               reply_letter'in onizlenecek bir yeri olmali ve ikinci bir kopya
+               yazmak bu depoda defalarca ayrisma uretti.
+               send=true ile birlikte verilirse KOPYA kazanir -- guvenli yon bu:
+               yanlislikla iki bayrak birden verildiginde musteriye GITMEZ. */
+            if (strtolower($E('copy')) === 'true') {
+              $cpTo = (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
+              $cpOk = vestra_send_mail($cpTo, $subject, $body, 'support@vestrasales.com', $fromName, null, '', $opts);
+              echo $cpOk ? "\nKOPYA operator kutusuna gonderildi -- MUSTERIYE GITMEDI\n"
+                         : "\nKOPYA gonderilemedi\n";
+              exit($cpOk ? 0 : 1);
+            }
             if (strtolower($E('send')) !== 'true') { echo "\nsend=false — GONDERILMEDI\n"; exit(0); }
             $ok = vestra_send_mail($to, $subject, $body, 'support@vestrasales.com', $fromName, null, '', $opts);
             /* Kupon damgasi (account_open_l1212) bu bayragi okur: gonderim

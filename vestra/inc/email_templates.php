@@ -1329,108 +1329,301 @@ function vestra_tpl_escrow_info(string $salutation, float $cap, float $feeRate, 
 }
 
 /**
- * "Here is a photo of every colour we offer" — the answer to a buyer who found
- * colours on a listing that had no picture behind them (BRITISHSTYLE on the
- * Fred Perry M3600, 10 Sep 2026: "leider haben Sie nicht von allen angebotenen
- * Farben ein Foto hier").
+ * The illustrated assortment sheet — a photo of every colour we offer, and, when
+ * the operator asks for it, the price ladder next to it.
+ *
+ * It answers two messages from the same buyer (BRITISHSTYLE on the Fred Perry
+ * listings, 10–11 Sep 2026): "leider haben Sie nicht von allen angebotenen Farben
+ * ein Foto hier", then "bitte senden Sie und das bebilderte Sortimentsblatt".
+ * One letter, because the second request is the first one plus prices; two
+ * letters would have been two wordings of the same fact, and this repo has paid
+ * for that several times over.
  *
  * The letter goes out under the LISTING'S SELLER, not a VESTRA persona: the
  * operator asked for this one to come from the shop. That is a deliberate
  * exception to KURAL 8, which hides the seller behind an ident inside platform
  * messaging — this is an e-mail the operator chose to send in the seller's name.
  *
- * $pairs is [['colour'=>'Black','img'=>'https://…/m3600-black.jpg'], …] and the
- * CALLER builds it by matching the listing's own colours against the listing's
- * own images. Nothing here invents a pairing: a letter whose whole subject is
- * "every colour has a photo now" cannot be the place where a colour gets
- * attached to the wrong picture.
+ * $blocks is one entry per listing:
+ *   ['p' => <listing>, 'pairs' => [['colour'=>'Black','img'=>'https://…'], …],
+ *    'rungs' => [['min'=>56,'price'=>70.20], …]]
  *
- * No price. The buyer's trade prices sit behind the account gate; putting a
- * number in an e-mail that the page may not show him is the same class of
- * mistake as quoting a figure the cart does not honour (KURAL 6).
+ * The CALLER builds all three. `pairs` comes from matching the listing's own
+ * colours against the listing's own images — a letter whose whole subject is
+ * "every colour has a photo" cannot be the place where a colour is attached to
+ * the wrong picture. `rungs` comes from the cart's own vestra_unit_price(), so a
+ * quoted rung is by construction the figure the checkout charges; this file
+ * formats numbers and never derives them (KURAL 6: the page, the letter and the
+ * cart must not be able to disagree).
+ *
+ * No tax claim. Prices on VESTRA are gross (KURAL 5m), but whether VAT is
+ * actually charged on an invoice is a per-invoice decision and, for an intra-EU
+ * trade buyer, usually a reverse charge — so the letter says "per piece, plus
+ * shipping", which is true in every one of those cases, and nothing more.
  *
  * $note is printed verbatim as its own paragraph, or not at all when empty. It
  * exists because the one thing this particular buyer needs to hear — that Fred
- * Perry runs one body colour with several tippings — is true of this listing and
- * not of listings in general. A sentence like that belongs to whoever can vouch
- * for it, so the template does not carry one of its own.
+ * Perry runs one body colour with several tippings — is true of these listings
+ * and not of listings in general. A sentence like that belongs to whoever can
+ * vouch for it, so the template does not carry one of its own.
  */
-function vestra_tpl_listing_colours(string $salutation, array $p, array $pairs, string $sellerName, string $lang = 'en', string $note = ''): array {
-    $name  = trim((string)($p['name'] ?? ''));
-    $url   = 'https://vestrasales.com/product?id=' . rawurlencode((string)($p['id'] ?? ''));
-    $n     = count($pairs);
-    $cols  = implode(', ', array_map(fn($x) => (string)$x['colour'], $pairs));
+function vestra_tpl_listing_colours(string $salutation, array $blocks, string $sellerName, string $lang = 'en', string $note = '', bool $withPrices = false, string $moreUrl = ''): array {
+    $de = ($lang === 'de');
+    /* EUR printed as EUR. vestra_money() would convert into the *visitor's*
+       display currency and there is no visitor here — that mistake is already on
+       the record once (KURAL 17, the dropship plan fee). */
+    $eur = fn(float $v): string => $de
+        ? number_format($v, 2, ',', '.') . ' €'
+        : 'EUR ' . number_format($v, 2, '.', ',');
 
-    /* Minimum line: read from the listing, never typed. moq/min_colors/size_step
-       are the three numbers the cart actually enforces, and a letter that
-       disagrees with the cart sends the buyer to a checkout that refuses him. */
-    $moq  = (int)($p['moq'] ?? 0);
-    $minC = (int)($p['min_colors'] ?? 0);
-    $step = (int)($p['size_step'] ?? 0);
-    $minEn = $minCommon = '';
-    if ($moq > 0) {
-        $minEn = $moq . ' pieces';
-        if ($minC > 1)  $minEn .= ', from ' . $minC . ' colours';
-        if ($step > 1)  $minEn .= ', in cartons of ' . $step;
-        $minCommon = $moq . ' Stück';
-        if ($minC > 1)  $minCommon .= ', ab ' . $minC . ' Farben';
-        if ($step > 1)  $minCommon .= ', in Kartons zu ' . $step;
+    $nCol = 0; $shots = []; $rows = []; $chunks = []; $firstUrl = '';
+    foreach ($blocks as $b) {
+        $p     = (array)($b['p'] ?? []);
+        $pairs = (array)($b['pairs'] ?? []);
+        $rungs = (array)($b['rungs'] ?? []);
+        $name  = trim((string)($p['name'] ?? ''));
+        $url   = 'https://vestrasales.com/product?id=' . rawurlencode((string)($p['id'] ?? ''));
+        if ($firstUrl === '') $firstUrl = $url;
+        $cols  = implode(', ', array_map(fn($x) => (string)$x['colour'], $pairs));
+        $nCol += count($pairs);
+
+        /* Minimum line: read from the listing, never typed. moq/min_colors/size_step
+           are the three numbers the cart actually enforces, and a letter that
+           disagrees with the cart sends the buyer to a checkout that refuses him. */
+        $moq  = (int)($p['moq'] ?? 0);
+        $minC = (int)($p['min_colors'] ?? 0);
+        $step = (int)($p['size_step'] ?? 0);
+        $min  = '';
+        if ($moq > 0) {
+            $min = $moq . ($de ? ' Stück' : ' pieces');
+            if ($minC > 1) $min .= ($de ? ', ab ' . $minC . ' Farben' : ', from ' . $minC . ' colours');
+            if ($step > 1) $min .= ($de ? ', in Kartons zu ' . $step : ', in cartons of ' . $step);
+        }
+
+        $priceLine = '';
+        if ($withPrices && $rungs) {
+            $parts = [];
+            foreach ($rungs as $r) {
+                $parts[] = ($de ? 'ab ' : 'from ') . (int)$r['min']
+                         . ($de ? ' Stück ' : ' pcs ') . $eur((float)$r['price']);
+            }
+            $priceLine = implode(' · ', $parts)
+                       . ($de ? '  (pro Stück, zzgl. Versand)' : '  (per piece, plus shipping)');
+        }
+
+        $chunk = $name . "\n" . $url . "\n"
+               . ($de ? 'Farben' : 'Colours') . ' (' . count($pairs) . '): ' . $cols . "\n"
+               . ($min !== '' ? ($de ? 'Mindestabnahme: ' : 'Minimum: ') . $min . "\n" : '')
+               . ($priceLine !== '' ? ($de ? 'Preis: ' : 'Price: ') . $priceLine . "\n" : '');
+        $chunks[] = $chunk;
+
+        /* The card rows repeat the same facts for the reader who only skims the
+           HTML. One row per listing, its colours as the value; with a single
+           listing this is the old one-line card unchanged. */
+        $rows[] = ['label' => $name, 'value' => $cols . ($min !== '' ? ' · ' . $min : ''), 'strong' => true];
+        if ($priceLine !== '') $rows[] = ['label' => $de ? 'Preis' : 'Price', 'value' => $priceLine];
+
+        /* Each shot is labelled with its colour. Most clients block remote images
+           by default, so the label has to carry the meaning on its own — the strip
+           stays readable as a list of colour names with nothing loaded. With more
+           than one listing the label also carries the model, because the same
+           colour name appears under both and an unlabelled "Black" would point at
+           either. The tag is the listing's OWN recorded reference, not a token
+           parsed out of its title. */
+        $tag = count($blocks) > 1 ? trim((string)($b['tag'] ?? '')) : '';
+        foreach ($pairs as $x) {
+            $shots[] = ['img'   => (string)$x['img'],
+                        'label' => ($tag !== '' ? $tag . ' · ' : '') . (string)$x['colour'],
+                        'url'   => $url];
+        }
     }
 
-    if ($lang === 'de') {
-        $subject = $name . ' — Fotos aller ' . $n . ' Farben';
+    $multi = count($blocks) > 1;
+    if ($de) {
+        $subject = ($multi ? $sellerName . ' — bebildertes Sortiment: ' : (trim((string)(($blocks[0]['p'] ?? [])['name'] ?? '')) . ' — '))
+                 . $nCol . ' Farben' . ($withPrices ? ' mit Preisen' : '');
         $body = $salutation . ",\n\n"
-          . "Sie haben geschrieben, dass nicht zu jeder angebotenen Farbe ein Foto vorhanden war. "
-          . "Das stimmte, und es ist behoben: jede der {$n} angebotenen Farben hat jetzt ihr eigenes "
-          . "Foto — auf der Produktseite und unten in dieser E-Mail.\n\n"
-          . $name . "\n" . $url . "\n\n"
-          . "Farben: " . $cols . "\n"
-          . ($minCommon !== '' ? "Mindestabnahme: " . $minCommon . "\n" : '')
-          . "\n"
+          . "gern — hier ist das bebilderte Sortimentsblatt. Sie hatten geschrieben, dass nicht zu "
+          . "jeder angebotenen Farbe ein Foto vorhanden war; das stimmte und ist behoben. Jede der "
+          . "{$nCol} angebotenen Farben hat jetzt ihr eigenes Foto: unten in dieser E-Mail und auf "
+          . "der jeweiligen Produktseite"
+          . ($withPrices ? ", die Staffelpreise stehen daneben" : "") . ".\n\n"
+          . implode("\n", $chunks) . "\n"
+          . ($moreUrl !== '' ? "Alle Modelle dieser Marke: " . $moreUrl . "\n\n" : '')
           . ($note !== '' ? $note . "\n\n" : '')
-          . "Brauchen Sie von einer Farbe eine weitere Ansicht, schreiben Sie mir kurz.\n\n"
+          . "Brauchen Sie von einer Farbe eine weitere Ansicht oder ein Angebot über eine bestimmte "
+          . "Zusammenstellung, schreiben Sie mir kurz.\n\n"
           . "Mit freundlichen Grüßen\n\n"
           . $sellerName . "\n"
           . "über VESTRA – vestrasales.com";
-        $rowsLabel = ['Farben', 'Mindestabnahme'];
-        $shotsTitle = 'Alle ' . $n . ' Farben';
-        $btn = 'Zur Produktseite';
-        $badge = 'Fotos ergänzt';
+        $shotsTitle = 'Alle ' . $nCol . ' Farben';
+        $btn   = $moreUrl !== '' ? 'Zum Sortiment' : 'Zur Produktseite';
+        $badge = $withPrices ? 'Sortiment & Preise' : 'Fotos ergänzt';
     } else {
-        $subject = $name . ' — photos of all ' . $n . ' colours';
+        $subject = ($multi ? $sellerName . ' — illustrated assortment: ' : (trim((string)(($blocks[0]['p'] ?? [])['name'] ?? '')) . ' — '))
+                 . $nCol . ' colours' . ($withPrices ? ' with prices' : '');
         $body = $salutation . ",\n\n"
-          . "You wrote that not every colour we offer had a photo behind it. You were right, and it "
-          . "is fixed: each of the {$n} colours now has its own picture — on the product page, and "
-          . "below in this e-mail.\n\n"
-          . $name . "\n" . $url . "\n\n"
-          . "Colours: " . $cols . "\n"
-          . ($minEn !== '' ? "Minimum: " . $minEn . "\n" : '')
-          . "\n"
+          . "Here is the illustrated assortment sheet. You wrote that not every colour we offer had a "
+          . "photo behind it — you were right, and it is fixed: each of the {$nCol} colours now has its "
+          . "own picture, below in this e-mail and on the product page"
+          . ($withPrices ? ", with the price ladder beside it" : "") . ".\n\n"
+          . implode("\n", $chunks) . "\n"
+          . ($moreUrl !== '' ? "All models from this house: " . $moreUrl . "\n\n" : '')
           . ($note !== '' ? $note . "\n\n" : '')
-          . "If you need another view of one of them, write back and I will send it.\n\n"
+          . "If you need another view of one of them, or a quotation for a particular make-up, write "
+          . "back and I will send it.\n\n"
           . "Kind regards,\n\n"
           . $sellerName . "\n"
           . "via VESTRA – vestrasales.com";
-        $rowsLabel = ['Colours', 'Minimum'];
-        $shotsTitle = 'All ' . $n . ' colours';
-        $btn = 'Open the product page';
-        $badge = 'Photos added';
+        $shotsTitle = 'All ' . $nCol . ' colours';
+        $btn   = $moreUrl !== '' ? 'Open the assortment' : 'Open the product page';
+        $badge = $withPrices ? 'Assortment & prices' : 'Photos added';
     }
-
-    $rows = [['label' => $rowsLabel[0], 'value' => $cols, 'strong' => true]];
-    if ($minEn !== '') $rows[] = ['label' => $rowsLabel[1], 'value' => $lang === 'de' ? $minCommon : $minEn];
 
     $opts = [
         'badge'       => $badge,
         'rows'        => $rows,
-        /* Each shot is labelled with its colour. Most clients block remote
-           images by default, so the label has to carry the meaning on its own —
-           the strip stays readable as six colour names even with nothing loaded. */
-        'shots'       => array_map(fn($x) => ['img' => (string)$x['img'], 'label' => (string)$x['colour'], 'url' => $url], $pairs),
+        'shots'       => $shots,
         'shots_title' => $shotsTitle,
-        'button'      => ['label' => $btn, 'url' => $url],
+        /* $moreUrl is a landing page the CALLER has resolved through
+           vestra_seo_resolve() — those pages exist only while stock backs them
+           (KURAL 9), so a URL typed here would 404 the day the last line sells
+           out. With nothing resolved the button falls back to the first listing. */
+        'button'      => ['label' => $btn, 'url' => $moreUrl !== '' ? $moreUrl : $firstUrl],
     ];
     return [$subject, $body, $opts];
+}
+
+/**
+ * "Here is our price list" — the whole wholesale catalogue as PDF + Excel, with a
+ * body that counts what is in it and quotes not a single line of it.
+ *
+ * Why it is not vestra_tpl_brand_catalog with an empty brand: that letter prints
+ * every model in the body, which is the right shape for one house and the wrong
+ * shape for eight hundred articles. The two share what actually should be shared
+ * — the attachments come from the site's OWN generators (wholesale-list.php /
+ * wholesale-xlsx.php), so the list a buyer downloads and the list we post are the
+ * same file, and neither can drift from the catalogue.
+ *
+ * Every figure in $facts is COUNTED by the caller from live listings: articles,
+ * brands, the section split, the brand names. Nothing here is typed, because a
+ * price list that overstates the range is the one claim a buyer checks first.
+ *
+ * It signs as VESTRA, not as a shop. A catalogue-wide list spans several sellers'
+ * goods; putting one seller's name on it would credit them with stock that is not
+ * theirs. The per-listing letters (vestra_tpl_listing_colours) go out in the
+ * shop's name precisely because they carry only that shop's listings.
+ *
+ * No price in the body and no total: the prices are per article and they are in
+ * the attachment. A headline figure here would be a second place where prices
+ * live, and this repository has paid for that more than once.
+ */
+function vestra_tpl_price_list(string $salutation, array $facts, array $formats, string $signer = '', string $lang = 'en'): array {
+    $de    = ($lang === 'de');
+    $arts  = (int)($facts['articles'] ?? 0);
+    $brnds = (int)($facts['brands'] ?? 0);
+    $scope = trim((string)($facts['scope'] ?? ''));          // '' = whole catalogue
+    /* Bir MARKANIN listesi "bizim listemiz" degildir (operator, 11 Eyl 2026:
+       *"anbei die Preisliste von F.Perrey nicht unsere — ben satici degilim"*).
+       VESTRA pazar yeri; mali satan taraf degil. Marka kapsamli bir listede
+       cumle markaya atfediliyor, katalogun tamaminda "bizim" dogru kaliyor --
+       o liste gercekten VESTRA'nin kendi katalogu. */
+    $bscope = trim((string)($facts['brand_scope'] ?? ''));
+    $secs  = (array)($facts['sections'] ?? []);              // ['Apparel' => 612, …]
+    $names = (array)($facts['brand_names'] ?? []);
+    $url   = trim((string)($facts['url'] ?? 'https://vestrasales.com/price-list'));
+
+    /* "PDF and Excel" is printed from what was ACTUALLY attached, never from the
+       request: a letter that names a file the buyer cannot find sends them
+       looking for it. Same rule as the brand catalogue letter. */
+    $fmt = array_values(array_filter(array_map(
+        fn($f) => ['pdf' => 'PDF', 'xlsx' => 'Excel'][strtolower((string)$f)] ?? '', $formats)));
+    $fmtTxt = $fmt
+        ? ($de ? implode(' und ', $fmt) : implode(' and ', $fmt))
+        : '';
+
+    /* Bolme satiri, cesidin NEREYE YAYILDIGINI gostermek icin var. Tek bolme
+       kaldiysa ve kapsam zaten konuda yaziliysa hicbir sey gostermiyor
+       ("Sortiment: Apparel 50" canli ilk kosuda tam boyle cikti) -- yazilmiyor. */
+    $secTxt = '';
+    if ($scope !== '' && count($secs) < 2) $secs = [];
+    if ($secs) {
+        $bits = [];
+        foreach ($secs as $label => $n) $bits[] = $label . ' ' . (int)$n;
+        $secTxt = implode(' · ', $bits);
+    }
+    /* Marka satiri, listenin KIMLERI kapsadigini gostermek icin var. Liste zaten
+       tek bir markaninsa acilis cumlesi ve konu satiri onu iki kez soyluyor
+       ("anbei die Preisliste von Fred Perry" … "Marken u. a.: Fred Perry") --
+       ucuncusu gereksiz. Bolme satiriyla ayni sebep. */
+    if ($bscope !== '' && count($names) < 2) $names = [];
+    $nameTxt = $names ? implode(', ', $names) : '';
+
+    if ($de) {
+        $subject = ($scope !== '' ? $scope . ' — Preisliste' : 'VESTRA — Großhandels-Preisliste')
+                 . ' (' . $arts . ' Artikel)';
+        $body = $salutation . ",\n\n"
+          . ($bscope !== ''
+              ? ($fmtTxt !== '' ? "anbei die Preisliste von " . $bscope . " als {$fmtTxt}"
+                                : "hier die Preisliste von " . $bscope)
+              : ($fmtTxt !== '' ? "anbei unsere Preisliste als {$fmtTxt}"
+                                : "hier unsere Preisliste"))
+          . ": " . $arts . " Artikel"
+          . ($scope === '' && $brnds > 1 ? " von " . $brnds . " Marken" : "")
+          . ", mit Staffelpreisen und Mindestabnahme je Artikel.\n\n"
+          . ($secTxt !== '' ? "Sortiment: " . $secTxt . "\n" : '')
+          . ($nameTxt !== '' ? "Marken u. a.: " . $nameTxt . "\n" : '')
+          . "\n"
+          . "Alle Preise verstehen sich pro Stück in EUR, zzgl. Versand. Die Mindestabnahme "
+          . "steht in der Liste bei jedem Artikel; wo es Staffeln gibt, sind sie mit aufgeführt.\n\n"
+          . "Dieselbe Liste ist in Ihrem Konto jederzeit tagesaktuell:\n" . $url . "\n\n"
+          . "Sagen Sie mir, welche Artikel Sie interessieren — dann rechne ich Ihnen eine "
+          . "konkrete Zusammenstellung mit Versand.\n\n"
+          . "Mit freundlichen Grüßen\n\n"
+          . ($signer !== '' ? $signer . "\n" : '')
+          . "VESTRA – vestrasales.com";
+        $btn   = 'Preisliste im Konto öffnen';
+        $badge = 'Preisliste';
+        $rows  = [['label' => 'Artikel', 'value' => (string)$arts, 'strong' => true]];
+        if ($scope === '' && $brnds > 1) $rows[] = ['label' => 'Marken', 'value' => (string)$brnds];
+        if ($secTxt !== '') $rows[] = ['label' => 'Sortiment', 'value' => $secTxt];
+        if ($fmtTxt !== '') $rows[] = ['label' => 'Anhang', 'value' => $fmtTxt];
+    } else {
+        $subject = ($scope !== '' ? $scope . ' — price list' : 'VESTRA — wholesale price list')
+                 . ' (' . $arts . ' articles)';
+        $body = $salutation . ",\n\n"
+          . ($bscope !== ''
+              ? ($fmtTxt !== '' ? "the " . $bscope . " price list is attached as {$fmtTxt}"
+                                : "here is the " . $bscope . " price list")
+              : ($fmtTxt !== '' ? "our price list is attached as {$fmtTxt}"
+                                : "here is our price list"))
+          . ": " . $arts . " articles"
+          . ($scope === '' && $brnds > 1 ? " from " . $brnds . " houses" : "")
+          . ", with tier prices and the minimum order quantity for each one.\n\n"
+          . ($secTxt !== '' ? "Range: " . $secTxt . "\n" : '')
+          . ($nameTxt !== '' ? "Houses include: " . $nameTxt . "\n" : '')
+          . "\n"
+          . "All prices are per piece in EUR, plus shipping. The minimum order quantity is "
+          . "shown against every article, and where there are tiers they are listed with it.\n\n"
+          . "The same list is always current in your account:\n" . $url . "\n\n"
+          . "Tell me which articles interest you and I will price a specific make-up for you, "
+          . "shipping included.\n\n"
+          . "Kind regards,\n\n"
+          . ($signer !== '' ? $signer . "\n" : '')
+          . "VESTRA – vestrasales.com";
+        $btn   = 'Open the price list in your account';
+        $badge = 'Price list';
+        $rows  = [['label' => 'Articles', 'value' => (string)$arts, 'strong' => true]];
+        if ($scope === '' && $brnds > 1) $rows[] = ['label' => 'Houses', 'value' => (string)$brnds];
+        if ($secTxt !== '') $rows[] = ['label' => 'Range', 'value' => $secTxt];
+        if ($fmtTxt !== '') $rows[] = ['label' => 'Attached', 'value' => $fmtTxt];
+    }
+
+    return [$subject, $body, [
+        'badge'  => $badge,
+        'rows'   => $rows,
+        'button' => ['label' => $btn, 'url' => $url],
+    ]];
 }
 
 /**
