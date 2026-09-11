@@ -1495,6 +1495,119 @@ function vestra_tpl_listing_colours(string $salutation, array $blocks, string $s
 }
 
 /**
+ * "Here is our price list" — the whole wholesale catalogue as PDF + Excel, with a
+ * body that counts what is in it and quotes not a single line of it.
+ *
+ * Why it is not vestra_tpl_brand_catalog with an empty brand: that letter prints
+ * every model in the body, which is the right shape for one house and the wrong
+ * shape for eight hundred articles. The two share what actually should be shared
+ * — the attachments come from the site's OWN generators (wholesale-list.php /
+ * wholesale-xlsx.php), so the list a buyer downloads and the list we post are the
+ * same file, and neither can drift from the catalogue.
+ *
+ * Every figure in $facts is COUNTED by the caller from live listings: articles,
+ * brands, the section split, the brand names. Nothing here is typed, because a
+ * price list that overstates the range is the one claim a buyer checks first.
+ *
+ * It signs as VESTRA, not as a shop. A catalogue-wide list spans several sellers'
+ * goods; putting one seller's name on it would credit them with stock that is not
+ * theirs. The per-listing letters (vestra_tpl_listing_colours) go out in the
+ * shop's name precisely because they carry only that shop's listings.
+ *
+ * No price in the body and no total: the prices are per article and they are in
+ * the attachment. A headline figure here would be a second place where prices
+ * live, and this repository has paid for that more than once.
+ */
+function vestra_tpl_price_list(string $salutation, array $facts, array $formats, string $signer = '', string $lang = 'en'): array {
+    $de    = ($lang === 'de');
+    $arts  = (int)($facts['articles'] ?? 0);
+    $brnds = (int)($facts['brands'] ?? 0);
+    $scope = trim((string)($facts['scope'] ?? ''));          // '' = whole catalogue
+    $secs  = (array)($facts['sections'] ?? []);              // ['Apparel' => 612, …]
+    $names = (array)($facts['brand_names'] ?? []);
+    $url   = trim((string)($facts['url'] ?? 'https://vestrasales.com/price-list'));
+
+    /* "PDF and Excel" is printed from what was ACTUALLY attached, never from the
+       request: a letter that names a file the buyer cannot find sends them
+       looking for it. Same rule as the brand catalogue letter. */
+    $fmt = array_values(array_filter(array_map(
+        fn($f) => ['pdf' => 'PDF', 'xlsx' => 'Excel'][strtolower((string)$f)] ?? '', $formats)));
+    $fmtTxt = $fmt
+        ? ($de ? implode(' und ', $fmt) : implode(' and ', $fmt))
+        : '';
+
+    $secTxt = '';
+    if ($secs) {
+        $bits = [];
+        foreach ($secs as $label => $n) $bits[] = $label . ' ' . (int)$n;
+        $secTxt = implode(' · ', $bits);
+    }
+    $nameTxt = $names ? implode(', ', $names) : '';
+
+    if ($de) {
+        $subject = ($scope !== '' ? $scope . ' — Preisliste' : 'VESTRA — Großhandels-Preisliste')
+                 . ' (' . $arts . ' Artikel)';
+        $body = $salutation . ",\n\n"
+          . ($fmtTxt !== ''
+              ? "anbei unsere Preisliste als {$fmtTxt}"
+              : "hier unsere Preisliste")
+          . ": " . $arts . " Artikel"
+          . ($scope === '' && $brnds > 1 ? " von " . $brnds . " Marken" : "")
+          . ", mit Staffelpreisen und Mindestabnahme je Artikel.\n\n"
+          . ($secTxt !== '' ? "Sortiment: " . $secTxt . "\n" : '')
+          . ($nameTxt !== '' ? "Marken u. a.: " . $nameTxt . "\n" : '')
+          . "\n"
+          . "Alle Preise verstehen sich pro Stück in EUR, zzgl. Versand. Die Mindestabnahme "
+          . "steht in der Liste bei jedem Artikel; wo es Staffeln gibt, sind sie mit aufgeführt.\n\n"
+          . "Dieselbe Liste ist in Ihrem Konto jederzeit tagesaktuell:\n" . $url . "\n\n"
+          . "Sagen Sie mir, welche Artikel Sie interessieren — dann rechne ich Ihnen eine "
+          . "konkrete Zusammenstellung mit Versand.\n\n"
+          . "Mit freundlichen Grüßen\n\n"
+          . ($signer !== '' ? $signer . "\n" : '')
+          . "VESTRA – vestrasales.com";
+        $btn   = 'Preisliste im Konto öffnen';
+        $badge = 'Preisliste';
+        $rows  = [['label' => 'Artikel', 'value' => (string)$arts, 'strong' => true]];
+        if ($scope === '' && $brnds > 1) $rows[] = ['label' => 'Marken', 'value' => (string)$brnds];
+        if ($secTxt !== '') $rows[] = ['label' => 'Sortiment', 'value' => $secTxt];
+        if ($fmtTxt !== '') $rows[] = ['label' => 'Anhang', 'value' => $fmtTxt];
+    } else {
+        $subject = ($scope !== '' ? $scope . ' — price list' : 'VESTRA — wholesale price list')
+                 . ' (' . $arts . ' articles)';
+        $body = $salutation . ",\n\n"
+          . ($fmtTxt !== ''
+              ? "our price list is attached as {$fmtTxt}"
+              : "here is our price list")
+          . ": " . $arts . " articles"
+          . ($scope === '' && $brnds > 1 ? " from " . $brnds . " houses" : "")
+          . ", with tier prices and the minimum order quantity for each one.\n\n"
+          . ($secTxt !== '' ? "Range: " . $secTxt . "\n" : '')
+          . ($nameTxt !== '' ? "Houses include: " . $nameTxt . "\n" : '')
+          . "\n"
+          . "All prices are per piece in EUR, plus shipping. The minimum order quantity is "
+          . "shown against every article, and where there are tiers they are listed with it.\n\n"
+          . "The same list is always current in your account:\n" . $url . "\n\n"
+          . "Tell me which articles interest you and I will price a specific make-up for you, "
+          . "shipping included.\n\n"
+          . "Kind regards,\n\n"
+          . ($signer !== '' ? $signer . "\n" : '')
+          . "VESTRA – vestrasales.com";
+        $btn   = 'Open the price list in your account';
+        $badge = 'Price list';
+        $rows  = [['label' => 'Articles', 'value' => (string)$arts, 'strong' => true]];
+        if ($scope === '' && $brnds > 1) $rows[] = ['label' => 'Houses', 'value' => (string)$brnds];
+        if ($secTxt !== '') $rows[] = ['label' => 'Range', 'value' => $secTxt];
+        if ($fmtTxt !== '') $rows[] = ['label' => 'Attached', 'value' => $fmtTxt];
+    }
+
+    return [$subject, $body, [
+        'badge'  => $badge,
+        'rows'   => $rows,
+        'button' => ['label' => $btn, 'url' => $url],
+    ]];
+}
+
+/**
  * "Your order has shipped" — ONE wording for both places that can mark an order
  * shipped: the seller panel (seller.php) and the admin panel (admin.php). Until
  * 2 Sep 2026 only the seller panel mailed the buyer; the admin path saved the

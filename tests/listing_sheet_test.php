@@ -157,6 +157,84 @@ ok(!preg_match('/listing_colours[\s\S]{0,9000}?\$ladder\s*=\s*\[\[/', $wf),
 ok(str_contains($wf, "\$lcPrices = in_array(strtolower(trim(\$E('prices'))), ['on', 'true', '1', 'evet'], true);"),
    'fiyat girdisi ACIKCA istenmeli (varsayilan OFF)');
 
+/* ── 8) FIYAT LISTESI mektubu ────────────────────────────────────────────
+   Kardes mektup: ayni alicinin "listenizi gonderin" istegine cevap. Iki yonu
+   birden tutuluyor, cunku bu mektubun tek isi BIR KAPSAM IDDIASI:
+     1) Rakamlar govdede DOGRU yaziliyor (kalem/marka/bolme, canli sayimdan).
+     2) TEK BIR FIYAT govdeye girmiyor -- fiyatlar ekte ve ikinci bir yerde
+        durmamali (bu depoda "ayni olgu iki yerde" defalarca kayitli). */
+$facts = [
+    'articles' => 827, 'brands' => 34,
+    'sections' => ['Apparel' => 612, 'Footwear' => 335, 'Underwear' => 146],
+    'brand_names' => ['Calzados Pili Pérez', 'Visatin', 'BALMAIN', 'Burberry', 'NBB', 'Q-EN'],
+    'url' => 'https://vestrasales.com/price-list',
+];
+[$ps, $pb, $po] = vestra_tpl_price_list('Guten Tag', $facts, ['pdf', 'xlsx'], 'Marco Bellini', 'de');
+ok(str_contains($pb, '827 Artikel'), 'kalem sayisi govdede');
+ok(str_contains($pb, '34 Marken'), 'marka sayisi govdede');
+ok(str_contains($pb, 'Apparel 612') && str_contains($pb, 'Underwear 146'), 'bolme dagilimi govdede');
+ok(str_contains($pb, 'PDF und Excel'), 'ekin bicimi yaziyor');
+ok(str_contains($ps, '827 articles') || str_contains($ps, '(827 Artikel)'), 'konu kalem sayisini tasiyor');
+/* Fiyat govdeye GIRMIYOR: ne rakam, ne para birimi isareti. "EUR" kelimesi
+   "pro Stück in EUR" cumlesinde gecebilir -- yasak olan RAKAM. */
+ok(!preg_match('/\d+[.,]\d{2}\s*(€|EUR)|(€|EUR)\s*\d+[.,]\d{2}/u', $pb),
+   'govdede TEK BIR FIYAT yok -- fiyatlar ekte, ikinci bir yerde durmuyor');
+ok(str_contains($pb, 'zzgl. Versand'), 'kargo haric oldugu yine yaziyor');
+ok(!preg_match('/\b(netto|inkl\.?\s*MwSt)/i', $pb), 'vergi iddiasi yok');
+/* Imza VESTRA: katalog listesi birden fazla saticinin malini tasiyor. */
+ok(str_contains($pb, 'VESTRA – vestrasales.com'), 'VESTRA adina imzalaniyor');
+ok(!str_contains($pb, 'GARAGE LE PARIS') && !str_contains($pb, 'TYREX'),
+   'tek bir dukkanin adi katalog listesine KONMUYOR');
+ok(str_contains($pb, 'Marco Bellini'), 'persona imzasi basiliyor');
+/* Ekin bicimi ISTEKTEN degil, GERCEKTEN eklenenden yaziliyor: olmayan bir
+   dosyayi adiyla anan mektup, musteriyi onu aramaya yollar. */
+[, $pb2, ] = vestra_tpl_price_list('Dear Sir', $facts, ['xlsx'], '', 'en');
+ok(str_contains($pb2, 'attached as Excel') && !str_contains($pb2, 'PDF'),
+   'yalniz Excel eklendiyse mektup PDF demiyor');
+[, $pb3, $po3] = vestra_tpl_price_list('Dear Sir', $facts, [], '', 'en');
+ok(!str_contains($pb3, 'attached'), 'hic ek yoksa "ekte" denmiyor');
+ok(!array_filter($po3['rows'], fn($r) => ($r['label'] ?? '') === 'Attached'),
+   'ek satiri da yok');
+/* Daraltilmis kapsam: marka sayisi anlamsizlasir, yazilmaz. */
+$narrow = ['articles' => 2, 'brands' => 1, 'scope' => 'Fred Perry',
+           'sections' => ['Apparel' => 2], 'brand_names' => ['Fred Perry'],
+           'url' => 'https://vestrasales.com/price-list?brand=Fred%20Perry'];
+[$ns, $nb, ] = vestra_tpl_price_list('Dear Sir', $narrow, ['pdf'], '', 'en');
+ok(str_contains($ns, 'Fred Perry — price list'), 'daraltilmis kapsam konuda');
+ok(!str_contains($nb, 'houses'), 'tek markada "kac marka" cumlesi yazilmiyor');
+ok(str_contains($nb, 'brand=Fred%20Perry'), 'hesaptaki liste adresi de daraltilmis');
+
+/* ── 9) Kablolama: inceleme yolu PAYLASILAN blokta ───────────────────────── */
+ok(str_contains($wf, "if (strtolower(\$E('copy')) === 'true') {"),
+   'copy=true inceleme yolu var');
+/* Tek bir dalin icinde degil, PAYLASILAN gonderim blogunda: her mektubun
+   onizlenecek bir yeri olmali. Olcut: gonderim kapisindan ONCE geliyor. */
+/* OLCUM TUZAGINA DUSTUM, kayda geciyor: ilk yazimda `strpos` ile arayip
+   "kopya, gonderim kapisindan once mi" diye sordum. Dosyada ALTI ayri
+   `send=false` kapisi var (her isin kendi yolu) ve strpos ILKINI buluyor --
+   yani iddia dogru calisan bir kodda KIRMIZI dondu. Bu deponun alti kez
+   kaydettigi "kontrol yanlis yere bakiyor"un aynisi. Olcut artik PAYLASILAN
+   gonderim: `$ok = vestra_send_mail($to, ...)` tek satir ve kopya ondan once
+   gelmek zorunda. */
+$posCopy = strpos($wf, "if (strtolower(\$E('copy')) === 'true') {");
+/* Ikinci deneme de yanlis yere bakti: bu dosyada ALTI is var ve `$ok =
+   vestra_send_mail($to, $subject, $body,` kalibi baska bir isin kendi
+   gonderiminde de geciyor -- yani yine ilk esleşme olculdu. Ayirt eden sey
+   gonderen adi: paylasilan blok $fromName gecirir (digeri sabit 'VESTRA'). */
+$sharedSend = '$ok = vestra_send_mail($to, $subject, $body, '
+            . "'support@vestrasales.com', \$fromName,";
+$posSend = strpos($wf, $sharedSend);
+ok(substr_count($wf, $sharedSend) === 1,
+   'paylasilan gonderim TEK satir (kopyanin atlayabilecegi ikinci yol yok)');
+ok($posCopy !== false && $posSend !== false && $posCopy < $posSend,
+   'kopya kontrolu PAYLASILAN gonderimden ONCE -- send=true olmadan da onizlenebiliyor');
+ok(substr_count($wf, "\$E('copy')") === 1,
+   'inceleme yolu TEK yerde (dal basina ikinci kopya yok)');
+ok(str_contains($wf, 'vestra_tpl_price_list($salutation, $plFacts, $plDone, $signer, $plLang)'),
+   'price_list dali sablonu cagiriyor');
+ok(str_contains($wf, "\$plFacts['articles']") || str_contains($wf, "'articles'    => count(\$plRows)"),
+   'kalem sayisi CANLI kayittan sayiliyor, girdiden degil');
+
 echo $fail
     ? "\nlisting_sheet_test: {$fail}/{$n} KALDI\n"
     : "listing_sheet_test: {$n} iddia gecti\n";
