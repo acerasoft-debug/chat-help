@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -930,6 +930,85 @@ jobs:
             php -l /tmp/vestra_seller_apply.php
             php /tmp/vestra_seller_apply.php
             rm -f /tmp/vestra_seller_apply.php
+
+      - name: Mesaj / engellenen kayıt sil
+        if: ${{ github.event.inputs.admin_mode == 'msg_del' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          MD_SEL: ${{ github.event.inputs.move_threads }}
+          MD_GO:  ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: MD_SEL,MD_GO
+          script: |
+            set -e
+            cat > /tmp/vestra_msgdel.php <<'PHPEOF'
+            <?php
+            /* Panelin 🗑 dugmesiyle AYNI fonksiyonlari cagirir (KURAL 23) --
+               ikinci bir silme yolu yazmak, iki yolun ayrisip birinin yedek
+               almamasi demekti (KURAL 5f'nin iki kesim yolu dersi).
+
+               ICERIK BASILMAZ. Engellenen metin tam da e-posta/telefon/IBAN
+               tasidigi icin engellenmis; Actions gunlugu herkese acik. Satiri
+               tanimaya tarih + tur + taraflar yetiyor, metnin kendisi degil. */
+            $home = getenv("HOME");
+            require $home."/public_html/inc/products.php";
+            require $home."/public_html/inc/messages.php";
+            $sel = trim((string)getenv("MD_SEL"));
+            $go  = strtolower(trim((string)getenv("MD_GO"))) === 'true';
+            if ($sel === '') { fwrite(STDERR, "HATA: move_threads bos -- 'blocked:<tarih>' ya da 'msg:<thread>:<tarih>'\n"); exit(1); }
+            echo "kip: ".($go ? "UYGULA (siler)" : "KURU KOSU (silmez)")."\n\n";
+            $done = 0; $miss = 0;
+            foreach (array_filter(array_map('trim', explode(',', $sel))) as $one) {
+              if (str_starts_with($one, 'blocked:')) {
+                $pref = substr($one, 8);
+                $hits = [];
+                foreach (vestra_msg_blocked_log() as $e) {
+                  if (is_array($e) && str_starts_with((string)($e['at'] ?? ''), $pref)) $hits[] = $e;
+                }
+                if (!$hits) { echo "  YOK: blocked {$pref}\n"; $miss++; continue; }
+                foreach ($hits as $e) {
+                  $k = vestra_msg_blocked_key($e);
+                  echo "  ".substr((string)$e['at'],0,16)." | ".strtoupper((string)($e['flag']??''))
+                     . " | ".substr((string)($e['buyer_uid']??''),0,6)."..↔".substr((string)($e['seller_uid']??''),0,6).".."
+                     . " | metin ".mb_strlen((string)($e['text']??''))." karakter | anahtar {$k}";
+                  if (!$go) { echo "  (kuru kosu)\n"; continue; }
+                  $r = vestra_msg_blocked_delete($k);
+                  echo !empty($r['ok']) ? "  -> SILINDI (yedek alindi)\n" : "  -> OLMADI: ".($r['error']??'?')."\n";
+                  if (!empty($r['ok'])) $done++;
+                }
+              } elseif (str_starts_with($one, 'msg:')) {
+                [$_, $tid, $pref] = array_pad(explode(':', $one, 3), 3, '');
+                $found = false;
+                foreach (vestra_msg_threads() as $t) {
+                  if (($t['id'] ?? '') !== $tid) continue;
+                  foreach ((array)($t['messages'] ?? []) as $m) {
+                    if (!is_array($m) || !str_starts_with((string)($m['at'] ?? ''), $pref)) continue;
+                    $found = true; $k = vestra_msg_key($m);
+                    echo "  ".substr((string)$m['at'],0,16)." | thread ".substr($tid,0,10)
+                       . ".. | metin ".mb_strlen((string)($m['text']??''))." karakter | anahtar {$k}";
+                    if (!$go) { echo "  (kuru kosu)\n"; continue; }
+                    $r = vestra_msg_delete($tid, $k);
+                    echo !empty($r['ok']) ? "  -> SILINDI".(!empty($r['thread_gone'])?" (konusma da kapandi)":"")."\n"
+                                          : "  -> OLMADI: ".($r['error']??'?')."\n";
+                    if (!empty($r['ok'])) $done++;
+                  }
+                }
+                if (!$found) { echo "  YOK: {$one}\n"; $miss++; }
+              } else { echo "  ATLANDI (bicim): {$one}\n"; $miss++; }
+            }
+            echo "\nsilinen: {$done} | bulunamayan secici: {$miss}\n";
+            echo "kalan engellenen kayit: ".count(vestra_msg_blocked_log())."\n";
+            if (!$go) echo "KURU KOSU -- hicbir sey silinmedi. move_apply=true ile uygulayin.\n";
+            PHPEOF
+            php -l /tmp/vestra_msgdel.php
+            php /tmp/vestra_msgdel.php; RC=$?
+            rm -f /tmp/vestra_msgdel.php
+            exit $RC
 
       - name: Konuşmanın satıcısını taşı
         if: ${{ github.event.inputs.admin_mode == 'thread_seller' }}
