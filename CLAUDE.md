@@ -3389,6 +3389,20 @@ brandslerden.."* + *"250 ad."*).
   oku-değiştir-yaz olduğu için bu, `add-and-send`'in paralel koşu uyarısının
   fiyat hâli: iki oturum aynı dosyaya yazarsa biri diğerini ezer.
 
+**11 Eyl 2026 — DÜZELTME SONRASI SON DURUM: zam yalnız iç çamaşırında.**
+Operatör: *"underwear i 20 zamla, digerlerini zaten cekmis olmamiz lazim"*.
+- `set-prices` → `section=underwear`, `markup_pct=20` (run `34602265462`):
+  **146 ilan, 292 alan**, atlanan 0. Geri yükleme damgaları temizlediği için
+  24 saatlik "aynı yüzde" koruması engel olmadı — damgayı silmek tam bu yüzden
+  geri almanın parçası.
+- Geri okuma (`bak_diff` → dün 20:47 yedeği, run `34602407653`):
+  **fiyatı değişen toplam 146**, hepsi `underwear`, oran ×1,20; damga
+  `underwear %20 → 146`. **footwear ve premium'da sıfır fark** — yani
+  ayakkabı ve markalı giysi dün geceki fiyatlarında.
+- Net sonuç: iç çamaşırı **alış × 1,8** (maliyet ×1,5 katalog fiyatı üzerine
+  %20), diğer iki bölme dokunulmamış. *Aynı hedefe iki günde iki kez varıldı;
+  farkı yaratan, ikinci seferde bölme süzgecinin verilmiş olması.*
+
 **KURAL 22 — Toplu ZAM ayrı bir araçtır ve TEKRARLANAMAZ** (operatör, 10 Eyl
 2026: *"underwear ürünlerine yüzde 20 zam yap bütün ürünlere"*).
 - `set-prices.yml` yalnızca **indirim** biliyordu (`discount_pct`). Zam onun
