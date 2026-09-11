@@ -3434,6 +3434,21 @@ brandslerden.."* + *"250 ad."*).
   €39,90 → **€71,82** — hepsi tam ×1,8. *Kâr oranı bilinen bir katalogda fiyat
   basmak maliyeti ele verir; doğrulama marjı kayıtlı OLMAYAN bir markadan
   yapılır ve `show_prices` kapalı bırakılır.*
+- **11 Eyl 2026 11:21 ÖLÇÜMÜ: %80 CANLI KAYITTA YOK — bu notun ×3,24 talimatı
+  KULLANILMAZ.** `inspect-products` → `brand=Fred Perry`: polo `list=39`,
+  kademeler **39 / 35,50 / 32**; sweatshirt `list=39,90`, kademe **39,90**. Yani
+  zam ÖNCESİ rakamlar. Aynı koşunun yedek karşılaştırması da *"yedek
+  listings.json.bak-20260910-204756'ya göre FIYATI DEGISEN ILAN: 0"* ve
+  *"zam damgası yok"* diyor — 827 ilanın hiçbirinde.
+  **Kaydın bir ara zamlı olduğu KESİN:** 10:37 ve 11:00'de üretilen iki
+  `listing_colours` mektubu fiyatı `vestra_price_ladder()` ile CANLI kayıttan
+  okuyor ve **70,20 / 63,90 / 57,60 · 71,82** bastı (kopyalar operatörün
+  kutusunda duruyor). Yani kayıt 11:00 ile 11:21 arasında eski fiyatlara döndü.
+  **Neyin döndürdüğü bilinmiyor ve UYDURULMUYOR** — operatör de aynı dakikalarda
+  *"eski fiyatlar ile göndereceğiz"* dedi, yani bilinçli bir geri alma olabilir.
+  Bir sonraki ithalat koşusundan ÖNCE oranı **ölç** (`inspect-products`,
+  `brand=<marka>`), bu satırdaki çarpanı varsayma: `price|224` ile koşmak,
+  zam kayıtta yokken fiyatı üçe katlardı.
 - **Bileşik etki, operatöre söylenerek seçildi:** underwear dün %20 almıştı,
   yani orada taban artık **2,16×**. İthalat tarafı için sonuç: maliyet ×1,5
   ×1,2 ×1,8 = **×3,24**, yani bir sonraki Kuloğlu koşusu `price|224` ile
