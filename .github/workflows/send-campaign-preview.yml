@@ -2255,13 +2255,15 @@ jobs:
                      . ($plCat !== '' ? " (cat=\"{$plCat}\")" : "") . "\n");
                 exit(1);
               }
-              $plBrandCount = []; $plSections = [];
+              $plBrandCount = []; $plSections = []; $plCats = [];
               foreach ($plRows as $p) {
                 $plBrandCount[trim((string)($p['brand'] ?? ''))] = ($plBrandCount[trim((string)($p['brand'] ?? ''))] ?? 0) + 1;
                 $plSec = vestra_section_label(vestra_product_section($p));
                 if ($plSec !== '') $plSections[$plSec] = ($plSections[$plSec] ?? 0) + 1;
+                $plC = trim((string)($p['cat'] ?? ''));
+                if ($plC !== '') $plCats[$plC] = ($plCats[$plC] ?? 0) + 1;
               }
-              arsort($plBrandCount); arsort($plSections);
+              arsort($plBrandCount); arsort($plSections); arsort($plCats);
               /* Marka adlari: en derin stoklu ILK ALTI. Hepsini yazmak govdeyi
                  yeniden listeye cevirirdi; liste zaten ekte. */
               $plNames = array_slice(array_keys($plBrandCount), 0, 6);
@@ -2310,7 +2312,15 @@ jobs:
               $plFacts = [
                 'articles'    => count($plRows),
                 'brands'      => count($plBrandCount),
-                'scope'       => trim($plBrand.($plBrand !== '' && $plCat !== '' ? ' ' : '').$plCat),
+                /* Kapsam adi SUZGEC TOKEN'INDAN degil, gercekten eslesen KATEGORI
+                   ADLARINDAN kuruluyor. `cat=Sweat` bir arama parcasi; musteriye
+                   giden konu satirinda "Sweat — Preisliste" diye cikiyordu (ilk
+                   canli kosuda goruldu). Kategori adi kayitta duran seydir ve
+                   alicinin sitede gordugu ad da o. Uc ve uzeri kategoride token'a
+                   dusuyor: bes kategori adini konuya dizmek daha kotu. */
+                'scope'       => trim($plBrand . ($plBrand !== '' && $plCat !== '' ? ' ' : '')
+                                 . ($plCat === '' ? '' : (count($plCats) > 0 && count($plCats) <= 2
+                                    ? implode(' & ', array_keys($plCats)) : $plCat))),
                 'sections'    => $plSections,
                 'brand_names' => $plNames,
                 /* Hesabi acik olan alici ayni listeyi sitede de goruyor (KURAL 19:
@@ -2323,6 +2333,7 @@ jobs:
                 $plWho = $acc ? trim((string)($acc['name'] ?? '')) : '';
                 $salutation = $plWho !== '' ? 'Guten Tag '.$plWho : 'Guten Tag';
               }
+              echo "kategori    : ".implode(' · ', array_map(fn($k, $v) => "{$k} {$v}", array_keys($plCats), $plCats))."\n";
               echo "kapsam      : ".($plFacts['scope'] !== '' ? $plFacts['scope'] : 'TUM KATALOG')
                  . " | ".$plFacts['articles']." kalem | ".$plFacts['brands']." marka\n";
               echo "bolme       : ".implode(' · ', array_map(fn($k, $v) => "{$k} {$v}", array_keys($plSections), $plSections))."\n";
