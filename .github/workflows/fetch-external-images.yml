@@ -107,24 +107,59 @@ jobs:
               [ -z "$SLUG" ] && SLUG="dropbox-$(date +%H%M%S)"
               DEST="$HOME/wt_incoming/$SLUG"
               mkdir -p "$DEST/files"
-              # dl=1 klasoru ZIP olarak verir. Var olan dl=0'i EZIYORUZ, yoksa
-              # Dropbox HTML onizleme sayfasi doner ve "indirdim" diye bir HTML
-              # kaydederdik (bu depoda .jpg diye kaydedilmis HTML hata sayfasi
-              # bir kez yasandi).
-              U=$(printf '%s' "$DBX_URL" | sed 's/[?&]dl=0//; s/&subfolder_nav_tracking=1//')
-              case "$U" in *\?*) U="$U&dl=1" ;; *) U="$U?dl=1" ;; esac
               echo "hedef: $DEST"
-              HTTP=$(curl -sS -L --max-time 600 -o "$DEST/folder.zip" -w '%{http_code}' \
+              # Dropbox'in 'scl/fo' (paylasim klasoru) linklerinde dl=1 TEK BASINA
+              # yetmiyor: alt klasor yolu adresin PATH'inde duruyorsa Dropbox web
+              # arayuzunun HTML'ini donduruyor (olculdu: http=200, 202 KB, ilk
+              # baytlar '<!DOCTYPE html>'). Calisan bicim, alt yolun ?subpath=
+              # parametresine tasindigi bicim. Birkac adayi SIRAYLA deneyip ilk
+              # gercek ZIP'te duruyoruz -- her tahmini ayri bir kosuya bolmek
+              # yerine, cunku her kosu bir tur gecikme demek.
+              BASE=$(printf '%s' "$DBX_URL" | sed 's/?.*//')
+              RLKEY=$(printf '%s' "$DBX_URL" | tr '?&' '\n\n' | sed -n 's/^rlkey=//p' | head -1)
+              # /scl/fo/<id>/<key> kokten SONRAKI her sey alt klasor yoludur.
+              ROOT=$(printf '%s' "$BASE" | sed -E 's#(https://[^/]+/scl/fo/[^/]+/[^/]+).*#\1#')
+              SUB=$(printf '%s' "$BASE" | sed -E 's#https://[^/]+/scl/fo/[^/]+/[^/]+##')
+              echo "kok: $ROOT"
+              echo "alt yol: ${SUB:-(yok)}"
+              # URL'ler LOGA MASKELI yaziliyor: rlkey bu klasoru acan anahtardir ve
+              # bu kutuk herkese acik. Operator linki girdiye kendi yazdi, ama biz
+              # ayrica cogaltmayalim.
+              try_zip() {
+                _u="$1"; _lbl="$2"
+                _h=$(curl -sS -L --max-time 540 -o "$DEST/folder.zip" -w '%{http_code}' \
                      -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36' \
-                     "$U" || echo 000)
-              SZ=$(wc -c < "$DEST/folder.zip" 2>/dev/null || echo 0)
-              echo "http=$HTTP  indirilen=$SZ bayt"
-              # SIHIRLI BAYT kontrolu: sunucu ZIP'e yanlis content-type verebiliyor,
-              # ve 200 donen bir HTML hata/giris sayfasi da "basarili" gorunur.
-              MAGIC=$(head -c 2 "$DEST/folder.zip" 2>/dev/null || true)
-              if [ "$HTTP" != "200" ] || [ "$MAGIC" != "PK" ]; then
-                echo "*** ZIP GELMEDI *** (ilk baytlar: $(head -c 16 "$DEST/folder.zip" | tr -d '\0' | head -c 16))"
-                echo "Muhtemel sebep: link tek DOSYAYA isaret ediyor, sifre/izin istiyor, ya da sunucu dropbox'a cikamiyor."
+                     "$_u" 2>/dev/null || echo 000)
+                _s=$(wc -c < "$DEST/folder.zip" 2>/dev/null || echo 0)
+                _m=$(head -c 2 "$DEST/folder.zip" 2>/dev/null || true)
+                printf 'dene [%s]: http=%s bayt=%s ilk2=%s\n' "$_lbl" "$_h" "$_s" "$_m"
+                [ "$_h" = "200" ] && [ "$_m" = "PK" ]
+              }
+              OK=0
+              if [ -n "$SUB" ] && [ -n "$RLKEY" ]; then
+                try_zip "${ROOT}?rlkey=${RLKEY}&subpath=${SUB}&dl=1" "kok+subpath" && OK=1
+              fi
+              if [ "$OK" = "0" ]; then
+                U=$(printf '%s' "$DBX_URL" | sed 's/[?&]dl=0//; s/&subfolder_nav_tracking=1//')
+                case "$U" in *\?*) U="$U&dl=1" ;; *) U="$U?dl=1" ;; esac
+                try_zip "$U" "verilen link + dl=1" && OK=1
+              fi
+              if [ "$OK" = "0" ] && [ -n "$RLKEY" ]; then
+                try_zip "${ROOT}?rlkey=${RLKEY}&dl=1" "kok (tum klasor)" && OK=1
+              fi
+              if [ "$OK" = "0" ]; then
+                echo "*** ZIP GELMEDI ***"
+                # Gelen sey HTML ise NE DEDIGINI oku: 'sifre gerekli', 'cok buyuk',
+                # 'erisim yok' hepsi ayri sorun ve hepsi ayri cozum. Tahmin etmek
+                # yerine sayfanin kendi cumlesini basiyoruz. Tam HTML BASILMIYOR
+                # (202 KB, ve kutuk herkese acik) -- yalnizca baslik ve isaretler.
+                echo "--- gelen sayfadan isaretler ---"
+                head -c 400000 "$DEST/folder.zip" 2>/dev/null \
+                  | tr '<' '\n' | sed -n 's/^title>//p' | head -3
+                for k in password "too large" "too big" "doesn.t exist" "deleted" \
+                         "sign in" "access" "restricted" "quota" "banned"; do
+                  if grep -qi -- "$k" "$DEST/folder.zip" 2>/dev/null; then echo "  ipucu: '$k' gecıyor"; fi
+                done
                 rm -f "$DEST/folder.zip"; exit 1
               fi
               rm -rf "$DEST/files"; mkdir -p "$DEST/files"
