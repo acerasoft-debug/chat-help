@@ -288,6 +288,39 @@ jobs:
             rm -f /tmp/vestra_orddraft.php
             exit $rc
 
+      - name: Lookbook PDF (yalnız marka + ad + foto)
+        # Operator, 12 Eyl 2026: "bunlari katalogtan bul ve fotolari ile birlikte
+        # pdf yap sadece isim marka ve foto".
+        # Bu adim BELGEYI OLCUYOR, teslim etmiyor: operator ayni belgeyi
+        # /lookbook.php?ids=... adresinden (admin oturumu) kendi aliyor. Buradaki
+        # is, linki vermeden ONCE dort urunun de gercekten cozuldugunu ve
+        # fotograflarin gercekten GOMULDUGUNU gormek -- bu depoda "dosya uretildi,
+        # boyut makul, imza dogru, ama icinde HIC fotograf yok" bir kez yasandi
+        # ve yillarca fark edilmedi.
+        # Yeni GIRDI yok: mevcut 'payload' alani kullaniliyor (dosyanin kendi
+        # girdi butcesi notu).
+        if: ${{ github.event.inputs.admin_mode == 'lookbook' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          LB_IDS: ${{ github.event.inputs.payload }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: LB_IDS
+          script: |
+            set -e
+            cd ~/public_html
+            # /tmp'e yaziliyor, public_html'e DEGIL: belgeyi bir adrese koymak onu
+            # linki bilen herkese acardi ve bunu kimse istemedi.
+            LOOKBOOK_OUT=/tmp/vestra-lookbook.pdf php lookbook.php ids="$LB_IDS"; RC=$?
+            # Cikis kodu ONCE yakalanip sonra donduruluyor: bu dosyada `php ...`
+            # ardindan gelen bir komut cikis kodunu bir kez ezmisti ve PHP OLUMCUL
+            # yazan bir kosu "success" gorunmustu.
+            rm -f /tmp/vestra-lookbook.pdf
+            exit $RC
       - name: Dropship ödeme anahtarı (aç / kapat)
         # Operator, 8 Eyl 2026: "Dropshippingi tekrar aci".
         # Ayni anahtar Admin ▸ Dropship'te de var; bu, ayni kaydin ikinci kapisi
