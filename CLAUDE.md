@@ -3838,6 +3838,66 @@ geldiyse oraya götürsün"*).
   açık stüdyo zemini + `contain` (`.sthumb.sphoto`), yani ürün **kırpılmıyor**.
   Fotoğrafsız karo eski koyu degradeyi koruyor — orada kırpılacak bir şey yok.
 
+**Lookbook PDF — yalnız MARKA + AD + FOTO** (operatör, 12 Eyl 2026: *"bunlari
+katalogtan bul ve fotolari ile birlikte pdf yap sadece isim marka ve foto"*).
+- `vestra/lookbook.php` → `/lookbook.php?ids=a,b,c`. Web tarafında **yalnız
+  admin**; CLI muaf (ölçüm ancak oradan yapılabiliyor).
+- **`wholesale-list.php`'nin bir KİPİ DEĞİL, ayrı dosya.** O belge bir *fiyat
+  listesi*: her satırda artikel no, beden serisi, MOQ, toptan fiyat, RRP, stok —
+  ve 46×74pt'lik bir küçük resim. Buradaki belgenin işi tam tersi: fotoğraf asıl
+  içerik. Aynı dosyaya "minimal" bayrağı koymak her satırı iki ayrı düzende
+  çizmek ve fiyat sütunlarını bir koşulla susturmak demekti. **Paylaşılan şey
+  paylaşılıyor** (PDF yazıcı, `vestra_pdf_thumb`, ilan kaydı); kopyalanan tek şey
+  düzen.
+- **Fiyat/MOQ/beden/stok/satıcı/SKU bilerek YOK:** operatörün cümlesi üç şey
+  sayıyor. Fiyatsız bir sayfa her alıcıya gösterilebilir, fiyatlı bir sayfa
+  gösterilemez (KURAL 2b/19).
+- **Eksik id sessizce düşmez:** dört ürün isteyip üç ürünlük bir PDF almak,
+  belgenin kendisinde görünmeyen bir kusur. CLI'da yazılıyor, web tarafında
+  hiçbir şey üretilmiyor.
+- **Ölçüm `/DCTDecode` SAYISI.** "Dosya üretildi, boyut makul, imza doğru" bu
+  depoda bir kez fotoğrafsız bir PDF'i yıllarca geçirdi (`wholesale-list.php`'nin
+  kendi yorumunda yazılı: mutlak yol verilince `vestra_pdf_thumb` **sessizce**
+  boş dönüyordu). Sonda: `seller-products.yml` → `admin_mode=lookbook`.
+- **CANLI SONUÇ (12 Eyl 2026):** 4 ürün, **eksik id 0**, 243.795 bayt, **gömülü
+  fotoğraf 4**. Çözülenler: `mb-cmaa018f20jer0011016` (Wings T-Shirt),
+  `mb-vs004` (Box Logo T-Shirt, Black), `dsq-101213` (Graphic T-Shirt
+  (Oversized)), `blc-662853tjw90` (Balenciaga Allover Logo Denim Set).
+- **ADLA arama yetmezdi, KOD kurtardı:** katalogda **iki** "Wings T-Shirt" var —
+  `CMAA018E20JER0011030` ve `CMAA018F20JER0011016`. Operatör kodu yazdığı için
+  doğrusu seçilebildi. *Aynı adı taşıyan iki ilan varsa ad bir kimlik değildir.*
+
+**Dropbox paylaşım klasörü: sunucu ERİŞEMİYOR — "No Access"** (operatör,
+12 Eyl 2026, iki klasör: `WOMEN/DSQUARED` ve `DOLCE&GABBANA`).
+- Bu ortamdan dropbox.com'a çıkış yok (ölçüldü, `curl` → `http=000`), o yüzden
+  indirme **sunucuda**: `fetch-external-images.yml` → **MOD E**
+  (`dropbox_url` + `dropbox_slug`). Klasörü ZIP olarak `~/wt_incoming/<slug>`
+  altına açıyor, dosya listesini yazıyor, `public_html/uploads`'a **hiçbir şey**
+  kopyalamıyor — klasörün içinde ne olduğu görülmeden fotoğraf siteye girmez.
+- **Sunucu Dropbox'a ÇIKABİLİYOR** (`http=200`, ~202 KB) ama gelen şey ZIP değil
+  **HTML**: başlığı **`Dropbox - No Access`**. Üç ayrı adres biçimi denendi
+  (`?subpath=`+`dl=1`, verilen link+`dl=1`, kökün tamamı+`dl=1`) — **üçü de
+  aynı sayfa**. Yani sorun adres biçimi değil, **linkin kendisi dışarıdan
+  görüntülenemiyor**: paylaşım ayarı "davet edilenler"/ekip içi görünüyor.
+  Çözüm operatörde: klasörü **"Anyone with the link"** olarak paylaşmak.
+- **Sihirli bayt (PK) kontrolü ilk koşuda işe yaradı:** olmasaydı 202 KB'lık
+  HTML'i açmaya çalışır ya da ürün fotoğrafı diye bir hata sayfası kaydederdik —
+  bu depoda `.jpg` diye kaydedilmiş HTML bir kez yaşandı. **`dl=0` → `dl=1`
+  eziliyor**, yoksa Dropbox web arayüzünü döndürüyor.
+- **Başarısızlıkta sayfanın KENDİ cümlesi okunuyor** (başlık + `password` /
+  `too large` / `access` gibi işaretler): "şifre gerekli", "çok büyük", "erişim
+  yok" hepsi ayrı sorun ve ayrı çözüm. Tahmin etmek yerine sayfaya soruluyor.
+  Denenen URL'ler **maskeli** — `rlkey` o klasörü açan anahtar ve kütük herkese
+  açık.
+- **MOD E kendi ADIMINDA, ve bu zorunluydu:** ana betiğe eklenince dosya
+  GitHub'ın **21000 karakterlik tek-ifade sınırını** aştı ve workflow **hiç
+  dispatch edilemez** oldu (`Exceeded max expression length`) — yani ekleme, var
+  olan dört modu da götürüyordu. Her adımın kendi bütçesi var (MOD E 4.588,
+  öteki 17.063). *Bu dosyaya yeni bir blok eklerken önce uzunluğa bak.*
+- **`run_workflow` 5xx kuralı bir kez daha işe yaradı:** dispatch **502** döndü;
+  CLAUDE.md'nin dediği gibi tekrar denemeden önce koşu listesine bakıldı — hiçbir
+  şey kuyruğa girmemişti, yani tekrar güvenliydi.
+
 **Vitrin sırası: Balenciaga ve Lacoste en başta** (operatör, 12 Eyl 2026:
 *"ürünlerin yerlerini degistir balenciaga ve lacostelar basta kalsin"*).
 - **Bu, 11 Eylül'e kadar geçerli olan kararın ÖN TARAFTA geri alınması.** Eski
