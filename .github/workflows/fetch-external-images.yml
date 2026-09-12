@@ -165,17 +165,25 @@ jobs:
                 rm -f "$DEST/folder.zip"; exit 1
               fi
               rm -rf "$DEST/files"; mkdir -p "$DEST/files"
-              # unzip CIKIS KODU 1 = "uyari var, ama acma BASARIYLA tamamlandi"
-              # (>=2 gercek hata). Dropbox'in ZIP'i kok girdisini "/" diye
-              # yaziyor ve unzip onu atlayip 1 donuyor -- bu bir hata degil.
-              # Asil olcum aracin bayragi degil SONUC: kac dosya acildi.
+              # unzip'in CIKIS KODU burada olcum DEGIL. Dropbox'in ZIP'i kok
+              # girdisini adsiz "/" diye yaziyor; unzip onu haritalayamayip
+              # once uyariyor sonra rc=2 ("zipfile format") donuyor -- oysa
+              # GERCEK dosyalarin hepsi aciliyor. rc'ye bakan ilk surum 47,8
+              # MB'lik saglam bir klasoru cope atti.
+              # Dogru olcum BEKLENEN ile ACILAN: arsivin kendi listesindeki
+              # dosya sayisi (dizinler haric, adsiz kok girdisi haric) ile
+              # diske inen sayi. Esitse is tamamdir, rc ne derse desin; eksik
+              # varsa rc 0 bile olsa DURUR -- yarim bir klasor, tam sanilan
+              # bir klasordan kotudur.
+              EXP=$(unzip -Z1 "$DEST/folder.zip" 2>/dev/null | grep -v '/$' | grep -cv '^/*$' || echo 0)
               unzip -o -q -d "$DEST/files" "$DEST/folder.zip"; UZ=$?
               N=$(find "$DEST/files" -type f | wc -l)
-              if [ "$UZ" -ge 2 ] || [ "$N" -eq 0 ]; then
-                echo "*** HATA: unzip rc=$UZ, acilan dosya=$N ***"
+              echo "arsivde dosya: $EXP   acilan: $N   (unzip rc=$UZ)"
+              if [ "$N" -eq 0 ] || [ "$N" -lt "$EXP" ]; then
+                echo "*** HATA: acma eksik (beklenen $EXP, acilan $N) ***"
                 rm -f "$DEST/folder.zip"; exit 1
               fi
-              [ "$UZ" -ne 0 ] && echo "not: unzip uyari verdi (rc=$UZ) -- dosyalar acildi"
+              [ "$UZ" -ne 0 ] && echo "not: unzip rc=$UZ uyardi ama dosyalarin hepsi acildi (adsiz kok girdisi)"
               rm -f "$DEST/folder.zip"
               echo "--- dosyalar (ad | bayt | tur) ---"
               # Tur 'file' ile olculuyor, UZANTIYLA degil: .jpg adli bir HTML bu
