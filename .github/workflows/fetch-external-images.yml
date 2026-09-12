@@ -30,6 +30,14 @@ on:
         description: "MOD D: aranan metin(ler), virgülle ayrık (baslik/handle/SKU icinde aranir, ör: M3600,Twin Tipped)"
         required: false
         default: ""
+      dropbox_url:
+        description: "MOD E: Dropbox PAYLAŞIM KLASÖRÜ linki -- klasörü ZIP olarak SUNUCUYA indirir, ~/wt_incoming altına açar ve dosya listesini yazar. public_html/uploads altına HİÇBİR ŞEY kopyalamaz."
+        required: false
+        default: ""
+      dropbox_slug:
+        description: "MOD E: indirilen klasöre verilecek kısa ad (ör: dsq-women). Yalnız a-z 0-9 -; boşsa linkten türetilir"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -64,7 +72,12 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          command_timeout: 5m
+          # 5m -> 15m: MOD E bir klasorun TAMAMINI ZIP olarak cekiyor ve curl'un
+          # kendi --max-time'i 600sn. Adim timeout'u ondan KUCUK kalsaydi oturum
+          # curl daha vazgecmeden kesilir, ve cikti "ZIP gelmedi" degil sessiz bir
+          # kopma olurdu -- yani yanlis teshis. Diger modlar icin ust sinir,
+          # bekleme degil.
+          command_timeout: 15m
           script: |
             echo "ADIM 1: baglanti tamam"
             export COLL_URL='${{ github.event.inputs.collection_url }}'
@@ -74,6 +87,65 @@ jobs:
             export IMAGE_MAP='${{ github.event.inputs.image_map }}'
             export SEARCH_STORES='${{ github.event.inputs.search_stores }}'
             export SEARCH_TERM='${{ github.event.inputs.search_term }}'
+            export DBX_URL='${{ github.event.inputs.dropbox_url }}'
+            export DBX_SLUG='${{ github.event.inputs.dropbox_slug }}'
+
+            # ---- MOD E: Dropbox paylasim klasoru ---------------------------------
+            # Bu ortamdan (sandbox) dropbox.com'a cikis YOK -- olculdu, curl http=000.
+            # Sunucunun kendi agi ayri; wetransfer isinde kaydedilen desenin aynisi.
+            # Indirilen sey public_html DISINA (~/wt_incoming) aciliyor: klasorun
+            # icinde ne oldugunu GORMEDEN hicbir fotografi siteye koymuyoruz
+            # (fotografta yabanci metin / yanlis urun / bos kare olabilir).
+            if [ -n "$DBX_URL" ]; then
+              echo "===== MOD E: DROPBOX KLASORU ====="
+              # Host ALLOWLIST ve BAGLI: 'dropbox.com.evil.tld' gibi bir ad gecmesin.
+              case "$DBX_URL" in
+                https://www.dropbox.com/*|https://dropbox.com/*) : ;;
+                *) echo "HATA: yalnizca https://www.dropbox.com/... kabul ediliyor"; exit 1 ;;
+              esac
+              SLUG=$(printf '%s' "$DBX_SLUG" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9-' '-' | sed 's/-\{2,\}/-/g; s/^-//; s/-$//')
+              [ -z "$SLUG" ] && SLUG="dropbox-$(date +%H%M%S)"
+              DEST="$HOME/wt_incoming/$SLUG"
+              mkdir -p "$DEST/files"
+              # dl=1 klasoru ZIP olarak verir. Var olan dl=0'i EZIYORUZ, yoksa
+              # Dropbox HTML onizleme sayfasi doner ve "indirdim" diye bir HTML
+              # kaydederdik (bu depoda .jpg diye kaydedilmis HTML hata sayfasi
+              # bir kez yasandi).
+              U=$(printf '%s' "$DBX_URL" | sed 's/[?&]dl=0//; s/&subfolder_nav_tracking=1//')
+              case "$U" in *\?*) U="$U&dl=1" ;; *) U="$U?dl=1" ;; esac
+              echo "hedef: $DEST"
+              HTTP=$(curl -sS -L --max-time 600 -o "$DEST/folder.zip" -w '%{http_code}' \
+                     -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36' \
+                     "$U" || echo 000)
+              SZ=$(wc -c < "$DEST/folder.zip" 2>/dev/null || echo 0)
+              echo "http=$HTTP  indirilen=$SZ bayt"
+              # SIHIRLI BAYT kontrolu: sunucu ZIP'e yanlis content-type verebiliyor,
+              # ve 200 donen bir HTML hata/giris sayfasi da "basarili" gorunur.
+              MAGIC=$(head -c 2 "$DEST/folder.zip" 2>/dev/null || true)
+              if [ "$HTTP" != "200" ] || [ "$MAGIC" != "PK" ]; then
+                echo "*** ZIP GELMEDI *** (ilk baytlar: $(head -c 16 "$DEST/folder.zip" | tr -d '\0' | head -c 16))"
+                echo "Muhtemel sebep: link tek DOSYAYA isaret ediyor, sifre/izin istiyor, ya da sunucu dropbox'a cikamiyor."
+                rm -f "$DEST/folder.zip"; exit 1
+              fi
+              rm -rf "$DEST/files"; mkdir -p "$DEST/files"
+              unzip -o -q -d "$DEST/files" "$DEST/folder.zip" || { echo "HATA: unzip basarisiz"; exit 1; }
+              rm -f "$DEST/folder.zip"
+              N=$(find "$DEST/files" -type f | wc -l)
+              echo "acilan dosya: $N"
+              echo "--- dosyalar (ad | bayt | tur) ---"
+              # Tur 'file' ile olculuyor, UZANTIYLA degil: .jpg adli bir HTML bu
+              # listede HTML gorunsun.
+              find "$DEST/files" -type f | sort | while read -r f; do
+                printf '%s | %s | %s\n' \
+                  "$(printf '%s' "${f#$DEST/files/}")" \
+                  "$(wc -c < "$f")" \
+                  "$(file -b --mime-type "$f" 2>/dev/null || echo '?')"
+              done
+              echo "--- son ---"
+              echo "NOT: hicbir dosya public_html/uploads altina KOPYALANMADI."
+              exit 0
+            fi
+
             cat > /tmp/vestra_fetchimg.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
