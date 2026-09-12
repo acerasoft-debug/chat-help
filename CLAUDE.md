@@ -3867,6 +3867,28 @@ katalogtan bul ve fotolari ile birlikte pdf yap sadece isim marka ve foto"*).
   `CMAA018E20JER0011030` ve `CMAA018F20JER0011016`. Operatör kodu yazdığı için
   doğrusu seçilebildi. *Aynı adı taşıyan iki ilan varsa ad bir kimlik değildir.*
 
+**ÇÖZÜLDÜ — eksik olan `st=` paylaşım jetonuydu** (12 Eyl 2026, operatörün
+ÜÇÜNCÜ linki). Aşağıdaki "No Access" teşhisi **linkin kendisi hakkındaydı ve
+öyle kalıyor**, ama sebebi paylaşım ayarı değil: operatörün ilk iki linkinde
+`st=` parametresi **yoktu**, üçüncüsünde **vardı** ve o link ZIP getirdi
+(**47,8 MB, `ilk2=PK`**). Dropbox'ın yeni paylaşım jetonu; sonda adresi yeniden
+kurarken onu **düşürüyordu**, yani çalışabilecek bir linki kendi elimizle
+geçersiz kılma ihtimali vardı. Artık ayıklanıp her yeniden kurulan biçimde
+taşınıyor ve `st jetonu: VAR/yok` diye yazılıyor.
+*İki ölçüm "bu yol kapalı" dedirtmişti; üçüncüsü linkler arasındaki farkı
+gösterdi. Aynı hatayı iki kez ölçmek, onu doğrulamıyor.*
+
+- **`unzip` ÇIKIŞ KODU BURADA ÖLÇÜM DEĞİL.** Dropbox'ın ZIP'i kök girdisini
+  adsız `/` diye yazıyor; unzip onu haritalayamayıp önce uyarıyor (rc=1) sonra
+  rc=2 ("zipfile format") dönüyor — oysa **gerçek dosyaların hepsi açılıyor**.
+  rc'ye bakan iki sürümüm de 47,8 MB'lık sağlam bir klasörü **çöpe attı**;
+  ikincisi "acilan dosya=88" yazarken bile. Doğru ölçüm **BEKLENEN ile AÇILAN**:
+  `unzip -Z1` listesindeki dosya sayısı (dizinler ve adsız kök hariç) ile diske
+  inen sayı. Eşitse geçer, rc ne derse desin; eksikse rc 0 bile olsa **DURUR**.
+  *Aracın bayrağı sonucu değil, kendi iç durumunu anlatıyordu.*
+- **Özet listenin SONUNA alındı:** `get_job_logs` yalnız kuyruğu gösteriyor,
+  88 satırlık dosya listesinde baştaki sayım kuyruktan düşüyordu.
+
 **Dropbox paylaşım klasörü: sunucu ERİŞEMİYOR — "No Access"** (operatör,
 12 Eyl 2026, iki klasör: `WOMEN/DSQUARED` ve `DOLCE&GABBANA`).
 - Bu ortamdan dropbox.com'a çıkış yok (ölçüldü, `curl` → `http=000`), o yüzden
@@ -3984,3 +4006,64 @@ katalogtan bul ve fotolari ile birlikte pdf yap sadece isim marka ve foto"*).
 - **`get_job_logs` çıktısı büyükse dosyaya düşer** (`tool-results/...txt`, tek
   satır JSON: `logs_content`); python ile `json.loads` → `split('\n')`. 1,4 MB'lık
   kontakt sayfası günlüğü bu yolla okundu.
+
+**KURAL 25 — D&G Dropbox partisi: 88 fotoğraf → 68 ilan, hepsi `pending`**
+(operatör, 12 Eyl 2026: *"olmayan ürünlerin hepsini koy bu DG leride"* +
+*"dikkat ayni ürün varsa katalogta pas gec"*).
+
+- **Dosya adı KATEGORİ SÖYLEMİYOR, yalnız stil kodu taşıyor** (`D&G G8OL0ZFU7E.jpg`).
+  Fiyat ise kategoriye bağlı, yani 88 karenin **hepsi göz ile** sınıflandırıldı:
+  `diag-live` → `wetransfer_probe=sheet:…|perfile`. Şüpheli 23 kare 300–360 px'te
+  tekrar bakıldı ve **bu adım iki fiyat hatasını yakaladı**: `G8OL0Z FU7EN` ve
+  `G8PL4T G7F2H` 112 px'te tişört görünüyordu, büyütünce **yakalı polo** çıktı
+  (€90, €85 değil). *Kontakt sayfası hücre başına bir KLASÖR basıyordu; düz bir
+  klasörde 88 fotoğraf 2 küçük resme iniyor, yani sınıflandırma için yazılmış
+  araç sınıflandıramıyordu — `|perfile` ve `|cell=N` bunun için eklendi.*
+- **88'den düşenler:** 5 katalogda **zaten var** (`G7JV9-1`, `G8PL4T G7F2H 0`,
+  `G8QI4TFU7EQ_W`, `G9OW6Z DARKBLUE`, `GWNXAD-G8GW9`) — operatörün "pas geç"i;
+  9 iç giyim/mayo (operatör kararı: şimdilik koyma); 1 örgü V yaka
+  (`G8QG3T FU7EP` — fiyat listesinde karşılığı yok); **2 dosyada stil kodu HİÇ
+  yok** (`DOLCE&GABBANA BLACK.jpg`, `JEANS/IMG_3073.JPG`) → **SKU uydurulmadı**,
+  ikisi de yazılmadı. Kalan 71 kare → **68 ilan** (`G8OL6Z G7C8G`'nin dört rengi
+  tek ilanda — Fred Perry M3600 deseni).
+- **Fiyatlar operatör kararı**, kategoriye bağlı: tişört **85**, polo **90**,
+  sweat/hoodie **120**, kot **120**, kot şort **90**, eşofman altı **120**.
+  Kot ve iç giyim fiyat tablosunda **yoktu ve soruldu** — 29 fotoğrafın (kot 14,
+  kot şort 3, eşofman 4, iç giyim 8, mayo 1) hiçbiri fiyatlanamıyordu ve
+  uydurmak yerine karar alındı. **Ceket €139 kullanılmadı:** klasörde ceket
+  görünen tek kare (`GVETAZ HU7B7`) büyütünce **eşofman altı** çıktı; yanındaki
+  ceketin kendi kodu var (`G9XM5Z HU7B7`) ama **kendi dosyası yok**.
+- **13 KOTTA RENK YAZILMADI.** Kaynak yıkama adını vermiyor ve küçük resimden
+  "light blue" ile "mid blue" ayırmak uydurma olurdu (KURAL 3). Siyah ve gri
+  ayırt edilebildiği için o ikisi yazıldı. Fotoğraf zaten sayfada; adı operatör
+  isterse ekler. *Renk listesine bir ad eklemek ücretsiz, doğru olması değil.*
+- **Beden serisi ve MOQ uydurulmadı:** mevcut 35 D&G ilanının **taşıdığı**
+  değerler (üst giyim `S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack` / MOQ 20,
+  kot `44×1 … 54×1`). Katalogun kendi kaydı, şablon değil.
+- **`mode='fixed'`** — `sale`'de `list` üstü çizili ESKİ fiyattır (KURAL 4),
+  yani 68 ilan da hiç var olmamış bir indirim ilan ederdi.
+- **`status='pending'`**: operatör `Admin ▸ Products`'ta onaylayana kadar
+  katalogda **görünmüyor**. "Hepsini koy" talimatı ile KURAL 21'in "önce göster"
+  şartı böyle birlikte karşılandı.
+
+**Kendi hatam, kayda geçsin — ve kuru koşu yakaladı.** Kontakt sayfasının
+efsanesinden okuduğum dosya adını **olduğu gibi** görsel yoluna yazdım, oysa
+Actions kütüğü literal "22"yi `***` yapıyor: `G9ABJTG7F2GR***54.jpg` katlanınca
+`d-g-g9abjtg7f2gr-54.jpg` oluyor ve sunucuda öyle bir dosya yok. Kardeş dosya
+`G9ABJTG7F2GBA232` (renk kodu 5 karakter) olduğu için `R2254` çıkarıldı ve
+**ikinci kuru koşu fotoğrafı bulunca doğrulandı** — çıkarım kanıt değildi, kuru
+koşu kanıttı. *Bu dosyanın kendi kaydı: "okunamayan bir değeri tahmin etmek
+serbest; tahmini doğrulatmadan yazmak değil."*
+
+**Sonuç (run `34717589395`):** `KAYDEDILDI — 68 yeni urun, katalog 827 → 895`,
+zaman damgalı yedek alındı. Geri okuma (`inspect-products` → `raw_scan`, çünkü
+`vestra_products()` yalnız `approved` döndürür ve taze parti orada **0**
+görünür): **895 kayıt, `pending=68`**, `tiers` hepsinde var. Yeni satırlarda
+`seller_uid` yok — mevcut 35 D&G ilanında da yok, yani sapma değil.
+
+**Operatör kararı bekleyen üç şey:**
+1. **13 kotun yıkama adı** — fotoğrafa bakıp yazabilir; ben uydurmadım.
+2. **`G8QG3T FU7EP`** (beyaz örgü V yaka, düğmeli) — tişört mü, `Sweaters &
+   Knitwear` mi? Fiyat tablosunda karşılığı yok, o yüzden yazılmadı.
+3. **9 iç giyim + 1 mayo** — "şimdilik koyma" denildi; fotoğraflar sunucuda
+   duruyor (`~/wt_incoming/dg/files`), fiyat verilirse tek koşuda eklenir.
