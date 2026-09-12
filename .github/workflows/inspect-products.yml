@@ -14,6 +14,14 @@ on:
         description: "YEDEKLE KARSILASTIR: 'list' = sunucudaki listings.json yedeklerini tarih/boyutla listeler. Bir yedek adi (ya da 20260910-204756 gibi damga) verilirse o yedekle bugünkü dosyanın FİYAT farkını bölme bölme yazar. Salt okunur."
         required: false
         default: ""
+      shop_order:
+        # "Urunlerin yerlerini degistir" denince SONRADAN sorulacak sey: vitrinde
+        # gercekten ne siralaniyor? Kaynak okumak olcum degil ve bu ortamdan
+        # canli siteye cikilamiyor -- sira sunucuda, DEPLOY EDILMIS fonksiyonla
+        # hesaplaniyor. Salt okunur.
+        description: "VITRIN SIRASI: bir bölme adı (premium|footwear|underwear) verilirse o bölmenin ilk ürünleri vitrindeki sırayla yazılır. Salt okunur."
+        required: false
+        default: ""
       cat:
         description: "Kategori filtresi, tam eşleşme (boş = hepsi)"
         required: false
@@ -100,6 +108,7 @@ jobs:
           INSPECT_BAKDIFF: ${{ github.event.inputs.bak_diff }}
           INSPECT_FIT: ${{ github.event.inputs.fit_scan }}
           INSPECT_RAW: ${{ github.event.inputs.raw_scan }}
+          INSPECT_SHOPORD: ${{ github.event.inputs.shop_order }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
@@ -110,7 +119,7 @@ jobs:
           # gecirir. Yeni bir girdi eklerken bu satir unutulursa uzak tarafta
           # getenv() bos doner ve mod SESSIZCE calismaz -- sonda, sorulmayan bir
           # soruya "her sey normal" diye cevap verir.
-          envs: INSPECT_BAKDIFF,INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT,INSPECT_FIT,INSPECT_RAW
+          envs: INSPECT_SHOPORD,INSPECT_BAKDIFF,INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT,INSPECT_FIT,INSPECT_RAW
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
@@ -137,6 +146,57 @@ jobs:
             $fitscan  = strtolower(trim((string)getenv("INSPECT_FIT")))     === 'true';
             $rawscan  = strtolower(trim((string)getenv("INSPECT_RAW")))     === 'true';
             $bakdiff  = trim((string)getenv("INSPECT_BAKDIFF"));
+            $shopord  = strtolower(trim((string)getenv("INSPECT_SHOPORD")));
+
+            /* ── VITRIN SIRASI (salt okunur) ───────────────────────────────
+               shop.php'nin cizdigi sirayi SUNUCUDA, deploy edilmis fonksiyonla
+               hesaplar. Kaynak okumak olcum degil; bu ortamdan canli siteye de
+               cikilamiyor (curl 000), yani siranin gercekten indigini gosteren
+               tek yer burasi.
+               ONCE fonksiyonun VAR OLDUGUNU soruyor: dosyanin parse edilmesi
+               yetmez, ESKI bir kopya da parse edilir -- "deploy inmemis" ile
+               "sira yanlis" ayni cikti olmasin.
+               Basilan her sey ZATEN ACIK: ilan id'si, marka ve satici adi
+               vitrinde duruyor. Kisiye ait hicbir alan yok. */
+            if ($shopord !== '') {
+                if (!function_exists('vestra_shop_order')) {
+                    echo "*** vestra_shop_order() YOK -- deploy inmemis ***\n";
+                } else {
+                    $secs = vestra_sections();
+                    if (!isset($secs[$shopord])) {
+                        echo "bilinmeyen bolme '".$shopord."'. Gecerli: ".implode(', ', array_keys($secs))."\n";
+                    } else {
+                        $all  = vestra_products();
+                        $rows = array_values(array_filter($all, fn($p) => vestra_product_section($p) === $shopord));
+                        $ord  = vestra_shop_order($rows);
+                        printf("bolme %s : %d ilan (katalog %d)\n", $shopord, count($rows), count($all));
+                        echo "on markalar : ".implode(', ', vestra_shop_front_brands())."\n";
+                        echo "lead markalar: ".implode(', ', vestra_shop_lead_brands())."\n\n";
+                        echo "  #  ILAN                            MARKA            SATICI\n";
+                        foreach (array_slice($ord, 0, 24) as $i => $p) {
+                            printf("  %2d %-31s %-16s %s\n", $i + 1,
+                                substr((string)($p['id'] ?? ''), 0, 31),
+                                substr((string)($p['brand'] ?? '(marka yok)'), 0, 16),
+                                substr((string)($p['seller'] ?? '') !== '' ? (string)$p['seller'] : '(satici adi yok)', 0, 24));
+                        }
+                        /* Sayim, "ilk 24"un tesadufen dogru gorunmesini engeller:
+                           bir marka listede 20 ilanla varsa 20'sinin de basta
+                           olmasi gerekir. */
+                        $front = vestra_shop_front_brands();
+                        $pos = [];
+                        foreach ($ord as $i => $p) {
+                            $b = strtoupper(trim((string)($p['brand'] ?? '')));
+                            if (in_array($b, $front, true)) $pos[$b][] = $i + 1;
+                        }
+                        echo "\non marka konumlari (1 = en basta):\n";
+                        foreach ($front as $b) {
+                            if (empty($pos[$b])) { echo "  ".$b.": bu bolmede ilan YOK\n"; continue; }
+                            printf("  %-12s %d ilan, sira %d..%d\n", $b, count($pos[$b]), min($pos[$b]), max($pos[$b]));
+                        }
+                    }
+                }
+                exit(0);
+            }
 
             /* ── YEDEKLE FIYAT FARKI (salt okunur) ────────────────────────────
                Cikti RAKAM DEGIL ORAN yaziyor (x1.20 gibi): Actions gunlugu
