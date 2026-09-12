@@ -776,13 +776,22 @@ function vestra_product_desc(array $p): string {
  * musteri katalogu bastan aramak zorunda kaliyordu.
  *
  * REFERRER HAM KULLANILMIYOR. Yalnizca (a) KENDI alan adimiz ve (b) BILINEN bir
- * liste yolu kabul ediliyor:
+ * GEZINME yolu kabul ediliyor:
  *   - ham referrer'i href'e basmak acik yonlendirme kapisidir (baska bir siteye
  *     "geri" diye gonderen bir dugme),
  *   - "javascript:" / "data:" gibi bir sema XSS'e acilir,
  *   - ve disaridan gelen icin "geri" zaten dogru yer degil: o zaman katalog.
  * Sema/host atiliyor, yalnizca yol + sorgu geri veriliyor; boylece cikan adres
  * her zaman bizim sitemizde kaliyor.
+ *
+ * LISTE NEDEN HALA IZIN LISTESI (operator, 11 Eyl 2026: *"tam kataloga degil bir
+ * geri sayfaya nereden geldiyse oraya goturusun"*). Istenen "her yer" ama bu
+ * sitede GET ile IS YAPAN uclar var -- olculdu: `login?signout` oturumu kapatiyor,
+ * `offer-accept`, `verify`, `lead-unsubscribe` jeton harciyor. "Ayni alan adindaki
+ * her yolu kabul et" deseydik "geri" dugmesi bunlardan birini YENIDEN CAGIRABILIRDI.
+ * Izin listesi bu sinifi YAPISI GEREGI disarida tutuyor: jeton uclari gezinme
+ * sayfasi degil, yani listeye hic girmiyorlar. Liste tahminle degil OLCUMLE
+ * dolduruldu -- `grep 'product?id='` ile urune baglanti veren her sayfa sayildi.
  */
 function vestra_back_link(string $fallback = '/shop'): array {
     $out = ['url' => $fallback, 'label' => t('Back to catalog')];
@@ -801,19 +810,40 @@ function vestra_back_link(string $fallback = '/shop'): array {
     $strip = fn(string $h): string => preg_replace('/^www\./', '', preg_replace('/:\d+$/', '', $h)) ?? $h;
     if ($host !== '' && $self !== '' && $strip($host) !== $strip($self)) return $out;
 
-    $path = '/'.ltrim((string)$u['path'], '/');
-    /* Liste sayfalari. Urun sayfasindan urun sayfasina "geri" anlamsiz; panel ve
-       sepet zaten kendi navigasyonunu tasiyor. */
+    /* Ters bolu ONCE duzeltiliyor: '/\evil.com' bazi tarayicilarda '//evil.com'
+       diye normallesir ve sema-goreli bir adres olur -- yani site disina cikan bir
+       "geri". ltrim tek basina bunu kapatmiyor. Izin listesi de yakalardi ama
+       guvenlik listeyi hatirlamaya bagli kalmasin. */
+    $path = '/'.ltrim(str_replace('\\', '/', (string)$u['path']), '/');
+
+    /* Urune baglanti VEREN her sayfa (olculdu). Jeton/aksiyon uclari bilerek yok:
+       /login /verify /offer-accept /lead-unsubscribe -- bunlar gezilecek sayfa
+       degil ve "geri" onlari yeniden tetiklerdi. /admin de yok: operator paneli
+       kendi navigasyonunu tasiyor ve ?dl= gibi sorgulari var. */
     /* Duz str_starts_with YETMEZ: '/shop' oneki '/shopping-cart'i da yakalardi ve
        "geri" dugmesi sepete goturur. Ya TAM esitlik ya da '/' ile devam eden yol --
        bu depoda ayni ders blocklist'te mango/zara olarak duruyor. */
-    $ok = false;
-    foreach (['/shop', '/b2b', '/wholesale', '/price-list', '/price-lists', '/groups', '/journal', '/search'] as $pre) {
+    $ok = ($path === '/');            // ana sayfa: marka duvari ve kategori seridi urune gidiyor
+    if (!$ok) foreach (['/shop', '/b2b', '/wholesale', '/price-list', '/price-lists',
+                        '/groups', '/group', '/journal', '/search', '/showroom',
+                        '/dropship', '/dropshipping', '/requests', '/request',
+                        '/buyer', '/seller', '/product'] as $pre) {
         if ($path === $pre || str_starts_with($path, $pre.'/')) { $ok = true; break; }
     }
     if (!$ok) return $out;
 
     $q = isset($u['query']) && $u['query'] !== '' ? '?'.$u['query'] : '';
+
+    /* Kendine donen "geri" bozuk bir dugmedir: ayni urun sayfasi (ornegin
+       ?err=sizes ile kendine donmus bir gonderim) ya da birebir ayni adres. */
+    $selfUri = (string)($_SERVER['REQUEST_URI'] ?? '');
+    if ($path.$q === $selfUri) return $out;
+    if ($path === '/product' || str_starts_with($path, '/product/')) {
+        parse_str((string)($u['query'] ?? ''), $rq);
+        parse_str((string)(parse_url($selfUri, PHP_URL_QUERY) ?? ''), $sq);
+        if (($rq['id'] ?? '') !== '' && ($rq['id'] ?? '') === ($sq['id'] ?? '')) return $out;
+    }
+
     return ['url' => $path.$q,
             'label' => ($path === '/shop' || str_starts_with($path, '/shop/')) ? t('Back to catalog') : t('Back')];
 }
@@ -1914,6 +1944,84 @@ function vestra_colour_options(array $p): array {
         }
     }
     return $c;
+}
+
+/* ---------------------------------------------------------------------------
+   VITRIN SIRASI. Tek karar noktasi ve SAF: shop.php yalnizca cagiriyor. Sira bir
+   sayfanin govdesinde yaziliyken sinanamiyordu, ve bu depoda "ayni olgu iki yerde
+   yazili" hatasi defalarca kayitli -- ikinci bir kopya er gec ayrisir ve ayrisma
+   dogrudan vitrinde gorunur.
+
+   Bolmeler (siralama anahtari DEGIL), onden arkaya:
+     1. pinned  -- operatorun ise ilistirdigi ilanlar, islendikleri sirada;
+     2. ON MARKALAR -- operator karari, 12 Eyl 2026: "balenciaga ve lacostelar
+        basta kalsin". Liste sirasi = vitrin sirasi (once Balenciaga, sonra
+        Lacoste), operatorun cumlesindeki sira;
+     3. lead satici -- bir marka etikettir, satici mali gercekten gonderen taraf;
+     4. lead markalar, listedeki sirada;
+     5. geri kalan.
+
+   Bolme (partition), siralama anahtari degil: her grubun ICINDE urunler
+   vestra_products()'in dondurdugu sirayi aynen koruyor. Bir markayi one almak
+   diger 300 urunu yeniden dizmemeli.
+
+   ESLESME TAM, alt dize DEGIL. Bu depoda gevsek eslesme bir kez pahaliya
+   ogrenildi (mango -> "Mangobay Boutique"); burada bedeli daha sessiz olurdu:
+   "BALENCIAGA" alt dize arandiginda bir gun gelecek "Balenciaga Kids" gibi bir
+   ad da one cikar ve kimse fark etmez.
+
+   NOT (12 Eyl 2026, kapsamin degismesi): 11 Eyl'e kadar gecerli olan karar
+   "katalog Gucci ile aciliyor, arkasinda Givenchy, sonra Lacoste" idi. Operatorun
+   yeni cumlesi bunu ON TARAFTA degistiriyor; Gucci/Givenchy listeden CIKARILMADI,
+   yalnizca iki markanin arkasina alindi. Bedeli acikca yazili: lead satici
+   (GARAGE LE PARIS) artik on markalarin arkasinda -- yani o hesabin Lacoste
+   DISINDAKI ilanlari Balenciaga+Lacoste kadar geri gidiyor. */
+function vestra_shop_front_brands(): array { return ['BALENCIAGA', 'LACOSTE']; }
+function vestra_shop_lead_brands(): array { return ['GUCCI', 'GIVENCHY', 'BALMAIN', 'DSQUARED2']; }
+/* Hem satici ADI hem HESAP KIMLIGI ile esleniyor, ve ikisi de gerekli: adla
+   eslemek tek basina yetmedi, cunku ilanlarin cogunda 'seller' alani bos ve urun
+   sayfasi orada "via VESTRA" yaziyor -- yalnizca ada bakan bir kural o hesabin
+   iki ilanini kaldirip geri kalanini yerinde birakiyordu. Kimlik tek basina da
+   yetmez: firma ikinci bir hesap acarsa kimlik degisir, ad kalir. Iki yazim
+   birden kabul, cunku ilanlarda ikisi de gecebiliyor. */
+function vestra_shop_lead_sellers(): array { return ['GARAGE LE PARIS', 'LE GARAGE PARIS']; }
+function vestra_shop_lead_seller_uids(): array { return ['7ab30f26afedd840']; }
+
+/* Listeler parametre, cunku test mekanizmayi KENDI tanimladigi degerlerle
+   sinamali; sevk edilen markalar ayrica kaynaktan dogrulaniyor. Ikisi tek iddiada
+   birlesseydi, listeye bir marka eklendigi gun mekanizmanin testi de kirmizi
+   donerdi -- olctugunu degil, yazimini koruyan bir iddia. */
+function vestra_shop_order(array $products, ?array $front = null, ?array $lead = null,
+                           ?array $sellers = null, ?array $sellerUids = null): array {
+    $front      = $front      ?? vestra_shop_front_brands();
+    $lead       = $lead       ?? vestra_shop_lead_brands();
+    $sellers    = $sellers    ?? vestra_shop_lead_sellers();
+    $sellerUids = $sellerUids ?? vestra_shop_lead_seller_uids();
+
+    $up = fn($v) => strtoupper(trim((string)$v));
+
+    $pinned = []; $fr = []; $sel = []; $ld = []; $rest = [];
+    foreach ($products as $p) {
+        if (!empty($p['pinned'])) { $pinned[] = $p; continue; }
+        /* On markalar satici kontrolunden ONCE: Lacoste ilanlarinin cogu lead
+           saticinin, yani sonra sorulsaydi o bolmeye dusup icinde dagilirlardi
+           ve "basta" olmazlardi. */
+        $i = array_search($up($p['brand'] ?? ''), $front, true);
+        if ($i !== false) { $fr[$i][] = $p; continue; }
+        if (in_array($up($p['seller'] ?? ''), $sellers, true)
+            || in_array((string)($p['seller_uid'] ?? ''), $sellerUids, true)) { $sel[] = $p; continue; }
+        $i = array_search($up($p['brand'] ?? ''), $lead, true);
+        if ($i !== false) { $ld[$i][] = $p; continue; }
+        $rest[] = $p;
+    }
+
+    $out = $pinned;
+    /* array_keys DEGIL, indis uzerinden: bir marka o bolmede hic urun vermezse
+       kendinden sonrakiler one kaymamali, liste sirasi korunmali. */
+    for ($i = 0; $i < count($front); $i++) if (!empty($fr[$i])) $out = array_merge($out, $fr[$i]);
+    $out = array_merge($out, $sel);
+    for ($i = 0; $i < count($lead); $i++)  if (!empty($ld[$i])) $out = array_merge($out, $ld[$i]);
+    return array_merge($out, $rest);
 }
 
 /* SEO iniş sayfaları (kategori, koleksiyon, marka × kategori) — inc/seo.php. Burada

@@ -3525,6 +3525,137 @@ mesajlara"*).
   (`_csrf`); alanı unutan bir form `csrf_fail` ile döner, yani **düğme görünür
   ama hiç çalışmaz**. İlk yazımda unutuldu, test kabloyu de denetliyor.
 
+**KURAL 24 — Mesajda OKUNDU onayı; ve kendi eylemi kendi rozetini yakmaz**
+(operatör, 11 Eyl 2026: *"mesajlarda mesajin okunup okunmadigi müsteriye
+görünsün ayrica, kendi mesaji okursa bildirim kalksin birsey yanmasin"*).
+**İki ayrı iş, tek cümlede.**
+
+- **Rozet kusuru GERÇEKTİ ve sebebi sistem kartlarıydı.** `vestra_msg_unread()`
+  *"benden olmayan her şey okunmamıştır"* diyor; sistem kartı
+  (`vestra_msg_post_system`) `from='system'` ile yazılıyor ve **kimin yol
+  açtığını hiç kaydetmiyordu**. Sonuç: alıcı **kendi teklifini** verince
+  **kendi rozeti** yanıyordu. Kum havuzunda ölçüldü (gerçek giriş + gerçek
+  sayfa çizimi, kaynak okumak değil): kendi teklifinden sonra *alıcı YANIYOR ·
+  satıcı YANIYOR*; düzeltmeden sonra *alıcı SÖNÜK · satıcı YANIYOR*.
+  Kendi **metin** mesajı zaten yakmıyordu (`from === $uid`) — kaçan yalnız
+  kartlardı.
+- **Çözüm ALAN EKLEME:** karta `by` (aktör uid'i) düşüyor, `vestra_msg_unread()`
+  onu atlıyor. **`by` taşımayan kayıt bugünkü davranışı koruyor** — yani eksik
+  bir aktör **fazla haber verir, mesajı GİZLEMEZ**. Yanlış yön bu olmalı; 15.
+  çağrı yerini eklerken unutan kişi sessiz bir kayıp değil, fazladan bir rozet
+  üretir. Test çağrı yerlerini **elle listelemiyor**, kaynağı ayrıştırıp
+  sayıyor (14/14).
+- **Aktör her yerde aynı kişi değil ve tahmin edilmedi:** sipariş/teklif/kabul
+  kartlarında **alıcı**, gönderildi/ödendi/teslim kartlarında **satıcı**,
+  talebe teklifte **satıcı**. İki yerde bilerek **boş**: escrow süpürücüsü
+  insan eylemi değil; talebin **çözümünü** operatör yazıyor (`opened` alıcının,
+  `resolved` kimsenin) — orada iki rozetin de yanması doğru.
+- **Okundu onayı muhatabın gördüğü SAYIM'dan** (`vestra_msg_read_upto`):
+  `mark_read` mesaj **sayısını** yazıyor, yani i. baloncuk ancak `read_upto > i`
+  ise okunmuş. Yalnız **kendi** baloncuklarımızda çiziliyor; karşı tarafın
+  mesajının yanına "okundu" yazmak kendi kendine bilgidir.
+- **VESTRA Support ipliğinde HİÇ çizilmiyor.** Operatör panelinin mesaj sekmesi
+  bütün konuşmaları **tek sayfada** listeliyor, yani "operatör tam bu ipliği
+  okudu" diyebileceğimiz bir an yok ve işaret **hiçbir zaman ilerleyemezdi**.
+  Asla ilerlemeyen bir gösterge bozuk bir göstergedir — kendine dönen "geri"
+  düğmesiyle aynı sınıf. Admin panelinden damgalamak daha kötü olurdu: o sayfa
+  alıcı↔satıcı ipliklerini de gösteriyor, damgalamak müşteriye **satıcının**
+  okuduğunu söylerdi.
+- **Yoklama `last_at`'e bakmak YETMİYORDU.** Karşı taraf okuduğunda konuşmaya
+  hiçbir şey eklenmiyor, yani ✓ hiçbir zaman ✓✓ olmazdı — tam da bekleyen kişi
+  için bozuk görünürdü. Uç artık `read`'i de dönüyor ve durumu **tek gövde**
+  kuruyor (`vestra_msg_poll_state`); iki panel kendi hesaplasaydı biri
+  ötekinden ayrışırdı (dört mektup gövdesinin dersi).
+- **Silme `read[]`'i yeniden hesaplamıyor**, yani işaret dizinin dışına
+  taşabiliyor ve kırpılmasaydı gösterge **her mesajı "okundu"** diye basardı.
+  Kırpma doğru cevabı veriyor: karşı taraf silineni de görmüştü.
+  Eski **tarih tabanlı** işaret sayı değil → **okunmamış** sayılıyor; "okundu"
+  diye yanlış bir şey yazmaktansa hiç yazmamak doğru.
+- Fark renkle **değil** işaret sayısıyla veriliyor (✓ / ✓✓): yalnız renge
+  dayanan bir gösterge renk körlüğünde kayboluyor. `Read` / `Sent` **8 sözlüğe
+  birden** (KURAL 10); Almanca *Gelesen/Gesendet*, Japonca *既読/送信済み*.
+- **Yan kazanç: `msg_delete_test.php` ilk kez KOŞTU.** Depo yolu artık sabit
+  (`VESTRA_MESSAGES` / `VESTRA_BLOCKED_MESSAGES`, `defined()` korumalı —
+  KURAL 2'nin `VESTRA_ACCOUNTS` kararının aynısı), o yüzden test gerçek
+  `vestra/data`'ya dokunmuyor. Eskiden dokunuyordu ve o dosyalar var olduğu
+  için test kendini **reddediyordu**: KURAL 23'ün silme özelliği bu depoda hiç
+  sınanmamıştı (şimdi 30 iddia, hepsi yeşil). *Koşmayan bir test, hiç
+  düşemeyen bir iddianın dosya hâlidir.*
+- **Davranış bilerek değiştiği için `msg_panel_test` de düzeltildi:** iddia
+  `>09:12<` arıyordu, yani saatin **komşu karakterini**; onay işareti saatin
+  yanına girince kırmızı döndü. Olguya çevrildi (okunur saat ekranda) ve
+  saat kaldırılarak hâlâ düşebildiği doğrulandı.
+- **Canlı çizim** (kum havuzu kopyası, onaylı alıcı **ve** satıcı oturumu):
+  alıcının 09:10 mesajı **✓✓ Read**, 09:30 mesajı **✓ Sent**, satıcının
+  mesajında işaret **yok**; Almanca *Gesendet/Gelesen*, Arapça RTL doğru;
+  Support ipliğinde **0** işaret, kontrol ipliğinde **2**; yoklama
+  `{"last":…,"read":4}`; PHP uyarısı **0**.
+- Test: `tests/msg_read_receipt_test.php` (67 iddia, iki yön). Düşebildiği
+  doğrulandı: `by` atlaması kaldırılınca **3 kırmızı**, bir çağrı yerinden
+  aktör düşünce **1**, kırpma kalkınca **2**, yoklama eski hâline dönünce
+  **2**, Support muhafazası kalkınca **1**, çizim düz metne çevrilince **3**,
+  sembol her baloncuğa gömülünce **1**. *Her sabotajın GERÇEKTEN uygulandığı
+  ayrıca yazdırıldı — bu oturumda bir sabotaj sessizce hiç uygulanmamış ve
+  testi sağlam göstermişti.*
+
+**KURAL 24 (devamı) — işaret ÇİZİLİYOR, ve "çalışıyor mu" TARAYICIDA ölçüldü**
+(operatör, 11 Eyl 2026: *"calisip calismadigindan emin ol ve estetik yap"*).
+- **Düz `✓✓` iki ayrı harftir.** Yazı tipine göre araları açılıyor (harf-boşluğu
+  hilesiyle sıkıştırmak gerekiyordu), bazı tiplerde kalın bir emoji olarak
+  çıkıyor ve kalınlığı `font-weight`'e bağlı. Artık **SVG çizim**: tek çengel
+  (gönderildi, soluk) / çift çengel (okundu, vurgulu). Sembol `<defs>` içinde
+  **TEK kez** tanımlı, her baloncuk `<use>` ile işaret ediyor — 30 mesajlık bir
+  konuşmada aynı yolu 30 kez gömmemek için (311 bayt + baloncuk başına ~95).
+- **Sembol kendi `stroke`/`fill`'ini YAZMIYOR:** ikisi de SVG'de kalıtımlı, yani
+  renk CSS'te kalıyor ve `.seen` ile tema değişimi kendiliğinden işliyor.
+  Yazsaydı `.msgtick.seen{color:var(--acc)}` hiçbir şey yapmazdı. Testte iddia var.
+- **İşaret SABİT genişlikte (14px):** saat sağa yaslı, yani tek çengel çift
+  olunca satır gözle görülür şekilde sıçrardı.
+- **ÇALIŞTIĞI GERÇEK TARAYICIDA, UÇTAN UCA ölçüldü** (kum havuzu kopyası,
+  gerçek giriş — kaynak okumak ölçüm değil):
+  - alıcı sayfayı açık tutuyor, **satıcı okuyor** (yalnız sunucudaki kayıt
+    değişiyor, sayfaya dokunulmuyor) → işaret **15–30 sn içinde KENDİLİĞİNDEN**
+    ✓ → ✓✓ dönüyor. Yoklama `read`'i de taşıdığı için çalışıyor; `last_at`
+    okuma anında değişmediği için eski hâli **hiç dönmezdi**.
+  - **KONTROL GRUBU:** kimse okumadan 45 sn (3 yoklama) → işaret **değişmiyor**.
+    Tek yön ölçülseydi "her zaman ✓✓ basan" bir kusur da yeşil görünürdü.
+  - masaüstü / mobil / Almanca / Arapça RTL çizdirildi; yatay taşma yok, konsol
+    hatası yalnız bu ortamdan erişilemeyen Google Fonts.
+- **Canlı sonda: `diag-messages.yml` → `receipt_probe=true`.** Önce yeni
+  fonksiyonların sunucuya **indiğini** soruyor — dosyanın parse edilmesi yetmez,
+  **eski bir kopya da parse edilir** (KURAL 21b'nin "deploy inmemiş" dersi) —
+  sonra gerçek konuşmalarda işaretin kaç baloncukta çizildiğini ve rozetin
+  **KENDİ eyleminden yanan** bir konuşma bırakıp bırakmadığını sayıyor.
+  **Mesaj metni, ad, adres, thread id'sinin tamamı BASILMIYOR** — yalnız sayım.
+  Sonda **önce kum havuzunda** koşturuldu (bu depoda kontrolün kendisi altı kez
+  yanlış yere baktı) ve düzeltme geri alınarak **gerçekten kırmızı döndüğü**
+  doğrulandı: `0` → `*** 1 — TH1 ***`, yanan rozet 1 → 2.
+- **CANLI SONUÇ (11 Eyl 2026, run `34626325137`, deploy `9e2c9e47`):**
+
+  | | |
+  |---|---:|
+  | yeni fonksiyonlar | **3/3 VAR** (deploy indi) |
+  | `post_system` parametresi | **5** (aktör yolu canlıda) |
+  | konuşma | 30 |
+  | onay işareti çizilen konuşma | **18** · toplam **35 baloncuk** (okundu 16 / gönderildi 19) |
+  | Support ipliği (işaret bilerek yok) | 5 |
+  | yanan rozet | 20 |
+  | **KENDİ eyleminden yanan** | **0** |
+  | yoklama anahtarları | `last, read` |
+
+- **Dürüst sınır:** canlıdaki **13 sistem kartının 13'ü aktörsüz** — hepsi kural
+  konmadan önce yazılmış. Onlar eski davranışı koruyor (iki taraf da yanar) ve
+  bu **bilerek**: eksik bir aktör fazla haber verir, mesajı gizlemez. Aktör alanı
+  ancak **bundan sonra doğan** kartlarda görünecek; sonda o sayının yükselişini
+  gösteriyor.
+- **İki ölçüm tuzağı, ikisi de kendi testimde:**
+  1. **`every()` BOŞ dizide de TRUE.** İlk uçtan uca kontrolüm sayfa
+     yenilenirken diziyi boş yakaladı ve iddia **boşa geçti** — "dönüştü" dedi,
+     hiçbir şey ölçmemişti. Uzunluk şartı eklendi (`t.length === 3 && …`).
+  2. **`class="msgtick` öneki `msgtickdefs`'i de yakalıyordu** ve 2 yerine 3
+     saydı — mango/zara dersinin **testin kendi içindeki** hâli. Sayım artık
+     kapanış tırnağına kadar.
+
 **KURAL 22 — Toplu ZAM ayrı bir araçtır ve TEKRARLANAMAZ** (operatör, 10 Eyl
 2026: *"underwear ürünlerine yüzde 20 zam yap bütün ürünlere"*).
 - `set-prices.yml` yalnızca **indirim** biliyordu (`discount_pct`). Zam onun
@@ -3609,19 +3740,112 @@ estetik ya"*).
 - `vestra_back_link()` (`inc/products.php`) — ürün sayfasının kırıntı satırında
   `← Back to catalog`. Hedef **Referer**'dan geliyor ama Referer başkasının
   yazdığı bir başlık: yabancı alan adı, `javascript:`/`data:` şeması ve site
-  içinde bile **liste olmayan** yollar (sepet, panel, ürün) `/shop`'a düşüyor.
+  içinde bile **liste olmayan** yollar `/shop`'a düşüyor.
   Kabul edilen önekler tam eşitlik ya da `/` ile devam: düz `str_starts_with`
   ile `/shop` öneki **`/shopping-cart`**'ı da yakalıyordu — mango/zara dersinin
-  aynısı, testte iki yönü de var (`tests/back_link_test.php`, 31 iddia).
+  aynısı, testte iki yönü de var (`tests/back_link_test.php`).
   Sorgu parametreleri korunuyor: `/shop?section=footwear`'dan girip "geri"
   deyince kataloğun başına değil **bulunduğu yere** dönüyor.
 - **Etiket iki sözlük anahtarından** (`Back`, `Back to catalog`) — ikisi de 8
-  dilde zaten vardı, yeni anahtar eklenmedi (KURAL 10).
+  dilde zaten vardı, yeni anahtar eklenmedi (KURAL 10). Yerelde çizdirildi:
+  `Zurück` / `Retour` / `Indietro` / `Atrás`.
+
+**"Geri" tam olarak BİR SAYFA geri olmalı** (operatör, 11 Eyl 2026: *"ürün
+sayfalarinda olan back to catalog tam kataloga degil bir geri sayfaya nereden
+geldiyse oraya götürsün"*).
+- **Sebep ölçüldü, tahmin edilmedi:** izin listesi yalnız 8 giriş taşıyordu ve
+  `grep 'product?id='` ile sayılınca ürüne bağlantı veren **altı sayfa daha**
+  çıktı — **ana sayfa** (marka duvarı + kategori şeridi), `showroom`, `group`,
+  `dropship`, `requests`, alıcı/satıcı paneli ve **ürün sayfasının kendisi**.
+  Hepsi kataloğun başına düşüyordu; operatörün şikâyeti tam bu küme.
+- **Liste NEDEN hâlâ izin listesi.** İstenen "her yer" ama bu sitede **GET ile
+  iş yapan uçlar** var — ölçüldü: `login?signout` **oturumu kapatıyor**,
+  `offer-accept` / `verify` / `lead-unsubscribe` jeton harcıyor. "Aynı alan
+  adındaki her yolu kabul et" deseydik "geri" düğmesi bunlardan birini yeniden
+  çağırabilirdi. İzin listesi bu sınıfı **yapısı gereği** dışarıda tutuyor:
+  jeton ucu gezinme sayfası değil, yani listeye hiç girmiyor. Falsifikasyon
+  bunu doğruladı — `$ok = true` yapılınca **13 kırmızı**, biri `/login?signout=1`.
+  *Panellerin GET parametreleri okundu* (`view`, `added`, `connect`, `dl_claim`):
+  hepsi salt-okunur, o yüzden `/buyer` ve `/seller` sorgusuyla kabul ediliyor.
+- **Kendine dönen "geri" bozuk düğmedir:** aynı ürün (ör. `?err=sizes` ile
+  kendine dönmüş bir gönderim) ve birebir aynı adres `/shop`'a düşüyor. BAŞKA
+  bir ürün sayfası kabul — A'dan B'ye geçtiyseniz "geri" A'dır.
+- **Asıl düzeltme JS tarafında: `history.back()`.** Sunucudan gelen adres doğru
+  yere götürüyor ama adresi **yeniden çekiyor** — 200 ürün aşağıda tıklayan
+  alıcı listenin **başına** dönüyor. Kaydırma konumunu yalnız tarayıcının kendi
+  geçmişi koruyor. `href` **kalıyor**: JS'siz tarayıcı, orta tık ve "yeni
+  sekmede aç" bozulmasın diye — ve doğrudan gelende (referrer yok) zaten tek
+  doğru yer o. Devralma yalnız **düz sol tıkta** (`button!==0`, meta/ctrl/shift/
+  alt hariç) ve yalnız referrer **aynı kökende + `history.length>1`** iken.
+- **Ters bolu normalizasyonu eklendi** (`\` → `/`): `/\evil.example` bazı
+  tarayıcılarda `//evil.example` diye çözülür, yani site dışına çıkan bir
+  "geri". İzin listesi bunu zaten kapatıyor; satır, listeyi bir gün genişleten
+  birinin kapıyı sessizce açmaması için duruyor.
+- **Yerelde ÇİZDİRİLDİ** (kaynak okumak ölçüm değil): 11 referrer durumu tek tek
+  çekildi — ana sayfa `/`, `/shop?section=underwear`, `/showroom?uid=abc`,
+  `/b2b/bras`, `/buyer?view=…`, `/requests`, başka ürün → hepsi **geldiği yere**;
+  aynı ürün, `/login?signout=1`, yabancı site, referrer yok → **`/shop`**.
+  PHP uyarısı **0**, betik sayfada basılıyor.
+- Test: `tests/back_link_test.php` (**56 iddia**). Dört sabotajla düşebildiği
+  doğrulandı: eski dar liste → **9 kırmızı**, kendine-dönüş muhafazası kalkınca
+  **3**, "her yolu kabul et" → **13**, `history.back()` bloğu silinince **6**.
+  **Bir iddiam hiç düşemiyordu ve falsifikasyon yakaladı:** düz `history.back()`
+  aranıyordu, o dizge bloğun **açıklama satırında** da geçiyor — blok tamamen
+  silinince bile yeşil kalıyordu; iddia artık kodun kendi satırına bağlı.
+  *Sabotajın GERÇEKTEN uygulandığını da doğrula:* ilk `perl -0pi` denemem hiçbir
+  şey değiştirmemişti ve "0 kırmızı" diyerek testi sağlam göstermişti.
+- **Davranış bilerek değiştiği için test de düzeltildi** (bu deponun kendi
+  kuralı): `/buyer → /shop`, `/product → /shop`, `/ → /shop` iddiaları artık
+  eski ve **istenmeyen** davranışı koruyordu.
 - **Fotoğraf zemini ölçümle seçildi:** katalogdaki 35 fotoğrafın **33'ü** beyaz
   fonlu paket çekimi (kenar pikseli ortalaması > 225). `object-fit: cover` +
   koyu zemin bunları kırpıyor ve ürünü karartıyordu; artık fotoğraflı karo
   açık stüdyo zemini + `contain` (`.sthumb.sphoto`), yani ürün **kırpılmıyor**.
   Fotoğrafsız karo eski koyu degradeyi koruyor — orada kırpılacak bir şey yok.
+
+**Vitrin sırası: Balenciaga ve Lacoste en başta** (operatör, 12 Eyl 2026:
+*"ürünlerin yerlerini degistir balenciaga ve lacostelar basta kalsin"*).
+- **Bu, 11 Eylül'e kadar geçerli olan kararın ÖN TARAFTA geri alınması.** Eski
+  not *"katalog Gucci ile açılıyor, arkasında Givenchy, sonra Lacoste"* diyordu;
+  yeni cümle bunu değiştiriyor. Gucci/Givenchy **listeden çıkarılmadı**, yalnızca
+  iki markanın arkasına alındı — eski yorum olduğu gibi bırakılmadı, çünkü
+  birbirini tutmayan iki kayıt hangisinin geçerli olduğunu okunamaz yapar
+  (KURAL 21d'nin aynı dersi).
+- **Ölçüm tasarımı değiştirdi, tahmin değil.** Lacoste'un **11 ilanının 10'u**
+  zaten lead satıcı bölmesindeydi (`seller_uid=7ab30f26afedd840`), yani zaten
+  öndeydi; Balenciaga'nın **20 ilanının 20'si** `rest`'te, yani **en arkada**
+  (hiçbirinde lead satıcı kimliği yok, ve BALENCIAGA `$leadBrands`'te hiç
+  geçmiyordu). Yani istenen iş "ikisini de öne al" değil, **Balenciaga'yı en
+  arkadan öne çekmek** ve Lacoste'u oradayken kaybetmemekti.
+- **Ön marka kontrolü SATICI kontrolünden ÖNCE sorulmak zorunda.** Sonra
+  sorulsaydı GARAGE LE PARIS'in 10 Lacoste'u satıcı bölmesine düşer ve orada
+  **katalog sırasına göre dağılırlardı** — yani "başta" olmazlardı.
+- **Bedeli açıkça yazılı:** lead satıcının (GARAGE LE PARIS) Lacoste **dışındaki**
+  ~46 ilanı artık Balenciaga+Lacoste'un (~31 ilan) arkasında. Eski notun *"o
+  hesabın stoğu diğerlerinin önünde olsun"* gerekçesi bu kadar yumuşadı; operatör
+  aksini isterse tek satır (sırayı `$sel`'den sonraya almak).
+- **Sıra sayfa gövdesinden ÇIKARILDI:** tek karar noktası ve saf
+  `vestra_shop_order()` (`inc/products.php`), `shop.php` yalnızca çağırıyor.
+  Gövdeye gömülü olduğu sürece **sınanamıyordu**; bu depoda "aynı olgu iki yerde
+  yazılı" hatası defalarca kayıtlı.
+- **Eşleşme TAM, alt dize değil** (mango/zara dersi). Bedeli burada daha sessiz
+  olurdu: `BALENCIAGA` alt dize arandığında bir gün gelecek "Balenciaga Kids"
+  gibi bir ad da öne çıkar ve kimse fark etmez.
+- **Bölme, sıralama anahtarı DEĞİL:** her grubun içinde ürünler
+  `vestra_products()`'ın döndürdüğü sırayı aynen koruyor — bir markayı öne almak
+  diğer 300'ü yeniden dizmemeli. `_ord` alanı (sayfanın "newest" sortu için)
+  sıralamadan **önce** yazılıyor ve taşınıyor; taşınmasaydı öne çekilen markalar
+  sayfada **en eski stok** gibi görünürdü.
+- **Yerelde ÇİZDİRİLDİ** (kaynak okumak ölçüm değil): kum havuzunda `php -S` ile
+  `/shop` çekilip ürün id'leri sırayla okundu — `blc-1, blc-2` → üç Lacoste →
+  GARAGE LE PARIS'in geri kalanı → Gucci, Givenchy → diğerleri. PHP uyarısı
+  **0** (grep'in yakaladığı 8 satırın hepsi çerez bandının `notice` sınıfı).
+- Test: `tests/shop_order_test.php` (30 iddia). **İki yönü de** tutuyor: öne
+  çıkması gerekenler ve *yerinde kalması* gerekenler (lead satıcı, lead markalar,
+  grup içi katalog sırası). Düşebildiği doğrulandı — her sabotajın gerçekten
+  uygulandığı ayrıca yazdırılarak: ön marka bölmesi kaldırılınca **10 kırmızı**,
+  satıcıdan sonraya alınınca **2**, eşleşme alt dizeye gevşetilince **1**, liste
+  sırası yok sayılınca **2**.
 
 - **Actions günlüğü gizli değerleri HER YERDE maskeler:** `DEPLOY_PORT`="22"
   yüzünden `1225` → `1***5`, `222` → `***`, fiyat `22.95` → `***.95`, base64'ün

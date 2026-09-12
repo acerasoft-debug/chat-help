@@ -169,9 +169,10 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
             /* Completed card into the seller's conversation */
             if($me){
                 require_once __DIR__.'/inc/messages.php';
+                /* Karti ALICI dogurdu (teslimati o onayladi). */
                 vestra_msg_post_system($me['id'], $listing['seller_uid'], '', [
                     'kind'=>'order','status'=>'completed','ref'=>$ref,
-                ]);
+                ], (string)$me['id']);
             }
             foreach(auth_accounts() as $acc){
                 if(($acc['id']??'')!==$listing['seller_uid']||empty($acc['email'])) continue;
@@ -204,11 +205,12 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         $title = $reqRow['title'] ?? $oref;
         if ($sellerAcc && ($sellerAcc['type']??'')==='seller') {
             require_once __DIR__.'/inc/messages.php';
+            /* Karti ALICI dogurdu (teklifi o kabul etti). */
             vestra_msg_post_system($me['id'], $sellerAcc['id'], $reqRow['ref'] ?? '', [
                 'kind'=>'request_offer', 'status'=>'accept', 'ref'=>$oref,
                 'request_ref'=>$reqRow['ref'] ?? '', 'product'=>$title,
                 'qty'=>$offerRow['qty'] ?? '', 'unit_price'=>(float)($offerRow['price'] ?? 0),
-            ]);
+            ], (string)$me['id']);
         }
         /* Auto-generate an invoice for this sourcing deal, same as any other confirmed sale. */
         $qtyNum = (int)preg_replace('/\D/', '', (string)($offerRow['qty'] ?? '0')) ?: 1;
@@ -235,7 +237,10 @@ if (($_GET['tab']??'')==='messages' && !empty($_GET['thread']) && isset($_GET['p
     $t = vestra_msg_find_thread($_GET['thread']);
     $ok = $t && ($t['buyer_uid']??'') === ($_SESSION['uid']??'');
     header('Content-Type: application/json');
-    echo json_encode(['last' => $ok ? ($t['last_at']??'') : '']);
+    /* Durumu tek gövde kuruyor (vestra_msg_poll_state): 'last' yaninda karsi
+       tarafin okuma sayaci da donuyor, yoksa ✓ hicbir zaman ✓✓ olmaz. Iki panel
+       kendi hesaplasaydi biri digerinden ayrisirdi. */
+    echo json_encode($ok ? vestra_msg_poll_state($t, (string)$_SESSION['uid']) : ['last'=>'', 'read'=>0]);
     exit;
 }
 // Mark an opened thread read here, before head.php computes the nav badge below —

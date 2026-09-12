@@ -86,10 +86,11 @@ if(!empty($p['seller_uid']) && !empty($_SESSION['uid'])){
   $me = auth_user();
   if($me && $me['id']!==$p['seller_uid']){
     require_once __DIR__.'/inc/messages.php';
+    /* Karti ALICI dogurdu (teklifi o verdi) — kendi rozeti yanmasin. */
     vestra_msg_post_system($me['id'], $p['seller_uid'], $p['id'], [
       'kind'=>'offer', 'ref'=>$ref, 'product'=>$p['brand'].' '.$p['name'], 'sku'=>$p['sku'],
       'qty'=>$qty, 'unit_price'=>$price, 'total'=>$total, 'colors'=>$colors,
-    ]);
+    ], (string)$me['id']);
   }
 }
 

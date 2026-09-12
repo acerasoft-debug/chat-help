@@ -99,10 +99,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if ($buyerAcc && ($buyerAcc['type']??'')==='buyer' && $sellerAcc && ($sellerAcc['type']??'')==='seller') {
             require_once __DIR__.'/inc/messages.php';
+            /* Karti SATICI dogurdu (talebe teklif verdi). */
             vestra_msg_post_system($buyerAcc['id'], $sellerAcc['id'], $ref, [
                 'kind'=>'request_offer', 'ref'=>$oref, 'request_ref'=>$ref, 'product'=>$title,
                 'qty'=>$qty, 'unit_price'=>$price,
-            ]);
+            ], (string)$sellerAcc['id']);
         }
 
         // Notify buyer if we have their email (real requests only) — never reveals the

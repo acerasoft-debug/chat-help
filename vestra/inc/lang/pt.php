@@ -1228,6 +1228,8 @@ return array (
   'Dec' => 'dez',
   '{d} {m}' => '{d} {m}',
   '{d} {m} {y}' => '{d} {m} {y}',
+  'Read' => 'Lida',
+  'Sent' => 'Enviada',
   'Unread' => 'Não lida',
   'Back to conversations' => 'Voltar às conversas',
   'Enter to send · Shift+Enter for a new line' => 'Enter para enviar · Shift+Enter para nova linha',

@@ -42,44 +42,10 @@ $products = array_values(array_filter($products, fn($p) => vestra_product_sectio
    oldest stock on the page. */
 foreach ($products as $i => $_) $products[$i]['_ord'] = $i;
 
-/* Default grid order, front to back:
-     1. pinned products (operator-curated flagship listings), in the order pinned;
-     2. the lead sellers below -- a house is a label, a seller is who actually
-        ships, and the operator wants this one's stock forward of the rest;
-     3. the lead houses below, in the order listed -- the labels the catalogue opens
-        with, so a first-time visitor lands on the strongest stock rather than on
-        whatever happens to sit at the top of the file;
-     4. everything else.
-   Partitions rather than a sort key, so inside each group products keep exactly the
-   order vestra_products() returned -- promoting a brand must not reshuffle the
-   other 300. */
-/* Vitrin sirasi operator karari: katalog Gucci ile aciliyor, arkasinda Givenchy,
-   sonra Lacoste. Lacoste listeden cikarilmadi -- yalnizca iki hanenin arkasina
-   alindi ("biraz asagiya"), cunku dropship akisi (Stripe, stok, siparis) hala o
-   urune bagli ve gorunurlugunu tamamen kaybetmesi satisi dusurur. */
-$leadBrands = ['GUCCI', 'GIVENCHY', 'LACOSTE', 'BALMAIN', 'DSQUARED2'];
-/* Hem satici ADI hem HESAP KIMLIGI ile esleniyor, ve ikisi de gerekli: adla
-   eslemek tek basina yetmedi, cunku ilanlarin cogunda 'seller' alani bos ve
-   urun sayfasi orada "via VESTRA" yaziyor -- yalnizca ada bakan bir kural o
-   hesabin iki ilanini kaldirip geri kalanini yerinde birakiyordu. Kimlik tek
-   basina da yetmez: firma ikinci bir hesap acarsa kimlik degisir, ad kalir.
-   Iki yazim birden kabul, cunku ilanlarda ikisi de gecebiliyor. */
-$leadSellers    = ['GARAGE LE PARIS', 'LE GARAGE PARIS'];
-$leadSellerUids = ['7ab30f26afedd840'];
-$pinned = []; $seller = []; $lead = []; $rest = [];
-foreach ($products as $p) {
-    if (!empty($p['pinned'])) { $pinned[] = $p; continue; }
-    if (in_array(strtoupper(trim((string)($p['seller'] ?? ''))), $leadSellers, true)
-        || in_array((string)($p['seller_uid'] ?? ''), $leadSellerUids, true)) { $seller[] = $p; continue; }
-    $i = array_search(strtoupper(trim((string)($p['brand'] ?? ''))), $leadBrands, true);
-    if ($i !== false) { $lead[$i][] = $p; continue; }
-    $rest[] = $p;
-}
-$products = array_merge($pinned, $seller);
-foreach (array_keys($leadBrands) as $i) {
-    if (!empty($lead[$i])) $products = array_merge($products, $lead[$i]);
-}
-$products = array_merge($products, $rest);
+/* Vitrin sirasi TEK yerde: vestra_shop_order() (inc/products.php). Bolmeler,
+   sirali listeler ve "neden bu sira" gerekcesi orada yazili; burada yalnizca
+   cagriliyor ki sira sayfa govdesine gomulu kalmasin ve sinanabilsin. */
+$products = vestra_shop_order($products);
 $catCounts = []; foreach($products as $p){ $c=$p['cat']??'Other'; $catCounts[$c]=($catCounts[$c]??0)+1; }
 arsort($catCounts);
 /* Per-brand line-sheet downloads (public .xlsx with photos + codes, no pricing). */

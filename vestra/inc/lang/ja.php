@@ -1228,6 +1228,8 @@ return array (
   'Dec' => '12月',
   '{d} {m}' => '{m}{d}日',
   '{d} {m} {y}' => '{y}年{m}{d}日',
+  'Read' => '既読',
+  'Sent' => '送信済み',
   'Unread' => '未読',
   'Back to conversations' => '会話一覧に戻る',
   'Enter to send · Shift+Enter for a new line' => 'Enterで送信 · Shift+Enterで改行',

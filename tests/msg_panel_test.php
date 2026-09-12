@@ -89,7 +89,10 @@ $t('gun ayraci basildi',           str_contains($html, 'class="msgday"'));
    (karsilastirma icin), o ekranda yazi degil. */
 $visible = substr($html, 0, strpos($html, '<script') ?: strlen($html));
 $t('ham ISO ekranda yok',          !str_contains($visible, '2026-09-07T09'));
-$t('okunur saat ekranda',          str_contains($visible, '>09:12<'));
+/* 11 Eyl 2026: okundu onayi (✓ / ✓✓) saatin YANINA giriyor, yani metin artik
+   '>09:12<' degil '>09:12<span…'. Iddia komsu KARAKTERI degil OLGUYU tutsun:
+   okunur saat ekranda basiliyor. ("Davranis bilerek degistiyse testi de duzelt.") */
+$t('okunur saat ekranda',          str_contains($visible, '>09:12'));
 $t('satici adi degil ident',       str_contains($html, 'lac-pique-polo') && !str_contains($html, 'Atelier'));
 $t('cok satirli metin <br> ile',   str_contains($html, 'Merhaba<br'));
 $t('sistem karti cizildi',         str_contains($html, 'msgoffer'));

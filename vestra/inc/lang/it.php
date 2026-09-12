@@ -1232,6 +1232,8 @@ return array (
   'Dec' => 'dic',
   '{d} {m}' => '{d} {m}',
   '{d} {m} {y}' => '{d} {m} {y}',
+  'Read' => 'Letto',
+  'Sent' => 'Inviato',
   'Unread' => 'Non letto',
   'Back to conversations' => 'Torna alle conversazioni',
   'Enter to send · Shift+Enter for a new line' => 'Invio per inviare · Maiusc+Invio per andare a capo',
