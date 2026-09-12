@@ -625,7 +625,35 @@ jobs:
             foreach ($jsonFiles as $f) {
               $d = vestra_read_json($f);
               $raw = strtolower(json_encode($d, JSON_UNESCAPED_UNICODE));
-              if (str_contains($raw, $needle)) { $hits++; echo "== {$f}: eslesme VAR (".count($d)." kayit) ==\n\n"; }
+              if (!str_contains($raw, $needle)) continue;
+              $hits++; echo "== {$f}: eslesme VAR (".count($d)." kayit) ==\n";
+              /* "Eslesme VAR" tek basina sorunun cevabi degil: "kayit duruyor mu"
+                 ile "kayit NE DIYOR" ayri iki sey ve operatorun sordugu ikincisi
+                 oluyor (11 Eyl 2026: "sistem bunu tamamlandi olarak mi
+                 isaretliyor?" -- sonda kaydin varligini gosterip durumunu
+                 gostermiyordu). Yalnizca DURUM alanlari basiliyor; serbest metin
+                 ve kisiye ait alanlar $show()'dan gecmedigi icin hic basilmiyor. */
+              $safe = ['status','confirmed_at','paid_at','shipped_at','cancelled_at','invoice_no',
+                       'invoice_at','invoice_currency','invoice_seller_uid','shipping','disputed',
+                       'payment_grace_start','payment_reminder_sent_at','escrow_status'];
+              foreach ((array)$d as $k => $rec) {
+                if (stripos((string)$k, $needle) === false) continue;
+                if (!is_array($rec)) continue;
+                $line = [];
+                foreach ($safe as $sk) {
+                  if (!isset($rec[$sk]) || $rec[$sk] === '' || is_array($rec[$sk])) continue;
+                  $line[] = $sk.'='.(is_bool($rec[$sk]) ? ($rec[$sk]?'true':'false') : mb_substr((string)$rec[$sk], 0, 32));
+                }
+                if ($line) echo "   ".mb_substr((string)$k, 0, 24)."  ".implode(' | ', $line)."\n";
+                if (!empty($rec['history']) && is_array($rec['history'])) {
+                  foreach (array_slice($rec['history'], -6) as $h) {
+                    if (!is_array($h)) continue;
+                    echo "     gecmis: ".substr((string)($h['at'] ?? ''),0,16)
+                       . "  ".(string)($h['status'] ?? '')."  (".(string)($h['by'] ?? '?').")\n";
+                  }
+                }
+              }
+              echo "\n";
             }
 
             /* Hesap kaydi ayri dosyada (data/accounts.json) ve aramada YOKTU: "bu alici
