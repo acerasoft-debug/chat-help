@@ -65,31 +65,26 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - name: Çek
+      - name: Dropbox klasörünü indir (MOD E)
+        # AYRI ADIM, bilerek: GitHub bir 'script:' blogunun TAMAMINI tek bir
+        # sablon ifadesi olarak derliyor ve sinir 21000 karakter. MOD E ana
+        # betige eklenince dosya bu siniri asti ve workflow DISPATCH EDILEMEZ
+        # oldu ("Exceeded max expression length"). Her adimin kendi butcesi var;
+        # ayrica MOD E zaten digerleriyle hic ortak kod paylasmiyor.
+        if: ${{ github.event.inputs.dropbox_url != '' }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          # 5m -> 15m: MOD E bir klasorun TAMAMINI ZIP olarak cekiyor ve curl'un
-          # kendi --max-time'i 600sn. Adim timeout'u ondan KUCUK kalsaydi oturum
-          # curl daha vazgecmeden kesilir, ve cikti "ZIP gelmedi" degil sessiz bir
-          # kopma olurdu -- yani yanlis teshis. Diger modlar icin ust sinir,
-          # bekleme degil.
+          # Bir klasorun TAMAMI ZIP olarak cekiliyor; curl'un --max-time'i 540sn
+          # ve adim timeout'u ondan KUCUK kalsaydi oturum curl vazgecmeden
+          # kesilir, cikti "ZIP gelmedi" yerine sessiz bir kopma olurdu.
           command_timeout: 15m
           script: |
-            echo "ADIM 1: baglanti tamam"
-            export COLL_URL='${{ github.event.inputs.collection_url }}'
-            export URLS='${{ github.event.inputs.urls }}'
-            export PREFIX='${{ github.event.inputs.prefix }}'
-            export DUMP_ID='${{ github.event.inputs.dump_id }}'
-            export IMAGE_MAP='${{ github.event.inputs.image_map }}'
-            export SEARCH_STORES='${{ github.event.inputs.search_stores }}'
-            export SEARCH_TERM='${{ github.event.inputs.search_term }}'
             export DBX_URL='${{ github.event.inputs.dropbox_url }}'
             export DBX_SLUG='${{ github.event.inputs.dropbox_slug }}'
-
             # ---- MOD E: Dropbox paylasim klasoru ---------------------------------
             # Bu ortamdan (sandbox) dropbox.com'a cikis YOK -- olculdu, curl http=000.
             # Sunucunun kendi agi ayri; wetransfer isinde kaydedilen desenin aynisi.
@@ -180,7 +175,31 @@ jobs:
               echo "NOT: hicbir dosya public_html/uploads altina KOPYALANMADI."
               exit 0
             fi
-
+      - name: Çek
+        # MOD E verildiyse bu adim ATLANIR: ikisi ayri isler ve MOD E'nin
+        # cikisi bu betigin 'hicbir mod secilmedi' dalina dusup kafa karistirirdi.
+        if: ${{ github.event.inputs.dropbox_url == '' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          # 5m -> 15m: MOD E bir klasorun TAMAMINI ZIP olarak cekiyor ve curl'un
+          # kendi --max-time'i 600sn. Adim timeout'u ondan KUCUK kalsaydi oturum
+          # curl daha vazgecmeden kesilir, ve cikti "ZIP gelmedi" degil sessiz bir
+          # kopma olurdu -- yani yanlis teshis. Diger modlar icin ust sinir,
+          # bekleme degil.
+          command_timeout: 15m
+          script: |
+            echo "ADIM 1: baglanti tamam"
+            export COLL_URL='${{ github.event.inputs.collection_url }}'
+            export URLS='${{ github.event.inputs.urls }}'
+            export PREFIX='${{ github.event.inputs.prefix }}'
+            export DUMP_ID='${{ github.event.inputs.dump_id }}'
+            export IMAGE_MAP='${{ github.event.inputs.image_map }}'
+            export SEARCH_STORES='${{ github.event.inputs.search_stores }}'
+            export SEARCH_TERM='${{ github.event.inputs.search_term }}'
             cat > /tmp/vestra_fetchimg.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
