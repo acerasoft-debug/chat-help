@@ -165,10 +165,18 @@ jobs:
                 rm -f "$DEST/folder.zip"; exit 1
               fi
               rm -rf "$DEST/files"; mkdir -p "$DEST/files"
-              unzip -o -q -d "$DEST/files" "$DEST/folder.zip" || { echo "HATA: unzip basarisiz"; exit 1; }
-              rm -f "$DEST/folder.zip"
+              # unzip CIKIS KODU 1 = "uyari var, ama acma BASARIYLA tamamlandi"
+              # (>=2 gercek hata). Dropbox'in ZIP'i kok girdisini "/" diye
+              # yaziyor ve unzip onu atlayip 1 donuyor -- bu bir hata degil.
+              # Asil olcum aracin bayragi degil SONUC: kac dosya acildi.
+              unzip -o -q -d "$DEST/files" "$DEST/folder.zip"; UZ=$?
               N=$(find "$DEST/files" -type f | wc -l)
-              echo "acilan dosya: $N"
+              if [ "$UZ" -ge 2 ] || [ "$N" -eq 0 ]; then
+                echo "*** HATA: unzip rc=$UZ, acilan dosya=$N ***"
+                rm -f "$DEST/folder.zip"; exit 1
+              fi
+              [ "$UZ" -ne 0 ] && echo "not: unzip uyari verdi (rc=$UZ) -- dosyalar acildi"
+              rm -f "$DEST/folder.zip"
               echo "--- dosyalar (ad | bayt | tur) ---"
               # Tur 'file' ile olculuyor, UZANTIYLA degil: .jpg adli bir HTML bu
               # listede HTML gorunsun.
@@ -179,6 +187,15 @@ jobs:
                   "$(file -b --mime-type "$f" 2>/dev/null || echo '?')"
               done
               echo "--- son ---"
+              # OZET EN SONA: get_job_logs yalnizca KUYRUGU gosteriyor, yani uzun
+              # bir dosya listesinde bastaki sayimlar dusiyor. Sayim sonda olsun ki
+              # liste ne kadar uzarsa uzasin okunabilsin.
+              echo "--- ozet ---"
+              echo "acilan dosya: $N"
+              echo "klasor basina:"
+              find "$DEST/files" -type f | sed "s#^$DEST/files/##" | awk -F/ 'NF>1{print $1} NF==1{print "(kok)"}' | sort | uniq -c | sort -rn | head -30
+              echo "tur basina:"
+              find "$DEST/files" -type f -exec file -b --mime-type {} \; | sort | uniq -c | sort -rn | head -15
               echo "NOT: hicbir dosya public_html/uploads altina KOPYALANMADI."
               exit 0
             fi
