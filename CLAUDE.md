@@ -3032,6 +3032,41 @@ support@vestrasales.com dan gidecek brevo üzerinden"*).
   eşleşiyordu. Arama artık fonksiyon gövdesiyle sınırlı — "hiç düşemeyen bir
   iddia, iddia değildir" bu depoda zaten kayıtlıydı ve bir kez daha oldu.*
 
+**Hoş geldin kuponu: adres GİRDİYE yazılmaz, hesaptan çözülür** (operatör,
+12 Eyl 2026: *"Michael Baumgartner … bu müsteriye yüzde 5 lik indirim kuponu
+gönder welcome olarak"*).
+- **Kural zaten yazılıydı, bu iş akışı uymuyordu.** Tek müşteriye kupon
+  göndermenin tek yolu `only_emails` girdisiydi; o girdi **koşu başlığında
+  kalıcı ve herkese açık** ve çıktı da adresi **maskesiz** basıyordu. İkisi de
+  bu dosyanın kendi kurallarına aykırı (*"Müşteri adresini iş akışı girdisine
+  yazma; kayıttan çözdür"* + *"müşteri e-postaları teşhis çıktılarında
+  maskelenir"*) — `diag-live` → `leads_status`'ta bir kez düzeltilen hatanın
+  aynısı, başka bir dosyada duruyordu. *Bir kuralı bir yerde uygulamak, kuralı
+  uygulamak değildir.*
+- Yeni girdi `only_accounts`: **hesap ID'si** ya da firma adı parçası; adresi
+  sunucu `auth_accounts()`'tan çözüyor (`buyer_reply`'ın `to=account:<isim>`
+  deseni). **Eşleşme TAM 1 değilse iş DURUR** ve hiçbir şey göndermez: sıfırda
+  kimseye gitmez, birden fazlada **yanlış müşteriye** gidebilirdi ve gönderilmiş
+  bir kupon geri alınamaz. Adaylar **maskeli** listeleniyor ki operatör
+  daraltabilsin. ID tam eşitlik, ad parça — belirsizliği "tam 1" şartı yakalıyor.
+- **Kupon KODU açıkta kalıyor, bilerek:** kod tek kullanımlık, ilk siparişe bağlı
+  ve o **adrese kilitli** (`voucher_validate` kayıtlı adresi kontrol ediyor),
+  yani kütüğü okuyan kullanamaz — ve operatörün müşteriye elle iletebilmesi için
+  görünmesi gerekiyor. Maskelenen şey adres.
+- `V_ONLYACC` **`envs:` listesine de** eklendi: `appleboy/ssh-action` yalnızca
+  orada adı yazılı değişkenleri sunucuya geçiriyor, yoksa uzakta `getenv()` boş
+  döner ve sonda **sorulmayan bir soruya cevap verir**.
+- **Ölçüm sırası:** önce kum havuzu (uid → tam 1; belirsiz ad → çıkış 1, iki aday
+  maskeli; eşleşmeyen → çıkış 1; **kontrol grubu** `only_accounts`'suz koşu →
+  eski davranış aynen), sonra canlı `dry_run=true`, sonra gerçek gönderim.
+- **Sonuç (12 Eyl 2026):** `849aaa5ab65a0b3f` → **BRITISHSTYLE**, `b***@chello.at`,
+  tip **buyer**; kampanya `welcome5`, kod **VES-7RNZ-RZBJ**, son geçerlilik
+  **2027-03-12**. Kuru koşu `new` demişti, yani hesapta **welcome5 kodu yoktu** —
+  ikinci bir kod gitmedi. Gönderildi **1**, hata **0**. Sonraki toplu hoş geldin
+  koşusu aynı `campaign` adını gördüğü için bu hesabı **atlayacak**.
+- Mektubun dili hesabın **kayıtlı** `lang` alanından — metne gömülü değil ve
+  girdiden gelmiyor.
+
 - Brevo **ücretsiz plan**; `credits` alanı `sendLimit` tipinde (günlük gönderim
   hakkı), 1 Eylül 2026'da **288**. Her test bir hak yiyor.
 - Brevo'da kayıtlı **tek gönderen adres operatörün kendi Gmail'i** ("Acerasoft LLC");
@@ -3840,6 +3875,24 @@ geldiyse oraya götürsün"*).
   `/shop` çekilip ürün id'leri sırayla okundu — `blc-1, blc-2` → üç Lacoste →
   GARAGE LE PARIS'in geri kalanı → Gucci, Givenchy → diğerleri. PHP uyarısı
   **0** (grep'in yakaladığı 8 satırın hepsi çerez bandının `notice` sınıfı).
+- **CANLI ÖLÇÜM: `inspect-products.yml` → `shop_order=premium`** (run 163).
+  Bu ortamdan canlı siteye çıkılamıyor (`curl` → `http=000`), o yüzden sıra
+  **sunucuda, deploy edilmiş fonksiyonla** hesaplanıyor. Sonuç: premium 336
+  ilan (katalog 817); **Balenciaga 20 ilan, sıra 4..23** (yani 20'si de bitişik
+  ve önde), **Lacoste 12 ilan, sıra 2..34**. Sonda ilk 24'ün yanında **konum
+  özeti** de basıyor — ilk 24 tesadüfen doğru görünebilir, 20 ilanlı bir markanın
+  20'sinin de başta olduğunu ancak sayım gösterir. *Kütükteki `22` numaralı satır
+  `***` çıkıyor: `DEPLOY_PORT`="22" maskesi, hata değil.*
+- **CANLI ÖLÇÜMÜN ORTAYA ÇIKARDIĞI, OPERATÖR KARARI BEKLEYEN ŞEY:** ilk üç sıra
+  Balenciaga/Lacoste değil — `guc-t07` (Gucci), `lac-polo-paris` (Lacoste),
+  `rl-csf-polo-white` (**Ralph Lauren**). Üçü de **`pinned`**, yani operatörün
+  daha önce kendi ellediği ilanlar, ve `pinned` bölmesi her şeyin önünde.
+  (Çıkarım kesin: Ralph Lauren ne ön ne lead markada, ve satıcı bölmesinde olsa
+  bütün Balenciaga'lardan **sonra** gelirdi.) Yani bir Gucci ile bir Ralph Lauren
+  hâlâ 20 Balenciaga'nın önünde duruyor. **Kendiliğinden değiştirilmedi:** iki
+  operatör kararı karşı karşıya (eski iğnelemeler ile yeni "başta kalsın"), ve
+  birini ötekine kurban etmek bizim kararımız değil. İstenirse tek satır — ön
+  marka bölmesini `pinned`'in önüne almak.
 - Test: `tests/shop_order_test.php` (30 iddia). **İki yönü de** tutuyor: öne
   çıkması gerekenler ve *yerinde kalması* gerekenler (lead satıcı, lead markalar,
   grup içi katalog sırası). Düşebildiği doğrulandı — her sabotajın gerçekten
