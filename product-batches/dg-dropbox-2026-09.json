@@ -1,0 +1,1740 @@
+[
+ {
+  "id": "dgx-g7d9u",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Print T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "G7D9U",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g7d9u.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g7ded",
+  "brand": "Dolce & Gabbana",
+  "name": "Bandana Print T-Shirt",
+  "cat": "T-Shirts",
+  "sku": "G7DED",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g7ded.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Black",
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g7f2i",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Plaque T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "G7F2I",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g7f2i.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g7j5y",
+  "brand": "Dolce & Gabbana",
+  "name": "DG Milano T-Shirt — Black",
+  "cat": "T-Shirts",
+  "sku": "G7J5Y",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g7j5y.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g8kbat-g7f1r",
+  "brand": "Dolce & Gabbana",
+  "name": "Graffiti Logo T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "G8KBAT G7F1R",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8kbat-g7f1r.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g8kbaz-g7c6",
+  "brand": "Dolce & Gabbana",
+  "name": "DG Logo T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "G8KBAZ G7C6",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8kbazg7c6.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g8kbaz-g7c6r",
+  "brand": "Dolce & Gabbana",
+  "name": "Rose Print T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "G8KBAZ G7C6R",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8kbaz-g7c6r.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g8kbaz-g7c6s",
+  "brand": "Dolce & Gabbana",
+  "name": "DG Logo T-Shirt — Black",
+  "cat": "T-Shirts",
+  "sku": "G8KBAZ G7C6S",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8kbazg7c6s.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g8kbaz-g7c7g",
+  "brand": "Dolce & Gabbana",
+  "name": "Roses T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "G8KBAZ G7C7G",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8kbazg7c7g.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g8kbaz-g7d9u",
+  "brand": "Dolce & Gabbana",
+  "name": "Circle Logo T-Shirt — Black",
+  "cat": "T-Shirts",
+  "sku": "G8KBAZ G7D9U",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8kbazg7d9u.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g8nc5t-fugk4",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Plaque T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "G8NC5T FUGK4",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8nc5t-fugk4.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g8nc5t-hs7kg",
+  "brand": "Dolce & Gabbana",
+  "name": "Monogram T-Shirt",
+  "cat": "T-Shirts",
+  "sku": "G8NC5T HS7KG",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8nc5t-hs7kg.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Black",
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g8nc5z-g7c8a",
+  "brand": "Dolce & Gabbana",
+  "name": "Floral Print T-Shirt — Black",
+  "cat": "T-Shirts",
+  "sku": "G8NC5Z G7C8A",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8nc5z-g7c8a.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g8ol0z-fu7en",
+  "brand": "Dolce & Gabbana",
+  "name": "DG Logo Polo Shirt — Black",
+  "cat": "Polos",
+  "sku": "G8OL0Z FU7EN",
+  "list": 90.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8ol0zfu7e.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 90.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g8ol3z-fu7eq",
+  "brand": "Dolce & Gabbana",
+  "name": "Eden Print T-Shirt — Black",
+  "cat": "T-Shirts",
+  "sku": "G8OL3Z FU7EQ",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8ol3zfu7eq.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g8ol6z-g7c8g",
+  "brand": "Dolce & Gabbana",
+  "name": "Tonal Logo T-Shirt",
+  "cat": "T-Shirts",
+  "sku": "G8OL6Z G7C8G",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g.jpg",
+   "/uploads/dg-dropbox/d-g-g8ol6zg7c8g.jpg",
+   "/uploads/dg-dropbox/d-g-g8ol6zg7c8g1.jpg",
+   "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g-1.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White",
+   "Red",
+   "Black",
+   "Orange"
+  ]
+ },
+ {
+  "id": "dgx-g8on5z-fugk4",
+  "brand": "Dolce & Gabbana",
+  "name": "DG Logo T-Shirt — Khaki",
+  "cat": "T-Shirts",
+  "sku": "G8ON5Z FUGK4",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8on5zfugk4.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Khaki"
+  ]
+ },
+ {
+  "id": "dgx-g8pb9t-hu7ma",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Plaque T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "G8PB9T HU7MA",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pb9thu7ma.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g8pc7t-hu7ma",
+  "brand": "Dolce & Gabbana",
+  "name": "Sleeve Logo T-Shirt — Black",
+  "cat": "T-Shirts",
+  "sku": "G8PC7T HU7MA",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pc7thu7ma.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g8pd7z-g7g6q",
+  "brand": "Dolce & Gabbana",
+  "name": "DG Logo T-Shirt — Black",
+  "cat": "T-Shirts",
+  "sku": "G8PD7Z G7G6Q",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pd7zg7g6q.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g8pe3t-fu7eq",
+  "brand": "Dolce & Gabbana",
+  "name": "Sport Milano T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "G8PE3T FU7EQ",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pe3tfu7eq.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g8pe3t-g7j6h",
+  "brand": "Dolce & Gabbana",
+  "name": "Crest Print T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "G8PE3T G7J6H",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pe3tg7j6h.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g8pj4z-hu7ma",
+  "brand": "Dolce & Gabbana",
+  "name": "DG Print T-Shirt",
+  "cat": "T-Shirts",
+  "sku": "G8PJ4Z HU7MA",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pj4z-hu7ma.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White",
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g8pj4z-hu7mab",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Plaque T-Shirt — Navy",
+  "cat": "T-Shirts",
+  "sku": "G8PJ4Z HU7MAB",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pj4z-hu7mab.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Navy"
+  ]
+ },
+ {
+  "id": "dgx-g8pl1t-fu7eq",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Print T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "G8PL1T FU7EQ",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pl1t-fu7eq.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g8pl4t-g7f2h",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Plaque Polo Shirt — White",
+  "cat": "Polos",
+  "sku": "G8PL4T G7F2H",
+  "list": 90.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pl4t-g7f2h.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 90.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g8pl5z-fu7eq",
+  "brand": "Dolce & Gabbana",
+  "name": "DG Outline T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "G8PL5Z FU7EQ",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pl5z-fu7eq.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g8po1t-fugk4",
+  "brand": "Dolce & Gabbana",
+  "name": "Monogram T-Shirt — Black",
+  "cat": "T-Shirts",
+  "sku": "G8PO1T FUGK4",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8po1tfugk4.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g8pq0z-hu7ma",
+  "brand": "Dolce & Gabbana",
+  "name": "Tonal Logo T-Shirt — Black",
+  "cat": "T-Shirts",
+  "sku": "G8PQ0Z HU7MA",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pq0zhu7ma.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g8pt1t-g7jv9",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Plaque T-Shirt — Yellow",
+  "cat": "T-Shirts",
+  "sku": "G8PT1T G7JV9",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pt1t-g7jv9.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Yellow"
+  ]
+ },
+ {
+  "id": "dgx-g8pt1t-g7f2i-s8291",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Plaque T-Shirt — Grey",
+  "cat": "T-Shirts",
+  "sku": "G8PT1T G7F2I S8291",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pt1tg7f2i.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Grey"
+  ]
+ },
+ {
+  "id": "dgx-g8pt1t-g7f2i-ba232",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Plaque T-Shirt — Blue",
+  "cat": "T-Shirts",
+  "sku": "G8PT1T G7F2I BA232",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pt1tg7f2i-.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Blue"
+  ]
+ },
+ {
+  "id": "dgx-g8pt1t-g7g9i",
+  "brand": "Dolce & Gabbana",
+  "name": "Tropical Floral T-Shirt — Black",
+  "cat": "T-Shirts",
+  "sku": "G8PT1T G7G9I",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pt1t-g7g9i.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g8pt1t-g7jv9-v0396",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Plaque T-Shirt — Green",
+  "cat": "T-Shirts",
+  "sku": "G8PT1T G7JV9 V0396",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pt1t-g7jv9-v0396.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Green"
+  ]
+ },
+ {
+  "id": "dgx-g8pt1z-fu7eq",
+  "brand": "Dolce & Gabbana",
+  "name": "Floral Logo T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "G8PT1Z FU7EQ",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pt1z-fu7eq.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g8pt2t-g7f2i",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Plaque V-Neck T-Shirt — Black",
+  "cat": "T-Shirts",
+  "sku": "G8PT2T G7F2I",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8pt2tg7f2i.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g8qi4t-fu7eq",
+  "brand": "Dolce & Gabbana",
+  "name": "D&G Logo T-Shirt — Black",
+  "cat": "T-Shirts",
+  "sku": "G8QI4T FU7EQ",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8qi4tfu7eq.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g8qi6t-fu7eq",
+  "brand": "Dolce & Gabbana",
+  "name": "Slogan Print T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "G8QI6T FU7EQ",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8qi6t-fu7eq.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g8ql1t-g7i3e",
+  "brand": "Dolce & Gabbana",
+  "name": "Photo Print T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "G8QL1T G7I3E",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8ql1t-g7i3e.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g8ra2z-g7j6f",
+  "brand": "Dolce & Gabbana",
+  "name": "Crest T-Shirt — Black",
+  "cat": "T-Shirts",
+  "sku": "G8RA2Z G7J6F",
+  "list": 85.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8ra2zg7j6f.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 85.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g9abjt-g7f2g-ba232",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Plaque Sweatshirt — Blue",
+  "cat": "Hoodies & Sweatshirts",
+  "sku": "G9ABJT G7F2G BA232",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g9abjtg7f2gba232.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ],
+  "colors": [
+   "Blue"
+  ]
+ },
+ {
+  "id": "dgx-g9abjt-g7f2g-r2254",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Plaque Sweatshirt — Red",
+  "cat": "Hoodies & Sweatshirts",
+  "sku": "G9ABJT G7F2G R2254",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g9abjtg7f2gr-54.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ],
+  "colors": [
+   "Red"
+  ]
+ },
+ {
+  "id": "dgx-g9ow6z-g7c8h",
+  "brand": "Dolce & Gabbana",
+  "name": "DG Logo Sweatshirt — Blue",
+  "cat": "Hoodies & Sweatshirts",
+  "sku": "G9OW6Z G7C8H",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g9ow6zg7c8h.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ],
+  "colors": [
+   "Blue"
+  ]
+ },
+ {
+  "id": "dgx-g9xh0z-fu7du",
+  "brand": "Dolce & Gabbana",
+  "name": "Print Hoodie — Black",
+  "cat": "Hoodies & Sweatshirts",
+  "sku": "G9XH0Z FU7DU",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g9xh0zfu7du.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g9xh2z-g7d0e",
+  "brand": "Dolce & Gabbana",
+  "name": "Crest Sweatshirt — White",
+  "cat": "Hoodies & Sweatshirts",
+  "sku": "G9XH2Z G7D0E",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g9xh2z-g7d0e.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g9xh2z-g7d0e1",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Sweatshirt — Black",
+  "cat": "Hoodies & Sweatshirts",
+  "sku": "G9XH2Z G7D0E1",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g9xh2z-g7d0e1.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g9xi2z-hu7al",
+  "brand": "Dolce & Gabbana",
+  "name": "Hoodie — White",
+  "cat": "Hoodies & Sweatshirts",
+  "sku": "G9XI2Z HU7AL",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g9xi2zhu7al.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-g9yi0z-hi7wk",
+  "brand": "Dolce & Gabbana",
+  "name": "Floral Print Hoodie — Navy",
+  "cat": "Hoodies & Sweatshirts",
+  "sku": "G9YI0Z HI7WK",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g9yi0z-hi7wk.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ],
+  "colors": [
+   "Navy"
+  ]
+ },
+ {
+  "id": "dgx-g9zk9z-fu7du",
+  "brand": "Dolce & Gabbana",
+  "name": "DG Logo Sweatshirt — White",
+  "cat": "Hoodies & Sweatshirts",
+  "sku": "G9ZK9Z FU7DU",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g9zk9z-fu7du.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ],
+  "colors": [
+   "White"
+  ]
+ },
+ {
+  "id": "dgx-gvepaz-fu7du",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Tape Jogging Trousers — Black",
+  "cat": "Tracksuits",
+  "sku": "GVEPAZ FU7DU",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gvepazfu7du.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-gvetaz-hu7b7",
+  "brand": "Dolce & Gabbana",
+  "name": "Logo Tape Jogging Trousers — Black",
+  "cat": "Tracksuits",
+  "sku": "GVETAZ HU7B7",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gvetazhu7b7.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-gwt1az-humlx",
+  "brand": "Dolce & Gabbana",
+  "name": "Jogging Trousers — Black",
+  "cat": "Tracksuits",
+  "sku": "GWT1AZ HUMLX",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gwt1azhumlx.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-gx630t-jbmj0",
+  "brand": "Dolce & Gabbana",
+  "name": "Side Stripe Jogging Trousers — Black",
+  "cat": "Tracksuits",
+  "sku": "GX630T JBMJ0",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gx630t-jbmj0.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-g8fr9",
+  "brand": "Dolce & Gabbana",
+  "name": "Denim Shorts",
+  "cat": "Jeans Shorts",
+  "sku": "G8FR9",
+  "list": 90.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-g8fr9.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 90.0
+   }
+  ]
+ },
+ {
+  "id": "dgx-gwnxad-g8et4",
+  "brand": "Dolce & Gabbana",
+  "name": "Denim Shorts",
+  "cat": "Jeans Shorts",
+  "sku": "GWNXAD G8ET4",
+  "list": 90.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gwnxadg8et4.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 90.0
+   }
+  ]
+ },
+ {
+  "id": "dgx-gy07cd-g8co7",
+  "brand": "Dolce & Gabbana",
+  "name": "5-Pocket Jeans — Black",
+  "cat": "Jeans",
+  "sku": "GY07CD G8CO7",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gy07cd-g8co7.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ],
+  "colors": [
+   "Black"
+  ]
+ },
+ {
+  "id": "dgx-gy07cd-g8eu3",
+  "brand": "Dolce & Gabbana",
+  "name": "5-Pocket Jeans",
+  "cat": "Jeans",
+  "sku": "GY07CD G8EU3",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gy07cd-g8eu3.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ]
+ },
+ {
+  "id": "dgx-gy07cd-g8ev8",
+  "brand": "Dolce & Gabbana",
+  "name": "5-Pocket Jeans — Grey",
+  "cat": "Jeans",
+  "sku": "GY07CD G8EV8",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gy07cd-g8ev8.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ],
+  "colors": [
+   "Grey"
+  ]
+ },
+ {
+  "id": "dgx-gy07cd-g8fr4",
+  "brand": "Dolce & Gabbana",
+  "name": "5-Pocket Jeans",
+  "cat": "Jeans",
+  "sku": "GY07CD G8FR4",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gy07cd-g8fr4.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ]
+ },
+ {
+  "id": "dgx-gy07cd-g8fs5",
+  "brand": "Dolce & Gabbana",
+  "name": "5-Pocket Jeans",
+  "cat": "Jeans",
+  "sku": "GY07CD G8FS5",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gy07cd-g8fs5.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ]
+ },
+ {
+  "id": "dgx-gy07cd-g8gw9",
+  "brand": "Dolce & Gabbana",
+  "name": "5-Pocket Jeans",
+  "cat": "Jeans",
+  "sku": "GY07CD G8GW9",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gy07cd-g8gw9.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ]
+ },
+ {
+  "id": "dgx-gy07cd-g8ha9",
+  "brand": "Dolce & Gabbana",
+  "name": "5-Pocket Jeans",
+  "cat": "Jeans",
+  "sku": "GY07CD G8HA9",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gy07cdg8ha9.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ]
+ },
+ {
+  "id": "dgx-gy07ld-g8et3",
+  "brand": "Dolce & Gabbana",
+  "name": "Slim Fit Jeans",
+  "cat": "Jeans",
+  "sku": "GY07LD G8ET3",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gy07ldg8et3.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ]
+ },
+ {
+  "id": "dgx-gy07ld-g8eu4",
+  "brand": "Dolce & Gabbana",
+  "name": "Slim Fit Jeans",
+  "cat": "Jeans",
+  "sku": "GY07LD G8EU4",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gy07ld-g8eu4-.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ]
+ },
+ {
+  "id": "dgx-gy07ld-g8eu5",
+  "brand": "Dolce & Gabbana",
+  "name": "Slim Fit Jeans",
+  "cat": "Jeans",
+  "sku": "GY07LD G8EU5",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gy07ldg8eu5.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ]
+ },
+ {
+  "id": "dgx-gy07ld-g8ha7",
+  "brand": "Dolce & Gabbana",
+  "name": "Slim Fit Jeans",
+  "cat": "Jeans",
+  "sku": "GY07LD G8HA7",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gy07ld-g8ha7.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ]
+ },
+ {
+  "id": "dgx-gy07ld-g8hb3",
+  "brand": "Dolce & Gabbana",
+  "name": "Slim Fit Jeans",
+  "cat": "Jeans",
+  "sku": "GY07LD G8HB3",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gy07ldg8hb3.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ]
+ },
+ {
+  "id": "dgx-gy07ld-g8hw4",
+  "brand": "Dolce & Gabbana",
+  "name": "Slim Fit Jeans",
+  "cat": "Jeans",
+  "sku": "GY07LD G8HW4",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/dg-dropbox/d-g-gy07ld-g8hw4.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 120.0
+   }
+  ]
+ }
+]
