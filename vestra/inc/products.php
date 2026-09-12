@@ -1946,6 +1946,84 @@ function vestra_colour_options(array $p): array {
     return $c;
 }
 
+/* ---------------------------------------------------------------------------
+   VITRIN SIRASI. Tek karar noktasi ve SAF: shop.php yalnizca cagiriyor. Sira bir
+   sayfanin govdesinde yaziliyken sinanamiyordu, ve bu depoda "ayni olgu iki yerde
+   yazili" hatasi defalarca kayitli -- ikinci bir kopya er gec ayrisir ve ayrisma
+   dogrudan vitrinde gorunur.
+
+   Bolmeler (siralama anahtari DEGIL), onden arkaya:
+     1. pinned  -- operatorun ise ilistirdigi ilanlar, islendikleri sirada;
+     2. ON MARKALAR -- operator karari, 12 Eyl 2026: "balenciaga ve lacostelar
+        basta kalsin". Liste sirasi = vitrin sirasi (once Balenciaga, sonra
+        Lacoste), operatorun cumlesindeki sira;
+     3. lead satici -- bir marka etikettir, satici mali gercekten gonderen taraf;
+     4. lead markalar, listedeki sirada;
+     5. geri kalan.
+
+   Bolme (partition), siralama anahtari degil: her grubun ICINDE urunler
+   vestra_products()'in dondurdugu sirayi aynen koruyor. Bir markayi one almak
+   diger 300 urunu yeniden dizmemeli.
+
+   ESLESME TAM, alt dize DEGIL. Bu depoda gevsek eslesme bir kez pahaliya
+   ogrenildi (mango -> "Mangobay Boutique"); burada bedeli daha sessiz olurdu:
+   "BALENCIAGA" alt dize arandiginda bir gun gelecek "Balenciaga Kids" gibi bir
+   ad da one cikar ve kimse fark etmez.
+
+   NOT (12 Eyl 2026, kapsamin degismesi): 11 Eyl'e kadar gecerli olan karar
+   "katalog Gucci ile aciliyor, arkasinda Givenchy, sonra Lacoste" idi. Operatorun
+   yeni cumlesi bunu ON TARAFTA degistiriyor; Gucci/Givenchy listeden CIKARILMADI,
+   yalnizca iki markanin arkasina alindi. Bedeli acikca yazili: lead satici
+   (GARAGE LE PARIS) artik on markalarin arkasinda -- yani o hesabin Lacoste
+   DISINDAKI ilanlari Balenciaga+Lacoste kadar geri gidiyor. */
+function vestra_shop_front_brands(): array { return ['BALENCIAGA', 'LACOSTE']; }
+function vestra_shop_lead_brands(): array { return ['GUCCI', 'GIVENCHY', 'BALMAIN', 'DSQUARED2']; }
+/* Hem satici ADI hem HESAP KIMLIGI ile esleniyor, ve ikisi de gerekli: adla
+   eslemek tek basina yetmedi, cunku ilanlarin cogunda 'seller' alani bos ve urun
+   sayfasi orada "via VESTRA" yaziyor -- yalnizca ada bakan bir kural o hesabin
+   iki ilanini kaldirip geri kalanini yerinde birakiyordu. Kimlik tek basina da
+   yetmez: firma ikinci bir hesap acarsa kimlik degisir, ad kalir. Iki yazim
+   birden kabul, cunku ilanlarda ikisi de gecebiliyor. */
+function vestra_shop_lead_sellers(): array { return ['GARAGE LE PARIS', 'LE GARAGE PARIS']; }
+function vestra_shop_lead_seller_uids(): array { return ['7ab30f26afedd840']; }
+
+/* Listeler parametre, cunku test mekanizmayi KENDI tanimladigi degerlerle
+   sinamali; sevk edilen markalar ayrica kaynaktan dogrulaniyor. Ikisi tek iddiada
+   birlesseydi, listeye bir marka eklendigi gun mekanizmanin testi de kirmizi
+   donerdi -- olctugunu degil, yazimini koruyan bir iddia. */
+function vestra_shop_order(array $products, ?array $front = null, ?array $lead = null,
+                           ?array $sellers = null, ?array $sellerUids = null): array {
+    $front      = $front      ?? vestra_shop_front_brands();
+    $lead       = $lead       ?? vestra_shop_lead_brands();
+    $sellers    = $sellers    ?? vestra_shop_lead_sellers();
+    $sellerUids = $sellerUids ?? vestra_shop_lead_seller_uids();
+
+    $up = fn($v) => strtoupper(trim((string)$v));
+
+    $pinned = []; $fr = []; $sel = []; $ld = []; $rest = [];
+    foreach ($products as $p) {
+        if (!empty($p['pinned'])) { $pinned[] = $p; continue; }
+        /* On markalar satici kontrolunden ONCE: Lacoste ilanlarinin cogu lead
+           saticinin, yani sonra sorulsaydi o bolmeye dusup icinde dagilirlardi
+           ve "basta" olmazlardi. */
+        $i = array_search($up($p['brand'] ?? ''), $front, true);
+        if ($i !== false) { $fr[$i][] = $p; continue; }
+        if (in_array($up($p['seller'] ?? ''), $sellers, true)
+            || in_array((string)($p['seller_uid'] ?? ''), $sellerUids, true)) { $sel[] = $p; continue; }
+        $i = array_search($up($p['brand'] ?? ''), $lead, true);
+        if ($i !== false) { $ld[$i][] = $p; continue; }
+        $rest[] = $p;
+    }
+
+    $out = $pinned;
+    /* array_keys DEGIL, indis uzerinden: bir marka o bolmede hic urun vermezse
+       kendinden sonrakiler one kaymamali, liste sirasi korunmali. */
+    for ($i = 0; $i < count($front); $i++) if (!empty($fr[$i])) $out = array_merge($out, $fr[$i]);
+    $out = array_merge($out, $sel);
+    for ($i = 0; $i < count($lead); $i++)  if (!empty($ld[$i])) $out = array_merge($out, $ld[$i]);
+    return array_merge($out, $rest);
+}
+
 /* SEO iniş sayfaları (kategori, koleksiyon, marka × kategori) — inc/seo.php. Burada
    yükleniyor ki kataloğu yükleyen her sayfa bu yardımcıları da bulsun; head.php ve
    foot.php function_exists ile soruyor. */

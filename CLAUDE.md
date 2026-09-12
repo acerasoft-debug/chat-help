@@ -3803,6 +3803,50 @@ geldiyse oraya götürsün"*).
   açık stüdyo zemini + `contain` (`.sthumb.sphoto`), yani ürün **kırpılmıyor**.
   Fotoğrafsız karo eski koyu degradeyi koruyor — orada kırpılacak bir şey yok.
 
+**Vitrin sırası: Balenciaga ve Lacoste en başta** (operatör, 12 Eyl 2026:
+*"ürünlerin yerlerini degistir balenciaga ve lacostelar basta kalsin"*).
+- **Bu, 11 Eylül'e kadar geçerli olan kararın ÖN TARAFTA geri alınması.** Eski
+  not *"katalog Gucci ile açılıyor, arkasında Givenchy, sonra Lacoste"* diyordu;
+  yeni cümle bunu değiştiriyor. Gucci/Givenchy **listeden çıkarılmadı**, yalnızca
+  iki markanın arkasına alındı — eski yorum olduğu gibi bırakılmadı, çünkü
+  birbirini tutmayan iki kayıt hangisinin geçerli olduğunu okunamaz yapar
+  (KURAL 21d'nin aynı dersi).
+- **Ölçüm tasarımı değiştirdi, tahmin değil.** Lacoste'un **11 ilanının 10'u**
+  zaten lead satıcı bölmesindeydi (`seller_uid=7ab30f26afedd840`), yani zaten
+  öndeydi; Balenciaga'nın **20 ilanının 20'si** `rest`'te, yani **en arkada**
+  (hiçbirinde lead satıcı kimliği yok, ve BALENCIAGA `$leadBrands`'te hiç
+  geçmiyordu). Yani istenen iş "ikisini de öne al" değil, **Balenciaga'yı en
+  arkadan öne çekmek** ve Lacoste'u oradayken kaybetmemekti.
+- **Ön marka kontrolü SATICI kontrolünden ÖNCE sorulmak zorunda.** Sonra
+  sorulsaydı GARAGE LE PARIS'in 10 Lacoste'u satıcı bölmesine düşer ve orada
+  **katalog sırasına göre dağılırlardı** — yani "başta" olmazlardı.
+- **Bedeli açıkça yazılı:** lead satıcının (GARAGE LE PARIS) Lacoste **dışındaki**
+  ~46 ilanı artık Balenciaga+Lacoste'un (~31 ilan) arkasında. Eski notun *"o
+  hesabın stoğu diğerlerinin önünde olsun"* gerekçesi bu kadar yumuşadı; operatör
+  aksini isterse tek satır (sırayı `$sel`'den sonraya almak).
+- **Sıra sayfa gövdesinden ÇIKARILDI:** tek karar noktası ve saf
+  `vestra_shop_order()` (`inc/products.php`), `shop.php` yalnızca çağırıyor.
+  Gövdeye gömülü olduğu sürece **sınanamıyordu**; bu depoda "aynı olgu iki yerde
+  yazılı" hatası defalarca kayıtlı.
+- **Eşleşme TAM, alt dize değil** (mango/zara dersi). Bedeli burada daha sessiz
+  olurdu: `BALENCIAGA` alt dize arandığında bir gün gelecek "Balenciaga Kids"
+  gibi bir ad da öne çıkar ve kimse fark etmez.
+- **Bölme, sıralama anahtarı DEĞİL:** her grubun içinde ürünler
+  `vestra_products()`'ın döndürdüğü sırayı aynen koruyor — bir markayı öne almak
+  diğer 300'ü yeniden dizmemeli. `_ord` alanı (sayfanın "newest" sortu için)
+  sıralamadan **önce** yazılıyor ve taşınıyor; taşınmasaydı öne çekilen markalar
+  sayfada **en eski stok** gibi görünürdü.
+- **Yerelde ÇİZDİRİLDİ** (kaynak okumak ölçüm değil): kum havuzunda `php -S` ile
+  `/shop` çekilip ürün id'leri sırayla okundu — `blc-1, blc-2` → üç Lacoste →
+  GARAGE LE PARIS'in geri kalanı → Gucci, Givenchy → diğerleri. PHP uyarısı
+  **0** (grep'in yakaladığı 8 satırın hepsi çerez bandının `notice` sınıfı).
+- Test: `tests/shop_order_test.php` (30 iddia). **İki yönü de** tutuyor: öne
+  çıkması gerekenler ve *yerinde kalması* gerekenler (lead satıcı, lead markalar,
+  grup içi katalog sırası). Düşebildiği doğrulandı — her sabotajın gerçekten
+  uygulandığı ayrıca yazdırılarak: ön marka bölmesi kaldırılınca **10 kırmızı**,
+  satıcıdan sonraya alınınca **2**, eşleşme alt dizeye gevşetilince **1**, liste
+  sırası yok sayılınca **2**.
+
 - **Actions günlüğü gizli değerleri HER YERDE maskeler:** `DEPLOY_PORT`="22"
   yüzünden `1225` → `1***5`, `222` → `***`, fiyat `22.95` → `***.95`, base64'ün
   içi dahil. Loga base64 basarken karakter arası boşluk koy (`|spaced`); günlükten
