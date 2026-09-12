@@ -4067,3 +4067,26 @@ görünür): **895 kayıt, `pending=68`**, `tiers` hepsinde var. Yeni satırlard
    Knitwear` mi? Fiyat tablosunda karşılığı yok, o yüzden yazılmadı.
 3. **9 iç giyim + 1 mayo** — "şimdilik koyma" denildi; fotoğraflar sunucuda
    duruyor (`~/wt_incoming/dg/files`), fiyat verilirse tek koşuda eklenir.
+
+**KURAL 25 — 68 ilan AÇILDI** (operatör, 12 Eyl 2026: *"tüm ürünleri aprrovals
+yap fotolariyla beraber"*). `product-fixes/dg-approve.json` + `set-product.yml`;
+her satırda `expect:1`, kuru koşu **68/68** eşleşti, sonra uygulandı
+(`KAYDEDILDI — 68 alan guncellendi`, zaman damgalı yedek). Geri okuma:
+`approved=883` (815 + 68), **`pending` tamamen bitti**.
+
+- **"Fotoğraflarıyla beraber" ÖLÇÜLDÜ ve ölçüm ÖNCE yanlış kümeye baktı.**
+  `inspect-products` → `check_images` modu `vestra_products()` geziyor, yani
+  **yalnız approved**: onay bekleyen 68 ilanı **yapısı gereği göremiyor**.
+  İlk koşu mevcut **35 onaylı** D&G ilanını ölçüp *"TUM FOTOLAR YERINDE"* dedi —
+  doğru cümle, yanlış küme, ve ona güvenip onaylasaydım kırık görselle yayına
+  açma ihtimali ölçülmemiş kalırdı. Aynı denetim `raw_scan`'e eklendi (ham
+  liste, pending dahil): onaydan **önce** `diskte VAR: 106 / kayip 0`
+  (35 eski + 71 yeni kare), onaydan **sonra** katalog geneli
+  **`diskte VAR: 1248 / kayip 0 / hic gorseli olmayan ilan 0`**.
+  *Bir partiyi doğrulayan sonda o partiyi göremiyorsa, verdiği yeşil başka bir
+  şeyin yeşili.*
+- **`set_product.php` eşleşmeyi `match` alanından okuyor, `id`'den değil.** İlk
+  onay dosyamı `id` ile yazdım; kuru koşu 68 satırın **68'ini de** reddetti
+  (`'match' bos`) ve hiçbir şey yazılmadı. Mevcut `nbb-approve.json`'a
+  bakmadığım için oldu. *Bir dosya biçimini yeniden icat etmeden önce, aynı işi
+  yapan mevcut dosyayı aç.*
