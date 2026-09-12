@@ -4,6 +4,7 @@
     "_kapi": "sold_out ilani SILMIYOR, yalnizca satin almayi kapatiyor -- alti satin alma yolu da (sepet/siparis, numune, teklif, dropship, grup, line sheet) sunucu tarafinda ayri ayri vestra_is_sold_out() cagiriyor. Ilan vitrinde 'Sold' rozetiyle duruyor.",
     "match": "lgp-lacoste-trim-tshirt",
     "expect": 1,
-    "sold_out": "true"
+    "_bool": "TIRNAKSIZ olmak zorunda: set_product.php string kabul etmiyor, cunku \"false\" STRINGI PHP'de true'ya donusur ve operator kapattigini sanirken urun satista kalirdi. Ilk denememde tirnakli yazdim, dogrulayici reddetti ve hicbir sey yazilmadi.",
+    "sold_out": true
   }
 ]
