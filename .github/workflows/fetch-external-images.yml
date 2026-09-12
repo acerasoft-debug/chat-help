@@ -112,6 +112,13 @@ jobs:
               # yerine, cunku her kosu bir tur gecikme demek.
               BASE=$(printf '%s' "$DBX_URL" | sed 's/?.*//')
               RLKEY=$(printf '%s' "$DBX_URL" | tr '?&' '\n\n' | sed -n 's/^rlkey=//p' | head -1)
+              # st= : Dropbox'in YENI paylasim jetonu. Operatorun ilk iki linkinde
+              # YOKTU, ucuncusunde VAR -- ve 'No Access' sayfasinin sebebi bu olabilir.
+              # Yeniden kurulan adreslerde de tasinmali: dusurursek, calisabilecek
+              # bir linki kendi elimizle gecersiz kilmis oluruz.
+              ST=$(printf '%s' "$DBX_URL" | tr '?&' '\n\n' | sed -n 's/^st=//p' | head -1)
+              [ -n "$ST" ] && STQ="&st=$ST" || STQ=""
+              echo "st jetonu: $([ -n "$ST" ] && echo VAR || echo yok)"
               # /scl/fo/<id>/<key> kokten SONRAKI her sey alt klasor yoludur.
               ROOT=$(printf '%s' "$BASE" | sed -E 's#(https://[^/]+/scl/fo/[^/]+/[^/]+).*#\1#')
               SUB=$(printf '%s' "$BASE" | sed -E 's#https://[^/]+/scl/fo/[^/]+/[^/]+##')
@@ -132,7 +139,7 @@ jobs:
               }
               OK=0
               if [ -n "$SUB" ] && [ -n "$RLKEY" ]; then
-                try_zip "${ROOT}?rlkey=${RLKEY}&subpath=${SUB}&dl=1" "kok+subpath" && OK=1
+                try_zip "${ROOT}?rlkey=${RLKEY}${STQ}&subpath=${SUB}&dl=1" "kok+subpath" && OK=1
               fi
               if [ "$OK" = "0" ]; then
                 U=$(printf '%s' "$DBX_URL" | sed 's/[?&]dl=0//; s/&subfolder_nav_tracking=1//')
@@ -140,7 +147,7 @@ jobs:
                 try_zip "$U" "verilen link + dl=1" && OK=1
               fi
               if [ "$OK" = "0" ] && [ -n "$RLKEY" ]; then
-                try_zip "${ROOT}?rlkey=${RLKEY}&dl=1" "kok (tum klasor)" && OK=1
+                try_zip "${ROOT}?rlkey=${RLKEY}${STQ}&dl=1" "kok (tum klasor)" && OK=1
               fi
               if [ "$OK" = "0" ]; then
                 echo "*** ZIP GELMEDI ***"
