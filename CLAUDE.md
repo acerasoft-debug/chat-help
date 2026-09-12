@@ -3880,6 +3880,19 @@ katalogtan bul ve fotolari ile birlikte pdf yap sadece isim marka ve foto"*).
   aynı sayfa**. Yani sorun adres biçimi değil, **linkin kendisi dışarıdan
   görüntülenemiyor**: paylaşım ayarı "davet edilenler"/ekip içi görünüyor.
   Çözüm operatörde: klasörü **"Anyone with the link"** olarak paylaşmak.
+- **İKİNCİ, TAMAMEN AYRI paylaşım da aynı sonucu verdi** (operatörün D&G linki,
+  başka `fo` id + başka `rlkey`): yine `Dropbox - No Access`, yine üç biçim de.
+  Üstelik **kök denemesi iki linkte de BİREBİR 205.836 bayt** döndü — yani gelen
+  şey klasöre özgü bir sayfa değil, **genel bir ret sayfası**. Sorun tek bir
+  linkte değil, **paylaşımın kendisinde**. *Tek ölçüm "bu link bozuk" derdi;
+  ikinci ölçüm "bu yol kapalı" dedirtti.*
+- **Ayırt edilemeyen tek şey ve onu ÖLÇEBİLECEK kişi operatör:** "link özel" ile
+  "Dropbox sunucunun IP'sini engelliyor" dışarıdan ayrılamıyor (200 + markalı
+  "No Access" sayfası ilkine benziyor — IP engelinde genelde captcha/403/429
+  gelir, ama kesin değil). **Kontrol grubu:** operatör linki **gizli/incognito**
+  pencerede (Dropbox oturumu KAPALI) açsın. Orada da "No Access" çıkıyorsa
+  paylaşım ayarıdır; açılıyorsa sunucu tarafı engellenmiştir ve çözüm başka
+  (WeTransfer yolu zaten kurulu ve çalıştığı kanıtlı).
 - **Sihirli bayt (PK) kontrolü ilk koşuda işe yaradı:** olmasaydı 202 KB'lık
   HTML'i açmaya çalışır ya da ürün fotoğrafı diye bir hata sayfası kaydederdik —
   bu depoda `.jpg` diye kaydedilmiş HTML bir kez yaşandı. **`dl=0` → `dl=1`
