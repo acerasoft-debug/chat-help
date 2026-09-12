@@ -378,6 +378,31 @@ jobs:
                 printf("     beden: %s   renk: %s\n", (string)($p['sizes'] ?? '-'), implode('/', (array)($p['colors'] ?? [])));
                 printf("     desc/de: %s\n", (string)(($p['desc_i18n']['de'] ?? '(yok)')));
               }
+              /* FOTOGRAF DISKTE MI -- ve neden BURADA. Asagidaki 'check_images'
+                 modu vestra_products() geziyor, yani YALNIZ approved: onay
+                 bekleyen taze bir partiyi YAPISI GEREGI goremiyor. Bir partiyi
+                 onaylamadan once "fotograflari yerinde mi" diye sorulunca o mod
+                 baska bir kumeyi olcup "TUM FOTOLAR YERINDE" diyor -- dogru
+                 cumle, yanlis kume. Kirik gorselle yayina acmanin tek panzehiri
+                 onaydan ONCE olcmek, o yuzden ayni denetim ham listede de var.
+                 Bos dosya da kayip sayilir: 0 baytlik .jpg tarayicida kirik
+                 ikon, ama is_file() true doner. */
+              $iMiss = []; $iOk = 0; $iNone = 0;
+              foreach ($sel as $p) {
+                $imgs = array_values(array_filter(array_map('strval', (array)($p['images'] ?? []))));
+                if (!$imgs && !empty($p['image'])) $imgs = [(string)$p['image']];
+                if (!$imgs) { $iNone++; continue; }
+                foreach ($imgs as $im) {
+                  $f = $root.$im;
+                  if (is_file($f) && @filesize($f) > 0) { $iOk++; continue; }
+                  $iMiss[] = [(string)($p['id'] ?? '?'), $im, is_file($f) ? 'BOSDOSYA' : 'YOK'];
+                }
+              }
+              printf("\n-- HAM GORSEL DENETIMI (pending dahil) --\n");
+              printf("diskte VAR: %d   kayip/bozuk: %d   hic gorseli olmayan ilan: %d\n",
+                     $iOk, count($iMiss), $iNone);
+              foreach (array_slice($iMiss, 0, 25) as $m) printf("  %-26s %-40s %s\n", $m[0], $m[1], $m[2]);
+              if (!$iMiss && !$iNone) echo "SONUC: TUM FOTOLAR DISKTE\n";
               exit(0);
             }
 
