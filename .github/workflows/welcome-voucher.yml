@@ -14,8 +14,12 @@ on:
         description: "buyers = sadece alıcı hesaplar (varsayılan) | all = satıcılar da dahil"
         required: false
         default: "buyers"
+      only_accounts:
+        description: "TERCİH EDİLEN tek-müşteri yolu: hesap ID'si ya da firma adı parçası (virgülle ayır). Adresi sunucu kayıttan çözer — açık girdiye müşteri adresi yazılmaz."
+        required: false
+        default: ""
       only_emails:
-        description: "Sadece bu adres(ler)e (virgül/boşlukla ayrılır). Boşsa tüm hedef kitle."
+        description: "Sadece bu adres(ler)e (virgül/boşlukla ayrılır). Boşsa tüm hedef kitle. DİKKAT: girdi herkese açık kalır — mümkünse only_accounts kullan."
         required: false
         default: ""
       exclude_countries:
@@ -64,6 +68,7 @@ jobs:
           V_MONTHS: ${{ github.event.inputs.expiry_months }}
           V_AUDIENCE: ${{ github.event.inputs.audience }}
           V_ONLY: ${{ github.event.inputs.only_emails }}
+          V_ONLYACC: ${{ github.event.inputs.only_accounts }}
           V_NOTC: ${{ github.event.inputs.exclude_countries }}
           V_LIMIT: ${{ github.event.inputs.limit }}
           V_DRY: ${{ github.event.inputs.dry_run }}
@@ -75,7 +80,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 15m
-          envs: V_PCT,V_MONTHS,V_AUDIENCE,V_ONLY,V_NOTC,V_LIMIT,V_DRY,V_PROSPECTS,V_PNAME
+          envs: V_PCT,V_MONTHS,V_AUDIENCE,V_ONLY,V_ONLYACC,V_NOTC,V_LIMIT,V_DRY,V_PROSPECTS,V_PNAME
           script: |
             cd ~/public_html
             cat > /tmp/vestra_welcome_voucher.php <<'PHPEOF'
@@ -89,13 +94,68 @@ jobs:
             if (!function_exists('voucher_welcome_run')) { fwrite(STDERR, "HATA: voucher_welcome_run() yok -- once deploy\n"); exit(1); }
 
             $dry = strtolower(trim((string)getenv('V_DRY'))) !== 'false';
+
+            /* Adresi maskele. Depo ve Actions kutugu herkese acik; musteri adresi
+               tam yazilmaz (CLAUDE.md). Alan adi acikta kalir -- gonderilebilirlik
+               hep ona bakiyor ve dukkanin alan adi zaten acik web sitesi. */
+            $m = function ($e) {
+              $e = trim((string)$e);
+              if ($e === '') return '(adres yok)';
+              $at = strrpos($e, '@');
+              if ($at === false || $at === 0) return '***';
+              return substr($e, 0, 1).'***@'.substr($e, $at + 1);
+            };
+
+            /* Tek musteriye gonderirken adres ACIK GIRDIYE yazilmaz -- girdi, kosu
+               basliginda kalici ve herkese acik. Hesap ID'si ya da firma adi parcasi
+               veriliyor, adresi sunucu KAYITTAN cozuyor (buyer_reply'in
+               to=account:<isim> deseninin aynisi).
+               Eslesme 1 DEGILSE is DURUR: sifir eslesmede kimseye gitmez, birden
+               fazlada yanlis musteriye gidebilirdi ve gonderilmis bir kupon geri
+               alinamaz. Aday listesi MASKELI basiliyor ki operator daraltabilsin. */
+            $only = preg_split('/[\s,;]+/', (string)getenv('V_ONLY'), -1, PREG_SPLIT_NO_EMPTY);
+            $onlyAcc = preg_split('/[,;]+/', (string)getenv('V_ONLYACC'), -1, PREG_SPLIT_NO_EMPTY);
+            if ($onlyAcc) {
+              require_once __DIR__.'/inc/auth.php';
+              foreach ($onlyAcc as $needle) {
+                $needle = trim($needle);
+                if ($needle === '') continue;
+                $hits = [];
+                foreach (auth_accounts() as $a) {
+                  $em = strtolower(trim((string)($a['email'] ?? '')));
+                  if ($em === '') continue;
+                  /* ID TAM esitlik, ad ise parca -- bu depoda alt dize eslesmesi bir
+                     kez pahaliya ogrenildi, o yuzden ad kolunda belirsizlik sayiliyor
+                     ve tek eslesme sarti onu yakaliyor. */
+                  if ((string)($a['id'] ?? '') === $needle
+                      || ($needle !== '' && stripos((string)($a['company'] ?? ''), $needle) !== false)
+                      || ($needle !== '' && stripos((string)($a['name'] ?? ''), $needle) !== false)) {
+                    $hits[$em] = $a;
+                  }
+                }
+                if (count($hits) !== 1) {
+                  fwrite(STDERR, "HATA: '".$needle."' ".count($hits)." hesaba uyuyor (tam 1 olmali) -- hicbir sey gonderilmedi\n");
+                  foreach ($hits as $em => $a) {
+                    fwrite(STDERR, "   aday: ".$m($em)." | ".(string)($a['company'] ?? '(firma yok)')
+                                 . " | tip=".(string)($a['type'] ?? '?')." | id=".(string)($a['id'] ?? '?')."\n");
+                  }
+                  exit(1);
+                }
+                $em = (string)array_key_first($hits);
+                $acc = $hits[$em];
+                echo "hesap    : ".$needle." -> ".(string)($acc['company'] ?? '(firma yok)')
+                   . " | ".$m($em)." | tip=".(string)($acc['type'] ?? '?')."\n";
+                $only[] = $em;
+              }
+            }
+
             $rep = voucher_welcome_run([
               'percent' => (float)(getenv('V_PCT') ?: 5),
               'months'  => (int)(getenv('V_MONTHS') ?: 6),
               'audience'=> getenv('V_AUDIENCE') ?: 'buyers',
               'limit'   => (int)(getenv('V_LIMIT') ?: 200),
               'dry'     => $dry,
-              'only'    => preg_split('/[\s,;]+/', (string)getenv('V_ONLY'), -1, PREG_SPLIT_NO_EMPTY),
+              'only'    => $only,
               'exclude_countries' => preg_split('/[,;]+/', (string)getenv('V_NOTC'), -1, PREG_SPLIT_NO_EMPTY),
               /* Aday musteri: hesabi yok ama yazismasi var. Sadece only_emails ile birlikte
                  anlamli -- bu yuzden acikca istenmedikce kapali. */
@@ -108,11 +168,16 @@ jobs:
             echo $dry ? "MOD      : DENEME -- hicbir e-posta gonderilmeyecek\n\n" : "MOD      : GERCEK GONDERIM\n\n";
             foreach ($rep['rows'] as $r) {
               if (($r['status'] ?? '') === 'limit') { echo "  ... calistirma limiti doldu; kalani icin tekrar calistir\n"; continue; }
-              printf("  %-34s %-22s %s\n", substr((string)($r['email'] ?? ''),0,34), (string)($r['code'] ?? ''), (string)($r['status'] ?? ''));
+              /* Adres MASKELI. Kupon KODU aciktan basiliyor ve bu bilincli: kod tek
+                 kullanimlik, ILK SIPARISE bagli ve o adrese kilitli (voucher_validate
+                 kayitli adresi kontrol ediyor), yani kutugu okuyan biri onu
+                 kullanamaz -- ve operatorun musteriye elle iletebilmesi icin
+                 gorunmesi gerekiyor. */
+              printf("  %-30s %-22s %s\n", $m($r['email'] ?? ''), (string)($r['code'] ?? ''), (string)($r['status'] ?? ''));
             }
             if (!empty($rep['excluded'])) {
               echo "\nulke nedeniyle haric tutulan (", count($rep['excluded']), "):\n";
-              foreach ($rep['excluded'] as $e) printf("  %-34s %s\n", $e['email'], $e['country']);
+              foreach ($rep['excluded'] as $e) printf("  %-30s %s\n", $m($e['email']), $e['country']);
             }
             echo "\n----\n";
             printf("%s yeni kod: %d, tekrar kullanilan: %d, gonderildi: %d, atlandi: %d, hata: %d\n",
