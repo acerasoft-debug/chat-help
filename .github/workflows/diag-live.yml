@@ -992,6 +992,31 @@ jobs:
             echo "===== HESAPLAR (maskeli) =====\n";
             $accs = auth_accounts();
             printf("toplam hesap: %d\n\n", count($accs));
+
+            /* Bolgesel kalici indirim: KIMI etkiliyor?
+               Sayim, kodun kullandigi AYNI fonksiyonu cagiriyor -- burada kendi
+               ulke esleştirmemi yazsaydim sonda ile kapinin cevabi ayrisirdi ve
+               bu depoda "kontrol yanlis yere bakiyor" yedi kez yasandi.
+               Ulke KODU basiliyor, kisiye ait hicbir sey degil. */
+            if (is_readable($doc."/inc/region_discount.php")) {
+              require_once $doc."/inc/region_discount.php";
+              $byCc = []; $elig = 0;
+              foreach ($accs as $a) {
+                $c = vestra_country_region_discount_cc((string)($a['country'] ?? ''));
+                if ($c === '') continue;
+                $elig++; $byCc[$c] = ($byCc[$c] ?? 0) + 1;
+              }
+              ksort($byCc);
+              printf("--- bolgesel indirim (%%%s) kapsami ---\n", VESTRA_REGION_DISCOUNT_PCT);
+              printf("kapsamda hesap: %d / %d\n", $elig, count($accs));
+              foreach ($byCc as $c => $n) printf("   %s : %d hesap\n", $c, $n);
+              if (!$byCc) echo "   (kapsamda kayitli hesap yok)\n";
+              /* Ulkesi HIC yazilmamis hesap indirim alamaz -- sayisi gorunsun,
+                 yoksa "neden indirim gelmedi" sorusu kayitta degil tahminde aranir. */
+              $blank = 0;
+              foreach ($accs as $a) if (trim((string)($a['country'] ?? '')) === '') $blank++;
+              printf("   ulkesi bos hesap: %d (indirim alamaz)\n\n", $blank);
+            }
             printf("%-26s %-7s %-14s %-10s %-12s %s\n", "E-POSTA (maskeli)", "TIP", "DURUM", "KYB", "BELGE", "KAYIT");
             foreach ($accs as $a) {
               $e = (string)($a['email'] ?? '');
