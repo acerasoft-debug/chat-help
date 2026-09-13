@@ -58,7 +58,7 @@ $PAGE = $dispName.' — '.t('Showroom'); $NAV = 'shop'; require __DIR__.'/inc/he
   <div class="phead" style="margin-bottom:26px">
     <div class="crumbs"><a href="/"><?= t('Home') ?></a> · <a href="/shop"><?= t('Catalog') ?></a> · <?= t('Showroom') ?></div>
     <h1 style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><?= htmlspecialchars($dispName) ?>
-      <?php if ($verified): ?><span class="gal-vbadge" style="position:static"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span><?php endif; ?>
+      <?php if ($verified) echo vestra_verified_badge('gal-vbadge', 'position:static'); ?>
     </h1>
     <p style="color:var(--mut)">
       <?= count($items) ?> <?= t('live listings') ?>
@@ -87,7 +87,7 @@ $PAGE = $dispName.' — '.t('Showroom'); $NAV = 'shop'; require __DIR__.'/inc/he
           <?php if ($img0): ?><img class="sthumbi" src="<?= htmlspecialchars($img0) ?>" alt="" loading="lazy"><?php endif; ?>
           <?php if ($img1): ?><img class="sthumbi sthumbi-reveal" src="<?= htmlspecialchars($img1) ?>" alt="" loading="lazy"><?php endif; ?>
           <?php if (!empty($p['verified'])): ?>
-            <span class="svbadge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span>
+            <?= vestra_verified_badge() ?>
           <?php endif; ?>
           <?php if (!$img0) echo vestra_brand_card($p['brand'] ?? ''); ?>
           <?php if ($dmode === 'sale'): ?><span class="smodetag sale">−<?= vestra_discount($p) ?>%</span>

@@ -774,7 +774,11 @@ a.msghead-s:hover{color:var(--acc)}
 .sthumb.sphoto::after{height:30%;background:linear-gradient(transparent,rgba(20,16,10,.20))}
 /* Zoom daha kucuk: contain'de buyuk zoom urunu kirpmaya baslar. */
 .scard:hover .sthumb.sphoto .sthumbi{transform:scale(1.035)}
-.sthumb.sphoto .svbadge{background:rgba(28,120,72,.10);color:#1f7a4c;border-color:rgba(28,120,72,.28)}
+/* Acik studyo zemininde solgun yesil bir yikama okunmuyordu; buzlu BEYAZ pil
+   uzerinde koyu yesil hem metni hem muhru tasiyor. */
+.sthumb.sphoto .svbadge{background:rgba(255,255,255,.86);color:#1c7a4a;
+  border-color:rgba(28,120,72,.30);
+  box-shadow:0 2px 10px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.7)}
 .sthumb.sphoto .sbname{color:#2a251c;text-shadow:none}
 /* Photo reveal (approved members only): the brand tile stays the card front; on hover
    (desktop) or while centered in view (touch, .sreveal via JS) the first product photo
@@ -783,7 +787,17 @@ a.msghead-s:hover{color:var(--acc)}
   transition:opacity .5s ease,transform 1.1s cubic-bezier(.16,.66,.25,1)}
 .scard:hover .sthumbi-reveal,.scard.sreveal .sthumbi-reveal{opacity:1;transform:scale(1)}
 .sbname{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;opacity:.9;z-index:2;position:relative;text-shadow:0 2px 10px rgba(0,0,0,.7)}
-.svbadge{position:absolute;top:10px;left:10px;font-size:10px;font-weight:700;background:rgba(122,214,160,.18);color:#7ad6a0;border:1px solid rgba(122,214,160,.35);padding:3px 8px;border-radius:999px;display:flex;align-items:center;gap:4px;z-index:4}
+/* Dogrulanmis satici muhru. Isaretin rengi SVG'de degil BURADA: govde
+   currentColor kullaniyor (vestra_verified_badge), yani asagidaki .sphoto
+   dali tik'i de birlikte koyulastiriyor. Eskiden tik stroke="#fff" idi ve
+   acik zeminli kartta gorunmuyordu. */
+.svbadge{position:absolute;top:10px;left:10px;font-size:9.5px;font-weight:700;
+  letter-spacing:.45px;background:rgba(122,214,160,.16);color:#8fe0b4;
+  border:1px solid rgba(122,214,160,.42);padding:3px 9px 3px 6px;border-radius:999px;
+  display:inline-flex;align-items:center;gap:5px;z-index:4;white-space:nowrap;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  box-shadow:0 2px 10px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.10)}
+.svbadge svg{flex:0 0 auto;opacity:.95}
 .smodetag{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:4px 9px;border-radius:999px;z-index:4;letter-spacing:.3px}
 .smodetag.sale{background:#e0533a;color:#fff}
 .smodetag.offer{background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.3)}
@@ -821,7 +835,13 @@ a.msghead-s:hover{color:var(--acc)}
 .gal-nav:active{transform:translateY(-50%) scale(.93)}
 .gal-nav.prev{left:16px}
 .gal-nav.next{right:16px}
-.gal-vbadge{position:absolute;top:14px;left:14px;font-size:11px;font-weight:700;background:rgba(122,214,160,.15);color:#7ad6a0;border:1px solid rgba(122,214,160,.3);padding:4px 10px;border-radius:999px;z-index:6;display:flex;align-items:center;gap:5px}
+.gal-vbadge{position:absolute;top:14px;left:14px;font-size:10.5px;font-weight:700;
+  letter-spacing:.45px;background:rgba(122,214,160,.15);color:#8fe0b4;
+  border:1px solid rgba(122,214,160,.38);padding:4px 11px 4px 8px;border-radius:999px;
+  z-index:6;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  box-shadow:0 2px 12px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.10)}
+.gal-vbadge svg{flex:0 0 auto;opacity:.95}
 .gal-thumbs{display:flex;gap:8px;flex-wrap:wrap}
 .gal-thumb{width:68px;height:68px;border-radius:9px;border:2px solid var(--line);overflow:hidden;cursor:pointer;transition:.18s;padding:0;background:none;flex-shrink:0}
 .gal-thumb:hover,.gal-thumb.active{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}

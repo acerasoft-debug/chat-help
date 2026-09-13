@@ -169,9 +169,30 @@ footer a{color:#d8bd86}
 /* ── Mosaic shapes ───────────────────────────────────────────────────────
    Wide tiles get a landscape crop instead of the 3/4 portrait, otherwise a
    double-width card would tower over its neighbours. */
-.shopwrap .ssoldbadge{position:absolute;top:10px;left:10px;z-index:3;background:rgba(20,18,16,.86);
-  color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
-  padding:5px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.22)}
+/* SATILDI serdi CAPRAZ ve BUYUK (operator, 12 Eyl 2026). Eskiden sol ustte
+   10.5px'lik bir pildi ve iki kusuru vardi: (1) .svbadge de top:10/left:10'da
+   duruyor ve z-index'i daha yuksek, yani DOGRULANMIS bir saticinin satilmis
+   ilaninda yesil rozet SATILDI'nin uzerine biniyordu; (2) fotografin ustunde
+   kucuk kaliyordu. Ortadan gecen bir bant ikisini de cozuyor: kose rozetleriyle
+   hic carpismiyor ve ilk bakista okunuyor.
+   left/right NEGATIF: dondurulen bir kutunun uclari aksi halde karonun
+   icinde kalir ve bant yarim gorunur (.sthumb zaten overflow:hidden).
+   pointer-events:none -- bant kartin kendi baglantisini yutmamali. */
+.shopwrap .ssoldbadge{position:absolute;left:-18%;right:-18%;top:50%;
+  transform:translateY(-50%) rotate(-16deg);transform-origin:center;
+  z-index:5;pointer-events:none;display:flex;align-items:center;justify-content:center;
+  padding:9px 0;background:linear-gradient(180deg,rgba(22,19,17,.92),rgba(22,19,17,.84));
+  border-top:1px solid rgba(255,255,255,.28);border-bottom:1px solid rgba(255,255,255,.28);
+  box-shadow:0 10px 28px rgba(0,0,0,.40);
+  color:#fff;font-size:15px;font-weight:800;letter-spacing:3.2px;text-transform:uppercase;
+  text-shadow:0 1px 2px rgba(0,0,0,.55)}
+/* Genis karo iki sutun kapliyor; ayni punto orada kucuk kalirdi. */
+.shopwrap .scard-wide .ssoldbadge{font-size:18px;letter-spacing:4px}
+/* Arapcada sayfa saga akiyor; bant da okuma yonuyle ayni tarafa egilsin.
+   letter-spacing BIRAKILIYOR: Arap yazisi bitisik ve harf araligi baglari
+   gevsetip kelimeyi dagitir -- Latin'de ferahlik olan sey orada kusur. */
+[dir="rtl"] .shopwrap .ssoldbadge{transform:translateY(-50%) rotate(16deg);
+  letter-spacing:normal}
 /* Fotograf soluyor ama GIZLENMIYOR: urun hala taninmali. */
 .shopwrap .sthumb-sold .sthumbi{opacity:.45;filter:grayscale(.55)}
 .shopwrap .scard-wide{grid-column:span 2}
@@ -459,10 +480,7 @@ footer a{color:#d8bd86}
               <?php if($img0): ?><img src="<?= htmlspecialchars($img0) ?>" alt="<?= htmlspecialchars($_alt) ?>" loading="lazy" class="sthumbi"><?php endif; ?>
               <?php if($img1): ?><img src="<?= htmlspecialchars($img1) ?>" alt="" loading="lazy" class="sthumbi sthumbi-reveal"><?php endif; ?>
               <?php if(!empty($p['verified'])): ?>
-                <span class="svbadge">
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-                  <?= t('Verified seller') ?>
-                </span>
+                <?= vestra_verified_badge() ?>
               <?php endif; ?>
               <?php if(!$img0) echo vestra_brand_card($p['brand']); ?>
               <?php if($dmode==='sale'): ?><span class="smodetag sale">−<?= vestra_discount($p) ?>%</span>

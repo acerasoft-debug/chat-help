@@ -161,7 +161,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <?php endif; ?>
         <?php if($mode==='sale'): ?><span class="modetag sale">SALE −<?= $disc ?>%</span>
         <?php elseif($mode==='offer'): ?><span class="modetag offer"><?= t('Open to offers') ?></span><?php endif; ?>
-        <?php if(!empty($p['verified'])): ?><span class="gal-vbadge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span><?php endif; ?>
+        <?php if(!empty($p['verified'])) echo vestra_verified_badge('gal-vbadge'); ?>
       </div>
       <?php if($images && $MEMBER): ?>
       <!-- Premium zoom katmanlari. Bir toptanci kumasin dokusunu, dikisi ve baski
@@ -793,7 +793,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <a class="scard" href="/product?id=<?= urlencode($rp['id']) ?>">
           <div class="sthumb" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($rp)) ?>,#0e0e11)">
             <?php if ($rimg): ?><img src="<?= htmlspecialchars($rimg) ?>" alt="<?= htmlspecialchars(vestra_product_title($rp)) ?>" loading="lazy" class="sthumbi"><?php endif; ?>
-            <?php if (!empty($rp['verified'])): ?><span class="svbadge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span><?php endif; ?>
+            <?php if (!empty($rp['verified'])) echo vestra_verified_badge(); ?>
             <?php if (!$rimg) echo vestra_brand_card($rp['brand'] ?? ''); ?>
             <?php $rmode = vestra_display_mode($rp); ?>
             <?php if ($rmode === 'sale'): ?><span class="smodetag sale">−<?= vestra_discount($rp) ?>%</span>
