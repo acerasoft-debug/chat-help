@@ -4090,3 +4090,51 @@ her satırda `expect:1`, kuru koşu **68/68** eşleşti, sonra uygulandı
   (`'match' bos`) ve hiçbir şey yazılmadı. Mevcut `nbb-approve.json`'a
   bakmadığım için oldu. *Bir dosya biçimini yeniden icat etmeden önce, aynı işi
   yapan mevcut dosyayı aç.*
+
+**KURAL 25 — Dört D&G ilanı KOMPLE TAKIM: €190, MOQ 10** (operatör, 12 Eyl 2026:
+*"Jogging Trousers komple fiyat 190 eur olsun tüm alt üst dg ler böyle olmali
+ayrica en az alimlari 10 a indir bunlarda"*).
+
+- **Sınıflandırmam yanlıştı ve talimat onu düzeltti.** Dördünü de yalnız ALT
+  ("Jogging Trousers", €120) diye yazmıştım. 112 px'lik kontakt sayfasında
+  pantolon görünüyordu; **512 px'te** dördünün de üst+alt olduğu, üçünün
+  künyesinde **iki kod birden** yazdığı görüldü:
+  `GVETAZHU7B7 ← G9XM5ZHU7B7` (fermuarlı eşofman üstü), `GWT1AZHUMLX ←
+  G9UR8ZHUMLX` (bisiklet yaka sweatshirt), `GX630T JBMJ0 ← GXE02T JBMJ0`
+  (kapüşonlu). Dördüncüsü (`GVEPAZFU7DU`) **tek kod** taşıyor ama üç karesinin
+  üçü de aynı komple kombin; ayrı bir pantolon karesi **yok**.
+- **AD DEĞİŞTİ, çünkü zorunluydu.** "Jogging Trousers" diye duran bir ilanı
+  €190'a komple takım olarak satmak, sepetin sattığı şeyle çelişen bir ilan
+  bırakırdı — `desc`/`sizes` ve faturanın üç katmanının verdiği dersin aynısı.
+  Her ad artık **iki parçayı da** yazıyor ve üst parçanın türü fotoğraftan:
+  Sweatshirt & Trousers Set / Track Jacket & Trousers Set / DG Logo Sweatshirt
+  & Trousers Set / Logo Script Hoodie & Trousers Set.
+- **`tiers` birlikte yazılmak ZORUNDA.** `set_product.php` ilk kademenin `moq`'ya
+  eşit olmasını şart koşuyor ("merdiven minimum siparişten başlamalı"); `moq=10`
+  verip kademeyi 20'de bırakmak **reddedilirdi**. MOQ 10, `size_step=10`'un tam
+  katı (KURAL 4b).
+- **`sizes`'a DOKUNULMADI.** "10 pcs/pack" → "10 **sets**/pack" yazmak cazipti:
+  bir takımda "10 pcs" 10 giysi diye okunabiliyor. Ama `VESTRA_SIZE_PACK_RE`
+  yalnız `(pcs|pieces|adet)` tanıyor — yeni kelime paket ekini **tanınmaz**
+  yapar ve "10" sessizce bir BEDEN olarak ayrışırdı (KURAL 21b'nin `3/pack`
+  tuzağı). Ad zaten takım olduğunu söylüyor; ayrıştırıcıyı süs için genişletmek
+  yanlış taraf.
+- **KAPSAM ÖLÇÜLDÜ, TAHMİN EDİLMEDİ.** Bir eşofman **üstü** katalogda
+  "sweatshirt" diye duruyor olabilirdi, yani "tüm alt üst" dokuz sweat/hoodie
+  ilanını da kapsayabilirdi. 48-57 arası **384 px**'te bakıldı: dokuzu da **tek
+  giysi**, künyede tek kod. Kapsam bu yüzden **genişlemedi** — ölçüm bir kez de
+  *hayır* demek için yapılır.
+- **Doğrulama alanın değerine değil, SEPETİN TAHSİL ETTİĞİNE bakıyor:**
+  `inspect-products` → `price_audit`. Katalog geneli **886 ürün, tutarlı 815,
+  alıcı aleyhine 1, kademesiz 0** ve dördü de aleyhine listesinde **yok** —
+  yani ilan edilen €190, MOQ 10'da sepetin gerçekten aldığı rakam. `list`
+  alanını okuyup "190 yazıyor" demek bu deponun defalarca kaydettiği yarım
+  doğrulama olurdu. Görsel 4/4, kayıp 0.
+- **Yan bulgu, operatör kararı bekliyor:** kontakt sayfasının **50.** karesi
+  (`D&G G9OW6Z DARKBLUE.jpg`, künye `G9OW6Z G7C8H DARKBLUE`) de iki sıralı bir
+  **takım** çekimi (koyu lacivert sweatshirt + jogger) ve ithalatta *aynı stil
+  kodunu taşıdığı için* atlanmıştı — oysa 51. kare (ithal edilen
+  `dgx-g9ow6z-g7c8h`, "DG Logo Sweatshirt — Blue") **canlı mavi**, bu **koyu
+  lacivert**. Yani atlama gerekçesi "kopya" idi, gerçekte **ikinci bir renk**.
+  Kendiliğinden eklenmedi: ayrı ilan mı, aynı ilana ikinci renk mi, ve takım
+  olarak mı — üçü de fiyat/kapsam kararı.
