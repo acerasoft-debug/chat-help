@@ -3934,6 +3934,7 @@ gösterdi. Aynı hatayı iki kez ölçmek, onu doğrulamıyor.*
   şey kuyruğa girmemişti, yani tekrar güvenliydi.
 
 **Vitrin sırası: Balenciaga ve Lacoste en başta** (operatör, 12 Eyl 2026:
+*— aynı gün D&G ve DSQUARED2 de eklendi; güncel liste bu bölümün SONUNDA.*
 *"ürünlerin yerlerini degistir balenciaga ve lacostelar basta kalsin"*).
 - **Bu, 11 Eylül'e kadar geçerli olan kararın ÖN TARAFTA geri alınması.** Eski
   not *"katalog Gucci ile açılıyor, arkasında Givenchy, sonra Lacoste"* diyordu;
@@ -4146,3 +4147,71 @@ ayrica en az alimlari 10 a indir bunlarda"*).
   iki fiyatta), ve canlı görselin bu kareyle **bayt bazında aynı olduğu
   doğrulanmadı**, yalnız dosya adı aynı. Şüpheliyi kendi başına fiyatlamak,
   talimatı bahane edip tahmin yazmak olurdu.
+
+**Vitrin sırası (GÜNCEL): D&G ve DSQUARED2 de başa** (operatör, 12 Eyl 2026:
+*"dg ve ds2 leri basa al"*). `vestra_shop_front_brands()` =
+**`[BALENCIAGA, LACOSTE, DOLCE & GABBANA, DSQUARED2]`**.
+- **Balenciaga/Lacoste YERİNDE kaldı.** Bir önceki talimat (*"basta kalsin"*)
+  kaldırılmadı; yeni iki marka **arkalarına** girdi, yani iki talimat da doğru.
+  Operatör D&G/DS2'yi Balenciaga'nın da önüne isterse tek satır (liste sırası).
+- **DSQUARED2 lead listesinden ÇIKARILDI** (`lead` artık `GUCCI, GIVENCHY,
+  BALMAIN`). Aynı marka iki listede olsaydı ön kontrol önce çalışır ve lead
+  satırı **ölü** kalırdı; testte zaten `array_intersect($front,$lead) === []`
+  iddiası vardı ve bu yüzden yazılmıştı. **D&G hiçbir listede değildi**, yani
+  en arkadaydı — asıl iş onu 405 ilanlık bölmenin dibinden öne çekmekti.
+- **Yazım katalogun kendi değerinden:** `strtoupper(trim('Dolce & Gabbana'))`.
+  Boşluklu ampersan önemli — `DOLCE&GABBANA` yazılsaydı eşleşme TAM olduğu için
+  103 ilanın hiçbiri öne gelmez ve **sayfa hata da vermezdi**. Sonda bunu
+  yakalayabiliyor: bir ön marka hiçbir ilana eşleşmezse *"bu bölmede ilan YOK"*
+  yazıyor.
+- **Canlı ölçüm** (`inspect-products` → `shop_order=premium`, deploy `fa1bb2ee`):
+  premium 405 ilan; **Balenciaga 20 (sıra 4..23), Lacoste 13 (2..35),
+  D&G 103 (36..138), DSQUARED2 64 (139..202)**. Dördü de tam sayıda yakalandı,
+  yani yazımlar doğru; dördü birlikte bölmenin **ön yarısını** kaplıyor.
+- **Hâlâ operatör kararı bekliyor (ikinci kez):** ilk üç sıra `pinned`
+  (`guc-t07` Gucci, `lac-polo-paris` Lacoste, `rl-csf-polo-white` Ralph Lauren)
+  ve `pinned` bölmesi her şeyin önünde. Yani bir Gucci ile bir **Ralph Lauren**
+  hâlâ 20 Balenciaga'nın ve 103 D&G'nin önünde. Operatör iki kez marka sırası
+  istedi ama iğnelemeler de onun kendi kararı; birini ötekine kurban etmek bize
+  düşmez. İstenirse tek satır: ön marka bölmesini `pinned`'in önüne almak.
+- Test: `shop_order_test.php` 30 → **32 iddia**. Düşebildiği doğrulandı ve
+  sabotajın **gerçekten uygulandığı** ayrıca yazdırıldı: ön liste eski hâline
+  dönünce **3 kırmızı**, DSQUARED2 iki listede bırakılınca **2**.
+
+**SATILDI serdi ÇAPRAZ ve büyük; doğrulanmış satıcı rozeti TEK gövdede**
+(operatör, 12 Eyl 2026: *"sold out yazsini capraz daha büyük yap ve verified
+seller armasini daha estetik yap"*).
+
+- **İstek iki GERÇEK kusuru açığa çıkardı, ikisi de istekten bağımsız duruyordu:**
+  1. **İki rozet ÜST ÜSTE biniyordu.** `.ssoldbadge` ve `.svbadge` ikisi de
+     `top:10px;left:10px` ve yeşil rozetin `z-index`'i daha yüksek — yani
+     **doğrulanmış** bir satıcının **satılmış** ilanında "Verified seller"
+     SATILDI'nın üzerine oturuyordu. Bandı ortaya almak bunu kendiliğinden
+     çözdü (köşe rozetleriyle artık hiç çakışmıyor).
+  2. **Tik BEŞ yerde elle yazılıydı ve beşinde de `stroke="#fff"` GÖMÜLÜYDÜ.**
+     Açık "stüdyo" zeminli kartta pil `rgba(28,120,72,.10)` zemin + `#1f7a4c`
+     metin, yani **beyaz tik görünmüyordu**. Tek gövde:
+     `vestra_verified_badge()`, kontur **`currentColor`** — renk artık CSS'te ve
+     tema/zemin değişimi kendiliğinden işliyor. Bu, KURAL 24'ün onay işaretinin
+     birebir aynı dersi ("sembol kendi stroke'unu YAZMAZ"). İşaret bir **mühür**
+     oldu (daire + tik).
+- **Bant:** ortadan geçen, `rotate(-16deg)`, 15px (geniş karoda 18px) — eskisi
+  sol üstte 10.5px'lik bir pildi. `pointer-events:none` (kartın kendi
+  bağlantısını yutmasın), `left/right` **negatif** (döndürülen kutunun uçları
+  aksi hâlde karonun içinde kalır ve bant yarım görünür).
+- **RTL:** Arapçada bant **+16°'ye aynalanıyor** ve `letter-spacing` **düşüyor** —
+  Arap yazısı bitişik, harf aralığı bağları gevşetir; Latin'de ferahlık olan şey
+  orada kusur.
+- **Ölçüm ÇİZDİREREK** (kum havuzu, gerçek tarayıcı — kaynak okumak ölçüm değil):
+  bant **270×116 px** masaüstü / **223×103** mobil, transform matrisi −16°
+  (Arapçada +16°), `pointer-events:none`, `z-index:5`, **yatay taşma 0**;
+  rozetin tik konturu artık metinle **aynı renk** (`rgb(28,122,74)` açık zemin,
+  `rgb(143,224,180)` ürün sayfası), mühür dairesi basılıyor. PHP uyarısı **0**;
+  tek konsol hatası bu ortamdan erişilemeyen Google Fonts.
+- **Ölçüm bir yalanı da yakaladı:** RTL `letter-spacing` düzeltmesinden sonra
+  sonda hâlâ **3.2px** dedi — kum havuzu o düzeltmeden **ÖNCE** kopyalanmıştı.
+  Senkronlanıp yeniden ölçüldü: `normal`. *Değişikliğin gerçekten uygulandığını
+  doğrula — bu dosyada zaten kayıtlı ve bir kez daha oldu.*
+- **Ürün sayfasının kırmızı "Sold out" cümlesine DOKUNULMADI:** o bir cümle,
+  etiket değil; bir paragrafı çapraz yazmak okunmaz yapardı. Operatörün
+  "yazı" dediği, fotoğrafın üstündeki karo etiketi.
