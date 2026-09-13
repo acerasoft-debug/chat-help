@@ -1,0 +1,47 @@
+[
+  {
+    "_not": "Operator, 13 Eyl 2026: 'Regular Fit Logo Trim L.12.12 Polo Shirt / ausverkauft yap'.",
+    "_nasil": "match id/sku degil ADA dusuyor (set_product.php'nin 3. adimi, normalize edilmis alt dize). expect:1 sarti bunu guvenli kiliyor: yazim yanlissa 0 ya da >1 urune uyar, is DURUR ve HICBIR SEY yazilmaz. Olculdu: lac-logotrim-polo. Kardesi 'Paris Regular Fit Polo Shirt' (lac-polo-paris) bu metni ICERMIYOR, yani karisma yok.",
+    "match": "Regular Fit Logo Trim L.12.12 Polo Shirt",
+    "expect": 1,
+    "sold_out": true
+  },
+  {
+    "_not": "Operator, 13 Eyl 2026: 'Classic Fit Monogram Jacquard Polo Shirt / ausverkauft yap'. Olculdu: lac-monogram-polo.",
+    "match": "Classic Fit Monogram Jacquard Polo Shirt",
+    "expect": 1,
+    "sold_out": true
+  },
+
+  {
+    "_not": "Operator, 13 Eyl 2026: 'DG Tum Pololari 110 eur yap'. Katalog OLCULDU (inspect-products, brand='Dolce & Gabbana' cat='Polos'): tam 6 ilan, hepsi TEK kademeli (20+), hepsi moq 20. 'price' alani list'i VE mevcut butun kademe fiyatlarini ayni degere yaziyor -- tek kademeli olduklari icin duzlesme riski YOK.",
+    "_nedenId": "Iki ilan AYNI adi tasiyor ('DG Logo Polo Shirt — Black': dgn-g8pl4tg7f2h0 ve dgx-g8ol0z-fu7en), yani ada gore eslesme ikisine birden uyar ve is durur. Bu yuzden hepsi ID ile.",
+    "match": "dgn-g8lj1zfu7en",
+    "expect": 1,
+    "price": 110
+  },
+  { "_eski": "60.00", "match": "dgn-g8kb8zfi7yo",  "expect": 1, "price": 110 },
+  { "_eski": "60.00", "match": "dgn-g8mq3tfu7",    "expect": 1, "price": 110 },
+  { "_eski": "79.90", "match": "dgn-g8pl4tg7f2h0", "expect": 1, "price": 110 },
+  { "_eski": "90.00", "match": "dgx-g8ol0z-fu7en", "expect": 1, "price": 110 },
+  { "_eski": "90.00", "match": "dgx-g8pl4t-g7f2h", "expect": 1, "price": 110 },
+
+  {
+    "_not": "Operator, 13 Eyl 2026: 'Floral Print Hoodie — Navy / DG Hoodieleri sapkalilari 145 eur yap'. 'sapkalilari' = KAPUSONLU olanlar, yani kategorinin tamami degil.",
+    "_kapsam": "cat='Hoodies & Sweatshirts' altinda 10 D&G ilani var; adinda HOODIE gecen 3'u alindi. Kalan 7 BILEREK dokunulmadi: Crewneck Sweatshirt — Blue (90), Logo Plaque Sweatshirt Blue/Red, DG Logo Sweatshirt Blue/White, Crest Sweatshirt White, Logo Sweatshirt Black (hepsi 120). Operatorun cizdigi ayrim tam olarak bu.",
+    "_eski": "120.00",
+    "match": "dgx-g9xh0z-fu7du",
+    "expect": 1,
+    "price": 145
+  },
+  { "_eski": "120.00", "_ad": "Hoodie — White",              "match": "dgx-g9xi2z-hu7al", "expect": 1, "price": 145 },
+  { "_eski": "120.00", "_ad": "Floral Print Hoodie — Navy",  "match": "dgx-g9yi0z-hi7wk", "expect": 1, "price": 145 },
+
+  {
+    "_not": "Operator, 13 Eyl 2026: 'Logo Tape Sweatshirt & Trousers Set — Black 220 eur yap'. Bugun sabah dort takimin dordu de 190 yapilmisti; bu cumlede 'tum' YOK, TEK urun adlandirilmis -- o yuzden yalniz bu ilan degisiyor, diger uc takim 190'da kaliyor. (Operator 'tum' demek istediginde bugun iki kez acikca yazdi.)",
+    "_eski": "190.00 (moq 10, kademe 10+)",
+    "match": "dgx-gvepaz-fu7du",
+    "expect": 1,
+    "price": 220
+  }
+]
