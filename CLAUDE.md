@@ -3656,6 +3656,30 @@ görünsün ayrica, kendi mesaji okursa bildirim kalksin birsey yanmasin"*).
      saydı — mango/zara dersinin **testin kendi içindeki** hâli. Sayım artık
      kapanış tırnağına kadar.
 
+**"Verified seller" rozeti — beyaz fotoğrafın üstünde okunur hâle getirildi**
+(operatör, 13 Eyl 2026: *"daha okunakli, beyaz ustude durdugundan rengi degissin
+ve daha estetik olsun"*).
+- Rozet ürün **fotoğrafının** üstünde duruyor ve bu katalogun fotoğraflarının
+  neredeyse tamamı **beyaz fonlu paket çekimi** (aynı ölçüm katalog karolarını
+  açık zemine taşırken yapılmıştı: 35 fotoğrafın 33'ü). Eski hâli açık yeşil
+  zemin + `#1f7a4c` yazı: **4,46:1** — AA eşiği 4,5'in **altında**, üstelik
+  10px kalın yazıda.
+- **Asıl kusur tik işaretiydi:** işaretlemede `stroke="#fff"` yazıyordu, yani
+  açık yeşil zeminde **beyaz tik** → 1,06:1, pratikte görünmez. Koyu karoda
+  doğruydu; karo açık zemine taşınınca sessizce kayboldu. Artık `currentColor`
+  (5 yerde: shop, product ×2, showroom ×2).
+- **Zemin artık fotoğrafa bırakılmıyor:** buzlu beyaz hap (%94 opak + blur) +
+  koyu orman yeşili `#0f5132` yazı, ince yeşil kenarlık, yumuşak gölge.
+  Ölçülen kontrast **9,36:1**. Rengi fotoğrafa bırakan her çözüm bazı
+  fotoğraflarda düşüyordu; zemini sabitlemek tek güvenli yol.
+- **Tek kural:** `.sthumb.sphoto .svbadge` override'ı **kaldırıldı** — aynı
+  rozetin iki ayrı rengi vardı (`#7ad6a0` ve `#1f7a4c`) ve iki tanım er geç
+  ayrışır (marka sayfası CSS'inin aynı dersi).
+- Test: `tests/verified_badge_test.php` (15 iddia). **Renk seçimini değil
+  okunabilirliği** ölçüyor: hangi yeşil seçilirse seçilsin beyaz üzerinde
+  4,5:1'i geçmek zorunda. Ölçütün ayırt ettiği, eski rengin aynı hesapta
+  4,46 çıkmasıyla doğrulanıyor — yani düşebilen bir iddia.
+
 **KURAL 22 — Toplu ZAM ayrı bir araçtır ve TEKRARLANAMAZ** (operatör, 10 Eyl
 2026: *"underwear ürünlerine yüzde 20 zam yap bütün ürünlere"*).
 - `set-prices.yml` yalnızca **indirim** biliyordu (`discount_pct`). Zam onun

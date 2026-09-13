@@ -774,7 +774,6 @@ a.msghead-s:hover{color:var(--acc)}
 .sthumb.sphoto::after{height:30%;background:linear-gradient(transparent,rgba(20,16,10,.20))}
 /* Zoom daha kucuk: contain'de buyuk zoom urunu kirpmaya baslar. */
 .scard:hover .sthumb.sphoto .sthumbi{transform:scale(1.035)}
-.sthumb.sphoto .svbadge{background:rgba(28,120,72,.10);color:#1f7a4c;border-color:rgba(28,120,72,.28)}
 .sthumb.sphoto .sbname{color:#2a251c;text-shadow:none}
 /* Photo reveal (approved members only): the brand tile stays the card front; on hover
    (desktop) or while centered in view (touch, .sreveal via JS) the first product photo
@@ -783,7 +782,34 @@ a.msghead-s:hover{color:var(--acc)}
   transition:opacity .5s ease,transform 1.1s cubic-bezier(.16,.66,.25,1)}
 .scard:hover .sthumbi-reveal,.scard.sreveal .sthumbi-reveal{opacity:1;transform:scale(1)}
 .sbname{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;opacity:.9;z-index:2;position:relative;text-shadow:0 2px 10px rgba(0,0,0,.7)}
-.svbadge{position:absolute;top:10px;left:10px;font-size:10px;font-weight:700;background:rgba(122,214,160,.18);color:#7ad6a0;border:1px solid rgba(122,214,160,.35);padding:3px 8px;border-radius:999px;display:flex;align-items:center;gap:4px;z-index:4}
+.svbadge{position:absolute;top:10px;left:10px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px;display:flex;align-items:center;gap:5px;z-index:4}
+/* ── "Verified seller" rozeti ────────────────────────────────────────────────
+   (operator, 13 Eyl 2026: *"daha okunakli, beyaz ustude durdugundan rengi
+   degissin ve daha estetik olsun"*.)
+
+   Rozet URUN FOTOGRAFININ uzerinde duruyor ve bu katalogun fotograflarinin
+   neredeyse tamami BEYAZ fonlu paket cekimi -- yani pratikte beyaz uzerinde.
+   Eski hali acik yesil zemin + #1f7a4c yazi: olculen kontrast 4.46:1, AA
+   esigi 4.5'in ALTINDA, ustelik 10px kalin yazida. Asil kusur tik isaretiydi:
+   isaretleme stroke="#fff" yaziyordu, yani acik yesil zeminde BEYAZ tik --
+   1.06:1, pratikte gorunmez. Tik artik currentColor.
+
+   Cozum ZEMINI sabitliyor: buzlu beyaz hap + koyu orman yesili yazi. Fotograf
+   ne renk olursa olsun (beyaz paket cekimi, koyu deri, desenli) rozet ayni
+   sekilde okunuyor -- rengi fotografa birakan her cozum bazi fotograflarda
+   dusuyordu. Beyaz uzerinde kontrast 9.4:1.
+
+   TEK KURAL: eskiden fotografli karo icin ayri bir override vardi
+   (.sthumb.sphoto .svbadge) ve ikisi ayri renk tasiyordu; ayni rozetin iki
+   tanimi er gec ayrisir (bu depoda marka sayfasi CSS'i ile ayni ders). */
+.svbadge,.gal-vbadge{
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(10px) saturate(1.15);-webkit-backdrop-filter:blur(10px) saturate(1.15);
+  color:#0f5132;
+  border:1px solid rgba(15,81,50,.2);
+  box-shadow:0 2px 10px rgba(20,16,10,.18),0 0 0 .5px rgba(255,255,255,.5) inset;
+  letter-spacing:.2px;
+}
 .smodetag{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:4px 9px;border-radius:999px;z-index:4;letter-spacing:.3px}
 .smodetag.sale{background:#e0533a;color:#fff}
 .smodetag.offer{background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.3)}
@@ -821,7 +847,7 @@ a.msghead-s:hover{color:var(--acc)}
 .gal-nav:active{transform:translateY(-50%) scale(.93)}
 .gal-nav.prev{left:16px}
 .gal-nav.next{right:16px}
-.gal-vbadge{position:absolute;top:14px;left:14px;font-size:11px;font-weight:700;background:rgba(122,214,160,.15);color:#7ad6a0;border:1px solid rgba(122,214,160,.3);padding:4px 10px;border-radius:999px;z-index:6;display:flex;align-items:center;gap:5px}
+.gal-vbadge{position:absolute;top:14px;left:14px;font-size:11px;font-weight:700;padding:4px 11px;border-radius:999px;z-index:6;display:flex;align-items:center;gap:6px}
 .gal-thumbs{display:flex;gap:8px;flex-wrap:wrap}
 .gal-thumb{width:68px;height:68px;border-radius:9px;border:2px solid var(--line);overflow:hidden;cursor:pointer;transition:.18s;padding:0;background:none;flex-shrink:0}
 .gal-thumb:hover,.gal-thumb.active{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
