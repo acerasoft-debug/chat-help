@@ -4409,6 +4409,11 @@ iP den algilanip para biriminin ... o ülkeye göre ayarlanmasi gerekir"*).
   kurdan dolayı EUR basıyor olabilir" endişesi canlıda **geçerli değil** —
   tek gerçek kusur çerezdi. *Repo kopyası kanıt değildir; sunucu kanıttır.*
   Kablolamanın üçü de yeşil: fonksiyon indi, include-time çağrı var, tek yazıcı.
+- **IP TARAFI DA CANLIDA ÖLÇÜLDÜ** (`test_ip=8.8.8.8`, run `34779690347`):
+  `8.8.8.8 → ulke=US (Ashburn) [180 ms]` → dil `en`, **birim USD**. Yani coğrafi
+  uç sunucudan açılıyor ve tablo uygulanıyor. Adım artık **aynı coğrafi cevaptan
+  DİL ve BİRİM'i birlikte** basıyor — ikisini ayrı koşularda ölçmek, birinin
+  çalışıp ötekinin çalışmadığı hâli gizlerdi.
 - Test: `tests/currency_pick_test.php` (33 iddia, iki yön). Düşebildiği
   doğrulandı, her sabotajın **gerçekten uygulandığı** ayrıca yazdırılarak:
   include-time çağrı silinince **2 kırmızı**, eski hata (setcookie yine
