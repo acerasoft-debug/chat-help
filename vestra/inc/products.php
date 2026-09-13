@@ -2014,35 +2014,90 @@ function vestra_shop_lead_brands(): array { return ['GUCCI', 'GIVENCHY', 'BALMAI
 function vestra_shop_lead_sellers(): array { return ['GARAGE LE PARIS', 'LE GARAGE PARIS']; }
 function vestra_shop_lead_seller_uids(): array { return ['7ab30f26afedd840']; }
 
+/* "Yeni" TEK tanim (operator, 13 Eyl 2026: "yeni urunleri basa koy").
+ *
+ * PENCERE ayri bir sayi DEGIL: shop.php'nin kartta bastigi "NEW" rozeti zaten
+ * 30 gundu ve simdi ayni sabitten okuyor. Iki ayri esik yazsaydik sayfa "NEW"
+ * rozetli ama one alinmamis kartlar gosterirdi -- bu depoda "ayni olgu iki yerde
+ * yazili" hatasi defalarca kayitli (desc/sizes, faturanin uc katmani, dort
+ * mektup govdesi).
+ *
+ * TAVAN bir CELISKIYI cozuyor, sus degil: operator 12 Eyl'de "balenciaga ve
+ * lacostelar basta kalsin" dedi. Tavansiz birakilsaydi premium bolmesinde son
+ * 30 gunun ~100 ilani (D&G Dropbox partisi + DSQUARED2 kadin partisi)
+ * Balenciaga'yi ~100. siraya iterdi, yani bir gun onceki talimati sessizce geri
+ * alirdi. 24 ile ikisi birden dogru: yeni gelenler ilk siralari aliyor,
+ * Balenciaga hala BIRINCI SAYFADA basliyor. Tavani asan yeni ilanlar
+ * kaybolmuyor -- kendi normal bolmelerine dusuyorlar.
+ *
+ * 24 = brand_probe'un da olctugu "ilk 24 kart", yani izgaranin bir sayfa basi. */
+const VESTRA_SHOP_NEW_DAYS = 30;
+const VESTRA_SHOP_NEW_MAX  = 24;
+
+/* Bir ilan "yeni" mi? added_at YOKSA yeni DEGIL (journal kurucusunun ve NEW
+   rozetinin kurali). Tek yer, cunku sira ile rozet ayrisirsa musteri rozetli
+   ama arkada duran kart gorur. */
+function vestra_product_is_new(array $p, ?int $now = null, ?int $days = null): bool {
+    $days = $days ?? VESTRA_SHOP_NEW_DAYS;
+    if ($days <= 0 || empty($p['added_at'])) return false;
+    $ts = strtotime((string)$p['added_at']);
+    if ($ts === false) return false;
+    return $ts >= (($now ?? time()) - $days * 86400);
+}
+
 /* Listeler parametre, cunku test mekanizmayi KENDI tanimladigi degerlerle
    sinamali; sevk edilen markalar ayrica kaynaktan dogrulaniyor. Ikisi tek iddiada
    birlesseydi, listeye bir marka eklendigi gun mekanizmanin testi de kirmizi
    donerdi -- olctugunu degil, yazimini koruyan bir iddia. */
 function vestra_shop_order(array $products, ?array $front = null, ?array $lead = null,
-                           ?array $sellers = null, ?array $sellerUids = null): array {
+                           ?array $sellers = null, ?array $sellerUids = null,
+                           ?int $newMax = null, ?int $now = null, ?int $newDays = null): array {
     $front      = $front      ?? vestra_shop_front_brands();
     $lead       = $lead       ?? vestra_shop_lead_brands();
     $sellers    = $sellers    ?? vestra_shop_lead_sellers();
     $sellerUids = $sellerUids ?? vestra_shop_lead_seller_uids();
+    $newMax     = $newMax     ?? VESTRA_SHOP_NEW_MAX;
 
     $up = fn($v) => strtoupper(trim((string)$v));
+    /* Indisler 0..n-1 olmali: YENI bolmesi urunleri indisle isaretliyor. */
+    $products = array_values($products);
 
-    $pinned = []; $fr = []; $sel = []; $ld = []; $rest = [];
-    foreach ($products as $p) {
+    /* YENI GELENLER: pencere icindeki en taze $newMax ilan, EN YENI ONCE.
+       pinned atlaniyor -- o bolme her seyin onunde ve bir urun iki kez cikamaz.
+       Esitlikte katalog sirasi ($i) ikinci anahtar: ayni gun yazilan bir partinin
+       icinde sirayi usort'un kararliligina birakmiyoruz, acikca yaziyoruz. */
+    $newRank = [];
+    if ($newMax > 0) {
+        $cand = [];
+        foreach ($products as $i => $p) {
+            if (!empty($p['pinned'])) continue;
+            if (!vestra_product_is_new($p, $now, $newDays)) continue;
+            $cand[] = [strtotime((string)$p['added_at']), $i];
+        }
+        usort($cand, fn($a, $b) => ($b[0] <=> $a[0]) ?: ($a[1] <=> $b[1]));
+        foreach (array_slice($cand, 0, $newMax) as $r => $c) $newRank[$c[1]] = $r;
+    }
+
+    $pinned = []; $new = []; $fr = []; $sel = []; $ld = []; $rest = [];
+    foreach ($products as $i => $p) {
         if (!empty($p['pinned'])) { $pinned[] = $p; continue; }
+        /* YENI, on markalardan da ONCE: operatorun 13 Eyl talimati bu. Tavani
+           asan yeni ilan burada yakalanmaz ve asagida kendi bolmesine duser. */
+        if (isset($newRank[$i])) { $new[$newRank[$i]] = $p; continue; }
         /* On markalar satici kontrolunden ONCE: Lacoste ilanlarinin cogu lead
            saticinin, yani sonra sorulsaydi o bolmeye dusup icinde dagilirlardi
            ve "basta" olmazlardi. */
-        $i = array_search($up($p['brand'] ?? ''), $front, true);
-        if ($i !== false) { $fr[$i][] = $p; continue; }
+        $j = array_search($up($p['brand'] ?? ''), $front, true);
+        if ($j !== false) { $fr[$j][] = $p; continue; }
         if (in_array($up($p['seller'] ?? ''), $sellers, true)
             || in_array((string)($p['seller_uid'] ?? ''), $sellerUids, true)) { $sel[] = $p; continue; }
-        $i = array_search($up($p['brand'] ?? ''), $lead, true);
-        if ($i !== false) { $ld[$i][] = $p; continue; }
+        $j = array_search($up($p['brand'] ?? ''), $lead, true);
+        if ($j !== false) { $ld[$j][] = $p; continue; }
         $rest[] = $p;
     }
+    ksort($new);
 
-    $out = $pinned;
+    $out = array_merge($pinned, array_values($new));
     /* array_keys DEGIL, indis uzerinden: bir marka o bolmede hic urun vermezse
        kendinden sonrakiler one kaymamali, liste sirasi korunmali. */
     for ($i = 0; $i < count($front); $i++) if (!empty($fr[$i])) $out = array_merge($out, $fr[$i]);

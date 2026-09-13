@@ -1,0 +1,15 @@
+[
+  {
+    "_not": "Operator, 13 Eyl 2026: 'Regular Fit Logo Trim L.12.12 Polo Shirt ausverkauft yap'.",
+    "_nasil": "match id/sku degil ADA dusuyor (set_product.php'nin 3. adimi, normalize edilmis alt dize). expect:1 sarti bunu guvenli kiliyor: yazim yanlissa 0 ya da >1 urune uyar, is DURUR ve HICBIR SEY yazilmaz.",
+    "match": "Regular Fit Logo Trim L.12.12 Polo Shirt",
+    "expect": 1,
+    "sold_out": true
+  },
+  {
+    "_not": "Operator, 13 Eyl 2026: 'Classic Fit Monogram Jacquard Polo Shirt ausverkauft yap'.",
+    "match": "Classic Fit Monogram Jacquard Polo Shirt",
+    "expect": 1,
+    "sold_out": true
+  }
+]
