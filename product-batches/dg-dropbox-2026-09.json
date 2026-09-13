@@ -1285,11 +1285,11 @@
  {
   "id": "dgx-gvepaz-fu7du",
   "brand": "Dolce & Gabbana",
-  "name": "Logo Tape Jogging Trousers — Black",
+  "name": "Logo Tape Sweatshirt & Trousers Set — Black",
   "cat": "Tracksuits",
   "sku": "GVEPAZ FU7DU",
-  "list": 120.0,
-  "moq": 20,
+  "list": 190.0,
+  "moq": 10,
   "unit": "pc",
   "mode": "fixed",
   "status": "pending",
@@ -1300,8 +1300,8 @@
   ],
   "tiers": [
    {
-    "min": 20,
-    "price": 120.0
+    "min": 10,
+    "price": 190.0
    }
   ],
   "colors": [
@@ -1311,11 +1311,11 @@
  {
   "id": "dgx-gvetaz-hu7b7",
   "brand": "Dolce & Gabbana",
-  "name": "Logo Tape Jogging Trousers — Black",
+  "name": "Logo Tape Track Jacket & Trousers Set — Black",
   "cat": "Tracksuits",
   "sku": "GVETAZ HU7B7",
-  "list": 120.0,
-  "moq": 20,
+  "list": 190.0,
+  "moq": 10,
   "unit": "pc",
   "mode": "fixed",
   "status": "pending",
@@ -1326,8 +1326,8 @@
   ],
   "tiers": [
    {
-    "min": 20,
-    "price": 120.0
+    "min": 10,
+    "price": 190.0
    }
   ],
   "colors": [
@@ -1337,11 +1337,11 @@
  {
   "id": "dgx-gwt1az-humlx",
   "brand": "Dolce & Gabbana",
-  "name": "Jogging Trousers — Black",
+  "name": "DG Logo Sweatshirt & Trousers Set — Black",
   "cat": "Tracksuits",
   "sku": "GWT1AZ HUMLX",
-  "list": 120.0,
-  "moq": 20,
+  "list": 190.0,
+  "moq": 10,
   "unit": "pc",
   "mode": "fixed",
   "status": "pending",
@@ -1352,8 +1352,8 @@
   ],
   "tiers": [
    {
-    "min": 20,
-    "price": 120.0
+    "min": 10,
+    "price": 190.0
    }
   ],
   "colors": [
@@ -1363,11 +1363,11 @@
  {
   "id": "dgx-gx630t-jbmj0",
   "brand": "Dolce & Gabbana",
-  "name": "Side Stripe Jogging Trousers — Black",
+  "name": "Logo Script Hoodie & Trousers Set — Black",
   "cat": "Tracksuits",
   "sku": "GX630T JBMJ0",
-  "list": 120.0,
-  "moq": 20,
+  "list": 190.0,
+  "moq": 10,
   "unit": "pc",
   "mode": "fixed",
   "status": "pending",
@@ -1378,8 +1378,8 @@
   ],
   "tiers": [
    {
-    "min": 20,
-    "price": 120.0
+    "min": 10,
+    "price": 190.0
    }
   ],
   "colors": [

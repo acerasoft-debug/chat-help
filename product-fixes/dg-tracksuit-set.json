@@ -1,0 +1,34 @@
+[
+  {
+    "match": "dgx-gvepaz-fu7du",
+    "expect": 1,
+    "name": "Logo Tape Sweatshirt & Trousers Set — Black",
+    "price": 190,
+    "moq": 10,
+    "tiers": [{ "min": 10, "price": 190 }]
+  },
+  {
+    "match": "dgx-gvetaz-hu7b7",
+    "expect": 1,
+    "name": "Logo Tape Track Jacket & Trousers Set — Black",
+    "price": 190,
+    "moq": 10,
+    "tiers": [{ "min": 10, "price": 190 }]
+  },
+  {
+    "match": "dgx-gwt1az-humlx",
+    "expect": 1,
+    "name": "DG Logo Sweatshirt & Trousers Set — Black",
+    "price": 190,
+    "moq": 10,
+    "tiers": [{ "min": 10, "price": 190 }]
+  },
+  {
+    "match": "dgx-gx630t-jbmj0",
+    "expect": 1,
+    "name": "Logo Script Hoodie & Trousers Set — Black",
+    "price": 190,
+    "moq": 10,
+    "tiers": [{ "min": 10, "price": 190 }]
+  }
+]
