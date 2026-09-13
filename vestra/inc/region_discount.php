@@ -41,7 +41,8 @@ if (!defined('VESTRA_REGION_DISCOUNT_PCT')) define('VESTRA_REGION_DISCOUNT_PCT',
  */
 function vestra_region_discount_codes(): array {
     return ['AR','BO','BR','CL','CO','EC','GY','PY','PE','SR','UY','VE',  // Güney Amerika
-            'JP','AU','SG','HK'];                                          // + Asya-Pasifik
+            'JP','AU','SG','HK',                                           // + Asya-Pasifik
+            'CZ','PL'];                                                    // + Orta Avrupa (13 Eyl 2026)
 }
 
 /**
@@ -76,6 +77,31 @@ function vestra_region_discount_names(): array {
         /* Hong Kong: bu depoda GERÇEK bir vaka var — VES-6B53D265'in alıcısı
            香港风徕贸易有限公司 ve vergi alanına "中国香港特别行政区" yazmıştı
            (KURAL 5h). Çince yazımlar o yüzden tabloda. */
+        /* Çekya / Polonya (operatör, 13 Eyl 2026: *"Česko ve polonyaya da yüzde 10
+           indirim yap oradan girilirse"*). Operatör "girilirse" dedi; ölçüt yine
+           KAYITLI ülke — tek indirime iki ayrı ölçüt (biri IP, biri beyan)
+           koymak aynı alıcıya bugün indirimli, yarın indirimsiz fiyat verirdi.
+           Çek yazımı hem aksanlı hem aksansız: form serbest metin. */
+        'CZ' => ['czechia', 'czech republic', 'the czech republic',
+                 'česko', 'cesko', 'česká republika', 'ceska republika',
+                 'tschechien', 'tschechische republik',                    // de
+                 'tchéquie', 'tchequie', 'république tchèque',             // fr
+                 'repubblica ceca', 'cechia',                              // it
+                 'chequia', 'república checa', 'republica checa',          // es
+                 'tchéquia', 'tchequia',                                   // pt
+                 'чехия', 'чешская республика',                            // ru
+                 'チェコ',                                                  // ja
+                 'التشيك', 'جمهورية التشيك',                               // ar
+                 'çekya', 'cekya', 'çek cumhuriyeti'],                     // tr
+        'PL' => ['poland', 'polska', 'rzeczpospolita polska',
+                 'republic of poland', 'polen',                            // de / nl
+                 'pologne',                                                // fr
+                 'polonia',                                                // it / es
+                 'polônia', 'polonia',                                     // pt
+                 'польша',                                                 // ru
+                 'ポーランド',                                               // ja
+                 'بولندا',                                                 // ar
+                 'polonya'],                                               // tr
         'HK' => ['hong kong', 'hongkong', 'hong kong sar', 'hong kong sar china',
                  'hong kong s.a.r.', 'hong kong (china)', 'hongkong sar',
                  '香港', '中國香港', '中国香港', '中国香港特别行政区',

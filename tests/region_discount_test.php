@@ -21,6 +21,10 @@ $sa = ['Argentina'=>'AR','Bolivia'=>'BO','Brazil'=>'BR','Chile'=>'CL','Colombia'
        'Uruguay'=>'UY','Venezuela'=>'VE'];
 foreach ($sa as $name => $code) $t("{$name} -> {$code}", $cc($name) === $code);
 $t('12 ülkenin hepsi listede', count(array_intersect(array_values($sa), vestra_region_discount_codes())) === 12);
+/* Liste 13 Eyl 2026'da iki kez buyudu (once GA+APAC, sonra CZ+PL). Sayi
+   burada yazili ki bir sonraki ekleme sessizce gecmesin. */
+$t('kapsam toplam 18 ülke', count(vestra_region_discount_codes()) === 18);
+$t('kod listesinde tekrar yok', count(vestra_region_discount_codes()) === count(array_unique(vestra_region_discount_codes())));
 
 echo "\n== 2. Asya-Pasifik dördü ==\n";
 foreach (['Japan'=>'JP','Australia'=>'AU','Singapore'=>'SG','Hong Kong'=>'HK'] as $n => $c) {
@@ -36,6 +40,15 @@ $t('香港 -> HK',            $cc('香港') === 'HK');
 $t('中国香港特别行政区 -> HK', $cc('中国香港特别行政区') === 'HK');
 $t('Hong Kong SAR China -> HK', $cc('Hong Kong SAR China') === 'HK');
 
+echo "\n== 2b. Orta Avrupa: Çekya ve Polonya ==\n";
+foreach (['Czechia'=>'CZ','Czech Republic'=>'CZ','Česko'=>'CZ','Ceska Republika'=>'CZ',
+          'Tschechien'=>'CZ','Çekya'=>'CZ','чехия'=>'CZ',
+          'Poland'=>'PL','Polska'=>'PL','Polen'=>'PL','Polonya'=>'PL','польша'=>'PL'] as $n => $c) {
+    $t("{$n} -> {$c}", $cc($n) === $c);
+}
+$t("'CZ' ve 'PL' çıplak kod",   $cc('CZ') === 'CZ' && $cc('PL') === 'PL');
+$t('ikisi de %10 alıyor',       $pct('Česko') === 10.0 && $pct('Poland') === 10.0);
+
 echo "\n== 3. Yakın kod tuzakları — indirim YOK ==\n";
 /* Bunların her biri gerçek bir karışma: yanlış pozitif kalıcı %10 demek. */
 $t("'CH' İsviçre, 'CL' Şili DEĞİL",      $cc('CH') === '' && $cc('CL') === 'CL');
@@ -50,6 +63,13 @@ $t("'SE' İsveç, 'SR' DEĞİL",             $cc('SE') === '');
 $t("'BE'/'BG' Brezilya DEĞİL",           $cc('BE') === '' && $cc('BG') === '');
 $t('Germany indirim almaz',              $cc('Germany') === '' && $pct('Germany') === 0.0);
 $t('Turkey indirim almaz',               $cc('Turkey') === '');
+/* CZ/PL'nin komsulari: bu dordu de kapsam DISI ve kodlari bir harf farkli. */
+$t("'SK' Slovakya kapsam DIŞI",          $cc('SK') === '' && $cc('Slovakia') === '');
+$t("'SI' Slovenya kapsam DIŞI",          $cc('SI') === '' && $cc('Slovenia') === '');
+$t("'PT' Portekiz 'PL' DEĞİL",           $cc('PT') === '' && $cc('Portugal') === '');
+$t("'CH'/'CZ' ayrımı",                   $cc('CH') === '' && $cc('CZ') === 'CZ');
+/* Slovakca 'Ceskoslovensko' tarihi bir ad; tam esleşme onu da almaz. */
+$t("'Ceskoslovensko' eşleşmez",          $cc('Ceskoslovensko') === '');
 
 echo "\n== 4. Alt dize ASLA eşleşmez ==\n";
 /* mango -> Mangobay dersi: kısa bir ad başka bir adın içinde bulunmamalı. */
@@ -58,6 +78,7 @@ $t("'New Brazil Trading Ltd' eşleşmez",  $cc('New Brazil Trading Ltd') === '')
 $t("'Japan Street 12' eşleşmez",         $cc('Japan Street 12') === '');
 $t("'Hong Kong Road, London' eşleşmez",  $cc('Hong Kong Road, London') === '');
 $t("'Peruvian' eşleşmez",                $cc('Peruvian') === '');
+$t("'Poland Street' eşleşmez",           $cc('Poland Street') === '');
 
 echo "\n== 5. Biçim toleransı ==\n";
 $t('baştaki/sondaki boşluk',    $cc('  Brazil  ') === 'BR');

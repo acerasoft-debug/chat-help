@@ -993,6 +993,29 @@ jobs:
             $accs = auth_accounts();
             printf("toplam hesap: %d\n\n", count($accs));
 
+            printf("%-26s %-7s %-14s %-10s %-12s %s\n", "E-POSTA (maskeli)", "TIP", "DURUM", "KYB", "BELGE", "KAYIT");
+            foreach ($accs as $a) {
+              $e = (string)($a['email'] ?? '');
+              $at = strrpos($e, '@');
+              /* Maske: yerel kismin ilk 2 karakteri + uzunlugu + alan adi. Bosluk ve
+                 gorunmez karakterler koseli parantezle GOSTERILIR -- aranan kusur tam bu. */
+              $local = $at !== false ? substr($e, 0, $at) : $e;
+              $dom   = $at !== false ? substr($e, $at) : '';
+              $vis   = mb_substr($local, 0, 2);
+              $vis   = preg_replace('/[^\x21-\x7E]/', '[?]', $vis);   // gorunmez karakteri isaretle
+              $mask  = $vis.str_repeat('*', max(0, mb_strlen($local) - 2)).$dom;
+              if ($e !== trim($e)) $mask = '[BOSLUKLU!] '.$mask;
+              if (str_starts_with($e, '%')) $mask = '[KODLAMA-ARTIGI!] '.$mask;
+              /* Belge durumu: trade_licence istegi var mi, durumu ne? */
+              $docSt = '-';
+              foreach ((array)($a['doc_requests'] ?? []) as $dr) {
+                if (($dr['type'] ?? '') === 'trade_licence') { $docSt = (string)($dr['status'] ?? '?'); break; }
+              }
+              printf("%-26s %-7s %-14s %-10s %-12s %s\n",
+                $mask, (string)($a['type'] ?? '?'), (string)($a['status'] ?? '?'),
+                (string)($a['kyb_status'] ?? '-'), $docSt, substr((string)($a['created_at'] ?? ''), 0, 10));
+            }
+
             /* Bolgesel kalici indirim: KIMI etkiliyor?
                Sayim, kodun kullandigi AYNI fonksiyonu cagiriyor -- burada kendi
                ulke esleştirmemi yazsaydim sonda ile kapinin cevabi ayrisirdi ve
@@ -1016,28 +1039,6 @@ jobs:
               $blank = 0;
               foreach ($accs as $a) if (trim((string)($a['country'] ?? '')) === '') $blank++;
               printf("   ulkesi bos hesap: %d (indirim alamaz)\n\n", $blank);
-            }
-            printf("%-26s %-7s %-14s %-10s %-12s %s\n", "E-POSTA (maskeli)", "TIP", "DURUM", "KYB", "BELGE", "KAYIT");
-            foreach ($accs as $a) {
-              $e = (string)($a['email'] ?? '');
-              $at = strrpos($e, '@');
-              /* Maske: yerel kismin ilk 2 karakteri + uzunlugu + alan adi. Bosluk ve
-                 gorunmez karakterler koseli parantezle GOSTERILIR -- aranan kusur tam bu. */
-              $local = $at !== false ? substr($e, 0, $at) : $e;
-              $dom   = $at !== false ? substr($e, $at) : '';
-              $vis   = mb_substr($local, 0, 2);
-              $vis   = preg_replace('/[^\x21-\x7E]/', '[?]', $vis);   // gorunmez karakteri isaretle
-              $mask  = $vis.str_repeat('*', max(0, mb_strlen($local) - 2)).$dom;
-              if ($e !== trim($e)) $mask = '[BOSLUKLU!] '.$mask;
-              if (str_starts_with($e, '%')) $mask = '[KODLAMA-ARTIGI!] '.$mask;
-              /* Belge durumu: trade_licence istegi var mi, durumu ne? */
-              $docSt = '-';
-              foreach ((array)($a['doc_requests'] ?? []) as $dr) {
-                if (($dr['type'] ?? '') === 'trade_licence') { $docSt = (string)($dr['status'] ?? '?'); break; }
-              }
-              printf("%-26s %-7s %-14s %-10s %-12s %s\n",
-                $mask, (string)($a['type'] ?? '?'), (string)($a['status'] ?? '?'),
-                (string)($a['kyb_status'] ?? '-'), $docSt, substr((string)($a['created_at'] ?? ''), 0, 10));
             }
 
             echo "\n===== HATA GUNLUGU: SON 25 SATIR (posta harici her sey) =====\n";
