@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -963,6 +963,87 @@ jobs:
             php -l /tmp/vestra_seller_apply.php
             php /tmp/vestra_seller_apply.php
             rm -f /tmp/vestra_seller_apply.php
+
+      - name: Satıcı askısını kaldır (panelin Activate düğmesiyle aynı yazma)
+        if: ${{ github.event.inputs.admin_mode == 'seller_activate' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SA_UID: ${{ github.event.inputs.issue_ref }}
+          SA_GO:  ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: SA_UID,SA_GO
+          script: |
+            set -e
+            cat > /tmp/vestra_sactivate.php <<'PHPEOF'
+            <?php
+            /* Askidaki bir saticiyi geri acar. Panelin 'Activate' dugmesiyle
+               AYNI iki yazma (admin.php: activate_account):
+                   status='active', suspend_reason=''
+               ve belge askisindan cikiyorsa TAZE pencere. Ikinci bir "acma"
+               mantigi YAZILMADI -- bu depoda kapinin ikinci kopyasi alti kez
+               yanlis yere bakti.
+
+               MUAFIYETIN YETMEDIGI YER TAM BURASI: auth_seller_doc_grace()
+               muafiyeti 'suspended' dalindan ONCE soruyor, yani muaf bir satici
+               bir daha askiya ALINMAZ ama zaten askidaysa kendiliginden
+               ACILMAZ. Ilanlari katalogdan cekili kalir.
+
+               Kuru kosu varsayilan (KURAL 18'in yazma tarafi). Yazma GERI
+               OKUNUYOR: auth_update() void donuyor, "kaydettim" demek olcum
+               degil (KURAL 5c'nin billing_saved dersi). */
+            $home = getenv("HOME");
+            require $home."/public_html/inc/auth.php";
+            require $home."/public_html/inc/products.php";
+            $uid = trim((string)getenv("SA_UID"));
+            $go  = strtolower(trim((string)getenv("SA_GO"))) === 'true';
+            if ($uid === '') { fwrite(STDERR, "HATA: issue_ref bos -- hesap ID'si verin\n"); exit(1); }
+
+            $acc = null;
+            foreach (auth_accounts() as $a) if ((string)($a['id'] ?? '') === $uid) { $acc = $a; break; }
+            if (!$acc) { fwrite(STDERR, "HATA: hesap bulunamadi: {$uid}\n"); exit(1); }
+            if (($acc['type'] ?? '') !== 'seller') { fwrite(STDERR, "HATA: bu hesap satici degil ({$acc['type']})\n"); exit(1); }
+
+            /* Ilan sayimi HAM listeden: vestra_products() yalniz approved
+               dondurur ve askidaki saticinin ilanlarini zaten eler, yani
+               "kac ilan geri gelecek" sorusunu yapisi geregi cevaplayamaz. */
+            $mine = 0; $live = 0;
+            foreach (vestra_listings() as $p) {
+              if ((string)($p['seller_uid'] ?? '') !== $uid) continue;
+              $mine++;
+              if ((string)($p['status'] ?? '') === 'approved') $live++;
+            }
+            $g = auth_seller_doc_grace($acc, array_fill(0, $mine, []), time());
+            printf("hesap    : %s  (%s)\n", $uid, (string)($acc['company'] ?? '?'));
+            printf("durum    : %s   sebep: %s\n", (string)($acc['status'] ?? '?'), (string)($acc['suspend_reason'] ?? '-'));
+            printf("muaf mi  : %s\n", auth_doc_grace_exempt($acc) ? 'EVET' : 'hayir');
+            printf("asama    : %s   eksik belge: %s\n", (string)$g['phase'], $g['missing'] ? implode(', ', $g['missing']) : '(yok)');
+            printf("ilan     : %d kayitli, %d approved (aski kalkinca katalogda gorunur)\n", $mine, $live);
+            printf("kip      : %s\n\n", $go ? "UYGULA" : "KURU KOSU (hicbir sey yazilmaz)");
+
+            if (($acc['status'] ?? '') !== 'suspended') { echo "ZATEN ACIK -- yapilacak bir sey yok.\n"; exit(0); }
+            if (!$go) { echo "Uygulamak icin move_apply=true.\n"; exit(0); }
+
+            $wasDocs = auth_suspended_for_docs($acc);
+            auth_update($uid, ['status'=>'active', 'suspend_reason'=>'']);
+            if ($wasDocs) auth_seller_doc_grace_start($uid, true);
+
+            $back = null;
+            foreach (auth_accounts() as $a) if ((string)($a['id'] ?? '') === $uid) { $back = $a; break; }
+            $okSt = $back && (string)($back['status'] ?? '') === 'active';
+            $okRs = $back && (string)($back['suspend_reason'] ?? '') === '';
+            printf("geri okuma: durum=%s  sebep=%s\n", (string)($back['status'] ?? '?'), (string)($back['suspend_reason'] ?? '(bos)') ?: '(bos)');
+            if (!$okSt || !$okRs) { fwrite(STDERR, "HATA: yazma tutmadi\n"); exit(1); }
+            echo "ACILDI -- {$live} approved ilan yeniden katalogda.\n";
+            PHPEOF
+            php -l /tmp/vestra_sactivate.php
+            php /tmp/vestra_sactivate.php; RC=$?
+            rm -f /tmp/vestra_sactivate.php
+            exit $RC
 
       - name: Mesaj / engellenen kayıt sil
         if: ${{ github.event.inputs.admin_mode == 'msg_del' }}
