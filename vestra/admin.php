@@ -1884,7 +1884,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $lines=[]; $heroImg='';
     foreach($pids as $pid){
       $p=vestra_find($pid); if(!$p) continue;
-      $price='from '.$fmt(vestra_from_price($p)).'/'.($p['unit']??'pc');
+      $price='from '.$fmt(vestra_from_price($p, true)).'/'.($p['unit']??'pc');
       if(($p['mode']??'')==='sale' && !empty($p['list'])) $price.=' (was '.$fmt($p['list']).')';
       $lines[]=['title'=>trim(($p['brand']??'').' '.($p['name']??'')),'price'=>$price,
         'moq'=>'MOQ '.(int)($p['moq']??0).' '.($p['unit']??'pc'),
@@ -3040,7 +3040,7 @@ elseif($tab==='approvals'): ?>
     <div class="acols3" style="margin-bottom:16px">
       <div><div class="ahint">Mode</div><b><?= htmlspecialchars($p['mode']??'fixed') ?></b></div>
       <div><div class="ahint">MOQ</div><b><?= htmlspecialchars((string)($p['moq']??'')) ?> <?= htmlspecialchars($p['unit']??'pc') ?></b></div>
-      <div><div class="ahint">Starting price</div><b><?= ($p['mode']??'')==='offer'?'Open to offers':eur(vestra_from_price($p)) ?></b></div>
+      <div><div class="ahint">Starting price</div><b><?= ($p['mode']??'')==='offer'?'Open to offers':eur(vestra_from_price($p, true)) ?></b></div>
       <div><div class="ahint">Origin</div><?= htmlspecialchars($p['origin']??'—') ?></div>
       <div><div class="ahint">Description</div><?= htmlspecialchars(substr($p['desc']??'',0,80)) ?></div>
       <div><div class="ahint">Image</div><?= !empty($p['image'])?'<a class="abtn" href="'.htmlspecialchars($p['image']).'" target="_blank">View photo</a>':'No photo' ?></div>
@@ -4558,7 +4558,7 @@ elseif($tab==='offers'):
       $oid = urlencode((string)$oL['id']);
       $oName = '<a href="/product?id='.$oid.'" target="_blank" rel="noopener" style="color:var(--acc)">'.$oName.' ↗</a>'
              . '<div class="ahint"><a href="/admin?tab=listings&edit='.$oid.'#top" style="color:var(--mut)">Edit listing</a>'
-             . ' · from '.eur(vestra_from_price($oL)).'</div>';
+             . ' · from '.eur(vestra_from_price($oL, true)).'</div>';
     } else {
       $oName .= '<div class="ahint" style="color:#a9781a">SKU not in catalogue</div>';
     }
@@ -4836,7 +4836,7 @@ $fxLabel = ['ecb'=>'European Central Bank (daily reference rate)','market'=>'mar
       </td>
       <?php $sv = vestra_sample_price($p); ?>
       <td class="ac"><input type="number" step="0.01" min="0" name="sample[<?= $eid ?>]" value="<?= $sv>0?htmlspecialchars(rtrim(rtrim(number_format($sv,2,'.',''),'0'),'.')):'' ?>" placeholder="—" style="width:66px;padding:5px"></td>
-      <td class="ac"><b><?= ($p['mode']??'')==='offer' ? '—' : eur(vestra_from_price($p)) ?></b></td>
+      <td class="ac"><b><?= ($p['mode']??'')==='offer' ? '—' : eur(vestra_from_price($p, true)) ?></b></td>
     </tr>
     <?php endforeach; ?>
   </table></div></div>
@@ -5005,7 +5005,7 @@ elseif($tab==='listings'):
     <td class="ac"><span class="atag"><?= htmlspecialchars($p['sku']??'') ?></span></td>
     <td class="ac"><span class="modechip <?= htmlspecialchars($p['mode']??'fixed') ?>"><?= htmlspecialchars($p['mode']??'fixed') ?></span></td>
     <td class="ac"><?= htmlspecialchars((string)($p['moq']??'')) ?> <?= htmlspecialchars($p['unit']??'pc') ?></td>
-    <td class="ac"><?= $st==='offer'?'—':eur(vestra_from_price($p)) ?></td>
+    <td class="ac"><?= $st==='offer'?'—':eur(vestra_from_price($p, true)) ?></td>
     <td class="ac" style="white-space:nowrap">
       <?php /* Alici bu satiri gumruk/teslim suresi icin okuyor. Girilmemis
                ilan sessizce varsayilan "Ships from EU" gosteriyor -- yani
@@ -5569,7 +5569,7 @@ function smtpPreset(v){
     <div class="afield"><label>Products *</label>
       <input type="text" onkeyup="quoteFilter(this.value)" placeholder="Filter products…" style="margin-bottom:6px">
       <div style="max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px">
-        <?php foreach(vestra_products(true) as $qp): if(empty($qp['brand'])) continue; $qfp=vestra_from_price($qp); ?>
+        <?php foreach(vestra_products(true) as $qp): if(empty($qp['brand'])) continue; $qfp=vestra_from_price($qp, true); ?>
         <label class="qprow" style="display:flex;gap:8px;align-items:center;padding:4px 6px;font-size:12.5px;cursor:pointer">
           <input type="checkbox" name="q_products[]" value="<?= htmlspecialchars($qp['id']??'') ?>">
           <span><b><?= htmlspecialchars($qp['brand']) ?></b> <?= htmlspecialchars($qp['name']??'') ?><?php if($qfp>0): ?> · <span class="ahint">from €<?= rtrim(rtrim(number_format($qfp,2),'0'),'.') ?><?= ($qp['mode']??'')==='sale'?' (sale)':'' ?></span><?php endif; ?></span>

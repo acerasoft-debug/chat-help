@@ -1001,7 +1001,7 @@ if($tab==='overview'){
   foreach($listings as $p){
     echo '<tr><td><b>'.htmlspecialchars($p['brand']??'').'</b> — '.htmlspecialchars($p['name']??'').'<div class="hint">SKU '.htmlspecialchars($p['sku']??'').'</div></td>'.
       '<td><span class="modechip '.($p['mode']??'fixed').'">'.($p['mode']??'fixed').'</span></td><td>'.($p['moq']??1).' '.htmlspecialchars($p['unit']??'pc').'</td>'.
-      '<td class="r">'.(($p['mode']??'')==='offer'?'—':eur(vestra_from_price($p))).'</td>'.
+      '<td class="r">'.(($p['mode']??'')==='offer'?'—':eur(vestra_from_price($p, true))).'</td>'.
       '<td>'.match($p['status']??'approved'){'pending'=>'<span class="status open">⏳ '.t('Pending approval').'</span>','rejected'=>'<span class="status" style="background:rgba(239,154,154,.12);color:var(--bad);border:1px solid rgba(239,154,154,.3)">✗ '.t('Rejected').'</span>','suspended'=>'<span class="status" style="background:rgba(239,154,154,.12);color:var(--bad);border:1px solid rgba(239,154,154,.3)">⊘ '.t('Suspended').'</span>',default=>'<span class="status offers">✓ '.t('Live').'</span>'}.'</td>'.
       '<td class="r" style="white-space:nowrap">'.
       '<a class="btn btn-o btn-sm" href="/seller?tab=edit&lid='.urlencode($p['id']).'">'.t('Edit').'</a> '.
@@ -1044,7 +1044,7 @@ if($tab==='overview'){
           '<input type="number" min="1" name="t'.($i+1).'min['.$id.']" value="'.htmlspecialchars((string)($tt[$i]['min']??'')).'" placeholder="min" style="width:56px;padding:7px 6px">'.
           '<input type="number" step="0.01" min="0" name="t'.($i+1).'price['.$id.']" value="'.htmlspecialchars((string)($tt[$i]['price']??'')).'" placeholder="€" style="width:64px;padding:7px 6px"></div></td>';
       }
-      echo '<td class="r"><b>'.(($p['mode']??'')==='offer'?'—':eur(vestra_from_price($p))).'</b></td></tr>';
+      echo '<td class="r"><b>'.(($p['mode']??'')==='offer'?'—':eur(vestra_from_price($p, true))).'</b></td></tr>';
     }
     echo '</tbody></table></div>';
     echo '<div style="margin-top:16px"><button class="btn btn-p" type="submit">💾 '.t('Save all prices').'</button></div>';

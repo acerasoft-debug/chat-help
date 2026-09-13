@@ -173,6 +173,10 @@ function vestra_ships_from_label(array $p = []): string {
 if(!defined('VESTRA_COMMISSION_RATE')) define('VESTRA_COMMISSION_RATE', 0.035);
 require_once __DIR__.'/i18n.php';
 require_once __DIR__.'/notify.php';
+/* Fiyatin TEK indirim kapisi. products.php'nin fiyat fonksiyonlari bunu
+   cagiriyor, yani dosya yuklenmezse fiyat sessizce indirimsiz kalirdi --
+   o yuzden kosulsuz require, function_exists() korumasi DEGIL. */
+require_once __DIR__.'/region_discount.php';
 if(!defined('VESTRA_TERMS_VERSION')) define('VESTRA_TERMS_VERSION','2026-06-26'); // legal acceptance version
 
 function vestra_demo_products(){
@@ -984,8 +988,22 @@ function vestra_parse_colorqty_tokens(array $p, array $tokens): ?array {
   }
   return vestra_parse_colorqty($p, $map);
 }
-function vestra_unit_price($p,$qty){ if(empty($p['tiers'])) return 0.0; $price=$p['tiers'][0]['price']; foreach($p['tiers'] as $t){ if($qty>=$t['min']) $price=(float)$t['price']; } return $price; }
-function vestra_from_price($p){ if(empty($p['tiers'])) return 0.0; $m=null; foreach($p['tiers'] as $t){ $m=($m===null)?$t['price']:min($m,$t['price']); } return $m; }
+/* $raw=true => KATALOG fiyati, bakanin bolgesel indirimi UYGULANMADAN.
+   Operator paneli, satici paneli ve journal bunu ister: operatore indirimli
+   rakam gostermek, satilan malin fiyatini yanlis bilmesi demek. Alicinin
+   gordugu ve KASANIN aldigi her yol varsayilani kullanir, yani ikisi
+   kendiliginden ayni (bkz. inc/region_discount.php'deki not). */
+function vestra_unit_price($p,$qty,bool $raw=false){
+  if(empty($p['tiers'])) return 0.0;
+  $price=$p['tiers'][0]['price'];
+  foreach($p['tiers'] as $t){ if($qty>=$t['min']) $price=(float)$t['price']; }
+  return $raw ? (float)$price : vestra_price_after_region((float)$price);
+}
+function vestra_from_price($p,bool $raw=false){
+  if(empty($p['tiers'])) return 0.0;
+  $m=null; foreach($p['tiers'] as $t){ $m=($m===null)?$t['price']:min($m,$t['price']); }
+  return $raw ? (float)$m : vestra_price_after_region((float)$m);
+}
 /* Kademe merdiveni, ALICININ GERCEKTEN ODEYECEGI hali: [['min'=>56,'price'=>70.20], ...].
    Ham `tiers` bunun icin yeterli degildi ve her cagiran ayni duzeltmeleri kendi yapardi:
    - ILK BASAMAK MOQ'DA BASLAR. Cogu ilanin ilk kademesi `min=1` yaziyor; "ab 1 Stuck"
@@ -1012,7 +1030,7 @@ function vestra_price_ladder(array $p): array {
   }
   return $out;
 }
-function vestra_discount($p){ if(($p['mode']??'')!=='sale'||empty($p['list'])) return 0; return (int)round(100*($p['list']-vestra_from_price($p))/$p['list']); }
+function vestra_discount($p){ if(($p['mode']??'')!=='sale'||empty($p['list'])) return 0; return (int)round(100*($p['list']-vestra_from_price($p,true))/$p['list']); }
 /* Bir urun ancak liste fiyati gercekten kademe fiyatinin USTUNDEyse "indirimli"dir.
    Veri kayiyor: kademe fiyatini guncelleyip 'list' alanina dokunmayinca mode='sale'
    ama list == fiyat kaliyordu; vitrinde "-%0" rozeti ve ayni sayinin uzeri cizili

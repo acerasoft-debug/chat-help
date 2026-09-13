@@ -213,7 +213,7 @@ function vestra_journal_auto_strings(string $lang): array {
 /** Bir ilanın en düşük kademe fiyatı (yoksa `unit`/`list`). Para birimi EUR. */
 function vestra_journal_auto_from_price(array $p): ?float {
     if (function_exists('vestra_from_price')) {
-        $v = (float)vestra_from_price($p);
+        $v = (float)vestra_from_price($p, true);
         if ($v > 0) return $v;
     }
     foreach (['unit', 'list'] as $f) {

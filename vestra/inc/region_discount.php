@@ -170,3 +170,45 @@ function vestra_region_discount_amount(float $subtotal, float $pct): float {
     if ($subtotal <= 0 || $pct <= 0) return 0.0;
     return round($subtotal * $pct / 100, 2);
 }
+
+/* ── BAKANIN indirimi ─────────────────────────────────────────────────────────
+ *
+ * Fiyat bu sitede ZATEN yalnız girişli ve onaylı hesaba basılıyor (KURAL 19 —
+ * fiyat listesi girişsiz açılmaz; ürün sayfasının JSON-LD'si fiyat yaymıyor).
+ * Yani fiyatın çizildiği her an "bakan kim" sorusunun bir cevabı var ve
+ * Googlebot'a başka fiyat gösterme tehlikesi YOK. İndirim bu yüzden çağıran
+ * tarafa değil, fiyatı üreten fonksiyonun kendisine konabiliyor: bir sayfayı
+ * atlarsak hata "indirim görünmedi" olur, "sayfa bir şey der kasa başkasını
+ * alır" OLMAZ. Ters kurgu (her sayfaya tek tek eklemek) tam o ayrışmayı
+ * üretirdi ve bu depo onu üç kez yaşadı.
+ *
+ * İSTİSNA KISA VE AÇIK: operatör paneli, satıcı paneli ve journal HAM fiyatı
+ * ister — operatöre indirimli rakam göstermek, sattığı malın fiyatını yanlış
+ * bilmesi demek. O çağrılar $raw=true geçiyor ve test bunu denetliyor.
+ */
+
+/** Oturumdaki hesabın indirimi. İstek başına BİR kez çözülür: fiyat bir sayfada
+ *  yüzlerce kez okunuyor ve her okumada hesap dosyasını taramak sayfayı yavaşlatırdı. */
+function vestra_viewer_discount_pct(): float {
+    static $pct = null;
+    if ($pct !== null) return $pct;
+    $pct = 0.0;
+    /* CLI için AYRI bir kapı YOK: cron ve teşhisin oturumu olmadığı için
+       auth_user() zaten null döner ve sonuç 0 olur. Önce buraya
+       `PHP_SAPI==='cli' -> 0` diye bir kestirme koymuştum; davranış aynıydı
+       ama ZİNCİRİ ÖLÇÜLEMEZ yapıyordu — kum havuzu ölçümü her ülkede
+       indirimsiz fiyat gösterdi ve testin "CLI indirim uygulamaz" iddiası
+       buna rağmen yeşildi. Ölçemediğim bir yolu doğru sanmak, bu depoda
+       yedi kez yaşanan "kontrol yanlış yere bakıyor" hatasının ta kendisi. */
+    if (!function_exists('auth_user')) return $pct;
+    $u = auth_user();
+    $pct = vestra_region_discount_pct(is_array($u) ? $u : null);
+    return $pct;
+}
+
+/** Ham fiyata bakanın indirimini uygular. Yuvarlama TEK YERDE. */
+function vestra_price_after_region(float $price): float {
+    $pct = vestra_viewer_discount_pct();
+    if ($price <= 0 || $pct <= 0) return $price;
+    return round($price * (100 - $pct) / 100, 2);
+}

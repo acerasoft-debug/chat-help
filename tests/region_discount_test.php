@@ -99,5 +99,54 @@ $t('yukarı yuvarlama (33.33)',    vestra_region_discount_amount(33.33, 10.0) ==
 $t('yüzde 0 ise tutar 0',         vestra_region_discount_amount(500.0, 0.0) === 0.0);
 $t('negatif/sıfır ara toplam 0',  vestra_region_discount_amount(0.0, 10.0) === 0.0);
 
+echo "\n== 7. Fiyat fonksiyonları: indirim çekirdekte, HAM kaçış yolu var ==\n";
+/* Fiyat bu sitede zaten yalnız girişli+onaylı hesaba basılıyor (KURAL 19), yani
+   indirim çağıran tarafa değil fiyatı ÜRETEN fonksiyona konabildi. Ters kurgu
+   (her sayfaya tek tek eklemek) "sayfa bir şey der, kasa başkasını alır"
+   ayrışmasını üretirdi — bu depoda üç kez yaşandı. */
+require_once $root.'/vestra/inc/products.php';
+$prod = ['moq'=>1,'tiers'=>[['min'=>1,'price'=>100.0],['min'=>10,'price'=>80.0]]];
+$t('vestra_from_price $raw parametresi var',
+   (new ReflectionFunction('vestra_from_price'))->getNumberOfParameters() === 2);
+$t('vestra_unit_price $raw parametresi var',
+   (new ReflectionFunction('vestra_unit_price'))->getNumberOfParameters() === 3);
+/* Bu süreçte auth_user() tanımlı değil => bakan yok => indirim yok. Cron ve
+   teşhis de tam bu yoldan 0 alıyor; ayrıca bir `PHP_SAPI==='cli'` kestirmesi
+   YOK. Önce vardı: davranış aynıydı ama zinciri ÖLÇÜLEMEZ yapıyordu ve kum
+   havuzu ölçümü her ülkede indirimsiz fiyat gösterirken bu iddia yeşil
+   kalıyordu — düşemeyen bir iddia, iddia değildir. */
+$t('oturum yokken indirim uygulanmaz', vestra_from_price($prod) === 80.0);
+$t('CLI kestirmesi YOK (ölçülebilir kalsın)',
+   !str_contains((string)file_get_contents($root.'/vestra/inc/region_discount.php'),
+                 "PHP_SAPI === 'cli') return"));
+$t('$raw=true her koşulda ham',        vestra_from_price($prod, true) === 80.0
+                                    && vestra_unit_price($prod, 1, true) === 100.0);
+$t('indirim yüzdesi 0 iken fiyat aynı', vestra_price_after_region(100.0) === 100.0);
+
+echo "\n== 8. Operatör ve satıcı HAM fiyat görür ==\n";
+/* Operatore indirimli rakam gostermek, sattigi malin fiyatini yanlis bilmesi
+   demek. Bu iddia dosyalari TARAYARAK olcuyor: yeni bir panel satiri ham'i
+   unutursa burada kirmizi olur. */
+foreach (['vestra/admin.php','vestra/seller.php','vestra/inc/journal_auto.php'] as $f) {
+    $src = (string)file_get_contents($root.'/'.$f);
+    $bad = 0;
+    foreach (explode("\n", $src) as $line) {
+        if (!preg_match('/vestra_(from|unit)_price\(/', $line)) continue;
+        if (!str_contains($line, 'true)')) $bad++;
+    }
+    $t("{$f}: indirimli okuma yok", $bad === 0);
+}
+/* Ters yon: alicinin gordugu sayfalar ham'a KACMAMALI -- kacsaydi katalog
+   indirimsiz gorunur, kasa indirimli alir ve fark musteriye sipariste cikardi. */
+foreach (['vestra/shop.php','vestra/product.php','vestra/order.php'] as $f) {
+    $src = (string)file_get_contents($root.'/'.$f);
+    $t("{$f}: ham'a kaçmıyor", !preg_match('/vestra_(from|unit)_price\([^)]*,\s*true\)/', $src));
+}
+/* Indirim ROZETI ham fiyattan hesaplanir: 'list' ham kalip kademe indirilirse
+   rozet sisip olmayan bir indirim yuzdesi yazardi. */
+$srcP = (string)file_get_contents($root.'/vestra/inc/products.php');
+$t('rozet yüzdesi ham fiyattan',  str_contains($srcP, 'vestra_from_price($p,true))/$p[\'list\']'));
+$t('region_discount koşulsuz require', str_contains($srcP, "require_once __DIR__.'/region_discount.php';"));
+
 echo "\n".($fail ? "BASARISIZ" : "GECTI").": {$ok} iddia gecti, {$fail} dustu\n";
 exit($fail ? 1 : 0);
