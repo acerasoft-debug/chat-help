@@ -2482,11 +2482,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   $msgs=[
     'approved'=>'✓ Listing approved and live.','rejected'=>'Listing rejected.',
     'kyb_ok'=>'✓ Account opened — trade prices, ordering and line sheets are unlocked for them. No document was needed for this.',
-    'suspended'=>'Account suspended.','activated'=>'Account activated (a docs-paused seller gets a fresh 3-day window if anything is still missing).','deleted'=>'Listing deleted.',
+    'suspended'=>'Account suspended.','activated'=>'Account activated (a docs-paused seller gets a fresh '.VESTRA_SELLER_DOC_GRACE_DAYS.'-day window if anything is still missing).','deleted'=>'Listing deleted.',
     'doc_attached'=>'✓ Document attached to the account as "uploaded" — it is listed below; approve it there once you have looked at it.',
     'doc_attach_err'=>'⚠ The file was NOT attached.',
-    'grace_exempt_on'=>'⏸ Document deadline switched OFF for this seller — the 3-day rule and the automatic pause no longer apply to them. Their documents are still requested in their panel.',
-    'grace_exempt_off'=>'▶ Document deadline switched ON for this seller — the 3-day rule applies again; the clock starts at the next morning run (or their next listing).',
+    'grace_exempt_on'=>'⏸ Document deadline switched OFF for this seller — the '.VESTRA_SELLER_DOC_GRACE_DAYS.'-day rule and the automatic pause no longer apply to them. Their documents are still requested in their panel.',
+    'grace_exempt_off'=>'▶ Document deadline switched ON for this seller — the '.VESTRA_SELLER_DOC_GRACE_DAYS.'-day rule applies again; the clock starts at the next morning run (or their next listing).',
     'acct_deleted'=>'✓ Account permanently deleted (backup saved; their listings were removed too).',
     'acct_has_orders'=>'⚠ Not deleted — this seller still has open orders. Complete or cancel them first, or suspend the account instead.',
     'acct_notfound'=>'⚠ Account not found — nothing was deleted.',
@@ -3146,9 +3146,9 @@ elseif($tab==='documents'):
     <?php endif; ?>
     <?php if(($selUser['type']??'')==='seller'): $gEx=auth_doc_grace_exempt($selUser); ?>
       <div style="margin:6px 0 10px">
-        <?= $gEx ? abadge('⏸ doc deadline off','#7a6a2a').' <span class="ahint">3-day rule and automatic pause do not apply (your decision)</span>' : '<span class="ahint">3-day document rule applies</span>' ?>
+        <?= $gEx ? abadge('⏸ doc deadline off','#7a6a2a').' <span class="ahint">'.VESTRA_SELLER_DOC_GRACE_DAYS.'-day rule and automatic pause do not apply (your decision)</span>' : '<span class="ahint">'.VESTRA_SELLER_DOC_GRACE_DAYS.'-day document rule applies</span>' ?>
         <div style="margin-top:5px"><?= fBtn($gEx?'▶ Apply doc deadline':'⏸ Exempt from doc deadline','doc_grace_exempt',['uid'=>$selUser['id']??'','on'=>$gEx?'0':'1','back'=>'documents'],'font-size:11px',
-          $gEx ? 'Apply the 3-day document rule to this seller again?' : 'Exempt this seller from the 3-day document rule? No deadline letters and no automatic pause.') ?></div>
+          $gEx ? 'Apply the '.VESTRA_SELLER_DOC_GRACE_DAYS.'-day document rule to this seller again?' : 'Exempt this seller from the '.VESTRA_SELLER_DOC_GRACE_DAYS.'-day document rule? No deadline letters and no automatic pause.') ?></div>
       </div>
     <?php endif; ?>
     <?php if(($selUser['status']??'active')==='suspended'): ?>
@@ -3508,8 +3508,11 @@ function sendUserMessage(uid,name){
             if(($a['type']??'')==='seller'): $gEx=auth_doc_grace_exempt($a);
               if($gEx) echo abadge('⏸ doc deadline off','#7a6a2a');
               echo fBtn($gEx?'▶ Apply doc deadline':'⏸ Exempt from doc deadline','doc_grace_exempt',['uid'=>$a['id']??'','on'=>$gEx?'0':'1'],'font-size:11px',
-                $gEx ? 'Apply the 3-day document rule to this seller again? The clock starts at the next morning run (or their next listing); after 3 days without documents their listings are paused automatically.'
-                     : 'Exempt this seller from the 3-day document rule? No deadline letters and no automatic pause for them. Their documents stay requested in their panel.');
+                /* Gun sayisi SABITTEN: 13 Eyl 2026'da 3 -> 7 oldu ve bu iki cumle
+                   elle sabit bir gun sayisi yaziyordu, yani onay penceresi kuralin
+                   kendisiyle celisirdi (KURAL 6'nin escrow tavani dersi). */
+                $gEx ? 'Apply the '.VESTRA_SELLER_DOC_GRACE_DAYS.'-day document rule to this seller again? The clock starts at the next morning run (or their next listing); after '.VESTRA_SELLER_DOC_GRACE_DAYS.' days without documents their listings are paused automatically.'
+                     : 'Exempt this seller from the '.VESTRA_SELLER_DOC_GRACE_DAYS.'-day document rule? No deadline letters and no automatic pause for them. Their documents stay requested in their panel.');
             endif; ?>
       <?= fBtn('🔑 Reset pw','reset_password',['uid'=>$a['id']??''],'','Generate a new temporary password for '.($a['email']??'this account').'? You will see it once, to send to them.') ?>
       <button type="button" class="abtn" onclick="sendUserMessage('<?= htmlspecialchars($a['id']??'',ENT_QUOTES) ?>','<?= htmlspecialchars($a['company']??($a['name']??'this account'),ENT_QUOTES) ?>')" title="Start an on-platform message thread — reaches them even with no email on file">💬 Message</button>

@@ -439,7 +439,9 @@ footer a{color:#d8bd86}
           $img0 = $imgs[0] ?? '';   // base photo (members only)
           $img1 = $imgs[1] ?? '';   // second photo → hover reveal
           $imgCount = count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : []));
-          $isNew = !empty($p['added_at']) && (strtotime($p['added_at']) > strtotime('-30 days'));
+          /* Rozet ile SIRA ayni tanimdan okuyor (vestra_product_is_new): iki ayri
+             esik olsaydi sayfa "NEW" rozetli ama one alinmamis kart gosterirdi. */
+          $isNew = vestra_product_is_new($p);
           /* Editorial rhythm: every 7th tile runs wide (landscape crop), every 11th runs
              tall. A uniform 4-up grid of 343 identical portrait tiles reads as a
              spreadsheet; breaking it on a fixed cadence reads as a lookbook. Pinned

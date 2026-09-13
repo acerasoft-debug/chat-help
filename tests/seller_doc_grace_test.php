@@ -81,8 +81,34 @@ $g = auth_seller_doc_grace($seller(['doc_grace_exempt'=>'', 'doc_grace_start'=>$
 $t("bos bayrak ('') = karar yok -> kural isler (running)",              $g['phase'] === 'running');
 $g = auth_seller_doc_grace($seller(['id'=>'7ab30f26afedd840','doc_requests'=>[$req('trade_licence','uploaded'), $req('id_document','uploaded')]]), $L, $NOW);
 $t('muaf ama belgeler tam -> clear (muafiyet gereksiz)',                $g['phase'] === 'clear' && $g['exempt'] === false);
-$t('muaf listesi yalnizca GARAGE',                                       auth_doc_grace_exempt_uids() === ['7ab30f26afedd840']);
 $t('muaf satici askida degil, bayrak yok, ilan yok -> exempt oncelikli', auth_seller_doc_grace($seller(['id'=>'7ab30f26afedd840']), [], $NOW)['phase'] === 'exempt');
+$t('Marca Online da muaf (operator, 13 Eyl 2026)',
+   auth_seller_doc_grace($seller(['id'=>'0cb79eb883f2a0fa','doc_grace_start'=>$stamp(30*$D)]), $L, $NOW)['phase'] === 'exempt');
+/* Muafiyet TEK TEK hesaba baglanmali: liste bos degil diye herkesi muaf sayan
+   bir kusur, kuralin tamamini sessizce kapatirdi. */
+$t('listede OLMAYAN satici muaf DEGIL',
+   auth_seller_doc_grace($seller(['id'=>'baska-uid','doc_grace_start'=>$stamp(30*$D)]), $L, $NOW)['phase'] === 'expired');
+
+echo "\n-- SEVK EDILEN degerler (kaynaktan) --\n";
+/* Mekanizma yukarida testin KENDI tanimladigi 3 gunle sinaniyor (bu dosyanin 14.
+   satiri); sevk edilen sayi ayrica kaynaktan okunuyor -- ayni surecte sabiti
+   ikinci kez tanimlamak mumkun degil. Tek iddiada birlesseydi, gun sayisi
+   degistigi gun mekanizmanin testi de kirmizi donerdi. Bu ayrim offers_rounds
+   ve shop_order testlerinde de var. */
+$authSrc = $src;   // dosyanin basinda zaten okundu
+$t('sevk edilen sure 7 gun (operator, 13 Eyl 2026)',
+   (bool)preg_match("/define\('VESTRA_SELLER_DOC_GRACE_DAYS',\s*7\)/", $authSrc));
+$ex = auth_doc_grace_exempt_uids();
+$t('muaf liste: GARAGE + Marca Online',
+   $ex === ['7ab30f26afedd840', '0cb79eb883f2a0fa']);
+/* Gun sayisi hicbir MUSTERI/OPERATOR metnine gomulu olmamali: 3 -> 7 tek satirda
+   olsun diye. admin.php'nin onay penceresi bir gun "3-day" yaziyordu. */
+foreach (['vestra/admin.php', 'vestra/seller.php', 'vestra/cron_seller_docs.php',
+          'vestra/inc/email_templates.php'] as $rel) {
+    $body = file_get_contents(__DIR__.'/../'.$rel);
+    if ($body === false || $body === '') { $t("{$rel}: OKUNDU", false); continue; }
+    $t("{$rel}: gomulu '3-day'/'3 days' yok", !preg_match('/\b3[- ]day/i', $body));
+}
 
 echo "-- ikinci ilan saati yeniden baslatmaz --\n";
 $L2 = array_merge($L, [['id'=>'p2','seller_uid'=>'s1','status'=>'approved','added_at'=>date('c', $NOW)]]);

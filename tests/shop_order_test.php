@@ -132,12 +132,92 @@ $t('lead satici kimligi kayitli',
 $t('satici adinin iki yazimi da kabul',
    count(vestra_shop_lead_sellers()) >= 2);
 
-echo "\n== 8. shop.php kablolamasi ==\n";
+echo "\n== 8. YENI GELENLER bolmesi (operator, 13 Eyl 2026: \"yeni urunleri basa koy\") ==\n";
+/* Sabit bir "simdi": takvime bagli bir test bir ay sonra kendiliginden kirmiziya
+   doner ve kimse neden oldugunu bilmez. */
+$NOW = mktime(12, 0, 0, 9, 13, 2026);
+$day = fn(int $back) => date('Y-m-d H:i:s', $NOW - $back * 86400);
+$ordN = fn(array $rows, ?int $max = null) =>
+    vestra_shop_order($rows, $FRONT, $LEAD, $SELLERS, $UIDS, $max, $NOW);
+
+$in8 = [
+    $p('old-alfa',  'ALFA', ['added_at' => $day(200)]),
+    $p('new-rest',  'ZETA', ['added_at' => $day(1)]),
+    $p('new-alfa',  'ALFA', ['added_at' => $day(3)]),
+    $p('no-date',   'ZETA'),
+];
+$t('yeni ilanlar ON MARKALARIN da onunde, en yeni once',
+   $ids($ordN($in8)) === 'new-rest,new-alfa,old-alfa,no-date');
+$t('added_at YOKSA yeni sayilmiyor',
+   !vestra_product_is_new(['id' => 'x'], $NOW));
+$t('pencere disindaki ilan yeni sayilmiyor',
+   !vestra_product_is_new(['added_at' => $day(VESTRA_SHOP_NEW_DAYS + 1)], $NOW));
+$t('pencere icindeki ilan yeni sayiliyor',
+   vestra_product_is_new(['added_at' => $day(VESTRA_SHOP_NEW_DAYS - 1)], $NOW));
+$t('cozulemeyen tarih yeni sayilmiyor',
+   !vestra_product_is_new(['added_at' => 'yakinda'], $NOW));
+
+/* TAVAN: operatorun 12 Eyl'deki "balenciaga basta kalsin" karari korunuyor.
+   Tavani asan yeni ilan KAYBOLMUYOR, kendi bolmesine dusuyor. */
+$in8b = [$p('a', 'ALFA', ['added_at' => $day(100)])];
+foreach (range(1, 5) as $k) $in8b[] = $p("n$k", 'ZETA', ['added_at' => $day(1)]);
+$t('tavan yeni ilanlari kirpiyor, on marka one geciyor',
+   $ids($ordN($in8b, 2)) === 'n1,n2,a,n3,n4,n5');
+$t('tavani asan yeni ilan KAYBOLMUYOR', count($ordN($in8b, 2)) === count($in8b));
+$t('tavan 0 = ozellik kapali (eski davranis)',
+   $ids($ordN($in8b, 0)) === 'a,n1,n2,n3,n4,n5');
+
+/* pinned yeni olsa da YENI bolmesine girmiyor: iki kez cikardi. */
+$in8c = [
+    $p('r',   'ZETA', ['added_at' => $day(1)]),
+    $p('pin', 'ZETA', ['added_at' => $day(1), 'pinned' => 1]),
+];
+$t('pinned yeni olsa da yalniz BIR kez ve en basta',
+   $ids($ordN($in8c)) === 'pin,r');
+/* pinned aday listesinden ELENIYOR, yoksa zaten en onde duran bir ilan tavandan
+   bir yer yer ve gercek bir yeni gelen arkada kalir. Ana dongudeki pinned
+   kontrolu bunu yakalamaz: orada urun dogru yere gider, KAYIP olan slottur. */
+$in8e = [
+    $p('pin', 'ZETA', ['added_at' => $day(1), 'pinned' => 1]),
+    $p('n',   'ZETA', ['added_at' => $day(2)]),
+    $p('a',   'ALFA', ['added_at' => $day(300)]),
+];
+$t('pinned tavandan yer YEMIYOR', $ids($ordN($in8e, 1)) === 'pin,n,a');
+
+/* Ayni gun yazilan bir parti icinde katalog sirasi korunuyor (acik tie-break). */
+$in8d = [];
+foreach (['b1','b2','b3'] as $i) $in8d[] = $p($i, 'ZETA', ['added_at' => $day(2)]);
+$t('esit tarihte katalog sirasi korunuyor', $ids($ordN($in8d)) === 'b1,b2,b3');
+$t('_ord alani YENI bolmesinde de korunuyor',
+   (function () use ($ordN, $p, $day) {
+       $r = $ordN([$p('o','ZETA',['_ord'=>7]), $p('n','ZETA',['_ord'=>9,'added_at'=>$day(1)])]);
+       return ($r[0]['_ord'] ?? null) === 9 && ($r[1]['_ord'] ?? null) === 7;
+   })());
+
+echo "\n== 8b. SEVK EDILEN esik ve tavan (kaynaktan) ==\n";
+/* Operator, 13 Eyl 2026: "yeni urunlere yeni urun olarak markieren yap 7 gun
+   boyunca". Sabit tek oldugu icin rozet ve sira birlikte daraldi. */
+$t('pencere 7 gun (NEW rozetiyle AYNI sayi)', VESTRA_SHOP_NEW_DAYS === 7);
+$t('tavan 24 (izgaranin bir sayfa basi)',     VESTRA_SHOP_NEW_MAX  === 24);
+/* Sabitin ADINA degil, operatorun soyledigi GUNE bagli iki iddia: yukaridaki
+   mekanizma iddialari sabite gore (+-1) yazildigi icin her degerde yesil kalir. */
+$t('  6 gun once eklenen ilan hala YENI',  vestra_product_is_new(['added_at' => $day(6)],  $NOW));
+$t(' 10 gun once eklenen ilan YENI DEGIL', !vestra_product_is_new(['added_at' => $day(10)], $NOW));
+
+echo "\n== 9. shop.php kablolamasi ==\n";
 $src = file_get_contents($root.'/vestra/shop.php');
 $t('shop.php vestra_shop_order() cagiriyor', strpos($src, 'vestra_shop_order(') !== false);
 /* Ikinci bir kopya dogmasin: sira artik yalnizca fonksiyonda yazili. */
 $t('shop.php kendi bolme dongusunu TASIMIYOR',
    strpos($src, '$leadBrands') === false && strpos($src, '$leadSellerUids') === false);
+/* Rozet ile sira TEK tanimdan: elle yazilmis bir "-N days" geri gelirse sayfa
+   rozetli ama one alinmamis kart gosterir ve bunu kimse fark etmez. Iddia
+   ARANAN SAYIYA baglanmiyor (eskiden "-30 days" arardi ve pencere 7'ye inince
+   ayni kusurun yeni yazimini kaciracakti); herhangi bir gun esigi ariyor. */
+$t('NEW rozeti vestra_product_is_new() okuyor',
+   strpos($src, 'vestra_product_is_new(') !== false);
+$t('shop.php kendi gun esigini TASIMIYOR',
+   !preg_match('/-\s*\d+\s*days?\b/i', $src) && !preg_match('/\b\d+\s*\*\s*86400\b/', $src));
 
 echo "\nTOPLAM: $ok ok, $fail hata\n";
 exit($fail ? 1 : 0);

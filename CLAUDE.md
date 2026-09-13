@@ -4239,3 +4239,160 @@ seller armasini daha estetik yap"*).
 - **Ürün sayfasının kırmızı "Sold out" cümlesine DOKUNULMADI:** o bir cümle,
   etiket değil; bir paragrafı çapraz yazmak okunmaz yapardı. Operatörün
   "yazı" dediği, fotoğrafın üstündeki karo etiketi.
+
+**Vitrin sırası: YENİ GELENLER de başta — ama TAVANLI** (operatör, 13 Eyl 2026:
+*"yeni ürünleri basa koy"*).
+- `vestra_shop_order()` artık `pinned`'den hemen sonra bir **YENİ** bölmesi
+  taşıyor: pencere içindeki en taze ilanlar, en yeni önce, eşitlikte katalog
+  sırası (açık tie-break — aynı gün yazılan bir partinin içinde sırayı
+  `usort`'un kararlılığına bırakmıyoruz).
+- **PENCERE AYRI BİR EŞİK DEĞİL.** `shop.php`'nin karta bastığı "NEW" rozeti o
+  gün 30 gündü; ikisi de artık `vestra_product_is_new()`'den okuyor **(pencere
+  bugün 7 — bkz. aşağıdaki madde)**. İki ayrı eşik olsaydı sayfa **"NEW" rozetli
+  ama öne alınmamış** kart gösterirdi — bu depoda "aynı olgu iki yerde yazılı"
+  hatasının en sessiz hâli.
+- **TAVAN (24) BİR ÇELİŞKİYİ ÇÖZÜYOR, süs değil.** Operatör 12 Eylül'de
+  "balenciaga ve lacostelar basta kalsin" demişti. Tavansız bırakılsaydı premium
+  bölmesinde son günlerin ~100 ilanı (D&G Dropbox + DSQUARED2 partileri)
+  Balenciaga'yı **~100. sıraya** iterdi, yani bir gün önceki talimatı sessizce
+  geri alırdı. 24 ile ikisi birden **kısmen** doğru: yeni gelenler ilk sıraları
+  alıyor, Balenciaga listeden düşmüyor. Tavanı aşan yeni ilan **kaybolmuyor** —
+  kendi normal bölmesine düşüyor.
+- **TAVANIN BEDELİ ÖLÇÜLDÜ ve tahminimden büyüktü** (13 Eyl 2026, canlı, run
+  `34763555452`): Balenciaga'nın ilk ilanı **4. sıradan 28. sıraya** indi
+  (3 `pinned` + 24 yeni gelen önünde). `/shop` **sayfalamıyor** — tek uzun
+  ızgara — yani "birinci sayfa" diye bir şey yok; 28. sıra 4'lü ızgarada
+  **7. satır**. Bu satırı yazarken "hâlâ birinci sayfada başlıyor" demiştim;
+  **ölçüm değil tahmindi** ve not düzeltildi. Lacoste görünürde kaldı (2. sıra
+  `pinned`, 4. sıra yeni gelen bir GARAGE LE PARIS sweatshirt'ü).
+  **Operatör kararı bekliyor:** iki talimat (12 Eyl "balenciaga ve lacostelar
+  basta kalsin" ↔ 13 Eyl "yeni ürünleri basa koy") gerçekten zıt yöne çekiyor.
+  İki kaldıraç da tek satır: tavanı düşürmek (`VESTRA_SHOP_NEW_MAX`) ya da ön
+  marka bölmesini YENİ'nin önüne almak. Kendiliğinden seçilmedi.
+- `_ord` alanı YENİ bölmesinde de taşınıyor (yoksa öne çekilenler sayfanın
+  "newest" sortunda en eski stok gibi görünürdü).
+- Test: `shop_order_test.php` 32 → **48 iddia**. Altı sabotajın her biri önce
+  **gerçekten uygulandığı doğrulanıp** kırmızıya çevrildi: YENİ bölmesi kapalı
+  **4**, `added_at` guardı kalkınca **15**, pinned aday listesinden elenmeyince
+  **1**, rozet yine elle 30 gün okuyunca **2**, sıralama ters **1**, YENİ bölmesi
+  ön markalardan sonraya alınınca **1**. *İki sabotajım ilk denemede
+  ölçmediğim şeyi ölçtü (`grep` BRE'de `[0]` bir karakter sınıfı, ve
+  "yeniden konumlandırma" bloğu aynı yere geri koyuyordu) — sabotajın
+  uygulandığını `grep -F` ile ve konum karşılaştırmasıyla doğrulamak şart.*
+
+**NEW rozeti 30 → 7 GÜN** (operatör, aynı gün, birkaç saat sonra: *"yeni
+ürünlere yeni ürün olarak markieren yap 7 gün boyunca"*).
+- **Tek satır, çünkü sabit tek.** `VESTRA_SHOP_NEW_DAYS = 7`. Operatörün cümlesi
+  **rozet** hakkında; sıra da onunla birlikte daraldı ve **ikisi ayrışamıyor** —
+  saatler önce alınan "pencere ayrı bir eşik değil" kararının bedelini bugün
+  ödemek yerine karşılığını aldık. Rozetin yanında **süre yazan hiçbir metin
+  yok** (kart yalnız `t('NEW')` basıyor), yani 8 sözlükte değişecek bir şey de
+  yok.
+- **"Bu olgu başka nerede yazılı?" sorusu soruldu:** `vestra/` genelinde başka
+  hiçbir yerde tazelik eşiği yok. `journal_auto.php`'nin `VESTRA_JOURNAL_AUTO_DAYS`'i
+  **bilerek ayrı** bir kavram (günlük raporun penceresi, son rapordan başlıyor);
+  kalan bütün "30 gün" geçişleri ilgisiz (üyelik denemesi, ziyaret istatistiği,
+  IP coğrafya önbelleği).
+- **Neden 30 zaten yanlıştı:** 12 Eylül'ün **68 ilanlık** D&G partisi Ekim
+  ortasına kadar "NEW" kalacaktı. Her zaman yanan bir rozet, rozet olmaktan
+  çıkar (KURAL 2c'nin "her sabah 0 bekleyen yazan uyarı okunmamayı öğretir"
+  dersinin vitrin hâli).
+- **Tavan KALDIRILMADI.** Pencere daralınca daha seyrek işliyor ama tek günde
+  68 ilan yazılan bir depoda 7 gün de 24'ü aşmaya yeter — 12 Eylül partisi tam
+  böyleydi.
+- **Test iddiası ARANAN SAYIYA bağlıydı ve bu bir kusurdu:** `shop.php`'nin
+  kendi eşiğini taşımadığını doğrulayan iddia birebir `"-30 days"` arıyordu.
+  Ölçüldü: rozeti yine elle `strtotime('-7 days')` okuyacak şekilde sabote
+  edildiğinde **eski iddia yeşil kalıyordu** — yani pencere değiştiği anda,
+  var olma sebebi olan kusurun yeni yazımını kaçıracaktı. İddia artık herhangi
+  bir gün eşiği arıyor (`-N day` ve `N * 86400`) ve aynı sabotajda **kırmızı**.
+  *Bir iddiayı bir sayıya bağlamak, o sayı değiştiği gün iddiayı sessizce
+  emekliye ayırır.*
+- Ayrıca **güne bağlı iki mutlak iddia** eklendi (6 gün → YENİ, 10 gün → değil):
+  mekanizma iddiaları sabite göre `±1` yazıldığı için **her değerde yeşil**
+  kalıyordu, yani operatörün söylediği sayıyı tutan tek şey sabitin adıydı.
+- **Sonda rozeti de sayıyor artık** (`inspect-products.yml` → `shop_order=<bölme>`):
+  pencere/tavan değeri, bölmede ve katalogda kaç ilanın rozet taşıdığı, ve en
+  taze **ekleme günleri**. Sonuncusu şart: pencere boş çıktığında *"eşik inmedi"*
+  ile *"bu hafta hiç ilan girmedi"* aynı çıktı olurdu. Sonda önce kum havuzunda
+  koşturuldu (9 günlük ilan ve tarihsiz ilan doğru şekilde elendi).
+- **ÇİZDİRİLDİ, kaynak okunmadı** (kum havuzu, `php -S`, sentetik üç ilan:
+  1 / 3 / 12 günlük): sayfada **2 rozet**, 12 günlük ilanda **yok**, iki tazesi
+  **en başta** ve en yeni önce; PHP uyarısı **0** (grep'in yakaladığı 8 satır
+  çerez bandının `#cnotice` id'si). Aynı kum havuzunda pencere 30'a çekilince
+  rozet **3** oluyor ve 12 günlük ilan da yanıyor — yani pencere gerçekten
+  rozetin kendisini sürüyor, sabitin adını değil.
+- **CANLI ÖLÇÜM (run `34763555452`, deploy `b8d9644f`):**
+  `pencere 7 gun, tavan 24 | premium'da 70 ilan, katalogda 216`. En taze ekleme
+  günleri **12 Eyl (69)** ve **10 Eyl (147)** pencere içinde, **3 Eyl (335
+  ayakkabı)** dışında — 69 + 147 = **216**, yani sayım kendi içinde tutuyor.
+- Test: `shop_order_test.php` 48 → **50 iddia**. Düşebildiği doğrulandı, her
+  sabotajın gerçekten uygulandığı ayrıca yazdırılarak: sabit 30'a döndürülünce
+  **2 kırmızı** (biri gün bazlı olan), rozet elle eşik okuyunca **2**.
+
+**13 Eyl 2026 — operatörün tek tek verdiği fiyat/durum kararları.**
+- İki Lacoste polosu **ausverkauft**: `lac-logotrim-polo` (Regular Fit Logo Trim
+  L.12.12) ve `lac-monogram-polo` (Classic Fit Monogram Jacquard). `match` ADA
+  düşüyor; `expect:1` yazım yanlışını yakalar (kardeşi *"Paris Regular Fit Polo
+  Shirt"* bu metni içermiyor).
+- **"Striped Polo Shirt" bir Lacoste DEĞİL** — ölçüldü: `dgn-g8kb8zfi7yo`,
+  Dolce & Gabbana, €60. Yani o satır üçüncü bir sold_out değil, *"DG tüm
+  pololari 110 eur yap"* talimatının **örneği**. Ölçmeseydim satılmakta olan bir
+  D&G polosunu satıştan kaldıracaktım.
+- **D&G polo = tam 6 ilan → €110.** Hepsi tek kademeli, hepsi moq 20; `price`
+  alanı `list`'i ve bütün kademeleri aynı değere yazıyor, yani düzleşme riski
+  yok. **Eşleşme ID ile:** iki ilan aynı adı taşıyor (*"DG Logo Polo Shirt —
+  Black"*), ada göre eşleşme "2 ürüne uydu" deyip dururdu.
+- **"Hoodieleri sapkalilari 145" kategorinin tamamı değil.** `Hoodies &
+  Sweatshirts` altında 10 D&G ilanı var; adında HOODIE geçen **3**'ü 145 oldu
+  (Print Hoodie Black, Hoodie White, Floral Print Hoodie Navy). **7 crewneck
+  sweatshirt bilerek 120/90'da bırakıldı** — operatörün çizdiği ayrım tam bu.
+- **Takımlar TEK TEK adlandırıldı, toptan değil.** İlk cümlede yalnız *"Logo
+  Tape Sweatshirt & Trousers Set"* yazıyordu ve "tüm" kelimesi yoktu; dar
+  okundu. Operatör ardından **ikinciyi adıyla** yazdı (*"Logo Tape Track Jacket
+  & Trousers Set … 220 eur yap teklif te koy"*), yani dar okuma doğruydu.
+  İkincisinde ayrıca **teklif AÇILDI** (`offers:on` → `offers=true` +
+  `no_offers` silinir; ilan `mode='fixed'` kaldığı için sabit fiyat duruyor ve
+  yanında teklif kutusu çıkıyor). Kalan **iki takım 190'da ve teklif kapalı** —
+  adlandırılmadılar.
+
+**KURAL 2f — belge süresi 3 → 7 GÜN; Marca Online MUAF** (operatör, 13 Eyl 2026:
+*"bu saticiya istisna yap ... diger saticilarada 7 gün sure ver"*).
+- `VESTRA_SELLER_DOC_GRACE_DAYS` **7**. Rakam iki mektup şablonunda, cron'un
+  operatöre yazdığı dört satırda ve satıcı bandında **zaten sabitten** okunuyordu.
+  Ama `admin.php`'de **ALTI yerde elle "3-day"** yazılıydı (onay pencereleri,
+  rozet ipuçları, durum mesajları): kural 7 gün olurken operatörün ekranı "3"
+  demeye devam edecekti — KURAL 6'nın escrow tavanı dersinin panel hâli. Hepsi
+  sabitten okuyor artık ve **testte tarama var**.
+- Uzatma **geçmişe de işliyor**: damgası duran bir satıcının son tarihi
+  `start+7`'ye kayıyor, yani bugün askıda olmayan kimse bugün askıya alınmaz.
+- Muaf liste: `auth_doc_grace_exempt_uids()` = GARAGE LE PARIS + **Marca Online**
+  (`0cb79eb883f2a0fa`).
+- **MUAFİYET, ZATEN ASKIDA OLAN BİR HESABI AÇMAZ — işin asıl yeri burasıydı.**
+  `auth_seller_doc_grace()` muafiyeti `suspended` dalından **ÖNCE** soruyor:
+  muaf satıcı bir daha askıya **alınmaz**, ama askıdaysa kendiliğinden
+  **açılmaz**. Ölçüldü (`diag-live` → `find_ref`): Marca Online
+  `status=suspended, reason=docs` ve **146 approved ilanı katalogdan çekiliydi**
+  — yani iç çamaşırı bölmesi boştu. Yalnız muafiyeti yazıp "tamam" deseydim
+  operatör aynı boş bölmeyi görmeye devam edecekti.
+  *Hesap raporu bunu tek başına söylemedi: maskeli listede iki satıcı `suspended`
+  görünüyor ve hangisi olduğu e-postadan okunamıyor. Çelişkiyi (mektup "paused"
+  diyor, ilk okumam "active" sandı) çözen şey uid ile ölçmek oldu.*
+- Yeni yol: `seller-products.yml` → **`admin_mode=seller_activate`**
+  (`issue_ref=<hesap ID>`, `move_apply=true`). Panelin **Activate** düğmesiyle
+  aynı iki yazma (`status='active'`, `suspend_reason=''` + belge askısından
+  çıkıyorsa taze pencere); ikinci bir açma mantığı yazılmadı. İlan sayımı **ham
+  listeden** (`vestra_listings`): `vestra_products()` yalnız `approved` döndürür
+  **ve askıdaki satıcının ilanlarını zaten eler**, yani "kaç ilan geri gelecek"
+  sorusunu yapısı gereği cevaplayamaz — D&G partisinde bir kez ödenmiş bedelin
+  aynısı. Kuru koşu varsayılan, yazma **geri okunuyor**.
+- **Canlı sonuç:** `durum=active, sebep=(boş)`, **146 approved ilan yeniden
+  katalogda**.
+- Test: `seller_doc_grace_test.php` 30 → **37 iddia**. Dört sabotaj, her biri
+  önce gerçekten uygulandığı doğrulanarak: süre 3'e dönünce **1**, Marca listeden
+  çıkınca **2**, muafiyet herkese açılınca **14**, `admin.php`'ye elle "3-day"
+  geri konunca **1**.
+- **Kendi hatam, kayda geçsin:** yeni tarama iddiam ilk yazımda `$root` tanımsız
+  olduğu için dosyaları **boş** okuyordu ve dördü de **boşa geçti**. Yalnızca PHP
+  uyarısı ele verdi; düzeltilince `admin.php`'deki altı yeri hemen yakaladı.
+  *Hiç düşemeyen bir iddia, iddia değildir — bu dosyada üçüncü kez.*

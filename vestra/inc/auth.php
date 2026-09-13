@@ -1047,7 +1047,14 @@ function auth_missing_doc_types(array $a): array {
    platformda koruyacak bir sey yok.
    Karar SAF fonksiyonda (auth_seller_doc_grace): cron, satici paneli ve admin
    ayni cevabi okur; test de onu kosar. */
-if (!defined('VESTRA_SELLER_DOC_GRACE_DAYS')) define('VESTRA_SELLER_DOC_GRACE_DAYS', 3);
+/* 3 -> 7 GUN (operator, 13 Eyl 2026: "diger saticilarada 7 gün sure ver").
+   Rakam hicbir metne gomulu degil: iki mektup sablonu, cron'un operatore yazdigi
+   dort satir ve satici panelinin bandi bu sabitten okuyor -- yani degisiklik tek
+   satir. (Sabiti metne gommenin bedeli KURAL 6'da kayitli: escrow tavani bes gun
+   boyunca musteriye soylenenle sepetin kabul ettiginden farkli kaldi.)
+   Not: uzatma GECMISE de isliyor -- damgasi duran bir satici icin son tarih
+   start+7'ye kayiyor, yani bugun askida OLMAYAN kimse bugun askiya alinmaz. */
+if (!defined('VESTRA_SELLER_DOC_GRACE_DAYS')) define('VESTRA_SELLER_DOC_GRACE_DAYS', 7);
 
 /* MUAFIYET. Operator karari, 2 Eyl 2026: "GARAGE LE PARIS'i muaf tut" -- ana
    ortak satici (56 ilan, faturalar onun adina kesiliyor); kural yururluge
@@ -1057,7 +1064,10 @@ if (!defined('VESTRA_SELLER_DOC_GRACE_DAYS')) define('VESTRA_SELLER_DOC_GRACE_DA
    yani GARAGE'in suresi bir gun panelden yeniden acilabilir. Muaf satici:
    saat yok, mektup yok, aski yok; belgeleri yine istenir ve panelde acik durur. */
 function auth_doc_grace_exempt_uids(): array {
-    return ['7ab30f26afedd840'];   // GARAGE LE PARIS
+    return [
+        '7ab30f26afedd840',   // GARAGE LE PARIS  (operator, 2 Eyl 2026)
+        '0cb79eb883f2a0fa',   // Marca Online / "Wholesale Underwear"  (operator, 13 Eyl 2026)
+    ];
 }
 function auth_doc_grace_exempt(array $acc): bool {
     if (array_key_exists('doc_grace_exempt', $acc) && $acc['doc_grace_exempt'] !== null && $acc['doc_grace_exempt'] !== '') {
