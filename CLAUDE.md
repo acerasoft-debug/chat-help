@@ -4130,11 +4130,19 @@ ayrica en az alimlari 10 a indir bunlarda"*).
   yani ilan edilen €190, MOQ 10'da sepetin gerçekten aldığı rakam. `list`
   alanını okuyup "190 yazıyor" demek bu deponun defalarca kaydettiği yarım
   doğrulama olurdu. Görsel 4/4, kayıp 0.
-- **Yan bulgu, operatör kararı bekliyor:** kontakt sayfasının **50.** karesi
-  (`D&G G9OW6Z DARKBLUE.jpg`, künye `G9OW6Z G7C8H DARKBLUE`) de iki sıralı bir
-  **takım** çekimi (koyu lacivert sweatshirt + jogger) ve ithalatta *aynı stil
-  kodunu taşıdığı için* atlanmıştı — oysa 51. kare (ithal edilen
-  `dgx-g9ow6z-g7c8h`, "DG Logo Sweatshirt — Blue") **canlı mavi**, bu **koyu
-  lacivert**. Yani atlama gerekçesi "kopya" idi, gerçekte **ikinci bir renk**.
-  Kendiliğinden eklenmedi: ayrı ilan mı, aynı ilana ikinci renk mi, ve takım
-  olarak mı — üçü de fiyat/kapsam kararı.
+- **Yan bulgu, operatör kararı bekliyor — ve raporlamadan ÖNCE ölçüldüğü için
+  düzeldi.** Kontakt sayfasının **50.** karesi (`D&G G9OW6Z DARKBLUE.jpg`) de
+  iki sıralı bir **takım** çekimi (koyu lacivert sweatshirt + jogger) ve
+  ithalatta atlanmıştı. "Kopya diye atlanmış ama aslında ikinci bir renk" diye
+  yazacaktım; **kayda bakınca öyle değildi**: `dgn-g9ow6zdarkblue`
+  (sku `G9OW6Z DARKBLUE`, `/uploads/dg-root4/…`) **zaten katalogda**, daha eski
+  bir partiden. Atlama gerekçesi doğruydu. *Hafızadan rapor etmek, bu turda tam
+  da tersini söyleyecekti.*
+  Asıl soru bu değil: o ilan **"Crewneck Sweatshirt — Blue" adıyla, €90'a, tek
+  üst gibi** duruyor — yani dört eşofmanda bugün düzelttiğim okuma hatasının
+  aynısı, üstelik `mode=sale` ve **teklif AÇIK**. Kendiliğinden €190 yapılmadı:
+  künyesi tek kod veriyor (`G9OW6Z G7C8H`, ki o kod **`dgx-g9ow6z-g7c8h`**
+  adlı €120'lık canlı mavi sweatshirt'te de duruyor — aynı stil kodu iki ilanda,
+  iki fiyatta), ve canlı görselin bu kareyle **bayt bazında aynı olduğu
+  doğrulanmadı**, yalnız dosya adı aynı. Şüpheliyi kendi başına fiyatlamak,
+  talimatı bahane edip tahmin yazmak olurdu.
