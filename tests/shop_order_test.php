@@ -195,8 +195,14 @@ $t('_ord alani YENI bolmesinde de korunuyor',
    })());
 
 echo "\n== 8b. SEVK EDILEN esik ve tavan (kaynaktan) ==\n";
-$t('pencere 30 gun (NEW rozetiyle AYNI sayi)', VESTRA_SHOP_NEW_DAYS === 30);
-$t('tavan 24 (izgaranin bir sayfa basi)',      VESTRA_SHOP_NEW_MAX  === 24);
+/* Operator, 13 Eyl 2026: "yeni urunlere yeni urun olarak markieren yap 7 gun
+   boyunca". Sabit tek oldugu icin rozet ve sira birlikte daraldi. */
+$t('pencere 7 gun (NEW rozetiyle AYNI sayi)', VESTRA_SHOP_NEW_DAYS === 7);
+$t('tavan 24 (izgaranin bir sayfa basi)',     VESTRA_SHOP_NEW_MAX  === 24);
+/* Sabitin ADINA degil, operatorun soyledigi GUNE bagli iki iddia: yukaridaki
+   mekanizma iddialari sabite gore (+-1) yazildigi icin her degerde yesil kalir. */
+$t('  6 gun once eklenen ilan hala YENI',  vestra_product_is_new(['added_at' => $day(6)],  $NOW));
+$t(' 10 gun once eklenen ilan YENI DEGIL', !vestra_product_is_new(['added_at' => $day(10)], $NOW));
 
 echo "\n== 9. shop.php kablolamasi ==\n";
 $src = file_get_contents($root.'/vestra/shop.php');
@@ -204,12 +210,14 @@ $t('shop.php vestra_shop_order() cagiriyor', strpos($src, 'vestra_shop_order(') 
 /* Ikinci bir kopya dogmasin: sira artik yalnizca fonksiyonda yazili. */
 $t('shop.php kendi bolme dongusunu TASIMIYOR',
    strpos($src, '$leadBrands') === false && strpos($src, '$leadSellerUids') === false);
-/* Rozet ile sira TEK tanimdan: elle yazilmis bir "-30 days" geri gelirse sayfa
-   rozetli ama one alinmamis kart gosterir ve bunu kimse fark etmez. */
+/* Rozet ile sira TEK tanimdan: elle yazilmis bir "-N days" geri gelirse sayfa
+   rozetli ama one alinmamis kart gosterir ve bunu kimse fark etmez. Iddia
+   ARANAN SAYIYA baglanmiyor (eskiden "-30 days" arardi ve pencere 7'ye inince
+   ayni kusurun yeni yazimini kaciracakti); herhangi bir gun esigi ariyor. */
 $t('NEW rozeti vestra_product_is_new() okuyor',
    strpos($src, 'vestra_product_is_new(') !== false);
-$t('shop.php kendi "-30 days" esigini TASIMIYOR',
-   strpos($src, "-30 days") === false);
+$t('shop.php kendi gun esigini TASIMIYOR',
+   !preg_match('/-\s*\d+\s*days?\b/i', $src) && !preg_match('/\b\d+\s*\*\s*86400\b/', $src));
 
 echo "\nTOPLAM: $ok ok, $fail hata\n";
 exit($fail ? 1 : 0);

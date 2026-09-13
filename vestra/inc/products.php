@@ -2014,24 +2014,32 @@ function vestra_shop_lead_brands(): array { return ['GUCCI', 'GIVENCHY', 'BALMAI
 function vestra_shop_lead_sellers(): array { return ['GARAGE LE PARIS', 'LE GARAGE PARIS']; }
 function vestra_shop_lead_seller_uids(): array { return ['7ab30f26afedd840']; }
 
-/* "Yeni" TEK tanim (operator, 13 Eyl 2026: "yeni urunleri basa koy").
+/* "Yeni" TEK tanim (operator, 13 Eyl 2026: "yeni urunleri basa koy" +
+ * "yeni urunlere yeni urun olarak markieren yap 7 gun boyunca").
  *
- * PENCERE ayri bir sayi DEGIL: shop.php'nin kartta bastigi "NEW" rozeti zaten
- * 30 gundu ve simdi ayni sabitten okuyor. Iki ayri esik yazsaydik sayfa "NEW"
- * rozetli ama one alinmamis kartlar gosterirdi -- bu depoda "ayni olgu iki yerde
- * yazili" hatasi defalarca kayitli (desc/sizes, faturanin uc katmani, dort
- * mektup govdesi).
+ * PENCERE ayri bir sayi DEGIL: kartin "NEW" rozeti ile vitrinin en one aldigi
+ * kume ayni sabitten okuyor. Iki ayri esik yazsaydik sayfa "NEW" rozetli ama
+ * one alinmamis kartlar gosterirdi -- bu depoda "ayni olgu iki yerde yazili"
+ * hatasi defalarca kayitli (desc/sizes, faturanin uc katmani, dort mektup
+ * govdesi). Operator "7 gun" derken rozeti soyluyordu; sabit tek oldugu icin
+ * sira da onunla birlikte daraldi ve ikisi ayrisamiyor.
+ *
+ * 30 -> 7 (13 Eyl 2026). Rozet o gune kadar 30 gundu, yani 12 Eyl'in 68 ilanlik
+ * D&G partisi Ekim ortasina kadar "NEW" kalacakti; her seferinde yeni olan bir
+ * rozet, rozet olmaktan cikar.
  *
  * TAVAN bir CELISKIYI cozuyor, sus degil: operator 12 Eyl'de "balenciaga ve
  * lacostelar basta kalsin" dedi. Tavansiz birakilsaydi premium bolmesinde son
- * 30 gunun ~100 ilani (D&G Dropbox partisi + DSQUARED2 kadin partisi)
+ * gunlerin ~100 ilani (D&G Dropbox partisi + DSQUARED2 kadin partisi)
  * Balenciaga'yi ~100. siraya iterdi, yani bir gun onceki talimati sessizce geri
  * alirdi. 24 ile ikisi birden dogru: yeni gelenler ilk siralari aliyor,
  * Balenciaga hala BIRINCI SAYFADA basliyor. Tavani asan yeni ilanlar
- * kaybolmuyor -- kendi normal bolmelerine dusuyorlar.
+ * kaybolmuyor -- kendi normal bolmelerine dusuyorlar. Pencere daraldigi icin
+ * tavan artik daha seyrek isliyor ama KALDIRILMADI: tek gunde 68 ilan yazilan
+ * bir depoda 7 gun de tavani asmaya yeter (12 Eyl partisi tam boyleydi).
  *
  * 24 = brand_probe'un da olctugu "ilk 24 kart", yani izgaranin bir sayfa basi. */
-const VESTRA_SHOP_NEW_DAYS = 30;
+const VESTRA_SHOP_NEW_DAYS = 7;
 const VESTRA_SHOP_NEW_MAX  = 24;
 
 /* Bir ilan "yeni" mi? added_at YOKSA yeni DEGIL (journal kurucusunun ve NEW

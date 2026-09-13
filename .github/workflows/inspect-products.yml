@@ -171,7 +171,33 @@ jobs:
                         $ord  = vestra_shop_order($rows);
                         printf("bolme %s : %d ilan (katalog %d)\n", $shopord, count($rows), count($all));
                         echo "on markalar : ".implode(', ', vestra_shop_front_brands())."\n";
-                        echo "lead markalar: ".implode(', ', vestra_shop_lead_brands())."\n\n";
+                        echo "lead markalar: ".implode(', ', vestra_shop_lead_brands())."\n";
+                        /* NEW ROZETI ayri olculuyor: sira dogru gorunurken rozet
+                           yanlis pencereden okuyor olabilirdi -- ikisi ayni sabiti
+                           okusun diye yazildi, ama "okuyor" iddiasi ancak SAYIM ile
+                           dogrulanir. Deploy inmemisse sabit de eski kalir, o yuzden
+                           pencere degeri BASILIYOR: "sira dogru" ile "esik indi"
+                           ayni cikti olmasin. */
+                        if (function_exists('vestra_product_is_new') && defined('VESTRA_SHOP_NEW_DAYS')) {
+                            $nSec = 0; foreach ($rows as $p) if (vestra_product_is_new($p)) $nSec++;
+                            $nAll = 0; foreach ($all  as $p) if (vestra_product_is_new($p)) $nAll++;
+                            printf("NEW rozeti  : pencere %d gun, tavan %d | bu bolmede %d ilan, katalogda %d\n",
+                                VESTRA_SHOP_NEW_DAYS, VESTRA_SHOP_NEW_MAX, $nSec, $nAll);
+                            /* En taze ekleme gunleri: pencere BOS ciktiginda "esik
+                               inmedi" ile "bu hafta hic ilan girmedi" ayri seyler. */
+                            $days = [];
+                            foreach ($all as $p) if (!empty($p['added_at'])) {
+                                $ts = strtotime((string)$p['added_at']);
+                                if ($ts !== false) { $d = date('Y-m-d', $ts); $days[$d] = ($days[$d] ?? 0) + 1; }
+                            }
+                            krsort($days);
+                            $head = array_slice($days, 0, 4, true); $parts = [];
+                            foreach ($head as $d => $c) $parts[] = $d.' ('.$c.')';
+                            echo "en taze eklemeler: ".(count($parts) ? implode(' · ', $parts) : '(added_at yok)')."\n";
+                        } else {
+                            echo "*** vestra_product_is_new()/VESTRA_SHOP_NEW_DAYS YOK -- deploy inmemis ***\n";
+                        }
+                        echo "\n";
                         echo "  #  ILAN                            MARKA            SATICI\n";
                         foreach (array_slice($ord, 0, 24) as $i => $p) {
                             printf("  %2d %-31s %-16s %s\n", $i + 1,

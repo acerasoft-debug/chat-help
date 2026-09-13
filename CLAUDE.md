@@ -4246,13 +4246,14 @@ seller armasini daha estetik yap"*).
   taşıyor: pencere içindeki en taze ilanlar, en yeni önce, eşitlikte katalog
   sırası (açık tie-break — aynı gün yazılan bir partinin içinde sırayı
   `usort`'un kararlılığına bırakmıyoruz).
-- **PENCERE AYRI BİR EŞİK DEĞİL.** `shop.php`'nin karta bastığı "NEW" rozeti
-  zaten 30 gündü; ikisi de artık `vestra_product_is_new()`'den okuyor. İki ayrı
-  eşik olsaydı sayfa **"NEW" rozetli ama öne alınmamış** kart gösterirdi — bu
-  depoda "aynı olgu iki yerde yazılı" hatasının en sessiz hâli.
+- **PENCERE AYRI BİR EŞİK DEĞİL.** `shop.php`'nin karta bastığı "NEW" rozeti o
+  gün 30 gündü; ikisi de artık `vestra_product_is_new()`'den okuyor **(pencere
+  bugün 7 — bkz. aşağıdaki madde)**. İki ayrı eşik olsaydı sayfa **"NEW" rozetli
+  ama öne alınmamış** kart gösterirdi — bu depoda "aynı olgu iki yerde yazılı"
+  hatasının en sessiz hâli.
 - **TAVAN (24) BİR ÇELİŞKİYİ ÇÖZÜYOR, süs değil.** Operatör 12 Eylül'de
   "balenciaga ve lacostelar basta kalsin" demişti. Tavansız bırakılsaydı premium
-  bölmesinde son 30 günün ~100 ilanı (D&G Dropbox + DSQUARED2 partileri)
+  bölmesinde son günlerin ~100 ilanı (D&G Dropbox + DSQUARED2 partileri)
   Balenciaga'yı **~100. sıraya** iterdi, yani bir gün önceki talimatı sessizce
   geri alırdı. 24 ile ikisi birden doğru: yeni gelenler ilk sıraları alıyor,
   Balenciaga hâlâ **birinci sayfada** başlıyor. Tavanı aşan yeni ilan
@@ -4267,6 +4268,46 @@ seller armasini daha estetik yap"*).
   ölçmediğim şeyi ölçtü (`grep` BRE'de `[0]` bir karakter sınıfı, ve
   "yeniden konumlandırma" bloğu aynı yere geri koyuyordu) — sabotajın
   uygulandığını `grep -F` ile ve konum karşılaştırmasıyla doğrulamak şart.*
+
+**NEW rozeti 30 → 7 GÜN** (operatör, aynı gün, birkaç saat sonra: *"yeni
+ürünlere yeni ürün olarak markieren yap 7 gün boyunca"*).
+- **Tek satır, çünkü sabit tek.** `VESTRA_SHOP_NEW_DAYS = 7`. Operatörün cümlesi
+  **rozet** hakkında; sıra da onunla birlikte daraldı ve **ikisi ayrışamıyor** —
+  saatler önce alınan "pencere ayrı bir eşik değil" kararının bedelini bugün
+  ödemek yerine karşılığını aldık. Rozetin yanında **süre yazan hiçbir metin
+  yok** (kart yalnız `t('NEW')` basıyor), yani 8 sözlükte değişecek bir şey de
+  yok.
+- **"Bu olgu başka nerede yazılı?" sorusu soruldu:** `vestra/` genelinde başka
+  hiçbir yerde tazelik eşiği yok. `journal_auto.php`'nin `VESTRA_JOURNAL_AUTO_DAYS`'i
+  **bilerek ayrı** bir kavram (günlük raporun penceresi, son rapordan başlıyor);
+  kalan bütün "30 gün" geçişleri ilgisiz (üyelik denemesi, ziyaret istatistiği,
+  IP coğrafya önbelleği).
+- **Neden 30 zaten yanlıştı:** 12 Eylül'ün **68 ilanlık** D&G partisi Ekim
+  ortasına kadar "NEW" kalacaktı. Her zaman yanan bir rozet, rozet olmaktan
+  çıkar (KURAL 2c'nin "her sabah 0 bekleyen yazan uyarı okunmamayı öğretir"
+  dersinin vitrin hâli).
+- **Tavan KALDIRILMADI.** Pencere daralınca daha seyrek işliyor ama tek günde
+  68 ilan yazılan bir depoda 7 gün de 24'ü aşmaya yeter — 12 Eylül partisi tam
+  böyleydi.
+- **Test iddiası ARANAN SAYIYA bağlıydı ve bu bir kusurdu:** `shop.php`'nin
+  kendi eşiğini taşımadığını doğrulayan iddia birebir `"-30 days"` arıyordu.
+  Ölçüldü: rozeti yine elle `strtotime('-7 days')` okuyacak şekilde sabote
+  edildiğinde **eski iddia yeşil kalıyordu** — yani pencere değiştiği anda,
+  var olma sebebi olan kusurun yeni yazımını kaçıracaktı. İddia artık herhangi
+  bir gün eşiği arıyor (`-N day` ve `N * 86400`) ve aynı sabotajda **kırmızı**.
+  *Bir iddiayı bir sayıya bağlamak, o sayı değiştiği gün iddiayı sessizce
+  emekliye ayırır.*
+- Ayrıca **güne bağlı iki mutlak iddia** eklendi (6 gün → YENİ, 10 gün → değil):
+  mekanizma iddiaları sabite göre `±1` yazıldığı için **her değerde yeşil**
+  kalıyordu, yani operatörün söylediği sayıyı tutan tek şey sabitin adıydı.
+- **Sonda rozeti de sayıyor artık** (`inspect-products.yml` → `shop_order=<bölme>`):
+  pencere/tavan değeri, bölmede ve katalogda kaç ilanın rozet taşıdığı, ve en
+  taze **ekleme günleri**. Sonuncusu şart: pencere boş çıktığında *"eşik inmedi"*
+  ile *"bu hafta hiç ilan girmedi"* aynı çıktı olurdu. Sonda önce kum havuzunda
+  koşturuldu (9 günlük ilan ve tarihsiz ilan doğru şekilde elendi).
+- Test: `shop_order_test.php` 48 → **50 iddia**. Düşebildiği doğrulandı, her
+  sabotajın gerçekten uygulandığı ayrıca yazdırılarak: sabit 30'a döndürülünce
+  **2 kırmızı** (biri gün bazlı olan), rozet elle eşik okuyunca **2**.
 
 **13 Eyl 2026 — operatörün tek tek verdiği fiyat/durum kararları.**
 - İki Lacoste polosu **ausverkauft**: `lac-logotrim-polo` (Regular Fit Logo Trim
