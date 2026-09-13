@@ -3348,6 +3348,13 @@ jobs:
                  klasorluk ilk koşuda 7 sayfanin 3'u bu yuzden bozuk cikti. Araya bosluk
                  girince hicbir gizli deger bitisik olarak gecemez. */
               $spaced = (bool)preg_match('/\|\s*spaced\b/', $opts);
+              /* |perfile: hucre basina bir DOSYA (varsayilan: bir KLASOR). Ayakkabi
+                 kataloğunda her urun kendi klasorundeydi; duz bir klasorde ise
+                 klasor basina tek kare 88 fotografi 2 kucuk resme indiriyor, yani
+                 siniflandirma icin yazilmis arac siniflandiramiyor. Anahtar
+                 dosyanin kendisi olunca asagidaki dongu degismeden calisiyor --
+                 her anahtarda tam bir dosya var. */
+              $perFile = (bool)preg_match('/\|\s*perfile\b/', $opts);
               $top = array_values(array_filter(scandir($root), fn($d) => $d !== '.' && $d !== '..'));
               if (count($top) === 1 && is_dir($root.'/'.$top[0])) $root .= '/'.$top[0];   // tek sarmalayici klasor
               $imgExt = ['jpg','jpeg','png','webp','gif','bmp'];
@@ -3356,6 +3363,7 @@ jobs:
               foreach ($it as $f) {
                 if (!$f->isFile()) continue;
                 $rel = substr($f->getPathname(), strlen($root) + 1);
+                if ($perFile) { $byDir[$rel][] = $rel; continue; }
                 $d = dirname($rel) === '.' ? '(kok)' : dirname($rel);
                 $byDir[$d][] = $rel;
               }
@@ -3368,7 +3376,12 @@ jobs:
               if (!function_exists('imagecreatefromstring') || !function_exists('imagejpeg')) { fwrite(STDERR, "GD yok -- kontakt sayfasi uretilemez\n"); exit(1); }
               ini_set('memory_limit', '768M');
               $dirs = array_slice(array_keys($byDir), $from - 1, $count, true);
-              $cell = 112; $lab = 16; $cols = 10; $per = $cols * 5;
+              /* |cell=N: kucuk resim kenari. 112 px tip ayirmaya yetmeyebiliyor
+                 (Pili Perez'de supheli kareler 480 px'te tekrar bakilmisti);
+                 buyutunce sutun sayisi kendiliginden azaliyor ki sayfa genisligi
+                 ~1120 px'te kalsin ve sayfa basina dusen kare sayisi patlamasin. */
+              $cell = preg_match('/\|\s*cell=(\d+)/', $opts, $m3) ? max(48, min(512, (int)$m3[1])) : 112;
+              $lab = 16; $cols = max(2, (int)floor(1120 / $cell)); $per = $cols * 5;
               $sheetNo = 0;
               foreach (array_chunk($dirs, $per, true) as $chunk) {
                 $sheetNo++;
@@ -3399,7 +3412,7 @@ jobs:
                   $i++;
                 }
                 ob_start(); imagejpeg($im, null, 68); $jpg = (string)ob_get_clean(); imagedestroy($im);
-                echo "-- SAYFA {$sheetNo}: ".count($chunk)." klasor, ".number_format(strlen($jpg) / 1024)." KB --\n";
+                echo "-- SAYFA {$sheetNo}: ".count($chunk)." ".($perFile ? 'dosya' : 'klasor').", ".number_format(strlen($jpg) / 1024)." KB --\n";
                 foreach ($legend as $l) echo "  {$l}\n";
                 echo "SHEET{$sheetNo}_B64_BEGIN\n";
                 foreach (str_split(base64_encode($jpg), 4000) as $ln) echo ($spaced ? implode(' ', str_split($ln)) : $ln)."\n";

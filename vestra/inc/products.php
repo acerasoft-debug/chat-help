@@ -491,6 +491,24 @@ function vestra_brand_logo($brand){
    otherwise a monogram card built from the name -- so a brand nobody has drawn a wordmark
    for still renders as a designed tile instead of a bare string. Every caller that used to
    write `$logo ?: '<span>'.$brand.'</span>'` should use this instead. */
+/* Dogrulanmis satici rozeti TEK govdeden. Ayni isaret bu depoda BES yerde elle
+   yazilmisti (product.php x2, showroom.php x2, shop.php) ve besinde de
+   stroke="#fff" GOMULUYDU -- oysa acik "studyo" zeminli kartta pil
+   rgba(28,120,72,.10) zemin + #1f7a4c metin, yani BEYAZ tik gorunmuyordu.
+   Simdi currentColor: renk CSS'te kaliyor ve tema/zemin degisimi kendiliginden
+   isliyor (KURAL 24'un onay isaretinin birebir ayni dersi).
+   Isaret artik bir MUHUR: daire + tik, ikisi de ayni konturdan. */
+function vestra_verified_badge(string $class = 'svbadge', string $style = ''): string {
+    $sz = $class === 'gal-vbadge' ? 12 : 11;
+    return '<span class="'.htmlspecialchars($class).'"'
+         . ($style !== '' ? ' style="'.htmlspecialchars($style).'"' : '').'>'
+         . '<svg width="'.$sz.'" height="'.$sz.'" viewBox="0 0 24 24" fill="none"'
+         . ' stroke="currentColor" stroke-width="2.6" stroke-linecap="round"'
+         . ' stroke-linejoin="round" aria-hidden="true">'
+         . '<circle cx="12" cy="12" r="9.2"/><path d="M8.2 12.4l2.6 2.6 5-5.4"/></svg>'
+         . '<span>'.t('Verified seller').'</span></span>';
+}
+
 function vestra_brand_card($brand): string {
     $brand = trim((string)$brand);
     if ($brand === '') return '';
@@ -1976,8 +1994,17 @@ function vestra_colour_options(array $p): array {
    yalnizca iki markanin arkasina alindi. Bedeli acikca yazili: lead satici
    (GARAGE LE PARIS) artik on markalarin arkasinda -- yani o hesabin Lacoste
    DISINDAKI ilanlari Balenciaga+Lacoste kadar geri gidiyor. */
-function vestra_shop_front_brands(): array { return ['BALENCIAGA', 'LACOSTE']; }
-function vestra_shop_lead_brands(): array { return ['GUCCI', 'GIVENCHY', 'BALMAIN', 'DSQUARED2']; }
+/* On markalar operatorun sirasi. 12 Eyl 2026'da D&G ve DSQUARED2 eklendi
+   ("dg ve ds2 leri basa al"); Balenciaga ve Lacoste bir onceki talimatla
+   ("basta kalsin") one alinmisti ve o talimat KALDIRILMADI, o yuzden ikisi
+   basta kaliyor ve yeni iki marka arkalarina giriyor -- iki talimat da dogru.
+   DSQUARED2 lead listesinden CIKARILDI: ayni marka iki listede olsaydi on
+   kontrol once calisip lead satirini olu birakirdi (test bunu tutuyor).
+   Yazimlar katalogtaki degerin strtoupper'i; esleme TAM, alt dize degil. */
+function vestra_shop_front_brands(): array {
+    return ['BALENCIAGA', 'LACOSTE', 'DOLCE & GABBANA', 'DSQUARED2'];
+}
+function vestra_shop_lead_brands(): array { return ['GUCCI', 'GIVENCHY', 'BALMAIN']; }
 /* Hem satici ADI hem HESAP KIMLIGI ile esleniyor, ve ikisi de gerekli: adla
    eslemek tek basina yetmedi, cunku ilanlarin cogunda 'seller' alani bos ve urun
    sayfasi orada "via VESTRA" yaziyor -- yalnizca ada bakan bir kural o hesabin

@@ -30,6 +30,14 @@ on:
         description: "MOD D: aranan metin(ler), virgülle ayrık (baslik/handle/SKU icinde aranir, ör: M3600,Twin Tipped)"
         required: false
         default: ""
+      dropbox_url:
+        description: "MOD E: Dropbox PAYLAŞIM KLASÖRÜ linki -- klasörü ZIP olarak SUNUCUYA indirir, ~/wt_incoming altına açar ve dosya listesini yazar. public_html/uploads altına HİÇBİR ŞEY kopyalamaz."
+        required: false
+        default: ""
+      dropbox_slug:
+        description: "MOD E: indirilen klasöre verilecek kısa ad (ör: dsq-women). Yalnız a-z 0-9 -; boşsa linkten türetilir"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -57,14 +65,164 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - name: Çek
+      - name: Dropbox klasörünü indir (MOD E)
+        # AYRI ADIM, bilerek: GitHub bir 'script:' blogunun TAMAMINI tek bir
+        # sablon ifadesi olarak derliyor ve sinir 21000 karakter. MOD E ana
+        # betige eklenince dosya bu siniri asti ve workflow DISPATCH EDILEMEZ
+        # oldu ("Exceeded max expression length"). Her adimin kendi butcesi var;
+        # ayrica MOD E zaten digerleriyle hic ortak kod paylasmiyor.
+        if: ${{ github.event.inputs.dropbox_url != '' }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          command_timeout: 5m
+          # Bir klasorun TAMAMI ZIP olarak cekiliyor; curl'un --max-time'i 540sn
+          # ve adim timeout'u ondan KUCUK kalsaydi oturum curl vazgecmeden
+          # kesilir, cikti "ZIP gelmedi" yerine sessiz bir kopma olurdu.
+          command_timeout: 15m
+          script: |
+            export DBX_URL='${{ github.event.inputs.dropbox_url }}'
+            export DBX_SLUG='${{ github.event.inputs.dropbox_slug }}'
+            # ---- MOD E: Dropbox paylasim klasoru ---------------------------------
+            # Bu ortamdan (sandbox) dropbox.com'a cikis YOK -- olculdu, curl http=000.
+            # Sunucunun kendi agi ayri; wetransfer isinde kaydedilen desenin aynisi.
+            # Indirilen sey public_html DISINA (~/wt_incoming) aciliyor: klasorun
+            # icinde ne oldugunu GORMEDEN hicbir fotografi siteye koymuyoruz
+            # (fotografta yabanci metin / yanlis urun / bos kare olabilir).
+            if [ -n "$DBX_URL" ]; then
+              echo "===== MOD E: DROPBOX KLASORU ====="
+              # Host ALLOWLIST ve BAGLI: 'dropbox.com.evil.tld' gibi bir ad gecmesin.
+              case "$DBX_URL" in
+                https://www.dropbox.com/*|https://dropbox.com/*) : ;;
+                *) echo "HATA: yalnizca https://www.dropbox.com/... kabul ediliyor"; exit 1 ;;
+              esac
+              SLUG=$(printf '%s' "$DBX_SLUG" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9-' '-' | sed 's/-\{2,\}/-/g; s/^-//; s/-$//')
+              [ -z "$SLUG" ] && SLUG="dropbox-$(date +%H%M%S)"
+              DEST="$HOME/wt_incoming/$SLUG"
+              mkdir -p "$DEST/files"
+              echo "hedef: $DEST"
+              # Dropbox'in 'scl/fo' (paylasim klasoru) linklerinde dl=1 TEK BASINA
+              # yetmiyor: alt klasor yolu adresin PATH'inde duruyorsa Dropbox web
+              # arayuzunun HTML'ini donduruyor (olculdu: http=200, 202 KB, ilk
+              # baytlar '<!DOCTYPE html>'). Calisan bicim, alt yolun ?subpath=
+              # parametresine tasindigi bicim. Birkac adayi SIRAYLA deneyip ilk
+              # gercek ZIP'te duruyoruz -- her tahmini ayri bir kosuya bolmek
+              # yerine, cunku her kosu bir tur gecikme demek.
+              BASE=$(printf '%s' "$DBX_URL" | sed 's/?.*//')
+              RLKEY=$(printf '%s' "$DBX_URL" | tr '?&' '\n\n' | sed -n 's/^rlkey=//p' | head -1)
+              # st= : Dropbox'in YENI paylasim jetonu. Operatorun ilk iki linkinde
+              # YOKTU, ucuncusunde VAR -- ve 'No Access' sayfasinin sebebi bu olabilir.
+              # Yeniden kurulan adreslerde de tasinmali: dusurursek, calisabilecek
+              # bir linki kendi elimizle gecersiz kilmis oluruz.
+              ST=$(printf '%s' "$DBX_URL" | tr '?&' '\n\n' | sed -n 's/^st=//p' | head -1)
+              [ -n "$ST" ] && STQ="&st=$ST" || STQ=""
+              echo "st jetonu: $([ -n "$ST" ] && echo VAR || echo yok)"
+              # /scl/fo/<id>/<key> kokten SONRAKI her sey alt klasor yoludur.
+              ROOT=$(printf '%s' "$BASE" | sed -E 's#(https://[^/]+/scl/fo/[^/]+/[^/]+).*#\1#')
+              SUB=$(printf '%s' "$BASE" | sed -E 's#https://[^/]+/scl/fo/[^/]+/[^/]+##')
+              echo "kok: $ROOT"
+              echo "alt yol: ${SUB:-(yok)}"
+              # URL'ler LOGA MASKELI yaziliyor: rlkey bu klasoru acan anahtardir ve
+              # bu kutuk herkese acik. Operator linki girdiye kendi yazdi, ama biz
+              # ayrica cogaltmayalim.
+              try_zip() {
+                _u="$1"; _lbl="$2"
+                _h=$(curl -sS -L --max-time 540 -o "$DEST/folder.zip" -w '%{http_code}' \
+                     -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36' \
+                     "$_u" 2>/dev/null || echo 000)
+                _s=$(wc -c < "$DEST/folder.zip" 2>/dev/null || echo 0)
+                _m=$(head -c 2 "$DEST/folder.zip" 2>/dev/null || true)
+                printf 'dene [%s]: http=%s bayt=%s ilk2=%s\n' "$_lbl" "$_h" "$_s" "$_m"
+                [ "$_h" = "200" ] && [ "$_m" = "PK" ]
+              }
+              OK=0
+              if [ -n "$SUB" ] && [ -n "$RLKEY" ]; then
+                try_zip "${ROOT}?rlkey=${RLKEY}${STQ}&subpath=${SUB}&dl=1" "kok+subpath" && OK=1
+              fi
+              if [ "$OK" = "0" ]; then
+                U=$(printf '%s' "$DBX_URL" | sed 's/[?&]dl=0//; s/&subfolder_nav_tracking=1//')
+                case "$U" in *\?*) U="$U&dl=1" ;; *) U="$U?dl=1" ;; esac
+                try_zip "$U" "verilen link + dl=1" && OK=1
+              fi
+              if [ "$OK" = "0" ] && [ -n "$RLKEY" ]; then
+                try_zip "${ROOT}?rlkey=${RLKEY}${STQ}&dl=1" "kok (tum klasor)" && OK=1
+              fi
+              if [ "$OK" = "0" ]; then
+                echo "*** ZIP GELMEDI ***"
+                # Gelen sey HTML ise NE DEDIGINI oku: 'sifre gerekli', 'cok buyuk',
+                # 'erisim yok' hepsi ayri sorun ve hepsi ayri cozum. Tahmin etmek
+                # yerine sayfanin kendi cumlesini basiyoruz. Tam HTML BASILMIYOR
+                # (202 KB, ve kutuk herkese acik) -- yalnizca baslik ve isaretler.
+                echo "--- gelen sayfadan isaretler ---"
+                head -c 400000 "$DEST/folder.zip" 2>/dev/null \
+                  | tr '<' '\n' | sed -n 's/^title>//p' | head -3
+                for k in password "too large" "too big" "doesn.t exist" "deleted" \
+                         "sign in" "access" "restricted" "quota" "banned"; do
+                  if grep -qi -- "$k" "$DEST/folder.zip" 2>/dev/null; then echo "  ipucu: '$k' gecıyor"; fi
+                done
+                rm -f "$DEST/folder.zip"; exit 1
+              fi
+              rm -rf "$DEST/files"; mkdir -p "$DEST/files"
+              # unzip'in CIKIS KODU burada olcum DEGIL. Dropbox'in ZIP'i kok
+              # girdisini adsiz "/" diye yaziyor; unzip onu haritalayamayip
+              # once uyariyor sonra rc=2 ("zipfile format") donuyor -- oysa
+              # GERCEK dosyalarin hepsi aciliyor. rc'ye bakan ilk surum 47,8
+              # MB'lik saglam bir klasoru cope atti.
+              # Dogru olcum BEKLENEN ile ACILAN: arsivin kendi listesindeki
+              # dosya sayisi (dizinler haric, adsiz kok girdisi haric) ile
+              # diske inen sayi. Esitse is tamamdir, rc ne derse desin; eksik
+              # varsa rc 0 bile olsa DURUR -- yarim bir klasor, tam sanilan
+              # bir klasordan kotudur.
+              EXP=$(unzip -Z1 "$DEST/folder.zip" 2>/dev/null | grep -v '/$' | grep -cv '^/*$' || echo 0)
+              unzip -o -q -d "$DEST/files" "$DEST/folder.zip"; UZ=$?
+              N=$(find "$DEST/files" -type f | wc -l)
+              echo "arsivde dosya: $EXP   acilan: $N   (unzip rc=$UZ)"
+              if [ "$N" -eq 0 ] || [ "$N" -lt "$EXP" ]; then
+                echo "*** HATA: acma eksik (beklenen $EXP, acilan $N) ***"
+                rm -f "$DEST/folder.zip"; exit 1
+              fi
+              [ "$UZ" -ne 0 ] && echo "not: unzip rc=$UZ uyardi ama dosyalarin hepsi acildi (adsiz kok girdisi)"
+              rm -f "$DEST/folder.zip"
+              echo "--- dosyalar (ad | bayt | tur) ---"
+              # Tur 'file' ile olculuyor, UZANTIYLA degil: .jpg adli bir HTML bu
+              # listede HTML gorunsun.
+              find "$DEST/files" -type f | sort | while read -r f; do
+                printf '%s | %s | %s\n' \
+                  "$(printf '%s' "${f#$DEST/files/}")" \
+                  "$(wc -c < "$f")" \
+                  "$(file -b --mime-type "$f" 2>/dev/null || echo '?')"
+              done
+              echo "--- son ---"
+              # OZET EN SONA: get_job_logs yalnizca KUYRUGU gosteriyor, yani uzun
+              # bir dosya listesinde bastaki sayimlar dusiyor. Sayim sonda olsun ki
+              # liste ne kadar uzarsa uzasin okunabilsin.
+              echo "--- ozet ---"
+              echo "acilan dosya: $N"
+              echo "klasor basina:"
+              find "$DEST/files" -type f | sed "s#^$DEST/files/##" | awk -F/ 'NF>1{print $1} NF==1{print "(kok)"}' | sort | uniq -c | sort -rn | head -30
+              echo "tur basina:"
+              find "$DEST/files" -type f -exec file -b --mime-type {} \; | sort | uniq -c | sort -rn | head -15
+              echo "NOT: hicbir dosya public_html/uploads altina KOPYALANMADI."
+              exit 0
+            fi
+      - name: Çek
+        # MOD E verildiyse bu adim ATLANIR: ikisi ayri isler ve MOD E'nin
+        # cikisi bu betigin 'hicbir mod secilmedi' dalina dusup kafa karistirirdi.
+        if: ${{ github.event.inputs.dropbox_url == '' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          # 5m -> 15m: MOD E bir klasorun TAMAMINI ZIP olarak cekiyor ve curl'un
+          # kendi --max-time'i 600sn. Adim timeout'u ondan KUCUK kalsaydi oturum
+          # curl daha vazgecmeden kesilir, ve cikti "ZIP gelmedi" degil sessiz bir
+          # kopma olurdu -- yani yanlis teshis. Diger modlar icin ust sinir,
+          # bekleme degil.
+          command_timeout: 15m
           script: |
             echo "ADIM 1: baglanti tamam"
             export COLL_URL='${{ github.event.inputs.collection_url }}'

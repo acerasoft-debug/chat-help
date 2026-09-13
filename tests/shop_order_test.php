@@ -108,12 +108,22 @@ $t('_ord alani korunuyor', ($rowsOrd[0]['_ord'] ?? null) === 1 && ($rowsOrd[1]['
 
 echo "\n== 7. SEVK EDILEN degerler (kaynaktan) ==\n";
 $front = vestra_shop_front_brands();
-$t('on markalar: Balenciaga, Lacoste',   $front === ['BALENCIAGA', 'LACOSTE']);
+$t('on markalar: Balenciaga, Lacoste, D&G, DSQUARED2',
+   $front === ['BALENCIAGA', 'LACOSTE', 'DOLCE & GABBANA', 'DSQUARED2']);
 $t('Balenciaga once (operatorun sirasi)', ($front[0] ?? '') === 'BALENCIAGA');
 $t('hepsi BUYUK harf (esitlik tam)',      $front === array_map('strtoupper', $front));
+/* Yazim katalogun KENDI degerinden turuyor: strtoupper(trim('Dolce & Gabbana')).
+   Bosluklu ampersan onemli -- 'DOLCE&GABBANA' yazilsaydi esleme TAM oldugu icin
+   103 ilanin hicbiri one gelmez, sayfa da hata vermezdi. */
+$t('D&G yazimi katalogtaki degerin strtoupper\'i',
+   in_array(strtoupper(trim('Dolce & Gabbana')), $front, true));
 $lead = vestra_shop_lead_brands();
 $t('Gucci ve Givenchy listeden CIKARILMADI',
    in_array('GUCCI', $lead, true) && in_array('GIVENCHY', $lead, true));
+/* DSQUARED2 lead'den on listeye TASINDI, silinmedi: iki listede birden
+   durursa lead satiri olu kalir (asagidaki kesisim iddiasi da bunu tutuyor). */
+$t('DSQUARED2 artik lead degil, ON marka',
+   !in_array('DSQUARED2', $lead, true) && in_array('DSQUARED2', $front, true));
 /* Olu giris kalmasin: bir marka hem on hem lead listesinde olsaydi lead satiri
    hicbir zaman calismazdi ve okuyan yanlis bir sira bekler. */
 $t('on marka lead listesinde TEKRARLAMIYOR', array_intersect($front, $lead) === []);

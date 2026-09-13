@@ -74,18 +74,31 @@ $t('webkit ön eki de var', str_contains($rule, '-webkit-backdrop-filter'));
 $t('gölge var (beyaz üstünde beyaz hap kaybolmasın)', str_contains($rule, 'box-shadow'));
 $t('ince kenarlık var', str_contains($rule, 'border:1px solid'));
 
-echo "\n== 4. Tik işareti rozetin rengini alıyor ==\n";
+echo "\n== 4. Mühür rozetin rengini alıyor, işaretleme TEK kaynakta ==\n";
 /* stroke="#fff" acik zeminde gorunmez bir tik demekti; currentColor yaziyla
-   ayni rengi alir, yani rozet nerede olursa olsun tik de okunur. */
-$pages = ['shop.php','product.php','showroom.php'];
-$whites = 0; $currents = 0;
-foreach ($pages as $pg) {
+   ayni rengi alir, yani rozet nerede olursa olsun muhur de okunur.
+   Isaretleme 13 Eyl 2026'da bes sayfada bes kopyaydi ve renk duzeltmesi bes
+   yerde ayri ayri yapilmak zorunda kalmisti -- artik tek yardimci fonksiyon
+   (vestra_verified_badge), sayfalar onu cagiriyor. */
+$prod = (string)file_get_contents($root.'/vestra/inc/products.php');
+$t('yardımcı fonksiyon var',        str_contains($prod, 'function vestra_verified_badge('));
+$t('mühür currentColor kullanıyor', str_contains($prod, 'stroke="currentColor"'));
+$t('ikon ekran okuyucudan gizli',   str_contains($prod, 'aria-hidden="true"'));
+$pages = ['shop.php'=>1, 'product.php'=>2, 'showroom.php'=>2];
+$whites = 0; $calls = 0; $inline = 0;
+foreach ($pages as $pg => $want) {
     $src = (string)file_get_contents($root.'/vestra/'.$pg);
-    $whites   += substr_count($src, 'stroke="#fff" stroke-width="3.5"');
-    $currents += substr_count($src, 'stroke="currentColor" stroke-width="3.5"');
+    $whites += substr_count($src, 'stroke="#fff"');
+    $n = substr_count($src, 'vestra_verified_badge(');
+    $calls += $n;
+    $t("{$pg}: {$want} çağrı", $n === $want);
+    /* Sayfada elle yazilmis bir rozet kalmasi, renk duzeltmesinin o kopyayi
+       atlamasi demek -- kusurun ilk halinin sebebi tam buydu. */
+    if (preg_match('/class="(sv|gal-v)badge"[^>]*>\s*<svg/', $src)) $inline++;
 }
-$t('hiçbir sayfada BEYAZ tik kalmadı', $whites === 0);
-$t('beş rozet tiki de currentColor', $currents === 5);
+$t('hiçbir sayfada BEYAZ stroke kalmadı', $whites === 0);
+$t('elle yazılmış rozet işaretlemesi yok', $inline === 0);
+$t('toplam 5 çağrı', $calls === 5);
 
 echo "\n".($fail ? "BASARISIZ" : "GECTI").": {$ok} iddia gecti, {$fail} dustu\n";
 exit($fail ? 1 : 0);

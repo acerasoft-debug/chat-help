@@ -3032,6 +3032,41 @@ support@vestrasales.com dan gidecek brevo üzerinden"*).
   eşleşiyordu. Arama artık fonksiyon gövdesiyle sınırlı — "hiç düşemeyen bir
   iddia, iddia değildir" bu depoda zaten kayıtlıydı ve bir kez daha oldu.*
 
+**Hoş geldin kuponu: adres GİRDİYE yazılmaz, hesaptan çözülür** (operatör,
+12 Eyl 2026: *"Michael Baumgartner … bu müsteriye yüzde 5 lik indirim kuponu
+gönder welcome olarak"*).
+- **Kural zaten yazılıydı, bu iş akışı uymuyordu.** Tek müşteriye kupon
+  göndermenin tek yolu `only_emails` girdisiydi; o girdi **koşu başlığında
+  kalıcı ve herkese açık** ve çıktı da adresi **maskesiz** basıyordu. İkisi de
+  bu dosyanın kendi kurallarına aykırı (*"Müşteri adresini iş akışı girdisine
+  yazma; kayıttan çözdür"* + *"müşteri e-postaları teşhis çıktılarında
+  maskelenir"*) — `diag-live` → `leads_status`'ta bir kez düzeltilen hatanın
+  aynısı, başka bir dosyada duruyordu. *Bir kuralı bir yerde uygulamak, kuralı
+  uygulamak değildir.*
+- Yeni girdi `only_accounts`: **hesap ID'si** ya da firma adı parçası; adresi
+  sunucu `auth_accounts()`'tan çözüyor (`buyer_reply`'ın `to=account:<isim>`
+  deseni). **Eşleşme TAM 1 değilse iş DURUR** ve hiçbir şey göndermez: sıfırda
+  kimseye gitmez, birden fazlada **yanlış müşteriye** gidebilirdi ve gönderilmiş
+  bir kupon geri alınamaz. Adaylar **maskeli** listeleniyor ki operatör
+  daraltabilsin. ID tam eşitlik, ad parça — belirsizliği "tam 1" şartı yakalıyor.
+- **Kupon KODU açıkta kalıyor, bilerek:** kod tek kullanımlık, ilk siparişe bağlı
+  ve o **adrese kilitli** (`voucher_validate` kayıtlı adresi kontrol ediyor),
+  yani kütüğü okuyan kullanamaz — ve operatörün müşteriye elle iletebilmesi için
+  görünmesi gerekiyor. Maskelenen şey adres.
+- `V_ONLYACC` **`envs:` listesine de** eklendi: `appleboy/ssh-action` yalnızca
+  orada adı yazılı değişkenleri sunucuya geçiriyor, yoksa uzakta `getenv()` boş
+  döner ve sonda **sorulmayan bir soruya cevap verir**.
+- **Ölçüm sırası:** önce kum havuzu (uid → tam 1; belirsiz ad → çıkış 1, iki aday
+  maskeli; eşleşmeyen → çıkış 1; **kontrol grubu** `only_accounts`'suz koşu →
+  eski davranış aynen), sonra canlı `dry_run=true`, sonra gerçek gönderim.
+- **Sonuç (12 Eyl 2026):** `849aaa5ab65a0b3f` → **BRITISHSTYLE**, `b***@chello.at`,
+  tip **buyer**; kampanya `welcome5`, kod **VES-7RNZ-RZBJ**, son geçerlilik
+  **2027-03-12**. Kuru koşu `new` demişti, yani hesapta **welcome5 kodu yoktu** —
+  ikinci bir kod gitmedi. Gönderildi **1**, hata **0**. Sonraki toplu hoş geldin
+  koşusu aynı `campaign` adını gördüğü için bu hesabı **atlayacak**.
+- Mektubun dili hesabın **kayıtlı** `lang` alanından — metne gömülü değil ve
+  girdiden gelmiyor.
+
 - Brevo **ücretsiz plan**; `credits` alanı `sendLimit` tipinde (günlük gönderim
   hakkı), 1 Eylül 2026'da **288**. Her test bir hak yiyor.
 - Brevo'da kayıtlı **tek gönderen adres operatörün kendi Gmail'i** ("Acerasoft LLC");
@@ -3827,7 +3862,103 @@ geldiyse oraya götürsün"*).
   açık stüdyo zemini + `contain` (`.sthumb.sphoto`), yani ürün **kırpılmıyor**.
   Fotoğrafsız karo eski koyu degradeyi koruyor — orada kırpılacak bir şey yok.
 
+**Lookbook PDF — yalnız MARKA + AD + FOTO** (operatör, 12 Eyl 2026: *"bunlari
+katalogtan bul ve fotolari ile birlikte pdf yap sadece isim marka ve foto"*).
+- `vestra/lookbook.php` → `/lookbook.php?ids=a,b,c`. Web tarafında **yalnız
+  admin**; CLI muaf (ölçüm ancak oradan yapılabiliyor).
+- **`wholesale-list.php`'nin bir KİPİ DEĞİL, ayrı dosya.** O belge bir *fiyat
+  listesi*: her satırda artikel no, beden serisi, MOQ, toptan fiyat, RRP, stok —
+  ve 46×74pt'lik bir küçük resim. Buradaki belgenin işi tam tersi: fotoğraf asıl
+  içerik. Aynı dosyaya "minimal" bayrağı koymak her satırı iki ayrı düzende
+  çizmek ve fiyat sütunlarını bir koşulla susturmak demekti. **Paylaşılan şey
+  paylaşılıyor** (PDF yazıcı, `vestra_pdf_thumb`, ilan kaydı); kopyalanan tek şey
+  düzen.
+- **Fiyat/MOQ/beden/stok/satıcı/SKU bilerek YOK:** operatörün cümlesi üç şey
+  sayıyor. Fiyatsız bir sayfa her alıcıya gösterilebilir, fiyatlı bir sayfa
+  gösterilemez (KURAL 2b/19).
+- **Eksik id sessizce düşmez:** dört ürün isteyip üç ürünlük bir PDF almak,
+  belgenin kendisinde görünmeyen bir kusur. CLI'da yazılıyor, web tarafında
+  hiçbir şey üretilmiyor.
+- **Ölçüm `/DCTDecode` SAYISI.** "Dosya üretildi, boyut makul, imza doğru" bu
+  depoda bir kez fotoğrafsız bir PDF'i yıllarca geçirdi (`wholesale-list.php`'nin
+  kendi yorumunda yazılı: mutlak yol verilince `vestra_pdf_thumb` **sessizce**
+  boş dönüyordu). Sonda: `seller-products.yml` → `admin_mode=lookbook`.
+- **CANLI SONUÇ (12 Eyl 2026):** 4 ürün, **eksik id 0**, 243.795 bayt, **gömülü
+  fotoğraf 4**. Çözülenler: `mb-cmaa018f20jer0011016` (Wings T-Shirt),
+  `mb-vs004` (Box Logo T-Shirt, Black), `dsq-101213` (Graphic T-Shirt
+  (Oversized)), `blc-662853tjw90` (Balenciaga Allover Logo Denim Set).
+- **ADLA arama yetmezdi, KOD kurtardı:** katalogda **iki** "Wings T-Shirt" var —
+  `CMAA018E20JER0011030` ve `CMAA018F20JER0011016`. Operatör kodu yazdığı için
+  doğrusu seçilebildi. *Aynı adı taşıyan iki ilan varsa ad bir kimlik değildir.*
+
+**ÇÖZÜLDÜ — eksik olan `st=` paylaşım jetonuydu** (12 Eyl 2026, operatörün
+ÜÇÜNCÜ linki). Aşağıdaki "No Access" teşhisi **linkin kendisi hakkındaydı ve
+öyle kalıyor**, ama sebebi paylaşım ayarı değil: operatörün ilk iki linkinde
+`st=` parametresi **yoktu**, üçüncüsünde **vardı** ve o link ZIP getirdi
+(**47,8 MB, `ilk2=PK`**). Dropbox'ın yeni paylaşım jetonu; sonda adresi yeniden
+kurarken onu **düşürüyordu**, yani çalışabilecek bir linki kendi elimizle
+geçersiz kılma ihtimali vardı. Artık ayıklanıp her yeniden kurulan biçimde
+taşınıyor ve `st jetonu: VAR/yok` diye yazılıyor.
+*İki ölçüm "bu yol kapalı" dedirtmişti; üçüncüsü linkler arasındaki farkı
+gösterdi. Aynı hatayı iki kez ölçmek, onu doğrulamıyor.*
+
+- **`unzip` ÇIKIŞ KODU BURADA ÖLÇÜM DEĞİL.** Dropbox'ın ZIP'i kök girdisini
+  adsız `/` diye yazıyor; unzip onu haritalayamayıp önce uyarıyor (rc=1) sonra
+  rc=2 ("zipfile format") dönüyor — oysa **gerçek dosyaların hepsi açılıyor**.
+  rc'ye bakan iki sürümüm de 47,8 MB'lık sağlam bir klasörü **çöpe attı**;
+  ikincisi "acilan dosya=88" yazarken bile. Doğru ölçüm **BEKLENEN ile AÇILAN**:
+  `unzip -Z1` listesindeki dosya sayısı (dizinler ve adsız kök hariç) ile diske
+  inen sayı. Eşitse geçer, rc ne derse desin; eksikse rc 0 bile olsa **DURUR**.
+  *Aracın bayrağı sonucu değil, kendi iç durumunu anlatıyordu.*
+- **Özet listenin SONUNA alındı:** `get_job_logs` yalnız kuyruğu gösteriyor,
+  88 satırlık dosya listesinde baştaki sayım kuyruktan düşüyordu.
+
+**Dropbox paylaşım klasörü: sunucu ERİŞEMİYOR — "No Access"** (operatör,
+12 Eyl 2026, iki klasör: `WOMEN/DSQUARED` ve `DOLCE&GABBANA`).
+- Bu ortamdan dropbox.com'a çıkış yok (ölçüldü, `curl` → `http=000`), o yüzden
+  indirme **sunucuda**: `fetch-external-images.yml` → **MOD E**
+  (`dropbox_url` + `dropbox_slug`). Klasörü ZIP olarak `~/wt_incoming/<slug>`
+  altına açıyor, dosya listesini yazıyor, `public_html/uploads`'a **hiçbir şey**
+  kopyalamıyor — klasörün içinde ne olduğu görülmeden fotoğraf siteye girmez.
+- **Sunucu Dropbox'a ÇIKABİLİYOR** (`http=200`, ~202 KB) ama gelen şey ZIP değil
+  **HTML**: başlığı **`Dropbox - No Access`**. Üç ayrı adres biçimi denendi
+  (`?subpath=`+`dl=1`, verilen link+`dl=1`, kökün tamamı+`dl=1`) — **üçü de
+  aynı sayfa**. Yani sorun adres biçimi değil, **linkin kendisi dışarıdan
+  görüntülenemiyor**: paylaşım ayarı "davet edilenler"/ekip içi görünüyor.
+  Çözüm operatörde: klasörü **"Anyone with the link"** olarak paylaşmak.
+- **İKİNCİ, TAMAMEN AYRI paylaşım da aynı sonucu verdi** (operatörün D&G linki,
+  başka `fo` id + başka `rlkey`): yine `Dropbox - No Access`, yine üç biçim de.
+  Üstelik **kök denemesi iki linkte de BİREBİR 205.836 bayt** döndü — yani gelen
+  şey klasöre özgü bir sayfa değil, **genel bir ret sayfası**. Sorun tek bir
+  linkte değil, **paylaşımın kendisinde**. *Tek ölçüm "bu link bozuk" derdi;
+  ikinci ölçüm "bu yol kapalı" dedirtti.*
+- **Ayırt edilemeyen tek şey ve onu ÖLÇEBİLECEK kişi operatör:** "link özel" ile
+  "Dropbox sunucunun IP'sini engelliyor" dışarıdan ayrılamıyor (200 + markalı
+  "No Access" sayfası ilkine benziyor — IP engelinde genelde captcha/403/429
+  gelir, ama kesin değil). **Kontrol grubu:** operatör linki **gizli/incognito**
+  pencerede (Dropbox oturumu KAPALI) açsın. Orada da "No Access" çıkıyorsa
+  paylaşım ayarıdır; açılıyorsa sunucu tarafı engellenmiştir ve çözüm başka
+  (WeTransfer yolu zaten kurulu ve çalıştığı kanıtlı).
+- **Sihirli bayt (PK) kontrolü ilk koşuda işe yaradı:** olmasaydı 202 KB'lık
+  HTML'i açmaya çalışır ya da ürün fotoğrafı diye bir hata sayfası kaydederdik —
+  bu depoda `.jpg` diye kaydedilmiş HTML bir kez yaşandı. **`dl=0` → `dl=1`
+  eziliyor**, yoksa Dropbox web arayüzünü döndürüyor.
+- **Başarısızlıkta sayfanın KENDİ cümlesi okunuyor** (başlık + `password` /
+  `too large` / `access` gibi işaretler): "şifre gerekli", "çok büyük", "erişim
+  yok" hepsi ayrı sorun ve ayrı çözüm. Tahmin etmek yerine sayfaya soruluyor.
+  Denenen URL'ler **maskeli** — `rlkey` o klasörü açan anahtar ve kütük herkese
+  açık.
+- **MOD E kendi ADIMINDA, ve bu zorunluydu:** ana betiğe eklenince dosya
+  GitHub'ın **21000 karakterlik tek-ifade sınırını** aştı ve workflow **hiç
+  dispatch edilemez** oldu (`Exceeded max expression length`) — yani ekleme, var
+  olan dört modu da götürüyordu. Her adımın kendi bütçesi var (MOD E 4.588,
+  öteki 17.063). *Bu dosyaya yeni bir blok eklerken önce uzunluğa bak.*
+- **`run_workflow` 5xx kuralı bir kez daha işe yaradı:** dispatch **502** döndü;
+  CLAUDE.md'nin dediği gibi tekrar denemeden önce koşu listesine bakıldı — hiçbir
+  şey kuyruğa girmemişti, yani tekrar güvenliydi.
+
 **Vitrin sırası: Balenciaga ve Lacoste en başta** (operatör, 12 Eyl 2026:
+*— aynı gün D&G ve DSQUARED2 de eklendi; güncel liste bu bölümün SONUNDA.*
 *"ürünlerin yerlerini degistir balenciaga ve lacostelar basta kalsin"*).
 - **Bu, 11 Eylül'e kadar geçerli olan kararın ÖN TARAFTA geri alınması.** Eski
   not *"katalog Gucci ile açılıyor, arkasında Givenchy, sonra Lacoste"* diyordu;
@@ -3864,6 +3995,24 @@ geldiyse oraya götürsün"*).
   `/shop` çekilip ürün id'leri sırayla okundu — `blc-1, blc-2` → üç Lacoste →
   GARAGE LE PARIS'in geri kalanı → Gucci, Givenchy → diğerleri. PHP uyarısı
   **0** (grep'in yakaladığı 8 satırın hepsi çerez bandının `notice` sınıfı).
+- **CANLI ÖLÇÜM: `inspect-products.yml` → `shop_order=premium`** (run 163).
+  Bu ortamdan canlı siteye çıkılamıyor (`curl` → `http=000`), o yüzden sıra
+  **sunucuda, deploy edilmiş fonksiyonla** hesaplanıyor. Sonuç: premium 336
+  ilan (katalog 817); **Balenciaga 20 ilan, sıra 4..23** (yani 20'si de bitişik
+  ve önde), **Lacoste 12 ilan, sıra 2..34**. Sonda ilk 24'ün yanında **konum
+  özeti** de basıyor — ilk 24 tesadüfen doğru görünebilir, 20 ilanlı bir markanın
+  20'sinin de başta olduğunu ancak sayım gösterir. *Kütükteki `22` numaralı satır
+  `***` çıkıyor: `DEPLOY_PORT`="22" maskesi, hata değil.*
+- **CANLI ÖLÇÜMÜN ORTAYA ÇIKARDIĞI, OPERATÖR KARARI BEKLEYEN ŞEY:** ilk üç sıra
+  Balenciaga/Lacoste değil — `guc-t07` (Gucci), `lac-polo-paris` (Lacoste),
+  `rl-csf-polo-white` (**Ralph Lauren**). Üçü de **`pinned`**, yani operatörün
+  daha önce kendi ellediği ilanlar, ve `pinned` bölmesi her şeyin önünde.
+  (Çıkarım kesin: Ralph Lauren ne ön ne lead markada, ve satıcı bölmesinde olsa
+  bütün Balenciaga'lardan **sonra** gelirdi.) Yani bir Gucci ile bir Ralph Lauren
+  hâlâ 20 Balenciaga'nın önünde duruyor. **Kendiliğinden değiştirilmedi:** iki
+  operatör kararı karşı karşıya (eski iğnelemeler ile yeni "başta kalsın"), ve
+  birini ötekine kurban etmek bizim kararımız değil. İstenirse tek satır — ön
+  marka bölmesini `pinned`'in önüne almak.
 - Test: `tests/shop_order_test.php` (30 iddia). **İki yönü de** tutuyor: öne
   çıkması gerekenler ve *yerinde kalması* gerekenler (lead satıcı, lead markalar,
   grup içi katalog sırası). Düşebildiği doğrulandı — her sabotajın gerçekten
@@ -3882,3 +4031,211 @@ geldiyse oraya götürsün"*).
 - **`get_job_logs` çıktısı büyükse dosyaya düşer** (`tool-results/...txt`, tek
   satır JSON: `logs_content`); python ile `json.loads` → `split('\n')`. 1,4 MB'lık
   kontakt sayfası günlüğü bu yolla okundu.
+
+**KURAL 25 — D&G Dropbox partisi: 88 fotoğraf → 68 ilan, hepsi `pending`**
+(operatör, 12 Eyl 2026: *"olmayan ürünlerin hepsini koy bu DG leride"* +
+*"dikkat ayni ürün varsa katalogta pas gec"*).
+
+- **Dosya adı KATEGORİ SÖYLEMİYOR, yalnız stil kodu taşıyor** (`D&G G8OL0ZFU7E.jpg`).
+  Fiyat ise kategoriye bağlı, yani 88 karenin **hepsi göz ile** sınıflandırıldı:
+  `diag-live` → `wetransfer_probe=sheet:…|perfile`. Şüpheli 23 kare 300–360 px'te
+  tekrar bakıldı ve **bu adım iki fiyat hatasını yakaladı**: `G8OL0Z FU7EN` ve
+  `G8PL4T G7F2H` 112 px'te tişört görünüyordu, büyütünce **yakalı polo** çıktı
+  (€90, €85 değil). *Kontakt sayfası hücre başına bir KLASÖR basıyordu; düz bir
+  klasörde 88 fotoğraf 2 küçük resme iniyor, yani sınıflandırma için yazılmış
+  araç sınıflandıramıyordu — `|perfile` ve `|cell=N` bunun için eklendi.*
+- **88'den düşenler:** 5 katalogda **zaten var** (`G7JV9-1`, `G8PL4T G7F2H 0`,
+  `G8QI4TFU7EQ_W`, `G9OW6Z DARKBLUE`, `GWNXAD-G8GW9`) — operatörün "pas geç"i;
+  9 iç giyim/mayo (operatör kararı: şimdilik koyma); 1 örgü V yaka
+  (`G8QG3T FU7EP` — fiyat listesinde karşılığı yok); **2 dosyada stil kodu HİÇ
+  yok** (`DOLCE&GABBANA BLACK.jpg`, `JEANS/IMG_3073.JPG`) → **SKU uydurulmadı**,
+  ikisi de yazılmadı. Kalan 71 kare → **68 ilan** (`G8OL6Z G7C8G`'nin dört rengi
+  tek ilanda — Fred Perry M3600 deseni).
+- **Fiyatlar operatör kararı**, kategoriye bağlı: tişört **85**, polo **90**,
+  sweat/hoodie **120**, kot **120**, kot şort **90**, eşofman altı **120**.
+  Kot ve iç giyim fiyat tablosunda **yoktu ve soruldu** — 29 fotoğrafın (kot 14,
+  kot şort 3, eşofman 4, iç giyim 8, mayo 1) hiçbiri fiyatlanamıyordu ve
+  uydurmak yerine karar alındı. **Ceket €139 kullanılmadı:** klasörde ceket
+  görünen tek kare (`GVETAZ HU7B7`) büyütünce **eşofman altı** çıktı; yanındaki
+  ceketin kendi kodu var (`G9XM5Z HU7B7`) ama **kendi dosyası yok**.
+- **13 KOTTA RENK YAZILMADI.** Kaynak yıkama adını vermiyor ve küçük resimden
+  "light blue" ile "mid blue" ayırmak uydurma olurdu (KURAL 3). Siyah ve gri
+  ayırt edilebildiği için o ikisi yazıldı. Fotoğraf zaten sayfada; adı operatör
+  isterse ekler. *Renk listesine bir ad eklemek ücretsiz, doğru olması değil.*
+- **Beden serisi ve MOQ uydurulmadı:** mevcut 35 D&G ilanının **taşıdığı**
+  değerler (üst giyim `S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack` / MOQ 20,
+  kot `44×1 … 54×1`). Katalogun kendi kaydı, şablon değil.
+- **`mode='fixed'`** — `sale`'de `list` üstü çizili ESKİ fiyattır (KURAL 4),
+  yani 68 ilan da hiç var olmamış bir indirim ilan ederdi.
+- **`status='pending'`**: operatör `Admin ▸ Products`'ta onaylayana kadar
+  katalogda **görünmüyor**. "Hepsini koy" talimatı ile KURAL 21'in "önce göster"
+  şartı böyle birlikte karşılandı.
+
+**Kendi hatam, kayda geçsin — ve kuru koşu yakaladı.** Kontakt sayfasının
+efsanesinden okuduğum dosya adını **olduğu gibi** görsel yoluna yazdım, oysa
+Actions kütüğü literal "22"yi `***` yapıyor: `G9ABJTG7F2GR***54.jpg` katlanınca
+`d-g-g9abjtg7f2gr-54.jpg` oluyor ve sunucuda öyle bir dosya yok. Kardeş dosya
+`G9ABJTG7F2GBA232` (renk kodu 5 karakter) olduğu için `R2254` çıkarıldı ve
+**ikinci kuru koşu fotoğrafı bulunca doğrulandı** — çıkarım kanıt değildi, kuru
+koşu kanıttı. *Bu dosyanın kendi kaydı: "okunamayan bir değeri tahmin etmek
+serbest; tahmini doğrulatmadan yazmak değil."*
+
+**Sonuç (run `34717589395`):** `KAYDEDILDI — 68 yeni urun, katalog 827 → 895`,
+zaman damgalı yedek alındı. Geri okuma (`inspect-products` → `raw_scan`, çünkü
+`vestra_products()` yalnız `approved` döndürür ve taze parti orada **0**
+görünür): **895 kayıt, `pending=68`**, `tiers` hepsinde var. Yeni satırlarda
+`seller_uid` yok — mevcut 35 D&G ilanında da yok, yani sapma değil.
+
+**Operatör kararı bekleyen üç şey:**
+1. **13 kotun yıkama adı** — fotoğrafa bakıp yazabilir; ben uydurmadım.
+2. **`G8QG3T FU7EP`** (beyaz örgü V yaka, düğmeli) — tişört mü, `Sweaters &
+   Knitwear` mi? Fiyat tablosunda karşılığı yok, o yüzden yazılmadı.
+3. **9 iç giyim + 1 mayo** — "şimdilik koyma" denildi; fotoğraflar sunucuda
+   duruyor (`~/wt_incoming/dg/files`), fiyat verilirse tek koşuda eklenir.
+
+**KURAL 25 — 68 ilan AÇILDI** (operatör, 12 Eyl 2026: *"tüm ürünleri aprrovals
+yap fotolariyla beraber"*). `product-fixes/dg-approve.json` + `set-product.yml`;
+her satırda `expect:1`, kuru koşu **68/68** eşleşti, sonra uygulandı
+(`KAYDEDILDI — 68 alan guncellendi`, zaman damgalı yedek). Geri okuma:
+`approved=883` (815 + 68), **`pending` tamamen bitti**.
+
+- **"Fotoğraflarıyla beraber" ÖLÇÜLDÜ ve ölçüm ÖNCE yanlış kümeye baktı.**
+  `inspect-products` → `check_images` modu `vestra_products()` geziyor, yani
+  **yalnız approved**: onay bekleyen 68 ilanı **yapısı gereği göremiyor**.
+  İlk koşu mevcut **35 onaylı** D&G ilanını ölçüp *"TUM FOTOLAR YERINDE"* dedi —
+  doğru cümle, yanlış küme, ve ona güvenip onaylasaydım kırık görselle yayına
+  açma ihtimali ölçülmemiş kalırdı. Aynı denetim `raw_scan`'e eklendi (ham
+  liste, pending dahil): onaydan **önce** `diskte VAR: 106 / kayip 0`
+  (35 eski + 71 yeni kare), onaydan **sonra** katalog geneli
+  **`diskte VAR: 1248 / kayip 0 / hic gorseli olmayan ilan 0`**.
+  *Bir partiyi doğrulayan sonda o partiyi göremiyorsa, verdiği yeşil başka bir
+  şeyin yeşili.*
+- **`set_product.php` eşleşmeyi `match` alanından okuyor, `id`'den değil.** İlk
+  onay dosyamı `id` ile yazdım; kuru koşu 68 satırın **68'ini de** reddetti
+  (`'match' bos`) ve hiçbir şey yazılmadı. Mevcut `nbb-approve.json`'a
+  bakmadığım için oldu. *Bir dosya biçimini yeniden icat etmeden önce, aynı işi
+  yapan mevcut dosyayı aç.*
+
+**KURAL 25 — Dört D&G ilanı KOMPLE TAKIM: €190, MOQ 10** (operatör, 12 Eyl 2026:
+*"Jogging Trousers komple fiyat 190 eur olsun tüm alt üst dg ler böyle olmali
+ayrica en az alimlari 10 a indir bunlarda"*).
+
+- **Sınıflandırmam yanlıştı ve talimat onu düzeltti.** Dördünü de yalnız ALT
+  ("Jogging Trousers", €120) diye yazmıştım. 112 px'lik kontakt sayfasında
+  pantolon görünüyordu; **512 px'te** dördünün de üst+alt olduğu, üçünün
+  künyesinde **iki kod birden** yazdığı görüldü:
+  `GVETAZHU7B7 ← G9XM5ZHU7B7` (fermuarlı eşofman üstü), `GWT1AZHUMLX ←
+  G9UR8ZHUMLX` (bisiklet yaka sweatshirt), `GX630T JBMJ0 ← GXE02T JBMJ0`
+  (kapüşonlu). Dördüncüsü (`GVEPAZFU7DU`) **tek kod** taşıyor ama üç karesinin
+  üçü de aynı komple kombin; ayrı bir pantolon karesi **yok**.
+- **AD DEĞİŞTİ, çünkü zorunluydu.** "Jogging Trousers" diye duran bir ilanı
+  €190'a komple takım olarak satmak, sepetin sattığı şeyle çelişen bir ilan
+  bırakırdı — `desc`/`sizes` ve faturanın üç katmanının verdiği dersin aynısı.
+  Her ad artık **iki parçayı da** yazıyor ve üst parçanın türü fotoğraftan:
+  Sweatshirt & Trousers Set / Track Jacket & Trousers Set / DG Logo Sweatshirt
+  & Trousers Set / Logo Script Hoodie & Trousers Set.
+- **`tiers` birlikte yazılmak ZORUNDA.** `set_product.php` ilk kademenin `moq`'ya
+  eşit olmasını şart koşuyor ("merdiven minimum siparişten başlamalı"); `moq=10`
+  verip kademeyi 20'de bırakmak **reddedilirdi**. MOQ 10, `size_step=10`'un tam
+  katı (KURAL 4b).
+- **`sizes`'a DOKUNULMADI.** "10 pcs/pack" → "10 **sets**/pack" yazmak cazipti:
+  bir takımda "10 pcs" 10 giysi diye okunabiliyor. Ama `VESTRA_SIZE_PACK_RE`
+  yalnız `(pcs|pieces|adet)` tanıyor — yeni kelime paket ekini **tanınmaz**
+  yapar ve "10" sessizce bir BEDEN olarak ayrışırdı (KURAL 21b'nin `3/pack`
+  tuzağı). Ad zaten takım olduğunu söylüyor; ayrıştırıcıyı süs için genişletmek
+  yanlış taraf.
+- **KAPSAM ÖLÇÜLDÜ, TAHMİN EDİLMEDİ.** Bir eşofman **üstü** katalogda
+  "sweatshirt" diye duruyor olabilirdi, yani "tüm alt üst" dokuz sweat/hoodie
+  ilanını da kapsayabilirdi. 48-57 arası **384 px**'te bakıldı: dokuzu da **tek
+  giysi**, künyede tek kod. Kapsam bu yüzden **genişlemedi** — ölçüm bir kez de
+  *hayır* demek için yapılır.
+- **Doğrulama alanın değerine değil, SEPETİN TAHSİL ETTİĞİNE bakıyor:**
+  `inspect-products` → `price_audit`. Katalog geneli **886 ürün, tutarlı 815,
+  alıcı aleyhine 1, kademesiz 0** ve dördü de aleyhine listesinde **yok** —
+  yani ilan edilen €190, MOQ 10'da sepetin gerçekten aldığı rakam. `list`
+  alanını okuyup "190 yazıyor" demek bu deponun defalarca kaydettiği yarım
+  doğrulama olurdu. Görsel 4/4, kayıp 0.
+- **Yan bulgu, operatör kararı bekliyor — ve raporlamadan ÖNCE ölçüldüğü için
+  düzeldi.** Kontakt sayfasının **50.** karesi (`D&G G9OW6Z DARKBLUE.jpg`) de
+  iki sıralı bir **takım** çekimi (koyu lacivert sweatshirt + jogger) ve
+  ithalatta atlanmıştı. "Kopya diye atlanmış ama aslında ikinci bir renk" diye
+  yazacaktım; **kayda bakınca öyle değildi**: `dgn-g9ow6zdarkblue`
+  (sku `G9OW6Z DARKBLUE`, `/uploads/dg-root4/…`) **zaten katalogda**, daha eski
+  bir partiden. Atlama gerekçesi doğruydu. *Hafızadan rapor etmek, bu turda tam
+  da tersini söyleyecekti.*
+  Asıl soru bu değil: o ilan **"Crewneck Sweatshirt — Blue" adıyla, €90'a, tek
+  üst gibi** duruyor — yani dört eşofmanda bugün düzelttiğim okuma hatasının
+  aynısı, üstelik `mode=sale` ve **teklif AÇIK**. Kendiliğinden €190 yapılmadı:
+  künyesi tek kod veriyor (`G9OW6Z G7C8H`, ki o kod **`dgx-g9ow6z-g7c8h`**
+  adlı €120'lık canlı mavi sweatshirt'te de duruyor — aynı stil kodu iki ilanda,
+  iki fiyatta), ve canlı görselin bu kareyle **bayt bazında aynı olduğu
+  doğrulanmadı**, yalnız dosya adı aynı. Şüpheliyi kendi başına fiyatlamak,
+  talimatı bahane edip tahmin yazmak olurdu.
+
+**Vitrin sırası (GÜNCEL): D&G ve DSQUARED2 de başa** (operatör, 12 Eyl 2026:
+*"dg ve ds2 leri basa al"*). `vestra_shop_front_brands()` =
+**`[BALENCIAGA, LACOSTE, DOLCE & GABBANA, DSQUARED2]`**.
+- **Balenciaga/Lacoste YERİNDE kaldı.** Bir önceki talimat (*"basta kalsin"*)
+  kaldırılmadı; yeni iki marka **arkalarına** girdi, yani iki talimat da doğru.
+  Operatör D&G/DS2'yi Balenciaga'nın da önüne isterse tek satır (liste sırası).
+- **DSQUARED2 lead listesinden ÇIKARILDI** (`lead` artık `GUCCI, GIVENCHY,
+  BALMAIN`). Aynı marka iki listede olsaydı ön kontrol önce çalışır ve lead
+  satırı **ölü** kalırdı; testte zaten `array_intersect($front,$lead) === []`
+  iddiası vardı ve bu yüzden yazılmıştı. **D&G hiçbir listede değildi**, yani
+  en arkadaydı — asıl iş onu 405 ilanlık bölmenin dibinden öne çekmekti.
+- **Yazım katalogun kendi değerinden:** `strtoupper(trim('Dolce & Gabbana'))`.
+  Boşluklu ampersan önemli — `DOLCE&GABBANA` yazılsaydı eşleşme TAM olduğu için
+  103 ilanın hiçbiri öne gelmez ve **sayfa hata da vermezdi**. Sonda bunu
+  yakalayabiliyor: bir ön marka hiçbir ilana eşleşmezse *"bu bölmede ilan YOK"*
+  yazıyor.
+- **Canlı ölçüm** (`inspect-products` → `shop_order=premium`, deploy `fa1bb2ee`):
+  premium 405 ilan; **Balenciaga 20 (sıra 4..23), Lacoste 13 (2..35),
+  D&G 103 (36..138), DSQUARED2 64 (139..202)**. Dördü de tam sayıda yakalandı,
+  yani yazımlar doğru; dördü birlikte bölmenin **ön yarısını** kaplıyor.
+- **Hâlâ operatör kararı bekliyor (ikinci kez):** ilk üç sıra `pinned`
+  (`guc-t07` Gucci, `lac-polo-paris` Lacoste, `rl-csf-polo-white` Ralph Lauren)
+  ve `pinned` bölmesi her şeyin önünde. Yani bir Gucci ile bir **Ralph Lauren**
+  hâlâ 20 Balenciaga'nın ve 103 D&G'nin önünde. Operatör iki kez marka sırası
+  istedi ama iğnelemeler de onun kendi kararı; birini ötekine kurban etmek bize
+  düşmez. İstenirse tek satır: ön marka bölmesini `pinned`'in önüne almak.
+- Test: `shop_order_test.php` 30 → **32 iddia**. Düşebildiği doğrulandı ve
+  sabotajın **gerçekten uygulandığı** ayrıca yazdırıldı: ön liste eski hâline
+  dönünce **3 kırmızı**, DSQUARED2 iki listede bırakılınca **2**.
+
+**SATILDI serdi ÇAPRAZ ve büyük; doğrulanmış satıcı rozeti TEK gövdede**
+(operatör, 12 Eyl 2026: *"sold out yazsini capraz daha büyük yap ve verified
+seller armasini daha estetik yap"*).
+
+- **İstek iki GERÇEK kusuru açığa çıkardı, ikisi de istekten bağımsız duruyordu:**
+  1. **İki rozet ÜST ÜSTE biniyordu.** `.ssoldbadge` ve `.svbadge` ikisi de
+     `top:10px;left:10px` ve yeşil rozetin `z-index`'i daha yüksek — yani
+     **doğrulanmış** bir satıcının **satılmış** ilanında "Verified seller"
+     SATILDI'nın üzerine oturuyordu. Bandı ortaya almak bunu kendiliğinden
+     çözdü (köşe rozetleriyle artık hiç çakışmıyor).
+  2. **Tik BEŞ yerde elle yazılıydı ve beşinde de `stroke="#fff"` GÖMÜLÜYDÜ.**
+     Açık "stüdyo" zeminli kartta pil `rgba(28,120,72,.10)` zemin + `#1f7a4c`
+     metin, yani **beyaz tik görünmüyordu**. Tek gövde:
+     `vestra_verified_badge()`, kontur **`currentColor`** — renk artık CSS'te ve
+     tema/zemin değişimi kendiliğinden işliyor. Bu, KURAL 24'ün onay işaretinin
+     birebir aynı dersi ("sembol kendi stroke'unu YAZMAZ"). İşaret bir **mühür**
+     oldu (daire + tik).
+- **Bant:** ortadan geçen, `rotate(-16deg)`, 15px (geniş karoda 18px) — eskisi
+  sol üstte 10.5px'lik bir pildi. `pointer-events:none` (kartın kendi
+  bağlantısını yutmasın), `left/right` **negatif** (döndürülen kutunun uçları
+  aksi hâlde karonun içinde kalır ve bant yarım görünür).
+- **RTL:** Arapçada bant **+16°'ye aynalanıyor** ve `letter-spacing` **düşüyor** —
+  Arap yazısı bitişik, harf aralığı bağları gevşetir; Latin'de ferahlık olan şey
+  orada kusur.
+- **Ölçüm ÇİZDİREREK** (kum havuzu, gerçek tarayıcı — kaynak okumak ölçüm değil):
+  bant **270×116 px** masaüstü / **223×103** mobil, transform matrisi −16°
+  (Arapçada +16°), `pointer-events:none`, `z-index:5`, **yatay taşma 0**;
+  rozetin tik konturu artık metinle **aynı renk** (`rgb(28,122,74)` açık zemin,
+  `rgb(143,224,180)` ürün sayfası), mühür dairesi basılıyor. PHP uyarısı **0**;
+  tek konsol hatası bu ortamdan erişilemeyen Google Fonts.
+- **Ölçüm bir yalanı da yakaladı:** RTL `letter-spacing` düzeltmesinden sonra
+  sonda hâlâ **3.2px** dedi — kum havuzu o düzeltmeden **ÖNCE** kopyalanmıştı.
+  Senkronlanıp yeniden ölçüldü: `normal`. *Değişikliğin gerçekten uygulandığını
+  doğrula — bu dosyada zaten kayıtlı ve bir kez daha oldu.*
+- **Ürün sayfasının kırmızı "Sold out" cümlesine DOKUNULMADI:** o bir cümle,
+  etiket değil; bir paragrafı çapraz yazmak okunmaz yapardı. Operatörün
+  "yazı" dediği, fotoğrafın üstündeki karo etiketi.
