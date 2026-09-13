@@ -273,8 +273,16 @@ jobs:
               if ($cc === "") { echo "  !! ulke cozulemedi: ziyaretci Ingilizce gorur (guvenli varsayilan)\n"; }
               else {
                 $l = vlang_country_lang($cc);
-                printf("  bu ulkeden gelen ziyaretci -> %s\n",
+                printf("  bu ulkeden gelen ziyaretci -> dil %s\n",
                        $l ?? "en (tabloda yok, Ingilizce)");
+                /* Ayni cografi cevap iki karar veriyor (dil VE para birimi);
+                   ikisini ayri kosularda olcmek, birinin calisip otekinin
+                   calismadigi hali gizlerdi. */
+                if (is_readable("inc/money.php")) {
+                  require_once "inc/money.php";
+                  printf("  bu ulkeden gelen ziyaretci -> birim %s\n",
+                         vestra_currency_for_cc($cc));
+                }
               }
               echo "\n== tablo ornekleri (ag YOK) ==\n";
               foreach (["DE","CH","BE","FR","ES","IT","PT","BR","RU","KZ","AE","SA","TR","US"] as $c)

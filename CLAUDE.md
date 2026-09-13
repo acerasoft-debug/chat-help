@@ -4402,6 +4402,13 @@ iP den algilanip para biriminin ... o ülkeye göre ayarlanmasi gerekir"*).
   (`?cur` yok) → USD, `US$46.49`; **başka sayfa** (ürün) → USD; AUD seçip
   `/cart` → AUD. PHP uyarısı yalnız sentetik kum havuzu satırlarının
   `unit` alanı olmamasından (gerçek katalogda 20/20 ilanda o alan var).
+- **CANLI ÖLÇÜM (run `34779582421`, deploy `e27d0515`) — ve tahminimi ÇÜRÜTTÜ:**
+  sunucuda **kur VAR** (`kaynak ecb`, `2026-09-11`, `1 EUR = 1,1592 USD /
+  1,6161 AUD / 1,6064 CAD`, önbellek aynı gün 15:30Z, `fail_ts` yok). Yani
+  deponun `fail_ts`-only kopyası sunucuyu **temsil etmiyordu** ve "fiyatlar
+  kurdan dolayı EUR basıyor olabilir" endişesi canlıda **geçerli değil** —
+  tek gerçek kusur çerezdi. *Repo kopyası kanıt değildir; sunucu kanıttır.*
+  Kablolamanın üçü de yeşil: fonksiyon indi, include-time çağrı var, tek yazıcı.
 - Test: `tests/currency_pick_test.php` (33 iddia, iki yön). Düşebildiği
   doğrulandı, her sabotajın **gerçekten uygulandığı** ayrıca yazdırılarak:
   include-time çağrı silinince **2 kırmızı**, eski hata (setcookie yine
