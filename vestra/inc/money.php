@@ -56,6 +56,64 @@ function vestra_currency_for_cc(string $cc): string {
 }
 
 /**
+ * ACIK SECIMI HEMEN YAZ — `vestra_currency()` cagrilana kadar bekleme.
+ *
+ * Yasanmis kusur (operator, 13 Eyl 2026: "para birimi secilmesine ragmen bir
+ * sonraki linke tiklandiginda gene EUR oluyor"): cerez yazma
+ * `vestra_currency()`'nin ICINDEYDI ve o fonksiyon sayfada ILK KEZ
+ * `head.php`'nin ust cubugunda (~235. satir) cagriliyor. O noktada PHP'nin
+ * cikti tamponu coktan bosalmis oluyor, yani `headers_sent()` DOGRU ve
+ * `@setcookie` sessizce atlaniyor -- ustelik `@` uyariyi da yutuyor. Sonuc:
+ * secilen birim O SAYFADA gorunuyor, bir sonraki istekte yok.
+ *
+ * OLCULDU, tahmin edilmedi: `?cur=USD` yaniti `vcur` cerezi TASIMIYOR ama
+ * sayfa USD basiyor; ayni istekte `headers_sent()` = EVET.
+ *
+ * DIL TARAFI CALISIYORDU ve sebebi ogreticidir: `vlang()` `<html lang=…>`
+ * icinde, yani sayfanin ~2. KB'sinde cagriliyor -- tampon henuz bosalmamis.
+ * Yani ayni kusur iki fonksiyonda da yaziliydi; yalnizca BIRI, tamponun nerede
+ * bosaldigina bagli olarak tetikleniyordu. *Cikti tamponuna bagli bir yazma,
+ * calisiyor gorunse bile tesadufen calisiyordur.*
+ *
+ * Cozum konumdan BAGIMSIZ: bu fonksiyon money.php YUKLENIRKEN cagriliyor
+ * (head.php onu 5. satirda, hicbir cikti basilmadan once require ediyor), yani
+ * cerez her zaman yazilabiliyor. Sayfa gövdesinde ayrica cagrilmasi gerekmiyor
+ * -- "her yeni sayfada hatirla" cozumu, bu depoda tekrar tekrar kaydedildigi
+ * gibi, hatirlamaya birakildigi anda bozulur.
+ *
+ * TEK YAZICI: `vestra_currency()` de artik kendi setcookie'sini tasimiyor,
+ * buraya devrediyor -- ayni olgunun iki kopyasi er gec ayrisir.
+ */
+function vestra_currency_remember(): string {
+    $pick = strtoupper(trim((string)($_GET['cur'] ?? '')));
+    if ($pick === '' || !isset(vestra_currencies()[$pick])) return '';
+
+    /* Ayni istek de secimi gormeli: cerez ancak bir SONRAKI istekte geri gelir.
+       Bu bir TASIMA degil, sureç ici ayna — o yuzden CLI muafiyetinin USTUNDE:
+       cron cerez yazmamali ama `?cur=` verilmis bir cagrida hangi birimin
+       secildigini yine de bilmeli. Ilk yazimda ayna da muafiyetin altindaydi
+       ve test bunu yakaladi (`USD|-`). */
+    $_COOKIE['vcur'] = $pick;
+
+    if (PHP_SAPI === 'cli') return $pick;              // cron/test cerez YAZMAZ
+
+    if (headers_sent($hf, $hl)) {
+        /* Sessiz kalmiyor: bu satir gorunuyorsa cerez yazilamamistir ve
+           kullanicinin secimi yine kaybolur. Kutuk teshise giriyor, o yuzden
+           yalnizca dosya:satir — kisiye ait hicbir sey yok. */
+        error_log('[VESTRA cur] cerez yazilamadi, cikti zaten baslamis: '.$hf.':'.$hl);
+        return $pick;
+    }
+    @setcookie('vcur', $pick, [
+        'expires'  => time() + 31536000,
+        'path'     => '/',
+        'samesite' => 'Lax',   // kampanya linkinden gelen ziyaretcide de tasinsin
+    ]);
+    return $pick;
+}
+vestra_currency_remember();
+
+/**
  * Bu ziyaretcinin para birimi.
  *   1) Acik secim (?cur= ya da cerez) — kullanicinin tercihi her seyin ustunde.
  *   2) Ulke (beyan edilen ulke, yoksa IP ulkesi).
@@ -67,18 +125,40 @@ function vestra_currency(): string {
     $all = vestra_currencies();
 
     $pick = strtoupper(trim((string)($_GET['cur'] ?? '')));
-    if (isset($all[$pick])) {
-        $cur = $pick;
-        if (!headers_sent()) @setcookie('vcur', $cur, time() + 31536000, '/');
-        $_COOKIE['vcur'] = $cur;
-        return $cur;
-    }
+    if (isset($all[$pick])) { vestra_currency_remember(); return $cur = $pick; }
+
     $ck = strtoupper(trim((string)($_COOKIE['vcur'] ?? '')));
     if (isset($all[$ck])) return $cur = $ck;
 
+    /* Beyan edilen ulke AGSIZ: girisli hesabin kendi kaydi. Once o sorulur —
+       hem dogru hem bedava. */
     $acc = function_exists('auth_user') ? auth_user() : null;
-    $cc  = function_exists('vestra_visitor_cc') ? vestra_visitor_cc($acc) : '';
-    return $cur = vestra_currency_for_cc($cc);
+    if (is_array($acc) && function_exists('vestra_cc_of_country')) {
+        $cc = vestra_cc_of_country((string)($acc['country'] ?? ''));
+        if ($cc === '') $cc = strtoupper(trim((string)($acc['reg_cc'] ?? '')));
+        if ($cc !== '') return $cur = vestra_currency_for_cc($cc);
+    }
+
+    /* IP ULKESI — KURAL 12'nin maliyet korumalari BURADA DA gecerli.
+       O korumalar (CLI atla, BOT atla, 1 sn zaman asimi) dil tarafi icin
+       yazilmis ve `vlang_from_ip()` icinde duruyordu; para birimi yolu ayni
+       `vestra_ip_intel()`'i cagiriyor ama korumalarin HICBIRINI tasimiyordu,
+       yani her tarayici botu 3 sn'lik iki cografi sorgu tetikleyebiliyordu.
+       Ayni olgunun ikinci cagri yeri, ilkinin ogrendiklerini otomatik olarak
+       miras almiyor.
+       Fonksiyon PAYLASILMADI: `vlang_from_ip()` DIL donduruyor, bu ULKE ariyor;
+       ortak bir gövde, yarin dil tablosunda yapilan bir degisikligi para
+       birimine de sessizce tasirdi. */
+    if (PHP_SAPI !== 'cli'
+        && function_exists('vestra_ip_intel') && function_exists('vestra_client_ip')
+        && !(function_exists('vestra_is_bot') && vestra_is_bot((string)($_SERVER['HTTP_USER_AGENT'] ?? '')))) {
+        $ip = vestra_client_ip();
+        if ($ip !== '') {
+            $cc = strtoupper((string)(vestra_ip_intel($ip, 1)['cc'] ?? ''));
+            if ($cc !== '') return $cur = vestra_currency_for_cc($cc);
+        }
+    }
+    return $cur = 'EUR';
 }
 
 /* ── kur kaynagi ──────────────────────────────────────────────────────────────
