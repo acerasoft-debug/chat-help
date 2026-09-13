@@ -4255,9 +4255,20 @@ seller armasini daha estetik yap"*).
   "balenciaga ve lacostelar basta kalsin" demişti. Tavansız bırakılsaydı premium
   bölmesinde son günlerin ~100 ilanı (D&G Dropbox + DSQUARED2 partileri)
   Balenciaga'yı **~100. sıraya** iterdi, yani bir gün önceki talimatı sessizce
-  geri alırdı. 24 ile ikisi birden doğru: yeni gelenler ilk sıraları alıyor,
-  Balenciaga hâlâ **birinci sayfada** başlıyor. Tavanı aşan yeni ilan
-  **kaybolmuyor** — kendi normal bölmesine düşüyor.
+  geri alırdı. 24 ile ikisi birden **kısmen** doğru: yeni gelenler ilk sıraları
+  alıyor, Balenciaga listeden düşmüyor. Tavanı aşan yeni ilan **kaybolmuyor** —
+  kendi normal bölmesine düşüyor.
+- **TAVANIN BEDELİ ÖLÇÜLDÜ ve tahminimden büyüktü** (13 Eyl 2026, canlı, run
+  `34763555452`): Balenciaga'nın ilk ilanı **4. sıradan 28. sıraya** indi
+  (3 `pinned` + 24 yeni gelen önünde). `/shop` **sayfalamıyor** — tek uzun
+  ızgara — yani "birinci sayfa" diye bir şey yok; 28. sıra 4'lü ızgarada
+  **7. satır**. Bu satırı yazarken "hâlâ birinci sayfada başlıyor" demiştim;
+  **ölçüm değil tahmindi** ve not düzeltildi. Lacoste görünürde kaldı (2. sıra
+  `pinned`, 4. sıra yeni gelen bir GARAGE LE PARIS sweatshirt'ü).
+  **Operatör kararı bekliyor:** iki talimat (12 Eyl "balenciaga ve lacostelar
+  basta kalsin" ↔ 13 Eyl "yeni ürünleri basa koy") gerçekten zıt yöne çekiyor.
+  İki kaldıraç da tek satır: tavanı düşürmek (`VESTRA_SHOP_NEW_MAX`) ya da ön
+  marka bölmesini YENİ'nin önüne almak. Kendiliğinden seçilmedi.
 - `_ord` alanı YENİ bölmesinde de taşınıyor (yoksa öne çekilenler sayfanın
   "newest" sortunda en eski stok gibi görünürdü).
 - Test: `shop_order_test.php` 32 → **48 iddia**. Altı sabotajın her biri önce
@@ -4305,6 +4316,16 @@ seller armasini daha estetik yap"*).
   taze **ekleme günleri**. Sonuncusu şart: pencere boş çıktığında *"eşik inmedi"*
   ile *"bu hafta hiç ilan girmedi"* aynı çıktı olurdu. Sonda önce kum havuzunda
   koşturuldu (9 günlük ilan ve tarihsiz ilan doğru şekilde elendi).
+- **ÇİZDİRİLDİ, kaynak okunmadı** (kum havuzu, `php -S`, sentetik üç ilan:
+  1 / 3 / 12 günlük): sayfada **2 rozet**, 12 günlük ilanda **yok**, iki tazesi
+  **en başta** ve en yeni önce; PHP uyarısı **0** (grep'in yakaladığı 8 satır
+  çerez bandının `#cnotice` id'si). Aynı kum havuzunda pencere 30'a çekilince
+  rozet **3** oluyor ve 12 günlük ilan da yanıyor — yani pencere gerçekten
+  rozetin kendisini sürüyor, sabitin adını değil.
+- **CANLI ÖLÇÜM (run `34763555452`, deploy `b8d9644f`):**
+  `pencere 7 gun, tavan 24 | premium'da 70 ilan, katalogda 216`. En taze ekleme
+  günleri **12 Eyl (69)** ve **10 Eyl (147)** pencere içinde, **3 Eyl (335
+  ayakkabı)** dışında — 69 + 147 = **216**, yani sayım kendi içinde tutuyor.
 - Test: `shop_order_test.php` 48 → **50 iddia**. Düşebildiği doğrulandı, her
   sabotajın gerçekten uygulandığı ayrıca yazdırılarak: sabit 30'a döndürülünce
   **2 kırmızı** (biri gün bazlı olan), rozet elle eşik okuyunca **2**.
