@@ -320,5 +320,28 @@ $t('faturasiz sipariste duruyor',        str_contains($paBlock, 'if (!$invNos)')
 $t('escrow sipariste duruyor',           str_contains($paBlock, "stripos((string)(\$orderRow['notes'] ?? ''), 'escrow')"));
 $t('tutar faturadan',                    str_contains($paBlock, "\$invs[0]['total']"));
 
+echo "\n== payment_final: GOVDE kutuge basiliyor, HITAP maskeli ==\n";
+/* Bu dal, mektubun tamamini Actions kutugune basan TEK dal -- operatorun
+   gondermeden once metni okumasi icin. Ama hitap satiri musterinin ADINI
+   tasiyor ve o kutuk herkese acik: bu depoda bir kosunun gunlugu tam bu
+   sinif yuzunden silindi (run 33675552648).
+   IDDIA CIFT YONLU ve olmak zorunda: maskeleme KUTUGE islemeli, MEKTUBA
+   ISLEMEMELI. Tek yon yazilsaydi "Dear Mat***," diye baslayan bir mektup
+   musteriye gider ve test yesil kalirdi. */
+$pfA = strpos($wf, "if (\$letter === 'payment_final')");
+$pfB = $pfA !== false ? strpos($wf, "\$pfOk = vestra_send_mail(", $pfA) : false;
+$pfBlock = ($pfA !== false && $pfB !== false) ? substr($wf, $pfA, $pfB - $pfA) : '';
+$t('payment_final blogu bulundu',       $pfBlock !== '');
+$t('ham govde kutuge basilmiyor',       !str_contains($pfBlock, '{$pfBody}\n";'));
+$t('maskeli kopya basiliyor',           str_contains($pfBlock, '{$pfShown}\n";'));
+$t('maske hitap satirina bagli',        str_contains($pfBlock, "'/^Dear\\s+(.+),$/mu'"));
+$t('maske adin bir parcasini birakiyor', str_contains($pfBlock, "mb_substr(\$m[1], 0, 3)"));
+/* Konu ve gerisi ACIK kalmali: ref/fatura/tutar/son tarih okunmak icin var. */
+$t('konu maskelenmiyor',                str_contains($pfBlock, '{$pfSubj}'));
+/* MEKTUP maskesiz gidiyor -- gonderim satiri $pfBody okuyor, $pfShown degil. */
+$pfSend = $pfB !== false ? substr($wf, (int)$pfB, 200) : '';
+$t('mektup HAM govdeyi gonderiyor',     str_contains($pfSend, '$pfSubj, $pfBody,'));
+$t('mektup maskeli kopyayi GONDERMIYOR', !str_contains($pfSend, '$pfShown'));
+
 printf("\n%d ok, %d hata\n", $ok, $fail);
 exit($fail ? 1 : 0);

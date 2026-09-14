@@ -1183,7 +1183,15 @@ jobs:
                   $pfName, $pfRef, (string)$pfIv['no'], (float)$pfIv['total'], (string)$pfIv['currency'],
                   gmdate('j F Y', (int)$pfDeadline), (bool)$acc,
                   'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($pfRef), $pfSuspend);
-              echo "\n--- KONU ---\n{$pfSubj}\n--- METIN ---\n{$pfBody}\n";
+              /* Govde HERKESE ACIK gunluge basiliyor ve hitap satiri musterinin
+                 ADINI tasiyor. Bu depoda bir kosunun gunlugu tam bu sinif yuzunden
+                 silindi (run 33675552648: ad, e-posta, telefon, teslimat adresi).
+                 Maskelenen yalnizca hitap: gerisi ref/fatura/tutar/son tarih, yani
+                 okunmak icin basilan isin kendisi. buyer_reply'in "hitap : Dear
+                 Matt***" satiriyla ayni olcu. */
+              $pfShown = preg_replace_callback('/^Dear\s+(.+),$/mu',
+                  fn($m) => 'Dear '.mb_substr($m[1], 0, 3).'***,', $pfBody);
+              echo "\n--- KONU ---\n{$pfSubj}\n--- METIN ---\n{$pfShown}\n";
               if (strtolower($E('send')) !== 'true') { echo "\nsend=false — GONDERILMEDI\n"; exit(0); }
               $pfOk = vestra_send_mail($to, $pfSubj, $pfBody, '', '', null, '', $pfOpts);
               echo $pfOk ? "\nGONDERILDI -> ".$mask($to)."\n" : "\nGONDERILEMEDI\n";
