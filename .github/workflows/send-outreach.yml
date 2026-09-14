@@ -469,6 +469,13 @@ jobs:
                 return preg_match('/^[a-z]{2}$/', $l) ? $l : 'en';
               };
               require_once $home."/public_html/inc/products.php";
+              /* seo.php ACIKCA yukleniyor. Yuklenmeden function_exists ile
+                 gecistirmek KURAL 15'in birebir tuzagi: dosya yoksa dogrulama
+                 SESSIZCE atlaniyor ve marka baglantisi, sayfa acik olsa bile
+                 mektuba hic konmuyor. Ilk operator kopyasi tam boyle
+                 "marka sayfasi: kapali" dedi -- sayfa kapali degildi,
+                 cozucu yuklu degildi. */
+              require_once $home."/public_html/inc/seo.php";
 
               /* HER METNIN KENDI DAMGASI. Angebot'u Winter'in damgasina
                  baglamak iki yonde birden yalan olurdu: bu mektubu alan hesap
@@ -532,10 +539,13 @@ jobs:
                 }
                 /* Marka sayfasi ancak GERCEKTEN aciliyorsa (KURAL 9): elle
                    yazilan bir adres, son ilan satildigi gun 404 olurdu. */
-                if (function_exists('vestra_seo_resolve') && vestra_seo_resolve('/wholesale/fred-perry')) {
+                if (!function_exists('vestra_seo_resolve')) {
+                  fwrite(STDERR, "vestra_seo_resolve yuklenmedi -- marka baglantisi dogrulanamiyor\n"); exit(1);
+                }
+                if (vestra_seo_resolve('/wholesale/fred-perry')) {
                   $offerMore = 'https://vestrasales.com/wholesale/fred-perry';
                 }
-                echo "marka sayfasi: ".($offerMore !== '' ? 'ACIK' : 'kapali, baglanti konmadi')."\n";
+                echo "marka sayfasi: ".($offerMore !== '' ? 'ACIK (baglanti konuldu)' : 'KAPALI (stokta ilan yok) -- baglanti konmadi')."\n";
               }
 
               $accts = auth_accounts();
