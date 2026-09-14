@@ -4330,6 +4330,97 @@ seller armasini daha estetik yap"*).
   sabotajın gerçekten uygulandığı ayrıca yazdırılarak: sabit 30'a döndürülünce
   **2 kırmızı** (biri gün bazlı olan), rozet elle eşik okuyunca **2**.
 
+**KURAL 26 — Para birimi seçimi KALICI; çerezi yazan tek yer money.php'nin
+yüklenme anı** (operatör, 13 Eyl 2026: *"para birimi sürekli degisiyor ... para
+birimi secilmesine ragmen bir sonraki linke tiklandginda gene eur oluyor ayrica
+iP den algilanip para biriminin ... o ülkeye göre ayarlanmasi gerekir"*).
+
+- **ÖLÇÜLDÜ, tahmin edilmedi:** `?cur=USD` yanıtı **`vcur` çerezi taşımıyordu**
+  (yalnız `PHPSESSID`) ama sayfa USD basıyordu — yani seçim o sayfada çalışıyor,
+  bir sonraki istekte yok. Aynı istekte sondaladım: `headers_sent()` = **EVET**.
+- **Sebep, çıktı tamponunun nerede boşaldığıydı.** Çerez yazma
+  `vestra_currency()`'nin **içindeydi** ve o fonksiyon sayfada ilk kez
+  `head.php`'nin üst çubuğunda (**~235. satır**) çağrılıyor. Orada PHP'nin
+  varsayılan 4 KB'lık tamponu çoktan boşalmış oluyor, `!headers_sent()`
+  muhafazası yanlış çıkıyor ve `@setcookie` **sessizce** atlanıyor — `@` uyarıyı
+  da yutuyor.
+- **DİL TARAFI ÇALIŞIYORDU ve öğretici olan bu:** `vlang()` `<html lang=…>`
+  içinde, yani sayfanın ~2. KB'sinde çağrılıyor — tampon henüz boşalmamış, çerez
+  yazılıyor. **Aynı kusur iki fonksiyonda da yazılıydı**; yalnızca biri
+  tetikleniyordu. Ölçüldü: `?lang=de` → `Set-Cookie: vlang` **VAR**,
+  `?cur=USD` → **YOK**. *Çıktı tamponuna bağlı bir yazma, çalışıyor görünse bile
+  tesadüfen çalışıyordur — ve `<head>` bir gün uzayınca dil de kırılır.*
+- **Çözüm konumdan BAĞIMSIZ:** `vestra_currency_remember()` **money.php
+  yüklenirken** çağrılıyor. `head.php` onu 5. satırda, hiçbir çıktı basılmadan
+  require ediyor, yani çerez her zaman yazılabiliyor. "Her yeni sayfada
+  hatırla" çözümü yazılmadı — bu depoda hatırlamaya bırakılan kural defalarca
+  bozuldu.
+- **TEK YAZICI:** `vestra_currency()` artık kendi `setcookie`'sini taşımıyor,
+  buraya devrediyor. Testte `setcookie('vcur'` **tam 1 kez** geçmeli.
+- **Yazamazsa SUSMUYOR:** `headers_sent()` yine de doğruysa `error_log`'a
+  dosya:satır düşüyor (kişiye ait alan yok). Sessiz kalsaydı aynı kusur geri
+  gelir ve yine kimse görmezdi.
+- **Süreç içi ayna CLI muafiyetinin ÜSTÜNDE** — ilk yazımda altındaydı ve test
+  yakaladı (`USD|-`): cron çerez yazmamalı ama `?cur=` verilmiş bir çağrıda
+  hangi birimin seçildiğini yine de bilmeli. `SameSite=Lax` eklendi (kampanya
+  linkinden gelen ziyaretçide de taşınsın).
+- **İKİNCİ, AYRI OLGU — KUR YOKSA HER FİYAT EUR BASAR.** `vestra_fx()` kur
+  bulamazsa `vestra_money()` sessizce EUR yazıyor (dosyanın kendi kuralı: yanlış
+  kurla fiyat göstermek, göstermemekten kötü). Yani seçim ve etiket değişirken
+  **rakam değişmez** ve operatör bunu "para birimi çalışmıyor" diye okur.
+  Kum havuzunda ayrıştırıldı: kur **yokken** dört birimde de `€40.00`; kur
+  tohumlanınca **US$46.49 / A$65.40 / C$63.24** (40 × 1,1622 / 1,635 / 1,581).
+  Deponun `data/fx_rates.json` kopyasında **yalnız `fail_ts`** var, `rates` yok
+  — **sunucudaki kopya `cur_probe` ile ölçülmeli**, repo kopyası kanıt değil.
+- **IP'den ülke ZATEN VARDI ama KURAL 12'nin maliyet korumaları YOKTU.** O
+  korumalar (CLI atla, **BOT atla**, zaman aşımı **1 sn**) dil tarafı için
+  yazılmış ve `vlang_from_ip()` içinde duruyordu; para birimi yolu aynı
+  `vestra_ip_intel()`'i çağırıyor ama hiçbirini taşımıyordu — her tarayıcı botu
+  3 sn'lik iki coğrafi sorgu tetikleyebiliyordu. *Aynı olgunun ikinci çağrı
+  yeri, ilkinin öğrendiklerini otomatik miras almıyor.* **Fonksiyon
+  PAYLAŞILMADI**: `vlang_from_ip()` DİL döndürüyor, bu ÜLKE arıyor; ortak bir
+  gövde yarın dil tablosundaki bir değişikliği para birimine de sessizce
+  taşırdı.
+- **Hesabın beyan ettiği ülke IP'den ÖNCE** soruluyor: ağsız, bedava ve daha
+  doğru. Sıra: `?cur=` > çerez > hesabın ülkesi > IP ülkesi > EUR.
+- **Ölçüt çerezden sonra geliyor, bilerek** (KURAL 12'nin aynı gerekçesi):
+  IP yalnızca **hiç seçim yapılmamış** ziyaretçide devreye girer. Tersi,
+  seyahatteki bir alıcının kendi seçtiği birimi coğrafyayla ezmek olurdu.
+- **Ülke→birim tablosu (mevcut karar, değiştirilmedi):** AU→AUD, CA→CAD,
+  US→USD, AB üyesi→EUR, **geri kalan her yer→USD**. Yani **GB→USD** ve
+  **CH→USD**: İngiliz alıcı sterlin değil dolar görüyor. GBP eklemek yeni bir
+  para birimi + kur demek, yani **fiyat kararı** — kendiliğinden yapılmadı.
+- **Sonda: `seo-check.yml` → `cur_probe=true`.** Üç şeyi birden basıyor çünkü
+  şikâyet üçünden herhangi birinden gelir ve aynı görünür: kur durumu
+  (kaynak/tarih/`fail_ts`), ülke→birim tablosu (ağsız) ve *"seçim kalıcı mı"*
+  kablolaması (fonksiyon indi mi, include-time çağrı var mı, tek yazıcı mı).
+  Önce kum havuzunda koşturuldu.
+- **ÇİZDİRİLDİ, kaynak okunmadı** (kum havuzu, `php -S`, **onaylı alıcı
+  oturumu** — girişsiz çekmek fiyat kapısını ölçerdi, KURAL 4b/21d'nin aynı
+  tuzağı ve ilk ölçümümde dört birimde de "1 sembol" çıktı):
+  `?cur=USD` → `Set-Cookie: vcur=USD` + `US$46.49`; **bir sonraki link**
+  (`?cur` yok) → USD, `US$46.49`; **başka sayfa** (ürün) → USD; AUD seçip
+  `/cart` → AUD. PHP uyarısı yalnız sentetik kum havuzu satırlarının
+  `unit` alanı olmamasından (gerçek katalogda 20/20 ilanda o alan var).
+- **CANLI ÖLÇÜM (run `34779582421`, deploy `e27d0515`) — ve tahminimi ÇÜRÜTTÜ:**
+  sunucuda **kur VAR** (`kaynak ecb`, `2026-09-11`, `1 EUR = 1,1592 USD /
+  1,6161 AUD / 1,6064 CAD`, önbellek aynı gün 15:30Z, `fail_ts` yok). Yani
+  deponun `fail_ts`-only kopyası sunucuyu **temsil etmiyordu** ve "fiyatlar
+  kurdan dolayı EUR basıyor olabilir" endişesi canlıda **geçerli değil** —
+  tek gerçek kusur çerezdi. *Repo kopyası kanıt değildir; sunucu kanıttır.*
+  Kablolamanın üçü de yeşil: fonksiyon indi, include-time çağrı var, tek yazıcı.
+- **IP TARAFI DA CANLIDA ÖLÇÜLDÜ** (`test_ip=8.8.8.8`, run `34779690347`):
+  `8.8.8.8 → ulke=US (Ashburn) [180 ms]` → dil `en`, **birim USD**. Yani coğrafi
+  uç sunucudan açılıyor ve tablo uygulanıyor. Adım artık **aynı coğrafi cevaptan
+  DİL ve BİRİM'i birlikte** basıyor — ikisini ayrı koşularda ölçmek, birinin
+  çalışıp ötekinin çalışmadığı hâli gizlerdi.
+- Test: `tests/currency_pick_test.php` (33 iddia, iki yön). Düşebildiği
+  doğrulandı, her sabotajın **gerçekten uygulandığı** ayrıca yazdırılarak:
+  include-time çağrı silinince **2 kırmızı**, eski hata (setcookie yine
+  `vestra_currency()` içinde) geri konunca **1**, bot muhafazası etkisizleşince
+  **1**, zaman aşımı 3'e dönünce **1**, ülke eşleşmesi alt dizeye gevşeyince
+  **1** (`AT`→AUD, `CH`→CAD — mango/zara dersinin para birimi hâli).
+
 **13 Eyl 2026 — operatörün tek tek verdiği fiyat/durum kararları.**
 - İki Lacoste polosu **ausverkauft**: `lac-logotrim-polo` (Regular Fit Logo Trim
   L.12.12) ve `lac-monogram-polo` (Classic Fit Monogram Jacquard). `match` ADA

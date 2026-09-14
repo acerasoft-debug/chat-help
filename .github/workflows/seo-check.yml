@@ -10,6 +10,10 @@ on:
         description: "IP->DIL kontrolu: bu IP'nin ulkesi cozulup hangi dile dustugu yazilir (bos = atla). Ornek: 8.8.8.8"
         required: false
         default: ""
+      cur_probe:
+        description: "PARA BIRIMI sondasi: kur var mi, hangi tarih/kaynak, ulke->birim tablosu, cerez yazilabiliyor mu (true/bos)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -269,10 +273,74 @@ jobs:
               if ($cc === "") { echo "  !! ulke cozulemedi: ziyaretci Ingilizce gorur (guvenli varsayilan)\n"; }
               else {
                 $l = vlang_country_lang($cc);
-                printf("  bu ulkeden gelen ziyaretci -> %s\n",
+                printf("  bu ulkeden gelen ziyaretci -> dil %s\n",
                        $l ?? "en (tabloda yok, Ingilizce)");
+                /* Ayni cografi cevap iki karar veriyor (dil VE para birimi);
+                   ikisini ayri kosularda olcmek, birinin calisip otekinin
+                   calismadigi hali gizlerdi. */
+                if (is_readable("inc/money.php")) {
+                  require_once "inc/money.php";
+                  printf("  bu ulkeden gelen ziyaretci -> birim %s\n",
+                         vestra_currency_for_cc($cc));
+                }
               }
               echo "\n== tablo ornekleri (ag YOK) ==\n";
               foreach (["DE","CH","BE","FR","ES","IT","PT","BR","RU","KZ","AE","SA","TR","US"] as $c)
                 printf("  %-2s -> %s\n", $c, vlang_country_lang($c) ?? "en");
+            '
+
+      - name: Para birimi (kur durumu + ülke tablosu + çerez)
+        if: ${{ github.event.inputs.cur_probe != '' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 2m
+          script: |
+            # Salt-okunur. UC AYRI SEYI olcuyor, cunku "para birimi degismiyor"
+            # sikayeti bu ucunden herhangi birinden gelebilir ve ayni gorunur:
+            #   1) KUR yoksa vestra_money() sessizce EUR basar -- secim calisir,
+            #      etiket degisir, RAKAM degismez. (Dosyanin kendi kurali: yanlis
+            #      kurla fiyat gostermektense EUR goster.)
+            #   2) CEREZ yazilamiyorsa secim bir sonraki linkte kaybolur.
+            #   3) IP ulkesi cozulemiyorsa ilk ziyaret hep EUR ile acilir.
+            # Basilan her sey acik veri: ECB kuru, ulke->birim tablosu, dosya
+            # zaman damgasi. Kisiye ait alan yok.
+            cd ~/public_html
+            php -r '
+              require "inc/money.php";
+              echo "== KUR DURUMU ==\n";
+              $st  = vestra_fx_state();
+              $r   = (array)($st["rates"] ?? []);
+              $src = (string)($st["source"] ?? "");
+              printf("  kaynak : %s\n", $src !== "" ? $src : "*** YOK — her fiyat EUR basar ***");
+              printf("  tarih  : %s\n", (string)($st["date"] ?? "-"));
+              foreach (array_keys(vestra_currencies()) as $c) {
+                if ($c === "EUR") continue;
+                $v = (float)($r[$c] ?? 0);
+                printf("  1 EUR = %-4s %s\n", $c, $v > 0 ? number_format($v, 4) : "*** KUR YOK ***");
+              }
+              $f = __DIR__."/data/fx_rates.json";
+              if (is_readable($f)) {
+                $j = json_decode((string)file_get_contents($f), true) ?: [];
+                printf("  onbellek: ts=%s  fail_ts=%s  anahtarlar=%s\n",
+                  !empty($j["ts"]) ? gmdate("Y-m-d H:i", (int)$j["ts"])."Z" : "-",
+                  !empty($j["fail_ts"]) ? gmdate("Y-m-d H:i", (int)$j["fail_ts"])."Z" : "-",
+                  implode(",", array_keys($j)));
+              }
+
+              echo "\n== ULKE -> PARA BIRIMI (ag YOK) ==\n";
+              foreach (["DE","FR","IT","ES","PL","GB","CH","US","CA","AU","TR","AE","SA","JP","SG","BR"] as $c)
+                printf("  %-2s -> %s\n", $c, vestra_currency_for_cc($c));
+
+              echo "\n== SECIM KALICI MI ==\n";
+              printf("  vestra_currency_remember() : %s\n",
+                function_exists("vestra_currency_remember") ? "VAR (deploy indi)" : "*** YOK — deploy inmemis ***");
+              $src2 = (string)@file_get_contents(__DIR__."/inc/money.php");
+              printf("  money.php yuklenirken cagriliyor : %s\n",
+                (bool)preg_match("/^vestra_currency_remember\(\);/m", $src2) ? "EVET" : "*** HAYIR ***");
+              printf("  vestra_currency() icinde ikinci setcookie : %s\n",
+                substr_count($src2, "setcookie(\x27vcur\x27") === 1 ? "yok (tek yazici)" : "*** VAR — iki kopya ***");
             '
