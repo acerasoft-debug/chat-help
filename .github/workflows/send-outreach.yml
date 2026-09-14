@@ -188,6 +188,16 @@ jobs:
             $RESERVE = trim((string)getenv("SEND_RESERVE"));
             $RESERVE = ($RESERVE === '' ? 60 : max(0, (int)$RESERVE));
             $FROM = 'Les Garage de Paris';
+            /* Actions kutugu HERKESE ACIK ve bu is musteri/prospect adresi
+               basiyordu -- 290 kisilik bir kuru kosu 290 adresi doker.
+               CLAUDE.md'nin kurali kosulsuz: "hesap ve musteri e-postalari
+               teshis ciktilarinda MASKELENIR". Ayni hata 1 Eyl'de leads_status'ta,
+               12 Eyl'de kupon isinde duzeltildi; burada duruyordu.
+               ALAN ADI KORUNUYOR, yerel kisim maskeleniyor: eleme karari firmayi
+               tanimaktan geciyor (bu depoda "Four Marketing" ve "HugeDomains"
+               boyle yakalandi) ve onu soyleyen sey alan adi; kisiyi ele veren
+               sey yerel kisim. */
+            $maskMail = fn(string $e) => preg_replace('/^(.).*(@.*)$/', '$1***$2', trim($e));
             // Country -> campaign language. Falls back to English for anything not listed.
             $LANG_MAP = [
               'netherlands'=>'nl','the netherlands'=>'nl','nederland'=>'nl','holland'=>'nl',
@@ -462,7 +472,7 @@ jobs:
                    elemiyor: eslesme varsa atlanir VE yazilir. Onayli bir musteri
                    yanlis yakalanirsa operator logda gorur. */
                 if (vestra_lead_is_blocked(['company'=>(string)($a['company'] ?? ''), 'email'=>$em, 'website'=>(string)($a['website'] ?? '')])) {
-                  echo "  - ATLANDI (KURAL: zincir/kendi markasi eslesmesi): {$em}\n"; $skipped++; continue;
+                  echo "  - ATLANDI (KURAL: zincir/kendi markasi eslesmesi): ".$maskMail($em)."\n"; $skipped++; continue;
                 }
                 $cand[] = $i;
                 if (count($cand) >= $COUNT) break;
@@ -472,7 +482,7 @@ jobs:
               echo "uygun secilen: ".count($cand)." / hedef: {$COUNT}".($skipped?" (kural geregi atlanan: {$skipped})":"")."\n";
               if ($DRY) {
                 foreach ($cand as $i) { $a = $accts[$i];
-                  echo "  • ".(($a['company'] ?? '') ?: ($a['name'] ?? '?'))." <".$a['email']."> | dil=".$accLang($a)." | durum=".($a['status'] ?? '-')."\n";
+                  echo "  • ".(($a['company'] ?? '') ?: ($a['name'] ?? '?'))." <".$maskMail((string)$a['email'])."> | ulke=".((string)($a['country'] ?? '') ?: '-')." | dil=".$accLang($a)." | durum=".($a['status'] ?? '-')."\n";
                 }
                 echo "DRY-RUN bitti. Gercekten gondermek icin dry_run=false ile tekrar calistir.\n";
                 exit(0);
@@ -506,8 +516,8 @@ jobs:
                     $leads2[$idx2[$em]]['notes'] = trim($n2.($n2!==''?' · ':'').'winter2627-member('.$lang.') '.date('Y-m-d'));
                     $leadsTouched = true;
                   }
-                  echo "  + GONDERILDI: {$who} <{$a['email']}> | dil={$lang}\n";
-                } else { $fail++; echo "  x HATA      : {$a['email']}\n"; }
+                  echo "  + GONDERILDI: {$who} <".$maskMail((string)$a['email'])."> | dil={$lang}\n";
+                } else { $fail++; echo "  x HATA      : ".$maskMail((string)$a['email'])."\n"; }
                 flush();
               }
               if ($sent > 0) auth_save_accounts($accts);
@@ -522,20 +532,20 @@ jobs:
                 $email = strtolower(trim((string)($l['email'] ?? '')));
                 if ($email === '' || !isset($FOLLOWUP[$email])) continue;
                 unset($missing[$email]);
-                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { echo "  - ATLANDI (gecersiz adres): {$email}\n"; continue; }
-                if (($l['status'] ?? '') === 'unsubscribed' || !empty($l['unsubscribed'])) { echo "  - ATLANDI (abonelikten cikmis): {$email}\n"; continue; }
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { echo "  - ATLANDI (gecersiz adres): ".$maskMail($email)."\n"; continue; }
+                if (($l['status'] ?? '') === 'unsubscribed' || !empty($l['unsubscribed'])) { echo "  - ATLANDI (abonelikten cikmis): ".$maskMail($email)."\n"; continue; }
                 /* Hic yazilmamis birine "gecen mektubumuz ulasti mi" demek, olmayan bir
                    mektuba atifta bulunmak olur. */
-                if (trim((string)($l['last_contacted_at'] ?? '')) === '') { echo "  - ATLANDI (ilk mektup hic gitmemis): {$email}\n"; continue; }
+                if (trim((string)($l['last_contacted_at'] ?? '')) === '') { echo "  - ATLANDI (ilk mektup hic gitmemis): ".$maskMail($email)."\n"; continue; }
                 /* Ayni takibi iki kez gondermemek icin: bu alan takip gonderildiginde
                    damgalaniyor, last_contacted_at ise DOKUNULMUYOR -- ilk temasin
                    tarihi kaydin kendi tarihi ve degistirilmemeli. */
-                if (trim((string)($l['last_followup_at'] ?? '')) !== '') { echo "  - ATLANDI (takip zaten gonderilmis): {$email}\n"; continue; }
+                if (trim((string)($l['last_followup_at'] ?? '')) !== '') { echo "  - ATLANDI (takip zaten gonderilmis): ".$maskMail($email)."\n"; continue; }
                 if (isset($seen[$email])) continue;
                 if ($DNS_CHECK) {
                   $dom = substr(strrchr($email, '@'), 1);
                   if (!isset($dnsSeen[$dom])) $dnsSeen[$dom] = (checkdnsrr($dom, 'MX') || checkdnsrr($dom, 'A'));
-                  if (!$dnsSeen[$dom]) { echo "  - ATLANDI (alan adi posta alamiyor): {$email}\n"; $dnsDead++; continue; }
+                  if (!$dnsSeen[$dom]) { echo "  - ATLANDI (alan adi posta alamiyor): ".$maskMail($email)."\n"; $dnsDead++; continue; }
                 }
                 $seen[$email] = true;
                 $picked[] = $l;
@@ -550,7 +560,7 @@ jobs:
               $email = strtolower(trim((string)($l['email'] ?? '')));
               if ($ONLY && isset($ONLY[$email])) $onlyFound[$email] = true;
               if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {                  // no / bad e-mail
-                if ($ONLY && isset($ONLY[$email])) echo "  - ATLANDI (gecersiz e-posta adresi): {$email}\n";
+                if ($ONLY && isset($ONLY[$email])) echo "  - ATLANDI (gecersiz e-posta adresi): ".$maskMail($email)."\n";
                 continue;
               }
               /* Adi adiyla verilmis bir adres SESSIZCE elenmemeli -- asagidaki iki
@@ -559,7 +569,7 @@ jobs:
                  sadece operatorun yazdigi adres icin bir satir basiliyor. */
               $named = ($ONLY && isset($ONLY[$email]));
               if (vestra_email_is_junk($email)) {                                // scraped artefact / placeholder / noreply — would hard-bounce
-                if ($named) echo "  - ATLANDI (cop/otomatik adres): {$email}\n";
+                if ($named) echo "  - ATLANDI (cop/otomatik adres): ".$maskMail($email)."\n";
                 continue;
               }
               if (isset($SKIP[$email])) continue;                                // explicitly excluded this run
@@ -567,7 +577,7 @@ jobs:
               if ($ONLY_RE !== '' && !preg_match($ONLY_RE, $email)) continue;     // regex-allowlist (or. sadece amazon@... kanal adresleri)
               if ($ONLY && !isset($ONLY[$email])) continue;                      // allowlist mode: only these addresses
               if (($l['status'] ?? '') === 'unsubscribed') {                     // opted out
-                if ($named) echo "  - ATLANDI (abonelikten cikmis): {$email}\n";
+                if ($named) echo "  - ATLANDI (abonelikten cikmis): ".$maskMail($email)."\n";
                 continue;
               }
               /* Kendi saticimiz: kampanya disi (operator, 10 Eyl 2026). */
@@ -575,7 +585,7 @@ jobs:
               if (isset($SELLER_MAIL[$email])
                   || ($slDom !== '' && isset($SELLER_DOM[$slDom]) && !isset($NC_SHARED[$slDom]))) {
                 $sellerSkipped++;
-                if ($named || $DRY) echo "  - ATLANDI (VESTRA saticisi): {$email}\n";
+                if ($named || $DRY) echo "  - ATLANDI (VESTRA saticisi): ".$maskMail($email)."\n";
                 continue;
               }
               if ($IS_NEWCOLL) {
@@ -589,22 +599,22 @@ jobs:
                    ikinci mektup havuzunun neden bu kadar kucuk oldugu ancak workflow'a
                    tani eklenerek anlasilabildi. */
                 if (trim((string)($l['last_contacted_at'] ?? '')) === '') {
-                  if ($ONLY) echo "  - ATLANDI (ilk mektup hic gitmemis): {$email}\n";
+                  if ($ONLY) echo "  - ATLANDI (ilk mektup hic gitmemis): ".$maskMail($email)."\n";
                   continue;
                 }
                 if (trim((string)($l['last_newcollection_at'] ?? '')) !== '') {   // bu duyuruyu zaten aldi
-                  if ($ONLY || $DRY) echo "  - ATLANDI (duyuruyu zaten almis): {$email}\n";
+                  if ($ONLY || $DRY) echo "  - ATLANDI (duyuruyu zaten almis): ".$maskMail($email)."\n";
                   continue;
                 }
                 if ($NC_MIN_DAYS > 0) {
                   $ncTs = strtotime((string)$l['last_contacted_at']);
                   if ($ncTs && (time() - $ncTs) < $NC_MIN_DAYS * 86400) {
-                    if ($ONLY || $DRY) echo "  - ATLANDI (ilk mektup {$NC_MIN_DAYS} gunden yeni): {$email}\n";
+                    if ($ONLY || $DRY) echo "  - ATLANDI (ilk mektup {$NC_MIN_DAYS} gunden yeni): ".$maskMail($email)."\n";
                     $ncTooNew++; continue;
                   }
                 }
                 if (isset($seen[$email])) {                                      // ayni adres iki kez secilmesin
-                  if ($ONLY || $DRY) echo "  - ATLANDI (bu adres bu kosuda zaten secildi): {$email}\n";
+                  if ($ONLY || $DRY) echo "  - ATLANDI (bu adres bu kosuda zaten secildi): ".$maskMail($email)."\n";
                   continue;
                 }
                 /* AYNI FIRMAYA tek duyuru (KURAL 1c'nin bu kipteki hali). 2 Eyl 2026
@@ -616,7 +626,7 @@ jobs:
                 $ncDom = strtolower((string)substr((string)strrchr($email, '@'), 1));
                 if ($ncDom !== '' && !isset($NC_SHARED[$ncDom])) {
                   if (isset($ncSeenDom[$ncDom])) {
-                    if ($ONLY || $DRY) echo "  - ATLANDI (ayni firmadan baska bir kutu duyuruyu almis): {$email}\n";
+                    if ($ONLY || $DRY) echo "  - ATLANDI (ayni firmadan baska bir kutu duyuruyu almis): ".$maskMail($email)."\n";
                     continue;
                   }
                   $ncSeenDom[$ncDom] = true;
@@ -633,7 +643,7 @@ jobs:
                  basina yetmiyordu, cunku bot duvarina takilan sitede sirket adi diye
                  hata sayfasinin basligi kaydediliyor ve isim kontrolu bosa dusuyor. */
               if (!$ONLY && vestra_lead_is_blocked($l)) {
-                if ($DRY && $IS_NEWCOLL) echo "  - ATLANDI (blocklist: zincir/marka/park): {$email}\n";
+                if ($DRY && $IS_NEWCOLL) echo "  - ATLANDI (blocklist: zincir/marka/park): ".$maskMail($email)."\n";
                 continue;
               }
               /* Park edilmis / satilik / ELE GECIRILMIS alan adi: dukkan degil. add-and-send
@@ -641,11 +651,11 @@ jobs:
                  kapanmis Jeffrey New York'un alan adi "POKER369" adiyla secildi. */
               if (!$ONLY && function_exists('vestra_name_is_parked_domain')
                   && vestra_name_is_parked_domain((string)($l['company'] ?? ''))) {
-                if ($DRY && $IS_NEWCOLL) echo "  - ATLANDI (park edilmis alan adi): {$email}\n";
+                if ($DRY && $IS_NEWCOLL) echo "  - ATLANDI (park edilmis alan adi): ".$maskMail($email)."\n";
                 continue;
               }
               if ($PREMIUM && empty($l['premium'])) {                             // premium-only mode: skip non-premium leads
-                if ($DRY && $IS_NEWCOLL) echo "  - ATLANDI (premium isareti yok): {$email}\n";
+                if ($DRY && $IS_NEWCOLL) echo "  - ATLANDI (premium isareti yok): ".$maskMail($email)."\n";
                 continue;
               }
               /* Multi-brand gate. premium_only passes a shop that mentions ONE designer
@@ -659,7 +669,7 @@ jobs:
                  anlasilabildi -- yeni eklenen leadlerin premium_brands alani
                  bos ya da tek marka. Kuru kosuda artik neden yaziliyor. */
               if ($MIN_BRANDS > 0 && count(array_filter((array)($l['premium_brands'] ?? []))) < $MIN_BRANDS) {
-                if ($ONLY || ($DRY && $IS_NEWCOLL)) echo "  - ATLANDI (en az {$MIN_BRANDS} premium marka sarti): {$email}\n";
+                if ($ONLY || ($DRY && $IS_NEWCOLL)) echo "  - ATLANDI (en az {$MIN_BRANDS} premium marka sarti): ".$maskMail($email)."\n";
                 continue;
               }
               if ($COUNTRIES && !isset($COUNTRIES[strtolower(trim((string)($l['country'] ?? '')))])) continue; // country filter
@@ -773,7 +783,7 @@ jobs:
                 // this recipient is even in the right trade, so screening needs it visible.
                 $cat = trim((string)($l['category'] ?? ''));
                 $catCounts[$cat !== '' ? $cat : '(kategorisiz)'] = ($catCounts[$cat !== '' ? $cat : '(kategorisiz)'] ?? 0) + 1;
-                echo "  • {$company} <{$email}> | ulke=" . ($country ?: '-') . " | dil={$flag} | kat=" . ($cat !== '' ? $cat : '(bos)') . "\n";
+                echo "  • {$company} <" . $maskMail($email) . "> | ulke=" . ($country ?: '-') . " | dil={$flag} | kat=" . ($cat !== '' ? $cat : '(bos)') . "\n";
                 continue;
               }
 
@@ -821,10 +831,10 @@ jobs:
                     $leads[$i]['notes'] = trim($note . ($note !== '' ? ' · ' : '') . 'campaign(' . $lang . ') ' . date('Y-m-d'));
                   }
                 }
-                echo "  + GONDERILDI: {$company} <{$email}> | dil={$flag}\n";
+                echo "  + GONDERILDI: {$company} <" . $maskMail($email) . "> | dil={$flag}\n";
               } else {
                 $fail++;
-                echo "  x HATA (gonderilemedi): {$company} <{$email}> | dil={$flag}\n";
+                echo "  x HATA (gonderilemedi): {$company} <" . $maskMail($email) . "> | dil={$flag}\n";
               }
             }
 
