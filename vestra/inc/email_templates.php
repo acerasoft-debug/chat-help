@@ -1088,6 +1088,16 @@ function vestra_tpl_order_payment_notice(string $buyerName, string $ref, string 
             . "If that is inconvenient, simply reply to this e-mail and tell us the date you sent it.\n\n"
           : "Simply reply to this e-mail with the date you sent it, or attach the payment confirmation.\n\n")
       . "We will confirm as soon as we have the funds.\n\n"
+      /* Operator, 14 Eyl 2026 (O2E880 / Easyauto24): *"herhengi bir sorusu varsa
+         sorabilecegini soyleyelim"*. Mektup o ana kadar YALNIZCA havale tarihini
+         soruyordu; "cevap yazabilirsiniz" cumlesi vardi ama kapsami tek bir
+         bilgiydi. Odemeyi bekleyen bir musterinin sorusu genelde baska oluyor
+         (kalemler, navlun, teslim suresi, banka bilgisi) ve sorulacak yeri
+         soylemeyen bir mektup, musteriyi ya sessiz birakir ya destek arayisina
+         yollar. Bir cumle, ve kapi acik. */
+      . "And if anything about the order or the invoice is unclear — the items, the "
+      . "shipping cost, the delivery time or the bank details — just reply to this "
+      . "e-mail and ask. We are happy to go through it with you.\n\n"
       . "Kind regards,\n\n"
       . ($signer !== ''
           ? $signer."\nVESTRA – vestrasales.com"

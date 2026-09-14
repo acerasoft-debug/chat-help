@@ -289,6 +289,21 @@ foreach (['cancel', 'business days', 'deadline'] as $bad) {
     $t("EN'de tehdit dili yok: {$bad}", stripos($eb, $bad) === false);
 }
 
+echo "\n== payment_notice: soru sorma yolu da açık ==\n";
+/* Operator, 14 Eyl 2026: mektup o ana kadar YALNIZCA havale tarihini soruyordu.
+   Odemeyi bekleyen musterinin sorusu genelde baska oluyor; sorulacak yeri
+   soylemeyen bir mektup musteriyi sessiz birakir. */
+[, $pnBody, $pnOpts] = vestra_tpl_order_payment_notice('Test Buyer', 'O1', 'INV-1', 100.0, 'EUR', true, 'Marco Bellini');
+$t('soru sorma daveti var',        str_contains($pnBody, 'just reply to this e-mail and ask'));
+$t('neyi sorabilecegi sayiliyor',  str_contains($pnBody, 'the shipping cost'));
+$t('dekont yukleme baglantisi',    ($pnOpts['button']['url'] ?? '') === 'https://vestrasales.com/buyer?tab=orders&view=O1');
+/* Hesabi olmayan alici icin dugme YOK ama cevap yolu yine var -- link
+   gonderemedigimiz musteriyi cevapsiz birakmak olmaz. */
+[, $pnNo, $pnOptsNo] = vestra_tpl_order_payment_notice('Test Buyer', 'O1', 'INV-1', 100.0, 'EUR', false, '');
+$t('hesapsizda dugme yok',         !isset($pnOptsNo['button']));
+$t('hesapsizda da soru yolu var',  str_contains($pnNo, 'just reply to this e-mail and ask'));
+$t('SAAT baslatmiyor (tarih yok)', !str_contains($pnBody, 'business day') && !str_contains($pnBody, 'cancel'));
+
 echo "\n-- payment_ask: is akisi kablolamasi --\n";
 $paBlock = '';
 if (preg_match("/elseif \\(\\\$letter === 'payment_ask'\\).*?elseif \\(\\\$letter === 'order_invoice_soon'\\)/s", $wf, $m2)) $paBlock = $m2[0];
