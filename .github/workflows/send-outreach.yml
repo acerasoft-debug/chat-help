@@ -119,22 +119,10 @@ on:
         description: "YENİ KOLEKSİYON KİPİNDE hangi metin gitsin: 'winter' (varsayılan, Winter 26/27) | 'shoes' (AYAKKABI + İÇ GİYİM + premium markalar; rakamlar CANLI ilan kaydından sayılır, metne gömülü değil). Damga aynı (last_newcollection_at): ikisi de o lead'in İKİNCİ mektubu."
         required: false
         default: "winter"
-      member_letter:
-        description: "KAYITLI MUSTERI KIPINDE hangi metin: 'winter' (varsayilan, Winter 26/27) | 'fp_offer' (secilmis ilanlarin ANGEBOT'u: fotograf + renk + asgari, fiyat ALICI BASINA kapili). Her metnin KENDI damgasi var -- biri otekini tuketmiyor."
-        required: false
-        default: "winter"
-      member_pids:
-        description: "fp_offer icin ilan id'leri (virgulle). Bos = fp-m3600-polo,fp-m7535-sweat. Ilan bulunamazsa ya da bir renginin fotografi yoksa is DURUR."
+      member_spec:
+        description: "KAYITLI MUSTERI KIPI ayarlari, boru ile: letter=winter|fp_offer · pids=<ilan id'leri, virgulle> · skip=<hesap ID / firma adi parcasi, virgulle — ADRES YAZMAYIN, girdi herkese acik> · copy=true (mektup MUSTERIYE DEGIL yalniz operator kutusuna; hicbir damga dusmez). Ornek: letter=fp_offer|skip=849aaa5ab65a0b3f|copy=true"
         required: false
         default: ""
-      skip_accounts:
-        description: "KAYITLI MUSTERI KIPI: bu hesaplara GONDERME — hesap ID'si ya da firma adi parcasi (virgulle). ADRES YAZMAYIN: girdi kosu basliginda kalici ve herkese acik; adres kayittan cozulur."
-        required: false
-        default: ""
-      copy_to_ops:
-        description: "true = mektup MUSTERIYE DEGIL, yalnizca operator kutusuna gider (birebir ayni govde, ilk uygun alicinin dili/adi ile). Inceleme adimi; hicbir damga dusmez."
-        required: false
-        default: "false"
       newcoll_min_days:
         description: "YENİ KOLEKSİYON KİPİ: ilk mektubun üzerinden EN AZ kaç gün geçmiş olsun (varsayılan 3). Aynı gün ikinci mektup, mektubun kendi cümlesini ('size daha önce yazmıştık') yalanlar ve posta listesi gibi okunur. 0 = yaş kontrolü yok."
         required: false
@@ -171,10 +159,7 @@ jobs:
           SEND_NC_MINDAYS: ${{ github.event.inputs.newcoll_min_days }}
           SEND_NC_LETTER: ${{ github.event.inputs.newcoll_letter }}
           SEND_MEMBERS: ${{ github.event.inputs.to_members }}
-          SEND_MLETTER: ${{ github.event.inputs.member_letter }}
-          SEND_MPIDS: ${{ github.event.inputs.member_pids }}
-          SEND_SKIPACC: ${{ github.event.inputs.skip_accounts }}
-          SEND_COPYOPS: ${{ github.event.inputs.copy_to_ops }}
+          SEND_MSPEC: ${{ github.event.inputs.member_spec }}
           SEND_RESERVE: ${{ github.event.inputs.quota_reserve }}
           SEND_ONLY_RE: ${{ github.event.inputs.email_regex }}
           SEND_CAT_ANY: ${{ github.event.inputs.category_any }}
@@ -188,7 +173,7 @@ jobs:
           # gecirir. Yeni bir girdi eklerken bu satir unutulursa uzakta getenv()
           # BOS doner ve sonda sorulmayan bir soruya cevap verir -- 11 Eyl'de
           # bak_diff tam boyle iki kosu boyunca sessizce calismadi.
-          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_MIN_BRANDS,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT,SEND_POOLS,SEND_NAME_ANY,SEND_SKIP_NAME,SEND_RESET,SEND_DNS,SEND_FOLLOWUP,SEND_NEWCOLL,SEND_NC_MINDAYS,SEND_NC_LETTER,SEND_ONLY_RE,SEND_CAT_ANY,SEND_MEMBERS,SEND_RESERVE,SEND_MLETTER,SEND_MPIDS,SEND_SKIPACC,SEND_COPYOPS
+          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_MIN_BRANDS,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT,SEND_POOLS,SEND_NAME_ANY,SEND_SKIP_NAME,SEND_RESET,SEND_DNS,SEND_FOLLOWUP,SEND_NEWCOLL,SEND_NC_MINDAYS,SEND_NC_LETTER,SEND_ONLY_RE,SEND_CAT_ANY,SEND_MEMBERS,SEND_RESERVE,SEND_MSPEC
           script: |
             cat > /tmp/vestra_send_outreach.php <<'PHPEOF'
             <?php
@@ -489,17 +474,26 @@ jobs:
                  baglamak iki yonde birden yalan olurdu: bu mektubu alan hesap
                  "Winter'i aldi" diye isaretlenir ve Winter bir daha ona hic
                  gidemezdi. */
-              $MLETTER = strtolower(trim((string)getenv('SEND_MLETTER'))) ?: 'winter';
+              /* Dort ayri girdi tek spec'e katlandi: workflow_dispatch en fazla
+                 25 girdi aliyor ve dosya 28'e cikip HIC dispatch edilemez
+                 olmustu. CLAUDE.md bu siniri zaten kaydediyor. */
+              $mspec = [];
+              foreach (explode('|', (string)getenv('SEND_MSPEC')) as $kv) {
+                $kv = trim($kv); if ($kv === '' || !str_contains($kv, '=')) continue;
+                [$k, $v] = explode('=', $kv, 2);
+                $mspec[strtolower(trim($k))] = trim($v);
+              }
+              $MLETTER = strtolower((string)($mspec['letter'] ?? '')) ?: 'winter';
               if (!in_array($MLETTER, ['winter','fp_offer'], true)) {
                 fwrite(STDERR, "member_letter gecersiz: {$MLETTER} (winter|fp_offer)\n"); exit(1);
               }
               $STAMP    = $MLETTER === 'fp_offer' ? 'fp_offer_at' : 'newcoll_2627_at';
-              $COPY_OPS = strtolower(trim((string)getenv('SEND_COPYOPS'))) === 'true';
+              $COPY_OPS = strtolower((string)($mspec['copy'] ?? '')) === 'true';
 
               /* Hesap elemesi ADRESLE degil: girdi kosu basliginda kalici ve
                  herkese acik. ID tam esitlik, firma adi parca. */
               $skipAcc = array_values(array_filter(array_map('trim',
-                           preg_split('/[,\s]+/', (string)getenv('SEND_SKIPACC')) ?: [])));
+                           preg_split('/[,\s]+/', (string)($mspec['skip'] ?? '')) ?: [])));
               $isSkipped = function (array $a) use ($skipAcc): bool {
                 if (!$skipAcc) return false;
                 $id = strtolower((string)($a['id'] ?? ''));
@@ -518,7 +512,7 @@ jobs:
               $offerBlocks = []; $offerMore = '';
               if ($MLETTER === 'fp_offer') {
                 $pids = array_values(array_filter(array_map('trim',
-                          explode(',', (string)getenv('SEND_MPIDS')))));
+                          explode(',', (string)($mspec['pids'] ?? '')))));
                 if (!$pids) $pids = ['fp-m3600-polo','fp-m7535-sweat'];
                 foreach ($pids as $pid) {
                   $prod = function_exists('vestra_find') ? vestra_find($pid) : null;
