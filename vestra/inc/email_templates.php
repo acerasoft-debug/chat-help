@@ -1377,6 +1377,208 @@ function vestra_tpl_escrow_info(string $salutation, float $cap, float $feeRate, 
  * and not of listings in general. A sentence like that belongs to whoever can
  * vouch for it, so the template does not carry one of its own.
  */
+/**
+ * Bir ilan blogunu METNE ceviren TEK gövde — hem "bebildertes Sortiment" cevabi
+ * (vestra_tpl_listing_colours) hem kayitli musteriye giden Angebot
+ * (vestra_tpl_listing_offer) bunu cagirir.
+ *
+ * Neden ayri fonksiyon: iki mektup da ayni uc seyi basiyor — model satiri,
+ * kart satirlari, renk etiketli fotograf seridi. Ikinci mektubu yazarken bu
+ * donguyu kopyalamak, bu deponun defalarca odedigi hatanin ta kendisiydi
+ * (desc/sizes, faturanin uc katmani, DORT mektup govdesi). Kopyalansaydi bir
+ * gun MOQ satirinin bicimini duzelten kisi ikisinden yalnizca birini duzeltirdi.
+ *
+ * ETIKETLER DISARIDAN geliyor ($L): govde dil bilmiyor, yalniz duzeni biliyor.
+ * Boylece yeni bir dil eklemek bu fonksiyona dokunmuyor.
+ *
+ * Rakamlarin hicbiri yazilmiyor: moq / min_colors / size_step sepetin GERCEKTEN
+ * uyguladigi uc sayi, kademeler de vestra_price_ladder()'dan. Sepetle celisen
+ * bir mektup, aliciyi kendisini reddedecek bir kasaya yollar.
+ */
+function vestra_listing_block_parts(array $blocks, array $L, bool $withPrices): array {
+    $money = $L['money'];
+    $nCol = 0; $shots = []; $rows = []; $chunks = []; $firstUrl = '';
+    foreach ($blocks as $b) {
+        $p     = (array)($b['p'] ?? []);
+        $pairs = (array)($b['pairs'] ?? []);
+        $rungs = (array)($b['rungs'] ?? []);
+        $name  = trim((string)($p['name'] ?? ''));
+        $url   = 'https://vestrasales.com/product?id=' . rawurlencode((string)($p['id'] ?? ''));
+        if ($firstUrl === '') $firstUrl = $url;
+        $cols  = implode(', ', array_map(fn($x) => (string)$x['colour'], $pairs));
+        $nCol += count($pairs);
+
+        $moq  = (int)($p['moq'] ?? 0);
+        $minC = (int)($p['min_colors'] ?? 0);
+        $step = (int)($p['size_step'] ?? 0);
+        $min  = '';
+        if ($moq > 0) {
+            $min = $moq . $L['pieces'];
+            if ($minC > 1) $min .= sprintf($L['from_colours'], $minC);
+            if ($step > 1) $min .= sprintf($L['cartons'], $step);
+        }
+
+        $priceLine = '';
+        if ($withPrices && $rungs) {
+            $parts = [];
+            foreach ($rungs as $r) {
+                $parts[] = $L['from'] . (int)$r['min'] . $L['pcs'] . $money((float)$r['price']);
+            }
+            $priceLine = implode(' · ', $parts) . $L['per_piece'];
+        }
+
+        $chunks[] = $name . "\n" . $url . "\n"
+               . $L['colours'] . ' (' . count($pairs) . '): ' . $cols . "\n"
+               . ($min !== '' ? $L['minimum'] . ': ' . $min . "\n" : '')
+               . ($priceLine !== '' ? $L['price'] . ': ' . $priceLine . "\n" : '');
+
+        $rows[] = ['label' => $name, 'value' => $cols . ($min !== '' ? ' · ' . $min : ''), 'strong' => true];
+        if ($priceLine !== '') $rows[] = ['label' => $L['price'], 'value' => $priceLine];
+
+        /* Etiket ilanin KENDI kayitli referansi (SKU), basliktan ayiklanmis bir
+           parca degil. Cok ilanli mektupta sart: ayni renk adi iki modelde de
+           geciyor ve etiketsiz bir "Black" hangisi oldugunu soylemiyor. */
+        $tag = count($blocks) > 1 ? trim((string)($b['tag'] ?? '')) : '';
+        foreach ($pairs as $x) {
+            $shots[] = ['img'   => (string)$x['img'],
+                        'label' => ($tag !== '' ? $tag . ' · ' : '') . (string)$x['colour'],
+                        'url'   => $url];
+        }
+    }
+    return ['chunks' => $chunks, 'rows' => $rows, 'shots' => $shots,
+            'firstUrl' => $firstUrl, 'nCol' => $nCol];
+}
+
+/**
+ * Bir ilan blogunun dil etiketleri. Yedek DAIMA 'en' — eksik bir dil sessizce
+ * Ingilizceye duser, yarim cevrilmis bir mektup uretmez.
+ */
+function vestra_listing_block_labels(string $lang): array {
+    $c = fn(float $v): string => number_format($v, 2, ',', '.') . ' €';   // kita yazimi
+    $e = fn(float $v): string => 'EUR ' . number_format($v, 2, '.', ',');
+    $T = [
+      'en' => ['money'=>$e,'colours'=>'Colours','minimum'=>'Minimum','price'=>'Price',
+               'pieces'=>' pieces','from_colours'=>', from %d colours','cartons'=>', in cartons of %d',
+               'from'=>'from ','pcs'=>' pcs ','per_piece'=>'  (per piece, plus shipping)'],
+      'de' => ['money'=>$c,'colours'=>'Farben','minimum'=>'Mindestabnahme','price'=>'Preis',
+               'pieces'=>' Stück','from_colours'=>', ab %d Farben','cartons'=>', in Kartons zu %d',
+               'from'=>'ab ','pcs'=>' Stück ','per_piece'=>'  (pro Stück, zzgl. Versand)'],
+      'fr' => ['money'=>$c,'colours'=>'Coloris','minimum'=>'Minimum de commande','price'=>'Prix',
+               'pieces'=>' pièces','from_colours'=>', à partir de %d coloris','cartons'=>', en cartons de %d',
+               'from'=>'à partir de ','pcs'=>' pièces ','per_piece'=>'  (la pièce, hors transport)'],
+      'it' => ['money'=>$c,'colours'=>'Colori','minimum'=>'Ordine minimo','price'=>'Prezzo',
+               'pieces'=>' pezzi','from_colours'=>', da %d colori','cartons'=>', in cartoni da %d',
+               'from'=>'da ','pcs'=>' pz ','per_piece'=>'  (al pezzo, spedizione esclusa)'],
+      'es' => ['money'=>$c,'colours'=>'Colores','minimum'=>'Pedido mínimo','price'=>'Precio',
+               'pieces'=>' piezas','from_colours'=>', desde %d colores','cartons'=>', en cajas de %d',
+               'from'=>'desde ','pcs'=>' uds ','per_piece'=>'  (por pieza, transporte aparte)'],
+      'pt' => ['money'=>$c,'colours'=>'Cores','minimum'=>'Encomenda mínima','price'=>'Preço',
+               'pieces'=>' peças','from_colours'=>', a partir de %d cores','cartons'=>', em caixas de %d',
+               'from'=>'a partir de ','pcs'=>' un ','per_piece'=>'  (por peça, transporte à parte)'],
+      'nl' => ['money'=>$c,'colours'=>'Kleuren','minimum'=>'Minimumafname','price'=>'Prijs',
+               'pieces'=>' stuks','from_colours'=>', vanaf %d kleuren','cartons'=>', in dozen van %d',
+               'from'=>'vanaf ','pcs'=>' st ','per_piece'=>'  (per stuk, excl. verzending)'],
+    ];
+    return $T[$lang] ?? $T['en'];
+}
+
+/**
+ * ANGEBOT — kayitli musteriye, secilmis ilanlar icin, fotograflariyla.
+ *
+ * vestra_tpl_listing_colours'in ikinci kopyasi DEGIL: o mektup bir SIKAYETE
+ * cevap ve acilis cumlesi oyle ("fotograf yoktu, duzeltildi") -- 57 kisiye
+ * giden bir teklifte o cumlenin isi yok. Paylasilan sey paylasiliyor
+ * (vestra_listing_block_parts), ayrilan sey yalnizca acilis ve imza.
+ *
+ * IMZA VESTRA, dukkanin adi degil: uye platformu bu adla taniyor ve kampanya
+ * takma adi (Les Garage de Paris) soguk listeye ait -- bu karar Winter uye
+ * mektubunda zaten kayitli.
+ *
+ * FIYAT CAGIRANIN KARARI ve alici basina soruluyor ($withPrices): kapisi kapali
+ * bir aliciya rakam yazmak, sayfasinin gostermedigi fiyati mektupta soylemektir
+ * (KURAL 2b'nin birebir tersi). Kapali olana rakam yerine "giris yapinca
+ * fiyatlar sayfada" cumlesi gidiyor -- bos birakmak degil, dogrusunu soylemek.
+ */
+function vestra_tpl_listing_offer(string $lang, string $company, array $blocks, bool $withPrices = false, string $moreUrl = ''): array {
+    $lang = strtolower(substr(trim($lang), 0, 2));
+    $L    = vestra_listing_block_labels($lang);
+    $parts = vestra_listing_block_parts($blocks, $L, $withPrices);
+    $co   = trim($company);
+    $nCol = (int)$parts['nCol'];
+    $n    = count($blocks);
+
+    /* Model adlari KAYITTAN, metne gomulu degil: bir ilan yarin yeniden
+       adlandirilirsa (bu depoda oldu) mektup sessizce yanlis ad yazardi. */
+    $names = [];
+    foreach ($blocks as $b) $names[] = trim((string)(((array)($b['p'] ?? []))['name'] ?? ''));
+    $names = implode(' · ', array_filter($names));
+
+    $M = [
+      'en' => ['s'=>'VESTRA — Fred Perry offer: %1$s models, %2$d colours',
+        'g'=>'Hello','o'=>'Fred Perry is in stock with us and I have put the offer together for you — the models below, with a photo for every colour we can ship.',
+        'p'=>'Your wholesale prices are shown on each product page once you are signed in.',
+        'c'=>'Reply to this e-mail if you would like a quotation for a particular make-up, or another view of one of the colours.',
+        'u'=>'If you would rather not receive stock offers, just reply and say so — we will stop.',
+        'b'=>'Open the offer','badge'=>'Fred Perry offer','shots'=>'All %d colours'],
+      'de' => ['s'=>'VESTRA — Fred Perry Angebot: %1$s Modelle, %2$d Farben',
+        'g'=>'Guten Tag','o'=>'Fred Perry ist bei uns lieferbar, und ich habe Ihnen das Angebot zusammengestellt — die Modelle unten, mit einem Foto zu jeder lieferbaren Farbe.',
+        'p'=>'Ihre Einkaufspreise stehen auf der jeweiligen Produktseite, sobald Sie angemeldet sind.',
+        'c'=>'Antworten Sie kurz auf diese E-Mail, wenn Sie ein Angebot über eine bestimmte Zusammenstellung oder von einer Farbe eine weitere Ansicht brauchen.',
+        'u'=>'Wenn Sie keine Sortimentsangebote wünschen, genügt eine kurze Antwort — dann hören sie auf.',
+        'b'=>'Zum Angebot','badge'=>'Fred Perry Angebot','shots'=>'Alle %d Farben'],
+      'fr' => ['s'=>'VESTRA — offre Fred Perry : %1$s modèles, %2$d coloris',
+        'g'=>'Bonjour','o'=>'Fred Perry est disponible chez nous et je vous ai préparé l’offre — les modèles ci-dessous, avec une photo pour chaque coloris livrable.',
+        'p'=>'Vos prix de gros s’affichent sur chaque fiche produit une fois connecté.',
+        'c'=>'Répondez à cet e-mail si vous souhaitez un devis pour un assortiment précis, ou une autre vue d’un coloris.',
+        'u'=>'Si vous ne souhaitez plus recevoir d’offres, répondez simplement — nous arrêtons.',
+        'b'=>'Voir l’offre','badge'=>'Offre Fred Perry','shots'=>'Les %d coloris'],
+      'it' => ['s'=>'VESTRA — offerta Fred Perry: %1$s modelli, %2$d colori',
+        'g'=>'Buongiorno','o'=>'Fred Perry è disponibile da noi e le ho preparato l’offerta — i modelli qui sotto, con una foto per ogni colore consegnabile.',
+        'p'=>'I suoi prezzi all’ingrosso sono indicati su ciascuna scheda prodotto una volta effettuato l’accesso.',
+        'c'=>'Risponda a questa e-mail se desidera un preventivo per un assortimento specifico o un’altra immagine di un colore.',
+        'u'=>'Se preferisce non ricevere offerte di stock, risponda e ci fermiamo.',
+        'b'=>'Vedi l’offerta','badge'=>'Offerta Fred Perry','shots'=>'Tutti i %d colori'],
+      'es' => ['s'=>'VESTRA — oferta Fred Perry: %1$s modelos, %2$d colores',
+        'g'=>'Buenos días','o'=>'Fred Perry está disponible en nuestro stock y le he preparado la oferta — los modelos abajo, con una foto de cada color servible.',
+        'p'=>'Sus precios mayoristas aparecen en cada ficha de producto una vez que inicia sesión.',
+        'c'=>'Responda a este correo si desea un presupuesto para un surtido concreto u otra vista de algún color.',
+        'u'=>'Si prefiere no recibir ofertas de stock, respóndanos y dejaremos de enviarlas.',
+        'b'=>'Ver la oferta','badge'=>'Oferta Fred Perry','shots'=>'Los %d colores'],
+      'pt' => ['s'=>'VESTRA — oferta Fred Perry: %1$s modelos, %2$d cores',
+        'g'=>'Bom dia','o'=>'A Fred Perry está disponível connosco e preparei-lhe a oferta — os modelos abaixo, com uma foto de cada cor disponível.',
+        'p'=>'Os seus preços grossistas aparecem em cada página de produto depois de iniciar sessão.',
+        'c'=>'Responda a este e-mail se quiser um orçamento para um sortido específico ou outra vista de alguma cor.',
+        'u'=>'Se preferir não receber ofertas de stock, basta responder — deixamos de enviar.',
+        'b'=>'Ver a oferta','badge'=>'Oferta Fred Perry','shots'=>'As %d cores'],
+      'nl' => ['s'=>'VESTRA — Fred Perry aanbod: %1$s modellen, %2$d kleuren',
+        'g'=>'Goedendag','o'=>'Fred Perry is bij ons leverbaar en ik heb het aanbod voor u klaargezet — de modellen hieronder, met een foto van elke leverbare kleur.',
+        'p'=>'Uw inkoopprijzen staan op elke productpagina zodra u bent ingelogd.',
+        'c'=>'Antwoord op deze e-mail als u een offerte voor een bepaalde samenstelling of nog een aanzicht van een kleur wilt.',
+        'u'=>'Wilt u geen voorraadaanbiedingen ontvangen, antwoord dan even — dan stoppen we.',
+        'b'=>'Naar het aanbod','badge'=>'Fred Perry aanbod','shots'=>'Alle %d kleuren'],
+    ];
+    $t = $M[$lang] ?? $M['en'];
+
+    $subject = sprintf($t['s'], $n, $nCol);
+    $body = $t['g'] . ($co !== '' ? ' ' . $co : '') . ",\n\n"
+          . $t['o'] . "\n\n"
+          . implode("\n", $parts['chunks']) . "\n"
+          . ($moreUrl !== '' ? $moreUrl . "\n" : '')
+          . (!$withPrices ? "\n" . $t['p'] . "\n" : '')
+          . "\n" . $t['c'] . "\n\n"
+          . $t['u'] . "\n\n"
+          . "VESTRA\nvestrasales.com";
+
+    $opts = [
+        'badge'       => $t['badge'],
+        'rows'        => $parts['rows'],
+        'shots'       => $parts['shots'],
+        'shots_title' => sprintf($t['shots'], $nCol),
+        'button'      => ['label' => $t['b'], 'url' => $moreUrl !== '' ? $moreUrl : $parts['firstUrl']],
+    ];
+    return [$subject, $body, $opts];
+}
+
 function vestra_tpl_listing_colours(string $salutation, array $blocks, string $sellerName, string $lang = 'en', string $note = '', bool $withPrices = false, string $moreUrl = '', array $formats = []): array {
     $de = ($lang === 'de');
     /* EUR printed as EUR. vestra_money() would convert into the *visitor's*
@@ -1393,67 +1595,16 @@ function vestra_tpl_listing_colours(string $salutation, array $blocks, string $s
         fn($f) => ['pdf' => 'PDF', 'xlsx' => 'Excel'][strtolower((string)$f)] ?? '', $formats)));
     $fmtTxt = $fmt ? ($de ? implode(' und ', $fmt) : implode(' and ', $fmt)) : '';
 
-    $nCol = 0; $shots = []; $rows = []; $chunks = []; $firstUrl = '';
-    foreach ($blocks as $b) {
-        $p     = (array)($b['p'] ?? []);
-        $pairs = (array)($b['pairs'] ?? []);
-        $rungs = (array)($b['rungs'] ?? []);
-        $name  = trim((string)($p['name'] ?? ''));
-        $url   = 'https://vestrasales.com/product?id=' . rawurlencode((string)($p['id'] ?? ''));
-        if ($firstUrl === '') $firstUrl = $url;
-        $cols  = implode(', ', array_map(fn($x) => (string)$x['colour'], $pairs));
-        $nCol += count($pairs);
-
-        /* Minimum line: read from the listing, never typed. moq/min_colors/size_step
-           are the three numbers the cart actually enforces, and a letter that
-           disagrees with the cart sends the buyer to a checkout that refuses him. */
-        $moq  = (int)($p['moq'] ?? 0);
-        $minC = (int)($p['min_colors'] ?? 0);
-        $step = (int)($p['size_step'] ?? 0);
-        $min  = '';
-        if ($moq > 0) {
-            $min = $moq . ($de ? ' Stück' : ' pieces');
-            if ($minC > 1) $min .= ($de ? ', ab ' . $minC . ' Farben' : ', from ' . $minC . ' colours');
-            if ($step > 1) $min .= ($de ? ', in Kartons zu ' . $step : ', in cartons of ' . $step);
-        }
-
-        $priceLine = '';
-        if ($withPrices && $rungs) {
-            $parts = [];
-            foreach ($rungs as $r) {
-                $parts[] = ($de ? 'ab ' : 'from ') . (int)$r['min']
-                         . ($de ? ' Stück ' : ' pcs ') . $eur((float)$r['price']);
-            }
-            $priceLine = implode(' · ', $parts)
-                       . ($de ? '  (pro Stück, zzgl. Versand)' : '  (per piece, plus shipping)');
-        }
-
-        $chunk = $name . "\n" . $url . "\n"
-               . ($de ? 'Farben' : 'Colours') . ' (' . count($pairs) . '): ' . $cols . "\n"
-               . ($min !== '' ? ($de ? 'Mindestabnahme: ' : 'Minimum: ') . $min . "\n" : '')
-               . ($priceLine !== '' ? ($de ? 'Preis: ' : 'Price: ') . $priceLine . "\n" : '');
-        $chunks[] = $chunk;
-
-        /* The card rows repeat the same facts for the reader who only skims the
-           HTML. One row per listing, its colours as the value; with a single
-           listing this is the old one-line card unchanged. */
-        $rows[] = ['label' => $name, 'value' => $cols . ($min !== '' ? ' · ' . $min : ''), 'strong' => true];
-        if ($priceLine !== '') $rows[] = ['label' => $de ? 'Preis' : 'Price', 'value' => $priceLine];
-
-        /* Each shot is labelled with its colour. Most clients block remote images
-           by default, so the label has to carry the meaning on its own — the strip
-           stays readable as a list of colour names with nothing loaded. With more
-           than one listing the label also carries the model, because the same
-           colour name appears under both and an unlabelled "Black" would point at
-           either. The tag is the listing's OWN recorded reference, not a token
-           parsed out of its title. */
-        $tag = count($blocks) > 1 ? trim((string)($b['tag'] ?? '')) : '';
-        foreach ($pairs as $x) {
-            $shots[] = ['img'   => (string)$x['img'],
-                        'label' => ($tag !== '' ? $tag . ' · ' : '') . (string)$x['colour'],
-                        'url'   => $url];
-        }
-    }
+    /* Blok -> metin TEK gövdeden (vestra_listing_block_parts). Bu dongu eskiden
+       burada yaziliydi; Angebot mektubu ayni seyi basmak zorunda oldugu icin
+       cikarildi. Davranis birebir ayni: etiket tablosu de/en icin eski
+       dizgelerin aynisini tasiyor. */
+    $parts    = vestra_listing_block_parts($blocks, vestra_listing_block_labels($de ? 'de' : 'en'), $withPrices);
+    $chunks   = $parts['chunks'];
+    $rows     = $parts['rows'];
+    $shots    = $parts['shots'];
+    $firstUrl = $parts['firstUrl'];
+    $nCol     = $parts['nCol'];
 
     $multi = count($blocks) > 1;
     if ($de) {
