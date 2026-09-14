@@ -1,0 +1,20 @@
+[
+ {
+  "match": "fp-m3600-polo",
+  "expect": 1,
+  "images": [
+   "/uploads/fredperry/m3600-navy.jpg",
+   "/uploads/fredperry/m3600-snow-white.jpg",
+   "/uploads/fredperry/m3600-green.jpg",
+   "/uploads/fredperry/m3600-black.jpg",
+   "/uploads/fredperry/m3600-bordeaux.jpg",
+   "/uploads/fredperry/m3600-light-blue.jpg",
+   "/uploads/fred-perry/fp-m7535-detail-front.jpg",
+   "/uploads/fred-perry/fp-m7535-detail-laurel.jpg",
+   "/uploads/fred-perry/fp-m7535-detail-neck-label.jpg",
+   "/uploads/fred-perry/fp-m7535-detail-style-label.jpg",
+   "/uploads/fred-perry/fp-m7535-detail-hangtags.jpg",
+   "/uploads/fred-perry/fp-m7535-detail-community-tag.jpg"
+  ]
+ }
+]
