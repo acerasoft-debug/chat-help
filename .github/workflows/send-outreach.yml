@@ -539,7 +539,7 @@ jobs:
               }
 
               $accts = auth_accounts();
-              $cand = []; $skipped = 0; $skipAccHit = 0; $gateOpen = 0; $gateShut = 0;
+              $cand = []; $skipped = 0; $skipAccHit = 0; $gateOpen = 0; $gateShut = 0; $dupHit = 0; $seenMail = [];
               foreach ($accts as $i => $a) {
                 if (($a['type'] ?? '') !== 'buyer') continue;                    // musteri = alici; saticilara stok duyurusu anlamsiz
                 $st = (string)($a['status'] ?? '');
@@ -548,6 +548,13 @@ jobs:
                 if (!filter_var($em, FILTER_VALIDATE_EMAIL)) continue;
                 if (!empty($a[$STAMP])) continue;                                // bu metni zaten aldi
                 if ($isSkipped($a)) { echo "  - ATLANDI (skip_accounts): ".(($a['company'] ?? '') ?: '?')."\n"; $skipAccHit++; continue; }
+                /* AYNI ADRES IKI HESAPTA olabilir ve oluyor: kuru kosuda
+                   "M&F Resell" iki kez cikti. Damga HESABIN uzerinde, yani
+                   ikisi de uygun gorunuyor ve ayni kutuya IKI ayni mektup
+                   giderdi -- 2 Eyl'de 7 firmanin iki kutudan ayni duyuruyu
+                   almasinin hesap tarafindaki hali. */
+                if (isset($seenMail[$em])) { echo "  - ATLANDI (ayni adres bu kosuda zaten secildi): ".$maskMail($em)."\n"; $dupHit++; continue; }
+                $seenMail[$em] = true;
                 /* KURAL 1 kayitli musteride de kontrol ediliyor ama SESSIZCE
                    elemiyor: eslesme varsa atlanir VE yazilir. Onayli bir musteri
                    yanlis yakalanirsa operator logda gorur. */
@@ -574,6 +581,16 @@ jobs:
                 foreach ($cand as $i) { $a = $accts[$i];
                   echo "  • ".(($a['company'] ?? '') ?: ($a['name'] ?? '?'))." <".$maskMail((string)$a['email'])."> | ulke=".((string)($a['country'] ?? '') ?: '-')." | dil=".$accLang($a)." | durum=".($a['status'] ?? '-')." | fiyat=".(auth_prices_unlocked($a) ? 'acik' : 'KAPALI')."\n";
                 }
+                $lc = [];
+                foreach ($cand as $i) { $l = $accLang($accts[$i]); $lc[$l] = ($lc[$l] ?? 0) + 1; }
+                arsort($lc);
+                echo "\n---- OZET (liste uzun, get_job_logs yalniz kuyrugu gosteriyor) ----\n";
+                echo "metin        : {$MLETTER} | damga: {$STAMP}\n";
+                echo "SECILEN      : ".count($cand)." / hedef {$COUNT}\n";
+                echo "elenen       : kural {$skipped} | skip_accounts {$skipAccHit} | ayni adres {$dupHit}\n";
+                echo "fiyat kapisi : ACIK {$gateOpen} (rakamli) | KAPALI {$gateShut} (rakamsiz)\n";
+                echo "dil dagilimi : "; foreach ($lc as $l => $n) echo "{$l}={$n}  "; echo "\n";
+                echo "gercek gonderim koşu basina 50'ye kirpilir (".(int)ceil(count($cand)/50)." kosu gerekir)\n";
                 echo "DRY-RUN bitti. Gercekten gondermek icin dry_run=false ile tekrar calistir.\n";
                 exit(0);
               }
