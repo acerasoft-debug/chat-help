@@ -3229,6 +3229,52 @@ operatör: *"bu ilana diger renkleride koy polonun"*).
   m3600-colour-photos.json`. Geri okundu: `images (3) -> (6)`, Fred Perry'de
   referans verilen kare **8 → 11**, **kayıp/bozuk 0**.
 
+**M3600 poloda duran 6 kare M7535'IN — bilinçli operatör kararı, SİLME**
+(14 Eyl 2026: *"Bu fotoları F.Perry Poloya ekle The Fred Perry Shirt — M3600
+Twin Tipped"* → çelişki ölçülüp gösterildi → operatör **"yine de yaz"** dedi →
+*"bu fotoları ek olarak f.perry karttan öncesine koy"* + *"diğer fotolar da
+kalacak"*).
+- **Bu not, bir denetimin "hata" sanıp geri almasını önlemek için var.** İlanda
+  `fp-m7535-*` adlı altı dosya duruyor ve bu **kusur değil**, kayda geçmiş bir
+  karar. Vazgeçilmek istenirse tek koşu:
+  `product-fixes/m3600-detail-photos.json`'dan son 6 satırı silip
+  `set-product.yml`.
+- **Karelerin M7535 olduğu ölçüldü, tahmin edilmedi:** hangtag'in kendisi
+  *"STYLE: M7535 · COL: 87B · COL. DESC: LWGRN/ECRU/DSKBL · PRODUCT: CREW NECK
+  SWEATSHIRT · SIZE: L"* yazıyor, ve ilk karedeki giysi ribanalı **bisiklet
+  yaka** — pat yok, düğme yok, yaka yok. M3600 ise ilanın kendi `desc`'ine göre
+  iki düğmeli patlı pamuk pike polo. Renk LWGRN, katalogdaki
+  `fp-m7535-green.jpg` pack-shot'ının aynı kombini (beyaz defne, manşet ucunda
+  ecru+lacivert şerit). Yani **alıcı polo sipariş edip vitrinde sweatshirt
+  görüyor** — Balenciaga 612966/612965'in aynı sınıfı, bu kez bilerek.
+- **Söylenen açık maliyet:** bu ilanın alıcısı (BRITISHSTYLE / Baumgartner)
+  zaten bir kez *"her renge fotoğraf yok"* diye yazmış biri, yani fotoğraflara
+  bakan bir müşteri. Operatöre söylendi, karar tekrarlandı, uygulandı.
+- **DOSYA ADLARI M7535 OLARAK BIRAKILDI.** `m3600-detail-style-label.jpg`
+  demek, M7535 yazan bir etiketin karesine M3600'un etiketi adını vermek
+  olurdu — kendini yalanlayan bir kayıt. Ad bir metin değil, **iz**: aylar
+  sonra "bu kare neden burada" sorusunun cevabı dosyanın adında duruyor.
+  Yollar tam, işlevsel fark yok.
+- **Ad hiçbir RENK KELİMESİ taşımıyor ve bu zorunluydu.** `listing_colours`
+  mektubu (Baumgartner'a giden *"her renge foto var"* iddiası) renk slug'ını
+  **dosya adında** arıyor, en uzun ad önce, her dosyayı bir kez kullanıyor —
+  adında `green` geçen ikinci bir dosya, pack-shot yerine bir hangtag karesini
+  *"Green'in fotoğrafı"* diye bağlayabilirdi. **İki yön de ölçüldü:** altı yeni
+  adın hiçbiri altı renkten (black/white/navy/bordeaux/green/light blue) birine
+  eşleşmiyor, ve altı pack-shot hâlâ **6/6** eşleşiyor.
+- **Sıra:** mevcut 6 pack-shot önde (**kapak değişmedi** — "ek olarak" denildi),
+  yeni 6 kare arkada ve kendi içinde **giysi kareleri kart/etiket karelerinden
+  önce** (ön, defne, boyun etiketi → stil kartı, hangtag'ler, COMMUNITY kartı):
+  *"karttan öncesine koy"* cümlesinin karşılığı.
+- Fotoğraflar 1536×2048 telefon kareleri → uzun kenar 1300–1600 px, temiz
+  tuvale yeniden kodlandı (EXIF/ICC **0**), 190–265 KB. Stil kartı bilerek en
+  büyük ölçüde ve **küçültme sonrası çizdirilip** `STYLE: M7535` satırının hâlâ
+  okunduğu doğrulandı — okunamayan bir kimlik karesi kimlik karesi olmaktan
+  çıkardı.
+- Geri okundu (run `34871739653`): `fp-m3600-polo` **12 foto**, kapak hâlâ
+  `m3600-navy.jpg`, Fred Perry'de referans verilen kare **11 → 17**,
+  **kayıp/bozuk 0**. `fp-m7535-sweat` **5 fotoda, dokunulmadı**.
+
 **Cevap mektubu: `reply_letter=listing_colours`** (aynı gün; operatör:
 *"bu adama email gönderecektin les garage adi ilen"*).
 - **Mektup İLANIN SATICISI adına çıkıyor** (`GARAGE LE PARIS`) — bu, KURAL 8'in
