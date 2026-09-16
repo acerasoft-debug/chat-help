@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -43,11 +43,11 @@ on:
         required: false
         default: ""
       move_threads:
-        description: "admin_mode=thread_seller: tasinacak thread id'leri (virgulle). 'ilan:<listing_id>' yazarsaniz O ILANIN tum thread'leri."
+        description: "admin_mode=thread_seller: tasinacak thread id'leri (virgulle). 'ilan:<listing_id>' yazarsaniz O ILANIN tum thread'leri. admin_mode=diskclean ile: ne temizlenecek — 'sessions[:gun]' (varsayilan 2), 'baks[:kac_kalsin]' (varsayilan 20), 'tmp', 'errlog[:satir]' (varsayilan 2000). Bos = hepsi."
         required: false
         default: ""
       move_apply:
-        description: "admin_mode=thread_seller: 'true' = KAYDET. Varsayilan kuru kosu — ne olacagini yazar, dosyaya dokunmaz."
+        description: "admin_mode=thread_seller / seller_activate / msg_del / diskclean: 'true' = UYGULA. Varsayilan kuru kosu — ne olacagini yazar, dosyaya dokunmaz."
         required: false
         default: "false"
       ship_spec:
@@ -321,6 +321,119 @@ jobs:
             # yazan bir kosu "success" gorunmustu.
             rm -f /tmp/vestra-lookbook.pdf
             exit $RC
+      - name: Disk kotasını boşalt (varsayılan KURU KOŞU)
+        # 16 Eyl 2026: sunucu her istekte "Disk quota exceeded" veriyordu ve PHP
+        # OTURUM dosyasi acilamiyordu -- site 200 donuyor ama hic kimse giris
+        # yapamiyor. Sebep bir tek yerde: data/sessions'ta 229.721 oturum dosyasi
+        # birikmis (PHP'nin kendi cop toplayicisi bu barindirmada kapali) ve
+        # listings.json.bak-* 148 adet / 54 MB.
+        #
+        # SILINMEYENLER, bilerek: data/docs (musteri belgeleri), data/invoices,
+        # data/receipts, data/offer_backups, data/message_backups. Bu depo bir
+        # yedegin katalogu kurtardigini (11 Eyl fiyat geri almasi) ve bir teklifin
+        # yalniz yedekten geri geldigini (KURAL 5g) kaydediyor -- yedek silmek
+        # geri donusun tek yolunu silmektir. Bu yuzden her ailenin EN YENI N
+        # tanesi duruyor ve N cömert.
+        #
+        # DOSYA ADI HIC BASILMIYOR: oturum dosyasinin adi oturum kimligidir, yani
+        # kimlik dogrulama jetonu; bu kutuk herkese acik. Yalniz ADET ve MB.
+        # Yeni GIRDI yok (girdi butcesi): spec 'move_threads', uygulama 'move_apply'.
+        if: ${{ github.event.inputs.admin_mode == 'diskclean' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DC_SPEC:  ${{ github.event.inputs.move_threads }}
+          DC_APPLY: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 25m
+          envs: DC_SPEC,DC_APPLY
+          script: |
+            D="$HOME/public_html/data"
+            APPLY=0; [ "$DC_APPLY" = "true" ] && APPLY=1
+            SPEC="${DC_SPEC:-sessions,baks,tmp,errlog}"
+            [ "$APPLY" = "1" ] && echo "*** UYGULAMA -- dosyalar SILINECEK ***" || echo "kuru kosu -- hicbir sey silinmiyor (move_apply=true ile uygulanir)"
+            echo "spec: $SPEC"
+            has() { echo ",$SPEC," | grep -q ",$1[,:]" || echo ",$SPEC," | grep -q ",$1,"; }
+            arg() { echo "$SPEC" | tr ',' '\n' | grep "^$1:" | head -1 | cut -d: -f2; }
+            # Kotayi ONCE ve SONRA basiyoruz: "temizledim" cumlesinin kaniti,
+            # silinen dosya sayisi degil, kotanin gercekten dusmus olmasidir.
+            echo; echo "== KOTA (once) =="; quota -s 2>/dev/null | tail -3 || echo "  quota yok"
+
+            if has sessions; then
+              days=$(arg sessions); days=${days:-2}
+              n=$(find "$D/sessions" -maxdepth 1 -type f -name 'sess_*' -mtime "+$days" 2>/dev/null | wc -l | tr -d ' ')
+              tot=$(find "$D/sessions" -maxdepth 1 -type f -name 'sess_*' 2>/dev/null | wc -l | tr -d ' ')
+              echo; echo "== oturum dosyalari =="
+              echo "  toplam ${tot} | ${days} gunden eski ${n}  (kalacak: $((tot - n)))"
+              if [ "$APPLY" = "1" ]; then
+                find "$D/sessions" -maxdepth 1 -type f -name 'sess_*' -mtime "+$days" -delete 2>/dev/null
+                echo "  silindikten sonra: $(find "$D/sessions" -maxdepth 1 -type f -name 'sess_*' 2>/dev/null | wc -l | tr -d ' ') adet"
+              fi
+            fi
+
+            if has baks; then
+              keep=$(arg baks); keep=${keep:-20}
+              echo; echo "== yedekler (en yeni ${keep} tanesi KALIR) =="
+              for pat in 'listings.json.bak-*' 'offers.csv.bak-*' 'orders.csv.bak-*' 'accounts.json.bak-*' 'leads.json.bak-*'; do
+                # Sirayi ZAMAN DAMGASI veriyor, ls'in alfabetik sirasi degil: ad
+                # YYYYMMDD-HHMMSS tasiyor ama bir gun tasimazsa mtime dogruyu soyler.
+                # Liste DEGISKENDE tutuluyor, gecici dosyada degil: kota dolu
+                # oldugunda /tmp'e yazamiyoruz ve kuru kosu "0 yedek" diye
+                # yalan soylerdi -- yani tam olcmesi gereken anda kor kalirdi.
+                list=$(find "$D" -maxdepth 1 -name "$pat" -printf '%T@ %s %p\n' 2>/dev/null | sort -rn)
+                [ -z "$list" ] && continue
+                tot=$(printf '%s\n' "$list" | wc -l | tr -d ' ')
+                old=$((tot - keep)); [ "$old" -lt 0 ] && old=0
+                mb=$(printf '%s\n' "$list" | tail -n "+$((keep + 1))" | awk '{s+=$2} END{printf "%.0f", s/1048576}')
+                printf '  %-22s toplam %4s | silinecek %4s | ~%s MB\n' "${pat%-\*}" "$tot" "$old" "${mb:-0}"
+                if [ "$APPLY" = "1" ] && [ "$old" -gt 0 ]; then
+                  printf '%s\n' "$list" | tail -n "+$((keep + 1))" | cut -d' ' -f3- | while IFS= read -r f; do rm -f "$f"; done
+                fi
+              done
+            fi
+
+            if has tmp; then
+              # YALNIZ bizim yazdigimiz kalintilar ve YALNIZ bizim sahipligimizde:
+              # /tmp paylasimli olabilir, baskasinin dosyasina dokunmak yok.
+              echo; echo "== /tmp kalintilari (is akisi betikleri) =="
+              n=0
+              for pat in 'vestra_*.php' 'vestra_*.json' 'vestra-*.pdf' 'seller_products.php' 'set_product*.php' 'diag_*.php' '.vdc_*'; do
+                c=$(find /tmp -maxdepth 1 -user "$(id -un)" -name "$pat" -mtime +0 2>/dev/null | wc -l | tr -d ' ')
+                n=$((n + c))
+                [ "$APPLY" = "1" ] && find /tmp -maxdepth 1 -user "$(id -un)" -name "$pat" -mtime +0 -delete 2>/dev/null
+              done
+              echo "  bir gunden eski: ${n} dosya"
+            fi
+
+            if has errlog; then
+              lines=$(arg errlog); lines=${lines:-2000}
+              echo; echo "== hata gunlukleri (son ${lines} satir KALIR) =="
+              for f in "$HOME/public_html/error_log" "$HOME/error_log" "$HOME/vestra_sweep.log"; do
+                [ -f "$f" ] || continue
+                sz=$(du -m "$f" 2>/dev/null | cut -f1); ln=$(wc -l < "$f" 2>/dev/null | tr -d ' ')
+                printf '  %-28s %5s MB  %8s satir\n' "${f#$HOME/}" "$sz" "$ln"
+                if [ "$APPLY" = "1" ] && [ "$ln" -gt "$lines" ]; then
+                  # `cat > $f` dosyayi YERINDE kisaltir: inode korunur, PHP'nin
+                  # acik tuttugu tanitici gecerli kalir. mv etseydik yazmalar
+                  # silinmis bir inode'a giderdi ve gunluk sessizce olurdu.
+                  tail -n "$lines" "$f" > "$f.keep" 2>/dev/null && cat "$f.keep" > "$f" && rm -f "$f.keep"
+                fi
+              done
+            fi
+
+            echo; echo "== KOTA (sonra) =="; quota -s 2>/dev/null | tail -3 || echo "  quota yok"
+            echo "== ev dizini =="; du -xsh "$HOME" 2>/dev/null
+            # Asil olcu: sunucu yeniden YAZABILIYOR mu? Kotanin sayisi degil,
+            # oturumun acilabilmesi. Bu satir "site geri geldi mi" sorusunu
+            # dogrudan cevapliyor.
+            echo "== yazma sinamasi =="
+            for d in "$D" "$D/sessions" /tmp; do
+              if (: > "$d/.vestra_wtest") 2>/dev/null; then rm -f "$d/.vestra_wtest"; echo "  yazilabilir : ${d#$HOME/}"
+              else echo "  *** YAZILAMIYOR : ${d#$HOME/}"; fi
+            done
       - name: Dropship ödeme anahtarı (aç / kapat)
         # Operator, 8 Eyl 2026: "Dropshippingi tekrar aci".
         # Ayni anahtar Admin ▸ Dropship'te de var; bu, ayni kaydin ikinci kapisi
