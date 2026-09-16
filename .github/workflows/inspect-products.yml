@@ -1014,7 +1014,13 @@ jobs:
             if ($plist) {
               $mult = defined('VESTRA_RETAIL_MULTIPLE') ? (float)VESTRA_RETAIL_MULTIPLE : 3.0;
               echo "\n===== TOPTAN FIYAT LISTESI =====\n";
-              echo "MARKA\tART.NO\tURUN\tKATEGORI\tBEDEN\tMOQ\tLISTE\tKADEME\tPERAKENDE\tKAYNAK\n";
+              /* SATIS sutunu: bu dokum 16 Eyl 2026'ya kadar sold_out'u HIC
+                 yazmiyordu ve tam bu yuzden iki satilmis Lacoste polosu
+                 fiyatlariyla, hicbir uygunluk isareti olmadan listede
+                 duruyordu -- musteriye gidecek fiyat listesinin aynisi.
+                 Bir sondanin GOREMEDIGI alan hakkinda verdigi yesil, baska
+                 bir seyin yesilidir. */
+              echo "MARKA\tART.NO\tURUN\tKATEGORI\tBEDEN\tMOQ\tLISTE\tKADEME\tPERAKENDE\tKAYNAK\tSATIS\n";
 
               $rows = [];
               foreach (vestra_products() as $p2) {
@@ -1047,7 +1053,11 @@ jobs:
                            number_format($price, 2, '.', ''),
                            $best < $price - 0.001 ? number_format($best, 2, '.', '') : '-',
                            number_format($rrp, 2, '.', ''),
-                           $real ? 'RRP' : 'guide x'.number_format($mult, 0)];
+                           $real ? 'RRP' : 'guide x'.number_format($mult, 0),
+                           /* Alti satin alma yolunun cagirdigi AYNI fonksiyon --
+                              "sold_out dolu mu" diye sormak ikinci bir kopya
+                              olurdu ve bos dizgeyi SATILDI sayardi. */
+                           vestra_is_sold_out($p2) ? '*** SATILDI ***' : 'satista'];
               }
               usort($rows, fn($a, $b) => [strtolower($a[0]), strtolower($a[2])] <=> [strtolower($b[0]), strtolower($b[2])]);
               foreach ($rows as $r) echo implode("\t", $r)."\n";

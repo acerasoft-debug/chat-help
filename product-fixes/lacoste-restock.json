@@ -1,0 +1,17 @@
+[
+  {
+    "_not": "Operator, 16 Eyl 2026: 'onlari yeniden stoga gelicek yap'. 13 Eylul'de ausverkauft yapilan iki Lacoste polosu geri satisa aciliyor -- 2026-09-13-operator.json'un TERSI, ayni iki ilan, ayni iki match metni.",
+    "_neden": "Fiyat listesi (wholesale-list.php / wholesale-xlsx.php / price-list.php) sold_out'a HIC bakmiyor: iki polo 13 satirlik Lacoste dokumunde fiyatlariyla, uygunluk isareti olmadan duruyordu. Uc secenek vardi (listeden cikar / uygunluk sutunu ekle / stoga al); operator ucuncusunu sectI. Israil adayina gidecek liste boylece dogru kaliyor.",
+    "_nasil": "match ada dusuyor (set_product.php'nin 3. adimi). expect:1 sarti guvenceyi veriyor: 'Polo Shirt' gibi genis bir metin iki urune birden uyar ve is DURUR, hicbir sey yazilmaz -- testte ayrica olculuyor (sold_out_test.php 7e).",
+    "_bool": "TIRNAKSIZ false olmak zorunda. \"false\" STRINGI (bool) cevriminde TRUE olurdu ve urun stoga gelmis gorunurken satista kalmazdi; dogrulayici string'i zaten reddediyor.",
+    "match": "Regular Fit Logo Trim L.12.12 Polo Shirt",
+    "expect": 1,
+    "sold_out": false
+  },
+  {
+    "_not": "Ayni talimat. Olculdu: lac-monogram-polo (PH9863'un kardesi DH1417).",
+    "match": "Classic Fit Monogram Jacquard Polo Shirt",
+    "expect": 1,
+    "sold_out": false
+  }
+]
