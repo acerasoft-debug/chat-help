@@ -1205,27 +1205,37 @@ jobs:
           # Ciplak bir 200 OLCUM DEGIL: panel sayfalari girissiz de 200 donuyor
           # ve bu depo o tuzagi bir kez odedi. Anasayfa girisliye "Open my
           # panel", anonime "Register as Seller" basiyor -- IKI ayri dizge.
+          # ONCE KANAL, SONRA ICERIK. Ilk surum yalniz govdeye bakiyordu ve
+          # istekler hic ulasmadiginda dort okumanin dordu de "belirsiz" cikti;
+          # sonda bunu "test hesabi bozuk" diye yorumladi -- oysa olcum HIC
+          # YAPILMAMISTI. Bu depoda kayitli iki ders birden: runner IP'si
+          # barindiricinin guvenlik duvarina takilabiliyor (9 istek de 000),
+          # ve bir adimin 404'u kanali olcer, sayfayi degil.
+          HTTP=''; BYTES=''
           look () {
-            curl -sS -A "$UA" -b "$1" -c "$1" --max-time 30 -o /tmp/r.html "$BASE/" || true
-            if   grep -q 'Open my'            /tmp/r.html; then echo girisli
+            HTTP=$(curl -sS -A "$UA" -b "$1" -c "$1" --max-time 30 -L \
+                     -o /tmp/r.html -w '%{http_code}' "$BASE/" 2>/dev/null || echo 000)
+            BYTES=$(wc -c < /tmp/r.html 2>/dev/null || echo 0)
+            if [ "$HTTP" = 000 ] || [ "$BYTES" -lt 500 ]; then echo ULASILAMADI
+            elif grep -q 'Open my'            /tmp/r.html; then echo girisli
             elif grep -q 'Register as Seller' /tmp/r.html; then echo girissiz
             else echo belirsiz; fi
           }
 
           echo "===== 1. CIHAZ A giris yapiyor ====="
           curl -sS -A "$UA" -c "$A" -b "$A" -o /dev/null -d "$CRED" --max-time 30 "$BASE/login"
-          RA=$(look "$A"); echo "  cihaz A: $RA"
+          RA=$(look "$A");  echo "  cihaz A: $RA   (HTTP $HTTP, $BYTES bayt)"
           grep -q 'vestra_rmb' "$A" && echo "  kalici cerez A: VAR" || echo "  kalici cerez A: *** YOK ***"
 
           echo "===== 2. CIHAZ B ayri kavanozla giris yapiyor ====="
           curl -sS -A "$UA" -c "$B" -b "$B" -o /dev/null -d "$CRED" --max-time 30 "$BASE/login"
-          RB=$(look "$B"); echo "  cihaz B: $RB"
+          RB=$(look "$B");  echo "  cihaz B: $RB   (HTTP $HTTP, $BYTES bayt)"
 
           # Musterinin durumu: oturum cerezi olmus, KALICI cerez duruyor.
           echo "===== 3. CIHAZ A'nin OTURUM cerezi silindi (kalici cerez duruyor) ====="
           grep -v 'PHPSESSID' "$A" > "$A2" || true
           grep -q 'vestra_rmb' "$A2" && echo "  A2 kavanozu: yalniz kalici cerez" || echo "  A2: *** kalici cerez yok, olcum gecersiz ***"
-          RA2=$(look "$A2"); echo "  cihaz A (oturumsuz): $RA2"
+          RA2=$(look "$A2"); echo "  cihaz A (oturumsuz): $RA2   (HTTP $HTTP, $BYTES bayt)"
 
           # TERS YON. Bu olmadan "her zaman girisli" diyen bozuk bir sonda da
           # yesil gorunurdu -- tek yonlu iddia bu depoda defalarca kayitli.
@@ -1233,11 +1243,21 @@ jobs:
           RND=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
           printf '#HttpOnly_vestrasales.com\tFALSE\t/\tTRUE\t%d\tvestra_rmb\t%s\n' \
             "$(( $(date +%s) + 86400 ))" "0000000000000000:$RND" > "$BAD"
-          RBAD=$(look "$BAD"); echo "  sahte cerez: $RBAD"
+          RBAD=$(look "$BAD"); echo "  sahte cerez: $RBAD   (HTTP $HTTP, $BYTES bayt)"
 
           echo
           echo "===== SONUC ====="
           FAILED=0
+          # Site acilmiyorsa hicbir sey KANITLANMADI: "duzelmedi" demek de
+          # "duzeldi" demek kadar yanlis olurdu. Bu depo "site coktu demeden
+          # once ikinci runner'la bak" diye kaydetmis.
+          case "$RA$RB$RA2$RBAD" in
+            *ULASILAMADI*)
+              echo "  *** OLCUM YAPILAMADI: canli site bu runner'dan acilmadi (HTTP $HTTP)."
+              echo "      Bu bir sonuc DEGIL -- kosuyu ikinci bir runner'la tekrarla. ***"
+              rm -f "$A" "$B" "$A2" "$BAD" /tmp/r.html
+              exit 1 ;;
+          esac
           [ "$RA" = girisli ] || { echo "  *** A giris yapamadi ($RA) -- test hesabi bozuk, olcum gecersiz ***"; FAILED=1; }
           [ "$RB" = girisli ] || { echo "  *** B giris yapamadi ($RB) ***"; FAILED=1; }
           if [ "$RA2" = girisli ]; then
