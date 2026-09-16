@@ -13,7 +13,8 @@ $src = file_get_contents(__DIR__.'/../vestra/inc/email_templates.php');
 foreach (['vestra_display_name', 'vestra_tpl_order_tracking_soon', 'vestra_tpl_order_shipped',
           'vestra_tpl_order_address_request', 'vestra_tpl_order_invoice_soon',
           'vestra_tpl_claim_received', 'vestra_tpl_claim_resolved',
-          'vestra_tpl_order_payment_notice', 'vestra_tpl_order_payment_ask'] as $fn) {
+          'vestra_tpl_order_payment_notice', 'vestra_tpl_order_payment_ask',
+          'vestra_tpl_login_fixed'] as $fn) {
     if (!preg_match('/^function '.preg_quote($fn,'/').'\(.*?^}/ms', $src, $m)) { echo "HATA: $fn bulunamadi\n"; exit(1); }
     eval($m[0]);
 }
@@ -342,6 +343,31 @@ $t('konu maskelenmiyor',                str_contains($pfBlock, '{$pfSubj}'));
 $pfSend = $pfB !== false ? substr($wf, (int)$pfB, 200) : '';
 $t('mektup HAM govdeyi gonderiyor',     str_contains($pfSend, '$pfSubj, $pfBody,'));
 $t('mektup maskeli kopyayi GONDERMIYOR', !str_contains($pfSend, '$pfShown'));
+
+echo "\n== hitap satiri GONDERILEN govdeden okunuyor ==\n";
+/* Kutugun "hitap" satiri paylasilan $salutation degiskenini basiyordu, ama
+   her dal onu kullanmiyor: login_fixed kendi $lfName'ini template'e veriyor,
+   vat_doc_fr 'Bonjour' basiyor. Sonuc 16 Eyl 2026'da olculdu -- Fransizca
+   login_fixed kosusu kutuge "Dear Thom***" yazdi, musteriye giden mektup ise
+   "Bonjour ..." ile aciliyordu. Teshis GONDERILMEYEN bir degiskeni olcuyordu;
+   bu depoda kayitli sinif (vat/vat_id, last_login/last_login_at).
+   IDDIA DAVRANISSAL: kaynaktaki iki satir GERCEKTEN calistiriliyor, $body ve
+   $salutation BILEREK farkli veriliyor. Grep yazsaydim, satir yarin yeniden
+   $salutation'a donunce de yesil kalabilirdi. */
+$hsA = strpos($wf, '$hitapSatir = rtrim(');
+$hsB = $hsA !== false ? strpos($wf, "\n", strpos($wf, 'echo "hitap  : ', (int)$hsA)) : false;
+$hsSrc = ($hsA !== false && $hsB !== false) ? substr($wf, (int)$hsA, (int)$hsB - (int)$hsA) : '';
+$t('hitap satiri kaynakta bulundu',      $hsSrc !== '');
+$t('hitap $salutation OKUMUYOR',         $hsSrc !== '' && !str_contains($hsSrc, '$salutation'));
+
+/* Gercek Fransizca mektubun govdesi; $salutation bilerek BASKA bir dil. */
+[, $hsBody, ] = vestra_tpl_login_fixed('Thomas Lardey', true, 'Marco Bellini', 'fr');
+$body = $hsBody; $salutation = 'Dear Thomas Lardey';
+ob_start(); eval($hsSrc); $hsOut = (string)ob_get_clean();
+$t('kutuk GOVDEDEKI hitabi yaziyor',     str_contains($hsOut, 'Bonjour'));
+$t('kutuk kullanilmayan degiskeni YAZMIYOR', !str_contains($hsOut, 'Dear'));
+/* Maskeleme korunuyor: tam ad kutuge girmiyor, yildiz var. */
+$t('ad maskeli kaliyor',                 !str_contains($hsOut, 'Lardey') && str_contains($hsOut, '***'));
 
 printf("\n%d ok, %d hata\n", $ok, $fail);
 exit($fail ? 1 : 0);

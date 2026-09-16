@@ -3004,7 +3004,18 @@ jobs:
             /* Halka acik log: govde YOK, kimlik MASKELI. Inceleme test kutusunda. */
             echo "mektup : {$letter}\n";
             echo "alici  : ".$mask($to).($acc ? "  (hesap: ".($acc['type'] ?? '?').", ".($acc['status'] ?? '?').")" : "  (hesap yok)")."\n";
-            echo "hitap  : ".mb_substr($salutation, 0, 9)."***\n";
+            /* Hitap GOVDENIN ILK SATIRINDAN okunuyor, $salutation
+               degiskeninden DEGIL. Bazi dallar kendi hitabini kuruyor ve o
+               paylasilan degiskene hic yazmiyor (login_fixed kendi $lfName'ini
+               veriyor, vat_doc_fr 'Bonjour' basiyor); price_list/listing_colours
+               ise $salutation'a geri yaziyor. Yani satir dala gore dogru ya da
+               yanlisti. 16 Eyl 2026'da Fransizca login_fixed mektubu icin
+               "Dear Thom***" yazdi; musteriye giden metin "Bonjour ..." ile
+               aciliyordu -- gonderilmeyen bir degiskeni olcuyordu.
+               GONDERILEN metni olc. Maskeleme aynen duruyor: ilk 9 karakter,
+               yani kutuge yine adin yalnizca bas harfleri giriyor. */
+            $hitapSatir = rtrim((string)explode("\n", $body, 2)[0]);
+            echo "hitap  : ".mb_substr($hitapSatir, 0, 9)."***\n";
             echo "vat    : ".($vat !== '' ? substr($vat, 0, 4).'***'.substr($vat, -2) : '— yok, cumle parantezsiz')."\n";
             echo "konu   : {$subject}\n";
             echo "govde  : ".mb_strlen($body)." karakter\n";
