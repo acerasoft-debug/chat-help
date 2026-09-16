@@ -526,6 +526,25 @@ foreach ($plan as [$i, $set, $m]) {
       $line[] = "sale_list(SADECE was) {$old} -> {$new}  (tiers[0] {$base} degismedi, gorunen indirim ~%{$disc})";
       $all[$i]['list'] = $new;
       $changes++;
+    } elseif ($k === 'sold_out') {
+      /* GENEL DAL BU ALANI BOZAR ve bu dal tam onun icin var. En asagidaki
+         else `(string)$v` yapiyor; PHP'de (string)false = "" demek, yani
+         stoga GERI ALINAN bir ilan kayda `sold_out: ""` diye inerdi.
+         Bugun kimse yanmiyor -- her okuyan vestra_is_sold_out()'tan geciyor
+         ve o bos dizgeyi false okuyor -- ama alani `isset()`/
+         `array_key_exists()` ile soracak bir okuyan, SATISTA olan urunu
+         "satildi" sayar. Yani sessiz, gec patlayan bir tuzak.
+         `group` dali bu depoda birebir ayni sebeple yazilmisti; orada
+         bozulma TERS yone gidiyor ("false" -> dolu string -> !empty TRUE)
+         ve kapatilmak istenen havuzu acik birakiyordu.
+         $old kapinin IKINCI BIR KOPYASI DEGIL: alti satin alma yolunun
+         cagirdigi AYNI fonksiyondan okunuyor. */
+      $old = vestra_is_sold_out($p);
+      if ($old === $v) continue;
+      $line[] = 'sold_out '.($old?'true':'false').' -> '.($v?'true':'false')
+              . ($v ? '  (satin alinamaz; vitrinde SOLD rozetiyle durur)' : '  (yeniden SATISTA)');
+      $all[$i]['sold_out'] = $v;   // gercek bool, "1"/"" degil
+      $changes++;
     } elseif ($k === 'dropship_off') {
       $old = !empty($p['dropship_off']);
       if ($old === (bool)$v) continue;
