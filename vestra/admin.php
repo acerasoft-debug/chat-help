@@ -331,6 +331,21 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $ok = !empty($r['ok']);
     header('Location: /admin?tab=invoices&msg='.($ok?'invoice_redrafted':'invoice_none')); exit;
   }
+  /* SILDIKTEN SONRA NEREYE DONULUR (operator, 16 Eyl 2026: *"siparisler ve
+     offer lar silinmesi icin button yap demistim"*).
+     Silme dugmeleri artik IKI ekranda: kendi sekmelerinde (Offers / Orders) ve
+     Invoice approvals kuyrugunda. Handler'lar hedef sekmeyi SABIT yaziyordu,
+     yani kuyruktan silen operator baska bir sekmede uyaniyor ve sildigi satirin
+     gercekten gidip gitmedigini goremiyordu.
+     IZIN LISTESI, serbest metin degil: `back` POST'tan geliyor ve bir Location
+     basligina giriyor. Serbest birakmak acik yonlendirme olurdu -- bu depoda
+     ayni ders `vestra_back_link()` icin zaten yazili (Referer baskasinin
+     yazdigi bir baslik). Taninmayan deger varsayilana duser, yani mevcut
+     davranis birebir korunur. */
+  $backTab = function(string $default): string {
+    $b = (string)($_POST['back'] ?? '');
+    return in_array($b, ['offers','orders','invoices'], true) ? $b : $default;
+  };
   /* TEKLIFI SIL (operator istegi, 1 Eyl 2026). Alici bir kalemi iptal
      ettirdiginde teklif "kabul edilmis ama faturasiz" halde kuyrukta kaliyor
      ve yanlislikla yeniden faturalanabiliyor. Silme, teklifi offers.csv'den
@@ -343,14 +358,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     require_once __DIR__.'/inc/offers.php';
     require_once __DIR__.'/inc/invoice.php';
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
-    if($ref===''){ header('Location: /admin?tab=offers&msg=offer_del_none'); exit; }
+    if($ref===''){ header('Location: /admin?tab='.$backTab('offers').'&msg=offer_del_none'); exit; }
     if(count(vestra_invoices_for_ref($ref))>0){
-      header('Location: /admin?tab=offers&msg=offer_del_invoiced'); exit;
+      header('Location: /admin?tab='.$backTab('offers').'&msg=offer_del_invoiced'); exit;
     }
     $f=vestra_data_dir().'/offers.csv';
     $rows=vestra_read_csv('offers.csv');
     $keep=array_values(array_filter($rows,fn($r)=>($r['ref']??'')!==$ref));
-    if(count($keep)===count($rows)){ header('Location: /admin?tab=offers&msg=offer_del_none'); exit; }
+    if(count($keep)===count($rows)){ header('Location: /admin?tab='.$backTab('offers').'&msg=offer_del_none'); exit; }
     $okDel=false;
     if(is_file($f)){
       @copy($f,$f.'.bak-del-'.date('Ymd_His'));
@@ -382,7 +397,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
         unset($rs[$ref]); vestra_write_json('offer_responses.json',$rs);
       }
     }
-    header('Location: /admin?tab=offers&msg='.($okDel?'offer_deleted':'offer_del_fail')); exit;
+    header('Location: /admin?tab='.$backTab('offers').'&msg='.($okDel?'offer_deleted':'offer_del_fail')); exit;
   }
   /* Mesaj silme (operator, 11 Eyl 2026). Anahtar kaydin ICERIGINDEN turuyor,
      dizin numarasindan degil -- bkz. inc/messages.php'deki not. Silinen kayit
@@ -1421,7 +1436,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
      what an auditor asks about. Cancel covers that case instead. */
   if($act==='order_delete'){
     $ref=trim((string)($_POST['ref']??''));
-    if($ref===''){ header('Location: /admin?tab=orders&msg=ord_notfound'); exit; }
+    if($ref===''){ header('Location: /admin?tab='.$backTab('orders').'&msg=ord_notfound'); exit; }
     require_once __DIR__.'/inc/invoice.php';
     /* An issued invoice blocks the first click and the panel says why. force=1 is the
        same click made again after reading that — at which point the invoice files are
@@ -1429,16 +1444,16 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
        longer exists. Nothing is erased: the numbered document stays on disk. */
     $inv=vestra_invoices_for_ref($ref);
     if($inv && empty($_POST['force'])){
-      header('Location: /admin?tab=orders&msg=ord_has_invoice&n='.count($inv).'&ref='.urlencode($ref)); exit;
+      header('Location: /admin?tab='.$backTab('orders').'&msg=ord_has_invoice&n='.count($inv).'&ref='.urlencode($ref)); exit;
     }
     if($inv) vestra_invoices_archive_for_ref($ref);
     /* The rewrite itself lives in inc/orders.php next to the other function that has
        to know orders.csv is stored oldest-first while vestra_read_csv() hands it back
        newest-first. Two copies of that knowledge is one copy too many. */
     $n=vestra_order_delete($ref);
-    if($n<0){ header('Location: /admin?tab=orders&msg=ord_delfail'); exit; }
-    if($n===0){ header('Location: /admin?tab=orders&msg=ord_notfound'); exit; }
-    header('Location: /admin?tab=orders&msg=ord_deleted&n='.$n); exit;
+    if($n<0){ header('Location: /admin?tab='.$backTab('orders').'&msg=ord_delfail'); exit; }
+    if($n===0){ header('Location: /admin?tab='.$backTab('orders').'&msg=ord_notfound'); exit; }
+    header('Location: /admin?tab='.$backTab('orders').'&msg=ord_deleted&n='.$n); exit;
   }
   /* One-time repair: give duplicate order refs (pre-uniqueness bug) fresh refs so
      each order gets its own independent status entry. */
@@ -4351,6 +4366,28 @@ elseif($tab==='invoices'): ?>
                            birim degistirilemez (numara yanmis olur). */ ?>
                   onclick="var s=this.form.elements.seller_uid,c=this.form.elements.currency,cv=c?c.value:'';return confirm('Issue the invoice for offer <?= htmlspecialchars($fref) ?> at <?= htmlspecialchars(eur($fu)) ?>/unit (total <?= htmlspecialchars(eur($fu*$fq)) ?>)?\n\nIssuer: '+s.options[s.selectedIndex].text+'\nDocument currency: '+(cv&&cv!=='EUR'?cv+' (converted at the offer-date rate)':'EUR')+'\n\nThis burns the number, stores the PDF and EMAILS THE BUYER. Check the draft (👁) first.\nThe seller and the currency cannot be changed afterwards.')">✓ Approve &amp; issue</button>
         </form>
+        <?php /* SIL, BU EKRANDA DA (operator, 16 Eyl 2026: *"siparisler ve offer
+                 lar silinmesi icin button yap demistim"*). Dugme `Admin ▸ Offers`'ta
+                 zaten vardi -- ama operator kabul edilmis bir teklifi BURADA
+                 goruyor ve silmek icin sekme degistirmesi gerektigini bilmesinin
+                 hicbir yolu yoktu. Bir ekranda gorunmeyen secenek olmayan
+                 secenektir (KURAL 2e'nin "acacak dugmem yok" dersi).
+                 AYNI EYLEM cagriliyor (`delete_offer`), ikinci bir silme yolu
+                 YAZILMADI: yedek alma, pazarlik kaydinin yedegi ve faturali
+                 teklifte ret tek gövdede kaliyor. Iki silme yolu ayrisirdi ve
+                 ayrisma ancak bir kayit kaybolunca gorunurdu.
+                 AYRI FORM: ustteki form _action'i DUGMEDEN aliyor, ucuncu bir
+                 dugme oraya konsaydi taslak/kesim ile ayni gonderime girerdi.
+                 `back=invoices`: silen operator bu kuyruga geri donuyor ve
+                 satirin gercekten gittigini goruyor. */ ?>
+        <form method="post" style="margin:6px 0 0">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="delete_offer">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($fref) ?>">
+          <input type="hidden" name="back" value="invoices">
+          <button class="abtn" type="submit" style="font-size:11px;color:var(--bad);border-color:rgba(239,154,154,.35)"
+                  onclick="return confirm('Delete offer <?= htmlspecialchars($fref, ENT_QUOTES) ?> permanently?\n\nIt disappears from this queue and from the offers list. A timestamped backup of offers.csv and of the negotiation record is saved first. The buyer is NOT notified.')">🗑 Sil</button>
+        </form>
       </td>
     </tr>
     <?php endforeach; ?>
@@ -4571,6 +4608,27 @@ foreach($offers as $__o){
             <input type="hidden" name="_action" value="issue_invoice">
             <input type="hidden" name="ref" value="<?= htmlspecialchars($oref) ?>">
             <button class="abtn primary" type="submit" style="font-size:12px">✓ Approve &amp; issue</button>
+          </form>
+          <?php /* SIL (operator, 16 Eyl 2026, teklifle ayni cumle). Sipariş
+                   silme dugmesi `Admin ▸ Orders`'ta vardi ama BU kuyrukta
+                   yoktu -- oysa bir test satirini ya da alicinin vazgectigi
+                   bir siparisi operator tam burada goruyor.
+                   AYNI EYLEM (`order_delete`): faturali siparisi ilk tikta
+                   REDDEDIYOR ve sebebini yaziyor (ikinci tik `force=1` ile
+                   Orders sekmesinde, belgeler data/invoices/deleted/'e
+                   TASINARAK). O ikinci tiki buraya koymadim: numarasi yanmis
+                   bir belgeyi iki ekrandan birden yok edilebilir yapmak,
+                   KURAL 5g'nin korudugu seyi gevsetirdi.
+                   Bu kuyruk zaten yalniz FATURASIZ siparisleri listeliyor,
+                   yani normal halde ret gorunmez -- ama kapi yine sunucuda:
+                   dugmenin gorunmesi yetki degildir. */ ?>
+          <form method="post" style="margin:0"
+                onsubmit="return confirm('Delete order <?= htmlspecialchars($oref, ENT_QUOTES) ?> for good?\n\nThis cannot be undone. To keep the record but void the sale, set the status to Cancelled in the Orders tab instead.')">
+            <?= csrfField() ?>
+            <input type="hidden" name="_action" value="order_delete">
+            <input type="hidden" name="ref" value="<?= htmlspecialchars($oref) ?>">
+            <input type="hidden" name="back" value="invoices">
+            <button class="abtn" type="submit" style="font-size:12px;color:var(--bad);border-color:rgba(239,154,154,.35)">🗑 Sil</button>
           </form>
         </div>
       </td>

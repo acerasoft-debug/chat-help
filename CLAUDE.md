@@ -932,6 +932,51 @@ silmek icin button koy"*).
   kalırdı. Sabotajların gerçekten uygulandığı doğrulandı: ref geneline
   genişletilince **2 kırmızı**, grup bağı bloğu silinince **3**.
 
+**KURAL 5g — düğme, operatörün BAKTIĞI ekranda da olmalı** (operatör, 16 Eyl
+2026: *"siparisler ve offer lar silinmesi icin button yap demistim"*).
+*Yukarıdaki maddenin kardeşi ve onunla ÇAKIŞMAZ: o, sipariş DOSYA görünümünü ve
+tek faturanın arşivlenmesini anlatıyor; bu, `Admin ▸ Invoice approvals`
+kuyruğunu. Aynı gün, aynı sebeple, iki ayrı ekran.*
+- **Ölçüldü: iki düğme de ZATEN VARDI.** `Admin ▸ Offers ▸ 🗑 Sil`
+  (`admin.php`) ve `Admin ▸ Orders ▸ Delete`. Eksik olan düğme değil **konumu**:
+  `Admin ▸ Invoice approvals` kuyruğunda **hiçbir silme yolu yoktu** — ve
+  operatör kabul edilmiş bir teklifi tam orada görüyor. Bir ekranda görünmeyen
+  seçenek olmayan seçenektir; bu, KURAL 2e'nin *"açacak düğmem yok"* dersinin
+  birebir tekrarı (operatör onu da iki kez söylemişti).
+  *Talep "yok" dediğinde önce **hangi ekranda** yok diye ölç: bu turda cevap
+  "hiç yok" değil, "başka sekmede" idi.*
+- Kuyruğun üç bölümünden **ikisine** eklendi (bekleyen teklifler, bekleyen
+  siparişler). **Kesilmiş fatura bölümüne EKLENMEDİ** — orada belge alıcının
+  elinde ve numara yanmış (bu kuralın kendisi).
+- **İkinci bir silme yolu YAZILMADI:** düğmeler mevcut `delete_offer` /
+  `order_delete` eylemlerini çağırıyor. İkinci bir uygulama yedek almayı,
+  pazarlık kaydının yedeğini (9 Eyl'de bir kez kaybedildi) ya da faturalı
+  kayıtta reddi kaçırırdı — ve ayrışma ancak bir kayıt yok olduğunda görünürdü.
+- **`force=1` (numarası yanmış belgeyi taşıyarak silme) yolu TEK yerde bırakıldı**
+  (Orders sekmesindeki ret bandı). İki ekrandan birden ulaşılabilir yapmak, bu
+  kuralın koruduğu şeyi gevşetirdi.
+- **`back` izin listesi**, serbest metin değil: değer POST'tan geliyor ve bir
+  `Location` başlığına giriyor; serbest bırakmak **açık yönlendirme** olurdu
+  (`vestra_back_link()` için zaten yazılı ders). Tanınmayan değer varsayılana
+  düşüyor, yani iki sekmenin mevcut davranışı birebir korunuyor. Gerekçesi:
+  handler'lar hedef sekmeyi **sabit** yazıyordu, yani kuyruktan silen operatör
+  başka bir sekmede uyanıyor ve sildiği satırın gerçekten gidip gitmediğini
+  göremiyordu.
+- **Silme mesajları sekme dağıtımından ÖNCE basılıyor** (ölçüldü: 2759 < 2861),
+  yani bu kuyrukta da görünüyor. Görünmeseydi operatör geri dönüp **hiçbir şey**
+  göremez ve düğmenin çalışmadığını düşünürdü — `billing_saved`'in bu dosyada
+  kayıtlı dersi.
+- **Çizdirildi, kaynak okunmadı:** `admin.php` kum havuzunda gerçekten koşturuldu
+  (operatörün ekranındaki O2E880 / Casablanca satırının aynısı tohumlandı):
+  iki form da basılıyor, doğru ref, `back=invoices`, CSRF var, **PHP uyarısı 0**.
+- Test: `tests/admin_delete_buttons_test.php` (34 iddia). `back` kontrolü
+  **davranışsal**: kapanış admin.php'nin içinde ve dışarıdan çağrılamıyor, o
+  yüzden tanım kaynaktan çıkarılıp `eval` ediliyor (workflow'un "hitap" satırı
+  için bir kez kullanılan teknik) — düz bir grep, satır başka bir yazımla geri
+  geldiğinde yeşil kalırdı. Düşebildiği doğrulandı, her sabotajın **gerçekten
+  uygulandığı** `grep -c` ile ayrıca yazdırılarak: teklif formu gizlenince
+  **2 kırmızı**, izin listesi serbest bırakılınca **8**.
+
 **Yanlışlıkla silinen teklif YEDEKTEN geri gelir** (9 Eyl 2026, O9FBF5 /
 AlexaShop S.A.S / Gucci XJDEZ; operatör: *"biraz önce yanlış yazdığımdan teklifi
 sildim … müşteriye teklif gönder"*).
