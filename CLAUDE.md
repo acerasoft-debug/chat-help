@@ -4550,6 +4550,37 @@ BİRDEN FAZLA marka alıyor; ve cevap mektubu adımı ARGÜMAN SINIRINI aşmış
   notunun aynı dersi: *"bu cümlede 'tüm' YOK, TEK ürün adlandırılmış"*).
   **Operatör kararı bekliyor** — ve bu bir fiyat listesinde duruyor, yani
   o listeyi alan her aday adaya satamayacağımız bir ürünün fiyatını okuyor.
+  **Operatör kararı VERİLDİ (16 Eyl 2026, soruldu):** *"Satılmış kalsın,
+  mektubu yine de gönder"* — LAC-LT-TEE-01 satılmış kalıyor, İsrail mektubu
+  o hâliyle gitti. Yani listede fiyatlı duran ama alınamayan bir satır,
+  **bilinçli** olarak kabul edildi.
+
+- **İSRAİL ADAYINA GÖNDERİLDİ** (16 Eyl 2026 15:52 UTC, run `35118187635`).
+  `price_list` · `to=lead:Israel reseller enquiry` · Lacoste, Ralph Lauren &
+  Fred Perry · **17 kalem / 3 marka** · ek PDF **80.064 bayt (17 gömülü
+  fotoğraf)** + xlsx 7.607 · dil en · imza Marco Bellini · konu *"Lacoste,
+  Ralph Lauren & Fred Perry — price list (17 articles)"*. Kütükteki
+  `GONDERILDI` yalnızca **Brevo isteği kabul etti** demek (bu dosyanın kendi
+  uyarısı: `delivered` bile posta kutusu kanıtı değil).
+
+- **MEKTUBUN SPEC'İ KÜTÜKTEN GERİ OKUNAMIYOR — ve bu iki koşuya mal oldu.**
+  `reply_spec` `appleboy/ssh-action`'a `envs:` ile geçiyor, yani **hiçbir
+  yere yazılmıyor** (doğrusu bu: içinde müşteri adresi ve serbest metin var,
+  kütük herkese açık). Ama sonuç şu: operatör *"gönder"* dediğinde, onayladığı
+  önizlemeyi **birebir** yeniden kurmanın bir yolu yok.
+  Ölçülebilen tek şey **parmak izi**: konu, kalem sayısı, ek boyutları, gövde
+  karakter sayısı. İlk yeniden kurmam **679 karakter** verdi, oysa onaylanan
+  gövde **1000**'di — yani `note` paragrafım 321 karakter eksikti ve bunu
+  ancak sayı gösterdi. İkinci kurma **1010** verdi; geri kalan her parmak izi
+  (konu, 17 kalem, PDF 80.064/17 foto, xlsx 7.607, hitap, imza) **birebir**
+  tuttu. **Birebir aynı olduğu İDDİA EDİLMİYOR** — 10 karakter fark duruyor ve
+  operatöre böyle söylendi; içerik aynı (teslim süresi + müşteriye özel asgari
+  + fiyat şartları).
+  *Ders: uzun ve elle yazılmış bir `note` taşıyan bir mektubu önizleyip
+  operatöre gönderirken, spec metnini kendi notuna kaydet — kütük onu sana
+  geri veremez.* Gövde karakter sayısı bunu yakalayan **tek** ölçü oldu;
+  o satır olmasaydı 321 karakter eksik bir mektup "onaylanan mektup" diye
+  gidecekti.
 
 **KURAL 27 — AVRUPA DIŞINA asgari sipariş 5.000 USD; AFRİKA'ya %8 indirim**
 (operatör, 16 Eyl 2026, Benin'den gelen ilk kurumsal soru vesilesiyle:
