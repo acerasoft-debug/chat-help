@@ -932,6 +932,51 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 
 /* ---------------------------------------------------------------- diller */
 .langs{display:flex;flex-wrap:wrap;gap:1px;margin-top:18px}
+
+/* BÖLGE & PARA BİRİMİ — başlıktaki ince kontrol.
+   Özet satırı "EN · €" gibi okunuyor; açılınca dil ve para birimi listeleri.
+   Salt HTML: details/summary. Panel mutlak konumlu, başlığın altına iniyor. */
+.region{position:relative}
+.region>summary{
+  list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;
+  font-size:10.5px;letter-spacing:.2em;padding:8px 6px;color:var(--ink);
+}
+.region>summary::-webkit-details-marker{display:none}
+.region>summary i{font-style:normal;color:var(--muted-2)}
+.region__panel{
+  position:absolute;right:0;top:calc(100% + 10px);z-index:95;min-width:250px;
+  background:var(--bone);border:1px solid var(--bone-3);padding:16px 18px 14px;
+  box-shadow:var(--shadow);
+}
+.region__panel .langs{margin-top:6px}
+.region__h{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin:0}
+.region__h+.langs+.region__h,.region__panel .langs+.region__h{margin-top:16px}
+.region__n{font-size:11px;color:var(--muted-2);margin-top:10px}
+@media (max-width:900px){.region{display:none}}   /* telefonda çekmecede zaten var */
+
+/* GÖSTERGE KARŞILIK — fiyatın yanında silik "≈ $213".
+   Kartta tek satır; ürün sayfasında altına küçük "gösterge · EUR çekilir". */
+.fx{font-family:var(--sans);font-size:12px;color:var(--muted-2);letter-spacing:.02em;white-space:nowrap}
+.card__price .fx{display:block;margin-top:2px}
+.fx--pdp{display:block;margin-top:6px;font-size:14px}
+.fx--pdp i{display:block;font-style:normal;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;margin-top:2px;color:var(--muted-2)}
+
+/* ÖZEL MÜŞTERİLER — üç sütun ve ana sayfadaki sessiz levha. */
+/* Form ikilisi: .grid--2 iki sütun için 860 px istiyor, metin sütunu 794 px —
+   orada hep alt alta düşüyordu. Bu eşik sütuna göre ayarlı. */
+/* Özel müşteri formu: ikili satırlar sığsın diye 520'den geniş, ama gönder
+   düğmesi 794 pikselde absürt durduğu için metin sütunundan dar. */
+.form--pc{max-width:620px}
+.form__pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:16px}
+
+.pc__three{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:clamp(22px,3vw,44px);margin-top:8px}
+.pc__three b{display:block;font-family:var(--sans);font-size:10.5px;letter-spacing:.24em;color:var(--muted-2);margin-bottom:12px}
+.pc__three h2{font-size:20px;margin:0 0 8px}
+.pc__three p{font-size:14.5px;color:var(--text);margin:0}
+.pcband{border-top:1px solid var(--bone-3);border-bottom:1px solid var(--bone-3);padding:clamp(28px,4vw,52px) 0}
+.pcband__in{display:flex;align-items:baseline;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.pcband h2{font-size:clamp(22px,2.6vw,34px);margin:0}
+.pcband p{font-size:14.5px;color:var(--muted);margin:6px 0 0}
 .lang{
   font-size:10.5px;letter-spacing:.15em;padding:6px 9px;color:var(--muted-2);border:1px solid transparent;
 }

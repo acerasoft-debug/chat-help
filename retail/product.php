@@ -148,6 +148,12 @@ vr_layout_start([
         <?php else: ?>
           <div class="pdp__price">
             <b><?= h(vr_money((int)$p['price_cents'])) ?></b>
+            <?php /* Dünya alıcısı için gösterge karşılık — bağlayıcı fiyat EUR,
+               etiket bunu söylüyor. Kur güncel değilse ya da ziyaretçi EUR
+               bölgesindeyse hiç çıkmıyor (inc/fx.php). */
+               $lx = vr_money_local((int)$p['price_cents']); if ($lx !== ''): ?>
+              <span class="fx fx--pdp" title="<?= te('fx_note') ?>"><?= h($lx) ?><i><?= te('fx_note') ?></i></span>
+            <?php endif; ?>
             <?php if (!empty($p['rrp_cents']) && (int)$p['rrp_cents'] > (int)$p['price_cents']): ?>
               <s><?= h(vr_money((int)$p['rrp_cents'])) ?></s>
             <?php endif; ?>

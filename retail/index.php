@@ -585,6 +585,21 @@ foreach (array_slice($cats, 0, 4, true) as $cat => $n) {
   </div>
 </section>
 
+<!-- ------------------------------------------------------- özel müşteriler
+     Sessiz bir levha: ne düğme ne rozet. Dünyanın her yerinden yüksek bütçeli
+     alıcı, bir mağazanın onu ciddiye aldığını buradan anlıyor — tek muhatap,
+     talep üzerine tedarik, dünyaya teslimat. Üçü de gerçekten var
+     (bkz. private.php); vaat edilmeyen hiçbir şey yazmıyor. -->
+<section class="pcband">
+  <div class="wrap pcband__in">
+    <div>
+      <h2><?= te('home_private_t') ?></h2>
+      <p><?= te('home_private_b') ?></p>
+    </div>
+    <a class="sechead__more" href="<?= h(vr_url('private.php')) ?>"><?= te('private_form_t') ?><?= vr_icon('arrow', 14) ?></a>
+  </div>
+</section>
+
 <!-- ------------------------------------------------------------- yeni gelenler -->
 <?php
 /* Defterde olmayan ilk sekiz yeni parça. Süzme burada, çünkü defter ancak

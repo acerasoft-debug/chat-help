@@ -22,6 +22,7 @@ require_once __DIR__ . '/accounts.php';
 require_once __DIR__ . '/stripe.php';   // vr_payment_methods() ödeme güven satırı için
 require_once __DIR__ . '/lists.php';    // Merkliste + son bakılanlar
 require_once __DIR__ . '/sizing.php';   // beden tabloları — ürün sayfası ve rehber ortak
+require_once __DIR__ . '/fx.php';       // gösterge para birimi (dünya alıcısı için)
 require_once __DIR__ . '/customers.php'; // alıcı hesapları (başlıktaki kişi ikonu)
 
 /** Sürüm etiketi — CSS/JS önbelleğini deploy'da tazelemek için. */
@@ -153,6 +154,34 @@ function vr_header(): void
         <button type="submit" aria-label="<?= te('search_submit') ?>"><?= vr_icon('search') ?></button>
       </form>
 
+      <?php
+      /* BÖLGE & PARA BİRİMİ — masaüstü başlıkta ince bir kontrol.
+         Dil seçici yalnızca telefon çekmecesinde ve altlıktaydı; dünyanın her
+         yerinden gelen alıcı için dil ve para birimi başlıkta durmalı. Salt
+         HTML (details/summary), JS gerektirmiyor. Para birimi seçeneği
+         yalnızca kur tablosu güncelse çıkıyor (inc/fx.php). */
+      $fxCur = vr_fx_currency(); $fxAll = vr_fx_currencies();
+      ?>
+      <details class="region">
+        <summary aria-label="<?= te('region_label') ?>">
+          <?= h(strtoupper(vr_lang())) ?><i>·</i><?= $fxCur !== '' ? h($fxCur) : '€' ?>
+        </summary>
+        <div class="region__panel">
+          <p class="region__h"><?= te('language') ?></p>
+          <?= vr_lang_switch() ?>
+          <?php if ($fxAll): ?>
+            <p class="region__h"><?= te('currency_label') ?></p>
+            <div class="langs" role="group" aria-label="<?= te('currency_label') ?>">
+              <a class="lang<?= $fxCur === '' ? ' is-on' : '' ?>" href="<?= h(vr_url_with(['cur' => 'EUR'])) ?>">€</a>
+              <?php foreach ($fxAll as $c): ?>
+                <a class="lang<?= $fxCur === $c ? ' is-on' : '' ?>" href="<?= h(vr_url_with(['cur' => $c])) ?>"><?= h($c) ?></a>
+              <?php endforeach; ?>
+            </div>
+            <p class="region__n"><?= te('fx_note') ?></p>
+          <?php endif; ?>
+        </div>
+      </details>
+
       <a class="tool tool--wish" href="<?= h(vr_url('wishlist.php')) ?>" aria-label="<?= te('nav_wish') ?>">
         <?= vr_icon('heart') ?><?php $wn = vr_wish_count(); if ($wn > 0): ?><i class="bag__n"><?= (int)$wn ?></i><?php endif; ?>
       </a>
@@ -182,8 +211,23 @@ function vr_header(): void
     <a href="<?= h(vr_url('journal.php')) ?>"><?= te('nav_journal') ?></a>
     <a href="<?= h(vr_url('faq.php')) ?>"><?= te('nav_faq') ?></a>
     <a href="<?= h(vr_url('wishlist.php')) ?>"><?= te('nav_wish') ?></a>
+    <a href="<?= h(vr_url('private.php')) ?>"><?= te('nav_private') ?></a>
     <a href="<?= h(vr_url($acctUrl)) ?>"><?= te('nav_account') ?></a>
     <div class="drawer__langs"><?= vr_lang_switch() ?></div>
+    <?php /* Para birimi telefonda da seçilebilmeli: başlıktaki bölge paneli
+       900 pikselin altında gizli, yani bu olmadan dünya alıcısının telefonda
+       gösterge fiyatı kapatma ya da değiştirme yolu kalmıyordu. */
+       $dFx = vr_fx_currency(); $dAll = vr_fx_currencies();
+       if ($dAll): ?>
+      <div class="drawer__langs">
+        <div class="langs" role="group" aria-label="<?= te('currency_label') ?>">
+          <a class="lang<?= $dFx === '' ? ' is-on' : '' ?>" href="<?= h(vr_url_with(['cur' => 'EUR'])) ?>">€</a>
+          <?php foreach ($dAll as $c): ?>
+            <a class="lang<?= $dFx === $c ? ' is-on' : '' ?>" href="<?= h(vr_url_with(['cur' => $c])) ?>"><?= h($c) ?></a>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    <?php endif; ?>
   </div>
 </div>
 <?php
@@ -236,6 +280,7 @@ function vr_footer(): void
         [vr_url('account/login.php'),        t('acc_title')],
         [vr_url('size-guide.php'),           t('size_guide')],
         [vr_url('contact.php'),              t('nav_contact')],
+        [vr_url('private.php'),              t('nav_private')],
     ]);
     vr_foot_col(t('footer_company'), [
         [vr_url('about.php'),        t('about_title')],
@@ -297,6 +342,17 @@ function vr_foot_col(string $label, array $links): void
 function vr_payment_marks(): array
 {
     return ['VISA', 'MASTERCARD', 'AMEX', 'APPLE PAY', 'GOOGLE PAY', 'KLARNA', 'SEPA'];
+}
+
+/** Mevcut adres + ek sorgu parametreleri (bölge kontrolü için). */
+function vr_url_with(array $add): string
+{
+    $path  = (string)($_SERVER['REQUEST_URI'] ?? '/');
+    $parts = parse_url($path);
+    $q     = [];
+    if (!empty($parts['query'])) parse_str($parts['query'], $q);
+    foreach ($add as $k => $v) $q[$k] = $v;
+    return ($parts['path'] ?? '/') . ($q ? '?' . http_build_query($q) : '');
 }
 
 function vr_lang_switch(): string
@@ -386,6 +442,9 @@ function vr_card(array $p, array $o = []): void
       <?= h(vr_money((int)$p['price_cents'])) ?>
       <?php if (!empty($p['rrp_cents']) && (int)$p['rrp_cents'] > (int)$p['price_cents']): ?>
         <s><?= h(vr_money((int)$p['rrp_cents'])) ?></s>
+      <?php endif; ?>
+      <?php $lx = vr_money_local((int)$p['price_cents']); if ($lx !== ''): ?>
+        <span class="fx"><?= h($lx) ?></span>
       <?php endif; ?>
     </p>
     <?php
