@@ -426,6 +426,13 @@ jobs:
 
             echo; echo "== KOTA (sonra) =="; quota -s 2>/dev/null | tail -3 || echo "  quota yok"
             echo "== ev dizini =="; du -xsh "$HOME" 2>/dev/null
+            # "Bir daha dolmayacak" iddiasinin kaniti deploy'un kendi echo'su
+            # degil, SUNUCUNUN crontab'i. Bu iki satir yoksa temizlik tek
+            # seferlik bir elle mudahaledir ve birikme yarin kaldigi yerden
+            # devam eder.
+            echo "== gunluk tavan kurulu mu =="
+            crontab -l 2>/dev/null | grep -E 'VESTRA-SWEEP (oturum-temizlik|hata-gunlugu)' \
+              | sed 's/^/  /' || echo "  *** KURULU DEGIL -- birikme geri gelir"
             # Asil olcu: sunucu yeniden YAZABILIYOR mu? Kotanin sayisi degil,
             # oturumun acilabilmesi. Bu satir "site geri geldi mi" sorusunu
             # dogrudan cevapliyor.
