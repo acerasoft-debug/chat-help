@@ -199,7 +199,37 @@ jobs:
           command_timeout: 4m
           envs: FIX_SHADOW,DIAG_PATHS,DIAG_GREP
           script: |
-            echo "== DISK =="; df -h ~ 2>/dev/null | tail -2
+            # DIKKAT: `df` BURADA YANILTIR. Paylasimli barindirmada df birimin
+            # TAMAMINI gosterir (2 TB, %78 dolu) ama yazmayi kesen sey KULLANICI
+            # KOTASIDIR. 16 Eyl 2026'da df "430G bos" derken sunucu her istekte
+            # "Disk quota exceeded" veriyordu ve oturum dosyasi acilamiyordu --
+            # yani site ayakta gorunurken HIC KIMSE giris yapamiyordu. Kotayi
+            # yazdirmayan bir disk sondasi, olcmedigi seye "iyi" der.
+            echo "== DISK (birim -- KOTA DEGIL) =="; df -h ~ 2>/dev/null | tail -2
+            echo; echo "== KOTA (asil sinir) =="
+            quota -s 2>/dev/null | tail -3 || echo "  quota komutu yok"
+            # Yazilabilirlik, kotanin dolayli ama KESIN olcusu: PHP oturumu,
+            # siparis yazimi ve fatura PDF'i hep bir dosya yazmayi dener.
+            for d in "$HOME/public_html/data" "$HOME/public_html/data/sessions" "$HOME/public_html/uploads" /tmp; do
+              if [ -d "$d" ] && (: > "$d/.vestra_wtest" ) 2>/dev/null; then
+                rm -f "$d/.vestra_wtest"; echo "  yazilabilir : ${d#$HOME/}"
+              else
+                echo "  *** YAZILAMIYOR : ${d#$HOME/}"
+              fi
+            done
+
+            echo; echo "== yer kimde (ev dizini, 1 seviye) =="
+            du -xh --max-depth=1 "$HOME" 2>/dev/null | sort -h | tail -12
+            echo; echo "== public_html/data (1 seviye) =="
+            du -xh --max-depth=1 "$HOME/public_html/data" 2>/dev/null | sort -h | tail -10
+            echo; echo "== biriken yedekler (dosya ADI yazilmiyor) =="
+            for pat in 'listings.json.bak-*' 'offers.csv.bak-*' 'orders.csv.bak-*' 'accounts.json.bak-*'; do
+              n=$(find "$HOME/public_html/data" -maxdepth 1 -name "$pat" 2>/dev/null | wc -l | tr -d ' ')
+              sz=$(find "$HOME/public_html/data" -maxdepth 1 -name "$pat" -printf '%s\n' 2>/dev/null | awk '{s+=$1} END{printf "%.0f", s/1048576}')
+              printf '  %-22s %5s adet  %6s MB\n' "${pat%-\*}" "$n" "${sz:-0}"
+            done
+            sn=$(find "$HOME/public_html/data/sessions" -maxdepth 1 -type f 2>/dev/null | wc -l | tr -d ' ')
+            echo "  oturum dosyasi         ${sn} adet"
             echo; echo "== public_html boyutu =="; du -sh ~/public_html 2>/dev/null
 
             # Platform fatura/banka yapilandirmasi. "Girdim mi, girmedim mi" sorusu

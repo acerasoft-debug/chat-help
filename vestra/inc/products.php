@@ -1178,6 +1178,49 @@ function vestra_from_price($p,bool $raw=false){
      kasanin uygulamadigi rakami ilan etmektir (KURAL 6).
    - Fiyati DEGISTIRMEYEN basamak dusuyor; ayni rakami iki kez yazan merdiven okunmuyor.
      YUKSELEN bir basamak DUSMUYOR: gizlemek, pahali tarafta eksik bilgi vermek olurdu. */
+/**
+ * Bir ilanin RENKLERINI kendi GORSELLERIYLE eslestirir.
+ *
+ * Bu eslestirici `send-campaign-preview.yml`'in icinde yaziliydi ve Angebot
+ * mektubu ayni seyi yapmak zorunda oldugu icin buraya alindi: ikinci bir kopya,
+ * bir gun birinde duzeltilip otekinde kalacak bir kusur demekti (bu depoda
+ * desc/sizes, faturanin uc katmani ve DORT mektup govdesi ayni dersi verdi).
+ *
+ * Eslesme SINIRLI, alt dize degil: ayirac/bas-son sinirina bagli ve UZUN AD
+ * ONCE deneniyor, her dosya bir kez kullaniliyor. Gevsetilip str_contains
+ * yapildiginda yalin bir "Blue", "Light Blue"nun dosyasini elinden aliyor ve
+ * aliciya YANLIS RENGIN fotografi gosteriliyor — olculdu, varsayilmadi
+ * (mango/zara dersinin fotograf hali).
+ *
+ * Donen 'missing' bos degilse cagiran DURMALI: "her renge foto var" iddiasi
+ * yanlissa mektup gonderilmez.
+ */
+function vestra_listing_colour_shots(array $p): array {
+    $slug = fn(string $s): string => trim(preg_replace('/[^a-z0-9]+/', '-', strtolower(trim($s))), '-');
+    $cols = array_values(array_filter(array_map('strval', (array)($p['colors'] ?? []))));
+    $imgs = array_values(array_filter(array_map('strval', (array)($p['images'] ?? []))));
+
+    $byLen = $cols;
+    usort($byLen, fn($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+    $used = []; $hitOf = []; $missing = [];
+    foreach ($byLen as $c) {
+        $sl = $slug($c); $hit = '';
+        foreach ($imgs as $im) {
+            if (isset($used[$im]) || $sl === '') continue;
+            $base = strtolower(basename($im));
+            if (preg_match('/(^|[^a-z0-9])' . preg_quote($sl, '/') . '([^a-z0-9]|$)/', $base)) { $hit = $im; break; }
+        }
+        if ($hit === '') { $missing[] = $c; continue; }
+        $used[$hit] = true; $hitOf[$c] = $hit;
+    }
+    /* Sira ILANIN kendi renk sirasi, eslestirmenin sirasi degil: alicinin
+       sayfada gordugu sira budur. */
+    $pairs = [];
+    foreach ($cols as $c) if (isset($hitOf[$c])) $pairs[] = ['colour' => $c, 'img' => $hitOf[$c]];
+    return ['pairs' => $pairs, 'missing' => $missing,
+            'unbound' => array_values(array_diff($imgs, array_keys($used)))];
+}
+
 function vestra_price_ladder(array $p): array {
   $moq = max(1, (int)($p['moq'] ?? 0));
   $rows = [['min' => $moq, 'price' => (float)vestra_unit_price($p, $moq)]];
