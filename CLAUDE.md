@@ -898,6 +898,40 @@ sunucu tarafında **ayrıca** reddedilir — düğmenin görünmemesi yetki değ
 Gerekçe: belge alıcının elinde; kaydını silmek var olan bir faturayı dayanaksız
 bırakır. Sıra: **önce faturayı düzelt (kalemi çıkar), sonra teklifi sil.**
 
+**KURAL 5g (devamı) — KESİLMİŞ FATURA kaldırılabilir; siparişin kendi
+sayfasında da silme var** (operatör, 16 Eyl 2026: *"faturalari siparisleri
+silmek icin button koy"*).
+- **Siparişi silme LİSTEDE zaten vardı, DOSYA görünümünde YOKTU.** Operatör bir
+  siparişi açıp inceliyor ve silmek için listeye geri dönmesi gerekiyordu; bir
+  ekranda görünmeyen seçenek olmayan seçenektir (KURAL 2e'nin "açacak düğmem
+  yok" dersi). Aynı eylem, aynı muhafaza — faturalı ref ilk tıklamada yine
+  reddediliyor; ikinci bir silme mantığı yazılmadı.
+- **TEK faturayı kaldırmanın hiçbir yolu yoktu.** Yanlış kesilmiş bir belgeden
+  kurtulmanın tek yolu **siparişin tamamını** silmekti, yani dokunulmaması
+  gereken dilimleri de götürmek — bir siparişte satıcı başına bir fatura olabilir
+  (KURAL 5b).
+- **SİLMİYOR, ARŞİVLİYOR:** `vestra_invoice_delete()` dosyaları
+  `data/invoices/deleted/` altına zaman damgasıyla taşıyor. Numaralı belge yanmış
+  bir numaradır ve kopyası alıcının elinde; diskten yok etmek var olan bir
+  faturayı dayanaksız bırakmak olurdu — KURAL 5g'nin "faturalı teklif silinemez"
+  gerekçesinin ta kendisi. Sipariş silme yolu bunu zaten yapıyordu.
+- **Birleşik faturanın bağı da koparılıyor** (KURAL 5e): üyeler birincil ref'e
+  `invoice_group_ref` ile bağlı ve bağ kalsaydı alıcı artık var olmayan bir
+  belgenin satırını görmeye devam ederdi. Bağı kopan teklif faturasız olur ve
+  onay kuyruğuna döner — karar operatörün.
+- **Yazma GERİ OKUNUYOR:** `rename()` sessizce düşebilir (izin, dolu disk — bu
+  depoda aynı gün kota kesintisi yaşandı) ve panel "silindi" derken dosya
+  yerinde durmamalı.
+- **Onay metni geri alınamaz üç şeyi birden söylüyor:** dosya taşınıyor
+  silinmiyor, alıcının elinde ZATEN bir kopya var, ve yeniden kesim **YENİ** bir
+  numara yakar. Ayrıca yalnız bir kalem yanlışsa **Redraft**'a yolluyor (aynı
+  numara, düzeltilmiş belge — KURAL 5f).
+- Test: `tests/invoice_delete_test.php` (28 iddia). **İki yönü de** tutuyor:
+  aynı ref'in **diğer satıcı dilimi** ve ilgisiz bir grup bağı **YERİNDE
+  kalmalı** — tek yön yazılsaydı bütün dilimleri arşivleyen bir hata yeşil
+  kalırdı. Sabotajların gerçekten uygulandığı doğrulandı: ref geneline
+  genişletilince **2 kırmızı**, grup bağı bloğu silinince **3**.
+
 **Yanlışlıkla silinen teklif YEDEKTEN geri gelir** (9 Eyl 2026, O9FBF5 /
 AlexaShop S.A.S / Gucci XJDEZ; operatör: *"biraz önce yanlış yazdığımdan teklifi
 sildim … müşteriye teklif gönder"*).
@@ -4478,6 +4512,65 @@ seller armasini daha estetik yap"*).
 - Test: `shop_order_test.php` 48 → **50 iddia**. Düşebildiği doğrulandı, her
   sabotajın gerçekten uygulandığı ayrıca yazdırılarak: sabit 30'a döndürülünce
   **2 kırmızı** (biri gün bazlı olan), rozet elle eşik okuyunca **2**.
+
+**ANA SAYFADA "yeni gelenler" şeridi; Fred Perry ve Lacoste ön planda**
+(operatör, 16 Eyl 2026: *"home ana sayfayi yenile yeni ürünler koy F.Perry
+ürünlerini Polo ve Sweastshirt ön planda olsun Lacoste da"*).
+- Ana sayfada kahraman film şeridi ve ayakkabı bandı dışında **hiçbir ürün
+  bölümü yoktu** — sayfa "bu hafta ne geldi" sorusuna cevap vermiyordu.
+- **Seçki `vestra_shop_order()` DEĞİL.** O fonksiyon bütün katalogu diziyor ve
+  başında `pinned` + 24'lük YENİ bölmesi var; ilk 12'sini almak, operatörün
+  adıyla istediği iki markayı şeridin dışında bırakırdı. İstenen bir **sıralama**
+  değil, bir **seçki**: `vestra_home_new_picks()` (`inc/products.php`).
+- **İki küme AYRI, bilerek:** önce ön alınan markalar (liste sırasında), sonra
+  gerçekten yeni ilanlar (en yeni önce). Fred Perry'nin iki ilanı **aylardır**
+  katalogda — şerit yalnız tazeliğe baksaydı ikisi de hiç çıkmazdı; testin
+  pinlediği asıl olgu bu.
+- **Eşleşme marka adı başına TAM:** yarın gelecek bir "Lacoste Kids" kendini öne
+  çıkaramaz (mango/zara dersi). Alt dizeye gevşetilince **4 kırmızı**.
+- **CANLI ÖLÇÜM İKİ GERÇEK KUSUR YAKALADI — yerel çizim yakalayamazdı** (yerel
+  checkout yalnız 20 ilanlık demo tohumunu taşıyor, yani orada çizdirmek
+  mekanizmayı kanıtlar, İÇERİĞİ kanıtlamaz):
+  1. **Şerit 12/12 ön alınan markaydı** (Fred Perry 2 + Lacoste 13 = 15 aday) ve
+     **gerçekten yeni hiçbir ilan giremiyordu** — yani talimatın yarısı
+     ("yeni ürünler koy") sessizce uygulanmıyordu. Ön alınanların artık kendi
+     tavanı var (`VESTRA_HOME_FEATURED_MAX`), toplam tavandan **ayrı bir sabit**:
+     biri ızgaranın boyu, diğeri bu iki markanın **payı**. Yeni ilan yoksa boş
+     slotlar yine ön alınanlarla doluyor — yarım dolu bir ızgara, dolu bir
+     ızgaradan kötü görünür.
+  2. **Satılmış bir Lacoste şeritteydi** (`lgp-lacoste-trim-tshirt`) ve şeridin
+     hemen üstünde **"In stock now"** rozeti duruyor. Stok ilan eden bir bant,
+     alınamayan bir ürünü gösteremez. Ölçüt `vestra_is_sold_out()` — alanın dolu
+     olup olmadığına bakmak **boş dizgeyi SATILDI sayardı** (o alanın yazma
+     dalının bu depoda kayıtlı tuzağı).
+- **Fotoğraf süzgeci SAYFADA, seçici SAF:** dosya sistemi okuyan bir fonksiyon
+  test edilemezdi. Sayfa fotoğrafı gerçekten diskte olmayan adayı eliyor.
+- **FİYAT YOK:** ana sayfa girişsiz açılıyor ve toptan fiyat hesap kapısının
+  arkasında (KURAL 19). Ayakkabı şeridi de fiyat basmıyor.
+- **KENDİ CSS'i var:** üstteki `.shoe-*` bloğu yalnızca ayakkabı şeridi doluyken
+  basılıyor, yani onu kullansaydım ayakkabı bölmesi boşaldığı gün bu bölüm
+  stilsiz kalırdı — ayakkabı şeridinin kendi yorumunun yazdığı tuzak.
+- **Tek yeni sözlük anahtarı** (`New arrivals`), 8 dosyaya birden (KURAL 10).
+  Rozet ve düğme zaten var olan anahtarlardan.
+- **`vestra_home_featured_brands()` TEK SATIRDA yazılmıyor:** bu depodaki testler
+  fonksiyon gövdesini `^function …^}` ile ayıklıyor ve tek satırlık bir gövde
+  kapanışını satır başında bırakmadığı için ayıklama **bir sonraki fonksiyonu da
+  yutuyor** ("Cannot redeclare"). Biçim burada okunabilirlik tercihi değil,
+  ölçüm aracıyla uyum.
+- Sonda: `inspect-products.yml` → `home_picks=true` — sayfanın **çağırdığı**
+  fonksiyonu **canlı** katalogla koşturuyor ve sayfanın kendi süzgecini birebir
+  tekrarlıyor (ikinci bir seçim mantığı yazılmadı). Fonksiyon yoksa "deploy
+  inmemiş" diyor; sıfır yazıp "şerit boş" demek iki ayrı durumu gizlerdi.
+- **CANLI SONUÇ (16 Eyl 2026, deploy `de29b514`):** 12 kart —
+  **1-2** Fred Perry M3600 + M7535, **3-6** dört Lacoste, **7-12** altı
+  Dolce & Gabbana (12 Eylül partisi, `[yeni]`). Satılmış Lacoste şeritten düştü.
+- Test: `tests/home_new_picks_test.php` (41 iddia, iki yön). Düşebildiği
+  doğrulandı, her sabotajın **gerçekten uygulandığı ayrıca yazdırılarak**:
+  ön marka bölümü kaldırılınca **6 kırmızı**, alt dize eşleşmesi **4**, ön marka
+  tavanı kalkınca **2**, satılmış süzgeci kalkınca **3**.
+- **Kendi ölçüm hatam:** "en yeni önce" iddiasını `new-1, new-2` diye yazdım ve
+  kırmızı döndü — arada 2 günlük bir ilan vardı ve orada olması **doğruydu**.
+  Kod haklı çıktı, iddia yanlıştı; iddia artık tam sıraya bakıyor.
 
 **16 Eyl 2026 — Fred Perry Angebot 118 kayıtlı alıcıya; fiyat listesi artık
 BİRDEN FAZLA marka alıyor; ve cevap mektubu adımı ARGÜMAN SINIRINI aşmıştı.**
