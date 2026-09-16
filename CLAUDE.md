@@ -4432,6 +4432,94 @@ seller armasini daha estetik yap"*).
   sabotajın gerçekten uygulandığı ayrıca yazdırılarak: sabit 30'a döndürülünce
   **2 kırmızı** (biri gün bazlı olan), rozet elle eşik okuyunca **2**.
 
+**KURAL 27 — AVRUPA DIŞINA asgari sipariş 5.000 USD; AFRİKA'ya %8 indirim**
+(operatör, 16 Eyl 2026, Benin'den gelen ilk kurumsal soru vesilesiyle:
+*"Avrupa disina en az alim 10 Bin USD yaz. Ayrica Afrika bölgesine toplam
+Katalogtan yüzde 8 Inidirim yapilacagini belirt"* → aynı gün, birkaç dakika
+sonra: *"alimi 5 bin usd yap"*).
+
+- **İki AYRI kapı, iki ayrı soru.** Marka asgarisi (KURAL 21, €500) sepetteki
+  bir MARKANIN toplamına bakıyor; bu, siparişin TAMAMINA. İkisi birlikte
+  işliyor ve biri geçip diğerine takılan bir sepet mümkün — doğru olan da bu.
+- **Rakam tek sabitte:** `VESTRA_NONEU_MIN_ORDER_USD`. Aynı gün 10.000 → 5.000
+  oldu ve değişiklik **tek satırdı**; sepet uyarısı, sunucu kapısı ve testler
+  hepsi oradan okuyor. Escrow tavanının beş gün metinde 3.000, kodda 3.500
+  kalmasının (KURAL 6) sebebi tam tersiydi.
+- **Kapı SUNUCUDA** (`order.php`), sepetteki uyarı yalnızca görünüm. Ölçüm
+  istekten değil **yeniden fiyatlanmış satırlardan**; bölgesel indirim
+  `vestra_unit_price()` içinde zaten uygulanmış, yani taban alıcının
+  GERÇEKTEN ödeyeceği tutardan ölçülüyor — indirimsiz fiyattan ölçmek, %8
+  indirim alan bir alıcıdan fiilen 5.435 USD istemek olurdu.
+- **BİRİM USD ve bu, KURAL 21'de kayıtlı kararın TERSİ.** Orada operatör, marka
+  asgarisini USD yapmanın "gerçek minimumun kurla dalgalanması" demek olduğunu
+  duyunca EUR'yu seçmişti. Burada USD'yi açıkça istedi, o yüzden bedeli de
+  yazılı: katalog EUR, eşik USD, karşılaştırma bir KUR gerektiriyor.
+  **Kur yoksa sipariş GEÇMEZ** (`ordermin_fx`; KURAL 17'nin dropship
+  tahsilatındaki kararı) — uydurma bir kurla 5.000 USD'yi ölçmek, eşiği
+  sessizce başka bir sayıya çevirmek olurdu. **Bedeli açık: bir FX
+  kesintisinde Avrupa dışı siparişler durur.**
+- **"Avrupa" = coğrafi Avrupa, AB gümrük alanı DEĞİL**
+  (`vestra_europe_codes()`: AB 27 + EFTA + Birleşik Krallık + Balkanlar/mikro
+  devletler). AB ile sınırlasaydık GB/CH/NO alıcıları bugüne kadar
+  uygulanmayan bir şarta düşerdi.
+- **ÖLÇÜM TASARIMI DEĞİŞTİRDİ:** ilk yazımda ülkeyi `vestra_cc_of_country()`
+  çözüyordu — o tablo KÜRATÖRLÜ ve kısmi (kayıt IP'si ile beyanı
+  karşılaştırmak için yazılmış) — ve **"Benin" ile "Brazil" AVRUPA çıkıyordu**,
+  yani tabanın var olma sebebi olan iki ülke tam da kapıda muaftı. Test artık
+  **pozitif**: Avrupa olarak TANINAN muaf (`vestra_europe_names()`, 45 ülke,
+  yerel yazımlarla), tanınmayan değil. Yön bilerek böyle — ters yönde her
+  Amerikalı ve Asyalı alıcı şartı **sessizce** atlardı; fazla sorulan soru
+  görünür, eksik tahsilat görünmez.
+- **`order.php`'ye `$user` yazmıştım, o dosyada öyle bir değişken YOK.** PHP'de
+  tanımsız = null, null = "hesapsız", yani kapı HERKESE açılırdı. Kaynağı
+  okuyarak değil, **koşturarak** çıktı (dosyanın kendi adı `$me`).
+- **AFRİKA %8 — oran artık ÜLKE BAŞINA.** `VESTRA_REGION_DISCOUNT_PCT` tek
+  sabitti; Afrika'yı o sabitle eklemek Güney Amerika'yı da %8'e çekerdi.
+  Kapsam ve oran tek tabloda (`vestra_region_discount_rates()`): 18 ülke %10
+  (Güney Amerika + JP/AU/SG/HK + CZ/PL), **54 Afrika ülkesi %8**. Toplam 72.
+  Yazımlar EN + FR + PT/AR (Benin/Senegal frankofon, Angola lusofon, Kuzey
+  Afrika arapça) — tek dilli bir liste gerçek müşteriyi tam da indirimi hak
+  ettiği anda kapsam dışı bırakırdı.
+- **Eşleşme TAM, alt dize değil:** Niger/Nigeria, Guinea/Equatorial Guinea/
+  Guinea-Bissau, Congo/DR Congo, Sudan/South Sudan ayrı ülkeler ve alt dize
+  eşleşmesi dördünü de karıştırırdı (mango/zara dersinin coğrafya hâli).
+  Réunion/Mayotte/Kanarya **bilerek kapsam dışı**: coğrafyaları Afrika ama AB
+  gümrük alanı ve euro — Fransız Guyanası'nın Güney Amerika listesinde
+  olmamasıyla aynı gerekçe.
+- **Mektup: `reply_letter=terms_reply`** (`vestra_tpl_terms_reply`). İlk taslak
+  rakamları düz metne yazmıştı ve operatör **bir saat sonra** asgariyi
+  değiştirdi — gömülü olsaydı mektup o anda sessizce yalan söylemeye
+  başlardı. Artık asgari sabitten, indirim ülkenin kendi oranından, belgeler
+  `auth_required_doc_types()`'tan. **Avrupalı alıcıya ne taban ne indirim
+  cümlesi yazılıyor** (ikisi de onun için doğru değil, rozet satırları da boş
+  çıkıyor) ve **gönderim cümlesi verilmezse mektup o konuda SUSUYOR** —
+  taşıyıcı ve süre bir olgu, KURAL 3'ün mektup hâli.
+  Konu satırında **ülke ADI**: ilk yazımda ad yine `vestra_country_of_cc()`
+  üzerinden aranıyordu ve hem "BJ" hem "Benin" konuya *"for BJ"* diye
+  düşüyordu — **aynı oturumda kısmi tablonun üçüncü vakası**.
+- **Canlı ölçüm (16 Eyl 2026, deploy `babd378d`):** Benin hesabı, 100 EUR
+  sepet → taban 5.000,00 USD, sepet 107,57 USD, **eksik 4.892,43 USD**
+  (kur 1,0757); eşiğin hemen üstü GEÇİYOR; Almanya hesabı her tutarda
+  GEÇİYOR. Mektup testi operatör kutusuna gitti (run 218): `indirim 8% ·
+  asgari US$5,000 · konu "wholesale terms for Benin"`, müşteriye **gitmedi**.
+- Test: `tests/order_min_region_test.php` (177 iddia, iki yön). Düşebildiği
+  doğrulandı, her sabotajın **gerçekten uygulandığı ayrıca yazdırılarak**:
+  Afrika %10'a katlanınca **14 kırmızı**, Avrupa testi kısmi tabloya dönünce
+  **9**, `order.php` kapısı silinince **1**, rakam metne gömülünce **3**,
+  Avrupa'ya taban cümlesi yazılınca **1**, sabit 10.000'e döndürülünce **1**.
+  *İlk sabotaj denemem sessizce HİÇ UYGULANMAMIŞTI ve geçen bir testi kanıt
+  diye sunacaktım — `grep -c` ile doğrulanınca çıktı.*
+- **Mekanizma iddiaları sabite GÖRE yazılı** (eşik ne olursa olsun tutmalılar),
+  o yüzden **5.000'in kendisini pinleyen ayrı bir iddia** var: yoksa operatörün
+  söylediği sayıyı tutan tek şey sabitin adı olurdu (13 Eyl'de NEW rozetinin
+  penceresi tam bu sebeple ayrıca pinlenmişti).
+- **Sözlük DOKUZ dil, sekiz değil:** `ja`'yı atlamıştım; yakalayan şey bu test
+  değil, `seo_landing_test`'in `de.php`'ye karşı eksiksizlik taraması oldu.
+- Sonda: `inspect-products.yml` → `moq_scan=true` — MOQ/paket adımı dağılımı,
+  N adetle kaç marka/kategoriye ulaşıldığı, en düşük MOQ'lu ilanlar.
+  **FİYAT BASMAZ** (kâr oranı bu dosyada yazılı, fiyat maliyeti ele verir) ve
+  soru zaten adet sorusu.
+
 **KURAL 26 — Para birimi seçimi KALICI; çerezi yazan tek yer money.php'nin
 yüklenme anı** (operatör, 13 Eyl 2026: *"para birimi sürekli degisiyor ... para
 birimi secilmesine ragmen bir sonraki linke tiklandginda gene eur oluyor ayrica
