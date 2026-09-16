@@ -160,6 +160,28 @@ jobs:
             # komutu sh ile calistirir ve HOME'u kendisi kurar. Boylece cPanel
             # kullanici adi ne crontab'a ne bu (halka acik) loglara girer.
             ( crontab -l 2>/dev/null | grep -v 'VESTRA-SWEEP' || true
+              # OTURUM TEMIZLIGI -- 16 Eyl 2026'da ogrenildi, pahaliya.
+              # data/sessions'ta 229.721 oturum dosyasi birikmisti ve kullanici
+              # kotasi dolmustu: PHP artik oturum dosyasi ACAMIYORDU, yani site
+              # 200 donuyor ama giris, fiyat kapisi, sepet, panel calismiyordu.
+              # Sebep tek satirda: bu kurulum oturumlari kendi dizinimizde
+              # tutuyor (auth.php, paylasimli /tmp bizim oturumlarimizi
+              # dakikalar icinde siliyordu) ve gc_maxlifetime BILEREK 90 gun --
+              # yani PHP'nin kendi cop toplayicisi calissa bile hicbir seyi
+              # silmezdi. Cerez tasimayan her istek (taramaci botlar) YENI bir
+              # dosya aciyor: olculen hiz gunde ~7.000-9.000 dosya.
+              # Silmek kimseyi cikis yaptirmaz: auth_set() her giriste 90 gunluk
+              # vestra_rmb cerezi yaziyor ve auth_remember_restore() her
+              # session_start()'ta oturumu geri kuruyor. Sepet de oturumda degil
+              # (localStorage).
+              echo '30 5 * * * find $HOME/public_html/data/sessions -maxdepth 1 -type f -name "sess_*" -mtime +3 -delete 2>/dev/null # VESTRA-SWEEP oturum-temizlik'
+              # HATA GUNLUGU TAVANI. Ayni gun public_html/error_log 36 MB /
+              # 186.255 satirdi ve kendi kendini besliyordu: kota dolunca her
+              # istek ucer uyari yaziyor, o yazim kotayi daha da dolduruyordu.
+              # vestra_sweep.log'un tavani asagida zaten vardi; asil buyuyen
+              # dosyada yoktu. `cat > $L` yerinde kisaltir -- inode korunur,
+              # PHP'nin acik tuttugu tanitici gecerli kalir.
+              echo '35 5 * * * L=$HOME/public_html/error_log; if [ -f "$L" ] && [ "$(wc -c < "$L")" -gt 4194304 ]; then tail -c 1048576 "$L" > "$L.t" && cat "$L.t" > "$L" && rm -f "$L.t"; fi # VESTRA-SWEEP hata-gunlugu'
               echo '10 6 * * * cd $HOME/public_html && '"$PHPBIN"' cron_pool_sweep.php >> $HOME/vestra_sweep.log 2>&1 # VESTRA-SWEEP havuz'
               echo '25 6 * * * cd $HOME/public_html && '"$PHPBIN"' cron_escrow_release.php >> $HOME/vestra_sweep.log 2>&1 # VESTRA-SWEEP escrow'
               # Onay bekleyen hesaplar. Kayit oldugunda operatore HICBIR sey haber

@@ -2859,6 +2859,62 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   deploy-vestra.yml her push'ta `VESTRA-SWEEP` etiketli satırları idempotent kurar
   (06:10 havuz, 06:25 escrow; kütük `~/vestra_sweep.log`) ve ardından iki
   süpürücüyü kuru koşuyla ayağa kaldırıp fatal varsa deploy'u kırmızıya boyar.
+- **KURAL 27 — "Site açık" ile "site çalışıyor" ayrı şeyler: 16 Eyl 2026 disk
+  kotası kesintisi.** Sunucu `/` için **200** dönüyordu, sayfa 112 KB'lik tam
+  gövdeyle geliyordu — ama her istekte şu vardı:
+  `session_start(): open(.../data/sessions/sess_…) failed: Disk quota exceeded`.
+  **Oturum açılamıyorsa giriş, fiyat kapısı, sepet, sipariş, satıcı paneli ve
+  admin panelinin tamamı çalışmıyor demektir** (hepsi `$_SESSION`'a bağlı). Yani
+  vitrin ayakta, dükkân kapalıydı ve HTTP durum kodu bunu **söylemiyordu**.
+  - **`df` ÖLÇMEDİĞİ ŞEYE "iyi" DİYOR.** Sonda yalnız `df -h ~` basıyordu ve o
+    **birimi** gösteriyor: `/dev/sda1 2.0T 1.5T 430G 78%`. Sınır birimde değil
+    **kullanıcı kotasında**. `quota -s` bu barındırmada hiçbir şey basmıyor, yani
+    kotanın **sayısı** okunamıyor; okunabilen tek şey **yazılabiliyor mu**.
+    Sonda artık dört dizine gerçekten bir dosya yazmayı deniyor
+    (`data`, `data/sessions`, `uploads`, `/tmp`) — kesinti sırasında dördü de
+    `*** YAZILAMIYOR`, temizlikten sonra dördü de `yazilabilir`. *Bir kaynağın
+    tükendiğini, o kaynağı kullanmayı deneyerek ölç.*
+  - **Sebep tek yerde ve yapısal:** `data/sessions`'ta **229.721** oturum dosyası.
+    `auth.php` oturumları bilerek kendi dizinimizde tutuyor (paylaşımlı `/tmp`
+    GC'si bizimkileri dakikalar içinde siliyordu) ve `gc_maxlifetime` **90 gün** —
+    yani PHP'nin kendi çöp toplayıcısı çalışsa bile hiçbir şeyi silmezdi. Çerez
+    taşımayan **her** istek yeni bir dosya açıyor; ölçülen hız **günde ~7.000–
+    9.000**. 30 günden eski yalnızca 15.308 tanesi vardı: yığın taze ve hızlı,
+    yani müşteri değil **taramacı** üretiyor.
+  - **Silmek kimseyi çıkış yaptırmaz ve bu tahmin değil, koddan okundu:**
+    `auth_set()` her girişte 90 günlük `vestra_rmb` çerezi yazıyor
+    (`auth_remember_set`), `auth_remember_restore()` her `session_start()`'ta
+    oturumu geri kuruyor. Sepet de oturumda değil (localStorage). Etkilenen tek
+    grup: 90 günden beri hiç uğramamış ya da çerezini silmiş olanlar — onlar
+    zaten çıkmış durumdaydı.
+  - **İkinci besleyici, bir geri besleme döngüsü:** `public_html/error_log`
+    **36 MB / 186.299 satır**. Kota dolunca her istek üçer uyarı yazıyor, o yazım
+    kotayı daha da dolduruyordu. `vestra_sweep.log`'un tavanı deploy'da zaten
+    vardı; **asıl büyüyen dosyada yoktu.**
+  - **Yan hasar, bu dosyanın başka bir kaydını düzeltiyor:** KURAL 26'nın
+    eklediği `[VESTRA cur] cerez yazilamadi, cikti zaten baslamis` satırı
+    kesinti boyunca **her istekte** düşüyordu. Sebep para birimi kodu değil:
+    oturum uyarıları sayfa gövdesine basılıyor, başlıklar gidiyor, çerez artık
+    yazılamıyor. *O satır tam da işini yaptı — ama "para birimi bozuk" diye
+    okunabilirdi.*
+  - Onarım: `seller-products.yml` → **`admin_mode=diskclean`** (varsayılan kuru
+    koşu; `move_threads` spec, `move_apply` uygular). **Dokunmadıkları, bilerek:**
+    `data/docs` (38 MB müşteri belgesi), `invoices`, `receipts`, `offer_backups`,
+    `message_backups` — bu depo bir yedeğin katalogu kurtardığını (11 Eyl %80 geri
+    alması) ve bir teklifin yalnız yedekten geri geldiğini (KURAL 5g) kaydediyor.
+    Dosya **adı** hiç basılmıyor: oturum dosyasının adı oturum kimliğidir, yani
+    kimlik doğrulama jetonu, ve bu kütük herkese açık.
+  - **Tekrarlamaması koda bağlandı, hatırlamaya değil:** `deploy-vestra.yml` iki
+    yeni `VESTRA-SWEEP` satırı kuruyor — 05:30 oturum temizliği (3 günden eski
+    `sess_*`) ve 05:35 hata günlüğü tavanı (4 MB'ı aşarsa son 1 MB kalır,
+    `cat > $L` ile **yerinde** kısaltma: inode korunur, PHP'nin açık tuttuğu
+    tanıtıcı geçerli kalır).
+  - **Sonuç (aynı gün):** 211.215 dosya silindi, 18.506 kaldı; ev dizini
+    4,3 G → 4,2 G; üç dizin de yeniden yazılabilir. **Açık kalan:** ev dizininin
+    4,2 G'sinin 1,7 G'si `public_html`, 1,3 G'si `vestra-repo`, ~1,2 G'si
+    `~/wt_incoming` staging'i (Dropbox/WeTransfer indirmeleri). Sonuncusu en büyük
+    tek kazanç ama içinde **bekleyen iş var** (D&G iç giyim fotoğrafları,
+    KURAL 25) — silmek operatör kararı.
 - **CRON SAATLERİ UTC DEĞİL, SUNUCUNUN YEREL SAATİ (MST, UTC−7).** Bu dosya altı
   yerde "06:40 UTC", "07:20 UTC" diye yazıyordu; **yanlıştı** — cron crontab'ı
   sunucunun kendi saat diliminde yorumlar, `deploy-vestra.yml`'deki satırlar ise
