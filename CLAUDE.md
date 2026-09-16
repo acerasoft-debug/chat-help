@@ -4504,6 +4504,52 @@ BİRDEN FAZLA marka alıyor; ve cevap mektubu adımı ARGÜMAN SINIRINI aşmış
   listeler de aynı yoldan çıktı. Seçenek iki: (a) satılmışı dışarıda bırak,
   (b) listeye bir uygunluk sütunu ekle. İkisi de **her** fiyat listesini
   değiştirir, o yüzden kendiliğinden yapılmadı.
+  **ÜÇÜNCÜ bir yol seçildi (operatör, 16 Eyl 2026: *"onlari yeniden stoga
+  gelicek yap"*):** iki polo **stoğa alındı**, yani liste kendiliğinden doğru
+  oldu. `product-fixes/lacoste-restock.json` + `set-product.yml`; kuru koşu
+  2/2 eşleşti, uygulandı, zaman damgalı yedek alındı. Geri okuma (aşağıdaki
+  yeni SATIS sütunu): ikisi de **satista**.
+  **Kusurun kendisi DURUYOR** — üç üretici hâlâ `sold_out` okumuyor; yalnız
+  bu iki ilan artık satılmış değil.
+
+- **`sold_out`'un YAZMA dalı yoktu; `false` kayda `""` olarak iniyordu**
+  (16 Eyl 2026, yukarıdaki stoğa alma sırasında bulundu). `set_product.php`
+  alanı KABUL ediyor ve DOĞRULUYORDU (`is_bool` şartı), ama yazarken en
+  aşağıdaki genel dala düşüyordu: `$new = (string)$v`, ve PHP'de
+  `(string)false` = `""`. Bugün zararsız — her okuyan
+  `vestra_is_sold_out()`'tan geçiyor ve boş dizgeyi `false` okuyor — ama
+  alanı `isset()`/`array_key_exists()` ile soracak bir okuyan **satışta**
+  olan ürünü "satıldı" sayardı. `group` dalı bu depoda **birebir aynı
+  sebeple** yazılmıştı; orada bozulma ters yöne gidiyor
+  (`!empty("false")` → TRUE) ve kapatılmak istenen havuzu **açık**
+  bırakıyordu. Yeni dal gerçek bool yazıyor ve `$old`'u kapının ikinci bir
+  kopyasından değil, altı satın alma yolunun çağırdığı **aynı**
+  `vestra_is_sold_out()`'tan okuyor.
+  **Kaynak taraması bunu göremezdi** (§5 alanın kabul edildiğini zaten
+  tarıyordu ve yeşildi): `sold_out_test.php §7` betiği artık kum havuzunda
+  **gerçekten koşturuyor** ve kaydı geri okuyor. Düşebildiği doğrulandı —
+  dal devre dışı bırakılınca **5 kırmızı**, biri değeri doğrudan gösteriyor
+  (*"bos dizge DEGIL: ''"*); sabotajın gerçekten uygulandığı `grep -c` ile
+  ayrıca doğrulandı. Test 34 → 46 iddia.
+
+- **Sonda GÖREMEDİĞİ alan hakkında yeşil veremez** (aynı iş).
+  `inspect-products` → `price_list` dökümü `sold_out`'u **hiç yazmıyordu**,
+  yani iki poloyu "listede fiyatıyla duruyor" diye bulan ölçüm, uygunluğu
+  **ölçemiyordu**. `SATIS` sütunu eklendi (ölçüt yine
+  `vestra_is_sold_out()` — "alan dolu mu" diye sormak boş dizgeyi SATILDI
+  sayardı). Aynı ders bu depoda iki kez kayıtlı: `check_images` yalnız
+  `approved` geziyordu, `raw_scan` bu yüzden var.
+  **Sütun ilk koşuşunda ÜÇÜNCÜ bir vakayı buldu:** `LAC-LT-TEE-01`
+  (Trim Cotton Jersey T-Shirt, 12 Eylül'de satıldı yapılmıştı) aynı 13
+  satırlık dökümde **€29,00 / kademe €20,00** ile duruyor ve `*** SATILDI ***`
+  diyor. Yani benim bir önceki ölçümüm **eksikti**: iki polo saydım, üçüncüsü
+  gözümden kaçtı ve ancak sütun eklenince göründü. **Kendiliğinden stoğa
+  ALINMADI** — operatörün cümlesi *"onları"* diyordu ve o iki poloyu
+  adlandırmıştı; 12 Eylül'de bilerek kapatılmış ayrı bir ürünü aynı sepete
+  koymak, operatörün vermediği bir kararı vermek olurdu (13 Eylül D&G
+  notunun aynı dersi: *"bu cümlede 'tüm' YOK, TEK ürün adlandırılmış"*).
+  **Operatör kararı bekliyor** — ve bu bir fiyat listesinde duruyor, yani
+  o listeyi alan her aday adaya satamayacağımız bir ürünün fiyatını okuyor.
 
 **KURAL 27 — AVRUPA DIŞINA asgari sipariş 5.000 USD; AFRİKA'ya %8 indirim**
 (operatör, 16 Eyl 2026, Benin'den gelen ilk kurumsal soru vesilesiyle:
