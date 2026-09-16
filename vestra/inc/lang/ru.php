@@ -1247,4 +1247,7 @@ return array (
   'Choose at least one size.' => 'Выберите хотя бы один размер.',
   'Choose at least one colour.' => 'Выберите хотя бы один цвет.',
   'Size selection missing — open the product page, choose at least one size and add the item again.' => 'Размер не выбран — откройте страницу товара, выберите хотя бы один размер и добавьте товар снова.',
+  'Orders outside Europe start at US$%s. Please add to your basket, or contact us and we will look at your order individually.' => 'Заказы за пределами Европы начинаются от US$%s. Дополните корзину или напишите нам — мы рассмотрим ваш заказ индивидуально.',
+  'We could not check the minimum order value just now because today\'s exchange rate is unavailable. Please try again shortly, or contact us and we will complete the order by hand.' => 'Сейчас не удалось проверить минимальную сумму заказа: курс на сегодня недоступен. Попробуйте чуть позже или напишите нам, и мы оформим заказ вручную.',
+
 );

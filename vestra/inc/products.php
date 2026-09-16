@@ -713,6 +713,170 @@ function vestra_brand_min_order(string $brand): float {
 }
 
 /**
+ * AVRUPA DIŞINDAN gelen siparişin asgari tutarı: 10.000 USD
+ * (operatör, 16 Eyl 2026: *"Avrupa dışına en az alım 10 Bin USD yaz"*).
+ *
+ * MARKA asgarisinden (VESTRA_BRAND_MIN_ORDER_EUR) AYRI bir kapı ve ayrı bir
+ * soru: o, bir markanın sepetteki toplamına bakıyor; bu, siparişin TAMAMINA.
+ * İkisi birlikte işliyor — biri geçip diğerine takılan bir sepet mümkün ve
+ * doğru.
+ *
+ * BİRİM USD, ve bu KURAL 21'de kayıtlı kararın TERSİ: orada operatör, marka
+ * asgarisini USD yapmanın "gerçek minimumun kurla dalgalanması" demek
+ * olduğunu duyunca EUR'yu seçmişti. Burada USD'yi açıkça istedi, o yüzden
+ * bedeli de burada yazılı: katalog EUR, eşik USD, yani karşılaştırma bir
+ * KUR gerektiriyor ve kur bir olgu, tahmin değil. **Kur yoksa sipariş
+ * GEÇMEZ** (KURAL 17'nin dropship tahsilatındaki kararıyla aynı): uydurma
+ * bir kurla 10.000 USD'yi ölçmek, eşiği sessizce başka bir sayıya çevirmek
+ * olurdu. Bedeli açık: bir FX kesintisinde Avrupa dışı siparişler durur.
+ */
+const VESTRA_NONEU_MIN_ORDER_USD = 10000.0;
+
+/**
+ * "Avrupa" — coğrafi Avrupa, AB gümrük alanı DEĞİL.
+ *
+ * Operatörün cümlesi "Avrupa dışına"; AB ile sınırlasaydık Birleşik Krallık,
+ * İsviçre ve Norveç'teki alıcılar 10.000 USD tabanına düşerdi ve bu, onlara
+ * bugüne kadar uygulanmayan bir şart demekti. Liste AÇIK yazılı: bir ülkeyi
+ * eklemek ya da çıkarmak tek satır, ve hangi ülkenin hangi tarafta olduğu
+ * kodun içinden okunabiliyor. Eşleşme TAM.
+ */
+function vestra_europe_codes(): array {
+    return [
+        // AB 27
+        'AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE',
+        'IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE',
+        // EFTA + Birleşik Krallık
+        'CH','NO','IS','LI','GB',
+        // Avrupa'nın geri kalanı (mikro devletler ve Balkanlar dahil)
+        'AL','AD','BA','BY','MD','MC','ME','MK','RS','SM','UA','VA','XK',
+    ];
+}
+
+/**
+ * Avrupa ülkelerinin yazımları. Kayıt formu SERBEST METİN: alan "DE" de
+ * alıyor, "Deutschland" da, "Allemagne" da.
+ *
+ * NEDEN AYRI TABLO — ve bu ÖLÇÜMLE bulundu: ilk yazımda ülkeyi
+ * `vestra_cc_of_country()` çözüyordu, oysa o tablo KÜRATÖRLÜ ve kısmi
+ * (kayıt IP'si ile beyanı karşılaştırmak için yazılmış). Sonuç: **"Benin"
+ * ve "Brazil" AVRUPA çıkıyordu** — yani tabanın var olma sebebi olan iki
+ * ülke tam da kapıda muaf oluyordu. Kısmi bir tabloyu tam sanmak, bu
+ * deponun altı kez kaydettiği "kontrol yanlış yere bakıyor" hatasının ta
+ * kendisi; kaynak okuyarak değil, çalıştırıp çıktıyı okuyarak yakalandı.
+ */
+function vestra_europe_names(): array {
+    static $t = [
+        'AT' => ['austria', 'österreich', 'osterreich', 'autriche', 'austria'],
+        'BE' => ['belgium', 'belgië', 'belgie', 'belgique', 'belgien', 'belgio', 'bélgica'],
+        'BG' => ['bulgaria', 'българия', 'bulgarien', 'bulgarie', 'bulgarija'],
+        'HR' => ['croatia', 'hrvatska', 'kroatien', 'croatie', 'croazia', 'croacia'],
+        'CY' => ['cyprus', 'κύπρος', 'kypros', 'zypern', 'chypre', 'cipro', 'chipre'],
+        'CZ' => ['czechia', 'czech republic', 'the czech republic', 'česko', 'cesko', 'česká republika', 'ceska republika', 'tschechien', 'tchéquie', 'tchequie', 'repubblica ceca', 'chequia'],
+        'DK' => ['denmark', 'danmark', 'dänemark', 'danemark', 'danemark', 'danimarca', 'dinamarca'],
+        'EE' => ['estonia', 'eesti', 'estland', 'estonie', 'estonia'],
+        'FI' => ['finland', 'suomi', 'finnland', 'finlande', 'finlandia'],
+        'FR' => ['france', 'frankreich', 'francia', 'frança', 'franca', 'république française'],
+        'DE' => ['germany', 'deutschland', 'allemagne', 'germania', 'alemania', 'alemanha', 'brd', 'federal republic of germany'],
+        'GR' => ['greece', 'ελλάδα', 'ellada', 'hellas', 'griechenland', 'grèce', 'grece', 'grecia'],
+        'HU' => ['hungary', 'magyarország', 'magyarorszag', 'ungarn', 'hongrie', 'ungheria', 'hungría', 'hungria'],
+        'IE' => ['ireland', 'éire', 'eire', 'irland', 'irlande', 'irlanda'],
+        'IT' => ['italy', 'italia', 'italien', 'italie', 'itália'],
+        'LV' => ['latvia', 'latvija', 'lettland', 'lettonie', 'lettonia'],
+        'LT' => ['lithuania', 'lietuva', 'litauen', 'lituanie', 'lituania'],
+        'LU' => ['luxembourg', 'luxemburg', 'lëtzebuerg', 'letzebuerg', 'lussemburgo', 'luxemburgo'],
+        'MT' => ['malta', 'malte'],
+        'NL' => ['netherlands', 'the netherlands', 'nederland', 'holland', 'niederlande', 'pays bas', 'pays-bas', 'paesi bassi', 'países bajos', 'paises bajos', 'holanda'],
+        'PL' => ['poland', 'polska', 'rzeczpospolita polska', 'polen', 'pologne', 'polonia', 'polônia'],
+        'PT' => ['portugal', 'portugale', 'portogallo'],
+        'RO' => ['romania', 'românia', 'rumänien', 'rumanien', 'roumanie', 'rumania', 'rumanía'],
+        'SK' => ['slovakia', 'slovensko', 'slowakei', 'slovaquie', 'slovacchia', 'eslovaquia'],
+        'SI' => ['slovenia', 'slovenija', 'slowenien', 'slovénie', 'slovenie', 'eslovenia'],
+        'ES' => ['spain', 'españa', 'espana', 'spanien', 'espagne', 'spagna', 'espanha'],
+        'SE' => ['sweden', 'sverige', 'schweden', 'suède', 'suede', 'svezia', 'suecia'],
+        'CH' => ['switzerland', 'schweiz', 'suisse', 'svizzera', 'suiza', 'suíça', 'suica', 'confoederatio helvetica'],
+        'NO' => ['norway', 'norge', 'noreg', 'norwegen', 'norvège', 'norvege', 'norvegia', 'noruega'],
+        'IS' => ['iceland', 'ísland', 'island', 'islande', 'islanda', 'islandia'],
+        'LI' => ['liechtenstein'],
+        'GB' => ['united kingdom', 'uk', 'great britain', 'britain', 'england', 'scotland', 'wales', 'northern ireland', 'vereinigtes königreich', 'grossbritannien', 'großbritannien', 'royaume uni', 'royaume-uni', 'regno unito', 'reino unido', 'angleterre'],
+        'AL' => ['albania', 'shqipëria', 'shqiperia', 'albanien', 'albanie', 'albania'],
+        'AD' => ['andorra', 'andorre'],
+        'BA' => ['bosnia and herzegovina', 'bosnia', 'bosna i hercegovina', 'bosnien und herzegowina', 'bosnie herzégovine', 'bosnie-herzégovine'],
+        'BY' => ['belarus', 'беларусь', 'weißrussland', 'weissrussland', 'biélorussie', 'bielorussie', 'bielorussia'],
+        'MD' => ['moldova', 'republic of moldova', 'moldau', 'moldavie', 'moldavia'],
+        'MC' => ['monaco', 'monako'],
+        'ME' => ['montenegro', 'crna gora', 'monténégro'],
+        'MK' => ['north macedonia', 'macedonia', 'северна македонија', 'nordmazedonien', 'macédoine du nord'],
+        'RS' => ['serbia', 'srbija', 'србија', 'serbien', 'serbie'],
+        'SM' => ['san marino', 'saint marin'],
+        'UA' => ['ukraine', 'україна', 'ukrajina', 'ucraina', 'ucrania', 'ucrânia'],
+        'VA' => ['vatican', 'vatican city', 'holy see', 'città del vaticano', 'vatikan'],
+        'XK' => ['kosovo', 'kosova', 'kosovë'],
+    ];
+    return $t;
+}
+
+/**
+ * Bu hesap Avrupa'da mı?
+ *
+ * ÖLÇÜT POZİTİF: ülke AVRUPA olarak TANINIYORSA muaf, aksi hâlde taban
+ * uygulanır. Ters yön (tanınmayan = Avrupa) denendi ve yanlıştı: dünyanın
+ * kalanını kapsayan bir tablomuz yok, yani "Benin", "Brazil", "United
+ * States" hepsi sessizce muaf olurdu — eksik tahsilat GÖRÜNMEZ, fazla
+ * sorulan soru görünür. Tanınmayan bir Avrupa yazımı, alıcıya "bizimle
+ * iletişime geçin" diyen bir uyarı üretir ve düzeltilebilir; tersi hiç fark
+ * edilmez.
+ */
+function vestra_user_in_europe(?array $user): bool {
+    if (!is_array($user)) return true;          // hesapsız = kapı zaten kapalı
+    $raw = trim((string)($user['country'] ?? ''));
+    if ($raw === '') return true;               // alan hiç yoksa taban işlemez
+    /* Çıplak ISO kodu: kayıt formunun kendi örneği 'DE'. Tam eşleşme —
+       'AT' Avusturya ile 'AU' Avustralya, 'SI' Slovenya ile 'SG' Singapur
+       arasındaki farkı alt dize eşleşmesi kaybederdi. */
+    if (preg_match('/^[A-Za-z]{2}$/', $raw)) return in_array(strtoupper($raw), vestra_europe_codes(), true);
+    $folded = trim(preg_replace('/\s+/u', ' ', strtr(mb_strtolower($raw), ['-' => ' ', '_' => ' '])));
+    if ($folded === '') return true;
+    foreach (vestra_europe_names() as $names) {
+        if (in_array($folded, $names, true)) return true;
+    }
+    return false;
+}
+
+/** Bu hesap için asgari sipariş tutarı (USD); Avrupa içi 0.0 = kural işlemez. */
+function vestra_order_min_usd(?array $user): float {
+    return vestra_user_in_europe($user) ? 0.0 : (float)VESTRA_NONEU_MIN_ORDER_USD;
+}
+
+/**
+ * Sepet EUR toplamı bu hesabın USD tabanını geçiyor mu? Saf: girdi tutar +
+ * hesap, çıktı eksik. Sunucu kapısı ve sepet uyarısı AYNI cevabı okusun diye
+ * tek yer (marka asgarisiyle aynı gerekçe).
+ *
+ * Doner: []                       -> geçer (taban yok ya da tutar yeterli)
+ *        ['error'=>'fx']          -> kur okunamadı, ölçüm YAPILAMADI
+ *        ['min_usd','have_usd','short_usd','rate'] -> eksik
+ *
+ * $subtotalEur, alıcının GERÇEKTEN ödeyeceği mal toplamı olmalı: bölgesel
+ * indirim `vestra_unit_price()` içinde zaten uygulanıyor, yani satır
+ * toplamları indirimli. Tabanı indirimsiz fiyattan ölçmek, %8 indirim alan
+ * bir alıcıdan fiilen 10.870 USD istemek olurdu.
+ */
+function vestra_order_min_shortfall(float $subtotalEur, ?array $user): array {
+    $min = vestra_order_min_usd($user);
+    if ($min <= 0) return [];
+    if (!function_exists('vestra_fx')) require_once __DIR__.'/money.php';
+    $rate = (float)vestra_fx('USD');
+    if ($rate <= 0) return ['error' => 'fx', 'min_usd' => $min];
+    $haveUsd = round($subtotalEur * $rate, 2);
+    /* Tolerans: tam sınırdaki sepet (10.000,00) kayan nokta yüzünden
+       reddedilmesin -- marka asgarisindeki ile aynı 0,005. */
+    if ($haveUsd >= $min - 0.005) return [];
+    return ['min_usd' => $min, 'have_usd' => $haveUsd,
+            'short_usd' => round($min - $haveUsd, 2), 'rate' => $rate];
+}
+
+/**
  * Sepet satirlarindan marka basina EKSIK tutari bulur. Saf: girdi satirlar,
  * cikti eksikler. Sunucu kapisi (order.php) ve sepet uyarisi ayni cevabi
  * okusun diye tek yer -- bu depoda ikinci bir kapi tanimi alti kez yanlis yere

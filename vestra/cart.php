@@ -65,6 +65,21 @@ if (stripe_available()) {
             $bmB !== '' ? $bmB : '—',
             vestra_money($bmMin > 0 ? $bmMin : VESTRA_BRAND_MIN_ORDER_EUR, 'EUR'))) ?></div>
   <?php endif; ?>
+  <?php /* Sunucu Avrupa-disi asgari kapisinin karsiligi (order.php).
+           Rakam SABITTEN ve USD: esik USD cinsinden bir operator karari, ve
+           gosterim birimine cevrilmis bir esik ekranda oynardi (marka
+           asgarisindeki ile ayni gerekce). Eksik tutar da yaziliyor --
+           "yetersiz" deyip ne kadar eksik oldugunu soylemeyen bir uyari,
+           alicinin sepeti terk etmesinin en kisa yolu. */ ?>
+  <?php if(isset($_GET['err']) && in_array($_GET['err'], ['ordermin','ordermin_fx'], true)):
+          $omMin = number_format(VESTRA_NONEU_MIN_ORDER_USD, 2); ?>
+    <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
+      <?php if($_GET['err']==='ordermin_fx'): ?>
+        <?= htmlspecialchars(sprintf(t('We could not check the minimum order value just now because today\'s exchange rate is unavailable. Please try again shortly, or contact us and we will complete the order by hand.'))) ?>
+      <?php else: ?>
+        <?= htmlspecialchars(sprintf(t('Orders outside Europe start at US$%s. Please add to your basket, or contact us and we will look at your order individually.'), $omMin)) ?>
+      <?php endif; ?></div>
+  <?php endif; ?>
   <?php /* Sunucu yetki kontrolunun karsiligi (order.php). Sepet dolu kaliyor:
            onay gelince ayni sepetle devam edebilsin. */ ?>
   <?php if(isset($_GET['err']) && $_GET['err']==='not_approved'): ?>

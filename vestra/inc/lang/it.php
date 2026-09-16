@@ -1251,4 +1251,7 @@ return array (
   'Choose at least one size.' => 'Scegli almeno una taglia.',
   'Choose at least one colour.' => 'Scegli almeno un colore.',
   'Size selection missing — open the product page, choose at least one size and add the item again.' => 'Selezione della taglia mancante — apri la scheda prodotto, scegli almeno una taglia e aggiungi di nuovo l’articolo.',
+  'Orders outside Europe start at US$%s. Please add to your basket, or contact us and we will look at your order individually.' => 'Gli ordini fuori dall\'Europa partono da US$%s. Completi il carrello oppure ci scriva: valuteremo il suo ordine singolarmente.',
+  'We could not check the minimum order value just now because today\'s exchange rate is unavailable. Please try again shortly, or contact us and we will complete the order by hand.' => 'Non siamo riusciti a verificare l\'importo minimo in questo momento perché il cambio di oggi non è disponibile. Riprovi a breve oppure ci scriva: completeremo l\'ordine manualmente.',
+
 );

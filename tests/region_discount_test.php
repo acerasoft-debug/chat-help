@@ -23,7 +23,13 @@ foreach ($sa as $name => $code) $t("{$name} -> {$code}", $cc($name) === $code);
 $t('12 ülkenin hepsi listede', count(array_intersect(array_values($sa), vestra_region_discount_codes())) === 12);
 /* Liste 13 Eyl 2026'da iki kez buyudu (once GA+APAC, sonra CZ+PL). Sayi
    burada yazili ki bir sonraki ekleme sessizce gecmesin. */
-$t('kapsam toplam 18 ülke', count(vestra_region_discount_codes()) === 18);
+/* 16 Eyl 2026: Afrika'nın 54 ülkesi %8 ile eklendi (operatör kararı), yani
+   kapsam 18 → 72. Sayıyı sabitleyen iddia DAVRANIŞ BİLEREK DEĞİŞTİĞİ için
+   güncellendi — bu depoda "davranış değiştiyse testi de düzelt" kayıtlı.
+   Sayı yine sabitleniyor: bir ülkenin listeye sessizce girip çıkması, indirim
+   veren bir kuralda fark edilmeden olmamalı. */
+$t('kapsam toplam 72 ülke (18 + 54 Afrika)', count(vestra_region_discount_codes()) === 72);
+$t('oranlar tablosu kapsamla aynı',  count(vestra_region_discount_rates()) === 72);
 $t('kod listesinde tekrar yok', count(vestra_region_discount_codes()) === count(array_unique(vestra_region_discount_codes())));
 
 echo "\n== 2. Asya-Pasifik dördü ==\n";
@@ -56,7 +62,13 @@ $t("'AT' Avusturya, 'AU' DEĞİL",         $cc('AT') === '' && $cc('AU') === 'AU
 $t("'SA' Suudi Arabistan kapsam DIŞI",   $cc('SA') === '' && $cc('Saudi Arabia') === '');
 $t("'CN' Çin anakarası kapsam DIŞI",     $cc('CN') === '' && $cc('China') === '');
 $t("'GF' Fransız Guyanası kapsam DIŞI",  $cc('GF') === '' && $cc('French Guiana') === '');
-$t("'SN' Senegal, 'SG' DEĞİL",           $cc('SN') === '');
+/* Senegal 16 Eyl 2026'dan beri kapsamda (%8). İddianın ASIL ölçtüğü şey
+   duruyor ve asıl önemli olan o: 'SN' ile 'SG' AYRI ülkeler ve ayrı oranlar —
+   eskiden biri kapsam dışıydı, şimdi ikisi de kapsamda ama karışmıyorlar. */
+$t("'SN' Senegal (Afrika, %8)",          $cc('SN') === 'SN'
+                                      && abs(vestra_region_discount_pct(['country'=>'SN']) - 8.0) < 0.001);
+$t("'SG' Singapur AYRI (%10)",           $cc('SG') === 'SG'
+                                      && abs(vestra_region_discount_pct(['country'=>'SG']) - 10.0) < 0.001);
 $t("'PT' Portekiz, 'PE'/'PY' DEĞİL",     $cc('PT') === '');
 $t("'US' ve 'UY' ayrı",                  $cc('US') === '' && $cc('UY') === 'UY');
 $t("'SE' İsveç, 'SR' DEĞİL",             $cc('SE') === '');

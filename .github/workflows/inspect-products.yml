@@ -6,6 +6,15 @@ on:
         description: "Marka filtresi — * = HEPSI. Boş bırakma: GitHub boş değeri 'verilmedi' sayıp varsayılanı uygular"
         required: false
         default: "*"
+      moq_scan:
+        # "Ilk siparisim 30-50 parca olabilir mi?" sorusunun cevabi MOQ'da ve
+        # MOQ ilan BASINA. Hafizadan cevaplamak bu depoda yasak: musteriye
+        # sepetin reddedecegi bir soz vermek olurdu. Fiyat BASILMIYOR -- kar
+        # orani CLAUDE.md'de yazili ve fiyat maliyeti ele verir; sorunun
+        # cevabi zaten adet, tutar degil.
+        description: "true = ASGARI ALIM taramasi: MOQ ve paket adimi dagilimi, N adetle kac marka/kategoriye ulasilir, en dusuk MOQ'lu ilanlar. FIYAT BASMAZ, salt okunur."
+        required: false
+        default: "false"
       bak_diff:
         # "Fiyatlari eskiye getir" denince once SORULACAK sey: gercekten ne
         # degisti? Kor bir geri yukleme, operatorun KENDI istedigi degisiklikleri
@@ -109,6 +118,7 @@ jobs:
           INSPECT_FIT: ${{ github.event.inputs.fit_scan }}
           INSPECT_RAW: ${{ github.event.inputs.raw_scan }}
           INSPECT_SHOPORD: ${{ github.event.inputs.shop_order }}
+          INSPECT_MOQ: ${{ github.event.inputs.moq_scan }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
@@ -119,7 +129,7 @@ jobs:
           # gecirir. Yeni bir girdi eklerken bu satir unutulursa uzak tarafta
           # getenv() bos doner ve mod SESSIZCE calismaz -- sonda, sorulmayan bir
           # soruya "her sey normal" diye cevap verir.
-          envs: INSPECT_SHOPORD,INSPECT_BAKDIFF,INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT,INSPECT_FIT,INSPECT_RAW
+          envs: INSPECT_MOQ,INSPECT_SHOPORD,INSPECT_BAKDIFF,INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT,INSPECT_FIT,INSPECT_RAW
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
@@ -145,6 +155,7 @@ jobs:
             $paudit   = strtolower(trim((string)getenv("INSPECT_PAUDIT")))  === 'true';
             $fitscan  = strtolower(trim((string)getenv("INSPECT_FIT")))     === 'true';
             $rawscan  = strtolower(trim((string)getenv("INSPECT_RAW")))     === 'true';
+            $moqscan  = strtolower(trim((string)getenv("INSPECT_MOQ")))     === 'true';
             $bakdiff  = trim((string)getenv("INSPECT_BAKDIFF"));
             $shopord  = strtolower(trim((string)getenv("INSPECT_SHOPORD")));
 
@@ -322,6 +333,69 @@ jobs:
                 else echo "  (damga yok)\n";
                 echo "FIYATI DEGISEN TOPLAM: ".count($rows)."\n";
                 exit(0);
+            }
+
+            /* ASGARI ALIM TARAMASI. Yeni musterinin ilk sorusu hep ayni:
+               "su kadar parca alabilir miyim". Cevap ilan BASINA MOQ'da ve
+               katalogda 800+ ilan var, yani hafizadan verilen her cevap ya
+               fazla ya eksik soz olur -- sepet MOQ'nun altini kabul etmiyor.
+               vestra_products(): musterinin GERCEKTEN gorebildigi liste
+               (approved + unlisted haric) -- ham liste satilamayan ilanlari da
+               sayar ve cevabi iyimser tarafa kaydirirdi.
+               FIYAT YOK: soru adet sorusu, ve kar orani kayitli oldugu icin
+               fiyat basmak maliyeti herkese acik kutuge yazmak demek. */
+            if ($moqscan) {
+              $live = vestra_products();
+              $tot = count($live);
+              $bkt = ['1' => 0, '2-10' => 0, '11-20' => 0, '21-50' => 0, '51+' => 0];
+              $steps = []; $reach = [];
+              $rows = [];
+              foreach ($live as $p) {
+                $moq  = max(1, (int)($p['moq'] ?? 1));
+                $step = max(1, (int)($p['size_step'] ?? 1));
+                if ($moq <= 1)       $bkt['1']++;
+                elseif ($moq <= 10)  $bkt['2-10']++;
+                elseif ($moq <= 20)  $bkt['11-20']++;
+                elseif ($moq <= 50)  $bkt['21-50']++;
+                else                 $bkt['51+']++;
+                $steps[$step] = ($steps[$step] ?? 0) + 1;
+                $br = trim((string)($p['brand'] ?? '?')) ?: '?';
+                $ct = trim((string)($p['cat'] ?? '?')) ?: '?';
+                foreach ([10, 20, 30, 50] as $n) {
+                  if ($moq <= $n) { $reach[$n]['b'][$br] = true; $reach[$n]['c'][$ct] = true; $reach[$n]['n'] = ($reach[$n]['n'] ?? 0) + 1; }
+                }
+                $rows[] = ['moq' => $moq, 'step' => $step, 'brand' => $br, 'cat' => $ct,
+                           'sec' => function_exists('vestra_product_section') ? (string)vestra_product_section($p) : ''];
+              }
+              usort($rows, fn($a, $b) => [$a['moq'], $a['brand']] <=> [$b['moq'], $b['brand']]);
+              echo "== ASGARI ALIM (MOQ) TARAMASI — canli katalog: {$tot} ilan ==\n";
+              foreach ($bkt as $k => $v) printf("  MOQ %-6s %4d ilan\n", $k, $v);
+              ksort($steps);
+              echo "  paket adimi (size_step): ";
+              $sp = []; foreach ($steps as $k => $v) $sp[] = $k.'x'.$v;
+              echo implode(' · ', $sp)."\n";
+              /* "N adetle kac marka" -- musterinin sordugu sey bu: tek kalemde
+                 degil, SEPETTE N parca. Bir ilan ancak MOQ'su N'den kucukse o
+                 sepete tek basina girebilir. */
+              foreach ([10, 20, 30, 50] as $n) {
+                printf("  <=%2d adetle alinabilen: %3d ilan | %2d marka | %2d kategori\n",
+                  $n, (int)($reach[$n]['n'] ?? 0), count($reach[$n]['b'] ?? []), count($reach[$n]['c'] ?? []));
+              }
+              /* En dusuk MOQ'lu ilanlar: "30-50 parca" bir sepette gercekten
+                 nasil kurulur sorusunun somut cevabi. Ad ve fiyat yok. */
+              echo "  en dusuk MOQ'lu 25 ilan (marka · kategori · bolme · MOQ/paket):\n";
+              foreach (array_slice($rows, 0, 25) as $r)
+                printf("    %-22s %-22s %-10s MOQ %3d / paket %d\n",
+                  mb_substr($r['brand'], 0, 22), mb_substr($r['cat'], 0, 22), $r['sec'], $r['moq'], $r['step']);
+              /* Marka asgarisi MOQ'dan AYRI bir kapi (KURAL 21): sepetteki o
+                 markanin TOPLAMI esigin altindaysa siparis gecmiyor. MOQ'yu
+                 saglayip burada takilan bir musteri "neden olmuyor" der. */
+              if (function_exists('vestra_brand_min_orders')) {
+                $bm = vestra_brand_min_orders();
+                echo "  marka asgarisi (sepette o markanin toplami): ".($bm ? '' : 'yok')."\n";
+                foreach ($bm as $k => $v) printf("    %-22s %s EUR\n", $k, number_format((float)$v, 2));
+              }
+              echo "\n";
             }
 
             /* HAM KAYIT: vestra_listings(), vestra_products() DEGIL.

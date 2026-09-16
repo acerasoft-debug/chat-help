@@ -115,6 +115,25 @@ if(!$lines){ header('Location: /cart'); exit; }
 $brandShort = vestra_brand_min_shortfall($lines);
 if($brandShort){ header('Location: /cart?err=brandmin&b='.urlencode((string)array_key_first($brandShort))); exit; }
 
+/* AVRUPA DISI ASGARI SIPARIS: 10.000 USD (operator, 16 Eyl 2026). Marka
+   asgarisiyle AYNI desen ve AYNI sebeple sunucuda: sepetteki uyari bir
+   gorunum tercihi, kapi burasi. Olcum yine YENIDEN FIYATLANMIS satirlardan
+   ($subtotal), yani alicinin gercekten odeyecegi -- bolgesel indirim
+   vestra_unit_price() icinde zaten uygulanmis durumda.
+   KUR OKUNAMAZSA GECIS YOK: esigi uydurma bir kurla olcmek, 10.000 USD'yi
+   sessizce baska bir sayiya cevirmek olurdu (KURAL 17'nin dropship
+   tahsilatindaki karari). Bedeli acik ve bilerek: bir FX kesintisinde
+   Avrupa disi siparisler durur. */
+/* Hesap BURADA okunuyor: ilk yazimda $user yazdim ve bu dosyada oyle bir
+   degisken YOK -- PHP'de tanimsiz degisken null, yani
+   vestra_order_min_shortfall(null) 'hesapsiz' deyip kapiyi HERKESE
+   acardi. Sessiz gecen bir kapi, hic yazilmamis bir kapidan kotudur;
+   bu dosyanin kendi degisken adi $me (satir 47). */
+$minShort = vestra_order_min_shortfall($subtotal, auth_user());
+if($minShort){
+  header('Location: /cart?err='.(($minShort['error'] ?? '') === 'fx' ? 'ordermin_fx' : 'ordermin')); exit;
+}
+
 /* ── Voucher ──────────────────────────────────────────────────────────────────
    Revalidated here from the stored record, never from what the cart posted: the page
    sends only the code, and the discount is recomputed against the freshly re-priced

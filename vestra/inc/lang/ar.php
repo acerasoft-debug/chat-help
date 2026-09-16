@@ -1247,4 +1247,7 @@ return array (
   'Choose at least one size.' => 'اختر مقاساً واحداً على الأقل.',
   'Choose at least one colour.' => 'اختر لوناً واحداً على الأقل.',
   'Size selection missing — open the product page, choose at least one size and add the item again.' => 'لم يتم اختيار مقاس — افتح صفحة المنتج واختر مقاساً واحداً على الأقل ثم أضف الصنف مرة أخرى.',
+  'Orders outside Europe start at US$%s. Please add to your basket, or contact us and we will look at your order individually.' => 'تبدأ الطلبات خارج أوروبا من US$%s. يرجى إكمال سلتك أو مراسلتنا وسننظر في طلبك بشكل فردي.',
+  'We could not check the minimum order value just now because today\'s exchange rate is unavailable. Please try again shortly, or contact us and we will complete the order by hand.' => 'تعذّر التحقق من الحد الأدنى لقيمة الطلب الآن لعدم توفّر سعر الصرف اليوم. يرجى المحاولة بعد قليل أو مراسلتنا وسنكمل الطلب يدويًا.',
+
 );

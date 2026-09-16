@@ -27,6 +27,14 @@ require_once __DIR__.'/security.php';   // vestra_auto_open_countries()
  *  söylenen ile sepetin uyguladığı ayrı kalmıştı). */
 if (!defined('VESTRA_REGION_DISCOUNT_PCT')) define('VESTRA_REGION_DISCOUNT_PCT', 10.0);
 
+/* AFRİKA: %8 (operatör, 16 Eyl 2026: *"Afrika bölgesine toplam katalogtan
+   yüzde 8 indirim yapılacağını belirt"*). Oran %10'dan AYRI bir sabit, çünkü
+   iki ayrı operatör kararı: birini değiştirmek diğerini değiştirmemeli.
+   Bu yüzden `vestra_region_discount_pct()` artık tek bir sabit dönmüyor,
+   ülkenin KENDİ oranını okuyor — tek oranlı hâlinde Afrika'yı eklemek
+   Güney Amerika'yı da %8'e çekerdi. */
+if (!defined('VESTRA_AFRICA_DISCOUNT_PCT')) define('VESTRA_AFRICA_DISCOUNT_PCT', 8.0);
+
 /**
  * İndirim kapsamındaki ülkeler: ISO 3166-1 alpha-2.
  *
@@ -40,9 +48,106 @@ if (!defined('VESTRA_REGION_DISCOUNT_PCT')) define('VESTRA_REGION_DISCOUNT_PCT',
  * ÇİN ANAKARASI (CN) DA YOK: istenen Hong Kong'du, ikisi ayrı gümrük alanı.
  */
 function vestra_region_discount_codes(): array {
-    return ['AR','BO','BR','CL','CO','EC','GY','PY','PE','SR','UY','VE',  // Güney Amerika
-            'JP','AU','SG','HK',                                           // + Asya-Pasifik
-            'CZ','PL'];                                                    // + Orta Avrupa (13 Eyl 2026)
+    return array_keys(vestra_region_discount_rates());
+}
+
+/**
+ * Ülke → indirim YÜZDESİ. Kapsam ve oran TEK tabloda duruyor: ayrı bir
+ * "kapsam listesi" + ayrı bir "oran listesi" tutmak, listeye eklenip orana
+ * eklenmeyen (ya da tersi) bir ülke demekti — bu depoda aynı sınıf hata
+ * `invoice_vat_rate`'in birleşik çubukta yazılmamasıyla bir kez yaşandı:
+ * alan kardeşlerinin bulunduğu HER yerde olmalı.
+ *
+ * %10 — Güney Amerika + Asya-Pasifik + Orta Avrupa (31 Ağu / 13 Eyl 2026).
+ * %8  — Afrika, 54 ülke (16 Eyl 2026).
+ */
+function vestra_region_discount_rates(): array {
+    static $r = null;
+    if ($r !== null) return $r;
+    $r = [];
+    foreach (['AR','BO','BR','CL','CO','EC','GY','PY','PE','SR','UY','VE',  // Güney Amerika
+              'JP','AU','SG','HK',                                          // + Asya-Pasifik
+              'CZ','PL'] as $cc) $r[$cc] = (float)VESTRA_REGION_DISCOUNT_PCT;
+    foreach (array_keys(vestra_africa_names()) as $cc) $r[$cc] = (float)VESTRA_AFRICA_DISCOUNT_PCT;
+    return $r;
+}
+
+/**
+ * Afrika ülkelerinin yazımları — Afrika Birliği'nin 54 üyesi.
+ *
+ * NEDEN AYRI TABLO: bu ülkelerin çoğunda kayıt formuna yazılacak ad
+ * İNGİLİZCE ya da FRANSIZCA (Benin, Senegal, Fas frankofon; Angola,
+ * Mozambik lusofon; Kuzey Afrika arapça) ve tek dilli bir liste, gerçek
+ * müşteriyi tam da indirimi hak ettiği anda kapsam dışı bırakırdı.
+ * Eşleşme yine TAM — alt dize değil: 'Niger' ile 'Nigeria', 'Guinea' ile
+ * 'Equatorial Guinea'/'Guinea-Bissau', 'Congo' ile 'DR Congo', 'Sudan' ile
+ * 'South Sudan' ayrı ülkeler ve alt dize eşleşmesi dördünü de karıştırırdı
+ * (mango/zara dersinin coğrafya hâli). Uzun ad ile kısa ad AYNI listede
+ * durduğu için sıra da önemli değil.
+ *
+ * KAPSAM DIŞI, bilerek: Réunion/Mayotte (FR), Kanarya Adaları/Ceuta/Melilla
+ * (ES) — coğrafyaları Afrika ama AB gümrük alanı ve euro; Fransız
+ * Guyanası'nın Güney Amerika listesinde olmamasıyla aynı gerekçe.
+ * Batı Sahra (EH) da yok: tanınma durumu tartışmalı ve ticari kaydı yok.
+ */
+function vestra_africa_names(): array {
+    static $t = [
+        'DZ' => ['algeria', 'algérie', 'algerie', 'people\'s democratic republic of algeria', 'الجزائر'],
+        'AO' => ['angola', 'republic of angola', 'república de angola'],
+        'BJ' => ['benin', 'bénin', 'republic of benin', 'république du bénin'],
+        'BW' => ['botswana', 'republic of botswana'],
+        'BF' => ['burkina faso', 'burkina'],
+        'BI' => ['burundi', 'republic of burundi', 'république du burundi'],
+        'CV' => ['cabo verde', 'cape verde', 'cap vert', 'cap-vert', 'cabo verde republic'],
+        'CM' => ['cameroon', 'cameroun', 'republic of cameroon', 'république du cameroun'],
+        'CF' => ['central african republic', 'république centrafricaine', 'centrafrique'],
+        'TD' => ['chad', 'tchad', 'republic of chad', 'république du tchad'],
+        'KM' => ['comoros', 'comores', 'union of the comoros', 'جزر القمر'],
+        'CG' => ['congo', 'republic of the congo', 'congo brazzaville', 'congo-brazzaville', 'république du congo'],
+        'CD' => ['democratic republic of the congo', 'dr congo', 'drc', 'congo kinshasa', 'congo-kinshasa', 'république démocratique du congo', 'rdc'],
+        'CI' => ['ivory coast', 'côte d\'ivoire', 'cote d\'ivoire', 'cote divoire', 'republic of côte d\'ivoire'],
+        'DJ' => ['djibouti', 'republic of djibouti', 'جيبوتي'],
+        'EG' => ['egypt', 'égypte', 'egypte', 'arab republic of egypt', 'مصر'],
+        'GQ' => ['equatorial guinea', 'guinée équatoriale', 'guinea ecuatorial'],
+        'ER' => ['eritrea', 'érythrée', 'erythree', 'state of eritrea', 'إريتريا'],
+        'SZ' => ['eswatini', 'swaziland', 'kingdom of eswatini'],
+        'ET' => ['ethiopia', 'éthiopie', 'ethiopie', 'federal democratic republic of ethiopia'],
+        'GA' => ['gabon', 'gabonese republic', 'république gabonaise'],
+        'GM' => ['gambia', 'the gambia', 'gambie', 'republic of the gambia'],
+        'GH' => ['ghana', 'republic of ghana'],
+        'GN' => ['guinea', 'guinée', 'guinee', 'republic of guinea', 'république de guinée'],
+        'GW' => ['guinea bissau', 'guinea-bissau', 'guinée bissau', 'guiné-bissau'],
+        'KE' => ['kenya', 'republic of kenya'],
+        'LS' => ['lesotho', 'kingdom of lesotho'],
+        'LR' => ['liberia', 'republic of liberia'],
+        'LY' => ['libya', 'libye', 'state of libya', 'ليبيا'],
+        'MG' => ['madagascar', 'republic of madagascar', 'république de madagascar'],
+        'MW' => ['malawi', 'republic of malawi'],
+        'ML' => ['mali', 'republic of mali', 'république du mali'],
+        'MR' => ['mauritania', 'mauritanie', 'islamic republic of mauritania', 'موريتانيا'],
+        'MU' => ['mauritius', 'maurice', 'republic of mauritius', 'île maurice'],
+        'MA' => ['morocco', 'maroc', 'kingdom of morocco', 'royaume du maroc', 'المغرب'],
+        'MZ' => ['mozambique', 'moçambique', 'republic of mozambique'],
+        'NA' => ['namibia', 'namibie', 'republic of namibia'],
+        'NE' => ['niger', 'republic of the niger', 'république du niger'],
+        'NG' => ['nigeria', 'nigéria', 'federal republic of nigeria'],
+        'RW' => ['rwanda', 'republic of rwanda', 'république du rwanda'],
+        'ST' => ['sao tome and principe', 'são tomé and príncipe', 'sao tome et principe', 'são tomé e príncipe'],
+        'SN' => ['senegal', 'sénégal', 'republic of senegal', 'république du sénégal'],
+        'SC' => ['seychelles', 'republic of seychelles'],
+        'SL' => ['sierra leone', 'republic of sierra leone'],
+        'SO' => ['somalia', 'somalie', 'federal republic of somalia', 'الصومال'],
+        'ZA' => ['south africa', 'afrique du sud', 'republic of south africa', 'rsa', 'suid-afrika'],
+        'SS' => ['south sudan', 'soudan du sud', 'republic of south sudan'],
+        'SD' => ['sudan', 'soudan', 'republic of the sudan', 'السودان'],
+        'TZ' => ['tanzania', 'tanzanie', 'united republic of tanzania'],
+        'TG' => ['togo', 'togolese republic', 'république togolaise'],
+        'TN' => ['tunisia', 'tunisie', 'republic of tunisia', 'تونس'],
+        'UG' => ['uganda', 'ouganda', 'republic of uganda'],
+        'ZM' => ['zambia', 'zambie', 'republic of zambia'],
+        'ZW' => ['zimbabwe', 'republic of zimbabwe'],
+    ];
+    return $t;
 }
 
 /**
@@ -139,6 +244,11 @@ function vestra_country_region_discount_cc(string $raw): string {
     foreach (vestra_region_discount_names() as $cc => $names) {
         if (in_array($folded, $names, true)) return $cc;
     }
+    /* Afrika tablosu AYRI ama aynı kapıdan geçiyor: iki ayrı çözücü yazmak,
+       bir gün birine eklenip diğerine eklenmeyen bir yazım demekti. */
+    foreach (vestra_africa_names() as $cc => $names) {
+        if (in_array($folded, $names, true)) return $cc;
+    }
     /* JP/AU/SG: kendi yazım tablosunu KOPYALAMIYORUZ, var olanı okuyoruz.
        Dönen kod indirim listesinde mi diye ayrıca süzülüyor — o tablo Suudi
        Arabistan'ı da taşıyor ve o ülke indirim kapsamında değil. */
@@ -160,7 +270,9 @@ function vestra_country_region_discount_cc(string $raw): string {
 function vestra_region_discount_pct(?array $user): float {
     if (!is_array($user)) return 0.0;
     $cc = vestra_country_region_discount_cc((string)($user['country'] ?? ''));
-    return $cc === '' ? 0.0 : (float)VESTRA_REGION_DISCOUNT_PCT;
+    /* Oran ÜLKENİN KENDİ oranı: tek sabit dönen eski hâli, Afrika eklenince
+       Güney Amerika'yı da sessizce %8'e çekerdi. */
+    return $cc === '' ? 0.0 : (float)(vestra_region_discount_rates()[$cc] ?? 0.0);
 }
 
 /** İndirimin tutar karşılığı. Yuvarlama TEK YERDE: çağıranların her biri kendi

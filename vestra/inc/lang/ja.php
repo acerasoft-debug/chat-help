@@ -1247,4 +1247,7 @@ return array (
   'Choose at least one size.' => 'サイズを1つ以上選択してください。',
   'Choose at least one colour.' => 'カラーを1つ以上選択してください。',
   'Size selection missing — open the product page, choose at least one size and add the item again.' => 'サイズが未選択です — 商品ページを開き、サイズを1つ以上選んでから再度カートに追加してください。',
+  'Orders outside Europe start at US$%s. Please add to your basket, or contact us and we will look at your order individually.' => 'ヨーロッパ以外へのご注文は US$%s からとなります。カートの内容を追加いただくか、ご連絡ください。個別に検討いたします。',
+  'We could not check the minimum order value just now because today\'s exchange rate is unavailable. Please try again shortly, or contact us and we will complete the order by hand.' => '本日の為替レートが取得できないため、最低ご注文金額を確認できませんでした。しばらくしてから再度お試しいただくか、ご連絡ください。手作業でご注文をお受けします。',
+
 );
