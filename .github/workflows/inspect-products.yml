@@ -79,6 +79,15 @@ on:
         description: "true = KALIP TARAMASI: ad + açıklama + özelliklerde oversize/boxy/relaxed/slim... geçen ürünleri, kanıt cümlesiyle ve mevcut beden serisiyle yaz (KURAL 2h'nin kapsam sorusu)"
         required: false
         default: "false"
+      img_list:
+        # "Fotograflari su ilandan bu ilana tasi" denince ilk sorulacak sey
+        # SIRALI TAM LISTE: hangi kare kacinci, kapak hangisi. Mevcut modlarin
+        # hicbiri bunu vermiyordu -- check_images yalnizca SAYI ve ILK kareyi
+        # basiyor, dims butun katalogu gezip yalniz 800px altini listeliyor.
+        # Sirayi tahmin edip yazmak, kapagi sessizce degistirmek demekti.
+        description: "true = marka/kategori suzgecine uyan her ilanin SIRALI tam gorsel listesi (kapak dahil) + diskte var mi. Salt okunur."
+        required: false
+        default: "false"
       raw_scan:
         description: "true = HAM listings.json: ONAY BEKLEYEN (pending) ilanları da gösterir. Diğer bütün modlar vestra_products() okuyor ve o YALNIZCA approved döndürüyor — yeni yazılmış bir parti orada 0 görünür ve bu 'yazılmadı' diye okunur. Ayrıca dil bazlı ad/açıklamanın (name_i18n/desc_i18n) gerçekten KAYDA indiğini sayar: alan yazılmış ama saklanmamışsa ancak başka dilde gezen biri fark ederdi."
         required: false
@@ -116,6 +125,7 @@ jobs:
           INSPECT_PAUDIT: ${{ github.event.inputs.price_audit }}
           INSPECT_BAKDIFF: ${{ github.event.inputs.bak_diff }}
           INSPECT_FIT: ${{ github.event.inputs.fit_scan }}
+          INSPECT_IMGLIST: ${{ github.event.inputs.img_list }}
           INSPECT_RAW: ${{ github.event.inputs.raw_scan }}
           INSPECT_SHOPORD: ${{ github.event.inputs.shop_order }}
           INSPECT_MOQ: ${{ github.event.inputs.moq_scan }}
@@ -129,7 +139,7 @@ jobs:
           # gecirir. Yeni bir girdi eklerken bu satir unutulursa uzak tarafta
           # getenv() bos doner ve mod SESSIZCE calismaz -- sonda, sorulmayan bir
           # soruya "her sey normal" diye cevap verir.
-          envs: INSPECT_MOQ,INSPECT_SHOPORD,INSPECT_BAKDIFF,INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT,INSPECT_FIT,INSPECT_RAW
+          envs: INSPECT_MOQ,INSPECT_SHOPORD,INSPECT_BAKDIFF,INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT,INSPECT_FIT,INSPECT_IMGLIST,INSPECT_RAW
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
@@ -154,6 +164,7 @@ jobs:
             $plist    = strtolower(trim((string)getenv("INSPECT_PLIST")))   === 'true';
             $paudit   = strtolower(trim((string)getenv("INSPECT_PAUDIT")))  === 'true';
             $fitscan  = strtolower(trim((string)getenv("INSPECT_FIT")))     === 'true';
+            $imglist  = strtolower(trim((string)getenv("INSPECT_IMGLIST"))) === 'true';
             $rawscan  = strtolower(trim((string)getenv("INSPECT_RAW")))     === 'true';
             $moqscan  = strtolower(trim((string)getenv("INSPECT_MOQ")))     === 'true';
             $bakdiff  = trim((string)getenv("INSPECT_BAKDIFF"));
@@ -783,6 +794,35 @@ jobs:
                SALT OKUNUR ve KARAR VERMEZ: bulduklarini kanit cumlesiyle yazar, hangi
                ilanin seri degistirecegine insan bakar -- "regular fit" yazan bir ilani
                oversize sanmak, sessizce yanlis beden gondermek olurdu. */
+            /* ── SIRALI GORSEL LISTESI ────────────────────────────────────────────
+               Ham listeden okuyor (vestra_listings), vestra_products() DEGIL: o
+               yalniz 'approved' donduruyor ve onay bekleyen bir parti YAPISI
+               GEREGI gorunmez -- D&G partisinde bu bedel bir kez odendi.
+               Sira onemli: [0] kapaktir. Diskte olup olmadigi da yaziliyor;
+               "tasidim" demeden once tasinan seyin gercekten var oldugunu
+               gormek gerekiyor. */
+            if ($imglist) {
+              $all2 = function_exists('vestra_listings') ? vestra_listings() : vestra_products(true);
+              $n = 0;
+              foreach ($all2 as $p2) {
+                $bn = trim((string)($p2['brand'] ?? ''));
+                if ($bf !== '' && $bf !== '*' && stripos($bn, $bf) === false) continue;
+                if ($cf !== '' && strcasecmp(trim((string)($p2['cat'] ?? '')), $cf) !== 0) continue;
+                $imgs = array_values(array_filter(array_map('strval', (array)($p2['images'] ?? []))));
+                $n++;
+                printf("\n%s | %s | %s | %d gorsel\n",
+                       (string)($p2['id'] ?? '?'), $bn, (string)($p2['status'] ?? '?'), count($imgs));
+                foreach ($imgs as $i2 => $im) {
+                  $f = $root.$im;
+                  $st = (is_file($f) && @filesize($f) > 0) ? 'diskte' : '*** YOK ***';
+                  printf("  [%d]%s %-52s %s\n", $i2, $i2 === 0 ? ' KAPAK' : '      ', $im, $st);
+                }
+                if (!$imgs) echo "  (gorsel yok)\n";
+              }
+              printf("\nesleşen ilan: %d\n", $n);
+              exit(0);
+            }
+
             if ($fitscan) {
               $prods = vestra_products();
               /* Iki kume AYRI raporlanir: oversize'a isaret edenler ve TERSINE isaret
