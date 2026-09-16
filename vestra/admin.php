@@ -167,6 +167,22 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $back=(($_POST['from']??'')==='view')?'orders&view='.urlencode($ref):'invoices';
     header('Location: /admin?tab='.$back.'&msg='.($okCur?'invoice_cur_saved':'invoice_cur_bad')); exit;
   }
+  /* FATURAYI KALDIR (operator, 16 Eyl 2026: "faturalari siparisleri silmek
+     icin button koy"). Siparis silme zaten vardi; TEK bir yanlis kesilmis
+     belgeyi kaldirmanin hicbir yolu yoktu -- tek care siparisin tamamini
+     silmekti, yani dokunulmamasi gereken dilimleri de goturmek.
+     Karar TEK yerde: vestra_invoice_delete() arsivliyor, silmiyor. */
+  if($act==='invoice_delete'){
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    $sk =preg_replace('/[^A-Za-z0-9_-]/','',$_POST['seller']??'');
+    require_once __DIR__.'/inc/invoice.php';
+    $back=(($_POST['from']??'')==='view')?'orders&view='.urlencode($ref):'invoices';
+    $r=vestra_invoice_delete($ref,$sk);
+    if(empty($r['ok'])){
+      header('Location: /admin?tab='.$back.'&msg=invoice_del_bad&err='.urlencode(substr((string)($r['error']??''),0,120))); exit;
+    }
+    header('Location: /admin?tab='.$back.'&msg=invoice_deleted&no='.urlencode((string)$r['no']).'&n='.(int)$r['unlinked']); exit;
+  }
   if($act==='issue_invoice'){
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
     require_once __DIR__.'/inc/invoice.php';
@@ -2743,6 +2759,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg ok">✓ Sent to <?= (int)($_GET['n']??0) ?> prospect(s).</div>
 <?php elseif($msg==='ord_deleted'): ?>
 <div class="amsg ok">✓ <?= (int)($_GET['n']??1) ?> order row(s) deleted<?= ((int)($_GET['n']??1))>1 ? ' — that reference was carried by more than one row' : '' ?>. A timestamped copy of orders.csv was saved first (data/orders.csv.bak-del-…).</div>
+<?php elseif($msg==='invoice_deleted'): ?>
+<div class="amsg ok">✓ Invoice <?= htmlspecialchars((string)($_GET['no']??'')) ?> removed — the file was <i>moved</i> to data/invoices/deleted/, not erased.<?= ((int)($_GET['n']??0))>0 ? ' '.(int)$_GET['n'].' linked offer(s) went back to the approval queue.' : '' ?> The buyer already has a copy; issuing again burns a new number.</div>
+<?php elseif($msg==='invoice_del_bad'): ?>
+<div class="amsg err">✗ Invoice not removed<?= ($_GET['err']??'')!=='' ? ' — '.htmlspecialchars((string)$_GET['err']) : '' ?>.</div>
 <?php elseif($msg==='ord_has_invoice'): ?>
 <div class="amsg" style="background:rgba(240,192,96,.08);border:1px solid rgba(240,192,96,.35);color:#a9781a;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
   <span>⚠ Not deleted. <b><?= (int)($_GET['n']??1) ?></b> invoice(s) have been issued against this order.
@@ -3885,7 +3905,22 @@ elseif($tab==='orders'):
         </form>
         <?php endif; ?>
       <?php else: foreach($vinvs as $iv): ?>
-        <a href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener" style="color:var(--acc);display:inline-block;margin-right:12px;font-size:12.5px">📄 <?= htmlspecialchars(vestra_invoice_link_label($iv)) ?> · <?= htmlspecialchars($iv['seller_label']) ?></a>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <a href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener" style="color:var(--acc);font-size:12.5px">📄 <?= htmlspecialchars(vestra_invoice_link_label($iv)) ?> · <?= htmlspecialchars($iv['seller_label']) ?></a>
+        <?php /* Dugme DILIM basina: bir siparisin birden fazla saticisi olabiliyor
+                 (KURAL 5b) ve yanlis kesilen genelde bir tanesi. Onay metni uc seyi
+                 birden soyluyor cunku ucu de geri alinamaz: alicinin elinde ZATEN
+                 bir kopya var, kaldirmak onu geri cagirmiyor, ve yeniden kesim YENI
+                 bir numara yakar. */ ?>
+        <form method="post" style="margin:0" onsubmit="return confirm('Remove invoice <?= htmlspecialchars((string)$iv['no'], ENT_QUOTES) ?>?\n\nThe file is MOVED to data/invoices/deleted/, not erased.\n\nThe buyer already has a copy — removing it here does not recall it. Issuing again burns a NEW number.\n\nTo correct a line instead, use Redraft on the invoice-approvals tab: same number, corrected document.')">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="invoice_delete">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+          <input type="hidden" name="seller" value="<?= htmlspecialchars((string)$iv['seller_key']) ?>">
+          <input type="hidden" name="from" value="view">
+          <button class="abtn" type="submit" style="font-size:10px;padding:1px 6px;color:#c0392b" title="Remove this invoice (archived, not erased)">🗑 Remove</button>
+        </form>
+        </div>
       <?php endforeach; endif; ?>
     </div>
   </div>
@@ -4017,6 +4052,26 @@ elseif($tab==='orders'):
       </div>
       <?php endif; ?>
     <?php endif; ?>
+  </div>
+</div>
+
+<?php /* SIPARISI SIL -- dosya gorunumunde de. Dugme LISTEDE vardi ama burada
+         YOKTU: operator bir siparisi acip inceliyor, silmek icin listeye geri
+         donmesi gerekiyordu. Bir ekranda gorunmeyen secenek olmayan secenektir
+         (KURAL 2e'nin "acacak dugmem yok" dersi).
+         AYNI eylem, ayni muhafaza: faturali bir ref ilk tiklamada reddediliyor
+         ve panel sebebini yaziyor -- ikinci kopya bir silme mantigi yazilmadi. */ ?>
+<div class="acard" style="margin-top:16px;border-color:rgba(239,154,154,.35)">
+  <div class="acard-hd"><h3 style="color:var(--bad)">Danger zone</h3></div>
+  <div style="padding:10px 12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <span class="ahint" style="flex:1;min-width:240px">Deleting removes the row from orders.csv for good. To keep the record but void the sale, set the status to <b>Cancelled</b> instead.</span>
+    <form method="post" style="margin:0"
+          onsubmit="return confirm('Delete order <?= htmlspecialchars($viewRef, ENT_QUOTES) ?> for good?\n\nThis cannot be undone. A timestamped copy of orders.csv is saved first.\n\nTo keep the record but void the sale, set the status to Cancelled instead.')">
+      <?= csrfField() ?>
+      <input type="hidden" name="_action" value="order_delete">
+      <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+      <button class="abtn" type="submit" style="color:#c0392b;border-color:rgba(239,154,154,.55)">🗑 Delete order</button>
+    </form>
   </div>
 </div>
 

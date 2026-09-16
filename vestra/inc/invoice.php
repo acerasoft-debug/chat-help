@@ -1295,6 +1295,82 @@ function vestra_invoices_archive_for_ref(string $ref): int {
 }
 
 /**
+ * TEK bir kesilmis faturayi kaldirir (ref + satici dilimi).
+ *
+ * Neden ayri bir fonksiyon: vestra_invoices_archive_for_ref() bir ref'in BUTUN
+ * dilimlerini tasiyor -- siparis silinirken dogrusu o. Ama bir siparisin birden
+ * fazla saticisi olabiliyor (KURAL 5b) ve operator cogu zaman YANLIS kesilmis
+ * TEK belgeyi kaldirmak istiyor; hepsini tasimak, dokunulmamasi gereken
+ * faturayi da goturur.
+ *
+ * SILMIYOR, ARSIVLIYOR. Numarali bir belge yakilmis bir numaradir ve kopyasi
+ * alicinin elindedir; diskten yok etmek, var olan bir belgeyi dayanaksiz
+ * birakmak olurdu (KURAL 5g'nin "faturali teklif silinemez" gerekcesi).
+ * Dosyalar data/invoices/deleted/ altina zaman damgasiyla tasiniyor -- siparis
+ * silme yolunun zaten yaptigi sey.
+ *
+ * BIRLESIK FATURANIN bagi da kopariliyor: uyeler offer_responses.json'da
+ * invoice_group_ref ile birincil ref'e bagli (KURAL 5e) ve bag kalsaydi alici
+ * artik var olmayan bir belgenin satirini gormeye devam ederdi. Bagi kopan
+ * teklif faturasiz olur ve onay kuyruguna doner -- karar operatorun.
+ *
+ * GERI OKUYOR: meta dosyasi gercekten gitmediyse 'ok' FALSE doner. rename()
+ * sessizce basarisiz olabilir (izin, dolu disk -- bu depoda kota kesintisi bir
+ * kez yasandi) ve panelin "silindi" demesi ile diskteki gercek ayrisirdi.
+ *
+ * @return array{ok:bool,no:string,moved:int,unlinked:int,error:string}
+ */
+function vestra_invoice_delete(string $ref, string $sellerKey): array {
+    $out = ['ok' => false, 'no' => '', 'moved' => 0, 'unlinked' => 0, 'error' => ''];
+    $ref = trim($ref); $sellerKey = trim($sellerKey);
+    if ($ref === '')       { $out['error'] = 'ref bos';    return $out; }
+    if ($sellerKey === '') { $out['error'] = 'satici bos'; return $out; }
+
+    $slug = vestra_invoice_slug($ref, $sellerKey);
+    if ($slug === '' || !str_contains($slug, '__')) { $out['error'] = 'gecersiz ref/satici'; return $out; }
+
+    $dir  = vestra_invoice_dir();
+    $meta = $dir.'/'.$slug.'.json';
+    if (!is_file($meta)) { $out['error'] = 'bu dilimde kesilmis fatura yok'; return $out; }
+
+    /* Numara MESAJ icin degil, KAYIT icin okunuyor: hangi numaranin kaldirildigi
+       operatorun ekraninda yazmali, yoksa "bir fatura sildim" diye hatirlanan
+       sey aylar sonra hangisiydi sorusuna donusur. */
+    $m = json_decode((string)@file_get_contents($meta), true);
+    if (is_array($m)) $out['no'] = (string)($m['no'] ?? '');
+
+    $bin = $dir.'/deleted';
+    if (!is_dir($bin) && !@mkdir($bin, 0755, true)) { $out['error'] = 'arsiv klasoru acilamadi'; return $out; }
+    $stamp = date('Ymd_His');
+    foreach (glob($dir.'/'.$slug.'.*') ?: [] as $f) {
+        if (!is_file($f)) continue;
+        if (@rename($f, $bin.'/'.$stamp.'-'.basename($f))) $out['moved']++;
+    }
+
+    clearstatcache(true, $meta);
+    if (is_file($meta)) { $out['error'] = 'dosya tasinamadi (izin/disk?)'; return $out; }
+
+    /* Grup bagi: BU ref'i gosteren her uyenin bagi kopuyor, ve birincilin kendi
+       uye listesi de siliniyor -- liste kalsaydi bir sonraki redraft olmayan bir
+       belgeyi yeniden cizmeye calisirdi. */
+    $rs = vestra_read_json('offer_responses.json');
+    if (is_array($rs)) {
+        $touched = false;
+        foreach ($rs as $k => $row) {
+            if (!is_array($row)) continue;
+            if ((string)($row['invoice_group_ref'] ?? '') === $ref) {
+                unset($rs[$k]['invoice_group_ref']); $out['unlinked']++; $touched = true;
+            }
+        }
+        if (isset($rs[$ref]['invoice_members'])) { unset($rs[$ref]['invoice_members']); $touched = true; }
+        if ($touched) vestra_write_json('offer_responses.json', $rs);
+    }
+
+    $out['ok'] = true;
+    return $out;
+}
+
+/**
  * Number + amount for an invoice link: "INV-2026-1009 · US$2,153.40".
  *
  * The word "Invoice" is deliberately NOT here — the panels translate it (t('Invoice')),
