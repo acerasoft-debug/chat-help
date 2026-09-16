@@ -166,5 +166,31 @@ $t('govdeyi cagiriyor',            str_contains($wf, 'vestra_tpl_terms_reply('))
    operatore gidiyor ya da hedef kayittan cozuluyor. */
 $t('rakam is akisina gomulu degil', !preg_match('/US\$\s?5[.,]?000/', $wf));
 
+echo "\n== to=lead: adres KAYITTAN cozuluyor ==\n";
+/* Kayitsiz bir adaya yazarken geriye adresi DUZ girdiye yazmak kaliyordu ve
+   girdi kosu basliginda kalici + herkese acik. account:/order: ile ayni
+   desen; TAM 1 esleme sarti da ayni sebeple: sifirda kimseye gitmez,
+   birden fazlada YANLIS kisiye giderdi ve gonderilmis mektup geri alinamaz. */
+$wf2 = (string)@file_get_contents(__DIR__.'/../.github/workflows/send-campaign-preview.yml');
+$t('lead: cozumu var',            str_contains($wf2, "str_starts_with(strtolower(\$to), 'lead:')"));
+/* IDDIA BLOGA BAGLI OLMAK ZORUNDA. Ilk yazimda 'if (count($hits) !== 1) {'
+   dizgesi TUM dosyada araniyordu ve o satir ACCOUNT: blogunda da var: lead
+   blogundaki sarti gevsetmek (!== 1 -> < 1) hicbir iddiayi dusurmedi ve
+   sabotaj YESIL gecti. "Hic dusemeyen bir iddia, iddia degildir" bu depoda
+   yazili ve bu oturumda ucuncu kez oldu. Artik yalniz lead blogu okunuyor. */
+$lb = '';
+$lA = strpos($wf2, "str_starts_with(strtolower(\$to), 'lead:')");
+$lB = $lA !== false ? strpos($wf2, "if (\$to === '') \$to = 'acerasoft@gmail.com';", $lA) : false;
+if ($lA !== false && $lB !== false) $lb = substr($wf2, $lA, $lB - $lA);
+$t('lead blogu bulundu',          $lb !== '');
+$t('leads.php require ediliyor',  str_contains($lb, 'require_once $doc."/inc/leads.php"'));
+$t('TAM 1 esleme sarti',          str_contains($lb, 'if (count($hits) !== 1) {'));
+$t('adaylar MASKELI listeleniyor',str_contains($lb, '$mask((string)($h[\'email\'] ?? \'\'))'));
+/* Cozulen adres kutuge MASKELI basiliyor: teshis adiminin kendi dersi. */
+$t('cozulen adres maskeli basiliyor', str_contains($lb, '"  (".$mask($to).")'));
+/* Firma ADIYLA araniyor, adresle DEGIL: adresi girdiye yazmamak butun
+   mekanizmanin var olma sebebi. */
+$t('ad alanlarinda araniyor',     str_contains($lb, "\$l['company']") && str_contains($lb, "\$l['contact_name']"));
+
 printf("\n%d ok, %d hata\n", $ok, $fail);
 exit($fail ? 1 : 0);

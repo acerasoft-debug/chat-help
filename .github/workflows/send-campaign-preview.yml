@@ -921,6 +921,34 @@ jobs:
               $to = trim((string)($orderRow['email'] ?? ''));
               echo "siparis: {$oref}  (".trim((string)($orderRow['company'] ?? ''))."; alici ".$mask($to).")\n";
             }
+            /* "lead:<firma/kisi adi parcasi>" = adres LEAD KAYDINDAN (leads.json).
+               Kayitsiz bir aday yaziyor -- hesabi da siparisi de yok, yani
+               account:/order: ikisi de calismaz ve geriye adresi DUZ yazmak
+               kaliyordu. Girdi, kosu basliginda kalici ve herkese acik: bir
+               adayin adresini oraya yazmak onu yayinlamak demek. Aday zaten
+               panelden ya da add-lead ile kayda giriyor; buradan sonrasi ADLA
+               bulunuyor.
+               TAM 1 esleme SART (account: ile ayni kural): sifirda kimseye
+               gitmez, birden fazlada YANLIS kisiye gidebilirdi ve gonderilmis
+               bir mektup geri alinamaz. Adaylar MASKELI listeleniyor ki
+               operator daraltabilsin. */
+            if (str_starts_with(strtolower($to), 'lead:')) {
+              require_once $doc."/inc/leads.php";
+              $needle = mb_strtolower(trim(substr($to, 5)));
+              if ($needle === '') { fwrite(STDERR, "lead: bos\n"); exit(1); }
+              $hits = [];
+              foreach (vestra_leads() as $l) {
+                $hay = mb_strtolower(trim((string)($l['company'] ?? '')).' '.trim((string)($l['contact_name'] ?? '')));
+                if ($needle !== '' && str_contains($hay, $needle)) $hits[] = $l;
+              }
+              if (count($hits) !== 1) {
+                fwrite(STDERR, "lead:{$needle} -> ".count($hits)." eslesme:\n");
+                foreach ($hits as $h) fwrite(STDERR, "  ".trim((string)($h['company'] ?? '?'))."  ".$mask((string)($h['email'] ?? ''))."\n");
+                exit(1);
+              }
+              $to = trim((string)($hits[0]['email'] ?? ''));
+              echo "lead   : ".trim((string)($hits[0]['company'] ?? '?'))."  (".$mask($to).")\n";
+            }
             if ($to === '') $to = 'acerasoft@gmail.com';
             if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "gecersiz alici\n"); exit(1); }
             if (!$acc) $acc = auth_find($to);
