@@ -713,7 +713,7 @@ function vestra_brand_min_order(string $brand): float {
 }
 
 /**
- * AVRUPA DIŞINDAN gelen siparişin asgari tutarı: 10.000 USD
+ * AVRUPA DIŞINDAN gelen siparişin asgari tutarı: 5.000 USD
  * (operatör, 16 Eyl 2026: *"Avrupa dışına en az alım 10 Bin USD yaz"*).
  *
  * MARKA asgarisinden (VESTRA_BRAND_MIN_ORDER_EUR) AYRI bir kapı ve ayrı bir
@@ -727,16 +727,20 @@ function vestra_brand_min_order(string $brand): float {
  * bedeli de burada yazılı: katalog EUR, eşik USD, yani karşılaştırma bir
  * KUR gerektiriyor ve kur bir olgu, tahmin değil. **Kur yoksa sipariş
  * GEÇMEZ** (KURAL 17'nin dropship tahsilatındaki kararıyla aynı): uydurma
- * bir kurla 10.000 USD'yi ölçmek, eşiği sessizce başka bir sayıya çevirmek
+ * bir kurla eşiği ölçmek, onu sessizce başka bir sayıya çevirmek
  * olurdu. Bedeli açık: bir FX kesintisinde Avrupa dışı siparişler durur.
  */
-const VESTRA_NONEU_MIN_ORDER_USD = 10000.0;
+/* 16 Eyl 2026: 10.000 → 5.000 (operatör, aynı gün: *"alımı 5 bin usd yap"*).
+   Rakam TEK YERDE durduğu için değişiklik tek satır: sepet uyarısı, sunucu
+   kapısı ve testler hepsi buradan okuyor. Escrow tavanının beş gün boyunca
+   metinde 3.000, kodda 3.500 kalmasının (KURAL 6) sebebi tam tersiydi. */
+const VESTRA_NONEU_MIN_ORDER_USD = 5000.0;
 
 /**
  * "Avrupa" — coğrafi Avrupa, AB gümrük alanı DEĞİL.
  *
  * Operatörün cümlesi "Avrupa dışına"; AB ile sınırlasaydık Birleşik Krallık,
- * İsviçre ve Norveç'teki alıcılar 10.000 USD tabanına düşerdi ve bu, onlara
+ * İsviçre ve Norveç'teki alıcılar bu tabana düşerdi ve bu, onlara
  * bugüne kadar uygulanmayan bir şart demekti. Liste AÇIK yazılı: bir ülkeyi
  * eklemek ya da çıkarmak tek satır, ve hangi ülkenin hangi tarafta olduğu
  * kodun içinden okunabiliyor. Eşleşme TAM.
@@ -869,7 +873,7 @@ function vestra_order_min_shortfall(float $subtotalEur, ?array $user): array {
     $rate = (float)vestra_fx('USD');
     if ($rate <= 0) return ['error' => 'fx', 'min_usd' => $min];
     $haveUsd = round($subtotalEur * $rate, 2);
-    /* Tolerans: tam sınırdaki sepet (10.000,00) kayan nokta yüzünden
+    /* Tolerans: tam sınırdaki sepet (eşiğin kendisi) kayan nokta yüzünden
        reddedilmesin -- marka asgarisindeki ile aynı 0,005. */
     if ($haveUsd >= $min - 0.005) return [];
     return ['min_usd' => $min, 'have_usd' => $haveUsd,
