@@ -3379,3 +3379,120 @@ function vestra_tpl_claim_resolved(string $buyerName, string $ref, string $claim
       . "—\nVESTRA · vestrasales.com";
     return [$subject, $body, $opts];
 }
+
+/**
+ * YENİ PAZAR / ŞARTLAR SORUSUNA CEVAP (16 Eyl 2026, Benin'den gelen ilk
+ * kurumsal soru vesilesiyle: ülkem alabiliyor mu, asgari ne, hangi belge,
+ * gönderim, kayıt öncesi bakabilir miyim).
+ *
+ * RAKAMLARIN HİÇBİRİ METNE GÖMÜLÜ DEĞİL. Asgari tutar sabitten, bölgesel
+ * indirim ülkenin KENDİ oranından, belgeler `auth_required_doc_types()`'tan
+ * geliyor. Sebebi bu depoda kayıtlı: escrow tavanı beş gün boyunca metinde
+ * 3.000, kodda 3.500 kaldı; ve bu mektubun ilk taslağı yazıldıktan bir saat
+ * sonra operatör asgariyi 10.000'den 5.000'e çekti — gömülü olsaydı mektup o
+ * anda sessizce yalan söylemeye başlardı.
+ *
+ * $cc  : ISO ülke kodu (indirim ve asgari oradan türer; '' = bilinmiyor)
+ * $ship: operatörün BEYAN ETTİĞİ gönderim cümlesi ('' = hiç yazılmaz).
+ *        KURAL 3'ün mektup hâli: taşıyıcı ve süre bir olgudur, tahmin değil —
+ *        operatör söylemediyse mektup bu konuda SUSAR.
+ */
+function vestra_tpl_terms_reply(string $buyerName, string $cc, string $ship = '', string $signer = ''): array {
+    require_once __DIR__.'/products.php';
+    require_once __DIR__.'/region_discount.php';
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Sir or Madam';
+
+    $user = ['country' => $cc];
+    $pct  = vestra_region_discount_pct($user);
+    $min  = vestra_order_min_usd($user);
+    $minS = 'US$'.number_format($min, 0);
+
+    /* Konuda ÜLKE ADI, ISO kodu değil: müşteri kendi ülkesinin adını yazdı,
+       "for BJ" görmek makine çıktısı gibi okunur.
+       OPERATÖR TAM AD YAZDIYSA ONU KULLANIYORUZ — çevirmeye çalışmak yanlıştı:
+       ilk yazımda ad `vestra_country_of_cc()` üzerinden aranıyordu ve o tablo
+       KISMİ, yani "Benin" de "BJ" de konuya "for BJ" diye düşüyordu. Bu
+       depoda aynı hatanın üçüncü kaydı: kısmi bir tabloyu tam sanmak.
+       Çıplak ISO kodu verildiğinde ad KENDİ tablolarımızın ilk yazımından
+       geliyor — kapsamdaki her kod orada var. */
+    $ccName = '';
+    if ($cc !== '') {
+        if (!preg_match('/^[A-Za-z]{2}$/', $cc)) {
+            $ccName = $cc;                                   // operatörün yazdığı ad
+        } else {
+            $up = strtoupper($cc);
+            foreach ([function_exists('vestra_africa_names') ? vestra_africa_names() : [],
+                      function_exists('vestra_region_discount_names') ? vestra_region_discount_names() : [],
+                      function_exists('vestra_europe_names') ? vestra_europe_names() : [],
+                      /* JP/AU/SG/SA yazımları burada duruyor, ikinci kopya
+                         çıkarılmıyor (KURAL 2h'nin kendi notu). */
+                      function_exists('vestra_auto_open_countries') ? vestra_auto_open_countries() : []] as $tbl) {
+                if (isset($tbl[$up][0])) { $ccName = mb_convert_case((string)$tbl[$up][0], MB_CASE_TITLE, 'UTF-8'); break; }
+            }
+        }
+    }
+    $subject = 'VESTRA — wholesale terms'.($ccName !== '' ? ' for '.$ccName : '');
+
+    $body  = "Dear {$buyerName},\n\n"
+           . "Thank you for your enquiry, and for setting it out so clearly — it makes it easy to "
+           . "answer precisely.\n\n"
+           . "Yes, a business registered in your country can buy through VESTRA. Accounts are opened "
+           . "individually: you register, we review, and we unlock wholesale prices for your account.\n\n";
+
+    /* İndirim cümlesi YALNIZCA gerçekten indirim varsa yazılıyor: kapsam dışı
+       bir ülkeye "bölgeniz için indirimimiz var" demek, sepette karşılığı
+       olmayan bir söz olurdu. */
+    if ($pct > 0) {
+        $p = rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.');
+        $body .= "A standing discount of {$p}% applies to buyers registered in your region, across the "
+               . "whole catalogue. It is applied automatically to every price you see once your account "
+               . "is open; there is no code to enter.\n\n";
+    }
+
+    if ($min > 0) {
+        $body .= "Minimum order. Two figures apply, and I would rather you know both now than at "
+               . "checkout:\n\n"
+               . "  - Outside Europe our minimum order value is {$minS} per order.\n"
+               . "  - Each style also has its own minimum quantity and is sold in fixed pack multiples "
+               . "— typically 10 or 20 pieces per style, occasionally more.\n\n"
+               . "So a first order is a few styles in depth rather than one piece of many models. If "
+               . "your launch assortment sits below that, write to me and we will look at your case "
+               . "individually — I would rather find a workable first order than lose the conversation "
+               . "over a threshold.\n\n";
+    } else {
+        $body .= "Minimum order. There is no order-value minimum for your region. Each style has its own "
+               . "minimum quantity and is sold in fixed pack multiples — typically 10 or 20 pieces per "
+               . "style, occasionally more.\n\n";
+    }
+
+    /* Belgeler tek doğruluk kaynağından (KURAL 2). Elle "ticari kayıt" yazmak,
+       liste bir gün değişince müşteriden olmayan bir belge istetirdi. */
+    $docs = function_exists('auth_required_doc_types') ? (array)auth_required_doc_types('buyer') : ['trade_licence'];
+    $lbl  = ['trade_licence' => 'your business registration / trade licence',
+             'id_document'   => 'a government ID (passport or national ID)'];
+    $list = [];
+    foreach ($docs as $d) $list[] = $lbl[$d] ?? str_replace('_', ' ', (string)$d);
+    $body .= (count($list) === 1 ? "Documents. One document: " : "Documents. ")
+           . implode(', and ', $list) . ". Nothing else — no VAT certificate, no authorisation letter. "
+           . "You can upload it in your account or simply reply to this e-mail with the file attached.\n\n";
+
+    if (trim($ship) !== '') $body .= "Shipping. ".trim($ship)."\n\n";
+
+    $body .= "Browsing before you register. Yes. The catalogue, brands, categories and product detail "
+           . "are open to everyone at vestrasales.com — you can see exactly what we carry today. "
+           . "Wholesale prices are the one thing behind the account: they appear once your account is "
+           . "approved. So you can plan your assortment now and the numbers follow.\n\n"
+           . "If it helps, tell me which brands and categories interest you most and I will send you a "
+           . "price list for that part of the catalogue as soon as your account is open.\n\n"
+           . "Kind regards,\n\n"
+           . ($signer !== '' ? $signer."\nVESTRA – vestrasales.com"
+                             : "VESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com");
+
+    $rows = [];
+    if ($min > 0) $rows[] = ['label' => 'Minimum order', 'value' => $minS];
+    if ($pct > 0) $rows[] = ['label' => 'Your region',   'value' => rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.').'% off the catalogue'];
+    $opts = ['badge' => 'Wholesale terms', 'rows' => $rows,
+             'button' => ['label' => 'Browse the catalogue', 'url' => 'https://vestrasales.com/shop']];
+    return [$subject, $body, $opts];
+}

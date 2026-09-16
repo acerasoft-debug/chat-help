@@ -1463,6 +1463,40 @@ jobs:
               [$subject, $body, $opts] = vestra_tpl_order_payment_notice(
                 $buyerName, $oref, (string)($invNos[0] ?? ''), $oamt, $ocur, (bool)$acc, $persona);
               $fromName = $persona.' — VESTRA';
+            } elseif ($letter === 'terms_reply') {
+              /* YENI PAZARDAN GELEN SARTLAR SORUSUNA CEVAP (16 Eyl 2026,
+                 Benin). Govdedeki HICBIR rakam metne gomulu degil: asgari
+                 tutar sabitten, bolgesel indirim ulkenin KENDI oranindan,
+                 belgeler auth_required_doc_types()'tan. Ayni gun asgari
+                 10.000'den 5.000'e cekildi; gomulu olsaydi mektup o anda
+                 sessizce yalan soylemeye baslardi.
+                 spec: country=<ISO ya da ad; indirim ve asgari bundan turer>
+                       ship=<operatorun BEYAN ETTIGI gonderim cumlesi; KURAL 3
+                             -- yazilmazsa mektup bu konuda SUSAR>
+                       salutation=<hitap>, signer=<persona>
+                 MUSTERI ADRESI GIRDIYE YAZILMAZ (girdi kalici ve herkese
+                 acik): test icin copy=true yeter, gercek gonderimde hedef
+                 to=account:/to=order: ile KAYITTAN cozulur. */
+              require_once $doc."/inc/products.php";
+              require_once $doc."/inc/region_discount.php";
+              $trCc = trim($E('country'));
+              /* Ulke BEYANI oldugu gibi gidiyor: cozucu hem ISO kodunu hem
+                 serbest adi ('Benin', 'Bénin') anliyor ve cozemezse indirim
+                 VERMEZ, taban ise UYGULANIR -- iki yon de kendi dosyasinda
+                 gerekcesiyle yazili. */
+              $trUser = ['country' => $trCc];
+              $trPct  = vestra_region_discount_pct($trUser);
+              $trMin  = vestra_order_min_usd($trUser);
+              echo "ulke   : ".($trCc !== '' ? $trCc : '(verilmedi)')
+                 ."  -> ".(vestra_country_region_discount_cc($trCc) ?: '-')."\n";
+              echo "indirim: ".($trPct > 0 ? rtrim(rtrim(number_format($trPct,2,'.',''),'0'),'.').'%' : 'yok')."\n";
+              echo "asgari : ".($trMin > 0 ? 'US$'.number_format($trMin,0) : 'yok (Avrupa)')."\n";
+              $trShip = trim($E('ship'));
+              echo "gonderim cumlesi: ".($trShip !== '' ? 'VAR' : 'yok — mektup bu konuda SUSAR')."\n";
+              $trName = trim($E('salutation'));
+              $persona = trim($E('signer')) !== '' ? trim($E('signer')) : 'Marco Bellini';
+              [$subject, $body, $opts] = vestra_tpl_terms_reply($trName, $trCc, $trShip, $persona);
+              $fromName = $persona.' — VESTRA';
             } elseif ($letter === 'payment_ask') {
               /* "Odeme yapacak mi, YA DA NE ZAMAN" (operator, 9 Eyl 2026,
                  Stock&chic / O7A484). payment_notice odeyecegini VARSAYAR

@@ -126,5 +126,45 @@ foreach (['de','fr','es','it','pt','ru','ar','ja'] as $lang) {
     $t("{$lang}: %s korunmus", is_array($d) && substr_count((string)($d[$k1] ?? ''), '%s') === 1);
 }
 
+echo "\n== terms_reply mektubu: RAKAM METNE GOMULU DEGIL ==\n";
+/* Mektubun ilk taslagi rakamlari duz metne yazmisti ve operator BIR SAAT
+   SONRA asgariyi 10.000'den 5.000'e cekti -- gomulu olsaydi mektup o anda
+   sessizce yalan soylemeye baslardi. Escrow tavaninin bes gun metinde 3.000,
+   kodda 3.500 kalmasi (KURAL 6) ayni sinif. */
+require_once __DIR__.'/../vestra/inc/email_templates.php';
+[$tsA, $tbA, $toA] = vestra_tpl_terms_reply('Mr X', 'BJ', 'UPS Express, 1-2 weeks.', 'Marco Bellini');
+$t('Benin: %8 yaziyor',            str_contains($tbA, '8%'));
+$t('Benin: asgari SABITTEN',       str_contains($tbA, 'US$'.number_format(VESTRA_NONEU_MIN_ORDER_USD, 0)));
+$t('Benin: gonderim cumlesi basli',str_contains($tbA, 'UPS Express, 1-2 weeks.'));
+$t('konuda ULKE ADI, kod degil',   str_contains($tsA, 'Benin') && !str_contains($tsA, ' BJ'));
+$t('belge: ticari kayit',          str_contains($tbA, 'business registration'));
+/* Alicidan istenmeyen belgeler YAZILMAZ (KURAL 2): auth_required_doc_types()
+   alici icin yalniz trade_licence donduruyor. */
+$t('kimlik belgesi ISTENMIYOR',    !str_contains($tbA, 'government ID'));
+$t('katalog dugmesi var',          ($toA['button']['url'] ?? '') === 'https://vestrasales.com/shop');
+
+/* AVRUPA: taban da indirim de YOK -- iki cumle de hic basilmamali. Tek yon
+   yazilsaydi "herkese 5.000 USD" diyen bir mektup da yesil kalirdi. */
+[$tsB, $tbB, $toB] = vestra_tpl_terms_reply('Mr Y', 'Germany', '', 'Marco Bellini');
+$t('Avrupa: US$ rakami YOK',       !str_contains($tbB, 'US$'));
+$t('Avrupa: indirim cumlesi YOK',  !str_contains($tbB, 'standing discount'));
+$t('Avrupa: rows bos',             ($toB['rows'] ?? []) === []);
+/* KURAL 3: operator gonderim cumlesi vermediyse mektup SUSAR -- uydurma bir
+   tasiyici/sure yazmak, bu deponun ships_from dersinin mektup hali. */
+$t('gonderim verilmedi -> SUSUYOR', !str_contains($tbB, 'Shipping.'));
+
+/* Kapsamda ama Avrupa DISI olmayan yok; kapsam disi + Avrupa disi bir ulke
+   tabani alir ama indirim almaz -- iki kapi AYRI. */
+[, $tbC, ] = vestra_tpl_terms_reply('', 'United States', '', '');
+$t('ABD: taban VAR',               str_contains($tbC, 'US$'.number_format(VESTRA_NONEU_MIN_ORDER_USD, 0)));
+$t('ABD: indirim YOK',             !str_contains($tbC, 'standing discount'));
+
+$wf = (string)@file_get_contents(__DIR__.'/../.github/workflows/send-campaign-preview.yml');
+$t('is akisinda kabloli',          str_contains($wf, "\$letter === 'terms_reply'"));
+$t('govdeyi cagiriyor',            str_contains($wf, 'vestra_tpl_terms_reply('));
+/* Musteri adresi girdiye yazilmaz: dal to= ile calismiyor, copy=true ile
+   operatore gidiyor ya da hedef kayittan cozuluyor. */
+$t('rakam is akisina gomulu degil', !preg_match('/US\$\s?5[.,]?000/', $wf));
+
 printf("\n%d ok, %d hata\n", $ok, $fail);
 exit($fail ? 1 : 0);
