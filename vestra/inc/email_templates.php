@@ -1705,6 +1705,18 @@ function vestra_tpl_price_list(string $salutation, array $facts, array $formats,
     $names = (array)($facts['brand_names'] ?? []);
     $url   = trim((string)($facts['url'] ?? 'https://vestrasales.com/price-list'));
 
+    /* MUSTERIYE OZEL paragraf, sablona GOMULU DEGIL (listing_colours'un note
+       parametresiyle ayni gerekce): "ilk siparisinizde asgari alimi kaldiriyoruz"
+       ya da "Israil'e ortalama iki hafta" bu alici icin dogru, ilanlar icin genel
+       olarak degil. Gomulu olsaydi bir sonraki fiyat listesi mektubu hic
+       verilmemis bir sozu tasirdi.
+       Cumleyi CAGIRAN yaziyor: kapsami da o biliyor. */
+    $note  = trim((string)($facts['note'] ?? ''));
+    /* Hesabi OLMAYAN adaya "listeyi hesabinizda gorursunuz" demek, gidemeyecegi
+       bir yeri gostermektir -- /price-list KURAL 19'dan beri girissiz acilmiyor.
+       Ayni adres kalir ama cumle davet olur. */
+    $hasAcc = !empty($facts['has_account']);
+
     /* "PDF and Excel" is printed from what was ACTUALLY attached, never from the
        request: a letter that names a file the buyer cannot find sends them
        looking for it. Same rule as the brand catalogue letter. */
@@ -1748,13 +1760,16 @@ function vestra_tpl_price_list(string $salutation, array $facts, array $formats,
           . "\n"
           . "Alle Preise verstehen sich pro Stück in EUR, zzgl. Versand. Die Mindestabnahme "
           . "steht in der Liste bei jedem Artikel; wo es Staffeln gibt, sind sie mit aufgeführt.\n\n"
-          . "Dieselbe Liste ist in Ihrem Konto jederzeit tagesaktuell:\n" . $url . "\n\n"
+          . ($note !== '' ? $note . "\n\n" : '')
+          . ($hasAcc
+              ? "Dieselbe Liste ist in Ihrem Konto jederzeit tagesaktuell:\n" . $url . "\n\n"
+              : "Nach der kostenlosen Anmeldung sehen Sie dieselbe Liste jederzeit tagesaktuell im Konto:\n" . $url . "\n\n")
           . "Sagen Sie mir, welche Artikel Sie interessieren — dann rechne ich Ihnen eine "
           . "konkrete Zusammenstellung mit Versand.\n\n"
           . "Mit freundlichen Grüßen\n\n"
           . ($signer !== '' ? $signer . "\n" : '')
           . "VESTRA – vestrasales.com";
-        $btn   = 'Preisliste im Konto öffnen';
+        $btn   = $hasAcc ? 'Preisliste im Konto öffnen' : 'Konto anlegen und Preisliste öffnen';
         $badge = 'Preisliste';
         $rows  = [['label' => 'Artikel', 'value' => (string)$arts, 'strong' => true]];
         if ($scope === '' && $brnds > 1) $rows[] = ['label' => 'Marken', 'value' => (string)$brnds];
@@ -1777,13 +1792,16 @@ function vestra_tpl_price_list(string $salutation, array $facts, array $formats,
           . "\n"
           . "All prices are per piece in EUR, plus shipping. The minimum order quantity is "
           . "shown against every article, and where there are tiers they are listed with it.\n\n"
-          . "The same list is always current in your account:\n" . $url . "\n\n"
+          . ($note !== '' ? $note . "\n\n" : '')
+          . ($hasAcc
+              ? "The same list is always current in your account:\n" . $url . "\n\n"
+              : "Register free of charge and the same list is always current in your account:\n" . $url . "\n\n")
           . "Tell me which articles interest you and I will price a specific make-up for you, "
           . "shipping included.\n\n"
           . "Kind regards,\n\n"
           . ($signer !== '' ? $signer . "\n" : '')
           . "VESTRA – vestrasales.com";
-        $btn   = 'Open the price list in your account';
+        $btn   = $hasAcc ? 'Open the price list in your account' : 'Create an account and open the price list';
         $badge = 'Price list';
         $rows  = [['label' => 'Articles', 'value' => (string)$arts, 'strong' => true]];
         if ($scope === '' && $brnds > 1) $rows[] = ['label' => 'Houses', 'value' => (string)$brnds];

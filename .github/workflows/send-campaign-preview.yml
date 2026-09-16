@@ -2334,7 +2334,10 @@ jobs:
               foreach (vestra_products() as $p) {
                 if (vestra_export_price($p) <= 0) continue;          /* fiyatsiz kalem listeye de girmiyor */
                 if (trim((string)($p['brand'] ?? '')) === '') continue;
-                if ($plBrand !== '' && strcasecmp(trim((string)($p['brand'] ?? '')), $plBrand) !== 0) continue;
+                /* Virgulle birden fazla marka; tek karar noktasi products.php'de
+                   (vestra_brand_filter_match) -- PDF/Excel ekleri de ayni fonksiyonu
+                   okuyor, yani govdedeki sayi ile ekteki liste ayrisamiyor. */
+                if (!vestra_brand_filter_match(trim((string)($p['brand'] ?? '')), $plBrand)) continue;
                 if ($plCat !== '' && stripos((string)($p['cat'] ?? ''), $plCat) === false) continue;
                 $plRows[] = $p;
               }
@@ -2361,7 +2364,19 @@ jobs:
                  alicinin sitede gordugu ad da o. Uc ve uzeri kategoride token'a
                  dusuyor: bes kategori adini konuya dizmek daha kotu.
                  Konudan ONCE hesaplaniyor cunku ek DOSYA ADI da bunu kullaniyor. */
-              $plFactsScope = trim($plBrand . ($plBrand !== '' && $plCat !== '' ? ' ' : '')
+              /* Marka adi da SUZGEC TOKEN'INDAN degil, gercekten eslesen MARKA
+                 ADLARINDAN kuruluyor -- kategoride ayni hata bir kez canli
+                 kosuda goruldu. Coklu suzgecte ham token virgullu bir dizge
+                 ("Lacoste,Fred Perry,Ralph Lauren") ve o haliyle konu satirina
+                 girerdi: musteri arama parcasini degil, kayitta duran adlari
+                 gormeli. Dort ve uzeri markada ada dusulmuyor, sayiya. */
+              $plBrandNames = array_keys($plBrandCount);
+              $plBrandScope = $plBrand === '' ? ''
+                            : (count($plBrandNames) === 1 ? (string)$plBrandNames[0]
+                              : (count($plBrandNames) <= 3
+                                 ? implode(', ', array_slice($plBrandNames, 0, -1)).' & '.end($plBrandNames)
+                                 : count($plBrandNames).' brands'));
+              $plFactsScope = trim($plBrandScope . ($plBrandScope !== '' && $plCat !== '' ? ' ' : '')
                             . ($plCat === '' ? '' : (count($plCats) > 0 && count($plCats) <= 2
                                ? implode(' & ', array_keys($plCats)) : $plCat)));
               /* Marka adlari: en derin stoklu ILK ALTI. Hepsini yazmak govdeyi
@@ -2389,14 +2404,29 @@ jobs:
                    "<marka>'nin listesi" mi yazacagina buna bakarak karar veriyor
                    (operator: pazar yeri satici degildir). Kapsam adindan cikarim
                    yapmak marka ile kategori adini birbirine karistirirdi. */
-                'brand_scope' => $plBrand,
+                'brand_scope' => $plBrandScope,
+                /* Musteriye ozel paragraf (spec: note=). Sablona gomulmedi:
+                   "ilk siparisinizde asgari alimi kaldiriyoruz" bu alici icin
+                   verilmis bir soz, listeler icin genel bir kural degil. */
+                'note'        => trim($E('note')),
+                /* Hesabi olmayan adaya "listeyi hesabinizda gorursunuz" demek,
+                   KURAL 19'dan beri girissiz acilmayan bir sayfayi gostermek
+                   olurdu -- cumle davete donuyor. */
+                'has_account' => $acc !== null,
                 'sections'    => $plSections,
-                'brand_names' => $plNames,
+                /* Kapsam adi markalari ZATEN sayiyorsa "Marken u. a.:" satiri
+                   ucuncu kez tekrar ederdi -- sablonun tek-marka icin yazdigi
+                   kuralin coklu hali. */
+                'brand_names' => ($plBrandScope !== '' && count($plBrandNames) <= 3) ? [] : $plNames,
                 /* Hesabi acik olan alici ayni listeyi sitede de goruyor (KURAL 19:
                    girissiz acilmiyor). Adres tek yerde yazili, kapiyi bu mektup
                    yeniden tanimlamiyor. */
+                /* ?brand= TEK marka aliyor (price-list.php strcasecmp ile tam
+                   esleseme bakiyor). Coklu suzgecte o adresi yazmak "marka
+                   bulunamadi" sayfasina yollardi: mektubun isaret ettigi yer
+                   ekteki listeden BASKA bir sey gosteremez. */
                 'url'         => 'https://vestrasales.com/price-list'
-                               . ($plBrand !== '' ? '?brand='.rawurlencode($plBrand) : ''),
+                               . (count($plBrandNames) === 1 ? '?brand='.rawurlencode((string)$plBrandNames[0]) : ''),
               ];
               if (trim($E('salutation')) === '' && $plLang === 'de') {
                 $plWho = $acc ? trim((string)($acc['name'] ?? '')) : '';

@@ -79,7 +79,10 @@ foreach (vestra_products() as $p) {
        L1212'de ise tersi, listede 29,90 gorunen urun sepette 34,00 cikiyordu. */
     $price = vestra_export_price($p);
     if ($brand === '' || $price <= 0) continue;
-    if ($brandFilter !== '' && strcasecmp($brand, $brandFilter) !== 0) continue;
+    /* Virgulle birden fazla marka: tek karar noktasi products.php'de
+       (vestra_brand_filter_match) -- PDF ve Excel ayni zarfa giriyor ve
+       ayri ayri yazilmis iki suzgec er gec ayrisir. */
+    if (!vestra_brand_filter_match($brand, $brandFilter)) continue;
     if ($catFilter !== '' && stripos((string)($p['cat'] ?? ''), $catFilter) === false) continue;
     $byBrand[$brand][] = $p;
 }
