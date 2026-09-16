@@ -448,6 +448,7 @@ return array (
   'My showroom' => 'O meu showroom',
   'My sourcing requests' => 'Os meus pedidos de sourcing',
   'NEW' => 'NOVO',
+  'New arrivals' => 'Novidades',
   'Name A–Z' => 'Nome A–Z',
   'Navy' => 'Azul-marinho',
   'New offer' => 'Nova oferta',

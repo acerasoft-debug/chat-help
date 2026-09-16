@@ -448,6 +448,7 @@ return array (
   'My showroom' => 'マイショールーム',
   'My sourcing requests' => 'マイ調達リクエスト',
   'NEW' => 'NEW',
+  'New arrivals' => '新着',
   'Name A–Z' => '名前 A–Z',
   'Navy' => 'ネイビー',
   'New offer' => '新しいオファー',

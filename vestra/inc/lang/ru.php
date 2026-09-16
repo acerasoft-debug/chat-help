@@ -448,6 +448,7 @@ return array (
   'My showroom' => 'Мой шоурум',
   'My sourcing requests' => 'Мои запросы на поставку',
   'NEW' => 'НОВОЕ',
+  'New arrivals' => 'Новые поступления',
   'Name A–Z' => 'Название А–Я',
   'Navy' => 'Тёмно-синий',
   'New offer' => 'Новое предложение',

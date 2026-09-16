@@ -2307,6 +2307,73 @@ function vestra_product_is_new(array $p, ?int $now = null, ?int $days = null): b
     return $ts >= (($now ?? time()) - $days * 86400);
 }
 
+/* ANA SAYFANIN "yeni gelenler" seridi (operator, 16 Eyl 2026: "ana sayfayi
+ * yenile yeni urunler koy F.Perry urunlerini Polo ve Sweatshirt on planda olsun
+ * Lacoste da").
+ *
+ * Neden vitrin siralamasi (vestra_shop_order) KULLANILMIYOR: o fonksiyon butun
+ * katalogu diziyor ve basinda `pinned` + 24'luk YENI bolmesi var; ilk 12'sini
+ * almak, operatorun adiyla istedigi iki markayi seridin disinda birakirdi.
+ * Burada istenen sey bir SIRALAMA degil, bir SECKI.
+ *
+ * ONE ALINAN MARKALAR once, liste sirasinda; ardindan gercekten yeni ilanlar,
+ * EN YENI ONCE. Ikisi ayri kume: bir marka one alindi diye "yeni" sayilmiyor
+ * (Fred Perry'nin iki ilani aylardir katalogda) ve yeni bir ilan one alinmis
+ * markadaysa iki kez cikmiyor -- id ile tekillestiriliyor.
+ *
+ * ESLESME TAM, alt dize DEGIL: yarin gelecek bir "Lacoste Kids" kendiliginden
+ * one cikmamali (mango/zara dersi).
+ *
+ * SAF: fotografi diskte var mi diye bakmiyor. Cagiran sayfa o suzgeci ONCE
+ * uyguluyor, cunku dosya sistemi okuyan bir fonksiyon test edilemezdi ve bu
+ * depoda "govdeye gomulu oldugu surece sinanamiyordu" dersi zaten kayitli.
+ *
+ * @param array      $products  fotografi dogrulanmis aday listesi (katalog sirasi)
+ * @param array|null $featured  one alinacak markalar (varsayilan: asagidaki liste)
+ */
+function vestra_home_featured_brands(): array {
+    /* Tek satirda YAZILMIYOR: bu depodaki testler fonksiyon govdesini
+       `^function ...^}` ile ayikliyor ve tek satirlik bir govde kapanisini
+       satir basinda birakmadigi icin ayiklama BIR SONRAKI fonksiyonu da
+       yutuyor ("Cannot redeclare"). Bicim burada bir okunabilirlik tercihi
+       degil, olcum araciyla uyum. */
+    return ['FRED PERRY', 'LACOSTE'];
+}
+
+function vestra_home_new_picks(array $products, ?array $featured = null,
+                               int $max = 12, ?int $now = null, ?int $newDays = null): array {
+    $featured = $featured ?? vestra_home_featured_brands();
+    if ($max <= 0) return [];
+    $up = fn($v) => strtoupper(trim((string)$v));
+
+    $fr = []; $new = [];
+    foreach (array_values($products) as $i => $p) {
+        $id = trim((string)($p['id'] ?? ''));
+        if ($id === '') continue;                       // id'siz urunun urun sayfasi yok
+        $j = array_search($up($p['brand'] ?? ''), $featured, true);
+        if ($j !== false) { $fr[$j][] = $p; continue; }
+        if (vestra_product_is_new($p, $now, $newDays)) $new[] = [strtotime((string)$p['added_at']), $i, $p];
+    }
+    /* En yeni once; esitlikte katalog sirasi -- ayni gun yazilan bir partinin
+       icinde sirayi usort'un kararliligina birakmiyoruz, acikca yaziyoruz. */
+    usort($new, fn($a, $b) => ($b[0] <=> $a[0]) ?: ($a[1] <=> $b[1]));
+
+    $out = []; $seen = [];
+    $push = function (array $p) use (&$out, &$seen, $max): bool {
+        $id = trim((string)($p['id'] ?? ''));
+        if ($id === '' || isset($seen[$id])) return true;
+        $seen[$id] = true; $out[] = $p;
+        return count($out) < $max;
+    };
+    /* array_keys DEGIL, indis uzerinden: bir marka hic urun vermezse kendinden
+       sonrakiler one kaymamali, liste sirasi korunmali. */
+    for ($i = 0; $i < count($featured); $i++) {
+        foreach ($fr[$i] ?? [] as $p) if (!$push($p)) return $out;
+    }
+    foreach ($new as $n) if (!$push($n[2])) return $out;
+    return $out;
+}
+
 /* Listeler parametre, cunku test mekanizmayi KENDI tanimladigi degerlerle
    sinamali; sevk edilen markalar ayrica kaynaktan dogrulaniyor. Ikisi tek iddiada
    birlesseydi, listeye bir marka eklendigi gun mekanizmanin testi de kirmizi

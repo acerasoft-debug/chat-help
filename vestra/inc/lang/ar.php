@@ -448,6 +448,7 @@ return array (
   'My showroom' => 'صالة عرضي',
   'My sourcing requests' => 'طلبات التوريد الخاصة بي',
   'NEW' => 'جديد',
+  'New arrivals' => 'وصل حديثاً',
   'Name A–Z' => 'الاسم أ–ي',
   'Navy' => 'كحلي',
   'New offer' => 'عرض جديد',

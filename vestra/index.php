@@ -1361,6 +1361,105 @@ if ($soonBrands):
    Kendi CSS'i var, ustteki .soon-* siniflarini KULLANMIYOR: o stil blogu
    yalnizca uploads/coming-soon dolu oldugunda basiliyor, klasor bosalsa bu
    bolum stilsiz kalirdi. */
+/* ── YENI GELENLER / one alinan markalar ────────────────────────────────────
+   Operator, 16 Eyl 2026: "ana sayfayi yenile yeni urunler koy F.Perry
+   urunlerini Polo ve Sweatshirt on planda olsun Lacoste da".
+
+   SECKI vestra_home_new_picks()'ten (inc/products.php) -- govdeye gomulu
+   olsaydi sinanamazdi, ve bu depoda "govdeye gomulu oldugu surece
+   sinanamiyordu" dersi zaten kayitli.
+
+   FOTOGRAFI DISKTE OLAN aday geciyor: karti fotograf tasiyor, kirik bir kare
+   vitrinde bos bir kutu birakir. Suzgec BURADA cunku dosya sistemi okuyan bir
+   fonksiyon test edilemezdi; secici saf kaliyor.
+
+   FIYAT YOK -- ana sayfa girissiz aciliyor ve toptan fiyat hesap kapisinin
+   arkasinda (KURAL 19). Ayakkabi seridi de fiyat basmiyor.
+
+   KENDI CSS'i var: ustteki .shoe-* bloku yalnizca $shoePicks doluyken
+   basiliyor, yani onu kullansaydim ayakkabi bolmesi bosaldigi gun bu bolum
+   stilsiz kalirdi -- ayakkabi seridinin kendi yorumunun yazdigi tuzak. */
+$newPicks = [];
+if (function_exists('vestra_home_new_picks')) {
+    $npCand = [];
+    foreach (vestra_products() as $np) {
+        $im = '';
+        foreach ((array)($np['images'] ?? []) as $ni) {
+            if (!is_string($ni) || $ni === '' || $ni[0] !== '/') continue;
+            if (!is_file(__DIR__.$ni)) continue;
+            $im = $ni; break;
+        }
+        if ($im === '' || ($np['id'] ?? '') === '') continue;
+        $np['_img'] = $im;
+        $npCand[] = $np;
+    }
+    $newPicks = vestra_home_new_picks($npCand);
+}
+if ($newPicks):
+?>
+<style>
+.newband{padding:54px 0 44px;background:
+  radial-gradient(900px 320px at 50% -80px, rgba(201,168,106,.07), transparent 70%);
+  border-top:1px solid rgba(201,168,106,.12)}
+.newband .wrap{max-width:1180px}
+.new-kick{display:flex;align-items:center;gap:14px;justify-content:center;margin-bottom:12px}
+.new-kick .ln{height:1px;width:min(120px,18vw);background:linear-gradient(90deg,transparent,rgba(201,168,106,.55))}
+.new-kick .ln:last-child{transform:scaleX(-1)}
+.new-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(201,168,106,.45);
+  color:var(--acc);font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+  padding:7px 16px;border-radius:999px;white-space:nowrap}
+.newband h2.sec-title{margin-bottom:6px}
+.new-grid{display:grid;gap:16px;margin-top:24px;
+  grid-template-columns:repeat(auto-fill,minmax(184px,1fr))}
+/* Kart zemini BEYAZ ve fotograf CONTAIN: katalogun fotograflarinin neredeyse
+   tamami beyaz fonlu paket cekimi (35'te 33 olculmustu) ve cover onlari
+   kirpiyordu -- vitrin karosunda ayni karar verilmisti. */
+.new-card{position:relative;display:block;border-radius:16px;background:#fff;overflow:hidden;
+  text-decoration:none;box-shadow:0 1px 0 rgba(255,255,255,.05), 0 14px 34px -22px rgba(0,0,0,.65);
+  transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s}
+.new-card:hover{transform:translateY(-3px);box-shadow:0 1px 0 rgba(255,255,255,.06), 0 22px 40px -22px rgba(0,0,0,.75)}
+.new-card::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  box-shadow:inset 0 0 0 1px rgba(26,20,8,.06);pointer-events:none}
+.new-card img{display:block;width:100%;height:auto;aspect-ratio:4/5;object-fit:contain;
+  padding:10px 8px 44px;transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+.new-card:hover img{transform:scale(1.045)}
+.new-meta{position:absolute;left:12px;right:12px;bottom:9px}
+.new-brand{display:block;font-size:9.5px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:#8c857a;margin-bottom:2px}
+.new-name{display:block;font-size:11px;font-weight:700;letter-spacing:.02em;color:#2a2620;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.new-foot{display:flex;gap:10px 18px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:22px}
+@media (max-width:640px){.newband{padding:40px 0 34px}
+  .new-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}}
+</style>
+<section class="newband reveal" id="new-arrivals">
+  <div class="wrap">
+    <div class="new-kick"><span class="ln"></span>
+      <span class="new-pill"><?= t('In stock now') ?></span>
+    <span class="ln"></span></div>
+    <h2 class="sec-title" style="text-align:center"><?= t('New arrivals') ?></h2>
+    <div class="new-grid">
+      <?php foreach ($newPicks as $nc):
+              $nName = function_exists('vestra_product_name') ? vestra_product_name($nc) : (string)($nc['name'] ?? '');
+      ?>
+      <a class="new-card" href="/product?id=<?= urlencode((string)$nc['id']) ?>">
+        <img src="<?= htmlspecialchars($nc['_img']) ?>" alt="<?= htmlspecialchars($nName) ?>" loading="lazy" width="720" height="900">
+        <span class="new-meta">
+          <?php if (trim((string)($nc['brand'] ?? '')) !== ''): ?>
+          <span class="new-brand"><?= htmlspecialchars((string)$nc['brand']) ?></span>
+          <?php endif; ?>
+          <span class="new-name"><?= htmlspecialchars($nName) ?></span>
+        </span>
+      </a>
+      <?php endforeach; ?>
+    </div>
+    <div class="new-foot">
+      <a class="btn btn-p" href="/shop"><?= t('Browse the catalog') ?> →</a>
+    </div>
+  </div>
+</section>
+<?php endif;
+
 $shoePicks = []; $shoeTotal = 0;
 if (function_exists('vestra_products') && function_exists('vestra_product_section')) {
     $shoeByCat = [];
