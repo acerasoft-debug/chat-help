@@ -79,6 +79,14 @@ on:
         description: "true = KALIP TARAMASI: ad + açıklama + özelliklerde oversize/boxy/relaxed/slim... geçen ürünleri, kanıt cümlesiyle ve mevcut beden serisiyle yaz (KURAL 2h'nin kapsam sorusu)"
         required: false
         default: "false"
+      home_picks:
+        # "Ana sayfa ne gosterecek" sorusunun tek durust cevabi, sayfanin
+        # CAGIRDIGI fonksiyonu CANLI katalogla kosturmak. Yerel checkout yalniz
+        # 20 ilanlik demo tohumunu tasiyor, yani orada cizdirmek mekanizmayi
+        # kanitlar, ICERIGI kanitlamaz.
+        description: "true = ana sayfanin 'yeni gelenler' seridi: hangi ilanlar, hangi sirayla (one alinan markalar + gercekten yeni olanlar). Salt okunur."
+        required: false
+        default: "false"
       img_list:
         # "Fotograflari su ilandan bu ilana tasi" denince ilk sorulacak sey
         # SIRALI TAM LISTE: hangi kare kacinci, kapak hangisi. Mevcut modlarin
@@ -126,6 +134,7 @@ jobs:
           INSPECT_BAKDIFF: ${{ github.event.inputs.bak_diff }}
           INSPECT_FIT: ${{ github.event.inputs.fit_scan }}
           INSPECT_IMGLIST: ${{ github.event.inputs.img_list }}
+          INSPECT_HOMEPICKS: ${{ github.event.inputs.home_picks }}
           INSPECT_RAW: ${{ github.event.inputs.raw_scan }}
           INSPECT_SHOPORD: ${{ github.event.inputs.shop_order }}
           INSPECT_MOQ: ${{ github.event.inputs.moq_scan }}
@@ -139,7 +148,7 @@ jobs:
           # gecirir. Yeni bir girdi eklerken bu satir unutulursa uzak tarafta
           # getenv() bos doner ve mod SESSIZCE calismaz -- sonda, sorulmayan bir
           # soruya "her sey normal" diye cevap verir.
-          envs: INSPECT_MOQ,INSPECT_SHOPORD,INSPECT_BAKDIFF,INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT,INSPECT_FIT,INSPECT_IMGLIST,INSPECT_RAW
+          envs: INSPECT_MOQ,INSPECT_SHOPORD,INSPECT_BAKDIFF,INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT,INSPECT_FIT,INSPECT_IMGLIST,INSPECT_HOMEPICKS,INSPECT_RAW
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
@@ -165,6 +174,7 @@ jobs:
             $paudit   = strtolower(trim((string)getenv("INSPECT_PAUDIT")))  === 'true';
             $fitscan  = strtolower(trim((string)getenv("INSPECT_FIT")))     === 'true';
             $imglist  = strtolower(trim((string)getenv("INSPECT_IMGLIST"))) === 'true';
+            $homepick = strtolower(trim((string)getenv("INSPECT_HOMEPICKS"))) === 'true';
             $rawscan  = strtolower(trim((string)getenv("INSPECT_RAW")))     === 'true';
             $moqscan  = strtolower(trim((string)getenv("INSPECT_MOQ")))     === 'true';
             $bakdiff  = trim((string)getenv("INSPECT_BAKDIFF"));
@@ -801,6 +811,51 @@ jobs:
                Sira onemli: [0] kapaktir. Diskte olup olmadigi da yaziliyor;
                "tasidim" demeden once tasinan seyin gercekten var oldugunu
                gormek gerekiyor. */
+            /* ── ANA SAYFA SERIDI ────────────────────────────────────────────────
+               Sayfanin kendi suzgecini BIREBIR tekrarliyor (fotografi diskte
+               olan aday) ve sonra sayfanin cagirdigi fonksiyonu cagiriyor.
+               Ikinci bir secim mantigi YAZILMADI: bu depoda kontrolun kendisi
+               alti kez yanlis yere bakti, ve "sayfa baska, sonda baska" tam o
+               sinif olurdu.
+               Fonksiyon yoksa DEPLOY INMEMIS demektir ve sonda bunu SOYLUYOR --
+               sifir yazip "serit bos" demek iki ayri durumu gizlerdi. */
+            if ($homepick) {
+              echo "===== ANA SAYFA: yeni gelenler seridi =====\n";
+              if (!function_exists('vestra_home_new_picks')) {
+                echo "*** vestra_home_new_picks YOK -- deploy inmemis ***\n"; exit(0);
+              }
+              $cand = []; $noImg = 0;
+              foreach (vestra_products() as $np) {
+                $im = '';
+                foreach ((array)($np['images'] ?? []) as $ni) {
+                  if (!is_string($ni) || $ni === '' || $ni[0] !== '/') continue;
+                  if (!is_file($root.$ni)) continue;
+                  $im = $ni; break;
+                }
+                if ($im === '' || ($np['id'] ?? '') === '') { $noImg++; continue; }
+                $cand[] = $np;
+              }
+              $front = vestra_home_featured_brands();
+              printf("katalog: %d | fotografi diskte olan aday: %d | fotografsiz/id siz: %d\n",
+                     count(vestra_products()), count($cand), $noImg);
+              echo "one alinan markalar: ".implode(', ', $front)."\n";
+              foreach ($front as $fb) {
+                $n = 0; foreach ($cand as $c) if (strtoupper(trim((string)($c['brand'] ?? ''))) === $fb) $n++;
+                printf("  %-18s %d aday%s\n", $fb, $n, $n === 0 ? '   *** bu markada aday YOK ***' : '');
+              }
+              $picks = vestra_home_new_picks($cand);
+              printf("\nseritte %d kart:\n", count($picks));
+              foreach ($picks as $i2 => $pk) {
+                $isF = in_array(strtoupper(trim((string)($pk['brand'] ?? ''))), $front, true);
+                printf("  %2d. %-26s %-20s %s%s\n", $i2 + 1,
+                       (string)($pk['id'] ?? '?'), (string)($pk['brand'] ?? '?'),
+                       substr((string)($pk['added_at'] ?? '(tarih yok)'), 0, 10),
+                       $isF ? '   [one alinan]' : '   [yeni]');
+              }
+              if (!$picks) echo "  (bos -- ne one alinan markada ne de pencerede fotografli ilan var)\n";
+              exit(0);
+            }
+
             if ($imglist) {
               $all2 = function_exists('vestra_listings') ? vestra_listings() : vestra_products(true);
               $n = 0;
