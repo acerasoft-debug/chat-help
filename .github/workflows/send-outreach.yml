@@ -539,13 +539,30 @@ jobs:
                 }
                 /* Marka sayfasi ancak GERCEKTEN aciliyorsa (KURAL 9): elle
                    yazilan bir adres, son ilan satildigi gun 404 olurdu. */
-                if (!function_exists('vestra_seo_resolve')) {
-                  fwrite(STDERR, "vestra_seo_resolve yuklenmedi -- marka baglantisi dogrulanamiyor\n"); exit(1);
+                /* MARKA sayfasini vestra_seo_resolve() COZMEZ -- o yalniz
+                   kategori/grup/koleksiyon biliyor; marka dali hic yok. Ilk
+                   yazimda ona '/wholesale/fred-perry' YOLUNU verdim: fonksiyon
+                   SLUG aliyor, yol degil, ve bu depoda yedi kez kayitli
+                   "kontrol yanlis yere bakiyor"un sekizincisiydi -- sonuc, acik
+                   bir sayfayi "KAPALI" diye raporlamak ve mektuptan gecerli bir
+                   baglantiyi dusurmekti.
+                   Dogrusu wholesale.php'nin KENDI iki kosulu, ve o kosullar
+                   send-campaign-preview'da zaten yazili: slug cozuluyor mu +
+                   o markada CANLI ilan var mi. */
+                $brands = [];
+                foreach ($offerBlocks as $b) { $bn = trim((string)(((array)$b['p'])['brand'] ?? '')); if ($bn !== '') $brands[strtolower($bn)] = $bn; }
+                if (count($brands) === 1) {
+                  $bn = (string)reset($brands);
+                  $bslug = function_exists('vestra_brand_slug') ? vestra_brand_slug($bn) : '';
+                  $bcnt = 0;
+                  foreach (vestra_products() as $pp) if (strcasecmp(trim((string)($pp['brand'] ?? '')), $bn) === 0) $bcnt++;
+                  if ($bslug !== '' && function_exists('vestra_brand_from_slug') && vestra_brand_from_slug($bslug) !== null && $bcnt > 0) {
+                    $offerMore = 'https://vestrasales.com/wholesale/'.rawurlencode($bslug);
+                  }
+                  echo "marka sayfasi: {$bn} -> ".($offerMore !== '' ? $offerMore." ({$bcnt} canli ilan)" : "ACILMIYOR, baglanti konmadi")."\n";
+                } else {
+                  echo "marka sayfasi: mektupta ".count($brands)." marka var, tek marka sayfasi konmadi\n";
                 }
-                if (vestra_seo_resolve('/wholesale/fred-perry')) {
-                  $offerMore = 'https://vestrasales.com/wholesale/fred-perry';
-                }
-                echo "marka sayfasi: ".($offerMore !== '' ? 'ACIK (baglanti konuldu)' : 'KAPALI (stokta ilan yok) -- baglanti konmadi')."\n";
               }
 
               $accts = auth_accounts();
