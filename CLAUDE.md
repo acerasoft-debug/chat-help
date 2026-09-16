@@ -4432,6 +4432,79 @@ seller armasini daha estetik yap"*).
   sabotajın gerçekten uygulandığı ayrıca yazdırılarak: sabit 30'a döndürülünce
   **2 kırmızı** (biri gün bazlı olan), rozet elle eşik okuyunca **2**.
 
+**16 Eyl 2026 — Fred Perry Angebot 118 kayıtlı alıcıya; fiyat listesi artık
+BİRDEN FAZLA marka alıyor; ve cevap mektubu adımı ARGÜMAN SINIRINI aşmıştı.**
+
+- **Angebot gönderildi: 50 + 50 + 18 = 118, hata 0.** `send-outreach` →
+  `to_members=true`, `member_spec=letter=fp_offer|skip=849aaa5ab65a0b3f`
+  (Baumgartner operatörün isteğiyle dışarıda). Kuru koşu: **fiyat kapısı AÇIK
+  114** (rakamlı mektup) · **KAPALI 4** (rakamsız, "giriş yapınca sayfada") —
+  yani "114" bir alıcı sayısı değil, **kapısı açık olanların** sayısıydı;
+  gerçek alıcı 118. Diller en=53 fr=41 de=7 es=6 it=4 pt=3 ar=2 ru=2.
+- **Dün yazdığım "aynı adres iki hesapta, iki mektup gidecek" iddiası İKİNCİ
+  KEZ çürüdü:** kuru koşu `ayni adres 0` diyor. Koruma doğru olduğu için
+  duruyor ama `send-outreach.yml`'deki yorumu *"kuru kosuda M&F Resell iki kez
+  cikti"* diye bir ÖLÇÜM anlatıyor ve o ölçüm hiç olmadı. *Yorum da kayıttır;
+  olmamış bir ölçümü anlatan yorum, yanlış bir teşhis kadar pahalıdır.*
+
+- **`price_list` artık virgülle birden fazla marka alıyor** (İsrailli aday üç
+  markanın tamamını istedi). Tek karar noktası `vestra_brand_filter_match()`
+  (`inc/products.php`); **üç okuyan da** onu çağırıyor — PDF üreteci, Excel
+  üreteci ve mektup dalı. Üçüne ayrı ayrı virgül ayrıştırması yazmak, PDF iki
+  marka taşırken Excel'in tek marka taşıdığı bir zarf üretirdi; tam o ayrışma
+  xlsx'in kategori süzgeci eksikken bir kez yaşandı.
+  **Eşleşme ad başına TAM** (mango/zara): "Lacoste" isteği yarın gelecek bir
+  "Lacoste Kids"i almamalı. **Kapsam adı süzgeç TOKEN'ından değil eşleşen MARKA
+  ADLARINDAN** kuruluyor — ham token virgullü bir dizge ve olduğu gibi konu
+  satırına girerdi (aynı hata kategori tarafında canlı bir koşuda görülmüştü).
+  `?brand=` tek marka aldığı için çoklu süzgeçte mektup düz `/price-list`'e
+  bağlanıyor: mektubun işaret ettiği yer ekteki listeden başkasını gösteremez.
+  Test: `tests/brand_filter_test.php` (28 iddia; üç sabotajın her biri önce
+  **gerçekten uygulandığı doğrulanıp** kırmızıya çevrildi).
+- İki yan ekleme, ikisi de mektubun hesabı OLMAYAN bir adaya gitmesinden:
+  `note=` (müşteriye özel paragraf, şablona **gömülü değil** — `listing_colours`
+  ile aynı gerekçe) ve hesabı olmayana *"listeyi hesabınızda görürsünüz"*
+  **denmemesi** (KURAL 19'dan beri `/price-list` girişsiz açılmıyor; cümle
+  davete döndü).
+
+- **ADIM BETİĞİ 128 KiB'i AŞINCA ADIM HİÇ ÇALIŞMIYOR.** `send-campaign-preview`
+  → "Alıcı cevap mektubu" adımı bugün **132.127 bayta** çıktı ve şunu verdi:
+  `An error occurred trying to start process '/usr/bin/docker' … Argument list
+  too long`. **Girdiyle ilgisi yok:** `appleboy/ssh-action` `script`i TEK bir env
+  değişkeni olarak geçiriyor ve Linux'ta bir argümanın tavanı
+  **MAX_ARG_STRLEN = 131.072**. Yani `payment_notice`, `tracking_soon`,
+  `listing_colours`, `price_list`, fatura taslakları — **cevap mektubu yolunun
+  tamamı** herkes için kırıktı, ve kütükte "çok uzun" diye bir şey yazmıyordu.
+  Sebep ancak betiği **tartarak** bulundu, kaynak okuyarak değil.
+  - **Çözüm PARÇALAMA, kısaltma DEĞİL:** PHP iki adımda yazılıyor (`>` sonra
+    `>>`), oluşan dosya **bayt bayt aynı** — doğrulandı (aynı sha256
+    `deae0eab86ef25d9`, 131.887 bayt, `php -l` temiz). Tek kelime yorum
+    silinmedi: bu depoda yorumlar kayıt ve "yer açmak için bilgi sil" yanlış
+    takas olurdu.
+  - Bekçisi `tests/workflow_arg_limit_test.php`: bütün workflow'lardaki her
+    `script: |` bloğunu tartıyor (**103 betik**), eşik 128.000. Ölçünün kendisi
+    çalışıyor mu diye de bakıyor — sıfır betik ölçüp yeşil kalan bir test hiç
+    düşemeyen bir iddiadır. Bölme geri alınınca gerçekten kırmızı dönüyor.
+    Şu an en büyük ikinci betik `diag-admin-discover.yml`, **93.600 bayt**.
+  - `fetch-external-images.yml` aynı sınıfın başka bir sınırını (GitHub'ın 21000
+    karakterlik ifade tavanı) zaten kaydediyordu; bu ikincisi.
+
+- **`to=lead:<ad>` eklendi** (iki oturum aynı anda yazdı; çakışmada diğerininki
+  alındı çünkü `inc/leads.php`'yi **açıkça** require ediyor — KURAL 15). Hesabı
+  olmayan bir adaya cevap yazmanın tek yolu ham adresti; artık adres **lead
+  kaydından** çözülüyor ve TAM 1 eşleşme yoksa iş duruyor.
+
+- **AÇIK KALAN, OPERATÖR KARARI BEKLİYOR — fiyat listesi SATILMIŞ malı da
+  fiyatlıyor.** `wholesale-list.php` / `wholesale-xlsx.php` / `price-list.php`
+  hiçbiri `sold_out`'a **bakmıyor** (arandı: tek bir geçiş yok). Ölçüldü: 13
+  Eylül'de *ausverkauft* yapılan iki Lacoste polosu — **DH1417** (Classic Fit
+  Monogram Jacquard) ve **PH9863** (Regular Fit Logo Trim L.12.12) — 13 satırlık
+  Lacoste dökümünde fiyatlarıyla duruyor, hiçbir uygunluk işareti yok. Bu
+  **bugünün değişikliğinden bağımsız ve eski**: 11 Eylül'de Baumgartner'a giden
+  listeler de aynı yoldan çıktı. Seçenek iki: (a) satılmışı dışarıda bırak,
+  (b) listeye bir uygunluk sütunu ekle. İkisi de **her** fiyat listesini
+  değiştirir, o yüzden kendiliğinden yapılmadı.
+
 **KURAL 27 — AVRUPA DIŞINA asgari sipariş 5.000 USD; AFRİKA'ya %8 indirim**
 (operatör, 16 Eyl 2026, Benin'den gelen ilk kurumsal soru vesilesiyle:
 *"Avrupa disina en az alim 10 Bin USD yaz. Ayrica Afrika bölgesine toplam
