@@ -11,11 +11,14 @@
  * Tek yon yazilsaydi "her urunu basan" bir kusur da yesil kalirdi.
  */
 $src = file_get_contents(__DIR__.'/../vestra/inc/products.php');
-foreach (['vestra_home_featured_brands', 'vestra_home_new_picks', 'vestra_product_is_new'] as $fn) {
+foreach (['vestra_home_featured_brands', 'vestra_home_new_picks', 'vestra_product_is_new', 'vestra_is_sold_out'] as $fn) {
     if (!preg_match('/^function '.preg_quote($fn,'/').'\(.*?^}/ms', $src, $m)) { echo "HATA: $fn bulunamadi\n"; exit(1); }
     eval($m[0]);
 }
 if (!defined('VESTRA_SHOP_NEW_DAYS')) define('VESTRA_SHOP_NEW_DAYS', 7);
+preg_match('/const VESTRA_HOME_FEATURED_MAX\s*=\s*(\d+)/', $src, $fm);
+if (!$fm) { echo "HATA: VESTRA_HOME_FEATURED_MAX bulunamadi\n"; exit(1); }
+define('VESTRA_HOME_FEATURED_MAX', (int)$fm[1]);
 
 $ok=0; $fail=0;
 $t = function(string $n, bool $c) use (&$ok,&$fail) { $c ? ($ok++ . print("  ok   $n\n")) : ($fail++ . print("  HATA $n\n")); };
@@ -112,6 +115,43 @@ foreach (['de','fr','es','it','pt','ru','ar','ja'] as $lg) {
     $tr = is_file($f) ? include $f : [];
     $t("{$lg}: New arrivals", is_array($tr) && trim((string)($tr['New arrivals'] ?? '')) !== '');
 }
+
+echo "\n== 9. One alinanlarin PAYI sinirli -- yeni ilanlar da giriyor ==\n";
+/* CANLI OLCUMUN yakaladigi kusur: one alinan markalarda 15 aday var
+   (Fred Perry 2 + Lacoste 13) ve tavansiz birakinca 12 kartin 12'sini de
+   onlar dolduruyordu; "yeni urunler koy" talimati sessizce uygulanmiyordu. */
+$many = [];
+for ($i = 0; $i < 13; $i++) $many[] = $mk('lac-'.$i, 'Lacoste', $d(200));
+$many[] = $mk('fpx-1', 'Fred Perry', $d(300));
+$many[] = $mk('fpx-2', 'Fred Perry', $d(300));
+for ($i = 0; $i < 6; $i++) $many[] = $mk('fresh-'.$i, 'Gucci', $d($i + 1));
+$r9 = vestra_home_new_picks($many, null, 12, $NOW);
+$nFeat = count(array_filter($ids($r9), fn($x) => str_starts_with($x,'lac-') || str_starts_with($x,'fpx-')));
+$nNew  = count(array_filter($ids($r9), fn($x) => str_starts_with($x,'fresh-')));
+$t('one alinanlar tavani asmiyor',   $nFeat === VESTRA_HOME_FEATURED_MAX);
+$t('GERCEKTEN YENI ilanlar da var',  $nNew > 0);
+$t('izgara doluyor',                 count($r9) === 12);
+/* Ters yon: yeni ilan YOKSA bos slotlar one alinanlarla dolmali -- yarim
+   dolu bir izgara, dolu bir izgaradan kotu gorunur. */
+$r10 = vestra_home_new_picks(array_slice($many, 0, 15), null, 12, $NOW);
+$t('yeni yokken izgara yine doluyor', count($r10) === 12);
+
+echo "\n== 10. SATILMIS mal seride giremez ==\n";
+/* Serit "In stock now" rozetiyle aciliyor; alinamayan bir urun o rozeti
+   yalanlar. Canli olcumde tam bu cikti. */
+$soldCat = [
+    $mk('fp-sold', 'Fred Perry', $d(300)) + ['sold_out' => true],
+    $mk('fp-ok',   'Fred Perry', $d(300)),
+    $mk('new-sold','Gucci',      $d(1))   + ['sold_out' => true],
+    $mk('new-ok',  'Gucci',      $d(2)),
+];
+$r11 = vestra_home_new_picks($soldCat, null, 12, $NOW);
+$t('satilmis one alinan YOK',  !in_array('fp-sold', $ids($r11), true));
+$t('satilmis yeni ilan YOK',   !in_array('new-sold', $ids($r11), true));
+$t('satista olanlar VAR',      $ids($r11) === ['fp-ok','new-ok']);
+/* Bos dizge SATILDI degil (sold_out yazma dalinin bu depoda kayitli tuzagi). */
+$r12 = vestra_home_new_picks([$mk('fp-str','Fred Perry',$d(300)) + ['sold_out' => '']], null, 12, $NOW);
+$t('bos dizge satilmis SAYILMIYOR', $ids($r12) === ['fp-str']);
 
 printf("\n%d ok, %d hata\n", $ok, $fail);
 exit($fail ? 1 : 0);

@@ -2331,6 +2331,10 @@ function vestra_product_is_new(array $p, ?int $now = null, ?int $days = null): b
  * @param array      $products  fotografi dogrulanmis aday listesi (katalog sirasi)
  * @param array|null $featured  one alinacak markalar (varsayilan: asagidaki liste)
  */
+/* One alinan markalarin serit icindeki tavani. Ayri bir sabit, cunku toplam
+   tavandan (12) bagimsiz bir karar: biri izgaranin boyu, bu ikisinin PAYI. */
+const VESTRA_HOME_FEATURED_MAX = 6;
+
 function vestra_home_featured_brands(): array {
     /* Tek satirda YAZILMIYOR: bu depodaki testler fonksiyon govdesini
        `^function ...^}` ile ayikliyor ve tek satirlik bir govde kapanisini
@@ -2341,8 +2345,10 @@ function vestra_home_featured_brands(): array {
 }
 
 function vestra_home_new_picks(array $products, ?array $featured = null,
-                               int $max = 12, ?int $now = null, ?int $newDays = null): array {
+                               int $max = 12, ?int $now = null, ?int $newDays = null,
+                               ?int $featMax = null): array {
     $featured = $featured ?? vestra_home_featured_brands();
+    $featMax  = $featMax ?? VESTRA_HOME_FEATURED_MAX;
     if ($max <= 0) return [];
     $up = fn($v) => strtoupper(trim((string)$v));
 
@@ -2350,6 +2356,11 @@ function vestra_home_new_picks(array $products, ?array $featured = null,
     foreach (array_values($products) as $i => $p) {
         $id = trim((string)($p['id'] ?? ''));
         if ($id === '') continue;                       // id'siz urunun urun sayfasi yok
+        /* SATILMIS mal bu seride DURAMAZ: serit "In stock now" rozetiyle
+           aciliyor ve alinamayan bir urunu oraya koymak, rozetin kendisini
+           yalanlar. Olcut vestra_is_sold_out() -- alanin dolu olup olmadigina
+           bakmak bos dizgeyi SATILDI sayardi. */
+        if (vestra_is_sold_out($p)) continue;
         $j = array_search($up($p['brand'] ?? ''), $featured, true);
         if ($j !== false) { $fr[$j][] = $p; continue; }
         if (vestra_product_is_new($p, $now, $newDays)) $new[] = [strtotime((string)$p['added_at']), $i, $p];
@@ -2367,10 +2378,28 @@ function vestra_home_new_picks(array $products, ?array $featured = null,
     };
     /* array_keys DEGIL, indis uzerinden: bir marka hic urun vermezse kendinden
        sonrakiler one kaymamali, liste sirasi korunmali. */
+    $nFeat = 0;
+    for ($i = 0; $i < count($featured); $i++) {
+        foreach ($fr[$i] ?? [] as $p) {
+            /* ONE ALINANLARIN KENDI TAVANI VAR ve bu tavan bir CELISKIYI
+               cozuyor, sus degil. Operatorun cumlesi iki sey birden istiyor:
+               "yeni urunler koy" VE "F.Perry ... Lacoste on planda olsun".
+               Canli olcumde one alinan markalarda 15 aday cikti (Fred Perry 2 +
+               Lacoste 13), yani tavansiz birakinca 12 kartin 12'sini de onlar
+               dolduruyor ve GERCEKTEN YENI hicbir ilan seride giremiyordu --
+               yani talimatin yarisi sessizce uygulanmiyordu. Tavan, iki yarinin
+               da gorunmesini garanti ediyor. */
+            if ($nFeat >= $featMax) break 2;
+            if (!$push($p)) return $out;
+            $nFeat++;
+        }
+    }
+    foreach ($new as $n) if (!$push($n[2])) return $out;
+    /* Yeni ilan yoksa bos slotlari one alinanlarin geri kalani doldurur:
+       yarim dolu bir izgara, dolu bir izgaradan kotu gorunur. */
     for ($i = 0; $i < count($featured); $i++) {
         foreach ($fr[$i] ?? [] as $p) if (!$push($p)) return $out;
     }
-    foreach ($new as $n) if (!$push($n[2])) return $out;
     return $out;
 }
 
