@@ -1491,6 +1491,49 @@ jobs:
               [$subject, $body, $opts] = vestra_tpl_order_payment_notice(
                 $buyerName, $oref, (string)($invNos[0] ?? ''), $oamt, $ocur, (bool)$acc, $persona);
               $fromName = $persona.' — VESTRA';
+            } elseif ($letter === 'login_fixed') {
+              /* "Giremiyorum" sikayetine cevap. Mektup ONCE KAYDI DOGRULUYOR:
+                 hesap gercekten aciksa ve parola gercekten tutuyorsa yaziyor.
+                 Aksi halde DURUYOR -- "sizde sorun yok" demek, kapisi kapali
+                 ya da parolasi tutmayan birine yanlis bir guvence verir ve o
+                 musteri denemeyi birakir (KURAL 2b'nin dersi: kapi kapaliyken
+                 belgeyi sebep gostermek gibi, sadece ters yonu).
+                 spec: lang=fr|en, fixed=false (duzeltme dogrulanmadiysa o
+                 cumleyi hic yazma), signer. */
+              if (!$acc) { fwrite(STDERR, "login_fixed: hesap bulunamadi (to=account:<isim>)\n"); exit(1); }
+              require_once $doc."/inc/auth.php";
+              $lfOpen  = auth_prices_unlocked($acc);
+              $lfVer   = !empty($acc['email_verified']);
+              $lfSusp  = (string)($acc['status'] ?? '') === 'suspended';
+              /* Parolanin TUTTUGUNU kayittan okuyoruz: guvenlik kutugunde
+                 basarili giris var mi? Yoksa sorun oturum degil PAROLADIR ve
+                 bu mektup yanlis mektuptur. */
+              $lfLog = vestra_read_json('security_log.json');
+              $lfOk = 0; $lfFail = 0;
+              $lfEm = mb_strtolower(trim((string)($acc['email'] ?? '')));
+              foreach ((array)$lfLog as $e) {
+                if (mb_strtolower(trim((string)($e['email'] ?? ''))) !== $lfEm
+                    && (string)($e['uid'] ?? '') !== (string)($acc['id'] ?? '')) continue;
+                if (($e['event'] ?? '') === 'login_ok')   $lfOk++;
+                if (($e['event'] ?? '') === 'login_fail') $lfFail++;
+              }
+              echo "kapi   : ".($lfOpen ? 'ACIK' : '*** KAPALI ***')."\n";
+              echo "e-posta: ".($lfVer ? 'dogrulandi' : '*** dogrulanmadi ***')."\n";
+              echo "giris  : basarili={$lfOk} basarisiz={$lfFail}\n";
+              if (!$lfOpen || !$lfVer || $lfSusp) {
+                fwrite(STDERR, "login_fixed: hesapta GERCEKTEN bir engel var — 'sizde sorun yok' yazilamaz\n"); exit(1);
+              }
+              if ($lfOk === 0) {
+                fwrite(STDERR, "login_fixed: bu hesapta hic basarili giris YOK — sorun oturum degil parola olabilir, bu mektup yanlis\n"); exit(1);
+              }
+              $lfLang  = strtolower(trim($E('lang'))) === 'en' ? 'en' : 'fr';
+              $lfFixed = strtolower(trim($E('fixed'))) !== 'false';
+              echo "dil    : {$lfLang}   duzeltme cumlesi: ".($lfFixed ? 'VAR' : 'yok')."\n";
+              $persona = trim($E('signer')) !== '' ? trim($E('signer')) : 'Marco Bellini';
+              $lfName  = trim($E('salutation')) !== '' ? trim($E('salutation'))
+                       : (trim((string)($acc['name'] ?? '')) ?: trim((string)($acc['company'] ?? '')));
+              [$subject, $body, $opts] = vestra_tpl_login_fixed($lfName, $lfFixed, $persona, $lfLang);
+              $fromName = $persona.' — VESTRA';
             } elseif ($letter === 'terms_reply') {
               /* YENI PAZARDAN GELEN SARTLAR SORUSUNA CEVAP (16 Eyl 2026,
                  Benin). Govdedeki HICBIR rakam metne gomulu degil: asgari

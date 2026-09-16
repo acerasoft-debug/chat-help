@@ -3514,3 +3514,83 @@ function vestra_tpl_terms_reply(string $buyerName, string $cc, string $ship = ''
              'button' => ['label' => 'Browse the catalogue', 'url' => 'https://vestrasales.com/shop']];
     return [$subject, $body, $opts];
 }
+
+/**
+ * "GIREMIYORUM" SIKAYETINE CEVAP (16 Eyl 2026, thomaslardey / Thomasl.g).
+ *
+ * Musteri "hesabim dogrulandi ama giris sayfasina geri donuyorum" yazdi.
+ * Kayit bakildi: parola dogru (13 basarili giris, sifir basarisiz), e-posta
+ * dogrulanmis, hesap aktif. Yani mektup ONA "belgenizi yukleyin" ya da
+ * "parolanizi sifirlayin" DEMEZ -- yapmasi gerekmeyen bir ise yollamak,
+ * KURAL 2b'nin kayitli dersi.
+ *
+ * Mektup YALNIZCA kaniti olan seyi soyluyor: hesabinda bir sorun yok,
+ * bizde coklu cihaz girisini bozan bir kusur vardi ve duzeltildi. Sebebin
+ * KESIN olarak bu oldugu iddia EDILMIYOR -- kalanini tarayici tarafi
+ * belirliyor ve onu ancak musteri gorebilir.
+ *
+ * $fixed=false: duzeltme henuz canlida dogrulanmadiysa o cumle hic yazilmaz.
+ * Dogrulanmamis bir "duzelttik", musteri ayni sorunu yasadiginda geri
+ * alinamaz.
+ */
+function vestra_tpl_login_fixed(string $buyerName, bool $fixed = true, string $signer = '', string $lang = 'fr'): array {
+    $buyerName = vestra_display_name($buyerName);
+    $lang = strtolower($lang) === 'fr' ? 'fr' : 'en';
+    if ($buyerName === '') $buyerName = $lang === 'fr' ? 'Madame, Monsieur' : 'Customer';
+    $tail = $signer !== '' ? $signer."\nVESTRA - vestrasales.com" : "VESTRA - vestrasales.com";
+    $opts = ['badge' => $lang === 'fr' ? 'Accès au compte' : 'Account access',
+             'button' => ['label' => $lang === 'fr' ? 'Ouvrir mon espace acheteur' : 'Open my buyer area',
+                          'url'   => 'https://vestrasales.com/login']];
+
+    if ($lang === 'fr') {
+        $subject = "VESTRA — votre accès : ce que nous avons trouvé et corrigé";
+        $body =
+            "Bonjour {$buyerName},\n\n"
+          . "Merci de nous avoir signalé le problème, et pardon pour la gêne.\n\n"
+          . "Nous avons vérifié votre compte en détail. Il n'y a rien à corriger de votre côté : "
+          . "votre compte est actif, votre adresse e-mail est confirmée, l'accès au catalogue est "
+          . "ouvert, et vos identifiants sont corrects — nos journaux montrent que vos connexions "
+          . "aboutissent bien. Vous n'avez donc ni document à fournir ni mot de passe à "
+          . "réinitialiser.\n\n"
+          . ($fixed
+              ? "Nous avons en revanche trouvé un défaut chez nous, et il est corrigé. Notre système "
+                . "ne gardait qu'une seule connexion mémorisée par compte : dès que vous vous "
+                . "connectiez depuis un autre appareil ou un autre navigateur, celle du premier était "
+                . "effacée — et cet appareil-là vous renvoyait à la page de connexion. Chaque appareil "
+                . "conserve désormais sa propre connexion.\n\n"
+              : "")
+          . "Si cela se reproduit, deux choses nous aideraient beaucoup :\n\n"
+          . "  1. Ouvrez vestrasales.com directement dans Safari ou Chrome, en tapant l'adresse, "
+          . "plutôt qu'en passant par le lien contenu dans l'e-mail — les navigateurs intégrés aux "
+          . "applications de messagerie ne conservent pas toujours les cookies de session.\n"
+          . "  2. Dites-nous quel appareil et quel navigateur vous utilisez. Cela nous permettra de "
+          . "reproduire exactement votre situation.\n\n"
+          . "Écrivez-nous simplement en répondant à ce message.\n\n"
+          . "Cordialement,\n\n".$tail;
+        return [$subject, $body, $opts];
+    }
+
+    $subject = "VESTRA — your access: what we found and fixed";
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Thank you for reporting this, and sorry for the trouble.\n\n"
+      . "We have checked your account in detail. There is nothing for you to fix: the account is "
+      . "active, your e-mail address is confirmed, catalogue access is open, and your credentials "
+      . "are correct — our logs show your sign-ins succeeding. So there is no document to send and "
+      . "no password to reset.\n\n"
+      . ($fixed
+          ? "We did find a fault on our side, and it is fixed. Our system kept only one remembered "
+            . "sign-in per account: the moment you signed in from another device or browser, the "
+            . "first one was cleared — and that device sent you back to the login page. Each device "
+            . "now keeps its own.\n\n"
+          : "")
+      . "If it happens again, two things would help us a great deal:\n\n"
+      . "  1. Open vestrasales.com directly in Safari or Chrome by typing the address, rather than "
+      . "through the link in an e-mail — the browsers built into mail apps do not always keep "
+      . "session cookies.\n"
+      . "  2. Tell us which device and browser you are using, so we can reproduce your exact "
+      . "situation.\n\n"
+      . "Just reply to this message.\n\n"
+      . "Kind regards,\n\n".$tail;
+    return [$subject, $body, $opts];
+}
