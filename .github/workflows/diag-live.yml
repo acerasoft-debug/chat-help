@@ -1211,31 +1211,38 @@ jobs:
           # YAPILMAMISTI. Bu depoda kayitli iki ders birden: runner IP'si
           # barindiricinin guvenlik duvarina takilabiliyor (9 istek de 000),
           # ve bir adimin 404'u kanali olcer, sayfayi degil.
-          HTTP=''; BYTES=''
-          look () {
-            HTTP=$(curl -sS -A "$UA" -b "$1" -c "$1" --max-time 30 -L \
+          # Kanal degerleri DONUS DEGERINDE tasiniyor, degiskende degil: look()
+          # komut ikamesiyle cagriliyor ($(...)) ve orasi bir ALT KABUK, yani
+          # iceride yapilan atama disariya hic ulasmiyordu. Ilk surum tam bunu
+          # yapti ve satir "(HTTP ,  bayt)" diye bos basti -- olctugunu iddia
+          # edip hicbir sey soylemeyen bir teshis satiri.
+          look () {                        # -> durum|http|bayt
+            local code bytes
+            code=$(curl -sS -A "$UA" -b "$1" -c "$1" --max-time 30 -L \
                      -o /tmp/r.html -w '%{http_code}' "$BASE/" 2>/dev/null || echo 000)
-            BYTES=$(wc -c < /tmp/r.html 2>/dev/null || echo 0)
-            if [ "$HTTP" = 000 ] || [ "$BYTES" -lt 500 ]; then echo ULASILAMADI
-            elif grep -q 'Open my'            /tmp/r.html; then echo girisli
-            elif grep -q 'Register as Seller' /tmp/r.html; then echo girissiz
-            else echo belirsiz; fi
+            bytes=$(wc -c < /tmp/r.html 2>/dev/null || echo 0)
+            if   [ "$code" = 000 ] || [ "$bytes" -lt 500 ]; then echo "ULASILAMADI|$code|$bytes"
+            elif grep -q 'Open my'            /tmp/r.html;  then echo "girisli|$code|$bytes"
+            elif grep -q 'Register as Seller' /tmp/r.html;  then echo "girissiz|$code|$bytes"
+            else echo "belirsiz|$code|$bytes"; fi
           }
+          say () { echo "$1" | cut -d'|' -f1; }          # durum
+          ch  () { echo "  (HTTP $(echo "$1" | cut -d'|' -f2), $(echo "$1" | cut -d'|' -f3) bayt)"; }
 
           echo "===== 1. CIHAZ A giris yapiyor ====="
           curl -sS -A "$UA" -c "$A" -b "$A" -o /dev/null -d "$CRED" --max-time 30 "$BASE/login"
-          RA=$(look "$A");  echo "  cihaz A: $RA   (HTTP $HTTP, $BYTES bayt)"
+          LA=$(look "$A");   RA=$(say "$LA");   echo "  cihaz A: $RA $(ch "$LA")"
           grep -q 'vestra_rmb' "$A" && echo "  kalici cerez A: VAR" || echo "  kalici cerez A: *** YOK ***"
 
           echo "===== 2. CIHAZ B ayri kavanozla giris yapiyor ====="
           curl -sS -A "$UA" -c "$B" -b "$B" -o /dev/null -d "$CRED" --max-time 30 "$BASE/login"
-          RB=$(look "$B");  echo "  cihaz B: $RB   (HTTP $HTTP, $BYTES bayt)"
+          LB=$(look "$B");   RB=$(say "$LB");   echo "  cihaz B: $RB $(ch "$LB")"
 
           # Musterinin durumu: oturum cerezi olmus, KALICI cerez duruyor.
           echo "===== 3. CIHAZ A'nin OTURUM cerezi silindi (kalici cerez duruyor) ====="
           grep -v 'PHPSESSID' "$A" > "$A2" || true
           grep -q 'vestra_rmb' "$A2" && echo "  A2 kavanozu: yalniz kalici cerez" || echo "  A2: *** kalici cerez yok, olcum gecersiz ***"
-          RA2=$(look "$A2"); echo "  cihaz A (oturumsuz): $RA2   (HTTP $HTTP, $BYTES bayt)"
+          L2=$(look "$A2");  RA2=$(say "$L2");  echo "  cihaz A (oturumsuz): $RA2 $(ch "$L2")"
 
           # TERS YON. Bu olmadan "her zaman girisli" diyen bozuk bir sonda da
           # yesil gorunurdu -- tek yonlu iddia bu depoda defalarca kayitli.
@@ -1243,7 +1250,7 @@ jobs:
           RND=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
           printf '#HttpOnly_vestrasales.com\tFALSE\t/\tTRUE\t%d\tvestra_rmb\t%s\n' \
             "$(( $(date +%s) + 86400 ))" "0000000000000000:$RND" > "$BAD"
-          RBAD=$(look "$BAD"); echo "  sahte cerez: $RBAD   (HTTP $HTTP, $BYTES bayt)"
+          LX=$(look "$BAD"); RBAD=$(say "$LX"); echo "  sahte cerez: $RBAD $(ch "$LX")"
 
           echo
           echo "===== SONUC ====="
@@ -1253,7 +1260,7 @@ jobs:
           # once ikinci runner'la bak" diye kaydetmis.
           case "$RA$RB$RA2$RBAD" in
             *ULASILAMADI*)
-              echo "  *** OLCUM YAPILAMADI: canli site bu runner'dan acilmadi (HTTP $HTTP)."
+              echo "  *** OLCUM YAPILAMADI: canli site bu runner'dan acilmadi."
               echo "      Bu bir sonuc DEGIL -- kosuyu ikinci bir runner'la tekrarla. ***"
               rm -f "$A" "$B" "$A2" "$BAD" /tmp/r.html
               exit 1 ;;
