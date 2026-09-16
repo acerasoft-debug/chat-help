@@ -659,19 +659,28 @@ jobs:
     if: github.event.inputs.reply_letter != ''
     runs-on: ubuntu-latest
     steps:
-      - name: Alıcı cevap mektubu
+      - name: Alıcı cevap mektubu (betik 1/2)
         uses: appleboy/ssh-action@v1.0.3
-        env:
-          R_LETTER: ${{ github.event.inputs.reply_letter }}
-          R_SPEC: ${{ github.event.inputs.reply_spec }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          command_timeout: 5m
-          envs: R_LETTER,R_SPEC
+          command_timeout: 2m
           script: |
+            # ARGUMAN SINIRI -- 16 Eyl 2026'da ogrenildi. appleboy/ssh-action betigi TEK
+            # bir env degiskeni olarak docker'a geciriyor; Linux'ta bir argumanin tavani
+            # MAX_ARG_STRLEN = 128 KiB. Bu betik 132.127 bayta cikinca adim HIC calismadi:
+            # "An error occurred trying to start process '/usr/bin/docker' ... Argument
+            # list too long". Girdiyle ilgisi yoktu: hata betigin KENDI boyutundan
+            # geliyordu, yani cevap mektubu yolu herkes icin kirikti ve kutugun hicbir
+            # yerinde "cok uzun" yazmiyordu -- sebebi ancak betigi tartarak bulundu.
+            # Cozum PARCALAMA, kisaltma DEGIL: PHP iki adimda yaziliyor (burada >,
+            # sonrakinde >>) ve olusan dosya bayt bayt ayni -- tek kelime yorum
+            # silinmedi. Her adimin kendi 128 KiB butcesi var.
+            # fetch-external-images.yml ayni sinifin baska bir sinirini (GitHub'in 21000
+            # karakterlik ifade tavani) zaten kaydediyor.
+            # YENI BLOK EKLERKEN once TART: tests/workflow_arg_limit_test.php.
             cat > /tmp/vestra_buyer_reply.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
@@ -1661,6 +1670,23 @@ jobs:
               usort($wItems, fn($a, $b) => strnatcasecmp($a['label'], $b['label']));
               if (!$wItems) { fwrite(STDERR, "katalogda kadin urunu bulunamadi — mektup gonderilmedi\n"); exit(1); }
               echo "kadin urunu : ".count($wItems)." adet\n";
+            PHPEOF
+      - name: Alıcı cevap mektubu (betik 2/2 + çalıştır)
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          R_LETTER: ${{ github.event.inputs.reply_letter }}
+          R_SPEC: ${{ github.event.inputs.reply_spec }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: R_LETTER,R_SPEC
+          script: |
+            # Ikinci parca AYNI dosyaya ekleniyor. Bolme noktasi PHP acisindan anlamsiz:
+            # duz metin birlestirmesi, yani dosya tek parcali haliyle ozdes.
+            cat >> /tmp/vestra_buyer_reply.php <<'PHPEOF'
 
               /* EK: yalnizca kadin urunlerini iceren PDF, sunucunun KENDI
                  uretecinden (wholesale-list.php) — mektup icin ayri bir kopya
