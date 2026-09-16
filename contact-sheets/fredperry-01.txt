@@ -1,3 +1,6 @@
- 1  m3600-green.jpg
- 2  m3600-navy.jpg
- 3  m3600-snow-white.jpg
+ 1  m3600-black.jpg
+ 2  m3600-bordeaux.jpg
+ 3  m3600-green.jpg
+ 4  m3600-light-blue.jpg
+ 5  m3600-navy.jpg
+ 6  m3600-snow-white.jpg
