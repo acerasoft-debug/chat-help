@@ -6,6 +6,15 @@ on:
         description: "Hesap ara: şirket/ad/e-posta içinde geçen metin (ör: vipshop). Boş = arama yapma"
         required: false
         default: ""
+      login_history:
+        # "Giris yapamiyorum" en sik gelen sikayet ve bugune kadar onu KAYITTAN
+        # okuyan hicbir sonda yoktu: hesabin 'active' gorunmesi girisin
+        # tuttugunu SOYLEMIYOR. security_log.json login_ok/login_fail yaziyor
+        # ve ikisi arasindaki fark teshisin tamami -- fail ise parola, ok ise
+        # oturum. ADLA araniyor, adresle degil: girdi kalici ve herkese acik.
+        description: "Hesabın GİRİŞ GEÇMİŞİ: şirket/ad parçası ver (ör: lardey). login_ok / login_fail / reset olaylarını maskeli yazar — 'giriş yapamıyorum' şikâyetinde buraya bakılır. Salt okunur."
+        required: false
+        default: ""
       who2:
         description: "İkinci hesap araması — bir yazışmanın iki tarafını tek koşuda görmek için"
         required: false
@@ -97,6 +106,7 @@ jobs:
         # diger workflow'larda zaten kullaniliyor (bkz. set-product.yml).
         env:
           IN_WHO:       ${{ github.event.inputs.who }}
+          IN_LOGINH:    ${{ github.event.inputs.login_history }}
           IN_WHO2:      ${{ github.event.inputs.who2 }}
           IN_BRAND:     ${{ github.event.inputs.brand }}
           IN_SHIPS:     ${{ github.event.inputs.ships }}
@@ -118,7 +128,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS,IN_BILLING,IN_UPLOAD,IN_ERRLOG,IN_CRON,IN_BLOCKED,IN_RECEIPT
+          envs: IN_LOGINH,IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS,IN_BILLING,IN_UPLOAD,IN_ERRLOG,IN_CRON,IN_BLOCKED,IN_RECEIPT
           script: |
             cat > /tmp/diag_msg.php <<'PHPEOF'
             <?php
@@ -206,6 +216,70 @@ jobs:
                 if (mb_strpos($hay, $q) !== false) $out[] = $a;
               }
               return $out;
+            }
+
+            /* GIRIS GECMISI. "Hesabim aktif ama giremiyorum" sikayetinde
+               hesabin 'active' gorunmesi hicbir sey kanitlamiyor -- kapi ile
+               GIRIS ayri iki sey (KURAL 2b'nin ayni dersi, oturum tarafi).
+               security_log.json login_ok ile login_fail'i ayri ayri yaziyor ve
+               teshis tam o farkta: fail varsa parola, ok varsa oturum.
+               MASKELEME: adres, IP ve tarayici dizgesi BASILMIYOR -- kutuk
+               herkese acik. Ulke/sehir is bilgisi olarak kaliyor (yanlis
+               ulkeden giris denemesi operatorun gormesi gereken sey) ve
+               tarayici yalnizca ailesiyle yaziliyor. */
+            $loginQ = trim((string)getenv('IN_LOGINH'));
+            if ($loginQ !== '') {
+              echo "===== GIRIS GECMISI: \"{$loginQ}\" =====\n";
+              $hits = find_accounts($accounts, mb_strtolower($loginQ));
+              if (!$hits)            { echo "  *** eslesen hesap YOK ***\n"; }
+              elseif (count($hits)>1) { echo "  *** ".count($hits)." hesap esletti, daraltin ***\n";
+                                        foreach ($hits as $h) echo "    ".($h['company'] ?: $h['name'] ?: '?')."\n"; }
+              else {
+                $a = $hits[0];
+                $em = mb_strtolower(trim((string)($a['email'] ?? '')));
+                $uid = (string)($a['id'] ?? '');
+                printf("  hesap : %s  tip=%s  durum=%s  kyb=%s\n",
+                  ($a['company'] ?: $a['name'] ?: '?'), $a['type'] ?? '?', $a['status'] ?? '?', $a['kyb_status'] ?? '?');
+                /* E-posta DOGRULAMASI ayri bir kapi ve login.php onu 'unverified'
+                   diye reddediyor -- hesap 'active' gorunurken bile. Bu satir
+                   olmadan "aktif ama giremiyor" cozulemez. */
+                printf("  e-posta dogrulandi : %s\n", !empty($a['email_verified']) ? 'EVET' : '*** HAYIR ***');
+                printf("  son giris          : %s\n", substr((string)($a['last_login_at'] ?? ''), 0, 16) ?: 'hic');
+                $secf = $doc.'/data/security_log.json';
+                $log  = is_readable($secf) ? (json_decode((string)file_get_contents($secf), true) ?: []) : [];
+                $mine = [];
+                foreach ($log as $e) {
+                  $le = mb_strtolower(trim((string)($e['email'] ?? '')));
+                  if (($uid !== '' && (string)($e['uid'] ?? '') === $uid) || ($em !== '' && $le === $em)) $mine[] = $e;
+                }
+                echo "  kayitli olay       : ".count($mine)." (son 15 gosteriliyor)\n";
+                $tally = [];
+                foreach ($mine as $e) { $ev = (string)($e['event'] ?? '?'); $tally[$ev] = ($tally[$ev] ?? 0) + 1; }
+                if ($tally) { $tp = []; foreach ($tally as $ev => $n) $tp[] = "{$ev}={$n}"; echo "  dagilim            : ".implode(' | ', $tp)."\n"; }
+                foreach (array_slice(array_reverse($mine), 0, 15) as $e) {
+                  /* Tarayici AILESI yeter: tam UA parmak izidir ve kutuk acik. */
+                  $ua = (string)($e['ua'] ?? '');
+                  $fam = str_contains($ua,'Firefox') ? 'Firefox'
+                       : (str_contains($ua,'Edg') ? 'Edge'
+                       : (str_contains($ua,'Chrome') ? 'Chrome'
+                       : (str_contains($ua,'Safari') ? 'Safari' : ($ua === '' ? '-' : 'diger'))));
+                  $mob = str_contains($ua,'Mobile') || str_contains($ua,'Android') || str_contains($ua,'iPhone') ? ' mobil' : '';
+                  printf("    %s  %-12s %s%s  %s\n",
+                    substr((string)($e['ts'] ?? '?'), 0, 16), (string)($e['event'] ?? '?'),
+                    (string)($e['country'] ?? '?') ?: '?', ($e['city'] ?? '') !== '' ? '/'.$e['city'] : '',
+                    $fam.$mob.(!empty($e['vpn']) ? '  [VPN/hosting]' : ''));
+                }
+                /* Okunmasi gereken cumleyi sonda KENDISI yaziyor: ham olay
+                   listesine bakip "sanirim parola" demek, bu deponun alti kez
+                   kaydettigi tahmin. */
+                $ok = (int)($tally['login_ok'] ?? 0); $fail = (int)($tally['login_fail'] ?? 0);
+                echo "  => ";
+                if ($ok === 0 && $fail === 0)      echo "bu hesapla HIC giris denemesi yok — musteri baska bir adresle deniyor olabilir\n";
+                elseif ($ok === 0 && $fail > 0)    echo "{$fail} basarisiz, HIC basarili yok — PAROLA tutmuyor (sifirlama gerekir), oturum sorunu DEGIL\n";
+                elseif ($ok > 0 && $fail === 0)    echo "{$ok} basarili giris, hic basarisiz yok — parola dogru; sorun oturumun TUTUNMAMASI\n";
+                else                               echo "{$ok} basarili / {$fail} basarisiz — ikisi de var, son olaylarin SIRASINA bak\n";
+              }
+              echo "\n";
             }
 
             $summary = [];
