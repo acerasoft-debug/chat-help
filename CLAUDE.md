@@ -3187,6 +3187,40 @@ gönder welcome olarak"*).
     kapalı doğar. Ürün sayfası düğmesi, `/dropship`, ödeme ve API aynı
     fonksiyondan geçer. Test: `tests/dropship_section_test.php`; canlı sayım:
     `diag-live` → `dropship_probe=true` ("bolme yasagi footwear: N").
+**M3600 POLO 8'Lİ → 10'LU KARTON; asgari ve merdiven aynı tabana taşındı**
+(operatör, 16 Eyl 2026: *"F.Perry Polo ve Sweatshirt Lot larini 10 lu yap"* →
+*"8 den 10 yükselt"* → *"en az alimlar da ayni matiga göre ciksin"*).
+- **Yalnız polo 8'liydi.** M7535 zaten `size_step=10` (S×1 · M×3 · L×3 · XL×2 ·
+  XXL×1) ve `moq=50` — ölçüldü, varsayılmadı; sweatshirt'e hiç dokunulmadı.
+- **Depodaki parti dosyası BAYATTI ve kuru koşu yakaladı:**
+  `product-batches/fredperry-m3600-polo.json` `moq=48` diyor, canlı kayıt
+  **56** idi (11 Eyl'de operatörün kendi kararı). Hedef rakamları o dosyadan
+  okusaydım 48'i "mevcut" sanacaktım. *Parti dosyası ithalat kaydıdır, canlı
+  kaydın aynası değil — hedefi canlıdan ölç.*
+- **Asgari 56 → 50, çünkü KARDEŞİ 50.** MOQ paket adımının katı olmak zorunda
+  (KURAL 4b: sepet yukarı yuvarlıyor, yani 10'luk kartonda "min 56" hiç
+  alınamayan bir minimum). 60 da tam kattı; **50 seçildi** çünkü aynı markanın
+  aynı satıcıdaki 10'luk kardeşi (M7535) zaten `min 50 pc` — "aynı mantık"
+  denen şey birebir bu. Merdiven aynı tabana çekildi: 96 → 100, 192 → 200;
+  **fiyatlar değişmedi** (39,00 / 35,50 / 32,00).
+- **Beden eğrisi UYDURULMADI:** aynı satıcının aynı markadaki kendi 10'lu
+  eğrisi alındı (M7535'in S×1 · M×3 · L×3 · XL×2 · XXL×1). Tedarikçi poloyu
+  başka türlü paketliyorsa operatör düzeltir — ama "Cartons of 8" yazan bir
+  etiketi 10'luk ilanda bırakmak ilana yalan söyletirdi.
+- **`desc` bu ilanda seri TAŞIMIYOR ve bu ölçülerek anlaşıldı.** `fit_scan`'in
+  çelişki sayacı desc'te seri yoksa da 0 döner (`if ($rd === '') continue`),
+  yani değişiklikten ÖNCEKİ 0 iki durumu birden gizliyordu. Değişiklikten
+  SONRA da 0 çıkması ayrımı yaptı: desc'te seri olsaydı artık çelişirdi.
+  *Balenciaga'nın (9 Eyl) ve NBB'nin (10 Eyl) "seri iki yerde yazılı" dersi
+  bu sefer ödenmedi çünkü ayrım yapılabilecek yerden ölçüldü.*
+- **Doğrulama alanın değerine değil sepetin TAHSİL ETTİĞİNE bakıyor**
+  (`price_audit`): katalog genelinde alıcı aleyhine tek satır var ve o
+  `lac-pique-polo` (eski demo tohumu), Fred Perry değil — yani MOQ 50'de
+  sepet gerçekten €39,00 alıyor.
+- **Bugün gönderilen 118 Angebot mektubu artık ESKİ rakamı taşıyor** (8'li
+  karton / min 56). Mektuplar rakamı canlı kayıttan basıyor, yani geri
+  alınamaz; bir sonraki mektup kendiliğinden doğru çıkar. Operatöre söylendi.
+
 **Fred Perry M7535 / M3600 — asgari alım ve renk seçimi** (operatör, 10 Eyl
 2026: *"tüm renk varyasyonlarini koy"* · *"en az 4 renk secilmeli alirken"* ·
 *"en az alim 50 ad. olsun"* · *"f.perry polo da en az alim 56 ad. olsun"* ·
@@ -3285,7 +3319,20 @@ operatör: *"bu ilana diger renkleride koy polonun"*).
   m3600-colour-photos.json`. Geri okundu: `images (3) -> (6)`, Fred Perry'de
   referans verilen kare **8 → 11**, **kayıp/bozuk 0**.
 
-**M3600 poloda duran 6 kare M7535'IN — bilinçli operatör kararı, SİLME**
+**GERİ ALINDI 16 Eyl 2026 — o altı kare M7535'e döndü.** Operatör:
+*"Sweatshirt gercek ... fotolar yanlis cekilmis onlari POLODAN alip Sweatshirt
+tarafina koy diger fotolar ayni kalsin"*. Aşağıdaki kayıt **artık geçerli
+değil**; olduğu gibi duruyor çünkü kararın neden verildiğini ve karelerin
+kimin olduğunu ölçen kısmı hâlâ doğru — ama **polo bugün yalnız 6 polo
+karesi taşıyor**, sweatshirt 11 (5 pack-shot + 6 detay). Uygulayan dosya
+`product-fixes/fp-detail-photos-to-sweat.json`; iki kapak da değişmedi.
+Geri alma öncesi **dosya adlarında renk kelimesi olmadığı yeniden
+doğrulandı** — `listing_colours` renk slug'ını dosya adında arıyor ve
+detay kareler artık M7535'in 5 renkli ilanında duruyor, yani orada bir
+hangtag'in "Green'in fotoğrafı" diye bağlanma ihtimali ölçülüp elendi.
+
+**M3600 poloda duran 6 kare M7535'IN — bilinçli operatör kararı, SİLME
+(16 Eyl 2026'da GERİ ALINDI, yukarı bak)**
 (14 Eyl 2026: *"Bu fotoları F.Perry Poloya ekle The Fred Perry Shirt — M3600
 Twin Tipped"* → çelişki ölçülüp gösterildi → operatör **"yine de yaz"** dedi →
 *"bu fotoları ek olarak f.perry karttan öncesine koy"* + *"diğer fotolar da
