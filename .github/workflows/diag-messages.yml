@@ -244,7 +244,28 @@ jobs:
                    diye reddediyor -- hesap 'active' gorunurken bile. Bu satir
                    olmadan "aktif ama giremiyor" cozulemez. */
                 printf("  e-posta dogrulandi : %s\n", !empty($a['email_verified']) ? 'EVET' : '*** HAYIR ***');
-                printf("  son giris          : %s\n", substr((string)($a['last_login_at'] ?? ''), 0, 16) ?: 'hic');
+                /* ALAN ADI KODDAN DOGRULANDI: auth_touch_login() 'last_login'
+                   yaziyor, 'last_login_at' DEGIL. Ilk yazimda ikincisini
+                   okudum ve sonda 13 basarili girisi olan bir hesap icin
+                   "son giris: hic" bastI -- `?? ''` sessizdir, hata vermez.
+                   Bu depoda ayni tuzak `vat` ile `vat_id`'de yasandi ve o
+                   gun neredeyse musteriye yanlis bir ozur yazdiracakti. */
+                printf("  son giris          : %s\n", substr((string)($a['last_login'] ?? ''), 0, 16) ?: 'hic');
+                printf("  son giris yeri     : %s%s\n",
+                  (string)($a['last_country'] ?? '?') ?: '?',
+                  ($a['last_city'] ?? '') !== '' ? '/'.$a['last_city'] : '');
+                /* OTURUM DEPOSU. "Giris tutuyor ama oturum kalmiyor" sikayetinde
+                   sunucu tarafindaki tek somut sebep bu: inc/auth.php oturumlari
+                   data/sessions'a yaziyor (paylasimli /tmp'yi barindirici
+                   dakikalar icinde supuruyor). Dizin yazilamazsa PHP sessizce
+                   /tmp'ye duser ve oturumlar kisa sure sonra yok olur --
+                   kullanici tam da "surekli giris ekranina donuyorum" der. */
+                $sdir = $doc.'/data/sessions';
+                $scnt = is_dir($sdir) ? count(glob($sdir.'/sess_*') ?: []) : 0;
+                printf("  oturum deposu      : %s | yazilabilir=%s | dosya=%d | gc_maxlifetime=%s sn\n",
+                  is_dir($sdir) ? 'VAR' : '*** YOK ***',
+                  (is_dir($sdir) && is_writable($sdir)) ? 'EVET' : '*** HAYIR ***',
+                  $scnt, (string)ini_get('session.gc_maxlifetime'));
                 $secf = $doc.'/data/security_log.json';
                 $log  = is_readable($secf) ? (json_decode((string)file_get_contents($secf), true) ?: []) : [];
                 $mine = [];
