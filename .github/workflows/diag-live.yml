@@ -42,6 +42,14 @@ on:
         description: "Boş bırakılırsa sadece sipariş denetimi çalışır. Verilirse PDF de üretilip bu RSA public key (PEM, base64) ile şifrelenip döner — bu depo herkese açık, log da öyle, PDF şifresiz yazılmaz."
         required: false
         default: ""
+      remember_probe:
+        # "Duzelttim" ile "duzeldi" ayri iki sey. Bu sonda, musterinin
+        # anlattigi senaryoyu CANLIDA birebir kuruyor: iki cihaz girer, sonra
+        # birincinin OTURUM cerezi silinip yalniz kalici cerezi birakilir.
+        # Duzeltmeden once ikinci girisin birincinin jetonunu ezmesi gerekirdi.
+        description: "true = KALICI GİRİŞ sınaması (canlı): iki ayrı cihaz giriş yapar, sonra birincinin oturum çerezi silinir — 'beni hatırla' onu geri getiriyor mu? Sahte çerezle ters yön de ölçülür."
+        required: false
+        default: "false"
       find_ref:
         description: "Bir referans/e-posta/SKU'yu TÜM kayıt dosyalarında ara (ör: O39419). 'E-posta geldi ama panelde yok' sorusunu tahminle değil kayıtla cevaplar."
         required: false
@@ -1190,6 +1198,65 @@ jobs:
       # sizdirirdi. Dogru bir karar, ama teshis icin sifir bilgi: hesap yok da olsa,
       # IP kotasi dolmus da olsa, posta ayari kapali da olsa ekranda ayni yesil
       # kutu cikiyor. Bu adim ayni yolu adim adim yurutup HANGISI oldugunu soyluyor.
+      - name: Kalıcı giriş (çok cihaz) canlı sınaması
+        if: github.event.inputs.remember_probe == 'true'
+        run: |
+          set -e
+          BASE="https://vestrasales.com"
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36"
+          CRED='email=acerasoft%2Bverifytest%40gmail.com&password=Test12345!'
+          A=$(mktemp); B=$(mktemp); A2=$(mktemp); BAD=$(mktemp)
+          # Bir cerez kavanozunda oturum acik mi: anasayfa girisli kullaniciya
+          # "Open my panel", anonime "Register as Seller" basiyor. Iki ayri
+          # dizge ARANIYOR, ciplak bir 200 degil -- panel sayfalari girissiz de
+          # 200 donuyor ve bu depo o tuzagi bir kez odedi.
+          look () { # $1=jar -> girisli/girissiz/belirsiz
+            curl -sS -A "$UA" -b "$1" -c "$1" --max-time 30 -o /tmp/r.html "$BASE/" || true
+            if   grep -q 'Open my'          /tmp/r.html; then echo girisli
+            elif grep -q 'Register as Seller' /tmp/r.html; then echo girissiz
+            else echo belirsiz; fi
+          }
+
+          echo "===== 1. CIHAZ A giris yapiyor ====="
+          curl -sS -A "$UA" -c "$A" -b "$A" -o /dev/null -d "$CRED" --max-time 30 "$BASE/login"
+          RA=$(look "$A"); echo "  cihaz A: $RA"
+          grep -q 'vestra_rmb' "$A" && echo "  kalici cerez A: VAR" || echo "  kalici cerez A: *** YOK ***"
+
+          echo "===== 2. CIHAZ B ayri kavanozla giris yapiyor ====="
+          curl -sS -A "$UA" -c "$B" -b "$B" -o /dev/null -d "$CRED" --max-time 30 "$BASE/login"
+          RB=$(look "$B"); echo "  cihaz B: $RB"
+
+          # Musterinin durumu: oturum cerezi olmus, KALICI cerez duruyor.
+          echo "===== 3. CIHAZ A'nin OTURUM cerezi silindi (kalici cerez duruyor) ====="
+          grep -v 'PHPSESSID' "$A" > "$A2" || true
+          grep -q 'vestra_rmb' "$A2" && echo "  A2 kavanozu: yalniz kalici cerez" || echo "  A2: *** kalici cerez yok, olcum gecersiz ***"
+          RA2=$(look "$A2"); echo "  cihaz A (oturumsuz): $RA2"
+
+          # TERS YON. Bu olmadan "her zaman girisli" diyen bozuk bir sonda da
+          # yesil gorunurdu -- bu depoda tek yonlu iddia defalarca kayitli.
+          echo "===== 4. TERS YON: sahte kalici cerez ====="
+          printf '#HttpOnly_vestrasales.com\tFALSE\t/\tTRUE\t%d\tvestra_rmb\t%s\n' \
+            "$(( $(date +%s) + 86400 ))" "0000000000000000:$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')" > "$BAD"
+          RBAD=$(look "$BAD"); echo "  sahte cerez: $RBAD"
+
+          echo
+          echo "===== SONUC ====="
+          FAILED=0
+          [ "$RA"   = girisli  ] || { echo "  *** A giris yapamadi ***"; FAILED=1; }
+          [ "$RB"   = girisli  ] || { echo "  *** B giris yapamadi ***"; FAILED=1; }
+          if [ "$RA2" = girisli ]; then
+            echo "  GECTI: B giris yaptiktan SONRA da A kalici cerezle geri geldi — cihaz basina jeton CALISIYOR"
+          else
+            echo "  *** DUSTU: A oturumsuz kalinca geri gelemedi ($RA2) — ikinci giris birincinin jetonunu hala eziyor ***"; FAILED=1
+          fi
+          if [ "$RBAD" = girissiz ]; then
+            echo "  GECTI: sahte kalici cerez iceri ALMIYOR"
+          else
+            echo "  *** DUSTU: sahte cerezle giris ($RBAD) ***"; FAILED=1
+          fi
+          rm -f "$A" "$B" "$A2" "$BAD" /tmp/r.html
+          exit $FAILED
+
       - name: Şifre sıfırlama teşhisi
         if: ${{ github.event.inputs.reset_probe != '' }}
         env:
