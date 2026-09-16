@@ -1261,6 +1261,31 @@ function vestra_display_mode($p){ $m = $p['mode'] ?? 'fixed'; return ($m === 'sa
    Dogru sayi, SEPETIN MOQ'DA TAHSIL ETTIGI: alicinin verebilecegi en kucuk
    siparisin birim fiyati. Uc liste de (xlsx, pdf, price-list sayfasi) artik bu
    fonksiyonu okuyor — tek kaynak, bir daha ayrisamazlar. */
+/* Marka suzgeci: BIR ad ya da VIRGULLE birden fazla ad.
+   Uc yer okuyor -- wholesale-list.php (PDF), wholesale-xlsx.php (Excel) ve
+   send-campaign-preview'in price_list dali. Ucune ayri ayri bir virgul
+   ayristirmasi yazmak, bu deponun defalarca odedigi "ayni olgu birkac yerde
+   yazili" hatasi olurdu: PDF iki marka tasirken Excel'in tek marka tasidigi
+   bir zarf, listenin tamamini gondermekten kotudur (o ders xlsx'in kategori
+   suzgeci eksikken zaten bir kez yasandi).
+   Eslesme AD BASINA TAM, alt dize degil (mango/zara dersi): "Lacoste" istegi
+   yarin gelecek bir "Lacoste Kids"i de listeye almamali. Bos suzgec = hepsi,
+   yani mevcut davranis birebir korunuyor.
+   SINIR, bilerek: ayirici virgul oldugu icin adinda virgul TASIYAN bir marka
+   bu yolla secilemez. Katalogda oyle bir ad yok; cikarsa tek ad olarak
+   verilebilir, ve uydurma bir kacis dizisi eklemek gercek olmayan bir soruna
+   kod yazmak olurdu. */
+function vestra_brand_filter_match(string $brand, string $filter): bool {
+  $filter = trim($filter);
+  if ($filter === '') return true;
+  $brand = trim($brand);
+  foreach (explode(',', $filter) as $want) {
+    $want = trim($want);
+    if ($want !== '' && strcasecmp($brand, $want) === 0) return true;
+  }
+  return false;
+}
+
 function vestra_export_price(array $p): float {
   if (!empty($p['tiers'])) {
     $t = (float)vestra_unit_price($p, max(1, (int)($p['moq'] ?? 1)));
