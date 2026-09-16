@@ -47,7 +47,11 @@
   let DATA = null;
   const loadData = (() => {
     let p;
-    return () => (p ||= (window.__lumeaData ? Promise.resolve((DATA = window.__lumeaData)) : fetch(`${BASE}/assets/data.json`)).then((r) => r.json()).then((d) => (DATA = d)).catch(() => (DATA = { cities: [], therapists: [], services: {} })));
+    // The single-file preview ships the directory inline; everywhere else it is fetched.
+    return () => (p ||= (window.__lumeaData
+      ? Promise.resolve(window.__lumeaData)
+      : fetch(`${BASE}/assets/data.json`).then((r) => r.json())
+    ).then((d) => (DATA = d)).catch(() => (DATA = { cities: [], therapists: [], services: {}, pricing: null })));
   })();
 
   const km = (aLat, aLng, bLat, bLng) => {
@@ -62,6 +66,27 @@
       const d = km(lat, lng, c.lat, c.lng);
       return !best || d < best.d ? { city: c, d } : best;
     }, null);
+
+  /* -------------------------------------------------------- price engine */
+  // Mirror of src/lib/pricing.mjs — the server recomputes and is authoritative.
+  const round5 = (n) => Math.round(n / 5) * 5;
+  function quoteLocal({ service, duration, persons, addons, sessions, currency, voucherBalance }) {
+    const P = DATA?.pricing; if (!P || !P.services[service]) return null;
+    const svc = P.services[service];
+    const dur = svc.durations.includes(Number(duration)) ? Number(duration) : svc.durations[0];
+    const isDuo = service === 'duo-couples';
+    const people = isDuo ? 2 : Math.min(Math.max(Number(persons) || 1, 1), 2);
+    const f = P.factors[dur] || 1;
+    const perSession = (f === 1 ? svc[currency] : round5(svc[currency] * f)) * (people === 2 && !isDuo ? 1.9 : 1);
+    const pkg = P.packageCategories.includes(svc.category) ? P.packages.find((x) => x.sessions === Number(sessions)) || P.packages[0] : P.packages[0];
+    const subtotal = round5(perSession * pkg.sessions);
+    const packageDiscount = round5(subtotal * pkg.discount);
+    const addonTotal = [].concat(addons || []).reduce((n, a) => n + ((P.addons[a] || {})[currency] || 0), 0);
+    const before = subtotal - packageDiscount + addonTotal;
+    const voucher = Math.min(Math.max(Number(voucherBalance) || 0, 0), before);
+    return { currency, duration: dur, persons: people, sessions: pkg.sessions, perSession: round5(perSession), subtotal, packageDiscount, packagePct: pkg.discount * 100, addonTotal, voucher, total: before - voucher, allowsPackage: P.packageCategories.includes(svc.category), durations: svc.durations };
+  }
+  const fmtMoney = (n, cur) => (cur === 'CHF' ? `CHF ${n}` : `${n} €`);
 
   /* ------------------------------------------------------------ session */
   const session = {
@@ -130,7 +155,9 @@
 
   async function initGeo() {
     const pill = $('#geoPill');
-    const citySelect = $('#qbCity') || $('#bookCity');
+    // An explicit ?city= wins over IP detection — the guest already chose.
+    const urlCity = new URLSearchParams((location.hash.split('?')[1] || location.search.slice(1) || '')).get('city');
+    const citySelect = urlCity ? null : $('#qbCity') || $('#bookCity');
     await loadData();
     const geo = await detectLocation();
     if (!geo) { pill?.classList.remove('is-loading'); return; }
@@ -189,6 +216,7 @@
   async function runMatch(form, resultsEl) {
     await loadData();
     const fd = new FormData(form);
+    window.__qbService = fd.get('service');
     const ctx = {
       service: fd.get('service'),
       city: fd.get('city'),
@@ -376,7 +404,7 @@
     if (!form) return;
     const params = new URLSearchParams(location.search);
     if (params.get('service')) { const s = $('#bookService'); if (s) s.value = params.get('service'); }
-    if (params.get('city')) { const c = $('#bookCity'); if (c) c.value = params.get('city'); }
+    if (params.get('city')) { const c = $('#bookCity'); if (c) { c.value = params.get('city'); } }
     if (params.get('therapist')) {
       const tid = params.get('therapist');
       $('#bookTherapistId').value = tid;
@@ -412,24 +440,36 @@
 
     const totalEl = $('#bookTotal');
     const asideEl = $('#bookAside');
+    const breakdownEl = $('#bookBreakdown');
+    const labels = JSON.parse(breakdownEl?.dataset.labels || '{}');
+    const syncDurations = () => {
+      const q = DATA?.pricing?.services[$('#bookService').value]; if (!q) return;
+      $$('#bookDuration option').forEach((o) => { o.hidden = !q.durations.includes(Number(o.value)); o.disabled = o.hidden; });
+      const sel = $('#bookDuration'); if (!q.durations.includes(Number(sel.value))) sel.value = String(q.durations.includes(90) ? 90 : q.durations[0]);
+      const pkgField = $('#bookPackageField'); if (pkgField) pkgField.hidden = !DATA.pricing.packageCategories.includes(q.category);
+      const persons = $('#bookPersons'); if (persons) { persons.disabled = $('#bookService').value === 'duo-couples'; if (persons.disabled) persons.value = '2'; }
+    };
+    let lastQuote = null;
     const recalc = () => {
+      if (!DATA) return 0;
+      syncDurations();
       const d = fdToObject(form);
-      const opt = $('#bookService')?.selectedOptions[0];
       const cityOpt = $('#bookCity')?.selectedOptions[0];
-      const chf = cityOpt && DATA?.cities.find((c) => c.slug === cityOpt.value)?.country === 'CH';
-      let total = Number(opt?.dataset[chf ? 'chf' : 'eur'] || 0);
-      const dur = Number(d.duration || 60);
-      if (dur === 90) total = Math.round(total * 1.4);
-      if (dur === 120) total = Math.round(total * 1.8);
-      if (Number(d.persons) === 2) total = Math.round(total * 1.9);
-      $$('[name=addons]:checked', form).forEach((el) => { total += Number(el.dataset.eur || 0); });
-      const gross = total;
-      if (voucherDiscount) total = Math.max(0, total - voucherDiscount);
-      totalEl.textContent = (chf ? `CHF ${total}` : `${total} €`) + (voucherDiscount ? ` (${gross})` : '');
-      const mirror = $('[data-book-total]'); if (mirror) mirror.textContent = chf ? `CHF ${total}` : `${total} €`;
-      asideEl.innerHTML = [opt?.textContent.split(' — ')[0], `${dur} min`, cityOpt?.textContent, d.date, d.time]
-        .filter(Boolean).map((x) => `<div>${x}</div>`).join('');
-      return total;
+      const chf = cityOpt && DATA.cities.find((c) => c.slug === cityOpt.value)?.country === 'CH';
+      const q = quoteLocal({ service: d.service, duration: d.duration, persons: d.persons, addons: [].concat(d.addons || []), sessions: d.sessions, currency: chf ? 'CHF' : 'EUR', voucherBalance: voucherDiscount });
+      lastQuote = q; if (!q) return 0;
+      totalEl.textContent = fmtMoney(q.total, q.currency);
+      const mirror = $('[data-book-total]'); if (mirror) mirror.textContent = fmtMoney(q.total, q.currency);
+      const opt = $('#bookService')?.selectedOptions[0];
+      asideEl.innerHTML = [opt?.textContent.split(' — ')[0], `${q.duration} min${q.persons === 2 ? ' · 2 P' : ''}`, q.sessions > 1 ? (labels.sessions || '{n}').replace('{n}', q.sessions) : '', cityOpt?.textContent, d.date, d.time].filter(Boolean).map((x) => `<div>${x}</div>`).join('');
+      if (breakdownEl) breakdownEl.innerHTML = [
+        `<div><span>${labels.perSession || ''}</span><span>${fmtMoney(q.perSession, q.currency)}</span></div>`,
+        q.sessions > 1 ? `<div><span>× ${q.sessions}</span><span>${fmtMoney(q.subtotal, q.currency)}</span></div>` : '',
+        q.packageDiscount ? `<div class="is-discount"><span>${labels.discount || ''} (−${q.packagePct} %)</span><span>−${fmtMoney(q.packageDiscount, q.currency)}</span></div>` : '',
+        q.addonTotal ? `<div><span>${labels.addons || ''}</span><span>+${fmtMoney(q.addonTotal, q.currency)}</span></div>` : '',
+        q.voucher ? `<div class="is-discount"><span>${labels.voucher || ''}</span><span>−${fmtMoney(q.voucher, q.currency)}</span></div>` : ''
+      ].join('');
+      return q.total;
     };
     form.addEventListener('change', recalc);
     form.addEventListener('input', recalc);
@@ -447,13 +487,13 @@
           const d = fdToObject(form);
           $('#bookSummary').innerHTML =
             `<strong>${$('#bookService').selectedOptions[0].textContent.split(' — ')[0]}</strong><br>` +
-            `${d.date} · ${d.time} · ${d.duration} min<br>${d.address || ''}, ${$('#bookCity').selectedOptions[0].textContent}<br>` +
+            `${d.date} · ${d.time} · ${d.duration} min${Number(d.sessions) > 1 ? ' · ' + (labels.sessions || '{n}').replace('{n}', d.sessions) : ''}<br>${d.address || ''}, ${$('#bookCity').selectedOptions[0].textContent}<br>` +
             `<strong>${T.total}: ${totalEl.textContent}</strong>`;
           void total;
         }
       }
     });
-    loadData().then(recalc);
+    loadData().then(() => { recalc(); });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -463,8 +503,10 @@
       payload.locale = LOCALE;
       payload.total = totalEl.textContent;
       notice($('#bookNotice'), 'info', T.sending);
+      let serverQuote = null;
       try {
-        await api('/bookings', { method: 'POST', body: payload });
+        const r = await api('/bookings', { method: 'POST', body: payload });
+        serverQuote = r.quote || null;
       } catch {
         const drafts = store.get(LS.drafts, []);
         drafts.push({ type: 'booking', at: Date.now(), payload });
@@ -472,6 +514,13 @@
       }
       form.hidden = true;
       notice($('#bookNotice'), 'ok', window.__bookSuccess || T.ok);
+      // Upsell: what a Privé Signature member (−20 %) would have saved on this exact booking.
+      const q = serverQuote || lastQuote;
+      const nb = $('#bookNotice');
+      if (q && nb?.dataset.upsell && !(session.get()?.priveTier)) {
+        const saved = fmtMoney(Math.round((q.subtotal - q.packageDiscount) * 0.2), q.currency);
+        nb.insertAdjacentHTML('beforeend', `<div class="upsell"><span>${nb.dataset.upsell.replace('{saved}', saved)}</span><a class="btn btn--gold btn--sm" href="${nb.dataset.priveHref}">${nb.dataset.upsellCta}</a></div>`);
+      }
     });
   }
 

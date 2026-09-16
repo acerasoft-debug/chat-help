@@ -3,6 +3,7 @@ import { t, fmt } from '../../data/i18n.mjs';
 import { services, categories, addons, moneyServices, serviceBySlug } from '../../data/services.mjs';
 import { cities, countries, cityBySlug } from '../../data/cities.mjs';
 import { therapists, therapistsFor, profileExtras } from '../../data/therapists.mjs';
+import { priceTable, PACKAGES, PACKAGE_CATEGORIES, priceFor, round5 } from './pricing.mjs';
 import { testimonials } from '../../data/testimonials.mjs';
 import { prive, priveTiers } from '../../data/prive.mjs';
 import { articles, journalMeta } from '../../data/journal.mjs';
@@ -375,6 +376,12 @@ ${crumbs(locale, [
     <aside class="panel" style="position:sticky;top:96px">
       <div class="card__price" style="font-size:2.4rem">${esc(money(s.price.EUR))}<small style="margin-top:.4rem">${esc(L.common.from)} · ${esc(fmt(L.service.per, { min: s.durations[0] }))}</small></div>
       <p class="small muted" style="margin-top:.4rem">${esc(money(s.price.CHF, 'CHF'))} ${esc(countries.CH[locale])}</p>
+      <hr class="rule" style="margin:1.3rem 0">
+      <p class="eyebrow" style="margin-bottom:.6rem">${esc(L.pricing.table)}</p>
+      <table class="price-table"><tbody>${priceTable(s).map((row) => `<tr><td>${row.duration} ${esc(L.common.minutes)}</td><td>${esc(money(row.EUR))}</td><td class="muted">${esc(money(row.CHF, 'CHF'))}</td></tr>`).join('')}</tbody></table>
+      ${PACKAGE_CATEGORIES.includes(s.category) ? `<p class="eyebrow" style="margin:1.2rem 0 .6rem">${esc(L.pricing.kur)}</p>
+      <table class="price-table"><tbody>${PACKAGES.filter((p) => p.sessions > 1).map((p) => { const per = priceFor(s, s.durations[0]); const total = round5(per * p.sessions * (1 - p.discount)); return `<tr><td>${esc(fmt(L.pricing.sessions, { n: p.sessions }))}</td><td>${esc(money(total))}</td><td class="muted"><span class="badge badge--forest">${esc(fmt(L.pricing.save, { pct: p.discount * 100 }))}</span></td></tr>`; }).join('')}</tbody></table>
+      <p class="small muted" style="margin:.5rem 0 0">${esc(L.pricing.kurNote)}</p>` : ''}
       <hr class="rule" style="margin:1.3rem 0">
       <dl style="margin:0;display:grid;grid-template-columns:auto 1fr;gap:.5rem 1rem;font-size:.88rem">
         <dt class="muted">${esc(L.service.duration)}</dt><dd style="margin:0">${s.durations.join(' / ')} ${esc(L.common.minutes)}</dd>
@@ -959,7 +966,7 @@ ${crumbs(locale, [{ href: pathFor(locale, { t: 'home' }), label: L.dir }, { href
       <ol class="stepper" id="bookSteps" style="margin-top:1.4rem">
         ${[B.step1, B.step2, B.step3, B.step4].map((s, i) => `<li${i === 0 ? ' class="is-on"' : ''}>${esc(s)}</li>`).join('')}
       </ol>
-      <div id="bookNotice"></div>
+      <div id="bookNotice" data-upsell="${attr(L.pricing.upsellPrive)}" data-upsell-cta="${attr(L.pricing.upsellCta)}" data-prive-href="${withBase(pathFor(locale, { t: 'prive' }))}"></div>
       <form id="bookForm" novalidate>
         <section data-step="0">
           <input type="hidden" name="therapistId" id="bookTherapistId">
@@ -967,12 +974,16 @@ ${crumbs(locale, [{ href: pathFor(locale, { t: 'home' }), label: L.dir }, { href
           <label class="field"><span>${esc(L.quickBook.service)}</span><select name="service" id="bookService">${serviceOptions}</select></label>
           <div class="field--row">
             <label class="field"><span>${esc(L.quickBook.duration)}</span>
-              <select name="duration"><option value="60">60 ${esc(L.common.minutes)}</option><option value="90" selected>90 ${esc(L.common.minutes)}</option><option value="120">120 ${esc(L.common.minutes)}</option></select>
+              <select name="duration" id="bookDuration">${[30, 45, 60, 75, 90, 120].map((d) => `<option value="${d}"${d === 90 ? ' selected' : ''}>${d} ${esc(L.common.minutes)}</option>`).join('')}</select>
             </label>
             <label class="field"><span>${esc(B.persons)}</span>
-              <select name="persons"><option value="1" selected>1</option><option value="2">2</option></select>
+              <select name="persons" id="bookPersons"><option value="1" selected>1</option><option value="2">2 · ${esc(L.pricing.secondPerson)}</option></select>
             </label>
           </div>
+          <label class="field" id="bookPackageField"><span>${esc(L.pricing.package)}</span>
+            <select name="sessions" id="bookSessions">${PACKAGES.map((p) => `<option value="${p.sessions}">${p.sessions === 1 ? esc(L.pricing.single) : `${esc(fmt(L.pricing.sessions, { n: p.sessions }))} — ${esc(fmt(L.pricing.save, { pct: p.discount * 100 }))}`}</option>`).join('')}</select>
+            <em class="field-hint">${esc(L.pricing.kurNote)}</em>
+          </label>
           <label class="field"><span>${esc(L.sections.addons)}</span></label>
           <div class="checks">${addons.map((a) => `<label class="check"><input type="checkbox" name="addons" value="${a.slug}" data-eur="${a.price.EUR}"><span>${esc(a[locale])}${a.price.EUR ? ` · ${money(a.price.EUR)}` : ''}</span></label>`).join('')}</div>
         </section>
@@ -1020,6 +1031,7 @@ ${crumbs(locale, [{ href: pathFor(locale, { t: 'home' }), label: L.dir }, { href
     <aside class="panel" style="position:sticky;top:96px">
       <h3 style="font-family:var(--sans);font-size:1rem">${esc(B.summary)}</h3>
       <div id="bookAside" class="small muted"></div>
+      <div id="bookBreakdown" class="breakdown small" data-labels="${attr(JSON.stringify({ perSession: L.pricing.perSession, sessions: L.pricing.sessions, addons: L.pricing.addons, discount: L.pricing.discount, voucher: L.pricing.voucher, second: L.pricing.secondPerson }))}"></div>
       <hr class="rule" style="margin:1.2rem 0">
       <div style="display:flex;justify-content:space-between;align-items:baseline">
         <span class="small muted">${esc(B.total)}</span>

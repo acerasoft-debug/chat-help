@@ -2,6 +2,7 @@
 export const t = {
   de: {
     dir: 'Startseite',
+    pricing: { table: 'Preise & Dauer', perSession: 'pro Sitzung', kur: 'Kur-Pakete', kurNote: 'Für sichtbare Ergebnisse empfehlen wir eine Kur. Pakete sind 12 Monate gültig, Termine frei wählbar.', sessions: '{n} Sitzungen', single: 'Einzeltermin', save: 'Sie sparen {pct} %', secondPerson: 'Zweite Person (zweite Therapeut:in, gleiches Zeitfenster)', package: 'Paket', breakdown: 'Preisaufstellung', addons: 'Ergänzungen', discount: 'Paketrabatt', voucher: 'Gutschein', upsellPrive: 'Mit Luméa Privé Signature hätten Sie bei diesem Termin {saved} gespart — und feste Therapeut:in plus Same-Day-Garantie.', upsellCta: 'Privé ansehen', mostBooked: 'Meistgebucht', bookThis: 'Dieses Paket buchen' },
     x: {
       cookie: { text: 'Wir verwenden nur technisch notwendige Cookies für Anmeldung und Buchung. Reichweitenmessung erfolgt ausschließlich cookielos und nur mit Ihrer Zustimmung.', accept: 'Einverstanden', decline: 'Nur notwendige', more: 'Datenschutz' },
       forgot: { title: 'Passwort zurücksetzen', sub: 'Wir senden Ihnen einen Link, der eine Stunde gültig ist.', send: 'Link senden', sent: 'Falls ein Konto existiert, ist der Link unterwegs. Prüfen Sie auch den Spam-Ordner.', resetTitle: 'Neues Passwort festlegen', newPw: 'Neues Passwort', confirm: 'Passwort wiederholen', save: 'Passwort speichern', done: 'Passwort geändert. Bitte melden Sie sich neu an.', invalid: 'Dieser Link ist ungültig oder abgelaufen.', mismatch: 'Die Passwörter stimmen nicht überein.' },
@@ -138,6 +139,7 @@ export const t = {
 
   en: {
     dir: 'Home',
+    pricing: { table: 'Prices & duration', perSession: 'per session', kur: 'Course packages', kurNote: 'For visible results we recommend a course. Packages are valid 12 months, appointments at your pace.', sessions: '{n} sessions', single: 'Single session', save: 'You save {pct} %', secondPerson: 'Second person (second therapist, same slot)', package: 'Package', breakdown: 'Price breakdown', addons: 'Add-ons', discount: 'Package discount', voucher: 'Voucher', upsellPrive: 'With Luméa Privé Signature you would have saved {saved} on this booking — plus a dedicated therapist and same-day guarantee.', upsellCta: 'See Privé', mostBooked: 'Most booked', bookThis: 'Book this package' },
     x: {
       cookie: { text: 'We only use strictly necessary cookies for sign-in and booking. Audience measurement is cookieless and runs only with your consent.', accept: 'Agree', decline: 'Necessary only', more: 'Privacy' },
       forgot: { title: 'Reset your password', sub: 'We will send you a link valid for one hour.', send: 'Send link', sent: 'If an account exists, the link is on its way. Check your spam folder too.', resetTitle: 'Set a new password', newPw: 'New password', confirm: 'Repeat password', save: 'Save password', done: 'Password changed. Please sign in again.', invalid: 'This link is invalid or has expired.', mismatch: 'The passwords do not match.' },
@@ -274,6 +276,7 @@ export const t = {
 
   es: {
     dir: 'Inicio',
+    pricing: { table: 'Precios y duración', perSession: 'por sesión', kur: 'Packs de cura', kurNote: 'Para resultados visibles recomendamos una cura. Los packs valen 12 meses, con citas a tu ritmo.', sessions: '{n} sesiones', single: 'Sesión suelta', save: 'Ahorras un {pct} %', secondPerson: 'Segunda persona (segunda terapeuta, misma franja)', package: 'Pack', breakdown: 'Desglose del precio', addons: 'Complementos', discount: 'Descuento del pack', voucher: 'Tarjeta regalo', upsellPrive: 'Con Luméa Privé Signature habrías ahorrado {saved} en esta reserva, con terapeuta fija y garantía el mismo día.', upsellCta: 'Ver Privé', mostBooked: 'Más reservado', bookThis: 'Reservar este pack' },
     x: {
       cookie: { text: 'Solo usamos cookies estrictamente necesarias para el acceso y la reserva. La medición de audiencia no usa cookies y solo se activa con tu consentimiento.', accept: 'De acuerdo', decline: 'Solo necesarias', more: 'Privacidad' },
       forgot: { title: 'Restablecer contraseña', sub: 'Te enviaremos un enlace válido durante una hora.', send: 'Enviar enlace', sent: 'Si existe una cuenta, el enlace está en camino. Revisa también la carpeta de spam.', resetTitle: 'Definir nueva contraseña', newPw: 'Nueva contraseña', confirm: 'Repetir contraseña', save: 'Guardar contraseña', done: 'Contraseña cambiada. Vuelve a iniciar sesión.', invalid: 'Este enlace no es válido o ha caducado.', mismatch: 'Las contraseñas no coinciden.' },
@@ -409,6 +412,7 @@ export const t = {
   },
   fr: {
     dir: 'Accueil',
+    pricing: { table: 'Tarifs & durée', perSession: 'par séance', kur: 'Cures', kurNote: 'Pour des résultats visibles, nous recommandons une cure. Les forfaits sont valables 12 mois, rendez-vous à votre rythme.', sessions: '{n} séances', single: 'Séance unique', save: 'Vous économisez {pct} %', secondPerson: 'Deuxième personne (deuxième thérapeute, même créneau)', package: 'Forfait', breakdown: 'Détail du prix', addons: 'Options', discount: 'Remise forfait', voucher: 'Carte cadeau', upsellPrive: 'Avec Luméa Privé Signature, vous auriez économisé {saved} sur cette réservation — avec thérapeute attitrée et garantie le jour même.', upsellCta: 'Voir Privé', mostBooked: 'Le plus réservé', bookThis: 'Réserver ce forfait' },
     x: {
       cookie: { text: 'Nous n’utilisons que des cookies strictement nécessaires à la connexion et à la réservation. La mesure d’audience est sans cookie et n’est activée qu’avec votre accord.', accept: 'D’accord', decline: 'Nécessaires uniquement', more: 'Confidentialité' },
       forgot: { title: 'Réinitialiser le mot de passe', sub: 'Nous vous envoyons un lien valable une heure.', send: 'Envoyer le lien', sent: 'Si un compte existe, le lien est en route. Vérifiez aussi vos spams.', resetTitle: 'Définir un nouveau mot de passe', newPw: 'Nouveau mot de passe', confirm: 'Répéter le mot de passe', save: 'Enregistrer', done: 'Mot de passe modifié. Veuillez vous reconnecter.', invalid: 'Ce lien est invalide ou expiré.', mismatch: 'Les mots de passe ne correspondent pas.' },
@@ -544,6 +548,7 @@ export const t = {
   },
   it: {
     dir: 'Home',
+    pricing: { table: 'Prezzi e durata', perSession: 'a seduta', kur: 'Pacchetti ciclo', kurNote: 'Per risultati visibili consigliamo un ciclo. I pacchetti valgono 12 mesi, appuntamenti al tuo ritmo.', sessions: '{n} sedute', single: 'Seduta singola', save: 'Risparmi il {pct} %', secondPerson: 'Seconda persona (secondo terapista, stessa fascia)', package: 'Pacchetto', breakdown: 'Dettaglio del prezzo', addons: 'Extra', discount: 'Sconto pacchetto', voucher: 'Buono', upsellPrive: 'Con Luméa Privé Signature avresti risparmiato {saved} su questa prenotazione — più terapista fisso e garanzia in giornata.', upsellCta: 'Vedi Privé', mostBooked: 'Il più prenotato', bookThis: 'Prenota questo pacchetto' },
     x: {
       cookie: { text: 'Usiamo solo cookie strettamente necessari per accesso e prenotazione. La misurazione del pubblico è senza cookie e attiva solo con il tuo consenso.', accept: 'Accetto', decline: 'Solo necessari', more: 'Privacy' },
       forgot: { title: 'Reimposta la password', sub: 'Ti inviamo un link valido per un’ora.', send: 'Invia link', sent: 'Se esiste un account, il link è in arrivo. Controlla anche lo spam.', resetTitle: 'Imposta una nuova password', newPw: 'Nuova password', confirm: 'Ripeti la password', save: 'Salva password', done: 'Password cambiata. Accedi di nuovo.', invalid: 'Questo link non è valido o è scaduto.', mismatch: 'Le password non coincidono.' },

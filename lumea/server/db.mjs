@@ -187,7 +187,7 @@ for (const [col, def] of [['email_verified', 'INTEGER DEFAULT 0'], ['prive_tier'
 for (const [col, def] of [['photo_path', 'TEXT'], ['photo_mime', 'TEXT']]) {
   try { db.exec(`ALTER TABLE therapists ADD COLUMN ${col} ${def}`); } catch { /* column exists */ }
 }
-for (const [col, def] of [['voucher_code', 'TEXT'], ['discount', 'INTEGER DEFAULT 0'], ['reviewed', 'INTEGER DEFAULT 0']]) {
+for (const [col, def] of [['voucher_code', 'TEXT'], ['discount', 'INTEGER DEFAULT 0'], ['reviewed', 'INTEGER DEFAULT 0'], ['sessions', 'INTEGER DEFAULT 1'], ['amount', 'INTEGER'], ['currency', "TEXT DEFAULT 'EUR'"]]) {
   try { db.exec(`ALTER TABLE bookings ADD COLUMN ${col} ${def}`); } catch { /* column exists */ }
 }
 

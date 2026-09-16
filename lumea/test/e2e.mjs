@@ -84,7 +84,8 @@ try {
 
   console.log('▶ booking (pre-approval)');
   r = await call('guest', 'POST', '/bookings', { service: 'deep-tissue', duration: 90, city: 'berlin', address: 'Kurfürstendamm 1', date: '2026-10-01', time: '18:00', name: 'Clara', email: 'clara@lumea.test', phone: '+49', total: '209 €', locale: 'de', therapistId: tid, voucher: code });
-  ok('booking with voucher', r.status === 201 && r.json.discount === 150);
+  ok('booking priced server-side (deep tissue 90 min = 210 €)', r.json.quote?.perSession === 210 && r.json.quote.currency === 'EUR');
+  ok('booking with voucher', r.status === 201 && r.json.discount === 150 && r.json.quote.total === 60);
   ok('unverified therapist not assignable', r.json.therapistId === null);
   ok('booking mail sent', outbox().some((e) => e.f.includes('bookingRequested')));
   const bid = r.json.bookingId;
@@ -104,6 +105,9 @@ try {
   ok('confirmation mail sent', outbox().some((e) => e.f.includes('bookingConfirmed')));
   r = await call('guest', 'GET', `/bookings/ics?id=${bid}`); ok('ics export', r.text.includes('BEGIN:VCALENDAR'));
   r = await call('th', 'POST', '/therapist/complete', { id: bid }); ok('complete + payout', r.json?.payout === 'released');
+  r = await call('admin', 'GET', '/admin/overview'); ok('revenue figures (released 60, platform share 12)', r.json.revenue?.released === 60 && r.json.revenue.platformShare === 12);
+  r = await call('anon', 'POST', '/bookings', { service: 'anti-cellulite', duration: 60, city: 'zuerich', sessions: 10, address: 'Seefeldstrasse 1', date: '2026-10-02', time: '10:00', name: 'Nina', email: 'nina@lumea.test', phone: '+41', locale: 'de' });
+  ok('course package in CHF (10 × 179 −15 % = 1520 CHF)', r.status === 201 && r.json.quote.currency === 'CHF' && r.json.quote.sessions === 10 && r.json.quote.total === 1520);
   r = await call('guest', 'POST', '/bookings/review', { id: bid, rating: 5, text: 'Wunderbar, sehr präzise.' }); ok('guest review', r.status === 201);
   r = await call('guest', 'POST', '/bookings/review', { id: bid, rating: 5 }); ok('review once only', r.status === 409);
   r = await call('anon', 'GET', `/therapists/profile?id=${tid}`); ok('review visible on profile', r.json.profile.sampleReviews.some((x) => x.verified && x.text.includes('präzise')) && r.json.profile.reviews === 1);

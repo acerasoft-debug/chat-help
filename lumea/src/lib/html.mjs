@@ -300,6 +300,7 @@ export function serviceCard(locale, s, currency = 'EUR') {
     ${media({ slug: s.slug, motif: motifForCategory[s.category], accent: s.accent, alt: c.name, className: 'card__media' })}
     <div class="card__top">
       <div>
+        ${s.popular ? `<span class="badge" style="margin-bottom:.4rem;display:inline-block">${esc(L.pricing.mostBooked)}</span>` : ''}
         <h3>${esc(c.name)}</h3>
         <span class="card__tag">${esc(c.tagline)}</span>
       </div>

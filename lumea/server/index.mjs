@@ -27,6 +27,7 @@ import { cityBySlug } from '../data/cities.mjs';
 import { profileExtras } from '../data/therapists.mjs';
 import { serviceBySlug } from '../data/services.mjs';
 import { priveTiers } from '../data/prive.mjs';
+import { quote } from '../src/lib/pricing.mjs';
 import { site } from '../data/site.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -35,6 +36,7 @@ const PORT = Number(process.env.PORT || 4477);
 const HOST = process.env.HOST || '0.0.0.0';
 const COOKIE = 'lumea_session';
 const LOCALES = ['de', 'en', 'es', 'fr', 'it'];
+const THERAPIST_SHARE = Number(process.env.LUMEA_THERAPIST_SHARE || 0.8); // platform keeps the rest
 const SECURE = process.env.NODE_ENV === 'production';
 const ADMIN_EMAILS = String(process.env.LUMEA_ADMIN_EMAIL || '').toLowerCase().split(',').map((e) => e.trim()).filter(Boolean);
 const promoteAdmin = (user) => {
@@ -483,16 +485,19 @@ route('POST', '/api/bookings', async (req, body) => {
   }
   body.therapistId = therapistId;
 
-  // Voucher: consume as much balance as the booking total allows.
-  let discount = 0, voucher = null;
+  // Price is computed here, never taken from the client. Currency follows the city.
+  const currency = site.currencyByCountry[cityBySlug[body.city]?.country] || 'EUR';
+  let voucher = null;
   const code = String(body.voucher || '').trim().toUpperCase();
   if (code) {
     voucher = one(`SELECT * FROM vouchers WHERE code = ? AND payment_status = 'authorised' AND balance > 0 AND expires_at > ?`, code, now());
     if (!voucher) return { status: 400, body: { error: 'voucher invalid' } };
-    const totalNum = Number(String(body.total || '').replace(/[^0-9.]/g, '')) || 0;
-    discount = Math.min(voucher.balance, totalNum || voucher.balance);
-    run('UPDATE vouchers SET balance = balance - ? WHERE code = ?', discount, code);
   }
+  const q = quote({ service: service.slug, duration: body.duration, persons: body.persons, addons: asArr(body.addons), sessions: body.sessions, currency, voucherBalance: voucher?.balance || 0 });
+  const discount = q.voucher;
+  if (voucher && discount > 0) run('UPDATE vouchers SET balance = balance - ? WHERE code = ?', discount, code);
+  body.duration = q.duration; body.persons = q.persons;
+  body.total = `${q.total} ${currency === 'CHF' ? 'CHF' : '€'}`;
 
   const user = currentUser(req);
   const bid = id('bkg');
@@ -511,7 +516,7 @@ route('POST', '/api/bookings', async (req, body) => {
   // Payment model: the guest pays upfront (payment_status = authorised); the amount is held
   // and released to the therapist once the appointment is marked done. The PSP webhook that
   // flips these states plugs in here (see README → Payments).
-  run(`UPDATE bookings SET payment_status = 'authorised', voucher_code = ?, discount = ? WHERE id = ?`, voucher?.code || null, discount, bid);
+  run(`UPDATE bookings SET payment_status = 'authorised', voucher_code = ?, discount = ?, sessions = ?, amount = ?, currency = ? WHERE id = ?`, voucher?.code || null, discount, q.sessions, q.total, currency, bid);
   notifyBooking(bid, 'bookingRequested');
 
   const matches = matchTherapists({
@@ -521,7 +526,7 @@ route('POST', '/api/bookings', async (req, body) => {
     lng: cityBySlug[body.city]?.lng,
     limit: 3
   });
-  return { status: 201, body: { ok: true, bookingId: bid, status: 'requested', therapistId, discount, suggested: matches } };
+  return { status: 201, body: { ok: true, bookingId: bid, status: 'requested', therapistId, discount, quote: q, suggested: matches } };
 });
 
 route('GET', '/api/bookings', async (req) => {
@@ -601,7 +606,8 @@ route('POST', '/api/therapist/complete', async (req, body) => {
   const u = currentUser(req);
   if (!u || u.role !== 'therapist') return { status: 401, body: { error: 'therapist sign-in required' } };
   const p = therapistProfile(u.id);
-  const r = run(`UPDATE bookings SET status = 'done', payment_status = CASE WHEN payment_status = 'authorised' THEN 'released' ELSE payment_status END, payout_at = ?
+  const r = run(`UPDATE bookings SET status = 'done', payment_status = CASE WHEN payment_status = 'authorised' THEN 'released' ELSE payment_status END, payout_at = ?,
+    payout_amount = CAST(ROUND(COALESCE(amount, 0) * ${THERAPIST_SHARE}) AS TEXT) || ' ' || COALESCE(currency, 'EUR')
     WHERE id = ? AND therapist_id = ? AND status = 'confirmed'`, now(), asStr(body.id, 40), p?.id || '');
   if (r.changes) notifyBooking(asStr(body.id, 40), 'bookingDone');
   return r.changes ? { status: 200, body: { ok: true, payout: 'released' } } : { status: 404, body: { error: 'nothing to complete' } };
@@ -746,7 +752,14 @@ route('GET', '/api/admin/overview', async (req) => {
     members: one('SELECT COUNT(*) c FROM users WHERE prive_tier IS NOT NULL').c,
     vouchersOpen: one('SELECT COALESCE(SUM(balance),0) c FROM vouchers WHERE balance > 0').c,
     reviews: one('SELECT COUNT(*) c FROM reviews').c,
-    escrow: one(`SELECT COUNT(*) c FROM bookings WHERE payment_status = 'authorised'`).c
+    escrow: one(`SELECT COUNT(*) c FROM bookings WHERE payment_status = 'authorised'`).c,
+    revenue: {
+      inEscrow: one(`SELECT COALESCE(SUM(amount),0) c FROM bookings WHERE payment_status = 'authorised'`).c,
+      released: one(`SELECT COALESCE(SUM(amount),0) c FROM bookings WHERE payment_status = 'released'`).c,
+      platformShare: Math.round(one(`SELECT COALESCE(SUM(amount),0) c FROM bookings WHERE payment_status = 'released'`).c * (1 - THERAPIST_SHARE)),
+      vouchersSold: one('SELECT COALESCE(SUM(amount),0) c FROM vouchers').c,
+      members: one('SELECT COUNT(*) c FROM users WHERE prive_tier IS NOT NULL').c
+    }
   } };
 });
 

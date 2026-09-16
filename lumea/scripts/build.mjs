@@ -15,6 +15,7 @@ import { services, moneyServices } from '../data/services.mjs';
 import { cities } from '../data/cities.mjs';
 import { therapists } from '../data/therapists.mjs';
 import { pathFor, absolute } from '../src/lib/html.mjs';
+import { pricingForClient } from '../src/lib/pricing.mjs';
 import * as P from '../src/lib/pages.mjs';
 import { articles } from '../data/journal.mjs';
 
@@ -244,6 +245,7 @@ await writeFile(
   path.join(assetsOut, 'data.json'),
   JSON.stringify({
     generatedAt: new Date().toISOString(),
+    pricing: pricingForClient(),
     cities: cities.map((c) => ({ slug: c.slug, name: c.name, country: c.country, lat: c.lat, lng: c.lng, tz: c.tz, therapists: c.therapists })),
     therapists: therapists.map((th) => ({
       id: th.id, name: th.name, fullName: th.fullName, title: th.title, city: th.city, lat: th.lat, lng: th.lng,

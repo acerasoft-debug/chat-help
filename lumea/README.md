@@ -123,6 +123,29 @@ Live "just booked" ticker and today's-slots nudge are derived deterministically 
 book buttons on every treatment card, and a sticky mobile bar (WhatsApp + Book) that becomes a floating pill
 on desktop once the hero scrolls away. Trust figures live in `data/site.mjs → trust`.
 
+## Pricing engine
+
+`src/lib/pricing.mjs` is the single source of truth (mirrored in `app.js` for instant quotes; the API recomputes
+and is authoritative — the client's total is never trusted). Per session = 60-min price × duration factor
+(30 → 0.6, 45 → 0.8, 75 → 1.2, 90 → 1.4, 120 → 1.8); second person × 1.9 (duo rituals already include two);
+course packages for body & skincare (6 sessions −10 %, 10 sessions −15 %); add-ons flat; vouchers last.
+Currency follows the city (CHF in Switzerland). On completion the therapist payout is `LUMEA_THERAPIST_SHARE`
+(default 0.8) of the amount; `GET /api/admin/overview` reports escrow, released and platform revenue.
+
+## Launch checklist
+
+1. `LUMEA_ORIGIN=https://<your-domain>` — drives canonical, hreflang, sitemap, JSON-LD, mail links.
+2. Replace imprint/legal placeholders (`src/lib/pages.mjs` → `LEGAL`) with the real entity; legal review.
+3. `LUMEA_ADMIN_EMAIL` — the review-team account(s); register once, the role is granted on sign-in.
+4. Mail: `LUMEA_RESEND_KEY` (or `LUMEA_MAIL_WEBHOOK`) + `LUMEA_MAIL_FROM` on a verified sending domain.
+5. Payments: connect the PSP webhook — `POST /api/bookings` → mark `authorised`, `/api/therapist/complete`
+   → trigger the payout of `payout_amount`, `/api/bookings/cancel` → refund. Escrow states are already modelled.
+6. Photos: optional `PEXELS_API_KEY` secret + run "LUMÉA — fetch images" with `force` for an editorial set.
+7. `LUMEA_GSC` / `LUMEA_BING` verification tokens, `LUMEA_PLAUSIBLE` for cookieless analytics.
+8. Deploy: `docker build -t lumea lumea/ && docker run -p 4477:4477 -v lumea-data:/data --env-file .env lumea`
+   behind HTTPS (HSTS is on in production). Static-only alternative: GitHub Pages workflow.
+9. Submit `sitemap.xml` in Search Console for all five locales; verify hreflang report.
+
 ## Before launch
 
 Replace the placeholder address/register data in the legal pages, drop real verification tokens and analytics
