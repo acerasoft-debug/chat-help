@@ -155,11 +155,58 @@ function auth_logout(): void {
    A random token is stored (hashed) on the account and mirrored in a long-lived
    cookie. When the PHP session has lapsed but the cookie is still valid, the
    login is transparently restored. The raw token is never stored server-side. */
+/* CIHAZ BASINA BIR JETON. Eskiden hesapta TEK bir 'remember' hash'i vardi ve
+   her giris onu EZIYORDU: telefondan giren bir musteri, dizustunde oturumu
+   dustugu anda kalici girisini de kaybediyordu -- ve sonuc ekranda "giris
+   yaptim, yine giris sayfasindayim" diye goruniyor. Coklu cihaz bir kenar
+   durum degil: bu deponun kendi kaydinda bir alici iki ulkeden ve iki
+   tarayicidan giriyor.
+   Liste SINIRLI ve suresi dolan atiliyor -- sinirsiz bir liste, hesabi terk
+   edilmis cihazlarin jetonlariyla doldururdu. En eskisi dusuyor (FIFO):
+   kullanicinin bugun kullandigi cihaz, aylar once bir kez girdigi telefon
+   yuzunden atilmamali. */
+/* Kayitli 'remember' alanini HER IKI bicimde de liste olarak verir:
+ *   eski: ['hash'=>..., 'exp'=>...]            (tek cihaz)
+ *   yeni: [['hash'=>..., 'exp'=>...], ...]     (cihaz basina bir kayit)
+ * Gecise ozel bir migration yazilmadi: eski kaydi okumak bir satir, butun
+ * hesaplari yeniden yazmak ise geri alinamaz bir toplu islem. */
+function auth_remember_entries($stored): array {
+    if (!is_array($stored)) return [];
+    /* isset() DOLULUGU degil VARLIGI sorar: ['hash'=>''] eski bir kayit gibi
+       donuyordu. Kimseyi iceri almazdi (bos hash hicbir jetonla eslesmez) ama
+       listede olu bir satir olarak birikirdi -- ve testin yakaladigi sey buydu,
+       gozden degil. */
+    if (!empty($stored['hash'])) return [$stored];          // eski tek kayit
+    $out = [];
+    foreach ($stored as $e) if (is_array($e) && !empty($e['hash'])) $out[] = $e;
+    return $out;
+}
+
+function auth_remember_list(string $uid): array {
+    foreach (auth_accounts() as $a) if (($a['id'] ?? '') === $uid) return auth_remember_entries($a['remember'] ?? null);
+    return [];
+}
+
+/* Yeni jetonu ekler, SURESI DOLMUSLARI atar, tavani asarsa en eskisini duser. */
+function auth_remember_append(array $list, string $token, int $exp): array {
+    $now = time();
+    $out = [];
+    foreach ($list as $e) {
+        if (empty($e['hash']) || empty($e['exp']) || (int)$e['exp'] <= $now) continue;
+        $out[] = ['hash' => (string)$e['hash'], 'exp' => (int)$e['exp']];
+    }
+    $out[] = ['hash' => hash('sha256', $token), 'exp' => $exp];
+    if (count($out) > VESTRA_REMEMBER_MAX_DEVICES) $out = array_slice($out, -VESTRA_REMEMBER_MAX_DEVICES);
+    return array_values($out);
+}
+
+const VESTRA_REMEMBER_MAX_DEVICES = 8;
+
 function auth_remember_set(string $uid): void {
     if ($uid === '') return;
     $token = bin2hex(random_bytes(32));
     $exp   = time() + 90 * 86400;
-    auth_update($uid, ['remember' => ['hash' => hash('sha256', $token), 'exp' => $exp]]);
+    auth_update($uid, ['remember' => auth_remember_append(auth_remember_list($uid), $token, $exp)]);
     if (!headers_sent()) {
         $secure = !empty($_SERVER['HTTPS']) || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
         setcookie('vestra_rmb', $uid.':'.$token, [
@@ -176,9 +223,14 @@ function auth_remember_restore(): void {
     if ($uid === '' || $token === '') return;
     foreach (auth_accounts() as $a) {
         if (($a['id'] ?? '') !== $uid) continue;
-        $r = $a['remember'] ?? null;
-        if (!is_array($r) || empty($r['hash']) || empty($r['exp']) || time() > (int)$r['exp']) return;
-        if (!hash_equals((string)$r['hash'], hash('sha256', $token))) return;
+        /* auth_remember_entries() hem ESKI tek-kayit bicimini hem yeni listeyi
+           okuyor: surum atlarken hicbir musterinin kalici girisi dusmuyor. */
+        $match = false;
+        foreach (auth_remember_entries($a['remember'] ?? null) as $r) {
+            if (empty($r['hash']) || empty($r['exp']) || time() > (int)$r['exp']) continue;
+            if (hash_equals((string)$r['hash'], hash('sha256', $token))) { $match = true; break; }
+        }
+        if (!$match) return;
         // never auto-restore a suspended account -- except a docs-suspended seller, who may sign in to upload
         if (($a['status'] ?? '') === 'suspended' && !auth_suspended_for_docs($a)) return;
         $_SESSION['uid']    = $a['id'];
