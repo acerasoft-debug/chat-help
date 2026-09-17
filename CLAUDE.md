@@ -1683,6 +1683,45 @@ sepette escrow yalnızca ürünün satıcısı Stripe'a bağlıysa (`escrow_read
 sessizce para kaybettiriyor (`"35,50"` → 35.00). Fiyat okunan **her** yerde bu
 kullanılmalı.
 
+**KURAL 29 — Çevrilmiş fiyat 10 kuruşa YUKARI yuvarlanır; EUR ve FATURA hariç**
+(operatör, 17 Eyl 2026: *"usd de tüm katalog fiyatlarını küürat varsa düzleştir
+örenek 34,56 - 34,60"*).
+- Katalogun **EUR** tarafı hep düz (39,00 / 85,00 / 120,00) çünkü rakamları
+  operatör yazıyor; çevrilmiş taraf değildi — kur çarpanı 34,56 / 45,3258 /
+  65,4027 üretiyordu.
+- Tek yuvarlayıcı: `vestra_money_round()` (`inc/money.php`), adım
+  `VESTRA_MONEY_STEP = 0.10`. **Sayfa, ürün sayfasının canlı hesaplayıcısı (JS)
+  ve dropship USD tahsilatı üçü de ondan geçiyor.** İkinci bir yuvarlama, bu
+  deponun tekrar tekrar kaydettiği *"sayfada bir, kasada başka rakam"* hatasını
+  üretirdi: JS adımı **sabitten** basılıyor (elle `0.10` yazılsaydı kademe
+  tablosu US$45,40 derken canlı toplam US$45,33 derdi).
+- **YÖN YUKARI, ve bu bir tercih değil:** en yakına yuvarlamak 34,54'ü 34,50
+  yapardı — ilan edilen EUR fiyatın **altında** bir rakam. Aşağı yuvarlamak
+  sessizce marj veriyor; yukarı yuvarlamak en fazla 9 kuruş ekliyor ve
+  eklediğini **ekranda gösteriyor**.
+- **EUR'a hiç dokunulmuyor** (katalogun kendi birimi) ve **FATURA kapsam DIŞI**
+  (KURAL 5i): belgede birim × adet = satır tutmak zorunda ve çevrim siparişin
+  **damgalı** kuruyla, tam kuruşla yapılıyor. Belgeyi güzelleştirmek, belgeyi
+  kendi içinde tutmaz hâle getirirdi.
+- **Stripe tahsilatı da yuvarlanıyor**, çünkü "Buy now" düğmesi ziyaretçinin
+  biriminde `vestra_money()` ile yazdırılıyor: tahsilat yuvarlanmasaydı aynı
+  kutuda düğme US$45,40, hemen altındaki tahsilat satırı US$45,33 derdi. Navlun
+  da aynı gövdeden (sayfa bölge ücretlerini `vestra_money()` ile basıyor).
+- **Çevrim notu yuvarlamayı SÖYLÜYOR** (9 dilde, tek yeni anahtar): gösterilen
+  rakam artık `kur × EUR` değil; söylemeseydik okuyan kendi çarpımını yapıp
+  tutturamaz ve hangisinin doğru olduğunu soramazdı — faturadaki `fx_note`'un
+  aynı gerekçesi (KURAL 5p).
+- **Canlı ölçüm (17 Eyl 2026, `seo-check` → `cur_probe=true`):** 39,00 EUR →
+  ham 44,7759 → ekranda **US$44.80**; **A$63.00**; **C$62.70**; üçü de 10
+  kuruşun katı, not yuvarlamayı yazıyor. Sonda fonksiyonun **varlığına** değil
+  gerçek bir çevrime bakıyor — eski bir kopya da parse edilir.
+- Test: `tests/money_round_test.php` (34 iddia, iki yön — `invoice.php`'nin
+  yuvarlayıcıyı **hiç** çağırmadığı dâhil). Düşebildiği doğrulandı: ham çevrim
+  **2 kırmızı**, en yakına yuvarlama **5**, JS adımı silinince **2**, Stripe ham
+  çevrime dönünce **2**, faturaya yuvarlama girince **1**. `dropship_plan_test`
+  eski tam kuruşu pinliyordu; **davranış bilerek değişti**, iddia elle yazılmış
+  bir rakam yerine sitenin kendi yuvarlayıcısını okuyacak şekilde düzeltildi.
+
 **KURAL 7 — Faturası kesilmiş, havale bekleyen siparişe 5 iş günü** (operatör
 kararı, 2 Eyl 2026, order OCF7F5 / INV-2026-1001 / Daymond Proconect: *"siparişlerin
 ödemesi 5 iş günü içerisinde gelmez ise otomatik kapanacağını söyle, eğer ödeme
@@ -4420,6 +4459,29 @@ gösterdi. Aynı hatayı iki kez ölçmek, onu doğrulamıyor.*
   CLAUDE.md'nin dediği gibi tekrar denemeden önce koşu listesine bakıldı — hiçbir
   şey kuyruğa girmemişti, yani tekrar güvenliydi.
 
+**DSQUARED2 kot partisi BEKLİYOR — Dropbox linki "No Access"** (operatör,
+17 Eyl 2026: *"daha sonra bu jeansler yoksa bunlarida koy 125-165 eur arasi
+shortlar 90 eur"*, `…/DSQUARED/DSQ JEANS` klasörü).
+- Sunucu Dropbox'a çıkabiliyor (`http=200`) ama gelen şey ZIP değil **HTML**:
+  başlığı **`Dropbox - No Access`**. Üç adres biçimi de denendi (kök+subpath,
+  verilen link+`dl=1`, kökün tamamı) — üçü de aynı sayfa, 204–211 KB.
+- **Sebep okunabiliyor:** sondanın kendi satırı **`st jetonu: yok`**. 12 Eylül'de
+  kaydedilen ders bunun aynısı: operatörün ilk iki linkinde `st=` yoktu ve
+  ikisi de "No Access" verdi, `st=` taşıyan üçüncü link **47,8 MB'lık ZIP**
+  getirdi. Bu link de `rlkey` taşıyor ama `st=` **taşımıyor**.
+- **Yapılacak operatörde:** Dropbox'ta klasörü açıp **"Copy link"** ile linki
+  yeniden alması yeter (yeni paylaşım jetonu `st=` ile geliyor); ya da klasörü
+  **"Anyone with the link"** olarak paylaşması. Link gelince tek koşu:
+  `fetch-external-images` → `dropbox_url` + `dropbox_slug=dsq-jeans`.
+- **Fiyat kararı zaten alınmış durumda ve kayıtta:** kot **125–165 EUR**
+  (pahalılığa göre), **şort 90 EUR**. Klasör açılınca kareler tek tek bakılıp
+  bu aralığa göre fiyatlanacak; kot/şort ayrımı **fotoğraftan**, dosya adından
+  değil (D&G partisinde dosya adı kategoriyi söylemiyordu ve iki fiyat hatası
+  ancak 300–360 px'te büyütünce çıkmıştı).
+- **Katalogda zaten duran kotlar atlanacak** (*"bu jeansler yoksa"*): DSQUARED2
+  bölmesinde bugün 64 ilan var ve `dsq-all.json` / `dg-jeans.json` partileri
+  duruyor; eşleşme **stil kodundan** yapılacak, addan değil.
+
 **Vitrin sırası: Balenciaga ve Lacoste en başta** (operatör, 12 Eyl 2026:
 *— aynı gün D&G ve DSQUARED2 de eklendi; güncel liste bu bölümün SONUNDA.*
 *"ürünlerin yerlerini degistir balenciaga ve lacostelar basta kalsin"*).
@@ -4555,6 +4617,56 @@ görünür): **895 kayıt, `pending=68`**, `tiers` hepsinde var. Yeni satırlard
    Knitwear` mi? Fiyat tablosunda karşılığı yok, o yüzden yazılmadı.
 3. **9 iç giyim + 1 mayo** — "şimdilik koyma" denildi; fotoğraflar sunucuda
    duruyor (`~/wt_incoming/dg/files`), fiyat verilirse tek koşuda eklenir.
+
+**KURAL 25 — Gallery Dept.: 9 ilan yazıldı ve AÇILDI** (operatör, 17 Eyl 2026:
+*"Galerry dept. ürünlerini Kataloga al yeni olarak tshirtler fiyat pahaliligina
+göre 59,90 ile 64,00 eur arasinda yap sweatshirtleri fiyatina göre 125-145 eur
+yap"* → *"10 lu paketler halinde yap ve en az alim 20 ad. olsun"* → *"ayrica
+ürünleri aprrova yap siteden"*).
+- Dokuz fotoğraf zaten `uploads/coming-soon/gallery-dept` altındaydı. Dokuzu da
+  **göz ile** sınıflandırıldı: 8 tişört + 1 turkuaz fermuarlı kapüşonlu.
+- **Bu markanın hiçbir tedarikçi fiyatı depoda YOK.** Operatörün verdiği aralık
+  içindeki sıralama bu yüzden **BASKI YERLEŞİMİNE** göre — üretim maliyetini
+  belirleyen ve fotoğrafın gerçekten kanıtladığı tek şey o:
+
+  | | |
+  |---|---:|
+  | küçük göğüs logosu (4 ilan) | 59,90 |
+  | büyük ön baskı (2 ilan) | 61,90 |
+  | kol baskısı (2 ilan) | 64,00 |
+  | fermuarlı kapüşonlu (1 ilan) | 145,00 |
+
+  Kapüşonlu **aralığın tepesinde**: fermuar + kapüşon o kategorinin en pahalı
+  konstrüksiyonu ve kategoride tek ürün o. **Web'deki perakende rakamları
+  okundu ama fiyata GÖMÜLMEDİ** — aynı modelin boyalı/yıpratılmış sürümleri
+  ($199–$360 arası) karışıyor, yani sıralama için güvenilir bir eksen değil.
+- **Uydurulmayanlar:** üretici stil kodu yok, o yüzden SKU **iç referans**
+  (`VS-GD-*`, `guc-t12`'nin deseni) ve açıklamalarda model numarası **yazmıyor**.
+  MOQ 20 · 10'luk karton · beden serisi **katalogun kendi premium tişört
+  standardı** (D&G partisi), bu markanın paketlemesi hakkında bir tahmin değil.
+  `ships_from` yok → platform varsayılanı.
+- **İki fotoğraf aynı modelin iki rengi ve adları AYNI bırakıldı**
+  (`Sleeve Print T-Shirt — Black/White`): beyaz olanda arka baskı kumaştan
+  geçiyor, siyahta görünmüyor. Adı ayırmak, **doğrulayamadığımız** bir fark
+  iddia etmek olurdu; fark yalnız o kaydın **açıklamasında**, çünkü fotoğrafta
+  görünen şey o.
+- **Fotoğraflar küçük: 723–900 px** (katalogun Fred Perry kareleri 1316–1523 px).
+  Büyütülmedi — büyütmek çözünürlük üretmez. Tedarikçi daha büyük kare verirse
+  tek koşuda değişir.
+- **`add-products` kuru koşusu bir şey yakaladı ve tam bu yüzden var:** ilk koşu
+  dokuz satırın dokuzunu da *"görsel SUNUCUDA YOK"* diye reddetti. `uploads/`
+  yalnız **deploy** push'unda senkronlanıyor, parti ise çalışma dalındaydı.
+  Deploy'dan sonra dokuzu da bulundu. *Bir partiyi yazmadan önce fotoğrafların
+  sunucuya İNDİĞİNİ ölç.*
+- **Geri okuma (`inspect-products` → `check_images`, `brand=Gallery Dept.`):**
+  **9 ürün, 9 görsel, kayıp/bozuk 0.** Bu sonda yalnız `vestra_products()`
+  geziyor, yani **sadece `approved`** — dokuzun orada görünmesi durumu da
+  kanıtlıyor. Katalog 896 → **905**.
+- **9 dilde ad/açıklama YOK** ve bu bir gerileme değil: `name_i18n`/`desc_i18n`
+  Kuloğlu iç çamaşırı kataloğuna özel bir karardı (KURAL 21); bütün premium
+  partiler (D&G, DSQUARED2, Balenciaga) İngilizce ad taşıyor.
+- **"Yakında" şeridi kendiliğinden düzeliyor:** `vestra_soon_brands_filter()`
+  satışa çıkan markanın klasörünü basmıyor (16 Eyl denetimi). Klasör silinmedi.
 
 **KURAL 25 — 68 ilan AÇILDI** (operatör, 12 Eyl 2026: *"tüm ürünleri aprrovals
 yap fotolariyla beraber"*). `product-fixes/dg-approve.json` + `set-product.yml`;
