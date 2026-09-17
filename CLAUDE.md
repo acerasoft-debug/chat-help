@@ -326,6 +326,38 @@ gönderim listesine girmez** (7 Eyl 2026, 200 satırlık liste taraması).
 - Test: `blocklist_test.php §10e` — beş vaka BLOK, dükkânın kendi adresi /
   gmail'li butik / `.info` alan adı / benzer isim GEÇER.
 
+**KURAL 1i — "Kod geçirdi" ELE OKUNMADI demek değil; havuzun dibinde üç zincir
+daha vardı** (17 Eyl 2026, soğuk havuzda hiç mektup almamış 10 aday).
+Kod **onunu da** geçiriyordu. Üçü de **araştırılarak** doğrulandı, hafızadan
+elenmedi (`worksout` dersi: *kayıt hatırlamadan güçlü kanıttır*):
+
+| Firma | Neden KURAL 1 |
+|---|---|
+| **Carl Scarpa** (IE) | UK+İrlanda'da **20 şube** VE **yedi kendi markası** (Rosconia, ViaCimo, Pierre Varini, Ogetti, Moninari, Babila, Instep) — zincir + own-label |
+| **Kalogirou** (GR/CY) | **10 mağaza**, *"Kalogirou Private Label"* kendi serisi, ve **Fais Group**'a ait (dağıtım grubu) — üç koldan da |
+| **Groupe Stalric** (FR) | Occitanie'de **13 satış noktası**, bu yıl kendi deri markasını çıkardı, ayrıca **ERAM ve iki MANGO franchise'ı** işletiyor |
+
+- **`scarpa` TEK BAŞINA EKLENMEDİ ve eklenmemeli:** İtalyanca "ayakkabı" demek
+  ve gerçek bir ayakkabı dükkânının adında geçmesi olağan (La Scarpa,
+  Scarpa & Co, Bella Scarpa). Konsaydı hepsi **sessizce** elenirdi — mango/zara
+  dersinin ayakkabı hâli, ve sessiz eleme yanlış gönderimden pahalı.
+  `kalogirou` ve `stalric` tam ad; ikisi de 6 harften uzun olduğu için alan adı
+  tarafında da eşleşiyor (`groupestalric.fr`).
+- Test: `blocklist_test.php §18/18b` (toplam **422 iddia**), iki yön de.
+  Düşebildiği doğrulandı: üç ad silinince **4 kırmızı**, `scarpa` tek başına
+  eklenince **3**. *İlk falsifikasyonumda `grep FAIL` kullandım, oysa bu testin
+  hata işareti **`HATA`** — iki sabotaj da uygulanmıştı ve "0 kırmızı" okuyup
+  iddialarımı ölçümsüz sanacaktım. Aracın kendi çıktı biçimini oku.*
+
+**Soğuk yolda FİRMA-BAZLI tekilleştirme YOK — hâlâ.** Aynı koşuda dördüncü bir
+eleme gerekti ve o bir kural değil **boşluk**: `deadstock.ca` (Livestock) —
+`in**@` kutusu 31 Ağustos'ta mektup almış, `sh**@` aynı firmanın ikinci kutusu.
+`ayni firmadan baska bir kutu` kontrolü `send-outreach.yml`'de **yalnız
+`new_collection` dalında** (satır 798); soğuk dal yalnız **adres** damgasına
+bakıyor. 8 Eylül'de kaydedilen bu boşluk hâlâ açık ve elle atlandı
+(`skip_email_regex`). *Bir sonraki soğuk koşuda ya yine elle yapılmalı ya da
+kontrol o dala da taşınmalı.*
+
 ## Hesap açma / belge kuralları
 
 **KURAL 2 — Satıcıdan istenen belge: ticari kayıt + kimlik. Başka bir şey yok.**
@@ -3399,6 +3431,40 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   göndermeyi göze almak gerekiyor; bir lead bunu hak etmiyor.
   Bu sınıf tekrar ederse doğru çözüm panele küçük bir `rename_lead` eylemi
   eklemektir (id ile bul, yalnız `company` alanını yaz, damgalara dokunma).
+
+**KURAL 30 — Lead'in firma adı DÜZELTİLEBİLİR; damgalara dokunulmaz**
+(17 Eyl 2026, yukarıdaki maddenin kapanışı — tarif edilen çözüm yazıldı).
+- Sebep: o kayıt **DÖRDÜNCÜ kez** elle atlanacaktı ve bu sefer ikinci mektup
+  kanalındaki **tek** uygun adaydı. *Kuralın hatırlanmaya bırakılması yetmiyor;
+  bu kez "hatırlamak" bile bir mektubu engelliyordu.*
+- Panel: `Admin ▸ Prospects`'te **adın üstüne tıklamak** (`set_lead_email`'in
+  birebir deseni). Panel dışından: `seller-products.yml` →
+  **`admin_mode=lead_rename`** (`issue_ref=<lead id ya da ALAN ADI>`,
+  `payload=<yeni ad>`, `move_apply=true`; varsayılan kuru koşu).
+- **Müşterinin E-POSTASI girdiye yazılmıyor** — koşu başlığı kalıcı ve herkese
+  açık. Girdi **alan adı** kabul ediyor (dükkânın zaten açık web sitesi), çıktı
+  maskeli: `diag-live` → `leads_status`'ta bir kez düzeltilen hatanın aynısı.
+- **TAM 1 eşleşme yoksa iş DURUR**: sıfırda yanlış bir şey yazılmaz, birden
+  fazlada **YANLIŞ dükkânın** adı değişirdi. Eşleşme id/alan adı **tam
+  eşitlik**, alt dize değil (mango/zara dersi).
+- **Yalnız `company` yazılıyor.** `status`, `last_contacted_at`,
+  `last_newcollection_at` elle sabitlendi ve **geri okunarak** doğrulanıyor —
+  bu yazmanın var olma sebebi zaten damgaları kaybetmeden ad düzeltmek; damga
+  düşerse ilk-temas mektubu ikinci kez gider. **Boş ad reddediliyor**: mektup
+  "Hello" yazıp nokta koyardı.
+- **İlk canlı koşu 255 ile düştü ve kütükte TEK SATIR yoktu.** Sebep
+  `leads.php`'nin **kendi yorumunda** yazılıydı (*"Assumes the caller has
+  already required inc/products.php"*) — KURAL 15'in bir vakası daha. İkinci ve
+  daha kötü bulgu: sunucunun CLI ini'si hataları yutuyor, yani bu dosyanın
+  *"fatal'i `grep HATA` ile arama, çıktının tamamına bak"* kuralı bile
+  yetmiyordu — **bakılacak bir çıktı yoktu**. Adım artık
+  `display_errors=stderr -d error_reporting=-1` ile koşuyor.
+- Test: `tests/lead_rename_test.php` (28 iddia; kum havuzunda `admin.php`'yi
+  **gerçekten POST ile koşturuyor** — kaynak taraması bu işi ölçemezdi).
+  **Ters yön de tutuluyor:** AYNI ADI taşıyan ikinci bir kayıt değişmemeli,
+  yoksa bütün listeyi tek ada çeviren bir hata yeşil kalırdı. Düşebildiği
+  doğrulandı: handler damgayı da yazınca **2 kırmızı**, boş ad koruması
+  kalkınca **1**, iş akışı eşleşmesi alt dizeye gevşeyince **1**.
 **KURAL 23 — Müşteriye giden mektup YALNIZCA `support@vestrasales.com`'dan
 çıkar; operatörün Gmail'i gönderen olamaz** (operatör, 11 Eyl 2026:
 *"acerasoft@gmail.com dan hic bir müsteriye email gitmeyecek sadece
@@ -5252,6 +5318,59 @@ elle atlanıyor; panelde `rename_lead` eylemi hâlâ yok ve doğru çözüm o.*
 Kota 261 → **190 kalan**. Yani operatörün *"gece 12'den sonra kalanı gönder"*
 planına gerek kalmadı: **darboğaz kota değildi, gönderilecek adresti** — ve
 bugün o adreslerin hepsi tüketildi.
+
+**AYNI GÜN, İKİNCİ TUR: +8 mektup ve DÖRT KANALIN DA DİBİ GÖRÜLDÜ** (operatör,
+19:2x: *"kampanyalara devam et 2. emailleri gönder"* + *"almayan kalmasin"*).
+Dört kanal ayrı ayrı ölçüldü; "almayan" olduğu sanılan herkesin gerçekten ne
+aldığı **tahmin edilmedi, damgadan okundu**:
+
+| Kanal | Uygun | Gönderildi | Kalan ve sebebi |
+|---|---:|---:|---|
+| Lead — 2. mektup (`new_collection`) | 1 | **1** | 3'ü yaş kuralında (ilk mektup < 3 gün) |
+| Üye — Winter (`letter=winter`) | 10 | **1** | 7'si bugün Angebot aldı, 2'si elenmeli |
+| Üye — Angebot (`letter=fp_offer`) | 3 | 0 | BRITISHSTYLE (operatör kararı), test hesabı, `Mob` |
+| Lead — soğuk havuz (`min_brands=1`) | 10 → **6** | **6** | 3 KURAL 1, 1 aynı firma |
+
+- **`factoryoutlet.gr` DÖRDÜNCÜ kez atlanacaktı; onun yerine adı düzeltildi.**
+  CLAUDE.md doğru çözümü zaten yazıyordu (*"panele küçük bir `rename_lead`
+  eylemi — id ile bul, yalnız `company` alanını yaz, damgalara dokunma"*) ve
+  bugün o kayıt ikinci mektup kanalındaki **tek** uygun adaydı, yani kuralı
+  hatırlamak yetmiyordu: yazmak gerekiyordu. `Αρχική` → **Factory Outlet**,
+  damgalar korundu (ilk mektup 21 Ağu 2026 — yaş kuralı çoktan geçmiş),
+  Yunanca mektup `Καλημέρα Factory Outlet,` diye açıldı, gönderildi.
+- **Üye tarafındaki 10'un 7'si bugün Angebot aldı** ve bu **fp_offer damgası
+  sorularak** ölçüldü, hatırlanarak değil. Onlara saatler içinde ikinci bir
+  kampanya mektubu, `newcoll_min_days=3`'ün lead tarafında önlediği şeyin ta
+  kendisi olurdu — **bekletildiler, 20 Eylül'de uygun olurlar.** Onlar
+  "almayan" değil: bugün mektup aldılar. **`Mob`** ise hiçbir kampanya mektubu
+  almamış TEK hesaptı (ne Angebot ne Winter) ve mektubu aldı; hesap `pending`
+  olduğu için rakamsız sürüm gitti. Elenen ikisi: firma adı `389h68843j6789)`
+  olan hesap (mektup *"Hello 389h68843j6789)"* diye açardı — factoryoutlet
+  vakasının hesap hâli) ve `Verify Test Co`.
+- **SOĞUK HAVUZDA 10 ADAY VARDI VE KOD ONUNU DA GEÇİRİYORDU.** Elle okuma üç
+  zincir çıkardı (Carl Scarpa / Kalogirou / Groupe Stalric — ayrıntı KURAL 1
+  bölümünde) ve bunlar **bloklisteye eklendi**, yani eleme bir sonraki sefer
+  koddan geliyor. Dördüncüsü kuralın değil **boşluğun** işi: `deadstock.ca`
+  (Livestock) — `in**@` kutusu 31 Ağustos'ta mektup almış, `sh**@` aynı
+  firmanın ikinci kutusu. **Soğuk yolda firma-bazlı tekilleştirme YOK**
+  (`ayni firmadan baska bir kutu` kontrolü yalnız `new_collection` dalında,
+  satır 798); 8 Eylül'de kaydedilen boşluk hâlâ açık ve elle atlandı.
+  *Bir sonraki soğuk koşuda bu yine elle yapılmalı ya da kontrol o dala da
+  taşınmalı.*
+- **Ölçüm aracı üç kez yanlış yere baktı, üçü de yakalandı:**
+  (1) `lead_rename` ilk canlı koşuda **255 ile düştü ve kütükte tek satır
+  yoktu** — sunucunun CLI ini'si hataları yutuyor, yani bu dosyanın *"fatal'i
+  çıktının tamamında ara"* kuralı bile yetmiyordu; adım artık
+  `display_errors=stderr` ile koşuyor. Sebep `leads.php`'nin **kendi
+  yorumunda** yazılıydı (*"Assumes the caller has already required
+  inc/products.php"*) — KURAL 15'in bir vakası daha.
+  (2) Falsifikasyonda `grep FAIL` kullandım, oysa `blocklist_test.php`'nin hata
+  işareti **`HATA`**: iki sabotaj da UYGULANMIŞTI ve ben "0 kırmızı" okuyup
+  iddialarımı ölçümsüz sanacaktım.
+  (3) Bir sabotajın uygulandığını doğrulayan `grep -c`'im BRE yüzünden hiç
+  eşleşmedi ve "uygulanmadı" dedirtti; python ile tekrarlanınca çıktı.
+- **Kota darboğaz DEĞİL** (179 kalan, 60 ayrılmış). Dört kanalın toplamı
+  **8 mektup**; günün toplamı **80**.
 
 **16 Eyl 2026 — Fred Perry Angebot 118 kayıtlı alıcıya; fiyat listesi artık
 BİRDEN FAZLA marka alıyor; ve cevap mektubu adımı ARGÜMAN SINIRINI aşmıştı.**
