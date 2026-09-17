@@ -2118,6 +2118,92 @@ de girsin, 5 dilde eksiksiz: markalar, aksesuar, ayakkabı, tshirt, bot, sweat, 
   Ana sayfada "Valentino wholesale" YOK çıkması hata değil: anahtar kelime listesi
   stok derinliğine göre ilk 12 marka, Valentino 13. sıra ve sonrası.
 
+**KURAL 9b — PAZAR sayfaları: `/wholesale-to/<pazar>`; hreflang etikettir, İÇERİK
+değildir** (operatör, 17 Eyl 2026: *"SEO yu kontrol et ve kusursuz hale getir
+catalogtaki markalarida kullan sadece avrupa degil avustralya japonya duba qatar ve
+usa da olsun....avrupada kusursuz istiyorum"* → aynı gün *"brezilya ve güney
+amerika, israil, singapur, g.koreyide ekle"*).
+
+- **ÖNCE ÖLÇÜLDÜ** (canlı, run `35268651818`): 48 hreflang etiketi, sitemap 1.091
+  URL, ana sayfa anahtar kelimeleri **12 markada kesiliyor** (Gucci ve Valentino
+  ana sayfada YOK, `/b2b` sayfalarında VAR). Okuma üç gerçek boşluk gösterdi:
+  1. **hreflang "Avrupa" diyordu ama 13 Avrupa ülkesini atlıyordu:** Lüksemburg,
+     Malta, Kıbrıs, Hırvatistan, Slovenya, Slovakya, Bulgaristan, üç Baltık,
+     İzlanda, Liechtenstein hiçbir bölgesel etikette geçmiyordu. Yani "Avrupa'da
+     kusursuz" iddiası birliğin üçte birinde **boştu**. Artık AB 27 + EFTA + GB'nin
+     hepsi kapsanıyor ve test **ülke ülke sayıyor** — *"48 etiket var" hangi
+     ülkelerin kapsandığını SÖYLEMİYOR.*
+  2. **Organization JSON-LD İKİ KOPYAYDI ve ayrışmıştı:** `inc/head.php` altı kıta
+     sayıyor, `index.php` **`areaServed: 'EU'`** diyordu. Yani ana sayfa her arama
+     motoruna *"yalnız Avrupa"* derken alt sayfalar *"her yer"* diyordu; üstelik
+     ana sayfanın `knowsAbout`'u 14 markada kesiliyordu. Tek gövde:
+     `vestra_seo_org_ld()` (`inc/seo.php`), **markaların TAMAMI** (operatörün kendi
+     cümlesi: *"catalogtaki markaları da kullan"*). Aynı hata `og:locale`'de de
+     vardı: head.php'nin elle yazılmış listesinde **`ja` YOKTU**, yani Japonca her
+     alt sayfa `en_US` basıyor, yalnız ana sayfa `ja_JP` diyordu.
+  3. **hreflang bir ETİKET, içerik değil.** Sidney'deki, Dubai'deki ya da Seul'deki
+     bir butik *"wholesale fashion supplier Australia"* diye arıyor ve bu alan
+     adında o sorgunun ineceği **tek bir sayfa yoktu**.
+- **On pazar** (`vestra_seo_markets()`, TEK tablo): Avustralya, Japonya, BAE, Katar,
+  ABD, Brezilya, Güney Amerika, İsrail, Singapur, Güney Kore. Tablo hreflang'in,
+  `areaServed`'ın, altbilginin, sitemap'in ve sayfanın kendisinin okuduğu tek yer;
+  **bir pazar eklemek BİR satır.**
+- **SAYFADAKİ HİÇBİR RAKAM ELLE YAZILI DEĞİL** ve bu kuralın bedeli bu depoda
+  ödendi (KURAL 6: escrow tavanı beş gün metinde 3.000, kodda 3.500). Para birimi
+  `vestra_currency_for_cc`, kalıcı indirim `vestra_region_discount_rates`, Avrupa
+  dışı taban `VESTRA_NONEU_MIN_ORDER_USD`, kapının kayıtta açılıp açılmadığı
+  `vestra_auto_open_countries` (KURAL 2h), diller hreflang'in **kendisinden**,
+  markalar/kategoriler canlı stoktan.
+- **Bölgede olgu ülke ülke aynı değilse SATIR HİÇ BASILMIYOR.** Güney Amerika 12
+  ülke; 11'inde geçerli bir indirimi hepsine yazmak KURAL 3'ün yasakladığı şey.
+  Test bunu **sentetik bir karışık bölgeyle** (AU + US) ölçüyor: para birimi,
+  indirim ve `auto_open` üçü de susuyor. Aynı şekilde ABD sayfasında indirim satırı
+  **yok** ve olmamalı.
+- **CANLI BULUNAN GERÇEK KUSUR — Japonca IP tarafında hiç servis edilmiyordu.**
+  Japonca 5 Eylül'de siteye eklendi (tam sözlük, 1.271 anahtar) ama
+  `vlang_country_lang()` tablosuna **`JP` hiç yazılmadı**: tarayıcısı dil
+  bildirmeyen Japonyalı ziyaretçi, site tamamen Japonca olduğu hâlde **İngilizce**
+  görüyordu. Kusur yorumda *onaylanmış* hâlde duruyordu (*"sitenin dili olmayan bir
+  ülke (ör. TR, JP)"*). *Bir dil eklerken "bu olgu başka nerede yazılı" diye
+  sorulmadığında olan şey.* `tests/lang_from_ip_test.php` eski ve **hatalı**
+  davranışı pinliyordu; davranış bilerek değişti, iddia düzeltildi.
+- **`GY` ve `SR` testin kendisi yüzünden bulundu:** Guyana ve Surinam Güney Amerika
+  pazarının içinde ama hiçbir hreflang etiketi taşımıyordu — sayfa 12 ülkeyi
+  kapsadığını söylüyor, etiket ikisinde yok. *Pazarın her ülkesinin bir etiketi
+  olduğunu sayan iddia yazılmasaydı görünmezdi.*
+- Yan düzeltmeler, hepsi aynı okumadan: journal yazılarına **Article** şeması
+  (yazar, tarih, kapak HTML'de vardı, hiçbir şemada yoktu), sitemap'e **`<lastmod>`**
+  (kaydın **kendi** tarihinden; bugünün tarihini her satıra basmak "her şey
+  değişti" demek olurdu), **iç çamaşırı bölmesine kendi başlık/açıklaması** (146
+  ilan giyim başlığıyla duruyordu) ve paylaşılan üç meta anahtarında *"across
+  Europe"* → **worldwide** (kod Avrupa dışına gönderimi zaten destekliyor —
+  KURAL 27 bunun üzerine yazılı).
+- Test: `tests/seo_market_test.php` (39 iddia; sayfayı kum havuzunda **gerçekten
+  çizdiriyor** — kaynakta `sprintf(t(...))` görmek ölçüm değil) ve
+  `seo_landing_test.php` 87 → **186 iddia**. Düşebildiği doğrulandı, her sabotajın
+  **gerçekten uygulandığı `grep -c` ile ayrıca yazdırılarak**: kendine-bağlanma
+  muhafazası kalkınca **1 kırmızı**, para birimi metne gömülünce **2**, taban
+  gömülünce **2 + 1**, Avrupa etiket listesi kısalınca **1**, altbilgi bloğu
+  silinince **1 + 1**, ülke adı çevrilmeyince **1**.
+- **Kendi ölçüm hatam, kayda geçsin:** *"kendine bağlanmıyor"* iddiası ilk yazımda
+  **bütün HTML'i** sayıyordu ve altbilgi zaten her sayfada bütün pazarları
+  listeliyor — yani doğru çalışan kodu kırmızı gösterdi. Ölçüt artık **fark**
+  (kendi sayfası 1 kez, diğerleri 2 kez). İkincisi daha sinsiydi: *"ülke adı
+  Almanca"* iddiasını **Japonya** ile yazmıştım, oysa Japonya'nın Almancası da
+  "Japan" — çeviriyi kaldıran sabotaj testi **yeşil** bıraktı. Avustralya/
+  "Australien" ayırt ediyor.
+- **Kendi hatam, ikinci: `git checkout --` ile sabotajı geri alırken `head.php`'nin
+  COMMIT EDİLMEMİŞ gerçek düzeltmelerini de sildim.** Bu dosyanın kendi kaydı
+  *"sabotajı dosya yedeğiyle (`cp`) geri al, checkout ile değil"* diyor; yakalayan
+  şey `grep -c` ile yapılan geri okuma oldu, düzeltmeler yeniden yazıldı.
+- **Bilerek YAPILMAYAN:** şehir adları (Dubai, Tokyo, São Paulo…) yalnız anahtar
+  kelime etiketinde ve **çevrilmeden** duruyor — meta keywords zaten en zayıf
+  sinyal ve on şehir adını sekiz dile çevirmek, karşılığı ölçülemeyen 80 sözlük
+  anahtarı demekti. Ülke adı çevriliyor, çünkü başlıkta ve gövdede de geçiyor.
+- **Bu işten bağımsız, ÖNCEDEN kırık:** `dropship_plan_test.php`'nin dört FX
+  iddiası **HEAD'in temiz kopyasında da aynı şekilde** düşüyor (bu ortamda kur
+  kaynağına çıkış yok). Dokunulmadı.
+
 **KURAL 10 — Site 8 dilde ve her sözlük `de.php`'ye karşı EKSİKSİZ** (operatör,
 3 Eyl 2026: *"5 dilde eksiksiz"* → *"6-7 dil yap, rusça ve portekizce ekle"* →
 *"arapçada yap"*). `vlang_list()` = en, fr, es, it, de, **pt, ru, ar**.
