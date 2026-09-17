@@ -1048,6 +1048,63 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     auth_update($guid,['doc_grace_exempt'=>$gon]);
     header('Location: /admin?tab='.(($_POST['back']??'')==='documents'?'documents&uid='.urlencode($guid):'users').'&msg='.($gon?'grace_exempt_on':'grace_exempt_off')); exit;
   }
+  /* Operatorun ELIYLE hesap acmasi. Bu eylem bugune kadar HIC YOKTU: panelde
+     ekleme yolu yok, ve is akisindan acmak musterinin e-postasini herkese acik
+     kosu girdisine yazmak demekti -- bu depo `only_emails` girdisini tam o
+     sebeple bir kez kaldirip `only_accounts`'a cevirdi. Musteriye ait veri
+     panelde durur (KURAL 2d'nin "musterinin belgesi GitHub'dan gecmez" kurali
+     ile ayni aile).
+
+     doc_requests TEK KAYNAKTAN: auth_required_doc_types() + auth_doc_request_row().
+     create_seller / sync_lesgarage / create_tyrex_migrate ucu de 'doc_requests'=>[]
+     yazmisti ve sonucu KURAL 2'de kayitli: satir olmayinca yukleme dugmesi de yok,
+     musterinin belgeyi verecek HICBIR yolu kalmiyordu. */
+  if($act==='create_buyer'){
+    $em = strtolower(trim((string)($_POST['email']??'')));
+    if($em===''||!filter_var($em,FILTER_VALIDATE_EMAIL)){ header('Location: /admin?tab=users&msg=nb_bademail'); exit; }
+    if(auth_find($em)){ header('Location: /admin?tab=users&msg=nb_exists'); exit; }
+    $ctry = trim((string)($_POST['country']??''));
+    /* KURAL 2g Turkiye'yi KAPATIR ve kapatan bir kural her yolda calismali --
+       auth_register()'da var, burada da olmali; yoksa panel, self-servis kaydin
+       reddettigi hesabi acan bir arka kapi olurdu. (create_seller'in bu kontrolu
+       tasimamasi operatorun BILINCLI, tek hesaplik istisnasiydi; genel bir form
+       ayni muafiyeti hak etmiyor.) */
+    require_once __DIR__.'/inc/security.php';
+    if(vestra_country_declares_turkey($ctry)){ header('Location: /admin?tab=users&msg=nb_country'); exit; }
+    $open = !empty($_POST['open_gate']);
+    $acc = [
+      'id'=>bin2hex(random_bytes(8)), 'email'=>$em,
+      /* Sifre RASTGELE ve HICBIR YERE yazilmiyor -- ne ekrana, ne kutuge.
+         Musteri "sifremi unuttum" ile kendi belirliyor; operatorun eline bir
+         sifre vermek, onu bir kanaldan iletmek zorunda birakirdi. */
+      'hash'=>password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT),
+      'type'=>'buyer', 'status'=>'active', 'email_verified'=>true, 'email_token'=>bin2hex(random_bytes(16)),
+      'name'=>trim((string)($_POST['name']??'')), 'company'=>trim((string)($_POST['company']??'')),
+      'vat_id'=>trim((string)($_POST['vat_id']??'')), 'reg_number'=>'',
+      'country'=>$ctry, 'address'=>trim((string)($_POST['address']??'')),
+      'phone'=>trim((string)($_POST['phone']??'')), 'website'=>'',
+      'lang'=>substr(trim((string)($_POST['lang']??'en')),0,2),
+      'kyb_status'=>$open?'approved':'pending',
+      /* Kapiyi NE actiysa kayitta dursun: promo hesabinda bu alan hic yoktu ve
+         aylar sonra "bu hesap neden acik?" sorusunun cevabi hicbir yerde
+         durmuyordu (KURAL 2h). */
+      'kyb_auto'=>$open?'operator:panel':'',
+      'membership_status'=>'none','dropship_plan_status'=>'none',
+      'promo_code'=>'','promo_benefit'=>'','promo_expiry'=>'',
+      'created'=>date('c'), 'trade_doc_required'=>true, 'doc_requests'=>[],
+    ];
+    $docCc = vestra_cc_of_country($ctry);
+    foreach(auth_required_doc_types('buyer') as $__t) $acc['doc_requests'][]=auth_doc_request_row($__t,$docCc);
+    $list=auth_accounts(); $list[]=$acc; auth_save_accounts($list);
+    /* GERI OKUMA: auth_save_accounts void donuyor ve panel "acildi" derken
+       kayit diskte olmayabilir (bu ay bir kez kota kesintisi yasandi).
+       billing_saved'in bu dosyada kayitli dersi. */
+    $back=null; foreach(auth_accounts() as $a0) if(($a0['id']??'')===$acc['id']){ $back=$a0; break; }
+    if(!$back){ header('Location: /admin?tab=users&msg=nb_failed'); exit; }
+    /* MUSTERIYE HICBIR SEY GITMIYOR (KURAL 18): hos geldin/dogrulama mektubu
+       operatorun ayrica isteyecegi bir sey. */
+    header('Location: /admin?tab=users&msg=nb_ok#ud-'.urlencode($acc['id'])); exit;
+  }
   if($act==='suspend_account'){
     /* 'operator': belge askisindan ayirt edilir -- belge askisi girise izin
        verir (yuklemek icin), operator askisi vermez (auth_login). */
@@ -2527,6 +2584,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     /* Bu satir EKSIKTI: save_billing zaten msg=billing_saved'e yonlendiriyordu
        ama haritada karsiligi yoktu, yani form kaydediyor ve ekranda HICBIR SEY
        yazmiyordu. Onaylanmayan bir kayit, kaydedilmemis kayittan ayirt edilemez. */
+    'nb_ok'=>'✓ Alıcı hesabı açıldı — kayıttan geri okunarak doğrulandı. Müşteriye HİÇBİR ŞEY gitmedi (mektup yok, doğrulama linki yok); şifresini “forgot password” ile kendi belirler. Ticari kayıt belgesi otomatik istendi.',
+    'nb_exists'=>'Bu e-posta ile bir hesap ZATEN VAR — ikinci hesap açılmadı. Mevcut hesabı listeden açıp künyesini ✎ Edit billing details ile düzeltin.',
+    'nb_bademail'=>'Geçersiz e-posta — hesap açılmadı.',
+    'nb_country'=>'KURAL 2g: Türkiye’den hesap açılmıyor. Panel, self-servis kaydın reddettiği hesabı açan bir arka kapı değil.',
+    'nb_failed'=>'✗ Hesap kaydedilemedi — geri okumada bulunamadı. Disk/izin sorunu olabilir, hiçbir şey açılmadı sayın.',
     'billing_saved'=>'✓ Fatura & banka bilgileri kaydedildi — sunucudan geri okunarak doğrulandı. Bu hesaptan kesilecek faturalar artık bunları taşıyor.',
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
     /* ord_deleted / ord_has_invoice / ord_notfound / ord_delfail are NOT here on
@@ -3353,6 +3415,35 @@ elseif($tab==='users'):
     <a class="abtn" href="/admin?dl=sellers" title="Download all sellers with company, email, address, VAT">⬇ Export sellers CSV</a>
   </div>
 </div>
+
+<!-- Elle alici hesabi. Musteri verisi PANELDE girilir: is akisi girdisi herkese
+     acik kosu basliginda kalici (bu depo `only_emails`'i tam o sebeple kaldirdi). -->
+<details style="margin-bottom:14px;border:1px solid var(--line);border-radius:10px;padding:10px 12px">
+  <summary style="cursor:pointer;font-weight:600;font-size:13px">➕ New buyer account (manual)</summary>
+  <form method="post" style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;align-items:end">
+    <?= csrfField() ?>
+    <input type="hidden" name="_action" value="create_buyer">
+    <label style="font-size:11.5px">E-mail *<input name="email" type="email" required placeholder="buyer@example.com" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)"></label>
+    <label style="font-size:11.5px">Contact name<input name="name" placeholder="Jane Doe" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)"></label>
+    <label style="font-size:11.5px">Company / trading name<input name="company" placeholder="Doe Boutique SL" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)"></label>
+    <label style="font-size:11.5px">Tax / VAT ID<input name="vat_id" placeholder="ESB12345678" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)"></label>
+    <label style="font-size:11.5px">Address<input name="address" placeholder="Street 1, 12345 City" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)"></label>
+    <label style="font-size:11.5px">Country<input name="country" placeholder="Spain" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)"></label>
+    <label style="font-size:11.5px">Phone<input name="phone" placeholder="+34 …" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)"></label>
+    <label style="font-size:11.5px">Letter language<select name="lang" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
+      <?php foreach(['en'=>'English','es'=>'Español','fr'=>'Français','de'=>'Deutsch','it'=>'Italiano','pt'=>'Português','ru'=>'Русский','ar'=>'العربية','ja'=>'日本語'] as $lc=>$ln): ?>
+      <option value="<?= $lc ?>"><?= $ln ?></option><?php endforeach; ?>
+    </select></label>
+    <label style="font-size:11.5px;display:flex;gap:6px;align-items:center;padding-bottom:6px">
+      <input type="checkbox" name="open_gate" value="1" checked> Open the price gate now
+    </label>
+    <button class="abtn primary" onclick="return confirm('Create this buyer account?\n\nNOTHING is e-mailed to the customer — no welcome letter, no verification link. They set their own password with “forgot password”.\n\nThe trade-licence request is opened automatically.')">Create account</button>
+  </form>
+  <p style="font-size:11px;color:var(--muted);margin:8px 0 0">
+    No e-mail is sent. A random password is set and never shown — the customer uses “forgot password”.
+    The trade licence is requested automatically (RULE 2); a document does not gate the account, operator approval does.
+  </p>
+</details>
 <script>
 function ufilter(){
   var q=document.getElementById('usearch').value.toLowerCase();
