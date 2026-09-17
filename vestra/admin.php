@@ -1077,50 +1077,22 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
      yazmisti ve sonucu KURAL 2'de kayitli: satir olmayinca yukleme dugmesi de yok,
      musterinin belgeyi verecek HICBIR yolu kalmiyordu. */
   if($act==='create_buyer'){
-    $em = strtolower(trim((string)($_POST['email']??'')));
-    if($em===''||!filter_var($em,FILTER_VALIDATE_EMAIL)){ header('Location: /admin?tab=users&msg=nb_bademail'); exit; }
-    if(auth_find($em)){ header('Location: /admin?tab=users&msg=nb_exists'); exit; }
-    $ctry = trim((string)($_POST['country']??''));
-    /* KURAL 2g Turkiye'yi KAPATIR ve kapatan bir kural her yolda calismali --
-       auth_register()'da var, burada da olmali; yoksa panel, self-servis kaydin
-       reddettigi hesabi acan bir arka kapi olurdu. (create_seller'in bu kontrolu
-       tasimamasi operatorun BILINCLI, tek hesaplik istisnasiydi; genel bir form
-       ayni muafiyeti hak etmiyor.) */
-    require_once __DIR__.'/inc/security.php';
-    if(vestra_country_declares_turkey($ctry)){ header('Location: /admin?tab=users&msg=nb_country'); exit; }
-    $open = !empty($_POST['open_gate']);
-    $acc = [
-      'id'=>bin2hex(random_bytes(8)), 'email'=>$em,
-      /* Sifre RASTGELE ve HICBIR YERE yazilmiyor -- ne ekrana, ne kutuge.
-         Musteri "sifremi unuttum" ile kendi belirliyor; operatorun eline bir
-         sifre vermek, onu bir kanaldan iletmek zorunda birakirdi. */
-      'hash'=>password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT),
-      'type'=>'buyer', 'status'=>'active', 'email_verified'=>true, 'email_token'=>bin2hex(random_bytes(16)),
-      'name'=>trim((string)($_POST['name']??'')), 'company'=>trim((string)($_POST['company']??'')),
-      'vat_id'=>trim((string)($_POST['vat_id']??'')), 'reg_number'=>'',
-      'country'=>$ctry, 'address'=>trim((string)($_POST['address']??'')),
-      'phone'=>trim((string)($_POST['phone']??'')), 'website'=>'',
-      'lang'=>substr(trim((string)($_POST['lang']??'en')),0,2),
-      'kyb_status'=>$open?'approved':'pending',
-      /* Kapiyi NE actiysa kayitta dursun: promo hesabinda bu alan hic yoktu ve
-         aylar sonra "bu hesap neden acik?" sorusunun cevabi hicbir yerde
-         durmuyordu (KURAL 2h). */
-      'kyb_auto'=>$open?'operator:panel':'',
-      'membership_status'=>'none','dropship_plan_status'=>'none',
-      'promo_code'=>'','promo_benefit'=>'','promo_expiry'=>'',
-      'created'=>date('c'), 'trade_doc_required'=>true, 'doc_requests'=>[],
-    ];
-    $docCc = vestra_cc_of_country($ctry);
-    foreach(auth_required_doc_types('buyer') as $__t) $acc['doc_requests'][]=auth_doc_request_row($__t,$docCc);
-    $list=auth_accounts(); $list[]=$acc; auth_save_accounts($list);
-    /* GERI OKUMA: auth_save_accounts void donuyor ve panel "acildi" derken
-       kayit diskte olmayabilir (bu ay bir kez kota kesintisi yasandi).
-       billing_saved'in bu dosyada kayitli dersi. */
-    $back=null; foreach(auth_accounts() as $a0) if(($a0['id']??'')===$acc['id']){ $back=$a0; break; }
-    if(!$back){ header('Location: /admin?tab=users&msg=nb_failed'); exit; }
+    /* Kayit KURMA isi auth_create_buyer()'da: is akisindan da (admin_mode=
+       create_buyer) acilabiliyor ve iki ayri kurucu er gec ayrisirdi. Burasi
+       yalnizca formu fonksiyona baglar ve hatayi ekrana cevirir. */
+    $r = auth_create_buyer([
+      'email'=>$_POST['email']??'', 'name'=>$_POST['name']??'', 'company'=>$_POST['company']??'',
+      'vat_id'=>$_POST['vat_id']??'', 'country'=>$_POST['country']??'', 'address'=>$_POST['address']??'',
+      'phone'=>$_POST['phone']??'', 'lang'=>$_POST['lang']??'en',
+      'open_gate'=>!empty($_POST['open_gate']), 'kyb_auto'=>'operator:panel',
+    ]);
+    if(is_string($r)){
+      $m = ['bad_email'=>'nb_bademail','email_taken'=>'nb_exists','country_not_served'=>'nb_country'][$r] ?? 'nb_failed';
+      header('Location: /admin?tab=users&msg='.$m); exit;
+    }
     /* MUSTERIYE HICBIR SEY GITMIYOR (KURAL 18): hos geldin/dogrulama mektubu
        operatorun ayrica isteyecegi bir sey. */
-    header('Location: /admin?tab=users&msg=nb_ok#ud-'.urlencode($acc['id'])); exit;
+    header('Location: /admin?tab=users&msg=nb_ok#ud-'.urlencode((string)$r['id'])); exit;
   }
   if($act==='suspend_account'){
     /* 'operator': belge askisindan ayirt edilir -- belge askisi girise izin

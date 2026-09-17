@@ -548,7 +548,11 @@ function vestra_accent(array $p): string {
 }
 
 /* seller-added listings (saved by the seller panel) merged into the live catalog */
-function vestra_data_dir(){ return dirname(__DIR__).'/data'; }
+/* VESTRA_DATA_DIR `defined()` korumali -- VESTRA_ACCOUNTS / VESTRA_MESSAGES ile
+   AYNI karar. Korumasizken bir testin veri dizinini gecici bir klasore
+   yonlendirmesi mumkun degil ve bu depoda bir test bir kez URETIM dosyasina
+   yazdi. Uretimde sabit tanimli degil, yani davranis birebir ayni. */
+function vestra_data_dir(){ return defined('VESTRA_DATA_DIR') ? VESTRA_DATA_DIR : dirname(__DIR__).'/data'; }
 function vestra_listings(){ $f=vestra_data_dir().'/listings.json'; if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; } return []; }
 function vestra_read_csv($name){ $f=vestra_data_dir().'/'.$name; $rows=[]; if(is_readable($f)&&($h=@fopen($f,'r'))){ $head=fgetcsv($h, null, ',', '"', '\\'); while(($r=fgetcsv($h, null, ',', '"', '\\'))!==false){ if($head){ $n=count($head); $r=array_slice(array_pad($r,$n,''),0,$n); $rows[]=array_combine($head,$r);} } fclose($h);} return array_reverse($rows); }
 /* Upgrade a CSV's header row in place when new trailing columns are added to a schema after

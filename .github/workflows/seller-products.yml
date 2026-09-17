@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. 'order_colours' = siparişin RENGİNİ düzeltir (issue_ref=sipariş, payload='SKU:Renk,Renk', move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'create_buyer' = ELLE alıcı hesabı açar (payload=ŞİFRELİ zarf — müşterinin e-postası açık girdiye yazılmaz, çıktıda maskeli; move_apply=true ile uygular, varsayılan kuru koşu; panelin ➕ New buyer account formuyla AYNI yazıcı, müşteriye HİÇBİR ŞEY gitmez). 'password_setup' = elle açılan hesaba 'şifreni seç' MEKTUBU GÖNDERİR (issue_ref=hesap ID — adres açık girdiye yazılmaz, kayıttan çözülür; TAM 1 eşleşme yoksa durur; link/jeton/gövde log'a YAZILMAZ; move_apply=true ile gönderir, varsayılan kuru koşu ve kuru koşu jeton ÜRETMEZ). Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -23,7 +23,7 @@ on:
         required: false
         default: ""
       payload:
-        description: "admin_mode=apply: şifreli satıcı bilgisi. admin_mode=order_draft|order_write: kalemler. DROPSHIP (varsayılan) 'SKU:BEDEN:ADET,...'; TOPTAN 'pricing=wholesale|SKU:RENK:ADET,...' — kademe fiyatı, MOQ/paket adımı ve renk ilandan doğrulanır, beden dökümü ilanın serisinden türer. Elle anlaşılan birim fiyat: 4. alan ('SKU:RENK:ADET:19.50') — katalog kademesini ezer, ilandan PAHALIysa reddedilir, gerekçe siparişin notuna yazılır. İlan edilen renk asgarisinden feragat: '|waive_min_colours=1'; ilan edilen asgari adetten feragat: '|waive_moq=1'; paket adımından feragat: '|waive_pack=1' (tam karton değil — beden dökümü yazılamaz)."
+        description: "admin_mode=apply: şifreli satıcı bilgisi. admin_mode=create_buyer: şifreli hesap bilgisi (aynı KEY.IV.GÖVDE zarfı, keygen'in public key'iyle; gövde {email,name,company,vat_id,country,address,phone,lang,open_gate}). admin_mode=order_draft|order_write: kalemler. DROPSHIP (varsayılan) 'SKU:BEDEN:ADET,...'; TOPTAN 'pricing=wholesale|SKU:RENK:ADET,...' — kademe fiyatı, MOQ/paket adımı ve renk ilandan doğrulanır, beden dökümü ilanın serisinden türer. admin_mode=order_colours: 'SKU:Renk,Renk' (faturalı siparişte '|allow_invoiced=1'). Elle anlaşılan birim fiyat: 4. alan ('SKU:RENK:ADET:19.50') — katalog kademesini ezer, ilandan PAHALIysa reddedilir, gerekçe siparişin notuna yazılır. İlan edilen renk asgarisinden feragat: '|waive_min_colours=1'; ilan edilen asgari adetten feragat: '|waive_moq=1'; paket adımından feragat: '|waive_pack=1' (tam karton değil — beden dökümü yazılamaz)."
         required: false
         default: ""
       issue_ref:
@@ -110,6 +110,347 @@ jobs:
               echo "PUBKEY ".base64_encode($pub)."\n";
             '
 
+      # ELLE ALICI HESABI AÇMA (KURAL 28). Panelin "➕ New buyer account"
+      # formuyla AYNI yazıcı: `auth_create_buyer()`. İkinci bir kurucu
+      # yazılmadı -- bu depoda "aynı olgu birkaç yerde yazılı" hatası
+      # defalarca kayıtlı ve buradaki bedeli, panelden açılan hesapla iş
+      # akışından açılanın farklı alanlar taşıması olurdu.
+      #
+      # MÜŞTERİNİN E-POSTASI AÇIK GİRDİYE YAZILMAZ. Bu kural bu depoda zaten
+      # bir kez uygulandı (`only_emails` girdisi kaldırılıp `only_accounts`
+      # yapıldı: "girdi, çalıştırma başlığında kalıcı ve herkese açık"). Orada
+      # çözüm "kayıttan çözdür"dü; burada çözülecek bir kayıt HENÜZ YOK --
+      # hesap daha açılmıyor. O yüzden `apply` modunun ŞİFRELİ zarfı
+      # kullanılıyor: KEY.IV.GÖVDE, özel anahtar ~/.vestra_inbox_key.pem,
+      # sunucudan hiç çıkmıyor. Girdi herkese açık ama okunamaz.
+      #
+      # ÇIKTIDA ADRES MASKELİ. Kütük de herkese açık; zarfı şifreleyip sonra
+      # adresi düz basmak, kapıyı arkadan açmak olurdu.
+      - name: Elle alıcı hesabı aç (create_buyer) — varsayılan KURU KOŞU
+        if: ${{ github.event.inputs.admin_mode == 'create_buyer' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          PAYLOAD: ${{ github.event.inputs.payload }}
+          CB_APPLY: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: PAYLOAD,CB_APPLY
+          script: |
+            set -e
+            cat > /tmp/vestra_create_buyer.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME"); $doc = $home."/public_html";
+            /* require_ONCE, ikisi de: auth.php zaten security.php'yi yukluyor
+               (satir 17) ve duz `require` onu IKINCI kez yukleyip
+               "Cannot redeclare _vsec_dir()" ile OLDURUYOR. Yerel kum
+               havuzunda cizdirilerek bulundu -- `php -l` bunu gecirir.
+               Yine de ACIKCA yaziliyor: kardes bir dosyanin require'ina
+               yaslanmak KURAL 15'in fatal'inin kucuk hali. */
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/security.php";
+
+            $APPLY = strtolower(trim((string)getenv('CB_APPLY'))) === 'true';
+
+            /* Zarf: KEY.IV.GOVDE -- rakamsiz base64. Rakamlarin degistirilme
+               sebebi kayitli: kisa sayisal bir secret (DEPLOY_PORT="22")
+               rastgele base64 icinde *** ile maskeleniyor ve govdeyi bozuyor. */
+            $dec = fn(string $x) => base64_decode(strtr($x, '!$%&#,;?@~', '0123456789'), true);
+            $parts = explode('.', trim((string)getenv('PAYLOAD')));
+            if (count($parts) !== 3) { fwrite(STDERR, "payload bicimi hatali (KEY.IV.GOVDE bekleniyor)\n"); exit(1); }
+            $priv = openssl_pkey_get_private((string)@file_get_contents($home."/.vestra_inbox_key.pem"));
+            if (!$priv) { fwrite(STDERR, "sunucuda anahtar yok -- once admin_mode=keygen calistir\n"); exit(1); }
+            if (!openssl_private_decrypt($dec($parts[0]), $aes, $priv, OPENSSL_PKCS1_OAEP_PADDING)) {
+              fwrite(STDERR, "anahtar acilamadi (yanlis public key ile mi sifrelendi?)\n"); exit(1);
+            }
+            $json = openssl_decrypt($dec($parts[2]), 'aes-256-cbc', $aes, OPENSSL_RAW_DATA, $dec($parts[1]));
+            $in = $json === false ? null : json_decode($json, true);
+            if (!is_array($in) || trim((string)($in['email'] ?? '')) === '') {
+              fwrite(STDERR, "govde cozulemedi (email gerekli)\n"); exit(1);
+            }
+
+            /* Adres maskesi: ilk harf + *** + alan adi. Bu kutuk herkese acik. */
+            $mask = function (string $e): string {
+              $p = strpos($e, '@');
+              return $p === false ? '***' : substr($e, 0, 1).'***'.substr($e, $p);
+            };
+            $em = strtolower(trim((string)$in['email']));
+            $ctry = trim((string)($in['country'] ?? ''));
+
+            echo "e-posta  : ".$mask($em)."\n";
+            echo "firma    : ".trim((string)($in['company'] ?? ''))."\n";
+            echo "kisi     : ".trim((string)($in['name'] ?? ''))."\n";
+            echo "ulke     : {$ctry}   dil: ".substr(trim((string)($in['lang'] ?? 'en')),0,2)."\n";
+            echo "VAT      : ".(trim((string)($in['vat_id'] ?? '')) !== '' ? 'VAR' : '(yok)')."\n";
+            echo "adres    : ".(trim((string)($in['address'] ?? '')) !== '' ? 'VAR' : '(yok)')."\n";
+            echo "fiyat kapisi: ".(!empty($in['open_gate']) ? 'ACIK (kyb_status=approved)' : 'KAPALI (pending)')."\n";
+
+            /* KURU KOSU on kontrolu. Yaziciyi cagiramayiz (yazar), o yuzden
+               AYNI uc yuklem burada da soruluyor -- ikinci bir KURUCU degil,
+               yalnizca on kontrol; yazan tek yer hala auth_create_buyer(). */
+            if (!$APPLY) {
+              $why = [];
+              if (!filter_var($em, FILTER_VALIDATE_EMAIL)) $why[] = 'gecersiz e-posta';
+              if (auth_find($em)) $why[] = 'bu adres ZATEN kayitli';
+              if (vestra_country_declares_turkey($ctry)) $why[] = 'KURAL 2g: Turkiye';
+              echo "\nKURU KOSU -- hicbir sey yazilmadi.\n";
+              echo $why ? "ENGEL: ".implode(' | ', $why)."\n" : "engel yok; move_apply=true ile acilir.\n";
+              exit($why ? 1 : 0);
+            }
+
+            $r = auth_create_buyer([
+              'email' => $em, 'name' => $in['name'] ?? '', 'company' => $in['company'] ?? '',
+              'vat_id' => $in['vat_id'] ?? '', 'reg_number' => $in['reg_number'] ?? '',
+              'country' => $ctry, 'address' => $in['address'] ?? '', 'phone' => $in['phone'] ?? '',
+              'lang' => $in['lang'] ?? 'en', 'open_gate' => !empty($in['open_gate']),
+              'kyb_auto' => 'operator:workflow',
+            ]);
+            if (is_string($r)) { fwrite(STDERR, "\nACILMADI: {$r}\n"); exit(1); }
+
+            /* GERI OKUMA: auth_create_buyer zaten kayittan okuyup donuyor, ama
+               sonda da diskten bagimsiz olarak tekrar soruyor -- "acildi" diyen
+               satir, dosyada gercekten duran kaydi gostermeli. */
+            $back = auth_find($em);
+            if (!$back || (string)($back['id'] ?? '') !== (string)$r['id']) {
+              fwrite(STDERR, "\nYAZILDI AMA GERI OKUNAMADI\n"); exit(1);
+            }
+            $docs = array_map(fn($x) => (string)($x['type'] ?? ''), (array)($back['doc_requests'] ?? []));
+            echo "\nACILDI\n";
+            echo "hesap ID : ".$back['id']."\n";
+            echo "tip/durum: ".($back['type'] ?? '')." / ".($back['status'] ?? '')."\n";
+            echo "kyb      : ".($back['kyb_status'] ?? '')."  (".($back['kyb_auto'] ?: '-').")\n";
+            echo "kapi     : ".(auth_prices_unlocked($back) ? 'ACIK' : 'KAPALI')."\n";
+            echo "belge istegi: ".($docs ? implode(', ', $docs) : '*** YOK ***')."\n";
+            echo "MUSTERIYE HICBIR SEY GONDERILMEDI (KURAL 18).\n";
+            PHPEOF
+            php /tmp/vestra_create_buyer.php; RC=$?
+            rm -f /tmp/vestra_create_buyer.php
+            exit $RC
+
+      # ELLE AÇILAN HESABA "ŞİFRENİ SEÇ" MEKTUBU (17 Eyl 2026).
+      #
+      # `create_buyer` hesabı açıyor ama şifre RASTGELE ve hiçbir yere
+      # yazılmıyor, yani müşterinin giriş yapmasının bir yolu yok. Bu adım o
+      # boşluğu kapatıyor.
+      #
+      # ÖLÇÜT HESAP ID'Sİ, ADRES DEĞİL. `diag-live.yml`'deki mevcut
+      # `reset_probe` bu işi yapabiliyor ama girdisi bir E-POSTA — yani
+      # müşterinin adresi koşu başlığında kalıcı ve herkese açık. Bu depo o
+      # hatayı `only_emails` → `only_accounts` ile bir kez düzeltti; aynı
+      # deseni burada tekrarlıyoruz. ID opak: kimin olduğunu ele vermiyor.
+      # Ad parçası da kabul ediliyor ama EŞLEŞME TAM 1 DEĞİLSE İŞ DURUR —
+      # sıfırda kimseye gitmez, birden fazlada YANLIŞ müşteriye giderdi ve
+      # gönderilmiş bir mektup geri alınamaz.
+      #
+      # JETON ÜRETİCİSİ TEK: `auth_reset_begin()` — forgot.php'nin çağırdığının
+      # aynısı. İkinci bir jeton yolu, ikinci bir ömür ve ikinci bir güvenlik
+      # kuralı demekti.
+      #
+      # LİNK VE JETON BASILMIYOR. Jeton tek başına hesabı açar ve bu kütük
+      # herkese açık. Adres de maskeli. GÖVDE de basılmıyor: hitapta
+      # müşterinin adı var.
+      #
+      # KURU KOŞU JETON ÜRETMEZ. `auth_reset_begin()` kayda yazıyor ve varsa
+      # ÖNCEKİ jetonu geçersiz kılıyor — bir önizlemenin müşterinin elindeki
+      # canlı linki öldürmesi kabul edilemez. Kuru koşu metni sahte bir linkle
+      # kuruyor; bu aynı zamanda şablonun sunucuya İNDİĞİNİ de ölçüyor
+      # ("deploy inmemiş" ile "özellik çalışmıyor" aynı görünür).
+      - name: Hesaba "şifreni seç" mektubu — varsayılan KURU KOŞU
+        if: ${{ github.event.inputs.admin_mode == 'password_setup' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          PS_WHO:   ${{ github.event.inputs.issue_ref }}
+          PS_APPLY: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          envs: PS_WHO,PS_APPLY
+          script: |
+            set -e
+            cat > /tmp/vestra_pwsetup.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME"); $doc = $home."/public_html";
+            require_once $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/notify.php";
+            require_once $doc."/inc/i18n.php";
+
+            $who   = mb_strtolower(trim((string)getenv("PS_WHO")));
+            $apply = strtolower(trim((string)getenv("PS_APPLY"))) === 'true';
+            if ($who === '') { fwrite(STDERR, "HATA: issue_ref bos -- hesap ID'si (ya da ad parcasi) verin\n"); exit(1); }
+
+            $mask = fn(string $e) => preg_replace('/^(.).*(@.*)$/', '$1***$2', $e);
+
+            /* ID TAM esitlik once: bir kisinin SOYADI kalici, herkese acik bir
+               girdiye yazilmasin diye. Bu depoda 'francisco' aramasi BASKA bir
+               hesabi (C&F Multimarcas) yalniz e-postasindan yakalamisti. */
+            $hits = [];
+            foreach (auth_accounts() as $a) if (mb_strtolower((string)($a['id'] ?? '')) === $who) { $hits = [$a]; break; }
+            if (!$hits) foreach (auth_accounts() as $a) {
+              $hay = mb_strtolower((string)($a['company'] ?? '').' '.(string)($a['name'] ?? ''));
+              if ($who !== '' && str_contains($hay, $who)) $hits[] = $a;
+            }
+            if (count($hits) !== 1) {
+              fwrite(STDERR, "HATA: TAM 1 hesap eslesmedi (".count($hits)." bulundu) -- gonderilmedi.\n");
+              foreach (array_slice($hits, 0, 8) as $a)
+                fwrite(STDERR, "  aday: ".(string)($a['id'] ?? '')."  ".(string)($a['company'] ?: $a['name'] ?: '?')."  ".$mask((string)($a['email'] ?? ''))."\n");
+              exit(1);
+            }
+            $acc  = $hits[0];
+            $mail = trim((string)($acc['email'] ?? ''));
+            $lang = vestra_user_lang($acc);          /* HESABIN KAYITLI DILI: bu mektup
+                                                        operatorun isteginden doguyor,
+                                                        musterinin kendi isteginden degil --
+                                                        vlang() burada yanlis sinyal
+                                                        (vestra_reset_text'in kendi notu). */
+            $open   = auth_prices_unlocked($acc);
+            $docSt  = auth_trade_doc_status($acc);
+            $askDoc = ($docSt === 'requested');      /* 'uploaded' olana "yukleyin" demek
+                                                        yaptigi isi tekrar yaptirmaktir. */
+
+            printf("hesap    : %s\n", (string)($acc['id'] ?? ''));
+            printf("firma    : %s\n", (string)($acc['company'] ?: $acc['name'] ?: '?'));
+            printf("adres    : %s\n", $mask($mail));
+            printf("tip/durum: %s / %s\n", (string)($acc['type'] ?? '?'), (string)($acc['status'] ?? '?'));
+            printf("dil      : %s   ulke: %s\n", $lang, (string)($acc['country'] ?? '-'));
+            printf("kapi     : %s\n", $open ? 'ACIK (mektup "hemen siparis verebilirsiniz" der)' : 'KAPALI (mektup "ekibimiz onaylayacak" der)');
+            printf("trade_licence: %s -> belge cumlesi %s\n", $docSt ?: '(satir yok)', $askDoc ? 'YAZILIR' : 'yazilmaz');
+            printf("posta    : mail_enabled=%s  from=%s\n",
+                   vestra_cfg('mail_enabled', false) ? 'acik' : '*** KAPALI ***',
+                   (string)vestra_cfg('mail_from', '(bos)'));
+
+            if (!function_exists('vestra_account_ready_text')) {
+              fwrite(STDERR, "\nHATA: vestra_account_ready_text sunucuda YOK -- deploy inmemis.\n"); exit(1);
+            }
+            $name = ($acc['name'] ?: ($acc['company'] ?: 'there'));
+
+            if (!$apply) {
+              /* Sahte link: jeton URETILMIYOR (uretmek musterinin elindeki canli
+                 linki gecersiz kilardi ve kayda yazardi). */
+              [$s, $b, $o] = vestra_account_ready_text($lang, $name, 'https://vestrasales.com/reset?token=KURU-KOSU', $open, $askDoc);
+              printf("\nkonu     : %s\n", $s);
+              printf("dugme    : %s\n", (string)($o['button']['label'] ?? '?'));
+              printf("govde    : %d karakter (GOVDE BASILMIYOR: hitapta musterinin adi var)\n", mb_strlen($b));
+              echo "\nKURU KOSU -- jeton uretilmedi, MEKTUP GONDERILMEDI (move_apply=true ile gonderilir).\n";
+              exit(0);
+            }
+
+            $a2 = auth_reset_begin($mail);
+            if (!$a2 || empty($a2['reset_token'])) { fwrite(STDERR, "\nHATA: jeton uretilemedi\n"); exit(1); }
+            $link = 'https://vestrasales.com/reset?token='.$a2['reset_token'];
+            [$s, $b, $o] = vestra_account_ready_text($lang, $name, $link, $open, $askDoc);
+            $ok = vestra_send_mail($mail, $s, $b, '', '', null, '', $o);
+            printf("\nkonu     : %s\n", $s);
+            printf("jeton    : uretildi, son gecerlilik %s (LINK YAZILMADI: jeton tek basina hesabi acar)\n",
+                   (string)(auth_find($mail)['reset_expires'] ?? '?'));
+            printf("gonderim : %s\n", $ok ? "GONDERILDI -- posta saglayicisi kabul etti" : "*** GONDERILEMEDI ***");
+            if (!$ok) { fwrite(STDERR, "vestra_send_mail FALSE dondu\n"); exit(1); }
+            echo "NOT: 'kabul etti' posta kutusunda demek DEGIL (bu deponun kendi uyarisi).\n";
+            PHPEOF
+            php -l /tmp/vestra_pwsetup.php
+            php /tmp/vestra_pwsetup.php; RC=$?
+            rm -f /tmp/vestra_pwsetup.php
+            exit $RC
+
+      # SİPARİŞİN RENGİNİ DÜZELT (17 Eyl 2026). Renk siparişin notlarında duruyor
+      # ve oraya yazan tek yol kasaydı — yani sipariş yazıldıktan sonra rengi
+      # düzeltmenin hiçbir yolu yoktu (navlun ve teslimat adresi aynı boşluğu
+      # daha önce kapattı). Tek yazıcı `vestra_order_set_colours()`.
+      #
+      # FATURALI siparişte varsayılan RED. Opt-in (`|allow_invoiced=1`) ile
+      # yazar ve "AYNI numarayla yeniden çiz" diye UYARIR — KURAL 5f. Bu adım
+      # belgeyi kendisi çizmiyor: yeniden çizim `admin_mode=issue` +
+      # `issue_redraft=true`, yani kesim yolu TEK yerde kalıyor.
+      - name: Siparişin rengini düzelt (order_colours) — varsayılan KURU KOŞU
+        if: ${{ github.event.inputs.admin_mode == 'order_colours' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          OC_REF:   ${{ github.event.inputs.issue_ref }}
+          OC_SPEC:  ${{ github.event.inputs.payload }}
+          OC_APPLY: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: OC_REF,OC_SPEC,OC_APPLY
+          script: |
+            set -e
+            cat > /tmp/vestra_order_colours.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require_once $doc."/inc/products.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/invoice.php";
+
+            $ref  = trim((string)getenv('OC_REF'));
+            $spec = trim((string)getenv('OC_SPEC'));
+            $APPLY = strtolower(trim((string)getenv('OC_APPLY'))) === 'true';
+            if ($ref === '' || $spec === '') { fwrite(STDERR, "issue_ref ve payload gerekli ('SKU:Renk,Renk')\n"); exit(1); }
+
+            $allowInv = (bool)preg_match('/(^|\|)\s*allow_invoiced\s*=\s*1\s*(\||$)/i', $spec);
+            $spec = trim((string)preg_replace('/\|?\s*allow_invoiced\s*=\s*1\s*/i', '', $spec), " |");
+            $pos = strpos($spec, ':');
+            if ($pos === false) { fwrite(STDERR, "bicim: SKU:Renk,Renk\n"); exit(1); }
+            $sku = trim(substr($spec, 0, $pos));
+            $cols = array_values(array_filter(array_map('trim', explode(',', substr($spec, $pos + 1))), fn($x) => $x !== ''));
+
+            $row = null; foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $row = $r; break; }
+            if (!$row) { fwrite(STDERR, "siparis bulunamadi: {$ref}\n"); exit(1); }
+            $inv = vestra_invoices_for_ref($ref);
+
+            echo "siparis      : {$ref}\n";
+            echo "firma        : ".(string)($row['company'] ?? '-')."\n";
+            echo "SKU          : {$sku}\n";
+            foreach (vestra_order_lines($row)['lines'] as $l) {
+              if ((string)$l['sku'] !== $sku) continue;
+              echo "urun         : ".(string)($l['brand'] ?? '')." ".(string)($l['name'] ?? '')."\n";
+              echo "mevcut renk  : ".(($l['colors'] ?? []) ? implode(', ', $l['colors']) : '(yok)')."\n";
+              echo "adet         : ".(int)$l['qty']."\n";
+              $p = vestra_product_by_sku($sku);
+              echo "ilanin renkleri: ".($p && !empty($p['colors']) ? implode(' / ', (array)$p['colors']) : '(kayitli degil)')."\n";
+            }
+            echo "istenen renk : ".implode(', ', $cols)."\n";
+            echo "kesilmis fatura: ".(count($inv) ?: 'yok')."\n";
+            foreach ($inv as $iv) echo "   - ".(string)($iv['no'] ?? '?')."\n";
+
+            if (!$APPLY) {
+              echo "\nKURU KOSU -- hicbir sey yazilmadi.\n";
+              if ($inv && !$allowInv) echo "ENGEL: fatura kesilmis. Yazmak icin spec'e |allow_invoiced=1 ekleyin,\n"
+                                         ."       SONRA admin_mode=issue + issue_redraft=true ile AYNI numarayla yeniden cizin (KURAL 5f).\n";
+              else echo "engel yok; move_apply=true ile uygulanir.\n";
+              exit(0);
+            }
+
+            $r = vestra_order_set_colours($ref, $sku, $cols, $allowInv);
+            if (!empty($r['error'])) { fwrite(STDERR, "\nYAZILMADI: ".$r['error']."\n"); exit(1); }
+            echo "\nYAZILDI\n";
+            echo "onceki       : ".(($r['before'] ?? []) ? implode(', ', $r['before']) : '(yok)')."\n";
+            echo "yeni         : ".implode(', ', $r['colours'])."\n";
+            echo "FATURANIN gordugu: ".implode(', ', (array)$r['on_invoice'])."   (geri okundu)\n";
+            if (!empty($r['not_listed'])) {
+              echo "*** UYARI: bu renk(ler) ILANDA KAYITLI DEGIL: ".implode(', ', $r['not_listed'])."\n";
+              echo "    Belge satilan mali yaziyor; ilan gercekten bu renkleri satiyorsa ilan da guncellenmeli.\n";
+            }
+            if (!empty($r['must_redraft'])) {
+              echo "*** YAPILACAK: fatura KESILMIS -- admin_mode=issue + issue_redraft=true ile AYNI numarayla\n";
+              echo "    yeniden cizin, yoksa kayit ile belge AYRISIR (KURAL 5f).\n";
+            }
+            PHPEOF
+            php /tmp/vestra_order_colours.php; RC=$?
+            rm -f /tmp/vestra_order_colours.php
+            exit $RC
+
       # NAVLUN (7 Eyl 2026). Panelin "🚚 Save shipping" kutusuyla AYNI yazıcı:
       # `vestra_order_set_shipping()` navlun ile sipariş TOPLAMINI birlikte
       # yazar, yazdığını geri okur ve faturası kesilmiş siparişi reddeder.
@@ -170,7 +511,19 @@ jobs:
             $who = mb_strtolower(trim((string)getenv('OD_WHO')));
             $hits = [];
             if ($who !== '') {
+                /* HESAP ID'si TAM eslesirse o kazanir. Iki sebep:
+                   (1) ad/firma parcasi belirsiz olabiliyor -- bu depoda
+                   "francisco" aramasi BASKA bir hesabi (C&F Multimarcas) yalniz
+                   E-POSTASINDAN yakaladi ve fatura yanlis tuzel kisiye
+                   kesilebilirdi; (2) tek ayirt edici parca cogu zaman KISININ
+                   SOYADI olur ve bu girdi calistirma basliginda KALICI ve
+                   HERKESE ACIK -- bu depoda musterinin soyadini girdiye
+                   yazmama karari zaten kayitli. Hesap ID'si opak ve
+                   `seller_activate` onu zaten girdi olarak aliyor. */
                 foreach (auth_accounts() as $a) {
+                    if (mb_strtolower((string)($a['id'] ?? '')) === $who) { $hits = [$a]; break; }
+                }
+                if (!$hits) foreach (auth_accounts() as $a) {
                     $hay = mb_strtolower(($a['name'] ?? '').' '.($a['company'] ?? '').' '.($a['email'] ?? ''));
                     if (mb_strpos($hay, $who) !== false) $hits[] = $a;
                 }

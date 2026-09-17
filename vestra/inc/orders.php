@@ -745,6 +745,129 @@ function vestra_order_set_delivery(string $ref, string $address): array {
     return ['ok' => true, 'address' => $address, 'on_invoice' => $seen, 'notes' => $notes];
 }
 
+/**
+ * Bir SKU'nun RENKLERİNİ siparişin notlarında düzeltir (17 Eyl 2026, operatör:
+ * *"renkleri faturada siyah ve navy olarak degistir"*).
+ *
+ * NEDEN AYRI BİR YAZICI GEREKTİ: renk siparişin notlarında duruyor ve oraya
+ * yazan tek yol kasaydı (`order.php`) — yani sipariş yazıldıktan sonra rengi
+ * düzeltmenin HİÇBİR yolu yoktu. Navlun ve teslimat adresi bu boşluğu bir kez
+ * kapattı; renk açık kalmıştı. Kardeşlerinin desenini aynen izliyor: notların
+ * GERİSİNE dokunmaz, önce yedekler, geçici dosyaya yazıp atomik takas eder ve
+ * **faturanın gerçekten ne gördüğünü** geri okur.
+ *
+ * FATURASI KESİLMİŞ SİPARİŞ: kardeşleri koşulsuz reddediyor. Burada koşulsuz
+ * reddetmek yanlış olurdu — KURAL 5f'in çaresi tam olarak "aynı numarayla
+ * yeniden çizim" ve rengi düzeltmeden yeniden çizmenin anlamı yok. Bu yüzden
+ * izin AÇIK bir opt-in (`$allowInvoiced`), sessizce atlanan bir kontrol değil,
+ * ve dönüşte `must_redraft` var: çağıran belgeyi yeniden çizmezse kayıt ile
+ * belge AYRIŞIR (faturanın üç katmanı dersi tam bundan doğdu).
+ *
+ * İLANIN RENK LİSTESİ DOĞRULANMIYOR, ama SESSİZ de kalmıyor: `not_listed`
+ * alanında ilanda bulunmayan renkler dönüyor. Sipariş kapısı rengi ilandan
+ * doğruluyor (KURAL 21b) ve orada doğru olan bu; burada ise operatör
+ * müşterinin GERÇEKTEN aldığı malı söylüyor ve katalog kaydı eksik olabilir.
+ * Belgeyi kataloğa uydurmak için satılan malı yanlış yazmak KURAL 3'ün tersi
+ * olurdu. Karar operatörün — çağıran uyarıyı basar.
+ */
+function vestra_order_set_colours(string $ref, string $sku, array $colours, bool $allowInvoiced = false): array {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
+    if ($ref === '') return ['error' => 'ref yok'];
+    $sku = trim($sku);
+    if ($sku === '') return ['error' => 'sku yok'];
+
+    /* Virgül ve boru AYIRAÇ: bir rengin adında geçerlerse harita bozulur. */
+    $clean = [];
+    foreach ($colours as $c) {
+        $c = trim(preg_replace('/\s+/u', ' ', (string)$c));
+        if ($c === '') continue;
+        if (str_contains($c, ',') || str_contains($c, '|')) return ['error' => 'renk adında , ya da | olamaz: '.$c];
+        $clean[] = $c;
+    }
+    if (!$clean) return ['error' => 'en az bir renk gerekli'];
+
+    require_once __DIR__.'/invoice.php';
+    $invoiced = vestra_invoices_for_ref($ref);
+    if ($invoiced && !$allowInvoiced) {
+        return ['error' => 'bu siparişin faturası kesilmiş — belge alıcının elinde olabilir. '
+                         . 'Düzeltmek için KURAL 5f: renk yazıldıktan sonra AYNI numarayla yeniden çizilmeli '
+                         . '(allow_invoiced opt-in ile çağır).'];
+    }
+
+    $file = vestra_data_dir().'/orders.csv';
+    if (!is_readable($file)) return ['error' => 'orders.csv okunamıyor'];
+    $in = fopen($file, 'r'); if (!$in) return ['error' => 'orders.csv açılamadı'];
+    $head = fgetcsv($in, null, ',', '"', '\\');
+    if (!$head) { fclose($in); return ['error' => 'orders.csv başlıksız']; }
+    $idx = array_flip($head);
+    if (!isset($idx['ref'], $idx['notes'])) { fclose($in); return ['error' => 'orders.csv ref/notes sütunu yok']; }
+
+    $rows = []; $hit = null;
+    while (($r = fgetcsv($in, null, ',', '"', '\\')) !== false) {
+        $r = array_slice(array_pad($r, count($head), ''), 0, count($head));
+        if ((string)$r[$idx['ref']] === $ref) $hit = count($rows);
+        $rows[] = $r;
+    }
+    fclose($in);
+    if ($hit === null) return ['error' => 'sipariş bulunamadı: '.$ref];
+
+    $notes = (string)$rows[$hit][$idx['notes']];
+    /* OKUYUCUNUN kendi ayrıştırıcısıyla sökülüyor: ikinci bir kalıp yazmak, bir
+       gün birinin diğerinin yazdığını bulamaması demek — bu depoda tam olarak
+       bu yaşandı (`Colours — …` kalıbı başa bağlıydı, hiçbir gerçek siparişe
+       uymuyordu ve renkler yıllarca hiç okunmadı). */
+    [$map, $rest] = vestra_order_notes_map($notes, 'Colours');
+    $before = $map[$sku] ?? [];
+    $map[$sku] = $clean;
+
+    $segs = [];
+    foreach ($map as $k => $v) {
+        $v = array_values(array_filter((array)$v, fn($x) => trim((string)$x) !== ''));
+        if ($v) $segs[] = $k.': '.implode(', ', $v);
+    }
+    $notes = trim($rest);
+    if ($segs) $notes = trim(($notes !== '' ? $notes.' ' : '').'Colours — '.implode(' | ', $segs).'.');
+    $rows[$hit][$idx['notes']] = $notes;
+
+    @copy($file, $file.'.bak-col-'.date('Ymd_His'));
+    $tmp = $file.'.tmp';
+    $out = fopen($tmp, 'w'); if (!$out) return ['error' => 'geçici dosya açılamadı'];
+    fputcsv($out, $head, ',', '"', '\\');
+    foreach ($rows as $r) fputcsv($out, $r, ',', '"', '\\');
+    fclose($out);
+    if (!rename($tmp, $file)) { @unlink($tmp); return ['error' => 'orders.csv yazılamadı (izin?)']; }
+
+    /* GERİ OKU — satırın değişmesi yetmez, BELGEYİ besleyen yolun aynı rengi
+       görmesi gerekiyor. `vestra_order_lines()` fatura, sipariş sayfası ve
+       panelin üçünün birden okuduğu fonksiyon. */
+    $back = null;
+    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) { $back = $r; break; } }
+    if (!$back) return ['error' => 'yazıldı ama satır geri okunamadı'];
+    $seen = [];
+    foreach (vestra_order_lines($back)['lines'] as $l) if ((string)$l['sku'] === $sku) { $seen = (array)$l['colors']; break; }
+    if (array_map('strval', $seen) !== $clean) {
+        return ['error' => 'yazıldı ama fatura bu rengi göremiyor ("'.implode(', ', $seen).'")'];
+    }
+
+    /* İlanın kendi renk listesi: doğrulama DEĞİL, uyarı. */
+    $notListed = [];
+    $p = function_exists('vestra_product_by_sku') ? vestra_product_by_sku($sku) : null;
+    if ($p) {
+        $have = array_map(fn($x) => mb_strtolower(trim((string)$x)), (array)($p['colors'] ?? []));
+        foreach ($clean as $c) if ($have && !in_array(mb_strtolower($c), $have, true)) $notListed[] = $c;
+    }
+
+    $st = vestra_read_json('order_statuses.json');
+    if (!isset($st[$ref]) || !is_array($st[$ref])) $st[$ref] = [];
+    $st[$ref]['colours_set_at'] = date('c');
+    $st[$ref]['colours_set_by'] = 'operator';
+    vestra_write_json('order_statuses.json', $st);
+
+    return ['ok' => true, 'sku' => $sku, 'before' => $before, 'colours' => $clean,
+            'on_invoice' => $seen, 'not_listed' => $notListed, 'notes' => $notes,
+            'must_redraft' => (bool)$invoiced];
+}
+
 function vestra_order_delete(string $ref): int {
     $ref = trim($ref);
     if ($ref === '') return 0;

@@ -240,7 +240,14 @@ function vestra_iban_pretty(string $v): string {
 }
 
 function vestra_invoice_dir(): string {
-    $dir = dirname(__DIR__).'/data/invoices';
+    /* Veri dizinini TEK yerden sor. Bu satir dirname(__DIR__).'/data' diye
+       sabitti ve uretimde ikisi AYNI yeri gosterdigi icin hicbir zaman
+       gorunmedi -- ama veri dizini yonlendirildiginde (test kum havuzu)
+       faturalar sessizce GERCEK klasorden okunuyordu, yani "faturasi var mi"
+       sorusunu soran her kontrol yanlis klasore bakiyordu. products.php
+       yuklenmemis olabilir (bakim betikleri invoice.php'yi tek basina
+       yukluyor), o yuzden function_exists ile. */
+    $dir = (function_exists('vestra_data_dir') ? vestra_data_dir() : dirname(__DIR__).'/data').'/invoices';
     if (!is_dir($dir)) @mkdir($dir, 0755, true);
     $htaccess = $dir.'/.htaccess';
     if (!is_file($htaccess)) @file_put_contents($htaccess,
