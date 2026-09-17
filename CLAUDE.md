@@ -1385,9 +1385,16 @@ dokunulmadı** (min_colors'ı düşürmek her alıcının gördüğü kuralı de
   kayıtlı (`check_images` yalnız approved geziyordu; `price_list` `sold_out`
   basmıyordu). Renk listesi, `min_colors` ve **her iki seçici** artık koşulsuz
   basılıyor.
-- **"1 Lot" = 50 adet ÇIKARIM, ölçüm değil.** Karton 10'luk ama ilan edilen
-  asgari 50; 10 adet **MOQ'nun altında**, yani tek tutarlı okuma 5 karton = 50.
-  Varsayım müşteriye giden metinde **açıkça yazılı** ki düzeltebilsin.
+- **"1 Lot" = 50 adet ÇIKARIMDI ve ÇIKARIM YANLIŞTI — doğrusu 10.** Karton
+  10'luk ama ilan edilen asgari 50; 10 adet MOQ'nun altında kaldığı için tek
+  tutarlı okumanın 5 karton = 50 olduğunu düşündüm ve varsayımı hem metne hem
+  buraya **açıkça çıkarım diye** yazdım. Operatör aynı gün düzeltti: *"toplam
+  10 ad. F.Perry Polo + 10 Ad. F.Perry Sweatshirt +20 eur shipping"* — yani
+  **je 1 karton**, ve "numune siparişi" cümlesi de bunu anlatıyormuş.
+  *Varsayımı işaretlemek onu doğru yapmıyor; işaretlemek yalnızca
+  düzeltilebilir yapıyor — ve burada tam da o işe yaradı.* Beş kat fark
+  (€3.965 → €809) bir çıkarımın bedeli olarak küçük değil: adet gibi tek
+  cümlelik bir belirsizlikte, mektubu hazırlamadan ÖNCE sormak daha ucuzdu.
 
 **BLOKAJ — platformun EUR ödeme kutusu ÇIKMIYOR** (`diag-messages` →
 `billing_for=vestra`, 17 Eyl 2026 canlı): `bank_holder`, `bank_name`
@@ -1403,11 +1410,58 @@ destekliyor; **(b)** faturayı **USD** kesmek (kutu çıkar, ama kur KURAL 5i'ye
 göre **sipariş tarihinin damgası**); **(c)** faturayı GARAGE LE PARIS'ten kesmek
 — operatörün talimatına aykırı.
 
-**Sipariş YAZILDI, fatura KESİLMEDİ: `VES-DDC53EF1`** (€3.945 mal + €20 kargo =
-**€3.965**, kayıttan geri okundu; müşteriye hiçbir şey gitmedi). Numara bilerek
-yakılmadı: (1) EUR'da ödeme kutusu boş çıkacaktı ve mektup *"faturadaki hesaba
-ödeyin"* diyor — belgede o hesap **yok**; (2) "1 Lot" adedi çıkarım. Sipariş
-geri alınabilir (`Admin ▸ Orders ▸ Delete`), yanmış bir numara pratikte değil.
+**Sipariş YAZILDI, fatura KESİLMEDİ: `VES-1F0C9350`** — 10 × M3600 Black
+(€39,00) + 10 × M7535 Bordeaux (€39,90) = €789 mal + €20 kargo = **€809,00**,
+kayıttan geri okundu; beden dökümü ilanın kendi serisinden (**S×1 · M×3 · L×3 ·
+XL×2 · XXL×1**, karton başına), müşteriye hiçbir şey gitmedi. Fatura kesicisi
+kayıtta **`vestra`** (operatör seçimi, KURAL 5b) ve yük **tek dilim = TEK
+BELGE**. Numara bilerek yakılmadı: EUR'da ödeme kutusu **boş** çıkıyor (aynı
+koşunun kendi satırı: *"odeme kutusu (EUR): BOS -- bu kunyede EUR yolu yok"*)
+ve mektup *"faturadaki hesaba ödeyin"* diyemez — belgede o hesap **yok**.
+
+**Yanlış adetli ilk sipariş (`VES-DDC53EF1`, 50+50 = €3.965) SİLİNDİ** ve
+silme geri okundu (*"kayitta yok (dogrulandi)"*). Silmek mümkündü çünkü numara
+yakılmamıştı — *sipariş geri alınabilir, yanmış bir numara pratikte değil.*
+**Ama silecek yolum YOKTU:** siparişi bu iş akışından **yazabiliyordum**,
+geri alamıyordum; her yanlış adet operatörün panele girmesini gerektiriyordu.
+`seller-products.yml` → **`admin_mode=order_delete`** (kuru koşu varsayılan,
+`move_apply=true` uygular) panelin `order_delete` eylemiyle **aynı yazıcıyı**
+çağırıyor.
+- **Muhafaza AYRICA yazıldı ve sebebi yapısal:** `vestra_order_delete()`
+  kesilmiş faturaya **bakmıyor** — o kontrol `admin.php`'de duruyor. Fonksiyonu
+  doğrudan çağıran ikinci bir kapı, KURAL 5g'nin koruduğu şeyi **kilitsiz**
+  bırakırdı. *Kapı vardı, kilit başka dosyadaydı.*
+- **`force` bilerek YOK:** numarası yanmış belgeyi arşivleyerek silme yolu
+  **tek yerde** (Orders sekmesinin ret bandı) ve ikinci bir ulaşım noktası tam
+  o kuralı gevşetirdi. Faturalı ref **koşulsuz** reddediliyor.
+- **İki yönü de ölçüldü:** kontrol grubu `OCD7D2` (INV-2026-1012, ödenmiş)
+  **REDDEDİLDİ**; `VES-DDC53EF1` (faturasız) kuru koşuda geçti, uygulandı,
+  geri okundu. Tek yön ölçülseydi "her şeyi silen" bir kusur da yeşil görünürdü.
+- **Sütun adları `orders.csv`'nin KENDİ başlığından:** ilk yazımda `goods` ve
+  `currency` okumuştum, ikisi de o dosyada **yok** (mal toplamı `subtotal`).
+  Ayrıca çağırdığım `vestra_order_status()` diye bir fonksiyon **hiç yoktu** —
+  çağrılan her `vestra_*` fonksiyonunun kaynakta var olduğu tarandığı için
+  yakalandı. *Olmayan bir anahtarı `?? ''` ile sormak sessizce boş basar;
+  bu depoda `$a['vat']` (doğrusu `vat_id`) tam böyle her hesap için "(yok)"
+  yazıp neredeyse bir özür mektubu yazdırmıştı.*
+
+**İlan edilen ASGARİ ADETTEN feragat: `|waive_moq=1`** (KURAL 4b'nin kardeşi).
+10 adet, `size_step=10`'un tam katı (bir karton) ama ilanların `moq=50`'sinin
+**altında**, yani hem sepet hem toptan kipi bu siparişi reddederdi. Renk
+asgarisindeki kardeşiyle aynı desen: açık opt-in, sessizce atlanan bir kontrol
+değil, ve gerekçe siparişin **kendi notunda** duruyor (*"Quantity below the
+listed minimum order, agreed as an exception."*).
+- **İki bayrak AYRI, bilerek:** renk asgarisinden feragat etmek ile ilan edilen
+  asgari adedin altına inmek iki ayrı taviz; birini isteyen ötekini istemeyebilir.
+- **PAKET ADIMI feragata GİRMİYOR:** o fiziksel bir kısıt (karton 10'luk) ve
+  sepet adedi adımın katına **yuvarlıyor** — 15 adet yazan bir fatura kasada
+  20 adet demek olurdu. *Asgariyi aşağı çekmek ilan edilen bir kuralı gevşetir;
+  adımı kırmak belgeyi yalanlar.*
+- Ölçüm: kaynaktan çıkarılıp `eval` edilen parse bloğu, 11 iddia, iki yön;
+  ayrıştırma silinince **4 kırmızı**, feragat hep açık bırakılınca **5**.
+  **İlk sabotajım hiç uygulanmamıştı** (perl kaçışı eşleşmedi) ve "iddia
+  düşmüyor" sandırdı — üstelik karşılaştırdığım taban sayı **başka bir
+  dosyanınkiydi**. Satır sayımıyla doğrulanınca çıktı.
 
 **"ABD hesabı verdiğimde müşteriler ödemiyor, neden?"** (operatör sorusu,
 17 Eyl 2026 — yukarıdaki blokajın ta kendisi, başka kelimelerle).
