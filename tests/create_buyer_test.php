@@ -112,6 +112,14 @@ $cl = null; foreach ($load() as $x) if (($x['email'] ?? '') === 'closed@example.
 $t('kapi kutucugu isaretsizken kyb_status=pending', ($cl['kyb_status'] ?? '') === 'pending');
 $t('isaretsizken kyb_auto BOS', ($cl['kyb_auto'] ?? 'x') === '');
 $t('belge satiri yine de acildi', !empty($cl['doc_requests']));
+/* KAPI GERCEKTEN KAPALI MI -- kyb_status'e bakmak YETMIYOR.
+   auth_user_approved() bir VEYA: status==='active' de kapiyi acar. Kosulsuz
+   'active' yazan ilk surum, kutucuk isaretsizken bile fiyati aciyordu ve
+   `kyb_status=pending` iddiasi bunu YESIL GECIYORDU. Olcut artik kapinin
+   kendisi, alanlardan biri degil. */
+$t('isaretsizken status active DEGIL', ($cl['status'] ?? '') !== 'active');
+$t('isaretsizken KAPI KAPALI (auth_prices_unlocked)', auth_prices_unlocked($cl) === false);
+$t('kutucuk ISARETLIYKEN kapi ACIK', auth_prices_unlocked($a) === true);
 
 echo "\n== 6. form KABLOLAMASI ==\n";
 $src = (string)file_get_contents($root.'/admin.php');
@@ -119,9 +127,33 @@ $src = (string)file_get_contents($root.'/admin.php');
    yakalayan sey formu CIZDIRMEK oldu. Iddia adi sabitliyor. */
 $t('form csrfField() cagiriyor (csrf_field DEGIL)',
    str_contains($src, 'csrfField() ?>'.PHP_EOL.'    <input type="hidden" name="_action" value="create_buyer"'));
-$t('handler auth_doc_request_row kullaniyor',
-   (bool)preg_match('/create_buyer.*?auth_doc_request_row/s', $src));
-$t('handler geri okuyor', (bool)preg_match("/create_buyer.*?nb_failed/s", $src));
+
+/* Kayit kurma auth_create_buyer()'a tasindi (is akisindan da aciliyor). Iddia
+   YAZIMI degil OLGUyu tutuyor: kurucu tek yerde ve panel ona bagli. */
+$hnd = '';
+if (preg_match("/if\(\\\$act==='create_buyer'\)\{(.*?)\n  \}\n/s", $src, $m6)) $hnd = $m6[1];
+$t('handler govdesi bulundu', $hnd !== '');
+$t('panel auth_create_buyer() cagiriyor', str_contains($hnd, 'auth_create_buyer('));
+/* IKINCI KURUCU YOK. Bu, refactor'un actigi asil risk: panelin kendi hesap
+   dizisini kurmasi geri gelirse iki yol sessizce ayrisir ve ayrilik ancak bir
+   hesapta eksik alan olarak gorunur. */
+$t('panel hesabi KENDISI kurmuyor (ikinci yazici yok)',
+   !str_contains($hnd, 'auth_save_accounts') && !str_contains($hnd, "'type'=>'buyer'")
+   && !str_contains($hnd, 'password_hash'));
+
+$asrc = (string)file_get_contents($root.'/inc/auth.php');
+$body = '';
+if (preg_match('/\nfunction auth_create_buyer\(.*?\n\}\n/s', $asrc, $m7)) $body = $m7[0];
+$t('auth_create_buyer govdesi bulundu', $body !== '');
+$t('kurucu auth_required_doc_types + auth_doc_request_row kullaniyor',
+   str_contains($body, 'auth_required_doc_types(') && str_contains($body, 'auth_doc_request_row('));
+$t('kurucu KURAL 2g kontrolunu cagiriyor', str_contains($body, 'vestra_country_declares_turkey('));
+/* inc/security.php ACIKCA require ediliyor: kardes bir dosyanin require'ina
+   yaslanmak KURAL 15'in fatal'inin kucuk hali (function_exists ile gecistirmek
+   daha kotu olurdu -- dosya yuklenmemisse kontrol SESSIZCE atlanir). */
+$t('kurucu inc/security.php require ediyor', str_contains($body, "require_once __DIR__.'/security.php'"));
+$t('kurucu geri okuyup save_failed donuyor', str_contains($body, "return 'save_failed'"));
+$t('panel save_failed -> nb_failed', str_contains($hnd, 'nb_failed'));
 
 @array_map('unlink', glob($sand.'/data/*') ?: []);
 @array_map('unlink', glob($sand.'/*.php') ?: []);

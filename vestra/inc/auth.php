@@ -506,6 +506,96 @@ function auth_register(array $d): array|string {
     return $acc;
 }
 
+/* Operatorun ELIYLE actigi alici hesabi (KURAL 28).
+ *
+ * NEDEN AYRI BIR FONKSIYON, auth_register()'in bir kipi DEGIL: register() bir
+ * self-servis kayit yolu -- sifreyi kullanicidan alir, dogrulama/karsilama
+ * mektubunu GONDERIR ve operatore bildirim yazar. Elle acilan hesapta bunlarin
+ * hicbiri istenmiyor (KURAL 18: musteriye sormadan hicbir sey gitmez). O yolu
+ * bayraklarla delmek, self-servis kaydin sessizce degismesi riskini tasirdi.
+ *
+ * NEDEN PANELDEN AYRI DEGIL: cagiran iki yer var (Admin ▸ Users formu ve
+ * seller-products.yml admin_mode=create_buyer) ve ikisi ayri ayri yazilsaydi
+ * er gec ayrisirlardi -- bu depoda "ayni olgu birkac yerde yazili" hatasi
+ * defalarca kayitli (desc/sizes, faturanin uc katmani, dort mektup govdesi).
+ * Burasi TEK yazici.
+ *
+ * Doner: kayittan GERI OKUNMUS hesap dizisi, ya da hata kodu (string):
+ *   bad_email | email_taken | country_not_served | save_failed
+ */
+function auth_create_buyer(array $d): array|string {
+    require_once __DIR__.'/security.php';
+
+    $email = strtolower(trim((string)($d['email'] ?? '')));
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) return 'bad_email';
+    if (auth_find($email)) return 'email_taken';
+
+    /* KURAL 2g Turkiye'yi KAPATIR ve KAPATAN bir kural her yolda calismali;
+       yoksa bu fonksiyon, self-servis kaydin reddettigi hesabi acan bir arka
+       kapi olurdu. (create_seller'in bu kontrolu tasimamasi operatorun
+       BILINCLI, tek hesaplik istisnasiydi; genel bir yol ayni muafiyeti hak
+       etmiyor.) Ters yon testli: Turkmenistan gecer. */
+    $country = trim((string)($d['country'] ?? ''));
+    if (vestra_country_declares_turkey($country)) return 'country_not_served';
+
+    $open = !empty($d['open_gate']);
+    $acc = [
+        'id'    => bin2hex(random_bytes(8)),
+        'email' => $email,
+        /* Sifre RASTGELE ve HICBIR YERE yazilmiyor -- ne ekrana, ne kutuge.
+           Musteri "sifremi unuttum" ile kendi belirliyor; operatorun eline bir
+           sifre vermek, onu bir kanaldan iletmek zorunda birakirdi. */
+        'hash'  => password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT),
+        'type'  => 'buyer',
+        /* KAPI 'status' UZERINDEN DE ACILIYOR ve bu satir bir kez YANLISTI.
+           auth_user_approved() bir VEYA: status==='active' YA DA
+           kyb_status==='approved'. Kosulsuz 'active' yazmak, operator kapi
+           kutucugunu ISARETLEMESE BILE fiyat kapisini aciyordu -- yani
+           kutucuk yalan soyluyordu. auth_register() ayni yerde 'pending'
+           yaziyor ve kapiyi yalniz kyb_status tasiyor; elle acilan hesap da
+           ayni olmali. Kum havuzunda CIZDIRILEREK bulundu: open_gate=false
+           verilen kayit "kyb: pending" ama "kapi: ACIK" diyordu. */
+        'status' => $open ? 'active' : 'pending',
+        'email_verified' => true,
+        'email_token'    => bin2hex(random_bytes(16)),
+        'name'       => trim((string)($d['name'] ?? '')),
+        'company'    => trim((string)($d['company'] ?? '')),
+        'vat_id'     => trim((string)($d['vat_id'] ?? '')),
+        'reg_number' => trim((string)($d['reg_number'] ?? '')),
+        'country'    => $country,
+        'address'    => trim((string)($d['address'] ?? '')),
+        'phone'      => trim((string)($d['phone'] ?? '')),
+        'website'    => '',
+        'lang'       => substr(trim((string)($d['lang'] ?? 'en')), 0, 2),
+        'kyb_status' => $open ? 'approved' : 'pending',
+        /* Kapiyi NE actiysa kayitta dursun: promo hesabinda bu alan hic yoktu
+           ve aylar sonra "bu hesap neden acik?" sorusunun cevabi hicbir yerde
+           durmuyordu (KURAL 2h). */
+        'kyb_auto'   => $open ? (string)($d['kyb_auto'] ?? 'operator:panel') : '',
+        'membership_status' => 'none',
+        'dropship_plan_status' => 'none',
+        'promo_code' => '', 'promo_benefit' => '', 'promo_expiry' => '',
+        'created' => date('c'),
+        'trade_doc_required' => true,
+        'doc_requests' => [],
+    ];
+
+    /* doc_requests TEK KAYNAKTAN. create_seller / sync_lesgarage /
+       create_tyrex_migrate ucu de 'doc_requests'=>[] yazmisti ve sonucu
+       KURAL 2'de kayitli: satir olmayinca yukleme dugmesi de yok, musterinin
+       belgeyi verecek HICBIR yolu kalmiyordu. */
+    $docCc = vestra_cc_of_country($country);
+    foreach (auth_required_doc_types('buyer') as $t) $acc['doc_requests'][] = auth_doc_request_row($t, $docCc);
+
+    $list = auth_accounts(); $list[] = $acc; auth_save_accounts($list);
+
+    /* GERI OKUMA: auth_save_accounts void donuyor ve cagiran "acildi" derken
+       kayit diskte olmayabilir (bu ay bir kez kota kesintisi yasandi).
+       billing_saved'in bu dosyada kayitli dersi. */
+    foreach (auth_accounts() as $a) if ((string)($a['id'] ?? '') === $acc['id']) return $a;
+    return 'save_failed';
+}
+
 function auth_login(string $email, string $password): array|string {
     $acc = auth_find($email);
     if (!$acc || !password_verify($password, $acc['hash'] ?? '')) return 'invalid';
