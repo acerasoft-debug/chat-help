@@ -9,7 +9,9 @@
     <li><b>Contacto:</b> <a href='mailto:legal@vestrasales.com'>legal@vestrasales.com</a> · <a href='mailto:support@vestrasales.com'>support@vestrasales.com</a></li></ul>
     <h3>Función</h3>
     <p>VESTRA opera un mercado mayorista B2B en línea y actúa <b>únicamente como intermediario y plataforma técnica</b>.
-    No es parte de los contratos de compraventa celebrados entre vendedores y compradores y no adquiere la titularidad de las mercancías.</p>
+    No es parte de los contratos de compraventa celebrados entre vendedores y compradores y no adquiere la titularidad de las mercancías.
+    <b>Excepción:</b> en los pedidos que Acerasoft LLC factura en su propio nombre, contrata con el comprador en calidad de vendedor; cuál de los dos casos
+    concurre resulta de la factura de cada pedido (Condiciones del servicio, sección 3c).</p>
     <h3>Resolución de litigios en línea</h3>
     <p>La plataforma de resolución de litigios en línea de la EU está disponible en ec.europa.eu/consumers/odr. VESTRA presta servicio a empresas (B2B).</p>
 "],
@@ -19,14 +21,41 @@
     empresa que actúa con carácter comercial y acepta estas Condiciones.</p>
     <h3>1. Qué es VESTRA</h3><p>VESTRA es un mercado mayorista B2B que conecta a vendedores y compradores empresariales verificados.
     VESTRA es <b>únicamente un intermediario y una plataforma técnica</b>. <b>No es parte</b> de ninguna venta; no posee,
-    conserva, inspecciona, almacena, envía ni adquiere la titularidad de las mercancías, y no custodia fondos (lo hace un proveedor licenciado externo de depósito en garantía/pagos). Los contratos de compraventa se celebran <b>exclusivamente entre el comprador y el vendedor</b>.</p>
+    conserva, inspecciona, almacena, envía ni adquiere la titularidad de las mercancías, y no custodia fondos (lo hace un proveedor licenciado externo de depósito en garantía/pagos). Los contratos de compraventa se celebran <b>exclusivamente entre el comprador y el vendedor</b>.
+    Esta sección se aplica sin perjuicio de la sección 3c: en los pedidos que Acerasoft LLC factura en su propio nombre, ella misma es el vendedor y el
+    contrato se celebra con ella.</p>
     <h3>2. Solo usuarios empresariales (sin consumidores)</h3><p>VESTRA es estrictamente para empresas (B2B); no está dirigido a
     consumidores y los derechos de desistimiento del consumidor no son de aplicación. Debe completar la verificación (KYB/KYC) antes de operar y
     garantiza que toda la información que proporciona es exacta y se mantiene actualizada.</p>
     <h3>2a. Pedidos de dropshipping</h3><p>Los pedidos de <b>dropshipping</b> por unidad los realiza un socio comercial verificado <b>para su reventa al cliente propio de dicho socio</b>. El socio es el comprador y el vendedor frente a su cliente; facilita la dirección de entrega, el color y la talla en el pago. <b>No se celebra contrato de compraventa entre VESTRA y el cliente final del socio</b>, y esta sección no abre la plataforma a consumidores. El precio de dropshipping es el precio mayorista más un margen de gestión, más la tarifa de envío de la zona de destino indicada en el pago. No se lleva control de existencias por unidad: la disponibilidad se confirma con el vendedor tras el pedido y, de no poder atenderse, se reembolsa íntegramente. <b>Los aranceles, impuestos de importación y gastos de despacho aduanero en el país de destino no están incluidos en el precio ni en la tarifa de envío</b> y se abonan en la entrega. Son responsabilidad del socio comercial que realiza el pedido, quien puede liquidarlos directamente o hacer que los liquide su propio cliente. Las mercancías de origen preferencial de la UE pueden acogerse a arancel cero en Japón conforme al Acuerdo de Asociación Económica UE&ndash;Japón cuando la expedición va acompañada de una declaración de origen; esto no cubre el impuesto sobre el consumo ni las tasas de despacho del transportista.</p>
     <h3>3. Publicaciones, pedidos y entrega</h3><p>Los vendedores son <b>los únicos responsables</b> de sus publicaciones y de la
     legalidad, seguridad, conformidad, etiquetado, descripción, fijación de precios, autenticidad, entrega, garantías e impuestos de sus
-    mercancías. Un pedido constituye un contrato vinculante entre el comprador y el vendedor; VESTRA no es responsable del cumplimiento de ninguna de las partes.</p>
+    mercancías. Un pedido constituye un contrato vinculante entre el comprador y el vendedor; VESTRA no es responsable del cumplimiento de ninguna de las partes.
+    En los pedidos que Acerasoft LLC factura en su propio nombre se aplica en su lugar la sección 3c.</p>
+    <h3>3c. Pedidos facturados por VESTRA</h3><p>En algunos pedidos VESTRA emite la factura <b>en su propio nombre</b>. No es el caso general y no se
+    deduce de la p&aacute;gina de la publicaci&oacute;n: <b>la factura de un pedido indica qui&eacute;n es el vendedor a efectos legales</b>, y es ese documento
+    el que prevalece. Cuando una factura designa a Acerasoft LLC como vendedor, las secciones 1 y 3 (VESTRA &uacute;nicamente como intermediario, contrato entre
+    comprador y vendedor) <b>no se aplican a ese pedido</b>; en su lugar se aplica lo siguiente:</p>
+    <ul>
+    <li><b>Contrato.</b> El contrato de compraventa de ese pedido se celebra entre el comprador y Acerasoft LLC, que contrata en su propio nombre y por cuenta
+    propia &mdash; ya procedan las mercanc&iacute;as del stock propio de VESTRA o hayan sido adquiridas a un vendedor proveedor para su reventa al comprador.</li>
+    <li><b>Factura e impuestos.</b> La factura lleva los datos de empresa, el domicilio social y los identificadores fiscales propios de Acerasoft LLC e indica
+    el tratamiento de IVA aplicado a esa entrega; cuando una entrega transfronteriza entre empresas se acoge a la inversi&oacute;n del sujeto pasivo, la factura
+    lo hace constar y no se repercute IVA. Si los importes se convirtieron a otra divisa, la factura indica el tipo de cambio, su fuente y la fecha de su
+    publicaci&oacute;n.</li>
+    <li><b>Pago.</b> El pago se realiza a la cuenta bancaria indicada en esa factura y <b>no</b> se mantiene en dep&oacute;sito en garant&iacute;a; las
+    disposiciones sobre dep&oacute;sito en garant&iacute;a de la pol&iacute;tica &laquo;Pagos, dep&oacute;sito en garant&iacute;a y reembolsos&raquo; no se
+    aplican a un pedido de este tipo. Las condiciones de pago y, en su caso, el plazo tras el cual un pedido impagado se cancela constan en la factura.</li>
+    <li><b>Devoluciones, defectos y deber de examen.</b> La <a href='/faq?cat=returns'>pol&iacute;tica de devoluciones y reclamaciones</a> y el deber de examen y
+    denuncia de defectos se aplican sin cambios, siendo Acerasoft LLC la contraparte del comprador para ese pedido. Los derechos del comprador no se ven
+    reducidos por el hecho de que el vendedor sea VESTRA y no un vendedor del mercado.</li>
+    <li><b>Vendedor proveedor.</b> Cuando las mercanc&iacute;as se hayan comprado para su reventa, las garant&iacute;as del vendedor proveedor conforme a la
+    Pol&iacute;tica del vendedor &mdash; autenticidad, derecho a vender, conformidad, seguridad y exactitud de las declaraciones &mdash; se otorgan a
+    Acerasoft LLC y, en la medida en que la ley lo permita, se trasladan al comprador.</li>
+    <li><b>Facturaci&oacute;n por cuenta de un vendedor.</b> Previo acuerdo con un vendedor, VESTRA puede en su lugar emitir una factura <b>en nombre y por
+    cuenta</b> de ese vendedor (autofacturaci&oacute;n). Dicha factura lleva la identidad y los identificadores fiscales del <b>vendedor</b>; el vendedor sigue
+    siendo el vendedor a efectos legales y las secciones 1 y 3 se aplican sin cambios.</li>
+    </ul>
     <h3>4. Pagos, depósito en garantía y comisiones</h3><p>Los pagos son procesados y mantenidos en depósito en garantía por un proveedor licenciado externo y
     se liberan según las condiciones acordadas (p. ej., confirmación del comprador / entrega verificada). VESTRA cobra una comisión de plataforma (una
     comisión del vendedor más una tarifa de protección al comprador) o cuotas de membresía; las tarifas del proveedor se aplican según se facturen. Las tarifas se muestran
@@ -90,7 +119,11 @@
     <p>Entre Acerasoft LLC y el vendedor empresarial registrado. <b>Vigencia:</b> 26 de junio de 2026.</p>
     <h3>1. Verificación</h3><p>Proporcionar y mantener actualizados el registro mercantil, el NIF/número de IVA y la identidad del titular real.</p>
     <h3>2. Vendedor responsable</h3><p>El vendedor es el vendedor legal de sus mercancías y es el único responsable de la conformidad, seguridad,
-    entrega, garantías e impuestos. VESTRA es únicamente un intermediario y no es parte de la venta.</p>
+    entrega, garantías e impuestos. VESTRA es únicamente un intermediario y no es parte de la venta.
+    <b>Cuando Acerasoft LLC compra mercancías al vendedor para revenderlas</b>, Acerasoft LLC es el vendedor frente a ese comprador y factura en su propio
+    nombre (Condiciones del servicio, sección 3c); las garantías del vendedor que figuran a continuación se otorgan entonces a Acerasoft LLC. Previo acuerdo
+    con un vendedor, VESTRA también puede emitir facturas en nombre y por cuenta de ese vendedor; en tal caso el vendedor sigue siendo el vendedor a efectos
+    legales.</p>
     <h3>3. Autenticidad y derecho a vender</h3><p>Para cada artículo, el vendedor garantiza que las mercancías son <b>auténticas</b> y que está
     <b>autorizado/facultado para venderlas</b> en el mercado de destino (incluido el agotamiento de la marca en el EEA cuando corresponda),
     y proporcionará prueba de autenticidad/procedencia a solicitud.</p>
@@ -135,7 +168,11 @@
     <p><b>Estado actual:</b> los pagos se realizan temporalmente <b>por factura</b> — el comprador recibe una factura proforma y paga por
     transferencia bancaria; la mercancía se envía tras el pago. El pago con depósito en garantía/tarjeta descrito a continuación queda suspendido hasta nuevo aviso.</p>
     <h3>Cómo funciona el pago</h3><p>Los compradores pagan a través del proveedor licenciado de depósito en garantía (transferencia bancaria SEPA para B2B en la EU; tarjetas disponibles).
-    Los fondos se <b>mantienen en depósito en garantía</b> — VESTRA nunca conserva el dinero.</p>
+    Los fondos se <b>mantienen en depósito en garantía</b> — VESTRA nunca conserva el dinero.
+    <b>Los pedidos que Acerasoft LLC factura en su propio nombre son una excepción</b> (Condiciones del servicio, sección 3c): se pagan por transferencia a la
+    cuenta bancaria indicada en la factura, no en depósito en garantía, y las reglas de depósito de esta página &mdash; liberación, liberación automática
+    y reembolso desde el depósito &mdash; no les son aplicables. La <a href='/faq?cat=returns'>política de devoluciones y reclamaciones</a> se les aplica sin
+    cambios.</p>
     <h3>Liberación del depósito en garantía</h3><p>Los fondos se liberan tras la confirmación del comprador, la entrega verificada o el vencimiento de un plazo de liberación automática
     acordado si no se plantea ninguna disputa. El proveedor desembolsa el pago al vendedor + la comisión de VESTRA.</p>
     <h3>Comisiones</h3><p>VESTRA cobra una comisión de plataforma por pedido — una comisión del vendedor más una pequeña tarifa de protección al comprador — o una cuota de membresía; las tarifas del proveedor según se facturen. Los importes exactos se muestran antes del pago.</p>

@@ -331,6 +331,21 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $ok = !empty($r['ok']);
     header('Location: /admin?tab=invoices&msg='.($ok?'invoice_redrafted':'invoice_none')); exit;
   }
+  /* SILDIKTEN SONRA NEREYE DONULUR (operator, 16 Eyl 2026: *"siparisler ve
+     offer lar silinmesi icin button yap demistim"*).
+     Silme dugmeleri artik IKI ekranda: kendi sekmelerinde (Offers / Orders) ve
+     Invoice approvals kuyrugunda. Handler'lar hedef sekmeyi SABIT yaziyordu,
+     yani kuyruktan silen operator baska bir sekmede uyaniyor ve sildigi satirin
+     gercekten gidip gitmedigini goremiyordu.
+     IZIN LISTESI, serbest metin degil: `back` POST'tan geliyor ve bir Location
+     basligina giriyor. Serbest birakmak acik yonlendirme olurdu -- bu depoda
+     ayni ders `vestra_back_link()` icin zaten yazili (Referer baskasinin
+     yazdigi bir baslik). Taninmayan deger varsayilana duser, yani mevcut
+     davranis birebir korunur. */
+  $backTab = function(string $default): string {
+    $b = (string)($_POST['back'] ?? '');
+    return in_array($b, ['offers','orders','invoices'], true) ? $b : $default;
+  };
   /* TEKLIFI SIL (operator istegi, 1 Eyl 2026). Alici bir kalemi iptal
      ettirdiginde teklif "kabul edilmis ama faturasiz" halde kuyrukta kaliyor
      ve yanlislikla yeniden faturalanabiliyor. Silme, teklifi offers.csv'den
@@ -343,14 +358,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     require_once __DIR__.'/inc/offers.php';
     require_once __DIR__.'/inc/invoice.php';
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
-    if($ref===''){ header('Location: /admin?tab=offers&msg=offer_del_none'); exit; }
+    if($ref===''){ header('Location: /admin?tab='.$backTab('offers').'&msg=offer_del_none'); exit; }
     if(count(vestra_invoices_for_ref($ref))>0){
-      header('Location: /admin?tab=offers&msg=offer_del_invoiced'); exit;
+      header('Location: /admin?tab='.$backTab('offers').'&msg=offer_del_invoiced'); exit;
     }
     $f=vestra_data_dir().'/offers.csv';
     $rows=vestra_read_csv('offers.csv');
     $keep=array_values(array_filter($rows,fn($r)=>($r['ref']??'')!==$ref));
-    if(count($keep)===count($rows)){ header('Location: /admin?tab=offers&msg=offer_del_none'); exit; }
+    if(count($keep)===count($rows)){ header('Location: /admin?tab='.$backTab('offers').'&msg=offer_del_none'); exit; }
     $okDel=false;
     if(is_file($f)){
       @copy($f,$f.'.bak-del-'.date('Ymd_His'));
@@ -382,7 +397,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
         unset($rs[$ref]); vestra_write_json('offer_responses.json',$rs);
       }
     }
-    header('Location: /admin?tab=offers&msg='.($okDel?'offer_deleted':'offer_del_fail')); exit;
+    header('Location: /admin?tab='.$backTab('offers').'&msg='.($okDel?'offer_deleted':'offer_del_fail')); exit;
   }
   /* Mesaj silme (operator, 11 Eyl 2026). Anahtar kaydin ICERIGINDEN turuyor,
      dizin numarasindan degil -- bkz. inc/messages.php'deki not. Silinen kayit
@@ -1050,6 +1065,63 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     auth_update($guid,['doc_grace_exempt'=>$gon]);
     header('Location: /admin?tab='.(($_POST['back']??'')==='documents'?'documents&uid='.urlencode($guid):'users').'&msg='.($gon?'grace_exempt_on':'grace_exempt_off')); exit;
   }
+  /* Operatorun ELIYLE hesap acmasi. Bu eylem bugune kadar HIC YOKTU: panelde
+     ekleme yolu yok, ve is akisindan acmak musterinin e-postasini herkese acik
+     kosu girdisine yazmak demekti -- bu depo `only_emails` girdisini tam o
+     sebeple bir kez kaldirip `only_accounts`'a cevirdi. Musteriye ait veri
+     panelde durur (KURAL 2d'nin "musterinin belgesi GitHub'dan gecmez" kurali
+     ile ayni aile).
+
+     doc_requests TEK KAYNAKTAN: auth_required_doc_types() + auth_doc_request_row().
+     create_seller / sync_lesgarage / create_tyrex_migrate ucu de 'doc_requests'=>[]
+     yazmisti ve sonucu KURAL 2'de kayitli: satir olmayinca yukleme dugmesi de yok,
+     musterinin belgeyi verecek HICBIR yolu kalmiyordu. */
+  if($act==='create_buyer'){
+    $em = strtolower(trim((string)($_POST['email']??'')));
+    if($em===''||!filter_var($em,FILTER_VALIDATE_EMAIL)){ header('Location: /admin?tab=users&msg=nb_bademail'); exit; }
+    if(auth_find($em)){ header('Location: /admin?tab=users&msg=nb_exists'); exit; }
+    $ctry = trim((string)($_POST['country']??''));
+    /* KURAL 2g Turkiye'yi KAPATIR ve kapatan bir kural her yolda calismali --
+       auth_register()'da var, burada da olmali; yoksa panel, self-servis kaydin
+       reddettigi hesabi acan bir arka kapi olurdu. (create_seller'in bu kontrolu
+       tasimamasi operatorun BILINCLI, tek hesaplik istisnasiydi; genel bir form
+       ayni muafiyeti hak etmiyor.) */
+    require_once __DIR__.'/inc/security.php';
+    if(vestra_country_declares_turkey($ctry)){ header('Location: /admin?tab=users&msg=nb_country'); exit; }
+    $open = !empty($_POST['open_gate']);
+    $acc = [
+      'id'=>bin2hex(random_bytes(8)), 'email'=>$em,
+      /* Sifre RASTGELE ve HICBIR YERE yazilmiyor -- ne ekrana, ne kutuge.
+         Musteri "sifremi unuttum" ile kendi belirliyor; operatorun eline bir
+         sifre vermek, onu bir kanaldan iletmek zorunda birakirdi. */
+      'hash'=>password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT),
+      'type'=>'buyer', 'status'=>'active', 'email_verified'=>true, 'email_token'=>bin2hex(random_bytes(16)),
+      'name'=>trim((string)($_POST['name']??'')), 'company'=>trim((string)($_POST['company']??'')),
+      'vat_id'=>trim((string)($_POST['vat_id']??'')), 'reg_number'=>'',
+      'country'=>$ctry, 'address'=>trim((string)($_POST['address']??'')),
+      'phone'=>trim((string)($_POST['phone']??'')), 'website'=>'',
+      'lang'=>substr(trim((string)($_POST['lang']??'en')),0,2),
+      'kyb_status'=>$open?'approved':'pending',
+      /* Kapiyi NE actiysa kayitta dursun: promo hesabinda bu alan hic yoktu ve
+         aylar sonra "bu hesap neden acik?" sorusunun cevabi hicbir yerde
+         durmuyordu (KURAL 2h). */
+      'kyb_auto'=>$open?'operator:panel':'',
+      'membership_status'=>'none','dropship_plan_status'=>'none',
+      'promo_code'=>'','promo_benefit'=>'','promo_expiry'=>'',
+      'created'=>date('c'), 'trade_doc_required'=>true, 'doc_requests'=>[],
+    ];
+    $docCc = vestra_cc_of_country($ctry);
+    foreach(auth_required_doc_types('buyer') as $__t) $acc['doc_requests'][]=auth_doc_request_row($__t,$docCc);
+    $list=auth_accounts(); $list[]=$acc; auth_save_accounts($list);
+    /* GERI OKUMA: auth_save_accounts void donuyor ve panel "acildi" derken
+       kayit diskte olmayabilir (bu ay bir kez kota kesintisi yasandi).
+       billing_saved'in bu dosyada kayitli dersi. */
+    $back=null; foreach(auth_accounts() as $a0) if(($a0['id']??'')===$acc['id']){ $back=$a0; break; }
+    if(!$back){ header('Location: /admin?tab=users&msg=nb_failed'); exit; }
+    /* MUSTERIYE HICBIR SEY GITMIYOR (KURAL 18): hos geldin/dogrulama mektubu
+       operatorun ayrica isteyecegi bir sey. */
+    header('Location: /admin?tab=users&msg=nb_ok#ud-'.urlencode($acc['id'])); exit;
+  }
   if($act==='suspend_account'){
     /* 'operator': belge askisindan ayirt edilir -- belge askisi girise izin
        verir (yuklemek icin), operator askisi vermez (auth_login). */
@@ -1438,7 +1510,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
      what an auditor asks about. Cancel covers that case instead. */
   if($act==='order_delete'){
     $ref=trim((string)($_POST['ref']??''));
-    if($ref===''){ header('Location: /admin?tab=orders&msg=ord_notfound'); exit; }
+    if($ref===''){ header('Location: /admin?tab='.$backTab('orders').'&msg=ord_notfound'); exit; }
     require_once __DIR__.'/inc/invoice.php';
     /* An issued invoice blocks the first click and the panel says why. force=1 is the
        same click made again after reading that — at which point the invoice files are
@@ -1446,16 +1518,16 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
        longer exists. Nothing is erased: the numbered document stays on disk. */
     $inv=vestra_invoices_for_ref($ref);
     if($inv && empty($_POST['force'])){
-      header('Location: /admin?tab=orders&msg=ord_has_invoice&n='.count($inv).'&ref='.urlencode($ref)); exit;
+      header('Location: /admin?tab='.$backTab('orders').'&msg=ord_has_invoice&n='.count($inv).'&ref='.urlencode($ref)); exit;
     }
     if($inv) vestra_invoices_archive_for_ref($ref);
     /* The rewrite itself lives in inc/orders.php next to the other function that has
        to know orders.csv is stored oldest-first while vestra_read_csv() hands it back
        newest-first. Two copies of that knowledge is one copy too many. */
     $n=vestra_order_delete($ref);
-    if($n<0){ header('Location: /admin?tab=orders&msg=ord_delfail'); exit; }
-    if($n===0){ header('Location: /admin?tab=orders&msg=ord_notfound'); exit; }
-    header('Location: /admin?tab=orders&msg=ord_deleted&n='.$n); exit;
+    if($n<0){ header('Location: /admin?tab='.$backTab('orders').'&msg=ord_delfail'); exit; }
+    if($n===0){ header('Location: /admin?tab='.$backTab('orders').'&msg=ord_notfound'); exit; }
+    header('Location: /admin?tab='.$backTab('orders').'&msg=ord_deleted&n='.$n); exit;
   }
   /* One-time repair: give duplicate order refs (pre-uniqueness bug) fresh refs so
      each order gets its own independent status entry. */
@@ -2529,6 +2601,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     /* Bu satir EKSIKTI: save_billing zaten msg=billing_saved'e yonlendiriyordu
        ama haritada karsiligi yoktu, yani form kaydediyor ve ekranda HICBIR SEY
        yazmiyordu. Onaylanmayan bir kayit, kaydedilmemis kayittan ayirt edilemez. */
+    'nb_ok'=>'✓ Alıcı hesabı açıldı — kayıttan geri okunarak doğrulandı. Müşteriye HİÇBİR ŞEY gitmedi (mektup yok, doğrulama linki yok); şifresini “forgot password” ile kendi belirler. Ticari kayıt belgesi otomatik istendi.',
+    'nb_exists'=>'Bu e-posta ile bir hesap ZATEN VAR — ikinci hesap açılmadı. Mevcut hesabı listeden açıp künyesini ✎ Edit billing details ile düzeltin.',
+    'nb_bademail'=>'Geçersiz e-posta — hesap açılmadı.',
+    'nb_country'=>'KURAL 2g: Türkiye’den hesap açılmıyor. Panel, self-servis kaydın reddettiği hesabı açan bir arka kapı değil.',
+    'nb_failed'=>'✗ Hesap kaydedilemedi — geri okumada bulunamadı. Disk/izin sorunu olabilir, hiçbir şey açılmadı sayın.',
     'billing_saved'=>'✓ Fatura & banka bilgileri kaydedildi — sunucudan geri okunarak doğrulandı. Bu hesaptan kesilecek faturalar artık bunları taşıyor.',
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
     /* ord_deleted / ord_has_invoice / ord_notfound / ord_delfail are NOT here on
@@ -3356,6 +3433,35 @@ elseif($tab==='users'):
     <a class="abtn" href="/admin?dl=sellers" title="Download all sellers with company, email, address, VAT">⬇ Export sellers CSV</a>
   </div>
 </div>
+
+<!-- Elle alici hesabi. Musteri verisi PANELDE girilir: is akisi girdisi herkese
+     acik kosu basliginda kalici (bu depo `only_emails`'i tam o sebeple kaldirdi). -->
+<details style="margin-bottom:14px;border:1px solid var(--line);border-radius:10px;padding:10px 12px">
+  <summary style="cursor:pointer;font-weight:600;font-size:13px">➕ New buyer account (manual)</summary>
+  <form method="post" style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;align-items:end">
+    <?= csrfField() ?>
+    <input type="hidden" name="_action" value="create_buyer">
+    <label style="font-size:11.5px">E-mail *<input name="email" type="email" required placeholder="buyer@example.com" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)"></label>
+    <label style="font-size:11.5px">Contact name<input name="name" placeholder="Jane Doe" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)"></label>
+    <label style="font-size:11.5px">Company / trading name<input name="company" placeholder="Doe Boutique SL" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)"></label>
+    <label style="font-size:11.5px">Tax / VAT ID<input name="vat_id" placeholder="ESB12345678" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)"></label>
+    <label style="font-size:11.5px">Address<input name="address" placeholder="Street 1, 12345 City" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)"></label>
+    <label style="font-size:11.5px">Country<input name="country" placeholder="Spain" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)"></label>
+    <label style="font-size:11.5px">Phone<input name="phone" placeholder="+34 …" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)"></label>
+    <label style="font-size:11.5px">Letter language<select name="lang" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
+      <?php foreach(['en'=>'English','es'=>'Español','fr'=>'Français','de'=>'Deutsch','it'=>'Italiano','pt'=>'Português','ru'=>'Русский','ar'=>'العربية','ja'=>'日本語'] as $lc=>$ln): ?>
+      <option value="<?= $lc ?>"><?= $ln ?></option><?php endforeach; ?>
+    </select></label>
+    <label style="font-size:11.5px;display:flex;gap:6px;align-items:center;padding-bottom:6px">
+      <input type="checkbox" name="open_gate" value="1" checked> Open the price gate now
+    </label>
+    <button class="abtn primary" onclick="return confirm('Create this buyer account?\n\nNOTHING is e-mailed to the customer — no welcome letter, no verification link. They set their own password with “forgot password”.\n\nThe trade-licence request is opened automatically.')">Create account</button>
+  </form>
+  <p style="font-size:11px;color:var(--muted);margin:8px 0 0">
+    No e-mail is sent. A random password is set and never shown — the customer uses “forgot password”.
+    The trade licence is requested automatically (RULE 2); a document does not gate the account, operator approval does.
+  </p>
+</details>
 <script>
 function ufilter(){
   var q=document.getElementById('usearch').value.toLowerCase();
@@ -4379,6 +4485,28 @@ elseif($tab==='invoices'): ?>
                            birim degistirilemez (numara yanmis olur). */ ?>
                   onclick="var s=this.form.elements.seller_uid,c=this.form.elements.currency,cv=c?c.value:'';return confirm('Issue the invoice for offer <?= htmlspecialchars($fref) ?> at <?= htmlspecialchars(eur($fu)) ?>/unit (total <?= htmlspecialchars(eur($fu*$fq)) ?>)?\n\nIssuer: '+s.options[s.selectedIndex].text+'\nDocument currency: '+(cv&&cv!=='EUR'?cv+' (converted at the offer-date rate)':'EUR')+'\n\nThis burns the number, stores the PDF and EMAILS THE BUYER. Check the draft (👁) first.\nThe seller and the currency cannot be changed afterwards.')">✓ Approve &amp; issue</button>
         </form>
+        <?php /* SIL, BU EKRANDA DA (operator, 16 Eyl 2026: *"siparisler ve offer
+                 lar silinmesi icin button yap demistim"*). Dugme `Admin ▸ Offers`'ta
+                 zaten vardi -- ama operator kabul edilmis bir teklifi BURADA
+                 goruyor ve silmek icin sekme degistirmesi gerektigini bilmesinin
+                 hicbir yolu yoktu. Bir ekranda gorunmeyen secenek olmayan
+                 secenektir (KURAL 2e'nin "acacak dugmem yok" dersi).
+                 AYNI EYLEM cagriliyor (`delete_offer`), ikinci bir silme yolu
+                 YAZILMADI: yedek alma, pazarlik kaydinin yedegi ve faturali
+                 teklifte ret tek gövdede kaliyor. Iki silme yolu ayrisirdi ve
+                 ayrisma ancak bir kayit kaybolunca gorunurdu.
+                 AYRI FORM: ustteki form _action'i DUGMEDEN aliyor, ucuncu bir
+                 dugme oraya konsaydi taslak/kesim ile ayni gonderime girerdi.
+                 `back=invoices`: silen operator bu kuyruga geri donuyor ve
+                 satirin gercekten gittigini goruyor. */ ?>
+        <form method="post" style="margin:6px 0 0">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="delete_offer">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($fref) ?>">
+          <input type="hidden" name="back" value="invoices">
+          <button class="abtn" type="submit" style="font-size:11px;color:var(--bad);border-color:rgba(239,154,154,.35)"
+                  onclick="return confirm('Delete offer <?= htmlspecialchars($fref, ENT_QUOTES) ?> permanently?\n\nIt disappears from this queue and from the offers list. A timestamped backup of offers.csv and of the negotiation record is saved first. The buyer is NOT notified.')">🗑 Sil</button>
+        </form>
       </td>
     </tr>
     <?php endforeach; ?>
@@ -4599,6 +4727,27 @@ foreach($offers as $__o){
             <input type="hidden" name="_action" value="issue_invoice">
             <input type="hidden" name="ref" value="<?= htmlspecialchars($oref) ?>">
             <button class="abtn primary" type="submit" style="font-size:12px">✓ Approve &amp; issue</button>
+          </form>
+          <?php /* SIL (operator, 16 Eyl 2026, teklifle ayni cumle). Sipariş
+                   silme dugmesi `Admin ▸ Orders`'ta vardi ama BU kuyrukta
+                   yoktu -- oysa bir test satirini ya da alicinin vazgectigi
+                   bir siparisi operator tam burada goruyor.
+                   AYNI EYLEM (`order_delete`): faturali siparisi ilk tikta
+                   REDDEDIYOR ve sebebini yaziyor (ikinci tik `force=1` ile
+                   Orders sekmesinde, belgeler data/invoices/deleted/'e
+                   TASINARAK). O ikinci tiki buraya koymadim: numarasi yanmis
+                   bir belgeyi iki ekrandan birden yok edilebilir yapmak,
+                   KURAL 5g'nin korudugu seyi gevsetirdi.
+                   Bu kuyruk zaten yalniz FATURASIZ siparisleri listeliyor,
+                   yani normal halde ret gorunmez -- ama kapi yine sunucuda:
+                   dugmenin gorunmesi yetki degildir. */ ?>
+          <form method="post" style="margin:0"
+                onsubmit="return confirm('Delete order <?= htmlspecialchars($oref, ENT_QUOTES) ?> for good?\n\nThis cannot be undone. To keep the record but void the sale, set the status to Cancelled in the Orders tab instead.')">
+            <?= csrfField() ?>
+            <input type="hidden" name="_action" value="order_delete">
+            <input type="hidden" name="ref" value="<?= htmlspecialchars($oref) ?>">
+            <input type="hidden" name="back" value="invoices">
+            <button class="abtn" type="submit" style="font-size:12px;color:var(--bad);border-color:rgba(239,154,154,.35)">🗑 Sil</button>
           </form>
         </div>
       </td>

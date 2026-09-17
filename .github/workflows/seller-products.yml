@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -23,7 +23,7 @@ on:
         required: false
         default: ""
       payload:
-        description: "admin_mode=apply için: sunucunun public key'i ile şifrelenmiş satıcı bilgisi (KEY.IV.GOVDE, rakamsız base64)"
+        description: "admin_mode=apply: şifreli satıcı bilgisi. admin_mode=order_draft|order_write: kalemler. DROPSHIP (varsayılan) 'SKU:BEDEN:ADET,...'; TOPTAN 'pricing=wholesale|SKU:RENK:ADET,...' — kademe fiyatı, MOQ/paket adımı ve renk ilandan doğrulanır, beden dökümü ilanın serisinden türer. Elle anlaşılan birim fiyat: 4. alan ('SKU:RENK:ADET:19.50') — katalog kademesini ezer, ilandan PAHALIysa reddedilir, gerekçe siparişin notuna yazılır. İlan edilen renk asgarisinden feragat: '|waive_min_colours=1'; ilan edilen asgari adetten feragat: '|waive_moq=1'; paket adımından feragat: '|waive_pack=1' (tam karton değil — beden dökümü yazılamaz)."
         required: false
         default: ""
       issue_ref:
@@ -190,18 +190,202 @@ jobs:
                 trim((string)($acc['vat_id'] ?? '')) !== '' ? 'kayitli' : 'YOK');
             if (!auth_prices_unlocked($acc)) echo "  UYARI: fiyat kapisi kapali -- bu hesap sitede fiyat goremiyor\n";
 
+            /* KIP: dropship (varsayilan) ya da TOPTAN. Ikisi ayri satis ve ayri
+               fiyat: dropship TEK PARCA satiyor ve tabana zam biniyor, toptan
+               ise TAM KARTON satiyor ve alicinin gordugu kademe fiyati
+               gecerli. Bu adim toptan kipini bilmiyordu, yani telefonda/
+               e-postada anlasilan bir LOT siparisini kayda gecirmenin tek yolu
+               yanlis fiyattan gecirmekti.
+               payload: "pricing=wholesale|M3600:Black:50,M7535:Bordeaux:50"
+               Toptan kipte ikinci alan BEDEN degil RENK -- tam kartonda beden
+               dagilimi ilanin kendi serisinden turuyor, secilen sey renk. */
+            $spec0 = (string)getenv('OD_LINES');
+            $wholesale = false; $waiveMinCol = false; $waiveMoq = false; $waivePack = false;
+            if (preg_match('/^\s*pricing\s*=\s*wholesale\s*(\|.*)?$/is', $spec0, $mm0) ||
+                preg_match('/^\s*pricing\s*=\s*wholesale\s*\|/i', $spec0)) {
+                $wholesale = true;
+                $tail = (string)preg_replace('/^\s*pricing\s*=\s*wholesale\s*\|?/i', '', $spec0);
+                /* Ilan edilen renk asgarisinden FERAGAT bilincli bir eylem olmak
+                   zorunda: sessizce atlanan bir kural, ilanin yalan soyledigi
+                   bir siparis uretir. `force=1` deseninin aynisi. */
+                if (preg_match('/(^|\|)\s*waive_min_colours\s*=\s*1\s*(\||$)/i', $tail)) {
+                    $waiveMinCol = true;
+                    $tail = (string)preg_replace('/(^|\|)\s*waive_min_colours\s*=\s*1\s*/i', '$1', $tail);
+                }
+                /* ILAN EDILEN ASGARI ADETTEN feragat -- kardesinin aynisi ve ayni
+                   sebeple AYRI bir anahtar: numune/tek karton satisi gercek bir
+                   is ama ilan "en az 50" diyor, yani sepet o siparisi REDDEDER.
+                   Tek bayrakla birlestirilmedi: renk asgarisinden feragat etmek
+                   ile ilan edilen asgari adedin ALTINA inmek iki ayri taviz ve
+                   birini isteyen otekini istemeyebilir.
+                   PAKET ADIMI BU FERAGATA GIRMIYOR, bilerek: o fiziksel bir
+                   kisit (karton 10'luk) ve sepet adedi adimin katina YUVARLIYOR
+                   -- yani 15 adet yazan bir fatura, kasada 20 adet demek olurdu
+                   (KURAL 4b). Asgariyi asagi cekmek ilan edilen bir kurali
+                   gevsetir; adimi kirmak belgeyi yalanlar. */
+                if (preg_match('/(^|\|)\s*waive_moq\s*=\s*1\s*(\||$)/i', $tail)) {
+                    $waiveMoq = true;
+                    $tail = (string)preg_replace('/(^|\|)\s*waive_moq\s*=\s*1\s*/i', '$1', $tail);
+                }
+                /* PAKET ADIMI FERAGATI -- ve yukaridaki yorumun bir kismini GERI
+                   ALIYOR, o yuzden gerekce burada:
+                   Adim kontrolu SEPET icin yazildi ve orada hakli: sepet adedi
+                   adimin katina YUVARLIYOR, yani 23 yazan bir ilan kasada 24
+                   demek olurdu -- belge yalan soylerdi. Ama ELLE kurulan bir
+                   siparis sepetten hic gecmiyor: operator 23 yaziyor, fatura 23
+                   diyor, alici 23'un parasini oduyor. Yuvarlayan bir taraf yok,
+                   dolayisiyla yalan soyleyen bir taraf da yok.
+                   Geriye TEK gercek sonuc kaliyor ve o gizlenmiyor: beden dokumu
+                   YAZILAMIYOR (23, ilanin 8'lik serisine bolunmuyor) ve satir
+                   bunu kendi notunda soyluyor. Operator bu sonucu GORDUKTEN
+                   sonra 23'te israr etti. */
+                if (preg_match('/(^|\|)\s*waive_pack\s*=\s*1\s*(\||$)/i', $tail)) {
+                    $waivePack = true;
+                    $tail = (string)preg_replace('/(^|\|)\s*waive_pack\s*=\s*1\s*/i', '$1', $tail);
+                }
+                $spec0 = trim($tail, " |");
+            }
+
             /* 2. KALEMLER. Fiyat KODUN kendi fonksiyonundan; elle hesaplanmiyor. */
-            echo "\n== KALEMLER (dropship fiyati = en dusuk kademe + %".(int)round(VESTRA_DROPSHIP_MARKUP*100).") ==\n";
+            echo "\n== KALEMLER (".($wholesale
+                ? "TOPTAN: kademe fiyati, sepetin kendi vestra_unit_price'i"
+                : "dropship fiyati = en dusuk kademe + %".(int)round(VESTRA_DROPSHIP_MARKUP*100)).") ==\n";
+            if ($wholesale && $waiveMinCol) echo "  (!) ilan edilen RENK ASGARISINDEN feragat edildi -- operator karari\n";
+            if ($wholesale && $waiveMoq)    echo "  (!) ilan edilen ASGARI ADETTEN feragat edildi -- operator karari\n";
+            if ($wholesale && $waivePack)   echo "  (!) PAKET ADIMINDAN feragat edildi -- tam karton degil, beden dokumu yazilamaz\n";
             $all = vestra_products();
             $bySku = [];
             foreach ($all as $p) { $sk = trim((string)($p['sku'] ?? '')); if ($sk !== '') $bySku[mb_strtolower($sk)] = $p; }
 
-            $subtotal = 0.0; $problems = 0; $lines = [];
-            foreach (array_filter(array_map('trim', explode(',', (string)getenv('OD_LINES')))) as $spec) {
+            $subtotal = 0.0; $problems = 0; $lines = []; $anyAgreed = false;
+            foreach (array_filter(array_map('trim', explode(',', $spec0))) as $spec) {
                 $parts = array_map('trim', explode(':', $spec));
                 $sku = $parts[0] ?? ''; $size = $parts[1] ?? ''; $qty = max(1, (int)($parts[2] ?? 1));
+                /* 4. alan: ELLE ANLASILAN birim fiyat. Toptan kipte katalogun
+                   kademesini EZER -- ve bu, kipin geri kalan felsefesiyle
+                   celismiyor: fiyati KODDAN okumak, kimsenin elle bir rakam
+                   UYDURMAMASI icindi; operatorun musteriyle anlastigi bir
+                   rakam ise uydurma degil, KAYIT. Yazilmadan once katalogla
+                   karsilastiriliyor (asagida) -- sessizce gecen bir override,
+                   ilanin gosterdigi fiyattan baska bir fatura kesmenin en
+                   kolay yolu olurdu.
+                   `vestra_price_input()`: ham `(float)` virgullu ondalikta
+                   sessizce para kaybettiriyor ("19,50" -> 19.00). */
+                $agreed = isset($parts[3]) && trim((string)$parts[3]) !== ''
+                        ? round((float)vestra_price_input((string)$parts[3]), 2) : null;
                 $p = $bySku[mb_strtolower($sku)] ?? null;
                 if (!$p) { printf("  !! %-24s KATALOGDA YOK\n", $sku); $problems++; continue; }
+                /* DROPSHIP kipinde anlasilan fiyat KABUL EDILMIYOR: orada birim
+                   aliciNIN hesabindan turuyor (abonelik var mi) ve elle bir
+                   rakam koymak o kapiyi sessizce atlatirdi. Sessizce yok
+                   saymak daha kotu -- operator yazdigi rakamin islendigini
+                   sanirdi. */
+                if ($agreed !== null && !$wholesale) {
+                    printf("  !! %-24s anlasilan fiyat yalniz TOPTAN kipte gecerli\n", $sku); $problems++; continue;
+                }
+                if ($wholesale) {
+                    /* TOPTAN DALI. Fiyat, adet ve renk uc AYRI kontrol; ucu de
+                       sepetin uyguladigi kuraldan okunuyor, elle hesaplanmiyor. */
+                    $colour = $size; $size = '';
+                    /* RAW: bolgesel indirim ZIYARETCININ bolgesinden turuyor ve
+                       bu betik CLI'da kosuyor -- yani burada uygulanmasi
+                       "hangi bolge" sorusunu cevapsiz birakirdi. Fark varsa
+                       asagida ayrica yaziliyor, gizlenmiyor. */
+                    $listUnit = round((float)vestra_unit_price($p, $qty, true), 2);
+                    if ($listUnit <= 0) { printf("  !! %-24s kademe fiyati YOK\n", $sku); $problems++; continue; }
+                    $unit = $agreed !== null ? $agreed : $listUnit;
+                    if ($agreed !== null && $agreed <= 0) { printf("  !! %-24s anlasilan fiyat gecersiz\n", $sku); $problems++; continue; }
+                    if ($agreed !== null) $anyAgreed = true;
+                    $moq  = max(1, (int)($p['moq'] ?? 1));
+                    $step = max(1, (int)($p['size_step'] ?? 1));
+                    $msgs = [];
+                    /* YON ONEMLI, ve iki yon AYNI SEY DEGIL:
+                       - anlasilan < katalog  = operatorun verdigi iskonto. Onun
+                         karari; kayda gerekce olarak giriyor.
+                       - anlasilan > katalog  = alicinin SAYFADA gordugunden
+                         PAHALI bir fatura. Bu bir karar degil, bir kusur:
+                         `price_audit`'in "alici aleyhine" dedigi sinif, ve
+                         musteri farki faturayi eline alinca goruyor. DURUYOR. */
+                    if ($agreed !== null) {
+                        $msgs[] = $agreed > $listUnit + 0.005
+                            ? sprintf('!! anlasilan %s, ilan kademesi %s -- ILANDAN PAHALI, alici aleyhine',
+                                      number_format($agreed, 2), number_format($listUnit, 2))
+                            : sprintf('(anlasilan) birim %s, ilan kademesi %s -- operator karari',
+                                      number_format($agreed, 2), number_format($listUnit, 2));
+                    }
+                    /* MOQ ve paket adimi: sepet adedi adimin KATINA yuvarliyor,
+                       yani katalog disinda yazilan bir adet kasada baska bir
+                       adet demek olurdu (KURAL 4b). */
+                    if ($qty < $moq)        { $msgs[] = sprintf('%s adet %d, ilan edilen MOQ %d',
+                                                                $waiveMoq ? '(feragat)' : '!!', $qty, $moq); }
+                    if ($qty % $step !== 0) { $msgs[] = sprintf('%s adet %d, paket adimi %d katı DEGIL%s',
+                                                                $waivePack ? '(feragat)' : '!!', $qty, $step,
+                                                                $waivePack ? ' -- beden dokumu YAZILAMAZ' : ''); }
+                    /* Renk ilanda GERCEKTEN var mi? Olmayan bir rengi satmak,
+                       gonderilemeyecek bir sey satmaktir (KURAL 3). Esleme TAM,
+                       alt dize degil -- bu depoda mango/zara dersi. */
+                    $cols = array_values(array_filter(array_map('trim', array_map('strval', (array)($p['colors'] ?? []))), fn($c) => $c !== ''));
+                    $want = array_values(array_filter(array_map('trim', explode(';', $colour))));
+                    $lc   = array_map('mb_strtolower', $cols);
+                    foreach ($want as $w) {
+                        if (!in_array(mb_strtolower($w), $lc, true)) {
+                            $msgs[] = "!! renk '{$w}' ILANDA YOK -- ilanda: ".($cols ? implode(' / ', $cols) : '(renk yok)');
+                        }
+                    }
+                    $minCol = (int)($p['min_colors'] ?? 0);
+                    if ($minCol > 0 && count($want) < $minCol) {
+                        /* SAYAC TEK YERDE: asagidaki dongü zaten '!!' ile
+                           baslayan her satiri sayiyor. Burada ayrica artirmak
+                           ayni kusuru IKI kez saydiriyordu ("sorunlu: 4",
+                           oysa iki kalem iki sorun) -- davranis ayni kalirdi
+                           ama rapor yanlis rakam basar, ve bu depoda yanlis
+                           rakam basan bir sonda defalarca bedel odetti. */
+                        $msgs[] = sprintf('%s ilan "en az %d renk" diyor, sipariste %d renk var',
+                                          $waiveMinCol ? '(feragat)' : '!!', $minCol, count($want));
+                    }
+                    /* BEDEN DAGILIMI UYDURULMUYOR: ilanin kendi serisi x karton
+                       sayisi. Seri okunamazsa satir hic yazilmiyor -- tahmin
+                       edilmis bir beden dokumu faturaya girerdi. */
+                    $sizeRaw = is_array($p['sizes'] ?? null) ? implode(' ', array_map('strval', $p['sizes'])) : (string)($p['sizes'] ?? '');
+                    $run = [];
+                    if (preg_match_all('/([0-9]{2,3}|XXXL|XXL|XL|XS|S|M|L)\s*[×xX]\s*([0-9]+)/u', $sizeRaw, $rm, PREG_SET_ORDER)) {
+                        foreach ($rm as $r1) $run[mb_strtoupper($r1[1])] = (int)$r1[2];
+                    }
+                    $perPack = array_sum($run);
+                    $sizeOut = [];
+                    if ($perPack > 0 && $qty % $perPack === 0) {
+                        $packs = intdiv($qty, $perPack);
+                        foreach ($run as $sName => $sQty) $sizeOut[] = $sName.'×'.($sQty * $packs);
+                    } elseif ($perPack > 0) {
+                        $msgs[] = sprintf('(beden dokumu yazilmadi: adet %d, seri toplami %d katı degil)', $qty, $perPack);
+                    }
+                    $size = implode(', ', $sizeOut);
+                    foreach ($msgs as $mg) { if (str_starts_with($mg, '!!')) $problems++; }
+                    $tierTxt = [];
+                    foreach ((array)($p['tiers'] ?? []) as $tt) {
+                        $tmin = (int)($tt['min'] ?? 0); $tpr = (float)($tt['price'] ?? 0);
+                        if ($tmin > 0 && $tpr > 0) $tierTxt[] = $tmin.'+ = '.number_format($tpr, 2);
+                    }
+                    $lineTot = round($unit * $qty, 2);
+                    $subtotal += $lineTot;
+                    $lines[] = [$sku, $size, $qty, $unit, $lineTot, implode(', ', $want)];
+                    printf("  %-16s %-28s x%-4d\n", $sku, $colour, $qty);
+                    printf("      %s %s\n", (string)($p['brand'] ?? ''), (string)($p['name'] ?? ''));
+                    printf("      kademeler   : %s\n", $tierTxt ? implode('  |  ', $tierTxt) : '(kademe yok)');
+                    printf("      MOQ/adim    : %d / %d   (ilanin kendi degerleri)\n", $moq, $step);
+                    printf("      renk        : %s   (ilanda %d renk, asgari %s)\n",
+                           implode(', ', $want), count($cols), $minCol > 0 ? (string)$minCol : 'yok');
+                    printf("      beden       : %s\n", $size !== '' ? $size.'  ('.($perPack>0?intdiv($qty,$perPack):0).' x '.$perPack.'\'lik seri)' : '(yazilmadi)');
+                    printf("      birim       : EUR %8s   (%s)\n", number_format($unit, 2),
+                           $agreed !== null ? 'ANLASILAN fiyat -- katalog kademesi degil' : sprintf('kademe, %d adette', $qty));
+                    $withRegion = round((float)vestra_unit_price($p, $qty), 2);
+                    if ($agreed === null && abs($withRegion - $listUnit) > 0.005) printf("      (bolgesel indirimli hali EUR %s -- bu siparise UYGULANMADI)\n", number_format($withRegion, 2));
+                    printf("      satir       : EUR %8s   (%s x %d)\n", number_format($lineTot, 2), number_format($unit, 2), $qty);
+                    foreach ($msgs as $mg) printf("      %s\n", $mg);
+                    echo "\n";
+                    $baseSum = ($baseSum ?? 0.0) + $lineTot;
+                    continue;
+                }
                 $unit = vestra_dropship_unit_price($p, null);   // abonelik YOK -> zamli fiyat
                 if ($unit === null || $unit <= 0) { printf("  !! %-24s dropship fiyati YOK (kapali ya da kademesiz)\n", $sku); $problems++; continue; }
                 /* Beden ilanda gercekten var mi VE yetiyor mu? Olmayan bedene
@@ -252,9 +436,17 @@ jobs:
             $ship = round((float)str_replace(',', '.', (string)getenv('OD_SHIP')), 2);
             $total = round($subtotal + $ship, 2);
             echo "\n== TOPLAM ==\n";
-            printf("  toptan   : EUR %10s   (zamsiz taban toplami -- kiyas icin)\n", number_format((float)($baseSum ?? 0), 2));
-            printf("  mal      : EUR %10s   (dropship, taban + %%%d)\n", number_format($subtotal, 2), (int)round(VESTRA_DROPSHIP_MARKUP * 100));
-            printf("  zam payi : EUR %10s\n", number_format($subtotal - (float)($baseSum ?? 0), 2));
+            if (!$wholesale) {
+                printf("  toptan   : EUR %10s   (zamsiz taban toplami -- kiyas icin)\n", number_format((float)($baseSum ?? 0), 2));
+                printf("  mal      : EUR %10s   (dropship, taban + %%%d)\n", number_format($subtotal, 2), (int)round(VESTRA_DROPSHIP_MARKUP * 100));
+                printf("  zam payi : EUR %10s\n", number_format($subtotal - (float)($baseSum ?? 0), 2));
+            } else {
+                /* Etiket, fiyatin GERCEKTEN nereden geldigini yazmali: anlasilan
+                   bir birimle kurulmus bir toplama "kademe fiyatlari" demek,
+                   notun kendisinde duzeltilen yalanin ozet satirindaki hali. */
+                printf("  mal      : EUR %10s   (%s)\n", number_format($subtotal, 2),
+                       $anyAgreed ? 'ANLASILAN birim fiyat(lar)' : 'toptan kademe fiyatlari');
+            }
             printf("  kargo    : EUR %10s\n", number_format($ship, 2));
             printf("  TOPLAM   : EUR %10s\n", number_format($total, 2));
             $r = vestra_fx('USD');
@@ -274,9 +466,28 @@ jobs:
             if ($problems) { fwrite(STDERR, "SORUN VAR -- yazmiyorum\n"); exit(1); }
 
             $mkLines = [];
-            foreach ($lines as $L) $mkLines[] = ['sku'=>$L[0], 'size'=>$L[1], 'qty'=>$L[2], 'unit'=>$L[3]];
-            $res = vestra_order_create_manual($acc, $mkLines, $ship,
-                'Dropship pricing (wholesale +'.(int)round(VESTRA_DROPSHIP_MARKUP*100).'%), single pieces, agreed with the buyer.');
+            foreach ($lines as $L) $mkLines[] = ['sku'=>$L[0], 'size'=>$L[1], 'qty'=>$L[2], 'unit'=>$L[3], 'colour'=>$L[5] ?? ''];
+            /* NOT, SATISIN NE OLDUGUNU SOYLER. Toptan bir lot siparisine
+               "dropship, single pieces" yazmak, kaydi okuyan herkese yanlis
+               satisi anlatirdi -- ve o not siparis sayfasinda, panelde ve
+               faturanin toplama listesinde oldugu gibi basiliyor.
+               Renk asgarisinden feragat edildiyse GEREKCE de kayitta durur:
+               aylar sonra "bu lot neden tek renk" sorusunun cevabi, ilanin
+               bugun hala "en az N renk" diyen metni degil, bu satir olur. */
+            /* NOT, FIYATIN NEREDEN GELDIGINI DE SOYLEMEK ZORUNDA. Anlasilan bir
+               birimle kesilen satisa "wholesale tier pricing" yazmak, kaydi
+               okuyan herkese YANLIS bir sey anlatirdi: kademeyi acip "bu fiyat
+               nereden cikti" diye bakan kisi hicbir kademede o rakami bulamaz.
+               `desc` ile `sizes`'in celistigi hatanin aynisi. */
+            $note = $wholesale
+                ? ($anyAgreed
+                    ? 'Unit price agreed with the buyer, outside the listed tiers. Full cartons.'
+                    : 'Wholesale tier pricing, full cartons, agreed with the buyer.')
+                  .($waiveMinCol ? ' Single-colour lots agreed as an exception to the listed colour minimum.' : '')
+                  .($waiveMoq ? ' Quantity below the listed minimum order, agreed as an exception.' : '')
+                  .($waivePack ? ' Quantity is not a whole number of cartons, agreed as an exception; no size breakdown.' : '')
+                : 'Dropship pricing (wholesale +'.(int)round(VESTRA_DROPSHIP_MARKUP*100).'%), single pieces, agreed with the buyer.';
+            $res = vestra_order_create_manual($acc, $mkLines, $ship, $note);
             if (!empty($res['error'])) { fwrite(STDERR, "YAZILAMADI: ".$res['error']."\n"); exit(1); }
             printf("\n  SIPARIS YAZILDI: %s\n", (string)$res['ref']);
             printf("  mal %s + kargo %s = %s EUR   (kayittan geri okundu)\n",
@@ -286,6 +497,110 @@ jobs:
             PHPEOF
             php /tmp/vestra_orddraft.php; rc=$?
             rm -f /tmp/vestra_orddraft.php
+            exit $rc
+
+      - name: Siparişi sil (order_delete) — varsayılan KURU KOŞU
+        # Bu adim, order_write'in eksik olan yarisi: siparisi bu is akisindan
+        # YAZABILIYORDUM ama GERI ALAMIYORDUM, yani her yanlis adet operatorun
+        # panele girmesini gerektiriyordu. Panelin `order_delete` eylemiyle AYNI
+        # yazici (`vestra_order_delete`) cagriliyor -- ikinci bir silme mantigi
+        # yazilmadi; ikinci bir uygulama yedek almayi ya da orders.csv'nin
+        # eskiden-yeniye saklandigini kacirirdi.
+        #
+        # MUHAFAZA BURAYA AYRICA YAZILDI, ve sebebi yapisal: `vestra_order_delete()`
+        # kesilmis faturaya BAKMIYOR -- o kontrol admin.php'de duruyor. Yani
+        # fonksiyonu dogrudan cagiran bir ikinci kapi, KURAL 5g'nin korudugu seyi
+        # kilitsiz birakirdi (bu depoda "dugmeyi gizlemek kapi degildir"in tersi:
+        # kapi var, kilit baska dosyada).
+        #
+        # `force` BILEREK YOK. CLAUDE.md `force=1` yolunu (numarasi yanmis belgeyi
+        # arsivleyerek silme) TEK yerde -- Orders sekmesinde -- tutuyor; ikinci bir
+        # ulasim noktasi tam da o kurali gevsetirdi. Faturali bir ref burada
+        # KOSULSUZ reddediliyor ve nereye gidilecegi yaziliyor.
+        if: ${{ github.event.inputs.admin_mode == 'order_delete' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          ODL_REF:   ${{ github.event.inputs.issue_ref }}
+          ODL_APPLY: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: ODL_REF,ODL_APPLY
+          script: |
+            set -e
+            cat > /tmp/vestra_orddel.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/invoice.php";
+
+            $ref   = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('ODL_REF'));
+            $apply = strtolower(trim((string)getenv('ODL_APPLY'))) === 'true';
+            if ($ref === '') { fwrite(STDERR, "ref yok (issue_ref)\n"); exit(1); }
+
+            $row = null;
+            foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $row = $r; break; }
+            if (!$row) { fwrite(STDERR, "siparis bulunamadi: {$ref}\n"); exit(1); }
+
+            /* NE SILINIYOR. Ref/firma/tutar/durum acik, KISIYE AIT OLAN MASKELI:
+               siparis satiri alicinin adini, e-postasini, telefonunu ve teslimat
+               adresini tasiyor ve bu kutuk herkese acik -- `find_ref` bir kez
+               maskesiz basti (KURAL: teshis adimi "satiri oldugu gibi bas"
+               yapamaz). */
+            $st = (array)(vestra_read_json('order_statuses.json')[$ref] ?? []);
+            printf("silinecek      : %s\n", $ref);
+            printf("firma          : %s\n", (string)($row['company'] ?? '(yok)'));
+            /* Sutun adlari orders.csv'nin KENDI basligindan: `goods`/`currency`
+               diye alanlar YOK (mal toplami `subtotal`, kayit EUR tabanli ve
+               fatura para birimi ayri bir operator secimi -- KURAL 5i). Olmayan
+               bir anahtari `?? ''` ile sormak sessizce bos basar: bu depoda
+               `$a['vat']` (dogrusu `vat_id`) tam boyle her hesap icin "(yok)"
+               yazdi ve neredeyse bir ozur mektubu yazdiriyordu. */
+            printf("tutar          : EUR %s   (mal %s + kargo %s)\n",
+                (string)($row['total'] ?? '?'), (string)($row['subtotal'] ?? '?'),
+                (string)($row['shipping'] ?? '0'));
+            printf("durum          : %s\n", (string)($st['status'] ?? 'pending'));
+            if (trim((string)($st['invoice_currency'] ?? '')) !== '')
+                printf("fatura birimi  : %s   (operator secimi)\n", (string)$st['invoice_currency']);
+            printf("kalem          : %d\n", count(vestra_order_lines($row)));
+
+            $inv = vestra_invoices_for_ref($ref);
+            if ($inv) {
+              fwrite(STDERR, "\n*** FATURA KESILMIS (".implode(', ', array_map(fn($i)=>(string)($i['no'] ?? '?'), $inv))
+                           .") -- BU YOLDAN SILINMEZ.\n"
+                           ."Numara yanmis ve belgenin kopyasi alicinin elinde. Tek kalem yanlissa\n"
+                           ."KURAL 5f (ayni numarayla yeniden ciz); belgeyi gercekten kaldirmak\n"
+                           ."gerekiyorsa Admin > Orders'daki ret bandi (force=1) -- o yol BILEREK\n"
+                           ."tek yerde.\n");
+              exit(1);
+            }
+            echo "fatura         : yok (numara yanmamis)\n";
+
+            if (!$apply) { echo "\nKURU KOSU -- hicbir sey silinmedi (move_apply=true ile uygulanir).\n"; exit(0); }
+
+            /* Yedek `vestra_order_delete()` icinde aliniyor (orders.csv.bak-del-<zaman>);
+               ikinci bir kopya almak, geri donuste hangisinin dogru oldugunu
+               sorduracak ikinci bir dosya birakirdi. */
+            $n = vestra_order_delete($ref);
+            if ($n < 0)   { fwrite(STDERR, "SILINEMEDI (yazma hatasi)\n"); exit(1); }
+            if ($n === 0) { fwrite(STDERR, "satir bulunamadi -- silinmedi\n"); exit(1); }
+
+            /* GERI OKUMA: `rename()` sessizce dusebilir (izin, dolu disk -- bu
+               depoda ayni ay kota kesintisi yasandi) ve "silindi" derken satir
+               yerinde durmamali. */
+            $still = false;
+            foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $still = true; break; }
+            printf("\nSILINDI        : %d satir\n", $n);
+            printf("geri okuma     : %s\n", $still ? '*** HALA DURUYOR ***' : 'kayitta yok (dogrulandi)');
+            exit($still ? 1 : 0);
+            PHPEOF
+            php /tmp/vestra_orddel.php; rc=$?
+            rm -f /tmp/vestra_orddel.php
             exit $rc
 
       - name: Lookbook PDF (yalnız marka + ad + foto)

@@ -50,7 +50,9 @@ function vestra_legal_en(){
     <li><b>Contact:</b> <a href='mailto:{$email}'>{$email}</a> · <a href='mailto:support@vestrasales.com'>support@vestrasales.com</a></li></ul>
     <h3>Role</h3>
     <p>VESTRA operates an online B2B wholesale marketplace and acts as an <b>intermediary and technical platform only</b>.
-    It is not a party to the sales contracts concluded between sellers and buyers and does not take title to goods.</p>
+    It is not a party to the sales contracts concluded between sellers and buyers and does not take title to goods.
+    <b>Exception:</b> for orders that {$co} invoices in its own name it contracts with the buyer as seller of record;
+    the invoice for an order states which applies (Terms of Service, section 3c).</p>
     <h3>Online dispute resolution</h3>
     <p>The EU ODR platform is available at ec.europa.eu/consumers/odr. VESTRA serves businesses (B2B).</p>"],
 
@@ -61,14 +63,17 @@ function vestra_legal_en(){
     <h3>1. What VESTRA is</h3><p>VESTRA is a B2B wholesale marketplace connecting verified business sellers and buyers.
     VESTRA is an <b>intermediary and technical platform only</b>. It is <b>not a party</b> to any sale; it does not own,
     hold, inspect, store, ship or take title to goods, and does not custody funds (a licensed third-party escrow/payment
-    provider does). Contracts of sale are concluded <b>exclusively between buyer and seller</b>.</p>
+    provider does). Contracts of sale are concluded <b>exclusively between buyer and seller</b>.
+    This section is subject to section 3c: for orders {$co} invoices in its own name, it is itself the seller of
+    record and the contract is concluded with it.</p>
     <h3>2. Business users only (no consumers)</h3><p>VESTRA is strictly for businesses (B2B); it is not directed to
     consumers and consumer-withdrawal rights do not apply. You must complete verification (KYB/KYC) before transacting and
     warrant that all information you provide is accurate and kept current.</p>
     <h3>2a. Dropshipping orders</h3><p>Single-piece <b>dropshipping</b> orders are placed by a verified trade partner <b>for onward sale to that partner's own customer</b>. The partner is the buyer and the seller of record towards their customer; they supply the delivery address, colour and size at checkout. <b>No contract of sale arises between VESTRA and the partner's end customer</b>, and this section does not open the platform to consumers. Dropshipping prices are the wholesale price plus a handling margin, plus the shipping rate for the destination zone shown at checkout. Per-unit stock is not tracked: availability is confirmed with the seller after the order and the order is refunded in full if it cannot be met. <b>Duties, import taxes and customs clearance charges in the destination country are not included in the price or the shipping rate</b> and are payable on delivery. They are the responsibility of the ordering trade partner, who may settle them directly or arrange for their own customer to do so. Goods of EU preferential origin may qualify for zero customs duty into Japan under the EU&ndash;Japan Economic Partnership Agreement where a statement on origin accompanies the consignment; this does not cover consumption tax or carrier clearance fees.</p>
     <h3>3. Listings, orders &amp; fulfilment</h3><p>Sellers are <b>solely responsible</b> for their listings and for the
     legality, safety, conformity, labelling, description, pricing, authenticity, delivery, warranties and taxes of their
-    goods. An order forms a binding contract between buyer and seller; VESTRA is not responsible for either party's performance.</p>
+    goods. An order forms a binding contract between buyer and seller; VESTRA is not responsible for either party's
+    performance. For orders {$co} invoices in its own name, section 3c applies instead.</p>
     <h3>3a. Returns &amp; claims</h3><p>Orders placed on VESTRA are wholesale purchases between businesses and are
     <b>closed to returns</b>: there is no right of return for change of mind, and the consumer right of withdrawal does
     not apply to a trade purchase for resale. Goods that are <b>wrong, missing or faulty</b> may be claimed within the
@@ -80,6 +85,33 @@ function vestra_legal_en(){
     period</b> stated in the Returns &amp; Claims policy; hidden defects must be notified immediately upon discovery.
     Where notice is not given in time the goods are deemed accepted and warranty claims lapse. This mirrors the
     inspection duty of a commercial buyer under, among others, German commercial law (HGB \u00a7377).</p>
+    <h3>3c. Orders invoiced by VESTRA</h3><p>For some orders VESTRA issues the invoice <b>in its own name</b>. This is
+    not the default and it is not decided by the listing page: <b>the invoice for an order states who the seller of
+    record is</b>, and that document governs. Where an invoice names {$co} as seller of record, sections 1 and 3 above
+    (VESTRA as intermediary only, contract between buyer and seller) <b>do not apply to that order</b>, and the
+    following applies instead:</p>
+    <ul>
+    <li><b>Contract.</b> The contract of sale for that order is concluded between the buyer and {$co}, which contracts
+    in its own name and on its own account &mdash; whether the goods come from VESTRA's own curated stock or were
+    purchased from a supplying seller in order to be resold to the buyer.</li>
+    <li><b>Invoice and tax.</b> The invoice carries {$co}'s own company details, registered address and tax
+    identifiers, and states the VAT treatment applied to that supply; where a cross-border business-to-business supply
+    is reverse-charged, the invoice says so and no VAT is charged. Where amounts were converted into another currency,
+    the invoice states the rate, its source and the date that rate was published.</li>
+    <li><b>Payment.</b> Payment is made to the bank account named on that invoice and is <b>not</b> held in escrow;
+    the escrow provisions of the Payments, Escrow &amp; Refunds Policy do not apply to such an order. Payment terms,
+    and any deadline after which an unpaid order is cancelled, are stated on the invoice.</li>
+    <li><b>Returns, defects and the inspection duty.</b> The
+    <a href=\"/faq?cat=returns\">Returns &amp; Claims policy</a> and the inspection and notice-of-defects duty apply
+    unchanged, with {$co} as the buyer's counterparty for that order. The buyer's rights are not reduced by the fact
+    that VESTRA, rather than a marketplace seller, is the seller of record.</li>
+    <li><b>Supplying seller.</b> Where the goods were bought in for resale, the supplying seller's warranties under the
+    Seller Policy &mdash; authenticity, right to sell, conformity, safety and accurate declaration &mdash; are given to
+    {$co} and, so far as the law permits, passed on to the buyer.</li>
+    <li><b>Invoicing on a seller's behalf.</b> By prior agreement with a seller, VESTRA may instead issue an invoice
+    <b>in the name and on behalf of</b> that seller (self-billing). Such an invoice carries the <b>seller's</b>
+    identity and tax identifiers; the seller remains the seller of record and sections 1 and 3 apply unchanged.</li>
+    </ul>
     <h3>4. Payments, escrow &amp; fees</h3><p>Payments are processed and held in escrow by a licensed third-party provider and
     released per agreed conditions (e.g. buyer confirmation / verified delivery). VESTRA charges a platform commission (a
     seller commission plus a buyer-protection fee) and/or membership fees; provider fees apply as charged. Fees are shown
@@ -143,7 +175,11 @@ function vestra_legal_en(){
     <p>Between {$co} and the registered business seller. <b>Effective:</b> {$eff}.</p>
     <h3>1. Verification</h3><p>Provide and keep current business registration, tax/VAT ID and beneficial-owner identity.</p>
     <h3>2. Seller of record</h3><p>The seller is the legal seller of its goods and is solely responsible for conformity, safety,
-    delivery, warranties and taxes. VESTRA is an intermediary only and is not a party to the sale.</p>
+    delivery, warranties and taxes. VESTRA is an intermediary only and is not a party to the sale.
+    <b>Where {$co} buys goods from the seller in order to resell them</b>, {$co} is the seller of record towards that
+    buyer and invoices in its own name (Terms of Service, section 3c); the warranties the seller gives below are then
+    given to {$co}. VESTRA may also, by prior agreement with a seller, issue invoices in that seller's name and on
+    their behalf; the seller then remains the seller of record.</p>
     <h3>3. Authenticity &amp; right to sell</h3><p>For every item listed on VESTRA, the seller gives the following warranty:
     the goods are <b>genuine</b> (not counterfeit, replica or imitation); the seller is <b>lawfully entitled to sell</b> them
     in the destination market; and — for branded goods — the goods were <b>first placed on the EEA market by or with the
@@ -196,7 +232,11 @@ function vestra_legal_en(){
 
   'payments'=>['title'=>'Payments, Escrow &amp; Refunds','html'=>"
     <h3>How payment works</h3><p>Buyers pay via the licensed escrow provider (SEPA bank transfer for EU B2B; cards available).
-    Funds are <b>held in escrow</b> — VESTRA never holds the money.</p>
+    Funds are <b>held in escrow</b> — VESTRA never holds the money.
+    <b>Orders invoiced by {$co} in its own name are different</b> (Terms of Service, section 3c): they are paid by
+    transfer to the bank account named on that invoice, not into escrow, and the escrow rules on this page &mdash;
+    release, automatic release and refund from escrow &mdash; do not apply to them. The
+    <a href=\"/faq?cat=returns\">Returns &amp; Claims policy</a> applies to them unchanged.</p>
     <h3>Escrow release</h3><p>Funds release on buyer confirmation, or automatically once the buyer's claim
     window has run and no problem has been reported to support. The automatic release is never earlier than
     the end of that window, so payment cannot leave escrow while the buyer may still complain.</p>

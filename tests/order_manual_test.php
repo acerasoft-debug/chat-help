@@ -70,7 +70,23 @@ $t('mal kolonu kargosuz',       $row && trim((string)$row['subtotal']) === '444.
    "Nx SKU @fiyat" bekliyor ve araya beden sokmak onu bozardi. */
 $t('ayni SKU tek satirda 3x',   $row && str_contains((string)$row['items'], '3x S74GD1399 @47.88'));
 $t('items 4 SKU tasiyor',       $row && count(explode(' | ', (string)$row['items'])) === 4);
-$t('beden dokumu NOTTA',        $row && str_contains((string)$row['notes'], 'S74GD1399: M×1 · L×1 · XL×1'));
+/* BICIM, KASANIN BICIMI. Eski iddia `S74GD1399: M×1 · L×1 · XL×1` diye YAZIMI
+   sabitliyordu ve tam da kusurun kendisini koruyordu: her SKU kendi NOKTASIYLA
+   kapaniyor, degerler '·' ile ayriliyordu. vestra_order_notes_map() ILK noktaya
+   kadar okuyup ',' ile boluyor, yani IKINCI SKU'dan itibaren dokum SESSIZCE
+   kayboluyordu -- ustelik kalintisi serbest metinde kalip alicinin siparis
+   sayfasina ve panele oldugu gibi basiliyordu. Iddia artik yazimi degil
+   OLGUYU tutuyor: parca AYRISTIRICIDAN GERI OKUNABILIYOR mu, ve DORT SKU'nun
+   dordu de. */
+$t('beden dokumu NOTTA',        $row && str_contains((string)$row['notes'], 'S74GD1399: M×1, L×1, XL×1'));
+$backMap = vestra_order_notes_colors((string)($row['notes'] ?? ''));
+$t('beden parcasi GERI OKUNUYOR — dort SKU da', count($backMap['sizes'] ?? []) === 4);
+$t('ikinci SKU kaybolmuyor',    isset($backMap['sizes']['662853TJW90']));
+$t('sonuncu SKU kaybolmuyor',   isset($backMap['sizes']['VS-MB-004']));
+$t('degerler LISTE, tek blob degil', ($backMap['sizes']['S74GD1399'] ?? []) === ['M×1','L×1','XL×1']);
+/* Parca cikarilinca serbest metinde KALINTI kalmamali: "M7535: S×5." gibi bir
+   dizge alicinin siparis sayfasinda oldugu gibi basilirdi. */
+$t('serbest metinde beden kalintisi yok', !preg_match('/\b(662853TJW90|VS-MB-004):/u', (string)($backMap['notes'] ?? '')));
 $t('dropship notu var',         $row && str_contains((string)$row['notes'], 'wholesale +20%'));
 $t('havale notu var',           $row && str_contains((string)$row['notes'], 'Bank transfer'));
 $t('kaynak operator',           $row && trim((string)$row['consent']) === 'operator');
@@ -99,6 +115,46 @@ $t('kargosuz toplam 10.00',     abs((float)($r2['total'] ?? 0) - 10.00) < 0.005)
 $t('kargo kolonu bos',          (function() use ($r2) {
         foreach (vestra_read_csv('orders.csv') as $x) if (($x['ref'] ?? '') === $r2['ref']) return trim((string)$x['shipping']) === '';
         return false; })());
+
+/* ─────────────────────────────────────────────────────────────────────────
+   6. RENK — elle kurulan siparis rengi HIC yazamiyordu (17 Eyl 2026).
+   Kasa `Colours — …` parcasini bastan beri yaziyor ve vestra_order_lines()
+   onu siparis tablosuna, siparis PDF'ine ve faturanin toplama listesine
+   basiyor. Elle kurulan sipariste bu alan yoktu: bir lot "siyah" mi "bordo"
+   mu, satisin kendi kaydinda hicbir yerde durmuyordu.
+
+   IKI YON de tutuluyor: renk YAZILDIGINDA geri okunmali, renk VERILMEDIGINDE
+   parca hic basilmamali -- bos bir "Colours — ." parcasi ayristiriciyi
+   yaniltir ve her siparise anlamsiz bir satir ekler.
+   ───────────────────────────────────────────────────────────────────────── */
+echo "\n== 6. Renk notta ==\n";
+$r3 = vestra_order_create_manual($acc, [
+    ['sku'=>'M3600', 'colour'=>'Black',    'size'=>'S×5, M×15', 'qty'=>50, 'unit'=>39.00],
+    ['sku'=>'M7535', 'colour'=>'Bordeaux', 'size'=>'S×5, M×15', 'qty'=>50, 'unit'=>39.90],
+], 20.00, 'Full cartons, agreed with the buyer.');
+$t('renkli siparis olustu', !empty($r3['ok']));
+$row3 = null;
+foreach (vestra_read_csv('orders.csv') as $x) if (($x['ref'] ?? '') === ($r3['ref'] ?? '')) { $row3 = $x; break; }
+$m3 = vestra_order_notes_colors((string)($row3['notes'] ?? ''));
+$t('renk parcasi GERI OKUNUYOR',      ($m3['colors']['M3600'] ?? []) === ['Black']);
+$t('ikinci SKU rengi de okunuyor',    ($m3['colors']['M7535'] ?? []) === ['Bordeaux']);
+$t('beden dokumu ADETLE CARPILMIYOR', ($m3['sizes']['M3600'] ?? []) === ['S×5','M×15']);
+$t('renk ve beden AYRI parca',        count($m3['colors']) === 2 && count($m3['sizes']) === 2);
+/* Panelin/faturanin gercekten gordugu yol. */
+$pl3 = vestra_order_lines($row3 ?? [])['lines'] ?? [];
+$t('vestra_order_lines rengi tasiyor',
+   count($pl3) === 2 && ($pl3[0]['colors'] ?? []) === ['Black'] && ($pl3[1]['colors'] ?? []) === ['Bordeaux']);
+/* TERS YON: renk verilmeyen sipariste parca HIC basilmamali. */
+$r4 = vestra_order_create_manual($acc, [['sku'=>'A','size'=>'M','qty'=>1,'unit'=>5.00]], 0.0);
+$row4 = null;
+foreach (vestra_read_csv('orders.csv') as $x) if (($x['ref'] ?? '') === ($r4['ref'] ?? '')) { $row4 = $x; break; }
+$t('renksiz sipariste Colours parcasi YOK', $row4 && !str_contains((string)$row4['notes'], 'Colours'));
+/* Deger icindeki NOKTA parcayi erken kapatir ve gerisini serbest metne doker. */
+$r5 = vestra_order_create_manual($acc, [['sku'=>'A','colour'=>'Navy 2.0','qty'=>1,'unit'=>5.00]], 0.0);
+$row5 = null;
+foreach (vestra_read_csv('orders.csv') as $x) if (($x['ref'] ?? '') === ($r5['ref'] ?? '')) { $row5 = $x; break; }
+$m5 = vestra_order_notes_colors((string)($row5['notes'] ?? ''));
+$t('degerdeki nokta parcayi bozmuyor', ($m5['colors']['A'] ?? []) === ['Navy 20']);
 
 $restore();
 echo "\n--- $ok gecti, $fail kaldi ---\n";

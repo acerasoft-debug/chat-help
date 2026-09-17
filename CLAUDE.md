@@ -932,6 +932,51 @@ silmek icin button koy"*).
   kalırdı. Sabotajların gerçekten uygulandığı doğrulandı: ref geneline
   genişletilince **2 kırmızı**, grup bağı bloğu silinince **3**.
 
+**KURAL 5g — düğme, operatörün BAKTIĞI ekranda da olmalı** (operatör, 16 Eyl
+2026: *"siparisler ve offer lar silinmesi icin button yap demistim"*).
+*Yukarıdaki maddenin kardeşi ve onunla ÇAKIŞMAZ: o, sipariş DOSYA görünümünü ve
+tek faturanın arşivlenmesini anlatıyor; bu, `Admin ▸ Invoice approvals`
+kuyruğunu. Aynı gün, aynı sebeple, iki ayrı ekran.*
+- **Ölçüldü: iki düğme de ZATEN VARDI.** `Admin ▸ Offers ▸ 🗑 Sil`
+  (`admin.php`) ve `Admin ▸ Orders ▸ Delete`. Eksik olan düğme değil **konumu**:
+  `Admin ▸ Invoice approvals` kuyruğunda **hiçbir silme yolu yoktu** — ve
+  operatör kabul edilmiş bir teklifi tam orada görüyor. Bir ekranda görünmeyen
+  seçenek olmayan seçenektir; bu, KURAL 2e'nin *"açacak düğmem yok"* dersinin
+  birebir tekrarı (operatör onu da iki kez söylemişti).
+  *Talep "yok" dediğinde önce **hangi ekranda** yok diye ölç: bu turda cevap
+  "hiç yok" değil, "başka sekmede" idi.*
+- Kuyruğun üç bölümünden **ikisine** eklendi (bekleyen teklifler, bekleyen
+  siparişler). **Kesilmiş fatura bölümüne EKLENMEDİ** — orada belge alıcının
+  elinde ve numara yanmış (bu kuralın kendisi).
+- **İkinci bir silme yolu YAZILMADI:** düğmeler mevcut `delete_offer` /
+  `order_delete` eylemlerini çağırıyor. İkinci bir uygulama yedek almayı,
+  pazarlık kaydının yedeğini (9 Eyl'de bir kez kaybedildi) ya da faturalı
+  kayıtta reddi kaçırırdı — ve ayrışma ancak bir kayıt yok olduğunda görünürdü.
+- **`force=1` (numarası yanmış belgeyi taşıyarak silme) yolu TEK yerde bırakıldı**
+  (Orders sekmesindeki ret bandı). İki ekrandan birden ulaşılabilir yapmak, bu
+  kuralın koruduğu şeyi gevşetirdi.
+- **`back` izin listesi**, serbest metin değil: değer POST'tan geliyor ve bir
+  `Location` başlığına giriyor; serbest bırakmak **açık yönlendirme** olurdu
+  (`vestra_back_link()` için zaten yazılı ders). Tanınmayan değer varsayılana
+  düşüyor, yani iki sekmenin mevcut davranışı birebir korunuyor. Gerekçesi:
+  handler'lar hedef sekmeyi **sabit** yazıyordu, yani kuyruktan silen operatör
+  başka bir sekmede uyanıyor ve sildiği satırın gerçekten gidip gitmediğini
+  göremiyordu.
+- **Silme mesajları sekme dağıtımından ÖNCE basılıyor** (ölçüldü: 2759 < 2861),
+  yani bu kuyrukta da görünüyor. Görünmeseydi operatör geri dönüp **hiçbir şey**
+  göremez ve düğmenin çalışmadığını düşünürdü — `billing_saved`'in bu dosyada
+  kayıtlı dersi.
+- **Çizdirildi, kaynak okunmadı:** `admin.php` kum havuzunda gerçekten koşturuldu
+  (operatörün ekranındaki O2E880 / Casablanca satırının aynısı tohumlandı):
+  iki form da basılıyor, doğru ref, `back=invoices`, CSRF var, **PHP uyarısı 0**.
+- Test: `tests/admin_delete_buttons_test.php` (34 iddia). `back` kontrolü
+  **davranışsal**: kapanış admin.php'nin içinde ve dışarıdan çağrılamıyor, o
+  yüzden tanım kaynaktan çıkarılıp `eval` ediliyor (workflow'un "hitap" satırı
+  için bir kez kullanılan teknik) — düz bir grep, satır başka bir yazımla geri
+  geldiğinde yeşil kalırdı. Düşebildiği doğrulandı, her sabotajın **gerçekten
+  uygulandığı** `grep -c` ile ayrıca yazdırılarak: teklif formu gizlenince
+  **2 kırmızı**, izin listesi serbest bırakılınca **8**.
+
 **Yanlışlıkla silinen teklif YEDEKTEN geri gelir** (9 Eyl 2026, O9FBF5 /
 AlexaShop S.A.S / Gucci XJDEZ; operatör: *"biraz önce yanlış yazdığımdan teklifi
 sildim … müşteriye teklif gönder"*).
@@ -1293,6 +1338,204 @@ sorundu.**
   **CP1252 karşılığına** bakıyor.
 - Test: `invoice_currency_test.php §7–§8` (124 iddia). Düşebildiği doğrulandı:
   operatörün aldığı hatanın birebir aynısı geri konunca **9 kırmızı**.
+
+**KURAL 5q — "Faturayı PLATFORM kesiyor" HUKUKİ metinde de yazmak zorunda; ve
+EUR'da platformun ödeme kutusu ÇIKMIYOR** (operatör, 16 Eyl 2026, BRITISHSTYLE /
+Michael Baumgartner: *"Bu Adama önce Faturanin Platform tarafindan
+gönderilecegini belirt. Ve bazi siparislerde Faturanin Platform tarafindan
+alinabilmesi icin Hukuki kismida gerekli yerlere yaz."*).
+
+- **"Gerekli yerler" TAHMİN EDİLMEDİ, arandı.** Platformun kendi adına fatura
+  kesmesiyle **çelişen beş cümle** vardı ve beşi de mutlak yazılmıştı:
+  `imprint`/Role, Şartlar **1** (*"not a party to any sale … exclusively between
+  buyer and seller"*), Şartlar **3** (*"An order forms a binding contract between
+  buyer and seller"*), Satıcı Politikası **2** (*"VESTRA is an intermediary only"*)
+  ve Ödemeler/*"How payment works"* (*"VESTRA never holds the money"*). Beşine de
+  istisna cümlesi girdi; kuralın kendisi yeni **Şartlar 3c**.
+- **BEŞ KEZ YAZILDI, BİR KEZ DEĞİL.** `vestra_legal()` **BELGE BAZINDA**
+  birleştiriyor: çeviride `terms` varsa İngilizce `terms` **hiç okunmuyor**. Yani
+  yalnız İngilizceye eklenen bir madde de/fr/it/es'te **görünmez** — ve bu
+  maddenin ilk müşterisi **Avusturyalı**. pt/ru/ar/ja'nın hukuk dosyası yok,
+  İngilizceye düşüyorlar, yani onlar kendiliğinden kapsandı (KURAL 10).
+  Ölçüm dil başına **ayrı PHP sürecinde** yapıldı (`vlang()` ilk çağrıda
+  sabitleniyor — KURAL 11'in tuzağı): 5 dilde de başlık 1, madde 6, çözülmemiş
+  değişken 0, DOM hatası 0.
+- **Madde BİLEREK kendi kendine yeter.** `3a` (iade) ve `3b` (muayene/kusur
+  ihbarı) **YALNIZCA İngilizcede var** — dört çeviri de o maddelerden önceye ait.
+  Almanca bir 3c *"3a aynen geçerli"* deseydi **var olmayan bir maddeye** atıf
+  yapardı. Bunun yerine kanonik kaynağa, `/faq?cat=returns`'e bağlandı; o metin
+  zaten 8 dilde tam (KURAL 11).
+- **Açık kalan, operatör kararı bekliyor:** Şartların **3a ve 3b maddeleri dört
+  çeviride yok**, yani Alman/Fransız/İtalyan/İspanyol alıcı sözleşmede iade
+  kuralını ve HGB §377 muayene ödevini **hiç görmüyor**. Bu bu işten bağımsız ve
+  eski; kendiliğinden çevrilmedi çünkü bu dosyanın kendi kaydı *"hukuk metni
+  sohbet çevirisiyle yazılmaz"* diyor.
+
+**Toptan LOT siparişi yazmanın yolu yoktu — `order_draft` her satırı DROPSHIP
+fiyatlıyordu.** Tek parça satışı için doğru, tam kartonluk bir lot için yanlış;
+ve elle anlaşılmış bir toptan satışı kayda geçirmenin **tek** yolu oydu.
+`payload: pricing=wholesale|SKU:RENK:ADET`:
+- Birim **sepetin kendi fonksiyonundan** (`vestra_unit_price`), elle hesaplanmıyor.
+- **MOQ ve paket adımı ilandan** doğrulanıyor (KURAL 4b: sepet adedi adımın katına
+  yuvarlıyor, yani katalog dışı bir adet kasada başka bir adet demek).
+- **Renk ilanda gerçekten var mı**, TAM eşleşmeyle (mango/zara dersi).
+- **Beden dökümü UYDURULMUYOR:** ilanın kendi serisi × karton sayısı. Seri
+  okunamazsa satır yazılmıyor.
+- İlanın **renk asgarisinden feragat** açık bir opt-in (`|waive_min_colours=1`),
+  sessizce atlanan bir kontrol değil — `force=1` deseninin aynısı — ve **gerekçe
+  siparişin kendi notuna** yazılıyor: aylar sonra *"bu lot neden tek renk"*
+  sorusunun cevabı, ilanın bugün hâlâ "en az 4 renk" diyen metni değil, o satır.
+
+**Yan düzeltme — elle kurulan sipariş, KENDİ ayrıştırıcısının okuyamadığı bir not
+yazıyordu.** `vestra_order_create_manual()` her SKU'yu kendi **noktasıyla**
+kapatıyor ve değerleri `·` ile ayırıyordu; `vestra_order_notes_map()` ise **ilk
+noktaya** kadar okuyup `,` ile bölüyor. Sonuç: **iki SKU'lu her elle siparişte
+ikinci SKU'nun dökümü sessizce kayboluyordu**, üstelik kalıntısı serbest metinde
+kalıp alıcının sipariş sayfasına ve panele **olduğu gibi** basılıyordu. Ölçüldü
+(gerçek bir not dizgesiyle harita 1 SKU, kalıntı metinde), sonra kasanın biçimine
+çevrildi. **Renk alanı hiç yoktu** ve eklendi — kasa `Colours — …` parçasını
+baştan beri yazıyor, `vestra_order_lines()` onu sipariş tablosuna, sipariş
+PDF'ine ve faturanın toplama listesine basıyor; elle kurulan sipariş bir lotun
+siyah mı bordo mu olduğunu **hiçbir yere** yazamıyordu.
+Test: `order_manual_test.php` 29 → **43 iddia**; eski biçim geri konunca
+**12 kırmızı** (sabotajın gerçekten uygulandığı `grep -c` ile doğrulandı).
+
+**CANLI ÖLÇÜM — sipariş ilanın kendi kurallarıyla ÇELİŞİYOR ve bu ölçülerek
+görüldü.** Müşteri *"1 Lot Polos in Schwarz + 1 Lot Sweatshirts in Bordeaux"*
+yazdı; sonda (`inspect-products`, `brand=Fred Perry`) şunu verdi:
+
+| | M3600 polo | M7535 sweatshirt |
+|---|---|---|
+| MOQ / paket adımı | 50 / 10 | 50 / 10 |
+| kademeler | 39,00 / 35,50 / 32,00 | 39,90 (tek) |
+| renkler | 6 (Black dahil) | 5 (**Bordeaux dahil**) |
+| **`min_colors`** | **2** | **4** |
+
+Yani **Bordeaux gerçekten var** (uydurma değil), ama müşteri **her ikisinden tek
+renk** istiyor ve ilanlar ≥2 / ≥4 diyor — sepet bu siparişi **reddederdi**.
+Feragat operatör kararı olarak uygulandı ve gerekçesi kayda yazıldı; **ilanlara
+dokunulmadı** (min_colors'ı düşürmek her alıcının gördüğü kuralı değiştirirdi).
+
+- **Sondanın kendisi önce düzeltildi:** ürün dökümü `colors`'ı **hiç
+  basmıyordu** ve `!empty()` yüzünden `min_colors=0` ile "alan yok" aynı
+  görünüyordu. Görmediği bir alan hakkında yeşil veren sonda bu depoda iki kez
+  kayıtlı (`check_images` yalnız approved geziyordu; `price_list` `sold_out`
+  basmıyordu). Renk listesi, `min_colors` ve **her iki seçici** artık koşulsuz
+  basılıyor.
+- **"1 Lot" = 50 adet ÇIKARIMDI ve ÇIKARIM YANLIŞTI — doğrusu 10.** Karton
+  10'luk ama ilan edilen asgari 50; 10 adet MOQ'nun altında kaldığı için tek
+  tutarlı okumanın 5 karton = 50 olduğunu düşündüm ve varsayımı hem metne hem
+  buraya **açıkça çıkarım diye** yazdım. Operatör aynı gün düzeltti: *"toplam
+  10 ad. F.Perry Polo + 10 Ad. F.Perry Sweatshirt +20 eur shipping"* — yani
+  **je 1 karton**, ve "numune siparişi" cümlesi de bunu anlatıyormuş.
+  *Varsayımı işaretlemek onu doğru yapmıyor; işaretlemek yalnızca
+  düzeltilebilir yapıyor — ve burada tam da o işe yaradı.* Beş kat fark
+  (€3.965 → €809) bir çıkarımın bedeli olarak küçük değil: adet gibi tek
+  cümlelik bir belirsizlikte, mektubu hazırlamadan ÖNCE sormak daha ucuzdu.
+
+**BLOKAJ — platformun EUR ödeme kutusu ÇIKMIYOR** (`diag-messages` →
+`billing_for=vestra`, 17 Eyl 2026 canlı): `bank_holder`, `bank_name`
+(*Choice Financial Group*), `bank_bic`, `bank_account` **VAR (12 hane)**,
+`bank_routing` **VAR (9 hane)** — ama `bank_iban` **BOŞ**. Yani platformun hesabı
+bir **ABD hesabı** ve euro rayı yok: **EUR faturada ödeme kutusu ÇIKMAZ**, USD'de
+**ÇIKAR (6 satır)**. Bu sipariş **EUR**. 9 Eylül'de operatörün sorduğu
+*"neden fatura yaparken banka bilgileri cikmiyor?"* sorusunun aynısı, bu kez
+**numara yakılmadan önce** yakalandı. Üç seçenek, karar operatörün:
+**(a)** platform künyesine bir **EUR/IBAN** hesabı girmek
+(`Admin ▸ Orders ▸ Platform billing & bank details`) — en doğrusu, kod zaten
+destekliyor; **(b)** faturayı **USD** kesmek (kutu çıkar, ama kur KURAL 5i'ye
+göre **sipariş tarihinin damgası**); **(c)** faturayı GARAGE LE PARIS'ten kesmek
+— operatörün talimatına aykırı.
+
+**Sipariş YAZILDI, fatura KESİLMEDİ: `VES-1F0C9350`** — 10 × M3600 Black
+(€39,00) + 10 × M7535 Bordeaux (€39,90) = €789 mal + €20 kargo = **€809,00**,
+kayıttan geri okundu; beden dökümü ilanın kendi serisinden (**S×1 · M×3 · L×3 ·
+XL×2 · XXL×1**, karton başına), müşteriye hiçbir şey gitmedi. Fatura kesicisi
+kayıtta **`vestra`** (operatör seçimi, KURAL 5b) ve yük **tek dilim = TEK
+BELGE**. Numara bilerek yakılmadı: EUR'da ödeme kutusu **boş** çıkıyor (aynı
+koşunun kendi satırı: *"odeme kutusu (EUR): BOS -- bu kunyede EUR yolu yok"*)
+ve mektup *"faturadaki hesaba ödeyin"* diyemez — belgede o hesap **yok**.
+
+**Yanlış adetli ilk sipariş (`VES-DDC53EF1`, 50+50 = €3.965) SİLİNDİ** ve
+silme geri okundu (*"kayitta yok (dogrulandi)"*). Silmek mümkündü çünkü numara
+yakılmamıştı — *sipariş geri alınabilir, yanmış bir numara pratikte değil.*
+**Ama silecek yolum YOKTU:** siparişi bu iş akışından **yazabiliyordum**,
+geri alamıyordum; her yanlış adet operatörün panele girmesini gerektiriyordu.
+`seller-products.yml` → **`admin_mode=order_delete`** (kuru koşu varsayılan,
+`move_apply=true` uygular) panelin `order_delete` eylemiyle **aynı yazıcıyı**
+çağırıyor.
+- **Muhafaza AYRICA yazıldı ve sebebi yapısal:** `vestra_order_delete()`
+  kesilmiş faturaya **bakmıyor** — o kontrol `admin.php`'de duruyor. Fonksiyonu
+  doğrudan çağıran ikinci bir kapı, KURAL 5g'nin koruduğu şeyi **kilitsiz**
+  bırakırdı. *Kapı vardı, kilit başka dosyadaydı.*
+- **`force` bilerek YOK:** numarası yanmış belgeyi arşivleyerek silme yolu
+  **tek yerde** (Orders sekmesinin ret bandı) ve ikinci bir ulaşım noktası tam
+  o kuralı gevşetirdi. Faturalı ref **koşulsuz** reddediliyor.
+- **İki yönü de ölçüldü:** kontrol grubu `OCD7D2` (INV-2026-1012, ödenmiş)
+  **REDDEDİLDİ**; `VES-DDC53EF1` (faturasız) kuru koşuda geçti, uygulandı,
+  geri okundu. Tek yön ölçülseydi "her şeyi silen" bir kusur da yeşil görünürdü.
+- **Sütun adları `orders.csv`'nin KENDİ başlığından:** ilk yazımda `goods` ve
+  `currency` okumuştum, ikisi de o dosyada **yok** (mal toplamı `subtotal`).
+  Ayrıca çağırdığım `vestra_order_status()` diye bir fonksiyon **hiç yoktu** —
+  çağrılan her `vestra_*` fonksiyonunun kaynakta var olduğu tarandığı için
+  yakalandı. *Olmayan bir anahtarı `?? ''` ile sormak sessizce boş basar;
+  bu depoda `$a['vat']` (doğrusu `vat_id`) tam böyle her hesap için "(yok)"
+  yazıp neredeyse bir özür mektubu yazdırmıştı.*
+
+**İlan edilen ASGARİ ADETTEN feragat: `|waive_moq=1`** (KURAL 4b'nin kardeşi).
+10 adet, `size_step=10`'un tam katı (bir karton) ama ilanların `moq=50`'sinin
+**altında**, yani hem sepet hem toptan kipi bu siparişi reddederdi. Renk
+asgarisindeki kardeşiyle aynı desen: açık opt-in, sessizce atlanan bir kontrol
+değil, ve gerekçe siparişin **kendi notunda** duruyor (*"Quantity below the
+listed minimum order, agreed as an exception."*).
+- **İki bayrak AYRI, bilerek:** renk asgarisinden feragat etmek ile ilan edilen
+  asgari adedin altına inmek iki ayrı taviz; birini isteyen ötekini istemeyebilir.
+- **PAKET ADIMI feragata GİRMİYOR:** o fiziksel bir kısıt (karton 10'luk) ve
+  sepet adedi adımın katına **yuvarlıyor** — 15 adet yazan bir fatura kasada
+  20 adet demek olurdu. *Asgariyi aşağı çekmek ilan edilen bir kuralı gevşetir;
+  adımı kırmak belgeyi yalanlar.*
+- Ölçüm: kaynaktan çıkarılıp `eval` edilen parse bloğu, 11 iddia, iki yön;
+  ayrıştırma silinince **4 kırmızı**, feragat hep açık bırakılınca **5**.
+  **İlk sabotajım hiç uygulanmamıştı** (perl kaçışı eşleşmedi) ve "iddia
+  düşmüyor" sandırdı — üstelik karşılaştırdığım taban sayı **başka bir
+  dosyanınkiydi**. Satır sayımıyla doğrulanınca çıktı.
+
+**"ABD hesabı verdiğimde müşteriler ödemiyor, neden?"** (operatör sorusu,
+17 Eyl 2026 — yukarıdaki blokajın ta kendisi, başka kelimelerle).
+- **Avrupalı alıcı için ABD hesabı SEPA DEĞİL, SWIFT havalesidir.** SEPA yalnız
+  SEPA alanındaki EUR transferleri kapsıyor; Delaware'deki bir hesap o alanda
+  değil. Sonuç alıcının tarafında üç somut engel: **ücret** (bankası giden
+  uluslararası havaleden tipik olarak €15–50 alıyor, üstüne muhabir banka
+  yol üstünde kesiyor), **süre** (SEPA'da ertesi gün, SWIFT'te 2–5 iş günü —
+  yani "ödedim" ile "gördük" arası günlerce açık kalıyor), ve **form**:
+  AB kurumsal bankacılığı **IBAN merkezli**; ABA routing + hesap numarası
+  isteyen bir ödeme çoğu portalda ayrı bir "uluslararası havale" akışına,
+  bazen şubeye gidiyor. €3.965'lik bir siparişte bu, alıcı için hem masraf
+  hem angarya.
+- **Ve güven tarafı, ki asıl sebebin bu olması kuvvetle muhtemel:** Avrupalı
+  bir alıcı, Avrupa merkezli görünen bir pazar yerinden mal alıp faturayı
+  **ABD'deki bir hesaba** ödemeye çağrılıyor. Bu kalıp, muhasebe
+  departmanlarının **fatura dolandırıcılığı (BEC)** eğitiminde birebir
+  öğretilen kalıp — "ödeme bilgileri değişti, şu yabancı hesaba yatırın".
+  Şüphelenen taraf ödemeyi yapmıyor, çoğu zaman **sormuyor da**.
+- **Kod bu kararı ZATEN veriyor:** `vestra_payment_rails` EUR faturaya ABA
+  routing **basmıyor** — hiçbir şey basmamayı seçiyor. Gerekçesi yazılı:
+  "Avrupalı alıcı o yola ödeyemez, kabul eden banka günler sonra iade eder."
+  Yani bugünkü hâl "ABD hesabı görüyorlar ve ödemiyorlar" değil; **hiçbir
+  hesap görmüyorlar** ve ödeyecekleri yer yok.
+- **Çözüm bir fiyat/hesap kararı, kod kararı değil: aynı tüzel kişiye bir
+  EUR IBAN.** Bir ABD LLC'si için IBAN veren hesap sağlayıcıları var (Wise
+  Business, Payoneer, Revolut Business, Airwallex — hangisinin Delaware LLC
+  kabul ettiğini operatör kendi doğrulamalı). IBAN girildiği anda
+  (`Admin ▸ Orders ▸ Platform billing & bank details`) kod zaten hazır: EUR
+  faturada ödeme kutusu **çıkıyor**, alıcı sıradan bir SEPA havalesi yapıyor.
+  *Dürüst uyarı:* bu sağlayıcıların IBAN'ı çoğu zaman **başka bir AB ülkesine**
+  ait oluyor (BE/LT gibi) ve bazı ödeyenler buna da takılıyor — ama IBAN
+  ayrımcılığı AB'de **yasak** (SEPA Tüzüğü 260/2012 md. 9) ve bu, ABA routing
+  vermekten kıyaslanamayacak kadar iyi.
+- **Ara çözüm zaten kurulu:** kart/escrow yolu (Stripe) havale değil; tavanı
+  €3.000 (KURAL 6), yani bu siparişi tek başına karşılamıyor ama küçük
+  siparişlerde "ödeyemiyorum" sorununu tümden ortadan kaldırıyor.
 
 **KURAL 5k — Siparişe NAVLUN yazılabilir; tutar ile TOPLAM birlikte hareket eder**
 (operatör, 7 Eyl 2026: *"kargo bölümü yok kargo eklemek gerekiyor 100 usd
@@ -4846,6 +5089,97 @@ sonra: *"alimi 5 bin usd yap"*).
   N adetle kaç marka/kategoriye ulaşıldığı, en düşük MOQ'lu ilanlar.
   **FİYAT BASMAZ** (kâr oranı bu dosyada yazılı, fiyat maliyeti ele verir) ve
   soru zaten adet sorusu.
+
+**KURAL 28 — Hesap açma PANELDE; elle anlaşılan fiyat ve feragatler kayıtta**
+(operatör, 17 Eyl 2026: *"Francisco adına bir buyer hesabı aç ve 23 adet
+r.lauren polo faturası kes 20 eur dan shipping cost 25 eur. satıcı les garage
+de paris"*).
+
+- **ÖLÇÜM ÜÇ ŞEYİ BİRDEN ÇÜRÜTTÜ ve hiçbiri talimattan okunamıyordu:**
+  1. **"Francisco" ile eşleşen hesap Francisco DEĞİL.** `diag-messages` →
+     `billing_for`: `C&F Multimarcas`, ad **"Carmen camacho"**, adres *La
+     algaida calle central n30*, **VAT yok**. Eşleşme yalnız **e-postadan**
+     geliyordu. Faturadaki kimlik ise *Francisco Javier Nicolas Macanas /
+     ES48500442C / Altaona 15, Beniaján*. O hesaba kesmek, vergi belgesine
+     **başka bir tüzel kişiyi** yazmak olurdu. *Ad bir kimlik değildir —
+     `inspect-products`'ta iki "Wings T-Shirt" dersinin hesap hâli.*
+  2. **Ralph Lauren'da TEK polo var:** `rl-csf-polo-white` (SKU
+     `710548797001`), kademeler **26,90** (80+) / **25,00** (160+),
+     **MOQ 80**, **paket adımı 8**, renkler **White · Dark Green · Fuchsia ·
+     Yellow · Orange · Pink**, `min_colors=4`. Yani 23 adet ve €20, ilanla
+     **üç ayrı noktada** çelişiyor.
+  3. **Operatörün verdiği renkler (Navy, Black) bu ilanda YOK** — ikisi de
+     aynı markanın **T-SHIRT** ilanının (`rl-csf-tee-navy`) renkleri.
+     Sessizce en yakınını seçmek, gönderilemeyecek bir şey satmak olurdu.
+
+- **ELLE ANLAŞILAN BİRİM FİYAT (4. alan: `SKU:RENK:ADET:20`).** Toptan kipi
+  fiyatı `vestra_unit_price()`'tan okuyor ve €20 **hiçbir kademede yok**, yani
+  anlaşılan satışı kayda geçirmenin yolu yoktu. Fiyatı kodun okuması *kimsenin
+  elle bir rakam UYDURMAMASI* içindi; operatörün müşteriyle anlaştığı rakam
+  ise uydurma değil **kayıt**. Sessizce geçmiyor:
+  - **YÖN KONTROLÜ, ve iki yön aynı şey değil.** Anlaşılan **<** katalog =
+    operatörün iskontosu, gerekçe kayda giriyor. Anlaşılan **>** katalog =
+    alıcının **sayfada gördüğünden pahalı** bir fatura; bu karar değil kusur
+    (`price_audit`'in "alıcı aleyhine" sınıfı) ve iş **DURUYOR**.
+    Canlı ölçüldü: €20 geçti, **€30 reddedildi** (`sorunlu: 1`, yazılmadı).
+  - **NOT DA DEĞİŞİYOR:** anlaşılan birimle kesilen satışa *"wholesale tier
+    pricing"* yazmak, kademeyi açan kişinin o rakamı hiçbir yerde bulamaması
+    demekti — `desc`/`sizes` çelişkisinin aynısı. Özet satırındaki etiket de
+    düzeltildi (*rakam doğru, etiket yalan* — yanlış rakam sorgulanır, yanlış
+    etikete inanılır).
+  - **Dropship kipinde REDDEDİLİYOR**: orada birim alıcının hesabından türüyor
+    (abonelik) ve elle bir rakam o kapıyı sessizce atlatırdı.
+
+- **PAKET ADIMI FERAGATİ (`waive_pack=1`) — ve bu, kendi yazdığım yorumun bir
+  kısmını GERİ ALIYOR.** Adım kontrolü **sepet** için yazıldı ve orada haklı:
+  sepet adedi adımın katına **yuvarlıyor**, yani 23 yazan bir ilan kasada 24
+  demek olurdu. Ama **elle kurulan sipariş sepetten hiç geçmiyor**: operatör
+  23 yazıyor, fatura 23 diyor, alıcı 23'ün parasını ödüyor — yuvarlayan taraf
+  yok, dolayısıyla yalan söyleyen taraf da yok. Geriye **tek gerçek sonuç**
+  kalıyor ve gizlenmiyor: **beden dökümü yazılamıyor** (23, ilanın 8'lik
+  serisine bölünmüyor) ve satır bunu kendi notunda söylüyor. *Operatör bu
+  sonucu GÖRDÜKTEN sonra 23'te ısrar etti; tekrarlanan talimat karardır.*
+
+- **HESAP AÇMA PANELE EKLENDİ, çünkü başka yeri YOK ve iş akışı YANLIŞ yer.**
+  `Admin ▸ Users ▸ ➕ New buyer account (manual)`. Panelde ekleme eylemi
+  **bugüne kadar hiç yoktu** (arandı: ekle, içe aktar, durum değiştir, sil var
+  — **açma yok**), ve iş akışından açmak müşterinin e-postasını **herkese açık
+  koşu girdisine** yazmak demekti. Bu depo `only_emails` girdisini **tam o
+  sebeple** bir kez kaldırıp `only_accounts`'a çevirdi; müşteriye ait veri
+  panelde durur (KURAL 2d'nin *"müşterinin belgesi GitHub'dan geçmez"*
+  kuralının aynı ailesi). *Operatörün adresi bana sohbette vermiş olması,
+  onu herkese açık bir kütüğe yazma izni değil.*
+  - **`doc_requests` TEK KAYNAKTAN:** `auth_required_doc_types()` +
+    `auth_doc_request_row()`. `create_seller` / `sync_lesgarage` /
+    `create_tyrex_migrate` **üçü de** `'doc_requests'=>[]` yazmıştı ve sonucu
+    KURAL 2'de kayıtlı: satır yoksa yükleme düğmesi de yok, müşterinin belgeyi
+    verecek **hiçbir yolu** kalmıyor.
+  - **KURAL 2g (Türkiye) burada da çalışıyor:** kapatan bir kural her yolda
+    çalışmalı, yoksa panel self-servis kaydın reddettiği hesabı açan bir **arka
+    kapı** olurdu. (`create_seller`'ın bu kontrolü taşımaması operatörün
+    bilinçli, tek hesaplık istisnasıydı; genel bir form aynı muafiyeti hak
+    etmiyor.) Ters yön testli: **Turkmenistan geçiyor.**
+  - Kapıyı **ne açtığı** kayıtta (`kyb_auto='operator:panel'`) — promo
+    hesabında bu alan yoktu ve *"bu hesap neden açık?"* sorusunun cevabı
+    hiçbir yerde durmuyordu (KURAL 2h).
+  - **Şifre rastgele ve hiçbir yere yazılmıyor**; müşteri "forgot password"
+    ile kendi belirliyor. **Müşteriye hiçbir şey gitmiyor** (KURAL 18): hoş
+    geldin mektubu da doğrulama linki de yok. Yazma **geri okunuyor**.
+
+- **Kendi hatam, bugün İKİNCİ kez:** formda `csrf_field()` yazdım, doğrusu
+  **`csrfField()`**. Sabah da olmayan bir `vestra_order_status()` çağırmıştım.
+  **İkisini de `php -l` GEÇİRDİ** — ikisi de çalışma zamanı hatası. Birincisini
+  fonksiyon taraması, ikincisini **formu çizdirmek** yakaladı. *Kaynak okumak
+  ölçüm değil; `php -l` de ölçüm değil.*
+- Test: `tests/create_buyer_test.php` (27 iddia). Kum havuzunda `admin.php`'yi
+  **gerçekten POST ile koşturuyor** ve yazılan kaydı geri okuyor — kaynak
+  taraması bu işi ölçemezdi. Düşebildiği doğrulandı, her sabotajın **gerçekten
+  uygulandığı** satır sayımıyla yazdırılarak: `doc_requests` döngüsü silinince
+  **5 kırmızı**, aynı e-posta kontrolü kalkınca **6**, Türkiye kontrolü
+  kalkınca **5**.
+- **Canlı zincir (deploy `e5a6b084`):** 23 × €20 = **€460** + €25 kargo =
+  **€485**, `sorunlu: 0`, üç feragat de satırda yazılı, beden dökümü **bilerek
+  boş**. Hiçbir şey yazılmadı — hesap ve renk operatörü bekliyor.
 
 **KURAL 26 — Para birimi seçimi KALICI; çerezi yazan tek yer money.php'nin
 yüklenme anı** (operatör, 13 Eyl 2026: *"para birimi sürekli degisiyor ... para
