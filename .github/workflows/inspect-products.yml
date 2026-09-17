@@ -605,7 +605,27 @@ jobs:
                  kaynaktan okunuyordu. */
               $terms = [];
               if (!empty($p['size_step']))  $terms[] = "size_step=".(int)$p['size_step'];
-              if (!empty($p['min_colors'])) $terms[] = "min_colors=".(int)$p['min_colors'];
+              /* RENK LISTESI ve min_colors KOSULSUZ basiliyor -- ikisi de bu
+                 dokumde HIC yoktu ve `!empty()` `min_colors=0` ile "hic
+                 yazilmamis"i ayni goruyordu. Musteri "1 lot siyah polo"
+                 dediginde cevaplanacak ilk soru ILANIN KENDI renk listesi:
+                 istenen renk orada yoksa siparis ilani yalanlar, ve min_colors
+                 sepetin GERCEKTEN uyguladigi asgari renk sayisi. Gormedigi bir
+                 alan hakkinda yesil veren sonda bu depoda iki kez kayitli
+                 (`check_images` yalniz approved geziyordu; `price_list`
+                 `sold_out` basmiyordu). */
+              $cols = array_values(array_filter(array_map('strval', (array)($p['colors'] ?? [])), fn($c) => trim($c) !== ''));
+              $terms[] = "renk(".count($cols).")=".(count($cols) ? implode(' / ', $cols) : '(yok)');
+              $terms[] = "min_colors=".(array_key_exists('min_colors', $p) ? (int)$p['min_colors'] : '(alan yok)');
+              /* Renk SECICISI, renk LISTESI degil: ikisi ayri olgu ve bu depoda
+                 bir kez karistirildi (146 ilanda renk kayitliydi, hicbiri
+                 secilemiyordu). Sepetin cagirdigi AYNI fonksiyonlar. */
+              $terms[] = "renk secici=".(function_exists('vestra_is_colorqty_listing')
+                         ? (vestra_is_colorqty_listing($p) ? 'ACIK (adet-basina-renk)'
+                            : (function_exists('vestra_colors_selectable') && vestra_colors_selectable($p) ? 'ACIK (bolme opt-in)' : 'YOK'))
+                         : '? (deploy inmemis)');
+              $terms[] = "beden secici=".(function_exists('vestra_sizes_selectable')
+                         ? (vestra_sizes_selectable($p) ? 'ACIK' : 'YOK') : '? (deploy inmemis)');
               $terms[] = "teklif=".(function_exists('vestra_offers_open')
                          ? (vestra_offers_open($p) ? 'ACIK' : 'kapali') : '?')
                        . " (mode=".($p['mode'] ?? '?').", offers=".(!empty($p['offers']) ? 'true' : '-')
