@@ -2205,7 +2205,8 @@ amerika, israil, singapur, g.koreyide ekle"*).
   **`AB27+EFTA+GB kapsamı: 32/32 (tam)`** — sabah 13 ülke eksikti —,
   `Organization: knowsAbout 40 (marka 24)`, `areaServed 16 giriş`, `market.php`
   diskte ve `.htaccess` kuralı 45. satırda. Olgular satır satır doğru:
-  Avustralya `AUD / %10 / US$5.000 / kapı açık`, ABD `USD / — / US$5.000 / normal`,
+  Avustralya `AUD / %10 / US$5.000 / kapı açık`, ABD `USD / — / US$5.000 / normal`
+  (**taban satırı 17 Eyl'de kalktı — KURAL 27; bugün o sütun her pazarda `—`**),
   Güney Amerika `12 etiket, dil en,es,pt`.
 - **Dışarıdan (internet, WAF üzerinden):** `/wholesale-to/australia?lang=ja`
   **normal sayfa, 58.995 bayt**, başlık **`オーストラリア向けファッション卸売サプライヤー`**,
@@ -5689,7 +5690,60 @@ BİRDEN FAZLA marka alıyor; ve cevap mektubu adımı ARGÜMAN SINIRINI aşmış
   o satır olmasaydı 321 karakter eksik bir mektup "onaylanan mektup" diye
   gidecekti.
 
-**KURAL 27 — AVRUPA DIŞINA asgari sipariş 5.000 USD; AFRİKA'ya %8 indirim**
+**KURAL 27 — AVRUPA DIŞI asgari sipariş tabanı KALDIRILDI; AFRİKA'ya %8
+indirim DURUYOR** (operatör, **17 Eyl 2026**: *"US$5.000 Avrupa dışı taban,
+bunu girmene gerek yok.... avrupa disindan isteyen normal en az alim ile
+siparis verebilsin"*).
+
+*Aşağıdaki 16 Eylül kaydı olduğu gibi bırakılmadı — birbirini tutmayan iki
+kayıt hangisinin geçerli olduğunu okunamaz yapar. Gerekçe ve mekanizma
+anlatımı duruyor çünkü kod duruyor; **geçerli olan değer bu maddedir.***
+
+- **Avrupa dışı alıcı artık NORMAL asgarilerle sipariş veriyor:** ilanın kendi
+  MOQ'su, paket adımı ve marka asgarisi (KURAL 21, €500) **aynen yerinde** —
+  kalkan tek şey siparişin TOPLAM TUTAR tabanıydı. `order.php:115`'teki marka
+  kapısı ve `order.php:134`'teki tutar kapısı **iki ayrı kapı**, yalnız ikincisi
+  sustu.
+- **MEKANİZMA SİLİNMEDİ, SABİT SIFIRLANDI** (`VESTRA_NONEU_MIN_ORDER_USD = 0.0`).
+  Dropship ödemesinin dersinin aynısı (*"kaldır ancak yeniden başlamak için
+  kurulu olsun"*): her okuyan zaten `> 0` soruyor, yani **tek satır** sepet
+  uyarısını, pazar sayfasının olgu kartını ve `terms_reply` mektubunun
+  paragrafını birlikte susturdu. **Rakamın tek yerde durmasının karşılığı tam
+  olarak budur** (KURAL 6) — üç ayrı yeri elle düzeltmek gerekmedi ve biri
+  unutulmuş olamaz.
+- **Mektup SUSMUYOR, DOĞRUSUNU yazıyor.** `vestra_tpl_terms_reply` şablonunun
+  `else` dalı zaten yazılıydı ve bugün ilk kez çalışıyor: *"There is no
+  order-value minimum for your region. Each style has its own minimum quantity
+  and is sold in fixed pack multiples…"* — operatörün *"normal en az alım"*
+  cümlesinin birebir karşılığı. Çizdirilerek doğrulandı (Benin/ABD/Almanya).
+- **YAN KAZANÇ, ve küçük değil: FX kesintisi artık sipariş DURDURMUYOR.**
+  Taban açıkken bedeli açıkça yazılıydı (*"bir FX kesintisinde Avrupa dışı
+  siparişler durur"*); `vestra_order_min_shortfall()` `min <= 0` görünce kuru
+  **okumadan önce** dönüyor, yani o bedel de bugün ödenmiyor. Test bunu
+  **davranışla değil kablolamayla** tutuyor: bu ortamda kur zaten okunamıyor,
+  yani "boş dizi döndü" sıranın doğru olduğunu **kanıtlamaz** — iddia, gövdede
+  `if ($min <= 0) return [];`in `vestra_fx(` çağrısından **önce** geldiğini
+  ölçüyor.
+- **Sepet bandı sabitle kapatıldı.** Kapı sustuğu için o adres organik olarak
+  oluşmuyor, ama eski bir yer imi ya da elle yazılmış bir `/cart?err=ordermin`
+  **sıfır dolarlık bir taban** duyururdu: var olmayan bir kuralı, üstelik saçma
+  bir rakamla. *Yorumun içine örnek olarak yazdığım rakamı **testin kendi
+  taraması yakaladı*** (tarama yorumları da okuyor — bu deponun kayıtlı dersi).
+- **Sözlük anahtarları 9 dilde YERİNDE bırakıldı** ve bu bilinçli: mekanizma
+  duruyor, taban bir gün geri açılabilir, ve 18 anahtarı silip geri eklemek
+  çeviri kaybı riskinden başka bir şey getirmezdi.
+- Test: `order_min_region_test.php` 177 → **204 iddia** (davranış bilerek
+  değişti, o yüzden testi de düzeltildi — bu deponun kendi kuralı). Dört
+  sabotajın her biri önce **gerçekten uygulandığı `grep -c` ile doğrulanarak**
+  kırmızıya çevrildi: sabit 5.000'e döndürülünce **19 + 2 + 1** (üç dosyada),
+  sepet muhafazası kalkınca **1**, kur okuması muhafazadan öne alınınca **1**,
+  `market.php`'nin olgu bloğu silinince **1**.
+- **İki yön korundu:** taban kalktı ama **bölgesel indirim DURUYOR** (Benin hâlâ
+  %8, ABD hâlâ indirimsiz) — iki kapı ayrı ve bunu tutan iddialar bilerek
+  yazıldı; tabanı kaldıran bir değişiklik indirimi de sessizce götürebilirdi.
+
+**ESKİ KAYIT (16 Eyl 2026) — taban KONDUĞU günün gerekçesi; değeri artık
+geçerli değil, mekanizması geçerli:**
 (operatör, 16 Eyl 2026, Benin'den gelen ilk kurumsal soru vesilesiyle:
 *"Avrupa disina en az alim 10 Bin USD yaz. Ayrica Afrika bölgesine toplam
 Katalogtan yüzde 8 Inidirim yapilacagini belirt"* → aynı gün, birkaç dakika
@@ -5699,7 +5753,7 @@ sonra: *"alimi 5 bin usd yap"*).
   bir MARKANIN toplamına bakıyor; bu, siparişin TAMAMINA. İkisi birlikte
   işliyor ve biri geçip diğerine takılan bir sepet mümkün — doğru olan da bu.
 - **Rakam tek sabitte:** `VESTRA_NONEU_MIN_ORDER_USD`. Aynı gün 10.000 → 5.000
-  oldu ve değişiklik **tek satırdı**; sepet uyarısı, sunucu kapısı ve testler
+  oldu, ertesi gün 5.000 → 0.0 (kapalı); üç değişiklik de **tek satırdı**; sepet uyarısı, sunucu kapısı ve testler
   hepsi oradan okuyor. Escrow tavanının beş gün metinde 3.000, kodda 3.500
   kalmasının (KURAL 6) sebebi tam tersiydi.
 - **Kapı SUNUCUDA** (`order.php`), sepetteki uyarı yalnızca görünüm. Ölçüm

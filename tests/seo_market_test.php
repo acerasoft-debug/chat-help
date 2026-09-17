@@ -58,7 +58,11 @@ $t('PHP uyarisi yok',                 !str_contains($au, 'Warning:') && !str_con
 $t('baslik ulkeyi tasiyor',           str_contains($au, '<title>') && str_contains($au, 'Australia'));
 $t('para birimi AUD (money.php)',     ($fa['prices shown in'] ?? '') === 'AUD');
 $t('indirim -10% (region_discount)',  ($fa['standing trade discount'] ?? '') === '-10%');
-$t('asgari US$5,000 (sabit)',         ($fa['minimum order value'] ?? '') === 'US$5,000');
+/* Avrupa disi taban 17 Eyl 2026'da KAPATILDI (operator), yani bu satir artik
+   HICBIR pazarda basilmiyor -- olgusu olmayan satir basilmaz kuralinin
+   kendisi. Sabit geri acilirsa satir geri gelir ve BU IDDIA KIRMIZI DONER:
+   dogrusu da o, cunku o gun bu testin bilerek guncellenmesi gerekir. */
+$t('asgari siparis satiri YOK (taban kapali)', !isset($fa['minimum order value']));
 $t('kapi kayitta acilir cumlesi',     str_contains($au, 'opened at sign-up'));
 $t('canonical /wholesale-to/australia', str_contains($au, 'https://vestrasales.com/wholesale-to/australia"'));
 $t('CollectionPage semasi',           str_contains($au, '"@type":"CollectionPage"'));
@@ -84,7 +88,13 @@ $t('para birimi USD',                 ($fu['prices shown in'] ?? '') === 'USD');
 $t('indirim satiri YOK',              !isset($fu['standing trade discount']));
 $t('indirim cumlesi YOK',             !str_contains($us, 'standing'));
 $t('"kayitta acilir" cumlesi YOK',    !str_contains($us, 'opened at sign-up'));
-$t('asgari siparis satiri VAR',       ($fu['minimum order value'] ?? '') === 'US$5,000');
+$t('asgari siparis satiri YOK',       !isset($fu['minimum order value']));
+/* MEKANIZMA SILINMEDI: satir hala OLGUDAN kuruluyor, elle yazilmis bir metin
+   degil. Sabit geri acildiginda sayfanin kendiliginden yazmasini saglayan sey
+   bu kablolama; iddia olmasaydi blok silinebilir ve hicbir test gormezdi. */
+$mp = (string)@file_get_contents(__DIR__.'/../vestra/market.php');
+$t('satir olgudan kuruluyor',         str_contains($mp, "\$_facts['min_order_usd'] > 0")
+                                   && str_contains($mp, "t('minimum order value')"));
 
 echo "\n== 3. Bolge sayfasi (Guney Amerika) ==\n";
 $sa = $render('/wholesale-to/south-america');

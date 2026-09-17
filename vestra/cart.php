@@ -71,7 +71,17 @@ if (stripe_available()) {
            asgarisindeki ile ayni gerekce). Eksik tutar da yaziliyor --
            "yetersiz" deyip ne kadar eksik oldugunu soylemeyen bir uyari,
            alicinin sepeti terk etmesinin en kisa yolu. */ ?>
-  <?php if(isset($_GET['err']) && in_array($_GET['err'], ['ordermin','ordermin_fx'], true)):
+  <?php /* TABAN KAPALIYKEN BANT HIC CIZILMIYOR (17 Eyl 2026, sabit 0.0).
+           Kapi zaten susuyor, yani bu adres organik olarak olusmuyor; ama
+           eski bir yer imi ya da elle yazilmis bir /cart?err=ordermin
+           "Avrupa disi siparisler sifir dolardan baslar" derdi -- var olmayan
+           bir kurali, ustelik sacma bir rakamla duyuran bir uyari.
+           (Rakam buraya ORNEK olarak bile yazilamaz: testin taramasi
+           yorumlari da okuyor ve gomulu rakam ariyor -- ilk yazimda yazdim,
+           test yakaladi. Bu deponun kendi dersi, bir kez daha.)
+           Sabit geri acilirsa iki dal da kendiliginde geri geliyor. */ ?>
+  <?php if(VESTRA_NONEU_MIN_ORDER_USD > 0
+           && isset($_GET['err']) && in_array($_GET['err'], ['ordermin','ordermin_fx'], true)):
           $omMin = number_format(VESTRA_NONEU_MIN_ORDER_USD, 2); ?>
     <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
       <?php if($_GET['err']==='ordermin_fx'): ?>
