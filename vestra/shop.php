@@ -16,10 +16,22 @@ if ($_shopBrands) {
    query string (.htaccess leaves it there and head.php keeps it in the canonical), so
    /shop?section=footwear is a separate address for a search engine -- and until now it
    carried the apparel title, so "footwear wholesale" had nothing to land on. */
-if (strtolower(trim((string)($_GET['section'] ?? ''))) === 'footwear') {
+$_shopSec = strtolower(trim((string)($_GET['section'] ?? '')));
+if ($_shopSec === 'footwear') {
     $PAGE     = sprintf(t('%s wholesale — Catalog'), t('Footwear'));
     $META     = t('Spanish-made footwear wholesale — sneakers, boots, sandals, loafers and slippers in full size series for shoe shops and boutiques. Trade prices on registration, ordered by the series, invoice-based B2B ordering across Europe.');
     $KEYWORDS = vestra_seo_cat_b2b_keywords('Footwear', vlang());
+}
+/* Ic camasiri bolmesi de kendi baslik/aciklamasini tasiyor. Ayakkabi icin 3 Eylul'de
+   yazilan gerekcenin aynisi, ve o zaman bu bolme HENUZ YOKTU: 146 ilanlik bolme
+   /shop?section=underwear adresinde giyim basligiyla duruyordu, yani "wholesale
+   lingerie / bras wholesale" aramasinin inecegi sayfa kendini "Apparel" diye
+   tanitiyordu. Etiket vestra_sections()'tan ("Underwear"), SEO adresi /b2b/intimates
+   -- ikisinin AYRI olmasinin sebebi inc/seo.php'de yazili. */
+elseif ($_shopSec === 'underwear') {
+    $PAGE     = sprintf(t('%s wholesale — Catalog'), t('Underwear'));
+    $META     = t('Wholesale intimates — bras, briefs, sleepwear and socks in full packs for boutiques and lingerie shops. Trade prices on registration, ordered by the pack, invoice-based B2B ordering and worldwide shipping.');
+    $KEYWORDS = vestra_seo_cat_b2b_keywords('Underwear', vlang());
 }
 require __DIR__.'/inc/head.php';
 $products = vestra_products();

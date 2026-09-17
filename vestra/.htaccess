@@ -38,6 +38,11 @@
   # /b2b/<kategori> → kategori / koleksiyon iniş sayfası ("sneakers wholesale",
   # "T-Shirts Großhandel"). İkisi de b2b.php; sözlük inc/seo.php. Marka kuralının
   # ÜSTÜNDE duruyor ama çakışmaz: o kural ikinci bir eğik çizgiye izin vermiyor.
+  # /wholesale-to/<pazar> → ülke/bölge iniş sayfası ("wholesale fashion supplier
+  # Australia"). Sözlük inc/seo.php'de (vestra_seo_markets); sayfa market.php.
+  # ÇAKIŞMAZ: aşağıdaki marka kuralı "wholesale" ardından EĞİK ÇİZGİ istiyor,
+  # burası tire ile devam ediyor -- /wholesale-list.pdf ile aynı ayrım.
+  RewriteRule ^wholesale-to/([A-Za-z0-9][A-Za-z0-9-]*)/?$ market.php?market=$1 [L,QSA]
   RewriteRule ^wholesale/([A-Za-z0-9][A-Za-z0-9-]*)/([A-Za-z0-9][A-Za-z0-9-]*)/?$ b2b.php?brand=$1&cat=$2 [L,QSA]
   RewriteRule ^b2b/([A-Za-z0-9][A-Za-z0-9-]*)/?$ b2b.php?cat=$1 [L,QSA]
   RewriteRule ^wholesale/([A-Za-z0-9][A-Za-z0-9-]*)/?$ wholesale.php?brand=$1 [L,QSA]

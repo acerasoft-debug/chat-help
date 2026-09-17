@@ -34,16 +34,34 @@ foreach (vestra_seo_brands(0) as $b) {
 /* Category, collection and brand × category landing pages (inc/seo.php). Same rule as
    the brand pages: derived from live stock, so nothing is listed that would render 404. */
 foreach (vestra_seo_landing_paths() as $row) $urls[] = $row;
+/* Pazar (ulke/bolge) inis sayfalari -- /wholesale-to/<pazar>. Tablo inc/seo.php'de;
+   sayfalar katalog bos olmadigi surece 200 donuyor (market.php stok yoksa 404 basar,
+   ve o durumda katalogun tamami bos demektir, yani sitemap'te zaten urun de yok). */
+foreach (vestra_seo_market_paths() as $row) $urls[] = $row;
+/* <lastmod>: dorduncu alan, ve YALNIZCA kaydin kendi tarihi varsa yaziliyor.
+   Bugunun tarihini her satira basmak, her tarama icin "her sey degisti" demek
+   olurdu -- tarama butcesi gercekten degisen sayfalardan calinir ve sinyal
+   guvenilmez hale gelir. Tarih uydurulmuyor: alani olmayan satirda etiket yok
+   (KURAL 3'un sitemap hali). */
 foreach (vestra_products() as $p) {
-  $urls[] = ['/product?id='.rawurlencode($p['id']), 'weekly', '0.6'];
+  $urls[] = ['/product?id='.rawurlencode($p['id']), 'weekly', '0.6', vestra_sitemap_date($p['updated_at'] ?? ($p['added_at'] ?? ''))];
 }
 foreach (vestra_journal_published() as $a) {
-  $urls[] = ['/journal?slug='.rawurlencode($a['slug'] ?? ''), 'monthly', '0.5'];
+  $urls[] = ['/journal?slug='.rawurlencode($a['slug'] ?? ''), 'monthly', '0.5', vestra_sitemap_date($a['updated'] ?? ($a['created'] ?? ''))];
+}
+
+/** Ham tarih -> W3C tarih bicimi, cozulemezse '' (satirda etiket basilmaz). */
+function vestra_sitemap_date($raw): string {
+  $raw = trim((string)$raw);
+  if ($raw === '') return '';
+  $ts = strtotime($raw);
+  return $ts ? date('Y-m-d', $ts) : '';
 }
 $langs = array_keys(vlang_list());   // derived, not hardcoded — every site language is emitted
 echo '<?xml version="1.0" encoding="UTF-8"?>'."\n";
 echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'."\n";
-foreach ($urls as [$path, $freq, $prio]) {
+foreach ($urls as $row) {
+  [$path, $freq, $prio] = $row; $mod = $row[3] ?? '';
   $sep = str_contains($path, '?') ? '&' : '?';
   echo "  <url><loc>".htmlspecialchars($host.$path, ENT_XML1)."</loc>\n";
   foreach ($langs as $l) {
@@ -51,6 +69,7 @@ foreach ($urls as [$path, $freq, $prio]) {
     echo '    <xhtml:link rel="alternate" hreflang="'.$l.'" href="'.htmlspecialchars($href, ENT_XML1)."\"/>\n";
   }
   echo '    <xhtml:link rel="alternate" hreflang="x-default" href="'.htmlspecialchars($host.$path, ENT_XML1)."\"/>\n";
+  if ($mod !== '') echo "    <lastmod>$mod</lastmod>\n";
   echo "    <changefreq>$freq</changefreq><priority>$prio</priority></url>\n";
 }
 echo "</urlset>\n";

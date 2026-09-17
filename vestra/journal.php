@@ -29,13 +29,43 @@ if ($slug !== '') {
         $PAGE = $art['title'];
         $META = mb_substr(trim($art['excerpt'] ?: strip_tags($art['body'] ?? '')), 0, 180);
         $NAV  = 'journal';
+        /* Article yapisal verisi. Yaziyi HABER olarak okutan tek sey bu: onsuz
+           dergi sayfalari arama motoruna sadece "bir sayfa" gorunuyordu -- yayin
+           tarihi, yazar ve kapak fotografi HTML'de vardi ama hicbir semada degildi.
+           Alanlar makalenin KENDI kaydindan (created/updated/author/cover); uydurma
+           bir tarih basilmiyor, alan yoksa satir hic yazilmiyor (KURAL 3).
+           `mainEntityOfPage` kanonik adresi isaret ediyor: ayni yazi ?lang= ile
+           dokuz adreste duruyor ve hangisinin asil oldugu soylenmeli. */
+        $_jurl = 'https://vestrasales.com/journal?slug='.rawurlencode($art['slug'] ?? '');
+        $_jimg = vestra_journal_cover_path($art);
+        if ($_jimg !== '' && $_jimg[0] === '/') { $_jimg = 'https://vestrasales.com'.$_jimg; $OG_IMAGE = $_jimg; }
+        $_jld = [
+            '@context' => 'https://schema.org', '@type' => 'Article',
+            'headline' => mb_substr((string)($art['title'] ?? ''), 0, 110),
+            'description' => $META,
+            'inLanguage' => $lang,
+            'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => $_jurl],
+            'url' => $_jurl,
+            'author'    => ['@type' => 'Organization', 'name' => $art['author'] ?? 'VESTRA Editorial'],
+            'publisher' => ['@type' => 'Organization', 'name' => 'VESTRA',
+                            'logo' => ['@type' => 'ImageObject', 'url' => 'https://vestrasales.com/inc/og-image.png']],
+        ];
+        if (!empty($art['created'])) $_jld['datePublished'] = date('c', strtotime((string)$art['created']));
+        if (!empty($art['updated'])) $_jld['dateModified']  = date('c', strtotime((string)$art['updated']));
+        if ($_jimg !== '' && strncmp($_jimg, 'http', 4) === 0) $_jld['image'] = [$_jimg];
+        if (!empty($art['category'])) $_jld['articleSection'] = t((string)$art['category']);
+        $JSONLD = [$_jld, ['@context' => 'https://schema.org', '@type' => 'BreadcrumbList', 'itemListElement' => [
+            ['@type' => 'ListItem', 'position' => 1, 'name' => t('Home'),    'item' => 'https://vestrasales.com/'],
+            ['@type' => 'ListItem', 'position' => 2, 'name' => t('Journal'), 'item' => 'https://vestrasales.com/journal'],
+            ['@type' => 'ListItem', 'position' => 3, 'name' => (string)($art['title'] ?? ''), 'item' => $_jurl],
+        ]]];
         require __DIR__.'/inc/head.php';
         $more = array_values(array_filter(vestra_journal_published(), fn($p) => ($p['id'] ?? '') !== ($art['id'] ?? '')));
         $more = array_map(fn($p) => vestra_journal_localize($p, $lang), array_slice($more, 0, 3));
         ?>
         <style><?= vestra_journal_css() ?></style>
         <article class="jr-article">
-          <div class="jr-crumbs"><a href="/">Home</a> · <a href="/journal"><?= t('Journal') ?></a> · <span><?= htmlspecialchars(t($art['category'] ?? '')) ?></span></div>
+          <div class="jr-crumbs"><a href="/"><?= t('Home') ?></a> · <a href="/journal"><?= t('Journal') ?></a> · <span><?= htmlspecialchars(t($art['category'] ?? '')) ?></span></div>
           <div class="jr-cat"><?= htmlspecialchars(t($art['category'] ?? '')) ?></div>
           <h1 class="jr-title"><?= htmlspecialchars($art['title'] ?? '') ?></h1>
           <div class="jr-meta"><?= htmlspecialchars($art['author'] ?? 'VESTRA Editorial') ?> · <?= $fmtDate($art['created'] ?? '') ?> · <?= vestra_journal_reading_min($art['body'] ?? '') ?> <?= t('min read') ?></div>

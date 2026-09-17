@@ -19,7 +19,7 @@ $PAGE = vestra_product_title($p) ?: (vestra_product_name($p) ?: 'Product');
    only description these files carry — an empty one costs the listing image search. */
 $_imgAlt = vestra_product_title($p);
 $_pcat = $p['cat'] ?? 'fashion'; $_pmoq = (int)($p['moq'] ?? 0); $_punit = $p['unit'] ?? 'pc';
-$META = sprintf(t('%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering across Europe.'),
+$META = sprintf(t('%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering, shipping worldwide.'),
         $PAGE, $_pcat, $_pmoq ? "MOQ {$_pmoq} {$_punit}. " : '');
 $_purl = 'https://vestrasales.com/product?id='.rawurlencode($p['id'] ?? '');
 $_pimgs = [];

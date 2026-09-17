@@ -27,14 +27,48 @@ function vlang_dir(){ return vlang() === 'ar' ? 'rtl' : 'ltr'; }
    searching in French or a Dutch one searching in English gets told this page is for
    them. The English variants cover the European markets whose own languages were
    dropped (NL, CS, PL, EL — those visitors already get English). Derived from
-   vlang_list(): a language removed there disappears from here on its own. */
+   vlang_list(): a language removed there disappears from here on its own.
+
+   17 Eyl 2026 (operator: "sadece avrupa degil avustralya japonya dubai qatar ve usa da
+   olsun... avrupada kusursuz istiyorum"). Iki sey degisti:
+     1. AVRUPA TAM: vestra_europe_codes()'taki AB 27 + EFTA + Birlesik Krallik'in HER
+        ulkesi en az bir bolgesel etikette geciyor. Eskiden Luksemburg, Malta, Kibris,
+        Hirvatistan, Slovenya, Slovakya, Bulgaristan, Baltiklar, Izlanda ve
+        Liechtenstein hicbir etikette yoktu -- yani "Avrupa'da kusursuz" iddiasi 13
+        ulkede bostu. tests/seo_landing_test.php bunu artik ulke ulke sayiyor.
+     2. HEDEF PAZARLAR: en-US, en-AU, en-AE, en-QA (ve en-SA/en-SG -- KURAL 2h'nin
+        kapisi kendiliginden acilan ulkeleri), sonra en-IL, en-KR, es-<Guney Amerika>.
+        Korfez'de ticari arama buyuk olcude INGILIZCE yapiliyor; ar-AE/ar-QA zaten
+        vardi, Ingilizce varyant eksikti. ja-JP tek basina kaliyor (Japonca baska
+        pazarin dili degil); en-JP BILEREK yok -- x-default zaten Ingilizce sayfayi
+        isaret ediyor. Pazar listesinin kendisi inc/seo.php'de (vestra_seo_markets);
+        test, oradaki her ulkenin burada bir etiketi oldugunu sayiyor.
+   Bir ulkenin BIRDEN FAZLA dilde gecmesi dogru ve bilerek (BE: en+fr, CH: de+fr+it,
+   LU: fr+de): hreflang "bu dili okuyan, bu ulkedeki kisi" demek, ulke->dil tablosu
+   degil. O tablo ayri ve elle yazili (vlang_country_lang). */
 function vlang_hreflang_map(){
   $regions = [
-    'en' => ['GB','IE','NL','BE','DK','SE','FI','NO','PL','CZ','GR','HU','RO'],
-    'de' => ['DE','AT','CH'],
-    'fr' => ['FR','BE','CH','LU'],
-    'it' => ['IT','CH'],
-    'es' => ['ES'],
+    'en' => ['GB','IE','NL','BE','DK','SE','FI','NO','PL','CZ','GR','HU','RO',
+             /* Avrupa'nin geri kalani: dili sitede olmayan AB/EFTA ulkeleri Ingilizce sayfaya. */
+             'LU','MT','CY','HR','SI','SK','BG','LT','LV','EE','IS',
+             /* Hedef pazarlar (17 Eyl 2026): ABD, Avustralya, Korfez; ayni gun eklenen
+                Israil, Singapur ve Guney Kore (operator: "israil, singapur, g.koreyi de
+                ekle"). Ibranice/Korece sitede yok -- oralarda ticari arama Ingilizce. */
+             'US','AU','AE','QA','SA','SG','IL','KR',
+             /* Guney Amerika'nin Ispanyolca/Portekizce OLMAYAN ikisi: Guyana
+                (Ingilizce) ve Surinam (Felemenkce -- sitede yok, Ingilizceye
+                duser). Testi yazmasaydim atlanacaklardi: /wholesale-to/south-america
+                12 ulkeyi kapsadigini soyluyor ama ikisinde hicbir etiket yoktu. */
+             'GY','SR'],
+    'de' => ['DE','AT','CH','LI','LU'],
+    'fr' => ['FR','BE','CH','LU','MC'],
+    'it' => ['IT','CH','SM'],
+    /* Guney Amerika'nin Ispanyolca konusan ulkeleri (operator, 17 Eyl 2026: "brezilya ve
+       guney amerika ... ekle"); Brezilya pt-BR olarak zaten vardi. Liste
+       vestra_south_america_codes() eksi Brezilya/Guyana/Surinam (Portekizce/Ingilizce/
+       Felemenkce) -- elle yazili, cunku o fonksiyon burada yuklu degil ve i18n.php
+       products.php'den ONCE yukleniyor. */
+    'es' => ['ES','AR','BO','CL','CO','EC','PY','PE','UY','VE'],
     'pt' => ['PT','BR'],
     'ru' => ['RU','BY','KZ'],
     'ar' => ['AE','SA','QA','KW','BH','OM','EG','JO','MA'],
@@ -49,6 +83,28 @@ function vlang_hreflang_map(){
     foreach ($regions[$l] ?? [] as $r) $map[$l.'-'.$r] = $l;
   }
   return $map;
+}
+
+/* Open Graph yerel ayari (og:locale). TEK KAYNAK: head.php ve index.php ikisi de
+   buradan okuyor. 17 Eyl 2026'ya kadar iki ayri kopya vardi ve head.php'ninkinde
+   'ja' YOKTU -- Japonca her alt sayfa og:locale=en_US basiyordu, yalniz ana sayfa
+   ja_JP diyordu. Ayni olgunun ikinci kopyasi, bu depoda defalarca kayitli hata.
+   ar_AR: Facebook'un kendi yerel ayar listesindeki Arapca kodu (ulke koduyla degil). */
+function vlang_og_locale(string $l): string {
+  static $m = ['en'=>'en_US','fr'=>'fr_FR','es'=>'es_ES','it'=>'it_IT','de'=>'de_DE',
+               'pt'=>'pt_PT','ru'=>'ru_RU','ar'=>'ar_AR','ja'=>'ja_JP'];
+  return $m[$l] ?? 'en_US';
+}
+
+/* Dilin KENDI adiyla yazimi (endonym): "Deutsch", "日本語". Pazar sayfasindaki
+   "VESTRA su dillerde" cumlesi bunu basiyor -- dokuz dil adini dokuz dile cevirmek
+   81 sozluk anahtari demekti ve ziyaretci kendi dilini zaten kendi adiyla tanir.
+   vlang_list()'ten turemeyen bir dil buraya eklenmeden liste eksik kalmasin diye
+   bilinmeyen kod BUYUK HARFLI kodun kendisini doner (bos degil). */
+function vlang_native_name(string $l): string {
+  static $m = ['en'=>'English','fr'=>'Français','es'=>'Español','it'=>'Italiano','de'=>'Deutsch',
+               'pt'=>'Português','ru'=>'Русский','ar'=>'العربية','ja'=>'日本語'];
+  return $m[$l] ?? strtoupper($l);
 }
 
 /* Best match for the visitor's device/browser language (phone language travels
@@ -79,13 +135,21 @@ function vlang_detect(){
                 nufusun buyuk yarisina yabanci bir dil olurdu)
    Rusca konusulan eski SSCB pazarlari ve Arapca konusulan ulkeler, sitenin o
    dilleri servis ettigi icin listeye alindi; sitenin dili olmayan bir ulke
-   (or. TR, JP) null doner ve ziyaretci Ingilizce goruyor. */
+   (or. TR, KR) null doner ve ziyaretci Ingilizce goruyor.
+
+   JP 17 Eyl 2026'da EKLENDI ve eksikligi gercek bir kusurdu: Japonca 5 Eylul'de
+   siteye eklendi (1271 anahtar, tam sozluk) ama bu tablo guncellenmedi -- yani
+   tarayicisi dil bildirmeyen Japonyali bir ziyaretci, site tamamen Japonca
+   oldugu halde Ingilizce goruyordu. Yorumun kendisi de "JP null doner" diye
+   yaziyordu, yani kusur yorumda ONAYLANMIS halde duruyordu. Bir dil eklerken
+   "bu olgu baska nerede yazili" diye sorulmadiginda olan sey. */
 function vlang_country_lang(string $cc): ?string {
   static $map = [
     'DE'=>'de','AT'=>'de','CH'=>'de','LI'=>'de',
     'FR'=>'fr','LU'=>'fr','MC'=>'fr','BE'=>'en',
     'ES'=>'es','MX'=>'es','AR'=>'es','CL'=>'es','CO'=>'es','PE'=>'es','UY'=>'es',
     'IT'=>'it','SM'=>'it',
+    'JP'=>'ja',
     'PT'=>'pt','BR'=>'pt','AO'=>'pt','MZ'=>'pt',
     'RU'=>'ru','BY'=>'ru','KZ'=>'ru','KG'=>'ru','UZ'=>'ru','AM'=>'ru','AZ'=>'ru','GE'=>'ru','MD'=>'ru',
     'AE'=>'ar','SA'=>'ar','QA'=>'ar','KW'=>'ar','BH'=>'ar','OM'=>'ar','EG'=>'ar','JO'=>'ar',

@@ -60,7 +60,12 @@ $ACC    = '#c9a86a';
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= htmlspecialchars($PAGE) ?> — <?= $BRAND ?></title>
 <?php
-$META = $META ?? t('Verified B2B fashion wholesale — branded apparel & textile basics from KYC-verified sellers. Invoice-based ordering across Europe.');
+/* Site geneli varsayilan aciklama. "across Europe" TEK BASINA yaziyordu ve bu, bir
+   arama motoruna -- ve sonuc sayfasindaki Amerikali/Avustralyali aliciya -- "burasi
+   sana gore degil" demenin en kisa yoluydu; oysa kod Avrupa disina gonderimi
+   yillardir destekliyor (KURAL 27 asgari siparis kurali bunun uzerine yazili).
+   17 Eyl 2026'da duzeltildi, ayni gun areaServed ile birlikte. */
+$META = $META ?? t('Verified B2B fashion wholesale — branded apparel & textile basics from KYC-verified sellers. Invoice-based ordering across Europe, shipping worldwide.');
 // ── SEO: canonical + multilingual hreflang (self-referencing per language) ──
 $SEO_HOST  = 'https://vestrasales.com';
 $_seoPath  = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
@@ -77,8 +82,12 @@ $_seoSep   = ($qs !== '' ? '&' : '?');
 $_seoHref  = fn($l) => $SEO_HOST.$_seoBase.($l === 'en' ? '' : $_seoSep.'lang='.$l);
 $CANONICAL = $_seoHref(vlang());
 $OG_IMAGE  = $OG_IMAGE ?? $SEO_HOST.'/inc/og-image.png';   // pages may set a specific image (e.g. product photo)
-$OG_LOCALES = ['en'=>'en_US','fr'=>'fr_FR','es'=>'es_ES','it'=>'it_IT','de'=>'de_DE','pt'=>'pt_PT','ru'=>'ru_RU','ar'=>'ar_AR'];
-$OG_LOCALE  = $OG_LOCALES[vlang()] ?? 'en_US';
+/* og:locale TEK KAYNAKTAN (vlang_og_locale, inc/i18n.php). Buradaki elle yazilmis
+   liste 'ja' TASIMIYORDU: Japonca her alt sayfa og:locale=en_US basiyor, yalniz ana
+   sayfa ja_JP diyordu -- ayni olgunun iki kopyasi, ayrismis hali. */
+$OG_LOCALES = [];
+foreach (array_keys(vlang_list()) as $_l) $OG_LOCALES[$_l] = vlang_og_locale($_l);
+$OG_LOCALE  = vlang_og_locale(vlang());
 $NOINDEX   = $NOINDEX ?? false;
 ?>
 <meta name="description" content="<?= htmlspecialchars($META) ?>">
@@ -167,28 +176,12 @@ foreach ($_verify as $_vName => $_vTok):
 // ── Structured data (JSON-LD): site-wide Organization + WebSite, plus any
 //    page-specific schema a page set in $JSONLD before including this header. ──
 $_ld = array_merge([
-  [
-    '@context' => 'https://schema.org', '@type' => 'Organization',
-    'name' => 'VESTRA', 'url' => $SEO_HOST, 'logo' => $OG_IMAGE,
-    /* Localised: a search engine reads this in the language of the page it found, and an
-       English sentence on a German page is a mismatch it can see. The brands come from
-       live stock so the entity description names what is actually sold here. */
-    'description' => trim(t('Verified B2B fashion wholesale marketplace — branded apparel and textile basics from KYC-verified sellers across Europe.')
-        .(($_ldBrands = (function_exists('vestra_seo_brands') ? implode(', ', vestra_seo_brands(10)) : '')) !== ''
-            ? ' '.sprintf(t('Houses in stock: %s.'), $_ldBrands) : '')),
-    /* Not 'EU' any more, and that mattered: the marketplace ships to Japan, Korea,
-       Australia, the Gulf, Brazil and Chile, and an entity that declares itself European
-       is telling every search engine outside Europe that it is not for them. */
-    'areaServed' => ['Europe', 'Asia', 'Oceania', 'South America', 'Middle East', 'Africa'],
-    'email' => 'support@vestrasales.com',
-    'inLanguage' => vlang(),
-    /* What the business deals in, as an entity: the houses in stock and the live
-       categories (localised), so a crawler reading the German page sees "Sneaker",
-       "Schuhe" next to the brand names. Same live lists as the keyword tag. */
-    'knowsAbout' => array_values(array_unique(array_merge(
-        function_exists('vestra_seo_brands') ? vestra_seo_brands(14) : [],
-        function_exists('vestra_seo_knows_about') ? vestra_seo_knows_about(14) : []))),
-  ],
+  /* Organization TEK GOVDEDEN: vestra_seo_org_ld() (inc/seo.php). Ana sayfa kendi
+     <head>'ini basiyor ve buranin ikizini tasiyordu; ikisi ayrismisti -- burasi alti
+     kita sayarken index.php 'EU' diyordu, yani ana sayfa her arama motoruna "yalniz
+     Avrupa" derken alt sayfalar "her yer" diyordu. Markalarin TAMAMI ve hizmet verilen
+     ulkeler orada; guard, katalogu yuklemeyen sayfalar icin (hukuk, giris). */
+  ...(function_exists('vestra_seo_org_ld') ? [vestra_seo_org_ld()] : []),
   [
     '@context' => 'https://schema.org', '@type' => 'WebSite',
     'name' => 'VESTRA', 'url' => $SEO_HOST,

@@ -8,6 +8,7 @@ if ($p !== '/' && file_exists(__DIR__ . $p) && !is_dir(__DIR__ . $p)) return fal
 $try = ltrim($p, '/');
 if (str_starts_with($try, 'data/') || str_starts_with($try, 'vendor/')) { http_response_code(403); exit; }
 /* Ozel kurallar (.htaccess ile birebir) */
+if (preg_match('#^wholesale-to/([A-Za-z0-9][A-Za-z0-9-]*)/?$#', $try, $m)) { $_GET['market'] = $m[1]; require __DIR__ . '/market.php'; return true; }
 if (preg_match('#^wholesale/([A-Za-z0-9][A-Za-z0-9-]*)/([A-Za-z0-9][A-Za-z0-9-]*)/?$#', $try, $m)) { $_GET['brand'] = $m[1]; $_GET['cat'] = $m[2]; require __DIR__ . '/b2b.php'; return true; }
 if (preg_match('#^b2b/([A-Za-z0-9][A-Za-z0-9-]*)/?$#', $try, $m)) { $_GET['cat'] = $m[1]; require __DIR__ . '/b2b.php'; return true; }
 if (preg_match('#^wholesale/([A-Za-z0-9][A-Za-z0-9-]*)/?$#', $try, $m)) { $_GET['brand'] = $m[1]; $_REQUEST['brand'] = $m[1]; require __DIR__ . '/wholesale.php'; return true; }

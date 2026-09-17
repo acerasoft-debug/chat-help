@@ -61,13 +61,21 @@ function vestra_region_discount_codes(): array {
  * %10 — Güney Amerika + Asya-Pasifik + Orta Avrupa (31 Ağu / 13 Eyl 2026).
  * %8  — Afrika, 54 ülke (16 Eyl 2026).
  */
+/** Güney Amerika'nın 12 egemen ülkesi (ISO alpha-2). TEK LİSTE: indirim tablosu
+ *  ve SEO'nun bölge sayfası (/wholesale-to/south-america, 17 Eyl 2026 —
+ *  operatör: *"brezilya ve güney amerika ... ekle"*) ikisi de buradan okuyor;
+ *  ikinci bir kopya, bir gün 11 ülkeye indirim verip 12'sine sayfa açardı. */
+function vestra_south_america_codes(): array {
+    return ['AR','BO','BR','CL','CO','EC','GY','PY','PE','SR','UY','VE'];
+}
+
 function vestra_region_discount_rates(): array {
     static $r = null;
     if ($r !== null) return $r;
     $r = [];
-    foreach (['AR','BO','BR','CL','CO','EC','GY','PY','PE','SR','UY','VE',  // Güney Amerika
-              'JP','AU','SG','HK',                                          // + Asya-Pasifik
-              'CZ','PL'] as $cc) $r[$cc] = (float)VESTRA_REGION_DISCOUNT_PCT;
+    foreach (array_merge(vestra_south_america_codes(),                      // Güney Amerika
+              ['JP','AU','SG','HK',                                          // + Asya-Pasifik
+              'CZ','PL']) as $cc) $r[$cc] = (float)VESTRA_REGION_DISCOUNT_PCT;
     foreach (array_keys(vestra_africa_names()) as $cc) $r[$cc] = (float)VESTRA_AFRICA_DISCOUNT_PCT;
     return $r;
 }

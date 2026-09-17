@@ -84,6 +84,124 @@ $t('bolgesel kodlar xx-YY bicimli',                           !array_filter(arra
 $t('Avrupa: de-AT, fr-BE, it-CH, en-NL var',                  isset($map['de-AT'], $map['fr-BE'], $map['it-CH'], $map['en-NL']));
 $t('en-NL Ingilizceye gider',                                 ($map['en-NL'] ?? '') === 'en');
 
+echo "-- AVRUPA TAM: her AB/EFTA/GB ulkesi bir hreflang etiketinde --\n";
+/* 17 Eyl 2026, operator: "avrupada kusursuz istiyorum". Once OLCULDU: Luksemburg,
+   Malta, Kibris, Hirvatistan, Slovenya, Slovakya, Bulgaristan, uc Baltik, Izlanda ve
+   Liechtenstein hicbir bolgesel etikette gecmiyordu -- 13 ulke. Iddia ulke ulke
+   sayiyor, cunku "48 etiket var" demek hangi ulkelerin kapsandigini SOYLEMIYOR. */
+$mapAll = vlang_hreflang_map();
+$tagCcs = [];
+foreach (array_keys($mapAll) as $tg) if (strlen($tg) === 5) $tagCcs[substr($tg, 3)] = true;
+$euMiss = array_values(array_filter(vestra_europe_codes(), fn($c) => !isset($tagCcs[$c])
+    /* Balkanlar/mikro devletler kapsam disi kalabilir: AB uyesi degiller ve bir
+       hedef pazar da degiller. Iddia AB 27 + EFTA + GB uzerinde. */
+    && in_array($c, ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE','IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE','CH','NO','IS','LI','GB'], true)));
+$t('AB 27 + EFTA + GB: hepsi hreflang tasiyor'.($euMiss ? ' — eksik: '.implode(',', $euMiss) : ''), !$euMiss);
+$t('AB uyesi olmayan ama sitede dili olan ulkeler de var (MC, SM)', isset($tagCcs['MC'], $tagCcs['SM']));
+
+echo "-- HEDEF PAZARLAR: tablo, olgular, adresler --\n";
+/* operator, 17 Eyl 2026: "sadece avrupa degil avustralya japonya dubai qatar ve usa da
+   olsun" + ayni gun "brezilya ve guney amerika, israil, singapur, g.koreyi de ekle". */
+$mkts = vestra_seo_markets();
+foreach (['australia','japan','united-arab-emirates','qatar','united-states',
+          'brazil','south-america','israel','singapore','south-korea'] as $need)
+    $t("pazar tabloda: $need", isset($mkts[$need]));
+$t('bilinmeyen pazar null', vestra_seo_market('bu-pazar-yok') === null);
+$t('bos slug null',        vestra_seo_market('') === null);
+foreach ($mkts as $slug => $mk) {
+    $r = vestra_seo_market($slug);
+    $t("pazar cozulur ve slug gidis-donus: $slug", $r !== null && $r['slug'] === $slug && $r['name'] === $mk['name']);
+    $ccs = vestra_seo_market_ccs($mk);
+    $t("pazarin ulke kodu(lari) var: $slug", $ccs !== [] && !array_filter($ccs, fn($c) => !preg_match('~^[A-Z]{2}$~', $c)));
+    /* Her pazarin ulkesi hreflang'te olmali: sayfa var ama o ulkeye "bu sayfa
+       senin icin" diyen etiket yoksa, is yarim kalmis demektir. */
+    $miss = array_values(array_filter($ccs, fn($c) => !isset($tagCcs[$c])));
+    $t("pazarin her ulkesi hreflang tasiyor: $slug".($miss ? ' — eksik: '.implode(',', $miss) : ''), !$miss);
+    /* Ulke adi 8 dilde de cevrili olmali; cevrilmezse sayfa basligi Almanca
+       sayfada Ingilizce ulke adi basar. */
+    foreach (array_diff(array_keys(vlang_list()), ['en']) as $L) {
+        $d = require __DIR__."/../vestra/inc/lang/$L.php";
+        if (!isset($d[$mk['name']]) || trim((string)$d[$mk['name']]) === '')
+            $t("$L: pazar adi cevrili degil: {$mk['name']}", false);
+    }
+}
+$t('pazar adlari 8 dilde cevrili (yukarida tek tek)', true);
+
+/* OLGULAR KODDAN, metinden degil. Uc ornek uc ayri kaynagi tutuyor:
+   para birimi (money.php), bolgesel indirim (region_discount.php) ve
+   Avrupa disi asgari siparis (products.php sabiti). */
+$fAu = vestra_seo_market_facts($mkts['australia']);
+$t('Avustralya: para birimi AUD',            $fAu['currency'] === 'AUD');
+$t('Avustralya: indirim region_discount\'tan', abs($fAu['discount'] - (vestra_region_discount_rates()['AU'] ?? 0)) < 0.001 && $fAu['discount'] > 0);
+$t('Avustralya: asgari siparis sabitten',    abs($fAu['min_order_usd'] - (float)VESTRA_NONEU_MIN_ORDER_USD) < 0.001);
+$t('Avustralya: kapi kayitta acilir (KURAL 2h)', $fAu['auto_open'] === true);
+$fUs = vestra_seo_market_facts($mkts['united-states']);
+$t('ABD: para birimi USD',                   $fUs['currency'] === 'USD');
+$t('ABD: indirim YOK (tabloda degil)',       $fUs['discount'] == 0.0);
+$t('ABD: kapi kayitta ACILMAZ',              $fUs['auto_open'] === false);
+$fJp = vestra_seo_market_facts($mkts['japan']);
+$t('Japonya: diller en + ja',                $fJp['langs'] === ['en','ja']);
+$t('Japonya: ja-JP etiketi',                 in_array('ja-JP', $fJp['hreflang'], true));
+$fAe = vestra_seo_market_facts($mkts['united-arab-emirates']);
+$t('BAE: diller en + ar',                    $fAe['langs'] === ['en','ar']);
+$fSa = vestra_seo_market_facts($mkts['south-america']);
+$t('Guney Amerika: 12 ulke',                 count($fSa['ccs']) === 12);
+$t('Guney Amerika: tablo tek kaynaktan',     $fSa['ccs'] === vestra_south_america_codes());
+$t('Guney Amerika: Brezilya dahil',          in_array('BR', $fSa['ccs'], true));
+$t('Guney Amerika: diller en/es/pt',         $fSa['langs'] === ['en','es','pt']);
+/* Bolgede olgu ulke ulke ayni olmali, degilse SUSULMALI (KURAL 3). Sentetik bir
+   bolge kuruluyor: Avustralya (AUD) + ABD (USD) -> para birimi tek degil. */
+$fMix = vestra_seo_market_facts(['cc' => '', 'name' => 'X', 'countries' => ['AU','US']]);
+$t('karisik bolgede para birimi SUSAR',      $fMix['currency'] === '');
+$t('karisik bolgede indirim SUSAR',          $fMix['discount'] == 0.0);
+$t('karisik bolgede auto_open SUSAR',        $fMix['auto_open'] === false);
+/* Avrupa'daki bir pazar icin Avrupa disi taban YAZILMAZ. */
+$fEu = vestra_seo_market_facts(['cc' => 'DE', 'name' => 'Germany']);
+$t('Avrupa pazarinda asgari siparis satiri YOK', $fEu['min_order_usd'] == 0.0);
+
+echo "-- pazar adresleri: sitemap, altbilgi, yonlendirme --\n";
+$mpaths = array_column(vestra_seo_market_paths(), 0);
+$t('her pazarin bir yolu var',   count($mpaths) === count($mkts));
+$t('yollar /wholesale-to/<slug>', !array_filter($mpaths, fn($p) => !preg_match('~^/wholesale-to/[a-z0-9-]+$~', $p)));
+$t('tekrar yok',                  count($mpaths) === count(array_unique($mpaths)));
+$t('marka inis yollariyla cakismiyor', !array_intersect($mpaths, array_column(vestra_seo_landing_paths(), 0)));
+
+echo "-- areaServed ve Organization TEK GOVDE --\n";
+$area = vestra_seo_area_served();
+$t('areaServed dizi (tek dize DEGIL)', is_array($area) && count($area) > 3);
+$t('areaServed Avrupa ve Asya',        in_array('Europe', $area, true) && in_array('Asia', $area, true));
+foreach (['Australia','Japan','United Arab Emirates','Qatar','United States','Brazil','Israel','Singapore','South Korea'] as $cn)
+    $t("areaServed ulke: $cn", (bool)array_filter($area, fn($a) => is_array($a) && ($a['name'] ?? '') === $cn));
+$org = vestra_seo_org_ld();
+$t('Organization: tip dogru',           ($org['@type'] ?? '') === 'Organization');
+$t('Organization: areaServed ayni govdeden', $org['areaServed'] === $area);
+$t('Organization: knowsAbout markalarin TAMAMI',
+   !array_diff(vestra_seo_brands(0), $org['knowsAbout']));
+$t('Organization: iletisim dilleri 9',  count($org['contactPoint']['availableLanguage'] ?? []) === count(vlang_list()));
+$t('Organization: $extra ekleniyor',    (vestra_seo_org_ld(['slogan'=>'x'])['slogan'] ?? '') === 'x');
+
+echo "-- kablolama: pazar sayfasi --\n";
+$srcM = fn(string $f) => (string)@file_get_contents(__DIR__.'/../vestra/'.$f);
+$t('.htaccess: /wholesale-to/ kurali',   str_contains($srcM('.htaccess'), '^wholesale-to/') && str_contains($srcM('.htaccess'), 'market.php?market=$1'));
+$t('yerel router ayni kural',            str_contains($srcM('_router_local.php'), "market.php"));
+$t('sitemap pazar yollarini listeler',   str_contains($srcM('sitemap.php'), 'vestra_seo_market_paths()'));
+$t('sitemap lastmod basiyor',            str_contains($srcM('sitemap.php'), '<lastmod>'));
+$t('altbilgi pazar baglantilari',        str_contains($srcM('inc/foot.php'), '/wholesale-to/'));
+/* head.php ve index.php AYNI govdeyi cagirmali: iki kopya ayrismisti (biri alti kita
+   sayiyor, digeri 'EU' diyordu) ve ayrisma ancak canli HTML okunarak gorulmustu. */
+$t('head.php Organization ortak govdeden',  str_contains($srcM('inc/head.php'), 'vestra_seo_org_ld('));
+$t('index.php Organization ortak govdeden', str_contains($srcM('index.php'), 'vestra_seo_org_ld('));
+$t('head.php elle Organization yazmiyor',   !preg_match("~'@type'\s*=>\s*'Organization'~", $srcM('inc/head.php')));
+$t('index.php elle Organization yazmiyor',  !preg_match("~'@type'\s*=>\s*'Organization'~", $srcM('index.php')));
+$t('head.php og:locale ortak govdeden',     str_contains($srcM('inc/head.php'), 'vlang_og_locale('));
+$t('index.php og:locale ortak govdeden',    str_contains($srcM('index.php'), 'vlang_og_locale('));
+$t('og:locale 9 dilde dolu',                count(array_unique(array_map('vlang_og_locale', array_keys(vlang_list())))) === count(vlang_list()));
+$t('og:locale ja_JP',                       vlang_og_locale('ja') === 'ja_JP');
+/* IP->dil tablosu: Japonca 5 Eylul'de eklendi ama tablo guncellenmemisti. */
+$t('IP->dil: JP Japoncaya duser',           vlang_country_lang('JP') === 'ja');
+$t('journal makalesi Article semasi',       str_contains($srcM('journal.php'), "'@type' => 'Article'"));
+$t('shop.php ic camasiri bolmesi basligi',  str_contains($srcM('shop.php'), "t('Underwear')"));
+
 echo "-- her sozluk de.php'ye karsi EKSIKSIZ (9 dil) --\n";
 /* Operator: "5 dilde eksiksiz" -> "6-7 dil yap, rusca ve portekizce ekle" -> "arapcada yap"
    (3 Eyl 2026). de.php referans set: vlang_list()'teki her dil icin HER anahtar var ve yer

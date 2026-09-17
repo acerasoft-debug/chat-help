@@ -499,7 +499,9 @@ $t = $T[$lang] ?? $T['en'];
 // ── SEO: canonical + multilingual hreflang + social + structured data ──
 $SEO_HOST = 'https://vestrasales.com'; $OG_IMAGE = $SEO_HOST.'/inc/og-image.png';
 $_hh = fn($l) => $SEO_HOST.'/'.($l === 'en' ? '' : '?lang='.$l);
-$_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES','pt'=>'pt_PT','ru'=>'ru_RU','ar'=>'ar_AR','ja'=>'ja_JP'][$lang] ?? 'en_US';
+/* og:locale TEK KAYNAKTAN (vlang_og_locale, inc/i18n.php) -- head.php da ayni
+   fonksiyonu cagiriyor; iki elle yazilmis liste ayrismisti (orada 'ja' yoktu). */
+$_ogloc = vlang_og_locale($lang);
 /* Brand names, taken from the LIVE catalogue rather than typed in. Two reasons.
    Truthfulness: the page can only ever name a house that is actually in stock, so
    the copy cannot drift into claiming a brand that was never carried. And reach:
@@ -551,22 +553,16 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
 <meta name="twitter:title" content="<?= htmlspecialchars($BRAND.' — '.$t['tagline']) ?>">
 <meta name="twitter:description" content="<?= htmlspecialchars($t['meta']) ?>">
 <meta name="twitter:image" content="<?= htmlspecialchars($OG_IMAGE) ?>">
-<script type="application/ld+json"><?= json_encode([
-  '@context'=>'https://schema.org','@type'=>'Organization','name'=>'VESTRA','url'=>$SEO_HOST,
-  'logo'=>$OG_IMAGE,'email'=>$CONTACT,'areaServed'=>'EU','slogan'=>$t['tagline'],
-  'description'=>'Verified B2B fashion wholesale marketplace — authentic branded apparel from KYC-verified sellers across Europe'.($_brandList !== '' ? '. Stocked houses: '.$_brandList.'.' : '.'),
-  /* knowsAbout carries the stocked houses into structured data. meta keywords are
-     ignored by every major engine; JSON-LD is not, and this is the field that tells
-     a crawler what the business actually deals in. Same live list as the tags, so it
-     can never name a brand the catalogue does not hold. */
-  'knowsAbout'=>array_merge(
-     ['B2B fashion wholesale','authentic branded apparel','designer clothing wholesale',
-      'multi-brand boutique sourcing','textile wholesale','KYC-verified suppliers'],
-     array_slice($_brands, 0, 14),
-     /* … and the live categories, localised ("Sneaker", "Schuhe" on the German page). */
-     function_exists('vestra_seo_knows_about') ? vestra_seo_knows_about(12) : []),
-  'keywords'=>'B2B fashion wholesale, branded fashion wholesale, authentic designer wholesale, KYC-verified suppliers, multi-brand boutique wholesale, wholesale clothing marketplace Europe',
-], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) ?></script>
+<?php /* Organization JSON-LD: ana sayfa ile alt sayfalarin AYRI kopyalari vardi ve
+         ayrismisti -- burasi 'areaServed'=>'EU' diyor (yani her arama motoruna "yalniz
+         Avrupa"), head.php alti kita sayiyordu; buradaki knowsAbout 14 markada
+         kesiliyordu ve canli olcumde Gucci ile Lacoste ana sayfada HIC gecmiyordu.
+         Tek govde: vestra_seo_org_ld() (inc/seo.php), markalarin TAMAMI. Slogan
+         yalniz ana sayfaya ait oldugu icin $extra ile veriliyor.
+         Guard: products.php yuklenemezse ana sayfa yine acilir (KURAL 15'in dersi). */
+      if (function_exists('vestra_seo_org_ld')): ?>
+<script type="application/ld+json"><?= json_encode(vestra_seo_org_ld(['slogan'=>$t['tagline']]), JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) ?></script>
+<?php endif; ?>
 <script type="application/ld+json"><?= json_encode([
   '@context'=>'https://schema.org','@type'=>'WebSite','name'=>'VESTRA','url'=>$SEO_HOST,
   'potentialAction'=>['@type'=>'SearchAction','target'=>['@type'=>'EntryPoint','urlTemplate'=>$SEO_HOST.'/shop?q={search_term_string}'],'query-input'=>'required name=search_term_string'],

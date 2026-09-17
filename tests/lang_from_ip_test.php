@@ -31,9 +31,16 @@ $t('CH -> de (en buyuk dil grubu)', vlang_country_lang('CH') === 'de');
 $t('BE -> en (Flaman cogunluk; NL sitede yok)', vlang_country_lang('BE') === 'en');
 
 echo "\n== 3. Sitenin dili olmayan ulke Ingilizce'ye dusuyor ==\n";
-foreach (['TR','JP','KR','CN','US','GB','NL','PL','GR','IN'] as $cc) {
+/* JP bu listeden 17 Eyl 2026'da CIKARILDI ve bu bilincli bir davranis degisikligi:
+   Japonca 5 Eylul'de siteye eklendi (tam sozluk) ama bu tablo guncellenmemisti,
+   yani tarayicisi dil bildirmeyen Japonyali ziyaretci -- site tamamen Japonca
+   oldugu halde -- Ingilizce goruyordu. Iddia eski ve HATALI davranisi
+   pinliyordu; bu depoda ayni sinif bir kez daha yasandi (satici kendi karsi
+   teklifini kabul edip fatura kesiyordu ve test onu koruyordu). */
+foreach (['TR','KR','CN','US','GB','NL','PL','GR','IN'] as $cc) {
     $t("{$cc} eslesmiyor (=> en)", vlang_country_lang($cc) === null);
 }
+$t('JP -> ja (dil eklendi, tablo da eklendi)', vlang_country_lang('JP') === 'ja');
 $t('bos kod', vlang_country_lang('') === null);
 $t('cop kod', vlang_country_lang('ZZZ') === null);
 $t('kucuk harf de calisir', vlang_country_lang('de') === 'de');

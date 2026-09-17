@@ -17,6 +17,12 @@
     <?php if (count($_fcoll) > 1): ?><div><b><?= t('Collections') ?></b>
       <?php foreach ($_fcoll as $_cs => $_lbl): ?><a href="/b2b/<?= $_cs ?>"><?= htmlspecialchars(t($_lbl).' '.$_fw) ?></a><?php endforeach; ?>
     </div><?php endif; ?>
+    <?php /* Pazar sayfalari (17 Eyl 2026): her sayfadan baglaniyorlar, cunku ic
+             baglantisi olmayan bir sayfayi arama motoru gec bulur -- marka ve
+             kategori sayfalarinin altbilgide durmasinin sebebi de bu. */
+          if (function_exists('vestra_seo_markets')): ?><div><b><?= t('Wholesale markets') ?></b>
+      <?php foreach (vestra_seo_markets() as $_ms => $_mm): ?><a href="/wholesale-to/<?= $_ms ?>"><?= htmlspecialchars(t($_mm['name']).' '.$_fw) ?></a><?php endforeach; ?>
+    </div><?php endif; ?>
   </div>
   <?php endif; endif; ?>
   <div class="wrap foot">

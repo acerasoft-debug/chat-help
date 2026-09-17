@@ -45,7 +45,9 @@ jobs:
           UA_BOT="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
           UA_WEB="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
           PATH_="${P:-/}"
-          for L in en de fr it es pt ru ar; do
+          # ja 17 Eyl 2026'da eklendi: Japonya bir hedef pazar ve sayfalarin
+          # Japoncasi bu adimda HIC olculmuyordu.
+          for L in en de fr it es pt ru ar ja; do
             if [ "$L" = "en" ]; then URL="${BASE}${PATH_}"
             else
               case "$PATH_" in *\?*) URL="${BASE}${PATH_}&lang=$L";; *) URL="${BASE}${PATH_}?lang=$L";; esac
@@ -94,7 +96,7 @@ jobs:
             echo
             # Marka anahtar kelimesi gercekten var mi? Dile gore "toptan" sozcugu degisiyor.
             case "$L" in
-              de) W="Großhandel";; fr) W="en gros";; it) W="ingrosso";; es) W="al por mayor";; pt) W="por grosso";; ru) W="оптом";; ar) W="بالجملة";; *) W="wholesale";;
+              de) W="Großhandel";; fr) W="en gros";; it) W="ingrosso";; es) W="al por mayor";; pt) W="por grosso";; ru) W="оптом";; ar) W="بالجملة";; ja) W="卸売";; *) W="wholesale";;
             esac
             echo "  --- kontrol ---"
             # Ana sayfadaki marka anahtar kelimeleri stok derinligine gore ILK 12 marka
@@ -216,7 +218,7 @@ jobs:
             # query string'i ayristirmaz. Ilk denemede tam bu yuzden en/de/it ayni
             # Ingilizce ciktiyi verdi ve sanki ceviri bozukmus gibi gorundu. $_GET'i
             # dogrudan kuruyoruz.
-            for L in en de it es fr pt ru ar; do
+            for L in en de it es fr pt ru ar ja; do
               echo "=================== $L ==================="
               OUT=$(php -r '
                 $l = $argv[1];
@@ -238,6 +240,54 @@ jobs:
             echo "  cikti: $(printf '%s' "$SM" | wc -c) bayt, $(printf '%s' "$SM" | grep -c '<loc>') URL"
             printf '%s' "$SM" | grep -iE 'fatal|error|warning' | head -3 | sed 's/^/  HATA: /'
             printf '%s' "$SM" | head -4 | sed 's/^/  /'
+
+      - name: Pazar sayfaları + hreflang kapsamı
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            # Salt-okunur. Uc soruyu ayri ayri cevapliyor, cunku uculunun cozumu ayri:
+            #   (a) yeni kod sunucuya INDI mi -- fonksiyonun varligina degil, gercek
+            #       bir cagriya bakiyoruz; eski bir kopya da parse edilir (KURAL 21b),
+            #   (b) pazar sayfalari gercekten CIZILIYOR mu ve olgulari dogru mu,
+            #   (c) hreflang hangi ULKELERI kapsiyor -- "48 etiket var" demek hangi
+            #       ulkenin kapsandigini SOYLEMIYOR, bu satir yuzunden 13 AB ulkesi
+            #       aylarca etiketsiz kaldi.
+            cd ~/public_html
+            php -r '
+              $_SERVER["HTTP_HOST"]="vestrasales.com"; $_SERVER["REQUEST_METHOD"]="GET";
+              require "inc/products.php";
+              if (!function_exists("vestra_seo_markets")) { echo "  *** DEPLOY INMEMIS: vestra_seo_markets yok\n"; exit; }
+              $m = vestra_seo_markets();
+              echo "  pazar tablosu: ".count($m)." giris\n";
+              foreach ($m as $slug => $mk) {
+                $f = vestra_seo_market_facts($mk);
+                printf("  %-22s birim=%-4s indirim=%4s asgari=%-7s kapi=%-6s dil=%-10s etiket=%d\n",
+                  $slug, $f["currency"] ?: "-",
+                  $f["discount"] > 0 ? rtrim(rtrim(number_format($f["discount"],2,".",""),"0"),".")."%" : "-",
+                  $f["min_order_usd"] > 0 ? "US$".number_format($f["min_order_usd"],0,".",",") : "-",
+                  $f["auto_open"] ? "acik" : "normal",
+                  implode(",", $f["langs"]), count($f["hreflang"]));
+              }
+              $tags = vlang_hreflang_map(); $ccs = [];
+              foreach (array_keys($tags) as $tg) if (strlen($tg) === 5) $ccs[substr($tg,3)] = true;
+              echo "  hreflang: ".count($tags)." etiket, ".count($ccs)." ulke\n";
+              $eu = ["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IE","IT","LV","LT","LU","MT","NL","PL","PT","RO","SK","SI","ES","SE","CH","NO","IS","LI","GB"];
+              $miss = array_values(array_filter($eu, fn($c) => !isset($ccs[$c])));
+              echo "  AB27+EFTA+GB kapsami: ".(count($eu)-count($miss))."/".count($eu).($miss ? "  *** EKSIK: ".implode(",",$miss)." ***" : "  (tam)")."\n";
+              $org = vestra_seo_org_ld();
+              echo "  Organization: knowsAbout ".count($org["knowsAbout"])." (marka ".count(vestra_seo_brands(0))."), areaServed ".count($org["areaServed"])." giris\n";
+            ' 2>&1 | sed 's/^/  /'
+            echo
+            # Sayfalar Apache uzerinden gercekten aciliyor mu? Localhost bu barindirmada
+            # bu sitenin vhost'una dusmuyor (yukarida yazili), o yuzden burada yalnizca
+            # DOSYA ve KURAL kontrolu yapiliyor; gercek HTTP olcumu disaridan.
+            ls -l market.php 2>&1 | sed "s/^/  dosya: /"
+            grep -n "wholesale-to" .htaccess 2>/dev/null | sed "s/^/  kural: /" || echo "  kural: YOK"
 
       - name: IP → dil seçimi (ziyaretçinin ülkesinden)
         if: ${{ github.event.inputs.test_ip != '' }}
