@@ -23,7 +23,7 @@ on:
         required: false
         default: ""
       payload:
-        description: "admin_mode=apply: şifreli satıcı bilgisi. admin_mode=order_draft|order_write: kalemler. DROPSHIP (varsayılan) 'SKU:BEDEN:ADET,...'; TOPTAN 'pricing=wholesale|SKU:RENK:ADET,...' — kademe fiyatı, MOQ/paket adımı ve renk ilandan doğrulanır, beden dökümü ilanın serisinden türer. İlan edilen renk asgarisinden feragat: '|waive_min_colours=1'."
+        description: "admin_mode=apply: şifreli satıcı bilgisi. admin_mode=order_draft|order_write: kalemler. DROPSHIP (varsayılan) 'SKU:BEDEN:ADET,...'; TOPTAN 'pricing=wholesale|SKU:RENK:ADET,...' — kademe fiyatı, MOQ/paket adımı ve renk ilandan doğrulanır, beden dökümü ilanın serisinden türer. İlan edilen renk asgarisinden feragat: '|waive_min_colours=1'; ilan edilen asgari adetten feragat: '|waive_moq=1' (paket adımı feragata girmez)."
         required: false
         default: ""
       issue_ref:
@@ -200,7 +200,7 @@ jobs:
                Toptan kipte ikinci alan BEDEN degil RENK -- tam kartonda beden
                dagilimi ilanin kendi serisinden turuyor, secilen sey renk. */
             $spec0 = (string)getenv('OD_LINES');
-            $wholesale = false; $waiveMinCol = false;
+            $wholesale = false; $waiveMinCol = false; $waiveMoq = false;
             if (preg_match('/^\s*pricing\s*=\s*wholesale\s*(\|.*)?$/is', $spec0, $mm0) ||
                 preg_match('/^\s*pricing\s*=\s*wholesale\s*\|/i', $spec0)) {
                 $wholesale = true;
@@ -212,6 +212,21 @@ jobs:
                     $waiveMinCol = true;
                     $tail = (string)preg_replace('/(^|\|)\s*waive_min_colours\s*=\s*1\s*/i', '$1', $tail);
                 }
+                /* ILAN EDILEN ASGARI ADETTEN feragat -- kardesinin aynisi ve ayni
+                   sebeple AYRI bir anahtar: numune/tek karton satisi gercek bir
+                   is ama ilan "en az 50" diyor, yani sepet o siparisi REDDEDER.
+                   Tek bayrakla birlestirilmedi: renk asgarisinden feragat etmek
+                   ile ilan edilen asgari adedin ALTINA inmek iki ayri taviz ve
+                   birini isteyen otekini istemeyebilir.
+                   PAKET ADIMI BU FERAGATA GIRMIYOR, bilerek: o fiziksel bir
+                   kisit (karton 10'luk) ve sepet adedi adimin katina YUVARLIYOR
+                   -- yani 15 adet yazan bir fatura, kasada 20 adet demek olurdu
+                   (KURAL 4b). Asgariyi asagi cekmek ilan edilen bir kurali
+                   gevsetir; adimi kirmak belgeyi yalanlar. */
+                if (preg_match('/(^|\|)\s*waive_moq\s*=\s*1\s*(\||$)/i', $tail)) {
+                    $waiveMoq = true;
+                    $tail = (string)preg_replace('/(^|\|)\s*waive_moq\s*=\s*1\s*/i', '$1', $tail);
+                }
                 $spec0 = trim($tail, " |");
             }
 
@@ -220,6 +235,7 @@ jobs:
                 ? "TOPTAN: kademe fiyati, sepetin kendi vestra_unit_price'i"
                 : "dropship fiyati = en dusuk kademe + %".(int)round(VESTRA_DROPSHIP_MARKUP*100)).") ==\n";
             if ($wholesale && $waiveMinCol) echo "  (!) ilan edilen RENK ASGARISINDEN feragat edildi -- operator karari\n";
+            if ($wholesale && $waiveMoq)    echo "  (!) ilan edilen ASGARI ADETTEN feragat edildi -- operator karari\n";
             $all = vestra_products();
             $bySku = [];
             foreach ($all as $p) { $sk = trim((string)($p['sku'] ?? '')); if ($sk !== '') $bySku[mb_strtolower($sk)] = $p; }
@@ -246,7 +262,8 @@ jobs:
                     /* MOQ ve paket adimi: sepet adedi adimin KATINA yuvarliyor,
                        yani katalog disinda yazilan bir adet kasada baska bir
                        adet demek olurdu (KURAL 4b). */
-                    if ($qty < $moq)        { $msgs[] = sprintf('!! adet %d, ilan edilen MOQ %d', $qty, $moq); }
+                    if ($qty < $moq)        { $msgs[] = sprintf('%s adet %d, ilan edilen MOQ %d',
+                                                                $waiveMoq ? '(feragat)' : '!!', $qty, $moq); }
                     if ($qty % $step !== 0) { $msgs[] = sprintf('!! adet %d, paket adimi %d katı DEGIL', $qty, $step); }
                     /* Renk ilanda GERCEKTEN var mi? Olmayan bir rengi satmak,
                        gonderilemeyecek bir sey satmaktir (KURAL 3). Esleme TAM,
@@ -399,6 +416,7 @@ jobs:
             $note = $wholesale
                 ? 'Wholesale tier pricing, full cartons, agreed with the buyer.'
                   .($waiveMinCol ? ' Single-colour lots agreed as an exception to the listed colour minimum.' : '')
+                  .($waiveMoq ? ' Quantity below the listed minimum order, agreed as an exception.' : '')
                 : 'Dropship pricing (wholesale +'.(int)round(VESTRA_DROPSHIP_MARKUP*100).'%), single pieces, agreed with the buyer.';
             $res = vestra_order_create_manual($acc, $mkLines, $ship, $note);
             if (!empty($res['error'])) { fwrite(STDERR, "YAZILAMADI: ".$res['error']."\n"); exit(1); }
