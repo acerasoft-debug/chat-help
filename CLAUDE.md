@@ -5372,6 +5372,68 @@ aldığı **tahmin edilmedi, damgadan okundu**:
 - **Kota darboğaz DEĞİL** (179 kalan, 60 ayrılmış). Dört kanalın toplamı
   **8 mektup**; günün toplamı **80**.
 
+**17 Eyl 2026 — 100 satırlık JAPONYA listesi: gönderilebilir adres SIFIR;
+80 alan adı KAYITLI DEĞİL** (operatör 100 satır yapıştırıp *"kampanya gönder
+japonca"* dedi). **Gönderim YAPILMADI, `leads.json`'a hiçbir şey yazılmadı.**
+KURAL 1b'nin imzası bu listede en açık hâliyle duruyor:
+
+| | |
+|---|---:|
+| satır | 100 |
+| KURAL 1 kod engeli | 19 |
+| **alan adının NS kaydı YOK** (= kayıtlı değil) | **80** |
+| alan adı canlı **ve** koddan geçen | 16 |
+| elle okumadan sonra **kalan aday** | **5** |
+| **gerçekten mektup gidecek** | **0** |
+
+- **Kalıp, uydurmanın imzası:** 100 satırın **99'u** genel kutu
+  (`info@` 27, `contact@` 24, `sales@` 13, `shop@` 12, `support@` 10…),
+  **59'u** yer adıyla biten alan adı (`-tokyo.jp`, `-harajuku.com`). Tanınan
+  15 markanın **14'ünün gerçek alan adı listedekinden BAŞKA**:
+  `beams-japan.jp` ↔ gerçeği `beams.co.jp`, `uniqlo-global.jp` ↔ `uniqlo.com`,
+  `commedesgarcons.co.jp` ↔ `comme-des-garcons.com`. Tek tutan `atmos-tokyo.com`
+  ve o da zaten bloklistede. *Gerçek alan adı elde varken uydurmasını yazmak,
+  listeyi hazırlayan aracın kaydı hiç görmediğini söyler.*
+- **Ölçüm iki koşuda, kontrol grubuyla** (`diag-live` → `leads_status`, run
+  `35268768994` + `35269189047`): ilk 50'de **34**, ikinci 50'de **44** NS YOK;
+  kontrol grubu (`google.com`, `beams.co.jp`, `uniqlo.com`) sorunsuz çözülüyor —
+  yani çözümleyici sağlam, ölü olan alan adları.
+- **İlk ölçümde 3 alan adı HİÇ ÖLÇÜLMEDEN kalmıştı** ve bunu ancak ölçülenlerin
+  listesini girdiyle **karşılaştırınca** gördüm (`commedesgarcons.co.jp`,
+  `undercover-lab.com`, `gmail.com`). İlk ikisi de kayıtlı değil. *Bir listeyi
+  "ölçtüm" demeden önce ölçülen kümeyi girdi kümesiyle karşılaştır — eksik
+  ölçüm, ölçümsüzlükten kötü, çünkü kendini tam sanar.*
+- **Canlı 16 alan adının hiçbiri gönderilebilir çıkmadı, ve gerekçeler ayrı
+  ayrı ölçüldü:** 2'si **zaten mektup almış** (L'ŒIL DE TOKYO 31 Ağu,
+  Mita Sneakers 3 Ağu), `dune-jp.net` havuzda **"N id – N id"** adıyla başka
+  bir kutuyla duruyor (KURAL 1c) ve zaten bir **showroom** = marka dağıtım
+  ajansı (`present-london.com` → *"Four Marketing"* vakasının aynısı),
+  7'si markanın **kendi** dükkânı (YOKE, Rolling Cradle, Mishka, Carhartt WIP,
+  Stussy…), 2'si **zincir** (Billy's ~çok şubeli sneaker, GU = Fast Retailing),
+  ve **2'si dükkân bile değil**: `japan-zone.com` bir **turizm/kültür bilgi
+  sitesi**, `store.babysallright@gmail.com` ise **Brooklyn'deki bir müzik
+  mekânı**. Geriye 5 ad kalıyor (BoutiqueW, Japan Clothing, Salt and Pepper,
+  Uptown Deluxe, Stay246) ve **onların adresi de güvenilmez**: 7 Eylül'de tam
+  bu `info@`+alan adı kalıbında **12 alan adının 12'sinde de** liste adresi
+  yanlış çıkmıştı. Doğru yol KURAL 1f — adres değil **site linki** ver.
+- **Havuzda Japonya ayrıca ölçüldü, iki kanalda da 0:** soğuk havuz
+  (`country_filter=Japan`, `min_brands=1`) → *"uygun secilen: 0"*, ikinci
+  mektup kanalı → *"uygun secilen: 0"*. Yani bu talebi mevcut havuzdan da
+  karşılamanın yolu yok; Japonya için gereken şey yeni liste değil **keşif**
+  (`discover-city.yml`, verimi ~1 lead/şehir — 8 Eyl ölçümü).
+- **Ölçüm aracının kendi gürültüsü ikinci kanalda yanıltıcıydı:** kuru koşunun
+  *"ATLANDI …"* satırları Güney Afrika, İsrail, Romanya… yazıyor, oysa
+  `country_filter` **Japonya**. Sebep yapısal: o `echo`'lar `$IS_NEWCOLL`
+  dalında basılıyor, ülke süzgeci ise **paylaşılan yolda, 844. satırda**, yani
+  satırlar süzgeçten ÖNCE yazılıyor. Seçim sayısı (0) süzgeçlenmiş sayıdır.
+  *rtl-check ve probe_url'ün verdiği dersin üçüncüsü: aracın kendi gürültüsünü
+  elemeden rapor okuma.*
+- **`gmail.com`'u sondaya vermek hataydı** ve çıktıyı bozdu: havuzdaki her
+  gmail'li lead eşleşti (*"zaten gonderildi: 347, yeni: 19"*) ve özet bu
+  listeyle ilgisiz bir sayı bastı. Serbest posta sağlayıcısının alan adı bir
+  firma kimliği değil (KURAL 1c'nin muafiyetinin aynı sebebi) — sondaya
+  verilmemeli.
+
 **16 Eyl 2026 — Fred Perry Angebot 118 kayıtlı alıcıya; fiyat listesi artık
 BİRDEN FAZLA marka alıyor; ve cevap mektubu adımı ARGÜMAN SINIRINI aşmıştı.**
 
