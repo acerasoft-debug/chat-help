@@ -1,8 +1,18 @@
 <?php
 /**
- * AVRUPA DISI ASGARI SIPARIS (5.000 USD) + AFRIKA %8 BOLGESEL INDIRIM
- * (operator, 16 Eyl 2026: *"Avrupa disina en az alim 10 Bin USD yaz"* +
- * *"Afrika bolgesine toplam katalogtan yuzde 8 indirim yapilacagini belirt"*).
+ * AVRUPA DISI ASGARI SIPARIS (**BUGUN KAPALI**) + AFRIKA %8 BOLGESEL INDIRIM.
+ *
+ * Taban 16 Eyl 2026'da kondu (10.000 -> ayni gun 5.000) ve **17 Eyl 2026'da
+ * operator kaldirdi**: *"US$5.000 Avrupa disi taban, bunu girmene gerek
+ * yok.... avrupa disindan isteyen normal en az alim ile siparis verebilsin"*.
+ * Davranis BILEREK degisti, o yuzden testi de duzeltildi -- bu deponun kendi
+ * kurali (*"davranis bilerek degistiyse testi de duzelt"*): eski iddialar
+ * artik KALDIRILMIS bir kurali pinliyordu.
+ *
+ * BOLGESEL INDIRIM AYRI BIR KAPI ve DOKUNULMADI: Afrika %8, Guney Amerika/
+ * JP/AU/SG/HK/CZ/PL %10 aynen duruyor. Iki kapinin bagimsiz oldugunu tutan
+ * iddialar burada, cunku tabani kaldiran bir degisiklik indirimi de sessizce
+ * goturebilirdi.
  *
  * IKI YONU DE tutuyor ve tutmak ZORUNDA: kapsama girmesi gerekenler kadar,
  * kapsam DISINDA kalmasi gerekenler de. Tek yon yazilsaydi "herkese %8" ya da
@@ -49,10 +59,12 @@ $pairs = [['Niger','NE'], ['Nigeria','NG'], ['Guinea','GN'], ['Equatorial Guinea
 foreach ($pairs as [$name, $cc]) $t("{$name} -> {$cc}", vestra_country_region_discount_cc($name) === $cc);
 
 echo "\n== Avrupa testi: kapsam DISI (taban uygulanir) ==\n";
+/* Avrupa testi SILINMEDI: taban kapali olsa da bu fonksiyonu pazar sayfasi
+   (vestra_seo_market_facts) ve terms_reply mektubu hala okuyor. */
 foreach (['Benin','BJ','Brazil','United States','Japan','Australia','AU',
           'Singapore','SG','Turkey','Wakanda'] as $c) {
     $t("{$c} -> Avrupa DEGIL", !vestra_user_in_europe($u($c)));
-    $t("{$c} -> taban var", abs(vestra_order_min_usd($u($c)) - VESTRA_NONEU_MIN_ORDER_USD) < 0.001);
+    $t("{$c} -> taban YOK (kapali)", vestra_order_min_usd($u($c)) === 0.0);
 }
 
 echo "\n== Avrupa testi: MUAF olmasi gerekenler ==\n";
@@ -68,11 +80,11 @@ foreach (['Germany','Deutschland','Allemagne','DE','France','Frankreich','FR',
 }
 /* Kayit alani bos ya da hesap yoksa taban islemez: okuyamadigimiz bir alan
    yuzunden gercek bir siparisi reddetmek, hatayi musteriye odetmek olur. */
-/* MUTLAK IDDIA: yukaridaki mekanizma iddialari sabite GORE yazili, yani
-   esik 1 USD de olsa yesil kalirlar -- operatorun soyledigi sayiyi tutan tek
-   sey sabitin adi olurdu. Bu satir rakamin kendisini sabitliyor (13 Eyl'de
-   NEW rozetinin penceresi tam bu sebeple ayrica pinlenmisti). */
-$t('taban 5.000 USD (operator, 16 Eyl 2026)', VESTRA_NONEU_MIN_ORDER_USD === 5000.0);
+/* MUTLAK IDDIA: mekanizma iddialari sabite GORE yazilsaydi esik 1 USD de
+   olsa yesil kalirlardi -- operatorun soyledigi degeri tutan tek sey sabitin
+   adi olurdu (13 Eyl'de NEW rozetinin penceresi tam bu sebeple ayrica
+   pinlenmisti). Bu satir KARARIN KENDISINI sabitliyor: taban KAPALI. */
+$t('taban KAPALI = 0.0 (operator, 17 Eyl 2026)', VESTRA_NONEU_MIN_ORDER_USD === 0.0);
 $t('(bos ulke) -> taban yok', vestra_order_min_usd($u('')) === 0.0);
 $t('hesapsiz -> taban yok',   vestra_order_min_usd(null) === 0.0);
 
@@ -84,24 +96,35 @@ $t('SG (Singapur) DEGIL',     !vestra_user_in_europe($u('SG')));
 $t('IE (Irlanda) Avrupa',      vestra_user_in_europe($u('IE')));
 $t('IL (Israil) DEGIL',       !vestra_user_in_europe($u('IL')));
 
-echo "\n== esik aritmetigi (kur SABIT, agsiz) ==\n";
-/* vestra_order_min_shortfall gercek kuru okuyor; burada aritmetigi kurdan
-   BAGIMSIZ dogruluyoruz: fonksiyonun dondurdugu 'rate' ile yeniden hesap. */
+echo "\n== kapi SUSUYOR: her ulke, her tutar ==\n";
+/* Taban kapaliyken tek dogru cevap bos dizi. KUCUK tutar da olculuyor:
+   "1 EUR'luk sepet geciyor mu" sorusu tam olarak operatorun kaldirdigi
+   kuralin sorusu. */
 $eu = $u('Germany'); $bj = $u('Benin');
-$t('Avrupa: hicbir tutarda eksik yok', vestra_order_min_shortfall(1.0, $eu) === []
-                                    && vestra_order_min_shortfall(100000.0, $eu) === []);
-$r = vestra_order_min_shortfall(100.0, $bj);
-$t('Avrupa disi kucuk sepet: eksik VAR', $r !== []);
-if (isset($r['rate']) && $r['rate'] > 0) {
-    $t('eksik = taban - (EUR x kur)', abs($r['short_usd'] - (VESTRA_NONEU_MIN_ORDER_USD - round(100.0 * $r['rate'], 2))) < 0.02);
-    $big = VESTRA_NONEU_MIN_ORDER_USD / $r['rate'] + 1.0;                 // esigin hemen ustu
-    $t('yeterli sepet GECIYOR', vestra_order_min_shortfall($big, $bj) === []);
-    $t('tam sinir GECIYOR',     vestra_order_min_shortfall(VESTRA_NONEU_MIN_ORDER_USD / $r['rate'], $bj) === []);
-} else {
-    /* Kur yoksa: olcum YAPILAMADI demek, "gecti" demek DEGIL. */
-    $t('kur yoksa hata donuyor', ($r['error'] ?? '') === 'fx');
-    $t('kur yoksa sepet GECMIYOR', vestra_order_min_shortfall(1000000.0, $bj) !== []);
+foreach ([['Avrupa', $eu], ['Avrupa disi', $bj], ['hesapsiz', null], ['(bos ulke)', $u('')]] as [$lbl, $acc]) {
+    foreach ([1.0, 100.0, 4999.0, 100000.0] as $amt) {
+        $t("{$lbl} / {$amt} EUR -> gecer", vestra_order_min_shortfall($amt, $acc) === []);
+    }
 }
+
+echo "\n== KUR KESINTISI ARTIK SIPARIS DURDURMUYOR ==\n";
+/* Taban acikken bedeli yaziliydi: esik USD, katalog EUR, yani karsilastirma
+   KUR istiyor ve kur yoksa siparis GECMIYORDU. Kapali sabit bu bedeli de
+   kaldiriyor -- ama YALNIZCA fonksiyon kuru okumadan ONCE donuyorsa.
+   Iddia bu yuzden DAVRANISSAL DEGIL KABLOLAMA: bu ortamda kur zaten
+   okunamiyor, yani "bos dizi dondu" tek basina siranin dogru oldugunu
+   KANITLAMAZ (kur bir gun okunabilir hale gelirse sessizce degisirdi). */
+$src  = (string)@file_get_contents(__DIR__.'/../vestra/inc/products.php');
+$body = '';
+if (preg_match('/function vestra_order_min_shortfall\(.*?\n\}/s', $src, $m)) $body = $m[0];
+$t('govde ayiklandi',            $body !== '');
+$posGuard = strpos($body, 'if ($min <= 0) return [];');
+$posFx    = strpos($body, 'vestra_fx(');
+$t('min<=0 muhafazasi VAR',      $posGuard !== false);
+$t('kur okumasi VAR (mekanizma duruyor)', $posFx !== false);
+$t('muhafaza KUR OKUMASINDAN ONCE', $posGuard !== false && $posFx !== false && $posGuard < $posFx);
+/* Mekanizma silinmedi: sabit geri acilirsa esik yine olculuyor. */
+$t('fx hata dali hala yazili',   str_contains($body, "'error' => 'fx'"));
 
 echo "\n== kapi SUNUCUDA (kaynak kablolamasi) ==\n";
 /* Dugmeyi gizlemek kapi degildir -- bu depo bunu /offer ucunde ogrendi. */
@@ -111,6 +134,9 @@ $t('kapi HESABI geciriyor',      str_contains($ord, 'vestra_order_min_shortfall(
 $t('kur hatasi ayri kod',        str_contains($ord, 'ordermin_fx'));
 $crt = (string)@file_get_contents(__DIR__.'/../vestra/cart.php');
 $t('sepet uyarisi var',          str_contains($crt, "'ordermin'"));
+/* Bant SABITE de bagli: taban kapaliyken elle yazilmis bir /cart?err=ordermin
+   sifir dolarlik bir taban duyururdu. */
+$t('sepet banti sabitle kapili', preg_match('/if\(VESTRA_NONEU_MIN_ORDER_USD > 0/', $crt) === 1);
 /* Rakam metne GOMULU DEGIL (KURAL 6'nin escrow tavani dersi). */
 $t('sepet rakami sabitten',      str_contains($crt, 'VESTRA_NONEU_MIN_ORDER_USD'));
 $t('sepet metninde rakam gomulu degil', !preg_match('/US\$\s?\d[\d.,]{2,}/', $crt));
@@ -133,8 +159,17 @@ echo "\n== terms_reply mektubu: RAKAM METNE GOMULU DEGIL ==\n";
    kodda 3.500 kalmasi (KURAL 6) ayni sinif. */
 require_once __DIR__.'/../vestra/inc/email_templates.php';
 [$tsA, $tbA, $toA] = vestra_tpl_terms_reply('Mr X', 'BJ', 'UPS Express, 1-2 weeks.', 'Marco Bellini');
+/* IKI KAPI AYRI: taban kalkti, BOLGESEL INDIRIM DURUYOR. Bu satir olmasaydi
+   tabani kaldiran bir degisiklik indirim cumlesini de sessizce goturebilirdi. */
 $t('Benin: %8 yaziyor',            str_contains($tbA, '8%'));
-$t('Benin: asgari SABITTEN',       str_contains($tbA, 'US$'.number_format(VESTRA_NONEU_MIN_ORDER_USD, 0)));
+/* Taban kapaliyken mektup SUSMUYOR, DOGRUSUNU yaziyor: sablonun `else` dali
+   "bolgeniz icin tutar asgarisi yok" diyor ve ilanin kendi MOQ'sunu yine
+   soyluyor -- operatorun cumlesindeki "normal en az alim" tam olarak bu. */
+$t('Benin: US$ rakami YOK',        !str_contains($tbA, 'US$'));
+$t('Benin: "tutar asgarisi yok" cumlesi',
+                                   str_contains($tbA, 'no order-value minimum'));
+$t('Benin: ilan asgarisi yine yazili',
+                                   str_contains($tbA, 'minimum quantity') && str_contains($tbA, 'pack multiples'));
 $t('Benin: gonderim cumlesi basli',str_contains($tbA, 'UPS Express, 1-2 weeks.'));
 $t('konuda ULKE ADI, kod degil',   str_contains($tsA, 'Benin') && !str_contains($tsA, ' BJ'));
 $t('belge: ticari kayit',          str_contains($tbA, 'business registration'));
@@ -156,8 +191,9 @@ $t('gonderim verilmedi -> SUSUYOR', !str_contains($tbB, 'Shipping.'));
 /* Kapsamda ama Avrupa DISI olmayan yok; kapsam disi + Avrupa disi bir ulke
    tabani alir ama indirim almaz -- iki kapi AYRI. */
 [, $tbC, ] = vestra_tpl_terms_reply('', 'United States', '', '');
-$t('ABD: taban VAR',               str_contains($tbC, 'US$'.number_format(VESTRA_NONEU_MIN_ORDER_USD, 0)));
+$t('ABD: taban YOK',               !str_contains($tbC, 'US$'));
 $t('ABD: indirim YOK',             !str_contains($tbC, 'standing discount'));
+$t('ABD: ilan asgarisi yazili',    str_contains($tbC, 'minimum quantity'));
 
 $wf = (string)@file_get_contents(__DIR__.'/../.github/workflows/send-campaign-preview.yml');
 $t('is akisinda kabloli',          str_contains($wf, "\$letter === 'terms_reply'"));

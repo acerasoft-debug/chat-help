@@ -718,8 +718,26 @@ function vestra_brand_min_order(string $brand): float {
 }
 
 /**
- * AVRUPA DIŞINDAN gelen siparişin asgari tutarı: 5.000 USD
- * (operatör, 16 Eyl 2026: *"Avrupa dışına en az alım 10 Bin USD yaz"*).
+ * AVRUPA DIŞINDAN gelen siparişin asgari tutarı — **BUGÜN KAPALI (0.0)**.
+ *
+ * Operatör, 17 Eyl 2026: *"US$5.000 Avrupa dışı taban, bunu girmene gerek
+ * yok.... avrupa disindan isteyen normal en az alim ile siparis verebilsin"*.
+ * Yani Avrupa dışı alıcı da **normal** asgarilerle sipariş veriyor: ilanın
+ * kendi MOQ'su, paket adımı ve marka asgarisi (KURAL 21, €500) **aynen
+ * duruyor** — kalkan şey yalnızca sipariş TUTARI tabanı.
+ *
+ * MEKANİZMA SİLİNMEDİ, SABİT SIFIRLANDI. Gerekçesi bu depoda kayıtlı
+ * (dropship ödemesi: *"kaldır ancak yeniden başlamak için kurulu olsun"*):
+ * her okuyan zaten `> 0` soruyor, o yüzden tek satır hem sepet uyarısını hem
+ * pazar sayfasının olgu kartını hem `terms_reply` mektubunun paragrafını
+ * birlikte susturuyor. Geri açmak da tek satır. **Rakamın TEK YERDE
+ * durmasının karşılığı tam olarak budur** (KURAL 6).
+ *
+ * **Yan kazanç, ve küçük değil: FX kesintisi artık sipariş durdurmuyor.**
+ * `vestra_order_min_shortfall()` `min <= 0` görünce kur okumadan ÖNCE
+ * dönüyor, yani aşağıdaki "kur yoksa sipariş geçmez" bedeli de bugün
+ * ödenmiyor. Taban bir gün geri açılırsa o bedel geri gelir — bu yüzden
+ * aşağıdaki gerekçe silinmedi.
  *
  * MARKA asgarisinden (VESTRA_BRAND_MIN_ORDER_EUR) AYRI bir kapı ve ayrı bir
  * soru: o, bir markanın sepetteki toplamına bakıyor; bu, siparişin TAMAMINA.
@@ -735,11 +753,13 @@ function vestra_brand_min_order(string $brand): float {
  * bir kurla eşiği ölçmek, onu sessizce başka bir sayıya çevirmek
  * olurdu. Bedeli açık: bir FX kesintisinde Avrupa dışı siparişler durur.
  */
-/* 16 Eyl 2026: 10.000 → 5.000 (operatör, aynı gün: *"alımı 5 bin usd yap"*).
-   Rakam TEK YERDE durduğu için değişiklik tek satır: sepet uyarısı, sunucu
-   kapısı ve testler hepsi buradan okuyor. Escrow tavanının beş gün boyunca
-   metinde 3.000, kodda 3.500 kalmasının (KURAL 6) sebebi tam tersiydi. */
-const VESTRA_NONEU_MIN_ORDER_USD = 5000.0;
+/* Değer geçmişi (hepsi operatör kararı): 16 Eyl 2026 10.000 → 5.000
+   (*"alımı 5 bin usd yap"*), 17 Eyl 2026 5.000 → **0.0 = kapalı**.
+   Rakam TEK YERDE durduğu için her seferinde tek satır: sepet uyarısı,
+   sunucu kapısı, pazar sayfası, mektup ve testler hepsi buradan okuyor.
+   Escrow tavanının beş gün boyunca metinde 3.000, kodda 3.500 kalmasının
+   (KURAL 6) sebebi tam tersiydi. */
+const VESTRA_NONEU_MIN_ORDER_USD = 0.0;
 
 /**
  * "Avrupa" — coğrafi Avrupa, AB gümrük alanı DEĞİL.

@@ -133,7 +133,11 @@ $t('pazar adlari 8 dilde cevrili (yukarida tek tek)', true);
 $fAu = vestra_seo_market_facts($mkts['australia']);
 $t('Avustralya: para birimi AUD',            $fAu['currency'] === 'AUD');
 $t('Avustralya: indirim region_discount\'tan', abs($fAu['discount'] - (vestra_region_discount_rates()['AU'] ?? 0)) < 0.001 && $fAu['discount'] > 0);
+/* Sabitten okunuyor, metne gomulu degil -- bugun taban KAPALI (0.0) oldugu
+   icin deger sifir; ikinci satir kararin kendisini pinliyor ki sessiz bir
+   geri acilis gorunur olsun (17 Eyl 2026, operator). */
 $t('Avustralya: asgari siparis sabitten',    abs($fAu['min_order_usd'] - (float)VESTRA_NONEU_MIN_ORDER_USD) < 0.001);
+$t('Avustralya: taban KAPALI',               $fAu['min_order_usd'] == 0.0);
 $t('Avustralya: kapi kayitta acilir (KURAL 2h)', $fAu['auto_open'] === true);
 $fUs = vestra_seo_market_facts($mkts['united-states']);
 $t('ABD: para birimi USD',                   $fUs['currency'] === 'USD');
