@@ -2274,7 +2274,12 @@ function vestra_colour_options(array $p): array {
    kontrol once calisip lead satirini olu birakirdi (test bunu tutuyor).
    Yazimlar katalogtaki degerin strtoupper'i; esleme TAM, alt dize degil. */
 function vestra_shop_front_brands(): array {
-    return ['BALENCIAGA', 'LACOSTE', 'DOLCE & GABBANA', 'DSQUARED2'];
+    /* Sira operatorun verdigi sira (17 Eyl 2026: "galerry dept. urunleri en basa
+       al" + "F.Perry i de en basa al"); once gelenler listede de once.
+       GALLERY DEPT. noktasiyla yaziliyor: esitlik TAM ve katalogdaki deger
+       "Gallery Dept." -- noktasiz yazilsaydi dokuz ilanin hicbiri one gelmez ve
+       sayfa hata da vermezdi (D&G'nin bosluklu ampersaninin ayni dersi). */
+    return ['GALLERY DEPT.', 'FRED PERRY', 'BALENCIAGA', 'LACOSTE', 'DOLCE & GABBANA', 'DSQUARED2'];
 }
 function vestra_shop_lead_brands(): array { return ['GUCCI', 'GIVENCHY', 'BALMAIN']; }
 /* Hem satici ADI hem HESAP KIMLIGI ile esleniyor, ve ikisi de gerekli: adla

@@ -1107,7 +1107,6 @@ return array (
   'Invoice within the day' => 'Facture dans la journée',
   'Once confirmed, your invoice — with the seller\'s bank details — will be emailed to you and added to your account, usually within the day. Payment is by bank transfer against that invoice; goods ship after payment arrives. Track everything under My orders.' => 'Une fois confirmée, votre facture — avec les coordonnées bancaires du vendeur — vous sera envoyée par e-mail et ajoutée à votre compte, généralement dans la journée. Le paiement se fait par virement bancaire sur cette facture ; la marchandise est expédiée après réception du paiement. Suivez tout dans Mes commandes.',  'Returns' => 'Retours',
   'Returns &amp; claims' => 'Retours &amp; réclamations',
-  'Wrong, missing or faulty goods only' => 'Uniquement marchandise erronée, manquante ou défectueuse',
   'Wholesale orders are closed to returns — wrong, missing or faulty goods only.' => 'Les commandes en gros ne sont pas reprises — uniquement marchandise erronée, manquante ou défectueuse.',
 
   'Pre-order' => 'Précommande',
@@ -1121,7 +1120,6 @@ return array (
   'Describe the problem' => 'Décrivez le problème',
   'How many pieces are affected, and which articles?' => 'Combien de pièces sont concernées, et quels articles ?',
   'Photographs: the goods, the shipping label and the outer carton' => 'Photographies : la marchandise, l\'étiquette d\'expédition et le carton extérieur',
-  'Wrong, missing or faulty goods only.' => 'Uniquement marchandise erronée, manquante ou défectueuse.',
   'Read the claim rules' => 'Lire les règles de réclamation',
   'Report by' => 'À signaler avant le',
   'Claim reference' => 'Référence de la réclamation',

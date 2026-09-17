@@ -1103,7 +1103,6 @@ return array (
   'Every category below is live stock — counts update as listings change.' => 'Cada categoria abaixo é stock em direto — as contagens atualizam-se com os anúncios.',
   'Spanish-made footwear wholesale — sneakers, boots, sandals, loafers and slippers in full size series for shoe shops and boutiques. Trade prices on registration, ordered by the series, invoice-based B2B ordering across Europe.' => 'Calçado fabricado em Espanha por grosso — ténis, botas, sandálias, mocassins e pantufas em séries de tamanhos completas para sapatarias e boutiques. Preços de revenda após registo, encomenda por série, encomendas B2B por fatura em toda a Europa.',  'Returns' => 'Devoluções',
   'Returns &amp; claims' => 'Devoluções e reclamações',
-  'Wrong, missing or faulty goods only' => 'Apenas mercadoria errada, em falta ou defeituosa',
   'Wholesale orders are closed to returns — wrong, missing or faulty goods only.' => 'As encomendas por grosso não admitem devolução — apenas mercadoria errada, em falta ou defeituosa.',
 
   'Pre-order' => 'Encomenda',
@@ -1117,7 +1116,6 @@ return array (
   'Describe the problem' => 'Descreva o problema',
   'How many pieces are affected, and which articles?' => 'Quantas peças estão afectadas e que artigos?',
   'Photographs: the goods, the shipping label and the outer carton' => 'Fotografias: a mercadoria, a etiqueta de expedição e a caixa exterior',
-  'Wrong, missing or faulty goods only.' => 'Apenas mercadoria errada, em falta ou defeituosa.',
   'Read the claim rules' => 'Ler as regras de reclamação',
   'Report by' => 'Comunicar até',
   'Claim reference' => 'Referência da reclamação',

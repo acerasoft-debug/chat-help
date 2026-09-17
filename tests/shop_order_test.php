@@ -108,9 +108,24 @@ $t('_ord alani korunuyor', ($rowsOrd[0]['_ord'] ?? null) === 1 && ($rowsOrd[1]['
 
 echo "\n== 7. SEVK EDILEN degerler (kaynaktan) ==\n";
 $front = vestra_shop_front_brands();
-$t('on markalar: Balenciaga, Lacoste, D&G, DSQUARED2',
-   $front === ['BALENCIAGA', 'LACOSTE', 'DOLCE & GABBANA', 'DSQUARED2']);
-$t('Balenciaga once (operatorun sirasi)', ($front[0] ?? '') === 'BALENCIAGA');
+/* 17 Eyl 2026: operator once "galerry dept. urunleri en basa al", hemen
+   ardindan "F.Perry i de en basa al" dedi -- ikisi listenin BASINA girdi,
+   onceki dordu sirasi bozulmadan arkalarina. 12 Eyl'in "balenciaga ve
+   lacostelar basta kalsin" talimati kaldirilmadi; yalnizca onlerine iki marka
+   daha geldi. */
+$t('on markalar: GD, F.Perry, Balenciaga, Lacoste, D&G, DSQUARED2',
+   $front === ['GALLERY DEPT.', 'FRED PERRY', 'BALENCIAGA', 'LACOSTE', 'DOLCE & GABBANA', 'DSQUARED2']);
+$t('Gallery Dept. EN BASTA (operatorun sirasi)', ($front[0] ?? '') === 'GALLERY DEPT.');
+$t('Fred Perry ikinci',                          ($front[1] ?? '') === 'FRED PERRY');
+/* Nokta SART: katalogtaki deger "Gallery Dept." ve esitlik TAM. Noktasiz bir
+   yazim dokuz ilani da disarida birakir ve sayfa hata vermez. */
+$t('GD yazimi katalogtaki degerin strtoupper\'i',
+   in_array(strtoupper(trim('Gallery Dept.')), $front, true));
+$t('F.Perry yazimi katalogtaki degerin strtoupper\'i',
+   in_array(strtoupper(trim('Fred Perry')), $front, true));
+/* Eski dortlu sirasi KORUNDU: yeni markalar onlerine girdi, aralarina degil. */
+$t('onceki dortlunun kendi sirasi bozulmadi',
+   array_slice($front, 2) === ['BALENCIAGA', 'LACOSTE', 'DOLCE & GABBANA', 'DSQUARED2']);
 $t('hepsi BUYUK harf (esitlik tam)',      $front === array_map('strtoupper', $front));
 /* Yazim katalogun KENDI degerinden turuyor: strtoupper(trim('Dolce & Gabbana')).
    Bosluklu ampersan onemli -- 'DOLCE&GABBANA' yazilsaydi esleme TAM oldugu icin

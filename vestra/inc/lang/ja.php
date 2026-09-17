@@ -1104,7 +1104,6 @@ return array (
   'Spanish-made footwear wholesale — sneakers, boots, sandals, loafers and slippers in full size series for shoe shops and boutiques. Trade prices on registration, ordered by the series, invoice-based B2B ordering across Europe.' => 'スペイン製シューズの卸売 — 靴店・ブティック向けに、スニーカー、ブーツ、サンダル、ローファー、スリッパをフルサイズシリーズでご用意。登録後に卸価格をご覧いただけます。シリーズ単位のご注文、欧州全域で請求書ベースのB2B注文に対応。',
   'Returns' => '返品',
   'Returns &amp; claims' => '返品＆クレーム',
-  'Wrong, missing or faulty goods only' => '誤配送・欠品・不良品に限ります',
   'Wholesale orders are closed to returns — wrong, missing or faulty goods only.' => '卸売のご注文は返品の対象外です。誤配送・欠品・不良品に限りお受けいたします。',
   'Pre-order' => '予約注文',
 
@@ -1117,7 +1116,6 @@ return array (
   'Describe the problem' => '問題の内容',
   'How many pieces are affected, and which articles?' => '何枚が対象で、どの品番ですか？',
   'Photographs: the goods, the shipping label and the outer carton' => '写真：商品、配送ラベル、外装箱',
-  'Wrong, missing or faulty goods only.' => '誤品・欠品・欠陥品のみが対象です。',
   'Read the claim rules' => '申立ての規則を読む',
   'Report by' => '報告期限',
   'Claim reference' => '申立て番号',

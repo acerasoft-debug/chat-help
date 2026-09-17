@@ -252,9 +252,15 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <?php if(!empty($p['origin'])): ?><div class="spec-row"><span><?= t('Origin / auth.') ?></span><b><?= htmlspecialchars($p['origin']) ?></b></div><?php endif; ?>
         <?php /* Iade kurali alicinin SATIN ALMA karari verdigi yerde gorunmeli:
                  "iade yok" bilgisini siparisten SONRA ogrenmek uyusmazlik uretir.
-                 Kural burada TEKRAR YAZILMIYOR, tek cumle ozet + kanonik metne
-                 baglanti (bkz. inc/faq.php 'returns'). */ ?>
-        <div class="spec-row"><span><?= t('Returns') ?></span><b><?= t('Wrong, missing or faulty goods only') ?> · <a class="acc" href="/faq?cat=returns"><?= t('Returns &amp; claims') ?></a></b></div>
+                 Kural burada TEKRAR YAZILMIYOR -- yalniz kanonik metne baglanti
+                 (bkz. inc/faq.php 'returns').
+
+                 OZET CUMLE KALDIRILDI (operator, 17 Eyl 2026: "Nur falsche,
+                 fehlende oder mangelhafte Ware · kismini rückgabe den cikar").
+                 Satir artik yalnizca baglanti; KURAL 11'in "kural tek yerde"
+                 ilkesiyle de ayni yone bakiyor -- ozet, kanonik metnin yaninda
+                 duran ikinci bir kopyaydi ve ikisi er gec ayrisirdi. */ ?>
+        <div class="spec-row"><span><?= t('Returns') ?></span><b><a class="acc" href="/faq?cat=returns"><?= t('Returns &amp; claims') ?></a></b></div>
       </div>
 
       <?php if(!empty($p['linesheet'])): ?>
