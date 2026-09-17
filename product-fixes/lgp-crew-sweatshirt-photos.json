@@ -1,0 +1,22 @@
+[
+ {
+  "match": "lgp-lacoste-crew-sweatshirt",
+  "expect": 1,
+  "images": [
+   "/uploads/lacoste/crew-sweatshirt/navy.jpg",
+   "/uploads/lacoste/crew-sweatshirt/black.avif",
+   "/uploads/lacoste/crew-sweatshirt/red.png",
+   "/uploads/lacoste/crew-sweatshirt/green.jpg",
+   "/uploads/lacoste/crew-sweatshirt/white.jpg",
+   "/uploads/lacoste/crew-sweatshirt/blue.jpg",
+   "/uploads/lacoste/crew-sweatshirt/beige.jpg",
+   "/uploads/lacoste/crew-sweatshirt/bordeaux.jpg",
+   "/uploads/lacoste/crew-sweatshirt/pink.jpg",
+   "/uploads/lacoste/crew-sweatshirt/light-blue.jpg"
+  ],
+  "_why": "Operator, 17 Eyl 2026: 'Lacoste Crew Neck Sweatshirt fotolarinda sorun var excelden iyi cikmamis duzelt cerceveye otursun'. Eski 10 kare /uploads/lac-sweat/lacoste-sweat-*.png idi: ONU DA OLCTUM -- onunun onu da 892x750 AYNI tuvalde, hepsinde %15-22 bos SOL bogaz ve giysi alt kenarda KESIK (manset/etek diliminde). Ayni tuval + ayni gutter + uc kenardan kirpik = Excel'den cikarma imzasi. Cerceveler PORTRE (.sthumb 3/4, .gal-main 4/5, ikisi de object-fit:contain), yani MANZARA bir kare mektup kutusu gibi oturuyor: giysi kucuk, ortali degil, saga itilmis.",
+  "_kaynak": "Ayni SKU'nun (Lacoste SH9608) TEMIZ kareleri zaten sunucuda duruyor -- kardes ilan lac-crew-sweatshirt onlari kullaniyor. Sunucudan kontakt sayfasi cekilip GOZLE bakildi (diag-live wetransfer_probe sheet, run 342): onu da BEYAZ zeminde, PORTRE, giysi tam ve ortali, aralarinda tutarli. Yeni piksel uretilmedi, kirpilmadi, hicbir sey uydurulmadi.",
+  "_sira": "Ilanin KENDI renk sirasi korundu (Navy / Black / Red / Green / White / Blue / Beige / Bordeaux / Pink / Light Blue) ve KAPAK yine Navy -- istenen fotograflarin duzelmesiydi, kapagin degismesi degil (Balenciaga 612966 dersi).",
+  "_not": "Dosya adlari renk slug'ini tasiyor (light-blue, blue ayri): listing_colours mektubu renk->foto eslesmesini dosya adindan, UZUN ad once kurar. Eski adlarda 'lightblue' bitisikti; yeni adlarla 10/10 esleşiyor."
+ }
+]
