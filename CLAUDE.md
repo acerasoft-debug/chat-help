@@ -5026,6 +5026,85 @@ metindeydi:**
   davet sayfasına "7 %" geri konunca **1 kırmızı**, yakında-süzgeci çağrısı
   silinince **1**, `\u00a7` geri gelince **3**, süzgeç herkesi geçirince **2**.
 
+**17 Eyl 2026 — "500 satırlık" liste 81 ADRES çıktı; gönderim kayıtlı müşteriye
+döndü (7 mektup).** Operatör `independent_stores_500.csv` yükleyip *"kampanya
+gönder"*, ardından *"290 email gönder sonra gece 12'den sonra gönder kalanı"*
+dedi. **Rakam dosyada yoktu ve bu, göndermeden ÖNCE ölçülerek görüldü.**
+
+| | |
+|---|---:|
+| veri satırı | 500 |
+| **benzersiz adres** | **81** |
+| tekrar | 67 adres 6×, 14 adres 7× |
+| KURAL 1 kod engeli | 20 |
+
+- **Tekrarlar UYDURMA sonekle üretilmiş:** aynı adres `— Branch US 2`,
+  `— Region EU 5`, `— Region EU 6` diye yeniden yazılmış. 8 Eylül'deki
+  `global_200_multibrand_stores.csv`'nin (85 satırı `Concept Store Variant N`)
+  birebir aynı imzası. *"500 satır" 500 aday demek değil; bu dosyada 6,2 kat
+  şişmiş.*
+- **Ülke sütunu kullanılamaz:** 81 adresin **81'i** hem `US` hem `EU` satırı
+  taşıyor. KURAL 1e mektubun dilini ülkeden seçiyor, yani bu dosya gönderim için
+  gereken tek alanı vermiyor.
+- **Adres şekli KURAL 1b/1f imzası:** 52/81 `info@`, 80/81 host mağaza adından
+  türetilebiliyor. **Kanıt hafızadan değil, kendi ölçümümüzden:**
+  `info@hlorenzo.com` bu dosyada duruyor, oysa 7 Eylül'de o sitenin gerçek
+  kutusunu **`customerservice@`** diye ölçmüştük.
+- **Canlı kuru koşu iki adı ayrıca doğruladı:** `hlorenzo.com` ve `voostore.com`
+  *"aynı firmadan başka bir kutu duyuruyu almış"*, `shinzo.paris` ise
+  **blocklist** (`support@tawk.to`, KURAL 1h). Yani dosyanın "yeni" dediği
+  adreslerin bir kısmı sistemde zaten işlenmiş.
+- Kalan 61'in ağırlığı **sneaker/streetwear** (7 Eyl: *"bizim kanalımız değil"*)
+  artı BSTN/Overkill/HHV/Cultizm/Jules B/Stag Provisions gibi zincir-kendi marka
+  görünümlüler, ve dört kapanmış işletme (Totokaelo, Need Supply, Opening
+  Ceremony ve satırın **kendi adının** *"Archive"* dediği Colette).
+- **`leads.json`'a HİÇBİR ŞEY yazılmadı.** KURAL 1f'nin protokolü (adres değil
+  **site linki** ver, `send=false` koş, taranan adları oku) uygulanmadı çünkü
+  kuru koşu bile 81 kaydı havuza ekler ve içlerinde kapanmış dükkânlar var —
+  `factoryoutlet.gr` bu depoda tam olarak böyle, adı düzeltilemeyen bir kayıt
+  olarak duruyor.
+
+**"290" hiçbir kaynaktan çıkmıyordu — üç ayrı kuru koşuyla ölçüldü:**
+
+| Kaynak | Uygun |
+|---|---:|
+| Soğuk havuz (`min_brands=2`) | **4** |
+| İkinci mektup / yeni koleksiyon | **3** (+3'ü 3 günlük yaş kuralında) |
+| Kayıtlı alıcı — Angebot (`fp_offer_at`) | **9** |
+
+Yani darboğaz **kota değil, gönderilecek adres** (kota o an 261 kalan). 4 Eylül
+ve 8 Eylül'de kaydedilen *"havuz tükendi"* ölçümü hâlâ geçerli.
+
+**GÖNDERİLDİ: 7 mektup, hata 0** (run `35255418050`). Operatör *"daha önce
+onaylanmış email gitmemiş sistemdeki adreslere gönder"* deyince kip
+`to_members=true|letter=fp_offer`'a döndü: alıcı, e-postası doğrulanmış,
+`fp_offer_at` damgası **yok**. 9 adayın **9'unda da fiyat kapısı AÇIK**, yani
+hepsi rakamlı mektup aldı. İkisi bilerek dışarıda bırakıldı ve operatöre
+**yazıldı** (sessizce daraltma değil):
+- **BRITISHSTYLE** — 16 Eylül'de operatörün kendi isteğiyle çıkarılmıştı ve
+  11 Eylül'de tam bu iki ürünün fiyatlı resimli listesini **ayrıca** aldı;
+  genel Angebot onun için üçüncü kopya olurdu.
+- **"Verify Test Co"** — adı test hesabı olduğunu söylüyor.
+
+**Bu 7 mektup 16 Eylül'ün 118'inden FARKLI rakam taşıyor ve doğrusu bu:** o gün
+M3600 hâlâ 8'li karton / min 56 idi, aynı gün 10'lu karton / min 50 / 100 / 200
+oldu. Mektup rakamı **canlı ilan kaydından** basıyor, metne gömmüyor — 16 Eylül
+partisinin eski rakamla gitmesinin sebebi de bu (kayıt o an öyleydi), bugünkünün
+doğru gitmesinin sebebi de.
+
+**Sıradaki parti ölçüldü, GÖNDERİLMEDİ: `letter=winter` → 72 hesap**
+(kapı açık 69, kapalı 3; fr=34 en=20 de=7 es=3 pt=3 ar=2 ru=2 it=1). Ayrı damga
+(`newcoll_2627_at`) olduğu için küme bambaşka. **Kendiliğinden gönderilmedi** —
+KURAL 18: bir turdaki "gönder" bir sonraki mektubun izni değil, ve bu **başka
+bir kampanya metni**. Gönderilmeden önce iki şey ayıklanmalı:
+- **Bugün Angebot alan 7 hesap** bu 72'nin içinde. Dakikalar içinde ikinci bir
+  kampanya mektubu, `newcoll_min_days=3` kuralının leadlerde önlediği şeyin
+  hesap tarafındaki hâli olurdu.
+- **Firma adı `389h68843j6789)` olan hesap** (durum `pending`, kapı kapalı):
+  mektup `$who = company ?: name` ile hitap ediyor, yani *"Hello 389h68843j6789)"*
+  diye açılırdı — `factoryoutlet.gr`'nin *"Hello Αρχική"* vakasının aynısı.
+  Süzgeç `pending_email`'i eliyor ama `pending`'i elemiyor.
+
 **16 Eyl 2026 — Fred Perry Angebot 118 kayıtlı alıcıya; fiyat listesi artık
 BİRDEN FAZLA marka alıyor; ve cevap mektubu adımı ARGÜMAN SINIRINI aşmıştı.**
 
