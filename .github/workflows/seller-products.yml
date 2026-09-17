@@ -23,7 +23,7 @@ on:
         required: false
         default: ""
       payload:
-        description: "admin_mode=apply: şifreli satıcı bilgisi. admin_mode=order_draft|order_write: kalemler. DROPSHIP (varsayılan) 'SKU:BEDEN:ADET,...'; TOPTAN 'pricing=wholesale|SKU:RENK:ADET,...' — kademe fiyatı, MOQ/paket adımı ve renk ilandan doğrulanır, beden dökümü ilanın serisinden türer. İlan edilen renk asgarisinden feragat: '|waive_min_colours=1'; ilan edilen asgari adetten feragat: '|waive_moq=1' (paket adımı feragata girmez)."
+        description: "admin_mode=apply: şifreli satıcı bilgisi. admin_mode=order_draft|order_write: kalemler. DROPSHIP (varsayılan) 'SKU:BEDEN:ADET,...'; TOPTAN 'pricing=wholesale|SKU:RENK:ADET,...' — kademe fiyatı, MOQ/paket adımı ve renk ilandan doğrulanır, beden dökümü ilanın serisinden türer. Elle anlaşılan birim fiyat: 4. alan ('SKU:RENK:ADET:19.50') — katalog kademesini ezer, ilandan PAHALIysa reddedilir, gerekçe siparişin notuna yazılır. İlan edilen renk asgarisinden feragat: '|waive_min_colours=1'; ilan edilen asgari adetten feragat: '|waive_moq=1' (paket adımı feragata girmez)."
         required: false
         default: ""
       issue_ref:
@@ -240,12 +240,32 @@ jobs:
             $bySku = [];
             foreach ($all as $p) { $sk = trim((string)($p['sku'] ?? '')); if ($sk !== '') $bySku[mb_strtolower($sk)] = $p; }
 
-            $subtotal = 0.0; $problems = 0; $lines = [];
+            $subtotal = 0.0; $problems = 0; $lines = []; $anyAgreed = false;
             foreach (array_filter(array_map('trim', explode(',', $spec0))) as $spec) {
                 $parts = array_map('trim', explode(':', $spec));
                 $sku = $parts[0] ?? ''; $size = $parts[1] ?? ''; $qty = max(1, (int)($parts[2] ?? 1));
+                /* 4. alan: ELLE ANLASILAN birim fiyat. Toptan kipte katalogun
+                   kademesini EZER -- ve bu, kipin geri kalan felsefesiyle
+                   celismiyor: fiyati KODDAN okumak, kimsenin elle bir rakam
+                   UYDURMAMASI icindi; operatorun musteriyle anlastigi bir
+                   rakam ise uydurma degil, KAYIT. Yazilmadan once katalogla
+                   karsilastiriliyor (asagida) -- sessizce gecen bir override,
+                   ilanin gosterdigi fiyattan baska bir fatura kesmenin en
+                   kolay yolu olurdu.
+                   `vestra_price_input()`: ham `(float)` virgullu ondalikta
+                   sessizce para kaybettiriyor ("19,50" -> 19.00). */
+                $agreed = isset($parts[3]) && trim((string)$parts[3]) !== ''
+                        ? round((float)vestra_price_input((string)$parts[3]), 2) : null;
                 $p = $bySku[mb_strtolower($sku)] ?? null;
                 if (!$p) { printf("  !! %-24s KATALOGDA YOK\n", $sku); $problems++; continue; }
+                /* DROPSHIP kipinde anlasilan fiyat KABUL EDILMIYOR: orada birim
+                   aliciNIN hesabindan turuyor (abonelik var mi) ve elle bir
+                   rakam koymak o kapiyi sessizce atlatirdi. Sessizce yok
+                   saymak daha kotu -- operator yazdigi rakamin islendigini
+                   sanirdi. */
+                if ($agreed !== null && !$wholesale) {
+                    printf("  !! %-24s anlasilan fiyat yalniz TOPTAN kipte gecerli\n", $sku); $problems++; continue;
+                }
                 if ($wholesale) {
                     /* TOPTAN DALI. Fiyat, adet ve renk uc AYRI kontrol; ucu de
                        sepetin uyguladigi kuraldan okunuyor, elle hesaplanmiyor. */
@@ -254,11 +274,28 @@ jobs:
                        bu betik CLI'da kosuyor -- yani burada uygulanmasi
                        "hangi bolge" sorusunu cevapsiz birakirdi. Fark varsa
                        asagida ayrica yaziliyor, gizlenmiyor. */
-                    $unit = round((float)vestra_unit_price($p, $qty, true), 2);
-                    if ($unit <= 0) { printf("  !! %-24s kademe fiyati YOK\n", $sku); $problems++; continue; }
+                    $listUnit = round((float)vestra_unit_price($p, $qty, true), 2);
+                    if ($listUnit <= 0) { printf("  !! %-24s kademe fiyati YOK\n", $sku); $problems++; continue; }
+                    $unit = $agreed !== null ? $agreed : $listUnit;
+                    if ($agreed !== null && $agreed <= 0) { printf("  !! %-24s anlasilan fiyat gecersiz\n", $sku); $problems++; continue; }
+                    if ($agreed !== null) $anyAgreed = true;
                     $moq  = max(1, (int)($p['moq'] ?? 1));
                     $step = max(1, (int)($p['size_step'] ?? 1));
                     $msgs = [];
+                    /* YON ONEMLI, ve iki yon AYNI SEY DEGIL:
+                       - anlasilan < katalog  = operatorun verdigi iskonto. Onun
+                         karari; kayda gerekce olarak giriyor.
+                       - anlasilan > katalog  = alicinin SAYFADA gordugunden
+                         PAHALI bir fatura. Bu bir karar degil, bir kusur:
+                         `price_audit`'in "alici aleyhine" dedigi sinif, ve
+                         musteri farki faturayi eline alinca goruyor. DURUYOR. */
+                    if ($agreed !== null) {
+                        $msgs[] = $agreed > $listUnit + 0.005
+                            ? sprintf('!! anlasilan %s, ilan kademesi %s -- ILANDAN PAHALI, alici aleyhine',
+                                      number_format($agreed, 2), number_format($listUnit, 2))
+                            : sprintf('(anlasilan) birim %s, ilan kademesi %s -- operator karari',
+                                      number_format($agreed, 2), number_format($listUnit, 2));
+                    }
                     /* MOQ ve paket adimi: sepet adedi adimin KATINA yuvarliyor,
                        yani katalog disinda yazilan bir adet kasada baska bir
                        adet demek olurdu (KURAL 4b). */
@@ -320,9 +357,10 @@ jobs:
                     printf("      renk        : %s   (ilanda %d renk, asgari %s)\n",
                            implode(', ', $want), count($cols), $minCol > 0 ? (string)$minCol : 'yok');
                     printf("      beden       : %s\n", $size !== '' ? $size.'  ('.($perPack>0?intdiv($qty,$perPack):0).' x '.$perPack.'\'lik seri)' : '(yazilmadi)');
-                    printf("      birim       : EUR %8s   (kademe, %d adette)\n", number_format($unit, 2), $qty);
+                    printf("      birim       : EUR %8s   (%s)\n", number_format($unit, 2),
+                           $agreed !== null ? 'ANLASILAN fiyat -- katalog kademesi degil' : sprintf('kademe, %d adette', $qty));
                     $withRegion = round((float)vestra_unit_price($p, $qty), 2);
-                    if (abs($withRegion - $unit) > 0.005) printf("      (bolgesel indirimli hali EUR %s -- bu siparise UYGULANMADI)\n", number_format($withRegion, 2));
+                    if ($agreed === null && abs($withRegion - $listUnit) > 0.005) printf("      (bolgesel indirimli hali EUR %s -- bu siparise UYGULANMADI)\n", number_format($withRegion, 2));
                     printf("      satir       : EUR %8s   (%s x %d)\n", number_format($lineTot, 2), number_format($unit, 2), $qty);
                     foreach ($msgs as $mg) printf("      %s\n", $mg);
                     echo "\n";
@@ -413,8 +451,15 @@ jobs:
                Renk asgarisinden feragat edildiyse GEREKCE de kayitta durur:
                aylar sonra "bu lot neden tek renk" sorusunun cevabi, ilanin
                bugun hala "en az N renk" diyen metni degil, bu satir olur. */
+            /* NOT, FIYATIN NEREDEN GELDIGINI DE SOYLEMEK ZORUNDA. Anlasilan bir
+               birimle kesilen satisa "wholesale tier pricing" yazmak, kaydi
+               okuyan herkese YANLIS bir sey anlatirdi: kademeyi acip "bu fiyat
+               nereden cikti" diye bakan kisi hicbir kademede o rakami bulamaz.
+               `desc` ile `sizes`'in celistigi hatanin aynisi. */
             $note = $wholesale
-                ? 'Wholesale tier pricing, full cartons, agreed with the buyer.'
+                ? ($anyAgreed
+                    ? 'Unit price agreed with the buyer, outside the listed tiers. Full cartons.'
+                    : 'Wholesale tier pricing, full cartons, agreed with the buyer.')
                   .($waiveMinCol ? ' Single-colour lots agreed as an exception to the listed colour minimum.' : '')
                   .($waiveMoq ? ' Quantity below the listed minimum order, agreed as an exception.' : '')
                 : 'Dropship pricing (wholesale +'.(int)round(VESTRA_DROPSHIP_MARKUP*100).'%), single pieces, agreed with the buyer.';
