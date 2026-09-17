@@ -590,6 +590,15 @@ jobs:
               echo "id=".($p['id'] ?? '?')." | {$brand} | ".($p['name'] ?? '?')." | cat=".($p['cat'] ?? '?')." | mode=".($p['mode'] ?? '?')." | {$demo}\n";
               echo "   gorsel({$nv} varyant): ".(count($imgs) ? count($imgs)." adet, ilk=".$imgs[0] : "YOK")."\n";
               echo "   sku=".($p['sku'] ?? '(yok)')." | fiyat(list)=".($p['list'] ?? '?')." EUR | moq=".($p['moq'] ?? '?')." ".($p['unit'] ?? 'pc')."\n";
+              /* added_at = ilanin KAYDA GIRDIGI an. "Ayni urun iki kez var,
+                 SONRADAN gireni kaldir" (operator, 17 Eyl 2026) tam olarak bu
+                 alani soruyor ve baska hicbir kip onu basmiyordu -- `home_picks`
+                 yalnizca kendi seritindeki kartlar icin yaziyor, `raw_scan` ise
+                 gun bazinda TOPLUYOR. Alani hic tasimayan ilan da var (10 Eyl
+                 olcumu: 3 ilan), o yuzden "(yok)" ile bos ayni sey degil:
+                 tarihsiz bir kayitla tarihli bir kaydin hangisinin once
+                 girildigi OLCULEMEZ ve tahmin edilmemeli. */
+              echo "   added_at=".($p['added_at'] ?? '(yok)')." | seller_uid=".($p['seller_uid'] ?? '(yok)')." | status=".($p['status'] ?? '?')."\n";
               echo "   sizes=".($p['sizes'] ?? '(yok)')."\n";
               if (!empty($p['tiers']) && is_array($p['tiers'])) {
                 $t = [];
