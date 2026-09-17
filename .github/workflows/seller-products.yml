@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. 'order_colours' = siparişin RENGİNİ düzeltir (issue_ref=sipariş, payload='SKU:Renk,Renk', move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'create_buyer' = ELLE alıcı hesabı açar (payload=ŞİFRELİ zarf — müşterinin e-postası açık girdiye yazılmaz, çıktıda maskeli; move_apply=true ile uygular, varsayılan kuru koşu; panelin ➕ New buyer account formuyla AYNI yazıcı, müşteriye HİÇBİR ŞEY gitmez). Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. 'order_colours' = siparişin RENGİNİ düzeltir (issue_ref=sipariş, payload='SKU:Renk,Renk', move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'create_buyer' = ELLE alıcı hesabı açar (payload=ŞİFRELİ zarf — müşterinin e-postası açık girdiye yazılmaz, çıktıda maskeli; move_apply=true ile uygular, varsayılan kuru koşu; panelin ➕ New buyer account formuyla AYNI yazıcı, müşteriye HİÇBİR ŞEY gitmez). 'password_setup' = elle açılan hesaba 'şifreni seç' MEKTUBU GÖNDERİR (issue_ref=hesap ID — adres açık girdiye yazılmaz, kayıttan çözülür; TAM 1 eşleşme yoksa durur; link/jeton/gövde log'a YAZILMAZ; move_apply=true ile gönderir, varsayılan kuru koşu ve kuru koşu jeton ÜRETMEZ). Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -229,6 +229,135 @@ jobs:
             PHPEOF
             php /tmp/vestra_create_buyer.php; RC=$?
             rm -f /tmp/vestra_create_buyer.php
+            exit $RC
+
+      # ELLE AÇILAN HESABA "ŞİFRENİ SEÇ" MEKTUBU (17 Eyl 2026).
+      #
+      # `create_buyer` hesabı açıyor ama şifre RASTGELE ve hiçbir yere
+      # yazılmıyor, yani müşterinin giriş yapmasının bir yolu yok. Bu adım o
+      # boşluğu kapatıyor.
+      #
+      # ÖLÇÜT HESAP ID'Sİ, ADRES DEĞİL. `diag-live.yml`'deki mevcut
+      # `reset_probe` bu işi yapabiliyor ama girdisi bir E-POSTA — yani
+      # müşterinin adresi koşu başlığında kalıcı ve herkese açık. Bu depo o
+      # hatayı `only_emails` → `only_accounts` ile bir kez düzeltti; aynı
+      # deseni burada tekrarlıyoruz. ID opak: kimin olduğunu ele vermiyor.
+      # Ad parçası da kabul ediliyor ama EŞLEŞME TAM 1 DEĞİLSE İŞ DURUR —
+      # sıfırda kimseye gitmez, birden fazlada YANLIŞ müşteriye giderdi ve
+      # gönderilmiş bir mektup geri alınamaz.
+      #
+      # JETON ÜRETİCİSİ TEK: `auth_reset_begin()` — forgot.php'nin çağırdığının
+      # aynısı. İkinci bir jeton yolu, ikinci bir ömür ve ikinci bir güvenlik
+      # kuralı demekti.
+      #
+      # LİNK VE JETON BASILMIYOR. Jeton tek başına hesabı açar ve bu kütük
+      # herkese açık. Adres de maskeli. GÖVDE de basılmıyor: hitapta
+      # müşterinin adı var.
+      #
+      # KURU KOŞU JETON ÜRETMEZ. `auth_reset_begin()` kayda yazıyor ve varsa
+      # ÖNCEKİ jetonu geçersiz kılıyor — bir önizlemenin müşterinin elindeki
+      # canlı linki öldürmesi kabul edilemez. Kuru koşu metni sahte bir linkle
+      # kuruyor; bu aynı zamanda şablonun sunucuya İNDİĞİNİ de ölçüyor
+      # ("deploy inmemiş" ile "özellik çalışmıyor" aynı görünür).
+      - name: Hesaba "şifreni seç" mektubu — varsayılan KURU KOŞU
+        if: ${{ github.event.inputs.admin_mode == 'password_setup' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          PS_WHO:   ${{ github.event.inputs.issue_ref }}
+          PS_APPLY: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          envs: PS_WHO,PS_APPLY
+          script: |
+            set -e
+            cat > /tmp/vestra_pwsetup.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME"); $doc = $home."/public_html";
+            require_once $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/notify.php";
+            require_once $doc."/inc/i18n.php";
+
+            $who   = mb_strtolower(trim((string)getenv("PS_WHO")));
+            $apply = strtolower(trim((string)getenv("PS_APPLY"))) === 'true';
+            if ($who === '') { fwrite(STDERR, "HATA: issue_ref bos -- hesap ID'si (ya da ad parcasi) verin\n"); exit(1); }
+
+            $mask = fn(string $e) => preg_replace('/^(.).*(@.*)$/', '$1***$2', $e);
+
+            /* ID TAM esitlik once: bir kisinin SOYADI kalici, herkese acik bir
+               girdiye yazilmasin diye. Bu depoda 'francisco' aramasi BASKA bir
+               hesabi (C&F Multimarcas) yalniz e-postasindan yakalamisti. */
+            $hits = [];
+            foreach (auth_accounts() as $a) if (mb_strtolower((string)($a['id'] ?? '')) === $who) { $hits = [$a]; break; }
+            if (!$hits) foreach (auth_accounts() as $a) {
+              $hay = mb_strtolower((string)($a['company'] ?? '').' '.(string)($a['name'] ?? ''));
+              if ($who !== '' && str_contains($hay, $who)) $hits[] = $a;
+            }
+            if (count($hits) !== 1) {
+              fwrite(STDERR, "HATA: TAM 1 hesap eslesmedi (".count($hits)." bulundu) -- gonderilmedi.\n");
+              foreach (array_slice($hits, 0, 8) as $a)
+                fwrite(STDERR, "  aday: ".(string)($a['id'] ?? '')."  ".(string)($a['company'] ?: $a['name'] ?: '?')."  ".$mask((string)($a['email'] ?? ''))."\n");
+              exit(1);
+            }
+            $acc  = $hits[0];
+            $mail = trim((string)($acc['email'] ?? ''));
+            $lang = vestra_user_lang($acc);          /* HESABIN KAYITLI DILI: bu mektup
+                                                        operatorun isteginden doguyor,
+                                                        musterinin kendi isteginden degil --
+                                                        vlang() burada yanlis sinyal
+                                                        (vestra_reset_text'in kendi notu). */
+            $open   = auth_prices_unlocked($acc);
+            $docSt  = auth_trade_doc_status($acc);
+            $askDoc = ($docSt === 'requested');      /* 'uploaded' olana "yukleyin" demek
+                                                        yaptigi isi tekrar yaptirmaktir. */
+
+            printf("hesap    : %s\n", (string)($acc['id'] ?? ''));
+            printf("firma    : %s\n", (string)($acc['company'] ?: $acc['name'] ?: '?'));
+            printf("adres    : %s\n", $mask($mail));
+            printf("tip/durum: %s / %s\n", (string)($acc['type'] ?? '?'), (string)($acc['status'] ?? '?'));
+            printf("dil      : %s   ulke: %s\n", $lang, (string)($acc['country'] ?? '-'));
+            printf("kapi     : %s\n", $open ? 'ACIK (mektup "hemen siparis verebilirsiniz" der)' : 'KAPALI (mektup "ekibimiz onaylayacak" der)');
+            printf("trade_licence: %s -> belge cumlesi %s\n", $docSt ?: '(satir yok)', $askDoc ? 'YAZILIR' : 'yazilmaz');
+            printf("posta    : mail_enabled=%s  from=%s\n",
+                   vestra_cfg('mail_enabled', false) ? 'acik' : '*** KAPALI ***',
+                   (string)vestra_cfg('mail_from', '(bos)'));
+
+            if (!function_exists('vestra_account_ready_text')) {
+              fwrite(STDERR, "\nHATA: vestra_account_ready_text sunucuda YOK -- deploy inmemis.\n"); exit(1);
+            }
+            $name = ($acc['name'] ?: ($acc['company'] ?: 'there'));
+
+            if (!$apply) {
+              /* Sahte link: jeton URETILMIYOR (uretmek musterinin elindeki canli
+                 linki gecersiz kilardi ve kayda yazardi). */
+              [$s, $b, $o] = vestra_account_ready_text($lang, $name, 'https://vestrasales.com/reset?token=KURU-KOSU', $open, $askDoc);
+              printf("\nkonu     : %s\n", $s);
+              printf("dugme    : %s\n", (string)($o['button']['label'] ?? '?'));
+              printf("govde    : %d karakter (GOVDE BASILMIYOR: hitapta musterinin adi var)\n", mb_strlen($b));
+              echo "\nKURU KOSU -- jeton uretilmedi, MEKTUP GONDERILMEDI (move_apply=true ile gonderilir).\n";
+              exit(0);
+            }
+
+            $a2 = auth_reset_begin($mail);
+            if (!$a2 || empty($a2['reset_token'])) { fwrite(STDERR, "\nHATA: jeton uretilemedi\n"); exit(1); }
+            $link = 'https://vestrasales.com/reset?token='.$a2['reset_token'];
+            [$s, $b, $o] = vestra_account_ready_text($lang, $name, $link, $open, $askDoc);
+            $ok = vestra_send_mail($mail, $s, $b, '', '', null, '', $o);
+            printf("\nkonu     : %s\n", $s);
+            printf("jeton    : uretildi, son gecerlilik %s (LINK YAZILMADI: jeton tek basina hesabi acar)\n",
+                   (string)(auth_find($mail)['reset_expires'] ?? '?'));
+            printf("gonderim : %s\n", $ok ? "GONDERILDI -- posta saglayicisi kabul etti" : "*** GONDERILEMEDI ***");
+            if (!$ok) { fwrite(STDERR, "vestra_send_mail FALSE dondu\n"); exit(1); }
+            echo "NOT: 'kabul etti' posta kutusunda demek DEGIL (bu deponun kendi uyarisi).\n";
+            PHPEOF
+            php -l /tmp/vestra_pwsetup.php
+            php /tmp/vestra_pwsetup.php; RC=$?
+            rm -f /tmp/vestra_pwsetup.php
             exit $RC
 
       # SİPARİŞİN RENGİNİ DÜZELT (17 Eyl 2026). Renk siparişin notlarında duruyor

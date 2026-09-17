@@ -2947,6 +2947,73 @@ function vestra_reset_text($lang, $name, $link) {
   return [$t[0], sprintf($t[1], $name, $link), ['badge'=>$badge, 'button'=>['label'=>$btnLabel,'url'=>$link]]];
 }
 
+/* Operator OPENED an account for someone → [subject, body, opts].
+ *
+ * NEDEN vestra_reset_text DEGIL. O mektup "birileri (umariz siz) sifre sifirlama
+ * ISTEDI" diye aciliyor. Burada musteri hicbir sey istemedi: hesabi operator
+ * elle acti (auth_create_buyer) ve sifresi rastgele, yani adamin hic sahip
+ * olmadigi bir sifre "sifirlaniyor". Ayrica o metin hesabin ACIK oldugunu ve
+ * siparis verebilecegini HIC soylemiyor. Bu depo ayni dersi iki kez kaydetti:
+ * KURAL 2b (kapi acikken belgeyi sebep gostermek) ve KURAL 2h (varsayilan
+ * kayit metni "ekibimiz hesabinizi aktive edecek" diyerek YAPILMAYACAK bir isi
+ * bekletiyordu -- o hesaplara ayri bir govde yazildi). Ucuncusu bu.
+ *
+ * JETON URETICISI AYNI: cagiran taraf auth_reset_begin() kullaniyor ve link
+ * yine /reset?token=. Ikinci bir jeton yolu, ikinci bir omur ve ikinci bir
+ * guvenlik kurali demekti.
+ *
+ * SURE 1 SAAT ve bu soguk bir mektupta gercek bir surtunme: adam 3 saat sonra
+ * acarsa link olu. Jetonun omrunu bu yol icin uzatmak ikinci bir kural yazmak
+ * olurdu; onun yerine METIN cikis yolunu soyluyor (/forgot + bu adres). reset.php
+ * zaten "suresi dolmus" ekraninda ayni yere baglaniyor, yani soylenen sey
+ * dogrulanabilir.
+ *
+ * $open   = fiyat kapisi acik mi (auth_prices_unlocked) -- acikken "ekibimiz
+ *           inceleyecek" yazmak KURAL 2b'nin ta kendisi.
+ * $askDoc = trade_licence hala 'requested' mi. 'uploaded' olana "yukleyin"
+ *           demek yaptigi isi tekrar yaptirmaktir (KURAL 2b). */
+function vestra_account_ready_text($lang, $name, $link, bool $open = true, bool $askDoc = false) {
+  $btnLabel = ['en'=>'Choose your password','de'=>'Passwort festlegen','fr'=>'Choisir votre mot de passe',
+    'it'=>'Scegli la tua password','es'=>'Elige tu contraseña'][$lang] ?? 'Choose your password';
+  $badge = ['en'=>'🔑 Your VESTRA account','de'=>'🔑 Ihr VESTRA-Konto','fr'=>'🔑 Votre compte VESTRA',
+    'it'=>'🔑 Il tuo account VESTRA','es'=>'🔑 Tu cuenta VESTRA'][$lang] ?? '🔑 Your VESTRA account';
+  $T = [
+   'en' => ["VESTRA — your account is open, choose a password",
+     "Hello %s,\n\nwe have opened a VESTRA wholesale account for you — there is nothing to register.\n\nChoose your own password with the button below, then sign in with this email address:\n%s\n\nThe link is valid for 1 hour. If it has already expired when you open it, go to vestrasales.com/forgot, enter this address and a new link is sent right away.",
+     "\n\nYour account is unlocked: wholesale prices, line sheets and ordering are available as soon as you sign in.",
+     "\n\nYour account is not unlocked yet — our team will confirm it and let you know.",
+     "\n\nWe also ask for a copy of your trade licence in your account. You can upload it there or simply reply to this email with the file attached; it does not hold up your ordering.",
+     "\n\n— VESTRA · vestrasales.com"],
+   'de' => ["VESTRA — Ihr Konto ist offen, bitte Passwort festlegen",
+     "Hallo %s,\n\nwir haben für Sie ein VESTRA-Großhandelskonto eröffnet — Sie müssen sich nicht registrieren.\n\nLegen Sie mit dem Button unten Ihr eigenes Passwort fest und melden Sie sich dann mit dieser E-Mail-Adresse an:\n%s\n\nDer Link ist 1 Stunde gültig. Sollte er beim Öffnen bereits abgelaufen sein, gehen Sie auf vestrasales.com/forgot und geben Sie diese Adresse ein — ein neuer Link wird sofort verschickt.",
+     "\n\nIhr Konto ist freigeschaltet: Großhandelspreise, Line Sheets und Bestellungen stehen Ihnen sofort nach der Anmeldung zur Verfügung.",
+     "\n\nIhr Konto ist noch nicht freigeschaltet — unser Team prüft es und meldet sich bei Ihnen.",
+     "\n\nWir bitten außerdem um eine Kopie Ihrer Gewerbeanmeldung in Ihrem Konto. Sie können sie dort hochladen oder einfach auf diese E-Mail mit der Datei im Anhang antworten; Ihre Bestellungen hält das nicht auf.",
+     "\n\n— VESTRA · vestrasales.com"],
+   'fr' => ["VESTRA — votre compte est ouvert, choisissez un mot de passe",
+     "Bonjour %s,\n\nnous avons ouvert pour vous un compte de gros VESTRA — aucune inscription n'est nécessaire.\n\nChoisissez votre propre mot de passe avec le bouton ci-dessous, puis connectez-vous avec cette adresse e-mail :\n%s\n\nLe lien est valable 1 heure. S'il a déjà expiré à l'ouverture, rendez-vous sur vestrasales.com/forgot et saisissez cette adresse — un nouveau lien part immédiatement.",
+     "\n\nVotre compte est débloqué : prix de gros, line sheets et commandes sont accessibles dès la connexion.",
+     "\n\nVotre compte n'est pas encore débloqué — notre équipe le vérifie et vous tiendra informé.",
+     "\n\nNous vous demandons également une copie de votre extrait Kbis dans votre compte. Vous pouvez le téléverser sur place ou simplement répondre à cet e-mail avec le fichier en pièce jointe ; cela ne retarde pas vos commandes.",
+     "\n\n— VESTRA · vestrasales.com"],
+   'it' => ["VESTRA — il tuo account è aperto, scegli una password",
+     "Ciao %s,\n\nabbiamo aperto per te un account all'ingrosso VESTRA — non devi registrarti.\n\nScegli la tua password con il pulsante qui sotto, poi accedi con questo indirizzo e-mail:\n%s\n\nIl link è valido 1 ora. Se all'apertura è già scaduto, vai su vestrasales.com/forgot e inserisci questo indirizzo: un nuovo link parte subito.",
+     "\n\nIl tuo account è sbloccato: prezzi all'ingrosso, line sheet e ordini sono disponibili non appena accedi.",
+     "\n\nIl tuo account non è ancora sbloccato — il nostro team lo verifica e ti farà sapere.",
+     "\n\nTi chiediamo inoltre una copia della visura camerale nel tuo account. Puoi caricarla lì oppure rispondere a questa e-mail allegando il file; non blocca i tuoi ordini.",
+     "\n\n— VESTRA · vestrasales.com"],
+   'es' => ["VESTRA — tu cuenta está abierta, elige una contraseña",
+     "Hola %s,\n\nhemos abierto una cuenta mayorista de VESTRA para ti — no tienes que registrarte.\n\nElige tu propia contraseña con el botón de abajo y después inicia sesión con esta dirección de correo:\n%s\n\nEl enlace es válido 1 hora. Si al abrirlo ya ha caducado, entra en vestrasales.com/forgot e introduce esta dirección: se envía un enlace nuevo al momento.",
+     "\n\nTu cuenta está desbloqueada: precios mayoristas, line sheets y pedidos están disponibles en cuanto inicies sesión.",
+     "\n\nTu cuenta todavía no está desbloqueada — nuestro equipo la revisará y te avisará.",
+     "\n\nTambién te pedimos una copia de tu licencia comercial en tu cuenta. Puedes subirla allí o simplemente responder a este correo con el archivo adjunto; no retrasa tus pedidos.",
+     "\n\n— VESTRA · vestrasales.com"],
+  ];
+  $t = $T[$lang] ?? $T['en'];
+  $body = sprintf($t[1], $name, $link) . ($open ? $t[2] : $t[3]) . ($askDoc ? $t[4] : '') . $t[5];
+  return [$t[0], $body, ['badge'=>$badge, 'button'=>['label'=>$btnLabel,'url'=>$link]]];
+}
+
 /* ── Sending allowance ────────────────────────────────────────────────────────
  * How many messages the mail provider will still accept today.
  *
