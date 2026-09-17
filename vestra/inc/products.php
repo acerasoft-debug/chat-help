@@ -2478,14 +2478,22 @@ function vestra_shop_order(array $products, ?array $front = null, ?array $lead =
     $pinned = []; $new = []; $fr = []; $sel = []; $ld = []; $rest = [];
     foreach ($products as $i => $p) {
         if (!empty($p['pinned'])) { $pinned[] = $p; continue; }
-        /* YENI, on markalardan da ONCE: operatorun 13 Eyl talimati bu. Tavani
-           asan yeni ilan burada yakalanmaz ve asagida kendi bolmesine duser. */
-        if (isset($newRank[$i])) { $new[$newRank[$i]] = $p; continue; }
-        /* On markalar satici kontrolunden ONCE: Lacoste ilanlarinin cogu lead
-           saticinin, yani sonra sorulsaydi o bolmeye dusup icinde dagilirlardi
-           ve "basta" olmazlardi. */
+        /* ON MARKALAR, YENI'den de ONCE (operator, 17 Eyl 2026: "galerry dept.
+           urunleri en basa al" + "F.Perry i de en basa al").
+           13 Eyl'de YENI ondeydi; olculdu ve o siralamayla Fred Perry **28.**
+           siraya dusuyordu: 4..27 arasi tamami YENI bolmesiydi (9 Gallery Dept
+           + 15 baska taze ilan) ve on marka bloku ancak 28'de basliyordu.
+           Yani "en basa" talimati YENI bloku onde kaldigi surece
+           uygulanamiyordu. Degisiklik bilincli ve 13 Eyl'i tamamen kaldirmiyor:
+           on markada OLMAYAN taze ilanlar hala satici/lead/geri kalanin
+           onunde; on markanin kendi taze ilanlari ise markanin blokunda.
+           On markalar satici kontrolunden de ONCE: Lacoste ilanlarinin cogu
+           lead saticinin, yani sonra sorulsaydi o bolmeye dusup icinde
+           dagilirlardi ve "basta" olmazlardi. */
         $j = array_search($up($p['brand'] ?? ''), $front, true);
         if ($j !== false) { $fr[$j][] = $p; continue; }
+        /* Tavani asan yeni ilan burada yakalanmaz ve asagida kendi bolmesine duser. */
+        if (isset($newRank[$i])) { $new[$newRank[$i]] = $p; continue; }
         if (in_array($up($p['seller'] ?? ''), $sellers, true)
             || in_array((string)($p['seller_uid'] ?? ''), $sellerUids, true)) { $sel[] = $p; continue; }
         $j = array_search($up($p['brand'] ?? ''), $lead, true);
@@ -2494,11 +2502,11 @@ function vestra_shop_order(array $products, ?array $front = null, ?array $lead =
     }
     ksort($new);
 
-    $out = array_merge($pinned, array_values($new));
+    $out = $pinned;
     /* array_keys DEGIL, indis uzerinden: bir marka o bolmede hic urun vermezse
        kendinden sonrakiler one kaymamali, liste sirasi korunmali. */
     for ($i = 0; $i < count($front); $i++) if (!empty($fr[$i])) $out = array_merge($out, $fr[$i]);
-    $out = array_merge($out, $sel);
+    $out = array_merge($out, array_values($new), $sel);
     for ($i = 0; $i < count($lead); $i++)  if (!empty($ld[$i])) $out = array_merge($out, $ld[$i]);
     return array_merge($out, $rest);
 }

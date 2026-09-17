@@ -161,8 +161,13 @@ $in8 = [
     $p('new-alfa',  'ALFA', ['added_at' => $day(3)]),
     $p('no-date',   'ZETA'),
 ];
-$t('yeni ilanlar ON MARKALARIN da onunde, en yeni once',
-   $ids($ordN($in8)) === 'new-rest,new-alfa,old-alfa,no-date');
+/* 17 Eyl 2026: ON MARKA artik YENI'den de once (operator: "galerry dept.
+   urunleri en basa al" + "F.Perry i de en basa al"). Davranis BILEREK degisti;
+   eski iddia 'new-rest,new-alfa,old-alfa,no-date' bekliyordu. Bolmenin kendisi
+   duruyor: on markada OLMAYAN taze ilan (new-rest) hala geri kalanin onunde ve
+   en yeni once. */
+$t('on marka YENI\'den once; YENI de geri kalanin onunde',
+   $ids($ordN($in8)) === 'old-alfa,new-alfa,new-rest,no-date');
 $t('added_at YOKSA yeni sayilmiyor',
    !vestra_product_is_new(['id' => 'x'], $NOW));
 $t('pencere disindaki ilan yeni sayilmiyor',
@@ -176,8 +181,8 @@ $t('cozulemeyen tarih yeni sayilmiyor',
    Tavani asan yeni ilan KAYBOLMUYOR, kendi bolmesine dusuyor. */
 $in8b = [$p('a', 'ALFA', ['added_at' => $day(100)])];
 foreach (range(1, 5) as $k) $in8b[] = $p("n$k", 'ZETA', ['added_at' => $day(1)]);
-$t('tavan yeni ilanlari kirpiyor, on marka one geciyor',
-   $ids($ordN($in8b, 2)) === 'n1,n2,a,n3,n4,n5');
+$t('tavan yeni ilanlari kirpiyor, tavani asan geri kalana duser',
+   $ids($ordN($in8b, 2)) === 'a,n1,n2,n3,n4,n5');
 $t('tavani asan yeni ilan KAYBOLMUYOR', count($ordN($in8b, 2)) === count($in8b));
 $t('tavan 0 = ozellik kapali (eski davranis)',
    $ids($ordN($in8b, 0)) === 'a,n1,n2,n3,n4,n5');
@@ -192,12 +197,28 @@ $t('pinned yeni olsa da yalniz BIR kez ve en basta',
 /* pinned aday listesinden ELENIYOR, yoksa zaten en onde duran bir ilan tavandan
    bir yer yer ve gercek bir yeni gelen arkada kalir. Ana dongudeki pinned
    kontrolu bunu yakalamaz: orada urun dogru yere gider, KAYIP olan slottur. */
+/* Kumede ESKI bir ZETA da var ve olmak ZORUNDA: on marka bloku YENI'nin onune
+   gectikten sonra, 'n' yeni slotunu kaybetse bile ondan sonra gelirdi ve iddia
+   hicbir seyi ayirt etmezdi. Eski ZETA ile ayrim net: n yeni ise ondan ONCE,
+   slotu kaybetmisse ARKASINDA. */
 $in8e = [
-    $p('pin', 'ZETA', ['added_at' => $day(1), 'pinned' => 1]),
-    $p('n',   'ZETA', ['added_at' => $day(2)]),
-    $p('a',   'ALFA', ['added_at' => $day(300)]),
+    $p('pin',      'ZETA', ['added_at' => $day(1), 'pinned' => 1]),
+    $p('old-zeta', 'ZETA', ['added_at' => $day(300)]),
+    $p('n',        'ZETA', ['added_at' => $day(2)]),
+    $p('a',        'ALFA', ['added_at' => $day(300)]),
 ];
-$t('pinned tavandan yer YEMIYOR', $ids($ordN($in8e, 1)) === 'pin,n,a');
+$t('pinned tavandan yer YEMIYOR', $ids($ordN($in8e, 1)) === 'pin,a,n,old-zeta');
+
+/* YENI bolmesi SATICI/lead/geri kalanin ONUNDE kalmali. 17 Eyl'de on marka
+   bloku YENI'nin onune alindi ve bolmenin geri kalan isi tam olarak bu; iddia
+   YOKTU ve falsifikasyonda ortaya cikti: birlestirmede YENI satici blokunun
+   arkasina atildiginda takim YESIL kaliyordu, yani kodun yazdigi sozu hicbir
+   sey tutmuyordu. */
+$in8f = [
+    $p('s-old', 'ZETA', ['added_at' => $day(300), 'seller' => 'TEST SELLER']),
+    $p('s-new', 'ZETA', ['added_at' => $day(1),   'seller' => 'TEST SELLER']),
+];
+$t('YENI, lead SATICI bolmesinin onunde', $ids($ordN($in8f)) === 's-new,s-old');
 
 /* Ayni gun yazilan bir parti icinde katalog sirasi korunuyor (acik tie-break). */
 $in8d = [];
