@@ -5053,6 +5053,97 @@ sonra: *"alimi 5 bin usd yap"*).
   **FİYAT BASMAZ** (kâr oranı bu dosyada yazılı, fiyat maliyeti ele verir) ve
   soru zaten adet sorusu.
 
+**KURAL 28 — Hesap açma PANELDE; elle anlaşılan fiyat ve feragatler kayıtta**
+(operatör, 17 Eyl 2026: *"Francisco adına bir buyer hesabı aç ve 23 adet
+r.lauren polo faturası kes 20 eur dan shipping cost 25 eur. satıcı les garage
+de paris"*).
+
+- **ÖLÇÜM ÜÇ ŞEYİ BİRDEN ÇÜRÜTTÜ ve hiçbiri talimattan okunamıyordu:**
+  1. **"Francisco" ile eşleşen hesap Francisco DEĞİL.** `diag-messages` →
+     `billing_for`: `C&F Multimarcas`, ad **"Carmen camacho"**, adres *La
+     algaida calle central n30*, **VAT yok**. Eşleşme yalnız **e-postadan**
+     geliyordu. Faturadaki kimlik ise *Francisco Javier Nicolas Macanas /
+     ES48500442C / Altaona 15, Beniaján*. O hesaba kesmek, vergi belgesine
+     **başka bir tüzel kişiyi** yazmak olurdu. *Ad bir kimlik değildir —
+     `inspect-products`'ta iki "Wings T-Shirt" dersinin hesap hâli.*
+  2. **Ralph Lauren'da TEK polo var:** `rl-csf-polo-white` (SKU
+     `710548797001`), kademeler **26,90** (80+) / **25,00** (160+),
+     **MOQ 80**, **paket adımı 8**, renkler **White · Dark Green · Fuchsia ·
+     Yellow · Orange · Pink**, `min_colors=4`. Yani 23 adet ve €20, ilanla
+     **üç ayrı noktada** çelişiyor.
+  3. **Operatörün verdiği renkler (Navy, Black) bu ilanda YOK** — ikisi de
+     aynı markanın **T-SHIRT** ilanının (`rl-csf-tee-navy`) renkleri.
+     Sessizce en yakınını seçmek, gönderilemeyecek bir şey satmak olurdu.
+
+- **ELLE ANLAŞILAN BİRİM FİYAT (4. alan: `SKU:RENK:ADET:20`).** Toptan kipi
+  fiyatı `vestra_unit_price()`'tan okuyor ve €20 **hiçbir kademede yok**, yani
+  anlaşılan satışı kayda geçirmenin yolu yoktu. Fiyatı kodun okuması *kimsenin
+  elle bir rakam UYDURMAMASI* içindi; operatörün müşteriyle anlaştığı rakam
+  ise uydurma değil **kayıt**. Sessizce geçmiyor:
+  - **YÖN KONTROLÜ, ve iki yön aynı şey değil.** Anlaşılan **<** katalog =
+    operatörün iskontosu, gerekçe kayda giriyor. Anlaşılan **>** katalog =
+    alıcının **sayfada gördüğünden pahalı** bir fatura; bu karar değil kusur
+    (`price_audit`'in "alıcı aleyhine" sınıfı) ve iş **DURUYOR**.
+    Canlı ölçüldü: €20 geçti, **€30 reddedildi** (`sorunlu: 1`, yazılmadı).
+  - **NOT DA DEĞİŞİYOR:** anlaşılan birimle kesilen satışa *"wholesale tier
+    pricing"* yazmak, kademeyi açan kişinin o rakamı hiçbir yerde bulamaması
+    demekti — `desc`/`sizes` çelişkisinin aynısı. Özet satırındaki etiket de
+    düzeltildi (*rakam doğru, etiket yalan* — yanlış rakam sorgulanır, yanlış
+    etikete inanılır).
+  - **Dropship kipinde REDDEDİLİYOR**: orada birim alıcının hesabından türüyor
+    (abonelik) ve elle bir rakam o kapıyı sessizce atlatırdı.
+
+- **PAKET ADIMI FERAGATİ (`waive_pack=1`) — ve bu, kendi yazdığım yorumun bir
+  kısmını GERİ ALIYOR.** Adım kontrolü **sepet** için yazıldı ve orada haklı:
+  sepet adedi adımın katına **yuvarlıyor**, yani 23 yazan bir ilan kasada 24
+  demek olurdu. Ama **elle kurulan sipariş sepetten hiç geçmiyor**: operatör
+  23 yazıyor, fatura 23 diyor, alıcı 23'ün parasını ödüyor — yuvarlayan taraf
+  yok, dolayısıyla yalan söyleyen taraf da yok. Geriye **tek gerçek sonuç**
+  kalıyor ve gizlenmiyor: **beden dökümü yazılamıyor** (23, ilanın 8'lik
+  serisine bölünmüyor) ve satır bunu kendi notunda söylüyor. *Operatör bu
+  sonucu GÖRDÜKTEN sonra 23'te ısrar etti; tekrarlanan talimat karardır.*
+
+- **HESAP AÇMA PANELE EKLENDİ, çünkü başka yeri YOK ve iş akışı YANLIŞ yer.**
+  `Admin ▸ Users ▸ ➕ New buyer account (manual)`. Panelde ekleme eylemi
+  **bugüne kadar hiç yoktu** (arandı: ekle, içe aktar, durum değiştir, sil var
+  — **açma yok**), ve iş akışından açmak müşterinin e-postasını **herkese açık
+  koşu girdisine** yazmak demekti. Bu depo `only_emails` girdisini **tam o
+  sebeple** bir kez kaldırıp `only_accounts`'a çevirdi; müşteriye ait veri
+  panelde durur (KURAL 2d'nin *"müşterinin belgesi GitHub'dan geçmez"*
+  kuralının aynı ailesi). *Operatörün adresi bana sohbette vermiş olması,
+  onu herkese açık bir kütüğe yazma izni değil.*
+  - **`doc_requests` TEK KAYNAKTAN:** `auth_required_doc_types()` +
+    `auth_doc_request_row()`. `create_seller` / `sync_lesgarage` /
+    `create_tyrex_migrate` **üçü de** `'doc_requests'=>[]` yazmıştı ve sonucu
+    KURAL 2'de kayıtlı: satır yoksa yükleme düğmesi de yok, müşterinin belgeyi
+    verecek **hiçbir yolu** kalmıyor.
+  - **KURAL 2g (Türkiye) burada da çalışıyor:** kapatan bir kural her yolda
+    çalışmalı, yoksa panel self-servis kaydın reddettiği hesabı açan bir **arka
+    kapı** olurdu. (`create_seller`'ın bu kontrolü taşımaması operatörün
+    bilinçli, tek hesaplık istisnasıydı; genel bir form aynı muafiyeti hak
+    etmiyor.) Ters yön testli: **Turkmenistan geçiyor.**
+  - Kapıyı **ne açtığı** kayıtta (`kyb_auto='operator:panel'`) — promo
+    hesabında bu alan yoktu ve *"bu hesap neden açık?"* sorusunun cevabı
+    hiçbir yerde durmuyordu (KURAL 2h).
+  - **Şifre rastgele ve hiçbir yere yazılmıyor**; müşteri "forgot password"
+    ile kendi belirliyor. **Müşteriye hiçbir şey gitmiyor** (KURAL 18): hoş
+    geldin mektubu da doğrulama linki de yok. Yazma **geri okunuyor**.
+
+- **Kendi hatam, bugün İKİNCİ kez:** formda `csrf_field()` yazdım, doğrusu
+  **`csrfField()`**. Sabah da olmayan bir `vestra_order_status()` çağırmıştım.
+  **İkisini de `php -l` GEÇİRDİ** — ikisi de çalışma zamanı hatası. Birincisini
+  fonksiyon taraması, ikincisini **formu çizdirmek** yakaladı. *Kaynak okumak
+  ölçüm değil; `php -l` de ölçüm değil.*
+- Test: `tests/create_buyer_test.php` (27 iddia). Kum havuzunda `admin.php`'yi
+  **gerçekten POST ile koşturuyor** ve yazılan kaydı geri okuyor — kaynak
+  taraması bu işi ölçemezdi. Düşebildiği doğrulandı, her sabotajın **gerçekten
+  uygulandığı** satır sayımıyla yazdırılarak: `doc_requests` döngüsü silinince
+  **5 kırmızı**, aynı e-posta kontrolü kalkınca **6**, Türkiye kontrolü
+  kalkınca **5**.
+- **Canlı zincir (deploy `e5a6b084`):** 23 × €20 = **€460** + €25 kargo =
+  **€485**, `sorunlu: 0`, üç feragat de satırda yazılı, beden dökümü **bilerek
+  boş**. Hiçbir şey yazılmadı — hesap ve renk operatörü bekliyor.
+
 **KURAL 26 — Para birimi seçimi KALICI; çerezi yazan tek yer money.php'nin
 yüklenme anı** (operatör, 13 Eyl 2026: *"para birimi sürekli degisiyor ... para
 birimi secilmesine ragmen bir sonraki linke tiklandginda gene eur oluyor ayrica
