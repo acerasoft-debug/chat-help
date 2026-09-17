@@ -2158,12 +2158,31 @@ jobs:
                son ~55-78 satirini gosteriyor; 59 alan adi sorulunca MX listesi
                ozeti kuyruktan dusuruyordu ve rapor "sayilari goremedim" ile
                bitiyordu. Okunmasi gereken sey EN SONA yazilir. */
-            echo "\n===== ALAN ADI POSTA KABUL EDIYOR MU (MX/A) =====\n";
+            echo "\n===== ALAN ADI POSTA KABUL EDIYOR MU (NS/MX/A) =====\n";
+            /* KAYITLI OLMAYAN alan adlari da olculuyor ve asil sebep bu:
+               "bu listeye gonder" dendiginde sorulan sey tam olarak
+               "bu adresler VAR MI" ve o adresler tanimi geregi havuzda YOK.
+               17 Eyl 2026'ya kadar bu adim yalniz ESLESEN leadlerin alan
+               adina bakiyordu, yani 100 satirlik taze bir listede 41 adayi
+               hic olcmeden "ozet" basiyordu -- bu deponun iki kez kaydettigi
+               "sonda goremedigi alan hakkinda yesil veremez" hatasi.
+
+               NS de soruluyor (KURAL 1b): NS yoksa alan adi KAYITLI DEGIL,
+               MX yoklugundan daha kesin kanit -- MX eksikligi gecici bir
+               yapilandirma da olabilir. */
             $seenDom = []; $mxDead = [];
-            foreach ($want as $e) {
-                $d = strtolower(substr(strrchr($e, '@'), 1));
+            $domList = [];
+            foreach ($want as $e) { $d = strtolower(substr(strrchr($e, '@'), 1)); if ($d !== '') $domList[] = $d; }
+            foreach ($unknownDom as $d) $domList[] = strtolower($d);
+            foreach ($domList as $d) {
                 if ($d === '' || isset($seenDom[$d])) continue;
                 $seenDom[$d] = true;
+                $ns = @dns_get_record($d, DNS_NS);
+                if (!$ns) {
+                    printf("  %-30s NS YOK <-- alan adi KAYITLI DEGIL, bu adres MEVCUT DEGIL\n", $d);
+                    $mxDead[] = $d;
+                    continue;
+                }
                 $mx = @dns_get_record($d, DNS_MX);
                 $a  = $mx ? [] : @dns_get_record($d, DNS_A);
                 if ($mx) {
