@@ -5398,6 +5398,23 @@ ile yeni bir paswort olustursun ve girsin"*).
   **GÖNDERİLDİ**. Kütükteki "kabul etti" yalnızca **Brevo isteği kabul etti**
   demek — `delivered` bile posta kutusu kanıtı değil (bu dosyanın kendi
   uyarısı).
+- **TESLİMAT ÖLÇÜLDÜ** (operatör: *"francisco ya email gittimi"*).
+  `diag-messages` → `mailcfg=true`, `mail_for=account:7d68b8778cd3884c`,
+  `mail_subject=contraseña`: **`17:12:04 requests` → `17:12:05 delivered`**,
+  konu birebir. Yani Gmail kabul etti; **spam klasörü ihtimali duruyor**.
+- **`mail_for=account:` artık HESAP ID'siyle de eşleşiyor** (TAM eşitlik önce,
+  sonra eski ad araması). Eskiden yalnız `company`/`name` içinde arıyordu ve bu
+  hesapta tek ayırt edici parça kişinin **soyadı** olurdu — kalıcı, herkese açık
+  bir koşu başlığına. `order_draft`/`order_write` ve `password_setup` aynı
+  sırayı zaten taşıyor; bu **üçüncü çağrı yeri**.
+- **İKİNCİ MEKTUP gönderildi** (operatör, aynı gün: *"Brandluxuryspain@gmail.com
+  password degisimi gönder"*): run `35252233157`, jeton son geçerlilik
+  **18:21 UTC**. **Yeni jeton eskisini geçersiz kılıyor** (`auth_reset_begin`
+  alanı üzerine yazıyor) — yani elindeki iki linkten yalnız **ikincisi**
+  çalışır. Burada zararsızdı: ilki 20 dakikalıktı ve kullanılmamıştı; ama
+  müşteri linke tıklamışken ikinciyi göndermek onu **akışın ortasında**
+  keserdi. *Yeniden göndermeden önce ilkinin yaşını ve kullanılıp
+  kullanılmadığını sor.*
 
 **KURAL 26 — Para birimi seçimi KALICI; çerezi yazan tek yer money.php'nin
 yüklenme anı** (operatör, 13 Eyl 2026: *"para birimi sürekli degisiyor ... para
