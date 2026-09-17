@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. 'create_buyer' = ELLE alıcı hesabı açar (payload=ŞİFRELİ zarf — müşterinin e-postası açık girdiye yazılmaz, çıktıda maskeli; move_apply=true ile uygular, varsayılan kuru koşu; panelin ➕ New buyer account formuyla AYNI yazıcı, müşteriye HİÇBİR ŞEY gitmez). Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. 'order_colours' = siparişin RENGİNİ düzeltir (issue_ref=sipariş, payload='SKU:Renk,Renk', move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'create_buyer' = ELLE alıcı hesabı açar (payload=ŞİFRELİ zarf — müşterinin e-postası açık girdiye yazılmaz, çıktıda maskeli; move_apply=true ile uygular, varsayılan kuru koşu; panelin ➕ New buyer account formuyla AYNI yazıcı, müşteriye HİÇBİR ŞEY gitmez). Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -23,7 +23,7 @@ on:
         required: false
         default: ""
       payload:
-        description: "admin_mode=apply: şifreli satıcı bilgisi. admin_mode=create_buyer: şifreli hesap bilgisi (aynı KEY.IV.GÖVDE zarfı, keygen'in public key'iyle; gövde {email,name,company,vat_id,country,address,phone,lang,open_gate}). admin_mode=order_draft|order_write: kalemler. DROPSHIP (varsayılan) 'SKU:BEDEN:ADET,...'; TOPTAN 'pricing=wholesale|SKU:RENK:ADET,...' — kademe fiyatı, MOQ/paket adımı ve renk ilandan doğrulanır, beden dökümü ilanın serisinden türer. Elle anlaşılan birim fiyat: 4. alan ('SKU:RENK:ADET:19.50') — katalog kademesini ezer, ilandan PAHALIysa reddedilir, gerekçe siparişin notuna yazılır. İlan edilen renk asgarisinden feragat: '|waive_min_colours=1'; ilan edilen asgari adetten feragat: '|waive_moq=1'; paket adımından feragat: '|waive_pack=1' (tam karton değil — beden dökümü yazılamaz)."
+        description: "admin_mode=apply: şifreli satıcı bilgisi. admin_mode=create_buyer: şifreli hesap bilgisi (aynı KEY.IV.GÖVDE zarfı, keygen'in public key'iyle; gövde {email,name,company,vat_id,country,address,phone,lang,open_gate}). admin_mode=order_draft|order_write: kalemler. DROPSHIP (varsayılan) 'SKU:BEDEN:ADET,...'; TOPTAN 'pricing=wholesale|SKU:RENK:ADET,...' — kademe fiyatı, MOQ/paket adımı ve renk ilandan doğrulanır, beden dökümü ilanın serisinden türer. admin_mode=order_colours: 'SKU:Renk,Renk' (faturalı siparişte '|allow_invoiced=1'). Elle anlaşılan birim fiyat: 4. alan ('SKU:RENK:ADET:19.50') — katalog kademesini ezer, ilandan PAHALIysa reddedilir, gerekçe siparişin notuna yazılır. İlan edilen renk asgarisinden feragat: '|waive_min_colours=1'; ilan edilen asgari adetten feragat: '|waive_moq=1'; paket adımından feragat: '|waive_pack=1' (tam karton değil — beden dökümü yazılamaz)."
         required: false
         default: ""
       issue_ref:
@@ -229,6 +229,97 @@ jobs:
             PHPEOF
             php /tmp/vestra_create_buyer.php; RC=$?
             rm -f /tmp/vestra_create_buyer.php
+            exit $RC
+
+      # SİPARİŞİN RENGİNİ DÜZELT (17 Eyl 2026). Renk siparişin notlarında duruyor
+      # ve oraya yazan tek yol kasaydı — yani sipariş yazıldıktan sonra rengi
+      # düzeltmenin hiçbir yolu yoktu (navlun ve teslimat adresi aynı boşluğu
+      # daha önce kapattı). Tek yazıcı `vestra_order_set_colours()`.
+      #
+      # FATURALI siparişte varsayılan RED. Opt-in (`|allow_invoiced=1`) ile
+      # yazar ve "AYNI numarayla yeniden çiz" diye UYARIR — KURAL 5f. Bu adım
+      # belgeyi kendisi çizmiyor: yeniden çizim `admin_mode=issue` +
+      # `issue_redraft=true`, yani kesim yolu TEK yerde kalıyor.
+      - name: Siparişin rengini düzelt (order_colours) — varsayılan KURU KOŞU
+        if: ${{ github.event.inputs.admin_mode == 'order_colours' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          OC_REF:   ${{ github.event.inputs.issue_ref }}
+          OC_SPEC:  ${{ github.event.inputs.payload }}
+          OC_APPLY: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: OC_REF,OC_SPEC,OC_APPLY
+          script: |
+            set -e
+            cat > /tmp/vestra_order_colours.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require_once $doc."/inc/products.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/invoice.php";
+
+            $ref  = trim((string)getenv('OC_REF'));
+            $spec = trim((string)getenv('OC_SPEC'));
+            $APPLY = strtolower(trim((string)getenv('OC_APPLY'))) === 'true';
+            if ($ref === '' || $spec === '') { fwrite(STDERR, "issue_ref ve payload gerekli ('SKU:Renk,Renk')\n"); exit(1); }
+
+            $allowInv = (bool)preg_match('/(^|\|)\s*allow_invoiced\s*=\s*1\s*(\||$)/i', $spec);
+            $spec = trim((string)preg_replace('/\|?\s*allow_invoiced\s*=\s*1\s*/i', '', $spec), " |");
+            $pos = strpos($spec, ':');
+            if ($pos === false) { fwrite(STDERR, "bicim: SKU:Renk,Renk\n"); exit(1); }
+            $sku = trim(substr($spec, 0, $pos));
+            $cols = array_values(array_filter(array_map('trim', explode(',', substr($spec, $pos + 1))), fn($x) => $x !== ''));
+
+            $row = null; foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $row = $r; break; }
+            if (!$row) { fwrite(STDERR, "siparis bulunamadi: {$ref}\n"); exit(1); }
+            $inv = vestra_invoices_for_ref($ref);
+
+            echo "siparis      : {$ref}\n";
+            echo "firma        : ".(string)($row['company'] ?? '-')."\n";
+            echo "SKU          : {$sku}\n";
+            foreach (vestra_order_lines($row)['lines'] as $l) {
+              if ((string)$l['sku'] !== $sku) continue;
+              echo "urun         : ".(string)($l['brand'] ?? '')." ".(string)($l['name'] ?? '')."\n";
+              echo "mevcut renk  : ".(($l['colors'] ?? []) ? implode(', ', $l['colors']) : '(yok)')."\n";
+              echo "adet         : ".(int)$l['qty']."\n";
+              $p = vestra_product_by_sku($sku);
+              echo "ilanin renkleri: ".($p && !empty($p['colors']) ? implode(' / ', (array)$p['colors']) : '(kayitli degil)')."\n";
+            }
+            echo "istenen renk : ".implode(', ', $cols)."\n";
+            echo "kesilmis fatura: ".(count($inv) ?: 'yok')."\n";
+            foreach ($inv as $iv) echo "   - ".(string)($iv['no'] ?? '?')."\n";
+
+            if (!$APPLY) {
+              echo "\nKURU KOSU -- hicbir sey yazilmadi.\n";
+              if ($inv && !$allowInv) echo "ENGEL: fatura kesilmis. Yazmak icin spec'e |allow_invoiced=1 ekleyin,\n"
+                                         ."       SONRA admin_mode=issue + issue_redraft=true ile AYNI numarayla yeniden cizin (KURAL 5f).\n";
+              else echo "engel yok; move_apply=true ile uygulanir.\n";
+              exit(0);
+            }
+
+            $r = vestra_order_set_colours($ref, $sku, $cols, $allowInv);
+            if (!empty($r['error'])) { fwrite(STDERR, "\nYAZILMADI: ".$r['error']."\n"); exit(1); }
+            echo "\nYAZILDI\n";
+            echo "onceki       : ".(($r['before'] ?? []) ? implode(', ', $r['before']) : '(yok)')."\n";
+            echo "yeni         : ".implode(', ', $r['colours'])."\n";
+            echo "FATURANIN gordugu: ".implode(', ', (array)$r['on_invoice'])."   (geri okundu)\n";
+            if (!empty($r['not_listed'])) {
+              echo "*** UYARI: bu renk(ler) ILANDA KAYITLI DEGIL: ".implode(', ', $r['not_listed'])."\n";
+              echo "    Belge satilan mali yaziyor; ilan gercekten bu renkleri satiyorsa ilan da guncellenmeli.\n";
+            }
+            if (!empty($r['must_redraft'])) {
+              echo "*** YAPILACAK: fatura KESILMIS -- admin_mode=issue + issue_redraft=true ile AYNI numarayla\n";
+              echo "    yeniden cizin, yoksa kayit ile belge AYRISIR (KURAL 5f).\n";
+            }
+            PHPEOF
+            php /tmp/vestra_order_colours.php; RC=$?
+            rm -f /tmp/vestra_order_colours.php
             exit $RC
 
       # NAVLUN (7 Eyl 2026). Panelin "🚚 Save shipping" kutusuyla AYNI yazıcı:
