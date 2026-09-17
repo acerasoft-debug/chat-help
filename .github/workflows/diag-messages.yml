@@ -36,7 +36,7 @@ on:
         required: false
         default: "false"
       mail_for:
-        description: "mailcfg ile: olay geçmişi sorulacak adres. MÜŞTERİ adresini buraya YAZMAYIN — girdi herkese açık: 'account:<isim parçası>' ya da 'offer:<teklif ref>' yazın, adres kayıttan çözülür. Boş = operatör test kutusu"
+        description: "mailcfg ile: olay geçmişi sorulacak adres. MÜŞTERİ adresini buraya YAZMAYIN — girdi herkese açık: 'account:<hesap ID ya da isim parçası>' ya da 'offer:<teklif ref>' yazın, adres kayıttan çözülür. Hesap ID'si TAM eşleşir ve kimseyi ele vermez — ada göre aramak kişinin soyadını koşu başlığına yazdırır. Boş = operatör test kutusu"
         required: false
         default: ""
       mail_subject:
@@ -456,7 +456,14 @@ jobs:
               } elseif (stripos($who, 'account:') === 0) {
                 $needle = strtolower(trim(substr($who, 8)));
                 $hits = [];
+                /* HESAP ID'si TAM esitlikle ONCE: ad parcasi aramak, tek ayirt
+                   edici parca kisinin SOYADI oldugunda onu kalici ve herkese
+                   acik bir kosu basligina yazdirir. order_draft ve
+                   password_setup ayni sirayi tasiyor. */
                 foreach (auth_accounts() as $a) {
+                  if ($needle !== '' && strtolower((string)($a['id'] ?? '')) === $needle) { $hits = [$a]; break; }
+                }
+                if (!$hits) foreach (auth_accounts() as $a) {
                   $hay = strtolower(($a['company'] ?? '').' '.($a['name'] ?? ''));
                   if ($needle !== '' && str_contains($hay, $needle)) $hits[] = $a;
                 }
