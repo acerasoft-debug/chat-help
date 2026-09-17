@@ -5241,7 +5241,93 @@ de paris"*).
   kalkınca **5**.
 - **Canlı zincir (deploy `e5a6b084`):** 23 × €20 = **€460** + €25 kargo =
   **€485**, `sorunlu: 0`, üç feragat de satırda yazılı, beden dökümü **bilerek
-  boş**. Hiçbir şey yazılmadı — hesap ve renk operatörü bekliyor.
+  boş**.
+
+**KURAL 28 — TAMAMLANDI (17 Eyl 2026): hesap açıldı, sipariş yazıldı, fatura
+kesildi.** Operatör: *"verdigim bilgiler ile francisco ya hesap ac"* +
+*"faturasini yap"*.
+
+- Hesap **`7d68b8778cd3884c`** (buyer/active, kyb `approved`,
+  `kyb_auto=operator:workflow`, kapı AÇIK, `trade_licence` satırı açıldı,
+  dil `es`, ülke Spain, VAT kayıtlı). **Müşteriye hiçbir şey gönderilmedi.**
+- Sipariş **`VES-F23A9727`**: 23 × €20,00 = €460 + €25 kargo = **€485,00**,
+  üç feragat de satırın notunda. Fatura **INV-2026-1003**, kesen taraf
+  **GARAGE LE PARIS** (operatör seçimi), tek dilim = **TEK BELGE**,
+  EUR ödeme kutusu **ÇIKIYOR (4 satır)** — platformun aksine bu künyede IBAN
+  var. Alıcıya **e-posta gitmedi**.
+- **`auth_create_buyer()` TEK YAZICI oldu**: panel formu ve yeni
+  `seller-products.yml` → `admin_mode=create_buyer` ikisi de onu çağırıyor.
+- **Müşterinin e-postası AÇIK GİRDİYE YAZILMADI.** Kural ("adresi kayıttan
+  çözdür") burada uygulanamıyor — hesap henüz yok, çözülecek kayıt yok. Çözüm
+  `apply` modunun **şifreli zarfı**: `KEY.IV.GÖVDE`, özel anahtar
+  `~/.vestra_inbox_key.pem`, sunucudan hiç çıkmıyor. Girdi herkese açık ama
+  **okunamaz**; çıktı da maskeli (`b***@gmail.com`). *Bir kuralın çaresi
+  uygulanamıyorsa kuralı bırakma — aynı amaca varan başka bir çare ara.*
+- **`order_draft`/`order_write` artık hesap ID'siyle TAM eşleşiyor.** Ad/firma
+  parçası belirsizdi: `francisco` araması **başka** bir hesabı (C&F Multimarcas)
+  yalnız e-postasından yakalıyordu, ve tek ayırt edici parça kişinin **soyadı**
+  olurdu — o da kalıcı, herkese açık bir girdi.
+
+**İKİ KUSUR, ikisi de ÇİZDİREREK bulundu (`php -l` ikisini de geçirdi):**
+1. Yeni adımda düz `require inc/security.php` dosyayı **ikinci kez** yükleyip
+   `Cannot redeclare _vsec_dir()` ile **öldürüyordu** (auth.php onu zaten
+   satır 17'de yüklüyor).
+2. **`auth_create_buyer()` koşulsuz `status='active'` yazıyordu** ve
+   `auth_user_approved()` bir **VEYA** (`status==='active'` YA DA
+   `kyb_status==='approved'`) — yani operatör kapı kutucuğunu **işaretlemese
+   bile fiyat kapısı AÇILIYORDU**. Kutucuk yalan söylüyordu. `auth_register()`
+   aynı yerde `pending` yazıyor; artık ikisi aynı. **Eski `kyb_status=pending`
+   iddiası bu hatayı YEŞİL geçiyordu** — ölçüt artık kapının kendisi
+   (`auth_prices_unlocked`), alanlardan biri değil.
+- Test 27 → **37 iddia**; dört sabotajın her biri önce **gerçekten uygulandığı**
+  doğrulanıp kırmızıya çevrildi (5 / 6 / 20 / 2).
+
+**KURAL 28 — Siparişin RENGİ sonradan düzeltilebiliyor** (operatör, aynı gün:
+*"renkleri faturada siyah ve navy olarak degistir"*).
+- **Renk siparişin notlarında duruyor ve oraya yazan TEK yol kasaydı** — yani
+  sipariş yazıldıktan sonra rengi düzeltmenin **hiçbir yolu yoktu**. Navlun
+  (KURAL 5k) ve teslimat adresi (KURAL 5l) aynı boşluğu daha önce kapattı;
+  renk açık kalmıştı. Tek yazıcı `vestra_order_set_colours()`, kardeşlerinin
+  deseniyle: notların **gerisine dokunmaz** (okuyucunun **kendi**
+  ayrıştırıcısıyla söker — ikinci bir kalıp yazmak, bu depoda renklerin
+  yıllarca hiç okunmamasına yol açan hatanın ta kendisi), yedekler, atomik
+  takas eder ve **faturanın gördüğünü** geri okur.
+- **Faturalı siparişte varsayılan RED**, `|allow_invoiced=1` ile açık opt-in,
+  ve dönüşte `must_redraft`: KURAL 5f'in çaresi zaten *"aynı numarayla yeniden
+  çizim"* ve rengi düzeltmeden yeniden çizmenin anlamı yok. Belgeyi bu adım
+  **çizmiyor** — kesim yolu tek yerde (`admin_mode=issue` + `issue_redraft`).
+- **İlanın renk listesi DOĞRULANMIYOR ama sessiz de kalmıyor** (`not_listed`).
+  Ölçüldü: ilan **White / Dark Green / Fuchsia / Yellow / Orange / Pink**
+  diyor; **Black ve Navy o ilanda YOK** (ikisi kardeş ilanın, `rl-csf-tee-navy`
+  tişörtünün renkleri). Operatör müşterinin **gerçekten aldığı** malı
+  söylüyor ve katalog kaydı eksik olabilir — belgeyi kataloğa uydurmak için
+  satılan malı yanlış yazmak KURAL 3'ün tersi olurdu. Uyarı basıldı, karar
+  operatörün.
+- Canlı: renk `White` → **`Black, Navy`**, `vestra_order_lines()`'tan geri
+  okundu, **INV-2026-1003 aynı numarayla yeniden çizildi**, kesilmiş fatura
+  hâlâ **1** (ikinci numara yanmadı).
+- Test yazarken **iki gerçek tutarsızlık** çıktı (ikisi de üretimde zararsız,
+  ama ölçümü yalanlıyordu): `vestra_data_dir()` sabitti → `VESTRA_ACCOUNTS` /
+  `VESTRA_MESSAGES` ile aynı `defined()` koruması (korumasızken test **gerçek
+  kataloğa** yazacaktı); ve **`vestra_invoice_dir()` `vestra_data_dir()`'i HİÇ
+  çağırmıyordu**, yani veri dizini yönlendirildiğinde *"faturası var mı"*
+  kontrolü **yanlış klasöre** bakıyordu.
+- Test: `tests/order_colours_test.php` (24 iddia, kum havuzunda gerçekten
+  yazıyor). İki sabotaj, uygulandıkları sayımla doğrulanarak: faturalı
+  muhafaza kalkınca **3 kırmızı**, ayrıştırıcı yerine ikinci bir kalıp
+  yazılınca **4**.
+
+**OPERATÖR KARARI BEKLEYEN İKİ ŞEY (bu siparişten çıktı):**
+1. **Polo ilanı Black/Navy satmıyor.** Gerçekten satılıyorsa ilanın renk
+   listesi güncellenmeli (`set-product.yml`); yoksa fatura ile vitrin
+   çelişiyor. Kendiliğinden değiştirilmedi: bir ilana renk eklemek **her
+   alıcının gördüğü** şeyi değiştirir.
+2. **"garage" ile eşleşen İKİ hesap var** ve seçimi veri belirledi:
+   **GARAGE LE PARIS** (`7ab30f26…`, Ferhat AGAYA, FR VAT + sicil no + IBAN +
+   BIC + Stripe) ile **"Les Garage Paris"** (`8fa9d40d…`, **adres yok, VAT yok,
+   sicil yok, banka HİÇ yok, Stripe yok**). İkincisinden fatura kesilseydi
+   belge vergi kimliksiz, adressiz ve **ödeme kutusuz** çıkardı. Ölü hesabın
+   kapatılması/birleştirilmesi operatör kararı.
 
 **KURAL 26 — Para birimi seçimi KALICI; çerezi yazan tek yer money.php'nin
 yüklenme anı** (operatör, 13 Eyl 2026: *"para birimi sürekli degisiyor ... para
