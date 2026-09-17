@@ -1,0 +1,245 @@
+[
+ {
+  "id": "gd-t01",
+  "brand": "Gallery Dept.",
+  "name": "French Logo Chest Print T-Shirt — Charcoal",
+  "cat": "T-Shirts",
+  "sku": "VS-GD-T01",
+  "list": 59.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "colors": [
+   "Charcoal"
+  ],
+  "images": [
+   "/uploads/gallery-dept/gd-french-logo-chest-charcoal.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 59.9
+   }
+  ],
+  "desc": "“DÉPT. de la GALERIE” logo printed small at the chest. Original Gallery Dept., cotton jersey. Mixed-size carton assortment. EEA stock with full invoice trail."
+ },
+ {
+  "id": "gd-t02",
+  "brand": "Gallery Dept.",
+  "name": "Logo Chest Print T-Shirt — Navy",
+  "cat": "T-Shirts",
+  "sku": "VS-GD-T02",
+  "list": 59.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "colors": [
+   "Navy"
+  ],
+  "images": [
+   "/uploads/gallery-dept/gd-logo-chest-navy.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 59.9
+   }
+  ],
+  "desc": "“GALLERY DEPT.” logo printed small at the chest. Original Gallery Dept., cotton jersey. Mixed-size carton assortment. EEA stock with full invoice trail."
+ },
+ {
+  "id": "gd-t03",
+  "brand": "Gallery Dept.",
+  "name": "Logo Chest Print T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "VS-GD-T03",
+  "list": 59.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "colors": [
+   "White"
+  ],
+  "images": [
+   "/uploads/gallery-dept/gd-logo-chest-white.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 59.9
+   }
+  ],
+  "desc": "“GALLERY DEPT.” logo printed small at the chest. Original Gallery Dept., cotton jersey. Mixed-size carton assortment. EEA stock with full invoice trail."
+ },
+ {
+  "id": "gd-t04",
+  "brand": "Gallery Dept.",
+  "name": "Logo Chest Print T-Shirt — Navy/Red",
+  "cat": "T-Shirts",
+  "sku": "VS-GD-T04",
+  "list": 59.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "colors": [
+   "Navy"
+  ],
+  "images": [
+   "/uploads/gallery-dept/gd-logo-chest-navy-red.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 59.9
+   }
+  ],
+  "desc": "“GALLERY DEPT.” logo printed small at the chest in red. Original Gallery Dept., cotton jersey. Mixed-size carton assortment. EEA stock with full invoice trail."
+ },
+ {
+  "id": "gd-t05",
+  "brand": "Gallery Dept.",
+  "name": "French Logo Front Print T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "VS-GD-T05",
+  "list": 61.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "colors": [
+   "White"
+  ],
+  "images": [
+   "/uploads/gallery-dept/gd-french-logo-front-white.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 61.9
+   }
+  ],
+  "desc": "“DÉPT. de la GALERIE — Paris, France” printed large across the front. Original Gallery Dept., cotton jersey. Mixed-size carton assortment. EEA stock with full invoice trail."
+ },
+ {
+  "id": "gd-t06",
+  "brand": "Gallery Dept.",
+  "name": "French Logo Front Print T-Shirt — Black",
+  "cat": "T-Shirts",
+  "sku": "VS-GD-T06",
+  "list": 61.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "colors": [
+   "Black"
+  ],
+  "images": [
+   "/uploads/gallery-dept/gd-french-logo-front-black.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 61.9
+   }
+  ],
+  "desc": "“DÉPT. de la GALERIE — Paris, France” printed large across the front. Original Gallery Dept., cotton jersey. Mixed-size carton assortment. EEA stock with full invoice trail."
+ },
+ {
+  "id": "gd-t07",
+  "brand": "Gallery Dept.",
+  "name": "Sleeve Print T-Shirt — Black",
+  "cat": "T-Shirts",
+  "sku": "VS-GD-T07",
+  "list": 64.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "colors": [
+   "Black"
+  ],
+  "images": [
+   "/uploads/gallery-dept/gd-sleeve-print-black.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 64.0
+   }
+  ],
+  "desc": "“GALLERY” and “DEPT.” printed along both sleeves. Original Gallery Dept., cotton jersey. Mixed-size carton assortment. EEA stock with full invoice trail."
+ },
+ {
+  "id": "gd-t08",
+  "brand": "Gallery Dept.",
+  "name": "Sleeve Print T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "VS-GD-T08",
+  "list": 64.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "colors": [
+   "White"
+  ],
+  "images": [
+   "/uploads/gallery-dept/gd-sleeve-print-white.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 64.0
+   }
+  ],
+  "desc": "“GALLERY” and “DEPT.” printed along both sleeves, with a reversed logo print at the back. Original Gallery Dept., cotton jersey. Mixed-size carton assortment. EEA stock with full invoice trail."
+ },
+ {
+  "id": "gd-h01",
+  "brand": "Gallery Dept.",
+  "name": "Logo Zip-Up Hoodie — Teal",
+  "cat": "Hoodies & Sweatshirts",
+  "sku": "VS-GD-H01",
+  "list": 145.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "status": "pending",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "colors": [
+   "Teal"
+  ],
+  "images": [
+   "/uploads/gallery-dept/gd-logo-zip-hoodie-teal.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 145.0
+   }
+  ],
+  "desc": "Original Gallery Dept., full-zip hooded sweatshirt in heavyweight cotton with kangaroo pocket and “GALLERY DEPT.” logo printed at the chest. Mixed-size carton assortment. EEA stock with full invoice trail."
+ }
+]
