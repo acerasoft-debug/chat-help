@@ -1873,6 +1873,13 @@ jobs:
                TAM 1 eslesme yoksa is DURUR: sifirda yanlis bir sey yazilmaz,
                birden fazlada YANLIS dukkânin adi degisirdi. */
             $home = getenv("HOME");
+            /* products.php ACIKCA yukleniyor: leads.php'nin kendi yorumu
+               "Assumes the caller has already required inc/products.php (for
+               vestra_read_json/vestra_write_json)" diyor. Ilk yazimda yalniz
+               leads.php require edildi ve kosu `vestra_read_json()` tanimsiz
+               diye 255 ile dustu -- KURAL 15'in bir vakasi daha (kardes bir
+               dosyanin require'ina yaslanma). */
+            require $home."/public_html/inc/products.php";
             require $home."/public_html/inc/leads.php";
             $sel  = strtolower(trim((string)getenv("LR_SEL")));
             $name = trim((string)getenv("LR_NAME"));
@@ -1940,7 +1947,11 @@ jobs:
             echo "YAZILDI.\n";
             PHPEOF
             php -l /tmp/vestra_lead_rename.php
-            php /tmp/vestra_lead_rename.php; RC=$?
+            # display_errors=stderr ACIKCA veriliyor: ilk canli kosu 255 ile
+            # dustu ve kutukte TEK BIR SATIR yoktu -- sunucunun CLI ini'si
+            # hatalari yutuyor, yani "fatal'i ciktinin tamaminda ara" bile
+            # ise yaramiyordu. Sessiz bir fatal, yanlis bir teshisten pahali.
+            php -d display_errors=stderr -d error_reporting=-1 /tmp/vestra_lead_rename.php; RC=$?
             rm -f /tmp/vestra_lead_rename.php
             exit $RC
 
