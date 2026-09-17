@@ -4459,6 +4459,20 @@ gösterdi. Aynı hatayı iki kez ölçmek, onu doğrulamıyor.*
   CLAUDE.md'nin dediği gibi tekrar denemeden önce koşu listesine bakıldı — hiçbir
   şey kuyruğa girmemişti, yani tekrar güvenliydi.
 
+**GCDS partisi de BEKLİYOR — aynı Dropbox engeli** (operatör, 17 Eyl 2026:
+*"sonra bu ürünler yoksa bunlarida al internet official fiyatlarin 4 te biri
+yap ve koy 10 lu yap lotlari"*, `…/GCDS` klasörü).
+- Ölçüldü (aynı gün, 18:00 UTC): `st jetonu: yok`, üç adres biçimi de
+  **`Dropbox - No Access`** (204–210 KB HTML, ZIP değil). DSQUARED kot
+  klasörüyle **birebir aynı** sonuç, yani sorun tek bir klasörde değil
+  **paylaşımın kendisinde** — iki ayrı `fo` kimliği, iki ayrı alt klasör, aynı
+  ret sayfası.
+- **Fiyat kuralı kayıtta: resmî internet fiyatının DÖRTTE BİRİ**, lot **10'luk**.
+  Klasör açıldığında her modelin resmî fiyatı **aranacak ve yazıya geçecek** —
+  bulunamayan modelde fiyat **uydurulmayacak**, o ilan yazılmayacak (KURAL 3).
+  *Bu, Gallery Dept.'te perakende rakamlarının neden fiyata gömülmediğinin
+  tersi bir durum: orada oran yoktu, burada operatör açık bir oran verdi.*
+
 **DSQUARED2 kot partisi BEKLİYOR — Dropbox linki "No Access"** (operatör,
 17 Eyl 2026: *"daha sonra bu jeansler yoksa bunlarida koy 125-165 eur arasi
 shortlar 90 eur"*, `…/DSQUARED/DSQ JEANS` klasörü).
@@ -4746,6 +4760,67 @@ ayrica en az alimlari 10 a indir bunlarda"*).
   iki fiyatta), ve canlı görselin bu kareyle **bayt bazında aynı olduğu
   doğrulanmadı**, yalnız dosya adı aynı. Şüpheliyi kendi başına fiyatlamak,
   talimatı bahane edip tahmin yazmak olurdu.
+
+**Vitrin sırası (EN GÜNCEL): Gallery Dept. ve Fred Perry en başta; ÖN MARKA
+bloğu artık YENİ'nin de önünde** (operatör, 17 Eyl 2026: *"ayrica galerry dept.
+ürünleri en basa al new yap"* → *"F.Perry i de en basa al"*).
+- `vestra_shop_front_brands()` = **`[GALLERY DEPT., FRED PERRY, BALENCIAGA,
+  LACOSTE, DOLCE & GABBANA, DSQUARED2]`**. Önceki dördü **kaldırılmadı**,
+  sırası da bozulmadı; yalnızca önlerine iki marka girdi.
+- **`GALLERY DEPT.` NOKTASIYLA yazılıyor.** Eşleşme TAM ve katalogdaki değer
+  `Gallery Dept.` — noktasız yazılsaydı dokuz ilanın hiçbiri öne gelmez ve
+  **sayfa hata da vermezdi** (D&G'nin boşluklu ampersanının aynı dersi).
+  Testte iki marka için de `strtoupper(trim(<katalogdaki değer>))` iddiası var.
+- **"new yap" için yazılacak bir şey YOKTU:** rozet `added_at`'ten türüyor ve
+  bu dokuz ilan bugün yazıldı, yani 7 günlük pencerede (KURAL: `NEW` rozeti,
+  13 Eyl). Ölçüldü, varsayılmadı.
+- **İLK ÖLÇÜM DEĞİŞİKLİĞİ YETERSİZ GÖSTERDİ ve tasarımı o değiştirdi.** Yalnız
+  listeye eklemek Fred Perry'yi **28. sıraya** koydu: 4..27 arasının tamamı
+  YENİ bloğuydu (9 Gallery Dept + 15 başka taze ilan) ve ön marka bloğu ancak
+  28'de başlıyordu. Yani "en başa" talimatı, YENİ bloğu önde kaldığı sürece
+  **uygulanamıyordu**. Sınıflandırma sırası değiştirildi: **ön marka kontrolü
+  YENİ kontrolünden önce**, birleştirme `pinned → ön marka → YENİ → satıcı →
+  lead → geri kalan`.
+- **13 Eylül'ün "yeni ürünleri başa koy" talimatı tamamen kaldırılmadı:** ön
+  markada **olmayan** taze ilanlar hâlâ satıcı/lead/geri kalanın önünde; ön
+  markanın kendi taze ilanları markanın bloğunda duruyor. Bu bilinçli bir
+  denge, ve iki talimat gerçekten zıt yöne çektiği için biri diğerine
+  feda edilmeden yazıldı.
+- **Canlı ölçüm (17 Eyl 2026, `inspect-products` → `shop_order=premium`):**
+  `GALLERY DEPT. 4..12 · FRED PERRY 13..14 · BALENCIAGA 15..34 ·
+  LACOSTE 2..46 · DOLCE & GABBANA 47..149 · DSQUARED2 150..213`.
+- **1..3 hâlâ `pinned` ve bu ÜÇÜNCÜ kez operatör kararı bekliyor:** `guc-t07`
+  (Gucci), `lac-polo-paris` (Lacoste), `rl-csf-polo-white` (Ralph Lauren).
+  `pinned` bölmesi her şeyin önünde, yani "en başa" alınan markalar teknik
+  olarak **4.** sıradan başlıyor. Üç iğneleme de operatörün kendi kararı;
+  bunları markalara feda etmek bize düşmez. İstenirse tek satır (ön marka
+  bloğunu `pinned`'in önüne almak) ya da panelden o üç ilanın iğnesini kaldırmak.
+- Test: `shop_order_test.php` 50 → **55 iddia**. Düşebildiği doğrulandı, her
+  sabotajın **gerçekten uygulandığı** ayrıca yazdırılarak: nokta silinince
+  **3 kırmızı**, Balenciaga yine öne konunca **4**, YENİ tekrar ön markaların
+  önüne alınınca **1**.
+- **Falsifikasyon GERÇEK bir boşluk buldu:** birleştirmede YENİ bloğu satıcı
+  bloğunun **arkasına** atıldığında takım **yeşil kalıyordu** — yani kodun
+  yorumunda yazan *"taze ilanlar satıcı/lead/geri kalanın önünde"* sözünü
+  hiçbir iddia tutmuyordu. İddia yazıldı ve kırmızı döndüğü doğrulandı.
+  *Bir yorumda söz veriyorsan, o sözü tutan bir iddia da yaz.*
+
+**Ürün sayfasındaki İADE satırı artık yalnız BAĞLANTI** (operatör, 17 Eyl 2026:
+*"Nur falsche, fehlende oder mangelhafte Ware · kismini rückgabe den cikar"*).
+- Satır özet bir cümle + kanonik metne bağlantı basıyordu; özet kaldırıldı,
+  bağlantı kaldı. Bu, KURAL 11'in *"kural tek yerde"* ilkesiyle **aynı yöne**
+  bakıyor: özet, kanonik metnin yanında duran ikinci bir kopyaydı ve ikisi er
+  geç ayrışırdı.
+- Ölü kalan iki sözlük anahtarı (`Wrong, missing or faulty goods only` ve
+  noktalı kardeşi) **8 dilden birden** silindi — önce depo geneli tarandı,
+  ikisini de basan başka hiçbir yer yok. (Noktalı olan zaten hiç
+  kullanılmıyordu; bu iş onu da açığa çıkardı.)
+- **Sepetteki cümleye DOKUNULMADI** (`Großhandelsbestellungen sind vom
+  Rückgaberecht ausgeschlossen — nur falsche…`): operatörün adlandırdığı parça
+  ürün sayfasındaki `·`'lı satırdı. Kapsamı kendiliğinden genişletmek, sepette
+  alıcının satın almadan önce okuduğu tek uyarıyı da silmek olurdu.
+- `returns_policy_test` yeşil kalıyor: o test sayfanın politikaya **bağlandığını**
+  ve gün sayısını **tekrar etmediğini** tutuyor; ikisi de hâlâ doğru.
 
 **Vitrin sırası (GÜNCEL): D&G ve DSQUARED2 de başa** (operatör, 12 Eyl 2026:
 *"dg ve ds2 leri basa al"*). `vestra_shop_front_brands()` =
