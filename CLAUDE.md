@@ -2200,6 +2200,25 @@ amerika, israil, singapur, g.koreyide ekle"*).
   kelime etiketinde ve **çevrilmeden** duruyor — meta keywords zaten en zayıf
   sinyal ve on şehir adını sekiz dile çevirmek, karşılığı ölçülemeyen 80 sözlük
   anahtarı demekti. Ülke adı çevriliyor, çünkü başlıkta ve gövdede de geçiyor.
+- **CANLI ÖLÇÜM (17 Eyl 2026, deploy `3436fe75`, run `35270971368`).** Sunucunun
+  kendi kodundan: **10 pazar**, `hreflang 81 etiket / 64 ülke`,
+  **`AB27+EFTA+GB kapsamı: 32/32 (tam)`** — sabah 13 ülke eksikti —,
+  `Organization: knowsAbout 40 (marka 24)`, `areaServed 16 giriş`, `market.php`
+  diskte ve `.htaccess` kuralı 45. satırda. Olgular satır satır doğru:
+  Avustralya `AUD / %10 / US$5.000 / kapı açık`, ABD `USD / — / US$5.000 / normal`,
+  Güney Amerika `12 etiket, dil en,es,pt`.
+- **Dışarıdan (internet, WAF üzerinden):** `/wholesale-to/australia?lang=ja`
+  **normal sayfa, 58.995 bayt**, başlık **`オーストラリア向けファッション卸売サプライヤー`**,
+  **82 hreflang** etiketi; Arapça koşuda da normal sayfa. Sitemap **1.091 → 1.101
+  URL** (10 pazar sayfası). *Aynı koşuda **Gucci ve Valentino** kontrolü ilk kez
+  **OK** döndü:* ana sayfanın anahtar kelime etiketi hâlâ ilk 12 markayla sınırlı
+  (doğrusu bu), ama pazar sayfası **markaların tamamına bağlantı** taşıyor — yani
+  operatörün *"catalogtaki markaları da kullan"* cümlesinin karşılığı etiket değil
+  **içerik** olarak sağlandı.
+- **Sondanın `dogrudan wholesale-to.php: 404` satırı YANILTICI ve sayfaya ait
+  değil:** o dal yolun ilk parçasından bir dosya adı tahmin ediyor (`wholesale-to`),
+  oysa dosya `market.php`. Zaten localhost kanalı bu barındırmada bu sitenin
+  vhost'una düşmüyor (sondanın kendi bandı bunu yazıyor); geçerli ölçüm dış adım.
 - **Bu işten bağımsız, ÖNCEDEN kırık:** `dropship_plan_test.php`'nin dört FX
   iddiası **HEAD'in temiz kopyasında da aynı şekilde** düşüyor (bu ortamda kur
   kaynağına çıkış yok). Dokunulmadı.
