@@ -1302,6 +1302,113 @@ sorundu.**
 - Test: `invoice_currency_test.php §7–§8` (124 iddia). Düşebildiği doğrulandı:
   operatörün aldığı hatanın birebir aynısı geri konunca **9 kırmızı**.
 
+**KURAL 5q — "Faturayı PLATFORM kesiyor" HUKUKİ metinde de yazmak zorunda; ve
+EUR'da platformun ödeme kutusu ÇIKMIYOR** (operatör, 16 Eyl 2026, BRITISHSTYLE /
+Michael Baumgartner: *"Bu Adama önce Faturanin Platform tarafindan
+gönderilecegini belirt. Ve bazi siparislerde Faturanin Platform tarafindan
+alinabilmesi icin Hukuki kismida gerekli yerlere yaz."*).
+
+- **"Gerekli yerler" TAHMİN EDİLMEDİ, arandı.** Platformun kendi adına fatura
+  kesmesiyle **çelişen beş cümle** vardı ve beşi de mutlak yazılmıştı:
+  `imprint`/Role, Şartlar **1** (*"not a party to any sale … exclusively between
+  buyer and seller"*), Şartlar **3** (*"An order forms a binding contract between
+  buyer and seller"*), Satıcı Politikası **2** (*"VESTRA is an intermediary only"*)
+  ve Ödemeler/*"How payment works"* (*"VESTRA never holds the money"*). Beşine de
+  istisna cümlesi girdi; kuralın kendisi yeni **Şartlar 3c**.
+- **BEŞ KEZ YAZILDI, BİR KEZ DEĞİL.** `vestra_legal()` **BELGE BAZINDA**
+  birleştiriyor: çeviride `terms` varsa İngilizce `terms` **hiç okunmuyor**. Yani
+  yalnız İngilizceye eklenen bir madde de/fr/it/es'te **görünmez** — ve bu
+  maddenin ilk müşterisi **Avusturyalı**. pt/ru/ar/ja'nın hukuk dosyası yok,
+  İngilizceye düşüyorlar, yani onlar kendiliğinden kapsandı (KURAL 10).
+  Ölçüm dil başına **ayrı PHP sürecinde** yapıldı (`vlang()` ilk çağrıda
+  sabitleniyor — KURAL 11'in tuzağı): 5 dilde de başlık 1, madde 6, çözülmemiş
+  değişken 0, DOM hatası 0.
+- **Madde BİLEREK kendi kendine yeter.** `3a` (iade) ve `3b` (muayene/kusur
+  ihbarı) **YALNIZCA İngilizcede var** — dört çeviri de o maddelerden önceye ait.
+  Almanca bir 3c *"3a aynen geçerli"* deseydi **var olmayan bir maddeye** atıf
+  yapardı. Bunun yerine kanonik kaynağa, `/faq?cat=returns`'e bağlandı; o metin
+  zaten 8 dilde tam (KURAL 11).
+- **Açık kalan, operatör kararı bekliyor:** Şartların **3a ve 3b maddeleri dört
+  çeviride yok**, yani Alman/Fransız/İtalyan/İspanyol alıcı sözleşmede iade
+  kuralını ve HGB §377 muayene ödevini **hiç görmüyor**. Bu bu işten bağımsız ve
+  eski; kendiliğinden çevrilmedi çünkü bu dosyanın kendi kaydı *"hukuk metni
+  sohbet çevirisiyle yazılmaz"* diyor.
+
+**Toptan LOT siparişi yazmanın yolu yoktu — `order_draft` her satırı DROPSHIP
+fiyatlıyordu.** Tek parça satışı için doğru, tam kartonluk bir lot için yanlış;
+ve elle anlaşılmış bir toptan satışı kayda geçirmenin **tek** yolu oydu.
+`payload: pricing=wholesale|SKU:RENK:ADET`:
+- Birim **sepetin kendi fonksiyonundan** (`vestra_unit_price`), elle hesaplanmıyor.
+- **MOQ ve paket adımı ilandan** doğrulanıyor (KURAL 4b: sepet adedi adımın katına
+  yuvarlıyor, yani katalog dışı bir adet kasada başka bir adet demek).
+- **Renk ilanda gerçekten var mı**, TAM eşleşmeyle (mango/zara dersi).
+- **Beden dökümü UYDURULMUYOR:** ilanın kendi serisi × karton sayısı. Seri
+  okunamazsa satır yazılmıyor.
+- İlanın **renk asgarisinden feragat** açık bir opt-in (`|waive_min_colours=1`),
+  sessizce atlanan bir kontrol değil — `force=1` deseninin aynısı — ve **gerekçe
+  siparişin kendi notuna** yazılıyor: aylar sonra *"bu lot neden tek renk"*
+  sorusunun cevabı, ilanın bugün hâlâ "en az 4 renk" diyen metni değil, o satır.
+
+**Yan düzeltme — elle kurulan sipariş, KENDİ ayrıştırıcısının okuyamadığı bir not
+yazıyordu.** `vestra_order_create_manual()` her SKU'yu kendi **noktasıyla**
+kapatıyor ve değerleri `·` ile ayırıyordu; `vestra_order_notes_map()` ise **ilk
+noktaya** kadar okuyup `,` ile bölüyor. Sonuç: **iki SKU'lu her elle siparişte
+ikinci SKU'nun dökümü sessizce kayboluyordu**, üstelik kalıntısı serbest metinde
+kalıp alıcının sipariş sayfasına ve panele **olduğu gibi** basılıyordu. Ölçüldü
+(gerçek bir not dizgesiyle harita 1 SKU, kalıntı metinde), sonra kasanın biçimine
+çevrildi. **Renk alanı hiç yoktu** ve eklendi — kasa `Colours — …` parçasını
+baştan beri yazıyor, `vestra_order_lines()` onu sipariş tablosuna, sipariş
+PDF'ine ve faturanın toplama listesine basıyor; elle kurulan sipariş bir lotun
+siyah mı bordo mu olduğunu **hiçbir yere** yazamıyordu.
+Test: `order_manual_test.php` 29 → **43 iddia**; eski biçim geri konunca
+**12 kırmızı** (sabotajın gerçekten uygulandığı `grep -c` ile doğrulandı).
+
+**CANLI ÖLÇÜM — sipariş ilanın kendi kurallarıyla ÇELİŞİYOR ve bu ölçülerek
+görüldü.** Müşteri *"1 Lot Polos in Schwarz + 1 Lot Sweatshirts in Bordeaux"*
+yazdı; sonda (`inspect-products`, `brand=Fred Perry`) şunu verdi:
+
+| | M3600 polo | M7535 sweatshirt |
+|---|---|---|
+| MOQ / paket adımı | 50 / 10 | 50 / 10 |
+| kademeler | 39,00 / 35,50 / 32,00 | 39,90 (tek) |
+| renkler | 6 (Black dahil) | 5 (**Bordeaux dahil**) |
+| **`min_colors`** | **2** | **4** |
+
+Yani **Bordeaux gerçekten var** (uydurma değil), ama müşteri **her ikisinden tek
+renk** istiyor ve ilanlar ≥2 / ≥4 diyor — sepet bu siparişi **reddederdi**.
+Feragat operatör kararı olarak uygulandı ve gerekçesi kayda yazıldı; **ilanlara
+dokunulmadı** (min_colors'ı düşürmek her alıcının gördüğü kuralı değiştirirdi).
+
+- **Sondanın kendisi önce düzeltildi:** ürün dökümü `colors`'ı **hiç
+  basmıyordu** ve `!empty()` yüzünden `min_colors=0` ile "alan yok" aynı
+  görünüyordu. Görmediği bir alan hakkında yeşil veren sonda bu depoda iki kez
+  kayıtlı (`check_images` yalnız approved geziyordu; `price_list` `sold_out`
+  basmıyordu). Renk listesi, `min_colors` ve **her iki seçici** artık koşulsuz
+  basılıyor.
+- **"1 Lot" = 50 adet ÇIKARIM, ölçüm değil.** Karton 10'luk ama ilan edilen
+  asgari 50; 10 adet **MOQ'nun altında**, yani tek tutarlı okuma 5 karton = 50.
+  Varsayım müşteriye giden metinde **açıkça yazılı** ki düzeltebilsin.
+
+**BLOKAJ — platformun EUR ödeme kutusu ÇIKMIYOR** (`diag-messages` →
+`billing_for=vestra`, 17 Eyl 2026 canlı): `bank_holder`, `bank_name`
+(*Choice Financial Group*), `bank_bic`, `bank_account` **VAR (12 hane)**,
+`bank_routing` **VAR (9 hane)** — ama `bank_iban` **BOŞ**. Yani platformun hesabı
+bir **ABD hesabı** ve euro rayı yok: **EUR faturada ödeme kutusu ÇIKMAZ**, USD'de
+**ÇIKAR (6 satır)**. Bu sipariş **EUR**. 9 Eylül'de operatörün sorduğu
+*"neden fatura yaparken banka bilgileri cikmiyor?"* sorusunun aynısı, bu kez
+**numara yakılmadan önce** yakalandı. Üç seçenek, karar operatörün:
+**(a)** platform künyesine bir **EUR/IBAN** hesabı girmek
+(`Admin ▸ Orders ▸ Platform billing & bank details`) — en doğrusu, kod zaten
+destekliyor; **(b)** faturayı **USD** kesmek (kutu çıkar, ama kur KURAL 5i'ye
+göre **sipariş tarihinin damgası**); **(c)** faturayı GARAGE LE PARIS'ten kesmek
+— operatörün talimatına aykırı.
+
+**Sipariş YAZILDI, fatura KESİLMEDİ: `VES-DDC53EF1`** (€3.945 mal + €20 kargo =
+**€3.965**, kayıttan geri okundu; müşteriye hiçbir şey gitmedi). Numara bilerek
+yakılmadı: (1) EUR'da ödeme kutusu boş çıkacaktı ve mektup *"faturadaki hesaba
+ödeyin"* diyor — belgede o hesap **yok**; (2) "1 Lot" adedi çıkarım. Sipariş
+geri alınabilir (`Admin ▸ Orders ▸ Delete`), yanmış bir numara pratikte değil.
+
 **KURAL 5k — Siparişe NAVLUN yazılabilir; tutar ile TOPLAM birlikte hareket eder**
 (operatör, 7 Eyl 2026: *"kargo bölümü yok kargo eklemek gerekiyor 100 usd
 ekleyelim"* — VES-6B53D265).
