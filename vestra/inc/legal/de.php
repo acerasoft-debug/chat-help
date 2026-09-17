@@ -9,7 +9,9 @@
     <li><b>Kontakt:</b> <a href='mailto:legal@vestrasales.com'>legal@vestrasales.com</a> · <a href='mailto:support@vestrasales.com'>support@vestrasales.com</a></li></ul>
     <h3>Rolle</h3>
     <p>VESTRA betreibt einen Online-B2B-Großhandelsmarktplatz und handelt <b>ausschließlich als Vermittler und technische Plattform</b>.
-    Es ist nicht Vertragspartei der zwischen Verkäufern und Käufern geschlossenen Kaufverträge und erwirbt kein Eigentum an Waren.</p>
+    Es ist nicht Vertragspartei der zwischen Verkäufern und Käufern geschlossenen Kaufverträge und erwirbt kein Eigentum an Waren.
+    <b>Ausnahme:</b> Bei Bestellungen, die Acerasoft LLC im eigenen Namen fakturiert, tritt sie dem Käufer gegenüber selbst als Verkäufer auf;
+    welcher Fall vorliegt, ergibt sich aus der Rechnung zur jeweiligen Bestellung (AGB, Abschnitt 3c).</p>
     <h3>Online-Streitbeilegung</h3>
     <p>Die OS-Plattform der EU ist unter ec.europa.eu/consumers/odr verfügbar. VESTRA bedient Unternehmen (B2B).</p>"],
   'terms'     => ['title'=>"Allgemeine Geschäftsbedingungen", 'html'=>"
@@ -19,14 +21,42 @@
     <h3>1. Was VESTRA ist</h3><p>VESTRA ist ein B2B-Großhandelsmarktplatz, der verifizierte gewerbliche Verkäufer und Käufer zusammenbringt.
     VESTRA ist <b>ausschließlich Vermittler und technische Plattform</b>. Es ist <b>nicht Vertragspartei</b> eines Verkaufs; es besitzt, hält,
     prüft, lagert, versendet Waren nicht und erwirbt kein Eigentum daran und verwahrt keine Gelder (dies tut ein lizenzierter
-    Treuhand-/Zahlungsdienstleister eines Dritten). Kaufverträge werden <b>ausschließlich zwischen Käufer und Verkäufer</b> geschlossen.</p>
+    Treuhand-/Zahlungsdienstleister eines Dritten). Kaufverträge werden <b>ausschließlich zwischen Käufer und Verkäufer</b> geschlossen.
+    Dieser Abschnitt steht unter dem Vorbehalt von Abschnitt 3c: Bei Bestellungen, die Acerasoft LLC im eigenen Namen fakturiert, ist sie selbst
+    Verkäufer und der Vertrag kommt mit ihr zustande.</p>
     <h3>2. Nur gewerbliche Nutzer (keine Verbraucher)</h3><p>VESTRA ist ausschließlich für Unternehmen bestimmt (B2B); es richtet sich nicht an
     Verbraucher, und das Widerrufsrecht für Verbraucher findet keine Anwendung. Sie müssen vor dem Abschluss von Geschäften die Verifizierung (KYB/KYC) abschließen und
     sichern zu, dass alle von Ihnen bereitgestellten Informationen zutreffend sind und aktuell gehalten werden.</p>
     <h3>2a. Dropshipping-Bestellungen</h3><p>Einzelstück-<b>Dropshipping</b>-Bestellungen werden von einem verifizierten Gewerbepartner <b>zum Weiterverkauf an dessen eigenen Kunden</b> aufgegeben. Der Partner ist Käufer und gegenüber seinem Kunden Verkäufer; er gibt Lieferanschrift, Farbe und Größe beim Checkout an. <b>Zwischen VESTRA und dem Endkunden des Partners kommt kein Kaufvertrag zustande</b>; dieser Abschnitt öffnet die Plattform nicht für Verbraucher. Der Dropshipping-Preis ist der Großhandelspreis zuzüglich einer Bearbeitungsmarge sowie des beim Checkout angezeigten Versandtarifs der Zielzone. Ein Bestand je Stück wird nicht geführt: die Verfügbarkeit wird nach der Bestellung mit dem Verkäufer bestätigt, andernfalls wird vollständig erstattet. <b>Zölle, Einfuhrsteuern und Verzollungsgebühren im Bestimmungsland sind weder im Preis noch im Versandtarif enthalten</b> und werden bei Zustellung fällig. Sie liegen in der Verantwortung des bestellenden Gewerbepartners, der sie selbst begleichen oder von seinem eigenen Kunden begleichen lassen kann. Waren mit EU-Präferenzursprung können bei der Einfuhr nach Japan nach dem Wirtschaftspartnerschaftsabkommen EU&ndash;Japan zollfrei sein, sofern eine Ursprungserklärung beiliegt; dies umfasst weder die Verbrauchsteuer noch Verzollungsgebühren des Transporteurs.</p>
     <h3>3. Angebote, Bestellungen &amp; Erfüllung</h3><p>Verkäufer sind <b>allein verantwortlich</b> für ihre Angebote sowie für die
     Rechtmäßigkeit, Sicherheit, Konformität, Kennzeichnung, Beschreibung, Preisgestaltung, Echtheit, Lieferung, Gewährleistungen und Steuern ihrer
-    Waren. Eine Bestellung begründet einen verbindlichen Vertrag zwischen Käufer und Verkäufer; VESTRA ist nicht für die Leistung einer der beiden Parteien verantwortlich.</p>
+    Waren. Eine Bestellung begründet einen verbindlichen Vertrag zwischen Käufer und Verkäufer; VESTRA ist nicht für die Leistung einer der beiden Parteien verantwortlich.
+    Bei Bestellungen, die Acerasoft LLC im eigenen Namen fakturiert, gilt stattdessen Abschnitt 3c.</p>
+    <h3>3c. Von VESTRA fakturierte Bestellungen</h3><p>Bei einzelnen Bestellungen stellt VESTRA die Rechnung <b>im eigenen Namen</b> aus.
+    Dies ist nicht der Regelfall und ergibt sich nicht aus der Angebotsseite: <b>die Rechnung zu einer Bestellung benennt den Verk&auml;ufer im Rechtssinne</b>,
+    und dieses Dokument ist ma&szlig;geblich. Weist eine Rechnung Acerasoft LLC als Verk&auml;ufer aus, gelten die Abschnitte 1 und 3
+    (VESTRA ausschlie&szlig;lich als Vermittler, Vertrag zwischen K&auml;ufer und Verk&auml;ufer) <b>f&uuml;r diese Bestellung nicht</b>; stattdessen gilt:</p>
+    <ul>
+    <li><b>Vertrag.</b> Der Kaufvertrag &uuml;ber diese Bestellung kommt zwischen dem K&auml;ufer und Acerasoft LLC zustande; Acerasoft LLC handelt im eigenen
+    Namen und auf eigene Rechnung &mdash; unabh&auml;ngig davon, ob die Ware aus dem kuratierten Eigenbestand von VESTRA stammt oder von einem liefernden
+    Verk&auml;ufer zum Weiterverkauf an den K&auml;ufer erworben wurde.</li>
+    <li><b>Rechnung und Steuern.</b> Die Rechnung tr&auml;gt die Unternehmensangaben, die eingetragene Anschrift und die Steuernummern von Acerasoft LLC und
+    weist die auf diese Lieferung angewandte umsatzsteuerliche Behandlung aus; wird eine grenz&uuml;berschreitende Lieferung zwischen Unternehmen im
+    Reverse-Charge-Verfahren abgerechnet, wird dies auf der Rechnung vermerkt und keine Umsatzsteuer berechnet. Wurden Betr&auml;ge in eine andere
+    W&auml;hrung umgerechnet, nennt die Rechnung den Kurs, seine Quelle und das Datum seiner Ver&ouml;ffentlichung.</li>
+    <li><b>Zahlung.</b> Die Zahlung erfolgt auf das auf dieser Rechnung genannte Bankkonto und wird <b>nicht</b> treuh&auml;nderisch verwahrt; die
+    Treuhandregelungen der Richtlinie &bdquo;Zahlungen, Treuhand &amp; Erstattungen&ldquo; gelten f&uuml;r eine solche Bestellung nicht. Zahlungsbedingungen
+    sowie eine etwaige Frist, nach deren Ablauf eine unbezahlte Bestellung storniert wird, ergeben sich aus der Rechnung.</li>
+    <li><b>R&uuml;cksendungen, M&auml;ngel und Untersuchungspflicht.</b> Die <a href='/faq?cat=returns'>R&uuml;cksende- und Reklamationsrichtlinie</a> sowie die
+    Untersuchungs- und R&uuml;gepflicht gelten unver&auml;ndert, mit Acerasoft LLC als Vertragspartner des K&auml;ufers f&uuml;r diese Bestellung. Die Rechte des
+    K&auml;ufers werden dadurch nicht geschm&auml;lert, dass VESTRA und nicht ein Marktplatzverk&auml;ufer Verk&auml;ufer ist.</li>
+    <li><b>Liefernder Verk&auml;ufer.</b> Wurde die Ware zum Weiterverkauf eingekauft, werden die Zusicherungen des liefernden Verk&auml;ufers nach der
+    Verk&auml;uferrichtlinie &mdash; Echtheit, Verkaufsberechtigung, Konformit&auml;t, Sicherheit und zutreffende Angaben &mdash; gegen&uuml;ber Acerasoft LLC
+    abgegeben und, soweit rechtlich zul&auml;ssig, an den K&auml;ufer weitergegeben.</li>
+    <li><b>Rechnungsstellung im Namen eines Verk&auml;ufers.</b> Nach vorheriger Vereinbarung mit einem Verk&auml;ufer kann VESTRA eine Rechnung stattdessen
+    <b>im Namen und f&uuml;r Rechnung</b> dieses Verk&auml;ufers ausstellen (Gutschriftverfahren). Eine solche Rechnung tr&auml;gt die Angaben und
+    Steuernummern des <b>Verk&auml;ufers</b>; der Verk&auml;ufer bleibt Verk&auml;ufer im Rechtssinne, und die Abschnitte 1 und 3 gelten unver&auml;ndert.</li>
+    </ul>
     <h3>4. Zahlungen, Treuhand &amp; Gebühren</h3><p>Zahlungen werden von einem lizenzierten Drittanbieter verarbeitet und treuhänderisch verwahrt und
     gemäß den vereinbarten Bedingungen freigegeben (z. B. Käuferbestätigung / verifizierte Lieferung). VESTRA erhebt eine Plattformprovision (eine
     Verkäuferprovision zuzüglich einer Käuferschutzgebühr) und/oder Mitgliedsgebühren; Anbietergebühren fallen wie berechnet an. Die Gebühren werden
@@ -88,7 +118,11 @@
     <p>Zwischen Acerasoft LLC und dem registrierten gewerblichen Verkäufer. <b>Gültig ab:</b> 26. Juni 2026.</p>
     <h3>1. Verifizierung</h3><p>Stellen Sie die Gewerbeanmeldung, Steuer-/USt-IdNr. und die Identität der wirtschaftlich Berechtigten bereit und halten Sie diese aktuell.</p>
     <h3>2. Verkäufer im Rechtssinne</h3><p>Der Verkäufer ist der rechtliche Verkäufer seiner Waren und allein verantwortlich für Konformität, Sicherheit,
-    Lieferung, Gewährleistungen und Steuern. VESTRA ist ausschließlich Vermittler und nicht Vertragspartei des Verkaufs.</p>
+    Lieferung, Gewährleistungen und Steuern. VESTRA ist ausschließlich Vermittler und nicht Vertragspartei des Verkaufs.
+    <b>Kauft Acerasoft LLC Waren beim Verkäufer ein, um sie weiterzuverkaufen</b>, ist Acerasoft LLC gegenüber diesem Käufer Verkäufer und
+    fakturiert im eigenen Namen (AGB, Abschnitt 3c); die nachstehenden Zusicherungen des Verkäufers werden dann gegenüber Acerasoft LLC abgegeben.
+    VESTRA kann nach vorheriger Vereinbarung mit einem Verkäufer auch Rechnungen in dessen Namen und für dessen Rechnung ausstellen; der Verkäufer
+    bleibt dann Verkäufer im Rechtssinne.</p>
     <h3>3. Echtheit &amp; Verkaufsberechtigung</h3><p>Für jeden Artikel sichert der Verkäufer zu, dass die Waren <b>echt</b> sind und dass er
     <b>berechtigt/befugt ist, sie zu verkaufen</b> im Zielmarkt (einschließlich der markenrechtlichen Erschöpfung im EWR, soweit anwendbar),
     und wird auf Anfrage einen Echtheits-/Herkunftsnachweis erbringen.</p>
@@ -130,7 +164,11 @@
     <p><b>Aktueller Stand:</b> Zahlungen erfolgen vorübergehend <b>auf Rechnung</b> — Käufer erhalten eine Proforma-Rechnung und zahlen per
     Banküberweisung; die Ware wird nach Zahlungseingang versandt. Der unten beschriebene Treuhand-/Karten-Checkout ist bis auf Weiteres ausgesetzt.</p>
     <h3>Wie die Zahlung funktioniert</h3><p>Käufer zahlen über den lizenzierten Treuhandanbieter (SEPA-Banküberweisung für EU-B2B; Karten verfügbar).
-    Gelder werden <b>treuhänderisch verwahrt</b> — VESTRA hält das Geld niemals.</p>
+    Gelder werden <b>treuhänderisch verwahrt</b> — VESTRA hält das Geld niemals.
+    <b>Bestellungen, die Acerasoft LLC im eigenen Namen fakturiert, sind hiervon ausgenommen</b> (AGB, Abschnitt 3c): Sie werden per Überweisung auf das
+    in der Rechnung genannte Bankkonto bezahlt, nicht treuhänderisch verwahrt, und die Treuhandregeln dieser Seite &mdash; Freigabe, automatische Freigabe
+    und Erstattung aus der Treuhand &mdash; gelten für sie nicht. Die <a href='/faq?cat=returns'>Rücksende- und Reklamationsrichtlinie</a> gilt für sie
+    unverändert.</p>
     <h3>Treuhandfreigabe</h3><p>Gelder werden bei Käuferbestätigung, verifizierter Lieferung oder Ablauf eines vereinbarten automatischen Freigabezeitfensters
     freigegeben, sofern kein Streitfall erhoben wird. Der Anbieter zahlt die Verkäuferauszahlung + die Provision von VESTRA aus.</p>
     <h3>Gebühren</h3><p>VESTRA erhebt pro Bestellung eine Plattformprovision — eine Verkäuferprovision zuzüglich einer geringen Käuferschutzgebühr — und/oder eine Mitgliedsgebühr; Anbietergebühren wie berechnet. Die genauen Beträge werden vor dem Checkout angezeigt.</p>

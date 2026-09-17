@@ -23,7 +23,7 @@ on:
         required: false
         default: ""
       payload:
-        description: "admin_mode=apply için: sunucunun public key'i ile şifrelenmiş satıcı bilgisi (KEY.IV.GOVDE, rakamsız base64)"
+        description: "admin_mode=apply: şifreli satıcı bilgisi. admin_mode=order_draft|order_write: kalemler. DROPSHIP (varsayılan) 'SKU:BEDEN:ADET,...'; TOPTAN 'pricing=wholesale|SKU:RENK:ADET,...' — kademe fiyatı, MOQ/paket adımı ve renk ilandan doğrulanır, beden dökümü ilanın serisinden türer. İlan edilen renk asgarisinden feragat: '|waive_min_colours=1'."
         required: false
         default: ""
       issue_ref:
@@ -190,18 +190,128 @@ jobs:
                 trim((string)($acc['vat_id'] ?? '')) !== '' ? 'kayitli' : 'YOK');
             if (!auth_prices_unlocked($acc)) echo "  UYARI: fiyat kapisi kapali -- bu hesap sitede fiyat goremiyor\n";
 
+            /* KIP: dropship (varsayilan) ya da TOPTAN. Ikisi ayri satis ve ayri
+               fiyat: dropship TEK PARCA satiyor ve tabana zam biniyor, toptan
+               ise TAM KARTON satiyor ve alicinin gordugu kademe fiyati
+               gecerli. Bu adim toptan kipini bilmiyordu, yani telefonda/
+               e-postada anlasilan bir LOT siparisini kayda gecirmenin tek yolu
+               yanlis fiyattan gecirmekti.
+               payload: "pricing=wholesale|M3600:Black:50,M7535:Bordeaux:50"
+               Toptan kipte ikinci alan BEDEN degil RENK -- tam kartonda beden
+               dagilimi ilanin kendi serisinden turuyor, secilen sey renk. */
+            $spec0 = (string)getenv('OD_LINES');
+            $wholesale = false; $waiveMinCol = false;
+            if (preg_match('/^\s*pricing\s*=\s*wholesale\s*(\|.*)?$/is', $spec0, $mm0) ||
+                preg_match('/^\s*pricing\s*=\s*wholesale\s*\|/i', $spec0)) {
+                $wholesale = true;
+                $tail = (string)preg_replace('/^\s*pricing\s*=\s*wholesale\s*\|?/i', '', $spec0);
+                /* Ilan edilen renk asgarisinden FERAGAT bilincli bir eylem olmak
+                   zorunda: sessizce atlanan bir kural, ilanin yalan soyledigi
+                   bir siparis uretir. `force=1` deseninin aynisi. */
+                if (preg_match('/(^|\|)\s*waive_min_colours\s*=\s*1\s*(\||$)/i', $tail)) {
+                    $waiveMinCol = true;
+                    $tail = (string)preg_replace('/(^|\|)\s*waive_min_colours\s*=\s*1\s*/i', '$1', $tail);
+                }
+                $spec0 = trim($tail, " |");
+            }
+
             /* 2. KALEMLER. Fiyat KODUN kendi fonksiyonundan; elle hesaplanmiyor. */
-            echo "\n== KALEMLER (dropship fiyati = en dusuk kademe + %".(int)round(VESTRA_DROPSHIP_MARKUP*100).") ==\n";
+            echo "\n== KALEMLER (".($wholesale
+                ? "TOPTAN: kademe fiyati, sepetin kendi vestra_unit_price'i"
+                : "dropship fiyati = en dusuk kademe + %".(int)round(VESTRA_DROPSHIP_MARKUP*100)).") ==\n";
+            if ($wholesale && $waiveMinCol) echo "  (!) ilan edilen RENK ASGARISINDEN feragat edildi -- operator karari\n";
             $all = vestra_products();
             $bySku = [];
             foreach ($all as $p) { $sk = trim((string)($p['sku'] ?? '')); if ($sk !== '') $bySku[mb_strtolower($sk)] = $p; }
 
             $subtotal = 0.0; $problems = 0; $lines = [];
-            foreach (array_filter(array_map('trim', explode(',', (string)getenv('OD_LINES')))) as $spec) {
+            foreach (array_filter(array_map('trim', explode(',', $spec0))) as $spec) {
                 $parts = array_map('trim', explode(':', $spec));
                 $sku = $parts[0] ?? ''; $size = $parts[1] ?? ''; $qty = max(1, (int)($parts[2] ?? 1));
                 $p = $bySku[mb_strtolower($sku)] ?? null;
                 if (!$p) { printf("  !! %-24s KATALOGDA YOK\n", $sku); $problems++; continue; }
+                if ($wholesale) {
+                    /* TOPTAN DALI. Fiyat, adet ve renk uc AYRI kontrol; ucu de
+                       sepetin uyguladigi kuraldan okunuyor, elle hesaplanmiyor. */
+                    $colour = $size; $size = '';
+                    /* RAW: bolgesel indirim ZIYARETCININ bolgesinden turuyor ve
+                       bu betik CLI'da kosuyor -- yani burada uygulanmasi
+                       "hangi bolge" sorusunu cevapsiz birakirdi. Fark varsa
+                       asagida ayrica yaziliyor, gizlenmiyor. */
+                    $unit = round((float)vestra_unit_price($p, $qty, true), 2);
+                    if ($unit <= 0) { printf("  !! %-24s kademe fiyati YOK\n", $sku); $problems++; continue; }
+                    $moq  = max(1, (int)($p['moq'] ?? 1));
+                    $step = max(1, (int)($p['size_step'] ?? 1));
+                    $msgs = [];
+                    /* MOQ ve paket adimi: sepet adedi adimin KATINA yuvarliyor,
+                       yani katalog disinda yazilan bir adet kasada baska bir
+                       adet demek olurdu (KURAL 4b). */
+                    if ($qty < $moq)        { $msgs[] = sprintf('!! adet %d, ilan edilen MOQ %d', $qty, $moq); }
+                    if ($qty % $step !== 0) { $msgs[] = sprintf('!! adet %d, paket adimi %d katı DEGIL', $qty, $step); }
+                    /* Renk ilanda GERCEKTEN var mi? Olmayan bir rengi satmak,
+                       gonderilemeyecek bir sey satmaktir (KURAL 3). Esleme TAM,
+                       alt dize degil -- bu depoda mango/zara dersi. */
+                    $cols = array_values(array_filter(array_map('trim', array_map('strval', (array)($p['colors'] ?? []))), fn($c) => $c !== ''));
+                    $want = array_values(array_filter(array_map('trim', explode(';', $colour))));
+                    $lc   = array_map('mb_strtolower', $cols);
+                    foreach ($want as $w) {
+                        if (!in_array(mb_strtolower($w), $lc, true)) {
+                            $msgs[] = "!! renk '{$w}' ILANDA YOK -- ilanda: ".($cols ? implode(' / ', $cols) : '(renk yok)');
+                        }
+                    }
+                    $minCol = (int)($p['min_colors'] ?? 0);
+                    if ($minCol > 0 && count($want) < $minCol) {
+                        /* SAYAC TEK YERDE: asagidaki dongü zaten '!!' ile
+                           baslayan her satiri sayiyor. Burada ayrica artirmak
+                           ayni kusuru IKI kez saydiriyordu ("sorunlu: 4",
+                           oysa iki kalem iki sorun) -- davranis ayni kalirdi
+                           ama rapor yanlis rakam basar, ve bu depoda yanlis
+                           rakam basan bir sonda defalarca bedel odetti. */
+                        $msgs[] = sprintf('%s ilan "en az %d renk" diyor, sipariste %d renk var',
+                                          $waiveMinCol ? '(feragat)' : '!!', $minCol, count($want));
+                    }
+                    /* BEDEN DAGILIMI UYDURULMUYOR: ilanin kendi serisi x karton
+                       sayisi. Seri okunamazsa satir hic yazilmiyor -- tahmin
+                       edilmis bir beden dokumu faturaya girerdi. */
+                    $sizeRaw = is_array($p['sizes'] ?? null) ? implode(' ', array_map('strval', $p['sizes'])) : (string)($p['sizes'] ?? '');
+                    $run = [];
+                    if (preg_match_all('/([0-9]{2,3}|XXXL|XXL|XL|XS|S|M|L)\s*[×xX]\s*([0-9]+)/u', $sizeRaw, $rm, PREG_SET_ORDER)) {
+                        foreach ($rm as $r1) $run[mb_strtoupper($r1[1])] = (int)$r1[2];
+                    }
+                    $perPack = array_sum($run);
+                    $sizeOut = [];
+                    if ($perPack > 0 && $qty % $perPack === 0) {
+                        $packs = intdiv($qty, $perPack);
+                        foreach ($run as $sName => $sQty) $sizeOut[] = $sName.'×'.($sQty * $packs);
+                    } elseif ($perPack > 0) {
+                        $msgs[] = sprintf('(beden dokumu yazilmadi: adet %d, seri toplami %d katı degil)', $qty, $perPack);
+                    }
+                    $size = implode(', ', $sizeOut);
+                    foreach ($msgs as $mg) { if (str_starts_with($mg, '!!')) $problems++; }
+                    $tierTxt = [];
+                    foreach ((array)($p['tiers'] ?? []) as $tt) {
+                        $tmin = (int)($tt['min'] ?? 0); $tpr = (float)($tt['price'] ?? 0);
+                        if ($tmin > 0 && $tpr > 0) $tierTxt[] = $tmin.'+ = '.number_format($tpr, 2);
+                    }
+                    $lineTot = round($unit * $qty, 2);
+                    $subtotal += $lineTot;
+                    $lines[] = [$sku, $size, $qty, $unit, $lineTot, implode(', ', $want)];
+                    printf("  %-16s %-28s x%-4d\n", $sku, $colour, $qty);
+                    printf("      %s %s\n", (string)($p['brand'] ?? ''), (string)($p['name'] ?? ''));
+                    printf("      kademeler   : %s\n", $tierTxt ? implode('  |  ', $tierTxt) : '(kademe yok)');
+                    printf("      MOQ/adim    : %d / %d   (ilanin kendi degerleri)\n", $moq, $step);
+                    printf("      renk        : %s   (ilanda %d renk, asgari %s)\n",
+                           implode(', ', $want), count($cols), $minCol > 0 ? (string)$minCol : 'yok');
+                    printf("      beden       : %s\n", $size !== '' ? $size.'  ('.($perPack>0?intdiv($qty,$perPack):0).' x '.$perPack.'\'lik seri)' : '(yazilmadi)');
+                    printf("      birim       : EUR %8s   (kademe, %d adette)\n", number_format($unit, 2), $qty);
+                    $withRegion = round((float)vestra_unit_price($p, $qty), 2);
+                    if (abs($withRegion - $unit) > 0.005) printf("      (bolgesel indirimli hali EUR %s -- bu siparise UYGULANMADI)\n", number_format($withRegion, 2));
+                    printf("      satir       : EUR %8s   (%s x %d)\n", number_format($lineTot, 2), number_format($unit, 2), $qty);
+                    foreach ($msgs as $mg) printf("      %s\n", $mg);
+                    echo "\n";
+                    $baseSum = ($baseSum ?? 0.0) + $lineTot;
+                    continue;
+                }
                 $unit = vestra_dropship_unit_price($p, null);   // abonelik YOK -> zamli fiyat
                 if ($unit === null || $unit <= 0) { printf("  !! %-24s dropship fiyati YOK (kapali ya da kademesiz)\n", $sku); $problems++; continue; }
                 /* Beden ilanda gercekten var mi VE yetiyor mu? Olmayan bedene
@@ -252,9 +362,13 @@ jobs:
             $ship = round((float)str_replace(',', '.', (string)getenv('OD_SHIP')), 2);
             $total = round($subtotal + $ship, 2);
             echo "\n== TOPLAM ==\n";
-            printf("  toptan   : EUR %10s   (zamsiz taban toplami -- kiyas icin)\n", number_format((float)($baseSum ?? 0), 2));
-            printf("  mal      : EUR %10s   (dropship, taban + %%%d)\n", number_format($subtotal, 2), (int)round(VESTRA_DROPSHIP_MARKUP * 100));
-            printf("  zam payi : EUR %10s\n", number_format($subtotal - (float)($baseSum ?? 0), 2));
+            if (!$wholesale) {
+                printf("  toptan   : EUR %10s   (zamsiz taban toplami -- kiyas icin)\n", number_format((float)($baseSum ?? 0), 2));
+                printf("  mal      : EUR %10s   (dropship, taban + %%%d)\n", number_format($subtotal, 2), (int)round(VESTRA_DROPSHIP_MARKUP * 100));
+                printf("  zam payi : EUR %10s\n", number_format($subtotal - (float)($baseSum ?? 0), 2));
+            } else {
+                printf("  mal      : EUR %10s   (toptan kademe fiyatlari)\n", number_format($subtotal, 2));
+            }
             printf("  kargo    : EUR %10s\n", number_format($ship, 2));
             printf("  TOPLAM   : EUR %10s\n", number_format($total, 2));
             $r = vestra_fx('USD');
@@ -274,9 +388,19 @@ jobs:
             if ($problems) { fwrite(STDERR, "SORUN VAR -- yazmiyorum\n"); exit(1); }
 
             $mkLines = [];
-            foreach ($lines as $L) $mkLines[] = ['sku'=>$L[0], 'size'=>$L[1], 'qty'=>$L[2], 'unit'=>$L[3]];
-            $res = vestra_order_create_manual($acc, $mkLines, $ship,
-                'Dropship pricing (wholesale +'.(int)round(VESTRA_DROPSHIP_MARKUP*100).'%), single pieces, agreed with the buyer.');
+            foreach ($lines as $L) $mkLines[] = ['sku'=>$L[0], 'size'=>$L[1], 'qty'=>$L[2], 'unit'=>$L[3], 'colour'=>$L[5] ?? ''];
+            /* NOT, SATISIN NE OLDUGUNU SOYLER. Toptan bir lot siparisine
+               "dropship, single pieces" yazmak, kaydi okuyan herkese yanlis
+               satisi anlatirdi -- ve o not siparis sayfasinda, panelde ve
+               faturanin toplama listesinde oldugu gibi basiliyor.
+               Renk asgarisinden feragat edildiyse GEREKCE de kayitta durur:
+               aylar sonra "bu lot neden tek renk" sorusunun cevabi, ilanin
+               bugun hala "en az N renk" diyen metni degil, bu satir olur. */
+            $note = $wholesale
+                ? 'Wholesale tier pricing, full cartons, agreed with the buyer.'
+                  .($waiveMinCol ? ' Single-colour lots agreed as an exception to the listed colour minimum.' : '')
+                : 'Dropship pricing (wholesale +'.(int)round(VESTRA_DROPSHIP_MARKUP*100).'%), single pieces, agreed with the buyer.';
+            $res = vestra_order_create_manual($acc, $mkLines, $ship, $note);
             if (!empty($res['error'])) { fwrite(STDERR, "YAZILAMADI: ".$res['error']."\n"); exit(1); }
             printf("\n  SIPARIS YAZILDI: %s\n", (string)$res['ref']);
             printf("  mal %s + kargo %s = %s EUR   (kayittan geri okundu)\n",

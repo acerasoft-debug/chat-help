@@ -9,7 +9,9 @@
     <li><b>Contact :</b> <a href='mailto:legal@vestrasales.com'>legal@vestrasales.com</a> · <a href='mailto:support@vestrasales.com'>support@vestrasales.com</a></li></ul>
     <h3>Rôle</h3>
     <p>VESTRA exploite une place de marché en ligne de vente en gros B2B et agit <b>uniquement en tant qu&rsquo;intermédiaire et plateforme technique</b>.
-    Elle n&rsquo;est pas partie aux contrats de vente conclus entre vendeurs et acheteurs et n&rsquo;acquiert pas la propriété des marchandises.</p>
+    Elle n&rsquo;est pas partie aux contrats de vente conclus entre vendeurs et acheteurs et n&rsquo;acquiert pas la propriété des marchandises.
+    <b>Exception&nbsp;:</b> pour les commandes qu&rsquo;Acerasoft LLC facture en son propre nom, elle contracte avec l&rsquo;acheteur en qualité de vendeur&nbsp;;
+    la facture de chaque commande indique le cas applicable (CGV, section 3c).</p>
     <h3>Règlement en ligne des litiges</h3>
     <p>La plateforme ODR de l&rsquo;UE est disponible à l&rsquo;adresse ec.europa.eu/consumers/odr. VESTRA s&rsquo;adresse aux entreprises (B2B).</p>
 "],
@@ -20,14 +22,45 @@
     <h3>1. Ce qu&rsquo;est VESTRA</h3><p>VESTRA est une place de marché de vente en gros B2B qui met en relation des vendeurs et acheteurs professionnels vérifiés.
     VESTRA est <b>uniquement un intermédiaire et une plateforme technique</b>. Elle n&rsquo;est <b>pas partie</b> à une vente ; elle ne possède pas, ne
     détient pas, n&rsquo;inspecte pas, ne stocke pas, n&rsquo;expédie pas et n&rsquo;acquiert pas la propriété des marchandises, et ne conserve pas les fonds (un prestataire tiers agréé d&rsquo;entiercement/de paiement
-    s&rsquo;en charge). Les contrats de vente sont conclus <b>exclusivement entre l&rsquo;acheteur et le vendeur</b>.</p>
+    s&rsquo;en charge). Les contrats de vente sont conclus <b>exclusivement entre l&rsquo;acheteur et le vendeur</b>.
+    La présente section s&rsquo;applique sous réserve de la section 3c&nbsp;: pour les commandes qu&rsquo;Acerasoft LLC facture en son propre nom, elle est
+    elle-même le vendeur et le contrat est conclu avec elle.</p>
     <h3>2. Utilisateurs professionnels uniquement (pas de consommateurs)</h3><p>VESTRA est strictement réservée aux entreprises (B2B) ; elle ne s&rsquo;adresse pas aux
     consommateurs et les droits de rétractation des consommateurs ne s&rsquo;appliquent pas. Vous devez compléter la vérification (KYB/KYC) avant de transiger et
     garantissez que toutes les informations que vous fournissez sont exactes et tenues à jour.</p>
     <h3>2a. Commandes en dropshipping</h3><p>Les commandes à l&rsquo;unité en <b>dropshipping</b> sont passées par un partenaire professionnel vérifié <b>en vue de la revente à son propre client</b>. Le partenaire est l&rsquo;acheteur et le vendeur vis-à-vis de son client ; il indique l&rsquo;adresse de livraison, la couleur et la taille lors du paiement. <b>Aucun contrat de vente ne se forme entre VESTRA et le client final du partenaire</b>, et la présente section n&rsquo;ouvre pas la plateforme aux consommateurs. Le prix dropshipping correspond au prix de gros majoré d&rsquo;une marge de traitement, auquel s&rsquo;ajoute le tarif d&rsquo;expédition de la zone de destination affiché au paiement. Le stock à l&rsquo;unité n&rsquo;est pas suivi : la disponibilité est confirmée avec le vendeur après la commande, à défaut la commande est intégralement remboursée. <b>Les droits de douane, taxes à l&rsquo;importation et frais de dédouanement dans le pays de destination ne sont inclus ni dans le prix ni dans le tarif d&rsquo;expédition</b> et sont exigibles à la livraison. Ils incombent au partenaire professionnel qui passe la commande, lequel peut les régler directement ou les faire régler par son propre client. Les marchandises d&rsquo;origine préférentielle UE peuvent bénéficier d&rsquo;un droit nul à l&rsquo;entrée au Japon au titre de l&rsquo;accord de partenariat économique UE&ndash;Japon lorsqu&rsquo;une déclaration d&rsquo;origine accompagne l&rsquo;envoi ; cela ne couvre ni la taxe à la consommation ni les frais de dédouanement du transporteur.</p>
     <h3>3. Annonces, commandes &amp; exécution</h3><p>Les vendeurs sont <b>seuls responsables</b> de leurs annonces ainsi que de la
     légalité, la sécurité, la conformité, l&rsquo;étiquetage, la description, le prix, l&rsquo;authenticité, la livraison, les garanties et les taxes de leurs
-    marchandises. Une commande forme un contrat contraignant entre l&rsquo;acheteur et le vendeur ; VESTRA n&rsquo;est pas responsable de l&rsquo;exécution par l&rsquo;une ou l&rsquo;autre des parties.</p>
+    marchandises. Une commande forme un contrat contraignant entre l&rsquo;acheteur et le vendeur ; VESTRA n&rsquo;est pas responsable de l&rsquo;exécution par l&rsquo;une ou l&rsquo;autre des parties.
+    Pour les commandes qu&rsquo;Acerasoft LLC facture en son propre nom, la section 3c s&rsquo;applique &agrave; la place.</p>
+    <h3>3c. Commandes factur&eacute;es par VESTRA</h3><p>Pour certaines commandes, VESTRA &eacute;met la facture <b>en son propre nom</b>.
+    Ce n&rsquo;est pas le cas g&eacute;n&eacute;ral et cela ne se d&eacute;duit pas de la page de l&rsquo;annonce&nbsp;: <b>la facture d&rsquo;une commande
+    indique qui en est le vendeur au sens juridique</b>, et c&rsquo;est ce document qui fait foi. Lorsqu&rsquo;une facture d&eacute;signe Acerasoft LLC comme
+    vendeur, les sections 1 et 3 (VESTRA uniquement interm&eacute;diaire, contrat entre acheteur et vendeur) <b>ne s&rsquo;appliquent pas &agrave; cette
+    commande</b>&nbsp;; s&rsquo;appliquent alors&nbsp;:</p>
+    <ul>
+    <li><b>Contrat.</b> Le contrat de vente relatif &agrave; cette commande est conclu entre l&rsquo;acheteur et Acerasoft LLC, qui contracte en son propre nom
+    et pour son propre compte &mdash; que les marchandises proviennent du stock propre de VESTRA ou aient &eacute;t&eacute; achet&eacute;es &agrave; un vendeur
+    fournisseur en vue de leur revente &agrave; l&rsquo;acheteur.</li>
+    <li><b>Facture et fiscalit&eacute;.</b> La facture porte les coordonn&eacute;es, l&rsquo;adresse enregistr&eacute;e et les identifiants fiscaux propres
+    &agrave; Acerasoft LLC et indique le traitement TVA appliqu&eacute; &agrave; cette livraison&nbsp;; lorsqu&rsquo;une livraison transfrontali&egrave;re entre
+    entreprises rel&egrave;ve de l&rsquo;autoliquidation, la facture le mentionne et aucune TVA n&rsquo;est factur&eacute;e. Si des montants ont &eacute;t&eacute;
+    convertis dans une autre devise, la facture indique le taux, sa source et la date de sa publication.</li>
+    <li><b>Paiement.</b> Le paiement est effectu&eacute; sur le compte bancaire indiqu&eacute; sur cette facture et n&rsquo;est <b>pas</b> conserv&eacute; sous
+    s&eacute;questre&nbsp;; les dispositions d&rsquo;entiercement de la politique &laquo;&nbsp;Paiements, entiercement &amp; remboursements&nbsp;&raquo; ne
+    s&rsquo;appliquent pas &agrave; une telle commande. Les conditions de paiement et, le cas &eacute;ch&eacute;ant, le d&eacute;lai au-del&agrave; duquel une
+    commande impay&eacute;e est annul&eacute;e figurent sur la facture.</li>
+    <li><b>Retours, d&eacute;fauts et obligation de v&eacute;rification.</b> La <a href='/faq?cat=returns'>politique de retours et de r&eacute;clamations</a>
+    ainsi que l&rsquo;obligation de v&eacute;rification et de d&eacute;nonciation des d&eacute;fauts s&rsquo;appliquent sans changement, Acerasoft LLC &eacute;tant
+    la contrepartie de l&rsquo;acheteur pour cette commande. Les droits de l&rsquo;acheteur ne sont pas r&eacute;duits du fait que le vendeur est VESTRA
+    plut&ocirc;t qu&rsquo;un vendeur de la place de march&eacute;.</li>
+    <li><b>Vendeur fournisseur.</b> Lorsque les marchandises ont &eacute;t&eacute; achet&eacute;es pour revente, les garanties du vendeur fournisseur au titre de
+    la Politique vendeur &mdash; authenticit&eacute;, droit de vendre, conformit&eacute;, s&eacute;curit&eacute; et exactitude des d&eacute;clarations &mdash;
+    sont donn&eacute;es &agrave; Acerasoft LLC et, dans la mesure permise par la loi, transmises &agrave; l&rsquo;acheteur.</li>
+    <li><b>Facturation au nom d&rsquo;un vendeur.</b> Par accord pr&eacute;alable avec un vendeur, VESTRA peut au contraire &eacute;mettre une facture
+    <b>au nom et pour le compte</b> de ce vendeur (autofacturation). Une telle facture porte l&rsquo;identit&eacute; et les identifiants fiscaux du
+    <b>vendeur</b>&nbsp;; celui-ci demeure le vendeur au sens juridique et les sections 1 et 3 s&rsquo;appliquent sans changement.</li>
+    </ul>
     <h3>4. Paiements, entiercement &amp; frais</h3><p>Les paiements sont traités et conservés sous séquestre par un prestataire tiers agréé et
     libérés selon les conditions convenues (par ex. confirmation de l&rsquo;acheteur / livraison vérifiée). VESTRA prélève une commission de plateforme (une
     commission vendeur plus des frais de protection de l&rsquo;acheteur) et/ou des frais d&rsquo;abonnement ; les frais du prestataire s&rsquo;appliquent tels que facturés. Les frais sont indiqués
@@ -91,7 +124,10 @@
     <p>Entre Acerasoft LLC et le vendeur professionnel enregistré. <b>En vigueur :</b> 26 juin 2026.</p>
     <h3>1. Vérification</h3><p>Fournir et tenir à jour l&rsquo;enregistrement de l&rsquo;entreprise, le numéro d&rsquo;identification fiscale/TVA et l&rsquo;identité du bénéficiaire effectif.</p>
     <h3>2. Vendeur officiel</h3><p>Le vendeur est le vendeur légal de ses marchandises et est seul responsable de la conformité, de la sécurité,
-    de la livraison, des garanties et des taxes. VESTRA est uniquement un intermédiaire et n&rsquo;est pas partie à la vente.</p>
+    de la livraison, des garanties et des taxes. VESTRA est uniquement un intermédiaire et n&rsquo;est pas partie à la vente.
+    <b>Lorsqu&rsquo;Acerasoft LLC achète des marchandises au vendeur afin de les revendre</b>, Acerasoft LLC est le vendeur vis-à-vis de cet acheteur et
+    facture en son propre nom (CGV, section 3c)&nbsp;; les garanties du vendeur ci-dessous sont alors données à Acerasoft LLC. Par accord préalable avec un
+    vendeur, VESTRA peut également émettre des factures au nom et pour le compte de ce vendeur&nbsp;; celui-ci demeure alors le vendeur au sens juridique.</p>
     <h3>3. Authenticité &amp; droit de vendre</h3><p>Pour chaque article, le vendeur garantit que les marchandises sont <b>authentiques</b> et qu&rsquo;il est
     <b>autorisé/en droit de les vendre</b> sur le marché de destination (y compris l&rsquo;épuisement des droits de marque dans l&rsquo;EEA le cas échéant),
     et fournira une preuve d&rsquo;authenticité/de provenance sur demande.</p>
@@ -136,7 +172,11 @@
     <p><b>Statut actuel :</b> les paiements se font temporairement <b>sur facture</b> — l&rsquo;acheteur reçoit une facture proforma et paie par
     virement bancaire ; la marchandise est expédiée après réception du paiement. Le paiement par entiercement/carte décrit ci-dessous est suspendu jusqu&rsquo;à nouvel ordre.</p>
     <h3>Comment fonctionne le paiement</h3><p>Les acheteurs paient via le prestataire d&rsquo;entiercement agréé (virement bancaire SEPA pour le B2B de l&rsquo;UE ; cartes disponibles).
-    Les fonds sont <b>conservés sous séquestre</b> — VESTRA ne détient jamais l&rsquo;argent.</p>
+    Les fonds sont <b>conservés sous séquestre</b> — VESTRA ne détient jamais l&rsquo;argent.
+    <b>Les commandes facturées par Acerasoft LLC en son propre nom font exception</b> (CGV, section 3c)&nbsp;: elles sont réglées par virement sur le compte
+    bancaire indiqué sur la facture, et non sous séquestre&nbsp;; les règles d&rsquo;entiercement de cette page &mdash; libération, libération automatique et
+    remboursement depuis le séquestre &mdash; ne leur sont pas applicables. La <a href='/faq?cat=returns'>politique de retours et de réclamations</a> leur
+    s&rsquo;applique sans changement.</p>
     <h3>Libération de l&rsquo;entiercement</h3><p>Les fonds sont libérés sur confirmation de l&rsquo;acheteur, livraison vérifiée, ou expiration d&rsquo;une fenêtre convenue de libération automatique
     si aucun litige n&rsquo;est soulevé. Le prestataire verse le paiement au vendeur + la commission de VESTRA.</p>
     <h3>Frais</h3><p>VESTRA prélève une commission de plateforme par commande — une commission vendeur plus de légers frais de protection de l&rsquo;acheteur — et/ou des frais d&rsquo;abonnement ; les frais du prestataire tels que facturés. Les montants exacts sont indiqués avant le paiement.</p>

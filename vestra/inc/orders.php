@@ -1156,8 +1156,15 @@ function vestra_render_order_sheet_pdf(array $orderRow, array $lines): string {
  * sokmak o ayristiriciyi bozardi. Renklerin nota yazilmasiyla ayni desen
  * (bkz. vestra_order_notes_colors).
  *
+ * RENK de nota yaziliyor artik (17 Eyl 2026). Kasa `Colours — …` parcasini
+ * bastan beri yaziyor ve vestra_order_lines() onu okuyup siparis tablosuna,
+ * siparis PDF'ine ve faturanin toplama listesine basiyor; elle kurulan siparis
+ * ise rengi hicbir yere yazamiyordu. Bir lot "siyah" mi "bordo" mu, satisin
+ * kendi kaydinda durmak zorunda.
+ *
  * @param array $acc    Alicinin HESABI (accounts.json satiri). Adres/VAT oradan.
- * @param array $lines  [['sku'=>, 'size'=>, 'qty'=>, 'unit'=>], ...]
+ * @param array $lines  [['sku'=>, 'size'=>, 'colour'=>, 'qty'=>, 'unit'=>], ...]
+ *                      'size' ve 'colour' virgullu liste de olabilir ("S×5, M×15").
  * @return array ['ok'=>true,'ref'=>...] ya da ['error'=>gerekce]
  */
 function vestra_order_create_manual(array $acc, array $lines, float $shipping = 0.0, string $notesExtra = ''): array {
@@ -1168,18 +1175,29 @@ function vestra_order_create_manual(array $acc, array $lines, float $shipping = 
        basina TEK satir olur, adetler toplanir; beden dokumu nota gider. */
     $bySku = [];
     $sizes = [];
+    $colours = [];
     foreach ($lines as $l) {
         $sku  = trim((string)($l['sku'] ?? ''));
         $qty  = max(1, (int)($l['qty'] ?? 1));
         $unit = round((float)($l['unit'] ?? 0), 2);
         $size = trim((string)($l['size'] ?? ''));
+        $col  = trim((string)($l['colour'] ?? $l['color'] ?? ''));
         if ($sku === '' || $unit <= 0) return ['error' => "Gecersiz kalem: sku='{$sku}' unit={$unit}"];
         if (isset($bySku[$sku]) && abs($bySku[$sku]['unit'] - $unit) > 0.001) {
             return ['error' => "Ayni SKU iki farkli birim fiyatla geldi: {$sku}"];
         }
         $bySku[$sku] = ['qty' => ($bySku[$sku]['qty'] ?? 0) + $qty, 'unit' => $unit];
-        if ($size !== '') $sizes[$sku][] = $size.'×'.$qty;
+        /* Beden zaten "S×5, M×15" gibi bir DOKUM olarak gelebiliyor (tam karton
+           satisinda oyle geliyor); o hali adetle bir daha carpmak "S×5, M×15×50"
+           gibi bir dizge uretirdi. Ayrisma kurali: icinde '×' varsa doküm,
+           yoksa tek beden ve adetle yaziliyor. */
+        if ($size !== '') foreach (array_filter(array_map('trim', explode(',', $size))) as $s) {
+            $sizes[$sku][] = (mb_strpos($s, '×') !== false || mb_strpos($s, 'x') !== false) ? $s : $s.'×'.$qty;
+        }
+        if ($col !== '') foreach (array_filter(array_map('trim', explode(',', $col))) as $c) $colours[$sku][] = $c;
     }
+    foreach ($sizes   as $k => $v) $sizes[$k]   = array_values(array_unique($v));
+    foreach ($colours as $k => $v) $colours[$k] = array_values(array_unique($v));
 
     $goods = 0.0; $items = [];
     foreach ($bySku as $sku => $v) {
@@ -1200,11 +1218,31 @@ function vestra_order_create_manual(array $acc, array $lines, float $shipping = 
     }
     if ($ref === '') return ['error' => 'Benzersiz referans uretilemedi.'];
 
-    $sizeNote = '';
-    foreach ($sizes as $sku => $ss) $sizeNote .= ' '.$sku.': '.implode(' · ', $ss).'.';
+    /* PARCA BICIMI KASANIN BICIMIYLE AYNI OLMAK ZORUNDA -- ve degildi.
+       Eski satir her SKU'yu kendi NOKTASIYLA kapatiyordu
+       ("Sizes — M3600: S×5. M7535: S×5.") ve degerleri '·' ile ayiriyordu.
+       vestra_order_notes_map() ise ILK noktaya kadar okuyor ve degerleri ','
+       ile boluyor: yani IKI SKU'LU her elle sipariste ikinci SKU'nun dokumu
+       SESSIZCE kayboluyordu (olculdu: ikinci satir haritaya hic girmiyor,
+       ustelik kalintisi serbest metinde kalip alicinin siparis sayfasina ve
+       operator paneline OLDUGU GIBI basiliyordu). Kasanin bicimi:
+       segmentler ' | ' ile, degerler ', ' ile, parca TEK noktayla biter. */
+    $frag = function (string $label, array $map): string {
+        if (!$map) return '';
+        $segs = [];
+        foreach ($map as $sku => $vals) {
+            /* Deger icinde nokta olursa parca kendi sonunu erken bildirir ve
+               gerisi serbest metne dokulur -- kasada renk/beden adlari nokta
+               tasimiyor, burada da tasimamali. */
+            $clean = array_filter(array_map(fn($v) => trim(str_replace(['.', '|'], '', (string)$v)), $vals), fn($v) => $v !== '');
+            if ($clean) $segs[] = $sku.': '.implode(', ', $clean);
+        }
+        return $segs ? ' '.$label.' — '.implode(' | ', $segs).'.' : '';
+    };
     $notes = 'Payment: Bank transfer.'
            . ($notesExtra !== '' ? ' '.trim($notesExtra) : '')
-           . ($sizeNote !== '' ? ' Sizes —'.$sizeNote : '')
+           . $frag('Colours', $colours)
+           . $frag('Sizes', $sizes)
            . ($shipping > 0 ? ' Shipping EUR '.number_format($shipping, 2, '.', '').'.' : '');
 
     $dir = dirname(__DIR__).'/data'; if (!is_dir($dir)) @mkdir($dir, 0775, true);
