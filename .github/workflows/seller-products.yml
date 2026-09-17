@@ -291,7 +291,19 @@ jobs:
             $who = mb_strtolower(trim((string)getenv('OD_WHO')));
             $hits = [];
             if ($who !== '') {
+                /* HESAP ID'si TAM eslesirse o kazanir. Iki sebep:
+                   (1) ad/firma parcasi belirsiz olabiliyor -- bu depoda
+                   "francisco" aramasi BASKA bir hesabi (C&F Multimarcas) yalniz
+                   E-POSTASINDAN yakaladi ve fatura yanlis tuzel kisiye
+                   kesilebilirdi; (2) tek ayirt edici parca cogu zaman KISININ
+                   SOYADI olur ve bu girdi calistirma basliginda KALICI ve
+                   HERKESE ACIK -- bu depoda musterinin soyadini girdiye
+                   yazmama karari zaten kayitli. Hesap ID'si opak ve
+                   `seller_activate` onu zaten girdi olarak aliyor. */
                 foreach (auth_accounts() as $a) {
+                    if (mb_strtolower((string)($a['id'] ?? '')) === $who) { $hits = [$a]; break; }
+                }
+                if (!$hits) foreach (auth_accounts() as $a) {
                     $hay = mb_strtolower(($a['name'] ?? '').' '.($a['company'] ?? '').' '.($a['email'] ?? ''));
                     if (mb_strpos($hay, $who) !== false) $hits[] = $a;
                 }
