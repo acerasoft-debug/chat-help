@@ -1409,6 +1409,43 @@ yakılmadı: (1) EUR'da ödeme kutusu boş çıkacaktı ve mektup *"faturadaki h
 ödeyin"* diyor — belgede o hesap **yok**; (2) "1 Lot" adedi çıkarım. Sipariş
 geri alınabilir (`Admin ▸ Orders ▸ Delete`), yanmış bir numara pratikte değil.
 
+**"ABD hesabı verdiğimde müşteriler ödemiyor, neden?"** (operatör sorusu,
+17 Eyl 2026 — yukarıdaki blokajın ta kendisi, başka kelimelerle).
+- **Avrupalı alıcı için ABD hesabı SEPA DEĞİL, SWIFT havalesidir.** SEPA yalnız
+  SEPA alanındaki EUR transferleri kapsıyor; Delaware'deki bir hesap o alanda
+  değil. Sonuç alıcının tarafında üç somut engel: **ücret** (bankası giden
+  uluslararası havaleden tipik olarak €15–50 alıyor, üstüne muhabir banka
+  yol üstünde kesiyor), **süre** (SEPA'da ertesi gün, SWIFT'te 2–5 iş günü —
+  yani "ödedim" ile "gördük" arası günlerce açık kalıyor), ve **form**:
+  AB kurumsal bankacılığı **IBAN merkezli**; ABA routing + hesap numarası
+  isteyen bir ödeme çoğu portalda ayrı bir "uluslararası havale" akışına,
+  bazen şubeye gidiyor. €3.965'lik bir siparişte bu, alıcı için hem masraf
+  hem angarya.
+- **Ve güven tarafı, ki asıl sebebin bu olması kuvvetle muhtemel:** Avrupalı
+  bir alıcı, Avrupa merkezli görünen bir pazar yerinden mal alıp faturayı
+  **ABD'deki bir hesaba** ödemeye çağrılıyor. Bu kalıp, muhasebe
+  departmanlarının **fatura dolandırıcılığı (BEC)** eğitiminde birebir
+  öğretilen kalıp — "ödeme bilgileri değişti, şu yabancı hesaba yatırın".
+  Şüphelenen taraf ödemeyi yapmıyor, çoğu zaman **sormuyor da**.
+- **Kod bu kararı ZATEN veriyor:** `vestra_payment_rails` EUR faturaya ABA
+  routing **basmıyor** — hiçbir şey basmamayı seçiyor. Gerekçesi yazılı:
+  "Avrupalı alıcı o yola ödeyemez, kabul eden banka günler sonra iade eder."
+  Yani bugünkü hâl "ABD hesabı görüyorlar ve ödemiyorlar" değil; **hiçbir
+  hesap görmüyorlar** ve ödeyecekleri yer yok.
+- **Çözüm bir fiyat/hesap kararı, kod kararı değil: aynı tüzel kişiye bir
+  EUR IBAN.** Bir ABD LLC'si için IBAN veren hesap sağlayıcıları var (Wise
+  Business, Payoneer, Revolut Business, Airwallex — hangisinin Delaware LLC
+  kabul ettiğini operatör kendi doğrulamalı). IBAN girildiği anda
+  (`Admin ▸ Orders ▸ Platform billing & bank details`) kod zaten hazır: EUR
+  faturada ödeme kutusu **çıkıyor**, alıcı sıradan bir SEPA havalesi yapıyor.
+  *Dürüst uyarı:* bu sağlayıcıların IBAN'ı çoğu zaman **başka bir AB ülkesine**
+  ait oluyor (BE/LT gibi) ve bazı ödeyenler buna da takılıyor — ama IBAN
+  ayrımcılığı AB'de **yasak** (SEPA Tüzüğü 260/2012 md. 9) ve bu, ABA routing
+  vermekten kıyaslanamayacak kadar iyi.
+- **Ara çözüm zaten kurulu:** kart/escrow yolu (Stripe) havale değil; tavanı
+  €3.000 (KURAL 6), yani bu siparişi tek başına karşılamıyor ama küçük
+  siparişlerde "ödeyemiyorum" sorununu tümden ortadan kaldırıyor.
+
 **KURAL 5k — Siparişe NAVLUN yazılabilir; tutar ile TOPLAM birlikte hareket eder**
 (operatör, 7 Eyl 2026: *"kargo bölümü yok kargo eklemek gerekiyor 100 usd
 ekleyelim"* — VES-6B53D265).
