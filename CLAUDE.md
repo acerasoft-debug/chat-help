@@ -5827,6 +5827,67 @@ iP den algilanip para biriminin ... o ülkeye göre ayarlanmasi gerekir"*).
   yanında teklif kutusu çıkıyor). Kalan **iki takım 190'da ve teklif kapalı** —
   adlandırılmadılar.
 
+**Burberry 8049455: ŞORT değil ETEK; €90; XS–XL kadın serisi** (operatör,
+17 Eyl 2026: *"rock yap ve fiyat 90 eur ya indir bedenleride XS ten basla XL e
+kadar kadin bedenleri yap 10 lu"* — **"Rock" Almanca ETEK**, operatörün sohbet
+diline karışan bir kelime; ürün adı değil).
+
+- **AD ve KATEGORİ de değişmek zorundaydı, yalnız fiyat/beden değil.** İlan
+  `Burberry Denim Shorts — 8049455`, `cat=Jeans Shorts` idi. Etek olan bir malı
+  "Shorts" diye satan bir ilan, sattığı şeyi yanlış söyler — D&G eşofmanlarında
+  (12 Eyl) *"€190'a komple takım satarken adı 'Jogging Trousers' bırakmak"*
+  diye kaydedilen dersin aynısı. Yeni ad `Burberry Denim Skirt — 8049455`
+  (em-dash ve SKU kuyruğu aynen), kategori **`Skirts`**.
+  **Kategori uydurulmadı:** `Skirts` taksonomide (`Bottoms` grubu) zaten vardı.
+- **BEDEN SERİSİ İKİ YERDE YAZILIYDI ve kuru koşu bunu kanıtladı.** `sizes`
+  alanının yanında `desc` de aynı seriyi taşıyor:
+  *"Original Burberry, model 8049455. S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack.
+  EEA stock…"*. 9 Eylül'de Balenciaga'da yalnız `sizes` değiştirilmiş, ürün
+  sayfası spec satırında bir, bir paragraf altında başka dağılım göstermişti.
+  Bu kez **ikisi birlikte** yazıldı ve kalan metin şablondan değil **sunucunun
+  kendi dizgesinden** kuruldu.
+  *Eski `desc`'i tahmin etmiştim (dokuz Burberry ilanının kalıbı tekdüze); ama
+  yazmadan önce kuru koşu onu **birebir** gösterdi — tahmin kanıt değildi,
+  kuru koşu kanıttı.*
+- **EĞRİ UYDURULMADI: 1-3-3-2-1 katalogun kendi 10'luk eğrisi.**
+  `XS×1 · S×3 · M×3 · L×2 · XL×1` = **10**. Aynı eğri giyimde
+  `S×1 · M×3 · L×3 · XL×2 · XXL×1`, oversize'da `XXS×1 · XS×3 · S×3 · M×2 · L×1`
+  olarak duruyor; değişen tek şey **merdivendeki yer** (9 Eyl'in oversize
+  kararının aynı deseni). Aynı markadaki `bur-8039175` da XS–XL taşıyor ama
+  serisi **8 parça** (`XS×1 · S×2 · M×2 · L×2 · XL×1`) ve `desc` 10 diyor —
+  yani o, CLAUDE.md'de kayıtlı 25 eski çelişkiden biri, **şablon olarak
+  kullanılamazdı**.
+- **Paket eki `10/pack` AYNEN korundu.** `10 pcs/pack` gibi ikinci bir yazıma
+  çevirmek cazipti; `VESTRA_SIZE_PACK_RE` yalnız tanıdığı biçimi paket eki
+  sayıyor ve tanımadığı bir yazımda **`10` sessizce bir BEDEN olarak
+  ayrışırdı** (KURAL 21b'nin `3/pack` tuzağı).
+- **Fiyat: `price: 90` — hem `list` hem TÜM kademeler.** İlan `mode='sale'` ve
+  bugün `list = tier = 120`, yani ekranda indirim rozeti **yoktu**. Yalnız
+  kademeyi 90 yapıp `list`'i 120 bırakmak, operatörün **hiç söylemediği** bir
+  %25 indirim ilan ederdi. 13 Eylül'deki altı D&G polosunun (€110) birebir
+  deseni. `mode`'a dokunulmadı — istenmedi ve list=fiyat olduğu için yalan
+  söyleyen bir rozet doğmuyor.
+- **Geri okuma sunucudan** (`inspect-products`, yazma mesajından değil):
+  `cat=Skirts`, `fiyat(list)=90 EUR`, `tiers: 10+ → €90`,
+  `sizes=XS×1 · S×3 · M×3 · L×2 · XL×1 · 10/pack`, ad `… Denim Skirt …`.
+  **Fiyat denetimi** (alanın değerine değil sepetin TAHSİL ETTİĞİNE bakıyor):
+  895 üründe *alıcı aleyhine* tek satır var ve o eski demo tohumu
+  `lac-pique-polo`, Burberry değil — yani MOQ 10'da sepet gerçekten €90 alıyor.
+  **`fit_scan` çelişki listesinde `bur-8049455` YOK**; liste id'ye göre sıralı
+  ve `8047732` ile `8052119` **arasında** olması gerekirdi, orada değil (Burberry
+  çelişkisi 9'da kaldı, artmadı).
+- **Operatör kararı bekleyen üç şey, üçü de açıkça söylendi:**
+  1. **Fotoğrafı göremedim** — `uploads/` repoda değil, yalnız sunucuda; bu
+     ortamdan canlı siteye de çıkılamıyor. Karenin hâlâ şort gösteriyor olma
+     ihtimali duruyor ve o zaman ilan ters yönden yalan söyler.
+  2. **`size_step` bu ilanda HİÇ SET DEĞİL.** *"10 lu"* cümlesini "sepet
+     adedi 10'un katına yuvarlansın" diye okumadım: `sizes` zaten `10/pack`
+     diyordu ve `moq=10` (bir karton). `size_step` eklemek **satın alma
+     davranışını** değiştirir, istenmedi.
+  3. **Teklif kutusu AÇIK kalıyor** (`mode=sale` ⇒ `offers`). Fiyat düşünce
+     KURAL 4'ün tabanı da düştü: alıcı teklifi en az ürünün yarısı, yani
+     **€60 değil artık €45**.
+
 **KURAL 2f — belge süresi 3 → 7 GÜN; Marca Online MUAF** (operatör, 13 Eyl 2026:
 *"bu saticiya istisna yap ... diger saticilarada 7 gün sure ver"*).
 - `VESTRA_SELLER_DOC_GRACE_DAYS` **7**. Rakam iki mektup şablonunda, cron'un
