@@ -4459,6 +4459,51 @@ gösterdi. Aynı hatayı iki kez ölçmek, onu doğrulamıyor.*
   CLAUDE.md'nin dediği gibi tekrar denemeden önce koşu listesine bakıldı — hiçbir
   şey kuyruğa girmemişti, yani tekrar güvenliydi.
 
+**ÜÇ Dropbox klasörü de AYNI şekilde kapalı; ortak işaret `st=` YOK ve
+`subfolder_nav_tracking=1` VAR** (17 Eyl 2026, dört koşu: DSQ JEANS ×2, GCDS,
+GUCCI). Operatör *"Erneut versuchen"* dedi, yeniden denendi — sonuç değişmedi.
+
+| Klasör | `fo` kimliği | `rlkey` | `st` | Sonuç |
+|---|---|---|---|---|
+| DSQ JEANS | `3kfz28…` | `mfp01…` | yok | No Access |
+| GCDS | `3kfz28…` (başka alt kimlik) | `mfp01…` | yok | No Access |
+| GUCCI | `1mggxg…` | `7vn9ry…` | yok | No Access |
+
+- Üçü de **200** dönüyor ama gelen şey ZIP değil ~204–210 KB'lık HTML ve
+  başlığı **`Dropbox - No Access`**. Kök klasör de aynı sayfayı veriyor, yani
+  sorun alt yol ya da adres biçimi **değil** — paylaşımın kendisi sunucuya
+  kapalı. Üç ayrı paylaşım, iki ayrı `rlkey`, tek sonuç.
+- **Fark edilen ortak işaret:** üç linkte de `subfolder_nav_tracking=1` var ve
+  **hiçbirinde `st=` yok.** O parametre, linkin Dropbox arayüzünde **gezinirken
+  adres çubuğundan** kopyalandığında ekleniyor; **Share → Copy link** düğmesinin
+  ürettiği linkte ise `st=` (imzalı paylaşım jetonu) bulunuyor. 12 Eylül'de
+  **işe yarayan** link tam da `st=` taşıyan üçüncü linkti ve 47,8 MB'lık ZIP
+  getirmişti. *Bu bir korelasyon; nedeni kesinleştiren tek şey `st=`li bir
+  linkin çalışması olur.*
+- **Operatörün yapması gereken, en kısa hâliyle:** klasörü Dropbox'ta açıp
+  **Share → Copy link** ile linki almak (adres çubuğundan kopyalamak değil).
+  Çalışmazsa paylaşımı **"Anyone with the link"** yapmak. Üçüncü yol: bu depoda
+  **çalıştığı kanıtlı** olan WeTransfer akışı (`wetransfer_probe`).
+- **Kontrol grubu (ayırt edici ölçüm, operatör tarafında):** linki **gizli
+  pencerede**, Dropbox oturumu KAPALI açsın. Orada da "No Access" çıkıyorsa
+  paylaşım ayarıdır; açılıyorsa sunucu tarafı ayrı bir sorundur ve teşhis
+  değişir.
+
+**GUCCI partisi — fiyat kararı ALINDI, klasör bekliyor** (operatör, 17 Eyl
+2026: *"bu guccileride 140 eur dan koy polo lari tshirtleri 125"* + *"10 lu en
+az alimda"*).
+- **Polo 140 EUR · tişört 125 EUR · asgari alım 10 · paket 10'luk.** Asgari,
+  paket adımının tam katı (KURAL 4b: sepet adedi adımın katına yuvarlıyor,
+  yani katı olmayan bir asgari hiç alınamaz).
+- **Polo/tişört ayrımı FOTOĞRAFTAN yapılacak**, dosya adından değil: D&G
+  partisinde dosya adı kategoriyi söylemiyordu ve 112 px'lik kontakt
+  sayfasında tişört sanılan iki kare 300–360 px'te **yakalı polo** çıkmıştı —
+  iki fiyat hatası ancak büyütünce göründü. Burada aradaki fark **15 EUR**.
+- Katalogda zaten duran Gucci ilanları **atlanacak** (bugün 12+ Gucci ilanı
+  var); eşleşme **stil kodundan**, addan değil — `XJDEZ` vakası katalog adının
+  güvenilmez olduğunu bir kez kaydetti (bizde *"GG Print T-Shirt"*, gerçekte
+  Doraemon × Gucci).
+
 **GCDS partisi de BEKLİYOR — aynı Dropbox engeli** (operatör, 17 Eyl 2026:
 *"sonra bu ürünler yoksa bunlarida al internet official fiyatlarin 4 te biri
 yap ve koy 10 lu yap lotlari"*, `…/GCDS` klasörü).
