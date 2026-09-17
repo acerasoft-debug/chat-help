@@ -175,8 +175,16 @@ echo "\n== 12. TAHSILAT USD (operator, 8 Eyl 2026) ==\n";
     oncesinde para cevrilsin ve usd olarak gitsin" */
 $rate = vestra_fx('USD');
 $t('kur kaynagi calisiyor',        $rate > 0);
-$t('USD birim = EUR birim x kur',  $rate > 0 && abs(vestra_dropship_usd_unit($prod, null) - round(23.88 * $rate, 2)) < 0.011);
-$t('abone USD de zamsiz',          $rate > 0 && abs(vestra_dropship_usd_unit($prod, ['dropship_plan_status'=>'active']) - round(19.90 * $rate, 2)) < 0.011);
+/* 17 Eyl 2026: cevrilmis tutarlar 10 KURUSA YUKARI yuvarlaniyor (operator:
+   "usd de tum katalog fiyatlarini kuurat varsa duzlestir"). Iddia BILEREK
+   degisti -- eskiden tam kurus pinliyordu. Beklenen deger elle yazilmiyor,
+   sitenin kendi yuvarlayicisindan geliyor; elle yazilsaydi adim degistigi gun
+   yanlis rakami korurdu. */
+$t('USD birim = EUR birim x kur',  $rate > 0 && abs(vestra_dropship_usd_unit($prod, null) - vestra_money_round(23.88 * $rate, 'USD')) < 1e-9);
+$t('abone USD de zamsiz',          $rate > 0 && abs(vestra_dropship_usd_unit($prod, ['dropship_plan_status'=>'active']) - vestra_money_round(19.90 * $rate, 'USD')) < 1e-9);
+/* Ve gercekten DUZ: yuvarlayici cagrilmadan da yukaridaki iki iddia gecebilir
+   (tutar tesadufen tam kata dusebilir), bu ise rakamin kendisine bakiyor. */
+$t('USD birim 10 kurusun kati',    $rate > 0 && (int)round(vestra_dropship_usd_unit($prod, null) * 100) % 10 === 0);
 $t('dropship kapaliysa USD yok',   vestra_dropship_usd_unit($off, null) === null);
 
 /* Stripe'a giden UC tutarin da USD olmasi sart: satirlar USD iken kargoyu EUR
@@ -195,8 +203,14 @@ $t('ret, Stripe cagrisindan ONCE', $posFx !== false && $posPay !== false && $pos
 
 /* BIRIM cevrilip yuvarlanir, sonra adetle carpilir (KURAL 5i). Toplami
    cevirmek birim x adet != toplam birakirdi. */
-$t('birim cevrilir, sonra carpilir', str_contains($dsSrc, '$usdUnitCents = (int) round($unit * $fxRate * 100);')
+$t('birim cevrilir, sonra carpilir', str_contains($dsSrc, "\$usdUnitCents = (int) round(vestra_money_round(\$unit * \$fxRate, 'USD') * 100);")
                                      && str_contains($dsSrc, '$cents        = $usdUnitCents * $qty;'));
+/* SAYFA ile STRIPE ayni govdeden: "Buy now" dugmesi vestra_money() ile
+   yazdiriliyor ve o yol yuvarliyor. Tahsilat yuvarlamasaydi ayni kutuda dugme
+   US$45,40, hemen altindaki tahsilat satiri US$45,33 derdi. */
+$t('navlun da ayni yuvarlayicidan', str_contains($dsSrc, "vestra_money_round(\$zFee * \$fxRate, 'USD')"));
+$t('ham (yuvarlanmamis) cevrim kalmadi',
+   !str_contains($dsSrc, 'round($unit * $fxRate * 100)') && !str_contains($dsSrc, 'round($zFee * $fxRate * 100)'));
 
 /* Kayit EUR tabanli kalir + cekilen tutar ayri yazilir. */
 $t('kayitta EUR tabani duruyor',   str_contains($dsSrc, "'currency'          => 'eur',"));

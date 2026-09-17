@@ -1253,4 +1253,5 @@ return array (
   'You are now a seller. Listing is free — add your first product from your dashboard.' => '出品者になりました。出品は無料です — ダッシュボードから最初の商品を追加してください。',
   'Buying on VESTRA is always free — and so is selling. Switch to a seller account to list products.' => 'VESTRAでの購入は常に無料 — 販売も無料です。商品を出品するには出品者アカウントに切り替えてください。',
   'Free to sell' => '販売無料',
+  'Converted amounts are rounded up to the nearest 10 cents.' => '換算後の金額は10セント単位で切り上げています。',
 );

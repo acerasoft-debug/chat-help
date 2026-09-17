@@ -1257,4 +1257,5 @@ return array (
   'You are now a seller. Listing is free — add your first product from your dashboard.' => 'Ora sei un venditore. Pubblicare è gratuito — aggiungi il tuo primo prodotto dalla dashboard.',
   'Buying on VESTRA is always free — and so is selling. Switch to a seller account to list products.' => 'Acquistare su VESTRA è sempre gratuito — e lo è anche vendere. Passa a un account venditore per pubblicare prodotti.',
   'Free to sell' => 'Vendere è gratis',
+  'Converted amounts are rounded up to the nearest 10 cents.' => 'Gli importi convertiti sono arrotondati per eccesso ai 10 centesimi.',
 );

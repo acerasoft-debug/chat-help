@@ -640,8 +640,15 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
            Sembol ve kur PHP'den geliyor; kur yoksa 1.0 ve € ile EUR'da kaliyor,
            yani uydurma bir kurla asla carpmiyor. */
         var CUR={sym:<?= json_encode(vestra_money_converted() ? vestra_currencies()[vestra_currency()]['sym'] : '€') ?>,
-                 rate:<?= json_encode(vestra_money_converted() ? vestra_fx(vestra_currency()) : 1.0) ?>};
-        function fmtMoney(n){ return CUR.sym+Number(n*CUR.rate).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+                 rate:<?= json_encode(vestra_money_converted() ? vestra_fx(vestra_currency()) : 1.0) ?>,
+                 /* 10 kurusa yuvarlama ADIMI, sunucudaki sabitten (17 Eyl 2026).
+                    Burada elle 0.10 yazmak, kademe tablosu US$45,40 derken canli
+                    toplamin US$45,33 demesine yol acardi -- ayni sayfada ayni
+                    urun icin iki rakam. EUR'da adim 0: taban birime dokunulmuyor. */
+                 step:<?= json_encode(vestra_money_converted() ? (float)VESTRA_MONEY_STEP : 0.0) ?>};
+        function fmtMoney(n){ var v=Number(n)*CUR.rate;
+          if(CUR.step>0) v=Math.ceil(Math.round(v/CUR.step*1e6)/1e6)*CUR.step;
+          return CUR.sym+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
         function bump(d){ var el=document.getElementById('qty'); el.value=Math.max(P.moq,(parseInt(el.value)||P.moq)+d); recalc(); }
         /* Per-colour qty selects (carton listings) vs plain checkboxes */
         function cqSelects(){ var el=document.getElementById('ordColors'); if(!el) return null;

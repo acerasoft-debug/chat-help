@@ -305,6 +305,41 @@ function vestra_fx_set_manual(array $rates, string $date = ''): void {
                                             'saved_at' => date('c')] : []);
 }
 
+/* Cevrilmis fiyatlarin ONDALIK ADIMI (operator, 17 Eyl 2026: "usd de tum
+   katalog fiyatlarini kuurat varsa duzlestir ornek 34,56 - 34,60").
+   Kur carpani 34,56 / 65,4027 gibi rastgele kuruslar uretiyor; katalogun EUR
+   tarafi hep duz (39,00 / 85,00), cevrilmis tarafi degildi. */
+const VESTRA_MONEY_STEP = 0.10;
+
+/**
+ * Cevrilmis bir tutari 10 kurusun katina YUKARI yuvarla.
+ *
+ * TEK yuvarlayici: sayfa, urun sayfasinin canli hesaplayicisi (JS) ve dropship
+ * USD tahsilati ucu de buradan geciyor. Iki ayri yuvarlama, bu deponun tekrar
+ * tekrar kaydettigi "sayfada bir, kasada baska rakam" hatasini uretirdi.
+ *
+ * YON YUKARI, ve bu bir tercih degil: en yakina yuvarlamak 34,54'u 34,50
+ * yapardi, yani ilan edilen EUR fiyatin ALTINDA bir rakam. Fiyati asagi
+ * yuvarlamak sessizce marj veriyor; yukari yuvarlamak en fazla 9 kurus ekliyor
+ * ve ekledigini ekranda gosteriyor.
+ *
+ * EUR HIC DOKUNULMAZ: katalogun kendi birimi o, rakamlari zaten operator
+ * yaziyor (39,00) ve bir kurus bile oynatmak ilan edilen fiyati degistirirdi.
+ *
+ * FATURA da kapsam DISI (KURAL 5i): orada birim x adet = satir tutmak zorunda
+ * ve cevrim siparis tarihinin damgasiyla, tam kurusla yapiliyor. Belgeyi
+ * guzellestirmek, belgeyi kendi icinde tutmaz hale getirirdi.
+ */
+function vestra_money_round(float $amount, string $cur): float {
+    if ($cur === 'EUR' || VESTRA_MONEY_STEP <= 0 || !is_finite($amount)) return $amount;
+    /* round(...,6) bir SAVUNMA, olculmus bir duzeltme DEGIL: bugunku kurlarla
+       17.946 cevrimde ve tam katlarda (34,60 / 62,40 / 65,40) ciplak ceil ile
+       ayni sonucu veriyor -- olculdu. Durmasinin sebebi girdinin kayan nokta
+       olmasi: bir gun 62,4000000000001 uretin bir kur, ciplak ceil ile ZATEN
+       duz olan bir tutari 62,50'ye iterdi. Bedeli yok, riski var. */
+    return round(ceil(round($amount / VESTRA_MONEY_STEP, 6)) * VESTRA_MONEY_STEP, 2);
+}
+
 /**
  * Tutari ziyaretcinin para biriminde yaz. Cevrilemiyorsa EUR yazar.
  * $cur verilirse o para birimi kullanilir (fatura gibi sabit baglamlar icin).
@@ -317,7 +352,7 @@ function vestra_money(float $eurAmount, ?string $cur = null): string {
     }
     $rate = vestra_fx($cur);
     if ($rate <= 0) return '€'.number_format($eurAmount, 2, '.', ',');   // kur yok: uydurma
-    return $all[$cur]['sym'].number_format($eurAmount * $rate, 2, '.', ',');
+    return $all[$cur]['sym'].number_format(vestra_money_round($eurAmount * $rate, $cur), 2, '.', ',');
 }
 
 /** Ziyaretci EUR disinda bir para birimi goruyor mu? Uyari satirini bu belirliyor. */
@@ -340,10 +375,15 @@ function vestra_money_note(): string {
     $tail = $date !== '' ? ' ('.$date.')' : '';
     $t = function (string $s): string { return function_exists('t') ? t($s) : $s; };
 
+    /* Yuvarlama da SOYLENIYOR: gosterilen rakam artik kur x EUR degil, onun
+       10 kurusa yukari yuvarlanmis hali. Soylemeseydik okuyan kendi carpimini
+       yapip tutturamaz ve hangisinin dogru oldugunu soramazdi -- faturadaki
+       fx_note'un ayni gerekcesi (KURAL 5p). */
+    $round = ' '.$t('Converted amounts are rounded up to the nearest 10 cents.');
     if (vestra_fx_source() === 'ecb') {
-        return sprintf($t('Prices shown in %s are converted from EUR at the European Central Bank reference rate%s. Orders are invoiced in EUR.'), $cur, $tail);
+        return sprintf($t('Prices shown in %s are converted from EUR at the European Central Bank reference rate%s. Orders are invoiced in EUR.'), $cur, $tail).$round;
     }
-    return sprintf($t('Prices shown in %s are converted from EUR at an indicative rate%s. Orders are invoiced in EUR.'), $cur, $tail);
+    return sprintf($t('Prices shown in %s are converted from EUR at an indicative rate%s. Orders are invoiced in EUR.'), $cur, $tail).$round;
 }
 
 /**

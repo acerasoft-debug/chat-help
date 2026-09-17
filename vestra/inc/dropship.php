@@ -174,7 +174,12 @@ function vestra_dropship_usd_unit(array $p, ?array $acc = null): ?float {
     if ($unit === null) return null;
     $r = vestra_fx('USD');
     if ($r <= 0) return null;
-    return round($unit * $r, 2);
+    /* 10 kurusa yuvarlama, sitenin geri kalaniyla AYNI govdeden
+       (vestra_money_round, 17 Eyl 2026). "Buy now" dugmesi ziyaretcinin
+       biriminde yazdiriliyor ve o yol zaten yuvarliyor; bu satir yuvarlamasaydi
+       ayni kutuda dugme US$45,40, hemen altindaki tahsilat satiri US$45,33
+       derdi. */
+    return vestra_money_round($unit * $r, 'USD');
 }
 
 function vestra_dropship_unit_price(array $p, ?array $acc = null): ?float {
@@ -545,7 +550,7 @@ function dropship_create_order(
     /* BIRIM cevrilip yuvarlanir, sonra adetle carpilir -- ters sirada
        birim x adet != satir toplami cikar ve musteri kendi hesabini tutturamaz
        (KURAL 5i'nin fatura tarafinda kayitli dersi). */
-    $usdUnitCents = (int) round($unit * $fxRate * 100);
+    $usdUnitCents = (int) round(vestra_money_round($unit * $fxRate, 'USD') * 100);
     $cents        = $usdUnitCents * $qty;
     $usdAmount    = round($cents / 100, 2);
 
@@ -620,7 +625,10 @@ function dropship_create_order(
                 /* Navlun da USD: satirlar USD iken kargoyu EUR birakmak Stripe
                    tarafinda "para birimi karisik" hatasi verir ve oturum hic
                    acilmaz. */
-                'fixed_amount' => ['amount' => (int)round($zFee * $fxRate * 100), 'currency' => 'usd'],
+                /* Navlun da AYNI yuvarlayicidan: sayfa bolge ucretlerini
+                   vestra_money() ile yaziyor (yuvarli), Stripe ham cevrimi
+                   cekseydi ayni kargo iki rakam olurdu. */
+                'fixed_amount' => ['amount' => (int)round(vestra_money_round($zFee * $fxRate, 'USD') * 100), 'currency' => 'usd'],
                 'display_name' => $zLabel,
             ]],
         ],
