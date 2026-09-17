@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -428,6 +428,110 @@ jobs:
             PHPEOF
             php /tmp/vestra_orddraft.php; rc=$?
             rm -f /tmp/vestra_orddraft.php
+            exit $rc
+
+      - name: Siparişi sil (order_delete) — varsayılan KURU KOŞU
+        # Bu adim, order_write'in eksik olan yarisi: siparisi bu is akisindan
+        # YAZABILIYORDUM ama GERI ALAMIYORDUM, yani her yanlis adet operatorun
+        # panele girmesini gerektiriyordu. Panelin `order_delete` eylemiyle AYNI
+        # yazici (`vestra_order_delete`) cagriliyor -- ikinci bir silme mantigi
+        # yazilmadi; ikinci bir uygulama yedek almayi ya da orders.csv'nin
+        # eskiden-yeniye saklandigini kacirirdi.
+        #
+        # MUHAFAZA BURAYA AYRICA YAZILDI, ve sebebi yapisal: `vestra_order_delete()`
+        # kesilmis faturaya BAKMIYOR -- o kontrol admin.php'de duruyor. Yani
+        # fonksiyonu dogrudan cagiran bir ikinci kapi, KURAL 5g'nin korudugu seyi
+        # kilitsiz birakirdi (bu depoda "dugmeyi gizlemek kapi degildir"in tersi:
+        # kapi var, kilit baska dosyada).
+        #
+        # `force` BILEREK YOK. CLAUDE.md `force=1` yolunu (numarasi yanmis belgeyi
+        # arsivleyerek silme) TEK yerde -- Orders sekmesinde -- tutuyor; ikinci bir
+        # ulasim noktasi tam da o kurali gevsetirdi. Faturali bir ref burada
+        # KOSULSUZ reddediliyor ve nereye gidilecegi yaziliyor.
+        if: ${{ github.event.inputs.admin_mode == 'order_delete' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          ODL_REF:   ${{ github.event.inputs.issue_ref }}
+          ODL_APPLY: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: ODL_REF,ODL_APPLY
+          script: |
+            set -e
+            cat > /tmp/vestra_orddel.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/invoice.php";
+
+            $ref   = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('ODL_REF'));
+            $apply = strtolower(trim((string)getenv('ODL_APPLY'))) === 'true';
+            if ($ref === '') { fwrite(STDERR, "ref yok (issue_ref)\n"); exit(1); }
+
+            $row = null;
+            foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $row = $r; break; }
+            if (!$row) { fwrite(STDERR, "siparis bulunamadi: {$ref}\n"); exit(1); }
+
+            /* NE SILINIYOR. Ref/firma/tutar/durum acik, KISIYE AIT OLAN MASKELI:
+               siparis satiri alicinin adini, e-postasini, telefonunu ve teslimat
+               adresini tasiyor ve bu kutuk herkese acik -- `find_ref` bir kez
+               maskesiz basti (KURAL: teshis adimi "satiri oldugu gibi bas"
+               yapamaz). */
+            $st = (array)(vestra_read_json('order_statuses.json')[$ref] ?? []);
+            printf("silinecek      : %s\n", $ref);
+            printf("firma          : %s\n", (string)($row['company'] ?? '(yok)'));
+            /* Sutun adlari orders.csv'nin KENDI basligindan: `goods`/`currency`
+               diye alanlar YOK (mal toplami `subtotal`, kayit EUR tabanli ve
+               fatura para birimi ayri bir operator secimi -- KURAL 5i). Olmayan
+               bir anahtari `?? ''` ile sormak sessizce bos basar: bu depoda
+               `$a['vat']` (dogrusu `vat_id`) tam boyle her hesap icin "(yok)"
+               yazdi ve neredeyse bir ozur mektubu yazdiriyordu. */
+            printf("tutar          : EUR %s   (mal %s + kargo %s)\n",
+                (string)($row['total'] ?? '?'), (string)($row['subtotal'] ?? '?'),
+                (string)($row['shipping'] ?? '0'));
+            printf("durum          : %s\n", (string)($st['status'] ?? 'pending'));
+            if (trim((string)($st['invoice_currency'] ?? '')) !== '')
+                printf("fatura birimi  : %s   (operator secimi)\n", (string)$st['invoice_currency']);
+            printf("kalem          : %d\n", count(vestra_order_lines($row)));
+
+            $inv = vestra_invoices_for_ref($ref);
+            if ($inv) {
+              fwrite(STDERR, "\n*** FATURA KESILMIS (".implode(', ', array_map(fn($i)=>(string)($i['no'] ?? '?'), $inv))
+                           .") -- BU YOLDAN SILINMEZ.\n"
+                           ."Numara yanmis ve belgenin kopyasi alicinin elinde. Tek kalem yanlissa\n"
+                           ."KURAL 5f (ayni numarayla yeniden ciz); belgeyi gercekten kaldirmak\n"
+                           ."gerekiyorsa Admin > Orders'daki ret bandi (force=1) -- o yol BILEREK\n"
+                           ."tek yerde.\n");
+              exit(1);
+            }
+            echo "fatura         : yok (numara yanmamis)\n";
+
+            if (!$apply) { echo "\nKURU KOSU -- hicbir sey silinmedi (move_apply=true ile uygulanir).\n"; exit(0); }
+
+            /* Yedek `vestra_order_delete()` icinde aliniyor (orders.csv.bak-del-<zaman>);
+               ikinci bir kopya almak, geri donuste hangisinin dogru oldugunu
+               sorduracak ikinci bir dosya birakirdi. */
+            $n = vestra_order_delete($ref);
+            if ($n < 0)   { fwrite(STDERR, "SILINEMEDI (yazma hatasi)\n"); exit(1); }
+            if ($n === 0) { fwrite(STDERR, "satir bulunamadi -- silinmedi\n"); exit(1); }
+
+            /* GERI OKUMA: `rename()` sessizce dusebilir (izin, dolu disk -- bu
+               depoda ayni ay kota kesintisi yasandi) ve "silindi" derken satir
+               yerinde durmamali. */
+            $still = false;
+            foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $still = true; break; }
+            printf("\nSILINDI        : %d satir\n", $n);
+            printf("geri okuma     : %s\n", $still ? '*** HALA DURUYOR ***' : 'kayitta yok (dogrulandi)');
+            exit($still ? 1 : 0);
+            PHPEOF
+            php /tmp/vestra_orddel.php; rc=$?
+            rm -f /tmp/vestra_orddel.php
             exit $rc
 
       - name: Lookbook PDF (yalnız marka + ad + foto)
