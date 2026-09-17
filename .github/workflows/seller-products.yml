@@ -422,7 +422,11 @@ jobs:
                 printf("  mal      : EUR %10s   (dropship, taban + %%%d)\n", number_format($subtotal, 2), (int)round(VESTRA_DROPSHIP_MARKUP * 100));
                 printf("  zam payi : EUR %10s\n", number_format($subtotal - (float)($baseSum ?? 0), 2));
             } else {
-                printf("  mal      : EUR %10s   (toptan kademe fiyatlari)\n", number_format($subtotal, 2));
+                /* Etiket, fiyatin GERCEKTEN nereden geldigini yazmali: anlasilan
+                   bir birimle kurulmus bir toplama "kademe fiyatlari" demek,
+                   notun kendisinde duzeltilen yalanin ozet satirindaki hali. */
+                printf("  mal      : EUR %10s   (%s)\n", number_format($subtotal, 2),
+                       $anyAgreed ? 'ANLASILAN birim fiyat(lar)' : 'toptan kademe fiyatlari');
             }
             printf("  kargo    : EUR %10s\n", number_format($ship, 2));
             printf("  TOPLAM   : EUR %10s\n", number_format($total, 2));
