@@ -5852,6 +5852,27 @@ anlatımı duruyor çünkü kod duruyor; **geçerli olan değer bu maddedir.***
 - **İki yön korundu:** taban kalktı ama **bölgesel indirim DURUYOR** (Benin hâlâ
   %8, ABD hâlâ indirimsiz) — iki kapı ayrı ve bunu tutan iddialar bilerek
   yazıldı; tabanı kaldıran bir değişiklik indirimi de sessizce götürebilirdi.
+- **CANLI ÖLÇÜM (17 Eyl 2026, deploy `024c362a`, `seo-check` run 34).**
+  Sunucunun kendi kodundan, on pazarın **onunda da** `asgari=-`; aynı satırda
+  indirimler yerinde (`australia AUD/10% · japan 10% · brazil 10% ·
+  south-america 10% · singapore 10%`, ABD/BAE/Katar/İsrail/G.Kore `-`),
+  kapılar yerinde, `hreflang 81 etiket / 64 ülke`, `AB27+EFTA+GB 32/32`.
+  **Bu satır kapının kendisini de kanıtlıyor:** `min_order_usd` sipariş
+  kapısıyla **aynı sabitten** türüyor, yani "asgari=-" sunucudaki sabitin
+  0.0 olduğunu doğrudan gösteriyor.
+- **Deploy İKİ KEZ KOŞTU ve ilki `dial tcp: i/o timeout` ile düştü** — SSH hiç
+  bağlanmadı, yani o koşu sunucu hakkında **hiçbir şey söylemiyor** (bu
+  dosyanın kayıtlı dersi). Daha kötüsü: aynı dakikalarda başka bir oturumun
+  deploy'u **başarıyla** koştu ve benim değişikliğim **olmayan** bir sha'yı
+  sunucuya yazdı. Yeniden koşturulup doğrulandı. *İki deploy aynı anda
+  koşuyorsa, "sonuncusu kazanır" — ve sonuncu senin koşun olmayabilir.*
+- **Kendi hatam, kayda geçsin:** ikinci dala push'u
+  `if git push ... | tail -2` ile sardım; kabuk **boru hattının SON
+  komutunun** (yani `tail`'in) çıkışına bakar, o da hep başarılı. Push
+  `non-fast-forward` ile reddedilmişken ekrana **"PUSH OK"** yazdırdım.
+  Yakalayan şey çıktının kendisini okumak oldu (`hint: 'git pull' before
+  pushing again`). *Ölçüm aracının kendi gürültüsü, bu dosyanın üç kez
+  kaydettiği sınıf — burada aracın kendisi ben oldum.*
 
 **ESKİ KAYIT (16 Eyl 2026) — taban KONDUĞU günün gerekçesi; değeri artık
 geçerli değil, mekanizması geçerli:**
