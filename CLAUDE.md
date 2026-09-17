@@ -5329,6 +5329,76 @@ kesildi.** Operatör: *"verdigim bilgiler ile francisco ya hesap ac"* +
    belge vergi kimliksiz, adressiz ve **ödeme kutusuz** çıkardı. Ölü hesabın
    kapatılması/birleştirilmesi operatör kararı.
 
+**KURAL 28 — Elle açılan hesabın GİRİŞ YAPACAK bir yolu olmalı: "şifreni seç"
+mektubu** (operatör, 17 Eyl 2026: *"francisco ya bir email gönder kendi paswort
+ile yeni bir paswort olustursun ve girsin"*).
+- `create_buyer` hesabı açıyor ama **şifre rastgele ve hiçbir yere
+  yazılmıyor** — bu bilinçliydi (şifre gösterilemez) ama yarısı eksikti:
+  müşterinin giriş yapmasının **hiçbir yolu yoktu**. Kapıyı açıp anahtarı
+  vermemek.
+- **YENİ BİR MEKTUP YAZILDI** (`vestra_account_ready_text`, `inc/notify.php`,
+  `vestra_reset_text`'in hemen yanında). Mevcut sıfırlama mektubu *"birileri
+  (umarız siz) şifre sıfırlama **İSTEDİ**"* diye açıyor: müşteri hiçbir şey
+  istemedi ve **hiç sahip olmadığı** bir şifre "sıfırlanmıyor". Üstelik o metin
+  hesabın **açık** olduğunu ve sipariş verebileceğini hiç söylemiyor. Bu depo
+  aynı dersi iki kez kaydetti — KURAL 2b (kapı açıkken belgeyi sebep göstermek)
+  ve KURAL 2h (varsayılan kayıt metni *"ekibimiz hesabınızı aktive edecek"*
+  diyerek **yapılmayacak** bir işi bekletiyordu ve o hesaplara ayrı bir gövde
+  yazıldı). **Üçüncüsü bu.**
+- **JETON ÜRETİCİSİ AYNI:** `auth_reset_begin()` — `forgot.php`'nin
+  çağırdığının aynısı, link yine `/reset?token=`. İkinci bir jeton yolu, ikinci
+  bir ömür ve ikinci bir güvenlik kuralı demekti.
+- **Süre 1 saat ve soğuk bir mektupta bu gerçek bir sürtünme.** Ömrü bu yol
+  için uzatmak ikinci bir kural yazmak olurdu; onun yerine **metin çıkış yolunu
+  söylüyor** (`/forgot` + bu adres). `reset.php` zaten "süresi dolmuş"
+  ekranında aynı yere bağlanıyor, yani söylenen şey **doğrulanabilir**.
+- **Metin hesabın DURUMUNU okuyor, varsaymıyor:** kapı açıksa *"hemen sipariş
+  verebilirsiniz"*, kapalıysa *"ekibimiz onaylayacak"*; belge cümlesi yalnız
+  `trade_licence` hâlâ **`requested`** ise yazılıyor (`uploaded` olana
+  "yükleyin" demek yaptığı işi tekrar yaptırmaktır — KURAL 2b).
+- **ÖLÇÜT HESAP ID'Sİ, ADRES DEĞİL.** `diag-live.yml`'deki mevcut `reset_probe`
+  bu işi zaten yapabiliyor **ama girdisi bir e-posta** — yani müşterinin adresi
+  koşu başlığında kalıcı ve herkese açık. Depo bu hatayı `only_emails` →
+  `only_accounts` ile bir kez düzeltmişti; aynı desen (`seller-products.yml` →
+  `admin_mode=password_setup`, `issue_ref=<hesap ID>`). **TAM 1 eşleşme yoksa
+  iş DURUR:** sıfırda kimseye gitmez, birden fazlada **yanlış müşteriye**
+  giderdi ve gönderilmiş bir mektup geri alınamaz.
+- **KURU KOŞU JETON ÜRETMEZ.** `auth_reset_begin()` kayda yazıyor ve **varsa
+  önceki jetonu geçersiz kılıyor** — bir önizlemenin müşterinin elindeki canlı
+  linki öldürmesi kabul edilemez. Kuru koşu metni sahte bir linkle kuruyor; bu
+  aynı zamanda şablonun sunucuya **indiğini** de ölçüyor (KURAL 21b'nin "deploy
+  inmemiş" dersi).
+- **Link, jeton ve GÖVDE kütüğe basılmıyor** (jeton tek başına hesabı açar;
+  hitapta müşterinin adı var), adres maskeli. Operatör metni **sohbette**
+  görüyor — kütük herkese açık, sohbet değil.
+- **Dil hesabın KAYITLI dilinden** (`vestra_user_lang`), `vlang()` değil: bu
+  mektup operatörün isteğinden doğuyor, müşterinin kendi isteğinden değil —
+  `vestra_reset_text`'in kendi notunun yazdığı ayrım.
+- Test: `tests/account_ready_letter_test.php` (107 iddia, iki yön). Her
+  sabotajın **gerçekten uygulandığı ayrıca doğrulanarak** düşebildiği ölçüldü:
+  `open` dalı kaldırılınca **10 kırmızı**, belge cümlesi koşulsuz yazılınca
+  **5**, kuru koşu jeton üretince **2**, link kütüğe basılınca **1**, adres
+  maskesiz basılınca **1**, TAM 1 eşleşme şartı kalkınca **1**.
+  **Bir sabotajım ilk denemede hiç uygulanmamıştı** (perl kaçışı eşleşmedi) ve
+  "0 kırmızı" diyerek testi sağlam gösterecekti — bu dosyada kayıtlı tuzak,
+  yeniden uygulanıp doğrulandı.
+- **Kendi ölçüm hatam:** adım gövdesini kesen ayırıcım (`- name: SİPARİŞİN
+  RENGİNİ`) dosyada **yoktu** (o bir yorum satırı, `- name:` değil), yani
+  "sızıntı yok" iddiaları **dosyanın geri kalanını** okuyup düştü. Ayrıca
+  `vlang()` iddiası, `vlang()`'in **neden kullanılmadığını** anlatan kendi
+  yorumumu okudu. İkisinde de iddia gevşetilmedi — **ölçtüğü şey daraltıldı**
+  (adım sınırına kadar kes, yorumsuz metne bak).
+- **CANLI SONUÇ (17 Eyl 2026, deploy `df4077a7`).** Kuru koşu (run
+  `35251178651`): hesap `7d68b8778cd3884c` · `b***@gmail.com` · buyer/active ·
+  dil **es** · ülke Spain · kapı **AÇIK** · `trade_licence: requested` → belge
+  cümlesi yazılır · `mail_enabled=acik`, `from=support@vestrasales.com` ·
+  konu *"VESTRA — tu cuenta está abierta, elige una contraseña"* · gövde 746
+  karakter · **jeton üretilmedi, mektup gitmedi**. Gönderim (run
+  `35251231280`): jeton üretildi, son geçerlilik **18:12 UTC** (+1 saat),
+  **GÖNDERİLDİ**. Kütükteki "kabul etti" yalnızca **Brevo isteği kabul etti**
+  demek — `delivered` bile posta kutusu kanıtı değil (bu dosyanın kendi
+  uyarısı).
+
 **KURAL 26 — Para birimi seçimi KALICI; çerezi yazan tek yer money.php'nin
 yüklenme anı** (operatör, 13 Eyl 2026: *"para birimi sürekli degisiyor ... para
 birimi secilmesine ragmen bir sonraki linke tiklandginda gene eur oluyor ayrica
