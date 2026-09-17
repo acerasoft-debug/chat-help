@@ -1842,6 +1842,52 @@ ardından ident no ya da sku numarası koy, mağaza ismi yapma"*).
 - Test: `tests/msg_link_filter_test.php` (24 iddia, iki yön). Düzeltme geri
   alınınca **5 iddia kırmızıya** dönüyor.
 
+**Mesaj başlığındaki `listing_id` her zaman İLAN DEĞİL — talep ref'i de olabilir**
+(operatör, 17 Eyl 2026: *"bu ürünü offer vermis müsteri ancak ürün yok neden silindi
+ve neydi"* — Mfitel Anas ↔ GARAGE LE PARIS, `RFBF89`).
+- **ÖLÇÜLDÜ, hiçbir şey silinmemiş** (`diag-live` → `find_ref=RFBF89`, 2 yerde
+  bulundu): `RFBF89` bir ilan değil bir **TALEP** — `requests.csv`'de duruyor
+  (17 Eyl 10:19 · *"Lacoste nike ralph Laurent tommy"* · Hoodies & Sweatshirts ·
+  **20 ad.** · hedef **€15** · France) ve GARAGE LE PARIS o talebe 18:07'de teklif
+  vermiş (`request_offers.csv` · `RO5E11B9` · **€25/ad.** · **300 ad.**). İki kayıt
+  da yerinde.
+- **Yön de tersti:** operatör "müşteri offer vermiş" diye okudu; gerçekte **satıcı**,
+  **alıcının** talebine teklif verdi. Ortada hiç ürün yoktu — talep panosu ilan
+  bazlı değil.
+- **Paneli yanıltan şey yapısal:** `request-offer.php` thread'i
+  `vestra_msg_post_system($buyer, $seller, $ref, …)` ile **talep ref'iyle** açıyor,
+  yani `listing_id` alanında bir ilan id'si yok. Satır `vestra_find()` başarısız
+  olunca ham id'yi basıp onu **`/product?id=RFBF89`**'e bağlıyordu — var olamayacak
+  bir sayfa. *Yanlış sayfaya yollayan bir yönerge, hiç yönergeden pahalıdır çünkü
+  uygulanır* (KURAL 5j'nin aynı dersi).
+- Üç durum, üç etiket: gerçek ilan → adı + ürün sayfası (**değişmedi**); talep ref'i
+  → talebin **kendi başlığı** + Requests sekmesi + `sourcing request <ref>` rozeti;
+  çözülemeyen → **düz metin, bağlantı YOK**.
+- **Son dal bilerek "silindi" DEMİYOR.** `vestra_find()` → `vestra_products(true)` →
+  `vestra_live_listings()`, yani yalnız **`approved` + satıcısı askıda olmayan**
+  ilanları görüyor. Oraya gerçekten silinmiş bir ilan da, yalnızca gizli duran bir
+  ilan da düşüyor — 13 Eylül'de Marca Online askıya alınınca **146 ilan** tam böyle
+  "yok" olmuştu. *"Çözülmüyor" ile "silinmiş" aynı şey değil.*
+- **Konuşmanın İÇİ zaten doğruydu:** sistem kartı (`vestra_msg_system_html`,
+  `kind=request_offer`) talebin başlığını, birim fiyatı ve adedi basıyor. Yanıltan
+  tek şey **başlık satırıydı** — yani operatörün listede gördüğü yer.
+- Test: `tests/msg_thread_label_test.php` (13 iddia). Kum havuzunda `admin.php`'yi
+  **gerçekten çizdiriyor**: ölçülmesi gereken şey üretilen HTML ve `$requests`'in o
+  satırda kapsamda oluşu — `php -l` ikisini de göremez (bu depoda aynı gün iki
+  çalışma-zamanı hatası `php -l`'den geçmişti). **İki yön de** tutuluyor: gerçek ilan
+  HÂLÂ ürün sayfasına bağlanmalı. Düşebildiği doğrulandı, her sabotajın gerçekten
+  uygulandığı ayrıca yazdırılarak: eski davranış geri konunca **4 kırmızı**, talep
+  araması silinince **2**.
+- **Kendi ölçüm hatam:** *"Requests sekmesine bağlanıyor"* iddiasını önce sayfanın
+  **tamamında** aradım ve sabotaj altında **yeşil kaldı** — `/admin?tab=requests`
+  **sol menüde de** geçiyor, yani iddia satırı değil navigasyonu ölçüyordu. İddialar
+  satırın kendi bloğuna daraltıldı. *mango/zara dersinin testin kendi içindeki hâli;
+  `class="msgtick` önekinin `msgtickdefs`'i yakalamasıyla aynı sınıf.*
+- **Operatör kararı bekliyor:** teklif talebin **15 katı adet** ve **hedefin %67
+  üstünde** (300 ad. @ €25 ↔ 20 ad. hedef €15). Alıcı yanıt vermemiş görünüyor;
+  satıcının 769 karakterlik mesajı `Admin ▸ Request Offers` (`RO5E11B9`) ve
+  konuşmanın kendisinde duruyor.
+
 **KURAL 14 — Talep panosu ("Anfragen"): ÖRNEK ile GERÇEK talep karışmaz**
 (operatör, 8 Eyl 2026: *"sitenin anfragen bölümüne yeni anfragen lar ekle"*).
 - `requests.php` iki liste basıyor: `requests.csv`'den gelen **gerçek** alıcı
