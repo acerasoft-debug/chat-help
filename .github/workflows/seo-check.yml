@@ -322,6 +322,33 @@ jobs:
                 $v = (float)($r[$c] ?? 0);
                 printf("  1 EUR = %-4s %s\n", $c, $v > 0 ? number_format($v, 4) : "*** KUR YOK ***");
               }
+              /* 10 KURUSA YUVARLAMA canliya indi mi (17 Eyl 2026). Fonksiyonun
+                 VARLIGINA bakmak yetmez -- eski bir kopya da parse edilir; bu
+                 yuzden gercek bir tutar cevrilip YAZDIRILIYOR. Kur yoksa
+                 vestra_money() zaten EUR basar, o yuzden satir onu da soyluyor. */
+              echo "\n== CEVRILMIS FIYAT: 10 KURUSA YUVARLAMA ==\n";
+              if (!function_exists("vestra_money_round")) {
+                echo "  *** vestra_money_round YOK — deploy inmemis ***\n";
+              } else {
+                printf("  adim: %s\n", number_format(VESTRA_MONEY_STEP, 2));
+                foreach (array_keys(vestra_currencies()) as $c) {
+                  if ($c === "EUR") continue;
+                  $v = (float)($r[$c] ?? 0);
+                  if ($v <= 0) { printf("  %-4s kur yok -> vestra_money() EUR basar\n", $c); continue; }
+                  /* Katalogda gercekten duran bir fiyat (Fred Perry M3600). */
+                  $raw = 39.00 * $v;
+                  printf("  %-4s 39,00 EUR -> ham %s -> ekranda %s  %s\n", $c,
+                         number_format($raw, 4), vestra_money(39.00, $c),
+                         ((int)round(vestra_money_round($raw, $c) * 100) % 10 === 0) ? "[10 kurusun kati]" : "*** DUZ DEGIL ***");
+                }
+                /* Not yalnizca CEVRIM YAPILIYORKEN cikiyor. CLI tarafinda secim
+                   olmadan birim EUR kalir ve not zaten bos doner -- yani hicbir
+                   sey olcmeden "bos" yazardik. Birim burada acikca seciliyor. */
+                $_GET["cur"] = "USD";
+                $n = vestra_money_note();
+                printf("  not: %s\n", $n !== "" ? (str_contains($n, "10 cents") || str_contains($n, "10 ") ? "yuvarlamayi SOYLUYOR" : "*** yuvarlamayi soylemiyor ***") : "(EUR gorende bos — dogru)");
+              }
+
               $f = __DIR__."/data/fx_rates.json";
               if (is_readable($f)) {
                 $j = json_decode((string)file_get_contents($f), true) ?: [];
