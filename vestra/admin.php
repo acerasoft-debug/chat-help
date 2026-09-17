@@ -6220,11 +6220,33 @@ elseif($tab==='messages'):
              replying to the wrong one is a real risk when several are open at once. The
              product's own name is the thing that disambiguates at a glance; the id is
              kept as a fallback for a listing that no longer resolves (deleted/renamed),
-             so the row never goes silent instead of just less pretty. */
-          $thProd = vestra_find((string)$th['listing_id']);
+             so the row never goes silent instead of just less pretty.
+
+             Operator, 17 Sep 2026 ("bu urunu offer vermis musteri ancak urun yok neden
+             silindi"): the fallback was LYING. `listing_id` is not always a listing —
+             request-offer.php opens the thread with the sourcing REQUEST ref
+             (`vestra_msg_post_system($buyer,$seller,$ref,…)`), so a request-board quote
+             put a bare `RFBF89` here and linked it to /product?id=RFBF89, a page that
+             cannot exist. The operator read that as "the product was deleted"; nothing
+             had been deleted and there was never a product. Three states, three labels:
+             a real listing → its name; a request ref → the request's own title and the
+             Requests tab; anything else → PLAIN TEXT, because a link to a page that
+             404s is worse than no link (this file's own "yanlis sayfaya yollayan bir
+             yonerge, hic yonergeden pahalidir" lesson).
+
+             Note `vestra_find()` only sees APPROVED listings whose seller is not
+             suspended, so a real-but-hidden product also lands in the last branch —
+             plain text, not a false "deleted". */
+          $thLid  = (string)$th['listing_id'];
+          $thProd = vestra_find($thLid);
           $thProdLabel = $thProd ? trim(($thProd['brand']??'').' '.($thProd['name']??'')) : '';
-          if ($thProdLabel === '') $thProdLabel = (string)$th['listing_id'];
-        ?> · <a href="/product?id=<?= urlencode($th['listing_id']) ?>" target="_blank" style="color:var(--acc)"><?= htmlspecialchars($thProdLabel) ?> ↗</a><?php endif; ?></div>
+          $thReq = null;
+          if ($thProdLabel === '') {
+            foreach($requests as $rq){ if(($rq['ref']??'')===$thLid){ $thReq=$rq; break; } }
+          }
+        ?> · <?php if($thProdLabel!==''): ?><a href="/product?id=<?= urlencode($thLid) ?>" target="_blank" style="color:var(--acc)"><?= htmlspecialchars($thProdLabel) ?> ↗</a>
+        <?php elseif($thReq): ?>📋 <a href="/admin?tab=requests" style="color:var(--acc)"><?= htmlspecialchars(trim((string)($thReq['title']??'')) !== '' ? $thReq['title'] : $thLid) ?></a> <span class="atag">sourcing request <?= htmlspecialchars($thLid) ?></span>
+        <?php else: ?><span class="atag"><?= htmlspecialchars($thLid) ?></span><?php endif; ?><?php endif; ?></div>
     </div>
   </div>
   <div class="acard-body">
