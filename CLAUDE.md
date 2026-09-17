@@ -1888,6 +1888,71 @@ ve neydi"* — Mfitel Anas ↔ GARAGE LE PARIS, `RFBF89`).
   satıcının 769 karakterlik mesajı `Admin ▸ Request Offers` (`RO5E11B9`) ve
   konuşmanın kendisinde duruyor.
 
+**Excel'den çıkarılmış ürün fotoğrafı: MANZARA tuval + boş gutter + kesik giysi;
+düzeltme YENİ PİKSEL DEĞİL, aynı SKU'nun temiz karesidir** (operatör, 17 Eyl 2026:
+*"Lacoste Crew Neck Sweatshirt fotolarinda sorun var excelden iyi cikmamis düzelt
+cerceveye otursun"*).
+- **Katalogda İKİ Lacoste crew-neck sweatshirt var ve doğrusu ölçülerek seçildi:**
+  `lac-crew-sweatshirt` (*"Fleece Crew Neck Sweatshirt"*, SH9608, €64,71 / MOQ 56)
+  ve `lgp-lacoste-crew-sweatshirt` (*"Crew Neck Sweatshirt"*, GARAGE LE PARIS,
+  LAC-SH9608-00, €60 / MOQ 8). Operatörün kastettiği **ikincisi** ve bu **üç
+  bağımsız eşleşmeyle** doğrulandı: adı birebir o, fotoğrafları gerçekten Excel'den
+  çıkma, ve gerçekten çerçeveye oturmuyor. Birincisininki zaten temiz.
+- **Kusurun imzası ölçüldü, tahmin edilmedi.** Eski on kare (`/uploads/lac-sweat/
+  lacoste-sweat-*.png`) **onu da 892×750**, yani **AYNI tuvalde** ve **MANZARA**;
+  hepsinde **%15–22 boş SOL gutter**; içerik sınır kutusu 9'unda üst/sağ/alt
+  kenara **dayanıyor** — giysinin manşeti/eteği **kesik**. Aynı tuval + aynı gutter
+  + üç kenardan kırpık = bir hücreden çıkarmanın imzası. Vitrin çerçeveleri
+  **PORTRE** (`.sthumb` 3/4, `.gal-main` 4/5, ikisi de `object-fit:contain`), yani
+  manzara bir kare mektup kutusu gibi oturuyor: giysi küçük, ortalı değil, sağa
+  itilmiş. *"Çerçeveye oturmuyor" şikâyeti önce bir ORAN sorusudur.*
+- **Yeni piksel üretilmedi.** Aynı SKU'nun temiz pack-shot'ları **zaten sunucuda**
+  (`/uploads/lacoste/crew-sweatshirt/`) ve kardeş ilan onları kullanıyor. Kırpmak
+  ya da beyaz tuvale yapıştırmak kesik giysiyi düzeltmezdi — kesilen piksel yok.
+- **Sunucudaki kareler GÖZLE doğrulandı**, "diskte" yazısına güvenilmedi:
+  `diag-live` → `wetransfer_probe=sheet:public_html/uploads/lacoste/crew-sweatshirt|
+  perfile|cell=300|spaced` kontakt sayfası çekildi — onu da beyaz zeminde, portre,
+  giysi tam ve ortalı. *`black.avif` hücresi boş çıktı: **GD avif çözemiyor**, dosya
+  eksik değil (`img_list` "diskte" diyor ve kardeş ilan onu canlıda basıyor). Aracın
+  kendi sınırını kusur sanma.*
+- **Renk sırası ilanın kendi sırası, KAPAK yine Navy.** İstenen fotoğrafların
+  düzelmesiydi, kapağın değişmesi değil (Balenciaga 612966 dersi).
+- **AYNI OLGU İKİ YERDE YAZILI ve ikisi de düzeltildi.**
+  `Admin ▸ Listings ▸ Sync Les Garage Paris` (`sync_lesgarage`) mevcut ilanı
+  `inc/lesgarage_polos_seed.json`'dan **geri yazıyor** ve `$refreshable` listesinde
+  **`images` var** — yani yalnız `listings.json`'u düzeltseydim, operatör o düğmeye
+  bastığı gün Excel kareleri **sessizce geri gelirdi**. `offers` alanının
+  `seller.php` tarafından her kaydetmede geri yazılmasıyla birebir aynı sınıf.
+  *Bir alanı düzeltirken "bunu başka kim YAZIYOR?" diye sor — "başka nerede yazılı"
+  sorusunun yazma tarafı.*
+- Tohum dosyasına **açıklama anahtarı konmadı**: `sync_lesgarage` YENİ ürün yolunda
+  kaydın **tamamını** `listings.json`'a yazıyor, yani `_why` gibi bir anahtar canlı
+  ilan kaydına sızardı (`product-fixes/*.json`'da güvenli, çünkü `set_product.php`
+  yalnız `$ALLOWED`'ı kopyalıyor). Gerekçe burada duruyor.
+- **Parti dosyası yine canlı kaydın aynası değildi:** `product-batches/
+  lacoste-9-new-models.json` **üçüncü** bir yol yazıyor (`/uploads/lacoste/
+  crew-sweatshirt/…` — o kardeş ilanın), repoda ise **dördüncü** bir kopya duruyor
+  (`vestra/uploads/lacoste/sh9608-*`, 10 kare; siyah ve lacivert orada **gri
+  zeminli ve altı kesik**). Hedef canlıdan ölçülmeseydi yanlış kümeyi düzeltecektim.
+- Uygulama: `product-fixes/lgp-crew-sweatshirt-photos.json` + `set-product.yml`.
+  `set_product.php` her yolun **sunucuda var olduğunu** doğruluyor
+  (`is_file($home.'/public_html'.$img)`), yani doğrulama yazma yolunun içinde.
+  Kuru koşu → uygula → **sunucudan geri okundu** (`inspect-products` → `img_list`):
+  10 kare, hepsi `diskte`, kapak `navy.jpg`.
+- **Operatör kararı bekleyen üç şey (hiçbiri kendiliğinden değiştirilmedi):**
+  1. **Aynı ürün katalogda İKİ ilan:** SH9608 hem €55 (min 56) hem €45 (min 8) —
+     ucuz olanın asgarisi de düşük, yani aynı sweatshirt iki fiyatla duruyor.
+  2. **`lgp-lacoste-crew-sweatshirt`'in kategorisi `Sweatshirts`** ve bu ad
+     `vestra_all_cats()`'te **YOK** (doğrusu `Hoodies & Sweatshirts`). Sonucu
+     `inc/products.php`'nin kendi yorumunda yazılı: taksonomide olmayan kategori
+     `seller.php`'nin `in_array` kontrolüne takılıyor ve satıcı o ürünü açıp
+     kaydettiğinde kategori **"Other" ile eziliyor**. Ayrıca ad `t()`'den geçmediği
+     için 9 dilde ham İngilizce basılıyor.
+  3. **Renk seçici KAPALI:** ilan 10 rengi listeliyor ama `min_colors` alanı **yok**,
+     `vestra_is_colorqty_listing()` üç şartı birden istiyor — yani alıcı renkleri
+     görüyor, **seçemiyor**. Fred Perry M7535'te kaydedilen *"renkler ilanda var ≠
+     alıcı renk seçebiliyor"* vakasının aynısı.
+
 **KURAL 14 — Talep panosu ("Anfragen"): ÖRNEK ile GERÇEK talep karışmaz**
 (operatör, 8 Eyl 2026: *"sitenin anfragen bölümüne yeni anfragen lar ekle"*).
 - `requests.php` iki liste basıyor: `requests.csv`'den gelen **gerçek** alıcı
