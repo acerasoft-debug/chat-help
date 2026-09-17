@@ -1705,6 +1705,26 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_leads($leads);
     header('Location: /admin?tab=prospects&msg=lead_email_ok'); exit;
   }
+  /* Fix the company name of a research lead. The crawler takes whatever the page
+     calls itself, and some pages call themselves "Home": factoryoutlet.gr is stored
+     as "Αρχική" and every campaign letter would open "Hello Αρχική,". Until today the
+     only ways out were to send anyway or to delete and re-add — and deleting drops
+     last_contacted_at / last_newcollection_at, which makes the FIRST letter go out a
+     second time. So the rule here is the narrow one: find by id, write ONLY `company`,
+     touch no stamp and no status. Same shape as set_lead_email above. */
+  if($act==='rename_lead'){
+    $lid=$_POST['lid']??''; $co=trim((string)($_POST['company']??''));
+    /* An empty name is worse than a wrong one: the greeting helper writes
+       "Hello" with nothing after it. Refuse instead of storing it. */
+    if($co===''){ header('Location: /admin?tab=prospects&msg=lead_name_empty'); exit; }
+    $co=mb_substr($co,0,120);
+    $leads=vestra_leads(); $hit=false;
+    foreach($leads as &$l){ if(($l['id']??'')===$lid){ $l['company']=$co; $hit=true; break; } }
+    unset($l);
+    if(!$hit){ header('Location: /admin?tab=prospects&msg=lead_notfound'); exit; }
+    vestra_save_leads($leads);
+    header('Location: /admin?tab=prospects&msg=lead_renamed'); exit;
+  }
   /* Save the Google Cloud key (Places = addresses, Custom Search = the email fallback).
      Same storage as every other credential here: data/email_settings.json, chmod 600,
      web-denied, gitignored. This repository is public — a key must never reach it, and
@@ -2638,6 +2658,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'letter_quota'=>'Günlük gönderim kotası dolu. Şifre sıfırlama ve sipariş bildirimleri için ayrılan pay korunuyor — yarın deneyin.',
     'lead_invalid'=>'Company and a valid email are required.','lead_status_ok'=>'Prospect status updated.',
     'lead_deleted'=>'Prospect deleted.','lead_tpl_ok'=>'✓ Outreach template saved.','lead_email_ok'=>'✓ Email added — prospect can now be emailed.',
+    'lead_renamed'=>'✓ Company name saved — the campaign letter greets them by it. Contact stamps untouched.',
+    'lead_name_empty'=>'A company name is required — the letter would greet an empty name.','lead_notfound'=>'That prospect no longer exists.',
     'quote_sent'=>'✓ Offer emailed to the customer.','quote_invalid'=>'Enter a valid customer email and pick at least one product.',
     'quote_failed'=>'Offer could not be sent — set up your Sending email below (SMTP) first.','quote_unsub'=>'That contact has unsubscribed — offer not sent.',
     'email_saved'=>'✓ Sending email saved. Send yourself a test to confirm it works.','test_ok'=>'✓ Test email sent — check that inbox.','test_fail'=>'Test failed — check the SMTP host/username/password (or use an API key).','test_invalid'=>'Enter a valid email address to send the test to.',
@@ -5812,6 +5834,7 @@ document.addEventListener('DOMContentLoaded',function(){
   <input type="hidden" name="lid" id="lrf_lid">
   <input type="hidden" name="status" id="lrf_status">
   <input type="hidden" name="email" id="lrf_email">
+  <input type="hidden" name="company" id="lrf_company">
 </form>
 <script>
 function leadSetStatus(lid,status){
@@ -5825,6 +5848,15 @@ function leadSetEmail(lid,current){
   document.getElementById('lrf_action').value='set_lead_email';
   document.getElementById('lrf_lid').value=lid;
   document.getElementById('lrf_email').value=e;
+  document.getElementById('leadRowForm').submit();
+}
+function leadRename(lid,current){
+  var c=prompt('Company name for this prospect (the campaign letter greets them by it):',current||'');
+  if(c===null) return; c=c.trim(); if(!c) return;
+  if(c===(current||'')) return;
+  document.getElementById('lrf_action').value='rename_lead';
+  document.getElementById('lrf_lid').value=lid;
+  document.getElementById('lrf_company').value=c;
   document.getElementById('leadRowForm').submit();
 }
 function leadFindEmail(lid){
@@ -6026,7 +6058,9 @@ function runAutomationNow(btn){
       <?php foreach($leadsView as $l): $unsub=($l['status']??'')==='unsubscribed'; $noEmail=!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL); $alreadySent=($l['last_contacted_at']??'')!==''; $findable=($noEmail && !$unsub && !empty($l['website'])); $prem=!empty($l['premium']); $premBrands=implode(', ', array_map(fn($b)=>ucwords((string)$b), (array)($l['premium_brands']??[]))); ?>
       <tr style="opacity:<?= $unsub?.5:($noEmail?.72:1) ?>" data-id="<?= htmlspecialchars($l['id']??'') ?>" data-findable="<?= $findable?'1':'0' ?>">
         <td class="ac"><input class="leadchk" type="checkbox" name="lead_ids[]" value="<?= htmlspecialchars($l['id']??'') ?>" title="<?= ($unsub||$noEmail)?'Send skips this one automatically — still selectable to delete':($alreadySent?'Already emailed — send skips it automatically (no auto-resend), still selectable to delete':'') ?>"></td>
-        <td class="ac"><b><?= htmlspecialchars($l['company']??'') ?></b><?php if($prem): ?> <span title="Premium markalar tespit edildi: <?= htmlspecialchars($premBrands?:'—') ?>" style="display:inline-block;font-size:9px;font-weight:700;letter-spacing:.04em;color:#8a6420;background:rgba(201,168,106,.16);border:1px solid rgba(201,168,106,.5);border-radius:5px;padding:1px 5px;vertical-align:middle">★ PREMIUM</span><?php endif; ?><?php if(!empty($l['website'])): ?><div class="ahint"><?= htmlspecialchars($l['website']) ?></div><?php endif; ?></td>
+        <?php /* The name is clickable because it is what the letter greets them by —
+                 a crawled "Home"/"Αρχική" has to be fixable without deleting the row. */ ?>
+        <td class="ac"><b style="cursor:pointer" title="Click to fix the company name" onclick="leadRename('<?= htmlspecialchars($l['id']??'') ?>','<?= htmlspecialchars($l['company']??'') ?>')"><?= htmlspecialchars($l['company']??'') ?></b><?php if($prem): ?> <span title="Premium markalar tespit edildi: <?= htmlspecialchars($premBrands?:'—') ?>" style="display:inline-block;font-size:9px;font-weight:700;letter-spacing:.04em;color:#8a6420;background:rgba(201,168,106,.16);border:1px solid rgba(201,168,106,.5);border-radius:5px;padding:1px 5px;vertical-align:middle">★ PREMIUM</span><?php endif; ?><?php if(!empty($l['website'])): ?><div class="ahint"><?= htmlspecialchars($l['website']) ?></div><?php endif; ?></td>
         <td class="ac"><?= htmlspecialchars($l['contact_name']??'') ?: '—' ?></td>
         <td class="ac" style="font-size:11px"><?php if(!$noEmail): ?><span style="cursor:pointer" title="Click to edit" onclick="leadSetEmail('<?= htmlspecialchars($l['id']??'') ?>','<?= htmlspecialchars($l['email']) ?>')"><?= htmlspecialchars($l['email']) ?></span><?php elseif(!$unsub): ?><button type="button" class="abtn" style="font-size:10.5px;padding:2px 7px" onclick="leadSetEmail('<?= htmlspecialchars($l['id']??'') ?>','')">＋ Add email</button><?php if($finderOn && !empty($l['website'])): ?> <button type="button" class="abtn" style="font-size:10.5px;padding:2px 7px" onclick="leadFindEmail('<?= htmlspecialchars($l['id']??'') ?>')" title="Look up a verified email from the website">🔍 Find</button><?php endif; ?><?php else: ?>—<?php endif; ?></td>
         <td class="ac"><?= htmlspecialchars($l['country']??'') ?: '—' ?></td>
