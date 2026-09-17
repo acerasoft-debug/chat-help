@@ -902,6 +902,23 @@ function vestra_discover_blocklist(): array {
     'rinkan','gsc-rinkan',
     'the webster','thewebster','undefeated','lemkus','jack lemkus',
     'another aspect','anotheraspect','slow steady club','slowsteadyclub',
+    /* 17 Eyl 2026 — soguk havuzda kalan 10 aday ELLE okundu (KURAL 1'in
+       atlanamaz adimi). Kod ucunu de geciriyordu; ucu de arastirilarak
+       dogrulandi, hafizadan elenmedi ('worksout' dersi):
+         - Carl Scarpa (IE): UK+Irlanda'da 20 sube VE kendi markalari
+           (Rosconia, ViaCimo, Pierre Varini, Ogetti, Moninari, Babila,
+           Instep) -- zincir + own-label, KURAL 1'in iki kolu birden.
+         - Kalogirou (GR/CY): 10 magaza, "Kalogirou Private Label" kendi
+           serisi, ve FAIS GROUP'a ait (dagitim grubu) -- uc koldan da.
+         - Groupe Stalric (FR): Occitanie'de 13 satis noktasi, bu yil kendi
+           deri markasini cikardi, ayrica ERAM ve iki MANGO franchise'i
+           isletiyor -- KURAL 1 franchise operatorlerini adiyla sayiyor.
+       'scarpa' TEK BASINA YOK: Italyanca "ayakkabi" demek, bir ayakkabi
+       dukkaninin adinda gecmesi olagan (La Scarpa, Scarpa & Co) ve o gercek
+       musteri adayini sessizce elerdi -- mango/zara dersi. 'kalogirou' ve
+       'stalric' tam ad; ikisi de 7 harften uzun, yani alan adi tarafinda da
+       eslesir (groupestalric.fr). */
+    'carl scarpa','carlscarpa','kalogirou','καλογηρου','stalric','groupe stalric',
   ];
 }
 /* PARK EDILMIS / SATILIK alan adi: dukkan degil, satis sayfasi.

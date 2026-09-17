@@ -616,5 +616,29 @@ $t('kasina -> support@cre.ma BLOK', $blocked('Kasina','support@cre.ma','https://
 $t('crema.it (gercek dukkan) GECER', !$blocked('Crema Moda','info@crema.it','https://crema.it'));
 $t('cremashop.de GECER',            !$blocked('Crema Shop','hallo@cremashop.de','https://cremashop.de'));
 
+echo "\n== 18. 17 Eyl 2026 — soguk havuzun elle okunmasindan cikan uc zincir ==\n";
+/* Kod ucunu de geciriyordu. Ucu de ARASTIRILARAK dogrulandi, hafizadan
+   elenmedi: Carl Scarpa 20 sube + yedi kendi markasi, Kalogirou 10 magaza +
+   private label + Fais Group, Groupe Stalric 13 satis noktasi + kendi markasi
+   + ERAM/MANGO franchise'lari. */
+foreach ([
+    ['Carl Scarpa','carlscarpa.com'],
+    ['KALOGIROU','kalogirou.com'],
+    ['Groupe Stalric','groupestalric.fr'],
+    ['Stalric Maroquinerie','stalric.com'],
+] as [$n,$d]) $t("blok: {$n}", $blocked($n,'','https://'.$d));
+
+echo "\n== 18b. GECMELI — 'scarpa' bir AYAKKABI kelimesidir ==\n";
+/* 'scarpa' TEK BASINA listeye KONMADI: Italyanca "ayakkabi" demek ve gercek
+   bir ayakkabi dukkaninin adinda gecmesi olagan. Konsaydi asagidakilerin
+   hepsi sessizce elenirdi -- mango/zara dersinin ayakkabi hali. Bu bolum o
+   kararin bekcisi: biri 18'e 'scarpa' eklerse burasi kirmizi olur. */
+foreach ([
+    ['La Scarpa','lascarpa.it'],            ['Scarpa & Co','scarpaeco.it'],
+    ['Bella Scarpa Boutique','bellascarpa.de'],
+    ['Kalogeropoulos Mode','kalogeropoulos.gr'],
+    ['Stal Concept Store','stalconcept.nl'],
+] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
+
 echo "\nTOPLAM: {$ok} gecti, {$fail} kaldi\n";
 exit($fail === 0 ? 0 : 1);
