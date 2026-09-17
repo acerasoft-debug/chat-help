@@ -1549,12 +1549,16 @@ function sellerSend(btn){
     </div>
   </div>
 
+  <?php
+    $msTier   = $u['membership_tier'] ?? '';
+    $msTierLabel = $msTier === 'premium' ? 'Elite' : ($msTier ? ucfirst($msTier) : '—');
+    $msStat   = $u['membership_status'] ?? 'none';
+    /* Kart yalniz ESKI bir abonelik tasiyan hesaba cizilir (16 Eyl 2026): ucretli
+       uyelik 22 Agu'da kalkti; yeni saticiya "No plan yet / Change your plan /
+       plan karsilastir" gostermek olmayan bir urunu satmaya devam etmekti. Portal
+       duruyor -- satan her yerin iptal yolu olmali (KURAL 16). */
+    if ($msStat !== 'none'): ?>
   <div class="panelcard">
-    <?php
-      $msTier   = $u['membership_tier'] ?? '';
-      $msTierLabel = $msTier === 'premium' ? 'Elite' : ($msTier ? ucfirst($msTier) : '—');
-      $msStat   = $u['membership_status'] ?? 'none';
-    ?>
     <div class="pcfhead"><h3><?= t('Membership') ?></h3>
       <?= match($msStat){
         'active'   => '<span class="status offers">✓ '.htmlspecialchars($msTierLabel).' · '.t('Active').'</span>',
@@ -1572,10 +1576,10 @@ function sellerSend(btn){
           <button class="btn btn-p" type="submit"><?= t('Manage subscription') ?></button>
         </form>
         <?php endif; ?>
-        <a class="btn btn-o" href="/membership"><?= t('Compare plans') ?></a>
       </div>
     </div>
   </div>
+  <?php endif; ?>
   <div class="panelcard">
     <div class="pcfhead"><h3><?= t('Commission card') ?></h3>
       <?= !empty($u['stripe_commission_pm']) ? '<span class="status offers">✓ '.t('On file').'</span>' : '<span class="status open">— '.t('Not added').'</span>' ?>

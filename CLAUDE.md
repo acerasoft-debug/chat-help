@@ -4852,6 +4852,68 @@ seller armasini daha estetik yap"*).
   kırmızı döndü — arada 2 günlük bir ilan vardı ve orada olması **doğruydu**.
   Kod haklı çıktı, iddia yanlıştı; iddia artık tam sıraya bakıyor.
 
+**16–17 Eyl 2026 — TAM SİTE DENETİMİ** (operatör: *"siteyi komple kontrol et
+daha fazla ve daha iyi konfor ve estetik olsun hatalari tespit et ve düzelt"*).
+Ölçüm: 147 PHP dosyası lint temiz; 28 sayfa × 2 genişlik ekran görüntüsü
+(`tests/render/shoot.js`) — yatay kaydırma 0, işaretlenen 5 taşma kasıtlı yatay
+raylar (marka rayı, varyant tablosu, `dsscroll`, `reqfresh-rail`, `soon-strip`);
+`auth.js` alıcı/satıcı panelleri çizildi; `rtl-check.js` 12 sayfa, RTL gerileme
+0; 19 admin sekmesi yerelde çizilemedi (`admin_pass` yok, `inc/config.php`
+gitignore'da); canlı `error_log`'un son 10 günü yalnız 16 Eyl kota kesintisinin
+oturum uyarıları, 16 FATAL'in görünen ikisi Ağustos'tan (`vestra_doc_type_label`
+redeclare 10 Ağu, `auth_accounts()` undefined 24 Ağu — ikisi de bugünkü kaynakta
+yok). **Hiçbir PHP hatası bulunmadı; bulunan her kusur müşterinin OKUDUĞU
+metindeydi:**
+1. **Sözleşme 3b "HGB \u00a7377" basıyordu** — PHP tek tırnaklı dizgede
+   `\u00a7` kaçış değil, dört harf; `§` yazıldı. Meta satırındaki **iç not**
+   (*"Please have a US+EU lawyer review before relying on these documents"*)
+   8 dile çevrilmiş, her ziyaretçiye basılıyordu — kaldırıldı. Tarih artık
+   `vestra_legal_updated($lang)` (ISO, dil dosyası başına; metni değiştirince
+   orayı da güncelle).
+2. **Komisyon BEŞ sayfada ÜÇ farklı rakamdı:** ana sayfa *"from 2.8%, lower on
+   higher plans"* (9 dilde), davet sayfası *"7 %"* + *"buyers pay 2 %"*, yardım
+   *"Starter 3.5 / Pro 3.2 / Elite 2.8"*, üyelik *"3.5% … drops as you upgrade"*.
+   Sepetin gerçekten tahsil ettiği oran tek: `VESTRA_COMMISSION_RATE` (%3,5,
+   herkese — kademeli üyelik 22 Ağu 2026'da kalktı, commit `5dabe148`). Tek
+   basıcı `vestra_commission_pct_label($lang)`; beş sayfa ondan okuyor.
+   `products.php`'nin *"Pro/Elite get a lower rate"* yorumu da yalan söylüyordu.
+3. **`/membership` kaldırılmış planları SATMAYA devam ediyordu** — €19,90/39,90/
+   89,90 aylık + "€89,90 onboarding", `/stripe/checkout` formlarıyla; abonelik
+   hiçbir şey vermiyordu (kota sınırsız, oran tek). Sayfa artık tek kart
+   (*"Selling on VESTRA is free"*, oran sabitten); eski aboneye portal duruyor
+   (KURAL 16). `seller.php`'deki "Membership / No plan yet / Compare plans" kartı
+   yalnız eski abonelikte çiziliyor. Yardım SSS'sinin iki maddesi yeniden
+   yazıldı. 14 eski sözlük anahtarı 8 dilden silindi, 15 yenisi eklendi.
+4. **Davet sayfası "DE, EN, FR, IT, ES"** diye beş dil sayıyordu; site dokuz
+   dilde. Sayı `count(vlang_list())`.
+5. **Ana sayfa "Coming soon: Fred Perry" derken bir bant altında "New arrivals:
+   Fred Perry"** — klasör markanın canlıya çıkışıyla (11 Eyl) silinmemişti.
+   `vestra_soon_brands_filter()`: satışta olan markanın klasörü basılmaz (tam
+   eşleşme, harf duyarsız; "Lacoste Kids" düşmez). Klasör silinmedi — karar
+   canlı stoktan (KURAL 9'un "yakında" hâli).
+6. "Verified seller" rozeti 10 → 11px (`shoot.js`'in <11px süzgeci).
+7. **`diag-messages` errlog sondası kendi gürültüsünde boğuluyordu:** 800+ ayrı
+   `session_start(): open(sess_<id>)` grubu (dosya adı anahtara giriyor) ilk-20'yi
+   ve son-10-gün penceresini tek başına dolduruyordu — aynı günün gerçek bir
+   fatal'i listeye giremezdi. Oturum uyarıları tek satıra toplanıyor.
+- **KURAL 15 bir kez daha:** `help.php` ve `seller-invite.php` `products.php`'yi
+  yüklemiyordu; yeni helper ilk yerel çizimde **fatal** verdi — ve `seller-invite`
+  HTTP **200** döndürdü (başlıklar gitmişti, sayfa ortada kesildi). Yalnız durum
+  koduna bakan bir ölçüm bunu yeşil görürdü. İkisi de artık açıkça require ediyor.
+- **Kendi hatam:** falsifikasyon sırasında commit edilmemiş `products.php`'yi
+  `git checkout --` ile "geri aldım" ve o dosyadaki üç düzeltmeyi sildim; test
+  hemen fatal verdi, yeniden yazıldı. Sabotajı **dosya yedeğiyle** (`cp`) geri al,
+  checkout ile değil.
+- **Operatör kararı bekleyenler (dokunulmadı):** davet sayfasındaki **"500+
+  verified buyers / 18 countries"** (10 Eyl ölçümü 109 hesap — pazarlama iddiası,
+  kanıtı yok); SSS'de iki benzer kategori adı ("Returns & Claims" / "Disputes &
+  Returns").
+- Test: `tests/site_copy_consistency_test.php` (55 iddia; kaynak taraması
+  **yorumları da** okur — kendi yorumlarımdaki "19,90", "Compare plans" ilk koşuda
+  kırmızı döndü; yorumlar değişti, tarama gevşetilmedi). Düşebildiği doğrulandı:
+  davet sayfasına "7 %" geri konunca **1 kırmızı**, yakında-süzgeci çağrısı
+  silinince **1**, `\u00a7` geri gelince **3**, süzgeç herkesi geçirince **2**.
+
 **16 Eyl 2026 — Fred Perry Angebot 118 kayıtlı alıcıya; fiyat listesi artık
 BİRDEN FAZLA marka alıyor; ve cevap mektubu adımı ARGÜMAN SINIRINI aşmıştı.**
 

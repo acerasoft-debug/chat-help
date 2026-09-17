@@ -33,21 +33,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'becom
 }
 
 $PAGE = t('Seller Membership'); $NAV = 'membership';
-$META = t('VESTRA Seller Membership — plans and commission for wholesale fashion sellers. Reach KYC-verified boutique buyers across Europe, with lower fees on higher tiers and clear invoice-based payouts.');
+$META = t('Selling on VESTRA is free — no monthly plan, no listing limit, no onboarding fee. A flat commission on paid orders only, with KYC-verified boutique buyers across Europe.');
 require __DIR__.'/inc/head.php';
 
-require_once __DIR__.'/inc/stripe.php';
+/* SATILAN PLAN YOK (16 Eyl 2026 denetimi). Satici tarafi 22 Agu 2026'da
+   UCRETSIZ oldu (commit 5dabe148: kota herkese sinirsiz, komisyon tek oran) ama
+   bu sayfa aylik 19.90 / 39.90 / 89.90 EUR'luk uc plani, "10 inserat/ay" ve
+   89.90 EUR'luk onboarding ucretini SATMAYA devam ediyordu -- hicbir sey
+   vermeyen bir abonelik icin Stripe checkout acilabiliyordu. Sayfa artik tek
+   sey soyluyor: satmak ucretsiz, oran tek ve sabitten okunuyor. Eski abonelere
+   portal (Manage subscription) duruyor -- satan her yerin iptal yolu olmali
+   (KURAL 16) ve seller.php onlara zaten "iptal edin" diyor. */
 $u = auth_user();
 $isLoggedInSeller = $u && ($u['type'] ?? '') === 'seller';
 $isLoggedInBuyer  = $u && ($u['type'] ?? '') === 'buyer';
 $membershipStatus = $u['membership_status'] ?? 'none';
 $alreadyActive    = in_array($membershipStatus, ['trialing', 'active'], true);
-$stripeReady = stripe_configured();
 $error    = !empty($_GET['error']) && ($_GET['error'] ?? '') !== 'notready';
-$notReady = !$stripeReady || ($_GET['error'] ?? '') === 'notready';
-$gated = !empty($_GET['gate']);
-$curTier = $u['membership_tier'] ?? '';
-$ctaDisabled = !$stripeReady; // active members get portal buttons instead of disabled CTAs
 ?>
 <style>
 /* Pricing page — design tokens from brief */
@@ -93,18 +95,12 @@ body{ background:#15171C }
 
   <?php if ($error): ?>
   <div class="merr"><?= t('Something went wrong — please try again or contact support.') ?></div>
-  <?php elseif ($gated): ?>
-  <div class="merr" style="background:rgba(240,192,96,.1);border-color:rgba(240,192,96,.35);color:#f0c060"><?= t('An active membership is required to publish products. Choose a plan below to get started.') ?></div>
-  <?php endif; ?>
-
-  <?php if ($notReady): ?>
-  <div class="merr" style="background:rgba(138,180,248,.08);border-color:rgba(138,180,248,.3);color:#8ab4f8"><?= t('Online payment is being set up — plan checkout will open here shortly. Contact support@vestrasales.com to reserve your plan in the meantime.') ?></div>
   <?php endif; ?>
 
   <?php if ($isLoggedInBuyer): ?>
   <div class="mactive" style="background:rgba(138,180,248,.07);border-color:rgba(138,180,248,.25);color:#8ab4f8;text-align:left">
     🛍️ <b><?= t("You're signed in as a buyer.") ?></b>
-    <?= ' ' . t('Buying on VESTRA is always free — no membership needed. The plans below are for sellers who want to list products.') ?>
+    <?= ' ' . t('Buying on VESTRA is always free — and so is selling. Switch to a seller account to list products.') ?>
     <div style="margin-top:12px">
       <form method="post" action="/membership" style="display:inline">
         <input type="hidden" name="action" value="become_seller">
@@ -114,7 +110,7 @@ body{ background:#15171C }
     </div>
   </div>
   <?php elseif (($_GET['welcome'] ?? '') === 'seller'): ?>
-  <div class="mactive">✓ <?= t('You are now a seller. Choose a plan below to start listing — your first month is free.') ?></div>
+  <div class="mactive">✓ <?= t('You are now a seller. Listing is free — add your first product from your dashboard.') ?></div>
   <?php endif; ?>
 
   <?php if ($alreadyActive): ?>
@@ -130,113 +126,33 @@ body{ background:#15171C }
   </div>
   <?php endif; ?>
 
-  <div class="mtiers">
-
-    <!-- ── STARTER ── -->
-    <div class="mcard">
-      <div class="mname"><?= t('Starter') ?></div>
-      <div class="mprice"><span class="cur">€</span><span class="amt">19,90</span><span class="per"><?= t('/month') ?></span></div>
-      <div class="mtrial">✓ <?= t('1 month free') ?></div>
+  <div class="mtiers" style="grid-template-columns:minmax(280px,540px);justify-content:center">
+    <div class="mcard featured">
+      <div class="mpop"><?= t('Free to sell') ?></div>
+      <div class="mname"><?= t('Selling on VESTRA is free') ?></div>
+      <div class="mprice"><span class="cur">€</span><span class="amt">0</span><span class="per"><?= t('/month') ?></span></div>
+      <div class="mtrial">✓ <?= sprintf(t('%s%% commission per sale'), vestra_commission_pct_label()) ?></div>
       <div class="mdiv"></div>
       <ul class="mfeatures">
-        <li><?= t('For new sellers testing wholesale.') ?></li>
-        <li><?= t('10 listings / month') ?></li>
-        <li><?= sprintf(t('%s%% commission per sale'), number_format(vestra_seller_commission_rate('starter')*100,1)) ?></li>
+        <li><?= t('No monthly fee') ?></li>
+        <li><?= t('No listing limit') ?></li>
+        <li><?= t('Commission only on paid orders — nothing up front') ?></li>
         <li><?= t('Seller profile &amp; showroom') ?></li>
         <li><?= t('"Verified Seller" badge') ?></li>
         <li><?= t('Direct buyer contact') ?></li>
         <li><?= t('Trade Record') ?></li>
       </ul>
-      <?php if ($isLoggedInSeller && $alreadyActive): ?>
-        <?php if ($curTier === 'starter'): ?>
-        <button class="mcta" type="button" disabled>✓ <?= t('Your current plan') ?></button>
-        <?php else: ?>
-        <form method="post" action="/stripe/portal"><button class="mcta" type="submit"><?= t('Change plan') ?></button></form>
-        <?php endif; ?>
-      <?php elseif ($isLoggedInSeller): ?>
-      <form method="post" action="/stripe/checkout">
-        <input type="hidden" name="tier" value="starter">
-        <button class="mcta" type="submit" <?= $ctaDisabled?'disabled':'' ?>><?= t('Get started') ?></button>
-      </form>
+      <?php if ($isLoggedInSeller): ?>
+        <a class="mcta" href="/seller" style="display:block;text-align:center;text-decoration:none;background:#A6402B;color:#fff;padding:12px 0"><?= t('Go to dashboard →') ?></a>
       <?php elseif ($isLoggedInBuyer): ?>
-        <form method="post" action="/membership"><input type="hidden" name="action" value="become_seller"><button class="mcta" type="submit" style="width:100%;background:#1A1C21;color:#EFEAE1;border:none;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer"><?= t('Become a seller') ?></button></form>
+        <form method="post" action="/membership"><input type="hidden" name="action" value="become_seller"><button class="mcta" type="submit"><?= t('Become a seller') ?></button></form>
       <?php else: ?>
-        <?= vestra_join_cta(t('Get started'), 'mcta', 'seller', 'display:block;text-align:center;text-decoration:none;background:#1A1C21;color:#EFEAE1;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700') ?>
+        <?= vestra_join_cta(t('Get started'), 'mcta', 'seller', 'display:block;text-align:center;text-decoration:none;background:#A6402B;color:#fff;padding:12px 0') ?>
       <?php endif; ?>
     </div>
-
-    <!-- ── PRO (featured) ── -->
-    <div class="mcard featured">
-      <div class="mpop"><?= t('Most popular') ?></div>
-      <div class="mname"><?= t('Pro') ?></div>
-      <div class="mprice"><span class="cur">€</span><span class="amt">39,90</span><span class="per"><?= t('/month') ?></span></div>
-      <div class="mtrial">✓ <?= t('1 month free') ?></div>
-      <div class="mdiv"></div>
-      <ul class="mfeatures">
-        <li><?= t('For active sellers with a growing range.') ?></li>
-        <li><?= t('100 listings / month') ?></li>
-        <li><?= sprintf(t('%s%% commission per sale'), number_format(vestra_seller_commission_rate('pro')*100,1)) ?></li>
-        <li><?= t('Everything in Starter') ?></li>
-        <li><?= t('Priority placement') ?></li>
-        <li><?= t('Analytics dashboard') ?></li>
-        <li><?= t('Multiple users') ?></li>
-        <li><?= t('Lead notifications') ?></li>
-      </ul>
-      <?php if ($isLoggedInSeller && $alreadyActive): ?>
-        <?php if ($curTier === 'pro'): ?>
-        <button class="mcta" type="button" disabled>✓ <?= t('Your current plan') ?></button>
-        <?php else: ?>
-        <form method="post" action="/stripe/portal"><button class="mcta" type="submit"><?= t('Change plan') ?></button></form>
-        <?php endif; ?>
-      <?php elseif ($isLoggedInSeller): ?>
-      <form method="post" action="/stripe/checkout">
-        <input type="hidden" name="tier" value="pro">
-        <button class="mcta" type="submit" <?= $ctaDisabled?'disabled':'' ?>><?= t('Get started') ?></button>
-      </form>
-      <?php elseif ($isLoggedInBuyer): ?>
-        <form method="post" action="/membership"><input type="hidden" name="action" value="become_seller"><button class="mcta" type="submit" style="width:100%;background:#A6402B;color:#fff;border:none;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer"><?= t('Become a seller') ?></button></form>
-      <?php else: ?>
-        <?= vestra_join_cta(t('Get started'), 'mcta', 'seller', 'display:block;text-align:center;text-decoration:none;background:#A6402B;color:#fff;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700') ?>
-      <?php endif; ?>
-    </div>
-
-    <!-- ── ELITE (internal tier key stays "premium" — Stripe/account data untouched) ── -->
-    <div class="mcard">
-      <div class="mname"><?= t('Elite') ?></div>
-      <div class="mprice"><span class="cur">€</span><span class="amt">89,90</span><span class="per"><?= t('/month') ?></span></div>
-      <div class="mtrial">✓ <?= t('1 month free') ?></div>
-      <div class="mdiv"></div>
-      <ul class="mfeatures">
-        <li><?= t('For established wholesalers with volume.') ?></li>
-        <li><?= t('Unlimited listings') ?></li>
-        <li><?= sprintf(t('%s%% commission per sale'), number_format(vestra_seller_commission_rate('premium')*100,1)) ?></li>
-        <li><?= t('Everything in Pro') ?></li>
-        <li><?= t('Top placement') ?></li>
-        <li><?= t('Dedicated account manager') ?></li>
-        <li><?= t('Buyer protection & dispute process') ?></li>
-      </ul>
-      <?php if ($isLoggedInSeller && $alreadyActive): ?>
-        <?php if ($curTier === 'premium'): ?>
-        <button class="mcta" type="button" disabled>✓ <?= t('Your current plan') ?></button>
-        <?php else: ?>
-        <form method="post" action="/stripe/portal"><button class="mcta" type="submit"><?= t('Change plan') ?></button></form>
-        <?php endif; ?>
-      <?php elseif ($isLoggedInSeller): ?>
-      <form method="post" action="/stripe/checkout">
-        <input type="hidden" name="tier" value="premium">
-        <button class="mcta" type="submit" <?= $ctaDisabled?'disabled':'' ?>><?= t('Get started') ?></button>
-      </form>
-      <?php elseif ($isLoggedInBuyer): ?>
-        <form method="post" action="/membership"><input type="hidden" name="action" value="become_seller"><button class="mcta" type="submit" style="width:100%;background:#1A1C21;color:#EFEAE1;border:none;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer"><?= t('Become a seller') ?></button></form>
-      <?php else: ?>
-        <?= vestra_join_cta(t('Get started'), 'mcta', 'seller', 'display:block;text-align:center;text-decoration:none;background:#1A1C21;color:#EFEAE1;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700') ?>
-      <?php endif; ?>
-    </div>
-
   </div><!-- /mtiers -->
 
-  <p class="mfoot"><?= t('<b>One-time onboarding &amp; verification 89,90 €</b> · 1 month free · Buyers free · excl. VAT') ?></p>
-  <p class="mfoot"><?= t('<b>Commission is charged automatically</b> to your card on file when payment arrives — no invoicing, no manual transfers. The rate depends on your plan (shown above) and drops as you upgrade.') ?></p>
+  <p class="mfoot"><?= t('<b>Commission is charged automatically</b> to your card on file when payment arrives — no invoicing, no manual transfers. The same rate applies to every seller.') ?></p>
 
   <?php if (!$isLoggedInSeller): ?>
   <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--mut)">

@@ -1,5 +1,9 @@
 <?php
 require_once __DIR__.'/inc/i18n.php';   // t() — head.php loads it too, but only after $PAGE/$META are read
+/* products.php ACIKCA: vestra_commission_pct_label() oradan geliyor ve head.php'nin
+   yuklemesine yaslanmak KURAL 15'in fatal'i -- ilk yerel cizimde sayfa tam bu
+   yuzden yarida kesildi (HTTP 200 dondugu halde). */
+require_once __DIR__.'/inc/products.php';
 $PAGE = t('Sell on VESTRA'); $NAV = 'sell';
 /* This is the landing page sellers arrive on from outreach, and it is in the sitemap, so
    it needs its own description rather than the site-wide fallback every page shares. */
@@ -61,7 +65,7 @@ $invClaim = $AUTH_USER ? t('Open my dashboard') : t('Claim your invite');
     <div class="ist"><b>500+</b><span><?= t('Verified buyers') ?></span></div>
     <div class="ist"><b>18</b><span><?= t('Countries') ?></span></div>
     <div class="ist"><b>€0</b><span><?= t('Upfront cost') ?></span></div>
-    <div class="ist"><b>7 %</b><span><?= t('Commission on sales') ?></span></div>
+    <div class="ist"><b><?= vestra_commission_pct_label() ?> %</b><span><?= t('Commission on sales') ?></span></div>
   </div>
 
   <!-- BENEFITS -->
@@ -70,11 +74,13 @@ $invClaim = $AUTH_USER ? t('Open my dashboard') : t('Claim your invite');
       ['✓','Documented invoice payments','Every order runs on clear invoice terms with a full paper trail — no chasing payments.'],
       ['✓','Group buy engine','Small buyers pool their quantities to hit your MOQ. You get your minimum order, they get wholesale pricing.'],
       ['✓','Verified buyer-only access','All pricing is hidden from the public. Only verified businesses can see and order.'],
-      ['✓','Multi-language catalog','Your listings appear in DE, EN, FR, IT, ES — no extra work needed.'],
-    ]; foreach($bens as $b): ?>
+      /* Dil SAYISI vlang_list()'ten: metin bes dil kodunu elle sayarken
+         site dokuz dildeydi (16 Eyl 2026) -- elle yazilan liste her yeni dilde eskir. */
+      ['✓','Multi-language catalog','Your listings appear in %d languages — no extra work needed.', count(vlang_list())],
+    ]; foreach($bens as $b): $txt = t($b[2]); if (isset($b[3])) $txt = sprintf($txt, $b[3]); ?>
     <div class="inv-ben">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-      <div><strong><?= $b[0].' '.t($b[1]) ?></strong><span><?= t($b[2]) ?></span></div>
+      <div><strong><?= $b[0].' '.t($b[1]) ?></strong><span><?= $txt ?></span></div>
     </div>
     <?php endforeach; ?>
   </div>
@@ -122,7 +128,7 @@ $invClaim = $AUTH_USER ? t('Open my dashboard') : t('Claim your invite');
     <div class="faq-list">
       <?php $faqs = [
         [t('What products can I sell?'), t('Branded fashion, accessories, footwear, basics, textiles — anything you can ship within the EEA with valid proof of origin. VESTRA does not accept fakes or grey-market goods.')],
-        [t('What is the commission?'), t('VESTRA takes 7 % from your payout. Buyers pay a 2 % protection fee on top. With an invite code, registration on the platform is free of charge.')],
+        [t('What is the commission?'), sprintf(t('VESTRA keeps a flat %s %% of each paid order — nothing else: no listing fee, no subscription, no onboarding fee. With an invite code, registration on the platform is free of charge.'), vestra_commission_pct_label())],
         [t('How does payment work?'), t('Payment is currently invoice-based: the buyer pays by bank transfer against a proforma invoice and goods ship after payment. Other payment methods (card / escrow checkout) are temporarily suspended.')],
         [t('How long does KYB take?'), t('With an invite code: instant approval. Without: typically 1–3 business days after you submit your registration details.')],
         [t('Can I set my own prices?'), t('Yes. You set your own MOQ, tiered pricing, and pricing mode (fixed, sale, or make-an-offer). VESTRA only takes its commission from completed sales.')],

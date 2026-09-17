@@ -167,9 +167,10 @@ function vestra_ships_from_label(array $p = []): string {
 }
 /* Seller commission — a SEPARATE mechanism from the fees above: a % of each paid order's
    goods value, charged directly to the seller's card on file via Stripe (inc/commission.php)
-   once the order is marked paid. Never touches the buyer-facing cart/invoice total. This
-   constant is the Starter-tier (and fallback) rate; Pro/Elite get a lower rate — see
-   vestra_seller_commission_rate() below. */
+   once the order is marked paid. Never touches the buyer-facing cart/invoice total. ONE
+   flat rate for every seller since 22 Aug 2026 (paid membership tiers were abolished —
+   see vestra_seller_commission_rate() below); every customer-facing sentence about the
+   commission must read it from here via vestra_commission_pct_label(). */
 if(!defined('VESTRA_COMMISSION_RATE')) define('VESTRA_COMMISSION_RATE', 0.035);
 require_once __DIR__.'/i18n.php';
 require_once __DIR__.'/notify.php';
@@ -1565,6 +1566,19 @@ function vestra_seller_monthly_quota_limit(string $tier): ?int {
 function vestra_seller_commission_rate(string $tier): float {
     return VESTRA_COMMISSION_RATE;
 }
+/* Komisyon YUZDESI, metne basilacak bicimde ("3.5" / "3,5"). 16 Eyl 2026 denetimi
+   BES sayfada UC farkli oran buldu: ana sayfa "from 2.8%, lower on higher plans",
+   davet sayfasi "7 %", yardim "Starter 3.5 / Pro 3.2 / Elite 2.8", uyelik sayfasi
+   "3.5% ... drops as you upgrade" -- hepsi 22 Agu 2026'da kaldirilan kademeli
+   uyelikten kalma ve hicbiri sepetin GERCEKTEN tahsil ettigi oran degil. Oran tek
+   sabitte; musteriye yazilan her rakam da buradan cikar, elle yazilmaz (KURAL 6'nin
+   escrow tavani dersi). Ondalik ayiraci dile gore: de/fr/es/it/pt/ru virgul. */
+function vestra_commission_pct_label(?string $lang = null): string {
+    $lang = $lang ?? (function_exists('vlang') ? vlang() : 'en');
+    $s = number_format(vestra_seller_commission_rate('') * 100, 1, '.', '');
+    if (substr($s, -2) === '.0') $s = substr($s, 0, -2);
+    return in_array($lang, ['de','fr','es','it','pt','ru'], true) ? str_replace('.', ',', $s) : $s;
+}
 /* ─── Urun adi: markayi iki kez yazma ──────────────────────────────────────────
    Bazi katalog kayitlarinda marka adi urun ADININ icinde de duruyor
    (brand "Balenciaga" + name "Balenciaga Print T-Shirt"). Duz birlestirme
@@ -2333,6 +2347,22 @@ function vestra_product_is_new(array $p, ?int $now = null, ?int $days = null): b
  */
 /* One alinan markalarin serit icindeki tavani. Ayri bir sabit, cunku toplam
    tavandan (12) bagimsiz bir karar: biri izgaranin boyu, bu ikisinin PAYI. */
+/* "Yakinda" seridinde markasi ZATEN satista olan klasor basilmaz (16 Eyl 2026
+   denetimi: ana sayfa ustte "Coming soon: Fred Perry" derken bir bant altinda
+   "New arrivals: Fred Perry" satiyordu -- klasor 11 Eyl'de marka canliya
+   cikinca silinmemisti). Olcut canli katalog: klasoru silmek hatirlamaya
+   birakilan bir is olurdu. Eslesme marka adi basina TAM, buyuk/kucuk harf
+   duyarsiz (mango/zara dersi): "Lacoste" satista diye "Lacoste Kids" klasoru
+   dusmez. Saf fonksiyon; klasoru okuyan taraf index.php. */
+function vestra_soon_brands_filter(array $soon, array $products): array {
+    $live = [];
+    foreach ($products as $p) {
+        $b = mb_strtoupper(trim((string)($p['brand'] ?? '')));
+        if ($b !== '') $live[$b] = true;
+    }
+    return array_values(array_filter($soon,
+        fn($s) => !isset($live[mb_strtoupper(trim((string)($s['name'] ?? '')))])));
+}
 const VESTRA_HOME_FEATURED_MAX = 6;
 
 function vestra_home_featured_brands(): array {

@@ -11,6 +11,20 @@
  */
 require_once __DIR__.'/i18n.php';
 
+/* "Son güncelleme" satırı, DİL DOSYASI başına. 16 Eyl 2026 denetimine kadar
+   legal.php'de sabit "26 June 2026" yazıyordu ve yanında bir İÇ NOT vardı
+   ("Please have a US+EU lawyer review …") — 8 dile çevrilip HER ziyaretçiye
+   basılıyordu. Tarih ISO biçiminde: her dilde aynı okunur, çevrilecek ay adı
+   yok. Metni değiştirince BURAYI da güncelle
+   (`git log -1 --date=short -- vestra/inc/legal.php`); çevirisi olmayan dil
+   İngilizce metne düştüğü için İngilizce'nin tarihini alır. */
+function vestra_legal_updated(?string $lang = null): string {
+    $lang = $lang ?? (function_exists('vlang') ? vlang() : 'en');
+    $map = ['en' => '2026-09-17', 'de' => '2026-09-17', 'fr' => '2026-09-17',
+            'it' => '2026-09-17', 'es' => '2026-09-17'];
+    return $map[$lang] ?? $map['en'];
+}
+
 /* Dispatcher: returns the legal doc set for the active language (English fallback). */
 function vestra_legal(){
   $en = vestra_legal_en();
@@ -84,7 +98,7 @@ function vestra_legal_en(){
     delivery. <b>Apparent defects, shortages and wrong deliveries must be notified in writing within the notification
     period</b> stated in the Returns &amp; Claims policy; hidden defects must be notified immediately upon discovery.
     Where notice is not given in time the goods are deemed accepted and warranty claims lapse. This mirrors the
-    inspection duty of a commercial buyer under, among others, German commercial law (HGB \u00a7377).</p>
+    inspection duty of a commercial buyer under, among others, German commercial law (HGB §377).</p>
     <h3>3c. Orders invoiced by VESTRA</h3><p>For some orders VESTRA issues the invoice <b>in its own name</b>. This is
     not the default and it is not decided by the listing page: <b>the invoice for an order states who the seller of
     record is</b>, and that document governs. Where an invoice names {$co} as seller of record, sections 1 and 3 above

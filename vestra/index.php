@@ -185,7 +185,7 @@ $T = [
  'sell_title'=>"I'm a Seller",
  'sell_desc'=>'List your branded and textile products. Reach verified wholesale buyer businesses across Europe.',
  'sell_f1'=>'Documented invoice terms on every order',
- 'sell_f2'=>'Commission from just 2.8%, lower on higher plans',
+ 'sell_f2'=>'Flat %s%% commission on paid orders — no monthly fee',
  'sell_f3'=>'Full control over pricing, MOQ and tiers',
  'sell_cta'=>'Register as Seller',
  'buy_title'=>"I'm a Buyer",
@@ -220,7 +220,7 @@ $T = [
  'sell_title'=>'Je suis Vendeur',
  'sell_desc'=>'Listez vos produits de marque et textiles. Atteignez des entreprises acheteuses en gros vérifiées en Europe.',
  'sell_f1'=>'Conditions de facturation claires sur chaque commande',
- 'sell_f2'=>'Commission dès 2,8% seulement, moins élevée avec les formules supérieures',
+ 'sell_f2'=>'Commission fixe de %s %% sur les commandes payées — sans abonnement mensuel',
  'sell_f3'=>'Contrôle total sur les prix, MOQ et paliers',
  'sell_cta'=>'S\'inscrire comme Vendeur',
  'buy_title'=>'Je suis Acheteur',
@@ -255,7 +255,7 @@ $T = [
  'sell_title'=>'Sono un Venditore',
  'sell_desc'=>'Elenca i tuoi prodotti di marca e tessili. Raggiungi aziende acquirenti all\'ingrosso verificate in tutta Europa.',
  'sell_f1'=>'Condizioni di fatturazione chiare su ogni ordine',
- 'sell_f2'=>'Commissione a partire dal 2,8%, più bassa con i piani superiori',
+ 'sell_f2'=>'Commissione fissa del %s%% sugli ordini pagati — nessun canone mensile',
  'sell_f3'=>'Controllo totale su prezzi, MOQ e fasce',
  'sell_cta'=>'Registrati come Venditore',
  'buy_title'=>'Sono un Acquirente',
@@ -290,7 +290,7 @@ $T = [
  'sell_title'=>'Soy Vendedor',
  'sell_desc'=>'Lista tus productos de marca y textiles. Llega a empresas compradoras mayoristas verificadas en toda Europa.',
  'sell_f1'=>'Condiciones de facturación claras en cada pedido',
- 'sell_f2'=>'Comisión desde solo el 2,8%, más baja en los planes superiores',
+ 'sell_f2'=>'Comisión fija del %s %% sobre pedidos pagados — sin cuota mensual',
  'sell_f3'=>'Control total sobre precios, MOQ y tramos',
  'sell_cta'=>'Registrarse como Vendedor',
  'buy_title'=>'Soy Comprador',
@@ -325,7 +325,7 @@ $T = [
  'sell_title'=>'Ich bin Verkäufer',
  'sell_desc'=>'Inserieren Sie Ihre Marken- und Textilprodukte. Erreichen Sie verifizierte Großhändler-Unternehmen in ganz Europa.',
  'sell_f1'=>'Klare Rechnungskonditionen bei jeder Bestellung',
- 'sell_f2'=>'Provision ab nur 2,8%, niedriger in höheren Plänen',
+ 'sell_f2'=>'Pauschal %s %% Provision auf bezahlte Bestellungen — keine Monatsgebühr',
  'sell_f3'=>'Volle Kontrolle über Preise, Mindestmenge und Staffeln',
  'sell_cta'=>'Als Verkäufer registrieren',
  'buy_title'=>'Ich bin Käufer',
@@ -363,7 +363,7 @@ $T = [
  'sell_title'=>"Sou vendedor",
  'sell_desc'=>'Anuncie os seus produtos de marca e têxteis. Chegue a empresas compradoras grossistas verificadas em toda a Europa.',
  'sell_f1'=>'Condições de fatura documentadas em cada encomenda',
- 'sell_f2'=>'Comissão a partir de 2,8 %, mais baixa nos planos superiores',
+ 'sell_f2'=>'Comissão fixa de %s %% sobre encomendas pagas — sem mensalidade',
  'sell_f3'=>'Controlo total sobre preço, MOQ e escalões',
  'sell_cta'=>'Registar como vendedor',
  'buy_title'=>"Sou comprador",
@@ -398,7 +398,7 @@ $T = [
  'sell_title'=>"Я продавец",
  'sell_desc'=>'Размещайте брендовую одежду и текстиль. Выходите на проверенных оптовых покупателей по всей Европе.',
  'sell_f1'=>'Документированные условия оплаты по счёту в каждом заказе',
- 'sell_f2'=>'Комиссия от 2,8 %, ниже на старших тарифах',
+ 'sell_f2'=>'Фиксированная комиссия %s %% с оплаченных заказов — без ежемесячной платы',
  'sell_f3'=>'Полный контроль над ценой, MOQ и ценовыми уровнями',
  'sell_cta'=>'Регистрация продавца',
  'buy_title'=>"Я покупатель",
@@ -435,7 +435,7 @@ $T = [
  'sell_title'=>"販売者の方へ",
  'sell_desc'=>'ブランド品やテキスタイル商品を出品し、ヨーロッパ各地の認証済み卸売バイヤーとつながりましょう。',
  'sell_f1'=>'すべての注文に記録の残る請求条件',
- 'sell_f2'=>'手数料は2.8%から。上位プランほど低くなります',
+ 'sell_f2'=>'手数料は支払済み注文の%s%%のみ — 月額費用なし',
  'sell_f3'=>'価格、最低発注数量、段階設定を完全に自分で管理',
  'sell_cta'=>'販売者として登録',
  'buy_title'=>"バイヤーの方へ",
@@ -470,7 +470,7 @@ $T = [
  'sell_title'=>"أنا بائع",
  'sell_desc'=>'اعرض منتجاتك ذات العلامات التجارية والمنسوجات. صِل إلى شركات مشترية بالجملة موثوقة في أنحاء أوروبا.',
  'sell_f1'=>'شروط فوترة موثقة في كل طلبية',
- 'sell_f2'=>'عمولة تبدأ من 2.8٪، وأقل في الخطط الأعلى',
+ 'sell_f2'=>'عمولة ثابتة %s٪ على الطلبات المدفوعة — بدون رسوم شهرية',
  'sell_f3'=>'تحكم كامل في السعر والحد الأدنى للطلب والشرائح',
  'sell_cta'=>'التسجيل كبائع',
  'buy_title'=>"أنا مشترٍ",
@@ -1234,6 +1234,10 @@ if ($loose) {
                      'dir' => '', 'imgs' => array_values($loose)];
 }
 usort($soonBrands, fn($a, $b) => [$a['ord'], $a['name']] <=> [$b['ord'], $b['name']]);
+/* Markasi zaten satista olan klasor "yakinda" degildir -- bir bant asagidaki
+   "New arrivals" ayni markayi satarken burada duyurmak sayfayi kendisiyle
+   celistirir (16 Eyl 2026). Karar canli katalogdan, saf fonksiyonda. */
+$soonBrands = vestra_soon_brands_filter($soonBrands, vestra_products());
 if ($soonBrands):
 ?>
 <style>
@@ -1660,7 +1664,7 @@ if ($shoePicks):
         <p class="jdesc"><?= $t['sell_desc'] ?></p>
         <ul class="jfeats">
           <li><?= $t['sell_f1'] ?></li>
-          <li><?= $t['sell_f2'] ?></li>
+          <li><?= sprintf($t['sell_f2'], vestra_commission_pct_label($lang)) ?></li>
           <li><?= $t['sell_f3'] ?></li>
         </ul>
         <a class="jbtn" href="/register?type=seller">

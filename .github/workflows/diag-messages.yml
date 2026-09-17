@@ -959,10 +959,23 @@ jobs:
               /* Gecici /tmp betikleri (workflow'lar) canli site degil: ayri sayilir, listelenmez. */
               $tmpN = 0; foreach ($groups as $k => $g) if (str_contains($k, '/tmp/')) $tmpN += $g['n'];
               echo "  (bunlarin {$tmpN} satiri /tmp/ altindaki gecici workflow betiklerinden -- listelenmiyor)\n";
+              /* OTURUM UYARILARI TEK SATIRA (16 Eyl 2026): disk kotasi kesintisi 800+
+                 ayri "session_start(): open(sess_<id>)" grubu uretti -- dosya adi
+                 anahtara giriyor -- ve hem ilk-20'yi hem 45 satirlik son-10-gun
+                 penceresini TEK BASINA doldurdu: ayni gunun GERCEK bir fatal'i
+                 listeye hic giremezdi. Toplam ve en son damga tek satir; oturum
+                 dosyasinin adi kimlik jetonu, basilmamasi da dogru. */
+              $sessN = 0; $sessG = 0; $sessLast = 0;
+              foreach ($groups as $k => $g) {
+                if (!str_contains($k, 'session_start()')) continue;
+                $sessN += $g['n']; $sessG++;
+                $ts = strtotime(str_replace(' UTC', '', $g['last'])) ?: 0; if ($ts > $sessLast) $sessLast = $ts;
+              }
+              if ($sessG) echo "  (oturum uyarilari: {$sessN} satir / {$sessG} grup, son ".gmdate('d-M-Y H:i', $sessLast)." UTC -- tek satir olarak sayildi, listelenmiyor)\n";
               echo "  -- en sik (ilk 20) --\n";
               $i = 0;
               foreach ($groups as $k => $g) {
-                if (str_contains($k, '/tmp/')) continue;
+                if (str_contains($k, '/tmp/') || str_contains($k, 'session_start()')) continue;
                 if (++$i > 20) break;
                 echo "  ".str_pad((string)$g['n'], 5, ' ', STR_PAD_LEFT)."x  ".$k."\n";
                 echo "         ilk ".$g['first']." | son ".$g['last']."\n";
@@ -972,10 +985,11 @@ jobs:
                  daha az onemli. */
               $recent = array_filter($groups, fn($g) => (strtotime(str_replace(' UTC', '', $g['last'])) ?: 0) >= time() - 10*86400);
               uasort($recent, fn($a, $b) => strcmp($b['last'], $a['last']));
-              echo "  -- son 10 gunde gorulen (".count($recent).") --\n";
+              $recentSess = count(array_filter($recent, fn($g, $k) => str_contains($k, 'session_start()'), ARRAY_FILTER_USE_BOTH));
+              echo "  -- son 10 gunde gorulen (".(count($recent) - $recentSess).($recentSess ? " + oturum {$recentSess} grup" : '').") --\n";
               $i = 0;
               foreach ($recent as $k => $g) {
-                if (str_contains($k, '/tmp/')) continue;
+                if (str_contains($k, '/tmp/') || str_contains($k, 'session_start()')) continue;
                 if (++$i > 45) { echo "  ... ".(count($recent) - 45)." daha\n"; break; }
                 echo "  ".str_pad((string)$g['n'], 5, ' ', STR_PAD_LEFT)."x  ".mb_substr($k, 0, 150)."  [son ".$g['last']."]\n";
               }

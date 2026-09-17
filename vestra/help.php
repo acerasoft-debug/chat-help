@@ -7,6 +7,10 @@
  * every article at once.
  */
 require_once __DIR__.'/inc/i18n.php';
+/* products.php ACIKCA: vestra_commission_pct_label() oradan geliyor ve head.php'nin
+   yuklemesine yaslanmak KURAL 15'in fatal'i -- ilk yerel cizimde sayfa tam bu
+   yuzden yarida kesildi (HTTP 200 dondugu halde). */
+require_once __DIR__.'/inc/products.php';
 $PAGE = t('Help & Concierge');
 $NAV  = 'help';
 $META = t('VESTRA Help & Concierge — support for B2B buyers and sellers on the verified wholesale fashion marketplace: onboarding, KYB business verification, placing orders, invoicing and dispute resolution.');
@@ -66,8 +70,8 @@ $HELP = [
     'items' => [
       [t('How do I become a seller?'), t('Register as a seller, verify your business, and start listing. Our team can also import your catalogue for you from a PDF or price list — just ask your concierge.')],
       [t('How do I get paid?'), t('In Profile → Payouts, connect your bank through Stripe. When a buyer confirms delivery, your payout (minus commission) is transferred to your bank automatically. VESTRA never sees your bank credentials.')],
-      [t('What commission does VESTRA charge sellers?'), t('Tiered by membership: Starter 3.5%, Pro 3.2%, Elite 2.8%. The rate is only applied to completed sales.')],
-      [t('What are the membership tiers?'), t('Starter, Pro and Elite differ in monthly listing quota and commission rate. A one-time onboarding fee applies. Compare them on the Membership page.')],
+      [t('What commission does VESTRA charge sellers?'), sprintf(t('A flat %s%% of the goods value on every paid order — the same rate for every seller, charged only on completed sales. Listing is free.'), vestra_commission_pct_label())],
+      [t('Is there a monthly fee or a listing limit?'), t('No. Selling on VESTRA is free: no subscription, no listing quota and no onboarding fee. VESTRA earns only its commission on paid orders.')],
       [t('How do I manage my orders?'), t('Your seller dashboard → Orders lets you confirm payment, ship with a tracking number, and mark orders complete. Buyers are notified at each step.')],
     ],
   ],
