@@ -5092,18 +5092,46 @@ oldu. Mektup rakamı **canlı ilan kaydından** basıyor, metne gömmüyor — 1
 partisinin eski rakamla gitmesinin sebebi de bu (kayıt o an öyleydi), bugünkünün
 doğru gitmesinin sebebi de.
 
-**Sıradaki parti ölçüldü, GÖNDERİLMEDİ: `letter=winter` → 72 hesap**
-(kapı açık 69, kapalı 3; fr=34 en=20 de=7 es=3 pt=3 ar=2 ru=2 it=1). Ayrı damga
-(`newcoll_2627_at`) olduğu için küme bambaşka. **Kendiliğinden gönderilmedi** —
-KURAL 18: bir turdaki "gönder" bir sonraki mektubun izni değil, ve bu **başka
-bir kampanya metni**. Gönderilmeden önce iki şey ayıklanmalı:
-- **Bugün Angebot alan 7 hesap** bu 72'nin içinde. Dakikalar içinde ikinci bir
-  kampanya mektubu, `newcoll_min_days=3` kuralının leadlerde önlediği şeyin
-  hesap tarafındaki hâli olurdu.
+**Sıradaki parti ölçüldü, sonra operatör *"2. email almayan … kampanya gönder"*
+dedi: `letter=winter` → 72 aday, 9 atlandı, GÖNDERİLDİ 63** (50 + 13, iki koşu,
+**sırayla** — paralel koşu `accounts.json`'ı ezer). Ayrı damga
+(`newcoll_2627_at`) olduğu için küme Angebot'unkinden bambaşka.
+
+**Atlanan 9 ve gerekçeleri — sessiz eleme değil, operatöre yazıldı:**
+- **Bugün Angebot alan 7 hesap.** Dakikalar içinde ikinci bir kampanya mektubu,
+  `newcoll_min_days=3` kuralının leadlerde önlediği şeyin hesap tarafındaki hâli
+  olurdu; adres aynı, kural aynı, damga farklı olduğu için kod bunu **kendisi
+  yakalamıyor**.
 - **Firma adı `389h68843j6789)` olan hesap** (durum `pending`, kapı kapalı):
   mektup `$who = company ?: name` ile hitap ediyor, yani *"Hello 389h68843j6789)"*
   diye açılırdı — `factoryoutlet.gr`'nin *"Hello Αρχική"* vakasının aynısı.
-  Süzgeç `pending_email`'i eliyor ama `pending`'i elemiyor.
+  Süzgeç `pending_email`'i eliyor ama `pending`'i **elemiyor**.
+- **"Verify Test Co"** — adı test hesabı olduğunu söylüyor.
+
+**Atlama listesi göndermeden ÖNCE kuru koşuyla DOĞRULANDI** ve bu zorunluydu:
+`skip` değerleri `[,\s]+` ile bölünüyor, yani "Verify Test" iki ayrı parçaya
+(`verify`, `test`) ayrılıyor ve `test` başka bir firmayı da tutabilirdi.
+Kaçıran bir atlama = birine 15 dakika içinde ikinci kampanya mektubu. Kuru koşu
+`skip_accounts 9` dedi ve **dokuz adı tek tek bastı**; yanlış yakalanan yok.
+Tek parçalı, ayırt edici token kullanıldı (`potoczek`, `weischenberg`,
+`7d68b8778cd3884c`…). *Bir atlama listesini yazmak yetmiyor; kimi tuttuğunu
+okumak gerekiyor.*
+
+**BRITISHSTYLE bu partide BİLEREK VAR.** Angebot'tan çıkarılma gerekçesi
+*o mektuba* özeldi (11 Eylül'de aynı iki ürünün fiyatlı listesini almıştı);
+yeni koleksiyon duyurusu başka bir şey. *Bir istisna, verildiği mektubun
+kapsamındadır — otomatik olarak bir sonrakine taşınmaz.*
+
+**Lead tarafındaki "ikinci mektubu almamış" küme de gönderildi: 2** (Lulli/FR,
+Sportina/SI). `factoryoutlet.gr` yine `skip_email_regex` ile dışarıda — kayıttaki
+firma adı **"Αρχική"** ve `vestra_tpl_new_collection_shoes()` selamlamayı
+`"Hello".($co!==''?" ".$co:'')` diye kuruyor. *Bu kayıt bu dosyada üçüncü kez
+elle atlanıyor; panelde `rename_lead` eylemi hâlâ yok ve doğru çözüm o.*
+
+**GÜNÜN TOPLAMI: 72 mektup, hata 0** (7 Angebot + 63 Winter + 2 lead).
+Kota 261 → **190 kalan**. Yani operatörün *"gece 12'den sonra kalanı gönder"*
+planına gerek kalmadı: **darboğaz kota değildi, gönderilecek adresti** — ve
+bugün o adreslerin hepsi tüketildi.
 
 **16 Eyl 2026 — Fred Perry Angebot 118 kayıtlı alıcıya; fiyat listesi artık
 BİRDEN FAZLA marka alıyor; ve cevap mektubu adımı ARGÜMAN SINIRINI aşmıştı.**
