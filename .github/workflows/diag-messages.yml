@@ -789,6 +789,10 @@ jobs:
               echo "    bank_name  : \"".($P['bank_name'] ?? '')."\"\n";
               echo "    bank_bic   : ".((trim((string)($P['bank_bic'] ?? '')) !== '') ? $P['bank_bic'] : '(yok)')."\n";
               echo "    bank_iban  : ".$has($P['bank_iban'] ?? '')."   [NUMARA YAZDIRILMIYOR - panelden oku]\n";
+              /* EUR rayinin kendi alanlari (17 Eyl 2026): ABD hesabi da varken rails EUR
+                 tarafina bank_name/bank_address'i DEGIL bunlari basar. Bos kalirlarsa
+                 EUR kutusu IBAN'la cikar ama banka adi/adresi olmaz. */
+              echo "    bank_eur_bic/name/address: ".((trim((string)($P['bank_eur_bic'] ?? '')) !== '') ? $P['bank_eur_bic'] : '(yok)')." / \"".($P['bank_eur_name'] ?? '')."\" / ".$has($P['bank_eur_address'] ?? '')."\n";
               echo "    bank_account/routing: ".$has($P['bank_account'] ?? '')." / ".$has($P['bank_routing'] ?? '')."\n";
               /* ASIL CEVAP: kutu cikacak mi? Satir SAYISI basiliyor, satirlarin
                  KENDISI degil -- rails IBAN'i ve hesap numarasini metin olarak

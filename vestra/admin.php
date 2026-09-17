@@ -940,12 +940,28 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
     $f=$dir.'/platform_seller.json';
     $cur=is_readable($f)?json_decode((string)file_get_contents($f),true):[]; if(!is_array($cur))$cur=[];
+    /* EUR rayinin KENDI alanlari (bank_eur_*): 17 Eyl 2026'da platforma bir SEPA
+       hesabi (Banking Circle, DE) eklenecekti ve bu formda ne EUR BIC ne EUR banka
+       adi/adresi vardi -- SWIFT'i 'bank_bic'e yazmak ABD bankasinin BIC'ini ezer,
+       banka adini 'bank_name'e yazmak USD faturasina Alman bankasinin adini
+       bastirirdi (iki ray, tek duz kayit). Satici formunda bank_eur_bic zaten vardi;
+       ad/adres ikisine birden eklendi, rails ikisini de okuyor. */
     foreach(['company','address','country','email','website',
-             'bank_name','bank_holder','bank_iban','bank_bic',
+             'bank_name','bank_holder','bank_iban','bank_bic','bank_eur_bic',
+             'bank_eur_name','bank_eur_address',
              'bank_routing','bank_account','bank_acct_type','bank_address',
              'vat_id','reg_number'] as $k){
       $v=trim((string)($_POST[$k]??''));
-      if($v!=='') $cur[$k]=$v;   // bos alan mevcut degeri SILMEZ
+      if($v==='') continue;      // bos alan mevcut degeri SILMEZ
+      /* Satici formuyla (save_billing) AYNI bicim ve AYNI kapi: gecersiz IBAN'da
+         HICBIR SEY kaydedilmez -- yalniz o alani atlamak digerlerini yesil bir
+         mesajla kaydedip operatore IBAN'in da girdigini dusundururdu (KURAL 5c).
+         Bu handler o kontrolu hic tasimiyordu. */
+      if($k==='bank_iban'){ $v=vestra_iban_normalize($v); if(!vestra_iban_valid($v)){ header('Location: /admin?tab=orders&msg=platform_billing_iban_bad'); exit; } }
+      if($k==='bank_bic' || $k==='bank_eur_bic') $v=strtoupper(preg_replace('/\s+/','',$v));
+      if($k==='bank_routing') $v=preg_replace('/\D/','',$v);
+      if($k==='bank_account') $v=preg_replace('/[^0-9A-Za-z]/','',$v);
+      if($v!=='') $cur[$k]=$v;
     }
     /* Yazdiktan sonra GERI OKUYOR. file_put_contents'in donusu goz ardi ediliyordu:
        izin/disk sebebiyle yazamazsa kullanici "kaydedildi" sayfasina donuyor ve
@@ -985,6 +1001,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $textF = ['company','invoice_name','name','address','city','postcode','country',
               'vat_id','reg_number','phone','website'];
     $bankF = ['bank_name','bank_holder','bank_iban','bank_bic','bank_eur_bic',
+              'bank_eur_name','bank_eur_address',
               'bank_routing','bank_account','bank_acct_type','bank_address'];
     /* "Banka bilgilerini DEGISTIR": once hepsi silinir, sonra yazilanlar
        uygulanir. Bos alan mevcudu korudugu icin (veri kaybini onleyen dogru
@@ -2563,6 +2580,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
        Onaylanmayan bir kayit, kaydedilmemis kayittan ayirt edilemez. */
     'platform_billing_saved'=>'✓ Platform billing saved — verified on the server. Invoices will now carry the payment box.',
     'platform_billing_failed'=>'⚠ Platform billing could NOT be written to the server — nothing was saved. Retry; if it repeats, the data directory is not writable.',
+    'platform_billing_iban_bad'=>'⚠ That IBAN does not pass the checksum — NOTHING was saved (not the other fields either). Re-check the digits and save again.',
     'lead_added'=>'✓ Prospect added.','lead_dupe'=>'That email is already on the list.',
     'letter_sent'=>'✓ Mektup gönderildi ve müşteri kaydına işlendi (status=contacted).',
     'letter_failed'=>'✗ Mektup GÖNDERİLEMEDİ. Brevo reddetti ya da ulaşılamadı — hata günlüğüne bakın. Müşteri kaydına dokunulmadı.',
@@ -3646,6 +3664,8 @@ function sendUserMessage(uid,name){
               <option value="Savings"<?= ($a['bank_acct_type']??'')==='Savings' ?' selected':'' ?>>Savings</option>
             </select></label>
           <label style="font-size:11px;color:var(--mut)">EUR BIC (only if a US account is also on file)<input name="bank_eur_bic" value="<?= htmlspecialchars($a['bank_eur_bic']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px;text-transform:uppercase"></label>
+          <label style="font-size:11px;color:var(--mut)">EUR bank name (only if a US account is also on file)<input name="bank_eur_name" value="<?= htmlspecialchars($a['bank_eur_name']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <label style="font-size:11px;color:var(--mut)">EUR bank address (only if a US account is also on file)<input name="bank_eur_address" value="<?= htmlspecialchars($a['bank_eur_address']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
 
           <label style="grid-column:1/-1;font-size:11.5px;color:var(--bad);display:flex;align-items:center;gap:7px">
             <input type="checkbox" name="bank_replace" value="1" style="width:auto;margin:0">
@@ -3737,14 +3757,22 @@ elseif($tab==='orders'):
       $pf('company','Legal company name');
       $pf('address','Company address');
       $pf('country','Country','US');
-      $pf('bank_holder','Account holder');
-      $pf('bank_name','Bank name');
-      $pf('bank_address','Bank address','4501 23rd Avenue S, Fargo, ND 58104, USA');
+      $pf('bank_holder','Account holder (both accounts)');
+      $pf('bank_name','Bank name — US account');
+      $pf('bank_address','Bank address — US account','4501 23rd Avenue S, Fargo, ND 58104, USA');
       $pf('bank_routing','Routing number (ABA) — US','091311229');
       $pf('bank_account','Account number — US');
-      $pf('bank_acct_type','Account type','Checking');
-      $pf('bank_iban','IBAN — EU (leave blank if none)');
-      $pf('bank_bic','BIC / SWIFT');
+      $pf('bank_acct_type','Account type — US','Checking');
+      $pf('bank_bic','BIC / SWIFT — US account');
+      /* EUR rayi: bir SEPA hesabinin kendi BIC'i, banka adi ve adresi. USD alanlariyla
+         PAYLASILMAZ -- iki banka, tek duz kayit; rails ABD hesabi varken EUR tarafina
+         yalniz bu alanlari basar (inc/invoice.php: vestra_payment_rails). EUR faturasi
+         icin IBAN tek basina yeter (SEPA); BIC/ad/adres AB DISINDAN gelen EUR havalesi
+         icin sorulur, o yuzden ucunu de doldurmak en guvenlisi. */
+      $pf('bank_iban','IBAN — EUR / SEPA account (leave blank if none)');
+      $pf('bank_eur_bic','BIC / SWIFT — EUR account');
+      $pf('bank_eur_name','Bank name — EUR account');
+      $pf('bank_eur_address','Bank address — EUR account');
       $pf('vat_id','Tax ID / EIN');
       ?>
       <div style="align-self:end"><button class="abtn" type="submit" style="color:var(--ok);border-color:rgba(122,214,160,.4)">Save platform billing</button></div>

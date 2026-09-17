@@ -1135,6 +1135,43 @@ adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kay
   ad kolunu kendi çağrı yerinde tutuyor. Test: `invoice_draft_test.php §6`
   (42 iddia; iki çağrı yeri geri alınınca **3 kırmızı**).
 
+**KURAL 5j (devamı) — Platformun EUR/SEPA hesabı: iki banka, tek düz kayıt; EUR
+rayı KENDİ banka adını/adresini basar** (operatör, 17 Eyl 2026: Banking Circle
+S.A. üzerinde Acerasoft LLC adına Almanya/SEPA IBAN'lı hesap — *"avrupadan
+siparis geldiginde otomatik Vestra siparislerine bu bankayi ekle"*).
+- **Rakamlar bu dosyaya, iş akışı girdisine ve ssh betiğine GİRMEDİ** (Güvenlik
+  bölümünün kuralı). IBAN/BIC'i operatör panele kendisi girer:
+  `Admin ▸ Orders ▸ 🏦 Platform billing & bank details`. Doğrulama sunucuda,
+  maskeli: `diag-messages` → `billing_for=vestra` (yalnız VAR/YOK + hane sayısı
+  ve "EUR faturasında ödeme kutusu: ÇIKAR (n satır)").
+- **"Otomatik" zaten mekanizmanın kendisi:** `vestra_payment_rails` kutuyu
+  faturanın PARA BİRİMİNE göre seçer — EUR → IBAN rayı, USD → hesap no + ABA.
+  Avrupalı alıcının siparişi EUR'dur; IBAN girildiği andan itibaren platformun
+  kestiği her EUR fatura bu bankayı taşır, USD faturalar Choice Financial'da
+  kalır. Şart: kesen taraf VESTRA (KURAL 5b) — GARAGE LE PARIS/TYREX kendi
+  hesabını basmaya devam eder. Yeni bir "Avrupa'dan geldi" dalı YAZILMADI: ülke
+  değil para birimi ölçüt, çünkü ödeme kutusu faturanın birimine ait.
+- **Panel formunda EUR rayının alanları YOKTU:** yalnız `bank_iban` + tek
+  `bank_bic` + tek `bank_name`/`bank_address`. SWIFT'i `bank_bic`'e yazmak ABD
+  bankasının BIC'ini ezer, banka adını `bank_name`'e yazmak USD faturasına Alman
+  bankasının adını bastırırdı — iki banka, tek düz kayıt. Eklendi:
+  `bank_eur_bic` (satıcı formunda zaten vardı, platform formunda yoktu),
+  `bank_eur_name`, `bank_eur_address` — iki formda ve iki kayıt yolunda.
+- **Rails kuralı BIC'inkiyle aynı (5 Eyl):** ABD hesabı da varken EUR kutusu
+  ad/adresi yalnız `bank_eur_*`'dan basar, yoksa hiç basmaz (SEPA'da IBAN yeter;
+  çelişen çift eksik satırdan pahalı). ABD hesabı yoksa eski `bank_name`/
+  `bank_address` aynen — yalnız IBAN'ı olan satıcılar bozulmaz. **Eski test
+  tersini pinliyordu** (*"banka adı EUR tarafında da var"* — ABD hesabı TAŞIYAN
+  bir kayıtta): davranış bilerek değişti, test düzeltildi.
+- **Platform kayıt yolu IBAN'ı hiç doğrulamıyordu** (satıcı yolu KURAL 5c'den
+  beri doğruluyordu). Artık mod-97 geçmezse HİÇBİR alan kaydedilmez
+  (`platform_billing_iban_bad`); BIC/routing/hesap no satıcı yoluyla aynı biçime
+  getiriliyor.
+- Test: `payment_rails_test.php §2b` (60 iddia, iki yön: EUR kutusunda ABD
+  bankası YOK, USD kutusunda EUR bankası YOK, yalnız-IBAN satıcı eskisi gibi,
+  form/kayıt yolu kablolaması). Sabotajın gerçekten uygulandığı `grep -c` ile
+  doğrulanarak: rails kuralı geri alınınca **3 kırmızı**, IBAN kapısı silinince **2**.
+
 **KURAL 5i (devamı) — TEKLİF faturası da USD kesilebilir; kur TEKLİFİN tarihinin**
 (operatör, 9 Eyl 2026, OCD7D2: *"burada neden fatura yaparken banka bilgileri
 cikmiyor ?"* + *"ayrica direkt usd ye cevirme buttonu eksik"*). **İki cümle tek

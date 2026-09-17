@@ -54,13 +54,56 @@ $eur = ['bank_iban'=>'FR7630004008280001234567890'] + $us;
 $j3 = implode("\n", vestra_payment_rails($eur, 'EUR'));
 $t('IBAN bosluklu basiliyor', str_contains($j3, 'IBAN: FR76 3000 4008 2800'));
 $t('lehdar EUR tarafinda da var', str_contains($j3, 'Beneficiary: Acerasoft LLC'));
-$t('banka adi/adresi EUR tarafinda da var', str_contains($j3, 'Beneficiary bank: Test Bank') && str_contains($j3, 'Bank address:'));
+/* DAVRANIS BILEREK DEGISTI (17 Eyl 2026): bu satir eskiden "banka adi/adresi EUR
+   tarafinda da var" diyordu ve $eur bir ABD hesabi TASIYOR -- yani IBAN'in yanina
+   Test Bank'in (ABD bankasinin) adini basmayi dogru sayiyordu. Platforma Banking
+   Circle SEPA hesabi eklenirken tam bu cikti: Choice Financial'in adi ve Fargo
+   adresi bir Alman IBAN'inin altinda. BIC icin 5 Eyl'de konan kural artik ad ve
+   adres icin de gecerli. */
+$t('ABD hesabi varken ABD bankasinin adi IBAN yanina BASILMAZ', !str_contains($j3, 'Beneficiary bank: Test Bank'));
+$t('ABD hesabi varken ABD bankasinin adresi de BASILMAZ',      !str_contains($j3, 'Bank address:'));
 /* ESKI KORUMA BOZULMADI: ABD hesabi varken bank_bic bir ABD BIC'i olabilir;
    IBAN'in yanina basmak alicinin bankasina celisen bir cift verir. */
 $t('ABD hesabi varken BIC BASILMAZ', !str_contains($j3, 'BIC / SWIFT: SWIFT1'));
 $eur2 = $eur; $eur2['bank_eur_bic'] = 'EURBIC1';
 $t('bank_eur_bic acikca verilince basilir', str_contains(implode("\n", vestra_payment_rails($eur2,'EUR')), 'BIC / SWIFT: EURBIC1'));
 $t('IBAN yoksa hic satir yok', vestra_payment_rails(['bank_bic'=>'X'], 'EUR') === []);
+
+echo "\n== 2b. Iki banka, tek kayit: EUR rayi KENDI banka adini/adresini basar ==\n";
+/* Platformun gercek durumu: ABD hesabi (Choice Financial) + SEPA hesabi (Banking
+   Circle). Iki yonu de olculuyor -- EUR kutusunda Alman banka, USD kutusunda ABD
+   banka; hicbiri otekinin kutusuna sizmiyor. */
+$both = $eur + ['bank_eur_bic'=>'SEPABIC1','bank_eur_name'=>'EUR Bank S.A.','bank_eur_address'=>'Munich, Germany'];
+$jE = implode("\n", vestra_payment_rails($both, 'EUR'));
+$jU = implode("\n", vestra_payment_rails($both, 'USD'));
+$t('EUR kutusu: EUR bankasinin adi',      str_contains($jE, 'Beneficiary bank: EUR Bank S.A.'));
+$t('EUR kutusu: EUR bankasinin adresi',   str_contains($jE, 'Bank address: Munich, Germany'));
+$t('EUR kutusu: EUR BIC',                 str_contains($jE, 'BIC / SWIFT: SEPABIC1'));
+$t('EUR kutusu: ABD bankasi YOK',         !str_contains($jE, 'Test Bank') && !str_contains($jE, 'Dover'));
+$t('USD kutusu: ABD bankasinin adi',      str_contains($jU, 'Beneficiary bank: Test Bank'));
+$t('USD kutusu: ABD bankasinin adresi',   str_contains($jU, 'Bank address: Dover, DE, USA'));
+$t('USD kutusu: EUR bankasi SIZMIYOR',    !str_contains($jU, 'EUR Bank') && !str_contains($jU, 'Munich') && !str_contains($jU, 'SEPABIC1'));
+$t('USD kutusu: ABD SWIFT duruyor',       str_contains($jU, 'SWIFT / BIC (international): SWIFT1'));
+/* TERS YON: yalniz IBAN'i olan satici (GARAGE LE PARIS gibi) eski alanlarla
+   basmaya DEVAM eder -- bank_eur_* zorunlu olsaydi mevcut her IBAN'li faturadan
+   banka adi sessizce duserdi. */
+$only = ['bank_holder'=>'Garage','bank_iban'=>'FR7630004008280001234567890','bank_bic'=>'FRBIC1','bank_name'=>'Banque Test','bank_address'=>'Paris'];
+$jO = implode("\n", vestra_payment_rails($only, 'EUR'));
+$t('ABD hesabi yokken bank_name yine basilir',    str_contains($jO, 'Beneficiary bank: Banque Test'));
+$t('ABD hesabi yokken bank_address yine basilir', str_contains($jO, 'Bank address: Paris'));
+$t('ABD hesabi yokken duz bank_bic yine basilir', str_contains($jO, 'BIC / SWIFT: FRBIC1'));
+/* Kablolama: panelin platform formu ve kayit yolu alanlari tasiyor mu, IBAN kapisi
+   var mi. Rails okuyup formun yazmadigi bir alan "toplanan ama okunmayan"in tersi
+   olurdu: okunan ama hicbir yerden girilemeyen alan. */
+$adm = (string)@file_get_contents(__DIR__.'/../vestra/admin.php');
+$hp  = substr($adm, strpos($adm, "if(\$act==='save_platform_billing')"), 2600);
+foreach (['bank_eur_bic','bank_eur_name','bank_eur_address'] as $f) {
+    $t("platform kayit yolu $f aliyor",   str_contains($hp, "'$f'"));
+    $t("platform formu $f alanini cizer", preg_match('~\$pf\(\''.$f.'\'~', $adm) === 1);
+    $t("satici formu $f alanini cizer",   str_contains($adm, 'name="'.$f.'"'));
+}
+$t('platform kayit yolu IBAN dogruluyor',  str_contains($hp, 'vestra_iban_valid('));
+$t('gecersiz IBAN: hicbir sey kaydedilmez ve mesaj var', str_contains($hp, 'platform_billing_iban_bad') && str_contains($adm, "'platform_billing_iban_bad'=>"));
 
 echo "\n== 3. Helvetica'nin disindaki karakterler (gomulu yolun tetikleyicisi) ==\n";
 /* Bu fonksiyon "CP1252 disinda" demektir; 7 Eyl 2026'dan beri "kayip" demek

@@ -127,13 +127,23 @@ function vestra_payment_rails(array $acc, string $currency): array {
     $hasUs = $g('bank_account') !== '' || $g('bank_routing') !== '';
     $bic   = $g('bank_eur_bic') !== '' ? $g('bank_eur_bic') : ($hasUs ? '' : $g('bank_bic'));
     /* AB DISINDAN gelen bir EUR havalesi de banka adi/adresi ister -- SEPA ici
-       IBAN tek basina yeterli, ama Hong Kong'daki bir banka bunlari soruyor. */
+       IBAN tek basina yeterli, ama Hong Kong'daki bir banka bunlari soruyor.
+       BANKA ADI/ADRESI ICIN DE AYNI KURAL (17 Eyl 2026, platforma Banking Circle
+       SEPA hesabi eklenirken): 'bank_name' ve 'bank_address' iki rayin ORTAK
+       alani. ABD hesabi da tanimliyken bunlar ABD bankasinin (Choice Financial)
+       adi ve adresidir; bir Alman IBAN'inin yanina onlari basmak, alicinin
+       bankasina birbirini tutmayan bir cift vermek demek -- ve kutu "dolu"
+       gorundugu icin kimse fark etmezdi. ABD hesabi varken ad/adres yalniz
+       ACIKCA 'bank_eur_name' / 'bank_eur_address' verilmisse yaziliyor; ABD
+       hesabi yoksa eski alanlar aynen (yalniz IBAN'i olan saticilar bozulmaz). */
+    $bname = $g('bank_eur_name')    !== '' ? $g('bank_eur_name')    : ($hasUs ? '' : $g('bank_name'));
+    $baddr = $g('bank_eur_address') !== '' ? $g('bank_eur_address') : ($hasUs ? '' : $g('bank_address'));
     return array_values(array_filter([
         $g('bank_holder')  !== '' ? 'Beneficiary: '.$g('bank_holder') : '',
         'IBAN: '.vestra_iban_pretty($g('bank_iban')),
         $bic !== '' ? 'BIC / SWIFT: '.$bic : '',
-        $g('bank_name')    !== '' ? 'Beneficiary bank: '.$g('bank_name') : '',
-        $g('bank_address') !== '' ? 'Bank address: '.$g('bank_address') : '',
+        $bname !== '' ? 'Beneficiary bank: '.$bname : '',
+        $baddr !== '' ? 'Bank address: '.$baddr : '',
     ], fn($v) => $v !== ''));
 }
 
