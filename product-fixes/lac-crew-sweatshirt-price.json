@@ -4,10 +4,10 @@
   "expect": 1,
   "tiers": [
    { "min": 56,  "price": 39.90 },
-   { "min": 104, "price": 35.00 }
+   { "min": 104, "price": 36.00 }
   ],
   "sale_list": 44.00,
-  "_why": "Operator, 17 Eyl 2026: '56 ad. ten itibaren 39,90 Eur, 104 ad. ten itibaren 35,00 eur normal fiyati da 44,00 eur yap.' Onceki hali: list 64,71 / tek kademe 56+ -> 55,00.",
+  "_why": "Operator, 17 Eyl 2026: '56 ad. ten itibaren 39,90 Eur, 104 ad. ten itibaren 35,00 eur normal fiyati da 44,00 eur yap.' -- dakikalar sonra ikinci kademeyi duzeltti: '104 ad. Ten itibaren 36 eur yap'. Uygulanan 36,00; duzeltme HICBIR SEY YAZILMADAN once geldi, yani 35,00 canliya hic inmedi. Onceki hali: list 64,71 / tek kademe 56+ -> 55,00.",
   "_hangi_ilan": "Operatorun yapistirdigi sayfa metni (desc 'Single-size cartons of 8 ... SH9608-00') lgp-lacoste-crew-sweatshirt'e ait, YANI ayni mesajda 'kaldir' dedigi TEKRARA. Ama verdigi RAKAMLAR bu ilanin yapisi: 56 = lac-crew-sweatshirt'in mevcut MOQ'su, 104 = 56+6x8, ve size_step 8 oldugu icin iki basamak da tam kartona oturuyor. Tekrarin MOQ'su 8; onda '56 ad. ten itibaren' ilk kademe olamaz, MOQ'yu da degistirmek gerekirdi. Ayni urun, ayni fotograflar, ayni SKU (SH9608) -- fiyat AYAKTA KALAN ilana yaziliyor.",
   "_sale_list_neden": "'price' TUM kademeleri 44'e duzlestirirdi (merdiven yok olurdu). 'sale_list' YALNIZ ustu cizili 'was' fiyatini yazar, tiers'a dokunmaz. mode='sale' zaten acik, yani sayfa 'normal 44,00' + 'from 39,90' gosteriyor (~%9 rozet). Mevcut 64,71 zaten bu alandan gelmisti (product-fixes/lacoste-fleece-crew-sweatshirt-discount.json).",
   "_moq_yazilmadi": "MOQ zaten 56 ve dogru; yazmak tiers[0].min'i de yeniden yazar (ayni degere), yani gurultu. desc de dokunulmadan dogru kaliyor: 'Minimum order 56 pc, at least 4 colours' -- min_colors 4, MOQ 56, ikisi de degismiyor. (Bu depoda desc ile sizes/moq'nun ayrisması iki kez pahaliya mal oldu; bu kez ayrisma YOK.)"
