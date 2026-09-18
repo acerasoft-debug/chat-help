@@ -96,6 +96,19 @@ on:
         description: "true = marka/kategori suzgecine uyan her ilanin SIRALI tam gorsel listesi (kapak dahil) + diskte var mi. Salt okunur."
         required: false
         default: "false"
+      linesheet:
+        # "Line-sheets by brand" (shop.php'nin kenar kutusu -> /catalog?brand=X).
+        # Sikayet "fotograflardan baska bir sey cikmiyor" oldugunda ilk olculmesi
+        # gereken sey KAYNAK DEGIL, URETILEN DOSYADIR: hangi sutun kac satirda
+        # gercekten dolu. Bu mod GERCEK ucu (catalog.php) kosturuyor -- ikinci
+        # bir satir kurma mantigi yazilsaydi rapor, musterinin indirdigi
+        # dosyayi degil kendi kopyasini olcerdi.
+        # NOT: bu tek mod salt-okunur DEGIL -- ziyaretcinin indirmesiyle ayni
+        # export onbellegini (data/cache) doldurabilir. Katalog verisine
+        # dokunmaz.
+        description: "Marka adi (ya da * = tum secki): 'Line-sheets by brand' .xlsx'ini SUNUCUDA gercekten uretir ve NE CIKTIGINI olcer — satir sayisi, sutun sutun doluluk, gomulu fotograf sayisi, ilk satirlar. Fiyat tasimaz (bu export bilerek fiyatsiz)."
+        required: false
+        default: ""
       raw_scan:
         description: "true = HAM listings.json: ONAY BEKLEYEN (pending) ilanları da gösterir. Diğer bütün modlar vestra_products() okuyor ve o YALNIZCA approved döndürüyor — yeni yazılmış bir parti orada 0 görünür ve bu 'yazılmadı' diye okunur. Ayrıca dil bazlı ad/açıklamanın (name_i18n/desc_i18n) gerçekten KAYDA indiğini sayar: alan yazılmış ama saklanmamışsa ancak başka dilde gezen biri fark ederdi."
         required: false
@@ -138,6 +151,7 @@ jobs:
           INSPECT_RAW: ${{ github.event.inputs.raw_scan }}
           INSPECT_SHOPORD: ${{ github.event.inputs.shop_order }}
           INSPECT_MOQ: ${{ github.event.inputs.moq_scan }}
+          INSPECT_LS: ${{ github.event.inputs.linesheet }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
@@ -148,7 +162,7 @@ jobs:
           # gecirir. Yeni bir girdi eklerken bu satir unutulursa uzak tarafta
           # getenv() bos doner ve mod SESSIZCE calismaz -- sonda, sorulmayan bir
           # soruya "her sey normal" diye cevap verir.
-          envs: INSPECT_MOQ,INSPECT_SHOPORD,INSPECT_BAKDIFF,INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT,INSPECT_FIT,INSPECT_IMGLIST,INSPECT_HOMEPICKS,INSPECT_RAW
+          envs: INSPECT_MOQ,INSPECT_SHOPORD,INSPECT_BAKDIFF,INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT,INSPECT_FIT,INSPECT_IMGLIST,INSPECT_HOMEPICKS,INSPECT_RAW,INSPECT_LS
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
@@ -1149,4 +1163,70 @@ jobs:
             # "sorun yok" gibi okunurdu. Bu tuzak bugun kupon isinde bir kez isledi.
             php /tmp/vestra_inspect.php; RC=$?
             rm -f /tmp/vestra_inspect.php
+
+            # ---- LINE-SHEET SONDASI -------------------------------------------------
+            # Gercek ucu kosturup URETILEN dosyayi olcer. Kaynak okumak olcum degil:
+            # bu depoda bir kez fotografsiz bir PDF yillarca "dosya uretildi, boyut
+            # makul" diye gecti.
+            if [ -n "$INSPECT_LS" ]; then
+              echo ""
+              echo "===== LINE-SHEET (/catalog?brand=...) ====="
+              php -d display_errors=stderr -d error_reporting=-1 -r '
+                $b = (string)getenv("INSPECT_LS"); if ($b === "*") $b = "";
+                $_GET["brand"] = $b;
+                $_SERVER["REQUEST_METHOD"] = "GET";
+                require getenv("HOME")."/public_html/catalog.php";
+              ' > /tmp/vestra_ls.xlsx 2>/tmp/vestra_ls.err
+              LSRC=$?
+              echo "  uretim cikis kodu: $LSRC   boyut: $(wc -c < /tmp/vestra_ls.xlsx) bayt"
+              head -5 /tmp/vestra_ls.err | sed 's/^/  stderr: /'
+              php -d display_errors=stderr -d error_reporting=-1 -r '
+                $f = "/tmp/vestra_ls.xlsx";
+                if (!is_file($f) || filesize($f) < 100) { echo "  *** dosya uretilmedi\n"; exit; }
+                $z = new ZipArchive(); if ($z->open($f) !== true) { echo "  *** zip acilamadi (xlsx degil?)\n"; exit; }
+                $media = 0;
+                for ($i = 0; $i < $z->numFiles; $i++) if (strpos($z->getNameIndex($i), "xl/media/") === 0) $media++;
+                $xml = (string)$z->getFromName("xl/worksheets/sheet1.xml");
+                $z->close();
+                if ($xml === "") { echo "  *** sheet1.xml yok\n"; exit; }
+                preg_match_all("~<row[^>]*>.*?</row>~s", $xml, $m);
+                $rows = [];
+                foreach ($m[0] as $r) {
+                  preg_match_all("~<c r=\"([A-Z]+)\d+\"[^>]*>(.*?)</c>~s", $r, $c, PREG_SET_ORDER);
+                  $cells = [];
+                  foreach ($c as $one) {
+                    if (preg_match("~<t[^>]*>(.*?)</t>~s", $one[2], $t))      $cells[$one[1]] = html_entity_decode($t[1], ENT_QUOTES, "UTF-8");
+                    elseif (preg_match("~<v>(.*?)</v>~s", $one[2], $v))        $cells[$one[1]] = $v[1];
+                  }
+                  $rows[] = $cells;
+                }
+                printf("  satir (band + baslik + veri + not): %d   gomulu fotograf: %d\n", count($rows), $media);
+                if (count($rows) < 3) { echo "  *** veri satiri yok\n"; exit; }
+                $head = $rows[1];
+                echo "  basliklar: ".implode(" | ", array_values($head))."\n";
+                $data = array_slice($rows, 2);
+                /* Son iki satir kayit/fiyat notu -- veri degil, doluluk sayimina girmemeli. */
+                $notes = 0;
+                for ($i = count($data) - 1; $i >= 0 && $notes < 2; $i--) {
+                  $first = (string)(reset($data[$i]) ?: "");
+                  if (stripos($first, "vestrasales.com") !== false) { array_pop($data); $notes++; } else break;
+                }
+                printf("  VERI satiri: %d   (alt not satiri: %d)\n", count($data), $notes);
+                echo "  --- sutun sutun DOLULUK (bos hucre = musterinin gordugu bosluk) ---\n";
+                foreach (array_keys($head) as $col) {
+                  $full = 0;
+                  foreach ($data as $d) if (trim((string)($d[$col] ?? "")) !== "") $full++;
+                  $n = count($data) ?: 1;
+                  printf("  %-3s %-18s %4d/%-4d  %%%d%s\n", $col, mb_substr((string)$head[$col], 0, 18),
+                         $full, count($data), (int)round(100 * $full / $n), $full === 0 ? "   *** HIC DOLU DEGIL ***" : "");
+                }
+                echo "  --- ilk 5 veri satiri ---\n";
+                foreach (array_slice($data, 0, 5) as $d) {
+                  $out = [];
+                  foreach (array_keys($head) as $col) $out[] = mb_substr(trim((string)($d[$col] ?? "")), 0, 26);
+                  echo "  ".implode(" | ", $out)."\n";
+                }
+              '
+              rm -f /tmp/vestra_ls.xlsx /tmp/vestra_ls.err
+            fi
             exit $RC
