@@ -4741,6 +4741,44 @@ gönder simdi yeni ürünler ile Galerry markasi ve F.Perry , Gucci , Dsq2"*).
   (`grep -c` = 0) ve "iddia düşmüyor" dedirtecekti — bu dosyada kayıtlı tuzak,
   python ile tekrarlanınca çıktı.*
 
+**KURAL 31 — GÖNDERİLDİ (18 Eyl 2026, operatör: *"devam et göndermeye basla"*):
+242 mektup, hata 0; kalan 50 KOTAYA takıldı.**
+
+| Parti | Sonuç |
+|---|---:|
+| Lead 1-4 (50'şer, sırayla) | **200** |
+| Lead 5 (istenen 50) | **0 — kota kapısı durdurdu** |
+| Üye (`member_spec=letter=wave3\|skip=verify`) | **4** |
+| Lead 6 (kalan kotaya göre 38) | **38** |
+| **Toplam** | **242** (238 lead + 4 üye), **hata 0** |
+
+- **Kota kapısı HEP YA DA HİÇ ve tam da bunun için var:** beşinci parti
+  *"istenen 50, ayrılan pay düşüldükten sonra kullanılabilir 42 (toplam kalan
+  102)"* deyip **hiçbir şey göndermedi** — 42 mektup gönderip yarım parti
+  bırakmadı. Sonraki koşu 38 ile geçti. *Bir kapının "başarısız" görünen
+  koşusu, aslında kapının çalıştığı koşudur.*
+- **ÜYELER ÖNCE ALINDI, bilinçli:** kalan 102'nin ayrılan pay sonrası 42'si
+  kampanyaya açıktı ve üye havuzu yalnız 4 kişiydi. Lead'leri 42'ye kadar
+  doldurup üyeleri yarına bırakmak, **dört kayıtlı müşteriyi** soğuk listenin
+  kuyruğuna koymak olurdu. Sıra: üye 4 → lead 38.
+- **Atlama listesi GÖNDERMEDEN ÖNCE kuru koşuyla okundu** (17 Eylül'ün dersi:
+  `skip` değerleri `[,\s]+` ile bölünüyor). `Verify Test Co` için **tek,
+  ayırt edici token** (`verify`) kullanıldı — `co` gibi bir parça başka
+  firmaları da tutardı. Kuru koşu `skip_accounts 1` dedi ve kalan dördü tek tek
+  bastı; yanlış yakalanan yok.
+- **Üye kapısı 4/4 AÇIK**, yani dördü de rakamsız değil **rakamlı** sürümü
+  aldı — ama bu mektupta zaten fiyat yok; ölçüm, kapalı bir hesaba "listenizde
+  görürsünüz" denmediğini doğrulamak için okundu (§ üye kapanışı).
+- **KALAN 50 LEAD ölçüldü, tahmin edilmedi** (kuru koşu, aynı kip):
+  `en 19 · it 12 · de 6 · ja 5 · es 3 · nl 3 · fr 1 · pt 1` = **50**;
+  kategori dağılımı da 45 + 5 = 50 diyor, yani sayım kendi içinde tutuyor.
+  Kota yenilenince **tek koşu** yeter. **Kendiliğinden gönderilmedi** —
+  KURAL 18: bir turdaki "gönder" bir sonraki mektubun izni değil.
+- **Diller (238 lead):** en 105 · nl 36 · de 29 · it 26 · fr 20 · es 10 ·
+  cs 4 · el 3 · pt 1 · pl 1 · ko 1 · az 1.
+- **Kütükteki `GONDERILDI` yalnızca "Brevo isteği kabul etti" demek** — bu
+  dosyanın kendi uyarısı: `delivered` bile posta kutusu kanıtı değil.
+
 **11 Eyl 2026 — KATALOG GENELİNDE %80 ZAM ve GERİ ALINMASI.** Operatör:
 *"yüzde 80 eklemeyi hemen geri al"* → *"tüm fiyatları dün geceki fiyatlara çek"*.
 - **Ne olmuş:** KURAL 22 ile eklenen `markup_pct` aracı **`80` ile ve bölme
