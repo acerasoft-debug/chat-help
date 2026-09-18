@@ -4652,6 +4652,95 @@ brandslerden.."* + *"250 ad."*).
   ayrı ölçüte bağlamak, birini sessizce eksik bırakır.*
   Test: `wave3_letter_test.php §7` (eski sayım geri konunca 3 kırmızı).
 
+**KURAL 31 — ÜÇÜNCÜ MEKTUP: adıyla sayılan evler, KENDİ damgasıyla** (operatör,
+18 Eyl 2026: *"herkese bastan 3. email gönder ve gece yarisi devam et 295 email
+gönder simdi yeni ürünler ile Galerry markasi ve F.Perry , Gucci , Dsq2"*).
+
+- **İKİNCİ mektupla karıştırma — AD ÇAKIŞMASI KAYITTA:** bu depoda zaten
+  `wave3_letter_test.php` var ve o **üçüncü PARTİ**'yi, yani İKİNCİ mektubun
+  ayakkabı/iç giyim sürümünü ölçüyor. Üçüncü MEKTUP başka bir şey:
+  `vestra_tpl_wave3_brands()` + `tests/wave3_brands_test.php`. Damgalar da ayrı:
+  `last_newcollection_at` (ikinci) ↔ **`last_wave3_at`** (üçüncü; hesapta
+  `wave3_at`).
+- **Eski notun düzeltilmesi, susulmadı:** `shoes` şablonunun yorumu *"iki ayrı
+  damga tutmak aynı firmaya üçüncü bir soğuk mektup yolunu açardı"* diyordu ve
+  üçüncü mektubu ilkesel olarak reddediyor gibi okunuyordu. Reddedilen şey o
+  değildi: **AYNI SIRANIN** iki damgaya bölünmesiydi (winter ve shoes ikisi de
+  *ikinci* mektup). Operatörün kararı yorumun içine yazıldı — susup o notla
+  çelişen bir kod bırakmak, sonraki okuyucuya hangisinin geçerli olduğunu
+  okunamaz yapardı (KURAL 21d'nin aynı dersi).
+- **AYRI ŞABLON, çünkü ikinci mektup BÖLME sayıyor** ("335 ayakkabı, 146 iç
+  giyim") ve markaları yalnız bir kuyruk satırında anıyor; bu turda istenen şey
+  bölme değil **DÖRT EV**. Aynı şablona üçüncü bir kip eklemek, bölme cümlesini
+  bir koşulla susturup marka cümlesini şişmanletmek olurdu ve iki mektup ilk
+  marka değişikliğinde ayrışırdı.
+- **ÜYE SÜRÜMÜ AYNI GÖVDEDE** (`$member=true`): lead metni üyeye **iki yerden**
+  yanlış — *"size iki kez yazmıştık"* (üye zaten kendi isteğiyle kayıtlı) ve
+  *"kayıt ücretsiz, ticari kaydınızı istiyoruz"* (yaptığı işi tekrar yaptırmak,
+  KURAL 2b). Değişen yalnız açılış ve kapanış; evler, adetler ve konu aynı.
+  Ayrım `$L` tablosunun **içinde** duruyor: bir dili düzelten kişi o dilin
+  altı satırını da yan yana görüyor.
+  **Üye kapanışı fiyatın NEREDE olduğunu bilerek SÖYLEMİYOR** — bu kipte hesabın
+  fiyat kapısı kapalı olabiliyor (koşu o sayıyı gönderimden önce basıyor) ve
+  "listenizde görürsünüz" demek kapalı bir hesabı duvara yollamak olurdu. Yerine
+  yalnızca **bizim** yapacağımız bir şey vaat ediliyor (istenirse artikel
+  listesini göndermek), ki o kapı durumundan bağımsız olarak doğru.
+- **YENİ GİRDİ EKLENMEDİ ve bu bir tercih değil:** `workflow_dispatch` en fazla
+  **25 girdi** alıyor ve `send-outreach.yml` tam 25'te; 26.sı dosyayı **hiç
+  dispatch edilemez** yapardı (CLAUDE.md bu sınırı `diag-live.yml`'de bir kez
+  kaydetti). Üçüncü mektup bu yüzden `newcoll_letter`'ın üçüncü değeri:
+  `winter | shoes | **wave3**`. **Tanınmayan değer artık SESSİZCE winter'a
+  düşmüyor, işi DURDURUYOR** — düşseydi `wave3` yerine `wave-3` yazan bir koşu
+  üçüncü mektup sandığı sırada **ikinciyi** gönderir ve yanlış damgayı tüketirdi.
+- **YAŞ ÖLÇÜSÜ İKİNCİ MEKTUBA GÖRE** (`$NC_PREV`). İlk mektuptan ölçseydik dün
+  ikinci mektubu almış bir lead bugün üçüncüyü de alırdı. Firma-bazlı harita
+  (`$ncSeenDom`) da **bu partinin** damgasına bakıyor: ikincininkine bakmak,
+  üçüncüyü hiç almamış firmaların tamamını "almış" sayıp havuzu sıfırlardı.
+  Üçüncü mektup ayrıca **İKİ damga birden** arıyor (ilk + ikinci): mektubun ilk
+  cümlesi *"size iki kez yazmıştık"* diyor ve yalnız ilk mektubu almış birine
+  gitse mektup kendi açılışını yalanlardı.
+- **RAKAMLAR CANLI KAYITTAN, metne gömülü değil.** Çağıran evleri
+  `vestra_products()` üzerinden sayıyor; eşleşme harf duyarsız **TAM eşitlik**
+  (alt dize olsaydı yarın gelecek bir "Gucci Kids" aynı satıra eklenirdi —
+  mango/zara dersi). **Adıyla istenen bir ev katalogda yoksa iş DURUYOR** ve
+  yakın adayları basıyor: sessizce listeden düşürmek, operatörün gönderdiğini
+  sandığından başka bir mektup göndermek olurdu.
+- **ÜYE DALINA YAŞ KURALI EKLENDİ ve ilk koşuda 127 hesap yakaladı.** 17 Eylül'de
+  bu **elle** yapılmıştı (Angebot alan 7 hesap aynı günün Winter partisinden tek
+  tek çıkarılmıştı); kural hatırlanmaya bırakıldığı sürece bir sonraki parti onu
+  kaçırıyor. Ölçü aynı knob (`newcoll_min_days`, 0 = kapalı) ve **başka** kampanya
+  damgalarına bakıyor, kendi damgasına değil. Kuru koşu: uygun **5**, *"son 3
+  günde başka bir kampanya mektubu aldı"* diye elenen **127** — yani kural
+  olmasaydı 127 üye, bir gün arayla ikinci bir kampanya mektubu alacaktı.
+- **CANLI KURU KOŞU (18 Eyl 2026, deploy `2bf7f2d7`):**
+
+  | | |
+  |---|---:|
+  | Lead havuzu (ilk + ikinci mektubu almış, üçüncüyü almamış) | **288** |
+  | Üye havuzu | **5** (+127'si 3 günlük yaş kuralında) |
+  | ölü alan adı (DNS) | 0 |
+  | Mektuptaki evler | Gallery Dept. **9** · Fred Perry **2** · Gucci **15** · DSQUARED2 **64** |
+  | Diller | en 124 · nl 39 · it 38 · de 35 · fr 21 · es 13 · ja 5 · el 4 · cs 4 · pt 2 · pl 1 · ko 1 · az 1 |
+
+  **288, operatörün söylediği 295'e çok yakın ve bu tesadüf değil:** havuz
+  büyük çünkü bu kip *iki mektubu da almış* olanları seçiyor — 4, 8 ve 17
+  Eylül'de kaydedilen "havuz tükendi" ölçümleri **soğuk** havuz içindi.
+- **Gerçek gönderim koşu başına 50'ye kırpılıyor**, yani 288 için **6 koşu**;
+  koşular **sırayla** (paralel koşu `leads.json`'ı ezer). Damga koşular arasında
+  tuttuğu için ikinci koşu birincinin gönderdiğini seçmiyor.
+- **Fred Perry mektupta "2 artikel" diyor** ve bu doğru (katalogda gerçekten 2
+  ilan var) ama 64'lük DSQUARED2'nin yanında ince duruyor. Rakam uydurulmadı;
+  istenirse o ev listeden çıkarılır — karar operatörün.
+- Test: `tests/wave3_brands_test.php` (**123 iddia**, iki yön). Düşebildiği
+  doğrulandı, **her sabotajın gerçekten uygulandığı `grep -c` ile ayrıca
+  yazdırılarak**: üye sürümü kapatılınca **6 kırmızı**, sıfır artikelli ev
+  basılınca **3**, konudaki üç-ad kırpması kalkınca **1**, damga ikinciye
+  dönünce **1**, yaş ilk mektuba dönünce **1**, eşleşme alt dizeye gevşeyince
+  **1**, üye dalı lead sürümünü gönderince **1**.
+  *İlk sabotaj denemem `perl -0pi` kaçışı yüzünden **hiç uygulanmamıştı**
+  (`grep -c` = 0) ve "iddia düşmüyor" dedirtecekti — bu dosyada kayıtlı tuzak,
+  python ile tekrarlanınca çıktı.*
+
 **11 Eyl 2026 — KATALOG GENELİNDE %80 ZAM ve GERİ ALINMASI.** Operatör:
 *"yüzde 80 eklemeyi hemen geri al"* → *"tüm fiyatları dün geceki fiyatlara çek"*.
 - **Ne olmuş:** KURAL 22 ile eklenen `markup_pct` aracı **`80` ile ve bölme
