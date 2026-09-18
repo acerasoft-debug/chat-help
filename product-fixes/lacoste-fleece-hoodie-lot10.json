@@ -1,0 +1,20 @@
+[
+  {
+    "_not": "Operator, 18 Eyl 2026: 'Lacoste Fleece Hoodie 10 ad bir Lot olucak. En az alimda 49,90 eur 50 ad. 45,00 eur 100 ad 42,00 eur'.",
+    "_olcum": "SONDA ONCE (inspect-products run 35296700182): lac-fleece-hoodie | SKU SH9623 | list 49.9 EUR | moq 56 | size_step 8 | sizes 'S×1 · M×2 · L×2 · XL×2 · XXL×1 · 8/pack' | tiers 56+ -> 49.9 | min_colors 4 | renk(8) | mode=sale, teklif ACIK.",
+    "_hangi_ilan": "Katalogda IKI hoodie var: lac-fleece-hoodie (SH9623, list 49,90) ve lac-zip-hoodie (Zip Up Fleece Hoodie, SH9626, list 55). Ayirt eden sey ad degil RAKAM: operatorun yazdigi 49,90 tam olarak SH9623'un bugunku fiyati. match yine de id ile yaziliyor, expect:1.",
+    "_moq_40_NEDEN": "Operator asgari ADEDI vermedi, yalniz 'en az alimda 49,90' dedi. 56 kalamaz (10'un kati degil; sepet adima YUKARI yuvarliyor, yani 'min 56' kasada 60 demek). 50 de olamaz: 50 zaten 45,00 kademesi, yani 49,90 hic ulasilamayan bir fiyat olurdu (ilan alinamayan bir minimum ilan ederdi). 10 da olamaz: bu ilan min_colors=4 tasiyor ve renk-adet kipinde her renk EN AZ bir lot -- vestra_parse_colorqty() her rengi size_step'in katina yuvarluyor ve 0 olani hic saymiyor, order.php:75 de 4 renk SART kosuyor. Yani 10'luk lotta gercekten alinabilen en kucuk adet 4 x 10 = 40. 40 uydurma degil, ILANIN KENDI verisinden cikiyor (Fred Perry'de '4 renk 5 pakete sigiyor' diye kaydedilen ayni hesap).",
+    "_desc_PROBE": "Bu kosu KURU: desc'in bugunku metnini OKUMAK icin konuldu (seri/karton adedi iki yerde yazili olabilir - Balenciaga 9 Eyl dersi). Gercek metin okunduktan sonra bu satir dogrusuyla degistirilecek, asla boyle uygulanmayacak.",
+    "match": "lac-fleece-hoodie",
+    "expect": 1,
+    "size_step": 10,
+    "moq": 40,
+    "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack",
+    "tiers": [
+      { "min": 40, "price": 49.90 },
+      { "min": 50, "price": 45.00 },
+      { "min": 100, "price": 42.00 }
+    ],
+    "desc": "__PROBE_OKUMAK_ICIN__"
+  }
+]
