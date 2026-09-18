@@ -143,8 +143,17 @@ foreach ($fixes as $n => $fx) {
   if (isset($set['preorder_ship']) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$set['preorder_ship'])) {
     $errors[] = "{$ctx} ({$m}): preorder_ship YYYY-MM-DD olmali"; continue;
   }
-  if (isset($set['status']) && !in_array($set['status'], ['approved','pending'], true)) {
-    $errors[] = "{$ctx} ({$m}): status 'approved' ya da 'pending' olmali"; continue;
+  /* 'rejected' de yazilabilir ve bu bir genisletme degil, eksigin kapatilmasi:
+     panelin KENDI "ilani reddet" dugmesi (admin.php:96) tam bu degeri yaziyor,
+     admin listeler sekmesi icin ayri bir kova ($rejList) ve rozeti var, satici
+     panelinde "✗ Rejected" diye gorunuyor. Betik yalnizca onu YAZAMIYORDU.
+     Bir ilani siteden KALDIRMANIN dogru durumu bu: 'pending' onu operatorun
+     "⚠️ Listings to approve" sayacina sokar, yani kaldirdigimiz ilan her sabah
+     yapilacak is gibi gorunur -- KURAL 2c'nin ("her gun 0 bekleyen yazan uyari
+     okunmamayi ogretir") ters yonu. 'suspended' bilerek YOK: o alan satici
+     askisinin ilan tarafindaki karsiligi, bir urun kararinin degil. */
+  if (isset($set['status']) && !in_array($set['status'], ['approved','pending','rejected'], true)) {
+    $errors[] = "{$ctx} ({$m}): status 'approved', 'pending' ya da 'rejected' olmali"; continue;
   }
   if (isset($set['seller_uid']) && !isset($sellerIds[(string)$set['seller_uid']])) {
     $errors[] = "{$ctx} ({$m}): seller_uid '{$set['seller_uid']}' gecerli bir seller hesabina ait degil"; continue;

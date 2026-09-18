@@ -1,0 +1,12 @@
+[
+ {
+  "match": "lgp-lacoste-crew-sweatshirt",
+  "expect": 1,
+  "status": "rejected",
+  "_why": "Operator, 17 Eyl 2026: 'ayni urun sitede iki defa olmaz sonradan girileni kaldir'. Ayni Lacoste SH9608 crew sweatshirt katalogda IKI ilandi. SONRADAN girilen bu: added_at 2026-09-12, otekisi (lac-crew-sweatshirt) 2026-08-02 -- 41 gun once. Olculdu, hatirlanmadi (inspect-products run 216).",
+  "_neden_bu_kalkiyor": "added_at disinda BES bagimsiz isaret daha ayni yonu gosteriyor, yani bu bir yazi-tura degil: (1) satici hesabi 8fa9d40d72705820 = OLU 'Les Garage Paris' kabugu (adres/VAT/sicil/banka/Stripe YOK; ayakta kalan ilan canli GARAGE LE PARIS hesabinda, 7ab30f26afedd840); (2) kategorisi 'Sweatshirts' ve bu ad vestra_all_cats()'te YOK -- satici ilani acip kaydettigi an 'Other' ile eziliyor ve 9 dilde ham Ingilizce basiliyor (dogrusu 'Hoodies & Sweatshirts', ayakta kalanda o var); (3) min_colors alani YOK, yani alici 10 rengi GORUYOR ama SECEMIYOR; (4) teklif kutusu kapali, otekinde acik; (5) operatorun verdigi 56/104 kademeleri otekinin MOQ'suna oturuyor, bunun MOQ'su 8.",
+  "_neden_rejected": "'pending' onu panelin '⚠️ Listings to approve' sayacina sokardi: kaldirdigimiz ilan her sabah yapilacak is gibi gorunurdu. 'rejected' panelin KENDI reddet dugmesinin yazdigi durum; vestra_live_listings() yalnizca 'approved' donduruyor, yani vitrin, fiyat listeleri, sitemap, kampanya, API ve vestra_find() (urun sayfasi) hepsinden dusuyor. Kayit diskte duruyor -- Admin > Listings'te '✗ Rejected' rozetiyle gorunur ve tek tiklamayla geri alinabilir. Panelin Delete dugmesi YEDEK ALMIYOR (vestra_save_listings), bu yol aliyor ve geri okuyor.",
+  "_sync_kapatildi": "Ayni kayit vestra/inc/lesgarage_polos_seed.json'da da duruyordu ve 'Admin > Listings > Sync Les Garage Paris' onu geri yaziyor. Tohum kaydi da SILINDI; yoksa bir sonraki sync ilani yeniden ekleyip status='approved' yapardi.",
+  "_baglanti_yok": "diag-live find_ref=crew-sweatshirt (run 35276928781): tek eslesme listings.json. Hicbir siparis, teklif, order_statuses ya da offer_responses kaydi bu ilana bagli degil."
+ }
+]
