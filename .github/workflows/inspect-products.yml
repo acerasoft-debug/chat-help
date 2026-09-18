@@ -1225,7 +1225,10 @@ jobs:
                     if (strpos($raw, "/FlateDecode") !== false) {
                         echo "  akislar SIKISTIRILMIS -- metin sayimi atlandi (sonuc yok, olcum yok)\n";
                     } else {
-                        printf("  metin: 'lots of' %d kez | 'MOQ' %d | 'Colours:' %d | 'vestrasales.com/product' %d\n",
+                        /* KESME ISARETI YOK: bu govde bash TEK TIRNAK icinde ve tek bir
+                           kesme isareti adimi olduruyor -- ayni tuzak bu dosyada zaten bir
+                           kez yasandi (commit d0ba6062) ve burada ikinci kez yasandi. */
+                        printf("  metin sayimi: lots-of=%d | MOQ=%d | Colours=%d | urun-linki=%d\n",
                                substr_count($raw, "lots of"), substr_count($raw, "MOQ"),
                                substr_count($raw, "Colours:"), substr_count($raw, "vestrasales.com/product"));
                     }
@@ -1267,11 +1270,12 @@ jobs:
                   $n = count($data) ?: 1;
                   printf("  %-3s %-18s %4d/%-4d  %%%d%s\n", $col, mb_substr((string)$head[$col], 0, 18),
                          $full, count($data), (int)round(100 * $full / $n),
-                         /* 'Photo' HER ZAMAN bos ve bu kusur DEGIL: gorsel hucreye METIN
-                            olarak yazilmiyor, sayfanin uzerine cizim capasiyla tutturuluyor
-                            (inc/xlsx.php). Yukarida basilan 'gomulu fotograf' sayisi o
-                            sutunun gercek olcusu. Bu not olmadan her kosuda yanlis bir
-                            alarm okunuyordu. */
+                         /* Photo sutunu HER ZAMAN bos ve bu kusur DEGIL: gorsel hucreye
+                            METIN olarak yazilmiyor, sayfanin uzerine cizim capasiyla
+                            tutturuluyor (inc/xlsx.php). Yukarida basilan gomulu fotograf
+                            sayisi o sutunun gercek olcusu. Bu not olmadan her kosuda
+                            yanlis bir alarm okunuyordu.
+                            KESME ISARETI YOK: govde bash TEK TIRNAK icinde. */
                          $full === 0 ? (stripos((string)$head[$col], "photo") !== false
                                         ? "   (gorsel capa olarak duruyor -- bkz. gomulu fotograf sayisi)"
                                         : "   *** HIC DOLU DEGIL ***") : "");
