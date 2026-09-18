@@ -2086,6 +2086,97 @@ dogru gözüküyor mu ayrıca bir Lot u 10 ad. Yap . 1 3 3 2 1"* —
   ve o hâlâ eski demo tohumu `lac-pique-polo`, bu sweatshirt değil. Yedek:
   `listings.json.bak-20260918-014550`.
 
+**Fred Perry M7535: üç kademe 10'dan başlıyor — ve RENK ASGARİSİ bunu
+ölçülerek imkânsız kılıyordu** (operatör, 18 Eyl 2026: *"Fred Perry Crew Neck
+Sweatshirt — M7535 10- 49 ad. 39,90 eur , 50-99 ad 36,00 eur 100 ad. ten
+itibaren 33,00 eur"*). Önceki hâli: `moq 50`, **tek** kademe `50+ → €39,90`,
+`min_colors 4`.
+- **İKİ alan operatörün cümlesinde HİÇ GEÇMİYOR ama değişmek zorundaydı**, ve
+  ikincisi bu işin asıl bulgusu:
+  1. **`moq` 50 → 10.** `set_product.php` `tiers[0].min !== moq` durumunda
+     **hata** veriyor; ondan da önemlisi, moq 50 kalsaydı *"10-49 ad."* bandı
+     **tamamen ulaşılamaz** olurdu — `order.php:75` 50'nin altını reddediyor.
+     *Bir bandı yazmak ile o bandı SATILABİLİR yapmak ayrı şeyler.*
+  2. **`min_colors` 4 → 1.** Bu bir **renk-başına-adet** ilanı
+     (`vestra_is_colorqty_listing()` = `colors` **ve** `min_colors` **ve**
+     `size_step>1` — üçü de var). `vestra_parse_colorqty()` her rengin adedini
+     `size_step`'in (10) katına yuvarlıyor ve sıfırı hiç saymıyor;
+     `order.php:75` ise `count(colors) < min_colors || qty < moq` ise
+     **reddediyor**. Yani `min_colors=4` iken **en küçük geçerli sipariş 4 renk
+     × 10 = 40 ADET**. `moq`'yu 10 yapıp renk asgarisini 4 bırakmak, sayfada
+     *"min 10 pc"* yazan ama kasada **40** isteyen bir ilan bırakırdı — bu
+     deponun *"ilan edilen minimum hiç alınamaz"* kusurunun ta kendisi.
+     **10 adet = 1 karton = 1 renk**, başka türlü olamaz.
+- **Bu, M3600'de 10 Eyl'de verilen kararın TERS YÖNÜ ve çelişki değil.** Orada
+  `min_colors=4` korunabilsin diye `moq` 20'den **50'ye ÇIKARILMIŞTI**
+  (50/10 = 5 karton ≥ 4 renk). Burada operatörün kendi merdiveni tabanı 10'a
+  indiriyor, yani aynı denklemin öbür ucundan çözülüyor. **İkisi aynı anda
+  olamaz** ve operatörün yazdığı şey rakam bandıydı, renk sayısı değil.
+- **`min_colors = 0` YAZILAMAZ, iki ayrı sebeple:** `set_product.php` satır 178
+  `< 1` olanı reddediyor, ve yazılabilseydi `vestra_is_colorqty_listing()`
+  false döner, **renk seçici tamamen kaybolurdu** (`product.php:74`). Geri
+  okuma `renk secici=ACIK` diyor — 5 renk hâlâ seçilebiliyor, yalnız *zorunlu
+  en az* 1.
+- **`desc` KURU KOŞUYLA ölçüldü, varsayılmadı.** Bu ilanda asgari adet
+  `desc`'te geçiyor olabilirdi (Balenciaga 9 Eyl / Burberry 17 Eyl dersi) ve
+  sonda bunu gösteremezdi: `fit_scan`'in çelişki sayacı `desc`'te **beden
+  serisi** arıyor, burada seri `sizes` ile zaten aynı. Çare: ithalat kaydındaki
+  metin kuru koşuya **prob olarak** verildi — aynıysa `set_product.php`
+  satırı hiç basmaz (`old === new → continue`), farklıysa planda **canlı metin**
+  görünürdü. Plan `degisecek alan: 4` dedi ve **`desc` hiç görünmedi**: yani
+  canlı açıklama birebir o metin ve içinde asgari adet **yok** — değiştirilecek
+  bir şey de yok. *Parti dosyası canlı kaydın aynası değil (aynı gün Lacoste'ta
+  ölçüldü), o yüzden "aynıdır" varsayılmadı; ölçüldü.*
+- **`sizes` kuyruğu aynı olguyu taşıyordu** (`… · min 50 pc (≥4 colours)`) ve
+  aynı yazmada düzeltildi → `… · min 10 pc (1 carton)`. `(≥4 colours)` da
+  düştü çünkü artık doğru değil. **Karton eki ve açık dağılım AYNEN korundu**,
+  yani beden seçici kapalı kalıyor (`vestra_sizes_selectable`) — karışım ilanın
+  kendisinde yazılı.
+- **`list` yazılmadı:** zaten 39,90 ve yeni ilk kademe de 39,90. `price` yazmak
+  **üç kademeyi birden** aynı rakama düzleştirirdi (merdiven yok olurdu).
+- **Üç basamak da 10'un tam katı** (10 / 50 / 100), yani alıcı her basamağa tam
+  ulaşıyor — oturmayan bir basamakta fiyat ancak bir sonraki kartonda devreye
+  girerdi (uyarı, hata değil).
+- **Geri okuma sunucudan:** `sizes=Cartons of 10 · S×1 · M×3 · L×3 · XL×2 ·
+  XXL×1 · min 10 pc (1 carton)`, `tiers 10+ → €39,9 | 50+ → €36 | 100+ → €33`,
+  `min_colors=1`, `renk secici=ACIK`, `beden secici=YOK`. `price_audit`:
+  894 üründe *alıcı aleyhine* tek satır ve o yine `lac-pique-polo` (eski demo
+  tohumu) — yani sepet 10 adette gerçekten €39,90 alıyor. Yedek
+  `listings.json.bak-20260918-020119`.
+- **AYNI DALDA İKİNCİ BİR OTURUM ÇALIŞIYOR ve AYNI DENKLEMİ TERS YÖNDEN
+  ÇÖZMÜŞ.** Kuru koşum, benim `460df9c3`'ümün üstüne başka bir oturumun ittiği
+  `ae9aa73d` (*"Lacoste Fleece Hoodie lot 10 … asgari 40"*) + `3139401d`
+  merge'i ile koştu. Ölçüldü (`brand=Lacoste`, `cat=Hoodies & Sweatshirts`):
+  `lac-fleece-hoodie` artık `size_step=10`, **`min_colors=4` KORUNMUŞ** ve
+  `moq=40` (= 4 × 10), kademeler `40+ → €49,9 | 50+ → €45 | 100+ → €42`.
+  Yani **aynı gün, aynı satıcı, aynı 10'luk karton, iki ilan, iki farklı
+  çözüm**: hoodie renk kuralını koruyup tabanı 4 kartona çıkardı, M7535 ise
+  operatörün yazdığı *"10-49"* bandını gerçek kılmak için renk asgarisini 1'e
+  indirdi. **İkisi de tutarlı**, ama operatörün önünde artık somut bir emsal
+  var — M7535'i hoodie kalıbına çevirmek isterse tek koşu (`min_colors 4`,
+  `moq 40`, ilk basamak `40+`).
+- **Yarış kontrolü YAPILDI:** `listings.json` **oku-değiştir-yaz** ve iki oturum
+  dakikalar arayla yazdı. İkisinin de yerinde durduğu ölçüldü — benim
+  `lac-crew-sweatshirt` (moq 50, `10/pack`, `50+/100+`) ve `fp-m7535-sweat`
+  duruyor, onların `lac-fleece-hoodie`'si duruyor, katalog **894**. Çakışsalardı
+  biri **sessizce** kaybolurdu. *Push'tan sonra dalın tepesine bak —
+  `git log origin/<dal>` bir dakikada başkasının commit'ini gösterebilir.*
+- **Yeni bir denetim sorusu doğdu:** `min_colors × size_step > moq` olan her
+  ilan, **ilan ettiği minimumu satamaz**. Görünen altı ilanda sorun yok
+  (hoodie 40/40, high-neck 32/56, zip 32/56, crew 40/50, M7535 10/10,
+  M3600 20/50) ama **katalog geneli ölçülmedi**; `moq_scan`'e bu karşılaştırmayı
+  eklemek küçük bir iş ve sessiz bir kusur sınıfını kapatır.
+- **Operatör kararı bekleyen iki şey, ikisi de bu değişikliğin yan etkisi:**
+  1. **Kardeş ilanlar artık ayrışıyor:** M7535 min **10**, ama M3600 polo min
+     **50** (≥2 renk) ve Lacoste crew sweatshirt min **50** (≥4 renk) — üçü de
+     aynı satıcı, aynı 10'luk karton. Operatör yalnız M7535'i adlandırdı, o
+     yüzden ötekilere **dokunulmadı**.
+  2. **Gönderilmiş mektuplar artık ESKİ rakamı taşıyor.** 16 Eylül'ün 118 ve
+     17 Eylül'ün 7 Angebot mektubu M7535 için *"min 50 pc, ≥4 renk, €39,90
+     tek fiyat"* yazdı — rakamlar canlı kayıttan basıldığı için geri alınamaz.
+     Yeni şartlar müşterinin **lehine** (min 10, 100'den itibaren €33); istenirse
+     ikinci bir mektup gönderilebilir. **Kendiliğinden gönderilmedi** (KURAL 18).
+
 **KURAL 14 — Talep panosu ("Anfragen"): ÖRNEK ile GERÇEK talep karışmaz**
 (operatör, 8 Eyl 2026: *"sitenin anfragen bölümüne yeni anfragen lar ekle"*).
 - `requests.php` iki liste basıyor: `requests.csv`'den gelen **gerçek** alıcı
