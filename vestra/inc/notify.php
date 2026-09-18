@@ -919,6 +919,19 @@ function vestra_discover_blocklist(): array {
        'stalric' tam ad; ikisi de 7 harften uzun, yani alan adi tarafinda da
        eslesir (groupestalric.fr). */
     'carl scarpa','carlscarpa','kalogirou','καλογηρου','stalric','groupe stalric',
+
+    /* 18 Eyl 2026 — soguk havuzda kalan 3 adayin ELLE okunmasi (yine KURAL 1i:
+       "kod gecirdi" ELE OKUNMADI demek degil):
+         - Peak Design (US): 2010'da kurulmus, KENDI MARKASINI ureten bir
+           firma (Capture Camera Clip, Everyday sirti; peakdesign.com) --
+           baskasinin markasini satan bir perakendeci degil, uretici. KURAL 1'in
+           "kendi markasini satan" kolu. Ustelik urunu foto/seyahat cantasi,
+           konfeksiyon degil, ve havuzdaki adresi kendi alan adinda bile degil.
+       'peak' ya da 'design' TEK BASINA EKLENMEDI ve eklenmemeli: ikisi de
+       gunluk kelime ve sayisiz gercek butigin adinda geciyor (Design District,
+       Peak Boutique). TAM IKI KELIMELIK ad yazildi -- 'scarpa' dersinin
+       aynisi, sessiz eleme yanlis gonderimden pahali. */
+    'peak design','peakdesign',
   ];
 }
 /* PARK EDILMIS / SATILIK alan adi: dukkan degil, satis sayfasi.

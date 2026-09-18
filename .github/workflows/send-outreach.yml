@@ -522,6 +522,26 @@ jobs:
               'aol.com','protonmail.com','proton.me','gmx.de','gmx.net','web.de','t-online.de','orange.fr',
               'free.fr','libero.it','comcast.net','qq.com','163.com','126.com','naver.com','daum.net','hanmail.net']);
 
+            /* SOGUK YOLDA DA FIRMA-BAZLI TEKILLESTIRME (KURAL 1c). Yukaridaki
+               $ncSeenDom yalniz YENI KOLEKSIYON dalinda kuruluyordu; soguk dal
+               (805. satir) yalnizca ADRES damgasina bakiyordu. Bosluk 8 Eyl
+               2026'da kaydedildi ve 17 Eyl'de elle atlanarak gecistirildi:
+               deadstock.ca (Livestock) -- 'in..@' kutusu 31 Agustos'ta mektup
+               almisti, 'sh..@' ayni firmanin ikinci kutusu ve soguk kuru kosuda
+               yeniden aday cikti. 18 Eyl'de UCUNCU kez cikinca kontrol koda
+               tasindi: bir kuralin hatirlanmaya birakilmasi yetmiyor (KURAL 1'in
+               kendi dersi -- Korfez listesi tam bu bosluktan gecmisti).
+               Serbest posta saglayicilari MUAF: gmail'deki iki adres iki ayri
+               firma, muaf tutulmasaydi gmail'li her yeni butik sessizce elenirdi. */
+            $coldSeenDom = [];
+            if (!$IS_NEWCOLL) {
+              foreach ($leads as $l0) {
+                if (trim((string)($l0['last_contacted_at'] ?? '')) === '') continue;
+                $d0 = strtolower((string)substr((string)strrchr((string)($l0['email'] ?? ''), '@'), 1));
+                if ($d0 !== '' && !isset($NC_SHARED[$d0])) $coldSeenDom[$d0] = true;
+              }
+            }
+
             /* ── KAYITLI MUSTERI KIPI ────────────────────────────────────────
                Duyuru once KAYITLI alicilara, sonra lead'lere gidiyor (operatorun
                sirasi). Lead mektubu uyelere YANLIS: "size daha once yazmistik"
@@ -937,6 +957,19 @@ jobs:
               } else {
                 if (($l['last_contacted_at'] ?? '') !== '') continue;            // already emailed once
                 if (isset($contacted[$email]) || isset($seen[$email])) continue; // never the same address twice
+                /* AYNI FIRMAYA ikinci soguk mektup gitmez (KURAL 1c). Adres
+                   damgasi yetmiyor: ayni dukkanin ikinci kutusu ayri bir lead
+                   satiri ve kendi damgasi bos. Harita hem GECMISTEN (yukarida
+                   kuruldu) hem BU KOSUDAN doluyor -- ikincisi olmasaydi tek bir
+                   kosu ayni firmanin iki kutusunu birden secebilirdi. */
+                $cdDom = strtolower((string)substr((string)strrchr($email, '@'), 1));
+                if ($cdDom !== '' && !isset($NC_SHARED[$cdDom])) {
+                  if (isset($coldSeenDom[$cdDom])) {
+                    if ($ONLY || $DRY) echo "  - ATLANDI (ayni firmadan baska bir kutu zaten mektup almis): ".$maskMail($email)."\n";
+                    continue;
+                  }
+                  $coldSeenDom[$cdDom] = true;
+                }
               }
               // Big-chain / flagship safety net — skipped in allowlist mode: only_emails means the
               // operator named these exact addresses, so the name heuristic must not silently drop
