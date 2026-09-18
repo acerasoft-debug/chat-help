@@ -1,0 +1,31 @@
+[
+ {
+  "match": "fp-m7535-sweat",
+  "expect": 1,
+  "moq": 10,
+  "min_colors": 1,
+  "tiers": [
+   { "min": 10,  "price": 39.90 },
+   { "min": 50,  "price": 36.00 },
+   { "min": 100, "price": 33.00 }
+  ],
+  "sizes": "Cartons of 10 · S×1 · M×3 · L×3 · XL×2 · XXL×1 · min 10 pc (1 carton)",
+  "desc": "Original Fred Perry, model M7535. Crew neck sweatshirt, 100% cotton, regular fit, twin tipped cuff. Five colours: Bordeaux, White, Navy, Green, Black. S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack. EEA stock with full invoice trail.",
+
+  "_why": "Operator, 18 Eyl 2026: 'Fred Perry Crew Neck Sweatshirt — M7535 10- 49 ad. 39,90 eur , 50-99 ad 36,00 eur 100 ad. ten itibaren 33,00 eur'. Onceki hali: moq 50, TEK kademe 50+ -> 39,90, min_colors 4.",
+
+  "_moq_ZORUNLU_DEGISTI": "Operator MOQ'dan soz etmedi ama merdiven 10'dan basliyor ve set_product.php 'tiers[0].min !== moq' durumunda HATA veriyor. Daha onemlisi: moq 50 kalsaydi '10-49 ad.' bandi TAMAMEN ulasilamaz olurdu -- sepet 50'nin altini reddediyor (order.php:75). Yani bandi yazmak ile bandi SATILABILIR yapmak ayri seyler.",
+
+  "_min_colors_4_TEN_1_E__ASIL_CELISKI_BU": "OLCULDU, varsayilmadi. Bu ilan renk-basina-adet (colorqty) ilani: vestra_is_colorqty_listing() = colors VE min_colors VE size_step>1 -> UCU DE VAR. vestra_parse_colorqty() her rengin adedini size_step'in (10) katina yuvarluyor ve 0'dan buyuk olmayan rengi hic saymiyor; order.php:75 ise 'count(colors) < min_colors || qty < moq' ise REDDEDIYOR. Yani min_colors=4 iken EN KUCUK gecerli siparis 4 renk x 10 ad. = 40 ADET. moq'yu 10 yapip min_colors'i 4 birakmak, sayfada 'min 10 pc' yazan ama kasada 40 isteyen bir ilan birakirdi -- bu deponun 'ilan edilen minimum hic alinamaz' kusurunun ta kendisi (KURAL 4b; ayrica M3600'de 10 Eyl'de tam TERS yonde cozulmustu: orada min_colors=4 kalabilsin diye moq 20'den 50'ye CIKARILMISTI, cunku 50/10=5 karton >= 4 renk). 10 adet = 1 karton = 1 renk oldugu icin min_colors 1 olmak ZORUNDA. min_colors 0 YAZILAMAZ: set_product.php satir 178 '< 1' reddediyor, ve 0 yazilabilseydi vestra_is_colorqty_listing() false donup RENK SECICI TAMAMEN KAYBOLURDU (product.php:74).",
+
+  "_alternatif_operator_karari": "Operator '>=4 renk' kuralini korumak isterse tek kosu: min_colors 4 kalir, moq 40 olur ve ilk kademe '40-49' diye yazilir. Ikisi ayni anda olamaz -- 10 adetlik bir karton tek renktir.",
+
+  "_fiyatlar": "39,90 / 36,00 / 33,00 operatorun verdigi rakamlar; kademeler artan min + azalan fiyat (set_product.php sarti) ve ucu de size_step 10'un tam kati (10/50/100), yani alici her basamaga TAM ulasabiliyor -- oturmayan bir basamak yalnizca uyari verir ama fiyat bir sonraki katta devreye girerdi.",
+
+  "_list_yazilmadi": "list zaten 39,90 ve yeni ilk kademe de 39,90 -- tutuyor. mode='fixed' oldugu icin ustu cizili 'was' fiyati kavrami yok; 'price' yazmak ise UC kademeyi birden ayni rakama duzlestirirdi (merdiven yok olurdu).",
+
+  "_desc_DEGISMIYOR__PROB_OLARAK_VERILDI": "Bu deger product-batches/fred-perry-m7535.json'daki ithalat kaydinin aynisi ve icinde ASGARI ADET GECMIYOR (yalniz beden serisi + 10/pack, ikisi de degismiyor). Yani moq/min_colors degisimi desc'i yalanlamiyor. Kuru kosuda bilerek veriliyor: canli desc ayni ise set_product.php satiri hic basmaz (old===new -> continue), FARKLI ise plan bize CANLI metni gosterir ve karar ondan sonra verilir. Parti dosyasi canli kaydin aynasi degil (bugun Lacoste'ta olculdu), o yuzden 'ayni olmali' varsayilmiyor -- olculuyor.",
+
+  "_sizes_ayni_YAZMADA": "Asgari adet bu ilanda IKI yere yazili: 'moq' alani ve 'sizes' metninin kuyrugu ('min 50 pc (≥4 colours)'). Yalniz birini degistirmek, sayfanin spec satirinda bir, satin alma kutusunda baska rakam gostermesi demekti (Balenciaga 9 Eyl / Burberry 17 Eyl dersi). '(≥4 colours)' de dusuyor cunku artik dogru degil. Karton eki 'Cartons of 10' ve acik dagilim AYNEN korundu -- beden secici bu yuzden kapali kaliyor (vestra_sizes_selectable) ve karisim ilanin kendisinde yazili."
+ }
+]
