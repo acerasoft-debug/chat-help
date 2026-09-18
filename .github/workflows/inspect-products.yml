@@ -106,7 +106,7 @@ on:
         # NOT: bu tek mod salt-okunur DEGIL -- ziyaretcinin indirmesiyle ayni
         # export onbellegini (data/cache) doldurabilir. Katalog verisine
         # dokunmaz.
-        description: "Marka adi (ya da * = tum secki): 'Line-sheets by brand' .xlsx'ini SUNUCUDA gercekten uretir ve NE CIKTIGINI olcer — satir sayisi, sutun sutun doluluk, gomulu fotograf sayisi, ilk satirlar. Fiyat tasimaz (bu export bilerek fiyatsiz)."
+        description: "Marka adi (ya da * = hepsi): line-sheet .xlsx'ini SUNUCUDA gercekten uretir ve NE CIKTIGINI olcer — satir, sutun sutun doluluk, gomulu fotograf, ilk satirlar. VARSAYILAN /catalog (herkese acik, FIYATSIZ). Onune 'priced:' yazilirsa (orn. priced:Lacoste) uye-kapili /wholesale-list.xlsx olculur (fiyatli). Cikti fiyat BASMAZ, yalniz sutunun dolu olup olmadigini sayar."
         required: false
         default: ""
       raw_scan:
@@ -1170,12 +1170,21 @@ jobs:
             # makul" diye gecti.
             if [ -n "$INSPECT_LS" ]; then
               echo ""
-              echo "===== LINE-SHEET (/catalog?brand=...) ====="
+              case "$INSPECT_LS" in priced:*) echo "===== LINE-SHEET (/wholesale-list.xlsx — UYE, FIYATLI) =====" ;; *) echo "===== LINE-SHEET (/catalog — HERKESE ACIK, FIYATSIZ) =====" ;; esac
               php -d display_errors=stderr -d error_reporting=-1 -r '
-                $b = (string)getenv("INSPECT_LS"); if ($b === "*") $b = "";
+                $b = (string)getenv("INSPECT_LS");
+                /* Iki ayri uc, ayni olcum: herkese acik tanitim sayfasi ile uye-kapili
+                   fiyatli liste. Ikisini ayri ayri olcmek sart -- sikayet "bos cikiyor"
+                   oldugunda hangi dosyanin bos oldugu once bilinmeli. */
+                $priced = stripos($b, "priced:") === 0;
+                if ($priced) $b = substr($b, 7);
+                if ($b === "*") $b = "";
                 $_GET["brand"] = $b;
                 $_SERVER["REQUEST_METHOD"] = "GET";
-                require getenv("HOME")."/public_html/catalog.php";
+                /* CLI, fiyat kapisindan MUAF (wholesale-xlsx.php kendi yorumunda yaziyor):
+                   oturum olmadigi icin auth_user() null doner ve web tarafi /price-list'e
+                   yonlendirirdi -- sonda 0 bayt olcup "uretilmedi" derdi. */
+                require getenv("HOME")."/public_html/".($priced ? "wholesale-xlsx.php" : "catalog.php");
               ' > /tmp/vestra_ls.xlsx 2>/tmp/vestra_ls.err
               LSRC=$?
               echo "  uretim cikis kodu: $LSRC   boyut: $(wc -c < /tmp/vestra_ls.xlsx) bayt"
