@@ -3746,6 +3746,64 @@ gönder welcome olarak"*).
   karton / min 56). Mektuplar rakamı canlı kayıttan basıyor, yani geri
   alınamaz; bir sonraki mektup kendiliğinden doğru çıkar. Operatöre söylendi.
 
+**LACOSTE FLEECE HOODIE (SH9623): lot 10, asgari 40, kademe 49,90 / 45,00 /
+42,00 — ASGARİ ADEDİ OPERATÖR VERMEDİ, İLANIN KENDİ VERİSİ BELİRLEDİ**
+(operatör, 18 Eyl 2026: *"Lacoste Fleece Hoodie 10 ad bir Lot olucak. En az
+alimda 49,90 eur 50 ad. 45,00 eur 100 ad 42,00 eur"*).
+
+- **Hangi ilan olduğu ADDAN değil RAKAMDAN belirlendi.** Katalogda **iki**
+  hoodie var: `lac-fleece-hoodie` (SH9623, list **49,90**) ve `lac-zip-hoodie`
+  (*"Zip Up Fleece Hoodie"*, SH9626, list 55). Operatörün yazdığı 49,90 tam
+  olarak SH9623'ün o günkü fiyatı — ayırt eden şey bu. *Aynı adı taşıyan iki
+  ilan varsa ad bir kimlik değildir* (iki "Wings T-Shirt" dersi); burada adlar
+  bile birbirini kapsıyordu.
+- **ASGARİ 40 ve bu bir tercih değil, tek tutarlı değer.** Operatör yalnız
+  *"en az alımda 49,90"* dedi, adedi vermedi. Dördü de elendi, gerekçesiyle:
+  - **56 kalamaz** — 10'un katı değil; sepet adımın katına **yukarı**
+    yuvarlıyor, yani "min 56" sayfada 56, kasada 60 demek (`set_product.php`
+    zaten reddeder).
+  - **50 olamaz** — 50 artık **45,00** kademesi; asgari 50 olsaydı 49,90 hiçbir
+    alıcının ulaşamayacağı bir fiyat olurdu. *İlan, alınamayan bir minimum ilan
+    eder* (Fred Perry'de bir kez kaydedilen hata).
+  - **10/20/30 olamaz** — ilan `min_colors=4` taşıyor ve **renk-adet** kipinde
+    her renk **en az bir lot**: `vestra_parse_colorqty()` her rengi
+    `size_step`'in katına yuvarlıyor ve 0 olanı hiç saymıyor,
+    `order.php:75` de 4 renk şart koşuyor. Yani 10'luk lotta **gerçekten
+    alınabilen en küçük adet 4 × 10 = 40**.
+  - **40** — dördü de tutuyor: 10'un katı, 50'nin altında (49,90 ulaşılabilir),
+    ve tam 4 karton = tam 4 renk.
+  *Operatörün cümlesinden okunamayan bir sayı, ilanın kendi kurallarından
+  okunabiliyordu; uydurmak ile türetmek arasındaki fark bu.*
+- **`desc` AYNI yazmada değişti ve eski metni KURU KOŞU gösterdi.** Eski hâli
+  *"…sold in cartons of **8** per colour … Minimum order **56** pc, at least 4
+  colours."* — yani karton adedi ve asgari **iki yerde** yazılıydı. Yalnız
+  alanları değiştirip `desc`'i bırakmak, Balenciaga'nın (9 Eyl) ve NBB'nin
+  (10 Eyl) dersinin üçüncü vakası olurdu. Metin şablondan yeniden yazılmadı,
+  **sunucunun kendi dizgesinden** türetildi. Yeni cümle rakamla birebir tutuyor:
+  10'luk karton × 4 renk = 40.
+  *Eski metni okuma yolu:* `desc`'e bir **probe** değeri koyup `dry_run=true`
+  koşmak — genel dal `desc '<ESKİ>' -> '<YENİ>'` basıyor, hiçbir şey yazılmıyor.
+- **Beden serisi uydurulmadı:** `S×1 · M×3 · L×3 · XL×2 · XXL×1` (1-3-3-2-1,
+  toplam 10) katalogun kendi 10'luk eğrisi — aynı satıcının kardeş ilanı
+  `lac-crew-sweatshirt` (SH9608) ve Fred Perry M3600/M7535 aynısını taşıyor.
+- **`list`'e DOKUNULMADI ve bedeli operatöre yazıldı.** `list=49,90`, `mode=sale`
+  ve en düşük kademe artık 42,00 → `vestra_discount()` = round(100×(49,9−42)/49,9)
+  = **%16**, yani vitrinde 49,90 üstü çizili bir **−%16 rozeti** çıkıyor (önce
+  hiç yoktu). Bu, bu katalogun Lacoste tarafında **zaten kurulu** desen (SH9608
+  list 44 / kademe 35 → −%20; monogram polo 41,18 / 35 → −%15), ve operatörün
+  sormadığı bir fiyat kararı vermemek için değiştirilmedi. İstenirse tek satır.
+- **GERİ OKUMA sunucudan** (`inspect-products` run `35297351154`):
+  `moq=40 pc · size_step=10 · sizes=S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack ·
+  tiers 40+ → €49,9 | 50+ → €45 | 100+ → €42 · min_colors=4 · renk(8)`.
+  **Fiyat denetimi** (alanın değerine değil sepetin TAHSİL ETTİĞİNE bakıyor):
+  894 üründe alıcı aleyhine tek satır var ve o eski demo tohumu
+  `lac-pique-polo`, bu hoodie değil. Yedek: `listings.json.bak-20260918-015535`.
+- **AYNI DAKİKALARDA BAŞKA BİR OTURUM DA LACOSTE YAZIYORDU** (`SH9608`, lot 8→10,
+  01:45). `listings.json` oku-değiştir-yaz olduğu için geri okuma **iki yönlü**
+  yapıldı: kendi ilanımın yanında **onların SH9608'i de** (`moq=50`,
+  `size_step=10`, `50+ → 39,9 | 100+ → 35`) yerinde duruyor. *Kendi yazmanı
+  doğrulamak yetmez; aynı dosyaya yazan komşunun yazması da duruyor mu diye bak.*
+
 **Fred Perry M7535 / M3600 — asgari alım ve renk seçimi** (operatör, 10 Eyl
 2026: *"tüm renk varyasyonlarini koy"* · *"en az 4 renk secilmeli alirken"* ·
 *"en az alim 50 ad. olsun"* · *"f.perry polo da en az alim 56 ad. olsun"* ·
