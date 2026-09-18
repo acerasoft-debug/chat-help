@@ -2500,6 +2500,28 @@ bilgilere kadar herseyin daha duzgun cikmasi gereklimi"*).
   `msg_read_receipt_test` (1) ile `msg_thread_label_test` (10) — üçü de **benim
   birleştirmemden ÖNCE**, dalın kendi ucunda aynı şekilde düşüyor (ölçüldü,
   varsayılmadı). Dokunulmadı.
+- **CANLI ÖLÇÜM (18 Eyl 2026, deploy `0f84ec1e`, run 1303), üç uç de yeniden:**
+
+  | Uç | Deploy SONRASI |
+  |---|---|
+  | `/wholesale-list.xlsx?brand=Lacoste` | **19 sütun** (`… MOQ · **Lot** · Unit · Wholesale EUR …`), 17 satır; `lac-fleece-hoodie` **MOQ 40 / Lot 10 / 49,90 · 50+ 45,00 · 100+ 42,00**, `lac-pima-tshirt` **MOQ 104 / Lot 8**, `lac-pique-polo` **MOQ 80 / Lot 8** |
+  | `/catalog?brand=Lacoste` | **11 sütun**, 21 satır, **21 gömülü fotoğraf**; `Category` **%100**, `Sizes` **%100**, `Lot` **%100** |
+  | `/wholesale-list.pdf?brand=Lacoste` | 4 sayfa · **12 gömülü fotoğraf** · `lots-of=**12**` (12 ürünün 12'sinde), `Colours=12`, ürün linki 48 |
+
+- **Sondanın KENDİ GÜRÜLTÜSÜ iki yerde temizlendi** (rtl-check'in verdiği dersin
+  üçüncü ve dördüncü hâli): (1) `Photo` sütunu **her koşuda**
+  `*** HIC DOLU DEGIL ***` diye alarm veriyordu — kusur değil, görsel hücreye
+  **metin** olarak yazılmıyor, sayfanın üzerine **çizim çapasıyla** tutturuluyor
+  (`inc/xlsx.php`) ve gerçek ölçüsü hemen üstteki "gömülü fotoğraf" sayısı;
+  (2) PDF dalında metin **hiç sayılmıyordu** (*"akışlar Flate ile sıkıştırılabilir"*
+  gerekçesiyle) — doğrusu **önce sıkıştırmayı sormak**, sıkıştırılmamışsa saymak.
+  Bu düzeltme olmadan *"lot belgede gerçekten yazıyor mu"* sorusu canlıda
+  cevapsız kalıyordu.
+- **Kesme işareti tuzağı bu dosyada İKİNCİ kez** (`d0ba6062`'den sonra): yeni
+  eklediğim `printf` biçim dizesindeki `'MOQ'` ve bir yorumdaki `'Photo'`,
+  `php -r '…'` gövdesini saran **bash tek tırnağını** erken kapattı ve adım
+  *"Parse error: Unclosed ("* ile düştü. Yasak artık ikisinin de **yanında
+  yazılı**. *Bir kuralı bir yerde uygulamak, kuralı uygulamak değildir.*
 
 ## SEO ve diller
 
