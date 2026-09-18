@@ -106,7 +106,7 @@ on:
         # NOT: bu tek mod salt-okunur DEGIL -- ziyaretcinin indirmesiyle ayni
         # export onbellegini (data/cache) doldurabilir. Katalog verisine
         # dokunmaz.
-        description: "Marka adi (ya da * = hepsi): line-sheet .xlsx'ini SUNUCUDA gercekten uretir ve NE CIKTIGINI olcer — satir, sutun sutun doluluk, gomulu fotograf, ilk satirlar. VARSAYILAN /catalog (herkese acik, FIYATSIZ). Onune 'priced:' yazilirsa (orn. priced:Lacoste) uye-kapili /wholesale-list.xlsx olculur (fiyatli). Cikti fiyat BASMAZ, yalniz sutunun dolu olup olmadigini sayar."
+        description: "Marka adi (ya da * = hepsi): line-sheet .xlsx'ini SUNUCUDA gercekten uretir ve NE CIKTIGINI olcer — satir, sutun sutun doluluk, gomulu fotograf, ilk satirlar. VARSAYILAN /catalog (herkese acik, FIYATSIZ). Onune 'priced:' yazilirsa (orn. priced:Lacoste) uye-kapili /wholesale-list.xlsx, 'pdf:' yazilirsa /wholesale-list.pdf olculur. Cikti fiyat BASMAZ, yalniz sutunun/alanin dolu olup olmadigini sayar."
         required: false
         default: ""
       raw_scan:
@@ -1170,14 +1170,20 @@ jobs:
             # makul" diye gecti.
             if [ -n "$INSPECT_LS" ]; then
               echo ""
-              case "$INSPECT_LS" in priced:*) echo "===== LINE-SHEET (/wholesale-list.xlsx — UYE, FIYATLI) =====" ;; *) echo "===== LINE-SHEET (/catalog — HERKESE ACIK, FIYATSIZ) =====" ;; esac
+              case "$INSPECT_LS" in
+                priced:*) echo "===== LINE-SHEET (/wholesale-list.xlsx — UYE, FIYATLI) =====" ;;
+                pdf:*)    echo "===== LINE-SHEET (/wholesale-list.pdf — UYE, FIYATLI + FOTOGRAFLI) =====" ;;
+                *)        echo "===== LINE-SHEET (/catalog — HERKESE ACIK, FIYATSIZ) =====" ;;
+              esac
               php -d display_errors=stderr -d error_reporting=-1 -r '
                 $b = (string)getenv("INSPECT_LS");
                 /* Iki ayri uc, ayni olcum: herkese acik tanitim sayfasi ile uye-kapili
                    fiyatli liste. Ikisini ayri ayri olcmek sart -- sikayet "bos cikiyor"
                    oldugunda hangi dosyanin bos oldugu once bilinmeli. */
                 $priced = stripos($b, "priced:") === 0;
+                $pdf    = stripos($b, "pdf:") === 0;
                 if ($priced) $b = substr($b, 7);
+                if ($pdf)    $b = substr($b, 4);
                 if ($b === "*") $b = "";
                 $_GET["brand"] = $b;
                 $_SERVER["REQUEST_METHOD"] = "GET";
@@ -1187,7 +1193,7 @@ jobs:
                    NOT: bu blok bash TEK TIRNAK icinde; buraya konan bir kesme isareti
                    dizgeyi erken kapatir ve adim "syntax error near unexpected token"
                    ile duser. Bir kez oldu; kesme isareti kullanma. */
-                require getenv("HOME")."/public_html/".($priced ? "wholesale-xlsx.php" : "catalog.php");
+                require getenv("HOME")."/public_html/".($pdf ? "wholesale-list.php" : ($priced ? "wholesale-xlsx.php" : "catalog.php"));
               ' > /tmp/vestra_ls.xlsx 2>/tmp/vestra_ls.err
               LSRC=$?
               echo "  uretim cikis kodu: $LSRC   boyut: $(wc -c < /tmp/vestra_ls.xlsx) bayt"
@@ -1195,6 +1201,18 @@ jobs:
               php -d display_errors=stderr -d error_reporting=-1 -r '
                 $f = "/tmp/vestra_ls.xlsx";
                 if (!is_file($f) || filesize($f) < 100) { echo "  *** dosya uretilmedi\n"; exit; }
+                $raw = (string)file_get_contents($f);
+                /* PDF ayri olculuyor: "dosya uretildi, boyut makul" bu depoda bir kez
+                   fotografsiz bir PDF yillarca gecirdi -- olcut GOMULU FOTOGRAF SAYISI. */
+                if (substr($raw, 0, 4) === "%PDF") {
+                    printf("  PDF | sayfa: %d | gomulu fotograf (DCTDecode): %d\n",
+                           substr_count($raw, "/Type /Page") ?: substr_count($raw, "/Type/Page"),
+                           substr_count($raw, "/DCTDecode"));
+                    /* METIN ARANMIYOR ve bu bilerek: PDF akislari Flate ile sikistirilabiliyor,
+                       yani ham baytta "MOQ" bulunamamasi "sutun yok" DEMEK DEGIL. Olculebilir
+                       ve yaniltmayan iki sey var: sayfa sayisi ve gomulu fotograf sayisi. */
+                    exit;
+                }
                 $z = new ZipArchive(); if ($z->open($f) !== true) { echo "  *** zip acilamadi (xlsx degil?)\n"; exit; }
                 $media = 0;
                 for ($i = 0; $i < $z->numFiles; $i++) if (strpos($z->getNameIndex($i), "xl/media/") === 0) $media++;
