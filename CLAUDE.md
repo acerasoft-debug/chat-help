@@ -2416,6 +2416,91 @@ Aşağıdakiler istendi ve gerekçesiyle yapılmadı — tekrar gelirse aynı ge
   liste var. Kaynakta `if (!$PRICES)` görmek ölçüm değil. Muhafaza kaldırılınca
   **6 iddia kırmızıya dönüyor** (doğrulandı).
 
+**KURAL 19b — "Line-sheets by brand" ONAYLI ÜYEYE FİYATLI listeyi verir; ve LOT
+artık kendi sütunu** (operatör, 18 Eyl 2026: *"Line-sheets by brand listelerini
+düzelt ....fotolardan başka hiç bir sey cikmiyor.... komple sku dan lot a ve tum
+bilgilere kadar herseyin daha duzgun cikmasi gereklimi"*).
+
+- **ÖNCE ÖLÇÜLDÜ, üç ucun üçü de canlı sunucuda çalıştırıldı** (`inspect-products`
+  → yeni `linesheet` girdisi; sonda **üretilen dosyayı** ölçüyor, kaynağı değil):
+
+  | Uç | Ne çıktı |
+  |---|---|
+  | `/catalog?brand=Lacoste` (sol sütunun BAĞLANDIĞI yer) | 8 sütun · 21 satır · **21 gömülü fotoğraf** · fiyat YOK, kategori YOK, beden YOK, lot YOK |
+  | `/wholesale-list.xlsx?brand=Lacoste` | **18 sütun** · artikel no, renk, beden serisi, MOQ, toptan fiyat, kademe, stok, ürün linki · **fotoğraf 0** |
+  | `/wholesale-list.pdf?brand=Lacoste` | 4 sayfa · **12 gömülü fotoğraf** · aynı veriler |
+
+  Yani şikâyet doğruydu ve sebebi **dosyalar değil, bağlantıydı**: kutu ÜYE'ye
+  açılıyordu ama her marka satırı **soğuk alıcıya giden fiyatsız tanıtım
+  dosyasına** gidiyordu. Onaylı üyenin kendi listesi VARDI, o ekranda
+  **bağlantısı yoktu** — *bir ekranda görünmeyen seçenek olmayan seçenektir*
+  (KURAL 2e'nin bu dosyadaki hâli; operatör aynı dersi "açacak düğmem yok"
+  diye iki kez söylemişti).
+- **Kapı yeniden TANIMLANMADI.** Ölçüt `head.php`'nin `$PRICES`'i; kapı açıksa
+  marka satırı `/wholesale-list.pdf?brand=` (fotoğraf + veri), yanında küçük
+  `XLSX` çipi (sıralanabilir). Kapalıysa **eskisi gibi** `/catalog`. Bu depoda
+  kapının ikinci bir kopyası **altı kez** yanlış yere baktı.
+- **Bağlantıyı gizlemek kapı değildir:** `/wholesale-list.*` zaten kendi tarafında
+  `auth_prices_unlocked()` soruyor ve onaysız üyeyi `/price-list`'e yolluyor —
+  ölçüldü (302 → `/price-list?brand=Lacoste`), yani sol sütun değişse bile fiyat
+  sızmıyor (KURAL 4b'nin `/offer` dersi).
+- **FOTOĞRAF neden PDF'te, Excel'de değil:** fiyatlı Excel'in fotoğrafı **bilerek**
+  kaldırılmış (dosyanın kendi notu: müşterinin Excel'inde CMYK/progressive JPEG'ler
+  **boş kutu** olarak çıkıyordu, "delikli bir liste hiç fotoğraf vaat etmeyenden
+  kötü"). Yani *"fotoğraf + veri birlikte"* isteğinin doğru cevabı **PDF**.
+  Dosyanın başlığı hâlâ *"with photographs embedded in the sheet"* diyordu —
+  **bayat ve yalan bir satır**, düzeltildi.
+- **LOT (karton adedi) ÜÇ listede de YOKTU** ve bu gerçek bir boşluktu: yalnız
+  `sizes` dizesinin kuyruğuna gömülü bir `10/pack` parçası olarak görünüyordu,
+  yani **sıralanamıyor, süzülemiyor, adetle çarpılamıyordu** — oysa toptancının
+  ilk sorusu "kaç karton". Artık:
+  - fiyatlı Excel'de **ayrı SAYI sütunu** (`MOQ` ile `Unit` arasında),
+  - PDF'te **kategori satırında** (`Jeans · lots of 10`) — **MOQ sütununun ALTINA
+    yazılmadı**, bilerek: o bandı beden dizisinin ikinci/üçüncü satırı kullanıyor
+    (`sizeW` sütun sınırına kadar gidiyor) ve iki metin üst üste binerdi; bu dosya
+    tam o çakışmayı bir kez düzeltmiş ve notu içinde duruyor,
+  - herkese açık tanıtım dosyasında **Category + Sizes ile birlikte** (fiyat yine
+    YOK — dosyanın var olma sebebi o, testte ters yön iddiası var).
+- **Tek karar noktası `vestra_pack_size()`** (`inc/products.php`). **Yokluk belirsiz
+  değil:** `admin.php:615` alanı yalnızca 1'den büyükken yazıyor
+  (`if($step>1) … else unset(…)`), yani alanın olmaması *"bilinmiyor"* değil
+  *"tek parça"* demek — 1 dönmek bir tahmin değil, kaydın kendi ifadesi (KURAL 3
+  bir olguyu UYDURMAYI yasaklıyor; burada kayıt zaten konuşuyor). `linesheet.php`
+  bu okumayı baştan beri yapıyordu ve artık o da aynı fonksiyonu çağırıyor.
+- **Sütun EKLEMEK sonraki tüm indeksleri kaydırıyor:** `numcols`/`linkcols`/`widths`
+  haritaları elle güncelleniyor ve biri unutulursa **ürün linki başka bir hücreye**
+  bağlanır. Test bunu ürün linkinin gerçekten link sütununda olmasıyla ölçüyor.
+  Tanıtım dosyasında ayrıca **fotoğraf SON hücreye tutturuluyor** (`xlsx.php`), o
+  yüzden `Photo` sütununun son sırada kaldığı da ayrı bir iddia.
+- **7 sözlük anahtarı 8 dile birden.** Blok bugüne kadar **her dilde İngilizceydi**
+  (`Line-sheets by brand` ve `All brands` hiçbir sözlükte yoktu); yeni metinleri
+  ekleyip eskileri bırakmak yarısı çevrilmiş bir kutu bırakırdı.
+- **ÇİZDİRİLDİ, kaynak okunmadı** (kum havuzu + gerçek tarayıcı, üç kapı hâli):
+  onaylı üyede **5 satır, 5 XLSX çipi, `/catalog` 0**; onaysız üyede **tersi**;
+  misafirde kutu **hiç yok**. Masaüstü/mobil/Almanca/Arapça RTL, yatay taşma
+  **0**, PHP uyarısı **0**. Üretilen `.xlsx` ve `.pdf` açılıp **okundu** (Lot=10
+  kartonlu ilanda, Lot=1 tek parçada; PDF'te `Hoodies & Sweatshirts · lots of 10`).
+- **Ölçüm tuzağı (yaşandı):** test kabuğu `session_start()`'ı `inc/auth.php`'den
+  **önce** çağırıyordu ve auth.php *"oturum yanlış depoda başlatılmıştı"* satırını
+  **çıktıya** basıyor. HTML sayfada zararsız; `.xlsx`/`.pdf` **binary** ve o tek
+  satır zip/PDF imzasının önüne geçiyor — ölçüm *"dosya üretilmedi"* dedi, oysa
+  üretilmişti, önüne bir satır metin konmuştu.
+- **İkinci tuzak:** PDF'te ayırıcı **CP1252 orta nokta (0xB7)** olarak duruyor ve
+  iddiayı **tek tırnaklı** bir dizgeyle yazdım — orada `\xb7` dört harftir, yani
+  iddia hiçbir belgede eşleşmez. (Ham bayta bakmak bu üreteçte geçerli: `inc/pdf.php`
+  akışları **sıkıştırmıyor**; test bunu ayrıca doğruluyor ki bir gün Flate eklenirse
+  *"metin yok"* diye yanlış bir kırmızı değil, sebebi söyleyen satır düşsün.)
+- Test: `tests/linesheet_test.php` (**65 iddia**, iki yön). Düşebildiği doğrulandı,
+  her sabotajın **gerçekten uygulandığı `grep -c` ile ayrıca yazdırılarak**: sol
+  sütun eski hâline döndürülünce **6 kırmızı**, fiyatlı listeler onaysız üyeye de
+  açılınca **4**, Excel'den `Lot` kalkınca **4**, PDF'ten lot kalkınca **2**,
+  tanıtım dosyasına fiyat sızınca **2**, `size_step` elle okununca **2**.
+- **Bu işten bağımsız, ÖNCEDEN kırık:** `dropship_plan_test.php`'nin dört FX
+  iddiası (bu ortamda kur kaynağına çıkış yok), ve deploy dalında duran
+  `msg_read_receipt_test` (1) ile `msg_thread_label_test` (10) — üçü de **benim
+  birleştirmemden ÖNCE**, dalın kendi ucunda aynı şekilde düşüyor (ölçüldü,
+  varsayılmadı). Dokunulmadı.
+
 ## SEO ve diller
 
 **KURAL 9 — SEO iniş sayfaları canlı stoktan türer; boş sayfa yok** (operatör

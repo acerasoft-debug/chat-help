@@ -1217,9 +1217,18 @@ jobs:
                     printf("  PDF | sayfa: %d | gomulu fotograf (DCTDecode): %d\n",
                            substr_count($raw, "/Type /Page") ?: substr_count($raw, "/Type/Page"),
                            substr_count($raw, "/DCTDecode"));
-                    /* METIN ARANMIYOR ve bu bilerek: PDF akislari Flate ile sikistirilabiliyor,
-                       yani ham baytta "MOQ" bulunamamasi "sutun yok" DEMEK DEGIL. Olculebilir
-                       ve yaniltmayan iki sey var: sayfa sayisi ve gomulu fotograf sayisi. */
+                    /* METIN ARAMASI ANCAK AKISLAR SIKISTIRILMAMISKEN gecerli. inc/pdf.php
+                       bugun sikistirmiyor (olculdu), ama bir gun Flate eklenirse ham baytta
+                       "lots of" bulunamamasi "lot yazmiyor" DEMEK OLMAZ -- o yuzden once
+                       sikistirma sorulyor ve cevabi satirda duruyor. Yanlis bir kirmizi
+                       yerine sebebi soyleyen bir satir. */
+                    if (strpos($raw, "/FlateDecode") !== false) {
+                        echo "  akislar SIKISTIRILMIS -- metin sayimi atlandi (sonuc yok, olcum yok)\n";
+                    } else {
+                        printf("  metin: 'lots of' %d kez | 'MOQ' %d | 'Colours:' %d | 'vestrasales.com/product' %d\n",
+                               substr_count($raw, "lots of"), substr_count($raw, "MOQ"),
+                               substr_count($raw, "Colours:"), substr_count($raw, "vestrasales.com/product"));
+                    }
                     exit;
                 }
                 $z = new ZipArchive(); if ($z->open($f) !== true) { echo "  *** zip acilamadi (xlsx degil?)\n"; exit; }
@@ -1257,7 +1266,15 @@ jobs:
                   foreach ($data as $d) if (trim((string)($d[$col] ?? "")) !== "") $full++;
                   $n = count($data) ?: 1;
                   printf("  %-3s %-18s %4d/%-4d  %%%d%s\n", $col, mb_substr((string)$head[$col], 0, 18),
-                         $full, count($data), (int)round(100 * $full / $n), $full === 0 ? "   *** HIC DOLU DEGIL ***" : "");
+                         $full, count($data), (int)round(100 * $full / $n),
+                         /* 'Photo' HER ZAMAN bos ve bu kusur DEGIL: gorsel hucreye METIN
+                            olarak yazilmiyor, sayfanin uzerine cizim capasiyla tutturuluyor
+                            (inc/xlsx.php). Yukarida basilan 'gomulu fotograf' sayisi o
+                            sutunun gercek olcusu. Bu not olmadan her kosuda yanlis bir
+                            alarm okunuyordu. */
+                         $full === 0 ? (stripos((string)$head[$col], "photo") !== false
+                                        ? "   (gorsel capa olarak duruyor -- bkz. gomulu fotograf sayisi)"
+                                        : "   *** HIC DOLU DEGIL ***") : "");
                 }
                 echo "  --- ilk 5 veri satiri ---\n";
                 foreach (array_slice($data, 0, 5) as $d) {
