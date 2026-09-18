@@ -1182,8 +1182,11 @@ jobs:
                 $_GET["brand"] = $b;
                 $_SERVER["REQUEST_METHOD"] = "GET";
                 /* CLI, fiyat kapisindan MUAF (wholesale-xlsx.php kendi yorumunda yaziyor):
-                   oturum olmadigi icin auth_user() null doner ve web tarafi /price-list'e
-                   yonlendirirdi -- sonda 0 bayt olcup "uretilmedi" derdi. */
+                   oturum olmadigi icin auth_user() null doner ve web tarafi price-list
+                   sayfasina yonlendirirdi -- sonda 0 bayt olcup "uretilmedi" derdi.
+                   NOT: bu blok bash TEK TIRNAK icinde; buraya konan bir kesme isareti
+                   dizgeyi erken kapatir ve adim "syntax error near unexpected token"
+                   ile duser. Bir kez oldu; kesme isareti kullanma. */
                 require getenv("HOME")."/public_html/".($priced ? "wholesale-xlsx.php" : "catalog.php");
               ' > /tmp/vestra_ls.xlsx 2>/tmp/vestra_ls.err
               LSRC=$?
