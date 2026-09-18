@@ -1939,19 +1939,78 @@ cerceveye otursun"*).
   (`is_file($home.'/public_html'.$img)`), yani doğrulama yazma yolunun içinde.
   Kuru koşu → uygula → **sunucudan geri okundu** (`inspect-products` → `img_list`):
   10 kare, hepsi `diskte`, kapak `navy.jpg`.
-- **Operatör kararı bekleyen üç şey (hiçbiri kendiliğinden değiştirilmedi):**
-  1. **Aynı ürün katalogda İKİ ilan:** SH9608 hem €55 (min 56) hem €45 (min 8) —
-     ucuz olanın asgarisi de düşük, yani aynı sweatshirt iki fiyatla duruyor.
-  2. **`lgp-lacoste-crew-sweatshirt`'in kategorisi `Sweatshirts`** ve bu ad
-     `vestra_all_cats()`'te **YOK** (doğrusu `Hoodies & Sweatshirts`). Sonucu
-     `inc/products.php`'nin kendi yorumunda yazılı: taksonomide olmayan kategori
-     `seller.php`'nin `in_array` kontrolüne takılıyor ve satıcı o ürünü açıp
-     kaydettiğinde kategori **"Other" ile eziliyor**. Ayrıca ad `t()`'den geçmediği
-     için 9 dilde ham İngilizce basılıyor.
-  3. **Renk seçici KAPALI:** ilan 10 rengi listeliyor ama `min_colors` alanı **yok**,
-     `vestra_is_colorqty_listing()` üç şartı birden istiyor — yani alıcı renkleri
-     görüyor, **seçemiyor**. Fred Perry M7535'te kaydedilen *"renkler ilanda var ≠
-     alıcı renk seçebiliyor"* vakasının aynısı.
+- **Operatöre yazılan üç açık nokta — ÜÇÜ DE AYNI GÜN KAPANDI**, çünkü üçü de
+  aynı fazlalık ilanın kusuruydu ve o ilan kaldırıldı (aşağıdaki maddeye bak):
+  (1) SH9608 katalogda iki fiyatla duruyordu (€55 / min 56 ve €45 / min 8);
+  (2) `lgp-lacoste-crew-sweatshirt`'in kategorisi `Sweatshirts` ve bu ad
+  `vestra_all_cats()`'te **YOK** — satıcı ilanı açıp kaydettiği an kategori
+  **"Other" ile eziliyor** ve ad `t()`'den geçmediği için 9 dilde ham İngilizce
+  basılıyordu; (3) `min_colors` alanı yoktu, yani alıcı 10 rengi **görüyor ama
+  seçemiyordu** (Fred Perry M7535'in aynı vakası). *Üçü ayrı ayrı düzeltilmedi:
+  kusurların kendisi, ilanın niye fazlalık olduğunun kanıtı oldu.*
+
+**Aynı ürün iki kez: hangisinin kalkacağını `added_at` söyledi, karar BEŞ
+bağımsız işaretle doğrulandı** (operatör, 17 Eyl 2026: *"ayni ürün sitede iki
+defa olmaz sonradan girileni kaldir"*).
+- Aynı Lacoste SH9608 crew sweatshirt katalogda **iki ilandı** ve ikisi de aynı
+  fotoğrafları kullanıyordu (bir gün önce ben eşitlemiştim), yani ekrandan
+  ayırt edilemiyorlardı. **Ölçüldü, hatırlanmadı:** `inspect-products` ilan
+  başına `added_at` **basmıyordu** ve "sonradan girilen" sorusunun cevabı tam
+  o alanda; eklendi. Sonuç: `lgp-lacoste-crew-sweatshirt` **2026-09-12**,
+  `lac-crew-sweatshirt` **2026-08-02** — 41 gün arayla, belirsizlik yok.
+- **Tek bir alana dayanmadım.** `added_at` bir zaman damgası ve bozulabilir;
+  beş bağımsız işaret daha aynı yönü gösterdi: kalkan ilan **ölü** bir satıcı
+  kabuğunda (`8fa9d40d…` "Les Garage Paris" — adres/VAT/sicil/banka/Stripe yok;
+  ayakta kalan ilan canlı **GARAGE LE PARIS** hesabında), kategorisi
+  taksonomide yok, `min_colors` yok (renk seçilemiyor), teklif kutusu kapalı,
+  ve operatörün aynı oturumda verdiği **56/104** kademeleri ayakta kalanın
+  MOQ'suna oturuyor. *"Sonradan girilen" tek ölçütken, altı ölçüt bir arada
+  karar oldu.*
+- **SİLİNMEDİ, `status='rejected'` YAPILDI** — `vestra_invoice_delete()`'in
+  "silmiyor, arşivliyor" kararının ilan hâli. `vestra_live_listings()` yalnız
+  `approved` döndürüyor, yani vitrin, fiyat listeleri, sitemap, kampanya, API
+  ve `vestra_find()` (ürün sayfası) **hepsinden** düşüyor; kayıt diskte
+  `✗ Rejected` rozetiyle duruyor ve tek tıkla geri gelir. Panelin **Delete**
+  düğmesi `vestra_save_listings()` çağırıyor ve o **yedek almıyor**; bu yol
+  zaman damgalı yedek alıyor ve geri okuyor.
+- **`pending` BİLEREK seçilmedi:** o durum ilanı panelin *"⚠️ Listings to
+  approve"* sayacına sokar, yani **kaldırdığımız ilan her sabah yapılacak iş
+  gibi görünürdü** — KURAL 2c'nin ("her gün '0 bekleyen' yazan uyarı
+  okunmamayı öğretir") ters yönü. `set_product.php` `rejected` yazamıyordu;
+  eklendi ve bu bir **genişletme değil**: panelin kendi reddet düğmesi
+  (`admin.php:96`) zaten tam bu değeri yazıyor, betik yalnızca yazamıyordu.
+  `suspended` bilerek dışarıda — o, satıcı askısının ilan tarafındaki
+  karşılığı, bir ürün kararının değil.
+- **Tohum dosyası da temizlendi ve bu şarttı:** kayıt
+  `vestra/inc/lesgarage_polos_seed.json`'da duruyordu ve
+  `Admin ▸ Listings ▸ Sync Les Garage Paris` **yeni ürün yolundan** onu
+  `status='approved'` ile geri yazardı. Bir gün önce fotoğraf düzeltmesinde
+  öğrenilen *"bunu başka kim YAZIYOR?"* sorusunun ikinci uygulaması.
+- **Bağlantı taraması önce yapıldı:** `diag-live` → `find_ref=crew-sweatshirt`
+  tek eşleşme verdi (`listings.json`) — hiçbir sipariş, teklif, `order_statuses`
+  ya da `offer_responses` kaydı bu ilana bağlı değil.
+- **Fiyat AYAKTA KALAN ilana yazıldı** (operatör, aynı oturum: *"56 ad. ten
+  itibaren 39,90 Eur, 104 ad. ten itibaren 35,00 eur normal fiyatı da 44,00 eur
+  yap"*, dakikalar sonra *"104 ad. Ten itibaren 36 eur yap"*). Düzeltme
+  **hiçbir şey yazılmadan önce** geldi, yani 35,00 canlıya hiç inmedi.
+  `tiers 56+ → €39,90 / 104+ → €36,00`, `sale_list 44,00`.
+- **`price` değil `sale_list`, ve fark ilanı bozacak kadar büyük:** `price`
+  alanı **bütün kademeleri** 44'e düzleştirir (merdiven yok olurdu);
+  `sale_list` yalnız üstü çizili "was" fiyatını yazar. Mevcut 64,71 zaten aynı
+  alandan gelmişti.
+- **Çelişki susarak çözülmedi:** operatörün yapıştırdığı sayfa metni
+  (*"Single-size cartons of 8 … SH9608-00"*) **kalkan** ilanındı, verdiği
+  rakamlar ise **kalanın** yapısı. İkisi aynı üründü ve rakamlar mekanik olarak
+  tek bir ilana oturuyordu (kalkanın MOQ'su 8; "56'dan itibaren" onun ilk
+  kademesi olamaz).
+- **Doğrulama alanın değerine değil sepetin TAHSİL ETTİĞİNE bakıyor**
+  (`price_audit`): katalog **895 → 894** (bir ilan canlı listeden düştü, yazma
+  mesajından bağımsız ikinci kanıt), *alıcı aleyhine* tek satır var ve o eski
+  demo tohumu `lac-pique-polo`, bu sweatshirt değil. `raw_scan`: `approved=11
+  rejected=1`, ölü hesap hâlâ tam **1** ilan taşıyor, `kayıp/bozuk foto 0`.
+- **`raw_scan` diğer kipleri eziyor:** aynı koşuda `price_audit` ile birlikte
+  verildiğinde yalnız ham tarama basıldı. İki ölçüm iki koşu istedi — sondayı
+  tek koşuda yığmak, sorulan sorulardan birini sessizce cevapsız bırakıyor.
 
 **KURAL 14 — Talep panosu ("Anfragen"): ÖRNEK ile GERÇEK talep karışmaz**
 (operatör, 8 Eyl 2026: *"sitenin anfragen bölümüne yeni anfragen lar ekle"*).
