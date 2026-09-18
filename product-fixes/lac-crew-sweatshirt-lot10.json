@@ -1,0 +1,30 @@
+[
+ {
+  "match": "lac-crew-sweatshirt",
+  "expect": 1,
+  "size_step": 10,
+  "moq": 50,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack",
+  "tiers": [
+   { "min": 50,  "price": 39.90 },
+   { "min": 100, "price": 35.00 }
+  ],
+  "desc": "Fleece Crew Neck Sweatshirt — Lacoste, sold in cartons of 10 per colour (mixed sizes S-XXL). Minimum order 50 pc, at least 4 colours.",
+
+  "_why": "Operator, 18 Eyl 2026: 'sitede kontrol et fiyatlar dogru gozukuyor mu ayrica bir Lot u 10 ad. Yap . 1 3 3 2 1'. Lot = karton; 1+3+3+2+1 = 10. Onceki hali: 8'lik karton, S×1 · M×2 · L×2 · XL×2 · XXL×1 · 8/pack, moq 56, kademeler 56/104.",
+
+  "_moq_neden_DEGISTI": "Operator MOQ'dan hic soz etmedi, ama 10'luk kartona gecmek onu ZORUNLU olarak degistiriyor: set_product.php 'moq % size_step !== 0' durumunda HATA veriyor (56 % 10 = 6) ve ayni sekilde tiers[0].min != moq olursa duruyor. Gerekce ilanin kendisinde: sepet miktari size_step'in katina YUKARI yuvarliyor, yani 10'luk kartonda 'min 56' sayfada 56, kasada 60 demek -- ilan edilen minimum hic satin alinamaz. 104 de ayni sekilde adima oturmuyordu (alici ancak 110'da 35,00'e ulasirdi).",
+
+  "_neden_50_100": "TAHMIN DEGIL, AYNI SATICININ KENDI 10'LUK STANDARDI -- sunucudan olculdu (inspect-products run 35296365177, brand='Fred Perry'), hafizadan alinmadi. Ayni satici hesabi (7ab30f26afedd840 / GARAGE LE PARIS) bugun iki adet 10'luk ilan tasiyor ve ikisi de ayni tabani kullaniyor: fp-m3600-polo  size_step=10, moq=50, 'Cartons of 10 · S×1 · M×3 · L×3 · XL×2 · XXL×1 · min 50 pc', kademeler 50 / 100 / 200; fp-m7535-sweat  size_step=10, moq=50, AYNI 1-3-3-2-1 serisi, min_colors=4. Ikincisi yapisal olarak birebir kardes: ayni satici, ayni kategori (Hoodies & Sweatshirts), 10'luk karton, ayni seri, ayni renk asgarisi. Yani 50/100 bu satici icin zaten yerlesik taban; 60/110 da tam kat olurdu ama hicbir kardesi oyle degil ve 104'e daha uzak. Bu, CLAUDE.md'de kayitli M3600 kararinin (8'li -> 10'lu gecerken 'en az alimlar da ayni mantiga gore ciksin', 56 -> 50, 96 -> 100, 192 -> 200) birebir uygulanmasi.",
+
+  "_fiyatlar_DEGISMEDI": "39,90 ve 35,00 aynen duruyor; sale_list 44,00'e dokunulmuyor (zaten dogru ve bu dosyada verilmiyor). Degisen yalnizca basamaklarin YERI: 56 -> 50, 104 -> 100. Ikisi de alicinin LEHINE (ayni fiyata dort-alti parca once ulasiyor), yani price_audit'in 'alici aleyhine' sinifina girmiyor -- listede ucuz gorunup kasada pahali cikan bir satir dogmuyor.",
+
+  "_min_colors_dokunulmadi": "4 kaliyor ve ulasilabilir: moq 50 / adim 10 = 5 karton >= 4 renk. (M3600'de ayni hesap yapilmisti: 50/10 = 5 >= 4.) min_colors'i degistirmek her alicinin gordugu kurali degistirirdi ve istenmedi.",
+
+  "_desc_AYNI_YAZMADA": "Karton adedi ve asgari alim bu ilanda IKI yere yazili: 'sizes' alani ve 'desc' metni. Yalniz birini degistirmek, urun sayfasinin spec satirinda bir, bir paragraf altinda baska rakam gostermesi demek -- 9 Eyl 2026'da Balenciaga'da, 17 Eyl'de Burberry 8049455'te ayni hata iki kez yasandi. Metin sablondan YENIDEN YAZILMADI: sunucunun kendi dizgesinden kuruldu ve yalnizca iki rakam degisti (8 -> 10, 56 -> 50). fit_scan'in celiski sayaci bu ilani ZATEN yakalayamaz (desc'te 'S×1 · M×2 ...' bicimli bir seri yok, sadece 'cartons of 8' yazıyor ve $runOf('') bos donuyor) -- yani sonda bu ayrismayi gostermezdi.",
+
+  "_paket_eki_bicimi_korundu": "'10/pack' yazildi, Fred Perry'nin 'Cartons of 10 ... min 50 pc' bicimi DEGIL. Iki sebep: (1) vestra_sizes_label() yalniz '<rakam>/pack' kalibini ceviriyor, yani bu bicim 9 dilde cevriliyor, otekisi ham Ingilizce kalirdi; (2) 11 Lacoste kardesinin hepsi '... · N/pack' yaziyor. M3600 partisinde de her ilan KENDI paket son ekini korumustu -- istenen yalnizca dagilimdi.",
+
+  "_beden_secici": "Kapali kalmaya devam ediyor ve dogrusu bu: vestra_sizes_selectable() acik dagilim (S×1 · M×3 ...) ya da paket eki goren ilanda secim acmiyor -- karisim ilanin kendisinde yazili, sectirmek ilan edilen kartonun icerigiyle celisen bir siparis uretirdi."
+ }
+]
