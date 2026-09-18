@@ -83,7 +83,7 @@ if (!empty($p['variants']) && is_array($p['variants'])) {
 }
 $unit  = $p['unit'] ?? 'pc';
 $price = ($p['mode'] ?? '') === 'offer' ? 'On request' : eur(vestra_from_price($p)).' / '.$unit;
-$pack  = (int)($p['size_step'] ?? 0) ?: 1;
+$pack  = vestra_pack_size($p);   // tek karar noktasi (inc/products.php)
 
 header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
 header('Content-Disposition: attachment; filename="'.$slug.'-linesheet.xls"');

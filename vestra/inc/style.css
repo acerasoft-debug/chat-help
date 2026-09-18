@@ -729,6 +729,16 @@ a.msghead-s:hover{color:var(--acc)}
 .fcount{margin-left:auto;font-size:11px;color:var(--mut);background:rgba(255,255,255,.06);padding:1px 6px;border-radius:10px}
 .filter-export{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mut);padding:7px 8px;border-radius:7px;transition:.15s;margin-bottom:2px}
 .filter-export:hover{color:var(--ink);background:rgba(255,255,255,.04)}
+/* Line-sheet satiri: ana baglanti (PDF) + kucuk ikinci bicim (XLSX). Iki ayri
+   satir yazmak listeyi ikiye katlardi -- 24 markada 48 satirlik bir kenar
+   sutunu. .lsmain flex:1 ile kalan genisligi aliyor, sayac kendi ucunda
+   kaliyor, XLSX chip'i sabit. */
+.lsrow{display:flex;align-items:center;gap:4px}
+.lsrow .lsmain{flex:1;min-width:0}
+.lsrow .lsmain .fcount{margin-left:auto}
+.lsalt{flex:none;font-size:10px;letter-spacing:.06em;color:var(--mut);border:1px solid var(--line);
+  border-radius:6px;padding:3px 6px;text-decoration:none;transition:.15s;line-height:1}
+.lsalt:hover{color:var(--ink);border-color:rgba(201,168,106,.4)}
 
 /* Shop top bar */
 .shopbar{display:flex;align-items:center;margin-bottom:18px;gap:12px}

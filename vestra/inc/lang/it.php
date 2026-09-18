@@ -1284,4 +1284,11 @@ return array (
   'Verified B2B fashion wholesale — branded apparel & textile basics from KYC-verified sellers. Invoice-based ordering across Europe, shipping worldwide.' => 'Ingrosso moda B2B verificato — abbigliamento di marca e basici tessili da venditori verificati KYC. Ordini su fattura in Europa, spedizione in tutto il mondo.',
   '%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering, shipping worldwide.' => '%s — %s all\'ingrosso. %sFornitore B2B verificato su VESTRA — ordini su fattura, spedizione in tutto il mondo.',
   'Wholesale intimates — bras, briefs, sleepwear and socks in full packs for boutiques and lingerie shops. Trade prices on registration, ordered by the pack, invoice-based B2B ordering and worldwide shipping.' => 'Intimo all\'ingrosso — reggiseni, slip, abbigliamento da notte e calze in confezioni complete per boutique e negozi di lingerie. Prezzi all\'ingrosso dopo la registrazione, ordine a confezione, B2B su fattura e spedizione in tutto il mondo.',
+  'Line-sheets by brand' => 'Line-sheet per marca',
+  'All brands' => 'Tutte le marche',
+  '%s line-sheet (Excel, with photos)' => 'Line-sheet %s (Excel, con foto)',
+  '%s line-sheet — PDF: photos, article numbers, sizes, lot, MOQ and your wholesale prices' => 'Line-sheet %s — PDF: foto, codici articolo, taglie, lotto, MOQ e i tuoi prezzi all\'ingrosso',
+  '%s line-sheet — Excel: the same list, sortable and ready to paste' => 'Line-sheet %s — Excel: la stessa lista, ordinabile e pronta da incollare',
+  'Article numbers, colours, size run, lot size, MOQ and your wholesale prices. PDF to print or forward · Excel to sort and paste.' => 'Codici articolo, colori, scalare taglie, dimensione del lotto, MOQ e i tuoi prezzi all\'ingrosso. PDF da stampare o inoltrare · Excel da ordinare e incollare.',
+  'Excel with product photos &amp; identification codes · no pricing (trade prices unlock after free registration).' => 'Excel con foto prodotto &amp; codici identificativi · senza prezzi (i prezzi all\'ingrosso si sbloccano dopo la registrazione gratuita).',
 );

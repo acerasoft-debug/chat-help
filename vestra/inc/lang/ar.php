@@ -1280,4 +1280,11 @@ return array (
   'Verified B2B fashion wholesale — branded apparel & textile basics from KYC-verified sellers. Invoice-based ordering across Europe, shipping worldwide.' => 'جملة أزياء B2B موثوقة — ملابس ماركات وأساسيات نسيجية من بائعين موثوقين بفحص KYC. طلب بالفاتورة في أوروبا وشحن إلى جميع أنحاء العالم.',
   '%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering, shipping worldwide.' => '%s — %s بالجملة. %sمورد B2B موثوق على VESTRA — طلب بالفاتورة وشحن إلى جميع أنحاء العالم.',
   'Wholesale intimates — bras, briefs, sleepwear and socks in full packs for boutiques and lingerie shops. Trade prices on registration, ordered by the pack, invoice-based B2B ordering and worldwide shipping.' => 'ملابس داخلية بالجملة — حمالات صدر وسراويل داخلية وملابس نوم وجوارب بعبوات كاملة للبوتيكات ومتاجر اللانجيري. أسعار الجملة بعد التسجيل، الطلب بالعبوة، B2B بالفاتورة وشحن إلى جميع أنحاء العالم.',
+  'Line-sheets by brand' => 'قوائم المنتجات حسب الماركة',
+  'All brands' => 'جميع الماركات',
+  '%s line-sheet (Excel, with photos)' => 'قائمة %s (Excel مع الصور)',
+  '%s line-sheet — PDF: photos, article numbers, sizes, lot, MOQ and your wholesale prices' => 'قائمة %s — PDF: صور وأرقام أصناف ومقاسات وحجم العبوة والحد الأدنى وأسعار الجملة الخاصة بك',
+  '%s line-sheet — Excel: the same list, sortable and ready to paste' => 'قائمة %s — Excel: القائمة نفسها، قابلة للفرز واللصق',
+  'Article numbers, colours, size run, lot size, MOQ and your wholesale prices. PDF to print or forward · Excel to sort and paste.' => 'أرقام الأصناف والألوان وتدرج المقاسات وحجم العبوة والحد الأدنى للطلب وأسعار الجملة الخاصة بك. PDF للطباعة أو إعادة الإرسال · Excel للفرز واللصق.',
+  'Excel with product photos &amp; identification codes · no pricing (trade prices unlock after free registration).' => 'ملف Excel بصور المنتجات &amp; أكواد التعريف · دون أسعار (تظهر أسعار الجملة بعد التسجيل المجاني).',
 );

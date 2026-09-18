@@ -1284,4 +1284,11 @@ return array (
   'Verified B2B fashion wholesale — branded apparel & textile basics from KYC-verified sellers. Invoice-based ordering across Europe, shipping worldwide.' => 'Vente en gros B2B vérifiée — vêtements de marque et basiques textiles de vendeurs vérifiés KYC. Commande sur facture en Europe, expédition dans le monde entier.',
   '%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering, shipping worldwide.' => '%s — %s en gros. %sFournisseur B2B vérifié sur VESTRA — commande sur facture, expédition dans le monde entier.',
   'Wholesale intimates — bras, briefs, sleepwear and socks in full packs for boutiques and lingerie shops. Trade prices on registration, ordered by the pack, invoice-based B2B ordering and worldwide shipping.' => 'Lingerie en gros — soutiens-gorge, culottes, vêtements de nuit et chaussettes en packs complets pour boutiques et magasins de lingerie. Prix professionnels après inscription, commande par pack, B2B sur facture et expédition dans le monde entier.',
+  'Line-sheets by brand' => 'Line-sheets par marque',
+  'All brands' => 'Toutes les marques',
+  '%s line-sheet (Excel, with photos)' => 'Line-sheet %s (Excel, avec photos)',
+  '%s line-sheet — PDF: photos, article numbers, sizes, lot, MOQ and your wholesale prices' => 'Line-sheet %s — PDF : photos, références, tailles, lot, MOQ et vos prix de gros',
+  '%s line-sheet — Excel: the same list, sortable and ready to paste' => 'Line-sheet %s — Excel : la même liste, triable et prête à coller',
+  'Article numbers, colours, size run, lot size, MOQ and your wholesale prices. PDF to print or forward · Excel to sort and paste.' => 'Références, coloris, gamme de tailles, taille du lot, MOQ et vos prix de gros. PDF à imprimer ou transmettre · Excel à trier et coller.',
+  'Excel with product photos &amp; identification codes · no pricing (trade prices unlock after free registration).' => 'Excel avec photos produit &amp; codes d\'identification · sans prix (les prix de gros s\'affichent après une inscription gratuite).',
 );

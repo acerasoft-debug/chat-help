@@ -1284,4 +1284,11 @@ return array (
   'Verified B2B fashion wholesale — branded apparel & textile basics from KYC-verified sellers. Invoice-based ordering across Europe, shipping worldwide.' => 'Venta al por mayor de moda B2B verificada — ropa de marca y básicos textiles de vendedores verificados KYC. Pedidos con factura en Europa, envío a todo el mundo.',
   '%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering, shipping worldwide.' => '%s — %s al por mayor. %sProveedor B2B verificado en VESTRA — pedidos con factura, envío a todo el mundo.',
   'Wholesale intimates — bras, briefs, sleepwear and socks in full packs for boutiques and lingerie shops. Trade prices on registration, ordered by the pack, invoice-based B2B ordering and worldwide shipping.' => 'Lencería al por mayor — sujetadores, braguitas, ropa de dormir y calcetines en packs completos para boutiques y tiendas de lencería. Precios de mayorista tras el registro, pedido por pack, B2B con factura y envío a todo el mundo.',
+  'Line-sheets by brand' => 'Line-sheets por marca',
+  'All brands' => 'Todas las marcas',
+  '%s line-sheet (Excel, with photos)' => 'Line-sheet de %s (Excel, con fotos)',
+  '%s line-sheet — PDF: photos, article numbers, sizes, lot, MOQ and your wholesale prices' => 'Line-sheet de %s — PDF: fotos, números de artículo, tallas, lote, MOQ y sus precios mayoristas',
+  '%s line-sheet — Excel: the same list, sortable and ready to paste' => 'Line-sheet de %s — Excel: la misma lista, ordenable y lista para pegar',
+  'Article numbers, colours, size run, lot size, MOQ and your wholesale prices. PDF to print or forward · Excel to sort and paste.' => 'Números de artículo, colores, escala de tallas, tamaño del lote, MOQ y sus precios mayoristas. PDF para imprimir o reenviar · Excel para ordenar y pegar.',
+  'Excel with product photos &amp; identification codes · no pricing (trade prices unlock after free registration).' => 'Excel con fotos de producto &amp; códigos de identificación · sin precios (los precios mayoristas se muestran tras el registro gratuito).',
 );

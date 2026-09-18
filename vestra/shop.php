@@ -399,20 +399,52 @@ footer a{color:#d8bd86}
                kayit magneti: fotograflı ve kodlu tam Excel'i kayitsiz vermek, katalogu
                tek tiklamada disari kopyalanabilir yapardi. Arama ve kategoriler ise
                artik herkese acik -- kural "urunler acik, fiyat gizli". */ ?>
-      <?php if($MEMBER): ?>
+      <?php /* HANGI LINE-SHEET: kapiya gore. Bu blok UYE'ye aciliyordu ama her marka
+               satiri /catalog'a, yani SOGUK aliciya giden fiyatsiz tanitim dosyasina
+               baglaniyordu -- 11 sutunun hicbiri fiyat degil. Onayli uye, kendisi icin
+               uretilen 19 sutunluk gercek listeyi (artikel no, renk, beden serisi, MOQ,
+               LOT, toptan fiyat, kademe, stok, urun linki) sol sutunda HIC gormuyordu:
+               dosyalar vardi, bu ekranda baglantisi yoktu. "Bir ekranda gorunmeyen
+               secenek olmayan secenektir" -- KURAL 2e'nin bu dosyadaki hali.
+               Kapi yeniden tanimlanmadi: $PRICES head.php'den geliyor ve
+               /wholesale-list.* zaten kendi tarafinda auth_prices_unlocked() soruyor,
+               yani baglantiyi gizlemek degil SUNUCU koruyor (KURAL 19). */ ?>
+      <?php if($MEMBER): $lsPriced = $PRICES; ?>
       <div class="filterblock">
         <div class="filter-title"><?= t('Line-sheets by brand') ?></div>
-        <a class="filter-export" href="/catalog">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
-          <?= t('All brands') ?> · Excel
-        </a>
-        <?php foreach($brandCounts as $b=>$cnt): ?>
-          <a class="filter-export" href="/catalog?brand=<?= rawurlencode($b) ?>" title="<?= htmlspecialchars(sprintf(t('%s line-sheet (Excel, with photos)'), $b)) ?>">
+        <?php if($lsPriced): ?>
+          <div class="lsrow">
+            <a class="filter-export lsmain" href="/wholesale-list.pdf" target="_blank">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 13h5M9.5 16h5"/></svg>
+              <?= t('All brands') ?>
+            </a>
+            <a class="lsalt" href="/wholesale-list.xlsx">XLSX</a>
+          </div>
+          <?php foreach($brandCounts as $b=>$cnt): ?>
+            <div class="lsrow">
+              <a class="filter-export lsmain" href="/wholesale-list.pdf?brand=<?= rawurlencode($b) ?>" target="_blank"
+                 title="<?= htmlspecialchars(sprintf(t('%s line-sheet — PDF: photos, article numbers, sizes, lot, MOQ and your wholesale prices'), $b)) ?>">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 13h5M9.5 16h5"/></svg>
+                <?= htmlspecialchars($b) ?><span class="fcount"><?= $cnt ?></span>
+              </a>
+              <a class="lsalt" href="/wholesale-list.xlsx?brand=<?= rawurlencode($b) ?>"
+                 title="<?= htmlspecialchars(sprintf(t('%s line-sheet — Excel: the same list, sortable and ready to paste'), $b)) ?>">XLSX</a>
+            </div>
+          <?php endforeach; ?>
+          <p class="hint" style="margin:8px 6px 0;font-size:11.5px;line-height:1.5"><?= t('Article numbers, colours, size run, lot size, MOQ and your wholesale prices. PDF to print or forward · Excel to sort and paste.') ?></p>
+        <?php else: ?>
+          <a class="filter-export" href="/catalog">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
-            <?= htmlspecialchars($b) ?><span class="fcount"><?= $cnt ?></span>
+            <?= t('All brands') ?> · Excel
           </a>
-        <?php endforeach; ?>
-        <p class="hint" style="margin:8px 6px 0;font-size:11.5px;line-height:1.5"><?= t('Excel with product photos &amp; identification codes · no pricing (trade prices unlock after free registration).') ?></p>
+          <?php foreach($brandCounts as $b=>$cnt): ?>
+            <a class="filter-export" href="/catalog?brand=<?= rawurlencode($b) ?>" title="<?= htmlspecialchars(sprintf(t('%s line-sheet (Excel, with photos)'), $b)) ?>">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+              <?= htmlspecialchars($b) ?><span class="fcount"><?= $cnt ?></span>
+            </a>
+          <?php endforeach; ?>
+          <p class="hint" style="margin:8px 6px 0;font-size:11.5px;line-height:1.5"><?= t('Excel with product photos &amp; identification codes · no pricing (trade prices unlock after free registration).') ?></p>
+        <?php endif; ?>
       </div>
       <?php endif; ?>
     </aside>

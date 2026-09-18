@@ -1280,4 +1280,11 @@ return array (
   'Verified B2B fashion wholesale — branded apparel & textile basics from KYC-verified sellers. Invoice-based ordering across Europe, shipping worldwide.' => '認証制のB2Bファッション卸売 — KYC認証済み販売者によるブランドアパレルとテキスタイルベーシック。ヨーロッパでは請求書ベースの発注、発送は世界各国へ。',
   '%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering, shipping worldwide.' => '%s — 卸売 %s。%sVESTRAの認証済みB2Bサプライヤー — 請求書ベースの発注、世界各国へ発送。',
   'Wholesale intimates — bras, briefs, sleepwear and socks in full packs for boutiques and lingerie shops. Trade prices on registration, ordered by the pack, invoice-based B2B ordering and worldwide shipping.' => 'インナー卸売 — ブラ、ショーツ、ナイトウェア、ソックスをパック単位で、セレクトショップやランジェリー店向けに。登録後に卸価格、パック単位の発注、請求書ベースのB2B、世界各国へ発送。',
+  'Line-sheets by brand' => 'ブランド別ラインシート',
+  'All brands' => '全ブランド',
+  '%s line-sheet (Excel, with photos)' => '%s ラインシート（Excel、写真付き）',
+  '%s line-sheet — PDF: photos, article numbers, sizes, lot, MOQ and your wholesale prices' => '%s ラインシート — PDF：写真、品番、サイズ、ロット入数、最低発注数、お客様の卸価格',
+  '%s line-sheet — Excel: the same list, sortable and ready to paste' => '%s ラインシート — Excel：同じリストを並べ替え・貭り付け可能な形式で',
+  'Article numbers, colours, size run, lot size, MOQ and your wholesale prices. PDF to print or forward · Excel to sort and paste.' => '品番、カラー、サイズ展開、ロット入数、最低発注数、お客様の卸価格を収録。PDFは印刷・転送用、Excelは並べ替え・貭り付け用。',
+  'Excel with product photos &amp; identification codes · no pricing (trade prices unlock after free registration).' => '商品写真と識別コード付きExcel · 価格は含みません（卸価格は無料登録後に表示）。',
 );
