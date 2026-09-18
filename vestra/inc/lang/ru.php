@@ -1280,4 +1280,11 @@ return array (
   'Verified B2B fashion wholesale — branded apparel & textile basics from KYC-verified sellers. Invoice-based ordering across Europe, shipping worldwide.' => 'Проверенный оптовый B2B-маркетплейс моды — брендовая одежда и текстильные базовые вещи от продавцов с KYC-проверкой. Заказы по счёту в Европе, доставка по всему миру.',
   '%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering, shipping worldwide.' => '%s — оптом %s. %sПроверенный B2B-поставщик на VESTRA — заказы по счёту, доставка по всему миру.',
   'Wholesale intimates — bras, briefs, sleepwear and socks in full packs for boutiques and lingerie shops. Trade prices on registration, ordered by the pack, invoice-based B2B ordering and worldwide shipping.' => 'Бельё оптом — бюстгальтеры, трусы, одежда для сна и носки целыми упаковками для бутиков и магазинов белья. Оптовые цены после регистрации, заказ упаковками, B2B по счёту и доставка по всему миру.',
+  'Line-sheets by brand' => 'Лайн-шиты по брендам',
+  'All brands' => 'Все бренды',
+  '%s line-sheet (Excel, with photos)' => 'Лайн-шит %s (Excel, с фото)',
+  '%s line-sheet — PDF: photos, article numbers, sizes, lot, MOQ and your wholesale prices' => 'Лайн-шит %s — PDF: фото, артикулы, размеры, лот, MOQ и ваши оптовые цены',
+  '%s line-sheet — Excel: the same list, sortable and ready to paste' => 'Лайн-шит %s — Excel: тот же список, с сортировкой и готовый к вставке',
+  'Article numbers, colours, size run, lot size, MOQ and your wholesale prices. PDF to print or forward · Excel to sort and paste.' => 'Артикулы, цвета, размерный ряд, размер лота, MOQ и ваши оптовые цены. PDF — распечатать или переслать · Excel — сортировать и вставлять.',
+  'Excel with product photos &amp; identification codes · no pricing (trade prices unlock after free registration).' => 'Excel с фото товаров &amp; кодами артикулов · без цен (оптовые цены открываются после бесплатной регистрации).',
 );

@@ -1,6 +1,7 @@
 <?php
 /**
- * VESTRA — wholesale price list as Excel, with photographs embedded in the sheet.
+ * VESTRA — wholesale price list as Excel. NO photographs: see the NO PHOTO COLUMN note
+ * below -- they were removed on purpose and the PDF (wholesale-list.pdf) carries them.
  *
  *   /wholesale-list.xlsx                every brand
  *   /wholesale-list.xlsx?brand=Balmain  one brand
@@ -108,8 +109,13 @@ unset($rs);
    temsil ediyor ve alici siparisi rengin ADIYLA veriyor -- renk adlari hicbir
    sutunda yazmiyordu. Eklenince sonraki tum sutun indeksleri BIR KAYDI;
    numcols/linkcols/widths haritalari da buna gore guncellendi (asagida). */
+/* 'Lot' sutunu MOQ ile Unit arasina eklendi. Karton adedi listede HIC yoktu:
+   yalnizca 'Sizes' dizesinin kuyrugunda bir "10/pack" parcasi olarak gorunuyordu,
+   yani siralanamiyor, suzulemiyor, adetle carpilamiyordu -- oysa toptanci once
+   "kac karton alacagim" diye bakiyor. Ayri bir SAYI sutunu olmasinin sebebi bu.
+   Eklenince sonraki tum sutun indeksleri BIR KAYDI (numcols/linkcols/widths). */
 $headers = ['#', 'Brand', 'Art. No', 'VESTRA Ref', 'Product', 'Category', 'Colours', 'Sizes',
-            'MOQ', 'Unit', 'Wholesale EUR', 'Was EUR', 'Volume prices',
+            'MOQ', 'Lot', 'Unit', 'Wholesale EUR', 'Was EUR', 'Volume prices',
             'Retail EUR', 'Retail source',
             'Stock total', 'Stock by size', 'Product link'];
 
@@ -143,6 +149,10 @@ foreach ($byBrand as $brand => $list) {
                 fn($c) => $c !== ''))),
             (string)($p['sizes'] ?? ''),
             (string)($p['moq'] ?? ''),
+            /* Lot = bir kartonda kac parca var. Tek karar noktasindan
+               (vestra_pack_size) okunuyor; alan yoksa 1 ve bu bir varsayim
+               degil, katalogun kendi yazimi -- bkz. o fonksiyonun notu. */
+            (string)vestra_pack_size($p),
             (string)($p['unit'] ?? 'pc'),
             /* Plain numbers, no currency symbol: the header carries the unit and a bare
                number is what a buyer can sum, sort and multiply without cleaning first. */
@@ -207,11 +217,11 @@ $file  = vestra_xlsx_with_photos_file($headers, $rows, $title, [
     'freeze'  => true,
     'filter'  => true,
     'zebra'   => true,
-    'numcols' => [8 => 'int', 10 => 'num', 11 => 'num', 13 => 'num', 15 => 'int'],
-    'linkcols'=> [17],
+    'numcols' => [8 => 'int', 9 => 'int', 11 => 'num', 12 => 'num', 14 => 'num', 16 => 'int'],
+    'linkcols'=> [18],
     'widths'  => [0 => 5, 1 => 15, 2 => 18, 3 => 15, 4 => 38, 5 => 15,
-                  6 => 26, 7 => 30, 8 => 7, 9 => 6, 10 => 14, 11 => 10, 12 => 22,
-                  13 => 12, 14 => 12, 15 => 10, 16 => 24, 17 => 44],
+                  6 => 26, 7 => 30, 8 => 7, 9 => 6, 10 => 6, 11 => 14, 12 => 10, 13 => 22,
+                  14 => 12, 15 => 12, 16 => 10, 17 => 24, 18 => 44],
 ]);
 if ($file === '' || !is_file($file)) {
     http_response_code(500);

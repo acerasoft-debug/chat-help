@@ -1280,4 +1280,11 @@ return array (
   'Verified B2B fashion wholesale — branded apparel & textile basics from KYC-verified sellers. Invoice-based ordering across Europe, shipping worldwide.' => 'Grosso de moda B2B verificado — vestuário de marca e básicos têxteis de vendedores verificados KYC. Encomendas com fatura na Europa, envio para todo o mundo.',
   '%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering, shipping worldwide.' => '%s — %s por grosso. %sFornecedor B2B verificado na VESTRA — encomendas com fatura, envio para todo o mundo.',
   'Wholesale intimates — bras, briefs, sleepwear and socks in full packs for boutiques and lingerie shops. Trade prices on registration, ordered by the pack, invoice-based B2B ordering and worldwide shipping.' => 'Lingerie por grosso — soutiens, cuecas, roupa de dormir e meias em packs completos para boutiques e lojas de lingerie. Preços de revenda após o registo, encomenda por pack, B2B com fatura e envio para todo o mundo.',
+  'Line-sheets by brand' => 'Line-sheets por marca',
+  'All brands' => 'Todas as marcas',
+  '%s line-sheet (Excel, with photos)' => 'Line-sheet de %s (Excel, com fotos)',
+  '%s line-sheet — PDF: photos, article numbers, sizes, lot, MOQ and your wholesale prices' => 'Line-sheet de %s — PDF: fotos, referências, tamanhos, lote, MOQ e os seus preços grossistas',
+  '%s line-sheet — Excel: the same list, sortable and ready to paste' => 'Line-sheet de %s — Excel: a mesma lista, ordenavel e pronta a colar',
+  'Article numbers, colours, size run, lot size, MOQ and your wholesale prices. PDF to print or forward · Excel to sort and paste.' => 'Referências, cores, escala de tamanhos, tamanho do lote, MOQ e os seus preços grossistas. PDF para imprimir ou reencaminhar · Excel para ordenar e colar.',
+  'Excel with product photos &amp; identification codes · no pricing (trade prices unlock after free registration).' => 'Excel com fotos de produto &amp; códigos de identificação · sem preços (os preços grossistas abrem após o registo gratuito).',
 );

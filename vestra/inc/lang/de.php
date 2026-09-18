@@ -1285,4 +1285,11 @@ return array (
   'Verified B2B fashion wholesale — branded apparel & textile basics from KYC-verified sellers. Invoice-based ordering across Europe, shipping worldwide.' => 'Verifizierter B2B-Modegroßhandel — Markenbekleidung & Textil-Basics von KYC-geprüften Verkäufern. Bestellung auf Rechnung europaweit, Versand weltweit.',
   '%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering, shipping worldwide.' => '%s — %s im Großhandel. %sGeprüfter B2B-Lieferant auf VESTRA — Bestellung auf Rechnung, Versand weltweit.',
   'Wholesale intimates — bras, briefs, sleepwear and socks in full packs for boutiques and lingerie shops. Trade prices on registration, ordered by the pack, invoice-based B2B ordering and worldwide shipping.' => 'Wäsche im Großhandel — BHs, Slips, Nachtwäsche und Socken in ganzen Packungen für Boutiquen und Dessousgeschäfte. Händlerpreise nach Registrierung, Bestellung packungsweise, B2B auf Rechnung und Versand weltweit.',
+  'Line-sheets by brand' => 'Line-Sheets nach Marke',
+  'All brands' => 'Alle Marken',
+  '%s line-sheet (Excel, with photos)' => '%s Line-Sheet (Excel, mit Fotos)',
+  '%s line-sheet — PDF: photos, article numbers, sizes, lot, MOQ and your wholesale prices' => '%s Line-Sheet — PDF: Fotos, Artikelnummern, Größen, Gebinde, MOQ und Ihre Großhandelspreise',
+  '%s line-sheet — Excel: the same list, sortable and ready to paste' => '%s Line-Sheet — Excel: dieselbe Liste, sortier- und einfügebereit',
+  'Article numbers, colours, size run, lot size, MOQ and your wholesale prices. PDF to print or forward · Excel to sort and paste.' => 'Artikelnummern, Farben, Größenlauf, Gebindegröße, MOQ und Ihre Großhandelspreise. PDF zum Drucken oder Weiterleiten · Excel zum Sortieren und Einfügen.',
+  'Excel with product photos &amp; identification codes · no pricing (trade prices unlock after free registration).' => 'Excel mit Produktfotos &amp; Artikelnummern · ohne Preise (Großhandelspreise nach kostenloser Registrierung).',
 );

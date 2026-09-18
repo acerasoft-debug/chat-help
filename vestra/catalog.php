@@ -42,46 +42,58 @@ foreach (vestra_products() as $p) {
 }
 
 
-$headers = ['#', 'Brand', 'Product', 'Colour', 'Article / Code', 'Model / Ref', 'MOQ', 'Photo'];
+/* CATEGORY / SIZES / LOT eklendi (18 Eyl 2026). Bu dosya soguk aliciya giden
+   TEK line-sheet ve 8 sutunun altisi kimlik bilgisiydi: alici fotografi ve
+   artikel numarasini goruyor, ama malin NE oldugunu (kategori), hangi bedenlerde
+   geldigini ve kac parcalik karton halinde satildigini hicbir sutunda
+   goremiyordu -- yani "kac alabilirim" sorusunu bu dosya cevaplamiyordu.
+   FIYAT YINE YOK, bilerek: dosyanin var olma sebebi o (bkz. ustteki baslik). */
+$headers = ['#', 'Brand', 'Product', 'Category', 'Colour', 'Article / Code', 'Model / Ref',
+            'Sizes', 'MOQ', 'Lot', 'Photo'];
 $rows = [];
 $i = 0;
 foreach ($items as $p) {
     $brand = (string)($p['brand'] ?? '');
     $name  = (string)($p['name'] ?? '');
+    $cat   = (string)($p['cat'] ?? '');
+    $sizes = (string)($p['sizes'] ?? '');
     $moq   = ((int)($p['moq'] ?? 0)) . ' ' . (string)($p['unit'] ?? 'pc');
+    /* Lot: tek karar noktasi (vestra_pack_size). Alan yoksa 1 ve bu bir varsayim
+       degil -- katalogu yazan taraf alani yalnizca 1'den buyukken kaydediyor. */
+    $lot   = (string)vestra_pack_size($p);
     $variants = (!empty($p['variants']) && is_array($p['variants'])) ? $p['variants'] : [];
     if ($variants) {
         // One row per colourway → each shows its own photo + article/model code.
         foreach ($variants as $v) {
             $i++;
             $rows[] = ['cells' => [
-                (string)$i, $brand, $name,
+                (string)$i, $brand, $name, $cat,
                 (string)($v['color'] ?? ''),
                 vestra_export_code($p, $v),
                 (string)($v['model'] ?? ''),
-                $moq, '',
+                $sizes, $moq, $lot, '',
             ], 'image' => vestra_export_local((string)($v['image'] ?? ''))];
         }
     } else {
         $i++;
         $colours = implode(', ', array_filter((array)($p['colors'] ?? [])));
         $rows[] = ['cells' => [
-            (string)$i, $brand, $name,
+            (string)$i, $brand, $name, $cat,
             $colours,
             vestra_export_code($p),
             '',
-            $moq, '',
+            $sizes, $moq, $lot, '',
         ], 'image' => vestra_export_local(vestra_primary_image($p))];
     }
 }
 if (!$rows) {
-    $rows[] = ['cells' => ['', '', 'This selection is available on request — register free at vestrasales.com', '', '', '', '', ''], 'image' => ''];
+    $rows[] = ['cells' => ['', '', 'This selection is available on request — register free at vestrasales.com', '', '', '', '', '', '', '', ''], 'image' => ''];
 }
 // Footer note (no photo): drives registration; keeps trade pricing gated.
-$rows[] = ['cells' => ['Trade pricing & full line-sheets: register free at vestrasales.com — every seller KYC-verified, goods authenticity-verified on delivery, escrow-protected invoicing.', '', '', '', '', '', '', ''], 'image' => '', 'style' => 'note'];
+$rows[] = ['cells' => ['Trade pricing & full line-sheets: register free at vestrasales.com — every seller KYC-verified, goods authenticity-verified on delivery, escrow-protected invoicing.', '', '', '', '', '', '', '', '', '', ''], 'image' => '', 'style' => 'note'];
 /* This file carries no prices by design, so it has to say where they are. A recipient
    who was sent the catalogue and wants a number should not have to ask for it. */
-$rows[] = ['cells' => ['Prices, minimum order quantities and sizes for every article: https://vestrasales.com/price-list  ·  by brand: https://vestrasales.com/price-lists', '', '', '', '', '', '', ''], 'image' => '', 'style' => 'note'];
+$rows[] = ['cells' => ['MOQ is the minimum order for that article and LOT is how many pieces one carton holds -- an order runs in whole cartons. Wholesale prices for every article: https://vestrasales.com/price-list  ·  by brand: https://vestrasales.com/price-lists', '', '', '', '', '', '', '', '', '', ''], 'image' => '', 'style' => 'note'];
 
 $title = count($wanted) === 1 ? $wanted[0] : 'VESTRA Selection';
 
@@ -100,7 +112,7 @@ $title = count($wanted) === 1 ? $wanted[0] : 'VESTRA Selection';
 $cacheDir = vestra_data_dir().'/cache';           // data/ web'den kapali (data/.htaccess)
 $lj       = vestra_data_dir().'/listings.json';
 $key      = sha1(implode('|', [
-    'v1',
+    'v2',   /* sutunlar degisti (cat/sizes/lot): eski anahtarla uretilmis dosyalar bayat */
     strtolower(implode(',', $wanted)),
     (string)@filemtime($lj), (string)@filesize($lj),
     (string)@filemtime(__FILE__), (string)@filemtime(__DIR__.'/inc/xlsx.php'),
@@ -116,7 +128,9 @@ if ($fromCache) {
         'freeze' => true,
         'filter' => true,
         'zebra'  => true,
-        'widths' => [0 => 5, 1 => 15, 2 => 34, 3 => 16, 4 => 20, 5 => 18, 6 => 10, 7 => 16],
+        'numcols'=> [9 => 'int'],
+        'widths' => [0 => 5, 1 => 15, 2 => 34, 3 => 16, 4 => 16, 5 => 20, 6 => 18,
+                     7 => 30, 8 => 10, 9 => 6, 10 => 16],
     ]);
     if ($xlsx === '') { http_response_code(500); header('Content-Type: text/plain'); exit('catalog temporarily unavailable'); }
     if (!is_dir($cacheDir)) @mkdir($cacheDir, 0775, true);

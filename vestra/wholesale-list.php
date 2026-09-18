@@ -250,8 +250,17 @@ foreach ($byBrand as $brand => $rows) {
         foreach (array_slice($pdf->wrap((string)($p['name'] ?? ''), $NAME_W, 9), 0, 2) as $ln) {
             $pdf->text($X_TEXT, $ty, 9, $ln); $ty -= 10.5;
         }
-        $cat = trim((string)($p['cat'] ?? ''));
-        if ($cat !== '') { $pdf->text($X_TEXT, $ty, 7.5, $cat); $ty -= 10; }
+        /* KATEGORI + LOT ayni satirda. Karton adedi listede HIC yazmiyordu: yalniz
+           'Sizes' dizesinin kuyruguna gomulu bir "10/pack" parcasi olarak goruluyordu
+           ve o dize her ilanda ayni bicimde yazilmis degil -- yani lot bazi satirlarda
+           hic okunmuyordu. MOQ sutununun ALTINA yazilmadi, bilerek: o bandi beden
+           dizisinin ikinci/ucuncu satiri kullaniyor (sizeW sutun sinirina kadar
+           gidiyor) ve iki metin ust uste binerdi -- bu dosya tam o cakismayi bir kez
+           duzeltmis, notu yukarida duruyor. Ad sutunu ise genis ve bu satir kisa. */
+        $cat  = trim((string)($p['cat'] ?? ''));
+        $pack = vestra_pack_size($p);
+        $meta = trim($cat.($pack > 1 ? ($cat !== '' ? ' · ' : '').'lots of '.$pack : ''));
+        if ($meta !== '') { $pdf->text($X_TEXT, $ty, 7.5, $meta); $ty -= 10; }
 
         /* RENKLER. Listede hic yoktu: alici hangi renkleri alabilecegini
            yalnizca fotograflardan tahmin ediyordu, adlari hicbir yerde

@@ -1136,6 +1136,22 @@ function vestra_color_dots(array $colors, int $max=7, bool $withNames=false): st
   }
   return $out ? '<span class="cdots">'.$out.'</span>' : '';
 }
+/* LOT / PACK SIZE — how many pieces one carton of this article holds.
+   Tek karar noktasi. Bu olgu daha once dort yerde AYRI AYRI okunuyordu
+   (linesheet.php, product.php, order.php, offer.php) ve her biri kendi
+   varsayilanini yaziyordu; fiyat listelerinde ise HIC okunmuyordu -- lot
+   yalnizca 'sizes' dizesinin icine gomulu bir "10/pack" parcasi olarak
+   goruluyordu, yani siralanamiyor, suzulemiyor, toplanamiyordu.
+
+   YOKLUK BELIRSIZ DEGIL: admin.php:615 alani yalnizca 1'den buyukken YAZIYOR
+   (`if($step>1) ... else unset(...)`), yani alanin olmamasi "bilinmiyor" degil
+   "tek parca" demek. Bu yuzden 1 donmek bir tahmin degil, kaydin kendi ifadesi
+   -- KURAL 3'un yasakladigi sey bir olguyu UYDURMAK; burada kayit zaten
+   konusuyor. linesheet.php ayni okumayi bastan beri yapiyordu. */
+function vestra_pack_size(array $p): int {
+  $n = (int)($p['size_step'] ?? 0);
+  return $n > 1 ? $n : 1;
+}
 /* True for listings that use the per-colour carton picker (e.g. Lacoste/Ralph Lauren polos:
    min 4 colours, cartons of 8 or 10 per colour) instead of a plain colour checklist. */
 function vestra_is_colorqty_listing(array $p): bool {
