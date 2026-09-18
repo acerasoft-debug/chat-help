@@ -1989,11 +1989,17 @@ defa olmaz sonradan girileni kaldir"*).
 - **Bağlantı taraması önce yapıldı:** `diag-live` → `find_ref=crew-sweatshirt`
   tek eşleşme verdi (`listings.json`) — hiçbir sipariş, teklif, `order_statuses`
   ya da `offer_responses` kaydı bu ilana bağlı değil.
-- **Fiyat AYAKTA KALAN ilana yazıldı** (operatör, aynı oturum: *"56 ad. ten
-  itibaren 39,90 Eur, 104 ad. ten itibaren 35,00 eur normal fiyatı da 44,00 eur
-  yap"*, dakikalar sonra *"104 ad. Ten itibaren 36 eur yap"*). Düzeltme
-  **hiçbir şey yazılmadan önce** geldi, yani 35,00 canlıya hiç inmedi.
-  `tiers 56+ → €39,90 / 104+ → €36,00`, `sale_list 44,00`.
+- **Fiyat AYAKTA KALAN ilana yazıldı. Son hâli: `tiers 56+ → €39,90 /
+  104+ → €35,00`, `sale_list 44,00`.** İkinci kademe **üç kez** söylendi ve
+  ikisi de canlıya indi: (1) *"56 ad. ten itibaren 39,90 Eur, 104 ad. ten
+  itibaren 35,00 eur normal fiyatı da 44,00 eur yap"* → (2) dakikalar sonra
+  *"104 ad. Ten itibaren 36 eur yap"* — **yazıldı** (run `35294927217`) →
+  (3) *"35 eur yap 104 tane den itibaren"* — ilk rakama dönüş, **yazıldı**
+  (run `35295293231`). Önceki hâli: list 64,71 / tek kademe 56+ → 55,00.
+  *Ara rakam bir dakika içinde geri alınmadı; kayıtta yaklaşık 13 dakika
+  €36,00 durdu. Sipariş/teklif oluşmadı, yani kimseye yansımadı — ama
+  "geri alındı" ile "hiç yazılmadı" aynı şey değil ve not ikincisini
+  söylüyordu, düzeltildi.*
 - **`price` değil `sale_list`, ve fark ilanı bozacak kadar büyük:** `price`
   alanı **bütün kademeleri** 44'e düzleştirir (merdiven yok olurdu);
   `sale_list` yalnız üstü çizili "was" fiyatını yazar. Mevcut 64,71 zaten aynı
