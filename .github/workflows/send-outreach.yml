@@ -116,7 +116,7 @@ on:
         required: false
         default: "false"
       newcoll_letter:
-        description: "YENİ KOLEKSİYON KİPİNDE hangi metin gitsin: 'winter' (varsayılan, Winter 26/27) | 'shoes' (AYAKKABI + İÇ GİYİM + premium markalar; rakamlar CANLI ilan kaydından sayılır, metne gömülü değil). Damga aynı (last_newcollection_at): ikisi de o lead'in İKİNCİ mektubu."
+        description: "YENİ KOLEKSİYON KİPİNDE hangi metin gitsin: 'winter' (varsayılan) | 'shoes' (AYAKKABI + İÇ GİYİM + premium markalar) — ikisi de o leadin İKİNCİ mektubu, damga last_newcollection_at · 'wave3' = ÜÇÜNCÜ mektup (adıyla sayılan evler: Gallery Dept., Fred Perry, Gucci, DSQUARED2), KENDİ damgası last_wave3_at ve yaş kuralı İKİNCİ mektuba göre. Rakamlar her üçünde de CANLI ilan kaydından sayılır, metne gömülü değil. Tanınmayan değer işi DURDURUR."
         required: false
         default: "winter"
       member_spec:
@@ -358,8 +358,82 @@ jobs:
                premium markalar. RAKAMLAR CANLI KAYITTAN SAYILIR -- mektuba
                gomulu bir "335 ayakkabi", bolum degistigi gun sessizce yalan
                olur (KURAL 13'un journal dersi). */
-            $NC_LETTER = strtolower(trim((string)getenv('SEND_NC_LETTER'))) === 'shoes' ? 'shoes' : 'winter';
+            /* DORDUNCU PARTI / UCUNCU MEKTUP (operator, 18 Eyl 2026: "herkese
+               bastan 3. email gonder ... yeni urunler ile Galerry markasi ve
+               F.Perry , Gucci , Dsq2").
+               YENI GIRDI EKLENMEDI, BILEREK: workflow_dispatch en fazla 25 girdi
+               aliyor ve bu dosya tam 25'te. 26.si dosyayi HIC dispatch edilemez
+               yapardi (CLAUDE.md bu siniri diag-live.yml'de bir kez kaydetti).
+               O yuzden ucuncu mektup newcoll_letter'in ucuncu degeri: secim
+               makinesi ayni, degisen yalniz DAMGA ve YAS OLCUSU. */
+            $NC_LETTER = strtolower(trim((string)getenv('SEND_NC_LETTER')));
+            if ($NC_LETTER === '') $NC_LETTER = 'winter';
+            if (!in_array($NC_LETTER, ['winter','shoes','wave3'], true)) {
+                /* Taninmayan deger SESSIZCE winter'a dusmuyor. Duserse
+                   "wave3" yerine "wave-3" yazan bir kosu UCUNCU mektup
+                   sandigi sirada IKINCI mektubu gonderir ve yanlis damgayi
+                   tuketir -- geri alinamaz. */
+                fwrite(STDERR, "newcoll_letter gecersiz: {$NC_LETTER} (winter|shoes|wave3)\n"); exit(1);
+            }
+            /* UCUNCU MEKTUP KENDI SIRASINI TASIR. winter ve shoes AYNI sirayi
+               (ikinci mektup) dolduruyor, o yuzden damgalari ortak; wave3 ayri
+               bir temas, o yuzden ayri damga. Yas olcusu de kayiyor: ucuncu
+               mektup icin "ne kadar zaman gecti" sorusunun cevabi IKINCI
+               mektubun tarihi, birincininki degil -- ilk mektuptan olcseydik
+               dun ikinci mektubu almis bir lead bugun ucuncuyu de alirdi. */
+            $IS_WAVE3 = ($NC_LETTER === 'wave3');
+            $NC_STAMP = $IS_WAVE3 ? 'last_wave3_at'          : 'last_newcollection_at';
+            $NC_PREV  = $IS_WAVE3 ? 'last_newcollection_at'  : 'last_contacted_at';
+            /* Mektupta ADIYLA sayilacak evler. Operatorun bu turda yazdigi dort
+               ad; girdi olarak alinmiyor (25 girdi siniri) ve metne de gomulu
+               degil -- adetleri asagidaki kapanis CANLI ilan kaydindan sayiyor.
+               Yazim KATALOGUN kendi yazimi olmak zorunda degil: eslesme harf
+               duyarsiz TAM esitlik, ve mektuba katalogun yazimi basiliyor. */
+            $W3_WANT = ['Gallery Dept.', 'Fred Perry', 'Gucci', 'DSQUARED2'];
+            $w3facts = function () use ($W3_WANT): array {
+                $cnt = [];
+                foreach (vestra_products() as $wp) {
+                    $wb = trim((string)($wp['brand'] ?? ''));
+                    if ($wb !== '') $cnt[$wb] = ($cnt[$wb] ?? 0) + 1;
+                }
+                $houses = []; $missing = [];
+                foreach ($W3_WANT as $want) {
+                    $hit = null;
+                    foreach ($cnt as $b => $n) {
+                        /* TAM esitlik, alt dize DEGIL (mango/zara dersi). Alt
+                           dize olsaydi yarin gelecek bir "Gucci Kids" ya da
+                           "Fred Perry Kids" ayni satira eklenir ve mektup
+                           stokta olmayan bir seyi sayardi. */
+                        if (strcasecmp(trim((string)$b), trim($want)) === 0) { $hit = [(string)$b, (int)$n]; break; }
+                    }
+                    if ($hit === null || $hit[1] < 1) { $missing[] = $want; continue; }
+                    $houses[] = ['name' => $hit[0], 'n' => $hit[1]];
+                }
+                foreach ($houses as $h) echo "EV: {$h['name']} -> {$h['n']} artikel\n";
+                if ($missing) {
+                    /* Operatorun ADIYLA istedigi bir ev eslesmiyorsa is DURUR.
+                       Sessizce listeden dusurmek, operatorun gonderdigini
+                       sandigindan BASKA bir mektup gondermek olurdu -- ve bu
+                       depoda sessiz eleme, yanlis gonderimden pahali sayiliyor.
+                       "Listeden secin" diyen bir hata, secilecek listeyi de
+                       vermeli: yakin adaylar da basiliyor. */
+                    foreach ($missing as $miss) {
+                        echo "*** KATALOGDA ESLESMEYEN EV: {$miss}\n";
+                        $tok = mb_strtolower(preg_split('/[\s.]+/', trim($miss))[0] ?? '');
+                        if ($tok !== '' && mb_strlen($tok) >= 3) {
+                            foreach ($cnt as $b => $n) {
+                                if (mb_strpos(mb_strtolower((string)$b), $tok) !== false) echo "      yakin aday: {$b} ({$n})\n";
+                            }
+                        }
+                    }
+                    fwrite(STDERR, "Adiyla istenen ".count($missing)." ev katalogda yok -- mektup bu haliyle gonderilmez.\n");
+                    exit(1);
+                }
+                if (!$houses) { fwrite(STDERR, "hicbir ev bulunamadi -- bu duyuru gonderilmez\n"); exit(1); }
+                return ['houses' => $houses];
+            };
             $NC_FACTS  = [];
+            if ($IS_NEWCOLL && $IS_WAVE3) $NC_FACTS = $w3facts();
             if ($IS_NEWCOLL && $NC_LETTER === 'shoes') {
                 $ncShoes = 0; $ncUnder = 0; $ncBrand = [];
                 foreach (vestra_products() as $ncP) {
@@ -435,7 +509,10 @@ jobs:
             $ncSeenDom = []; $ncTooNew = 0;
             if ($IS_NEWCOLL) {
               foreach ($leads as $l0) {
-                if (trim((string)($l0['last_newcollection_at'] ?? '')) === '') continue;
+                /* BU PARTININ damgasi ($NC_STAMP): wave3 kosusunda ikinci
+                   mektubun damgasina bakmak, ucuncu mektubu hic almamis
+                   firmalarin tamamini "almis" sayip havuzu sifirlardi. */
+                if (trim((string)($l0[$NC_STAMP] ?? '')) === '') continue;
                 $d0 = strtolower((string)substr((string)strrchr((string)($l0['email'] ?? ''), '@'), 1));
                 if ($d0 !== '') $ncSeenDom[$d0] = true;
               }
@@ -491,10 +568,19 @@ jobs:
                 $mspec[strtolower(trim($k))] = trim($v);
               }
               $MLETTER = strtolower((string)($mspec['letter'] ?? '')) ?: 'winter';
-              if (!in_array($MLETTER, ['winter','fp_offer'], true)) {
-                fwrite(STDERR, "member_letter gecersiz: {$MLETTER} (winter|fp_offer)\n"); exit(1);
+              if (!in_array($MLETTER, ['winter','fp_offer','wave3'], true)) {
+                fwrite(STDERR, "member_letter gecersiz: {$MLETTER} (winter|fp_offer|wave3)\n"); exit(1);
               }
-              $STAMP    = $MLETTER === 'fp_offer' ? 'fp_offer_at' : 'newcoll_2627_at';
+              $MSTAMPS  = ['winter' => 'newcoll_2627_at', 'fp_offer' => 'fp_offer_at', 'wave3' => 'wave3_at'];
+              $STAMP    = $MSTAMPS[$MLETTER];
+              /* UCUNCU MEKTUBUN UYE SURUMU. Lead metni uyeye iki yerden yanlis
+                 ("size iki kez yazmistik" + "kayit ucretsiz"), o yuzden ayni
+                 sablonun $member=true dali kullaniliyor -- ayri bir sablon,
+                 ev listesini ve konu satirini ikinci kez yazmak olurdu.
+                 Evler burada da CANLI kayittan sayiliyor: uyeye giden rakam ile
+                 leade giden rakam ayni kaynaktan gelmezse ayni gun iki farkli
+                 sayi soylemis oluruz. */
+              $M_FACTS = ($MLETTER === 'wave3') ? $w3facts() : [];
               $COPY_OPS = strtolower((string)($mspec['copy'] ?? '')) === 'true';
 
               /* Hesap elemesi ADRESLE degil: girdi kosu basliginda kalici ve
@@ -566,7 +652,7 @@ jobs:
               }
 
               $accts = auth_accounts();
-              $cand = []; $skipped = 0; $skipAccHit = 0; $gateOpen = 0; $gateShut = 0; $dupHit = 0; $seenMail = [];
+              $cand = []; $skipped = 0; $skipAccHit = 0; $gateOpen = 0; $gateShut = 0; $dupHit = 0; $tooNewHit = 0; $seenMail = [];
               foreach ($accts as $i => $a) {
                 if (($a['type'] ?? '') !== 'buyer') continue;                    // musteri = alici; saticilara stok duyurusu anlamsiz
                 $st = (string)($a['status'] ?? '');
@@ -574,6 +660,26 @@ jobs:
                 $em = strtolower(trim((string)($a['email'] ?? '')));
                 if (!filter_var($em, FILTER_VALIDATE_EMAIL)) continue;
                 if (!empty($a[$STAMP])) continue;                                // bu metni zaten aldi
+                /* AYNI HESABA GUNLER ICINDE IKINCI KAMPANYA MEKTUBU GITMEZ.
+                   17 Eyl 2026'da bu ELLE yapildi: Angebot alan 7 hesap ayni
+                   gunun Winter partisinden tek tek cikarildi (skip=...). Kural
+                   hatirlanmaya birakildigi surece bir sonraki parti onu
+                   kaciriyor -- lead tarafinda ayni sartin kodda olmasinin
+                   sebebi de buydu. Olcu ayni knob: newcoll_min_days (0 = kapali).
+                   BASKA kampanya damgalarina bakiyor, kendi damgasina degil:
+                   kendi damgasi zaten yukarida eliyor. */
+                if ($NC_MIN_DAYS > 0) {
+                  $recent = 0;
+                  foreach ($MSTAMPS as $ms) {
+                    if ($ms === $STAMP) continue;
+                    $ts = strtotime((string)($a[$ms] ?? ''));
+                    if ($ts && (time() - $ts) < $NC_MIN_DAYS * 86400) { $recent = $ts; break; }
+                  }
+                  if ($recent) {
+                    echo "  - ATLANDI (son {$NC_MIN_DAYS} gunde baska bir kampanya mektubu aldi: ".date('Y-m-d', $recent)."): ".$maskMail($em)."\n";
+                    $tooNewHit++; continue;
+                  }
+                }
                 if ($isSkipped($a)) { echo "  - ATLANDI (skip_accounts): ".(($a['company'] ?? '') ?: '?')."\n"; $skipAccHit++; continue; }
                 /* AYNI ADRES IKI HESAPTA olabilir ve oluyor: kuru kosuda
                    "M&F Resell" iki kez cikti. Damga HESABIN uzerinde, yani
@@ -591,13 +697,20 @@ jobs:
                 $cand[] = $i;
                 if (count($cand) >= $COUNT) break;
               }
-              $MODE_LABEL = ($MLETTER === 'fp_offer' ? 'ANGEBOT' : 'YENI KOLEKSIYON') . ' — KAYITLI MUSTERILER'
+              $M_LABEL = ['fp_offer' => 'ANGEBOT', 'wave3' => 'UCUNCU MEKTUP — adiyla sayilan evler', 'winter' => 'YENI KOLEKSIYON'];
+              $MODE_LABEL = ($M_LABEL[$MLETTER] ?? $MLETTER) . ' — KAYITLI MUSTERILER'
                           . ($COPY_OPS ? ' [YALNIZ OPERATOR KOPYASI]' : '');
+              if ($MLETTER === 'wave3') {
+                $w3sum = [];
+                foreach (($M_FACTS['houses'] ?? []) as $h) $w3sum[] = $h['name'].' '.$h['n'];
+                echo "MEKTUPTAKI EVLER: ".(implode(' | ', $w3sum) ?: '(YOK)')."\n";
+              }
               echo $DRY ? "== DRY-RUN ({$MODE_LABEL}) — gonderim YOK ==\n" : "== GERCEK GONDERIM — {$MODE_LABEL} ==\n";
               echo "metin  : {$MLETTER} | damga: {$STAMP}\n";
               echo "uygun secilen: ".count($cand)." / hedef: {$COUNT}"
                  . ($skipped ? " (kural geregi atlanan: {$skipped})" : '')
-                 . ($skipAccHit ? " (skip_accounts ile atlanan: {$skipAccHit})" : '')."\n";
+                 . ($skipAccHit ? " (skip_accounts ile atlanan: {$skipAccHit})" : '')
+                 . ($tooNewHit ? " (son {$NC_MIN_DAYS} gunde baska kampanya aldigi icin atlanan: {$tooNewHit})" : '')."\n";
               /* Fiyat kapisi ALICI BASINA. Sayim burada basiliyor cunku
                  "kac kisiye rakamli mektup gidiyor" gonderimden ONCE okunmasi
                  gereken bir sey: kapisi kapali bir aliciya rakam yazmak,
@@ -614,7 +727,7 @@ jobs:
                 echo "\n---- OZET (liste uzun, get_job_logs yalniz kuyrugu gosteriyor) ----\n";
                 echo "metin        : {$MLETTER} | damga: {$STAMP}\n";
                 echo "SECILEN      : ".count($cand)." / hedef {$COUNT}\n";
-                echo "elenen       : kural {$skipped} | skip_accounts {$skipAccHit} | ayni adres {$dupHit}\n";
+                echo "elenen       : kural {$skipped} | skip_accounts {$skipAccHit} | ayni adres {$dupHit} | son {$NC_MIN_DAYS} gunde baska kampanya {$tooNewHit}\n";
                 echo "fiyat kapisi : ACIK {$gateOpen} (rakamli) | KAPALI {$gateShut} (rakamsiz)\n";
                 echo "dil dagilimi : "; foreach ($lc as $l => $n) echo "{$l}={$n}  "; echo "\n";
                 echo "gercek gonderim koşu basina 50'ye kirpilir (".(int)ceil(count($cand)/50)." kosu gerekir)\n";
@@ -637,11 +750,14 @@ jobs:
                  kopyasi ayni cagridan cikiyor. Iki ayri kurulum, bu depoda
                  "operator bir sey gorur, alici baskasini alir" diye zaten bir
                  kez kayitli (KURAL 5d). */
-              $buildLetter = function (array $a) use ($MLETTER, $accLang, $offerBlocks, $offerMore): array {
+              $buildLetter = function (array $a) use ($MLETTER, $accLang, $offerBlocks, $offerMore, $M_FACTS): array {
                 $lang = $accLang($a);
                 $who  = (string)(($a['company'] ?? '') ?: ($a['name'] ?? ''));
                 if ($MLETTER === 'fp_offer') {
                   return vestra_tpl_listing_offer($lang, $who, $offerBlocks, auth_prices_unlocked($a), $offerMore);
+                }
+                if ($MLETTER === 'wave3') {
+                  return vestra_tpl_wave3_brands($lang, $who, $M_FACTS, true);   // true = uye surumu
                 }
                 return vestra_tpl_new_collection_member($lang, $who);
               };
@@ -679,10 +795,15 @@ jobs:
                      mektubunu tuketiyor. Angebot'u oraya yazmak, bu musteriye
                      hic gonderilmemis bir duyuruyu gonderilmis gibi isaretler
                      ve lead kipi onu bir daha hic secmezdi. */
-                  if ($MLETTER === 'winter' && isset($idx2[$em]) && trim((string)($leads2[$idx2[$em]]['last_newcollection_at'] ?? '')) === '') {
-                    $leads2[$idx2[$em]]['last_newcollection_at'] = date('c');
+                  /* Angebot'un lead tarafinda karsiligi YOK, o yuzden haritada
+                     da yok: yazsaydik hic gonderilmemis bir duyuruyu
+                     gonderilmis gibi isaretlerdik. */
+                  $XSTAMP = ['winter' => 'last_newcollection_at', 'wave3' => 'last_wave3_at'][$MLETTER] ?? '';
+                  if ($XSTAMP !== '' && isset($idx2[$em]) && trim((string)($leads2[$idx2[$em]][$XSTAMP] ?? '')) === '') {
+                    $leads2[$idx2[$em]][$XSTAMP] = date('c');
                     $n2 = trim((string)($leads2[$idx2[$em]]['notes'] ?? ''));
-                    $leads2[$idx2[$em]]['notes'] = trim($n2.($n2!==''?' · ':'').'winter2627-member('.$lang.') '.date('Y-m-d'));
+                    $tag2 = ($MLETTER === 'wave3' ? 'wave3' : 'winter2627').'-member';
+                    $leads2[$idx2[$em]]['notes'] = trim($n2.($n2!==''?' · ':'').$tag2.'('.$lang.') '.date('Y-m-d'));
                     $leadsTouched = true;
                   }
                   echo "  + GONDERILDI: {$who} <".$maskMail((string)$a['email'])."> | dil={$lang}\n";
@@ -771,14 +892,27 @@ jobs:
                   if ($ONLY) echo "  - ATLANDI (ilk mektup hic gitmemis): ".$maskMail($email)."\n";
                   continue;
                 }
-                if (trim((string)($l['last_newcollection_at'] ?? '')) !== '') {   // bu duyuruyu zaten aldi
+                /* UCUNCU MEKTUP IKI damga birden ariyor. Mektubun ilk cumlesi
+                   "size iki kez yazmistik" diyor; yalnizca ilk mektubu almis
+                   birine gitse mektup kendi acilisini yalanlardi. Ikinci
+                   mektubun damgasi UYE dalindan da dusebiliyor (asagida capraz
+                   damga), yani "ikinci mektubu aldi" burada gercekten tek
+                   kaynaktan okunuyor. */
+                if ($IS_WAVE3 && trim((string)($l[$NC_PREV] ?? '')) === '') {
+                  if ($ONLY || $DRY) echo "  - ATLANDI (ikinci mektup hic gitmemis): ".$maskMail($email)."\n";
+                  continue;
+                }
+                if (trim((string)($l[$NC_STAMP] ?? '')) !== '') {   // bu duyuruyu zaten aldi
                   if ($ONLY || $DRY) echo "  - ATLANDI (duyuruyu zaten almis): ".$maskMail($email)."\n";
                   continue;
                 }
                 if ($NC_MIN_DAYS > 0) {
-                  $ncTs = strtotime((string)$l['last_contacted_at']);
+                  /* Yas BIR ONCEKI mektuba gore ($NC_PREV): wave3'te o, ikinci
+                     mektubun tarihi. Ilk mektuptan olcseydik dun ikinci
+                     mektubu almis bir lead bugun ucuncuyu de alirdi. */
+                  $ncTs = strtotime((string)($l[$NC_PREV] ?? ''));
                   if ($ncTs && (time() - $ncTs) < $NC_MIN_DAYS * 86400) {
-                    if ($ONLY || $DRY) echo "  - ATLANDI (ilk mektup {$NC_MIN_DAYS} gunden yeni): ".$maskMail($email)."\n";
+                    if ($ONLY || $DRY) echo "  - ATLANDI (onceki mektup {$NC_MIN_DAYS} gunden yeni): ".$maskMail($email)."\n";
                     $ncTooNew++; continue;
                   }
                 }
@@ -891,10 +1025,13 @@ jobs:
                 if (!isset($onlyFound[$oe])) echo "  ! LEAD LISTESINDE YOK: {$oe}\n";
               }
             }
-            if ($IS_NEWCOLL && $ncTooNew) echo "YAS: ilk mektubun uzerinden {$NC_MIN_DAYS} gun gecmedigi icin elenen: {$ncTooNew}\n";
+            if ($IS_NEWCOLL && $ncTooNew) echo "YAS: onceki mektubun ({$NC_PREV}) uzerinden {$NC_MIN_DAYS} gun gecmedigi icin elenen: {$ncTooNew}\n";
 
+            $NC_LABEL = ['winter' => 'YENI KOLEKSIYON — Winter 26/27',
+                         'shoes'  => 'IKINCI MEKTUP — ayakkabi + ic giyim',
+                         'wave3'  => 'UCUNCU MEKTUP — adiyla sayilan evler'];
             $MODE_LABEL = $IS_FOLLOWUP ? 'TAKIP MEKTUBU'
-                          : ($IS_NEWCOLL ? ($NC_LETTER === 'shoes' ? 'IKINCI MEKTUP — ayakkabi + ic giyim' : 'YENI KOLEKSIYON — Winter 26/27')
+                          : ($IS_NEWCOLL ? ($NC_LABEL[$NC_LETTER] ?? $NC_LETTER)
                                          : 'Les Garage de Paris');
             if ($sellerSkipped) echo "SATICI: kendi satici hesabimiz oldugu icin elenen: {$sellerSkipped}\n";
             /* Mektubun ICINDEKI rakamlar OZETTE de yazilir. Ilk surumde yalniz
@@ -905,6 +1042,12 @@ jobs:
             if ($IS_NEWCOLL && $NC_LETTER === 'shoes') {
                 echo "MEKTUP: ayakkabi ".(int)($NC_FACTS['shoes'] ?? 0)." artikel | ic giyim ".(int)($NC_FACTS['underwear'] ?? 0)." artikel\n";
                 echo "MEKTUPTAKI MARKALAR: ".((string)($NC_FACTS['brands'] ?? '') !== '' ? $NC_FACTS['brands'] : '(YOK)')."\n";
+            }
+            if ($IS_NEWCOLL && $IS_WAVE3) {
+                $w3sum = [];
+                foreach (($NC_FACTS['houses'] ?? []) as $h) $w3sum[] = $h['name'].' '.$h['n'];
+                echo "MEKTUPTAKI EVLER: ".(implode(' | ', $w3sum) ?: '(YOK)')."\n";
+                echo "damga: {$NC_STAMP} | yas olcusu: {$NC_PREV}\n";
             }
             echo $DRY ? "== DRY-RUN ({$MODE_LABEL}) — gonderim YOK, sadece secim listesi ==\n"
                       : "== GERCEK GONDERIM — {$MODE_LABEL} ==\n";
@@ -959,9 +1102,9 @@ jobs:
               if ($IS_FOLLOWUP) {
                 list($subject, $body, $opts) = vestra_tpl_lead_followup($lang, $company);
               } elseif ($IS_NEWCOLL) {
-                list($subject, $body, $opts) = $NC_LETTER === 'shoes'
-                  ? vestra_tpl_new_collection_shoes($lang, $company, $NC_FACTS)
-                  : vestra_tpl_new_collection($lang, $company);
+                if ($IS_WAVE3)                    list($subject, $body, $opts) = vestra_tpl_wave3_brands($lang, $company, $NC_FACTS);
+                elseif ($NC_LETTER === 'shoes')   list($subject, $body, $opts) = vestra_tpl_new_collection_shoes($lang, $company, $NC_FACTS);
+                else                              list($subject, $body, $opts) = vestra_tpl_new_collection($lang, $company);
               } else {
                 list($subject, $body, $opts) = vestra_campaign_preview($company, $lang, '', $POOLS);
               }
@@ -988,10 +1131,14 @@ jobs:
                   } elseif ($IS_NEWCOLL) {
                     /* last_contacted_at'e DOKUNMUYORUZ: o damga "kampanyayi aldi mi"
                        sorusunun cevabi ve normal secim ona bakiyor. Duyuru kendi
-                       damgasini tasiyor, boylece ayni kisiye iki kez gitmiyor. */
-                    $leads[$i]['last_newcollection_at'] = date('c');
+                       damgasini tasiyor, boylece ayni kisiye iki kez gitmiyor.
+                       wave3 kendi damgasini ($NC_STAMP) yaziyor, ikinci mektubun
+                       damgasina DOKUNMUYOR: yazsaydi bir sonraki ikinci-mektup
+                       partisi bu leadi "almis" sanirdi. */
+                    $leads[$i][$NC_STAMP] = date('c');
                     $note = trim((string)($leads[$i]['notes'] ?? ''));
-                    $leads[$i]['notes'] = trim($note . ($note !== '' ? ' · ' : '') . 'winter2627(' . $lang . ') ' . date('Y-m-d'));
+                    $tag  = $IS_WAVE3 ? 'wave3' : 'winter2627';
+                    $leads[$i]['notes'] = trim($note . ($note !== '' ? ' · ' : '') . $tag . '(' . $lang . ') ' . date('Y-m-d'));
                   } else {
                     if (($leads[$i]['status'] ?? 'new') === 'new') $leads[$i]['status'] = 'contacted';
                     $leads[$i]['last_contacted_at'] = date('c');
