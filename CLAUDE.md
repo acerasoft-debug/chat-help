@@ -2018,6 +2018,74 @@ defa olmaz sonradan girileni kaldir"*).
   verildiğinde yalnız ham tarama basıldı. İki ölçüm iki koşu istedi — sondayı
   tek koşuda yığmak, sorulan sorulardan birini sessizce cevapsız bırakıyor.
 
+**Lot 8'li → 10'lu (1-3-3-2-1): operatörün İSTEMEDİĞİ ama ZORUNLU olan ikinci
+değişiklik ASGARİ ALIM** (operatör, 18 Eyl 2026: *"sitede kontrol et fiyatlar
+dogru gözüküyor mu ayrıca bir Lot u 10 ad. Yap . 1 3 3 2 1"* —
+`lac-crew-sweatshirt`, aynı gün fiyatı yazılan ilan).
+- **Fiyat kontrolü SUNUCUDAN, ve sebebi kayıtlı bir tuzak:** bu ortamdan canlı
+  siteye çıkılamıyor, üstelik ürün sayfasının fiyat bloğu **fiyat kapısının
+  arkasında** — girişsiz çekmek kapıyı ölçerdi, fiyatı değil (KURAL 4b/21d'nin
+  aynı tuzağı, bu depoda iki kez yaşandı). Geçerli ölçüm sunucunun kendi kaydı
+  (`inspect-products`, `brand=Lacoste` + `price_list`): `fiyat(list)=44 EUR`,
+  `tiers 56+ → €39,90 | 104+ → €35`, toptan liste satırı
+  `SH9608 · 56 pc · 44.00 · 35.00 · satista`. Üç rakam da yerinde ve ilan
+  **tek** — 12 satırlık Lacoste dökümünde SH9608 bir kez geçiyor, yani dünkü
+  tekrar kaldırma da geri okundu.
+- **Operatör MOQ'dan söz etmedi; 10'luk karton onu ZORUNLU değiştiriyor.**
+  `set_product.php` iki yerde **hata** veriyor: `moq % size_step !== 0`
+  (56 % 10 = 6) ve `tiers[0].min !== moq`. Gerekçe ilanın kendisinde: sepet
+  miktarı adımın katına **yukarı** yuvarlıyor, yani 10'luk kartonda "min 56"
+  sayfada 56, kasada 60 demek — ilan edilen minimum hiç alınamaz. 104 de
+  oturmuyordu: alıcı €35'e ancak **110**'da ulaşırdı.
+- **50/100 TAHMİN DEĞİL, aynı satıcının kendi 10'luk standardı** — sunucudan
+  ölçüldü (`inspect-products`, `brand=Fred Perry`), CLAUDE.md'den
+  hatırlanmadı. Aynı hesabın (`7ab30f26afedd840` / GARAGE LE PARIS) bugün iki
+  adet 10'luk ilanı var ve ikisi de aynı tabanı kullanıyor:
+  `fp-m3600-polo` (adım 10, moq 50, kademe 50/100/200) ve `fp-m7535-sweat`
+  (adım 10, moq 50, **birebir aynı 1-3-3-2-1 serisi**, `min_colors=4`).
+  İkincisi yapısal olarak kardeş: aynı satıcı, aynı kategori
+  (*Hoodies & Sweatshirts*), aynı seri, aynı renk asgarisi. 60/110 da tam kat
+  olurdu ama hiçbir kardeşi öyle değil ve 104'e daha uzak. Bu, bu dosyada
+  kayıtlı M3600 kararının (*"en az alimlar da ayni matiga göre ciksin"*,
+  56→50, 96→100, 192→200) birebir uygulanması.
+- **Fiyatlar değişmedi** (39,90 / 35,00) ve `sale_list 44,00` da. Değişen
+  yalnız basamakların **yeri**: 56→50, 104→100 — ikisi de alıcının **lehine**
+  (aynı fiyata dört-altı parça önce ulaşıyor), yani `price_audit`'in *"alıcı
+  aleyhine"* sınıfına girmiyor.
+- **`desc` AYNI yazmada değişti ve SONDA BURADA YARDIM EDEMEZDİ.** Karton
+  adedi ve asgari alım bu ilanda **iki** yere yazılı (`sizes` + `desc`), ama
+  `fit_scan`'in çelişki sayacı `desc`'te `S×1 · M×2 …` biçimli bir **seri**
+  arıyor; buradaki metin *"cartons of 8 … Minimum order 56 pc"* diyor, yani
+  `$runOf('')` boş dönüyor ve ilan **hiçbir zaman** çelişki listesine girmez.
+  Balenciaga (9 Eyl) ve Burberry 8049455 (17 Eyl) aynı dersi iki kez verdi;
+  ikisinde de sonda görebiliyordu, burada göremezdi. *Aynı olgunun iki yerde
+  yazılı olması, onu gösteren bir sondanın VAR olduğu anlamına gelmiyor.*
+- **Metin şablondan yeniden yazılmadı:** kuru koşunun bastığı **canlı**
+  dizgeden kuruldu ve yalnız iki rakam değişti. Eski metni doğru tahmin
+  etmiştim ama kanıt tahmin değil **kuru koşu** oldu (Burberry'nin aynı gün
+  verdiği ders).
+- **Üçüncü bir yer var mı diye ARANDI:** bu ilana bugüne kadar yazan her dosya
+  tarandı (ithalat partisi + iki fiyat düzeltmesi + foto/durum düzeltmeleri) —
+  `specs` bu ilana **hiç yazılmamış**, yani olgu gerçekten iki alanda.
+- **Paket eki biçimi korundu (`10/pack`), Fred Perry'nin *"Cartons of 10 · … ·
+  min 50 pc"* biçimi DEĞİL.** İki sebep: `vestra_sizes_label()` yalnız
+  `<rakam>/pack` kalıbını çeviriyor (öteki biçim 9 dilde ham İngilizce
+  kalırdı), ve 11 Lacoste kardeşinin hepsi `… · N/pack` yazıyor. M3600
+  partisinde de her ilan kendi son ekini korumuştu — istenen yalnızca
+  dağılımdı.
+- **`min_colors` 4 kaldı ve ulaşılabilir:** 50/10 = 5 karton ≥ 4 renk (M3600'de
+  yapılan aynı hesap). Beden seçici kapalı kalmaya devam ediyor ve doğrusu bu:
+  `vestra_sizes_selectable()` açık dağılım ya da paket eki gören ilanda seçim
+  açmıyor — karışım ilanın kendisinde yazılı.
+- **Geri okuma sunucudan** (yazma mesajından değil), `KAYDEDILDI — 5 alan`
+  sonrası: `moq=50 pc`, `size_step=10`,
+  `sizes=S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack`,
+  `tiers 50+ → €39,9 | 100+ → €35`, `fiyat(list)=44 EUR`, `min_colors=4`,
+  beden seçici **YOK**. Doğrulama alanın değerine değil **sepetin TAHSİL
+  ETTİĞİNE** bakıyor (`price_audit`): 894 üründe *alıcı aleyhine* tek satır var
+  ve o hâlâ eski demo tohumu `lac-pique-polo`, bu sweatshirt değil. Yedek:
+  `listings.json.bak-20260918-014550`.
+
 **KURAL 14 — Talep panosu ("Anfragen"): ÖRNEK ile GERÇEK talep karışmaz**
 (operatör, 8 Eyl 2026: *"sitenin anfragen bölümüne yeni anfragen lar ekle"*).
 - `requests.php` iki liste basıyor: `requests.csv`'den gelen **gerçek** alıcı
