@@ -662,16 +662,31 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
  * okuduğu **aynı** fonksiyondan (`vestra_order_lines`) geliyor, ikinci bir
  * ayrıştırıcıdan değil.
  *
- * FATURASI KESİLMİŞ SİPARİŞTE YAZMAZ: belge alıcının elinde ve numara yanmış.
- * Doğru yol KURAL 5f (aynı numarayla yeniden çizim), sessizce kaydı değiştirmek
- * değil — kayıt ile belge ayrışırsa farkı ancak alıcı görür.
+ * FATURASI KESİLMİŞ SİPARİŞTE VARSAYILAN OLARAK YAZMAZ: belge alıcının elinde
+ * ve numara yanmış. Ama yazmanın YASAK olması ile DÜZELTMENİN yasak olması ayrı
+ * şeyler — KURAL 5f'in çaresi zaten "aynı numarayla yeniden çizim" ve navlunu
+ * düzeltmeden yeniden çizmenin anlamı yok. Bu yüzden `$allowInvoiced` AÇIK bir
+ * opt-in (`force=1` deseninin aynısı, sessizce atlanan bir kontrol değil) ve
+ * dönüşte `must_redraft` var: kaydı değiştiren, belgeyi de düzeltmek zorunda.
+ * Kardeşleri `vestra_order_set_colours()` ve `vestra_order_set_discount()` aynı
+ * deseni taşıyor; üçüncü bir kural yazmak, aynı soruyu üç farklı cevapla
+ * bırakırdı.
  *
- * Döner: ['ok'=>true, 'goods'=>…, 'shipping'=>…, 'total'=>…] ya da
- * ['error'=>gerekçe]. Yazma GERİ OKUNARAK doğrulanıyor (KURAL 5c'nin
- * `billing_saved` dersi: yazılamayan bir değeri "kaydettim" diye raporlamak,
- * operatöre olmayan bir kaydı doğru sandırır).
+ * ÜCRET (escrow koruma ücreti) KAYDIN KENDİSİNDEN okunup KORUNUYOR, orandan
+ * yeniden hesaplanmıyor. Eski sürüm `total = mal - indirim + navlun` yazıyordu,
+ * yani ücret taşıyan bir siparişte navlun düzeltmesi ücreti SESSİZCE düşürürdü
+ * (banka havaleli siparişlerde ücret 0 olduğu için bugüne kadar görünmedi —
+ * "görünmeyen" ile "olmayan" aynı şey değil). Formül indirim yazıcısıyla
+ * birebir aynı; iki yazıcının aynı toplamı iki türlü kurması, bu depoda
+ * defalarca kaydedilen ayrışmanın ta kendisi olurdu.
+ *
+ * Döner: ['ok'=>true, 'goods'=>…, 'shipping'=>…, 'fee'=>…, 'total'=>…,
+ * 'must_redraft'=>bool, 'invoiced'=>[no…]] ya da ['error'=>gerekçe]. Yazma GERİ
+ * OKUNARAK doğrulanıyor (KURAL 5c'nin `billing_saved` dersi: yazılamayan bir
+ * değeri "kaydettim" diye raporlamak, operatöre olmayan bir kaydı doğru
+ * sandırır).
  */
-function vestra_order_set_shipping(string $ref, float $amount, string $label = ''): array {
+function vestra_order_set_shipping(string $ref, float $amount, string $label = '', bool $allowInvoiced = false): array {
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
     if ($ref === '') return ['error' => 'ref yok'];
     if (!is_finite($amount) || $amount < 0) return ['error' => 'navlun negatif olamaz'];
@@ -679,9 +694,11 @@ function vestra_order_set_shipping(string $ref, float $amount, string $label = '
     $label  = trim($label);
 
     require_once __DIR__.'/invoice.php';
-    if (vestra_invoices_for_ref($ref)) {
-        return ['error' => 'bu siparişin faturası zaten kesilmiş — navlun artık belgeyi değiştirmez '
-                         . '(KURAL 5f: aynı numarayla yeniden çizim ya da iptal + yeniden kesim)'];
+    $invoiced = vestra_invoices_for_ref($ref);
+    if ($invoiced && !$allowInvoiced) {
+        return ['error' => 'bu siparişin faturası zaten kesilmiş — navlun artık belgeyi değiştirmez. '
+                         . 'Yazmak için allow_invoiced opt-in, SONRA aynı numarayla yeniden çizim (KURAL 5f).',
+                'invoiced' => array_map(fn($i) => (string)($i['no'] ?? ''), $invoiced)];
     }
 
     $file = vestra_data_dir().'/orders.csv';
@@ -712,7 +729,12 @@ function vestra_order_set_shipping(string $ref, float $amount, string $label = '
     foreach ($ld['lines'] as $l) $goods += (float)($l['line'] ?? 0);
     $goods    = round($goods, 2);
     $discount = round((float)($assoc['discount'] ?? 0), 2);
-    $total    = round(max(0.0, $goods - $discount) + $amount, 2);
+    /* Ücret ORANDAN değil kaydın kendisinden: bkz. yukarıdaki not. */
+    $oldShip  = round((float)($assoc['shipping'] ?? 0), 2);
+    $oldTot   = round((float)($assoc['total'] ?? 0), 2);
+    $fee      = round($oldTot - (max(0.0, $goods - $discount) + $oldShip), 2);
+    if ($fee < 0) $fee = 0.0;
+    $total    = round(max(0.0, $goods - $discount) + $amount + $fee, 2);
 
     $rows[$hit][$idx['shipping']]       = number_format($amount, 2, '.', '');
     $rows[$hit][$idx['shipping_label']] = $label;
@@ -744,7 +766,9 @@ function vestra_order_set_shipping(string $ref, float $amount, string $label = '
     vestra_write_json('order_statuses.json', $st);
 
     return ['ok' => true, 'goods' => $goods, 'discount' => $discount,
-            'shipping' => $amount, 'label' => $label, 'total' => $total];
+            'shipping' => $amount, 'label' => $label, 'fee' => $fee, 'total' => $total,
+            'must_redraft' => (bool)$invoiced,
+            'invoiced' => array_map(fn($i) => (string)($i['no'] ?? ''), $invoiced)];
 }
 
 /**

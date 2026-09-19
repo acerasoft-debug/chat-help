@@ -203,6 +203,48 @@ $t('opt-in ile YAZILDI',           empty($i2['error']));
 $t('must_redraft bayragi VAR',     !empty($i2['must_redraft']));
 $t('hangi numara oldugu yaziyor',  in_array('INV-TEST-1', (array)($i2['invoiced'] ?? []), true));
 
+/* NAVLUN YAZICISI AYNI DESENI TASIMALI (operator, 19 Eyl 2026: VES-A11C0C97'ye
+   "+ 75 eur shipping cost uygula" -- o siparisin faturasi KESILMIS). Ayni soruyu
+   iki yazicinin iki turlu cevaplamasi, bu depoda defalarca kaydedilen ayrisma.
+   IKI YON: opt-in olmadan REDDEDER, opt-in ile yazar + must_redraft. */
+$s1 = vestra_order_set_shipping('VES-INV', 75.0);
+$t('navlun opt-in OLMADAN reddedildi', !empty($s1['error']));
+$sb = null; foreach (vestra_read_csv('orders.csv') as $x) if (($x['ref'] ?? '') === 'VES-INV') $sb = $x;
+$t('reddedilince navlun YAZILMADI', abs((float)($sb['shipping'] ?? -1)) < 0.005);
+$sbTot = round((float)($sb['total'] ?? 0), 2);
+$s2 = vestra_order_set_shipping('VES-INV', 75.0, 'Shipping', true);
+$t('navlun opt-in ile YAZILDI',    empty($s2['error']));
+$t('navlun must_redraft VAR',      !empty($s2['must_redraft']));
+$t('navlun numarayi yaziyor',      in_array('INV-TEST-1', (array)($s2['invoiced'] ?? []), true));
+$sb2 = null; foreach (vestra_read_csv('orders.csv') as $x) if (($x['ref'] ?? '') === 'VES-INV') $sb2 = $x;
+/* Indirim (5% x 100 = 5.00) YERINDE kalmali: navlun yazicisi indirimi kaydin
+   kendisinden okuyor, yeniden hesaplamiyor. */
+$t('navlun indirimi BOZMADI',      abs((float)($sb2['discount'] ?? 0) - 5.00) < 0.005);
+$t('navlun toplami dogru',         abs((float)($sb2['total'] ?? 0) - ($sbTot + 75.0)) < 0.005);
+
+/* UCRET (escrow koruma ucreti) KORUNUYOR: eski surum `mal - indirim + navlun`
+   yaziyordu ve ucreti SESSIZCE dusururdu. Banka havaleli siparislerde ucret 0
+   oldugu icin bugune kadar gorunmedi -- "gorunmeyen" ile "olmayan" ayni sey
+   degil. KONTROL GRUBU: ucretsiz siparis eskisi gibi davranmali. */
+/* Satir ELLE yaziliyor, $mk ile degil: $mk total'i `mal - indirim + navlun`
+   diye kuruyor, yani ucret tasiyan bir satiri uretemiyor. Kasa bunu
+   `subtotal + buyer_fee` diye yaziyor (order.php:222). */
+$ffh = fopen($sand.'/data/orders.csv', 'a');
+fputcsv($ffh, [date('c'), 'VES-FEE', 'Test Co', 'X1', 'Tester', 'f@example.com', 'ES', '+1',
+               '1x SKU1 @200.00', '200.00', '0.00', '200.00', '212.50',
+               'Payment: Escrow.', 'yes', '2026-06-26', '', '', '0.00', ''], ',', '"', '\\');
+fclose($ffh);
+$fr = vestra_order_set_shipping('VES-FEE', 30.0);
+$t('ucretli siparise navlun yazildi', empty($fr['error']));
+$t('ucret KAYITTAN okundu (12.50)',   abs((float)($fr['fee'] ?? 0) - 12.50) < 0.005);
+$t('ucret toplamda KORUNDU',          abs((float)($fr['total'] ?? 0) - 242.50) < 0.005);
+$fb = null; foreach (vestra_read_csv('orders.csv') as $x) if (($x['ref'] ?? '') === 'VES-FEE') $fb = $x;
+$t('ucret kayitta da KORUNDU',        abs((float)($fb['total'] ?? 0) - 242.50) < 0.005);
+$mk('VES-NOFEE', 'n@example.com', 'ES', '1x SKU1 @200.00', 200.00);
+$nr = vestra_order_set_shipping('VES-NOFEE', 30.0);
+$t('ucretsizde ucret 0 (kontrol grubu)', abs((float)($nr['fee'] ?? -1)) < 0.005);
+$t('ucretsizde toplam eskisi gibi',      abs((float)($nr['total'] ?? 0) - 230.00) < 0.005);
+
 /* Sinirlar */
 $t('yuzde 100 ustu reddedilir',    !empty(vestra_order_set_discount('VES-W1', 101.0)['error']));
 $t('negatif yuzde reddedilir',     !empty(vestra_order_set_discount('VES-W1', -1.0)['error']));
@@ -280,6 +322,26 @@ $t('fatura VARSA numara yaziyor',   str_contains($bI, 'INV-2026-1014'));
 $t('fatura VARSA "will be issued" YOK', !str_contains($bI, 'will be issued'));
 $t('fatura YOKSA "will be issued" VAR', str_contains($bF, 'will be issued'));
 
+/* UCUNCU HAL: belge AYNI numarayla YENIDEN CIZILDI (operator, 19 Eyl 2026:
+   *"fatura güncellenmistir diyerek"*). "Bu tutari tasiyor" ile "guncellendi"
+   ayni sey degil: ikincisi, musterinin elinde ESKI bir kopya olabilecegini de
+   soyluyor ve yeniden cizim numarayi KORUDUGU icin bunu soyleyen baska hicbir
+   satir yok. IKI YON: bayrak verilmeden o cumle CIKMAMALI -- taze kesilmis bir
+   belgeye "guncellendi" demek olmamis bir islemi anlatirdi (KURAL 3). */
+$updWords = ['en' => 'has been updated', 'de' => 'wurde auf diesen Betrag aktualisiert',
+             'es' => 'se ha actualizado', 'fr' => 'a été mise à jour'];
+foreach ($updWords as $lg => $w) {
+    [$sU, $bU] = vestra_tpl_order_discount('X', 'VES-L1', ['invoice' => 'INV-2026-1014', 'invoice_updated' => true] + $fig, true, false, '', $lg);
+    [$sP, $bP] = vestra_tpl_order_discount('X', 'VES-L1', ['invoice' => 'INV-2026-1014'] + $fig, true, false, '', $lg);
+    $t("{$lg}: bayrakla 'guncellendi' VAR", str_contains($bU, $w));
+    $t("{$lg}: bayraksiz o cumle YOK",      !str_contains($bP, $w));
+    $t("{$lg}: guncellendi numarayi yaziyor", str_contains($bU, 'INV-2026-1014'));
+}
+/* Fatura YOKKEN bayrak verilse bile "guncellendi" yazilamaz: ortada guncellenecek
+   bir belge yok ve musteriyi olmayan bir kagidi aramaya yollardi. */
+[$sUN, $bUN] = vestra_tpl_order_discount('X', 'VES-L1', ['invoice' => '', 'invoice_updated' => true] + $fig, true, false, '', 'en');
+$t('fatura YOKKEN bayrak ETKISIZ',  !str_contains($bUN, 'has been updated') && str_contains($bUN, 'will be issued'));
+
 /* Rakam METNE GOMULU DEGIL: yuzde degisirse metin de degismeli. */
 $fig9 = ['pct' => 9.0, 'discount' => 71.01, 'total' => 737.99] + $fig;
 [$s9, $b9] = vestra_tpl_order_discount('X', 'VES-L1', $fig9, true, false, '', 'en');
@@ -297,7 +359,19 @@ $t('fatura tutari KARSILASTIRILIYOR', (bool)preg_match('/abs\(\$ivTot - \$ototal
                                    && str_contains($bs, 'exit(1)'));
 $t('KURAL 5f\'e yolluyor',            str_contains($bs, 'issue_redraft=true'));
 $t('iptal sipariste DURUYOR',         str_contains($bs, "\$ost === 'cancelled'"));
+/* DIL SIRASI: ACIK talimat (spec lang=) > hesabin kayitli dili > en.
+   Tersi yazilmisti ve ilk gercek kullanimda yanlis cikti: operator Ispanyol bir
+   firmaya "fransizca bilgilendir" dedi, hesabin `lang`i `es` ve spec SESSIZCE
+   yok sayiliyordu. Sessiz bir yok sayma, "basarili" biten bir kosu ve yanlis
+   dilde bir mektup demek. */
 $t('dil HESABIN kayitli dilinden',    str_contains($bs, "\$acc['lang']"));
+$t('ACIK spec dili KAZANIYOR',
+   (bool)preg_match('/\$dlang\s*=\s*\$dlangSpec\s*!==\s*\'\'\s*\?\s*\$dlangSpec/', $bs));
+$t('ezildigi EKRANA yaziliyor',       str_contains($bs, 'EZILDI'));
+/* "Fatura guncellendi" cumlesi ACIK bayrakla; sablon bunu olcemez. */
+$t('invoice_updated ACIK bayrak',     str_contains($bs, "\$E('invoice_updated')")
+                                   && str_contains($bs, "'invoice_updated' =>"));
+$t('hangi cumlenin cikacagi YAZILI',  str_contains($bs, 'fatura cumlesi:'));
 $t('ilk siparis OLCULUYOR',           str_contains($bs, 'voucher_customer_order_count('));
 $t('tutar siparis kaydindan (elle DEGIL)',
                                       str_contains($bs, "vestra_order_lines(\$orderRow)")

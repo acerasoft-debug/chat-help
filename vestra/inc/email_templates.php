@@ -1232,6 +1232,9 @@ function vestra_tpl_order_discount(string $buyerName, string $ref, array $fig,
     $total = (float)($fig['total'] ?? 0);
     $pct   = (float)($fig['pct'] ?? 0);
     $inv   = trim((string)($fig['invoice'] ?? ''));
+    /* Belge YENIDEN CIZILDI mi? Sablon bunu OLCEMEZ (fatura dosyasi bugun de
+       var, dun de vardi) -- yalnizca cagiran bilir, o yuzden ACIK bayrak. */
+    $invUpd = !empty($fig['invoice_updated']);
     $pctLbl = rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.').'%';
 
     $L = [
@@ -1243,6 +1246,7 @@ function vestra_tpl_order_discount(string $buyerName, string $ref, array $fig,
                          . ($firstOrder ? ", as a thank-you for your first order with VESTRA" : "")
                          . ". The figures below replace the ones you had before.",
                  'invY' => "Your invoice {$inv} carries this amount — no action is needed from you.",
+                 'invU' => "Your invoice {$inv} has been updated to this amount and keeps its number — please use the updated document; any earlier copy is superseded.",
                  'invN' => "Your invoice will be issued with this amount.",
                  'end'  => "If anything is unclear, just reply to this e-mail and ask.",
                  'bye'  => 'Kind regards,'],
@@ -1254,6 +1258,7 @@ function vestra_tpl_order_discount(string $buyerName, string $ref, array $fig,
                          . ($firstOrder ? " — als Dankeschön für Ihre erste Bestellung bei VESTRA" : "")
                          . ". Die folgenden Beträge ersetzen die bisherigen.",
                  'invY' => "Ihre Rechnung {$inv} weist diesen Betrag aus — Sie müssen nichts weiter tun.",
+                 'invU' => "Ihre Rechnung {$inv} wurde auf diesen Betrag aktualisiert und behält ihre Nummer — bitte verwenden Sie die aktualisierte Rechnung; eine frühere Fassung ist damit hinfällig.",
                  'invN' => "Ihre Rechnung wird mit diesem Betrag ausgestellt.",
                  'end'  => "Bei Fragen antworten Sie einfach auf diese E-Mail.",
                  'bye'  => 'Mit freundlichen Grüßen,'],
@@ -1265,6 +1270,7 @@ function vestra_tpl_order_discount(string $buyerName, string $ref, array $fig,
                          . ($firstOrder ? ", como agradecimiento por su primer pedido en VESTRA" : "")
                          . ". Los importes siguientes sustituyen a los anteriores.",
                  'invY' => "Su factura {$inv} recoge este importe; no tiene que hacer nada más.",
+                 'invU' => "Su factura {$inv} se ha actualizado a este importe y conserva su número; utilice el documento actualizado, ya que cualquier copia anterior queda sin efecto.",
                  'invN' => "Su factura se emitirá por este importe.",
                  'end'  => "Si algo no queda claro, responda a este correo y se lo explicamos.",
                  'bye'  => 'Un cordial saludo,'],
@@ -1276,6 +1282,7 @@ function vestra_tpl_order_discount(string $buyerName, string $ref, array $fig,
                          . ($firstOrder ? ", pour vous remercier de votre première commande chez VESTRA" : "")
                          . ". Les montants ci-dessous remplacent les précédents.",
                  'invY' => "Votre facture {$inv} indique ce montant : vous n'avez rien à faire.",
+                 'invU' => "Votre facture {$inv} a été mise à jour pour ce montant et conserve son numéro : merci d'utiliser le document mis à jour, toute copie antérieure étant caduque.",
                  'invN' => "Votre facture sera établie pour ce montant.",
                  'end'  => "Si quelque chose n'est pas clair, répondez simplement à ce courriel.",
                  'bye'  => 'Cordialement,'],
@@ -1316,7 +1323,14 @@ function vestra_tpl_order_discount(string $buyerName, string $ref, array $fig,
     $body = $greet."\n\n"
           . $open."\n\n"
           . $lines."\n"
-          . ($inv !== '' ? $L['invY'] : $L['invN'])."\n\n"
+          /* UC HAL, IKI DEGIL. "Guncellendi" ile "bu tutari tasiyor" ayni sey
+             degil: ilki, musterinin elinde ESKI bir kopya olabilecegini de
+             soyler (KURAL 5f'in yeniden cizimi ayni numarayi korur, yani iki
+             PDF ayni numarayi tasir ve hangisinin gecerli oldugunu yalnizca bu
+             cumle soyler). Bayrak ACIK verilmek zorunda: taze kesilmis bir
+             belgeye "guncellendi" demek, olmamis bir islemi anlatirdi
+             (KURAL 3'un mektup hali). */
+          . ($inv !== '' ? ($invUpd ? $L['invU'] : $L['invY']) : $L['invN'])."\n\n"
           . $L['end']."\n\n"
           . $L['bye']."\n\n"
           . ($signer !== '' ? $signer."\nVESTRA - vestrasales.com" : "VESTRA - vestrasales.com");

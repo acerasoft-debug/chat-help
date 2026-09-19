@@ -1564,14 +1564,22 @@ jobs:
                 if ($invNo === '') $invNo = (string)($iv['no'] ?? '');
               }
 
-              /* DIL HESABIN KAYITLI DILINDEN: musterinin sitede kendi sectigi
-                 dil o. Siparis satirinin `country` alanindan cozmek bu depoda
-                 uc kez yanlis cevap verdi (vestra_cc_of_country kurator listesi
-                 ve kismi). spec'teki lang= yalnizca hesapsiz sipariste. */
-              $dlang = $acc ? substr((string)($acc['lang'] ?? ''), 0, 2) : '';
-              if ($dlang === '') $dlang = strtolower(substr(trim($E('lang')), 0, 2));
-              if ($dlang === '') $dlang = 'en';
-              echo "dil     : {$dlang}".($acc ? ' (hesaptan)' : ' (spec/varsayilan)')."\n";
+              /* DIL: ACIK OPERATOR SECIMI > hesabin kayitli dili > en.
+                 Kayitli dil bir VARSAYILAN (musterinin sitede sectigi dil),
+                 spec'teki `lang=` ise o siparis icin verilmis ACIK bir talimat
+                 -- ve talimat varsayilani ezer (KURAL 5b'nin sirasi: operator
+                 secimi > kaydin kendi alani). Tersi yazilmisti ve ilk gercek
+                 kullanimda yanlis cikti: operator Ispanyol bir firmaya
+                 *"fransizca bilgilendir"* dedi, hesabin kayitli dili `es` ve
+                 spec SESSIZCE yok sayiliyordu -- yani is "basarili" biter,
+                 musteri istenmeyen dilde mektup alir ve bunu kimse gormez. */
+              $dlangSpec = strtolower(substr(trim($E('lang')), 0, 2));
+              $dlangAcc  = $acc ? strtolower(substr((string)($acc['lang'] ?? ''), 0, 2)) : '';
+              $dlang     = $dlangSpec !== '' ? $dlangSpec : ($dlangAcc !== '' ? $dlangAcc : 'en');
+              $dlangSrc  = $dlangSpec !== '' ? 'spec (acik talimat)' : ($dlangAcc !== '' ? 'hesaptan' : 'varsayilan');
+              echo "dil     : {$dlang} ({$dlangSrc})"
+                   .($dlangSpec !== '' && $dlangAcc !== '' && $dlangSpec !== $dlangAcc
+                     ? "  [hesabin kayitli dili {$dlangAcc} -- EZILDI]" : '')."\n";
 
               /* "Ilk siparis" cumlesi OLCULUYOR, varsayilmiyor: bu siparis
                  haric baska siparisi varsa o cumle musterinin kendi kaydiyla
@@ -1586,7 +1594,22 @@ jobs:
                   'goods' => $ogoods, 'discount' => $odisc, 'pct' => $opct, 'shipping' => $oship,
                   'total' => $ototal, 'currency' => strtoupper(trim((string)($orderRow['currency'] ?? 'EUR'))) ?: 'EUR',
                   'invoice' => $invNo,
+                  /* "Fatura guncellenmistir" ACIK bayrakla (spec: invoice_updated=1).
+                     Sablon bunu olcemez -- dosya dun de vardi bugun de var -- ve
+                     taze kesilmis bir belgeye "guncellendi" demek olmamis bir
+                     islemi anlatirdi. Numara YENIDEN CIZIMDE ayni kaliyor
+                     (KURAL 5f), yani musterinin elinde ayni numarayi tasiyan
+                     iki PDF olabilir; hangisinin gecerli oldugunu yalnizca bu
+                     cumle soyluyor. */
+                  'invoice_updated' => trim($E('invoice_updated')) === '1',
               ], $dFirst, (bool)$acc, $persona, $dlang);
+              if ($invNo !== '' && trim($E('invoice_updated')) === '1') {
+                  echo "fatura cumlesi: GUNCELLENDI (ayni numara, eski kopya gecersiz)\n";
+              } elseif ($invNo !== '') {
+                  echo "fatura cumlesi: bu tutari tasiyor\n";
+              } else {
+                  echo "fatura cumlesi: kesilecek\n";
+              }
               $fromName = $persona.' — VESTRA';
             } elseif ($letter === 'login_fixed') {
               /* "Giremiyorum" sikayetine cevap. Mektup ONCE KAYDI DOGRULUYOR:

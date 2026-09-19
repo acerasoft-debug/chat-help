@@ -1446,8 +1446,13 @@ jobs:
             $raw = trim((string)getenv('SHIP_VAL'));
             if ($ref === '' || $raw === '') { fwrite(STDERR, "ref ya da tutar yok\n"); exit(1); }
 
-            [$amountPart, $label] = array_pad(explode('|', $raw, 2), 2, '');
+            /* Ucuncu parca: `allow_invoiced=1`. FATURASI KESILMIS siparis
+               varsayilan olarak REDDEDILIYOR; opt-in ACIK olmak zorunda
+               (`force=1` deseninin aynisi) ve yazdiktan sonra belge AYNI
+               numarayla yeniden cizilmeli (KURAL 5f). */
+            [$amountPart, $label, $flags] = array_pad(explode('|', $raw, 3), 3, '');
             $amountPart = trim($amountPart); $label = trim((string)$label);
+            $allowInv = (bool)preg_match('/\ballow_invoiced\s*=\s*1\b/i', (string)$flags);
 
             $row = null;
             foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $row = $r; break; }
@@ -1478,12 +1483,26 @@ jobs:
                      number_format($amount, 2), $ordCur, number_format(round($amount * $rate, 2), 2), $inCur);
             }
 
-            $r = vestra_order_set_shipping($ref, $amount, $label);
+            /* Fatura durumu YAZMADAN ONCE basiliyor: "neden reddedildi" sorusu
+               ancak burada cevaplanir, ret satirinda degil. */
+            $inv = vestra_invoices_for_ref($ref);
+            printf("kesilmis fatura  : %s\n", $inv
+              ? implode(', ', array_map(fn($i) => (string)($i['no'] ?? '?').' ('.number_format((float)($i['total'] ?? 0), 2).' '.(string)($i['currency'] ?? '').')', $inv))
+                .($allowInv ? '  [allow_invoiced=1 -- yazilacak]' : '  [opt-in YOK -- reddedilecek]')
+              : 'yok');
+
+            $r = vestra_order_set_shipping($ref, $amount, $label, $allowInv);
             if (isset($r['error'])) { fwrite(STDERR, "YAZILAMADI: ".$r['error']."\n"); exit(1); }
             printf("mal toplami      : %s\n", number_format($r['goods'], 2));
+            printf("indirim          : %s  (dokunulmadi)\n", number_format((float)($r['discount'] ?? 0), 2));
+            if ((float)($r['fee'] ?? 0) > 0) printf("ucret            : %s  (kayittan okundu, KORUNDU)\n", number_format((float)$r['fee'], 2));
             printf("navlun           : %s%s\n", number_format($r['shipping'], 2), $r['label'] !== '' ? '  ('.$r['label'].')' : '');
             printf("SIPARIS TOPLAMI  : %s  (geri okundu, dogrulandi)\n", number_format($r['total'], 2));
             echo "kesim            : YAPILMADI (numara yanmadi, PDF uretilmedi, aliciya hicbir sey gitmedi)\n";
+            if (!empty($r['must_redraft'])) {
+              printf("*** BELGE ESKI TUTARI TASIYOR: %s -- ayni numarayla YENIDEN CIZ (KURAL 5f):\n"
+                   . "    admin_mode=issue + issue_redraft=true\n", implode(', ', (array)($r['invoiced'] ?? [])));
+            }
             PHPEOF
             php -l /tmp/vestra_ship.php
             php /tmp/vestra_ship.php
