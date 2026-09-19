@@ -808,6 +808,21 @@ jobs:
                 $r = vestra_payment_rails($P, $c);
                 echo "    -> ".$c." faturasinda odeme kutusu: ".($r ? 'CIKAR ('.count($r).' satir)' : '*** CIKMAZ (bos) ***')."\n";
               }
+              /* MUHAFAZA SUNUCUYA INDI MI (KURAL 5r). "Dosya parse edildi"
+                 yetmez -- ESKI bir kopya da parse edilir; o yuzden fonksiyonun
+                 VARLIGI degil, gercek bir cagrinin CEVABI olculuyor.
+                 Inmemisse bunu soylemesi sart: inmemis bir muhafaza, operator
+                 "koruma var" sanarken kutusuz belge kesilmesi demek. */
+              echo "    --- kesim muhafazasi (KURAL 5r) ---\n";
+              if (!function_exists('vestra_invoice_payment_gap')) {
+                echo "    *** DEPLOY INMEMIS -- kesim muhafazasi YOK, kutusuz belge kesilebilir ***\n";
+              } else {
+                foreach (['EUR','USD'] as $c) {
+                  $g = vestra_invoice_payment_gap($P, $c, false);
+                  echo "    ".$c." kesimi: ".($g === '' ? 'GECER' : 'DURUR -- '.$g)."\n";
+                }
+                echo "    odenmis (escrow) siparis muaf: ".(vestra_invoice_payment_gap($P,'EUR',true) === '' ? 'EVET' : '*** HAYIR -- kusur ***')."\n";
+              }
               echo "\n";
             } elseif ($bq !== '') {
               echo "===== FATURA KUNYESI: \"{$bq}\" =====\n";
