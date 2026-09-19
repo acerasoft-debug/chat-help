@@ -887,112 +887,6 @@ function vestra_seller_settlement(string $ref, ?array $statusEntry = null): arra
     return $out;
 }
 
-/**
- * Bir siparişe İNDİRİM yazar (operatör, 19 Eyl 2026: *"Yeni yaptığımız
- * siparişlere yüzde 5 indirim uygula welcome code"*).
- *
- * `discount` ve `voucher_code` sütunları kasadan beri var (order.php kupon
- * yolu); onlara sonradan yazan HİÇBİR yol yoktu. Fatura (vestra_order_invoice_
- * payloads), sipariş PDF'i ve panel hepsi bu iki alanı zaten okuyor ve
- * `Voucher <kod>  -€x` satırı olarak basıyor — yani alan eklenmedi, yalnız
- * yazıcı. Kupon KAYDINA (vouchers.json) dokunmuyor: kodu bulan/yaratan/yakan
- * çağıran taraf (iş akışı `admin_mode=discount`), çünkü o karar hesaba ve
- * kampanyaya bakıyor, satırın kendisine değil.
- *
- * İKİ ALAN BİRLİKTE + TOPLAM: `discount`, `voucher_code` ve `total` (= mal −
- * indirim + navlun). Yalnız indirimi yazıp toplamı bırakmak, alıcının sipariş
- * sayfası ile faturasını iki rakama bölerdi (KURAL 5f'in üç-katman dersi);
- * navlun yazıcısıyla aynı formül, aynı `vestra_order_lines`.
- *
- * NOTA DA DÜŞER: kasa kuponu notların sonuna `Voucher KOD (-5%) = -€x.` diye
- * yazıyor ve alıcı sipariş sayfasında onu görüyor; sonradan uygulanan indirim
- * aynı biçimde, aynı yere. İkinci uygulamada eski parça sökülür (tek kopya).
- *
- * FATURASI KESİLMİŞ siparişte varsayılan RED; `$allowInvoiced` ile yazar ve
- * `must_redraft` döner (KURAL 5f: aynı numarayla yeniden çizim — renk
- * yazıcısının deseni). 0 yazmak indirimi KALDIRIR (kod da silinir).
- */
-function vestra_order_set_discount(string $ref, float $amount, string $code = '', bool $allowInvoiced = false): array {
-    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
-    if ($ref === '') return ['error' => 'ref yok'];
-    if (!is_finite($amount) || $amount < 0) return ['error' => 'indirim negatif olamaz'];
-    $amount = round($amount, 2);
-    $code   = strtoupper(trim(preg_replace('/[^A-Za-z0-9_-]/', '', $code)));
-    if ($amount > 0 && $code === '') return ['error' => 'indirim için kupon kodu şart — belgede "Voucher <kod>" satırı olarak basılıyor'];
-
-    require_once __DIR__.'/invoice.php';
-    $invoiced = (bool)vestra_invoices_for_ref($ref);
-    if ($invoiced && !$allowInvoiced) {
-        return ['error' => 'bu siparişin faturası zaten kesilmiş — indirim belgeyi kendiliğinden değiştirmez '
-                         . '(KURAL 5f: |allow_invoiced=1 ile yaz ve AYNI numarayla yeniden çiz)'];
-    }
-
-    $file = vestra_data_dir().'/orders.csv';
-    if (!is_readable($file)) return ['error' => 'orders.csv okunamıyor'];
-    /* HAM dosya: vestra_read_csv() satırları ters çeviriyor (navlun/adres
-       yazıcılarıyla aynı tuzak). */
-    $in = fopen($file, 'r'); if (!$in) return ['error' => 'orders.csv açılamadı'];
-    $head = fgetcsv($in, null, ',', '"', '\\');
-    if (!$head) { fclose($in); return ['error' => 'orders.csv başlıksız']; }
-    $idx = array_flip($head);
-    foreach (['ref', 'discount', 'voucher_code', 'total', 'notes'] as $need) {
-        if (!isset($idx[$need])) { fclose($in); return ['error' => "orders.csv '{$need}' sütunu yok"]; }
-    }
-    $rows = []; $hit = null;
-    while (($r = fgetcsv($in, null, ',', '"', '\\')) !== false) {
-        $r = array_slice(array_pad($r, count($head), ''), 0, count($head));
-        if ((string)$r[$idx['ref']] === $ref) $hit = count($rows);
-        $rows[] = $r;
-    }
-    fclose($in);
-    if ($hit === null) return ['error' => 'sipariş bulunamadı: '.$ref];
-
-    $assoc = array_combine($head, $rows[$hit]);
-    $ld    = vestra_order_lines($assoc);
-    $goods = 0.0;
-    foreach ($ld['lines'] as $l) $goods += (float)($l['line'] ?? 0);
-    $goods = round($goods, 2);
-    if ($amount > $goods) return ['error' => 'indirim mal toplamından ('.number_format($goods, 2).') büyük olamaz'];
-    $shipping = round((float)($assoc['shipping'] ?? 0), 2);
-    $total    = round(max(0.0, $goods - $amount) + $shipping, 2);
-    $pctLbl   = $goods > 0 ? rtrim(rtrim(number_format($amount / $goods * 100, 2, '.', ''), '0'), '.') : '0';
-
-    $notes = trim((string)$assoc['notes']);
-    $notes = trim(preg_replace('/\s*Voucher [A-Z0-9_-]+ \([^)]*\) = -€[0-9.,]+\./u', '', $notes));
-    if ($amount > 0) $notes = trim($notes.' Voucher '.$code.' (-'.$pctLbl.'%) = -€'.number_format($amount, 2, '.', '').'.');
-
-    $rows[$hit][$idx['discount']]     = $amount > 0 ? number_format($amount, 2, '.', '') : '';
-    $rows[$hit][$idx['voucher_code']] = $amount > 0 ? $code : '';
-    $rows[$hit][$idx['total']]        = number_format($total, 2, '.', '');
-    $rows[$hit][$idx['notes']]        = $notes;
-
-    @copy($file, $file.'.bak-disc-'.date('Ymd_His'));
-    $tmp = $file.'.tmp';
-    $out = fopen($tmp, 'w'); if (!$out) return ['error' => 'geçici dosya açılamadı'];
-    fputcsv($out, $head, ',', '"', '\\');
-    foreach ($rows as $r) fputcsv($out, $r, ',', '"', '\\');
-    fclose($out);
-    if (!rename($tmp, $file)) { @unlink($tmp); return ['error' => 'orders.csv yazılamadı (izin?)']; }
-
-    /* GERİ OKU — satır ve FATURANIN göreceği rakam. */
-    $back = null;
-    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) { $back = $r; break; } }
-    if (!$back || abs((float)($back['discount'] ?? -1) - $amount) > 0.004
-               || abs((float)($back['total'] ?? -1) - $total) > 0.004
-               || (string)($back['voucher_code'] ?? '') !== ($amount > 0 ? $code : '')) {
-        return ['error' => 'yazıldı ama geri okuma tutmadı — kayıt değişmemiş olabilir'];
-    }
-
-    $st = vestra_read_json('order_statuses.json');
-    if (!isset($st[$ref]) || !is_array($st[$ref])) $st[$ref] = [];
-    $st[$ref]['discount_set_at'] = date('c');
-    $st[$ref]['discount_set_by'] = 'operator';
-    vestra_write_json('order_statuses.json', $st);
-
-    return ['ok' => true, 'goods' => $goods, 'discount' => $amount, 'code' => $amount > 0 ? $code : '',
-            'pct' => $pctLbl, 'shipping' => $shipping, 'total' => $total,
-            'must_redraft' => $invoiced];
-}
 
 /**
  * Bir siparişe NAVLUN yazar (operatör, 7 Eyl 2026: *"kargo bölümü yok kargo
@@ -1014,16 +908,31 @@ function vestra_order_set_discount(string $ref, float $amount, string $code = ''
  * okuduğu **aynı** fonksiyondan (`vestra_order_lines`) geliyor, ikinci bir
  * ayrıştırıcıdan değil.
  *
- * FATURASI KESİLMİŞ SİPARİŞTE YAZMAZ: belge alıcının elinde ve numara yanmış.
- * Doğru yol KURAL 5f (aynı numarayla yeniden çizim), sessizce kaydı değiştirmek
- * değil — kayıt ile belge ayrışırsa farkı ancak alıcı görür.
+ * FATURASI KESİLMİŞ SİPARİŞTE VARSAYILAN OLARAK YAZMAZ: belge alıcının elinde
+ * ve numara yanmış. Ama yazmanın YASAK olması ile DÜZELTMENİN yasak olması ayrı
+ * şeyler — KURAL 5f'in çaresi zaten "aynı numarayla yeniden çizim" ve navlunu
+ * düzeltmeden yeniden çizmenin anlamı yok. Bu yüzden `$allowInvoiced` AÇIK bir
+ * opt-in (`force=1` deseninin aynısı, sessizce atlanan bir kontrol değil) ve
+ * dönüşte `must_redraft` var: kaydı değiştiren, belgeyi de düzeltmek zorunda.
+ * Kardeşleri `vestra_order_set_colours()` ve `vestra_order_set_discount()` aynı
+ * deseni taşıyor; üçüncü bir kural yazmak, aynı soruyu üç farklı cevapla
+ * bırakırdı.
  *
- * Döner: ['ok'=>true, 'goods'=>…, 'shipping'=>…, 'total'=>…] ya da
- * ['error'=>gerekçe]. Yazma GERİ OKUNARAK doğrulanıyor (KURAL 5c'nin
- * `billing_saved` dersi: yazılamayan bir değeri "kaydettim" diye raporlamak,
- * operatöre olmayan bir kaydı doğru sandırır).
+ * ÜCRET (escrow koruma ücreti) KAYDIN KENDİSİNDEN okunup KORUNUYOR, orandan
+ * yeniden hesaplanmıyor. Eski sürüm `total = mal - indirim + navlun` yazıyordu,
+ * yani ücret taşıyan bir siparişte navlun düzeltmesi ücreti SESSİZCE düşürürdü
+ * (banka havaleli siparişlerde ücret 0 olduğu için bugüne kadar görünmedi —
+ * "görünmeyen" ile "olmayan" aynı şey değil). Formül indirim yazıcısıyla
+ * birebir aynı; iki yazıcının aynı toplamı iki türlü kurması, bu depoda
+ * defalarca kaydedilen ayrışmanın ta kendisi olurdu.
+ *
+ * Döner: ['ok'=>true, 'goods'=>…, 'shipping'=>…, 'fee'=>…, 'total'=>…,
+ * 'must_redraft'=>bool, 'invoiced'=>[no…]] ya da ['error'=>gerekçe]. Yazma GERİ
+ * OKUNARAK doğrulanıyor (KURAL 5c'nin `billing_saved` dersi: yazılamayan bir
+ * değeri "kaydettim" diye raporlamak, operatöre olmayan bir kaydı doğru
+ * sandırır).
  */
-function vestra_order_set_shipping(string $ref, float $amount, string $label = ''): array {
+function vestra_order_set_shipping(string $ref, float $amount, string $label = '', bool $allowInvoiced = false): array {
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
     if ($ref === '') return ['error' => 'ref yok'];
     if (!is_finite($amount) || $amount < 0) return ['error' => 'navlun negatif olamaz'];
@@ -1031,9 +940,11 @@ function vestra_order_set_shipping(string $ref, float $amount, string $label = '
     $label  = trim($label);
 
     require_once __DIR__.'/invoice.php';
-    if (vestra_invoices_for_ref($ref)) {
-        return ['error' => 'bu siparişin faturası zaten kesilmiş — navlun artık belgeyi değiştirmez '
-                         . '(KURAL 5f: aynı numarayla yeniden çizim ya da iptal + yeniden kesim)'];
+    $invoiced = vestra_invoices_for_ref($ref);
+    if ($invoiced && !$allowInvoiced) {
+        return ['error' => 'bu siparişin faturası zaten kesilmiş — navlun artık belgeyi değiştirmez. '
+                         . 'Yazmak için allow_invoiced opt-in, SONRA aynı numarayla yeniden çizim (KURAL 5f).',
+                'invoiced' => array_map(fn($i) => (string)($i['no'] ?? ''), $invoiced)];
     }
 
     $file = vestra_data_dir().'/orders.csv';
@@ -1064,7 +975,12 @@ function vestra_order_set_shipping(string $ref, float $amount, string $label = '
     foreach ($ld['lines'] as $l) $goods += (float)($l['line'] ?? 0);
     $goods    = round($goods, 2);
     $discount = round((float)($assoc['discount'] ?? 0), 2);
-    $total    = round(max(0.0, $goods - $discount) + $amount, 2);
+    /* Ücret ORANDAN değil kaydın kendisinden: bkz. yukarıdaki not. */
+    $oldShip  = round((float)($assoc['shipping'] ?? 0), 2);
+    $oldTot   = round((float)($assoc['total'] ?? 0), 2);
+    $fee      = round($oldTot - (max(0.0, $goods - $discount) + $oldShip), 2);
+    if ($fee < 0) $fee = 0.0;
+    $total    = round(max(0.0, $goods - $discount) + $amount + $fee, 2);
 
     $rows[$hit][$idx['shipping']]       = number_format($amount, 2, '.', '');
     $rows[$hit][$idx['shipping_label']] = $label;
@@ -1096,7 +1012,9 @@ function vestra_order_set_shipping(string $ref, float $amount, string $label = '
     vestra_write_json('order_statuses.json', $st);
 
     return ['ok' => true, 'goods' => $goods, 'discount' => $discount,
-            'shipping' => $amount, 'label' => $label, 'total' => $total];
+            'shipping' => $amount, 'label' => $label, 'fee' => $fee, 'total' => $total,
+            'must_redraft' => (bool)$invoiced,
+            'invoiced' => array_map(fn($i) => (string)($i['no'] ?? ''), $invoiced)];
 }
 
 /**
@@ -1306,6 +1224,160 @@ function vestra_order_set_colours(string $ref, string $sku, array $colours, bool
     return ['ok' => true, 'sku' => $sku, 'before' => $before, 'colours' => $clean,
             'on_invoice' => $seen, 'not_listed' => $notListed, 'notes' => $notes,
             'must_redraft' => (bool)$invoiced];
+}
+
+/**
+ * Bir siparişe HOŞ GELDİN İNDİRİMİ işler (operatör, 19 Eyl 2026: *"yüzde 5
+ * Welcome indirimini her üç siparişe ekle … bundan sonraki her müşterinin ilk
+ * siparişine de ekle"*).
+ *
+ * İndirim alanı `orders.csv`'de baştan beri VAR ve fatura çizicisi onu zaten
+ * okuyor (`vestra_order_invoice_payloads()` satıcı başına bölüyor, PDF
+ * "Voucher … −€X" satırını basıyor). EKSİK OLAN yazma yoluydu: kupon ancak
+ * ALICI kasada kod yazarsa düşüyordu, yani kayda geçmiş bir siparişe sonradan
+ * indirim işlemenin hiçbir yolu yoktu. Navlunda (KURAL 5k), teslimat adresinde
+ * (KURAL 5l) ve renkte aynı boşluk vardı; bu dördüncüsü.
+ *
+ * TUTAR ELLE VERİLMEZ, YÜZDEDEN TÜRETİLİR. Çağıran `$pct` geçiyor ve rakam
+ * `voucher_discount()` ile hesaplanıyor — sepetin kullandığı AYNI yuvarlayıcı.
+ * Elle bir tutar kabul etseydi sepet %5'i bir, bu yol başka bir kuruş bulurdu
+ * (KURAL 5m'nin KDV dersi). `$pct = 0` indirimi KALDIRIR.
+ *
+ * ÜÇ MUHAFAZA, üçü de ayrı sebeple:
+ *  - FATURASI KESİLMİŞ sipariş: belge alıcının elinde ve numara yanmış. Varsayılan
+ *    RED; `$allowInvoiced` ile geçilir ve dönen `must_redraft` bayrağı çağıranı
+ *    KURAL 5f'e (aynı numarayla yeniden çizim) yolluyor — `vestra_order_set_colours`
+ *    ile aynı desen.
+ *  - PARASI GELMİŞ sipariş: KOŞULSUZ RED. Tahsil edilmiş bir tutarı geriye dönük
+ *    indirmek, müşterinin ödediğinden farklı bir belge üretir; iade bir indirim
+ *    değil, ayrı bir karardır. Ölçüt `vestra_order_payment_settled()` — panelin,
+ *    cron'un ve alıcı sayfasının okuduğu AYNI fonksiyon (KURAL 7b).
+ *  - SÜTUN YOKSA RED: `voucher_code`/`discount` sütunları eski bir `orders.csv`'de
+ *    bulunmayabilir. Sessizce atlamak, "yazıldı" deyip hiçbir şey yazmamak olurdu.
+ *
+ * ÜCRET MUTLAK KORUNUR, oran olarak yeniden hesaplanmaz: escrow/kart siparişinde
+ * koruma ücreti Stripe'ta ÇOKTAN tahsil edilmiş olabilir ve burada yeniden
+ * hesaplamak belgeyi tahsilattan ayırırdı. Ödenmiş sipariş zaten reddedildiği için
+ * bu dar bir hâl, ama yazılı olması gerekiyor: `total` = mal − indirim + navlun +
+ * (mevcut ücret).
+ */
+function vestra_order_set_discount(string $ref, float $pct, string $code = '', bool $allowInvoiced = false): array {
+    require_once __DIR__.'/vouchers.php';
+
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
+    if ($ref === '') return ['error' => 'ref yok'];
+    if (!is_finite($pct) || $pct < 0 || $pct > 100) return ['error' => 'yüzde 0–100 arası olmalı'];
+
+    require_once __DIR__.'/invoice.php';
+    $invoiced = vestra_invoices_for_ref($ref);
+
+    $stAll = vestra_read_json('order_statuses.json');
+    $paid  = vestra_order_payment_settled($ref, $stAll[$ref] ?? []);
+    if (!empty($paid['settled'])) {
+        return ['error' => 'bu siparişin parası gelmiş ('.(string)($paid['via'] ?? '?').') — '
+                         . 'tahsil edilmiş bir tutar geriye dönük indirilmez; iade ayrı bir karardır'];
+    }
+    if ($invoiced && !$allowInvoiced) {
+        return ['error' => 'bu siparişin faturası kesilmiş — belge alıcının elinde olabilir. '
+                         . 'Yazmak için allow_invoiced opt-in, SONRA aynı numarayla yeniden çizim (KURAL 5f).',
+                'invoiced' => array_map(fn($i) => (string)($i['no'] ?? ''), $invoiced)];
+    }
+
+    $file = vestra_data_dir().'/orders.csv';
+    if (!is_readable($file)) return ['error' => 'orders.csv okunamıyor'];
+    /* HAM dosya: vestra_read_csv() satırları ters çeviriyor ve o diziyi geri
+       yazmak bütün defterin sırasını sessizce bozardı. */
+    $in = fopen($file, 'r'); if (!$in) return ['error' => 'orders.csv açılamadı'];
+    $head = fgetcsv($in, null, ',', '"', '\\');
+    if (!$head) { fclose($in); return ['error' => 'orders.csv başlıksız']; }
+    $idx = array_flip($head);
+    foreach (['ref', 'discount', 'voucher_code', 'total'] as $need) {
+        if (!isset($idx[$need])) { fclose($in); return ['error' => "orders.csv '{$need}' sütunu yok"]; }
+    }
+
+    $rows = []; $hit = null;
+    while (($r = fgetcsv($in, null, ',', '"', '\\')) !== false) {
+        $r = array_slice(array_pad($r, count($head), ''), 0, count($head));
+        if ((string)$r[$idx['ref']] === $ref) $hit = count($rows);
+        $rows[] = $r;
+    }
+    fclose($in);
+    if ($hit === null) return ['error' => 'sipariş bulunamadı: '.$ref];
+
+    $assoc = array_combine($head, $rows[$hit]);
+    /* MAL TOPLAMI satırlardan, `subtotal` sütunundan DEĞİL: o sütun kasada
+       indirim SONRASI değeri taşıyor, yani ikinci bir indirim uygulasak onu
+       tabana alıp bileşik bir rakam üretirdik. `vestra_order_lines()` faturanın,
+       sipariş sayfasının ve panelin okuduğu aynı fonksiyon. */
+    $goods = 0.0;
+    foreach (vestra_order_lines($assoc)['lines'] as $l) $goods += (float)($l['line'] ?? 0);
+    $goods = round($goods, 2);
+    if ($goods <= 0) return ['error' => 'siparişin mal toplamı okunamadı (0)'];
+
+    $oldDisc = round((float)($assoc['discount'] ?? 0), 2);
+    $oldSub  = round((float)($assoc['subtotal'] ?? 0), 2);
+    $oldTot  = round((float)($assoc['total'] ?? 0), 2);
+    $ship    = round((float)($assoc['shipping'] ?? 0), 2);
+    /* Mevcut ücret (escrow koruma ücreti) ve satıcı komisyonu, ORANDAN değil
+       kaydın kendisinden okunuyor — bkz. yukarıdaki not. */
+    $fee       = round($oldTot - (max(0.0, $goods - $oldDisc) + $ship), 2);
+    if ($fee < 0) $fee = 0.0;
+    $sellerFee = round(max(0.0, $oldSub - round((float)($assoc['payout'] ?? $oldSub), 2)), 2);
+
+    $newDisc = $pct > 0 ? voucher_discount(['type' => 'percent', 'value' => $pct], $goods) : 0.0;
+    $newCode = $pct > 0 ? (trim($code) !== '' ? voucher_norm($code) : vestra_welcome_auto_code()) : '';
+    $newSub  = round(max(0.0, $goods - $newDisc), 2);
+    $newTot  = round($newSub + $ship + $fee, 2);
+    $newPay  = round(max(0.0, $newSub - $sellerFee), 2);
+
+    $rows[$hit][$idx['discount']]     = $newDisc > 0 ? number_format($newDisc, 2, '.', '') : '';
+    $rows[$hit][$idx['voucher_code']] = $newCode;
+    $rows[$hit][$idx['total']]        = number_format($newTot, 2, '.', '');
+    if (isset($idx['subtotal'])) $rows[$hit][$idx['subtotal']] = number_format($newSub, 2, '.', '');
+    if (isset($idx['payout']))   $rows[$hit][$idx['payout']]   = number_format($newPay, 2, '.', '');
+
+    @copy($file, $file.'.bak-disc-'.date('Ymd_His'));
+    $tmp = $file.'.tmp';
+    $out = fopen($tmp, 'w'); if (!$out) return ['error' => 'geçici dosya açılamadı'];
+    fputcsv($out, $head, ',', '"', '\\');
+    foreach ($rows as $r) fputcsv($out, $r, ',', '"', '\\');
+    fclose($out);
+    if (!rename($tmp, $file)) { @unlink($tmp); return ['error' => 'orders.csv yazılamadı (izin?)']; }
+
+    /* GERİ OKU. Satırın değişmesi yetmez: doğrulama BELGENİN GÖRDÜĞÜNE bakıyor,
+       yani faturayı besleyen yükün indirimi gerçekten taşıdığına. Renk
+       yazıcısında aynı ayrım bir kusur yakalamıştı. */
+    $back = null;
+    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) { $back = $r; break; } }
+    if (!$back) return ['error' => 'yazıldı ama satır geri okunamadı'];
+    if (abs(round((float)($back['discount'] ?? -1), 2) - $newDisc) > 0.004
+        || abs(round((float)($back['total'] ?? -1), 2) - $newTot) > 0.004) {
+        return ['error' => 'yazıldı ama geri okuma tutmadı — kayıt değişmemiş olabilir'];
+    }
+
+    /* Gerçek bir kupon kodu verildiyse DAMGALANIR. Damgalanmazsa o kod sonsuza
+       kadar "kullanılmamış" görünür ve kimin neyi harcadığı kayıtta durmaz;
+       ayrıca `first_order_only` yüzünden bir daha da geçmez, yani hiç bitmeyen
+       bir kupon olarak kalırdı. `vestra_welcome_auto_code()` bir ETİKET, kayıtta
+       karşılığı yok — `voucher_redeem()` onu bulamaz ve false döner, bu bir hata
+       değil ve dönüşte ayrıca yazılıyor. */
+    $redeemed = false;
+    if ($newDisc > 0 && $newCode !== '' && voucher_find($newCode)) {
+        $redeemed = voucher_redeem($newCode, $ref, (string)($back['email'] ?? ''), $newDisc);
+    }
+
+    $st = vestra_read_json('order_statuses.json');
+    if (!isset($st[$ref]) || !is_array($st[$ref])) $st[$ref] = [];
+    $st[$ref]['discount_set_at'] = date('c');
+    $st[$ref]['discount_set_by'] = 'operator';
+    vestra_write_json('order_statuses.json', $st);
+
+    return ['ok' => true, 'goods' => $goods, 'pct' => $pct, 'code' => $newCode,
+            'before' => $oldDisc, 'discount' => $newDisc, 'shipping' => $ship, 'fee' => $fee,
+            'subtotal' => $newSub, 'payout' => $newPay, 'total' => $newTot,
+            'redeemed' => $redeemed,
+            'must_redraft' => (bool)$invoiced,
+            'invoiced' => array_map(fn($i) => (string)($i['no'] ?? ''), $invoiced)];
 }
 
 function vestra_order_delete(string $ref): int {

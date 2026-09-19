@@ -122,12 +122,42 @@ $t('adres sonucu ekrana yazılı',   str_contains($adm, "elseif(\$msg==='addr_sa
 /* Yazıcı, satırı değil FATURANIN GÖRDÜĞÜNÜ doğruluyor: kaydın değişmesi yetmez,
    belgeyi besleyen çözücü de aynı adresi bulmalı. */
 $t('adres faturaya karşı doğrulanıyor', str_contains($fn, 'vestra_invoice_buyer($back)'));
+/* Gövde BAZINDA soruluyor, dosya genelinde DEĞİL. Eski iddia
+   `if (vestra_invoices_for_ref($ref)) {` dizgesini dosyada SAYIYORDU (===2) —
+   yani ölçtüğü şey olgu değil YAZIMDI: navlun yazıcısına opt-in eklenince
+   sayı düştü ve doğru çalışan adres yazıcısı kırmızı döndü. Bu depoda kayıtlı
+   sınıf ("ölçtüğünü değil yazımını koruyan iddia"). */
+$body = function (string $name) use ($fn): string {
+    $p = strpos($fn, "\nfunction {$name}(");
+    if ($p === false) return '';
+    $e = strpos($fn, "\n}\n", $p);
+    return $e === false ? substr($fn, $p) : substr($fn, $p, $e - $p);
+};
+$bShip = $body('vestra_order_set_shipping');
+$bAddr = $body('vestra_order_set_delivery');
+$t('gövdeler ayıklandı',            $bShip !== '' && $bAddr !== '');
+/* ADRES yazıcısı KOŞULSUZ duruyor: adres belgede basılı ve opt-in istenmedi. */
 $t('adres yazıcısı da kesilmişte durur',
-   substr_count($fn, 'if (vestra_invoices_for_ref($ref)) {') === 2);
+   str_contains($bAddr, 'if (vestra_invoices_for_ref($ref)) {')
+   && !str_contains($bAddr, 'allowInvoiced'));
+/* NAVLUN yazıcısı AÇIK opt-in ile geçiyor ve çağıranı yeniden çizime yolluyor. */
+$t('navlun opt-in olmadan durur',   str_contains($bShip, '$invoiced && !$allowInvoiced'));
+$t('navlun opt-in varsayılan KAPALI',
+   str_contains($fn, 'function vestra_order_set_shipping(string $ref, float $amount, string $label = \'\', bool $allowInvoiced = false)'));
+$t('navlun must_redraft döndürüyor', str_contains($bShip, "'must_redraft' => (bool)\$invoiced"));
+/* ÜCRET korunuyor: eski sürüm `mal - indirim + navlun` yazıp escrow ücretini
+   sessizce düşürüyordu. Formül indirim yazıcısıyla birebir aynı. */
+$t('navlun ücreti KORUYOR',
+   str_contains($bShip, '$fee      = round($oldTot - (max(0.0, $goods - $discount) + $oldShip), 2);')
+   && str_contains($bShip, '+ $amount + $fee'));
 $t('okuyucuyla AYNI kalıp',        str_contains($fn, "preg_replace('/Deliver to: .*?(?:\\.\\s|\\.\$|\$)/u'"));
 $wf = $src('.github/workflows/seller-products.yml');
 $t('iş akışında da mod var',       str_contains($wf, "admin_mode == 'shipping'"));
-$t('iş akışı aynı yazıcıyı çağırıyor', str_contains($wf, 'vestra_order_set_shipping($ref, $amount, $label)'));
+$t('iş akışı aynı yazıcıyı çağırıyor', str_contains($wf, 'vestra_order_set_shipping($ref, $amount, $label, $allowInv)'));
+/* Opt-in iş akışında da AÇIK olmak zorunda: varsayılanı açık bırakan bir
+   ayrıştırma, faturalı bir siparişi operatör istemeden değiştirirdi. */
+$t('iş akışı opt-in AÇIK isteniyor',   str_contains($wf, "preg_match('/\\ballow_invoiced\\s*=\\s*1\\b/i'"));
+$t('iş akışı yeniden çizime yolluyor', str_contains($wf, 'BELGE ESKI TUTARI TASIYOR'));
 $t('kur damgası yoksa DURUYOR',    str_contains($wf, 'kur damgasi YOK'));
 $t('iş akışı numara YAKMIYOR',     !str_contains(explode('- name: Faturanın para birimini', $wf)[0], 'vestra_issue_order_invoices'));
 

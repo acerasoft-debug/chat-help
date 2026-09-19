@@ -258,6 +258,45 @@ $t('durum kaynakli satirda toggle YOK (sayfada tek toggle)',
 $t('nereden degistirilecegi yaziyor', str_contains($html, 'sipariş durumu:'));
 $t('durum etiketi cozuluyor (Completed)', str_contains($html, 'Completed'));
 $t('PHP uyarisi yok', !preg_match('/\b(Warning|Fatal error|Deprecated)\b/', $html));
+
+/* ── ODENMIS FATURALAR KATLANIR (operator, 19 Eyl 2026) ────────────────────
+   Kart bir onay kuyrugu degil ve hic bosalmiyor; odenmis satirlar katlanmis
+   bolume gidiyor. IKI YON de tutuluyor: kapanan KATLANMIS olmali, odeme
+   BEKLEYEN acikta kalmali -- tek yon yazilsaydi "her satiri katlayan" bir
+   kusur da yesil kalirdi ve operator acik isi goremezdi.
+   CAPA KENDI SUMMARY METNIM: admin.php'de 10 ayri <details> var, konuma gore
+   olcmek baska bir sekmenin bloguna denk gelebilirdi (bu depoda "iddia satiri
+   degil navigasyonu olcuyordu" dersi). */
+echo "-- odenmis fatura KATLANIYOR, odeme bekleyen acikta (canli cizim) --\n";
+$sPos = strpos($html, 'kapanmış fatura (ödendi)');
+$t('katlanmis bolum ciziliyor', $sPos !== false);
+$dEnd = $sPos === false ? false : strpos($html, '</details>', $sPos);
+$t('  bolum kapaniyor', $dEnd !== false);
+$pDone = strpos($html, 'INV-2026-1009');   // ODONE  -> completed, kapandi
+$pOpen = strpos($html, 'INV-2026-1012');   // OOPEN  -> pending,  aciktia
+$t('kapanmis fatura KATLANMIS bolumun ICINDE',
+   $sPos !== false && $dEnd !== false && $pDone !== false && $pDone > $sPos && $pDone < $dEnd);
+$t('odeme bekleyen fatura katlanmadi (yukarida, acik tabloda)',
+   $sPos !== false && $pOpen !== false && $pOpen < $sPos);
+/* KURAL 5f: kesilmis faturayi AYNI numarayla duzeltmenin tek yolu Redraft.
+   Katlamak onu GIZLEMEK degil -- katlanmis satirda da durmali, yoksa odenmis
+   bir belgedeki yanlis kalem panelden hic duzeltilemezdi. */
+$t('katlanmis satirda Redraft HÂLÂ var (KURAL 5f erisilebilir)',
+   $sPos !== false && $dEnd !== false
+   && ($pR = strpos($html, 'value="redraft_offer_invoice"', $sPos)) !== false && $pR < $dEnd);
+$t('basliktaki bolunme yaziyor (1 acik, 1 kapandi)',
+   str_contains($html, '1 açık, 1 kapandı'));
+/* Satir govdesi TEK KOPYA: iki tablo da AYNI govdeden ciziliyor, yani her
+   teklifin satiri sayfada tam bir kez. Ikinci bir foreach yazilsaydi duserdi.
+   OLCUT SATIRIN KENDI FORM ID'SI, fatura numarasi DEGIL: ilk yazimda
+   substr_count($html,'INV-2026-1009')===1 yazdim ve KIRMIZI dondu -- numara
+   satir basina ZATEN iki kez basiliyor (bir <td>'de, bir de Redraft'in onay
+   metninde "Rewrite invoice INV-… IN PLACE"), degisiklikten once de oyleydi.
+   Kod dogruydu, olcu yanlisti. Bu oturumda AYNI sinifin ikinci vakasi (sabah
+   "✓ Paid" iddiasi kartin yardim metnini olcuyordu); form id'si satir basina
+   tam bir kez basiliyor ve kopyalanmayi gercekten olcen sey o. */
+$t('her teklifin satiri sayfada TEK kez (govde kopyalanmadi)',
+   substr_count($html, 'id="frdr-ODONE"') === 1 && substr_count($html, 'id="frdr-OOPEN"') === 1);
 exec('rm -rf '.escapeshellarg($sb));
 
 echo "-- vestra_receipt_file_path: ref/dosya adi temizleniyor (path traversal yok) --\n";

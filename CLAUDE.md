@@ -1877,43 +1877,45 @@ için geçerli"* → *"abd için her siparişe 30 eur + 20 ad. sonrasına her 10
   çıkarınca **2**, sepet tabloyu elle yazınca **3**, teklif faturası yine
   `?? 0` okuyunca **2**.
 
-**KURAL 5u — SİPARİŞE İNDİRİM: alan vardı, YAZICI yoktu** (operatör, 19 Eyl
-2026: *"yeni yaptığımız siparişlere yüzde 5 welcome indirimi uygula"*).
+**KURAL 5u — SİPARİŞE İNDİRİM: aynı gün İKİ OTURUM aynı olguya iki yazıcı
+yazdı; tekilleştirildi** (operatör, 19 Eyl 2026: *"yeni yaptığımız siparişlere
+yüzde 5 welcome indirimi uygula"*).
 - `discount` ve `voucher_code` sütunları kasadan beri var; fatura
   (`Voucher <kod> −€x` satırı), sipariş PDF'i ve panel **üçü de okuyordu** —
-  sonradan yazacak hiçbir yol yoktu. Eklenen şey alan değil **yazıcı**:
-  `vestra_order_set_discount()`, navlun yazıcısının kardeşi (iki alan + TOPLAM
-  birlikte, mal toplamı faturanın okuduğu `vestra_order_lines`'tan, zaman
-  damgalı yedek, atomik takas, **geri okuma**).
-- **Kupon KAYDINA dokunmuyor:** kodu bulan/yaratan/**yakan** yol iş akışı
-  (`admin_mode=discount`), çünkü o karar hesaba ve kampanyaya bakıyor; satırı
-  yazan fonksiyon yalnız CSV'yi biliyor. Kampanya adı `welcome<pct>` —
-  `voucher_welcome_run` ile **aynı ad**, yani sonraki toplu hoş geldin koşusu o
-  hesaba ikinci bir kod göndermiyor.
-- **SIRA: önce satır (geri okunur), sonra `voucher_redeem`.** Tersi,
-  kaydedilmemiş bir sipariş için tek kullanımlık bir kuponu yakardı —
-  `order.php`'nin kendi yorumunun yazdığı ders.
-- **0 dışında KOD zorunlu:** belgede kodsuz bir indirim satırı, aylar sonra
-  *"bu indirim neydi"* sorusunu cevapsız bırakırdı. `0` yazmak indirimi
-  **kaldırıyor** (kod da siliniyor) ve nottaki kupon parçasını söküyor — ikinci
-  uygulamada eski parça kalsaydı alıcı iki ayrı indirim görürdü.
-- **Faturası kesilmişte varsayılan RED**, `$allowInvoiced` ile yazıyor ve
-  `must_redraft` dönüyor (KURAL 5f: aynı numarayla yeniden çizim).
-- **Müşterinin adresi iş akışı girdisine yazılmıyor**, sipariş kaydından
-  çözülüyor ve çıktıda **maskeli**.
-- Test: `tests/order_discount_test.php` (**51 iddia**). §4b muhafazayı
-  **davranışsal** ölçüyor (kum havuzuna gerçek bir fatura meta dosyası konuyor)
-  — kaynakta `if ($invoiced && …)` görmek ölçüm değil, `if (false)` yapılan bir
-  muhafaza da o satırı taşımaya devam ederdi (KURAL 5r'de bir kez tam böyle bir
-  boşluk çıktı). Düşebildiği doğrulandı: TOPLAM yazılmayınca **9 kırmızı**, not
-  parçası sökülmeyince **4**, faturalı muhafaza etkisizleşince **4**, iş akışı
-  kuponu önce yakınca **2**.
-- **Kendi ölçüm hatam, iki kez:** *"yazıcı voucher_* çağırmıyor"* iddiası düz
-  `voucher_` arıyordu ve **SÜTUN ADINI** (`voucher_code`) yakalayıp doğru
-  çalışan kodu kırmızı gösterdi; *"fatura discount okuyor"* iddiası ise yanlış
-  değişkene bakıyordu (`$assoc`, oysa çiziciler `$order` okuyor). İkisinde de
-  **kod haklıydı, ölçü yanlıştı** — `class="msgtick` önekinin `msgtickdefs`'i
-  yakalamasıyla aynı sınıf.
+  sonradan yazacak hiçbir yol yoktu. Kuralın kendisi **KURAL 32**'de
+  (paralel oturumun kaydı); burada duran şey **çarpışmanın dersi**.
+- **İki oturum aynı öğleden sonra iki ayrı `vestra_order_set_discount()`
+  yazdı** — biri **TUTAR** alıyordu (benimki, panel + `admin_mode=discount`),
+  öteki **YÜZDE** (paralel oturum, `admin_mode=order_discount`). Aynı dosyada
+  iki aynı adlı fonksiyon **fatal**; birleştirme onu otomatik olarak yan yana
+  koydu ve ancak `grep` gösterdi.
+- **YÜZDE alan sürüm kaldı** ve sebebi ölçüldü, kıdem değil: tutarı
+  `voucher_discount()` türetiyor (sepetin **aynı** yuvarlayıcısı), **parası
+  gelmiş siparişi koşulsuz reddediyor**, `subtotal`/`payout`'u da yazıyor ve
+  **ücreti koruyor**. Benimki bunların hiçbirini yapmıyordu. Benim sürümün tek
+  fazlası nota `Voucher KOD (-5%) = -€x.` parçası yazmaktı — **kasıtlı olarak
+  taşınmadı**: aynı olgunun ikinci bir yerde durması bu deponun defalarca
+  ödediği hata, ve belge zaten sütunlardan basıyor.
+- **Panel, iş akışının çağırdığı AYNI gövdeye bağlandı** (`Admin ▸ Orders ▸
+  <sipariş> ▸ 🎟️ Save discount`, girdi **yüzde**). Form tutar göndermeye devam
+  etseydi *"%12,50 indirim"* diye okunurdu — rakam doğru, anlamı bambaşka.
+  Kutuda gösterilen yüzde kayıttaki tutardan **geri türetiliyor** (kayıt tutar
+  saklıyor), yalnız gösterim için; yazma yolunda ikinci bir hesap yok.
+- **Ders:** *aynı dala yazan ikinci bir oturum varsa, birleştirmeden sonra
+  "aynı adı taşıyan iki şey var mı" diye ARA.* `git merge` çakışma bildirmedi
+  çünkü iki fonksiyon dosyanın farklı yerlerine düştü; kusur ancak
+  `grep -c "function vestra_order_set_discount"` ile göründü.
+- Test: `tests/order_discount_test.php` (**15 iddia**) yalnız **panel yolunu**
+  ve tekilliği tutuyor; yazıcının kendisi paralel oturumun
+  `tests/welcome_discount_test.php`'inde (154 iddia). İkinci bir kopya yazmak,
+  tam da bu maddenin anlattığı hatayı testte tekrarlamak olurdu.
+- **Kendi ölçüm hatam, iki kez:** *"yazıcı kupon fonksiyonu çağırmıyor"* iddiası
+  düz `voucher_` arayıp **SÜTUN ADINI** (`voucher_code`) yakaladı; *"handler
+  tutarı kendi hesaplamıyor"* iddiası ise handler'ın kendi **YORUMUNDAKİ**
+  `voucher_discount()` geçişini okudu. İkisinde de **kod haklıydı, ölçü
+  yanlıştı** — `class="msgtick` önekinin `msgtickdefs`'i yakalamasıyla aynı
+  sınıf; ikisi de gevşetilmedi, **daraltıldı** (yorumlar temizlenip çağrı
+  aranıyor).
 
 **KURAL 5m — KDV FİYATIN İÇİNDE; belge matrahı ve vergiyi ayrı gösterir**
 (operatör, 7 Eyl 2026: *"yüzde 21 vat ücreti fiyatın içinde olsun. Faturayı bu
@@ -2049,6 +2051,141 @@ kullanılmalı.
   çevrime dönünce **2**, faturaya yuvarlama girince **1**. `dropship_plan_test`
   eski tam kuruşu pinliyordu; **davranış bilerek değişti**, iddia elle yazılmış
   bir rakam yerine sitenin kendi yuvarlayıcısını okuyacak şekilde düzeltildi.
+
+**KURAL 32 — HOŞ GELDİN İNDİRİMİ: her müşterinin İLK siparişine %5; bölgesel
+indirim alan HARİÇ** (operatör, 19 Eyl 2026: *"yüzde 5 Welcome indirimini her üç
+siparişe ekle … bundan sonraki her müşterinin ilk siparişine de ekle afrika ve
+yüzde 8 yada 10 indirim alanlar hariç"*).
+
+- **DIŞLAMA ÖLÇÜTÜ TEK FONKSİYON: `vestra_region_discount_pct()`.** Operatörün
+  saydığı iki şey — "afrika" ve "yüzde 8 yada 10 indirim alanlar" — **aynı
+  küme**: Afrika'nın 54 ülkesi zaten %8 grubu, JP/AU/SG/HK + Güney Amerika +
+  CZ/PL %10 grubu (bkz. `inc/region_discount.php`). Elle ikinci bir ülke listesi
+  tutmak, yarın bölgesel indirime bir ülke eklendiğinde o ülkeye **sessizce iki
+  indirim birden** vermek olurdu.
+- **Tek karar noktası `vestra_welcome_auto($email, $buyer, $voucherApplied,
+  $exceptRef)`** (`inc/vouchers.php`). Kasa (`order.php`) ve geçmişe dönük yazma
+  (`vestra_order_set_discount`) aynı cevabı oradan okuyor; iki kopya yazılsaydı
+  biri "hak ediyor" derken öteki etmez derdi ve fark ancak **müşterinin
+  faturasında** görünürdü. Dönen `why` bir **gerekçe** (`ok` / `region` /
+  `not_first` / `voucher` / `no_email`): tek başına "0" cevabı *"hak etmiyor"*
+  ile *"hesap okunamadı"*yı ayırmıyor.
+- **`$buyer` HESAP DİZİSİ, ülke dizgesi değil** — bölgesel indirimi fiyata
+  uygulayan yol da (`vestra_viewer_discount_pct` → `auth_user()`) hesaba bakıyor.
+  Sipariş satırının `country` alanından okumak, hesabı Avusturya'da olup
+  teslimatı Nijerya'ya isteyen bir alıcıyı hak etmediği bir dışlamaya sokardı.
+- **Kasada hesap `auth_user()` ile okunuyor, `$me` ile DEĞİL:** `$me` yalnız
+  girişli dalda tanımlı ve PHP'de tanımsız değişken `null`'dır — misafir bir
+  sipariş *"bölgesel indirimi yok"* diye okunur ve Afrika'daki bir alıcıya %8'in
+  **üstüne** %5 daha verilirdi. Aynı dosyada bir kez yaşandı (`$user` vakası).
+- **YANLIŞ YAZILMIŞ BİR KUPON ARTIK İNDİRİMİ ENGELLEMİYOR.** Otomatik dal yalnız
+  `$discount <= 0` iken çalışıyor; "kod YAZILDI MI" ayrı bir soru ve cevabı
+  olmamalı — bir harflik hataya onlarca euro fatura etmek doğru olmazdı. Mektup
+  **ikisini birden** yazıyor (*"kodunuz işlemedi"* + *"indiriminiz düştü"*);
+  tek dala sıkıştırmak kodu yazan alıcının sorusunu cevapsız bırakırdı.
+- **Geçmişe dönük yazma: `vestra_order_set_discount()`** (`inc/orders.php`).
+  İndirim alanı `orders.csv`'de **baştan beri vardı** ve fatura çizicisi onu
+  zaten okuyor (`vestra_order_invoice_payloads()` satıcı başına bölüyor, PDF
+  *"Voucher … −€X"* satırını basıyor) — **eksik olan yazma yoluydu**: kupon
+  ancak ALICI kasada kod yazarsa düşüyordu. Navlunda (KURAL 5k), teslimat
+  adresinde (5l) ve renkte aynı boşluk vardı; bu **dördüncüsü**.
+  - **TUTAR ELLE VERİLMEZ, yüzdeden türer** ve yuvarlama `voucher_discount()`'ta,
+    yani sepetin kullandığı **aynı** yuvarlayıcı (KURAL 5m'nin KDV dersi).
+  - **TABAN SATIRLARDAN** (`vestra_order_lines`), `subtotal` sütunundan **değil**:
+    o sütun indirim **sonrası** değeri taşıyor ve üst üste iki yazma **bileşik**
+    bir rakam üretirdi.
+  - indirim + toplam + `subtotal` + `payout` **birlikte** yazılır, yedeklenir,
+    atomik takas edilir ve **geri okunur**.
+  - **PARASI GELMİŞ sipariş KOŞULSUZ RED** (ölçüt `vestra_order_payment_settled`,
+    KURAL 7b'nin tek karar noktası): tahsil edilmiş bir tutarı geriye dönük
+    indirmek, müşterinin ödediğinden farklı bir belge üretir; **iade ayrı bir
+    karardır**.
+  - **FATURALI sipariş varsayılan RED**, `|allow_invoiced=1` ile geçilir ve dönen
+    `must_redraft` çağıranı KURAL 5f'e yolluyor (`set_colours` deseni).
+  - **ÜCRET MUTLAK KORUNUR**, oran olarak yeniden hesaplanmaz: escrow koruma
+    ücreti Stripe'ta çoktan tahsil edilmiş olabilir.
+- İş akışı: `seller-products.yml` → **`admin_mode=order_discount`**
+  (`payload='pct=5|code=<kupon>|allow_invoiced=1'`, varsayılan **kuru koşu**).
+  Kuru koşu **kararı da** basıyor ve **istek ile karar ayrışıyorsa uyarıyor** —
+  bölgesel indirim yüzünden hariç tutulmuş bir müşteriye elle %5 yazmak aynı
+  satışa iki indirim olurdu. E-posta çıktıda **maskeli**.
+- **Müşteri mektubu: `reply_letter=order_discount`** (`to=order:<ref>` şart).
+  Hiçbir rakam metne gömülü değil; mal toplamı **faturanın okuduğu aynı
+  fonksiyondan**. **Dört dil tek gövdede** (en/de/es/fr — üç müşteri AT/ES/FR);
+  dil **hesabın kayıtlı dilinden** (sipariş satırının `country`'sinden çözmek bu
+  depoda üç kez yanlış cevap verdi). Biçim de dile bağlı: Almanca/İspanyolca/
+  Fransızca ondalık **virgül** kullanıyor ve İngilizce bicimde basılan
+  `1,200.00` o kutuda bin kat sapmış gibi okunur.
+  - **İNDİRİM İŞLENMEMİŞSE DURUYOR** (boş bir *"indiriminiz düştü"* mektubu,
+    müşteriyi kaydında olmayan bir rakamı aramaya yollar).
+  - **FATURA ESKİ TUTARI TAŞIYORSA DURUYOR** (`|fatura − sipariş| > 0.02`):
+    kesilmiş bir belge eski rakamı taşırken *"yeni toplamınız şudur"* yazmak,
+    müşteriye **elindeki kâğıtta olmayan** bir rakam söylemektir ve o kişi
+    hangisinin doğru olduğunu soramaz bile. Yol KURAL 5f: önce yeniden çizim.
+  - **"İlk siparişiniz için" cümlesi ÖLÇÜLÜYOR**, varsayılmıyor
+    (`voucher_customer_order_count`, bu sipariş hariç) — ikinci bir siparişe
+    operatör kararıyla indirim işlenirse o cümle müşterinin kendi kaydıyla
+    çelişirdi (KURAL 3'ün mektup hâli). Fatura cümlesi de koşullu.
+- **ÖLÇÜLEN ÜÇ SİPARİŞ (19 Eyl 2026, `diag-live` → `find_ref`), üçü de Avrupa,
+  yani üçü de bölgesel indirim ALMIYOR ve %5'i hak ediyor:**
+
+  | ref | firma / ülke | mal | navlun | mevcut toplam | durum |
+  |---|---|---:|---:|---:|---|
+  | `VES-1F0C9350` | BRITISHSTYLE · Österreich | 789,00 | 20,00 | 809,00 | pending, faturasız |
+  | `VES-A11C0C97` | LA ISLA DE MIRABEL SL · ES | 7.779,60 | — | 7.779,60 | pending, `invoice_seller_uid=vestra` |
+  | `VES-55E4F6E1` | Mob · France | 1.200,00 | — | 1.200,00 | pending, `invoice_seller_uid=vestra` |
+
+  Beklenen: **−39,45 → 769,55**, **−388,98 → 7.390,62**, **−60,00 → 1.140,00**.
+  *Yan bulgu: `VES-1F0C9350`'nin fatura kesicisi kayıtta artık `vestra` değil
+  **GARAGE LE PARIS** (`7ab30f26…`) — operatör değiştirmiş, yani 17 Eylül'de
+  "EUR ödeme kutusu boş" diye kesilemeyen belge artık kesilebilir.*
+- Test: `tests/welcome_discount_test.php` (**124 iddia**, iki yön). Kum havuzunda
+  **gerçekten yazıyor** ve doğrulama satırın değişmesine değil **BELGENİN
+  KENDİSİNE** bakıyor: PDF çizdirilip içinde `Voucher`, kod, `39.45` ve `769.55`
+  aranıyor — **indirimsiz bir belgede bunların hiçbiri olmamalı** (tek yön
+  yazılsaydı "her belgeye indirim satırı basan" bir kusur da yeşil kalırdı).
+  Yakın komşu tuzağı adıyla: **AT (Avusturya) %5 ALIR ↔ AU (Avustralya) %10
+  grubu**, ve Niger ↔ Nijerya.
+  Düşebildiği doğrulandı, her sabotajın **gerçekten uygulandığı `grep -c` ile
+  ayrıca yazdırılarak**: bölge dışlaması kalkınca **8 kırmızı**, otomatik hiç
+  vermeyince **7**, ödeme muhafazası kalkınca **3**, faturalı muhafazası kalkınca
+  **3**, taban `subtotal` sütununa dönünce **4**, `order.php` bloğu silinince
+  **3**, dört dil tek metne düşürülünce **3**, "ilk sipariş" cümlesi koşulsuz
+  yazılınca **1**, fatura-tutarı muhafazası kalkınca **1**.
+- **KENDİ HATALARIM, kayda geçsin:**
+  1. Faturalı muhafazasını sabote ederken `replace(…, 1)` **ilk** eşleşmeyi buldu
+     ve o `vestra_order_set_colours`'unkiydi — aynı satır iki fonksiyonda duruyor.
+     `grep -c` *"uygulandı"* dedi, oysa ölçmek istediğim fonksiyona **hiç
+     dokunmamıştı** ve test **0 kırmızı** verdi. Bu dosyada kayıtlı tuzağın
+     aynısı; sabotaj fonksiyon gövdesine daraltılınca **3 kırmızı** çıktı.
+  2. *"Bileşik hesap yapılmıyor"* iddiam arada `pct=0` ile sıfırlıyordu, yani
+     tabanı 789'a geri döndürüyor ve **ölçmek istediği şeyi ölçmüyordu**: o
+     sabotaj yalnızca 1 (kablolama) iddiasını düşürdü. Üst üste iki yazma
+     eklendi, aynı sabotaj **4 kırmızı** verdi.
+  3. *"Fatura toplamı"* iddiasını `meta['total']` ile yazmıştım; sipariş yükünde
+     o alan **bilerek boş** (genel toplamı çizici kendi hesaplıyor). **Kod
+     doğruydu, iddia yanlıştı** — iddia belgenin kendisine bağlandı.
+
+**SUNUCUNUN DIŞARI ÇIKIŞI TAMAMEN KAPALI — 19 Eyl 2026, ölçüldü** (bu işin
+canlıya inmesini engelleyen şey ve kendisi bir OLAY). Üç bağımsız host:
+
+| Ölçüm | Sonuç |
+|---|---|
+| deploy → `git fetch github.com` | `Could not resolve host: github.com` (**6 deneme**, iki koşu) |
+| `diag-live` → `ip_probe` (coğrafi API) | **0/4**, her biri **1 ms** — zaman aşımı değil, anında çözümleyici hatası |
+| `diag-messages` → `mailcfg` (Brevo API) | `Brevo events HTTP 0` |
+
+- **SİTE AYAKTA** (runner'ın HTTP kontrolü geçiyor, SSH çalışıyor, PHP koşuyor);
+  ölü olan yalnız **sunucudan dışarı**. Yani vitrin açık, ama:
+  **hiçbir VESTRA e-postası çıkamıyor** — sipariş onayı, şifre sıfırlama, fatura
+  mektubu, kampanya. `vestra_send_mail()` Brevo'ya ulaşamayıp `false` dönüyor.
+- Bu yüzden bu işin **kod tarafı bitti ve push edildi**, **canlı tarafı
+  BEKLİYOR**: `vestra_order_set_discount()` sunucuda henüz yok (deploy inemedi),
+  ve inse bile mektuplar bugün gönderilemez.
+- *Ders, bu dosyada zaten kayıtlı olanın kardeşi: "koşunun 'success' demesi
+  yetmez" — burada tersi geçerli, **koşunun 'failure' demesi de kodun yanlış
+  olduğu anlamına gelmiyor**. Deploy'un düştüğü yer ilk `git fetch`, yani
+  repodaki hiçbir satır okunmadan önce.*
 
 **KURAL 7 — Faturası kesilmiş, havale bekleyen siparişe 5 iş günü** (operatör
 kararı, 2 Eyl 2026, order OCF7F5 / INV-2026-1001 / Daymond Proconect: *"siparişlerin
@@ -2198,6 +2335,54 @@ siparisler faturasi olusanlar tekrar fatura yap yada ödenmemis gösterilmesin"*
   **YARDIM METNİNİ** ölçüyordu. Kod doğruydu, ölçü yanlıştı; iddia rozetin kendi
   işaretlemesine daraltıldı. *`class="msgtick` önekinin `msgtickdefs`'i
   yakalamasıyla ve "iddia satırı değil navigasyonu ölçüyordu" ile aynı sınıf.*
+
+**KURAL 7c — Kesilmiş fatura kartı bir KUYRUK DEĞİL ve hiç boşalmıyor; ödenmiş
+satırlar KATLANIR, silinmez** (operatör, 19 Eyl 2026, yukarıdaki düzeltme
+indikten hemen sonra aynı ekrana bakarak: *"bu offerlar neden halen cikiyor
+eski degilmi"*).
+
+- **Soru önce İKİYE AYRILDI, çünkü cevabı farklı.** Operatör satırları "hâlâ
+  açık iş" diye okuyordu; ölçüm üç şeyi birden gösterdi:
+
+  | Soru | Ölçüm |
+  |---|---|
+  | Bunlar onay mı bekliyor? | **Hayır.** Kartın kendi yorumu (`admin.php:4562`): *"onay kuyruğu kesilenleri düşürür; oysa operatör kesilmiş belgeyi de yönetmek istiyor"* — bu, Redraft + Paid işareti için duran **yönetim listesi** |
+  | Sekme rozeti bunları sayıyor mu? | **Hayır.** `$pendingInvoiceCount` yalnız `count(vestra_invoices_for_ref($ref)) === 0` olanları sayıyor (`admin.php:2545`, `2557`) |
+  | İkisi de gerçekten kapandı mı? | **Evet**, canlı: `OCD7D2 → odendi EVET (paid, 10 Eyl)`, `O39419 → odendi EVET (completed, 24 Ağu)`; ikisi de ikinci numarayı reddediyor |
+
+- **Yani kod kusuru yok, OKUNUŞU kusurlu.** Liste **yapısı gereği hiç
+  boşalmıyor**: kesilen her teklif faturası sonsuza kadar orada, üstelik
+  sekmenin adı *"Invoice **approvals**"*. Bu, KURAL 2c'nin ta kendisi — hiç
+  boşalmayan bir liste okunmamayı öğretir. Bugün 2 satır; her kesim bir satır
+  daha ekliyor.
+- **SİLİNMEDİ, KATLANDI** (operatör seçimi; "tamamen gizle" seçeneği sunuldu ve
+  **bedeliyle birlikte** yazıldı). KURAL 5f'e göre kesilmiş bir faturayı **aynı
+  numarayla** düzeltmenin tek yolu o karttaki **Redraft**; gizlemek o düzeltme
+  yolunu panelden **erişilemez** yapardı. Katlanmış bölüm tek tık uzakta ve
+  **testte ayrı bir iddia** Redraft'ın orada durduğunu ölçüyor.
+- **SATIR GÖVDESİ TEK KOPYA.** İki ayrı `foreach` yazmak Redraft formunu, kalem
+  seçicisini ve Paid sütununu ikiye bölerdi ve ilk düzenlemede ayrışırlardı (bu
+  depoda defalarca kayıtlı: `desc`/`sizes`, faturanın üç katmanı, dört mektup
+  gövdesi). Satırlar **aynı gövdeden** çizilip tamponlanıyor (`ob_start`), sonra
+  iki tabloya dağıtılıyor. Ölçüt yine **tek karar noktası**
+  `vestra_order_payment_settled()` — *"ödendi mi"*nin ikinci bir tanımı
+  yazılmadı.
+- **Hepsi ödenmişse üst tablo hiç çizilmiyor**, yerine tek satır (*"hepsi
+  ödendi — bekleyen yok"*). Başlıklı ama gövdesiz bir tablo, boş bir kuyruktan
+  daha kötü görünürdü.
+- Test: `order_payment_test.php` 76 → **83 iddia**, kart kum havuzunda
+  **gerçekten çizdiriliyor**. **Çapa kendi `summary` metnim:** `admin.php`'de
+  **10 ayrı `<details>`** var ve konuma göre ölçmek başka bir sekmenin bloğunu
+  ölçerdi (*"iddia satırı değil navigasyonu ölçüyordu"* dersinin aynısı).
+  İki yön de düştü, her sabotajın **gerçekten uygulandığı `grep -c` ile ayrıca
+  yazdırılarak**: katlama kapatılınca **6 kırmızı**, **HER** satır katlanınca
+  **2** (kontrol grubu — açık iş görünür kalmalı).
+- **Kendi ölçüm hatam, bu oturumda AYNI sınıfın İKİNCİ vakası:** *"her fatura
+  sayfada tek kez"* iddiasını fatura **numarasıyla** yazdım ve kırmızı döndü —
+  numara satır başına **zaten iki kez** basılıyor (bir `<td>`de, bir de
+  Redraft'ın onay metninde *"Rewrite invoice INV-… IN PLACE"*), değişiklikten
+  **önce de** öyleydi. Kod doğruydu, ölçü yanlıştı; iddia satırın kendi **form
+  id**'sine daraltıldı — kopyalanmayı gerçekten ölçen şey o.
 
 **KURAL 8 — Mesajlaşmada satıcı ürün identiyle görünür; mağaza adı yazılmaz**
 (operatör kararı, 3 Eyl 2026: *"platformdaki mesajlaşmada her ürün için seller

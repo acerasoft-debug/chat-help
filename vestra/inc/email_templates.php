@@ -1189,6 +1189,156 @@ function vestra_tpl_order_payment_ask(string $buyerName, string $ref, string $in
 }
 
 /**
+ * HOS GELDIN INDIRIMI duyurusu (operator, 19 Eyl 2026: *"sonra musterilere
+ * indirim ile ilgili bilgi ver"*).
+ *
+ * HICBIR RAKAM METNE GOMULU DEGIL: mal, indirim, yuzde, navlun ve yeni toplam
+ * cagirandan geliyor ve cagiran onlari SIPARIS KAYDINDAN okuyor. Bu deponun
+ * KURAL 6'da kayitli dersi (escrow tavani bes gun metinde 3.000, kodda 3.500
+ * kaldi) ve KURAL 2b'nin dersi: musteriye soylenen ile kaydin dedigi
+ * ayrisirsa, farki ancak musteri gorur.
+ *
+ * DORT DIL TEK FONKSIYONDA. Ayri yazilsalardi biri duzeltilip oteki eskirdi
+ * (KURAL 5o: ayni para blogu dort kez yazilmisti ve dorduncu kopya dolar
+ * tutarlarin ustune "EUR" yazdi). Musterinin dili kendi ulkesinden secilir --
+ * KURAL 1e'nin ayni gerekcesi.
+ *
+ * "ILK SIPARIS" CUMLESI KOSULLU: indirimin sebebi budur ama OLCULMEDEN
+ * yazilmaz. Ikinci bir siparise operator karariyla indirim islenirse metin
+ * yalnizca "hos geldin indirimi" der; "ilk siparisiniz icin" demek, musterinin
+ * kendi kaydiyla celisen bir cumle olurdu (KURAL 3'un mektup hali).
+ *
+ * $fig: goods, discount, pct, shipping, total, currency, invoice
+ */
+function vestra_tpl_order_discount(string $buyerName, string $ref, array $fig,
+        bool $firstOrder = true, bool $hasAccount = false, string $signer = '', string $lang = 'en'): array {
+    $buyerName = vestra_display_name($buyerName);
+    $lang = in_array(strtolower($lang), ['de', 'es', 'fr'], true) ? strtolower($lang) : 'en';
+
+    $cur = strtoupper(trim((string)($fig['currency'] ?? 'EUR'))) ?: 'EUR';
+    $sym = $cur === 'USD' ? 'US$' : '€';
+    /* Bicim dile gore: Almanca/Ispanyolca/Fransizca ondalik VIRGUL kullaniyor ve
+       Ingilizce bicimde basilan bir rakam o kutuda "1.200,00" yerine "1,200.00"
+       diye okunur -- binlik ile ondalik yer degistirince tutar bin kat sapmis
+       GIBI gorunur. */
+    $m = function (float $v) use ($lang, $sym): string {
+        if ($v <= 0) return '';
+        return $lang === 'en' ? $sym.number_format($v, 2)
+                              : number_format($v, 2, ',', $lang === 'de' ? '.' : ' ').' '.$sym;
+    };
+    $goods = (float)($fig['goods'] ?? 0);
+    $disc  = (float)($fig['discount'] ?? 0);
+    $ship  = (float)($fig['shipping'] ?? 0);
+    $total = (float)($fig['total'] ?? 0);
+    $pct   = (float)($fig['pct'] ?? 0);
+    $inv   = trim((string)($fig['invoice'] ?? ''));
+    /* Belge YENIDEN CIZILDI mi? Sablon bunu OLCEMEZ (fatura dosyasi bugun de
+       var, dun de vardi) -- yalnizca cagiran bilir, o yuzden ACIK bayrak. */
+    $invUpd = !empty($fig['invoice_updated']);
+    $pctLbl = rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.').'%';
+
+    $L = [
+        'en' => ['hi' => 'Customer', 'badge' => 'Discount', 'ref' => 'Order ref', 'goods' => 'Goods',
+                 'disc' => 'Welcome discount', 'ship' => 'Shipping', 'tot' => 'New total', 'inv' => 'Invoice',
+                 'btn' => 'View your order',
+                 'subj' => "Order {$ref} — your {$pctLbl} welcome discount",
+                 'open' => "we have applied a {$pctLbl} welcome discount to your order {$ref}"
+                         . ($firstOrder ? ", as a thank-you for your first order with VESTRA" : "")
+                         . ". The figures below replace the ones you had before.",
+                 'invY' => "Your invoice {$inv} carries this amount — no action is needed from you.",
+                 'invU' => "Your invoice {$inv} has been updated to this amount and keeps its number — please use the updated document; any earlier copy is superseded.",
+                 'invN' => "Your invoice will be issued with this amount.",
+                 'end'  => "If anything is unclear, just reply to this e-mail and ask.",
+                 'bye'  => 'Kind regards,'],
+        'de' => ['hi' => 'Kundin, sehr geehrter Kunde', 'badge' => 'Rabatt', 'ref' => 'Bestellung', 'goods' => 'Warenwert',
+                 'disc' => 'Willkommensrabatt', 'ship' => 'Versand', 'tot' => 'Neuer Gesamtbetrag', 'inv' => 'Rechnung',
+                 'btn' => 'Bestellung ansehen',
+                 'subj' => "Bestellung {$ref} — Ihr Willkommensrabatt von {$pctLbl}",
+                 'open' => "wir haben Ihrer Bestellung {$ref} einen Willkommensrabatt von {$pctLbl} gutgeschrieben"
+                         . ($firstOrder ? " — als Dankeschön für Ihre erste Bestellung bei VESTRA" : "")
+                         . ". Die folgenden Beträge ersetzen die bisherigen.",
+                 'invY' => "Ihre Rechnung {$inv} weist diesen Betrag aus — Sie müssen nichts weiter tun.",
+                 'invU' => "Ihre Rechnung {$inv} wurde auf diesen Betrag aktualisiert und behält ihre Nummer — bitte verwenden Sie die aktualisierte Rechnung; eine frühere Fassung ist damit hinfällig.",
+                 'invN' => "Ihre Rechnung wird mit diesem Betrag ausgestellt.",
+                 'end'  => "Bei Fragen antworten Sie einfach auf diese E-Mail.",
+                 'bye'  => 'Mit freundlichen Grüßen,'],
+        'es' => ['hi' => 'cliente', 'badge' => 'Descuento', 'ref' => 'Pedido', 'goods' => 'Mercancía',
+                 'disc' => 'Descuento de bienvenida', 'ship' => 'Envío', 'tot' => 'Nuevo total', 'inv' => 'Factura',
+                 'btn' => 'Ver su pedido',
+                 'subj' => "Pedido {$ref} — su descuento de bienvenida del {$pctLbl}",
+                 'open' => "hemos aplicado un descuento de bienvenida del {$pctLbl} a su pedido {$ref}"
+                         . ($firstOrder ? ", como agradecimiento por su primer pedido en VESTRA" : "")
+                         . ". Los importes siguientes sustituyen a los anteriores.",
+                 'invY' => "Su factura {$inv} recoge este importe; no tiene que hacer nada más.",
+                 'invU' => "Su factura {$inv} se ha actualizado a este importe y conserva su número; utilice el documento actualizado, ya que cualquier copia anterior queda sin efecto.",
+                 'invN' => "Su factura se emitirá por este importe.",
+                 'end'  => "Si algo no queda claro, responda a este correo y se lo explicamos.",
+                 'bye'  => 'Un cordial saludo,'],
+        'fr' => ['hi' => 'Madame, Monsieur', 'badge' => 'Remise', 'ref' => 'Commande', 'goods' => 'Marchandise',
+                 'disc' => 'Remise de bienvenue', 'ship' => 'Livraison', 'tot' => 'Nouveau total', 'inv' => 'Facture',
+                 'btn' => 'Voir votre commande',
+                 'subj' => "Commande {$ref} — votre remise de bienvenue de {$pctLbl}",
+                 'open' => "nous avons appliqué une remise de bienvenue de {$pctLbl} à votre commande {$ref}"
+                         . ($firstOrder ? ", pour vous remercier de votre première commande chez VESTRA" : "")
+                         . ". Les montants ci-dessous remplacent les précédents.",
+                 'invY' => "Votre facture {$inv} indique ce montant : vous n'avez rien à faire.",
+                 'invU' => "Votre facture {$inv} a été mise à jour pour ce montant et conserve son numéro : merci d'utiliser le document mis à jour, toute copie antérieure étant caduque.",
+                 'invN' => "Votre facture sera établie pour ce montant.",
+                 'end'  => "Si quelque chose n'est pas clair, répondez simplement à ce courriel.",
+                 'bye'  => 'Cordialement,'],
+    ][$lang];
+
+    if ($buyerName === '') $buyerName = $L['hi'];
+    $greet = $lang === 'de' ? "Sehr geehrte {$buyerName}," : ($lang === 'en' ? "Dear {$buyerName}," : "Bonjour {$buyerName},");
+    if ($lang === 'es') $greet = "Estimado/a {$buyerName},";
+    if ($lang === 'de' && $buyerName !== $L['hi']) $greet = "Guten Tag {$buyerName},";
+
+    /* Almanca ve Fransizca hitaptan sonra KUCUK harfle devam eder; Ingilizce ve
+       Ispanyolca BUYUK. Tek bir kurala baglamak dillerin ikisinde yanlis olurdu
+       ve bu, musteriye giden ilk cumle. */
+    $open = in_array($lang, ['en', 'es'], true) ? mb_strtoupper(mb_substr($L['open'], 0, 1)).mb_substr($L['open'], 1)
+                                                : $L['open'];
+    /* Fransizcada iki nokta ustusteden ONCE bosluk var. */
+    $co = $lang === 'fr' ? ' : ' : ': ';
+
+    $rows = [['label' => $L['ref'], 'value' => $ref]];
+    if ($goods > 0) $rows[] = ['label' => $L['goods'], 'value' => $m($goods)];
+    if ($disc  > 0) $rows[] = ['label' => $L['disc'].' ('.$pctLbl.')', 'value' => '-'.$m($disc)];
+    if ($ship  > 0) $rows[] = ['label' => $L['ship'], 'value' => $m($ship)];
+    if ($total > 0) $rows[] = ['label' => $L['tot'], 'value' => $m($total)];
+    if ($inv !== '') $rows[] = ['label' => $L['inv'], 'value' => $inv];
+    $opts = ['badge' => $L['badge'], 'rows' => $rows];
+    if ($hasAccount) $opts['button'] = ['label' => $L['btn'],
+        'url' => 'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref)];
+
+    /* Rakamlar GOVDEDE de yaziyor, yalniz rozet kutusunda degil: bu depo
+       e-posta govdelerini nl2br(htmlspecialchars()) ile basiyor ve bazi posta
+       istemcileri kutuyu dar/kirik gosterebiliyor. Parayi konusan bir mektupta
+       tutar, duz metinde de okunabilmeli. */
+    $lines = $L['goods'].$co.$m($goods)."\n"
+           . $L['disc'].' ('.$pctLbl.')'.$co.'-'.$m($disc)."\n"
+           . ($ship > 0 ? $L['ship'].$co.$m($ship)."\n" : '')
+           . $L['tot'].$co.$m($total)."\n";
+
+    $body = $greet."\n\n"
+          . $open."\n\n"
+          . $lines."\n"
+          /* UC HAL, IKI DEGIL. "Guncellendi" ile "bu tutari tasiyor" ayni sey
+             degil: ilki, musterinin elinde ESKI bir kopya olabilecegini de
+             soyler (KURAL 5f'in yeniden cizimi ayni numarayi korur, yani iki
+             PDF ayni numarayi tasir ve hangisinin gecerli oldugunu yalnizca bu
+             cumle soyler). Bayrak ACIK verilmek zorunda: taze kesilmis bir
+             belgeye "guncellendi" demek, olmamis bir islemi anlatirdi
+             (KURAL 3'un mektup hali). */
+          . ($inv !== '' ? ($invUpd ? $L['invU'] : $L['invY']) : $L['invN'])."\n\n"
+          . $L['end']."\n\n"
+          . $L['bye']."\n\n"
+          . ($signer !== '' ? $signer."\nVESTRA - vestrasales.com" : "VESTRA - vestrasales.com");
+
+    return [$L['subj'], $body, $opts];
+}
+
+/**
  * "Faturaniz hazirlaniyor, ilk is gunu gelecek" (operator metni, 5 Eyl 2026,
  * VES-6B53D265). Ustune iki sey daha tasiyor, ikisi de operatorle konusulup
  * eklendi cunku eksikligi sonradan pahaliya patlardi:

@@ -1509,6 +1509,108 @@ jobs:
               [$subject, $body, $opts] = vestra_tpl_order_payment_notice(
                 $buyerName, $oref, (string)($invNos[0] ?? ''), $oamt, $ocur, (bool)$acc, $persona);
               $fromName = $persona.' — VESTRA';
+            } elseif ($letter === 'order_discount') {
+              /* HOS GELDIN INDIRIMI duyurusu (operator, 19 Eyl 2026:
+                 *"sonra musterilere indirim ile ilgili bilgi ver"*).
+                 to=order:<ref> SART: her rakam SIPARIS KAYDINDAN okunuyor. */
+              if (!$orderRow) { fwrite(STDERR, "order_discount: to=order:<ref> gerekli (mektup siparis kaydindan beslenir)\n"); exit(1); }
+              require_once $doc."/inc/invoice.php";
+              require_once $doc."/inc/vouchers.php";
+              /* orders.php betigin onsozunde ZATEN var, ama orada "payment_due:
+                 grace/business-day helpers" diye yaziyor -- yani bu dalin
+                 ihtiyaci olan vestra_order_lines() baska bir mektubun
+                 require'ina yaslaniyor. O satir bir gun tasinirsa bu dal
+                 fatal verir (KURAL 15'in ta kendisi). Bir satir, ve bagimsiz. */
+              require_once $doc."/inc/orders.php";
+              $oref  = trim((string)$orderRow['ref']);
+              $stAll = vestra_read_json('order_statuses.json');
+              $ost   = (string)($stAll[$oref]['status'] ?? 'pending');
+              $odisc = round((float)($orderRow['discount'] ?? 0), 2);
+              $oship = round((float)($orderRow['shipping'] ?? 0), 2);
+              $ototal= round((float)($orderRow['total'] ?? 0), 2);
+              $ogoods= 0.0;
+              foreach (vestra_order_lines($orderRow)['lines'] as $l) $ogoods += (float)($l['line'] ?? 0);
+              $ogoods = round($ogoods, 2);
+              $opct   = $ogoods > 0 ? round($odisc / $ogoods * 100, 2) : 0.0;
+              $invs   = vestra_invoices_for_ref($oref);
+
+              echo "durum   : {$ost}\n";
+              echo "mal     : ".number_format($ogoods, 2)."\n";
+              echo "indirim : ".number_format($odisc, 2)." (".number_format($opct, 2)."%)  kod: "
+                   .((trim((string)($orderRow['voucher_code'] ?? '')) !== '') ? (string)$orderRow['voucher_code'] : '-')."\n";
+              echo "toplam  : ".number_format($ototal, 2)."\n";
+
+              /* INDIRIM YOKSA DUYURACAK BIR SEY DE YOK. Bos bir "indiriminiz
+                 dustu" mektubu, musteriyi kaydinda olmayan bir rakami aramaya
+                 yollar. */
+              if ($odisc <= 0) { fwrite(STDERR, "bu siparise indirim ISLENMEMIS -- once admin_mode=order_discount ile yazin\n"); exit(1); }
+              if ($ost === 'cancelled') { fwrite(STDERR, "siparis iptal; mektup gonderilmiyor\n"); exit(1); }
+
+              /* FATURA VARSA BELGENIN RAKAMI TUTMALI. Kesilmis bir belge eski
+                 tutari tasirken "yeni toplamiz sudur" yazmak, musteriye elindeki
+                 kagitta OLMAYAN bir rakam soylemek olur -- ve o kisi hangisinin
+                 dogru oldugunu soramaz bile. KURAL 5f'in yolu once yeniden
+                 cizim; bu is ona kadar DURUYOR. */
+              $invNo = '';
+              foreach ($invs as $iv) {
+                $ivTot = round((float)($iv['total'] ?? 0), 2);
+                echo "fatura  : ".(string)($iv['no'] ?? '?')."  tutar ".number_format($ivTot, 2)
+                     ." ".(string)($iv['currency'] ?? '')."\n";
+                if ($ivTot > 0 && abs($ivTot - $ototal) > 0.02) {
+                  fwrite(STDERR, "FATURA ESKI TUTARI TASIYOR (".number_format($ivTot, 2)." != ".number_format($ototal, 2).") --\n"
+                               . "once admin_mode=issue + issue_redraft=true ile AYNI numarayla yeniden cizin (KURAL 5f),\n"
+                               . "yoksa musteriye elindeki belgede OLMAYAN bir rakam yazariz\n"); exit(1);
+                }
+                if ($invNo === '') $invNo = (string)($iv['no'] ?? '');
+              }
+
+              /* DIL: ACIK OPERATOR SECIMI > hesabin kayitli dili > en.
+                 Kayitli dil bir VARSAYILAN (musterinin sitede sectigi dil),
+                 spec'teki `lang=` ise o siparis icin verilmis ACIK bir talimat
+                 -- ve talimat varsayilani ezer (KURAL 5b'nin sirasi: operator
+                 secimi > kaydin kendi alani). Tersi yazilmisti ve ilk gercek
+                 kullanimda yanlis cikti: operator Ispanyol bir firmaya
+                 *"fransizca bilgilendir"* dedi, hesabin kayitli dili `es` ve
+                 spec SESSIZCE yok sayiliyordu -- yani is "basarili" biter,
+                 musteri istenmeyen dilde mektup alir ve bunu kimse gormez. */
+              $dlangSpec = strtolower(substr(trim($E('lang')), 0, 2));
+              $dlangAcc  = $acc ? strtolower(substr((string)($acc['lang'] ?? ''), 0, 2)) : '';
+              $dlang     = $dlangSpec !== '' ? $dlangSpec : ($dlangAcc !== '' ? $dlangAcc : 'en');
+              $dlangSrc  = $dlangSpec !== '' ? 'spec (acik talimat)' : ($dlangAcc !== '' ? 'hesaptan' : 'varsayilan');
+              echo "dil     : {$dlang} ({$dlangSrc})"
+                   .($dlangSpec !== '' && $dlangAcc !== '' && $dlangSpec !== $dlangAcc
+                     ? "  [hesabin kayitli dili {$dlangAcc} -- EZILDI]" : '')."\n";
+
+              /* "Ilk siparis" cumlesi OLCULUYOR, varsayilmiyor: bu siparis
+                 haric baska siparisi varsa o cumle musterinin kendi kaydiyla
+                 celisirdi (KURAL 3'un mektup hali). */
+              $dFirst = voucher_customer_order_count((string)($orderRow['email'] ?? ''), $oref) === 0;
+              echo "ilk siparis mi: ".($dFirst ? 'EVET' : 'hayir -- o cumle YAZILMAYACAK')."\n";
+
+              $buyerName = trim((string)($orderRow['company'] ?? '')) ?: trim((string)($orderRow['name'] ?? ''));
+              if (trim($E('salutation')) !== '') $buyerName = preg_replace('/^dear\s+/i', '', trim($E('salutation')));
+              $persona = trim($E('signer')) !== '' ? trim($E('signer')) : 'Marco Bellini';
+              [$subject, $body, $opts] = vestra_tpl_order_discount($buyerName, $oref, [
+                  'goods' => $ogoods, 'discount' => $odisc, 'pct' => $opct, 'shipping' => $oship,
+                  'total' => $ototal, 'currency' => strtoupper(trim((string)($orderRow['currency'] ?? 'EUR'))) ?: 'EUR',
+                  'invoice' => $invNo,
+                  /* "Fatura guncellenmistir" ACIK bayrakla (spec: invoice_updated=1).
+                     Sablon bunu olcemez -- dosya dun de vardi bugun de var -- ve
+                     taze kesilmis bir belgeye "guncellendi" demek olmamis bir
+                     islemi anlatirdi. Numara YENIDEN CIZIMDE ayni kaliyor
+                     (KURAL 5f), yani musterinin elinde ayni numarayi tasiyan
+                     iki PDF olabilir; hangisinin gecerli oldugunu yalnizca bu
+                     cumle soyluyor. */
+                  'invoice_updated' => trim($E('invoice_updated')) === '1',
+              ], $dFirst, (bool)$acc, $persona, $dlang);
+              if ($invNo !== '' && trim($E('invoice_updated')) === '1') {
+                  echo "fatura cumlesi: GUNCELLENDI (ayni numara, eski kopya gecersiz)\n";
+              } elseif ($invNo !== '') {
+                  echo "fatura cumlesi: bu tutari tasiyor\n";
+              } else {
+                  echo "fatura cumlesi: kesilecek\n";
+              }
+              $fromName = $persona.' — VESTRA';
             } elseif ($letter === 'login_fixed') {
               /* "Giremiyorum" sikayetine cevap. Mektup ONCE KAYDI DOGRULUYOR:
                  hesap gercekten aciksa ve parola gercekten tutuyorsa yaziyor.

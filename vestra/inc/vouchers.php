@@ -22,6 +22,13 @@
  */
 
 require_once __DIR__.'/products.php';   // vestra_read_csv() for the first-order check
+/* KURAL 15: kardes bir dosyanin require'ina yaslanma. products.php bugun
+   region_discount.php'yi yukluyor, ama vestra_welcome_auto()'nun ihtiyaci olan
+   sey o degil -- ihtiyaci olan sey vestra_region_discount_pct()'nin TANIMLI
+   olmasi, ve bunu burada sormak bir satir. Yuklenmemis olsaydi otomatik indirim
+   fatal verirdi ya da (daha kotusu) `function_exists` ile gecistirilseydi
+   bolgesel indirim alan musteriye SESSIZCE ikinci bir indirim daha verirdi. */
+require_once __DIR__.'/region_discount.php';
 
 define('VESTRA_VOUCHERS', __DIR__.'/../data/vouchers.json');
 
@@ -52,13 +59,23 @@ function voucher_find(string $code): ?array {
     return $all[voucher_norm($code)] ?? null;
 }
 
-/** How many orders this e-mail has already placed — drives the first_order_only rule. */
-function voucher_customer_order_count(string $email): int {
+/**
+ * How many orders this e-mail has already placed — drives the first_order_only rule.
+ *
+ * $exceptRef: bir siparisi SAYMA. Canli kasada gerek yok (satir henuz diske
+ * yazilmadi), ama ZATEN YAZILMIS bir siparise sonradan hos geldin indirimi
+ * islenirken sart: o satir kendini sayar ve "ilk siparis degil" cikardi, yani
+ * kontrol tam da uygulanmak istendigi anda kendi kendini engellerdi.
+ */
+function voucher_customer_order_count(string $email, string $exceptRef = ''): int {
     $email = strtolower(trim($email));
     if ($email === '') return 0;
+    $exceptRef = trim($exceptRef);
     $n = 0;
     foreach (vestra_read_csv('orders.csv') as $row) {
-        if (strtolower(trim((string)($row['email'] ?? ''))) === $email) $n++;
+        if (strtolower(trim((string)($row['email'] ?? ''))) !== $email) continue;
+        if ($exceptRef !== '' && trim((string)($row['ref'] ?? '')) === $exceptRef) continue;
+        $n++;
     }
     return $n;
 }
@@ -67,7 +84,7 @@ function voucher_customer_order_count(string $email): int {
  * Validate a code for a specific buyer and basket value.
  * Returns the voucher array when usable, otherwise a short error key the caller maps to text.
  */
-function voucher_validate(string $code, string $email, float $subtotal): array|string {
+function voucher_validate(string $code, string $email, float $subtotal, string $exceptRef = ''): array|string {
     $v = voucher_find($code);
     if (!$v)                                    return 'not_found';
     if (!($v['active'] ?? true))                return 'inactive';
@@ -81,7 +98,7 @@ function voucher_validate(string $code, string $email, float $subtotal): array|s
     $bound = strtolower(trim((string)($v['email'] ?? '')));
     if ($bound !== '' && $bound !== strtolower(trim($email))) return 'wrong_customer';
 
-    if (!empty($v['first_order_only']) && voucher_customer_order_count($email) > 0) return 'not_first_order';
+    if (!empty($v['first_order_only']) && voucher_customer_order_count($email, $exceptRef) > 0) return 'not_first_order';
 
     $min = (float)($v['min_subtotal'] ?? 0);
     if ($min > 0 && $subtotal < $min) return 'min_subtotal';
@@ -98,6 +115,64 @@ function voucher_discount(array $v, float $subtotal): float {
     if ($d < 0) $d = 0.0;
     if ($d > $subtotal) $d = round($subtotal, 2);
     return $d;
+}
+
+/* Otomatik hos geldin indiriminin KOD alani. Gercek bir kupon kodu DEGIL, bir
+   ETIKET: musteri hicbir kod yazmadi, indirim kendiliginden isledi, ve faturanin
+   satiri adsiz kalirsa "Voucher  -EUR 38.90" diye cikar -- okuyan neyin
+   dusuruldugunu soramaz bile. RAKAM METNE GOMULMUYOR, yuzdeden turetiliyor
+   (KURAL 6'nin escrow tavani dersi: 'welcome5' yazan sabit, yuzde degistigi gun
+   belgeye yanlis bir ad bastirirdi). voucher_welcome_run()'in kampanya adiyla
+   AYNI yazim, ki ikisi yan yana okundugunda ayni sey oldugu gorulsun.
+   voucher_find() bunu bulamaz: sepete elle yazan biri 'not_found' alir. */
+function vestra_welcome_auto_code(): string {
+    return 'WELCOME'.rtrim(rtrim(number_format((float)VESTRA_WELCOME_PCT, 2, '.', ''), '0'), '.');
+}
+
+/**
+ * OTOMATIK hos geldin indirimi — her musterinin ILK siparisine (operator,
+ * 19 Eyl 2026: *"bundan sonraki her musterinin ilk siparine de ekle afrika ve
+ * yuzde 8 yada 10 indirim alanlar haric"*).
+ *
+ * TEK KARAR NOKTASI: kasa (order.php) ve gecmise donuk yazma
+ * (vestra_order_set_discount) ayni cevabi buradan okuyor. Iki kopya yazilsaydi
+ * biri "hak ediyor" derken oteki etmez derdi ve fark ancak MUSTERININ
+ * FATURASINDA gorunurdu -- bu deponun defalarca kaydettigi ayrismanin en
+ * pahali hali.
+ *
+ * DISLAMA OLCUTU vestra_region_discount_pct(), elle yazilmis bir ulke listesi
+ * DEGIL. Operatorun cumlesindeki "afrika" ile "yuzde 8 yada 10 indirim alanlar"
+ * ayni kume: Afrika'nin 54 ulkesi zaten %8 grubu (bkz. inc/region_discount.php).
+ * Ikinci bir liste tutmak, yarin bolgesel indirime bir ulke eklendiginde o
+ * ulkeye SESSIZCE iki indirim birden vermek olurdu.
+ *
+ * $buyer bilerek HESAP DIZISI, ulke dizgesi degil: bolgesel indirimi fiyata
+ * uygulayan yol (vestra_viewer_discount_pct -> auth_user()) da hesaba bakiyor.
+ * Siparis satirinin `country` alanindan okumak, hesabi Avusturya'da olup
+ * teslimati Nijerya'ya isteyen bir aliciyi hak etmedigi bir dislamaya sokardi.
+ *
+ * Donen: ['pct','why','region_pct','orders']. 'why' bir GEREKCE ve sonda onu
+ * basiyor: tek basina "0" cevabi "hak etmiyor" ile "hesap okunamadi"yi
+ * ayirmiyor.
+ */
+function vestra_welcome_auto(string $email, ?array $buyer, bool $voucherApplied = false, string $exceptRef = ''): array {
+    $out = ['pct' => 0.0, 'why' => '', 'region_pct' => 0.0, 'orders' => 0];
+    $email = strtolower(trim($email));
+    if ($email === '') { $out['why'] = 'no_email'; return $out; }
+
+    /* Elle yazilmis bir kupon VARSA ust uste binmez: musteri zaten bir indirim
+       aldi ve ikisini toplamak operatorun vermedigi bir karar olurdu. */
+    if ($voucherApplied) { $out['why'] = 'voucher'; return $out; }
+
+    $out['region_pct'] = vestra_region_discount_pct(is_array($buyer) ? $buyer : null);
+    if ($out['region_pct'] > 0) { $out['why'] = 'region'; return $out; }
+
+    $out['orders'] = voucher_customer_order_count($email, $exceptRef);
+    if ($out['orders'] > 0) { $out['why'] = 'not_first'; return $out; }
+
+    $out['pct'] = (float)VESTRA_WELCOME_PCT;
+    $out['why'] = 'ok';
+    return $out;
 }
 
 /** Human label for a code ("5%" / "€25"), for the cart, the invoice and the e-mail. */

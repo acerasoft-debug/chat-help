@@ -160,7 +160,10 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   if($act==='order_discount'){
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
     require_once __DIR__.'/inc/orders.php';
-    $r=vestra_order_set_discount($ref, vestra_price_input((string)($_POST['discount']??'0')), (string)($_POST['voucher_code']??''));
+    /* YÜZDE geçiyoruz, TUTAR değil: tutarı `voucher_discount()` türetiyor,
+       yani sepetin kullandığı AYNI yuvarlayıcı. Elle bir tutar kabul etmek,
+       sepetin bulduğundan bir kuruş farklı bir belge üretebilirdi. */
+    $r=vestra_order_set_discount($ref, vestra_price_input((string)($_POST['discount_pct']??'0')), (string)($_POST['voucher_code']??''));
     header('Location: /admin?tab=orders&view='.urlencode($ref)
           .'&msg='.(isset($r['error'])?'disc_fail&err='.urlencode(substr((string)$r['error'],0,140)):'disc_saved')); exit;
   }
@@ -4031,27 +4034,33 @@ elseif($tab==='orders'):
           <?php endif; ?>
         </form>
         <?php
-          /* INDIRIM (operator, 19 Eyl 2026). Navlun kutusunun kardesi: belgede
-             "Voucher <kod>  -EUR x" satiri olarak cikiyor ve siparis toplami
-             birlikte guncelleniyor. Kod ZORUNLU (0 disinda): belgede kodsuz bir
-             indirim satiri, aylar sonra "bu indirim neydi" sorusunu cevapsiz
-             birakirdi. Kampanya kodunu bulup YAKAN yol is akisinda
-             (admin_mode=discount) -- burada operator elle anlasilan bir rakam
-             yaziyor ve kupon kaydina dokunulmuyor. */
+          /* INDIRIM (operator, 19 Eyl 2026). Panel, is akisinin
+             `admin_mode=order_discount` kipiyle AYNI yaziciyi cagiriyor
+             (`vestra_order_set_discount`): ikinci bir indirim mantigi
+             yazilmadi -- iki yol ayrisir ve ayrisma BELGEDE gorunur.
+             GIRDI YUZDE: tutari `voucher_discount()` turetiyor, yani sepetin
+             kullandigi ayni yuvarlayici. Bos/0 indirimi KALDIRIR.
+             Kod bos birakilirsa yazici kendi kampanya kodunu buluyor. */
           $__vdisc = round((float)($viewRow['discount'] ?? 0), 2);
           $__vvc   = trim((string)($viewRow['voucher_code'] ?? ''));
+          /* Kayitta TUTAR duruyor; kutuda YUZDE gosteriliyor -- mal toplamindan
+             geri turetiliyor ki operator ne yazdigini gorsun. */
+          $__vgoods = 0.0;
+          foreach (vestra_order_lines($viewRow)['lines'] as $__l) $__vgoods += (float)($__l['line'] ?? 0);
+          $__vgoods = round($__vgoods, 2);
+          $__vpct   = ($__vdisc > 0 && $__vgoods > 0) ? round($__vdisc / $__vgoods * 100, 2) : 0.0;
         ?>
         <form method="post" style="margin:0 0 8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <?= csrfField() ?>
           <input type="hidden" name="_action" value="order_discount">
           <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
-          <span class="ahint">Discount (<?= htmlspecialchars($__vocur) ?>):</span>
-          <input name="discount" inputmode="decimal" value="<?= $__vdisc > 0 ? htmlspecialchars(number_format($__vdisc, 2, '.', '')) : '' ?>"
-                 placeholder="0.00" style="width:86px;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)">
-          <input name="voucher_code" value="<?= htmlspecialchars($__vvc) ?>" placeholder="VES-XXXX-XXXX"
-                 style="width:150px;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)">
+          <span class="ahint">Discount (%):</span>
+          <input name="discount_pct" inputmode="decimal" value="<?= $__vpct > 0 ? htmlspecialchars(rtrim(rtrim(number_format($__vpct, 2, '.', ''), '0'), '.')) : '' ?>"
+                 placeholder="<?= (int)VESTRA_WELCOME_PCT ?>" style="width:66px;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)">
+          <input name="voucher_code" value="<?= htmlspecialchars($__vvc) ?>" placeholder="(kampanya kodu — boş = otomatik)"
+                 style="width:190px;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)">
           <button class="abtn" type="submit" style="font-size:12px"
-                  title="Sipariş toplamı da birlikte güncellenir. Kupon kaydı YAKILMAZ (kampanya kodu için iş akışı: admin_mode=discount). Faturası kesilmiş siparişte kaydedilmez.">🎟️ Save discount</button>
+                  title="Tutar yüzdeden türer (sepetin yuvarlayıcısı). İndirim + toplam + payout birlikte yazılır ve geri okunur. PARASI GELMİŞ sipariş reddedilir; faturası kesilmişte kaydedilmez (KURAL 5f: aynı numarayla yeniden çizim).">🎟️ Save discount</button>
           <?php if($__vdisc > 0): ?>
             <span class="ahint" style="font-size:10.5px">belgede: Voucher <?= htmlspecialchars($__vvc !== '' ? $__vvc : '—') ?> −<?= htmlspecialchars($__vocur.' '.number_format($__vdisc, 2, '.', '')) ?></span>
           <?php endif; ?>
@@ -4634,13 +4643,30 @@ foreach($offers as $__o){
   if($__ivs) $issuedOfferInvs[]=['ref'=>$__r,'row'=>$__o,'iv'=>$__ivs[0]];
 }
 ?>
-<?php if($issuedOfferInvs): ?>
-<div class="acard" style="margin-bottom:16px">
-  <div class="acard-hd"><h3>🧾 <?= count($issuedOfferInvs) ?> issued offer invoice(s)</h3></div>
-  <p class="ahint" style="margin:0 0 10px">Kesilmiş belgeyi düzeltmek için: kargo tutarını yazın → <b>👁 Draft</b> ile kontrol edin → <b>🔁 Redraft &amp; email</b>. Belge <b>aynı numarayla</b> yerinde yeniden yazılır, düzeltilmiş PDF alıcıya "your invoice is ready" e-postasıyla <b>ekte</b> gider ve panelindeki bağlantı yeni hâli verir. Ödeme gelince <b>✓ Paid</b> ile işaretleyin — alıcıdaki "payment due" uyarısını o kapatır.</p>
-  <div class="atscroll"><table class="atable">
-    <?= arow(['Offer','Invoice','Buyer','Total','Shipping €','Fix','Paid'],true) ?>
-    <?php foreach($issuedOfferInvs as $__e):
+<?php if($issuedOfferInvs):
+/* ODENMIS FATURALAR KATLANIR (operator, 19 Eyl 2026: "bu offerlar neden halen
+   cikiyor eski degilmi").
+   Bu kart bir ONAY kuyrugu DEGIL -- kesilmis belgelerin yonetim listesi (bkz.
+   yukaridaki yorum) ve yapisi geregi HIC BOSALMIYOR: kesilen her teklif
+   faturasi sonsuza kadar burada kaliyor. Sekme rozeti onlari saymiyor
+   (pendingInvoiceCount yalniz faturasiz olanlari sayar), ama sekmenin adi
+   "Invoice approvals" ve operator satirlari "hâlâ acik is" diye okuyor.
+   Sonucu KURAL 2c'nin ta kendisi: hic bosalmayan bir liste, okunmamayi ogretir.
+
+   ODENMISLER SILINMIYOR, KATLANIYOR. KURAL 5f'e gore kesilmis bir faturayi
+   AYNI numarayla duzeltmenin tek yolu buradaki Redraft; satirlari tamamen
+   gizlemek o duzeltme yolunu panelden erisilemez yapardi -- kuralin korudugu
+   seyi kaldirmak olurdu. Katlanmis bolum tek tik uzakta.
+
+   SATIR GOVDESI TEK KOPYA. Iki ayri foreach yazmak Redraft formunu, kalem
+   secicisini ve Paid sutununu ikiye bolerdi ve ilk duzenlemede ayrisirlardi
+   (bu depoda defalarca kayitli hata: desc/sizes, faturanin uc katmani, dort
+   mektup govdesi). Satirlar ayni govdeden cizilip tamponlaniyor, sonra iki
+   tabloya dagitiliyor.
+   Olcut ayni TEK karar noktasi: vestra_order_payment_settled() -- "odendi mi"
+   sorusunun ikinci bir tanimi yazilmadi. */
+$__openRows=''; $__doneRows=''; $__doneN=0;
+foreach($issuedOfferInvs as $__e):
       $rref=$__e['ref']; $riv=$__e['iv'];
       /* "Odendi mi" TEK yerden soruluyor (vestra_order_payment_settled).
          Onceden yalnizca invoice_paid_at okunuyordu -- o isareti SADECE
@@ -4653,6 +4679,7 @@ foreach($offers as $__o){
       $rShip=(float)($offerResp[$rref]['invoice_shipping'] ?? 0);
       $rMembers=(array)($offerResp[$rref]['invoice_members'] ?? []);
       $rFid='frdr-'.preg_replace('/[^A-Za-z0-9_-]/','',$rref);
+      ob_start();
     ?>
     <tr>
       <td><a class="acc" href="/admin?tab=offers"><?= htmlspecialchars($rref) ?></a>
@@ -4723,8 +4750,34 @@ foreach($offers as $__o){
         <?php endif; ?>
       </td>
     </tr>
-    <?php endforeach; ?>
+    <?php
+      $__h=ob_get_clean();
+      if($rPaid){ $__doneRows.=$__h; $__doneN++; } else { $__openRows.=$__h; }
+    endforeach;
+    $__openN = count($issuedOfferInvs) - $__doneN;
+    $__ihead = ['Offer','Invoice','Buyer','Total','Shipping €','Fix','Paid'];
+?>
+<div class="acard" style="margin-bottom:16px">
+  <div class="acard-hd"><h3>🧾 <?= count($issuedOfferInvs) ?> issued offer invoice(s)<?php if($__doneN): ?> <span class="ahint" style="font-weight:400">· <?= $__openN ?> açık, <?= $__doneN ?> kapandı</span><?php endif; ?></h3></div>
+  <p class="ahint" style="margin:0 0 10px">Kesilmiş belgeyi düzeltmek için: kargo tutarını yazın → <b>👁 Draft</b> ile kontrol edin → <b>🔁 Redraft &amp; email</b>. Belge <b>aynı numarayla</b> yerinde yeniden yazılır, düzeltilmiş PDF alıcıya "your invoice is ready" e-postasıyla <b>ekte</b> gider ve panelindeki bağlantı yeni hâli verir. Ödeme gelince <b>✓ Paid</b> ile işaretleyin — alıcıdaki "payment due" uyarısını o kapatır.</p>
+  <?php if($__openRows!==''): ?>
+  <div class="atscroll"><table class="atable">
+    <?= arow($__ihead,true) ?>
+    <?= $__openRows ?>
   </table></div>
+  <?php else: ?>
+  <div class="ahint" style="padding:8px 0">✓ Kesilmiş faturaların hepsi ödendi — bekleyen yok.</div>
+  <?php endif; ?>
+  <?php if($__doneN): /* Katlanmis: odenmis belgeler. Varsayilan KAPALI ama
+        silinmis DEGIL -- Redraft (KURAL 5f) tek tik uzakta. */ ?>
+  <details style="margin-top:10px">
+    <summary style="cursor:pointer;color:var(--mut);font-size:13px;padding:6px 0">✓ <?= $__doneN ?> kapanmış fatura (ödendi) — düzeltmek için aç</summary>
+    <div class="atscroll" style="margin-top:8px"><table class="atable">
+      <?= arow($__ihead,true) ?>
+      <?= $__doneRows ?>
+    </table></div>
+  </details>
+  <?php endif; ?>
 </div>
 <?php endif; ?>
 
