@@ -238,6 +238,71 @@ $t('etiket fonksiyondan',                     str_contains($osrc, 'vestra_welcom
 $t('mektup ikisini birden yazabiliyor',
    str_contains($osrc, '$voucherFailed ? "Note: voucher code'));
 
+echo "\n== 10. MUSTERI MEKTUBU: rakamlar KAYITTAN, dort dil TEK govdede ==\n";
+require_once $root.'/inc/i18n.php';
+require_once $root.'/inc/email_templates.php';
+$fig = ['goods' => 789.00, 'discount' => 39.45, 'pct' => 5.0, 'shipping' => 20.00,
+        'total' => 769.55, 'currency' => 'EUR', 'invoice' => ''];
+$langs = ['en', 'de', 'es', 'fr'];
+foreach ($langs as $lg) {
+    [$s, $b, $o] = vestra_tpl_order_discount('Test GmbH', 'VES-L1', $fig, true, true, 'Marco Bellini', $lg);
+    /* Her dilde RAKAMLAR olmali: bir dilin tablosu eksik kalirsa mektup
+       "indiriminiz var" deyip tutari yazmaz. Bicim dile gore degisiyor
+       (en: 769.55, digerleri: 769,55) -- ikisi de kabul. */
+    $has = fn(string $n) => str_contains($b, $n) || str_contains($b, str_replace('.', ',', $n));
+    $t("{$lg}: konu ref tasiyor",      str_contains($s, 'VES-L1'));
+    $t("{$lg}: govdede yeni toplam",   $has('769.55'));
+    $t("{$lg}: govdede indirim",       $has('39.45'));
+    $t("{$lg}: govdede mal toplami",   $has('789.00'));
+    $t("{$lg}: yuzde yaziyor",         str_contains($b, '5%'));
+    $t("{$lg}: rozet satirlari var",   count((array)($o['rows'] ?? [])) >= 5);
+}
+/* Diller GERCEKTEN ceviri: hepsi ayni metni dondurseydi yukaridaki iddialarin
+   hepsi yine gecerdi (dort kez Ingilizce). */
+$bodies = [];
+foreach ($langs as $lg) { [$s2, $b2] = vestra_tpl_order_discount('Test GmbH', 'VES-L1', $fig, true, true, '', $lg); $bodies[$lg] = $b2; }
+$t('dort dil BIRBIRINDEN farkli',   count(array_unique($bodies)) === 4);
+$t('de gercekten Almanca',          str_contains($bodies['de'], 'Willkommensrabatt'));
+$t('es gercekten Ispanyolca',       str_contains($bodies['es'], 'descuento de bienvenida'));
+$t('fr gercekten Fransizca',        str_contains($bodies['fr'], 'remise de bienvenue'));
+
+/* "Ilk siparis" cumlesi KOSULLU: olculmeden yazilmaz. */
+[$sF, $bF] = vestra_tpl_order_discount('X', 'VES-L1', $fig, true,  false, '', 'en');
+[$sN, $bN] = vestra_tpl_order_discount('X', 'VES-L1', $fig, false, false, '', 'en');
+$t('ilk siparis ise cumle VAR',     str_contains($bF, 'first order'));
+$t('ilk siparis DEGILSE cumle YOK', !str_contains($bN, 'first order'));
+$t('rakamlar iki halde de ayni',    str_contains($bN, '769.55'));
+
+/* Fatura cumlesi: VARSA numarayi yazar, YOKSA "kesilecek" der. Tek dala
+   sikistirmak, faturasi elinde olan musteriye "kesilecek" dedirtirdi. */
+[$sI, $bI] = vestra_tpl_order_discount('X', 'VES-L1', ['invoice' => 'INV-2026-1014'] + $fig, true, false, '', 'en');
+$t('fatura VARSA numara yaziyor',   str_contains($bI, 'INV-2026-1014'));
+$t('fatura VARSA "will be issued" YOK', !str_contains($bI, 'will be issued'));
+$t('fatura YOKSA "will be issued" VAR', str_contains($bF, 'will be issued'));
+
+/* Rakam METNE GOMULU DEGIL: yuzde degisirse metin de degismeli. */
+$fig9 = ['pct' => 9.0, 'discount' => 71.01, 'total' => 737.99] + $fig;
+[$s9, $b9] = vestra_tpl_order_discount('X', 'VES-L1', $fig9, true, false, '', 'en');
+$t('yuzde govdeden turuyor (9%)',   str_contains($b9, '9%') && !str_contains($b9, '5%'));
+$t('konu da yuzdeyi tasiyor',       str_contains($s9, '9%'));
+
+echo "\n== 11. MEKTUP DALI: fatura ESKI tutari tasiyorsa DURUYOR ==\n";
+$wf = file_get_contents(dirname(__DIR__).'/.github/workflows/send-campaign-preview.yml');
+$br = strpos($wf, "elseif (\$letter === 'order_discount')");
+$brEnd = $br === false ? false : strpos($wf, "elseif (\$letter === 'login_fixed')", $br);
+$bs = ($br !== false && $brEnd !== false) ? substr($wf, $br, $brEnd - $br) : '';
+$t('dal var',                         $bs !== '');
+$t('indirimsiz sipariste DURUYOR',    str_contains($bs, 'indirim ISLENMEMIS'));
+$t('fatura tutari KARSILASTIRILIYOR', (bool)preg_match('/abs\(\$ivTot - \$ototal\) > 0\.02/', $bs)
+                                   && str_contains($bs, 'exit(1)'));
+$t('KURAL 5f\'e yolluyor',            str_contains($bs, 'issue_redraft=true'));
+$t('iptal sipariste DURUYOR',         str_contains($bs, "\$ost === 'cancelled'"));
+$t('dil HESABIN kayitli dilinden',    str_contains($bs, "\$acc['lang']"));
+$t('ilk siparis OLCULUYOR',           str_contains($bs, 'voucher_customer_order_count('));
+$t('tutar siparis kaydindan (elle DEGIL)',
+                                      str_contains($bs, "vestra_order_lines(\$orderRow)")
+                                   && !preg_match('/\$ototal\s*=\s*[0-9]/', $bs));
+
 /* ── temizlik ─────────────────────────────────────────────────────────────── */
 $rm = function (string $d) use (&$rm) {
     foreach (scandir($d) ?: [] as $f) { if ($f === '.' || $f === '..') continue;
