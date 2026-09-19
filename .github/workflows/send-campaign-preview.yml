@@ -1516,6 +1516,12 @@ jobs:
               if (!$orderRow) { fwrite(STDERR, "order_discount: to=order:<ref> gerekli (mektup siparis kaydindan beslenir)\n"); exit(1); }
               require_once $doc."/inc/invoice.php";
               require_once $doc."/inc/vouchers.php";
+              /* orders.php betigin onsozunde ZATEN var, ama orada "payment_due:
+                 grace/business-day helpers" diye yaziyor -- yani bu dalin
+                 ihtiyaci olan vestra_order_lines() baska bir mektubun
+                 require'ina yaslaniyor. O satir bir gun tasinirsa bu dal
+                 fatal verir (KURAL 15'in ta kendisi). Bir satir, ve bagimsiz. */
+              require_once $doc."/inc/orders.php";
               $oref  = trim((string)$orderRow['ref']);
               $stAll = vestra_read_json('order_statuses.json');
               $ost   = (string)($stAll[$oref]['status'] ?? 'pending');
