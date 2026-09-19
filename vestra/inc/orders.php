@@ -317,6 +317,81 @@ function vestra_order_in_review(string $ref, string $status): bool {
     return !vestra_invoices_for_ref($ref);
 }
 
+/**
+ * BU SATISIN PARASI GELDI MI? — tek karar noktasi.
+ *
+ * Ayni olgunun IKI ayri kaydi vardi ve biri otekini HIC okumuyordu:
+ *
+ *   order_statuses[ref].status        yazan: Admin > Orders durum secici
+ *                                     okuyan: odeme saati/otomatik iptal
+ *                                             (cron_order_payment), siparis
+ *                                             sayfasi, order-pdf
+ *   offer_responses[ref].invoice_paid_at
+ *                                     yazan: Admin > Invoice approvals "✓ Paid"
+ *                                     okuyan: alicinin "Payment due" bandi
+ *                                             (buyer.php) ve o dugmenin kendisi
+ *
+ * Yani ayni satis bir ekranda odenmis, obur ekranda odenmemis gorunuyordu.
+ * 19 Eyl 2026'da OLCULDU: O39419 order_statuses'te `completed` (paid 24 Agu →
+ * shipped 9 Eyl → completed 12 Eyl, sonuncusunu ALICI isaretlemis) ve faturasi
+ * INV-2026-1009 kesilmis; buna ragmen `invoice_paid_at` okuyan iki yuzey de
+ * "odenmemis" diyordu -- yani parasini 26 gun once odemis, malini teslim almis
+ * musteriye "⚠ Payment due / awaiting payment" gosteriliyordu.
+ *
+ * Bu, bu dosyada ZATEN bir kez odenmis dersin ust katmani: 5 Eyl 2026'da
+ * 'delivered' zincirde olmadigi icin default'a dusuyor ve teslim edilmis bir
+ * siparis "Awaiting payment" yaziyordu (bkz. vestra_order_status_label'daki
+ * not). Orada eksik olan bir ADIMDI, burada eksik olan bir KAYIT.
+ *
+ * TURETILIYOR, ucuncu bir bayrak olarak SAKLANMIYOR (vestra_order_in_review'in
+ * kendi gerekcesi): saklansaydi gunun birinde o da otekilerden ayrisirdi.
+ * Olcut ZINCIRIN KENDISINDEN okunuyor, elle yazilmis bir durum listesinden
+ * degil -- yarin araya bir adim girerse ('to_vestra' boyle girmisti) o da
+ * kendiliginden "parasi gelmis" tarafinda kalir.
+ *
+ * 'cancelled' zincirde BILEREK yok (VESTRA_ORDER_CANCELLED'in kendi notu), yani
+ * iptal edilmis siparis "odendi" saymiyor -- ama zaten pending de olmadigi icin
+ * kimse onun parasini kovalamiyor.
+ *
+ * @return array{settled:bool,via:string,status:string,at:string}
+ *         via: 'status'  -> siparisin kendi durumu zincirde 'paid' ya da otesi
+ *              'invoice' -> teklif faturasinda odendi isareti var
+ */
+function vestra_order_payment_settled(string $ref, ?array $statusEntry = null): array {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
+    if ($statusEntry === null && $ref !== '') {
+        $statusEntry = (array)((vestra_read_json('order_statuses.json'))[$ref] ?? []);
+    }
+    $status = (string)(($statusEntry ?? [])['status'] ?? 'pending');
+    $out = ['settled' => false, 'via' => '', 'status' => $status, 'at' => ''];
+
+    $iNow  = array_search($status, VESTRA_ORDER_STEPS, true);
+    $iPaid = array_search('paid',  VESTRA_ORDER_STEPS, true);
+    if ($iNow !== false && $iPaid !== false && $iNow >= $iPaid) {
+        $out['settled'] = true;
+        $out['via']     = 'status';
+        $out['at']      = (string)(($statusEntry ?? [])['paid_at'] ?? (($statusEntry ?? [])['updated_at'] ?? ''));
+        return $out;
+    }
+
+    /* Teklif faturasinin kendi isareti. Siparis satiri 'pending' kalmis olabilir
+       (operator isareti Invoice approvals'tan koydu, Orders sekmesine hic
+       girmedi) ve o hâlde otomatik iptal saati ODENMIS bir siparisi kovalar. */
+    if ($ref === '') return $out;
+    $rs = (array)vestra_read_json('offer_responses.json');
+    $at = trim((string)($rs[$ref]['invoice_paid_at'] ?? ''));
+    if ($at === '') {
+        /* UYE SATIRI: birlesik belge BIRINCIL ref adina kesildi ve odendi
+           isareti orada duruyor (KURAL 5e). Uyeyi kendi basina sormak, tek
+           belgeyle odenmis bir satisin yarisini "odenmemis" gosterirdi --
+           vestra_invoices_for_ref'in bagi izlemesiyle ayni gerekce. */
+        $grp = trim((string)($rs[$ref]['invoice_group_ref'] ?? ''));
+        if ($grp !== '' && $grp !== $ref) $at = trim((string)($rs[$grp]['invoice_paid_at'] ?? ''));
+    }
+    if ($at !== '') { $out['settled'] = true; $out['via'] = 'invoice'; $out['at'] = $at; }
+    return $out;
+}
+
 /** What the buyer is told while the order is in review. */
 function vestra_order_review_note(string $orderDate = ''): string {
     $d = $orderDate !== '' ? substr($orderDate, 0, 10) : '';
@@ -982,11 +1057,29 @@ const VESTRA_ORDER_PAYMENT_GRACE_DAYS = 5;
  * shape, in two files, is one INSTANT fatal ("Cannot redeclare") the moment both
  * files load on the same request — which is every admin/buyer/seller page.
  *
- * @param array $statusEntry order_statuses.json[$ref] (or a fresh ['status'=>'pending'])
+ * 'paid': the money is IN. The clock must not merely pause, it must never have
+ * started — chasing a customer who has already paid is worse than not chasing
+ * at all, and the end of this clock is an AUTOMATIC CANCELLATION of a settled
+ * sale. Asked here rather than left to each caller because this function is
+ * where "should we chase this payment" is decided (CLAUDE.md: "Saat, ilk mektup
+ * ve karar mantigi TEK yerde"); a caller-side check is a rule left to memory,
+ * and the next caller written would miss it exactly as the fourth one did.
+ *
+ * @param array  $statusEntry order_statuses.json[$ref] (or a fresh ['status'=>'pending'])
+ * @param string $ref         verilirse teklif faturasinin odendi isareti de sorulur.
+ *                            Bos birakildiginda fonksiyon SAF kalir (dosya
+ *                            okumaz) -- saat aritmetigi canli siparis olmadan
+ *                            sinanabilsin diye, yukaridaki eligibility/clock
+ *                            ayriminin ayni gerekcesi.
  */
-function vestra_order_payment_grace(array $statusEntry, ?int $now = null): array {
+function vestra_order_payment_grace(array $statusEntry, ?int $now = null, string $ref = ''): array {
     if (!function_exists('vestra_business_days_after')) require_once __DIR__.'/escrow.php';
     $now = $now ?? time();
+    $settled = vestra_order_payment_settled($ref, $statusEntry);
+    if ($settled['settled']) {
+        return ['phase'=>'paid', 'start'=>null, 'notice_sent'=>false, 'deadline'=>null, 'days_left'=>null,
+                'paid_via'=>$settled['via'], 'paid_at'=>$settled['at']];
+    }
     $receipt = $statusEntry['payment_receipt'] ?? null;
     if (is_array($receipt) && !empty($receipt['file'])) {
         return ['phase'=>'has_receipt', 'start'=>null, 'notice_sent'=>false, 'deadline'=>null, 'days_left'=>null];

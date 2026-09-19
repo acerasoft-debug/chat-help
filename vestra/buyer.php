@@ -513,14 +513,23 @@ if($tab==='overview'){
   /* ── ODENMESI GEREKEN FATURALAR (operator istegi, 1 Eyl 2026) ──
      Kesilmis ama odenmemis teklif faturalari sayfanin EN USTUNDE, acik bir
      uyariyla: banka havalesi bekleyen belge, kartlarin arasinda bir linkten
-     ibaret kalmasin. "Odenmemis" = birincil ref'te invoice_paid_at yok;
-     isareti operator odeme gelince koyuyor. Uyeler (invoice_group_ref)
-     atlanir: birlesik belge tek satir olarak bir kez gorunur. */
+     ibaret kalmasin. Uyeler (invoice_group_ref) atlanir: birlesik belge tek
+     satir olarak bir kez gorunur.
+
+     "ODENMEMIS" ARTIK TEK YERDEN SORULUYOR (vestra_order_payment_settled).
+     Onceden yalnizca invoice_paid_at'e bakiyordu ve o isareti SADECE Invoice
+     approvals'taki dugme yaziyor; operator odemeyi Orders sekmesinden
+     isaretlediginde (durum 'paid' → ... → 'completed') bu bant HABERSIZ
+     kaliyordu. 19 Eyl 2026'da olculdu: O39419 `completed` (24 Agu'da odenmis,
+     9 Eyl'de kargolanmis, 12 Eyl'de ALICININ KENDISI tamamlandi isaretlemis)
+     ve alici hâlâ "⚠ Payment due — awaiting payment" goruyordu. Parasini
+     odemis, malini teslim almis musteriden bir kez daha odeme istemek,
+     hic yazmamaktan kotu. */
   $dueInvs=[];
   foreach($offers as $__o){
     $__r=(string)($__o['ref']??''); if($__r==='') continue;
     if(trim((string)($offerResp[$__r]['invoice_group_ref'] ?? ''))!=='') continue;
-    if(!empty($offerResp[$__r]['invoice_paid_at'])) continue;
+    if(vestra_order_payment_settled($__r, $orderSt[$__r] ?? [])['settled']) continue;
     foreach(vestra_invoices_for_ref($__r,false) as $__iv){
       if(($__iv['no']??'')!=='') $dueInvs[$__iv['no']]=$__iv;
     }

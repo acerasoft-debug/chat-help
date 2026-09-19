@@ -57,7 +57,12 @@ foreach (vestra_read_csv('orders.csv') as $row) {
     if (str_contains((string)($row['notes'] ?? ''), 'Secure escrow')) { $acts['notapplicable']++; continue; }
 
     $entry = (vestra_read_json('order_statuses.json'))[$ref] ?? ['status'=>'pending'];
-    $g = vestra_order_payment_grace($entry, $now);
+    /* REF VERILIYOR: satir 'pending' olsa bile teklif faturasinda "✓ Paid"
+       isareti varsa para GELMISTIR (operator isareti Invoice approvals'tan
+       koyuyor, Orders sekmesine hic girmeyebiliyor). Ref'siz cagrilsaydi bu
+       kosu odenmis bir satisi kovalar, mektup yollar ve sonunda OTOMATIK
+       IPTAL ederdi. */
+    $g = vestra_order_payment_grace($entry, $now, $ref);
     $invs  = vestra_invoices_for_ref($ref);
     if (!$invs) { $acts['notapplicable']++; continue; }   // guvenlik: fatura yoksa hic dokunma
     $invNo = (string)($invs[0]['no'] ?? '');
@@ -65,6 +70,13 @@ foreach (vestra_read_csv('orders.csv') as $row) {
     $cur   = (string)($invs[0]['currency'] ?? 'EUR');
 
     switch ($g['phase']) {
+        case 'paid':
+            /* Parasi gelmis satis: saat hic islemez. Sessizce gecilir --
+               operatore her sabah "bu odenmis" yazan bir satir, okunmamayi
+               ogretir (KURAL 2c). */
+            $acts['notapplicable']++;
+            break;
+
         case 'has_receipt':
             $acts['awaiting_review'][] = $row;
             break;

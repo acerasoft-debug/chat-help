@@ -4581,7 +4581,14 @@ foreach($offers as $__o){
     <?= arow(['Offer','Invoice','Buyer','Total','Shipping €','Fix','Paid'],true) ?>
     <?php foreach($issuedOfferInvs as $__e):
       $rref=$__e['ref']; $riv=$__e['iv'];
-      $rPaid=!empty($offerResp[$rref]['invoice_paid_at']);
+      /* "Odendi mi" TEK yerden soruluyor (vestra_order_payment_settled).
+         Onceden yalnizca invoice_paid_at okunuyordu -- o isareti SADECE
+         asagidaki dugme yaziyor. Operator odemeyi Orders sekmesinden
+         isaretlediyse (durum 'paid' → ... → 'completed') bu sutun habersiz
+         kaliyor ve TAMAMLANMIS bir satis "⌛ Unpaid" goruntusunde duruyordu;
+         O39419 tam boyleydi (19 Eyl 2026 olcumu). */
+      $rSet =vestra_order_payment_settled($rref, $orderSt[$rref] ?? []);
+      $rPaid=$rSet['settled'];
       $rShip=(float)($offerResp[$rref]['invoice_shipping'] ?? 0);
       $rMembers=(array)($offerResp[$rref]['invoice_members'] ?? []);
       $rFid='frdr-'.preg_replace('/[^A-Za-z0-9_-]/','',$rref);
@@ -4638,12 +4645,21 @@ foreach($offers as $__o){
         </form>
       </td>
       <td>
+        <?php if($rSet['via']==='status'): /* Kaynak SIPARISIN DURUMU: isareti
+              buradan kaldirmak hicbir sey yapmazdi (bir sonraki cizimde durum
+              yine "odendi" derdi), o yuzden dugme YOK -- calismayan bir dugme
+              gostermek, olmayan bir dugmeden kotu (KURAL 4'un karsi teklif
+              alani dersi). Nereden degistirilecegi yaziyor. */ ?>
+          <span class="abtn" style="font-size:12px;color:var(--ok);border-color:rgba(122,214,160,.4);cursor:default">✓ Paid</span>
+          <div class="ahint" style="font-size:10.5px;margin-top:4px">sipariş durumu: <b><?= htmlspecialchars(vestra_order_status_label((string)$rSet['status'], true)) ?></b><br>değiştirmek için Orders sekmesi</div>
+        <?php else: ?>
         <form method="post" style="margin:0">
           <?= csrfField() ?>
           <input type="hidden" name="_action" value="offer_invoice_paid_toggle">
           <input type="hidden" name="ref" value="<?= htmlspecialchars($rref) ?>">
           <button class="abtn" type="submit" style="font-size:12px;<?= $rPaid?'color:var(--ok);border-color:rgba(122,214,160,.4)':'' ?>"><?= $rPaid?'✓ Paid':'⌛ Unpaid' ?></button>
         </form>
+        <?php endif; ?>
       </td>
     </tr>
     <?php endforeach; ?>
