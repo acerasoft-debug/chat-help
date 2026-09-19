@@ -1070,7 +1070,11 @@ jobs:
                 # `dig` bu barindirmada olmayabilir, o yuzden ona yaslanilmiyor.
                 IP=$(getent ahostsv4 "$H" 2>/dev/null | awk 'NR==1{print $1}')
                 if [ -n "$IP" ]; then DNS="cozuldu ($IP)"; else DNS="*** COZULMUYOR ***"; fi
-                CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 "https://$H" 2>/dev/null || echo 000)
+                # `|| echo 000` KULLANILMIYOR: curl cozulemeyen adda zaten "000"
+                # basip sifir-disi donuyor, yani iki cikti birlesip "000000" gibi
+                # okunuyordu -- aracin kendi gurultusu (bu depoda kayitli sinif).
+                CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 "https://$H" 2>/dev/null)
+                [ -n "$CODE" ] || CODE=000
                 printf '  %-24s ad: %-26s https: %s\n' "$H" "$DNS" "$CODE"
               done
               echo "  (https 000 = baglanti hic kurulamadi; ad cozulmuyorsa bu bir SONUC, ayri bir ariza degil)"
