@@ -96,14 +96,26 @@ $t('ABD hesabi yokken duz bank_bic yine basilir', str_contains($jO, 'BIC / SWIFT
    var mi. Rails okuyup formun yazmadigi bir alan "toplanan ama okunmayan"in tersi
    olurdu: okunan ama hicbir yerden girilemeyen alan. */
 $adm = (string)@file_get_contents(__DIR__.'/../vestra/admin.php');
-$hp  = substr($adm, strpos($adm, "if(\$act==='save_platform_billing')"), 2600);
+/* 19 Eyl 2026: kayit yolu admin.php'den inc/invoice.php'ye TASINDI
+   (vestra_platform_seller_save -- panel ve is akisi ayni yaziciyi cagiriyor;
+   tests/platform_bank_save_test.php onu kum havuzunda kosturuyor). Iddialar
+   davranisi degil YERI pinliyordu ve tasinma sonrasi kirmizi dondu; davranis
+   bilerek degisti, iddia yazicinin govdesine yonlendirildi. Handler'in o
+   yaziciyi CAGIRDIGI ayrica olculuyor -- yoksa govde dogru, panel baska bir
+   yola gidiyor olabilirdi. */
+$inv = (string)@file_get_contents(__DIR__.'/../vestra/inc/invoice.php');
+preg_match('/^function vestra_platform_seller_save\(.*?^}/ms', $inv, $m);
+$hp  = $m[0] ?? '';
+$hnd = substr($adm, strpos($adm, "if(\$act==='save_platform_billing')"), 900);
+$t('platform yazicisi invoice.php\'de var', $hp !== '');
+$t('panel handler tek yaziciyi cagiriyor', str_contains($hnd, 'vestra_platform_seller_save('));
 foreach (['bank_eur_bic','bank_eur_name','bank_eur_address'] as $f) {
     $t("platform kayit yolu $f aliyor",   str_contains($hp, "'$f'"));
     $t("platform formu $f alanini cizer", preg_match('~\$pf\(\''.$f.'\'~', $adm) === 1);
     $t("satici formu $f alanini cizer",   str_contains($adm, 'name="'.$f.'"'));
 }
 $t('platform kayit yolu IBAN dogruluyor',  str_contains($hp, 'vestra_iban_valid('));
-$t('gecersiz IBAN: hicbir sey kaydedilmez ve mesaj var', str_contains($hp, 'platform_billing_iban_bad') && str_contains($adm, "'platform_billing_iban_bad'=>"));
+$t('gecersiz IBAN: hicbir sey kaydedilmez ve mesaj var', str_contains($hp, "'iban_bad'") && str_contains($hnd, 'platform_billing_iban_bad') && str_contains($adm, "'platform_billing_iban_bad'=>"));
 
 echo "\n== 3. Helvetica'nin disindaki karakterler (gomulu yolun tetikleyicisi) ==\n";
 /* Bu fonksiyon "CP1252 disinda" demektir; 7 Eyl 2026'dan beri "kayip" demek

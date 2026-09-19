@@ -958,44 +958,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
      web'e kapali (.htaccess), .gitignore'da ve 0600. Ayni sebeple workflow girdisi
      olarak da gecirilemez: acik bir depoda Actions girdileri ve log'u herkese gorunur. */
   if($act==='save_platform_billing'){
-    $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
-    $f=$dir.'/platform_seller.json';
-    $cur=is_readable($f)?json_decode((string)file_get_contents($f),true):[]; if(!is_array($cur))$cur=[];
-    /* EUR rayinin KENDI alanlari (bank_eur_*): 17 Eyl 2026'da platforma bir SEPA
-       hesabi (Banking Circle, DE) eklenecekti ve bu formda ne EUR BIC ne EUR banka
-       adi/adresi vardi -- SWIFT'i 'bank_bic'e yazmak ABD bankasinin BIC'ini ezer,
-       banka adini 'bank_name'e yazmak USD faturasina Alman bankasinin adini
-       bastirirdi (iki ray, tek duz kayit). Satici formunda bank_eur_bic zaten vardi;
-       ad/adres ikisine birden eklendi, rails ikisini de okuyor. */
-    foreach(['company','address','country','email','website',
-             'bank_name','bank_holder','bank_iban','bank_bic','bank_eur_bic',
-             'bank_eur_name','bank_eur_address',
-             'bank_routing','bank_account','bank_acct_type','bank_address',
-             'vat_id','reg_number'] as $k){
-      $v=trim((string)($_POST[$k]??''));
-      if($v==='') continue;      // bos alan mevcut degeri SILMEZ
-      /* Satici formuyla (save_billing) AYNI bicim ve AYNI kapi: gecersiz IBAN'da
-         HICBIR SEY kaydedilmez -- yalniz o alani atlamak digerlerini yesil bir
-         mesajla kaydedip operatore IBAN'in da girdigini dusundururdu (KURAL 5c).
-         Bu handler o kontrolu hic tasimiyordu. */
-      if($k==='bank_iban'){ $v=vestra_iban_normalize($v); if(!vestra_iban_valid($v)){ header('Location: /admin?tab=orders&msg=platform_billing_iban_bad'); exit; } }
-      if($k==='bank_bic' || $k==='bank_eur_bic') $v=strtoupper(preg_replace('/\s+/','',$v));
-      if($k==='bank_routing') $v=preg_replace('/\D/','',$v);
-      if($k==='bank_account') $v=preg_replace('/[^0-9A-Za-z]/','',$v);
-      if($v!=='') $cur[$k]=$v;
+    /* TEK YAZICI: vestra_platform_seller_save() (inc/invoice.php). Govde 19 Eyl
+       2026'ya kadar burada duruyordu ve is akisindan yazmanin yolu yoktu; ikinci
+       bir kopya yazmak yerine govde tasindi. Kurallar oradaki yorumda: bos alan
+       silmez, gecersiz IBAN'da HICBIR SEY yazilmaz, yazma geri okunur. */
+    $r = vestra_platform_seller_save($_POST);
+    if(!$r['ok']){
+      header('Location: /admin?tab=orders&msg='.(($r['error']??'')==='iban_bad' ? 'platform_billing_iban_bad' : 'platform_billing_failed')); exit;
     }
-    /* Yazdiktan sonra GERI OKUYOR. file_put_contents'in donusu goz ardi ediliyordu:
-       izin/disk sebebiyle yazamazsa kullanici "kaydedildi" sayfasina donuyor ve
-       hicbir sey kaydedilmemis oluyor. Bugun tam olarak bu soru soruldu -- "banka
-       bilgilerini girdim" denildi, sunucuda dosya YOKTU, ve panel bunu soyleyecek
-       hicbir sey basmamisti. Ayni desen bu projede birkac kez cikti: kural yazili,
-       kapi calismiyor, sonuc yesil. */
-    $ok = @file_put_contents($f,json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES),LOCK_EX);
-    @chmod($f,0600);
-    $back = is_readable($f) ? json_decode((string)file_get_contents($f),true) : null;
-    $stuck = is_array($back);
-    if($stuck) foreach($cur as $k=>$v){ if(trim((string)($back[$k]??''))!==trim((string)$v)){ $stuck=false; break; } }
-    if($ok===false || !$stuck){ header('Location: /admin?tab=orders&msg=platform_billing_failed'); exit; }
     header('Location: /admin?tab=orders&msg=platform_billing_saved'); exit;
   }
   if($act==='save_billing'){

@@ -54,6 +54,59 @@ function vestra_platform_seller(): array {
 }
 
 /**
+ * PLATFORM KUNYESININ TEK YAZICISI (19 Eyl 2026).
+ *
+ * Bu govde o gune kadar admin.php'nin `save_platform_billing` handler'inda
+ * DURUYORDU ve baska hicbir yerden cagrilamiyordu. Operator "sana verdigim
+ * alman hesabi faturalarda cikmiyor" dedi; olcum kaydi bos gosterdi
+ * (bank_iban BOS) ve panele girmek disinda bir yol yoktu. Is akisindan
+ * yazmak icin govdeyi KOPYALAMAK ikinci bir yazici demekti -- bu depoda
+ * "ayni olgu iki yerde yazili" hatasi defalarca kayitli (desc/sizes,
+ * faturanin uc katmani, dort mektup govdesi) ve buradaki bedeli, panelden
+ * giren IBAN'in mod-97 kapisindan gecip is akisindan girenin gecmemesi
+ * olurdu. Panel ve is akisi artik AYNI fonksiyonu cagiriyor.
+ *
+ * Kurallar (panelden aynen tasindi, KURAL 5c/5j):
+ *  - bos alan mevcut degeri SILMEZ;
+ *  - IBAN mod-97'den gecmezse HICBIR alan yazilmaz ('iban_bad') -- yalniz o
+ *    alani atlamak digerlerini yesil bir mesajla kaydedip operatore IBAN'in da
+ *    girdigini dusundururdu;
+ *  - BIC/routing/hesap no satici formuyla ayni bicime getirilir;
+ *  - yazma GERI OKUNUR; disk/izin yuzunden yazilamadiysa 'write_failed'.
+ *
+ * Rakamlar bu fonksiyona GELIR, hicbir yere BASILMAZ: donen 'saved' dizisi
+ * cagiranin sorumlulugunda ve cagiranlarin ikisi de maskeli yaziyor.
+ */
+function vestra_platform_seller_save(array $fields): array {
+    $dir = vestra_data_dir(); if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    $f = $dir.'/platform_seller.json';
+    $cur = is_readable($f) ? json_decode((string)file_get_contents($f), true) : [];
+    if (!is_array($cur)) $cur = [];
+    $new = [];
+    foreach (['company','address','country','email','website',
+              'bank_name','bank_holder','bank_iban','bank_bic','bank_eur_bic',
+              'bank_eur_name','bank_eur_address',
+              'bank_routing','bank_account','bank_acct_type','bank_address',
+              'vat_id','reg_number'] as $k) {
+        $v = trim((string)($fields[$k] ?? ''));
+        if ($v === '') continue;
+        if ($k === 'bank_iban') { $v = vestra_iban_normalize($v); if (!vestra_iban_valid($v)) return ['ok' => false, 'error' => 'iban_bad']; }
+        if ($k === 'bank_bic' || $k === 'bank_eur_bic') $v = strtoupper(preg_replace('/\s+/', '', $v));
+        if ($k === 'bank_routing') $v = preg_replace('/\D/', '', $v);
+        if ($k === 'bank_account') $v = preg_replace('/[^0-9A-Za-z]/', '', $v);
+        if ($v !== '') $new[$k] = $v;
+    }
+    foreach ($new as $k => $v) $cur[$k] = $v;
+    $ok = @file_put_contents($f, json_encode($cur, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES), LOCK_EX);
+    @chmod($f, 0600);
+    $back = is_readable($f) ? json_decode((string)file_get_contents($f), true) : null;
+    $stuck = is_array($back);
+    if ($stuck) foreach ($cur as $k => $v) { if (trim((string)($back[$k] ?? '')) !== trim((string)$v)) { $stuck = false; break; } }
+    if ($ok === false || !$stuck) return ['ok' => false, 'error' => 'write_failed'];
+    return ['ok' => true, 'saved' => $new];
+}
+
+/**
  * A tax identifier as its own country writes it.
  *
  * A US EIN is nine digits and is written NN-NNNNNNN everywhere it is read by a human —
