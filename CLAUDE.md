@@ -1997,6 +1997,110 @@ siparişin oraya"*).
 - Zamanlama: sunucu crontab'ı 07:00 sunucu saati = 14:00 UTC (`cron_order_payment.php`,
   `deploy-vestra.yml` idempotent kurar + kuru-koşu kanaryası).
 
+**KURAL 7b — "Parası geldi mi" TEK yerden sorulur; aynı olgunun İKİ kaydı vardı
+ve biri ötekini HİÇ okumuyordu** (operatör, 19 Eyl 2026: *"hatayi düzelt biten
+siparisler faturasi olusanlar tekrar fatura yap yada ödenmemis gösterilmesin"*).
+
+- **Şikâyet iki yarıydı ve yalnız biri gerçekti — bu ölçülerek ayrıldı.**
+  *"Tekrar fatura yap"*: kuyruk faturalı teklifi **zaten listelemiyor**
+  (`admin.php:2541`/`2552` süzgeçleri ve `$pendingInvoiceCount` rozeti doğruydu),
+  ve `/offer` tarafında ikinci numara **sunucuda reddediliyor** — operatörün
+  *"bunlar tekrardan fatura yapilmasi icin sisteme ekleniyor … dimi"* sorusunun
+  cevabı **hayır**: canlı koşu iki ref için de *"Bu teklifin faturası zaten
+  kesilmiş — aynı satıra ikinci numara yakılmaz"* diyor. **Gerçek olan öteki
+  yarıydı:** bitmiş satış panelde **⌛ Unpaid** duruyor ve alıcı **⚠ Payment
+  due** bandı görüyordu.
+- **ÖLÇÜLDÜ** (`diag-live` → `find_ref`, 19 Eyl 2026), operatörün yapıştırdığı
+  iki ref de aynı vaka:
+
+  | | `order_statuses` | fatura | `invoice_paid_at` |
+  |---|---|---|---|
+  | **O39419** | `completed` (paid 24 Ağu → to_vestra 26 Ağu → preparing 4 Eyl → shipped 9 Eyl → **completed 12 Eyl, ALICI işaretlemiş**) | INV-2026-1009 · 2.153,40 USD | **YOK** |
+  | **OCD7D2** | `paid` (10 Eyl, admin) | INV-2026-1012 · 1.255,17 USD | **YOK** |
+
+- **İki kayıt, iki ayrı yazan, sıfır ortak okuyan:**
+
+  | Kayıt | Yazan | Okuyan |
+  |---|---|---|
+  | `order_statuses[ref].status` | `Admin ▸ Orders` durum seçici | otomatik iptal saati, sipariş sayfası, order-pdf |
+  | `offer_responses[ref].invoice_paid_at` | `Invoice approvals` **✓ Paid** düğmesi | alıcının "Payment due" bandı **ve o düğmenin kendisi** |
+
+  Yani parasını **26 gün önce** ödemiş, malını teslim almış, siparişi **kendi**
+  tamamlandı işaretlemiş müşteriye hâlâ *"awaiting payment"* yazıyordu.
+- **ASIL TEHLİKE HENÜZ PATLAMAMIŞTI ve düzeltme oraya kondu:** satırı `pending`
+  kalmış bir siparişe `Invoice approvals`'tan **✓ Paid** konsaydı,
+  `cron_order_payment.php` yalnız sipariş durumuna baktığı için **ödenmiş bir
+  satışı kovalar**, "5 iş günü içinde ödeyin" mektubu yollar ve süre dolunca
+  **OTOMATİK İPTAL** ederdi. İki ref de `pending`'i geçmiş olduğu için bu
+  yaşanmadı; yol açıktı. Kapı bu yüzden her çağıranda değil
+  **`vestra_order_payment_grace()`'in ilk aşamasında** (`phase='paid'`).
+- **Tek karar noktası `vestra_order_payment_settled()`** (`inc/orders.php`):
+  - **TÜRETİLİYOR, üçüncü bir bayrak olarak SAKLANMIYOR** —
+    `vestra_order_in_review()`'in kendi gerekçesi; saklansaydı günün birinde o
+    da ötekilerden ayrışırdı.
+  - **Ölçüt ZİNCİRİN KENDİSİNDEN** (`VESTRA_ORDER_STEPS`), elle yazılmış bir
+    durum listesinden değil: yarın araya bir adım girerse (`to_vestra` böyle
+    girmişti) o da kendiliğinden ödenmiş tarafta kalır.
+  - **`cancelled` zincirde bilerek yok** → ödenmiş saymıyor.
+  - **Birleşik belgede işaret BİRİNCİL ref'te durur** (KURAL 5e), bağ izleniyor
+    — üyeyi kendi başına sormak tek belgeyle ödenmiş bir satışın yarısını
+    "ödenmemiş" gösterirdi.
+- **Bu, bu dosyada ZATEN bir kez ödenmiş dersin ÜST KATMANI:** 5 Eyl 2026'da
+  `delivered` zincirde olmadığı için `vestra_order_status_label` default'a
+  düşüyor ve teslim edilmiş sipariş *"Awaiting payment"* yazıyordu. Orada eksik
+  olan bir **ADIM**dı, burada eksik olan bir **KAYIT**.
+- **Yazma yolu DEĞİŞMEDİ** — düğme hâlâ `invoice_paid_at` yazıyor; taşınan şey
+  **OKUMA**. Okuyanlar artık aynı fonksiyondan soruyor: `buyer.php`'nin
+  "Payment due" bandı, panelin **Paid** sütunu, `cron_order_payment` (yeni
+  `paid` aşaması), `payment_due` ve `payment_final` mektupları (parası gelmiş
+  satışta artık **DURUYOR**) ve birleşik taslağın *"odendi"* satırı.
+- **Kaynağı SİPARİŞ DURUMU olan satırda toggle düğmesi ÇİZİLMİYOR:** işareti
+  oradan kaldırmak hiçbir şey yapmazdı ve **çalışmayan bir düğme, olmayan bir
+  düğmeden kötüdür** (KURAL 4'ün karşı teklif alanı dersi). Yerine durum +
+  *"değiştirmek için Orders sekmesi"* yazıyor.
+- **KAPSAM KARARI — `🔁 Redraft & email` düğmesi BİLEREK DURUYOR.** Ödenmiş
+  satışta da görünmeye devam ediyor çünkü KURAL 5f'e göre **kesilmiş bir
+  faturayı aynı numarayla düzeltmenin tek yolu o**; gizlemek meşru bir düzeltme
+  yolunu kapatırdı. Bitmiş satışı açık iş gibi gösteren şey o düğme değil,
+  **"⌛ Unpaid" sütunuydu** ve düzeltilen o. *Operatör ödenmiş satışta onu da
+  gizlemek isterse ayrı bir karar.*
+- **Sonda da düzeltildi (bu depoda ÜÇÜNCÜ kez):** `find_ref`'in `$safe`
+  listesinde `invoice_paid_at`/`invoice_group_ref` **YOKTU**, yani sorulan
+  soruyu — *"bu fatura ödenmiş mi"* — cevaplayamıyordu. `check_images` yalnız
+  `approved` geziyordu, `price_list` `sold_out` basmıyordu; **görmediği bir alan
+  hakkında yeşil veren sonda, başka bir şeyin yeşilini gösterir.**
+- **CANLI GERİ OKUMA (19 Eyl 2026, deploy 1314 / `ce03b87b`;
+  `reply_letter=invoice_combine_draft`, `send=false`):**
+  `O39419 → odendi: EVET (siparis durumu: completed)`,
+  `OCD7D2 → odendi: EVET (siparis durumu: paid)`. Düzeltmeden önce ikisi de
+  **`hayir`** diyordu. İkisi de ayrıca *"faturası zaten kesilmiş"* ile
+  reddediliyor — numara yakılmıyor.
+- **"ÖDENDİ" TARİHİ: `updated_at` ödeme tarihi DEĞİLDİR** — ve bunu **canlı
+  ölçüm kendi kodumda buldu.** Sonda *"EVET (completed, **2026-09-09**T14:03)"*
+  yazıyordu; kayıt ise `paid_at` **taşımıyor**, `updated_at` = 9 Eyl (kargo
+  damgası) ve geçmişe göre para **24 Ağustos**'ta gelmiş. Rakam doğruydu,
+  **etiket yalandı** — bu depoda kayıtlı: *yanlış rakam sorgulanır, yanlış
+  etikete inanılır.* Sıra artık **açık `paid_at` → geçmişteki `paid` satırının
+  damgası → BOŞ**; bilinmeyen bir tarihi uydurmaktansa yazmamak (KURAL 3).
+  Karar (`settled`) değişmedi, yalnız gösterilen tarih — ama o tarih operatörün
+  *"bu ne zaman ödendi"* sorusunu cevaplayan tek satır. Düzeltme sonrası aynı
+  sonda (deploy 1316 / `4de36fec`): `odendi: EVET (completed,
+  **2026-08-24**T12:59:14)`.
+- Test: `tests/order_payment_test.php` 37 → **76 iddia**, iki yön de. Kart
+  `admin.php` kum havuzunda **gerçekten çizdiriliyor** (`php -l` bu depoda iki
+  çalışma-zamanı hatasını geçirmişti). Düşebildiği doğrulandı, her sabotajın
+  **gerçekten uygulandığı `grep -c`/satır sayımıyla ayrıca yazdırılarak**:
+  zincir dalı kapatılınca **6 kırmızı**, `settled` hep true olunca **17**,
+  cron'a ref geçmeyince **1**, grup bağı izlenmeyince **1**, `buyer.php` eski
+  hâline dönünce **2**, panel eski hâline dönünce **6**, tarih türetmesi eski
+  hâline dönünce **2**.
+- **Kendi ölçüm hatam:** *"✓ Paid görünüyor"* iddiasını `substr_count` ile
+  yazdım ve **KIRMIZI döndü** — kartın kendi yardım metni de aynı dizgeyi
+  taşıyor (*"Ödeme gelince ✓ Paid ile işaretleyin"*), yani iddia rozeti değil
+  **YARDIM METNİNİ** ölçüyordu. Kod doğruydu, ölçü yanlıştı; iddia rozetin kendi
+  işaretlemesine daraltıldı. *`class="msgtick` önekinin `msgtickdefs`'i
+  yakalamasıyla ve "iddia satırı değil navigasyonu ölçüyordu" ile aynı sınıf.*
+
 **KURAL 8 — Mesajlaşmada satıcı ürün identiyle görünür; mağaza adı yazılmaz**
 (operatör kararı, 3 Eyl 2026: *"platformdaki mesajlaşmada her ürün için seller
 ardından ident no ya da sku numarası koy, mağaza ismi yapma"*).
