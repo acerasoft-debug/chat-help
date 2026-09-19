@@ -4878,6 +4878,94 @@ gönder simdi yeni ürünler ile Galerry markasi ve F.Perry , Gucci , Dsq2"*).
 - **Kütükteki `GONDERILDI` yalnızca "Brevo isteği kabul etti" demek** — bu
   dosyanın kendi uyarısı: `delivered` bile posta kutusu kanıtı değil.
 
+**KURAL 31 — "295'e tamamla": TAVAN 292 ve bu ölçülerek söylendi** (operatör,
+18 Eyl 2026: *"toplam 295 emaile tamamla"*). Rakam, üçüncü mektubun kendi
+hedefiydi (*"gece yarisi devam et 295 email gönder"*) ve üçüncü mektup kanalının
+**gerçekten sahip olduğu** aday sayısı 292: 288 lead (238 gönderildi + 50 bekliyor)
++ 5 üyenin 4'ü (biri test hesabı). **Kalan 3 bu kanalda YOK** — havuzu büyütmek
+için bir muhafazayı gevşetmek (yaş kuralı, blocklist, firma tekilleştirme) rakamı
+tutturur ama kuralı yakardı.
+
+- **Kota kapısı ikinci kez çalıştı ve doğrusu bu:** 18:20 UTC'de gerçek koşu
+  *"gunluk kota bitti: 58 kaldi, 60 tanesi sifre sifirlama / dogrulama / siparis
+  bildirimi icin ayrilmis"* deyip **DURDU, hiçbir şey göndermedi** — 50'lik parti
+  58'e sığmıyordu ve yarısını göndermedi. Damga yanmadı, yarım parti kalmadı.
+  *Bir kapının "başarısız" görünen koşusu, kapının çalıştığı koşudur.*
+- **DÖRT KANALIN TAMAMI aynı gün ayrıca ölçüldü** (295'i başka yerden kapatmak
+  mümkün mü diye), kuru koşularla, **sırayla** (paralel koşu `leads.json`'ı ezer):
+
+  | Kanal | Uygun | Gerçekten gönderilebilir |
+  |---|---:|---:|
+  | Soğuk havuz `min_brands=2` | 0 | 0 |
+  | Soğuk havuz `min_brands=1` | 3 | **1** |
+  | Lead 2. mektup (`shoes`) | 0 | 0 (11'i yaş kuralında) |
+  | Üye Angebot (`fp_offer`) | 2 | **1** |
+  | Üye Winter | 2 | 0 (ikisi de Angebot listesinde) |
+
+  Yani üçüncü mektubun dışında bugün **2** adres var, ikisi de **başka mektup** —
+  onları 295'e saymak, sayıyı tutturmak için kanal karıştırmak olurdu.
+- **Soğuk havuzun 3 adayı ELLE okundu** (KURAL 1i: "kod geçirdi" ELE OKUNMADI
+  demek değil) ve ikisi elendi:
+  - **Peak Design** — 2010'da kurulmuş, **kendi markasını üreten** firma
+    (peakdesign.com; ürünü foto/seyahat çantası). Bloklisteye eklendi.
+  - **Livestock / `deadstock.ca`** — aynı firmanın `in..@` kutusu 31 Ağustos'ta
+    mektup almış; bu ikinci kutusu.
+  - **Throwbacks Northwest** (Seattle, tek mağaza, vintage spor giyim) geçti;
+    zincir/distribütör/own-label değil. *Kanal uyumu zayıf (ikinci el), ama
+    hiçbir kural elemiyor ve "kanalımız değil" bir kural değil — karar operatörün.*
+- **SOĞUK YOLDAKİ FİRMA-BAZLI TEKİLLEŞTİRME BOŞLUĞU KAPATILDI.** 8 Eylül'de
+  kaydedilmiş, 17 Eylül'de elle atlanmış, 18 Eylül'de **üçüncü kez** aynı kayıt
+  (`deadstock.ca`) çıkınca koda taşındı: soğuk dal artık damgalı leadlerin **alan
+  adlarını** da tutuyor (`$coldSeenDom`), harita hem geçmişten hem **bu koşudan**
+  doluyor (ikincisi olmasaydı tek koşu aynı firmanın iki kutusunu seçebilirdi) ve
+  **serbest posta sağlayıcıları muaf** — gmail'deki iki adres iki ayrı firma.
+  *Bir kuralın hatırlanmaya bırakılması yetmiyor; Körfez listesi tam bu boşluktan
+  geçmişti.*
+- **`peak` ya da `design` TEK BAŞINA EKLENMEDİ:** ikisi de günlük kelime.
+  Falsifikasyonda tek başına eklenince **4 gerçek butik** elendi (Design District,
+  Peak Boutique, The Design Shop, Studio Design Milano) — `scarpa` dersinin aynısı,
+  sessiz eleme yanlış gönderimden pahalı. Test: `blocklist_test.php §19/19b`
+  (**429 iddia**); yeni adlar silinince **2 kırmızı**, tek kelime eklenince **4**.
+- **Kalan 50, kota yenilenince tek koşu.** Diller ölçüldü, tahmin edilmedi:
+  `en 19 · it 12 · de 6 · ja 5 · es 3 · nl 3 · fr 1 · pt 1` = 50; kategori
+  dağılımı 45 + 5 = 50, yani sayım kendi içinde tutuyor.
+
+**KURAL 31 — 19 Eyl 2026: kalan 50 GİTTİ; BEŞ kanalın da dibi görüldü;
+kampanya toplamı 294, tavan bu.** (Operatör *"toplam 295 emaile tamamla"*
+dedi, aynı cümleyi ertesi sabah tekrarladı.)
+
+| Kanal | Uygun | Gönderildi | Kalanın sebebi |
+|---|---:|---:|---|
+| Üçüncü mektup — lead | 50 | **50** | havuz bitti (3'ü yaş kuralında) |
+| Üçüncü mektup — üye | 2 | **1** | Neroke OÜ; öteki test hesabı |
+| Soğuk havuz `min_brands=1` | 1 | **1** | Throwbacks Northwest |
+| Lead 2. mektup (`shoes`) | 0 | 0 | **12'si** 3 günlük yaş kuralında |
+| Üye Winter | 1 | 0 | yalnız test hesabı (Neroke bugün wave3 aldı) |
+
+- **Bugün 52 mektup, hata 0. Üçüncü mektup kümülatifi 293** (242 + 50 + 1),
+  **kampanya toplamı 294**. 295'e **bir** eksik ve o adres bugün **yok** —
+  kota darboğaz değil (258 kalan). *Sayıyı tutturmak için bir muhafazayı
+  (yaş kuralı, blocklist, firma tekilleştirme, test hesabı) gevşetmek
+  mümkündü ve yapılmadı: eksik olan 1, kuralların doğru çalıştığının ölçüsü.*
+- **Neroke OÜ üç kanalda birden uygundu** (wave3 / fp_offer / winter) ve
+  **bir** mektup aldı. Seçim `wave3`: hesap 18 Eylül'de kaydolmuş, hiç
+  kampanya almamış ve üçüncü mektup **dört evi** sayıyor (Angebot yalnız 2
+  artikel). Üye sürümü *"size iki kez yazmıştık"* cümlesini taşımıyor, yani
+  yeni bir kayıtta yalan söylemiyor (KURAL 31'in üye dalı). Damga düşünce
+  öteki iki kanal onu **kendiliğinden** eledi — Winter kuru koşusu bunu
+  *"son 3 gunde baska kampanya: 2026-09-19"* diye yazdı.
+- **SOĞUK YOLDAKİ YENİ FİRMA TEKİLLEŞTİRMESİ CANLIDA ÇALIŞTI ve ilk koşuda
+  ÜÇ kayıt yakaladı** (`yahoo.fr`, `beyondretro.com`, `piruetti.fi`) —
+  hepsi *"ayni firmadan baska bir kutu zaten mektup almis"*. Dün elle atlanan
+  `deadstock.ca` ve bloklisteye eklenen Peak Design listeden düştü, yani
+  10 adaylık soğuk havuz bugün **1**'e indi ve o bir aday elle araştırılmış
+  olanıydı. *Eleme artık hatırlamaya değil koda bağlı; ve ilk koşusunda
+  hatırlamanın kaçıracağı üç kaydı buldu.*
+- **295'in kalan 1'i ne zaman gelir:** 12 lead'in ilk mektubu 3 günü
+  doldurunca ikinci mektup kanalı açılıyor (17–19 Eylül partileri → 20–22
+  Eylül), ve 3 lead'in ikinci mektubu dolunca üçüncü mektup kanalı. İkisi de
+  **kendiliğinden gönderilmedi** — KURAL 18.
+
 **11 Eyl 2026 — KATALOG GENELİNDE %80 ZAM ve GERİ ALINMASI.** Operatör:
 *"yüzde 80 eklemeyi hemen geri al"* → *"tüm fiyatları dün geceki fiyatlara çek"*.
 - **Ne olmuş:** KURAL 22 ile eklenen `markup_pct` aracı **`80` ile ve bölme

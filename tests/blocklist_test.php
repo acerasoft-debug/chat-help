@@ -640,5 +640,27 @@ foreach ([
     ['Stal Concept Store','stalconcept.nl'],
 ] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
 
+echo "\n== 19. 18 Eyl 2026 — soguk havuzda kalan uc adayin elle okunmasi ==\n";
+/* Peak Design 2010'da kurulmus bir URETICI: kendi markasini tasariyor ve
+   satiyor (peakdesign.com), baskasinin markasini satan bir perakendeci degil.
+   KURAL 1'in "kendi markasini satan" kolu. */
+foreach ([
+    ['Peak Design','peakdesign.com'],
+    ['PEAK DESIGN','storefront.com'],
+] as [$n,$d]) $t("blok: {$n}", $blocked($n,'','https://'.$d));
+
+echo "\n== 19b. GECMELI — 'peak' ve 'design' gunluk kelimelerdir ==\n";
+/* Listeye TAM IKI KELIMELIK ad konuldu. 'peak' ya da 'design' tek basina
+   konsaydi asagidakilerin hepsi SESSIZCE elenirdi -- ve sessiz eleme yanlis
+   gonderimden pahali, cunku kimse fark etmiyor (mango/zara, sonra scarpa).
+   Bu bolum o kararin bekcisi. */
+foreach ([
+    ['Design District Store','designdistrict.nl'],
+    ['Peak Boutique','peakboutique.ch'],
+    ['The Design Shop','thedesignshop.co.uk'],
+    ['Peaks & Valleys','peaksandvalleys.se'],
+    ['Studio Design Milano','studiodesign.it'],
+] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
+
 echo "\nTOPLAM: {$ok} gecti, {$fail} kaldi\n";
 exit($fail === 0 ? 0 : 1);
