@@ -2259,6 +2259,46 @@ dilinde"*).
   yine repoya, iş akışı girdisine ve ssh betiğine **girmedi** — şifreli zarfla
   geçti, çıktıda yalnız VAR/YOK ve hane sayısı.
 
+**KURAL 32 (devamı) — "Germany belirtilsin": KAYIT doluyken BELGE boş olabilir**
+(operatör, 19 Eyl 2026, aynı akşam: *"banka adresini yazmamissin"* → *"eur
+hesabi"* → *"Germany belirtilsin"* → *"hesabimizi verdigimiz iki faturayi
+[VES-A11C0C97 / VES-55E4F6E1] bunlari ekle"*).
+
+- **ÖNCE ÖLÇÜLDÜ ve ilk cevap "zaten var" çıktı.** 17:53'teki yazma koşusunun
+  kendi günlüğü `bank_eur_address`'in tam değerini gösteriyor ve **Germany o
+  değerin içinde** — ülke adı künyeye o an girmişti, EUR kutusu 4 → 5 satıra o
+  yüzden çıkmıştı. *Adresi hafızadan yeniden yazıp künyeye basmak, doğru duran
+  bir kaydı tahminle ezmek olurdu (KURAL 3); eski koşunun günlüğü kanıttı ve
+  adres burada da yazılmıyor — künyenin değerleri panelde okunur.*
+- **ASIL SORU BAŞKAYDI: kayıt bugün dolu olması, DÜN çizilmiş bir PDF hakkında
+  hiçbir şey söylemiyor.** KURAL 5r kutuyu yalnız **kesim anında** garanti
+  ediyor; künye tamamlanmadan önce kesilmiş bir belge kutusuz kalır ve bunu
+  ancak **belgenin kendisi** gösterir. `issue` adımı navlun/indirim/toplamı ham
+  baytta arıyordu, ödeme kutusunu **hiç sormuyordu** — eklendi (`IBAN:` /
+  `Account number:` satırının VARLIĞI + `Bank address` + ülke adı; **numara
+  basılmıyor**, kütük herkese açık).
+- **Ölçüm iki belgeyi ayırdı ve biri gerçekten eksikti:**
+
+  | Fatura | Ödeme kutusu | Banka adresi | Sebep |
+  |---|---|---|---|
+  | `INV-2026-1014` (ES) | VAR | **VAR (Germany)** | 18:0x'te zaten yeniden çizilmişti |
+  | `INV-2026-1013` (FR) | VAR | **YOK** | 17:53'ten ÖNCE kesilmiş |
+
+  Yani Fransız alıcının elindeki belgede IBAN vardı ama **bankanın adresi ve
+  ülkesi yoktu** — SEPA dışından ödeyen için eksik, ve kimse fark etmemişti.
+- Çözüm KURAL 5f: **aynı numarayla yeniden çizim**, e-posta gitmeden.
+  `INV-2026-1013` 17.943 → **18.040 bayt** (+97 = banka adresi satırı),
+  `(AYNI numarayla yeniden uretildi)`, tutarlar değişmedi (navlun 20,00 ·
+  indirim 60,00 · toplam 1.160,00), `belgede banka adresi: VAR (ulke: Germany)`.
+- **Ders, bu dosyada üçüncü kez:** *bir kaydın bugün dolu olması, o kayıttan
+  ÜRETİLMİŞ belgelerin de dolu olduğu anlamına gelmiyor.* Kesim yolundaki
+  muhafaza ileriye dönük çalışır; geriye dönük tek ölçü belgenin baytıdır.
+  Fotoğrafsız PDF, €75'i basılmamış fatura ve bu, aynı sınıfın üç vakası.
+- **Müşterilere hiçbir şey gönderilmedi** (KURAL 18). Belge düzeldi; haber
+  verilip verilmeyeceği operatör kararı — tutar değişmediği için mektup şart
+  değil, ama isteyen olursa `order_discount`'ın `invoice_updated=1` gövdesi
+  aynı işi yapar.
+
 **KURAL 7 — Faturası kesilmiş, havale bekleyen siparişe 5 iş günü** (operatör
 kararı, 2 Eyl 2026, order OCF7F5 / INV-2026-1001 / Daymond Proconect: *"siparişlerin
 ödemesi 5 iş günü içerisinde gelmez ise otomatik kapanacağını söyle, eğer ödeme
