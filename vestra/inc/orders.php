@@ -370,7 +370,20 @@ function vestra_order_payment_settled(string $ref, ?array $statusEntry = null): 
     if ($iNow !== false && $iPaid !== false && $iNow >= $iPaid) {
         $out['settled'] = true;
         $out['via']     = 'status';
-        $out['at']      = (string)(($statusEntry ?? [])['paid_at'] ?? (($statusEntry ?? [])['updated_at'] ?? ''));
+        /* TARIH: acik alan, yoksa GECMISTE 'paid' satirinin damgasi. `updated_at`
+           BILEREK kullanilmiyor -- o, kaydin SON yazilma ani, paranin geldigi an
+           degil. Olculdu (O39419, 19 Eyl 2026): `paid_at` yok, `updated_at`
+           2026-09-09T14:03 (kargo damgasi) ve sonda "odendi: EVET ... 9 Eyl"
+           yaziyordu; gecmise gore para 24 Agustos'ta gelmisti. Yani rakam
+           dogruydu, ETIKET yalandi -- bu depoda kayitli: yanlis rakam sorgulanir,
+           yanlis etikete inanilir. Ikisi de yoksa BOS kalir: bilinmeyen bir
+           tarihi uydurmaktansa yazmamak (KURAL 3). */
+        $out['at'] = trim((string)(($statusEntry ?? [])['paid_at'] ?? ''));
+        if ($out['at'] === '') {
+            foreach ((array)(($statusEntry ?? [])['history'] ?? []) as $h) {
+                if ((string)($h['status'] ?? '') === 'paid') { $out['at'] = trim((string)($h['at'] ?? '')); break; }
+            }
+        }
         return $out;
     }
 

@@ -122,6 +122,21 @@ $t('araya sonradan giren adim (to_vestra) da kendiliginden odenmis tarafta',
    yolculugun durmasi (VESTRA_ORDER_CANCELLED'in kendi notu). */
 $t('status cancelled -> odenmis SAYILMAZ', vestra_order_payment_settled('', ['status'=>'cancelled'])['settled'] === false);
 
+/* TARIH: canli olcum (O39419, 19 Eyl 2026) ilk yazimimin YANLIS tarih bastigini
+   gosterdi -- `paid_at` yoktu ve `updated_at`e dusuyordu, o da kargo damgasiydi
+   (9 Eyl), oysa para 24 Agustos'ta gelmisti. Rakam dogruydu, ETIKET yalandi.
+   Uc yon de tutuluyor, ucuncusu asil olan: bilinmeyen tarih BOS kalmali. */
+$t('tarih: acik paid_at alani kullanilir',
+   vestra_order_payment_settled('', ['status'=>'shipped', 'paid_at'=>'2026-08-24T12:59:00+00:00'])['at']
+   === '2026-08-24T12:59:00+00:00');
+$t('tarih: paid_at yoksa GECMISTEKI paid satirindan (O39419 vakasi)',
+   vestra_order_payment_settled('', ['status'=>'completed', 'updated_at'=>'2026-09-09T14:03:27+00:00',
+     'history'=>[['status'=>'paid','at'=>'2026-08-24T12:59:00+00:00','by'=>'admin'],
+                 ['status'=>'shipped','at'=>'2026-09-09T14:03:27+00:00','by'=>'admin']]])['at']
+   === '2026-08-24T12:59:00+00:00');
+$t('tarih: ikisi de yoksa BOS -- updated_at odeme tarihi DEGILDIR',
+   vestra_order_payment_settled('', ['status'=>'shipped', 'updated_at'=>'2026-09-09T14:03:27+00:00'])['at'] === '');
+
 $GLOBALS['__json']['offer_responses.json'] = [
     'OPAID' => ['status'=>'accept', 'invoice_paid_at'=>'2026-09-01T10:00:00+00:00'],
     'OOPEN' => ['status'=>'accept'],
