@@ -100,7 +100,14 @@ jobs:
           ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
           SSHOPT="-i $HOME/.ssh/id_deploy -p $PORT -o BatchMode=yes -o StrictHostKeyChecking=no"
 
-          git bundle create /tmp/vestra.bundle "$WANT"
+          # BUNDLE BIR REF ISTER, CIPLAK SHA DEGIL. Ilk surum `git bundle create
+          # <dosya> "$WANT"` diyordu ve git `fatal: Refusing to create empty
+          # bundle.` ile dustu: bundle nesneleri REF'lere bagli yaziyor, bir
+          # rev adi ref olmadigi icin paketlenecek ref kalmiyor. Yerelde
+          # birebir uretildi (cikis 128) ve adlandirilmis dalla gectigi
+          # dogrulandi -- tahmin degil, olcum.
+          git branch -f __deploy "$WANT"
+          git bundle create /tmp/vestra.bundle __deploy
           ls -l /tmp/vestra.bundle | awk '{print "bundle: " $5 " bayt"}'
           scp $SSHOPT /tmp/vestra.bundle "$SSH_USER@$SSH_HOST:/tmp/vestra.bundle"
 
@@ -114,7 +121,7 @@ jobs:
             fi
             cd \"\$REPO\"
             echo \"oncesi : \$(git rev-parse --short HEAD)\"
-            git fetch /tmp/vestra.bundle '$WANT'
+            git fetch /tmp/vestra.bundle __deploy
             git reset --hard FETCH_HEAD
             echo \"sonrasi: \$(git rev-parse --short HEAD)\"
             rm -f /tmp/vestra.bundle
