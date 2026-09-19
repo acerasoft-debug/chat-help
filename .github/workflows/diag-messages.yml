@@ -823,6 +823,22 @@ jobs:
                 }
                 echo "    odenmis (escrow) siparis muaf: ".(vestra_invoice_payment_gap($P,'EUR',true) === '' ? 'EVET' : '*** HAYIR -- kusur ***')."\n";
               }
+              /* BOLGE VARSAYILANI (KURAL 5s): Avrupa disi alicida belge USD
+                 dogar. Fonksiyonun VARLIGINA degil, gercek bir cevaba bakiyor
+                 -- eski bir kopya da parse edilir. Iki yon birden basiliyor:
+                 tek yon olculseydi "her siparisi USD yapan" bir kusur da
+                 dogru gorunurdu. Kontrol grubu ulkeler bekleyen iki siparisin
+                 ulkeleri (FR/ES) ve yakin-komsu tuzagi (AT/AU). */
+              echo "    --- bolge varsayilani (KURAL 5s) ---\n";
+              if (!function_exists('vestra_invoice_currency_default')) {
+                echo "    *** DEPLOY INMEMIS -- bolge varsayilani YOK, her belge EUR dogar ***\n";
+              } else {
+                foreach (['United States','Japan','France','Spain','AT','AU',''] as $cc) {
+                  $d = vestra_invoice_currency_default(null, $cc, 'EUR');
+                  printf("    %-16s -> %s\n", $cc === '' ? '(ulke bos)' : $cc, $d === '' ? 'EUR (degisiklik yok)' : $d);
+                }
+                echo "    satici kesiminde: ".(vestra_invoice_currency_default(['id'=>'x'],'United States','EUR') === '' ? 'EUR (dogru -- platform disi muaf)' : '*** USD -- kusur ***')."\n";
+              }
               echo "\n";
             } elseif ($bq !== '') {
               echo "===== FATURA KUNYESI: \"{$bq}\" =====\n";
