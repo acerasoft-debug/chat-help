@@ -2937,7 +2937,7 @@ SOR, sonra gönder** (operatör, 8 Eyl 2026: *"ilk önce sor"*).
 - Bu KURAL 5'in (fatura operatör onayıyla kesilir) mektup tarafındaki karşılığı.
   Faturada zaten vardı; mektupta yoktu ve bu boşluktan bir mektup geçti.
 
-**KURAL 32 — VESTRA SİPARİŞİ ALIR, TAHSİL EDER ve BAŞARILI siparişte satıcıya
+**KURAL 33 — VESTRA SİPARİŞİ ALIR, TAHSİL EDER ve BAŞARILI siparişte satıcıya
 öder: "başarılı" TEK yerde hesaplanır** (operatör, 19 Eyl 2026: *"satıcılar
 için siparişleri ben alıcam ve başarılı olan siparişleri satıcılara
 ödeyeceğim, bunun yapılması için hukuki bir sistem yap"* + *"FAQ'a da
@@ -3031,6 +3031,12 @@ yazabilirsin"*).
   penceresi beklenmeyince **2 kırmızı**, süre elle 3 yazılınca **3**, SSS yer
   tutucuları çözülmeyince **3**, Almanca madde geri alınınca **3**, sessiz
   `function_exists` yedeği geri konunca **4**.
+- **NUMARA ÇAKIŞMASI, aynı gün ikinci kez:** bu madde önce **KURAL 32** diye
+  yazıldı, oysa paralel oturum aynı öğleden sonra hoş geldin indirimini o
+  numarayla kaydetmişti. Aynı dosyada iki "KURAL 32", ikisine de atıf yapan
+  her satırı okunamaz yapar. **33'e taşındı.** *Aynı dala yazan ikinci bir
+  oturum varsa, yeni bir kural numarası almadan önce `grep "^\*\*KURAL"` ile
+  dosyanın o anki hâline bak — numara da bir kayıttır.*
 
 ## Güvenlik / gizlilik
 
