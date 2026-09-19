@@ -1305,8 +1305,21 @@ ES / €7.779,60).
   `str_contains` ile karar vermek, cümle bir gün değişince bandı sessizce
   *"para birimi çevrilemedi"*e döndürürdü — **rakam doğru, etiket yalan**, ve
   operatör olmayan bir kur sorununu çözmeye çalışırdı.
-- **Operatörün verdiği IBAN rakamları repoya, iş akışı girdisine ve ssh
-  betiğine GİRMEDİ** (Güvenlik bölümünün kuralı, 17 Eyl'deki kararın aynısı).
+- **BU SATIR YANLIŞTI VE DÜZELTİLDİ (19 Eyl 2026).** Burada önce
+  *"operatörün verdiği IBAN rakamları repoya … GİRMEDİ"* yazıyordu. **Girmişti:**
+  IBAN `tests/invoice_payment_gap_test.php`'e **fikstür** olarak yazılmış ve
+  `c6b66885` ile **herkese açık** depoya push edilmişti (iki dal). Kuralı
+  yazdığım cümlenin altında kuralı çiğniyordum ve kendi taramam da *"repoda
+  banka rakamı yok"* demişti — **çünkü yalnız iş akışı ve kaynak dosyalarını
+  taramıştım, testleri değil.** Çalışma ağacında artık her IBAN belgesinde
+  örnek olarak geçen **sentetik** Deutsche Bank numarası var (mod-97 geçiyor,
+  yani ölçülen davranış değişmedi); **geçmişte duran kopya silinmedi** —
+  `claude/*` dallarında başka bir oturum da çalışıyor ve başkasının dalında
+  geçmiş yeniden yazılmaz. Operatöre söylendi, karar onun.
+  *Ders: "sızıntı var mı" taraması, kodun taranmadığı hiçbir dosyayı dışarıda
+  bırakamaz — `git ls-files | xargs grep` kullan, elle seçilmiş bir liste değil.*
+- **İş akışı girdisine ve ssh betiğine girmedi** (Güvenlik bölümünün kuralı,
+  17 Eyl'deki kararın aynısı).
   Yapılan tek şey **sitenin kendi doğrulayıcısıyla** kontroldü:
   `vestra_iban_normalize` + `vestra_iban_valid` → **DE, 22 hane, mod-97
   GEÇERLİ**. Bu boşuna değil: geçmeseydi panel **hiçbir alanı** kaydetmezdi
@@ -1319,7 +1332,8 @@ ES / €7.779,60).
   **USD kutusu bozulmuyor** (Choice Financial aynen).
   **`bank_eur_address` BOŞ bırakıldı:** operatörün verdiği *"Germany (SEPA)"*
   bir konum, banka adresi değil — uydurmak KURAL 3'ün yasakladığı şey.
-- Test: `tests/invoice_payment_gap_test.php` (**48 iddia**, iki yön). §3 kum
+- Test: `tests/invoice_payment_gap_test.php` §1–§4 (**48 iddia**, iki yön;
+  dosya KURAL 5s ile **75**'e çıktı). §3 kum
   havuzunda **gerçekten kesim deniyor**: IBAN yokken ret + **diskte 0 belge**,
   IBAN girilince kesim geçiyor ve üretilen **PDF'te `IBAN:` satırı var** —
   "kesildi" tek başına yetmez, bu depo fotoğrafsız bir PDF'i yıllarca
@@ -1347,6 +1361,91 @@ ES / €7.779,60).
   `git worktree` HEAD kopyasında birebir aynı sayılar): `dropship_plan_test`
   **4**, `msg_read_receipt_test` **1**, `msg_thread_label_test` **10**.
   Dokunulmadı.
+
+**KURAL 5s — AVRUPA DIŞI alıcıda belge USD doğar; ray zaten BİRİME bakıyor**
+(operatör, 19 Eyl 2026: *"ABD ve Avrupa disinda ABD hesabi, diger Avrupa icinde
+ise Alman hesabi kullanilacak"*. Seçenekler sunuldu, **"Avrupa dışı fatura USD
+kesilsin"** seçildi).
+
+- **RAYI DEĞİL PARA BİRİMİNİ SEÇİYORUZ, ve bu işin tamamı.** `vestra_payment_rails`
+  rayı faturanın **birimine** göre zaten seçiyor (EUR → IBAN, USD → hesap no +
+  ABA), yani "Avrupa dışında ABD hesabı" cümlesinin kod karşılığı **yeni bir
+  hesap seçici değil**: belgenin birimi. Bölgeye bakan ikinci bir seçici
+  yazılsaydı aynı soru iki yerde cevaplanır ve ikisi er geç ayrışırdı; daha
+  kötüsü, **EUR yazan bir belgenin altına USD bir hesap** basardı — ödeyen
+  taraf euro gönderir, banka dönüştürür, tutar tutmaz.
+- **Tek karar noktası `vestra_invoice_currency_default($sellerAcc, $ulke,
+  $temelBirim)`** (saf; boş dizge = değişiklik yok). **ÜÇ KAPI, üçü de bilerek
+  dar ve üçü de ayrı ayrı düşebiliyor:**
+  1. **Yalnız PLATFORM kesiminde.** Satıcı hesaplarının çoğunda yalnız IBAN var
+     (GARAGE LE PARIS, TYREX — 7 Eyl'de ölçüldü); onları USD'ye zorlamak ödeme
+     kutusunu **boşaltır** ve KURAL 5r o belgeyi hiç kestirmez. Yani "düzeltme"
+     bir satıcının bütün faturalarını kesilemez yapardı.
+  2. **Yalnız EUR kayıtlı satışta.** Zaten başka bir birimdeki satışı yeniden
+     hedeflemek, operatörün vermediği bir karar olurdu.
+  3. **Ülke TANINIYORSA.** `vestra_user_in_europe()` boş/tanınmayan ülkede
+     **TRUE** dönüyor, yani belirsizlikte bugünkü davranış (EUR) korunuyor.
+     Yön bilerek böyle: fazla sorulan bir soru görünür, sessizce değiştirilmiş
+     bir para birimi görünmez (KURAL 27'nin Avrupa testindeki aynı karar).
+- **OPERATÖRÜN KAYITLI SEÇİMİ HER ZAMAN ÖNDE** (KURAL 5i): bu bir **varsayılan**,
+  dayatma değil. `order_statuses.json[ref].invoice_currency` doluysa hiç
+  çalışmıyor — testte ayrı iddia var.
+- **SİPARİŞTE ölçüt `array_keys($bySeller) === ['vestra']`.** Birim siparişin
+  **tamamına** işliyor, dilim başına değil (KURAL 5b: sipariş satıcı başına
+  bölünüyor). Karışık bir siparişi USD'ye zorlamak, yalnız IBAN'ı olan satıcı
+  dilimini ödeme kutusuz bırakır ve KURAL 5r'nin muhafazası **siparişin
+  tamamını** kesilemez yapardı.
+- **TEKLİF YOLLARI DA ATLANMADI** (`vestra_offer_invoice_payload` +
+  `vestra_offers_combined_invoice_payload`). Atlansaydı aynı Amerikalı alıcı
+  siparişinde USD, kabul ettiği teklifte EUR belge alırdı — KURAL 5m'in
+  birleşik çubukta eksik kalan KDV oranıyla bir kez ödediği ders.
+- **PANEL DOĞRUYU YAZIYOR, ve bu iki ayrı düzeltme gerektirdi:**
+  - Para birimi seçicisi *"— sipariş birimi (EUR) —"* diyordu; varsayılan
+    devredeyken bu **düpedüz yalan** olurdu (operatör EUR sanıp USD bir belge
+    keserdi). Etkin birim artık **taslak düğmesinin okuduğu AYNI yükten**:
+    önce `want_currency`, sonra `meta['currency']`. Sıra önemli — çevrilemeyen
+    bir yükte meta **eski** birimde kalıyor ve istenen birim yalnız
+    `want_currency`'de duruyor.
+  - **Sipariş birimi listeden ATLANIYORDU** (`if($__c===$__ocur) continue;`) ve
+    boş değer artık "otomatik" demek, yani operatör bölge varsayılanını **EUR'ya
+    geri çeviremiyordu**. Seçeneği göstermeyen bir form, olmayan bir seçenektir
+    (KURAL 2e'nin *"açacak düğmem yok"* dersi). Liste artık tam; sipariş birimi
+    etiketli.
+- **ÖLÇÜLEN BEDEL, nesirde bırakılmadı:** damgasız bir Avrupa dışı sipariş artık
+  **kesilemiyor** — belge USD olmak istiyor, çevrim siparişin **damgalı** kurunu
+  şart koşuyor (KURAL 5i) ve damga yoksa yük gerekçe dönüyor. Önce EUR olarak
+  geçerdi. Bu bir iddia olarak yazılı ve satırda **çipi var**: *"⚠ kur damgası
+  yok — kesilemez (⟳ Fetch missing rates)"*, tıklamadan **önce** — ödeme kutusu
+  çipiyle aynı ilke, çünkü aksi hâlde operatör sebebini ancak reddedilince
+  öğrenirdi. Siparişler zaten yazılırken damgalanıyor, yani bu dar bir hâl.
+- **Bekleyen iki sipariş bundan ETKİLENMİYOR ve kontrol grubu tam olarak onlar:**
+  `VES-55E4F6E1` (FR) ve `VES-A11C0C97` (ES) **Avrupa**, yani her okumada EUR
+  kalıyor ve Alman hesabını alıyorlar. Testte ayrı iddia var — tek yön ölçülseydi
+  "her siparişi USD yapan" bir kusur da yeşil görünürdü.
+- Test: `tests/invoice_payment_gap_test.php` §5/§5b/§5c (dosya **75 iddia**).
+  §5b kum havuzunda **gerçek yükü** kuruyor (ABD siparişi → USD, Fransa kontrol
+  grubu → EUR, kayıtlı EUR seçimi varsayılanı eziyor, damgasız ABD siparişi
+  duruyor). Yakın-komşu tuzakları adıyla: **AT (Avusturya) Avrupa ↔ AU
+  (Avustralya) değil**, ve GB/CH Avrupa ama euro değil → yine EUR kalıyor.
+- Düşebildiği doğrulandı, her sabotajın **gerçekten uygulandığı `grep -c` ile
+  ayrıca yazdırılarak**: platform kapısı kalkınca **1 kırmızı**, EUR kapısı
+  kalkınca **1**, Avrupa ölçütü ters çevrilince **19**, sipariş kurucusundaki
+  kablo silinince **3**, teklif yollarındaki kablo silinince **1**, panel yine
+  sipariş birimini listeden atlayınca **1**, kur-damgası çipi silinince **1**,
+  seçici yine önce meta'ya bakınca **1**.
+  *Bir sabotaj doğrulamam yine yanlış yere baktı:* `grep -c` deseni kodun
+  yanındaki **yorumda** da geçiyordu ve "uygulanmadı" dedirtti; desen satırın
+  kendisine daraltılınca çıktı. Bu dosyada kayıtlı tuzak, bir kez daha.
+- **Kendi ölçüm hatam, kayda geçsin:** *"damgasız ABD siparişinde belge USD"*
+  iddiasını `meta['currency']`'ye bakarak yazdım ve **düştü** — çevrilemeyen bir
+  yükte meta bilerek eski birimde kalıyor. **Kod haklıydı, iddia yanlıştı;**
+  çevrilememiş bir yüke "USD" demek, belgenin taşımadığı bir birimi iddia etmek
+  olurdu. İddia `want_currency`'ye bağlandı.
+- Üç test fonksiyon gövdesini `eval` ile çıkarıp require'ları siliyor
+  (`offers_rounds`, `offers_flow`, `invoice_seller_pick`): üçüne de belgeli
+  **stub** kondu — ve stub **güvenli olduğu için** kondu: o dosyaların alıcı
+  kayıtları RO / PL / ülkesiz, yani gerçek gövde de `''` dönüyor. Stub ile
+  gerçeklik aynı cevabı veriyor, farklı bir cevabı örtmüyor.
 
 **KURAL 5i (devamı) — TEKLİF faturası da USD kesilebilir; kur TEKLİFİN tarihinin**
 (operatör, 9 Eyl 2026, OCD7D2: *"burada neden fatura yaparken banka bilgileri
@@ -2481,6 +2580,17 @@ SOR, sonra gönder** (operatör, 8 Eyl 2026: *"ilk önce sor"*).
   söyle. Sohbette kimlik bilgisi isteme, tekrarlama, saklama.
 - Müşteri şifreleri gösterilemez: `password_hash()` tasarımı gereği geri döndürülemez.
 - Çalışan e-posta adresi **uydurma** (kurumsal format tahmininden adres üretme).
+- **Artık TESTİ var: `tests/no_real_iban_test.php`.** Kural 19 Eyl 2026'da
+  çiğnendi (bkz. KURAL 5r'nin düzeltme maddesi) ve sebebi kuralın
+  unutulması değil **taramanın dar olmasıydı**: sızıntı kontrolü iş akışlarına
+  ve kaynak dosyalarına bakıp testlere bakmamıştı. Test `git ls-files`'ın
+  **tamamını** tarıyor ve ölçüt desen değil **mod-97**: rastgele bir
+  büyük-harf+rakam dizisi (SKU, sipariş ref'i, hash) IBAN sağlamasından
+  geçmiyor, yani gürültü sıfır — ölçüldü, depoda tam 4 geçerli IBAN var ve
+  dördü de belgelerde örnek olarak geçen sentetik numaralar (izin listesinde,
+  her biri gerekçesiyle). Yeni bir numara eklemek isteyen önce *"bu gerçek bir
+  hesap mı"* sorusunu cevaplamak zorunda. İki yönü de tutuyor: sızıntılı dosya
+  **yakalanıyor**, SKU/ref taşıyan temiz dosya **geçiyor**.
 
 ## Kayıtlı reddetmeler
 

@@ -169,6 +169,43 @@ function vestra_payment_rails(array $acc, string $currency): array {
  * degil kendi KAYDI olarak geciriyor), yani operator platformun banka
  * bilgilerinin DURMADIGI sayfaya yollaniyordu.
  */
+/**
+ * BELGENIN VARSAYILAN PARA BIRIMI: Avrupa disi alici + PLATFORM kesiyorsa USD.
+ *
+ * Operator karari, 19 Eyl 2026: *"ABD ve Avrupa disinda ABD hesabi, diger
+ * Avrupa icinde ise Alman hesabi kullanilacak."* Secenekler sunuldu ve
+ * **"Avrupa disi fatura USD kesilsin"** secildi.
+ *
+ * NEDEN RAYI DEGIL PARA BIRIMINI DEGISTIRIYORUZ: `vestra_payment_rails` rayi
+ * zaten faturanin BIRIMINE gore seciyor (EUR -> IBAN, USD -> hesap no + ABA).
+ * Bolgeye bakan IKINCI bir secici yazmak, ayni soruyu iki yerde cevaplamak
+ * olurdu; ustelik EUR yazan bir belgenin altina USD bir hesap basardi ve
+ * odeyen tarafta cifte kur donusumu dogururdu. Birimi bolgeden turetince
+ * mevcut TEK kural yerinde kaliyor ve alici, odeyecegi hesabin birimiyle
+ * bir belge aliyor.
+ *
+ * UC KAPI, ucu de bilerek dar:
+ *  - **Yalniz PLATFORM kesiminde.** Satici hesaplarinin cogunda yalniz IBAN
+ *    var (GARAGE LE PARIS, TYREX): onlari USD'ye zorlamak odeme kutusunu
+ *    BOSALTIR ve yeni muhafaza (KURAL 5r) faturayi hic kestirmez.
+ *  - **Yalniz EUR kayitli satista.** Zaten baska bir birimdeki bir satisi
+ *    yeniden hedeflemek, operatorun vermedigi bir karar olurdu.
+ *  - **Ulke TANINIYORSA.** `vestra_user_in_europe()` bos/taninmayan ulkede
+ *    TRUE donuyor, yani belirsizlikte bugunku davranis (EUR) korunuyor --
+ *    fazla sorulan soru gorunur, sessizce degistirilmis bir para birimi
+ *    gorunmez.
+ *
+ * OPERATORUN KAYITLI SECIMI HER ZAMAN ONDE (KURAL 5i): bu yalnizca secim
+ * YOKKEN devreye giren bir VARSAYILAN, bir dayatma degil.
+ */
+function vestra_invoice_currency_default(?array $sellerAcc, string $buyerCountry, string $baseCurrency): string {
+    if (!vestra_invoice_is_platform_issuer($sellerAcc)) return '';
+    if (strtoupper(trim($baseCurrency)) !== 'EUR') return '';
+    require_once __DIR__.'/products.php';   // KURAL 15: kardesin require'ina yaslanma
+    if (vestra_user_in_europe(['country' => $buyerCountry])) return '';
+    return 'USD';
+}
+
 function vestra_invoice_payment_gap(?array $sellerAcc, string $currency, bool $paid): string {
     if ($paid) return '';
     $cur = strtoupper(trim($currency)) !== '' ? strtoupper(trim($currency)) : 'EUR';
@@ -1763,6 +1800,16 @@ function vestra_order_invoice_payloads(string $ref, string $currencyOverride = '
     $orderCur = strtoupper(trim((string)($orderRow['currency'] ?? 'EUR'))) ?: 'EUR';
     $ovr      = strtoupper(trim($currencyOverride));
     $wantCur  = in_array($ovr, vestra_invoice_currencies(), true) ? $ovr : vestra_order_invoice_currency($ref);
+    /* BOLGE VARSAYILANI (KURAL 5s) -- yalnizca operatorun kayitli secimi YOKKEN.
+       `array_keys($bySeller) === ['vestra']` sarti onemli: birim SIPARISIN
+       tamamina isliyor, dilim basina degil. Karisik bir siparisi USD'ye
+       zorlamak, yalniz IBAN'i olan satici dilimini odeme kutusuz birakir ve
+       KURAL 5r o belgeyi hic kestirmez -- yani "duzeltme" bir siparisi bastan
+       kesilemez yapardi. */
+    if ($wantCur === '' && array_keys($bySeller) === ['vestra']) {
+        $wantCur = vestra_invoice_currency_default(null,
+                     (string)($orderMeta['buyer']['country'] ?? ($orderRow['country'] ?? '')), $orderCur);
+    }
     $fxStamp  = null;
     if ($wantCur !== '' && $wantCur !== $orderCur) {
         require_once __DIR__.'/fx_orders.php';

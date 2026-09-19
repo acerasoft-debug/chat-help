@@ -45,6 +45,13 @@ if(!function_exists('vestra_invoice_currencies')) { function vestra_invoice_curr
    ki olculen davranis degismesin. Muhafaza kum havuzunda gercek kesim denenerek
    olculuyor -- tests/invoice_payment_gap_test.php. */
 if (!function_exists('vestra_invoice_payment_gap')) { function vestra_invoice_payment_gap($a,$c,$p){ return ''; } }
+/* BOLGE VARSAYILANI (KURAL 5s) da invoice.php'de ve require'lar siliniyor.
+   Burada stub GUVENLI cunku bu dosyanin alicisi PL (Polonya) -- AVRUPALI, yani
+   gercek govde de '' donuyor: stub ile gerceklik ayni cevabi veriyor, farkli
+   bir cevabi ortmuyor. Varsayilanin KENDISI kum havuzunda gercek bir Amerikali
+   alici ile olculuyor -- tests/invoice_payment_gap_test.php (sec. 5b/5c). */
+if (!function_exists('vestra_invoice_currency_default')) { function vestra_invoice_currency_default($s,$c,$b){ return ''; } }
+
 
 preg_match_all('/^function \w+\(.*?^}/ms', $src, $fns);
 foreach ($fns[0] as $f) eval($strip($f));

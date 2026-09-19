@@ -33,7 +33,11 @@ if (vestra_data_dir() !== $sand.'/data') { fwrite(STDERR, "kum havuzu kurulamadi
 echo "== 1. karar govdesi (vestra_invoice_payment_gap) ==\n";
 
 $noBank   = [];                                   // platform, hicbir banka alani yok
-$eurOnly  = ['bank_iban' => 'DE27202208000049203225'];
+/* SENTETIK IBAN: her IBAN belgesinde ornek olarak gecen Deutsche Bank
+   numarasi (iban_valid_test de ayni sayiyi kullaniyor). GERCEK bir hesap
+   numarasi buraya YAZILMAZ -- depo herkese acik (Guvenlik bolumu). Mod-97
+   gecmesi sart: gecmeseydi panel hicbir alani kaydetmezdi. */
+$eurOnly  = ['bank_iban' => 'DE89370400440532013000'];
 $usdOnly  = ['bank_account' => '123456789012', 'bank_routing' => '091000019'];
 $sellerNo = ['id' => 'abc123', 'company' => 'GARAGE LE PARIS'];
 
@@ -138,7 +142,7 @@ $t('HICBIR belge yazilmadi (numara yanmadi)', count($after1) === count($before))
 /* Simdi IBAN giriliyor -- panelin yazdigi kaydin aynisi. */
 file_put_contents($sand.'/data/platform_seller.json', json_encode([
     'bank_holder' => 'Acerasoft LLC',
-    'bank_iban'   => 'DE27202208000049203225',
+    'bank_iban'   => 'DE89370400440532013000',
 ]));
 $r2 = vestra_issue_order_invoices('VES-GAP1');
 $t('IBAN girilince kesim GECIYOR', is_array($r2) && empty($r2['error']) && count($r2) > 0);
@@ -167,6 +171,94 @@ $t('siparis yolu error_code ile bant seciyor',
    substr_count($a, "(\$r['error_code']??'')==='nopay'") + substr_count($a, "(\$iv['error_code']??'')==='nopay'") === 2);
 $t('onay satirinda TIKLAMADAN ONCE uyari cipi var',
    str_contains($a, 'ödeme kutusu YOK') && str_contains($a, 'vestra_invoice_payment_gap('));
+
+/* ------------------------------------------- §5 BOLGE VARSAYILANI (5s) */
+echo "== 5. bolge varsayilani: Avrupa disi + platform -> USD ==\n";
+
+$plat = null;                                   // platform kesimi
+$sell = ['id' => 'abc123', 'company' => 'GARAGE LE PARIS'];
+
+$t('platform + Fransa + EUR -> degisiklik YOK',  vestra_invoice_currency_default($plat, 'France', 'EUR') === '');
+$t('platform + ES kodu + EUR -> degisiklik YOK', vestra_invoice_currency_default($plat, 'ES', 'EUR') === '');
+$t('platform + ABD + EUR -> USD',                vestra_invoice_currency_default($plat, 'United States', 'EUR') === 'USD');
+$t('platform + Japonya + EUR -> USD',            vestra_invoice_currency_default($plat, 'Japan', 'EUR') === 'USD');
+$t('platform + BAE + EUR -> USD',                vestra_invoice_currency_default($plat, 'United Arab Emirates', 'EUR') === 'USD');
+/* Yakin-komsu tuzagi: AT Avusturya (Avrupa), AU Avustralya (degil). Alt dize
+   eslesmesi ikisini karistirirdi -- mango/zara dersinin cografya hali. */
+$t('AT (Avusturya) Avrupa sayilir',  vestra_invoice_currency_default($plat, 'AT', 'EUR') === '');
+$t('AU (Avustralya) Avrupa DEGIL',   vestra_invoice_currency_default($plat, 'AU', 'EUR') === 'USD');
+$t('GB (Avrupa, euro degil) -> EUR kalir', vestra_invoice_currency_default($plat, 'GB', 'EUR') === '');
+$t('CH (Avrupa, euro degil) -> EUR kalir', vestra_invoice_currency_default($plat, 'CH', 'EUR') === '');
+
+/* UC KAPI, ucu de ayri ayri dusebilmeli. */
+$t('SATICI kesiminde varsayilan YOK', vestra_invoice_currency_default($sell, 'United States', 'EUR') === '');
+$t('EUR olmayan satista varsayilan YOK', vestra_invoice_currency_default($plat, 'United States', 'USD') === '');
+$t('ulke BOS -> varsayilan YOK (ihtiyatli)', vestra_invoice_currency_default($plat, '', 'EUR') === '');
+$t('taninmayan yazim -> USD (pozitif olcut)', vestra_invoice_currency_default($plat, 'Benin', 'EUR') === 'USD');
+
+echo "== 5b. kum havuzunda GERCEK yuk: bolge birimi belirliyor mu ==\n";
+$mk = function (string $ref, string $country) use ($sand, $head) {
+    $h = fopen($sand.'/data/orders.csv', 'a');
+    fputcsv($h, [$ref, date('c'), 'Test Co', 'Buyer', 'b@example.com', $country,
+                 '10x SKU1 @120.00', '1200.00', '0.00', '1200.00', 'Payment: Bank transfer.'], ',', '"', '\\');
+    fclose($h);
+};
+$mk('VES-US1', 'United States');
+$mk('VES-FR1', 'France');
+/* Cevrim SIPARIS TARIHININ damgali kuruyla; damga yoksa yuk gerekce doner.
+   Damgayi elle koyuyoruz ki olculen sey KUR degil BOLGE karari olsun. */
+$st = json_decode((string)@file_get_contents($sand.'/data/order_statuses.json'), true) ?: [];
+$st['VES-US1']['fx'] = ['usd' => 1.1622, 'date' => '2026-09-04', 'source' => 'ECB'];
+file_put_contents($sand.'/data/order_statuses.json', json_encode($st));
+
+$pUS = vestra_order_invoice_payloads('VES-US1');
+$pFR = vestra_order_invoice_payloads('VES-FR1');
+$t('ABD siparisi tek dilim (platform)', count($pUS) === 1);
+$t('ABD siparisinin BELGESI USD',  strtoupper((string)($pUS[0]['meta']['currency'] ?? '')) === 'USD');
+$t('ABD siparisinde cevrim hatasi YOK', empty($pUS[0]['currency_error']));
+/* KONTROL GRUBU: Avrupali siparis DEGISMEMELI. Tek yon olculseydi "her
+   siparisi USD yapan" bir kusur da yesil gorunurdu -- operatorun bekleyen
+   iki siparisi tam olarak bu grupta. */
+$t('Fransa siparisinin BELGESI EUR', strtoupper((string)($pFR[0]['meta']['currency'] ?? '')) === 'EUR');
+
+/* VARSAYILANIN OLCULEN BEDELI: damgasiz bir Avrupa disi siparis artik
+   KESILEMIYOR. Once EUR olarak gecerdi; simdi belge USD olmak istiyor ve
+   cevrim SIPARIS TARIHININ damgasini sart kosuyor (KURAL 5i) -- damga yoksa
+   yuk gerekce donuyor, hicbir numara yanmiyor. Bunu bir iddia olarak
+   yaziyorum ki bedel nesirde kalmasin: panelin caresi "Fetch missing rates",
+   ve siparisler zaten yazilirken damgalaniyor. */
+$mk('VES-US2', 'United States');
+$pUS3 = vestra_order_invoice_payloads('VES-US2');
+/* Yuk cevrilemeyince meta ESKI birimde kaliyor ve istenen birim
+   `want_currency`de duruyor -- ilk yazimda meta'ya baktim ve iddia dustu:
+   KOD HAKLIYDI, iddia yanlisti (cevrilememis bir yuke "USD" demek, belgenin
+   tasimadigi bir birimi iddia etmek olurdu). */
+$t('damgasiz ABD siparisi: istenen birim USD',
+   strtoupper((string)($pUS3[0]['want_currency'] ?? '')) === 'USD');
+$t('damgasiz ABD siparisi KESILEMIYOR (gerekce var)', !empty($pUS3[0]['currency_error']));
+/* KONTROL GRUBU: Avrupali siparis de damgasiz ve SORUNSUZ -- yani duran sey
+   damganin yoklugu degil, cevrim istegi. */
+$t('damgasiz Avrupa siparisinde gerekce YOK', empty($pFR[0]['currency_error']));
+
+/* OPERATORUN SECIMI HER ZAMAN ONDE (KURAL 5i): varsayilan bir dayatma degil. */
+$st['VES-US1']['invoice_currency'] = 'EUR';
+file_put_contents($sand.'/data/order_statuses.json', json_encode($st));
+$pUS2 = vestra_order_invoice_payloads('VES-US1');
+$t('kayitli EUR secimi bolge varsayilanini EZIYOR',
+   strtoupper((string)($pUS2[0]['meta']['currency'] ?? '')) === 'EUR');
+
+echo "== 5c. panel dogruyu gosteriyor ==\n";
+$t('secici ETKIN birimi yukten okuyor', str_contains($a, "\$__pl[0]['meta']['currency']"));
+/* Cevrilemeyen yukte meta eski birimde kalir; panel ISTENEN birimi yazmali,
+   yoksa "otomatik (EUR)" der ve kesim USD yuzunden durur -- rakam dogru,
+   etiket yalan. */
+$t('secici once want_currency okuyor', str_contains($a, "\$__pl[0]['want_currency']"));
+$t('satirda kur damgasi cipi var', str_contains($a, 'kur damgası yok — kesilemez'));
+$t('secici "otomatik" diyor', str_contains($a, '— otomatik ('));
+/* Siparis birimi listede olmazsa operator bolge varsayilanini geri ceviremez. */
+$t('siparis birimi de LISTEDE (EUR zorlanabilir)', !str_contains($a, 'if($__c===$__ocur) continue;'));
+$t('teklif yolu da ayni govdeyi cagiriyor',
+   substr_count(file_get_contents($root.'/inc/offers.php'), 'vestra_invoice_currency_default(') === 2);
 
 echo "\n-- {$ok} ok, {$bad} HATA --\n";
 exit($bad === 0 ? 0 : 1);

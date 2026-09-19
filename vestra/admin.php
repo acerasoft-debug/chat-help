@@ -4671,7 +4671,8 @@ foreach($offers as $__o){
           <?php /* Dilim basina bir taslak: siparis birden cok saticiya
                    bolunebiliyor ve her dilim AYRI bir belge olarak kesiliyor --
                    operator hangisini kontrol ettigini bilmeli. */
-                foreach(vestra_order_invoice_payloads($oref) as $__p): ?>
+                $__pl = vestra_order_invoice_payloads($oref);
+                foreach($__pl as $__p): ?>
             <a class="abtn" style="font-size:12px" target="_blank" rel="noopener"
                title="Taslak — numara yakmaz, kaydetmez, müşteriye hiçbir şey gitmez"
                href="/admin?pv_order=<?= urlencode($oref) ?>&pv_seller=<?= urlencode($__p['seller_key']) ?>">👁 <?= htmlspecialchars(vestra_invoice_issuer_name($__p['seller'],'VESTRA')) ?></a>
@@ -4685,6 +4686,15 @@ foreach($offers as $__o){
                              (string)($__p['meta']['currency'] ?? 'EUR'), !empty($__p['meta']['paid']));
                   if($__gap !== ''): ?>
               <span title="<?= htmlspecialchars($__gap) ?>" style="font-size:11px;padding:2px 7px;border-radius:9px;background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.35);color:#c0392b;white-space:nowrap">⚠ ödeme kutusu YOK — kesilemez</span>
+            <?php endif; ?>
+            <?php /* KUR DAMGASI YOK -- yine TIKLAMADAN ONCE. Bolge varsayilani
+                     (KURAL 5s) Avrupa disi bir siparisi USD'ye cevirmek
+                     istediginde damga sart olur; damga yoksa kesim DURUYOR ama
+                     satirda bunu soyleyen hicbir sey yoktu: operator sebebini
+                     ancak reddedilince ogrenirdi. Odeme kutusu cipiyle ayni
+                     ilke, ayni yerde. */
+                  if(!empty($__p['currency_error'])): ?>
+              <span title="<?= htmlspecialchars((string)$__p['currency_error']) ?>" style="font-size:11px;padding:2px 7px;border-radius:9px;background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.35);color:#c0392b;white-space:nowrap">⚠ kur damgası yok — kesilemez (⟳ Fetch missing rates)</span>
             <?php endif; ?>
           <?php endforeach; ?>
           <?php /* SATICI SECIMI (5 Eyl 2026, operator: "yeni siparislerde satici
@@ -4723,9 +4733,21 @@ foreach($offers as $__o){
             <input type="hidden" name="ref" value="<?= htmlspecialchars($oref) ?>">
             <select name="currency" style="font-size:12px"
                     title="Fatura hangi para biriminde kesilsin? Sipariş kaydı değişmez; tutarlar sipariş tarihindeki kurla çevrilir.">
-              <option value="">— sipariş birimi (<?= htmlspecialchars($__ocur) ?>) —</option>
-              <?php foreach(vestra_invoice_currencies() as $__c): if($__c===$__ocur) continue; ?>
-                <option value="<?= htmlspecialchars($__c) ?>"<?= $__pcur===$__c?' selected':'' ?>><?= htmlspecialchars($__c) ?></option>
+              <?php /* ETKIN BIRIM YUKUN KENDISINDEN (KURAL 5s). Kayitli secim yoksa
+                       bolge varsayilani devrede olabilir (Avrupa disi + platform
+                       kesimi -> USD) ve ekranda "siparis birimi (EUR)" yazmasi
+                       DUPEDUZ YALAN olurdu: operator EUR sanip USD bir belge
+                       keserdi. Etkin birim, taslak dugmesinin de okudugu AYNI
+                       yukten aliniyor -- ikinci bir hesap, ikinci bir cevap. */
+                    $__eff = strtoupper((string)($__pl[0]['want_currency']
+                                ?? ($__pl[0]['meta']['currency'] ?? $__ocur))); ?>
+              <option value="">— otomatik (<?= htmlspecialchars($__eff) ?>)<?= ($__pcur==='' && $__eff!==$__ocur) ? ' · alıcı Avrupa dışı' : '' ?> —</option>
+              <?php /* Siparis birimi de LISTEDE: atlanirsa operator bolge
+                       varsayilanini EUR'ya GERI CEVIREMEZ -- bosluk "otomatik"
+                       demek, yani yine USD. Secenegi gostermeyen bir form,
+                       olmayan bir secenektir. */
+                    foreach(vestra_invoice_currencies() as $__c): ?>
+                <option value="<?= htmlspecialchars($__c) ?>"<?= $__pcur===$__c?' selected':'' ?>><?= htmlspecialchars($__c) ?><?= $__c===$__ocur?' (sipariş birimi)':'' ?></option>
               <?php endforeach; ?>
             </select>
             <button class="abtn" type="submit" style="font-size:12px">Kaydet</button>

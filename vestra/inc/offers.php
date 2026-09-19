@@ -470,6 +470,12 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
     $baseCur = 'EUR';
     $ovrCur  = strtoupper(trim($currencyOverride));
     $wantCur = in_array($ovrCur, vestra_invoice_currencies(), true) ? $ovrCur : vestra_offer_invoice_currency($ref);
+    /* BOLGE VARSAYILANI (KURAL 5s): Avrupa disi alici + PLATFORM kesimi -> USD.
+       Siparis tarafindaki ayni govde; teklif de atlanamaz, yoksa ayni
+       Amerikali alici siparisinde USD, kabul ettigi teklifte EUR belge alirdi. */
+    if ($wantCur === '') {
+        $wantCur = vestra_invoice_currency_default($sellerAcc, (string)($buyerAcc['country'] ?? ''), $baseCur);
+    }
 
     $meta = [
             'ref' => $ref, 'date' => $offerRow['timestamp'] ?? date('c'),
@@ -625,6 +631,13 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
              ? $curPick : vestra_offer_invoice_currency($primary);
 
     $buyerAcc = auth_find($buyerRow['email'] ?? '') ?: [];
+    /* BOLGE VARSAYILANI (KURAL 5s). Alici hesabi BURADA cozuluyor, o yuzden
+       karar $wantCur'in ilk atamasindan sonra -- kardeslerinin (vat_note /
+       shipping / vat_rate) durdugu her yerde olmali kurali, KURAL 5m'in
+       birlesik cubukta eksik kalan KDV oraniyla odedigi ders. */
+    if ($wantCur === '') {
+        $wantCur = vestra_invoice_currency_default($sellerAcc, (string)($buyerAcc['country'] ?? ''), 'EUR');
+    }
     $meta = [
             'ref' => $primary, 'date' => date('c'),
             'currency' => 'EUR',

@@ -36,6 +36,13 @@ if(!function_exists('vestra_invoice_currencies')) { function vestra_invoice_curr
    kum havuzunda gercekten kesim deneyerek olculuyor --
    tests/invoice_payment_gap_test.php. */
 if(!function_exists('vestra_invoice_payment_gap')) { function vestra_invoice_payment_gap($a,$c,$p){ return ''; } }
+/* BOLGE VARSAYILANI (KURAL 5s) de invoice.php'de. Stub GUVENLI cunku bu
+   dosyanin alici kaydinda ULKE HIC YOK ve gercek govde taninmayan ulkeyi
+   bilerek Avrupa sayiyor (belirsizlikte bugunku davranis korunur), yani o da
+   '' donuyor -- stub farkli bir cevabi ortmuyor. Varsayilanin kendisi gercek
+   bir Amerikali alici ile olculuyor: tests/invoice_payment_gap_test.php. */
+if(!function_exists('vestra_invoice_currency_default')) { function vestra_invoice_currency_default($s,$c,$b){ return ''; } }
+
 
 preg_match_all('/^function \w+\(.*?^}/ms',$src,$fns);
 foreach($fns[0] as $f) eval($strip($f));
