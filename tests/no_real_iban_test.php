@@ -61,7 +61,18 @@ echo "\n== 2. Tarama gercekten DUSEBILIYOR ==\n";
 /* Tek yon olculseydi hicbir seyi taramayan bir tarama da yesil kalirdi. */
 $tmp = sys_get_temp_dir().'/vestra-iban-scan-'.getmypid();
 @mkdir($tmp, 0777, true);
-file_put_contents($tmp.'/leak.php', "<?php \$acc = ['bank_iban' => 'GB33BUKB20201555555555'];\n");
+/* Sizinti fiksturunun numarasi PARCALARDAN kuruluyor, dosyaya duz
+   yazilmiyor: bu dosya commit edilince `git ls-files`'a girdi ve tarama
+   KENDI fiksturunu yakaladi -- taramanin gercekten calistiginin kaniti, ama
+   testi kirmiziya boyuyordu. Izin listesine eklemek de olmazdi: o zaman
+   asagidaki "yakalaniyor" iddiasi atlanan bir numarayi olcerdi, yani hic
+   dusemezdi. (Olcumu dosya HENUZ TAKIPSIZKEN yapmistim; takip edilmeyen
+   dosya taramada yok -- olcumu, olculen kumeyi degistiren adimdan SONRA
+   tekrarla.) Parcalardan kurarken numarayi bir kez YANLIS birlestirdim ve
+   mod-97'den dusdu -- iddia "yakalanmiyor" diye kirmiziya dondu ve HAKLIYDI:
+   gecersiz bir numara zaten sizinti degil. */
+$leak = 'GB33' . 'BUKB' . '2020' . '1' . str_repeat('5', 9);
+file_put_contents($tmp.'/leak.php', "<?php \$acc = ['bank_iban' => '$leak'];\n");
 file_put_contents($tmp.'/clean.php', "<?php \$sku = 'LAC-SH9608-00'; \$ref = 'VES-1F0C9350';\n");
 $t('sizintili dosya YAKALANIYOR', $scan(['leak.php'], $tmp) !== []);
 $t('temiz dosya (SKU + siparis ref) GECIYOR', $scan(['clean.php'], $tmp) === []);
