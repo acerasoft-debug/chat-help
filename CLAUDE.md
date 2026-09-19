@@ -5676,6 +5676,79 @@ dedi, aynı cümleyi ertesi sabah tekrarladı.)
   Eylül), ve 3 lead'in ikinci mektubu dolunca üçüncü mektup kanalı. İkisi de
   **kendiliğinden gönderilmedi** — KURAL 18.
 
+**KURAL 31 — EV SIRASI GÜNCELLENDİ ve 58 ÜYEYE GÖNDERİLDİ (19 Eyl 2026,
+akşam)** (operatör: *"3. emaillere devam et f.perry polo ,sweatshirts ve
+lacoste , galerry ürünlerini öne cikar sonra gucco , balenciaga yi
+ekle... 295 email gönder"*).
+
+- **`$W3_WANT` artık altı ev, operatörün sırasıyla:** Fred Perry, Lacoste,
+  Gallery Dept., Gucci, Balenciaga, DSQUARED2. Konu satırı yalnız İLK ÜÇ
+  adı bastığı için "öne çıkar" talimatının karşılığı dizinin başı; **DSQUARED2
+  bu turda adlandırılmadı ama listeden ÇIKARILMADI** — eylemsizlik eylem
+  değil (M7535 kararının aynı dersi), gövdede en sonda duruyor, konuda hiç
+  görünmüyor.
+- **Fred Perry'nin yanına model numaraları eklendi** (`M3600, M7535`,
+  `$W3_NOTE`) — yalnız madde satırında, konuda değil; ceviri gerektirmeyen
+  bir tanımlayıcı (16 Eyl'de zaten yazılmış bir açığı kapatıyor: *"2 artikel,
+  64'lük DSQUARED2'nin yanına konunca ince duruyor"*).
+- **ÖNCE İKİ DRY-RUN, sonra gerçek gönderim** (KURAL 18): lead-wave3 ve
+  üye-wave3 kanalları ayrı ayrı `count=300` ile tam sayıldı, altı evin de
+  katalogda eşleştiği doğrulandı (`EV: Fred Perry -> 2 artikel (M3600, M7535)
+  | Lacoste -> 12 | Gallery Dept. -> 9 | Gucci -> 15 | Balenciaga -> 20 |
+  DSQUARED2 -> 64` — hiçbiri "KATALOGDA ESLESMEYEN EV" demedi).
+
+| Kanal | Uygun (tam sayım) | Gönderildi | Not |
+|---|---:|---:|---|
+| Lead — üçüncü mektup | **0** | 0 | havuz hâlâ tükenmiş: hepsi ya zaten aldı, ya ikinci mektubu hiç almadı, ya 3 tanesi ikinci mektubun üzerinden 3 gün geçmediği için bekliyor |
+| Üye — üçüncü mektup | 61 → **58** (3 elendi) | **58** | 2 koşu (50 + 8), hata 0 |
+
+- **ELLE OKUMA 61 adayın tamamında yapıldı** ve üç hesap `member_spec`'in
+  `skip=` alanıyla **bilerek** çıkarıldı, gönderilmeden önce ayrı bir kuru
+  koşuyla skip listesinin gerçekten yalnız bu üçünü tuttuğu doğrulandı:
+  - **`389h68843j6789)`** — kayıt formuna girilmiş garbled/otomatik görünen
+    bir isim (`durum=pending`, `fiyat=KAPALI`). Selamlama `"Hello".($co!==''?
+    " ".$co:'')` ile kuruluyor, yani mektup *"Hello 389h68843j6789),"* diye
+    açardı — KURAL 2b/factoryoutlet.gr dersinin aynısı, bu depoda daha önce
+    Winter kanalında da aynı hesap için kaydedilmişti.
+  - **`Verify Test Co`** — adı test hesabı olduğunu söylüyor; 19 Eyl'in
+    erken saatlerindeki Angebot/Winter ölçümlerinde de aynı gerekçeyle
+    (elle) dışarıda bırakılmıştı.
+  - **`Acera Soft LLC`** — VESTRA'nın kendi tüzel kişiliği "Acerasoft LLC"nin
+    (her mektup imzasında geçen ad) yakın yazımı ve maskeli adresi
+    (`a***@gmail.com`) operatörün kendi kayıtlı e-posta alan adıyla
+    eşleşiyor: platformun kendi test/kurucu hesabı olduğu kuvvetle
+    muhtemel. Kendi platformumuza kendi kampanya mektubumuzu göndermenin
+    hiçbir karşılığı yok.
+  - Tek harfli/boş firma adları (`d`, boş) ve tuhaf ama **garbled olmayan**
+    adlar (`dropship`, `bad`, `noname`, `Vinted`, `Vinted reseller`) BİLEREK
+    bırakıldı: bunları "test hesabı" saymak için elimde `389h68843j6789)`/
+    `Verify Test Co` seviyesinde bir kanıt yok — SK Ventures gibi bu
+    depoda gerçek sipariş sahibi olduğu doğrulanmış bir hesap da aynı
+    listede terse bir adla duruyordu (bkz. O39419). Şüpheyle sessizce
+    daraltmak, gerçek küçük işletmeleri elemek olurdu (mango/zara dersinin
+    hesap hâli).
+- **61 ile aynı günün erken saatlerinde kaydedilen "Üye wave3: Uygun 2"
+  rakamı ÇELİŞMİYOR — ikisi FARKLI ŞEYİ ölçüyordu.** O ölçüm 295'e tam **1**
+  eksik kapatmak için yapılmış küçük bir kapsam taramasıydı (muhtemelen
+  küçük bir `count` ile), bu ölçüm ise `count=300` ile TAM SAYIM. Loop
+  `count($cand) >= $COUNT` olunca duruyor, yani küçük bir hedefle koşan bir
+  kuru koşu havuzun gerçek büyüklüğünü hiç görmez. *İki kayıt birbirini
+  tutmuyor görünüyorsa önce ölçümün NE'yi saydığına bak — burada ikisi de
+  doğruydu, sorulan soru farklıydı.*
+- **Gerçek gönderim iki ayrı koşuda, SIRAYLA** (`accounts.json`
+  oku-değiştir-yaz): birinci koşu 50/50 gönderdi (`hata: 0`), ikinci koşu
+  kalan 8/8'i gönderdi (`hata: 0`). **58 mektubun dili** (iki koşunun
+  `GONDERILDI` satırlarından tek tek sayıldı): en=36 · fr=12 · it=4 · es=4 ·
+  de=2.
+- **295 rakamı bugün de tutmadı ve bu operatöre söylendi:** lead kanalı hâlâ
+  sıfır, üye kanalı 58 gönderdi. Kümülatif wave3 sayısı büyüdü ama "295"
+  tek bir günün tek bir kanalından çıkacak bir sayı değil — bu depoda 19
+  Eylül'ün kendi kaydı zaten bunu bir kez ölçmüştü.
+- Test/kod tarafı: `tests/wave3_brands_test.php` 129 iddia (bkz. commit
+  `70cea62c`); ev listesi ve not alanı için iki sabotaj (eski sıraya dönüş,
+  notun bullete eklenmemesi) önce GERÇEKTEN uygulandığı doğrulanarak
+  kırmızıya çevrildi.
+
 **11 Eyl 2026 — KATALOG GENELİNDE %80 ZAM ve GERİ ALINMASI.** Operatör:
 *"yüzde 80 eklemeyi hemen geri al"* → *"tüm fiyatları dün geceki fiyatlara çek"*.
 - **Ne olmuş:** KURAL 22 ile eklenen `markup_pct` aracı **`80` ile ve bölme
