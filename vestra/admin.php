@@ -123,6 +123,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $dsOk   = vestra_dropship_set_payments($dsWant);
     header('Location: /admin?tab=dropship&msg='.($dsOk ? ($dsWant?'ds_pay_on':'ds_pay_off') : 'ds_pay_fail')); exit;
   }
+  /* NAVLUN OTOMASYONU anahtari (KURAL 34, 19 Eyl 2026: "simdilik otomatik
+     yapma pasif olsun"). Yazma GERI OKUNARAK dogrulaniyor -- dropship
+     anahtariyla ayni sebep (KURAL 5c'nin billing_saved dersi). */
+  if($act==='shipping_auto'){
+    $saWant = ($_POST['on'] ?? '') === '1';
+    $saOk   = vestra_shipping_set_auto($saWant);
+    header('Location: /admin?tab=orders&msg='.($saOk ? ($saWant?'ship_auto_on':'ship_auto_off') : 'ship_auto_fail')); exit;
+  }
   if($act==='order_invoice_seller'){
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
     require_once __DIR__.'/inc/invoice.php';
@@ -2606,6 +2614,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'invoice_cur_saved'=>'✓ Fatura para birimi kaydedildi. Tutarlar SİPARİŞ TARİHİNDEKİ kurla çevrilir; taslağı (👁) açıp rakamları ve ödeme kutusunu görün.',
     'ds_pay_off'=>'⏸ Dropship tek-parça ödemesi DURDURULDU — site formu da ortak API\'si de yeni sipariş oluşturmuyor (503 payments_paused). Hiçbir şey silinmedi: katalog, fiyatlar, bölgeler, list/stock uçları ve mevcut siparişler yerinde. Aynı düğme geri açar.',
     'ds_pay_on'=>'▶ Dropship tek-parça ödemesi AÇIK — ortaklar yeniden sipariş verip kartla ödeyebilir.',
+    'ship_auto_off'=>'⏸ Otomatik navlun tarifesi DURDURULDU — kasa, sepet önizlemesi, teklif faturası varsayılanı ve bu sayfadaki "Apply tariff" önerisi artık hiçbir rakam basmıyor (navlun 0 kalır). Hiçbir şey silinmedi: tarife tablosu, bölge tespiti ve manuel "🚚 Save shipping" formu yerinde — navlunu siparişten sonra elle yazın. Aynı düğme geri açar.',
+    'ship_auto_on'=>'▶ Otomatik navlun tarifesi AÇIK — kasa ve teklif faturası bölge tarifesini yeniden kendiliğinden uyguluyor.',
     'invoice_test_sent'=>'✓ TASLAK fatura test adresine e-postayla gönderildi — numara yakılmadı, müşteriye hiçbir şey gitmedi.',
     'invoice_redrafted'=>'✓ Fatura AYNI numarayla yeniden yazıldı, düzeltilmiş PDF alıcıya e-postayla (ekte) gönderildi. Alıcı panelindeki bağlantı artık düzeltilmiş belgeyi veriyor.',
     'invoice_paid_toggled'=>'✓ Ödeme işareti değiştirildi — alıcı panelindeki "ödenmesi gereken fatura" uyarısı buna göre güncellenir.',
@@ -2781,6 +2791,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Form boş gönderildi — değişen bir şey yok.</div>
 <?php elseif($msg==='ds_pay_fail'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Anahtar YAZILAMADI — geri okuma tutmadı, durum <b>değişmemiş olabilir</b>. Sayfayı yenileyip üstteki duruma bakın; yine olursa <code>data/dropship_settings.json</code> yazılabilir değil.</div>
+<?php elseif($msg==='ship_auto_fail'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Anahtar YAZILAMADI — geri okuma tutmadı, durum <b>değişmemiş olabilir</b>. Sayfayı yenileyip üstteki duruma bakın; yine olursa <code>data/shipping_settings.json</code> yazılabilir değil.</div>
 <?php elseif($msg==='invoice_cur_bad'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Tanınmayan para birimi — <b>kaydedilmedi</b>. Çevrilebilen birimler: <?= htmlspecialchars(implode(', ', vestra_invoice_currencies())) ?>. Çeviremediği bir birimi kabul etmek, belgeye sessizce yanlış rakam basmak olurdu.</div>
 <?php elseif($msg==='addr_saved'): ?>
@@ -3877,6 +3889,39 @@ elseif($tab==='orders'):
     </form>
   </div>
 </details>
+<?php /* NAVLUN OTOMASYONU anahtari (KURAL 34, 19 Eyl 2026: "shipping cost
+         yanlis olmus tekrar söylüyorum simdilik otomatik yapma pasif olsun
+         ben hesaplarim siparisten sonra"). Dropship odeme anahtariyla AYNI
+         desen (7 Eyl 2026): kapaliyken kasa, sepet onizlemesi, teklif
+         faturasi varsayilani ve bu sayfadaki "Apply tariff" onerisi hicbir
+         rakam basmiyor -- kapi sunucuda (vestra_shipping_auto_schedule),
+         dugmenin gizlenmesi degil. Tarife tablosu, bolge tespiti ve manuel
+         "🚚 Save shipping" formu YERINDE. Her iki durumda da GORUNUYOR
+         (yalniz bir sekmede degil) -- KURAL 2e'nin "acacak dugmem yok" dersi. */
+   $shAuto = vestra_shipping_auto_enabled(); ?>
+<div class="acard" style="margin-bottom:14px">
+  <div class="acard-body" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+    <div style="flex:1;min-width:260px">
+      <div style="font-weight:600;font-size:14px">
+        <?= $shAuto ? '🟢 Automatic shipping tariff is ON' : '⏸ Automatic shipping tariff is PAUSED' ?>
+      </div>
+      <div style="color:var(--mut);font-size:12.5px;margin-top:3px">
+        <?= $shAuto
+          ? 'Checkout, the offer invoice default and the "Apply tariff" hint below all compute shipping from the EU/US tariff table. The switch below pauses that immediately; nothing is deleted.'
+          : 'Checkout writes €0 shipping and the "Apply tariff" hint is hidden — the tariff table, region detection and manual "🚚 Save shipping" entry (below, per order) are unaffected. Enter the amount yourself after the order.' ?>
+      </div>
+    </div>
+    <form method="post" style="margin:0"
+          onsubmit="return confirm('<?= $shAuto ? 'Pause the automatic shipping tariff? New orders will get €0 shipping until you switch it back on.' : 'Switch the automatic shipping tariff back ON? Checkout and offer invoices will compute shipping from the tariff table again.' ?>')">
+      <?= csrfField() ?>
+      <input type="hidden" name="_action" value="shipping_auto">
+      <input type="hidden" name="on" value="<?= $shAuto ? '0' : '1' ?>">
+      <button class="abtn<?= $shAuto ? '' : ' primary' ?>" type="submit">
+        <?= $shAuto ? '⏸ Pause tariff' : '▶ Turn tariff back on' ?>
+      </button>
+    </form>
+  </div>
+</div>
 <?php
   if($viewRow):
     $vst=$orderSt[$viewRef]??[]; $vstatus=$vst['status']??'pending';
@@ -4009,8 +4054,11 @@ elseif($tab==='orders'):
              zaten tarifeyi tasiyor -- bu ipucu ELLE yazilan, tarife
              konmadan once girilmis ya da kalemleri degismis siparisler icin.
              Ulke taninmiyorsa (Japonya gibi) hicbir sey yazilmiyor: uydurma
-             bir navlun onermek KURAL 3'un yasakladigi sey. */
-          $__vsched = vestra_order_shipping_schedule($viewRow);
+             bir navlun onermek KURAL 3'un yasakladigi sey.
+             KURAL 34 (19 Eyl 2026): tarife su an PASIF -- auto sarmali kapali
+             oldugu surece null donuyor, yani "↻ Apply tariff" onerisi hic
+             cizilmiyor (asagidaki $__vsched && ... sarti). Operator elle yazar. */
+          $__vsched = vestra_order_shipping_auto_schedule($viewRow);
         ?>
         <form method="post" style="margin:0 0 8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <?= csrfField() ?>
@@ -4800,8 +4848,9 @@ foreach($issuedOfferInvs as $__e):
                      Kasadan gecen siparis tarifeyi zaten tasiyor; bu cip elle
                      yazilan ya da tarife konmadan once girilmis siparisler
                      icin. Rakam TEK tablodan, siparisin kendi kalemlerinden;
-                     taninmayan ulkede hicbir sey yazilmiyor (KURAL 3). */
-              $__osch = vestra_order_shipping_schedule($o);
+                     taninmayan ulkede hicbir sey yazilmiyor (KURAL 3).
+                     KURAL 34: tarife su an PASIF, cip kapaliyken hic cizilmiyor. */
+              $__osch = vestra_order_shipping_auto_schedule($o);
               if($__osch && (float)$__osch['amount'] > 0): ?>
         <div class="ahint" style="font-size:10.5px;color:#b8860b">navlun yok · tarife <?= eur($__osch['amount']) ?> (<a class="acc" href="/admin?tab=orders&view=<?= urlencode($oref) ?>">↻ uygula</a>)</div>
       <?php endif; endif; ?><?php if(($__iv=vestra_order_invoiced_note($o['ref']??''))!==''): ?><div class="ahint" style="font-size:10.5px"><?= htmlspecialchars($__iv) ?></div><?php endif; ?></td>

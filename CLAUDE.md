@@ -1877,6 +1877,93 @@ için geçerli"* → *"abd için her siparişe 30 eur + 20 ad. sonrasına her 10
   çıkarınca **2**, sepet tabloyu elle yazınca **3**, teklif faturası yine
   `?? 0` okuyunca **2**.
 
+**KURAL 34 — NAVLUN OTOMASYONU ŞU AN PASİF; operatör elle hesaplayıp
+siparişten SONRA yazıyor** (operatör, 19 Eyl 2026: *"shipping cost yanlis
+olmus tekrar söylüyorum simdilik otomatik yapma pasif olsun ben hesaplarim
+siparisten sonra"*).
+
+- **"Tekrar söylüyorum" ikinci şikâyet:** KURAL 5t'nin kurduğu bölge tarifesi
+  canlıda yanlış rakam üretti. Kural yalnızca hatırlanmaya bırakılamazdı
+  (bu dosyanın kendi kaydı: *"kontrol gönderim yolunda olmalı"*) — kapatma
+  koda gömüldü, KURAL 16/17'nin dropship ödemesinde kurduğu **aynı desen**:
+  TEK anahtar, VARSAYILAN KAPALI, hiçbir tablo/fonksiyon silinmiyor, panelden
+  deploy'suz geri açılabiliyor.
+- **`vestra_shipping_schedule()` ve `vestra_order_shipping_schedule()`
+  BİLEREK DOKUNULMADI** — SAF kalıyorlar ve `tests/shipping_tariff_test.php`'nin
+  91 iddiası hâlâ doğrudan onları çağırıyor; anahtarı oraya gömmek o testin
+  tamamını (ve tarifenin kendi matematiğini) bu anahtara bağımlı kılardı.
+  Anahtar bunun yerine **iki yeni sarmalda**: `vestra_shipping_auto_schedule()`
+  ve `vestra_order_shipping_auto_schedule()` (`inc/orders.php`) — kapalıyken
+  **null** dönüyorlar, tıpkı tanınmayan bir ülke gibi (KURAL 3'ün aynı cevabı:
+  "burada otomatik bir rakam yok").
+- **OTOMATİK olan HER çağıran artık sarmalı çağırıyor, pure fonksiyonu değil:**
+  kasa (`order.php`, checkout anında yazılan navlun), sepetin sunucudan aldığı
+  önizleme tablosu (`cart.php` — `SHIP_TARIFF`/`SHIP_REGION` kapalıyken **boş**
+  basılıyor, yoksa alıcı sepette bir rakam görüp kasada başkasını bulurdu —
+  bu depoda tekrar tekrar kaydedilen "sayfada bir, kasada başka rakam" hatası),
+  teklif faturası varsayılanı (`inc/offers.php` →
+  `vestra_offer_invoice_shipping()`), panelin ipucu/"↻ Apply tariff" düğmesi
+  (`admin.php`, hem sipariş kuyruğundaki çip hem sipariş dosyasındaki öneri —
+  kapalıyken ikisi de **hiç çizilmiyor**) ve iş akışının `auto` kipi
+  (`seller-products.yml`, `order_draft`/`order_write` **ve**
+  `admin_mode=shipping`'in `issue_shipping=auto` dalı — ikincisi kapalıyken
+  `auto`'yu **reddediyor** ve operatöre sayısal bir tutar yazmasını söylüyor,
+  sessizce 0 yazıp "hesapladım" izlenimi vermiyor).
+- **ELLE yazma yolu HİÇ DOKUNULMADI** — operatörün "ben hesaplarım siparişten
+  sonra" dediği yol bu: `vestra_order_set_shipping()`, panelin "🚚 Save
+  shipping" formu (`_action=order_shipping`) ve iş akışının
+  `admin_mode=shipping`'ine **sayısal** bir tutar verilmesi (ör. `86.04` ya da
+  `100 USD`) hiçbirini sormuyor, hiçbiri yeni anahtara bakmıyor. Operatör
+  siparişi kendi hesapladığı rakamla, tıpkı bugüne kadar olduğu gibi
+  tamamlıyor.
+- **VARSAYILAN KAPALI:** ayar dosyası (`vestra/data/shipping_settings.json`)
+  yoksa ya da bozuksa otomasyon durur. Tersi (dosya kaybolunca otomasyonun
+  kendiliğinden geri açılması) operatörün "kapat" dediği şeyin sessizce geri
+  gelmesi olurdu.
+- **Panelde geri açma düğmesi:** `Admin ▸ Orders` üstünde (dropship
+  anahtarıyla birebir aynı yerleşim/desen), hem sipariş listesinde hem tek
+  sipariş dosyasında görünüyor — bir ekranda görünmeyen seçenek olmayan
+  seçenektir (KURAL 2e). Yazma **geri okunarak** doğrulanıyor
+  (`vestra_shipping_set_auto`, KURAL 5c'nin `billing_saved` dersi); tutmazsa
+  panelde kırmızı `ship_auto_fail` uyarısı çıkıyor.
+- **Dosya yolu `defined()` korumalı** (`VESTRA_SHIPPING_SETTINGS`) — KURAL 2'nin
+  `VESTRA_ACCOUNTS` dersinin aynısı: korumasız olsaydı bu ayarı sınayan bir
+  test gerçek `data/`'ya yazabilirdi.
+- **Üç eski test ÇÖKTÜ ve bu falsifikasyonla değil kazayla bulundu:**
+  `offers_rounds_test.php`, `offers_flow_test.php` ve
+  `invoice_seller_pick_test.php` — üçü de `offers.php`'nin gövdesini `eval`
+  ile çıkarıp `require`'ları siliyor ve `vestra_shipping_schedule()` için
+  "gerçek gövde de null döner" gerekçesiyle bir stub taşıyordu; teklif
+  faturası artık **başka bir isim** (`vestra_shipping_auto_schedule`)
+  çağırdığı için üçü de `Call to undefined function` ile ölüyordu. Üçüne de
+  aynı gerekçeyle **ikinci bir stub** eklendi — bu dosyaların hiçbir iddiası
+  navlun tutarını okumuyor (yalnız tur sayacı, satıcı seçimi, miktar/birim
+  fiyat, fatura gruplama), yani sarmalın null mi gerçek bir tarife mi
+  döndürdüğü ölçülen davranışı değiştirmiyor. *Bir fonksiyonun çağrı yolunu
+  değiştirmek, onu ELLE stub'layan her sandbox'ı bulup güncellemeyi
+  gerektiriyor — kaynak taramasıyla değil, testleri gerçekten ÇALIŞTIRARAK
+  bulundu (`sh tests/run_all.sh`).*
+- **Falsifikasyon:** sarmalın gövdesindeki anahtar kontrolü kaldırılıp pure
+  fonksiyona doğrudan düşürülünce (yani "pasifken de hesapla" hatası
+  simüle edilince) `shipping_tariff_test.php` **2 kırmızı** verdi, dosya
+  yedekten (`cp`, `git checkout` değil) geri yüklendi ve takım yeniden
+  126/126 yeşile döndü.
+- Test: `tests/shipping_tariff_test.php` §11–13 (dosya 91 → **126 iddia**).
+  §11 anahtarı **ayrı PHP süreçlerinde** sınıyor (`vestra_dropship_payments_enabled()`
+  ile aynı `static` önbellek sınırı — aynı süreçte yazıp okumak önbelleği
+  ölçerdi) ve AÇIKKEN sarmalın pure fonksiyonla **birebir aynı** sonucu
+  verdiğini de doğruluyor (ikinci bir hesap yolu değil, yalnız bir kapı).
+  §12 her OTOMATİK çağıranın sarmalı kullandığını **ve** manuel
+  "Save shipping" işleyicisinin **değişmediğini** (anahtara hiç sormadığını)
+  kaynak taramasıyla tutuyor. §13 hiçbir şeyin silinmediğini (`vestra_shipping_schedule`,
+  tarife tablosu, bölge tespiti, manuel yazıcı) doğruluyor. Ayrıca
+  `dropship_payments_test.php`, `order_shipping_test.php`,
+  `offers_sample_gate_test.php`, `offers_rounds_test.php`,
+  `offers_flow_test.php` ve `invoice_seller_pick_test.php` tek tek koşuldu —
+  hepsi yeşil. `sh tests/run_all.sh`'ın geri kalan iki kırmızısı
+  (`dropship_plan_test` 4, `msg_read_receipt_test` 1) bu işten **bağımsız,
+  önceden kırık** ve bu dosyada zaten kayıtlı — dokunulmadı.
+
 **KURAL 5u — SİPARİŞE İNDİRİM: aynı gün İKİ OTURUM aynı olguya iki yazıcı
 yazdı; tekilleştirildi** (operatör, 19 Eyl 2026: *"yeni yaptığımız siparişlere
 yüzde 5 welcome indirimi uygula"*).

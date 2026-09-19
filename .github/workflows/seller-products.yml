@@ -19,7 +19,7 @@ on:
         required: false
         default: ""
       issue_shipping:
-        description: "admin_mode=shipping ile: navlun. 'auto' = BÖLGE TARİFESİ (Avrupa/ABD; rakam tek tablodan, siparişin kendi kalemlerinden — tanınmayan ülkede iş DURUR). Ya da siparişin KENDİ biriminde yazın (ör: 86.04), fatura biriminde yazmak için sonuna kod ekleyin (ör: '100 USD') — kur siparişin damgasından okunur. Etiket için '|' ile ekleyin: '100 USD|Air freight'. Sipariş TOPLAMI da birlikte güncellenir. admin_mode=order_draft|order_write ile: boş ya da 'auto' = tarife, açık 0 = navlun yok."
+        description: "OTOMATİK TARİFE ŞU AN PASİF (KURAL 34, 19 Eyl 2026 — Admin ▸ Orders'ta durdurulmuş durumda): 'auto' admin_mode=shipping'de REDDEDİLİR, order_draft|order_write'da navlun 0 yazar. admin_mode=shipping ile: siparişin KENDİ biriminde bir SAYISAL tutar yazın (ör: 86.04), fatura biriminde yazmak için sonuna kod ekleyin (ör: '100 USD') — kur siparişin damgasından okunur. Etiket için '|' ile ekleyin: '100 USD|Air freight'. Sipariş TOPLAMI da birlikte güncellenir. Anahtar tekrar açılırsa 'auto' = BÖLGE TARİFESİ (Avrupa/ABD; rakam tek tablodan, siparişin kendi kalemlerinden — tanınmayan ülkede iş DURUR)."
         required: false
         default: ""
       payload:
@@ -1051,16 +1051,20 @@ jobs:
                siparisin kendi kalemlerinden; TEK tablo). Acikca 0 yazilirsa 0
                kalir -- "navlun yok" ile "navlunu sen hesapla" iki ayri talimat.
                Ulke taninmiyorsa tarife null doner ve navlun 0 olur; uydurma bir
-               rakam hicbir zaman kayda girmiyor (KURAL 3). */
+               rakam hicbir zaman kayda girmiyor (KURAL 3).
+               KURAL 34 (19 Eyl 2026): tarife su an PASIF -- vestra_shipping_auto_schedule()
+               anahtar kapaliyken null donuyor, taninmayan ulkeyle AYNI cevap. */
             $shipRaw = trim((string)getenv('OD_SHIP'));
             $shipAuto = ($shipRaw === '' || strtolower($shipRaw) === 'auto');
             if ($shipAuto) {
-                $sch = vestra_shipping_schedule(
+                $sch = vestra_shipping_auto_schedule(
                     array_map(fn($L) => ['sku' => $L[0], 'qty' => $L[2]], $lines),
                     (string)($acc['country'] ?? ''));
                 $ship = $sch ? (float)$sch['amount'] : 0.0;
                 if ($sch) printf("\n  navlun tarifesi : %s  %d ad. -> EUR %s\n",
                     strtoupper((string)$sch['region']), (int)$sch['qty'], number_format($ship, 2));
+                elseif (!vestra_shipping_auto_enabled())
+                           printf("\n  navlun tarifesi : PASIF (Admin > Orders'ta durduruldu) -- navlun 0, elle yazin\n");
                 else       printf("\n  navlun tarifesi : YOK -- ulke '%s' Avrupa/ABD degil, navlun 0 (elle yazin)\n",
                     trim((string)($acc['country'] ?? '')) ?: '(bos)');
             } else {
@@ -1484,8 +1488,18 @@ jobs:
                (vestra_shipping_tariffs) ve siparisin KENDI kalemlerinden; panelin
                "Apply tariff" dugmesiyle AYNI hesap, AYNI yazici. Ulke taninmiyorsa
                is DURUYOR -- 0 yazip "tamam" demek, olmayan bir kural uygulanmis
-               gibi gosterirdi; uydurma bir rakam ise KURAL 3'un yasakladigi sey. */
+               gibi gosterirdi; uydurma bir rakam ise KURAL 3'un yasakladigi sey.
+               KURAL 34 (19 Eyl 2026, "simdilik otomatik yapma pasif olsun"):
+               tarife su an PASIF. `auto` bu yuzden ARTIK DA REDDEDILIYOR --
+               sessizce 0 yazmak "otomatik hesapladim" izlenimi verirdi, oysa
+               anahtar kapaliyken hesaplanan hicbir sey yok. Sayisal bir tutar
+               (ornek: "42.50") her zaman gecerli -- bu, operatorun "ben
+               hesaplarim" dedigi yol. */
             if (strtolower($amountPart) === 'auto') {
+              if (!vestra_shipping_auto_enabled()) {
+                fwrite(STDERR, "otomatik navlun su an PASIF (Admin > Orders'ta durduruldu) -- 'auto' kabul edilmiyor, sayisal bir tutar yazin\n");
+                exit(1);
+              }
               $sch = vestra_order_shipping_schedule($row);
               if (!$sch) {
                 fwrite(STDERR, "tarife YOK: ulke '".trim((string)($row['country'] ?? ''))."' Avrupa ya da ABD olarak taninmiyor -- navlunu elle yaz\n");

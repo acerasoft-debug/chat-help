@@ -222,9 +222,15 @@ var ESCROW_MAX = <?= json_encode((float)VESTRA_ESCROW_MAX) ?>;
    yani buraya hicbir rakam ve hicbir ulke adi elle yazilmiyor. Karar yine
    SUNUCUDA (order.php, yeniden fiyatlanmis satirlar); bu yalniz alici
    dugmeye basmadan once toplami gorsun diye -- "sayfada bir, kasada baska
-   rakam" bu depoda defalarca kayitli. */
-var SHIP_TARIFF = <?= json_encode(vestra_shipping_tariffs(), JSON_UNESCAPED_UNICODE) ?>;
-var SHIP_REGION = <?= json_encode(vestra_shipping_region_map(), JSON_UNESCAPED_UNICODE) ?: '{}' ?>;
+   rakam" bu depoda defalarca kayitli.
+
+   KURAL 34 (19 Eyl 2026): otomatik tarife su an PASIF. Anahtar KAPALIYKEN
+   tablolar BOS basiliyor, yani onizleme de order.php ile AYNI seyi gosterir
+   (navlun yok) -- kapiyi yalniz order.php'de kapatip burayi unutmak, aliciya
+   sepette bir rakam gosterip kasada baskasini yazan (bu depoda tekrar tekrar
+   kaydedilen) hataya duserdi. */
+var SHIP_TARIFF = <?= json_encode(vestra_shipping_auto_enabled() ? vestra_shipping_tariffs() : [], JSON_UNESCAPED_UNICODE) ?: '{}' ?>;
+var SHIP_REGION = <?= json_encode(vestra_shipping_auto_enabled() ? vestra_shipping_region_map() : [], JSON_UNESCAPED_UNICODE) ?: '{}' ?>;
 var PAY_LBL = {
   escrowBtn: <?= json_encode(t('Pay securely →')) ?>,
   escrowHint: <?= json_encode(t('You pay now by card; funds are held in escrow until you confirm delivery.')) ?>,

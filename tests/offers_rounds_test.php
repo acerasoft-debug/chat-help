@@ -52,6 +52,13 @@ if(!function_exists('vestra_invoice_currency_default')) { function vestra_invoic
    Tarifenin KENDISI ayri bir dosyada, gercek satirlarla olculuyor:
    tests/shipping_tariff_test.php. */
 if (!function_exists('vestra_shipping_schedule')) { function vestra_shipping_schedule($l,$c){ return null; } }
+/* OTOMASYON ANAHTARI (KURAL 34, 19 Eyl 2026, "simdilik otomatik yapma pasif
+   olsun"): vestra_offer_invoice_shipping() artik pure fonksiyonu degil,
+   anahtara bakan vestra_shipping_auto_schedule() sarmalini cagiriyor. Stub
+   AYNI GEREKCEYLE guvenli -- bu dosyanin iddialari navlun TUTARINI degil tur
+   sayacini/fiyat kurallarini olcuyor. Anahtarin KENDISI ayri bir dosyada
+   olculuyor: tests/shipping_tariff_test.php §11-12. */
+if (!function_exists('vestra_shipping_auto_schedule')) { function vestra_shipping_auto_schedule($l,$c){ return null; } }
 
 preg_match_all('/^function \w+\(.*?^}/ms',$src,$fns);
 foreach($fns[0] as $f) eval($strip($f));

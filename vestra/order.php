@@ -143,8 +143,15 @@ if($minShort){
    alacagi adet. Ulke taninmiyorsa (vestra_shipping_region null) tarife
    UYGULANMIYOR ve navlun 0 kaliyor -- operator elle yaziyor; uydurma bir
    rakam basmak KURAL 3'un yasakladigi sey. Sepetteki onizleme ayni tabloyu
-   okuyor, yani "sayfada bir, kasada baska rakam" olmuyor. */
-$shipSched  = vestra_shipping_schedule($lines, $country);
+   okuyor, yani "sayfada bir, kasada baska rakam" olmuyor.
+
+   KURAL 34 (19 Eyl 2026, operator: "tekrar söylüyorum ... simdilik otomatik
+   yapma pasif olsun ben hesaplarim siparisten sonra"): TARIFE ARTIK BURADA
+   OTOMATIK UYGULANMIYOR -- vestra_shipping_auto_schedule() kapali oldugu
+   surece null donuyor, tipki taninmayan bir ulke gibi. Navlun 0 yaziliyor ve
+   operator siparisi Admin > Orders'taki "🚚 Save shipping" formundan (ya da
+   admin_mode=shipping) ELLE tamamliyor. */
+$shipSched  = vestra_shipping_auto_schedule($lines, $country);
 $shipping   = $shipSched ? (float)$shipSched['amount'] : 0.0;
 $shipLabel  = $shipSched ? (string)$shipSched['label'] : '';
 

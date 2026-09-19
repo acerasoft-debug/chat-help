@@ -422,11 +422,16 @@ function vestra_offer_fx_ensure(string $ref, string $offerTs = ''): ?array {
  * OLCUT array_key_exists, isset DEGIL: operatorun BILEREK yazdigi 0 ("bu
  * belgede navlun yok") ile hic yazilmamis alan ayri iki sey, ve isset ikisini
  * de ayni gorurdu -- operatorun kaldirdigi navlun her onizlemede geri gelirdi.
+ *
+ * KURAL 34 (19 Eyl 2026): tarife su an PASIF (vestra_shipping_auto_schedule).
+ * `invoice_shipping` acikca yazilmis bir teklifte bu hic calismiyor -- yalniz
+ * hicbir rakam girilmemis tekliflerde varsayilan 0 kalir, operator "Save
+ * shipping"/panel alanindan elle yazar.
  */
 function vestra_offer_invoice_shipping(array $rec, array $lines, array $buyerAcc): float {
     if (array_key_exists('invoice_shipping', $rec)) return (float)$rec['invoice_shipping'];
     require_once __DIR__.'/orders.php';
-    $sched = vestra_shipping_schedule($lines, (string)($buyerAcc['country'] ?? ''));
+    $sched = vestra_shipping_auto_schedule($lines, (string)($buyerAcc['country'] ?? ''));
     return $sched ? (float)$sched['amount'] : 0.0;
 }
 
