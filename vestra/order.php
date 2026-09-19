@@ -141,7 +141,7 @@ if($minShort){
    order still goes through at full price and the confirmation says the code was not
    applied. Rejecting the whole order over a mistyped voucher loses the sale.
    The redemption itself happens after the order is safely written. */
-$voucherCode = ''; $discount = 0.0; $voucherNote = '';
+$voucherCode = ''; $discount = 0.0; $voucherNote = ''; $voucherFailed = false;
 $voucherIn = voucher_norm((string)($_POST['voucher'] ?? ''));
 if($voucherIn !== ''){
   $vres = voucher_validate($voucherIn, $email, $subtotal);
@@ -151,6 +151,42 @@ if($voucherIn !== ''){
     $voucherNote = 'Voucher '.$voucherCode.' (-'.voucher_label($vres).') = -'.eur($discount).'. ';
   } else {
     $voucherNote = 'Voucher '.$voucherIn.' NOT applied ('.$vres.'). ';
+    $voucherFailed = true;
+  }
+}
+
+/* ── OTOMATIK hos geldin indirimi (operator, 19 Eyl 2026) ─────────────────────
+   "bundan sonraki her musterinin ilk siparine de ekle afrika ve yuzde 8 yada 10
+   indirim alanlar haric".
+
+   Kod YAZILMASI GEREKMIYOR artik: kupon kutusu yerinde duruyor (birinin elinde
+   kisisel bir kod olabilir ve o kod %5'ten buyuk olabilir), ama hicbir kod
+   yazilmadiginda ilk siparis indirimi KENDILIGINDEN isliyor. Kararin kendisi
+   burada VERILMIYOR -- vestra_welcome_auto() veriyor ve gecmise donuk yazma yolu
+   (vestra_order_set_discount) ayni fonksiyonu cagiriyor.
+
+   HESAP auth_user() ile okunuyor, $me ile DEGIL: $me yalnizca girisli dalda
+   tanimli ve PHP'de tanimsiz degisken null'dir -- misafir bir siparis
+   "bolgesel indirimi yok" diye okunur ve Afrika'daki bir aliciya %8'in USTUNE
+   %5 daha verilirdi. Ayni dosyada bir kez yasandi (vestra_order_min_shortfall
+   cagrisinin yanindaki not). */
+/* $voucherApplied=false gecmek dogru: bu dala zaten ancak HICBIR indirim
+   uygulanmadiginda giriliyor. "Kod YAZILDI MI" ayri bir soru ve cevabi
+   olmamali -- yanlis yazilmis bir kod yuzunden ilk siparis indirimini
+   kaybetmek, musterinin bir harflik hatasina onlarca euro fatura eder. */
+if ($discount <= 0) {
+  $wauto = vestra_welcome_auto($email, auth_user(), false);
+  if ($wauto['pct'] > 0) {
+    /* Yuvarlama TEK YERDE: elle yazilan bir round() sepet ile faturayi bir
+       kurus ayristirirdi (KURAL 5m'nin KDV dersi). */
+    $discount    = voucher_discount(['type' => 'percent', 'value' => $wauto['pct']], $subtotal);
+    $voucherCode = vestra_welcome_auto_code();
+    /* Not EKLENIYOR, ezilmiyor: basarisiz bir kod denemesi de siparisin kendi
+       kaydinda kalmali, yoksa aylar sonra "kodum neden islemedi" sorusunun
+       cevabi hicbir yerde durmaz. */
+    $voucherNote = trim($voucherNote.' Welcome discount '.$voucherCode.' (-'
+                 . voucher_label(['type' => 'percent', 'value' => $wauto['pct']])
+                 . ') = -'.eur($discount).' (first order).').' ';
   }
 }
 /* Everything downstream — fees, buyer total, seller payout — prices off the discounted
@@ -286,7 +322,7 @@ if($payMethod==='escrow'){
 $body="New VESTRA order request {$ref}\n\nCompany: {$company}\nContact: {$name} <{$email}>\nCountry: ".trim($_POST['country']??'')."   Phone: ".trim($_POST['phone']??'')."\n".($shipAddr!==''?"Deliver to: {$shipAddr}\n":'')."\n";
 foreach($lines as $l){ $body.="  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":"").(!empty($l['sizes'])?" {".implode(", ",$l['sizes'])."}":"")."\n"; }
 if($discount>0) $body.="\nGoods €{$subtotalGross}\nVoucher {$voucherCode} −€{$discount}";
-elseif($voucherNote!=='') $body.="\n".trim($voucherNote);
+if($voucherNote!=='' && ($discount<=0 || $voucherFailed)) $body.="\n".trim($voucherNote);
 $body.="\nSubtotal €{$subtotal}\nBuyer pays €{$total}\n".($commission>0?"VESTRA commission €{$commission} (seller €{$seller_fee} + buyer €{$buyer_fee}) · Seller payout €{$payout}\n":"No platform fees (membership model) · Seller receives €{$payout}\n")."Notes: ".trim($_POST['notes']??'')."\n";
 vestra_notify("New order {$ref} — {$company}", $body, $email);
 
@@ -295,9 +331,12 @@ $feeNote=$FEE_BUYER_PCT>0?" (includes {$FEE_BUYER_PCT}% buyer-protection fee)":"
 /* The buyer is told either way: that the voucher came off, or that the code they typed
    did not apply — silently ignoring a code the buyer believes they used is how a
    "where is my discount?" support mail starts. */
-$voucherLine = $discount>0
-  ? "Goods: €{$subtotalGross}\nVoucher {$voucherCode}: −€{$discount}\n"
-  : ($voucherIn!=='' ? "Note: voucher code {$voucherIn} could not be applied to this order.\n" : "");
+/* IKISI BIRDEN olabilir artik: yanlis yazilmis bir kod ilk siparis indirimini
+   ARTIK ENGELLEMIYOR, yani alici hem "kodunuz islemedi" hem "indiriminiz
+   dustu" duymali. Tek dala sikistirmak, kodu yazan alicinin sorusunu
+   cevapsiz birakirdi. */
+$voucherLine = ($voucherFailed ? "Note: voucher code {$voucherIn} could not be applied to this order.\n" : '')
+  . ($discount>0 ? "Goods: €{$subtotalGross}\nVoucher {$voucherCode}: −€{$discount}\n" : '');
 /* The seller funds the voucher: the discount comes off the goods value, so their payout is
    lower than the line items add up to. The lines above are listed at full price, so without
    this the mail simply does not reconcile and the first thing the seller notices is a short
