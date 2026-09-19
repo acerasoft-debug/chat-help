@@ -2,7 +2,9 @@
 /**
  * UCUNCU MEKTUP — ADIYLA SAYILAN EVLER (operator, 18 Eyl 2026: *"herkese
  * bastan 3. email gonder ve gece yarisi devam et ... yeni urunler ile Galerry
- * markasi ve F.Perry , Gucci , Dsq2"*).
+ * markasi ve F.Perry , Gucci , Dsq2"*; 19 Eyl 2026, sira ve liste guncellendi:
+ * *"f.perry polo, sweatshirts ve lacoste, galerry urunlerini one cikar sonra
+ * gucco, balenciaga yi ekle"*).
  *
  * AD KARISIKLIGI, bilerek yaziliyor: bu depoda zaten `wave3_letter_test.php`
  * var ve o BASKA bir seyi olcuyor -- ucuncu PARTI'yi, yani IKINCI mektubun
@@ -17,6 +19,10 @@
  *     mektup sessizce yalan olurdu),
  *   - sifir artikelli ev ne madde isaretinde ne konuda GORUNMEMELI,
  *   - ama dolu evler HER IKISINDE de gorunmeli.
+ *
+ * SIRA ARTIK TEK YERDE (workflow'daki $W3_WANT), burada gomulu degil.
+ * Fixture buradaki 6 evi $W3_WANT ile AYNI sirada tasiyor ki konuya giren
+ * ilk-uc iddiasi (bolum 4) gercek sirayi olcsun.
  */
 $root = dirname(__DIR__).'/vestra';
 require_once $root.'/inc/email_templates.php';
@@ -27,9 +33,11 @@ $t = function (string $n, bool $c) use (&$ok, &$bad) {
 };
 
 $F = ['houses' => [
+    ['name' => 'Fred Perry',    'n' => 2,  'note' => 'M3600, M7535'],
+    ['name' => 'Lacoste',       'n' => 13],
     ['name' => 'Gallery Dept.', 'n' => 9],
-    ['name' => 'Fred Perry',    'n' => 2],
     ['name' => 'Gucci',         'n' => 15],
+    ['name' => 'Balenciaga',    'n' => 20],
     ['name' => 'DSQUARED2',     'n' => 64],
 ]];
 
@@ -43,6 +51,11 @@ $t('firma adiyla hitap',            str_contains($b1, 'Hello Base Blu,'));
 [, $b1b] = vestra_tpl_wave3_brands('en', 'X', ['houses' => [['name'=>'Gucci','n'=>3]]]);
 $t('rakam gercekten degisiyor',     str_contains($b1b, 'Gucci — 3 articles') && !str_contains($b1b, '64'));
 $t('yalniz istenen ev yazildi',     !str_contains($b1b, 'DSQUARED2'));
+
+echo "\n== 1b. Ev basina NOT: yalniz MADDE satirinda, KONUDA degil ==\n";
+$t('not madde satirinda',           str_contains($b1, 'Fred Perry (M3600, M7535) — 2 articles'));
+$t('not konuda YOK',                !str_contains($s1, 'M3600') && !str_contains($s1, 'M7535'));
+$t('notsuz ev parantezsiz',         str_contains($b1, 'Lacoste — 13 articles') && !str_contains($b1, 'Lacoste ('));
 
 echo "\n== 2. SIFIR artikelli ev hicbir yerde gorunmez ==\n";
 $F0 = ['houses' => [
@@ -63,15 +76,18 @@ foreach (['en','de','fr','it','es','nl','pt','pl','cs','el','ja','ko'] as $lg) {
     $t("{$lg}: DSQUARED2 aynen",           str_contains($bx, 'DSQUARED2'));
     $t("{$lg}: yer tutucu kalmadi",        !str_contains($bx.$sx, '%HOUSES%') && !str_contains($bx.$sx, '%NAMES%')
                                             && !str_contains($bx, '%1$s') && !str_contains($bx, '%2$d'));
-    $t("{$lg}: dort evin dordu de govdede", substr_count($bx, '•') === 4);
+    $t("{$lg}: alti evin altisi da govdede", substr_count($bx, '•') === 6);
     $t("{$lg}: Turkce karakter sizmadi",   !preg_match('/[şğıİÇĞŞ]/u', $bx.$sx));
     $t("{$lg}: konu bos degil",            trim($sx) !== '');
 }
 
-echo "\n== 4. Konuda en cok UC ad, govdede hepsi ==\n";
-$t('konuda ilk uc ad',      str_contains($s1, 'Gallery Dept., Fred Perry, Gucci'));
-$t('konuda dorduncu YOK',   !str_contains($s1, 'DSQUARED2'));
-$t('govdede dorduncu VAR',  str_contains($b1, 'DSQUARED2'));
+echo "\n== 4. Konuda en cok UC ad (SIRAYLA), govdede HEPSI ==\n";
+/* Sira operatorun 19 Eyl 2026 talimati: Fred Perry + Lacoste + Gallery Dept.
+   "one cikar" -- konunun ilk uc adi tam bunlar olmali, notsuz (adin arkasina
+   model numarasi degil). */
+$t('konuda ilk uc ad, one cikan sirayla', str_contains($s1, 'Fred Perry, Lacoste, Gallery Dept.'));
+$t('konuda dorduncu+ YOK',  !str_contains($s1, 'Gucci') && !str_contains($s1, 'Balenciaga') && !str_contains($s1, 'DSQUARED2'));
+$t('govdede dorduncu+ VAR', str_contains($b1, 'Gucci') && str_contains($b1, 'Balenciaga') && str_contains($b1, 'DSQUARED2'));
 
 echo "\n== 5. UYE surumu: lead cumleleri UYEYE gitmez ==\n";
 [$sm, $bm] = vestra_tpl_wave3_brands('en', 'Base Blu', $F, true);
@@ -122,7 +138,10 @@ $t('uye capraz damgasi',             str_contains($wf, "'wave3' => 'last_wave3_a
 $t('evler CANLI kayittan sayiliyor', str_contains($wf, 'foreach (vestra_products() as $wp)'));
 $t('eslesme TAM esitlik',            str_contains($wf, 'strcasecmp(trim((string)$b), trim($want)) === 0'));
 $t('eslesmeyen ev DURDURUR',         str_contains($wf, 'KATALOGDA ESLESMEYEN EV'));
-$t('dort ev adiyla yazili',          str_contains($wf, "\$W3_WANT = ['Gallery Dept.', 'Fred Perry', 'Gucci', 'DSQUARED2'];"));
+$t('alti ev adiyla, one cikan sirayla', str_contains($wf, "\$W3_WANT = ['Fred Perry', 'Lacoste', 'Gallery Dept.', 'Gucci', 'Balenciaga', 'DSQUARED2'];"));
+$t('Fred Perry not tasiyor',         str_contains($wf, "\$W3_NOTE = ['Fred Perry' => 'M3600, M7535'];"));
+$t('not istenen ada bagli',          str_contains($wf, "(string)(\$W3_NOTE[\$want] ?? '')"));
+$t('facts closure notu ALIYOR',      str_contains($wf, 'function () use ($W3_WANT, $W3_NOTE): array'));
 /* Uye dalinda gunler icinde ikinci kampanya mektubu: 17 Eyl'de elle yapilmisti. */
 $t('uye: yakin kampanya elemesi',    str_contains($wf, 'baska bir kampanya mektubu aldi'));
 /* 25 girdi siniri: yeni girdi EKLENMEDI. */

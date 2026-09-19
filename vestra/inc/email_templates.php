@@ -2447,6 +2447,24 @@ function vestra_tpl_new_collection_shoes(string $lang, string $company, array $f
  * Cikis cumlesi HER soguk mektupta oldugu gibi metnin icinde: jetonu gonderen
  * ekliyor ama cumle sablonda olmak zorunda -- gorunur bir cikis yolu olmayan
  * ucuncu bir temas, ilgiyi sikayete cevirir.
+ *
+ * DEVAM — SIRA VE EV LISTESI DEGISTI (19 Eyl 2026, operator: *"f.perry polo,
+ * sweatshirts ve lacoste, galerry urunlerini one cikar sonra gucco,
+ * balenciaga yi ekle"*). Ev listesi ve sirasi TEK yerde
+ * (`send-outreach.yml`'deki `$W3_WANT`), burada gomulu degil -- ayni sebep
+ * ki rakamlar da burada gomulu degil: iki yerde yazilan bir sira er gec
+ * ayrisir. Bugunku sira: Fred Perry, Lacoste, Gallery Dept., Gucci,
+ * Balenciaga, DSQUARED2. Konu satirinin ilk uc adi aldigi icin "one cikar"
+ * talimatinin karsiligi bu dizinin BASI; operatorun DSQUARED2'yi bu turda
+ * ADLANDIRMAMASI onu listeden CIKARMAK anlamina gelmiyor (M7535 kararinin
+ * ayni dersi: adlandirilmayana dokunulmaz) -- konuda gorunmez ama govdede
+ * en sonda durur.
+ *
+ * $h['note']: bazi evlerde ADIN yaninda parantezli bir tanimlayici (Fred
+ * Perry icin "M3600, M7535" -- uretici model numaralari). Bu bir CUMLE
+ * degil, ceviri gerektirmiyor; yalnizca madde SATIRINA giriyor, konu
+ * satirina degil (kisa bir baslikta parantezli bir kod ekleneni kalabalik
+ * gosterirdi).
  */
 function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $member = false): array {
     $co     = trim($company);
@@ -2454,7 +2472,8 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
     foreach ((array)($f['houses'] ?? []) as $h) {
         $hn = trim((string)($h['name'] ?? ''));
         $hq = (int)($h['n'] ?? 0);
-        if ($hn !== '' && $hq > 0) $houses[] = ['name' => $hn, 'n' => $hq];
+        $hnote = trim((string)($h['note'] ?? ''));
+        if ($hn !== '' && $hq > 0) $houses[] = ['name' => $hn, 'n' => $hq, 'note' => $hnote];
     }
 
     $L = [
@@ -2574,14 +2593,22 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
 
     /* Sifir artikelli ev cagiran tarafta zaten elenmis; burada ikinci kez
        elenmesi savunma amacli -- bos bir madde isareti, duyurunun kendisini
-       yalanlar. */
+       yalanlar.
+       NOT yalniz MADDE SATIRINA girer, KONUYA degil: model numarasi (M3600,
+       M7535) parantez icinde adin arkasina ekleniyor ama ceviri gerektiren
+       bir cumle degil, o yuzden sozluge dokunmadan basiliyor. Konu satirinin
+       adi temiz kaliyor -- kisa bir baslikta parantezli bir kod ekleneni
+       kalabalik gosterirdi. */
     $bullets = '';
-    foreach ($houses as $h) $bullets .= "• ".sprintf($lineHouse, $h['name'], $h['n'])."\n";
+    foreach ($houses as $h) {
+        $hname = $h['name'] . (($h['note'] ?? '') !== '' ? ' ('.$h['note'].')' : '');
+        $bullets .= "• ".sprintf($lineHouse, $hname, $h['n'])."\n";
+    }
     $p2 = trim(str_replace('%HOUSES%', rtrim($bullets, "\n"), $p2));
 
     /* Konuda EN COK UC ad: dorduncusu cogu istemcide zaten kirpiliyor ve
        kirpilmis bir konu satiri, adini saydigimiz evi yarim gosterir. Govdede
-       dortu de yaziyor. */
+       hepsi yaziyor. */
     $names = array_map(fn($h) => $h['name'], $houses);
     $short = implode(', ', array_slice($names, 0, 3));
     $subject = str_replace('%NAMES%', $short, $subject);

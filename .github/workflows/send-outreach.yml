@@ -116,7 +116,7 @@ on:
         required: false
         default: "false"
       newcoll_letter:
-        description: "YENİ KOLEKSİYON KİPİNDE hangi metin gitsin: 'winter' (varsayılan) | 'shoes' (AYAKKABI + İÇ GİYİM + premium markalar) — ikisi de o leadin İKİNCİ mektubu, damga last_newcollection_at · 'wave3' = ÜÇÜNCÜ mektup (adıyla sayılan evler: Gallery Dept., Fred Perry, Gucci, DSQUARED2), KENDİ damgası last_wave3_at ve yaş kuralı İKİNCİ mektuba göre. Rakamlar her üçünde de CANLI ilan kaydından sayılır, metne gömülü değil. Tanınmayan değer işi DURDURUR."
+        description: "YENİ KOLEKSİYON KİPİNDE hangi metin gitsin: 'winter' (varsayılan) | 'shoes' (AYAKKABI + İÇ GİYİM + premium markalar) — ikisi de o leadin İKİNCİ mektubu, damga last_newcollection_at · 'wave3' = ÜÇÜNCÜ mektup (adıyla sayılan evler, bu sırayla: Fred Perry, Lacoste, Gallery Dept., Gucci, Balenciaga, DSQUARED2 — konu satırı yalnız ilk üçünü basar), KENDİ damgası last_wave3_at ve yaş kuralı İKİNCİ mektuba göre. Rakamlar her üçünde de CANLI ilan kaydından sayılır, metne gömülü değil. Tanınmayan değer işi DURDURUR."
         required: false
         default: "winter"
       member_spec:
@@ -384,13 +384,41 @@ jobs:
             $IS_WAVE3 = ($NC_LETTER === 'wave3');
             $NC_STAMP = $IS_WAVE3 ? 'last_wave3_at'          : 'last_newcollection_at';
             $NC_PREV  = $IS_WAVE3 ? 'last_newcollection_at'  : 'last_contacted_at';
-            /* Mektupta ADIYLA sayilacak evler. Operatorun bu turda yazdigi dort
-               ad; girdi olarak alinmiyor (25 girdi siniri) ve metne de gomulu
-               degil -- adetleri asagidaki kapanis CANLI ilan kaydindan sayiyor.
-               Yazim KATALOGUN kendi yazimi olmak zorunda degil: eslesme harf
-               duyarsiz TAM esitlik, ve mektuba katalogun yazimi basiliyor. */
-            $W3_WANT = ['Gallery Dept.', 'Fred Perry', 'Gucci', 'DSQUARED2'];
-            $w3facts = function () use ($W3_WANT): array {
+            /* Mektupta ADIYLA sayilacak evler. Girdi olarak alinmiyor (25 girdi
+               siniri) ve metne de gomulu degil -- adetleri asagidaki kapanis
+               CANLI ilan kaydindan sayiyor. Yazim KATALOGUN kendi yazimi olmak
+               zorunda degil: eslesme harf duyarsiz TAM esitlik, ve mektuba
+               katalogun yazimi basiliyor.
+
+               SIRA OPERATORUN KENDI SIRASI (19 Eyl 2026: *"f.perry polo,
+               sweatshirts ve lacoste, galerry urunlerini one cikar sonra
+               gucco, balenciaga yi ekle"*). Sira sussuz bir tercih DEGIL:
+               konu satiri yalnizca ILK UC adi tasiyor (dordunculer cogu
+               istemcide kirpiliyor), yani "one cikar" talimatinin karsiligi
+               dogrudan bu dizinin ilk uc elemani.
+
+               DSQUARED2 LISTEDE KALIYOR ve bu bilincli: operator onu bu turda
+               ADLANDIRMADI, yani hakkinda bir karar vermedi -- ve bu depoda
+               adlandirilmayana dokunulmuyor (M7535 kararinin aynisi:
+               *"Operator yalniz M7535'i adlandirdi, o yuzden otekilere
+               dokunulmadi"*). Cikarmak bir EYLEM, birakmak eylemsizlik;
+               istenmeyen bir cikarma sessiz bir daraltma olurdu. Silmek tek
+               satir ve operatorun karari. */
+            $W3_WANT = ['Fred Perry', 'Lacoste', 'Gallery Dept.', 'Gucci', 'Balenciaga', 'DSQUARED2'];
+            /* Ev basina ISTEGE BAGLI not: adin hemen arkasina parantez icinde
+               basiliyor. YALNIZ CEVRILMESI GEREKMEYEN tanimlayicilar giriyor
+               (uretici model numaralari) -- "polo"/"sweatshirt" gibi urun
+               kelimeleri 12 dile yarim cevrilmis bir parca birakirdi ve bu
+               depoda "yarisi cevrilmis bir metin, hic cevrilmemisten kotu
+               gorunur" diye kayitli.
+               Neden Fred Perry: katalogda TAM IKI ilani var ve "2 artikel",
+               64'luk DSQUARED2'nin yanina konunca ince duruyor -- bu, 18 Eyl
+               2026'da CLAUDE.md'ye *"Fred Perry mektupta '2 artikel' diyor ve
+               bu dogru ... ama ince duruyor"* diye ZATEN yazilmis bir acik.
+               Model numarasi o iki rakami somut yapiyor: M3600 ve M7535 bu
+               markanin ticari alicisinin tanidigi iki kod. */
+            $W3_NOTE = ['Fred Perry' => 'M3600, M7535'];
+            $w3facts = function () use ($W3_WANT, $W3_NOTE): array {
                 $cnt = [];
                 foreach (vestra_products() as $wp) {
                     $wb = trim((string)($wp['brand'] ?? ''));
@@ -407,9 +435,14 @@ jobs:
                         if (strcasecmp(trim((string)$b), trim($want)) === 0) { $hit = [(string)$b, (int)$n]; break; }
                     }
                     if ($hit === null || $hit[1] < 1) { $missing[] = $want; continue; }
-                    $houses[] = ['name' => $hit[0], 'n' => $hit[1]];
+                    /* Not, ISTENEN ada bagli (katalogun yazimina degil):
+                       yarin katalog "FRED PERRY" diye yazarsa not sessizce
+                       dusmesin. Mektuba basilan ad yine katalogunki. */
+                    $houses[] = ['name' => $hit[0], 'n' => $hit[1],
+                                 'note' => (string)($W3_NOTE[$want] ?? '')];
                 }
-                foreach ($houses as $h) echo "EV: {$h['name']} -> {$h['n']} artikel\n";
+                foreach ($houses as $h) echo "EV: {$h['name']} -> {$h['n']} artikel"
+                                            . ($h['note'] !== '' ? " ({$h['note']})" : '') . "\n";
                 if ($missing) {
                     /* Operatorun ADIYLA istedigi bir ev eslesmiyorsa is DURUR.
                        Sessizce listeden dusurmek, operatorun gonderdigini
