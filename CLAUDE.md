@@ -2101,6 +2101,54 @@ siparisler faturasi olusanlar tekrar fatura yap yada ödenmemis gösterilmesin"*
   işaretlemesine daraltıldı. *`class="msgtick` önekinin `msgtickdefs`'i
   yakalamasıyla ve "iddia satırı değil navigasyonu ölçüyordu" ile aynı sınıf.*
 
+**KURAL 7c — Kesilmiş fatura kartı bir KUYRUK DEĞİL ve hiç boşalmıyor; ödenmiş
+satırlar KATLANIR, silinmez** (operatör, 19 Eyl 2026, yukarıdaki düzeltme
+indikten hemen sonra aynı ekrana bakarak: *"bu offerlar neden halen cikiyor
+eski degilmi"*).
+
+- **Soru önce İKİYE AYRILDI, çünkü cevabı farklı.** Operatör satırları "hâlâ
+  açık iş" diye okuyordu; ölçüm üç şeyi birden gösterdi:
+
+  | Soru | Ölçüm |
+  |---|---|
+  | Bunlar onay mı bekliyor? | **Hayır.** Kartın kendi yorumu (`admin.php:4562`): *"onay kuyruğu kesilenleri düşürür; oysa operatör kesilmiş belgeyi de yönetmek istiyor"* — bu, Redraft + Paid işareti için duran **yönetim listesi** |
+  | Sekme rozeti bunları sayıyor mu? | **Hayır.** `$pendingInvoiceCount` yalnız `count(vestra_invoices_for_ref($ref)) === 0` olanları sayıyor (`admin.php:2545`, `2557`) |
+  | İkisi de gerçekten kapandı mı? | **Evet**, canlı: `OCD7D2 → odendi EVET (paid, 10 Eyl)`, `O39419 → odendi EVET (completed, 24 Ağu)`; ikisi de ikinci numarayı reddediyor |
+
+- **Yani kod kusuru yok, OKUNUŞU kusurlu.** Liste **yapısı gereği hiç
+  boşalmıyor**: kesilen her teklif faturası sonsuza kadar orada, üstelik
+  sekmenin adı *"Invoice **approvals**"*. Bu, KURAL 2c'nin ta kendisi — hiç
+  boşalmayan bir liste okunmamayı öğretir. Bugün 2 satır; her kesim bir satır
+  daha ekliyor.
+- **SİLİNMEDİ, KATLANDI** (operatör seçimi; "tamamen gizle" seçeneği sunuldu ve
+  **bedeliyle birlikte** yazıldı). KURAL 5f'e göre kesilmiş bir faturayı **aynı
+  numarayla** düzeltmenin tek yolu o karttaki **Redraft**; gizlemek o düzeltme
+  yolunu panelden **erişilemez** yapardı. Katlanmış bölüm tek tık uzakta ve
+  **testte ayrı bir iddia** Redraft'ın orada durduğunu ölçüyor.
+- **SATIR GÖVDESİ TEK KOPYA.** İki ayrı `foreach` yazmak Redraft formunu, kalem
+  seçicisini ve Paid sütununu ikiye bölerdi ve ilk düzenlemede ayrışırlardı (bu
+  depoda defalarca kayıtlı: `desc`/`sizes`, faturanın üç katmanı, dört mektup
+  gövdesi). Satırlar **aynı gövdeden** çizilip tamponlanıyor (`ob_start`), sonra
+  iki tabloya dağıtılıyor. Ölçüt yine **tek karar noktası**
+  `vestra_order_payment_settled()` — *"ödendi mi"*nin ikinci bir tanımı
+  yazılmadı.
+- **Hepsi ödenmişse üst tablo hiç çizilmiyor**, yerine tek satır (*"hepsi
+  ödendi — bekleyen yok"*). Başlıklı ama gövdesiz bir tablo, boş bir kuyruktan
+  daha kötü görünürdü.
+- Test: `order_payment_test.php` 76 → **83 iddia**, kart kum havuzunda
+  **gerçekten çizdiriliyor**. **Çapa kendi `summary` metnim:** `admin.php`'de
+  **10 ayrı `<details>`** var ve konuma göre ölçmek başka bir sekmenin bloğunu
+  ölçerdi (*"iddia satırı değil navigasyonu ölçüyordu"* dersinin aynısı).
+  İki yön de düştü, her sabotajın **gerçekten uygulandığı `grep -c` ile ayrıca
+  yazdırılarak**: katlama kapatılınca **6 kırmızı**, **HER** satır katlanınca
+  **2** (kontrol grubu — açık iş görünür kalmalı).
+- **Kendi ölçüm hatam, bu oturumda AYNI sınıfın İKİNCİ vakası:** *"her fatura
+  sayfada tek kez"* iddiasını fatura **numarasıyla** yazdım ve kırmızı döndü —
+  numara satır başına **zaten iki kez** basılıyor (bir `<td>`de, bir de
+  Redraft'ın onay metninde *"Rewrite invoice INV-… IN PLACE"*), değişiklikten
+  **önce de** öyleydi. Kod doğruydu, ölçü yanlıştı; iddia satırın kendi **form
+  id**'sine daraltıldı — kopyalanmayı gerçekten ölçen şey o.
+
 **KURAL 8 — Mesajlaşmada satıcı ürün identiyle görünür; mağaza adı yazılmaz**
 (operatör kararı, 3 Eyl 2026: *"platformdaki mesajlaşmada her ürün için seller
 ardından ident no ya da sku numarası koy, mağaza ismi yapma"*).
