@@ -112,7 +112,17 @@ jobs:
           git bundle create /tmp/vestra.bundle HEAD
           git bundle verify /tmp/vestra.bundle >/dev/null
           ls -l /tmp/vestra.bundle | awk '{print "bundle: " $5 " bayt"}'
-          scp $SSHOPT /tmp/vestra.bundle "$SSH_USER@$SSH_HOST:/tmp/vestra.bundle"
+          # scp DEGIL, ssh'a BORU. Iki sebep:
+          #  1) scp'de port bayragi `-P`, ssh'da `-p` -- ayni $SSHOPT'u ikisine
+          #     birden vermek scp'ye portu DOSYA ADI diye okutuyor. Ilk canli
+          #     kosuda birebir bu cikti: `scp: stat local "***": No such file`
+          #     ve "***" maskelenmis port numarasiydi, yani hata mesaji bile
+          #     sebebi gizliyordu.
+          #  2) Bu depo ayni transferi zaten boyle yapiyor (fetch-dropbox.yml,
+          #     tar | ssh) -- ikinci bir kalip yazmak ayni tuzagi ikinci kez
+          #     kurmak olurdu.
+          ssh $SSHOPT "$SSH_USER@$SSH_HOST" 'cat > /tmp/vestra.bundle' < /tmp/vestra.bundle
+          ssh $SSHOPT "$SSH_USER@$SSH_HOST" 'ls -l /tmp/vestra.bundle | awk "{print \"sunucuda: \" \$5 \" bayt\"}"'
 
           ssh $SSHOPT "$SSH_USER@$SSH_HOST" "
             set -e
