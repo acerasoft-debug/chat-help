@@ -75,6 +75,10 @@ on:
         description: "true = zamanlanmış işler: crontab'daki VESTRA-SWEEP satırları, süpürücü kütüğünün son hâli ve journal cron'un ne yazdığı. 'Otomasyon çalışmadı' denince buraya bakılır"
         required: false
         default: "false"
+      net_probe:
+        description: "true = sunucunun DIŞARI ÇIKIŞI: ad çözümleme + HTTPS, host host. 'Deploy düştü / mektup gitmiyor' denince ilk buraya bakılır — 'sunucu kapalı' ile 'github.com çözülmüyor' aynı şey değil"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -122,13 +126,14 @@ jobs:
           IN_CRON:      ${{ github.event.inputs.cron_probe }}
           IN_BLOCKED:   ${{ github.event.inputs.blocked }}
           IN_RECEIPT:   ${{ github.event.inputs.receipt_probe }}
+          IN_NET:       ${{ github.event.inputs.net_probe }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: IN_LOGINH,IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS,IN_BILLING,IN_UPLOAD,IN_ERRLOG,IN_CRON,IN_BLOCKED,IN_RECEIPT
+          envs: IN_LOGINH,IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS,IN_BILLING,IN_UPLOAD,IN_ERRLOG,IN_CRON,IN_BLOCKED,IN_RECEIPT,IN_NET
           script: |
             cat > /tmp/diag_msg.php <<'PHPEOF'
             <?php
@@ -1042,6 +1047,44 @@ jobs:
             php -l /tmp/diag_msg.php
             php /tmp/diag_msg.php
             rm -f /tmp/diag_msg.php
+
+            # ---- SUNUCUNUN DISARI CIKISI: HOST HOST -------------------------
+            # "Deploy dustu" ya da "mektup gitmiyor" TEK bir teshis degil. Bu
+            # ortamda olculdu: ayni dakikalarda api.brevo.com COZULUYOR ama
+            # github.com COZULMUYOR -- yani "sunucunun disari cikisi kapali"
+            # demek YANLIS olurdu ve operatoru barindiriciya yanlis sikayetle
+            # gonderirdi. Dogru cumle host adiyla kurulur.
+            #
+            # IKI KATMAN AYRI OLCULUYOR ve sirasi onemli: once AD COZUMLEME,
+            # sonra HTTPS. Ad cozulmuyorsa HTTPS'in de dusmesi bir sonuctur,
+            # ikinci bir ariza degil -- ikisini tek satirda birlestiren bir
+            # sonda "site erisilemez" der ve sebebi gizler.
+            #
+            # Salt-okunur, kisiye ait veri yok, gizli deger yok.
+            if [ "$IN_NET" = "true" ]; then
+              echo "===== SUNUCUNUN DISARI CIKISI ====="
+              echo "sunucu saati : $(date -u '+%Y-%m-%d %H:%M UTC')  (yerel $(date '+%H:%M %Z'))"
+              echo "resolv.conf  : $(grep -c '^nameserver' /etc/resolv.conf 2>/dev/null || echo '?') nameserver satiri"
+              for H in github.com api.github.com codeload.github.com api.brevo.com google.com; do
+                # getent: sistemin KENDI cozumleyicisi (git ve PHP de onu kullaniyor).
+                # `dig` bu barindirmada olmayabilir, o yuzden ona yaslanilmiyor.
+                IP=$(getent ahostsv4 "$H" 2>/dev/null | awk 'NR==1{print $1}')
+                if [ -n "$IP" ]; then DNS="cozuldu ($IP)"; else DNS="*** COZULMUYOR ***"; fi
+                CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 "https://$H" 2>/dev/null || echo 000)
+                printf '  %-24s ad: %-26s https: %s\n' "$H" "$DNS" "$CODE"
+              done
+              echo "  (https 000 = baglanti hic kurulamadi; ad cozulmuyorsa bu bir SONUC, ayri bir ariza degil)"
+              # Deploy'un gercekten takildigi yer: sunucudaki klonun git fetch'i.
+              if [ -d "$HOME/vestra-repo/.git" ]; then
+                echo "sunucudaki klon: $(cd "$HOME/vestra-repo" && git rev-parse --short HEAD)"
+                echo -n "git ls-remote   : "
+                if (cd "$HOME/vestra-repo" && git ls-remote --heads origin >/dev/null 2>&1); then
+                  echo "CALISIYOR (deploy gecebilir)"
+                else
+                  echo "*** DUSUYOR *** -- deploy bu satirda takiliyor, kodla ilgisi yok"
+                fi
+              fi
+            fi
 
             # ---- ZAMANLANMIS ISLER: KURULU MU, ATESLEDI MI, NE DEDI? ----------
             # "Otomasyon calismadi" bir cizim ya da kapi sorusu DEGIL (KURAL 15),
