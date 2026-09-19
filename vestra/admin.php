@@ -4543,13 +4543,30 @@ foreach($offers as $__o){
   if($__ivs) $issuedOfferInvs[]=['ref'=>$__r,'row'=>$__o,'iv'=>$__ivs[0]];
 }
 ?>
-<?php if($issuedOfferInvs): ?>
-<div class="acard" style="margin-bottom:16px">
-  <div class="acard-hd"><h3>🧾 <?= count($issuedOfferInvs) ?> issued offer invoice(s)</h3></div>
-  <p class="ahint" style="margin:0 0 10px">Kesilmiş belgeyi düzeltmek için: kargo tutarını yazın → <b>👁 Draft</b> ile kontrol edin → <b>🔁 Redraft &amp; email</b>. Belge <b>aynı numarayla</b> yerinde yeniden yazılır, düzeltilmiş PDF alıcıya "your invoice is ready" e-postasıyla <b>ekte</b> gider ve panelindeki bağlantı yeni hâli verir. Ödeme gelince <b>✓ Paid</b> ile işaretleyin — alıcıdaki "payment due" uyarısını o kapatır.</p>
-  <div class="atscroll"><table class="atable">
-    <?= arow(['Offer','Invoice','Buyer','Total','Shipping €','Fix','Paid'],true) ?>
-    <?php foreach($issuedOfferInvs as $__e):
+<?php if($issuedOfferInvs):
+/* ODENMIS FATURALAR KATLANIR (operator, 19 Eyl 2026: "bu offerlar neden halen
+   cikiyor eski degilmi").
+   Bu kart bir ONAY kuyrugu DEGIL -- kesilmis belgelerin yonetim listesi (bkz.
+   yukaridaki yorum) ve yapisi geregi HIC BOSALMIYOR: kesilen her teklif
+   faturasi sonsuza kadar burada kaliyor. Sekme rozeti onlari saymiyor
+   (pendingInvoiceCount yalniz faturasiz olanlari sayar), ama sekmenin adi
+   "Invoice approvals" ve operator satirlari "hâlâ acik is" diye okuyor.
+   Sonucu KURAL 2c'nin ta kendisi: hic bosalmayan bir liste, okunmamayi ogretir.
+
+   ODENMISLER SILINMIYOR, KATLANIYOR. KURAL 5f'e gore kesilmis bir faturayi
+   AYNI numarayla duzeltmenin tek yolu buradaki Redraft; satirlari tamamen
+   gizlemek o duzeltme yolunu panelden erisilemez yapardi -- kuralin korudugu
+   seyi kaldirmak olurdu. Katlanmis bolum tek tik uzakta.
+
+   SATIR GOVDESI TEK KOPYA. Iki ayri foreach yazmak Redraft formunu, kalem
+   secicisini ve Paid sutununu ikiye bolerdi ve ilk duzenlemede ayrisirlardi
+   (bu depoda defalarca kayitli hata: desc/sizes, faturanin uc katmani, dort
+   mektup govdesi). Satirlar ayni govdeden cizilip tamponlaniyor, sonra iki
+   tabloya dagitiliyor.
+   Olcut ayni TEK karar noktasi: vestra_order_payment_settled() -- "odendi mi"
+   sorusunun ikinci bir tanimi yazilmadi. */
+$__openRows=''; $__doneRows=''; $__doneN=0;
+foreach($issuedOfferInvs as $__e):
       $rref=$__e['ref']; $riv=$__e['iv'];
       /* "Odendi mi" TEK yerden soruluyor (vestra_order_payment_settled).
          Onceden yalnizca invoice_paid_at okunuyordu -- o isareti SADECE
@@ -4562,6 +4579,7 @@ foreach($offers as $__o){
       $rShip=(float)($offerResp[$rref]['invoice_shipping'] ?? 0);
       $rMembers=(array)($offerResp[$rref]['invoice_members'] ?? []);
       $rFid='frdr-'.preg_replace('/[^A-Za-z0-9_-]/','',$rref);
+      ob_start();
     ?>
     <tr>
       <td><a class="acc" href="/admin?tab=offers"><?= htmlspecialchars($rref) ?></a>
@@ -4632,8 +4650,34 @@ foreach($offers as $__o){
         <?php endif; ?>
       </td>
     </tr>
-    <?php endforeach; ?>
+    <?php
+      $__h=ob_get_clean();
+      if($rPaid){ $__doneRows.=$__h; $__doneN++; } else { $__openRows.=$__h; }
+    endforeach;
+    $__openN = count($issuedOfferInvs) - $__doneN;
+    $__ihead = ['Offer','Invoice','Buyer','Total','Shipping €','Fix','Paid'];
+?>
+<div class="acard" style="margin-bottom:16px">
+  <div class="acard-hd"><h3>🧾 <?= count($issuedOfferInvs) ?> issued offer invoice(s)<?php if($__doneN): ?> <span class="ahint" style="font-weight:400">· <?= $__openN ?> açık, <?= $__doneN ?> kapandı</span><?php endif; ?></h3></div>
+  <p class="ahint" style="margin:0 0 10px">Kesilmiş belgeyi düzeltmek için: kargo tutarını yazın → <b>👁 Draft</b> ile kontrol edin → <b>🔁 Redraft &amp; email</b>. Belge <b>aynı numarayla</b> yerinde yeniden yazılır, düzeltilmiş PDF alıcıya "your invoice is ready" e-postasıyla <b>ekte</b> gider ve panelindeki bağlantı yeni hâli verir. Ödeme gelince <b>✓ Paid</b> ile işaretleyin — alıcıdaki "payment due" uyarısını o kapatır.</p>
+  <?php if($__openRows!==''): ?>
+  <div class="atscroll"><table class="atable">
+    <?= arow($__ihead,true) ?>
+    <?= $__openRows ?>
   </table></div>
+  <?php else: ?>
+  <div class="ahint" style="padding:8px 0">✓ Kesilmiş faturaların hepsi ödendi — bekleyen yok.</div>
+  <?php endif; ?>
+  <?php if($__doneN): /* Katlanmis: odenmis belgeler. Varsayilan KAPALI ama
+        silinmis DEGIL -- Redraft (KURAL 5f) tek tik uzakta. */ ?>
+  <details style="margin-top:10px">
+    <summary style="cursor:pointer;color:var(--mut);font-size:13px;padding:6px 0">✓ <?= $__doneN ?> kapanmış fatura (ödendi) — düzeltmek için aç</summary>
+    <div class="atscroll" style="margin-top:8px"><table class="atable">
+      <?= arow($__ihead,true) ?>
+      <?= $__doneRows ?>
+    </table></div>
+  </details>
+  <?php endif; ?>
 </div>
 <?php endif; ?>
 
