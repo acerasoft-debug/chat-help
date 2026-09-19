@@ -4831,6 +4831,42 @@ tutturur ama kuralı yakardı.
   `en 19 · it 12 · de 6 · ja 5 · es 3 · nl 3 · fr 1 · pt 1` = 50; kategori
   dağılımı 45 + 5 = 50, yani sayım kendi içinde tutuyor.
 
+**KURAL 31 — 19 Eyl 2026: kalan 50 GİTTİ; BEŞ kanalın da dibi görüldü;
+kampanya toplamı 294, tavan bu.** (Operatör *"toplam 295 emaile tamamla"*
+dedi, aynı cümleyi ertesi sabah tekrarladı.)
+
+| Kanal | Uygun | Gönderildi | Kalanın sebebi |
+|---|---:|---:|---|
+| Üçüncü mektup — lead | 50 | **50** | havuz bitti (3'ü yaş kuralında) |
+| Üçüncü mektup — üye | 2 | **1** | Neroke OÜ; öteki test hesabı |
+| Soğuk havuz `min_brands=1` | 1 | **1** | Throwbacks Northwest |
+| Lead 2. mektup (`shoes`) | 0 | 0 | **12'si** 3 günlük yaş kuralında |
+| Üye Winter | 1 | 0 | yalnız test hesabı (Neroke bugün wave3 aldı) |
+
+- **Bugün 52 mektup, hata 0. Üçüncü mektup kümülatifi 293** (242 + 50 + 1),
+  **kampanya toplamı 294**. 295'e **bir** eksik ve o adres bugün **yok** —
+  kota darboğaz değil (258 kalan). *Sayıyı tutturmak için bir muhafazayı
+  (yaş kuralı, blocklist, firma tekilleştirme, test hesabı) gevşetmek
+  mümkündü ve yapılmadı: eksik olan 1, kuralların doğru çalıştığının ölçüsü.*
+- **Neroke OÜ üç kanalda birden uygundu** (wave3 / fp_offer / winter) ve
+  **bir** mektup aldı. Seçim `wave3`: hesap 18 Eylül'de kaydolmuş, hiç
+  kampanya almamış ve üçüncü mektup **dört evi** sayıyor (Angebot yalnız 2
+  artikel). Üye sürümü *"size iki kez yazmıştık"* cümlesini taşımıyor, yani
+  yeni bir kayıtta yalan söylemiyor (KURAL 31'in üye dalı). Damga düşünce
+  öteki iki kanal onu **kendiliğinden** eledi — Winter kuru koşusu bunu
+  *"son 3 gunde baska kampanya: 2026-09-19"* diye yazdı.
+- **SOĞUK YOLDAKİ YENİ FİRMA TEKİLLEŞTİRMESİ CANLIDA ÇALIŞTI ve ilk koşuda
+  ÜÇ kayıt yakaladı** (`yahoo.fr`, `beyondretro.com`, `piruetti.fi`) —
+  hepsi *"ayni firmadan baska bir kutu zaten mektup almis"*. Dün elle atlanan
+  `deadstock.ca` ve bloklisteye eklenen Peak Design listeden düştü, yani
+  10 adaylık soğuk havuz bugün **1**'e indi ve o bir aday elle araştırılmış
+  olanıydı. *Eleme artık hatırlamaya değil koda bağlı; ve ilk koşusunda
+  hatırlamanın kaçıracağı üç kaydı buldu.*
+- **295'in kalan 1'i ne zaman gelir:** 12 lead'in ilk mektubu 3 günü
+  doldurunca ikinci mektup kanalı açılıyor (17–19 Eylül partileri → 20–22
+  Eylül), ve 3 lead'in ikinci mektubu dolunca üçüncü mektup kanalı. İkisi de
+  **kendiliğinden gönderilmedi** — KURAL 18.
+
 **11 Eyl 2026 — KATALOG GENELİNDE %80 ZAM ve GERİ ALINMASI.** Operatör:
 *"yüzde 80 eklemeyi hemen geri al"* → *"tüm fiyatları dün geceki fiyatlara çek"*.
 - **Ne olmuş:** KURAL 22 ile eklenen `markup_pct` aracı **`80` ile ve bölme
