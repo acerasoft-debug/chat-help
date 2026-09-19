@@ -2186,6 +2186,78 @@ canlıya inmesini engelleyen şey ve kendisi bir OLAY). Üç bağımsız host:
   yetmez" — burada tersi geçerli, **koşunun 'failure' demesi de kodun yanlış
   olduğu anlamına gelmiyor**. Deploy'un düştüğü yer ilk `git fetch`, yani
   repodaki hiçbir satır okunmadan önce.*
+- **ÇIKIŞ AYNI GÜN GERİ GELDİ (19 Eyl 2026, akşam) — yukarıdaki tablo artık
+  GEÇMİŞ bir olayın kaydı, mevcut durum DEĞİL.** Ölçüm dolaylı değil doğrudan:
+  aynı gün deploy indi (`0c00c38f` sunucuda), `vestra_order_set_discount()`
+  canlıda çalıştı ve **üç müşteri mektubu Brevo tarafından kabul edildi**
+  (`GONDERILDI`). Kesinti geçiciydi; not, ileride aynı belirtiyi görenin
+  "kalıcı" sanmaması için olduğu gibi duruyor.
+
+**KURAL 32 (devamı) — ÜÇ MEKTUP GÖNDERİLDİ; ve bir faturanın €75'i belgeye HİÇ
+BASILMAMIŞTI** (19 Eyl 2026; operatör: *"fatura güncellenmistir diyerek"* +
+*"faturalara shipping costlari eklemeyi unutma"* + *"digerlerinede kendi
+dilinde"*).
+
+- **Sıra ÖNEMLİ ve bu sırayı bozmak bir belgeyi yalanladı:** `VES-A11C0C97`'ye
+  önce indirim işlendi, fatura o hâliyle **kesildi**, navlun (€75) **sonra**
+  yazıldı. Sipariş satırı €7.465,62 derken **INV-2026-1014 €7.390,62** taşıyor,
+  yani belge tam **€75 eksik**. `order_discount` mektubu bunu kendi muhafazasıyla
+  yakaladı ve **gönderimi durdurdu** (`|fatura − sipariş| > 0.02`) — müşteriye
+  elindeki kâğıtta olmayan bir rakam yazılmadı. *Bir siparişin rakamını
+  değiştiren her yazma, faturası varsa KURAL 5f'in yeniden çizimini gerektirir;
+  "önce indirim, sonra navlun" iki ayrı yazma demek ve ikincisi belgeyi bayatlatır.*
+- **BELGENİN KENDİSİ ÖLÇÜLDÜ, yazma mesajı değil.** Yeniden çizim sonrası
+  `issue` adımı artık ham PDF baytlarında arıyor: `belgede navlun: VAR
+  (Shipping 75.00) · belgede indirim: VAR (388.98) · belgede toplam: VAR
+  (7,465.62)`, 19.324 bayt, sha256 yazılı, `AYNI numarayla yeniden uretildi`.
+  Gerekçe bu depoda kayıtlı: fotoğrafsız bir PDF yıllarca *"üretildi, boyut
+  makul"* diye geçmişti. `inc/pdf.php` akışları sıkıştırmıyor, o yüzden ham
+  baytta metin aranabiliyor; sıkıştırma bir gün eklenirse adım **bunu ayrıca
+  yazıyor** ki "yok" diye yanlış bir kırmızı değil, sebebi söyleyen bir satır
+  çıksın.
+- **Üç katman da geri okundu** (KURAL 5f'in üçlüsü): PDF baytı, fatura meta'sı
+  (`INV-2026-1014 tutar 7.465,62`) ve sipariş satırı artık aynı rakamı söylüyor.
+- **Gönderilenler — her müşteri KENDİ dilinde** (operatör, aynı gün, iki adımda:
+  önce *"diger iki müsteriyi fransizca"*, sonra *"LA ISLA ... ispanyolca"* +
+  *"digerlerinede kendi dilinde"*; ikincisi birincisini EZİYOR ve bu dosyada
+  olduğu gibi yazılı — çelişen iki kayıt hangisinin geçerli olduğunu okunamaz
+  yapar):
+
+  | sipariş | müşteri | mal | indirim %5 | navlun | yeni toplam | fatura | dil |
+  |---|---|---:|---:|---:|---:|---|---|
+  | `VES-1F0C9350` | BRITISHSTYLE · AT | 789,00 | −39,45 | 20,00 | **769,55** | INV-2026-1002 | de |
+  | `VES-A11C0C97` | LA ISLA DE MIRABEL SL · ES | 7.779,60 | −388,98 | 75,00 | **7.465,62** | INV-2026-1014 | es |
+  | `VES-55E4F6E1` | Mob · FR | 1.200,00 | −60,00 | 20,00 | **1.160,00** | INV-2026-1013 | fr |
+
+  Üçünde de `ilk siparis mi: EVET` (ölçüldü, varsayılmadı) ve fatura cümlesi
+  **`invoice_updated=1`** ile *"güncellendi, aynı numarayı koruyor, eski kopya
+  geçersiz"* — operatörün istediği üçüncü ifade. Bayrak **açık** verilmek
+  zorunda: şablon bunu ölçemez (dosya dün de vardı) ve taze kesilmiş bir belgeye
+  "güncellendi" demek olmamış bir işlemi anlatırdı.
+- **Dil sırası düzeltildi:** `spec lang=` artık **hesabın kayıtlı dilini EZİYOR**
+  (önce tersiydi). Eski hâliyle operatörün açık talimatı sessizce yok sayılıyor,
+  iş "başarılı" bitiyor ve müşteri istenmeyen dilde mektup alıyordu — kimsenin
+  göremeyeceği bir hata. Koşu hangi kaynağın kazandığını ve ezilen değeri
+  **yazıyor**.
+- **KENDİ HATAM — üç önizlemeyi PARALEL koşturdum.** `send-campaign-preview`
+  sunucuda **ortak bir geçici dosya** kullanıyor (`/tmp/vestra_buyer_reply.php`
+  → `public_html/vestra_buyer_reply_tmp.php`); Almanca koşu o adımı erken
+  bitirdiği için temiz çıktı, İspanyolca ve Fransızca koşular birbirini ezdi ve
+  betiği **çalıştırmak yerine ekrana bastı**. İkisi de **çıkış 0 ile "success"**
+  bitti ve **hiçbir mektup kurmadı** — yani `add-and-send`'in "paralel
+  çalıştırılmaz" uyarısının aynı sınıfı, başka bir dosyada, ve bu kez zararsız
+  kaldı yalnızca ölçümü okuduğum için. *Bu iş akışının koşuları SIRAYLA
+  koşulur; ve bir koşunun "success" demesi, iş yaptığı anlamına gelmiyor —
+  çıktıyı oku.*
+- **Ölçüm tuzağı:** `issue` adımının doğrulama satırları şifreli PDF gövdesinden
+  **ÖNCE** basılıyor, yani `get_job_logs` tail'i base64'ün içine düşüyor. Geniş
+  pencere isteyip çıktıyı dosyaya düşürmek ve `BEGIN/END INVOICE ENC` arasını
+  **atlayarak** okumak gerekiyor.
+- **Platformun EUR ödeme kutusu artık ÇIKIYOR** (operatör banka adresini verdi;
+  değer repoya YAZILMADI). Geri okuma: `bank_eur_address: VAR`, EUR kutusu **4 → 5 satır**,
+  USD kutusu **6 satır (bozulmadı)**, `EUR kesimi (KURAL 5r): GECER`. Rakamlar
+  yine repoya, iş akışı girdisine ve ssh betiğine **girmedi** — şifreli zarfla
+  geçti, çıktıda yalnız VAR/YOK ve hane sayısı.
 
 **KURAL 7 — Faturası kesilmiş, havale bekleyen siparişe 5 iş günü** (operatör
 kararı, 2 Eyl 2026, order OCF7F5 / INV-2026-1001 / Daymond Proconect: *"siparişlerin
