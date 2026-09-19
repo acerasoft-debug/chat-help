@@ -28,6 +28,14 @@ jobs:
       # bir daha kırmaz. Canlı site ayrı bir dizin (~/public_html) olduğu ve uploads/
       # oraya additive rsync'lendiği için satıcı yüklemeleri bundan etkilenmez.
       - name: Sunucudaki klonu origin ile eşitle (force-push'a dayanıklı)
+        id: gitsync
+        # DUSSE DE IS BITMESIN: bu adim sunucunun GITHUB'A CIKABILMESINE bagli
+        # ve o baglanti bu barindirmada dustu (19 Eyl 2026: `Could not resolve
+        # host: github.com`, ayni dakikada google.com COZULUYORDU -- yani sunucu
+        # ayakta, cozumleyici kismen bozuk). Deploy'un tamami o tek satira
+        # baglandigi icin gunun butun isi durdu. Asagidaki yedek yol ayni sonucu
+        # RUNNER'DAN uretiyor; bu adim basarisizsa devreye giriyor.
+        continue-on-error: true
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -48,6 +56,75 @@ jobs:
             git fetch --prune origin "$BR"
             git reset --hard "origin/${BR}"
             echo "sonrasi: $(git rev-parse --short HEAD)  (origin/${BR})"
+
+      # ---- YEDEK YOL: sunucu GitHub'a cikamiyorsa kodu RUNNER TASIR ----------
+      # Sunucunun cozumleyicisi github.com'u bulamadiginda `git fetch origin`
+      # duser; ama SSH CALISIYOR (baglantiyi runner kuruyor, sunucunun DNS'ine
+      # ihtiyac yok). Runner'daki klondan bir GIT BUNDLE uretip scp ile
+      # tasiyoruz: bundle tek dosya ve ondan `git fetch` etmek ag istemiyor.
+      #
+      # NEDEN rsync DEGIL: calisma agacini kopyalamak dosyalari dogru yere
+      # koyar ama ~/vestra-repo'nun git durumunu ESKI commit'te birakir --
+      # "sunucu hangi surumde" sorusu o andan sonra yanlis cevap verir ve bir
+      # sonraki basarili deploy'un `reset --hard`i sessizce geri alir. Bundle
+      # ayni git durumunu uretiyor, yani iki yol AYNI sonuca variyor.
+      #
+      # GERI OKUNUYOR: sunucudaki HEAD, push edilen SHA ile birebir ayni degilse
+      # is KIRMIZI biter. "Tasidim" deyip eski kodu birakmak, bu depoda
+      # defalarca kaydedilen "kaydettim ama kaydetmedim" hatasinin deploy hali.
+      - name: Kod aktarımı — yedek yol (sunucu GitHub'a çıkamıyorsa)
+        if: steps.gitsync.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # bundle SIG klonda uretilemez
+
+      - name: Bundle'ı sunucuya taşı ve sıfırla (yedek yol)
+        if: steps.gitsync.outcome == 'failure'
+        env:
+          SSH_KEY:  ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_USER }}
+          SSH_PORT: ${{ secrets.DEPLOY_PORT }}
+          BR:       ${{ github.ref_name }}
+          WANT:     ${{ github.sha }}
+          # drone-scp sunucunun profilinden gelen "tput: No value for $TERM"
+          # stderr'ini hata sayip transferi geri aliyor; duz scp + TERM=dumb
+          # bu depoda zaten kullanilan kalip (bkz. fetch-dropbox.yml).
+          TERM: dumb
+        run: |
+          set -e
+          PORT="${SSH_PORT:-22}"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          SSHOPT="-i $HOME/.ssh/id_deploy -p $PORT -o BatchMode=yes -o StrictHostKeyChecking=no"
+
+          git bundle create /tmp/vestra.bundle "$WANT"
+          ls -l /tmp/vestra.bundle | awk '{print "bundle: " $5 " bayt"}'
+          scp $SSHOPT /tmp/vestra.bundle "$SSH_USER@$SSH_HOST:/tmp/vestra.bundle"
+
+          ssh $SSHOPT "$SSH_USER@$SSH_HOST" "
+            set -e
+            REPO=\"\$HOME/vestra-repo\"
+            if [ ! -d \"\$REPO/.git\" ]; then
+              echo 'UYARI: vestra-repo bir git klonu degil -- deploy.sh kendi isini yapacak'
+              rm -f /tmp/vestra.bundle
+              exit 0
+            fi
+            cd \"\$REPO\"
+            echo \"oncesi : \$(git rev-parse --short HEAD)\"
+            git fetch /tmp/vestra.bundle '$WANT'
+            git reset --hard FETCH_HEAD
+            echo \"sonrasi: \$(git rev-parse --short HEAD)\"
+            rm -f /tmp/vestra.bundle
+            GOT=\$(git rev-parse HEAD)
+            if [ \"\$GOT\" != '$WANT' ]; then
+              echo \"*** GERI OKUMA TUTMADI: sunucu \$GOT, beklenen $WANT\" >&2
+              exit 1
+            fi
+            echo 'geri okundu: sunucudaki HEAD push edilen SHA ile ayni'
+          "
 
       - name: Sunucuda deploy.sh çalıştır
         uses: appleboy/ssh-action@v1.0.3
