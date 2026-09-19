@@ -1140,8 +1140,14 @@ jobs:
               $pdIv = $pdInvs[0];
               echo "fatura : ".$pdIv['no']."  tutar: ".$pdIv['currency']." ".number_format((float)$pdIv['total'], 2)."\n";
               $pdEntry = $pdStAll[$pdRef] ?? ['status'=>'pending'];
-              $pdG = vestra_order_payment_grace($pdEntry, time());
+              /* REF GECIYOR: yukaridaki durum kontrolu 'pending' olmayani zaten
+                 eliyor, ama satir 'pending' kalmisken teklif faturasi "✓ Paid"
+                 isaretli olabilir (operator isareti Invoice approvals'tan koyar,
+                 Orders sekmesine hic girmeyebilir). Ref'siz cagrilsaydi bu mektup
+                 ODENMIS bir siparise "5 is gunu icinde odemezseniz iptal" derdi. */
+              $pdG = vestra_order_payment_grace($pdEntry, time(), $pdRef);
               echo "asama  : {$pdG['phase']}".($pdG['phase']==='has_receipt' ? " (dekont zaten yuklu -- otomatik iptal saati zaten durmus durumda)" : "")."\n";
+              if ($pdG['phase'] === 'paid') { fwrite(STDERR, "bu satisin parasi GELMIS (kaynak: {$pdG['paid_via']}) -- odeme hatirlatmasi yazilmaz, saat baslatilmaz\n"); exit(1); }
               /* copy_only=true: musteriye ZATEN gitmis (ya da gitmis olmasi beklenen)
                  mektubun BIREBIR AYNISINI yalnizca operatore yollar -- KURAL 5f'nin
                  fatura kopyasi ilkesiyle ayni: "[KOPYA]" oneki yok, aciklama satiri
@@ -1206,9 +1212,12 @@ jobs:
               $pfInvs = vestra_invoices_for_ref($pfRef);
               if (!$pfInvs) { fwrite(STDERR, "fatura bulunamadi: {$pfRef}\n"); exit(1); }
               $pfIv = $pfInvs[0];
-              $pfG  = vestra_order_payment_grace($pfAll[$pfRef] ?? ['status'=>'pending'], time());
+              $pfG  = vestra_order_payment_grace($pfAll[$pfRef] ?? ['status'=>'pending'], time(), $pfRef);
               echo "fatura : ".$pfIv['no']."  tutar: ".$pfIv['currency']." ".number_format((float)$pfIv['total'], 2)."\n";
               echo "asama  : {$pfG['phase']}\n";
+              /* SON CAGRI, mektuplarin en serti. Parasi gelmis bir satise
+                 gitmesi, musteriden ikinci kez odeme istemek olurdu. */
+              if ($pfG['phase'] === 'paid') { fwrite(STDERR, "bu satisin parasi GELMIS (kaynak: {$pfG['paid_via']}) -- son cagri yazilmaz\n"); exit(1); }
               /* Saat baslamamissa uydurma bir tarih yazmak yerine hesaplanan tarihi
                  gosteriyoruz; baslamissa MEVCUT son tarih -- bu mektup onu degistirmez. */
               $pfDeadline = $pfG['deadline'] ?? vestra_business_days_after(time(), VESTRA_ORDER_PAYMENT_GRACE_DAYS);
@@ -2138,7 +2147,16 @@ jobs:
                 $cvn = trim((string)($cRec['invoice_vat_note'] ?? ''));
                 echo "  VAT satiri : ".($cvn !== '' ? $cvn : '(yok)')."\n";
                 echo "  uyeler     : ".implode(', ', (array)($cRec['invoice_members'] ?? [$cPrimary]))."\n";
-                echo "  odendi     : ".(!empty($cRec['invoice_paid_at']) ? (string)$cRec['invoice_paid_at'] : 'hayir')."\n";
+                /* TEK karar noktasindan: invoice_paid_at'i tek basina okumak,
+                   odemesi Orders sekmesinden isaretlenmis bir satisa "odendi:
+                   hayir" dedirtiyordu -- sonda, sorulan soruya yanlis cevap
+                   verir. Kaynagi da yaziliyor ki operator nereden geldigini
+                   gorsun (durum mu, fatura isareti mi). */
+                $cSet = vestra_order_payment_settled($cPrimary);
+                echo "  odendi     : ".($cSet['settled']
+                     ? 'EVET ('.($cSet['via']==='status' ? 'siparis durumu: '.$cSet['status'] : 'fatura isareti').
+                       ($cSet['at'] !== '' ? ', '.$cSet['at'] : '').')'
+                     : 'hayir')."\n";
                 $cOrd = false;
                 foreach (vestra_read_csv('orders.csv') as $cr) { if (($cr['ref'] ?? '') === $cPrimary) { $cOrd = $cr; break; } }
                 echo "  siparis    : ".($cOrd ? 'VAR, toplam '.number_format((float)($cOrd['total'] ?? 0),2)
