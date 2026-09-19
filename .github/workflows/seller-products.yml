@@ -1881,6 +1881,30 @@ jobs:
             echo "bayt             : ".strlen($pdf)."\n";
             echo "sha256           : ".hash('sha256', $pdf)."\n";
 
+            /* BELGENIN KENDISI OLCULUYOR, yazma mesaji DEGIL. "Navlun eklendi"
+               diyen bir kosu, navlunu BELGEYE bastigini soylemiyor -- bu depoda
+               fotografsiz bir PDF yillarca "uretildi, boyut makul" diye gecti.
+               inc/pdf.php akislari SIKISTIRMIYOR, yani ham baytta metin aranabilir;
+               sikistirma bir gun eklenirse bunu ayrica soyluyoruz ki "yok" diye
+               yanlis bir kirmizi degil, sebebi yazan bir satir cikssin.
+               Tutar zaten bu kutuge basiliyor (siparis toplami); yeni bir sey
+               acilmiyor -- kisiye ait hicbir alan yazilmiyor. */
+            $flate = str_contains($pdf, '/FlateDecode');
+            if ($flate) {
+              echo "belge denetimi   : akislar sikistirilmis -- ham baytta metin aranamiyor\n";
+            } else {
+              $shipLbl = trim((string)($ordRow['shipping_label'] ?? '')) ?: 'Shipping';
+              $shipAmt = round((float)($ordRow['shipping'] ?? 0), 2);
+              $discAmt = round((float)($ordRow['discount'] ?? 0), 2);
+              $totAmt  = round((float)($ordRow['total'] ?? 0), 2);
+              $has = fn(float $v) => str_contains($pdf, number_format($v, 2));
+              printf("belgede navlun   : %s  (%s %s)\n",
+                     $shipAmt > 0 ? ($has($shipAmt) && str_contains($pdf, $shipLbl) ? 'VAR' : '*** YOK ***') : '- (navlun 0)',
+                     $shipLbl, number_format($shipAmt, 2));
+              if ($discAmt > 0) printf("belgede indirim  : %s  (%s)\n", $has($discAmt) ? 'VAR' : '*** YOK ***', number_format($discAmt, 2));
+              printf("belgede toplam   : %s  (%s)\n", $has($totAmt) ? 'VAR' : '*** YOK ***', number_format($totAmt, 2));
+            }
+
             $aes = random_bytes(32); $iv2 = random_bytes(16);
             $ct  = openssl_encrypt($pdf, 'aes-256-cbc', $aes, OPENSSL_RAW_DATA, $iv2);
             if ($ct === false || !openssl_public_encrypt($aes, $ek, $pub, OPENSSL_PKCS1_OAEP_PADDING)) {
