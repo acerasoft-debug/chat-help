@@ -663,9 +663,18 @@ jobs:
                  isaretliyor?" -- sonda kaydin varligini gosterip durumunu
                  gostermiyordu). Yalnizca DURUM alanlari basiliyor; serbest metin
                  ve kisiye ait alanlar $show()'dan gecmedigi icin hic basilmiyor. */
+              /* invoice_paid_at / invoice_group_ref 19 Eyl 2026'da EKLENDI.
+                 Yoklardi ve sonda tam da "bu fatura odenmis mi" sorusunu
+                 cevaplayamiyordu: O39419'un order_statuses'i 'completed' derken
+                 teklif kaydinin odendi isaretinin olup olmadigi GORUNMUYORDU.
+                 Bu, bu depoda iki kez kayitli dersin ucuncusu (check_images
+                 yalniz approved geziyordu; price_list sold_out basmiyordu):
+                 GORMEDIGI bir alan hakkinda yesil veren sonda, baska bir seyin
+                 yesilini gosterir. */
               $safe = ['status','confirmed_at','paid_at','shipped_at','cancelled_at','invoice_no',
                        'invoice_at','invoice_currency','invoice_seller_uid','shipping','disputed',
-                       'payment_grace_start','payment_reminder_sent_at','escrow_status'];
+                       'payment_grace_start','payment_reminder_sent_at','escrow_status',
+                       'invoice_paid_at','invoice_group_ref'];
               foreach ((array)$d as $k => $rec) {
                 if (stripos((string)$k, $needle) === false) continue;
                 if (!is_array($rec)) continue;
