@@ -642,6 +642,358 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
  * that distinction: "no such order" and "the disk refused" are different faults and
  * a shared 0 would hide a permissions problem behind a reassuring message.
  */
+
+/* ─────────────────────────── NAVLUN TARİFESİ (Avrupa + ABD) ──────────────────
+ * Operatör, 19 Eyl 2026, dört cümlede: "her faturaya 10 ad. için 20 eur,
+ * sonraki her 10 ad. için +5 eur shipping cost ekle" → "sadece 40+ üstü aynı
+ * model siparişlerde her 100 ad. başına 30 eur yap" → "bu avrupa siparişleri
+ * için geçerli" → "abd için her siparişe 30 eur + 20 ad. sonrasına her 10 ad.
+ * +5 eur; tek model ve üründen alınırsa her 100 ad. 50 eur, 100 + 50 ad.'e
+ * kadar 50+20 eur".
+ *
+ * TEK KAYNAK: rakamlar vestra_shipping_tariffs() tablosunda, hiçbir metne,
+ * panele ya da mektuba gömülü değil (KURAL 6'nın escrow tavanı dersi). Kasa
+ * (order.php), teklif faturası, panel ipucu/çipi, sepet önizlemesi ve iş
+ * akışının `auto` kipi hepsi vestra_shipping_schedule()'ı çağırır.
+ *
+ * KURAL (bölge başına aynı şekil, farklı rakamlar):
+ *   - HAVUZ rayı: bulk eşiğinin ALTINDAKİ satırların adedi BİRLİKTE sayılır;
+ *     ilk `base_qty` adet `base`, sonraki her BAŞLAYAN `step_qty` adet +`step`.
+ *     AB: 10 → 20, 11 → 25, 30 → 30.  ABD: 20 → 30, 21 → 35, 40 → 40.
+ *   - TOPTAN rayı: bir SKU'da adet >= `bulk_min` ise o satır tek başına: her
+ *     TAM `bulk_per` (100) adet `bulk`; kalan için AB'de yine `bulk` (başlayan
+ *     100), ABD'de kalan <= `half_qty` (50) ise `half` (€20), üstü `bulk`.
+ *     AB: 40 → 30, 100 → 30, 101 → 60.  ABD: 100 → 50, 150 → 70, 151 → 100.
+ *   "Başlayan" okuması bir yorum: operatör "sonraki her 10 ad." dedi, kesri
+ *   söylemedi. Kesri düşürmek 19 adedi 10 adetle aynı fiyata taşırdı; yukarı
+ *   yuvarlamak en fazla bir basamak ekler ve ekranda görünür.
+ *   ABD'nin toptan eşiği OPERATÖR VERMEDİ; AB için verdiği 40 alındı ve
+ *   tabloda ayrı bir satır olarak duruyor — tek rakam, tek satır. (Not: ABD'de
+ *   40–59 adetlik tek modelde toptan rayı €50, havuz rayı €40–45 — toptan ray
+ *   ancak ~60'tan sonra ucuzlar; eşiği değiştirmek operatörün.)
+ *
+ * YALNIZ TANINAN BÖLGE: ülke Avrupa (`vestra_country_in_europe`) ya da ABD
+ * (`vestra_country_is_us`) olarak POZİTİF tanınıyorsa. Boş/tanınmayan ülkede
+ * tarife UYGULANMAZ (null döner) ve navlunu operatör elle yazar — Japonya'daki
+ * bir alıcıya AB tarifesini uygulamak gerçek navlunun altında bir rakam basmak
+ * olurdu; boş kalan satır ise panelde ve taslakta görünür (fazla sorulan soru
+ * görünür, eksik tahsilat görünmez).
+ *
+ * TUTAR EUR (siparişin kendi birimi). USD kesilen belgede çevrimi zaten tek yer
+ * yapıyor (KURAL 5i/5s). DROPSHIP KAPSAM DIŞI: o yolun kendi bölge/ücret
+ * tablosu var ve ödemesi zaten durdurulmuş.
+ */
+function vestra_shipping_tariffs(): array {
+    return [
+        'eu' => ['label' => 'Shipping (EU tariff)', 'base_qty' => 10, 'base' => 20.0, 'step_qty' => 10, 'step' => 5.0,
+                 'bulk_min' => 40, 'bulk_per' => 100, 'bulk' => 30.0, 'half_qty' => 0,  'half' => 0.0],
+        'us' => ['label' => 'Shipping (US tariff)', 'base_qty' => 20, 'base' => 30.0, 'step_qty' => 10, 'step' => 5.0,
+                 'bulk_min' => 40, 'bulk_per' => 100, 'bulk' => 50.0, 'half_qty' => 50, 'half' => 20.0],
+    ];
+}
+
+/**
+ * Ülke Avrupa olarak TANINIYOR mu? POZİTİF ölçüt: boş ya da tanınmayan ülke
+ * false. `vestra_user_in_europe()` bunun tersini (boş = Avrupa) döndürüyor,
+ * çünkü orada soru "asgari sipariş tabanından muaf mı" ve belirsizlikte kapı
+ * açık kalmalı. Burada soru "Avrupa tarifesi basılsın mı" ve belirsizlikte
+ * BASILMAMALI. İki fonksiyon aynı tabloyu okuyor, yönü farklı — tek
+ * fonksiyona bayrak eklemek, iki çağrı yerinden birinde yanlış yönü sessizce
+ * seçmeyi kolaylaştırırdı.
+ */
+function vestra_country_in_europe(string $country): bool {
+    $raw = trim($country);
+    if ($raw === '') return false;
+    if (preg_match('/^[A-Za-z]{2}$/', $raw)) return in_array(strtoupper($raw), vestra_europe_codes(), true);
+    $folded = trim(preg_replace('/\s+/u', ' ', strtr(mb_strtolower($raw), ['-' => ' ', '_' => ' '])));
+    if ($folded === '') return false;
+    foreach (vestra_europe_names() as $names) {
+        if (in_array($folded, $names, true)) return true;
+    }
+    return false;
+}
+
+/**
+ * Ülke ABD mi? POZİTİF, TAM eşleşme (mango/zara dersi): 'US'/'USA' kodu ya da
+ * ülkenin bilinen yazımları. "Virgin Islands (US)" gibi bir dizge eşleşmez ve
+ * eşleşmemeli — o ayrı bir gümrük alanı.
+ */
+function vestra_us_names(): array {
+    return ['us', 'usa', 'united states', 'united states of america', 'america',
+            'vereinigte staaten', 'vereinigte staaten von amerika', 'états unis', 'etats unis',
+            'stati uniti', 'stati uniti d\'america', 'estados unidos', 'estados unidos de américa',
+            'estados unidos da américa', 'сша', 'アメリカ', 'アメリカ合衆国', '米国'];
+}
+function vestra_country_is_us(string $country): bool {
+    $raw = trim($country);
+    if ($raw === '') return false;
+    $folded = trim(preg_replace('/\s+/u', ' ', strtr(mb_strtolower($raw), ['-' => ' ', '_' => ' ', '.' => ''])));
+    return in_array($folded, vestra_us_names(), true);
+}
+
+/**
+ * Sepetin ÖNİZLEMESİ için ülke → bölge haritası (JS'e basılıyor).
+ *
+ * TÜRETİLİYOR, elle yazılmıyor: aynı `vestra_europe_codes()/names()` ve
+ * `vestra_us_names()` tablolarından kuruluyor, yani sunucunun kapısı ile
+ * sepetteki önizleme aynı listeyi okuyor. İkinci bir liste yazmak, bir gün
+ * eklenen bir ülkede "sepette €0, kasada €30" demekti — bu depoda defalarca
+ * kaydedilen *"sayfada bir, kasada başka rakam"* hatası.
+ *
+ * Anahtarlar GEVŞEK katlanmış (küçük harf, '-'/'_' boşluk, nokta atılmış,
+ * boşluklar tek): JS tek bir katlama uyguluyor. Avrupa adlarının hiçbirinde
+ * nokta yok, yani gevşeklik orada fark üretmiyor; kesin karar zaten sunucuda.
+ */
+function vestra_shipping_region_map(): array {
+    $fold = function (string $v): string {
+        return trim(preg_replace('/\s+/u', ' ', strtr(mb_strtolower($v), ['-' => ' ', '_' => ' ', '.' => ''])));
+    };
+    $map = [];
+    foreach (vestra_europe_codes() as $cc) $map[$fold($cc)] = 'eu';
+    foreach (vestra_europe_names() as $names) foreach ($names as $n) $map[$fold($n)] = 'eu';
+    foreach (vestra_us_names() as $n) $map[$fold($n)] = 'us';
+    return $map;
+}
+
+/** Tarife bölgesi: 'eu' | 'us' | null (tanınmayan → tarife yok, navlun elle). */
+function vestra_shipping_region(string $country): ?string {
+    if (vestra_country_in_europe($country)) return 'eu';
+    if (vestra_country_is_us($country))     return 'us';
+    return null;
+}
+
+/**
+ * Satırlardan (her biri ['sku','qty']) bölge navlununu hesaplar. SAF: girdi
+ * satırlar + ülke, çıktı tutar. Bölge tanınmıyorsa ya da hiç adet yoksa null.
+ *
+ * Döner: ['region','amount'=>float, 'label'=>string, 'qty'=>int, 'pooled_qty'=>int,
+ *         'pooled'=>float, 'bulk'=>[['sku','qty','amount'],…]]
+ */
+function vestra_shipping_schedule(array $lines, string $country): ?array {
+    $region = vestra_shipping_region($country);
+    if ($region === null) return null;
+    $T = vestra_shipping_tariffs()[$region];
+    $pooledQty = 0; $bulk = []; $bulkSum = 0.0; $total = 0;
+    foreach ($lines as $l) {
+        $q = (int)($l['qty'] ?? 0);
+        if ($q <= 0) continue;
+        $total += $q;
+        if ($q >= $T['bulk_min']) {
+            $full = intdiv($q, $T['bulk_per']); $rem = $q % $T['bulk_per'];
+            $amt  = $full * $T['bulk'];
+            /* Kalan: yalnız TAM bir 100'ün ÜSTÜNDEKİ <= half_qty kalan `half`
+               (ABD "100 + 50 ad.'e kadar 50+20"); ilk 100'e kadar her adet `bulk`
+               ("her 100 ad.'e kadar 50 eur"). $full > 0 şartı olmadan 40 adet
+               €20'ye taşınırdı — probe bunu yakaladı. */
+            if ($rem > 0) $amt += ($full > 0 && $T['half_qty'] > 0 && $rem <= $T['half_qty']) ? $T['half'] : $T['bulk'];
+            $bulk[] = ['sku' => (string)($l['sku'] ?? ''), 'qty' => $q, 'amount' => round($amt, 2)];
+            $bulkSum += $amt;
+        } else {
+            $pooledQty += $q;
+        }
+    }
+    if ($total <= 0) return null;
+    $pooled = 0.0;
+    if ($pooledQty > 0) {
+        $extra  = max(0, $pooledQty - $T['base_qty']);
+        $pooled = $T['base'] + (float)ceil($extra / $T['step_qty']) * $T['step'];
+    }
+    return ['region' => $region, 'amount' => round($pooled + $bulkSum, 2), 'label' => $T['label'],
+            'qty' => $total, 'pooled_qty' => $pooledQty, 'pooled' => round($pooled, 2), 'bulk' => $bulk];
+}
+
+/** Tarifenin bir SİPARİŞ SATIRI için karşılığı (satırın kendi ülkesi ve kalemleri). */
+function vestra_order_shipping_schedule(array $orderRow): ?array {
+    $ld = vestra_order_lines($orderRow);
+    return vestra_shipping_schedule($ld['lines'], (string)($orderRow['country'] ?? ''));
+}
+
+/* ─────────── SATICIYA ÖDEME: "BAŞARILI SİPARİŞ" TEK KARAR NOKTASI ───────────
+ * Operatör, 19 Eyl 2026: *"satıcılar için siparişleri ben alıcam ve başarılı
+ * olan siparişleri satıcılara ödeyeceğim, bunun yapılması için hukuki bir
+ * sistem yap"*.
+ *
+ * Hukuk metni (Satıcı Sözleşmesi §9, Ödemeler politikası) ve SSS bu kuralı
+ * ANLATIYOR; burası onu HESAPLAYAN tek yer. İkisi ayrı yazılsaydı, sözleşmede
+ * yazan tarih ile operatörün ekranında gördüğü tarih er geç ayrışırdı — bu
+ * depoda mektup ile otomatik iptalin son tarihi tam böyle ayrışmıştı (KURAL 7)
+ * ve çözüm ikisini aynı fonksiyona bağlamak olmuştu.
+ *
+ * DÖRT KOŞUL, hepsi birlikte — ve hiçbiri burada yeniden TANIMLANMIYOR:
+ *   1. Alıcının parası geldi  → vestra_order_payment_settled() (KURAL 7b)
+ *   2. Mal teslim edildi      → sipariş zincirinde 'delivered' ya da sonrası
+ *   3. Talep penceresi kapandı→ vestra_claim_deadline() (KURAL 11, İŞ GÜNÜ)
+ *   4. Açık talep yok         → vestra_claim_is_open()
+ * Kapının ikinci bir kopyasını yazmak bu depoda ALTI kez yanlış yere baktı;
+ * yedincisi yazılmadı.
+ *
+ * İPTAL EDİLEN SİPARİŞ ÖDENMEZ: 'cancelled' zincirde bilerek yok
+ * (VESTRA_ORDER_STEPS), yani 2. koşul onu kendiliğinden eliyor.
+ *
+ * TESLİM TARİHİ UYDURULMUYOR: damga yoksa pencere başlamamıştır ve fonksiyon
+ * "tarih bilinmiyor" der, bugünün tarihiyle doldurmaz (KURAL 3 — aynı ders
+ * `updated_at`'i ödeme tarihi sanan sondada bir kez ödendi).
+ *
+ * Döner: ['payable'=>bool, 'why'=>makine-okunur sebep, 'due'=>'Y-m-d' ya da '',
+ *         'paid_ok'=>bool, 'delivered_at'=>'', 'claim_until'=>''].
+ */
+function vestra_seller_settlement(string $ref, ?array $statusEntry = null): array {
+    require_once __DIR__.'/escrow.php';
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
+    if ($statusEntry === null && $ref !== '') {
+        $statusEntry = (array)((vestra_read_json('order_statuses.json'))[$ref] ?? []);
+    }
+    $st     = (array)($statusEntry ?? []);
+    $status = (string)($st['status'] ?? 'pending');
+    $out = ['payable' => false, 'why' => '', 'due' => '', 'paid_ok' => false,
+            'delivered_at' => '', 'claim_until' => '', 'status' => $status];
+
+    $pay = vestra_order_payment_settled($ref, $st);
+    $out['paid_ok'] = !empty($pay['settled']);
+    if (!$out['paid_ok']) { $out['why'] = 'unpaid'; return $out; }
+
+    /* TESLİMAT: zincirde 'delivered' ya da sonrası. Elle yazılmış bir durum
+       listesi değil zincirin kendisi ölçüt — yarın araya bir adım girerse
+       (bu depoda 'to_vestra' böyle girdi) o da kendiliğinden doğru tarafta
+       kalır. */
+    $iNow = array_search($status, VESTRA_ORDER_STEPS, true);
+    $iDel = array_search('delivered', VESTRA_ORDER_STEPS, true);
+    if ($iNow === false || $iDel === false || $iNow < $iDel) { $out['why'] = 'not_delivered'; return $out; }
+
+    /* Teslim ANI: açık damga, yoksa geçmişteki 'delivered' satırı. `updated_at`
+       BİLEREK okunmuyor — o kaydın son yazılma anı, malın teslim anı değil. */
+    $dAt = trim((string)($st['delivered_at'] ?? ''));
+    if ($dAt === '') {
+        foreach ((array)($st['history'] ?? []) as $h) {
+            if ((string)($h['status'] ?? '') === 'delivered') { $dAt = trim((string)($h['at'] ?? '')); break; }
+        }
+    }
+    $out['delivered_at'] = $dAt;
+    $dTs = $dAt !== '' ? strtotime($dAt) : false;
+    if (!$dTs) { $out['why'] = 'no_delivery_date'; return $out; }
+
+    if (function_exists('vestra_claim_is_open') && $ref !== '' && vestra_claim_is_open($ref)) {
+        $out['why'] = 'claim_open'; return $out;
+    }
+
+    $claimEnd = vestra_claim_deadline($dTs);
+    $out['claim_until'] = date('Y-m-d', $claimEnd);
+    $dueTs = vestra_business_days_after($claimEnd, VESTRA_SELLER_SETTLEMENT_DAYS);
+    $out['due'] = date('Y-m-d', $dueTs);
+    if (time() < $claimEnd) { $out['why'] = 'claim_window'; return $out; }
+
+    $out['payable'] = true;
+    $out['why']     = 'payable';
+    return $out;
+}
+
+/**
+ * Bir siparişe İNDİRİM yazar (operatör, 19 Eyl 2026: *"Yeni yaptığımız
+ * siparişlere yüzde 5 indirim uygula welcome code"*).
+ *
+ * `discount` ve `voucher_code` sütunları kasadan beri var (order.php kupon
+ * yolu); onlara sonradan yazan HİÇBİR yol yoktu. Fatura (vestra_order_invoice_
+ * payloads), sipariş PDF'i ve panel hepsi bu iki alanı zaten okuyor ve
+ * `Voucher <kod>  -€x` satırı olarak basıyor — yani alan eklenmedi, yalnız
+ * yazıcı. Kupon KAYDINA (vouchers.json) dokunmuyor: kodu bulan/yaratan/yakan
+ * çağıran taraf (iş akışı `admin_mode=discount`), çünkü o karar hesaba ve
+ * kampanyaya bakıyor, satırın kendisine değil.
+ *
+ * İKİ ALAN BİRLİKTE + TOPLAM: `discount`, `voucher_code` ve `total` (= mal −
+ * indirim + navlun). Yalnız indirimi yazıp toplamı bırakmak, alıcının sipariş
+ * sayfası ile faturasını iki rakama bölerdi (KURAL 5f'in üç-katman dersi);
+ * navlun yazıcısıyla aynı formül, aynı `vestra_order_lines`.
+ *
+ * NOTA DA DÜŞER: kasa kuponu notların sonuna `Voucher KOD (-5%) = -€x.` diye
+ * yazıyor ve alıcı sipariş sayfasında onu görüyor; sonradan uygulanan indirim
+ * aynı biçimde, aynı yere. İkinci uygulamada eski parça sökülür (tek kopya).
+ *
+ * FATURASI KESİLMİŞ siparişte varsayılan RED; `$allowInvoiced` ile yazar ve
+ * `must_redraft` döner (KURAL 5f: aynı numarayla yeniden çizim — renk
+ * yazıcısının deseni). 0 yazmak indirimi KALDIRIR (kod da silinir).
+ */
+function vestra_order_set_discount(string $ref, float $amount, string $code = '', bool $allowInvoiced = false): array {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
+    if ($ref === '') return ['error' => 'ref yok'];
+    if (!is_finite($amount) || $amount < 0) return ['error' => 'indirim negatif olamaz'];
+    $amount = round($amount, 2);
+    $code   = strtoupper(trim(preg_replace('/[^A-Za-z0-9_-]/', '', $code)));
+    if ($amount > 0 && $code === '') return ['error' => 'indirim için kupon kodu şart — belgede "Voucher <kod>" satırı olarak basılıyor'];
+
+    require_once __DIR__.'/invoice.php';
+    $invoiced = (bool)vestra_invoices_for_ref($ref);
+    if ($invoiced && !$allowInvoiced) {
+        return ['error' => 'bu siparişin faturası zaten kesilmiş — indirim belgeyi kendiliğinden değiştirmez '
+                         . '(KURAL 5f: |allow_invoiced=1 ile yaz ve AYNI numarayla yeniden çiz)'];
+    }
+
+    $file = vestra_data_dir().'/orders.csv';
+    if (!is_readable($file)) return ['error' => 'orders.csv okunamıyor'];
+    /* HAM dosya: vestra_read_csv() satırları ters çeviriyor (navlun/adres
+       yazıcılarıyla aynı tuzak). */
+    $in = fopen($file, 'r'); if (!$in) return ['error' => 'orders.csv açılamadı'];
+    $head = fgetcsv($in, null, ',', '"', '\\');
+    if (!$head) { fclose($in); return ['error' => 'orders.csv başlıksız']; }
+    $idx = array_flip($head);
+    foreach (['ref', 'discount', 'voucher_code', 'total', 'notes'] as $need) {
+        if (!isset($idx[$need])) { fclose($in); return ['error' => "orders.csv '{$need}' sütunu yok"]; }
+    }
+    $rows = []; $hit = null;
+    while (($r = fgetcsv($in, null, ',', '"', '\\')) !== false) {
+        $r = array_slice(array_pad($r, count($head), ''), 0, count($head));
+        if ((string)$r[$idx['ref']] === $ref) $hit = count($rows);
+        $rows[] = $r;
+    }
+    fclose($in);
+    if ($hit === null) return ['error' => 'sipariş bulunamadı: '.$ref];
+
+    $assoc = array_combine($head, $rows[$hit]);
+    $ld    = vestra_order_lines($assoc);
+    $goods = 0.0;
+    foreach ($ld['lines'] as $l) $goods += (float)($l['line'] ?? 0);
+    $goods = round($goods, 2);
+    if ($amount > $goods) return ['error' => 'indirim mal toplamından ('.number_format($goods, 2).') büyük olamaz'];
+    $shipping = round((float)($assoc['shipping'] ?? 0), 2);
+    $total    = round(max(0.0, $goods - $amount) + $shipping, 2);
+    $pctLbl   = $goods > 0 ? rtrim(rtrim(number_format($amount / $goods * 100, 2, '.', ''), '0'), '.') : '0';
+
+    $notes = trim((string)$assoc['notes']);
+    $notes = trim(preg_replace('/\s*Voucher [A-Z0-9_-]+ \([^)]*\) = -€[0-9.,]+\./u', '', $notes));
+    if ($amount > 0) $notes = trim($notes.' Voucher '.$code.' (-'.$pctLbl.'%) = -€'.number_format($amount, 2, '.', '').'.');
+
+    $rows[$hit][$idx['discount']]     = $amount > 0 ? number_format($amount, 2, '.', '') : '';
+    $rows[$hit][$idx['voucher_code']] = $amount > 0 ? $code : '';
+    $rows[$hit][$idx['total']]        = number_format($total, 2, '.', '');
+    $rows[$hit][$idx['notes']]        = $notes;
+
+    @copy($file, $file.'.bak-disc-'.date('Ymd_His'));
+    $tmp = $file.'.tmp';
+    $out = fopen($tmp, 'w'); if (!$out) return ['error' => 'geçici dosya açılamadı'];
+    fputcsv($out, $head, ',', '"', '\\');
+    foreach ($rows as $r) fputcsv($out, $r, ',', '"', '\\');
+    fclose($out);
+    if (!rename($tmp, $file)) { @unlink($tmp); return ['error' => 'orders.csv yazılamadı (izin?)']; }
+
+    /* GERİ OKU — satır ve FATURANIN göreceği rakam. */
+    $back = null;
+    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) { $back = $r; break; } }
+    if (!$back || abs((float)($back['discount'] ?? -1) - $amount) > 0.004
+               || abs((float)($back['total'] ?? -1) - $total) > 0.004
+               || (string)($back['voucher_code'] ?? '') !== ($amount > 0 ? $code : '')) {
+        return ['error' => 'yazıldı ama geri okuma tutmadı — kayıt değişmemiş olabilir'];
+    }
+
+    $st = vestra_read_json('order_statuses.json');
+    if (!isset($st[$ref]) || !is_array($st[$ref])) $st[$ref] = [];
+    $st[$ref]['discount_set_at'] = date('c');
+    $st[$ref]['discount_set_by'] = 'operator';
+    vestra_write_json('order_statuses.json', $st);
+
+    return ['ok' => true, 'goods' => $goods, 'discount' => $amount, 'code' => $amount > 0 ? $code : '',
+            'pct' => $pctLbl, 'shipping' => $shipping, 'total' => $total,
+            'must_redraft' => $invoiced];
+}
+
 /**
  * Bir siparişe NAVLUN yazar (operatör, 7 Eyl 2026: *"kargo bölümü yok kargo
  * eklemek gerekiyor"* — VES-6B53D265).
@@ -1396,7 +1748,7 @@ function vestra_render_order_sheet_pdf(array $orderRow, array $lines): string {
  *                      'size' ve 'colour' virgullu liste de olabilir ("S×5, M×15").
  * @return array ['ok'=>true,'ref'=>...] ya da ['error'=>gerekce]
  */
-function vestra_order_create_manual(array $acc, array $lines, float $shipping = 0.0, string $notesExtra = ''): array {
+function vestra_order_create_manual(array $acc, array $lines, ?float $shipping = null, string $notesExtra = ''): array {
     if (!$acc || trim((string)($acc['email'] ?? '')) === '') return ['error' => 'Alici hesabi yok ya da e-postasi bos.'];
     if (!$lines) return ['error' => 'Kalem yok.'];
 
@@ -1434,7 +1786,20 @@ function vestra_order_create_manual(array $acc, array $lines, float $shipping = 
         $items[] = $v['qty'].'x '.$sku.' @'.number_format($v['unit'], 2, '.', '');
     }
     $goods    = round($goods, 2);
-    $shipping = round(max(0.0, $shipping), 2);
+    /* NAVLUN: rakam verilmediyse (null) bölge tarifesi. Açıkça 0.0 verilirse 0
+       kalır — "navlun yok" ile "navlunu sen hesapla" iki ayrı talimat ve
+       varsayılanı 0.0 bırakmak elle yazılan her siparişi navlunsuz doğururdu.
+       Tanınmayan ülkede tarife null döner ve navlun yine 0 olur (operatör elle
+       yazar), yani tahmin edilmiş bir rakam hiçbir zaman kayda girmiyor. */
+    $shipLabel = '';
+    if ($shipping === null) {
+        $sched = vestra_shipping_schedule(
+            array_map(fn($k, $v) => ['sku' => $k, 'qty' => $v['qty']], array_keys($bySku), $bySku),
+            (string)($acc['country'] ?? ''));
+        $shipping  = $sched ? (float)$sched['amount'] : 0.0;
+        $shipLabel = $sched ? (string)$sched['label'] : '';
+    }
+    $shipping = round(max(0.0, (float)$shipping), 2);
 
     /* Ref CAKISMASIZ olmali: ayni ref'e ikinci satir, paneli ve faturayi
        hangi satirin gecerli oldugunu bilemez hale getirir. */
@@ -1491,7 +1856,7 @@ function vestra_order_create_manual(array $acc, array $lines, float $shipping = 
         number_format($goods, 2, '.', ''), number_format($goods + $shipping, 2, '.', ''),
         $notes, 'operator', defined('VESTRA_TERMS_VERSION') ? VESTRA_TERMS_VERSION : '', '', '',
         $shipping > 0 ? number_format($shipping, 2, '.', '') : '',
-        $shipping > 0 ? 'Shipping' : ''], ',', '"', '\\');
+        $shipping > 0 ? ($shipLabel !== '' ? $shipLabel : 'Shipping') : ''], ',', '"', '\\');
     fclose($fh);
 
     /* USD damgasi siparis anindaki kurla -- order.php ve teklif yoluyla ayni. */

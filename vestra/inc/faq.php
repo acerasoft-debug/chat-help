@@ -5,11 +5,45 @@
  * Dispatcher vestra_faq() loads inc/faq/{lang}.php and falls back per-item to English.
  */
 require_once __DIR__.'/i18n.php';
+/* Rakamlar (talep penceresi, satıcıya ödeme süresi, komisyon) sabitlerden
+   geliyor; SSS metni YER TUTUCU taşıyor ve burada çözülüyor. KURAL 6'nın
+   escrow tavanı dersi: aynı rakam bir metne gömülüp bir sabitte durduğunda,
+   müşteriye söylenen ile kodun uyguladığı beş gün ayrı kaldı. Dokuz dilin
+   metnine rakam gömmek o hatanın dokuz katı olurdu. */
+require_once __DIR__.'/escrow.php';
+/* products.php'yi de KENDİMİZ yüklüyoruz. `vestra/faq.php` bu dosyayı
+   head.php'den ÖNCE require edip vestra_faq()'i hemen çağırıyor, yani komisyon
+   etiketini basan fonksiyon o anda TANIMSIZ oluyordu ve `function_exists`
+   yedeği sessizce BOŞ dize dönüyordu: sayfa "一律%の手数料" / "عمولة %" diye
+   basıldı — rakamsız bir oran. Yerel çizim yakaladı, kaynak okumak değil.
+   KURAL 15'in aynısı: kardeş bir dosyanın require'ına yaslanma, ve
+   `function_exists` ile geçiştirme — yüklenmemişse kontrol SESSİZCE atlanır. */
+require_once __DIR__.'/products.php';
+
+/**
+ * SSS metnindeki yer tutucular → canlı değerler. SAF: girdi metin, çıktı metin.
+ *
+ * `{claim_days}`   talep penceresi (VESTRA_CLAIM_DAYS, iş günü)
+ * `{settle_days}`  satıcıya ödeme süresi (VESTRA_SELLER_SETTLEMENT_DAYS)
+ * `{commission}`   platform komisyonu, dilin kendi ondalık ayırıcısıyla
+ *                  (vestra_commission_pct_label — beş sayfanın okuduğu aynı gövde)
+ *
+ * Tanınmayan bir yer tutucu OLDUĞU GİBİ kalıyor: sessizce silmek, cümlenin
+ * ortasında bir boşluk bırakıp metni doğru göstermeye devam ederdi.
+ */
+function vestra_faq_fill(string $text, ?string $lang = null): string {
+    $lang = $lang ?? (function_exists('vlang') ? vlang() : 'en');
+    return strtr($text, [
+        '{claim_days}'  => (string)VESTRA_CLAIM_DAYS,
+        '{settle_days}' => (string)VESTRA_SELLER_SETTLEMENT_DAYS,
+        '{commission}'  => vestra_commission_pct_label($lang),
+    ]);
+}
 
 function vestra_faq(){
   $en = vestra_faq_en();
   $l  = function_exists('vlang') ? vlang() : 'en';
-  if($l==='en') return $en;
+  if($l==='en') return vestra_faq_resolve($en, $l);   /* İngilizce yol da AYNI çözücüden geçmek ZORUNDA: erken dönüş bırakılınca token'lar çözülmeden basılıyordu ve bunu ancak okuyan görürdü. */
   $f = __DIR__.'/faq/'.$l.'.php';
   if(is_readable($f)){
     $tr = require $f;
@@ -28,10 +62,23 @@ function vestra_faq(){
           'items'=>$items,
         ];
       }
-      return $out;
+      return vestra_faq_resolve($out, $l);
     }
   }
-  return $en;
+  return vestra_faq_resolve($en, $l);
+}
+
+/** Yer tutucuları bütün kategorilerde çözer — İngilizce ve çeviri yolu AYNI
+ *  gövdeden geçiyor; ikisi ayrı yazılsaydı biri çözülmemiş `{settle_days}`
+ *  basardı ve bunu ancak müşteri görürdü. */
+function vestra_faq_resolve(array $cats, ?string $lang = null): array {
+    foreach ($cats as $k => $cat) {
+        foreach (($cat['items'] ?? []) as $i => $it) {
+            $cats[$k]['items'][$i]['q'] = vestra_faq_fill((string)($it['q'] ?? ''), $lang);
+            $cats[$k]['items'][$i]['a'] = vestra_faq_fill((string)($it['a'] ?? ''), $lang);
+        }
+    }
+    return $cats;
 }
 
 function vestra_faq_en(){
@@ -105,11 +152,11 @@ function vestra_faq_en(){
     ['q'=>'How do I pay right now?',
      'a'=>'Payments are currently invoice-based. After your order is confirmed you receive a proforma invoice and pay by bank transfer; goods ship after the invoice is paid. The escrow/card checkout described below is temporarily suspended and will return at a later stage.'],
     ['q'=>'How does payment work on VESTRA?',
-     'a'=>'At checkout you receive an automatic PDF invoice per seller, including the seller\'s bank details. You pay by bank transfer (SEPA within the EU) directly to the seller; goods ship as soon as the payment arrives. Every step is documented in your account.'],
+     'a'=>'After your order is confirmed you receive a PDF invoice and pay it by bank transfer (SEPA within the EU); goods ship once the payment arrives. Always pay the account printed on that invoice: on most orders it is the seller\'s, and on orders VESTRA invoices in its own name it is VESTRA\'s. The invoice names who the seller of record is. Every step is documented in your account.'],
     ['q'=>'What is escrow and why does VESTRA use it?',
      'a'=>'Escrow means a neutral third party holds the payment until agreed conditions are met (delivery confirmed, inspection window passed). It protects buyers against non-delivery and sellers against non-payment — neither party can disappear with the money.'],
     ['q'=>'Who holds the escrow funds?',
-     'a'=>'A licensed, regulated third-party payment and escrow provider holds all funds. VESTRA never holds or transmits user money.'],
+     'a'=>'A licensed, regulated third-party payment and escrow provider holds escrowed funds; VESTRA does not hold or transmit user money. The exception is an order VESTRA invoices in its own name: there VESTRA is the seller of record, your payment goes to its own account and is not escrowed, and VESTRA pays the supplying seller once the order is successful.'],
     ['q'=>'When are funds released to the seller?',
      'a'=>'Funds release when: (a) you confirm receipt of goods, or (b) automatically once your claim window has run, if no problem has been reported. To pause release, report the problem to support@vestrasales.com before the window ends — reported orders stay held until resolved.'],
     ['q'=>'What payment methods are accepted?',
@@ -119,7 +166,9 @@ function vestra_faq_en(){
     ['q'=>'Is there a buyer-protection fee?',
      'a'=>'Yes — escrow (secure card) orders carry a 3.8% buyer-protection fee. It holds your payment safely until you confirm delivery and funds a full refund if the deal falls through, and it is shown clearly at checkout before you pay. Orders paid by bank transfer against an invoice have no buyer fee.'],
     ['q'=>'Is my payment information safe?',
-     'a'=>'You pay by bank transfer from your own bank — VESTRA never collects, sees, or stores your card numbers or online-banking credentials. The seller\'s bank details are printed on the invoice itself.'],
+     'a'=>'You pay by bank transfer from your own bank — VESTRA never collects, sees, or stores your card numbers or online-banking credentials. The bank details printed on the invoice belong to whoever is the seller of record for that order, which the invoice names.'],
+    ['q'=>'Who am I paying — VESTRA or the seller?',
+     'a'=>'Whoever the invoice names as seller of record, and you pay the bank account printed on that same invoice. On most orders that is the marketplace seller. On some orders VESTRA invoices in its own name (Terms of Service, section 3c): there your contract is with VESTRA, VESTRA collects the payment and pays the supplying seller afterwards, and you raise any claim with VESTRA. Your claim window of {claim_days} business days and the Returns & Claims policy are identical either way.'],
   ]],
 
   'shipping'=>['title'=>'Shipping & Delivery','items'=>[
@@ -203,9 +252,9 @@ function vestra_faq_en(){
     ['q'=>'How do I become a seller on VESTRA?',
      'a'=>'Register an account, complete KYB verification, and apply for seller access from your account dashboard. You will need to provide business registration details, tax/VAT ID, proof of your right to sell the goods (authorisation letters for branded items), and UBO identity documents.'],
     ['q'=>'What commission does VESTRA charge sellers?',
-     'a'=>'VESTRA charges a commission on each order\'s goods value that depends on your plan — 3.5% on Starter, 3.2% on Pro, 2.8% on Elite. It\'s collected automatically from the card you add in your seller profile the moment the buyer\'s payment is confirmed — no invoicing, no manual transfers, and it never changes what the buyer pays.'],
+     'a'=>'A single commission of {commission}% on the goods value of each order — the same for every seller. It is collected automatically from the card you add in your seller profile the moment the buyer\'s payment is confirmed: no invoicing, no manual transfers, and it never changes what the buyer pays. On an order VESTRA invoices in its own name you are paid the agreed purchase price instead — see "How and when do I receive payment?".'],
     ['q'=>'How and when do I receive payment?',
-     'a'=>'Directly and before shipping: the buyer pays your invoice by bank transfer straight to the bank account you set in your seller profile — VESTRA is never in that payment chain. Ship as soon as it arrives. Separately, your plan\'s commission (see above) is charged to your commission card once the order is marked paid.'],
+     'a'=>'It depends on who invoices the order. Marketplace order: the buyer pays your invoice by bank transfer straight to the bank account in your seller profile — ship as soon as it arrives — and the commission above is charged separately to your commission card. Order VESTRA invoices in its own name: VESTRA buys the goods from you and collects from the buyer, you invoice VESTRA, and you are paid within {settle_days} business days after the order becomes successful. The next answer says what a successful order means; the full terms are in section 9 of the Seller Agreement.'],
     ['q'=>'Can I set my own prices?',
      'a'=>'Yes. You set your unit prices per tier freely. You are also free to set your own MOQ, tier breakpoints, and shipping terms. VESTRA does not dictate pricing but reserves the right to remove listings with prices it deems misleading or non-market.'],
     ['q'=>'What products can I list?',
@@ -216,6 +265,8 @@ function vestra_faq_en(){
      'a'=>'A strike is issued when a valid complaint is upheld against you — for IP infringement, counterfeit goods, misrepresentation, or repeated non-delivery. Two strikes trigger a temporary suspension for review. Three strikes, or a single instance of confirmed counterfeit/fraud, result in permanent suspension.'],
     ['q'=>'Can I also list on other wholesale platforms?',
      'a'=>'Yes. VESTRA does not require exclusivity. You are free to sell the same goods on other platforms provided you comply with VESTRA\'s rules for the listings published here.'],
+    ['q'=>'When is an order successful, and when do you pay me?',
+     'a'=>'This applies to orders VESTRA invoices in its own name. An order is successful when all four are true: the buyer\'s payment has arrived and cleared, the goods have been delivered, the buyer\'s claim window of {claim_days} business days has closed with no claim open, and no chargeback or refund is pending. VESTRA then pays the agreed purchase price within {settle_days} business days, to a bank account in your own name. Cancelled, unpaid and refunded orders are not settled, and a claim upheld in part reduces the payment by the amount credited to the buyer.'],
   ]],
 
   'authenticity'=>['title'=>'Authenticity & Intellectual Property','items'=>[
@@ -235,11 +286,11 @@ function vestra_faq_en(){
     ['q'=>'Is it free to use VESTRA as a buyer?',
      'a'=>'Yes — browsing, registering, and ordering are completely free for buyers. You pay only the goods total on the seller\'s invoice.'],
     ['q'=>'What is the seller commission?',
-     'a'=>'VESTRA charges sellers a commission on each paid order\'s goods value, charged automatically to the card on file — 3.5% on Starter, 3.2% on Pro, 2.8% on Elite. This is separate from — and in addition to — the monthly membership plan.'],
+     'a'=>'{commission}% of the goods value of each paid order, charged automatically to the card on file. It is the same rate for every seller — there are no plan-dependent rates and no listing fees.'],
     ['q'=>'Are there any membership or subscription fees?',
-     'a'=>'For buyers: never. For sellers: publishing listings requires an active membership plan (Starter €19.90 — 10 listings/month; Pro €39.90 — 100 listings/month; Elite €89.90 — unlimited listings; all after a 30-day free trial). Plans are shown on the Membership page.'],
+     'a'=>'No. Selling on VESTRA is free: there is no membership or subscription fee and no listing fee, for buyers or for sellers. Sellers pay only the {commission}% commission on paid orders.'],
     ['q'=>'Are platform fees refundable?',
-     'a'=>'Membership fees are non-refundable except where required by law — you can cancel anytime and keep access until the end of the paid period. Goods payments go directly to the seller; refunds for goods are handled through the order dispute process.'],
+     'a'=>'Platform fees are non-refundable except where required by law. On a marketplace order the goods payment goes straight to the seller; on an order VESTRA invoices in its own name it goes to VESTRA. Either way, refunds for goods run through the order claim process and are paid back to the account the money came from.'],
   ]],
 
   'account'=>['title'=>'Account & Security','items'=>[

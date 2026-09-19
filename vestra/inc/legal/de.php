@@ -1,4 +1,12 @@
-<?php return [
+<?php
+/* TALEP PENCERESI ve SATICIYA ODEME SURESI sabitleri escrow.php'de; bu dosya
+   vestra_legal() icinden require ediliyor ve kardes bir dosyanin require'ina
+   yaslanmak KURAL 15'in fatal'i. Rakam METNE GOMULMUYOR (KURAL 6). */
+require_once __DIR__.'/../escrow.php';
+$co = 'Acerasoft LLC';
+$claimDays = (int)VESTRA_CLAIM_DAYS;
+$setDays   = (int)VESTRA_SELLER_SETTLEMENT_DAYS;
+return [
   'imprint'   => ['title'=>"Impressum / Rechtliche Hinweise", 'html'=>"
     <p>Informationen gemäß den geltenden Vorschriften zum E-Commerce und zur Verbraucherinformation.</p>
     <h3>Betreiber</h3>
@@ -135,7 +143,18 @@
     Lieferung freigegeben, abzüglich der Provision von VESTRA.</p>
     <h3>7. Verwarnungen &amp; Sperrung</h3><p>Fälschungen, IP-Verletzungen, wiederholte berechtigte Beschwerden oder Betrug führen zur Entfernung,
     zu Verwarnungen und zur Sperrung. Offensichtliche Fälschungen/Betrug können eine sofortige Sperrung zur Folge haben.</p>
-    <h3>8. Warenprüfung &amp; Mängelrüge (HGB §377)</h3><p>Käufer haben die erhaltenen Waren unverzüglich nach Lieferung zu prüfen. <b>Offensichtliche Mängel, Fehlmengen oder Falschlieferungen sind innerhalb von 48 Stunden</b> nach Lieferung schriftlich zu melden. Verborgene Mängel sind unmittelbar nach Entdeckung anzuzeigen. Unterbleibt die rechtzeitige Rüge, gilt die Ware als genehmigt und Gewährleistungsansprüche entfallen.</p>"],
+    <h3>8. Warenprüfung &amp; Mängelrüge (HGB §377)</h3><p>Käufer haben die erhaltenen Waren unverzüglich nach Lieferung zu prüfen. <b>Offensichtliche Mängel, Fehlmengen oder Falschlieferungen sind innerhalb von 48 Stunden</b> nach Lieferung schriftlich zu melden. Verborgene Mängel sind unmittelbar nach Entdeckung anzuzeigen. Unterbleibt die rechtzeitige Rüge, gilt die Ware als genehmigt und Gewährleistungsansprüche entfallen.</p>
+    <h3>9. Von {$co} im eigenen Namen fakturierte Bestellungen — Kaufpreis &amp; Abrechnung</h3>
+    <p>Dieser Abschnitt gilt <b>ausschließlich</b> für Bestellungen, die {$co} im eigenen Namen fakturiert (AGB, Abschnitt 3c). Bei diesen Bestellungen <b>kauft {$co} die Ware vom Verkäufer und verkauft sie weiter</b>: Vertragspartner des Verkäufers ist {$co}, nicht der Käufer; §2 dieses Vertrages gilt entsprechend.</p>
+    <ul>
+    <li><b>Kaufpreis.</b> Der für die Bestellung im Verkäufer-Dashboard bestätigte Preis und die bestätigte Menge, zuzüglich vereinbarter Versandkosten, abzüglich einer für diese Bestellung geltenden Plattformprovision. Die Bestellseite weist den zahlbaren Betrag aus; weitere Abzüge erfolgen nur mit schriftlicher Zustimmung des Verkäufers.</li>
+    <li><b>Rechnungsstellung.</b> Der Verkäufer stellt {$co} diesen Betrag in Rechnung (Reverse-Charge bzw. Ausfuhr, soweit einschlägig). Jede Partei bleibt für ihre eigenen Steuern und Meldungen verantwortlich.</li>
+    <li><b>Wann eine Bestellung &bdquo;erfolgreich&ldquo; ist.</b> Es müssen alle folgenden Voraussetzungen vorliegen: (a) die Zahlung des Käufers ist vollständig eingegangen und verfügbar; (b) die Ware wurde an den Käufer geliefert; (c) das Rügefenster des Käufers — {$claimDays} Werktage ab Lieferung, siehe <a href=\"/faq?cat=returns\">Rückgabe- &amp; Reklamationsrichtlinie</a> — ist ohne offene Reklamation abgelaufen; und (d) es steht keine Rückbuchung, Stornierung oder Erstattung aus.</li>
+    <li><b>Abrechnung.</b> {$co} zahlt den Kaufpreis innerhalb von <b>{$setDays} Werktagen</b>, nachdem die Bestellung erfolgreich geworden ist, per Überweisung auf das im verifizierten Verkäuferprofil hinterlegte Bankkonto, das auf den Namen des Verkäufers lauten muss. Die Aktualität dieser Daten liegt beim Verkäufer; Zahlungen an Dritte erfolgen nicht.</li>
+    <li><b>Nicht erfolgreiche Bestellungen.</b> Stornierte, vom Käufer nicht bezahlte und dem Käufer erstattete Bestellungen begründen keinen Zahlungsanspruch. Wird eine Reklamation teilweise anerkannt, mindert sich die Abrechnung um den dem Käufer gutgeschriebenen Betrag. {$co} kann bereits gezahlte Beträge sowie Forderungen nach §4 mit späteren Abrechnungen verrechnen.</li>
+    <li><b>Eigentum und Gefahr.</b> Das Eigentum an der Ware geht mit Übergabe an den Frachtführer für den Käufer auf {$co} über und von dort nach Maßgabe der Rechnung von {$co} auf den Käufer. Die Gefahr folgt den Lieferbedingungen dieser Rechnung.</li>
+    <li><b>Keine Änderung der Verkäufergarantien.</b> Die Garantien und die Freistellung nach §3 und §4 werden für diese Bestellungen gegenüber {$co} abgegeben und bleiben unberührt. Ein Mangel, den der Käufer gegenüber {$co} geltend macht, kann zu denselben Bedingungen an den Verkäufer weitergereicht werden.</li>
+    </ul>"],
   'ip'        => ['title'=>"Geistiges Eigentum &amp; Fälschungsschutz / Melde- und Entfernungsverfahren", 'html'=>"
     <h3>Null Toleranz</h3><p>Gefälschte, nachgeahmte, nicht autorisierte Marken- und nicht verifizierte Graumarktwaren sowie jedes
     IP-verletzende Angebot sind verboten.</p>
@@ -157,7 +176,7 @@
     <h3>Sanktionsprüfung</h3><p>Nutzer und wirtschaftlich Berechtigte werden gegen die geltenden Listen abgeglichen (OFAC, EU, UN).
     Wir nehmen keine Nutzer in verbotenen/sanktionierten Rechtsräumen auf.</p>
     <h3>Gelder</h3><p>Einzug, Treuhand und Abwicklung werden von einem lizenzierten Zahlungs-/Treuhandanbieter durchgeführt; VESTRA
-    hält oder übermittelt keine Nutzergelder.</p>
+    hält oder übermittelt keine Nutzergelder. <b>Ausnahme:</b> Bei Bestellungen, die {$co} im eigenen Namen fakturiert (AGB, Abschnitt 3c), zahlt der Käufer auf das eigene Konto von {$co}, und {$co} bezahlt den liefernden Verkäufer für eine erfolgreiche Bestellung. Solche Zahlungen erfolgen ausschließlich auf ein Bankkonto, das auf den Namen des verifizierten Verkäufers lautet; {$co} zahlt nicht an Dritte, leistet keine Zahlungen an oder aus sanktionierten Jurisdiktionen und erstattet ausschließlich auf das Konto zurück, von dem die Zahlung kam.</p>
     <h3>Überwachung &amp; Aufzeichnungen</h3><p>Wir überwachen auf verdächtige Muster und bewahren Verifizierungs- und Transaktionsaufzeichnungen
     für den gesetzlich vorgeschriebenen Zeitraum auf.</p>"],
   'payments'  => ['title'=>"Zahlungen, Treuhand &amp; Erstattungen", 'html'=>"
@@ -171,6 +190,8 @@
     unverändert.</p>
     <h3>Treuhandfreigabe</h3><p>Gelder werden bei Käuferbestätigung, verifizierter Lieferung oder Ablauf eines vereinbarten automatischen Freigabezeitfensters
     freigegeben, sofern kein Streitfall erhoben wird. Der Anbieter zahlt die Verkäuferauszahlung + die Provision von VESTRA aus.</p>
+    <h3>Von VESTRA im eigenen Namen fakturierte Bestellungen — wie der Verkäufer bezahlt wird</h3>
+    <p>Bei diesen Bestellungen (AGB, Abschnitt 3c) ist {$co} Verkäufer im Rechtssinne: sie vereinnahmt die Zahlung des Käufers auf ihr eigenes Konto und <b>kauft die Ware vom liefernden Verkäufer</b>. Dieser Verkäufer wird für eine <b>erfolgreiche Bestellung</b> bezahlt — Zahlung des Käufers eingegangen und verfügbar, Ware geliefert, Rügefenster von {$claimDays} Werktagen ohne offene Reklamation abgelaufen, keine Rückbuchung oder Erstattung offen — und zwar innerhalb von <b>{$setDays} Werktagen</b> nach Eintritt dieser Voraussetzungen, auf ein Konto, das auf seinen Namen lautet. Stornierte, unbezahlte und erstattete Bestellungen werden nicht abgerechnet; eine teilweise anerkannte Reklamation mindert die Abrechnung um den dem Käufer gutgeschriebenen Betrag. Die vollständigen Bedingungen stehen im <a href=\"/legal?doc=seller\">Verkäufervertrag</a>, Abschnitt 9. <b>Für den Käufer ändert sich nichts:</b> Rügefenster, <a href=\"/faq?cat=returns\">Rückgabe- &amp; Reklamationsrichtlinie</a> und Erstattungsanspruch bleiben gleich; bei diesen Bestellungen macht der Käufer sie gegenüber {$co} geltend.</p>
     <h3>Gebühren</h3><p>VESTRA erhebt pro Bestellung eine Plattformprovision — eine Verkäuferprovision zuzüglich einer geringen Käuferschutzgebühr — und/oder eine Mitgliedsgebühr; Anbietergebühren wie berechnet. Die genauen Beträge werden vor dem Checkout angezeigt.</p>
     <h3>Erstattungen &amp; Streitfälle</h3><p>Während eines Streitfalls verbleiben die Gelder im Treuhandkonto. Wird zugunsten des Käufers entschieden (Nichtlieferung,
     wesentlich nicht wie beschrieben, nachgewiesene Fälschung), werden die treuhänderisch verwahrten Gelder vor der Freigabe erstattet.</p>

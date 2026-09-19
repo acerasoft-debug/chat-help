@@ -170,7 +170,7 @@
       1 => 
       array (
         'q' => '¿Cómo funciona el pago en VESTRA?',
-        'a' => 'Al finalizar el pedido recibe automáticamente una factura PDF por vendedor, con sus datos bancarios. Paga por transferencia (SEPA dentro de la UE) directamente al vendedor; la mercancía se envía en cuanto llega el pago. Cada paso queda documentado en su cuenta.',
+        'a' => 'Tras confirmarse tu pedido recibes una factura PDF y la pagas por transferencia bancaria (SEPA dentro de la UE); la mercancía se envía en cuanto llega el pago. Paga siempre a la cuenta impresa en esa factura: en la mayoría de los pedidos es la del vendedor y, en los pedidos que VESTRA factura en su propio nombre, la de VESTRA. La factura indica siempre quién es el vendedor a efectos legales. Cada paso queda documentado en tu cuenta.',
       ),
       2 => 
       array (
@@ -180,7 +180,7 @@
       3 => 
       array (
         'q' => '¿Quién custodia los fondos en escrow?',
-        'a' => 'Un proveedor de pagos y escrow externo, autorizado y regulado, custodia todos los fondos. VESTRA nunca retiene ni transmite dinero de los usuarios.',
+        'a' => 'Un proveedor de pagos y depósito en garantía autorizado y supervisado custodia los fondos en garantía; VESTRA no retiene ni transmite dinero de los usuarios. La excepción son los pedidos que VESTRA factura en su propio nombre: ahí VESTRA es el vendedor a efectos legales, tu pago va a su propia cuenta y no al depósito en garantía, y VESTRA paga al vendedor suministrador una vez que el pedido es exitoso.',
       ),
       4 => 
       array (
@@ -205,7 +205,12 @@
       8 => 
       array (
         'q' => '¿Están seguros mis datos de pago?',
-        'a' => 'Paga por transferencia desde su propio banco — VESTRA nunca recopila, ve ni almacena sus números de tarjeta o credenciales de banca en línea. Los datos bancarios del vendedor figuran en la propia factura.',
+        'a' => 'Pagas por transferencia desde tu propio banco — VESTRA nunca recoge, ve ni almacena números de tarjeta ni credenciales de banca electrónica. Los datos bancarios impresos en la factura pertenecen a quien sea el vendedor a efectos legales de ese pedido, que la propia factura nombra.',
+      ),
+      9 => 
+      array (
+        'q' => '¿A quién estoy pagando: a VESTRA o al vendedor?',
+        'a' => 'A quien la factura designe como vendedor a efectos legales, en la cuenta bancaria impresa en esa misma factura. En la mayoría de los pedidos es el vendedor del marketplace. Algunos pedidos los factura VESTRA en su propio nombre (Términos del servicio, sección 3c): entonces tu contrato es con VESTRA, que cobra el pago y después paga al vendedor suministrador, y cualquier reclamación se dirige a VESTRA. Tu plazo de reclamación de {claim_days} días hábiles y la política de devoluciones y reclamaciones son idénticos en ambos casos.',
       ),
     ),
   ),
@@ -296,12 +301,12 @@
       1 => 
       array (
         'q' => '¿Qué comisión cobra VESTRA a los vendedores?',
-        'a' => 'VESTRA cobra una comisión sobre el valor de la mercancía de cada pedido que depende de su plan — 3,5% en Starter, 3,2% en Pro, 2,8% en Elite. Se cobra automáticamente de la tarjeta registrada en su perfil de vendedor en cuanto se confirma el pago del comprador — sin facturación, sin transferencias manuales, y nunca cambia lo que paga el comprador.',
+        'a' => 'Una comisión única del {commission}% sobre el valor de la mercancía de cada pedido, igual para todos los vendedores. Se cobra automáticamente a la tarjeta que registras en tu perfil de vendedor en cuanto se confirma el pago del comprador: sin facturas, sin transferencias manuales y sin alterar lo que paga el comprador. En un pedido que VESTRA factura en su propio nombre cobras, en su lugar, el precio de compra acordado — véase "¿Cómo y cuándo cobro?".',
       ),
       2 => 
       array (
         'q' => '¿Cómo y cuándo recibo el pago?',
-        'a' => 'Directamente y antes del envío: el comprador paga su factura por transferencia a la cuenta bancaria configurada en su perfil de vendedor — VESTRA nunca interviene en ese pago. Envíe en cuanto llegue. Por separado, la comisión de su plan (vea arriba) se cobra en su tarjeta de comisión cuando el pedido se marca como pagado.',
+        'a' => 'Depende de quién facture el pedido. Pedido de marketplace: el comprador paga tu factura por transferencia directamente a la cuenta de tu perfil de vendedor — envía en cuanto llegue — y la comisión anterior se cobra aparte a tu tarjeta. Pedido facturado por VESTRA en su propio nombre: VESTRA te compra la mercancía y cobra al comprador; tú facturas a VESTRA y cobras en un plazo de {settle_days} días hábiles desde que el pedido pasa a ser exitoso. La siguiente respuesta explica cuándo un pedido es exitoso; las condiciones completas están en la sección 9 del contrato de vendedor.',
       ),
       3 => 
       array (
@@ -327,6 +332,11 @@
       array (
         'q' => '¿Puedo publicar mis productos en otras plataformas mayoristas?',
         'a' => 'Sí. VESTRA no exige exclusividad. Usted es libre de vender los mismos productos en otras plataformas, siempre que cumpla las normas de VESTRA para los listados publicados aquí.',
+      ),
+      8 => 
+      array (
+        'q' => '¿Cuándo es exitoso un pedido y cuándo cobro?',
+        'a' => 'Se refiere a los pedidos que VESTRA factura en su propio nombre. Un pedido es exitoso cuando se cumplen las cuatro condiciones: el pago del comprador ha llegado y está disponible, la mercancía se ha entregado, el plazo de reclamación del comprador de {claim_days} días hábiles ha vencido sin reclamación abierta y no hay contracargo ni reembolso pendiente. VESTRA paga entonces el precio de compra acordado en un plazo de {settle_days} días hábiles, a una cuenta a tu nombre. Los pedidos cancelados, impagados y reembolsados no se liquidan; una reclamación estimada en parte reduce el pago en el importe abonado al comprador.',
       ),
     ),
   ),
@@ -375,17 +385,17 @@
       1 => 
       array (
         'q' => '¿Cuál es la comisión para los vendedores?',
-        'a' => 'VESTRA cobra a los vendedores una comisión sobre el valor de la mercancía de cada pedido pagado, cobrada automáticamente de la tarjeta registrada — 3,5% en Starter, 3,2% en Pro, 2,8% en Elite. Esto es adicional a la membresía mensual, no la sustituye.',
+        'a' => 'El {commission}% del valor de la mercancía de cada pedido pagado, cargado automáticamente a la tarjeta registrada. El tipo es el mismo para todos los vendedores: no hay tipos por plan ni tarifas por publicar.',
       ),
       2 => 
       array (
         'q' => '¿Existen cuotas de membresía o suscripción?',
-        'a' => 'Para compradores: nunca. Para vendedores: publicar anuncios requiere una membresía activa (Starter 19,90 € — 10 anuncios/mes; Pro 39,90 € — 100 anuncios/mes; Elite 89,90 € — anuncios ilimitados; en todos los casos tras 30 días de prueba gratuita). Los planes están en la página de Membresía.',
+        'a' => 'No. Vender en VESTRA es gratuito: no hay cuota de membresía ni suscripción ni tarifa por publicar, ni para compradores ni para vendedores. Los vendedores solo pagan la comisión del {commission}% sobre los pedidos pagados.',
       ),
       3 => 
       array (
         'q' => '¿Se reembolsan las tarifas de la plataforma?',
-        'a' => 'Las cuotas de membresía no son reembolsables salvo obligación legal — puede cancelar en cualquier momento y mantener el acceso hasta el final del periodo pagado. Los pagos de mercancía van directamente al vendedor; los reembolsos se gestionan mediante el proceso de disputa del pedido.',
+        'a' => 'Las tarifas de plataforma no son reembolsables salvo que la ley lo exija. En un pedido de marketplace el pago de la mercancía va directamente al vendedor; en un pedido facturado por VESTRA en su propio nombre va a VESTRA. En ambos casos, los reembolsos de mercancía se tramitan por el procedimiento de reclamación y se devuelven a la cuenta de origen.',
       ),
     ),
   ),

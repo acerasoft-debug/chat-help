@@ -414,6 +414,22 @@ function vestra_offer_fx_ensure(string $ref, string $offerTs = ''): ?array {
     return vestra_order_fx_stamp($ref, $offerTs);
 }
 
+/* Teklif faturasinda NAVLUN VARSAYILANI (operator, 19 Eyl 2026: "her faturaya
+ * ... shipping cost ekle"). Kayitta bir rakam durmuyorsa bolge tarifesi
+ * (inc/orders.php, TEK tablo) hesapliyor; ulke taninmiyorsa 0 ve operator elle
+ * yaziyor -- uydurulmus bir navlun KURAL 3'un yasakladigi sey.
+ *
+ * OLCUT array_key_exists, isset DEGIL: operatorun BILEREK yazdigi 0 ("bu
+ * belgede navlun yok") ile hic yazilmamis alan ayri iki sey, ve isset ikisini
+ * de ayni gorurdu -- operatorun kaldirdigi navlun her onizlemede geri gelirdi.
+ */
+function vestra_offer_invoice_shipping(array $rec, array $lines, array $buyerAcc): float {
+    if (array_key_exists('invoice_shipping', $rec)) return (float)$rec['invoice_shipping'];
+    require_once __DIR__.'/orders.php';
+    $sched = vestra_shipping_schedule($lines, (string)($buyerAcc['country'] ?? ''));
+    return $sched ? (float)$sched['amount'] : 0.0;
+}
+
 /* Teklifin FATURA yuku: alici blogu + tek satir + fatura kesecek satici.
  * Uc yerde (operator kabulu, alici kabulu, panelden onayli kesim) elle
  * kuruluyordu; ucu de ayni rakami uretmek ZORUNDA, cunku ayni belge.
@@ -450,7 +466,8 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
        Goods total + Shipping + Grand total olarak ayri satirlarda basar;
        0 ise hicbir sey degismez. Override onizleme/redraft icin. */
     $shipping = $shippingOverride !== null ? $shippingOverride
-              : (float)($rs[$ref]['invoice_shipping'] ?? 0);
+              : vestra_offer_invoice_shipping((array)($rs[$ref] ?? []),
+                    [['sku' => (string)($offerRow['sku'] ?? ''), 'qty' => $qty]], $buyerAcc);
 
     /* KDV ORANI, fiyata DAHIL. Kayittan okunuyor (invoice_vat_rate), yoksa 0 ve
        belgeye hicbir sey basilmiyor: varsayilan bir oran koymak, KDV'siz kesilen
@@ -611,9 +628,6 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
 
     $vatNote = $vatNoteOverride;
     if ($vatNote === null) $vatNote = trim((string)($rs[$primary]['invoice_vat_note'] ?? ''));
-    $shipping = $shippingOverride !== null ? $shippingOverride
-              : (float)($rs[$primary]['invoice_shipping'] ?? 0);
-
     /* KDV orani BIRINCIL ref'ten: belge tek bir fatura ve tek bir oran tasir.
        Uyelerin ayri oranlari olsaydi tek belgede iki matrah olurdu -- bu yuk
        zaten tek satici + tek alici kuraliyla sinirli (KURAL 5e). Override
@@ -631,6 +645,13 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
              ? $curPick : vestra_offer_invoice_currency($primary);
 
     $buyerAcc = auth_find($buyerRow['email'] ?? '') ?: [];
+    /* NAVLUN alicinin ulkesini okuyor, o yuzden $buyerAcc'ten SONRA -- ilk
+       yazimda ustune konmustu ve tanimsiz degisken PHP'de null, yani tarife
+       her zaman "ulke bos" gorup 0 basardi (sessizce dogru gorunen bir kusur). */
+    $shipping = $shippingOverride !== null ? $shippingOverride
+              : vestra_offer_invoice_shipping((array)($rs[$primary] ?? []),
+                    array_map(fn($i) => ['sku' => (string)($i['sku'] ?? ''), 'qty' => (int)($i['qty'] ?? 0)], $items),
+                    $buyerAcc);
     /* BOLGE VARSAYILANI (KURAL 5s). Alici hesabi BURADA cozuluyor, o yuzden
        karar $wantCur'in ilk atamasindan sonra -- kardeslerinin (vat_note /
        shipping / vat_rate) durdugu her yerde olmali kurali, KURAL 5m'in

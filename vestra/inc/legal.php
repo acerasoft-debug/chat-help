@@ -10,6 +10,12 @@
  * the brand "VESTRA" stay identical in every language.
  */
 require_once __DIR__.'/i18n.php';
+/* TALEP PENCERESI ve SATICIYA ODEME SURESI sabitleri escrow.php'de. Kardes bir
+   dosyanin require'ina yaslanmak KURAL 15'in admin.php'de kaydettigi fatal'in
+   ta kendisi: cagirma sirasi degisince sabit tanimsiz kalir ve hata VERIYE
+   BAGLI olur (hukuk sayfasi acilirken olumcul, mektup uretirken sessiz).
+   escrow.php yuklenirken aga cikmaz, yalniz sabit ve fonksiyon tanimlar. */
+require_once __DIR__.'/escrow.php';
 
 /* "Son güncelleme" satırı, DİL DOSYASI başına. 16 Eyl 2026 denetimine kadar
    legal.php'de sabit "26 June 2026" yazıyordu ve yanında bir İÇ NOT vardı
@@ -20,8 +26,12 @@ require_once __DIR__.'/i18n.php';
    İngilizce metne düştüğü için İngilizce'nin tarihini alır. */
 function vestra_legal_updated(?string $lang = null): string {
     $lang = $lang ?? (function_exists('vlang') ? vlang() : 'en');
-    $map = ['en' => '2026-09-17', 'de' => '2026-09-17', 'fr' => '2026-09-17',
-            'it' => '2026-09-17', 'es' => '2026-09-17'];
+    /* 19 Eyl 2026: Satıcı Sözleşmesi §9, Ödemeler politikasının yeni bölümü ve
+       AML istisnası BEŞ dile birden girdi — tarih de beşinde birden ilerliyor.
+       Metni değiştirip burayı bırakmak, okuyucuya "bu belge değişmedi" demek
+       olurdu. */
+    $map = ['en' => '2026-09-19', 'de' => '2026-09-19', 'fr' => '2026-09-19',
+            'it' => '2026-09-19', 'es' => '2026-09-19'];
     return $map[$lang] ?? $map['en'];
 }
 
@@ -50,6 +60,10 @@ function vestra_legal(){
 /* English source set. */
 function vestra_legal_en(){
   $co='Acerasoft LLC';
+  /* Rakamlar METNE GOMULMUYOR: sabitten okunuyor (KURAL 6'nin escrow tavani
+     dersi — musteriye soylenen ile kodun uyguladigi bes gun ayri kalmisti). */
+  $claimDays = (int)VESTRA_CLAIM_DAYS;
+  $setDays   = (int)VESTRA_SELLER_SETTLEMENT_DAYS;
   $addr='8 The Green, Suite B, Dover, Delaware 19901, USA';
   $email='legal@vestrasales.com';
   $eff='26 June 2026';
@@ -217,7 +231,36 @@ function vestra_legal_en(){
     <h3>7. Orders, escrow &amp; payouts</h3><p>Funds are held in escrow and released after buyer confirmation / verified
     delivery, less VESTRA's commission.</p>
     <h3>8. Strikes &amp; suspension</h3><p>Counterfeit, IP infringement, repeated valid complaints or fraud lead to removal,
-    strikes and suspension. Manifest counterfeit/fraud may cause immediate suspension.</p>"],
+    strikes and suspension. Manifest counterfeit/fraud may cause immediate suspension.</p>
+    <h3>9. Orders {$co} invoices in its own name — purchase price &amp; settlement</h3>
+    <p>This section applies <b>only</b> to orders for which {$co} issues the invoice in its own name
+    (Terms of Service, section 3c). For those orders {$co} <b>buys the goods from the seller and resells them</b>:
+    the seller's counterparty is {$co}, not the buyer, and §2 of this Agreement applies accordingly.</p>
+    <ul>
+    <li><b>Purchase price.</b> The price and quantity confirmed for that order in the seller's dashboard, plus any
+    shipping cost agreed for it, less any platform commission that applies to that order. The order page states the
+    amount payable; no other charge is deducted without the seller's written agreement.</li>
+    <li><b>Invoicing.</b> The seller invoices {$co} for that amount (reverse charge or export treatment where
+    applicable). Each party remains responsible for its own taxes and filings.</li>
+    <li><b>When an order is &ldquo;successful&rdquo;.</b> All of the following must be true: (a) the buyer's payment
+    for the order has been received in full and has cleared; (b) the goods have been delivered to the buyer;
+    (c) the buyer's claim window — {$claimDays} business days from delivery, see the
+    <a href=\"/faq?cat=returns\">Returns &amp; Claims policy</a> — has closed with no claim open; and (d) no chargeback,
+    reversal or refund is pending on the order.</li>
+    <li><b>Settlement.</b> {$co} pays the purchase price within <b>{$setDays} business days</b> after the order
+    becomes successful, by transfer to the bank account held in the seller's verified profile and in that seller's own
+    name. Keeping those details current is the seller's responsibility; payment to a third party is not made.</li>
+    <li><b>Orders that are not successful.</b> Cancelled orders, orders the buyer has not paid, and orders refunded to
+    the buyer do not give rise to settlement. Where a claim is upheld in part, settlement is reduced by the amount
+    credited to the buyer. {$co} may set off amounts already paid, and any amount the seller owes under §4, against
+    later settlements.</li>
+    <li><b>Title and risk.</b> Title to the goods passes to {$co} at the moment they are handed to the carrier for the
+    buyer, and passes on to the buyer on the terms stated on {$co}'s invoice. Risk follows the delivery terms of that
+    invoice.</li>
+    <li><b>No change to the seller's warranties.</b> The warranties and the indemnity in §3 and §4 are given to {$co}
+    for these orders and are unaffected by this section. A defect the buyer establishes against {$co} may be passed
+    back to the seller on the same terms.</li>
+    </ul>"],
 
   'ip'=>['title'=>'IP &amp; Anti-Counterfeit / Notice-and-Takedown','html'=>"
     <h3>Zero tolerance</h3><p>Counterfeit, replica, unauthorised-brand and unverified grey-market goods, and any
@@ -240,7 +283,11 @@ function vestra_legal_en(){
     <h3>Sanctions screening</h3><p>Users and beneficial owners are screened against applicable lists (OFAC, EU, UN).
     We do not onboard users in prohibited/sanctioned jurisdictions.</p>
     <h3>Funds</h3><p>Collection, escrow and settlement are performed by a licensed payment/escrow provider; VESTRA does
-    not hold or transmit user funds.</p>
+    not hold or transmit user funds. <b>Exception:</b> for orders {$co} invoices in its own name (Terms of Service,
+    section 3c) the buyer pays {$co}'s own account and {$co} pays the supplying seller for a successful order.
+    Those payments are made only to a bank account held in the verified seller's own name; {$co} does not pay
+    third parties, does not make payments to or from sanctioned jurisdictions, and does not return funds to any
+    account other than the one they came from.</p>
     <h3>Monitoring &amp; records</h3><p>We monitor for suspicious patterns and keep verification and transaction records
     for the legally required period.</p>"],
 
@@ -254,6 +301,17 @@ function vestra_legal_en(){
     <h3>Escrow release</h3><p>Funds release on buyer confirmation, or automatically once the buyer's claim
     window has run and no problem has been reported to support. The automatic release is never earlier than
     the end of that window, so payment cannot leave escrow while the buyer may still complain.</p>
+    <h3>Orders VESTRA invoices in its own name — how the seller is paid</h3>
+    <p>For these orders (Terms of Service, section 3c) {$co} is the seller of record: it collects the buyer's payment
+    into its own account and <b>buys the goods from the supplying seller</b>. That seller is paid for a
+    <b>successful order</b> — the buyer's payment received and cleared, the goods delivered, the buyer's claim window
+    of {$claimDays} business days closed with no claim open, and no chargeback or refund pending — within
+    <b>{$setDays} business days</b> after those conditions are met, to a bank account in the seller's own name.
+    Cancelled, unpaid and refunded orders are not settled, and a claim upheld in part reduces settlement by the amount
+    credited to the buyer. The full terms are in the <a href=\"/legal?doc=seller\">Seller Agreement</a>, section 9.
+    <b>For the buyer nothing changes:</b> the claim window, the
+    <a href=\"/faq?cat=returns\">Returns &amp; Claims policy</a> and the right to a refund are the same, and for these
+    orders the buyer exercises them against {$co}.</p>
     <h3>Fees</h3><p>VESTRA charges a platform commission per order — a seller commission plus a small buyer-protection fee — and/or a membership fee; provider fees as charged. Exact amounts are shown before checkout.</p>
     <h3>Refunds &amp; disputes</h3><p>During a dispute funds remain in escrow. If resolved for the buyer (non-delivery,
     materially not-as-described, proven counterfeit), escrowed funds are refunded before release.</p>

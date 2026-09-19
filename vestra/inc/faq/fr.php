@@ -170,7 +170,7 @@
       1 => 
       array (
         'q' => 'Comment fonctionne le paiement sur VESTRA ?',
-        'a' => 'Au moment de la commande, vous recevez automatiquement une facture PDF par vendeur, avec ses coordonnées bancaires. Vous payez par virement (SEPA dans l\'UE) directement au vendeur ; la marchandise est expédiée dès réception du paiement. Chaque étape est documentée dans votre compte.',
+        'a' => 'Après confirmation de votre commande, vous recevez une facture PDF et la réglez par virement bancaire (SEPA au sein de l\'UE) ; la marchandise part dès réception du paiement. Payez toujours le compte indiqué sur cette facture : sur la plupart des commandes c\'est celui du vendeur, et sur les commandes que VESTRA facture en son propre nom, celui de VESTRA. La facture indique toujours qui est le vendeur au sens juridique. Chaque étape est documentée dans votre compte.',
       ),
       2 => 
       array (
@@ -180,7 +180,7 @@
       3 => 
       array (
         'q' => 'Qui détient les fonds en séquestre ?',
-        'a' => 'Les fonds sont détenus par un prestataire de paiement et de séquestre tiers, agréé et réglementé. VESTRA ne détient ni ne transfère les fonds des utilisateurs.',
+        'a' => 'Un prestataire de paiement et d\'entiercement agréé et régulé détient les fonds entiercés ; VESTRA ne détient ni ne transfère les fonds des utilisateurs. Exception : les commandes que VESTRA facture en son propre nom — VESTRA y est le vendeur au sens juridique, votre paiement va sur son propre compte et n\'est pas entiercé, et VESTRA paie le vendeur fournisseur une fois la commande réussie.',
       ),
       4 => 
       array (
@@ -205,7 +205,12 @@
       8 => 
       array (
         'q' => 'Mes informations de paiement sont-elles sécurisées ?',
-        'a' => 'Vous payez par virement depuis votre propre banque — VESTRA ne collecte, ne voit ni ne stocke jamais vos numéros de carte ou identifiants bancaires. Les coordonnées bancaires du vendeur figurent sur la facture elle-même.',
+        'a' => 'Vous payez par virement depuis votre propre banque — VESTRA ne collecte, ne voit ni ne conserve vos numéros de carte ou identifiants bancaires. Les coordonnées bancaires imprimées sur la facture sont celles de la partie qui est vendeur au sens juridique pour cette commande, que la facture nomme.',
+      ),
+      9 => 
+      array (
+        'q' => 'À qui est-ce que je paie — VESTRA ou le vendeur ?',
+        'a' => 'À celui que la facture désigne comme vendeur au sens juridique, sur le compte bancaire imprimé sur cette même facture. Sur la plupart des commandes, il s\'agit du vendeur de la place de marché. Certaines commandes sont facturées par VESTRA en son propre nom (CGU, section 3c) : votre contrat est alors conclu avec VESTRA, qui encaisse le paiement puis règle le vendeur fournisseur, et vous adressez toute réclamation à VESTRA. Votre délai de réclamation de {claim_days} jours ouvrés et la politique de retours et réclamations sont identiques dans les deux cas.',
       ),
     ),
   ),
@@ -296,12 +301,12 @@
       1 => 
       array (
         'q' => 'Quelle commission VESTRA prélève-t-elle sur les ventes ?',
-        'a' => 'VESTRA prélève une commission sur la valeur marchandise de chaque commande, qui dépend de votre formule — 3,5% en Starter, 3,2% en Pro, 2,8% en Elite. Elle est débitée automatiquement de la carte enregistrée dans votre profil vendeur dès que le paiement de l\'acheteur est confirmé — pas de facturation, pas de virement manuel, et cela ne change jamais ce que paie l\'acheteur.',
+        'a' => 'Une commission unique de {commission}% sur la valeur marchandise de chaque commande — identique pour tous les vendeurs. Elle est prélevée automatiquement sur la carte enregistrée dans votre profil vendeur dès que le paiement de l\'acheteur est confirmé : aucune facturation, aucun virement manuel, et le prix payé par l\'acheteur reste inchangé. Sur une commande facturée par VESTRA en son propre nom, vous percevez à la place le prix d\'achat convenu — voir "Comment et quand suis-je payé ?".',
       ),
       2 => 
       array (
         'q' => 'Comment et quand suis-je payé(e) ?',
-        'a' => 'Directement et avant l\'expédition : l\'acheteur règle votre facture par virement sur le compte bancaire renseigné dans votre profil vendeur — VESTRA n\'intervient jamais dans ce paiement. Expédiez dès réception. Séparément, la commission de votre formule (voir ci-dessus) est débitée de votre carte de commission une fois la commande marquée comme payée.',
+        'a' => 'Cela dépend de qui facture la commande. Commande place de marché : l\'acheteur règle votre facture par virement directement sur le compte enregistré dans votre profil vendeur — expédiez dès réception — et la commission ci-dessus est prélevée séparément sur votre carte. Commande facturée par VESTRA en son propre nom : VESTRA vous achète la marchandise et encaisse l\'acheteur ; vous facturez VESTRA et êtes payé dans les {settle_days} jours ouvrés suivant le moment où la commande devient réussie. La réponse suivante explique ce qu\'est une commande réussie ; les conditions complètes figurent à la section 9 du contrat vendeur.',
       ),
       3 => 
       array (
@@ -327,6 +332,11 @@
       array (
         'q' => 'Puis-je également vendre sur d\'autres plateformes de gros ?',
         'a' => 'Oui. VESTRA n\'exige aucune exclusivité. Vous êtes libre de vendre les mêmes produits sur d\'autres plateformes, à condition de respecter les règles de VESTRA pour les annonces publiées ici.',
+      ),
+      8 => 
+      array (
+        'q' => 'Quand une commande est-elle réussie, et quand suis-je payé ?',
+        'a' => 'Cela concerne les commandes que VESTRA facture en son propre nom. Une commande est réussie lorsque les quatre conditions sont réunies : le paiement de l\'acheteur est reçu et disponible, la marchandise a été livrée, le délai de réclamation de l\'acheteur de {claim_days} jours ouvrés est expiré sans réclamation ouverte, et aucune rétrofacturation ni remboursement n\'est en cours. VESTRA paie alors le prix d\'achat convenu dans les {settle_days} jours ouvrés, sur un compte ouvert à votre nom. Les commandes annulées, impayées ou remboursées ne sont pas réglées ; une réclamation admise en partie réduit le paiement du montant crédité à l\'acheteur.',
       ),
     ),
   ),
@@ -375,17 +385,17 @@
       1 => 
       array (
         'q' => 'Quel est le montant de la commission vendeur ?',
-        'a' => 'VESTRA facture aux vendeurs une commission sur la valeur marchandise de chaque commande payée, débitée automatiquement de la carte enregistrée — 3,5% en Starter, 3,2% en Pro, 2,8% en Elite. Ceci s\'ajoute à l\'abonnement mensuel, distinct de celui-ci.',
+        'a' => '{commission}% de la valeur marchandise de chaque commande payée, prélevés automatiquement sur la carte enregistrée. Le taux est le même pour tous les vendeurs — pas de taux liés à un plan, pas de frais de mise en ligne.',
       ),
       2 => 
       array (
         'q' => 'Existe-t-il des frais d\'abonnement ou d\'adhésion ?',
-        'a' => 'Pour les acheteurs : jamais. Pour les vendeurs : publier des annonces nécessite un abonnement actif (Starter 19,90 € — 10 annonces/mois ; Pro 39,90 € — 100 annonces/mois ; Elite 89,90 € — annonces illimitées ; après 30 jours d\'essai gratuit dans tous les cas). Les formules sont détaillées sur la page Abonnement.',
+        'a' => 'Non. Vendre sur VESTRA est gratuit : ni abonnement, ni cotisation, ni frais de mise en ligne, que vous soyez acheteur ou vendeur. Les vendeurs ne paient que la commission de {commission}% sur les commandes payées.',
       ),
       3 => 
       array (
         'q' => 'Les frais de plateforme sont-ils remboursables ?',
-        'a' => 'Les frais d\'abonnement ne sont pas remboursables sauf obligation légale — vous pouvez résilier à tout moment et conserver l\'accès jusqu\'à la fin de la période payée. Les paiements des marchandises vont directement au vendeur ; les remboursements passent par la procédure de litige de la commande.',
+        'a' => 'Les frais de plateforme ne sont pas remboursables, sauf disposition légale contraire. Sur une commande place de marché, le paiement de la marchandise va directement au vendeur ; sur une commande facturée par VESTRA en son propre nom, il va à VESTRA. Dans les deux cas, les remboursements de marchandise passent par la procédure de réclamation et sont reversés sur le compte d\'origine.',
       ),
     ),
   ),

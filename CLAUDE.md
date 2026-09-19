@@ -1817,6 +1817,104 @@ ekleyelim"* — VES-6B53D265).
 - Test: `order_shipping_test.php §3b` (yazma, faturanın gördüğü, çoğaltmama,
   silme, sınır, kesilmiş faturada ret).
 
+**KURAL 5t — NAVLUN TARİFESİ: bölge başına TEK tablo; tanınmayan ülkede tarife
+YOK** (operatör, 19 Eyl 2026, dört cümlede: *"her faturaya 10 ad. için 20 eur
+sonraki her 10 ad. için +5 eur shipping cost ekle"* → *"sadece 40+ üstü aynı
+model siparişlerde her 100 ad. başına 30 eur yap"* → *"bu avrupa siparişleri
+için geçerli"* → *"abd için her siparişe 30 eur + 20 ad. sonrasına her 10 ad.
++5 eur ve tek model alınırsa her 100 ad. 50 eur, 100+50 ad.'e kadar 50+20"*).
+
+- **Tek karar noktası `vestra_shipping_schedule($lines, $country)`** (saf) ve
+  rakamlar **`vestra_shipping_tariffs()`** tablosunda: kasa, sepet önizlemesi,
+  teklif faturası, panel ipucu/çipi ve iş akışının `auto` kipi hepsi oradan
+  okuyor. Escrow tavanının beş gün metinde 3.000, kodda 3.500 kalması (KURAL 6)
+  tam bu yüzden bir daha yazılmadı: **hiçbir sayfaya, mektuba ya da JS'e elle
+  bir rakam girilmedi** — sepet tabloyu `json_encode(vestra_shipping_tariffs())`
+  ile sunucudan basıyor.
+- **İKİ RAY, bölge başına aynı şekil:** *havuz* (bulk eşiğinin ALTINDAKİ
+  satırlar BİRLİKTE sayılır — satır başına ayrı taban almak iki kalemlik küçük
+  bir siparişi iki kat pahalı yapardı) ve *toptan* (bir SKU'da adet ≥ eşik ise o
+  satır tek başına). AB: 10→20, 11→25, 40→30, 101→60. ABD: 20→30, 40→50,
+  150→70, 151→100.
+- **"Başlayan blok" bir YORUM ve işaretli:** operatör *"sonraki her 10 ad."*
+  dedi, kesri söylemedi. Kesri düşürmek 19 adedi 10 adetle aynı fiyata taşırdı;
+  yukarı yuvarlamak en fazla bir basamak ekliyor ve **ekranda görünüyor**.
+- **ABD'nin toptan EŞİĞİ operatörden gelmedi**, AB için verdiği 40 alındı ve
+  tabloda **ayrı bir satır** olarak duruyor. Ölçülen bedel yazılı: ABD'de 40–59
+  adetlik tek modelde toptan ray €50, havuz rayı €40–45 — toptan ray ancak ~60
+  sonrası ucuzluyor. Eşiği değiştirmek tek satır ve operatörün.
+- **PROBE BİR HATA YAKALADI ve düzeltme teste pinlendi:** ilk yazımda ABD'nin
+  yarım bloğu `$full > 0` şartı taşımıyordu ve **40 adet €20'ye düşüyordu** —
+  oysa operatörün cümlesi *"her 100 ad.'e kadar 50 eur"*, yarım blok ancak TAM
+  bir yüzün üstünde geçerli (*"100 + 50 ad.'e kadar 50+20"*). Kaynağı okuyarak
+  değil, tabloyu **koşturarak** çıktı.
+- **TANINMAYAN ÜLKEDE TARİFE UYGULANMIYOR** (`vestra_shipping_region()` → null):
+  Japonya'daki bir alıcıya AB tarifesini basmak, gerçek navlunun altında bir
+  rakam ilan etmek olurdu. Eşleşme **TAM**: `AT` Avrupa, `AU` değil;
+  `"Virgin Islands (US)"` ABD değil (mango/zara dersinin coğrafya hâli).
+  Boş ülke → tarife yok, navlunu operatör elle yazar.
+- **Sepetin JS aynası SUNUCUDAN besleniyor** (`vestra_shipping_region_map()`,
+  324 girdi, Avrupa/ABD tablolarından **türetiliyor**). İkinci bir liste
+  yazmak, bir gün eklenen ülkede *"sepette €0, kasada €30"* demekti. Ayna 12
+  vakada PHP ile **birebir** aynı sonucu verdi (yerelde çizdirilip ölçüldü).
+- **Navlun alıcının ödediğine GİRER, komisyona ve satıcı ödemesine GİRMEZ;
+  escrow tavanı da mal bedeli üzerinden.** Stripe'ta **kendi satırı** var:
+  yazılmazsa kalan "Buyer protection fee" etiketiyle şişiyor ve alıcı gerçekte
+  navlun olan bir tutarı koruma ücreti diye okuyor (*rakam doğru, etiket yalan*).
+- **Elle sipariş: `null` = tarife, açık `0` = navlun yok.**
+  `vestra_order_create_manual()`'ın varsayılanı `0.0`'dan `null`'a çevrildi —
+  "navlun yok" ile "navlunu sen hesapla" iki ayrı talimat. İş akışında
+  `issue_shipping=auto` (hem `shipping` hem `order_draft/order_write`), taslakta
+  gösterilen rakamın **aynısı** yazılıyor.
+- **Teklif faturasında ölçüt `array_key_exists`**, `isset` değil: operatörün
+  bilerek yazdığı `0` ("bu belgede navlun yok") ile hiç yazılmamış alan ayrı iki
+  şey, ve `isset` ikisini de aynı görürdü — kaldırılan navlun her önizlemede
+  geri gelirdi.
+- Test: `tests/shipping_tariff_test.php` (**91 iddia**, iki yön). Düşebildiği
+  doğrulandı, her sabotajın **gerçekten uygulandığı** ayrıca yazdırılarak: ABD
+  yarım blok şartı geri alınınca **3 kırmızı**, havuz satır başına hesaplanınca
+  **5**, bölge eşleşmesi alt dizeye gevşeyince **2**, kasa navlunu toplamdan
+  çıkarınca **2**, sepet tabloyu elle yazınca **3**, teklif faturası yine
+  `?? 0` okuyunca **2**.
+
+**KURAL 5u — SİPARİŞE İNDİRİM: alan vardı, YAZICI yoktu** (operatör, 19 Eyl
+2026: *"yeni yaptığımız siparişlere yüzde 5 welcome indirimi uygula"*).
+- `discount` ve `voucher_code` sütunları kasadan beri var; fatura
+  (`Voucher <kod> −€x` satırı), sipariş PDF'i ve panel **üçü de okuyordu** —
+  sonradan yazacak hiçbir yol yoktu. Eklenen şey alan değil **yazıcı**:
+  `vestra_order_set_discount()`, navlun yazıcısının kardeşi (iki alan + TOPLAM
+  birlikte, mal toplamı faturanın okuduğu `vestra_order_lines`'tan, zaman
+  damgalı yedek, atomik takas, **geri okuma**).
+- **Kupon KAYDINA dokunmuyor:** kodu bulan/yaratan/**yakan** yol iş akışı
+  (`admin_mode=discount`), çünkü o karar hesaba ve kampanyaya bakıyor; satırı
+  yazan fonksiyon yalnız CSV'yi biliyor. Kampanya adı `welcome<pct>` —
+  `voucher_welcome_run` ile **aynı ad**, yani sonraki toplu hoş geldin koşusu o
+  hesaba ikinci bir kod göndermiyor.
+- **SIRA: önce satır (geri okunur), sonra `voucher_redeem`.** Tersi,
+  kaydedilmemiş bir sipariş için tek kullanımlık bir kuponu yakardı —
+  `order.php`'nin kendi yorumunun yazdığı ders.
+- **0 dışında KOD zorunlu:** belgede kodsuz bir indirim satırı, aylar sonra
+  *"bu indirim neydi"* sorusunu cevapsız bırakırdı. `0` yazmak indirimi
+  **kaldırıyor** (kod da siliniyor) ve nottaki kupon parçasını söküyor — ikinci
+  uygulamada eski parça kalsaydı alıcı iki ayrı indirim görürdü.
+- **Faturası kesilmişte varsayılan RED**, `$allowInvoiced` ile yazıyor ve
+  `must_redraft` dönüyor (KURAL 5f: aynı numarayla yeniden çizim).
+- **Müşterinin adresi iş akışı girdisine yazılmıyor**, sipariş kaydından
+  çözülüyor ve çıktıda **maskeli**.
+- Test: `tests/order_discount_test.php` (**51 iddia**). §4b muhafazayı
+  **davranışsal** ölçüyor (kum havuzuna gerçek bir fatura meta dosyası konuyor)
+  — kaynakta `if ($invoiced && …)` görmek ölçüm değil, `if (false)` yapılan bir
+  muhafaza da o satırı taşımaya devam ederdi (KURAL 5r'de bir kez tam böyle bir
+  boşluk çıktı). Düşebildiği doğrulandı: TOPLAM yazılmayınca **9 kırmızı**, not
+  parçası sökülmeyince **4**, faturalı muhafaza etkisizleşince **4**, iş akışı
+  kuponu önce yakınca **2**.
+- **Kendi ölçüm hatam, iki kez:** *"yazıcı voucher_* çağırmıyor"* iddiası düz
+  `voucher_` arıyordu ve **SÜTUN ADINI** (`voucher_code`) yakalayıp doğru
+  çalışan kodu kırmızı gösterdi; *"fatura discount okuyor"* iddiası ise yanlış
+  değişkene bakıyordu (`$assoc`, oysa çiziciler `$order` okuyor). İkisinde de
+  **kod haklıydı, ölçü yanlıştı** — `class="msgtick` önekinin `msgtickdefs`'i
+  yakalamasıyla aynı sınıf.
+
 **KURAL 5m — KDV FİYATIN İÇİNDE; belge matrahı ve vergiyi ayrı gösterir**
 (operatör, 7 Eyl 2026: *"yüzde 21 vat ücreti fiyatın içinde olsun. Faturayı bu
 şekilde yap"* → aynı gün *"kdv fiyatın içinde gelmiyor"*).
@@ -2653,6 +2751,101 @@ SOR, sonra gönder** (operatör, 8 Eyl 2026: *"ilk önce sor"*).
   Şüphe varsa sorulur — göndermek geri alınamaz, sormak bir tur gecikir.
 - Bu KURAL 5'in (fatura operatör onayıyla kesilir) mektup tarafındaki karşılığı.
   Faturada zaten vardı; mektupta yoktu ve bu boşluktan bir mektup geçti.
+
+**KURAL 32 — VESTRA SİPARİŞİ ALIR, TAHSİL EDER ve BAŞARILI siparişte satıcıya
+öder: "başarılı" TEK yerde hesaplanır** (operatör, 19 Eyl 2026: *"satıcılar
+için siparişleri ben alıcam ve başarılı olan siparişleri satıcılara
+ödeyeceğim, bunun yapılması için hukuki bir sistem yap"* + *"FAQ'a da
+yazabilirsin"*).
+
+- **Hukuki çatının yarısı ZATEN VARDI ve ölçülerek görüldü:** Şartlar **3c**
+  (*"VESTRA bazı siparişleri kendi adına fatura eder ve o siparişte satıcı
+  odur"*) beş dilde duruyor, Satıcı Sözleşmesi §2 *"VESTRA malı satıcıdan
+  alıp yeniden satarsa"* diyor. Eksik olan **satıcıya ödeme tarafıydı**:
+  §7 hâlâ yalnız escrow'u anlatıyordu (*"para escrow'da tutulur ve alıcı
+  onayından sonra serbest bırakılır"*), yani operatörün kurduğu modelde
+  satıcının parasını NE ZAMAN alacağını söyleyen tek satır yoktu.
+- **Tek karar noktası `vestra_seller_settlement($ref)`** (`inc/orders.php`,
+  saf): hukuk metni kuralı **anlatıyor**, panel onu **hesaplatıyor**. İkisi ayrı
+  yazılsaydı sözleşmedeki tarih ile operatörün ekranındaki tarih ayrışırdı —
+  KURAL 7'de mektubun son tarihi ile otomatik iptalin son tarihi tam böyle
+  ayrışmıştı.
+- **DÖRT KOŞUL, hiçbiri yeniden TANIMLANMADI:** (1) alıcının parası geldi →
+  `vestra_order_payment_settled()` (KURAL 7b), (2) mal teslim edildi → zincirin
+  kendisi (`VESTRA_ORDER_STEPS`, elle yazılmış durum listesi değil), (3) talep
+  penceresi kapandı → `vestra_claim_deadline()` (KURAL 11, **iş günü**),
+  (4) açık talep yok → `vestra_claim_is_open()`. Kapının ikinci bir kopyası bu
+  depoda **altı kez** yanlış yere baktı; yedincisi yazılmadı.
+  **İptal edilen sipariş ödenmez** çünkü `cancelled` zincirde bilerek yok.
+- **SÜRE OPERATÖRDEN GELMEDİ — varsayım, ve açıkça işaretli.** Operatör
+  *"başarılı siparişleri ödeyeceğim"* dedi, gün sayısını söylemedi.
+  `VESTRA_SELLER_SETTLEMENT_DAYS = 5` (iş günü), havale için tanınan 5 iş
+  günüyle (KURAL 7) aynı şekilde seçildi. **Değiştirmek TEK satır**: sabit,
+  hukuk metni, SSS ve panel hepsi oradan okuyor.
+- **Saat TESLİMATTAN değil, talep penceresi KAPANDIKTAN sonra işliyor:**
+  pencere açıkken ödemek, alıcı hakkını kullandığında geri istenmesi gereken bir
+  para göndermek olurdu (escrow'un serbest bırakma kuralı aynı sebeple
+  `vestra_claim_deadline`'ı bekliyor).
+- **Teslim TARİHİ uydurulmuyor:** açık damga yoksa geçmişteki `delivered`
+  satırı okunuyor, ikisi de yoksa fonksiyon *"tarih bilinmiyor"* diyor ve
+  bugünle doldurmuyor. `updated_at` **bilerek okunmuyor** — o kaydın son
+  yazılma anı (KURAL 7b'de bir kez ödenmiş ders).
+- **Metin BEŞ dile birden girdi** (KURAL 5q): Satıcı Sözleşmesi **§9**
+  (kaç bölüm olduğu dil dil sayıldı, beşinde de 8 → 9), Ödemeler politikasına
+  yeni bölüm, AML *"Fonlar"* maddesine istisna cümlesi. Çeviri varsa İngilizce
+  belge **hiç okunmuyor**, yani yalnız İngilizceye eklenen bir madde
+  de/fr/it/es'te görünmezdi. `vestra_legal_updated()` beş dilde 19 Eyl'e çekildi
+  — metni değiştirip tarihi bırakmak okuyucuya *"bu belge değişmedi"* demekti.
+- **Ölçüm dil başına AYRI PHP SÜRECİNDE** (`vlang()` ilk çağrıda sabitleniyor —
+  KURAL 11'in tuzağı): beşinde de 9 bölüm, §9 var, her iki rakam yazılı,
+  çözülmemiş değişken 0, DOM hatası 0. *Bu tuzağa bu turda bir kez düştüm:
+  `vestra_legal('de')` diye çağırdım, oysa fonksiyon ARGÜMAN ALMIYOR — beş dil
+  de "İngilizce" ölçüldü ve tabloyu yanlış okudum.*
+- **SSS: rakam dokuz dilin metnine GÖMÜLMEDİ.** Metin yer tutucu taşıyor
+  (`{claim_days}`, `{settle_days}`, `{commission}`) ve `vestra_faq_fill()`
+  çözüyor; komisyon `vestra_commission_pct_label()`'den, yani beş sayfanın
+  okuduğu aynı gövdeden. Dokuz dile rakam gömmek KURAL 6'nın escrow tavanı
+  hatasının dokuz katı olurdu. Tanınmayan bir yer tutucu **olduğu gibi kalıyor**
+  (sessizce silmek cümlenin ortasında boşluk bırakırdı).
+- **YEREL ÇİZİM GERÇEK BİR KUSUR BULDU — kaynak taraması bulamazdı:**
+  `vestra/faq.php` `inc/faq.php`'yi **head.php'den ÖNCE** yükleyip
+  `vestra_faq()`'i hemen çağırıyor, yani komisyon etiketini basan fonksiyon o
+  anda TANIMSIZDI ve `function_exists` yedeği **sessizce boş dize** döndü:
+  sayfa *"一律%の手数料"* ve *"عمولة %"* diye basıldı — rakamsız bir oran.
+  Düzeltme KURAL 15'in aynısı (dosya bağımlılığını kendi yüklüyor) ve **yedek
+  kaldırıldı**: yüklenmemişse sessizce geçmek yerine ölmeli. Test artık bunu
+  ayrı bir süreçte, sayfanın gerçek yükleme sırasıyla ölçüyor.
+- **Bu iş, ÖNCEDEN yanlış olan beş SSS maddesini de düzeltti** (aynı
+  kategorilerdeydiler ve yeni metnin yanında duramazlardı): *"doğrudan
+  satıcıya ödersiniz"*, *"VESTRA asla para tutmaz"*, *"satıcının banka bilgisi
+  faturada yazılıdır"* artık istisnayı söylüyor; ve **22 Ağustos'ta kaldırılan**
+  kademeli komisyon (3,5 / 3,2 / 2,8) ile **artık var olmayan** üyelik planları
+  (Starter €19,90 / Pro €39,90 / Elite €89,90) dokuz dilden birden silindi —
+  16 Eylül denetimi beş sayfayı düzeltmişti, SSS'de kalmışlardı.
+- **İKİ YENİ MADDE**, dokuz dilde: alıcıya *"kime ödüyorum — VESTRA'ya mı
+  satıcıya mı?"*, satıcıya *"bir sipariş ne zaman başarılı olur ve ne zaman
+  ödenirim?"*. Yeni maddeler kategorinin **SONUNA** eklendi: `vestra_faq()`
+  indekse göre birleştiriyor, araya sokmak bütün kategoriyi kaydırırdı.
+- **Şartlar 3c'ye DOKUNULMADI, bilerek:** madde zaten alıcı tarafındaki hukuki
+  çekirdeği söylüyor (VESTRA o siparişte satıcıdır) ve beş dilde ayrı ayrı
+  yazılmış bir paragrafın ortasına cümle sokmak, beş dosyada beş ayrı riskti.
+  Satıcıya ödeme Satıcı Sözleşmesi'nin işi.
+- **Panelde görünüyor** (`Admin ▸ Orders ▸ <sipariş>`): *"Satıcıya ödeme:
+  ÖDENEBİLİR / talep penceresi sürüyor / mal henüz teslim edilmedi …"* + talep
+  penceresi ve son ödeme tarihi, yanında `3 + 5 iş günü · Satıcı Sözleşmesi §9`.
+  Bir kuralın okunacağı yeri olmaması, onu hatırlamaya bırakmaktır.
+- **AÇIK KALAN, operatör kararı bekliyor:** (a) **süre 5 iş günü bir
+  varsayım**; (b) satıcıya ödenecek TUTAR bugün kayıtta **ayrı bir alan
+  değil** — metin *"siparişin sayfasında yazan tutar"* diyor ve panelde
+  `payout` sütunu duruyor, ama bu modelde komisyonun uygulanıp uygulanmayacağı
+  bir **fiyat kararı** ve operatörün; (c) ödeme **kaydı** (kim, ne zaman, ne
+  kadar ödendi) henüz tutulmuyor — kural hesaplanıyor ve gösteriliyor, ödeme
+  defteri ayrı bir iş.
+- Test: `tests/settlement_policy_test.php` (**99 iddia**, iki yön). Düşebildiği
+  doğrulandı, her sabotajın **gerçekten uygulandığı** ayrıca yazdırılarak: talep
+  penceresi beklenmeyince **2 kırmızı**, süre elle 3 yazılınca **3**, SSS yer
+  tutucuları çözülmeyince **3**, Almanca madde geri alınınca **3**, sessiz
+  `function_exists` yedeği geri konunca **4**.
 
 ## Güvenlik / gizlilik
 

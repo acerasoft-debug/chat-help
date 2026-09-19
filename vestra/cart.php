@@ -11,6 +11,9 @@ $u = auth_user(); // logged-in user for pre-filling form
    The cart JS offers the 🛡️ escrow option only when every cart item maps to one
    such seller (a direct charge is per connected account, so escrow is single-seller). */
 require_once __DIR__.'/inc/stripe.php';
+/* Tarife tablosu ve bölge haritası burada: KURAL 15'in dersi — kardeş bir
+   dosyanın require'ına yaslanma, ihtiyacın olan dosyayı kendin yükle. */
+require_once __DIR__.'/inc/orders.php';
 $escrowMap = [];
 if (stripe_available()) {
   $readySellers = [];
@@ -116,6 +119,7 @@ if (stripe_available()) {
       <?php endif; ?>
       <div class="line" id="voucherLine" style="display:none;color:var(--acc)"><span>🎟️ <?= t('Voucher') ?> <span id="voucherCodeLbl"></span></span><span id="voucherAmt"></span></div>
       <div class="line" id="escrowFeeLine" style="display:none"><span>🛡️ <?= t('Buyer protection (escrow)') ?> (<?=round(VESTRA_ESCROW_FEE_BUYER*100,1)?>%)</span><span id="escrowFee"></span></div>
+      <div class="line" id="shipLine" style="display:none"><span>🚚 <span id="shipLbl"></span></span><span id="shipAmt"></span></div>
       <div class="line big"><span><?= t('Total (you pay)') ?></span><span id="grand"></span></div>
       <?php if (VESTRA_FEE_BUYER > 0): ?>
       <div class="hint" style="margin-top:8px"><?= sprintf(t('Includes a <b>%d%% buyer-protection fee</b> (verification + authenticity guarantee). The seller separately pays a %d%% commission.'), round(VESTRA_FEE_BUYER*100), round(VESTRA_FEE_SELLER*100)) ?></div>
@@ -213,6 +217,14 @@ if (stripe_available()) {
 var ESCROW_MAP = <?= json_encode($escrowMap, JSON_UNESCAPED_UNICODE) ?: '{}' ?>;
 var ESCROW_FEE_RATE = <?= json_encode((float)VESTRA_ESCROW_FEE_BUYER) ?>;
 var ESCROW_MAX = <?= json_encode((float)VESTRA_ESCROW_MAX) ?>;
+/* NAVLUN ONIZLEMESI. Tarife tablosu ve ulke->bolge haritasi SUNUCUDAKI tek
+   kaynaktan basiliyor (vestra_shipping_tariffs / vestra_shipping_region_map),
+   yani buraya hicbir rakam ve hicbir ulke adi elle yazilmiyor. Karar yine
+   SUNUCUDA (order.php, yeniden fiyatlanmis satirlar); bu yalniz alici
+   dugmeye basmadan once toplami gorsun diye -- "sayfada bir, kasada baska
+   rakam" bu depoda defalarca kayitli. */
+var SHIP_TARIFF = <?= json_encode(vestra_shipping_tariffs(), JSON_UNESCAPED_UNICODE) ?>;
+var SHIP_REGION = <?= json_encode(vestra_shipping_region_map(), JSON_UNESCAPED_UNICODE) ?: '{}' ?>;
 var PAY_LBL = {
   escrowBtn: <?= json_encode(t('Pay securely →')) ?>,
   escrowHint: <?= json_encode(t('You pay now by card; funds are held in escrow until you confirm delivery.')) ?>,
@@ -289,6 +301,31 @@ function brandMinShort(c){
   });
   return out;
 }
+/* PHP'nin katlamasinin aynisi (kucuk harf, '-'/'_' bosluk, nokta atiliyor,
+   bosluklar tek). Avrupa adlarinda nokta yok, yani gevseklik fark uretmiyor. */
+function shipFold(v){ return String(v||'').toLowerCase().replace(/[-_]/g,' ').replace(/\./g,'').replace(/\s+/g,' ').trim(); }
+function shipCountry(){ var el=document.querySelector('#orderForm [name=country]'); return el?el.value:''; }
+/* vestra_shipping_schedule()'in birebir aynisi: bulk esiginin ustundeki her SKU
+   kendi basina, kalanlar havuzda. Kalan kurali ABD'de "tam 100'un USTUNDEKI
+   <=50" icin yarim blok -- $full > 0 sarti olmadan 40 adet yarim bloga
+   dusuyordu (probe yakaladi). */
+function shipSchedule(c, country){
+  var region = SHIP_REGION[shipFold(country)];
+  if(!region || !SHIP_TARIFF[region]) return null;
+  var T=SHIP_TARIFF[region], pooled=0, amt=0, total=0;
+  c.forEach(function(x){
+    var q=Number(x.qty)||0; if(q<=0) return;
+    total+=q;
+    if(q>=T.bulk_min){
+      var full=Math.floor(q/T.bulk_per), rem=q%T.bulk_per, a=full*T.bulk;
+      if(rem>0) a += (full>0 && T.half_qty>0 && rem<=T.half_qty) ? T.half : T.bulk;
+      amt+=a;
+    } else pooled+=q;
+  });
+  if(total<=0) return null;
+  if(pooled>0) amt += T.base + Math.ceil(Math.max(0,pooled-T.base_qty)/T.step_qty)*T.step;
+  return {amount:Math.round(amt*100)/100, label:T.label};
+}
 function syncBrandMin(c){
   var note=document.getElementById('brandMinNote'), btn=document.getElementById('placeBtn');
   if(!note) return;
@@ -334,9 +371,19 @@ function render(){
     document.getElementById('voucherCodeLbl').textContent = disc>0 ? ('('+VOUCHER.code+')') : '';
     document.getElementById('voucherAmt').textContent = '−'+eur(disc);
   }
+  /* Navlun alicinin odedigine giriyor, escrow tavanina ve komisyona girmiyor --
+     order.php ile ayni sira (net escrow ucretinden ONCE hesaplandi). */
+  var sched=shipSchedule(c, shipCountry());
+  var shipAmt=sched?sched.amount:0;
+  var sLine=document.getElementById('shipLine');
+  if(sLine){
+    sLine.style.display = shipAmt>0 ? '' : 'none';
+    document.getElementById('shipLbl').textContent = sched?sched.label:'';
+    document.getElementById('shipAmt').textContent = eur(shipAmt);
+  }
   document.getElementById('sub').textContent=eur(sub);
   var bfeeEl=document.getElementById('bfee'); if(bfeeEl) bfeeEl.textContent=eur(net*<?=VESTRA_FEE_BUYER?>);
-  document.getElementById('grand').textContent=eur(net+efee);
+  document.getElementById('grand').textContent=eur(net+efee+shipAmt);
   syncBrandMin(c);   // dugmeyi de bu ayarliyor -- sepet her degistiginde yeniden
   document.getElementById('cartField').value=JSON.stringify(c);
 }
@@ -367,6 +414,9 @@ document.getElementById('rows').addEventListener('click', function(e){
   var id = e.target && e.target.dataset ? e.target.dataset.removeId : null;
   if (id) { VCart.remove(id); render(); }
 });
+/* Ulke degisince navlun da degisir: alan formun icinde ve alici onu duzeltiyor. */
+(function(){ var el=document.querySelector('#orderForm [name=country]');
+  if(el){ el.addEventListener('input', render); el.addEventListener('change', render); } })();
 ['payEscrow','payBank'].forEach(function(id){
   var el=document.getElementById(id); if(el) el.addEventListener('change', function(){ render(); });
 });

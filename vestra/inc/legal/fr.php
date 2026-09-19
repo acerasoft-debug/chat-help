@@ -1,4 +1,12 @@
-<?php return [
+<?php
+/* TALEP PENCERESI ve SATICIYA ODEME SURESI sabitleri escrow.php'de; bu dosya
+   vestra_legal() icinden require ediliyor ve kardes bir dosyanin require'ina
+   yaslanmak KURAL 15'in fatal'i. Rakam METNE GOMULMUYOR (KURAL 6). */
+require_once __DIR__.'/../escrow.php';
+$co = 'Acerasoft LLC';
+$claimDays = (int)VESTRA_CLAIM_DAYS;
+$setDays   = (int)VESTRA_SELLER_SETTLEMENT_DAYS;
+return [
   'imprint'   => ['title'=>"Mentions légales", 'html'=>"
     <p>Informations conformément aux règles applicables en matière de commerce électronique et d&rsquo;information des consommateurs.</p>
     <h3>Exploitant</h3>
@@ -141,7 +149,18 @@
     <h3>7. Avertissements &amp; suspension</h3><p>La contrefaçon, l&rsquo;atteinte à la propriété intellectuelle, les plaintes valides répétées ou la fraude entraînent le retrait,
     des avertissements et la suspension. Une contrefaçon/fraude manifeste peut entraîner une suspension immédiate.</p>
     <h3>8. Vérification des marchandises &amp; notification des défauts (HGB §377)</h3><p>Les acheteurs doivent inspecter les marchandises reçues immédiatement après la livraison. <b>Les défauts apparents, les manquants ou les livraisons incorrectes doivent être notifiés par écrit dans les 48 heures</b> suivant la réception. Les défauts cachés doivent être signalés dès leur découverte. À défaut de notification dans les délais, la marchandise est réputée acceptée et les droits à garantie sont perdus.</p>
-"],
+
+    <h3>9. Commandes facturées par {$co} en son propre nom — prix d&rsquo;achat &amp; règlement</h3>
+    <p>Cette section s&rsquo;applique <b>uniquement</b> aux commandes que {$co} facture en son propre nom (CGU, section 3c). Pour ces commandes, {$co} <b>achète la marchandise au vendeur et la revend</b> : la contrepartie du vendeur est {$co}, et non l&rsquo;acheteur ; le §2 du présent contrat s&rsquo;applique en conséquence.</p>
+    <ul>
+    <li><b>Prix d&rsquo;achat.</b> Le prix et la quantité confirmés pour la commande dans le tableau de bord vendeur, majorés des frais de transport convenus, diminués de toute commission de plateforme applicable à cette commande. La page de la commande indique le montant dû ; aucune autre retenue n&rsquo;est opérée sans accord écrit du vendeur.</li>
+    <li><b>Facturation.</b> Le vendeur facture ce montant à {$co} (autoliquidation ou exportation, le cas échéant). Chaque partie reste responsable de ses propres impôts et déclarations.</li>
+    <li><b>Quand une commande est &laquo;&nbsp;réussie&nbsp;&raquo;.</b> Toutes les conditions suivantes doivent être réunies : (a) le paiement de l&rsquo;acheteur a été reçu intégralement et est disponible ; (b) la marchandise a été livrée à l&rsquo;acheteur ; (c) le délai de réclamation de l&rsquo;acheteur — {$claimDays} jours ouvrés à compter de la livraison, voir la <a href=\"/faq?cat=returns\">politique de retours &amp; réclamations</a> — est expiré sans réclamation ouverte ; et (d) aucune rétrofacturation, annulation ou remboursement n&rsquo;est en cours.</li>
+    <li><b>Règlement.</b> {$co} paie le prix d&rsquo;achat dans les <b>{$setDays} jours ouvrés</b> suivant le moment où la commande devient réussie, par virement sur le compte bancaire enregistré dans le profil vendeur vérifié et ouvert au nom de ce vendeur. La mise à jour de ces coordonnées incombe au vendeur ; aucun paiement n&rsquo;est effectué à un tiers.</li>
+    <li><b>Commandes non réussies.</b> Les commandes annulées, impayées ou remboursées à l&rsquo;acheteur ne donnent lieu à aucun règlement. Lorsqu&rsquo;une réclamation est admise en partie, le règlement est réduit du montant crédité à l&rsquo;acheteur. {$co} peut compenser les sommes déjà versées, ainsi que toute créance née du §4, avec des règlements ultérieurs.</li>
+    <li><b>Propriété et risques.</b> La propriété de la marchandise est transférée à {$co} au moment de sa remise au transporteur pour l&rsquo;acheteur, puis à l&rsquo;acheteur selon les conditions indiquées sur la facture de {$co}. Les risques suivent les conditions de livraison de cette facture.</li>
+    <li><b>Garanties du vendeur inchangées.</b> Les garanties et l&rsquo;indemnisation prévues aux §3 et §4 sont consenties à {$co} pour ces commandes et demeurent inchangées. Un défaut établi par l&rsquo;acheteur à l&rsquo;encontre de {$co} peut être répercuté au vendeur dans les mêmes conditions.</li>
+    </ul>"],
   'ip'        => ['title'=>"Propriété intellectuelle &amp; lutte contre la contrefaçon / Notification et retrait", 'html'=>"
     <h3>Tolérance zéro</h3><p>Les marchandises contrefaites, les répliques, les marchandises de marque non autorisées et les marchandises du marché gris non vérifiées, ainsi que toute
     annonce portant atteinte à la propriété intellectuelle, sont interdites.</p>
@@ -164,7 +183,7 @@
     <h3>Filtrage des sanctions</h3><p>Les utilisateurs et bénéficiaires effectifs sont filtrés par rapport aux listes applicables (OFAC, EU, UN).
     Nous n&rsquo;intégrons pas d&rsquo;utilisateurs dans des juridictions interdites/sanctionnées.</p>
     <h3>Fonds</h3><p>La collecte, l&rsquo;entiercement et le règlement sont assurés par un prestataire de paiement/d&rsquo;entiercement agréé ; VESTRA ne
-    détient ni ne transmet les fonds des utilisateurs.</p>
+    détient ni ne transmet les fonds des utilisateurs. <b>Exception :</b> pour les commandes que {$co} facture en son propre nom (CGU, section 3c), l&rsquo;acheteur paie sur le compte de {$co}, et {$co} paie le vendeur fournisseur pour une commande réussie. Ces paiements ne sont effectués que sur un compte bancaire ouvert au nom du vendeur vérifié ; {$co} ne paie pas de tiers, n&rsquo;effectue aucun paiement vers ou depuis des juridictions sous sanctions et ne rembourse que sur le compte d&rsquo;origine.</p>
     <h3>Surveillance &amp; archives</h3><p>Nous surveillons les schémas suspects et conservons les archives de vérification et de transactions
     pendant la durée légalement requise.</p>
 "],
@@ -179,6 +198,8 @@
     s&rsquo;applique sans changement.</p>
     <h3>Libération de l&rsquo;entiercement</h3><p>Les fonds sont libérés sur confirmation de l&rsquo;acheteur, livraison vérifiée, ou expiration d&rsquo;une fenêtre convenue de libération automatique
     si aucun litige n&rsquo;est soulevé. Le prestataire verse le paiement au vendeur + la commission de VESTRA.</p>
+    <h3>Commandes facturées par VESTRA en son propre nom — comment le vendeur est payé</h3>
+    <p>Pour ces commandes (CGU, section 3c), {$co} est le vendeur au sens juridique : elle encaisse le paiement de l&rsquo;acheteur sur son propre compte et <b>achète la marchandise au vendeur fournisseur</b>. Ce vendeur est payé pour une <b>commande réussie</b> — paiement de l&rsquo;acheteur reçu et disponible, marchandise livrée, délai de réclamation de {$claimDays} jours ouvrés expiré sans réclamation ouverte, aucune rétrofacturation ni remboursement en cours — dans les <b>{$setDays} jours ouvrés</b> suivant la réunion de ces conditions, sur un compte ouvert à son nom. Les commandes annulées, impayées et remboursées ne sont pas réglées ; une réclamation admise en partie réduit le règlement du montant crédité à l&rsquo;acheteur. Les conditions complètes figurent au <a href=\"/legal?doc=seller\">contrat vendeur</a>, section 9. <b>Rien ne change pour l&rsquo;acheteur :</b> le délai de réclamation, la <a href=\"/faq?cat=returns\">politique de retours &amp; réclamations</a> et le droit au remboursement restent identiques ; pour ces commandes, l&rsquo;acheteur les exerce à l&rsquo;encontre de {$co}.</p>
     <h3>Frais</h3><p>VESTRA prélève une commission de plateforme par commande — une commission vendeur plus de légers frais de protection de l&rsquo;acheteur — et/ou des frais d&rsquo;abonnement ; les frais du prestataire tels que facturés. Les montants exacts sont indiqués avant le paiement.</p>
     <h3>Remboursements &amp; litiges</h3><p>Pendant un litige, les fonds restent sous séquestre. En cas de résolution en faveur de l&rsquo;acheteur (non-livraison,
     non-conformité matérielle à la description, contrefaçon prouvée), les fonds sous séquestre sont remboursés avant libération.</p>

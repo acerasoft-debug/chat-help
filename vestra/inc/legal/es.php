@@ -1,4 +1,12 @@
-<?php return [
+<?php
+/* TALEP PENCERESI ve SATICIYA ODEME SURESI sabitleri escrow.php'de; bu dosya
+   vestra_legal() icinden require ediliyor ve kardes bir dosyanin require'ina
+   yaslanmak KURAL 15'in fatal'i. Rakam METNE GOMULMUYOR (KURAL 6). */
+require_once __DIR__.'/../escrow.php';
+$co = 'Acerasoft LLC';
+$claimDays = (int)VESTRA_CLAIM_DAYS;
+$setDays   = (int)VESTRA_SELLER_SETTLEMENT_DAYS;
+return [
   'imprint'   => ['title'=>"Aviso legal / Información legal", 'html'=>"
     <p>Información conforme a las normas aplicables de comercio electrónico e información al consumidor.</p>
     <h3>Operador</h3>
@@ -137,7 +145,18 @@
     <h3>7. Amonestaciones y suspensión</h3><p>La falsificación, la infracción de PI, las reclamaciones válidas reiteradas o el fraude conllevan retirada,
     amonestaciones y suspensión. La falsificación/fraude manifiestos pueden causar la suspensión inmediata.</p>
     <h3>8. Inspección de mercancías y notificación de defectos (HGB §377)</h3><p>Los compradores deben inspeccionar las mercancías recibidas inmediatamente tras la entrega. <b>Los defectos evidentes, faltantes o entregas incorrectas deben notificarse por escrito en un plazo de 48 horas</b> desde la recepción. Los defectos ocultos deben notificarse en cuanto se descubran. La falta de notificación oportuna implica la aceptación de la mercancía y la pérdida de derechos de garantía.</p>
-"],
+
+    <h3>9. Pedidos facturados por {$co} en su propio nombre — precio de compra y liquidación</h3>
+    <p>Esta sección se aplica <b>únicamente</b> a los pedidos que {$co} factura en su propio nombre (Términos del servicio, sección 3c). En esos pedidos {$co} <b>compra la mercancía al vendedor y la revende</b>: la contraparte del vendedor es {$co}, no el comprador; el §2 de este contrato se aplica en consecuencia.</p>
+    <ul>
+    <li><b>Precio de compra.</b> El precio y la cantidad confirmados para el pedido en el panel del vendedor, más los gastos de envío acordados, menos cualquier comisión de plataforma aplicable a ese pedido. La página del pedido indica el importe a pagar; no se practica ninguna otra deducción sin acuerdo escrito del vendedor.</li>
+    <li><b>Facturación.</b> El vendedor factura ese importe a {$co} (inversión del sujeto pasivo o exportación, cuando proceda). Cada parte sigue siendo responsable de sus propios impuestos y declaraciones.</li>
+    <li><b>Cuándo un pedido es &laquo;exitoso&raquo;.</b> Deben cumplirse todas las condiciones siguientes: (a) el pago del comprador se ha recibido íntegramente y está disponible; (b) la mercancía se ha entregado al comprador; (c) el plazo de reclamación del comprador — {$claimDays} días hábiles desde la entrega, véase la <a href=\"/faq?cat=returns\">política de devoluciones y reclamaciones</a> — ha vencido sin reclamación abierta; y (d) no hay ningún contracargo, anulación o reembolso pendiente.</li>
+    <li><b>Liquidación.</b> {$co} paga el precio de compra en un plazo de <b>{$setDays} días hábiles</b> desde que el pedido pasa a ser exitoso, mediante transferencia a la cuenta bancaria registrada en el perfil verificado del vendedor y titularidad del propio vendedor. Mantener esos datos actualizados corresponde al vendedor; no se realizan pagos a terceros.</li>
+    <li><b>Pedidos no exitosos.</b> Los pedidos cancelados, no pagados por el comprador y reembolsados al comprador no generan liquidación. Cuando una reclamación se estima en parte, la liquidación se reduce en el importe abonado al comprador. {$co} puede compensar los importes ya pagados, y lo debido conforme al §4, con liquidaciones posteriores.</li>
+    <li><b>Propiedad y riesgo.</b> La propiedad de la mercancía pasa a {$co} en el momento de su entrega al transportista para el comprador, y de ahí al comprador según lo indicado en la factura de {$co}. El riesgo sigue las condiciones de entrega de dicha factura.</li>
+    <li><b>Las garantías del vendedor no cambian.</b> Las garantías y la indemnidad de los §3 y §4 se otorgan a {$co} para estos pedidos y no se ven afectadas. Un defecto que el comprador acredite frente a {$co} puede trasladarse al vendedor en los mismos términos.</li>
+    </ul>"],
   'ip'        => ['title'=>"PI y antifalsificación / Notificación y retirada", 'html'=>"
     <h3>Tolerancia cero</h3><p>Las mercancías falsificadas, réplicas, de marca no autorizada y de mercado gris no verificadas, así como cualquier
     publicación que infrinja la PI, están prohibidas.</p>
@@ -160,7 +179,7 @@
     <h3>Cribado de sanciones</h3><p>Los usuarios y los titulares reales se cotejan con las listas aplicables (OFAC, EU, UN).
     No incorporamos usuarios en jurisdicciones prohibidas/sancionadas.</p>
     <h3>Fondos</h3><p>El cobro, el depósito en garantía y la liquidación los realiza un proveedor licenciado de pagos/depósito en garantía; VESTRA no
-    conserva ni transmite fondos de los usuarios.</p>
+    conserva ni transmite fondos de los usuarios. <b>Excepción:</b> en los pedidos que {$co} factura en su propio nombre (Términos del servicio, sección 3c) el comprador paga en la cuenta propia de {$co}, y {$co} paga al vendedor suministrador por un pedido exitoso. Esos pagos se realizan únicamente a una cuenta bancaria a nombre del vendedor verificado; {$co} no paga a terceros, no realiza pagos hacia o desde jurisdicciones sancionadas y solo reembolsa a la cuenta de origen.</p>
     <h3>Supervisión y registros</h3><p>Supervisamos patrones sospechosos y conservamos los registros de verificación y transacciones
     durante el periodo legalmente exigido.</p>
 "],
@@ -175,6 +194,8 @@
     cambios.</p>
     <h3>Liberación del depósito en garantía</h3><p>Los fondos se liberan tras la confirmación del comprador, la entrega verificada o el vencimiento de un plazo de liberación automática
     acordado si no se plantea ninguna disputa. El proveedor desembolsa el pago al vendedor + la comisión de VESTRA.</p>
+    <h3>Pedidos facturados por VESTRA en su propio nombre — cómo se paga al vendedor</h3>
+    <p>En estos pedidos (Términos del servicio, sección 3c) {$co} es el vendedor a efectos legales: cobra el pago del comprador en su propia cuenta y <b>compra la mercancía al vendedor suministrador</b>. Ese vendedor cobra por un <b>pedido exitoso</b> — pago del comprador recibido y disponible, mercancía entregada, plazo de reclamación de {$claimDays} días hábiles vencido sin reclamación abierta y ningún contracargo o reembolso pendiente — en un plazo de <b>{$setDays} días hábiles</b> desde que se cumplen esas condiciones, en una cuenta de su titularidad. Los pedidos cancelados, impagados y reembolsados no se liquidan; una reclamación estimada en parte reduce la liquidación en el importe abonado al comprador. Las condiciones completas están en el <a href=\"/legal?doc=seller\">contrato de vendedor</a>, sección 9. <b>Para el comprador no cambia nada:</b> el plazo de reclamación, la <a href=\"/faq?cat=returns\">política de devoluciones y reclamaciones</a> y el derecho al reembolso siguen siendo los mismos; en estos pedidos el comprador los ejerce frente a {$co}.</p>
     <h3>Comisiones</h3><p>VESTRA cobra una comisión de plataforma por pedido — una comisión del vendedor más una pequeña tarifa de protección al comprador — o una cuota de membresía; las tarifas del proveedor según se facturen. Los importes exactos se muestran antes del pago.</p>
     <h3>Reembolsos y disputas</h3><p>Durante una disputa, los fondos permanecen en depósito en garantía. Si se resuelve a favor del comprador (falta de entrega,
     materialmente no conforme con lo descrito, falsificación probada), los fondos en depósito se reembolsan antes de la liberación.</p>

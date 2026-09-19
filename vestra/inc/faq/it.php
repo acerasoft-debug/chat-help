@@ -170,7 +170,7 @@
       1 => 
       array (
         'q' => 'Come funziona il pagamento su VESTRA?',
-        'a' => 'Al momento dell\'ordine riceve automaticamente una fattura PDF per ciascun venditore, con le sue coordinate bancarie. Paga con bonifico (SEPA nell\'UE) direttamente al venditore; la merce viene spedita non appena arriva il pagamento. Ogni passaggio è documentato nel Suo account.',
+        'a' => 'Dopo la conferma dell\'ordine ricevi una fattura PDF e la paghi con bonifico bancario (SEPA nell\'UE); la merce parte appena il pagamento arriva. Paga sempre il conto indicato su quella fattura: nella maggior parte degli ordini è quello del venditore, mentre negli ordini che VESTRA fattura in nome proprio è quello di VESTRA. La fattura indica sempre chi è il venditore ai fini di legge. Ogni passaggio è documentato nel tuo account.',
       ),
       2 => 
       array (
@@ -180,7 +180,7 @@
       3 => 
       array (
         'q' => 'Chi detiene i fondi in escrow?',
-        'a' => 'Tutti i fondi sono detenuti da un provider di pagamento ed escrow di terze parti, autorizzato e regolamentato. VESTRA non detiene né trasferisce mai il denaro degli utenti.',
+        'a' => 'I fondi in deposito a garanzia sono detenuti da un prestatore di servizi di pagamento ed escrow autorizzato e vigilato; VESTRA non detiene né trasferisce denaro degli utenti. Eccezione: gli ordini che VESTRA fattura in nome proprio — lì VESTRA è il venditore ai fini di legge, il pagamento va sul suo conto e non in deposito a garanzia, e VESTRA paga il venditore fornitore una volta che l\'ordine è riuscito.',
       ),
       4 => 
       array (
@@ -205,7 +205,12 @@
       8 => 
       array (
         'q' => 'I miei dati di pagamento sono al sicuro?',
-        'a' => 'Paga con bonifico dalla Sua banca — VESTRA non raccoglie, vede né memorizza mai i numeri delle Sue carte o le credenziali di online banking. Le coordinate bancarie del venditore sono riportate sulla fattura stessa.',
+        'a' => 'Paghi con bonifico dalla tua banca — VESTRA non raccoglie, non vede e non conserva i numeri di carta né le credenziali dell\'home banking. Le coordinate bancarie stampate sulla fattura appartengono a chi è venditore ai fini di legge per quell\'ordine, indicato nella fattura stessa.',
+      ),
+      9 => 
+      array (
+        'q' => 'A chi sto pagando — a VESTRA o al venditore?',
+        'a' => 'A chi la fattura indica come venditore ai fini di legge, sul conto bancario stampato sulla stessa fattura. Nella maggior parte degli ordini è il venditore del marketplace. Alcuni ordini sono fatturati da VESTRA in nome proprio (Termini di servizio, sezione 3c): in tal caso il contratto è con VESTRA, che incassa il pagamento e poi paga il venditore fornitore, e ogni reclamo va presentato a VESTRA. Il termine di contestazione di {claim_days} giorni lavorativi e la politica di resi e reclami sono identici in entrambi i casi.',
       ),
     ),
   ),
@@ -296,12 +301,12 @@
       1 => 
       array (
         'q' => 'Quale commissione applica VESTRA ai venditori?',
-        'a' => 'VESTRA applica una commissione sul valore merce di ogni ordine, che dipende dal Suo piano — 3,5% in Starter, 3,2% in Pro, 2,8% in Elite. Viene addebitata automaticamente sulla carta registrata nel Suo profilo venditore non appena il pagamento dell\'acquirente è confermato — nessuna fatturazione, nessun bonifico manuale, e non modifica mai quanto paga l\'acquirente.',
+        'a' => 'Una commissione unica del {commission}% sul valore merce di ogni ordine — uguale per tutti i venditori. Viene addebitata automaticamente sulla carta inserita nel profilo venditore non appena il pagamento dell\'acquirente è confermato: nessuna fatturazione, nessun bonifico manuale, e il prezzo pagato dall\'acquirente non cambia. Negli ordini che VESTRA fattura in nome proprio ricevi invece il prezzo di acquisto concordato — vedi "Come e quando vengo pagato?".',
       ),
       2 => 
       array (
         'q' => 'Come e quando ricevo il pagamento?',
-        'a' => 'Direttamente e prima della spedizione: l\'acquirente paga la Sua fattura con bonifico sul conto bancario impostato nel Suo profilo venditore — VESTRA non è mai parte di questo pagamento. Spedisca non appena arriva. Separatamente, la commissione del Suo piano (vedi sopra) viene addebitata sulla Sua carta commissioni quando l\'ordine viene contrassegnato come pagato.',
+        'a' => 'Dipende da chi fattura l\'ordine. Ordine marketplace: l\'acquirente paga la tua fattura con bonifico direttamente sul conto indicato nel tuo profilo venditore — spedisci appena arriva — e la commissione sopra indicata viene addebitata separatamente sulla tua carta. Ordine fatturato da VESTRA in nome proprio: VESTRA acquista la merce da te e incassa dall\'acquirente; tu fatturi a VESTRA e vieni pagato entro {settle_days} giorni lavorativi da quando l\'ordine diventa riuscito. La risposta successiva spiega quando un ordine è riuscito; le condizioni complete sono alla sezione 9 del contratto venditore.',
       ),
       3 => 
       array (
@@ -327,6 +332,11 @@
       array (
         'q' => 'Posso pubblicare gli stessi prodotti anche su altre piattaforme all\'ingrosso?',
         'a' => 'Sì. VESTRA non richiede l\'esclusività. Può vendere gli stessi prodotti su altre piattaforme, a condizione di rispettare le regole di VESTRA per gli annunci pubblicati qui.',
+      ),
+      8 => 
+      array (
+        'q' => 'Quando un ordine è riuscito e quando vengo pagato?',
+        'a' => 'Riguarda gli ordini che VESTRA fattura in nome proprio. Un ordine è riuscito quando ricorrono tutte e quattro le condizioni: il pagamento dell\'acquirente è arrivato ed è disponibile, la merce è stata consegnata, il termine di contestazione di {claim_days} giorni lavorativi è scaduto senza reclami aperti e non è pendente alcuno storno o rimborso. VESTRA paga allora il prezzo di acquisto concordato entro {settle_days} giorni lavorativi, su un conto a te intestato. Gli ordini annullati, non pagati e rimborsati non vengono liquidati; un reclamo accolto in parte riduce il pagamento dell\'importo accreditato all\'acquirente.',
       ),
     ),
   ),
@@ -375,17 +385,17 @@
       1 => 
       array (
         'q' => 'Qual è la commissione per i venditori?',
-        'a' => 'VESTRA applica ai venditori una commissione sul valore merce di ogni ordine pagato, addebitata automaticamente sulla carta registrata — 3,5% in Starter, 3,2% in Pro, 2,8% in Elite. Si aggiunge all\'abbonamento mensile, distinta da esso.',
+        'a' => 'Il {commission}% del valore merce di ogni ordine pagato, addebitato automaticamente sulla carta registrata. L\'aliquota è la stessa per tutti i venditori — nessuna aliquota legata a un piano e nessun costo di inserzione.',
       ),
       2 => 
       array (
         'q' => 'Sono previste quote di abbonamento o piani tariffari?',
-        'a' => 'Per gli acquirenti: mai. Per i venditori: pubblicare annunci richiede un abbonamento attivo (Starter €19,90 — 10 annunci/mese; Pro €39,90 — 100 annunci/mese; Elite €89,90 — annunci illimitati; in tutti i casi dopo 30 giorni di prova gratuita). I piani sono illustrati nella pagina Abbonamento.',
+        'a' => 'No. Vendere su VESTRA è gratuito: nessun canone di abbonamento, nessuna quota associativa, nessun costo di inserzione, né per gli acquirenti né per i venditori. I venditori pagano soltanto la commissione del {commission}% sugli ordini pagati.',
       ),
       3 => 
       array (
         'q' => 'Le commissioni di piattaforma sono rimborsabili?',
-        'a' => 'Le quote di abbonamento non sono rimborsabili salvo obblighi di legge — può disdire in qualsiasi momento mantenendo l\'accesso fino alla fine del periodo pagato. I pagamenti della merce vanno direttamente al venditore; i rimborsi della merce seguono la procedura di controversia dell\'ordine.',
+        'a' => 'Le commissioni di piattaforma non sono rimborsabili, salvo dove la legge lo imponga. In un ordine marketplace il pagamento della merce va direttamente al venditore; in un ordine fatturato da VESTRA in nome proprio va a VESTRA. In entrambi i casi i rimborsi della merce passano dalla procedura di reclamo e tornano sul conto di provenienza.',
       ),
     ),
   ),

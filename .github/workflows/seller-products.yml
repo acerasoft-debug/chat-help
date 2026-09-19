@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. 'order_colours' = siparişin RENGİNİ düzeltir (issue_ref=sipariş, payload='SKU:Renk,Renk', move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'create_buyer' = ELLE alıcı hesabı açar (payload=ŞİFRELİ zarf — müşterinin e-postası açık girdiye yazılmaz, çıktıda maskeli; move_apply=true ile uygular, varsayılan kuru koşu; panelin ➕ New buyer account formuyla AYNI yazıcı, müşteriye HİÇBİR ŞEY gitmez). 'lead_rename' = bir lead'in SADECE firma adını düzeltir (issue_ref=lead id ya da ALAN ADI — müşterinin adresi açık girdiye yazılmaz, çıktıda maskeli; payload=yeni ad; TAM 1 eşleşme yoksa durur; damgalara DOKUNMAZ, yani ilk mektup ikinci kez gitmez; move_apply=true ile uygular, varsayılan kuru koşu). 'platform_bank' = PLATFORMUN banka künyesini yazar (payload=ŞİFRELİ zarf, keygen'in public key'iyle; gövde {bank_iban, bank_eur_bic, bank_eur_name, …}; panelin 🏦 Platform billing formuyla AYNI yazıcı — mod-97 geçmezse HİÇBİR alan yazılmaz; çıktıda numara YOK; kuru koşu EUR kutusunun çıkıp çıkmayacağını BELLEKTE gösterir; move_apply=true ile yazar). 'password_setup' = elle açılan hesaba 'şifreni seç' MEKTUBU GÖNDERİR (issue_ref=hesap ID — adres açık girdiye yazılmaz, kayıttan çözülür; TAM 1 eşleşme yoksa durur; link/jeton/gövde log'a YAZILMAZ; move_apply=true ile gönderir, varsayılan kuru koşu ve kuru koşu jeton ÜRETMEZ). Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir; issue_shipping='auto' = bölge tarifesi). 'discount' = siparişe İNDİRİM yazar (issue_ref=sipariş, payload='welcome'|'pct=5'|'amount=57.00|code=X'; kampanya kodunu bulur ya da yaratır ve YAKAR, sipariş toplamı da güncellenir; move_apply=true ile uygular, varsayılan kuru koşu). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. 'order_colours' = siparişin RENGİNİ düzeltir (issue_ref=sipariş, payload='SKU:Renk,Renk', move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'create_buyer' = ELLE alıcı hesabı açar (payload=ŞİFRELİ zarf — müşterinin e-postası açık girdiye yazılmaz, çıktıda maskeli; move_apply=true ile uygular, varsayılan kuru koşu; panelin ➕ New buyer account formuyla AYNI yazıcı, müşteriye HİÇBİR ŞEY gitmez). 'lead_rename' = bir lead'in SADECE firma adını düzeltir (issue_ref=lead id ya da ALAN ADI — müşterinin adresi açık girdiye yazılmaz, çıktıda maskeli; payload=yeni ad; TAM 1 eşleşme yoksa durur; damgalara DOKUNMAZ, yani ilk mektup ikinci kez gitmez; move_apply=true ile uygular, varsayılan kuru koşu). 'platform_bank' = PLATFORMUN banka künyesini yazar (payload=ŞİFRELİ zarf, keygen'in public key'iyle; gövde {bank_iban, bank_eur_bic, bank_eur_name, …}; panelin 🏦 Platform billing formuyla AYNI yazıcı — mod-97 geçmezse HİÇBİR alan yazılmaz; çıktıda numara YOK; kuru koşu EUR kutusunun çıkıp çıkmayacağını BELLEKTE gösterir; move_apply=true ile yazar). 'password_setup' = elle açılan hesaba 'şifreni seç' MEKTUBU GÖNDERİR (issue_ref=hesap ID — adres açık girdiye yazılmaz, kayıttan çözülür; TAM 1 eşleşme yoksa durur; link/jeton/gövde log'a YAZILMAZ; move_apply=true ile gönderir, varsayılan kuru koşu ve kuru koşu jeton ÜRETMEZ). Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -19,7 +19,7 @@ on:
         required: false
         default: ""
       issue_shipping:
-        description: "admin_mode=shipping ile: navlun. Siparişin KENDİ biriminde yazın (ör: 86.04), ya da fatura biriminde yazmak için sonuna kod ekleyin (ör: '100 USD') — kur siparişin damgasından okunur. Etiket için '|' ile ekleyin: '100 USD|Air freight'. Sipariş TOPLAMI da birlikte güncellenir."
+        description: "admin_mode=shipping ile: navlun. 'auto' = BÖLGE TARİFESİ (Avrupa/ABD; rakam tek tablodan, siparişin kendi kalemlerinden — tanınmayan ülkede iş DURUR). Ya da siparişin KENDİ biriminde yazın (ör: 86.04), fatura biriminde yazmak için sonuna kod ekleyin (ör: '100 USD') — kur siparişin damgasından okunur. Etiket için '|' ile ekleyin: '100 USD|Air freight'. Sipariş TOPLAMI da birlikte güncellenir. admin_mode=order_draft|order_write ile: boş ya da 'auto' = tarife, açık 0 = navlun yok."
         required: false
         default: ""
       payload:
@@ -904,7 +904,25 @@ jobs:
                 if (!$sizeOk) $problems++;
             }
 
-            $ship = round((float)str_replace(',', '.', (string)getenv('OD_SHIP')), 2);
+            /* NAVLUN: bos ya da 'auto' -> BOLGE TARIFESI (hesabin ulkesinden,
+               siparisin kendi kalemlerinden; TEK tablo). Acikca 0 yazilirsa 0
+               kalir -- "navlun yok" ile "navlunu sen hesapla" iki ayri talimat.
+               Ulke taninmiyorsa tarife null doner ve navlun 0 olur; uydurma bir
+               rakam hicbir zaman kayda girmiyor (KURAL 3). */
+            $shipRaw = trim((string)getenv('OD_SHIP'));
+            $shipAuto = ($shipRaw === '' || strtolower($shipRaw) === 'auto');
+            if ($shipAuto) {
+                $sch = vestra_shipping_schedule(
+                    array_map(fn($L) => ['sku' => $L[0], 'qty' => $L[2]], $lines),
+                    (string)($acc['country'] ?? ''));
+                $ship = $sch ? (float)$sch['amount'] : 0.0;
+                if ($sch) printf("\n  navlun tarifesi : %s  %d ad. -> EUR %s\n",
+                    strtoupper((string)$sch['region']), (int)$sch['qty'], number_format($ship, 2));
+                else       printf("\n  navlun tarifesi : YOK -- ulke '%s' Avrupa/ABD degil, navlun 0 (elle yazin)\n",
+                    trim((string)($acc['country'] ?? '')) ?: '(bos)');
+            } else {
+                $ship = round((float)str_replace(',', '.', $shipRaw), 2);
+            }
             $total = round($subtotal + $ship, 2);
             echo "\n== TOPLAM ==\n";
             if (!$wholesale) {
@@ -958,6 +976,9 @@ jobs:
                   .($waiveMoq ? ' Quantity below the listed minimum order, agreed as an exception.' : '')
                   .($waivePack ? ' Quantity is not a whole number of cartons, agreed as an exception; no size breakdown.' : '')
                 : 'Dropship pricing (wholesale +'.(int)round(VESTRA_DROPSHIP_MARKUP*100).'%), single pieces, agreed with the buyer.';
+            /* Taslakta gosterilen navlunun AYNISI yaziliyor (auto cozumlendi):
+               null gecirip fonksiyona yeniden hesaplatmak, iki yerde iki farkli
+               rakam uretebilecek ikinci bir hesap yolu olurdu. */
             $res = vestra_order_create_manual($acc, $mkLines, $ship, $note);
             if (!empty($res['error'])) { fwrite(STDERR, "YAZILAMADI: ".$res['error']."\n"); exit(1); }
             printf("\n  SIPARIS YAZILDI: %s\n", (string)$res['ref']);
@@ -1274,6 +1295,158 @@ jobs:
             rm -f /tmp/vestra_dspay.php
             exit $rc
 
+      - name: Siparişe İNDİRİM yaz (discount) — varsayılan KURU KOŞU
+        # Operator, 19 Eyl 2026: "yeni yaptigimiz siparislere yuzde 5 welcome
+        # indirimi uygula". `discount`/`voucher_code` sutunlari kasadan beri
+        # var ve fatura/siparis PDF'i/panel ucunu de okuyor -- eksik olan tek
+        # sey YAZICIYDI (vestra_order_set_discount, panelin 🎟️ Save discount
+        # dugmesiyle AYNI fonksiyon).
+        #
+        # KUPON KAYDI BURADA: kodu bulan/yaratan/YAKAN yol bu adim, cunku o
+        # karar hesaba ve kampanyaya bakiyor; satiri yazan fonksiyon yalniz
+        # CSV'yi biliyor. Kampanya adi `welcome<pct>` -- voucher_welcome_run
+        # ile AYNI ad, yani sonraki toplu hos geldin kosusu bu hesaba IKINCI
+        # bir kod gondermiyor (CLAUDE.md'de kayitli kural).
+        #
+        # SIRA: once satir (yazma geri okunuyor), sonra voucher_redeem. Tersi,
+        # kaydedilmemis bir siparis icin tek kullanimlik bir kuponu yakardi --
+        # order.php'nin kendi yorumunun yazdigi ders.
+        #
+        #   issue_ref  : siparis ref (VES-...)
+        #   payload    : 'welcome'            -> %<VESTRA_WELCOME_PCT> , kampanya kodu bulunur/yaratilir
+        #                'pct=5'              -> yuzde, kampanya kodu
+        #                'amount=57.00|code=X'-> elle anlasilan tutar ve kod
+        #                '|allow_invoiced=1'  -> faturali sipariste de yazar (KURAL 5f: AYNI numarayla yeniden cizim ISTER)
+        #   move_apply : true = uygular. Varsayilan kuru kosu.
+        if: ${{ github.event.inputs.admin_mode == 'discount' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DSC_REF:   ${{ github.event.inputs.issue_ref }}
+          DSC_SPEC:  ${{ github.event.inputs.payload }}
+          DSC_APPLY: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: DSC_REF,DSC_SPEC,DSC_APPLY
+          script: |
+            set -e
+            cat > /tmp/vestra_disc.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/invoice.php";
+            require_once $doc."/inc/vouchers.php";
+
+            /* Musterinin adresi CIKTIYA maskeli basiliyor: bu kutuk herkese acik
+               (CLAUDE.md, Guvenlik). Girdiye de yazilmiyor -- adres siparis
+               kaydindan cozuluyor. */
+            $mask = function (string $e): string {
+                if ($e === '') return '-';
+                $a = explode('@', $e, 2);
+                return mb_substr($a[0], 0, 1).'***@'.($a[1] ?? '?');
+            };
+
+            $ref   = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('DSC_REF'));
+            $spec  = trim((string)getenv('DSC_SPEC'));
+            $apply = strtolower(trim((string)getenv('DSC_APPLY'))) === 'true';
+            if ($ref === '') { fwrite(STDERR, "issue_ref yok\n"); exit(1); }
+
+            $row = null;
+            foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $row = $r; break; }
+            if (!$row) { fwrite(STDERR, "siparis bulunamadi: {$ref}\n"); exit(1); }
+
+            /* MAL TOPLAMI faturanin okudugu AYNI fonksiyondan -- yuzde onun
+               uzerinden. `subtotal` sutununu okumak, navlun ya da onceki bir
+               indirim yuzunden baska bir rakam verebilirdi. */
+            $ld = vestra_order_lines($row);
+            $goods = 0.0; foreach ($ld['lines'] as $l) $goods += (float)($l['line'] ?? 0);
+            $goods = round($goods, 2);
+            $email = strtolower(trim((string)($row['email'] ?? '')));
+
+            $opt = []; $pct = 0.0; $amount = null; $code = ''; $allowInv = false; $wantCampaign = false;
+            foreach (explode('|', $spec) as $part) {
+                $part = trim($part); if ($part === '') continue;
+                if (strtolower($part) === 'welcome') { $pct = (float)VESTRA_WELCOME_PCT; $wantCampaign = true; continue; }
+                [$k, $v] = array_pad(explode('=', $part, 2), 2, '');
+                $k = strtolower(trim($k)); $v = trim((string)$v);
+                if ($k === 'pct')             { $pct = (float)str_replace(',', '.', $v); $wantCampaign = true; }
+                elseif ($k === 'amount')      { $amount = round((float)str_replace(',', '.', $v), 2); }
+                elseif ($k === 'code')        { $code = strtoupper($v); }
+                elseif ($k === 'allow_invoiced') { $allowInv = ($v === '1' || strtolower($v) === 'true'); }
+            }
+            if ($pct <= 0 && $amount === null) { fwrite(STDERR, "payload: 'welcome' ya da 'pct=5' ya da 'amount=..|code=..' verin\n"); exit(1); }
+            if ($pct > 0)  $amount = round($goods * $pct / 100, 2);
+
+            $campaign = 'welcome'.rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.');
+            printf("siparis      : %s\n", $ref);
+            printf("alici        : %s  (%s)\n", $mask($email), trim((string)($row['company'] ?? '')));
+            printf("mal toplami  : %s  (satirlardan, faturanin okudugu fonksiyon)\n", number_format($goods, 2));
+            printf("navlun       : %s\n", number_format((float)($row['shipping'] ?? 0), 2));
+            printf("indirim      : %s%s\n", number_format((float)$amount, 2), $pct > 0 ? sprintf("  (%%%s)", rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.')) : '  (elle)');
+            $already = round((float)($row['discount'] ?? 0), 2);
+            if ($already > 0) printf("MEVCUT       : %s  (%s) -- YERINE yazilir, ustune EKLENMEZ\n", number_format($already, 2), trim((string)($row['voucher_code'] ?? '')) ?: '-');
+
+            /* KAMPANYA KODU: once bu adrese bagli, AYNI kampanyadan, aktif ve
+               HENUZ YAKILMAMIS bir kod ara. Yenisini kosulsuz yaratmak, ayni
+               musteriye iki ayri hos geldin kodu birakirdi. */
+            if ($code === '' && $wantCampaign) {
+                foreach (voucher_all() as $c => $v) {
+                    if ((string)($v['campaign'] ?? '') !== $campaign) continue;
+                    if (strtolower(trim((string)($v['email'] ?? ''))) !== $email) continue;
+                    if (empty($v['active'])) continue;
+                    $mx = (int)($v['max_uses'] ?? 1);
+                    if ($mx > 0 && (int)($v['used'] ?? 0) >= $mx) continue;
+                    $exp = trim((string)($v['expiry'] ?? ''));
+                    if ($exp !== '' && strtotime($exp.' 23:59:59') < time()) continue;
+                    $code = $c; break;
+                }
+                printf("kampanya     : %s -> %s\n", $campaign, $code !== '' ? "MEVCUT kod {$code}" : 'kod YOK, yenisi yaratilacak');
+            }
+            if ($code === '' && !$wantCampaign) { fwrite(STDERR, "elle tutar icin 'code=' sart -- belgede 'Voucher <kod>' satiri olarak basiliyor\n"); exit(1); }
+
+            if (!$apply) {
+                printf("\nKURU KOSU: hicbir sey yazilmadi. move_apply=true ile uygulayin.\n");
+                printf("yeni TOPLAM olurdu: %s\n", number_format(round(max(0.0, $goods - (float)$amount) + (float)($row['shipping'] ?? 0), 2), 2));
+                exit(0);
+            }
+
+            if ($code === '') {
+                /* first_order_only BILEREK false: kod bu siparise, yani ZATEN
+                   var olan bir siparise uygulaniyor ve voucher_customer_order_count
+                   onu sayar -- true birakmak kendi kendini gecersiz kilan bir kod
+                   yaratirdi. max_uses 1: tek seferlik, hemen yakiliyor. */
+                $code = (string)voucher_create([
+                    'type' => 'percent', 'value' => $pct, 'email' => $email,
+                    'first_order_only' => false, 'max_uses' => 1,
+                    'expiry' => date('Y-m-d', strtotime('+6 months')), 'campaign' => $campaign,
+                ])['code'];
+                printf("kod YARATILDI: %s  (kampanya %s)\n", $code, $campaign);
+            }
+
+            $r = vestra_order_set_discount($ref, (float)$amount, $code, $allowInv);
+            if (isset($r['error'])) { fwrite(STDERR, "YAZILAMADI: ".$r['error']."\n"); exit(1); }
+            printf("\nmal toplami  : %s\n", number_format($r['goods'], 2));
+            printf("indirim      : %s  (%s)\n", number_format($r['discount'], 2), $r['code']);
+            printf("navlun       : %s\n", number_format($r['shipping'], 2));
+            printf("SIPARIS TOPLAMI: %s   (geri okundu, dogrulandi)\n", number_format($r['total'], 2));
+
+            /* Kupon ANCAK satir diske indikten sonra yakiliyor. */
+            $red = voucher_redeem($code, $ref, $email, (float)$amount);
+            printf("kupon        : %s\n", $red ? "yakildi ({$code})" : "YAKILAMADI ({$code}) -- kod zaten kullanilmis ya da yok olabilir");
+            if (!empty($r['must_redraft'])) echo "DIKKAT       : bu siparisin faturasi KESILMIS -- belge AYNI numarayla yeniden cizilmeli (KURAL 5f).\n";
+            echo "kesim        : YAPILMADI (numara yanmadi, PDF uretilmedi, aliciya hicbir sey gitmedi)\n";
+            PHPEOF
+            php -l /tmp/vestra_disc.php
+            php /tmp/vestra_disc.php; rc=$?
+            rm -f /tmp/vestra_disc.php
+            exit $rc
+
       - name: Siparişe navlun yaz (shipping) — numara yakmaz
         if: ${{ github.event.inputs.admin_mode == 'shipping' }}
         uses: appleboy/ssh-action@v1.0.3
@@ -1310,6 +1483,24 @@ jobs:
             foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $row = $r; break; }
             if (!$row) { fwrite(STDERR, "siparis bulunamadi: {$ref}\n"); exit(1); }
             $ordCur = strtoupper(trim((string)($row['currency'] ?? 'EUR'))) ?: 'EUR';
+
+            /* `auto` = BOLGE TARIFESI (operator, 19 Eyl 2026). Rakam TEK tablodan
+               (vestra_shipping_tariffs) ve siparisin KENDI kalemlerinden; panelin
+               "Apply tariff" dugmesiyle AYNI hesap, AYNI yazici. Ulke taninmiyorsa
+               is DURUYOR -- 0 yazip "tamam" demek, olmayan bir kural uygulanmis
+               gibi gosterirdi; uydurma bir rakam ise KURAL 3'un yasakladigi sey. */
+            if (strtolower($amountPart) === 'auto') {
+              $sch = vestra_order_shipping_schedule($row);
+              if (!$sch) {
+                fwrite(STDERR, "tarife YOK: ulke '".trim((string)($row['country'] ?? ''))."' Avrupa ya da ABD olarak taninmiyor -- navlunu elle yaz\n");
+                exit(1);
+              }
+              $amountPart = number_format((float)$sch['amount'], 2, '.', '');
+              if ($label === '') $label = (string)$sch['label'];
+              printf("tarife           : %s  %d ad. -> %s %s\n", strtoupper((string)$sch['region']), (int)$sch['qty'], $ordCur, $amountPart);
+              foreach ($sch['bulk'] as $b) printf("  toptan satir   : %s  %d ad. -> %s\n", $b['sku'], $b['qty'], number_format($b['amount'], 2));
+              if ($sch['pooled_qty'] > 0) printf("  havuz          : %d ad. -> %s\n", $sch['pooled_qty'], number_format($sch['pooled'], 2));
+            }
 
             /* "100 USD" -> siparisin biriminde karsiligi. Kur SIPARISIN damgasi
                (KURAL 5i); bugunun kuru degil, yoksa fatura ile bu rakam ayrisir. */

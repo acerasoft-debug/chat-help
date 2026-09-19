@@ -170,7 +170,7 @@
       1 => 
       array (
         'q' => 'Wie funktioniert die Zahlung auf VESTRA?',
-        'a' => 'Beim Checkout erhalten Sie automatisch eine PDF-Rechnung pro Verkäufer, inklusive dessen Bankverbindung. Sie zahlen per Banküberweisung (SEPA innerhalb der EU) direkt an den Verkäufer; die Ware wird versendet, sobald die Zahlung eingeht. Jeder Schritt ist in Ihrem Konto dokumentiert.',
+        'a' => 'Nach der Bestätigung Ihrer Bestellung erhalten Sie eine PDF-Rechnung und zahlen per Banküberweisung (SEPA innerhalb der EU); die Ware wird nach Zahlungseingang versandt. Zahlen Sie stets auf das Konto, das auf dieser Rechnung steht: bei den meisten Bestellungen ist es das des Verkäufers, bei Bestellungen, die VESTRA im eigenen Namen fakturiert, das von VESTRA. Die Rechnung nennt immer, wer Verkäufer im Rechtssinne ist. Jeder Schritt ist in Ihrem Konto dokumentiert.',
       ),
       2 => 
       array (
@@ -180,7 +180,7 @@
       3 => 
       array (
         'q' => 'Wer verwahrt die Escrow-Gelder?',
-        'a' => 'Alle Gelder werden von einem lizenzierten, regulierten Drittanbieter für Zahlungen und Escrow verwahrt. VESTRA hält oder überträgt zu keinem Zeitpunkt Gelder der Nutzer.',
+        'a' => 'Treuhandgelder verwahrt ein lizenzierter, regulierter Zahlungs- und Treuhanddienstleister; VESTRA hält oder überträgt keine Nutzergelder. Ausnahme: Bestellungen, die VESTRA im eigenen Namen fakturiert — dort ist VESTRA Verkäufer im Rechtssinne, Ihre Zahlung geht auf das eigene Konto von VESTRA und nicht in die Treuhand, und VESTRA bezahlt den liefernden Verkäufer, sobald die Bestellung erfolgreich ist.',
       ),
       4 => 
       array (
@@ -205,7 +205,12 @@
       8 => 
       array (
         'q' => 'Sind meine Zahlungsdaten sicher?',
-        'a' => 'Sie zahlen per Überweisung aus Ihrem eigenen Bankkonto — VESTRA erfasst, sieht oder speichert niemals Ihre Kartennummern oder Online-Banking-Zugangsdaten. Die Bankverbindung des Verkäufers steht direkt auf der Rechnung.',
+        'a' => 'Sie zahlen per Überweisung von Ihrer eigenen Bank — VESTRA erfasst, sieht und speichert weder Kartennummern noch Online-Banking-Zugangsdaten. Die auf der Rechnung abgedruckten Bankdaten gehören demjenigen, der für diese Bestellung Verkäufer im Rechtssinne ist; die Rechnung nennt ihn.',
+      ),
+      9 => 
+      array (
+        'q' => 'An wen zahle ich — VESTRA oder den Verkäufer?',
+        'a' => 'An denjenigen, den die Rechnung als Verkäufer im Rechtssinne nennt, und zwar auf das auf derselben Rechnung abgedruckte Konto. Bei den meisten Bestellungen ist das der Marktplatz-Verkäufer. Einige Bestellungen fakturiert VESTRA im eigenen Namen (AGB, Abschnitt 3c): dann besteht Ihr Vertrag mit VESTRA, VESTRA vereinnahmt die Zahlung und bezahlt anschließend den liefernden Verkäufer, und Reklamationen richten Sie an VESTRA. Ihr Rügefenster von {claim_days} Werktagen und die Rückgabe- und Reklamationsrichtlinie sind in beiden Fällen identisch.',
       ),
     ),
   ),
@@ -296,12 +301,12 @@
       1 => 
       array (
         'q' => 'Welche Provision erhebt VESTRA von Verkäufern?',
-        'a' => 'VESTRA berechnet eine Provision auf den Warenwert jeder Bestellung, die von Ihrem Plan abhängt — 3,5% im Starter, 3,2% im Pro, 2,8% im Elite. Sie wird automatisch von der in Ihrem Verkäuferprofil hinterlegten Karte abgebucht, sobald die Zahlung des Käufers bestätigt ist — keine Rechnungsstellung, keine manuellen Überweisungen, und sie ändert nie, was der Käufer zahlt.',
+        'a' => 'Eine einheitliche Provision von {commission}% auf den Warenwert jeder Bestellung — für alle Verkäufer gleich. Sie wird automatisch von der in Ihrem Verkäuferprofil hinterlegten Karte eingezogen, sobald die Zahlung des Käufers bestätigt ist: keine Rechnungsstellung, keine manuellen Überweisungen, und der Käuferpreis ändert sich dadurch nicht. Bei Bestellungen, die VESTRA im eigenen Namen fakturiert, erhalten Sie stattdessen den vereinbarten Kaufpreis — siehe "Wie und wann erhalte ich mein Geld?".',
       ),
       2 => 
       array (
         'q' => 'Wie und wann erhalte ich meine Zahlung?',
-        'a' => 'Direkt und vor dem Versand: Der Käufer bezahlt Ihre Rechnung per Überweisung auf das in Ihrem Verkäuferprofil hinterlegte Bankkonto — VESTRA ist in dieser Zahlung nie zwischengeschaltet. Versenden Sie, sobald sie eingegangen ist. Separat wird die Provision Ihres Plans (siehe oben) von Ihrer Provisionskarte abgebucht, sobald die Bestellung als bezahlt markiert ist.',
+        'a' => 'Das hängt davon ab, wer die Bestellung fakturiert. Marktplatz-Bestellung: Der Käufer zahlt Ihre Rechnung per Überweisung direkt auf das Konto in Ihrem Verkäuferprofil — versenden Sie, sobald das Geld da ist —, und die oben genannte Provision wird separat über Ihre Provisionskarte abgerechnet. Von VESTRA im eigenen Namen fakturierte Bestellung: VESTRA kauft die Ware von Ihnen und vereinnahmt die Zahlung des Käufers; Sie stellen VESTRA eine Rechnung und werden innerhalb von {settle_days} Werktagen bezahlt, nachdem die Bestellung erfolgreich geworden ist. Die nächste Antwort erklärt, wann eine Bestellung erfolgreich ist; die vollständigen Bedingungen stehen in Abschnitt 9 des Verkäufervertrags.',
       ),
       3 => 
       array (
@@ -327,6 +332,11 @@
       array (
         'q' => 'Kann ich auch auf anderen Großhandelsplattformen anbieten?',
         'a' => 'Ja. VESTRA verlangt keine Exklusivität. Sie können dieselben Waren auch auf anderen Plattformen verkaufen, sofern Sie die VESTRA-Richtlinien für die hier veröffentlichten Angebote einhalten.',
+      ),
+      8 => 
+      array (
+        'q' => 'Wann ist eine Bestellung erfolgreich, und wann werde ich bezahlt?',
+        'a' => 'Dies betrifft Bestellungen, die VESTRA im eigenen Namen fakturiert. Eine Bestellung ist erfolgreich, wenn alle vier Punkte zutreffen: die Zahlung des Käufers ist eingegangen und verfügbar, die Ware wurde geliefert, das Rügefenster des Käufers von {claim_days} Werktagen ist ohne offene Reklamation abgelaufen, und es steht keine Rückbuchung oder Erstattung aus. VESTRA zahlt dann den vereinbarten Kaufpreis innerhalb von {settle_days} Werktagen auf ein Konto, das auf Ihren Namen lautet. Stornierte, unbezahlte und erstattete Bestellungen werden nicht abgerechnet; eine teilweise anerkannte Reklamation mindert die Zahlung um den dem Käufer gutgeschriebenen Betrag.',
       ),
     ),
   ),
@@ -375,17 +385,17 @@
       1 => 
       array (
         'q' => 'Wie hoch ist die Verkäuferprovision?',
-        'a' => 'VESTRA berechnet Verkäufern eine Provision auf den Warenwert jeder bezahlten Bestellung, automatisch abgebucht von der hinterlegten Karte — 3,5% im Starter, 3,2% im Pro, 2,8% im Elite. Dies ist zusätzlich zur monatlichen Mitgliedschaft zu verstehen.',
+        'a' => '{commission}% des Warenwerts jeder bezahlten Bestellung, automatisch über die hinterlegte Karte. Der Satz ist für alle Verkäufer gleich — es gibt keine planabhängigen Sätze und keine Einstellgebühren.',
       ),
       2 => 
       array (
         'q' => 'Gibt es Mitgliedschafts- oder Abonnementgebühren?',
-        'a' => 'Für Käufer: nie. Für Verkäufer: Das Veröffentlichen von Angeboten erfordert einen aktiven Mitgliedschaftsplan (Starter €19,90 — 10 Angebote/Monat; Pro €39,90 — 100 Angebote/Monat; Elite €89,90 — unbegrenzte Angebote; jeweils nach 30 Tagen kostenloser Testphase). Die Pläne finden Sie auf der Mitgliedschaftsseite.',
+        'a' => 'Nein. Das Verkaufen auf VESTRA ist kostenlos: Es gibt weder Mitgliedsbeiträge noch Abogebühren noch Einstellgebühren — weder für Käufer noch für Verkäufer. Verkäufer zahlen ausschließlich die Provision von {commission}% auf bezahlte Bestellungen.',
       ),
       3 => 
       array (
         'q' => 'Sind Plattformgebühren erstattungsfähig?',
-        'a' => 'Mitgliedschaftsgebühren sind nicht erstattungsfähig, außer wo gesetzlich vorgeschrieben — Sie können jederzeit kündigen und behalten den Zugang bis zum Ende des bezahlten Zeitraums. Warenzahlungen gehen direkt an den Verkäufer; Erstattungen für Waren laufen über das Streitfallverfahren der Bestellung.',
+        'a' => 'Plattformgebühren sind nicht erstattungsfähig, soweit gesetzlich nicht anders vorgeschrieben. Bei einer Marktplatz-Bestellung geht die Warenzahlung direkt an den Verkäufer; bei einer von VESTRA im eigenen Namen fakturierten Bestellung an VESTRA. In beiden Fällen laufen Erstattungen für Ware über das Reklamationsverfahren und gehen auf das Konto zurück, von dem die Zahlung kam.',
       ),
     ),
   ),

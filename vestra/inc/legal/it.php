@@ -1,4 +1,12 @@
-<?php return [
+<?php
+/* TALEP PENCERESI ve SATICIYA ODEME SURESI sabitleri escrow.php'de; bu dosya
+   vestra_legal() icinden require ediliyor ve kardes bir dosyanin require'ina
+   yaslanmak KURAL 15'in fatal'i. Rakam METNE GOMULMUYOR (KURAL 6). */
+require_once __DIR__.'/../escrow.php';
+$co = 'Acerasoft LLC';
+$claimDays = (int)VESTRA_CLAIM_DAYS;
+$setDays   = (int)VESTRA_SELLER_SETTLEMENT_DAYS;
+return [
   'imprint'   => ['title'=>"Note legali / Informazioni sull'editore", 'html'=>"
     <p>Informazioni ai sensi delle norme applicabili in materia di e-commerce e di informazione ai consumatori.</p>
     <h3>Operatore</h3>
@@ -133,7 +141,18 @@
     verificata, al netto della commissione di VESTRA.</p>
     <h3>7. Sanzioni &amp; sospensione</h3><p>Contraffazione, violazione IP, reclami validi ripetuti o frode comportano la rimozione,
     sanzioni e sospensione. Una contraffazione/frode manifesta pu&ograve; comportare la sospensione immediata.</p>
-    <h3>8. Ispezione delle merci e notifica dei difetti (HGB §377)</h3><p>Gli acquirenti devono ispezionare la merce ricevuta immediatamente dopo la consegna. <b>I difetti evidenti, le carenze o le consegne errate devono essere segnalati per iscritto entro 48 ore</b> dalla ricezione. I difetti nascosti devono essere segnalati non appena scoperti. In assenza di contestazione tempestiva, la merce è considerata accettata e i diritti di garanzia decadono.</p>"],
+    <h3>8. Ispezione delle merci e notifica dei difetti (HGB §377)</h3><p>Gli acquirenti devono ispezionare la merce ricevuta immediatamente dopo la consegna. <b>I difetti evidenti, le carenze o le consegne errate devono essere segnalati per iscritto entro 48 ore</b> dalla ricezione. I difetti nascosti devono essere segnalati non appena scoperti. In assenza di contestazione tempestiva, la merce è considerata accettata e i diritti di garanzia decadono.</p>
+    <h3>9. Ordini fatturati da {$co} in nome proprio — prezzo di acquisto e liquidazione</h3>
+    <p>Questa sezione si applica <b>esclusivamente</b> agli ordini che {$co} fattura in nome proprio (Termini di servizio, sezione 3c). Per tali ordini {$co} <b>acquista la merce dal venditore e la rivende</b>: la controparte del venditore è {$co}, non l&rsquo;acquirente; il §2 del presente contratto si applica di conseguenza.</p>
+    <ul>
+    <li><b>Prezzo di acquisto.</b> Il prezzo e la quantità confermati per l&rsquo;ordine nella dashboard del venditore, più le spese di spedizione concordate, meno l&rsquo;eventuale commissione di piattaforma applicabile a tale ordine. La pagina dell&rsquo;ordine indica l&rsquo;importo dovuto; nessun&rsquo;altra trattenuta è operata senza accordo scritto del venditore.</li>
+    <li><b>Fatturazione.</b> Il venditore fattura tale importo a {$co} (inversione contabile o esportazione, ove applicabile). Ciascuna parte resta responsabile delle proprie imposte e dei propri adempimenti.</li>
+    <li><b>Quando un ordine è &laquo;riuscito&raquo;.</b> Devono ricorrere tutte le seguenti condizioni: (a) il pagamento dell&rsquo;acquirente è stato ricevuto per intero ed è disponibile; (b) la merce è stata consegnata all&rsquo;acquirente; (c) il termine di contestazione dell&rsquo;acquirente — {$claimDays} giorni lavorativi dalla consegna, cfr. la <a href=\"/faq?cat=returns\">politica di resi e reclami</a> — è scaduto senza reclami aperti; e (d) non è pendente alcuno storno, annullamento o rimborso.</li>
+    <li><b>Liquidazione.</b> {$co} paga il prezzo di acquisto entro <b>{$setDays} giorni lavorativi</b> dal momento in cui l&rsquo;ordine diventa riuscito, mediante bonifico sul conto bancario indicato nel profilo verificato del venditore e intestato al venditore stesso. L&rsquo;aggiornamento di tali dati è responsabilità del venditore; non si effettuano pagamenti a terzi.</li>
+    <li><b>Ordini non riusciti.</b> Gli ordini annullati, non pagati dall&rsquo;acquirente e rimborsati all&rsquo;acquirente non danno luogo a liquidazione. Se un reclamo è accolto in parte, la liquidazione è ridotta dell&rsquo;importo accreditato all&rsquo;acquirente. {$co} può compensare gli importi già corrisposti, e quanto dovuto ai sensi del §4, con liquidazioni successive.</li>
+    <li><b>Proprietà e rischio.</b> La proprietà della merce passa a {$co} al momento della consegna al vettore per l&rsquo;acquirente e da lì all&rsquo;acquirente secondo quanto indicato nella fattura di {$co}. Il rischio segue le condizioni di consegna di tale fattura.</li>
+    <li><b>Garanzie del venditore invariate.</b> Le garanzie e la manleva di cui ai §3 e §4 sono prestate a {$co} per tali ordini e restano invariate. Un difetto che l&rsquo;acquirente faccia valere nei confronti di {$co} può essere trasferito al venditore alle medesime condizioni.</li>
+    </ul>"],
   'ip'        => ['title'=>"IP &amp; anticontraffazione / Segnalazione e rimozione", 'html'=>"
     <h3>Tolleranza zero</h3><p>Sono vietati beni contraffatti, repliche, beni a marchio non autorizzato e beni del mercato grigio non verificati, nonch&eacute; qualsiasi
     inserzione che violi la propriet&agrave; intellettuale.</p>
@@ -155,7 +174,7 @@
     <h3>Screening sanzioni</h3><p>Gli utenti e i titolari effettivi sono verificati rispetto agli elenchi applicabili (OFAC, EU, UN).
     Non accettiamo utenti in giurisdizioni vietate/sottoposte a sanzioni.</p>
     <h3>Fondi</h3><p>La riscossione, il deposito a garanzia e la liquidazione sono effettuati da un fornitore autorizzato di servizi di pagamento/deposito a garanzia; VESTRA non
-    detiene n&eacute; trasmette i fondi degli utenti.</p>
+    detiene n&eacute; trasmette i fondi degli utenti. <b>Eccezione:</b> per gli ordini che {$co} fattura in nome proprio (Termini di servizio, sezione 3c) l&rsquo;acquirente paga sul conto di {$co} e {$co} paga il venditore fornitore per un ordine riuscito. Tali pagamenti sono effettuati esclusivamente su un conto intestato al venditore verificato; {$co} non paga terzi, non effettua pagamenti verso o da giurisdizioni sanzionate e rimborsa soltanto sul conto di provenienza.</p>
     <h3>Monitoraggio &amp; registrazioni</h3><p>Monitoriamo gli schemi sospetti e conserviamo le registrazioni di verifica e transazione
     per il periodo legalmente richiesto.</p>"],
   'payments'  => ['title'=>"Pagamenti, deposito a garanzia &amp; rimborsi", 'html'=>"
@@ -168,6 +187,8 @@
     dal deposito &mdash; non si applicano ad essi. La <a href='/faq?cat=returns'>politica su resi e reclami</a> si applica ad essi invariata.</p>
     <h3>Rilascio del deposito a garanzia</h3><p>I fondi vengono rilasciati alla conferma dell'acquirente, alla consegna verificata o alla scadenza di una finestra di rilascio automatico
     concordata se non viene sollevata alcuna controversia. Il fornitore eroga il pagamento al venditore + la commissione di VESTRA.</p>
+    <h3>Ordini fatturati da VESTRA in nome proprio — come viene pagato il venditore</h3>
+    <p>Per questi ordini (Termini di servizio, sezione 3c) {$co} è il venditore ai fini di legge: incassa il pagamento dell&rsquo;acquirente sul proprio conto e <b>acquista la merce dal venditore fornitore</b>. Tale venditore viene pagato per un <b>ordine riuscito</b> — pagamento dell&rsquo;acquirente ricevuto e disponibile, merce consegnata, termine di contestazione di {$claimDays} giorni lavorativi scaduto senza reclami aperti, nessuno storno o rimborso pendente — entro <b>{$setDays} giorni lavorativi</b> dal verificarsi di tali condizioni, su un conto a lui intestato. Gli ordini annullati, non pagati e rimborsati non vengono liquidati; un reclamo accolto in parte riduce la liquidazione dell&rsquo;importo accreditato all&rsquo;acquirente. Le condizioni complete sono nel <a href=\"/legal?doc=seller\">contratto venditore</a>, sezione 9. <b>Per l&rsquo;acquirente non cambia nulla:</b> il termine di contestazione, la <a href=\"/faq?cat=returns\">politica di resi e reclami</a> e il diritto al rimborso restano identici; per questi ordini l&rsquo;acquirente li esercita nei confronti di {$co}.</p>
     <h3>Commissioni</h3><p>VESTRA applica una commissione di piattaforma per ordine &mdash; una commissione a carico del venditore pi&ugrave; una piccola commissione di protezione dell'acquirente &mdash; e/o una quota di abbonamento; le commissioni del fornitore come addebitate. Gli importi esatti sono indicati prima del checkout.</p>
     <h3>Rimborsi &amp; controversie</h3><p>Durante una controversia i fondi restano in deposito a garanzia. Se risolta a favore dell'acquirente (mancata consegna,
     sostanzialmente non conforme alla descrizione, contraffazione comprovata), i fondi vincolati sono rimborsati prima del rilascio.</p>

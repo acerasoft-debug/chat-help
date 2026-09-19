@@ -39,6 +39,7 @@ $company=trim($_POST['company']??''); $name=trim($_POST['name']??''); $email=tri
 if($company===''||$name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)){ header('Location: /cart'); exit; }
 if(empty($_POST['consent'])){ header('Location: /cart'); exit; } // Terms acceptance is mandatory
 $shipAddr=trim($_POST['ship_address']??''); // optional — empty means "deliver to the billing address"
+$country=trim($_POST['country']??'');   // tarife bölgesini ve mektupları besleyen tek okuma
 
 /* Remember checkout details on the buyer's account so the next order is prefilled:
    the delivery address is always kept current; other fields only fill gaps (never
@@ -134,6 +135,19 @@ if($minShort){
   header('Location: /cart?err='.(($minShort['error'] ?? '') === 'fx' ? 'ordermin_fx' : 'ordermin')); exit;
 }
 
+/* ── NAVLUN (bölge tarifesi) ───────────────────────────────────────────────────
+   Rakamlar inc/orders.php'deki TEK tablodan (vestra_shipping_tariffs); buraya
+   hiçbir sayı yazılmıyor (KURAL 6'nın escrow tavanı dersi). Ölçüm ISTEKTEN
+   degil, YENIDEN FIYATLANMIS satirlardan: adetler katalogun MOQ/paket adimina
+   gore yukari yuvarlanmis halleriyle sayiliyor, yani alicinin gercekten
+   alacagi adet. Ulke taninmiyorsa (vestra_shipping_region null) tarife
+   UYGULANMIYOR ve navlun 0 kaliyor -- operator elle yaziyor; uydurma bir
+   rakam basmak KURAL 3'un yasakladigi sey. Sepetteki onizleme ayni tabloyu
+   okuyor, yani "sayfada bir, kasada baska rakam" olmuyor. */
+$shipSched  = vestra_shipping_schedule($lines, $country);
+$shipping   = $shipSched ? (float)$shipSched['amount'] : 0.0;
+$shipLabel  = $shipSched ? (string)$shipSched['label'] : '';
+
 /* ── Voucher ──────────────────────────────────────────────────────────────────
    Revalidated here from the stored record, never from what the cart posted: the page
    sends only the code, and the discount is recomputed against the freshly re-priced
@@ -183,7 +197,11 @@ if($payMethod==='escrow' && $escrowSeller){
 $buyer_fee  = round($subtotal*$FEE_BUYER, 2);
 $seller_fee = round($subtotal*$FEE_SELLER, 2);
 $commission = round($buyer_fee + $seller_fee, 2); // total platform revenue
-$total      = round($subtotal + $buyer_fee, 2);   // what the buyer pays
+/* Navlun alicinin odedigine GIRER, komisyona ve satici odemesine GIRMEZ:
+   komisyon mal bedeli uzerinden, navlun ise bir masraf -- ustunden komisyon
+   almak faturadaki iki rakami birbirine karistirirdi. Escrow tavani da mal
+   bedeli uzerinden olculuyor (yukarida), yani navlun tavani tuketmiyor. */
+$total      = round($subtotal + $buyer_fee + $shipping, 2);   // what the buyer pays
 $payout     = round($subtotal - $seller_fee, 2);  // what the seller receives
 /* Ref must be unique per ORDER, not per buyer+items — the same buyer reordering the
    same goods must get a fresh ref (commission idempotency and status tracking key on it). */
@@ -194,7 +212,7 @@ $file=$dir.'/orders.csv'; $new=!file_exists($file);
 /* voucher_code/discount are new trailing columns. On a live server orders.csv already
    exists with the old header, and the reader pads short rows with '' — so the header is
    rewritten in place (data rows untouched) and historic orders simply read as no voucher. */
-$ORDER_CSV_HEADER=['timestamp','ref','company','vat','name','email','country','phone','items','subtotal','commission','payout','total','notes','consent','terms_version','voucher_code','discount'];
+$ORDER_CSV_HEADER=['timestamp','ref','company','vat','name','email','country','phone','items','subtotal','commission','payout','total','notes','consent','terms_version','voucher_code','discount','shipping','shipping_label'];
 if(!$new) vestra_csv_ensure_header('orders.csv', $ORDER_CSV_HEADER);
 if($fh=@fopen($file,'a')){
   if($new) fputcsv($fh,$ORDER_CSV_HEADER,',','"','\\');
@@ -214,9 +232,10 @@ if($fh=@fopen($file,'a')){
     .($colorNotes!==''?'Colours — '.$colorNotes.'. ':'')
     .($sizeNotes !==''?'Sizes — '.$sizeNotes.'. ':'')
     .trim($_POST['notes']??'').($voucherNote!==''?' '.$voucherNote:''));
-  fputcsv($fh,[date('c'),$ref,$company,trim($_POST['vat']??''),$name,$email,trim($_POST['country']??''),
+  fputcsv($fh,[date('c'),$ref,$company,trim($_POST['vat']??''),$name,$email,$country,
     trim($_POST['phone']??''),$items,$subtotal,$commission,$payout,$total,$notes,'yes',VESTRA_TERMS_VERSION,
-    $voucherCode,$discount>0?number_format($discount,2,'.',''):''],',','"','\\');
+    $voucherCode,$discount>0?number_format($discount,2,'.',''):'',
+    $shipping>0?number_format($shipping,2,'.',''):'', $shipping>0?$shipLabel:''],',','"','\\');
   fclose($fh);
 }
 
@@ -259,6 +278,11 @@ if($payMethod==='escrow'){
   }
   $goodsCents=(int)round($subtotal*100);
   if($last!==null && $acc!==$goodsCents){ $li[$last]['amount'] += ($goodsCents-$acc); $acc=$goodsCents; }
+  /* Navlun KENDI SATIRI olmak zorunda: yazilmazsa asagidaki kalan "Buyer
+     protection fee" etiketiyle sisiyor ve alici Stripe sayfasinda gercekte
+     navlun olan bir tutari koruma ucreti diye okuyor -- rakam dogru, etiket
+     yalan (bu depoda kayitli: yanlis rakam sorgulanir, yanlis etikete inanilir). */
+  if($shipping>0){ $sc=(int)round($shipping*100); $li[]=['name'=>($shipLabel!==''?$shipLabel:'Shipping'),'amount'=>$sc,'qty'=>1]; $acc+=$sc; }
   $protCents=$amountCents-$acc;
   if($protCents>0) $li[]=['name'=>'Buyer protection fee','amount'=>$protCents,'qty'=>1];
 
@@ -272,21 +296,23 @@ if($payMethod==='escrow'){
     'ref'=>$ref,'seller_uid'=>$seller['id'],'acct_id'=>$seller['stripe_account_id'],
     'session_id'=>$session->id,'payment_intent'=>'','amount'=>$amountCents,'fee'=>$feeCents,
     'currency'=>'eur','status'=>'pending','created'=>date('c'),
-    'buyer'=>['company'=>$company,'name'=>$name,'email'=>$email,'vat'=>trim($_POST['vat']??''),'country'=>trim($_POST['country']??''),'address'=>trim($_POST['address']??''),'ship_address'=>$shipAddr],
+    'buyer'=>['company'=>$company,'name'=>$name,'email'=>$email,'vat'=>trim($_POST['vat']??''),'country'=>$country,'address'=>trim($_POST['address']??''),'ship_address'=>$shipAddr],
     'buyer_id'=>(!empty($_SESSION['uid'])?$_SESSION['uid']:''),
     'items'=>array_map(fn($l)=>['sku'=>$l['sku'],'brand'=>$l['brand'],'name'=>$l['name'],'qty'=>$l['qty'],'unit'=>$l['unit'],'line'=>$l['line'],'colors'=>$l['colors'],'sizes'=>$l['sizes']],$lines),
     'subtotal'=>$subtotal,'buyer_fee'=>$buyer_fee,'seller_fee'=>$seller_fee,'commission'=>$commission,'total'=>$total,'payout'=>$payout,
     'subtotal_gross'=>$subtotalGross,'voucher_code'=>$voucherCode,'discount'=>$discount,
+    'shipping'=>$shipping,'shipping_label'=>$shipLabel,
   ]);
   $_SESSION['order_refs'][$ref]=time();
   if($orderTok !== ''){ $_SESSION['order_token_done'][$orderTok] = $ref; }
   header('Location: '.$session->url); exit;
 }
 
-$body="New VESTRA order request {$ref}\n\nCompany: {$company}\nContact: {$name} <{$email}>\nCountry: ".trim($_POST['country']??'')."   Phone: ".trim($_POST['phone']??'')."\n".($shipAddr!==''?"Deliver to: {$shipAddr}\n":'')."\n";
+$body="New VESTRA order request {$ref}\n\nCompany: {$company}\nContact: {$name} <{$email}>\nCountry: ".$country."   Phone: ".trim($_POST['phone']??'')."\n".($shipAddr!==''?"Deliver to: {$shipAddr}\n":'')."\n";
 foreach($lines as $l){ $body.="  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":"").(!empty($l['sizes'])?" {".implode(", ",$l['sizes'])."}":"")."\n"; }
 if($discount>0) $body.="\nGoods €{$subtotalGross}\nVoucher {$voucherCode} −€{$discount}";
 elseif($voucherNote!=='') $body.="\n".trim($voucherNote);
+if($shipping>0) $body.="\n{$shipLabel} €{$shipping}";
 $body.="\nSubtotal €{$subtotal}\nBuyer pays €{$total}\n".($commission>0?"VESTRA commission €{$commission} (seller €{$seller_fee} + buyer €{$buyer_fee}) · Seller payout €{$payout}\n":"No platform fees (membership model) · Seller receives €{$payout}\n")."Notes: ".trim($_POST['notes']??'')."\n";
 vestra_notify("New order {$ref} — {$company}", $body, $email);
 
@@ -298,6 +324,9 @@ $feeNote=$FEE_BUYER_PCT>0?" (includes {$FEE_BUYER_PCT}% buyer-protection fee)":"
 $voucherLine = $discount>0
   ? "Goods: €{$subtotalGross}\nVoucher {$voucherCode}: −€{$discount}\n"
   : ($voucherIn!=='' ? "Note: voucher code {$voucherIn} could not be applied to this order.\n" : "");
+/* Navlun ALICIYA yaziliyor: toplami tasiyan bir satir ekranda yoksa alici
+   "neden 20 euro fazla" diye yaziyor ve cevabi hicbir yerde durmuyor. */
+$shipLine = $shipping>0 ? "{$shipLabel}: €".number_format($shipping,2)."\n" : "";
 /* The seller funds the voucher: the discount comes off the goods value, so their payout is
    lower than the line items add up to. The lines above are listed at full price, so without
    this the mail simply does not reconcile and the first thing the seller notices is a short
@@ -305,9 +334,12 @@ $voucherLine = $discount>0
 $voucherSellerLine = $discount>0
   ? "\nGoods total: €{$subtotalGross}\nBuyer voucher {$voucherCode}: −€{$discount} (deducted from the goods value)\n"
   : "";
+/* Saticiya da yaziliyor ama ODEMESINE GIRMEDIGI soylenerek: aksi halde alicinin
+   odedigi toplam ile kendi odemesi arasindaki fark aciklamasiz kalirdi. */
+$shipSellerLine = $shipping>0 ? "\n{$shipLabel} (charged to the buyer, not part of your payout): €".number_format($shipping,2)."\n" : "";
 /* Confirmation to buyer — always on */
 vestra_send_mail($email, "VESTRA — order {$ref} received",
-  "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\nWe are confirming stock now. Once confirmed, your PDF invoice (with the seller's bank details) will be emailed to you and added to your account — usually within the day. Payment is then by bank transfer against that invoice; goods ship after the transfer arrives. (Other payment methods are temporarily suspended.)\n\n{$voucherLine}Buyer pays: €{$total}{$feeNote}\n".($shipAddr!==''?"Delivery address: {$shipAddr}\n":'')."\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":"").(!empty($l['sizes'])?" {".implode(", ",$l['sizes'])."}":""),$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+  "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\nWe are confirming stock now. Once confirmed, your PDF invoice (with the seller's bank details) will be emailed to you and added to your account — usually within the day. Payment is then by bank transfer against that invoice; goods ship after the transfer arrives. (Other payment methods are temporarily suspended.)\n\n{$voucherLine}{$shipLine}Buyer pays: €{$total}{$feeNote}\n".($shipAddr!==''?"Delivery address: {$shipAddr}\n":'')."\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":"").(!empty($l['sizes'])?" {".implode(", ",$l['sizes'])."}":""),$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
 
 /* Notify the seller(s) who own the ordered listings */
 if(!empty($lines)){
@@ -338,7 +370,7 @@ if(!empty($lines)){
       foreach(auth_accounts() as $acc){
         if(($acc['id']??'')!==$sid||empty($acc['email'])) continue;
         vestra_send_mail($acc['email'], "VESTRA — new order {$ref} for your listing",
-          "Hello ".($acc['name']?:($acc['company']?:'there')).",\n\nA buyer placed an order for your product on VESTRA:\n\nOrder ref: {$ref}\nBuyer company: {$company}\n".($shipAddr!==''?"Deliver to: {$shipAddr}\n":'')."\n".implode("\n",array_map(fn($x)=>"  {$x['qty']}x {$x['sku']} {$x['brand']} {$x['name']} @ €{$x['unit']}".(!empty($x['colors'])?" [".implode(", ",$x['colors'])."]":"").(!empty($x['sizes'])?" {".implode(", ",$x['sizes'])."}":""),$lines))."\n".$voucherSellerLine."\nSubtotal: €{$subtotal}".($seller_fee>0?"   Your payout (after commission): €{$payout}":"   Your payout: €{$payout} (the ".round(VESTRA_COMMISSION_RATE*100,1)."% platform commission is charged separately to your commission card once you mark this order paid)")."\n\nThe buyer pays your invoice by bank transfer — please confirm availability and watch for the payment, then ship and mark the order as shipped.\n\nView in your seller dashboard:\nhttps://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
+          "Hello ".($acc['name']?:($acc['company']?:'there')).",\n\nA buyer placed an order for your product on VESTRA:\n\nOrder ref: {$ref}\nBuyer company: {$company}\n".($shipAddr!==''?"Deliver to: {$shipAddr}\n":'')."\n".implode("\n",array_map(fn($x)=>"  {$x['qty']}x {$x['sku']} {$x['brand']} {$x['name']} @ €{$x['unit']}".(!empty($x['colors'])?" [".implode(", ",$x['colors'])."]":"").(!empty($x['sizes'])?" {".implode(", ",$x['sizes'])."}":""),$lines))."\n".$voucherSellerLine.$shipSellerLine."\nSubtotal: €{$subtotal}".($seller_fee>0?"   Your payout (after commission): €{$payout}":"   Your payout: €{$payout} (the ".round(VESTRA_COMMISSION_RATE*100,1)."% platform commission is charged separately to your commission card once you mark this order paid)")."\n\nThe buyer pays your invoice by bank transfer — please confirm availability and watch for the payment, then ship and mark the order as shipped.\n\nView in your seller dashboard:\nhttps://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
         break;
       }
       break;
@@ -353,7 +385,7 @@ require_once __DIR__.'/inc/invoice.php';
 $orderMeta = [
   'ref'=>$ref, 'date'=>date('c'),
   'buyer'=>['company'=>$company,'vat'=>trim($_POST['vat']??''),'name'=>$name,'email'=>$email,
-            'country'=>trim($_POST['country']??''),'address'=>trim($_POST['address']??'')],
+            'country'=>$country,'address'=>trim($_POST['address']??'')],
 ];
 $bySeller=[];
 foreach($lines as $l){ $bySeller[$l['seller_uid']?:'vestra'][] = $l; }

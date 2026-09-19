@@ -151,6 +151,19 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     header('Location: /admin?tab=orders&view='.urlencode($ref)
           .'&msg='.(isset($r['error'])?'ship_fail&err='.urlencode(substr((string)$r['error'],0,140)):'ship_saved')); exit;
   }
+  /* SIPARISE INDIRIM (operator, 19 Eyl 2026: "yuzde 5 welcome indirimi
+     uygula"). Navlun yazicisinin kardesi, AYNI desen: tek yazici, iki alan +
+     toplam birlikte, geri okuma, faturali sipariste RED. Kupon KAYDINA
+     (vouchers.json) panel DOKUNMUYOR -- operator burada elle anlasilan bir
+     indirim yaziyor; kampanya kodunu bulan/yaratan/yakan yol is akisinda
+     (admin_mode=discount), cunku o karar hesaba ve kampanyaya bakiyor. */
+  if($act==='order_discount'){
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    require_once __DIR__.'/inc/orders.php';
+    $r=vestra_order_set_discount($ref, vestra_price_input((string)($_POST['discount']??'0')), (string)($_POST['voucher_code']??''));
+    header('Location: /admin?tab=orders&view='.urlencode($ref)
+          .'&msg='.(isset($r['error'])?'disc_fail&err='.urlencode(substr((string)$r['error'],0,140)):'disc_saved')); exit;
+  }
   if($act==='order_invoice_currency'){
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
     require_once __DIR__.'/inc/invoice.php';
@@ -2771,6 +2784,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg">✓ Teslimat adresi kaydedildi — <b>faturanın gerçekten bu adresi gördüğü</b> geri okunarak doğrulandı (satırın değişmesi yetmez; belgeyi besleyen çözücü de aynı adresi bulmalı). Gümrük ve kurye için gereken alan buydu.</div>
 <?php elseif($msg==='addr_fail'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Adres <b>kaydedilmedi</b>: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>. Hiçbir alan değişmedi.</div>
+<?php elseif($msg==='disc_saved'): ?>
+<div class="amsg">✓ İndirim kaydedildi — <b>sipariş toplamı da</b> birlikte güncellendi ve geri okunarak doğrulandı. Belgede <code>Voucher &lt;kod&gt; −€x</code> satırı olarak çıkar.</div>
+<?php elseif($msg==='disc_fail'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ İndirim <b>kaydedilmedi</b>: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>. Hiçbir alan değişmedi.</div>
 <?php elseif($msg==='ship_saved'): ?>
 <div class="amsg">✓ Navlun kaydedildi ve <b>sipariş toplamı da güncellendi</b> (kayıt geri okunarak doğrulandı). Fatura başka para biriminde kesiliyorsa navlun da sipariş tarihinin kuruyla çevrilir — taslağı (👁) açıp rakamı görün.</div>
 <?php elseif($msg==='ship_fail'): ?>
@@ -3927,6 +3944,34 @@ elseif($tab==='orders'):
       <?php endforeach; endif; ?>
     </div>
     <div style="margin-top:12px">
+      <?php
+        /* SATICIYA ÖDEME (operatör, 19 Eyl 2026: *"başarılı olan siparişleri
+           satıcılara ödeyeceğim"*). Kural hukuk metninde YAZILI (Satıcı
+           Sözleşmesi §9) ve burada HESAPLANIYOR — ikisi AYNI gövdeden
+           (`vestra_seller_settlement`), yoksa sözleşmenin söylediği tarih ile
+           operatörün ekranında gördüğü tarih ayrışırdı (KURAL 7'nin mektup ile
+           otomatik iptal arasında bir kez ödediği ders).
+           TARİH UYDURULMUYOR: teslim damgası yoksa "tarih bilinmiyor" yazıyor. */
+        $__set = vestra_seller_settlement($viewRef);
+        $__setLbl = [
+          'unpaid'          => 'alıcının parası gelmedi',
+          'not_delivered'   => 'mal henüz teslim edilmedi',
+          'no_delivery_date'=> 'teslim TARİHİ kayıtta yok — pencere başlamadı',
+          'claim_open'      => 'açık talep var',
+          'claim_window'    => 'talep penceresi sürüyor',
+          'payable'         => 'ÖDENEBİLİR',
+        ][$__set['why']] ?? $__set['why'];
+      ?>
+      <div class="ahint" style="margin-bottom:6px">Satıcıya ödeme:
+        <b style="color:<?= $__set['payable'] ? 'var(--acc)' : 'var(--mut)' ?>"><?= htmlspecialchars($__setLbl) ?></b>
+        <?php if($__set['claim_until'] !== ''): ?>
+          · talep penceresi <?= htmlspecialchars($__set['claim_until']) ?>
+        <?php endif; ?>
+        <?php if($__set['due'] !== ''): ?>
+          · son ödeme <b><?= htmlspecialchars($__set['due']) ?></b>
+        <?php endif; ?>
+        <span style="font-size:10.5px">(<?= (int)VESTRA_CLAIM_DAYS ?> + <?= (int)VESTRA_SELLER_SETTLEMENT_DAYS ?> iş günü · Satıcı Sözleşmesi §9)</span>
+      </div>
       <div class="ahint" style="margin-bottom:6px;font-weight:600">Invoices</div>
       <?php $vinvs=vestra_invoices_for_ref($viewRef); if(!$vinvs): ?>
         <div style="color:var(--mut);font-size:12px;margin-bottom:8px">— not issued yet · auto-invoicing suspended</div>
@@ -3955,6 +4000,14 @@ elseif($tab==='orders'):
           $__vship  = round((float)($viewRow['shipping'] ?? 0), 2);
           $__vslbl  = trim((string)($viewRow['shipping_label'] ?? ''));
           $__vrate  = ($__vfx && $__vpcur !== '' && $__vpcur !== $__vocur) ? (float)($__vfx['usd'] ?? 0) : 0.0;
+          /* BOLGE TARIFESI (operator, 19 Eyl 2026). Rakam TEK tablodan
+             (vestra_shipping_tariffs) ve siparisin KENDI kalemlerinden
+             hesaplaniyor; burada elle bir sayi yok. Kasadan gecen siparis
+             zaten tarifeyi tasiyor -- bu ipucu ELLE yazilan, tarife
+             konmadan once girilmis ya da kalemleri degismis siparisler icin.
+             Ulke taninmiyorsa (Japonya gibi) hicbir sey yazilmiyor: uydurma
+             bir navlun onermek KURAL 3'un yasakladigi sey. */
+          $__vsched = vestra_order_shipping_schedule($viewRow);
         ?>
         <form method="post" style="margin:0 0 8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <?= csrfField() ?>
@@ -3977,6 +4030,44 @@ elseif($tab==='orders'):
             </span>
           <?php endif; ?>
         </form>
+        <?php
+          /* INDIRIM (operator, 19 Eyl 2026). Navlun kutusunun kardesi: belgede
+             "Voucher <kod>  -EUR x" satiri olarak cikiyor ve siparis toplami
+             birlikte guncelleniyor. Kod ZORUNLU (0 disinda): belgede kodsuz bir
+             indirim satiri, aylar sonra "bu indirim neydi" sorusunu cevapsiz
+             birakirdi. Kampanya kodunu bulup YAKAN yol is akisinda
+             (admin_mode=discount) -- burada operator elle anlasilan bir rakam
+             yaziyor ve kupon kaydina dokunulmuyor. */
+          $__vdisc = round((float)($viewRow['discount'] ?? 0), 2);
+          $__vvc   = trim((string)($viewRow['voucher_code'] ?? ''));
+        ?>
+        <form method="post" style="margin:0 0 8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="order_discount">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+          <span class="ahint">Discount (<?= htmlspecialchars($__vocur) ?>):</span>
+          <input name="discount" inputmode="decimal" value="<?= $__vdisc > 0 ? htmlspecialchars(number_format($__vdisc, 2, '.', '')) : '' ?>"
+                 placeholder="0.00" style="width:86px;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)">
+          <input name="voucher_code" value="<?= htmlspecialchars($__vvc) ?>" placeholder="VES-XXXX-XXXX"
+                 style="width:150px;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)">
+          <button class="abtn" type="submit" style="font-size:12px"
+                  title="Sipariş toplamı da birlikte güncellenir. Kupon kaydı YAKILMAZ (kampanya kodu için iş akışı: admin_mode=discount). Faturası kesilmiş siparişte kaydedilmez.">🎟️ Save discount</button>
+          <?php if($__vdisc > 0): ?>
+            <span class="ahint" style="font-size:10.5px">belgede: Voucher <?= htmlspecialchars($__vvc !== '' ? $__vvc : '—') ?> −<?= htmlspecialchars($__vocur.' '.number_format($__vdisc, 2, '.', '')) ?></span>
+          <?php endif; ?>
+        </form>
+        <?php if($__vsched && abs((float)$__vsched['amount'] - $__vship) > 0.004): ?>
+          <form method="post" style="margin:-4px 0 8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <?= csrfField() ?>
+            <input type="hidden" name="_action" value="order_shipping">
+            <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+            <input type="hidden" name="shipping" value="<?= htmlspecialchars(number_format((float)$__vsched['amount'], 2, '.', '')) ?>">
+            <input type="hidden" name="shipping_label" value="<?= htmlspecialchars((string)$__vsched['label']) ?>">
+            <span class="ahint" style="font-size:10.5px">Tariff (<?= htmlspecialchars(strtoupper((string)$__vsched['region'])) ?>, <?= (int)$__vsched['qty'] ?> pc): <b><?= htmlspecialchars($__vocur.' '.number_format((float)$__vsched['amount'], 2, '.', '')) ?></b></span>
+            <button class="abtn" type="submit" style="font-size:11px"
+                    title="Bölge tarifesini bu siparişe yazar (aynı yazıcı, sipariş toplamı da güncellenir).">↻ Apply tariff</button>
+          </form>
+        <?php endif; ?>
         <div style="margin-bottom:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <span class="ahint">Invoice currency: <b><?= htmlspecialchars($__vpcur !== '' ? $__vpcur : $__vocur) ?></b><?= $__vpcur === '' ? ' <span style="color:var(--mut)">(order currency)</span>' : '' ?></span>
           <?php foreach(vestra_invoice_currencies() as $__c): if($__c === ($__vpcur !== '' ? $__vpcur : $__vocur)) continue; ?>
@@ -4651,7 +4742,16 @@ foreach($offers as $__o){
       <td><a class="acc" href="/admin?tab=orders&view=<?= urlencode($oref) ?>"><?= htmlspecialchars($oref) ?></a></td>
       <td><?= htmlspecialchars($o['company']??'') ?><div class="ahint"><?= htmlspecialchars($o['name']??'') ?> · <?= htmlspecialchars($o['email']??'') ?></div></td>
       <td style="font-size:12px;white-space:nowrap"><?= htmlspecialchars(substr($o['timestamp']??'',0,16)) ?></td>
-      <td><b><?= eur($o['total']??0) ?></b><?php if(((float)($o['shipping']??0))>0): ?><div class="ahint" style="font-size:10.5px">incl. shipping <?= eur($o['shipping']) ?></div><?php endif; ?><?php if(($__iv=vestra_order_invoiced_note($o['ref']??''))!==''): ?><div class="ahint" style="font-size:10.5px"><?= htmlspecialchars($__iv) ?></div><?php endif; ?></td>
+      <td><b><?= eur($o['total']??0) ?></b><?php if(((float)($o['shipping']??0))>0): ?><div class="ahint" style="font-size:10.5px">incl. shipping <?= eur($o['shipping']) ?></div>
+      <?php else: /* NAVLUN YOK ama bolge tarifesi VAR -- TIKLAMADAN ONCE.
+                     Kasadan gecen siparis tarifeyi zaten tasiyor; bu cip elle
+                     yazilan ya da tarife konmadan once girilmis siparisler
+                     icin. Rakam TEK tablodan, siparisin kendi kalemlerinden;
+                     taninmayan ulkede hicbir sey yazilmiyor (KURAL 3). */
+              $__osch = vestra_order_shipping_schedule($o);
+              if($__osch && (float)$__osch['amount'] > 0): ?>
+        <div class="ahint" style="font-size:10.5px;color:#b8860b">navlun yok · tarife <?= eur($__osch['amount']) ?> (<a class="acc" href="/admin?tab=orders&view=<?= urlencode($oref) ?>">↻ uygula</a>)</div>
+      <?php endif; endif; ?><?php if(($__iv=vestra_order_invoiced_note($o['ref']??''))!==''): ?><div class="ahint" style="font-size:10.5px"><?= htmlspecialchars($__iv) ?></div><?php endif; ?></td>
       <td>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <?php /* Dilim basina bir taslak: siparis birden cok saticiya

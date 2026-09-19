@@ -267,6 +267,25 @@ function escrow_do_release(string $ref): array {
    gun turunu soylemesini zorunlu tutar. */
 if (!defined('VESTRA_CLAIM_DAYS')) define('VESTRA_CLAIM_DAYS', 3);
 
+/* SATICIYA ODEME SURESI -- "basarili" bir siparisin kac IS GUNU icinde
+ * satildigi satiaya odenecegi (operator, 19 Eyl 2026: *"siparisleri ben
+ * alicam ve basarili olan siparisleri saticilara odeyecegim"*).
+ *
+ * TEK KAYNAK: hukuk metni (Saticı Sozlesmesi 9, Odemeler politikasi), SSS ve
+ * panelin gosterdigi tarih hepsi buradan okuyor. Escrow tavaninin bes gun
+ * metinde 3.000, kodda 3.500 kalmasi (KURAL 6) tam bu yuzden sabitlendi.
+ *
+ * RAKAM OPERATORDEN GELMEDI: operator sureyi soylemedi, yalnizca "basarili
+ * siparisleri odeyecegim" dedi. 5 is gunu, bu depodaki kardes sureyle
+ * (havale icin taninan 5 is gunu, KURAL 7) ayni sekilde secildi ve
+ * CLAUDE.md'ye ACIKCA varsayim diye yazildi -- degistirmek TEK satir.
+ *
+ * Saat TESLIMATTAN degil, TALEP PENCERESI KAPANDIKTAN sonra isliyor:
+ * pencere acikken odemek, alicinin hakkini kullanmasi hali icin geri alinmasi
+ * gereken bir para gondermek olurdu (escrow'un serbest birakma kurali ayni
+ * sebeple vestra_claim_deadline'i bekliyor). */
+if (!defined('VESTRA_SELLER_SETTLEMENT_DAYS')) define('VESTRA_SELLER_SETTLEMENT_DAYS', 5);
+
 /** $ts'ten itibaren $days IS GUNU sonrasi (Cmt/Paz atlanir), epoch saniyesi. */
 function vestra_business_days_after(int $ts, int $days): int {
     while ($days > 0) {

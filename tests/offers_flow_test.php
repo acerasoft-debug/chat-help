@@ -51,6 +51,14 @@ if (!function_exists('vestra_invoice_payment_gap')) { function vestra_invoice_pa
    bir cevabi ortmuyor. Varsayilanin KENDISI kum havuzunda gercek bir Amerikali
    alici ile olculuyor -- tests/invoice_payment_gap_test.php (sec. 5b/5c). */
 if (!function_exists('vestra_invoice_currency_default')) { function vestra_invoice_currency_default($s,$c,$b){ return ''; } }
+/* NAVLUN TARIFESI (19 Eyl 2026) inc/orders.php'de; bu dosya offers.php'nin
+   govdesini eval ediyor ve require'lari siliyor, yani tarife fonksiyonu
+   tanimsiz kaliyor. Stub GUVENLI: bu dosyalarin alicisi Avrupa/ABD olarak
+   TANINMAYAN (ya da ulkesiz) bir kayit, yani gercek govde de null donuyor --
+   stub ile gerceklik ayni cevabi veriyor, farkli bir cevabi ortmuyor.
+   Tarifenin KENDISI ayri bir dosyada, gercek satirlarla olculuyor:
+   tests/shipping_tariff_test.php. */
+if (!function_exists('vestra_shipping_schedule')) { function vestra_shipping_schedule($l,$c){ return null; } }
 
 
 preg_match_all('/^function \w+\(.*?^}/ms', $src, $fns);
