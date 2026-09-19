@@ -40,6 +40,12 @@ function vestra_tpl_offer_counter_accepted($l,$bn,$p,$r,$u,$q){ return ["agreed"
 if(!function_exists('vestra_invoice_currencies')) { function vestra_invoice_currencies(){ return ['EUR','USD']; } }
 
 /* offers.php'deki BUTUN fonksiyonlari gercek govdeleriyle yukle */
+/* ODEME KUTUSU MUHAFAZASI (19 Eyl 2026) invoice.php'de ve require'lar siliniyor.
+   Bu dosya TEKLIF AKISINI olcuyor, odeme kutusunu degil: 'sorun yok' donduruyor
+   ki olculen davranis degismesin. Muhafaza kum havuzunda gercek kesim denenerek
+   olculuyor -- tests/invoice_payment_gap_test.php. */
+if (!function_exists('vestra_invoice_payment_gap')) { function vestra_invoice_payment_gap($a,$c,$p){ return ''; } }
+
 preg_match_all('/^function \w+\(.*?^}/ms', $src, $fns);
 foreach ($fns[0] as $f) eval($strip($f));
 

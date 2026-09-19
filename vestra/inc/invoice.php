@@ -148,6 +148,41 @@ function vestra_payment_rails(array $acc, string $currency): array {
 }
 
 /**
+ * ODEME KUTUSU CIKMAYACAK MI? Bos dizge = sorun yok; dolu = insan diliyle SEBEP.
+ *
+ * Tek karar noktasi, ve iki AYRI tuketicisi var: (1) taslak notu (KURAL 5d),
+ * (2) kesimi DURDURAN muhafaza (vestra_issue_order_invoices / teklif kesimi).
+ * Ikisinin ayni cumleyi okumasi sart: 19 Eyl 2026'da olculdu ki kesim yolunda
+ * HICBIR kontrol yoktu -- operator taslagi hic acmadan "Approve & issue"a
+ * basabiliyor, numara yaniyor, ve aliciya giden mektup "faturada gosterilen
+ * hesaba havale edin" diyor. Belgede o hesap YOKKEN. Bos bir kutuyu isaret
+ * eden bir yonerge, hic yonergeden pahalidir cunku alici onu uygulamaya
+ * calisir ve hicbir yere odeyemez.
+ *
+ * ODENMIS siparis MUAF: escrow/kart faturasinda kutu zaten bilerek
+ * cizilmiyor, orada "kutu yok" demek olmayan bir eksigi bildirmek olurdu.
+ *
+ * Duzeltmenin YERI kesen tarafa gore degisiyor -- platform kendi kunyesinden
+ * okuyor (Admin > Orders), satici hesabindan (Admin > Users). Ayirt edici
+ * vestra_invoice_is_platform_issuer(): `$sellerAcc === null` diye sormak
+ * TEKLIF faturasinda hep FALSE donuyordu (teklif yolu platformu null olarak
+ * degil kendi KAYDI olarak geciriyor), yani operator platformun banka
+ * bilgilerinin DURMADIGI sayfaya yollaniyordu.
+ */
+function vestra_invoice_payment_gap(?array $sellerAcc, string $currency, bool $paid): string {
+    if ($paid) return '';
+    $cur = strtoupper(trim($currency)) !== '' ? strtoupper(trim($currency)) : 'EUR';
+    if (vestra_payment_rails($sellerAcc ?: vestra_platform_seller(), $cur) !== []) return '';
+    return vestra_invoice_is_platform_issuer($sellerAcc)
+        ? 'VESTRA is issuing this invoice but the platform has no '.$cur.' payment details on file, so the document has no payment box.'
+          . ' Fill them in under Admin > Orders > Platform billing & bank details ('
+          . ($cur === 'USD' ? 'USD needs an account number and ABA routing' : 'EUR needs an IBAN')
+          . '), or the buyer gets a document with nowhere to pay.'
+        : 'No payment details for '.$cur.' on the issuing account, so this invoice has no payment box.'
+          . ' Add them in Admin > Users > Edit billing details, or issue in the currency the account can receive.';
+}
+
+/**
  * Is VESTRA itself the party issuing this invoice?
  *
  * Two callers have to agree on the answer and for a long time they did not, because the
@@ -505,35 +540,13 @@ function vestra_invoice_draft_notes(array $order, array $items, ?array $sellerAc
     /* Belgeye ALINMAYAN alanlar. Hepsi yalniz taslakta yazilir; musteriye giden
        belgeye ic not basilmaz (KURAL 5d'nin kontrol noktasi). */
     $notes = [];
-    /* ODEME KUTUSU BOS MU? Kutu yalnizca ODENMEMIS sipariste ciziliyor
-       (`$paid` dali): odenmis bir escrow siparisine "odeme kutusu yok" demek,
-       olmayan bir eksigi bildirmek olurdu.
-       PLATFORM DILIMI DE UYARIYOR (7 Eyl 2026). Kosul eskiden
-       `$sellerAcc !== null` idi, yani kutunun KESINLIKLE cikmadigi tek durum --
-       faturayi platformun kesmesi, ki hicbir banka hesabi bagli degil -- hicbir
-       uyari uretmiyordu. En cok uyari gereken hal, uyarinin disinda kalan haldi. */
-    if (empty($order['paid'])) {
-        $payAcc   = $sellerAcc ?: vestra_platform_seller();
-        $railsNow = vestra_payment_rails($payAcc, $cur);
-        if ($railsNow === []) {
-            /* Duzeltmenin YERI kesen tarafa gore degisiyor: platform kendi
-               kunyesinden okuyor (Admin > Orders), satici hesabindan
-               (Admin > Users). Yanlis sayfaya yollayan bir uyari, uyarilmamis
-               kadar ise yaramaz.
-               "Platform mu kesiyor" sorusu burada `$sellerAcc === null` diye
-               soruluyordu ve TEKLIF faturasinda hep FALSE donuyordu: teklif yolu
-               (vestra_offer_invoice_seller) platformu null olarak degil, kendi
-               KAYDI olarak geciriyor. Yani kurasyonlu bir ilana verilen teklifte
-               operator "Admin > Users > Edit billing details"e yollaniyordu --
-               platformun banka bilgilerinin DURMADIGI sayfaya. Tek ayirt edici:
-               vestra_invoice_is_platform_issuer(). */
-            $notes[] = vestra_invoice_is_platform_issuer($sellerAcc)
-                ? 'NOTE - VESTRA is issuing this invoice but the platform has no '.$cur.' payment details on file, so the document has no payment box.'
-                  . ' Fill them in under Admin > Orders > Platform billing & bank details (USD needs an account number and ABA routing), or the buyer gets a document with nowhere to pay.'
-                : 'NOTE - no payment details for '.$cur.' on the issuing account, so this invoice has no payment box.'
-                  . ' Add them in Admin > Users > Edit billing details, or issue in the currency the account can receive.';
-        }
-    }
+    /* ODEME KUTUSU BOS MU? Karar TEK govdede: vestra_invoice_payment_gap().
+       Taslak uyarisi ile KESIMI DURDURAN muhafaza ayni cumleyi okumak zorunda --
+       ikisi ayri yazilsaydi taslak "kutu yok" derken kesim gecerdi (ya da
+       tersi), ve bu deponun defalarca kaydettigi "ayni olgu iki yerde yazili"
+       hatasinin en pahali hali olurdu: numara yanmis, belge aliciya gitmis. */
+    $gapNote = vestra_invoice_payment_gap($sellerAcc, $cur, !empty($order['paid']));
+    if ($gapNote !== '') $notes[] = 'NOTE - '.$gapNote;
     $bVat = trim((string)(($b['vat'] ?? '') ?: ($order['vat_id'] ?? '')));
     if ($bVat !== '' && preg_match('/\d/', $bVat) !== 1) {
         $notes[] = 'NOTE - the buyer VAT/tax field holds no digits, so it is not a tax number and was left off the document. Correct it in Admin > Users > Edit billing details.';
@@ -1796,6 +1809,30 @@ function vestra_issue_order_invoices(string $ref, bool $redraft = false): array 
        geri alınamaz bir belgeyi düzeltmekten ucuz. */
     foreach ($payloads as $p) {
         if (!empty($p['currency_error'])) return ['error' => (string)$p['currency_error']];
+    }
+    /* ODEME KUTUSU BOSSA NUMARA YANMAZ (19 Eyl 2026). Cevrilemeyen dilimin
+       hemen yanina, ayni "hep ya da hic" kaliyla: yarim bir kesim degil,
+       hic kesim.
+       Neden: aliciya giden mektup "faturada gosterilen hesaba havale edin"
+       diyor ve kutu bossa o cumle hicbir yeri gostermiyor. Numara yanmis,
+       belge alicinin elinde, ve duzeltmenin tek yolu yeni bir numara.
+       Taslak bunu zaten YAZIYORDU (KURAL 5d) -- ama yalnizca taslakta:
+       operator 👁 dugmesine hic basmadan Approve'a basabiliyordu. Uyariyi
+       gormeyi OPERATORUN HATIRLAMASINA birakmak, bu deponun tekrar tekrar
+       kaydettigi hata (kontrol gonderim/kesim yolunda olmali).
+       REDRAFT MUAF: orada numara ZATEN yanmis ve yeniden cizim tam da
+       duzeltmenin yolu -- kutusuz bir belgeyi duzeltmeyi engellemek,
+       muhafazanin korudugu seyin tersi olurdu. */
+    if (!$redraft) {
+        foreach ($payloads as $p) {
+            $gap = vestra_invoice_payment_gap($p['seller'], (string)($p['meta']['currency'] ?? 'EUR'),
+                                              !empty($p['meta']['paid']));
+            /* error_code: panel bandini SECMEK icin. Metne bakip karar vermek
+               (str_contains) bu deponun kayitli "kontrol yanlis yere bakiyor"
+               hatasini yeniden uretirdi -- cumle bir gun degisince bant
+               sessizce para birimi bandina donerdi. */
+            if ($gap !== '') return ['error' => $gap, 'error_code' => 'nopay'];
+        }
     }
     $issued = [];
     foreach ($payloads as $p) {

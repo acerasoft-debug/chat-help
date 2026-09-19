@@ -721,6 +721,15 @@ function vestra_offers_combined_invoice_issue(array $refs, string $sellerPick = 
         return ['error' => 'Kur damgası yok, belge çevrilemedi: '.$p['currency_error']
                           .' — Admin ▸ Orders ▸ ⟳ Fetch missing rates ile kuru çekin ya da faturayı EUR kesin.'];
     }
+    /* ODEME KUTUSU BOSSA NUMARA YANMAZ (19 Eyl 2026) -- ve cevrim reddiyle
+       AYNI sebepten KAYITTAN ONCE: asagisi once uyeleri baglayip sonra belgeyi
+       kesiyor, yani burada durmasaydik teklifler bir gruba baglanmis ama
+       faturasiz kalirdi. Karar cizicinin okudugu AYNI govdeden geliyor
+       (vestra_invoice_payment_gap); ikinci bir kopya, taslagin "kutu yok"
+       dedigi bir belgenin yine de kesilmesine yol acardi. */
+    $gapC = vestra_invoice_payment_gap($p['seller'], (string)($p['meta']['currency'] ?? 'EUR'),
+                                       !empty($p['meta']['paid']));
+    if ($gapC !== '') return ['error' => $gapC, 'error_code' => 'nopay'];
 
     $primary = (string)$p['meta']['ref'];
     $rs = vestra_read_json('offer_responses.json');
@@ -1060,6 +1069,14 @@ function vestra_offer_issue_invoice(string $ref, bool $force): ?array {
         return ['error' => (string)$p['currency_error']];
     }
     require_once __DIR__.'/invoice.php';
+    /* ODEME KUTUSU BOSSA NUMARA YANMAZ (19 Eyl 2026). Yalniz $force dalinda:
+       $force=false hicbir sey yakmiyor, yalnizca 'pending' donuyor (kabul
+       ani) -- orada durmak, teklifin kabul edilmesini engellerdi. */
+    if ($force) {
+        $gap = vestra_invoice_payment_gap($p['seller'], (string)($p['meta']['currency'] ?? 'EUR'),
+                                          !empty($p['meta']['paid']));
+        if ($gap !== '') return ['error' => $gap, 'error_code' => 'nopay'];
+    }
     return vestra_ensure_invoice($p['meta'], $p['items'], $p['seller'], $force);
 }
 

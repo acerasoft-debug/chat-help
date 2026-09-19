@@ -92,8 +92,13 @@ echo "\n== 5. Ödeme kutusu: USD yolu olmayan hesap TASLAKTA bildirilir ==\n";
    elindeyken görürdü. */
 $t('IBAN hesabında USD yolu yok',  vestra_payment_rails($seller, 'USD') === []);
 $draft = vestra_render_invoice_pdf($c['meta'], $c['items'], $seller, '', true);
-$t('taslak ödeme kutusuzluğu yazıyor', str_contains($draft, 'no payment details for USD'));
-$t('kesilmiş belgede iç not YOK',  !str_contains($usd, 'no payment details for'));
+/* BUYUK/kucuk harfe bakma: cumle artik tek govdeden geliyor
+   (vestra_invoice_payment_gap) ve panel cipinde/hata bandinda TEK BASINA
+   duruyor, o yuzden buyuk harfle basliyor. Olculen sey cumlenin YAZIMI degil,
+   taslagin kutusuzlugu SOYLEMESI. Olumsuz iddia ozellikle onemli: harfe bagli
+   kalsaydi bir buyuk harf onu sessizce "her zaman gecer" haline getirirdi. */
+$t('taslak ödeme kutusuzluğu yazıyor', stripos($draft, 'payment details for USD') !== false);
+$t('kesilmiş belgede iç not YOK',  stripos($usd, 'payment details for') === false);
 $usAcc = $seller + ['bank_account'=>'ACC1','bank_routing'=>'ABA1'];
 $t('ABD yolu olan hesapta uyarı YOK',
    !str_contains(vestra_render_invoice_pdf($c['meta'], $c['items'], $usAcc, '', true), 'no payment details for'));

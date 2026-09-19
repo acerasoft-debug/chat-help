@@ -1249,6 +1249,105 @@ siparis geldiginde otomatik Vestra siparislerine bu bankayi ekle"*).
   form/kayıt yolu kablolaması). Sabotajın gerçekten uygulandığı `grep -c` ile
   doğrulanarak: rails kuralı geri alınınca **3 kırmızı**, IBAN kapısı silinince **2**.
 
+**KURAL 5r — ÖDEME KUTUSU BOŞSA FATURA KESİLMEZ; "otomatik kullanılmıyor" bir
+VERİ sorusuydu, kod sorusu değil** (operatör, 19 Eyl 2026: *"sana verdigim
+acerasoft LLC alman hesabi avrupa müsterilerinde otomatik kullanilmiyor … bu
+iki sipariste faturalarin alman banka hesabinin kullanilmasi gerekiyor"* —
+`VES-55E4F6E1` / Mob / FR / €1.200 ve `VES-A11C0C97` / LA ISLA DE MIRABEL SL /
+ES / €7.779,60).
+
+- **ÖNCE ÖLÇÜLDÜ, iki ayrı şüpheli ayrı ayrı elendi.** "Otomatik kullanılmıyor"
+  iki bambaşka şey olabilirdi: (a) künyede IBAN yok, (b) IBAN var ama o
+  siparişlerin fatura kesicisi VESTRA değil. Ölçüm (`diag-messages` →
+  `billing_for=vestra`): `bank_holder`, `bank_name`, `bank_bic`,
+  `bank_account` **VAR (12 hane)**, `bank_routing` **VAR (9 hane)** — ama
+  **`bank_iban` BOŞ**, ve `bank_eur_bic/name/address` de boş. Sonuç satırı:
+  *"EUR faturasında ödeme kutusu: **ÇIKMAZ (boş)** · USD faturasında: ÇIKAR
+  (6 satır)"*. (b) ise doğru çalışıyordu: `diag-live` → `find_ref` iki siparişte
+  de **`invoice_seller_uid=vestra`** gösterdi, yani operatörün seçimi kayıtlı.
+- **"Otomatik" zaten mekanizmanın kendisi ve KODDA BİR ŞEY EKSİK DEĞİLDİ.**
+  `vestra_payment_rails` rayı faturanın **para birimine** göre seçiyor (EUR →
+  IBAN, USD → hesap no + ABA); Avrupalı alıcının siparişi EUR olduğu için IBAN
+  girildiği an her EUR fatura o bankayı taşır. Ülkeye bakan yeni bir dal
+  YAZILMADI — ödeme kutusu faturanın birimine ait, alıcının ülkesine değil.
+  *17 Eylül'de yazılan "IBAN'ı operatör panele kendisi girer" satırı ile bugünün
+  şikâyeti arasındaki mesafe bir form doldurma; kod o gün de hazırdı.*
+- **ASIL BULGU BAŞKAYDI: KESİM YOLUNDA HİÇBİR MUHAFAZA YOKTU.** Taslak (KURAL
+  5d) *"ödeme kutusu yok"* diye **yazıyordu** — ama yalnızca taslakta. Operatör
+  **👁 Draft**'a hiç basmadan **✓ Approve & issue**'ya basabiliyordu: numara
+  yanar, belge alıcıya e-postalanır, ve `vestra_order_invoice_issue()`'nun
+  mektubu *"pay by bank transfer to the account shown on the invoice"* der —
+  **belgede o hesap YOKKEN**. Yanlış yere yollayan bir yönerge hiç yönergeden
+  pahalıdır çünkü alıcı onu uygulamaya çalışır. €7.779,60'lık sipariş tam bu
+  durumdaydı ve bugün kesilebilirdi.
+- **Tek karar noktası: `vestra_invoice_payment_gap($sellerAcc, $cur, $paid)`**
+  (saf; boş dizge = sorun yok, dolu = insan diliyle sebep). Taslak notu artık
+  **kendi** `vestra_payment_rails` sorgusunu taşımıyor, bu gövdeyi çağırıyor —
+  iki kopya yazılsaydı taslak "kutu yok" derken kesim geçerdi (ya da tersi) ve
+  bu deponun defalarca kaydettiği ayrışmanın en pahalı hâli olurdu: numara
+  yanmış, belge alıcıda.
+- **Nerede DURDURUYOR:** `vestra_issue_order_invoices()` (panel *Approve &
+  issue* + iş akışı `admin_mode=issue`), `vestra_offers_combined_invoice_issue()`
+  ve `vestra_offer_issue_invoice($force=true)`. Üçü de çevrilemeyen para
+  biriminin **yanına**, aynı "hep ya da hiç" kalıbıyla.
+  - **REDRAFT MUAF:** orada numara **zaten yanmış** ve yeniden çizim tam da
+    düzeltmenin yolu (KURAL 5f) — kutusuz bir belgeyi düzeltmeyi engellemek,
+    muhafazanın koruduğu şeyin tersi olurdu.
+  - **`$force=false` MUAF:** o dal hiçbir numara yakmıyor (teklifin kabul anı);
+    orada durmak teklifin **kabul edilmesini** engellerdi.
+  - **ÖDENMİŞ sipariş MUAF:** escrow/kart faturasında kutu zaten bilerek
+    çizilmiyor; orada "kutu yok" demek olmayan bir eksiği bildirmek olurdu.
+  - **Birleşikte kontrol KAYITTAN ÖNCE** (KURAL 5n'in sırası): sonra olsaydı
+    teklifler bir gruba bağlanır ama faturasız kalırdı.
+- **Panel iki yerden söylüyor:** onay satırında, düğmeye basmadan **önce**
+  kırmızı çip (*"⚠ ödeme kutusu YOK — kesilemez"*), ve ret hâlinde **kendi
+  bandı** (`invoice_nopay`). Bant seçimi `error_code` ile, metne bakarak değil:
+  `str_contains` ile karar vermek, cümle bir gün değişince bandı sessizce
+  *"para birimi çevrilemedi"*e döndürürdü — **rakam doğru, etiket yalan**, ve
+  operatör olmayan bir kur sorununu çözmeye çalışırdı.
+- **Operatörün verdiği IBAN rakamları repoya, iş akışı girdisine ve ssh
+  betiğine GİRMEDİ** (Güvenlik bölümünün kuralı, 17 Eyl'deki kararın aynısı).
+  Yapılan tek şey **sitenin kendi doğrulayıcısıyla** kontroldü:
+  `vestra_iban_normalize` + `vestra_iban_valid` → **DE, 22 hane, mod-97
+  GEÇERLİ**. Bu boşuna değil: geçmeseydi panel **hiçbir alanı** kaydetmezdi
+  (`platform_billing_iban_bad`) ve operatör "girdim ama olmadı" derdi.
+- **ÜÇ ALAN GEREKİYOR, BİR DEĞİL — ve bu ölçülerek söylendi.** Platformun ABD
+  hesabı da dolu olduğu için EUR rayı banka adını/adresini **yalnız**
+  `bank_eur_*`'dan basıyor (KURAL 5j: çelişen bir çift, eksik satırdan pahalı).
+  Yerel ölçüm: yalnız `bank_iban` → kutu **2 satır** (lehdar + IBAN);
+  `bank_iban` + `bank_eur_bic` + `bank_eur_name` → **4 satır**; aynı kayıtta
+  **USD kutusu bozulmuyor** (Choice Financial aynen).
+  **`bank_eur_address` BOŞ bırakıldı:** operatörün verdiği *"Germany (SEPA)"*
+  bir konum, banka adresi değil — uydurmak KURAL 3'ün yasakladığı şey.
+- Test: `tests/invoice_payment_gap_test.php` (**48 iddia**, iki yön). §3 kum
+  havuzunda **gerçekten kesim deniyor**: IBAN yokken ret + **diskte 0 belge**,
+  IBAN girilince kesim geçiyor ve üretilen **PDF'te `IBAN:` satırı var** —
+  "kesildi" tek başına yetmez, bu depo fotoğrafsız bir PDF'i yıllarca
+  "üretildi, boyut makul" diye geçirmişti.
+- **Falsifikasyon TESTİMDE GERÇEK BİR BOŞLUK BULDU.** Teklif dallarındaki iki
+  muhafaza `if (false) return …` yapıldığında takım **YEŞİL kaldı**: iddialarım
+  yalnız `vestra_invoice_payment_gap(` çağrısının **var olduğunu** sayıyordu ve
+  o çağrı sabotajda da metinde duruyordu. *Hiç düşemeyen bir iddia, iddia
+  değildir* — bu dosyada kayıtlı ve bir kez daha oldu. İddialar sonuca bakacak
+  şekilde daraltıldı (`if ($gap !== '') return`) ve aynı sabotaj **2 kırmızı**
+  verdi. Diğerleri, her sabotajın gerçekten uygulandığı `grep -c` ile
+  yazdırılarak: sipariş muhafazası kalkınca **7 kırmızı**, `paid` muafiyeti
+  yok sayılınca **1**, taslak yine kendi rails'ini sorunca **1**, bant
+  yönlendirmesi geri alınınca **1**.
+- **Davranış bilerek değişti, o yüzden iki test düzeltildi** (bu deponun kendi
+  kuralı): `invoice_currency_test`'in taslak iddiası cümlenin **yazımını**
+  pinliyordu (`'no payment details'`) ve cümle artık panel çipinde tek başına
+  durduğu için büyük harfle başlıyor. Olumsuz kardeşi daha sinsiydi — harfe
+  bağlı kalsaydı tek bir büyük harf onu **her zaman geçer** hâline getirirdi.
+  İkisi de `stripos` ile olguya bağlandı. Ayrıca üç test fonksiyon gövdesini
+  `eval` ile çıkarıyor ve require'ları siliyor (`offers_rounds`, `offers_flow`,
+  `invoice_seller_pick`): üçüne de belgeli **stub** kondu — o dosyalar pazarlık
+  turlarını ve kesimin tek gövdede olduğunu ölçüyor, ödeme kutusunu değil.
+- **Bu işten bağımsız, ÖNCEDEN kırık ve ölçülerek doğrulandı** (temiz bir
+  `git worktree` HEAD kopyasında birebir aynı sayılar): `dropship_plan_test`
+  **4**, `msg_read_receipt_test` **1**, `msg_thread_label_test` **10**.
+  Dokunulmadı.
+
 **KURAL 5i (devamı) — TEKLİF faturası da USD kesilebilir; kur TEKLİFİN tarihinin**
 (operatör, 9 Eyl 2026, OCD7D2: *"burada neden fatura yaparken banka bilgileri
 cikmiyor ?"* + *"ayrica direkt usd ye cevirme buttonu eksik"*). **İki cümle tek

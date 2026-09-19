@@ -194,7 +194,12 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $r = vestra_order_invoice_issue($ref);
     $back=(($_POST['from']??'')==='view')?'orders&view='.urlencode($ref):'invoices';
     if(!empty($r['error'])){
-      header('Location: /admin?tab='.$back.'&msg=invoice_cur_err&err='.urlencode(substr((string)$r['error'],0,120))); exit;
+      /* Bant SEBEBE gore secilir. Odeme kutusu bos diye durduran bir kesimi
+         "para birimi cevrilemedi" bandiyla gostermek, bu deponun kayitli
+         "rakam dogru, etiket yalan" hatasi olurdu: yanlis rakam sorgulanir,
+         yanlis etikete inanilir ve operator kuru damgalamaya calisir. */
+      $__ik = (($r['error_code']??'')==='nopay') ? 'invoice_nopay' : 'invoice_cur_err';
+      header('Location: /admin?tab='.$back.'&msg='.$__ik.'&err='.urlencode(substr((string)$r['error'],0,200))); exit;
     }
     header('Location: /admin?tab='.$back.'&msg=invoice_issued'); exit;
   }
@@ -555,7 +560,8 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $iv=vestra_offer_issue_invoice($ref, true);
     /* Kur damgasi yoksa HICBIR NUMARA YANMADAN duruyor; sebep ekranda. */
     if(is_array($iv) && !empty($iv['error'])){
-      header('Location: /admin?tab=invoices&msg=invoice_cur_err&err='.urlencode(substr((string)$iv['error'],0,120))); exit;
+      $__ik = (($iv['error_code']??'')==='nopay') ? 'invoice_nopay' : 'invoice_cur_err';
+      header('Location: /admin?tab=invoices&msg='.$__ik.'&err='.urlencode(substr((string)$iv['error'],0,200))); exit;
     }
     $issued = $iv && ($iv['no'] ?? '') !== '';
     if($issued){
@@ -2801,6 +2807,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Navlun <b>kaydedilmedi</b>: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>. Hiçbir alan değişmedi.</div>
 <?php elseif($msg==='invoice_cur_late'): ?>
 <div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Bu siparişin faturası <b>zaten kesilmiş</b> — para birimi seçimi artık belgeyi değiştirmez, o yüzden <b>kaydedilmedi</b>. Belge alıcının elinde ve numara yanmış durumda; değiştirmek için <b>Invoice approvals ▸ 🔁 Redraft</b> (aynı numarayla yeniden çizer) ya da faturayı iptal edip yeniden kesmek gerekir.</div>
+<?php elseif($msg==='invoice_nopay'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ <b>FATURA KESİLMEDİ</b> — kesen tarafın bu para biriminde <b>ödeme bilgisi yok</b>, yani belge <b>ödeme kutusuz</b> çıkardı: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?><br><b>Hiçbir numara yakılmadı, hiçbir belge yazılmadı, alıcıya hiçbir şey gitmedi.</b> Alıcıya giden mektup “faturada gösterilen hesaba havale edin” diyor — kutu boşken o cümle hiçbir yeri göstermez. Banka bilgisini girip tekrar deneyin; <b>👁 Draft</b> ile önce kontrol edebilirsiniz.</div>
 <?php elseif($msg==='invoice_cur_err'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ <b>FATURA KESİLMEDİ</b> — para birimi çevrilemedi: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>. Hiçbir numara yakılmadı, hiçbir belge yazılmadı. Sipariş tarihinin kuru damgalı değilse <b>Admin ▸ Orders ▸ ⟳ Fetch missing rates</b> ile damgalayın, sonra tekrar deneyin. (Bugünün kuruyla doldurmuyoruz: sipariş tarihinde geçerli olan kur neyse fatura odur.)</div>
 <?php elseif($msg==='offer_del_invoiced'): ?>
@@ -4667,6 +4675,17 @@ foreach($offers as $__o){
             <a class="abtn" style="font-size:12px" target="_blank" rel="noopener"
                title="Taslak — numara yakmaz, kaydetmez, müşteriye hiçbir şey gitmez"
                href="/admin?pv_order=<?= urlencode($oref) ?>&pv_seller=<?= urlencode($__p['seller_key']) ?>">👁 <?= htmlspecialchars(vestra_invoice_issuer_name($__p['seller'],'VESTRA')) ?></a>
+            <?php /* ODEME KUTUSU BOS MU -- TIKLAMADAN ONCE. Taslak bunu zaten
+                     yaziyordu, ama yalnizca taslakta: operator 👁'e hic basmadan
+                     Approve'a basabiliyordu. Kesim artik DURUYOR (KURAL 5j'nin
+                     muhafazasi); bu cip o durmayi ONCEDEN gosteriyor, yoksa
+                     operator sebebini ancak reddedilince ogrenirdi.
+                     Karar cizicinin okudugu AYNI govdeden. */
+                  $__gap = vestra_invoice_payment_gap($__p['seller'],
+                             (string)($__p['meta']['currency'] ?? 'EUR'), !empty($__p['meta']['paid']));
+                  if($__gap !== ''): ?>
+              <span title="<?= htmlspecialchars($__gap) ?>" style="font-size:11px;padding:2px 7px;border-radius:9px;background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.35);color:#c0392b;white-space:nowrap">⚠ ödeme kutusu YOK — kesilemez</span>
+            <?php endif; ?>
           <?php endforeach; ?>
           <?php /* SATICI SECIMI (5 Eyl 2026, operator: "yeni siparislerde satici
                    secme opsiyonu olmasi gerekiyordu"). Tekliflerde KURAL 5b bunu

@@ -61,6 +61,14 @@ if (!function_exists('vestra_invoice_letter_amounts')) {
   if (preg_match('/^function vestra_invoice_letter_amounts\(.*?^}/ms', $__isrc, $__m)) eval($__m[0]);
 }
 
+/* ODEME KUTUSU MUHAFAZASI (19 Eyl 2026) invoice.php'de ve require'lar
+   siliniyor. Bu dosya KESIMIN TEK GOVDEDE oldugunu ve satici seciminin
+   kayda gectigini olcuyor, odeme kutusunu degil: burada 'sorun yok'
+   donduruyor ki olculen davranis degismesin. Muhafazanin kendisi kum
+   havuzunda gercek kesim denenerek olculuyor --
+   tests/invoice_payment_gap_test.php. */
+if (!function_exists('vestra_invoice_payment_gap')) { function vestra_invoice_payment_gap($a,$c,$p){ return ''; } }
+
 preg_match_all('/^function \w+\(.*?^}/ms', $src, $fns);
 foreach ($fns[0] as $f) eval($strip($f));
 

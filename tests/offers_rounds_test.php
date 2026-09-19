@@ -30,6 +30,12 @@ function vestra_tpl_offer_buyer_countered(...$a){ return ['buyer-counter-mail','
    test kosumu require'lari SILIYOR; teklif yuku onu cagiriyor. Stub gercegin
    AYNISI -- uydurma bir liste, olculen davranisi degistirirdi. */
 if(!function_exists('vestra_invoice_currencies')) { function vestra_invoice_currencies(){ return ['EUR','USD']; } }
+/* ODEME KUTUSU MUHAFAZASI (19 Eyl 2026) da invoice.php'de ve require'lar
+   siliniyor. Bu test PAZARLIK TURLARINI olcuyor, odeme kutusunu degil: burada
+   'sorun yok' donduruyor ki olculen davranis degismesin. Muhafazanin KENDISI
+   kum havuzunda gercekten kesim deneyerek olculuyor --
+   tests/invoice_payment_gap_test.php. */
+if(!function_exists('vestra_invoice_payment_gap')) { function vestra_invoice_payment_gap($a,$c,$p){ return ''; } }
 
 preg_match_all('/^function \w+\(.*?^}/ms',$src,$fns);
 foreach($fns[0] as $f) eval($strip($f));
