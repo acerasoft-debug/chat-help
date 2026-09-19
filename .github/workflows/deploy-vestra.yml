@@ -100,14 +100,17 @@ jobs:
           ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
           SSHOPT="-i $HOME/.ssh/id_deploy -p $PORT -o BatchMode=yes -o StrictHostKeyChecking=no"
 
-          # BUNDLE BIR REF ISTER, CIPLAK SHA DEGIL. Ilk surum `git bundle create
-          # <dosya> "$WANT"` diyordu ve git `fatal: Refusing to create empty
-          # bundle.` ile dustu: bundle nesneleri REF'lere bagli yaziyor, bir
-          # rev adi ref olmadigi icin paketlenecek ref kalmiyor. Yerelde
-          # birebir uretildi (cikis 128) ve adlandirilmis dalla gectigi
-          # dogrulandi -- tahmin degil, olcum.
-          git branch -f __deploy "$WANT"
-          git bundle create /tmp/vestra.bundle __deploy
+          # TEK TIRNAK: cift tirnak icinde ters tirnak KOMUT CALISTIRIR (bu
+          # satir oldugu gibi birakilsa runner gercekten `git fetch origin`
+          # deneyecekti). Bu depoda kesme isareti tuzagi iki kez kayitli.
+          echo 'NOT: sunucunun git fetch origin adimi dustu -- kod bu yoldan tasiniyor.'
+          # `git bundle create <dosya> <SHA>` CALISMIYOR: bundle REF ister, ciplak
+          # bir commit hicbir ref uretmiyor ve git "Refusing to create empty
+          # bundle" deyip duyuyor (ilk kosuda birebir bu cikti). checkout@v4 push
+          # olayinda github.sha'da detached HEAD birakiyor, yani HEAD tam olarak
+          # tasimak istedigimiz commit -- ve geri okuma zaten SHA'yi dogruluyor.
+          git bundle create /tmp/vestra.bundle HEAD
+          git bundle verify /tmp/vestra.bundle >/dev/null
           ls -l /tmp/vestra.bundle | awk '{print "bundle: " $5 " bayt"}'
           scp $SSHOPT /tmp/vestra.bundle "$SSH_USER@$SSH_HOST:/tmp/vestra.bundle"
 
@@ -121,7 +124,7 @@ jobs:
             fi
             cd \"\$REPO\"
             echo \"oncesi : \$(git rev-parse --short HEAD)\"
-            git fetch /tmp/vestra.bundle __deploy
+            git fetch /tmp/vestra.bundle HEAD
             git reset --hard FETCH_HEAD
             echo \"sonrasi: \$(git rev-parse --short HEAD)\"
             rm -f /tmp/vestra.bundle
