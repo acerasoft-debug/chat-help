@@ -1903,6 +1903,25 @@ jobs:
                      $shipLbl, number_format($shipAmt, 2));
               if ($discAmt > 0) printf("belgede indirim  : %s  (%s)\n", $has($discAmt) ? 'VAR' : '*** YOK ***', number_format($discAmt, 2));
               printf("belgede toplam   : %s  (%s)\n", $has($totAmt) ? 'VAR' : '*** YOK ***', number_format($totAmt, 2));
+
+              /* ODEME KUTUSU BELGEDE MI (19 Eyl 2026). KURAL 5r kesim ANINDA
+                 kutunun cikacagini garanti ediyor -- ama DAHA ONCE kesilmis bir
+                 belge o kunye tamamlanmadan cizilmis olabilir ve o belgede alici
+                 parayi nereye gonderecegini GOREMIYOR. Bunu yalnizca belgenin
+                 KENDISINE bakarak anlariz: kayittaki kunyenin bugun dolu olmasi,
+                 dun cizilmis bir PDF hakkinda hicbir sey soylemiyor.
+                 DEGER BASILMIYOR: IBAN/hesap numarasi degil, yalnizca satirin
+                 VARLIGI -- kutuk herkese acik (Guvenlik bolumu). Ulke adi bir
+                 hesap kimligi degil, o yuzden adiyla yaziliyor: eksikse operator
+                 neyin eksik oldugunu gorebilmeli. */
+              $payLbl = str_contains($pdf, 'IBAN:') ? 'IBAN:'
+                      : (str_contains($pdf, 'Account number:') ? 'Account number:' : '');
+              printf("belgede odeme kutusu: %s\n",
+                     $payLbl !== '' ? 'VAR ('.$payLbl.' satiri)'
+                                    : '*** YOK -- alici nereye odeyecegini goremez ***');
+              printf("belgede banka adresi: %s%s\n",
+                     str_contains($pdf, 'Bank address') ? 'VAR' : '*** YOK ***',
+                     str_contains($pdf, 'Germany') ? '  (ulke: Germany)' : '');
             }
 
             $aes = random_bytes(32); $iv2 = random_bytes(16);
