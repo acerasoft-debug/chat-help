@@ -1,0 +1,9 @@
+[
+  {
+    "_not": "Operator, 21 Eyl 2026: 'Custom Slim Fit Crew Neck T-Shirt / Original Ralph Lauren, model 710680785004. Made in Cambodia, 100% cotton. EEA stock with full invoice trail satildi olarak isaretle'. Katalogda bu SKU'ya uyan TEK ilan var (inspect-products, brand='Ralph Lauren' -> rl-csf-tee-navy; kardes ilan rl-csf-polo-white farkli SKU/kategori tasiyor, karistirilmadi).",
+    "_teklif": "Ayni SKU'da (O9C299, SC Daymond Proconect SRL, 104 ad. @ EUR14) acik bir teklif duruyor (diag-live find_ref, ayni gun 10:45 UTC). sold_out=true teklifi SILMIYOR/reddetmiyor -- KURAL 4'un tur/kabul mekanizmasina dokunmuyoruz, yalniz vitrin ve yeni satin alma yollarini kapatiyoruz. Operatore ayrica bildirildi.",
+    "match": "rl-csf-tee-navy",
+    "expect": 1,
+    "sold_out": true
+  }
+]
