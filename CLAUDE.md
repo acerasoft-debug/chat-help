@@ -5968,6 +5968,27 @@ olsun"*).
   ikinci/üçüncü mektup kuyrukları da 3 iş günlük yaş kuralında bekleyen birkaç
   aday taşıyor (2. mektupta 3 aday), ama bunlar bugün gönderilebilir değil.
 
+**21 Eyl 2026 — Tek adrese TÜM KATALOG fiyat listesi: adres YENİ aday değil,
+kayıtlı ONAYLI hesap çıktı.** Operatör: *"hhhhkgkf339@gmail.com bu emaile tüm
+katalogun fiyat listesini gönderirmisin"*.
+- **Adres olduğu gibi işleme alınmadı, önce SORGULANDI.** `diag-live` →
+  `find_ref=hhhhkgkf339`: `accounts.json`'da tek eşleşme — **buyer/active**,
+  `kyb_status=approved`, firma **Notat atria**, ülke **Iraq**,
+  `trade_licence: requested (DOSYA YOK)`. Yani rastgele, kayıtsız bir soğuk
+  adres değil; fiyat kapısı **zaten AÇIK** onaylı bir alıcı. Bekleyen belge
+  isteği kapıyı etkilemiyor (KURAL 2: belge uyarıdır, kapıyı operatör onayı
+  açar — burada onay zaten verilmiş).
+- **Adres girdiye YAZILMADI:** `to=account:Notat atria` ile hesaptan çözüldü
+  (TAM 1 eşleşme — `account:`/`lead:` ile paylaşılan aynı şart).
+- **`send=false` önce çalıştırıldı** (KURAL 18): kapsam **TÜM KATALOG**
+  (brand/cat verilmedi) — **893 kalem, 23 marka**, ek PDF 6,5 MB (877 gömülü
+  fotoğraf) + Excel 108 KB, alıcının fiyat kapısı **AÇIK** (uyarı basılmadı).
+  Operatörün cümlesi hem hedefi hem "gönder"i aynı anda verdiği için (KURAL
+  18'in dar istisnası) ikinci bir onay beklenmedi.
+- **GÖNDERİLDİ** → h***@gmail.com, imza **Marco Bellini — VESTRA**, dil **en**
+  (bu şablon yalnız en/de destekliyor; pt/ru/ar'ın e-posta şablonlarında
+  İngilizceye düştüğü KURAL 10'un aynı kuralı).
+
 **11 Eyl 2026 — KATALOG GENELİNDE %80 ZAM ve GERİ ALINMASI.** Operatör:
 *"yüzde 80 eklemeyi hemen geri al"* → *"tüm fiyatları dün geceki fiyatlara çek"*.
 - **Ne olmuş:** KURAL 22 ile eklenen `markup_pct` aracı **`80` ile ve bölme
