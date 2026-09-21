@@ -5836,6 +5836,95 @@ ekle... 295 email gönder"*).
   notun bullete eklenmemesi) önce GERÇEKTEN uygulandığı doğrulanarak
   kırmızıya çevrildi.
 
+**KURAL 31 — EV SIRASI YİNE DEĞİŞTİ ve MEKTUBA FOTOĞRAF ŞERİDİ EKLENDİ
+(21 Eyl 2026)** (operatör: *"3. Email kampanyaları göndermeye devam et
+F. PERRY polo sweatshirt , Galerry ürünlerini öne çıkar fotolar ile estetik
+olsun"*).
+
+- **`$W3_WANT` artık `Fred Perry, Gallery Dept., Lacoste, Gucci, Balenciaga,
+  DSQUARED2`** — Gallery Dept. Lacoste'un önüne alındı. Bu talimat Lacoste'tan
+  hiç söz etmiyordu, o yüzden yalnızca **konumu** değişti, listeden çıkarılmadı
+  (M7535/DSQUARED2 kararının aynı dersi: adlandırılmayan silinmez).
+- **Fotoğraf şeridi, `listing_colours` mektubunun ZATEN kanıtlı mekanizması:**
+  `opts['shots']` → notify.php'de uzak `<img>` (cid ekli değil, ek/boyut sınırı
+  yok — yalnız bir URL). `vestra_tpl_wave3_brands()` artık her ev için
+  `$f['houses'][]['imgs']`'i okuyup `opts['shots']`/`opts['shots_title']`
+  dolduruyor; `shots_title` **12 dilin de kendi konu satırından** alındı
+  (`"jetzt ab Lager"`, `"désormais en stock"`, `"在庫入荷"` …) — yeni bir çeviri
+  yazılmadı, zaten doğrulanmış metin yeniden kullanıldı.
+- **Fotoğrafların kaynağı işi akışta (`$w3facts`), UYDURULMADI:** her ev için
+  en fazla `$W3_SHOTS = 2` — SATILMAMIŞ (`vestra_is_sold_out`) ve DİSKTE
+  GERÇEKTEN VAR (`is_file($home.'/public_html'.$img)`) ilk ürünler. Bulunamayan
+  ev fotoğrafsız kalır, mektup yine gider — eksik kare gönderimi durdurmuyor.
+  **2 seçildi, marka-özel bir dal yazılmadan**, çünkü Fred Perry'nin katalogda
+  TAM 2 ilanı var (M3600 polo + M7535 sweatshirt): aynı tavan hem "estetik"
+  isteğini hem operatörün "polo sweatshirt" diye ikisini birden andığı
+  cümleyi otomatik karşılıyor.
+- **Bağlantı `/catalog?brand=<ev>`** — `notify.php`'nin "Featured houses"
+  marka-duvarı bloğunun (`brandsHtml`) zaten kullandığı aynı adres: girişsiz
+  açılıyor (KURAL 19 yalnız FİYAT listesini kapatıyor) ve o markanın fotoğraflı
+  Excel dökümünü indiriyor.
+- **CANLI ÖLÇÜLDÜ, tahmin edilmedi** (`inspect-products` yerine doğrudan
+  `send-outreach` dry-run'ının kendi `EV:` satırı): altı evin **altısı da**
+  `foto 2/2` — `Fred Perry -> 2 artikel (M3600, M7535) · foto 2/2`,
+  `Gallery Dept. -> 9 · foto 2/2`, `Lacoste -> 12 · foto 2/2`,
+  `Gucci -> 15 · foto 2/2`, `Balenciaga -> 20 · foto 2/2`,
+  `DSQUARED2 -> 64 · foto 2/2`.
+- **Göndermeden önce operatörün kendi kutusuna GERÇEK bir önizleme**
+  (`member_spec=letter=wave3|copy=true`, `dry_run=false` — KURAL 18): mektup
+  gerçekten kuruldu ve **yalnız operatöre** gitti, hiçbir müşteriye
+  dokunmadı, hiçbir damga düşmedi. Sonuç: `operator kopyasi: GONDERILDI |
+  govde=673 karakter | foto=12` — 6 ev × 2 foto = 12, hesap tutuyor.
+- **Ölçüm sırası:** deploy'un GERÇEKTEN indiği doğrulandı (run başarıyla
+  tamamlandı), sonra iki `dry_run=true` (lead + üye, `count=300`) altı evin de
+  katalogda eşleştiğini ve foto sayısını gösterdi, sonra üye kanalında
+  `skip=` listesi **ayrı bir kuru koşuyla** doğrulandı (aşağıya bak), sonra
+  `copy=true` önizlemesi, ancak ondan sonra gerçek gönderim.
+- **Üç hesap yine elle çıkarıldı, aynı gerekçeyle üçüncü kez:**
+  `389h68843j6789)` (garbled/otomatik görünen ad, `pending`, fiyat kapalı —
+  factoryoutlet.gr'nin "Hello Αρχική" dersinin aynısı), `Verify Test Co`
+  (adı test hesabı olduğunu söylüyor), `Acera Soft LLC` (adı
+  "Acerasoft LLC"nin — her mektup imzasındaki gerçek tüzel kişiliğin — yakın
+  yazımı ve maskeli adresi operatörün kendi kayıtlı e-posta alan adıyla
+  eşleşiyor). Üçü de tek, ayırt edici token ile (`389h68843j6789`, `verify`,
+  `acera`) `skip=` alanına verildi ve göndermeden ÖNCE ayrı bir kuru koşu
+  skip listesinin **gerçekten yalnız bu üçünü** tuttuğunu doğruladı
+  (`ATLANDI (skip_accounts): Acera Soft LLC` / `389h68843j6789)` /
+  `Verify Test Co` — üçü, fazlası yok). Kalan 80 aday elle tek tek okundu;
+  hiçbiri garbled değildi (OÜ/SRL/GbR/S.A.S gibi gerçek tüzel kişilik ekleri,
+  "Particulier"/"Vinted"/"Reseller" gibi kısa ama gerçek küçük satıcı adları,
+  ve zaten bu depoda tanınan gerçek müşteriler — 香港风徕贸易有限公司,
+  AlexaShop S.A.S, BRITISHSTYLE, Ecokemet, Mfitel Anas, Francisco Javier
+  Nicolas Macanas, C&F Multimarcas — dahil), yani şüpheyle sessizce daraltma
+  yapılmadı (mango/zara dersinin hesap hâli).
+
+| Kanal | Uygun | Skip ile atlanan | Gönderilen | Hata |
+|---|---:|---:|---:|---:|
+| Lead — üçüncü mektup | 3 | 0 | **3** | 0 |
+| Üye — üçüncü mektup, parti 1 | 50 | 1 (Acera Soft LLC bu partide) | **50** | 0 |
+| Üye — üçüncü mektup, parti 2 | 33 | 3 (üçü de bu partide) | **30** | 0 |
+
+- **Lead kanalı (3):** Factory Outlet (EL/Yunanca — 17 Eylül'de `lead_rename`
+  ile adı düzeltilmiş kayıt), Lulli (FR/Fransızca), Sportina (EN/İngilizce).
+  Bu üçü 19 Eylül'ün *"lead kanalı hâlâ tükenmiş"* kaydında bekleyen tam o
+  havuzdu — ikinci mektuplarının üzerinden 3 iş günü geçince kendiliğinden
+  uygun hâle geldiler, elle bir şey değiştirilmedi.
+- **Üye kanalı (80, iki sıralı gerçek koşu — asla paralel):** dil dağılımı
+  fr=39 · en=21 · de=7 · es=4 · pt=3 · ar=2 · it=2 · ru=2 (skip'ten önceki
+  83'ün dil dağılımıyla neredeyse aynı, üç hesabın çıkarılması dağılımı
+  görünür şekilde değiştirmedi). Kota koşu boyunca **294 → 242** kaldı,
+  60'lık işlemsel pay hiç tehlikeye girmedi.
+- **Toplam bu turda: 83 gerçek mektup, 0 hata** — hepsi altı evin adını,
+  doğru sırayla, ve 12 gerçek/doğrulanmış fotoğrafla taşıyor.
+- Test: `tests/wave3_brands_test.php` 127 → **165 iddia** (§6b yeni: foto
+  seridi, iki yön — foto verilen ev GEÇER, verilmeyen UYDURULMAZ; §7b yeni:
+  workflow'un foto çözme kablolaması). Üç sabotaj (foto şeridi tamamen
+  kapatıldı, `$W3_WANT` eski sıraya döndürüldü, diskte-var-mı kontrolü
+  kaldırıldı) her biri **gerçekten uygulandığı doğrulanarak** kırmızıya
+  çevrildi, sonra dosyalar yedekten (`cp`, `git checkout` değil) geri
+  yüklendi. `sh tests/run_all.sh`: bu işten bağımsız, önceden kırık iki test
+  (`dropship_plan_test` 4, `msg_read_receipt_test` 1) dışında hepsi yeşil.
+
 **11 Eyl 2026 — KATALOG GENELİNDE %80 ZAM ve GERİ ALINMASI.** Operatör:
 *"yüzde 80 eklemeyi hemen geri al"* → *"tüm fiyatları dün geceki fiyatlara çek"*.
 - **Ne olmuş:** KURAL 22 ile eklenen `markup_pct` aracı **`80` ile ve bölme
