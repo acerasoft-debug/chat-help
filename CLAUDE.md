@@ -5925,6 +5925,49 @@ olsun"*).
   yüklendi. `sh tests/run_all.sh`: bu işten bağımsız, önceden kırık iki test
   (`dropship_plan_test` 4, `msg_read_receipt_test` 1) dışında hepsi yeşil.
 
+**KURAL 31 — "250 email gönder": HAVUZ TAMAMEN DOYMUŞ, gerçek tavan 5**
+(operatör, 21 Eyl 2026, wave3 fotoğraf/sıralama işi bittikten hemen sonra:
+*"250 email gönder"* — hedef ya da kanal belirtilmedi).
+
+- **Rakam GÖNDERMEDEN ÖNCE ölçüldü, hiçbir muhafaza gevşetilmedi.** 290 (17 Eyl)
+  ve 295 (19 Eyl) tekrarlarının aynı dersi: operatörün söylediği yuvarlak sayı
+  bir hedef değil, ölçülecek bir iddia. Üç kanalın da o anki gerçek havuzu ayrı
+  ayrı kuru koşuyla sayıldı, hiçbiri hatırlanarak varsayılmadı:
+
+  | Kanal | Uygun | Gerçek olan | Gönderildi |
+  |---|---:|---:|---:|
+  | 3. mektup (wave3) — lead | 0 | — | 0 |
+  | 3. mektup (wave3) — üye | 4 | 1 (`Auto entreprise`, FR) | **1** |
+  | 2. mektup (ayakkabı/iç giyim) — lead | 3 | 3 | **3** |
+  | 1. mektup (soğuk havuz, `min_brands=1`) — lead | 1 | 1 (`La petite garçonne`, CA) | **1** |
+  | **TOPLAM** | | | **5, hata 0** |
+
+- **Üye kanalındaki 4 adayın 3'ü ÜÇÜNCÜ KEZ aynı hesaplar:** `Acera Soft LLC`
+  (platformun kendi tüzel kişiliğinin yakın yazımı + operatörün kayıtlı e-posta
+  alan adı), `389h68843j6789)` (garbled/otomatik görünen ad, `pending`, fiyat
+  kapalı — factoryoutlet.gr'nin *"Hello Αρχική"* dersinin aynısı) ve
+  `Verify Test Co` (adı test hesabı olduğunu söylüyor). Aynı `skip=` token'ları
+  (`389h68843j6789`, `verify`, `acera`) yine kullanıldı ve gönderimden **önce**
+  ayrı bir kuru koşuyla üçünü de yakaladığı doğrulandı. Geriye kalan tek gerçek
+  aday `Auto entreprise` — Fransa'da "auto-entrepreneur" gerçek bir küçük
+  işletme tescil biçimi (bkz. 20 Eyl'de aynı gerekçeyle geçirilen "Particulier"/
+  "Vinted"/"Reseller" emsali) — elle okunup şüpheyle elenmedi.
+- **Kota darboğaz DEĞİLDİ** (son gönderimden sonra 177 kalan, 60 ayrılmış):
+  üç kanal da kotadan değil **havuzun kendisinden** sıfıra indi. Aynı gün daha
+  önce yapılan 83'lük wave3 gönderimi (bkz. yukarıdaki madde) bu kanalları
+  zaten kalan son gerçek adaya kadar boşaltmıştı.
+- **Hiçbir muhafaza gevşetilmedi, rakam ZORLANMADI.** `skip_accounts`,
+  `ayni firmadan baska bir kutu`, `son 3 gunde baska kampanya`,
+  `onceki mektup 3 gunden yeni` ve blocklist kontrollerinin hiçbiri kapatılmadı;
+  245 eksik e-postayı bir eşiği düşürerek ya da bir dedup kuralını kapatarak
+  üretmek, bu depoda tam olarak yasaklanan şey. Gerçek sayı olduğu gibi
+  operatöre bildirildi (295 ve 290'ın aynı deseni: gerekçesiyle birlikte
+  "olmuyor" demek, bir kuralı gevşetip "oldu" demekten ucuz).
+- **Kalan hacim yeni LEAD KEŞFİ gerektiriyor**, mevcut listeden değil
+  (`discover-city.yml`, ölçülen verim ~1 lead/şehir — 8 Eyl kaydı). Üç kanalın
+  ikinci/üçüncü mektup kuyrukları da 3 iş günlük yaş kuralında bekleyen birkaç
+  aday taşıyor (2. mektupta 3 aday), ama bunlar bugün gönderilebilir değil.
+
 **11 Eyl 2026 — KATALOG GENELİNDE %80 ZAM ve GERİ ALINMASI.** Operatör:
 *"yüzde 80 eklemeyi hemen geri al"* → *"tüm fiyatları dün geceki fiyatlara çek"*.
 - **Ne olmuş:** KURAL 22 ile eklenen `markup_pct` aracı **`80` ile ve bölme
