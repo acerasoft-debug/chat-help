@@ -4,7 +4,13 @@
  * bastan 3. email gonder ve gece yarisi devam et ... yeni urunler ile Galerry
  * markasi ve F.Perry , Gucci , Dsq2"*; 19 Eyl 2026, sira ve liste guncellendi:
  * *"f.perry polo, sweatshirts ve lacoste, galerry urunlerini one cikar sonra
- * gucco, balenciaga yi ekle"*).
+ * gucco, balenciaga yi ekle"*; 21 Eyl 2026, sira TEKRAR degisti ve FOTOGRAF
+ * eklendi: *"F.PERRY polo sweatshirt , Galerry urunlerini one cikar fotolar
+ * ile estetik olsun"* — Gallery Dept. Lacoste'un ONUNE alindi (Lacoste bu
+ * turda adlandirilmadi, eylemsizlik eylem degil), ve her ev icin diskte
+ * gercekten var olan, satilmamis en fazla 2 fotograf HTML gorsel seridine
+ * giriyor -- listing_colours mektubunun ayni mekanizmasi (uzak <img>, cid
+ * ekli degil).
  *
  * AD KARISIKLIGI, bilerek yaziliyor: bu depoda zaten `wave3_letter_test.php`
  * var ve o BASKA bir seyi olcuyor -- ucuncu PARTI'yi, yani IKINCI mektubun
@@ -33,9 +39,9 @@ $t = function (string $n, bool $c) use (&$ok, &$bad) {
 };
 
 $F = ['houses' => [
-    ['name' => 'Fred Perry',    'n' => 2,  'note' => 'M3600, M7535'],
+    ['name' => 'Fred Perry',    'n' => 2,  'note' => 'M3600, M7535', 'imgs' => ['https://vestrasales.com/uploads/fredperry/m3600-navy.jpg', 'https://vestrasales.com/uploads/fredperry/m7535-green.jpg']],
+    ['name' => 'Gallery Dept.', 'n' => 9,  'imgs' => ['https://vestrasales.com/uploads/gallery-dept/gd-1.jpg']],
     ['name' => 'Lacoste',       'n' => 13],
-    ['name' => 'Gallery Dept.', 'n' => 9],
     ['name' => 'Gucci',         'n' => 15],
     ['name' => 'Balenciaga',    'n' => 20],
     ['name' => 'DSQUARED2',     'n' => 64],
@@ -82,10 +88,10 @@ foreach (['en','de','fr','it','es','nl','pt','pl','cs','el','ja','ko'] as $lg) {
 }
 
 echo "\n== 4. Konuda en cok UC ad (SIRAYLA), govdede HEPSI ==\n";
-/* Sira operatorun 19 Eyl 2026 talimati: Fred Perry + Lacoste + Gallery Dept.
-   "one cikar" -- konunun ilk uc adi tam bunlar olmali, notsuz (adin arkasina
+/* Sira operatorun 21 Eyl 2026 talimati: Fred Perry + Gallery Dept. "one cikar"
+   -- konunun ilk uc adi tam bunlar (+Lacoste) olmali, notsuz (adin arkasina
    model numarasi degil). */
-$t('konuda ilk uc ad, one cikan sirayla', str_contains($s1, 'Fred Perry, Lacoste, Gallery Dept.'));
+$t('konuda ilk uc ad, one cikan sirayla', str_contains($s1, 'Fred Perry, Gallery Dept., Lacoste'));
 $t('konuda dorduncu+ YOK',  !str_contains($s1, 'Gucci') && !str_contains($s1, 'Balenciaga') && !str_contains($s1, 'DSQUARED2'));
 $t('govdede dorduncu+ VAR', str_contains($b1, 'Gucci') && str_contains($b1, 'Balenciaga') && str_contains($b1, 'DSQUARED2'));
 
@@ -119,6 +125,33 @@ foreach ([['lead',$b1], ['uye',$bm]] as [$who, $bb]) {
 [, , $o1] = vestra_tpl_wave3_brands('en', 'X', $F);
 $t('dugme price-list e gidiyor',     ($o1['button']['url'] ?? '') === 'https://vestrasales.com/price-list');
 
+echo "\n== 6b. Fotograf seridi (opts.shots) — CAGIRANDAN gelen kareler AYNEN gecer ==\n";
+/* $F'de Fred Perry 2, Gallery Dept. 1 foto tasiyor; Lacoste/Gucci/Balenciaga/
+   DSQUARED2 HIC tasimiyor -- IKI YON birden: verilen foto GECMELI, verilmeyen
+   UYDURULMAMALI. Tavan (kac foto/ev) workflow'un $W3_SHOTS'unda, sablonun
+   isi degil -- sablon yalnizca kendisine verileni basar. */
+$shots = $o1['shots'] ?? [];
+$t('toplam 3 kare (2 Fred Perry + 1 Gallery Dept.)', count($shots) === 3);
+$t('Fred Perry karesi img+label+url tasiyor',
+   in_array(['img' => 'https://vestrasales.com/uploads/fredperry/m3600-navy.jpg', 'label' => 'Fred Perry',
+             'url' => 'https://vestrasales.com/catalog?brand=Fred%20Perry'], $shots, true));
+$t('Gallery Dept. karesi noktali markayla dogru URL kodluyor',
+   in_array(['img' => 'https://vestrasales.com/uploads/gallery-dept/gd-1.jpg', 'label' => 'Gallery Dept.',
+             'url' => 'https://vestrasales.com/catalog?brand=Gallery%20Dept.'], $shots, true));
+$t('fotosuz evler (Lacoste/Gucci/Balenciaga/DSQUARED2) HIC kare eklemedi', (function () use ($shots) {
+    foreach ($shots as $s) if (in_array($s['label'], ['Lacoste','Gucci','Balenciaga','DSQUARED2'], true)) return false;
+    return true;
+})());
+/* Ev HIC foto vermezse ('imgs' anahtari yok) fabrikasyon YOK -- Lacoste bu
+   fixture'da anahtari hic tasimiyor. */
+[, , $oNoImgs] = vestra_tpl_wave3_brands('en', 'X', ['houses' => [['name' => 'Gucci', 'n' => 5]]]);
+$t('imgs hic verilmezse shots BOS (uydurma yok)', ($oNoImgs['shots'] ?? ['x']) === []);
+foreach (['en','de','fr','it','es','nl','pt','pl','cs','el','ja','ko'] as $lg) {
+    [, , $ox] = vestra_tpl_wave3_brands($lg, 'X', $F);
+    $t("{$lg}: shots_title dolu",     trim((string)($ox['shots_title'] ?? '')) !== '');
+    $t("{$lg}: shots_title yer tutucu tasimiyor", !str_contains((string)($ox['shots_title'] ?? ''), '%'));
+}
+
 echo "\n== 7. Workflow kablolamasi (send-outreach.yml) ==\n";
 $wf = (string)@file_get_contents(dirname(__DIR__).'/.github/workflows/send-outreach.yml');
 $t('wf okundu',                      strlen($wf) > 10000);
@@ -138,10 +171,22 @@ $t('uye capraz damgasi',             str_contains($wf, "'wave3' => 'last_wave3_a
 $t('evler CANLI kayittan sayiliyor', str_contains($wf, 'foreach (vestra_products() as $wp)'));
 $t('eslesme TAM esitlik',            str_contains($wf, 'strcasecmp(trim((string)$b), trim($want)) === 0'));
 $t('eslesmeyen ev DURDURUR',         str_contains($wf, 'KATALOGDA ESLESMEYEN EV'));
-$t('alti ev adiyla, one cikan sirayla', str_contains($wf, "\$W3_WANT = ['Fred Perry', 'Lacoste', 'Gallery Dept.', 'Gucci', 'Balenciaga', 'DSQUARED2'];"));
+$t('alti ev adiyla, one cikan sirayla', str_contains($wf, "\$W3_WANT = ['Fred Perry', 'Gallery Dept.', 'Lacoste', 'Gucci', 'Balenciaga', 'DSQUARED2'];"));
 $t('Fred Perry not tasiyor',         str_contains($wf, "\$W3_NOTE = ['Fred Perry' => 'M3600, M7535'];"));
 $t('not istenen ada bagli',          str_contains($wf, "(string)(\$W3_NOTE[\$want] ?? '')"));
-$t('facts closure notu ALIYOR',      str_contains($wf, 'function () use ($W3_WANT, $W3_NOTE): array'));
+$t('facts closure notu ALIYOR',      str_contains($wf, 'function () use ($W3_WANT, $W3_NOTE, $W3_SHOTS, $home): array'));
+
+echo "\n== 7b. Fotograf seridi kablolamasi (workflow) ==\n";
+/* Fred Perry'nin tam 2 ilani var (M3600+M7535); tavan da 2 -- marka-ozel bir
+   dal yazilmadi, ayni sayi operatorun "polo sweatshirt" diye ikisini birden
+   andigi cumleyi otomatik karsiliyor. */
+$t('foto tavani 2 (Fred Perry M3600+M7535 icin)', str_contains($wf, '$W3_SHOTS = 2;'));
+$t('urunler marka basina TOPLANIYOR', str_contains($wf, '$byBrand[$wb][] = $wp;'));
+$t('SATILMIS urun foto icin atlaniyor', str_contains($wf, 'vestra_is_sold_out($wp)) continue;'));
+$t('foto DISKTE VAR MI diye dogrulaniyor', str_contains($wf, "is_file(\$home.'/public_html'.\$im)"));
+$t('foto uzak adrese vestrasales.com onekiyle giriyor', str_contains($wf, "'https://vestrasales.com'.\$im;"));
+$t('ev kaydina imgs eklendi',        str_contains($wf, "'note' => (string)(\$W3_NOTE[\$want] ?? ''), 'imgs' => \$imgs];"));
+$t('bulunamayan foto is DURDURMUYOR (mektup yine gider)', !str_contains($wf, "if (!\$imgs) exit(1)") && !str_contains($wf, "if (empty(\$imgs)) exit(1)"));
 /* Uye dalinda gunler icinde ikinci kampanya mektubu: 17 Eyl'de elle yapilmisti. */
 $t('uye: yakin kampanya elemesi',    str_contains($wf, 'baska bir kampanya mektubu aldi'));
 /* 25 girdi siniri: yeni girdi EKLENMEDI. */
