@@ -5989,6 +5989,36 @@ katalogun fiyat listesini gönderirmisin"*.
   (bu şablon yalnız en/de destekliyor; pt/ru/ar'ın e-posta şablonlarında
   İngilizceye düştüğü KURAL 10'un aynı kuralı).
 
+**21 Eyl 2026 — Ralph Lauren T-shirt SATILDI işaretlendi; aynı SKU'da AÇIK
+bir teklif duruyordu.** Operatör (model numarasıyla, ad değil):
+*"Custom Slim Fit Crew Neck T-Shirt / Original Ralph Lauren, model
+710680785004. Made in Cambodia, 100% cotton. EEA stock with full invoice
+trail satildi olarak isaretle"*.
+
+- **Ad TEK BAŞINA kullanılmadı.** Katalogda Ralph Lauren'ın iki ilanı var ve
+  ikisinin de adı birbirine yakın (*"Custom Slim Fit Crew Neck T-Shirt"* /
+  *"Custom Slim Fit Polo Shirt"*) — mango/zara dersinin aynısı, ad bir
+  kimlik değildir. Ayırt eden SKU: `inspect-products` (`brand=Ralph Lauren`)
+  `710680785004`'ün **yalnızca** `rl-csf-tee-navy`'de olduğunu gösterdi;
+  kardeş ilan `rl-csf-polo-white` farklı SKU (`710548797001`) taşıyor.
+- **Aynı SKU'da AÇIK bir teklif duruyordu ve bu operatöre ayrıca bildirildi:**
+  `diag-live` → `find_ref=710680785004` önce çalıştırıldı ve `offers.csv`'de
+  `O9C299` (SC Daymond Proconect SRL, 104 ad. @ €14, 21 Eyl 10:45 UTC) ortaya
+  çıktı. `sold_out=true` teklifi **silmiyor/reddetmiyor** — yalnız vitrini ve
+  yeni satın alma yollarını kapatıyor; KURAL 4'ün tur/kabul mekanizmasına
+  dokunulmadı.
+  `product-fixes/rl-csf-tee-navy-sold.json` → `set-product.yml`
+  (`match=rl-csf-tee-navy`, `expect:1`, `sold_out` **tırnaksız** boolean —
+  `lacoste-trim-sold.json`'ın dersi: string `"false"` PHP'de doğru sayılırdı).
+  Kuru koşu **1 alan** dedi (`sold_out false -> true`), sonra uygulandı,
+  zaman damgalı yedek alındı (`listings.json.bak-20260921-163141`).
+- **Geri okuma `KAYDEDILDI` mesajına değil, sepetin okuduğu fonksiyona
+  bakıyor:** `inspect-products` → `price_list` (brand filtresiyle) satırı
+  `vestra_is_sold_out()`'tan basıyor — aynı satırın altı satın alma yolunun
+  hepsinin çağırdığı fonksiyon. Sonuç: `rl-csf-tee-navy` → `*** SATILDI ***`,
+  kontrol grubu `rl-csf-polo-white` → `satista` (dokunulmadı, tek yön
+  ölçülseydi "her şeyi satan" bir hata da yeşil kalırdı).
+
 **11 Eyl 2026 — KATALOG GENELİNDE %80 ZAM ve GERİ ALINMASI.** Operatör:
 *"yüzde 80 eklemeyi hemen geri al"* → *"tüm fiyatları dün geceki fiyatlara çek"*.
 - **Ne olmuş:** KURAL 22 ile eklenen `markup_pct` aracı **`80` ile ve bölme
