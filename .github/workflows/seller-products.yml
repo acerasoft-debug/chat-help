@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir; issue_shipping='auto' = bölge tarifesi). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. 'order_colours' = siparişin RENGİNİ düzeltir (issue_ref=sipariş, payload='SKU:Renk,Renk', move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_add_line' = var olan bir siparişe YENİ bir SKU satırı ekler (issue_ref=sipariş, payload='SKU:ADET[:Renk=Adet,Renk=Adet]|allow_invoiced=1|unit=<fiyat>|note=<metin>', move_apply=true; renk kırılımı verilirse toplamı ADET'e eşit olmalı, ilanda kayıtlı olmayan renk yazılır ama UYARILIR; birim fiyat verilmezse katalog kademesinden, verilirse yalnız ilandan UCUZ olabilir; goods `vestra_order_lines()`'dan yeniden hesaplanır, indirim ve kargo DOKUNULMADAN kalır — ikinci bir hesap yolu yazılmadı; aynı SKU zaten sipariştaysa REDDEDİLİR, vestra_order_set_colours'a yönlendirir; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_discount' = siparişe HOŞ GELDİN İNDİRİMİ işler (issue_ref=sipariş, payload='pct=5|code=<kupon>|allow_invoiced=1', move_apply=true; TUTAR yüzdeden türer, elle verilmez; indirim + toplam + payout BİRLİKTE yazılır ve geri okunur; PARASI GELMİŞ sipariş koşulsuz RED, faturalı sipariş opt-in ister ve AYNI numarayla yeniden çizim İSTER; kuru koşu vestra_welcome_auto'nun KARARINI ve bölgesel indirimi de basar — pct=0 indirimi KALDIRIR). 'create_buyer' = ELLE alıcı hesabı açar (payload=ŞİFRELİ zarf — müşterinin e-postası açık girdiye yazılmaz, çıktıda maskeli; move_apply=true ile uygular, varsayılan kuru koşu; panelin ➕ New buyer account formuyla AYNI yazıcı, müşteriye HİÇBİR ŞEY gitmez). 'lead_rename' = bir lead'in SADECE firma adını düzeltir (issue_ref=lead id ya da ALAN ADI — müşterinin adresi açık girdiye yazılmaz, çıktıda maskeli; payload=yeni ad; TAM 1 eşleşme yoksa durur; damgalara DOKUNMAZ, yani ilk mektup ikinci kez gitmez; move_apply=true ile uygular, varsayılan kuru koşu). 'platform_bank' = PLATFORMUN banka künyesini yazar (payload=ŞİFRELİ zarf, keygen'in public key'iyle; gövde {bank_iban, bank_eur_bic, bank_eur_name, …}; panelin 🏦 Platform billing formuyla AYNI yazıcı — mod-97 geçmezse HİÇBİR alan yazılmaz; çıktıda numara YOK; kuru koşu EUR kutusunun çıkıp çıkmayacağını BELLEKTE gösterir; move_apply=true ile yazar). 'password_setup' = elle açılan hesaba 'şifreni seç' MEKTUBU GÖNDERİR (issue_ref=hesap ID — adres açık girdiye yazılmaz, kayıttan çözülür; TAM 1 eşleşme yoksa durur; link/jeton/gövde log'a YAZILMAZ; move_apply=true ile gönderir, varsayılan kuru koşu ve kuru koşu jeton ÜRETMEZ). Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir; issue_shipping='auto' = bölge tarifesi). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. 'order_colours' = siparişin RENGİNİ düzeltir (issue_ref=sipariş, payload='SKU:Renk,Renk', move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_add_line' = var olan bir siparişe YENİ bir SKU satırı ekler (issue_ref=sipariş, payload='SKU:ADET[:Renk=Adet,Renk=Adet]|allow_invoiced=1|unit=<fiyat>|note=<metin>', move_apply=true; renk kırılımı verilirse toplamı ADET'e eşit olmalı, ilanda kayıtlı olmayan renk yazılır ama UYARILIR; birim fiyat verilmezse katalog kademesinden, verilirse yalnız ilandan UCUZ olabilir; goods `vestra_order_lines()`'dan yeniden hesaplanır, indirim ve kargo DOKUNULMADAN kalır — ikinci bir hesap yolu yazılmadı; aynı SKU zaten sipariştaysa REDDEDİLİR, vestra_order_set_colours'a yönlendirir; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_discount' = siparişe HOŞ GELDİN İNDİRİMİ işler (issue_ref=sipariş, payload='pct=5|code=<kupon>|allow_invoiced=1', move_apply=true; TUTAR yüzdeden türer, elle verilmez; indirim + toplam + payout BİRLİKTE yazılır ve geri okunur; PARASI GELMİŞ sipariş koşulsuz RED, faturalı sipariş opt-in ister ve AYNI numarayla yeniden çizim İSTER; kuru koşu vestra_welcome_auto'nun KARARINI ve bölgesel indirimi de basar — pct=0 indirimi KALDIRIR). 'create_buyer' = ELLE alıcı hesabı açar (payload=ŞİFRELİ zarf — müşterinin e-postası açık girdiye yazılmaz, çıktıda maskeli; move_apply=true ile uygular, varsayılan kuru koşu; panelin ➕ New buyer account formuyla AYNI yazıcı, müşteriye HİÇBİR ŞEY gitmez). 'lead_rename' = bir lead'in SADECE firma adını düzeltir (issue_ref=lead id ya da ALAN ADI — müşterinin adresi açık girdiye yazılmaz, çıktıda maskeli; payload=yeni ad; TAM 1 eşleşme yoksa durur; damgalara DOKUNMAZ, yani ilk mektup ikinci kez gitmez; move_apply=true ile uygular, varsayılan kuru koşu). 'preorder_ship' = kodda GÖMÜLÜ (demo) bir ürünün ön sipariş teslim tarihini yazar (issue_ref=ürün id, ör. amiri-core-polo; payload=YYYY-MM-DD, boş = KALDIR; sayfada görünecek cümleyi ÖNİZLER; moq/tiers gibi kardeş alanlara dokunmaz; move_apply=true ile uygular, varsayılan kuru koşu — CANLI LİSTELER için bu alan set-product.yml'den yazılır, orada reddedilir). 'platform_bank' = PLATFORMUN banka künyesini yazar (payload=ŞİFRELİ zarf, keygen'in public key'iyle; gövde {bank_iban, bank_eur_bic, bank_eur_name, …}; panelin 🏦 Platform billing formuyla AYNI yazıcı — mod-97 geçmezse HİÇBİR alan yazılmaz; çıktıda numara YOK; kuru koşu EUR kutusunun çıkıp çıkmayacağını BELLEKTE gösterir; move_apply=true ile yazar). 'password_setup' = elle açılan hesaba 'şifreni seç' MEKTUBU GÖNDERİR (issue_ref=hesap ID — adres açık girdiye yazılmaz, kayıttan çözülür; TAM 1 eşleşme yoksa durur; link/jeton/gövde log'a YAZILMAZ; move_apply=true ile gönderir, varsayılan kuru koşu ve kuru koşu jeton ÜRETMEZ). Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -2462,6 +2462,111 @@ jobs:
             # ise yaramiyordu. Sessiz bir fatal, yanlis bir teshisten pahali.
             php -d display_errors=stderr -d error_reporting=-1 /tmp/vestra_lead_rename.php; RC=$?
             rm -f /tmp/vestra_lead_rename.php
+            exit $RC
+
+      - name: Ön sipariş teslim tarihini düzelt (preorder_ship) — demo ürünler
+        # amiri-core-polo gibi kodda gomulu urunlerin fiyat/MOQ/tiers duzeltmesi
+        # zaten data/product_overrides.json uzerinden gidiyor (admin.php'nin
+        # Prices editoru, vestra_apply_price_overrides()). `preorder_ship` o
+        # katmanin bilmedigi tek alandi: set_product.php'nin $ALLOWED listesinde
+        # zaten var ama o betik yalniz listings.json satirlarini eslestiriyor --
+        # demo urunun orada HIC satiri yok, yani ayni yoldan yazmaya calismak
+        # "0 urune uydu" ile sessizce hicbir sey degistirmeden dururdu. Ayri,
+        # kucuk bir yol: ayni override katmanina, ayni yedek/geri-okuma
+        # disipliniyle yazar. Canli listeler (listings.json) icin bu alan zaten
+        # set-product.yml'den yazilabiliyor -- burasi yalniz demo urunler icin.
+        if: ${{ github.event.inputs.admin_mode == 'preorder_ship' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          PS_ID:   ${{ github.event.inputs.issue_ref }}
+          PS_DATE: ${{ github.event.inputs.payload }}
+          PS_GO:   ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: PS_ID,PS_DATE,PS_GO
+          script: |
+            set -e
+            cat > /tmp/vestra_preorder_ship.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            require $home."/public_html/inc/products.php";
+
+            $id   = trim((string)getenv("PS_ID"));
+            $date = trim((string)getenv("PS_DATE"));
+            $go   = strtolower(trim((string)getenv("PS_GO"))) === 'true';
+            if ($id === '') { fwrite(STDERR, "HATA: issue_ref bos -- urun id'si verin (ör: amiri-core-polo)\n"); exit(1); }
+
+            /* Yalniz DEMO urunler -- canli listings.json satirlari icin bu alan
+               zaten set-product.yml'den yaziliyor. Yanlis yola yonlendirilmis
+               bir id burada sessizce "yok" demek yerine acikca reddediliyor. */
+            if (!vestra_is_demo_product($id)) {
+              fwrite(STDERR, "HATA: '{$id}' bir demo urun degil -- preorder_ship'i "
+                ."set-product.yml (scripts/set_product.php, listings.json satiri) uzerinden yazin.\n");
+              exit(1);
+            }
+
+            /* Bos = KALDIR (issue_currency'nin ayni deseni: bos = secimi kaldir).
+               Doluysa YYYY-MM-DD VE gercek bir takvim tarihi olmali -- bozuk bir
+               tarih vestra_preorder_ship_phrase()'de sessizce susar, yani
+               operator "15 Ekim yazdim" sanir, sayfada hicbir sey gorunmez. */
+            if ($date !== '') {
+              if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $mm) || !checkdate((int)$mm[2], (int)$mm[3], (int)$mm[1])) {
+                fwrite(STDERR, "HATA: payload YYYY-MM-DD ve gecerli bir tarih olmali (ör: 2026-10-15), verilen: '{$date}'\n");
+                exit(1);
+              }
+            }
+
+            $ov  = vestra_product_overrides();
+            $cur = (string)($ov[$id]['preorder_ship'] ?? '');
+            printf("urun         : %s\n", $id);
+            printf("mevcut deger : %s\n", $cur !== '' ? $cur : '(yok)');
+            printf("yeni deger   : %s\n", $date !== '' ? $date : '(KALDIRILACAK)');
+
+            /* Onizleme: sayfada GERCEKTEN ne yazacagi -- vestra_preorder_note()'un
+               kendisinden, elle kurulmus bir cumle degil. */
+            $preview = vestra_preorder_note(['preorder_ship' => $date]);
+            printf("gorunecek not: %s\n", $preview !== '' ? $preview : '(bos -- tarih gecmis ya da alan bos, hic satir basilmaz)');
+
+            if ($cur === $date) { echo "\nZATEN BU DEGER -- yapilacak bir sey yok.\n"; exit(0); }
+            if (!$go) { echo "\nKURU KOSU -- hicbir sey yazilmadi. Uygulamak icin move_apply=true.\n"; exit(0); }
+
+            $ovFile = vestra_data_dir().'/product_overrides.json';
+            @copy($ovFile, $ovFile.'.bak-'.date('Ymd-His'));
+
+            $e = (array)($ov[$id] ?? []);
+            if ($date !== '') $e['preorder_ship'] = $date; else unset($e['preorder_ship']);
+            if ($e) $ov[$id] = $e; else unset($ov[$id]);
+            vestra_save_product_overrides($ov);
+
+            /* Geri okuma: vestra_save_product_overrides() void donuyor,
+               "yazdim" demek olcum degil (KURAL 5c'nin billing_saved dersi).
+               Ayrica moq/tiers gibi KARDES alanlarin yerinde durdugu da
+               dogrulaniyor -- bu yazmanin var olma sebebi tam olarak onlari
+               ezmemek. */
+            $back = vestra_product_overrides();
+            $gotDate = (string)($back[$id]['preorder_ship'] ?? '');
+            $okDate  = $gotDate === $date;
+            /* '==' bilerek, '===' degil: json_encode 39.0 gibi tam sayili bir
+               float'i JSON_PRESERVE_ZERO_FRACTION olmadan "39" yazar, yani
+               diskten geri okunan deger int'e doner -- ayni fiyat, farkli PHP
+               tipi. '===' bunu sahte bir "DEGISTI" olarak raporlardi (KURAL
+               5c'nin billing_saved dersiyle ayni sinif: olcum aracinin kendi
+               gurultusu). '==' tip zorlamasiyla ve sira farkina bakmadan
+               karsilastirir, gercek bir kayip/degisimi yine yakalar. */
+            $okMoq   = ($e['moq']   ?? null) == ($back[$id]['moq']   ?? null);
+            $okTiers = ($e['tiers'] ?? null) == ($back[$id]['tiers'] ?? null);
+            printf("\ngeri okuma   : preorder_ship=%s | moq/tiers=%s\n",
+              $okDate ? 'YAZILDI' : '*** TUTMADI ***', ($okMoq && $okTiers) ? 'KORUNDU' : '*** DEGISTI ***');
+            if (!$okDate || !$okMoq || !$okTiers) { fwrite(STDERR, "HATA: yazma tutmadi\n"); exit(1); }
+            echo "YAZILDI.\n";
+            PHPEOF
+            php -l /tmp/vestra_preorder_ship.php
+            php -d display_errors=stderr -d error_reporting=-1 /tmp/vestra_preorder_ship.php; RC=$?
+            rm -f /tmp/vestra_preorder_ship.php
             exit $RC
 
       - name: Mesaj / engellenen kayıt sil

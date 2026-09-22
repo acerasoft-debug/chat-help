@@ -364,6 +364,12 @@ function vestra_apply_price_overrides(array $products): array {
        satiri her deploy'da geri gelir. Ayni sebeple 'no_offers'. */
     if(isset($o['no_offers']))    $p['no_offers']    = (bool)$o['no_offers'];
     if(isset($o['sample_price'])) $p['sample_price'] = (float)$o['sample_price'];
+    /* preorder_ship: vestra_preorder_ship_phrase() ayni bicimi ariyor
+       (YYYY-MM-DD); bozuk bir deger sessizce yanlis/hic basmayan bir
+       tarihe donusmesin diye burada da dogrulaniyor (set_product.php'nin
+       ayni kontrolu). */
+    if(isset($o['preorder_ship']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$o['preorder_ship']))
+      $p['preorder_ship'] = (string)$o['preorder_ship'];
     if(isset($o['tiers']) && is_array($o['tiers']) && $o['tiers']){
       $t=[];
       foreach($o['tiers'] as $row){
