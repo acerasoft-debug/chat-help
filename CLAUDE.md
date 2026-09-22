@@ -7746,3 +7746,54 @@ diline karışan bir kelime; ürün adı değil).
   olduğu için dosyaları **boş** okuyordu ve dördü de **boşa geçti**. Yalnızca PHP
   uyarısı ele verdi; düzeltilince `admin.php`'deki altı yeri hemen yakaladı.
   *Hiç düşemeyen bir iddia, iddia değildir — bu dosyada üçüncü kez.*
+
+**AMI PARIS — Core Logo Polo: ön sipariş teslim tarihi (`preorder_ship`) demo
+ürünlerde HİÇ yazılamıyordu** (operatör, 22 Eyl 2026: *"15 oktober lieferzeit
+olarak not düş ilana"*).
+- **İlan `amiri-core-polo` (`Core Logo Polo — Ami de Cœur`) `listings.json`'da
+  değil, kodda gömülü 3 demo üründen biri** (`vestra_is_demo_product()`:
+  `lac-pique-polo`, `amiri-core-polo`, `lac-l1212-musterstueck`). MOQ/mode/list/
+  tiers/teklif/numune düzeltmeleri zaten `data/product_overrides.json`
+  üzerinden gidiyor (`vestra_apply_price_overrides()`, admin panelin Prices
+  editörü) — ama `preorder_ship` o katmanın bilmediği tek alandı.
+  `set_product.php`'nin `$ALLOWED` listesinde zaten vardı ve doğruluyordu
+  (YYYY-MM-DD), ama o betik yalnız `listings.json` satırlarını eşleştiriyor;
+  bu ürünün orada **hiç satırı yok**, yani aynı yoldan yazmaya çalışmak "0
+  ürüne uydu" ile **sessizce hiçbir şey değiştirmeden** dururdu.
+- **İki küçük ekleme, ikisi de mevcut düzenin devamı:**
+  1. `vestra_apply_price_overrides()`'a `preorder_ship` dalı (YYYY-MM-DD
+     doğrulamalı, `moq`/`tiers`/`sample_price` ile aynı desen).
+  2. `seller-products.yml` → **`admin_mode=preorder_ship`**
+     (`issue_ref=<ürün id>`, `payload=YYYY-MM-DD`, boş = **KALDIR**;
+     `move_apply=true`, varsayılan kuru koşu). Yeni bir workflow girdisi
+     **eklenmedi** — üç mevcut alan (`issue_ref`/`payload`/`move_apply`)
+     yeniden kullanıldı, çünkü `workflow_dispatch` 25 girdiyle sınırlı ve bu
+     dosya zaten sınırda (CLAUDE.md'nin kendi kaydı). **Canlı listeler için bu
+     alan hâlâ set-product.yml'den yazılır** — yeni mod yalnız 3 demo ürünü
+     hedefliyorsa çalışır, başka bir id verilirse **reddeder** (sessizce "yok"
+     demek yerine, doğru yolu — set-product.yml — söyleyerek).
+  3. Kuru koşu, sayfada **gerçekten görünecek cümleyi** basıyor
+     (`vestra_preorder_note()`'un kendisinden — elle kurulmuş bir metin değil):
+     tarih geçmişse ya da alan boşsa "hiç satır basılmaz" diyor, kimse "15
+     Ekim yazdım ama sayfada yok" diye şaşırmasın diye.
+- **Yedek + geri okuma, kardeş alanlara dokunmadan.** `moq`/`tiers` override'ı
+  zaten varsa (bu üründe vardı: MOQ 60, üç kademeli merdiven) `$ov[$id]`
+  **okunup üzerine eklenir**, wholesale yazılmaz — panelin Prices editörü de
+  aynı deseni kullanıyor (POST'ta olmayan alanı silmiyor), yani iki yazma yolu
+  birbirini ezmiyor.
+- **Kendi ölçüm hatam, kum havuzunda yakalandı:** ilk sürümde geri okuma
+  `$ov[$id]['tiers'] === $back[$id]['tiers']` diye **`===`** ile kıyaslıyordu
+  ve **her koşuda sahte bir "DEĞİŞTİ" raporluyordu** — yazma doğruydu, ölçü
+  yanlıştı: `json_encode` tam sayılı bir float'ı (`39.0`) `JSON_PRESERVE_ZERO_
+  FRACTION` olmadan `"39"` yazıyor, diskten geri okunan da `int(39)` oluyor —
+  aynı fiyat, farklı PHP tipi. `===` bunu kayıp sanırdı; bu depoda `billing_
+  saved`'in verdiği dersin aynısı (ölçüm aracının kendi gürültüsü). `==`'a
+  çevrilince (tip zorlamalı, sıra bağımsız) doğru sonuç çıktı — hem "moq/tiers
+  KORUNDU" hem gerçek bir kayıp verilseydi hâlâ yakalanırdı, ayrıca sınandı.
+  Sandbox: `VESTRA_DATA_DIR` sabitiyle izole edilmiş sahte bir `product_
+  overrides.json` üzerinde — **symlink + `HOME` ile kurulan ilk deneme
+  `__DIR__`'in gerçek repo yolunu çözdüğünü** gösterip yanlışlıkla bu
+  checkout'un yerel (git'e girmeyen, `data/*` .gitignore'lu) `vestra/data/
+  product_overrides.json`'ına yazdı — zararsızdı (sunucu değil, ve iz
+  temizlendi) ama *bir sandbox'ın gerçekten izole olduğunu varsaymak yerine
+  ölçmek* gerektiğini bir kez daha gösterdi.
