@@ -122,8 +122,14 @@ $t('ABD toptanı 50/100',     abs($T['us']['bulk'] - 50.0) < 0.005);
 $t('ABD yarım bloğu 20/50',  abs($T['us']['half'] - 20.0) < 0.005 && (int)$T['us']['half_qty'] === 50);
 
 echo "\n== 9. Kablolama: kasa, sepet, teklif faturası ve iş akışı AYNI tabloyu okuyor ==\n";
+/* KURAL 34 (19 Eyl 2026): davranış BİLEREK değişti -- dört OTOMATİK çağıran
+   artık pure fonksiyonu değil, PASİF anahtarına bakan `_auto_schedule`
+   sarmalını çağırıyor (bölüm 12'de ayrıca ve daha ayrıntılı sınanıyor). Bu
+   bölümdeki dört iddia eski, sarmalsız çağrıyı pinliyordu ve kasıtlı
+   değişiklikten sonra kırmızıya düştü; bu depo "davranış bilerek değiştiyse
+   testi de düzelt" kuralını burada da uyguluyor. */
 $order = $src('vestra/order.php');
-$t('kasa tarifeyi çağırıyor',        str_contains($order, 'vestra_shipping_schedule($lines, $country)'));
+$t('kasa tarifeyi (sarmal üzerinden) çağırıyor', str_contains($order, 'vestra_shipping_auto_schedule($lines, $country)'));
 $t('kasa navlunu TOPLAMA katıyor',   str_contains($order, '$buyer_fee + $shipping'));
 $t('kasa CSV\'ye yazıyor',           str_contains($order, "'discount','shipping','shipping_label'"));
 $t('escrow navlunu KENDİ satırı',    str_contains($order, "\$li[]=['name'=>(\$shipLabel!==''?\$shipLabel:'Shipping')"));
@@ -132,7 +138,7 @@ $t('alıcı mektubunda navlun satırı', str_contains($order, '{$voucherLine}{$s
 $t('kasada gömülü rakam yok',        !preg_match('/\$shipping\s*=\s*[0-9]/', $order));
 
 $cart = $src('vestra/cart.php');
-$t('sepet tabloyu SUNUCUDAN basıyor',  str_contains($cart, 'json_encode(vestra_shipping_tariffs()'));
+$t('sepet tabloyu SUNUCUDAN (anahtara bağlı) basıyor', str_contains($cart, 'vestra_shipping_auto_enabled() ? vestra_shipping_tariffs() : []'));
 $t('sepet bölge haritasını basıyor',   str_contains($cart, 'vestra_shipping_region_map()'));
 $t('sepet toplamı navlunu içeriyor',   str_contains($cart, 'eur(net+efee+shipAmt)'));
 $t('sepette elle yazılmış tarife yok', !preg_match('/base_qty\s*[:=]\s*[0-9]/', $cart));
@@ -146,9 +152,9 @@ $t('ölçüt array_key_exists (bilinçli 0 korunuyor)', str_contains($off, "arra
 $t('tek teklif yolu bağlı',   substr_count($off, 'vestra_offer_invoice_shipping(') === 3);
 
 $adm = $src('vestra/admin.php');
-$t('panel tarifeyi gösteriyor',     str_contains($adm, 'vestra_order_shipping_schedule($viewRow)'));
+$t('panel tarifeyi (sarmal üzerinden) gösteriyor', str_contains($adm, 'vestra_order_shipping_auto_schedule($viewRow)'));
 $t('panel AYNI yazıcıyı çağırıyor', str_contains($adm, 'name="_action" value="order_shipping"'));
-$t('kuyrukta eksik navlun çipi',    str_contains($adm, 'vestra_order_shipping_schedule($o)'));
+$t('kuyrukta eksik navlun çipi de sarmal üzerinden', str_contains($adm, 'vestra_order_shipping_auto_schedule($o)'));
 
 $wf = $src('.github/workflows/seller-products.yml');
 $t('iş akışı auto kipi var',        str_contains($wf, "strtolower(\$amountPart) === 'auto'"));
@@ -167,6 +173,103 @@ $t('harita ABD adlarını içeriyor',     ($map['usa'] ?? '') === 'us');
 $t('haritada Japonya YOK',             !isset($map['japan']));
 $t('haritada Avustralya YOK',          !isset($map['australia']) && !isset($map['au']));
 $t('harita tablolardan türüyor',       str_contains($ordersSrc, 'foreach (vestra_europe_codes() as $cc) $map['));
+
+echo "\n== 11. OTOMASYON ANAHTARI — KAPALIYKEN hiçbir OTOMATİK çağıran rakam ==\n";
+echo "     üretmiyor (KURAL 34, operatör 19 Eyl 2026: \"tekrar söylüyorum\n";
+echo "     simdilik otomatik yapma pasif olsun ben hesaplarim siparisten sonra\") ==\n";
+$shipFile = vestra_shipping_settings_file();
+$shipBak  = is_file($shipFile) ? file_get_contents($shipFile) : null;
+/* vestra_shipping_auto_enabled() süreç içinde önbellekli (static) —
+   vestra_dropship_payments_enabled()'ın aynı, bilinen sınırı. Tek süreçte
+   açıp kapatıp ölçmek ölçüm aracının kendi gürültüsünü ölçmek olurdu; dosya
+   davranışı bu yüzden AYRI PHP süreçlerinde sınanıyor. */
+$shipProbe = function (?string $json) use ($root, $shipFile): string {
+    if ($json === null) @unlink($shipFile); else file_put_contents($shipFile, $json);
+    $code = 'require '.var_export($root.'/inc/products.php', true).';'
+          . 'require '.var_export($root.'/inc/orders.php', true).';'
+          . 'echo vestra_shipping_auto_enabled() ? "ON" : "OFF";';
+    return (string)shell_exec('php -d error_reporting=0 -r ' . escapeshellarg($code) . ' 2>/dev/null');
+};
+try {
+    $t('ayar dosyası yokken PASİF',              $shipProbe(null) === 'OFF');
+    $t('boş dosyada da PASİF',                   $shipProbe('{}') === 'OFF');
+    $t('bozuk JSON da PASİF (sessizce açılmaz)', $shipProbe('{bozuk') === 'OFF');
+    $t('auto_enabled=false PASİF',               $shipProbe('{"auto_enabled":false}') === 'OFF');
+    $t('auto_enabled=true AKTİF',                $shipProbe('{"auto_enabled":true}') === 'ON');
+
+    echo "\n-- yazma + geri okuma --\n";
+    @unlink($shipFile);
+    $t('aç: true döner',       vestra_shipping_set_auto(true) === true);
+    $t('dosyaya yazıldı',      ($j = json_decode((string)file_get_contents($shipFile), true)) && $j['auto_enabled'] === true);
+    $t('kim/ne zaman damgası', ($j['auto_changed_by'] ?? '') === 'operator' && ($j['auto_changed_at'] ?? '') !== '');
+    $t('kapat: true döner',    vestra_shipping_set_auto(false) === true);
+    $t('kapalı yazıldı',       (json_decode((string)file_get_contents($shipFile), true)['auto_enabled'] ?? null) === false);
+    $t('süreçler arası okunuyor', $shipProbe(null) === 'OFF');
+
+    echo "\n-- sarmal PASİFKEN, PURE fonksiyon geçerli bir sonuç verecek girdide bile null --\n";
+    @unlink($shipFile);
+    $t('vestra_shipping_auto_schedule PASİFKEN null (pure fonksiyon 20.0 dönerdi)',
+       vestra_shipping_auto_schedule($L([10]), 'Germany') === null);
+    $t('vestra_order_shipping_auto_schedule PASİFKEN de null',
+       vestra_order_shipping_auto_schedule(['items' => '10x SKU1 @2.00', 'notes' => '', 'country' => 'Germany']) === null);
+    /* Tanınmayan ülkeyle AYNI cevap: ikisi de "burada otomatik bir rakam yok" demek. */
+    $t('PASİF ile tanınmayan-ülke AYNI cevabı veriyor',
+       vestra_shipping_auto_schedule($L([10]), 'Germany') === vestra_shipping_schedule($L([10]), 'Japan'));
+
+    echo "\n-- AÇIKKEN sarmal PURE fonksiyonla BİREBİR aynı (ikinci bir hesap yolu değil) --\n";
+    file_put_contents($shipFile, json_encode(['auto_enabled' => true]));
+    $probeSame = function () use ($root): string {
+        $code = 'require '.var_export($root.'/inc/products.php', true).';'
+              . 'require '.var_export($root.'/inc/orders.php', true).';'
+              . '$a = vestra_shipping_auto_schedule([["sku"=>"S","qty"=>10]], "Germany");'
+              . '$b = vestra_shipping_schedule([["sku"=>"S","qty"=>10]], "Germany");'
+              . 'echo ($a === $b) ? "SAME" : "DIFF";';
+        return (string)shell_exec('php -d error_reporting=0 -r ' . escapeshellarg($code) . ' 2>/dev/null');
+    };
+    $t('AÇIKKEN sarmal = pure fonksiyon (birebir)', $probeSame() === 'SAME');
+} finally {
+    if ($shipBak === null) @unlink($shipFile); else file_put_contents($shipFile, $shipBak);
+}
+
+echo "\n== 12. Kablolama: OTOMATİK her çağıran sarmalı kullanıyor; ELLE yazma yolu DOKUNULMADI ==\n";
+$order2 = $src('vestra/order.php');
+$t('kasa artık sarmalı çağırıyor',       str_contains($order2, 'vestra_shipping_auto_schedule($lines, $country)'));
+$t('kasada çıplak pure çağrı kalmadı',   !str_contains($order2, '$shipSched  = vestra_shipping_schedule('));
+
+$cart2 = $src('vestra/cart.php');
+$t('sepet tarife tablosunu anahtara bağlıyor', str_contains($cart2, 'vestra_shipping_auto_enabled() ? vestra_shipping_tariffs() : []'));
+$t('sepet bölge haritasını da anahtara bağlıyor', str_contains($cart2, 'vestra_shipping_auto_enabled() ? vestra_shipping_region_map() : []'));
+
+$off2 = $src('vestra/inc/offers.php');
+$t('teklif faturası varsayılanı sarmalı çağırıyor', str_contains($off2, 'vestra_shipping_auto_schedule($lines,'));
+
+$adm2 = $src('vestra/admin.php');
+$t('panel ipucu ("Apply tariff") sarmalı çağırıyor', str_contains($adm2, '$__vsched = vestra_order_shipping_auto_schedule($viewRow)'));
+$t('sipariş kuyruğundaki çip de sarmalı çağırıyor',  str_contains($adm2, '$__osch = vestra_order_shipping_auto_schedule($o)'));
+/* ELLE yazma yolu DOKUNULMADI: manuel "🚚 Save shipping" formunun işleyicisi
+   hâlâ doğrudan yazıcıyı çağırıyor, anahtara hiç sormuyor -- operatörün
+   "ben hesaplarım siparişten sonra" dediği yol bu. */
+$t('manuel Save-shipping işleyicisi DEĞİŞMEDİ (anahtara sormuyor)',
+   str_contains($adm2, "if(\$act==='order_shipping'){")
+   && str_contains($adm2, "\$r=vestra_order_set_shipping(\$ref, vestra_price_input((string)(\$_POST['shipping']??'0')), (string)(\$_POST['shipping_label']??''));"));
+$t('panelde otomasyon anahtarı formu var',   str_contains($adm2, 'value="shipping_auto"'));
+$t('işleyici yazıp geri okuyor',             str_contains($adm2, "if(\$act==='shipping_auto'){") && str_contains($adm2, 'vestra_shipping_set_auto($saWant)'));
+$t('yazılamazsa KIRMIZI uyarı',              str_contains($adm2, "elseif(\$msg==='ship_auto_fail')"));
+$t('durum panelde yazılı',                   str_contains($adm2, 'Automatic shipping tariff is PAUSED'));
+$t('geri açma düğmesi var',                  str_contains($adm2, 'Turn tariff back on'));
+
+$wf2 = $src('.github/workflows/seller-products.yml');
+$t('order_draft/order_write artık sarmalı çağırıyor', str_contains($wf2, 'vestra_shipping_auto_schedule('));
+$t('admin_mode=shipping: auto PASİFKEN REDDEDİLİYOR',
+   str_contains($wf2, 'if (!vestra_shipping_auto_enabled()) {') && str_contains($wf2, "'auto' kabul edilmiyor"));
+$t('admin_mode=shipping: elle SAYISAL tutar hâlâ kabul ediliyor',
+   str_contains($wf2, '$amount = vestra_price_input($amountPart);'));
+
+echo "\n== 13. Kurulu kaldı: hiçbir şey silinmedi ==\n";
+$t('pure tarife fonksiyonu duruyor',        function_exists('vestra_shipping_schedule'));
+$t('tarife tablosu duruyor',                count(vestra_shipping_tariffs()) === 2);
+$t('bölge tespiti duruyor',                 vestra_shipping_region('Germany') === 'eu');
+$t('manuel yazıcı duruyor',                 function_exists('vestra_order_set_shipping'));
 
 echo "\n".($fail ? "SONUÇ: {$fail} HATA, {$ok} ok\n" : "SONUÇ: hepsi geçti ({$ok})\n");
 exit($fail ? 1 : 0);

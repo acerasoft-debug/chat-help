@@ -808,6 +808,82 @@ function vestra_order_shipping_schedule(array $orderRow): ?array {
     return vestra_shipping_schedule($ld['lines'], (string)($orderRow['country'] ?? ''));
 }
 
+/* ─────────── NAVLUN OTOMASYONU: PASİF ANAHTARI (KURAL 34, 19 Eyl 2026) ──────
+ * Operatör: *"shipping cost yanlis olmus tekrar söylüyorum simdilik otomatik
+ * yapma pasif olsun ben hesaplarim siparisten sonra"* — "tekrar söylüyorum"
+ * ikinci şikâyet: yukarıdaki tarife CANLIDA yanlış rakam üretti. KURAL
+ * 16/17'nin "durdur ama sökme" deseni (dropship ödemesi): TEK anahtar,
+ * VARSAYILAN KAPALI, hiçbir tablo/fonksiyon silinmiyor, panelden deploy'suz
+ * geri açılabiliyor.
+ *
+ * `vestra_shipping_schedule()` ve `vestra_order_shipping_schedule()` BİLEREK
+ * DOKUNULMADI — SAF kalıyorlar ve `tests/shipping_tariff_test.php`'nin 91
+ * iddiası hâlâ doğrudan onları çağırıyor; anahtarı oraya gömmek o testin
+ * tamamını (ve dolaylı olarak tarifenin kendi matematiğini) bu anahtara
+ * bağımlı kılardı. Anahtar bunun yerine YENİ İKİ SARMALDA:
+ * `vestra_shipping_auto_schedule()` ve `vestra_order_shipping_auto_schedule()`.
+ * OTOMATİK olan HER çağıran (kasa — order.php, sepetin sunucudan aldığı
+ * önizleme tablosu — cart.php, teklif faturası varsayılanı — offers.php,
+ * panelin ipucu/"Apply tariff" düğmesi — admin.php, iş akışının `auto`
+ * kipi — seller-products.yml, ikisi de) artık PURE fonksiyonu değil bu
+ * sarmalı çağırıyor. ELLE yazma yolu (`vestra_order_set_shipping()`, panelin
+ * "🚚 Save shipping" formu ve iş akışının `admin_mode=shipping` AÇIK SAYISAL
+ * girdisi) HİÇ DOKUNULMADI — operatörün "ben hesaplarım siparişten sonra"
+ * dediği yol bu.
+ *
+ * VARSAYILAN KAPALI: dosya yoksa ya da anahtar okunamazsa otomatik navlun
+ * DURUR. Tersi (dosya kaybolunca otomatik navlun kendiliğinden geri açılması)
+ * operatörün "kapat" dediği şeyin sessizce geri gelmesi olurdu.
+ *
+ * Dosya yolu `defined()` korumalı (KURAL 2'nin `VESTRA_ACCOUNTS` dersi):
+ * korumasız olsaydı bu ayarı sınayan bir test gerçek `data/`'ya yazabilirdi.
+ */
+function vestra_shipping_settings_file(): string {
+    return defined('VESTRA_SHIPPING_SETTINGS') ? VESTRA_SHIPPING_SETTINGS : dirname(__DIR__).'/data/shipping_settings.json';
+}
+
+function vestra_shipping_auto_enabled(): bool {
+    static $on = null;
+    if ($on !== null) return $on;
+    $f = vestra_shipping_settings_file();
+    if (!is_readable($f)) return $on = false;
+    $j = json_decode((string)@file_get_contents($f), true);
+    return $on = (is_array($j) && !empty($j['auto_enabled']));
+}
+
+/** Anahtarı yazar (geri okunarak doğrulanır — KURAL 5c'nin `billing_saved`
+ *  dersi: yazılamayan bir değeri "kaydettim" diye raporlamak operatöre
+ *  değişmemiş bir durumu değişmiş sandırır). Süreç-içi `static` önbellek
+ *  `vestra_dropship_payments_enabled()`'ın aynı bilinen sınırı: bu süreçte
+ *  hemen geri okumak isteyen çağıran/test ayrı bir PHP süreci açmalı. */
+function vestra_shipping_set_auto(bool $enabled): bool {
+    $f = vestra_shipping_settings_file();
+    $j = is_readable($f) ? json_decode((string)@file_get_contents($f), true) : [];
+    if (!is_array($j)) $j = [];
+    $j['auto_enabled']    = $enabled;
+    $j['auto_changed_at'] = date('c');
+    $j['auto_changed_by'] = 'operator';
+    $dir = dirname($f);
+    if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    if (@file_put_contents($f, json_encode($j, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) === false) return false;
+    $back = json_decode((string)@file_get_contents($f), true);
+    return is_array($back) && (bool)($back['auto_enabled'] ?? false) === $enabled;
+}
+
+/** OTOMATİK çağıranların kullandığı TEK kapı. Kapalıyken null — tanınmayan
+ *  ülkeyle (KURAL 3) AYNI cevap: ikisi de "burada otomatik bir rakam yok"
+ *  demek, ve uydurma bir rakam hiçbir zaman kayda girmiyor. */
+function vestra_shipping_auto_schedule(array $lines, string $country): ?array {
+    if (!vestra_shipping_auto_enabled()) return null;
+    return vestra_shipping_schedule($lines, $country);
+}
+
+/** Sipariş satırı için aynı kapı. */
+function vestra_order_shipping_auto_schedule(array $orderRow): ?array {
+    if (!vestra_shipping_auto_enabled()) return null;
+    return vestra_order_shipping_schedule($orderRow);
+}
+
 /* ─────────── SATICIYA ÖDEME: "BAŞARILI SİPARİŞ" TEK KARAR NOKTASI ───────────
  * Operatör, 19 Eyl 2026: *"satıcılar için siparişleri ben alıcam ve başarılı
  * olan siparişleri satıcılara ödeyeceğim, bunun yapılması için hukuki bir

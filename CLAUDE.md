@@ -1877,6 +1877,93 @@ için geçerli"* → *"abd için her siparişe 30 eur + 20 ad. sonrasına her 10
   çıkarınca **2**, sepet tabloyu elle yazınca **3**, teklif faturası yine
   `?? 0` okuyunca **2**.
 
+**KURAL 34 — NAVLUN OTOMASYONU ŞU AN PASİF; operatör elle hesaplayıp
+siparişten SONRA yazıyor** (operatör, 19 Eyl 2026: *"shipping cost yanlis
+olmus tekrar söylüyorum simdilik otomatik yapma pasif olsun ben hesaplarim
+siparisten sonra"*).
+
+- **"Tekrar söylüyorum" ikinci şikâyet:** KURAL 5t'nin kurduğu bölge tarifesi
+  canlıda yanlış rakam üretti. Kural yalnızca hatırlanmaya bırakılamazdı
+  (bu dosyanın kendi kaydı: *"kontrol gönderim yolunda olmalı"*) — kapatma
+  koda gömüldü, KURAL 16/17'nin dropship ödemesinde kurduğu **aynı desen**:
+  TEK anahtar, VARSAYILAN KAPALI, hiçbir tablo/fonksiyon silinmiyor, panelden
+  deploy'suz geri açılabiliyor.
+- **`vestra_shipping_schedule()` ve `vestra_order_shipping_schedule()`
+  BİLEREK DOKUNULMADI** — SAF kalıyorlar ve `tests/shipping_tariff_test.php`'nin
+  91 iddiası hâlâ doğrudan onları çağırıyor; anahtarı oraya gömmek o testin
+  tamamını (ve tarifenin kendi matematiğini) bu anahtara bağımlı kılardı.
+  Anahtar bunun yerine **iki yeni sarmalda**: `vestra_shipping_auto_schedule()`
+  ve `vestra_order_shipping_auto_schedule()` (`inc/orders.php`) — kapalıyken
+  **null** dönüyorlar, tıpkı tanınmayan bir ülke gibi (KURAL 3'ün aynı cevabı:
+  "burada otomatik bir rakam yok").
+- **OTOMATİK olan HER çağıran artık sarmalı çağırıyor, pure fonksiyonu değil:**
+  kasa (`order.php`, checkout anında yazılan navlun), sepetin sunucudan aldığı
+  önizleme tablosu (`cart.php` — `SHIP_TARIFF`/`SHIP_REGION` kapalıyken **boş**
+  basılıyor, yoksa alıcı sepette bir rakam görüp kasada başkasını bulurdu —
+  bu depoda tekrar tekrar kaydedilen "sayfada bir, kasada başka rakam" hatası),
+  teklif faturası varsayılanı (`inc/offers.php` →
+  `vestra_offer_invoice_shipping()`), panelin ipucu/"↻ Apply tariff" düğmesi
+  (`admin.php`, hem sipariş kuyruğundaki çip hem sipariş dosyasındaki öneri —
+  kapalıyken ikisi de **hiç çizilmiyor**) ve iş akışının `auto` kipi
+  (`seller-products.yml`, `order_draft`/`order_write` **ve**
+  `admin_mode=shipping`'in `issue_shipping=auto` dalı — ikincisi kapalıyken
+  `auto`'yu **reddediyor** ve operatöre sayısal bir tutar yazmasını söylüyor,
+  sessizce 0 yazıp "hesapladım" izlenimi vermiyor).
+- **ELLE yazma yolu HİÇ DOKUNULMADI** — operatörün "ben hesaplarım siparişten
+  sonra" dediği yol bu: `vestra_order_set_shipping()`, panelin "🚚 Save
+  shipping" formu (`_action=order_shipping`) ve iş akışının
+  `admin_mode=shipping`'ine **sayısal** bir tutar verilmesi (ör. `86.04` ya da
+  `100 USD`) hiçbirini sormuyor, hiçbiri yeni anahtara bakmıyor. Operatör
+  siparişi kendi hesapladığı rakamla, tıpkı bugüne kadar olduğu gibi
+  tamamlıyor.
+- **VARSAYILAN KAPALI:** ayar dosyası (`vestra/data/shipping_settings.json`)
+  yoksa ya da bozuksa otomasyon durur. Tersi (dosya kaybolunca otomasyonun
+  kendiliğinden geri açılması) operatörün "kapat" dediği şeyin sessizce geri
+  gelmesi olurdu.
+- **Panelde geri açma düğmesi:** `Admin ▸ Orders` üstünde (dropship
+  anahtarıyla birebir aynı yerleşim/desen), hem sipariş listesinde hem tek
+  sipariş dosyasında görünüyor — bir ekranda görünmeyen seçenek olmayan
+  seçenektir (KURAL 2e). Yazma **geri okunarak** doğrulanıyor
+  (`vestra_shipping_set_auto`, KURAL 5c'nin `billing_saved` dersi); tutmazsa
+  panelde kırmızı `ship_auto_fail` uyarısı çıkıyor.
+- **Dosya yolu `defined()` korumalı** (`VESTRA_SHIPPING_SETTINGS`) — KURAL 2'nin
+  `VESTRA_ACCOUNTS` dersinin aynısı: korumasız olsaydı bu ayarı sınayan bir
+  test gerçek `data/`'ya yazabilirdi.
+- **Üç eski test ÇÖKTÜ ve bu falsifikasyonla değil kazayla bulundu:**
+  `offers_rounds_test.php`, `offers_flow_test.php` ve
+  `invoice_seller_pick_test.php` — üçü de `offers.php`'nin gövdesini `eval`
+  ile çıkarıp `require`'ları siliyor ve `vestra_shipping_schedule()` için
+  "gerçek gövde de null döner" gerekçesiyle bir stub taşıyordu; teklif
+  faturası artık **başka bir isim** (`vestra_shipping_auto_schedule`)
+  çağırdığı için üçü de `Call to undefined function` ile ölüyordu. Üçüne de
+  aynı gerekçeyle **ikinci bir stub** eklendi — bu dosyaların hiçbir iddiası
+  navlun tutarını okumuyor (yalnız tur sayacı, satıcı seçimi, miktar/birim
+  fiyat, fatura gruplama), yani sarmalın null mi gerçek bir tarife mi
+  döndürdüğü ölçülen davranışı değiştirmiyor. *Bir fonksiyonun çağrı yolunu
+  değiştirmek, onu ELLE stub'layan her sandbox'ı bulup güncellemeyi
+  gerektiriyor — kaynak taramasıyla değil, testleri gerçekten ÇALIŞTIRARAK
+  bulundu (`sh tests/run_all.sh`).*
+- **Falsifikasyon:** sarmalın gövdesindeki anahtar kontrolü kaldırılıp pure
+  fonksiyona doğrudan düşürülünce (yani "pasifken de hesapla" hatası
+  simüle edilince) `shipping_tariff_test.php` **2 kırmızı** verdi, dosya
+  yedekten (`cp`, `git checkout` değil) geri yüklendi ve takım yeniden
+  126/126 yeşile döndü.
+- Test: `tests/shipping_tariff_test.php` §11–13 (dosya 91 → **126 iddia**).
+  §11 anahtarı **ayrı PHP süreçlerinde** sınıyor (`vestra_dropship_payments_enabled()`
+  ile aynı `static` önbellek sınırı — aynı süreçte yazıp okumak önbelleği
+  ölçerdi) ve AÇIKKEN sarmalın pure fonksiyonla **birebir aynı** sonucu
+  verdiğini de doğruluyor (ikinci bir hesap yolu değil, yalnız bir kapı).
+  §12 her OTOMATİK çağıranın sarmalı kullandığını **ve** manuel
+  "Save shipping" işleyicisinin **değişmediğini** (anahtara hiç sormadığını)
+  kaynak taramasıyla tutuyor. §13 hiçbir şeyin silinmediğini (`vestra_shipping_schedule`,
+  tarife tablosu, bölge tespiti, manuel yazıcı) doğruluyor. Ayrıca
+  `dropship_payments_test.php`, `order_shipping_test.php`,
+  `offers_sample_gate_test.php`, `offers_rounds_test.php`,
+  `offers_flow_test.php` ve `invoice_seller_pick_test.php` tek tek koşuldu —
+  hepsi yeşil. `sh tests/run_all.sh`'ın geri kalan iki kırmızısı
+  (`dropship_plan_test` 4, `msg_read_receipt_test` 1) bu işten **bağımsız,
+  önceden kırık** ve bu dosyada zaten kayıtlı — dokunulmadı.
+
 **KURAL 5u — SİPARİŞE İNDİRİM: aynı gün İKİ OTURUM aynı olguya iki yazıcı
 yazdı; tekilleştirildi** (operatör, 19 Eyl 2026: *"yeni yaptığımız siparişlere
 yüzde 5 welcome indirimi uygula"*).
@@ -2186,6 +2273,118 @@ canlıya inmesini engelleyen şey ve kendisi bir OLAY). Üç bağımsız host:
   yetmez" — burada tersi geçerli, **koşunun 'failure' demesi de kodun yanlış
   olduğu anlamına gelmiyor**. Deploy'un düştüğü yer ilk `git fetch`, yani
   repodaki hiçbir satır okunmadan önce.*
+- **ÇIKIŞ AYNI GÜN GERİ GELDİ (19 Eyl 2026, akşam) — yukarıdaki tablo artık
+  GEÇMİŞ bir olayın kaydı, mevcut durum DEĞİL.** Ölçüm dolaylı değil doğrudan:
+  aynı gün deploy indi (`0c00c38f` sunucuda), `vestra_order_set_discount()`
+  canlıda çalıştı ve **üç müşteri mektubu Brevo tarafından kabul edildi**
+  (`GONDERILDI`). Kesinti geçiciydi; not, ileride aynı belirtiyi görenin
+  "kalıcı" sanmaması için olduğu gibi duruyor.
+
+**KURAL 32 (devamı) — ÜÇ MEKTUP GÖNDERİLDİ; ve bir faturanın €75'i belgeye HİÇ
+BASILMAMIŞTI** (19 Eyl 2026; operatör: *"fatura güncellenmistir diyerek"* +
+*"faturalara shipping costlari eklemeyi unutma"* + *"digerlerinede kendi
+dilinde"*).
+
+- **Sıra ÖNEMLİ ve bu sırayı bozmak bir belgeyi yalanladı:** `VES-A11C0C97`'ye
+  önce indirim işlendi, fatura o hâliyle **kesildi**, navlun (€75) **sonra**
+  yazıldı. Sipariş satırı €7.465,62 derken **INV-2026-1014 €7.390,62** taşıyor,
+  yani belge tam **€75 eksik**. `order_discount` mektubu bunu kendi muhafazasıyla
+  yakaladı ve **gönderimi durdurdu** (`|fatura − sipariş| > 0.02`) — müşteriye
+  elindeki kâğıtta olmayan bir rakam yazılmadı. *Bir siparişin rakamını
+  değiştiren her yazma, faturası varsa KURAL 5f'in yeniden çizimini gerektirir;
+  "önce indirim, sonra navlun" iki ayrı yazma demek ve ikincisi belgeyi bayatlatır.*
+- **BELGENİN KENDİSİ ÖLÇÜLDÜ, yazma mesajı değil.** Yeniden çizim sonrası
+  `issue` adımı artık ham PDF baytlarında arıyor: `belgede navlun: VAR
+  (Shipping 75.00) · belgede indirim: VAR (388.98) · belgede toplam: VAR
+  (7,465.62)`, 19.324 bayt, sha256 yazılı, `AYNI numarayla yeniden uretildi`.
+  Gerekçe bu depoda kayıtlı: fotoğrafsız bir PDF yıllarca *"üretildi, boyut
+  makul"* diye geçmişti. `inc/pdf.php` akışları sıkıştırmıyor, o yüzden ham
+  baytta metin aranabiliyor; sıkıştırma bir gün eklenirse adım **bunu ayrıca
+  yazıyor** ki "yok" diye yanlış bir kırmızı değil, sebebi söyleyen bir satır
+  çıksın.
+- **Üç katman da geri okundu** (KURAL 5f'in üçlüsü): PDF baytı, fatura meta'sı
+  (`INV-2026-1014 tutar 7.465,62`) ve sipariş satırı artık aynı rakamı söylüyor.
+- **Gönderilenler — her müşteri KENDİ dilinde** (operatör, aynı gün, iki adımda:
+  önce *"diger iki müsteriyi fransizca"*, sonra *"LA ISLA ... ispanyolca"* +
+  *"digerlerinede kendi dilinde"*; ikincisi birincisini EZİYOR ve bu dosyada
+  olduğu gibi yazılı — çelişen iki kayıt hangisinin geçerli olduğunu okunamaz
+  yapar):
+
+  | sipariş | müşteri | mal | indirim %5 | navlun | yeni toplam | fatura | dil |
+  |---|---|---:|---:|---:|---:|---|---|
+  | `VES-1F0C9350` | BRITISHSTYLE · AT | 789,00 | −39,45 | 20,00 | **769,55** | INV-2026-1002 | de |
+  | `VES-A11C0C97` | LA ISLA DE MIRABEL SL · ES | 7.779,60 | −388,98 | 75,00 | **7.465,62** | INV-2026-1014 | es |
+  | `VES-55E4F6E1` | Mob · FR | 1.200,00 | −60,00 | 20,00 | **1.160,00** | INV-2026-1013 | fr |
+
+  Üçünde de `ilk siparis mi: EVET` (ölçüldü, varsayılmadı) ve fatura cümlesi
+  **`invoice_updated=1`** ile *"güncellendi, aynı numarayı koruyor, eski kopya
+  geçersiz"* — operatörün istediği üçüncü ifade. Bayrak **açık** verilmek
+  zorunda: şablon bunu ölçemez (dosya dün de vardı) ve taze kesilmiş bir belgeye
+  "güncellendi" demek olmamış bir işlemi anlatırdı.
+- **Dil sırası düzeltildi:** `spec lang=` artık **hesabın kayıtlı dilini EZİYOR**
+  (önce tersiydi). Eski hâliyle operatörün açık talimatı sessizce yok sayılıyor,
+  iş "başarılı" bitiyor ve müşteri istenmeyen dilde mektup alıyordu — kimsenin
+  göremeyeceği bir hata. Koşu hangi kaynağın kazandığını ve ezilen değeri
+  **yazıyor**.
+- **KENDİ HATAM — üç önizlemeyi PARALEL koşturdum.** `send-campaign-preview`
+  sunucuda **ortak bir geçici dosya** kullanıyor (`/tmp/vestra_buyer_reply.php`
+  → `public_html/vestra_buyer_reply_tmp.php`); Almanca koşu o adımı erken
+  bitirdiği için temiz çıktı, İspanyolca ve Fransızca koşular birbirini ezdi ve
+  betiği **çalıştırmak yerine ekrana bastı**. İkisi de **çıkış 0 ile "success"**
+  bitti ve **hiçbir mektup kurmadı** — yani `add-and-send`'in "paralel
+  çalıştırılmaz" uyarısının aynı sınıfı, başka bir dosyada, ve bu kez zararsız
+  kaldı yalnızca ölçümü okuduğum için. *Bu iş akışının koşuları SIRAYLA
+  koşulur; ve bir koşunun "success" demesi, iş yaptığı anlamına gelmiyor —
+  çıktıyı oku.*
+- **Ölçüm tuzağı:** `issue` adımının doğrulama satırları şifreli PDF gövdesinden
+  **ÖNCE** basılıyor, yani `get_job_logs` tail'i base64'ün içine düşüyor. Geniş
+  pencere isteyip çıktıyı dosyaya düşürmek ve `BEGIN/END INVOICE ENC` arasını
+  **atlayarak** okumak gerekiyor.
+- **Platformun EUR ödeme kutusu artık ÇIKIYOR** (operatör banka adresini verdi;
+  değer repoya YAZILMADI). Geri okuma: `bank_eur_address: VAR`, EUR kutusu **4 → 5 satır**,
+  USD kutusu **6 satır (bozulmadı)**, `EUR kesimi (KURAL 5r): GECER`. Rakamlar
+  yine repoya, iş akışı girdisine ve ssh betiğine **girmedi** — şifreli zarfla
+  geçti, çıktıda yalnız VAR/YOK ve hane sayısı.
+
+**KURAL 32 (devamı) — "Germany belirtilsin": KAYIT doluyken BELGE boş olabilir**
+(operatör, 19 Eyl 2026, aynı akşam: *"banka adresini yazmamissin"* → *"eur
+hesabi"* → *"Germany belirtilsin"* → *"hesabimizi verdigimiz iki faturayi
+[VES-A11C0C97 / VES-55E4F6E1] bunlari ekle"*).
+
+- **ÖNCE ÖLÇÜLDÜ ve ilk cevap "zaten var" çıktı.** 17:53'teki yazma koşusunun
+  kendi günlüğü `bank_eur_address`'in tam değerini gösteriyor ve **Germany o
+  değerin içinde** — ülke adı künyeye o an girmişti, EUR kutusu 4 → 5 satıra o
+  yüzden çıkmıştı. *Adresi hafızadan yeniden yazıp künyeye basmak, doğru duran
+  bir kaydı tahminle ezmek olurdu (KURAL 3); eski koşunun günlüğü kanıttı ve
+  adres burada da yazılmıyor — künyenin değerleri panelde okunur.*
+- **ASIL SORU BAŞKAYDI: kayıt bugün dolu olması, DÜN çizilmiş bir PDF hakkında
+  hiçbir şey söylemiyor.** KURAL 5r kutuyu yalnız **kesim anında** garanti
+  ediyor; künye tamamlanmadan önce kesilmiş bir belge kutusuz kalır ve bunu
+  ancak **belgenin kendisi** gösterir. `issue` adımı navlun/indirim/toplamı ham
+  baytta arıyordu, ödeme kutusunu **hiç sormuyordu** — eklendi (`IBAN:` /
+  `Account number:` satırının VARLIĞI + `Bank address` + ülke adı; **numara
+  basılmıyor**, kütük herkese açık).
+- **Ölçüm iki belgeyi ayırdı ve biri gerçekten eksikti:**
+
+  | Fatura | Ödeme kutusu | Banka adresi | Sebep |
+  |---|---|---|---|
+  | `INV-2026-1014` (ES) | VAR | **VAR (Germany)** | 18:0x'te zaten yeniden çizilmişti |
+  | `INV-2026-1013` (FR) | VAR | **YOK** | 17:53'ten ÖNCE kesilmiş |
+
+  Yani Fransız alıcının elindeki belgede IBAN vardı ama **bankanın adresi ve
+  ülkesi yoktu** — SEPA dışından ödeyen için eksik, ve kimse fark etmemişti.
+- Çözüm KURAL 5f: **aynı numarayla yeniden çizim**, e-posta gitmeden.
+  `INV-2026-1013` 17.943 → **18.040 bayt** (+97 = banka adresi satırı),
+  `(AYNI numarayla yeniden uretildi)`, tutarlar değişmedi (navlun 20,00 ·
+  indirim 60,00 · toplam 1.160,00), `belgede banka adresi: VAR (ulke: Germany)`.
+- **Ders, bu dosyada üçüncü kez:** *bir kaydın bugün dolu olması, o kayıttan
+  ÜRETİLMİŞ belgelerin de dolu olduğu anlamına gelmiyor.* Kesim yolundaki
+  muhafaza ileriye dönük çalışır; geriye dönük tek ölçü belgenin baytıdır.
+  Fotoğrafsız PDF, €75'i basılmamış fatura ve bu, aynı sınıfın üç vakası.
+- **Müşterilere hiçbir şey gönderilmedi** (KURAL 18). Belge düzeldi; haber
+  verilip verilmeyeceği operatör kararı — tutar değişmediği için mektup şart
+  değil, ama isteyen olursa `order_discount`'ın `invoice_updated=1` gövdesi
+  aynı işi yapar.
 
 **KURAL 7 — Faturası kesilmiş, havale bekleyen siparişe 5 iş günü** (operatör
 kararı, 2 Eyl 2026, order OCF7F5 / INV-2026-1001 / Daymond Proconect: *"siparişlerin
@@ -5563,6 +5762,307 @@ dedi, aynı cümleyi ertesi sabah tekrarladı.)
   doldurunca ikinci mektup kanalı açılıyor (17–19 Eylül partileri → 20–22
   Eylül), ve 3 lead'in ikinci mektubu dolunca üçüncü mektup kanalı. İkisi de
   **kendiliğinden gönderilmedi** — KURAL 18.
+
+**KURAL 31 — EV SIRASI GÜNCELLENDİ ve 58 ÜYEYE GÖNDERİLDİ (19 Eyl 2026,
+akşam)** (operatör: *"3. emaillere devam et f.perry polo ,sweatshirts ve
+lacoste , galerry ürünlerini öne cikar sonra gucco , balenciaga yi
+ekle... 295 email gönder"*).
+
+- **`$W3_WANT` artık altı ev, operatörün sırasıyla:** Fred Perry, Lacoste,
+  Gallery Dept., Gucci, Balenciaga, DSQUARED2. Konu satırı yalnız İLK ÜÇ
+  adı bastığı için "öne çıkar" talimatının karşılığı dizinin başı; **DSQUARED2
+  bu turda adlandırılmadı ama listeden ÇIKARILMADI** — eylemsizlik eylem
+  değil (M7535 kararının aynı dersi), gövdede en sonda duruyor, konuda hiç
+  görünmüyor.
+- **Fred Perry'nin yanına model numaraları eklendi** (`M3600, M7535`,
+  `$W3_NOTE`) — yalnız madde satırında, konuda değil; ceviri gerektirmeyen
+  bir tanımlayıcı (16 Eyl'de zaten yazılmış bir açığı kapatıyor: *"2 artikel,
+  64'lük DSQUARED2'nin yanına konunca ince duruyor"*).
+- **ÖNCE İKİ DRY-RUN, sonra gerçek gönderim** (KURAL 18): lead-wave3 ve
+  üye-wave3 kanalları ayrı ayrı `count=300` ile tam sayıldı, altı evin de
+  katalogda eşleştiği doğrulandı (`EV: Fred Perry -> 2 artikel (M3600, M7535)
+  | Lacoste -> 12 | Gallery Dept. -> 9 | Gucci -> 15 | Balenciaga -> 20 |
+  DSQUARED2 -> 64` — hiçbiri "KATALOGDA ESLESMEYEN EV" demedi).
+
+| Kanal | Uygun (tam sayım) | Gönderildi | Not |
+|---|---:|---:|---|
+| Lead — üçüncü mektup | **0** | 0 | havuz hâlâ tükenmiş: hepsi ya zaten aldı, ya ikinci mektubu hiç almadı, ya 3 tanesi ikinci mektubun üzerinden 3 gün geçmediği için bekliyor |
+| Üye — üçüncü mektup | 61 → **58** (3 elendi) | **58** | 2 koşu (50 + 8), hata 0 |
+
+- **ELLE OKUMA 61 adayın tamamında yapıldı** ve üç hesap `member_spec`'in
+  `skip=` alanıyla **bilerek** çıkarıldı, gönderilmeden önce ayrı bir kuru
+  koşuyla skip listesinin gerçekten yalnız bu üçünü tuttuğu doğrulandı:
+  - **`389h68843j6789)`** — kayıt formuna girilmiş garbled/otomatik görünen
+    bir isim (`durum=pending`, `fiyat=KAPALI`). Selamlama `"Hello".($co!==''?
+    " ".$co:'')` ile kuruluyor, yani mektup *"Hello 389h68843j6789),"* diye
+    açardı — KURAL 2b/factoryoutlet.gr dersinin aynısı, bu depoda daha önce
+    Winter kanalında da aynı hesap için kaydedilmişti.
+  - **`Verify Test Co`** — adı test hesabı olduğunu söylüyor; 19 Eyl'in
+    erken saatlerindeki Angebot/Winter ölçümlerinde de aynı gerekçeyle
+    (elle) dışarıda bırakılmıştı.
+  - **`Acera Soft LLC`** — VESTRA'nın kendi tüzel kişiliği "Acerasoft LLC"nin
+    (her mektup imzasında geçen ad) yakın yazımı ve maskeli adresi
+    (`a***@gmail.com`) operatörün kendi kayıtlı e-posta alan adıyla
+    eşleşiyor: platformun kendi test/kurucu hesabı olduğu kuvvetle
+    muhtemel. Kendi platformumuza kendi kampanya mektubumuzu göndermenin
+    hiçbir karşılığı yok.
+  - Tek harfli/boş firma adları (`d`, boş) ve tuhaf ama **garbled olmayan**
+    adlar (`dropship`, `bad`, `noname`, `Vinted`, `Vinted reseller`) BİLEREK
+    bırakıldı: bunları "test hesabı" saymak için elimde `389h68843j6789)`/
+    `Verify Test Co` seviyesinde bir kanıt yok — SK Ventures gibi bu
+    depoda gerçek sipariş sahibi olduğu doğrulanmış bir hesap da aynı
+    listede terse bir adla duruyordu (bkz. O39419). Şüpheyle sessizce
+    daraltmak, gerçek küçük işletmeleri elemek olurdu (mango/zara dersinin
+    hesap hâli).
+- **61 ile aynı günün erken saatlerinde kaydedilen "Üye wave3: Uygun 2"
+  rakamı ÇELİŞMİYOR — ikisi FARKLI ŞEYİ ölçüyordu.** O ölçüm 295'e tam **1**
+  eksik kapatmak için yapılmış küçük bir kapsam taramasıydı (muhtemelen
+  küçük bir `count` ile), bu ölçüm ise `count=300` ile TAM SAYIM. Loop
+  `count($cand) >= $COUNT` olunca duruyor, yani küçük bir hedefle koşan bir
+  kuru koşu havuzun gerçek büyüklüğünü hiç görmez. *İki kayıt birbirini
+  tutmuyor görünüyorsa önce ölçümün NE'yi saydığına bak — burada ikisi de
+  doğruydu, sorulan soru farklıydı.*
+- **Gerçek gönderim iki ayrı koşuda, SIRAYLA** (`accounts.json`
+  oku-değiştir-yaz): birinci koşu 50/50 gönderdi (`hata: 0`), ikinci koşu
+  kalan 8/8'i gönderdi (`hata: 0`). **58 mektubun dili** (iki koşunun
+  `GONDERILDI` satırlarından tek tek sayıldı): en=36 · fr=12 · it=4 · es=4 ·
+  de=2.
+- **295 rakamı bugün de tutmadı ve bu operatöre söylendi:** lead kanalı hâlâ
+  sıfır, üye kanalı 58 gönderdi. Kümülatif wave3 sayısı büyüdü ama "295"
+  tek bir günün tek bir kanalından çıkacak bir sayı değil — bu depoda 19
+  Eylül'ün kendi kaydı zaten bunu bir kez ölçmüştü.
+- Test/kod tarafı: `tests/wave3_brands_test.php` 129 iddia (bkz. commit
+  `70cea62c`); ev listesi ve not alanı için iki sabotaj (eski sıraya dönüş,
+  notun bullete eklenmemesi) önce GERÇEKTEN uygulandığı doğrulanarak
+  kırmızıya çevrildi.
+
+**KURAL 31 — EV SIRASI YİNE DEĞİŞTİ ve MEKTUBA FOTOĞRAF ŞERİDİ EKLENDİ
+(21 Eyl 2026)** (operatör: *"3. Email kampanyaları göndermeye devam et
+F. PERRY polo sweatshirt , Galerry ürünlerini öne çıkar fotolar ile estetik
+olsun"*).
+
+- **`$W3_WANT` artık `Fred Perry, Gallery Dept., Lacoste, Gucci, Balenciaga,
+  DSQUARED2`** — Gallery Dept. Lacoste'un önüne alındı. Bu talimat Lacoste'tan
+  hiç söz etmiyordu, o yüzden yalnızca **konumu** değişti, listeden çıkarılmadı
+  (M7535/DSQUARED2 kararının aynı dersi: adlandırılmayan silinmez).
+- **Fotoğraf şeridi, `listing_colours` mektubunun ZATEN kanıtlı mekanizması:**
+  `opts['shots']` → notify.php'de uzak `<img>` (cid ekli değil, ek/boyut sınırı
+  yok — yalnız bir URL). `vestra_tpl_wave3_brands()` artık her ev için
+  `$f['houses'][]['imgs']`'i okuyup `opts['shots']`/`opts['shots_title']`
+  dolduruyor; `shots_title` **12 dilin de kendi konu satırından** alındı
+  (`"jetzt ab Lager"`, `"désormais en stock"`, `"在庫入荷"` …) — yeni bir çeviri
+  yazılmadı, zaten doğrulanmış metin yeniden kullanıldı.
+- **Fotoğrafların kaynağı işi akışta (`$w3facts`), UYDURULMADI:** her ev için
+  en fazla `$W3_SHOTS = 2` — SATILMAMIŞ (`vestra_is_sold_out`) ve DİSKTE
+  GERÇEKTEN VAR (`is_file($home.'/public_html'.$img)`) ilk ürünler. Bulunamayan
+  ev fotoğrafsız kalır, mektup yine gider — eksik kare gönderimi durdurmuyor.
+  **2 seçildi, marka-özel bir dal yazılmadan**, çünkü Fred Perry'nin katalogda
+  TAM 2 ilanı var (M3600 polo + M7535 sweatshirt): aynı tavan hem "estetik"
+  isteğini hem operatörün "polo sweatshirt" diye ikisini birden andığı
+  cümleyi otomatik karşılıyor.
+- **Bağlantı `/catalog?brand=<ev>`** — `notify.php`'nin "Featured houses"
+  marka-duvarı bloğunun (`brandsHtml`) zaten kullandığı aynı adres: girişsiz
+  açılıyor (KURAL 19 yalnız FİYAT listesini kapatıyor) ve o markanın fotoğraflı
+  Excel dökümünü indiriyor.
+- **CANLI ÖLÇÜLDÜ, tahmin edilmedi** (`inspect-products` yerine doğrudan
+  `send-outreach` dry-run'ının kendi `EV:` satırı): altı evin **altısı da**
+  `foto 2/2` — `Fred Perry -> 2 artikel (M3600, M7535) · foto 2/2`,
+  `Gallery Dept. -> 9 · foto 2/2`, `Lacoste -> 12 · foto 2/2`,
+  `Gucci -> 15 · foto 2/2`, `Balenciaga -> 20 · foto 2/2`,
+  `DSQUARED2 -> 64 · foto 2/2`.
+- **Göndermeden önce operatörün kendi kutusuna GERÇEK bir önizleme**
+  (`member_spec=letter=wave3|copy=true`, `dry_run=false` — KURAL 18): mektup
+  gerçekten kuruldu ve **yalnız operatöre** gitti, hiçbir müşteriye
+  dokunmadı, hiçbir damga düşmedi. Sonuç: `operator kopyasi: GONDERILDI |
+  govde=673 karakter | foto=12` — 6 ev × 2 foto = 12, hesap tutuyor.
+- **Ölçüm sırası:** deploy'un GERÇEKTEN indiği doğrulandı (run başarıyla
+  tamamlandı), sonra iki `dry_run=true` (lead + üye, `count=300`) altı evin de
+  katalogda eşleştiğini ve foto sayısını gösterdi, sonra üye kanalında
+  `skip=` listesi **ayrı bir kuru koşuyla** doğrulandı (aşağıya bak), sonra
+  `copy=true` önizlemesi, ancak ondan sonra gerçek gönderim.
+- **Üç hesap yine elle çıkarıldı, aynı gerekçeyle üçüncü kez:**
+  `389h68843j6789)` (garbled/otomatik görünen ad, `pending`, fiyat kapalı —
+  factoryoutlet.gr'nin "Hello Αρχική" dersinin aynısı), `Verify Test Co`
+  (adı test hesabı olduğunu söylüyor), `Acera Soft LLC` (adı
+  "Acerasoft LLC"nin — her mektup imzasındaki gerçek tüzel kişiliğin — yakın
+  yazımı ve maskeli adresi operatörün kendi kayıtlı e-posta alan adıyla
+  eşleşiyor). Üçü de tek, ayırt edici token ile (`389h68843j6789`, `verify`,
+  `acera`) `skip=` alanına verildi ve göndermeden ÖNCE ayrı bir kuru koşu
+  skip listesinin **gerçekten yalnız bu üçünü** tuttuğunu doğruladı
+  (`ATLANDI (skip_accounts): Acera Soft LLC` / `389h68843j6789)` /
+  `Verify Test Co` — üçü, fazlası yok). Kalan 80 aday elle tek tek okundu;
+  hiçbiri garbled değildi (OÜ/SRL/GbR/S.A.S gibi gerçek tüzel kişilik ekleri,
+  "Particulier"/"Vinted"/"Reseller" gibi kısa ama gerçek küçük satıcı adları,
+  ve zaten bu depoda tanınan gerçek müşteriler — 香港风徕贸易有限公司,
+  AlexaShop S.A.S, BRITISHSTYLE, Ecokemet, Mfitel Anas, Francisco Javier
+  Nicolas Macanas, C&F Multimarcas — dahil), yani şüpheyle sessizce daraltma
+  yapılmadı (mango/zara dersinin hesap hâli).
+
+| Kanal | Uygun | Skip ile atlanan | Gönderilen | Hata |
+|---|---:|---:|---:|---:|
+| Lead — üçüncü mektup | 3 | 0 | **3** | 0 |
+| Üye — üçüncü mektup, parti 1 | 50 | 1 (Acera Soft LLC bu partide) | **50** | 0 |
+| Üye — üçüncü mektup, parti 2 | 33 | 3 (üçü de bu partide) | **30** | 0 |
+
+- **Lead kanalı (3):** Factory Outlet (EL/Yunanca — 17 Eylül'de `lead_rename`
+  ile adı düzeltilmiş kayıt), Lulli (FR/Fransızca), Sportina (EN/İngilizce).
+  Bu üçü 19 Eylül'ün *"lead kanalı hâlâ tükenmiş"* kaydında bekleyen tam o
+  havuzdu — ikinci mektuplarının üzerinden 3 iş günü geçince kendiliğinden
+  uygun hâle geldiler, elle bir şey değiştirilmedi.
+- **Üye kanalı (80, iki sıralı gerçek koşu — asla paralel):** dil dağılımı
+  fr=39 · en=21 · de=7 · es=4 · pt=3 · ar=2 · it=2 · ru=2 (skip'ten önceki
+  83'ün dil dağılımıyla neredeyse aynı, üç hesabın çıkarılması dağılımı
+  görünür şekilde değiştirmedi). Kota koşu boyunca **294 → 242** kaldı,
+  60'lık işlemsel pay hiç tehlikeye girmedi.
+- **Toplam bu turda: 83 gerçek mektup, 0 hata** — hepsi altı evin adını,
+  doğru sırayla, ve 12 gerçek/doğrulanmış fotoğrafla taşıyor.
+- Test: `tests/wave3_brands_test.php` 127 → **165 iddia** (§6b yeni: foto
+  seridi, iki yön — foto verilen ev GEÇER, verilmeyen UYDURULMAZ; §7b yeni:
+  workflow'un foto çözme kablolaması). Üç sabotaj (foto şeridi tamamen
+  kapatıldı, `$W3_WANT` eski sıraya döndürüldü, diskte-var-mı kontrolü
+  kaldırıldı) her biri **gerçekten uygulandığı doğrulanarak** kırmızıya
+  çevrildi, sonra dosyalar yedekten (`cp`, `git checkout` değil) geri
+  yüklendi. `sh tests/run_all.sh`: bu işten bağımsız, önceden kırık iki test
+  (`dropship_plan_test` 4, `msg_read_receipt_test` 1) dışında hepsi yeşil.
+
+**KURAL 31 — "250 email gönder": HAVUZ TAMAMEN DOYMUŞ, gerçek tavan 5**
+(operatör, 21 Eyl 2026, wave3 fotoğraf/sıralama işi bittikten hemen sonra:
+*"250 email gönder"* — hedef ya da kanal belirtilmedi).
+
+- **Rakam GÖNDERMEDEN ÖNCE ölçüldü, hiçbir muhafaza gevşetilmedi.** 290 (17 Eyl)
+  ve 295 (19 Eyl) tekrarlarının aynı dersi: operatörün söylediği yuvarlak sayı
+  bir hedef değil, ölçülecek bir iddia. Üç kanalın da o anki gerçek havuzu ayrı
+  ayrı kuru koşuyla sayıldı, hiçbiri hatırlanarak varsayılmadı:
+
+  | Kanal | Uygun | Gerçek olan | Gönderildi |
+  |---|---:|---:|---:|
+  | 3. mektup (wave3) — lead | 0 | — | 0 |
+  | 3. mektup (wave3) — üye | 4 | 1 (`Auto entreprise`, FR) | **1** |
+  | 2. mektup (ayakkabı/iç giyim) — lead | 3 | 3 | **3** |
+  | 1. mektup (soğuk havuz, `min_brands=1`) — lead | 1 | 1 (`La petite garçonne`, CA) | **1** |
+  | **TOPLAM** | | | **5, hata 0** |
+
+- **Üye kanalındaki 4 adayın 3'ü ÜÇÜNCÜ KEZ aynı hesaplar:** `Acera Soft LLC`
+  (platformun kendi tüzel kişiliğinin yakın yazımı + operatörün kayıtlı e-posta
+  alan adı), `389h68843j6789)` (garbled/otomatik görünen ad, `pending`, fiyat
+  kapalı — factoryoutlet.gr'nin *"Hello Αρχική"* dersinin aynısı) ve
+  `Verify Test Co` (adı test hesabı olduğunu söylüyor). Aynı `skip=` token'ları
+  (`389h68843j6789`, `verify`, `acera`) yine kullanıldı ve gönderimden **önce**
+  ayrı bir kuru koşuyla üçünü de yakaladığı doğrulandı. Geriye kalan tek gerçek
+  aday `Auto entreprise` — Fransa'da "auto-entrepreneur" gerçek bir küçük
+  işletme tescil biçimi (bkz. 20 Eyl'de aynı gerekçeyle geçirilen "Particulier"/
+  "Vinted"/"Reseller" emsali) — elle okunup şüpheyle elenmedi.
+- **Kota darboğaz DEĞİLDİ** (son gönderimden sonra 177 kalan, 60 ayrılmış):
+  üç kanal da kotadan değil **havuzun kendisinden** sıfıra indi. Aynı gün daha
+  önce yapılan 83'lük wave3 gönderimi (bkz. yukarıdaki madde) bu kanalları
+  zaten kalan son gerçek adaya kadar boşaltmıştı.
+- **Hiçbir muhafaza gevşetilmedi, rakam ZORLANMADI.** `skip_accounts`,
+  `ayni firmadan baska bir kutu`, `son 3 gunde baska kampanya`,
+  `onceki mektup 3 gunden yeni` ve blocklist kontrollerinin hiçbiri kapatılmadı;
+  245 eksik e-postayı bir eşiği düşürerek ya da bir dedup kuralını kapatarak
+  üretmek, bu depoda tam olarak yasaklanan şey. Gerçek sayı olduğu gibi
+  operatöre bildirildi (295 ve 290'ın aynı deseni: gerekçesiyle birlikte
+  "olmuyor" demek, bir kuralı gevşetip "oldu" demekten ucuz).
+- **Kalan hacim yeni LEAD KEŞFİ gerektiriyor**, mevcut listeden değil
+  (`discover-city.yml`, ölçülen verim ~1 lead/şehir — 8 Eyl kaydı). Üç kanalın
+  ikinci/üçüncü mektup kuyrukları da 3 iş günlük yaş kuralında bekleyen birkaç
+  aday taşıyor (2. mektupta 3 aday), ama bunlar bugün gönderilebilir değil.
+
+**21 Eyl 2026 — Tek adrese TÜM KATALOG fiyat listesi: adres YENİ aday değil,
+kayıtlı ONAYLI hesap çıktı.** Operatör: *"hhhhkgkf339@gmail.com bu emaile tüm
+katalogun fiyat listesini gönderirmisin"*.
+- **Adres olduğu gibi işleme alınmadı, önce SORGULANDI.** `diag-live` →
+  `find_ref=hhhhkgkf339`: `accounts.json`'da tek eşleşme — **buyer/active**,
+  `kyb_status=approved`, firma **Notat atria**, ülke **Iraq**,
+  `trade_licence: requested (DOSYA YOK)`. Yani rastgele, kayıtsız bir soğuk
+  adres değil; fiyat kapısı **zaten AÇIK** onaylı bir alıcı. Bekleyen belge
+  isteği kapıyı etkilemiyor (KURAL 2: belge uyarıdır, kapıyı operatör onayı
+  açar — burada onay zaten verilmiş).
+- **Adres girdiye YAZILMADI:** `to=account:Notat atria` ile hesaptan çözüldü
+  (TAM 1 eşleşme — `account:`/`lead:` ile paylaşılan aynı şart).
+- **`send=false` önce çalıştırıldı** (KURAL 18): kapsam **TÜM KATALOG**
+  (brand/cat verilmedi) — **893 kalem, 23 marka**, ek PDF 6,5 MB (877 gömülü
+  fotoğraf) + Excel 108 KB, alıcının fiyat kapısı **AÇIK** (uyarı basılmadı).
+  Operatörün cümlesi hem hedefi hem "gönder"i aynı anda verdiği için (KURAL
+  18'in dar istisnası) ikinci bir onay beklenmedi.
+- **GÖNDERİLDİ** → h***@gmail.com, imza **Marco Bellini — VESTRA**, dil **en**
+  (bu şablon yalnız en/de destekliyor; pt/ru/ar'ın e-posta şablonlarında
+  İngilizceye düştüğü KURAL 10'un aynı kuralı).
+
+**21 Eyl 2026 — Ralph Lauren T-shirt SATILDI işaretlendi; aynı SKU'da AÇIK
+bir teklif duruyordu.** Operatör (model numarasıyla, ad değil):
+*"Custom Slim Fit Crew Neck T-Shirt / Original Ralph Lauren, model
+710680785004. Made in Cambodia, 100% cotton. EEA stock with full invoice
+trail satildi olarak isaretle"*.
+
+- **Ad TEK BAŞINA kullanılmadı.** Katalogda Ralph Lauren'ın iki ilanı var ve
+  ikisinin de adı birbirine yakın (*"Custom Slim Fit Crew Neck T-Shirt"* /
+  *"Custom Slim Fit Polo Shirt"*) — mango/zara dersinin aynısı, ad bir
+  kimlik değildir. Ayırt eden SKU: `inspect-products` (`brand=Ralph Lauren`)
+  `710680785004`'ün **yalnızca** `rl-csf-tee-navy`'de olduğunu gösterdi;
+  kardeş ilan `rl-csf-polo-white` farklı SKU (`710548797001`) taşıyor.
+- **Aynı SKU'da AÇIK bir teklif duruyordu ve bu operatöre ayrıca bildirildi:**
+  `diag-live` → `find_ref=710680785004` önce çalıştırıldı ve `offers.csv`'de
+  `O9C299` (SC Daymond Proconect SRL, 104 ad. @ €14, 21 Eyl 10:45 UTC) ortaya
+  çıktı. `sold_out=true` teklifi **silmiyor/reddetmiyor** — yalnız vitrini ve
+  yeni satın alma yollarını kapatıyor; KURAL 4'ün tur/kabul mekanizmasına
+  dokunulmadı.
+  `product-fixes/rl-csf-tee-navy-sold.json` → `set-product.yml`
+  (`match=rl-csf-tee-navy`, `expect:1`, `sold_out` **tırnaksız** boolean —
+  `lacoste-trim-sold.json`'ın dersi: string `"false"` PHP'de doğru sayılırdı).
+  Kuru koşu **1 alan** dedi (`sold_out false -> true`), sonra uygulandı,
+  zaman damgalı yedek alındı (`listings.json.bak-20260921-163141`).
+- **Geri okuma `KAYDEDILDI` mesajına değil, sepetin okuduğu fonksiyona
+  bakıyor:** `inspect-products` → `price_list` (brand filtresiyle) satırı
+  `vestra_is_sold_out()`'tan basıyor — aynı satırın altı satın alma yolunun
+  hepsinin çağırdığı fonksiyon. Sonuç: `rl-csf-tee-navy` → `*** SATILDI ***`,
+  kontrol grubu `rl-csf-polo-white` → `satista` (dokunulmadı, tek yön
+  ölçülseydi "her şeyi satan" bir hata da yeşil kalırdı).
+
+**22 Eyl 2026 — "En ucuz Burberry tişört" GERÇEK BİR ADAY DEĞİL, 24 YOLLU BİR
+BERABERLİKTİ.** Operatör: *"katalogtaki en ucuz burberry tshirt fiyatini
+75,00 eur yap"*.
+
+- **Tekil "en ucuz" yoktu — ölçüldü, tahmin edilmedi.** `inspect-products`
+  (`brand=Burberry, cat=T-Shirts`) katalogdaki **18** T-Shirts ilanının
+  **hepsinin** birebir aynı fiyatta olduğunu gösterdi: `list=59,90 EUR`,
+  tek kademe `20+ → €59,90`. Bir "en ucuz" seçmek için tam brand dökümü de
+  çekildi (`brand=Burberry`, kategori filtresiz): Burberry'nin geri kalanı
+  (Polos €60, Swim Shorts €130, Hoodies €120, Skirt €90) zaten daha pahalı,
+  ama **6 tane "Women's T-Shirts" ilanı da** aynı €59,90'da duruyordu — yani
+  gerçek beraberlik 18 değil **24 ilandı**.
+- **Ad/kategori tek başına ayırt etmiyordu, çünkü ayırt edecek HİÇBİR şey
+  yoktu.** Mango/zara dersinin bu kez ismi değil **fiyatı** ilgilendiren
+  hâli: bir SKU/stil numarası verilmemişti ve 24 ilanın hepsi aynı `moq=20`,
+  aynı tek kademe, aynı `mode=sale` yapısını taşıyordu — hangisinin
+  kastedildiğini kod da, talimat da söylemiyordu.
+- **Tahmin etmek yerine soruldu (AskUserQuestion).** 24'ün hepsinin tam bir
+  beraberlik olduğu operatöre gösterildi (yalnız erkek T-Shirts / hepsi 24 /
+  belirli bir SKU seçenekleriyle); operatör **"Hepsi, 24 ilan"** dedi —
+  yani hem erkek hem kadın kategorisi.
+- **Tek alan: `price` (tekil).** Hepsi `mode='sale'` ve tek kademesi zaten
+  `list` ile aynıydı, yani `price: 75` yazmak hem `list`'i hem tek kademeyi
+  75'e düzlüyor — 13 Eyl'in altı D&G polosu (→€110) ve 17 Eyl'in Burberry
+  eteği 8049455'in (→€90) kullandığı aynı teknik. Ayrı ayrı yalnız `tiers`
+  yazmak stale bir "was" fiyatı bırakırdı.
+  `product-fixes/burberry-tshirts-75.json` (24 satır, her biri `match=<id>`,
+  `expect:1`) → `set-product.yml`. Kuru koşu **24 ilanın 24'ünü de** buldu
+  (`list 59.9 -> 75`, `tiers(1) -> 75`), sonra uygulandı: `KAYDEDILDI — 24
+  alan guncellendi`, zaman damgalı yedek (`listings.json.bak-20260922-101653`).
+- **Geri okuma İKİ ayrı yoldan, ikisi de sepetin okuduğu fonksiyondan:**
+  (1) `inspect-products` (`brand=Burberry, price_list=true`) 24 ilanın
+  24'ünde de `fiyat(list)=75 EUR` / `tiers: 20+ -> €75` gösterdi; aynı
+  taramada Polos/Skirts/Hoodies/Swim Shorts **dokunulmamış** çıktı (60/90/
+  120/130 aynen duruyor) — yalnız hedeflenen 24 değişti. (2) `price_audit`
+  (`vestra_unit_price()`'ın kendisini ölçen mod): 24 Burberry ilanının
+  hiçbiri ne "[A] ALICI ALEYHİNE" ne "[B] indirim rozeti yok ama sepet ucuz"
+  listesinde çıktı — hepsi **tutarlı**, yani sepet gerçekten €75,00 tahsil
+  ediyor. Tek "[A]" satırı bu işten bağımsız, eski demo tohumu
+  `lac-pique-polo` (bu depoda tekrar tekrar kayıtlı, dokunulmadı).
+- Test: bu bir veri düzeltmesi, davranış değişikliği değil — mevcut
+  `scripts/set_product.php` doğrulayıcısı ve `set-product.yml`'nin
+  "HEPSİ ya da HİÇBİRİ" (`expect`) muhafazası zaten kullanıldı; yeni bir
+  test yazılmadı.
 
 **11 Eyl 2026 — KATALOG GENELİNDE %80 ZAM ve GERİ ALINMASI.** Operatör:
 *"yüzde 80 eklemeyi hemen geri al"* → *"tüm fiyatları dün geceki fiyatlara çek"*.

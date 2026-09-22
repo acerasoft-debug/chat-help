@@ -2447,6 +2447,24 @@ function vestra_tpl_new_collection_shoes(string $lang, string $company, array $f
  * Cikis cumlesi HER soguk mektupta oldugu gibi metnin icinde: jetonu gonderen
  * ekliyor ama cumle sablonda olmak zorunda -- gorunur bir cikis yolu olmayan
  * ucuncu bir temas, ilgiyi sikayete cevirir.
+ *
+ * DEVAM — SIRA VE EV LISTESI DEGISTI (19 Eyl 2026, operator: *"f.perry polo,
+ * sweatshirts ve lacoste, galerry urunlerini one cikar sonra gucco,
+ * balenciaga yi ekle"*). Ev listesi ve sirasi TEK yerde
+ * (`send-outreach.yml`'deki `$W3_WANT`), burada gomulu degil -- ayni sebep
+ * ki rakamlar da burada gomulu degil: iki yerde yazilan bir sira er gec
+ * ayrisir. Bugunku sira: Fred Perry, Lacoste, Gallery Dept., Gucci,
+ * Balenciaga, DSQUARED2. Konu satirinin ilk uc adi aldigi icin "one cikar"
+ * talimatinin karsiligi bu dizinin BASI; operatorun DSQUARED2'yi bu turda
+ * ADLANDIRMAMASI onu listeden CIKARMAK anlamina gelmiyor (M7535 kararinin
+ * ayni dersi: adlandirilmayana dokunulmaz) -- konuda gorunmez ama govdede
+ * en sonda durur.
+ *
+ * $h['note']: bazi evlerde ADIN yaninda parantezli bir tanimlayici (Fred
+ * Perry icin "M3600, M7535" -- uretici model numaralari). Bu bir CUMLE
+ * degil, ceviri gerektirmiyor; yalnizca madde SATIRINA giriyor, konu
+ * satirina degil (kisa bir baslikta parantezli bir kod ekleneni kalabalik
+ * gosterirdi).
  */
 function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $member = false): array {
     $co     = trim($company);
@@ -2454,7 +2472,14 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
     foreach ((array)($f['houses'] ?? []) as $h) {
         $hn = trim((string)($h['name'] ?? ''));
         $hq = (int)($h['n'] ?? 0);
-        if ($hn !== '' && $hq > 0) $houses[] = ['name' => $hn, 'n' => $hq];
+        $hnote = trim((string)($h['note'] ?? ''));
+        /* Fotograflar CAGIRANDAN geliyor, taze bir cikarim degil -- workflow
+           bunlari zaten diskte var mi / satilmis mi diye elemis olarak
+           veriyor (listing_colours'un ayni ilkesi: bulunamayan/satilmis bir
+           kareyi anmak, musteriyi onu aramaya yollar). Bos gelirse ev
+           yalnizca metinle kalir, uydurma bir foto eklenmez. */
+        $himgs = array_values(array_filter(array_map('strval', (array)($h['imgs'] ?? [])), fn($x) => trim($x) !== ''));
+        if ($hn !== '' && $hq > 0) $houses[] = ['name' => $hn, 'n' => $hq, 'note' => $hnote, 'imgs' => $himgs];
     }
 
     $L = [
@@ -2465,7 +2490,8 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
         "Trade prices per piece are shown to registered businesses — registration is free and we ask for your trade licence. If this is not relevant to your business, just say so and we will not write again.",
         "%1\$s — %2\$d articles, full size runs, from stock.",
         "New at VESTRA: these houses are now in stock and can be ordered.",
-        "If any of them are of interest, reply and we will send you the article list for that house. If you would rather not receive stock announcements, just say so — we will stop."],
+        "If any of them are of interest, reply and we will send you the article list for that house. If you would rather not receive stock announcements, just say so — we will stop.",
+        "Now in stock"],
       'de' => ["VESTRA — jetzt ab Lager: %NAMES%",
         "Guten Tag".($co !== '' ? " ".$co : '').",",
         "Wir haben Ihnen zweimal zu VESTRA geschrieben, unserem B2B-Großhandelsmarktplatz für Markenmode. Diese Häuser sind jetzt ab Lager bestellbar:",
@@ -2473,7 +2499,8 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
         "Die Einkaufspreise je Stück sehen registrierte Betriebe — die Registrierung ist kostenlos, wir fragen die Gewerbeanmeldung ab. Falls es für Ihr Geschäft nicht passt, sagen Sie einfach Bescheid — dann schreiben wir nicht wieder.",
         "%1\$s — %2\$d Artikel, volle Größenläufe, ab Lager.",
         "Neu bei VESTRA: diese Häuser sind jetzt ab Lager bestellbar.",
-        "Wenn eines davon für Sie interessant ist, antworten Sie kurz — wir senden Ihnen die Artikelliste dazu. Wenn Sie keine Sortimentsankündigungen wünschen, genügt eine kurze Antwort — dann hören sie auf."],
+        "Wenn eines davon für Sie interessant ist, antworten Sie kurz — wir senden Ihnen die Artikelliste dazu. Wenn Sie keine Sortimentsankündigungen wünschen, genügt eine kurze Antwort — dann hören sie auf.",
+        "Jetzt ab Lager"],
       'fr' => ["VESTRA — désormais en stock : %NAMES%",
         "Bonjour".($co !== '' ? " ".$co : '').",",
         "Nous vous avons écrit deux fois au sujet de VESTRA, notre place de marché B2B de gros pour la mode de marque. Ces maisons sont désormais disponibles du stock :",
@@ -2481,7 +2508,8 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
         "Les prix de gros à la pièce sont réservés aux entreprises enregistrées — l'inscription est gratuite et nous demandons votre extrait Kbis. Si cela ne concerne pas votre activité, dites-le nous simplement et nous ne réécrirons pas.",
         "%1\$s — %2\$d références, séries de tailles complètes, du stock.",
         "Nouveau chez VESTRA : ces maisons sont désormais disponibles du stock.",
-        "Si l'une d'elles vous intéresse, répondez-nous et nous vous enverrons la liste des références. Si vous préférez ne pas recevoir d'annonces de collection, dites-le simplement — nous arrêterons."],
+        "Si l'une d'elles vous intéresse, répondez-nous et nous vous enverrons la liste des références. Si vous préférez ne pas recevoir d'annonces de collection, dites-le simplement — nous arrêterons.",
+        "Désormais en stock"],
       'it' => ["VESTRA — ora a magazzino: %NAMES%",
         "Buongiorno".($co !== '' ? " ".$co : '').",",
         "Le abbiamo scritto due volte a proposito di VESTRA, il nostro marketplace B2B all'ingrosso per la moda di marca. Queste maison sono ora ordinabili da magazzino:",
@@ -2489,7 +2517,8 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
         "I prezzi all'ingrosso per pezzo sono riservati alle aziende registrate — l'iscrizione è gratuita e chiediamo la visura camerale. Se non riguarda la Sua attività, basta dircelo e non scriveremo più.",
         "%1\$s — %2\$d referenze, serie taglie complete, da magazzino.",
         "Novità su VESTRA: queste maison sono ora ordinabili da magazzino.",
-        "Se una di esse Le interessa, ci risponda e Le invieremo l'elenco delle referenze. Se preferisce non ricevere annunci di collezione, basta dircelo — smetteremo."],
+        "Se una di esse Le interessa, ci risponda e Le invieremo l'elenco delle referenze. Se preferisce non ricevere annunci di collezione, basta dircelo — smetteremo.",
+        "Ora a magazzino"],
       'es' => ["VESTRA — ya en stock: %NAMES%",
         "Buenos días".($co !== '' ? " ".$co : '').",",
         "Le hemos escrito dos veces sobre VESTRA, nuestro marketplace mayorista B2B de moda de marca. Estas casas ya están disponibles desde stock:",
@@ -2497,7 +2526,8 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
         "Los precios mayoristas por pieza se muestran a empresas registradas — el registro es gratuito y pedimos su licencia comercial. Si no tiene que ver con su negocio, díganoslo y no volveremos a escribir.",
         "%1\$s — %2\$d referencias, series de tallas completas, desde stock.",
         "Novedad en VESTRA: estas casas ya están disponibles desde stock.",
-        "Si alguna le interesa, respóndanos y le enviaremos el listado de referencias. Si prefiere no recibir anuncios de colección, díganoslo — dejaremos de enviarlos."],
+        "Si alguna le interesa, respóndanos y le enviaremos el listado de referencias. Si prefiere no recibir anuncios de colección, díganoslo — dejaremos de enviarlos.",
+        "Ya en stock"],
       'nl' => ["VESTRA — nu uit voorraad: %NAMES%",
         "Goedendag".($co !== '' ? " ".$co : '').",",
         "Wij schreven u tweemaal over VESTRA, onze B2B-groothandelsmarktplaats voor merkmode. Deze huizen zijn nu uit voorraad te bestellen:",
@@ -2505,7 +2535,8 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
         "Inkoopprijzen per stuk zijn zichtbaar voor geregistreerde bedrijven — registratie is gratis en wij vragen uw KvK-uittreksel. Past het niet bij uw zaak, laat het dan weten — dan schrijven wij niet opnieuw.",
         "%1\$s — %2\$d artikelen, volledige maatreeksen, uit voorraad.",
         "Nieuw bij VESTRA: deze huizen zijn nu uit voorraad te bestellen.",
-        "Heeft een daarvan uw interesse, antwoord dan even — wij sturen u de artikellijst. Wilt u liever geen collectieaankondigingen ontvangen, laat het weten — dan stoppen wij."],
+        "Heeft een daarvan uw interesse, antwoord dan even — wij sturen u de artikellijst. Wilt u liever geen collectieaankondigingen ontvangen, laat het weten — dan stoppen wij.",
+        "Nu uit voorraad"],
       'pt' => ["VESTRA — agora em stock: %NAMES%",
         "Bom dia".($co !== '' ? " ".$co : '').",",
         "Escrevemos-lhe duas vezes sobre a VESTRA, o nosso marketplace grossista B2B de moda de marca. Estas casas estão agora disponíveis do stock:",
@@ -2513,7 +2544,8 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
         "Os preços grossistas por peça são mostrados a empresas registadas — o registo é gratuito e pedimos a certidão permanente. Se não tiver a ver com o seu negócio, diga-nos e não voltaremos a escrever.",
         "%1\$s — %2\$d referências, séries de tamanhos completas, do stock.",
         "Novidade na VESTRA: estas casas estão agora disponíveis do stock.",
-        "Se alguma lhe interessar, responda e enviamos-lhe a lista de referências. Se preferir não receber anúncios de coleção, diga-nos — deixamos de enviar."],
+        "Se alguma lhe interessar, responda e enviamos-lhe a lista de referências. Se preferir não receber anúncios de coleção, diga-nos — deixamos de enviar.",
+        "Agora em stock"],
       'pl' => ["VESTRA — teraz z magazynu: %NAMES%",
         "Dzień dobry".($co !== '' ? " ".$co : '').",",
         "Pisaliśmy do Państwa dwukrotnie o VESTRA — naszej hurtowej platformie B2B z modą markową. Te domy mody są już dostępne z magazynu:",
@@ -2521,7 +2553,8 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
         "Ceny hurtowe za sztukę widzą zarejestrowane firmy — rejestracja jest bezpłatna, prosimy o wpis do rejestru działalności. Jeśli to nie dotyczy Państwa działalności, wystarczy dać znać — nie napiszemy ponownie.",
         "%1\$s — %2\$d pozycji, pełne rozpiętości rozmiarów, z magazynu.",
         "Nowość w VESTRA: te domy mody są już dostępne z magazynu.",
-        "Jeśli któryś z nich Państwa interesuje, prosimy o odpowiedź — prześlemy listę pozycji. Jeśli nie chcą Państwo otrzymywać informacji o nowościach, wystarczy dać znać — przestaniemy."],
+        "Jeśli któryś z nich Państwa interesuje, prosimy o odpowiedź — prześlemy listę pozycji. Jeśli nie chcą Państwo otrzymywać informacji o nowościach, wystarczy dać znać — przestaniemy.",
+        "Teraz z magazynu"],
       'cs' => ["VESTRA — nyní skladem: %NAMES%",
         "Dobrý den".($co !== '' ? " ".$co : '').",",
         "Psali jsme Vám dvakrát o VESTRA — našem velkoobchodním B2B tržišti se značkovou módou. Tyto značky jsou nyní skladem a lze je objednat:",
@@ -2529,7 +2562,8 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
         "Velkoobchodní ceny za kus vidí registrované firmy — registrace je zdarma a žádáme živnostenský list. Pokud se to Vaší činnosti netýká, stačí dát vědět — už nenapíšeme.",
         "%1\$s — %2\$d položek, kompletní velikostní řady, skladem.",
         "Novinka na VESTRA: tyto značky jsou nyní skladem a lze je objednat.",
-        "Pokud Vás některá zajímá, odpovězte nám a pošleme Vám seznam položek. Pokud si nepřejete dostávat oznámení o nových kolekcích, stačí dát vědět — přestaneme."],
+        "Pokud Vás některá zajímá, odpovězte nám a pošleme Vám seznam položek. Pokud si nepřejete dostávat oznámení o nových kolekcích, stačí dát vědět — přestaneme.",
+        "Nyní skladem"],
       'el' => ["VESTRA — τώρα σε απόθεμα: %NAMES%",
         "Καλημέρα".($co !== '' ? " ".$co : '').",",
         "Σας έχουμε γράψει δύο φορές για τη VESTRA, την B2B χονδρική πλατφόρμα μας για επώνυμη μόδα. Αυτοί οι οίκοι είναι πλέον διαθέσιμοι από απόθεμα:",
@@ -2537,7 +2571,8 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
         "Οι τιμές χονδρικής ανά τεμάχιο εμφανίζονται σε εγγεγραμμένες επιχειρήσεις — η εγγραφή είναι δωρεάν και ζητάμε την άδεια λειτουργίας. Αν δεν αφορά την επιχείρησή σας, πείτε μας απλώς και δεν θα ξαναγράψουμε.",
         "%1\$s — %2\$d κωδικοί, πλήρεις σειρές μεγεθών, από απόθεμα.",
         "Νέο στη VESTRA: αυτοί οι οίκοι είναι πλέον διαθέσιμοι από απόθεμα.",
-        "Αν σας ενδιαφέρει κάποιος από αυτούς, απαντήστε μας και θα σας στείλουμε τη λίστα κωδικών. Αν δεν επιθυμείτε να λαμβάνετε ανακοινώσεις αποθέματος, πείτε μας απλώς — θα σταματήσουμε."],
+        "Αν σας ενδιαφέρει κάποιος από αυτούς, απαντήστε μας και θα σας στείλουμε τη λίστα κωδικών. Αν δεν επιθυμείτε να λαμβάνετε ανακοινώσεις αποθέματος, πείτε μας απλώς — θα σταματήσουμε.",
+        "Τώρα σε απόθεμα"],
       'ja' => ["VESTRA — 在庫入荷: %NAMES%",
         ($co !== '' ? $co." " : '')."ご担当者様",
         "ブランドファッションのB2B卸売プラットフォーム VESTRA について、これまで二度ご案内いたしました。以下のブランドが在庫から発注可能になりました。",
@@ -2545,7 +2580,8 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
         "1枚あたりの卸価格は登録事業者にのみ表示されます。登録は無料で、事業者登録の確認をお願いしております。貴社の事業に該当しない場合はお知らせいただければ、今後ご連絡はいたしません。",
         "%1\$s — %2\$d型、サイズ展開フルセット、在庫から出荷。",
         "VESTRA 新着入荷のご案内です。以下のブランドが在庫から発注可能になりました。",
-        "ご関心のあるブランドがございましたら、ご返信いただければ品番リストをお送りいたします。在庫のご案内が不要でしたらお知らせください。以後お送りいたしません。"],
+        "ご関心のあるブランドがございましたら、ご返信いただければ品番リストをお送りいたします。在庫のご案内が不要でしたらお知らせください。以後お送りいたしません。",
+        "在庫入荷"],
       'ko' => ["VESTRA — 재고 입고: %NAMES%",
         ($co !== '' ? $co." " : '')."담당자님,",
         "브랜드 패션 B2B 도매 플랫폼 VESTRA에 대해 두 차례 안내드린 바 있습니다. 아래 브랜드가 재고에서 주문 가능해졌습니다.",
@@ -2553,11 +2589,12 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
         "장당 도매가는 등록된 사업자에게 표시됩니다. 등록은 무료이며 사업자등록증을 확인합니다. 귀사와 관련이 없다면 말씀만 주시면 다시 연락드리지 않겠습니다.",
         "%1\$s — %2\$d개 품목, 전 사이즈 구성, 재고 출고.",
         "VESTRA 신규 입고 안내입니다. 아래 브랜드가 재고에서 주문 가능해졌습니다.",
-        "관심 있는 브랜드가 있으시면 회신해 주시면 품번 리스트를 보내드리겠습니다. 재고 안내 수신을 원하지 않으시면 말씀해 주십시오. 이후 발송하지 않겠습니다."],
+        "관심 있는 브랜드가 있으시면 회신해 주시면 품번 리스트를 보내드리겠습니다. 재고 안내 수신을 원하지 않으시면 말씀해 주십시오. 이후 발송하지 않겠습니다.",
+        "재고 입고"],
     ];
 
     $d = $L[$lang] ?? $L['en'];
-    [$subject, $hi, $p1, $p2, $p3, $lineHouse, $p1m, $p3m] = $d;
+    [$subject, $hi, $p1, $p2, $p3, $lineHouse, $p1m, $p3m, $shotsTitle] = $d;
 
     /* UYE SURUMU. Ayni evler, ayni madde isaretleri, ayni konu -- degisen
        yalniz acilis ve kapanis. Lead metni uyeye IKI YERDEN birden yanlis:
@@ -2574,14 +2611,33 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
 
     /* Sifir artikelli ev cagiran tarafta zaten elenmis; burada ikinci kez
        elenmesi savunma amacli -- bos bir madde isareti, duyurunun kendisini
-       yalanlar. */
-    $bullets = '';
-    foreach ($houses as $h) $bullets .= "• ".sprintf($lineHouse, $h['name'], $h['n'])."\n";
+       yalanlar.
+       NOT yalniz MADDE SATIRINA girer, KONUYA degil: model numarasi (M3600,
+       M7535) parantez icinde adin arkasina ekleniyor ama ceviri gerektiren
+       bir cumle degil, o yuzden sozluge dokunmadan basiliyor. Konu satirinin
+       adi temiz kaliyor -- kisa bir baslikta parantezli bir kod ekleneni
+       kalabalik gosterirdi. */
+    $bullets = ''; $shots = [];
+    foreach ($houses as $h) {
+        $hname = $h['name'] . (($h['note'] ?? '') !== '' ? ' ('.$h['note'].')' : '');
+        $bullets .= "• ".sprintf($lineHouse, $hname, $h['n'])."\n";
+        /* Fotograf seridi: ev basina asamalanmis kareler, ayni HTML
+           gorseli notify.php'nin listing_colours mektubunda zaten kullandigi
+           mekanizmadan ('shots' -> uzak <img>, cid ekli degil, boyut siniri
+           yok). Etiket ev adi -- musteri hangi urunun oldugunu degil hangi
+           MARKANIN stokta oldugunu okuyor. Baglanti /catalog?brand=... :
+           bu adres girissiz de aciliyor (KURAL 19 yalniz FIYAT listesini
+           kapatiyor), yani mektubu login'i olmayan bir aday da acabilir. */
+        foreach ($h['imgs'] ?? [] as $img) {
+            $shots[] = ['img' => $img, 'label' => $h['name'],
+                        'url' => 'https://vestrasales.com/catalog?brand='.rawurlencode($h['name'])];
+        }
+    }
     $p2 = trim(str_replace('%HOUSES%', rtrim($bullets, "\n"), $p2));
 
     /* Konuda EN COK UC ad: dorduncusu cogu istemcide zaten kirpiliyor ve
        kirpilmis bir konu satiri, adini saydigimiz evi yarim gosterir. Govdede
-       dortu de yaziyor. */
+       hepsi yaziyor. */
     $names = array_map(fn($h) => $h['name'], $houses);
     $short = implode(', ', array_slice($names, 0, 3));
     $subject = str_replace('%NAMES%', $short, $subject);
@@ -2590,7 +2646,11 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
     $body  = implode("\n\n", $parts)
            . "\n\n—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com";
 
-    return [$subject, $body, ['button' => ['label' => 'VESTRA', 'url' => 'https://vestrasales.com/price-list']]];
+    return [$subject, $body, [
+        'button'      => ['label' => 'VESTRA', 'url' => 'https://vestrasales.com/price-list'],
+        'shots'       => $shots,
+        'shots_title' => $shotsTitle,
+    ]];
 }
 
 function vestra_tpl_new_collection(string $lang, string $company): array {
