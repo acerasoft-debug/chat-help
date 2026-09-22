@@ -8297,3 +8297,106 @@ olarak not düş ilana"*).
   product_overrides.json`'ına yazdı — zararsızdı (sunucu değil, ve iz
   temizlendi) ama *bir sandbox'ın gerçekten izole olduğunu varsaymak yerine
   ölçmek* gerektiğini bir kez daha gösterdi.
+
+**22 Eyl 2026 — VES-1A68FCD1'e AMI Paris Polo eklendi; KODDA "var olan siparişe
+sonradan yeni kalem ekleme" diye bir yol HİÇ yoktu.** Operatör, iki ayrı mesajda:
+*"Black x 20 , White x10 , Navy 20 , Grey 10"* → *"bu siparisi bu siparise ekle
+VES-1A68FCD1 → 2026-09-21 daymondproconect@yahoo.ro SC Daymond Proconect SRL"*.
+
+- **HANGİ ÜRÜN olduğu tahmin edilmedi, ölçülüp operatöre SORULDU.**
+  VES-1A68FCD1'in mevcut iki kalemi (D&G Oversized Tee `G8OB1TG7B2M`,
+  DSQUARED2 Oversized Tee `S74GD1399`) ikisi de **tek renk taşıyor: Black** —
+  White/Navy/Grey ikisinde de yok. Aynı alıcının üç açık teklifi de (Burberry
+  Globe Tee, Burberry Striped Polo, Givenchy Logo Tee) `renk(0)=(yok)` —
+  hiçbirinde kayıtlı renk yok. Katalog genelinde Black/White/Navy/Grey'in
+  **dördünü birden** taşıyan tek ürün Ralph Lauren `rl-csf-tee-navy`
+  (710680785004) gibi görünüyordu (aynı buyer'a bağlı bir mesaj ipliği ve
+  — o gün silinmiş — bir teklifi vardı) ve bu **AskUserQuestion**'da önerildi;
+  operatör **"Ami paris Polo"** cevabını verdi — tahminim yanlıştı, doğrusu
+  `AMI-PL-014` (`amiri-core-polo`, katalogda hard-coded bir demo ürün, renkleri
+  tam Black/White/Navy/Grey, min_colors=2). *Sorulmasaydı yanlış SKU'ya
+  yazılırdı — Task C'nin (Burberry 24'lü fiyat beraberliği) aynı disiplini,
+  bu kez ürün kimliği için.*
+- **İKİNCİ SORU: sipariş ZATEN KESİLMİŞ bir fatura taşıyordu ve buyer onu
+  "ödeme için aldım" diye ONAYLAMIŞTI** (mesaj ipliği `f449cd5405251419`, son
+  mesaj buyer'dan: *"I confirm receipt of the invoice for payment."*).
+  Operatöre soruldu: yeni ayrı bir sipariş mi, yoksa VES-1A68FCD1'e ekleyip
+  AYNI numarayla yeniden mi çizilsin. Operatör: **"VES-1A68FCD1'e ekle,
+  faturayı AYNI numarayla yeniden çiz."**
+- **KOD TARAFINDA BU EYLEMİN HİÇBİR YOLU YOKTU, ve bu ölçülerek görüldü —
+  varsayılmadı.** `vestra_order_set_colours()` yalnızca **ZATEN `items`'te
+  duran** bir kalemin renk notunu düzeltiyor; SKU orada yoksa kendi geri-okuma
+  doğrulaması (`vestra_order_lines()`'ın o SKU'yu görmesi) her zaman
+  **başarısız** olurdu. `vestra_order_create_manual()`/`order_write` ise HER
+  ZAMAN **yeni ve AYRI** bir sipariş yazıyor (`vestra_order_ref` rastgele
+  üretiliyor), var olan bir ref'e asla eklemiyor. "Var olan bir siparişe
+  sonradan yeni bir kalem ekleme" ikisinin arasında hiç yoktu.
+  Ayrıca toptan (`pricing=wholesale`) satır formatı **renk başına farklı
+  adet** taşıyamıyor: `SKU:RENK:ADET` bir renk KÜMESİ + TEK toplam adet alıyor
+  (renkler `;` ile ayrılıp eşit ağırlıklı sayılıyor), operatörün verdiği
+  **20/10/20/10 asimetrik kırılımı** hiçbir şekilde tek satırda ifade
+  edilemiyordu.
+- **`vestra_order_add_line()` yazıldı** (`inc/orders.php`): toplam
+  `vestra_order_set_shipping()` ile **AYNI** formülle — goods HER ZAMAN
+  `vestra_order_lines()`'dan (items'in YENİ hâli dahil) yeniden hesaplanıyor,
+  `subtotal` sütunundan değil (KURAL 32'nin dersi); `discount` DOKUNULMADAN
+  kalıyor (zaten yazılmış, sabit bir operatör kararı); eski "fee" eski
+  toplamdan GERİ TÜRETİLİP korunuyor — ikinci bir hesap yolu yazılmadı.
+  Renk+adet kırılımı hiçbir yapılandırılmış alanda tutulmuyor (bu depoda
+  hiçbir sipariş biçimi renk başına adet taşımıyor): düz renk seti
+  `vestra_order_set_colours()` ile **birebir aynı** notlar-haritası deseniyle
+  yazılıyor (diğer okuyucularla — fatura, sipariş sayfası, panel — uyumlu
+  kalsın diye), adet kırılımı UYDURULMADAN ayrı ve okunur bir cümle olarak
+  ekleniyor (`"AMI-PL-014 colour split: Black×20, White×10, Navy×20,
+  Grey×10."`). Aynı SKU zaten sipariştaysa **REDDEDİLİR** (ikinci satır değil,
+  `vestra_order_set_colours()`'a yönlendirir). Faturalıysa varsayılan **RED**,
+  `allow_invoiced=1` opt-in ile yazar ve `must_redraft=true` döner (KURAL 5f,
+  `vestra_order_set_colours`/`vestra_order_set_shipping` ile aynı desen).
+  Ön sipariş notu **UYDURULMADI**, `vestra_preorder_note($p)`'in kendisinden
+  (tek kaynak) — ürünün `preorder_ship`'i o gün başka bir oturumda 15 Ekim'e
+  çekilmişti (bkz. yukarıdaki AMI PARIS maddesi) ve bu fonksiyon onu **canlı**
+  okuyup "dispatch mid October 2026" bastı; tarih hiçbir yerde ikinci kez
+  yazılmadı.
+  `admin_mode=order_add_line` (`seller-products.yml`, varsayılan kuru koşu) —
+  `order_colours`'un yanına eklendi, aynı SSH/PHP deseni.
+- **AYNI DALDA İKİNCİ BİR OTURUM ÇALIŞIYORDU** (bu maddenin hemen üstündeki
+  `preorder_ship` girişi) ve `seller-products.yml`'nin dev `admin_mode`
+  açıklama dizgesinde **çakışma** çıktı — ikisi de aynı tek satırın SONUNA
+  kendi cümlesini ekliyordu. `git merge` beklenen tek yeri (`order_discount`
+  ile `platform_bank` arası) gösterdi; iki ekleme elle birleştirildi
+  (`order_add_line` → `order_colours`'ın hemen ardına, `preorder_ship` →
+  `lead_rename`'in hemen ardına, ikisi de kendi konumunda) ve **22 gömülü PHP
+  heredoc bloğunun hepsi** (`order_add_line` ve `preorder_ship` dahil) tek tek
+  `php -l` ile doğrulandı. *Bu depoda zaten kayıtlı ders (KURAL 5u'nun
+  `vestra_order_set_discount` çakışması): birleştirmeden sonra "aynı satıra
+  yazan ikinci bir ekleme var mı" diye ara.*
+- Test: `tests/order_add_line_test.php` (**44 iddia**, kum havuzunda gerçekten
+  yazıyor — AMI-PL-014 kodda hard-coded bir demo ürün olduğu için
+  `listings.json` olmadan da kum havuzunda çözülüyor, canlı D&G/DSQUARED2
+  SKU'ları çözülemiyor ve bu **beklenen**). Düşebildiği doğrulandı: faturalı
+  sipariş muhafazası kaldırılınca **8 kırmızı** (sabotaj `grep -c` ile
+  gerçekten uygulandığı doğrulanıp sonra dosya yedekten geri yüklendi, takım
+  tekrar 44/44 yeşile döndü). `sh tests/run_all.sh` tam paket koşuldu — bu
+  işten bağımsız, önceden kırık üç test (`dropship_plan_test` 4 — bu ortamda
+  kur API'lerine (ecb.europa.eu, frankfurter.app, open-er-api.com) çıkış yok,
+  `msg_read_receipt_test` 1, `msg_thread_label_test` 10) dışında hepsi yeşil.
+- **CANLI ÖLÇÜM VE YAZMA (22 Eyl 2026):**
+  - Kuru koşu ilan kademesini **canlıdan** okudu: `EUR 39.90` (60+ tier —
+    `product_overrides.json`'daki MOQ/tiers override'ı, 42.00/36.00/32.00
+    değil), ve mevcut faturayı gösterdi: `INV-2026-1015 (EUR 1.825,00)`.
+  - `allow_invoiced=1` ile **YAZILDI**: `20x G8OB1TG7B2M @60.00 | 20x
+    S74GD1399 @35.00 | 60x AMI-PL-014 @39.90`; goods €1.900,00 → **€4.294,00**;
+    indirim/kargo **dokunulmadı** (€95,00 / €20,00); subtotal/payout
+    **€4.199,00**; total **€4.219,00** (geri okundu).
+  - `admin_mode=issue` + `issue_redraft=true` ile **AYNI numarayla** yeniden
+    çizildi: `no: INV-2026-1015 (AYNI numarayla yeniden uretildi)`, 18.481 →
+    **18.894 bayt**, yeni sha256. **BELGENİN KENDİSİ ölçüldü, yazma mesajı
+    değil:** `belgede navlun: VAR (Shipping 20.00)`, `belgede indirim: VAR
+    (95.00)`, `belgede toplam: VAR (4.219,00)`, `belgede odeme kutusu: VAR
+    (IBAN satırı)`, `belgede banka adresi: VAR (Germany)`. E-posta
+    **GÖNDERİLMEDİ** (bilerek — KURAL 18, operatör göndermeyi istemedi).
+  - Bağımsız ikinci okuma (`diag-live` → `find_ref=VES-1A68FCD1`) birebir aynı
+    rakamları doğruladı: `items` üç satır, `subtotal=4199.00`,
+    `payout=4199.00`, `total=4219.00`, notlarda üç SKU'nun da rengi (`Colours
+    — G8OB1TG7B2M: Black | S74GD1399: Black | AMI-PL-014: Black, White, Navy,
+    Grey.`) — eski iki satırın rengi ve teslimat adresi **kaybolmadı**.
