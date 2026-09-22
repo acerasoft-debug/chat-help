@@ -6019,6 +6019,51 @@ trail satildi olarak isaretle"*.
   kontrol grubu `rl-csf-polo-white` → `satista` (dokunulmadı, tek yön
   ölçülseydi "her şeyi satan" bir hata da yeşil kalırdı).
 
+**22 Eyl 2026 — "En ucuz Burberry tişört" GERÇEK BİR ADAY DEĞİL, 24 YOLLU BİR
+BERABERLİKTİ.** Operatör: *"katalogtaki en ucuz burberry tshirt fiyatini
+75,00 eur yap"*.
+
+- **Tekil "en ucuz" yoktu — ölçüldü, tahmin edilmedi.** `inspect-products`
+  (`brand=Burberry, cat=T-Shirts`) katalogdaki **18** T-Shirts ilanının
+  **hepsinin** birebir aynı fiyatta olduğunu gösterdi: `list=59,90 EUR`,
+  tek kademe `20+ → €59,90`. Bir "en ucuz" seçmek için tam brand dökümü de
+  çekildi (`brand=Burberry`, kategori filtresiz): Burberry'nin geri kalanı
+  (Polos €60, Swim Shorts €130, Hoodies €120, Skirt €90) zaten daha pahalı,
+  ama **6 tane "Women's T-Shirts" ilanı da** aynı €59,90'da duruyordu — yani
+  gerçek beraberlik 18 değil **24 ilandı**.
+- **Ad/kategori tek başına ayırt etmiyordu, çünkü ayırt edecek HİÇBİR şey
+  yoktu.** Mango/zara dersinin bu kez ismi değil **fiyatı** ilgilendiren
+  hâli: bir SKU/stil numarası verilmemişti ve 24 ilanın hepsi aynı `moq=20`,
+  aynı tek kademe, aynı `mode=sale` yapısını taşıyordu — hangisinin
+  kastedildiğini kod da, talimat da söylemiyordu.
+- **Tahmin etmek yerine soruldu (AskUserQuestion).** 24'ün hepsinin tam bir
+  beraberlik olduğu operatöre gösterildi (yalnız erkek T-Shirts / hepsi 24 /
+  belirli bir SKU seçenekleriyle); operatör **"Hepsi, 24 ilan"** dedi —
+  yani hem erkek hem kadın kategorisi.
+- **Tek alan: `price` (tekil).** Hepsi `mode='sale'` ve tek kademesi zaten
+  `list` ile aynıydı, yani `price: 75` yazmak hem `list`'i hem tek kademeyi
+  75'e düzlüyor — 13 Eyl'in altı D&G polosu (→€110) ve 17 Eyl'in Burberry
+  eteği 8049455'in (→€90) kullandığı aynı teknik. Ayrı ayrı yalnız `tiers`
+  yazmak stale bir "was" fiyatı bırakırdı.
+  `product-fixes/burberry-tshirts-75.json` (24 satır, her biri `match=<id>`,
+  `expect:1`) → `set-product.yml`. Kuru koşu **24 ilanın 24'ünü de** buldu
+  (`list 59.9 -> 75`, `tiers(1) -> 75`), sonra uygulandı: `KAYDEDILDI — 24
+  alan guncellendi`, zaman damgalı yedek (`listings.json.bak-20260922-101653`).
+- **Geri okuma İKİ ayrı yoldan, ikisi de sepetin okuduğu fonksiyondan:**
+  (1) `inspect-products` (`brand=Burberry, price_list=true`) 24 ilanın
+  24'ünde de `fiyat(list)=75 EUR` / `tiers: 20+ -> €75` gösterdi; aynı
+  taramada Polos/Skirts/Hoodies/Swim Shorts **dokunulmamış** çıktı (60/90/
+  120/130 aynen duruyor) — yalnız hedeflenen 24 değişti. (2) `price_audit`
+  (`vestra_unit_price()`'ın kendisini ölçen mod): 24 Burberry ilanının
+  hiçbiri ne "[A] ALICI ALEYHİNE" ne "[B] indirim rozeti yok ama sepet ucuz"
+  listesinde çıktı — hepsi **tutarlı**, yani sepet gerçekten €75,00 tahsil
+  ediyor. Tek "[A]" satırı bu işten bağımsız, eski demo tohumu
+  `lac-pique-polo` (bu depoda tekrar tekrar kayıtlı, dokunulmadı).
+- Test: bu bir veri düzeltmesi, davranış değişikliği değil — mevcut
+  `scripts/set_product.php` doğrulayıcısı ve `set-product.yml`'nin
+  "HEPSİ ya da HİÇBİRİ" (`expect`) muhafazası zaten kullanıldı; yeni bir
+  test yazılmadı.
+
 **11 Eyl 2026 — KATALOG GENELİNDE %80 ZAM ve GERİ ALINMASI.** Operatör:
 *"yüzde 80 eklemeyi hemen geri al"* → *"tüm fiyatları dün geceki fiyatlara çek"*.
 - **Ne olmuş:** KURAL 22 ile eklenen `markup_pct` aracı **`80` ile ve bölme
