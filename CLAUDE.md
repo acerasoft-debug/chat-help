@@ -8189,6 +8189,40 @@ bu Faturayı müşteriye email eile gönder"*).
 - Kod değişmedi, yeni mekanizma yazılmadı — yalnız doğru, zaten var olan yol
   kullanıldı.
 
+**KURAL 7 (devamı) — İKİNCİ siparişe de `payment_due`: saat DEVAM eder,
+yeniden başlamaz** (operatör, aynı gün: *"VES-55E4F6E1 → 2026-09-18
+massinissa.chabati@gmail.com bu sipariş içinde eğer bildirim yapilmaz ise
+siparişin kapanacağını belirt"*).
+
+- **Önce ölçüldü:** `diag-live` → `find_ref=VES-55E4F6E1` — `status=pending`,
+  fatura **INV-2026-1013 · EUR 1.160,00**, ve saat **zaten çalışıyordu**:
+  `payment_grace_start=2026-09-19T14:00:04` (KURAL 32'nin 19 Eylül'de kestiği
+  faturanın ardından cron'un aynı gün attığı damga), `payment_reminder_sent_at`
+  de dolu — yani ilk hatırlatma **dört gün önce** gitmişti. Bu, ilk defa
+  yazılan bir mektup değil, **ikinci** bir hatırlatma.
+- **`payment_due` dry-run'ı bunu doğruladı:** `asama: running`,
+  `onizlenen son tarih: 2026-09-25` — saat 19 Eylül'den beri işliyor ve
+  bugüne (23 Eylül) göre kalan gerçek süre yalnızca ~2 iş günü, "5 iş günü"
+  değil. **`vestra_order_payment_reminder_send()` yalnız `phase==='unstamped'`
+  iken `payment_grace_start`'ı yazıyor** — zaten damgalı bir siparişte saat
+  **DOKUNULMADAN** kalıyor, yalnız mevcut son tarih yeniden okunup yazılıyor.
+  Yani ikinci çağrı saati sıfırlamıyor, sahte bir "5 gün daha" vermiyor.
+- **`payment_final` BİLEREK KULLANILMADI.** O mektup *"satıcı bize geri döndü,
+  malı ne zamana kadar tutacağını soruyor"* diye açılıyor — burada faturayı
+  kesen taraf **VESTRA'nın kendisi** (`invoice_seller_uid=vestra`) ve hiçbir
+  üçüncü taraf satıcı geri dönmedi. Olmayan bir satıcı talebini var gibi
+  yazmak KURAL 3'ün yasakladığı şey, ve bu ayrım şablonun kendi yorumunda da
+  yazılı (*"dogrulanmamis bir aciliyet iddiasi, cevap gelince geri alinamaz"*).
+  `payment_due` ise zaten var olan, gerçek son tarihi tekrarlıyor — operatörün
+  *"bildirim yapılmazsa kapanacağını belirt"* cümlesinin birebir karşılığı bu.
+- **Gönderildi** (`send=true`): `GONDERILDI -> m***@gmail.com`, son tarih
+  **2026-09-25** (değişmedi, yalnız yeniden okundu). Bağımsız ikinci okumayla
+  (`diag-live` → `find_ref`) doğrulandı: `payment_grace_start` **aynen**
+  `2026-09-19T14:00:04` kaldı, `payment_reminder_sent_at` **2026-09-23T09:40:29**'a
+  güncellendi — saat devam ediyor, yeniden başlamadı.
+- Kod değişmedi; bu da KURAL 7'nin zaten paylaşılan (cron + operatör)
+  fonksiyonunun ikinci, bağımsız doğrulanmış kullanımıydı.
+
 **KURAL 26 — Para birimi seçimi KALICI; çerezi yazan tek yer money.php'nin
 yüklenme anı** (operatör, 13 Eyl 2026: *"para birimi sürekli degisiyor ... para
 birimi secilmesine ragmen bir sonraki linke tiklandginda gene eur oluyor ayrica
