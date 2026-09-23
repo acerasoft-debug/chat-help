@@ -4580,6 +4580,52 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
     2'si GARAGE LE PARIS'in kendi yazısı, en son 9 Eyl 08:04). İlan TYREX'e
     geçtiği için o alıcı, artık TYREX'in olan bir ürün hakkında GARAGE LE
     PARIS'le konuşmaya devam ediyor. Taşımak yukarıdaki (1) kuralına takılıyor.
+
+**KURAL 19 (devamı) — bur-8014004 (Burberry Polo — 8014004): AYNI boşluk, ikinci
+vaka** (operatör, 23 Eyl 2026, hazır bir cevap mektubu verip: *"bu mesaji tyrex
+international bv. Den yaz"* — Arelisshop ↔ VESTRA Support, 1 mesaj, 22 Eyl 2026
+13:03, ürün Burberry Polo — 8014004).
+- **Ölçüldü, tahmin edilmedi:** `inspect-products` → `name=8014004`: ilan
+  `bur-8014004`, `seller_uid=(yok)`. Bir gün önceki D&G Crest Sweatshirt /
+  GARAGE LE PARIS vakasının (`product-fixes/dgx-crest-sweatshirt-seller.json`)
+  birebir aynı deseni — ilan seller_uid'siz geldiği için alıcının ürün sorusu
+  açtığı thread'in kendi `seller_uid` alanı **VESTRA_SUPPORT_UID** ile
+  damgalanmış. `msg_reply` kuru koşusu bunu doğrudan gösterdi: *"cevap: VESTRA
+  Support adina"* — operatörün "TYREX adına yaz" dediği mektup, düzeltmeden
+  gönderilseydi VESTRA Support imzasıyla giderdi.
+- **Hedef hesap ADDAN değil KAYITTAN bulundu:** `diag-live` → `find_ref=tyrex`
+  TEK eşleşme verdi — `d7824e27204c0177`, `company=TYREX INTERNATIONAL BV.`,
+  `type=seller`, `status=active`, `kyb_status=approved`.
+- **İKİ AYRI YAZMA gerekti ve İKİSİ DE ŞARTTI — biri diğerini karşılamıyor:**
+  1. `product-fixes/bur-8014004-seller.json` + `set-product.yml`:
+     `seller_uid '(yok)' -> 'd7824e27204c0177'` (dry-run → apply → geri okundu,
+     `1 alan guncellendi`, zaman damgalı yedek).
+  2. `seller-products.yml` → `admin_mode=thread_seller`,
+     `move_to=d7824e27204c0177`, `move_threads=ilan:bur-8014004`: kuru koşu
+     eski satıcının (vestra-support) bu konuşmada **0 mesaj** yazdığını ve
+     çakışan bir thread olmadığını gösterdi (ikisi de KURAL 19'un "hepsi ya da
+     hiçbiri" muhafazası), sonra `move_apply=true` ile uygulandı —
+     `1/1 thread yeni saticida ve yeni id ile geri okundu` (eski id
+     `1af241aa3859b128` → yeni id `08050df5338fa13f`), yedek alındı.
+  **Yalnız (1)'i yapıp durmak yanlış olurdu:** ilanın `seller_uid`'i düzelse
+  bile ZATEN AÇILMIŞ bir thread'in kendi `seller_uid`'i ayrı bir kayıt ve
+  kendiliğinden değişmiyor — `msg_reply` (2) uygulanmadan hâlâ "VESTRA Support
+  adina" diyordu, ölçülerek doğrulandı.
+- **Göndermeden ÖNCE üçüncü kez dry-run edildi**, "cevap" satırının artık
+  **TYREX INTERNATIONAL BV. adina** dediği görüldükten ve metnin operatörün
+  verdiği mektupla birebir eşleştiği doğrulandıktan sonra `send=true` ile
+  gönderildi (KURAL 18: hedef, tam metin ve kime ait olacağı operatörün aynı
+  mesajında birlikte verilmişti). `msg_ping` (salt okunur) ile GERİ OKUNDU:
+  thread **2 mesaj**, son mesaj TYREX INTERNATIONAL BV.'den. Buyer'a giden
+  bildirimde satıcı yine **"Seller 8014004"** görünüyor — KURAL 8'in mağaza
+  adını alıcıdan gizleme kuralı bozulmadı; değişen şey konuşmanın hangi satıcı
+  HESABINA ait olduğu (dolayısıyla kimin panelinde durduğu ve fatura/iş
+  kaydında kimin adına geçtiği).
+- Yeni bir mekanizma yazılmadı, test eklenmedi: bu, KURAL 19'un 9 Eyl 2026'da
+  zaten kurduğu `thread_seller`/`set_product.php` yolunun ikinci, bağımsız
+  kullanımı — aracın kendisi `tests/lead_rename_test.php` ve
+  `msg_thread_label_test.php` gibi testlerin tuttuğu davranışı değiştirmedi.
+
 - **KURAL 20 — Her pakette TAŞIYICI + SERVİS + takip BAĞLANTISI; bağlantı
   numaradan TÜRETİLİR** (operatör, 9 Eyl 2026: *"bu gönderim numarasini ekle
   link ile beraber ups express saver"* + *"her pakette gönderici kargo bölümüde
