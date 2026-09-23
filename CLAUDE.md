@@ -8074,6 +8074,72 @@ ile yeni bir paswort olustursun ve girsin"*).
   keserdi. *Yeniden göndermeden önce ilkinin yaşını ve kullanılıp
   kullanılmadığını sor.*
 
+**KURAL 28 (devamı) — LARCHE-COLORE-PRINTED-BLACK / Easyauto24: "LARCHE" ADI
+ÜRÜN ADINDA DEĞİL GÖRSEL DOSYA ADINDA yaşıyordu** (operatör, 23 Eyl 2026:
+*"LARCHE-COLORE-PRINTED-BLACK bu üründen 10 ad. Easyauto24 isimli müşteriye
+10 ad. 50 eur dan shipping 20 eur toplam 520 eur. satıcı acerasoft ve eu
+bankasi ile fatura kes ve sipariş aç. başka indirim yok."*).
+
+- **`inspect-products` → `name=LARCHE` SIFIR satır bastı** — ürün adı alanında
+  bu kelime hiç geçmiyordu. Sıfır sonucu "ürün yok" diye okumak yerine kapsam
+  genişletildi: aynı fragman `img_contains=larche` ile görsel YOLUNDA arandı
+  ve **dört** T-Shirt çıktı; kelime tedarikçinin verdiği dosya adında
+  yaşıyormuş. Tam eşleşen tek satır: `csb-larche-colore-printed-black`.
+  `diag-live` → `find_ref=larche` aynı kaydı `listings.json`'da tek eşleşme
+  olarak doğruladı ve bu SKU'ya değinen hiçbir sipariş/teklif/talep/lead
+  olmadığını gösterdi — temiz bir sayfa.
+- **Ürünün gerçek kaydı ölçüldü:** marka **Casablanca**, ad *"L'arche Colore
+  Printed T-Shirt — Black"*, SKU `LARCHE-COLORE-PRINTED-BLACK`,
+  `list=69,90 EUR`, tek kademe `20+ → €69,90`, **MOQ 20**, `10 pcs/pack`
+  (S×1·M×3·L×3·XL×2·XXL×1), tek renk **Black**, `min_colors` yok, ilanın
+  satıcısı `7ab30f26afedd840` (GARAGE LE PARIS).
+- **10 adet MOQ'nun (20) ALTINDA — KURAL 28'in `waive_moq` deseniyle
+  karşılandı.** 10, paket adımının (10) tam katı — bir karton — ama ilan
+  edilen minimumun yarısı.
+  `pricing=wholesale|waive_moq=1|LARCHE-COLORE-PRINTED-BLACK:Black:10:50`;
+  gerekçe siparişin notuna otomatik düştü (*"Quantity below the listed
+  minimum order, agreed as an exception."*). **50 EUR birim fiyatı YÖN
+  kontrolünden geçti:** katalog kademesi 69,90 EUR ile kıyaslanıp operatörün
+  verdiği rakamın **daha ucuz** (iskonto, operatör kararı) olduğu görüldü —
+  fazla olsaydı `order_draft` "alıcı aleyhine" diye reddederdi. Beden dökümü
+  uydurulmadı: 10 adet tam 1×10'luk seriye bölündüğü için
+  S×1·M×3·L×3·XL×2·XXL×1 ilanın kendi verisinden çıktı.
+- **Önce `order_draft` (salt okunur), sonra `order_write`** — ikisi birebir
+  aynı rakamı verdi: mal 500,00 + kargo 20,00 = **520,00 EUR**, operatörün
+  toplamıyla kuruşuna kadar örtüşüyor. Yazılan sipariş **`VES-60594A18`**,
+  kayıttan geri okundu (goods/shipping/total doğrulandı); `diag-live` ile
+  ayrıca bağımsız okunduğunda `items`, `subtotal`, `total` ve renk notu
+  birebir aynı çıktı.
+- **Fatura kesicisi KURAL 5b'nin `'vestra'` seçimiyle açıkça PLATFORMA
+  (Acerasoft LLC) atandı** — ilanın kendi satıcısı (GARAGE LE PARIS)
+  **ezildi**, operatörün "satıcı acerasoft" talimatı buydu. `admin_mode=seller`
+  kesimden ÖNCE hem seçimi geri okuyup doğruladı (*"KAYITLI: vestra"*) hem de
+  ödeme kutusunun **EUR'da 5 satır** çıkacağını gösterdi — platformun 17
+  Eylül'de eklenen EUR/IBAN künyesinin dolu olduğu ve KURAL 5r'nin kesimi
+  engellemeyeceği kesimden önce ölçüldü.
+- **Fatura kesildi: `INV-2026-1016`.** `admin_mode=issue` numarayı yaktı, PDF
+  üretti, e-postayı BİLEREK göndermedi (adımın kendi satırı: *"e-posta:
+  GONDERILMEDI (bilerek -- gonderim ayri adim)"*) ve belgeyi bu oturumun
+  ürettiği tek kullanımlık RSA anahtarıyla şifreli döndürdü — asıl doğrulama
+  (bayt sayısı, sha256, "belgede navlun/toplam/ödeme kutusu VAR") şifrelenmeden
+  ÖNCE düz metinde yapıldığı için belgenin içeriğini görmeye hiç gerek
+  kalmadı. Numaranın gerçekten kayda girdiği **ikinci, bağımsız** bir
+  okumayla ayrıca doğrulandı: aynı `admin_mode=seller` çağrısını tekrarlamak
+  artık *"fatura ZATEN KESILMIS (INV-2026-1016)"* diyerek reddetti (KURAL
+  5b'nin "kesilmiş faturada seçim artık bir şey değiştirmez" muhafazası) —
+  bu ret, numaranın gerçekten yazıldığının ucuz ve kesin kanıtı.
+- **"Başka indirim yok" KOD SEVİYESİNDE doğrulandı, varsayılmadı:**
+  `vestra_order_create_manual()`'ın kaynağı okundu — fonksiyon `discount`
+  sütununa koşulsuz boş dizge yazıyor ve `vestra_welcome_auto()`/bölgesel
+  indirim fonksiyonlarının hiçbirini çağırmıyor (o mantık yalnız `order.php`
+  kasa akışında var). Manuel sipariş yolu yapısı gereği hiçbir otomatik
+  indirim uygulayamıyor.
+- **IBAN'ın kendisi hiçbir adımda log'a çıkmadı** — yalnızca satır SAYISI ve
+  VAR/YOK görüldü (Güvenlik bölümünün kuralı).
+- Yeni bir mekanizma yazılmadı, test eklenmedi: bu, KURAL 28/5b/5j'nin zaten
+  kurduğu `order_draft`/`order_write`, `seller` ve `issue` yollarının bir
+  başka doğrulanmış kullanımıydı.
+
 **KURAL 26 — Para birimi seçimi KALICI; çerezi yazan tek yer money.php'nin
 yüklenme anı** (operatör, 13 Eyl 2026: *"para birimi sürekli degisiyor ... para
 birimi secilmesine ragmen bir sonraki linke tiklandginda gene eur oluyor ayrica
