@@ -8140,6 +8140,55 @@ bankasi ile fatura kes ve sipariş aç. başka indirim yok."*).
   kurduğu `order_draft`/`order_write`, `seller` ve `issue` yollarının bir
   başka doğrulanmış kullanımıydı.
 
+**KURAL 28 (devamı) — "Faturayı email ile gönder": SİPARİŞ faturasında PDF EKİ
+hiçbir zaman yok; tek sağlam yol `payment_due`** (operatör, aynı gün: *"Tamamdır
+bu Faturayı müşteriye email eile gönder"*).
+
+- **Önce arandı, tahmin edilmedi.** `vestra_order_invoice_issue($ref,
+  $notify=true, $copyTo='')` (`inc/invoice.php:1955`) tam olarak "kes ve
+  e-postala" yapan fonksiyon gibi görünüyordu — ama satır 1968'de
+  `vestra_invoices_for_ref($ref)` doluysa **koşulsuz reddediyor**
+  (*"Bu siparişin faturası zaten kesilmiş — aynı satıra ikinci numara
+  yakılmaz."*). INV-2026-1016 zaten `admin_mode=issue` ile (bilerek
+  e-postasız) kesildiği için bu fonksiyon burada **hiç çalışmaz** — ilk kesim
+  anında issue+notify'ı BİRLİKTE yapan bir kısayol, ikinci bir çağrıda
+  sadece "notify" yapamıyor.
+- **Kapsamlı arama (panel düğmeleri, iş akışı mektupları, teklif-bazlı
+  redraft/birleştirme yolları) ikinci bir şey daha gösterdi: sipariş
+  seviyesinde faturayı EK OLARAK e-postalayan HİÇBİR mekanizma yok** —
+  ne panelde ne iş akışında. `vestra_order_invoice_issue()`'nin kendi gövdesi
+  bile PDF eklemiyor, yalnız *"Download it from your order confirmation
+  page"* diyor; PDF eki yalnızca **teklif (offer)** faturalarında var
+  (`vestra_offers_combined_invoice_issue`, `vestra_offer_invoice_redraft_apply`,
+  `send-campaign-preview.yml`'nin `inv_ref` işi — üçü de `offers.csv`'ye
+  bağlı ve düz bir `VES-` sipariş ref'inde çalışmıyor). Yani bu, bu
+  siparişe özgü bir boşluk değil, platformun sipariş tarafındaki **tutarlı
+  tasarımı**: müşteri PDF'i kendi sipariş sayfasından indirir, e-posta
+  yalnızca bağlantı ve rakamları taşır.
+- **Doğru ve tek yerleşik yol: KURAL 7'nin `payment_due`'su**
+  (`reply_letter=payment_due`, `to=order:<ref>`) — cron'un (`cron_order_payment.php`)
+  kullandığı **aynı** fonksiyon (`vestra_order_payment_reminder_send`).
+  Önce **`send=false`** ile önizlendi: `durum: pending`, `fatura:
+  INV-2026-1016 tutar: EUR 520.00`, `asama: unstamped` — yani bugünün
+  07:00 sunucu-yerel cron'u bu siparişe **henüz dokunmamıştı** (sipariş
+  dakikalar önce açılmıştı), ikinci bir mektup riski yoktu.
+- **Gönderildi** (`send=true`): `GONDERILDI -> m***@orange.fr`, son tarih
+  **2026-09-30** (5 iş günü) damgalandı. Operatör aynı cümlede hem hedefi
+  ("bu fatura", "müşteri") hem "gönder" talimatını verdiği için KURAL 18'in
+  dar istisnası uygulandı, ikinci kez sorulmadı.
+- **Bağımsız, İKİNCİ bir araçla geri okundu** (`diag-live` → `find_ref=
+  VES-60594A18`): `order_statuses.json` → `status=pending |
+  invoice_seller_uid=vestra | payment_grace_start=2026-09-23T09:31:16+00:00 |
+  payment_reminder_sent_at=2026-09-23T09:31:16+00:00` — hem gönderim hem
+  daha önceki satıcı ataması (`vestra`) yerinde.
+- **Söylenen yan etki:** bu mektup aynı zamanda gerçek 5 iş günlük otomatik
+  iptal saatini **başlatıyor** — "faturayı e-postala" talebinin sessiz bir
+  yan sonucu değil, KURAL 7'nin ta kendisi: pending + faturalı + escrow
+  olmayan her siparişte cron zaten bunu yapacaktı, burada yalnız zamanlaması
+  operatörün isteğiyle öne çekildi.
+- Kod değişmedi, yeni mekanizma yazılmadı — yalnız doğru, zaten var olan yol
+  kullanıldı.
+
 **KURAL 26 — Para birimi seçimi KALICI; çerezi yazan tek yer money.php'nin
 yüklenme anı** (operatör, 13 Eyl 2026: *"para birimi sürekli degisiyor ... para
 birimi secilmesine ragmen bir sonraki linke tiklandginda gene eur oluyor ayrica
