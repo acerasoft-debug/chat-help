@@ -1106,6 +1106,55 @@ function vestra_tpl_order_payment_notice(string $buyerName, string $ref, string 
 }
 
 /**
+ * TESLIMAT ADRESI EKLENDI/DUZELTILDI onayi (operator, 23 Eyl 2026, VES-60594A18:
+ * musteriden gelen adres siparise elle eklendi -- fatura ZATEN kesilmisti ve
+ * KURAL 5f ile AYNI numarayla yeniden cizildi -- sonra "email ile musteriye
+ * gönder" dedi).
+ *
+ * ADRES METNE ELLE YAZILMAZ: cagiran onu siparis kaydindan
+ * (vestra_order_delivery_address) okuyup geciriyor, KURAL 3'un ayni ilkesi --
+ * burada da bir olguyu UYDURMAK yerine kayittan okumak sart.
+ *
+ * $invoiceRedrafted TRUE ise "faturaniz AYNI numarayla yeniden cizildi, eski
+ * kopya gecersiz" cumlesi yaziliyor. Sablon bunu OLCEMEZ (numara zaten
+ * kesilmis bir belge dun de vardi bugun de var) -- operatorun ACIK bayragi,
+ * `vestra_tpl_order_discount()`'un `invoice_updated` deseninin aynisi.
+ *
+ * TEK DIL (Ingilizce), payment_notice/tracking_soon/payment_ask ile ayni
+ * gerekce: bu bir durum bildirimi, kampanya degil -- coklu ulkeye giden
+ * order_discount'un 4-dil yatirimini hak eden hacim burada yok.
+ */
+function vestra_tpl_order_delivery_confirmed(string $buyerName, string $ref, string $address,
+        string $invoiceNo = '', bool $invoiceRedrafted = false, bool $hasAccount = false, string $signer = ''): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $subject = "Order {$ref} — delivery address confirmed";
+
+    $rows = [['label'=>'Order ref', 'value'=>$ref], ['label'=>'Delivery address', 'value'=>$address]];
+    if ($invoiceNo !== '') $rows[] = ['label'=>'Invoice', 'value'=>$invoiceNo];
+    $opts = ['badge'=>'Order update', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders'];
+
+    $invBit = $invoiceNo === '' ? ''
+            : ($invoiceRedrafted
+                ? "Your invoice {$invoiceNo} has been reissued under the same number to carry this address — "
+                  . "please use the updated copy; any earlier one is superseded.\n\n"
+                : "Your invoice {$invoiceNo} will carry this address.\n\n");
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "We have added the following delivery address to your order {$ref}:\n\n"
+      . $address."\n\n"
+      . $invBit
+      . "If anything about this address is not correct, just reply to this e-mail and we will fix it.\n\n"
+      . "Kind regards,\n\n"
+      . ($signer !== ''
+          ? $signer."\nVESTRA – vestrasales.com"
+          : "VESTRA · Acerasoft LLC\n8 The Green, Suite B, Dover, Delaware 19901, USA\nsupport@vestrasales.com · vestrasales.com");
+    return [$subject, $body, $opts];
+}
+
+/**
  * "Odeme yapacak mi, YA DA NE ZAMAN" (operator, 9 Eyl 2026, Stock&chic /
  * O7A484: *"zaten satin almisti odeme yapiyormu onu sorucaz"* + *"yada ne
  * zaman"*). Musteri siparisi verdi, fatura kesildi, para gelmedi ve son
