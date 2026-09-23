@@ -8595,3 +8595,48 @@ VES-1A68FCD1 → 2026-09-21 daymondproconect@yahoo.ro SC Daymond Proconect SRL"*
     `payout=4199.00`, `total=4219.00`, notlarda üç SKU'nun da rengi (`Colours
     — G8OB1TG7B2M: Black | S74GD1399: Black | AMI-PL-014: Black, White, Navy,
     Grey.`) — eski iki satırın rengi ve teslimat adresi **kaybolmadı**.
+
+**KURAL 5l (devamı) — Teslimat adresi FATURASI KESİLMİŞ siparişe de eklenebiliyor;
+opt-in kardeşleriyle aynı desende** (operatör, 23 Eyl 2026: *"BU SIPARISE BURDAKI
+ADRES TESLIMAT ADRESI OLARAK eklenecek, Matthieu Gillet / 30 chemin de mechives
+33140 villenave d'ornon, France"* → *"sonrada email ile müsteriye gönder"*).
+
+- **`vestra_order_set_delivery()` faturalı siparişte KOŞULSUZ reddediyordu** —
+  kardeşleri `vestra_order_set_colours()`/`vestra_order_set_shipping()` opt-in'e
+  geçeli beri ayrışmıştı. Hedef sipariş (`VES-60594A18`, Easyauto24, LARCHE-
+  COLORE-PRINTED-BLACK) **INV-2026-1016** ile aynı gün açılmış (bkz. yukarıdaki
+  kayıt) ve zaten kesikti, yani adres eklemenin tek yolu bu boşluğu kapatmaktı.
+- Fonksiyon aynı desene taşındı: `bool $allowInvoiced = false` parametresi,
+  `$invoiced && !$allowInvoiced` kapısı, başarılı dönüşte `must_redraft`.
+  `seller-products.yml`'nin `order_delivery` adımı payload'ın sonuna
+  `|allow_invoiced=1` ekini ayrıştırıp geçiriyor; `must_redraft` dönerse
+  operatörü `admin_mode=issue + issue_redraft=true` ile AYNI numarayla yeniden
+  çizime yönlendiriyor. `admin_mode` açıklama metnindeki eski "opt-in yok"
+  cümlesi güncellendi.
+- **AYNI DALDA İKİNCİ BİR OTURUM ÇALIŞIYORDU** ve bu commit'i doğrudan cherry-pick
+  edemedi: `order_add_line` adımı tam olarak aynı yerleşim noktasına (order_colours
+  ile order_discount arası) ve `admin_mode` açıklama dizgesinin aynı satırına
+  eklenmişti. Cherry-pick'in ürettiği iç içe (interleaved) çakışma boilerplate
+  metin tekrarı yüzünden güvenilir okunamadığı için ELLE birleştirildi: HEAD'in
+  `order_add_line` adımı korunup benim `order_delivery` adımım hemen ardına
+  eklendi, açıklama dizgesinde de aynı sıra izlendi. *Bu depoda zaten kayıtlı
+  ders (KURAL 5u): birleştirmeden sonra "aynı yere yazan ikinci bir ekleme var
+  mı" diye ara — burada git'in kendisi çakışmayı raporladı, aramaya gerek
+  kalmadı, ama çözümü metin karşılaştırmasıyla elle yapmak gerekti.*
+- Test: `tests/order_shipping_test.php`'deki "adres yazıcısı KOŞULSUZ durur"
+  iddiası davranış bilerek değiştiği için düzeltildi (opt-in/`must_redraft`
+  kontrolüne ve iş akışı kablolamasına çevrildi); dosya-geneli eski unconditional
+  guard'ı arayan iddia de artık dört yazıcının paylaştığı güncel deseni
+  (`$invoiced && !$allowInvoiced`, ≥4 kez) sayıyor. Sabotaj ile doğrulandı (guard
+  kaldırılınca 2 kırmızı), geri alındı. Hem çalışma dalında hem deploy
+  worktree'sinde 57/57; 3 önceden-kırık test bu işten bağımsız.
+- **CANLI YAZMA (23 Eyl 2026):** kuru koşu → `mevcut adres: (yok)`, `kesilmis
+  fatura: 1 (INV-2026-1016)`, `allow_invoiced: EVET`, *"IZIN VERILDI"*. Uygulandı
+  → `YAZILDI (geri okundu)`, `FATURANIN gordugu` alanı yazılan adresle **birebir**
+  eşleşti (`vestra_invoice_buyer()` üzerinden doğrulandı), `must_redraft: true`.
+  Ardından `admin_mode=issue + issue_redraft=true`: `no: INV-2026-1016 (AYNI
+  numarayla yeniden uretildi)`, alıcı ülkesi **France**, adres **71 karakter**
+  (önce YOK). **BELGENİN KENDİSİ ölçüldü**, yazma mesajı değil: `belgede navlun:
+  VAR (Shipping 20.00)`, `belgede toplam: VAR (520.00)`, `belgede odeme kutusu:
+  VAR (IBAN satırı)`, `belgede banka adresi: VAR (Germany)`. E-posta bu adımda
+  **GÖNDERİLMEDİ** (bilerek — kesim/gönderim ayrı adımlar).
