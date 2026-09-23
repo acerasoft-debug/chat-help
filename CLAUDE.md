@@ -8640,3 +8640,47 @@ ADRES TESLIMAT ADRESI OLARAK eklenecek, Matthieu Gillet / 30 chemin de mechives
   VAR (Shipping 20.00)`, `belgede toplam: VAR (520.00)`, `belgede odeme kutusu:
   VAR (IBAN satırı)`, `belgede banka adresi: VAR (Germany)`. E-posta bu adımda
   **GÖNDERİLMEDİ** (bilerek — kesim/gönderim ayrı adımlar).
+
+**KURAL 5l (devamı 2) — `order_delivery` cevap mektubu eklendi ve GÖNDERİLDİ**
+(operatör, aynı gün, devam cümlesi: *"sonrada email ile müsteriye gönder"*).
+
+- **Mevcut `reply_letter` kataloğunda uyan hiçbiri yoktu.** `order_discount`
+  indirim şart koşuyor (`$odisc <= 0` → durur), bu siparişte indirim yok;
+  diğerleri (`payment_notice`, `tracking_soon`, `payment_ask`) farklı olgulara
+  bağlı. Yeni, dar kapsamlı bir mektup yazıldı: `vestra_tpl_order_delivery_
+  confirmed()` (`inc/email_templates.php`), `vestra_tpl_order_payment_notice`
+  ile aynı desen (`payment_notice`/`tracking_soon`/`payment_ask` gibi TEK DİL
+  İngilizce — bu bir kampanya değil tek seferlik durum bildirimi, `order_
+  discount`'un 4-dil yatırımını hak eden hacim yok).
+- **Adres metne elle yazılmadı**: `vestra_order_delivery_address()` ile
+  SİPARİŞ KAYDINDAN okunuyor (KURAL 3). `invoice_updated=1` bayrağı
+  `order_discount`'un aynı deseni — şablon "aynı numarayla yeniden çizildi mi"
+  sorusunu KENDİSİ ölçemez (dosya dün de vardı bugün de var), operatörün AÇIK
+  attestasyonu gerekiyor.
+- Branch `send-campaign-preview.yml`'de `order_discount`'un hemen ardına
+  eklendi (`elseif ($letter === 'order_delivery')`): `to=order:<ref>` ŞART,
+  kayıtlı adres yoksa DURUR. `reply_letter` açıklama metnine de eklendi.
+- **YAML doğrulama tuzağı bir kez daha yaşandı ve düzeltildi:** bu script 128
+  KiB argüman sınırı yüzünden İKİ AYRI adımda (`betik 1/2` + `betik 2/2`)
+  yazılıyor ve PHP'nin KENDİ içinde bir yerde `<<<'PHPEOF'` benzeri bir nowdoc
+  kalıbı da geçiyor — düz metin kesmeyle ("ilk `PHPEOF` occurrence'ına kadar
+  al") yapılan ilk lint denemesi yanlış sınırda kesti ve sahte bir "Unclosed
+  '{'" hatası verdi. Doğru yol: `yaml.safe_load` ile GERÇEK `script:` alanlarını
+  (her iki adımdan) ayrıştırıp birleştirmek, sonra `php -l`. Tam betik (145 KB)
+  ve tekil kesilmiş yanlış-pozitif hâli ikisi de doğrulandı — bu depoda
+  "aracın kendi gürültüsü" dersinin bir vakası daha, bu kez benim kendi
+  ölçüm aracımda.
+- Test: `tests/workflow_arg_limit_test.php` (118/118, iki adımın ikisi de
+  sınırın altında). `sh tests/run_all.sh`: 3 önceden-kırık test bu işten
+  bağımsız.
+- Çalışma dalında commit + push, deploy dalına TEMİZ cherry-pick (çakışma
+  yok — bir önceki `order_delivery` yazıcı işinin aksine, bu kez aynı dalda
+  ikinci bir oturum aynı yere yazmamıştı).
+- **CANLI GÖNDERİM (23 Eyl 2026):** önce `send=false` ile önizlendi —
+  `adres: 71 karakter`, `fatura: INV-2026-1016`, `fatura cumlesi: YENIDEN
+  CIZILDI (ayni numara, eski kopya gecersiz)`, alıcı `buyer/active` hesabı,
+  konu *"Order VES-60594A18 — delivery address confirmed"*, gövde 464
+  karakter, imza Marco Bellini — VESTRA. Onaylandıktan sonra `send=true` ile
+  **GÖNDERİLDİ** (`GONDERILDI -> m***@orange.fr`). Kütükteki bu satır yalnızca
+  **Brevo isteği kabul etti** demek — `delivered` bile posta kutusu kanıtı
+  değil (bu dosyanın kendi uyarısı).
