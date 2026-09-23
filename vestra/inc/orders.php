@@ -1108,10 +1108,14 @@ function vestra_order_set_shipping(string $ref, float $amount, string $label = '
  * kalır, yalnızca `Deliver to: …` parçası değiştirilir/eklenir. Notları
  * baştan yazmak, siparişin kendi kaydından bilgi silmek olurdu.
  *
- * Faturası kesilmiş sipariş REDDEDİLİR: adres belgenin üzerinde ve alıcının
- * elinde; kaydı sessizce değiştirmek ikisini ayrıştırır (KURAL 5f).
+ * Faturası kesilmiş sipariş varsayılan olarak REDDEDİLİR: adres belgenin
+ * üzerinde ve alıcının elinde; kaydı sessizce değiştirmek ikisini ayrıştırır.
+ * Ret koşulsuz OLMAKTAN çıkarıldı — kardeşi `vestra_order_set_colours()`'ın
+ * aynı deseni: izin AÇIK bir opt-in (`$allowInvoiced`), sessizce atlanan bir
+ * kontrol değil, ve dönüşte `must_redraft` var — çağıran belgeyi AYNI numarayla
+ * yeniden çizmezse (KURAL 5f) kayıt ile belge ayrışır.
  */
-function vestra_order_set_delivery(string $ref, string $address): array {
+function vestra_order_set_delivery(string $ref, string $address, bool $allowInvoiced = false): array {
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
     if ($ref === '') return ['error' => 'ref yok'];
     /* Tek satıra indiriliyor: notlar tek CSV alanı ve ayrıştırıcı `Deliver to:`
@@ -1121,9 +1125,11 @@ function vestra_order_set_delivery(string $ref, string $address): array {
     if (mb_strlen($address) > 300) return ['error' => 'adres çok uzun (300 karakter sınırı)'];
 
     require_once __DIR__.'/invoice.php';
-    if (vestra_invoices_for_ref($ref)) {
+    $invoiced = vestra_invoices_for_ref($ref);
+    if ($invoiced && !$allowInvoiced) {
         return ['error' => 'bu siparişin faturası zaten kesilmiş — adres belgenin üzerinde ve alıcının '
-                         . 'elinde (KURAL 5f: aynı numarayla yeniden çizim)'];
+                         . 'elinde. Düzeltmek için KURAL 5f: adres yazıldıktan sonra AYNI numarayla '
+                         . 'yeniden çizilmeli (allow_invoiced opt-in ile çağır).'];
     }
 
     $file = vestra_data_dir().'/orders.csv';
@@ -1176,7 +1182,8 @@ function vestra_order_set_delivery(string $ref, string $address): array {
     $st[$ref]['delivery_set_by'] = 'operator';
     vestra_write_json('order_statuses.json', $st);
 
-    return ['ok' => true, 'address' => $address, 'on_invoice' => $seen, 'notes' => $notes];
+    return ['ok' => true, 'address' => $address, 'on_invoice' => $seen, 'notes' => $notes,
+            'must_redraft' => (bool)$invoiced];
 }
 
 /**

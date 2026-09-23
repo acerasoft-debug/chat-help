@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir; issue_shipping='auto' = bölge tarifesi). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. 'order_colours' = siparişin RENGİNİ düzeltir (issue_ref=sipariş, payload='SKU:Renk,Renk', move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_add_line' = var olan bir siparişe YENİ bir SKU satırı ekler (issue_ref=sipariş, payload='SKU:ADET[:Renk=Adet,Renk=Adet]|allow_invoiced=1|unit=<fiyat>|note=<metin>', move_apply=true; renk kırılımı verilirse toplamı ADET'e eşit olmalı, ilanda kayıtlı olmayan renk yazılır ama UYARILIR; birim fiyat verilmezse katalog kademesinden, verilirse yalnız ilandan UCUZ olabilir; goods `vestra_order_lines()`'dan yeniden hesaplanır, indirim ve kargo DOKUNULMADAN kalır — ikinci bir hesap yolu yazılmadı; aynı SKU zaten sipariştaysa REDDEDİLİR, vestra_order_set_colours'a yönlendirir; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_discount' = siparişe HOŞ GELDİN İNDİRİMİ işler (issue_ref=sipariş, payload='pct=5|code=<kupon>|allow_invoiced=1', move_apply=true; TUTAR yüzdeden türer, elle verilmez; indirim + toplam + payout BİRLİKTE yazılır ve geri okunur; PARASI GELMİŞ sipariş koşulsuz RED, faturalı sipariş opt-in ister ve AYNI numarayla yeniden çizim İSTER; kuru koşu vestra_welcome_auto'nun KARARINI ve bölgesel indirimi de basar — pct=0 indirimi KALDIRIR). 'create_buyer' = ELLE alıcı hesabı açar (payload=ŞİFRELİ zarf — müşterinin e-postası açık girdiye yazılmaz, çıktıda maskeli; move_apply=true ile uygular, varsayılan kuru koşu; panelin ➕ New buyer account formuyla AYNI yazıcı, müşteriye HİÇBİR ŞEY gitmez). 'lead_rename' = bir lead'in SADECE firma adını düzeltir (issue_ref=lead id ya da ALAN ADI — müşterinin adresi açık girdiye yazılmaz, çıktıda maskeli; payload=yeni ad; TAM 1 eşleşme yoksa durur; damgalara DOKUNMAZ, yani ilk mektup ikinci kez gitmez; move_apply=true ile uygular, varsayılan kuru koşu). 'preorder_ship' = kodda GÖMÜLÜ (demo) bir ürünün ön sipariş teslim tarihini yazar (issue_ref=ürün id, ör. amiri-core-polo; payload=YYYY-MM-DD, boş = KALDIR; sayfada görünecek cümleyi ÖNİZLER; moq/tiers gibi kardeş alanlara dokunmaz; move_apply=true ile uygular, varsayılan kuru koşu — CANLI LİSTELER için bu alan set-product.yml'den yazılır, orada reddedilir). 'platform_bank' = PLATFORMUN banka künyesini yazar (payload=ŞİFRELİ zarf, keygen'in public key'iyle; gövde {bank_iban, bank_eur_bic, bank_eur_name, …}; panelin 🏦 Platform billing formuyla AYNI yazıcı — mod-97 geçmezse HİÇBİR alan yazılmaz; çıktıda numara YOK; kuru koşu EUR kutusunun çıkıp çıkmayacağını BELLEKTE gösterir; move_apply=true ile yazar). 'password_setup' = elle açılan hesaba 'şifreni seç' MEKTUBU GÖNDERİR (issue_ref=hesap ID — adres açık girdiye yazılmaz, kayıttan çözülür; TAM 1 eşleşme yoksa durur; link/jeton/gövde log'a YAZILMAZ; move_apply=true ile gönderir, varsayılan kuru koşu ve kuru koşu jeton ÜRETMEZ). Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir; issue_shipping='auto' = bölge tarifesi). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. 'order_colours' = siparişin RENGİNİ düzeltir (issue_ref=sipariş, payload='SKU:Renk,Renk', move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_add_line' = var olan bir siparişe YENİ bir SKU satırı ekler (issue_ref=sipariş, payload='SKU:ADET[:Renk=Adet,Renk=Adet]|allow_invoiced=1|unit=<fiyat>|note=<metin>', move_apply=true; renk kırılımı verilirse toplamı ADET'e eşit olmalı, ilanda kayıtlı olmayan renk yazılır ama UYARILIR; birim fiyat verilmezse katalog kademesinden, verilirse yalnız ilandan UCUZ olabilir; goods `vestra_order_lines()`'dan yeniden hesaplanır, indirim ve kargo DOKUNULMADAN kalır — ikinci bir hesap yolu yazılmadı; aynı SKU zaten sipariştaysa REDDEDİLİR, vestra_order_set_colours'a yönlendirir; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_delivery' = siparişin TESLİMAT ADRESİNİ yazar/düzeltir (issue_ref=sipariş, payload='adres metni|allow_invoiced=1' — boş adres=SİLER, move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5l/5f). 'order_discount' = siparişe HOŞ GELDİN İNDİRİMİ işler (issue_ref=sipariş, payload='pct=5|code=<kupon>|allow_invoiced=1', move_apply=true; TUTAR yüzdeden türer, elle verilmez; indirim + toplam + payout BİRLİKTE yazılır ve geri okunur; PARASI GELMİŞ sipariş koşulsuz RED, faturalı sipariş opt-in ister ve AYNI numarayla yeniden çizim İSTER; kuru koşu vestra_welcome_auto'nun KARARINI ve bölgesel indirimi de basar — pct=0 indirimi KALDIRIR). 'create_buyer' = ELLE alıcı hesabı açar (payload=ŞİFRELİ zarf — müşterinin e-postası açık girdiye yazılmaz, çıktıda maskeli; move_apply=true ile uygular, varsayılan kuru koşu; panelin ➕ New buyer account formuyla AYNI yazıcı, müşteriye HİÇBİR ŞEY gitmez). 'lead_rename' = bir lead'in SADECE firma adını düzeltir (issue_ref=lead id ya da ALAN ADI — müşterinin adresi açık girdiye yazılmaz, çıktıda maskeli; payload=yeni ad; TAM 1 eşleşme yoksa durur; damgalara DOKUNMAZ, yani ilk mektup ikinci kez gitmez; move_apply=true ile uygular, varsayılan kuru koşu). 'preorder_ship' = kodda GÖMÜLÜ (demo) bir ürünün ön sipariş teslim tarihini yazar (issue_ref=ürün id, ör. amiri-core-polo; payload=YYYY-MM-DD, boş = KALDIR; sayfada görünecek cümleyi ÖNİZLER; moq/tiers gibi kardeş alanlara dokunmaz; move_apply=true ile uygular, varsayılan kuru koşu — CANLI LİSTELER için bu alan set-product.yml'den yazılır, orada reddedilir). 'platform_bank' = PLATFORMUN banka künyesini yazar (payload=ŞİFRELİ zarf, keygen'in public key'iyle; gövde {bank_iban, bank_eur_bic, bank_eur_name, …}; panelin 🏦 Platform billing formuyla AYNI yazıcı — mod-97 geçmezse HİÇBİR alan yazılmaz; çıktıda numara YOK; kuru koşu EUR kutusunun çıkıp çıkmayacağını BELLEKTE gösterir; move_apply=true ile yazar). 'password_setup' = elle açılan hesaba 'şifreni seç' MEKTUBU GÖNDERİR (issue_ref=hesap ID — adres açık girdiye yazılmaz, kayıttan çözülür; TAM 1 eşleşme yoksa durur; link/jeton/gövde log'a YAZILMAZ; move_apply=true ile gönderir, varsayılan kuru koşu ve kuru koşu jeton ÜRETMEZ). Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -700,6 +700,95 @@ jobs:
             PHPEOF
             php /tmp/vestra_order_add_line.php; RC=$?
             rm -f /tmp/vestra_order_add_line.php
+            exit $RC
+
+      # SİPARİŞİN TESLİMAT ADRESİNİ YAZ/DÜZELT (KURAL 5l). Adres siparişin
+      # notlarında duruyor (`Deliver to: …`); tek yazıcı `vestra_order_set_delivery()`
+      # yalnızca o parçayı değiştirir/ekler, notların gerisine (Payment:, Colours: …)
+      # dokunmaz. Boş adres = siler.
+      #
+      # FATURASI KESİLMİŞ siparişte varsayılan RED — kardeşleri (colours/shipping)
+      # ile AYNI desen: izin `payload`'ın sonuna `|allow_invoiced=1` eklenerek
+      # AÇIK verilir, sessizce atlanan bir kontrol değil. İzinle yazılırsa da
+      # kayıt ile belge ayrışmasın diye SONRA `admin_mode=issue` +
+      # `issue_redraft=true` ile AYNI numarayla yeniden çizim ŞART (KURAL 5f).
+      #
+      # Geri okuma satırın değişmesine değil FATURANIN (vestra_invoice_buyer)
+      # GÖRDÜĞÜNE bakıyor — fonksiyonun kendi tasarımı, adım burada tekrarlamıyor.
+      - name: Siparişin teslimat adresini yaz (order_delivery) — varsayılan KURU KOŞU
+        if: ${{ github.event.inputs.admin_mode == 'order_delivery' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          OD_REF:   ${{ github.event.inputs.issue_ref }}
+          OD_ADDR:  ${{ github.event.inputs.payload }}
+          OD_APPLY: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: OD_REF,OD_ADDR,OD_APPLY
+          script: |
+            set -e
+            cat > /tmp/vestra_order_delivery.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require_once $doc."/inc/products.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/invoice.php";
+
+            $ref   = trim((string)getenv('OD_REF'));
+            $addr  = trim((string)getenv('OD_ADDR'));
+            $APPLY = strtolower(trim((string)getenv('OD_APPLY'))) === 'true';
+            if ($ref === '') { fwrite(STDERR, "issue_ref gerekli\n"); exit(1); }
+
+            $allowInvoiced = str_contains($addr, '|allow_invoiced=1');
+            $addrClean = trim(str_replace('|allow_invoiced=1', '', $addr));
+
+            $row = null; foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $row = $r; break; }
+            if (!$row) { fwrite(STDERR, "siparis bulunamadi: {$ref}\n"); exit(1); }
+            $inv = vestra_invoices_for_ref($ref);
+            $cur = vestra_order_delivery_address((string)($row['notes'] ?? ''));
+
+            echo "siparis      : {$ref}\n";
+            echo "firma        : ".(string)($row['company'] ?? '-')."\n";
+            echo "mevcut adres : ".($cur !== '' ? $cur : '(yok)')."\n";
+            echo "yeni adres   : ".($addrClean !== '' ? $addrClean : '(SILINECEK)')."\n";
+            echo "kesilmis fatura: ".(count($inv) ?: 'yok')."\n";
+            foreach ($inv as $iv) echo "   - ".(string)($iv['no'] ?? '?')."\n";
+            echo "allow_invoiced: ".($allowInvoiced ? 'EVET' : 'hayir')."\n";
+
+            if (!$APPLY) {
+              echo "\nKURU KOSU -- hicbir sey yazilmadi.\n";
+              if ($inv && !$allowInvoiced) {
+                echo "ENGEL: fatura kesilmis -- adres yazilamaz. Belge alicinin elinde; sessizce\n"
+                    ."       ayristirmamak icin '|allow_invoiced=1' ile acik izin verilmeli (KURAL 5f).\n"
+                    ."       O izinle yazilirsa da AYNI numarayla YENIDEN CIZIM sart olacak.\n";
+              } elseif ($inv && $allowInvoiced) {
+                echo "IZIN VERILDI: fatura kesilmisken de yazilir, ama sonra AYNI numarayla yeniden\n"
+                    ."              cizilmesi gerekir (admin_mode=issue + issue_redraft=true).\n";
+              } else {
+                echo "engel yok; move_apply=true ile uygulanir.\n";
+              }
+              exit(0);
+            }
+
+            $r = vestra_order_set_delivery($ref, $addrClean, $allowInvoiced);
+            if (!empty($r['error'])) { fwrite(STDERR, "\nYAZILMADI: ".$r['error']."\n"); exit(1); }
+            echo "\nYAZILDI (geri okundu)\n";
+            echo "adres        : ".($r['address'] !== '' ? $r['address'] : '(silindi)')."\n";
+            echo "FATURANIN gordugu: ".(string)($r['on_invoice'] ?? '(yok)')."   (dogrulandi)\n";
+            if (!empty($r['must_redraft'])) {
+              echo "\n*** ONEMLI: bu siparisin faturasi ZATEN KESILMISTI ve adres degisti. ***\n";
+              echo "Belge hala ESKI adresi tasiyor -- KURAL 5f: admin_mode=issue + issue_redraft=true ile\n";
+              echo "AYNI numarayla YENIDEN CIZILMEDIKCE fatura ile kayit AYRISIK kalir.\n";
+            }
+            PHPEOF
+            php -l /tmp/vestra_order_delivery.php
+            php /tmp/vestra_order_delivery.php; RC=$?
+            rm -f /tmp/vestra_order_delivery.php
             exit $RC
 
       # HOŞ GELDİN İNDİRİMİ (19 Eyl 2026). Yazıcı `vestra_order_set_discount()`:

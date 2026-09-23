@@ -100,7 +100,13 @@ try {
 
 echo "\n== 4. Faturası kesilmiş siparişte YAZMAZ ==\n";
 $fn = $src('vestra/inc/orders.php');
-$t('kesilmiş fatura kontrolü var', str_contains($fn, 'if (vestra_invoices_for_ref($ref)) {'));
+/* 23 Eyl 2026'da adres yazıcısı da opt-in'e geçti (VES-60594A18'de faturalıyken
+   teslimat adresi eklemek gerekti); dosyadaki DÖRT yazıcının (navlun/adres/
+   renk/indirim) hepsi artık aynı `$invoiced && !$allowInvoiced` kalıbını
+   paylaşıyor — eski KOŞULSUZ `if (vestra_invoices_for_ref($ref)) {` yazımı
+   dosyada hiç kalmadı, yani onu arayan iddia yazımı değil ARTIK OLMAYAN bir
+   yazımı ölçüyordu. */
+$t('kesilmiş fatura kontrolü var', substr_count($fn, '$invoiced && !$allowInvoiced') >= 4);
 $t('gerekçe KURAL 5f\'e yolluyor',  str_contains($fn, 'KURAL 5f'));
 $t('yazma geri okunuyor',          str_contains($fn, 'geri okuma tutmadı'));
 $t('dosya önce yedekleniyor',      str_contains($fn, "bak-ship-"));
@@ -136,10 +142,13 @@ $body = function (string $name) use ($fn): string {
 $bShip = $body('vestra_order_set_shipping');
 $bAddr = $body('vestra_order_set_delivery');
 $t('gövdeler ayıklandı',            $bShip !== '' && $bAddr !== '');
-/* ADRES yazıcısı KOŞULSUZ duruyor: adres belgede basılı ve opt-in istenmedi. */
-$t('adres yazıcısı da kesilmişte durur',
-   str_contains($bAddr, 'if (vestra_invoices_for_ref($ref)) {')
-   && !str_contains($bAddr, 'allowInvoiced'));
+/* ADRES yazıcısı DA opt-in ile geçiyor (23 Eyl 2026'da renkler/navlunun aynı
+   desenine taşındı — KURAL 5l'in KOŞULSUZ RED'i, VES-60594A18'in teslimat
+   adresini SONRADAN eklemek gerektiğinde canlıda ihtiyaca dönüştü). */
+$t('adres opt-in olmadan durur',    str_contains($bAddr, '$invoiced && !$allowInvoiced'));
+$t('adres opt-in varsayılan KAPALI',
+   str_contains($fn, 'function vestra_order_set_delivery(string $ref, string $address, bool $allowInvoiced = false)'));
+$t('adres must_redraft döndürüyor', str_contains($bAddr, "'must_redraft' => (bool)\$invoiced"));
 /* NAVLUN yazıcısı AÇIK opt-in ile geçiyor ve çağıranı yeniden çizime yolluyor. */
 $t('navlun opt-in olmadan durur',   str_contains($bShip, '$invoiced && !$allowInvoiced'));
 $t('navlun opt-in varsayılan KAPALI',
@@ -160,6 +169,21 @@ $t('iş akışı opt-in AÇIK isteniyor',   str_contains($wf, "preg_match('/\\ba
 $t('iş akışı yeniden çizime yolluyor', str_contains($wf, 'BELGE ESKI TUTARI TASIYOR'));
 $t('kur damgası yoksa DURUYOR',    str_contains($wf, 'kur damgasi YOK'));
 $t('iş akışı numara YAKMIYOR',     !str_contains(explode('- name: Faturanın para birimini', $wf)[0], 'vestra_issue_order_invoices'));
+
+echo "\n== 6. Adres iş akışında da opt-in kablolu ==\n";
+$t('iş akışında adres modu var',   str_contains($wf, "admin_mode == 'order_delivery'"));
+$t('iş akışı aynı yazıcıyı çağırıyor',
+   str_contains($wf, 'vestra_order_set_delivery($ref, $addrClean, $allowInvoiced)'));
+$t('opt-in payload\'tan ayrıştırılıyor',
+   str_contains($wf, "str_contains(\$addr, '|allow_invoiced=1')"));
+$t('iş akışı yeniden çizime yolluyor (adres)',
+   str_contains($wf, 'AYNI numarayla YENIDEN CIZILMEDIKCE'));
+/* admin_mode açıklaması artık "opt-in yok" DEMİYOR — eski cümle stale kalırsa
+   operatör opt-in'in var olduğunu hiç bilmez (KURAL 6'nın escrow tavanı dersi:
+   rakam/kural bir yerde değişirken okunan metin başka yerde eskisini söylerse
+   operatörün ekranı yalan söyler). */
+$t('admin_mode açıklaması güncel', str_contains($wf, "'order_delivery' = siparişin TESLİMAT ADRESİNİ")
+   && str_contains($wf, "faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5l/5f"));
 
 printf("\n%d ok, %d hata\n", $ok, $fail);
 exit($fail ? 1 : 0);
