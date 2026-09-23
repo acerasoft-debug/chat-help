@@ -8684,3 +8684,39 @@ ADRES TESLIMAT ADRESI OLARAK eklenecek, Matthieu Gillet / 30 chemin de mechives
   **GÖNDERİLDİ** (`GONDERILDI -> m***@orange.fr`). Kütükteki bu satır yalnızca
   **Brevo isteği kabul etti** demek — `delivered` bile posta kutusu kanıtı
   değil (bu dosyanın kendi uyarısı).
+
+**KURAL 27'nin `terms_reply`si yeni bir ülkede ikinci kez çalıştı: Macaristan**
+(gelen kutusu, 23 Eyl 2026 — Boglárka Tóth, Nyíregyháza; Merkandi değil bu kez
+doğrudan e-posta, kayıtsız/yeni bir aday. Operatör: *"email yaz gönder
+mindestabnahme sitede göründügü gibi ve ungarna gönderim yapiyoruz"*).
+
+- **Önce ölçüldü, hiçbir şey varsayılmadı.** `diag-live` → `find_ref=bogit0954`:
+  *"hicbir kayit dosyasinda YOK"* — ne hesap ne lead ne sipariş. Yani `to=account:`/
+  `to=order:`/`to=lead:` hiçbiri çalışmazdı; doğru yol adres için `to=<ham
+  e-posta>` (girdiye adres yazmak burada kaçınılmaz — bu kişi hiçbir kayıtta
+  yok, çözülecek bir kayıt da yok; KURAL güvenlik bölümünün "adresi kayıttan
+  çözdür" kuralı zaten kayıtlı olan biri için).
+- **Macaristan AB üyesi ve `HU` KURAL 32'nin indirim tablosunda YOK** (yalnız
+  CZ/PL Avrupa'dan o grupta) — kaynaktan doğrulandı (`grep "'HU'"
+  region_discount.php` → 0 eşleşme), tahmin edilmedi. `terms_reply` bu yüzden
+  kendiliğinden doğru cevabı verdi: indirim cümlesi YAZILMADI (yok), asgari
+  sipariş TUTARI cümlesi de yazılmadı (`vestra_order_min_usd` Avrupa'da 0 —
+  KURAL 27). Kalan tek doğru cevap MOQ: *"Each style has its own minimum
+  quantity and is sold in fixed pack multiples — typically 10 or 20 pieces
+  per style"* — operatörün *"mindestabnahme sitede göründügü gibi"* dediği
+  şeyin ta kendisi, ilan bazlı MOQ zaten böyle çalışıyor (KURAL 4b).
+- **Gönderim cümlesi OPERATÖRÜN BEYANI, tahmin değil** (KURAL 3'ün mektup
+  hâli — `terms_reply`'nin `ship=` alanı boş bırakılırsa mektup o konuda
+  SUSAR): `ship=We do ship to Hungary.` — operatörün kendi söylediği olguyu
+  aynen taşıdı.
+- Hitap `salutation=Boglárka Tóth` (terms_reply "Dear " öneki eklemiyor kendi
+  başına, `$body` içinde zaten "Dear {$buyerName}," yazıyor — spec'e "Dear"
+  önekiyle yazılsaydı "Dear Dear …" çıkardı; diğer bazı dalların aksine bu
+  şablon `preg_replace('/^dear\s+/i', ...)` ile temizlemiyor).
+- **Önce `send=false` ile önizlendi**: `ulke: HU`, `indirim: yok`,
+  `asgari: yok (Avrupa)`, `gonderim cumlesi: VAR`, konu *"VESTRA — wholesale
+  terms for Hungary"*, gövde 1300 karakter, imza Marco Bellini — VESTRA.
+  Onaylandıktan sonra `send=true` ile **GÖNDERİLDİ** (`GONDERILDI ->
+  b***@gmail.com`). Kod tarafında hiçbir değişiklik gerekmedi — 16 Eylül'de
+  Benin için kurulan mekanizma, ikinci bir ülkede ilk kez ve birebir aynı
+  çıktıyla çalıştı.
