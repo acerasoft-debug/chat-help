@@ -8223,6 +8223,38 @@ siparişin kapanacağını belirt"*).
 - Kod değişmedi; bu da KURAL 7'nin zaten paylaşılan (cron + operatör)
   fonksiyonunun ikinci, bağımsız doğrulanmış kullanımıydı.
 
+**KURAL 7 (devamı) — Talimat YANLIŞ SİPARİŞE yazılmıştı: doğru hedef
+VES-60594A18'di, VES-55E4F6E1 değil** (operatör, aynı gün, kısa bir izleme
+mesajıyla: *"520 eur luk faturaya gidecekti"* — belirsiz olduğu için
+`AskUserQuestion` ile üç seçenek sunuldu, cevap: **VES-55E4F6E1 yanlış
+sipariş, doğrusu VES-60594A18**).
+
+- **Talimatın kendisi** (*"VES-55E4F6E1 → 2026-09-18 massinissa.chabati@gmail.com
+  bu sipariş içinde eğer bildirim yapilmaz ise siparişin kapanacağını
+  belirt"*) ref'i, tarihi ve adresi **açıkça** vermişti — belirsizlik
+  görünmüyordu ve harfiyen uygulandı: sipariş gerçekten `pending`, faturası
+  gerçekten kesilmiş, saat gerçekten çalışıyordu (yukarıdaki madde). **Yanlış
+  olan verilen ref'ti, uygulanışı değil.**
+- **Gönderilen mektup YALAN SÖYLEMİYOR.** VES-55E4F6E1 (Mob, INV-2026-1013,
+  €1.160,00) gerçekten `pending` ve faturası gerçekten kesilmiş durumda;
+  ikinci hatırlatma gerçek bir son tarihi (2026-09-25) tekrarladı, saat
+  sıfırlanmadı. Yani müşteriye **doğru bir bilgi**, yalnız operatörün o anda
+  **kastetmediği** bir sipariş için gitti.
+- **Asıl hedef zaten kapsanmış durumdaydı.** VES-60594A18 (Easyauto24,
+  INV-2026-1016, €520,00) az önce (yukarıdaki KURAL 28 devamı maddesi)
+  `payment_due` aldı ve o mektubun gövdesi **zaten** *"ödeme 5 iş günü
+  içinde gelmezse sipariş otomatik iptal edilir"* cümlesini, doğru rakam ve
+  doğru son tarihle (2026-09-30) taşıyor. Operatörün asıl istediği bildirim
+  **halihazırda müşteride**; VES-60594A18 için ayrıca yazılacak bir şey yok.
+- **Geri alınamaz olana ikinci bir mektupla "düzeltme" YAZILMADI.**
+  VES-55E4F6E1'e giden mektup silinemez, ama içeriği doğru ve gerçek bir
+  ödeme durumunu yansıttığı için *"unutun, yanlış sipariştin"* gibi bir
+  ikinci mektup atmak — operatörün istemediği, KURAL 18'in yasakladığı yeni
+  bir müşteri iletişimi olurdu. **Kendiliğinden hiçbir şey gönderilmedi.**
+- Sonuç: iki sipariş de kendi doğru durumunu taşıyor, ikisi de yalnızca
+  gerçek bilgi içeren birer mektup aldı; eksik olan tek şey operatörün ikinci
+  talimatının yanlış ref'e yazılmış olmasıydı — kayda bunun için düşüldü.
+
 **KURAL 26 — Para birimi seçimi KALICI; çerezi yazan tek yer money.php'nin
 yüklenme anı** (operatör, 13 Eyl 2026: *"para birimi sürekli degisiyor ... para
 birimi secilmesine ragmen bir sonraki linke tiklandginda gene eur oluyor ayrica
