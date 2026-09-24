@@ -8949,3 +8949,7 @@ için kendileri seçebilsin ad koyabilsin"*).
   taraması bunu ölçemezdi. İki yön: doğru sırada `Set-Cookie` gidiyor ve günlük
   susuyor; çıktı `money.php`'den önce başlamışsa uyarı **tam 1** kez. Muhafaza
   silinince **2 kırmızı** (sabotajın uygulandığı `grep -c` ile doğrulandı).
+  **Canlıda ölçüldü** (deploy `d1471ded` 17:03:33 UTC, iki `accounts_report`
+  koşusu): son satır **17:02:10**'da kalıyor, 17:06:11'e kadar **yeni satır 0**.
+  Önceki hız 15 dakikada 25 satırdı (~1,7/dk); aynı pencerede 4-5 satır
+  beklenirdi.
