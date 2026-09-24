@@ -8797,3 +8797,14 @@ müsteri icin 10 ad. satici vestra olucak siparis kes ve fatura yap shipping
   yalnızca kayda geçti. Yeni bir mekanizma yazılmadı, kod değişmedi: bu,
   KURAL 28/5b/5j'nin zaten kurduğu `order_draft`/`order_write`, `seller` ve
   `issue` yollarının bir başka doğrulanmış kullanımıydı.
+- **Sonrasında operatör "müşteriye email olarak gönder" dedi.** `vestra_order_
+  invoice_issue()` (issue+notify birleşik fonksiyonu) fatura **zaten kesilmiş**
+  olduğu için koşulsuz reddediyordu (KURAL 5f/7c'nin dersi: sipariş
+  faturasını PDF eki olarak e-postalayan ayrı bir mekanizma yok, PDF eki
+  yalnız teklif faturalarında var). Tek doğru yol yine KURAL 7'nin
+  `payment_due`'su: önce `send=false` ile önizlendi (`durum: pending`,
+  `fatura: INV-2026-1017 tutar: EUR 620.00`, `aşama: unstamped`, önizlenen
+  son tarih `2026-10-01`), sonra `send=true` ile **GÖNDERİLDİ ->
+  a***@gmail.com**. Bu mektup aynı zamanda gerçek 5 iş günlük otomatik iptal
+  saatini **başlatıyor** (`payment_grace_start` damgalandı) — "faturayı
+  e-postala" isteğinin sessiz yan sonucu değil, KURAL 7'nin ta kendisi.
