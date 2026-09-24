@@ -1112,6 +1112,15 @@ jobs:
                    $bn, $bAddr, $bPc, $bAddr - $bPc);
             printf("ayri 'postcode' alani dolu: %d | 'city' dolu: %d | eski tek-satir ship_address dolu: %d | adres defteri (ship_addresses) olan: %d\n",
                    $bPcF, $bCity, $bShip, $bBook);
+            /* KOD DURUMU (24 Eyl 2026): kasa 19 Eyl'den beri inc/orders.php'yi yuklemeden
+               navlun fonksiyonunu cagiriyor ve her siparis POST'unda 500 veriyordu. Sayim
+               degil KAYNAK soruluyor: deploy'un "success" demesi dosyanin indigini kanitlamaz. */
+            $ordSrc = (string)@file_get_contents($doc."/order.php");
+            printf("kod: inc/addresses.php %s | adres cozucu %s | order.php inc/orders.php'yi %s | kasa yuva secimi %s\n",
+                   is_readable($doc."/inc/addresses.php") ? "VAR" : "*** YOK ***",
+                   function_exists('vestra_ship_addr_resolve') ? "VAR" : "*** YOK ***",
+                   preg_match('~require_once\s+__DIR__\s*\.\s*.\/inc\/orders\.php.~', $ordSrc) ? "YUKLUYOR" : "*** YUKLEMIYOR ***",
+                   str_contains($ordSrc, "vestra_ship_addr_resolve(") ? "VAR" : "*** YOK ***");
             require_once $doc."/inc/orders.php";
             $oN = 0; $oDel = 0; $oCut = [];
             foreach (vestra_read_csv('orders.csv') as $o) {
