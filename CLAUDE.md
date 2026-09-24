@@ -8928,6 +8928,24 @@ için kendileri seçebilsin ad koyabilsin"*).
   okuyucununkiyle aynı" olgusuna bağlandı ve sabotajla yine düştü.
 - **Operatöre not:** 93 hesabın fatura adresinde posta kodu yok; kod bunu
   uyduramaz. Müşteri profilden ya da adres defterinden girince düzelir; panel
-  eksik olanları ⚠ ile gösteriyor. Hata günlüğünde birkaç saniyede bir
-  `[VESTRA cur] cerez yazilamadi … head.php:120` satırı var — disk sağlıklı
-  (4 dizin yazılabilir), bu işten bağımsız, ayrıca bakılmalı.
+  eksik olanları ⚠ ile gösteriyor.
+- **CANLI DOĞRULAMA (deploy `6a6353e4`, `diag-live` → `accounts_report`):**
+  sonda sayım değil **KAYNAK** soruyor — `kod: inc/addresses.php VAR | adres
+  cozucu VAR | order.php inc/orders.php'yi YUKLUYOR | kasa yuva secimi VAR`.
+  Kalıp eski `order.php`'de (`2e564f31`) YÜKLEMİYOR, yenisinde YÜKLÜYOR diyor;
+  iki yön yerelde ölçüldü. Deploy'un "success" demesi dosyanın indiğini
+  kanıtlamaz. Sayımlar değişmedi (161/116/23/93, defter 0) — doğrusu bu:
+  müşteri henüz girmedi.
+- **Yan bulgu, düzeltildi — `[VESTRA cur] cerez yazilamadi … head.php:120`
+  YANLIŞ ALARMDI.** Canlı hata günlüğünün son 25 satırının **25'i** buydu, yani
+  gerçek bir fatal tam bu yüzden görünmezdi (kasa hatasının günlükte
+  aranmasını da bu gürültü zorlaştırıyordu). Sebep KURAL 26'nın kendi kodu:
+  `?cur=` ile gelen istekte çerez `money.php` yüklenirken **zaten yazılıyor**,
+  `vestra_currency()` ise aynı işi sayfa ortasında **ikinci kez** deniyor ve
+  çıktı başladığı için uyarı basıyordu. Seçim kaybolmuyordu. Çözüm: yazıcı
+  **istek başına bir kez** (`static $tried`); ilk deneme gerçekten başarısızsa
+  uyarı yine **bir kez** düşer. Test `currency_pick_test.php §5` **gerçek HTTP**
+  (`php -S`) atıyor — CLI'da `headers_sent()` yolu hiç koşmuyor, yani kaynak
+  taraması bunu ölçemezdi. İki yön: doğru sırada `Set-Cookie` gidiyor ve günlük
+  susuyor; çıktı `money.php`'den önce başlamışsa uyarı **tam 1** kez. Muhafaza
+  silinince **2 kırmızı** (sabotajın uygulandığı `grep -c` ile doğrulandı).

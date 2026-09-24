@@ -129,5 +129,52 @@ $t('bozuk cerez yok sayiliyor',                 str_starts_with($run([], ['vcur'
 /* CLI + bot: ag cagrisi YOK, taban EUR. (Test zaten CLI\'da kosuyor.) */
 $t('secim yokken CLI/bot -> EUR (ag yok)',      str_starts_with($run([], []), 'EUR'));
 
+echo "\n== 5. CEREZ ISTEK BASINA BIR KEZ (gercek HTTP, php -S) ==\n";
+/* 24 Eyl 2026: canli hata gunlugunun son 25 satirinin 25'i
+   "[VESTRA cur] cerez yazilamadi … head.php:120" idi. Cerez dosya yuklenirken
+   YAZILIYORDU; `vestra_currency()` ?cur= gorunce ayni isi sayfa ortasinda ikinci
+   kez deneyip yanlis alarm veriyordu. CLI'da `headers_sent()` yolu hic kosmuyor,
+   o yuzden bu bolum GERCEK bir HTTP istegi atiyor. IKI YON: (a) dogru sirada
+   cerez yazilir ve gunluk SUSAR, (b) cikti money.php'den ONCE baslamissa uyari
+   hala BIR kez duser -- susturulan sey alarm degil, tekrar. */
+$dir  = sys_get_temp_dir().'/curhttp_'.getmypid();
+@mkdir($dir);
+$money = var_export($root.'/vestra/inc/money.php', true);
+$bot   = '$_SERVER["HTTP_USER_AGENT"]="Mozilla/5.0 (compatible; TestBot/1.0)";';
+file_put_contents("$dir/ok.php",  "<?php $bot require $money; echo str_repeat('x', 9000); flush(); echo '|', vestra_currency();");
+file_put_contents("$dir/late.php","<?php $bot echo str_repeat('x', 9000); flush(); require $money; echo '|', vestra_currency();");
+$log  = "$dir/err.log"; @unlink($log);
+$port = 18000 + (getmypid() % 2000);
+$proc = proc_open(['php', '-d', 'output_buffering=0', '-d', 'log_errors=1', '-d', 'error_log='.$log,
+                   '-S', "127.0.0.1:$port", '-t', $dir], [1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']], $pp);
+$up = false;
+for ($i = 0; $i < 50 && !$up; $i++) { usleep(100000); $s = @fsockopen('127.0.0.1', $port); if ($s) { $up = true; fclose($s); } }
+$get = function (string $path) use ($port): array {
+    $s = @fsockopen('127.0.0.1', $port, $en, $es, 5);
+    if (!$s) return ['', ''];
+    fwrite($s, "GET $path HTTP/1.0\r\nHost: 127.0.0.1\r\nUser-Agent: TestBot\r\n\r\n");
+    $raw = stream_get_contents($s); fclose($s);
+    [$h, $b] = array_pad(explode("\r\n\r\n", (string)$raw, 2), 2, '');
+    return [$h, $b];
+};
+$logLines = function () use ($log): int {
+    return substr_count((string)@file_get_contents($log), '[VESTRA cur]');
+};
+$t('php -S ayaga kalkti', $up);
+if ($up) {
+    [$h, $b] = $get('/ok.php?cur=USD');
+    $t('dogru sira: Set-Cookie vcur=USD gonderildi', (bool)preg_match('/^Set-Cookie:\s*vcur=USD/mi', $h));
+    $t('dogru sira: sayfa USD secti',                str_ends_with(trim($b), '|USD'));
+    usleep(200000);
+    $t('dogru sira: gunlukte [VESTRA cur] YOK (yanlis alarm susturuldu)', $logLines() === 0);
+
+    [$h, $b] = $get('/late.php?cur=USD');
+    usleep(200000);
+    $t('gec sira: cerez yazilamadi (Set-Cookie yok)', !preg_match('/^Set-Cookie:\s*vcur=/mi', $h));
+    $t('gec sira: uyari TAM 1 kez dustu (gercek sorun hala gorunur)', $logLines() === 1);
+}
+proc_terminate($proc); proc_close($proc);
+@unlink("$dir/ok.php"); @unlink("$dir/late.php"); @unlink($log); @rmdir($dir);
+
 printf("\n%d ok, %d hata\n", $ok, $fail);
 exit($fail ? 1 : 0);

@@ -97,6 +97,16 @@ function vestra_currency_remember(): string {
 
     if (PHP_SAPI === 'cli') return $pick;              // cron/test cerez YAZMAZ
 
+    /* ISTEK BASINA BIR KEZ. Dosya yuklenirken cagrildiginda cerez zaten yaziliyor;
+       `vestra_currency()` ?cur= gorunce ayni isi sayfa ORTASINDA ikinci kez
+       deniyordu, cikti baslamis oldugu icin asagidaki uyari dusuyordu -- yani
+       cerez YAZILMISKEN "yazilamadi" diyen bir yanlis alarm. 24 Eyl 2026'da canli
+       hata gunlugunun son 25 satirinin 25'i buydu: gercek bir fatal tam bu
+       yuzden gorunmezdi. Ilk deneme gercekten basarisizsa uyari yine BIR kez duser. */
+    static $tried = [];
+    if (isset($tried[$pick])) return $pick;
+    $tried[$pick] = true;
+
     if (headers_sent($hf, $hl)) {
         /* Sessiz kalmiyor: bu satir gorunuyorsa cerez yazilamamistir ve
            kullanicinin secimi yine kaybolur. Kutuk teshise giriyor, o yuzden
