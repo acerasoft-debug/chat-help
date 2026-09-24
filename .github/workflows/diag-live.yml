@@ -1080,6 +1080,64 @@ jobs:
               printf("   ulkesi bos hesap: %d (indirim alamaz)\n\n", $blank);
             }
 
+            /* ADRES / POSTA KODU DOLULUGU (24 Eyl 2026, operator: "adreslerde postcode
+               gorunmuyor"). YALNIZ SAYIM + siparis REF'i: adresin kendisi basilmaz,
+               kisiye ait ve bu gunluk herkese acik. Iki ayri soru:
+               (1) hesapta posta kodu var mi -- kayit/profil formu adresi TEK serbest
+                   metin olarak aliyor, ayri posta kodu alani yalniz panelde;
+               (2) siparis notundaki "Deliver to:" okuyucusu adresi ilk ". "da
+                   KESIYOR ("Hauptstr. 12, 10115 Berlin" -> "Hauptstr"). Kesilen
+                   siparisler sayiliyor: okuyucunun verdigi ile bir sonraki bilinen
+                   etikete kadar olan ham parca karsilastiriliyor. */
+            $pcRe = '/\b\d{4,6}\b|\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b|\b\d{4}\s?[A-Z]{2}\b|\b[A-Z]\d[A-Z]\s?\d[A-Z]\d\b|\b\d{3}-\d{4}\b|\b\d{2}-\d{3}\b|\b\d{3}\s\d{2}\b/i';
+            $bn = 0; $bAddr = 0; $bPc = 0; $bPcF = 0; $bCity = 0; $bShip = 0; $bBook = 0;
+            foreach ($accs as $a) {
+              if (($a['type'] ?? '') !== 'buyer') continue;
+              $bn++;
+              $ad = trim((string)($a['address'] ?? ''));
+              if ($ad !== '') { $bAddr++; if (preg_match($pcRe, $ad)) $bPc++; }
+              if (trim((string)($a['postcode'] ?? '')) !== '') $bPcF++;
+              if (trim((string)($a['city'] ?? '')) !== '') $bCity++;
+              if (trim((string)($a['ship_address'] ?? '')) !== '') $bShip++;
+              if (!empty($a['ship_addresses']) && is_array($a['ship_addresses'])) $bBook++;
+            }
+            echo "--- ADRES / POSTA KODU (yalniz sayim) ---\n";
+            printf("alici hesap: %d | adres dolu: %d | adres metninde posta kodu gorunumlu parca: %d | adres dolu ama posta kodu YOK: %d\n",
+                   $bn, $bAddr, $bPc, $bAddr - $bPc);
+            printf("ayri 'postcode' alani dolu: %d | 'city' dolu: %d | eski tek-satir ship_address dolu: %d | adres defteri (ship_addresses) olan: %d\n",
+                   $bPcF, $bCity, $bShip, $bBook);
+            require_once $doc."/inc/orders.php";
+            $oN = 0; $oDel = 0; $oCut = [];
+            foreach (vestra_read_csv('orders.csv') as $o) {
+              $oN++;
+              $nt = (string)($o['notes'] ?? '');
+              if (!str_contains($nt, 'Deliver to: ')) continue;
+              $oDel++;
+              $seen = vestra_order_delivery_address($nt);
+              /* Kesilme olcutu DAR: okunan parcanin HEMEN arkasindaki ". "den sonraki
+                 cumle (bir sonraki ". "ye kadar) posta kodu tasiyorsa, okuyucu adresi
+                 ortadan kesmis demektir. Genis bir olcut (notun geri kalaninda herhangi
+                 bir 4 hane) alicinin kendi notundaki bir yili "posta kodu" sanardi. */
+              $raw  = substr($nt, strpos($nt, 'Deliver to: ') + 12);
+              if ($seen === '' || !str_starts_with($raw, $seen.'. ')) continue;
+              $next = substr($raw, strlen($seen) + 2);
+              $next = preg_split('/\.\s|\.$/u', $next)[0];
+              if (preg_match('/^(?:Colours|Sizes) — |^Voucher /u', $next)) continue;
+              /* Kesilen adres bir KISALTMADA biter (Hauptstr. / Via S. / St. / Av.):
+                 okunan parcanin son kelimesi kisaltma gorunumlu olmali. Bu sart
+                 olmadan tam bir adresin arkasindaki alici notu ("Please ship before
+                 2026.") kesilmis sayiliyordu -- sandbox'ta boyle bir yanlis pozitif
+                 cikti. */
+              $lastW = preg_match('/(\S+)$/u', $seen, $lw) ? $lw[1] : '';
+              $abbr  = mb_strlen($lastW) <= 2
+                    || preg_match('/(?:str|st|av|ave|rd|nr|no|pl|bd|blvd|dr|ctra|pza|sq|ul|mt|ste|pte|rte|sv)$/iu', $lastW);
+              if ($abbr && preg_match('/\d/', $next) && !preg_match($pcRe, $seen))
+                $oCut[] = (string)($o['ref'] ?? '?').' (okunan '.mb_strlen($seen).' karakter, arkasinda kalan '.mb_strlen($next).')';
+            }
+            printf("siparis: %d | Deliver to tasiyan: %d | okuyucunun POSTA KODUNU KESTIGI: %d\n", $oN, $oDel, count($oCut));
+            foreach ($oCut as $c) echo "   KESILMIS: ".$c."\n";
+            echo "\n";
+
             echo "\n===== HATA GUNLUGU: SON 25 SATIR (posta harici her sey) =====\n";
             foreach ([$doc.'/error_log', getenv("HOME").'/logs/error_log'] as $lg) {
               if (!is_readable($lg)) continue;
