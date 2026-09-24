@@ -144,7 +144,7 @@ function vestra_offer_price_error(?array $listing, string $side, float $price, ?
  *                            "sessiz" olan bildirim, kabulun kendisi degil.
  * @return array     ['ok'=>bool, 'error'=>string, 'invoice'=>?array]
  */
-function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $actor, string $label = 'VESTRA', bool $notify = true): array {
+function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $actor, string $label = 'VESTRA', bool $notify = true, bool $selfCorrect = false): array {
     $ref = trim($ref);
     if ($ref === '') return ['ok' => false, 'error' => 'ref yok'];
     if (!in_array($action, ['accept', 'decline', 'counter'], true)) return ['ok' => false, 'error' => 'gecersiz islem'];
@@ -177,13 +177,34 @@ function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $a
          - Fiyat kurallari AYNEN gecerli: yon kurali (satici her turda DUSER)
            asagida uygulaniyor, yani yeni teklif oncekinden ucuz olmak zorunda.
            Alici her halukarda daha iyi bir teklif goruyor.
-         - Tur sayaci da AYNEN gecerli: yeniden acmak bedava tur uretmiyor. */
+         - Tur sayaci da AYNEN gecerli: yeniden acmak bedava tur uretmiyor.
+
+       IKINCI ISTISNA -- SATICI KENDI hala yanitlanmamis karsi teklifini
+       DUZELTEBILIR (operator, 24 Eyl 2026, O748EE: 14:46'da 52, 15:10'da alici
+       33, 16:42'de satici 50 gonderdi -- sonra "50'yi sil, 44 gonder" dedi).
+       Alicinin eline gecmis bir mektuptaki rakami GERCEKTEN geri almanin
+       yolu yok; durust olan tek sey YENI bir karsi teklif gondermek ve
+       ESKI kabul linkini gecersiz kilmak (asagida zaten oyle calisiyor --
+       token her 'counter'da yeniden uretiliyor). Bu yuzden TARIH SILINMIYOR,
+       YENI bir tur EKLENIYOR (52,33,50,44) -- kayit "50 hic gonderilmedi"
+       demez, cunku gonderildi.
+         - $selfCorrect=true VE $turn==='buyer' VE son hamle GERCEKTEN
+           saticininse (prev.counter_by==='seller') calisir -- yani alicinin
+           SIRASI ATLANMIYOR, satici yalniz KENDI son hamlesini supurup
+           yenisini koyuyor. Alici bir onceki turda konustuysa (counter_by
+           buyer) bu YOL KAPALI ve normal tur kurali gecerli kalir.
+         - Fiyat kurallari ve tur sayaci AYNEN gecerli (asagida): yeni rakam
+           saticinin SON rakamindan (50) DUSUK olmak zorunda, tavan (urun
+           fiyati) asilamaz, ve kalan tur yoksa yine reddedilir -- bu bir
+           bedava tur degil, gercek bir tur harciyor. */
     $turn = vestra_offer_turn($prev);
     $reopen = $action === 'counter' && (string)($prev['status'] ?? '') === 'decline';
+    $selfCorrecting = $selfCorrect && $action === 'counter' && $turn === 'buyer'
+                    && (string)($prev['counter_by'] ?? 'seller') === 'seller';
     if ($turn === '' && !$reopen) {
         return ['ok' => false, 'error' => 'bu teklif zaten '.(($prev['status'] ?? '') === 'accept' ? 'kabul edildi' : 'reddedildi')];
     }
-    if ($turn !== 'seller' && !$reopen) {
+    if ($turn !== 'seller' && !$reopen && !$selfCorrecting) {
         return ['ok' => false, 'error' => 'sira alicida — son karsi teklifi o verdi'];
     }
     if ($action === 'counter' && vestra_offer_counters_left($prev) < 1) {
