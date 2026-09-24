@@ -8808,3 +8808,32 @@ müsteri icin 10 ad. satici vestra olucak siparis kes ve fatura yap shipping
   a***@gmail.com**. Bu mektup aynı zamanda gerçek 5 iş günlük otomatik iptal
   saatini **başlatıyor** (`payment_grace_start` damgalandı) — "faturayı
   e-postala" isteğinin sessiz yan sonucu değil, KURAL 7'nin ta kendisi.
+
+**24 Eyl 2026 — G7JV9-1 (D&G Logo T-Shirt): kayıt "White" diyordu, fotoğraf
+KIRMIZI — düzeltildi** (operatör, ilanın kendi sayfasından pasteledi:
+*"Logo T-Shirt — White … SKU G7JV9-1 tshirt rengi red olacak fotoda red ama
+beschreibunta white hatayi düzelt"*).
+
+- **Kayıt önce ÖLÇÜLDÜ, tahmin edilmedi.** `inspect-products` (`img_contains=
+  g7jv9`) — `raw_scan=true` verilince ilanın kendi `exit(0)`'ı yüzünden bu
+  filtre hiç çalışmıyor (o mod yalnız ilk 3 örneği basıp erken çıkıyor);
+  `raw_scan` **verilmeden** koşulunca tek eşleşme çıktı: `id=dgn-g7jv91`,
+  `name="Logo T-Shirt — White"`, `sku=G7JV9-1`, `renk(1)=White`,
+  `gorsel=/uploads/dg-root4/d-g-g7jv9-1.jpg`.
+- **Fotoğraf BİZZAT görüldü, güvenilmedi.** Bu ortamdan canlı siteye
+  çıkılamıyor; `diag-live` → `wetransfer_probe=sheet:public_html/uploads/
+  dg-root4|perfile|from=5|count=1|cell=400|spaced` (önce `|list` ile
+  dosyanın gerçekten o klasörde ve 5. sırada olduğu doğrulandı) sunucudan
+  kontakt karesini çekti: giysi **açıkça kırmızı**, marka etiketi de
+  *"DOLCE&GABBANA G8PT1T G7JV9"* diyor. KURAL 3'ün fotoğraf-metin çelişki
+  kararı (Pili Pérez dersi): **fotoğraf kazanır**.
+- **`desc` alanına dokunulmadı** — operatörün pasteldiği açıklama satırı
+  (*"Original Dolce & Gabbana, model G7JV9-1. EEA stock with full invoice
+  trail."*) hiçbir renk kelimesi taşımıyor; yanlış olan yalnız `name` ve
+  `colors` alanıydı.
+- `product-fixes/dg-g7jv91-color-red.json` + `set-product.yml`
+  (`match=dgn-g7jv91`, `expect:1`): kuru koşu **2 alan** dedi (`name`,
+  `colors`), sonra uygulandı, yedek alındı
+  (`listings.json.bak-20260924-133354`). Geri okuma sunucudan: `name="Logo
+  T-Shirt — Red"`, `renk(1)=Red` — kod değişmedi, yalnız bu tek ilanın iki
+  alanı.
