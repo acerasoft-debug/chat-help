@@ -6,6 +6,7 @@ require_once __DIR__.'/inc/vouchers.php';
 require_once __DIR__.'/inc/auth.php';
 require_once __DIR__.'/inc/invoice.php';
 require_once __DIR__.'/inc/orders.php';
+require_once __DIR__.'/inc/addresses.php';
 require_once __DIR__.'/inc/leads.php';
 require_once __DIR__.'/inc/notify.php';
 require_once __DIR__.'/inc/stripe.php';
@@ -3689,7 +3690,18 @@ function sendUserMessage(uid,name){
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;max-width:1040px">
         <div>
           <div class="ahint" style="text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;margin-bottom:5px">📍 Full address</div>
-          <div style="font-size:13px;line-height:1.55"><?= ($a['address']??'')!=='' ? nl2br(htmlspecialchars($a['address'])) : '<span class="ahint">— none on file —</span>' ?><?php if(!empty($a['country'])): ?><br><?= htmlspecialchars($a['country']) ?><?php endif; ?></div>
+          <?php /* Ayri postcode/city alanlari da basiliyor (Edit billing details onlari yaziyordu,
+                   bu kutu okumuyordu). Posta kodu hic yoksa soyleniyor: 24 Eyl 2026 olcumu --
+                   116 adresli alicinin 93'unde posta kodu yoktu. */
+                $__bl = vestra_account_billing_line($a); ?>
+          <div style="font-size:13px;line-height:1.55"><?= $__bl!=='' ? htmlspecialchars($__bl) : '<span class="ahint">— none on file —</span>' ?><?php if(!empty($a['country'])): ?><br><?= htmlspecialchars($a['country']) ?><?php endif; ?>
+            <?php if($__bl!=='' && !vestra_address_has_postcode($__bl) && !vestra_postcode_optional((string)($a['country']??''))): ?><br><span class="ahint" style="color:var(--warn,#c9a227)">⚠ no postcode on file</span><?php endif; ?></div>
+          <?php $__book = vestra_ship_addresses($a); if($__book): ?>
+            <div class="ahint" style="text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;margin:10px 0 5px">🚚 Delivery addresses</div>
+            <?php foreach($__book as $__s => $__ad): ?>
+              <div style="font-size:12.5px;line-height:1.5;margin-bottom:4px"><b><?= (int)$__s ?>.</b> <?= htmlspecialchars($__ad['label'] !== '' ? $__ad['label'].' — ' : '') ?><?= htmlspecialchars(vestra_ship_addr_line($__ad)) ?></div>
+            <?php endforeach; ?>
+          <?php endif; ?>
         </div>
         <div>
           <div class="ahint" style="text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;margin-bottom:5px">🏢 Company</div>

@@ -245,7 +245,7 @@ $GMINCOL = vestra_group_min_colors($p);
                    bir tarayici kaporayi eksik renkle odeyemesin. */ ?>
           <form method="post" action="<?= $DEPOSIT ? '/group-checkout' : '/group-join' ?>" onsubmit="return gcolOk(this)">
             <input type="hidden" name="id" value="<?=htmlspecialchars($p['id'])?>">
-            <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
+            <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;inset-inline-start:-9999px">
             <label class="hint"><?= t('Quantity you need') ?> (<?=htmlspecialchars($p['unit'])?>) — <?= t('min') ?> <?=number_format($GMIN)?></label>
             <input type="number" name="qty" min="<?=$GMIN?>" value="<?=$GMIN?>" required style="width:100%" id="gq" oninput="gcalc()">
             <div class="calc" style="margin:10px 0">

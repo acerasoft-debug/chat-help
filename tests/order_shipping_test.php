@@ -159,7 +159,14 @@ $t('navlun must_redraft döndürüyor', str_contains($bShip, "'must_redraft' => 
 $t('navlun ücreti KORUYOR',
    str_contains($bShip, '$fee      = round($oldTot - (max(0.0, $goods - $discount) + $oldShip), 2);')
    && str_contains($bShip, '+ $amount + $fee'));
-$t('okuyucuyla AYNI kalıp',        str_contains($fn, "preg_replace('/Deliver to: .*?(?:\\.\\s|\\.\$|\$)/u'"));
+/* Yazıcının SÖKTÜĞÜ kalıp okuyucunun OKUDUĞU kalıbın aynısı olmalı (yakalama grubu
+   hariç). Eskiden iddia kalıbın METNİNİ sabitliyordu; 24 Eyl 2026'da sonlandırıcı
+   `\.\s` → `\. ` oldu (adresin içindeki ". " bölünmez boşlukla yazılıyor, `\s` /u
+   altında onu da tanıyordu) ve metne bağlı iddia doğru değişikliği kırmızı gösterdi.
+   Olgu şu: iki kalıp ayrışırsa yazıcı eski parçayı bulamaz ve iki kopya bırakır. */
+preg_match("~function vestra_order_delivery_address\\(.*?preg_match\\('(/Deliver to: )\\((\\.\\*\\?)\\)(.*?/u)'~s", $fn, $__rd);
+$__strip = $__rd ? $__rd[1].$__rd[2].$__rd[3] : '§yok§';
+$t('okuyucuyla AYNI kalıp',        $__rd && str_contains($fn, "preg_replace('".$__strip."'"));
 $wf = $src('.github/workflows/seller-products.yml');
 $t('iş akışında da mod var',       str_contains($wf, "admin_mode == 'shipping'"));
 $t('iş akışı aynı yazıcıyı çağırıyor', str_contains($wf, 'vestra_order_set_shipping($ref, $amount, $label, $allowInv)'));

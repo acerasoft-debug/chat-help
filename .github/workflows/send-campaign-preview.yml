@@ -501,8 +501,11 @@ jobs:
                    o yuzden renk notu 'Ad:adet' degil 'Ad, Ad' bicimiyle yaziliyor. */
                 $colNote = '';
                 foreach ($items as $it) foreach ((array)$it['colors'] as $c) $colNote .= ($colNote === '' ? '' : ', ').$c;
+                /* `Deliver to` TEK gövdeden: adresin içindeki ". " (Hauptstr. 12) okuyucuyu
+                   kesiyordu -- bkz. inc/orders.php vestra_order_delivery_segment. */
+                require_once $doc."/inc/orders.php";
                 $notes = 'Payment: Bank transfer. '
-                       . ($buyer['address'] !== '' ? 'Deliver to: '.$buyer['address'].'. ' : '')
+                       . ($buyer['address'] !== '' ? vestra_order_delivery_segment($buyer['address']).' ' : '')
                        . ($colNote !== '' ? 'Colours — '.$sku.': '.$colNote.'. ' : '')
                        . 'Accepted offer '.$ref.'. Invoiced '.$inv['no'].' in '.$cur.': '
                        . number_format($unit, 2).' x '.$qty.' = '.number_format($goods, 2)

@@ -474,7 +474,12 @@ function vestra_invoice_buyer(array $orderRow): array {
         'name'    => $pick('name', 'name'),
         'email'   => $orderRow['email'] ?? '',
         'country' => $country,
-        'address' => $address !== '' ? $address : trim((string)($acc['address'] ?? '')),
+        /* Hesap yedeği ayrı `postcode`/`city` alanlarını da okur: panelin "Edit billing
+           details" formu onları yazıyordu ama belge yalnız `address`i basıyordu. */
+        'address' => $address !== '' ? $address : (function () use ($acc) {
+            require_once __DIR__.'/addresses.php';
+            return vestra_account_billing_line($acc);
+        })(),
     ];
 }
 

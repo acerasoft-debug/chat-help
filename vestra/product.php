@@ -389,7 +389,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           <?php endif; ?>
           <form method="post" action="/offer" onsubmit="return <?= $cqMode?'cqOk(this,\'main\')':'vcolOk(this)' ?>">
             <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
-            <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
+            <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;inset-inline-start:-9999px">
             <?php if($cqMode): ?>
             <div style="margin-bottom:12px">
               <label class="hint"><?= t('Quantity per colour') ?> — <?= vestra_colours_phrase((int)$p['min_colors']) ?> · <?= sprintf(t('multiples of %d'), (int)$p['size_step']) ?></label>
@@ -552,7 +552,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
             <summary class="btn btn-o" style="width:100%;justify-content:center"><?= t('Make an offer') ?></summary>
             <form method="post" action="/offer" style="margin-top:12px" onsubmit="return <?= $cqMode?'cqOk(this,\'sub\')':'vcolOk(this)' ?>">
               <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
-              <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
+              <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;inset-inline-start:-9999px">
               <?php if($cqMode): ?>
               <div style="margin-bottom:10px">
                 <label class="hint"><?= t('Quantity per colour') ?> — <?= vestra_colours_phrase((int)$p['min_colors']) ?> · <?= sprintf(t('multiples of %d'), (int)$p['size_step']) ?></label>
@@ -605,7 +605,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
             <?php if($AUTH_USER): ?>
             <form method="post" action="/sample-checkout" style="margin-top:12px">
               <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
-              <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
+              <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;inset-inline-start:-9999px">
               <label class="hint"><?= t('Size or note (optional)') ?></label>
               <input type="text" name="note" maxlength="200" placeholder="<?= htmlspecialchars(t('e.g. size M, or a note for us')) ?>" style="width:100%">
               <div class="hint" style="margin-top:8px"><?= t('EU-wide, shipping included.') ?> <?= t('The exact size you request may not always be available — we ship the closest match from current sample stock.') ?></div>

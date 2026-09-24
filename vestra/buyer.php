@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__.'/inc/auth.php';
 require_once __DIR__.'/inc/docs.php';
+require_once __DIR__.'/inc/addresses.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 /* post_max_size asimi: PHP govdeyi tumden atar, $_POST bos kalir ve asagidaki
@@ -31,9 +32,36 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
         'name'=>trim($_POST['name']??''),'company'=>trim($_POST['company']??''),
         'vat_id'=>trim($_POST['vat_id']??''),'reg_number'=>trim($_POST['reg_number']??''),
         'country'=>trim($_POST['country']??''),'address'=>trim($_POST['address']??''),
+        /* Posta kodu ve sehir AYRI alan (24 Eyl 2026): adres tek serbest satirken
+           116 adresli alicinin 93'unde posta kodu yoktu. Anahtarlar panelin
+           "Edit billing details" formunun zaten yazdigi adlar -- ucuncu bir ad
+           icat edilmedi; fatura vestra_account_billing_line() ile okuyor. */
+        'postcode'=>mb_strtoupper(trim($_POST['postcode']??'')),'city'=>trim($_POST['city']??''),
         'phone'=>trim($_POST['phone']??''),'website'=>trim($_POST['website']??''),
     ]);
     header('Location: /buyer?tab=profile&saved=1'); exit;
+}
+
+/* TESLIMAT ADRES DEFTERI (operator, 24 Eyl 2026: "Lieferadresse ... 1. 2. 3. olarak
+   ve siparis icin kendileri secebilsin ad koyabilsin"). Yazici inc/addresses.php'de
+   tek; burada yalniz yonlendirme. Kayit geri okunur, tutmazsa kirmizi. */
+if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST'
+    && in_array(($_POST['_action']??''), ['ship_addr_save','ship_addr_delete'], true)) {
+    $slot = (int)($_POST['slot'] ?? 0);
+    $r = ($_POST['_action'] === 'ship_addr_save')
+        ? vestra_ship_addr_save((string)$_SESSION['uid'], $slot, $_POST)
+        : vestra_ship_addr_delete((string)$_SESSION['uid'], $slot);
+    if (!empty($r['ok'])) {
+        $m = $_POST['_action'] === 'ship_addr_save' ? 'saved' : 'deleted';
+        header('Location: /buyer?tab=profile&addr='.$m.'&slot='.$slot.'#addresses'); exit;
+    }
+    $q = 'addr_err='.urlencode((string)($r['error'] ?? 'write')).'&slot='.$slot;
+    /* Yarim doldurulmus formu kaybettirmemek icin girdiler oturumda bir kez tutulur. */
+    if (($r['error'] ?? '') === 'fields' || ($r['error'] ?? '') === 'country') {
+        $_SESSION['ship_addr_draft'] = ['slot' => $slot, 'data' => vestra_ship_addr_clean($_POST),
+                                        'fields' => (array)($r['fields'] ?? [])];
+    }
+    header('Location: /buyer?tab=profile&'.$q.'#addresses'); exit;
 }
 
 // Change password (requires the current password)
@@ -733,8 +761,12 @@ if($tab==='overview'){
         <div><label><?= t('Country') ?></label><input name="country" value="<?= htmlspecialchars($u['country']??'') ?>" placeholder="DE"></div>
       </div>
       <div class="frow">
-        <div><label><?= t('Address') ?></label><input name="address" value="<?= htmlspecialchars($u['address']??'') ?>" placeholder="Hauptstraße 1, 10115 Berlin"></div>
-        <div><label><?= t('Phone') ?></label><input name="phone" value="<?= htmlspecialchars($u['phone']??'') ?>" placeholder="+49 30 12345678"></div>
+        <div><label><?= t('Street and number') ?></label><input name="address" value="<?= htmlspecialchars($u['address']??'') ?>" placeholder="Hauptstraße 1" autocomplete="street-address"></div>
+        <div><label><?= t('Phone') ?></label><input name="phone" value="<?= htmlspecialchars($u['phone']??'') ?>" placeholder="+49 30 12345678" autocomplete="tel"></div>
+      </div>
+      <div class="frow">
+        <div><label><?= t('Postcode') ?></label><input name="postcode" value="<?= htmlspecialchars($u['postcode']??'') ?>" placeholder="10115" autocomplete="postal-code"></div>
+        <div><label><?= t('City') ?></label><input name="city" value="<?= htmlspecialchars($u['city']??'') ?>" placeholder="Berlin" autocomplete="address-level2"></div>
       </div>
       <div class="frow">
         <div><label><?= t('Website') ?></label><input name="website" value="<?= htmlspecialchars($u['website']??'') ?>" placeholder="https://company.com"></div>
@@ -742,6 +774,80 @@ if($tab==='overview'){
       </div>
       <button class="btn btn-p" type="submit"><?= t('Save changes') ?></button>
     </form>
+  </div>
+  <?php
+  /* TESLIMAT ADRES DEFTERI -- 3 SABIT yuva (1. 2. 3.). Duzenleme <details> ile acilir:
+     JS gerekmiyor, kart kapaliyken yalniz adresin kendisi gorunur. Hata donusunde o
+     yuvanin formu ACIK ve girilenler dolu gelir (oturumda bir kez tutulur). */
+  $book  = vestra_ship_addresses($u);
+  $draft = $_SESSION['ship_addr_draft'] ?? null; unset($_SESSION['ship_addr_draft']);
+  $ae = (string)($_GET['addr_err'] ?? '');
+  $addrMsg = '';
+  if (($_GET['addr'] ?? '') === 'saved')   $addrMsg = '<div class="banner ok">✓ '.t('Delivery address saved.').'</div>';
+  if (($_GET['addr'] ?? '') === 'deleted') $addrMsg = '<div class="banner ok">✓ '.t('Delivery address deleted.').'</div>';
+  if ($ae !== '') $addrMsg = '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '
+      .($ae === 'fields' ? t('Please fill in street, postcode, city and country.')
+       : ($ae === 'country' ? t('We are not able to serve this market. Nothing was saved.')
+       : t('The address could not be saved. Please try again.'))).'</div>';
+  ?>
+  <div class="panelcard" id="addresses">
+    <div class="pcfhead"><h3>🚚 <?= t('Delivery addresses') ?></h3></div>
+    <p class="hint" style="margin:-6px 0 16px"><?= t('Save up to three delivery addresses, give each a name and choose one when you order.') ?></p>
+    <?= $addrMsg /* panelin ICINDE: #addresses capasi paneli ekranin tepesine getiriyor, ustundeki bant gorunmezdi */ ?>
+    <div class="addrbook">
+    <?php for ($s = 1; $s <= VESTRA_SHIP_ADDR_MAX; $s++):
+      $a = $book[$s] ?? null;
+      $isDraft = is_array($draft) && (int)($draft['slot'] ?? 0) === $s;
+      $f = $isDraft ? (array)$draft['data'] : ($a ?? vestra_ship_addr_clean([]));
+      $bad = $isDraft ? (array)($draft['fields'] ?? []) : [];
+      $title = ($a && $a['label'] !== '') ? $a['label'] : sprintf(t('Address %d'), $s);
+      $inv = fn(string $k) => in_array($k, $bad, true) || ($k === 'country' && in_array('country_tr', $bad, true)) ? ' aria-invalid="true" class="addrbad"' : '';
+    ?>
+      <div class="addrcard<?= $a ? '' : ' is-empty' ?>">
+        <div class="addrhead"><span class="addrnum"><?= $s ?></span><b class="addrtitle"><?= htmlspecialchars($title) ?></b></div>
+        <?php if ($a): ?>
+          <div class="addrbody">
+            <?php if ($a['recipient'] !== ''): ?><div class="addrrec"><?= htmlspecialchars($a['recipient']) ?></div><?php endif; ?>
+            <div><?= htmlspecialchars($a['street']) ?></div>
+            <div><?= htmlspecialchars(vestra_ship_addr_town($a)) ?></div>
+            <div><?= htmlspecialchars($a['country']) ?></div>
+            <?php if ($a['phone'] !== ''): ?><div class="hint">📞 <span dir="ltr"><?= htmlspecialchars($a['phone']) ?></span></div><?php endif; ?>
+          </div>
+        <?php else: ?>
+          <div class="addrbody hint"><?= t('No address saved yet.') ?></div>
+        <?php endif; ?>
+        <details class="addredit"<?= $isDraft ? ' open' : '' ?>>
+          <summary class="btn btn-o btn-sm"><?= $a ? '✎ '.t('Edit') : '+ '.t('Add a delivery address') ?></summary>
+          <form method="post" action="/buyer?tab=profile" class="addform">
+            <input type="hidden" name="_action" value="ship_addr_save">
+            <input type="hidden" name="slot" value="<?= $s ?>">
+            <label><?= t('Name for this address') ?></label>
+            <input name="label" maxlength="40" value="<?= htmlspecialchars($f['label']) ?>" placeholder="<?= htmlspecialchars(t('e.g. Warehouse Berlin')) ?>">
+            <label><?= t('Recipient / company') ?></label>
+            <input name="recipient" maxlength="80" value="<?= htmlspecialchars($f['recipient']) ?>" autocomplete="organization">
+            <label><?= t('Street and number') ?> *</label>
+            <input name="street" maxlength="120" required value="<?= htmlspecialchars($f['street']) ?>" autocomplete="street-address"<?= $inv('street') ?>>
+            <div class="addrrow">
+              <div><label><?= t('Postcode') ?> *</label><input name="postcode" maxlength="16" value="<?= htmlspecialchars($f['postcode']) ?>" autocomplete="postal-code"<?= $inv('postcode') ?>></div>
+              <div><label><?= t('City') ?> *</label><input name="city" maxlength="60" required value="<?= htmlspecialchars($f['city']) ?>" autocomplete="address-level2"<?= $inv('city') ?>></div>
+            </div>
+            <label><?= t('Country') ?> *</label>
+            <input name="country" maxlength="56" required value="<?= htmlspecialchars($f['country']) ?>" placeholder="Deutschland" autocomplete="country-name"<?= $inv('country') ?>>
+            <label><?= t('Phone for the courier') ?></label>
+            <input name="phone" maxlength="32" value="<?= htmlspecialchars($f['phone']) ?>" autocomplete="tel">
+            <button class="btn btn-p btn-sm" type="submit" style="margin-top:12px"><?= t('Save address') ?></button>
+          </form>
+        </details>
+        <?php if ($a): ?>
+          <form method="post" action="/buyer?tab=profile" class="addrdel" onsubmit="return confirm(<?= htmlspecialchars(json_encode(t('Delete this delivery address?')), ENT_QUOTES) ?>)">
+            <input type="hidden" name="_action" value="ship_addr_delete">
+            <input type="hidden" name="slot" value="<?= $s ?>">
+            <button class="addrdelbtn" type="submit">🗑 <?= t('Delete') ?></button>
+          </form>
+        <?php endif; ?>
+      </div>
+    <?php endfor; ?>
+    </div>
   </div>
   <div class="panelcard">
     <div class="pcfhead"><h3><?= t('Security') ?></h3></div>

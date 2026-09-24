@@ -762,7 +762,7 @@ if($tab==='overview'){
   <?php else: ?>
   <div class="panelcard">
     <form method="post" action="/seller-add" class="addform" enctype="multipart/form-data">
-      <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
+      <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;inset-inline-start:-9999px">
       <div class="frow">
         <div><label><?= t('Brand') ?> *</label><input name="brand" required placeholder="<?= htmlspecialchars(t('e.g. Lacoste / Your label')) ?>"></div>
         <div><label><?= t('Product name') ?> *</label><input name="name" required placeholder="Classic Piqué Polo"></div>

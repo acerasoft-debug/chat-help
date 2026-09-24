@@ -161,7 +161,7 @@ $title = htmlspecialchars($req['title'] ?? $req['id'] ?? $ref);
     <?php endif; ?>
 
     <form method="post" action="" style="display:flex;flex-direction:column;gap:14px">
-      <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
+      <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;inset-inline-start:-9999px">
 
       <div class="frow" style="margin-bottom:0">
         <div class="authfield">

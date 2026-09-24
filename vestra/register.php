@@ -162,9 +162,23 @@ $PAGE = t('Create account'); $NAV = ''; require __DIR__.'/inc/head.php';
           <input name="phone" type="tel" placeholder="+49 30 12345678" value="<?= htmlspecialchars($d['phone']??'') ?>">
         </div>
       </div>
+      <?php /* Posta kodu ve sehir AYRI (24 Eyl 2026): adres tek serbest satirken 116
+               adresli alicinin 93'unde posta kodu yoktu. Zorunlu degil -- kayit
+               formunu uzatip terk ettirmek istemiyoruz; fatura/teslimat adresi
+               kasada ve adres defterinde zaten alan alan isteniyor. */ ?>
       <div class="authfield">
-        <label><?= t('Address') ?></label>
-        <input name="address" placeholder="Hauptstraße 1, 10115 Berlin" value="<?= htmlspecialchars($d['address']??'') ?>">
+        <label><?= t('Street and number') ?></label>
+        <input name="address" placeholder="Hauptstraße 1" autocomplete="street-address" value="<?= htmlspecialchars($d['address']??'') ?>">
+      </div>
+      <div class="frow" style="margin-bottom:0">
+        <div class="authfield">
+          <label><?= t('Postcode') ?></label>
+          <input name="postcode" placeholder="10115" autocomplete="postal-code" maxlength="16" value="<?= htmlspecialchars($d['postcode']??'') ?>">
+        </div>
+        <div class="authfield">
+          <label><?= t('City') ?></label>
+          <input name="city" placeholder="Berlin" autocomplete="address-level2" maxlength="60" value="<?= htmlspecialchars($d['city']??'') ?>">
+        </div>
       </div>
       <div class="authfield">
         <label><?= t('Website') ?></label>

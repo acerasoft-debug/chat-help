@@ -297,7 +297,7 @@ require __DIR__ . '/inc/head.php';
 
     <form method="post" action="/dropship-checkout">
       <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
-      <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
+      <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;inset-inline-start:-9999px">
       <?php if (!empty($ds['stock'])): /* elle kurulmus ilan: gercek harita var */ ?>
       <label class="hint"><?= t('Colour / size') ?></label>
       <select name="variant" required style="width:100%">

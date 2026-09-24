@@ -284,7 +284,7 @@ function vestra_req_age(string $ts): string {
         <h3 class="blocktitle"><?= t('Post a request') ?></h3>
         <p class="hint" style="margin-top:-4px"><?= t("No payment, no commitment. You'll get offers from verified sellers.") ?></p>
         <form method="post" action="/request" enctype="multipart/form-data">
-          <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
+          <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;inset-inline-start:-9999px">
           <label class="hint"><?= t('What are you looking for?') ?> *</label>
           <input name="title" required placeholder="<?= htmlspecialchars(t('e.g. Lacoste polos, mixed sizes, EEA stock')) ?>" style="width:100%;margin-bottom:12px">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">

@@ -8837,3 +8837,97 @@ beschreibunta white hatayi düzelt"*).
   (`listings.json.bak-20260924-133354`). Geri okuma sunucudan: `name="Logo
   T-Shirt — Red"`, `renk(1)=Red` — kod değişmedi, yalnız bu tek ilanın iki
   alanı.
+
+**KURAL 35 — POSTA KODU AYRI ALAN; TESLİMAT ADRES DEFTERİ (1./2./3.); ve KASA
+19 EYLÜL'DEN BERİ HER SİPARİŞTE 500 VERİYORDU** (operatör, 24 Eyl 2026:
+*"adreslerde postcode görünmüyor bu giriliyor mu ayrıca hesaplarda müşterilerin
+lieferadresse girebileceği bölüm koy estetik olarak 1. 2. 3. olarak ve sipariş
+için kendileri seçebilsin ad koyabilsin"*).
+
+- **ÖNCE ÖLÇÜLDÜ** (`diag-live` → `accounts_report`, yeni sayım bloğu — yalnız
+  sayı ve sipariş ref'i basar, adres basmaz): **161 alıcıdan 116'sında adres var,
+  yalnız 23'ünde posta kodu görünüyor, 93'ünde YOK.** Ayrı `postcode`/`city`
+  alanı hiçbir hesapta dolu değil. Cevap: posta kodu **girilmiyordu** — kayıt ve
+  profil adresi TEK serbest satır olarak alıyordu, örnek metin yazmayı
+  öneriyordu ama zorlamıyordu.
+- **İKİ AYRI KAYIP DAHA vardı, ikisi de düzeltildi:**
+  1. **Okuyucu adresi ilk ". "da kesiyordu.** `vestra_order_delivery_address()`
+     `(?:\.\s|…)` ile duruyordu: "Hauptstr. 12, 10115 Berlin" faturaya
+     **"Hauptstr"**, "Via S. Maria 4" **"Via S"** diye basılırdı — sokak numarası,
+     POSTA KODU ve şehir gider. Almanca/İtalyanca/Fransızca adreste kısaltma
+     olağan. Canlıda 3 teslimat notlu siparişin hiçbiri henüz kesilmemişti (kusur
+     tetiklenmemişti). Çözüm tek gövde `vestra_order_delivery_segment()`: adresin
+     içindeki ". " **bölünmez boşlukla** yazılır (ekranda/PDF'te/CP1252'de normal
+     boşluk), okuyucu yalnız DÜZ boşlukta durur ve geri çevirir. `\s` /u altında
+     NBSP'yi de tanıyor (ölçüldü) — sonlandırıcı bu yüzden `\. `. Eski kayıtlar
+     aynen okunur. Kasa, panel yazıcısı (`vestra_order_set_delivery`) ve teklif
+     faturası sipariş yazıcısı (`send-campaign-preview`) üçü de bu gövdeden.
+  2. **Panelin "Edit billing details" formu `postcode`/`city` YAZIYORDU ama hiçbir
+     yer OKUMUYORDU** (fatura, panel adres kutusu). Toplanan ama basılmayan alan
+     (KURAL 5j dersi). Artık `vestra_account_billing_line()` — faturanın hesap
+     yedeği, panel kutusu ve kasanın fatura satırı aynı gövdeden; adres metni
+     posta kodunu zaten içeriyorsa tekrarlamaz. Panel posta kodu yoksa
+     **"⚠ no postcode on file"** yazar ve kayıtlı teslimat adreslerini listeler.
+- **KASA BOZUKTU ve bu işin en önemli bulgusu.** `order.php` 19 Eyl 2026'dan
+  (`04990a90`, navlun tarifesi) beri `inc/orders.php`'deki navlun fonksiyonunu
+  **çağırıyor ama o dosyayı hiç yüklemiyordu**. **Değiştirilmemiş deploy kodu**
+  kum havuzunda (`git archive`) koşturuldu: her sipariş POST'u
+  `Call to undefined function vestra_shipping_auto_schedule()` ile **500**.
+  Canlı hata günlüğünde bu fatal YOK — günlük Ağustos'a kadar geri gidiyor, yani
+  büyük olasılıkla 5 gündür hiçbir alıcı kasadan sipariş denemedi (son siparişler
+  operatörün iş akışıyla yazıldı). KURAL 15'in bir vakası daha; bu sefer tam da
+  para giren kapıda. Düzeltme `require_once inc/orders.php`; test **genel bir
+  bekçi** taşıyor: `order.php`'nin çağırdığı her `vestra_*` fonksiyonu, onun
+  yüklediği dosyalarla **ayrı bir süreçte** tanımlı olmalı (24 fonksiyon).
+- **Adres defteri** (`inc/addresses.php`, alıcı paneli ▸ Profil ▸ 🚚 Delivery
+  addresses): **3 SABİT yuva** (`{"1":…,"3":…}`) — 1. silinince "2." hâlâ "2."
+  kalır. Alanlar: ad (Lager Berlin), alıcı/firma, sokak+no, **posta kodu
+  (zorunlu)**, şehir, ülke, kurye telefonu. Düzenleme `<details>` ile, JS yok;
+  hata dönüşünde o yuvanın formu girilenlerle açık gelir. Kayıt geri okunur.
+  - **Posta kodu muafiyeti DAR ve TAM eşleşme:** BAE/Katar/Hong Kong/Makao
+    (posta kodu yok). "AT" (Avusturya) muaf değil; "Qatar Trading Co" muaf değil.
+    Tanınmayan ülke = zorunlu (yanlış yön görünür, öteki yön görünmez).
+  - **Türkiye teslimat adresi REDDEDİLİR** (KURAL 2g): kapatan kural her yolda
+    çalışmalı, yoksa sipariş kutusundan geri girerdi. Türkmenistan geçer.
+- **Kasa seçicisi** (`cart.php`): "Fatura adresiyle aynı" / 1./2./3. kartları /
+  "Başka adres". Tarayıcı **yalnız yuva NUMARASI** gönderir; metni `order.php`
+  hesabın kendi kaydından kurar (`vestra_ship_addr_resolve`) — elle değiştirilmiş
+  bir form başka bir metni siparişe yazamaz. Olmayan yuva/saçma değer →
+  `?err=shipaddr`. Son seçim hatırlanır (`ship_last`); eski serbest metin yalnız
+  "başka adres" seçilince güncellenir. `ship_pick` gelmezse (önbellekteki eski
+  sayfa) eski davranış aynen.
+- **Profil ve kayıt formu** artık Sokak+No / **Posta kodu** / Şehir ayrı alıyor
+  (anahtarlar panelin zaten yazdığı `postcode`/`city` — üçüncü bir ad icat
+  edilmedi). Kayıtta zorunlu değil (formu uzatıp terk ettirmemek için); teslimat
+  adresinde zorunlu.
+- **Yan düzeltme — Arapça sayfalarda 10.000 px yatay kaydırma.** 9 formdaki bot
+  tuzağı alanı `left:-9999px` ile gizleniyordu; sağdan sola sayfada bu, sayfayı
+  sola 10.000 px genişletiyor (ölçüldü: Arapça kasa `scrollWidth 11365`). Formlar
+  ancak onaylı oturumda çizildiği için 4 Eylül RTL taraması görmemişti.
+  `inset-inline-start:-9999px` ile yöne duyarlı; ölçüm 0. Adres satırları
+  `unicode-bidi:plaintext` (Arapça sayfada "Berlin 10115" ters okunuyordu),
+  telefon `dir="ltr"` — harf sırası Playwright ile **karakter koordinatından**
+  ölçüldü, küçük ekran görüntüsünden değil (onu yanlış okudum).
+- **Çakışma, yakalandı:** boş kartın sınıfı `empty` sitenin genel boş-durum
+  stiliyle (`.empty{text-align:center}`) çakıştı ve açılan formun etiketlerini
+  ortaladı → `is-empty`.
+- **Çizdirildi**: yerel kopya (`php -S`, onaylı alıcı oturumu, gerçek `data/`'ya
+  dokunmadan) — profil 3 kart, kasa 4 seçenek, en/de/ar × masaüstü/mobil, yatay
+  kaydırma 0, PHP uyarısı 0; gerçek sipariş POST'ları: 2. yuva → notta tam adres
+  ("Hauptstr. 12, 10115 Berlin…"), faturanın gördüğü aynı; billing → not yok;
+  başka adres "Via S. Maria 4…" kesilmeden; olmayan yuva → red.
+- **26 yeni sözlük anahtarı 8 dilde**, 2 ölü anahtar silindi ("Delivery address
+  (if different)", "Leave empty to ship to the billing address").
+- Test: `tests/address_book_test.php` (**76 iddia**, iki yön). Düşebildiği
+  doğrulandı, her sabotajın uygulandığı sayılarak ve `cp` yedeğinden geri
+  alınarak: okuyucu eski `\.\s` → **4 kırmızı**, `order.php` orders.php'yi
+  yüklemeyince → **2**, yuvada tarayıcı metni → **1**, muafiyet alt dize → **1**,
+  fatura satırı posta kodunu okumayınca → **2**, silince numara kayınca → **3**.
+  `order_shipping_test`'in bir iddiası yazıcının kalıbını **metin olarak**
+  eskiye sabitliyordu; davranış bilerek değişti, iddia "yazıcının söktüğü kalıp
+  okuyucununkiyle aynı" olgusuna bağlandı ve sabotajla yine düştü.
+- **Operatöre not:** 93 hesabın fatura adresinde posta kodu yok; kod bunu
+  uyduramaz. Müşteri profilden ya da adres defterinden girince düzelir; panel
+  eksik olanları ⚠ ile gösteriyor. Hata günlüğünde birkaç saniyede bir
+  `[VESTRA cur] cerez yazilamadi … head.php:120` satırı var — disk sağlıklı
+  (4 dizin yazılabilir), bu işten bağımsız, ayrıca bakılmalı.

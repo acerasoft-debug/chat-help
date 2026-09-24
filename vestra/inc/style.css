@@ -1177,3 +1177,43 @@ html[lang="ja"] body{ line-height:1.75; word-break:normal; overflow-wrap:anywher
   .stepper input{min-height:0}
   textarea{min-height:44px}
 }
+
+/* Teslimat adres defteri (alici paneli, 3 sabit yuva) + kasadaki secici.
+   Kartlar ayni yukseklikte hizali, bos yuva kesik cizgili; numara rozeti kasadaki
+   secicinin de gorsel dili -- musteri "2." diye kaydettigi adresi kasada da "2."
+   olarak gorur. */
+.addrbook{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+.addrcard{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--bg);display:flex;flex-direction:column;gap:12px;min-width:0}
+.addrcard.is-empty{border-style:dashed;background:transparent}
+.addrhead{display:flex;align-items:center;gap:10px;min-width:0}
+.addrnum{flex:none;width:28px;height:28px;border-radius:50%;display:inline-grid;place-items:center;line-height:1;font-weight:700;font-size:13px;background:var(--acc);color:#1a1408;font-variant-numeric:tabular-nums}
+.addrcard.is-empty .addrnum{background:transparent;color:var(--acc);border:1px solid var(--acc)}
+.addrtitle{font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.addrbody{font-size:13.5px;line-height:1.55;overflow-wrap:anywhere}
+.addrrec{font-weight:600}
+.addredit>summary{list-style:none;cursor:pointer;width:max-content}
+.addredit>summary::-webkit-details-marker{display:none}
+.addredit[open]>summary{margin-bottom:10px}
+.addredit .addform input{margin-bottom:8px}
+.addrrow{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:10px}
+.addredit input[aria-invalid="true"]{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
+.addrdel{margin:0}
+.addrdelbtn{background:none;border:0;padding:0;color:var(--mut);font-size:12.5px;cursor:pointer}
+.addrdelbtn:hover{color:var(--bad)}
+@media(max-width:900px){.addrbook{grid-template-columns:1fr}}
+
+.shippick{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;max-width:680px;margin:0 0 12px}
+.shipopt{position:relative;display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;background:var(--bg2);min-width:0}
+.shipopt input{position:absolute;opacity:0;pointer-events:none}
+.shipopt:has(input:checked){border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+.shipopt:has(input:focus-visible){outline:2px solid var(--acc);outline-offset:2px}
+.shipopt .addrnum{width:24px;height:24px;font-size:12px}
+.shipopt .shipico{flex:none;width:24px;text-align:center}
+.shipopt-b{display:flex;flex-direction:column;min-width:0;font-size:13px;line-height:1.45}
+.shipopt-b b{font-size:13.5px}
+.shipopt-b .hint{overflow-wrap:anywhere}
+/* Adres satirlari yonunu ICERIKTEN alir: Arapca sayfada Latin bir adres "Berlin 10115",
+   telefon "1234 30 49+" diye ters okunuyordu (cizdirilerek goruldu). Hiza yine sayfanin
+   yonunde kalir; yalniz satirin ic sirasi duzelir. */
+.addrbody>div,.shipopt-b .hint{unicode-bidi:plaintext}
+[dir="rtl"] .addrbody,[dir="rtl"] .shipopt-b{text-align:right}

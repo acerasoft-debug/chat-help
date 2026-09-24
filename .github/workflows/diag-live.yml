@@ -1089,13 +1089,19 @@ jobs:
                    KESIYOR ("Hauptstr. 12, 10115 Berlin" -> "Hauptstr"). Kesilen
                    siparisler sayiliyor: okuyucunun verdigi ile bir sonraki bilinen
                    etikete kadar olan ham parca karsilastiriliyor. */
-            $pcRe = '/\b\d{4,6}\b|\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b|\b\d{4}\s?[A-Z]{2}\b|\b[A-Z]\d[A-Z]\s?\d[A-Z]\d\b|\b\d{3}-\d{4}\b|\b\d{2}-\d{3}\b|\b\d{3}\s\d{2}\b/i';
+            /* Posta kodu kalibi SITENIN kendi gövdesinden (inc/addresses.php) -- panelin
+               "no postcode" uyarisi ile bu sayim ayni soruya iki ayri cevap vermesin.
+               Dosya henuz inmemisse ayni kalip yedek olarak burada. */
+            if (is_readable($doc."/inc/addresses.php")) require_once $doc."/inc/addresses.php";
+            $hasPc = function_exists('vestra_address_has_postcode')
+              ? fn(string $t) => vestra_address_has_postcode($t)
+              : fn(string $t) => (bool)preg_match('/\b\d{4,6}\b|\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b|\b\d{4}\s?[A-Z]{2}\b/i', $t);
             $bn = 0; $bAddr = 0; $bPc = 0; $bPcF = 0; $bCity = 0; $bShip = 0; $bBook = 0;
             foreach ($accs as $a) {
               if (($a['type'] ?? '') !== 'buyer') continue;
               $bn++;
               $ad = trim((string)($a['address'] ?? ''));
-              if ($ad !== '') { $bAddr++; if (preg_match($pcRe, $ad)) $bPc++; }
+              if ($ad !== '') { $bAddr++; if ($hasPc($ad)) $bPc++; }
               if (trim((string)($a['postcode'] ?? '')) !== '') $bPcF++;
               if (trim((string)($a['city'] ?? '')) !== '') $bCity++;
               if (trim((string)($a['ship_address'] ?? '')) !== '') $bShip++;
@@ -1131,7 +1137,7 @@ jobs:
               $lastW = preg_match('/(\S+)$/u', $seen, $lw) ? $lw[1] : '';
               $abbr  = mb_strlen($lastW) <= 2
                     || preg_match('/(?:str|st|av|ave|rd|nr|no|pl|bd|blvd|dr|ctra|pza|sq|ul|mt|ste|pte|rte|sv)$/iu', $lastW);
-              if ($abbr && preg_match('/\d/', $next) && !preg_match($pcRe, $seen))
+              if ($abbr && preg_match('/\d/', $next) && !$hasPc($seen))
                 $oCut[] = (string)($o['ref'] ?? '?').' (okunan '.mb_strlen($seen).' karakter, arkasinda kalan '.mb_strlen($next).')';
             }
             printf("siparis: %d | Deliver to tasiyan: %d | okuyucunun POSTA KODUNU KESTIGI: %d\n", $oN, $oDel, count($oCut));

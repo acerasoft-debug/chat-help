@@ -14,6 +14,7 @@ require_once __DIR__.'/inc/stripe.php';
 /* Tarife tablosu ve bölge haritası burada: KURAL 15'in dersi — kardeş bir
    dosyanın require'ına yaslanma, ihtiyacın olan dosyayı kendin yükle. */
 require_once __DIR__.'/inc/orders.php';
+require_once __DIR__.'/inc/addresses.php';
 $escrowMap = [];
 if (stripe_available()) {
   $readySellers = [];
@@ -177,14 +178,57 @@ if (stripe_available()) {
         <div><label class="hint"><?= t('VAT / Tax ID') ?></label><input name="vat" style="width:100%" value="<?= htmlspecialchars($u['vat_id']??'') ?>"></div>
         <div><label class="hint"><?= t('Contact name') ?> *</label><input name="name" required style="width:100%" value="<?= htmlspecialchars($u['name']??'') ?>"></div>
         <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%" value="<?= htmlspecialchars($u['email']??'') ?>"></div>
-        <div><label class="hint"><?= t('Billing address') ?></label><input name="address" style="width:100%" value="<?= htmlspecialchars($u['address']??'') ?>" placeholder="<?= htmlspecialchars(t('Street, postal code, city')) ?>"></div>
-        <div><label class="hint"><?= t('Delivery address (if different)') ?></label><input name="ship_address" style="width:100%" value="<?= htmlspecialchars($u['ship_address']??'') ?>" placeholder="<?= htmlspecialchars(t('Leave empty to ship to the billing address')) ?>"></div>
+        <?php /* Fatura adresi ayri posta kodu/sehir alanlarini da tasiyor (profil 24 Eyl
+                 2026'dan beri ikisini ayri aliyor) -- tek biçimlendirici, fatura ile ayni. */ ?>
+        <div><label class="hint"><?= t('Billing address') ?></label><input name="address" style="width:100%" value="<?= htmlspecialchars($u ? vestra_account_billing_line($u) : '') ?>" placeholder="<?= htmlspecialchars(t('Street, postal code, city')) ?>"></div>
         <div><label class="hint"><?= t('Country') ?></label><input name="country" style="width:100%" value="<?= htmlspecialchars($u['country']??'') ?>"></div>
         <div><label class="hint"><?= t('Phone') ?></label><input name="phone" style="width:100%" value="<?= htmlspecialchars($u['phone']??'') ?>"></div>
       </div>
+
+      <?php
+      /* TESLIMAT ADRESI SECICI. Kayitli defter (1./2./3.) varsa kartlar; secim yalniz
+         yuva NUMARASINI gonderir, metni order.php hesabin kendi kaydindan kurar.
+         Varsayilan: son secilen (ship_last), yoksa eski serbest metin doluysa
+         "baska adres", yoksa fatura adresi. JS kapaliyken serbest metin kutusu
+         gorunur kalir; sunucu onu yalniz 'other' secildiginde okur. */
+      $shipBook = $u ? vestra_ship_addresses($u) : [];
+      $shipLast = (string)($u['ship_last'] ?? '');
+      $shipDef  = ($shipLast !== '' && (($shipLast === 'billing' || $shipLast === 'other') || isset($shipBook[(int)$shipLast])))
+                  ? $shipLast : (trim((string)($u['ship_address'] ?? '')) !== '' ? 'other' : 'billing');
+      $billLine = $u ? vestra_account_billing_line($u) : '';
+      ?>
+      <h3 style="margin:22px 0 10px"><?= t('Delivery address') ?></h3>
+      <?php if(isset($_GET['err']) && $_GET['err']==='shipaddr'): ?>
+        <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:12px;max-width:680px">
+          <?= t('The saved address you chose is missing or incomplete. Please choose again or update it in your profile.') ?></div>
+      <?php endif; ?>
+      <div class="shippick" role="radiogroup" aria-label="<?= htmlspecialchars(t('Delivery address')) ?>">
+        <label class="shipopt">
+          <input type="radio" name="ship_pick" value="billing"<?= $shipDef==='billing'?' checked':'' ?>>
+          <span class="shipico">🏢</span>
+          <span class="shipopt-b"><b><?= t('Same as billing address') ?></b><?php if($billLine!==''): ?><span class="hint"><?= htmlspecialchars($billLine) ?></span><?php endif; ?></span>
+        </label>
+        <?php foreach($shipBook as $__s => $__a): ?>
+        <label class="shipopt">
+          <input type="radio" name="ship_pick" value="<?= (int)$__s ?>"<?= $shipDef===(string)$__s?' checked':'' ?>>
+          <span class="addrnum"><?= (int)$__s ?></span>
+          <span class="shipopt-b"><b><?= htmlspecialchars($__a['label']!=='' ? $__a['label'] : sprintf(t('Address %d'), $__s)) ?></b><span class="hint"><?= htmlspecialchars(vestra_ship_addr_line($__a)) ?></span></span>
+        </label>
+        <?php endforeach; ?>
+        <label class="shipopt">
+          <input type="radio" name="ship_pick" value="other"<?= $shipDef==='other'?' checked':'' ?>>
+          <span class="shipico">✎</span>
+          <span class="shipopt-b"><b><?= t('Another address') ?></b><span class="hint"><?= t('Type it below') ?></span></span>
+        </label>
+      </div>
+      <div id="shipOther" style="max-width:680px"><input name="ship_address" style="width:100%" value="<?= htmlspecialchars($u['ship_address']??'') ?>" placeholder="<?= htmlspecialchars(t('Street and number, postcode, city, country')) ?>"></div>
+      <?php if($u): ?><p class="hint" style="margin:8px 0 0"><a class="acc" href="/buyer?tab=profile#addresses"><?= $shipBook ? t('Manage delivery addresses') : t('Save delivery addresses in your profile') ?> →</a></p><?php endif; ?>
+      <script>(function(){var o=document.getElementById('shipOther');if(!o)return;
+        function s(){var c=document.querySelector('input[name=ship_pick]:checked');o.style.display=(c&&c.value==='other')?'':'none';}
+        document.querySelectorAll('input[name=ship_pick]').forEach(function(r){r.addEventListener('change',s)});s();})();</script>
       <p class="hint" style="margin:8px 0 0"><?= t('Billing details appear on your automatic PDF invoice.') ?></p>
       <div style="margin-top:10px;max-width:680px"><label class="hint"><?= t('Notes') ?></label><textarea name="notes" rows="2" style="width:100%"></textarea></div>
-      <input type="text" name="website" style="position:absolute;left:-9999px" tabindex="-1" autocomplete="off">
+      <input type="text" name="website" style="position:absolute;inset-inline-start:-9999px" tabindex="-1" autocomplete="off">
       <?php /* Iade kurali siparis ANINDA da gorunuyor. Onay kutusunun metnine
                EKLENMEDI: o cumle sprintf ile 3 yer tutucu tasiyor ve degistirmek
                7 dilin cevirisini birden Ingilizceye dusururdu. Kural yerine

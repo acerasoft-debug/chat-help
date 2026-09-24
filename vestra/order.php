@@ -5,6 +5,11 @@ require_once __DIR__.'/inc/auth.php';
 require_once __DIR__.'/inc/escrow.php';
 require_once __DIR__.'/inc/stripe.php';
 require_once __DIR__.'/inc/vouchers.php';
+require_once __DIR__.'/inc/addresses.php';
+/* KURAL 15: navlun (vestra_shipping_auto_schedule) ve `Deliver to` yazicisi bu dosyada.
+   19 Eyl 2026'dan (04990a90) beri kasa onu CAGIRIYOR ama HIC yuklemiyordu -- yerel
+   sinamada her siparis POST'u 167. satirda "Call to undefined function" ile 500 verdi. */
+require_once __DIR__.'/inc/orders.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 $CONTACT='support@vestrasales.com'; $NOTIFY=false;
 /* Buyer's chosen payment method: 'escrow' (card, held) or 'bank' (invoice/transfer). */
@@ -38,7 +43,16 @@ if($orderTok !== ''){
 $company=trim($_POST['company']??''); $name=trim($_POST['name']??''); $email=trim($_POST['email']??'');
 if($company===''||$name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)){ header('Location: /cart'); exit; }
 if(empty($_POST['consent'])){ header('Location: /cart'); exit; } // Terms acceptance is mandatory
-$shipAddr=trim($_POST['ship_address']??''); // optional — empty means "deliver to the billing address"
+/* TESLIMAT ADRESI. Kasa artik kayitli adres defterinden (1./2./3.) secim gonderiyor:
+   'billing' | yuva numarasi | 'other'. Yuva secildiyse METIN tarayicidan alinmaz,
+   hesabin kendi kaydindan kurulur (vestra_ship_addr_resolve) -- elle degistirilmis bir
+   form baskasinin adresini ya da dogrulanmamis bir metni siparise yazamasin.
+   ship_pick hic gelmezse (onbellekte kalmis eski sepet sayfasi) eski davranis:
+   serbest metin, bos = fatura adresine. */
+$shipPick=isset($_POST['ship_pick']) ? trim((string)$_POST['ship_pick']) : '';
+$__ship=vestra_ship_addr_resolve(auth_user(), $shipPick, (string)($_POST['ship_address']??''));
+if(isset($__ship['error'])){ header('Location: /cart?err=shipaddr'); exit; }
+$shipAddr=$__ship['address']; // empty means "deliver to the billing address"
 $country=trim($_POST['country']??'');   // tarife bölgesini ve mektupları besleyen tek okuma
 
 /* Remember checkout details on the buyer's account so the next order is prefilled:
@@ -48,7 +62,10 @@ if(!empty($_SESSION['uid'])){
   $me=auth_user();
   if($me){
     $patch=[];
-    if($shipAddr!==($me['ship_address']??'')) $patch['ship_address']=$shipAddr;
+    /* Serbest metin yalniz 'baska adres' secildiginde hatirlanir: kayitli bir yuva
+       secildiginde eski serbest metni ezmek, alicinin bir dahaki "baska adres"ini silerdi. */
+    if(($shipPick===''||$shipPick==='other') && $shipAddr!==($me['ship_address']??'')) $patch['ship_address']=$shipAddr;
+    if($shipPick!=='' && $shipPick!==(string)($me['ship_last']??'')) $patch['ship_last']=$shipPick;
     foreach(['company'=>'company','vat'=>'vat_id','name'=>'name','address'=>'address','country'=>'country','phone'=>'phone'] as $post=>$field){
       $v=trim($_POST[$post]??'');
       if($v!=='' && trim($me[$field]??'')===''){ $patch[$field]=$v; }
@@ -265,7 +282,7 @@ if($fh=@fopen($file,'a')){
   $sizeNotes=implode(' | ', array_map(fn($l)=>$l['sku'].': '.implode(', ',$l['sizes']),
     array_filter($lines, fn($l)=>!empty($l['sizes']))));
   $methodLabel=$payMethod==='escrow'?'Payment: Secure escrow (card). ':'Payment: Bank transfer. ';
-  $shipNote=$shipAddr!==''?'Deliver to: '.$shipAddr.'. ':'';
+  $shipNote=$shipAddr!==''?vestra_order_delivery_segment($shipAddr).' ':''; // ic ". " korunur: bkz. inc/orders.php
   /* Kupon notu EN SONDA, alicinin kendi metninden sonra.
      vestra_order_notes_map() parcayi notlarin neresinde olursa olsun buluyor
      (eskiden basa bagliydi ve bu yuzden CANLIDA hic eslesmiyordu -- bkz.

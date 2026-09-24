@@ -68,8 +68,29 @@ function vestra_order_notes_colors(string $notes): array {
  * durumunu da tanıyor.
  */
 function vestra_order_delivery_address(string $notes): string {
-    if (preg_match('/Deliver to: (.*?)(?:\.\s|\.$|$)/u', $notes, $m)) return trim($m[1]);
+    /* Sonlandırıcı "nokta + DÜZ boşluk" (\x20), `\s` değil. `\s` /u altında bölünmez
+       boşluğu (U+00A0) da tanıyor; yazıcı adresin İÇİNDEKİ ". "yi tam da ". "
+       olarak yazdığı için (bkz. vestra_order_delivery_segment) okuyucu onu geçmeli.
+       Eski kayıtlarda notlar hep düz boşlukla birleştirildi, yani davranışları aynı. */
+    if (preg_match('/Deliver to: (.*?)(?:\. |\.$|$)/u', $notes, $m))
+        return trim(str_replace("\u{00A0}", ' ', $m[1]));
     return '';
+}
+
+/**
+ * `Deliver to: …` parçasını YAZAN tek gövde (kasa + panel yazıcısı).
+ *
+ * Adres ilk ". "da kesiliyordu (24 Eyl 2026'da ölçüldü): "Hauptstr. 12, 10115 Berlin"
+ * faturaya "Hauptstr" diye basılırdı -- sokak numarası, POSTA KODU ve şehir gider.
+ * "Via S. Maria" → "Via S". Almanca/İtalyanca/Fransızca adreste kısaltma olağan.
+ * Çözüm: adresin içindeki ". " bölünmez boşlukla yazılır; ekranda, e-postada ve PDF'te
+ * (CP1252 0xA0) normal boşluk gibi görünür, okuyucu da onu geri çevirir.
+ */
+function vestra_order_delivery_segment(string $address): string {
+    $address = trim((string)preg_replace('/\s+/u', ' ', $address));
+    $address = rtrim($address, ". ");
+    if ($address === '') return '';
+    return 'Deliver to: '.str_replace('. ', ".\u{00A0}", $address).'.';
 }
 
 /** Full line items for an order row, enriched with product info + per-SKU colours. */
@@ -1153,8 +1174,9 @@ function vestra_order_set_delivery(string $ref, string $address, bool $allowInvo
     /* Var olan parça çıkarılıyor (okuyucunun kullandığı kalıbın aynısı), sonra
        yenisi ekleniyor. İki ayrı kalıp yazmak, bir gün birinin diğerinin
        yazdığını bulamaması demek. */
-    $notes = trim(preg_replace('/Deliver to: .*?(?:\.\s|\.$|$)/u', '', $notes));
-    if ($address !== '') $notes = trim($notes . ($notes !== '' ? ' ' : '') . 'Deliver to: ' . $address . '.');
+    $notes = trim(preg_replace('/Deliver to: .*?(?:\. |\.$|$)/u', '', $notes));
+    $address = rtrim($address, '. ');
+    if ($address !== '') $notes = trim($notes . ($notes !== '' ? ' ' : '') . vestra_order_delivery_segment($address));
     $rows[$hit][$idx['notes']] = $notes;
 
     @copy($file, $file.'.bak-addr-'.date('Ymd_His'));

@@ -363,6 +363,8 @@ function auth_register(array $d): array|string {
         'reg_number'    => trim($d['reg_number']  ?? ''),
         'country'       => trim($d['country']     ?? ''),
         'address'       => trim($d['address']     ?? ''),
+        'postcode'      => mb_strtoupper(mb_substr(trim($d['postcode'] ?? ''), 0, 16)),
+        'city'          => mb_substr(trim($d['city'] ?? ''), 0, 60),
         'phone'         => trim($d['phone']       ?? ''),
         'website'       => trim($d['website']     ?? ''),
         'lang'          => substr($_COOKIE['vlang'] ?? 'en', 0, 2),
