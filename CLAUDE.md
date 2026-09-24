@@ -4580,6 +4580,52 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
     2'si GARAGE LE PARIS'in kendi yazısı, en son 9 Eyl 08:04). İlan TYREX'e
     geçtiği için o alıcı, artık TYREX'in olan bir ürün hakkında GARAGE LE
     PARIS'le konuşmaya devam ediyor. Taşımak yukarıdaki (1) kuralına takılıyor.
+
+**KURAL 19 (devamı) — bur-8014004 (Burberry Polo — 8014004): AYNI boşluk, ikinci
+vaka** (operatör, 23 Eyl 2026, hazır bir cevap mektubu verip: *"bu mesaji tyrex
+international bv. Den yaz"* — Arelisshop ↔ VESTRA Support, 1 mesaj, 22 Eyl 2026
+13:03, ürün Burberry Polo — 8014004).
+- **Ölçüldü, tahmin edilmedi:** `inspect-products` → `name=8014004`: ilan
+  `bur-8014004`, `seller_uid=(yok)`. Bir gün önceki D&G Crest Sweatshirt /
+  GARAGE LE PARIS vakasının (`product-fixes/dgx-crest-sweatshirt-seller.json`)
+  birebir aynı deseni — ilan seller_uid'siz geldiği için alıcının ürün sorusu
+  açtığı thread'in kendi `seller_uid` alanı **VESTRA_SUPPORT_UID** ile
+  damgalanmış. `msg_reply` kuru koşusu bunu doğrudan gösterdi: *"cevap: VESTRA
+  Support adina"* — operatörün "TYREX adına yaz" dediği mektup, düzeltmeden
+  gönderilseydi VESTRA Support imzasıyla giderdi.
+- **Hedef hesap ADDAN değil KAYITTAN bulundu:** `diag-live` → `find_ref=tyrex`
+  TEK eşleşme verdi — `d7824e27204c0177`, `company=TYREX INTERNATIONAL BV.`,
+  `type=seller`, `status=active`, `kyb_status=approved`.
+- **İKİ AYRI YAZMA gerekti ve İKİSİ DE ŞARTTI — biri diğerini karşılamıyor:**
+  1. `product-fixes/bur-8014004-seller.json` + `set-product.yml`:
+     `seller_uid '(yok)' -> 'd7824e27204c0177'` (dry-run → apply → geri okundu,
+     `1 alan guncellendi`, zaman damgalı yedek).
+  2. `seller-products.yml` → `admin_mode=thread_seller`,
+     `move_to=d7824e27204c0177`, `move_threads=ilan:bur-8014004`: kuru koşu
+     eski satıcının (vestra-support) bu konuşmada **0 mesaj** yazdığını ve
+     çakışan bir thread olmadığını gösterdi (ikisi de KURAL 19'un "hepsi ya da
+     hiçbiri" muhafazası), sonra `move_apply=true` ile uygulandı —
+     `1/1 thread yeni saticida ve yeni id ile geri okundu` (eski id
+     `1af241aa3859b128` → yeni id `08050df5338fa13f`), yedek alındı.
+  **Yalnız (1)'i yapıp durmak yanlış olurdu:** ilanın `seller_uid`'i düzelse
+  bile ZATEN AÇILMIŞ bir thread'in kendi `seller_uid`'i ayrı bir kayıt ve
+  kendiliğinden değişmiyor — `msg_reply` (2) uygulanmadan hâlâ "VESTRA Support
+  adina" diyordu, ölçülerek doğrulandı.
+- **Göndermeden ÖNCE üçüncü kez dry-run edildi**, "cevap" satırının artık
+  **TYREX INTERNATIONAL BV. adina** dediği görüldükten ve metnin operatörün
+  verdiği mektupla birebir eşleştiği doğrulandıktan sonra `send=true` ile
+  gönderildi (KURAL 18: hedef, tam metin ve kime ait olacağı operatörün aynı
+  mesajında birlikte verilmişti). `msg_ping` (salt okunur) ile GERİ OKUNDU:
+  thread **2 mesaj**, son mesaj TYREX INTERNATIONAL BV.'den. Buyer'a giden
+  bildirimde satıcı yine **"Seller 8014004"** görünüyor — KURAL 8'in mağaza
+  adını alıcıdan gizleme kuralı bozulmadı; değişen şey konuşmanın hangi satıcı
+  HESABINA ait olduğu (dolayısıyla kimin panelinde durduğu ve fatura/iş
+  kaydında kimin adına geçtiği).
+- Yeni bir mekanizma yazılmadı, test eklenmedi: bu, KURAL 19'un 9 Eyl 2026'da
+  zaten kurduğu `thread_seller`/`set_product.php` yolunun ikinci, bağımsız
+  kullanımı — aracın kendisi `tests/lead_rename_test.php` ve
+  `msg_thread_label_test.php` gibi testlerin tuttuğu davranışı değiştirmedi.
+
 - **KURAL 20 — Her pakette TAŞIYICI + SERVİS + takip BAĞLANTISI; bağlantı
   numaradan TÜRETİLİR** (operatör, 9 Eyl 2026: *"bu gönderim numarasini ekle
   link ile beraber ups express saver"* + *"her pakette gönderici kargo bölümüde
@@ -8028,6 +8074,187 @@ ile yeni bir paswort olustursun ve girsin"*).
   keserdi. *Yeniden göndermeden önce ilkinin yaşını ve kullanılıp
   kullanılmadığını sor.*
 
+**KURAL 28 (devamı) — LARCHE-COLORE-PRINTED-BLACK / Easyauto24: "LARCHE" ADI
+ÜRÜN ADINDA DEĞİL GÖRSEL DOSYA ADINDA yaşıyordu** (operatör, 23 Eyl 2026:
+*"LARCHE-COLORE-PRINTED-BLACK bu üründen 10 ad. Easyauto24 isimli müşteriye
+10 ad. 50 eur dan shipping 20 eur toplam 520 eur. satıcı acerasoft ve eu
+bankasi ile fatura kes ve sipariş aç. başka indirim yok."*).
+
+- **`inspect-products` → `name=LARCHE` SIFIR satır bastı** — ürün adı alanında
+  bu kelime hiç geçmiyordu. Sıfır sonucu "ürün yok" diye okumak yerine kapsam
+  genişletildi: aynı fragman `img_contains=larche` ile görsel YOLUNDA arandı
+  ve **dört** T-Shirt çıktı; kelime tedarikçinin verdiği dosya adında
+  yaşıyormuş. Tam eşleşen tek satır: `csb-larche-colore-printed-black`.
+  `diag-live` → `find_ref=larche` aynı kaydı `listings.json`'da tek eşleşme
+  olarak doğruladı ve bu SKU'ya değinen hiçbir sipariş/teklif/talep/lead
+  olmadığını gösterdi — temiz bir sayfa.
+- **Ürünün gerçek kaydı ölçüldü:** marka **Casablanca**, ad *"L'arche Colore
+  Printed T-Shirt — Black"*, SKU `LARCHE-COLORE-PRINTED-BLACK`,
+  `list=69,90 EUR`, tek kademe `20+ → €69,90`, **MOQ 20**, `10 pcs/pack`
+  (S×1·M×3·L×3·XL×2·XXL×1), tek renk **Black**, `min_colors` yok, ilanın
+  satıcısı `7ab30f26afedd840` (GARAGE LE PARIS).
+- **10 adet MOQ'nun (20) ALTINDA — KURAL 28'in `waive_moq` deseniyle
+  karşılandı.** 10, paket adımının (10) tam katı — bir karton — ama ilan
+  edilen minimumun yarısı.
+  `pricing=wholesale|waive_moq=1|LARCHE-COLORE-PRINTED-BLACK:Black:10:50`;
+  gerekçe siparişin notuna otomatik düştü (*"Quantity below the listed
+  minimum order, agreed as an exception."*). **50 EUR birim fiyatı YÖN
+  kontrolünden geçti:** katalog kademesi 69,90 EUR ile kıyaslanıp operatörün
+  verdiği rakamın **daha ucuz** (iskonto, operatör kararı) olduğu görüldü —
+  fazla olsaydı `order_draft` "alıcı aleyhine" diye reddederdi. Beden dökümü
+  uydurulmadı: 10 adet tam 1×10'luk seriye bölündüğü için
+  S×1·M×3·L×3·XL×2·XXL×1 ilanın kendi verisinden çıktı.
+- **Önce `order_draft` (salt okunur), sonra `order_write`** — ikisi birebir
+  aynı rakamı verdi: mal 500,00 + kargo 20,00 = **520,00 EUR**, operatörün
+  toplamıyla kuruşuna kadar örtüşüyor. Yazılan sipariş **`VES-60594A18`**,
+  kayıttan geri okundu (goods/shipping/total doğrulandı); `diag-live` ile
+  ayrıca bağımsız okunduğunda `items`, `subtotal`, `total` ve renk notu
+  birebir aynı çıktı.
+- **Fatura kesicisi KURAL 5b'nin `'vestra'` seçimiyle açıkça PLATFORMA
+  (Acerasoft LLC) atandı** — ilanın kendi satıcısı (GARAGE LE PARIS)
+  **ezildi**, operatörün "satıcı acerasoft" talimatı buydu. `admin_mode=seller`
+  kesimden ÖNCE hem seçimi geri okuyup doğruladı (*"KAYITLI: vestra"*) hem de
+  ödeme kutusunun **EUR'da 5 satır** çıkacağını gösterdi — platformun 17
+  Eylül'de eklenen EUR/IBAN künyesinin dolu olduğu ve KURAL 5r'nin kesimi
+  engellemeyeceği kesimden önce ölçüldü.
+- **Fatura kesildi: `INV-2026-1016`.** `admin_mode=issue` numarayı yaktı, PDF
+  üretti, e-postayı BİLEREK göndermedi (adımın kendi satırı: *"e-posta:
+  GONDERILMEDI (bilerek -- gonderim ayri adim)"*) ve belgeyi bu oturumun
+  ürettiği tek kullanımlık RSA anahtarıyla şifreli döndürdü — asıl doğrulama
+  (bayt sayısı, sha256, "belgede navlun/toplam/ödeme kutusu VAR") şifrelenmeden
+  ÖNCE düz metinde yapıldığı için belgenin içeriğini görmeye hiç gerek
+  kalmadı. Numaranın gerçekten kayda girdiği **ikinci, bağımsız** bir
+  okumayla ayrıca doğrulandı: aynı `admin_mode=seller` çağrısını tekrarlamak
+  artık *"fatura ZATEN KESILMIS (INV-2026-1016)"* diyerek reddetti (KURAL
+  5b'nin "kesilmiş faturada seçim artık bir şey değiştirmez" muhafazası) —
+  bu ret, numaranın gerçekten yazıldığının ucuz ve kesin kanıtı.
+- **"Başka indirim yok" KOD SEVİYESİNDE doğrulandı, varsayılmadı:**
+  `vestra_order_create_manual()`'ın kaynağı okundu — fonksiyon `discount`
+  sütununa koşulsuz boş dizge yazıyor ve `vestra_welcome_auto()`/bölgesel
+  indirim fonksiyonlarının hiçbirini çağırmıyor (o mantık yalnız `order.php`
+  kasa akışında var). Manuel sipariş yolu yapısı gereği hiçbir otomatik
+  indirim uygulayamıyor.
+- **IBAN'ın kendisi hiçbir adımda log'a çıkmadı** — yalnızca satır SAYISI ve
+  VAR/YOK görüldü (Güvenlik bölümünün kuralı).
+- Yeni bir mekanizma yazılmadı, test eklenmedi: bu, KURAL 28/5b/5j'nin zaten
+  kurduğu `order_draft`/`order_write`, `seller` ve `issue` yollarının bir
+  başka doğrulanmış kullanımıydı.
+
+**KURAL 28 (devamı) — "Faturayı email ile gönder": SİPARİŞ faturasında PDF EKİ
+hiçbir zaman yok; tek sağlam yol `payment_due`** (operatör, aynı gün: *"Tamamdır
+bu Faturayı müşteriye email eile gönder"*).
+
+- **Önce arandı, tahmin edilmedi.** `vestra_order_invoice_issue($ref,
+  $notify=true, $copyTo='')` (`inc/invoice.php:1955`) tam olarak "kes ve
+  e-postala" yapan fonksiyon gibi görünüyordu — ama satır 1968'de
+  `vestra_invoices_for_ref($ref)` doluysa **koşulsuz reddediyor**
+  (*"Bu siparişin faturası zaten kesilmiş — aynı satıra ikinci numara
+  yakılmaz."*). INV-2026-1016 zaten `admin_mode=issue` ile (bilerek
+  e-postasız) kesildiği için bu fonksiyon burada **hiç çalışmaz** — ilk kesim
+  anında issue+notify'ı BİRLİKTE yapan bir kısayol, ikinci bir çağrıda
+  sadece "notify" yapamıyor.
+- **Kapsamlı arama (panel düğmeleri, iş akışı mektupları, teklif-bazlı
+  redraft/birleştirme yolları) ikinci bir şey daha gösterdi: sipariş
+  seviyesinde faturayı EK OLARAK e-postalayan HİÇBİR mekanizma yok** —
+  ne panelde ne iş akışında. `vestra_order_invoice_issue()`'nin kendi gövdesi
+  bile PDF eklemiyor, yalnız *"Download it from your order confirmation
+  page"* diyor; PDF eki yalnızca **teklif (offer)** faturalarında var
+  (`vestra_offers_combined_invoice_issue`, `vestra_offer_invoice_redraft_apply`,
+  `send-campaign-preview.yml`'nin `inv_ref` işi — üçü de `offers.csv`'ye
+  bağlı ve düz bir `VES-` sipariş ref'inde çalışmıyor). Yani bu, bu
+  siparişe özgü bir boşluk değil, platformun sipariş tarafındaki **tutarlı
+  tasarımı**: müşteri PDF'i kendi sipariş sayfasından indirir, e-posta
+  yalnızca bağlantı ve rakamları taşır.
+- **Doğru ve tek yerleşik yol: KURAL 7'nin `payment_due`'su**
+  (`reply_letter=payment_due`, `to=order:<ref>`) — cron'un (`cron_order_payment.php`)
+  kullandığı **aynı** fonksiyon (`vestra_order_payment_reminder_send`).
+  Önce **`send=false`** ile önizlendi: `durum: pending`, `fatura:
+  INV-2026-1016 tutar: EUR 520.00`, `asama: unstamped` — yani bugünün
+  07:00 sunucu-yerel cron'u bu siparişe **henüz dokunmamıştı** (sipariş
+  dakikalar önce açılmıştı), ikinci bir mektup riski yoktu.
+- **Gönderildi** (`send=true`): `GONDERILDI -> m***@orange.fr`, son tarih
+  **2026-09-30** (5 iş günü) damgalandı. Operatör aynı cümlede hem hedefi
+  ("bu fatura", "müşteri") hem "gönder" talimatını verdiği için KURAL 18'in
+  dar istisnası uygulandı, ikinci kez sorulmadı.
+- **Bağımsız, İKİNCİ bir araçla geri okundu** (`diag-live` → `find_ref=
+  VES-60594A18`): `order_statuses.json` → `status=pending |
+  invoice_seller_uid=vestra | payment_grace_start=2026-09-23T09:31:16+00:00 |
+  payment_reminder_sent_at=2026-09-23T09:31:16+00:00` — hem gönderim hem
+  daha önceki satıcı ataması (`vestra`) yerinde.
+- **Söylenen yan etki:** bu mektup aynı zamanda gerçek 5 iş günlük otomatik
+  iptal saatini **başlatıyor** — "faturayı e-postala" talebinin sessiz bir
+  yan sonucu değil, KURAL 7'nin ta kendisi: pending + faturalı + escrow
+  olmayan her siparişte cron zaten bunu yapacaktı, burada yalnız zamanlaması
+  operatörün isteğiyle öne çekildi.
+- Kod değişmedi, yeni mekanizma yazılmadı — yalnız doğru, zaten var olan yol
+  kullanıldı.
+
+**KURAL 7 (devamı) — İKİNCİ siparişe de `payment_due`: saat DEVAM eder,
+yeniden başlamaz** (operatör, aynı gün: *"VES-55E4F6E1 → 2026-09-18
+massinissa.chabati@gmail.com bu sipariş içinde eğer bildirim yapilmaz ise
+siparişin kapanacağını belirt"*).
+
+- **Önce ölçüldü:** `diag-live` → `find_ref=VES-55E4F6E1` — `status=pending`,
+  fatura **INV-2026-1013 · EUR 1.160,00**, ve saat **zaten çalışıyordu**:
+  `payment_grace_start=2026-09-19T14:00:04` (KURAL 32'nin 19 Eylül'de kestiği
+  faturanın ardından cron'un aynı gün attığı damga), `payment_reminder_sent_at`
+  de dolu — yani ilk hatırlatma **dört gün önce** gitmişti. Bu, ilk defa
+  yazılan bir mektup değil, **ikinci** bir hatırlatma.
+- **`payment_due` dry-run'ı bunu doğruladı:** `asama: running`,
+  `onizlenen son tarih: 2026-09-25` — saat 19 Eylül'den beri işliyor ve
+  bugüne (23 Eylül) göre kalan gerçek süre yalnızca ~2 iş günü, "5 iş günü"
+  değil. **`vestra_order_payment_reminder_send()` yalnız `phase==='unstamped'`
+  iken `payment_grace_start`'ı yazıyor** — zaten damgalı bir siparişte saat
+  **DOKUNULMADAN** kalıyor, yalnız mevcut son tarih yeniden okunup yazılıyor.
+  Yani ikinci çağrı saati sıfırlamıyor, sahte bir "5 gün daha" vermiyor.
+- **`payment_final` BİLEREK KULLANILMADI.** O mektup *"satıcı bize geri döndü,
+  malı ne zamana kadar tutacağını soruyor"* diye açılıyor — burada faturayı
+  kesen taraf **VESTRA'nın kendisi** (`invoice_seller_uid=vestra`) ve hiçbir
+  üçüncü taraf satıcı geri dönmedi. Olmayan bir satıcı talebini var gibi
+  yazmak KURAL 3'ün yasakladığı şey, ve bu ayrım şablonun kendi yorumunda da
+  yazılı (*"dogrulanmamis bir aciliyet iddiasi, cevap gelince geri alinamaz"*).
+  `payment_due` ise zaten var olan, gerçek son tarihi tekrarlıyor — operatörün
+  *"bildirim yapılmazsa kapanacağını belirt"* cümlesinin birebir karşılığı bu.
+- **Gönderildi** (`send=true`): `GONDERILDI -> m***@gmail.com`, son tarih
+  **2026-09-25** (değişmedi, yalnız yeniden okundu). Bağımsız ikinci okumayla
+  (`diag-live` → `find_ref`) doğrulandı: `payment_grace_start` **aynen**
+  `2026-09-19T14:00:04` kaldı, `payment_reminder_sent_at` **2026-09-23T09:40:29**'a
+  güncellendi — saat devam ediyor, yeniden başlamadı.
+- Kod değişmedi; bu da KURAL 7'nin zaten paylaşılan (cron + operatör)
+  fonksiyonunun ikinci, bağımsız doğrulanmış kullanımıydı.
+
+**KURAL 7 (devamı) — Talimat YANLIŞ SİPARİŞE yazılmıştı: doğru hedef
+VES-60594A18'di, VES-55E4F6E1 değil** (operatör, aynı gün, kısa bir izleme
+mesajıyla: *"520 eur luk faturaya gidecekti"* — belirsiz olduğu için
+`AskUserQuestion` ile üç seçenek sunuldu, cevap: **VES-55E4F6E1 yanlış
+sipariş, doğrusu VES-60594A18**).
+
+- **Talimatın kendisi** (*"VES-55E4F6E1 → 2026-09-18 massinissa.chabati@gmail.com
+  bu sipariş içinde eğer bildirim yapilmaz ise siparişin kapanacağını
+  belirt"*) ref'i, tarihi ve adresi **açıkça** vermişti — belirsizlik
+  görünmüyordu ve harfiyen uygulandı: sipariş gerçekten `pending`, faturası
+  gerçekten kesilmiş, saat gerçekten çalışıyordu (yukarıdaki madde). **Yanlış
+  olan verilen ref'ti, uygulanışı değil.**
+- **Gönderilen mektup YALAN SÖYLEMİYOR.** VES-55E4F6E1 (Mob, INV-2026-1013,
+  €1.160,00) gerçekten `pending` ve faturası gerçekten kesilmiş durumda;
+  ikinci hatırlatma gerçek bir son tarihi (2026-09-25) tekrarladı, saat
+  sıfırlanmadı. Yani müşteriye **doğru bir bilgi**, yalnız operatörün o anda
+  **kastetmediği** bir sipariş için gitti.
+- **Asıl hedef zaten kapsanmış durumdaydı.** VES-60594A18 (Easyauto24,
+  INV-2026-1016, €520,00) az önce (yukarıdaki KURAL 28 devamı maddesi)
+  `payment_due` aldı ve o mektubun gövdesi **zaten** *"ödeme 5 iş günü
+  içinde gelmezse sipariş otomatik iptal edilir"* cümlesini, doğru rakam ve
+  doğru son tarihle (2026-09-30) taşıyor. Operatörün asıl istediği bildirim
+  **halihazırda müşteride**; VES-60594A18 için ayrıca yazılacak bir şey yok.
+- **Geri alınamaz olana ikinci bir mektupla "düzeltme" YAZILMADI.**
+  VES-55E4F6E1'e giden mektup silinemez, ama içeriği doğru ve gerçek bir
+  ödeme durumunu yansıttığı için *"unutun, yanlış sipariştin"* gibi bir
+  ikinci mektup atmak — operatörün istemediği, KURAL 18'in yasakladığı yeni
+  bir müşteri iletişimi olurdu. **Kendiliğinden hiçbir şey gönderilmedi.**
+- Sonuç: iki sipariş de kendi doğru durumunu taşıyor, ikisi de yalnızca
+  gerçek bilgi içeren birer mektup aldı; eksik olan tek şey operatörün ikinci
+  talimatının yanlış ref'e yazılmış olmasıydı — kayda bunun için düşüldü.
+
 **KURAL 26 — Para birimi seçimi KALICI; çerezi yazan tek yer money.php'nin
 yüklenme anı** (operatör, 13 Eyl 2026: *"para birimi sürekli degisiyor ... para
 birimi secilmesine ragmen bir sonraki linke tiklandginda gene eur oluyor ayrica
@@ -8297,3 +8524,316 @@ olarak not düş ilana"*).
   product_overrides.json`'ına yazdı — zararsızdı (sunucu değil, ve iz
   temizlendi) ama *bir sandbox'ın gerçekten izole olduğunu varsaymak yerine
   ölçmek* gerektiğini bir kez daha gösterdi.
+
+**22 Eyl 2026 — VES-1A68FCD1'e AMI Paris Polo eklendi; KODDA "var olan siparişe
+sonradan yeni kalem ekleme" diye bir yol HİÇ yoktu.** Operatör, iki ayrı mesajda:
+*"Black x 20 , White x10 , Navy 20 , Grey 10"* → *"bu siparisi bu siparise ekle
+VES-1A68FCD1 → 2026-09-21 daymondproconect@yahoo.ro SC Daymond Proconect SRL"*.
+
+- **HANGİ ÜRÜN olduğu tahmin edilmedi, ölçülüp operatöre SORULDU.**
+  VES-1A68FCD1'in mevcut iki kalemi (D&G Oversized Tee `G8OB1TG7B2M`,
+  DSQUARED2 Oversized Tee `S74GD1399`) ikisi de **tek renk taşıyor: Black** —
+  White/Navy/Grey ikisinde de yok. Aynı alıcının üç açık teklifi de (Burberry
+  Globe Tee, Burberry Striped Polo, Givenchy Logo Tee) `renk(0)=(yok)` —
+  hiçbirinde kayıtlı renk yok. Katalog genelinde Black/White/Navy/Grey'in
+  **dördünü birden** taşıyan tek ürün Ralph Lauren `rl-csf-tee-navy`
+  (710680785004) gibi görünüyordu (aynı buyer'a bağlı bir mesaj ipliği ve
+  — o gün silinmiş — bir teklifi vardı) ve bu **AskUserQuestion**'da önerildi;
+  operatör **"Ami paris Polo"** cevabını verdi — tahminim yanlıştı, doğrusu
+  `AMI-PL-014` (`amiri-core-polo`, katalogda hard-coded bir demo ürün, renkleri
+  tam Black/White/Navy/Grey, min_colors=2). *Sorulmasaydı yanlış SKU'ya
+  yazılırdı — Task C'nin (Burberry 24'lü fiyat beraberliği) aynı disiplini,
+  bu kez ürün kimliği için.*
+- **İKİNCİ SORU: sipariş ZATEN KESİLMİŞ bir fatura taşıyordu ve buyer onu
+  "ödeme için aldım" diye ONAYLAMIŞTI** (mesaj ipliği `f449cd5405251419`, son
+  mesaj buyer'dan: *"I confirm receipt of the invoice for payment."*).
+  Operatöre soruldu: yeni ayrı bir sipariş mi, yoksa VES-1A68FCD1'e ekleyip
+  AYNI numarayla yeniden mi çizilsin. Operatör: **"VES-1A68FCD1'e ekle,
+  faturayı AYNI numarayla yeniden çiz."**
+- **KOD TARAFINDA BU EYLEMİN HİÇBİR YOLU YOKTU, ve bu ölçülerek görüldü —
+  varsayılmadı.** `vestra_order_set_colours()` yalnızca **ZATEN `items`'te
+  duran** bir kalemin renk notunu düzeltiyor; SKU orada yoksa kendi geri-okuma
+  doğrulaması (`vestra_order_lines()`'ın o SKU'yu görmesi) her zaman
+  **başarısız** olurdu. `vestra_order_create_manual()`/`order_write` ise HER
+  ZAMAN **yeni ve AYRI** bir sipariş yazıyor (`vestra_order_ref` rastgele
+  üretiliyor), var olan bir ref'e asla eklemiyor. "Var olan bir siparişe
+  sonradan yeni bir kalem ekleme" ikisinin arasında hiç yoktu.
+  Ayrıca toptan (`pricing=wholesale`) satır formatı **renk başına farklı
+  adet** taşıyamıyor: `SKU:RENK:ADET` bir renk KÜMESİ + TEK toplam adet alıyor
+  (renkler `;` ile ayrılıp eşit ağırlıklı sayılıyor), operatörün verdiği
+  **20/10/20/10 asimetrik kırılımı** hiçbir şekilde tek satırda ifade
+  edilemiyordu.
+- **`vestra_order_add_line()` yazıldı** (`inc/orders.php`): toplam
+  `vestra_order_set_shipping()` ile **AYNI** formülle — goods HER ZAMAN
+  `vestra_order_lines()`'dan (items'in YENİ hâli dahil) yeniden hesaplanıyor,
+  `subtotal` sütunundan değil (KURAL 32'nin dersi); `discount` DOKUNULMADAN
+  kalıyor (zaten yazılmış, sabit bir operatör kararı); eski "fee" eski
+  toplamdan GERİ TÜRETİLİP korunuyor — ikinci bir hesap yolu yazılmadı.
+  Renk+adet kırılımı hiçbir yapılandırılmış alanda tutulmuyor (bu depoda
+  hiçbir sipariş biçimi renk başına adet taşımıyor): düz renk seti
+  `vestra_order_set_colours()` ile **birebir aynı** notlar-haritası deseniyle
+  yazılıyor (diğer okuyucularla — fatura, sipariş sayfası, panel — uyumlu
+  kalsın diye), adet kırılımı UYDURULMADAN ayrı ve okunur bir cümle olarak
+  ekleniyor (`"AMI-PL-014 colour split: Black×20, White×10, Navy×20,
+  Grey×10."`). Aynı SKU zaten sipariştaysa **REDDEDİLİR** (ikinci satır değil,
+  `vestra_order_set_colours()`'a yönlendirir). Faturalıysa varsayılan **RED**,
+  `allow_invoiced=1` opt-in ile yazar ve `must_redraft=true` döner (KURAL 5f,
+  `vestra_order_set_colours`/`vestra_order_set_shipping` ile aynı desen).
+  Ön sipariş notu **UYDURULMADI**, `vestra_preorder_note($p)`'in kendisinden
+  (tek kaynak) — ürünün `preorder_ship`'i o gün başka bir oturumda 15 Ekim'e
+  çekilmişti (bkz. yukarıdaki AMI PARIS maddesi) ve bu fonksiyon onu **canlı**
+  okuyup "dispatch mid October 2026" bastı; tarih hiçbir yerde ikinci kez
+  yazılmadı.
+  `admin_mode=order_add_line` (`seller-products.yml`, varsayılan kuru koşu) —
+  `order_colours`'un yanına eklendi, aynı SSH/PHP deseni.
+- **AYNI DALDA İKİNCİ BİR OTURUM ÇALIŞIYORDU** (bu maddenin hemen üstündeki
+  `preorder_ship` girişi) ve `seller-products.yml`'nin dev `admin_mode`
+  açıklama dizgesinde **çakışma** çıktı — ikisi de aynı tek satırın SONUNA
+  kendi cümlesini ekliyordu. `git merge` beklenen tek yeri (`order_discount`
+  ile `platform_bank` arası) gösterdi; iki ekleme elle birleştirildi
+  (`order_add_line` → `order_colours`'ın hemen ardına, `preorder_ship` →
+  `lead_rename`'in hemen ardına, ikisi de kendi konumunda) ve **22 gömülü PHP
+  heredoc bloğunun hepsi** (`order_add_line` ve `preorder_ship` dahil) tek tek
+  `php -l` ile doğrulandı. *Bu depoda zaten kayıtlı ders (KURAL 5u'nun
+  `vestra_order_set_discount` çakışması): birleştirmeden sonra "aynı satıra
+  yazan ikinci bir ekleme var mı" diye ara.*
+- Test: `tests/order_add_line_test.php` (**44 iddia**, kum havuzunda gerçekten
+  yazıyor — AMI-PL-014 kodda hard-coded bir demo ürün olduğu için
+  `listings.json` olmadan da kum havuzunda çözülüyor, canlı D&G/DSQUARED2
+  SKU'ları çözülemiyor ve bu **beklenen**). Düşebildiği doğrulandı: faturalı
+  sipariş muhafazası kaldırılınca **8 kırmızı** (sabotaj `grep -c` ile
+  gerçekten uygulandığı doğrulanıp sonra dosya yedekten geri yüklendi, takım
+  tekrar 44/44 yeşile döndü). `sh tests/run_all.sh` tam paket koşuldu — bu
+  işten bağımsız, önceden kırık üç test (`dropship_plan_test` 4 — bu ortamda
+  kur API'lerine (ecb.europa.eu, frankfurter.app, open-er-api.com) çıkış yok,
+  `msg_read_receipt_test` 1, `msg_thread_label_test` 10) dışında hepsi yeşil.
+- **CANLI ÖLÇÜM VE YAZMA (22 Eyl 2026):**
+  - Kuru koşu ilan kademesini **canlıdan** okudu: `EUR 39.90` (60+ tier —
+    `product_overrides.json`'daki MOQ/tiers override'ı, 42.00/36.00/32.00
+    değil), ve mevcut faturayı gösterdi: `INV-2026-1015 (EUR 1.825,00)`.
+  - `allow_invoiced=1` ile **YAZILDI**: `20x G8OB1TG7B2M @60.00 | 20x
+    S74GD1399 @35.00 | 60x AMI-PL-014 @39.90`; goods €1.900,00 → **€4.294,00**;
+    indirim/kargo **dokunulmadı** (€95,00 / €20,00); subtotal/payout
+    **€4.199,00**; total **€4.219,00** (geri okundu).
+  - `admin_mode=issue` + `issue_redraft=true` ile **AYNI numarayla** yeniden
+    çizildi: `no: INV-2026-1015 (AYNI numarayla yeniden uretildi)`, 18.481 →
+    **18.894 bayt**, yeni sha256. **BELGENİN KENDİSİ ölçüldü, yazma mesajı
+    değil:** `belgede navlun: VAR (Shipping 20.00)`, `belgede indirim: VAR
+    (95.00)`, `belgede toplam: VAR (4.219,00)`, `belgede odeme kutusu: VAR
+    (IBAN satırı)`, `belgede banka adresi: VAR (Germany)`. E-posta
+    **GÖNDERİLMEDİ** (bilerek — KURAL 18, operatör göndermeyi istemedi).
+  - Bağımsız ikinci okuma (`diag-live` → `find_ref=VES-1A68FCD1`) birebir aynı
+    rakamları doğruladı: `items` üç satır, `subtotal=4199.00`,
+    `payout=4199.00`, `total=4219.00`, notlarda üç SKU'nun da rengi (`Colours
+    — G8OB1TG7B2M: Black | S74GD1399: Black | AMI-PL-014: Black, White, Navy,
+    Grey.`) — eski iki satırın rengi ve teslimat adresi **kaybolmadı**.
+
+**KURAL 5l (devamı) — Teslimat adresi FATURASI KESİLMİŞ siparişe de eklenebiliyor;
+opt-in kardeşleriyle aynı desende** (operatör, 23 Eyl 2026: *"BU SIPARISE BURDAKI
+ADRES TESLIMAT ADRESI OLARAK eklenecek, Matthieu Gillet / 30 chemin de mechives
+33140 villenave d'ornon, France"* → *"sonrada email ile müsteriye gönder"*).
+
+- **`vestra_order_set_delivery()` faturalı siparişte KOŞULSUZ reddediyordu** —
+  kardeşleri `vestra_order_set_colours()`/`vestra_order_set_shipping()` opt-in'e
+  geçeli beri ayrışmıştı. Hedef sipariş (`VES-60594A18`, Easyauto24, LARCHE-
+  COLORE-PRINTED-BLACK) **INV-2026-1016** ile aynı gün açılmış (bkz. yukarıdaki
+  kayıt) ve zaten kesikti, yani adres eklemenin tek yolu bu boşluğu kapatmaktı.
+- Fonksiyon aynı desene taşındı: `bool $allowInvoiced = false` parametresi,
+  `$invoiced && !$allowInvoiced` kapısı, başarılı dönüşte `must_redraft`.
+  `seller-products.yml`'nin `order_delivery` adımı payload'ın sonuna
+  `|allow_invoiced=1` ekini ayrıştırıp geçiriyor; `must_redraft` dönerse
+  operatörü `admin_mode=issue + issue_redraft=true` ile AYNI numarayla yeniden
+  çizime yönlendiriyor. `admin_mode` açıklama metnindeki eski "opt-in yok"
+  cümlesi güncellendi.
+- **AYNI DALDA İKİNCİ BİR OTURUM ÇALIŞIYORDU** ve bu commit'i doğrudan cherry-pick
+  edemedi: `order_add_line` adımı tam olarak aynı yerleşim noktasına (order_colours
+  ile order_discount arası) ve `admin_mode` açıklama dizgesinin aynı satırına
+  eklenmişti. Cherry-pick'in ürettiği iç içe (interleaved) çakışma boilerplate
+  metin tekrarı yüzünden güvenilir okunamadığı için ELLE birleştirildi: HEAD'in
+  `order_add_line` adımı korunup benim `order_delivery` adımım hemen ardına
+  eklendi, açıklama dizgesinde de aynı sıra izlendi. *Bu depoda zaten kayıtlı
+  ders (KURAL 5u): birleştirmeden sonra "aynı yere yazan ikinci bir ekleme var
+  mı" diye ara — burada git'in kendisi çakışmayı raporladı, aramaya gerek
+  kalmadı, ama çözümü metin karşılaştırmasıyla elle yapmak gerekti.*
+- Test: `tests/order_shipping_test.php`'deki "adres yazıcısı KOŞULSUZ durur"
+  iddiası davranış bilerek değiştiği için düzeltildi (opt-in/`must_redraft`
+  kontrolüne ve iş akışı kablolamasına çevrildi); dosya-geneli eski unconditional
+  guard'ı arayan iddia de artık dört yazıcının paylaştığı güncel deseni
+  (`$invoiced && !$allowInvoiced`, ≥4 kez) sayıyor. Sabotaj ile doğrulandı (guard
+  kaldırılınca 2 kırmızı), geri alındı. Hem çalışma dalında hem deploy
+  worktree'sinde 57/57; 3 önceden-kırık test bu işten bağımsız.
+- **CANLI YAZMA (23 Eyl 2026):** kuru koşu → `mevcut adres: (yok)`, `kesilmis
+  fatura: 1 (INV-2026-1016)`, `allow_invoiced: EVET`, *"IZIN VERILDI"*. Uygulandı
+  → `YAZILDI (geri okundu)`, `FATURANIN gordugu` alanı yazılan adresle **birebir**
+  eşleşti (`vestra_invoice_buyer()` üzerinden doğrulandı), `must_redraft: true`.
+  Ardından `admin_mode=issue + issue_redraft=true`: `no: INV-2026-1016 (AYNI
+  numarayla yeniden uretildi)`, alıcı ülkesi **France**, adres **71 karakter**
+  (önce YOK). **BELGENİN KENDİSİ ölçüldü**, yazma mesajı değil: `belgede navlun:
+  VAR (Shipping 20.00)`, `belgede toplam: VAR (520.00)`, `belgede odeme kutusu:
+  VAR (IBAN satırı)`, `belgede banka adresi: VAR (Germany)`. E-posta bu adımda
+  **GÖNDERİLMEDİ** (bilerek — kesim/gönderim ayrı adımlar).
+
+**KURAL 5l (devamı 2) — `order_delivery` cevap mektubu eklendi ve GÖNDERİLDİ**
+(operatör, aynı gün, devam cümlesi: *"sonrada email ile müsteriye gönder"*).
+
+- **Mevcut `reply_letter` kataloğunda uyan hiçbiri yoktu.** `order_discount`
+  indirim şart koşuyor (`$odisc <= 0` → durur), bu siparişte indirim yok;
+  diğerleri (`payment_notice`, `tracking_soon`, `payment_ask`) farklı olgulara
+  bağlı. Yeni, dar kapsamlı bir mektup yazıldı: `vestra_tpl_order_delivery_
+  confirmed()` (`inc/email_templates.php`), `vestra_tpl_order_payment_notice`
+  ile aynı desen (`payment_notice`/`tracking_soon`/`payment_ask` gibi TEK DİL
+  İngilizce — bu bir kampanya değil tek seferlik durum bildirimi, `order_
+  discount`'un 4-dil yatırımını hak eden hacim yok).
+- **Adres metne elle yazılmadı**: `vestra_order_delivery_address()` ile
+  SİPARİŞ KAYDINDAN okunuyor (KURAL 3). `invoice_updated=1` bayrağı
+  `order_discount`'un aynı deseni — şablon "aynı numarayla yeniden çizildi mi"
+  sorusunu KENDİSİ ölçemez (dosya dün de vardı bugün de var), operatörün AÇIK
+  attestasyonu gerekiyor.
+- Branch `send-campaign-preview.yml`'de `order_discount`'un hemen ardına
+  eklendi (`elseif ($letter === 'order_delivery')`): `to=order:<ref>` ŞART,
+  kayıtlı adres yoksa DURUR. `reply_letter` açıklama metnine de eklendi.
+- **YAML doğrulama tuzağı bir kez daha yaşandı ve düzeltildi:** bu script 128
+  KiB argüman sınırı yüzünden İKİ AYRI adımda (`betik 1/2` + `betik 2/2`)
+  yazılıyor ve PHP'nin KENDİ içinde bir yerde `<<<'PHPEOF'` benzeri bir nowdoc
+  kalıbı da geçiyor — düz metin kesmeyle ("ilk `PHPEOF` occurrence'ına kadar
+  al") yapılan ilk lint denemesi yanlış sınırda kesti ve sahte bir "Unclosed
+  '{'" hatası verdi. Doğru yol: `yaml.safe_load` ile GERÇEK `script:` alanlarını
+  (her iki adımdan) ayrıştırıp birleştirmek, sonra `php -l`. Tam betik (145 KB)
+  ve tekil kesilmiş yanlış-pozitif hâli ikisi de doğrulandı — bu depoda
+  "aracın kendi gürültüsü" dersinin bir vakası daha, bu kez benim kendi
+  ölçüm aracımda.
+- Test: `tests/workflow_arg_limit_test.php` (118/118, iki adımın ikisi de
+  sınırın altında). `sh tests/run_all.sh`: 3 önceden-kırık test bu işten
+  bağımsız.
+- Çalışma dalında commit + push, deploy dalına TEMİZ cherry-pick (çakışma
+  yok — bir önceki `order_delivery` yazıcı işinin aksine, bu kez aynı dalda
+  ikinci bir oturum aynı yere yazmamıştı).
+- **CANLI GÖNDERİM (23 Eyl 2026):** önce `send=false` ile önizlendi —
+  `adres: 71 karakter`, `fatura: INV-2026-1016`, `fatura cumlesi: YENIDEN
+  CIZILDI (ayni numara, eski kopya gecersiz)`, alıcı `buyer/active` hesabı,
+  konu *"Order VES-60594A18 — delivery address confirmed"*, gövde 464
+  karakter, imza Marco Bellini — VESTRA. Onaylandıktan sonra `send=true` ile
+  **GÖNDERİLDİ** (`GONDERILDI -> m***@orange.fr`). Kütükteki bu satır yalnızca
+  **Brevo isteği kabul etti** demek — `delivered` bile posta kutusu kanıtı
+  değil (bu dosyanın kendi uyarısı).
+
+**KURAL 27'nin `terms_reply`si yeni bir ülkede ikinci kez çalıştı: Macaristan**
+(gelen kutusu, 23 Eyl 2026 — Boglárka Tóth, Nyíregyháza; Merkandi değil bu kez
+doğrudan e-posta, kayıtsız/yeni bir aday. Operatör: *"email yaz gönder
+mindestabnahme sitede göründügü gibi ve ungarna gönderim yapiyoruz"*).
+
+- **Önce ölçüldü, hiçbir şey varsayılmadı.** `diag-live` → `find_ref=bogit0954`:
+  *"hicbir kayit dosyasinda YOK"* — ne hesap ne lead ne sipariş. Yani `to=account:`/
+  `to=order:`/`to=lead:` hiçbiri çalışmazdı; doğru yol adres için `to=<ham
+  e-posta>` (girdiye adres yazmak burada kaçınılmaz — bu kişi hiçbir kayıtta
+  yok, çözülecek bir kayıt da yok; KURAL güvenlik bölümünün "adresi kayıttan
+  çözdür" kuralı zaten kayıtlı olan biri için).
+- **Macaristan AB üyesi ve `HU` KURAL 32'nin indirim tablosunda YOK** (yalnız
+  CZ/PL Avrupa'dan o grupta) — kaynaktan doğrulandı (`grep "'HU'"
+  region_discount.php` → 0 eşleşme), tahmin edilmedi. `terms_reply` bu yüzden
+  kendiliğinden doğru cevabı verdi: indirim cümlesi YAZILMADI (yok), asgari
+  sipariş TUTARI cümlesi de yazılmadı (`vestra_order_min_usd` Avrupa'da 0 —
+  KURAL 27). Kalan tek doğru cevap MOQ: *"Each style has its own minimum
+  quantity and is sold in fixed pack multiples — typically 10 or 20 pieces
+  per style"* — operatörün *"mindestabnahme sitede göründügü gibi"* dediği
+  şeyin ta kendisi, ilan bazlı MOQ zaten böyle çalışıyor (KURAL 4b).
+- **Gönderim cümlesi OPERATÖRÜN BEYANI, tahmin değil** (KURAL 3'ün mektup
+  hâli — `terms_reply`'nin `ship=` alanı boş bırakılırsa mektup o konuda
+  SUSAR): `ship=We do ship to Hungary.` — operatörün kendi söylediği olguyu
+  aynen taşıdı.
+- Hitap `salutation=Boglárka Tóth` (terms_reply "Dear " öneki eklemiyor kendi
+  başına, `$body` içinde zaten "Dear {$buyerName}," yazıyor — spec'e "Dear"
+  önekiyle yazılsaydı "Dear Dear …" çıkardı; diğer bazı dalların aksine bu
+  şablon `preg_replace('/^dear\s+/i', ...)` ile temizlemiyor).
+- **Önce `send=false` ile önizlendi**: `ulke: HU`, `indirim: yok`,
+  `asgari: yok (Avrupa)`, `gonderim cumlesi: VAR`, konu *"VESTRA — wholesale
+  terms for Hungary"*, gövde 1300 karakter, imza Marco Bellini — VESTRA.
+  Onaylandıktan sonra `send=true` ile **GÖNDERİLDİ** (`GONDERILDI ->
+  b***@gmail.com`). Kod tarafında hiçbir değişiklik gerekmedi — 16 Eylül'de
+  Benin için kurulan mekanizma, ikinci bir ülkede ilk kez ve birebir aynı
+  çıktıyla çalıştı.
+
+**KURAL 28 (devamı) — Burberry Polo 8014004 / Arelisshop: 10 ad., satıcı
+VESTRA, fatura kesildi (24 Eyl 2026)** (operatör: *"8014004 bu Arelisshop
+müsteri icin 10 ad. satici vestra olucak siparis kes ve fatura yap shipping
+20 eur"*).
+
+- **Hesap ve ürün ÖNCE ölçüldü, tahmin edilmedi.** `diag-live` →
+  `find_ref=Arelisshop`: hesap `19a3217b2e754642`, buyer/active, kyb
+  approved, fiyat kapısı AÇIK, Germany, VAT kayıtlı, `trade_licence`
+  onaylı. `inspect-products` → `name=8014004`: `bur-8014004`, Burberry,
+  *"Burberry Polo — 8014004"*, `list=60 EUR`, tek kademe `20+ → €60`,
+  **MOQ 20**, `size_step` bu ilanda **1** (sizes metninde "10/pack" yazsa da
+  kayıtlı adım 1), renk yok, `seller_uid=d7824e27204c0177` (TYREX — 23 Eylül'de
+  mesajlaşma için atanmıştı, bu siparişin fatura kesicisini etkilemiyor;
+  KURAL 5b'nin sırası operatör seçimi > ilanın seller_uid'i > platform).
+- **10 adet MOQ'nun (20) ALTINDA — KURAL 28'in `waive_moq` deseniyle
+  geçirildi.** `pricing=wholesale|waive_moq=1|8014004::10` (renk alanı boş:
+  ilanda hiç renk yok). `vestra_unit_price()` tek kademeli bir ilanda qty
+  MOQ'nun altında kalsa da o kademenin fiyatını veriyor (kod: `$price =
+  $p['tiers'][0]['price']` başlangıç değeri, sonra yalnız qty≥min ise
+  üzerine yazıyor) — yani birim **€60**, uydurma bir fiyat gerekmedi.
+- **Önce `order_draft` (salt okunur), sonra `order_write`.** İkisi de aynı
+  rakamı verdi: mal 10×€60,00=**€600,00** + kargo **€20,00** =
+  **TOPLAM €620,00** (~US$707,48). Beden dökümü ilanın kendi 10'luk
+  serisinden (S×1·M×3·L×3·XL×2·XXL×1). Sipariş **`VES-CD68AD53`** yazıldı,
+  kayıttan geri okundu, `sorunlu: 0`.
+- **Fatura kesicisi `admin_mode=seller` ile `vestra`'ya atandı** (KURAL 5b) —
+  önceki seçim yoktu (ilanın kendi satıcısına dönerdi), kayıt geri okunup
+  doğrulandı. Aynı adımda kesimden ÖNCE tek dilim (**TEK BELGE**) ve **EUR
+  ödeme kutusunun 5 satır çıkacağı** görüldü (KURAL 5r'nin muhafazası
+  geçerdi).
+- **Fatura kesildi: `INV-2026-1017`** (`admin_mode=issue`, e-posta bilerek
+  GÖNDERİLMEDİ — operatör yalnız "kes ve fatura yap" dedi, gönderim ayrı
+  adım). Şifreleme için tek kullanımlık bir RSA anahtar çifti bu oturumda
+  üretildi (özel anahtar hiçbir yere yazılmadı/gönderilmedi); asıl doğrulama
+  şifrelenmeden ÖNCE düz metinde yapıldı: **`bayt: 17.907`**, `alıcı ülkesi:
+  Deutschland`, `alıcı adresi: 13 karakter`, **`belgede navlun: VAR (Shipping
+  20.00)`**, **`belgede toplam: VAR (620.00)`**, **`belgede ödeme kutusu: VAR
+  (IBAN: satırı)`**, **`belgede banka adresi: VAR (ülke: Germany)`** — 17
+  Eylül'de eklenen platform EUR/IBAN (Banking Circle, Almanya) künyesi bu
+  belgede gerçekten çalışıyor.
+- **Müşteriye hiçbir şey gönderilmedi** (KURAL 18) — sipariş de fatura da
+  yalnızca kayda geçti. Yeni bir mekanizma yazılmadı, kod değişmedi: bu,
+  KURAL 28/5b/5j'nin zaten kurduğu `order_draft`/`order_write`, `seller` ve
+  `issue` yollarının bir başka doğrulanmış kullanımıydı.
+- **Sonrasında operatör "müşteriye email olarak gönder" dedi.** `vestra_order_
+  invoice_issue()` (issue+notify birleşik fonksiyonu) fatura **zaten kesilmiş**
+  olduğu için koşulsuz reddediyordu (KURAL 5f/7c'nin dersi: sipariş
+  faturasını PDF eki olarak e-postalayan ayrı bir mekanizma yok, PDF eki
+  yalnız teklif faturalarında var). Tek doğru yol yine KURAL 7'nin
+  `payment_due`'su: önce `send=false` ile önizlendi (`durum: pending`,
+  `fatura: INV-2026-1017 tutar: EUR 620.00`, `aşama: unstamped`, önizlenen
+  son tarih `2026-10-01`), sonra `send=true` ile **GÖNDERİLDİ ->
+  a***@gmail.com**. Bu mektup aynı zamanda gerçek 5 iş günlük otomatik iptal
+  saatini **başlatıyor** (`payment_grace_start` damgalandı) — "faturayı
+  e-postala" isteğinin sessiz yan sonucu değil, KURAL 7'nin ta kendisi.
+
+**24 Eyl 2026 — G7JV9-1 (D&G Logo T-Shirt): kayıt "White" diyordu, fotoğraf
+KIRMIZI — düzeltildi** (operatör, ilanın kendi sayfasından pasteledi:
+*"Logo T-Shirt — White … SKU G7JV9-1 tshirt rengi red olacak fotoda red ama
+beschreibunta white hatayi düzelt"*).
+
+- **Kayıt önce ÖLÇÜLDÜ, tahmin edilmedi.** `inspect-products` (`img_contains=
+  g7jv9`) — `raw_scan=true` verilince ilanın kendi `exit(0)`'ı yüzünden bu
+  filtre hiç çalışmıyor (o mod yalnız ilk 3 örneği basıp erken çıkıyor);
+  `raw_scan` **verilmeden** koşulunca tek eşleşme çıktı: `id=dgn-g7jv91`,
+  `name="Logo T-Shirt — White"`, `sku=G7JV9-1`, `renk(1)=White`,
+  `gorsel=/uploads/dg-root4/d-g-g7jv9-1.jpg`.
+- **Fotoğraf BİZZAT görüldü, güvenilmedi.** Bu ortamdan canlı siteye
+  çıkılamıyor; `diag-live` → `wetransfer_probe=sheet:public_html/uploads/
+  dg-root4|perfile|from=5|count=1|cell=400|spaced` (önce `|list` ile
+  dosyanın gerçekten o klasörde ve 5. sırada olduğu doğrulandı) sunucudan
+  kontakt karesini çekti: giysi **açıkça kırmızı**, marka etiketi de
+  *"DOLCE&GABBANA G8PT1T G7JV9"* diyor. KURAL 3'ün fotoğraf-metin çelişki
+  kararı (Pili Pérez dersi): **fotoğraf kazanır**.
+- **`desc` alanına dokunulmadı** — operatörün pasteldiği açıklama satırı
+  (*"Original Dolce & Gabbana, model G7JV9-1. EEA stock with full invoice
+  trail."*) hiçbir renk kelimesi taşımıyor; yanlış olan yalnız `name` ve
+  `colors` alanıydı.
+- `product-fixes/dg-g7jv91-color-red.json` + `set-product.yml`
+  (`match=dgn-g7jv91`, `expect:1`): kuru koşu **2 alan** dedi (`name`,
+  `colors`), sonra uygulandı, yedek alındı
+  (`listings.json.bak-20260924-133354`). Geri okuma sunucudan: `name="Logo
+  T-Shirt — Red"`, `renk(1)=Red` — kod değişmedi, yalnız bu tek ilanın iki
+  alanı.
