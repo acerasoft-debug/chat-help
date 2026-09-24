@@ -478,6 +478,124 @@ jobs:
             rm -f /tmp/vestra_pwsetup.php
             exit $RC
 
+      # SATICIYA ALICI TALEBI + ESCROW SARTI MEKTUBU (24 Eyl 2026). Daha once
+      # Levi's kot listeleyen Hindistanli saticiya (allisonexports) bir
+      # alicinin talebini iletmek + bundan sonra odemenin VESTRA'nin escrow
+      # (Treuhand) hesabina yapilacagini, saticiya paranin ancak alici mali
+      # ALIP ONAYLADIKTAN SONRA odenecegini yazmak icin. Hicbir reply_letter
+      # kalibi buna uymuyordu (hepsi ya var olan bir siparis/teklife, ya
+      # acik bir fiyat kapisina bagli) -- o yuzden password_setup'in DESENI
+      # (TAM 1 hesap eslesmesi, adres KAYITTAN cozulur, kuru kosu varsayilan)
+      # kopyalanip icerik tek seferlik olarak sabitlendi.
+      - name: Satıcıya alıcı talebi + escrow mektubu — varsayılan KURU KOŞU
+        if: ${{ github.event.inputs.admin_mode == 'seller_lead_msg' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SLM_WHO:   ${{ github.event.inputs.issue_ref }}
+          SLM_APPLY: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          envs: SLM_WHO,SLM_APPLY
+          script: |
+            set -e
+            cat > /tmp/vestra_seller_lead_msg.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME"); $doc = $home."/public_html";
+            require_once $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/notify.php";
+
+            $who   = mb_strtolower(trim((string)getenv("SLM_WHO")));
+            $apply = strtolower(trim((string)getenv("SLM_APPLY"))) === 'true';
+            if ($who === '') { fwrite(STDERR, "HATA: issue_ref bos -- hesap ID'si (ya da ad parcasi) verin\n"); exit(1); }
+
+            $mask = fn(string $e) => preg_replace('/^(.).*(@.*)$/', '$1***$2', $e);
+
+            /* ID TAM esitlik once (password_setup'in ayni deseni): bir
+               kisinin/firmanin ad PARCASI baska bir hesabi da yakalayabilir. */
+            $hits = [];
+            foreach (auth_accounts() as $a) if (mb_strtolower((string)($a['id'] ?? '')) === $who) { $hits = [$a]; break; }
+            if (!$hits) foreach (auth_accounts() as $a) {
+              $hay = mb_strtolower((string)($a['company'] ?? '').' '.(string)($a['name'] ?? ''));
+              if ($who !== '' && str_contains($hay, $who)) $hits[] = $a;
+            }
+            if (count($hits) !== 1) {
+              fwrite(STDERR, "HATA: TAM 1 hesap eslesmedi (".count($hits)." bulundu) -- gonderilmedi.\n");
+              foreach (array_slice($hits, 0, 8) as $a)
+                fwrite(STDERR, "  aday: ".(string)($a['id'] ?? '')."  ".(string)($a['company'] ?: $a['name'] ?: '?')."  ".$mask((string)($a['email'] ?? ''))."\n");
+              exit(1);
+            }
+            $acc  = $hits[0];
+            $mail = trim((string)($acc['email'] ?? ''));
+            $name = (string)($acc['company'] ?: $acc['name'] ?: 'there');
+
+            printf("hesap    : %s\n", (string)($acc['id'] ?? ''));
+            printf("firma    : %s\n", $name);
+            printf("adres    : %s\n", $mask($mail));
+            printf("tip/durum: %s / %s\n", (string)($acc['type'] ?? '?'), (string)($acc['status'] ?? '?'));
+            printf("posta    : mail_enabled=%s  from=%s\n",
+                   vestra_cfg('mail_enabled', false) ? 'acik' : '*** KAPALI ***',
+                   (string)vestra_cfg('mail_from', '(bos)'));
+
+            /* Icerik SABIT -- bu tek seferlik bir mektup, sablon degil.
+               Hicbir rakam/kural uydurulmadi: musterinin kendi metni aynen
+               tasindi, escrow cumlesi operatorun soylediginin dogrudan
+               ceviirisi. "Ilaniniz tekrar gorunur olacak" cumlesi BILEREK
+               YOK -- olcum bu hesaba bagli hicbir urun olmadigini gosterdi. */
+            $subject = "VESTRA — buyer inquiry for your Levi's 501 listing + a change to seller payouts";
+            $body =
+              "Dear {$name} team,\n\n".
+              "A buyer on VESTRA has asked about the Levi's 501 wholesale listing linked to your account. Here is their inquiry in full:\n\n".
+              "-----\n".
+              "Hello,\n".
+              "I am a professional reseller based in France.\n".
+              "I am looking to purchase approximately 50 authentic Levi's 501 women's jeans.\n".
+              "My requirements are:\n".
+              "- Women's 501 only\n".
+              "- W25-W30 preferred; W24-W32 acceptable\n".
+              "- Grade A condition\n".
+              "- Vintage / Made in USA preferred\n".
+              "- Blue denim preferred\n".
+              "- Maximum budget: EUR 15 per pair\n\n".
+              "Could you please confirm:\n".
+              "1. The current wholesale price for 50 pieces\n".
+              "2. Whether the available stock can be supplied exclusively as women's 501\n".
+              "3. The available sizes\n".
+              "4. Whether you can provide photos of the actual stock\n".
+              "5. Shipping cost to France\n".
+              "-----\n\n".
+              "Before we can put you in touch to quote this order, please note an important change to how sales are processed on VESTRA going forward:\n\n".
+              "To sell and list products on the platform, buyer payment must now be made into VESTRA's own trust (escrow) account. VESTRA holds the funds and releases payment to you only after the buyer has received the goods and confirmed acceptance. Sellers no longer collect payment directly from buyers.\n\n".
+              "Could you please let us know:\n".
+              "1. Whether you are able to work under these terms, and\n".
+              "2. Your answers to the buyer's five questions above,\n\n".
+              "so we can pass your reply on and move this order forward.\n\n".
+              "Best regards,\n".
+              "Marco Bellini\n".
+              "VESTRA";
+
+            if (!$apply) {
+              printf("\nkonu     : %s\n", $subject);
+              printf("govde    : %d karakter\n", mb_strlen($body));
+              echo "\nKURU KOSU -- MEKTUP GONDERILMEDI (move_apply=true ile gonderilir).\n";
+              exit(0);
+            }
+
+            $ok = vestra_send_mail($mail, $subject, nl2br(htmlspecialchars($body)), '', '', null, '', []);
+            printf("\ngonderim : %s\n", $ok ? "GONDERILDI -- posta saglayicisi kabul etti" : "*** GONDERILEMEDI ***");
+            if (!$ok) { fwrite(STDERR, "vestra_send_mail FALSE dondu\n"); exit(1); }
+            echo "NOT: 'kabul etti' posta kutusunda demek DEGIL (bu deponun kendi uyarisi).\n";
+            PHPEOF
+            php -l /tmp/vestra_seller_lead_msg.php
+            php /tmp/vestra_seller_lead_msg.php; RC=$?
+            rm -f /tmp/vestra_seller_lead_msg.php
+            exit $RC
+
       # SİPARİŞİN RENGİNİ DÜZELT (17 Eyl 2026). Renk siparişin notlarında duruyor
       # ve oraya yazan tek yol kasaydı — yani sipariş yazıldıktan sonra rengi
       # düzeltmenin hiçbir yolu yoktu (navlun ve teslimat adresi aynı boşluğu
