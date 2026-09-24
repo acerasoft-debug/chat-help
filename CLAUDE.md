@@ -8752,3 +8752,48 @@ mindestabnahme sitede göründügü gibi ve ungarna gönderim yapiyoruz"*).
   b***@gmail.com`). Kod tarafında hiçbir değişiklik gerekmedi — 16 Eylül'de
   Benin için kurulan mekanizma, ikinci bir ülkede ilk kez ve birebir aynı
   çıktıyla çalıştı.
+
+**KURAL 28 (devamı) — Burberry Polo 8014004 / Arelisshop: 10 ad., satıcı
+VESTRA, fatura kesildi (24 Eyl 2026)** (operatör: *"8014004 bu Arelisshop
+müsteri icin 10 ad. satici vestra olucak siparis kes ve fatura yap shipping
+20 eur"*).
+
+- **Hesap ve ürün ÖNCE ölçüldü, tahmin edilmedi.** `diag-live` →
+  `find_ref=Arelisshop`: hesap `19a3217b2e754642`, buyer/active, kyb
+  approved, fiyat kapısı AÇIK, Germany, VAT kayıtlı, `trade_licence`
+  onaylı. `inspect-products` → `name=8014004`: `bur-8014004`, Burberry,
+  *"Burberry Polo — 8014004"*, `list=60 EUR`, tek kademe `20+ → €60`,
+  **MOQ 20**, `size_step` bu ilanda **1** (sizes metninde "10/pack" yazsa da
+  kayıtlı adım 1), renk yok, `seller_uid=d7824e27204c0177` (TYREX — 23 Eylül'de
+  mesajlaşma için atanmıştı, bu siparişin fatura kesicisini etkilemiyor;
+  KURAL 5b'nin sırası operatör seçimi > ilanın seller_uid'i > platform).
+- **10 adet MOQ'nun (20) ALTINDA — KURAL 28'in `waive_moq` deseniyle
+  geçirildi.** `pricing=wholesale|waive_moq=1|8014004::10` (renk alanı boş:
+  ilanda hiç renk yok). `vestra_unit_price()` tek kademeli bir ilanda qty
+  MOQ'nun altında kalsa da o kademenin fiyatını veriyor (kod: `$price =
+  $p['tiers'][0]['price']` başlangıç değeri, sonra yalnız qty≥min ise
+  üzerine yazıyor) — yani birim **€60**, uydurma bir fiyat gerekmedi.
+- **Önce `order_draft` (salt okunur), sonra `order_write`.** İkisi de aynı
+  rakamı verdi: mal 10×€60,00=**€600,00** + kargo **€20,00** =
+  **TOPLAM €620,00** (~US$707,48). Beden dökümü ilanın kendi 10'luk
+  serisinden (S×1·M×3·L×3·XL×2·XXL×1). Sipariş **`VES-CD68AD53`** yazıldı,
+  kayıttan geri okundu, `sorunlu: 0`.
+- **Fatura kesicisi `admin_mode=seller` ile `vestra`'ya atandı** (KURAL 5b) —
+  önceki seçim yoktu (ilanın kendi satıcısına dönerdi), kayıt geri okunup
+  doğrulandı. Aynı adımda kesimden ÖNCE tek dilim (**TEK BELGE**) ve **EUR
+  ödeme kutusunun 5 satır çıkacağı** görüldü (KURAL 5r'nin muhafazası
+  geçerdi).
+- **Fatura kesildi: `INV-2026-1017`** (`admin_mode=issue`, e-posta bilerek
+  GÖNDERİLMEDİ — operatör yalnız "kes ve fatura yap" dedi, gönderim ayrı
+  adım). Şifreleme için tek kullanımlık bir RSA anahtar çifti bu oturumda
+  üretildi (özel anahtar hiçbir yere yazılmadı/gönderilmedi); asıl doğrulama
+  şifrelenmeden ÖNCE düz metinde yapıldı: **`bayt: 17.907`**, `alıcı ülkesi:
+  Deutschland`, `alıcı adresi: 13 karakter`, **`belgede navlun: VAR (Shipping
+  20.00)`**, **`belgede toplam: VAR (620.00)`**, **`belgede ödeme kutusu: VAR
+  (IBAN: satırı)`**, **`belgede banka adresi: VAR (ülke: Germany)`** — 17
+  Eylül'de eklenen platform EUR/IBAN (Banking Circle, Almanya) künyesi bu
+  belgede gerçekten çalışıyor.
+- **Müşteriye hiçbir şey gönderilmedi** (KURAL 18) — sipariş de fatura da
+  yalnızca kayda geçti. Yeni bir mekanizma yazılmadı, kod değişmedi: bu,
+  KURAL 28/5b/5j'nin zaten kurduğu `order_draft`/`order_write`, `seller` ve
+  `issue` yollarının bir başka doğrulanmış kullanımıydı.
