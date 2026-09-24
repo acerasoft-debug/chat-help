@@ -3261,10 +3261,30 @@ jobs:
             echo "referans fiyat : ".($refP > 0 ? "EUR ".number_format($refP,2)."/adet (karsi teklif tavani)" : "cozulemedi -- tavan uygulanmaz")."\n";
 
             /* Yanit kaydi: silme onu da temizliyor. Kalmis bir kayit, silmenin
-               yarim kaldigini gosterir ve karsi teklif SIRASI'ni bozar. */
+               yarim kaldigini gosterir ve karsi teklif SIRASI'ni bozar.
+               KURAL 4: yeni bir karsi teklifin GECERLI olup olmadigi yalniz
+               fiyat tavanina degil SIRAYA da bagli -- sira alicidaysa (son
+               hamleyi satici yapmis, alici henuz cevap vermemis)
+               vestra_offer_respond() koşulsuz REDDEDER, fiyat ne olursa olsun.
+               Bu satir eskiden yalniz status+sira basiyordu; STANDING karsi
+               teklifin RAKAMI ve tur sayisi gorunmuyordu, yani "50 eurayu sil"
+               gibi bir istegin gecerli olup olmadigi bu ciktidan anlasilamiyordu. */
             $rs = vestra_read_json('offer_responses.json');
-            echo "yanit kaydi    : ".(isset($rs[$ref]) ? "VAR (durum ".((string)($rs[$ref]['status'] ?? '?'))
-                                       .", sira ".vestra_offer_turn($rs[$ref]).")" : "yok")."\n";
+            $prevRec = $rs[$ref] ?? null;
+            echo "yanit kaydi    : ".($prevRec ? "VAR (durum ".((string)($prevRec['status'] ?? '?'))
+                                       .", sira ".vestra_offer_turn($prevRec).")" : "yok")."\n";
+            if ($prevRec) {
+              $lastSeller = vestra_offer_last_price($prevRec, 'seller');
+              $lastBuyer  = vestra_offer_last_price($prevRec, 'buyer', $row);
+              echo "  standing satici karsi teklifi: ".($lastSeller !== null ? "EUR ".number_format($lastSeller,2)."/adet" : "yok")."\n";
+              echo "  standing alici teklifi       : ".($lastBuyer  !== null ? "EUR ".number_format($lastBuyer,2)."/adet" : "yok")."\n";
+              echo "  tur: ".vestra_offer_counter_count($prevRec)."/".VESTRA_OFFER_MAX_COUNTERS
+                 . "  (kalan ".vestra_offer_counters_left($prevRec).")\n";
+              foreach ((array)($prevRec['counters'] ?? []) as $c) {
+                echo "    - ".(string)($c['by'] ?? '?')." @ EUR ".number_format((float)($c['price'] ?? 0),2)
+                   . "  (".substr((string)($c['at'] ?? ''),0,16).")\n";
+              }
+            }
             $invs = vestra_invoices_for_ref($ref);
             echo "fatura         : ".($invs ? "KESILMIS: ".implode(', ', array_map(fn($i)=>(string)($i['no'] ?? '?'), $invs)) : "yok")."\n";
             if ($invs) { fwrite(STDERR, "faturasi kesilmis bir teklif geri yuklenmez -- once fatura yolu (KURAL 5f)\n"); exit(1); }
