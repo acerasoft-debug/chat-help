@@ -3044,6 +3044,50 @@ function vestra_account_ready_text($lang, $name, $link, bool $open = true, bool 
   return [$t[0], $body, ['badge'=>$badge, 'button'=>['label'=>$btnLabel,'url'=>$link]]];
 }
 
+/**
+ * Sample PAY-LINK letter (25 Sep 2026): the seller agreed a one-off sample price
+ * with a buyer in the message thread and the buyer asked for "le lien de
+ * paiement". Every figure is a PARAMETER — item, ident no., amount — read from
+ * the sample record, never typed into the text (KURAL 6's escrow-cap lesson).
+ * The link does not expire until it is paid (sample-pay.php renews the Stripe
+ * session), so the letter can say so; the address is typed on Stripe's page,
+ * which is what "adresini girebilsin" asked for.
+ * Returns [subject, body, opts] like vestra_account_ready_text().
+ */
+function vestra_sample_link_text(string $lang, string $name, string $item, string $ident, float $amount, string $url): array {
+  $comma = in_array($lang, ['fr','de','es','it'], true);
+  $amt = $comma ? number_format($amount, 2, ',', '.') . ' €' : '€' . number_format($amount, 2, '.', ',');
+  $btnLabel = ['en'=>'Pay for the sample','de'=>'Muster bezahlen','fr'=>"Payer l'échantillon",
+    'it'=>'Paga il campione','es'=>'Pagar la muestra'][$lang] ?? 'Pay for the sample';
+  $badge = ['en'=>'📦 Your sample','de'=>'📦 Ihr Muster','fr'=>'📦 Votre échantillon',
+    'it'=>'📦 Il tuo campione','es'=>'📦 Tu muestra'][$lang] ?? '📦 Your sample';
+  $T = [
+   'en' => ["VESTRA — payment link for your sample (%s)",
+     "Hello %s,\n\nas agreed, here is the payment link for your sample:\n\nItem: %s\nIdent no.: %s\nQuantity: 1 piece (sample)\nAmount: %s — EU-wide shipping included\n\nUse the button below. You enter your delivery address directly on the secure payment page (Stripe). The link stays valid until it is paid.\n\nAs soon as the payment arrives you receive a confirmation and we prepare the shipment.",
+     "\n\n— VESTRA · vestrasales.com"],
+   'fr' => ["VESTRA — lien de paiement pour votre échantillon (%s)",
+     "Bonjour %s,\n\ncomme convenu, voici le lien de paiement pour votre échantillon :\n\nArticle : %s\nIdent n° : %s\nQuantité : 1 pièce (échantillon)\nMontant : %s — livraison dans l'UE incluse\n\nCliquez sur le bouton ci-dessous : vous saisissez votre adresse de livraison directement sur la page de paiement sécurisée (Stripe). Le lien reste valable jusqu'au paiement.\n\nDès réception du paiement, vous recevez une confirmation et nous préparons l'expédition.",
+     "\n\n— VESTRA · vestrasales.com"],
+   'de' => ["VESTRA — Zahlungslink für Ihr Muster (%s)",
+     "Hallo %s,\n\nwie besprochen erhalten Sie hier den Zahlungslink für Ihr Muster:\n\nArtikel: %s\nIdent-Nr.: %s\nMenge: 1 Stück (Muster)\nBetrag: %s — EU-weiter Versand inklusive\n\nNutzen Sie den Button unten. Ihre Lieferadresse geben Sie direkt auf der sicheren Zahlungsseite (Stripe) ein. Der Link bleibt gültig, bis er bezahlt ist.\n\nSobald die Zahlung eingeht, erhalten Sie eine Bestätigung und wir bereiten den Versand vor.",
+     "\n\n— VESTRA · vestrasales.com"],
+   'es' => ["VESTRA — enlace de pago para tu muestra (%s)",
+     "Hola %s,\n\ncomo acordamos, aquí tienes el enlace de pago para tu muestra:\n\nArtículo: %s\nN.º ident.: %s\nCantidad: 1 pieza (muestra)\nImporte: %s — envío en la UE incluido\n\nUsa el botón de abajo. Introduces tu dirección de entrega directamente en la página de pago segura (Stripe). El enlace sigue siendo válido hasta que se pague.\n\nEn cuanto recibamos el pago, recibirás una confirmación y preparamos el envío.",
+     "\n\n— VESTRA · vestrasales.com"],
+   'it' => ["VESTRA — link di pagamento per il tuo campione (%s)",
+     "Ciao %s,\n\ncome concordato, ecco il link di pagamento per il tuo campione:\n\nArticolo: %s\nN. ident.: %s\nQuantità: 1 pezzo (campione)\nImporto: %s — spedizione UE inclusa\n\nUsa il pulsante qui sotto. Inserisci il tuo indirizzo di consegna direttamente nella pagina di pagamento sicura (Stripe). Il link resta valido fino al pagamento.\n\nAppena riceviamo il pagamento, ricevi una conferma e prepariamo la spedizione.",
+     "\n\n— VESTRA · vestrasales.com"],
+  ];
+  /* The raw link in the text too: some mail clients drop the HTML button, and a
+     payment letter whose only way to pay is invisible is a letter that failed. */
+  $alt = ['en'=>'If the button does not work, open this link:','fr'=>'Si le bouton ne fonctionne pas, ouvrez ce lien :',
+    'de'=>'Falls der Button nicht funktioniert, öffnen Sie diesen Link:','es'=>'Si el botón no funciona, abre este enlace:',
+    'it'=>'Se il pulsante non funziona, apri questo link:'][$lang] ?? 'If the button does not work, open this link:';
+  $t = $T[$lang] ?? $T['en'];
+  $body = sprintf($t[1], $name, $item, $ident, $amt) . "\n\n" . $alt . "\n" . $url . $t[2];
+  return [sprintf($t[0], $ident), $body, ['badge'=>$badge, 'button'=>['label'=>$btnLabel,'url'=>$url]]];
+}
+
 /* ── Sending allowance ────────────────────────────────────────────────────────
  * How many messages the mail provider will still accept today.
  *

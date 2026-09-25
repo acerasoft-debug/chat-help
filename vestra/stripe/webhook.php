@@ -73,7 +73,9 @@ switch ($type) {
             $pi   = is_string($obj->payment_intent ?? null) ? $obj->payment_intent : ($obj->payment_intent->id ?? '');
             if ($ref === '') break;
             if ($kind === 'sample') {
-                $rec = sample_mark_paid($ref, $pi);
+                // The address the buyer typed on Stripe's page — kept on the record
+                // so the operator knows where to ship (it used to be dropped).
+                $rec = sample_mark_paid($ref, $pi, sample_ship_from_session($obj));
                 if ($rec) sample_fulfill($rec);
             } elseif ($kind === 'dropship') {
                 // Checkout collected the buyer's shipping address for us (see

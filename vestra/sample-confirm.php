@@ -20,6 +20,10 @@ if (!$rec) { header('Location: /'); exit; }
 $me = auth_user();
 $allowed = $me && ($rec['buyer_id'] ?? '') === ($me['id'] ?? '');
 if (!$allowed && !empty($_SESSION['vadmin'])) $allowed = true;
+/* A pay-link buyer arrives from an e-mail, usually NOT signed in; the link's own
+   token opens this page (same credential that opened the checkout). */
+$tok = (string)($_GET['t'] ?? '');
+if (!$allowed && sample_link_token_ok($rec, $tok)) $allowed = true;
 if (!$allowed) { header('Location: /login?back=' . urlencode('/sample-confirm?ref=' . $ref)); exit; }
 
 if (($rec['status'] ?? '') === 'pending' && isset($_GET['paid'])) {
@@ -31,7 +35,7 @@ if (($rec['status'] ?? '') === 'pending' && isset($_GET['paid'])) {
         $sess = stripe_api('GET', '/v1/checkout/sessions/' . $rec['session_id'], [], $rec['acct_id'] ?? '');
         if (($sess->payment_status ?? '') === 'paid') {
             $pi = is_string($sess->payment_intent ?? null) ? $sess->payment_intent : ($sess->payment_intent->id ?? '');
-            $paidRec = sample_mark_paid($ref, $pi);
+            $paidRec = sample_mark_paid($ref, $pi, sample_ship_from_session($sess));
             if ($paidRec) { sample_fulfill($paidRec); $rec = sample_get($ref); }
         }
     } catch (\Throwable $e) { error_log('[VESTRA Sample] confirm reconcile failed ' . $ref . ': ' . $e->getMessage()); }
@@ -41,6 +45,7 @@ $paid = ($rec['status'] ?? '') === 'paid';
 $amount = number_format((float)($rec['amount'] ?? 0), 2);
 $PAGE = $paid ? t('Sample order confirmed') : t('Finishing up…');
 $NAV = 'shop';
+$NOINDEX = true;
 require __DIR__ . '/inc/head.php';
 ?>
 <div class="wrap" style="max-width:640px;margin:60px auto;text-align:center">
