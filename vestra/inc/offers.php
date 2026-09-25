@@ -432,6 +432,18 @@ function vestra_offer_fx_ensure(string $ref, string $offerTs = ''): ?array {
         $offerTs = (string)($row['timestamp'] ?? '');
     }
     if (strlen($offerTs) < 10) return null;
+    $fx = vestra_order_fx_stamp($ref, $offerTs);
+    if ($fx !== null) return $fx;
+    /* GECMIS TABLOSUNDA O GUN YOKSA CEK (25 Eyl 2026, O748EE). Tablo yalniz
+       DAMGASIZ bir SIPARIS istediginde buyuyordu (vestra_orders_fx_backfill);
+       kabul edilmis ama henuz faturalanmamis teklif orders.csv'de degil, yani
+       teklif tarihi son cekimden yeniyse damga HICBIR ZAMAN dusmuyordu ve
+       USD fatura kesilemiyordu -- panelin yolladigi "Fetch missing rates"
+       dugmesi de yalniz siparisleri geziyordu. Ayni uc, ayni geri cekilme
+       (basarisizlikta 30 dk), ayni damga; kur yine UYDURULMUYOR: cekim
+       olmazsa null ve kesim durur. */
+    $date = substr($offerTs, 0, 10);
+    if (!vestra_fx_history_fetch($date, min($date, date('Y-m-d')))) return null;
     return vestra_order_fx_stamp($ref, $offerTs);
 }
 

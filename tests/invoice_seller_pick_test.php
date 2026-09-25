@@ -517,6 +517,15 @@ function vestra_order_fx(string $ref): ?array { global $FXHAVE; return $FXHAVE; 
 function vestra_order_fx_stamp(string $ref, string $ts, bool $live=false): ?array {
   global $FXHAVE, $FXSTAMPED; $FXSTAMPED[] = [$ref,$ts]; return $FXHAVE;
 }
+/* Gecmis tablosu cekimi (25 Eyl 2026, O748EE): damga yoksa teklif yolu
+   ECB gecmisini CEKIYOR. Varsayilan: uc KAPALI (false) -- testler aga cikmaz.
+   $FXFETCH_FILL doluysa "cekim basarili, tablo o gunu artik tasiyor" demek. */
+$FXFETCHED = []; $FXFETCH_FILL = null;
+function vestra_fx_history_fetch(string $from, string $to): bool {
+  global $FXFETCHED, $FXFETCH_FILL, $FXHAVE; $FXFETCHED[] = [$from, $to];
+  if ($FXFETCH_FILL === null) return false;
+  $FXHAVE = $FXFETCH_FILL; return true;
+}
 /* Gercek cevirici + kaynak etiketi: stub yazsaydim olctugum sey kendi
    aritmetigim olurdu (bu depoda "hic dusemeyen iddia" dersi). */
 foreach (['vestra_invoice_convert_payload','vestra_fx_source_label'] as $__fn) {
@@ -559,6 +568,19 @@ $noBefore = $INV_NO;
 $iv = vestra_offer_issue_invoice('OF-1', true);
 $t('kesim gerekceyle DURDU',       is_array($iv) && !empty($iv['error']));
 $t('NUMARA YANMADI',               $INV_NO === $noBefore);
+/* Damga yoksa GECMIS CEKILIYOR ve teklifin KENDI gunu isteniyor: tablo yalniz
+   damgasiz SIPARIS icin buyuyordu, faturasiz bir kabulun tarihi hic
+   cekilmiyordu (O748EE, 24 Eyl 2026 -- USD fatura kesilemedi). */
+$t('damgasizda gecmis CEKILMEYE calisildi', $FXFETCHED !== []);
+$t('cekilen aralik TEKLIFIN gunu',  ($FXFETCHED[0] ?? []) === ['2026-08-30', '2026-08-30']);
+/* Cekim basariliysa ayni cagri cevirir -- operatorun elle bir dugmeye basmasi
+   gerekmez. Kur yine TABLODAN, uydurma degil. */
+$FXFETCHED = []; $FXFETCH_FILL = ['usd'=>1.1700,'date'=>'2026-08-28','source'=>'ecb'];
+$pf = vestra_offer_invoice_payload('OF-1');
+$t('cekim sonrasi cevrim YAPILDI',  empty($pf['currency_error']) && ($pf['meta']['currency'] ?? '') === 'USD');
+$t('cekilen kurla cevrildi',        $pf['items'][0]['unit'] === round(12.00 * 1.1700, 2));
+$t('tek cekim yetti',               count($FXFETCHED) === 1);
+$FXFETCH_FILL = null;
 $FXHAVE = ['usd'=>1.1622,'date'=>'2026-09-04','source'=>'ecb'];
 
 echo "\n".($fail? "KALDI: $fail  (gecen: $ok)\n" : "hepsi gecti ($ok)\n");

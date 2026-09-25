@@ -1309,7 +1309,16 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
      açılınca kendiliğinden de denenir; bu düğme uç kapalıyken tekrar için. */
   if($act==='fx_backfill'){
     require_once __DIR__.'/inc/fx_orders.php';
-    $fxr = vestra_orders_fx_backfill($orders, true);
+    /* KABUL EDILMIS TEKLIFLER DE (25 Eyl 2026). Teklif faturasinin kuru
+       TEKLIFIN tarihinin damgasi (KURAL 5i) ve kesim duruyorsa hata metni
+       operatoru TAM BU dugmeye yolluyor -- ama dugme yalniz orders.csv'yi
+       geziyordu, faturasiz bir kabul orada yok. offers.csv satiri ayni iki
+       alani (ref, timestamp) tasiyor, damga ayni yere dusuyor
+       (order_statuses[ref], vestra_offer_fx_ensure ile ayni). */
+    $fxRs = vestra_read_json('offer_responses.json');
+    $fxOf = array_values(array_filter(vestra_read_csv('offers.csv'),
+              fn($o) => (string)($fxRs[(string)($o['ref'] ?? '')]['status'] ?? '') === 'accept'));
+    $fxr = vestra_orders_fx_backfill(array_merge($orders, $fxOf), true);
     header('Location: /admin?tab=orders&msg=fx_backfill&stamped='.(int)$fxr['stamped'].'&missing='.(int)$fxr['still_missing'].'&fetched='.($fxr['fetched']?1:0)); exit;
   }
   if($act==='resolve_claim'){

@@ -92,6 +92,12 @@ $t('dosyada "rate on order date"',             str_contains($adm, 'In USD (rate 
 $t('USD toplam karti',                         str_contains($adm, 'Total volume in USD'));
 $t('CSV: usd_rate/usd_rate_date/source/total', str_contains($adm, "['usd_rate','usd_rate_date','usd_rate_source','total_usd']"));
 $t('geri doldurma dugmesi + isleyici',         str_contains($adm, "value=\"fx_backfill\"") && str_contains($adm, "if(\$act==='fx_backfill')"));
+/* Dugme KABUL EDILMIS TEKLIFLERI de geziyor (25 Eyl 2026, O748EE): teklif
+   faturasinin kesim hatasi operatoru bu dugmeye yolluyor, ama dugme yalniz
+   orders.csv'yi geziyordu ve faturasiz bir kabul orada yok. */
+$__fxh = substr($adm, (int)strpos($adm, "if(\$act==='fx_backfill')"), 1400);
+$t('dugme kabul edilmis teklifleri de damgaliyor', str_contains($__fxh, "vestra_read_csv('offers.csv')")
+     && str_contains($__fxh, "=== 'accept'") && str_contains($__fxh, 'array_merge($orders, $fxOf)'));
 /* Admin'in kendi hesabi yok: her deger fx_orders.php'den. Ikinci bir carpim
    kopyasi, kur degisince ekranlarin ayrisacagi gun demek. */
 $t('admin kendi basina total*kur carpmiyor',   !preg_match('~\$o\[.total.\]\s*\*\s*\$~', $adm));
