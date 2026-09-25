@@ -120,7 +120,7 @@ on:
         required: false
         default: "winter"
       member_spec:
-        description: "KAYITLI MUSTERI KIPI ayarlari, boru ile: letter=winter|fp_offer · pids=<ilan id'leri, virgulle> · skip=<hesap ID / firma adi parcasi, virgulle — ADRES YAZMAYIN, girdi herkese acik> · copy=true (mektup MUSTERIYE DEGIL yalniz operator kutusuna; hicbir damga dusmez). Ornek: letter=fp_offer|skip=849aaa5ab65a0b3f|copy=true"
+        description: "KAYITLI MUSTERI KIPI ayarlari, boru ile: letter=winter|fp_offer|wave3 · pids=<ilan id'leri, virgulle> · skip=<hesap ID / firma adi parcasi, virgulle — ADRES YAZMAYIN, girdi herkese acik> · country=<hesabin kayitli ulkesi, virgulle, TAM esleme: Deutschland,Germany,DE> · copy=true (mektup MUSTERIYE DEGIL yalniz operator kutusuna; hicbir damga dusmez). Ornek: letter=fp_offer|skip=849aaa5ab65a0b3f|copy=true"
         required: false
         default: ""
       newcoll_min_days:
@@ -663,6 +663,22 @@ jobs:
                  sayi soylemis oluruz. */
               $M_FACTS = ($MLETTER === 'wave3') ? $w3facts() : [];
               $COPY_OPS = strtolower((string)($mspec['copy'] ?? '')) === 'true';
+              /* ULKE SUZGECI (country=Deutschland,DE,...). Lead yolunun
+                 country_filter'i (asagida) uye kipine HIC ugramiyordu; 25 Eyl
+                 2026'da "3 email almanyanlara" denince uye tarafinda Almanlari
+                 ayirmanin tek yolu, 18 yabanci hesabi skip= ile elemekti ve skip
+                 FIRMA ADI PARCASI esliyor -- "c" adli bir hesabi elemek her
+                 adinda c gecen firmayi da elerdi. Esleme lead yoluyla AYNI: tam,
+                 buyuk/kucuk harf duyarsiz, hesabin KAYITLI ulke dizgesi. Ulke
+                 serbest metin oldugu icin varyantlari (Deutschland, DE, ...)
+                 cagiran yazar; "Ge" gibi belirsiz bir deger (Gurcistan mi?)
+                 hicbir varyanta uymaz ve elenir -- tahmin edilmez. Yeni girdi
+                 degil spec anahtari: dosya 25 girdi sinirinda. */
+              $MCOUNTRIES = [];
+              foreach (explode(',', (string)($mspec['country'] ?? '')) as $mcs) {
+                $mcs = mb_strtolower(trim($mcs)); if ($mcs !== '') $MCOUNTRIES[$mcs] = true;
+              }
+              if ($MCOUNTRIES) echo "ulke suzgeci: ".implode(', ', array_keys($MCOUNTRIES))."\n";
 
               /* Hesap elemesi ADRESLE degil: girdi kosu basliginda kalici ve
                  herkese acik. ID tam esitlik, firma adi parca. */
@@ -734,6 +750,7 @@ jobs:
 
               $accts = auth_accounts();
               $cand = []; $skipped = 0; $skipAccHit = 0; $gateOpen = 0; $gateShut = 0; $dupHit = 0; $tooNewHit = 0; $seenMail = [];
+              $countryOut = 0;
               foreach ($accts as $i => $a) {
                 if (($a['type'] ?? '') !== 'buyer') continue;                    // musteri = alici; saticilara stok duyurusu anlamsiz
                 $st = (string)($a['status'] ?? '');
@@ -741,6 +758,7 @@ jobs:
                 $em = strtolower(trim((string)($a['email'] ?? '')));
                 if (!filter_var($em, FILTER_VALIDATE_EMAIL)) continue;
                 if (!empty($a[$STAMP])) continue;                                // bu metni zaten aldi
+                if ($MCOUNTRIES && !isset($MCOUNTRIES[mb_strtolower(trim((string)($a['country'] ?? '')))])) { $countryOut++; continue; }
                 /* AYNI HESABA GUNLER ICINDE IKINCI KAMPANYA MEKTUBU GITMEZ.
                    17 Eyl 2026'da bu ELLE yapildi: Angebot alan 7 hesap ayni
                    gunun Winter partisinden tek tek cikarildi (skip=...). Kural
@@ -808,7 +826,8 @@ jobs:
                 echo "\n---- OZET (liste uzun, get_job_logs yalniz kuyrugu gosteriyor) ----\n";
                 echo "metin        : {$MLETTER} | damga: {$STAMP}\n";
                 echo "SECILEN      : ".count($cand)." / hedef {$COUNT}\n";
-                echo "elenen       : kural {$skipped} | skip_accounts {$skipAccHit} | ayni adres {$dupHit} | son {$NC_MIN_DAYS} gunde baska kampanya {$tooNewHit}\n";
+                echo "elenen       : kural {$skipped} | skip_accounts {$skipAccHit} | ayni adres {$dupHit} | son {$NC_MIN_DAYS} gunde baska kampanya {$tooNewHit}"
+                   . ($MCOUNTRIES ? " | ulke suzgeci disi {$countryOut}" : '')."\n";
                 echo "fiyat kapisi : ACIK {$gateOpen} (rakamli) | KAPALI {$gateShut} (rakamsiz)\n";
                 echo "dil dagilimi : "; foreach ($lc as $l => $n) echo "{$l}={$n}  "; echo "\n";
                 echo "gercek gonderim koşu basina 50'ye kirpilir (".(int)ceil(count($cand)/50)." kosu gerekir)\n";
