@@ -8873,6 +8873,34 @@ müsteri icin 10 ad. satici vestra olucak siparis kes ve fatura yap shipping
   saatini **başlatıyor** (`payment_grace_start` damgalandı) — "faturayı
   e-postala" isteğinin sessiz yan sonucu değil, KURAL 7'nin ta kendisi.
 
+**KURAL 28 (devamı) — D&G G9XH2Z G7D0E / Arelisshop: 10 ad. × €120, kesen
+VESTRA, fatura USD (Mercury); FATURAYI OPERATÖR PANELDEN KESTİ** (25 Eyl 2026:
+*"G9XH2Z G7D0E bu üründe 10 ad. siparis kes Arelisshop 120 eur ad. satici
+acerasoft olucak fakat usd hesabi verilsin mercuryden"* → *"siparisi email
+olarak gönder müsteriye"*).
+- **SKU tam eşleşmeyle seçildi:** `G9XH2Z G7D0E` = `dgx-g9xh2z-g7d0e`
+  (*Crest Sweatshirt — White*, €120, MOQ 20, adım 10). Adı benzeyen
+  `G9XH2Z G7D0E1` (*Logo Sweatshirt — Black*) ayrı ilan. 10 < 20 → `waive_moq=1`;
+  kargo verilmedi → **0** (KURAL 34). Sipariş **`VES-31562779`**: €1.200,00,
+  beden S×1·M×3·L×3·XL×2·XXL×1, geri okundu. Kesen `vestra` (KURAL 5b), birim
+  **USD**, kur damgası **1,1403 (ECB 25 Eyl 2026)**.
+- **Fatura ben istemeden kesildi ve e-postalandı:** `currency` adımı ikinci
+  koşuda *"fatura ZATEN KESILMIS"* dedi. Brevo: *"VESTRA — invoice for order
+  VES-31562779"* 19:31:31 (+02:00) requests → delivered → 19:31:53 opened. Bu
+  konu satırı panelin **Approve & issue** mektubu; aynı dakikalarda panelden
+  `invoice_currency=USD` de yazılmıştı (`admin.php:580`). **INV-2026-1019,
+  US$1.368,40** (birim €120 → US$136,84 × 10, KURAL 5i). KURAL 5r muhafazası
+  kutusuz belgeyi kesmediği için kesimin kendisi USD kutusunun (Mercury/Choice
+  Financial) belgede olduğunu gösteriyor. **İkinci mektup GÖNDERİLMEDİ:**
+  müşteri faturayı almış ve açmış; `payment_due` önizlemesi `aşama: unstamped`,
+  yani cron (14:00 UTC) ertesi gün saati başlatıp hatırlatmayı kendisi yollar.
+- **Yan düzeltme — `seller-products` → `currency` adımı dolu USD kutusunu
+  "HIC CIKMAZ" diye bildiriyordu.** Platform diliminde `$acc` null ve satır sabit
+  metin basıyordu; KURAL 5j'nin kayıtlı hatası, `diag-live`'da düzeltilmiş ama
+  bu kopyada kalmıştı. Hüküm artık `vestra_invoice_payment_gap()`'ten (kesimin
+  sorduğu tek yer), satır sayısı platform künyesinden.
+  *Aynı kontrolün kaç kopyası var diye sormak, birini düzeltirken hâlâ şart.*
+
 **24 Eyl 2026 — G7JV9-1 (D&G Logo T-Shirt): kayıt "White" diyordu, fotoğraf
 KIRMIZI — düzeltildi** (operatör, ilanın kendi sayfasından pasteledi:
 *"Logo T-Shirt — White … SKU G7JV9-1 tshirt rengi red olacak fotoda red ama
