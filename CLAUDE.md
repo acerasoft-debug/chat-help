@@ -9146,3 +9146,21 @@ hiç görünmesin"*).
   şekilde daraltıldı. Ayrıca panel kum havuzunda `admin_pass` olmadan
   **"Admin locked"** basıyor ve dört iddia bu yüzden düştü; kurulum
   `admin_delete_buttons_test`'in aynısı yapıldı.
+- **CANLI (25 Eyl 2026).** İlk deploy koddan değil **runner DNS'inden** düştü
+  (`lookup ghcr.io … i/o timeout`, SSH'a hiç ulaşmadı); yeniden koşuldu, geçti.
+  Kuru koşu → uygulama (`admin_mode=brand_hide`, `payload=Gucci,Balenciaga`):
+  **Gucci 15 ilan** (hepsi onaylı, hepsi platformun), **Balenciaga 20 ilan**
+  (18 platform, **2 TYREX**), yakın yazım **yok**, açık teklif: her markada
+  **1 kabul edilmiş** (ham kayıttan yürüyor, bozulmadı), canlı ilan
+  **891 → 856**, `listings.json` **DEĞİŞMEDİ**, katalog okuyucusunda kalan
+  gizli-marka ilanı **0**. İkinci araçla (`inspect-products`): ham kayıt Gucci
+  15 / Balenciaga 20 **duruyor**, vitrin sırası `BALENCIAGA: GIZLI MARKA`, ve
+  eskiden 1. sırada iğneli duran `guc-t07` artık listede yok (iğne verisi
+  yerinde — geri açılınca aynı yere döner). **Dışarıdan** (`seo-check`,
+  internet/WAF üzerinden, 9 dil): `/product?id=guc-t07` → **Not found**,
+  `/wholesale/balenciaga` → **Page not found**, ana sayfada "Gucci/Balenciaga
+  wholesale" **yok**, `knowsAbout` 21 marka ve ikisi de **yok**, sitemap
+  **1.049 URL** — önbellekte eski sayfa kalmamış.
+- **Bilinen bedel, söylendi:** gizli markanın 35 ürün sayfası ve marka sayfası
+  arama motoruna 404 dönüyor, yani dizinden düşecek; geri açıldığında sitemap
+  onları yeniden veriyor ama yeniden dizine girmeleri zaman alır.
