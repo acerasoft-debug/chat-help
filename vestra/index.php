@@ -1364,6 +1364,10 @@ if ($soonBrands):
 /* ── YENI GELENLER / one alinan markalar ────────────────────────────────────
    Operator, 16 Eyl 2026: "ana sayfayi yenile yeni urunler koy F.Perry
    urunlerini Polo ve Sweatshirt on planda olsun Lacoste da".
+   Operator, 25 Eyl 2026: "ozellikle New arrivals bolumune ic camasiri
+   bolumunu koy" + "diger luks markalari azalt" -- ic camasiri bolmesi artik
+   seridin BASINDA, F.Perry/Lacoste payi 6'dan 3'e indi. Kural ve tavanlar
+   vestra_home_new_picks()'te; buradaki cagri degismedi.
 
    SECKI vestra_home_new_picks()'ten (inc/products.php) -- govdeye gomulu
    olsaydi sinanamazdi, ve bu depoda "govdeye gomulu oldugu surece

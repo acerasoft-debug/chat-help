@@ -2414,7 +2414,21 @@ function vestra_soon_brands_filter(array $soon, array $products): array {
     return array_values(array_filter($soon,
         fn($s) => !isset($live[mb_strtoupper(trim((string)($s['name'] ?? '')))])));
 }
-const VESTRA_HOME_FEATURED_MAX = 6;
+/* 25 Eyl 2026, operatorun ayni is uzerinde uc kez daralttigi talimat: "bu
+   urunleri on plana al diger luks markalari azalt" -> "ana sayfadan" ->
+   "resimleri sadece" -> son ve kesin hedef: "ozellikle New arrivals
+   bolumune ic camasiri bolumunu koy". Hedef bu serit -- ilk uc cumlenin
+   "resimleri sadece" belirsizligi dorduncu cumleyle somut, ADIYLA verilen
+   ve zaten var olan bir bolume (New arrivals) daralmis oldu; bu serit zaten
+   kart basiyor (ad+marka), sadece hangi kartlarin bastigi degisiyor.
+   Tavan YARIYA cekildi (6 -> 3): sectionMax + featMax ikisi de tavansiz
+   olsaydi 6+6=12, yani butun izgara -- ayni tuzak asagidaki $nFeat
+   yorumunda zaten bir kez kayitli ("GERCEKTEN YENI hicbir ilan seride
+   giremiyordu"). Simdi 6 (bolme) + 3 (marka) = 9, en az 3 slot GERCEKTEN
+   yeni ilana kaliyor. Rakamlar operatorden gelmedi, tek satirda -- baska bir
+   denge istenirse degistirilecek yer burasi. */
+const VESTRA_HOME_FEATURED_MAX = 3;
+const VESTRA_HOME_SECTION_MAX  = 6;
 
 function vestra_home_featured_brands(): array {
     /* Tek satirda YAZILMIYOR: bu depodaki testler fonksiyon govdesini
@@ -2425,15 +2439,27 @@ function vestra_home_featured_brands(): array {
     return ['FRED PERRY', 'LACOSTE'];
 }
 
+/* Bolme (section) bir MARKA degil -- yukaridaki liste $p['brand']'a bakiyor,
+   ic camasiri ise vestra_product_section($p)'nin dondurdugu ayri bir alan
+   (/shop?section=underwear'in kendisi, operatorun kendi yapistirdigi adres).
+   Ic camasiriyi $featured dizisine eklemek onu bir marka adi sanip hicbir
+   urune eslesmeyen olu bir satir birakirdi -- ayri liste, ayri tavan. */
+function vestra_home_featured_sections(): array {
+    return ['underwear'];
+}
+
 function vestra_home_new_picks(array $products, ?array $featured = null,
                                int $max = 12, ?int $now = null, ?int $newDays = null,
-                               ?int $featMax = null): array {
-    $featured = $featured ?? vestra_home_featured_brands();
-    $featMax  = $featMax ?? VESTRA_HOME_FEATURED_MAX;
+                               ?int $featMax = null, ?array $sections = null,
+                               ?int $sectionMax = null): array {
+    $featured   = $featured   ?? vestra_home_featured_brands();
+    $featMax    = $featMax    ?? VESTRA_HOME_FEATURED_MAX;
+    $sections   = $sections   ?? vestra_home_featured_sections();
+    $sectionMax = $sectionMax ?? VESTRA_HOME_SECTION_MAX;
     if ($max <= 0) return [];
     $up = fn($v) => strtoupper(trim((string)$v));
 
-    $fr = []; $new = [];
+    $sec = []; $fr = []; $new = [];
     foreach (array_values($products) as $i => $p) {
         $id = trim((string)($p['id'] ?? ''));
         if ($id === '') continue;                       // id'siz urunun urun sayfasi yok
@@ -2442,6 +2468,11 @@ function vestra_home_new_picks(array $products, ?array $featured = null,
            yalanlar. Olcut vestra_is_sold_out() -- alanin dolu olup olmadigina
            bakmak bos dizgeyi SATILDI sayardi. */
         if (vestra_is_sold_out($p)) continue;
+        /* Bolme ONCE sorulur: "on plana al" budur. Ayni urun teorik olarak
+           hem bir bolmeye hem one alinan bir markaya uysa (bugun katalogda
+           hic olmuyor -- ic camasiri ayri bir saticida) bolme kazanir, iki
+           kovaya birden dusmez. */
+        if (in_array(vestra_product_section($p), $sections, true)) { $sec[] = $p; continue; }
         $j = array_search($up($p['brand'] ?? ''), $featured, true);
         if ($j !== false) { $fr[$j][] = $p; continue; }
         if (vestra_product_is_new($p, $now, $newDays)) $new[] = [strtotime((string)$p['added_at']), $i, $p];
@@ -2457,6 +2488,16 @@ function vestra_home_new_picks(array $products, ?array $featured = null,
         $seen[$id] = true; $out[] = $p;
         return count($out) < $max;
     };
+    /* Bolme ILK cizilir -- "ozellikle New arrivals bolumune ic camasiri
+       bolumunu koy" tam bunu istiyor. Kendi tavani var, feat'inkiyle ayni
+       gerekceyle: tavansiz birakinca dolu bir bolme tek basina butun
+       izgarayi kaplardi. */
+    $nSec = 0;
+    foreach ($sec as $p) {
+        if ($nSec >= $sectionMax) break;
+        if (!$push($p)) return $out;
+        $nSec++;
+    }
     /* array_keys DEGIL, indis uzerinden: bir marka hic urun vermezse kendinden
        sonrakiler one kaymamali, liste sirasi korunmali. */
     $nFeat = 0;
@@ -2469,15 +2510,20 @@ function vestra_home_new_picks(array $products, ?array $featured = null,
                Lacoste 13), yani tavansiz birakinca 12 kartin 12'sini de onlar
                dolduruyor ve GERCEKTEN YENI hicbir ilan seride giremiyordu --
                yani talimatin yarisi sessizce uygulanmiyordu. Tavan, iki yarinin
-               da gorunmesini garanti ediyor. */
+               da gorunmesini garanti ediyor. 25 Eyl 2026'da bolme bucketi
+               eklenince tavan 6'dan 3'e cekildi -- "diger luks markalari
+               azalt" bunun karsiligi. */
             if ($nFeat >= $featMax) break 2;
             if (!$push($p)) return $out;
             $nFeat++;
         }
     }
     foreach ($new as $n) if (!$push($n[2])) return $out;
-    /* Yeni ilan yoksa bos slotlari one alinanlarin geri kalani doldurur:
-       yarim dolu bir izgara, dolu bir izgaradan kotu gorunur. */
+    /* Yeni ilan yoksa bos slotlari once bolmenin, sonra one alinanlarin geri
+       kalani doldurur: yarim dolu bir izgara, dolu bir izgaradan kotu
+       gorunur. $push zaten $seen'den geciyor, yani burada yeniden gecmek
+       cift saymaz. */
+    foreach ($sec as $p) if (!$push($p)) return $out;
     for ($i = 0; $i < count($featured); $i++) {
         foreach ($fr[$i] ?? [] as $p) if (!$push($p)) return $out;
     }

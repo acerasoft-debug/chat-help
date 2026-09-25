@@ -84,7 +84,7 @@ on:
         # CAGIRDIGI fonksiyonu CANLI katalogla kosturmak. Yerel checkout yalniz
         # 20 ilanlik demo tohumunu tasiyor, yani orada cizdirmek mekanizmayi
         # kanitlar, ICERIGI kanitlamaz.
-        description: "true = ana sayfanin 'yeni gelenler' seridi: hangi ilanlar, hangi sirayla (one alinan markalar + gercekten yeni olanlar). Salt okunur."
+        description: "true = ana sayfanin 'yeni gelenler' seridi: hangi ilanlar, hangi sirayla (one alinan bolme [ic camasiri] + one alinan markalar + gercekten yeni olanlar). Salt okunur."
         required: false
         default: "false"
       img_list:
@@ -879,9 +879,22 @@ jobs:
                 $cand[] = $np;
               }
               $front = vestra_home_featured_brands();
+              /* Bolme kovasi 25 Eyl 2026'da eklendi. Fonksiyon yoksa sunucudaki kod
+                 eski demektir -- bu satirsiz cikti bolmeyi "aday yok" diye okuturdu. */
+              $fsec = function_exists('vestra_home_featured_sections') ? vestra_home_featured_sections() : null;
               printf("katalog: %d | fotografi diskte olan aday: %d | fotografsiz/id siz: %d\n",
                      count(vestra_products()), count($cand), $noImg);
-              echo "one alinan markalar: ".implode(', ', $front)."\n";
+              if ($fsec === null) echo "*** vestra_home_featured_sections YOK -- bolme kodu deploy edilmemis ***\n";
+              else {
+                printf("one alinan bolmeler: %s | tavan %s\n", implode(', ', $fsec),
+                       defined('VESTRA_HOME_SECTION_MAX') ? VESTRA_HOME_SECTION_MAX : '?');
+                foreach ($fsec as $fs) {
+                  $n = 0; foreach ($cand as $c) if (vestra_product_section($c) === $fs && !vestra_is_sold_out($c)) $n++;
+                  printf("  %-18s %d aday (satista, fotografli)%s\n", $fs, $n, $n === 0 ? '   *** bu bolmede aday YOK ***' : '');
+                }
+              }
+              printf("one alinan markalar: %s | tavan %s\n", implode(', ', $front),
+                     defined('VESTRA_HOME_FEATURED_MAX') ? VESTRA_HOME_FEATURED_MAX : '?');
               foreach ($front as $fb) {
                 $n = 0; foreach ($cand as $c) if (strtoupper(trim((string)($c['brand'] ?? ''))) === $fb) $n++;
                 printf("  %-18s %d aday%s\n", $fb, $n, $n === 0 ? '   *** bu markada aday YOK ***' : '');
@@ -889,11 +902,15 @@ jobs:
               $picks = vestra_home_new_picks($cand);
               printf("\nseritte %d kart:\n", count($picks));
               foreach ($picks as $i2 => $pk) {
-                $isF = in_array(strtoupper(trim((string)($pk['brand'] ?? ''))), $front, true);
+                /* Etiket secicinin KENDI sirasiyla: once bolme, sonra marka, sonra yeni.
+                   Bolme kartina "[yeni]" demek 120 gunluk bir ilani taze gosterirdi --
+                   rakam dogru, etiket yalan. */
+                $isS = $fsec !== null && in_array(vestra_product_section($pk), $fsec, true);
+                $isF = !$isS && in_array(strtoupper(trim((string)($pk['brand'] ?? ''))), $front, true);
                 printf("  %2d. %-26s %-20s %s%s\n", $i2 + 1,
                        (string)($pk['id'] ?? '?'), (string)($pk['brand'] ?? '?'),
                        substr((string)($pk['added_at'] ?? '(tarih yok)'), 0, 10),
-                       $isF ? '   [one alinan]' : '   [yeni]');
+                       $isS ? '   [bolme: '.vestra_product_section($pk).']' : ($isF ? '   [one alinan]' : '   [yeni]'));
               }
               if (!$picks) echo "  (bos -- ne one alinan markada ne de pencerede fotografli ilan var)\n";
               exit(0);

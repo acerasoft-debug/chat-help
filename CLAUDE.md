@@ -7214,6 +7214,41 @@ seller armasini daha estetik yap"*).
   kırmızı döndü — arada 2 günlük bir ilan vardı ve orada olması **doğruydu**.
   Kod haklı çıktı, iddia yanlıştı; iddia artık tam sıraya bakıyor.
 
+**"New arrivals" şeridinin BAŞINDA artık İÇ ÇAMAŞIRI; F.Perry/Lacoste payı 6 → 3**
+(operatör, 25 Eyl 2026, dört adımda daraldı: *"shop?section=underwear bu ürünleri
+ön plana al diğer lüks markaları azalt"* → *"ana sayfadan"* → *"resimleri sadece"*
+→ *"özellikle New arrivals bölümüne iç çamaşırı bölümünü koy"*).
+- **Hedef son cümleyle belirlendi:** ilk üç cümle `/shop` sırasını, sonra ana
+  sayfanın saf görüntü film şeridini (`$HERO_*`) düşündürdü; dördüncü cümle
+  **var olan bir bölümü ADIYLA** verdi. Film şeridine **dokunulmadı** — istenirse
+  ayrı iş.
+- **Bölme bir MARKA değil:** `$featured` `brand` alanına bakıyor; iç çamaşırını
+  oraya eklemek hiçbir ürüne eşleşmeyen ölü bir satır olurdu. Ayrı liste
+  (`vestra_home_featured_sections()` = `['underwear']`, ölçüt
+  `vestra_product_section()` — `/shop?section=underwear`'in kendisi) ve ayrı tavan
+  (`VESTRA_HOME_SECTION_MAX = 6`). Sıra: **bölme → marka → gerçekten yeni →
+  artan slotları önce bölme, sonra marka doldurur.**
+- **İki tavan birlikte düşünüldü, çünkü bu dosyanın kendi tuzağı:** marka tavanı
+  6'da kalsaydı 6 + 6 = 12 = bütün ızgara ve **gerçekten yeni hiçbir ilan
+  giremezdi** — 16 Eylül'de tam bu yaşanmıştı. `VESTRA_HOME_FEATURED_MAX` 6 → **3**
+  ("diğer markaları azalt"), yani en az 3 slot yeni ilana kalıyor. Rakamlar
+  operatörden gelmedi; tek satır.
+- **Bir eski iddia tesadüfe dayanıyordu:** §9 toplam marka sayısını tavana
+  eşitliyordu ve bu yalnızca fikstürdeki 6 yeni ilan + tavan 6 = 12 olduğu için
+  tutuyordu. Tavan 3 olunca boş kalan 3 slotu **tasarım gereği** markalar
+  doldurdu — yenilerin **arkasında**. İddia artık asıl olguyu ölçüyor: yenilerin
+  **önünde** en fazla tavan kadar marka.
+- **Sonda da düzeltildi:** `inspect-products` → `home_picks` bölme dışındaki her
+  kartı `[yeni]` diye etiketliyordu; 120 günlük bir iç çamaşırı "yeni" görünürdü
+  (rakam doğru, etiket yalan). Artık `[bolme: underwear]`, bölmenin aday sayısını
+  ve iki tavanı basıyor; bölme kodu inmemişse bunu **ayrıca** söylüyor.
+- Test: `home_new_picks_test.php` 41 → **59 iddia**. Beş sabotaj, her biri
+  gerçekten uygulandığı doğrulanarak: bölme kovası kapalı **8 kırmızı**, marka
+  tavanı 6'ya dönünce **3**, bölme tavanı kalkınca **2**, marka bölmenin önüne
+  alınınca **4**, ham alan + alt dize (`underwearx` öne çıkıyor) **1**.
+  **Çizdirildi** (kum havuzu kopyası, iki sentetik iç çamaşırı ilanı): şeridin ilk
+  iki kartı iç çamaşırı, sonra Lacoste; PHP uyarısı 0.
+
 **16–17 Eyl 2026 — TAM SİTE DENETİMİ** (operatör: *"siteyi komple kontrol et
 daha fazla ve daha iyi konfor ve estetik olsun hatalari tespit et ve düzelt"*).
 Ölçüm: 147 PHP dosyası lint temiz; 28 sayfa × 2 genişlik ekran görüntüsü

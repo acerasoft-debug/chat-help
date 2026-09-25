@@ -11,14 +11,16 @@
  * Tek yon yazilsaydi "her urunu basan" bir kusur da yesil kalirdi.
  */
 $src = file_get_contents(__DIR__.'/../vestra/inc/products.php');
-foreach (['vestra_home_featured_brands', 'vestra_home_new_picks', 'vestra_product_is_new', 'vestra_is_sold_out'] as $fn) {
+foreach (['vestra_home_featured_brands', 'vestra_home_featured_sections', 'vestra_home_new_picks',
+          'vestra_product_is_new', 'vestra_is_sold_out', 'vestra_sections', 'vestra_product_section'] as $fn) {
     if (!preg_match('/^function '.preg_quote($fn,'/').'\(.*?^}/ms', $src, $m)) { echo "HATA: $fn bulunamadi\n"; exit(1); }
     eval($m[0]);
 }
 if (!defined('VESTRA_SHOP_NEW_DAYS')) define('VESTRA_SHOP_NEW_DAYS', 7);
-preg_match('/const VESTRA_HOME_FEATURED_MAX\s*=\s*(\d+)/', $src, $fm);
-if (!$fm) { echo "HATA: VESTRA_HOME_FEATURED_MAX bulunamadi\n"; exit(1); }
-define('VESTRA_HOME_FEATURED_MAX', (int)$fm[1]);
+foreach (['VESTRA_HOME_FEATURED_MAX', 'VESTRA_HOME_SECTION_MAX'] as $cn) {
+    if (!preg_match('/const '.$cn.'\s*=\s*(\d+)/', $src, $fm)) { echo "HATA: $cn bulunamadi\n"; exit(1); }
+    define($cn, (int)$fm[1]);
+}
 
 $ok=0; $fail=0;
 $t = function(string $n, bool $c) use (&$ok,&$fail) { $c ? ($ok++ . print("  ok   $n\n")) : ($fail++ . print("  HATA $n\n")); };
@@ -126,11 +128,23 @@ $many[] = $mk('fpx-1', 'Fred Perry', $d(300));
 $many[] = $mk('fpx-2', 'Fred Perry', $d(300));
 for ($i = 0; $i < 6; $i++) $many[] = $mk('fresh-'.$i, 'Gucci', $d($i + 1));
 $r9 = vestra_home_new_picks($many, null, 12, $NOW);
-$nFeat = count(array_filter($ids($r9), fn($x) => str_starts_with($x,'lac-') || str_starts_with($x,'fpx-')));
+$isFeat = fn($x) => str_starts_with($x,'lac-') || str_starts_with($x,'fpx-');
 $nNew  = count(array_filter($ids($r9), fn($x) => str_starts_with($x,'fresh-')));
-$t('one alinanlar tavani asmiyor',   $nFeat === VESTRA_HOME_FEATURED_MAX);
-$t('GERCEKTEN YENI ilanlar da var',  $nNew > 0);
+/* OLCUT: yenilerin ONUNDE en fazla tavan kadar one alinan. Ilk yazim toplam
+   sayiyi tavana esitliyordu ve bu yalnizca fikstur tesaduf eseri tuttugu icin
+   dogruydu (6 yeni + tavan 6 = 12). 25 Eyl 2026'da tavan 3'e inince izgarada
+   3 bos slot kaldi ve TASARIM GEREGI one alinanlarin geri kalani onlari
+   doldurdu -- yenilerin ARKASINDA. Asil olgu sira, toplam degil. */
+$freshPos = array_keys(array_filter($ids($r9), fn($x) => str_starts_with($x,'fresh-')));
+$featAhead = $freshPos ? count(array_filter(array_slice($ids($r9), 0, max($freshPos)), $isFeat)) : PHP_INT_MAX;
+$t('one alinanlar tavani asmiyor (yenilerin onunde)', $featAhead === VESTRA_HOME_FEATURED_MAX);
+$t('butun GERCEKTEN YENI ilanlar girdi',   $nNew === 6);
 $t('izgara doluyor',                 count($r9) === 12);
+/* Yeni ilan izgarayi doldurmaya yetiyorsa one alinanlar TAM tavanda kalir. */
+$manyFresh = array_slice($many, 0, 15);
+for ($i = 0; $i < 12; $i++) $manyFresh[] = $mk('fresh2-'.$i, 'Gucci', $d(($i % 6) + 1));
+$r9b = vestra_home_new_picks($manyFresh, null, 12, $NOW);
+$t('yeni ilan boldayken marka tam tavanda', count(array_filter($ids($r9b), $isFeat)) === VESTRA_HOME_FEATURED_MAX);
 /* Ters yon: yeni ilan YOKSA bos slotlar one alinanlarla dolmali -- yarim
    dolu bir izgara, dolu bir izgaradan kotu gorunur. */
 $r10 = vestra_home_new_picks(array_slice($many, 0, 15), null, 12, $NOW);
@@ -152,6 +166,61 @@ $t('satista olanlar VAR',      $ids($r11) === ['fp-ok','new-ok']);
 /* Bos dizge SATILDI degil (sold_out yazma dalinin bu depoda kayitli tuzagi). */
 $r12 = vestra_home_new_picks([$mk('fp-str','Fred Perry',$d(300)) + ['sold_out' => '']], null, 12, $NOW);
 $t('bos dizge satilmis SAYILMIYOR', $ids($r12) === ['fp-str']);
+
+echo "\n== 11. Ic camasiri bolmesi SERIDIN BASINDA (operator, 25 Eyl 2026) ==\n";
+/* "ozellikle New arrivals bolumune ic camasiri bolumunu koy" + "diger luks
+   markalari azalt". Iki yon: bolme ONDE ve payi sinirli, one alinan markalar
+   GERIDE ve yarim payla, ve gercekten yeni ilanlar HALA giriyor. Katalog
+   sirasi bilerek ters: ic camasiri EN SONDA duruyor. */
+$uw = fn(string $id, string $brand, int $age) => $mk($id, $brand, $d($age)) + ['section' => 'underwear'];
+$mix = [];
+for ($i = 0; $i < 13; $i++) $mix[] = $mk('lacm-'.$i, 'Lacoste', $d(200));
+$mix[] = $mk('fpm-1', 'Fred Perry', $d(300));
+for ($i = 0; $i < 6; $i++) $mix[] = $mk('freshm-'.$i, 'Gucci', $d($i + 1));
+for ($i = 0; $i < 9; $i++) $mix[] = $uw('uw-'.$i, 'NBB', 120);   // eski ama bolme
+$r13 = vestra_home_new_picks($mix, null, 12, $NOW);
+$i13 = $ids($r13);
+$nUw   = count(array_filter($i13, fn($x) => str_starts_with($x,'uw-')));
+$nFm   = count(array_filter($i13, fn($x) => str_starts_with($x,'lacm-') || str_starts_with($x,'fpm-')));
+$nFr   = count(array_filter($i13, fn($x) => str_starts_with($x,'freshm-')));
+$t('ilk kart ic camasiri',                    str_starts_with($i13[0] ?? '', 'uw-'));
+$t('ilk '.VESTRA_HOME_SECTION_MAX.' kart ic camasiri',
+   array_slice($i13, 0, VESTRA_HOME_SECTION_MAX) === array_map(fn($k) => 'uw-'.$k, range(0, VESTRA_HOME_SECTION_MAX - 1)));
+$t('bolme tavani asilmiyor',                  $nUw === VESTRA_HOME_SECTION_MAX);
+$t('one alinan markalar tavaninda',           $nFm === VESTRA_HOME_FEATURED_MAX);
+$t('markalar bolmenin ARKASINDA',             array_search('fpm-1', $i13, true) === false || array_search('fpm-1', $i13, true) >= VESTRA_HOME_SECTION_MAX);
+$t('GERCEKTEN YENI ilanlar hala giriyor',     $nFr > 0);
+$t('izgara dolu',                             count($r13) === 12);
+/* Ic camasiri YENI olmasa da giriyor: 120 gunluk. Bolme tazelige bagli olsaydi
+   operatorun adiyla istedigi bolum seride hic girmezdi. */
+$t('bolme YENI olmasa da giriyor',            !vestra_product_is_new($uw('x','NBB',120), $NOW) && $nUw > 0);
+
+/* TERS YON: bolme bossa davranis ONCEKININ AYNISI -- ayni katalogdan
+   ic camasiri cikarilinca ilk kart one alinan marka. */
+$noUw = array_values(array_filter($mix, fn($p) => ($p['section'] ?? '') !== 'underwear'));
+$r14  = vestra_home_new_picks($noUw, null, 12, $NOW);
+$t('bolme yokken marka basta',                str_starts_with($ids($r14)[0] ?? '', 'lacm-') || str_starts_with($ids($r14)[0] ?? '', 'fpm-'));
+
+/* Satilmis ic camasiri seride giremez -- ayni rozet kurali. */
+$r15 = vestra_home_new_picks([$uw('uw-sold','NBB',30) + ['sold_out' => true], $uw('uw-ok','NBB',30)], null, 12, $NOW);
+$t('satilmis ic camasiri YOK',                $ids($r15) === ['uw-ok']);
+
+/* Bilinmeyen bolme adi 'premium'a duser (vestra_product_section) -- yazim
+   hatasi bolmeyi one cekmez. Tam esitlik, alt dize degil. */
+$r16 = vestra_home_new_picks([$mk('odd','X',$d(200)) + ['section' => 'underwearx']], null, 12, $NOW);
+$t('yanlis yazilmis bolme ONE CEKILMEDI',     $ids($r16) === []);
+
+/* Bolme tavani ayri: bolmede fazla aday olsa da bos slot kalirsa geri kalan
+   doldurur (yarim dolu izgara kotu gorunur). */
+$onlyUw = []; for ($i = 0; $i < 10; $i++) $onlyUw[] = $uw('uwo-'.$i, 'NBB', 60);
+$t('yalniz bolme varken izgara yine doluyor', count(vestra_home_new_picks($onlyUw, null, 12, $NOW)) === 10);
+
+echo "\n== 12. Sevk edilen degerler ==\n";
+$t('underwear sevk edilen bolme',             vestra_home_featured_sections() === ['underwear']);
+$t('underwear gercek bir bolme anahtari',     isset(vestra_sections()['underwear']));
+$t('marka payi yariya indi (3)',              VESTRA_HOME_FEATURED_MAX === 3);
+$t('bolme payi 6',                            VESTRA_HOME_SECTION_MAX === 6);
+$t('iki pay birlikte yeni ilana yer birakiyor', VESTRA_HOME_FEATURED_MAX + VESTRA_HOME_SECTION_MAX < 12);
 
 printf("\n%d ok, %d hata\n", $ok, $fail);
 exit($fail ? 1 : 0);
