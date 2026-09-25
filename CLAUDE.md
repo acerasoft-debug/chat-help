@@ -9087,6 +9087,10 @@ için kendileri seçebilsin ad koyabilsin"*).
   taraması bunu ölçemezdi. İki yön: doğru sırada `Set-Cookie` gidiyor ve günlük
   susuyor; çıktı `money.php`'den önce başlamışsa uyarı **tam 1** kez. Muhafaza
   silinince **2 kırmızı** (sabotajın uygulandığı `grep -c` ile doğrulandı).
+  **Canlıda ölçüldü** (deploy `d1471ded` 17:03:33 UTC, iki `accounts_report`
+  koşusu): son satır **17:02:10**'da kalıyor, 17:06:11'e kadar **yeni satır 0**.
+  Önceki hız 15 dakikada 25 satırdı (~1,7/dk); aynı pencerede 4-5 satır
+  beklenirdi.
 
 **KURAL 36 — GİZLİ MARKA: sitenin HER yerinden görünmez, hiçbir şey SİLİNMEZ;
 geri açmak panelde tek tık** (operatör, 25 Eyl 2026: *"Gucci ve Balenciaga
@@ -9189,3 +9193,99 @@ hiç görünmesin"*).
 - **Bilinen bedel, söylendi:** gizli markanın 35 ürün sayfası ve marka sayfası
   arama motoruna 404 dönüyor, yani dizinden düşecek; geri açıldığında sitemap
   onları yeniden veriyor ama yeniden dizine girmeleri zaman alır.
+
+**KURAL 37 — NUMUNE ÖDEME LİNKİ: satıcının mesajda anlaştığı tek seferlik numune
+fiyatı, YALNIZ o alıcıya; adres Stripe sayfasında; link ödenene kadar geçerli**
+(operatör, 25 Eyl 2026: *"Je veux d'abord commander un échantillon pour voir la
+qualité · Lacoste Zip Up Fleece Hoodie ↗ bu ürün icin bir ödeme linki olustur ve
+müsteriye gönder"* + *"#Ecokemet 80 eur olucak adresini girebilsin ident nr. ve
+numune yazsin"*).
+
+- **Yazışmada durum:** GARAGE LE PARIS alıcıya (Ecokemet) *"Le prix de
+  l'échantillon est de 80 €"* yazmış, alıcı *"pouvez-vous m'envoyer le lien de
+  paiement"* diye sormuştu. **Bunu yapmanın bir yolu yoktu:** ürün sayfasındaki
+  numune kutusu yalnız ilanda `sample_price` varsa açılıyor ve yalnız girişli
+  alıcı o sayfadan POST edince çalışıyor. İlana `sample_price: 80` yazmak o
+  fiyatı **her alıcıya** gösterirdi; bu anlaşma yalnız bu alıcıyla yapıldı.
+- **Yeni yol, var olan numune makinesinin üstünde** (`inc/samples.php`, aynı
+  `samples.json`, aynı `SPL-` ref, aynı webhook dalı `kind=sample`): kayda
+  `via=link`, 32 hex `pay_token`, `line_name` ve `lang` eklenir. İkinci bir
+  numune sistemi yazılmadı.
+  - **`/sample-pay?ref=…&t=…`**: jeton `hash_equals` ile doğrulanıyor, yanlışsa
+    **404**. Stripe Checkout oturumu 24 saat yaşıyor, ama bu sayfa açık oturumu
+    **yeniden kullanıyor**, süresi dolmuşsa yenisini kuruyor. Yani mektubun
+    *"le lien reste valable jusqu'au paiement"* cümlesi **doğru**.
+  - **ÇİFT TAHSİLAT MUHAFAZASI:** yeni oturum kurulmadan **önce** eski oturumun
+    ödenip ödenmediği soruluyor (webhook gecikmiş ya da kaybolmuş olabilir).
+    Ödenmişse kayıt işaretleniyor ve alıcı onaya gidiyor, ikinci ödeme sayfasına
+    değil. Sandbox'ta Stripe yok, o yüzden bu dal kaynaktan ölçülüyor. İlk
+    falsifikasyonda iddiasızdı ve **yeşil kaldı**; iddia eklenince **2 kırmızı**.
+  - **Adres Stripe sayfasında** (`shipping_address_collection`, AB listesi tek
+    kaynak `sample_eu_countries()`; ürün sayfası numunesi de artık onu okuyor).
+    Kurye için telefon da isteniyor.
+  - **Stripe satırı** *"Échantillon — Lacoste Zip Up Fleece Hoodie · Ident n°
+    SH9626"*: numune kelimesi alıcının dilinde (en/fr/de/es/it) ve ident no.
+    ilanın SKU'sundan.
+  - **Ödeme PLATFORM hesabına** (KURAL 33): satıcı Connect-hazır olsa bile
+    `acct_id` yazılmıyor, `seller_uid` iz için duruyor.
+- **YAN BULGU, düzeltildi: numune adresi toplanıp ATILIYORDU.** Ürün sayfası
+  numunesi de adresi Stripe'ta istiyordu, ama webhook yalnız dropship'te okuyup
+  kaydediyordu. Ödenmiş bir numunenin nereye gideceği yalnız Stripe panelinde
+  duruyordu. Artık `sample_mark_paid($ref, $pi, $shipTo)` adresi `ship_to`
+  olarak yazıyor ve operatöre giden "Sample order paid" mektubu `Ship to:`
+  satırı taşıyor. Üç yol aynı yardımcıdan okuyor (`sample_ship_from_session`):
+  webhook, onay sayfası ve `sample-pay`.
+- **Onay sayfası (`/sample-confirm`) jetonla girişsiz açılıyor.** Alıcı bir
+  e-postadan geliyor ve çoğu zaman girişli değil. Eski hâliyle ödeme sonrası
+  giriş sayfasına düşerdi. Yanlış jetonla açılmıyor (iki yön testli).
+- **Mektup** `vestra_sample_link_text()` (5 dil): ürün, ident no. ve tutar
+  **parametreden** geliyor; testte gövdede gömülü `80`/`SH9626` araması var.
+  Link, düğmenin yanında **metinde de** duruyor, çünkü düğmeyi düşüren istemcide
+  ödeme yolu görünmez kalırdı.
+- **İş akışı:** `seller-products.yml` → `admin_mode=sample_link`
+  (`issue_ref=<alıcı HESAP ID>`, `payload='product=<ilan>|price=<EUR>|lang=<xx>'`,
+  varsayılan kuru koşu).
+  - Yalnız ID ile **TAM eşleşme** yapılıyor; kişinin adı herkese açık girdiye
+    yazılmıyor.
+  - Aynı alıcı ve aynı ilan için **açık bir link varsa ikincisi kurulmuyor**
+    (farklı tutarsa iş duruyor).
+  - **Stripe oturumu MEKTUPTAN ÖNCE** kuruluyor ve tutarı kontrol ediliyor:
+    çalışmayan bir link mektupla gitmez.
+  - **Link ve jeton kütüğe basılmıyor** (`t=***`), çünkü jeton tek başına ödeme
+    sayfasını açar.
+- **CANLI (25 Eyl 2026):**
+  - Kuru koşu (run `36130482675`) ve gönderim (run `36130531985`): hesap
+    `0d3670a2500e5b15` · Ecokemet · `l***@hotmail.fr` · buyer/active · dil fr ·
+    France (AB) · `lac-zip-hoodie` / **SH9626** · satıcı GARAGE LE PARIS ·
+    **EUR 80.00** · platform.
+  - Sonuç: kayıt **`SPL-FD5C39E1`**, Stripe oturumu **KURULDU, tutar 80.00 EUR**,
+    konu *"VESTRA — lien de paiement pour votre échantillon (SH9626)"*,
+    **GÖNDERİLDİ**.
+  - Brevo (`diag-messages` → `mail_for=account:0d3670a2500e5b15`):
+    **13:39:10 +02:00 `delivered`**.
+  - Kayıt bağımsız okundu (`diag-live` → `find_ref=SPL-FD5C39E1`): `pending ·
+    via=link · SH9626 · 80 eur · stripe_oturumu=VAR · jeton=VAR (32)`.
+- **Sonda yine yanlış yere bakıyordu (bu depoda üçüncü kez):** ilk `find_ref`
+  *"hiçbir kayıt dosyasında YOK — kayıt gerçekten oluşmamış"* dedi, çünkü
+  `samples.json` taranan dosyalar listesinde **yoktu**. Gönderim koşusunun kendi
+  geri okuması ile sonda çelişiyordu ve çelişki çözülmeden "tamam" denmedi.
+  `samples.json` eklendi: yalnız güvenli alanlar basılıyor, oturum, jeton ve
+  adres için yalnız VAR/YOK yazılıyor. Sabit örnek kayıtla yerelde koşturuldu:
+  jeton, e-posta ve oturum kimliği **0 kez** basıldı.
+- Test: `tests/sample_link_test.php` (**78 iddia**, iki yön). `sample-pay` ve
+  `sample-confirm` kum havuzu kopyasında **gerçekten çizdiriliyor**.
+  Falsifikasyonda her sabotajın uygulandığı sayıldı:
+  - jeton kontrolü `via`'yı yok sayınca **1 kırmızı**,
+  - adres toplama kalkınca **2**,
+  - onay sayfasının jeton erişimi kalkınca **1**,
+  - çift tahsilat muhafazası kalkınca **2**,
+  - açık oturumu yeniden kullanma kalkınca **1**,
+  - iş akışında mektup Stripe'tan önce gönderilince **1**.
+- **AÇIK KALAN, operatör kararı bekliyor — 7 numunelik fatura:** Ecokemet için
+  hazırlanan plan (SH9626 dahil 7 numune, katalog fiyatı, +€30 kargo, EUR/IBAN
+  fatura) **yazılmadı ve kesilmedi**. Alıcının son cümlesi *"d'abord … un
+  échantillon pour voir la qualité"* (önce **tek** numuneyle kaliteyi görmek)
+  ve SH9626 artık bu €80'lik linkte. Aynı ürünü faturaya €55'ten koymak
+  **çift tahsilat** olurdu. Seçenekler: (a) faturayı SH9626'sız 6 kalemle
+  kesmek (€368,90 + €30 = €398,90), (b) numune ödenip kalite onaylanana kadar
+  bekletmek.
