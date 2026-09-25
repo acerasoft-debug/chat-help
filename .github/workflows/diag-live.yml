@@ -635,7 +635,13 @@ jobs:
                ayni adres icin "zaten var" diyordu. Yanlis cevabi dogruymus gibi
                basan bir teshis, hic teshis olmamasindan daha kotu: arayan kisi
                aramayi birakip yanlis sonuca gore hareket ediyor. */
-            $jsonFiles = ['order_statuses.json','offer_responses.json','listings.json','leads.json'];
+            /* samples.json 25 Eyl 2026'da EKLENDI: numune odeme linki (SPL-...)
+               yazildiktan sonra bu sonda "hicbir kayit dosyasinda YOK -- kayit
+               gercekten olusmamis" dedi; oysa kayit duruyordu, sonda o dosyaya
+               hic BAKMIYORDU. Gormedigi bir dosya hakkinda hukum veren sonda,
+               bu depoda ucuncu kez kayitli ders. pay_token $safe'te YOK ve
+               asla eklenmemeli (jeton tek basina odeme sayfasini acar). */
+            $jsonFiles = ['order_statuses.json','offer_responses.json','listings.json','leads.json','samples.json'];
             $hits = 0;
 
             foreach ($csvFiles as $f) {
@@ -674,7 +680,9 @@ jobs:
               $safe = ['status','confirmed_at','paid_at','shipped_at','cancelled_at','invoice_no',
                        'invoice_at','invoice_currency','invoice_seller_uid','shipping','disputed',
                        'payment_grace_start','payment_reminder_sent_at','escrow_status',
-                       'invoice_paid_at','invoice_group_ref'];
+                       'invoice_paid_at','invoice_group_ref',
+                       /* samples.json (numune): tutar/durum/tarih; kisiye ait ve jeton YOK */
+                       'via','product_id','sku','amount','currency','created','link_sent_at','fulfilled'];
               foreach ((array)$d as $k => $rec) {
                 if (stripos((string)$k, $needle) === false) continue;
                 if (!is_array($rec)) continue;
@@ -683,6 +691,10 @@ jobs:
                   if (!isset($rec[$sk]) || $rec[$sk] === '' || is_array($rec[$sk])) continue;
                   $line[] = $sk.'='.(is_bool($rec[$sk]) ? ($rec[$sk]?'true':'false') : mb_substr((string)$rec[$sk], 0, 32));
                 }
+                /* Oturum kimligi basilmiyor, yalniz VAR/YOK; adres yalniz VAR/YOK. */
+                if (array_key_exists('session_id', $rec)) $line[] = 'stripe_oturumu='.(str_starts_with((string)$rec['session_id'], 'cs_') ? 'VAR' : 'YOK');
+                if (array_key_exists('pay_token', $rec))  $line[] = 'jeton='.(strlen((string)$rec['pay_token']) === 32 ? 'VAR (32)' : 'YOK');
+                if (array_key_exists('ship_to', $rec))    $line[] = 'teslimat_adresi='.(!empty($rec['ship_to']) ? 'VAR' : 'YOK');
                 if ($line) echo "   ".mb_substr((string)$k, 0, 24)."  ".implode(' | ', $line)."\n";
                 if (!empty($rec['history']) && is_array($rec['history'])) {
                   foreach (array_slice($rec['history'], -6) as $h) {
