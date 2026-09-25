@@ -2399,10 +2399,20 @@ jobs:
                 printf("  %-26s CEVRILEMEDI: %s -- KESIM DURUR\n", mb_substr($who,0,24), $p['currency_error']);
                 continue;
               }
-              $rails = $acc ? vestra_payment_rails($acc, $cur) : [];
+              /* PLATFORM DILIMINDE $acc NULL gelir (vestra_order_invoice_payloads
+                 'vestra' anahtarina hesap koymuyor) ve bu satir eskiden onu
+                 "HIC CIKMAZ -- platform kesiyor" diye SABIT basiyordu. Oysa cizici
+                 ve kesim muhafazasi platformun KENDI kunyesini okuyor (KURAL 5j),
+                 yani doldurulmus bir USD kutusunu "cikmaz" diye bildiriyordu --
+                 25 Eyl 2026, VES-31562779. Hukum artik kesimin sordugu TEK yerden:
+                 vestra_invoice_payment_gap() (KURAL 5r); satir sayisi da cizicinin
+                 okudugu kunyeden. diag-live'in ayni satiri bunu zaten yapiyordu. */
+              $payAcc = $acc ?: vestra_platform_seller();
+              $rails  = vestra_payment_rails($payAcc, $cur);
+              $gap    = vestra_invoice_payment_gap($acc, $cur, false);
               printf("  %-26s %s odeme kutusu: %s\n", mb_substr($who,0,24), $cur,
-                     $acc ? ($rails ? count($rails).' satir' : 'BOS -- bu hesapta '.$cur.' yolu yok')
-                          : 'HIC CIKMAZ -- platform kesiyor, bagli banka hesabi yok');
+                     $gap === '' ? 'CIKAR ('.count($rails).' satir)'
+                                 : '*** CIKMAZ -- KESIM DURUR (KURAL 5r): '.$gap);
             }
             echo "kesim            : YAPILMADI (numara yanmadi, PDF uretilmedi, aliciya hicbir sey gitmedi)\n";
             PHPEOF
