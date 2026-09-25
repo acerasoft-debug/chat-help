@@ -99,7 +99,7 @@ on:
         required: false
         default: ""
       reply_spec:
-        description: "ALICI CEVABI: alan=değer, | ile ayrık. to(adres YA DA account:<isim-parçası> YA DA order:<sipariş ref> — adres sunucudan, girdiye yazılmaz)/send(true|false)/salutation/vat/signer(varsayılan Marco Bellini)/for(seller_setup: mektubun VERİSİNİ veren satıcı — to farklıysa test demektir). to boş = operatör test kutusu. copy=true = mektup MÜŞTERİYE GİTMEZ, birebir aynısı (ekleriyle) operatörün kutusuna gider — KURAL 18'in inceleme adımı; send=true ile birlikte verilirse kopya kazanır. msg_reply KENDİ alanlarını kullanır (to= YOK): listing=<ilan id>/buyer=<alıcı adında geçen metin, thread'i bulmak için>/body=<mesaj metni>/send(true|false)"
+        description: "ALICI CEVABI: alan=değer, | ile ayrık. to(adres YA DA account:<isim-parçası> YA DA order:<sipariş ref> YA DA enc:<ŞİFRELİ zarf — scripts/envelope_seal.php + seller-products keygen'in public key'i; adres sunucuda çözülür, hesaba TAM eşleşmeyle bağlanır, çıktıda maskeli> — adres sunucudan, girdiye yazılmaz)/send(true|false)/salutation/vat/signer(varsayılan Marco Bellini)/for(seller_setup: mektubun VERİSİNİ veren satıcı — to farklıysa test demektir). to boş = operatör test kutusu. copy=true = mektup MÜŞTERİYE GİTMEZ, birebir aynısı (ekleriyle) operatörün kutusuna gider — KURAL 18'in inceleme adımı; send=true ile birlikte verilirse kopya kazanır. msg_reply KENDİ alanlarını kullanır (to= YOK): listing=<ilan id>/buyer=<alıcı adında geçen metin, thread'i bulmak için>/body=<mesaj metni>/send(true|false)"
         required: false
         default: "send=false"
 
@@ -902,6 +902,56 @@ jobs:
 
             $to = trim($E('to'));
             $acc = null;
+            /* "enc:<KEY.IV.GOVDE>" = adres SIFRELI ZARFTA. Operator sohbette bir
+               adres verdiginde ve adresin hangi kayda ait oldugu (hesap mi, aday
+               mi, hicbiri mi) bilinmediginde, geriye adresi ACIK girdiye yazmak
+               kaliyordu: 21 Eyl 2026'da yerel kismi find_ref'e, 23 Eyl'de tam
+               adres to='ya ("kacinilmaz" diye) yazildi, 25 Eyl'de "ari" adi 22
+               hesaba uydu ve adresin hangisi oldugu okunamadi. Girdi kosu
+               basliginda kalici ve herkese acik.
+               Zarf seller-products.yml create_buyer/platform_bank ile AYNI:
+               keygen'in public key'i, RSA-OAEP + AES-256-CBC, ozel anahtar
+               ~/.vestra_inbox_key.pem sunucudan hic cikmiyor, rakamlar base64'te
+               '!$%&#,;?@~' ile degistirili (DEPLOY_PORT="22" maskesi govdeyi
+               bozuyordu). Muhurleyen: scripts/envelope_seal.php. Govde
+               {"email":"..."}.
+               Cozulen adres auth_find() ile TAM eslesmeyle hesaba baglaniyor --
+               "bu adres kimin" sorusu tek kosuda cevaplaniyor, adres hicbir
+               yerde DUZ basilmiyor (yalniz MASKELI). Hesap yoksa ayni adres bir
+               LEAD'de duruyor mu diye de bakiliyor. */
+            if (str_starts_with(strtolower($to), 'enc:')) {
+              $encDec = fn(string $x) => base64_decode(strtr($x, '!$%&#,;?@~', '0123456789'), true);
+              $encP = explode('.', trim(substr($to, 4)));
+              if (count($encP) !== 3) { fwrite(STDERR, "enc: bicim hatali (KEY.IV.GOVDE bekleniyor)\n"); exit(1); }
+              $encKey = openssl_pkey_get_private((string)@file_get_contents(getenv('HOME').'/.vestra_inbox_key.pem'));
+              if (!$encKey) { fwrite(STDERR, "enc: sunucuda anahtar yok -- once seller-products admin_mode=keygen\n"); exit(1); }
+              $encAes = '';
+              if (!@openssl_private_decrypt((string)$encDec($encP[0]), $encAes, $encKey, OPENSSL_PKCS1_OAEP_PADDING)) {
+                fwrite(STDERR, "enc: anahtar acilamadi (yanlis public key ile mi sifrelendi?)\n"); exit(1);
+              }
+              $encJson = @openssl_decrypt((string)$encDec($encP[2]), 'aes-256-cbc', $encAes, OPENSSL_RAW_DATA, (string)$encDec($encP[1]));
+              $encIn = $encJson === false ? null : json_decode($encJson, true);
+              $to = strtolower(trim((string)(is_array($encIn) ? ($encIn['email'] ?? '') : '')));
+              /* Hata metni ADRESI TASIMIYOR: cozulen deger gecersizse de kutuk
+                 herkese acik. */
+              if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "enc: govde cozulemedi ya da adres gecersiz\n"); exit(1); }
+              $acc = auth_find($to);
+              echo "zarf   : adres cozuldu -> ".$mask($to)." | hesap: "
+                 . ($acc ? trim((string)($acc['company'] ?? '')).' ('.($acc['id'] ?? '?').', '.($acc['type'] ?? '?')
+                         .', '.($acc['status'] ?? '?').', kyb '.($acc['kyb_status'] ?? '?').')'
+                         : 'YOK')."\n";
+              if (!$acc) {
+                if (!function_exists('vestra_leads')) require_once $doc."/inc/leads.php";
+                $encLead = null;
+                foreach (vestra_leads() as $l) {
+                  if (strtolower(trim((string)($l['email'] ?? ''))) === $to) { $encLead = $l; break; }
+                }
+                echo "         lead : ".($encLead
+                     ? trim((string)($encLead['company'] ?? '?')).' (durum '.($encLead['status'] ?? 'new')
+                       .', son yazisma '.(substr((string)($encLead['last_contacted_at'] ?? ''), 0, 10) ?: 'hic').')'
+                     : 'YOK')."\n";
+              }
+            } /* enc: sonu */
             if (str_starts_with(strtolower($to), 'account:')) {
               $needle = strtolower(trim(substr($to, 8)));
               if ($needle === '') { fwrite(STDERR, "account: bos\n"); exit(1); }
@@ -2814,7 +2864,9 @@ jobs:
                  spec: pid(vars. lac-pique-polo)/vat/save_vat/pct(5)/months(6)/send */
               require_once $doc."/inc/vouchers.php";
 
-              if (!$acc) { fwrite(STDERR, "HESAP YOK: {$to} -- bu mektup kayitli hesap gerektirir\n"); exit(1); }
+              /* Adres MASKELI: kutuk herkese acik ve to=enc: ile gelen bir adres
+                 buraya duz dusseydi zarfin korudugu seyi arkadan acardi. */
+              if (!$acc) { fwrite(STDERR, "HESAP YOK: ".$mask($to)." -- bu mektup kayitli hesap gerektirir\n"); exit(1); }
               $uid  = (string)($acc['id'] ?? '');
               $open = auth_prices_unlocked($acc);
               echo "kapi   : auth_prices_unlocked = ".($open ? 'ACIK' : 'KAPALI')
