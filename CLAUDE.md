@@ -3325,6 +3325,20 @@ yazabilirsin"*).
   → `to=account:<isim>` (hesap) ve `to=order:<sipariş ref>` (orders.csv satırı).
   Sipariş/fatura numarasıyla yazan müşteriye cevap `reply_letter=tracking_soon`
   + `to=order:<ref>|inv=<yazdığı fatura no>`; `inv` kayıtla uyuşmazsa iş durur.
+- **Kayıtta çözülecek bir şey yoksa (ya da bilinmiyorsa) adres ŞİFRELİ ZARFLA
+  gider: `to=enc:<zarf>`** (25 Eyl 2026). Operatör sohbette bir adres verdiğinde
+  eldeki yollar adresi açık girdiye yazıyordu — 21 Eyl'de yerel kısmı
+  `find_ref`'e, 23 Eyl'de tam adres `to=`'ya ("kaçınılmaz" diye). Zarf
+  `create_buyer`'ınkiyle AYNI (keygen'in public key'i, RSA-OAEP + AES-256-CBC,
+  özel anahtar `~/.vestra_inbox_key.pem` sunucudan hiç çıkmıyor); mühürleyen
+  `scripts/envelope_seal.php` (gövde `{"email":"…"}` stdin'den, public key
+  `seller-products.yml` → `admin_mode=keygen`). Sunucu adresi çözüp
+  `auth_find()` ile **TAM** eşleşmeyle hesaba bağlıyor, hesap yoksa lead
+  kaydına bakıyor ve yalnız **maskeli** basıyor — "bu adres kimin" sorusu tek
+  kuru koşuda cevaplanıyor. Ad parçasıyla aramak bunu cevaplayamıyordu:
+  aynı gün `find_ref=ari` **22 hesaba** uydu (Paris, Bulgaria, adresler…) ve
+  adresin hangisi olduğu okunamadı. Test: `tests/envelope_to_test.php`
+  (40 iddia; sızıntı dahil iki yön).
 - **API anahtarları sunucudan çıkmaz.** (Bu yüzden `dropship_api_key` yerine sunucu
   tarafında `dropship_probe` bayrağı var.)
 - Operatör bir anahtar/parola yapıştırırsa **kullanma** — iptal edip yenisini almasını
@@ -6137,6 +6151,34 @@ katalogun fiyat listesini gönderirmisin"*.
 - **GÖNDERİLDİ** → h***@gmail.com, imza **Marco Bellini — VESTRA**, dil **en**
   (bu şablon yalnız en/de destekliyor; pt/ru/ar'ın e-posta şablonlarında
   İngilizceye düştüğü KURAL 10'un aynı kuralı).
+
+**25 Eyl 2026 — Aynı istek, bu kez adres HİÇBİR KAYITTA YOK; adres girdiye hiç
+yazılmadan gönderildi.** Operatör bir gmail adresi verip *"tüm katalog fiyat
+listelerini gönder"*, ardından *"ari ismi"* dedi.
+- **Ad aramak cevap vermedi:** `find_ref=ari` **22 hesaba** uydu (şirket adında
+  Paris, ülke Bulgaria, adresler…); `a***@gmail.com` maskeli tek hesap
+  (Azelyaparis) kişi adı "D" ile başlıyordu — kesin değil. 21 Eyl'in yolu
+  (adresin yerel kısmını `find_ref`'e yazmak) adresi herkese açık girdiye
+  yazmaktı; bunun yerine **`to=enc:`** kuruldu (Güvenlik bölümü).
+- **Zarf ölçtü:** `hesap: YOK`, `lead: YOK` — yani kayıtsız bir adres, onaylı
+  bir alıcı DEĞİL. Bu, 21 Eyl'deki onaylı hesaptan farklı bir durum ve KURAL
+  19'la (fiyat listesi girişsiz açılmaz) çelişiyordu; KURAL 18'in "şüphe varsa
+  sor" kuralıyla **tek soru** soruldu. Operatör: **gönder, hitap "Dear Ari"**.
+- Kuru koşu → gönderim, ikisi de aynı zarfla: **858 kalem / 21 marka**
+  (Gucci ve Balenciaga gizli — KURAL 36; 21 Eyl'de 893/23), PDF **6,18 MB /
+  842 gömülü fotoğraf** + Excel **104 KB**, base64 ~8,6 MB (tavan 9,5 MB),
+  fiyat kapısı `(hesap yok)` → mektup "ücretsiz kaydolunca aynı liste
+  hesabınızda" davetiyle bitiyor. **GÖNDERİLDİ → a***@gmail.com** (run
+  `36167807969`) — yani Brevo kabul etti; teslim kanıtı değil.
+- **Kendi hatam, kayda geçsin:** bütün bu iş adresi yayınlamamak içindi ve
+  `tests/envelope_to_test.php`'nin açıklamasına operatörün cümlesini alıntılarken
+  **adresi de yazdım**; commit `149ef45` herkese açık dala gitti. Çalışma
+  ağacından kaldırıldı; **geçmiş yeniden yazılmadı** (bu dalda başka bir oturum
+  da çalışıyor — KURAL 5r'deki IBAN vakasının aynı kararı), operatöre söylendi.
+  Aynı tarama CLAUDE.md'nin KENDİSİNDE de alıntılanmış müşteri adresleri
+  buldu (21 Eyl kaydı dahil) — dokunulmadı, karar operatörün.
+  *Ders: bir operatör cümlesini alıntılarken adresi at; "adresi yazmıyorum"
+  kuralı kodla sınırlı değil, yoruma ve kayda da işler.*
 
 **21 Eyl 2026 — Ralph Lauren T-shirt SATILDI işaretlendi; aynı SKU'da AÇIK
 bir teklif duruyordu.** Operatör (model numarasıyla, ad değil):

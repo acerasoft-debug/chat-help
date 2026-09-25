@@ -1,8 +1,9 @@
 <?php
 /* send-campaign-preview.yml -> reply_spec to=enc:<zarf> (25 Eyl 2026).
  *
- * Operator sohbette bir adres verdi ("arifray021@gmail.com bunda tum katalog
- * fiyat listelerini gonder") ve adresin hangi kayda ait oldugu bilinmiyordu.
+ * Operator sohbette bir gmail adresi verip "bunda tum katalog fiyat
+ * listelerini gonder" dedi ve adresin hangi kayda ait oldugu bilinmiyordu.
+ * (Adres BURAYA YAZILMAZ -- bu dosya da herkese acik depoda.)
  * Eldeki yollar adresi herkese acik girdiye yaziyordu (21 Eyl: yerel kismi
  * find_ref'e, 23 Eyl: tam adres to='ya). Zarf bunu kapatiyor: adres sunucuda
  * cozuluyor, hesaba TAM eslesmeyle baglaniyor, ciktida yalniz MASKELI.
