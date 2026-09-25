@@ -9062,3 +9062,87 @@ için kendileri seçebilsin ad koyabilsin"*).
   taraması bunu ölçemezdi. İki yön: doğru sırada `Set-Cookie` gidiyor ve günlük
   susuyor; çıktı `money.php`'den önce başlamışsa uyarı **tam 1** kez. Muhafaza
   silinince **2 kırmızı** (sabotajın uygulandığı `grep -c` ile doğrulandı).
+
+**KURAL 36 — GİZLİ MARKA: sitenin HER yerinden görünmez, hiçbir şey SİLİNMEZ;
+geri açmak panelde tek tık** (operatör, 25 Eyl 2026: *"Gucci ve Balenciaga
+ürünlerini sitede görünmez yap ancak sonra tekrar konulabilecek şekilde...sitede
+hiç görünmesin"*).
+
+- **Tek karar noktası `vestra_hidden_brands()`** (`inc/products.php`); karar
+  `data/hidden_brands.json`'da (sunucuda, repoda değil). Süzgeç **satıcı
+  askısıyla AYNI katmanda**: `vestra_live_listings()` + `vestra_products()`
+  (kodda gömülü demo ürünleri ve seed kataloğu için). Yani vitrin, ana sayfa
+  (film, New arrivals, marka duvarı, "yakında"), /wholesale ve /b2b, sitemap,
+  fiyat listeleri, katalog dosyaları, API, showroom, kampanya mektuplarının
+  marka listeleri ve **ürün sayfası** (`vestra_find` → 404) tek kapıdan. Sayfa
+  sayfa "bu marka gizli mi" diye sormak, unutulan ilk sayfada markayı geri
+  getirirdi — bu depoda kapının ikinci kopyası altı kez yanlış yere baktı.
+- **Neden ilan durumu (`rejected`) DEĞİL:** (1) geri açarken hangi ilanın
+  ÖNCEDEN reddedilmiş olduğu kaybolur, (2) yarın gelecek yeni bir Gucci ilanı
+  gizlenmez. İlan kaydı AYNEN duruyor (durum, fiyat, foto, satıcı); iş akışı
+  `listings.json`'un özetini yazmadan önce ve sonra karşılaştırıyor.
+- **Kayıt yolları ETKİLENMEZ:** sipariş satırı (`vestra_product_by_sku`'nun ham
+  yedeği), teklif/fatura (`vestra_listing_by_sku`), mesaj etiketi
+  (`vestra_listing_by_id`) ham listeyi okuyor — kesilmiş fatura, açık pazarlık,
+  geçmiş sipariş bozulmuyor. Teklif sayfası ve teklif mektubu gizli ürüne
+  **"View product" linki vermiyor** (404'e giden link, linksizlikten kötü).
+- **Eşleşme TAM** (büyük/küçük harf ve baş/son boşluk hariç): "Gucci Kids"
+  gizlenmez (mango/zara dersi). İş akışı yakın yazımları uyarı olarak basıyor.
+- **"Yakında" arka kapısı kapatıldı:** `vestra_soon_brands_filter` "satışta olan
+  düşer" diyordu; gizli marka tam da satışta GÖRÜNMEDİĞİ için bir
+  `coming-soon/gucci` klasörü "Coming soon: Gucci" diye geri gelecekti.
+- **Üçüncü mektup (wave3) DURACAKTI:** `$W3_WANT` Gucci ve Balenciaga'yı adıyla
+  sayıyor ve eşleşmeyen ev işi durduruyor (yazım hatası koruması). Gizli ev artık
+  **mektuptan düşüyor ve bunu yazıyor** (`GIZLI MARKA -- mektuptan DUSTU`);
+  gizli marka bir yazım hatası değil, operatör kararı. `send-campaign-preview`'ın
+  `symax`/`outlets` mektuplarındaki ELLE yazılmış marka örnekleri de gizli
+  markayı atlıyor — katalogda olmayan bir evi "stokta" diye saymasın.
+- **Panel:** `Admin ▸ Listings ▸ 🙈 Hidden brands` — gizli markalar (ilan sayısı,
+  ne zamandan beri) + **👁 Show again**, ve katalogdaki markalardan seçip
+  **🙈 Hide brand**. Gizlenecek ad ham ilan kaydında OLMAK ZORUNDA (yazım
+  hatasıyla "Gucc" gizlemek hiçbir şeyi gizlemez ama "gizlendi" derdi); kayda
+  **katalogun kendi yazımı** giriyor. Yazma geri okunuyor; `since` ve son 30
+  değişiklik (`history`) dosyada — aylar sonra "bu marka neden gizli" sorusunun
+  cevabı bir yerde durmalı (KURAL 2h'nin `kyb_auto` dersi). İlan tablosunda gizli
+  ilan "✓ Live" DEĞİL **🙈 Hidden (brand)**, 404'e giden "View ↗" çizilmiyor ve
+  "Live / approved" sayısı onu saymıyor (KURAL 21d: panel gerçeği basar).
+  Satıcı panelinde aynı ilan **"⊘ Product no longer listed"** (8 dilde zaten
+  duran anahtar).
+- **İş akışı:** `seller-products.yml` → `admin_mode=brand_hide`,
+  `payload=<gizli markaların TAM listesi>` (küme: verilmeyen marka GÖRÜNÜR olur)
+  ya da `clear`, `move_apply=true` uygular. Kuru koşu marka başına ham ilan /
+  durum / satıcı dağılımını, yakın yazımları, açık teklifleri, canlı sayıyı
+  önce→sonra ve etkilenen coming-soon klasörünü basıyor. Uygularken üç şey
+  doğrulanıyor: geri okuma, `listings.json` özeti AYNI, ve katalog okuyucusunda
+  gizli-marka ilanı **0**.
+- **AYNI YOLDA BULUNAN ESKİ KUSUR — sepet satırı SESSİZCE düşüyordu.**
+  `order.php` `if(!$p) continue;` idi: sepette duran ama artık satışta olmayan
+  bir ürün (gizli marka, askıdaki satıcı, silinmiş/reddedilmiş ilan) siparişten
+  habersizce düşüyor, alıcı sepette gördüğünden BAŞKA bir sipariş veriyordu.
+  Artık `?err=unavailable&id=` ile duruyor. **SATILDI reddinin sepette hiç bandı
+  yoktu** (order.php `?err=soldout` diyordu, cart.php karşılamıyordu — alıcı
+  "sipariş ver"e basıp açıklamasız aynı sayfaya dönüyordu). İkisine de bant:
+  hangi satır olduğu tarayıcının kendi sepetinden (VCart) yazılıyor, **✕ Remove**
+  düğmesi aynı kaldırma mekanizmasıyla; metin 8 dilde zaten duran iki anahtardan
+  (*This item is no longer available to order.*, *Sold out*). Tarayıcıda
+  ölçüldü: Remove satırı kaldırıp bandı kapatıyor, yatay taşma 0 (masaüstü+mobil).
+- Test: `tests/hidden_brands_test.php` (**100 iddia**, üç yön: gizliyken YOK,
+  geri açınca AYNEN VAR, başka marka YERİNDE). Sayfalar bir site kopyasında
+  **gerçekten çizdiriliyor** (vitrin, ürün sayfası, ana sayfa, sitemap,
+  /wholesale, fiyat listesi, showroom, panel, sepet); panel POST'u ve sipariş
+  POST'u gerçekten koşturuluyor — **kontrol grubu: görünür bir sepetle sipariş
+  GERÇEKTEN yazılıyor**, yoksa "sipariş yazılmadı" iddiaları boşa geçerdi.
+  Düşebildiği doğrulandı, her sabotajın gerçekten uygulandığı ayrıca kontrol
+  edilerek: canlı-liste süzgeci kalkınca **4 kırmızı**, demo/seed süzgeci **2**,
+  "yakında" kontrolü **3**, sessiz atlama geri gelince **5**, alt dize eşleşmesi
+  **4**, panel katalog yazımını almayınca **3**, sepet bandı silinince **5**,
+  panel rozeti yine "✓ Live" deyince **1**.
+- **Kendi ölçüm hatalarım, ikisi de bu dosyada kayıtlı sınıftan:** (1) panel
+  rozeti iddiası "Hidden (brand)" metnini sayfanın TAMAMINDA arıyordu; aynı metin
+  istatistik kartında da geçiyor, yani rozet "✓ Live" basacak şekilde sabote
+  edildiğinde test **yeşil kaldı**. Satırın kendisine daraltıldı. (2) "eski
+  sessiz atlama yok" iddiası yeni kodun KENDİ yorumundaki alıntıyı okuyup
+  kırmızı döndü — iddia gevşetilmedi, yorumsuz kaynağa (`token_get_all`) bakacak
+  şekilde daraltıldı. Ayrıca panel kum havuzunda `admin_pass` olmadan
+  **"Admin locked"** basıyor ve dört iddia bu yüzden düştü; kurulum
+  `admin_delete_buttons_test`'in aynısı yapıldı.

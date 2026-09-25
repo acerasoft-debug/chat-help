@@ -436,8 +436,16 @@ jobs:
                     $wb = trim((string)($wp['brand'] ?? ''));
                     if ($wb !== '') $byBrand[$wb][] = $wp;
                 }
-                $houses = []; $missing = [];
+                $houses = []; $missing = []; $w3hidden = [];
                 foreach ($W3_WANT as $want) {
+                    /* GIZLI MARKA (vestra_hidden_brands, 25 Eyl 2026: "sitede
+                       hic gorunmesin"): mektupta da SAYILMAZ -- musteriye
+                       "stokta" deyip /catalog?brand= ile bos bir sayfaya
+                       yollamak olurdu. Asagidaki "eslesmeyen ev" durdurmasina
+                       DUSMUYOR: o, yazim hatasini yakalamak icin; gizli marka
+                       bir yazim hatasi degil, operator karari. Atlandigi
+                       ACIKCA yaziliyor -- sessiz daraltma yok. */
+                    if (function_exists('vestra_brand_is_hidden') && vestra_brand_is_hidden($want)) { $w3hidden[] = $want; continue; }
                     $hit = null;
                     foreach ($byBrand as $b => $ps) {
                         /* TAM esitlik, alt dize DEGIL (mango/zara dersi). Alt
@@ -471,6 +479,7 @@ jobs:
                 foreach ($houses as $h) echo "EV: {$h['name']} -> {$h['n']} artikel"
                                             . ($h['note'] !== '' ? " ({$h['note']})" : '')
                                             . " · foto " . count($h['imgs']) . "/{$W3_SHOTS}\n";
+                if ($w3hidden) echo "GIZLI MARKA -- mektuptan DUSTU (sitede gorunmuyor): ".implode(', ', $w3hidden)."\n";
                 if ($missing) {
                     /* Operatorun ADIYLA istedigi bir ev eslesmiyorsa is DURUR.
                        Sessizce listeden dusurmek, operatorun gonderdigini

@@ -326,6 +326,13 @@ function vestra_offer_accept_url(string $ref, string $token): string {
  * hicbir sey yazilmaz -- kirik bir baglanti, baglanti olmamasindan kotu. */
 function vestra_offer_product_url(?array $listing): string {
     $id = trim((string)($listing['id'] ?? ''));
+    /* Gizli markanin urun sayfasi 404 (vestra_hidden_brands): ayni gerekce --
+       kirik bir baglanti, baglanti olmamasindan kotu. Pazarlik ve fatura
+       ham kayittan yurumeye devam ediyor; yalniz vitrine giden link dusuyor.
+       function_exists: govdeyi eval ile cikaran teklif testleri products.php
+       yuklemiyor; orada cozulecek bir ilan da yok. */
+    if ($id !== '' && is_array($listing) && function_exists('vestra_product_brand_hidden')
+        && vestra_product_brand_hidden($listing)) return '';
     return $id === '' ? '' : 'https://vestrasales.com/product?id=' . rawurlencode($id);
 }
 

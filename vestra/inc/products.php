@@ -597,10 +597,129 @@ function vestra_suspended_seller_uids(): array {
     }
     return $c;
 }
+/* ── GIZLI MARKALAR ────────────────────────────────────────────────────────────
+ *
+ * Operator, 25 Eyl 2026: *"Gucci ve Balenciaga urunlerini sitede gorunmez yap
+ * ancak sonra tekrar konulabilecek sekilde...sitede hic gorunmesin"*.
+ *
+ * Yukaridaki satici askisinin MARKA karsiligi ve ayni katmanda duruyor:
+ * gizli markanin ilanlari vestra_live_listings()'ten dusuyor, yani vitrin,
+ * ana sayfa (film + New arrivals + marka duvari), /wholesale ve /b2b sayfalari,
+ * sitemap, fiyat listeleri, katalog dosyalari, API, showroom, arama, kampanya
+ * mektuplarinin marka listeleri VE urun sayfasi (vestra_find) -- hepsi TEK
+ * kapidan. Tek tek sayfaya "bu marka gizli mi" diye sormak, unutulan ilk
+ * sayfada markayi geri getirirdi; bu depoda kapinin ikinci bir kopyasi alti
+ * kez yanlis yere bakti.
+ *
+ * GERI ALINABILIR, cunku HICBIR SEY SILINMIYOR ve ilan kaydina DOKUNULMUYOR:
+ * listings.json aynen duruyor (durum, fiyat, foto, satici), karar ayri bir
+ * dosyada (data/hidden_brands.json). Marka listeden cikinca ilanlar
+ * kendiliginden geri gelir -- askinin kalkmasiyla ayni sekilde, yeniden onay
+ * gerekmeden. Ilanlarin durumunu 'rejected' yapmak da gizlerdi ama iki kusuru
+ * var: (1) geri acarken hangi ilanin ONCEDEN reddedilmis oldugu kaybolur,
+ * (2) yarin gelecek yeni bir Gucci ilani gizlenmez. Marka duzeyinde karar
+ * ikisini de cozuyor.
+ *
+ * Kayitlari cozen yollar ETKILENMEZ: siparis satiri (vestra_product_by_sku ->
+ * ham listings.json yedegi), teklif/fatura (vestra_listing_by_sku), mesaj
+ * etiketleri (vestra_listing_by_id yedegi) ham listeyi okuyor. Kesilmis bir
+ * fatura, acik bir pazarlik ya da gecmis bir siparis marka gizlendi diye
+ * bozulmuyor.
+ *
+ * ESLESME TAM (buyuk/kucuk harf ve bas/son bosluk disinda): "Gucci Kids" gibi
+ * bir ad gizlenmez -- mango/zara dersi; burada bedeli, gizlenmesi istenmeyen
+ * bir markayi sessizce vitrinden silmek olurdu.
+ *
+ * Dosya YOKSA hicbir marka gizli degil (bugunku davranis). Dosya BOZUKSA da
+ * hicbir sey gizlenmez ve error_log'a yazilir: bozuk bir dosyadan hangi
+ * markalarin kastedildigi okunamaz, ve yazici atomik (gecici dosya + rename),
+ * yani bu yol pratikte olusmuyor. */
+function vestra_hidden_brands_file(): string {
+    return vestra_data_dir().'/hidden_brands.json';
+}
+function vestra_brand_key(string $brand): string {
+    return mb_strtoupper(trim($brand));
+}
+/** Gizli markalar: ANAHTAR -> kayitli yazim. Surec-ici onbellekli
+ *  (vestra_live_listings() bir istekte defalarca cagriliyor); $fresh yaziciyi
+ *  geri okurken ve testlerde onbellegi atlar. */
+function vestra_hidden_brands(bool $fresh = false): array {
+    static $c = null;
+    if ($c !== null && !$fresh) return $c;
+    $c = [];
+    $f = vestra_hidden_brands_file();
+    if (!is_file($f)) return $c;
+    $j = json_decode((string)@file_get_contents($f), true);
+    if (!is_array($j) || !is_array($j['brands'] ?? null)) {
+        error_log('[VESTRA hidden-brands] '.basename($f).' okunamadi -- hicbir marka gizlenmiyor');
+        return $c;
+    }
+    foreach ($j['brands'] as $b) {
+        $k = vestra_brand_key((string)$b);
+        if ($k !== '') $c[$k] = trim((string)$b);
+    }
+    return $c;
+}
+/** Dosyanin tamami (panel "ne zamandan beri" basiyor). Yoksa bos dizi. */
+function vestra_hidden_brands_record(): array {
+    $f = vestra_hidden_brands_file();
+    $j = is_file($f) ? json_decode((string)@file_get_contents($f), true) : null;
+    return is_array($j) ? $j : [];
+}
+function vestra_brand_is_hidden(string $brand): bool {
+    $k = vestra_brand_key($brand);
+    return $k !== '' && isset(vestra_hidden_brands()[$k]);
+}
+function vestra_product_brand_hidden(array $p): bool {
+    return vestra_brand_is_hidden((string)($p['brand'] ?? ''));
+}
+/**
+ * Gizli marka listesini YAZAR ve geri okuyarak dogrular. Liste KUMEDIR: ayni
+ * marka iki kez yazilmaz, bos ad dusurulur. Her markanin gizlendigi an
+ * ('since') ve son 30 degisiklik ('history') dosyada kaliyor -- aylar sonra
+ * "bu marka neden/ne zamandan beri gizli" sorusunun cevabi bir yerde durmali
+ * (KURAL 2h'nin kyb_auto dersi: gerekcesiz bir kapi, sessiz bir kapidir).
+ * Atomik: gecici dosyaya yazip rename -- yarim yazilmis bir dosya, okuyucuyu
+ * "bozuk dosya = hicbir sey gizli degil" dalina dusururdu.
+ * Donus: ['ok'=>bool, 'hidden'=>[yazimlar], 'added'=>[], 'removed'=>[]].
+ */
+function vestra_hidden_brands_save(array $brands, string $by = 'operator'): array {
+    $want = [];
+    foreach ($brands as $b) {
+        $b = trim((string)$b); $k = vestra_brand_key($b);
+        if ($k !== '' && !isset($want[$k])) $want[$k] = $b;
+    }
+    $prevRec = vestra_hidden_brands_record();
+    $prev    = vestra_hidden_brands(true);
+    $added   = array_values(array_diff_key($want, $prev));
+    $removed = array_values(array_diff_key($prev, $want));
+    $since   = is_array($prevRec['since'] ?? null) ? $prevRec['since'] : [];
+    $now     = date('c');
+    $newSince = [];
+    foreach ($want as $k => $b) $newSince[$k] = (string)($since[$k] ?? $now);
+    $hist = is_array($prevRec['history'] ?? null) ? $prevRec['history'] : [];
+    if ($added || $removed) {
+        array_unshift($hist, ['at' => $now, 'by' => $by, 'hide' => $added, 'show' => $removed]);
+        $hist = array_slice($hist, 0, 30);
+    }
+    $rec = ['brands' => array_values($want), 'since' => $newSince,
+            'changed_at' => $now, 'changed_by' => $by, 'history' => $hist];
+    $f = vestra_hidden_brands_file();
+    $dir = dirname($f); if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    $tmp = $f.'.tmp'.getmypid();
+    $out = ['ok' => false, 'hidden' => array_values($want), 'added' => $added, 'removed' => $removed];
+    if (@file_put_contents($tmp, json_encode($rec, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE), LOCK_EX) === false) return $out;
+    if (!@rename($tmp, $f)) { @unlink($tmp); return $out; }
+    $back = vestra_hidden_brands(true);
+    $a = array_keys($back); $w = array_keys($want); sort($a); sort($w);
+    $out['ok'] = ($a === $w);
+    return $out;
+}
 function vestra_live_listings(){
     $sus = vestra_suspended_seller_uids();
     return array_values(array_filter(vestra_listings(),
-        fn($p) => ($p['status']??'approved')==='approved' && empty($sus[(string)($p['seller_uid'] ?? '')])));
+        fn($p) => ($p['status']??'approved')==='approved' && empty($sus[(string)($p['seller_uid'] ?? '')])
+                  && !vestra_product_brand_hidden($p)));
 }
 /* Bundled catalogue drops shipped in code (e.g. the DSQUARED2 model list). They show
    in the catalogue straight after a deploy — no import click needed — but are hidden
@@ -638,6 +757,12 @@ function vestra_products(bool $includeUnlisted = false){
         $seed[] = $p;
     }
     $all = array_merge(vestra_demo_products(), $live, $seed);
+    /* Gizli marka (bkz. vestra_hidden_brands): canli ilanlar zaten
+       vestra_live_listings()'te dustu; bu satir kodda gomulu demo urunlerini
+       ve seed katalogunu da ayni karara bagliyor. $includeUnlisted'ten ONCE:
+       o bayrak "dogrudan linkle erisilen numune" icin, gizli marka ise HER
+       yoldan gorunmez olmali -- urun sayfasi (vestra_find) dahil. */
+    $all = array_values(array_filter($all, fn($p) => !vestra_product_brand_hidden($p)));
     if ($includeUnlisted) return $all;
     return array_values(array_filter($all, fn($p) => empty($p['unlisted'])));
 }
@@ -2404,15 +2529,31 @@ function vestra_product_is_new(array $p, ?int $now = null, ?int $days = null): b
    cikinca silinmemisti). Olcut canli katalog: klasoru silmek hatirlamaya
    birakilan bir is olurdu. Eslesme marka adi basina TAM, buyuk/kucuk harf
    duyarsiz (mango/zara dersi): "Lacoste" satista diye "Lacoste Kids" klasoru
-   dusmez. Saf fonksiyon; klasoru okuyan taraf index.php. */
-function vestra_soon_brands_filter(array $soon, array $products): array {
+   dusmez. Saf fonksiyon; klasoru okuyan taraf index.php.
+   GIZLI MARKA da basilmaz (25 Eyl 2026, vestra_hidden_brands): yukaridaki
+   olcut "satista olan dusar" diyor, gizli marka ise tam da satista GORUNMEDIGI
+   icin burada "Coming soon: Gucci" diye geri gelirdi -- "sitede hic
+   gorunmesin" talimatinin arka kapisi. $hidden verilmezse kayitli karar
+   okunur; fonksiyon tek basina yuklendiyse (test) bos kume. */
+function vestra_soon_brands_filter(array $soon, array $products, ?array $hidden = null): array {
+    $hidden = $hidden ?? (function_exists('vestra_hidden_brands') ? vestra_hidden_brands() : []);
+    /* Hem vestra_hidden_brands()'in ANAHTAR=>yazim haritasini hem duz bir ad
+       listesini kabul et: ['Gucci'] verilip sessizce hicbir sey gizlenmemesi,
+       tam da bu fonksiyonun kapattigi aciga geri donmek olurdu. */
+    $hk = [];
+    foreach ($hidden as $k => $v) {
+        $nm = mb_strtoupper(trim(is_string($k) ? $k : (string)$v));
+        if ($nm !== '') $hk[$nm] = true;
+    }
     $live = [];
     foreach ($products as $p) {
         $b = mb_strtoupper(trim((string)($p['brand'] ?? '')));
         if ($b !== '') $live[$b] = true;
     }
-    return array_values(array_filter($soon,
-        fn($s) => !isset($live[mb_strtoupper(trim((string)($s['name'] ?? '')))])));
+    return array_values(array_filter($soon, function ($s) use ($live, $hk) {
+        $k = mb_strtoupper(trim((string)($s['name'] ?? '')));
+        return !isset($live[$k]) && !isset($hk[$k]);
+    }));
 }
 /* 25 Eyl 2026, operatorun ayni is uzerinde uc kez daralttigi talimat: "bu
    urunleri on plana al diger luks markalari azalt" -> "ana sayfadan" ->

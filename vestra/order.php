@@ -79,11 +79,27 @@ $cart=json_decode($_POST['cart']??'[]', true); if(!is_array($cart)) $cart=[];
 /* Re-price server-side against the real catalog (never trust client prices) */
 $lines=[]; $subtotal=0;
 foreach($cart as $it){
-  $p=vestra_find($it['id']??''); if(!$p) continue;
+  $cid = trim((string)($it['id'] ?? ''));
+  $p=vestra_find($cid);
+  /* COZULEMEYEN satir artik SESSIZCE ATLANMIYOR (25 Eyl 2026). Eskiden
+     `if(!$p) continue;` idi: sepette duran ama artik satista olmayan bir urun
+     (gizli marka -- vestra_hidden_brands --, askiya alinmis satici, silinmis
+     ya da reddedilmis ilan) siparisten habersizce dusuyordu, yani alici
+     sepette gordugunden BASKA bir siparis veriyordu. SATILDI icin asagida
+     zaten yazili olan gerekceyle ayni: sessiz atlama, alicinin siparis
+     ozetinde beklemedigi bir eksilme. Sepet sayfasi hangi satir oldugunu
+     yaziyor ve kaldirma dugmesini veriyor. Bos kimlik (bozuk satir) eskisi
+     gibi atlaniyor -- kaldirilacak bir kimligi yok. */
+  if(!$p){
+    if ($cid === '') continue;
+    header('Location: /cart?err=unavailable&id='.rawurlencode($cid)); exit;
+  }
   /* SATILDI: sepette duruyor olabilir (satis kapatilmadan once eklenmis ya da
      istek elle gonderilmis). Sessizce atlamak yerine DURDURUYORUZ: sessiz
-     atlama, alicinin siparis ozetinde beklemedigi bir eksilme demek. */
-  if (vestra_is_sold_out($p)) { header('Location: /cart?err=soldout'); exit; }
+     atlama, alicinin siparis ozetinde beklemedigi bir eksilme demek.
+     Kimlik de tasiniyor: sepet sayfasinin bu ret icin bir bandi YOKTU, yani
+     alici "Siparis ver"e basip ayni sayfaya hicbir aciklama olmadan donuyordu. */
+  if (vestra_is_sold_out($p)) { header('Location: /cart?err=soldout&id='.rawurlencode($cid)); exit; }
   /* Per-colour carton pickers (Lacoste/RL: min colours + pack step) drive qty from the
      colour breakdown itself, re-derived + re-validated from the client's tokens — the
      posted "qty" is never trusted for these listings. */

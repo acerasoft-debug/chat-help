@@ -663,6 +663,31 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_listings($all);
     header('Location: /admin?tab=listings&msg=listing_saved'); exit;
   }
+  /* GIZLI MARKA anahtari (operator, 25 Eyl 2026: "Gucci ve Balenciaga
+     urunlerini sitede gorunmez yap ancak sonra tekrar konulabilecek sekilde").
+     Tek yazici vestra_hidden_brands_save(); is akisinin admin_mode=brand_hide
+     kipi de ayni fonksiyonu cagiriyor. Ilan kaydina DOKUNULMUYOR -- geri acmak
+     markayi listeden cikarmak. Gizlenecek ad KATALOGDA olmak zorunda: yazim
+     hatasiyla "Gucc" gizlemek hicbir seyi gizlemez ama "gizlendi" derdi. Yazma
+     GERI OKUNUYOR (KURAL 5c'nin billing_saved dersi). */
+  if($act==='brand_hide' || $act==='brand_show'){
+    $bw = trim((string)($_POST['brand'] ?? ''));
+    $bk = vestra_brand_key($bw);
+    $cur = vestra_hidden_brands(true);
+    if ($act==='brand_hide') {
+      $canon = '';
+      foreach (vestra_listings() as $__l) {
+        if (vestra_brand_key((string)($__l['brand'] ?? '')) === $bk && $bk !== '') { $canon = trim((string)$__l['brand']); break; }
+      }
+      if ($canon === '') { header('Location: /admin?tab=listings&msg=brand_unknown'); exit; }
+      $cur[$bk] = $canon;
+    } else {
+      if (!isset($cur[$bk])) { header('Location: /admin?tab=listings&msg=brand_unknown'); exit; }
+      unset($cur[$bk]);
+    }
+    $res = vestra_hidden_brands_save(array_values($cur), 'operator:panel');
+    header('Location: /admin?tab=listings&msg='.($res['ok'] ? ($act==='brand_hide' ? 'brand_hidden' : 'brand_shown') : 'brand_hide_fail')); exit;
+  }
   /* Bulk: set MOQ to 20 on every listing whose brand is NOT Lacoste / Ralph
      Lauren / Amiri (matched loosely so "R. Lauren", "Ralph Lauren Polo", … are
      also kept as-is). Only touches seller listings in data/listings.json. */
@@ -2600,6 +2625,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'member_set'=>'✓ Membership plan updated.',
     'journal_saved'=>'✓ Article saved.','journal_deleted'=>'Article deleted.','journal_toggled'=>'Article visibility changed.',
     'listing_saved'=>'✓ Listing updated.','prices_saved'=>'✓ Prices & MOQ saved — live on the catalogue now.',
+    'brand_hidden'=>'✓ Marka gizlendi — sunucudan geri okunarak doğrulandı. İlanları sitenin hiçbir yerinde görünmüyor (vitrin, ana sayfa, ürün sayfası, fiyat listeleri, API, kampanyalar). İlan kayıtlarına dokunulmadı: “👁 Show again” ile aynen geri gelir.',
+    'brand_shown'=>'✓ Marka yeniden görünür — sunucudan geri okunarak doğrulandı. İlanları kaldıkları yerden (aynı durum, fiyat ve fotoğrafla) vitrine döndü.',
     /* Bu satir EKSIKTI: save_billing zaten msg=billing_saved'e yonlendiriyordu
        ama haritada karsiligi yoktu, yani form kaydediyor ve ekranda HICBIR SEY
        yazmiyordu. Onaylanmayan bir kayit, kaydedilmemis kayittan ayirt edilemez. */
@@ -2801,6 +2828,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Form boş gönderildi — değişen bir şey yok.</div>
 <?php elseif($msg==='ds_pay_fail'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Anahtar YAZILAMADI — geri okuma tutmadı, durum <b>değişmemiş olabilir</b>. Sayfayı yenileyip üstteki duruma bakın; yine olursa <code>data/dropship_settings.json</code> yazılabilir değil.</div>
+<?php elseif($msg==='brand_hide_fail'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Gizli marka listesi YAZILAMADI — geri okuma tutmadı, durum <b>değişmemiş olabilir</b>. Aşağıdaki “Hidden brands” kartı sunucudaki gerçek durumu gösteriyor; oradan kontrol edin.</div>
+<?php elseif($msg==='brand_unknown'): ?>
+<div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Bu marka adı ilan kayıtlarında yok (ya da zaten gizli değil) — <b>hiçbir şey değişmedi</b>. Yazım hatasıyla bir marka gizlemek hiçbir şeyi gizlemez ama “gizlendi” derdi.</div>
 <?php elseif($msg==='ship_auto_fail'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Anahtar YAZILAMADI — geri okuma tutmadı, durum <b>değişmemiş olabilir</b>. Sayfayı yenileyip üstteki duruma bakın; yine olursa <code>data/shipping_settings.json</code> yazılabilir değil.</div>
 <?php elseif($msg==='invoice_cur_bad'): ?>
@@ -5321,7 +5352,11 @@ $fxLabel = ['ecb'=>'European Central Bank (daily reference rate)','market'=>'mar
 
 <?php // ══════════════════════════════════════════════════════ LISTINGS
 elseif($tab==='listings'):
-  $liveList   = array_filter($listings,fn($p)=>($p['status']??'approved')==='approved');
+  /* "Live" = vitrinde GERCEKTEN duran: onayli VE markasi gizli degil. Gizli
+     markanin onayli ilanini "Live" saymak, panelin musterinin gormedigi bir
+     seyi "canli" demesi olurdu (KURAL 21d: panel gercegi basar, isaretle). */
+  $liveList   = array_filter($listings,fn($p)=>($p['status']??'approved')==='approved' && !vestra_product_brand_hidden($p));
+  $hidList    = array_filter($listings,fn($p)=>vestra_product_brand_hidden($p));
   $rejList    = array_filter($listings,fn($p)=>($p['status']??'')==='rejected');
   $ledit      = ($leid=($_GET['edit']??'')) ? vestra_listing_by_id($leid) : null;
   /* Users sekmesindeki urun sayisi buraya link veriyor: sayiya tiklayinca
@@ -5338,7 +5373,7 @@ elseif($tab==='listings'):
 <div class="acard" style="margin-bottom:18px;border-color:var(--acc)">
   <div class="acard-hd"><h3>✏️ Edit listing — <?= htmlspecialchars(trim(($ledit['brand']??'').' '.($ledit['name']??''))) ?></h3>
     <div style="display:flex;gap:6px">
-      <?php if(($ledit['status']??'approved')==='approved'): ?><a class="abtn" href="/product?id=<?= urlencode($ledit['id']??'') ?>" target="_blank" rel="noopener" style="border-color:rgba(31,157,99,.4);color:#1f9d63">View live ↗</a><?php endif; ?>
+      <?php if(($ledit['status']??'approved')==='approved' && !vestra_product_brand_hidden($ledit)): ?><a class="abtn" href="/product?id=<?= urlencode($ledit['id']??'') ?>" target="_blank" rel="noopener" style="border-color:rgba(31,157,99,.4);color:#1f9d63">View live ↗</a><?php elseif(vestra_product_brand_hidden($ledit)): ?><span class="abtn" style="cursor:default;color:var(--mut)" title="Brand is hidden — the product page returns 404 for customers">🙈 Brand hidden</span><?php endif; ?>
       <a class="abtn" href="/admin?tab=listings">✕ Close</a>
     </div></div>
   <div class="acard-body">
@@ -5398,11 +5433,69 @@ elseif($tab==='listings'):
   </div>
 </div>
 <?php endif; ?>
-<div class="asgrid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+<div class="asgrid" style="grid-template-columns:repeat(<?= $hidList ? 5 : 4 ?>,1fr);margin-bottom:16px">
   <div class="ascard"><div class="sv"><?= count($listings) ?></div><div class="sl">Custom listings</div></div>
   <div class="ascard"><div class="sv" style="color:#1f9d63"><?= count($liveList) ?></div><div class="sl">Live / approved</div></div>
   <div class="ascard"><div class="sv" style="color:#a9781a"><?= count($pendingList) ?></div><div class="sl">Pending approval</div></div>
+  <?php if($hidList): ?><div class="ascard"><div class="sv" style="color:#6b6b80"><?= count($hidList) ?></div><div class="sl">Hidden (brand)</div></div><?php endif; ?>
   <div class="ascard"><div class="sv" style="color:var(--mut)"><?= count(vestra_demo_products()) ?></div><div class="sl">Demo products</div></div>
+</div>
+<?php /* GIZLI MARKALAR (operator, 25 Eyl 2026: "sitede gorunmez yap ancak sonra
+         tekrar konulabilecek sekilde"). Geri acmanin yolu BURADA durmali: bir
+         ekranda gorunmeyen secenek olmayan secenektir (KURAL 2e -- operator
+         "acacak dugmem yok"u iki kez soyledi). Sayilar HAM listeden: gizli
+         ilanlar vestra_products()'ta zaten yok, oradan saymak "0" derdi. */
+  $hbMap = vestra_hidden_brands(true);
+  $hbRec = vestra_hidden_brands_record();
+  $hbSince = is_array($hbRec['since'] ?? null) ? $hbRec['since'] : [];
+  $hbName = []; $hbAll = []; $hbAppr = [];
+  foreach ($listings as $__l) {
+    $__k = vestra_brand_key((string)($__l['brand'] ?? '')); if ($__k === '') continue;
+    $hbName[$__k] = $hbName[$__k] ?? trim((string)$__l['brand']);
+    $hbAll[$__k]  = ($hbAll[$__k] ?? 0) + 1;
+    if (($__l['status'] ?? 'approved') === 'approved') $hbAppr[$__k] = ($hbAppr[$__k] ?? 0) + 1;
+  }
+  unset($__l, $__k);
+  $hbPick = array_diff_key($hbName, $hbMap);
+  uasort($hbPick, fn($a, $b) => strcasecmp($a, $b));
+?>
+<div class="acard" id="hidden-brands" style="margin-bottom:16px;border-color:rgba(107,107,128,.4)">
+  <div class="acard-hd"><h3>🙈 Hidden brands — not shown anywhere on the site</h3></div>
+  <div class="acard-body">
+    <p style="font-size:13px;color:var(--mut);margin:0 0 12px;max-width:760px">
+      A hidden brand's listings disappear from the <b>whole</b> site: catalogue, home page, product pages (404),
+      brand/category pages, sitemap, price lists, catalogue files, API and campaign letters.
+      <b>Nothing is deleted</b> — the listings keep their status, prices and photos, and orders, offers and invoices
+      already made keep working. <b>👁 Show again</b> brings them back exactly as they were.
+    </p>
+    <?php if($hbMap): ?>
+    <table class="atable" style="margin-bottom:12px">
+      <?= arow(['Brand','Listings','Hidden since',''],true) ?>
+      <?php foreach($hbMap as $__k => $__b): ?>
+      <tr>
+        <td class="ac"><b><?= htmlspecialchars($__b) ?></b></td>
+        <td class="ac"><?= (int)($hbAll[$__k] ?? 0) ?> <span class="ahint">(<?= (int)($hbAppr[$__k] ?? 0) ?> approved)</span></td>
+        <td class="ac"><?= htmlspecialchars(str_replace('T', ' ', substr((string)($hbSince[$__k] ?? ''), 0, 16))) ?: '—' ?></td>
+        <td class="ac"><form method="post" action="/admin" style="margin:0" onsubmit="return confirm(<?= htmlspecialchars(json_encode('Show '.$__b.' again? Its approved listings return to the catalogue immediately.', JSON_UNESCAPED_UNICODE), ENT_QUOTES) ?>)">
+          <?= csrfField() ?><input type="hidden" name="_action" value="brand_show"><input type="hidden" name="brand" value="<?= htmlspecialchars($__b) ?>">
+          <button class="abtn" type="submit" style="border-color:rgba(31,157,99,.4);color:#1f9d63">👁 Show again</button></form></td>
+      </tr>
+      <?php endforeach; unset($__k, $__b); ?>
+    </table>
+    <?php else: ?>
+    <div class="ahint" style="margin-bottom:12px">No brand is hidden — every approved listing is on the site.</div>
+    <?php endif; ?>
+    <?php if($hbPick): ?>
+    <form method="post" action="/admin" style="margin:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap"
+      onsubmit="var s=this.brand; return confirm('Hide '+s.options[s.selectedIndex].text+' from the whole site? Nothing is deleted; you can show it again here.')">
+      <?= csrfField() ?><input type="hidden" name="_action" value="brand_hide">
+      <select name="brand" required style="padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:13px;min-width:220px">
+        <?php foreach($hbPick as $__k => $__b): ?><option value="<?= htmlspecialchars($__b) ?>"><?= htmlspecialchars($__b) ?> (<?= (int)($hbAll[$__k] ?? 0) ?>)</option><?php endforeach; unset($__k, $__b); ?>
+      </select>
+      <button class="abtn" type="submit">🙈 Hide brand</button>
+    </form>
+    <?php endif; ?>
+  </div>
 </div>
 <div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px">
   <form method="post" style="margin:0" onsubmit="return confirm('Set MOQ = 20 on EVERY listing except Lacoste, Ralph Lauren and Amiri? (Those three keep their current MOQ.)')">
@@ -5503,9 +5596,13 @@ elseif($tab==='listings'):
       <?php endif; ?>
     </td>
     <td class="ac"><?= htmlspecialchars($p['seller']??'—') ?></td>
-    <td class="ac"><?= match($st){'approved'=>abadge('✓ Live','#1f9d63'),'rejected'=>abadge('✗ Rejected','#c0392b'),default=>abadge('⏳ Pending','#a9781a')} ?></td>
+    <?php /* Gizli markanin onayli ilani "✓ Live" DEGIL: musteri onu hicbir
+             yerde gormuyor. Rozet gercegi soyluyor, ve 404 donecek bir
+             "View ↗" baglantisi da cizilmiyor. */
+      $__hid = vestra_product_brand_hidden($p); ?>
+    <td class="ac"><?= ($__hid && $st==='approved') ? abadge('🙈 Hidden (brand)','#6b6b80') : match($st){'approved'=>abadge('✓ Live','#1f9d63'),'rejected'=>abadge('✗ Rejected','#c0392b'),default=>abadge('⏳ Pending','#a9781a')} ?><?= ($__hid && $st!=='approved') ? ' <span class="ahint" title="Brand is hidden — even once approved it stays off the site">🙈 brand hidden</span>' : '' ?></td>
     <td class="ac"><div style="display:flex;gap:4px">
-      <?php if($st==='approved'): ?><a class="abtn" href="/product?id=<?= urlencode($p['id']??'') ?>" target="_blank" rel="noopener" style="border-color:rgba(31,157,99,.4);color:#1f9d63" title="Open the live product page in a new tab">View ↗</a><?php endif; ?>
+      <?php if($st==='approved' && !$__hid): ?><a class="abtn" href="/product?id=<?= urlencode($p['id']??'') ?>" target="_blank" rel="noopener" style="border-color:rgba(31,157,99,.4);color:#1f9d63" title="Open the live product page in a new tab">View ↗</a><?php endif; ?>
       <a class="abtn" href="/admin?tab=listings&edit=<?= urlencode($p['id']??'') ?>#top" style="border-color:rgba(201,168,106,.4)">Edit</a>
       <?php if($st==='pending'): ?><a class="abtn" href="/admin?tab=approvals">Review</a><?php endif; ?>
       <?= fBtn('Delete','delete_listing',['lid'=>$p['id']??''],'color:var(--bad);border-color:rgba(239,154,154,.3)','Delete this listing?') ?>

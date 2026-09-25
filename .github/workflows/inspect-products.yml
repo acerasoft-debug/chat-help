@@ -262,6 +262,10 @@ jobs:
                         }
                         echo "\non marka konumlari (1 = en basta):\n";
                         foreach ($front as $b) {
+                            /* Gizli marka ayri yaziliyor: "ilan YOK" okunup
+                               ilanlar silindi sanilmasin -- kayitlar duruyor,
+                               yalniz vitrin gostermiyor (vestra_hidden_brands). */
+                            if (empty($pos[$b]) && function_exists('vestra_brand_is_hidden') && vestra_brand_is_hidden($b)) { echo "  ".$b.": GIZLI MARKA (kayitlar duruyor, vitrinde yok)\n"; continue; }
                             if (empty($pos[$b])) { echo "  ".$b.": bu bolmede ilan YOK\n"; continue; }
                             printf("  %-12s %d ilan, sira %d..%d\n", $b, count($pos[$b]), min($pos[$b]), max($pos[$b]));
                         }
@@ -466,6 +470,26 @@ jobs:
               }
               echo "durum   : "; foreach ($byStatus as $k => $v) printf("%s=%d  ", $k, $v); echo "\n";
               echo "bolme   : "; foreach ($sections as $k => $v) printf("%s=%d  ", $k, $v); echo "\n";
+              /* GIZLI MARKALAR (vestra_hidden_brands, 25 Eyl 2026): ham kayit
+                 DURUYOR ama katalog okuyucusunda YOK. Iki sayi yan yana: ham
+                 listede kac ilan (geri acilinca donecek olan) ve vestra_products()
+                 icinde kac tane kaldi (0 olmali -- sizinti). Fonksiyon yoksa
+                 deploy inmemis demektir; "0 gizli" diye okunmamali. */
+              if (!function_exists('vestra_hidden_brands')) echo "gizli marka: *** vestra_hidden_brands() YOK -- deploy inmemis ***\n";
+              else {
+                $hb = vestra_hidden_brands(true);
+                if (!$hb) echo "gizli marka: (hicbiri)\n";
+                else {
+                  $inCat = 0;
+                  foreach (vestra_products(true) as $cp) if (isset($hb[vestra_brand_key((string)($cp['brand'] ?? ''))])) $inCat++;
+                  foreach ($hb as $hk => $hn) {
+                    $rawN = 0; $apN = 0;
+                    foreach ($all as $ap) if (vestra_brand_key((string)($ap['brand'] ?? '')) === $hk) { $rawN++; if (($ap['status'] ?? 'approved') === 'approved') $apN++; }
+                    printf("gizli marka: %-14s ham %d ilan (%d onayli) -- listings.json'da duruyor\n", $hn, $rawN, $apN);
+                  }
+                  printf("gizli marka: katalogda (vestra_products) kalan: %d %s\n", $inCat, $inCat === 0 ? '(dogru)' : '*** SIZINTI ***');
+                }
+              }
               printf("9 dilde ad+aciklama: %d/%d\n", $i18nOk, count($sel));
               if ($i18nMissing) { echo "*** EKSIK i18n ***\n"; foreach (array_slice($i18nMissing, 0, 20) as $m) echo "   $m\n"; }
               /* tiers yoksa vestra_unit_price() 0 doner ve order.php satiri atlar:

@@ -665,7 +665,7 @@ if (in_array($docGrace['phase'], ['running','due_soon','expired','suspended'], t
 // ── OVERVIEW ──────────────────────────────────────────────────────────────────
 if($tab==='overview'){
   $rev=0; foreach($orders as $o){ $rev+=(float)($o['total']??0); }
-  $liveListings = count(array_filter($listings, fn($p) => ($p['status']??'approved')==='approved'));
+  $liveListings = count(array_filter($listings, fn($p) => ($p['status']??'approved')==='approved' && !vestra_product_brand_hidden($p)));
   $pendingOffers = count(array_filter($offers, fn($o) => empty($offerResp[$o['ref']??''])));
   stat_cards([
     ['<span class="acc">'.$liveListings.'</span>', t('Live listings')],
@@ -1002,7 +1002,12 @@ if($tab==='overview'){
     echo '<tr><td><b>'.htmlspecialchars($p['brand']??'').'</b> — '.htmlspecialchars($p['name']??'').'<div class="hint">SKU '.htmlspecialchars($p['sku']??'').'</div></td>'.
       '<td><span class="modechip '.($p['mode']??'fixed').'">'.($p['mode']??'fixed').'</span></td><td>'.($p['moq']??1).' '.htmlspecialchars($p['unit']??'pc').'</td>'.
       '<td class="r">'.(($p['mode']??'')==='offer'?'—':eur(vestra_from_price($p, true))).'</td>'.
-      '<td>'.match($p['status']??'approved'){'pending'=>'<span class="status open">⏳ '.t('Pending approval').'</span>','rejected'=>'<span class="status" style="background:rgba(239,154,154,.12);color:var(--bad);border:1px solid rgba(239,154,154,.3)">✗ '.t('Rejected').'</span>','suspended'=>'<span class="status" style="background:rgba(239,154,154,.12);color:var(--bad);border:1px solid rgba(239,154,154,.3)">⊘ '.t('Suspended').'</span>',default=>'<span class="status offers">✓ '.t('Live').'</span>'}.'</td>'.
+      '<td>'.match($p['status']??'approved'){'pending'=>'<span class="status open">⏳ '.t('Pending approval').'</span>','rejected'=>'<span class="status" style="background:rgba(239,154,154,.12);color:var(--bad);border:1px solid rgba(239,154,154,.3)">✗ '.t('Rejected').'</span>','suspended'=>'<span class="status" style="background:rgba(239,154,154,.12);color:var(--bad);border:1px solid rgba(239,154,154,.3)">⊘ '.t('Suspended').'</span>',default=>(vestra_product_brand_hidden($p)
+              /* Gizli marka (vestra_hidden_brands): ilan onayli ama vitrinde YOK. "✓ Live"
+                 yazmak saticiya olmayan bir sey soylemek olurdu; mevcut, 8 dilde
+                 cevrili anahtar kullaniliyor. */
+              ? '<span class="status" style="background:rgba(160,160,180,.12);color:var(--mut);border:1px solid rgba(160,160,180,.3)">⊘ '.t('Product no longer listed').'</span>'
+              : '<span class="status offers">✓ '.t('Live').'</span>')}.'</td>'.
       '<td class="r" style="white-space:nowrap">'.
       '<a class="btn btn-o btn-sm" href="/seller?tab=edit&lid='.urlencode($p['id']).'">'.t('Edit').'</a> '.
       '<form method="post" action="/seller?tab=listings" style="display:inline">

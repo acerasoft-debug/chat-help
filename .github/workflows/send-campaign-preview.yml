@@ -3669,6 +3669,12 @@ jobs:
                zinciri belgesi konusu: musteriye degil, resmi talep uzerine dogrudan Japon
                gumrugune ya da alicinin gumruk musavirine veriliyor. */
             if($letter==='symax'):
+            /* Ornek artikel numaralari GIZLI MARKAYI atlar (vestra_hidden_brands,
+               25 Eyl 2026: "sitede hic gorunmesin"): mektupta ornek diye verilen
+               bir kod, katalogda ve fiyat listesinde karsiligi olmayan bir kod
+               olurdu. */
+            $__egs = array_filter(['DSQUARED2' => 'S74LB0872', 'Lacoste' => 'PH5522', 'Balenciaga' => '641675'],
+                fn($k) => !(function_exists('vestra_brand_is_hidden') && vestra_brand_is_hidden($k)), ARRAY_FILTER_USE_KEY);
             $body=
               '<p>Dear SelfOn,</p>'
              .'<p>Thank you for your enquiry and for setting out so precisely what you need to '
@@ -3683,7 +3689,7 @@ jobs:
              .'carries the manufacturer\'s own article number, our internal reference, sizes, minimum '
              .'order quantity, the trade price per piece and a link to the product page.</p>'
              .'<p>'.$B('SKU / style codes.').' Yes — the manufacturer\'s article number is on every row '
-             .'(for example DSQUARED2 S74LB0872, Lacoste PH5522, Balenciaga 641675). Where a brand '
+             .'(for example '.implode(', ', array_map(fn($k, $v) => $k.' '.$v, array_keys($__egs), $__egs)).'). Where a brand '
              .'also uses a colour or model code, it is shown beside it.</p>'
              .'<p>'.$B('Current stock.').' Shown per article and broken down by size, so you can see '
              .'the depth of a run before you ask. Please read stock as the binding constraint: this '
@@ -3822,13 +3828,21 @@ jobs:
                kiracilarin satin alma ekibi" diyerek dogru kisiye yonlendirilebilmeyi
                kolaylastiriyor -- yanlis kutuya dusen bir teklif ancak boyle kurtulur. */
             if($letter==='outlets'):
+            /* "Among them" listesi GIZLI MARKAYI saymaz (vestra_hidden_brands):
+               mektubun bagladigi katalogda o ev yok, yani "stokta" demek yalan olur.
+               Sira ve yazim eskisinin aynisi; yalniz gizli olan dusuyor. */
+            $__amongL = array_values(array_filter(['Burberry','Dolce &amp; Gabbana','DSQUARED2','Givenchy','Gucci',
+                'Valentino','Ralph Lauren','Lacoste','Fred Perry'],
+                fn($x) => !(function_exists('vestra_brand_is_hidden') && vestra_brand_is_hidden(html_entity_decode($x)))));
+            $__among = count($__amongL) > 1
+                ? implode(', ', array_slice($__amongL, 0, -1)).' and '.end($__amongL)
+                : implode('', $__amongL);
             $fromName='Marco Bellini · VESTRA Wholesale';
             $body=
               '<p>Dear Sir or Madam,</p>'
              .'<p>I am writing from VESTRA, a European B2B wholesale marketplace for branded '
-             .'fashion. We supply EEA-sourced stock from '.$nBrand.' houses — among them Burberry, '
-             .'Dolce &amp; Gabbana, DSQUARED2, Givenchy, Gucci, Valentino, Ralph Lauren, Lacoste '
-             .'and Fred Perry — to retailers, outlet operators and online stores.</p>'
+             .'fashion. We supply EEA-sourced stock from '.$nBrand.' houses — among them '.$__among
+             .' — to retailers, outlet operators and online stores.</p>'
              .'<p>'.$B('What we hold.').' '.$nArt.' articles, with the trade price per piece in EUR '
              .'excluding VAT and freight. Stock is shown per article and broken down by size, so '
              .'the depth of a run is visible before you ask. Minimum order is per article — commonly '
