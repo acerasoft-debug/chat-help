@@ -9105,11 +9105,29 @@ numune yazsin"*).
   - çift tahsilat muhafazası kalkınca **2**,
   - açık oturumu yeniden kullanma kalkınca **1**,
   - iş akışında mektup Stripe'tan önce gönderilince **1**.
-- **AÇIK KALAN, operatör kararı bekliyor — 7 numunelik fatura:** Ecokemet için
-  hazırlanan plan (SH9626 dahil 7 numune, katalog fiyatı, +€30 kargo, EUR/IBAN
-  fatura) **yazılmadı ve kesilmedi**. Alıcının son cümlesi *"d'abord … un
-  échantillon pour voir la qualité"* (önce **tek** numuneyle kaliteyi görmek)
-  ve SH9626 artık bu €80'lik linkte. Aynı ürünü faturaya €55'ten koymak
-  **çift tahsilat** olurdu. Seçenekler: (a) faturayı SH9626'sız 6 kalemle
-  kesmek (€368,90 + €30 = €398,90), (b) numune ödenip kalite onaylanana kadar
-  bekletmek.
+- **KAPANDI — operatör kararı, aynı gün, iki cümlede:** *"tüm ürünler degil
+  sadece verdigim üründe link olustur 80 eur gönderim dahil adresinide
+  girebilsin"* + *"link kesin olduktan sonra email ile gönder Ecokemet müsteri
+  bu"*. İkisi de **zaten yapılmış olanı** tarif ediyor ve ölçülerek doğrulandı,
+  varsayılmadı:
+  - **Yalnız o ürün, yalnız o alıcı:** link `lac-zip-hoodie` / SH9626 için ve
+    `SPL-FD5C39E1` kaydı Ecokemet'in hesap ID'sine bağlı. **Hiçbir ilana
+    `sample_price` yazılmadı** (`seller-products.yml`'de o alana yazan satır
+    yok, yalnız kuru koşunun okuması) — başka hiçbir alıcı ürün sayfasında
+    numune kutusu görmüyor, başka hiçbir ürün değişmedi.
+  - **€80 gönderim DAHİL:** Stripe satırı tek kalem 80,00 EUR, ayrı kargo
+    satırı yok; mektubun kendi cümlesi *"Montant : 80,00 € — livraison dans
+    l'UE incluse"*. Adres ve telefon Stripe sayfasında toplanıyor.
+  - **"Link kesin olduktan sonra gönder" sırası kodun kendisinde:** iş akışı
+    Stripe oturumunu MEKTUPTAN ÖNCE kuruyor, `amount_total`'ı 80,00 EUR diye
+    doğruluyor ve ancak sonra mektubu gönderiyor (testte iddia var; ters
+    sırada 1 kırmızı). Gönderim 25 Eyl 2026 run `36130531985`, Brevo
+    `delivered` 13:39:10 +02:00. **İkinci bir mektup gönderilmedi** — aynı
+    alıcı + aynı ilan için açık link varken iş akışı ikincisini kurmuyor ve
+    aynı linki yeniden yollamak alıcıya aynı ödeme sayfasını iki kez
+    duyurmak olurdu.
+  - **7 numunelik fatura İPTAL:** *"tüm ürünler degil"* cümlesi bu planı
+    kapatıyor. Yazılmamıştı, kesilmemişti, artık yazılmayacak. Alıcı kaliteyi
+    tek numuneyle görmek istiyor; SH9626 bu €80'lik linkte ve aynı ürünü bir
+    faturaya ikinci kez koymak çift tahsilat olurdu. Numune ödenip kalite
+    onaylanırsa gerisi yeni bir karar.
