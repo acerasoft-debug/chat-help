@@ -1781,11 +1781,18 @@ jobs:
             printf("hesap          : %s | %s | %s\n", $uid, (string)($acc['company'] ?? ''), (string)($acc['type'] ?? ''));
 
             $out = [];
+            /* Katalog TEK KEZ okunur: vestra_find() her cagrida butun katalogu
+               yeniden kuruyor ve ilk canli kosu konusma basina bir katalog
+               yukleyip zaman asimina yaklasti. Ham liste (gizli/onaysiz dahil)
+               ustte, canli liste onu ezer -- yani fiyat/numune canli degerden. */
+            $catIdx = [];
+            foreach (vestra_listings() as $lp) if (isset($lp['id'])) $catIdx[(string)$lp['id']] = $lp;
+            foreach (vestra_products(true) as $lp) if (isset($lp['id'])) $catIdx[(string)$lp['id']] = $lp;
             $threads = vestra_msg_my_threads($uid);
             printf("konusma        : %d\n", count($threads));
             foreach (array_reverse($threads) as $t) {
               $lid = (string)($t['listing_id'] ?? '');
-              $p   = $lid !== '' ? (vestra_find($lid) ?: (function_exists('vestra_listing_by_id') ? vestra_listing_by_id($lid) : null)) : null;
+              $p   = $lid !== '' ? ($catIdx[$lid] ?? null) : null;
               $msgs = (array)($t['messages'] ?? []);
               printf("  %-28s | mesaj %2d | son %s\n", $lid !== '' ? $lid : '(ilansiz)', count($msgs), substr((string)($t['last_at'] ?? ''), 0, 16));
               $out[] = "=== ILAN ".$lid.($p ? '  ['.(string)($p['brand'] ?? '').' · '.(string)($p['name'] ?? '').' · sku '.(string)($p['sku'] ?? '')
