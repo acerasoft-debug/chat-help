@@ -91,8 +91,7 @@ if ($directCharge) { $rec['acct_id'] = $seller['stripe_account_id']; $rec['fee']
 sample_save($rec);
 
 // EU-wide only — the sample price already includes shipping within the EU.
-$EU_COUNTRIES = ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE',
-                  'IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE'];
+$EU_COUNTRIES = sample_eu_countries();   // one list, shared with the operator pay link (inc/samples.php)
 $lineName = 'Sample — ' . vestra_product_title($p);
 $lineDesc = 'EU-wide shipping included. ' . ($note !== '' ? 'Size/note: ' . $note : '');
 $successUrl = 'https://vestrasales.com/sample-confirm?ref=' . rawurlencode($ref) . '&paid=1';
