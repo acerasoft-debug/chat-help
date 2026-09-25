@@ -1521,6 +1521,45 @@ sorundu.**
   numarası taşıyorlar, kütük herkese açık. *"Banka bilgileri neden yok"
   sorusunun cevabı, numarayı yakmadan önce okunan satırda durmalı.*
 
+**KURAL 5i (devamı 2) — O748EE: kabul edilmiş teklifin kur damgası HİÇBİR
+ZAMAN düşemiyordu; düzeltildi ve fatura ABD'den kesildi** (operatör, 25 Eyl
+2026: *"buna faturayi istisnai olarak abd den yaparmisin ABD Mercury banka
+hesabi ile"* — Ecokemet, Lacoste Zip Up Fleece Hoodie SH9626, 336 ad.).
+- **"Mercury hesabı" ölçüldü, tahmin edilmedi:** `billing_for=vestra` →
+  platformun USD rayı `bank_name` **Choice Financial Group** (Mercury'nin
+  ortak bankası), hesap no **12 hane**, ABA **9 hane**, *"USD faturasında ödeme
+  kutusu: ÇIKAR (6 satır)"*. Yeni bir hesap alanı gerekmedi; ray faturanın
+  BİRİMİNE bakıyor (KURAL 5s), yani "ABD hesabıyla" = kesen VESTRA + birim USD.
+  Alıcı Avrupalı olduğu için varsayılan EUR'du; operatörün açık seçimi ezdi.
+- **İlk USD taslağı DURDU: "kur damgası yok".** Sebep yapısal: teklif faturasının
+  kuru TEKLİFİN tarihinden aranıyor ve geçmiş tablosu (`fx_history.json`)
+  **yalnız damgasız bir SİPARİŞ istediğinde** büyüyordu
+  (`vestra_orders_fx_backfill`). Faturasız bir kabul `orders.csv`'de yok
+  (`find_ref` iki dosyada buldu: `offers.csv` + `offer_responses.json`), yani
+  teklif tarihi son çekimden yeniyse damga **hiçbir zaman** düşmüyordu. Hata
+  metninin yolladığı **"⟳ Fetch missing rates" düğmesi de yalnız siparişleri
+  geziyordu** — operatör için çıkmaz. 9 Eylül'de OCD7D2'nin çalışması
+  tesadüftü: tablo o gün 4 Eylül'ü taşıyordu, 5 günlük geriye bakış yetti.
+- Düzeltme (`11f7286f`): `vestra_offer_fx_ensure()` tabloda o günü bulamazsa
+  **aynı** frankfurter aralık ucundan teklifin gününü çekip yeniden damgalıyor
+  (aynı 30 dk geri çekilme; çekim olmazsa null, kur uydurulmuyor), ve admin
+  `fx_backfill` düğmesi kabul edilmiş teklifleri de geziyor. Test:
+  `invoice_seller_pick_test §12` (+5), `order_fx_test` (+1); sabotajla **5** ve
+  **1** kırmızı (her sabotajın uygulandığı `grep -c` ile doğrulandı).
+- **Canlı sonuç:** kur **1 EUR = 1,1367 USD (ECB 24 Eyl 2026)** çekildi ve
+  damgalandı. **INV-2026-1018**: 336 × US$50,01 (aslı €44,00) =
+  **US$16.803,36** (aslı **€14.784,00**), kesen **Acerasoft LLC**, kargo 0,
+  KDV satırı yok. `notify=false` — **alıcıya gitmedi** (KURAL 18); kopya
+  operatörün kutusunda. Kesilen kayıttan geri okundu (`invoice_draft`): USD,
+  Acerasoft LLC, ödeme kutusu **ÇIKAR (6 satır)**.
+- **Küçük tutarsızlık, düzeltilmedi:** kesimdeki `fx_note` *"order date 25
+  September"* (birleşik belge kesim gününü taşıyor, KURAL 5e), kayıttan yeniden
+  çizim ise *"24 September"* diyor. Kur ikisinde de aynı (24 Eyl); değişen yalnız
+  notun andığı tarih.
+- **Operatör kararı bekleyen:** faturanın alıcıya e-postalanması ve navlun
+  (kayıtta yok, KURAL 34 gereği tarife pasif — gerekirse KURAL 5f ile AYNI
+  numarayla yeniden çizilir).
+
 **KURAL 5o — Mektubun para bloğunu TEK gövde basar; birimi ÇAĞIRAN seçemez**
 (operatör, 9 Eyl 2026: *"email usd ye cevrilmis fakat eur yaziyor büyük hata"*).
 - Aynı blok bu depoda **DÖRT** kez ayrı ayrı yazılıydı — panelin `📧 Test`
