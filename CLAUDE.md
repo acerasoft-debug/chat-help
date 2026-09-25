@@ -6014,6 +6014,45 @@ olsun"*).
   ikinci/üçüncü mektup kuyrukları da 3 iş günlük yaş kuralında bekleyen birkaç
   aday taşıyor (2. mektupta 3 aday), ama bunlar bugün gönderilebilir değil.
 
+**KURAL 31 — "3 email almanyanlara": ÜÇÜNCÜ MEKTUP yalnız 2 Alman'a
+gidebiliyordu ve gitti; üye kipine ÜLKE SÜZGECİ eklendi** (operatör, 25 Eyl
+2026: *"3 email almanyanlara sistemden kampanya gönder yeni çıkan ürünleri... ve
+diğer markaları estetik olsun"*).
+- **Ev listesi DEĞİŞTİRİLMEDİ:** operatör bu turda ev ADLANDIRMADI; 18–21 Eyl'de
+  "yeni ürünler" dediği şey tam bu altı evdi (Fred Perry, Gallery Dept., Lacoste,
+  Gucci, Balenciaga, DSQUARED2) ve foto şeridi ("estetik") 21 Eyl'den beri
+  mektupta. Adlandırılmayana dokunulmuyor.
+- **Lead kanalında Alman ÜÇÜNCÜ mektup adayı 0:** `country_filter` ile ölçüldü;
+  hiçbir Alman lead ilk iki mektubu birlikte almamış. Mektup *"size iki kez
+  yazmıştık"* diye açılıyor ve kod iki damgayı şart koşuyor — ikinci mektubu
+  almamış birine üçüncüyü göndermek mektubun ilk cümlesini yalanlardı.
+  **İkinci mektup kanalında da Alman aday 0** (varsayılan `min_brands=2`):
+  görünen üç Alman dükkândan Apropos ve Andreas Murkudis'e ikinci mektup
+  firmanın BAŞKA bir kutusundan zaten gitmiş, Gate 194 (Berlin) "en az 2
+  premium marka" eşiğine takılıyor — eşiği gevşetmek operatör kararı.
+- **Üye kipinin ülke süzgeci YOKTU** (lead yolunun `country_filter`'ı yalnız
+  lead döngüsünde, satır ~1072). Almanları ayırmanın tek yolu 18 yabancı hesabı
+  `skip=` ile elemekti ve `skip` firma adı PARÇASI eşliyor — adı "c" olan bir
+  hesabı elemek, adında c geçen her firmayı elerdi. Eklendi:
+  `member_spec` → **`country=Deutschland,Germany,DE`** (lead yoluyla aynı TAM,
+  büyük/küçük harf duyarsız eşleme; yeni girdi değil spec anahtarı — dosya 25
+  girdi sınırında). Kuru koşu özeti süzgeç dışında kalanları sayıyor.
+- **Uygun 20 üyenin 4'ü Almanya'yla ilgili görünüyordu, 2'si gerçek:**
+  Arelisshop (Deutschland) ve Markenparadies GbR (DE). **Acera Soft LLC**
+  (Deutschland) platformun kendi test hesabı, her koşuda olduğu gibi `skip=acera`.
+  **Weekendnest**'in ülkesi **"Ge"** — Gürcistan'ın ISO kodu da GE; tahmin
+  edilmedi, süzgeç onu doğal olarak dışarıda bıraktı (KURAL 3).
+- **Gönderildi: 2, hata 0** (ikisi de Almanca, fiyat kapısı açık, 6 ev × 2 foto).
+  Arelisshop'a bir gün önce fatura + `payment_due` gitmişti; bu kampanya
+  mektubu o işlemsel mektuplardan ayrı ve üye yaş kuralı yalnız KAMPANYA
+  damgalarına bakıyor.
+- Test: `tests/member_country_filter_test.php` (19 iddia) iş akışındaki GERÇEK
+  satırları sentetik hesaplarla koşturuyor. İki yön: Alman varyantları geçer,
+  "Ge"/Denmark/boş ELENİR, süzgeç verilmezse herkes geçer. Alt dize sabotajında
+  **3 kırmızı** (Denmark tuzağı dahil: `de` alt dizesi), süzgeç silinince düşüyor.
+  *Kendi hatam:* satırdaki `continue`'yu `eval` dışındaki bir döngüye bağlamaya
+  çalıştım ve fatal verdi — `eval`'lı kod yalnız kendi içindeki döngüden çıkabilir.
+
 **21 Eyl 2026 — Tek adrese TÜM KATALOG fiyat listesi: adres YENİ aday değil,
 kayıtlı ONAYLI hesap çıktı.** Operatör: *"hhhhkgkf339@gmail.com bu emaile tüm
 katalogun fiyat listesini gönderirmisin"*.
