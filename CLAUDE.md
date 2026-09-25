@@ -1556,9 +1556,34 @@ hesabi ile"* — Ecokemet, Lacoste Zip Up Fleece Hoodie SH9626, 336 ad.).
   September"* (birleşik belge kesim gününü taşıyor, KURAL 5e), kayıttan yeniden
   çizim ise *"24 September"* diyor. Kur ikisinde de aynı (24 Eyl); değişen yalnız
   notun andığı tarih.
-- **Operatör kararı bekleyen:** faturanın alıcıya e-postalanması ve navlun
-  (kayıtta yok, KURAL 34 gereği tarife pasif — gerekirse KURAL 5f ile AYNI
-  numarayla yeniden çizilir).
+- **GERİ ALINDI, aynı gün** (operatör: *"faturayi henüz yapma yaptiysan sil"*).
+  Talimat "istisnai olarak ABD'den **yap**" diye okunmuştu; operatörün kastı
+  seçimi hazırlamaktı, numarayı yakmak değil. *Bir fatura talimatında "kes" mi
+  "hazırla" mı belirsizse, KURAL 5'in ruhuna uygun olan taslakta durup
+  sormaktır — kesmek geri alınabilir değil, yalnız arşivlenebilir.*
+  - Tek belgeyi kaldırmanın yolu yalnız paneldeydi; iş akışına
+    **`seller-products.yml` → `admin_mode=invoice_delete`** eklendi
+    (`issue_ref=<ref>`, `payload=<satıcı anahtarı>` tek dilimde boş,
+    `move_apply=true`; varsayılan kuru koşu). Panelin 🗑 Remove düğmesiyle
+    **AYNI** fonksiyon (`vestra_invoice_delete`): dosyayı `data/invoices/deleted/`
+    altına **taşır**, grup bağını koparır, **geri okur**. Birden fazla dilimde
+    anahtar tahmin edilmez; birleşik belgenin ÜYESİ verilirse durur ve birincili
+    söyler. Kuru koşu sipariş satırının kaynağını ve ödeme saatinin (KURAL 7)
+    başlayıp başlamadığını yazar.
+  - **Sonuç:** `INV-2026-1018` arşivlendi (2 dosya taşındı, geri okuma: bu
+    dilimde fatura yok). Ödeme saati **başlamamıştı**, hatırlatma **gitmemişti**
+    — 14:00 UTC cron'undan önce kaldırıldı, yani müşteriye hiçbir şey gitmedi.
+    Faturayla birlikte `vestra_offer_order_ensure()`'ın yazdığı **orders.csv
+    satırı da `order_delete` ile kaldırıldı** (fatura öncesi hâl: teklif yalnız
+    `offers.csv` + `offer_responses.json`'da) — kalsaydı aynı satış onay
+    kuyruğunda hem teklif hem sipariş olarak iki kez görünürdü.
+  - **Numara yanmış kalır:** yeniden kesim **INV-2026-1019** ya da sonrasını
+    alır. Operatörün kutusundaki kopya mektup geçersiz bir belgeyi taşıyor.
+  - **Dokunulmayanlar:** `offer_responses[O748EE]`'deki operatör seçimleri
+    (kesen `vestra`, birim `USD`) — onay kuyruğunda bu seçimle bekliyor. Kur
+    damgası sipariş satırıyla gitti (`vestra_order_delete` durum kaydını da
+    siler); `fx_history.json` 24 Eylül'ü taşıdığı için bir sonraki taslak ağsız
+    yeniden damgalar.
 
 **KURAL 5o — Mektubun para bloğunu TEK gövde basar; birimi ÇAĞIRAN seçemez**
 (operatör, 9 Eyl 2026: *"email usd ye cevrilmis fakat eur yaziyor büyük hata"*).
