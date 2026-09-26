@@ -4748,6 +4748,25 @@ dan yaz"* (13:08)).
   düzeltildi. Gönderim: konu *"VESTRA — your enquiry about 2 items"*, imza
   Marco Bellini, iki ürün fotoğrafı. Brevo sonucu:
   **16:34:00 `requests` → 16:34:02 `delivered`**.
+- **Givenchy konuşmasına yeni ve farklı bir cevap gitti** (operatör:
+  *"12:56 … Good morning daha degisik mesaj gönder"*). Kalıp cevap panelden
+  silinmişti: kuru koşu konuşmada **1 mesaj** gösterdi, oysa 14:35'te 2 vardı.
+  Yeni metin ilanın **canlı** verisinden kuruldu (`inspect-products`,
+  `name=BM716G3YBM001`): 10'luk paket, S×1/M×3/L×3/XL×2/XXL×1, asgari 20 adet
+  (2 paket), birim €89,90. Alıcının fiyat kapısı açık. Metin ayrıca
+  teklif kutusunu anıyor ve kaç paket istendiğini soruyor. Renk sorulmadı,
+  çünkü ilanda renk alanı **yok**; kalıp cevap renk soruyordu. Marca Online adına
+  gönderildi, geri okundu: 2 mesaj, son mesaj 14:45:23 UTC.
+- **YAN BULGU — SKU "IBAN" diye engelleniyor.** Mesaj süzgecinin IBAN kalıbı
+  (`[A-Z]{2}\d{2}(?:[ -]?[A-Z0-9]{4}){2,7}…`, `/i`) `BM716G3YBM001`'i
+  yakalıyor: `BM` + `71` + `6G3Y` + `BM00` + `1`. Yani bu SKU'yu yazan hiçbir
+  sohbet mesajı gitmez. İlanın **kendi adı** da SKU'yu taşıyor ("Logo T-Shirt —
+  BM716G3YBM001"), bu yüzden ilanın adını olduğu gibi kopyalayan satıcı da
+  engellenir. Bu cevapta SKU yazılmayarak aşıldı (konuşma zaten o ilana bağlı).
+  Kalıp **değiştirilmedi**, çünkü o bir güvenlik kontrolü. Aday çözüm: KURAL 8b'nin
+  bağlantı dersine benzer şekilde, kalıbı mod-97 doğrulamasıyla (`vestra_iban_valid`)
+  sınırlamak. Geçersiz sağlamalı bir IBAN zaten ödeme için kullanılamaz.
+  Karar operatörde.
 
 - **KURAL 20 — Her pakette TAŞIYICI + SERVİS + takip BAĞLANTISI; bağlantı
   numaradan TÜRETİLİR** (operatör, 9 Eyl 2026: *"bu gönderim numarasini ekle
