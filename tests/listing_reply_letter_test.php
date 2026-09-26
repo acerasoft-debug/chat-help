@@ -39,6 +39,10 @@ $t('magaza adi YOK (KURAL 8)',                !preg_match('/garage|marca online|
 $t('dugme mesaj kutusuna',                    ($o['button']['url'] ?? '') === 'https://vestrasales.com/buyer?tab=messages');
 $t('Turkce karakter yok',                     !preg_match('/[şğıİçöüŞĞÇÖÜ]/u', $s.$b));
 
+echo "-- ilan adi ident'i zaten tasiyor --\n";
+[$s, $b, $o] = vestra_tpl_listing_reply('Dear X', [['label'=>'Givenchy Logo T-Shirt — BM716G3YBM001', 'ident'=>'BM716G3YBM001', 'url'=>'u']], '', true, '');
+$t('ident iki kez yazilmaz',                  substr_count($b, 'BM716G3YBM001') === 1);
+
 echo "-- tek ilan, sitede cevap YOK, ozel metin --\n";
 [$s, $b, $o] = vestra_tpl_listing_reply('', [$items[0]], 'We have 40 pieces in stock.', false, '');
 $t('bos hitap -> Sir or Madam',               str_starts_with($b, "Dear Sir or Madam,\n"));

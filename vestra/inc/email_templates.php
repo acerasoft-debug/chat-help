@@ -1189,7 +1189,10 @@ function vestra_tpl_listing_reply(string $salutation, array $items, string $mess
     $lines = '';
     foreach ($items as $it) {
         $lines .= "• ".(string)($it['label'] ?? '')
-                . (($it['ident'] ?? '') !== '' ? " — ident no. ".$it['ident'] : '')."\n"
+                /* Ilan adi ident'i zaten tasiyorsa ("… — BM716G3YBM001") ikinci
+                   kez yazilmaz: ayni numara bir satirda iki kez gozu yorar. */
+                . ((($it['ident'] ?? '') !== '' && stripos((string)($it['label'] ?? ''), (string)$it['ident']) === false)
+                    ? " — ident no. ".$it['ident'] : '')."\n"
                 . (($it['url'] ?? '') !== '' ? "  ".$it['url']."\n" : '');
     }
     $body =
