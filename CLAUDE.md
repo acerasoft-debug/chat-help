@@ -4690,6 +4690,33 @@ international bv. Den yaz"* — Arelisshop ↔ VESTRA Support, 1 mesaj, 22 Eyl 2
   kullanımı — aracın kendisi `tests/lead_rename_test.php` ve
   `msg_thread_label_test.php` gibi testlerin tuttuğu davranışı değiştirmedi.
 
+**KURAL 19 (devamı) — Odzież Premium'un iki "Good morning"i: bu kez YALNIZ
+thread taşındı, ilanın satıcısı DEĞİŞMEDİ** (operatör, 26 Eyl 2026:
+*"Good morning buna marca online dan yaz"* (12:56) + *"bunada parisles garage
+dan yaz"* (13:08)).
+- `thread_dump` (şifreli, salt okunur): alıcı `a9420f8ee08b4c2d`, 3 konuşma.
+  12:56 → `gvy-venchybm716g3ybm001` (Givenchy), 13:08 → `blm-ah1eg010`
+  (Balmain), ikisi de **tek mesaj** ve thread satıcısı **VESTRA Support**
+  (ilanlar seller_uid'siz — bur-8014004'ün aynı deseni).
+- `thread_seller` kuru koşu → uygula: `8404357052553147 → 93ac137c09bf5bca`
+  (Marca Online), `6107f5a053bf80ec → 9a1bd10842b0da93` (GARAGE LE PARIS);
+  eski satıcı 0 mesaj, çakışan thread yok, yedek alındı, 1/1 geri okundu.
+  Taşıma **thread id'sine** göre yapıldı; `ilan:` seçimi o ilanın BÜTÜN
+  konuşmalarını taşırdı (kuru koşu burada her ilanda tek thread gösterdi).
+- **İlanın `seller_uid`'ine BİLEREK dokunulmadı.** Mesajı o satıcı adına
+  yazmak için thread taşıması yeterli (`vestra_msg_send` ilan satıcısını
+  sormuyor). İlanı Marca Online'a atamak ise ayrı bir karar: KURAL 21d
+  gereği Givenchy ilanının "Ships from" satırı vitrinden kalkar ve varsayılan
+  fatura kesicisi Türk tüzel kişisi olurdu. Bedeli: alıcı ürün sayfasından
+  YENİDEN yazarsa yeni bir VESTRA Support thread'i açılır; konuşmanın
+  içinden cevap verirse taşınan thread'e düşer.
+- Cevap (ikisinde aynı metin, `msg_reply send=true`): *"Good morning, thank you
+  for your message. How can we help you with this item? Let us know the
+  quantity and colours you are interested in and we will come back to you with
+  availability and pricing."* `msg_ping` ile geri okundu: son mesaj Marca
+  Online 14:15:46 / GARAGE LE PARIS 14:16:19; alıcı bildirimde satıcıyı
+  **"Seller BM716G3YBM001" / "Seller AH1EG010"** görüyor (KURAL 8 bozulmadı).
+
 - **KURAL 20 — Her pakette TAŞIYICI + SERVİS + takip BAĞLANTISI; bağlantı
   numaradan TÜRETİLİR** (operatör, 9 Eyl 2026: *"bu gönderim numarasini ekle
   link ile beraber ups express saver"* + *"her pakette gönderici kargo bölümüde
