@@ -9175,6 +9175,54 @@ yazılmaz, depo herkese açık).
        (`invoice_vat_note`).
   - `belgede banka adresi: YOK`: GARAGE LE PARIS'in künyesinde banka adresi yok.
     SEPA'da IBAN+BIC yeter; engel değil.
+- **"SpamAssassin düşmüş olabilir mi?" — büyük olasılıkla EVET; ölçüsü teslim
+  değil AÇILMA** (operatör, aynı gün 18:4x Polonya saati).
+  - Brevo (hesabın adres geçmişi): fatura mektubu 16:22 `delivered`, **açılma
+    yok**; aynı adrese sonraki dört VESTRA mektubu (*your enquiry about 2 items*,
+    *new message from Seller …*) **açılmış** (son 18:10). Yazışma dökümü
+    (`thread_dump`, şifreli, yerelde çözüldü): müşteri 18:01 *"I can't find the
+    invoice anywhere"*, 18:17 *"I dont have inovice"*; TYREX 18:05 *"platforma
+    e-postayla göndermesini söyleyeceğim"*. Gönderen alan adı temiz (`sender=true`:
+    DKIM/SPF/DMARC yayında, Brevo'da dördü DOGRULANDI). Eleyen şey içerik: "fatura
+    + gösterilen hesaba havale + indir" kalıbı; açılan mektuplar sade bildirim.
+  - **Aynı mektubu aynı adrese ikinci kez yollamak çözüm değil** (aynı süzgeç aynı
+    yere koyar) — operatör yine de *"müşteriye tekrar email gönder"* dedi.
+    Gönderilen KURAL 5n'nin **`payment_notice`**'i (17:03:55 UTC, konu *"Invoice
+    INV-2026-1004 — please let us know once the transfer is sent"*, tutar
+    faturadan €429,00, sipariş sayfası düğmesi, imza Marco Bellini; Brevo
+    19:03:55 +02:00 `requests` → 19:03:57 `delivered` — teslim, açılma değil).
+    `payment_due` **bilerek seçilmedi:** *"5 iş günü içinde ödenmezse iptal"*,
+    faturayı bulamadığını söyleyen ve *"dolandırıcı olmadığınıza nasıl inanayım"*
+    diye yazan alıcıya cevap olamazdı; saat zaten yarın 14:00 UTC'de cron'la
+    başlıyor. "Fatura mektubunu yeniden yolla" diye bir yol YOK:
+    `vestra_order_invoice_issue()` kesilmiş faturada koşulsuz reddediyor.
+  - **Asıl kanal müşterinin OKUDUĞU kanal: sohbet.** `msg_reply` (polo ipliği,
+    TYREX INTERNATIONAL BV. adına, 17:05:09 UTC): faturanın hesaptaki yeri
+    (My orders → Invoice düğmesi) + doğrudan bağlantı + **operatörün eklettiği
+    cümle** (belge *Agaya Paris, TYREX International'ın alt şirketi* tarafından
+    kesildi; belgede ve banka hesabında görülecek ad bu) + 16:22'deki e-posta ve
+    **spam klasörü** uyarısı + dekont/yanıt yolu. Metin önce yerelde
+    `vestra_msg_flag_offplatform()`'dan geçirildi (NULL); gönderen adresi
+    **bilerek yazılmadı** — yazılsaydı süzgeç `email` diye engellerdi (ölçüldü).
+    Kuru koşu ipliği ve imzayı doğruladı, sonra `send=true`. Alıcı sohbette
+    satıcıyı *"Seller 710548797001"* görüyor; TYREX/Agaya adlarını yazmak
+    operatörün açık kararı (KURAL 8'in `listing_colours` istisnasıyla aynı sınıf).
+  - **SSH: 7 denemenin 5'i `handshake failed: connection reset by peer` / `EOF`**
+    (16:43–16:55 UTC; 2,5 dk ara bile yetmedi, 8 dk sonra geçti). Kesilen koşuda
+    sunucuda **hiçbir şey çalışmıyor** — betik yüklenmeden düşüyor — yani burada
+    "failure" = "gönderilmedi"; kütükte `GONDERILDI` görmeden "gitti" deme. Bu
+    dosyanın *"ikinci runner'la bak"* dersinin uzun hâli: ardışık bağlantıları
+    barındırıcı kesiyor; arayı açıp tek deneme.
+  - **Yarın:** `cron_order_payment.php` 14:00 UTC'de `payment_due` gönderir ve 5 iş
+    günlük saati başlatır (`payment_grace_start` bugün yazılmadı). Müşteri ilk
+    mektubu "spam değil" diye işaretlemediyse o da aynı yere düşebilir.
+  - **Düzeltilmedi, karar operatörün:** (1) telefon **dört ayrı mesaja bölünerek**
+    (ülke kodu + üç haneli parçalar) KURAL 8b süzgecinden geçiyor; bugün üç
+    konuşmada tekrarlandı — mesaj başına bakan süzgecin bilinen açığı;
+    (2) Givenchy konuşmasında Marca Online adına yazılan *"satıcılar iadeler için
+    VESTRA'da fon tutuyor"* cümlesinin kodda karşılığı **YOK** (arandı:
+    deposit/reserve/teminat → 0) ve bu siparişte para doğrudan Agaya Paris'in
+    hesabına gidiyor — tutulamayacak bir güvence, KURAL 3'ün mesaj hâli.
 - **Açık kalanlar, karar operatörün:**
   1. SKU (yukarıda).
   2. GARAGE LE PARIS (FR) → PL'de KDV kayıtlı alıcı = AB içi teslim. Müşteri
