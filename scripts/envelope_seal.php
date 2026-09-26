@@ -9,6 +9,7 @@
  *
  * Bicim -- su uc yer AYNI bicimi aciyor, biri degisirse hepsi degismeli:
  *   seller-products.yml     create_buyer / platform_bank (payload=)
+ *   seller-products.yml     order_delivery (payload=enc:<zarf>, govde {"address":"..."})
  *   send-campaign-preview.yml  reply_spec to=enc:<zarf>
  *
  *   KEY.IV.GOVDE
