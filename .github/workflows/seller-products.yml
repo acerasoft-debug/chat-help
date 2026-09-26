@@ -1284,6 +1284,23 @@ jobs:
             printf("  ulke=%s  vat=%s\n", (string)($acc['country'] ?? '-'),
                 trim((string)($acc['vat_id'] ?? '')) !== '' ? 'kayitli' : 'YOK');
             if (!auth_prices_unlocked($acc)) echo "  UYARI: fiyat kapisi kapali -- bu hesap sitede fiyat goremiyor\n";
+            /* ADRES / POSTA KODU (KURAL 35). Siparis notunda teslimat adresi yoksa
+               fatura HESABIN fatura satirini basiyor (vestra_invoice_buyer ->
+               vestra_account_billing_line), yani posta kodu orada yoksa belge
+               posta kodsuz cikar -- ve kurye/gumruk onu ister. 26 Eyl 2026:
+               operator bir NIP'i "posta kodu ise ekle" diye verdi ve hesabin
+               posta kodunu gosteren tek sonda yalniz SAYIM basiyordu (161/116/
+               23/93), hesap basina degil. Adres BASILMAZ (kutuk herkese acik):
+               yalniz uzunluk ve VAR/YOK, olcut panelin "no postcode" uyarisiyla
+               AYNI fonksiyon. */
+            require_once $doc."/inc/addresses.php";
+            $billLine = vestra_account_billing_line($acc);
+            $billPc   = $billLine !== '' && vestra_address_has_postcode($billLine);
+            printf("  fatura adresi=%s  posta kodu=%s  adres defteri=%d kayit\n",
+                $billLine !== '' ? 'VAR ('.mb_strlen($billLine).' karakter)' : 'YOK',
+                $billPc ? 'VAR' : 'YOK', count(vestra_ship_addresses($acc)));
+            if (!$billPc && !vestra_postcode_optional((string)($acc['country'] ?? '')))
+                echo "  UYARI: faturada posta kodu CIKMAZ -- Admin > Users > Edit billing details (postcode) ya da siparise teslimat adresi\n";
 
             /* KIP: dropship (varsayilan) ya da TOPTAN. Ikisi ayri satis ve ayri
                fiyat: dropship TEK PARCA satiyor ve tabana zam biniyor, toptan
