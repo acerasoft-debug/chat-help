@@ -1155,6 +1155,61 @@ function vestra_tpl_order_delivery_confirmed(string $buyerName, string $ref, str
 }
 
 /**
+ * Sitede ilan uzerinden yazan aliciya, sitede verilen cevabin E-POSTA hali
+ * (operator, 26 Eyl 2026, Odzież Premium: iki ilanda "Good morning" yazdi,
+ * cevaplar sitede Marca Online / GARAGE LE PARIS adina verildi, sonra
+ * "email ile gönder polonyaliya").
+ *
+ * NEDEN AYRI: vestra_msg_send() her mesajda ICERIKSIZ bir bildirim caliyor
+ * ("yeni mesaj var"); msg_ping de ayni zili yeniden caliyor. Ikisi de cevabin
+ * KENDISINI tasimiyor -- alici yine siteye girmek zorunda. Bu mektup cevabi
+ * kutuya getiriyor.
+ *
+ * MAGAZA ADI YOK (KURAL 8): sitede satici "Seller <ident>" gorunuyor; mektup
+ * da ilani ADIYLA ve ident no. ile aniyor, dukkanin adiyla degil. Imza VESTRA
+ * personasi, Reply-To support@vestrasales.com -- cevap platforma duser.
+ *
+ * $items: [['label'=>, 'ident'=>, 'url'=>], ..] -- CAGIRAN ilan kaydindan
+ * kurar; metne elle yazilmis bir urun adi yok. $replied: her ilanin
+ * konusmasinda bizden bir cevap GERCEKTEN duruyorsa true -- "cevabimiz
+ * kutunuzda da duruyor" cumlesi ancak o zaman dogru.
+ */
+function vestra_tpl_listing_reply(string $salutation, array $items, string $message = '',
+        bool $replied = false, string $signer = ''): array {
+    $salutation = trim($salutation) !== '' ? trim($salutation) : 'Dear Sir or Madam';
+    $message = trim($message) !== '' ? trim($message)
+        : "How can we help you with "
+          .(count($items) > 1 ? "these items" : "this item")
+          ."? Let us know the quantity and colours you are interested in and we will come back to you "
+          ."with availability and pricing.";
+    $n = count($items);
+    $subject = $n === 1
+        ? "VESTRA — your enquiry: ".(string)($items[0]['label'] ?? '')
+        : "VESTRA — your enquiry about {$n} items";
+    $lines = '';
+    foreach ($items as $it) {
+        $lines .= "• ".(string)($it['label'] ?? '')
+                . (($it['ident'] ?? '') !== '' ? " — ident no. ".$it['ident'] : '')."\n"
+                . (($it['url'] ?? '') !== '' ? "  ".$it['url']."\n" : '');
+    }
+    $body =
+        $salutation.",\n\n"
+      . "Good morning, and thank you for your message".($n > 1 ? 's' : '')." on VESTRA about "
+      . ($n > 1 ? "the following items" : "the following item").":\n\n"
+      . $lines."\n"
+      . $message."\n\n"
+      . "You can simply reply to this e-mail"
+      . ($replied ? ", or answer in your VESTRA message inbox, where our reply is waiting as well." : ".")
+      . "\n\nKind regards,\n\n"
+      . ($signer !== ''
+          ? $signer."\nVESTRA – vestrasales.com"
+          : "VESTRA · vestrasales.com");
+    $opts = ['badge' => 'Your enquiry',
+             'button' => ['label' => 'Open my messages', 'url' => 'https://vestrasales.com/buyer?tab=messages']];
+    return [$subject, $body, $opts];
+}
+
+/**
  * "Odeme yapacak mi, YA DA NE ZAMAN" (operator, 9 Eyl 2026, Stock&chic /
  * O7A484: *"zaten satin almisti odeme yapiyormu onu sorucaz"* + *"yada ne
  * zaman"*). Musteri siparisi verdi, fatura kesildi, para gelmedi ve son
