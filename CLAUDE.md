@@ -9017,6 +9017,70 @@ olarak gönder müsteriye"*).
   sorduğu tek yer), satır sayısı platform künyesinden.
   *Aynı kontrolün kaç kopyası var diye sormak, birini düzeltirken hâlâ şart.*
 
+**KURAL 28 (devamı) — Odzież Premium (PL, hesap `a9420f8ee08b4c2d`):
+"Lacoste sweatshirt" dendi, müşterinin YAZDIĞI SKU hoodie; verilen numara posta
+kodu değil NIP** (26 Eyl 2026; operatör: *"10 ad. lacoste sweatshirt 39,90 eurdan
++ 30 eur shipping parisle garage dan siparis yap fatura icin onayimi bekle"* +
+*"PL… [NIP, maskeli] bu post code ise bunuda ekle"* — numara bu dosyaya
+yazılmaz, depo herkese açık).
+- **Ürün talimattan değil YAZIŞMADAN belirlendi** (`thread_dump`, şifreli döküm
+  yerelde çözüldü). Pazarlık TYREX adına Ralph Lauren polo ipliğinde yürümüş
+  (ilan 9 Eyl'de TYREX'e taşınmıştı, KURAL 19). Müşteri iki kez açıkça
+  **`SKU SH9623`** yazdı: önce 6 renk × 20, sonra **"SH9623 Light Blue ×10"**. Renk
+  sırası SH9623'ün ilan sırasıyla birebir aynı, yani müşteri o sayfaya bakıyordu.
+  **SH9623 = Lacoste Fleece HOODIE** (40+ €49,90 · 50+ €45 · 100+ €42). Verilen
+  rakamlar ise **SH9608 Fleece Crew Neck Sweatshirt**'ün merdiveni (50+ €39,90 ·
+  100+ €35). Satıcı "Lacoste sweatshirts" deyip crew neck fiyatı verdi, müşteri
+  hoodie SKU'su yazdı ve kimse fark etmedi.
+- **Sipariş müşterinin yazdığı SKU ile ve anlaşılan birimle yazıldı.** Yanlış SKU
+  yanlış mal demek ve bunu ancak alıcı paketi açınca görür; SKU'yu fiyata
+  uydurmak da ters yönden aynı hata olurdu. €39,90 hoodie kataloğunun €10 altında;
+  taslak bunu *"(anlasilan) birim 39.90, ilan kademesi 49.90 -- operator karari"*
+  diye yazdı, not da *"Unit price agreed with the buyer, outside the listed
+  tiers"* diyor. PL %10 bölgesel indirim grubunda (müşteri sitede hoodie'yi €44,91
+  görüyor), yani anlaşılan fiyat alıcının lehine. **Operatör kararı bekliyor:**
+  crew neck kastedildiyse sipariş silinip SH9608 ile yeniden yazılır. Fatura
+  kesilmediği için geri alınabilir.
+- **`VES-F675713C`:** 10 × SH9623 Light Blue @ €39,90 = €399 + €30 kargo =
+  **€429**. Satıcının müşteriye yazdığı *"€399, plus €30 shipping — €429 in
+  total"* ile kuruşu kuruşuna aynı. `waive_moq` (10 < 40) ve `waive_min_colours`
+  (1 < 4); 10 tam karton, beden S×1·M×3·L×3·XL×2·XXL×1. Kesen **GARAGE LE PARIS**
+  (`admin_mode=seller`, geri okundu): tek dilim = TEK BELGE, EUR ödeme kutusu 4
+  satır, ödenecek €429,00; dilimde kesen ad *"Agaya Paris"* görünüyor (hesabın
+  fatura künyesi). **Fatura KESİLMEDİ, müşteriye hiçbir şey gitmedi.**
+  Bağımsız ikinci okuma (`diag-live` → `find_ref`): satır `10x SH9623 @39.90`,
+  toplam 429, `vat` PL***23 (faturaya girer), `status=pending`,
+  `invoice_seller_uid=7ab30f26…`, fatura numarası yok.
+- **Verilen numara posta kodu değil, Polonya NIP'i** (10 hane, sağlama basamağı
+  tutuyor). Hesapta zaten kayıtlı: `vat_id` maskesi PL…23, baş ve son haneler
+  aynı. Sipariş satırı onu yazılırken kopyaladı, yani faturaya girer. Talimat
+  koşulluydu ("posta kodu ise"), o yüzden ikinci kez yazılmadı.
+- **Asıl posta kodu eksikti ve bu ölçüldü.** Taslak adımına eklenen yeni satır
+  *"fatura adresi=VAR (20 karakter) posta kodu=YOK"* dedi: fatura yalnız sokak
+  adını basacaktı. Müşteri tam adresini (posta kodu dahil) yazışmada kendisi
+  vermişti, çünkü satıcı "tam firma bilgilerinizi" istemişti. Adres siparişe
+  **teslimat adresi** olarak **şifreli zarfla** yazıldı; ne girdiye ne kütüğe
+  girdi. Uygulama sonucu: *"S*** (47 karakter, posta kodu VAR)"*, faturanın
+  gördüğü == yazılan.
+- **Bunun için `order_delivery` değişti.** Adım adresi düz girdi olarak alıyor ve
+  çıktıya dört kez düz basıyordu. 23 Eyl'de bir müşterinin tam adresi tam böyle
+  koşu başlığına ve kütüğe girmişti. Artık `payload='enc:<zarf>'` kabul ediyor
+  (gövde `{"address":…}`, `to=enc:` ile aynı zarf) ve çıktı **her durumda**
+  maskeli: ilk harf + uzunluk + posta kodu VAR/YOK. Taslak da artık hesabın
+  posta kodu durumunu basıyor. Test `tests/order_delivery_enc_test.php` (35 iddia);
+  sabotajla 2 / 2 / 4 kırmızı.
+- **Açık kalanlar, karar operatörün:**
+  1. SKU (yukarıda).
+  2. GARAGE LE PARIS (FR) → PL'de KDV kayıtlı alıcı = AB içi teslim. Müşteri
+     *"VAT 0% / European invoice"* istedi, satıcı *"yes"* dedi; belgede bugün KDV
+     satırı yok. Ters ibraz notu onayda karara bağlanmalı.
+  3. Müşteri telefon numarasını **dört ayrı mesaja bölerek** gönderdi ve süzgeç
+     (KURAL 8b, 9–15 haneli dizi) yakalamadı. Mesaj başına bakan bir süzgecin
+     bilinen açığı; numara burada tekrarlanmıyor.
+- *Ölçüm notu:* şifreli döküm günlükten elle kopyalanmadı, oturum kaydından
+  (jsonl) birebir çıkarıldı. Tek karakterlik bir kopya hatası RSA anahtarını
+  açılmaz yapardı.
+
 **24 Eyl 2026 — G7JV9-1 (D&G Logo T-Shirt): kayıt "White" diyordu, fotoğraf
 KIRMIZI — düzeltildi** (operatör, ilanın kendi sayfasından pasteledi:
 *"Logo T-Shirt — White … SKU G7JV9-1 tshirt rengi red olacak fotoda red ama
