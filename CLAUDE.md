@@ -9103,16 +9103,17 @@ yazılmaz, depo herkese açık).
   diye yazdı, not da *"Unit price agreed with the buyer, outside the listed
   tiers"* diyor. PL %10 bölgesel indirim grubunda (müşteri sitede hoodie'yi €44,91
   görüyor), yani anlaşılan fiyat alıcının lehine. **Operatör kararı bekliyor:**
-  crew neck kastedildiyse sipariş silinip SH9608 ile yeniden yazılır. Fatura
-  kesilmediği için geri alınabilir.
+  crew neck kastedildiyse sipariş silinip SH9608 ile yeniden yazılır. Bu cümle
+  yazıldığında fatura kesilmemişti; artık kesildi ve müşteriye gitti (aşağıda),
+  yani yol silme değil KURAL 5f'in aynı numarayla yeniden çizimi.
 - **`VES-F675713C`:** 10 × SH9623 Light Blue @ €39,90 = €399 + €30 kargo =
   **€429**. Satıcının müşteriye yazdığı *"€399, plus €30 shipping — €429 in
   total"* ile kuruşu kuruşuna aynı. `waive_moq` (10 < 40) ve `waive_min_colours`
   (1 < 4); 10 tam karton, beden S×1·M×3·L×3·XL×2·XXL×1. Kesen **GARAGE LE PARIS**
   (`admin_mode=seller`, geri okundu): tek dilim = TEK BELGE, EUR ödeme kutusu 4
   satır, ödenecek €429,00; dilimde kesen ad *"Agaya Paris"* görünüyor (hesabın
-  fatura künyesi). **Fatura KESİLMEDİ, müşteriye hiçbir şey gitmedi.**
-  Bağımsız ikinci okuma (`diag-live` → `find_ref`): satır `10x SH9623 @39.90`,
+  fatura künyesi). Bu yazma anında (14:02 UTC) fatura kesilmemişti ve müşteriye
+  hiçbir şey gitmemişti. Bağımsız ikinci okuma (`diag-live` → `find_ref`): satır `10x SH9623 @39.90`,
   toplam 429, `vat` PL***23 (faturaya girer), `status=pending`,
   `invoice_seller_uid=7ab30f26…`, fatura numarası yok.
 - **Verilen numara posta kodu değil, Polonya NIP'i** (10 hane, sağlama basamağı
@@ -9133,11 +9134,54 @@ yazılmaz, depo herkese açık).
   maskeli: ilk harf + uzunluk + posta kodu VAR/YOK. Taslak da artık hesabın
   posta kodu durumunu basıyor. Test `tests/order_delivery_enc_test.php` (35 iddia);
   sabotajla 2 / 2 / 4 kırmızı.
+- **FATURA KESİLDİ VE MÜŞTERİYE GİTTİ, ama panelden ve benden önce** (operatör,
+  aynı gün: *"<adres> bu emaile gönder faturayı"* + *"VES-F675713C → bu sipariş
+  faturasını gönder müşteriye"*; adres bu dosyaya yazılmaz).
+  - **Ölçüm:** `INV-2026-1004` (GARAGE LE PARIS'in kendi sayacı). Brevo'da
+    *"VESTRA — invoice for order VES-F675713C"* **14:22:13 UTC `requests` →
+    14:22:14 `delivered`**. 14:46 ile 16:32 UTC arasında tek bir iş akışı koşusu
+    yok, yani bu panelin **Approve & issue** düğmesi: `vestra_order_invoice_issue($ref)`'i
+    varsayılan `notify=true` ile çağırıyor ve "faturanız hazır" mektubunu kendisi
+    yolluyor (VES-31562779'un aynısı). Mektupta PDF eki yok; sipariş sayfasına
+    bağlantı ve "faturadaki hesaba havale, referans VES-…" var.
+  - **Operatörün verdiği adres ZARFLA doğrulandı**, açık girdiye yazılmadı
+    (`to=enc:` + `terms_reply`, `send=false`): `auth_find()` TAM eşleşmeyle
+    `a9420f8ee08b4c2d`'yi buldu. Yani mektubun gittiği adresle aynı.
+  - **Benim `admin_mode=issue` koşum yeni numara YAKMADI.** Çıktısı
+    `onceden kesilmis: 1` dedi: `vestra_ensure_invoice()` belge+meta varken ve
+    redraft yokken mevcut belgeyi **dokunmadan** döndürüyor. Çözülen PDF
+    (18.176 bayt, sha256 kütükle aynı) müşterinin indirdiği belgenin kendisi.
+    İçinde alıcı unvanı, posta kodlu adres, iki tarafın VAT ID'si,
+    10 × SH9623 Light Blue × €39,90, navlun €30, toplam **€429** ve IBAN'lı ödeme
+    kutusu var.
+  - **İkinci mektup GÖNDERİLMEDİ**, çünkü aynı fatura iki saat içinde ikinci kez
+    duyurulurdu. Kayıtta `payment_grace_start` yok: fatura günün 14:00 UTC
+    cron'undan sonra kesildi. Cron (`case 'unstamped'`) **27 Eyl 14:00 UTC'de**
+    ödeme hatırlatmasını gönderip 5 iş günlük saati kendisi başlatacak.
+  - **Belgede görülen iki kusur, ikisi de kodun sınırı:**
+    1. **Lehçe harfler sadeleşiyor:** firma adındaki `ż`, kişi ve sokak adındaki
+       `ń` belgede `z`/`n` olarak çıkıyor. Sebep `vestra_pdf_unrenderable()`:
+       bir karakteri yalnız TRANSLIT sonucu `?` ya da boş olduğunda "Helvetica
+       dışı" sayıyor. Yaklaşık karşılığı olan Latin Extended-A harfleri
+       (ż→z, ń→n) gömülü yazı tipine hiç gitmiyor ve **sessizce** sadeleşiyor.
+       KURAL 5h'nin korumak istediği şeyin yumuşak hâli; Çekçe, Rumence,
+       Macarca ve Türkçe adlar da aynı durumda. Düzeltilmedi: bir tipografi
+       kararı gerektiriyor (gömülü yazı tipinin Latin glifleri), ayrıca bu belgeyi
+       değiştirmek yeniden çizim ve yeni bir mektup demek.
+    2. **AB içi ters ibraz notu bugün BASILAMIYOR:** sipariş faturası `vat_note`'u
+       `orders.csv` satırından okuyor (`invoice.php:1798`), ama o sütun sipariş
+       başlığında **yok** (`order.php:291`, `orders.php:2240`) ve onu yazan hiçbir
+       yol yok. Okunan ama yazılmayan bir alan. Teklif faturasında var
+       (`invoice_vat_note`).
+  - `belgede banka adresi: YOK`: GARAGE LE PARIS'in künyesinde banka adresi yok.
+    SEPA'da IBAN+BIC yeter; engel değil.
 - **Açık kalanlar, karar operatörün:**
   1. SKU (yukarıda).
   2. GARAGE LE PARIS (FR) → PL'de KDV kayıtlı alıcı = AB içi teslim. Müşteri
-     *"VAT 0% / European invoice"* istedi, satıcı *"yes"* dedi; belgede bugün KDV
-     satırı yok. Ters ibraz notu onayda karara bağlanmalı.
+     *"VAT 0% / European invoice"* istedi, satıcı *"yes"* dedi; kesilen belgede
+     (INV-2026-1004) KDV satırı ve ters ibraz notu yok. Not gerekiyorsa önce yazma
+     yolu gerekir (yukarıdaki madde), sonra aynı numarayla yeniden çizim; notun
+     metni satıcının KDV rejimine bağlı, tahmin edilmez.
   3. Müşteri telefon numarasını **dört ayrı mesaja bölerek** gönderdi ve süzgeç
      (KURAL 8b, 9–15 haneli dizi) yakalamadı. Mesaj başına bakan bir süzgecin
      bilinen açığı; numara burada tekrarlanmıyor.
