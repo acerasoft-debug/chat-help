@@ -4716,6 +4716,24 @@ dan yaz"* (13:08)).
   availability and pricing."* `msg_ping` ile geri okundu: son mesaj Marca
   Online 14:15:46 / GARAGE LE PARIS 14:16:19; alıcı bildirimde satıcıyı
   **"Seller BM716G3YBM001" / "Seller AH1EG010"** görüyor (KURAL 8 bozulmadı).
+- **Cevap e-postayla da gitti** (operatör: *"email ile gönder polonyaliya"*).
+  Sitedeki mesaj alıcıya yalnız **içeriksiz** bir zil çalıyordu (`msg_ping` de
+  aynısı; Brevo'da 16:15/16:16 *"new message from Seller …"* `delivered`).
+  Serbest metinli bir cevap mektubu **yoktu**, yazıldı:
+  `send-campaign-preview.yml` → **`reply_letter=listing_reply`**
+  (`vestra_tpl_listing_reply`). Mektupta ilan adı, ident no. ve bağlantı var.
+  Hepsi ilan kaydından basılıyor, **mağaza adı yok** (KURAL 8). Alıcının o
+  ilanda konuşması yoksa iş **durur**. *"Cevabımız gelen kutunuzda da
+  duruyor"* cümlesi yalnız her konuşmada bizden bir mesaj varsa yazılıyor.
+  `to=account:` artık **hesap ID'siyle TAM eşleşmeyi önce** deniyor, yani
+  müşterinin adı herkese açık girdiye yazılmıyor.
+  Test: `tests/listing_reply_letter_test.php` (30 iddia). İki sabotajda da
+  kırmızı döndü; her sabotajın gerçekten uygulandığı `grep -c` ile doğrulandı.
+  Kuru koşu ilan adlarının ident'i zaten taşıdığını gösterdi (*"… —
+  BM716G3YBM001 — ident no. BM716G3YBM001"*) ve bu gönderimden **önce**
+  düzeltildi. Gönderim: konu *"VESTRA — your enquiry about 2 items"*, imza
+  Marco Bellini, iki ürün fotoğrafı. Brevo sonucu:
+  **16:34:00 `requests` → 16:34:02 `delivered`**.
 
 - **KURAL 20 — Her pakette TAŞIYICI + SERVİS + takip BAĞLANTISI; bağlantı
   numaradan TÜRETİLİR** (operatör, 9 Eyl 2026: *"bu gönderim numarasini ekle
