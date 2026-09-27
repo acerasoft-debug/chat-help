@@ -90,8 +90,9 @@ switch ($a) {
 
     case 'test':
         $h = vestra_push_ep_hash((string)($in['endpoint'] ?? ''));
-        $own = vestra_push_owner($h);
-        if (!$own || $own[0] !== $uid) $out(['ok' => false, 'error' => 'not_linked'], 409);
+        /* "Is it mine", not "who is first": a device v2 wrote under two accounts
+           answered 409 to the second one even while linked to it. */
+        if (!vestra_push_holds($uid, $h)) $out(['ok' => false, 'error' => 'not_linked'], 409);
         /* Push services rate-limit per sender; a test button someone keeps tapping
            must not spend that budget. */
         if (time() - (int)($_SESSION['push_test_at'] ?? 0) < 20) $out(['ok' => false, 'error' => 'wait'], 429);

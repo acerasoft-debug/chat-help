@@ -9993,6 +9993,8 @@ alınarak:
 | şifreleme yok | 15 |
 | mesaj derin bağlantısız | 2 |
 | durum rozeti yine `nowrap` | 1 |
+| sync yine "ilk sahip"e bakıyor | 4 |
+| test yine "ilk sahip"e bakıyor | 1 |
 
 **ÇİZDİRİLDİ, kaynak okunmadı** (kum havuzu, 9 dil, iki genişlik): kapalı → Aç
 → açık (+ ipucu) → Test → yeniden yükle (açık kalıyor) → Kapat; engelli;
@@ -10010,6 +10012,34 @@ kendi satırında yalnız kalıyordu. İkisi düzeltildi, iddia eklendi.
 2. İlk yarış sabotajım **yeşil kaldı**, çünkü anlık görüntüyü döngüden SONRA
    alıyordum ve iddia sabotajı ölçmüyordu. Görüntü gönderimlerden ÖNCE
    alınınca kırmızı döndü. *Hiç düşemeyen iddia, iddia değildir* — bir kez daha.
+
+**CANLI ÖLÇÜM (27 Eyl 2026, deploy `1b7d115`, `push_probe`):** kod indi (üç
+fonksiyon, `push_texts.php`, `app.js`, `me.php`, rozet simgesi, `sw.js` v3). Kayıt
+**5 hesap / 6 cihaz**, altısı da `fcm.googleapis.com` — **izinli**, yani yeni
+host kontrolü canlıda tek bir cihazı susturmuyor. Altısında da şifreleme
+anahtarı **tam**. **1 cihaz İKİ hesapta** duruyordu: v2'nin izi, tam da kaydedilen
+kusur. `ESKI hesap kuyrugu: 1`, `yeni kodla hic denenmedi: 6` (deploy'dan beri
+bildirim gitmedi).
+
+**Sonda sonrası düzeltme — "sahibi kim" değil "benim mi":** o cihaz için
+`vestra_push_sync()` DÜZELMİYORDU. Sahibi dosyada ilk gelen hesaptan okuyordu.
+Cihazda oturum açık hesap ilk sıradaysa `on` diyor ama öteki hesabın bağını
+bırakıyordu; yani o hesabın bildirimleri bu cihaza gelmeye devam ediyordu.
+İkinci sıradaysa `off` diyordu, oysa cihaz ona bağlıydı. Panelin `test` eylemi
+de ikinci hesaba 409 veriyordu. Şimdi:
+- Önce "bu cihaz BENİM mi" soruluyor (`vestra_push_holds`).
+- Öteki hesapların bağı tarayıcının kendi sırrıyla koparılıp **onlar için** park
+  ediliyor.
+- Anahtar dönmesi yalnız **kendi** kaydını güncelliyor. Eskiden `link()`
+  çağırıp öteki hesapları **sırsız** siliyordu.
+
+İki sabotaj kırmızı (4 ve 1). O cihaz, sahibinin bir sonraki girişli sayfa
+açılışında kendiliğinden tek sahibe iniyor.
+
+**Gerçek teslim henüz ölçülmedi, bilerek:** müşterinin cihazına deneme push'u
+göndermek KURAL 18'e aykırı. İlk gerçek ölçüm operatörün kendi panelindeki
+**Test gönder** düğmesi. Sonucu Bildirim Merkezi'nde (son teslim / HTTP kodu) ve
+`push_probe`'un `SON TESLIM` satırında görünür.
 
 **Geçiş (eski cihazlar):** kayıtlı cihazlar eski abonelikleriyle çalışmaya devam
 ediyor (anahtarları kayıtta var, şifreleme onlarla yapılıyor). Eski servis

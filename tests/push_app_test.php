@@ -121,6 +121,30 @@ $t('YANLIS auth sirriyla baskasinin cihazi ayrilamaz', vestra_push_sync('uB', $w
 $t('dogru sirla baska hesap girince eski sahip ayrilir', vestra_push_sync('uB', $A['sub']) === 'off' && vestra_push_owner($hA) === null);
 $t('izinsiz host baglanmaz', vestra_push_link('uA', ['endpoint' => 'https://evil.example/p', 'keys' => $A['sub']['keys']]) === '');
 
+/* v2 ayni tarayiciyi IKI hesaba yazabiliyordu; canli sonda (27 Eyl 2026) 6 cihazin
+   1'inde bunu buldu. "Sahibi kim" sorusu dosyada ilk gelen hesabi donduruyordu. */
+$L = t_browser('https://fcm.googleapis.com/fcm/send/legacy');
+$hL = vestra_push_ep_hash($L['sub']['endpoint']);
+$dup = function () use ($L, $hL) {
+    vestra_push_store_update('push_subs.json', function (array $s) use ($L, $hL) {
+        foreach ($s as $u => $d) unset($s[$u][$hL]);
+        $s['uX'][$hL] = $L['sub']; $s['uY'][$hL] = $L['sub'];   // v2 tarayicinin JSON'unu aynen yaziyordu
+        return array_filter($s);
+    });
+    vestra_push_store_update('push_parked.json', function (array $p) use ($hL) { unset($p[$hL]); return $p; });
+};
+$dup();
+$t('eski kayit kuruldu: ayni cihaz iki hesapta', vestra_push_holds('uX', $hL) && vestra_push_holds('uY', $hL));
+$t('dosyada SONRA gelen hesap sync: on (eski kod off diyordu, bagli oldugu halde)', vestra_push_sync('uY', $L['sub']) === 'on');
+$t('... diger hesabin bagi koptu ve ONUN icin park edildi', vestra_push_holds('uY', $hL) && !vestra_push_holds('uX', $hL)
+    && (vestra_push_store_read('push_parked.json')[$hL]['uid'] ?? '') === 'uX');
+$dup();
+$t('dosyada ILK gelen hesap sync: on VE diger hesabin bagi koptu (eski kod onu birakiyordu)',
+    vestra_push_sync('uX', $L['sub']) === 'on' && vestra_push_holds('uX', $hL) && !vestra_push_holds('uY', $hL));
+$dup();
+$wrongL = $L['sub']; $wrongL['keys']['auth'] = vestra_b64url(random_bytes(16));
+$t('yanlis sirla sync: diger hesabin bagi KALIR (sir bir sey kanitlamadi)', vestra_push_sync('uX', $wrongL) === 'on' && vestra_push_holds('uY', $hL));
+
 echo "\n== 4. Teslim ==\n";
 $wipe(); $SENT = [];
 $D1 = t_browser('https://fcm.googleapis.com/fcm/send/d1');
@@ -334,6 +358,17 @@ if ($up) {
     $t('cihaz kuyrugu kendi sirriyla okunur (oturumsuz)', $r['code'] === 200 && is_array($r['json']['notifs'] ?? null));
     $r = $api('unsubscribe', $jarA, ['endpoint' => $N['sub']['endpoint']]);
     $t('"Kapat": cihaz ayrildi', ($r['json']['state'] ?? '') === 'off' && $ownerOf(vestra_push_ep_hash($N['sub']['endpoint'])) === null);
+    /* v2 kaydi: ayni tarayici A ve B'de (A dosyada once). B'nin testi 409 aliyordu. */
+    $Dv = t_browser('https://fcm.googleapis.com/fcm/send/v2-shared');
+    $hDv = vestra_push_ep_hash($Dv['sub']['endpoint']);
+    $rg = $reg(); $rg = ['aaaa1111' => ($rg['aaaa1111'] ?? []) + [$hDv => $Dv['sub']]] + $rg; $rg['bbbb2222'][$hDv] = $Dv['sub'];
+    file_put_contents($site.'/data/push_subs.json', json_encode($rg));
+    @unlink($sentLog);
+    $r = $api('test', $jarB, ['endpoint' => $Dv['sub']['endpoint']]);
+    $t('v2 cift kaydi: dosyada ikinci hesap da kendi cihazina test gonderebiliyor', ($r['json']['ok'] ?? false) === true);
+    $r = $api('sync', $jarB, $Dv['sub']);
+    $t('v2 cift kaydi: B sync → on, A\'nin bagi koptu (cihaz tek sahipte)', ($r['json']['state'] ?? '') === 'on'
+        && isset($reg()['bbbb2222'][$hDv]) && !isset($reg()['aaaa1111'][$hDv]));
 
     $login('s@example.test', $jarS);
     $t('/me?tab=messages: satici → satici paneli', $req('GET', '/me?tab=messages', $jarS)['loc'] === '/seller?tab=messages');

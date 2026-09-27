@@ -292,6 +292,12 @@ function vestra_push_auth_matches(array $rec, string $auth): bool {
     return $have !== '' && $auth !== '' && hash_equals(vestra_b64url_dec($have), vestra_b64url_dec($auth));
 }
 
+/** Does this account hold this device? (A device CAN sit under two accounts in
+    records written by v2 — see vestra_push_sync — so "the owner" is not always one.) */
+function vestra_push_holds(string $uid, string $hash): bool {
+    return $uid !== '' && isset(vestra_push_subs()[$uid][$hash]);
+}
+
 /**
  * The page asks, once per session: "this browser has subscription X — whose is it?"
  *   'on'       linked to you (session stamped, so signing out can unlink it)
@@ -299,21 +305,41 @@ function vestra_push_auth_matches(array $rec, string $auth): bool {
  *   'off'      not linked (a different account's link is removed, see below)
  * Removing another account's link needs the device's own auth secret, which only
  * that browser holds — a leaked endpoint URL alone cannot unlink anybody.
+ *
+ * v2 could write the SAME browser under several accounts; the live probe of
+ * 27 Sep 2026 found 1 device of 6 like that. Asking "who is THE owner" returned
+ * whichever account came first in the file, so the account signed in on the
+ * device either read 'off' while still linked, or read 'on' and left the other
+ * account's link in place — that account's notifications kept arriving here.
+ * The question is "is it MINE", and every other account's link to this browser
+ * is cleared by the browser's own secret (parked for them, not inherited).
  */
 function vestra_push_sync(string $uid, array $sub): string {
     $ep = (string)($sub['endpoint'] ?? '');
     $auth = (string)($sub['keys']['auth'] ?? '');
     if ($uid === '' || $ep === '') return 'off';
     $h = vestra_push_ep_hash($ep);
-    $own = vestra_push_owner($h);
-    if ($own && $own[0] === $uid) {
-        /* Keys can rotate under the same endpoint; keep what the browser has now. */
-        if (vestra_push_auth_matches($own[1], $auth) === false && $auth !== '') vestra_push_link($uid, $sub, (string)($own[1]['label'] ?? ''));
+    $all = vestra_push_subs();
+    foreach ($all as $u => $devs) {
+        $u = (string)$u;
+        if ($u === $uid || !is_array($devs) || !is_array($devs[$h] ?? null)) continue;
+        if (vestra_push_auth_matches($devs[$h], $auth)) vestra_push_unlink($u, $h, true);
+    }
+    $mine = is_array($all[$uid][$h] ?? null) ? $all[$uid][$h] : null;
+    if ($mine !== null) {
+        /* Keys can rotate under the same endpoint; keep what the browser has now —
+           in THIS account's record only. Re-linking would clear every other
+           account's link without the secret having proven anything about them. */
+        $p = (string)($sub['keys']['p256dh'] ?? '');
+        if ($auth !== '' && !vestra_push_auth_matches($mine, $auth)
+            && strlen(vestra_b64url_dec($p)) === 65 && strlen(vestra_b64url_dec($auth)) === 16) {
+            vestra_push_store_update('push_subs.json', function (array $s) use ($uid, $h, $p, $auth) {
+                if (isset($s[$uid][$h])) $s[$uid][$h]['keys'] = ['p256dh' => $p, 'auth' => $auth];
+                return $s;
+            });
+        }
         vestra_push_session_stamp($h);
         return 'on';
-    }
-    if ($own && vestra_push_auth_matches($own[1], $auth)) {
-        vestra_push_unlink($own[0], $h, true);   // parked for them, not inherited by us
     }
     $parked = vestra_push_store_read('push_parked.json')[$h] ?? null;
     if (is_array($parked) && ($parked['uid'] ?? '') === $uid && vestra_push_auth_matches((array)($parked['rec'] ?? []), $auth)) {
