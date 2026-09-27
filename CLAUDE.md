@@ -9009,6 +9009,41 @@ olarak gönder müsteriye"*).
   sorduğu tek yer), satır sayısı platform künyesinden.
   *Aynı kontrolün kaç kopyası var diye sormak, birini düzeltirken hâlâ şart.*
 
+**KURAL 28 (devamı) — CASAWAY-WHITE / Ash Vintage S.L.: 10 ad., fiyatı
+YAZIŞMA belirledi, operatör vermedi** (27 Eyl 2026: *"Ash Vintage S.L. ↔
+GARAGE LE PARIS Agaya Paristen Ash isimli müsteriye 10 adet CASAWAY-WHITE
+siparisi gir"*).
+- **Ölçüldü:** hesap `3f7ffc58545de3a9` (buyer/active, kyb approved, kapı
+  AÇIK, ES, VAT kayıtlı, `trade_licence` hâlâ `requested`); ilan
+  `csb-casaway-white` (Casablanca *Casaway T-Shirt — White*, €69,90, tek
+  kademe 20+, MOQ 20, adım 1, tek renk White, `seller_uid=7ab30f26afedd840`
+  = GARAGE LE PARIS). Hesapta teklif/sipariş/numune **0**.
+- **Operatör fiyat vermedi; talimattaki "↔" konuşmaya işaret ediyordu ve
+  konuşma OKUNDU** (`thread_dump`, şifreli, yerelde çözüldü; 11 mesaj). Satıcı
+  *"ilk siparişinizde asgariyi 10'a indirebiliriz"* demiş, **fiyat
+  konuşulmamış**, numune yok, sertifika yok ama ticari fatura var; alıcı
+  *"10 t-shirt ile başlayalım"* ve *"faturanın Fransa'dan gelmesi uygun"*
+  demiş. Yani birim **katalog kademesi €69,90**, asgari feragati
+  (`waive_moq=1`) satıcının yazılı sözü. *Operatör rakam vermediğinde ilk
+  soru "rakam başka bir yerde konuşuldu mu" — tahmin değil.*
+- **Kargo 0** (KURAL 34: tarife pasif, operatör elle yazar). Beden dökümü
+  ilanın kendi serisinden (S×1 · M×3 · L×3 · XL×2 · XXL×1).
+- Önce `order_draft` (sorunlu 0), sonra `order_write`: **`VES-8D231E8D`**,
+  mal €699,00 + kargo €0,00 = **€699,00**, kayıttan geri okundu.
+  **Fatura KESİLMEDİ, müşteriye HİÇBİR ŞEY gitmedi** — talimat yalnız
+  "sipariş gir". Kesen taraf seçilmedi: KURAL 5b sırasıyla ilanın
+  `seller_uid`'i yani GARAGE LE PARIS kesecek, ki bu alıcının kabul ettiği
+  *"fatura Fransa'dan"* ile aynı. (Satıcı konuşmada *"VESTRA faturanızı
+  hazırlayıp gönderecek"* dedi — bu, platformun **süreci** yürüteceği
+  anlamında; kesen tüzel kişi GARAGE LE PARIS.)
+- **Yan düzeltme — `diag-live` satıcı e-postalarını AÇIK basıyordu.**
+  "hesaplarda dolu banka alanları" bölümü her `diag-live` koşusunda çalışıyor
+  ve `company <e-posta>` satırını **maskesiz** yazıyordu (Güvenlik bölümünün
+  kuralı: hesap e-postaları teşhis çıktısında maskelenir). Bu koşuda görüldü;
+  maske eklendi (`674b2615`) ve bu oturumun koşusunun (`36336018028`) günlüğü
+  silindi. **Önceki diag-live koşularının günlükleri de aynı satırı
+  taşıyor** — toplu silme operatör kararı.
+
 **24 Eyl 2026 — G7JV9-1 (D&G Logo T-Shirt): kayıt "White" diyordu, fotoğraf
 KIRMIZI — düzeltildi** (operatör, ilanın kendi sayfasından pasteledi:
 *"Logo T-Shirt — White … SKU G7JV9-1 tshirt rengi red olacak fotoda red ama
