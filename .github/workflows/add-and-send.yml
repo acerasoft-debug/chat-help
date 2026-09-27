@@ -225,13 +225,22 @@ jobs:
                   break;
                 }
               }
+              /* Giyim kareleri AYRI markalardan: etiket markanin adi ve ayni ad iki
+                 kez basilinca serit tekrar gibi okunuyor (27 Eyl kuru kosusu:
+                 "DSQUARED2 | DSQUARED2"). Kategori basina ilk KULLANILMAMIS marka;
+                 kategorinin markalari tukendiyse diger kategorilerin markalarina
+                 bakilir. Bulunamazsa kare eklenmez -- tekrar etmektense eksik. */
+              $usedB = []; $appPairs = [];
+              foreach ($apparel as $a) foreach ($a['brands'] as $ab) $appPairs[] = [$a['cat'], $ab];
               foreach ($apparel as $a) {
-                foreach ($a['brands'] as $ab) {
+                $order = array_merge(array_map(fn($ab) => [$a['cat'], $ab], $a['brands']), $appPairs);
+                foreach ($order as [$ac, $ab]) {
+                  if (isset($usedB[$ab])) continue;
                   $hit = false;
-                  foreach ($app[$a['cat']][$ab] as $p) {
+                  foreach ($app[$ac][$ab] as $p) {
                     $u = $pic($p); if ($u === '') continue;
                     $shots[] = ['img' => $u, 'brand' => $ab, 'url' => 'https://vestrasales.com/product?id='.rawurlencode((string)($p['id'] ?? ''))];
-                    $hit = true; break;
+                    $usedB[$ab] = true; $hit = true; break;
                   }
                   if ($hit) break;
                 }

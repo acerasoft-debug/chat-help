@@ -2790,6 +2790,34 @@ function vestra_tpl_count_form(int $n, array $forms, string $lang): string {
     return (string)$forms[1];
 }
 
+/* HITAPTA KULLANILACAK AD. Tarayici firma adini sayfanin <title>/og:site_name
+ * alanindan aliyor ve bazi sayfalar kendini ad yerine baslikla tanitiyor.
+ * 27 Eyl 2026 ayakkabi partisinde taranan adlar: "Willkommen bei Schuhhaus
+ * Zeller", "Startseite", "Willkommen bei Schuh Seidl, 8079...", "Schuhhaus
+ * Tervooren · Seit 1904", "Schuhhaus Zimmermann." -- mektup "Guten Tag
+ * Startseite," diye acilirdi (factoryoutlet.gr / "Αρχική" vakasinin aynisi).
+ *
+ * KAYDA DOKUNMAZ, yalnizca HITABI kurar: lead'in adi oldugu gibi kalir.
+ * DAR tutuldu: bir karsilama oneki, bir slogan/adres kuyrugu, sondaki
+ * noktalama ve SAYFANIN KENDI adi (Startseite, Home, Accueil...). Sayfa adiyla
+ * tam esit olan ad NOTR hitaba duser -- yanlis bir ad, adsiz bir hitaptan
+ * kotudur. Temizlenemeyen bir baslik ("Schuhe in Tettnang am Bodensee")
+ * burada TAHMINLE duzeltilmez; o kayit lead_rename ile elle duzeltilir. */
+function vestra_tpl_greeting_name(string $co): string {
+    $k = trim(html_entity_decode($co, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    if ($k === '') return '';
+    $k = (string)preg_replace('/^(?:herzlich\s+)?(?:willkommen\s+(?:bei|im|in\s+der|in)|welcome\s+to|bienvenue\s+(?:chez|à|a|sur)'
+        .'|benvenut[oi]\s+(?:da|a|in|su)|bienvenid[oa]s?\s+a|welkom\s+bij|velkommen\s+til|välkommen\s+till)\s+/iu', '', $k);
+    /* Slogan ya da adres kuyrugu: " · ", " | ", " – ", " — ", " - " ve ", <rakam>"
+       sonrasi atilir. "Schuh- und Sporthaus" gibi bitisik tire ETKILENMEZ
+       (ayractan once bosluk sart). */
+    $k = (string)(preg_split('/\s+[·|–—-]\s+|,\s*\d/u', $k)[0] ?? '');
+    $k = trim($k, " \t\n\r\0\x0B.,;:");
+    if (preg_match('/^(?:home|homepage|home\s*page|startseite|start|accueil|inicio|welkom|hjem|etusivu|index'
+        .'|strona\s+główna|úvod|αρχική|αρχικη)$/iu', $k)) return '';
+    return $k;
+}
+
 /* "a, b ve c" -- son ogeden once dilin kendi baglaci. */
 function vestra_tpl_join_and(array $words, string $and): string {
     $w = array_values(array_filter(array_map('strval', $words), fn($x) => trim($x) !== ''));
@@ -2806,6 +2834,7 @@ function vestra_tpl_footwear_intro(string $lang, string $company, array $f): arr
     /* Taranan ad ciplak bir alan adiysa hitapta kullanilmaz (soguk mektubun
        ayni karari: "Hello chiarulli.it," makine urunu oldugunu ele verir). */
     if ($co !== '' && function_exists('vestra_name_is_bare_domain') && vestra_name_is_bare_domain($co)) $co = '';
+    $co = vestra_tpl_greeting_name($co);
 
     $n      = max(0, (int)($f['shoes'] ?? 0));
     $models = vestra_tpl_count_form($n, (array)$d['models'], $lang);

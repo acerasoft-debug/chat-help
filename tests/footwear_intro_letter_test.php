@@ -129,6 +129,32 @@ $t('ciplak alan adi hitapta kullanilmaz', str_contains($b7, "Hello,\n") && !str_
 [, $b7b] = vestra_tpl_footwear_intro('en', '', $F);
 $t('bos ad -> notr hitap', str_starts_with($b7b, "Hello,\n"));
 
+echo "\n== 7b. Hitap adi: sayfa basligi firma adi degildir ==\n";
+/* 27 Eyl 2026 Almanya kuru kosusunda taranan GERCEK adlar. Kayda dokunulmaz;
+   yalnizca hitap kuruluyor. */
+foreach ([
+    ['Willkommen bei Schuhhaus Zeller',              'Schuhhaus Zeller'],
+    ['Startseite',                                   ''],
+    ['Willkommen bei Schuh Seidl, 80796 München',    'Schuh Seidl'],
+    ['Schuhhaus Tervooren · Seit 1904',              'Schuhhaus Tervooren'],
+    ['Schuhhaus Zimmermann.',                        'Schuhhaus Zimmermann'],
+    ['Home',                                         ''],
+    ['Αρχική',                                       ''],
+    ['Bienvenue chez Élan Chaussures',               'Élan Chaussures'],
+    ['Schuh &amp; Sport Schöwing',                   'Schuh & Sport Schöwing'],
+] as [$in, $want]) $t("hitap: '{$in}' -> '{$want}'", vestra_tpl_greeting_name($in) === $want);
+/* TERS YON: gercek adlar DOKUNULMADAN kalmali. Bitisik tire ("Schuh- und
+   Sporthaus") ayrac degil; "in Bremen" bir sehir, slogan degil; "Start" ile
+   baslayan gercek bir ad "Start" sayfasi degil. */
+foreach ([
+    'Schuh- und Sporthaus Bohmann Garrel', 'Schuhhaus Riedemann in Bremen', 'Schuhe Lüke',
+    'Start Up Shoes', 'Home & Sole', 'Müller das Schuhhaus', 'CC Shoes', 'Auf großem Fuss',
+] as $keep) $t("hitap: '{$keep}' aynen kalir", vestra_tpl_greeting_name($keep) === $keep);
+[, $bG] = vestra_tpl_footwear_intro('de', 'Startseite', $F);
+$t('de: "Startseite" -> notr hitap', str_starts_with($bG, "Guten Tag,\n"));
+[, $bG2] = vestra_tpl_footwear_intro('de', 'Willkommen bei Schuhhaus Zeller', $F);
+$t('de: karsilama oneki hitaptan atildi', str_starts_with($bG2, "Guten Tag Schuhhaus Zeller,\n"));
+
 echo "\n== 8. Fotograf seridi, indirme listesi, dugme ==\n";
 [, , $o8] = vestra_tpl_footwear_intro('de', 'X', $F);
 $t('gorselsiz kare atlandi (2 kare)',  count($o8['shots'] ?? []) === 2);
@@ -203,6 +229,12 @@ else {
     $L[] = $mk('pp-h1', 'Pili Pérez', 'Heels', 'footwear', '/uploads/pp/s.jpg');
     $L[] = $mk('pp-sold', 'Pili Pérez', 'Boots', 'footwear', '/uploads/pp/s.jpg', ['sold_out'=>true]);
     $L[] = $mk('fp-polo', 'Fred Perry', 'Polos', 'premium', '/uploads/pp/p.jpg', ['unit'=>'pc']);
+    /* Iki kategoride de EN KALABALIK marka ayni (DSQUARED2): eski secim iki
+       kez "DSQUARED2" basiyordu (27 Eyl canli kuru kosusu). */
+    foreach (['Hoodies & Sweatshirts' => 'Givenchy', 'Jeans' => 'Dolce & Gabbana'] as $c => $other) {
+        for ($i = 1; $i <= 3; $i++) $L[] = $mk('dsq-'.md5($c).$i, 'DSQUARED2', $c, 'premium', '/uploads/pp/p.jpg', ['unit'=>'pc']);
+        $L[] = $mk('oth-'.md5($c), $other, $c, 'premium', '/uploads/pp/p.jpg', ['unit'=>'pc']);
+    }
     $L[] = $mk('lac-miss', 'Lacoste', 'Polos', 'premium', '/uploads/pp/YOK.jpg', ['unit'=>'pc']);
     file_put_contents($ph.'/data/listings.json', json_encode($L, JSON_UNESCAPED_UNICODE));
     file_put_contents($ph.'/data/leads.json', json_encode([[ 'id'=>'LDK','company'=>'Known Schuhe','email'=>'info@known-schuhe.de',
@@ -217,7 +249,12 @@ else {
     $t('yetiskin+cocuk olculdu',             str_contains($out, "yetiskin 12 / cocuk 5 -> 'yetiskin ve cocuk' cumlesi: VAR"));
     $t('kutu araligi birimi cift olan ilanlardan', str_contains($out, 'kutu: 5-12 cift'));
     $t('tek marka Pili Perez -> Ispanyol uretici', str_contains($out, "'Ispanyol uretici': EVET"));
-    $t('diskte olmayan kare seride girmedi',  str_contains($out, 'FOTO: 4 kare') && !str_contains($out, '| Lacoste'));
+    $fotoLine = preg_match('/FOTO: (\\d+) kare \\(diskte dogrulandi\\): ([^\\n]*)/', $out, $fm) ? $fm : null;
+    $labels = $fotoLine ? array_map('trim', explode('|', $fotoLine[2])) : [];
+    $appLabels = array_values(array_diff($labels, ['Sneakers','Flats','Sandals','Boots','Loafers','Slippers','Heels']));
+    $t('diskte olmayan kare seride girmedi (Lacoste YOK)', $fotoLine !== null && !in_array('Lacoste', $labels, true));
+    $t('giyim kareleri AYRI markalardan (tekrar yok)', $appLabels !== [] && count($appLabels) === count(array_unique($appLabels)));
+    $t('en kalabalik marka seride bir kez', count(array_keys($appLabels, 'DSQUARED2', true)) === 1);
     $t('onizleme partinin dilinde (de)',      str_contains($out, 'ONIZLEME (dil=de') && str_contains($out, '17 Schuhmodelle eines spanischen Herstellers'));
     $t('bilinen alan adi yeniden taranmadi',  str_contains($out, 'zaten kayitli (1 adres) -- site yeniden taranmadi'));
     $t('premium giyim taramasi atlandi',      str_contains($out, 'premium giyim taramasi atlandi'));
