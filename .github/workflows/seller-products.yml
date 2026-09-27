@@ -2784,12 +2784,14 @@ jobs:
               echo "e-posta  : {$oldMail} -> {$new}   (GIRIS adresi de bu oldu)\n";
             }
             auth_save_accounts($accounts);
-            $mask = fn($v) => $v === '' ? '(bos)' : (mb_strlen($v) <= 4 ? '****' : str_repeat('*', mb_strlen($v)-4).mb_substr($v,-4));
+            /* IBAN'dan HIC hane basilmaz -- son 4 bile (27 Eyl 2026'ya kadar
+               basiyordu). Kural "teshiste yalnizca VAR (n hane)"; kutuk herkese acik. */
+            $mask = fn($v) => $v === '' ? '(bos)' : 'VAR ('.strlen(preg_replace('/\s+/', '', $v)).' hane)';
             echo "hesap    : {$in['account_id']}\n";
             echo "sirket   : {$before} -> ".($accounts[$idx]['company'] ?? '')."\n";
             echo "VAT      : ".($accounts[$idx]['vat_id'] ?? '(bos)')."\n";
             echo "banka    : ".($accounts[$idx]['bank_name'] ?? '(bos)')." | sahip: ".($accounts[$idx]['bank_holder'] ?? '(bos)')."\n";
-            echo "IBAN     : ".$mask((string)($accounts[$idx]['bank_iban'] ?? ''))."   (log'a tam yazilmaz)\n";
+            echo "IBAN     : ".$mask((string)($accounts[$idx]['bank_iban'] ?? ''))."   (numara log'a yazilmaz)\n";
 
             /* Navlun siparis satirinda durur: tek sevkiyatin tasima bedelini saticilara
                bolmek kimsenin mutabakat yapamayacagi rakamlar uretir. Sutun yoksa basliga
