@@ -20,6 +20,10 @@ $must_pass = [
   'support@vestrasales.com', 'acerasoft@gmail.com',
   // 'info'/'mail'/'contact' bilerek junk DEGIL -- gercek genel kutular
   'mail@szykszok.pl', 'contact@colony.work',
+  // 27 Eyl 2026 yapisik-www kurali: icinde "www" gecen SIRADAN alan adlari gecmeli
+  'info@comwww.de',          // 'comwww' ilk etiket -- onunde nokta yok
+  'shop@wwwatches.com',      // www ile baslayan kelime (etiket basinda)
+  'hallo@schuhhaus.storeswww.de', // TLD'den uzun etiket: kural yalniz 2-4 harf + www
 ];
 
 /* ELENMESI SART: her biri canli bir kampanyada yakalandi. */
@@ -35,6 +39,10 @@ $must_fail = [
   'your-email@example.com', 'nom.prenom@boutique.fr', 'noreply@shop.it',
   // bicimsel olarak adres bile degil
   '', 'no-at-sign.com', '--@shop.com',
+  // 27 Eyl 2026: adresin TLD'si arkasindan gelen URL'nin "www."una YAPISMIS
+  // (Almanya ayakkabi partisi, bir kunye sayfasi; asil adres bir markanindi)
+  'kontakt@marke.comwww.marke-group.comangaben',
+  'info@schuhe.dewww.schuhe.de',
 ];
 
 $bad = 0;

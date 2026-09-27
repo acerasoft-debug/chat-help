@@ -101,6 +101,13 @@ function vestra_email_is_junk(string $email): bool {
      The real mailbox is the SAME address without the prefix, so dropping it here
      costs nothing: a re-harvest of that domain picks up the correct one. */
   if(str_starts_with($dp,'www.')) return true;
+  /* Same artefact from the other side: the address's TLD GLUED to the "www." of a URL
+     printed right after it ("…@brand.comwww.brand-group.comangaben"). Caught 27 Sep
+     2026 on a German shoe shop's imprint -- the text had no separator, the harvest
+     regex swallowed the whole run, and the result was a foreign brand's address that
+     filter_var() accepts. Anchored on both dots with a TLD-sized label, so an ordinary
+     domain that merely contains "www" somewhere is untouched. */
+  if(preg_match('/\.[a-z]{2,4}www\./',$dp)) return true;
   // Placeholder LOCAL parts on an otherwise ordinary domain ("example@mail.com" was scraped from
   // a boilerplate contact form). The domain-side patterns below can't see these.
   // NB: 'mail'/'info'/'contact' are deliberately NOT here — they're real generic mailboxes
