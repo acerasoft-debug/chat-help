@@ -958,7 +958,15 @@ function vestra_discover_blocklist(): array {
        bagimsiz dukkanlari sessizce elerdi. Umlautlu adin alan adi yazimi ayri
        ('gruenbein'): alan adi tarafi ASCII olmayan harfi siliyor ve 'grünbein'
        yalniz basina 'gruenbein.de' ile eslesmez. Sinirda kalan Horsch Schuhe
-       (4 sube, buyuk/kucuk numara uzmani) EKLENMEDI -- operator karari. */
+       (4 sube, buyuk/kucuk numara uzmani) EKLENMEDI -- operator karari.
+       27 Eyl 2026, gonderim oncesi elle okuma (kod ikisini de geciriyordu):
+       Trancanelli (Roma, 1919'dan beri 4 sube + KENDI markasi ve uretimi) ve
+       Fanny Chaussures (Aubagne; kendi fabrikasi Chaussures Meger, "Fanny by
+       Meger" markasi + 2 magaza). 'fanny' ve 'meger' TEK BASINA eklenmedi:
+       ilki siradan bir kadin adi ("Fanny's Boutique"), ikincisi soyad.
+       Asai Zapaterias (Valensiya 3 + Vigo 1, aile isi) SINIRDA: eklenmedi,
+       gonderilmedi (Sinonim Baku emsali). */
+    'trancanelli','fanny chaussures','chaussures meger',
     'werdich','zumnorde','schuhhaus marcus','schuhhaus kocken','kocken-online','kocken online',
     "mayer's markenschuhe",'mayers markenschuhe','schuh schweizer','bessec','chaussea',
     'besson chaussures','charles clinkard','begg shoes','sorelle ramonda',

@@ -675,12 +675,16 @@ foreach ([
     ['Moda in Pelle','modainpelle.com'],        ['Grünbein Store','shoes-berlin.de'],
     ["Pelin's Shoes",'pelinshoes.com'],         ['Atheist Shoes','atheist.shoes'],
     ['Highest Heels','highestheels.eu'],
+    // 27 Eyl 2026: gonderim oncesi elle okumada ayiklananlar
+    ['Calzature Trancanelli','trancanelli.com'], ['Trancanelli Sabotino','trancanellisabotino.it'],
+    ['Fanny Chaussures','fanny-chaussures.com'], ['Chaussures Meger','meger.fr'],
 ] as [$n,$d]) $t("blok: {$n}", $blocked($n,'','https://'.$d));
 /* Yalniz ALAN ADINDAN yakalanmasi gerekenler: taranan ad cogu zaman markanin
    kendisi degil ("Shop", "Home"), alan adi ise operatorden geliyor. */
 foreach ([
     ['Shop','sorbasshoes.com'], ['Home','gruenbein.de'], ['Store','pelinshoes.com'],
     ['Welcome','atheist.shoes'], ['Startseite','werdich.com'],
+    ['Accueil','fanny-chaussures.com'], ['Home','trancanelli.com'],
 ] as [$n,$d]) $t("blok (alan adindan): {$d}", $blocked($n,'','https://'.$d));
 
 echo "\n== 20b. GECMELI — ayni kelimeyi tasiyan bagimsiz dukkanlar ==\n";
@@ -694,6 +698,9 @@ foreach ([
     ['CC Shoes','ccshoes.se'],                      ['Schuhhaus Galipp','galipp-schuhmode.de'],
     ['Schuhe Lüke','schuhe-lueke.de'],              ['Calzados Vesga','calzadosvesga.com'],
     ['Moda Italiana Boutique','modaitaliana.it'],   ['Charles Street Shoes','charlesstreetshoes.com'],
+    // 'fanny' / 'meger' tek basina listede degil
+    ["Fanny's Boutique",'fannysboutique.fr'],       ['Chez Fanny','chezfanny.be'],
+    ['Meger Moda','megermoda.it'],                  ["L'Entrepôt Chaussures",'entrepotchaussure.fr'],
 ] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
 
 echo "\nTOPLAM: {$ok} gecti, {$fail} kaldi\n";
