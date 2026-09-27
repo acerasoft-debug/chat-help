@@ -396,13 +396,8 @@ jobs:
                  aramak listedeki her gmail leadini getiriyor (ilk surumde 347 "eslesme"
                  cikti ve "bizi tanidiklar" gibi okunacakti). Boyle adreslerde yalnizca
                  TAM e-posta eslesmesi bir sey soyler. */
-              $free = ['gmail.com','googlemail.com','yahoo.com','yahoo.fr','yahoo.co.uk','hotmail.com',
-                       'hotmail.fr','hotmail.co.uk','outlook.com','outlook.fr','live.com','msn.com',
-                       'icloud.com','me.com','aol.com','gmx.de','gmx.net','web.de','t-online.de',
-                       'free.fr','orange.fr','wanadoo.fr','laposte.net','sfr.fr','protonmail.com',
-                       'proton.me','yandex.ru','mail.ru','qq.com','163.com','126.com','libero.it',
-                       'virgilio.it','tiscali.it','alice.it','yahoo.it','yahoo.es','yahoo.de'];
-              $isFree = in_array($dom, $free, true);
+              /* Liste TEK yerde: vestra_email_is_shared_provider() (notify.php). */
+              $isFree = vestra_email_is_shared_provider($dom);
               $lf  = $home.'/public_html/data/leads.json';
               $lds = is_readable($lf) ? (json_decode((string)file_get_contents($lf), true) ?: []) : [];
               $hitL = [];

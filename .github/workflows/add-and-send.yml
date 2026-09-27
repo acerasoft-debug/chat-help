@@ -275,15 +275,14 @@ jobs:
                link basina dakikalar suruyor. Serbest posta saglayicisinin alan adi
                firma kimligi degil, o yuzden yalnizca web sitesinden eslenir. */
             $leadByDom = [];
-            $FREE_DOM = array_flip(['gmail.com','googlemail.com','outlook.com','hotmail.com','live.com','yahoo.com',
-                                    'icloud.com','gmx.de','gmx.net','web.de','t-online.de','posteo.de','orange.fr','free.fr',
-                                    'wanadoo.fr','libero.it','naver.com','daum.net','qq.com','163.com','mail.ru','yandex.ru']);
+            /* Serbest posta saglayicisi: TEK liste, vestra_email_is_shared_provider()
+               (notify.php). Burada yedi el yazmasi liste vardi ve ayrismislardi. */
             foreach (vestra_leads() as $kl) {
               $km = strtolower(trim((string)($kl['email'] ?? ''))); if ($km === '') continue;
               $kw = strtolower(preg_replace('/^www\./', '', (string)vestra_domain_of((string)($kl['website'] ?? ''))));
-              if ($kw !== '' && !isset($FREE_DOM[$kw])) $leadByDom[$kw][$km] = true;
+              if ($kw !== '' && !vestra_email_is_shared_provider($kw)) $leadByDom[$kw][$km] = true;
               $kd = strtolower((string)substr((string)strrchr($km, '@'), 1));
-              if ($kd !== '' && !isset($FREE_DOM[$kd])) $leadByDom[$kd][$km] = true;
+              if ($kd !== '' && !vestra_email_is_shared_provider($kd)) $leadByDom[$kd][$km] = true;
             }
 
             /* Girdi HEM e-posta HEM site linki olabilir, karisik da olabilir.
@@ -505,10 +504,8 @@ jobs:
                yaziliyor, site taramasi Gmail'in ana sayfasini okuyup firma adini "Gmail"
                kaydediyor ve marka taramasi Google'i tariyordu. Boyle adreslerde site hic
                taranmaz; firma adi olarak adresin @ oncesi yazilir -- operatorun verdigi
-               bilgi budur, uydurmak yerine oldugu gibi durur. */
-            $FREEMAIL = ['gmail.com','googlemail.com','naver.com','daum.net','hanmail.net',
-                         'yahoo.com','hotmail.com','outlook.com','live.com','icloud.com',
-                         'qq.com','163.com','mail.ru','yandex.ru'];
+               bilgi budur, uydurmak yerine oldugu gibi durur.
+               Liste TEK yerde: vestra_email_is_shared_provider() (notify.php). */
 
             $added = 0; $fixed = 0;
             foreach (array_keys($wanted) as $mail) {
@@ -527,7 +524,7 @@ jobs:
                 continue;
               }
               $domain  = substr(strrchr($mail, '@'), 1);
-              $isFree  = in_array(strtolower($domain), $FREEMAIL, true);
+              $isFree  = vestra_email_is_shared_provider($domain);
               $website = $fromLink[$mail] ?? ($isFree ? '' : 'https://'.$domain);
               $info    = $website !== '' ? $siteInfo($website) : ['company'=>'','country'=>'','phone'=>''];
               $company = $info['company'] !== '' ? $info['company']
@@ -614,20 +611,20 @@ jobs:
                mektup spam sikayeti uretiyor ve vestrasales.com'da DKIM yok --
                itibari daha da dusuruyor.
                Serbest/paylasimli posta saglayicilari MUAF: gmail.com'daki iki adres
-               iki ayri firma demektir, orada alan adi firma kimligi tasimaz. */
+               iki ayri firma demektir, orada alan adi firma kimligi tasimaz.
+               27 Eyl 2026: buradaki el yazmasi liste wanadoo.fr ve hotmail.fr'yi
+               TANIMIYORDU; iki bagimsiz Fransiz ayakkabi dukkani, o saglayicilarda
+               haftalar once yazilmis UC ALAKASIZ dukkan yuzunden "ayni firmaya zaten
+               gitti" diye SESSIZCE atlandi (leads_status ile olculdu: Chalbouy,
+               Falbalas, Patmouille / Miss recup). Liste artik tek fonksiyon. */
             $SAME_FIRM = strtolower(trim((string)getenv('SAME_FIRM'))) ?: 'skip';
-            $SHARED_MX = array_flip(['gmail.com','googlemail.com','outlook.com','hotmail.com',
-              'hotmail.co.uk','live.com','msn.com','yahoo.com','yahoo.co.jp','yahoo.co.uk',
-              'ymail.com','icloud.com','me.com','aol.com','protonmail.com','proton.me',
-              'gmx.de','gmx.net','web.de','t-online.de','orange.fr','free.fr','libero.it',
-              'qq.com','163.com','126.com','naver.com','daum.net','hanmail.net']);
             $domOf = fn(string $e) => (string)substr((string)strrchr($e, '@'), 1);
             $firmDone = [];
             foreach ($leads as $l2) {
               if (trim((string)($l2['last_contacted_at'] ?? '')) === '') continue;
               $e2 = strtolower(trim((string)($l2['email'] ?? ''))); if ($e2 === '') continue;
               $d2 = $domOf($e2);
-              if ($d2 === '' || isset($SHARED_MX[$d2]) || isset($firmDone[$d2])) continue;
+              if ($d2 === '' || vestra_email_is_shared_provider($d2) || isset($firmDone[$d2])) continue;
               $firmDone[$d2] = $e2;
             }
             echo "firma : ".count($firmDone)." alan adina daha once gonderilmis"
@@ -662,7 +659,7 @@ jobs:
               }
               if ($SAME_FIRM !== 'send') {
                 $dom = $domOf($mail);
-                if ($dom !== '' && !isset($SHARED_MX[$dom]) && isset($firmDone[$dom]) && $firmDone[$dom] !== $mail) {
+                if ($dom !== '' && !vestra_email_is_shared_provider($dom) && isset($firmDone[$dom]) && $firmDone[$dom] !== $mail) {
                   printf("  - ATLANDI (ayni firmaya zaten gitti: %s): %s\n",
                          preg_replace('/^(.).*@/', '$1***@', $firmDone[$dom]), $mail);
                   $skip++; continue;
@@ -739,7 +736,7 @@ jobs:
                    sales@x.com birlikte yapistirilmis) ikisi de "yeni" sayilip
                    ikisi de mektup alirdi -- kapinin disardan gorunmeyen yarisi. */
                 $dsent = $domOf($mail);
-                if ($dsent !== '' && !isset($SHARED_MX[$dsent]) && !isset($firmDone[$dsent])) $firmDone[$dsent] = $mail;
+                if ($dsent !== '' && !vestra_email_is_shared_provider($dsent) && !isset($firmDone[$dsent])) $firmDone[$dsent] = $mail;
                 $sent++;
                 echo "  + GONDERILDI: {$company} <{$mail}> | dil=".($FLAG[$lang] ?? 'EN')."\n";
               } else {

@@ -287,6 +287,32 @@ else {
         .escapeshellarg($sb.'/run.php').' 2>&1');
     $t('gonderim yolu: cop adres ATLANDI',    str_contains($jo, 'ATLANDI (cop/yer tutucu adres): '.$junkMail));
     $t('gonderim yolu: cop adrese mektup DENENMEDI', !str_contains($jo, 'GONDERILDI') && !str_contains($jo, 'x HATA'));
+    /* FIRMA TEKILLESTIRMESI serbest posta saglayicisina bakmaz (27 Eyl 2026
+       Fransa vakasi): wanadoo.fr'de haftalar once BASKA bir dukkana mektup
+       gitmis; yeni dukkan "ayni firmaya zaten gitti" diye ATLANMAMALI.
+       KONTROL GRUBU: firmanin KENDI alan adinda ikinci kutu yine atlanmali --
+       tek yon olculseydi kurali tamamen kapatan bir kusur da yesil kalirdi.
+       Kum havuzunda posta ayari yok, yani deneme ag'a cikmadan "x HATA" doner;
+       olculen sey kapinin karari, teslim degil. */
+    $sl = json_decode((string)file_get_contents($ph.'/data/leads.json'), true);
+    $sl[] = ['id'=>'LDW1','company'=>'Autre Boutique','email'=>'autre.boutique@wanadoo.fr','website'=>'',
+             'country'=>'France','status'=>'contacted','last_contacted_at'=>'2026-08-28T10:00:00Z','unsub_token'=>'w1'];
+    $sl[] = ['id'=>'LDW2','company'=>'Chaussures Test','email'=>'chaussures.martin@wanadoo.fr','website'=>'https://chaussures-test.test',
+             'country'=>'France','status'=>'new','last_contacted_at'=>'','unsub_token'=>'w2'];
+    $sl[] = ['id'=>'LDF1','company'=>'Firma Schuhe','email'=>'info@firma-schuhe.test','website'=>'https://firma-schuhe.test',
+             'country'=>'Germany','status'=>'contacted','last_contacted_at'=>'2026-09-01T10:00:00Z','unsub_token'=>'f1'];
+    $sl[] = ['id'=>'LDF2','company'=>'Firma Schuhe','email'=>'verkauf@firma-schuhe.test','website'=>'https://firma-schuhe.test',
+             'country'=>'Germany','status'=>'new','last_contacted_at'=>'','unsub_token'=>'f2'];
+    file_put_contents($ph.'/data/leads.json', json_encode($sl));
+    $fo = (string)shell_exec('cd '.escapeshellarg($ph).' && env HOME='.escapeshellarg($sb)
+        .' IN_EMAILS='.escapeshellarg('chaussures.martin@wanadoo.fr verkauf@firma-schuhe.test').' DO_SEND=true DNS_CHECK=false LETTER=footwear php '
+        .escapeshellarg($sb.'/run.php').' 2>&1');
+    $t('serbest posta: wanadoo.fr yeni dukkan ATLANMADI (ayni firma sayilmadi)',
+       !str_contains($fo, 'ATLANDI (ayni firmaya zaten gitti: a***@wanadoo.fr): chaussures.martin@wanadoo.fr'));
+    $t('serbest posta: yeni dukkan gonderim denemesine ULASTI',
+       (bool)preg_match('/(GONDERILDI: [^\n]*chaussures\.martin@wanadoo\.fr|x HATA\s*: chaussures\.martin@wanadoo\.fr)/', $fo));
+    $t('KONTROL: firmanin kendi alan adinda ikinci kutu ATLANDI',
+       str_contains($fo, 'ATLANDI (ayni firmaya zaten gitti: i***@firma-schuhe.test): verkauf@firma-schuhe.test'));
     shell_exec('rm -rf '.escapeshellarg($sb));
 }
 

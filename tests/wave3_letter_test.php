@@ -90,7 +90,7 @@ $t('satici hesaplari toplaniyor',  str_contains($wf, "if ((\$sAcc['type'] ?? '')
 $t('adres eslesmesi eliyor',       str_contains($wf, 'isset($SELLER_MAIL[$email])'));
 $t('alan adi eslesmesi eliyor',    str_contains($wf, 'isset($SELLER_DOM[$slDom])'));
 /* gmail'deki bir satici, gmail'deki her leadi elemesin. */
-$t('serbest posta saglayicisi muaf', str_contains($wf, '!isset($NC_SHARED[$slDom])'));
+$t('serbest posta saglayicisi muaf', str_contains($wf, '!vestra_email_is_shared_provider($slDom)'));
 $t('elenen sayisi ozet satirinda', str_contains($wf, 'SATICI: kendi satici hesabimiz oldugu icin elenen'));
 
 echo "\n== 7. Iki satir da AYNI olcutten: bolme ==\n";

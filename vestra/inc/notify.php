@@ -150,6 +150,64 @@ function vestra_email_is_junk(string $email): bool {
   return (bool)preg_match($junk,$e);
 }
 
+/* Is the address's domain a SHARED mailbox provider (webmail / consumer ISP) rather than a
+ * firm's own domain? On these, two addresses are two unrelated shops, so the domain carries
+ * no firm identity: KURAL 1c's "one cold letter per firm" must NOT key on it, and a site
+ * must not be derived from it (shop@hotmail.fr -> https://hotmail.fr scraped Outlook's page).
+ *
+ * WHY ONE FUNCTION: the answer used to live in SEVEN hand-written lists across the workflows
+ * and they had drifted apart. The same-firm check in add-and-send knew orange.fr and free.fr
+ * but not wanadoo.fr (Orange's older domain) or hotmail.fr, so on 27 Sep 2026 two
+ * independent French shoe shops were SILENTLY skipped as "already mailed" -- because three
+ * unrelated shops on wanadoo.fr and one on hotmail.fr had been written to weeks earlier.
+ * A silent skip is costlier than a wrong send: nobody sees it.
+ *
+ * Exact domain membership, plus the big webmail brands on ANY country TLD
+ * (hotmail.fr, outlook.it, yahoo.co.uk, gmx.at, live.be ...): the label must be the WHOLE
+ * first label followed by a bare TLD, so "outlookstore.com", "live-shoes.de" or
+ * "yahoo.fr.example.com" stay firm domains. Accepts an address or a bare domain. */
+function vestra_email_is_shared_provider(string $emailOrDomain): bool {
+  $d = strtolower(trim($emailOrDomain));
+  if (($p = strrpos($d, '@')) !== false) $d = substr($d, $p + 1);
+  $d = rtrim($d, '.');
+  if ($d === '' || strpos($d, '.') === false) return false;
+  if (preg_match('/^(?:gmail|googlemail|hotmail|outlook|live|msn|windowslive|yahoo|ymail|rocketmail|aol|gmx|yandex|protonmail)\.(?:com?\.)?[a-z]{2,3}$/', $d)) return true;
+  static $shared = null;
+  if ($shared === null) $shared = array_flip([
+    // webmail / privacy mail
+    'icloud.com','me.com','mac.com','proton.me','pm.me','tutanota.com','tutanota.de','tuta.io',
+    'zoho.com','zohomail.eu','mail.com','hushmail.com','fastmail.com','fastmail.fm',
+    // Germany / Austria / Switzerland
+    'web.de','t-online.de','freenet.de','arcor.de','posteo.de','mail.de','online.de',
+    'vodafone.de','kabelmail.de','aon.at','chello.at','a1.net','utanet.at','bluewin.ch',
+    'hispeed.ch','sunrise.ch','swissonline.ch',
+    // France / Benelux
+    'orange.fr','wanadoo.fr','free.fr','sfr.fr','neuf.fr','laposte.net','bbox.fr',
+    'numericable.fr','club-internet.fr','aliceadsl.fr','cegetel.net','noos.fr','voila.fr',
+    'skynet.be','telenet.be','proximus.be','scarlet.be','ziggo.nl','kpnmail.nl','planet.nl',
+    'home.nl','hetnet.nl','xs4all.nl','casema.nl','upcmail.nl','chello.nl','zonnet.nl',
+    // Italy / Iberia
+    'libero.it','virgilio.it','tin.it','alice.it','tiscali.it','fastwebnet.it','email.it',
+    'inwind.it','iol.it','katamail.com','telefonica.net','terra.es','movistar.es','ono.com',
+    'sapo.pt','netcabo.pt','clix.pt',
+    // UK / Ireland / Nordics
+    'btinternet.com','sky.com','virginmedia.com','talktalk.net','ntlworld.com',
+    'blueyonder.co.uk','tiscali.co.uk','eircom.net','telia.com','online.no','jubii.dk',
+    // Central / Eastern / South-Eastern Europe
+    'seznam.cz','email.cz','centrum.cz','volny.cz','wp.pl','o2.pl','onet.pl','onet.eu',
+    'interia.pl','interia.eu','op.pl','gazeta.pl','tlen.pl','poczta.fm','abv.bg','mail.bg',
+    'dir.bg','freemail.hu','citromail.hu','otenet.gr','hol.gr','forthnet.gr','ukr.net','i.ua',
+    'mail.ru','bk.ru','list.ru','inbox.ru','rambler.ru',
+    // Americas / Asia-Pacific
+    'comcast.net','verizon.net','att.net','sbcglobal.net','bellsouth.net','cox.net',
+    'charter.net','earthlink.net','shaw.ca','rogers.com','sympatico.ca','bigpond.com',
+    'bigpond.net.au','optusnet.com.au','xtra.co.nz','uol.com.br','bol.com.br','terra.com.br',
+    'ig.com.br','naver.com','daum.net','hanmail.net','nate.com','qq.com','163.com','126.com',
+    'sina.com','sohu.com','docomo.ne.jp','ezweb.ne.jp','softbank.ne.jp','rediffmail.com',
+  ]);
+  return isset($shared[$d]);
+}
+
 /* Bir sayfa basligindan firma adi cikar.
    Basliklar cogunlukla "SAYFA ADI | Magaza" duzenindedir ve ILK parca magazanin
    degil sayfanin adidir. Ilk parcayi oldugu gibi almak 4 Eylul 2026'da Yunan bir

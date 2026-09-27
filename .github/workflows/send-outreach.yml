@@ -587,10 +587,11 @@ jobs:
                 if ($d0 !== '') $ncSeenDom[$d0] = true;
               }
             }
-            $NC_SHARED = array_flip(['gmail.com','googlemail.com','outlook.com','hotmail.com','hotmail.co.uk',
-              'live.com','msn.com','yahoo.com','yahoo.co.jp','yahoo.co.uk','ymail.com','icloud.com','me.com',
-              'aol.com','protonmail.com','proton.me','gmx.de','gmx.net','web.de','t-online.de','orange.fr',
-              'free.fr','libero.it','comcast.net','qq.com','163.com','126.com','naver.com','daum.net','hanmail.net']);
+            /* Serbest posta saglayicisi: TEK liste, vestra_email_is_shared_provider()
+               (notify.php). Buradaki kopya wanadoo.fr / hotmail.fr / bluewin.ch'yi
+               tanimiyordu ve o saglayicilardaki her yeni dukkan, alakasiz bir
+               dukkana haftalar once gitmis mektup yuzunden SESSIZCE eleniyordu
+               (27 Eyl 2026, add-and-send'de olculdu). */
 
             /* SOGUK YOLDA DA FIRMA-BAZLI TEKILLESTIRME (KURAL 1c). Yukaridaki
                $ncSeenDom yalniz YENI KOLEKSIYON dalinda kuruluyordu; soguk dal
@@ -608,7 +609,7 @@ jobs:
               foreach ($leads as $l0) {
                 if (trim((string)($l0['last_contacted_at'] ?? '')) === '') continue;
                 $d0 = strtolower((string)substr((string)strrchr((string)($l0['email'] ?? ''), '@'), 1));
-                if ($d0 !== '' && !isset($NC_SHARED[$d0])) $coldSeenDom[$d0] = true;
+                if ($d0 !== '' && !vestra_email_is_shared_provider($d0)) $coldSeenDom[$d0] = true;
               }
             }
 
@@ -982,7 +983,7 @@ jobs:
               /* Kendi saticimiz: kampanya disi (operator, 10 Eyl 2026). */
               $slDom = (string)substr((string)strrchr($email, '@'), 1);
               if (isset($SELLER_MAIL[$email])
-                  || ($slDom !== '' && isset($SELLER_DOM[$slDom]) && !isset($NC_SHARED[$slDom]))) {
+                  || ($slDom !== '' && isset($SELLER_DOM[$slDom]) && !vestra_email_is_shared_provider($slDom))) {
                 $sellerSkipped++;
                 if ($named || $DRY) echo "  - ATLANDI (VESTRA saticisi): ".$maskMail($email)."\n";
                 continue;
@@ -1044,7 +1045,7 @@ jobs:
                    "yazildi" damgali. Serbest posta saglayicilari muaf: gmail'deki
                    iki adres iki ayri firma. */
                 $ncDom = strtolower((string)substr((string)strrchr($email, '@'), 1));
-                if ($ncDom !== '' && !isset($NC_SHARED[$ncDom])) {
+                if ($ncDom !== '' && !vestra_email_is_shared_provider($ncDom)) {
                   if (isset($ncSeenDom[$ncDom])) {
                     if ($ONLY || $DRY) echo "  - ATLANDI (ayni firmadan baska bir kutu duyuruyu almis): ".$maskMail($email)."\n";
                     continue;
@@ -1060,7 +1061,7 @@ jobs:
                    kuruldu) hem BU KOSUDAN doluyor -- ikincisi olmasaydi tek bir
                    kosu ayni firmanin iki kutusunu birden secebilirdi. */
                 $cdDom = strtolower((string)substr((string)strrchr($email, '@'), 1));
-                if ($cdDom !== '' && !isset($NC_SHARED[$cdDom])) {
+                if ($cdDom !== '' && !vestra_email_is_shared_provider($cdDom)) {
                   if (isset($coldSeenDom[$cdDom])) {
                     if ($ONLY || $DRY) echo "  - ATLANDI (ayni firmadan baska bir kutu zaten mektup almis): ".$maskMail($email)."\n";
                     continue;
