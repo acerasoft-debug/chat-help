@@ -678,6 +678,7 @@ foreach ([
     // 27 Eyl 2026: gonderim oncesi elle okumada ayiklananlar
     ['Calzature Trancanelli','trancanelli.com'], ['Trancanelli Sabotino','trancanellisabotino.it'],
     ['Fanny Chaussures','fanny-chaussures.com'], ['Chaussures Meger','meger.fr'],
+    ['Zjoos Hjørring','zjoos-hjoerring.dk'],      ['Skoringen','skoringen.dk'],
 ] as [$n,$d]) $t("blok: {$n}", $blocked($n,'','https://'.$d));
 /* Yalniz ALAN ADINDAN yakalanmasi gerekenler: taranan ad cogu zaman markanin
    kendisi degil ("Shop", "Home"), alan adi ise operatorden geliyor. */
@@ -685,6 +686,7 @@ foreach ([
     ['Shop','sorbasshoes.com'], ['Home','gruenbein.de'], ['Store','pelinshoes.com'],
     ['Welcome','atheist.shoes'], ['Startseite','werdich.com'],
     ['Accueil','fanny-chaussures.com'], ['Home','trancanelli.com'],
+    ['Forside','zjoos-hjoerring.dk'], ['Sko til hele familien','zjoosgive.dk'], ['Velkommen','zjoos.dk'],
 ] as [$n,$d]) $t("blok (alan adindan): {$d}", $blocked($n,'','https://'.$d));
 
 echo "\n== 20b. GECMELI — ayni kelimeyi tasiyan bagimsiz dukkanlar ==\n";
@@ -701,6 +703,7 @@ foreach ([
     // 'fanny' / 'meger' tek basina listede degil
     ["Fanny's Boutique",'fannysboutique.fr'],       ['Chez Fanny','chezfanny.be'],
     ['Meger Moda','megermoda.it'],                  ["L'Entrepôt Chaussures",'entrepotchaussure.fr'],
+    ['Sko Karlsson','skokarlsson.se'],              ['Sköna Skon','skonaskon.se'],
 ] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
 
 echo "\nTOPLAM: {$ok} gecti, {$fail} kaldi\n";

@@ -965,8 +965,14 @@ function vestra_discover_blocklist(): array {
        Meger" markasi + 2 magaza). 'fanny' ve 'meger' TEK BASINA eklenmedi:
        ilki siradan bir kadin adi ("Fanny's Boutique"), ikincisi soyad.
        Asai Zapaterias (Valensiya 3 + Vigo 1, aile isi) SINIRDA: eklenmedi,
-       gonderilmedi (Sinonim Baku emsali). */
+       gonderilmedi (Sinonim Baku emsali).
+       Zjoos: "zjoos-hjoerring.dk" tek dukkan gibi gorunuyordu; gercekte
+       Danimarka'da ~65, Norvec'te 4 magazali gonullu ZINCIR, Shoe-D-Vision
+       catisinda (Skoringen ile ayni ev). Sehre ozel alan adlari (zjoosgive.dk,
+       zjoos-hjoerring.dk) alan adi tarafinda 'zjoos'un TAM eslesme sinirina
+       takildigi icin ikisi de ayrica yazildi. */
     'trancanelli','fanny chaussures','chaussures meger',
+    'zjoos','zjoos-hjoerring','zjoosgive','skoringen','shoe-d-vision',
     'werdich','zumnorde','schuhhaus marcus','schuhhaus kocken','kocken-online','kocken online',
     "mayer's markenschuhe",'mayers markenschuhe','schuh schweizer','bessec','chaussea',
     'besson chaussures','charles clinkard','begg shoes','sorelle ramonda',
