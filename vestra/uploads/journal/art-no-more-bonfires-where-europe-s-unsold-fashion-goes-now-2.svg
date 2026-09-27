@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img">
+  <title>A tall building under a struck-out flame, a medium one under an hourglass, a small shop with a minus, and two of three bars filled</title>
+  <desc>Who is covered: large companies now, medium-sized ones from 2030, micro and small firms exempt; large means passing two of three size tests.</desc>
+  <rect width="1200" height="675" fill="#0e2620"/>
+  <g stroke="#1b4a3a" stroke-width="1"><path d="M0 168h1200M0 337h1200M0 506h1200"/></g>
+  <path d="M90 500H900" stroke="#7fc9a6" stroke-width="2" opacity=".4"/>
+  <!-- Buyuk sirket: yasak simdi -->
+  <rect x="170" y="210" width="200" height="290" rx="6" fill="#7fc9a6" fill-opacity=".10" stroke="#7fc9a6" stroke-width="3"/>
+  <g fill="#7fc9a6" opacity=".35"><rect x="194" y="236" width="24" height="24" rx="3"/><rect x="238" y="236" width="24" height="24" rx="3"/><rect x="282" y="236" width="24" height="24" rx="3"/><rect x="326" y="236" width="24" height="24" rx="3"/><rect x="194" y="280" width="24" height="24" rx="3"/><rect x="238" y="280" width="24" height="24" rx="3"/><rect x="282" y="280" width="24" height="24" rx="3"/><rect x="326" y="280" width="24" height="24" rx="3"/><rect x="194" y="324" width="24" height="24" rx="3"/><rect x="238" y="324" width="24" height="24" rx="3"/><rect x="282" y="324" width="24" height="24" rx="3"/><rect x="326" y="324" width="24" height="24" rx="3"/><rect x="194" y="368" width="24" height="24" rx="3"/><rect x="238" y="368" width="24" height="24" rx="3"/><rect x="282" y="368" width="24" height="24" rx="3"/><rect x="326" y="368" width="24" height="24" rx="3"/><rect x="194" y="412" width="24" height="24" rx="3"/><rect x="238" y="412" width="24" height="24" rx="3"/><rect x="282" y="412" width="24" height="24" rx="3"/><rect x="326" y="412" width="24" height="24" rx="3"/></g>
+  <path d="M268.6 176.0c-18.5 -12.6 -19.3 -35.3 -3.4 -52.1c0.8 12.6 7.6 17.6 12.6 16.8c-3.4 -16.8 4.2 -31.9 18.5 -41.2c-2.5 18.5 10.1 29.4 13.4 45.4c3.4 16.0 -5.0 26.9 -16.8 31.1" fill="none" stroke="#e8b98a" stroke-width="3" opacity=".9"/><path d="M245.1 181.9L308.1 87.0" stroke="#e8b98a" stroke-width="4" opacity=".8"/>
+  <!-- Orta olcekli: 2030 -->
+  <rect x="470" y="330" width="170" height="170" rx="6" fill="none" stroke="#7fc9a6" stroke-width="3" opacity=".7"/>
+  <g fill="#7fc9a6" opacity=".22"><rect x="492" y="354" width="24" height="24" rx="3"/><rect x="536" y="354" width="24" height="24" rx="3"/><rect x="580" y="354" width="24" height="24" rx="3"/><rect x="492" y="398" width="24" height="24" rx="3"/><rect x="536" y="398" width="24" height="24" rx="3"/><rect x="580" y="398" width="24" height="24" rx="3"/><rect x="492" y="442" width="24" height="24" rx="3"/><rect x="536" y="442" width="24" height="24" rx="3"/><rect x="580" y="442" width="24" height="24" rx="3"/></g>
+  <g fill="none" stroke="#7fc9a6" stroke-width="3" opacity=".75"><path d="M531 222h48M531 302h48"/><path d="M537 222c0 26 36 30 36 40c0 10 -36 14 -36 40M573 222c0 26 -36 30 -36 40c0 10 36 14 36 40"/></g>
+  <path d="M545 294h20l-10 -12z" fill="#7fc9a6" opacity=".6"/>
+  <!-- Kucuk isletme: muaf -->
+  <g fill="none" stroke="#7fc9a6" stroke-width="3" opacity=".4"><rect x="740" y="410" width="120" height="90" rx="4"/><path d="M730 410l14 -30h112l14 30z"/><rect x="760" y="440" width="34" height="60"/></g>
+  <g fill="none" stroke="#7fc9a6" stroke-width="3" opacity=".45"><circle cx="800" cy="316" r="30"/><path d="M784 316h32"/></g>
+  <!-- Esikler: ucten ikisi -->
+  <rect x="950" y="200" width="170" height="300" rx="14" fill="none" stroke="#7fc9a6" stroke-width="2" opacity=".5"/>
+  <rect x="1024" y="238" width="76" height="24" rx="12" fill="#7fc9a6" fill-opacity=".55" stroke="#7fc9a6" stroke-width="2" opacity="1"/>
+  <rect x="1024" y="338" width="76" height="24" rx="12" fill="#7fc9a6" fill-opacity=".55" stroke="#7fc9a6" stroke-width="2" opacity="1"/>
+  <rect x="1024" y="438" width="76" height="24" rx="12" fill="#7fc9a6" fill-opacity="0" stroke="#7fc9a6" stroke-width="2" opacity=".45"/>
+  <g fill="none" stroke="#7fc9a6" stroke-width="3"><circle cx="984" cy="240" r="9"/><path d="M968 266c2 -12 30 -12 32 0"/></g>
+  <g fill="none" stroke="#7fc9a6" stroke-width="3"><ellipse cx="984" cy="340" rx="18" ry="6"/><path d="M966 340v14c0 8 36 8 36 0v-14"/></g>
+  <g fill="none" stroke="#7fc9a6" stroke-width="3" opacity=".45"><rect x="968" y="436" width="32" height="30" rx="3"/><path d="M968 448h32M984 436v30"/></g>
+</svg>
