@@ -449,7 +449,18 @@ foreach ([
   ['Purdeys Vintage Room','hi@purdeysvintage.co.uk'], /* 'purdey' exact_only */
   ['Frye Street Vintage','hello@fryestreet.com'],  /* 'frye company' tam ifade */
   ['Change Boutique Riga','info@changeboutique.lv'],
+  /* 27 Eyl 2026: 'libero' girisi e-posta ALAN ADI uzerinden libero.it kullanan
+     HER Italyan dukkanini eliyordu (Di Marco Calzature, Roma). Serbest posta
+     saglayicisinin alan adi firma kimligi degil; site ve ad kontrolu duruyor. */
+  ['Di Marco Calzature','dimarcocalzature@libero.it'],
+  ['Calzature Rossi','calzature.rossi@libero.it'],
+  ['Boutique Mode','boutique.mode@orange.fr'],
 ] as [$n,$e]) $t("gecmeli: $n", !$blocked($n,$e,''));
+/* IKI YON: saglayici muafiyeti KURAL 1'i delmemeli -- zincirin ADI yine yakalar,
+   ve SITESI saglayicinin kendi sayfasi olan kayit (taramanin ISS sayfasini dukkan
+   sanmasi) site etiketinden yine engellenir. */
+$t('engellenmeli: zincir adi serbest posta adresiyle', $blocked('Zalando Outlet', 'zalando.outlet@gmail.com', ''));
+$t('engellenmeli: sitesi ISS sayfasi olan kayit', vestra_domain_is_blocked('shop@libero.it', 'https://libero.it'));
 
 echo "\n== 13h. \"global 200 unique independent\" CSV'sinden ==\n";
 foreach ([

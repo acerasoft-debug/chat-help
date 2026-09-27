@@ -1121,7 +1121,16 @@ function vestra_name_is_parked_domain(string $company): bool {
  * shared host (mystore.wixsite.com) is not judged by its host's name. */
 function vestra_domain_is_blocked(string $email, string $website=''): bool {
   $labels=[];
-  if(($at=strrpos($email,'@'))!==false) $labels[]=substr($email,$at+1);
+  /* The ADDRESS's domain is a firm identity only on the firm's own domain. On a shared
+     mailbox provider it names the ISP, not the shop: the 'libero' entry below was added
+     for a scraped "Libero.it" lead (01zen@libero.it, still blocked by its NAME), and
+     through this label it silently blocked EVERY Italian shop with a libero.it mailbox
+     under KURAL 1 -- caught 27 Sep 2026 on "Di Marco Calzature". The website label is
+     still checked, so a lead whose site IS the ISP's page stays blocked. */
+  if(($at=strrpos($email,'@'))!==false){
+    $ed=substr($email,$at+1);
+    if(!vestra_email_is_shared_provider($ed)) $labels[]=$ed;
+  }
   if($website!=='') $labels[]=vestra_domain_of($website);
   foreach($labels as $host){
     $host=strtolower(trim((string)$host)); if($host==='') continue;
