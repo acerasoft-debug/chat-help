@@ -932,6 +932,31 @@ function vestra_discover_blocklist(): array {
        Peak Boutique). TAM IKI KELIMELIK ad yazildi -- 'scarpa' dersinin
        aynisi, sessiz eleme yanlis gonderimden pahali. */
     'peak design','peakdesign',
+
+    /* 26 Eyl 2026 — AYAKKABI DUKKANI kampanyasi (operator: "zincir olmasin").
+       Operatorun yapistirdigi yapay-zeka listesi arastirilarak okundu ve
+       Avrupa'da bagimsiz ayakkabi dukkani ararken zincirler ayiklandi.
+       ZINCIR (4+ sube): Werdich (40+ sube, Guney Almanya), Zumnorde (25-28
+       magaza; "Schuhhaus Marcus" Munster'deki magazasi), Schuhhaus Kocken
+       (8+ sube + Tamaris konsept magazalari), Mayer's Markenschuhe (100+),
+       Schuh Schweizer (~60), Bessec (Bretanya, 23), Chaussea (Fransa, 250+),
+       Besson Chaussures (Fransa), Charles Clinkard (Ingiltere), Begg Shoes
+       (Iskocya, 9), Sorelle Ramonda (Veneto).
+       KENDI MARKASI: Moda in Pelle (UK markasi + magazalari), Grunbein
+       (resmi marka magazalari), Pelin's Shoes (Turk markasinin AB kolu),
+       SORBAS ve Atheist Shoes (Berlin, dogrudan tuketiciye kendi markasi),
+       Highest Heels (siparise ozel kendi uretimi).
+       Adlar TAM yazildi: 'kocken', 'marcus', 'schweizer', 'besson',
+       'sorbas' (Endulus'te bir kasaba) TEK BASINA gunluk ad/soyad -- gercek
+       bagimsiz dukkanlari sessizce elerdi. Umlautlu adin alan adi yazimi ayri
+       ('gruenbein'): alan adi tarafi ASCII olmayan harfi siliyor ve 'grünbein'
+       yalniz basina 'gruenbein.de' ile eslesmez. Sinirda kalan Horsch Schuhe
+       (4 sube, buyuk/kucuk numara uzmani) EKLENMEDI -- operator karari. */
+    'werdich','zumnorde','schuhhaus marcus','schuhhaus kocken','kocken-online','kocken online',
+    "mayer's markenschuhe",'mayers markenschuhe','schuh schweizer','bessec','chaussea',
+    'besson chaussures','charles clinkard','begg shoes','sorelle ramonda',
+    'moda in pelle','grünbein','gruenbein',"pelin's shoes",'pelinshoes',
+    'sorbas shoes','sorbasshoes','atheist shoes','atheistshoes','highest heels','highestheels',
   ];
 }
 /* PARK EDILMIS / SATILIK alan adi: dukkan degil, satis sayfasi.

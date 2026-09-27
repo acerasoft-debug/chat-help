@@ -2516,6 +2516,371 @@ function vestra_tpl_new_collection_shoes(string $lang, string $company, array $f
 }
 
 /**
+ * AYAKKABI DUKKANLARINA ILK TEMAS (operator, 26 Eyl 2026: *"sende tum
+ * avrupadan ayakkabi dukkani bul zincir olmasin gercek email adreslerine
+ * ayakkabi kategorisini ve bir kac diger kategorilerden gonder"*).
+ *
+ * NEDEN AYRI BIR SABLON. Soguk ilk mektup (vestra_campaign_preview_base)
+ * "tasarimci evleri" satiyor ve govdesinde ayakkabi kelimesi HIC gecmiyor;
+ * feature_category yalnizca fotograf seridine iki kare ekliyor. Bir ayakkabi
+ * dukkanina "designer giyim toptancisi" diye yazmak, ilgisini cekecek tek
+ * bolumu bir fotografa indirir. Ikinci mektup (new_collection_shoes) ise
+ * "size daha once yazmistik" diye aciliyor -- ilk temasta kendi acilisini
+ * yalanlar.
+ *
+ * RAKAMLAR PARAMETREDEN, METNE GOMULU DEGIL (KURAL 13'un journal dersi):
+ * model sayisi, turler, kutu buyuklugu, yetiskin/cocuk ayrimi ve giyim
+ * kategorileri cagiranin CANLI katalogdan saydigi degerler. Sifir olan cumle
+ * HIC basilmaz. "Ispanyol uretici" ifadesi yalnizca cagiran bolmedeki markayi
+ * olcup dogrularsa ($f['origin_es']) yazilir -- yarin bolmeye baska bir marka
+ * girerse cumle kendiliginden susar.
+ *
+ * "STOKTAN" DENMIYOR: ayakkabi ilanlarinda ships_from bos (KURAL 3 -- saticiya
+ * soruldu). Ikinci mektubun "from stock" cumlesi bu mektuba tasinmadi;
+ * dogrulayamadigimiz bir soz ilk temasta verilmez. Test bunu 10 dilde tutuyor.
+ *
+ * FIYAT YOK (KURAL 19): toptan fiyat hesap kapisinin arkasinda; mektup
+ * "kayitli isletmelere gosteriliyor, kayit ucretsiz" diyor.
+ *
+ * CIKIS YOLU hem metnin icinde ("ilgilenmiyorsaniz yanitlayin") hem kunyede
+ * (abonelikten cikma linki; cagiran leadin kendi jetonunu ekliyor).
+ */
+function vestra_tpl_footwear_intro_strings(): array {
+    return [
+      'en' => [
+        'subject' => 'VESTRA — %N% %MODELS% for your shop, at trade prices',
+        'models'  => ['footwear model', 'footwear models'],
+        'hi' => 'Hello %CO%,', 'hi0' => 'Hello,',
+        'intro' => 'A short introduction: VESTRA is a verified B2B wholesale marketplace for footwear and branded fashion. We are writing to independent shoe shops because our footwear range may suit your shelves.',
+        'colon' => ': ', 'origin' => ' from a Spanish manufacturer', 'aud' => ', for adults and children', 'and' => 'and',
+        'box_range' => 'Ordered by the box: %MIN% to %MAX% pairs of one model per box.',
+        'box_one'   => 'Ordered by the box: %MIN% pairs of one model per box.',
+        'app'    => 'On the same account you can also order branded apparel:',
+        'prices' => 'Trade prices are shown to registered businesses — registration is free and we ask for your trade licence. If this is not relevant to your shop, simply reply and we will not write again.',
+        'sign'   => "Kind regards,\nVESTRA",
+        'foot'   => "VESTRA (operated by Acerasoft LLC). One-time business message — your shop was identified as a possible trade partner.\nUnsubscribe instantly: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Footwear wholesale', 'title' => 'Footwear for your shelves — at trade terms.',
+        'badge'  => 'Verified B2B marketplace · trade accounts only',
+        'shots'  => 'From the current selection',
+        'dl'     => 'Apparel line-sheets (Excel, with photos)',
+        'btn'    => 'See the footwear range',
+        'types'  => ['Sneakers'=>'sneakers','Flats'=>'flats','Sandals'=>'sandals','Boots'=>'boots','Loafers'=>'loafers','Slippers'=>'slippers','Heels'=>'heels'],
+        'cats'   => ['T-Shirts'=>'T-shirts','Polos'=>'Polo shirts','Hoodies & Sweatshirts'=>'Hoodies & sweatshirts','Jeans'=>'Jeans','Shirts'=>'Shirts',
+                     'Sweaters & Knitwear'=>'Knitwear','Jackets'=>'Jackets','Shorts'=>'Shorts','Jeans Shorts'=>'Denim shorts','Swim Shorts'=>'Swim shorts',
+                     'Tracksuit Sets'=>'Tracksuits','Trousers & Chinos'=>'Trousers',"Women's T-Shirts"=>"Women's T-shirts",'Skirts'=>'Skirts','Coats'=>'Coats'],
+      ],
+      'de' => [
+        'subject' => 'VESTRA — %N% %MODELS% für Ihr Geschäft, zu Händlerpreisen',
+        'models'  => ['Schuhmodell', 'Schuhmodelle'],
+        'hi' => 'Guten Tag %CO%,', 'hi0' => 'Guten Tag,',
+        'intro' => 'Eine kurze Vorstellung: VESTRA ist ein verifizierter B2B-Großhandelsmarktplatz für Schuhe und Markenmode. Wir schreiben unabhängigen Schuhgeschäften, weil unser Schuhsortiment gut zu Ihrem Geschäft passen könnte.',
+        'colon' => ': ', 'origin' => ' eines spanischen Herstellers', 'aud' => ', für Erwachsene und Kinder', 'and' => 'und',
+        'box_range' => 'Bestellt wird kartonweise: %MIN% bis %MAX% Paar eines Modells pro Karton.',
+        'box_one'   => 'Bestellt wird kartonweise: %MIN% Paar eines Modells pro Karton.',
+        'app'    => 'Über dasselbe Konto können Sie auch Markenmode bestellen:',
+        'prices' => 'Die Händlerpreise sehen registrierte Betriebe — die Registrierung ist kostenlos, wir fragen einen Gewerbenachweis ab. Falls es für Ihr Geschäft nicht passt, antworten Sie einfach kurz — dann schreiben wir nicht wieder.',
+        'sign'   => "Mit freundlichen Grüßen\nVESTRA",
+        'foot'   => "VESTRA (betrieben von Acerasoft LLC). Einmalige geschäftliche Nachricht — Ihr Geschäft wurde als möglicher Handelspartner identifiziert.\nSofort abmelden: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Schuhe im Großhandel', 'title' => 'Schuhe für Ihr Regal — zu Händlerkonditionen.',
+        'badge'  => 'Verifizierter B2B-Marktplatz · nur für Gewerbekunden',
+        'shots'  => 'Aus der aktuellen Auswahl',
+        'dl'     => 'Line-Sheets Markenmode (Excel, mit Fotos)',
+        'btn'    => 'Zum Schuhsortiment',
+        'types'  => ['Sneakers'=>'Sneaker','Flats'=>'Ballerinas','Sandals'=>'Sandalen','Boots'=>'Stiefel','Loafers'=>'Loafer','Slippers'=>'Hausschuhe','Heels'=>'High Heels'],
+        'cats'   => ['T-Shirts'=>'T-Shirts','Polos'=>'Poloshirts','Hoodies & Sweatshirts'=>'Hoodies & Sweatshirts','Jeans'=>'Jeans','Shirts'=>'Hemden',
+                     'Sweaters & Knitwear'=>'Strickmode','Jackets'=>'Jacken','Shorts'=>'Shorts','Jeans Shorts'=>'Jeansshorts','Swim Shorts'=>'Badeshorts',
+                     'Tracksuit Sets'=>'Trainingsanzüge','Trousers & Chinos'=>'Hosen',"Women's T-Shirts"=>'Damen-T-Shirts','Skirts'=>'Röcke','Coats'=>'Mäntel'],
+      ],
+      'fr' => [
+        'subject' => 'VESTRA — %N% %MODELS% pour votre boutique, aux prix de gros',
+        'models'  => ['modèle de chaussures', 'modèles de chaussures'],
+        'hi' => 'Bonjour %CO%,', 'hi0' => 'Bonjour,',
+        'intro' => 'Une brève présentation : VESTRA est une place de marché B2B de gros vérifiée, dédiée à la chaussure et à la mode de marque. Nous écrivons aux chausseurs indépendants, car notre gamme de chaussures pourrait trouver sa place dans votre boutique.',
+        'colon' => ' : ', 'origin' => " d'un fabricant espagnol", 'aud' => ', pour adultes et enfants', 'and' => 'et',
+        'box_range' => "Commande au carton : de %MIN% à %MAX% paires d'un même modèle par carton.",
+        'box_one'   => "Commande au carton : %MIN% paires d'un même modèle par carton.",
+        'app'    => 'Sur le même compte, vous pouvez aussi commander de la mode de marque :',
+        'prices' => "Les prix de gros sont affichés aux entreprises enregistrées — l'inscription est gratuite et nous demandons un justificatif d'immatriculation (Kbis ou équivalent). Si cela ne concerne pas votre boutique, répondez-nous simplement et nous ne vous écrirons plus.",
+        'sign'   => "Cordialement,\nVESTRA",
+        'foot'   => "VESTRA (exploité par Acerasoft LLC). Message professionnel unique — votre boutique a été identifiée comme partenaire commercial potentiel.\nSe désinscrire immédiatement : https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Chaussures en gros', 'title' => 'Des chaussures pour vos rayons — aux conditions professionnelles.',
+        'badge'  => 'Place de marché B2B vérifiée · réservée aux professionnels',
+        'shots'  => 'De la sélection actuelle',
+        'dl'     => 'Line-sheets mode de marque (Excel, avec photos)',
+        'btn'    => 'Voir la gamme chaussures',
+        'types'  => ['Sneakers'=>'baskets','Flats'=>'ballerines','Sandals'=>'sandales','Boots'=>'bottes','Loafers'=>'mocassins','Slippers'=>'chaussons','Heels'=>'talons'],
+        'cats'   => ['T-Shirts'=>'T-shirts','Polos'=>'Polos','Hoodies & Sweatshirts'=>'Sweats à capuche & sweats','Jeans'=>'Jeans','Shirts'=>'Chemises',
+                     'Sweaters & Knitwear'=>'Pulls & mailles','Jackets'=>'Vestes','Shorts'=>'Shorts','Jeans Shorts'=>'Shorts en jean','Swim Shorts'=>'Shorts de bain',
+                     'Tracksuit Sets'=>'Ensembles survêtement','Trousers & Chinos'=>'Pantalons',"Women's T-Shirts"=>'T-shirts femme','Skirts'=>'Jupes','Coats'=>'Manteaux'],
+      ],
+      'nl' => [
+        'subject' => 'VESTRA — %N% %MODELS% voor uw winkel, tegen groothandelsprijzen',
+        'models'  => ['schoenmodel', 'schoenmodellen'],
+        'hi' => 'Goedendag %CO%,', 'hi0' => 'Goedendag,',
+        'intro' => 'Een korte kennismaking: VESTRA is een geverifieerde B2B-groothandelsmarktplaats voor schoenen en merkmode. Wij schrijven zelfstandige schoenenwinkels aan, omdat ons schoenenassortiment goed bij uw winkel zou kunnen passen.',
+        'colon' => ': ', 'origin' => ' van een Spaanse fabrikant', 'aud' => ', voor volwassenen en kinderen', 'and' => 'en',
+        'box_range' => 'U bestelt per doos: %MIN% tot %MAX% paar van één model per doos.',
+        'box_one'   => 'U bestelt per doos: %MIN% paar van één model per doos.',
+        'app'    => 'Via hetzelfde account kunt u ook merkkleding bestellen:',
+        'prices' => 'Inkoopprijzen zijn zichtbaar voor geregistreerde bedrijven — registratie is gratis en wij vragen een uittreksel van uw inschrijving (KvK of KBO). Past dit niet bij uw winkel, antwoord dan kort — dan schrijven wij niet opnieuw.',
+        'sign'   => "Met vriendelijke groet,\nVESTRA",
+        'foot'   => "VESTRA (beheerd door Acerasoft LLC). Eenmalig zakelijk bericht — uw winkel is geïdentificeerd als mogelijke handelspartner.\nDirect uitschrijven: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Schoenen in de groothandel', 'title' => 'Schoenen voor uw schappen — tegen handelsvoorwaarden.',
+        'badge'  => 'Geverifieerde B2B-marktplaats · alleen voor zakelijke klanten',
+        'shots'  => 'Uit de actuele selectie',
+        'dl'     => "Line-sheets merkkleding (Excel, met foto's)",
+        'btn'    => 'Bekijk het schoenenassortiment',
+        'types'  => ['Sneakers'=>'sneakers','Flats'=>"ballerina's",'Sandals'=>'sandalen','Boots'=>'laarzen','Loafers'=>'loafers','Slippers'=>'pantoffels','Heels'=>'pumps'],
+        'cats'   => ['T-Shirts'=>'T-shirts','Polos'=>'Poloshirts','Hoodies & Sweatshirts'=>'Hoodies & sweatshirts','Jeans'=>'Jeans','Shirts'=>'Overhemden',
+                     'Sweaters & Knitwear'=>'Truien & breigoed','Jackets'=>'Jassen','Shorts'=>'Shorts','Jeans Shorts'=>'Jeansshorts','Swim Shorts'=>'Zwemshorts',
+                     'Tracksuit Sets'=>'Trainingspakken','Trousers & Chinos'=>'Broeken',"Women's T-Shirts"=>'Dames-T-shirts','Skirts'=>'Rokken','Coats'=>'Mantels'],
+      ],
+      'it' => [
+        'subject' => "VESTRA — %N% %MODELS% per il Suo negozio, a prezzi all'ingrosso",
+        'models'  => ['modello di calzature', 'modelli di calzature'],
+        'hi' => 'Buongiorno %CO%,', 'hi0' => 'Buongiorno,',
+        'intro' => "Una breve presentazione: VESTRA è un marketplace B2B all'ingrosso verificato per calzature e moda di marca. Scriviamo ai negozi di calzature indipendenti perché il nostro assortimento potrebbe adattarsi bene al Suo negozio.",
+        'colon' => ': ', 'origin' => ' di un produttore spagnolo', 'aud' => ', per adulti e bambini', 'and' => 'e',
+        'box_range' => 'Si ordina a cartone: da %MIN% a %MAX% paia dello stesso modello per cartone.',
+        'box_one'   => 'Si ordina a cartone: %MIN% paia dello stesso modello per cartone.',
+        'app'    => 'Con lo stesso account può ordinare anche abbigliamento di marca:',
+        'prices' => "I prezzi all'ingrosso sono visibili alle aziende registrate — l'iscrizione è gratuita e chiediamo la visura camerale. Se non riguarda il Suo negozio, basta risponderci e non scriveremo più.",
+        'sign'   => "Cordiali saluti,\nVESTRA",
+        'foot'   => "VESTRA (gestito da Acerasoft LLC). Messaggio commerciale unico — il Suo negozio è stato individuato come possibile partner commerciale.\nAnnulla subito l'iscrizione: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => "Calzature all'ingrosso", 'title' => 'Calzature per i Suoi scaffali — a condizioni per rivenditori.',
+        'badge'  => 'Marketplace B2B verificato · solo per rivenditori',
+        'shots'  => 'Dalla selezione attuale',
+        'dl'     => 'Line-sheet abbigliamento di marca (Excel, con foto)',
+        'btn'    => 'Vedi le calzature',
+        'types'  => ['Sneakers'=>'sneakers','Flats'=>'ballerine','Sandals'=>'sandali','Boots'=>'stivali','Loafers'=>'mocassini','Slippers'=>'pantofole','Heels'=>'scarpe con tacco'],
+        'cats'   => ['T-Shirts'=>'T-shirt','Polos'=>'Polo','Hoodies & Sweatshirts'=>'Felpe e hoodie','Jeans'=>'Jeans','Shirts'=>'Camicie',
+                     'Sweaters & Knitwear'=>'Maglieria','Jackets'=>'Giacche','Shorts'=>'Shorts','Jeans Shorts'=>'Shorts in jeans','Swim Shorts'=>'Costumi a pantaloncino',
+                     'Tracksuit Sets'=>'Tute','Trousers & Chinos'=>'Pantaloni',"Women's T-Shirts"=>'T-shirt donna','Skirts'=>'Gonne','Coats'=>'Cappotti'],
+      ],
+      'es' => [
+        'subject' => 'VESTRA — %N% %MODELS% para su tienda, a precio mayorista',
+        'models'  => ['modelo de calzado', 'modelos de calzado'],
+        'hi' => 'Buenos días %CO%,', 'hi0' => 'Buenos días,',
+        'intro' => 'Una breve presentación: VESTRA es un marketplace mayorista B2B verificado de calzado y moda de marca. Escribimos a zapaterías independientes porque nuestro surtido de calzado podría encajar en su tienda.',
+        'colon' => ': ', 'origin' => ' de un fabricante español', 'aud' => ', para adultos y niños', 'and' => 'y',
+        'box_range' => 'Se pide por caja: de %MIN% a %MAX% pares de un mismo modelo por caja.',
+        'box_one'   => 'Se pide por caja: %MIN% pares de un mismo modelo por caja.',
+        'app'    => 'Con la misma cuenta también puede pedir moda de marca:',
+        'prices' => 'Los precios mayoristas se muestran a empresas registradas — el registro es gratuito y pedimos un justificante de alta de su actividad. Si no encaja con su tienda, respóndanos simplemente y no volveremos a escribir.',
+        'sign'   => "Saludos cordiales,\nVESTRA",
+        'foot'   => "VESTRA (gestionado por Acerasoft LLC). Mensaje comercial único — su tienda fue identificada como posible socio comercial.\nDarse de baja al instante: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Calzado al por mayor', 'title' => 'Calzado para sus estanterías — en condiciones profesionales.',
+        'badge'  => 'Marketplace B2B verificado · solo para profesionales',
+        'shots'  => 'De la selección actual',
+        'dl'     => 'Line-sheets de moda de marca (Excel, con fotos)',
+        'btn'    => 'Ver el calzado',
+        'types'  => ['Sneakers'=>'deportivas','Flats'=>'bailarinas','Sandals'=>'sandalias','Boots'=>'botas','Loafers'=>'mocasines','Slippers'=>'zapatillas de casa','Heels'=>'zapatos de tacón'],
+        'cats'   => ['T-Shirts'=>'Camisetas','Polos'=>'Polos','Hoodies & Sweatshirts'=>'Sudaderas','Jeans'=>'Vaqueros','Shirts'=>'Camisas',
+                     'Sweaters & Knitwear'=>'Punto','Jackets'=>'Chaquetas','Shorts'=>'Pantalones cortos','Jeans Shorts'=>'Shorts vaqueros','Swim Shorts'=>'Bañadores',
+                     'Tracksuit Sets'=>'Chándales','Trousers & Chinos'=>'Pantalones',"Women's T-Shirts"=>'Camisetas de mujer','Skirts'=>'Faldas','Coats'=>'Abrigos'],
+      ],
+      'pt' => [
+        'subject' => 'VESTRA — %N% %MODELS% para a sua loja, a preços de revenda',
+        'models'  => ['modelo de calçado', 'modelos de calçado'],
+        'hi' => 'Bom dia %CO%,', 'hi0' => 'Bom dia,',
+        'intro' => 'Uma breve apresentação: a VESTRA é um marketplace grossista B2B verificado de calçado e moda de marca. Escrevemos a sapatarias independentes porque a nossa gama de calçado pode encaixar na sua loja.',
+        'colon' => ': ', 'origin' => ' de um fabricante espanhol', 'aud' => ', para adultos e crianças', 'and' => 'e',
+        'box_range' => 'Encomenda por caixa: de %MIN% a %MAX% pares do mesmo modelo por caixa.',
+        'box_one'   => 'Encomenda por caixa: %MIN% pares do mesmo modelo por caixa.',
+        'app'    => 'Na mesma conta pode também encomendar moda de marca:',
+        'prices' => 'Os preços de revenda são mostrados a empresas registadas — o registo é gratuito e pedimos a certidão permanente. Se não se aplicar à sua loja, basta responder e não voltaremos a escrever.',
+        'sign'   => "Com os melhores cumprimentos,\nVESTRA",
+        'foot'   => "VESTRA (gerida pela Acerasoft LLC). Mensagem comercial única — a sua loja foi identificada como possível parceiro comercial.\nCancelar a subscrição de imediato: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Calçado por grosso', 'title' => 'Calçado para as suas prateleiras — em condições de revenda.',
+        'badge'  => 'Marketplace B2B verificado · apenas para empresas',
+        'shots'  => 'Da seleção atual',
+        'dl'     => 'Line-sheets de moda de marca (Excel, com fotos)',
+        'btn'    => 'Ver o calçado',
+        'types'  => ['Sneakers'=>'ténis','Flats'=>'sapatos rasos','Sandals'=>'sandálias','Boots'=>'botas','Loafers'=>'mocassins','Slippers'=>'pantufas','Heels'=>'sapatos de salto'],
+        'cats'   => ['T-Shirts'=>'T-shirts','Polos'=>'Polos','Hoodies & Sweatshirts'=>'Hoodies e sweatshirts','Jeans'=>'Jeans','Shirts'=>'Camisas',
+                     'Sweaters & Knitwear'=>'Malhas','Jackets'=>'Casacos','Shorts'=>'Calções','Jeans Shorts'=>'Calções de ganga','Swim Shorts'=>'Calções de banho',
+                     'Tracksuit Sets'=>'Fatos de treino','Trousers & Chinos'=>'Calças',"Women's T-Shirts"=>'T-shirts de senhora','Skirts'=>'Saias','Coats'=>'Casacos compridos'],
+      ],
+      'pl' => [
+        'subject' => 'VESTRA — %N% %MODELS% dla Państwa sklepu, w cenach hurtowych',
+        /* Trzy formy: 1 model / 2-4 modele (bez 12-14) / pozostale modeli. */
+        'models'  => ['model obuwia', 'modele obuwia', 'modeli obuwia'],
+        'hi' => 'Dzień dobry %CO%,', 'hi0' => 'Dzień dobry,',
+        'intro' => 'Krótko o nas: VESTRA to zweryfikowana hurtowa platforma B2B z obuwiem i odzieżą markową. Piszemy do niezależnych sklepów obuwniczych, ponieważ nasza oferta obuwia może pasować do Państwa sklepu.',
+        'colon' => ': ', 'origin' => ' od hiszpańskiego producenta', 'aud' => ', dla dorosłych i dzieci', 'and' => 'i',
+        'box_range' => 'Zamówienia w kartonach: od %MIN% do %MAX% par jednego modelu w kartonie.',
+        'box_one'   => 'Zamówienia w kartonach: %MIN% par jednego modelu w kartonie.',
+        'app'    => 'Na tym samym koncie można też zamawiać odzież markową:',
+        'prices' => 'Ceny hurtowe widzą zarejestrowane firmy — rejestracja jest bezpłatna, prosimy o dokument rejestracji działalności. Jeśli to nie dotyczy Państwa sklepu, wystarczy krótko odpowiedzieć — nie napiszemy ponownie.',
+        'sign'   => "Z poważaniem\nVESTRA",
+        'foot'   => "VESTRA (prowadzona przez Acerasoft LLC). Jednorazowa wiadomość biznesowa — Państwa sklep został wskazany jako potencjalny partner handlowy.\nNatychmiastowa rezygnacja: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Obuwie w hurcie', 'title' => 'Obuwie na Państwa półki — na warunkach hurtowych.',
+        'badge'  => 'Zweryfikowana platforma B2B · tylko dla firm',
+        'shots'  => 'Z aktualnej oferty',
+        'dl'     => 'Line-sheety odzieży markowej (Excel, ze zdjęciami)',
+        'btn'    => 'Zobacz obuwie',
+        'types'  => ['Sneakers'=>'sneakersy','Flats'=>'baleriny','Sandals'=>'sandały','Boots'=>'botki','Loafers'=>'mokasyny','Slippers'=>'kapcie','Heels'=>'buty na obcasie'],
+        'cats'   => ['T-Shirts'=>'T-shirty','Polos'=>'Koszulki polo','Hoodies & Sweatshirts'=>'Bluzy','Jeans'=>'Jeansy','Shirts'=>'Koszule',
+                     'Sweaters & Knitwear'=>'Swetry','Jackets'=>'Kurtki','Shorts'=>'Szorty','Jeans Shorts'=>'Szorty jeansowe','Swim Shorts'=>'Szorty kąpielowe',
+                     'Tracksuit Sets'=>'Dresy','Trousers & Chinos'=>'Spodnie',"Women's T-Shirts"=>'T-shirty damskie','Skirts'=>'Spódnice','Coats'=>'Płaszcze'],
+      ],
+      'cs' => [
+        'subject' => 'VESTRA — %N% %MODELS% pro Vaši prodejnu, za velkoobchodní ceny',
+        /* Tri tvary: 1 model / 2-4 modely / 5+ modelu. */
+        'models'  => ['model obuvi', 'modely obuvi', 'modelů obuvi'],
+        'hi' => 'Dobrý den %CO%,', 'hi0' => 'Dobrý den,',
+        'intro' => 'Krátké představení: VESTRA je ověřené velkoobchodní B2B tržiště s obuví a značkovou módou. Píšeme nezávislým obchodům s obuví, protože naše nabídka obuvi by se mohla hodit do Vaší prodejny.',
+        'colon' => ': ', 'origin' => ' od španělského výrobce', 'aud' => ', pro dospělé i děti', 'and' => 'a',
+        'box_range' => 'Objednává se po kartonech: od %MIN% do %MAX% párů jednoho modelu v kartonu.',
+        'box_one'   => 'Objednává se po kartonech: %MIN% párů jednoho modelu v kartonu.',
+        'app'    => 'Na stejném účtu můžete objednat i značkové oblečení:',
+        'prices' => 'Velkoobchodní ceny vidí registrované firmy — registrace je zdarma a žádáme doklad o podnikání (živnostenský list nebo výpis z obchodního rejstříku). Pokud se to Vaší prodejny netýká, stačí krátce odpovědět a znovu psát nebudeme.',
+        'sign'   => "S pozdravem\nVESTRA",
+        'foot'   => "VESTRA (provozuje Acerasoft LLC). Jednorázová obchodní zpráva — Vaše prodejna byla vybrána jako možný obchodní partner.\nOkamžité odhlášení: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Obuv ve velkoobchodě', 'title' => 'Obuv do Vašich regálů — za velkoobchodních podmínek.',
+        'badge'  => 'Ověřené B2B tržiště · pouze pro firmy',
+        'shots'  => 'Z aktuální nabídky',
+        'dl'     => 'Line-sheety značkového oblečení (Excel, s fotografiemi)',
+        'btn'    => 'Prohlédnout obuv',
+        'types'  => ['Sneakers'=>'tenisky','Flats'=>'baleríny','Sandals'=>'sandály','Boots'=>'kozačky','Loafers'=>'mokasíny','Slippers'=>'bačkory','Heels'=>'boty na podpatku'],
+        'cats'   => ['T-Shirts'=>'Trička','Polos'=>'Pólo trička','Hoodies & Sweatshirts'=>'Mikiny','Jeans'=>'Džíny','Shirts'=>'Košile',
+                     'Sweaters & Knitwear'=>'Svetry','Jackets'=>'Bundy','Shorts'=>'Kraťasy','Jeans Shorts'=>'Džínové kraťasy','Swim Shorts'=>'Plavkové šortky',
+                     'Tracksuit Sets'=>'Teplákové soupravy','Trousers & Chinos'=>'Kalhoty',"Women's T-Shirts"=>'Dámská trička','Skirts'=>'Sukně','Coats'=>'Kabáty'],
+      ],
+      'el' => [
+        'subject' => 'VESTRA — %N% %MODELS% για το κατάστημά σας, σε τιμές χονδρικής',
+        'models'  => ['μοντέλο υποδημάτων', 'μοντέλα υποδημάτων'],
+        'hi' => 'Καλημέρα %CO%,', 'hi0' => 'Καλημέρα,',
+        'intro' => 'Μια σύντομη γνωριμία: η VESTRA είναι μια επαληθευμένη B2B πλατφόρμα χονδρικής για υποδήματα και επώνυμη μόδα. Γράφουμε σε ανεξάρτητα καταστήματα υποδημάτων, γιατί η γκάμα υποδημάτων μας θα μπορούσε να ταιριάξει στο κατάστημά σας.',
+        'colon' => ': ', 'origin' => ' από Ισπανό κατασκευαστή', 'aud' => ', για ενήλικες και παιδιά', 'and' => 'και',
+        'box_range' => 'Η παραγγελία γίνεται ανά κουτί: από %MIN% έως %MAX% ζευγάρια του ίδιου μοντέλου ανά κουτί.',
+        'box_one'   => 'Η παραγγελία γίνεται ανά κουτί: %MIN% ζευγάρια του ίδιου μοντέλου ανά κουτί.',
+        'app'    => 'Από τον ίδιο λογαριασμό μπορείτε να παραγγείλετε και επώνυμα ρούχα:',
+        'prices' => 'Οι τιμές χονδρικής εμφανίζονται σε εγγεγραμμένες επιχειρήσεις — η εγγραφή είναι δωρεάν και ζητάμε βεβαίωση έναρξης δραστηριότητας. Αν δεν αφορά το κατάστημά σας, απλώς απαντήστε μας και δεν θα ξαναγράψουμε.',
+        'sign'   => "Με εκτίμηση,\nVESTRA",
+        'foot'   => "VESTRA (λειτουργεί από την Acerasoft LLC). Μεμονωμένο επαγγελματικό μήνυμα — το κατάστημά σας εντοπίστηκε ως πιθανός εμπορικός συνεργάτης.\nΆμεση διαγραφή: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Υποδήματα χονδρικής', 'title' => 'Υποδήματα για τα ράφια σας — με όρους χονδρικής.',
+        'badge'  => 'Επαληθευμένη B2B πλατφόρμα · μόνο για επιχειρήσεις',
+        'shots'  => 'Από την τρέχουσα συλλογή',
+        'dl'     => 'Line-sheets επώνυμων ρούχων (Excel, με φωτογραφίες)',
+        'btn'    => 'Δείτε τα υποδήματα',
+        'types'  => ['Sneakers'=>'αθλητικά παπούτσια','Flats'=>'μπαλαρίνες','Sandals'=>'σανδάλια','Boots'=>'μπότες','Loafers'=>'μοκασίνια','Slippers'=>'παντόφλες','Heels'=>'γόβες'],
+        'cats'   => ['T-Shirts'=>'T-shirts','Polos'=>'Πόλο','Hoodies & Sweatshirts'=>'Φούτερ','Jeans'=>'Τζιν','Shirts'=>'Πουκάμισα',
+                     'Sweaters & Knitwear'=>'Πλεκτά','Jackets'=>'Μπουφάν','Shorts'=>'Σορτς','Jeans Shorts'=>'Τζιν σορτς','Swim Shorts'=>'Μαγιό σορτς',
+                     'Tracksuit Sets'=>'Φόρμες','Trousers & Chinos'=>'Παντελόνια',"Women's T-Shirts"=>'Γυναικεία T-shirts','Skirts'=>'Φούστες','Coats'=>'Παλτά'],
+      ],
+    ];
+}
+
+/* Sayiya gore isim bicimi. Iki bicimli dillerde 1 tekil, gerisi cogul.
+ * Lehce: 1 / 2-4 (12-14 haric, son hane) / gerisi. Cekce: 1 / 2-4 / 5+.
+ * "335 modele obuwia" yazan bir mektup, sayiyi uyduran bir mektup kadar
+ * dikkatsiz gorunur; iki dilin kurali farkli oldugu icin ayri dal. */
+function vestra_tpl_count_form(int $n, array $forms, string $lang): string {
+    $forms = array_values($forms);
+    if (!$forms) return '';
+    if ($n === 1 || count($forms) === 1) return (string)$forms[0];
+    if (count($forms) >= 3) {
+        if ($lang === 'pl') {
+            $m10 = $n % 10; $m100 = $n % 100;
+            return (string)(($m10 >= 2 && $m10 <= 4 && ($m100 < 12 || $m100 > 14)) ? $forms[1] : $forms[2]);
+        }
+        return (string)(($n >= 2 && $n <= 4) ? $forms[1] : $forms[2]);
+    }
+    return (string)$forms[1];
+}
+
+/* "a, b ve c" -- son ogeden once dilin kendi baglaci. */
+function vestra_tpl_join_and(array $words, string $and): string {
+    $w = array_values(array_filter(array_map('strval', $words), fn($x) => trim($x) !== ''));
+    if (count($w) <= 1) return $w[0] ?? '';
+    $last = array_pop($w);
+    return implode(', ', $w).' '.$and.' '.$last;
+}
+
+function vestra_tpl_footwear_intro(string $lang, string $company, array $f): array {
+    $S  = vestra_tpl_footwear_intro_strings();
+    $en = $S['en'];
+    $d  = ($S[$lang] ?? []) + $en;           // eksik anahtar Ingilizceye duser
+    $co = trim($company);
+    /* Taranan ad ciplak bir alan adiysa hitapta kullanilmaz (soguk mektubun
+       ayni karari: "Hello chiarulli.it," makine urunu oldugunu ele verir). */
+    if ($co !== '' && function_exists('vestra_name_is_bare_domain') && vestra_name_is_bare_domain($co)) $co = '';
+
+    $n      = max(0, (int)($f['shoes'] ?? 0));
+    $models = vestra_tpl_count_form($n, (array)$d['models'], $lang);
+
+    $typeWords = [];
+    foreach ((array)($f['types'] ?? []) as $cat => $cnt) {
+        if ((int)$cnt <= 0) continue;
+        $w = (string)($d['types'][$cat] ?? '');
+        if ($w !== '') $typeWords[] = $w;   // tanimsiz tur BASILMAZ: yarim cevrilmis bir liste yazilmaz
+    }
+    $typesStr = vestra_tpl_join_and($typeWords, (string)$d['and']);
+
+    $fw = $n.' '.$models
+        .(!empty($f['origin_es']) ? $d['origin'] : '')
+        .($typesStr !== '' ? $d['colon'].$typesStr : '')
+        .(!empty($f['kids']) ? $d['aud'] : '')
+        .'.';
+
+    $bmin = (int)($f['box_min'] ?? 0); $bmax = (int)($f['box_max'] ?? 0);
+    $box  = '';
+    if ($bmin > 0) {
+        $box = $bmax > $bmin
+            ? str_replace(['%MIN%', '%MAX%'], [(string)$bmin, (string)$bmax], (string)$d['box_range'])
+            : str_replace('%MIN%', (string)$bmin, (string)$d['box_one']);
+    }
+
+    $appLines = []; $appBrands = [];
+    foreach ((array)($f['apparel'] ?? []) as $a) {
+        $cat    = trim((string)($a['cat'] ?? ''));
+        $brands = array_values(array_filter(array_map(fn($b) => trim((string)$b), (array)($a['brands'] ?? [])), fn($b) => $b !== ''));
+        if ($cat === '' || !$brands) continue;
+        $label  = (string)($d['cats'][$cat] ?? $cat);   // marka ve bilinmeyen kategori adi CEVRILMEZ
+        $appLines[] = '• '.$label.' — '.implode(', ', $brands);
+        foreach ($brands as $b) $appBrands[$b] = true;
+    }
+
+    $parts   = [];
+    $parts[] = $co !== '' ? str_replace('%CO%', $co, (string)$d['hi']) : (string)$d['hi0'];
+    $parts[] = (string)$d['intro'];
+    if ($n > 0) $parts[] = '• '.$fw.($box !== '' ? "\n• ".$box : '');
+    if ($appLines) $parts[] = $d['app']."\n".implode("\n", $appLines);
+    $parts[] = (string)$d['prices'];
+    $parts[] = (string)$d['sign'];
+    $body    = implode("\n\n", $parts)."\n\n—\n".$d['foot'];
+
+    $subject = str_replace(['%N%', '%MODELS%'], [(string)$n, $models], (string)$d['subject']);
+
+    /* Fotograf seridi: cagiran kareleri DISKTE dogrulayip veriyor; burada yalnizca
+       etiket dile cevriliyor (ayakkabi karesinde tur, giyim karesinde marka). */
+    $shots = [];
+    foreach ((array)($f['shots'] ?? []) as $s) {
+        $img = trim((string)($s['img'] ?? '')); if ($img === '') continue;
+        $lab = !empty($s['cat']) ? (string)($d['types'][(string)$s['cat']] ?? (string)$s['cat'])
+                                 : trim((string)($s['brand'] ?? ''));
+        $shots[] = ['img' => $img, 'label' => $lab, 'url' => (string)($s['url'] ?? '')];
+        if (count($shots) >= 9) break;
+    }
+
+    $opts = [
+      'hero'   => ['kicker' => (string)$d['kicker'], 'title' => (string)$d['title']],
+      'badge'  => (string)$d['badge'],
+      'button' => ['label' => (string)$d['btn'], 'url' => 'https://vestrasales.com/shop?section=footwear'],
+    ];
+    if ($shots) { $opts['shots'] = $shots; $opts['shots_title'] = (string)$d['shots']; }
+    if ($appBrands) {
+        $items = [];
+        foreach (array_slice(array_keys($appBrands), 0, 6) as $b) {
+            $items[] = ['label' => $b, 'url' => 'https://vestrasales.com/catalog?brand='.rawurlencode($b)];
+        }
+        $opts['downloads'] = ['title' => (string)$d['dl'], 'items' => $items];
+    }
+    return [$subject, $body, $opts];
+}
+
+/**
  * DORDUNCU PARTI — UCUNCU MEKTUP: ADIYLA SAYILAN EVLER (operator, 18 Eyl 2026:
  * *"herkese bastan 3. email gonder ... yeni urunler ile Galerry markasi ve
  * F.Perry , Gucci , Dsq2"*).

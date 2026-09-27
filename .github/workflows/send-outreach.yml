@@ -1011,6 +1011,14 @@ jobs:
                   if ($ONLY || $DRY) echo "  - ATLANDI (ikinci mektup hic gitmemis): ".$maskMail($email)."\n";
                   continue;
                 }
+                /* AYAKKABI MEKTUBUYLA TANISMIS dukkan (add-and-send letter=footwear,
+                   damga last_campaign='footwear/<dil>'): 'shoes' ikinci mektubu ona
+                   "ayakkabi bolumu acildi" diye yazardi -- ilk mektubun konusu zaten
+                   oydu; ikinci mektup kendi haberini yalanlardi. */
+                if ($NC_LETTER === 'shoes' && str_starts_with((string)($l['last_campaign'] ?? ''), 'footwear/')) {
+                  if ($ONLY || $DRY) echo "  - ATLANDI (ilk mektubu zaten ayakkabi mektubuydu): ".$maskMail($email)."\n";
+                  continue;
+                }
                 if (trim((string)($l[$NC_STAMP] ?? '')) !== '') {   // bu duyuruyu zaten aldi
                   if ($ONLY || $DRY) echo "  - ATLANDI (duyuruyu zaten almis): ".$maskMail($email)."\n";
                   continue;

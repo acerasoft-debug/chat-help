@@ -662,5 +662,39 @@ foreach ([
     ['Studio Design Milano','studiodesign.it'],
 ] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
 
+echo "\n== 20. 26 Eyl 2026 — ayakkabi dukkani kampanyasi: zincirler ve kendi markasi ==\n";
+/* Operatorun yapistirdigi yapay-zeka listesi ve Avrupa aramasi okunurken
+   ayiklananlar. Iki taraf da test ediliyor: ad VE alan adi. */
+foreach ([
+    ['Schuhhaus Werdich','werdich.com'],        ['Zumnorde','zumnorde.de'],
+    ['Schuhhaus Marcus','schuhhaus-marcus.de'], ['Schuhhaus Kocken','kocken-online.de'],
+    ["Mayer's Markenschuhe",'mayers-markenschuhe.de'], ['Schuh Schweizer','schuh-schweizer.de'],
+    ['Bessec Chaussures','bessec.fr'],          ['Chaussea','chaussea.com'],
+    ['Besson Chaussures','besson-chaussures.com'], ['Charles Clinkard','charlesclinkard.co.uk'],
+    ['Begg Shoes','beggshoes.com'],             ['Sorelle Ramonda','sorelleramonda.com'],
+    ['Moda in Pelle','modainpelle.com'],        ['Grünbein Store','shoes-berlin.de'],
+    ["Pelin's Shoes",'pelinshoes.com'],         ['Atheist Shoes','atheist.shoes'],
+    ['Highest Heels','highestheels.eu'],
+] as [$n,$d]) $t("blok: {$n}", $blocked($n,'','https://'.$d));
+/* Yalniz ALAN ADINDAN yakalanmasi gerekenler: taranan ad cogu zaman markanin
+   kendisi degil ("Shop", "Home"), alan adi ise operatorden geliyor. */
+foreach ([
+    ['Shop','sorbasshoes.com'], ['Home','gruenbein.de'], ['Store','pelinshoes.com'],
+    ['Welcome','atheist.shoes'], ['Startseite','werdich.com'],
+] as [$n,$d]) $t("blok (alan adindan): {$d}", $blocked($n,'','https://'.$d));
+
+echo "\n== 20b. GECMELI — ayni kelimeyi tasiyan bagimsiz dukkanlar ==\n";
+/* 'kocken', 'marcus', 'schweizer', 'besson', 'sorbas', 'heels', 'shoes'
+   TEK BASINA listede degil. Konsalardi asagidakilerin hepsi SESSIZCE
+   elenirdi -- mango/zara ve scarpa dersinin ayakkabi hali. */
+foreach ([
+    ['Marcus Schuhmode','marcus-schuhmode.de'],     ['Schweizer Mode','schweizer-mode.ch'],
+    ['Kocken Mode','kocken-mode.nl'],               ['Besson Fleurs','besson-fleurs.fr'],
+    ['Sorbas Moda','sorbasmoda.es'],                ['Heels & Soles','heelsandsoles.co.uk'],
+    ['CC Shoes','ccshoes.se'],                      ['Schuhhaus Galipp','galipp-schuhmode.de'],
+    ['Schuhe Lüke','schuhe-lueke.de'],              ['Calzados Vesga','calzadosvesga.com'],
+    ['Moda Italiana Boutique','modaitaliana.it'],   ['Charles Street Shoes','charlesstreetshoes.com'],
+] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
+
 echo "\nTOPLAM: {$ok} gecti, {$fail} kaldi\n";
 exit($fail === 0 ? 0 : 1);
