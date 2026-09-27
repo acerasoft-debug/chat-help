@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir; issue_shipping='auto' = bölge tarifesi). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'thread_dump' = bir alıcının TÜM site içi yazışmalarını + numune/teklif/sipariş kayıtlarını ŞİFRELİ döker (issue_ref=hesap ID ya da firma parçası — TAM 1 eşleşme; issue_pubkey ŞART, metin şifresiz basılmaz; salt okunur). 'invoice_delete' = KESİLMİŞ bir faturayı KALDIRIR (issue_ref=sipariş/teklif ref, payload=satıcı anahtarı — tek dilimse boş; move_apply=true ile uygular, varsayılan kuru koşu; panelin 🗑 Remove düğmesiyle AYNI fonksiyon — dosyayı ARŞİVLER, silmez; numara yanmış kalır, yeniden kesim YENİ numara yakar; sipariş satırına dokunmaz, gerekirse ardından order_delete). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. Ref SİLİNMEMİŞ, hâlâ AÇIK bir tekliftesin ve satıcının kendi bekleyen karşı teklifini (alıcı henüz yanıtlamadan) düzeltmek istiyorsan offer_selfcorrect=true ekle (KURAL 4'ün 'kendi hamleni düzelt' istisnası — yeni tur EKLER, eskiyi SİLMEZ). 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. 'order_colours' = siparişin RENGİNİ düzeltir (issue_ref=sipariş, payload='SKU:Renk,Renk', move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_add_line' = var olan bir siparişe YENİ bir SKU satırı ekler (issue_ref=sipariş, payload='SKU:ADET[:Renk=Adet,Renk=Adet]|allow_invoiced=1|unit=<fiyat>|note=<metin>', move_apply=true; renk kırılımı verilirse toplamı ADET'e eşit olmalı, ilanda kayıtlı olmayan renk yazılır ama UYARILIR; birim fiyat verilmezse katalog kademesinden, verilirse yalnız ilandan UCUZ olabilir; goods `vestra_order_lines()`'dan yeniden hesaplanır, indirim ve kargo DOKUNULMADAN kalır — ikinci bir hesap yolu yazılmadı; aynı SKU zaten sipariştaysa REDDEDİLİR, vestra_order_set_colours'a yönlendirir; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_delivery' = siparişin TESLİMAT ADRESİNİ yazar/düzeltir (issue_ref=sipariş, payload='adres metni|allow_invoiced=1' — MÜŞTERİ ADRESİ açık girdiye yazılmasın diye 'enc:<zarf>' (scripts/envelope_seal.php, gövde {\"address\":\"…\"}) tercih edilir; çıktıda adres MASKELİ — boş adres=SİLER, move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5l/5f). 'order_discount' = siparişe HOŞ GELDİN İNDİRİMİ işler (issue_ref=sipariş, payload='pct=5|code=<kupon>|allow_invoiced=1', move_apply=true; TUTAR yüzdeden türer, elle verilmez; indirim + toplam + payout BİRLİKTE yazılır ve geri okunur; PARASI GELMİŞ sipariş koşulsuz RED, faturalı sipariş opt-in ister ve AYNI numarayla yeniden çizim İSTER; kuru koşu vestra_welcome_auto'nun KARARINI ve bölgesel indirimi de basar — pct=0 indirimi KALDIRIR). 'create_buyer' = ELLE alıcı hesabı açar (payload=ŞİFRELİ zarf — müşterinin e-postası açık girdiye yazılmaz, çıktıda maskeli; move_apply=true ile uygular, varsayılan kuru koşu; panelin ➕ New buyer account formuyla AYNI yazıcı, müşteriye HİÇBİR ŞEY gitmez). 'lead_rename' = bir lead'in SADECE firma adını düzeltir (issue_ref=lead id ya da ALAN ADI — müşterinin adresi açık girdiye yazılmaz, çıktıda maskeli; payload=yeni ad; TAM 1 eşleşme yoksa durur; damgalara DOKUNMAZ, yani ilk mektup ikinci kez gitmez; move_apply=true ile uygular, varsayılan kuru koşu). 'preorder_ship' = kodda GÖMÜLÜ (demo) bir ürünün ön sipariş teslim tarihini yazar (issue_ref=ürün id, ör. amiri-core-polo; payload=YYYY-MM-DD, boş = KALDIR; sayfada görünecek cümleyi ÖNİZLER; moq/tiers gibi kardeş alanlara dokunmaz; move_apply=true ile uygular, varsayılan kuru koşu — CANLI LİSTELER için bu alan set-product.yml'den yazılır, orada reddedilir). 'platform_bank' = PLATFORMUN banka künyesini yazar (payload=ŞİFRELİ zarf, keygen'in public key'iyle; gövde {bank_iban, bank_eur_bic, bank_eur_name, …}; panelin 🏦 Platform billing formuyla AYNI yazıcı — mod-97 geçmezse HİÇBİR alan yazılmaz; çıktıda numara YOK; kuru koşu EUR kutusunun çıkıp çıkmayacağını BELLEKTE gösterir; move_apply=true ile yazar). 'password_setup' = elle açılan hesaba 'şifreni seç' MEKTUBU GÖNDERİR (issue_ref=hesap ID — adres açık girdiye yazılmaz, kayıttan çözülür; TAM 1 eşleşme yoksa durur; link/jeton/gövde log'a YAZILMAZ; move_apply=true ile gönderir, varsayılan kuru koşu ve kuru koşu jeton ÜRETMEZ). 'brand_hide' = markayı sitenin HER YERİNDE gizler / geri açar (payload=gizli markaların TAM listesi, virgülle — örn. 'Gucci,Balenciaga'; verilmeyen marka GÖRÜNÜR olur; 'clear' = hepsini geri aç; ilan kaydına DOKUNMAZ, panelin Hidden brands kartıyla aynı yazıcı; varsayılan kuru koşu, move_apply=true ile yazar). Boş = sadece listeler. 'sample_link' = ALICIYA tek seferlik NUMUNE ODEME LINKI (issue_ref=alici hesap ID, payload='product=<ilan id>|price=<EUR>|lang=<xx>'; adres Stripe sayfasinda girilir, odeme platform hesabina, link odenene kadar gecerli; varsayilan kuru kosu, move_apply=true kaydi yazar ve MEKTUBU GONDERIR)."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir; issue_shipping='auto' = bölge tarifesi). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'thread_dump' = bir alıcının TÜM site içi yazışmalarını + numune/teklif/sipariş kayıtlarını ŞİFRELİ döker (issue_ref=hesap ID ya da firma parçası — TAM 1 eşleşme; issue_pubkey ŞART, metin şifresiz basılmaz; salt okunur). 'invoice_delete' = KESİLMİŞ bir faturayı KALDIRIR (issue_ref=sipariş/teklif ref, payload=satıcı anahtarı — tek dilimse boş; move_apply=true ile uygular, varsayılan kuru koşu; panelin 🗑 Remove düğmesiyle AYNI fonksiyon — dosyayı ARŞİVLER, silmez; numara yanmış kalır, yeniden kesim YENİ numara yakar; sipariş satırına dokunmaz, gerekirse ardından order_delete). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. Ref SİLİNMEMİŞ, hâlâ AÇIK bir tekliftesin ve satıcının kendi bekleyen karşı teklifini (alıcı henüz yanıtlamadan) düzeltmek istiyorsan offer_selfcorrect=true ekle (KURAL 4'ün 'kendi hamleni düzelt' istisnası — yeni tur EKLER, eskiyi SİLMEZ). 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. 'order_colours' = siparişin RENGİNİ düzeltir (issue_ref=sipariş, payload='SKU:Renk,Renk', move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_add_line' = var olan bir siparişe YENİ bir SKU satırı ekler (issue_ref=sipariş, payload='SKU:ADET[:Renk=Adet,Renk=Adet]|allow_invoiced=1|unit=<fiyat>|note=<metin>', move_apply=true; renk kırılımı verilirse toplamı ADET'e eşit olmalı, ilanda kayıtlı olmayan renk yazılır ama UYARILIR; birim fiyat verilmezse katalog kademesinden, verilirse yalnız ilandan UCUZ olabilir; goods `vestra_order_lines()`'dan yeniden hesaplanır, indirim ve kargo DOKUNULMADAN kalır — ikinci bir hesap yolu yazılmadı; aynı SKU zaten sipariştaysa REDDEDİLİR, vestra_order_set_colours'a yönlendirir; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_delivery' = siparişin TESLİMAT ADRESİNİ yazar/düzeltir (issue_ref=sipariş, payload='adres metni|allow_invoiced=1' — MÜŞTERİ ADRESİ açık girdiye yazılmasın diye 'enc:<zarf>' (scripts/envelope_seal.php, gövde {\"address\":\"…\"}) tercih edilir; çıktıda adres MASKELİ — boş adres=SİLER, move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5l/5f). 'order_discount' = siparişe HOŞ GELDİN İNDİRİMİ işler (issue_ref=sipariş, payload='pct=5|code=<kupon>|allow_invoiced=1', move_apply=true; TUTAR yüzdeden türer, elle verilmez; indirim + toplam + payout BİRLİKTE yazılır ve geri okunur; PARASI GELMİŞ sipariş koşulsuz RED, faturalı sipariş opt-in ister ve AYNI numarayla yeniden çizim İSTER; kuru koşu vestra_welcome_auto'nun KARARINI ve bölgesel indirimi de basar — pct=0 indirimi KALDIRIR). 'create_buyer' = ELLE alıcı hesabı açar (payload=ŞİFRELİ zarf — müşterinin e-postası açık girdiye yazılmaz, çıktıda maskeli; move_apply=true ile uygular, varsayılan kuru koşu; panelin ➕ New buyer account formuyla AYNI yazıcı, müşteriye HİÇBİR ŞEY gitmez). 'lead_rename' = bir lead'in SADECE firma adını düzeltir (issue_ref=lead id, e-postanın ALAN ADI ya da SİTENİN alan adı — müşterinin adresi açık girdiye yazılmaz, çıktıda maskeli; payload=yeni ad; TOPLU: issue_ref=batch, payload='alanadi=Yeni Ad|alanadi=Yeni Ad' — biri tutmazsa HİÇBİRİ yazılmaz; her ref için TAM 1 eşleşme yoksa durur; damgalara DOKUNMAZ, yani ilk mektup ikinci kez gitmez; move_apply=true ile uygular, varsayılan kuru koşu). 'preorder_ship' = kodda GÖMÜLÜ (demo) bir ürünün ön sipariş teslim tarihini yazar (issue_ref=ürün id, ör. amiri-core-polo; payload=YYYY-MM-DD, boş = KALDIR; sayfada görünecek cümleyi ÖNİZLER; moq/tiers gibi kardeş alanlara dokunmaz; move_apply=true ile uygular, varsayılan kuru koşu — CANLI LİSTELER için bu alan set-product.yml'den yazılır, orada reddedilir). 'platform_bank' = PLATFORMUN banka künyesini yazar (payload=ŞİFRELİ zarf, keygen'in public key'iyle; gövde {bank_iban, bank_eur_bic, bank_eur_name, …}; panelin 🏦 Platform billing formuyla AYNI yazıcı — mod-97 geçmezse HİÇBİR alan yazılmaz; çıktıda numara YOK; kuru koşu EUR kutusunun çıkıp çıkmayacağını BELLEKTE gösterir; move_apply=true ile yazar). 'password_setup' = elle açılan hesaba 'şifreni seç' MEKTUBU GÖNDERİR (issue_ref=hesap ID — adres açık girdiye yazılmaz, kayıttan çözülür; TAM 1 eşleşme yoksa durur; link/jeton/gövde log'a YAZILMAZ; move_apply=true ile gönderir, varsayılan kuru koşu ve kuru koşu jeton ÜRETMEZ). 'brand_hide' = markayı sitenin HER YERİNDE gizler / geri açar (payload=gizli markaların TAM listesi, virgülle — örn. 'Gucci,Balenciaga'; verilmeyen marka GÖRÜNÜR olur; 'clear' = hepsini geri aç; ilan kaydına DOKUNMAZ, panelin Hidden brands kartıyla aynı yazıcı; varsayılan kuru koşu, move_apply=true ile yazar). Boş = sadece listeler. 'sample_link' = ALICIYA tek seferlik NUMUNE ODEME LINKI (issue_ref=alici hesap ID, payload='product=<ilan id>|price=<EUR>|lang=<xx>'; adres Stripe sayfasinda girilir, odeme platform hesabina, link odenene kadar gecerli; varsayilan kuru kosu, move_apply=true kaydi yazar ve MEKTUBU GONDERIR)."
         required: false
         default: ""
       issue_currency:
@@ -3054,10 +3054,27 @@ jobs:
                DORT kez elle atlandi; CLAUDE.md dogru cozumun tam olarak bu
                oldugunu zaten yaziyordu.
 
-               GIRDI: `issue_ref` lead id'si YA DA alan adi. Musterinin e-posta
-               ADRESI girdiye YAZILMAZ -- kosu basligi kalici ve herkese acik
-               (diag-live/leads_status'ta bir kez duzeltilen hatanin aynisi);
-               alan adi dukkânin zaten acik web sitesi. Cikti da maskeli.
+               GIRDI: `issue_ref` lead id'si, e-postanin ALAN ADI ya da SITENIN
+               alan adi. Musterinin e-posta ADRESI girdiye YAZILMAZ -- kosu basligi
+               kalici ve herkese acik (diag-live/leads_status'ta bir kez duzeltilen
+               hatanin aynisi); alan adi dukkânin zaten acik web sitesi. Cikti da
+               maskeli.
+
+               SITE ALAN ADI (27 Eyl 2026): serbest posta saglayicili bir dukkânin
+               (gmail, bluewin, free.fr...) e-posta alan adi firma kimligi degil,
+               yani o lead yalniz id'siyle bulunabiliyordu -- id ise ancak bir kuru
+               kosudan okunabiliyor. add-and-send linkten ekledigi lead'e o linki
+               `website` olarak yaziyor; artik onunla da eslesiyor.
+
+               TOPLU KIP (27 Eyl 2026): issue_ref=batch, payload='alanadi=Yeni Ad|
+               alanadi=Yeni Ad|...'. Ayakkabi partisinde 13 lead'in adi sayfa
+               basligi olarak kaydedilmisti ("Schuhgeschaft", "Scarpe per uomo e
+               per donna"); tek tek duzeltmek 13 SSH baglantisi demekti ve bu
+               barindirici ardisik baglantilari kesiyor. HEPSI YA DA HICBIRI: bir
+               ref tutmazsa (0 ya da 1'den fazla eslesme, ya da iki ref ayni lead'e
+               dusuyorsa) HICBIR ad yazilmaz -- yarim uygulanmis bir parti hangi
+               adin dogru oldugunu okunamaz yapar (set-product.yml'in expect
+               kuralinin aynisi).
 
                TAM 1 eslesme yoksa is DURUR: sifirda yanlis bir sey yazilmaz,
                birden fazlada YANLIS dukkânin adi degisirdi. */
@@ -3070,12 +3087,36 @@ jobs:
                dosyanin require'ina yaslanma). */
             require $home."/public_html/inc/products.php";
             require $home."/public_html/inc/leads.php";
-            $sel  = strtolower(trim((string)getenv("LR_SEL")));
-            $name = trim((string)getenv("LR_NAME"));
-            $go   = strtolower(trim((string)getenv("LR_GO"))) === 'true';
-            if ($sel === '')  { fwrite(STDERR, "HATA: issue_ref bos -- lead id'si ya da alan adi verin\n"); exit(1); }
-            if ($name === '') { fwrite(STDERR, "HATA: payload bos -- yeni firma adi verin\n"); exit(1); }
-            $name = mb_substr($name, 0, 120);
+            /* notify.php: vestra_domain_of() -- add-and-send'in lead'e yazdigi site
+               linkinden alan adini cikaran AYNI fonksiyon; ikinci bir kopya
+               yazilmadi. */
+            require_once $home."/public_html/inc/notify.php";
+            $sel = trim((string)getenv("LR_SEL"));
+            $raw = trim((string)getenv("LR_NAME"));
+            $go  = strtolower(trim((string)getenv("LR_GO"))) === 'true';
+            if ($sel === '') { fwrite(STDERR, "HATA: issue_ref bos -- lead id'si, alan adi ya da 'batch' verin\n"); exit(1); }
+            if ($raw === '') { fwrite(STDERR, "HATA: payload bos -- yeni firma adi verin\n"); exit(1); }
+
+            /* Ref: id / alan adi; link verilirse alan adina indirgenir, www. atilir. */
+            $norm = function (string $r): string {
+              $r = strtolower(trim($r));
+              if (preg_match('#^https?://#', $r) || strpos($r, '/') !== false) $r = (string)vestra_domain_of($r);
+              return (string)preg_replace('/^www\./', '', $r);
+            };
+            $pairs = [];
+            if (strtolower($sel) === 'batch') {
+              foreach (explode('|', $raw) as $seg) {
+                $seg = trim($seg); if ($seg === '') continue;
+                $eq = strpos($seg, '=');
+                if ($eq === false) { fwrite(STDERR, "HATA: '=' yok (beklenen 'alanadi=Yeni Ad'): {$seg}\n"); exit(1); }
+                $r = $norm(substr($seg, 0, $eq)); $n = trim(substr($seg, $eq + 1));
+                if ($r === '' || $n === '') { fwrite(STDERR, "HATA: bos ref ya da bos ad: {$seg}\n"); exit(1); }
+                $pairs[] = [$r, mb_substr($n, 0, 120)];
+              }
+              if (!$pairs) { fwrite(STDERR, "HATA: toplu kipte hic 'alanadi=Yeni Ad' cifti yok\n"); exit(1); }
+            } else {
+              $pairs[] = [$norm($sel), mb_substr($raw, 0, 120)];
+            }
 
             $mask = function (string $e): string {
               $at = strpos($e, '@'); if ($at === false || $at < 1) return '***';
@@ -3083,57 +3124,90 @@ jobs:
             };
 
             $leads = vestra_leads();
-            $hits = [];
-            foreach ($leads as $i => $l) {
-              $id = strtolower((string)($l['id'] ?? ''));
-              $em = strtolower((string)($l['email'] ?? ''));
-              $dom = ($p = strrpos($em, '@')) !== false ? substr($em, $p + 1) : '';
-              /* id TAM esitlik, alan adi TAM esitlik -- alt dize degil.
-                 Bu depoda gevsek eslesme mango/zara dersini bir kez verdi. */
-              if ($id === $sel || ($dom !== '' && $dom === $sel)) $hits[] = $i;
-            }
-            if (count($hits) !== 1) {
-              fwrite(STDERR, "HATA: TAM 1 eslesme gerekiyor, bulunan: " . count($hits) . "\n");
-              foreach (array_slice($hits, 0, 10) as $i) {
-                fwrite(STDERR, sprintf("  aday: %s | %s | %s\n",
-                  (string)($leads[$i]['id'] ?? '?'),
-                  (string)($leads[$i]['company'] ?? '?'),
-                  $mask((string)($leads[$i]['email'] ?? ''))));
+            $plan = []; $errs = []; $seen = [];
+            foreach ($pairs as [$ref, $name]) {
+              $hits = [];
+              foreach ($leads as $i => $l) {
+                $id  = strtolower((string)($l['id'] ?? ''));
+                $em  = strtolower((string)($l['email'] ?? ''));
+                $dom = ($p = strrpos($em, '@')) !== false ? substr($em, $p + 1) : '';
+                $web = strtolower((string)vestra_domain_of((string)($l['website'] ?? '')));
+                /* id, e-posta alan adi, site alan adi: uclu de TAM esitlik, alt dize
+                   degil. Bu depoda gevsek eslesme mango/zara dersini bir kez verdi.
+                   Serbest posta saglayicisinin alan adi (gmail.com) yuzlerce lead'e
+                   uyar ve TAM 1 kurali onu durdurur -- guvenli yon. */
+                if ($id === $ref || ($dom !== '' && $dom === $ref) || ($web !== '' && $web === $ref)) $hits[] = $i;
               }
+              if (count($hits) !== 1) {
+                $errs[] = sprintf("%s: TAM 1 eslesme gerekiyor, bulunan: %d", $ref, count($hits));
+                foreach (array_slice($hits, 0, 5) as $i) {
+                  $errs[] = sprintf("    aday: %s | %s | %s", (string)($leads[$i]['id'] ?? '?'),
+                    (string)($leads[$i]['company'] ?? '?'), $mask((string)($leads[$i]['email'] ?? '')));
+                }
+                continue;
+              }
+              $i = $hits[0];
+              if (isset($seen[$i])) { $errs[] = "{$ref}: ayni lead'e ikinci ref ({$seen[$i]} ile ayni kayit)"; continue; }
+              $seen[$i] = $ref;
+              $plan[] = [$i, $ref, $name];
+            }
+
+            foreach ($plan as [$i, $ref, $name]) {
+              $l = $leads[$i];
+              $same = (string)($l['company'] ?? '') === $name;
+              printf("-- %s\n", $ref);
+              printf("   lead     : %s\n", (string)($l['id'] ?? '?'));
+              printf("   adres    : %s\n", $mask((string)($l['email'] ?? '')));
+              printf("   ESKI ad  : %s\n", ((string)($l['company'] ?? '') ?: '(bos)'));
+              printf("   YENI ad  : %s%s\n", $name, $same ? '   (ZATEN BU AD)' : '');
+              printf("   durum    : %s | ilk mektup: %s | ikinci mektup: %s\n",
+                (string)($l['status'] ?? '?'),
+                ((string)($l['last_contacted_at'] ?? '') ?: '(yok)'),
+                ((string)($l['last_newcollection_at'] ?? '') ?: '(yok)'));
+            }
+            if ($errs) {
+              fwrite(STDERR, "HATA -- HICBIR ad yazilmadi (hepsi ya da hicbiri):\n  " . implode("\n  ", $errs) . "\n");
               exit(1);
             }
-            $i = $hits[0]; $l = $leads[$i];
-            printf("lead     : %s\n", (string)($l['id'] ?? '?'));
-            printf("adres    : %s\n", $mask((string)($l['email'] ?? '')));
-            printf("ESKI ad  : %s\n", (string)($l['company'] ?? '(bos)'));
-            printf("YENI ad  : %s\n", $name);
-            printf("durum    : %s | ilk mektup: %s | ikinci mektup: %s\n",
-              (string)($l['status'] ?? '?'),
-              ((string)($l['last_contacted_at'] ?? '') ?: '(yok)'),
-              ((string)($l['last_newcollection_at'] ?? '') ?: '(yok)'));
-            printf("kip      : %s\n\n", $go ? "UYGULA" : "KURU KOSU (hicbir sey yazilmaz)");
-            if ((string)($l['company'] ?? '') === $name) { echo "ZATEN BU AD -- yapilacak bir sey yok.\n"; exit(0); }
+            $todo = array_values(array_filter($plan, fn($p) => (string)($leads[$p[0]]['company'] ?? '') !== $p[2]));
+            printf("\nkip      : %s | cift: %d | degisecek: %d\n",
+              $go ? "UYGULA" : "KURU KOSU (hicbir sey yazilmaz)", count($plan), count($todo));
+            if (!$todo) { echo "ZATEN BU AD -- yapilacak bir sey yok.\n"; exit(0); }
             if (!$go) { echo "Uygulamak icin move_apply=true.\n"; exit(0); }
 
-            $stamp1 = (string)($l['last_contacted_at'] ?? '');
-            $stamp2 = (string)($l['last_newcollection_at'] ?? '');
-            $leads[$i]['company'] = $name;
+            $before = $leads;
+            foreach ($todo as [$i, $ref, $name]) $leads[$i]['company'] = $name;
             vestra_save_leads($leads);
 
             /* Geri okuma: vestra_save_leads() void donuyor, "kaydettim" demek
                olcum degil (KURAL 5c'nin billing_saved dersi). Damgalarin
                yerinde durdugu da ayrica dogrulanir -- bu yazmanin var olma
-               sebebi zaten damgalari kaybetmeden ad duzeltmek. */
-            $back = null;
-            foreach (vestra_leads() as $l2) if ((string)($l2['id'] ?? '') === (string)($l['id'] ?? '')) { $back = $l2; break; }
-            if (!$back) { fwrite(STDERR, "HATA: kayit geri okunamadi\n"); exit(1); }
-            $okName = (string)($back['company'] ?? '') === $name;
-            $okS1 = (string)($back['last_contacted_at'] ?? '') === $stamp1;
-            $okS2 = (string)($back['last_newcollection_at'] ?? '') === $stamp2;
-            printf("geri okuma: ad=%s | ilk mektup damgasi=%s | ikinci mektup damgasi=%s\n",
-              (string)($back['company'] ?? '?'), $okS1 ? 'KORUNDU' : '*** DEGISTI ***', $okS2 ? 'KORUNDU' : '*** DEGISTI ***');
-            if (!$okName || !$okS1 || !$okS2) { fwrite(STDERR, "HATA: yazma tutmadi\n"); exit(1); }
-            echo "YAZILDI.\n";
+               sebebi zaten damgalari kaybetmeden ad duzeltmek. IKI YON: hedef
+               DISINDAKI hicbir lead degismemeli (tek yon olculseydi butun listeyi
+               ezen bir yazma da yesil kalirdi). Karsilastirma konumsal: yazici
+               sirayi koruyor (array_values). */
+            $after = vestra_leads();
+            $fail = 0; $tgt = [];
+            foreach ($todo as [$i, $ref, $name]) {
+              $tgt[$i] = true;
+              $o = $before[$i]; $b = $after[$i] ?? [];
+              $okName = (string)($b['company'] ?? '') === $name;
+              $okS1 = (string)($b['last_contacted_at'] ?? '') === (string)($o['last_contacted_at'] ?? '');
+              $okS2 = (string)($b['last_newcollection_at'] ?? '') === (string)($o['last_newcollection_at'] ?? '');
+              $okId = (string)($b['id'] ?? '') === (string)($o['id'] ?? '')
+                   && (string)($b['email'] ?? '') === (string)($o['email'] ?? '')
+                   && (string)($b['status'] ?? '') === (string)($o['status'] ?? '');
+              printf("geri okuma: %s -> ad=%s | ilk mektup damgasi=%s | ikinci mektup damgasi=%s%s\n",
+                $ref, (string)($b['company'] ?? '?'), $okS1 ? 'KORUNDU' : '*** DEGISTI ***',
+                $okS2 ? 'KORUNDU' : '*** DEGISTI ***', $okId ? '' : ' | *** KAYIT KIMLIGI DEGISTI ***');
+              if (!$okName || !$okS1 || !$okS2 || !$okId) $fail++;
+            }
+            $others = 0;
+            foreach ($before as $k => $o) { if (isset($tgt[$k])) continue; if (!isset($after[$k]) || $after[$k] != $o) $others++; }
+            printf("hedef disi lead: %d kayit, degisen: %d | toplam: %d -> %d\n",
+              count($before) - count($tgt), $others, count($before), count($after));
+            if ($fail || $others || count($after) !== count($before)) { fwrite(STDERR, "HATA: yazma tutmadi\n"); exit(1); }
+            echo "YAZILDI (" . count($todo) . " ad).\n";
             PHPEOF
             php -l /tmp/vestra_lead_rename.php
             # display_errors=stderr ACIKCA veriliyor: ilk canli kosu 255 ile
