@@ -9751,3 +9751,45 @@ Hedef ve "gönder" aynı mesajda → KURAL 18'in dar istisnası; yine de her par
   (bilinen son id'den büyük). Aynı turda yeni testin fikstür adresi
   (`…test@wanadoo.fr`) çöp-adres kalıbına takıldı ve iddia **boşa geçti** —
   "gönderim denemesine ulaştı" iddiası olmasa fark edilmeyecekti.
+
+**KURAL 38 (devamı) — DÖRT ÜLKE DAHA: Danimarka, Finlandiya, Çekya, Macaristan
+(8 mektup, 0 hata); Norveç ARAŞTIRILDI ve bilerek ATLANDI** (operatör, 27 Eyl
+2026: *"kac dükkana gönderdin ? daha fazla bul ve gönder ayakkabi ve textil"*).
+
+- **Norveç iki aday ile başladı, ikisi de daha yakından bakılınca ZİNCİR
+  çıktı.** A. Amundsen Skotøyforretning 5 şubeli bir grup ve şubelerinden biri
+  **Eurosko** zincir franchise'ı taşıyor; Grændsens Skotøimagazin Oslo'da
+  8 şubeli bir zincir. İkisi de KURAL 1 ile elendi; ülke için başka aday
+  bulunamadığı için **Norveç bu turda tamamen atlandı** — yanlış bir aday
+  gönderip sayıyı tutturmak yerine ülkeyi boş bırakmak tercih edildi.
+- **Danimarka — 3 gönderildi, 0 hata, 0 ölü alan adı:** Hr. Sko (hrsko.dk),
+  Ellingsko (ellingsko.dk), Skowolter (skowolter.dk). **Schou Bertelsen Sko**
+  araştırılıp **elendi**: işletme kapanış/tasfiye sürecinde — kapanan bir
+  dükkâna toptan teklifinin hiçbir karşılığı yok.
+- **Finlandiya — 0 YENİ, dürüstçe raporlandı.** Kenkärepo (kenkarepo.fi) ve
+  Kenkä Lehtonen (kenkalehtonen.fi) **zaten daha önce** iletişime geçilmişti
+  (`last_contacted_at` dolu), ikisi de `ATLANDI (zaten gonderilmis)` döndü.
+  Tunnelin Kenkä (kenkacity.fi) ve KenkäForum (kenkaforum.fi) sitesinde
+  **yayınlanmış e-posta bulunamadı** — tarayıcının sabit sayfa listesi Fince
+  `/yhteystiedot` yolunu içermiyor. **İkisine de adres UYDURULMADI**; "0
+  gönderim" burada bir başarısızlık değil, KURAL 1f'nin uygulanmasının
+  sonucu.
+- **Çekya — 3 gönderildi, 0 hata; mektup akıcı Çekçe (dil=cs) çıktı:**
+  Nadměrná obuv Zavadilovi s.r.o. (nadmerna-obuv.cz), Little Shoes
+  (littleshoes.cz), pohodlneboty.cz. **Vasky** araştırılıp **elendi**: kendi
+  markasını üreten bir imalatçı (own-brand), kanalda müşteri değil rakip.
+- **Macaristan — 2 gönderildi, 0 hata** (dil tablosunda `hu` için özel girdi
+  yok, doğru şekilde İngilizceye düştü): olaszcipok.hu (info@olaszcipok.hu),
+  Gyerekcipő (kiscipobolt@gmail.com, kiscipobolt.hu). **Alföldi** ve
+  **Sebastiano** own-brand imalatçı oldukları için elendi; çok şehirli bir
+  **Ara/Gabor vb. bayi zinciri** de KURAL 1 ile ayrıca elendi.
+- **Hiçbir adres uydurulmadı, hiçbir kural gevşetilmedi.** Dört ülkenin
+  ikisinde (Danimarka, Çekya) istenen tam sayı, birinde (Macaristan) 2,
+  Finlandiya'da 0 çıktı — rakamlar operatöre olduğu gibi bildirildi, "0"
+  gizlenmedi ya da zorlanmadı.
+- **Bu turun toplamı: 8 mektup, 0 hata.** KURAL 38'in ilk 58'lik partisiyle
+  birlikte **kümülatif footwear/apparel ilk-temas mektubu: 66, hata hâlâ 0.**
+  Kota bu turda darboğaz olmadı (gün içindeki son ölçüm: 189 kalan, 60
+  işlemsel pay ayrılmış — günlük kota şifre sıfırlama/sipariş bildirimiyle
+  paylaşılıyor, o yüzden kalan sayı bu partinin dışındaki trafikle de
+  değişiyor).
