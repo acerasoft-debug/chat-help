@@ -9036,6 +9036,12 @@ siparisi gir"*).
   *"fatura Fransa'dan"* ile aynı. (Satıcı konuşmada *"VESTRA faturanızı
   hazırlayıp gönderecek"* dedi — bu, platformun **süreci** yürüteceği
   anlamında; kesen tüzel kişi GARAGE LE PARIS.)
+- **Navlun €16 yazıldı** (operatör, aynı gün: *"16 eur shipping koy"*):
+  `seller-products.yml` → `admin_mode=shipping`, `issue_shipping=16`
+  (run `36338068258`). Kesilmiş fatura **yok**, yani `allow_invoiced`
+  gerekmedi ve yeniden çizilecek bir belge yok. Mal €699,00 + navlun €16,00
+  = **€715,00**, `vestra_order_set_shipping()` tarafından geri okundu;
+  indirim 0 (dokunulmadı). Numara yanmadı, müşteriye hiçbir şey gitmedi.
 - **Yan düzeltme — `diag-live` satıcı e-postalarını AÇIK basıyordu.**
   "hesaplarda dolu banka alanları" bölümü her `diag-live` koşusunda çalışıyor
   ve `company <e-posta>` satırını **maskesiz** yazıyordu (Güvenlik bölümünün
