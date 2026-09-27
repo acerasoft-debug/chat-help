@@ -184,12 +184,10 @@ function escrow_fulfill(array $rec): void {
     // Push pings: buyer "payment secured", seller "paid order — ship now".
     require_once __DIR__.'/push.php';
     if (!empty($rec['buyer_id'])) {
-        vestra_push_send($rec['buyer_id'], 'VESTRA — payment secured 🛡️',
-            'Order '.$ref.' is protected in escrow. We\'ll notify you when it ships.', '/buyer?tab=orders');
+        vestra_push_notify((string)$rec['buyer_id'], 'escrow_secured', ['ref' => $ref]);
     }
     if ($seller) {
-        vestra_push_send($seller['id'], 'VESTRA — paid order! Ship now',
-            'Order '.$ref.' is paid and held in escrow. Please ship the goods.', '/seller?tab=orders');
+        vestra_push_notify($seller, 'escrow_paid', ['ref' => $ref]);
     }
 
     // Messaging order card (buyer ↔ seller) — the trade lives in one thread.
@@ -234,8 +232,10 @@ function escrow_do_release(string $ref): array {
         $paid = number_format(((int)($p->amount ?? 0))/100, 2);
         if (!empty($rec['seller_uid'])) {
             require_once __DIR__.'/push.php';
-            vestra_push_send($rec['seller_uid'], 'VESTRA — funds released 🎉',
-                'Order '.$ref.' — €'.$paid.' is on its way to your bank.', '/seller?tab=orders');
+            /* Tutar ve para birimi Stripe'in GERCEKTEN aktardigindan: escrow USD de
+               tutabiliyor, eski metin her tutari "€" diye yaziyordu. */
+            vestra_push_notify((string)$rec['seller_uid'], 'funds_released',
+                ['ref' => $ref, 'amount' => ((int)($p->amount ?? 0)) / 100, 'currency' => $cur]);
         }
         return ['ok'=>true, 'msg'=>'Released €'.$paid.' to the seller.'];
     } catch (\Throwable $e) {
@@ -425,8 +425,8 @@ function escrow_do_refund(string $ref): array {
         $back = number_format(((int)($r->amount ?? 0))/100, 2);
         if (!empty($rec['buyer_id'])) {
             require_once __DIR__.'/push.php';
-            vestra_push_send($rec['buyer_id'], 'VESTRA — refund issued ↩',
-                'Order '.$ref.' — €'.$back.' is being returned to your card in full.', '/buyer?tab=orders');
+            vestra_push_notify((string)$rec['buyer_id'], 'refund_issued',
+                ['ref' => $ref, 'amount' => ((int)($r->amount ?? 0)) / 100, 'currency' => (string)($r->currency ?? ($rec['currency'] ?? 'eur'))]);
         }
         return ['ok'=>true, 'msg'=>'Refunded €'.$back.' to the buyer.'];
     } catch (\Throwable $e) {

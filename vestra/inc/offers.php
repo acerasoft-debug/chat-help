@@ -267,12 +267,9 @@ function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $a
             'product' => $prodName,
         ], (string)($actor['id'] ?? ''));
         require_once __DIR__.'/push.php';
-        $pushTxt = match ($action) {
-            'accept'  => ['VESTRA — offer accepted ✓', $prodName.' — your offer was accepted.'],
-            'counter' => ['VESTRA — counter offer ↩', $prodName.' — seller counters at €'.number_format($ctr, 2).'/unit.'],
-            default   => ['VESTRA — offer declined', $prodName.' — the seller declined this offer.'],
-        };
-        vestra_push_send($buyerAcc['id'], $pushTxt[0], $pushTxt[1], '/buyer?tab=offers');
+        vestra_push_notify($buyerAcc, match ($action) {
+            'accept' => 'offer_accepted', 'counter' => 'offer_countered', default => 'offer_declined',
+        }, ['product' => $prodName, 'ref' => $ref] + ($action === 'counter' ? ['price' => (float)$ctr] : []));
     }
 
     require_once __DIR__.'/notify.php';
@@ -1349,8 +1346,7 @@ function vestra_offer_accept_counter(string $ref, string $token, ?string $onBeha
             'counter_price' => $unit, 'product' => $prodName,
         ], (string)$buyerAcc['id']);
         require_once __DIR__.'/push.php';
-        vestra_push_send($buyerAcc['id'], 'VESTRA — counter offer accepted ✓',
-            $prodName.' — agreed at €'.number_format($unit, 2).'/unit.', '/buyer?tab=offers');
+        vestra_push_notify($buyerAcc, 'price_agreed', ['product' => $prodName, 'price' => (float)$unit, 'ref' => $ref]);
     }
 
     if (!empty($offerRow['email']) && filter_var($offerRow['email'], FILTER_VALIDATE_EMAIL)) {

@@ -59,6 +59,9 @@ function vestra_offer_issue_invoice(string $r, bool $pdf) { return ['no'=>'']; }
 function vestra_notify(string $s, string $b): void { $GLOBALS['__notified'][] = $s."\n".$b; }
 function vestra_msg_post_system(...$a): void {}
 function vestra_push_send(...$a): void {}
+/* Bildirimler 27 Eyl 2026'dan beri vestra_push_notify() ile (inc/push_texts.php);
+   bu dosya pazarlik akisini olcuyor, bildirim metnini degil -- stub. */
+function vestra_push_notify(...$x){ return ['devices'=>0,'ok'=>0,'failed'=>0,'pruned'=>0]; }
 function vestra_user_lang($a): string { return 'en'; }
 function vestra_tpl_offer_counter_accepted(...$a): array { return ['s','b',[]]; }
 function vestra_send_mail(...$a): bool { return true; }

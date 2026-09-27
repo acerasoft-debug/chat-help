@@ -9875,3 +9875,145 @@ Hedef ve "gönder" aynı mesajda → KURAL 18'in dar istisnası; yine de her par
   işlemsel pay ayrılmış — günlük kota şifre sıfırlama/sipariş bildirimiyle
   paylaşılıyor, o yüzden kalan sayı bu partinin dışındaki trafikle de
   değişiyor).
+
+## Uygulama (PWA) ve bildirimler
+
+**KURAL 39 — BİLDİRİM PUSH'UN İÇİNDE, ALICININ DİLİNDE ve CİHAZ BAŞINA
+ŞİFRELİ gelir; ayarı panelde durur** (operatör, 27 Eyl 2026: *"sitenin APP
+ini daha profesyonel ve eksiksiz hale getirirmisin özellikle bildirimleri...ve
+eksiklikleri düzelt"*).
+
+**Önce ÖLÇÜLDÜ — eski sistemin (v2) kusurları, hepsi koddan okundu:**
+- **Push YÜKSÜZDÜ.** Servis işçisi uyanıp `/push?a=pending`'i oturum
+  çereziyle soruyordu; kuyruk HESAP başınaydı ve okuma hepsini alıp
+  siliyordu. İki cihazlı bir hesapta ilk uyanan bildirimi alıyor, ikincisi
+  *"You have news on VESTRA."* gösteriyordu. 1 saatten eski bekleyen
+  atılıyordu, oturumu düşmüş cihaz da aynı İngilizce satırı görüyordu.
+- **23 çağrı yerinin hepsi İngilizce ve elle yazılmıştı** (*"VESTRA — new
+  order 📦"*); alıcının dili hiç okunmuyordu. Mesaj bildirimi her seferinde
+  *"VESTRA — new message"* başlığı taşıyor ve mesaj listesinin başına
+  götürüyordu — kilit ekranında kimden geldiği okunmuyordu.
+- **SSRF:** abonelik yalnız `https://` önekine bakıyordu, yani girişli bir
+  hesap sunucuya istediği adrese (iç adres dahil) POST attırabiliyordu.
+- **Kayıt kilitsizdi** (yalnız yazma `LOCK_EX`): eşzamanlı iki abonelik
+  birini kaybediyordu. **Aynı cihaz birden fazla hesapta** durabiliyordu ve
+  **çıkış cihazı ayırmıyordu** — ortak bir cihazda önceki kullanıcının
+  bildirimleri gelmeye devam ediyordu.
+- `pushsubscriptionchange` yoktu → tarayıcı aboneliği yenileyince cihaz
+  kalıcı olarak susuyordu. Tıklamada kontrolsüz pencerede `navigate()`
+  fırlatıyordu → dokunuş yalnız eski sayfayı öne getiriyordu.
+- **Açma düğmesi YALNIZ ana sayfadaydı**; durumu görme, kapatma ya da deneme
+  yeri yoktu. Misafire önce izin soruluyor, sonra "giriş yapın" deniyordu —
+  kimseye ait olmayan bir izin ve abonelik kalıyordu. iPhone Safari
+  sekmesinde "desteklenmiyor" deniyordu; oysa orada push ancak Ana Ekran'a
+  eklenince VAR.
+- Tek renkli rozet simgesi yoktu, çevrimdışı sayfa yalnız İngilizceydi,
+  kısayollar `/buyer|/seller`'a sabitti (satıcı "Siparişlerim"e basınca alıcı
+  paneline düşüyordu). **Yan bulgu:** giriş sayfasının `back` kontrolü
+  `str_starts_with('/')` idi → `//baska-site.com` **açık yönlendirme**.
+
+**Yapılan:**
+- **RFC 8291 şifreli yük** (`vestra_push_encrypt`, aes128gcm): ECDH P-256
+  (`openssl_pkey_derive`) + HKDF + AES-128-GCM, bağımlılıksız. **RFC 8291
+  Ek A test vektörüyle BAYT BAYT** doğrulandı, ayrıca bağımsız bir
+  uygulamaya (Mozilla `http_ece`) karşı **25/25** rastgele gidiş-dönüş
+  çözüldü. Şifrelenemeyen hâlde (anahtarsız eski kayıt, 3.993 baytı aşan yük)
+  bildirim **cihaz kuyruğuna** düşer; servis işçisi onu cihazın KENDİ `auth`
+  sırrıyla alır — oturum çerezi gerekmiyor, iki cihaz aynı kuyruğu yarışmıyor.
+- **Katalog `inc/push_texts.php`:** 23 olay × 9 dil, **ALICININ hesap
+  dilinde** (`vestra_push_notify` → `vestra_push_lang`). İsteğin `vlang()`'ı
+  bilerek kullanılmıyor: Alman satıcıyı onaylayan admin İngilizce push
+  göndermemeli. Para ve tarih yerel biçimde (de `1.234,50 €`, fr NNBSP,
+  ja `2026年10月1日`, ru tamlama hâli). Olay başına derin bağlantı ve
+  **etiket**: aynı sipariş/konuşma üst üste yığılmıyor, yerine geçip yeniden
+  çalıyor. Eksik olgu nötr gövdeye düşüyor, ham `{yer tutucu}` asla basılmıyor.
+  Arapça RTL.
+- **KURAL 8 push'ta da:** alıcı satıcıyı *"Verkäufer <ident>"* görüyor,
+  mağaza adını değil; Support kendi adıyla. Başlık GÖNDEREN, dokunuş **o
+  konuşmayı** açıyor, uygulama simgesi rozeti = okunmamış konuşma sayısı.
+  `order_delivered` artık "otomatik serbest bırakma" değil **talep son
+  gününü** yazıyor (`vestra_claim_deadline`, KURAL 11); `funds_released` ve
+  `refund_issued` gerçek tutar ve birimle.
+- **Cihaz kaydı:** `flock` altında oku-değiştir-yaz (ağ çağrısı kilidin
+  DIŞINDA). Ana makine izin listesinde: `.googleapis.com`, `.mozilla.com`,
+  `.push.apple.com`, `.notify.windows.com`; ek host için
+  `VESTRA_PUSH_EXTRA_HOSTS` (inc/config.php). Cihaz TEK hesaba ait.
+  - Çıkış cihazı ayırıp **park** ediyor: aynı kişi dönünce kendiliğinden
+    bağlanıyor, başka hesap hiçbir şey devralmıyor.
+  - Başkasının bağını koparmak cihazın `auth` sırrını istiyor, yani sızmış bir
+    uç nokta URL'si kimseyi ayıramaz.
+  - 404/410 geleni budanıyor; `last_ok` / `last_code` / `fails` tutuluyor.
+  - **Eskiden kaydedilmiş ama izin dışı bir host SİLİNMİYOR**: -3 ile
+    atlanıyor, günlüğe ve panele yazılıyor. Sessiz kayıp yok.
+- **Servis işçisi v3:** sıra yük → cihaz kuyruğu → cihaz dilinde genel satır.
+  - Bağlantı yalnız aynı kökenli yol olabilir.
+  - Tıklama üç kademeli: tam eşleşen pencere → açık pencereyi yönlendir →
+    yeni pencere.
+  - `pushsubscriptionchange` → `/push?a=renew` (sahiplik eski aboneliğin
+    sırrıyla kanıtlanıyor).
+  - Navigation preload, tek renkli rozet (`icon-badge-96.png`), çevrimdışı
+    sayfa 9 dilde.
+- **Tek istemci `inc/app.js`**; `foot.php` ve `index.php`'deki iki ayrışmış
+  kopyanın yerine geçti. **Panelde Bildirimler kartı** (Profil, `#notifications`):
+  - Durum, Aç / Kapat / **Test gönder** (yalnız bu cihaza, 20 sn'de bir) ve
+    yükleme düğmesi.
+  - Özet sekmesinde **tek satırlık teşvik**: yalnız hiç sorulmamış cihazda
+    çıkıyor ve kapatılabilir; "hayır"dan sonra görünen teşvik ısrardır.
+  - Misafire izin **sorulmuyor**; iPhone sekmesinin kendi durumu ve talimatı var.
+- `/me?tab=` yönlendiricisi: kısayollar role bakmadan doğru panele gidiyor.
+  Açık yönlendirme kapatıldı. Oturumu düşen kullanıcı girişten sonra
+  bildirimdeki derin bağlantıya dönüyor.
+- **Panel Bildirim Merkezi:** kayıtlı / son teslimde başarılı / hata veren
+  sayıları ve 📱 Cihazlar tablosu (hesap, "Android · Chrome", host, son
+  teslim, durum). **Uç nokta basılmıyor.** Yayın, kabul ve ret sayısını yazıyor.
+- **Canlı sonda:** `seller-products.yml` → `admin_mode=push_probe`, SALT
+  OKUNUR. Kodun inip inmediğini, host'un izinli olup olmadığını, anahtar
+  VAR/YOK'u, birden fazla hesapta duran cihazı ve son teslimi basar. Uç
+  nokta, hesap ve anahtar basmaz; tohumlu kayıtla yerelde sızıntı **0**.
+
+**Ölçüm:** `tests/push_app_test.php` **150 iddia** + `tests/sw_check.js` **22**
+(gerçek `sw.js` Node VM'de olay gönderilerek koşuyor). Kapsam: kripto (RFC
+vektörü), SSRF listesi, kayıt, teslim ve yarış, 9 dilde katalog, kum havuzunda
+`php -S` üzerinden uçtan uca HTTP, gerçek `vestra_msg_send` push'u, kablolama.
+Düşebildiği doğrulandı — her sabotaj uygulandığı sayılarak, `cp` yedeğinden geri
+alınarak:
+
+| Sabotaj | Kırmızı |
+|---|---:|
+| çıkış cihazı ayırmıyor | 2 |
+| her https uç noktası kabul | 14 |
+| sync sırsız ayırıyor | 2 |
+| kilitsiz kayıt (kayıp güncelleme) | 1 |
+| SW `renotify` yok | 1 |
+| giriş açık yönlendirmesi | 2 |
+| alıcıya mağaza adı | 2 |
+| Almanca sipariş metni eski hâline | 1 |
+| istemci yüklenmiyor | 3 |
+| yanlış HKDF bilgisi | 14 |
+| şifreleme yok | 15 |
+| mesaj derin bağlantısız | 2 |
+| durum rozeti yine `nowrap` | 1 |
+
+**ÇİZDİRİLDİ, kaynak okunmadı** (kum havuzu, 9 dil, iki genişlik): kapalı → Aç
+→ açık (+ ipucu) → Test → yeniden yükle (açık kalıyor) → Kapat; engelli;
+iPhone (fr/de/ru/ar); Arapça satıcı; misafir ana sayfa (**izin sorulmadı**).
+Yatay taşma **0**. Çizim **gerçek bir kusur** buldu: durum rozeti `nowrap` idi
+ve Fransızca iPhone durumu kartın **63px dışına** taşıyordu; mobilde simge de
+kendi satırında yalnız kalıyordu. İkisi düzeltildi, iddia eklendi.
+
+**Ölçüm tuzakları, ikisi de yaşandı:**
+1. `chromium_headless_shell-1194`, `grantPermissions`'a rağmen
+   `Notification.permission === 'denied'` döndürüyor. İlk çizimim bu yüzden
+   HER durumu "engelli" gösterdi ve bu bir kusur DEĞİLDİ. Açık/kapalı hâller
+   yalnız tam `chromium-1194/chrome` + `--headless=new` ile çiziliyor
+   (`ignoreDefaultArgs: ['--headless']`).
+2. İlk yarış sabotajım **yeşil kaldı**, çünkü anlık görüntüyü döngüden SONRA
+   alıyordum ve iddia sabotajı ölçmüyordu. Görüntü gönderimlerden ÖNCE
+   alınınca kırmızı döndü. *Hiç düşemeyen iddia, iddia değildir* — bir kez daha.
+
+**Geçiş (eski cihazlar):** kayıtlı cihazlar eski abonelikleriyle çalışmaya devam
+ediyor (anahtarları kayıtta var, şifreleme onlarla yapılıyor). Eski servis
+işçisi bir sonraki ziyarette v3'e güncelleniyor; o güne kadar eski hesap
+kuyruğu (`GET /push?a=pending`) da doluyor, yani v2 işçisi de doğru metni
+gösteriyor. **Önceden kırık 3 test** (dropship_plan 4, msg_read_receipt 1,
+msg_thread_label 10) temiz bir HEAD kopyasında da birebir aynı — dokunulmadı.

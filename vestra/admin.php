@@ -81,7 +81,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_listings($all);
     if($sellerUid){
       require_once __DIR__.'/inc/push.php';
-      vestra_push_send($sellerUid,'VESTRA — listing approved 🎉', ($pname?:'Your listing').' is now live in the catalog.','/seller?tab=listings');
+      vestra_push_notify($sellerUid,'listing_approved',['product'=>$pname?:'—','listing'=>$lid??'']);
       foreach(auth_accounts() as $sa){
         if(($sa['id']??'')!==$sellerUid || empty($sa['email'])) continue;
         [$lSubj,$lBody,$lOpts]=vestra_tpl_listing_approved(vestra_user_lang($sa),$sa['name']?:($sa['company']?:'there'),$pname?:'Your listing');
@@ -98,7 +98,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_listings($all);
     if($sellerUid){
       require_once __DIR__.'/inc/push.php';
-      vestra_push_send($sellerUid,'VESTRA — listing needs changes', ($pname?:'Your listing').($note?' — '.mb_substr($note,0,80):' was not approved. See your dashboard for details.'),'/seller?tab=listings');
+      vestra_push_notify($sellerUid,'listing_changes',['product'=>$pname?:'—','note'=>(string)$note,'listing'=>$lid??'']);
       foreach(auth_accounts() as $sa){
         if(($sa['id']??'')!==$sellerUid || empty($sa['email'])) continue;
         [$lSubj,$lBody,$lOpts]=vestra_tpl_listing_rejected(vestra_user_lang($sa),$sa['name']?:($sa['company']?:'there'),$pname?:'Your listing',$note);
@@ -984,7 +984,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     if($acc){
       $panel=(($acc['type']??'')==='seller')?'/seller':'/buyer';
       require_once __DIR__.'/inc/push.php';
-      vestra_push_send($uid,'VESTRA — account verified ✓','Your business is verified. Full wholesale access is unlocked.',$panel);
+      vestra_push_notify($acc,'account_verified',['panel'=>ltrim($panel,'/')]);
       if(!empty($acc['email'])){
         [$kSubj,$kBody,$kOpts]=vestra_tpl_kyb_approved(vestra_user_lang($acc),$acc['name']?:($acc['company']?:'there'),$acc['type']??'buyer','https://vestrasales.com'.$panel);
         vestra_send_mail($acc['email'],$kSubj,$kBody,'','',null,'',$kOpts);
@@ -1207,7 +1207,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
         $panel=(($acc['type']??'')==='seller')?'/seller':'/buyer';
         require_once __DIR__.'/inc/push.php';
         $label=$tier==='premium'?'Elite':ucfirst($tier);
-        vestra_push_send($uid,'VESTRA — plan updated ⭐','Your VESTRA membership is now '.$label.'.',$panel);
+        vestra_push_notify($acc,'plan_updated',['plan'=>$label]);
         if(!empty($acc['email'])){
           // Plan names (Starter/Pro/Elite) stay in English in every locale, same as any
           // branded product-tier name — only the surrounding copy is translated.
@@ -1501,8 +1501,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
           vestra_send_mail($sRow['email'],$subj,$body,'','',null,'',$opts);
           if($buyerAcc){
             require_once __DIR__.'/inc/push.php';
-            vestra_push_send($buyerAcc['id'], 'VESTRA — order shipped 🚚',
-              'Order '.$ref.($newTrk!=='' ? ' · Tracking: '.$newTrk : '').' is on its way.', '/buyer?tab=orders');
+            vestra_push_notify($buyerAcc, 'order_shipped', ['ref'=>$ref, 'tracking'=>$newTrk]);
           }
         }
       }
@@ -2199,9 +2198,12 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       };
       if($hit) $uids[]=$uid;
     }
-    $reached=vestra_push_broadcast($uids, mb_substr($title,0,80), mb_substr($body,0,160), $url);
-    vestra_push_log(['at'=>date('c'),'target'=>$target,'title'=>mb_substr($title,0,80),'reached'=>$reached]);
-    header('Location: /admin?tab=notify&msg=push_sent&n='.$reached); exit;
+    /* "Reached" artik push servisinin KABUL ettigi cihaz sayisi da: eskiden yalnizca
+       "cihazi olan hesap" sayiliyordu, yani hic teslim edilmeyen bir duyuru da
+       "12 kullaniciya ulasti" diye kayda geciyordu. */
+    $r=vestra_push_broadcast($uids, mb_substr($title,0,80), mb_substr($body,0,160), $url);
+    vestra_push_log(['at'=>date('c'),'target'=>$target,'title'=>mb_substr($title,0,80),'reached'=>$r['users'],'ok'=>$r['ok'],'failed'=>$r['failed']]);
+    header('Location: /admin?tab=notify&msg=push_sent&n='.$r['users']); exit;
   }
 }
 
@@ -6647,8 +6649,9 @@ elseif($tab==='notify'):
 
 <div class="asgrid" style="margin-bottom:18px">
   <div class="ascard"><div class="sv" style="color:#9a7320"><?= (int)$pstats['users'] ?></div><div class="sl">Subscribed users (<?= $subscribedPct ?>%)</div></div>
-  <div class="ascard"><div class="sv"><?= (int)$pstats['devices'] ?></div><div class="sl">Devices reachable</div></div>
-  <div class="ascard"><div class="sv" style="color:#3366cc"><?= count($plog) ?></div><div class="sl">Broadcasts sent</div></div>
+  <div class="ascard"><div class="sv"><?= (int)$pstats['devices'] ?></div><div class="sl">Devices registered</div></div>
+  <div class="ascard"><div class="sv" style="color:#1f9d63"><?= (int)$pstats['healthy'] ?></div><div class="sl">Delivered last time</div></div>
+  <div class="ascard"><div class="sv" style="color:<?= $pstats['failing'] ? '#c0392b' : 'var(--mut)' ?>"><?= (int)$pstats['failing'] ?></div><div class="sl">Failing devices</div></div>
 </div>
 
 <div class="acols2" style="align-items:start">
@@ -6677,7 +6680,7 @@ elseif($tab==='notify'):
         <div class="afield"><label>Message (max 160)</label><textarea name="body" maxlength="160" rows="3" required placeholder="Fresh stock just landed: 29 new D&amp;G styles from €50/pc. First come, first served."></textarea></div>
         <div class="afield"><label>Opens page (tap target)</label><input name="url" value="/shop" placeholder="/shop"><div class="ahint">Site path only, e.g. <code>/shop</code>, <code>/product?id=…</code>, <code>/groups</code>, <code>/requests</code></div></div>
         <button class="abtn primary" type="submit" style="justify-content:center;padding:10px">🔔 Send notification</button>
-        <div class="ahint">Only users who enabled notifications (bell button on the homepage / app) receive pushes. Delivery is instant.</div>
+        <div class="ahint">Only users who turned notifications on (panel: My profile → Notifications, or the homepage app box) receive pushes. Delivery is instant; the table below shows which devices accepted it.</div>
       </form>
     </div>
   </div>
@@ -6690,12 +6693,13 @@ elseif($tab==='notify'):
       <div class="atscroll"><table class="atable">
         <?= arow(['When','Audience','Title','Reached'],true) ?>
         <?php foreach(array_slice($plog,0,15) as $le):
-          $tl=['all'=>'🌍 Everyone','buyers'=>'🛍️ Buyers','sellers'=>'🏷️ Sellers','user'=>'👤 One user'][$le['target']??'all']??($le['target']??'?'); ?>
+          $tl=['all'=>'🌍 Everyone','buyers'=>'🛍️ Buyers','sellers'=>'🏷️ Sellers','user'=>'👤 One user'][$le['target']??'all']??($le['target']??'?');
+          $dv = isset($le['ok']) ? ' · '.(int)$le['ok'].' device(s) accepted'.(!empty($le['failed'])?', <b style="color:#c0392b">'.(int)$le['failed'].' failed</b>':'') : ''; ?>
         <?= arow([
           htmlspecialchars(substr($le['at']??'',0,16)),
           abadge($tl,'#3366cc'),
           '<b>'.htmlspecialchars($le['title']??'').'</b>',
-          '<span style="color:'.((int)($le['reached']??0)>0?'#1f9d63':'var(--mut)').'">'.(int)($le['reached']??0).' user(s)</span>',
+          '<span style="color:'.((int)($le['reached']??0)>0?'#1f9d63':'var(--mut)').'">'.(int)($le['reached']??0).' user(s)'.$dv.'</span>',
         ]) ?>
         <?php endforeach; ?>
       </table></div>
@@ -6704,11 +6708,47 @@ elseif($tab==='notify'):
   </div>
 </div>
 
+<?php
+  /* Cihaz listesi: hangi hesabin hangi cihazi, son teslim ne zaman, son yanit kodu.
+     Endpoint ve anahtar BASILMIYOR (endpoint o cihaza yazma yetkisi). */
+  $pdev = [];
+  foreach (vestra_push_subs() as $puid => $devs) foreach ((array)$devs as $ph => $d) $pdev[] = [$puid, $ph, (array)$d];
+  usort($pdev, fn($a, $b) => strcmp((string)($b[2]['last_at'] ?? $b[2]['added'] ?? ''), (string)($a[2]['last_at'] ?? $a[2]['added'] ?? '')));
+  $pAcct = [];
+  foreach ($accounts as $a) $pAcct[(string)($a['id'] ?? '')] = ($a['company'] ?? '') ?: (($a['name'] ?? '') ?: '?');
+?>
+<div class="acard" style="margin-top:18px">
+  <div class="acard-hd"><h3>📱 Devices</h3></div>
+  <div class="acard-body">
+    <?php if(!$pdev): ?><div class="aempty">No device has turned notifications on yet. Customers do it from their panel (My profile → Notifications) or the homepage app box.</div>
+    <?php else: ?>
+    <div class="atscroll"><table class="atable">
+      <?= arow(['Account','Device','Added','Last delivery','Status'],true) ?>
+      <?php foreach(array_slice($pdev,0,60) as [$puid,$ph,$d]):
+        $code = (int)($d['last_code'] ?? 0); $fails = (int)($d['fails'] ?? 0);
+        $stt = !isset($d['last_code']) ? '<span style="color:var(--mut)">not used yet</span>'
+             : ($code >= 200 && $code < 300 ? '<span style="color:#1f9d63">✓ accepted</span>'
+             : '<span style="color:#c0392b">✗ '.($code === -3 ? 'push host not allowed' : ($code === -1 ? 'network error' : 'HTTP '.$code)).($fails > 1 ? ' ×'.$fails : '').'</span>');
+        $host = (string)(parse_url((string)($d['endpoint'] ?? ''), PHP_URL_HOST) ?? ''); ?>
+      <?= arow([
+        htmlspecialchars($pAcct[$puid] ?? $puid),
+        htmlspecialchars(($d['label'] ?? '') ?: '—').' <span class="ahint">'.htmlspecialchars($host).(empty($d['keys']) ? ' · no payload keys' : '').'</span>',
+        htmlspecialchars(substr((string)($d['added'] ?? ''), 0, 10) ?: '—'),
+        htmlspecialchars(substr((string)($d['last_ok'] ?? ''), 0, 16) ?: '—'),
+        $stt,
+      ]) ?>
+      <?php endforeach; ?>
+    </table></div>
+    <?php endif; ?>
+  </div>
+</div>
+
 <div class="acard" style="margin-top:18px">
   <div class="acard-hd"><h3>⚡ Automatic notifications — always on</h3></div>
   <div class="acard-body" style="font-size:13px;line-height:1.9;color:var(--mut)">
     <b style="color:var(--fg)">Buyers get pushed when:</b> an offer is accepted / countered / declined · a seller answers their sourcing request · payment is confirmed · the order ships (with tracking) · escrow secures their payment · a refund is issued · a new message arrives.<br>
-    <b style="color:var(--fg)">Sellers get pushed when:</b> a new order comes in · a new offer arrives · an escrow order is paid (ship now) · the buyer confirms delivery · escrow funds are released to their bank · their listing is approved or needs changes · their account is verified · a new message arrives.
+    <b style="color:var(--fg)">Sellers get pushed when:</b> a new order comes in · a new offer arrives · an escrow order is paid (ship now) · the buyer confirms delivery · escrow funds are released to their bank · their listing is approved or needs changes · their account is verified · a new message arrives.<br>
+    <b style="color:var(--fg)">How they read:</b> in the customer's own account language (9 languages), tapping opens the exact order, offer or conversation, and each device gets its own end-to-end encrypted copy (RFC 8291). Texts: <code>inc/push_texts.php</code>. Your manual announcements go out exactly as typed.
   </div>
 </div>
 

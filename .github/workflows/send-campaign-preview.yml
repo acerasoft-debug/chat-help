@@ -1123,8 +1123,10 @@ jobs:
               $okMail = vestra_send_mail($to, $kS, $kB, 'support@vestrasales.com', $signer.' — VESTRA', null, '', $kO);
               echo $okMail ? "MEKTUP GONDERILDI ('hesabiniz acildi') -> ".$mask($to)."\n" : "MEKTUP GONDERILEMEDI\n";
               @require_once $doc."/inc/push.php";
-              if (function_exists('vestra_push_send')) {
-                vestra_push_send($uid, 'VESTRA — account verified ✓', 'Your business is verified. Full wholesale access is unlocked.', $panel);
+              if (function_exists('vestra_push_notify')) {
+                vestra_push_notify($after, 'account_verified', ['panel' => ltrim($panel, '/')]);
+              } elseif (function_exists('vestra_push_send')) {
+                vestra_push_send($uid, 'VESTRA — account verified', 'Your business is verified. Full wholesale access is unlocked.', $panel);
               }
               /* Kapi GERCEKTEN acildi mi? "Onayladim" demek yetmez; musteri
                  girdiginde hala kilitliyse bunu ondan once biz bilmeliyiz. */

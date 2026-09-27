@@ -22,6 +22,9 @@ function vestra_ensure_invoice($m,$i,$s,$f=false,$r=false){ global $INV; if($f) 
 function vestra_notify($s,$b){ global $NOTIF; $NOTIF[]=$s; }
 function vestra_msg_post_system(...$x){}
 function vestra_push_send(...$x){}
+/* Bildirimler 27 Eyl 2026'dan beri vestra_push_notify() ile (inc/push_texts.php);
+   bu dosya pazarlik akisini olcuyor, bildirim metnini degil -- stub. */
+function vestra_push_notify(...$x){ return ['devices'=>0,'ok'=>0,'failed'=>0,'pruned'=>0]; }
 function vestra_send_mail(...$a){ global $MAIL; $MAIL[]=$a[1]; return true; }
 function vestra_tpl_offer_response(...$a){ return ['counter-mail','b',[]]; }
 function vestra_tpl_offer_counter_accepted(...$a){ return ['accepted-mail','b',[]]; }

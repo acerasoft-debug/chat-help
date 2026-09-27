@@ -5,9 +5,19 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 
 if (isset($_GET['signout'])) { auth_logout(); header('Location: /'); exit; }
 
+/* Giristen sonra donulecek adres YALNIZ bu sitenin bir yolu. Eski kontrol
+   str_starts_with($back, '/') idi: "//baska-site.com" da '/' ile basliyor ve
+   tarayici onu BASKA bir alan adi olarak aciyor -- acik yonlendirme. Bildirime
+   dokunup oturumu dusmus bulan kullanici da artik tam o siparise/konusmaya donuyor. */
+$__safeBack = function (string $b): string {
+    if ($b === '' || $b[0] !== '/' || str_starts_with($b, '//') || str_starts_with($b, '/\\')
+        || preg_match('/[\x00-\x1f]/', $b)) return '';
+    return $b;
+};
 if (!empty($_SESSION['uid'])) {
     $a = auth_user();
-    header('Location: '.($a && $a['type']==='seller' ? '/seller' : '/buyer')); exit;
+    $b = $__safeBack((string)($_GET['back'] ?? ''));
+    header('Location: '.($b !== '' ? $b : ($a && $a['type']==='seller' ? '/seller' : '/buyer'))); exit;
 }
 
 $err = ''; $email_val = ''; $unverified = false; $resent = false;
@@ -31,8 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['resend'] ?? '') === '1') {
             auth_set($acc);
             auth_touch_login($acc['id']);
             vestra_sec_log('login_ok', $email_val, (string)($acc['id'] ?? ''));
-            $back = $_GET['back'] ?? ($acc['type']==='seller' ? '/seller' : '/buyer');
-            if (!str_starts_with($back, '/')) $back = '/buyer';
+            $back = $__safeBack((string)($_GET['back'] ?? ''));
+            if ($back === '') $back = ($acc['type']==='seller' ? '/seller' : '/buyer');
             header('Location: '.$back); exit;
         }
         if ($acc === 'invalid') { auth_throttle_hit($tkey); vestra_sec_log('login_fail', $email_val); usleep(300000); }

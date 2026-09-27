@@ -309,8 +309,8 @@ function sample_do_release(string $ref): array {
         $paid = number_format(((int)($p->amount ?? 0))/100, 2);
         if (!empty($rec['seller_uid'])) {
             require_once __DIR__.'/push.php';
-            vestra_push_send($rec['seller_uid'], 'VESTRA — sample payout released 🎉',
-                'Sample '.$ref.' — €'.$paid.' is on its way to your bank.', '/seller?tab=orders');
+            vestra_push_notify((string)$rec['seller_uid'], 'sample_released',
+                ['ref' => $ref, 'amount' => ((int)($p->amount ?? 0)) / 100, 'currency' => $cur]);
         }
         return ['ok'=>true, 'msg'=>'Released €'.$paid.' to the seller.'];
     } catch (\Throwable $e) {

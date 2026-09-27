@@ -192,8 +192,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
             if(in_array($listing['seller_uid'],$notified,true)) continue;
             $notified[]=$listing['seller_uid'];
             require_once __DIR__.'/inc/push.php';
-            vestra_push_send($listing['seller_uid'], 'VESTRA — receipt confirmed ✓',
-                'Order '.$ref.' — the buyer confirmed delivery. Payout in progress.', '/seller?tab=orders');
+            vestra_push_notify((string)$listing['seller_uid'], 'receipt_confirmed', ['ref'=>$ref]);
             /* Completed card into the seller's conversation */
             if($me){
                 require_once __DIR__.'/inc/messages.php';
@@ -312,7 +311,7 @@ if(!$MEMBER){
     <h3 style="margin:0 0 6px">'.t('Buyer workspace').'</h3>
     <p style="color:var(--mut);margin:0 0 20px">'.t('Sign in to track your orders, sourcing requests and offers.').'</p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-    <a class="btn btn-p" href="/login?back=/buyer">'.t('Sign in').'</a>
+    <a class="btn btn-p" href="/login?back='.rawurlencode(preg_match('#^/buyer(\\?|$)#', (string)($_SERVER['REQUEST_URI'] ?? '')) ? (string)$_SERVER['REQUEST_URI'] : '/buyer').'">'.t('Sign in').'</a>
     <a class="btn btn-o" href="/register">'.t('Create account').'</a></div></div></div>';
   require __DIR__.'/inc/foot.php'; exit;
 }
@@ -330,6 +329,7 @@ dash_open('buyer',$tab,
   $tab==='overview'?t('Your purchasing activity at a glance'):'');
 
 if($tab==='overview'){
+  require_once __DIR__.'/inc/app_ui.php'; echo vestra_push_nudge(); // bildirim: hic sorulmamis cihaza tek satir
   $spent=0; foreach($orders as $o){ $spent+=(float)($o['total']??0); }
   stat_cards([
     [count($orders),t('Orders')],
@@ -741,6 +741,10 @@ if($tab==='overview'){
     t('We are not able to serve this market. Nothing was saved.').'</div>';
 
   ?>
+  <?php /* Bildirim ayari: bu cihazda acik mi, ac/kapat, deneme bildirimi. Daha once
+           tek acma yolu ANA SAYFADAKI kutuydu ve hicbir yerde kapatmak ya da
+           durumu gormek mumkun degildi. */
+        require_once __DIR__.'/inc/app_ui.php'; echo vestra_push_card(); ?>
   <div class="panelcard">
     <form method="post" action="/buyer?tab=profile" class="addform">
       <input type="hidden" name="_action" value="profile">

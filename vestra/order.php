@@ -436,8 +436,13 @@ if(!empty($lines)){
       if(in_array($sid,$notifiedSellers,true)) break;
       $notifiedSellers[]=$sid;
       require_once __DIR__.'/inc/push.php';
-      vestra_push_send($sid, 'VESTRA — new order 📦',
-        'Order '.$ref.' · '.$company.' · €'.number_format((float)$total,2), '/seller?tab=orders');
+      /* Saticiya KENDI satirlari: eskiden siparisin TOPLAMI gidiyordu -- iki
+         saticili bir sepette her biri otekinin mal bedelini de goruyordu. */
+      $__mine = array_filter($lines, fn($x) => ($x['seller_uid'] ?? '') === $sid);
+      vestra_push_notify($sid, 'order_new', ['ref'=>$ref, 'company'=>$company, 'currency'=>'EUR']
+        + ($__mine ? ['qty'=>array_sum(array_map(fn($x)=>(int)$x['qty'], $__mine)),
+                      'amount'=>array_sum(array_map(fn($x)=>(float)$x['line'], $__mine))]
+                   : ['amount'=>(float)$total]));
       if($buyerAcc){
         require_once __DIR__.'/inc/messages.php';
         /* Karti ALICI dogurdu (siparisi o verdi) — kendi rozeti yanmasin. */

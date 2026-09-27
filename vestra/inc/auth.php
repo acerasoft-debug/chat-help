@@ -147,6 +147,15 @@ function auth_set(array $acc): void {
 }
 
 function auth_logout(): void {
+    /* Bu oturumun bagladigi cihaz(lar) bu hesabin bildirimlerini ALMAYI BIRAKIR.
+       Bildirim metni artik push'un icinde sifreli geliyor (inc/push.php), yani
+       oturum kapansa bile cihaz metni gosterebilir: ortak bir tablette cikis
+       yapan hesabin siparisleri, sonra giren kisinin ekranina dusmemeli. Cihaz
+       "park" edilir -- ayni hesap o cihazda tekrar girerse yeniden baglanir. */
+    if (!empty($_SESSION['push_dev']) && !empty($_SESSION['uid'])) {
+        require_once __DIR__.'/push.php';
+        vestra_push_signout((string)$_SESSION['uid']);
+    }
     auth_remember_clear($_SESSION['uid'] ?? '');
     unset($_SESSION['uid'], $_SESSION['member'], $_SESSION['utype']);
 }

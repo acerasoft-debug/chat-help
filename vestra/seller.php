@@ -220,8 +220,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         /* Push ping to the buyer's installed devices */
         if ($buyerAcc) {
             require_once __DIR__.'/inc/push.php';
-            vestra_push_send($buyerAcc['id'], 'VESTRA — order shipped 🚚',
-                'Order '.$ref.($tracking !== '' ? ' · Tracking: '.$tracking : '').' is on its way.', '/buyer?tab=orders');
+            vestra_push_notify($buyerAcc, 'order_shipped', ['ref'=>$ref, 'tracking'=>$tracking]);
         }
         /* Email buyer — same template the admin panel uses (vestra_tpl_order_shipped),
            so the two ways of marking an order shipped read the same. */
@@ -298,8 +297,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
                 require_once __DIR__.'/inc/messages.php';
                 vestra_msg_post_system($buyerAcc['id'], $uid, '', ['kind'=>'order','status'=>'paid','ref'=>$ref], $uid);
                 require_once __DIR__.'/inc/push.php';
-                vestra_push_send($buyerAcc['id'], 'VESTRA — payment confirmed 💶',
-                    'Order '.$ref.' — payment received. Your goods are being prepared.', '/buyer?tab=orders');
+                vestra_push_notify($buyerAcc, 'order_paid', ['ref'=>$ref]);
             }
         }
     }
@@ -376,8 +374,10 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
                 require_once __DIR__.'/inc/messages.php';
                 vestra_msg_post_system($buyerAcc['id'], $uid, '', ['kind'=>'order','status'=>'delivered','ref'=>$ref], $uid);
                 require_once __DIR__.'/inc/push.php';
-                vestra_push_send($buyerAcc['id'], 'VESTRA — order delivered 📦',
-                    'Order '.$ref.' — please confirm receipt. Auto-release on '.$deadline.'.', '/buyer?tab=orders');
+                /* Bildirimdeki tarih TALEP penceresinin sonu (her sipariste dogru);
+                   "odeme su tarihte otomatik serbest" yalniz kart/escrow siparisinde
+                   dogruydu ve havale siparisine de gidiyordu. */
+                vestra_push_notify($buyerAcc, 'order_delivered', ['ref'=>$ref, 'date'=>vestra_claim_deadline(time())]);
             }
         }
     }
@@ -589,7 +589,7 @@ if(!$MEMBER){
     <h3 style="margin:0 0 6px">'.t('Seller workspace').'</h3>
     <p style="color:var(--mut);margin:0 0 20px">'.t('Sign in to manage your listings, orders and offers.').'</p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-    <a class="btn btn-p" href="/login?back=/seller">'.t('Sign in').'</a>
+    <a class="btn btn-p" href="/login?back='.rawurlencode(preg_match('#^/seller(\\?|$)#', (string)($_SERVER['REQUEST_URI'] ?? '')) ? (string)$_SERVER['REQUEST_URI'] : '/seller').'">'.t('Sign in').'</a>
     <a class="btn btn-o" href="/register">'.t('Create account').'</a></div></div></div>';
   require __DIR__.'/inc/foot.php'; exit;
 }
@@ -664,6 +664,7 @@ if (in_array($docGrace['phase'], ['running','due_soon','expired','suspended'], t
 
 // ── OVERVIEW ──────────────────────────────────────────────────────────────────
 if($tab==='overview'){
+  require_once __DIR__.'/inc/app_ui.php'; echo vestra_push_nudge(); // bildirim: hic sorulmamis cihaza tek satir
   $rev=0; foreach($orders as $o){ $rev+=(float)($o['total']??0); }
   $liveListings = count(array_filter($listings, fn($p) => ($p['status']??'approved')==='approved' && !vestra_product_brand_hidden($p)));
   $pendingOffers = count(array_filter($offers, fn($o) => empty($offerResp[$o['ref']??''])));
@@ -1454,6 +1455,10 @@ function sellerSend(btn){
   elseif(isset($_GET['error'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.t('Something went wrong — please try again or contact support.').'</div>';
 
   ?>
+  <?php /* Bildirim ayari: bu cihazda acik mi, ac/kapat, deneme bildirimi. Daha once
+           tek acma yolu ANA SAYFADAKI kutuydu ve hicbir yerde kapatmak ya da
+           durumu gormek mumkun degildi. */
+        require_once __DIR__.'/inc/app_ui.php'; echo vestra_push_card(); ?>
   <div class="panelcard">
     <form method="post" action="/seller?tab=profile" class="addform">
       <input type="hidden" name="_action" value="profile">
