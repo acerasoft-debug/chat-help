@@ -9314,6 +9314,47 @@ siparisi gir"*).
   gerekmedi ve yeniden çizilecek bir belge yok. Mal €699,00 + navlun €16,00
   = **€715,00**, `vestra_order_set_shipping()` tarafından geri okundu;
   indirim 0 (dokunulmadı). Numara yanmadı, müşteriye hiçbir şey gitmedi.
+- **Banka hesabı "Ferhat Agaya" yapıldı; fatura INV-2026-1005 panelden kesilip
+  gitti** (operatör, aynı akşam: *"banka hesabini Ferhat Agaya olarak yap"* →
+  *"VES-8D231E8D faturayi müsteriye gönder"*).
+  - **Önce ölçüldü** (`diag-messages` → `billing_for=garage`): GARAGE LE PARIS'in
+    IBAN'ı kayıtlı (La Banque Postale, 27 hane) ama `bank_holder` yalnız
+    **"Agaya"** idi. Faturada IBAN'ın yanında `Beneficiary:` olarak basılan ad
+    bu, ve AB'de ödeyen banka alıcı adını hesap sahibiyle karşılaştırıyor.
+  - Yazma: `seller-products.yml` → `admin_mode=apply`, şifreli zarf
+    `{account_id: 7ab30f26afedd840, bank_holder: "Ferhat Agaya"}`. **Yalnız o
+    alan**; IBAN'a dokunulmadı. Zaman damgalı yedek alındı. Bağımsız geri okuma
+    ayrı bir koşuyla: `bank_holder: "Ferhat Agaya"`, IBAN aynı.
+  - **Fatura operatörün panelinden kesildi ve gönderildi**, ben kesmedim:
+    `admin_mode=seller` ile fatura sahibini sabitlemek isterken adım *"fatura
+    ZATEN KESILMIS (INV-2026-1005)"* dedi. Brevo'da *"VESTRA — invoice for
+    order VES-8D231E8D"* **17:56:03 UTC requests → 17:56:04 delivered**. Kesim,
+    ad değişikliğinden (17:52:33 UTC) SONRA.
+  - **Belgenin kendisi ölçüldü, zamanlamadan çıkarım yapılmadı:**
+    `admin_mode=issue` redraft **olmadan** kesilmiş siparişte yeni numara
+    yakmıyor, kayıttaki PDF'i döndürüyor. Belge 18.163 bayt, sha256 `42991c97…`.
+    Yerelde çözüldü: **Beneficiary: Ferhat Agaya**, La Banque Postale, IBAN
+    satırı, 10 × €69,90 = €699 + navlun €16 = **€715**. Yeniden çizime gerek
+    yoktu.
+  - **Satıcı adı belgede "Agaya Paris"**, "GARAGE LE PARIS" değil: panelde
+    girilmiş `invoice_name` alanı (`vestra_invoice_issuer_name`: invoice_name >
+    company > name). Bu bir kusur değil, operatör ayarı. Ama `billing_for`
+    sondası *"faturanın ÜSTÜNDE görünecek"* başlığı altında yalnız `company`'yi
+    basıyordu, yani belgede yazanı göstermiyordu. Artık `BELGEDE` satırı
+    (`470753fd`).
+  - **İkinci mektup GÖNDERİLMEDİ** (25 Eylül Arelisshop emsali): müşteri
+    faturayı almış. Panel mektubu PDF eklemiyor, sipariş sayfasından indirmeye
+    yolluyor ve orada duran belge ölçülen belgenin ta kendisi. `payment_due`
+    ödeme saatini başlatır; cron bunu ertesi gün 14:00 UTC'de kendisi yapar.
+    Operatörün Gmail'inden PDF ekli mektup gönderilemez (KURAL 23).
+  - **Yan düzeltme:** `apply` adımı IBAN'ın **son 4 hanesini** herkese açık
+    kütüğe basıyordu. Kural *"yalnız VAR (n hane)"* diyor. Maske düzeltildi
+    (`9d275ffa`), o koşunun (`36338547648`) günlüğü silindi.
+  - *Ölçüm tuzağı:* şifreli PDF'i kütükten ayıklarken betik kaynağındaki
+    `echo "-----BEGIN INVOICE ENC-----"` satırı da işaretçiye uydu ve gövdeye
+    kaynak kodu karıştı (AES "dec fail"). Yalnız `out: ` önekli satırlar
+    okunmalı. Blob indirme adresi bu ortamda vekil tarafından engelli. Tam
+    çıktı oturum kaydından alındı.
 - **Yan düzeltme — `diag-live` satıcı e-postalarını AÇIK basıyordu.**
   "hesaplarda dolu banka alanları" bölümü her `diag-live` koşusunda çalışıyor
   ve `company <e-posta>` satırını **maskesiz** yazıyordu (Güvenlik bölümünün
