@@ -9597,3 +9597,113 @@ numune yazsin"*).
     tek numuneyle görmek istiyor; SH9626 bu €80'lik linkte ve aynı ürünü bir
     faturaya ikinci kez koymak çift tahsilat olurdu. Numune ödenip kalite
     onaylanırsa gerisi yeni bir karar.
+
+**KURAL 38 — AVRUPA AYAKKABI DÜKKÂNLARINA İLK TEMAS: 58 mektup, 0 hata; ve
+yolda İKİ SESSİZ ELEME bulundu** (operatör, 26 Eyl 2026, bir Google-AI
+sohbetini yapıştırıp: *"ayakkabi ve bir kac marka giyimden teklif gönder"* +
+*"üstüne sende tüm avrupadan ayakkabi dükkani bul zincir olmasin gercek email
+adreslerine ayakkabi kategorisini ve bir kac diger kategorilerden gönder"*).
+Hedef ve "gönder" aynı mesajda → KURAL 18'in dar istisnası; yine de her parti
+önce `send=false`, çıktısı okunarak.
+
+- **Mektup: `add-and-send` → `letter=footwear`** (`vestra_tpl_footwear_intro`,
+  10 dil). Rakamların hepsi CANLI katalogdan: 335 model, ≥5 modelli türler
+  (Sneakers, Flats, Slippers, Sandals, Boots, Loafers), yetişkin+çocuk cümlesi,
+  karton aralığı 4–36 çift, tek marka olduğu için "İspanyol üretici"; giyim
+  satırları (T-Shirts, Hoodies & Sweatshirts, Jeans) en kalabalık markalarıyla;
+  9 karelik foto şeridi **diskte doğrulanarak**. **"Stoktan" sözü YOK**
+  (`ships_from` boş — KURAL 3), **fiyat YOK** (KURAL 19). Gönderen "VESTRA",
+  damga `footwear/<dil>`, lead kategorisi `footwear`; `send-outreach`'in
+  `shoes` ikinci mektubu bu dükkânları atlıyor (ilk mektubun konusu zaten oydu).
+- **Hitap sayfa başlığından temizleniyor** (`vestra_tpl_greeting_name`, kayda
+  dokunmaz): "Willkommen bei …", "· Seit 1904 …", ", 96047 Bamberg" atılıyor,
+  "Startseite" nötr hitaba düşüyor. **İlk sürüm "Schuhhaus Zeller e.K." adını
+  "…Zeller e.K," yazdı** (Almanya partisi, geri alınamaz) — sondaki nokta artık
+  yalnız noktalı kısaltmanın parçası DEĞİLSE atılıyor (S.L., S.p.A., B.V.).
+  Temizlenemeyen adlar tahminle değil **`lead_rename`** ile düzeltildi.
+- **`lead_rename` TOPLU kip + SİTE alan adı** (`issue_ref=batch`,
+  `payload='alanadi=Yeni Ad|…'`): 13 adı tek tek düzeltmek 13 SSH demekti ve
+  barındırıcı ardışık bağlantıları kesiyor. Serbest posta sağlayıcılı dükkân
+  (gmail, libero, free.fr) e-posta alan adıyla bulunamıyordu; artık
+  add-and-send'in yazdığı `website` ile de eşleşiyor. **HEPSİ YA DA HİÇBİRİ**
+  (bir ref 0/1+ kayda uyarsa ya da iki ref aynı lead'e düşerse hiçbir ad
+  yazılmaz), geri okuma iki yönlü (hedef dışı 5.011 kayıt aynen). İki koşu,
+  11 + 6 ad (ör. "Schuhgesch?ft" → Schuhhaus Peterhans, "Scarpe per uomo e per
+  donna" → Di Marco Calzature, "Magasin de Chaussures à Dieppe : …" → Valérie
+  B); damgalar korundu. Test `lead_rename_test` 28 → 53 (kum havuzunda gerçek
+  betik), beş sabotaj 4–11 kırmızı.
+- **SESSİZ ELEME 1 — firma tekilleştirmesi posta sağlayıcısını firma
+  sanıyordu.** Fransa partisinde Laffite (wanadoo.fr) ve Yves Saint Clair
+  (hotmail.fr) *"aynı firmaya zaten gitti"* diye atlandı. `leads_status` ile
+  ölçüldü: o sağlayıcılarda daha önce yazılan dört kayıt **dört başka dükkân**.
+  Sebep: aynı sorunun ("bu alan adı firma mı, posta sağlayıcısı mı") cevabı
+  **YEDİ** el yazması listedeydi (add-and-send'de üç, send-outreach, add-lead,
+  purge-leads, check-registrations) ve ayrışmışlardı. Tek kaynak:
+  `vestra_email_is_shared_provider()` (notify.php) — liste + büyük webmail
+  markaları her ülke uzantısında, etiket TAM (outlookstore.com firma kalır).
+  **Etki ölçüldü:** "daha önce gönderilmiş firma" sayısı 3.810 → **3.766**;
+  yani ~44 sağlayıcı alan adı 1 Eylül'den (KURAL 1c) beri, o sağlayıcıda tek
+  bir dükkâna yazılmışsa oradaki **her yeni dükkânı** eliyordu. Düzeltmeden
+  sonra ikisi gönderildi. Test `shared_provider_test` (60 iddia) + footwear
+  testinde gerçek iş akışı PHP'si (kontrol grubu: firmanın kendi alan adındaki
+  ikinci kutu YİNE atlanıyor).
+- **SESSİZ ELEME 2 — `'libero'` blok girişi libero.it kullanan HER İtalyan
+  dükkânını KURAL 1 ile eliyordu.** 4 Eyl'de taramanın ISS sayfasını dükkân
+  sandığı tek bir kayıt ("Libero.it") için eklenmişti; alan adı kontrolü
+  **e-posta** alan adına da baktığı için Di Marco Calzature (Roma) "zincir/
+  distribütör" diye atlandı. `vestra_domain_is_blocked()` artık paylaşılan
+  sağlayıcının e-posta alan adını etiket saymıyor; o kayıt ADIYLA, sitesi ISS
+  sayfası olan kayıt SİTESİNDEN, zincir adı serbest posta adresiyle yine
+  engelli (iki yön testli). 163 sağlayıcı tarandı, çakışan tek alan adı
+  libero.it. Düzeltmeden sonra Di Marco gönderildi.
+  *İkisinin ortak dersi: "eleme" satırını okumak yetmiyor; ELENENİN KİM
+  OLDUĞUNU ölç. İkisi de "kural çalışıyor" gibi görünen satırlardı.*
+- **Yapıştırılan liste (27 satır):** **9 gönderildi** (Schuhe Lüke, Schuhhaus
+  Müller/Meßkirch, Schuhhaus Zeller, Müller das Schuhhaus, Schuhhaus Rentz, Auf
+  großem Fuß, Fresh Shoes, Calzados Vesga, Dörflinger — sonuncusunun şehri
+  listede yanlıştı, dükkân Bad Brückenau'da); **10 KURAL 1** (kendi markası:
+  Grünbein, Pelin's, SORBAS, Atheist Shoes, Highest Heels, Moda in Pelle;
+  zincir: Kocken, Werdich, Zumnorde + Schuhhaus Marcus); **4 sınırda,
+  gönderilmedi** (CC Shoes, Shoebidoo, Horsch, Calzados Luz); **2'nin sitesinde
+  yayınlanmış adres yok** (Galipp, Reil — listenin adresi kullanılmadı, KURAL
+  1f); **2 dükkân değil / yok** (Pro-Leder bir dergi, Schuhhaus Restle
+  bulunamadı). Listenin adresleri hiçbir yerde kullanılmadı: her dükkân **site
+  linkiyle** verildi, adres sunucuda siteden çözüldü.
+- **Kendi araştırmamız:** elle okumadan sonra 15 ülkede 58 aday site →
+  **36 gönderim**, Almanya'da **13** — toplam **49**. Adressiz siteler bol
+  (Fransa 13'ün 6'sı, Finlandiya 2'nin 2'si). Aynı
+  gün eklenen bloklar: Trancanelli (4 şube + kendi üretimi), Fanny Chaussures /
+  Chaussures Meger (kendi fabrikası), Zjoos + Skoringen (Shoe-D-Vision çatısı,
+  ~69 mağaza), Walter Calzature / Le Walterine (kendi markası, 3 mağaza);
+  önceki partide Mayer's, Schuh Schweizer, Bessec, Chaussea, Besson, Charles
+  Clinkard, Begg Shoes, Sorelle Ramonda. Tek başına `fanny`, `meger`, `walter`
+  EKLENMEDİ (mango/zara dersi); `zjoos` eklendi ama 5 harf olduğu için alan adında
+  yalnız TAM eşleşiyor, şehre özel alan adları ayrıca yazıldı. Blok testi 489.
+- **Sınır politikası (bu partide uygulanan):** 1–2 mağaza ya da aynı şehirde
+  ek kapı (outlet, çocuk mağazası) → bağımsız, gönderildi (La Bottega/Hasselt:
+  ana mağaza + outlet + mini, hepsi Hasselt); 3+ mağaza birden fazla şehirde →
+  sınırda, **gönderilmedi**; grup/franchise ya da kendi üretimi → blok.
+  **Operatör kararı bekleyen sınırdakiler:** Baumgartner (AT, 4), Asai (ES, 4),
+  Tendance Chaussures, JB Chausseur, Le Chausspied (FR), Ralet (BE, 5),
+  Schoenen Zaken, Van Dael (NL), Leon (LU), Mølbjerg (DK), Elevate Your Sole
+  (UK), Calzados Luz (ES, 7), CC Shoes, Shoebidoo, Horsch; kendi üretimi:
+  williamsh.fr (bottier), Tassinari. **Cordonnerie Richard (Annecy)** gerçek bir
+  dükkân ama sitesinden çözülen gmail kutusunun ona ait olduğu doğrulanamadı
+  (KURAL 1h) — gönderilmedi.
+- **Ülke sonuçları (27 Eyl, hepsi hata 0):** DE 19 + 2, AT 2, CH 2 (+1 daha önce
+  yazılmış), FR 6, BE 3 (nl), NL 3, LU 1 (fr; kayıtlı ülke Ireland'dan
+  düzeltildi), SE 3 (en), UK 1, IE 2, PL 2, IT 5, ES 4, PT 1, GR 2 — **toplam
+  58**. Atlananlar: iki "zaten yazılmış" ve bir ölü alan adı (sitenin kendi
+  yayınladığı yazım hatalı adres — düzeltilmiş adres TAHMİN EDİLMEDİ). Kota
+  296 → 238. *"GONDERILDI" yalnız Brevo isteği kabul etti demek.*
+- **SSH:** bir gönderim koşusu `dial tcp … i/o timeout`, bir deploy
+  `handshake failed` ile düştü — ikisinde de sunucuda hiçbir şey çalışmadı, elle
+  tekrarlandı. `deploy-vestra.yml`'e deploy.sh için 45 sn bekle + **bir** kez
+  tekrar adımı eklendi. **`add-and-send` otomatik tekrar EDİLMEZ**: gönderim
+  ortasında kopan bir koşu damga yazmadan mektup göndermiş olabilir.
+- **Ölçüm tuzağı (kendi hatam):** bekleme betiğim koşuyu `created_at >
+  <tahmini saat>` ile arıyordu ve koşu o saniyeden ÖNCE açıldığı için 10
+  dakika var olmayan bir koşuyu bekledi. Ölçüt artık **koşu id'si**
+  (bilinen son id'den büyük). Aynı turda yeni testin fikstür adresi
+  (`…test@wanadoo.fr`) çöp-adres kalıbına takıldı ve iddia **boşa geçti** —
+  "gönderim denemesine ulaştı" iddiası olmasa fark edilmeyecekti.
