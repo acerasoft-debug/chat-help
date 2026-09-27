@@ -332,9 +332,16 @@ jobs:
               $filled = array_values(array_filter($bk, fn($k) => trim((string)($a[$k] ?? '')) !== ''));
               if (!$filled) continue;
               $hit++;
+              /* E-POSTA MASKELI: bu kutuk herkese acik ve adim HER diag-live
+                 kosusunda calisiyor (27 Eyl 2026'ya kadar satici adreslerini
+                 acik basiyordu). Firma adi yeterli kimlik; adres gerekirse
+                 panelde okunur. */
+              $em = (string)($a['email'] ?? '');
+              $at = strpos($em, '@');
               printf("  %s <%s>  ->  %s\n",
                 (string)($a['company'] ?? ($a['name'] ?? '?')),
-                (string)($a['email'] ?? '?'), implode(', ', $filled));
+                $at === false ? '?' : mb_substr($em, 0, 1).'***'.substr($em, $at),
+                implode(', ', $filled));
             }
             if (!$hit) echo "  hicbir hesabin banka alani dolu degil\n";
             PHPEOF
