@@ -4477,6 +4477,50 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   metinde tarih/atıf **yazılı**. Şu an ayakta olan alıcı şirketlerin **adı
   verilmedi** — doğrulanamıyor, ve yanlış bir isim listesi yazının en kolay
   çürüyen yeri olurdu (KURAL 3'ün yazı hâli).
+- **DOKUZ DİLDE yazı = DOKUZ DİLDE ALTYAZI; otomatik dokuma bunu YAPAMAZ**
+  (27 Eyl 2026, *"No More Bonfires"* — AB'nin satılmamış giysi/ayakkabı imha
+  yasağı; operatör: *"detaylı görselli bir yenilik yaz tüm dillerde moda ile
+  ilgili olsun"*).
+  - **Figürler gövdeye AÇIK `[img:/uploads/…|altyazı]` işaretiyle** kondu, her
+    dilin gövdesine ayrı ayrı. Otomatik dokuma (`vestra_journal_body_photos`)
+    altyazıyı SVG'nin `<desc>`'inden alıyor ve `<desc>` **tek dilli**: sekiz
+    dilde İngilizce altyazı basardı. Gövdede tek bir `[img:` bloğu varsa dokuma
+    kendiliğinden kapanıyor. **Alt metin hâlâ SVG `<title>`'dan, yani
+    İngilizce** — ekran okuyucuda yabancı dilde bir cümle; bilinen sınır.
+  - **Konu seçimi:** önerilen ikinci aday (Milano SS27 defileleri, 22–28 Eyl)
+    bilerek seçilmedi — yazıldığı gün hâlâ sürüyordu ve koleksiyon ayrıntısı
+    ikincil kaynaklardan doğrulanamazdı. İmha yasağı ise **tarihli, numaralı
+    ve birden çok kaynakta aynı**: Tüzük (EU) 2024/1781 md. 25 / Ek VII,
+    delege tüzük C(2026) 659 (9 Şub 2026, 10 istisna, 5 yıl kanıt, bağışta
+    ≥3 kuruluş ya da 8 hafta), büyük şirket 19 Tem 2026 / orta 19 Tem 2030,
+    standart açıklama tablosu 2 Mar 2027, Direktif (EU) 2025/1892 (16 Eki 2025,
+    30 ay). Birincil siteler (eur-lex, ec.europa.eu) bu ortamda **kapalı** —
+    yalnız WebSearch çalışıyor, WebFetch de engelli; metinde **Kaynaklar**
+    paragrafı var.
+  - **Yazılmayan şey, bilerek:** "markalar asgari satış fiyatı / online satış
+    yasağı koyacak" cümlesi taslakta vardı ve **silindi** — ikisi de AB rekabet
+    hukukunda çekirdek kısıtlama (yeniden satış fiyatı, dikey muafiyet); bir
+    öngörüyü hukuka aykırı bir uygulamayı olağan gibi anlatarak yazmak olurdu.
+    Kalan cümle yalnız "daha çok evrak, daha çok koşul, bazen etiketsiz".
+  - **Tohum dosyası ensure_ascii=False + indent=2 ile birebir geri yazılıyor**
+    (ölçüldü: 603.984 bayt, fark 0) — yani Python ile eklemek diff'i yalnız
+    yeni kayda indiriyor. Yeni yazı dizinin **BAŞINA** girer: `created`
+    damgası sıraya göre veriliyor, başta = en yeni.
+  - **Ölçüm:** yerel kum havuzunda (`git ls-files vestra` kopyası, boş `data/`)
+    9 dil çizdirildi: her dilde 4 figür + 4 kendi dilinde altyazı, yatay taşma
+    0, Arapça `dir=rtl`, dergi ızgarasında ilk sırada, PHP uyarısı 0. Kapak
+    21:9 penceresinde (y 138..392). Test `journal_destruction_ban_test.php`
+    (119 iddia); beş sabotajın beşi kırmızı (de figür yolu, ja İngilizce
+    altyazı, tohumda 2. sıra, Arapça silindi, kapakta pencere dışı çizim).
+  - **CANLI (27 Eyl 2026, deploy `a849a855`):** `journal-seed` normal kip →
+    *"degisen kayit: 1"*, yayında 39 → **40**, listede **ilk sırada**,
+    `en+de,fr,it,es,pt,ru,ar,ja`, 1.200 kelime; başka hiçbir makaleye
+    dokunulmadı. `seo-check` dışarıdan 9 dilin 9'unda **normal sayfa**
+    (challenge yok), başlık ve açıklama o dilde, hreflang 82.
+  - **Playwright bu ortamda:** `chromium.launch()` varsayılan yolu yanlış
+    sürümü arıyor, `/opt/pw-browsers/chromium` ise eski headless'ı
+    desteklemiyor — çalışan yol
+    `executablePath:'/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell'`.
 - **Trafik sayacı GOOGLE'IN YARISINI ziyaretçi sayıyordu** (operatör, 8 Eyl 2026:
   *"US · Mountain View, böyle biri sürekli siteye giriyor her gün — gerçek bir
   kişi mi yoksa google bot mu? araştır ve IP'sine bak"*).
