@@ -268,6 +268,19 @@ else {
           .' IN_EMAILS='.escapeshellarg('yeni.dukkan@gmail.com').' DO_SEND=false LETTER=shoes php '.escapeshellarg($sb.'/run.php').' 2>&1; echo "RC=$?"');
     $t('taninmayan letter -> cikis 1',        str_contains($bad2, 'letter gecersiz: shoes') && str_contains($bad2, 'RC=1'));
     $t('taninmayan letter -> leads.json DEGISMEDI', (string)file_get_contents($ph.'/data/leads.json') === $before);
+    /* GONDERIM YOLU: cop adres (27 Eyl canli kuru kosusundaki yapisik-www kalibi)
+       kayitta dursa bile mektup denenmez. Tek aday cop oldugu icin kosu
+       vestra_send_mail'e hic ulasmamali; DNS kontrolu kapali -> ag yok. */
+    $junkMail = 'kontakt@marke.comwww.marke-group.comangaben';
+    $jl = json_decode((string)file_get_contents($ph.'/data/leads.json'), true);
+    $jl[] = ['id'=>'LDJ','company'=>'Schuh Junk','email'=>$junkMail,'website'=>'https://schuh-junk.test',
+             'country'=>'Germany','status'=>'new','last_contacted_at'=>'','unsub_token'=>'j'];
+    file_put_contents($ph.'/data/leads.json', json_encode($jl));
+    $jo = (string)shell_exec('cd '.escapeshellarg($ph).' && env HOME='.escapeshellarg($sb)
+        .' IN_EMAILS='.escapeshellarg($junkMail).' DO_SEND=true DNS_CHECK=false LETTER=footwear IN_COUNTRY=Germany php '
+        .escapeshellarg($sb.'/run.php').' 2>&1');
+    $t('gonderim yolu: cop adres ATLANDI',    str_contains($jo, 'ATLANDI (cop/yer tutucu adres): '.$junkMail));
+    $t('gonderim yolu: cop adrese mektup DENENMEDI', !str_contains($jo, 'GONDERILDI') && !str_contains($jo, 'x HATA'));
     shell_exec('rm -rf '.escapeshellarg($sb));
 }
 

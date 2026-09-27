@@ -650,6 +650,16 @@ jobs:
                        mb_substr((string)($l['company'] ?? ''), 0, 40), $mail);
                 $skip++; continue;
               }
+              /* COP / YER TUTUCU ADRES -> gonderme. send-outreach bu kontrolu
+                 gonderim yolunda yapiyordu, burasi YAPMIYORDU: 27 Eyl 2026 Almanya
+                 ayakkabi kuru kosusunda bir kunye sayfasindan bir markanin adresi
+                 "…@<marka>.comwww.<marka>-group.comangaben" diye cozuldu ve lead
+                 olarak YAZILDI. Tarama artik o kalibi eliyor; ama daha once kayda
+                 girmis ya da elle yapistirilmis bir adres buradan hala gecerdi --
+                 ayni emniyet agi, iki gonderim yolunda. */
+              if (vestra_email_is_junk($mail)) {
+                echo "  - ATLANDI (cop/yer tutucu adres): {$mail}\n"; $skip++; continue;
+              }
               if ($SAME_FIRM !== 'send') {
                 $dom = $domOf($mail);
                 if ($dom !== '' && !isset($SHARED_MX[$dom]) && isset($firmDone[$dom]) && $firmDone[$dom] !== $mail) {
