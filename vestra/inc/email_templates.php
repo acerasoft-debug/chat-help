@@ -2812,7 +2812,13 @@ function vestra_tpl_greeting_name(string $co): string {
        sonrasi atilir. "Schuh- und Sporthaus" gibi bitisik tire ETKILENMEZ
        (ayractan once bosluk sart). */
     $k = (string)(preg_split('/\s+[·|–—-]\s+|,\s*\d/u', $k)[0] ?? '');
-    $k = trim($k, " \t\n\r\0\x0B.,;:");
+    $k = trim($k, " \t\n\r\0\x0B,;:");
+    /* Sondaki nokta ancak NOKTALI bir kisaltmanin parcasi DEGILSE atilir:
+       "Schuhhaus Zimmermann." -> nokta atilir, "Schuhhaus Zeller e.K." ->
+       KALIR (27 Eyl'de "…Zeller e.K," diye gitti). Ayni sinif: S.L., S.A.,
+       e.U., S.p.A., B.V. -- harf-nokta dizisi en az iki kez. */
+    if (str_ends_with($k, '.') && !preg_match('/(?:^|[\s(])(?:\p{L}{1,2}\.){2,}$/u', $k)) $k = rtrim($k, '.');
+    $k = trim($k);
     if (preg_match('/^(?:home|homepage|home\s*page|startseite|start|accueil|inicio|welkom|hjem|etusivu|index'
         .'|strona\s+główna|úvod|αρχική|αρχικη)$/iu', $k)) return '';
     return $k;

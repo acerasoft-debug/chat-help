@@ -970,7 +970,11 @@ function vestra_discover_blocklist(): array {
        Danimarka'da ~65, Norvec'te 4 magazali gonullu ZINCIR, Shoe-D-Vision
        catisinda (Skoringen ile ayni ev). Sehre ozel alan adlari (zjoosgive.dk,
        zjoos-hjoerring.dk) alan adi tarafinda 'zjoos'un TAM eslesme sinirina
-       takildigi icin ikisi de ayrica yazildi. */
+       takildigi icin ikisi de ayrica yazildi.
+       Walter Calzature (Milano): 1968'den beri kendi el yapimi ayakkabisi,
+       kendi markasi "Le Walterine" ve 3 kendi magazasi -- Trancanelli'nin
+       sinifi. 'walter' TEK BASINA eklenmedi (siradan bir ad). */
+    'walter calzature','waltercalzature','le walterine',
     'trancanelli','fanny chaussures','chaussures meger',
     'zjoos','zjoos-hjoerring','zjoosgive','skoringen','shoe-d-vision',
     'werdich','zumnorde','schuhhaus marcus','schuhhaus kocken','kocken-online','kocken online',

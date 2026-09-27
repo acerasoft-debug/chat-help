@@ -679,6 +679,7 @@ foreach ([
     ['Calzature Trancanelli','trancanelli.com'], ['Trancanelli Sabotino','trancanellisabotino.it'],
     ['Fanny Chaussures','fanny-chaussures.com'], ['Chaussures Meger','meger.fr'],
     ['Zjoos Hjørring','zjoos-hjoerring.dk'],      ['Skoringen','skoringen.dk'],
+    ['Walter Calzature','waltercalzature.it'],     ['Le Walterine','lewalterine.it'],
 ] as [$n,$d]) $t("blok: {$n}", $blocked($n,'','https://'.$d));
 /* Yalniz ALAN ADINDAN yakalanmasi gerekenler: taranan ad cogu zaman markanin
    kendisi degil ("Shop", "Home"), alan adi ise operatorden geliyor. */
@@ -704,6 +705,7 @@ foreach ([
     ["Fanny's Boutique",'fannysboutique.fr'],       ['Chez Fanny','chezfanny.be'],
     ['Meger Moda','megermoda.it'],                  ["L'Entrepôt Chaussures",'entrepotchaussure.fr'],
     ['Sko Karlsson','skokarlsson.se'],              ['Sköna Skon','skonaskon.se'],
+    ['Walter Moda Uomo','waltermoda.it'],           ['Calzature Walter & Figli','calzaturewalterfigli.it'],
 ] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
 
 echo "\nTOPLAM: {$ok} gecti, {$fail} kaldi\n";

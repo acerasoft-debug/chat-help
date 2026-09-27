@@ -142,6 +142,12 @@ foreach ([
     ['Αρχική',                                       ''],
     ['Bienvenue chez Élan Chaussures',               'Élan Chaussures'],
     ['Schuh &amp; Sport Schöwing',                   'Schuh & Sport Schöwing'],
+    // Kayittaki TAM ad (27 Eyl gonderimi "…Zeller e.K," diye gitti): noktali
+    // kisaltmanin noktasi KALIR, siradan son nokta gider.
+    ['Willkommen bei Schuhhaus Zeller e.K., 96047 Bamberg', 'Schuhhaus Zeller e.K.'],
+    ['Calzados Luz S.L.',                            'Calzados Luz S.L.'],
+    ['Moda Rossi S.p.A.',                            'Moda Rossi S.p.A.'],
+    ['Chaussures Martin.',                           'Chaussures Martin'],
 ] as [$in, $want]) $t("hitap: '{$in}' -> '{$want}'", vestra_tpl_greeting_name($in) === $want);
 /* TERS YON: gercek adlar DOKUNULMADAN kalmali. Bitisik tire ("Schuh- und
    Sporthaus") ayrac degil; "in Bremen" bir sehir, slogan degil; "Start" ile
