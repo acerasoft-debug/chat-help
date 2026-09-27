@@ -4106,7 +4106,7 @@ jobs:
             $sw = (string)@file_get_contents($doc.'/sw.js');
             echo "KOD (deploy indi mi):\n";
             echo "  vestra_push_notify ".$has('vestra_push_notify')." | vestra_push_encrypt ".$has('vestra_push_encrypt')
-               ." | vestra_push_endpoint_ok ".$has('vestra_push_endpoint_ok')."\n";
+               ." | vestra_push_endpoint_ok ".$has('vestra_push_endpoint_ok')." | vestra_push_holds ".$has('vestra_push_holds')."\n";
             echo "  inc/push_texts.php ".(is_file($doc.'/inc/push_texts.php') ? 'VAR' : 'YOK')
                ." | inc/app.js ".(is_file($doc.'/inc/app.js') ? 'VAR' : 'YOK')
                ." | me.php ".(is_file($doc.'/me.php') ? 'VAR' : 'YOK')
