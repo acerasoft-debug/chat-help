@@ -846,11 +846,18 @@ jobs:
               }
               echo "\n";
             } elseif ($bq !== '') {
+              require_once $doc.'/inc/invoice.php';
               echo "===== FATURA KUNYESI: \"{$bq}\" =====\n";
               foreach (find_accounts($accounts, $bq) as $a) {
                 $has = function ($v) { $v = trim((string)$v); return $v === '' ? '*** BOS ***' : 'VAR ('.strlen($v).' hane)'; };
                 echo "  id=".substr((string)($a['id'] ?? ''),0,8)." | tip=".($a['type'] ?? '?')."\n";
                 echo "  --- faturanin USTUNDE gorunecek (invoice.php: sellerAcc) ---\n";
+                /* BELGEDE BASILAN AD invoice_name > company > name
+                   (vestra_invoice_issuer_name). Sonda uzun sure yalniz company'yi
+                   basiyordu: GARAGE LE PARIS belgede "Agaya Paris" cikarken bu
+                   baslik altinda "GARAGE LE PARIS" yaziyordu (27 Eyl 2026). */
+                echo "    BELGEDE    : \"".(function_exists('vestra_invoice_issuer_name') ? vestra_invoice_issuer_name($a, '?') : '(invoice.php yuklu degil)')."\"\n";
+                echo "    invoice_name: \"".($a['invoice_name'] ?? '')."\"".(trim((string)($a['invoice_name'] ?? '')) === '' ? '  <- BOS ise company kullanilir' : '')."\n";
                 echo "    company    : \"".($a['company'] ?? '')."\"".(trim((string)($a['company'] ?? '')) === '' ? '  <- BOS ise name kullanilir' : '')."\n";
                 echo "    name       : \"".($a['name'] ?? '')."\"\n";
                 echo "    address    : \"".($a['address'] ?? '')."\"\n";
