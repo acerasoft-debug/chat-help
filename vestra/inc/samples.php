@@ -318,3 +318,46 @@ function sample_do_release(string $ref): array {
         return ['ok'=>false, 'msg'=>'Stripe error: '.$e->getMessage()];
     }
 }
+
+/**
+ * DELETE one UNPAID sample record (operator, 28 Sep 2026, Odzież Premium:
+ * "diger tüm siparislerini iptal et ve sil"). Before this there was no way to
+ * withdraw a pay link at all: the record stayed `pending` forever and the link
+ * in the buyer's e-mail kept opening a payment page (sample-pay creates a fresh
+ * Stripe session whenever the old one has expired).
+ *
+ * ONLY `pending` is deletable. A paid/released sample holds the buyer's money:
+ * removing its record would leave a charge with nothing behind it — that is a
+ * refund decision, not a deletion.
+ *
+ * The Stripe side is the CALLER's job and must come FIRST (expire the open
+ * Checkout session, and stop if Stripe already says paid). Deleting the record
+ * while a session is still open would let a payment arrive for a ref the
+ * webhook can no longer find — money with no record.
+ *
+ * Archived, not destroyed: the removed record is written to
+ * data/sample_backups/<ref>-<time>.json first (KURAL 5g's offer_backups
+ * pattern), and the file is READ BACK — "deleted" is only returned when the
+ * ref is really gone.
+ *
+ * @return array{ok:bool, error?:string, backup?:string}
+ */
+function sample_delete(string $ref): array {
+    $all = samples_all();
+    if (!isset($all[$ref]) || !is_array($all[$ref])) return ['ok' => false, 'error' => 'no such sample record'];
+    $st = (string)($all[$ref]['status'] ?? '');
+    if ($st !== 'pending') return ['ok' => false, 'error' => "status is '{$st}' — only an unpaid (pending) sample can be deleted"];
+
+    $bdir = dirname(samples_file()) . '/sample_backups';
+    if (!is_dir($bdir)) @mkdir($bdir, 0775, true);
+    $bak = $bdir . '/' . preg_replace('/[^A-Za-z0-9_-]/', '', $ref) . '-' . date('Ymd-His') . '.json';
+    $wrote = @file_put_contents($bak, json_encode([$ref => $all[$ref]], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);
+    if ($wrote === false || !is_file($bak)) return ['ok' => false, 'error' => 'backup could not be written — nothing deleted'];
+
+    unset($all[$ref]);
+    if (@file_put_contents(samples_file(), json_encode($all, JSON_PRETTY_PRINT), LOCK_EX) === false) {
+        return ['ok' => false, 'error' => 'samples.json could not be written', 'backup' => $bak];
+    }
+    if (sample_get($ref) !== null) return ['ok' => false, 'error' => 'record still present after write', 'backup' => $bak];
+    return ['ok' => true, 'backup' => $bak];
+}
