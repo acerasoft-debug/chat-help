@@ -2224,13 +2224,18 @@ function vestra_render_order_pdf(array $orderRow, array $lines, string $statusLa
     $pdf->textR($right - 4, $y, 9, 'Line', true);
     $y -= 24;
 
+    /* SKU sutunu 96 pt ve kod ESKIDEN hic sarilmiyordu: "TENNIS-CLUB-ICON-WHITE"
+       9 pt'de ~117 pt, yani urun adinin uzerine basiyordu. Faturadaki SKU
+       sutunuyla AYNI sarici ve AYNI gercek olcu (vestra_pdf_width_afm). */
+    require_once __DIR__.'/invoice.php';
     $goods = 0.0;
     foreach ($lines as $l) {
         $desc = trim((string)($l['brand'] ?? '').' '.(string)($l['name'] ?? ''));
         $descLines = $pdf->wrap($desc, $colQty - $colDesc - 8, 9);
-        $rowH = max(13, count($descLines) * 11) + 8;
+        $skuLines  = vestra_invoice_wrap((string)($l['sku'] ?? ''), $colDesc - $colSku - 8, 9, false, true);
+        $rowH = max(13, max(count($descLines), count($skuLines)) * 11) + 8;
         $need($rowH);
-        $pdf->text($colSku, $y, 9, (string)($l['sku'] ?? ''));
+        foreach ($skuLines as $j => $sl) $pdf->text($colSku, $y - ($j * 11), 9, $sl);
         foreach ($descLines as $j => $dl) $pdf->text($colDesc, $y - ($j * 11), 9, $dl);
         /* Renk ve beden TEK alt satirda birlesiyor. Ayri bir blok yazsaydim
            satir yuksekligi hesabi (asagidaki `$y -= $rowH + …`) yalnizca BIR

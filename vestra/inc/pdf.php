@@ -499,6 +499,46 @@ function vestra_pdf_width(string $s, float $size, bool $bold = false): float {
 }
 
 /**
+ * Helvetica / Helvetica-Bold'un GERCEK genisligi (Adobe AFM, WinAnsi), punto cinsinden.
+ *
+ * vestra_pdf_width() Latin metinde 0.52 em ORTALAMA kullaniyor: karisik harfli
+ * metinde bu yeterince yakin (cogu zaman biraz GENIS), ama BUYUK HARF + rakam +
+ * tireden olusan MODEL KODLARINDA ~%15 DAR olcuyor. 28 Eyl 2026'da belgenin
+ * kendisinden olculdu (INV-2026-1016): "TENNIS-CLUB-ICON-WH" 8 pt'de 92,0 pt
+ * cizildi, ortalama 79 pt dedi -- sarma "sigdi" sanip SKU'yu aciklama
+ * sutununun 4 pt ICINE basti ("…ICON-WHCasablanca").
+ *
+ * Genel olcu (vestra_pdf_width) BILEREK degistirilmedi: fiyat listesinin ad
+ * kirpmalari (array_slice 0,2) ve kur notunun sarma testleri ona gore ayarli;
+ * onu degistirmek her PDF'in duzenini birden kaydirir. Bu fonksiyon yalniz
+ * KOD sutunlari icin (fatura ve siparis PDF'inin SKU sutunu).
+ *
+ * Tablo 32..126; iki tablo da PyMuPDF'in Base-14 olculeriyle 95/95 dogrulandi.
+ * Tabloda olmayan karakter (ASCII disi) vestra_pdf_width()'e duser -- CJK dahil.
+ */
+function vestra_pdf_width_afm(string $s, float $size, bool $bold = false): float {
+    static $reg = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,
+        556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,
+        667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,
+        278,278,278,469,556,333,
+        556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,
+        334,260,334,584];
+    static $bld = [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,
+        556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,
+        722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,
+        333,278,333,584,556,333,
+        556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,
+        389,280,389,584];
+    $tab = $bold ? $bld : $reg;
+    $w = 0.0;
+    foreach (preg_split('//u', $s, -1, PREG_SPLIT_NO_EMPTY) as $ch) {
+        $o = strlen($ch) === 1 ? ord($ch) : 0;
+        $w += ($o >= 32 && $o <= 126) ? $tab[$o - 32] * $size / 1000 : vestra_pdf_width($ch, $size, $bold);
+    }
+    return $w;
+}
+
+/**
  * CP1252 (gomulu olmayan Helvetica + WinAnsi) DISINDA kalan karakterler.
  *
  * Bunlar belgeye Helvetica ile basilamaz: iconv'un '//TRANSLIT//IGNORE' bayragi
