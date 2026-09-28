@@ -9433,3 +9433,44 @@ kesilecek fatura"*).
   alıcının kaydı yerinde kalır). Sabotajın uygulandığı `grep -c` ile doğrulanarak:
   ödenmiş kayıt silinebilince **5 kırmızı**, ödeme/dekont muhafazası kalkınca **2**,
   kayıt Stripe'tan önce silinince **2**.
+
+**KURAL 37 (devamı 2) — Odzież Premium "faturam yok": fatura €60 tam, kargo 0,
+PDF EKİYLE gitti (28 Eyl 2026)** (operatör: *"faturam yok diyor faturayı gönder"*
+→ *"faturasını da 60 eur tam yap shipp cost free olsun"*).
+- **Önce ölçüldü:** `order_gate` → INV-2026-1006 zaten KESİLMİŞ. Brevo'ya göre
+  panelden kesilip gönderilmiş: *"VESTRA — invoice for order VES-D91DAB0B"*
+  15:02 UTC, delivered, 15:34 opened. Müşteri 16:06 UTC'de *"I dont have
+  inovice Lacoste.."* yazdı (`thread_dump`, yalnız dökümün sonu yerelde çözüldü).
+  **Sebep:** panelin kesim mektubu (`vestra_order_invoice_issue`) **PDF
+  taşımıyor**, yalnız sipariş sayfasına yolluyor. Teklif faturalarında ek vardı,
+  sipariş faturasında hiç yoktu.
+- **Kalem fiyatı yazılamıyordu:** navlun, renk, adres, indirim ve yeni kalem
+  için yazıcı vardı; VAR OLAN bir kalemin birimi için yoktu. `order_replace_line`
+  (paralel oturum, aynı gün) aynı SKU'yu reddediyor. Yeni:
+  `vestra_order_set_line_unit()` + `seller-products.yml` → `admin_mode=order_unit`
+  (`payload='SKU:BIRIM|allow_invoiced=1|above_list=1'`, varsayılan kuru koşu).
+  - Toplamı kardeşlerinin formülüyle kurar. Parası gelmiş sipariş koşulsuz RED.
+  - İlandan PAHALI birim `above_list=1` ister. Gerekçe alıcının gördüğü notlara
+    **yazılmaz** (sipariş sayfasında basılıyor), iz `order_statuses.json`'da
+    (`unit_set_prev`, `unit_above_list`).
+- **Yeni mektup `reply_letter=order_invoice_pdf`:** kesilmiş sipariş faturasını
+  **PDF EKİYLE** yollar (`to=order:` şart). Durduğu hâller: tek belge değilse,
+  sipariş ödenmiş/iptalse, ya da PDF siparişin son kayıt değişikliğinden
+  (`*_set_at`/`line_added_at`) ESKİYSE. Sonuncusu yeniden çizilmemiş bir belgeyi
+  yollamayı engelliyor.
+- **Uygulama:**
+  - `shipping` 0 (`allow_invoiced=1`) → `order_unit` SH9608 39,90 → **60,00**
+    (`above_list=1`) → geri okundu: mal 60 · navlun 0 · subtotal/payout 60 ·
+    toplam **60,00**.
+  - `issue_redraft`: **INV-2026-1006 aynı numarayla**, 17.878 bayt. Belge yerelde
+    çözülüp çizdirildi: 1 × SH9608 €60,00, *Goods total €60,00*, kargo satırı
+    yok, lehdar Ferhat Agaya, ödeme kutusu dolu.
+  - Mektup kuru koşu → gönderim: konu *"VESTRA — invoice INV-2026-1006 for order
+    VES-D91DAB0B"*, ek `Invoice-INV-2026-1006.pdf`, *"aynı numara, eski kopyanın
+    yerine geçer"* cümlesi, imza Marco Bellini. **GÖNDERİLDİ.**
+- **Açık, operatör kararı:** aynı yazışmada müşteri Ralph Lauren polo için
+  *"Why €70? When one costs €22?"* diye sordu. Cevap verilmedi.
+- Test: `tests/order_line_unit_test.php` (37 iddia, iki yön: diğer kalem, notlar,
+  navlun ve başka sipariş değişmez). Sabotajın uygulandığı sayılarak: pahalı birim
+  muhafazası kalkınca **3 kırmızı**, ödeme muhafazası kalkınca **1**, eski-belge
+  muhafazası kalkınca **1**.
