@@ -1877,7 +1877,7 @@ jobs:
                            ."tek yerde.\n");
               exit(1);
             }
-            echo "fatura         : yok (numara yanmamis)\n";
+            echo "fatura         : yok (hic kesilmemis ya da invoice_delete ile ARSIVLENMIS)\n";
 
             if (!$apply) { echo "\nKURU KOSU -- hicbir sey silinmedi (move_apply=true ile uygulanir).\n"; exit(0); }
 

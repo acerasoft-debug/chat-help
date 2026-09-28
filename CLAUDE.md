@@ -9756,6 +9756,58 @@ olsun gönderim dahil sonrada email olarak gönder sample order"*).
 - Aynı alıcıya aynı ilan için ikinci bir link kurulmaz. Adres ve telefon
   Stripe sayfasında toplanıyor, ödenince `ship_to` olarak kayda düşüyor.
 
+**KURAL 37 (devamı) — Odzież Premium: numune linki GERİ ÇEKİLDİ, eski sipariş
+SİLİNDİ, yerine 1 adetlik €60 sipariş (28 Eyl 2026)** (operatör: *"bir ad. Paris
+les garage dan SH9608 Lacoste Sweatshirt siparisi yap ve diger tüm siparislerini
+iptal et ve sil"* → *"60 eur shipping icinde yapacaksin"* → *"paris les garage dan
+kesilecek fatura"*).
+- **Önce ölçüldü** (`diag-live` → `find_ref=odzie`, `find_ref=spl-`): alıcının iki
+  kaydı vardı — sipariş **`VES-F675713C`** (26 Eyl, 10 × SH9623 Light Blue @39,90 +
+  kargo 30 = €429, **INV-2026-1004** kesilmiş, ödeme saati 27 Eyl'de başlamış,
+  hatırlatma gitmiş, ödeme/dekont YOK) ve numune linki **`SPL-2D481820`** (bugün
+  sabah, €60, Stripe `open/unpaid`). Diğer 6 numune kaydı başka alıcıların.
+- **Numune linki "sipariş" sayıldı ve geri çekildi**, çünkü yeni sipariş AYNI parça
+  için: ikisi birden açık kalsaydı müşteri aynı sweatshirt'e iki kez ödeyebilirdi.
+  **Bunun hiçbir yolu yoktu** — kayıt sonsuza kadar `pending` kalıyor ve link
+  (sample-pay suresi dolan oturumu YENİLEDİĞİ için) çalışmaya devam ediyordu.
+  Yeni: `sample_delete()` (`inc/samples.php`: yalnız `pending`, önce
+  `data/sample_backups/<ref>-<zaman>.json`, sonra geri okuma) +
+  `seller-products.yml` → **`admin_mode=sample_cancel`** (issue_ref=alıcı hesap ID
+  TAM eşleşme; ÖNCE Stripe oturumu `expire` edilir ve geri okunur, Stripe `paid`
+  derse iş DURUR — oturum açıkken kaydı silmek webhook'un bulamayacağı bir ref'e
+  para gelmesine izin verirdi; ödenmiş numune bu yoldan silinmez; müşteriye hiçbir
+  şey gitmez). Sonuç: *"Stripe oturumu KAPATILDI (expired, geri okundu) · SILINDI
+  — yedek SPL-2D481820-20260928-145448.json · kayıtta yok (doğrulandı)"*.
+  Linke tıklayan artık 404 görür.
+- **VES-F675713C silindi, iki adımda** (O748EE'nin yolu): `invoice_delete` →
+  INV-2026-1004 **arşivlendi** (2 dosya `data/invoices/deleted/`, geri okuma temiz;
+  **numara yanmış kalır**), sonra `order_delete` → 1 satır, geri okuma *"kayıtta
+  yok"*. `order_delete` artık **fatura muhafazasından ÖNCE** parası gelmiş ya da
+  dekontu yüklenmiş siparişi reddediyor (KURAL 7b'nin `vestra_order_payment_settled`
+  + KURAL 7'nin dekont kaydı) — silmek, yolda olan bir paranın izini silmek olurdu;
+  burada *"ödeme: gelmemiş | dekont yok"* ölçüldü. Yan düzeltme: kuru koşu
+  `count(vestra_order_lines($row))` basıyordu (dizinin 2 anahtarı) — her siparişte
+  "kalem: 2"; artık satırları sayıyor.
+- **Yeni sipariş `VES-D91DAB0B`**: 1 × SH9608 (Lacoste Fleece Crew Neck
+  Sweatshirt) **€39,90** + kargo **€20,10** = **€60,00**, kayıttan geri okundu.
+  *"60 eur shipping içinde"* böyle yazıldı çünkü `order_write` ilan kademesinden
+  (€39,90) PAHALI bir birim fiyatı **alıcı aleyhine** diye reddediyor; kalan €20,10
+  navluna gitti. Feragatler kayıtta (MOQ 50, 10'luk paket, ≥4 renk). **Renk ve
+  beden YAZILMADI** — talimatta yok, uydurulmadı; müşteriden gelince
+  `order_colours` ile yazılır.
+- **Fatura kesicisi kayıtta GARAGE LE PARIS** (`admin_mode=seller`, geri okundu;
+  belgede `invoice_name` = "Agaya Paris"); tek dilim, EUR ödeme kutusu 4 satır,
+  ödenecek €60,00. **Fatura KESİLMEDİ** — *"kesilecek fatura"* kesenin kim olacağını
+  söylüyor; "kes mi hazırla mı" belirsizse numara yakılmaz (O748EE dersi).
+- **Müşteriye HİÇBİR ŞEY gitmedi** (KURAL 18). Dikkat: müşterinin elinde hâlâ
+  **INV-2026-1004 (€429)** ve 27 Eylül'ün **ödeme hatırlatması** var, ayrıca bu
+  sabahki **€60 numune linki mektubu** (link artık 404). İptal/yeni sipariş
+  bildirimi operatör kararı.
+- Test: `tests/sample_delete_test.php` (32 iddia, iki yön: ödenmiş kayıt ve başka
+  alıcının kaydı yerinde kalır). Sabotajın uygulandığı `grep -c` ile doğrulanarak:
+  ödenmiş kayıt silinebilince **5 kırmızı**, ödeme/dekont muhafazası kalkınca **2**,
+  kayıt Stripe'tan önce silinince **2**.
+
 **KURAL 38 — AVRUPA AYAKKABI DÜKKÂNLARINA İLK TEMAS: 58 mektup, 0 hata; ve
 yolda İKİ SESSİZ ELEME bulundu** (operatör, 26 Eyl 2026, bir Google-AI
 sohbetini yapıştırıp: *"ayakkabi ve bir kac marka giyimden teklif gönder"* +
