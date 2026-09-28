@@ -1305,17 +1305,25 @@ function vestra_tpl_order_item_changed(string $buyerName, string $ref, array $fi
  * faturadan. $redrafted = "ayni numarayla yeniden cizildi, eski kopya gecersiz"
  * -- sablon bunu OLCEMEZ, operatorun ACIK bayragi (order_delivery /
  * order_discount deseni).
+ *
+ * $dueDate (28 Eyl 2026, siparis denetimi): odeme saati ISLIYORSA cagiran
+ * vestra_order_payment_grace()'in son tarihini verir ve mektup onu yazar --
+ * KURAL 7'nin ilkesi: mektubun verdigi son tarih, otomatik iptalin baktigi son
+ * tarihle AYNI olmali. Bos = saat henuz baslamamis, tarih YAZILMAZ (uydurulmaz).
  */
 function vestra_tpl_order_invoice_pdf(string $buyerName, string $ref, string $invoiceNo, float $total,
-        string $currency = 'EUR', bool $redrafted = false, bool $hasAccount = false, string $signer = ''): array {
+        string $currency = 'EUR', bool $redrafted = false, bool $hasAccount = false, string $signer = '',
+        string $dueDate = ''): array {
     $buyerName = vestra_display_name($buyerName);
     if ($buyerName === '') $buyerName = 'Customer';
     $cur = strtoupper(trim($currency)) ?: 'EUR';
     $amt = $cur.' '.number_format($total, 2, '.', ',');
+    $dueDate = trim($dueDate);
     $subject = "VESTRA — invoice {$invoiceNo} for order {$ref}";
 
     $rows = [['label'=>'Order ref', 'value'=>$ref], ['label'=>'Invoice', 'value'=>$invoiceNo],
              ['label'=>'Total due', 'value'=>$amt, 'strong'=>true]];
+    if ($dueDate !== '') $rows[] = ['label'=>'Payment due by', 'value'=>$dueDate];
     $opts = ['badge'=>'Invoice attached', 'rows'=>$rows];
     if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/order-confirm?ref='.rawurlencode($ref)];
 
@@ -1323,6 +1331,9 @@ function vestra_tpl_order_invoice_pdf(string $buyerName, string $ref, string $in
         "Dear {$buyerName},\n\n"
       . "Please find attached your invoice {$invoiceNo} for order {$ref} as a PDF.\n\n"
       . "Total due: {$amt}.\n\n"
+      . ($dueDate !== ''
+          ? "Payment is due by {$dueDate}. Orders that are not paid by then are cancelled automatically.\n\n"
+          : '')
       . ($redrafted
           ? "This copy keeps the same invoice number and replaces any earlier version of {$invoiceNo}.\n\n"
           : '')
