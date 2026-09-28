@@ -104,6 +104,9 @@ SOCIAL_HOSTS = {
     "tiktok.com", "youtube.com", "google.com", "goo.gl", "g.page", "business.site",
     "wa.me", "whatsapp.com", "pinterest.com", "linkedin.com", "tripadvisor.com",
     "yelp.com", "foursquare.com", "booking.com", "maps.app.goo.gl",
+    # randevu / bilet sayfalari (28 Eyl canli raporunda "site" diye geldiler):
+    # dukkanin kendi sitesi degil, ve 3 dukkan ayni hostu kullansa "cok subeli" sanilirdi
+    "calendly.com", "tickettailor.com",
 }
 # REHBER / BELEDIYE / YEREL-TICARET PORTALLARI: dukkanin KENDI sitesi degil. Ornek
 # verisinde gorulenler (FR) + her ulkenin buyuk sari sayfalari. Buradan cozulen
@@ -127,6 +130,8 @@ PLATFORM_SUFFIXES = (
     "business.site", "ueniweb.com", "godaddysites.com", "site123.me", "strikingly.com", "webador.com",
     "free.fr", "pagesperso-orange.fr", "orange.fr", "wanadoo.fr", "sfr.fr", "altervista.org",
     "over-blog.com", "e-monsite.com", "wifeo.com", "sitew.fr", "sitew.com", "webs.com",
+    # Ingiliz ISS'nin kisisel sayfa alani (28 Eyl canli raporunda kok kimlik olarak goruldu)
+    "freeserve.co.uk",
 )
 
 # DAGITICI / TOPTANCI sinyali -- AD icinde, kelime siniriyla. Ters yon testli:

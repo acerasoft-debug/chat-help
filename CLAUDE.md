@@ -10188,6 +10188,234 @@ Hedef ve "gönder" aynı mesajda → KURAL 18'in dar istisnası; yine de her par
   paylaşılıyor, o yüzden kalan sayı bu partinin dışındaki trafikle de
   değişiyor).
 
+**KURAL 40 — BUTİK AYAKKABI + AKSESUAR KEŞFİ: Overture Maps kullanılıyor (ücretsiz,
+üyeliksiz). Zincir, distribütör ve çok şubeli dükkânlar sebebiyle ELENİR; iş
+akışı hiçbir şey GÖNDERMEZ** (operatör, 28 Eyl 2026: *"bana workflow kur butik
+ayakkabi ve aksesuar arayan distribitör haric fakat bunu ararken ne gibi bir ek
+eklenti yada uygulama gerekiyorsa söyle üye olayim"*).
+- **Üyelik GEREKMİYOR. Kaynaklar araştırıldı:**
+  - **Overture Maps Places** kullanılıyor. Meta, Microsoft ve OSM verisinin
+    birleşimi; lisansı CDLA-Permissive-2.0, yani sonucu lead listesinde **saklamak
+    serbest**. Herkese açık S3'te duruyor, anahtar yok. Kategoriler verinin
+    kendisinden sayıldı (2026-09-23.1): shoe_store, fashion_accessories_store
+    (+ handbag_store, hat_store alt dalları), leather_goods_store.
+  - **Google Places BİLEREK seçilmedi.** Koşulları ad, site ve telefonun kalıcı
+    saklanmasına izin vermiyor: yalnız place_id süresiz, lat/lng 30 gün. Kalıcı
+    bir lead listesine uymuyor. *Mevcut `vestra_discover_google` (panelin Google
+    anahtarı kartı) aynı sorunu taşıyor; karar operatörün.*
+  - **İsteğe bağlı ücretli tamamlayıcı:** Outscraper. Ayda 500 kayıt bedava, sonra
+    ~$3 / 1.000; e-posta eklentisi +$3 / 1.000. Anahtar **panele** girilir,
+    sohbete ya da iş akışı girdisine asla girilmez.
+  - **İkinci ücretsiz kaynak:** Foursquare OS Places (Apache-2.0, Hugging Face'te
+    onayla erişim).
+  - **Hunter vb. "e-posta bulucu" önerilmedi.** Kurumsal biçimden adres
+    türetiyorlar; bu depoda **kayıtlı reddetme**.
+- **İş akışı: `discover-shops.yml`.** Girdiler: countries, kinds, per_country,
+  min_confidence, release. Boş girdi varsayılana düşer; varsayılanlar tek yerde,
+  env'de. Adımlar:
+  1. **Kayıtlı siteler.** Sunucudan salt okunur kayıtlı site / @alanadı okunur
+     (`scripts/discover_known.php`). Dosyaya gider, günlüğe basılmaz. Serbest posta
+     sağlayıcıları hariç. Barındırıcı ardışık SSH'yi kestiği için **3 deneme, 20 sn
+     ara**; hepsi düşerse liste boşalır ve rapor **en üstte** "ZATEN KAYITLI
+     elemesi YAPILMADI" yazar (adım günlüğündeki tek satır kolayca kaçıyordu).
+  2. **Overture sorgusu + eleme** (`scripts/discover_overture.py`). Tek sorgu,
+     **ülke başına dar kutu** (UNION ALL): her dal yalnız kendi ülkesinin kutusunu
+     tarar ve yalnız o ülkenin adresini alır. Kanarya, Madeira ve Azorlar ayrı dal
+     (ana kutular onları sessizce buduyordu). Ülke başına taxonomy dağılımı basılır.
+     Elenenler, sebebiyle:
+     - HEDEF DIŞI DAL: sorgu hedef dalın BÜTÜN alt dallarını getiriyor; kabul
+       listesinde (`KINDS`) olmayan dal aday yapılmaz, rapor alt kategorileri tek
+       tek sayar (ortopedi, tamir, ve oraya sızabilecek mücevher/gözlük gibi dallar).
+     - ZİNCİR: Overture'ın Wikidata marka eşleşmesi.
+     - ÇOK ŞUBELİ: aynı site ya da ad ≥3 yerde, ≥2 şehirde (KURAL 38 sınırı).
+       2 kapılı dükkân geçer.
+     - DAĞITICI: adda toptan / dağıtım kelimesi. Kelime sınırıyla, tekil ve çoğul
+       yazımlar ayrı ayrı.
+     - KAPALI.
+     - SİTESİZ: sosyal medya ve rehber sitesi de sitesiz sayılır.
+     - Düşük güven.
+     - ZATEN KAYITLI.
+  3. **Site ölçümü.** GitHub makinesinde, 16 paralel:
+     - KURAL 1: `vestra_lead_is_blocked`, yani sitenin KENDİ kodu;
+     - park alan adı;
+     - site açılıyor mu;
+     - sitede yayınlanmış adres var mı (`vestra_scrape_email`);
+     - servis adresi (KURAL 1h).
+
+     **Adresin kendisi hiçbir yere yazılmaz.**
+  4. **Rapor** (`scripts/discover_report.py`), ülke başına:
+     - hukuk satırı (aşağıda);
+     - HAZIR;
+     - ELLE DOĞRULA: site adla uyuşmuyor (marka ya da rehber sitesi olabilir) ya da
+       adres başka alan adında;
+     - SİTE AÇILMADI: runner IP'si engellenmiş olabilir, sunucudan denenebilir. Host
+       listesi basılır;
+     - elenenlerin sayıları.
+
+     HAZIR olanlar add-and-send için **≤20'lik site linki partileri** olarak
+     basılır:
+     - ayakkabı dükkânı → `letter=footwear`;
+     - aksesuar / çanta / şapka dükkânı → `letter=designer`. Katalogda aksesuar YOK;
+       çanta dükkânına ayakkabı mektubu gitseydi yanlış bir vaatle açılırdı.
+
+     add-and-send'in `send` varsayılanı **true**, o yüzden ilk koşu açıkça
+     `send=false` ile yapılır.
+- **Gönderim bilerek bu iş akışında DEĞİL.** Adres add-and-send'de **sunucuda**
+  siteden çözülüyor (KURAL 1f) ve bütün gönderim kapıları (KURAL 1, aynı firma,
+  DNS) orada çalışıyor. İkinci bir gönderim yolu yazmak o kapıların ikinci kopyası
+  olurdu.
+- **SOĞUK B2B E-POSTA ÜLKE ÜLKE — araştırıldı, özet, hukuki tavsiye değil.** Rapor
+  her ülkenin satırını basar ve izin isteyen ülkenin partisinin **üstüne** UYARI
+  yazar. Parti saklanmaz: karar operatörün, ama karar anında görünür.
+
+  | Ülke | Durum | Dayanak |
+  |---|---|---|
+  | DE | ÖNCEDEN İZİN | UWG §7(2) Nr. 2 — işletmeye de |
+  | AT | ÖNCEDEN İZİN | TKG 2021 §174 — işletmeye de |
+  | IT | ÖNCEDEN İZİN | Codice Privacy art. 130 — tüzel kişi dahil (Garante, 20.09.2012); meşru menfaat bunu aşmaz |
+  | ES | ÖNCEDEN İZİN | LSSI art. 21 — B2B dahil; eski müşteri istisnası dar |
+  | FR | serbest (koşullu) | CNIL: mesleğiyle ilgili B2B teklif izinsiz, her mektupta opt-out |
+  | BE | kısmen | KB 4.4.2003: yalnız tüzel kişinin GENEL adresi (info@, contact@) izinsiz |
+  | NL | kısmen | Tw art. 11.7: BV/NV/stichting izinsiz + opt-out; eenmanszaak/VOF/CV izin ister |
+  | GB | kısmen | PECR reg. 22: şirkete serbest; şahıs işletmesi / ortaklık izin ister |
+
+  Tabloda olmayan ülke **ARAŞTIRILMADI** basar, sessizce "serbest" sayılmaz.
+  **Varsayılan ülkeler bu yüzden FR,BE,NL,GB** (ilk sürümde FR,IT,ES,BE,NL idi;
+  DE/AT'yi dışarıda bırakan gerekçe IT ve ES için de geçerli çıktı). Diğer ülkeler
+  girdiyle verilir. *Geçmiş gönderimler (KURAL 38: DE 21, AT 2, IT 5, ES 4) bu
+  tablodan önce yapıldı; ne yapılacağı operatörün kararı.*
+- **Yeni dosya 404 verdi** (ilk push'tan sonra ölçüldü; pool-sweep.yml dersi).
+  Çözüm, yalnız bu dosyaya ve bu dala bakan dar bir `push` tetikleyicisi. O push işi
+  bir kez koşturup kaydetti (workflow_id 369537864); artık `run_workflow` ile
+  `ref=bu dal` üzerinden tetiklenebiliyor. İş salt okunur olduğu için kayıt koşusu
+  güvenli. **GitHub arayüzündeki "Run workflow" düğmesi büyük olasılıkla görünmez**
+  (dosya varsayılan dalda değil; doğrulanmadı); tetikleme API / oturum üzerinden.
+  *Bu dosyaya dokunan her push işi varsayılanlarla bir kez daha koşturur — salt
+  okunur, zararsız.*
+- **İş tavanı 90 dk.** Overture adımı 5 ülkede ~15-20 dk, adres ölçümü işçi başına
+  1500 sn tavanlı; 60'ta ikisi üst üste binince rapor adımı hiç koşmazdı.
+- **Test yazarken bulunan sessiz eleme / çöküşler, hepsi düzeltildi:**
+  1. **Serbest posta sağlayıcısı kayıtlı firma sayılırdı.** `@orange.fr` gibi bir
+     alan adı kayıtlı listeye girse, `monsite.orange.fr` ya da `x.free.fr` gibi
+     kişisel sayfalı dükkânlar "ZATEN KAYITLI" diye elenirdi. KURAL 38'in
+     wanadoo/hotmail vakasının keşif hâli. Sunucu tarafı artık
+     `vestra_email_is_shared_provider()` ile süzüyor.
+  2. **ISS kişisel sayfaları tek bir zincir gibi görünürdü.** Kök alan adı kimlik
+     sayılsaydı, `free.fr` ya da `altervista.org` gibi bir barındırıcıdaki ilgisiz
+     üç dükkân "aynı site 3 yerde" → ÇOK ŞUBELİ olurdu; ikinci kapı
+     tekilleştirmesi de onları sessizce silerdi. Bu alanlar artık platform
+     listesinde; kimlik tam host.
+  3. **Birleşik kutu bir ülkeyi sessizce budardı.** Küçük harfli ülke kodu kutu
+     listesinde bulunamıyordu, yani kutu o ülkeyi dışarıda bırakıyordu. Şimdi
+     kutusu olmayan tek bir ülke bile varsa kutu hiç uygulanmıyor.
+  4. **Hiyerarşiden sızan dal aday olurdu.** Sorgu `list_has_any(hierarchy, …)`
+     ile alt dalları topluyor; kabul listesi yokken hedef dalın altındaki HER dal
+     (ör. mücevher) aday yapılırdı. Şimdi "hedef dışı dal (<kategori>)".
+  5. **Rapor çöküyordu:** elenen satırı olmayan bir ülke (küçük ülke, dar koşu)
+     `{}` üzerinde `.most_common()` çağırıp BÜTÜN raporu düşürüyordu. Hukuk satırı
+     testine İtalya/Portekiz adayı eklenince yakalandı; canlıda her ülkede binlerce
+     elenen olduğu için görünmemişti.
+
+  Ayrıca: ad-site eşleşmesi genel kelimeye kanıyordu ("Chaussures Martin" →
+  `chaussures.fr`). Artık ayırt edici kelime karar veriyor; Almanca `Müller` için
+  hem `mueller` hem `muller` deneniyor.
+- **Test:** `tests/discover_shops_test.php`, **111 iddia**. İçerik:
+  - classify, sentetik Overture satırlarıyla;
+  - **main() uçtan uca: GERÇEK SQL DuckDB'de** sentetik bir Overture parquet'inde
+    koşuyor (hiyerarşi genişlemesi, küçük harfli ülke, hedef dışı dal, başka ülke,
+    iki ülkeli UNION ALL);
+  - çözümleyici sahte ağla, ayrıca yerel `php -S` "dükkânlarıyla" uçtan uca;
+  - `discover_known.php`, kum havuzundaki HOME'da;
+  - rapor (kovalar, partiler, hukuk satırı, uyarı) ve SQL kurucusu;
+  - iş akışı güvenliği.
+
+  **Sabotajların hepsi kırmızı döndü** (her birinin uygulandığı ayrıca sayıldı;
+  parantez içi kırmızı iddia sayısı):
+  - eleme: zincir, kelime sınırı, çok şube eşiği, umlaut, kayıtlı kontrolü, hedef
+    alt dal (1'er); rehber siteleri, ayırt edici kelime (2'şer); kabul listesi (3);
+  - SQL: hiyerarşi genişlemesi (5), dal başına ülke yerine IN listesi (5),
+    `upper()` (4), her dal ilk ülkenin kutusu (2), ada kutuları / kutusuz tekrar dal
+    / kutusuz ülke atlanıyor (1'er);
+  - çözümleyici ve sızıntı: adres sızıntısı (4), serbest sağlayıcı süzgeci (2),
+    BAŞKA ALAN ADI (2), erişim sırası (1);
+  - rapor: `{}` hatası geri geldi (4), liste sayısı sabit (3), bilinmeyen ülke
+    "serbest" (2), her dükkâna footwear (2), açılmayan site HAZIR'a (2), parti boyu,
+    kategori dökümü, hukuk satırı, uyarı her ülkeye / hiç (1'er);
+  - iş akışı: girdi run bloğuna, dar olmayan push, SSH tek deneme, liste sayısı
+    rapora geçmiyor (1'er);
+  - hostlar: free.fr, freeserve.co.uk, randevu/bilet hostları (1'er).
+- **Ölçüm tuzakları:**
+  1. Test fikstürü `boutique.a.test@gmail.com` kazıyıcının çöp süzgecine takıldı
+     (`test` yer tutucu sayılıyor) ve "adres yok" dedirtti. Kod haklıydı.
+  2. Bu ortam dükkân sitelerine çıkamıyor (vekil CONNECT 403). Yerel koşu her
+     adayı "SİTE AÇILMADI" gösterdi; ayrı kova bunu doğru sınıfladı. Canlı ölçüm
+     GitHub makinesinde yapıldı.
+  3. İlk canlı koşuyu **erken iptal ettim**. Koşu yavaş sanmıştım, oysa
+     ilerliyordu: FR 472 sn, IT 260 sn, ES 97 sn, BE 26 sn. Günlük yalnız iş
+     bitince okunabiliyor. Yine de işe yaradı: ülke başına yeniden taramayı
+     gösterdi ve sorgu tek geçişe indirildi.
+     *İptal etmeden önce, bekleme süresini tahminle değil tavanla kıyasla.*
+  4. **Sorgu biçimi iki kez ölçülerek değişti.** Ülke başına ayrı sorgu: FR 472 +
+     IT 260 + ES 97 + BE 26 sn (her sorgu dosya listesini ve dipnotları yeniden
+     okuyordu). Tek BİRLEŞİK kutu: 22 dakikayı geçti — FR..IT..NL dikdörtgeni
+     Almanya'yı, Alpleri ve İngiltere'nin güneyini de tarıyordu; birbirinden uzak
+     iki ülkede (FI + PT) bütün Avrupa'yı tarardı. O koşu **kod eskidiği için**
+     iptal edildi (kabul listesi yoktu, iş tavanı 60 dk idi), ilerlemesi tahmin
+     edilerek değil. Şimdiki biçim: tek sorgu, dal başına dar kutu.
+  5. İlk hiyerarşi sabotajım SQL'i sözdizimi hatasıyla bozdu (fazla parantez) ve
+     "6 kırmızı" verdi — ama ölçtüğü şey sorgunun çalışmaması, genişlemenin
+     kalkması değil. Temiz kaldırmayla yeniden yapıldı: 5 kırmızı.
+     *Sabotaj ölçmek istediği şeyi değiştirmeli, programı kırmamalı.*
+- **CANLI ÖLÇÜM 1 (28 Eyl 2026, run `36488983054`, FR/BE/NL/GB, ülke başına 80):**
+  - Overture 2026-09-23.1: **23.035 yer**, tek sorgu **954 sn** (birleşik kutu aynı
+    işte 22 dakikayı geçmişti).
+  - Ülke başına dağılım: FR 9.013 (ayakkabı 6.967, aksesuar 1.768, şapka 240, deri
+    37, çanta 1), BE 2.100, NL 3.219, GB 8.703. Hiyerarşiden sızan dal **yok** —
+    kabul listesinin eli yalnız ortopedide değdi (42).
+  - Overture elemesi 15.712: ÇOK ŞUBELİ 5.220, ZİNCİR 5.147, SİTESİZ 2.698, düşük
+    güven 2.576, hedef dışı dal 42, DAĞITICI 29. Ülke başına 80 aday → **320**.
+  - Site ölçümü 16 işçi, 71–130 sn. Sonuç: **HAZIR 142** (BE 34, FR 24, GB 40,
+    NL 44), ELLE DOĞRULA 34, SİTE AÇILMADI 53, sitede adres yok 87, KURAL 1 4.
+  - **Sunucu okuması KOPTU** (`kex_exchange_identification: Connection reset by
+    peer`), yani bu koşuda ZATEN KAYITLI elemesi YAPILMADI — adım günlüğünde tek
+    satır vardı, rapor hiçbir şey söylemiyordu. Aynı dakikada deploy da aynı hatayla
+    düştü: barındırıcı eşzamanlı SSH'yi kesiyor. Düzeltme 3 deneme + raporun
+    en üstünde uyarı (yukarıda).
+  - **HAZIR elle okundu (KURAL 1i) ve kod dört KURAL 1'i geçirmişti**, hepsi
+    araştırılarak doğrulandı ve bloklandı: Mephisto Vichy (yalnız Mephisto
+    grubunun markaları — marka dükkânı; Brugge'deki "Mephisto Shop" da), Ally
+    Capellino (tasarımcının kendi etiketi), James Taylor & Son (1857, bütün
+    ayakkabısı kendi atölyesinde), Norbert Bottier (1981'den beri kendi markası).
+    Bağımsız çıkanlar: Maury (iki kapısı da Knokke'de), Pas à Pas (Reims, tek
+    dükkân), Gabrielli (tek dükkân, kapanıyor). **Sınırda**, operatör kararı:
+    Chapellerie Traclet (kendi atölyesi + perakende), Elevate Your Sole (KURAL 38'de
+    zaten bekleyen). *"HAZIR" = kod geçirdi, "gönder" değil.* `blocklist_test`
+    508 iddia; girişler silinince 10 kırmızı, `taylor` ya da `bottier` tek başına
+    eklenince 1'er kırmızı (soyad / meslek adı — mango/zara dersi).
+  - Kanal uyumu zayıf ama KURAL 1 olmayanlar (eleme değil, operatöre not): dans
+    ayakkabısı dükkânları (Dancia, 4 Dance, Beatz N Pointe), ayak sağlığı /
+    ortopedi merkezleri (Rameau Voetzorg, Snoeren Voetspecialist, Medipro,
+    Mook Schoentechniek), ayakkabı tamircileri (NL "schoenmakerij"), şapka
+    KİRALAMA (Felicity Hat Hire).
+- **CANLI ÖLÇÜM 2 (run `36489365143`, 3 denemeli sürüm):** sunucu okuması 2 sn'de
+  geçti ve raporun ilk satırı *"8562 -- ZATEN KAYITLI elemesi yapildi"* dedi.
+  Overture 952 sn. ZATEN KAYITLI **117** (BE 23, FR 40, GB 20, NL 34); ülke başına
+  tavan boşalan yerleri doldurdu: **aday 320 → HAZIR 143** (BE 33, FR 24, GB 40,
+  NL 46), ELLE DOĞRULA 32, SİTE AÇILMADI 52, sitede adres yok 89, KURAL 1 4.
+  - **Birinci koşunun HAZIR listesi kirliydi:** Norbert Bottier, Michard Ardillier,
+    Mertens Schoenen gibi dükkânlar zaten lead kayıtlarındaydı ve ikinci koşuda
+    düştü (iki koşu arasında sınıflandırma değişmedi; bir adayı listeden ancak
+    eleme çıkarabilir, tavan yalnız yukarı kaydırır). *Rapor okunmadan önce ilk
+    satırı okunmalı.*
+  - Koşu blok listesi commit'inden ÖNCEydi (7471c04): Mephisto Vichy, James Taylor
+    & Son ve Ally Capellino listede hâlâ görünüyor; sunucu onları artık engelliyor
+    (deploy 54d7696, kanaryalar yeşil), bir sonraki keşif koşusunda da düşecekler.
+  - Canlı veride iki host sınıfı daha görüldü ve eklendi: randevu / bilet sayfası
+    (`calendly.com`, `tickettailor.com` — dükkânın sitesi değil) ve İngiliz ISS
+    kişisel sayfası (`freeserve.co.uk` → tam host kimliği; free.fr dersinin aynısı).
+- **Gönderim YAPILMADI.** HAZIR partileri add-and-send'e önce `send=false` ile
+  verilir; hangi ülkeye gideceği (tablo yukarıda) ve sınırdakiler operatör kararı.
+
 ## Uygulama (PWA) ve bildirimler
 
 **KURAL 39 — BİLDİRİM PUSH'UN İÇİNDE, ALICININ DİLİNDE ve CİHAZ BAŞINA

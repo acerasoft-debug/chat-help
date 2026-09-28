@@ -102,7 +102,8 @@ print(json.dumps({"final": final, "dropped": dropped, "capped": capped, "known":
 PY;
 $hosts = ['https://www.Chaussures-Lecarrer.fr/contact', 'shop.example.co.uk', 'https://x.wixsite.com/shop',
           'https://m.facebook.com/x', 'https://www.pagesjaunes.fr/x', 'localhost', 'https://negozio.altervista.org',
-          'mailto:x@y.fr', 'www.boutique.com.au', 'a.b.example.de'];
+          'mailto:x@y.fr', 'www.boutique.com.au', 'a.b.example.de', 'https://calendly.com/rubyruby',
+          'http://www.shopx.freeserve.co.uk/', 'https://www.tickettailor.com/events/x'];
 $pairs = [['Chaussures Le Carrer', 'chaussures-lecarrer.fr'], ['Le Gal et Cano', 'kipling.com'],
           ['My Shoes', 'my-shoes.com'], ['Chaussures Martin', 'chaussuresmartin.free.fr'], ['Chaussures Martin', 'chaussures.fr'],
           ['Schuhhaus Müller', 'schuhhaus-mueller.de'], ['Schuhhaus Müller', 'muller-schuhe.de']];
@@ -152,6 +153,9 @@ $I = $J['ident'];
 $t('site kimligi: www + yol atilir, harf kucuk', $I['https://www.Chaussures-Lecarrer.fr/contact'] === 'chaussures-lecarrer.fr');
 $t('site kimligi: co.uk iki parcali', $I['shop.example.co.uk'] === 'example.co.uk');
 $t('site kimligi: platform alt alan adi TAM host', $I['https://x.wixsite.com/shop'] === 'x.wixsite.com' && $I['https://negozio.altervista.org'] === 'negozio.altervista.org');
+$t('canli raporda gorulen hostlar: randevu/bilet sayfasi site DEGIL, ISS kisisel sayfasi TAM host',
+   $I['https://calendly.com/rubyruby'] === '' && $I['https://www.tickettailor.com/events/x'] === ''
+   && $I['http://www.shopx.freeserve.co.uk/'] === 'shopx.freeserve.co.uk');
 $t('site kimligi: sosyal / rehber / noktasiz / mailto -> bos',
    $I['https://m.facebook.com/x'] === '' && $I['https://www.pagesjaunes.fr/x'] === '' && $I['localhost'] === '' && $I['mailto:x@y.fr'] === '');
 $t('ad-site eslesmesi: kendi adi / marka sitesi / tamami genel ad / platform', array_slice($J['match'], 0, 4) === [true, false, true, true]);
