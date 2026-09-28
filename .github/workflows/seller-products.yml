@@ -2984,6 +2984,28 @@ jobs:
               printf("belgede banka adresi: %s%s\n",
                      str_contains($pdf, 'Bank address') ? 'VAR' : '*** YOK ***',
                      str_contains($pdf, 'Germany') ? '  (ulke: Germany)' : '');
+
+              /* KALEMLER BELGEDE MI (28 Eyl 2026, VES-60594A18 model degisimi).
+                 SKU sutunu dar: uzun SKU iki satira SARILIYOR, ham baytta tam
+                 dizge yok -- vestra_pdf_drawn_text() cizim sirasini koruyup
+                 birlestiriyor. Siparisten CIKARILMIS bir kalem
+                 (order_statuses.line_changes) belgede hala duruyorsa yeniden
+                 cizim ise yaramamis demektir. SKU kisiye ait degil, basiliyor. */
+              require_once $doc."/inc/pdf.php";
+              $pdfT = function_exists('vestra_pdf_drawn_text') ? vestra_pdf_drawn_text($pdf) : '';
+              if ($pdfT === '') echo "belgede kalemler : OLCULEMEDI (vestra_pdf_drawn_text yok -- deploy inmemis?)\n";
+              else {
+                $skus = array_map(fn($l) => (string)$l['sku'], vestra_order_lines($ordRow)['lines']);
+                $seen = array_filter($skus, fn($s) => $s !== '' && str_contains($pdfT, $s));
+                printf("belgede kalemler : %d/%d SKU cizili%s\n", count($seen), count($skus),
+                       count($seen) === count($skus) ? '' : '  *** EKSIK: '.implode(', ', array_diff($skus, $seen)).' ***');
+                $stL = vestra_read_json('order_statuses.json');
+                foreach ((array)($stL[$ref]['line_changes'] ?? []) as $lc) {
+                  $from = (string)($lc['from'] ?? '');
+                  if ($from === '' || in_array($from, $skus, true)) continue;
+                  printf("belgede eski kalem %s: %s\n", $from, str_contains($pdfT, $from) ? '*** VAR -- belge ESKI ***' : 'yok');
+                }
+              }
             }
 
             $aes = random_bytes(32); $iv2 = random_bytes(16);
