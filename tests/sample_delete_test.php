@@ -77,6 +77,7 @@ $t('odeme sorusu var', $pPaid !== false);
 $t('odeme sorusu fatura muhafazasindan ONCE', $pPaid !== false && $pInv !== false && $pPaid < $pInv);
 $t('odenmis ya da dekontlu -> exit(1)', (bool)preg_match("/if \(!empty\(\\\$settled\['settled'\]\) \|\| \\\$receipt\) \{[^}]*exit\(1\)/s", $od));
 $t('silmeden ONCE', $pPaid !== false && $pDo !== false && $pPaid < $pDo);
+$t('kalem sayisi SATIRLARI sayar (dizinin anahtarlarini degil)', str_contains($od, "count(vestra_order_lines(\$row)['lines'] ?? [])") && !str_contains($od, 'count(vestra_order_lines($row)))'));
 
 array_map('unlink', glob($sand.'/sample_backups/*') ?: []);
 @rmdir($sand.'/sample_backups'); @unlink(samples_file()); @rmdir($sand);

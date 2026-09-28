@@ -1788,7 +1788,9 @@ jobs:
             printf("durum          : %s\n", (string)($st['status'] ?? 'pending'));
             if (trim((string)($st['invoice_currency'] ?? '')) !== '')
                 printf("fatura birimi  : %s   (operator secimi)\n", (string)$st['invoice_currency']);
-            printf("kalem          : %d\n", count(vestra_order_lines($row)));
+            /* vestra_order_lines() ['lines'=>…, 'notes'=>…] DONER: dizinin kendisini
+               saymak her sipariste "2" basiyordu (28 Eyl 2026, tek kalemli VES-F675713C). */
+            printf("kalem          : %d\n", count(vestra_order_lines($row)['lines'] ?? []));
 
             /* PARASI GELMIS ya da ALICI "ODEDIM" DEMIS siparis SILINMEZ (28 Eyl
                2026 eklendi). Silmek, tahsil edilmis ya da yolda olan bir paranin
