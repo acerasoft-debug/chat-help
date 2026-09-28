@@ -1155,6 +1155,48 @@ function vestra_tpl_order_delivery_confirmed(string $buyerName, string $ref, str
 }
 
 /**
+ * SIPARIS FATURASI, PDF EKLI (operator, 28 Eyl 2026, VES-D91DAB0B / Odzież
+ * Premium: fatura panelden kesilip e-postalandi, musteri "I dont have inovice"
+ * yazdi -- panelin mektubu PDF TASIMIYOR, siparis sayfasina yolluyor).
+ * Teklif faturalarinin mektubu belgeyi zaten ekliyordu; siparis faturasinin
+ * hic eklenmemesi bu yuzden kalmisti.
+ *
+ * RAKAMLAR CAGIRANDAN, kayittan: tutar siparis satirindan, numara kesilmis
+ * faturadan. $redrafted = "ayni numarayla yeniden cizildi, eski kopya gecersiz"
+ * -- sablon bunu OLCEMEZ, operatorun ACIK bayragi (order_delivery /
+ * order_discount deseni).
+ */
+function vestra_tpl_order_invoice_pdf(string $buyerName, string $ref, string $invoiceNo, float $total,
+        string $currency = 'EUR', bool $redrafted = false, bool $hasAccount = false, string $signer = ''): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $cur = strtoupper(trim($currency)) ?: 'EUR';
+    $amt = $cur.' '.number_format($total, 2, '.', ',');
+    $subject = "VESTRA — invoice {$invoiceNo} for order {$ref}";
+
+    $rows = [['label'=>'Order ref', 'value'=>$ref], ['label'=>'Invoice', 'value'=>$invoiceNo],
+             ['label'=>'Total due', 'value'=>$amt, 'strong'=>true]];
+    $opts = ['badge'=>'Invoice attached', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/order-confirm?ref='.rawurlencode($ref)];
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Please find attached your invoice {$invoiceNo} for order {$ref} as a PDF.\n\n"
+      . "Total due: {$amt}.\n\n"
+      . ($redrafted
+          ? "This copy keeps the same invoice number and replaces any earlier version of {$invoiceNo}.\n\n"
+          : '')
+      . "Please pay by bank transfer to the account shown on the invoice and quote {$ref} as the reference. "
+      . "Once you have sent the transfer, let us know: upload the payment confirmation on your order page, "
+      . "or simply reply to this e-mail.\n\n"
+      . "Kind regards,\n\n"
+      . ($signer !== ''
+          ? $signer."\nVESTRA – vestrasales.com"
+          : "VESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com");
+    return [$subject, $body, $opts];
+}
+
+/**
  * Sitede ilan uzerinden yazan aliciya, sitede verilen cevabin E-POSTA hali
  * (operator, 26 Eyl 2026, Odzież Premium: iki ilanda "Good morning" yazdi,
  * cevaplar sitede Marca Online / GARAGE LE PARIS adina verildi, sonra
