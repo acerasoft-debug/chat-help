@@ -95,6 +95,8 @@ print(json.dumps({"final": final, "dropped": dropped, "capped": capped, "known":
     "sql": m.build_sql("SRC", ["fr", "IT"], ["shoe_store", "x'y"], True),
     "sql_nobox": m.build_sql("SRC", ["FR"], ["shoe_store"], False),
     "sql_unknown": m.build_sql("SRC", ["FR", "XX"], ["shoe_store"], True),
+    "sql_islands": m.build_sql("SRC", ["ES", "PT"], ["shoe_store"], True),
+    "sql_islands_nobox": m.build_sql("SRC", ["ES", "PT"], ["shoe_store"], False),
     "mix": m.category_mix([{"cat": "shoe_store"}, {"cat": "hat_store"}, {"cat": "shoe_store"}, {"cat": None}]),
     "mix_empty": m.category_mix([])}))
 PY;
@@ -156,12 +158,25 @@ $t('ad-site eslesmesi: kendi adi / marka sitesi / tamami genel ad / platform', a
 $t('ayirt edici kelime KARAR VERIR: "Chaussures Martin" -> chaussures.fr ESLESMEZ', $J['match'][4] === false);
 $t('Almanca: Müller -> mueller VE muller', $J['match'][5] === true && $J['match'][6] === true);
 $Q = preg_replace('/\s+/', ' ', $J['sql']);
-$t('TEK gecis: iki ulkenin BIRLESIK kutusu (FR bati/kuzey + IT dogu/guney)',
-   str_contains($Q, 'bbox.xmin >= -5.14') && str_contains($Q, 'bbox.xmax <= 18.52') && str_contains($Q, 'bbox.ymin >= 35.49') && str_contains($Q, 'bbox.ymax <= 51.09'));
-$t('asil karar adresin ulke kodu (buyuk harfe cekilmis IN listesi)', str_contains($Q, "upper(addresses[1].country) IN ('FR','IT')"));
+$br = function (string $sql): array { return array_map(fn($b) => preg_replace('/\s+/', ' ', $b), explode('UNION ALL', $sql)); };
+$B = $br($J['sql']);
+$t('ULKE BASINA DAR KUTU: iki ulke = iki dal, her dal YALNIZ kendi kutusu (birlesik dikdortgen yok)',
+   count($B) === 2 && str_contains($B[0], 'bbox.xmin >= -5.14 AND bbox.xmax <= 9.56') && str_contains($B[0], "= 'FR'")
+   && str_contains($B[1], 'bbox.xmin >= 6.63 AND bbox.xmax <= 18.52') && str_contains($B[1], "= 'IT'")
+   && !str_contains($Q, 'bbox.xmax <= 18.52 AND bbox.ymin >= 35.49 AND bbox.ymax <= 51.09'));
+$t('asil karar adresin ulke kodu, dal basina (kucuk harfli "fr" buyuk harfe cekildi)',
+   str_contains($B[0], "upper(addresses[1].country) = 'FR'") && str_contains($B[1], "upper(addresses[1].country) = 'IT'"));
 $t('kategori tirnaklari kacisli (SQL enjeksiyonu yok)', str_contains($Q, "'x''y'") && !str_contains($Q, "'x'y'"));
-$t('kutusu olmayan ulke varsa kutu HIC uygulanmaz (sessiz budama yok)', !str_contains($J['sql_unknown'], 'bbox.') && str_contains($J['sql_unknown'], "IN ('FR','XX')"));
-$t('yerel dosyada kutu yok', !str_contains($J['sql_nobox'], 'bbox.') && str_contains($J['sql_nobox'], "IN ('FR')"));
+$U = $br($J['sql_unknown']);
+$t('kutusu olmayan ulke: YALNIZ onun dali kutusuz (tam tarama, sessiz budama yok); FR yine dar kutulu',
+   count($U) === 2 && str_contains($U[0], 'bbox.') && str_contains($U[0], "= 'FR'") && !str_contains($U[1], 'bbox.') && str_contains($U[1], "= 'XX'"));
+$N = $br($J['sql_nobox']);
+$t('yerel dosyada kutu yok, tek dal', count($N) === 1 && !str_contains($N[0], 'bbox.') && str_contains($N[0], "= 'FR'"));
+$I2 = $br($J['sql_islands']);
+$t('ADALAR ayri dal: ES ana kutu + Kanarya, PT ana kutu + Madeira + Azorlar (sessizce budanmaz)',
+   count($I2) === 5 && str_contains($I2[1], 'bbox.xmin >= -18.2') && str_contains($I2[1], "= 'ES'")
+   && str_contains($I2[3], 'bbox.xmin >= -17.3') && str_contains($I2[4], 'bbox.xmin >= -31.3') && str_contains($I2[4], "= 'PT'"));
+$t('kutu yoksa ada dali da YOK (ayni satir iki kez gelmez)', count($br($J['sql_islands_nobox'])) === 2);
 $t('ulke basina kategori dagilimi basilir (en kalabalik once, bos kategori "?")',
    $J['mix'] === 'shoe_store 2, hat_store 1, ? 1' && $J['mix_empty'] === '-');
 $t('kayitli liste: www atilir, @alanadi alan adina doner',
@@ -205,7 +220,7 @@ PY;
     $mdw = []; foreach ($md as $d) $mdw[$d['name']] = $d['why'];
     $t('main kostu', $mrc === 0);
     if ($mrc !== 0) echo $me;
-    $t('SQL tek geciste 4 yer getirdi (hedef disi dal, kucuk harfli ulke dahil; giyim + DE yok)', str_contains($mo, 'tek gecis: 4 yer'));
+    $t('SQL tek sorguda 4 yer getirdi (hedef disi dal, kucuk harfli ulke dahil; giyim + DE yok)', str_contains($mo, 'tek sorgu (ulke basina dar kutu): 4 yer'));
     $t('ulke basina kategori dagilimi GERCEK kosuda basiliyor',
        (bool)preg_match("/FR: Overture'da 4 yer \| .*jewelry_store 1/", $mo) && str_contains($mo, 'hat_store 1') && str_contains($mo, 'orthopedic_shoe_store 1'));
     $t('adaylar yalniz hedef dallar: ayakkabi + sapka (kucuk harfli "fr" kaybolmadi)', $mcn === ['Chapeaux Delta', 'Chaussures Alpha']);
@@ -213,6 +228,14 @@ PY;
     $t('ortopedi elendi, sebebiyle', ($mdw['Podologie Zeta'] ?? '') === 'hedef disi dal (orthopedic_shoe_store)');
     $t('hedef olmayan dal ve baska ulke sorguya HIC girmedi', !isset($mdw['Vetements Gamma']) && !isset($mdw['Schuhhaus Epsilon'])
        && !in_array('Vetements Gamma', $mcn, true) && !in_array('Schuhhaus Epsilon', $mcn, true));
+    // IKI ulke: UNION ALL DuckDB'de GERCEKTEN kosuyor (metin degil), her dal yalniz kendi ulkesi
+    [$m2rc, $m2o, $m2e] = $run(['python3', $root.'/scripts/discover_overture.py', '--countries', 'FR,DE', '--kinds', 'shoes,accessories',
+        '--sample-parquet', $pq, '--out', "$sand/mc2.json"]);
+    $mc2 = json_decode((string)@file_get_contents("$sand/mc2.json"), true) ?: [];
+    $t('iki ulke tek sorguda (UNION ALL gercek kosu): 5 yer, FR 4 + DE 1, ayni satir iki kez YOK',
+       $m2rc === 0 && str_contains($m2o, 'tek sorgu (ulke basina dar kutu): 5 yer') && str_contains($m2o, "FR: Overture'da 4 yer")
+       && str_contains($m2o, "DE: Overture'da 1 yer") && count($mc2) === 3 && count(array_unique(array_column($mc2, 'name'))) === 3);
+    if ($m2rc !== 0) echo $m2e;
 }
 
 echo "\n== 2. PHP kok alan adi = Python site kimligi (iki dil ayni kural) ==\n";

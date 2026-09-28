@@ -78,6 +78,15 @@ BBOX = {
     "RO": (20.26, 43.62, 29.69, 48.27), "SE": (11.03, 55.34, 24.17, 69.06),
     "SI": (13.38, 45.42, 16.61, 46.88), "SK": (16.83, 47.73, 22.57, 49.61),
 }
+# ANA KUTUNUN DISINDA KALAN ADALAR: ana kutuyu okyanusa buyutmek (Kanarya -18 bati)
+# Fas'in Atlantik kiyisini da taramak demekti; ayri kutu, ayri UNION ALL dali.
+# Kutular birbirine degmiyor ve her dal yalniz o ulkenin adresini aliyor, yani ayni
+# yer iki kez gelemez. Bunlar yazilmadan once Kanarya / Madeira / Azorlar SESSIZCE
+# budaniyordu (ana kutu ES 35.95'ten, PT -9.53'ten basliyor).
+EXTRA_BOXES = {
+    "ES": [(-18.20, 27.60, -13.40, 29.50)],                                  # Kanarya
+    "PT": [(-17.30, 32.60, -16.20, 33.20), (-31.30, 36.90, -24.90, 39.80)],  # Madeira, Azorlar
+}
 COUNTRY_NAME = {
     "AT": "Austria", "BE": "Belgium", "BG": "Bulgaria", "CH": "Switzerland", "CY": "Cyprus",
     "CZ": "Czech Republic", "DE": "Germany", "DK": "Denmark", "EE": "Estonia", "ES": "Spain",
@@ -224,24 +233,33 @@ def _q(s: str) -> str:
 
 
 def build_sql(source: str, ccs: list, cats: list, use_bbox: bool) -> str:
-    """TEK uzak gecis: istenen butun ulkeler bir sorguda. Ulke basina ayri sorgu,
-    ayni uzak dosyalari ulke sayisi kadar yeniden tarardi (28 Eyl ilk canli kosusu:
-    5 ulke, Overture adimi 13+ dakika). Kutu = ulke kutularinin BIRLESIMI (yalniz
-    satir grubu atlamak icin, DuckDB bbox'i parquet okumasina itiyor); asil karar
-    adresin KENDI ulke kodu."""
+    """TEK sorgu, ULKE BASINA DAR KUTU (UNION ALL). Her dal yalniz kendi ulkesinin
+    kutusunu tarar (DuckDB kutuyu parquet satir grubu istatistigine itiyor) ve
+    yalniz o ulkenin adresini alir -- dallar ayni satiri iki kez getiremez.
+
+    Iki onceki surum de olculdu (28 Eyl 2026, 5 ulke):
+      - ulke basina AYRI sorgu: FR 472 + IT 260 + ES 97 + BE 26 sn -- her sorgu dosya
+        listesini ve dipnotlari yeniden okuyordu;
+      - TEK BIRLESIK kutu: 20 dakikayi gecti. Birlesik dikdortgen FR..IT..NL arasinda
+        Almanya'yi, Alpleri, Ingiltere'nin guneyini de kapsiyordu; birbirinden uzak iki
+        ulkede (FI + PT) butun Avrupa'yi tarardi.
+    Dar kutu SATIR BUDAMAK icin; asil karar adresin KENDI ulke kodu. Kutusu olmayan
+    ulkenin dalinda kutu yok (tam tarama, ama SESSIZ budama da yok -- kucuk harfli
+    "fr" bir kez boyle kayboluyordu)."""
     cat_sql = ",".join(_q(c) for c in cats)
-    cc_sql = ",".join(_q(c.upper()) for c in ccs)
-    where_bbox = ""
-    boxes = [BBOX[c.upper()] for c in ccs if c.upper() in BBOX]
-    # Kutusu olmayan tek bir ulke bile varsa kutu HIC uygulanmaz: birlesik kutu o
-    # ulkeyi disarida birakir ve satirlari SESSIZCE budanirdi (test: kucuk harfli
-    # "fr" boyle kayboluyordu).
-    if use_bbox and boxes and len(boxes) == len(ccs):
-        x0, y0 = min(b[0] for b in boxes), min(b[1] for b in boxes)
-        x1, y1 = max(b[2] for b in boxes), max(b[3] for b in boxes)
-        where_bbox = (f"bbox.xmin >= {x0} AND bbox.xmax <= {x1} AND "
-                      f"bbox.ymin >= {y0} AND bbox.ymax <= {y1} AND ")
-    return f"""
+    branches = []
+    for c in ccs:
+        cc = c.upper()
+        # Kutu yoksa (yerel dosya ya da kutusuz ulke) TEK dal: ek kutular ancak kutu
+        # uygulanirken ayri dal olur, yoksa ayni satirlar dal sayisi kadar gelirdi.
+        boxes = ([BBOX[cc]] + EXTRA_BOXES.get(cc, [])) if (use_bbox and cc in BBOX) else [None]
+        for box in boxes:
+            where_bbox = ""
+            if box:
+                x0, y0, x1, y1 = box
+                where_bbox = (f"bbox.xmin >= {x0} AND bbox.xmax <= {x1} AND "
+                              f"bbox.ymin >= {y0} AND bbox.ymax <= {y1} AND ")
+            branches.append(f"""
       SELECT id, names.primary AS name, taxonomy.primary AS cat, taxonomy.hierarchy AS hier,
              websites, emails, phones, brand.wikidata AS brand_wd, brand.names.primary AS brand_name,
              addresses[1].locality AS city, upper(addresses[1].country) AS cc, addresses[1].postcode AS postcode,
@@ -249,8 +267,8 @@ def build_sql(source: str, ccs: list, cats: list, use_bbox: bool) -> str:
       FROM {source}
       WHERE {where_bbox}
             (taxonomy.primary IN ({cat_sql}) OR list_has_any(taxonomy.hierarchy, [{cat_sql}]))
-            AND upper(addresses[1].country) IN ({cc_sql})
-    """
+            AND upper(addresses[1].country) = {_q(cc)}""")
+    return "\n      UNION ALL".join(branches) + "\n"
 
 
 def query_rows(con, sql: str):
@@ -398,6 +416,13 @@ def main():
         use_bbox = False
     else:
         con.execute("INSTALL httpfs; LOAD httpfs; SET s3_region='us-west-2';")
+        # Dallar ayni uzak dosyalari okuyor: dipnotlar (parquet metadata) ve HTTP
+        # basliklari bir kez cekilsin. Ayar eski bir surumde yoksa sorgu yine calisir.
+        for opt in ("SET parquet_metadata_cache = true", "SET enable_http_metadata_cache = true"):
+            try:
+                con.execute(opt)
+            except Exception as e:  # noqa: BLE001 -- ayar yoksa yalniz yavaslar
+                print(f"  (ayar uygulanmadi: {opt} -- {e.__class__.__name__})", flush=True)
         rel = a.release or latest_release()
         source = f"read_parquet('s3://{S3_BUCKET}/release/{rel}/theme=places/type=place/*', hive_partitioning=1)"
         use_bbox = True
@@ -408,10 +433,11 @@ def main():
     rows_by_cc = {cc: [] for cc in ccs}
     for r in rows:
         rec = dict(zip(cols, r))
-        # Birlesik kutu komsu ulkeleri de kapsar: adresin KENDI ulke kodu karar verir.
+        # Her dal zaten kendi ulkesini aliyor; bu satir yine de adresin KENDI ulke
+        # kodunu esas alir (istenmeyen bir ulke hicbir listeye sizmaz).
         if (rec.get("cc") or "") in rows_by_cc:
             rows_by_cc[rec["cc"]].append(rec)
-    print(f"  tek gecis: {len(rows)} yer, {time.time()-t:.0f} sn", flush=True)
+    print(f"  tek sorgu (ulke basina dar kutu): {len(rows)} yer, {time.time()-t:.0f} sn", flush=True)
     for cc in ccs:
         print(f"  {cc}: Overture'da {len(rows_by_cc[cc])} yer | " + category_mix(rows_by_cc[cc]), flush=True)
 
