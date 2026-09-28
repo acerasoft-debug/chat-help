@@ -94,12 +94,23 @@ jobs:
         run: |
           umask 077
           printf '%s\n' "$SSH_KEY" > "$RUNNER_TEMP/dk"
-          if ssh -i "$RUNNER_TEMP/dk" -p "$SSH_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-               -o LogLevel=ERROR -o ConnectTimeout=25 "$SSH_USER@$SSH_HOST" php < scripts/discover_known.php > known.txt; then
+          # Barindirici ardisik SSH baglantilarini kesiyor (CLAUDE.md, 26 Eyl: 7 denemenin
+          # 5'i "connection reset"). Salt okunur bir okuma: 3 deneme, aralarinda 20 sn.
+          # Her deneme known.txt'yi bastan yazar; yarim kalan cikti bir sonrakinde silinir.
+          ok=0
+          for attempt in 1 2 3; do
+            if ssh -i "$RUNNER_TEMP/dk" -p "$SSH_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+                 -o LogLevel=ERROR -o ConnectTimeout=25 "$SSH_USER@$SSH_HOST" php < scripts/discover_known.php > known.txt; then
+              ok=1; break
+            fi
+            echo "(sunucu baglanti denemesi $attempt basarisiz)"
+            if [ "$attempt" -lt 3 ]; then sleep 20; fi
+          done
+          if [ "$ok" = 1 ]; then
             echo "kayitli site/alan adi satiri: $(wc -l < known.txt)"
           else
             : > known.txt
-            echo "(uyari: sunucudan okunamadi -- ZATEN KAYITLI elemesi yapilmayacak, add-and-send yine atlar)"
+            echo "(uyari: sunucudan okunamadi -- ZATEN KAYITLI elemesi yapilmayacak; rapor bunu EN USTTE yazar)"
           fi
           rm -f "$RUNNER_TEMP/dk"
 
@@ -128,4 +139,4 @@ jobs:
           wait
 
       - name: Rapor
-        run: python3 scripts/discover_report.py cands.json dropped.json res_*.json
+        run: KNOWN_COUNT="$(wc -l < known.txt)" python3 scripts/discover_report.py cands.json dropped.json res_*.json

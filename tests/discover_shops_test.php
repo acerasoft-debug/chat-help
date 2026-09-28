@@ -367,9 +367,16 @@ file_put_contents("$sand/rd.json", json_encode([['name' => 'X', 'cc' => 'FR', 'w
     ['name' => 'O1', 'cc' => 'FR', 'category' => 'orthopedic_shoe_store', 'why' => 'hedef disi dal (orthopedic_shoe_store)']]));
 file_put_contents("$sand/rr_0.json", json_encode(array_slice($rs, 0, 30)));
 file_put_contents("$sand/rr_1.json", json_encode(array_slice($rs, 30)));
-[$rc, $o, $e] = $run(['python3', $root.'/scripts/discover_report.py', "$sand/rc.json", "$sand/rd.json", "$sand/rr_0.json", "$sand/rr_1.json"]);
+$repArgs = ['python3', $root.'/scripts/discover_report.py', "$sand/rc.json", "$sand/rd.json", "$sand/rr_0.json", "$sand/rr_1.json"];
+[$rc, $o, $e] = $run($repArgs, '', $env + ['KNOWN_COUNT' => '8562']);
 $t('kostu', $rc === 0);
 if ($rc !== 0) echo $e;
+$t('kayitli liste uygulandiysa rapor bunu soyler', str_starts_with($o, 'kayitli site/alan adi (sunucudan): 8562 -- ZATEN KAYITLI elemesi yapildi'));
+[, $o0] = $run($repArgs, '', $env + ['KNOWN_COUNT' => '0']);
+$t('SSH koptu (liste BOS): rapor EN USTTE uyarir -- HAZIR\'da daha once yazilmis dukkan olabilir',
+   str_starts_with($o0, 'UYARI: sunucudaki kayitli liste OKUNAMADI -- ZATEN KAYITLI elemesi YAPILMADI'));
+[, $oN] = $run($repArgs, '', $env);
+$t('KNOWN_COUNT verilmezse (yerel kullanim) satir yok', !str_contains($oN, 'kayitli liste') && !str_contains($oN, 'kayitli site/alan adi (sunucudan)'));
 $parts = [];
 preg_match_all('/^add-and-send \(country=([^,]+), letter=(\w+).*?\n((?:  parti \d+: .*\n)+)/m', $o, $mm, PREG_SET_ORDER);
 $fw = []; $ds = []; $maxLinks = 0;
@@ -417,6 +424,9 @@ $runText = implode("\n", $rm2[1]);
 $t('run bloklari bulundu', count($rm2[1]) >= 4);
 $t('girdiler run icine GOMULMEZ (${{ }} yalniz env ile)', !str_contains($runText, '${{'));
 $t('kayitli alan adlari gunluge basilmaz (dosyaya)', str_contains($runText, '> known.txt') && !preg_match('/\b(cat|head|tail|less|more)\s+known\.txt/', $runText));
+$t('SSH 3 deneme, aralarinda bekleme (barindirici ardisik baglantiyi kesiyor); hepsi duserse liste bosaltilir',
+   str_contains($runText, 'for attempt in 1 2 3; do') && str_contains($runText, 'sleep 20') && str_contains($runText, ': > known.txt'));
+$t('rapor kayitli liste sayisini alir (bos ise en ustte uyarir)', str_contains($wf, 'KNOWN_COUNT="$(wc -l < known.txt)" python3 scripts/discover_report.py'));
 $t('ssh anahtari is biter bitmez silinir', str_contains($runText, 'rm -f "$RUNNER_TEMP/dk"') && str_contains($runText, 'umask 077'));
 $t('gonderim / ekleme / baska is tetikleme yok', !preg_match('/dispatches|gh workflow|gh api|vestra_send_mail|\b(curl|wget)\s+(-|https?:)/', $runText));
 $t('sunucuya TEK ssh komutu ve yalniz discover_known.php', preg_match_all('/\bssh\s/', $runText) === 1 && str_contains($runText, 'php < scripts/discover_known.php > known.txt'));

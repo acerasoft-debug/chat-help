@@ -26,7 +26,7 @@ add-and-send partileri <=20 link: sunucu link basina ana sayfa + iletisim/kunye
 sayfalarini cekiyor ve 45 dakikalik tavan ~15-25 linkte doluyor (add-and-send.yml).
 add-and-send'in send girdisi VARSAYILAN true -- ilk kosu ACIKCA send=false.
 """
-import json, sys, collections
+import json, os, sys, collections
 
 BATCH = 20
 SHOE_CATS = {"shoe_store"}
@@ -81,6 +81,17 @@ def main(argv):
     for i, c in enumerate(cands):
         r = res.get(i, {"why": "OLCULMEDI (isci bitmedi)", "email": "yok", "kind": ""})
         c["why"], c["email"], c["kind"] = r.get("why", ""), r.get("email", "yok"), r.get("kind", "")
+
+    # ZATEN KAYITLI elemesi uygulandi mi? Sunucu okunamadiysa (SSH kesildi) liste bos
+    # ve HAZIR'da daha once yazilmis dukkanlar olabilir -- bu, raporun EN USTUNDE
+    # yazmali; adim gunlugundeki tek bir uyari satiri kolayca gozden kacar.
+    kc = os.environ.get("KNOWN_COUNT")
+    if kc is not None:
+        if kc.strip() in ("", "0"):
+            print("UYARI: sunucudaki kayitli liste OKUNAMADI -- ZATEN KAYITLI elemesi YAPILMADI. HAZIR listesinde"
+                  " daha once yazilmis dukkanlar olabilir (add-and-send ayni adres / ayni firma kapisinda yine atlar).")
+        else:
+            print(f"kayitli site/alan adi (sunucudan): {kc.strip()} -- ZATEN KAYITLI elemesi yapildi")
 
     by_cc = collections.defaultdict(list)
     for c in cands:
