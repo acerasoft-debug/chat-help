@@ -9349,3 +9349,35 @@ numune yazsin"*).
     tek numuneyle görmek istiyor; SH9626 bu €80'lik linkte ve aynı ürünü bir
     faturaya ikinci kez koymak çift tahsilat olurdu. Numune ödenip kalite
     onaylanırsa gerisi yeni bir karar.
+
+**KURAL 37 — ikinci kullanım: Odzież Premium / SH9608 / €60** (operatör,
+28 Eyl 2026: *"bu müsteriye SH9608 bu ürün icin stripe linki hazirla 60 eur
+olsun gönderim dahil sonrada email olarak gönder sample order"*).
+- **Kod değişmedi.** 25 Eylül'de kurulan `admin_mode=sample_link` yolu ikinci
+  kez ve birebir çalıştı.
+  - Girdiler: `issue_ref=a9420f8ee08b4c2d`,
+    `payload='product=lac-crew-sweatshirt|price=60|lang=en'`.
+  - **Ilan SKU'dan çözüldü:** SH9608'i taşıyan iki kayıttan
+    `lgp-lacoste-crew-sweatshirt` 17 Eylül'de `rejected` yapıldı,
+    `vestra_find()` onu görmüyor. Canlı olan tek ilan `lac-crew-sweatshirt`.
+  - **Dil `en`:** alıcı Polonyalı ve mektup 5 dil biliyor (en/fr/de/es/it),
+    Lehçe yok. Kuru koşu hesabın dilini de `en` gösterdi.
+- **Kuru koşu** (run `36401426971`): hesap buyer/active, Poland (PL, AB içi),
+  ilan satıcısı GARAGE LE PARIS, ödeme platform hesabına (KURAL 33),
+  **EUR 60.00**, açık link **yok**, ilanda `sample_price` **yok**. Yani bu
+  fiyat yalnız bu alıcıya; başka hiçbir ilan ya da alıcı değişmedi.
+- **Uygulama** (run `36401483513`):
+  - kayıt **`SPL-2D481820`**;
+  - Stripe oturumu **KURULDU**, tutar **60.00 EUR** (mektuptan önce doğrulandı);
+  - Stripe satırı *"Sample — Lacoste Fleece Crew Neck Sweatshirt · Ident no.
+    SH9608"*;
+  - konu *"VESTRA — payment link for your sample (SH9608)"*;
+  - **GÖNDERİLDİ** → `w***@wp.pl`.
+  - Link ve jeton kütüğe basılmadı.
+- **Brevo** (`diag-messages` → `mail_for=account:a9420f8ee08b4c2d`):
+  **11:07:34 +02:00 `requests` → 11:07:39 `delivered`**.
+- **Kayıt bağımsız okundu** (`diag-live` → `find_ref=SPL-2D481820`):
+  `pending · via=link · lac-crew-sweatshirt · SH9608 · 60 eur ·
+  stripe_oturumu=VAR · jeton=VAR (32)`.
+- Aynı alıcıya aynı ilan için ikinci bir link kurulmaz. Adres ve telefon
+  Stripe sayfasında toplanıyor, ödenince `ship_to` olarak kayda düşüyor.
