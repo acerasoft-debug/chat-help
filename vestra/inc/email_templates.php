@@ -1197,6 +1197,33 @@ function vestra_tpl_order_invoice_pdf(string $buyerName, string $ref, string $in
 }
 
 /**
+ * SIPARISE BAGLI SERBEST NOT (operator, 28 Eyl 2026, VES-D91DAB0B: "numuneyi
+ * L beden olarak 60 eur yapabilirim gönderim dahil" + "fatura ayni kalsin" +
+ * "email gönder musteriye"). listing_reply serbest metin tasiyor ama bir
+ * ILANDAKI konusmaya bagli; bu musterinin konusmasi baska bir ilanda ve mektup
+ * yanlis urunun adiyla giderdi. Bu mektup SIPARISE bagli.
+ *
+ * METIN OPERATORUN ONAYLADIGI METIN, sablon ekleme yapmaz: hitap + metin +
+ * imza. Tutar/numara metnin icinde ise operator yazdi; sablon rakam uydurmaz.
+ */
+function vestra_tpl_order_note(string $buyerName, string $ref, string $message, string $subject = '',
+        bool $hasAccount = false, string $signer = ''): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $subject = trim($subject) !== '' ? trim($subject) : "VESTRA — update on your order {$ref}";
+    $opts = ['badge' => 'Order update', 'rows' => [['label' => 'Order ref', 'value' => $ref]]];
+    if ($hasAccount) $opts['button'] = ['label' => 'View my order', 'url' => 'https://vestrasales.com/order-confirm?ref='.rawurlencode($ref)];
+    $body =
+        "Dear {$buyerName},\n\n"
+      . trim($message)."\n\n"
+      . "Kind regards,\n\n"
+      . ($signer !== ''
+          ? $signer."\nVESTRA – vestrasales.com"
+          : "VESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com");
+    return [$subject, $body, $opts];
+}
+
+/**
  * Sitede ilan uzerinden yazan aliciya, sitede verilen cevabin E-POSTA hali
  * (operator, 26 Eyl 2026, Odzież Premium: iki ilanda "Good morning" yazdi,
  * cevaplar sitede Marca Online / GARAGE LE PARIS adina verildi, sonra
