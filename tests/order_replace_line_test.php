@@ -193,6 +193,14 @@ $st = vestra_read_json('order_statuses.json'); $st['VES-R3']['status'] = 'shippe
 $e = vestra_order_replace_line('VES-R3', 'TENNIS-CLUB-ICON-WHITE', 'LOW-MOQ-TEE');
 $t('gönderilmiş sipariş -> RED', !empty($e['error']) && str_contains((string)$e['error'], 'shipped'));
 
+echo "\n== 5b. Parası gelmiş sipariş: tutar aynıysa GEÇER, değişiyorsa RED ==\n";
+$mk('VES-R5', '10x LARCHE-COLORE-PRINTED-BLACK @50.00', 'Payment: Bank transfer. Colours — LARCHE-COLORE-PRINTED-BLACK: Black.', 500.00, 20.00);
+$st = vestra_read_json('order_statuses.json'); $st['VES-R5']['status'] = 'paid'; vestra_write_json('order_statuses.json', $st);
+$p5 = vestra_order_replace_line('VES-R5', 'LARCHE-COLORE-PRINTED-BLACK', 'TENNIS-CLUB-ICON-WHITE', ['unit' => 45.00, 'dry' => true]);
+$t('ödenmiş + tutar değişiyor -> RED', !empty($p5['error']) && str_contains((string)$p5['error'], 'parası gelmiş'));
+$p5b = vestra_order_replace_line('VES-R5', 'LARCHE-COLORE-PRINTED-BLACK', 'TENNIS-CLUB-ICON-WHITE', ['dry' => true]);
+$t('ödenmiş + tutar AYNI -> geçer (değişim meşru)', empty($p5b['error']) && abs(($p5b['total'] ?? 0) - 520) < 0.005);
+
 echo "\n== 6. Uyarılar (silinmez, söylenir) ==\n";
 $w = vestra_order_replace_line('VES-R1', 'TENNIS-CLUB-ICON-WHITE', 'LOW-MOQ-TEE', ['dry' => true]);
 $t('adet yeni MOQ\'yu karşılıyor -> "asgarinin altında" notu için UYARI',

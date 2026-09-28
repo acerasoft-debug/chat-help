@@ -1758,6 +1758,17 @@ function vestra_order_replace_line(string $ref, string $oldSku, string $newSku, 
     $newTotal    = round($newSubtotal + $ship + $fee, 2);
     $newPayout   = round($newSubtotal - round((float)($oldAssoc['commission'] ?? 0), 2), 2);
 
+    /* PARASI GELMİŞ sipariş: model değişebilir — tutar aynıysa ödenen para hâlâ
+       tutuyor (müşteri ödedikten sonra değişim istemesi olağan). TUTARI
+       değiştiren bir değişiklik ise REDDEDİLİR: tahsil edilmiş bir tutardan
+       farklı bir belge üretir; iade/ek ödeme ayrı bir karar (KURAL 32'nin
+       indirim yazıcısıyla aynı ilke, aynı tek karar noktası). */
+    $settled = vestra_order_payment_settled($ref);
+    if (!empty($settled['settled']) && abs($newTotal - $oldTot) > 0.005) {
+        return ['error' => 'siparişin parası gelmiş ('.(string)($settled['via'] ?? '').') — tutarı değiştiren model '
+                         . 'değişimi yapılmaz (eski '.number_format($oldTot, 2).', yeni '.number_format($newTotal, 2).'); iade/ek ödeme ayrı karar'];
+    }
+
     $res = ['ok' => true, 'old_sku' => $oldSku, 'new_sku' => $newSku, 'qty' => $qty, 'unit' => $unit,
             'list_unit' => $listUnit, 'colours' => $colours, 'old_colours' => $oldColours,
             'sizes' => $sizes, 'old_sizes' => $oldSizes, 'not_listed' => $notListed, 'stale' => $stale,
