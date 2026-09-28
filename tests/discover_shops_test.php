@@ -290,6 +290,11 @@ $t('Overture elemesi ulke basina', str_contains($o, 'Overture elemesi: ZINCIR 1'
 
 echo "\n== 7. is akisi guvenligi (discover-shops.yml) ==\n";
 $wf = (string)file_get_contents($root.'/.github/workflows/discover-shops.yml');
+$t('push tetikleyicisi YALNIZ bu dosya + bu dal (her push\'ta kosmaz)',
+   (bool)preg_match('~\n  push:\n    branches: \[claude/wizardly-planck-7ylnmk\]\n    paths: \[\.github/workflows/discover-shops\.yml\]\n~', $wf));
+$t('varsayilanlar tek yerde: bos girdi (push kosusu dahil) env yedegine duser',
+   str_contains($wf, "github.event.inputs.countries || 'FR,IT,ES,BE,NL'") && str_contains($wf, "github.event.inputs.per_country || '80'")
+   && !preg_match('/default: "(FR|shoes|80|0\.5)/', $wf));
 $t('izin yalniz okuma', (bool)preg_match('/^permissions:\s*\n\s+contents:\s*read\s*$/m', $wf) && !preg_match('/contents:\s*write/', $wf));
 $runs = [];
 preg_match_all('/^\s+run: \|\n((?:\s{10,}.*\n|\s*\n)+)/m', $wf, $rm2);

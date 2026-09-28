@@ -3,25 +3,37 @@ on:
   workflow_dispatch:
     inputs:
       countries:
-        description: "Ülke ISO kodları, virgülle (ör: FR,IT,ES,BE,NL). Tanımlı: AT BE BG CH CY CZ DE DK EE ES FI FR GB GR HR HU IE IT LT LU LV MT NL NO PL PT RO SE SI SK"
-        required: true
-        default: "FR,IT,ES,BE,NL"
+        description: "Ülke ISO kodları, virgülle (boş = FR,IT,ES,BE,NL). Tanımlı: AT BE BG CH CY CZ DE DK EE ES FI FR GB GR HR HU IE IT LT LU LV MT NL NO PL PT RO SE SI SK"
+        required: false
+        default: ""
       kinds:
-        description: "Dükkân türleri: shoes (ayakkabı) | accessories (moda aksesuarı) | bags (çanta + deri ürünleri) | hats (şapka) | boutiques (genel moda butiği — istenirse)"
+        description: "Dükkân türleri (boş = shoes,accessories,bags,hats): shoes (ayakkabı) | accessories (moda aksesuarı) | bags (çanta + deri ürünleri) | hats (şapka) | boutiques (genel moda butiği — istenirse)"
         required: false
-        default: "shoes,accessories,bags,hats"
+        default: ""
       per_country:
-        description: "Ülke başına en fazla aday (e-posta ölçümüne girecek)"
+        description: "Ülke başına en fazla aday, e-posta ölçümüne girecek (boş = 80)"
         required: false
-        default: "80"
+        default: ""
       min_confidence:
-        description: "Overture güven eşiği (0-1). Düşük = daha çok ama belirsiz kayıt"
+        description: "Overture güven eşiği 0-1, düşük = daha çok ama belirsiz kayıt (boş = 0.5)"
         required: false
-        default: "0.5"
+        default: ""
       release:
         description: "Overture sürümü (boş = en yenisi, ör: 2026-09-23.1)"
         required: false
         default: ""
+  # KAYIT TETIKLEYICISI. Varsayilan dalda olmayan YENI bir is akisi dosyasi GitHub'a
+  # kaydolmuyor ve dispatch 404 veriyor (CLAUDE.md: pool-sweep.yml, 31 Agu 2026;
+  # bu dosya da 28 Eyl'de ilk push'tan sonra 404 verdi). Yalniz BU dosyaya dokunan
+  # push onu bir kez kosturur ve kaydeder; o kosu varsayilan girdilerle calisir.
+  # Guvenli cunku is salt okunur: yazma yok, gonderim yok.
+  push:
+    branches: [claude/wizardly-planck-7ylnmk]
+    paths: [.github/workflows/discover-shops.yml]
+
+concurrency:
+  group: discover-shops
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -86,10 +98,11 @@ jobs:
 
       - name: Overture sorgusu + zincir / çok şube / dağıtıcı eleme
         env:
-          IN_COUNTRIES: ${{ github.event.inputs.countries }}
-          IN_KINDS:     ${{ github.event.inputs.kinds }}
-          IN_LIMIT:     ${{ github.event.inputs.per_country }}
-          IN_CONF:      ${{ github.event.inputs.min_confidence }}
+          # Varsayilanlar TEK yerde (burada): girdi bos gelirse -- push kosusu dahil.
+          IN_COUNTRIES: ${{ github.event.inputs.countries || 'FR,IT,ES,BE,NL' }}
+          IN_KINDS:     ${{ github.event.inputs.kinds || 'shoes,accessories,bags,hats' }}
+          IN_LIMIT:     ${{ github.event.inputs.per_country || '80' }}
+          IN_CONF:      ${{ github.event.inputs.min_confidence || '0.5' }}
           IN_RELEASE:   ${{ github.event.inputs.release }}
         run: |
           python3 scripts/discover_overture.py --countries "$IN_COUNTRIES" --kinds "$IN_KINDS" \
