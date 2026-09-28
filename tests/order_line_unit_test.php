@@ -124,6 +124,21 @@ $t('belge kayittan ESKIYSE mektup kurulmadan DURUR', $pStale !== false && $pTpl 
 $t('ek PDF, belgenin kendisi', str_contains($sc, "\$opts['attachments'] = [['name' => 'Invoice-'.\$invNo.'.pdf', 'path' => \$pdf]]"));
 $t('eski-belge olcusu unit_set_at ve shipping_set_at dahil', str_contains($sc, "'shipping_set_at','unit_set_at'"));
 
+echo "\n== 9. order_note: siparise bagli serbest not ==\n";
+[$ns, $nb, $no] = vestra_tpl_order_note('Test Sp.', 'VES-X', 'Size L is fine. Invoice stays as it is.', '', true, 'Marco Bellini');
+$t('varsayilan konu siparis ref tasir', str_contains($ns, 'VES-X'));
+$t('metin OLDUGU GIBI govdede', str_contains($nb, "Dear Test Sp.,\n\nSize L is fine. Invoice stays as it is.\n\nKind regards"));
+$t('imza persona', str_contains($nb, 'Marco Bellini'));
+[$ns2] = vestra_tpl_order_note('Test Sp.', 'VES-X', 'x', 'Your sample in size L');
+$t('verilen konu kullanilir', $ns2 === 'Your sample in size L');
+$na = strpos($sp, "\$letter === 'order_note'");
+$nbk = $na === false ? '' : preg_replace('~/\*.*?\*/~s', '', substr($sp, $na, strpos($sp, "} elseif (\$letter === 'listing_reply')", $na) - $na));
+$t('dal var', $nbk !== '');
+$t('to=order SART', str_contains($nbk, 'if (!$orderRow)'));
+$t('bos metin DURUR', str_contains($nbk, "if (\$onMsg === '')"));
+$t('iptal sipariste DURUR', str_contains($nbk, "if (\$onSt === 'cancelled')"));
+$t('metin kutuge BASILMAZ (yalniz uzunluk)', !preg_match('/echo[^;]*\$onMsg\b(?!\))/', $nbk) && str_contains($nbk, 'mb_strlen($onMsg)'));
+
 array_map('unlink', array_filter(array_merge(glob($sand.'/data/*') ?: [], glob($sand.'/data/invoices/*') ?: []), 'is_file'));
 @rmdir($sand.'/data/invoices'); @rmdir($sand.'/data'); @rmdir($sand);
 echo "\n".($bad ? "FAIL: {$bad}" : "hepsi yesil").", {$ok} ok\n";
