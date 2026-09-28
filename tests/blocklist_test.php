@@ -719,5 +719,32 @@ foreach ([
     ['Walter Moda Uomo','waltermoda.it'],           ['Calzature Walter & Figli','calzaturewalterfigli.it'],
 ] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
 
+echo "\n== 21. 28 Eyl 2026 — Overture kesfinin HAZIR listesinde elle okunanlar ==\n";
+/* Kod dordunu de geciriyordu; hepsi ARASTIRILARAK dogrulandi (KURAL 1i):
+   Mephisto Vichy yalniz Mephisto grubunun markalarini satan bir marka dukkani,
+   Ally Capellino tasarimcinin KENDI etiketi ve dukkani, James Taylor & Son
+   butun ayakkabisini kendi atolyesinde yapan bir uretici, Norbert Bottier
+   1981'den beri kendi markasi. */
+foreach ([
+    ['Mephisto Vichy','mephisto-vichy.fr'],          ['Mephisto Shop Brugge','mephistobrugge.be'],
+    ['Ally Capellino','allycapellino.co.uk'],        ['James Taylor & Son','taylormadeshoes.co.uk'],
+    ['James Taylor and Son','taylormadeshoes.co.uk'], ['Norbert Bottier','norbertbottier.com'],
+] as [$n,$d]) $t("blok: {$n}", $blocked($n,'','https://'.$d));
+foreach ([['Home','mephisto-vichy.fr'], ['Shop','allycapellino.co.uk'], ['Bespoke Shoes','taylormadeshoes.co.uk'],
+          ['Accueil','norbertbottier.com']] as [$n,$d]) $t("blok (alan adindan): {$d}", $blocked($n,'','https://'.$d));
+
+echo "\n== 21b. GECMELI — ayni kelimeyi tasiyan bagimsizlar ve SINIRDA birakilanlar ==\n";
+/* 'taylor', 'james', 'norbert', 'bottier', 'capellino' TEK BASINA listede degil.
+   Maury (iki kapisi da Knokke'de), Pas a Pas (Reims, tek dukkan) ve Gabrielli
+   (tek dukkan + ayni sehirde outlet) bagimsiz; Chapellerie Traclet (kendi
+   atolyesi + perakende) SINIRDA, operator karari -- eklenmedi. */
+foreach ([
+    ['Taylor Shoes','taylorshoes.co.uk'],           ['James Shoe Boutique','jamesshoes.co.uk'],
+    ['Norbert Schuhmode','norbert-schuhmode.de'],   ['Le Bottier Parisien','lebottierparisien.fr'],
+    ['Capellino Moda','capellinomoda.it'],          ['Maury Knokke','maury.be'],
+    ['Magasin PAS A PAS - Reims','pasapas.fr'],     ['Gabrielli Outlet','gabrielli-roeselare.be'],
+    ['Chapellerie Traclet','chapellerie-traclet.com'],
+] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
+
 echo "\nTOPLAM: {$ok} gecti, {$fail} kaldi\n";
 exit($fail === 0 ? 0 : 1);

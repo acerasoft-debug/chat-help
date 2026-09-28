@@ -1040,6 +1040,17 @@ function vestra_discover_blocklist(): array {
     'besson chaussures','charles clinkard','begg shoes','sorelle ramonda',
     'moda in pelle','grünbein','gruenbein',"pelin's shoes",'pelinshoes',
     'sorbas shoes','sorbasshoes','atheist shoes','atheistshoes','highest heels','highestheels',
+    /* 28 Eyl 2026 — discover-shops (Overture) ilk canli raporunun HAZIR listesi elle
+       okundu (KURAL 1i); kod dordunu de geciriyordu, hepsi arastirilarak dogrulandi:
+       Mephisto Vichy yalniz Mephisto grubunun markalarini (Mephisto, Allrounder,
+       Mobilis) satan bir marka dukkani -- Brugge'deki "Mephisto Shop" ayni sinif;
+       Ally Capellino tasarimcinin kendi etiketi ve kendi dukkani; James Taylor & Son
+       (1857) butun ayakkabisini kendi atolyesinde yapan uretici; Norbert Bottier
+       1981'den beri kendi markasi. 'taylor', 'james', 'norbert', 'bottier' TEK BASINA
+       eklenmedi (soyad / meslek adi). Chapellerie Traclet (kendi atolyesi +
+       perakende) SINIRDA -- eklenmedi, operator karari. */
+    'mephisto','ally capellino','james taylor & son','james taylor and son','taylormadeshoes',
+    'norbert bottier',
   ];
 }
 /* PARK EDILMIS / SATILIK alan adi: dukkan degil, satis sayfasi.
