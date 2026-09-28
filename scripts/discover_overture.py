@@ -212,22 +212,41 @@ def latest_release() -> str:
     return rels[-1]
 
 
-def query_rows(con, source: str, cc: str, cats: list, use_bbox: bool):
-    cat_sql = ",".join("'" + c.replace("'", "''") + "'" for c in cats)
+def _q(s: str) -> str:
+    return "'" + s.replace("'", "''") + "'"
+
+
+def build_sql(source: str, ccs: list, cats: list, use_bbox: bool) -> str:
+    """TEK uzak gecis: istenen butun ulkeler bir sorguda. Ulke basina ayri sorgu,
+    ayni uzak dosyalari ulke sayisi kadar yeniden tarardi (28 Eyl ilk canli kosusu:
+    5 ulke, Overture adimi 13+ dakika). Kutu = ulke kutularinin BIRLESIMI (yalniz
+    satir grubu atlamak icin, DuckDB bbox'i parquet okumasina itiyor); asil karar
+    adresin KENDI ulke kodu."""
+    cat_sql = ",".join(_q(c) for c in cats)
+    cc_sql = ",".join(_q(c.upper()) for c in ccs)
     where_bbox = ""
-    if use_bbox and cc in BBOX:
-        x0, y0, x1, y1 = BBOX[cc]
+    boxes = [BBOX[c.upper()] for c in ccs if c.upper() in BBOX]
+    # Kutusu olmayan tek bir ulke bile varsa kutu HIC uygulanmaz: birlesik kutu o
+    # ulkeyi disarida birakir ve satirlari SESSIZCE budanirdi (test: kucuk harfli
+    # "fr" boyle kayboluyordu).
+    if use_bbox and boxes and len(boxes) == len(ccs):
+        x0, y0 = min(b[0] for b in boxes), min(b[1] for b in boxes)
+        x1, y1 = max(b[2] for b in boxes), max(b[3] for b in boxes)
         where_bbox = (f"bbox.xmin >= {x0} AND bbox.xmax <= {x1} AND "
                       f"bbox.ymin >= {y0} AND bbox.ymax <= {y1} AND ")
-    sql = f"""
+    return f"""
       SELECT id, names.primary AS name, taxonomy.primary AS cat, taxonomy.hierarchy AS hier,
              websites, emails, phones, brand.wikidata AS brand_wd, brand.names.primary AS brand_name,
-             addresses[1].locality AS city, addresses[1].country AS cc, addresses[1].postcode AS postcode,
+             addresses[1].locality AS city, upper(addresses[1].country) AS cc, addresses[1].postcode AS postcode,
              confidence, operating_status
       FROM {source}
       WHERE {where_bbox}
             (taxonomy.primary IN ({cat_sql}) OR list_has_any(taxonomy.hierarchy, [{cat_sql}]))
+            AND upper(addresses[1].country) IN ({cc_sql})
     """
+
+
+def query_rows(con, sql: str):
     return con.execute(sql).fetchall(), [d[0] for d in con.description]
 
 
@@ -368,15 +387,17 @@ def main():
         use_bbox = True
     print(f"Overture surumu: {rel} | turler: {','.join(kinds)} -> {','.join(cats)}", flush=True)
 
-    rows_by_cc = {}
+    t = time.time()
+    rows, cols = query_rows(con, build_sql(source, ccs, cats, use_bbox))
+    rows_by_cc = {cc: [] for cc in ccs}
+    for r in rows:
+        rec = dict(zip(cols, r))
+        # Birlesik kutu komsu ulkeleri de kapsar: adresin KENDI ulke kodu karar verir.
+        if (rec.get("cc") or "") in rows_by_cc:
+            rows_by_cc[rec["cc"]].append(rec)
+    print(f"  tek gecis: {len(rows)} yer, {time.time()-t:.0f} sn", flush=True)
     for cc in ccs:
-        t = time.time()
-        rows, cols = query_rows(con, source, cc, cats, use_bbox)
-        recs = [dict(zip(cols, r)) for r in rows]
-        # Kutu komsu ulkeleri de kapsar: adresin KENDI ulke kodu karar verir.
-        recs = [r for r in recs if (r.get("cc") or "").upper() == cc]
-        rows_by_cc[cc] = recs
-        print(f"  {cc}: Overture'da {len(recs)} yer ({time.time()-t:.0f} sn)", flush=True)
+        print(f"  {cc}: Overture'da {len(rows_by_cc[cc])} yer", flush=True)
 
     known = load_known(a.known) if a.known else set()
     if a.known:

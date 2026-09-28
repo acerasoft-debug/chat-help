@@ -87,7 +87,10 @@ final, dropped = m.classify({"FR": inp["rows"]["FR"]}, 100, inp["min_conf"], kno
 capped, _ = m.classify({"IT": inp["rows"]["IT"]}, inp["limit"], inp["min_conf"], known)
 print(json.dumps({"final": final, "dropped": dropped, "capped": capped, "known": sorted(known),
     "ident": {h: m.site_identity(h) for h in inp["hosts"]},
-    "match": [m.name_matches_site(n, s) for n, s in inp["pairs"]]}))
+    "match": [m.name_matches_site(n, s) for n, s in inp["pairs"]],
+    "sql": m.build_sql("SRC", ["fr", "IT"], ["shoe_store", "x'y"], True),
+    "sql_nobox": m.build_sql("SRC", ["FR"], ["shoe_store"], False),
+    "sql_unknown": m.build_sql("SRC", ["FR", "XX"], ["shoe_store"], True)}))
 PY;
 $hosts = ['https://www.Chaussures-Lecarrer.fr/contact', 'shop.example.co.uk', 'https://x.wixsite.com/shop',
           'https://m.facebook.com/x', 'https://www.pagesjaunes.fr/x', 'localhost', 'https://negozio.altervista.org',
@@ -142,6 +145,13 @@ $t('site kimligi: sosyal / rehber / noktasiz / mailto -> bos',
 $t('ad-site eslesmesi: kendi adi / marka sitesi / tamami genel ad / platform', array_slice($J['match'], 0, 4) === [true, false, true, true]);
 $t('ayirt edici kelime KARAR VERIR: "Chaussures Martin" -> chaussures.fr ESLESMEZ', $J['match'][4] === false);
 $t('Almanca: Müller -> mueller VE muller', $J['match'][5] === true && $J['match'][6] === true);
+$Q = preg_replace('/\s+/', ' ', $J['sql']);
+$t('TEK gecis: iki ulkenin BIRLESIK kutusu (FR bati/kuzey + IT dogu/guney)',
+   str_contains($Q, 'bbox.xmin >= -5.14') && str_contains($Q, 'bbox.xmax <= 18.52') && str_contains($Q, 'bbox.ymin >= 35.49') && str_contains($Q, 'bbox.ymax <= 51.09'));
+$t('asil karar adresin ulke kodu (buyuk harfe cekilmis IN listesi)', str_contains($Q, "upper(addresses[1].country) IN ('FR','IT')"));
+$t('kategori tirnaklari kacisli (SQL enjeksiyonu yok)', str_contains($Q, "'x''y'") && !str_contains($Q, "'x'y'"));
+$t('kutusu olmayan ulke varsa kutu HIC uygulanmaz (sessiz budama yok)', !str_contains($J['sql_unknown'], 'bbox.') && str_contains($J['sql_unknown'], "IN ('FR','XX')"));
+$t('yerel dosyada kutu yok', !str_contains($J['sql_nobox'], 'bbox.') && str_contains($J['sql_nobox'], "IN ('FR')"));
 $t('kayitli liste: www atilir, @alanadi alan adina doner',
    in_array('other-shop.com', $J['known'], true) && in_array('shopmail.fr', $J['known'], true) && in_array('dejaconnu.fr', $J['known'], true));
 
