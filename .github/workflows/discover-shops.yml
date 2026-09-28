@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       countries:
-        description: "Ülke ISO kodları, virgülle (boş = FR,IT,ES,BE,NL). Tanımlı: AT BE BG CH CY CZ DE DK EE ES FI FR GB GR HR HU IE IT LT LU LV MT NL NO PL PT RO SE SI SK"
+        description: "Ülke ISO kodları, virgülle (boş = FR,BE,NL,GB — soğuk B2B e-postanın izinsiz ya da kısmen serbest olduğu ülkeler; DE/AT/IT/ES önceden izin ister, rapor her ülkede yazar). Tanımlı: AT BE BG CH CY CZ DE DK EE ES FI FR GB GR HR HU IE IT LT LU LV MT NL NO PL PT RO SE SI SK"
         required: false
         default: ""
       kinds:
@@ -60,11 +60,18 @@ permissions:
 # letter=footwear), ONCE send=false -- adres orada SUNUCUDA siteden cozulur
 # (KURAL 1f) ve butun gonderim kapilari (KURAL 1, ayni firma, DNS) yine calisir.
 #
+# HUKUK: soguk B2B e-posta DE/AT/IT/ES'de ONCEDEN IZIN istiyor, BE/NL/GB'de kismen
+# serbest, FR'de meslekle ilgiliyse serbest (ozet, KURAL 40). Rapor her ulkenin
+# satirini basar ve izin isteyen ulkenin partisinin ustune UYARI yazar; karar operatorun.
+#
 # Uyelik / anahtar GEREKMEZ: Overture herkese acik S3'te, DuckDB ile okunuyor.
 jobs:
   discover:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # 90, 60 degil: Overture adimi 5 ulkede ~15-20 dk (28 Eyl olcumu), adres olcumu
+    # isci basina 1500 sn tavanli. 60'ta ikisi ust uste binince RAPOR ADIMI hic
+    # kosmazdi -- yani kosu "bitti" der ama tek satir sonuc vermezdi.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
@@ -99,7 +106,10 @@ jobs:
       - name: Overture sorgusu + zincir / çok şube / dağıtıcı eleme
         env:
           # Varsayilanlar TEK yerde (burada): girdi bos gelirse -- push kosusu dahil.
-          IN_COUNTRIES: ${{ github.event.inputs.countries || 'FR,IT,ES,BE,NL' }}
+          # FR,BE,NL,GB: soguk B2B e-posta ya serbest (FR) ya kismen serbest (BE genel
+          # adres, NL tuzel kisi, GB sirket). DE/AT/IT/ES onceden izin istiyor
+          # (KURAL 40) -- istenirse girdiyle verilir, rapor her ulkede hukuk satiri basar.
+          IN_COUNTRIES: ${{ github.event.inputs.countries || 'FR,BE,NL,GB' }}
           IN_KINDS:     ${{ github.event.inputs.kinds || 'shoes,accessories,bags,hats' }}
           IN_LIMIT:     ${{ github.event.inputs.per_country || '80' }}
           IN_CONF:      ${{ github.event.inputs.min_confidence || '0.5' }}

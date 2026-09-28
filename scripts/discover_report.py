@@ -31,6 +31,25 @@ import json, sys, collections
 BATCH = 20
 SHOE_CATS = {"shoe_store"}
 
+# SOGUK B2B E-POSTA, ulke ulke OZET -- hukuki tavsiye degil (28 Eyl 2026 arastirmasi,
+# kaynaklar CLAUDE.md KURAL 40). Rapor gonderim partisini yine basar, karar
+# operatorun; ama izin isteyen ulkede partinin USTUNE yazar ki karar aninda gorunsun.
+# Tabloda olmayan ulke "ARASTIRILMADI" basar -- sessizce "serbest" sayilmaz.
+LEGAL = {
+    "DE": ("IZIN SART", "UWG par. 7(2) Nr. 2: isletmeye de onceden acik izin"),
+    "AT": ("IZIN SART", "TKG 2021 par. 174: isletmeye de onceden izin"),
+    "IT": ("IZIN SART", "Codice Privacy art. 130: tuzel kisi dahil (Garante, 20.09.2012)"),
+    "ES": ("IZIN SART", "LSSI art. 21: B2B dahil; eski musteri istisnasi dar"),
+    "FR": ("SERBEST (kosullu)", "CNIL: meslegiyle ilgili B2B teklif izinsiz; her mektupta opt-out"),
+    "BE": ("KISMEN", "KB 4.4.2003: yalniz tuzel kisinin GENEL adresi (info@, contact@) izinsiz; kisiye ait adres izin ister"),
+    "NL": ("KISMEN", "Tw art. 11.7: BV/NV/stichting/vereniging izinsiz + opt-out; eenmanszaak/VOF/CV izin ister"),
+    "GB": ("KISMEN", "PECR reg. 22: sirkete (Ltd/PLC/LLP) serbest; sahis isletmesi / ortaklik izin ister"),
+}
+
+
+def legal_for(cc: str):
+    return LEGAL.get(cc, ("ARASTIRILMADI", "gondermeden once operator kontrol etmeli"))
+
 
 def letter_for(category: str) -> str:
     return "footwear" if category in SHOE_CATS else "designer"
@@ -67,8 +86,14 @@ def main(argv):
     for c in cands:
         by_cc[c["cc"]].append(c)
     drop_cc = collections.defaultdict(collections.Counter)
+    # "hedef disi dal" TEK bir sayiya gomulmez: hangi alt kategorinin (mucevher mi,
+    # gozluk mu, ortopedi mi) aday yapilmadigi okunabilmeli -- yoksa hiyerarsiden
+    # sizan buyuk bir dal ile gercek bir tamirci ayni satirda gorunurdu.
+    drop_cat = collections.defaultdict(collections.Counter)
     for d in dropped:
         drop_cc[d["cc"]][d["why"].split(" (")[0]] += 1
+        if d["why"].startswith("hedef disi dal"):
+            drop_cat[d["cc"]][d.get("category") or "?"] += 1
 
     tot = collections.Counter()
     for cc in sorted(set(by_cc) | set(drop_cc)):
@@ -84,8 +109,14 @@ def main(argv):
         ready, review, unreach = groups["ready"], groups["review"], groups["unreachable"]
         tot["hazir"] += len(ready); tot["elle"] += len(review); tot["acilmadi"] += len(unreach); tot["aday"] += len(lst)
         print(f"\n===== {cc} ({name}) =====")
-        pre = drop_cc.get(cc, {})
+        lg_status, lg_basis = legal_for(cc)
+        print(f"soguk B2B e-posta: {lg_status} -- {lg_basis}")
+        # Counter, duz {} DEGIL: elenen satiri olmayan bir ulke (kucuk ulke, dar kosu)
+        # .most_common() cagrisinda BUTUN raporu dusururdu -- test boyle yakaladi.
+        pre = drop_cc.get(cc) or collections.Counter()
         print("Overture elemesi: " + (", ".join(f"{k} {v}" for k, v in pre.most_common()) or "-"))
+        if drop_cat.get(cc):
+            print("  hedef disi dallar (aday yapilmadi): " + ", ".join(f"{k} {v}" for k, v in drop_cat[cc].most_common()))
         print(f"aday {len(lst)} -> HAZIR {len(ready)} | ELLE DOGRULA {len(review)} | SITE ACILMADI {len(unreach)}"
               " | olcumde elenen: " + (", ".join(f"{k} {v}" for k, v in gone.most_common()) or "-"))
         if ready:
@@ -108,6 +139,8 @@ def main(argv):
             by_letter[letter_for(c.get("category", ""))].append("https://" + c["site"])
         for letter in sorted(by_letter):
             links = by_letter[letter]
+            if lg_status != "SERBEST (kosullu)":
+                print(f"UYARI: {cc} -- soguk B2B e-posta {lg_status} ({lg_basis}). Partiyi gondermek operator karari.")
             print(f"add-and-send (country={name}, letter={letter}, ONCE send=false -- varsayilan true):")
             for b in range(0, len(links), BATCH):
                 print(f"  parti {b // BATCH + 1}: " + " ".join(links[b:b + BATCH]))

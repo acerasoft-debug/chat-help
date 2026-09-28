@@ -51,6 +51,13 @@ KINDS = {
 }
 # Hiyerarsinin altinda olup HEDEF OLMAYAN dallar (tibbi / tamir).
 EXCLUDE_CATS = {"orthopedic_shoe_store", "shoe_repair"}
+# KABUL LISTESI: KINDS'in birlesimi. Sorgu hiyerarsi uzerinden hedef dalin BUTUN
+# alt dallarini getiriyor (fashion_accessories_store altinda hat_store ve
+# handbag_store olculdu; mucevher, saat ya da gozluk gibi bir dal da orada durabilir
+# ve bizim kanalimiz degil). Listede olmayan her dal aday YAPILMAZ ama sessizce de
+# kaybolmaz: "hedef disi dal (<kategori>)" diye elenir ve rapor alt kategorileri tek
+# tek sayar. Yeni bir dal istenirse KINDS'e bir satir.
+ACCEPT_CATS = {c for v in KINDS.values() for c in v}
 
 # Ulke kutulari (boylam/enlem) -- yalnizca satir grubu ELEMEK icin (DuckDB
 # istatistik atlamasi). Asil ulke kontrolu adresin kendi ulke kodundan.
@@ -250,6 +257,15 @@ def query_rows(con, sql: str):
     return con.execute(sql).fetchall(), [d[0] for d in con.description]
 
 
+def category_mix(rows: list) -> str:
+    """Ulke basina taxonomy.primary dagilimi. Sorgu hiyerarsi uzerinden alt dallari
+    da topluyor; bir ulkenin sayisi digerlerinden sapinca (28 Eyl ilk kosusu: IT
+    32.176, FR 9.013) sebebi TAHMIN edilmesin, basilsin: hedef disi bir alt dal mi
+    sizdi, yoksa o ulkede gercekten bu kadar dukkan mi var."""
+    c = collections.Counter((r.get("cat") or "?") for r in rows)
+    return ", ".join(f"{k} {v}" for k, v in c.most_common()) or "-"
+
+
 def load_known(path: str) -> set:
     """Sunucunun lead + hesap kayitlarindaki siteler ve e-posta alan adlari -> site kimligi.
     Kural TEK yerde (site_identity): sunucu ham host basar, kimligi burada kurulur."""
@@ -275,8 +291,8 @@ def classify(rows_by_cc: dict, limit: int, min_conf: float, known: set = frozens
             why = ""
             if not name:
                 why = "adsiz"
-            elif cat in EXCLUDE_CATS:
-                why = "hedef disi dal (" + cat + ")"
+            elif cat in EXCLUDE_CATS or cat not in ACCEPT_CATS:
+                why = "hedef disi dal (" + (cat or "?") + ")"
             elif (r.get("operating_status") or "open") not in ("open", ""):
                 why = "KAPALI (" + str(r.get("operating_status")) + ")"
             elif r.get("brand_wd") or r.get("brand_name"):
@@ -397,7 +413,7 @@ def main():
             rows_by_cc[rec["cc"]].append(rec)
     print(f"  tek gecis: {len(rows)} yer, {time.time()-t:.0f} sn", flush=True)
     for cc in ccs:
-        print(f"  {cc}: Overture'da {len(rows_by_cc[cc])} yer", flush=True)
+        print(f"  {cc}: Overture'da {len(rows_by_cc[cc])} yer | " + category_mix(rows_by_cc[cc]), flush=True)
 
     known = load_known(a.known) if a.known else set()
     if a.known:

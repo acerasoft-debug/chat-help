@@ -2647,6 +2647,72 @@ eski degilmi"*).
   **önce de** öyleydi. Kod doğruydu, ölçü yanlıştı; iddia satırın kendi **form
   id**'sine daraltıldı — kopyalanmayı gerçekten ölçen şey o.
 
+**KURAL 7d — "Fatura e-postayla gitti mi" BREVO'dan ölçülür; ödemeyene PDF ve son
+tarih gider; dekontlu ya da süresi dolmuş siparişe mektup GİTMEZ** (operatör, 28 Eyl
+2026: *"tüm siparislerin faturasi email ile gittiginden emin ol ödemeyenlere
+hatirlatma yap"*).
+- **Sonda:** `seller-products.yml` → `admin_mode=order_audit`. Salt okunur;
+  `issue_ref=<ref,ref>` ile daraltılır. Her `orders.csv` satırı için şunları basar:
+  - fatura: numara, birim, kesen, PDF diskte mi;
+  - ödeme kararı: `vestra_order_payment_settled()`;
+  - saat: `vestra_order_payment_grace()` (cron'un baktığı fonksiyonun kendisi);
+  - dekont;
+  - Brevo'da o ref'i ya da fatura numarasını **konusunda** taşıyan mektuplar.
+    Tür konudan okunur: **PDF** (`order_invoice_pdf` / teklif faturası), **LINK**
+    (panelin kesim mektubu, PDF'siz), **HAT** (`payment_due` / `payment_notice`).
+
+  Adres maskelenir, `name` alanı hiç basılmaz. "ISLEM GEREKEN" özeti Brevo
+  okunamasa bile basılır ('?' ile). *"Gitti" = Brevo `delivered`. Bu bir posta
+  kutusu kanıtı değil: spam klasörüne düşen mektup da `delivered` sayılır.*
+- **Ölçüm (28 Eyl, 12 sipariş):**
+  - **5 ödendi:** OCD7D2, O39419, VES-A11C0C97, VES-1A68FCD1, VES-31562779.
+  - **2 otomatik iptal:** VES-55E4F6E1 (Mob, €1.160, 25 Eyl) ve VES-F23A9727
+    (€485, 26 Eyl). İkisine de fatura bağlantısı ve en az bir hatırlatma teslim
+    edilmişti, yani KURAL 7 amaçlandığı gibi çalıştı.
+  - **5 açık.** Fatura bildirimi **hiç gitmemiş** iki sipariş vardı:
+    - VES-60594A18 (Easyauto24): kesim 23 Eyl'de iş akışından yapılmış, yalnız
+      hatırlatma ve adres/model mektupları gitmişti.
+    - VES-CD68AD53 (Arelisshop): yalnız hatırlatma gitmişti, ama 24 Eyl'de
+      dekont yüklenmişti.
+- **Gönderilenler (KURAL 18: hedef ve "gönder" aynı mesajdaydı).** Mektup
+  `reply_letter=order_invoice_pdf`, PDF ekli, imza Marco Bellini:
+  - **Easyauto24 — VES-60594A18.** INV-2026-1016, €520, **son tarih 30 Eyl**
+    (saat 23 Eyl'de başlamıştı). `invoice_updated=1` verildi, çünkü belge 28 Eyl'de
+    aynı numarayla yeniden çizilmişti. Gövde 605 karakter.
+  - **Ash Vintage — VES-8D231E8D.** INV-2026-1005, €715, **son tarih 5 Eki**,
+    gövde 516 karakter.
+  - **Bağımsız geri okuma** (aynı sonda, iki ref): iki PDF de **`delivered`**,
+    Ash Vintage 20:49'da **açtı**.
+  - **Odzież VES-D91DAB0B'ye ikinci mektup gitmedi.** PDF aynı gün zaten gitmişti
+    (KURAL 37 devamı 2). Saat damgasız olduğu için cron 29 Eyl 14:00 UTC'de
+    hatırlatmayı kendisi gönderip saati başlatacak.
+- **Mektup dalına iki muhafaza eklendi.** İkisi de şablon kurulmadan ÖNCE çalışır:
+  - **Dekont yüklenmişse DURUR.** "Lütfen ödeyin" yazılmaz; önce dekont kontrol
+    edilip Paid işaretlenmeli. BRITISHSTYLE'de canlıda durduğu görüldü.
+  - **Süre dolmuşsa DURUR.** Bir sonraki cron siparişi iptal eder; karar
+    operatörün.
+
+  Son tarih cron'un kendi hesabından yazılır, şablona gömülü değildir. Saat
+  damgasızsa tarih cümlesi hiç yazılmaz.
+- **Operatör kararı bekliyor, iki dekont:** BRITISHSTYLE VES-1F0C9350 (€769,55,
+  dekont 20 Eyl) ve Arelisshop VES-CD68AD53 (€620, dekont 24 Eyl). Dekont saati
+  durdurduğu için otomatik iptal yok. Yine de ikisi de `Admin ▸ Orders`'ta dekont
+  kontrol edilip **Paid** işaretlenene kadar açık iş.
+- **Test:** `tests/order_audit_test.php`, 33 iddia. Denetim PHP'si iş akışından
+  çıkarılıp kum havuzunda koşturuluyor. Sabotajların hepsi kırmızı döndü:
+
+  | Sabotaj | Kırmızı |
+  |---|---:|
+  | denetim yazıyor | 2 |
+  | adres maskesiz | 1 |
+  | dekont muhafazası kaldırıldı | 1 |
+  | son tarih koşulsuz yazılıyor | 1 |
+  | ödeme kararı atlanıyor | 3 |
+
+  İlk "salt okunur" iddiası `data/invoices/.htaccess` yüzünden düştü. Dosyayı
+  `vestra_invoice_dir()` koruma amacıyla yaratıyor, iş verisi değil, o yüzden
+  anlık görüntüden hariç tutuldu.
+
 **KURAL 8 — Mesajlaşmada satıcı ürün identiyle görünür; mağaza adı yazılmaz**
 (operatör kararı, 3 Eyl 2026: *"platformdaki mesajlaşmada her ürün için seller
 ardından ident no ya da sku numarası koy, mağaza ismi yapma"*).
