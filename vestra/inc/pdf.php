@@ -435,6 +435,43 @@ class VestraPdf {
 }
 
 /**
+ * Bu yazıcının ürettiği bir PDF'e GERÇEKTEN çizilmiş Latin metin — "belgede X
+ * yazıyor mu" sorusunun ölçüsü (28 Eyl 2026, VES-60594A18: modeli değişen
+ * siparişin faturasında yeni SKU VAR, eskisi YOK mu).
+ *
+ * Neden ham bayt araması yetmiyor: dar sütunlarda uzun bir değer iki satıra
+ * SARILIYOR ("TENNIS-CLUB-ICON-WH" / "ITE") ve tam dizge hamda hiç geçmiyor;
+ * önekle aramak ise aynı öneki paylaşan iki SKU'yu (…-WHITE / …-NAVYBLUE)
+ * ayıramıyor. Çizim sırası korunarak AYIRAÇSIZ birleştirildiğinde sarılmış
+ * değer yeniden bütünleşir. Bedeli: yalnız "bu metin çizildi mi" sorusu için
+ * geçerli (komşu hücreler de birbirine yapışık gelir).
+ *
+ * Yalnız içerik akışları okunur: görsel (/Subtype /Image) ve gömülü yazı tipi
+ * (/Length1) akışları atlanır — JPEG baytı tesadüfen "(...) Tj"ye benzeyebilir.
+ * Uzunluk başlıktaki /Length'ten alınır, "endstream" aranmaz (ikili veri onu
+ * içerebilir). Sıkıştırılmış belgede '' döner: "yok" demek yerine ölçülemedi.
+ * CJK (onaltılık <...> Tj) dizgeleri kapsam dışı.
+ */
+function vestra_pdf_drawn_text(string $pdf): string {
+    if ($pdf === '' || str_contains($pdf, '/FlateDecode')) return '';
+    if (!preg_match_all('/\d+ 0 obj\n(<<[^\n]*?) \/Length (\d+) >>\nstream\n/', $pdf, $mm, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) return '';
+    $out = '';
+    foreach ($mm as $m) {
+        $dict = $m[1][0];
+        if (str_contains($dict, '/Subtype /Image') || str_contains($dict, '/Length1')) continue;
+        $data = substr($pdf, $m[0][1] + strlen($m[0][0]), (int)$m[2][0]);
+        if (!preg_match_all('/\(((?:[^()\\\\]|\\\\.)*)\)\s*Tj/s', $data, $tm)) continue;
+        foreach ($tm[1] as $s) {
+            $s = (string)preg_replace_callback('/\\\\([0-7]{1,3}|.)/s',
+                fn($e) => ctype_digit($e[1][0]) ? chr(octdec($e[1]) & 0xFF) : $e[1], $s);
+            $u = @iconv('CP1252', 'UTF-8//IGNORE', $s);
+            $out .= $u === false ? $s : $u;
+        }
+    }
+    return $out;
+}
+
+/**
  * Bir dizgenin cizilecegi genislik (punto cinsinden).
  *
  * TEK OLCUM YERI: hem VestraPdf::strWidth() hem vestra_invoice_wrap() bunu

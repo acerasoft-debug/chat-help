@@ -1155,6 +1155,146 @@ function vestra_tpl_order_delivery_confirmed(string $buyerName, string $ref, str
 }
 
 /**
+ * SIPARISIN MODELI DEGISTI, TUTAR AYNI (operator, 28 Eyl 2026, VES-60594A18:
+ * "bu siparisi TENNIS-CLUB-ICON-WHITE bu model ile degistir ve tutari ayni
+ * olacak sekilde musteriye email gonder spama dusmesin"). Musteri bir gun once
+ * saticiyla sitede anlasmisti ("10 pieces de ce modele") ve "j'attend la
+ * facture demain" demisti -- yani bu mektup onun BEKLEDIGI mektup.
+ *
+ * SPAM'A DUSMEMESI ICIN BILEREK SADE:
+ *  - tek dugme (siparis sayfasi), baska baglanti yok; ek YOK (siparis
+ *    faturasi PDF'i siparis sayfasindan indiriliyor -- bu deponun tutarli
+ *    tasarimi, KURAL 28);
+ *  - banka numarasi YOK. Bunun yerine "banka bilgileri DEGISMEDI" cumlesi var:
+ *    "odeme bilgileri degisti, su hesaba yatirin" fatura dolandiriciliginin
+ *    (BEC) ders kitabi kalibi ve hem spam suzgeclerinin hem muhasebecilerin
+ *    aradigi sey. Ayni numarali ikinci bir belge gelen musteriye "hesap ayni"
+ *    demek, o kalibin tam tersi.
+ *  - musterinin KENDI dilinde (hesabin kayitli dili; cagiran secer).
+ *
+ * HICBIR RAKAM METNE GOMULU DEGIL: kalemler, birim, navlun ve toplam cagirandan
+ * gelir ve cagiran onlari SIPARIS KAYDINDAN okur (KURAL 6'nin dersi).
+ * $invoiceRedrafted: belge AYNI numarayla yeniden cizildi mi -- sablon bunu
+ * OLCEMEZ, operatorun ACIK bayragi (order_discount'un invoice_updated deseni).
+ *
+ * $fig: old_label, new_label, qty, colours, sizes, unit, goods, shipping,
+ *       total, currency
+ */
+function vestra_tpl_order_item_changed(string $buyerName, string $ref, array $fig, string $invoiceNo = '',
+        bool $invoiceRedrafted = false, bool $hasAccount = false, string $signer = '', string $lang = 'en'): array {
+    $buyerName = vestra_display_name($buyerName);
+    $lang = in_array(strtolower($lang), ['de', 'es', 'fr'], true) ? strtolower($lang) : 'en';
+    $cur = strtoupper(trim((string)($fig['currency'] ?? 'EUR'))) ?: 'EUR';
+    $sym = $cur === 'USD' ? 'US$' : '€';
+    $m = function (float $v) use ($lang, $sym): string {
+        return $lang === 'en' ? $sym.number_format($v, 2)
+                              : number_format($v, 2, ',', $lang === 'de' ? '.' : ' ').' '.$sym;
+    };
+    $old   = trim((string)($fig['old_label'] ?? ''));
+    $new   = trim((string)($fig['new_label'] ?? ''));
+    $qty   = (int)($fig['qty'] ?? 0);
+    $unit  = (float)($fig['unit'] ?? 0);
+    $goods = (float)($fig['goods'] ?? 0);
+    $ship  = (float)($fig['shipping'] ?? 0);
+    $total = (float)($fig['total'] ?? 0);
+    $cols  = implode(', ', array_filter(array_map('trim', (array)($fig['colours'] ?? []))));
+    $sizes = implode(', ', array_filter(array_map('trim', (array)($fig['sizes'] ?? []))));
+
+    $L = [
+        'en' => ['hi' => 'Customer', 'badge' => 'Order update', 'ref' => 'Order', 'model' => 'New model',
+                 'qty' => 'Quantity', 'tot' => 'Total (unchanged)', 'inv' => 'Invoice', 'btn' => 'View your order',
+                 'subj' => "Order {$ref} — model changed, amount unchanged",
+                 'open' => "as agreed with the seller, your order {$ref} is now for {$new}"
+                         .($old !== '' ? ", in place of {$old}" : '').'.',
+                 'col' => 'Colour', 'sz' => 'Sizes', 'pcs' => 'pcs',
+                 'same' => 'The amount stays the same:',
+                 'goods' => 'Goods', 'ship' => 'Shipping', 'total' => 'Total',
+                 'invU' => "Your invoice {$invoiceNo} has been updated with this model and keeps its number. It is available now on your order page; please use this version, the earlier copy is no longer valid.",
+                 'invY' => "Your invoice {$invoiceNo} shows this model; you will find it on your order page.",
+                 'invN' => "Your invoice will be issued with this model.",
+                 'bank' => "The bank details do not change: payment is made as planned, to the account shown on the invoice, quoting {$ref}.",
+                 'end' => "If anything is unclear, just reply to this e-mail.",
+                 'bye' => 'Kind regards,'],
+        'fr' => ['hi' => 'Madame, Monsieur', 'badge' => 'Commande', 'ref' => 'Commande', 'model' => 'Nouveau modèle',
+                 'qty' => 'Quantité', 'tot' => 'Total (inchangé)', 'inv' => 'Facture', 'btn' => 'Voir votre commande',
+                 'subj' => "Commande {$ref} — modèle modifié, montant inchangé",
+                 'open' => "comme convenu avec le vendeur, votre commande {$ref} porte désormais sur le modèle {$new}"
+                         .($old !== '' ? ", à la place du modèle {$old}" : '').'.',
+                 'col' => 'Couleur', 'sz' => 'Tailles', 'pcs' => 'pièces',
+                 'same' => 'Le montant reste inchangé :',
+                 'goods' => 'Marchandise', 'ship' => 'Livraison', 'total' => 'Total',
+                 'invU' => "Votre facture {$invoiceNo} a été mise à jour avec ce modèle et conserve son numéro. Elle est disponible dès maintenant sur la page de votre commande ; merci d'utiliser cette version, l'ancienne n'est plus valable.",
+                 'invY' => "Votre facture {$invoiceNo} indique ce modèle ; vous la trouverez sur la page de votre commande.",
+                 'invN' => "Votre facture sera établie avec ce modèle.",
+                 'bank' => "Les coordonnées bancaires ne changent pas : le règlement se fait comme prévu, sur le compte indiqué sur la facture, avec la référence {$ref}.",
+                 'end' => "Si quelque chose n'est pas clair, répondez simplement à ce courriel.",
+                 'bye' => 'Cordialement,'],
+        'de' => ['hi' => 'Kundin, sehr geehrter Kunde', 'badge' => 'Bestellung', 'ref' => 'Bestellung', 'model' => 'Neues Modell',
+                 'qty' => 'Menge', 'tot' => 'Gesamt (unverändert)', 'inv' => 'Rechnung', 'btn' => 'Bestellung ansehen',
+                 'subj' => "Bestellung {$ref} — Modell geändert, Betrag unverändert",
+                 'open' => "wie mit dem Verkäufer vereinbart, umfasst Ihre Bestellung {$ref} jetzt das Modell {$new}"
+                         .($old !== '' ? " anstelle von {$old}" : '').'.',
+                 'col' => 'Farbe', 'sz' => 'Größen', 'pcs' => 'Stück',
+                 'same' => 'Der Betrag bleibt unverändert:',
+                 'goods' => 'Warenwert', 'ship' => 'Versand', 'total' => 'Gesamt',
+                 'invU' => "Ihre Rechnung {$invoiceNo} wurde mit diesem Modell aktualisiert und behält ihre Nummer. Sie steht ab sofort auf Ihrer Bestellseite bereit; bitte verwenden Sie diese Fassung, die frühere ist nicht mehr gültig.",
+                 'invY' => "Ihre Rechnung {$invoiceNo} weist dieses Modell aus; Sie finden sie auf Ihrer Bestellseite.",
+                 'invN' => "Ihre Rechnung wird mit diesem Modell ausgestellt.",
+                 'bank' => "Die Bankverbindung ändert sich nicht: Die Zahlung erfolgt wie vorgesehen auf das Konto auf der Rechnung, mit dem Verwendungszweck {$ref}.",
+                 'end' => "Bei Fragen antworten Sie einfach auf diese E-Mail.",
+                 'bye' => 'Mit freundlichen Grüßen,'],
+        'es' => ['hi' => 'cliente', 'badge' => 'Pedido', 'ref' => 'Pedido', 'model' => 'Nuevo modelo',
+                 'qty' => 'Cantidad', 'tot' => 'Total (sin cambios)', 'inv' => 'Factura', 'btn' => 'Ver su pedido',
+                 'subj' => "Pedido {$ref} — modelo cambiado, mismo importe",
+                 'open' => "tal como acordó con el vendedor, su pedido {$ref} pasa a ser del modelo {$new}"
+                         .($old !== '' ? ", en lugar de {$old}" : '').'.',
+                 'col' => 'Color', 'sz' => 'Tallas', 'pcs' => 'piezas',
+                 'same' => 'El importe no cambia:',
+                 'goods' => 'Mercancía', 'ship' => 'Envío', 'total' => 'Total',
+                 'invU' => "Su factura {$invoiceNo} se ha actualizado con este modelo y conserva su número. Ya está disponible en la página de su pedido; utilice esta versión, la anterior queda sin efecto.",
+                 'invY' => "Su factura {$invoiceNo} recoge este modelo; la encontrará en la página de su pedido.",
+                 'invN' => "Su factura se emitirá con este modelo.",
+                 'bank' => "Los datos bancarios no cambian: el pago se hace como estaba previsto, a la cuenta que figura en la factura, con la referencia {$ref}.",
+                 'end' => "Si algo no queda claro, responda a este correo.",
+                 'bye' => 'Un cordial saludo,'],
+    ][$lang];
+
+    if ($buyerName === '') $buyerName = $L['hi'];
+    $greet = ['en' => "Dear {$buyerName},", 'fr' => "Bonjour {$buyerName},",
+              'de' => $buyerName === $L['hi'] ? "Sehr geehrte {$buyerName}," : "Guten Tag {$buyerName},",
+              'es' => "Estimado/a {$buyerName},"][$lang];
+    /* Ingilizce ve Ispanyolca hitaptan sonra BUYUK, Fransizca ve Almanca KUCUK
+       harfle devam eder (order_discount'un ayni kurali). */
+    $open = in_array($lang, ['en', 'es'], true) ? mb_strtoupper(mb_substr($L['open'], 0, 1)).mb_substr($L['open'], 1) : $L['open'];
+    $co = $lang === 'fr' ? ' : ' : ': ';
+
+    $detail = $L['qty'].$co.$qty.' '.$L['pcs']
+            . ($cols !== '' ? "\n".$L['col'].$co.$cols : '')
+            . ($sizes !== '' ? "\n".$L['sz'].$co.$sizes : '');
+    $money = $L['goods'].$co.$qty.' × '.$m($unit).' = '.$m($goods)."\n"
+           . ($ship > 0 ? $L['ship'].$co.$m($ship)."\n" : '')
+           . $L['total'].$co.$m($total);
+
+    $body = $greet."\n\n"
+          . $open."\n\n"
+          . $detail."\n\n"
+          . $L['same']."\n".$money."\n\n"
+          . ($invoiceNo !== '' ? ($invoiceRedrafted ? $L['invU'] : $L['invY']) : $L['invN'])."\n\n"
+          . ($invoiceNo !== '' ? $L['bank']."\n\n" : '')
+          . $L['end']."\n\n"
+          . $L['bye']."\n\n"
+          . ($signer !== '' ? $signer."\nVESTRA - vestrasales.com" : "VESTRA - vestrasales.com");
+
+    $rows = [['label' => $L['ref'], 'value' => $ref], ['label' => $L['model'], 'value' => $new],
+             ['label' => $L['qty'], 'value' => $qty.' '.$L['pcs']], ['label' => $L['tot'], 'value' => $m($total)]];
+    if ($invoiceNo !== '') $rows[] = ['label' => $L['inv'], 'value' => $invoiceNo];
+    $opts = ['badge' => $L['badge'], 'rows' => $rows];
+    if ($hasAccount) $opts['button'] = ['label' => $L['btn'],
+        'url' => 'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref)];
+    return [$L['subj'], $body, $opts];
+}
+
+/**
  * Sitede ilan uzerinden yazan aliciya, sitede verilen cevabin E-POSTA hali
  * (operator, 26 Eyl 2026, Odzież Premium: iki ilanda "Good morning" yazdi,
  * cevaplar sitede Marca Online / GARAGE LE PARIS adina verildi, sonra

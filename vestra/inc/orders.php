@@ -1549,6 +1549,273 @@ function vestra_order_add_line(
 }
 
 /**
+ * Bir ilanın BEDEN SERİSİNİ (`S×1 · M×3 · …`) adetle ölçekler: 10'luk seride 20
+ * adet → S×2, M×6 … Adet serinin katı değilse ya da ilanda seri yoksa BOŞ döner
+ * — tahmin edilmiş bir beden dökümü faturaya girerdi (KURAL 3).
+ *
+ * Kalıp `order_write`'ın toptan dalındakiyle AYNI; o dal iş akışının içinde ve
+ * çağrılamadığı için burada ikinci bir yazımı var. Ayrışırsa elle kurulan
+ * sipariş ile değiştirilen kalem iki farklı döküm yazar — testte ikisi aynı
+ * dizge üzerinde karşılaştırılıyor.
+ *
+ * @return string[]  ['S×1','M×3',…] ya da []
+ */
+function vestra_listing_size_run(array $p, int $qty): array {
+    $raw = is_array($p['sizes'] ?? null) ? implode(' ', array_map('strval', $p['sizes'])) : (string)($p['sizes'] ?? '');
+    $run = [];
+    if (preg_match_all('/([0-9]{2,3}|XXXL|XXL|XL|XS|S|M|L)\s*[×xX]\s*([0-9]+)/u', $raw, $rm, PREG_SET_ORDER)) {
+        foreach ($rm as $r1) $run[mb_strtoupper($r1[1])] = (int)$r1[2];
+    }
+    $per = array_sum($run);
+    if ($per <= 0 || $qty < 1 || $qty % $per !== 0) return [];
+    $packs = intdiv($qty, $per);
+    $out = [];
+    foreach ($run as $s => $n) $out[] = $s.'×'.($n * $packs);
+    return $out;
+}
+
+/**
+ * Var olan bir siparişte bir kalemin MODELİNİ değiştirir (operatör, 28 Eyl 2026:
+ * "VES-60594A18 bu siparişi TENNIS-CLUB-ICON-WHITE bu model ile değiştir ve
+ * tutarı aynı olacak şekilde müşteriye email gönder").
+ *
+ * BOŞLUK NEREDE: `vestra_order_add_line()` aynı SKU'yu reddediyor ve kalemi
+ * SİLEN bir yol hiç yok; `vestra_order_set_colours()` yalnız rengi düzeltiyor.
+ * Modeli değiştirmenin tek yolu siparişi silip yeniden yazmaktı — ki o YENİ bir
+ * ref, yeni bir fatura numarası ve müşterinin elindeki belgeyi geçersiz kılan
+ * ikinci bir kayıt demek. Ödeme saati (KURAL 7) de sıfırlanırdı.
+ *
+ * TUTAR VARSAYILAN OLARAK AYNI: eski satırın ANLAŞILAN birimi ve adedi taşınır
+ * (operatörün "tutarı aynı" talimatı). İstenirse `unit`/`qty` ile ezilir. Yeni
+ * ilanın kademesinden PAHALI bir birim reddedilir (alıcı aleyhine —
+ * `vestra_order_add_line`'ın aynı yön kuralı).
+ *
+ * NOTLAR, OKUYUCUNUN kendi ayrıştırıcısıyla (`vestra_order_notes_map`) sökülür:
+ *  - `Colours —` / `Sizes —` haritalarında eski anahtar kalkar, yenisi eklenir.
+ *    Renk verilmemişse ilanın TEK rengi alınır; ilanda birden fazla renk varsa
+ *    renk ŞART (tahmin edilmez). Beden dökümü yeni ilanın KENDİ serisinden.
+ *  - Eski SKU'ya ait `… colour split: …` cümlesi (add_line'ın yazdığı) silinir:
+ *    kalsaydı sipariş sayfasında artık olmayan bir kalemin dökümü dururdu.
+ *  - Serbest metnin gerisine (Payment, Deliver to, feragat notları, Shipping)
+ *    DOKUNULMAZ. Feragat cümleleri yeni ilan için artık DOĞRU DEĞİLSE (ör. adet
+ *    yeni ilanın MOQ'sunu karşılıyor ama not "asgarinin altında" diyor) bu
+ *    SİLİNMEZ, UYARI olarak döner — metni yeniden yazmak operatörün kararı.
+ *
+ * TOPLAM `vestra_order_add_line()`/`vestra_order_set_shipping()` ile AYNI
+ * formülle: mal `vestra_order_lines()`'dan, indirim ve navlun dokunulmadan,
+ * eski ücret (varsa) eski toplamdan geri türetilip korunur.
+ *
+ * FATURALI siparişte varsayılan RED; `allow_invoiced` ile yazılır ve
+ * `must_redraft` döner (KURAL 5f: AYNI numarayla yeniden çizim).
+ *
+ * @param array $opt ['unit'=>?float, 'qty'=>?int, 'colours'=>string[]]
+ */
+function vestra_order_replace_line(string $ref, string $oldSku, string $newSku, array $opt = [],
+                                   bool $allowInvoiced = false): array {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
+    if ($ref === '') return ['error' => 'ref yok'];
+    $oldSku = trim($oldSku); $newSku = trim($newSku);
+    if ($oldSku === '' || $newSku === '') return ['error' => 'eski ve yeni SKU gerekli'];
+    if (strcasecmp($oldSku, $newSku) === 0) return ['error' => 'eski ve yeni SKU aynı — renk düzeltmek için vestra_order_set_colours()'];
+
+    $p = vestra_product_by_sku($newSku);
+    if (!$p) return ['error' => 'yeni SKU katalogda yok: '.$newSku];
+    $newSku = (string)($p['sku'] ?? $newSku);   // kaydın kendi yazımı
+
+    require_once __DIR__.'/invoice.php';
+    $invoiced = vestra_invoices_for_ref($ref);
+    if ($invoiced && !$allowInvoiced) {
+        return ['error' => 'bu siparişin faturası kesilmiş — belge alıcının elinde olabilir. '
+                         . 'Yazmak için allow_invoiced opt-in, SONRA AYNI numarayla yeniden çizim (KURAL 5f).'];
+    }
+
+    $file = vestra_data_dir().'/orders.csv';
+    if (!is_readable($file)) return ['error' => 'orders.csv okunamıyor'];
+    $in = fopen($file, 'r'); if (!$in) return ['error' => 'orders.csv açılamadı'];
+    $head = fgetcsv($in, null, ',', '"', '\\');
+    if (!$head) { fclose($in); return ['error' => 'orders.csv başlıksız']; }
+    $idx = array_flip($head);
+    foreach (['ref', 'items', 'notes', 'total'] as $need) {
+        if (!isset($idx[$need])) { fclose($in); return ['error' => "orders.csv '{$need}' sütunu yok"]; }
+    }
+    $rows = []; $hit = null;
+    while (($r = fgetcsv($in, null, ',', '"', '\\')) !== false) {
+        $r = array_slice(array_pad($r, count($head), ''), 0, count($head));
+        if ((string)$r[$idx['ref']] === $ref) $hit = count($rows);
+        $rows[] = $r;
+    }
+    fclose($in);
+    if ($hit === null) return ['error' => 'sipariş bulunamadı: '.$ref];
+    $oldAssoc = array_combine($head, $rows[$hit]);
+
+    /* Durum: kargoya verilmiş/iptal bir siparişin modelini değiştirmek, giden
+       paketle ya da kapanmış bir kayıtla çelişen bir belge üretir. */
+    $st = vestra_read_json('order_statuses.json');
+    $status = (string)($st[$ref]['status'] ?? 'pending');
+    if (in_array($status, ['shipped', 'delivered', 'completed', 'cancelled'], true)) {
+        return ['error' => "sipariş durumu '{$status}' — model değiştirilemez"];
+    }
+
+    $oldLine = null;
+    foreach (vestra_order_lines($oldAssoc)['lines'] as $l) {
+        if (strcasecmp((string)$l['sku'], $oldSku) === 0) { $oldLine = $l; }
+        if (strcasecmp((string)$l['sku'], $newSku) === 0) {
+            return ['error' => 'yeni SKU zaten siparişte ('.(int)$l['qty'].' adet) — ikinci satır açılmaz'];
+        }
+    }
+    if (!$oldLine) return ['error' => 'eski SKU bu siparişte yok: '.$oldSku];
+    $oldSku = (string)$oldLine['sku'];
+
+    $qty  = isset($opt['qty'])  && (int)$opt['qty'] > 0 ? (int)$opt['qty'] : (int)$oldLine['qty'];
+    $unit = isset($opt['unit']) && $opt['unit'] !== null ? round((float)$opt['unit'], 2) : round((float)$oldLine['unit'], 2);
+    if ($unit <= 0) return ['error' => 'birim fiyat geçersiz'];
+
+    /* YÖN: yeni ilanın bu adetteki kademesinden PAHALI olamaz. */
+    $listUnit = round((float)vestra_unit_price($p, $qty, true), 2);
+    if ($listUnit > 0 && $unit > $listUnit + 0.005) {
+        return ['error' => sprintf('birim %s, yeni ilanın kademesi %s — ilandan pahalı, alıcı aleyhine',
+                                    number_format($unit, 2), number_format($listUnit, 2))];
+    }
+
+    /* RENK: verilmemişse ilanın TEK rengi; birden fazlaysa tahmin yok. */
+    $listed = array_values(array_filter(array_map(fn($c) => trim((string)$c), (array)($p['colors'] ?? [])), fn($c) => $c !== ''));
+    $colours = [];
+    foreach ((array)($opt['colours'] ?? []) as $c) {
+        $c = trim(preg_replace('/\s+/u', ' ', (string)$c));
+        if ($c === '') continue;
+        if (str_contains($c, ',') || str_contains($c, '|') || str_contains($c, '.')) return ['error' => 'renk adında , | . olamaz: '.$c];
+        $colours[] = $c;
+    }
+    if (!$colours) {
+        if (count($listed) === 1) $colours = $listed;
+        elseif (count($listed) > 1) return ['error' => 'yeni ilanda '.count($listed).' renk var ('.implode(' / ', $listed).') — renk belirtilmeli'];
+    }
+    $notListed = [];
+    $lcListed = array_map('mb_strtolower', $listed);
+    foreach ($colours as $c) if ($lcListed && !in_array(mb_strtolower($c), $lcListed, true)) $notListed[] = $c;
+
+    $sizes = vestra_listing_size_run($p, $qty);
+
+    /* ITEMS: segment segment; ayrıştırılamayan bir segment OLDUĞU GİBİ kalır
+       (vestra_parse_order_items onu sessizce atar — yeniden kurmak onu kaybederdi). */
+    $segs = [];
+    foreach (explode(' | ', (string)($oldAssoc['items'] ?? '')) as $seg) {
+        if (preg_match('/^(\d+)x\s+(.+)\s+@([\d.]+)$/', trim($seg), $m) && strcasecmp(trim($m[2]), $oldSku) === 0) {
+            $segs[] = $qty.'x '.$newSku.' @'.number_format($unit, 2, '.', '');
+        } else {
+            $segs[] = $seg;
+        }
+    }
+    $newItemsRaw = implode(' | ', $segs);
+
+    /* NOTLAR */
+    $notes0 = (string)($oldAssoc['notes'] ?? '');
+    [$colMap, $rest]  = vestra_order_notes_map($notes0, 'Colours');
+    [$sizeMap, $rest] = vestra_order_notes_map($rest, 'Sizes');
+    $oldColours = (array)($colMap[$oldSku] ?? []);
+    $oldSizes   = (array)($sizeMap[$oldSku] ?? []);
+    unset($colMap[$oldSku], $sizeMap[$oldSku]);
+    if ($colours) $colMap[$newSku] = $colours;
+    if ($sizes)   $sizeMap[$newSku] = $sizes;
+    $rest = (string)preg_replace('/(?:^|\s)'.preg_quote($oldSku, '/').' colour split: [^.]*\./u', ' ', $rest);
+    $notes = trim((string)preg_replace('/[ \t]{2,}/', ' ', $rest));
+    $frag = function (string $label, array $map): string {
+        $out = [];
+        foreach ($map as $k => $v) {
+            $v = array_values(array_filter(array_map('trim', (array)$v), fn($x) => $x !== ''));
+            if ($v) $out[] = $k.': '.implode(', ', $v);
+        }
+        return $out ? ' '.$label.' — '.implode(' | ', $out).'.' : '';
+    };
+    $notes = trim($notes.$frag('Colours', $colMap).$frag('Sizes', $sizeMap));
+
+    /* Feragat cümleleri yeni ilan için hâlâ doğru mu? Silmiyoruz, söylüyoruz. */
+    $stale = [];
+    $moq = max(1, (int)($p['moq'] ?? 1));
+    if (stripos($notes, 'below the listed minimum order') !== false && $qty >= $moq) {
+        $stale[] = "not 'asgarinin altında' diyor ama {$qty} adet yeni ilanın MOQ'sunu ({$moq}) karşılıyor";
+    }
+    if (stripos($notes, 'outside the listed tiers') !== false && $listUnit > 0 && abs($unit - $listUnit) < 0.005) {
+        $stale[] = "not 'kademe dışı anlaşılan fiyat' diyor ama birim yeni ilanın kademesiyle aynı";
+    }
+    if (vestra_is_sold_out($p)) $stale[] = 'yeni ilan SATILDI olarak işaretli';
+    if (($p['status'] ?? 'approved') !== 'approved') $stale[] = "yeni ilanın durumu '".(string)($p['status'] ?? '')."'";
+
+    /* TOPLAM — add_line ile aynı formül. */
+    $sumGoods = function (array $row): float {
+        $g = 0.0; foreach (vestra_order_lines($row)['lines'] as $l) $g += (float)($l['line'] ?? 0);
+        return round($g, 2);
+    };
+    $oldGoods = $sumGoods($oldAssoc);
+    $discount = round((float)($oldAssoc['discount'] ?? 0), 2);
+    $ship     = round((float)($oldAssoc['shipping'] ?? 0), 2);
+    $oldTot   = round((float)($oldAssoc['total'] ?? 0), 2);
+    $fee      = round($oldTot - (max(0.0, $oldGoods - $discount) + $ship), 2);
+    if ($fee < 0) $fee = 0.0;
+    $newAssoc = $oldAssoc; $newAssoc['items'] = $newItemsRaw; $newAssoc['notes'] = $notes;
+    $newGoods    = $sumGoods($newAssoc);
+    $newSubtotal = round(max(0.0, $newGoods - $discount), 2);
+    $newTotal    = round($newSubtotal + $ship + $fee, 2);
+    $newPayout   = round($newSubtotal - round((float)($oldAssoc['commission'] ?? 0), 2), 2);
+
+    $res = ['ok' => true, 'old_sku' => $oldSku, 'new_sku' => $newSku, 'qty' => $qty, 'unit' => $unit,
+            'list_unit' => $listUnit, 'colours' => $colours, 'old_colours' => $oldColours,
+            'sizes' => $sizes, 'old_sizes' => $oldSizes, 'not_listed' => $notListed, 'stale' => $stale,
+            'old_goods' => $oldGoods, 'goods' => $newGoods, 'discount' => $discount, 'shipping' => $ship,
+            'fee' => $fee, 'old_total' => $oldTot, 'subtotal' => $newSubtotal, 'payout' => $newPayout,
+            'total' => $newTotal, 'items' => $newItemsRaw, 'notes' => $notes,
+            'must_redraft' => (bool)$invoiced];
+    /* KURU KOŞU aynı gövdeden: önizleme ile yazma AYRI hesaplasaydı operatör bir
+       şey görür, kayda başkası girerdi (KURAL 5d'nin dersi). */
+    if (!empty($opt['dry'])) return $res + ['dry' => true];
+
+    $rows[$hit][$idx['items']] = $newItemsRaw;
+    $rows[$hit][$idx['notes']] = $notes;
+    if (isset($idx['subtotal'])) $rows[$hit][$idx['subtotal']] = number_format($newSubtotal, 2, '.', '');
+    if (isset($idx['payout']))   $rows[$hit][$idx['payout']]   = number_format($newPayout, 2, '.', '');
+    $rows[$hit][$idx['total']] = number_format($newTotal, 2, '.', '');
+
+    $bak = $file.'.bak-repline-'.date('Ymd_His');
+    if (!@copy($file, $bak)) return ['error' => 'yedek alınamadı — yazmıyorum'];
+    $tmp = $file.'.tmp';
+    $out = fopen($tmp, 'w'); if (!$out) return ['error' => 'geçici dosya açılamadı'];
+    fputcsv($out, $head, ',', '"', '\\');
+    foreach ($rows as $r) fputcsv($out, $r, ',', '"', '\\');
+    fclose($out);
+    if (!rename($tmp, $file)) { @unlink($tmp); return ['error' => 'orders.csv yazılamadı (izin?)']; }
+
+    /* GERİ OKU — belgeyi besleyen yol (vestra_order_lines) yeni kalemi görmeli,
+       eskisini GÖRMEMELİ. */
+    $back = null;
+    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) { $back = $r; break; } }
+    if (!$back) return ['error' => 'yazıldı ama satır geri okunamadı (yedek: '.basename($bak).')'];
+    $seen = null;
+    foreach (vestra_order_lines($back)['lines'] as $l) {
+        if (strcasecmp((string)$l['sku'], $oldSku) === 0) return ['error' => 'yazıldı ama ESKİ kalem hâlâ görünüyor (yedek: '.basename($bak).')'];
+        if (strcasecmp((string)$l['sku'], $newSku) === 0) $seen = $l;
+    }
+    if (!$seen || (int)$seen['qty'] !== $qty || abs((float)$seen['unit'] - $unit) > 0.005) {
+        return ['error' => 'yazıldı ama yeni kalem doğru okunamıyor (yedek: '.basename($bak).')'];
+    }
+    if (array_map('strval', (array)$seen['colors']) !== $colours) {
+        return ['error' => 'yazıldı ama fatura rengi göremiyor ("'.implode(', ', (array)$seen['colors']).'")'];
+    }
+    if (abs((float)($back['total'] ?? -1) - $newTotal) > 0.005) {
+        return ['error' => 'yazıldı ama toplam beklenenle uyuşmuyor (yedek: '.basename($bak).')'];
+    }
+
+    $st = vestra_read_json('order_statuses.json');
+    if (!isset($st[$ref]) || !is_array($st[$ref])) $st[$ref] = [];
+    $st[$ref]['line_changes'] = array_slice(array_merge((array)($st[$ref]['line_changes'] ?? []), [[
+        'at' => date('c'), 'by' => 'operator', 'from' => $oldSku, 'to' => $newSku,
+        'qty' => $qty, 'unit' => $unit,
+    ]]), -20);
+    vestra_write_json('order_statuses.json', $st);
+
+    return $res + ['backup' => basename($bak)];
+}
+
+/**
  * Bir siparişe HOŞ GELDİN İNDİRİMİ işler (operatör, 19 Eyl 2026: *"yüzde 5
  * Welcome indirimini her üç siparişe ekle … bundan sonraki her müşterinin ilk
  * siparişine de ekle"*).
