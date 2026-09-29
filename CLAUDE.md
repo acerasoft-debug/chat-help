@@ -10839,3 +10839,51 @@ listerleri tek bir ilanda yap"*).
   uygulandığı sayılarak): döngü koruması **1**, bayrak yok sayılınca **10**,
   nested stok okunmayınca **fatal**, tek ilan konusu eskiye **3**, sayfa
   yönlendirmesi kapalı **3**, taban eşleşmesi alt dizeye **4**.
+- **CANLI (29 Eyl 2026), sırayla ve her adım geri okunarak:**
+  - `add-products` (run `36556950663`): tek ilan yazıldı, katalog **914 → 915**.
+  - `set-product` (run `36557057405`, `product-fixes/burberry-polo-fold-into-one.json`):
+    8 eski kayıtta **16 alan** (`status=rejected` + `redirect_to`), yedek
+    `listings.json.bak-20260929-104117`. `KAYDEDILDI — 16 alan guncellendi`.
+  - `inspect-products` (run `36557448025`, `brand=Burberry`): `bur-pique-polo-2909`
+    **approved**, 8 foto, 8 renk (model numaraları renk adında), `min_colors=1`,
+    *"renk secici=ACIK (adet-basina-renk)"*, kademeler `20+/50+/100+ →
+    €59,90/54,90/49,90`, SKU `BUR-PIQUE-POLO`; 8 eski id Burberry fiyat listesinde
+    **yok** (40 satır). Canlı ürün sayısı 8 azaldı — bu bir kayıp değil, katlama.
+  - **301 ölçümü iki koşu istedi, çünkü SONDA yönlendirmeyi göremiyordu.**
+    `seo-check` (run `36557587334`, `path=/product?id=bur-8099164`) 9 dilde
+    *"normal sayfa (0 bayt)"* dedi: dış adım `curl` ile `-L`siz çekiyor ve durum
+    kodunu **hiç basmıyordu** — 301'in gövdesi boş olduğu için "0 bayt" tutarlı ama
+    dolaylıydı. Adım artık `-D` ile başlığı alıp `HTTP <kod>  ->  <Location>` basıyor
+    (`16da36a`; `-L` bilerek yok: yönlendirme İZLENMEZ, ÖLÇÜLÜR). Deploy
+    `36557762069`, ardından run `36568125832`: **9 dilin 9'unda `HTTP 301  ->
+    /product?id=bur-pique-polo-2909`** (dışarıdan, WAF üzerinden; gövde 0 bayt,
+    challenge yok). Yani 100 mektuptaki eski bağlantılar tek ilana düşüyor.
+    *Sondanın localhost adımı bu barındırmada bu sitenin vhost'una düşmüyor
+    (`HTTP 404 File Not Found` — kanalı ölçer, sayfayı değil; bu dosyada zaten
+    kayıtlı).*
+  - **Operatör kopyası** (run `36568283030`, `send-outreach` → `to_members=true`,
+    `count=1`, `member_spec=letter=offer|tag=bur2909|pids=bur-pique-polo-2909|
+    skip=…|copy=true`): *"ilan: bur-pique-polo-2909 | renk=8 | renge baglanmayan
+    foto=0 | kademe=3 | kayitli stok=322 ad."* (kütükte `3*** ad.` — Actions'ın
+    "22" maskesi), *"operator kopyasi: GONDERILDI | dil=de | fiyat=acik |
+    govde=1474 karakter | foto=8"*, **müşteriye hiçbir şey gitmedi, damga
+    düşmedi**. Kutuda okundu: konu *"[KOPYA] VESTRA — Burberry Angebot: 8
+    Farben"* — gövde tek ilan bağlantısı (`/product?id=bur-pique-polo-2909`),
+    *Farben (8)* satırında sekiz renk **model numarasıyla**, *Auf Lager*
+    bloğunda renk × beden (S/M/L/XL/XXL) ve renk toplamı (19 · 29 · 30 · 27 ·
+    20 · 50 · 50 · 97), *Gesamt auf Lager: 322 Stück*, `Mindestabnahme: 20
+    Stück` (renklerin TOPLAMI), üç kademe, marka sayfası, opt-out cümlesi, 8
+    fotoluk şerit. Eski 8 id'ye hiçbir bağlantı yok.
+    **Renk adları mektupta İngilizce kalıyor** (`Green`, `Black · Check
+    collar`): şablon `colors` alanını olduğu gibi basıyor ve bu 8 ilanlı
+    partide ve Fred Perry mektuplarında da böyleydi; ürün sayfası
+    `vestra_colour_label()` ile çeviriyor. Gerileme değil, bilinen sınır —
+    çevirmek isteniyorsa ayrı iş.
+    **Kota o anda 147 kalan / 60 ayrılmış** — yani bugün en fazla ~87 kampanya
+    mektubu; 250 lead'in çoğu yarına kalır.
+- **Kampanya DURDU, kod değil karar bekliyor (KURAL 18):** 100 üye 8 ilanlı
+  mektubu aldı (bağlantıları 301 ile tek ilana gidiyor); tek ilanlı mektup kalan
+  ~79 üyeye (`skip=389h68843j6789,verify,acera,pentest`) ve 250'ye kadar lead'e
+  operatör "devam" deyince gider. Damga aynı (`offer_bur2909_at`), yani 100 üye
+  ikinci mektubu **almaz**. Kota kopya anında **147 kalan / 60 ayrılmış**: kalan
+  üyeler bugün sığar, lead partisi yarına ve sonrasına taşar (günde ~240).
