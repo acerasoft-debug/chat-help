@@ -147,6 +147,52 @@ $seed(); $m0 = $raw('messages.json');
 $o = $run('e', $TH1['id'].',yazar:devret', true);
 $t('birden fazla hesap: cikis 1, yazilmadi', str_contains($o, 'RC=1') && $raw('messages.json') === $m0);
 
+echo "\n== 7. msg_del 'redact': metinden TEK ifade cikar ==\n";
+/* Konusmada adin METINDE gectigi bir mesaj vardi ("Agaya Paris, one of TYREX
+   International's subsidiary companies"). Mesajin tamami silinmiyor, yalnizca
+   o ifade. */
+$st2 = '';
+if (preg_match("/- name: Mesaj \/ engellenen kayıt sil.*?(?=\n      - name: )/s", $wf, $m)) $st2 = $m[0];
+$php2 = '';
+if ($st2 !== '' && preg_match("/<<'PHPEOF'\n(.*?)\n\s*PHPEOF\n/s", $st2, $pm)) {
+  $lines = explode("\n", $pm[1]); $ind = null;
+  foreach ($lines as $ln) { if (trim($ln) === '') continue; $w = strlen($ln) - strlen(ltrim($ln, ' ')); $ind = $ind === null ? $w : min($ind, $w); }
+  $php2 = implode("\n", array_map(fn($ln) => substr($ln, (int)$ind), $lines));
+}
+$t('msg_del betigi cikarildi', str_starts_with(ltrim($php2), '<?php'));
+$t('payload adima geciyor (envs)', str_contains($st2, 'MD_PAY: ${{ github.event.inputs.payload }}') && str_contains($st2, 'envs: MD_SEL,MD_GO,MD_PAY'));
+file_put_contents($sb.'/md.php', $php2);
+$md = function (string $sel, string $pay, bool $go) use ($sb, $ph): string {
+  return (string)shell_exec('cd '.escapeshellarg($ph).' && env HOME='.escapeshellarg($sb)
+    .' MD_SEL='.escapeshellarg($sel).' MD_PAY='.escapeshellarg($pay).' MD_GO='.($go ? 'true' : 'false')
+    .' php '.escapeshellarg($sb.'/md.php').' 2>&1; echo "RC=$?"');
+};
+$seed(); $m0 = $raw('messages.json');
+$sel = 'redact:'.$TH1['id'].':2026-09-29T12:34';
+$o = $md($sel, ', Tyrex team=>', false);
+$t('kuru kosu: uzunluklar basildi, dosya DEGISMEDI', str_contains($o, 'metin 19 -> 7 karakter') && str_contains($o, '(kuru kosu)') && $raw('messages.json') === $m0);
+$t('metnin KENDISI kutuge basilmadi', !str_contains($o, 'Regards'));
+$o = $md($sel, ', Tyrex team=>', true);
+$x = $find($TH1['id']);
+$t('uygulandi ve geri okundu', str_contains($o, 'DUZELTILDI') && (($x['messages'][4]['text'] ?? '') === 'Regards'));
+$t('mesaj SILINMEDI (sayi ayni)', count((array)($x['messages'] ?? [])) === 5);
+$t('diger mesajlar AYNEN', ($x['messages'][1]['text'] ?? '') === 'Hello, the money has arrived.');
+$t('yazar ve tarih korundu', ($x['messages'][4]['from'] ?? '') === $T && ($x['messages'][4]['at'] ?? '') === '2026-09-29T12:34:00+00:00');
+$t('yedek alindi', (glob($ph.'/data/messages.json.bak-redact-*') ?: []) !== []);
+$m1 = $raw('messages.json');
+$o = $md($sel, 'Tyrex=>X', true);
+$t('ifade artik yok: DURDU, yazilmadi', str_contains($o, 'ifade mesajda 0 kez') && $raw('messages.json') === $m1);
+$o = $md('redact:'.$TH1['id'].':2026-09-29', 'o=>0', true);
+$t('secici birden fazla mesaja uyuyor: DURDU, yazilmadi', str_contains($o, 'TAM 1 gerekli') && $raw('messages.json') === $m1);
+$o = $md('redact:'.$TH1['id'].':2026-09-29T11:11', 'e=>E', true);
+$t('ifade mesajda BIRDEN FAZLA kez: DURDU, yazilmadi', str_contains($o, 'ifade mesajda 4 kez') && $raw('messages.json') === $m1);
+$o = $md('redact:'.$TH2['id'].':2026-09-20', 'b64:'.base64_encode("h=>h'"), false);
+$t("b64: payload cozuluyor (kesme isareti tasiyan ifade)", str_contains($o, 'metin 2 -> 3 karakter') && $raw('messages.json') === $m1);
+$o = $md($sel, 'duz metin', true);
+$t('=> yoksa DURDU', str_contains($o, "'ESKI=>YENI' bicimi degil") && $raw('messages.json') === $m1);
+$o = $md('redact:'.$TH2['id'].':2026-09-20', 'h=>H', true);
+$t('ayni harf bir kez: kontrol konusmasi degisti (sadece hedef)', str_contains($o, 'DUZELTILDI') && ($find($TH2['id'])['messages'][0]['text'] ?? '') === 'Hi');
+
 exec('rm -rf '.escapeshellarg($sb));
 echo "\nthread_seller_reassign_test: {$ok} iddia gecti".($bad ? ", {$bad} HATA" : '')."\n";
 exit($bad ? 1 : 0);
