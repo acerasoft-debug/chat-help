@@ -244,6 +244,31 @@ jobs:
               if (!empty($r['pinned'])) $row['pinned'] = true;
               if (isset($r['size_step']) && is_numeric($r['size_step']) && (int)$r['size_step'] > 1) $row['size_step'] = (int)$r['size_step'];
               if (isset($r['min_colors']) && is_numeric($r['min_colors']) && (int)$r['min_colors'] >= 1) $row['min_colors'] = (int)$r['min_colors'];
+              /* GERCEK STOK (inc/stock.php: vestra_stock_real). Tedarikci listesi
+                 beden basina eldeki adedi veriyorsa ilana yazilir ve fiyat
+                 listeleri TURETILMIS bandin (polo icin 100-150) yerine onu basar:
+                 29 Eyl 2026 Burberry polo listesinde bir model 19 adetti ve
+                 turetilmis bant "116 pcs in stock" yazacakti. Verilmezse davranis
+                 degismez. HEPSI ya da HICBIRI: bozuk bir satir yarim okunmaz --
+                 yarim okunmus bir stok satiri, yanlis bir stok satiridir.
+                 JSON'daki "44" gibi sayisal beden PHP'de int anahtar olur, o
+                 yuzden anahtar (string)'e cevrilip denetleniyor; duz bir dizi
+                 ([2,6,5]) beden bilgisi tasimadigi icin reddediliyor. */
+              if (isset($r['stock'])) {
+                $rs = $r['stock'];
+                if (!is_array($rs) || !$rs || array_keys($rs) === range(0, count($rs) - 1)) {
+                  $errors[] = "{$ctx} ({$id}): stock {beden: adet} nesnesi olmali (or. {\"S\":2,\"M\":6})"; continue;
+                }
+                $stk = [];
+                foreach ($rs as $sz => $q) {
+                  $sz = trim((string)$sz);
+                  if (!preg_match('/^[A-Za-z0-9]{1,6}$/', $sz) || !is_int($q) || $q < 0) {
+                    $errors[] = "{$ctx} ({$id}): stock icinde gecersiz beden/adet ('{$sz}')"; continue 2;
+                  }
+                  $stk[$sz] = $q;
+                }
+                $row['stock'] = $stk;
+              }
               /* KURAL 3: nereden gonderildigi tahmin edilmez, yazilir. Batch bunu
                  vermezse platform varsayilani (EU) kalir -- bu satir sessizce
                  dusuyordu, yani daha once eklenen her batch (footwear dahil)

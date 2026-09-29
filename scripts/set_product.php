@@ -49,7 +49,7 @@ $haystack = function(array $p) use ($norm) {
   return $norm(implode('|', array_map('strval', $bits)));
 };
 
-$ALLOWED = ['cat','price','moq','tiers','offers','sizes','name','name_i18n','desc','desc_i18n','status','sample_price','sample_platform_pay','seller_uid','seller','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','dropship_off','sale_list','ships_from','sold_out','preorder_ship',
+$ALLOWED = ['cat','price','moq','tiers','offers','sizes','name','name_i18n','desc','desc_i18n','status','sample_price','sample_platform_pay','seller_uid','seller','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','dropship_off','sale_list','ships_from','sold_out','preorder_ship','stock',
             'group','group_target','group_price','group_deposit_pct','group_balance_days','group_extend_days','group_started','group_deadline','group_extended_to','group_min_qty','group_models','group_title','group_min_colors'];
 /* group_extended_to: cron_pool_sweep.php'nin bir havuzu KENDI koydugu tek seferlik
    uzatma tarihi (inc/products.php: vestra_group_deadline() bu alani group_deadline'in
@@ -228,6 +228,29 @@ foreach ($fixes as $n => $fx) {
       'ship_eu' => (float)$d['ship_eu'],
       'stock'   => $d['stock'],
     ];
+  }
+
+  /* stock: GERCEK beden stogu (inc/stock.php: vestra_stock_real). Tedarikci
+     listesinden gelen adet; fiyat listeleri turetilmis bandin yerine bunu basar.
+     null = alani KALDIR (liste turetilmis banda doner). Dogrulama add-products
+     ile AYNI ve HEPSI ya da HICBIRI: yarim okunmus bir stok satiri, yanlis bir
+     stok satiridir. JSON'da "44" gibi sayisal beden PHP'de int anahtar olur --
+     anahtar (string)'e cevrilip denetleniyor; duz dizi ([2,6,5]) beden bilgisi
+     tasimadigi icin reddediliyor. */
+  if (array_key_exists('stock', $set) && $set['stock'] !== null) {
+    $rs = $set['stock'];
+    if (!is_array($rs) || !$rs || array_keys($rs) === range(0, count($rs) - 1)) {
+      $errors[] = "{$ctx} ({$m}): stock {beden: adet} nesnesi ya da null olmali"; continue;
+    }
+    $stk = [];
+    foreach ($rs as $sz => $q) {
+      $sz = trim((string)$sz);
+      if (!preg_match('/^[A-Za-z0-9]{1,6}$/', $sz) || !is_int($q) || $q < 0) {
+        $errors[] = "{$ctx} ({$m}): stock icinde gecersiz beden/adet ('{$sz}')"; continue 2;
+      }
+      $stk[$sz] = $q;
+    }
+    $set['stock'] = $stk;
   }
 
   /* ─── Havuz (grup alimi) alanlari ───────────────────────────────
@@ -553,6 +576,17 @@ foreach ($plan as [$i, $set, $m]) {
       $line[] = 'sold_out '.($old?'true':'false').' -> '.($v?'true':'false')
               . ($v ? '  (satin alinamaz; vitrinde SOLD rozetiyle durur)' : '  (yeniden SATISTA)');
       $all[$i]['sold_out'] = $v;   // gercek bool, "1"/"" degil
+      $changes++;
+    } elseif ($k === 'stock') {
+      /* Genel dal diziyi (string)'e cevirip "Array" yazardi. null alani
+         kaldirir: liste turetilmis banda doner. */
+      $fmtS = fn($st) => is_array($st) && $st
+            ? implode(' · ', array_map(fn($a, $b) => $a.' '.$b, array_keys($st), $st)).' ('.array_sum($st).' ad.)'
+            : '(kayitli stok yok -- turetilmis bant)';
+      $old = is_array($p['stock'] ?? null) ? $p['stock'] : null;
+      if ($old === $v) continue;
+      $line[] = 'stock '.$fmtS($old).' -> '.$fmtS($v);
+      if ($v === null) unset($all[$i]['stock']); else $all[$i]['stock'] = $v;
       $changes++;
     } elseif ($k === 'dropship_off') {
       $old = !empty($p['dropship_off']);

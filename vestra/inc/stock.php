@@ -4,6 +4,9 @@
  *
  * NOTHING IS STORED. The figures are derived from the product id, so listings.json is
  * never written to and switching this off is deleting a call, not migrating data back.
+ * One exception, and it only ever makes a figure truer: a listing that carries its own
+ * recorded stock ('stock', from a supplier line sheet) prints that instead -- see
+ * vestra_stock_real().
  *
  * DETERMINISTIC BY DESIGN. Seeded from the product id, so the same article always shows
  * the same numbers: on the page, in the Excel, in the PDF, and on the next reload. Fresh
@@ -72,9 +75,42 @@ function vestra_stock_band(string $cat, string $brand): array {
 }
 
 /**
- * @return array{sizes: array<string,int>, total: int}
+ * REAL stock, where the listing carries it ('stock' => ['S' => 2, 'M' => 6, ...]).
+ *
+ * A supplier line sheet sometimes gives the actual quantity on hand per size. The
+ * Burberry piqué polo sheet of 29 Sep 2026 did: 19 to 97 pieces per model, and one
+ * model with no size S at all. The derived band for a polo is 100-150, so without this
+ * the trade list would have printed "116 pcs in stock" for an article that has 19 --
+ * and the order that follows could not be filled. A recorded figure always wins; the
+ * derived one is only the fallback for listings that carry none.
+ *
+ * Sizes are kept in the listing's own order and a zero stays a zero ("S 0" is the
+ * truth about that model, and dropping the size would hide it). A malformed map
+ * (negative, fractional or non-numeric quantity, empty size label) is ignored as a
+ * whole rather than half-read: a partly-read stock line is a wrong stock line.
+ *
+ * @return array{sizes: array<string,int>, total: int, real: true}|null
+ */
+function vestra_stock_real(array $p): ?array {
+    $raw = $p['stock'] ?? null;
+    if (!is_array($raw) || !$raw) return null;
+    $out = [];
+    foreach ($raw as $size => $qty) {
+        $size = trim((string)$size);
+        if ($size === '' || is_bool($qty) || !is_numeric($qty)) return null;
+        if ((float)$qty < 0 || (float)$qty != (int)$qty) return null;
+        $out[$size] = (int)$qty;
+    }
+    return ['sizes' => $out, 'total' => array_sum($out), 'real' => true];
+}
+
+/**
+ * @return array{sizes: array<string,int>, total: int, real: bool}
  */
 function vestra_stock_for(array $p): array {
+    $real = vestra_stock_real($p);
+    if ($real !== null) return $real;
+
     $id    = (string)($p['id'] ?? '');
     $brand = (string)($p['brand'] ?? '');
     $cat   = (string)($p['cat'] ?? '');
@@ -100,7 +136,7 @@ function vestra_stock_for(array $p): array {
         $out[$deepest] = max(1, $out[$deepest] + $drift);
     }
 
-    return ['sizes' => $out, 'total' => array_sum($out)];
+    return ['sizes' => $out, 'total' => array_sum($out), 'real' => false];
 }
 
 /* One-line rendering: "S 18 · M 29 · L 29 · XL 23 · XXL 17  (116 pcs)" */
