@@ -435,7 +435,10 @@ if($tab==='overview'){
       foreach(vestra_invoices_for_ref($ref) as $iv){
         $invLinks.='<a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener">📄 '.t('Invoice').' '.htmlspecialchars(vestra_invoice_link_label($iv)).'</a> ';
       }
-      $trk = !empty($orderSt[$ref]['tracking']) ? '<div class="hint" style="margin-top:8px">🚚 '.t('Tracking').': '.htmlspecialchars($orderSt[$ref]['tracking']).'</div>' : '';
+      /* Birden fazla paket ya da kismi paket: "Teslimat 1: … · Teslimat 2: henuz
+         cikmadi" -- tek satir yalnizca SON numarayi gosterirdi (29 Eyl 2026). */
+      $trk = vestra_order_deliveries_html(vestra_order_shipment($orderSt[$ref] ?? null), true);
+      if ($trk === '' && !empty($orderSt[$ref]['tracking'])) $trk = '<div class="hint" style="margin-top:8px">🚚 '.t('Tracking').': '.htmlspecialchars($orderSt[$ref]['tracking']).'</div>';
       /* The raw items field ("2x SKU @25 | …") is the storage format, not something a buyer
          should have to decode. Rebuild the real lines so each product is named, pictured and
          clickable straight through to its page — the thing they actually want to re-check. */

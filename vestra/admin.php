@@ -153,6 +153,37 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     header('Location: /admin?tab=orders&view='.urlencode($ref)
           .'&msg='.(isset($r['error'])?'addr_fail&err='.urlencode(substr((string)$r['error'],0,140)):'addr_saved')); exit;
   }
+  /* SONRAKI TESLIMAT YUVASI (operator, 29 Eyl 2026: "trackinglerde ikinci
+     lieferung icin yer ac"). Durum formundaki numara kutusu GECERLI paketi
+     duzeltir; yeni bir paket (Teslimat 2, 3 …) buradan yazilir ve onceki
+     paket KORUNUR. Yazma ile mektup ayri iki fonksiyon, ikisi de is akisinin
+     cagirdigi AYNI govdeler (vestra_order_add_parcel / vestra_order_parcel_notify). */
+  if($act==='order_parcel'){
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    require_once __DIR__.'/inc/orders.php';
+    $more=!empty($_POST['more']);
+    $r=vestra_order_add_parcel($ref, (string)($_POST['tracking']??''), (string)($_POST['ship_carrier']??''),
+                               (string)($_POST['ship_service']??''), $more, 'admin');
+    if(empty($r['ok'])){
+      header('Location: /admin?tab=orders&view='.urlencode($ref).'&msg=parcel_fail&err='.urlencode(substr((string)($r['error']??'?'),0,160))); exit;
+    }
+    $mail='off';
+    if(!empty($_POST['notify'])){
+      $nr=vestra_order_parcel_notify($ref, $r['shipment']);
+      $mail=!empty($nr['sent']) ? 'sent' : (!empty($nr['skipped']) ? 'skip' : 'fail');
+    }
+    header('Location: /admin?tab=orders&view='.urlencode($ref).'&msg=parcel_ok&n='.(int)$r['n'].'&mail='.$mail.($more?'&more=1':'')); exit;
+  }
+  /* Gecerli paketin mektubu gitmediyse (saglayici reddetti ya da kutucuk
+     isaretsizdi) tekrar dene. Damgali pakete ikinci mektup GITMEZ. */
+  if($act==='order_parcel_mail'){
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    require_once __DIR__.'/inc/orders.php';
+    $nr=vestra_order_parcel_notify($ref);
+    $mail=!empty($nr['sent']) ? 'sent' : (!empty($nr['skipped']) ? 'skip' : 'fail');
+    header('Location: /admin?tab=orders&view='.urlencode($ref).'&msg=parcel_mail&mail='.$mail
+          .($mail==='fail' ? '&err='.urlencode(substr((string)($nr['error']??'?'),0,120)) : '')); exit;
+  }
   if($act==='order_shipping'){
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
     require_once __DIR__.'/inc/orders.php';
@@ -1435,6 +1466,10 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
         $sv=trim(preg_replace('/\s+/',' ',(string)$_POST['ship_service']));
         if($sv==='') unset($all[$ref]['ship_service']); else $all[$ref]['ship_service']=mb_substr($sv,0,60);
       }
+      /* 'Shipped' = siparisin TAMAMI yolda. Kismi isaret kalsaydi alici ayni anda
+         "kalani ayri pakette gelecek" ve "teslim aldim" dugmesini gorurdu -- is
+         akisi bu celiskiyi reddediyor, panel de ayni sonuca varsin. */
+      if($st==='shipped') unset($all[$ref]['ship_partial_trk']);
       $all[$ref]['history'][] = vestra_order_history_entry($st, 'admin');
       vestra_write_json('order_statuses.json',$all);
       /* Invoice flow: on "paid", tell the buyer + the sellers whose SKUs are in the order,
@@ -1492,18 +1527,10 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
          Fires when the order becomes shipped, or when a tracking number is added or
          changed on an order that already is. */
       if($st==='shipped' && ($prev!=='shipped' || ($newTrk!=='' && $newTrk!==$prevTrk))){
-        $sRow=null;
-        foreach(vestra_read_csv('orders.csv') as $row){ if(($row['ref']??'')===$ref){ $sRow=$row; break; } }
-        if($sRow && !empty($sRow['email'])){
-          $buyerAcc=auth_find((string)$sRow['email']);
-          require_once __DIR__.'/inc/email_templates.php';
-          [$subj,$body,$opts]=vestra_tpl_order_shipped($sRow['name']?:($sRow['company']?:'there'), $ref, $newTrk, (bool)$buyerAcc, vestra_order_shipment($all[$ref]??null));
-          vestra_send_mail($sRow['email'],$subj,$body,'','',null,'',$opts);
-          if($buyerAcc){
-            require_once __DIR__.'/inc/push.php';
-            vestra_push_notify($buyerAcc, 'order_shipped', ['ref'=>$ref, 'tracking'=>$newTrk]);
-          }
-        }
+        /* Mektup + bildirim TEK govdeden (inc/orders.php): onceki paket varsa
+           "siparisin kalani yola cikti" ALICININ dilinde, yoksa eski "gonderildi"
+           mektubu aynen. Kosul burada verildigi icin $force=true. */
+        vestra_order_parcel_notify($ref, vestra_order_shipment($all[$ref]??null), '', true);
       }
     }
     header('Location: /admin?tab=orders&msg=status_ok'); exit;
@@ -2842,6 +2869,21 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg">✓ Teslimat adresi kaydedildi — <b>faturanın gerçekten bu adresi gördüğü</b> geri okunarak doğrulandı (satırın değişmesi yetmez; belgeyi besleyen çözücü de aynı adresi bulmalı). Gümrük ve kurye için gereken alan buydu.</div>
 <?php elseif($msg==='addr_fail'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Adres <b>kaydedilmedi</b>: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>. Hiçbir alan değişmedi.</div>
+<?php elseif($msg==='parcel_ok'): ?>
+<?php $pMail=(string)($_GET['mail']??''); $pN=(int)($_GET['n']??0); ?>
+<div class="amsg">✓ Teslimat <?= $pN ?> kaydedildi — kayıttan geri okunarak doğrulandı; önceki paket(ler) siparişte duruyor.
+  <?= !empty($_GET['more']) ? 'Durum değişmedi: sonraki teslimat için yuva açık kaldı.' : 'Sipariş tamamlandı: durum <b>Shipped</b>, alıcı artık teslimi onaylayabilir.' ?>
+  <?php if($pMail==='sent'): ?> Alıcıya mektup <b>kendi dilinde gitti</b> (Brevo kabul etti).
+  <?php elseif($pMail==='fail'): ?><br><b style="color:#c0392b">⚠ Mektup GİTMEDİ — sağlayıcı reddetti.</b> Kayıt yazıldı; paketi yeniden yazmayın (numara zaten kayıtlı) — teslimat satırındaki <b>✉ Send letter</b> düğmesiyle tekrar deneyin.
+  <?php elseif($pMail==='skip'): ?> Bu paket için mektup zaten gitmişti — ikincisi gönderilmedi.
+  <?php else: ?> Alıcıya mektup <b>gönderilmedi</b> (kutucuk işaretsizdi).<?php endif; ?></div>
+<?php elseif($msg==='parcel_mail'): ?>
+<?php $pMail=(string)($_GET['mail']??''); ?>
+<?php if($pMail==='sent'): ?><div class="amsg">✓ Teslimat mektubu alıcıya <b>kendi dilinde gitti</b> (Brevo kabul etti) ve paket damgalandı.</div>
+<?php elseif($pMail==='skip'): ?><div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Bu paket için mektup <b>zaten gitmişti</b> — ikincisi gönderilmedi.</div>
+<?php else: ?><div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Mektup <b>gitmedi</b>: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>.</div><?php endif; ?>
+<?php elseif($msg==='parcel_fail'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Teslimat <b>kaydedilmedi</b>: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>. Hiçbir alan değişmedi, kimseye bir şey gitmedi.</div>
 <?php elseif($msg==='disc_saved'): ?>
 <div class="amsg">✓ İndirim kaydedildi — <b>sipariş toplamı da</b> birlikte güncellendi ve geri okunarak doğrulandı. Belgede <code>Voucher &lt;kod&gt; −€x</code> satırı olarak çıkar.</div>
 <?php elseif($msg==='disc_fail'): ?>
@@ -4272,20 +4314,77 @@ elseif($tab==='orders'):
       <input name="tracking" value="<?= htmlspecialchars($vshp['tracking']) ?>" placeholder="Tracking no." style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
       <button class="abtn primary" type="submit">Save</button>
     </form>
-    <?php if($vshp['url']!==''): ?>
+    <?php /* Numarali teslimat listesi cizilecekse bu tek satir ayni paketi ikinci kez
+             yazardi -- liste her paketi kendi baglantisiyla zaten basiyor. */
+      $vmulti = count((array)($vshp['deliveries']??[]))>1 || (int)($vshp['next_n']??0)>0; ?>
+    <?php if($vshp['url']!=='' && !$vmulti): ?>
       <div class="ahint" style="margin-top:8px">🚚 <?= htmlspecialchars($vshp['carrier_name']) ?><?= $vshp['service']!==''?' · '.htmlspecialchars($vshp['service']):'' ?> — <a href="<?= htmlspecialchars($vshp['url']) ?>" target="_blank" rel="noopener nofollow"><?= htmlspecialchars($vshp['tracking']) ?></a></div>
     <?php elseif($vshp['tracking']!=='' && $vshp['carrier']===''): ?>
       <div class="ahint" style="margin-top:8px">⚠ Carrier not set — the buyer sees the number but no tracking link.</div>
     <?php endif; ?>
-    <?php /* Kismi gonderim (29 Eyl 2026): panel gercegi basar -- bu paket siparisin
-             yalnizca bir kismi ve durum bilerek 'shipped' DEGIL (alici "teslim aldim"
-             deyip siparisi kapatmasin). Son paket cikinca durum Shipped yapilir. */ ?>
-    <?php if(!empty($vshp['partial'])): ?>
-      <div class="ahint" style="margin-top:6px">📦 <b>Partial shipment</b> — this parcel is part of the order; the rest is still to ship. Set status to <b>Shipped</b> with the last parcel's tracking number.</div>
+    <?php /* NUMARALI TESLIMATLAR + SONRAKI YUVA (operator, 29 Eyl 2026: "trackinglerde
+             ikinci lieferung icin yer ac"). Kismi pakette durum bilerek 'shipped' DEGIL
+             (alici "teslim aldim" deyip yarim siparisi kapatmasin); sonraki paket
+             asagidaki "Delivery N" yuvasina yazilir, onceki paket siparis ve alici
+             sayfasinda kalir. Yukaridaki durum formunun numara kutusu GECERLI paketi
+             duzeltir, yeni paket eklemez. */
+      $vdl=(array)($vshp['deliveries']??[]); $vnext=(int)($vshp['next_n']??0);
+      $vnotified=(array)($vst['ship_notified']??[]);
+      $vslotN=$vnext>0 ? $vnext : count($vdl)+1;
+      $vslotOk=$vshp['tracking']!=='' && !in_array((string)$vstatus,['cancelled','delivered','completed'],true);
+    ?>
+    <?php if(count($vdl)>1 || $vnext>0): ?>
+      <div style="margin-top:10px">
+        <div class="ahint" style="font-weight:600;margin-bottom:4px">📦 Deliveries<?= !empty($vshp['partial']) ? ' — partial: the rest is still to ship, status stays '.htmlspecialchars((string)$vstatus) : '' ?></div>
+        <?php foreach($vdl as $vd): ?>
+          <div class="ahint" style="padding:2px 0"><b>Delivery <?= (int)$vd['n'] ?></b><?= (string)($vd['at']??'')!=='' ? ' ('.htmlspecialchars(substr((string)$vd['at'],0,10)).')' : '' ?>:
+            <?= htmlspecialchars(trim((string)$vd['carrier_name'].((string)($vd['service']??'')!=='' ? ' · '.$vd['service'] : ''))) ?>
+            <?php if((string)($vd['url']??'')!==''): ?><a href="<?= htmlspecialchars((string)$vd['url']) ?>" target="_blank" rel="noopener nofollow"><?= htmlspecialchars((string)$vd['tracking']) ?></a><?php else: ?><?= htmlspecialchars((string)$vd['tracking']) ?><?php endif; ?>
+            <?= !empty($vnotified[$vd['tracking']]) ? ' · ✉ letter sent '.htmlspecialchars(substr((string)$vnotified[$vd['tracking']],0,10)) : '' ?>
+          </div>
+        <?php endforeach; ?>
+        <?php if($vnext>0): ?>
+          <div class="ahint" style="padding:2px 0"><b>Delivery <?= $vnext ?></b>: <i>not shipped yet — enter its tracking number below</i></div>
+        <?php endif; ?>
+      </div>
+      <?php if($vshp['tracking']!=='' && empty($vnotified[$vshp['tracking']])): ?>
+        <form method="post" style="margin-top:6px" onsubmit="return confirm('E-mail the buyer about this parcel now, in their language?')">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="order_parcel_mail">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+          <span class="ahint">No letter recorded for the current parcel.</span>
+          <button class="abtn" type="submit">✉ Send letter</button>
+        </form>
+      <?php endif; ?>
     <?php endif; ?>
-    <?php foreach(($vshp['earlier']??[]) as $pe): ?>
-      <div class="ahint" style="margin-top:4px">Earlier parcel<?= $pe['at']!=='' ? ' ('.htmlspecialchars(substr($pe['at'],0,10)).')' : '' ?>: <?= htmlspecialchars($pe['carrier_name']) ?> <?php if($pe['url']!==''): ?><a href="<?= htmlspecialchars($pe['url']) ?>" target="_blank" rel="noopener nofollow"><?= htmlspecialchars($pe['tracking']) ?></a><?php else: ?><?= htmlspecialchars($pe['tracking']) ?><?php endif; ?></div>
-    <?php endforeach; ?>
+    <?php if($vslotOk): ob_start(); ?>
+      <form method="post" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px" onsubmit="return confirm('Save delivery <?= $vslotN ?> for <?= htmlspecialchars($viewRef) ?>? The earlier parcel stays on the order.')">
+        <?= csrfField() ?>
+        <input type="hidden" name="_action" value="order_parcel">
+        <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+        <b style="font-size:12.5px">Delivery <?= $vslotN ?></b>
+        <select name="ship_carrier" style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
+          <option value="">Carrier — from the number</option>
+          <?php foreach(vestra_carriers() as $ck=>$cv): if($ck==='other') continue; ?>
+            <option value="<?= htmlspecialchars($ck) ?>"><?= htmlspecialchars($cv['name']) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <input name="ship_service" placeholder="Service (optional)" style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
+        <input name="tracking" required placeholder="Tracking no. of delivery <?= $vslotN ?>" style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
+        <?php if((string)$vstatus!=='shipped'): ?>
+          <label class="ahint" style="display:flex;gap:5px;align-items:center"><input type="checkbox" name="more" value="1"> more parcels will follow after this one</label>
+        <?php endif; ?>
+        <label class="ahint" style="display:flex;gap:5px;align-items:center"><input type="checkbox" name="notify" value="1" checked> e-mail the buyer (their language)</label>
+        <button class="abtn primary" type="submit">Save delivery <?= $vslotN ?></button>
+      </form>
+      <div class="ahint" style="margin-top:4px">Earlier parcels stay on the order and on the buyer's page. Without “more parcels” this parcel completes the order: status → <b>Shipped</b>, the buyer is told the rest has shipped (in their language) and can confirm receipt.</div>
+    <?php $vslotForm=ob_get_clean(); ?>
+      <?php if($vnext>0): ?>
+        <div style="margin-top:10px;padding:10px 12px;border:1px dashed var(--line);border-radius:9px"><?= $vslotForm ?></div>
+      <?php else: ?>
+        <details style="margin-top:10px"><summary class="ahint" style="cursor:pointer">+ Add another parcel (delivery <?= $vslotN ?>)</summary><?= $vslotForm ?></details>
+      <?php endif; ?>
+    <?php endif; ?>
     <?php
       /* Havale dekontu (2 Eyl 2026): musteri panelden yukledi ya da operator
          e-postadan iliştirdi -- ikisi de vestra_receipt_store()'dan gecer, tek
@@ -4449,7 +4548,8 @@ if($__dupRefs): ?>
       <div style="font-size:11.5px;<?= $__usd!==null?'':'color:var(--mut)' ?>" title="<?= $__fx?htmlspecialchars('EUR→USD '.vestra_order_fx_note($__fx)):'no rate stamped for this order date yet' ?>"><?= $__usd!==null ? '≈ '.vestra_usd($__usd) : 'US$ —' ?></div>
       <?php if(((float)($o['shipping']??0))>0): ?><div class="ahint" style="font-size:10.5px">incl. shipping <?= eur($o['shipping']) ?></div><?php endif; ?><?php if(($__iv=vestra_order_invoiced_note($o['ref']??''))!==''): ?><div class="ahint" style="font-size:10.5px"><?= htmlspecialchars($__iv) ?></div><?php endif; ?></td>
     <td class="ac"><?= orderBadge($st) ?></td>
-    <td class="ac" style="font-size:11px"><?= htmlspecialchars($trk) ?><?php if($trk!=='' && !empty(vestra_order_shipment($orderSt[$ref]??null)['partial'])): ?><div class="ahint" style="font-size:10px">📦 partial</div><?php endif; ?></td>
+    <?php $lshp=vestra_order_shipment($orderSt[$ref]??null); $lcnt=count($lshp['deliveries']); ?>
+    <td class="ac" style="font-size:11px"><?= htmlspecialchars($trk) ?><?php if($trk!=='' && ($lcnt>1 || $lshp['partial'])): ?><div class="ahint" style="font-size:10px">📦 <?= $lcnt>1 ? $lcnt.' parcels' : '' ?><?= $lcnt>1 && $lshp['partial'] ? ' · ' : '' ?><?= $lshp['partial'] ? 'partial — delivery '.(int)$lshp['next_n'].' to come' : '' ?></div><?php endif; ?></td>
     <td class="ac" style="font-size:11px"><?php foreach(vestra_invoices_for_ref($ref) as $iv): ?>
       <a href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener" style="color:var(--acc);display:block"><?= htmlspecialchars(vestra_invoice_link_label($iv)) ?></a>
     <?php endforeach; ?></td>

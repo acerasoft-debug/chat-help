@@ -194,6 +194,9 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         $st = vestra_read_json('order_statuses.json');
         $tracking = trim($_POST['tracking']??'');
         $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'shipped','tracking'=>$tracking,'shipped_at'=>date('c')]);
+        /* 'Shipped' = siparisin tamami yolda: kismi isaret kalkar (panel ve is
+           akisiyla ayni kural). */
+        unset($st[$ref]['ship_partial_trk']);
         /* Tasiyici + servis: admin tarafiyla ayni kural -- alan formda yoksa
            kayitli deger KORUNUR (bu form sadece 'tracking' tasiyabiliyor). */
         if (array_key_exists('ship_carrier', $_POST)) {
@@ -217,20 +220,12 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
                 'kind'=>'order','status'=>'shipped','ref'=>$ref,'tracking'=>$tracking,
             ], $uid);
         }
-        /* Push ping to the buyer's installed devices */
-        if ($buyerAcc) {
-            require_once __DIR__.'/inc/push.php';
-            vestra_push_notify($buyerAcc, 'order_shipped', ['ref'=>$ref, 'tracking'=>$tracking]);
-        }
-        /* Email buyer — same template the admin panel uses (vestra_tpl_order_shipped),
-           so the two ways of marking an order shipped read the same. */
+        /* Mektup + uygulama bildirimi: panelin ve is akisinin cagirdigi AYNI govde
+           (inc/orders.php). Onceki paket varsa "siparisin kalani yola cikti"
+           ALICININ dilinde; yoksa eski "gonderildi" mektubu aynen. Iki ayri
+           gonderim kopyasi ilk degisiklikte iki ayri mektup demekti. */
         require_once __DIR__.'/inc/notify.php';
-        if (!empty($orderRow['email'])) {
-            require_once __DIR__.'/inc/email_templates.php';
-            [$sSubj, $sBody, $sOpts] = vestra_tpl_order_shipped(
-                $orderRow['name'] ?: ($orderRow['company'] ?: 'there'), $ref, $tracking, (bool)$buyerAcc, $shpNow);
-            vestra_send_mail($orderRow['email'], $sSubj, $sBody, '', '', null, '', $sOpts);
-        }
+        vestra_order_parcel_notify($ref, $shpNow, '', true);
     }
     header('Location: /seller?tab=orders&shipped=1'); exit;
 }

@@ -28,10 +28,10 @@ require_once $root.'/vestra/inc/orders.php';
 require_once $root.'/vestra/inc/email_templates.php';
 require_once $root.'/vestra/inc/push_texts.php';
 
-$T1 = '1ZRJ70256819041340'; $T2 = '1ZRJ70256833376757'; $T3 = '1ZRJ70256800000009';
+$T1 = '1ZX0000A6800000011'; $T2 = '1ZX0000A6800000012'; $T3 = '1ZX0000A6800000013';
 
 echo "== 1. okuyucu: kismi isaret PAKETE bagli ==\n";
-$s = vestra_order_shipment(['tracking' => $T1, 'ship_partial_trk' => '1zrj 7025 6819 041340']);
+$s = vestra_order_shipment(['tracking' => $T1, 'ship_partial_trk' => '1zx0 000a 6800 000011']);
 $t('isaretli numara = gecerli numara -> kismi (bosluk/buyuk-kucuk harf fark etmez)', $s['partial'] === true);
 $s = vestra_order_shipment(['tracking' => $T2, 'ship_partial_trk' => $T1]);
 $t('baska bir numara yazildiysa isaret DUSER (panel/satici formu hatirlamak zorunda degil)', $s['partial'] === false);
@@ -52,7 +52,7 @@ $put = function (array $st) use ($sb) { file_put_contents($sb.'/data/order_statu
 $get = function () use ($sb) { return json_decode((string)file_get_contents($sb.'/data/order_statuses.json'), true) ?: []; };
 $put(['VES-S1' => ['status' => 'to_vestra', 'history' => [['status' => 'to_vestra', 'at' => '2026-09-23T10:00:00+00:00', 'by' => 'admin']]],
       'VES-S2' => ['status' => 'paid']]);
-$r = vestra_order_set_shipment('VES-S1', ' 1zrj 70256819041340 ', 'ups', null, true);
+$r = vestra_order_set_shipment('VES-S1', ' 1zx0 000a6800000011 ', 'ups', null, true);
 $g = $get();
 $t('yazildi, geri okumada kismi', !empty($r['ok']) && $r['shipment']['partial'] === true);
 $t('numara normalize edildi', ($g['VES-S1']['tracking'] ?? '') === $T1 && ($g['VES-S1']['ship_partial_trk'] ?? '') === $T1);
@@ -112,7 +112,8 @@ $t('ad yoksa notr hitap (bosluklu virgul yok)', str_starts_with($body, "Bonjour,
 $tpl = (string)file_get_contents($root.'/vestra/inc/email_templates.php');
 $fa = strpos($tpl, 'function vestra_tpl_order_part_shipped('); $fb = strpos($tpl, "\n}\n", $fa);
 $fsrc = substr($tpl, $fa, $fb - $fa);
-$t('sablon KALEM almiyor (hangi kalemin pakette oldugu tahmin edilmez)', preg_match('/function vestra_tpl_order_part_shipped\(string \$lang, string \$buyerName, string \$ref, array \$shipment, bool \$hasAccount = false\)/', $fsrc) === 1);
+$t('sablon KALEM almiyor (hangi kalemin pakette oldugu tahmin edilmez)', preg_match('/function vestra_tpl_order_part_shipped\(string \$lang, string \$buyerName, string \$ref, array \$shipment, bool \$hasAccount = false\)/', $fsrc) === 1
+   && preg_match('/function vestra_tpl_order_parcel_core\(string \$lang, string \$buyerName, string \$ref, array \$shipment, bool \$hasAccount, bool \$final\)/', $tpl) === 1);
 
 echo "\n== 4. son paket: 'gonderildi' mektubu onceki paketi aniyor ==\n";
 [, $b1] = vestra_tpl_order_shipped('Ana Test', 'VES-X', $T2, true, vestra_order_shipment(['tracking' => $T2, 'parcels' => [['tracking' => $T1]]]));
@@ -147,7 +148,10 @@ echo vestra_render_order_detail($row, '.var_export($st, true).', '.var_export($r
 $stP = ['status' => 'paid', 'tracking' => $T2, 'ship_partial_trk' => $T2, 'parcels' => [['tracking' => $T1, 'at' => '2026-09-29T08:00:00+00:00'], ['tracking' => $T2]]];
 $h = $render('de', 'buyer', $stP);
 $t('alici (de): kismi satiri kendi dilinde', str_contains($h, 'Teillieferung — die übrigen Artikel folgen'));
-$t('alici (de): onceki paket baglantisiyla', str_contains($h, 'Früheres Paket') && str_contains($h, 'tracknum='.$T1));
+/* 29 Eyl 2026 ("ikinci lieferung icin yer ac"): onceki paket artik NUMARALI teslimat
+   satiri -- "Lieferung 1: <baglanti>", ve bekleyen yuva "Lieferung 3: Noch nicht versandt". */
+$t('alici (de): teslimatlar numarali, onceki paket baglantisiyla, bekleyen yuva acik',
+   str_contains($h, 'Lieferung 1:') && str_contains($h, 'tracknum='.$T1) && str_contains($h, 'Lieferung 3:') && str_contains($h, 'Noch nicht versandt'));
 $t('alici: "teslim aldim" dugmesi YOK (durum paid)', !str_contains($h, 'confirm_receipt'));
 $t('alici: PHP uyarisi yok', !preg_match('/(Warning|Notice|Deprecated|Fatal error)/', $h));
 $h = $render('en', 'seller', $stP);
@@ -158,8 +162,8 @@ $t('KONTROL: isaretsiz sipariste kismi satiri YOK', !str_contains($h, 'Partial s
 echo "\n== 7. sozluk: iki yeni anahtar 8 dilde (KURAL 10) ==\n";
 foreach (['de', 'fr', 'es', 'it', 'pt', 'ru', 'ar', 'ja'] as $lg) {
     $d = include $root.'/vestra/inc/lang/'.$lg.'.php';
-    $t("{$lg}: iki anahtar dolu", trim((string)($d['Partial shipment — the remaining items will follow in a separate parcel.'] ?? '')) !== ''
-                                && trim((string)($d['Earlier parcel'] ?? '')) !== '');
+    $t("{$lg}: iki anahtar dolu ('Delivery %d' yer tutucusunu tasiyor)", trim((string)($d['Partial shipment — the remaining items will follow in a separate parcel.'] ?? '')) !== ''
+                                && str_contains((string)($d['Delivery %d'] ?? ''), '%d') && !isset($d['Earlier parcel']));
 }
 
 echo "\n== 8. is akisi adimi (gercek PHP, kum havuzu) ==\n";
@@ -177,9 +181,9 @@ file_put_contents($sb.'/wf_run.php', $run);
 $head = ['timestamp','ref','company','vat','name','email','country','phone','items','subtotal','commission','payout','total','notes','consent','terms_version','voucher_code','discount','shipping','shipping_label'];
 $seed = function (array $st) use ($sb, $head) {
     $h = fopen($sb.'/wf/orders.csv', 'w'); fputcsv($h, $head, ',', '"', '\\');
-    fputcsv($h, ['2026-09-18T10:00:00+00:00','VES-WF1','Isla Test SL','','Bianca Probe Name','isla.probe@example.org','ES','','2x ABC @10.00','20','0','20','20','Payment: Bank transfer.','','','','','0',''], ',', '"', '\\');
+    fputcsv($h, ['2026-09-18T10:00:00+00:00','VES-WF1','Probe Test SL','','Buyer Probe Name','buyer.probe@example.org','ES','','2x ABC @10.00','20','0','20','20','Payment: Bank transfer.','','','','','0',''], ',', '"', '\\');
     fclose($h);
-    file_put_contents($sb.'/wf/accounts.json', json_encode([['id' => 'acc-isla', 'email' => 'isla.probe@example.org', 'type' => 'buyer', 'lang' => 'es', 'status' => 'active', 'name' => 'Bianca Probe Name', 'company' => 'Isla Test SL']]));
+    file_put_contents($sb.'/wf/accounts.json', json_encode([['id' => 'acc-probe', 'email' => 'buyer.probe@example.org', 'type' => 'buyer', 'lang' => 'es', 'status' => 'active', 'name' => 'Buyer Probe Name', 'company' => 'Probe Test SL']]));
     file_put_contents($sb.'/wf/order_statuses.json', json_encode($st));
 };
 $wfRun = function (string $spec, bool $go) use ($sb): array {
@@ -196,8 +200,8 @@ $snap = sha1_file($sb.'/wf/order_statuses.json');
 $t('kuru kosu: basarili, kismi EVET, durum degismiyor', $rc === 0 && str_contains($o, 'kismi     : EVET') && str_contains($o, 'degismiyor (to_vestra)'));
 $t('kuru kosu: mektup alicinin HESAP dilinde (es)', str_contains($o, 'dil es -- hesap') && str_contains($o, 'parte de su pedido VES-WF1'));
 $t('kuru kosu: UPS baglantisi onizlemede', str_contains($o, 'tracknum='.$T1));
-$t('kuru kosu: alicinin ADI kutuge yazilmadi (maskeli)', !str_contains($o, 'Bianca Probe Name') && str_contains($o, 'Hola B***:'));
-$t('kuru kosu: adres maskeli', !str_contains($o, 'isla.probe@'));
+$t('kuru kosu: alicinin ADI kutuge yazilmadi (maskeli)', !str_contains($o, 'Buyer Probe Name') && str_contains($o, 'Hola B***:'));
+$t('kuru kosu: adres maskeli', !str_contains($o, 'buyer.probe@'));
 $t('kuru kosu: HICBIR SEY YAZILMADI', str_contains($o, 'HICBIR SEY YAZILMADI') && sha1_file($sb.'/wf/order_statuses.json') === $snap);
 $t('kuru kosu: PHP uyarisi yok', !preg_match('/(Warning|Notice|Deprecated|Fatal error)/', $o));
 [$rc, $o] = $wfRun('tracking='.$T1.'|partial=1|lang=de', false);
@@ -222,17 +226,23 @@ file_put_contents($sb.'/wf/order_statuses.json', json_encode($all));
 [$rc, $o] = $wfRun('tracking='.$T1.'|partial=1', false);
 $t('damgali paket: ayni pakete ikinci mektup GITMEZ', $rc === 0 && str_contains($o, 'gitmeyecek (bu paket icin 2026-09-29T09:00:00+00:00 tarihinde gonderildi)'));
 [$rc, $o] = $wfRun('tracking='.$T3.'|status=shipped', false);
-$t('son paket (status=shipped): "tamamliyor" + onceki numara onizlemede', $rc === 0 && str_contains($o, 'This shipment completes your order') && str_contains($o, $T1));
-$t('son paket onizlemesi de ad MASKELI', !str_contains($o, 'Bianca Probe Name') && str_contains($o, 'Hello B***,'));
+/* Son paket artik ALICININ dilinde "siparisin kalani yola cikti" (29 Eyl 2026): ilk
+   mektubu Ispanyolca alan alici ikincisini Ingilizce almasin. */
+$t('son paket (status=shipped): "kalani yola cikti" alicinin dilinde (es) + onceki numara onizlemede',
+   $rc === 0 && str_contains($o, 'Los artículos restantes de su pedido VES-WF1') && str_contains($o, 'Paquete anterior: UPS '.$T1));
+$t('son paket onizlemesi de ad MASKELI', !str_contains($o, 'Buyer Probe Name') && str_contains($o, 'Hola B***:'));
 $t('son paket: kismi DEGIL', str_contains($o, 'kismi     : hayir'));
 
 echo "\n== 9. kablolama ==\n";
 $code = preg_replace('~/\*.*?\*/~s', '', $php);
 $t('yazici tek fonksiyon; kismi -> true, son paket -> false, diger -> null',
    str_contains($code, "\$isPartial ? true : (\$wantStatus === 'shipped' ? false : null)"));
-$t('kismi gonderimde uygulama bildirimi ayri tur', str_contains($code, "\$isPartial ? 'order_part_shipped' : 'order_shipped'"));
+$ord = (string)file_get_contents($root.'/vestra/inc/orders.php');
+$t('mektup + bildirim TEK govdeden; kismi pakette bildirim ayri tur',
+   str_contains($code, 'vestra_order_parcel_notify($ref, $after, $lang, true)')
+   && str_contains($ord, "!empty(\$shp['partial']) ? 'order_part_shipped' : 'order_shipped'"));
 $adm = (string)file_get_contents($root.'/vestra/admin.php');
-$t('panel siparis sayfasi kismi paketi ve onceki paketi basiyor', str_contains($adm, "!empty(\$vshp['partial'])") && str_contains($adm, "(\$vshp['earlier']??[])"));
+$t('panel siparis sayfasi numarali teslimatlari ve bekleyen yuvayi basiyor', str_contains($adm, "(\$vshp['deliveries']??[])") && str_contains($adm, "(\$vshp['next_n']??0)"));
 
 exec('rm -rf '.escapeshellarg($sb));
 echo "\n".($bad === 0 ? "partial_shipment_test: {$ok} iddia gecti\n" : "partial_shipment_test: {$bad} HATA / {$ok} gecti\n");

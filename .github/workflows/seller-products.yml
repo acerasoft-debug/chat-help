@@ -51,7 +51,7 @@ on:
         required: false
         default: "false"
       ship_spec:
-        description: "admin_mode=ship: gönderim bilgisi — 'tracking=<no>|carrier=ups|service=Express Saver|status=shipped'. status=shipped verilirse MÜŞTERİYE 'gönderildi' MEKTUBU GİDER. KISMİ paket: 'tracking=<no>|partial=1' (durum değişmez, 'bir kısmı yola çıktı' mektubu alıcının dilinde; lang=en|fr|es|it|de ezer). offer_apply=true demedikçe kuru koşu."
+        description: "admin_mode=ship: gönderim bilgisi — 'tracking=<no>|carrier=ups|service=Express Saver|status=shipped'. status=shipped verilirse MÜŞTERİYE 'gönderildi' MEKTUBU GİDER. KISMİ paket: 'tracking=<no>|partial=1' (durum değişmez, 'bir kısmı yola çıktı' mektubu alıcının dilinde; lang=en|fr|es|it|de ezer). SONRAKİ teslimat: 'tracking=<no>|next=1|status=shipped' (önceki paket korunur, 'kalanı yola çıktı' mektubu alıcının dilinde) ya da '…|next=1|partial=1' (daha da gelecek). offer_apply=true demedikçe kuru koşu."
         required: false
         default: ""
       offer_price:
@@ -4117,6 +4117,28 @@ jobs:
               fwrite(STDERR, "partial=1 ile status={$wantStatus} CELISIYOR: kismi paket siparisi kapatmaz. "
                             ."Kalan kalemler cikinca son paketin numarasiyla status=shipped yazin.\n"); exit(1);
             }
+            /* SONRAKI TESLIMAT (29 Eyl 2026, "ikinci lieferung icin yer ac"): next=1 --
+               bu numara YENI bir paket, gecerli numaranin duzeltmesi DEGIL. Gecerli paket
+               kismi isaretli olmasa bile gunluge korunur (panelin "Delivery N" yuvasiyla
+               ayni yazici). Ya partial=1 (daha gelecek) ya status=shipped (siparisi
+               tamamliyor) ister: ikisi de yoksa paketin ne oldugu belirsiz kalir. */
+            $isNext = in_array(strtolower($E('next')), ['1', 'true', 'yes', 'on'], true);
+            if ($isNext && !$isPartial && $wantStatus !== 'shipped') {
+              fwrite(STDERR, "next=1 ya partial=1 (bu paketten sonra da paket gelecek) ya da status=shipped (bu paket siparisi tamamliyor) ister\n"); exit(1);
+            }
+            if ($isNext && trim((string)$trk) === '') {
+              fwrite(STDERR, "next=1 takip numarasi ister\n"); exit(1);
+            }
+            if ($isNext) {
+              foreach (vestra_order_shipment($cur)['deliveries'] as $dd) {
+                if (strtoupper(preg_replace('/\s+/', '', (string)$dd['tracking'])) === strtoupper(preg_replace('/\s+/', '', (string)$trk))) {
+                  fwrite(STDERR, "bu numara zaten {$dd['n']}. teslimat -- ikinci kez yazilmaz\n"); exit(1);
+                }
+              }
+              /* Yeni paketin tasiyici/servisi oncekinden MIRAS alinmaz. */
+              if ($car === null) $car = '';
+              if ($svc === null) $svc = '';
+            }
             /* Mektubun dili: spec lang= > alicinin hesap dili > en. Sablon bes dil biliyor. */
             $langOv = strtolower($E('lang'));
             if ($langOv !== '' && !in_array($langOv, ['en', 'fr', 'es', 'it', 'de'], true)) {
@@ -4131,6 +4153,16 @@ jobs:
               'ship_carrier' => $car,
               'ship_service' => $svc,
             ], fn($v) => $v !== null));
+            if ($isNext && trim((string)($cur['tracking'] ?? '')) !== '') {
+              /* Yazicinin yapacagini onizlemede de yap: gecerli paket gunlukte yoksa eklenir. */
+              $curNorm = strtoupper(preg_replace('/\s+/', '', (string)$cur['tracking']));
+              $inLog = false;
+              foreach ((array)($cur['parcels'] ?? []) as $pp) {
+                if (is_array($pp) && strtoupper(preg_replace('/\s+/', '', (string)($pp['tracking'] ?? ''))) === $curNorm) $inLog = true;
+              }
+              if (!$inLog) $prevRow['parcels'][] = ['tracking' => $curNorm, 'carrier' => (string)($cur['ship_carrier'] ?? ''),
+                                                     'service' => (string)($cur['ship_service'] ?? ''), 'at' => vestra_order_parcel_time($cur)];
+            }
             if ($isPartial) $prevRow['ship_partial_trk'] = (string)($prevRow['tracking'] ?? '');
             elseif ($wantStatus === 'shipped') unset($prevRow['ship_partial_trk']);
             $preview = vestra_order_shipment($prevRow);
@@ -4142,7 +4174,8 @@ jobs:
             echo "baglanti  : ".($preview['url'] !== '' ? $preview['url'] : '*** YOK -- tasiyici cozulmedi, alici duz metin gorur ***')."\n";
             echo "durum     : ".($wantStatus !== '' ? "{$prevStatus} -> {$wantStatus}" : "degismiyor ({$prevStatus})")."\n";
             echo "kismi     : ".($isPartial ? 'EVET -- siparisin bir kismi; durum degismez, "teslim aldim" dugmesi cikmaz' : 'hayir')."\n";
-            foreach ($preview['earlier'] as $pe) echo "onceki paket: ".trim($pe['carrier_name'].' '.$pe['tracking'])."\n";
+            foreach ($preview['deliveries'] as $pd) echo "teslimat {$pd['n']}: ".trim($pd['carrier_name'].' '.$pd['tracking']).($pd['current'] ? ' (bu kosu)' : '')."\n";
+            if ($preview['next_n'] > 0) echo "teslimat {$preview['next_n']}: (bos yuva -- sonraki paket, panelde 'Delivery {$preview['next_n']}')\n";
 
             $buyerAcc = auth_find((string)($oRow['email'] ?? ''));
             if (!function_exists('vestra_user_lang')) require_once $doc."/inc/i18n.php";
@@ -4166,15 +4199,18 @@ jobs:
               echo "mektup    : ".($willMail ? "GIDECEK (aliciya, kismi gonderim, dil {$lang}".($langOv !== '' ? ' -- spec' : ' -- hesap').")"
                                             : 'gitmeyecek (bu paket icin '.((string)($notified[$preview['tracking']] ?? '')).' tarihinde gonderildi)')."\n";
               if ($willMail) {
-                [$mS, $mB] = vestra_tpl_order_part_shipped($lang, $who, $ref, $preview, (bool)$buyerAcc);
+                [$mS, $mB] = vestra_tpl_order_parcel_letter($lang, $who, $ref, $preview, (bool)$buyerAcc);
                 echo "--- mektup onizlemesi (ad maskeli) ---\nKonu: {$mS}\n".$shown($mB)."\n--- son ---\n";
               }
             } else {
               $willMail = $wantStatus === 'shipped'
                        && ($prevStatus !== 'shipped' || ($preview['tracking'] !== '' && $preview['tracking'] !== $before['tracking']));
-              echo "mektup    : ".($willMail ? 'GIDECEK (aliciya)' : 'gitmeyecek')."\n";
+              /* Onceki paket varsa "siparisin kalani yola cikti" ALICININ dilinde; tek
+                 paketli sipariste eski Ingilizce "gonderildi" mektubu aynen. */
+              $mLang = !empty($preview['earlier']) ? $lang.($langOv !== '' ? ' -- spec' : ' -- hesap') : 'en (tek paket mektubu)';
+              echo "mektup    : ".($willMail ? "GIDECEK (aliciya, dil {$mLang})" : 'gitmeyecek')."\n";
               if ($willMail) {
-                [$mS, $mB] = vestra_tpl_order_shipped($who, $ref, $preview['tracking'], (bool)$buyerAcc, $preview);
+                [$mS, $mB] = vestra_tpl_order_parcel_letter($lang, $who, $ref, $preview, (bool)$buyerAcc);
                 echo "--- mektup onizlemesi (ad maskeli) ---\nKonu: {$mS}\n".$shown($mB)."\n--- son ---\n";
               }
             }
@@ -4182,7 +4218,7 @@ jobs:
             if (!$go) { echo "\noffer_apply=false — HICBIR SEY YAZILMADI, HICBIR MEKTUP GITMEDI.\n"; exit(0); }
 
             $res = vestra_order_set_shipment($ref, $trk, $car, $svc,
-                     $isPartial ? true : ($wantStatus === 'shipped' ? false : null));
+                     $isPartial ? true : ($wantStatus === 'shipped' ? false : null), $isNext);
             if (empty($res['ok'])) { fwrite(STDERR, "YAZILAMADI: ".((string)($res['error'] ?? '?'))."\n"); exit(1); }
             $after = $res['shipment'];
             echo "\nKAYDEDILDI (geri okundu): tasiyici=".($after['carrier_name'] ?: '-')
@@ -4205,34 +4241,13 @@ jobs:
             }
 
             if ($willMail && !empty($oRow['email'])) {
-              if ($isPartial) {
-                [$mS, $mB, $mO] = vestra_tpl_order_part_shipped($lang, $who, $ref, $after, (bool)$buyerAcc);
-              } else {
-                [$mS, $mB, $mO] = vestra_tpl_order_shipped($who, $ref, $after['tracking'], (bool)$buyerAcc, $after);
-              }
-              $sent = vestra_send_mail((string)$oRow['email'], $mS, $mB, '', '', null, '', $mO);
-              echo "mektup    : ".($sent ? 'GONDERILDI -> '.$mask((string)$oRow['email']) : '*** SAGLAYICI REDDETTI ***')."\n";
-              if ($sent && $isPartial) {
-                /* Damga ancak GONDERIM basariliysa duser ve GERI OKUNUR. */
-                $all3 = vestra_read_json('order_statuses.json');
-                $all3[$ref]['ship_notified'][$after['tracking']] = date('c');
-                vestra_write_json('order_statuses.json', $all3);
-                $b3 = vestra_read_json('order_statuses.json');
-                echo "damga     : ".(!empty($b3[$ref]['ship_notified'][$after['tracking']]) ? 'yazildi (geri okundu)' : '*** YAZILAMADI ***')."\n";
-              }
-              if ($buyerAcc) {
-                require_once $doc."/inc/push.php";
-                /* Alicinin dilinde, siparise dogrudan baglanan bildirim (inc/push_texts.php). */
-                if (function_exists('vestra_push_notify')) {
-                  vestra_push_notify($buyerAcc, $isPartial ? 'order_part_shipped' : 'order_shipped', ['ref' => $ref,
-                    'tracking' => trim(($after['carrier_name'] ?? '').' '.$after['tracking'])]);
-                } else {
-                  vestra_push_send((string)$buyerAcc['id'], 'VESTRA — order shipped',
-                    'Order '.$ref.($after['tracking'] !== '' ? ' · '.trim($after['carrier_name'].' '.$after['tracking']) : '').' is on its way.',
-                    '/buyer?tab=orders');
-                }
-              }
-              if (!$sent) exit(1);
+              /* Mektup + damga + uygulama bildirimi TEK govdeden -- panelin yuvasi,
+                 durum formu ve satici paneliyle ayni (inc/orders.php). Damga YALNIZ
+                 basarili gonderimden sonra duser ve geri okunur. */
+              $nr = vestra_order_parcel_notify($ref, $after, $lang, true);
+              echo "mektup    : ".(!empty($nr['sent']) ? 'GONDERILDI -> '.$mask((string)$oRow['email']) : '*** SAGLAYICI REDDETTI ***')."\n";
+              if (!empty($nr['sent'])) echo "damga     : ".(!empty($nr['stamped']) ? 'yazildi (geri okundu)' : '*** YAZILAMADI ***')."\n";
+              if (empty($nr['sent'])) exit(1);
             }
             PHPEOF
             php -l /tmp/vestra_shipment.php

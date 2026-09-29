@@ -2380,6 +2380,41 @@ function vestra_tpl_order_shipped(string $buyerName, string $ref, string $tracki
  * resolved here: the order page and the letter must show the same parcel.
  */
 function vestra_tpl_order_part_shipped(string $lang, string $buyerName, string $ref, array $shipment, bool $hasAccount = false): array {
+    return vestra_tpl_order_parcel_core($lang, $buyerName, $ref, $shipment, $hasAccount, false);
+}
+
+/**
+ * "The REST of your order has shipped" -- the parcel that completes an order whose
+ * first part went earlier (operator, 29 Sep 2026: "trackinglerde ikinci lieferung
+ * icin yer ac"). Same language table as the partial letter: the buyer who got the
+ * first letter in Spanish gets the second in Spanish too, not the English-only
+ * vestra_tpl_order_shipped().
+ *
+ * Earlier parcels are listed by number and link so the two can be matched; the
+ * letter asks for receipt confirmation only now, when the whole order is on its way
+ * (the partial letter must not -- half an order is not a delivery).
+ */
+function vestra_tpl_order_rest_shipped(string $lang, string $buyerName, string $ref, array $shipment, bool $hasAccount = false): array {
+    return vestra_tpl_order_parcel_core($lang, $buyerName, $ref, $shipment, $hasAccount, true);
+}
+
+/**
+ * The ONE place that decides which shipment letter a parcel gets -- the admin slot,
+ * the admin status form, the seller's "shipped" and the workflow all call this, via
+ * vestra_order_parcel_notify() (inc/orders.php):
+ *   partial parcel            -> "part of your order has shipped" (another part, if earlier ones exist)
+ *   final parcel, earlier ones -> "the rest of your order has shipped" (buyer's language)
+ *   single parcel             -> vestra_tpl_order_shipped(), unchanged
+ */
+function vestra_tpl_order_parcel_letter(string $lang, string $buyerName, string $ref, array $shipment, bool $hasAccount = false): array {
+    if (!empty($shipment['partial'])) return vestra_tpl_order_part_shipped($lang, $buyerName, $ref, $shipment, $hasAccount);
+    if (!empty($shipment['earlier'])) return vestra_tpl_order_rest_shipped($lang, $buyerName, $ref, $shipment, $hasAccount);
+    return vestra_tpl_order_shipped($buyerName, $ref, (string)($shipment['tracking'] ?? ''), $hasAccount, $shipment);
+}
+
+/* Govde: kismi ($final=false) ya da siparisi tamamlayan ($final=true) paket.
+   Kalem ALMAZ -- hangi kalemin hangi pakette oldugu tahmin edilmez (KURAL 3). */
+function vestra_tpl_order_parcel_core(string $lang, string $buyerName, string $ref, array $shipment, bool $hasAccount, bool $final): array {
     $lang = in_array($lang, ['en','fr','es','it','de'], true) ? $lang : 'en';
     $buyerName = vestra_display_name($buyerName);
     $carrier = trim((string)($shipment['carrier_name'] ?? ''));
@@ -2398,6 +2433,12 @@ function vestra_tpl_order_part_shipped(string $lang, string $buyerName, string $
         'acct'    => "Your order and its tracking are also in your VESTRA account:",
         'noacct'  => "If anything about the delivery needs our attention, simply reply to this e-mail.",
         'badge'   => '📦 Partly shipped', 'btn' => 'Track this shipment', 'btn2' => 'View my order',
+        'lead2'   => "Another part of your order {$ref} has been shipped.",
+        'subject_rest' => "VESTRA — the rest of your order {$ref} has shipped",
+        'lead_rest'    => "The remaining items of your order {$ref} have been shipped. With this parcel your order is complete.",
+        'earlier' => 'Earlier parcel',
+        'confirm' => "Once all parcels have arrived and you have checked the goods, please confirm receipt in your VESTRA account:",
+        'badge_rest' => '📦 Order complete',
       ],
       'fr' => [
         'subject' => "VESTRA — une partie de votre commande {$ref} a été expédiée",
@@ -2409,6 +2450,12 @@ function vestra_tpl_order_part_shipped(string $lang, string $buyerName, string $
         'acct'    => "Votre commande et son suivi figurent aussi dans votre compte VESTRA :",
         'noacct'  => "Si la livraison demande notre attention, répondez simplement à cet e-mail.",
         'badge'   => '📦 Expédition partielle', 'btn' => 'Suivre ce colis', 'btn2' => 'Voir ma commande',
+        'lead2'   => "Une autre partie de votre commande {$ref} a été expédiée.",
+        'subject_rest' => "VESTRA — le reste de votre commande {$ref} a été expédié",
+        'lead_rest'    => "Les articles restants de votre commande {$ref} ont été expédiés. Avec ce colis, votre commande est complète.",
+        'earlier' => 'Colis précédent',
+        'confirm' => "Une fois tous les colis arrivés et la marchandise vérifiée, merci de confirmer la réception dans votre compte VESTRA :",
+        'badge_rest' => '📦 Commande complète',
       ],
       'es' => [
         'subject' => "VESTRA — parte de su pedido {$ref} ya ha sido enviada",
@@ -2420,6 +2467,12 @@ function vestra_tpl_order_part_shipped(string $lang, string $buyerName, string $
         'acct'    => "Su pedido y su seguimiento también aparecen en su cuenta de VESTRA:",
         'noacct'  => "Si algo de la entrega requiere nuestra atención, responda simplemente a este correo.",
         'badge'   => '📦 Envío parcial', 'btn' => 'Seguir este envío', 'btn2' => 'Ver mi pedido',
+        'lead2'   => "Otra parte de su pedido {$ref} ha sido enviada.",
+        'subject_rest' => "VESTRA — el resto de su pedido {$ref} ya ha sido enviado",
+        'lead_rest'    => "Los artículos restantes de su pedido {$ref} han sido enviados. Con este paquete su pedido queda completo.",
+        'earlier' => 'Paquete anterior',
+        'confirm' => "Cuando hayan llegado todos los paquetes y haya revisado la mercancía, confirme por favor la recepción en su cuenta de VESTRA:",
+        'badge_rest' => '📦 Pedido completo',
       ],
       'it' => [
         'subject' => "VESTRA — parte del suo ordine {$ref} è stata spedita",
@@ -2431,6 +2484,12 @@ function vestra_tpl_order_part_shipped(string $lang, string $buyerName, string $
         'acct'    => "Il suo ordine e il tracciamento sono anche nel suo account VESTRA:",
         'noacct'  => "Se la consegna richiede la nostra attenzione, risponda semplicemente a questa e-mail.",
         'badge'   => '📦 Spedizione parziale', 'btn' => 'Segui questa spedizione', 'btn2' => 'Vedi il mio ordine',
+        'lead2'   => "Un’altra parte del suo ordine {$ref} è stata spedita.",
+        'subject_rest' => "VESTRA — il resto del suo ordine {$ref} è stato spedito",
+        'lead_rest'    => "Gli articoli rimanenti del suo ordine {$ref} sono stati spediti. Con questo pacco il suo ordine è completo.",
+        'earlier' => 'Pacco precedente',
+        'confirm' => "Quando saranno arrivati tutti i pacchi e avrà controllato la merce, confermi per favore la ricezione nel suo account VESTRA:",
+        'badge_rest' => '📦 Ordine completo',
       ],
       'de' => [
         'subject' => "VESTRA — ein Teil Ihrer Bestellung {$ref} wurde versandt",
@@ -2442,15 +2501,34 @@ function vestra_tpl_order_part_shipped(string $lang, string $buyerName, string $
         'acct'    => "Ihre Bestellung und die Sendungsverfolgung finden Sie auch in Ihrem VESTRA-Konto:",
         'noacct'  => "Falls bei der Zustellung etwas unsere Aufmerksamkeit braucht, antworten Sie einfach auf diese E-Mail.",
         'badge'   => '📦 Teillieferung', 'btn' => 'Sendung verfolgen', 'btn2' => 'Meine Bestellung ansehen',
+        'lead2'   => "Ein weiterer Teil Ihrer Bestellung {$ref} wurde versandt.",
+        'subject_rest' => "VESTRA — der Rest Ihrer Bestellung {$ref} wurde versandt",
+        'lead_rest'    => "Die übrigen Artikel Ihrer Bestellung {$ref} wurden versandt. Mit diesem Paket ist Ihre Bestellung vollständig.",
+        'earlier' => 'Früheres Paket',
+        'confirm' => "Sobald alle Pakete angekommen sind und Sie die Ware geprüft haben, bestätigen Sie bitte den Empfang in Ihrem VESTRA-Konto:",
+        'badge_rest' => '📦 Bestellung vollständig',
       ],
     ];
     $d = $L[$lang];
     $orderUrl = 'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref);
+    /* Onceki paketler: numara + baglanti, ki alici iki mektubu eslestirebilsin. */
+    $earlierRows = []; $earlierTxt = '';
+    foreach ((array)($shipment['earlier'] ?? []) as $pe) {
+        $pt = trim((string)($pe['tracking'] ?? ''));
+        if ($pt === '' || $pt === $trk) continue;
+        $pc = trim((string)($pe['carrier_name'] ?? ''));
+        $pu = trim((string)($pe['url'] ?? ''));
+        $earlierRows[] = ['label' => $d['earlier'], 'value' => trim($pc.' '.$pt)];
+        $earlierTxt .= $d['earlier'].": ".trim($pc.' '.$pt).($pu !== '' ? " — ".$pu : '')."\n";
+    }
+    $subject = $final ? $d['subject_rest'] : $d['subject'];
+    $lead    = $final ? $d['lead_rest'] : ($earlierRows ? $d['lead2'] : $d['lead']);
 
     $rows = [['label' => $d['ref'], 'value' => $ref]];
     if ($carrier !== '') $rows[] = ['label' => $d['carrier'], 'value' => $carrier.($service !== '' ? ' · '.$service : '')];
     if ($trk !== '')     $rows[] = ['label' => $d['tracking'], 'value' => $trk, 'strong' => true];
-    $opts = ['badge' => $d['badge'], 'rows' => $rows];
+    foreach ($earlierRows as $er) $rows[] = $er;
+    $opts = ['badge' => $final ? $d['badge_rest'] : $d['badge'], 'rows' => $rows];
     /* Ana dugme TAKIP sayfasi (vestra_tpl_order_shipped ile ayni ders: tek islevi olan
        mektubun dugmesi o islev). Hesabi olan aliciya siparis sayfasi ikincil. */
     if ($trkUrl !== '')  $opts['button'] = ['label' => $d['btn'], 'url' => $trkUrl];
@@ -2462,13 +2540,19 @@ function vestra_tpl_order_part_shipped(string $lang, string $buyerName, string $
     if ($trk !== '')     $facts .= $d['tracking'].": ".$trk."\n";
     if ($trkUrl !== '')  $facts .= $d['track']." ".$trkUrl."\n";
 
+    /* Kismi pakette teslim onayi ISTENMEZ (yarim siparis teslimat degil); siparisi
+       tamamlayan pakette istenir -- durum artik 'shipped' ve dugme sayfada. */
+    $tail = $final
+        ? ($hasAccount ? $d['confirm']."\n".$orderUrl."\n\n" : $d['noacct']."\n\n")
+        : ($hasAccount ? $d['acct']."\n".$orderUrl."\n\n" : $d['noacct']."\n\n");
     $body = $d['hi']."\n\n"
-          . $d['lead']."\n\n"
+          . $lead."\n\n"
           . ($facts !== '' ? $facts."\n" : '')
-          . $d['rest']."\n\n"
-          . ($hasAccount ? $d['acct']."\n".$orderUrl."\n\n" : $d['noacct']."\n\n")
+          . ($final ? '' : $d['rest']."\n\n")
+          . ($earlierTxt !== '' ? $earlierTxt."\n" : '')
+          . $tail
           . "—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com";
-    return [$d['subject'], $body, $opts];
+    return [$subject, $body, $opts];
 }
 
 /**

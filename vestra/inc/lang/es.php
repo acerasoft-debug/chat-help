@@ -1337,5 +1337,5 @@ return array (
   'Get order, offer and message alerts on this device.' => 'Recibe en este dispositivo avisos de pedidos, ofertas y mensajes.',
   'Dismiss' => 'Cerrar',
   'Partial shipment — the remaining items will follow in a separate parcel.' => 'Envío parcial: los artículos restantes llegarán en un paquete aparte.',
-  'Earlier parcel' => 'Paquete anterior',
+  'Delivery %d' => 'Envío %d',
 );
