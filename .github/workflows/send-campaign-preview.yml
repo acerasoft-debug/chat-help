@@ -1883,12 +1883,16 @@ jobs:
               /* SIPARISE BAGLI SERBEST NOT (28 Eyl 2026, VES-D91DAB0B: numune L
                  beden, fatura ayni). to=order:<ref> SART (adres kayittan).
                  spec: msg=<operatorun ONAYLADIGI metin; '\\n' = yeni satir>,
-                 subject=<opsiyonel>, signer. IPTAL sipariste DURUR. Metin
-                 kutuge BASILMAZ (hitapta musterinin adi var) -- yalniz uzunluk. */
+                 subject=<opsiyonel>, signer. IPTAL sipariste DURUR; iptali
+                 BILDIREN bir not icin acik bayrak: cancelled_ok=1 (29 Eyl 2026,
+                 Mob VES-55E4F6E1 -- otomatik iptal edilmis siparise "hala
+                 istiyorsaniz yazin" notu). Metin kutuge BASILMAZ (hitapta
+                 musterinin adi var) -- yalniz uzunluk. */
               if (!$orderRow) { fwrite(STDERR, "order_note: to=order:<ref> gerekli\n"); exit(1); }
               $onRef = trim((string)$orderRow['ref']);
               $onSt  = (string)(((vestra_read_json('order_statuses.json'))[$onRef] ?? [])['status'] ?? 'pending');
-              if ($onSt === 'cancelled') { fwrite(STDERR, "siparis IPTAL -- not gonderilmez\n"); exit(1); }
+              if ($onSt === 'cancelled' && trim($E('cancelled_ok')) !== '1') { fwrite(STDERR, "siparis IPTAL -- not gonderilmez (iptali bildiren not icin |cancelled_ok=1)\n"); exit(1); }
+              if ($onSt === 'cancelled') echo "iptal   : siparis IPTAL -- not cancelled_ok=1 ile (iptali bildiren not)\n";
               $onMsg = trim(str_replace('\\n', "\n", $E('msg')));
               if ($onMsg === '') { fwrite(STDERR, "order_note: msg= bos\n"); exit(1); }
               $buyerName = trim((string)($orderRow['company'] ?? '')) ?: trim((string)($orderRow['name'] ?? ''));

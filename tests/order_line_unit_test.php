@@ -136,7 +136,7 @@ $nbk = $na === false ? '' : preg_replace('~/\*.*?\*/~s', '', substr($sp, $na, st
 $t('dal var', $nbk !== '');
 $t('to=order SART', str_contains($nbk, 'if (!$orderRow)'));
 $t('bos metin DURUR', str_contains($nbk, "if (\$onMsg === '')"));
-$t('iptal sipariste DURUR', str_contains($nbk, "if (\$onSt === 'cancelled')"));
+$t('iptal sipariste bayraksiz DURUR', str_contains($nbk, "if (\$onSt === 'cancelled' && trim(\$E('cancelled_ok')) !== '1') { fwrite(STDERR"));
 $t('metin kutuge BASILMAZ (yalniz uzunluk)', !preg_match('/echo[^;]*\$onMsg\b(?!\))/', $nbk) && str_contains($nbk, 'mb_strlen($onMsg)'));
 
 array_map('unlink', array_filter(array_merge(glob($sand.'/data/*') ?: [], glob($sand.'/data/invoices/*') ?: []), 'is_file'));
