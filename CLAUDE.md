@@ -9296,6 +9296,13 @@ ve teslimat adresi siparislerinde görünsün"*).
     grup kalıba uymuyordu. Gerçekçi 6 haneli grupla düzeltildi.
   Tam takım: yalnız önceden kayıtlı üç kırık (`dropship_plan` 4,
   `msg_read_receipt` 1, `msg_thread_label` 10).
+- **CANLI (29 Eyl 2026, deploy `acf800b6`, `diag-live` → `accounts_report`):**
+  12 sipariş. 3'ünde siparişin kendi notu, **9'unda hesabın fatura adresi**
+  kullanılıyor; bu 9'u değişiklikten önce hiçbir sipariş ekranında adres
+  göstermiyordu. Adressiz sipariş 0, **posta kodsuz 6**: `VES-D91DAB0B`,
+  `VES-31562779`, `VES-CD68AD53`, `VES-1A68FCD1`, `VES-55E4F6E1`, `VES-A11C0C97`.
+  Kod posta kodu uydurmaz. Müşteri profilden ya da adres defterinden girince
+  düzelir, panel bu siparişlerde ⚠ gösteriyor.
 
 **KURAL 37 — NUMUNE ÖDEME LİNKİ: satıcının mesajda anlaştığı tek seferlik numune
 fiyatı, YALNIZ o alıcıya; adres Stripe sayfasında; link ödenene kadar geçerli**
