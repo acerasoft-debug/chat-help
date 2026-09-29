@@ -10755,3 +10755,87 @@ hatirlatma gönder ödeme icin"*).
   Altı gün önce giden bir faturanın olayları hiç görünmüyor, boş çıktı "mektup
   gitmemiş" diye okunurdu. Yeni girdi `mail_days` (1–30, varsayılan 2); canlıda
   7 günle 23 Eyl olayları okundu (`4791549c`).
+
+**KURAL 41 — BİR TEDARİKÇİ LİSTESİNİN MODELLERİ TEK İLANDA: renk adı model
+numarasını taşır, stok RENK BAŞINA, adet RENK BAŞINA (lot 1), eski adresler 301**
+(operatör, 29 Eyl 2026; iki adımda: PDF ile *"bunlari kataloga koy en az alim
+20 ad. 59,90 eur 50 ad. 54,90 - 100 ad. 49,90 eur ---- daha sonra herkese
+email gönder öncelikle kayitlilara daha sonra diger müsterilere 250 kisiye"*,
+sonra aynı öğleden sonra *"gönderdigim burberry listelerindeki fotolari ve
+listerleri tek bir ilanda yap"*).
+
+- **Önce 8 AYRI ilan yazıldı** (`product-batches/burberry-polo-2909.json`,
+  `bur-<model>`, her biri tek renk, MOQ 20, kademeler 20/50/100 →
+  59,90/54,90/49,90, `mode=fixed`) ve o hâliyle **100 kayıtlı müşteriye**
+  teklif mektubu gitti (run `36553051165` + `36553142095`, 50+50, hata 0, kota
+  287 → 237; fiyat kapısı 100/100 AÇIK, yani hepsi rakamlı sürüm). Operatörün
+  ikinci cümlesi üçüncü parti başlamadan geldi; **gönderim durduruldu.**
+  Kalan ~79 üye + 250 lead **tek ilanlı** mektupla ve operatör "devam" deyince
+  gider (KURAL 18: içerik değişti, önizleme yenilendi, izin yenilenir).
+- **Bu işin kalıcı parçaları (tümü aynı gün, `db141e3`):**
+  1. **Gerçek beden stoğu `stock`** (`inc/stock.php`, `vestra_stock_real`):
+     tedarikçi listesi adet veriyorsa fiyat listesi/Excel/PDF **türetilmiş
+     bandı** değil onu basar (polo bandı 100–150 iken bir model **19** adetti).
+     **İki şekil:** düz `{beden: adet}` ya da renk başına `{renk: {beden:
+     adet}}`; ikincisi eski okuyanlara aynı `sizes/total`'ı (renkler üstünden
+     toplanmış) verir, `by_colour` + `vestra_stock_rows()` ayrımı isteyenlere.
+     Karışık şekil **tümden** reddedilir (yarım okunmuş stok yanlış stoktur).
+  2. **Renk adı model numarasını taşıyor:** `Black (8096425)` ve
+     `Black · Check collar (8071620)`. İki "Black" var ve `Black ×20` diye bir
+     sipariş satırı hangi artikeli **söylemezdi**. `vestra_colour_base()`
+     paletin **tabanını** bulur (uzun ad önce, kelime sınırı — `Blueberry`
+     taban DEĞİL, mango/zara dersi), `vestra_colour_css()` noktayı,
+     `vestra_colour_label()` çeviriyi ("Schwarz · Check collar (8071620)")
+     verir; ek olduğu gibi kalır. Foto eşleştiricisi dosya adında **tam slug**
+     arıyor, o yüzden kareler `burberry-black-check-collar-8071620.jpg` gibi
+     yeniden adlandırılıp **kopyalandı** (eskiler duruyor, deploy ekliyor).
+  3. **Lot-1 ilanda renk başına adet: `colorqty: true`** (opt-in bayrak).
+     `vestra_is_colorqty_listing()` eskiden `size_step>1` istiyordu; bayrak
+     paket adımı olmayan bir ilanda **aynı** seçiciyi açıyor, `vestra_parse_
+     colorqty` adımı `vestra_pack_size`'dan okuyor (1 → yuvarlama yok).
+     Adım kuralını gevşetmek yerine bayrak: renk+min_colors taşıyıp adımı
+     olmayan mevcut ilanların akışı **değişmiyor**. Ürün sayfası adım 1'de
+     `<select 0..8×adım>` yerine **sayı alanı** basıyor (0–8'lik bir liste
+     20'lik minimuma hiç ulaşamazdı); JS `[data-color]` ile ikisini de okuyor;
+     `product.php`'deki **iki inline kip kopyası** kaldırıldı (tek karar
+     `vestra_is_colorqty_listing`, `/order` ve `/offer` zaten onu soruyordu).
+     **MOQ 20 artık RENKLERİN TOPLAMI:** 19 yeşil + 1 siyah geçer (tek ilanda
+     8099164'ün 19'luk stoğu tek başına MOQ'nun altındaydı, o çelişki böyle
+     kapandı); `min_colors=1`.
+  4. **Ürün sayfasında stok tablosu** (yalnız kayıtlı stokta; türetilmiş bant
+     sayfaya HİÇ girmez): renk × beden, `S 0` görünür, toplam sütunu;
+     başlıklar sözlükte zaten duran `Colours`/`Total`/`%d pcs in stock`
+     (yeni anahtar yok). `inc/stock.php` product.php'de **kendi** require'ı
+     (KURAL 15).
+  5. **Teklif mektubu** (`vestra_tpl_listing_offer`): renk başına stok satırı
+     + `Total in stock` (7 dilde `stock_total`); tek ilanlı konu **"8
+     colours"** (`s0`) — eski kalıp *"1 models, 8 colours"* yazardı. Düz
+     stoklu çok ilanlı yol **değişmedi** (`fp_offer_test` pinliyor).
+  6. **Eski 8 adres 301:** kayıt `status=rejected` + `redirect_to=<yeni id>`
+     (`product-fixes/burberry-polo-fold-into-one.json`);
+     `vestra_product_redirect()` HAM kaydı okur (rejected ilanı `vestra_find`
+     görmez), hedef **canlı** olmalı (rejected/gizli marka → null) ve kendisi
+     yönlendirmemeli (zincir/döngü yok); `product.php` 404'ten **önce** 301.
+     100 mektuptaki `/product?id=bur-8099164` bağlantıları böyle yaşıyor.
+     `set_product.php`: `redirect_to` hedefi kayıtta olmalı, kendisi olamaz,
+     `null` kaldırır; `colorqty` yalnız gerçek bool (`sold_out` dersi:
+     genel dal `(string)false=""` yazardı).
+- **Tek ilan:** `bur-pique-polo-2909`, SKU `BUR-PIQUE-POLO` (grup referansı —
+  model numaraları renk adlarında), ad *"Burberry Cotton Piqué Polo — 8
+  colourways"*, 8 renk, 8 foto, stok PDF'ten **322 ad.**, `sizes` düz
+  `S · M · L · XL · XXL` (10/pack yazmak stokun söylemediği bir paket vaat
+  ederdi), açıklama stok rakamı **taşımıyor** (tek kaynak `stock`).
+- **Ölçüm tuzakları:** (1) CLI'da `header()`/`http_response_code()`
+  **ölçülemiyor** (`headers_list()` boş) — 301/Location ancak `php -S` ile
+  gerçek HTTP'de görüldü; oturum dosyası elle yazıldı (`data/sessions/
+  sess_<id>`, `uid|s:9:"…";`). (2) Kapanış sözdizimi: `function () use ($L):
+  string`, dönüş türü `use`'dan SONRA. (3) `products.php` `email_templates`'i
+  zaten yüklüyor — `require` yerine `require_once`, yoksa fatal.
+- Test: `tests/single_listing_polo_test.php` (**92 iddia**; renk tabanı iki
+  yön, nested stok, colorqty/parse, yönlendirme çözücüsü, sayfa ve `/order`
+  gerçek HTTP'de — 7+13=20 yazılır, 7+12=19 `err=colors`, olmayan renk
+  `err=colors`, tek renk 20 geçer — mektup, kablolama, parti+katlama dosyası),
+  `stock_real_test` 94 → **113**. Altı sabotaj, altısı kırmızı (her birinin
+  uygulandığı sayılarak): döngü koruması **1**, bayrak yok sayılınca **10**,
+  nested stok okunmayınca **fatal**, tek ilan konusu eskiye **3**, sayfa
+  yönlendirmesi kapalı **3**, taban eşleşmesi alt dizeye **4**.
