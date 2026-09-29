@@ -3518,7 +3518,7 @@ jobs:
                 if ($okb) $done++; else $miss++;
               } else { echo "  ATLANDI (bicim): {$one}\n"; $miss++; }
             }
-            echo "\nsilinen: {$done} | bulunamayan secici: {$miss}\n";
+            echo "\nislenen (silinen / duzeltilen): {$done} | bulunamayan ya da duran secici: {$miss}\n";
             echo "kalan engellenen kayit: ".count(vestra_msg_blocked_log())."\n";
             if (!$go) echo "KURU KOSU -- hicbir sey silinmedi. move_apply=true ile uygulayin.\n";
             PHPEOF

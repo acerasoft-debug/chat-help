@@ -4798,6 +4798,70 @@ dan yaz"* (13:08)).
   sınırlamak. Geçersiz sağlamalı bir IBAN zaten ödeme için kullanılamaz.
   Karar operatörde.
 
+**KURAL 19 (devamı) — Odzież Premium ↔ TYREX konuşması Agaya Paris'e (GARAGE LE
+PARIS) geçti; eski satıcının adı konuşmadan SİLİNDİ** (operatör, 29 Eyl 2026:
+*"Bu saticinin ismini her yerden sil"* → *"bu konusmayi Agaya Paris yap"* +
+*"tyrex yerine"*; ilk cümledeki *"Vestra Support olarak cvp ver"* ikincisiyle
+ezildi).
+- **Önce ölçüldü** (`thread_dump`, şifreli, yerelde çözüldü): konuşma
+  `rl-csf-polo-white` (Ralph Lauren polo, ilanın satıcısı TYREX), **94 mesaj**,
+  **27'si TYREX adına**. Ad iki yerde duruyordu: **yazar etiketi** (27 mesaj +
+  konuşmanın satıcısı) ve **bir mesajın METNİ** (26 Eyl 17:05, *"The invoice is
+  issued by Agaya Paris, one of TYREX International's subsidiary companies"*).
+  Alıcı zaten satıcıyı yalnız `Seller <ident>` görüyor (KURAL 8), yani adı gören
+  yerler operatör paneli ve satıcı paneliydi, artı o tek metin.
+- **Taşıma aracı bilerek DURUYORDU:** eski satıcı konuşmada yazdıysa
+  `thread_seller` onun sözlerini yeni firmaya mal etmemek için reddediyor. Bu
+  sefer karar operatörün ve açıktı. Yeni **opt-in** token: `move_threads`'e
+  **`yazar:devret`**. Eski satıcının mesajlarının `from`'u, sistem kartlarının
+  `by`'ı ve o konuşmanın engellenen deneme kayıtları yeni satıcıya geçer.
+  **Varsayılan DEĞİŞMEDİ.** Adın metinde geçtiği mesajlar **sayılıp basılıyor,
+  yeniden yazılmıyor**. İlanın `seller_uid`'ine dokunulmuyor, bedeli basılıyor.
+- **Metin için ayrı yol:** `msg_del` → `redact:<thread>:<tarih>` +
+  `payload='ESKI=>YENI'` ya da `'b64:<base64>'`. Mesajı silmiyor, yalnız o
+  ifadeyi çıkarıyor. Seçici **TAM 1** mesaja, ifade **TAM 1** kez uymalı.
+  Yedek + geri okuma var; metnin kendisi kütüğe basılmıyor, yalnız uzunluklar.
+  `b64:` şart oldu: ifade kesme işareti taşıyor (`International's`) ve kabuk
+  tırnaklamasına girmemeli.
+- **Canlı:**
+  - kuru koşu → uygula: `de9882f22c294895` → **`637855a63d16d9e3`**,
+    *"27 mesajin yazari TYREX INTERNATIONAL BV. => GARAGE LE PARIS"*,
+    engellenen kayıt 0, geri okuma *"eski saticinin yazarligi kalan mesaj: 0"*,
+    `KAYDEDILDI — 1/1`, yedek `messages.json.bak-20260929-131030`;
+  - redact kuru koşu → uygula: 26 Eyl 17:05 mesajı **792 → 741** karakter
+    (çıkan tam olarak `, one of TYREX International's subsidiary companies`).
+    Cümle artık *"The invoice is issued by Agaya Paris, so that is the name you
+    will see on the document and on the bank account."*
+  - **bağımsız geri okuma** (ikinci `thread_dump`): konuşmanın satıcısı
+    GARAGE LE PARIS, 94 mesaj = 67 alıcı + 27 GARAGE LE PARIS, dökümün
+    tamamında **"tyrex" 0 kez**.
+- **Açık kalan, bilerek:** ilanın (`rl-csf-polo-white`) satıcısı hâlâ TYREX
+  (9 Eylül operatör kararı). Alıcı **ürün sayfasından** yeniden yazarsa TYREX
+  ile **yeni** bir konuşma açılır; konuşmanın içinden yazarsa Agaya Paris'e
+  düşer. İlanı taşımak fatura kesicisinin varsayılanını ve diğer alıcıların
+  konuşmalarını da etkiler; ayrı karar.
+- **Müşteriye hiçbir şey gönderilmedi.** Son söz satıcının (12:34, adres
+  isteği), yani cevap bekleyen bir soru yok.
+- Test: `tests/thread_seller_reassign_test.php` (**48 iddia**, iki yön: aynı
+  satıcının BAŞKA alıcıyla konuşması ve engellenen kaydı AYNEN kalıyor).
+  Sabotajların uygulandığı sayılarak:
+  - `from` devri kalkınca **4 kırmızı**;
+  - varsayılan açık olunca **12**;
+  - engellenen kayıt alıcısız eşleşince **1**;
+  - `by` devri kalkınca **3**;
+  - redact'ta tam-1-kez kalkınca **2**;
+  - kuru koşu yazınca **2**;
+  - payload iletilmeyince **1**.
+  **Kendi ölçüm hatalarım, ikisi de testin kendisinde:** "Regards" uzunluğunu
+  9, "Hello, the money has arrived." içindeki "e" sayısını 3 yazdım. İkisinde de
+  kod doğruydu, iddia yanlıştı. İlk falsifikasyonda "ifade iki kez geçiyor"
+  durumu hiç sınanmıyordu ve sabotaj E **yeşil** kaldı; iddia eklenince **2**
+  kırmızı verdi.
+- **Ölçüm tuzağı (yeniden):** şifreli dökümü çözerken betik kaynağındaki
+  `echo "-----BEGIN DUMP ENC-----"` satırı da işaretçiye uydu ve gövde bozuldu
+  (`body decrypt fail`). Yalnız `out: ` önekli satırlar okunmalı (27 Eyl'de
+  kayıtlı ders, bu sefer `grep "Z out: "` ile).
+
 - **KURAL 20 — Her pakette TAŞIYICI + SERVİS + takip BAĞLANTISI; bağlantı
   numaradan TÜRETİLİR** (operatör, 9 Eyl 2026: *"bu gönderim numarasini ekle
   link ile beraber ups express saver"* + *"her pakette gönderici kargo bölümüde
