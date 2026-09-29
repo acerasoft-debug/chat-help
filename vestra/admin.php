@@ -4027,6 +4027,10 @@ elseif($tab==='orders'):
     /* Kalıp tek yerde (inc/orders.php): üç kopya vardı ve üçü de adresin
        sonundaki noktayı adresin İÇİNDE bırakıyordu. */
     $vship = vestra_order_delivery_address((string)($viewRow['notes'] ?? ''));
+    /* Geçerli teslimat adresi, posta koduyla (29 Eyl 2026). Form yalnız siparişin
+       KENDİ notunu düzenler ($vship); gösterim ise sayfa/PDF/faturanın okuduğu çözücüden
+       -- "same as billing" yazıp o adresi göstermemek, operatöre bakacak yer bırakmıyordu. */
+    $vst2 = vestra_order_ship_to($viewRow);
 ?>
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
   <h2 style="font-size:18px;font-weight:700">📦 Order <span class="atag" style="font-size:14px"><?= htmlspecialchars($viewRef) ?></span> · <?= orderBadge($vstatus) ?><?= $ver?' · '.escrow_badge($ver['status']??''):'' ?></h2>
@@ -4046,7 +4050,11 @@ elseif($tab==='orders'):
                operatörün koyacağı yer yoktu ve fatura taslağı "gümrük ve kurye
                adres ister" diye uyarıp duruyordu. Aynı boşluk navlunda da vardı. */ ?>
       <?= arow(['Delivery address',
-            ($vship!==''?htmlspecialchars($vship):'<span style="color:var(--mut)">same as billing — nothing on file</span>')
+            ($vst2['line']!==''
+              ? '<b>'.htmlspecialchars($vst2['line']).'</b>'
+                .($vst2['source']==='account'?' <span class="ahint">(same as billing — account address)</span>':'')
+                .((!$vst2['postcode'] && !$vst2['pc_optional'])?' <span style="color:#d97706;font-weight:600">⚠ no postcode</span>':'')
+              : '<span style="color:#d97706;font-weight:600">⚠ no address on file</span> <span class="ahint">(order and account both empty)</span>')
           . '<form method="post" style="margin:6px 0 0;display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
           . csrfField()
           . '<input type="hidden" name="_action" value="order_delivery">'
@@ -4531,6 +4539,10 @@ if($__dupRefs): ?>
 <div class="acard"><div class="atscroll"><table class="atable">
   <?= arow(['Ref','Date','Buyer','Company','Items','Total','Status','Tracking','Invoices','Commission','Escrow','Update'],true) ?>
   <?php require_once __DIR__.'/inc/claims.php'; $__openClaims = vestra_claims_open();
+  /* Teslimat satırı için hesap eşlemesi BİR KEZ: satır başına auth_accounts() dosyayı
+     her sipariş için yeniden okurdu. Eşleşme faturanınkiyle aynı (e-posta, harf duyarsız). */
+  $__accByEmail = [];
+  foreach(auth_accounts() as $__a){ $__e=strtolower(trim((string)($__a['email']??''))); if($__e!=='' && !isset($__accByEmail[$__e])) $__accByEmail[$__e]=$__a; }
   foreach(array_reverse($orders) as $o):
     $ref=$o['ref']??''; $st=$orderSt[$ref]['status']??'pending'; $trk=$orderSt[$ref]['tracking']??'';
     /* Acik talep rozeti: listede gorunmezse operator yalnizca acilis mektubunu
@@ -4541,7 +4553,11 @@ if($__dupRefs): ?>
       <?php if($__cl): ?><div style="color:#a9781a;font-size:11px;margin-top:3px" title="<?= htmlspecialchars((string)($__cl['claim_ref']??'')) ?>">⚠ claim open</div><?php endif; ?></td>
     <td class="ac" style="font-size:11px;color:var(--mut)"><?= htmlspecialchars(substr($o['timestamp']??'',0,10)) ?></td>
     <td class="ac"><a href="mailto:<?= htmlspecialchars($o['email']??'') ?>" style="color:var(--acc);font-size:12px"><?= htmlspecialchars($o['email']??'') ?></a></td>
-    <td class="ac"><?= htmlspecialchars($o['company']??'—') ?></td>
+    <td class="ac"><?= htmlspecialchars($o['company']??'—') ?>
+      <?php /* Teslimat adresi listede de (29 Eyl 2026): posta kodu eksikse satırda görünür,
+               dosyayı açmadan. Hesap eşlemesi döngü dışında bir kez kurulur. */
+        $__st = vestra_order_ship_to($o, $__accByEmail[strtolower(trim((string)($o['email']??'')))] ?? null, false); ?>
+      <div class="ahint" style="font-size:10.5px;max-width:230px;white-space:normal" title="<?= htmlspecialchars($__st['line']) ?>">📍 <?= $__st['line']!=='' ? htmlspecialchars(mb_strimwidth($__st['line'],0,90,'…')) : '<span style="color:#d97706">no address</span>' ?><?php if($__st['line']!=='' && !$__st['postcode'] && !$__st['pc_optional']): ?> <span style="color:#d97706;font-weight:600">⚠ no postcode</span><?php endif; ?></div></td>
     <td class="ac" style="font-size:11px"><?= vestra_order_items_cell($o['items']??'', 2, 160) ?></td>
     <td class="ac"><b><?= eur($o['total']??0) ?></b>
       <?php $__fx=$fxMap[$ref]??null; $__usd=$__fx?vestra_order_usd($o,$__fx):null; ?>

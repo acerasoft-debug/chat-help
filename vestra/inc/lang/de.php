@@ -1295,6 +1295,8 @@ return array (
   'City' => 'Ort',
   'Delivery address' => 'Lieferadresse',
   'Delivery addresses' => 'Lieferadressen',
+  'No delivery address on file' => 'Keine Lieferadresse hinterlegt',
+  'No postcode on file' => 'Keine Postleitzahl hinterlegt',
   'Delivery address saved.' => 'Lieferadresse gespeichert.',
   'Delivery address deleted.' => 'Lieferadresse gelöscht.',
   'Please fill in street, postcode, city and country.' => 'Bitte Straße, PLZ, Ort und Land ausfüllen.',

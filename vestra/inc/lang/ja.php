@@ -1290,6 +1290,8 @@ return array (
   'City' => '市区町村',
   'Delivery address' => 'お届け先住所',
   'Delivery addresses' => 'お届け先住所',
+  'No delivery address on file' => '配送先住所が登録されていません',
+  'No postcode on file' => '郵便番号が登録されていません',
   'Delivery address saved.' => 'お届け先住所を保存しました。',
   'Delivery address deleted.' => 'お届け先住所を削除しました。',
   'Please fill in street, postcode, city and country.' => '番地、郵便番号、市区町村、国を入力してください。',

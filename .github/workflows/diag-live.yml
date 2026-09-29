@@ -1170,6 +1170,25 @@ jobs:
             }
             printf("siparis: %d | Deliver to tasiyan: %d | okuyucunun POSTA KODUNU KESTIGI: %d\n", $oN, $oDel, count($oCut));
             foreach ($oCut as $c) echo "   KESILMIS: ".$c."\n";
+            /* SIPARISTE GORUNEN TESLIMAT ADRESI (29 Eyl 2026, operator: "musterilerin post
+               codu ve teslimat adresi siparislerinde gorunsun"). Sayfa/PDF/panel/faturanin
+               okudugu AYNI cozucu (vestra_order_ship_to) -- adres BASILMAZ, yalniz kaynak
+               dagilimi ve eksik olan siparislerin REF'i. Hesap eslemesi $accs'ten. */
+            if (function_exists('vestra_order_ship_to')) {
+              $am = [];
+              foreach ($accs as $a) { $e = strtolower(trim((string)($a['email'] ?? ''))); if ($e !== '' && !isset($am[$e])) $am[$e] = $a; }
+              $sS = ['order' => 0, 'account' => 0, '' => 0]; $noPc = []; $noAd = [];
+              foreach (vestra_read_csv('orders.csv') as $o) {
+                $st = vestra_order_ship_to($o, $am[strtolower(trim((string)($o['email'] ?? '')))] ?? null, false);
+                $sS[$st['source']]++;
+                if ($st['line'] === '') $noAd[] = (string)($o['ref'] ?? '?');
+                elseif (!$st['postcode'] && !$st['pc_optional']) $noPc[] = (string)($o['ref'] ?? '?');
+              }
+              printf("siparis teslimat adresi (cozucu): siparisin kendi notu %d | hesabin fatura adresi %d | HIC adres yok %d | adres var ama posta kodu YOK %d\n",
+                     $sS['order'], $sS['account'], $sS[''], count($noPc));
+              if ($noAd) echo "   ADRESSIZ: ".implode(', ', array_slice($noAd, -15)).(count($noAd) > 15 ? ' (son 15)' : '')."\n";
+              if ($noPc) echo "   POSTA KODSUZ: ".implode(', ', array_slice($noPc, -15)).(count($noPc) > 15 ? ' (son 15)' : '')."\n";
+            } else echo "siparis teslimat adresi: *** vestra_order_ship_to YOK (deploy inmemis) ***\n";
             echo "\n";
 
             echo "\n===== HATA GUNLUGU: SON 25 SATIR (posta harici her sey) =====\n";

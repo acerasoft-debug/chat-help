@@ -1294,6 +1294,8 @@ return array (
   'City' => 'Città',
   'Delivery address' => 'Indirizzo di consegna',
   'Delivery addresses' => 'Indirizzi di consegna',
+  'No delivery address on file' => 'Nessun indirizzo di consegna registrato',
+  'No postcode on file' => 'Nessun CAP registrato',
   'Delivery address saved.' => 'Indirizzo di consegna salvato.',
   'Delivery address deleted.' => 'Indirizzo di consegna eliminato.',
   'Please fill in street, postcode, city and country.' => 'Compila via, CAP, città e paese.',
