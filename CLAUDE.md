@@ -10728,3 +10728,30 @@ PDF EKİYLE gitti (28 Eyl 2026)** (operatör: *"faturam yok diyor faturayı gön
   navlun ve başka sipariş değişmez). Sabotajın uygulandığı sayılarak: pahalı birim
   muhafazası kalkınca **3 kırmızı**, ödeme muhafazası kalkınca **1**, eski-belge
   muhafazası kalkınca **1**.
+
+**KURAL 7d (devamı) — Easyauto24 hatırlatması; Mob'a hatırlatma GİDEMEDİ çünkü
+sipariş 25 Eyl'de otomatik iptal olmuştu** (operatör, 29 Eyl 2026: *"Easyauto24
+bu müsteri faturayi aldimi kontrol et hatirlatmaya yap"* + *"Mob bunada
+hatirlatma gönder ödeme icin"*).
+- **Ölçüm** (`admin_mode=order_audit`, `issue_ref=VES-60594A18,VES-55E4F6E1`):
+  VES-60594A18 `pending`, INV-2026-1016 €520, ödeme yok, dekont yok, saat 23 Eyl'de
+  başlamış → **son gün 30 Eyl**. Brevo: 23 Eyl hatırlatma **opened+clicks**,
+  23 Eyl adres mektubu **opened+clicks**; 28 Eyl model mektubu ve 28 Eyl 20:48 UTC
+  **PDF'li fatura yalnız `delivered`**, açılma yok. Yani fatura kutuya ulaştı,
+  açıldığına dair kayıt yok (`opened` yokluğu kanıt değil: görsel engelleyen
+  istemci de açılma üretmez).
+- **Gönderildi:** `reply_letter=payment_due`, önce `send=false` (`asama: running`,
+  son tarih 2026-09-30 — saat **sıfırlanmadı**), sonra `send=true` → Brevo
+  **09:07:45 UTC requests → 09:07:46 delivered**. Aynı dakikalarda satıcı tarafından
+  bir mesaj bildirimi de gitmişti (09:03 UTC), yani müşteri konuşmada aktif.
+- **Mob VES-55E4F6E1 `cancelled`** (`gecmis: 2026-09-25T14:00 cancelled (system)`,
+  iptal mektubu 25 Eyl `delivered`). `payment_due` iptal siparişte zaten durur.
+  **Yalnız durum seçiciyle `pending`'e çekmek YETMEZ:** `payment_grace_start`
+  19 Eyl'de kalır, faz `overdue` olur ve bir sonraki cron (14:00 UTC) siparişi
+  **ikinci kez iptal edip ikinci iptal mektubunu** gönderir. Yeniden açmak saati de
+  sıfırlamayı gerektiriyor ve bunun iş akışı yolu yok. Karar operatörde; hiçbir şey
+  gönderilmedi.
+- **Yan düzeltme — `diag-messages` Brevo penceresi sabit 2 gündü** (`-2 days`).
+  Altı gün önce giden bir faturanın olayları hiç görünmüyor, boş çıktı "mektup
+  gitmemiş" diye okunurdu. Yeni girdi `mail_days` (1–30, varsayılan 2); canlıda
+  7 günle 23 Eyl olayları okundu (`4791549c`).
