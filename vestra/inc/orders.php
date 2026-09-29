@@ -93,6 +93,75 @@ function vestra_order_delivery_segment(string $address): string {
     return 'Deliver to: '.str_replace('. ', ".\u{00A0}", $address).'.';
 }
 
+/** Siparişin alıcı hesabı (e-postayla, harf duyarsız). Fatura aynı eşleşmeyi kullanır. */
+function vestra_order_buyer_account(array $orderRow): ?array {
+    $email = strtolower(trim((string)($orderRow['email'] ?? '')));
+    if ($email === '' || !function_exists('auth_accounts')) return null;
+    foreach (auth_accounts() as $a)
+        if (strtolower(trim((string)($a['email'] ?? ''))) === $email) return $a;
+    return null;
+}
+
+/**
+ * SİPARİŞİN GEÇERLİ TESLİMAT ADRESİ, posta koduyla (operatör, 29 Eyl 2026:
+ * "müsterilerin post codu ve teslimat adresi siparislerinde görünsün").
+ *
+ * Kasa `Deliver to:` notunu YALNIZ alıcı fatura adresinden başka bir adres seçince
+ * yazıyor. "Fatura adresiyle aynı" seçen alıcının siparişinde adres HİÇ yoktu: sipariş
+ * sayfası, satıcının gördüğü sayfa ve sipariş PDF'i adres basmıyor, panel "same as
+ * billing — nothing on file" diyordu. Fatura ise hesaba düşüp adresi basıyordu --
+ * yani aynı siparişin belgesinde duran adres, siparişin kendisinde görünmüyordu.
+ *
+ * Sıra faturanınkiyle AYNI ve bu tek gövde: siparişin kendi notu > hesabın fatura
+ * adresi (ayrı posta kodu/şehir alanları dahil). Fatura da artık buradan okur;
+ * ikinci bir kopya, ekranda bir, belgede başka adres demek olurdu.
+ *
+ * $acc: hesabı çağıran verdiyse o (liste bir kez eşler), vermediyse ve $findAccount
+ * doğruysa e-postayla bulunur.
+ *
+ * Dönüş:
+ *   address     sokak + posta kodu + şehir (ülke HARİÇ -- fatura ülkeyi ayrı basar)
+ *   country     siparişin ülkesi (kısaltılmış kayıtlarda hesabınki)
+ *   line        address + ülke (adres ülkeyi zaten içermiyorsa) -- ekranlar bunu basar
+ *   source      'order' | 'account' | ''  (adresin nereden geldiği)
+ *   postcode    adreste posta kodu GÖRÜNÜYOR mu (yalnız işaret, ret değil)
+ *   pc_optional ülke posta kodu kullanmıyor mu (BAE/Katar/HK/Makao)
+ */
+function vestra_order_ship_to(array $orderRow, ?array $acc = null, bool $findAccount = true): array {
+    require_once __DIR__.'/addresses.php';
+    require_once __DIR__.'/invoice.php';   // vestra_order_buyer_country
+    if ($acc === null && $findAccount) $acc = vestra_order_buyer_account($orderRow);
+
+    $address = vestra_order_delivery_address((string)($orderRow['notes'] ?? ''));
+    $source  = $address !== '' ? 'order' : '';
+    if ($address === '') {
+        $address = vestra_account_billing_line($acc);
+        if ($address !== '') $source = 'account';
+    }
+    $country = vestra_order_buyer_country($orderRow, $acc);
+
+    /* Posta kodu ölçümü telefonu saymaz: adres defterinin satırı ", Tel +49 30 1234567"
+       ile bitiyor ve rakam dizisi posta kodu sanılırdı. Hesabın ayrı posta kodu alanı
+       doluysa (ve kaynak hesap ise) metne bakmaya gerek yok. */
+    $probe = (string)preg_replace('/,\s*Tel\b.*$/iu', '', $address);
+    $hasPc = $address !== '' && (
+        ($source === 'account' && trim((string)($acc['postcode'] ?? '')) !== '')
+        || vestra_address_has_postcode($probe));
+
+    $line = $address;
+    if ($line !== '' && $country !== '' && mb_stripos($line, $country) === false) $line .= ', '.$country;
+
+    return [
+        'address'     => $address,
+        'country'     => $country,
+        'line'        => $line,
+        'source'      => $source,
+        'postcode'    => $hasPc,
+        'pc_optional' => vestra_postcode_optional($country)
+                         || vestra_postcode_optional((string)($orderRow['country'] ?? '')),
+    ];
+}
+
 /** Full line items for an order row, enriched with product info + per-SKU colours. */
 function vestra_order_lines(array $orderRow): array {
     $parsed = vestra_parse_order_items($orderRow['items'] ?? '');
@@ -489,11 +558,27 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
         $er = escrow_get($ref);
         if ($er) { $isEscrowOrder = true; $escrowBadge = ' · '.escrow_badge($er['status'] ?? ''); }
     }
-    $shipTo = '';
-    $shipTo = vestra_order_delivery_address($rawNotes);
+    /* Teslimat adresi HER siparişte (29 Eyl 2026): "fatura adresiyle aynı" seçilen
+       siparişte bu satır hiç çizilmiyordu, oysa satıcı malı o adrese gönderiyor ve
+       fatura adresi zaten basıyordu. Kaynak etiketi dürüst: hesaptan geliyorsa
+       "Wie Rechnungsadresse" yazar. Posta kodu yoksa işaret -- alıcıya profil yolu. */
+    $st = vestra_order_ship_to($orderRow);
+    $shipHtml = '<span class="oshipto"><b>'.t('Deliver to').':</b> ';
+    if ($st['line'] !== '') {
+        $shipHtml .= '<span style="unicode-bidi:plaintext">'.htmlspecialchars($st['line']).'</span>';
+        if ($st['source'] === 'account') $shipHtml .= ' <span class="hint">('.t('Same as billing address').')</span>';
+    }
+    $warn = $st['line'] === '' ? t('No delivery address on file')
+          : ((!$st['postcode'] && !$st['pc_optional']) ? t('No postcode on file') : '');
+    if ($warn !== '') {
+        $shipHtml .= ($st['line'] !== '' ? ' · ' : '').'<span style="color:#b45309">⚠ '.htmlspecialchars($warn).'</span>';
+        if ($viewerRole === 'buyer')
+            $shipHtml .= ' <a class="acc" href="/buyer?tab=profile#addresses">'.t('Delivery addresses').' →</a>';
+    }
+    $shipHtml .= '</span>';
     $h .= '<div class="hint" style="display:flex;gap:18px;flex-wrap:wrap;margin:2px 0 14px;font-size:13px">'
         . '<span><b>'.t('Payment').':</b> '.($isEscrowOrder ? '🛡️ '.t('Secure escrow (card)') : '🏦 '.t('Bank transfer (invoice)')).$escrowBadge.'</span>'
-        . ($shipTo !== '' ? '<span><b>'.t('Deliver to').':</b> '.htmlspecialchars($shipTo).'</span>' : '')
+        . $shipHtml
         . '</div>';
 
     $h .= '<div class="odgrid">';
@@ -2088,6 +2173,19 @@ function vestra_render_order_pdf(array $orderRow, array $lines, string $statusLa
         ((string)($orderRow['vat'] ?? '') !== '' ? 'VAT ID: '.$orderRow['vat'] : ''),
         (string)($orderRow['country'] ?? ''),
     ], fn($v) => trim((string)$v) !== '') as $bl) { $pdf->text($left, $y, 9, $bl); $y -= 13; }
+    /* TESLİMAT ADRESİ (29 Eyl 2026): özet hiç adres basmıyordu -- alıcının satın alma
+       ekibi "nereye geliyor" sorusunun cevabını bu belgede bulamıyordu. Sayfa ve fatura
+       ile AYNI çözücü; sarılır, çünkü adres defteri satırı alıcı + telefon da taşıyor. */
+    $st = vestra_order_ship_to($orderRow);
+    $y -= 4;
+    $pdf->text($left, $y, 10, 'Deliver to', true); $y -= 15;
+    if ($st['line'] !== '') {
+        foreach ($pdf->wrap($st['line'], $width * 0.62, 9) as $wl) { $pdf->text($left, $y, 9, $wl); $y -= 13; }
+        if ($st['source'] === 'account') { $pdf->text($left, $y, 8, '(same as billing address)'); $y -= 12; }
+        if (!$st['postcode'] && !$st['pc_optional']) { $pdf->text($left, $y, 8, 'Postcode missing'); $y -= 12; }
+    } else {
+        $pdf->text($left, $y, 9, 'No delivery address on file'); $y -= 13;
+    }
     $y -= 10;
 
     $colSku = $left; $colDesc = $left + 96; $colQty = $right - 168; $colUnit = $right - 96;

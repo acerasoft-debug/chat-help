@@ -1290,6 +1290,8 @@ return array (
   'City' => 'Cidade',
   'Delivery address' => 'Morada de entrega',
   'Delivery addresses' => 'Moradas de entrega',
+  'No delivery address on file' => 'Nenhuma morada de entrega registada',
+  'No postcode on file' => 'Nenhum código postal registado',
   'Delivery address saved.' => 'Morada de entrega guardada.',
   'Delivery address deleted.' => 'Morada de entrega eliminada.',
   'Please fill in street, postcode, city and country.' => 'Preencha a rua, o código postal, a cidade e o país.',

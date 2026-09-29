@@ -442,30 +442,17 @@ function vestra_country_name(string $v): string {
  * byte-for-byte the document that gets issued.
  */
 function vestra_invoice_buyer(array $orderRow): array {
-    $address = '';
-    require_once __DIR__.'/orders.php';   // kalıp tek yerde
-    $address = vestra_order_delivery_address((string)($orderRow['notes'] ?? ''));
-
-    $acc   = null;
-    $email = strtolower(trim((string)($orderRow['email'] ?? '')));
-    if ($email !== '' && function_exists('auth_accounts')) {
-        foreach (auth_accounts() as $a) {
-            if (strtolower(trim((string)($a['email'] ?? ''))) === $email) { $acc = $a; break; }
-        }
-    }
+    require_once __DIR__.'/orders.php';   // adres çözücü tek yerde (vestra_order_ship_to)
+    $acc = vestra_order_buyer_account($orderRow);
     $pick = fn(string $orderKey, string $accKey) =>
         trim((string)($orderRow[$orderKey] ?? '')) ?: trim((string)($acc[$accKey] ?? ''));
 
-    /* Country is the one field where the order is not the better source. It was copied from
-       whatever the buyer's profile held at the time, which for accounts created under the old
-       three-character limit is a stump — the order carries "Nor" forever even after the
-       account is corrected to "Norway". So: take the account's value when the order's still
-       looks truncated and the account's does not. Everything else prefers the order, which is
-       the record of what was actually agreed. */
-    $ctryOrder = vestra_country_name(trim((string)($orderRow['country'] ?? '')));
-    $ctryAcc   = vestra_country_name(trim((string)($acc['country'] ?? '')));
-    $country   = ($ctryOrder === '' || (mb_strlen($ctryOrder) <= 4 && mb_strlen($ctryAcc) > 4))
-        ? ($ctryAcc ?: $ctryOrder) : $ctryOrder;
+    /* Adres ve ülke sipariş sayfasıyla AYNI gövdeden (29 Eyl 2026): siparişin notu >
+       hesabın fatura adresi (posta kodu/şehir alanları dahil). Eskiden bu sıra burada
+       elle yazılıydı ve sipariş sayfası aynı fallback'i HİÇ yapmıyordu -- belgede duran
+       adres siparişin kendisinde görünmüyordu. */
+    $ship    = vestra_order_ship_to($orderRow, $acc, false);
+    $country = $ship['country'];
 
     return [
         'company' => $pick('company', 'company'),
@@ -476,11 +463,26 @@ function vestra_invoice_buyer(array $orderRow): array {
         'country' => $country,
         /* Hesap yedeği ayrı `postcode`/`city` alanlarını da okur: panelin "Edit billing
            details" formu onları yazıyordu ama belge yalnız `address`i basıyordu. */
-        'address' => $address !== '' ? $address : (function () use ($acc) {
-            require_once __DIR__.'/addresses.php';
-            return vestra_account_billing_line($acc);
-        })(),
+        'address' => $ship['address'],
     ];
+}
+
+/**
+ * Alıcının ülkesi: sipariş > hesap, ama siparişteki kısaltılmış kayıtta hesabınki.
+ * Fatura ve sipariş sayfasının teslimat satırı (vestra_order_ship_to) aynı cevabı
+ * buradan alır.
+ */
+function vestra_order_buyer_country(array $orderRow, ?array $acc): string {
+    /* Country is the one field where the order is not the better source. It was copied from
+       whatever the buyer's profile held at the time, which for accounts created under the old
+       three-character limit is a stump — the order carries "Nor" forever even after the
+       account is corrected to "Norway". So: take the account's value when the order's still
+       looks truncated and the account's does not. Everything else prefers the order, which is
+       the record of what was actually agreed. */
+    $ctryOrder = vestra_country_name(trim((string)($orderRow['country'] ?? '')));
+    $ctryAcc   = vestra_country_name(trim((string)($acc['country'] ?? '')));
+    return ($ctryOrder === '' || (mb_strlen($ctryOrder) <= 4 && mb_strlen($ctryAcc) > 4))
+        ? ($ctryAcc ?: $ctryOrder) : $ctryOrder;
 }
 
 /** Filesystem-safe issuer key: the seller's account id, or 'vestra' for sellerless lines. */

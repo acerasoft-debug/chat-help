@@ -1290,6 +1290,8 @@ return array (
   'City' => 'المدينة',
   'Delivery address' => 'عنوان التسليم',
   'Delivery addresses' => 'عناوين التسليم',
+  'No delivery address on file' => 'لا يوجد عنوان تسليم مسجل',
+  'No postcode on file' => 'لا يوجد رمز بريدي مسجل',
   'Delivery address saved.' => 'تم حفظ عنوان التسليم.',
   'Delivery address deleted.' => 'تم حذف عنوان التسليم.',
   'Please fill in street, postcode, city and country.' => 'يرجى إدخال الشارع والرمز البريدي والمدينة والدولة.',

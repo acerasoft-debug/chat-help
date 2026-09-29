@@ -1290,6 +1290,8 @@ return array (
   'City' => 'Город',
   'Delivery address' => 'Адрес доставки',
   'Delivery addresses' => 'Адреса доставки',
+  'No delivery address on file' => 'Адрес доставки не указан',
+  'No postcode on file' => 'Почтовый индекс не указан',
   'Delivery address saved.' => 'Адрес доставки сохранён.',
   'Delivery address deleted.' => 'Адрес доставки удалён.',
   'Please fill in street, postcode, city and country.' => 'Укажите улицу, почтовый индекс, город и страну.',
