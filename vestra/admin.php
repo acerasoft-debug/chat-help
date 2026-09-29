@@ -4277,6 +4277,15 @@ elseif($tab==='orders'):
     <?php elseif($vshp['tracking']!=='' && $vshp['carrier']===''): ?>
       <div class="ahint" style="margin-top:8px">⚠ Carrier not set — the buyer sees the number but no tracking link.</div>
     <?php endif; ?>
+    <?php /* Kismi gonderim (29 Eyl 2026): panel gercegi basar -- bu paket siparisin
+             yalnizca bir kismi ve durum bilerek 'shipped' DEGIL (alici "teslim aldim"
+             deyip siparisi kapatmasin). Son paket cikinca durum Shipped yapilir. */ ?>
+    <?php if(!empty($vshp['partial'])): ?>
+      <div class="ahint" style="margin-top:6px">📦 <b>Partial shipment</b> — this parcel is part of the order; the rest is still to ship. Set status to <b>Shipped</b> with the last parcel's tracking number.</div>
+    <?php endif; ?>
+    <?php foreach(($vshp['earlier']??[]) as $pe): ?>
+      <div class="ahint" style="margin-top:4px">Earlier parcel<?= $pe['at']!=='' ? ' ('.htmlspecialchars(substr($pe['at'],0,10)).')' : '' ?>: <?= htmlspecialchars($pe['carrier_name']) ?> <?php if($pe['url']!==''): ?><a href="<?= htmlspecialchars($pe['url']) ?>" target="_blank" rel="noopener nofollow"><?= htmlspecialchars($pe['tracking']) ?></a><?php else: ?><?= htmlspecialchars($pe['tracking']) ?><?php endif; ?></div>
+    <?php endforeach; ?>
     <?php
       /* Havale dekontu (2 Eyl 2026): musteri panelden yukledi ya da operator
          e-postadan iliştirdi -- ikisi de vestra_receipt_store()'dan gecer, tek
@@ -4440,7 +4449,7 @@ if($__dupRefs): ?>
       <div style="font-size:11.5px;<?= $__usd!==null?'':'color:var(--mut)' ?>" title="<?= $__fx?htmlspecialchars('EUR→USD '.vestra_order_fx_note($__fx)):'no rate stamped for this order date yet' ?>"><?= $__usd!==null ? '≈ '.vestra_usd($__usd) : 'US$ —' ?></div>
       <?php if(((float)($o['shipping']??0))>0): ?><div class="ahint" style="font-size:10.5px">incl. shipping <?= eur($o['shipping']) ?></div><?php endif; ?><?php if(($__iv=vestra_order_invoiced_note($o['ref']??''))!==''): ?><div class="ahint" style="font-size:10.5px"><?= htmlspecialchars($__iv) ?></div><?php endif; ?></td>
     <td class="ac"><?= orderBadge($st) ?></td>
-    <td class="ac" style="font-size:11px"><?= htmlspecialchars($trk) ?></td>
+    <td class="ac" style="font-size:11px"><?= htmlspecialchars($trk) ?><?php if($trk!=='' && !empty(vestra_order_shipment($orderSt[$ref]??null)['partial'])): ?><div class="ahint" style="font-size:10px">📦 partial</div><?php endif; ?></td>
     <td class="ac" style="font-size:11px"><?php foreach(vestra_invoices_for_ref($ref) as $iv): ?>
       <a href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener" style="color:var(--acc);display:block"><?= htmlspecialchars(vestra_invoice_link_label($iv)) ?></a>
     <?php endforeach; ?></td>

@@ -226,6 +226,19 @@ function vestra_push_texts(): array {
             'ar'=>['t'=>'تم شحن الطلبية {ref}','b'=>'رقم التتبع: {tracking}','b0'=>'طلبيتك في الطريق إليك.'],
             'ja'=>['t'=>'注文 {ref} を発送しました','b'=>'追跡番号: {tracking}','b0'=>'ご注文の商品は配送中です。'],
         ],
+        /* A PART of the order left (29 Sep 2026). Not order_shipped: that says the
+           order shipped, and the buyer would count the box against the invoice. */
+        'order_part_shipped' => [
+            'en'=>['t'=>'Part of order {ref} shipped','b'=>'Tracking: {tracking} · the rest will follow.','b0'=>'Part of your order is on its way; the rest will follow.'],
+            'de'=>['t'=>'Teil der Bestellung {ref} versandt','b'=>'Sendungsnummer: {tracking} · der Rest folgt.','b0'=>'Ein Teil Ihrer Bestellung ist unterwegs, der Rest folgt.'],
+            'fr'=>['t'=>'Une partie de la commande {ref} expédiée','b'=>'Numéro de suivi : {tracking} · le reste suivra.','b0'=>'Une partie de votre commande est en route ; le reste suivra.'],
+            'it'=>['t'=>'Parte dell’ordine {ref} spedita','b'=>'Numero di tracciamento: {tracking} · il resto seguirà.','b0'=>'Parte del tuo ordine è in viaggio; il resto seguirà.'],
+            'es'=>['t'=>'Parte del pedido {ref} enviada','b'=>'Número de seguimiento: {tracking} · el resto llegará después.','b0'=>'Parte de tu pedido está en camino; el resto llegará después.'],
+            'pt'=>['t'=>'Parte da encomenda {ref} enviada','b'=>'Número de seguimento: {tracking} · o restante segue depois.','b0'=>'Parte da sua encomenda está a caminho; o restante segue depois.'],
+            'ru'=>['t'=>'Часть заказа {ref} отправлена','b'=>'Трек-номер: {tracking} · остальное будет отправлено позже.','b0'=>'Часть вашего заказа в пути; остальное будет отправлено позже.'],
+            'ar'=>['t'=>'تم شحن جزء من الطلبية {ref}','b'=>'رقم التتبع: {tracking} · سيتبع الباقي لاحقًا.','b0'=>'جزء من طلبيتك في الطريق؛ سيتبع الباقي لاحقًا.'],
+            'ja'=>['t'=>'注文 {ref} の一部を発送しました','b'=>'追跡番号: {tracking} · 残りは後日お届けします。','b0'=>'ご注文の一部を発送しました。残りは後日お届けします。'],
+        ],
         /* No "payment is released automatically on …": that is true only of a card
            (escrow) order. The claim window is true of every order, so that is what
            the date means here. */
@@ -355,7 +368,7 @@ function vestra_push_route(string $kind, array $f): array {
                              => ['/seller?tab=listings', 'listing-'.($f['listing'] ?? ($f['product'] ?? ''))],
         'plan_updated'       => ['/seller', 'plan'],
         'account_verified'   => [(($f['panel'] ?? '') === 'seller' ? '/seller' : '/buyer'), 'account'],
-        'order_paid', 'order_shipped', 'order_delivered', 'escrow_secured', 'refund_issued'
+        'order_paid', 'order_shipped', 'order_part_shipped', 'order_delivered', 'escrow_secured', 'refund_issued'
                              => [$order('buyer'), 'order-'.($f['ref'] ?? '')],
         'claim_opened', 'claim_resolved'
                              => [$order('buyer'), 'claim-'.($f['claim'] ?? ($f['ref'] ?? ''))],

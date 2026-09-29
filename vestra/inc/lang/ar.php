@@ -1332,4 +1332,6 @@ return array (
   'Each device is set up separately. Signing out turns notifications off on that device.' => 'يُضبط كل جهاز على حدة. تسجيل الخروج يوقف الإشعارات على ذلك الجهاز.',
   'Get order, offer and message alerts on this device.' => 'تلقَّ تنبيهات الطلبيات والعروض والرسائل على هذا الجهاز.',
   'Dismiss' => 'إخفاء',
+  'Partial shipment — the remaining items will follow in a separate parcel.' => 'شحن جزئي — ستصل بقية المنتجات في طرد منفصل.',
+  'Earlier parcel' => 'الطرد السابق',
 );

@@ -1332,4 +1332,6 @@ return array (
   'Each device is set up separately. Signing out turns notifications off on that device.' => '端末ごとに設定します。ログアウトすると、その端末の通知はオフになります。',
   'Get order, offer and message alerts on this device.' => 'この端末で注文・オファー・メッセージの通知を受け取る',
   'Dismiss' => '閉じる',
+  'Partial shipment — the remaining items will follow in a separate parcel.' => '一部発送済み — 残りの商品は別の荷物でお届けします。',
+  'Earlier parcel' => '前回の荷物',
 );

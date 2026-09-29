@@ -1332,4 +1332,6 @@ return array (
   'Each device is set up separately. Signing out turns notifications off on that device.' => 'Каждое устройство настраивается отдельно. При выходе из аккаунта уведомления на этом устройстве отключаются.',
   'Get order, offer and message alerts on this device.' => 'Получайте на этом устройстве уведомления о заказах, предложениях и сообщениях.',
   'Dismiss' => 'Скрыть',
+  'Partial shipment — the remaining items will follow in a separate parcel.' => 'Частичная отправка — остальные товары придут отдельной посылкой.',
+  'Earlier parcel' => 'Предыдущая посылка',
 );

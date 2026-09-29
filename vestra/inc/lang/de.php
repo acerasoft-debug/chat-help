@@ -1337,4 +1337,6 @@ return array (
   'Each device is set up separately. Signing out turns notifications off on that device.' => 'Jedes Gerät wird einzeln eingerichtet. Beim Abmelden werden die Benachrichtigungen auf diesem Gerät ausgeschaltet.',
   'Get order, offer and message alerts on this device.' => 'Erhalten Sie auf diesem Gerät Hinweise zu Bestellungen, Angeboten und Nachrichten.',
   'Dismiss' => 'Ausblenden',
+  'Partial shipment — the remaining items will follow in a separate parcel.' => 'Teillieferung — die übrigen Artikel folgen in einem separaten Paket.',
+  'Earlier parcel' => 'Früheres Paket',
 );

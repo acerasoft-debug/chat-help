@@ -183,6 +183,34 @@ function vestra_order_shipment(?array $statusEntry): array {
     if ($tracking !== '' && $carrier !== '' && !empty($known[$carrier]['url'])) {
         $url = sprintf((string)$known[$carrier]['url'], rawurlencode($tracking));
     }
+    /* KISMI GONDERIM (operator, 29 Eyl 2026: "siparislerin bir kisminin ciktigini
+       belirt"). Isaret bir BAYRAK degil, bir PAKETE bagli: `ship_partial_trk`
+       kismi paketin numarasini tutar ve isaret yalnizca O numara hala gecerli
+       takip numarasiyken gecerlidir. Panel ya da satici formu sonradan yeni bir
+       numara yazarsa isaret kendiliginden duser -- dort ayri yazici var
+       (admin iki form, satici iki form) ve hicbirinin bu kurali hatirlamasi
+       gerekmiyor. Kismi paketler ayrica `parcels` gunlugunde durur: sonraki
+       numara `tracking`'i ezse bile alicinin elindeki ilk paketin baglantisi
+       kaybolmaz ("onceki paket" olarak gorunur). */
+    $norm = fn(string $s): string => strtoupper(preg_replace('/\s+/', '', $s));
+    $pTrk = $norm((string)($st['ship_partial_trk'] ?? ''));
+    $partial = $tracking !== '' && $pTrk !== '' && $pTrk === $norm($tracking);
+    $earlier = [];
+    foreach ((array)($st['parcels'] ?? []) as $p) {
+        if (!is_array($p)) continue;
+        $pt = trim((string)($p['tracking'] ?? ''));
+        if ($pt === '' || $norm($pt) === $norm($tracking)) continue;
+        $pc = strtolower(trim((string)($p['carrier'] ?? '')));
+        if ($pc === '' || !isset($known[$pc])) $pc = vestra_carrier_from_tracking($pt);
+        $earlier[] = [
+            'tracking'     => $pt,
+            'carrier'      => $pc,
+            'carrier_name' => $pc !== '' ? (string)($known[$pc]['name'] ?? '') : '',
+            'service'      => trim((string)($p['service'] ?? '')),
+            'url'          => ($pc !== '' && !empty($known[$pc]['url'])) ? sprintf((string)$known[$pc]['url'], rawurlencode($pt)) : '',
+            'at'           => (string)($p['at'] ?? ''),
+        ];
+    }
     return [
         'tracking'     => $tracking,
         'carrier'      => $carrier,
@@ -190,6 +218,8 @@ function vestra_order_shipment(?array $statusEntry): array {
         'service'      => $service,
         'url'          => $url,
         'has'          => $tracking !== '' || $name !== '' || $service !== '',
+        'partial'      => $partial,
+        'earlier'      => $earlier,
     ];
 }
 
@@ -198,8 +228,12 @@ function vestra_order_shipment(?array $statusEntry): array {
  * `vestra_order_set_shipping()` (navlun tutarı) ile karıştırma: o para, bu paket.
  *
  * Boş dizge alanı SİLER: bir taşıyıcıyı kaldırmanın başka yolu olmazdı.
+ *
+ * $partial: true = bu paket siparişin YALNIZCA BİR KISMI (işaret o numaraya
+ * bağlanır ve paket `parcels` günlüğüne yazılır); false = işareti kaldır;
+ * null = dokunma (eski dört argümanlı çağıranların davranışı aynen).
  */
-function vestra_order_set_shipment(string $ref, ?string $tracking, ?string $carrier, ?string $service): array {
+function vestra_order_set_shipment(string $ref, ?string $tracking, ?string $carrier, ?string $service, ?bool $partial = null): array {
     $ref = trim($ref);
     if ($ref === '') return ['ok' => false, 'error' => 'ref yok'];
     $all = vestra_read_json('order_statuses.json');
@@ -219,6 +253,28 @@ function vestra_order_set_shipment(string $ref, ?string $tracking, ?string $carr
         $s = trim(preg_replace('/\s+/', ' ', $service));
         if (mb_strlen($s) > 60) return ['ok' => false, 'error' => 'servis adi 60 karakteri asiyor'];
         if ($s === '') unset($row['ship_service']); else $row['ship_service'] = $s;
+    }
+    if ($partial === true) {
+        /* Kismi isaret bir PAKETE baglanir; numarasiz "kismi gonderim" hangi paketin
+           kismi oldugunu soyleyemez ve sonraki bir numara onu ayirt edemez. */
+        $cur = (string)($row['tracking'] ?? '');
+        if ($cur === '') return ['ok' => false, 'error' => 'kismi gonderim takip numarasi ister'];
+        $row['ship_partial_trk'] = $cur;
+        $log = array_values(array_filter((array)($row['parcels'] ?? []), 'is_array'));
+        $hit = false;
+        foreach ($log as $i => $p) {
+            if (strcasecmp(preg_replace('/\s+/', '', (string)($p['tracking'] ?? '')), $cur) !== 0) continue;
+            /* Ayni paket ikinci kez yazildi: tasiyici/servis guncellenir, tarih KORUNUR
+               (paketin cikis ani ikinci yazmanin ani degil). */
+            $log[$i]['carrier'] = (string)($row['ship_carrier'] ?? '');
+            $log[$i]['service'] = (string)($row['ship_service'] ?? '');
+            $hit = true;
+        }
+        if (!$hit) $log[] = ['tracking' => $cur, 'carrier' => (string)($row['ship_carrier'] ?? ''),
+                             'service' => (string)($row['ship_service'] ?? ''), 'at' => date('c')];
+        $row['parcels'] = $log;
+    } elseif ($partial === false) {
+        unset($row['ship_partial_trk']);
     }
     $row['updated_at'] = date('c');
     $all[$ref] = $row;
@@ -584,6 +640,22 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
        satıcı formu ve mektup aynı üç olguyu okumalı. Operatör, 9 Eyl 2026:
        "her pakette gönderici kargo bölümüde olsun". */
     $shp = vestra_order_shipment($statusEntry);
+    /* Kismi gonderim + onceki paketler (29 Eyl 2026). Mektup "siparisin bir kismi
+       yola cikti, kalani ayri pakette gelecek" diyor; sayfa ayni seyi soylemezse
+       alici takip numarasini gorup siparisin tamaminin ciktigini sanar ve eksik
+       kalemleri "eksik" diye bildirir. Iki rol de gorur: satici da bu paketin
+       kismi oldugunu bilmeli. */
+    $parcelHtml = '';
+    if ($shp['partial']) {
+        $parcelHtml .= '<p class="hint" style="margin:0 0 6px">📦 '.t('Partial shipment — the remaining items will follow in a separate parcel.').'</p>';
+    }
+    foreach ($shp['earlier'] as $pe) {
+        $peTxt = $pe['url'] !== ''
+            ? '<a class="acc" href="'.htmlspecialchars($pe['url']).'" target="_blank" rel="noopener nofollow">'.htmlspecialchars($pe['tracking']).'</a>'
+            : htmlspecialchars($pe['tracking']);
+        $parcelHtml .= '<p class="hint" style="margin:0 0 6px">'.t('Earlier parcel').': '
+            . ($pe['carrier_name'] !== '' ? htmlspecialchars($pe['carrier_name']).' · ' : '').$peTxt.'</p>';
+    }
     if ($viewerRole === 'seller') {
         $carrierOpts = '';
         foreach (vestra_carriers() as $ck => $cv) {
@@ -602,7 +674,7 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
           <label class="hint">'.t('Note to buyer').'</label>
           <textarea name="seller_note" rows="2" style="width:100%;margin-bottom:10px">'.htmlspecialchars($statusEntry['seller_note'] ?? '').'</textarea>
           <button class="btn btn-p btn-sm" type="submit">'.t('Save').'</button>
-        </form>';
+        </form>'.$parcelHtml;
     } else {
         if ($shp['carrier_name'] !== '') {
             $h .= '<p style="margin:0 0 6px"><b>'.t('Carrier').':</b> '.htmlspecialchars($shp['carrier_name'])
@@ -618,6 +690,7 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
                 ? '<a class="acc" href="'.htmlspecialchars($shp['url']).'" target="_blank" rel="noopener nofollow">'.htmlspecialchars($shp['tracking']).'</a>'
                 : htmlspecialchars($shp['tracking']));
         $h .= '<p style="margin:0 0 6px"><b>'.t('Tracking number').':</b> '.$trkTxt.'</p>';
+        $h .= $parcelHtml;
         if (!empty($statusEntry['seller_note'])) $h .= '<p style="margin:0"><b>'.t('Note from seller').':</b> '.htmlspecialchars($statusEntry['seller_note']).'</p>';
         /* 'delivered' da dahil: buyer.php'nin isleyicisi ikisini de kabul ediyor,
            bu gorunum yalnizca 'shipped'e dugme basiyordu -- teslim edilmis
