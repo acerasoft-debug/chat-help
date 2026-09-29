@@ -43,6 +43,10 @@ on:
         description: "mailcfg ile: yalnızca konusunda bu metin geçen olaylar (ör: Ralph Lauren). Boş = hepsi"
         required: false
         default: ""
+      mail_days:
+        description: "mailcfg ile: Brevo olay penceresi, gün (1-30). Varsayılan 2 — daha eski bir mektubun teslim/açılma kaydı için büyüt"
+        required: false
+        default: "2"
       sender:
         description: "true = gönderen alan adı doğrulaması (SPF/DKIM/DMARC) + gönderen adresler + kredi. 'Mektubu görmüyorum' denince buraya bakılır"
         required: false
@@ -118,6 +122,7 @@ jobs:
           IN_MAILCFG:   ${{ github.event.inputs.mailcfg }}
           IN_MAIL_FOR:  ${{ github.event.inputs.mail_for }}
           IN_MAIL_SUBJ: ${{ github.event.inputs.mail_subject }}
+          IN_MAIL_DAYS: ${{ github.event.inputs.mail_days }}
           IN_SENDER:    ${{ github.event.inputs.sender }}
           IN_ORDERS:    ${{ github.event.inputs.orders_for }}
           IN_BILLING:   ${{ github.event.inputs.billing_for }}
@@ -133,7 +138,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: IN_LOGINH,IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS,IN_BILLING,IN_UPLOAD,IN_ERRLOG,IN_CRON,IN_BLOCKED,IN_RECEIPT,IN_NET
+          envs: IN_LOGINH,IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_MAIL_DAYS,IN_SENDER,IN_ORDERS,IN_BILLING,IN_UPLOAD,IN_ERRLOG,IN_CRON,IN_BLOCKED,IN_RECEIPT,IN_NET
           script: |
             cat > /tmp/diag_msg.php <<'PHPEOF'
             <?php
@@ -485,10 +490,15 @@ jobs:
               if ($who === '') { $who = 'acerasoft@gmail.com'; $whoSrc = 'VARSAYILAN operator test kutusu'; }
               if ($apiKey === '') { echo "  (anahtar yok -- olay gecmisi sorulamiyor)\n"; }
               else {
-                echo "===== BREVO OLAY GECMISI: ".m($who)."  [kaynak: {$whoSrc}] (son 2 gun) =====\n";
+                /* Pencere artik girdi: sabit 2 gun, alti gun once giden bir
+                   faturanin teslim/acilma kaydini HIC gostermiyordu ve bos cikti
+                   "mektup gitmemis" diye okunurdu (kontrol yanlis yere bakiyor). */
+                $mailDays = (int)(getenv('IN_MAIL_DAYS') ?: 2);
+                $mailDays = max(1, min(30, $mailDays));
+                echo "===== BREVO OLAY GECMISI: ".m($who)."  [kaynak: {$whoSrc}] (son {$mailDays} gun) =====\n";
                 $ch = curl_init('https://api.brevo.com/v3/smtp/statistics/events?'.http_build_query([
                   'email' => $who,
-                  'startDate' => gmdate('Y-m-d', strtotime('-2 days')),
+                  'startDate' => gmdate('Y-m-d', strtotime('-'.$mailDays.' days')),
                   'endDate' => gmdate('Y-m-d'),
                   'limit' => 100,
                 ]));
