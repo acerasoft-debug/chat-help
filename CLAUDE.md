@@ -4919,6 +4919,106 @@ dan yaz"* (13:08)).
     `1ZY0089E0495346496`, mektup **teslim edildi** (Brevo `delivered`). CLAUDE.md
     bu alıcıya *"numara girilince size gelir"* sözünün verildiğini zaten
     kaydediyordu; tutulan söz o.
+- **KURAL 20 (devamı) — KISMİ GÖNDERİM ve NUMARALI TESLİMATLAR: paket numarası
+  siparişe yazılır, durum DEĞİŞMEZ; sonraki paketin kendi yuvası var**
+  (operatör, 29 Eyl 2026: iki UPS numarasını alıcının adı ve ülkesiyle verip
+  *"Bu gönderim numaralarını ilgili siparişler ekle sipariş lerin bir kısmının
+  çıktığını belirt ve müşterilere email gönder"* → *"trackinglerde ikinci
+  lieferung icin yer ac ayrica"*).
+  - **Numara → sipariş eşlemesi ADDAN değil KAYITTAN.** Alıcı adları hiçbir
+    girdiye yazılmadı; iki sipariş faturalarından (şifreli döküm, yerelde
+    çözüldü) doğrulandı: İspanya → `VES-A11C0C97`, Romanya → `VES-1A68FCD1`.
+  - **"Bir kısmı çıktı" bir DURUM değil, PAKETE bağlı bir işaret**
+    (`ship_partial_trk`). `shipped` alıcının sayfasında "teslim aldım" düğmesini
+    açar, yani yarım bir sipariş kapatılabilirdi. Durum bilerek değişmiyor
+    (ES `to_vestra`, RO `paid` kaldı). İşaret numaraya bağlı: yeni numara
+    yazılınca kendiliğinden düşer.
+  - **Mektup KALEM ADLANDIRMIYOR** (KURAL 3): hangi kalemin hangi pakette
+    olduğu kayıtta yok. Metin "bir kısmı yola çıktı, kalanı ayrı paketle gelecek,
+    numarasını göndereceğiz" + takip bağlantısı; alıcının hesap dilinde
+    (en/fr/es/it/de — RO hesabının dili en).
+  - **Canlı (29 Eyl 2026):** kuru koşular `36536022489` / `36536089680`,
+    uygulama `36536216762` (ES, 07:22 UTC) / `36536492589` (RO, 07:25 UTC).
+    İkisinde de *"KAYDEDILDI (geri okundu) … kismi=EVET"*, *"GONDERILDI"*,
+    *"damga: yazildi (geri okundu)"*. Brevo (`order_audit`, `36536573618`):
+    ES *"parte de su pedido … ya ha sido enviada"* `requests, delivered,
+    opened`; RO *"part of your order … has shipped"* `requests, delivered`.
+  - **Sonraki paketin yuvası.** `vestra_order_shipment()` artık `deliveries`
+    (numaralı liste: `parcels` günlüğü + güncel paket, tekrarsız) ve kısmi
+    siparişte boş sıradaki yuvayı (`next_n`) döndürüyor. Tarih paket kaydından
+    ya da `shipped` tarihçesinden okunuyor, uydurulmuyor.
+    - Yazıcı `vestra_order_add_parcel()`: yeni paket öncekini **EZMEZ**, günlüğe
+      alır; aynı numara ikinci kez yazılmaz (*"zaten N. teslimat"*). "Devamı var"
+      işaretli paket durumu değiştirmez. **Son paket** siparişi `shipped` yapar
+      (alıcı teslim aldım diyebilir) ve tarihçeye *"Delivery N: … (completes the
+      order)"* düşer. İptal/teslim/tamamlanmış siparişte red.
+    - **"Düzeltme" ile "yeni paket" AYRI:** panelin durum formunda numarayı
+      değiştirmek (kısmi değilse) düzeltmedir ve eski numarayı günlüğe **almaz**.
+      Alsaydı her yazım düzeltmesi hayalet bir "önceki paket" üretirdi.
+    - Panel `Admin ▸ Orders ▸ <sipariş>`: "📦 Deliveries" bloğu (Delivery 1…N,
+      bağlantı, mektup gitti mi). Kısmi siparişte açık **"Delivery N" yuvası**:
+      taşıyıcı numaradan, servis, numara, "devamı var", "mektup gönder" işaretli.
+      Gönderilmemiş paket için "✉ Send letter". Listede *"📦 N parcels · partial
+      — delivery N to come"* rozeti.
+    - Alıcı/satıcı sipariş sayfası ve alıcının listesi numaralı teslimatları
+      basıyor; kısmi siparişte *"Delivery N: not shipped yet"*. **Teslim aldım
+      düğmesi korunuyor:** ilk yazımda `elseif` onu düşürüyordu, test tutuyor.
+      Tek paketli, kısmi olmayan siparişte blok **boş** → eski tek satırlık
+      görünüm aynen.
+  - **Tek mektup seçici, tek gönderim gövdesi.** `vestra_tpl_order_parcel_letter()`
+    üç mektuptan birini seçiyor: kısmi / siparişi tamamlayan (*"kalanı yola
+    çıktı"*) / tek paket. `vestra_order_parcel_notify()`'ı panel yuvası, panel
+    durum formu, satıcının "gönderildi"si ve iş akışı **birlikte** çağırıyor:
+    dört kopya dört ayrı mektup demekti (KURAL 5o). Önceki paketler mektupta
+    bağlantılarıyla (*"Paquete anterior: UPS …"*). Damga `ship_notified[<no>]`
+    yalnız başarılı gönderimden sonra ve geri okunarak düşer; damgalı pakete
+    ikinci mektup gitmez.
+  - İş akışı: `seller-products.yml` → `admin_mode=ship`,
+    `ship_spec='tracking=<no>|next=1|partial=1'` (devamı var) ya da
+    `'…|next=1|status=shipped'` (son paket). Kuru koşu numaralı listeyi ve
+    boş yuvayı gösteriyor. `'Delivery %d'` 8 sözlükte (`'Earlier parcel'`
+    kaldırıldı).
+  - Test: `delivery_slot_test.php` (**95**), `partial_shipment_test.php`
+    (**103**), `shipment_test.php` (**64**; iki kablolama iddiası tek gövdeye
+    bağlandı, üç yeni sabotaj 1'er kırmızı). 12 sabotajın 12'si kırmızı, her
+    biri tek eşleşmeyle uygulanarak:
+
+    | Sabotaj | Kırmızı |
+    |---|---:|
+    | okuyucu `next_n` hep 0 | 10 |
+    | yeni paket öncekini korumuyor | 6 |
+    | seçici kalanı İngilizce eski mektuba düşürüyor | 6 |
+    | son paket durumu `shipped` yapmıyor | 3 |
+    | damga gönderim başarısızken de düşüyor | 3 |
+    | `shipped` siparişe "devamı var" kabul | 3 |
+    | panel `shipped`'de kısmi işareti bırakıyor | 2 |
+    | aynı numara kontrolü yok | 2 |
+    | iş akışı önizlemesi öncekini korumuyor | 2 |
+    | damgalı pakete ikinci mektup | 2 |
+    | alıcı sayfası teslim onayı düğmesini kaybediyor | 1 |
+    | alıcı listesi numaralı bloğu kullanmıyor | 1 |
+
+    **Çizdirildi** (kum havuzu, gerçek tarayıcı): panel yuvası 1366 ve 390 px'te,
+    yatay taşma 0, konsol hatası 0.
+  - **Canlı doğrulama (deploy `f36beca`, run `36539151932`, salt okunur)**
+    ES siparişinin 7f6c5c3 koduyla yazılmış gerçek kaydında şunları gösterdi:
+    *"teslimat 1: UPS 1Z…40"*, *"teslimat 2: (boş yuva — panelde 'Delivery
+    2')"* ve *"mektup: gitmeyecek (bu paket için 07:22'de gönderildi)"*. Yani
+    eski kaydı yeni okuyucu tekrarsız okuyor ve damga ikinci mektubu
+    durduruyor. İkinci kuru koşu (`36539273589`, **sentetik** numarayla
+    `next=1|status=shipped`) son paketi simüle etti: durum `to_vestra → shipped`,
+    *"teslimat 1: UPS 1Z…40"* / *"teslimat 2: … (bu koşu)"*, mektup İspanyolca
+    ve doğru türde (*"el resto de su pedido … ya ha sido enviado"* + *"Paquete
+    anterior: UPS 1Z…40 — <bağlantı>"* + teslim onayı satırı). **Hiçbir şey
+    yazılmadı, mektup gitmedi.** Gerçek ikinci paketin numarası gelince yol:
+    panelde "Delivery 2" yuvası ya da aynı spec gerçek numarayla ve
+    `offer_apply=true`.
+  - **Kendi hatam, kayda geçsin:** `7f6c5c3` test fikstürüne iki **gerçek** UPS
+    numarasını alıcının gerçek ilk adıyla ("… Probe Name") ve firma ipucuyla yan
+    yana koydu; herkese açık dala gitti. `f36beca` sentetik değerlere çevirdi.
+    Geçmiş **yeniden yazılmadı**, çünkü dalda başka bir oturum da çalışıyor
+    (KURAL 5r'nin kararı). *Fikstür gerçek bir vakadan esinlenebilir, gerçek
+    değeri taşıyamaz.*
 - **Katalogdan gizli ürün: `unlisted`** (operatör kararı, 2 Eyl 2026 — Musterstück
   `lac-l1212-musterstueck`). `vestra_products()` varsayılan olarak `unlisted` kayıtları
   **atar**; her açık liste (vitrin, fiyat listeleri, katalog dosyaları, sitemap,
