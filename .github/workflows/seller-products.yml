@@ -43,7 +43,7 @@ on:
         required: false
         default: ""
       move_threads:
-        description: "admin_mode=thread_seller: tasinacak thread id'leri (virgulle). 'ilan:<listing_id>' yazarsaniz O ILANIN tum thread'leri. admin_mode=diskclean ile: ne temizlenecek — 'sessions[:gun]' (varsayilan 2), 'baks[:kac_kalsin]' (varsayilan 20), 'tmp', 'errlog[:satir]' (varsayilan 2000). Bos = hepsi."
+        description: "admin_mode=thread_seller: tasinacak thread id'leri (virgulle). 'ilan:<listing_id>' yazarsaniz O ILANIN tum thread'leri; 'yazar:devret' eklenirse (operator karari) eski saticinin YAZDIGI mesajlar da yeni saticiya gecer, yoksa tasima durur. admin_mode=diskclean ile: ne temizlenecek — 'sessions[:gun]' (varsayilan 2), 'baks[:kac_kalsin]' (varsayilan 20), 'tmp', 'errlog[:satir]' (varsayilan 2000). Bos = hepsi."
         required: false
         default: ""
       move_apply:
@@ -3554,8 +3554,16 @@ jobs:
                konusma, artik satmadigi bir urun hakkinda eski saticiya mektup
                gondermeye devam eder. */
             $want = [];
+            /* 'yazar:devret' = OPERATOR KARARIYLA eski saticinin yazdigi mesajlarin
+               YAZARINI da yeni saticiya devret (29 Eyl 2026, operator: "Bu saticinin
+               ismini her yerden sil" + "bu konusmayi Agaya Paris yap, tyrex yerine").
+               Varsayilan KAPALI: eski satici bu konusmada yazdiysa tasima yine
+               DURUR. Acik secim sart, cunku yazar devri geri donulemez gorunur --
+               yedek alinir ama panelde artik o cumleler yeni saticinin. */
+            $reassign = false;
             foreach (preg_split('/[,\s]+/', $sel) as $tok) {
               $tok = trim($tok); if ($tok === '') continue;
+              if (strtolower($tok) === 'yazar:devret') { $reassign = true; continue; }
               if (stripos($tok, 'ilan:') === 0) {
                 $lid = substr($tok, 5);
                 foreach ($threads as $t) if ((string)($t['listing_id'] ?? '') === $lid) $want[] = (string)($t['id'] ?? '');
@@ -3583,12 +3591,42 @@ jobs:
                  imzali; thread'i baska bir firmaya vermek, o cumleleri de ona
                  yazdirmak olur. Kim ne yazdiysa o yazmis kalir. */
               $wrote = 0;
-              foreach ($msgs as $m) if ((string)($m['from'] ?? '') === $old) $wrote++;
-              if ($wrote > 0) {
+              foreach ($msgs as $m) if ((string)($m['from'] ?? '') === $old || (string)($m['by'] ?? '') === $old) $wrote++;
+              if ($wrote > 0 && !$reassign) {
                 echo "      DURDU: eski satici bu konusmada {$wrote} mesaj YAZMIS.\n";
                 echo "      Tasimak o sozleri baska firmaya mal etmek olurdu — operator karari gerekiyor.\n";
+                echo "      (Operator karariysa move_threads'e 'yazar:devret' ekleyin.)\n";
                 $stop++; continue;
               }
+              if ($wrote > 0) echo "      YAZAR DEVRI (operator karari): {$wrote} mesajin yazari ".$nameOf($old)." => {$newName}\n";
+
+              /* Ad METNIN ICINDE de geciyor mu? Yazar etiketi degisir ama bir imza
+                 ("... TYREX") metinde kalirsa ad "her yerden" silinmemis olur.
+                 Metin YENIDEN YAZILMAZ (musterinin okudugu cumleyi sessizce
+                 degistirmek ayri bir karar) -- yalnizca SAYILIR ve basilir. */
+              $oldCo = strtolower(trim((string)($nameOf($old))));
+              $probe = '';
+              foreach (preg_split('/[^\p{L}\p{N}]+/u', $oldCo) as $w) if (mb_strlen($w) >= 4) { $probe = $w; break; }
+              if ($probe !== '') {
+                $inText = 0;
+                foreach ($msgs as $m) if (mb_stripos((string)($m['text'] ?? ''), $probe) !== false) $inText++;
+                echo "      eski satici adi ('{$probe}') mesaj METNINDE: {$inText} mesaj".($inText > 0 ? "  *** METIN DEGISMEZ — elle bakin ***" : "")."\n";
+              }
+              /* Engellenen deneme kaydi (moderasyon izi) da taraflari uid ile tutuyor
+                 ve panelde ADI basiyor. Yazar devrinde o kayit da tasinir. */
+              $blk = 0;
+              foreach (vestra_msg_blocked_log() as $e) {
+                if (is_array($e) && (string)($e['buyer_uid'] ?? '') === $buy && (string)($e['seller_uid'] ?? '') === $old
+                    && (string)($e['listing_id'] ?? '') === $lid) $blk++;
+              }
+              echo "      engellenen deneme kaydi (bu konusma): {$blk}".($blk > 0 && !$reassign ? " (yazar devri yok — dokunulmaz)" : "")."\n";
+              /* Ilanin kendi saticisi DEGISMEZ: ilan satici atamasi ayri bir karar
+                 (fatura kesicisinin varsayilani, diger alicilarin konusmalari).
+                 Ama bedeli yazilmali: alici URUN SAYFASINDAN yeniden yazarsa
+                 vestra_msg_send ilanin saticisiyla YENI bir konusma acar. */
+              $lsu = '';
+              foreach (vestra_listings() as $lp) if ((string)($lp['id'] ?? '') === $lid) { $lsu = (string)($lp['seller_uid'] ?? ''); break; }
+              if ($lid !== '' && $lsu === $old) echo "      NOT: ilan {$lid} hala ".$nameOf($old)." saticisinda — urun sayfasindan gelen YENI mesaj ona yeni konusma acar.\n";
 
               $newId = vestra_msg_thread_id($buy, $newUid, $lid);
               if (isset($byId[$newId]) && $newId !== $tid) {
@@ -3597,7 +3635,7 @@ jobs:
                 $stop++; continue;
               }
               echo "      -> satici ".$nameOf($old)." => {$newName} | id {$tid} => {$newId}\n";
-              $plan[] = ['i'=>$byId[$tid], 'old'=>$old, 'newId'=>$newId];
+              $plan[] = ['i'=>$byId[$tid], 'old'=>$old, 'newId'=>$newId, 'buy'=>$buy, 'lid'=>$lid, 'wrote'=>$wrote];
             }
 
             if ($stop > 0) { fwrite(STDERR, "\n{$stop} thread durdu — hicbir sey yazilmadi (hepsi ya da hicbiri).\n"); exit(1); }
@@ -3616,16 +3654,55 @@ jobs:
                  birakmak da olmayan bir hesabi kayitta tutar. Silinir: TYREX gercekten
                  okumadi, okunmamis gorsun. */
               foreach (['read','ping'] as $k) if (isset($threads[$i][$k][$p['old']])) unset($threads[$i][$k][$p['old']]);
+              if ($reassign) {
+                foreach ((array)($threads[$i]['messages'] ?? []) as $mi => $m) {
+                  if (!is_array($m)) continue;
+                  if ((string)($m['from'] ?? '') === $p['old']) $threads[$i]['messages'][$mi]['from'] = $newUid;
+                  if ((string)($m['by'] ?? '') === $p['old'])   $threads[$i]['messages'][$mi]['by']   = $newUid;
+                }
+              }
             }
             vestra_msg_save_threads($threads);
 
+            if ($reassign) {
+              $bf = vestra_msg_blocked_file();
+              $bl = is_readable($bf) ? (json_decode((string)file_get_contents($bf), true) ?: []) : [];
+              $bch = 0;
+              foreach ($bl as $bi => $e) {
+                if (!is_array($e)) continue;
+                foreach ($plan as $p) {
+                  if ((string)($e['buyer_uid'] ?? '') === $p['buy'] && (string)($e['seller_uid'] ?? '') === $p['old']
+                      && (string)($e['listing_id'] ?? '') === $p['lid']) {
+                    $bl[$bi]['seller_uid'] = $newUid;
+                    if ((string)($e['from'] ?? '') === $p['old']) $bl[$bi]['from'] = $newUid;
+                    $bch++; break;
+                  }
+                }
+              }
+              if ($bch > 0) {
+                @copy($bf, $bf.'.bak-'.date('Ymd-His'));
+                file_put_contents($bf, json_encode(array_values($bl), JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), LOCK_EX);
+              }
+              echo "engellenen deneme kaydi tasindi: {$bch}\n";
+            }
+
             /* GERI OKU: yazma sessizce basarisiz olabilir (izin, disk) ve
                "kaydedildi" yazan bir satir tek basina kanit degil. */
-            $after = vestra_msg_threads(); $ok = 0;
+            $after = vestra_msg_threads(); $ok = 0; $left = 0;
             foreach ($plan as $p) {
               foreach ($after as $t) {
-                if ((string)($t['id'] ?? '') === $p['newId'] && (string)($t['seller_uid'] ?? '') === $newUid) { $ok++; break; }
+                if ((string)($t['id'] ?? '') === $p['newId'] && (string)($t['seller_uid'] ?? '') === $newUid) {
+                  $ok++;
+                  foreach ((array)($t['messages'] ?? []) as $m) {
+                    if ((string)($m['from'] ?? '') === $p['old'] || (string)($m['by'] ?? '') === $p['old']) $left++;
+                  }
+                  break;
+                }
               }
+            }
+            if ($reassign) {
+              printf("geri okuma: eski saticinin yazarligi kalan mesaj: %d\n", $left);
+              if ($left > 0) $ok = -1;
             }
             printf("KAYDEDILDI — %d/%d thread yeni saticida ve yeni id ile geri okundu.\n", $ok, count($plan));
             exit($ok === count($plan) ? 0 : 1);
