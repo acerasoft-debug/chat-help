@@ -472,6 +472,126 @@ function vestra_offer_invoice_shipping(array $rec, array $lines, array $buyerAcc
     return $sched ? (float)$sched['amount'] : 0.0;
 }
 
+/* KABUL EDILMIS TEKLIFE NAVLUN -- FATURA KESMEDEN (29 Eyl 2026, O34FE5;
+ * operator: "O34FE5 bu siparise 120 eur shipp cost yaz").
+ *
+ * Teklif faturasi navlunu SIPARIS satirindan degil teklifin KENDI kaydindan
+ * okuyor (yukaridaki fonksiyon, offer_responses.json -> invoice_shipping). O
+ * alana yazan uc yol vardi ve ucu de belgeyi ya KESIYOR ya YENIDEN CIZIYORDU:
+ * panelin "Approve & issue"i, birlesik kesim ve redraft. Yani "yalniz navlunu
+ * yaz" diyen bir talimatin numara yakmayan yolu YOKTU -- ve is akisinin
+ * admin_mode=shipping'i yalniz orders.csv'ye bakip faturasiz teklifte
+ * "siparis bulunamadi" diyordu. Kes mi hazirla mi belirsizse numara yakilmaz
+ * (O748EE dersi, KURAL 5i devami).
+ *
+ * TEK YAZICI; is akisi teklif ref'inde bunu cagiriyor. Kurallar:
+ *  - yalniz KABUL edilmis teklif: fatura ancak ona kesilir (panelin kesim
+ *    eyleminin ayni sarti);
+ *  - BIRLESIK faturanin UYESI reddedilir: belge birincil ref adina kesilir ve
+ *    navlunu orada okur, uyeye yazmak hicbir belgeyi degistirmezdi;
+ *  - FATURASI KESILMIS teklif reddedilir: belge eski tutari tasiyor, yol
+ *    KURAL 5f (vestra_offer_invoice_redraft_apply: ayni numara, uc katman
+ *    birlikte, notify=false ile aliciya mektup yok);
+ *  - PARASI GELMIS satis reddedilir (KURAL 7b'nin tek karar noktasi);
+ *  - negatif ya da sayi olmayan tutar reddedilir -- 0'a kirpmak, operatorun
+ *    yazdigi rakami sessizce baska bir rakamla degistirmek olurdu.
+ * Once kaydin YEDEGI (data/offer_backups/<ref>-ship-<zaman>.json, yalniz o
+ * kayit), sonra yazma, sonra GERI OKUMA: yalniz alanin degil, FATURA YUKUNUN
+ * gordugu navlun -- belgeyi o yuk ciziyor.
+ * Siparis satiri (orders.csv) varsa o da ayni rakama cekilir
+ * (vestra_order_set_shipping): kesim satiri "varsa dokunma" kuraliyla
+ * (vestra_offer_order_ensure) guncellemez ve iki kopya ayrisirdi.
+ * $dry=true: hicbir sey yazilmaz, yazilacak rakamlar doner. */
+function vestra_offer_set_invoice_shipping(string $ref, float $amount, bool $dry = false): array {
+    require_once __DIR__.'/invoice.php';
+    require_once __DIR__.'/orders.php';
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
+    if ($ref === '') return ['error' => 'ref boş', 'code' => 'ref'];
+    if (!is_finite($amount) || $amount < 0) {
+        return ['error' => 'navlun negatif ya da sayı değil', 'code' => 'amount'];
+    }
+    $amount = round($amount, 2);
+
+    if (!vestra_offer_row($ref)) return ['error' => "teklif bulunamadı: {$ref}", 'code' => 'missing'];
+    $rec = (array)(vestra_read_json('offer_responses.json')[$ref] ?? []);
+    $st  = (string)($rec['status'] ?? '');
+    if ($st !== 'accept') {
+        return ['error' => 'teklif kabul edilmemiş (durum: '.($st !== '' ? $st : 'yanıtsız').') — navlun faturaya ait ve fatura yalnız kabul edilmiş teklife kesilir',
+                'code' => 'not_accepted'];
+    }
+    $grp = trim((string)($rec['invoice_group_ref'] ?? ''));
+    if ($grp !== '' && $grp !== $ref) {
+        return ['error' => "{$ref} birleşik bir faturanın ÜYESİ — navlun birincil ref'in kaydında durur: {$grp}",
+                'code' => 'member', 'primary' => $grp];
+    }
+    $inv = vestra_invoices_for_ref($ref, false);
+    if ($inv) {
+        $nos = array_map(fn($i) => (string)($i['no'] ?? ''), $inv);
+        return ['error' => 'fatura ZATEN KESİLMİŞ ('.implode(', ', $nos).') — belge eski tutarı taşıyor. Yol KURAL 5f: aynı numarayla yeniden çizim (send-campaign-preview → reply_letter=invoice_draft, spec ref=<ref>|ship=<EUR>|apply=true|notify=false).',
+                'code' => 'invoiced', 'invoices' => $nos];
+    }
+    $paid = vestra_order_payment_settled($ref);
+    if (!empty($paid['settled'])) {
+        return ['error' => 'satışın parası gelmiş — tahsil edilmiş bir tutar değiştirilmez (iade ayrı bir karar)', 'code' => 'paid'];
+    }
+
+    $prev = array_key_exists('invoice_shipping', $rec) ? round((float)$rec['invoice_shipping'], 2) : null;
+    $orderRow = null;
+    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) { $orderRow = $r; break; } }
+
+    /* Belgenin gorecegi rakamlar AYNI kurucudan: EUR taban ('base' cevrim
+       varsa orada, yoksa meta kendisi EUR). */
+    $sum = function (?array $p): array {
+        $m  = (array)($p['base']['meta'] ?? $p['meta'] ?? []);
+        $it = (array)($p['base']['items'] ?? $p['items'] ?? []);
+        $g  = 0.0; foreach ($it as $x) $g += (float)($x['line'] ?? 0);
+        return ['goods' => round($g, 2), 'shipping' => round((float)($m['shipping'] ?? 0), 2),
+                'doc_currency' => strtoupper((string)($p['meta']['currency'] ?? 'EUR')) ?: 'EUR'];
+    };
+    $out = ['ok' => true, 'dry' => $dry, 'ref' => $ref, 'prev' => $prev, 'shipping' => $amount,
+            'order_row' => $orderRow !== null];
+
+    if ($dry) {
+        $s = $sum(vestra_offer_invoice_payload($ref, '', null, $amount));
+        return $out + ['goods' => $s['goods'], 'total' => round($s['goods'] + $amount, 2),
+                       'doc_currency' => $s['doc_currency']];
+    }
+
+    $bdir = vestra_data_dir().'/offer_backups';
+    if (!is_dir($bdir)) @mkdir($bdir, 0775, true);
+    $bfile = $bdir.'/'.$ref.'-ship-'.date('Ymd-His').'.json';
+    if (@file_put_contents($bfile, json_encode([$ref => $rec], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) === false) {
+        return ['error' => 'yedek yazılamadı — hiçbir şey değişmedi', 'code' => 'backup'];
+    }
+
+    /* Taze okuma: yedekten bu yana baska bir alan yazilmis olabilir. */
+    $rs = vestra_read_json('offer_responses.json');
+    $rs[$ref]['invoice_shipping']    = $amount;
+    $rs[$ref]['invoice_shipping_by'] = 'operator';
+    $rs[$ref]['invoice_shipping_at'] = date('c');
+    vestra_write_json('offer_responses.json', $rs);
+
+    $back = (array)(vestra_read_json('offer_responses.json')[$ref] ?? []);
+    if (!array_key_exists('invoice_shipping', $back) || abs((float)$back['invoice_shipping'] - $amount) > 0.004) {
+        return ['error' => 'yazma geri okunamadı — kayıt değişmemiş olabilir (yedek: '.basename($bfile).')', 'code' => 'readback'];
+    }
+    $s = $sum(vestra_offer_invoice_payload($ref));
+    if (abs($s['shipping'] - $amount) > 0.004) {
+        return ['error' => 'kayıt yazıldı ama fatura yükü navlunu '.number_format($s['shipping'], 2, '.', '').' görüyor', 'code' => 'payload'];
+    }
+    $out += ['goods' => $s['goods'], 'total' => round($s['goods'] + $amount, 2),
+             'doc_currency' => $s['doc_currency'], 'backup' => $bfile];
+
+    if ($orderRow !== null) {
+        $os = vestra_order_set_shipping($ref, $amount, 'Shipping');
+        if (isset($os['error'])) {
+            return ['error' => 'teklif kaydı yazıldı ama sipariş satırı güncellenemedi: '.$os['error'], 'code' => 'order_sync'];
+        }
+        $out['order_total'] = (float)$os['total'];
+    }
+    return $out;
+}
+
 /* Teklifin FATURA yuku: alici blogu + tek satir + fatura kesecek satici.
  * Uc yerde (operator kabulu, alici kabulu, panelden onayli kesim) elle
  * kuruluyordu; ucu de ayni rakami uretmek ZORUNDA, cunku ayni belge.
