@@ -259,15 +259,46 @@ jobs:
                 if (!is_array($rs) || !$rs || array_keys($rs) === range(0, count($rs) - 1)) {
                   $errors[] = "{$ctx} ({$id}): stock {beden: adet} nesnesi olmali (or. {\"S\":2,\"M\":6})"; continue;
                 }
-                $stk = [];
-                foreach ($rs as $sz => $q) {
-                  $sz = trim((string)$sz);
-                  if (!preg_match('/^[A-Za-z0-9]{1,6}$/', $sz) || !is_int($q) || $q < 0) {
-                    $errors[] = "{$ctx} ({$id}): stock icinde gecersiz beden/adet ('{$sz}')"; continue 2;
+                /* IKI SEKIL: duz {beden: adet}, ya da cok renkli TEK ilanda
+                   {renk: {beden: adet}} (Burberry pike polo, 8 model tek kayitta,
+                   29 Eyl 2026). Renk anahtari ilanin colors listesinde OLMALI;
+                   karisik sekil reddedilir. */
+                $stkFlat = function (array $mm, string &$why): ?array {
+                  $o = [];
+                  foreach ($mm as $sz => $q) {
+                    $sz = trim((string)$sz);
+                    if (!preg_match('/^[A-Za-z0-9]{1,6}$/', $sz) || !is_int($q) || $q < 0) { $why = $sz; return null; }
+                    $o[$sz] = $q;
                   }
-                  $stk[$sz] = $q;
+                  return $o;
+                };
+                $stkNested = true; $stkAnyArr = false;
+                foreach ($rs as $v0) { if (is_array($v0)) $stkAnyArr = true; else $stkNested = false; }
+                $why = '';
+                if (!$stkAnyArr) {
+                  $stk = $stkFlat($rs, $why);
+                  if ($stk === null) { $errors[] = "{$ctx} ({$id}): stock icinde gecersiz beden/adet ('{$why}')"; continue; }
+                } elseif (!$stkNested) {
+                  $errors[] = "{$ctx} ({$id}): stock ya {beden: adet} ya {renk: {beden: adet}} olmali, karisik olamaz"; continue;
+                } else {
+                  $stk = [];
+                  $rowCols = array_map(fn($c) => trim((string)$c), (array)($row['colors'] ?? []));
+                  foreach ($rs as $cn => $mm) {
+                    $cn = trim((string)$cn);
+                    if ($cn === '' || !in_array($cn, $rowCols, true)) { $errors[] = "{$ctx} ({$id}): stock rengi '{$cn}' ilanin colors listesinde yok"; continue 2; }
+                    $o = $mm ? $stkFlat((array)$mm, $why) : null;
+                    if ($o === null) { $errors[] = "{$ctx} ({$id}): stock.{$cn} icinde gecersiz beden/adet ('{$why}')"; continue 2; }
+                    $stk[$cn] = $o;
+                  }
                 }
                 $row['stock'] = $stk;
+              }
+              /* colorqty: lot-1 ilanda renk basina adet secici (vestra_is_colorqty_listing).
+                 Yalniz gercek `true`; "true" dizgesi ya da 1 kabul edilmez. */
+              if (isset($r['colorqty'])) {
+                if ($r['colorqty'] !== true) { $errors[] = "{$ctx} ({$id}): colorqty yalniz true (tirnaksiz) olabilir"; continue; }
+                if (empty($row['colors']) || empty($row['min_colors'])) { $errors[] = "{$ctx} ({$id}): colorqty icin colors ve min_colors sart"; continue; }
+                $row['colorqty'] = true;
               }
               /* KURAL 3: nereden gonderildigi tahmin edilmez, yazilir. Batch bunu
                  vermezse platform varsayilani (EU) kalir -- bu satir sessizce

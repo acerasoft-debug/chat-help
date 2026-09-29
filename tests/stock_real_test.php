@@ -108,6 +108,37 @@ $t('duz dizi (bedensiz) REDDEDILDI',         $rc !== 0 && str_contains($out, 'ne
 [$rc, $out] = $run([['match' => 'TEST-POLO-1', 'stock' => ['S' => '2']]]);
 $t('dizge adet ("2") REDDEDILDI',            $rc !== 0);
 
+/* RENK BASINA stok (29 Eyl 2026, 8 model TEK ilanda): anahtarlar ilanin renk
+   listesinde OLMALI; karisik sekil ve listede olmayan renk REDDEDILIR. */
+$nest = ['Green (1)' => ['S' => 2, 'M' => 6], 'Black (2)' => ['S' => 0, 'M' => 9]];
+[$rc, $out] = $run([['match' => 'TEST-POLO-1', 'stock' => $nest]]);
+$t('renk basina stok, ilanda renk listesi YOK -> RED', $rc !== 0 && str_contains($out, 'ilanin renk listesinde yok'));
+[$rc, $out] = $run([['match' => 'TEST-POLO-1', 'colors' => ['Green (1)', 'Black (2)'], 'stock' => $nest]], true);
+$t('renk listesi AYNI istekte: kuru kosu gecer, satir basina renk basiyor', $rc === 0 && str_contains($out, 'Green (1): S 2 · M 6 (8 ad.)') && str_contains($out, 'toplam 17 ad.'));
+[$rc, $out] = $run([['match' => 'TEST-POLO-1', 'colors' => ['Green (1)', 'Black (2)'], 'stock' => $nest]]);
+$t('renk basina stok kayda INDI',            $rc === 0 && $read()['stock'] === $nest && $read()['colors'] === ['Green (1)', 'Black (2)']);
+[$rc, $out] = $run([['match' => 'TEST-POLO-1', 'stock' => ['Green (1)' => ['S' => 1], 'Pink' => ['S' => 1]]]]);
+$t('listede olmayan renk ("Pink") RED, kayit degismedi', $rc !== 0 && $read()['stock'] === $nest);
+[$rc, $out] = $run([['match' => 'TEST-POLO-1', 'stock' => ['S' => 1, 'Green (1)' => ['S' => 1]]]]);
+$t('KARISIK sekil RED',                       $rc !== 0 && str_contains($out, 'karisik olamaz'));
+[$rc, $out] = $run([['match' => 'TEST-POLO-1', 'stock' => ['Green (1)' => ['S' => -1]]]]);
+$t('rengin icinde bozuk adet RED (stock.Green)', $rc !== 0 && str_contains($out, 'stock.Green (1) icinde'));
+/* colorqty (lot-1 renk basina adet) ve redirect_to (katlanan ilan) */
+[$rc, $out] = $run([['match' => 'TEST-POLO-1', 'colorqty' => 'true']]);
+$t('colorqty dizge "true" RED (yalniz bool)', $rc !== 0 && str_contains($out, 'colorqty true ya da false'));
+[$rc, $out] = $run([['match' => 'TEST-POLO-1', 'colorqty' => true]]);
+$t('colorqty true kayda GERCEK bool indi',   $rc === 0 && $read()['colorqty'] === true);
+[$rc, $out] = $run([['match' => 'TEST-POLO-1', 'colorqty' => false]]);
+$t('colorqty false alani KALDIRIR ("" degil)', $rc === 0 && !array_key_exists('colorqty', $read()));
+[$rc, $out] = $run([['match' => 'TEST-POLO-1', 'redirect_to' => 'yok-boyle-ilan']]);
+$t('redirect_to olmayan hedefe RED',         $rc !== 0 && str_contains($out, "redirect_to 'yok-boyle-ilan' kayitta yok"));
+[$rc, $out] = $run([['match' => 'TEST-POLO-1', 'redirect_to' => 'bur-test-polo']]);
+$t('redirect_to KENDISI olamaz',             $rc !== 0 && str_contains($out, 'kendisi olamaz'));
+[$rc, $out] = $run([['match' => 'TEST-POLO-1', 'status' => 'rejected', 'redirect_to' => 'bur-other']]);
+$t('redirect_to + rejected birlikte yazildi', $rc === 0 && $read()['redirect_to'] === 'bur-other' && $read()['status'] === 'rejected');
+[$rc, $out] = $run([['match' => 'TEST-POLO-1', 'redirect_to' => null]]);
+$t('redirect_to null alani KALDIRIR',        $rc === 0 && !array_key_exists('redirect_to', $read()));
+
 [$rc, $out] = $run([['match' => 'TEST-POLO-1', 'stock' => null]]);
 $t('null alani KALDIRDI',                    $rc === 0 && !array_key_exists('stock', $read()));
 $t('kaldirinca liste turetilmis banda doner', (vestra_stock_for($read())['real'] ?? null) === false);
@@ -128,7 +159,9 @@ if ($s !== false) {
 $t('dogrulama blogu is akisinda bulundu',    $blk !== '' && str_contains($blk, "\$row['stock'] = \$stk;"));
 $harness = function (array $rows) use ($blk): array {
     $errors = []; $clean = [];
+    /* Is akisinda colors bu bloktan ONCE satira yaziliyor; renk basina stok ona bakiyor. */
     eval('foreach ($rows as $i => $r) { $ctx = "satir ".($i+1); $id = "x".$i; $row = ["id" => $id];'
+       . ' if (!empty($r["colors"])) $row["colors"] = $r["colors"];'
        . $blk . ' $clean[] = $row; }');
     return [$errors, $clean];
 };
@@ -141,6 +174,38 @@ if ($blk !== '') {
     $t('dort bozuk satirin dordu de HATA',   count($e) === 4 && !$c);
     [$e, $c] = $harness([['stock' => ['44' => 1, '46' => 2]]]);
     $t('sayisal beden (kot) gecerli',        !$e && ($c[0]['stock'] ?? null) === ['44' => 1, '46' => 2]);
+    /* Renk basina stok: ilanin colors listesine bagli (satir onu tasimali). */
+    $nestRow = ['stock' => ['Green (1)' => ['S' => 2], 'Black (2)' => ['S' => 0, 'M' => 9]]];
+    [$e, $c] = $harness([$nestRow + ['colors' => ['Green (1)', 'Black (2)']]]);
+    $t('renk basina stok satira INDI',        !$e && ($c[0]['stock'] ?? null) === $nestRow['stock']);
+    [$e, $c] = $harness([$nestRow + ['colors' => ['Green (1)']]]);
+    $t('colors listesinde olmayan renk -> HATA', count($e) === 1 && str_contains($e[0], 'colors listesinde yok') && !$c);
+    [$e, $c] = $harness([['colors' => ['A'], 'stock' => ['S' => 1, 'A' => ['S' => 1]]], ['colors' => ['A'], 'stock' => ['A' => ['S' => 1.5]]]]);
+    $t('karisik sekil ve bozuk ic adet -> 2 HATA', count($e) === 2 && !$c);
+}
+/* colorqty bayragi: yalniz gercek true; colors + min_colors sart. */
+$s2 = strpos($wf, "if (isset(\$r['colorqty'])) {");
+$blk2 = '';
+if ($s2 !== false) {
+    $depth = 0; $i = strpos($wf, '{', $s2);
+    for ($j = $i; $j < strlen($wf); $j++) {
+        if ($wf[$j] === '{') $depth++;
+        elseif ($wf[$j] === '}') { $depth--; if ($depth === 0) { $blk2 = substr($wf, $s2, $j - $s2 + 1); break; } }
+    }
+}
+$t('colorqty blogu is akisinda bulundu',      $blk2 !== '' && str_contains($blk2, "\$row['colorqty'] = true;"));
+if ($blk2 !== '') {
+    $h2 = function (array $rows) use ($blk2): array {
+        $errors = []; $clean = [];
+        eval('foreach ($rows as $i => $r) { $ctx = "satir ".($i+1); $id = "x".$i; $row = ["id" => $id];'
+           . ' if (!empty($r["colors"])) $row["colors"] = $r["colors"]; if (!empty($r["min_colors"])) $row["min_colors"] = (int)$r["min_colors"];'
+           . $blk2 . ' $clean[] = $row; }');
+        return [$errors, $clean];
+    };
+    [$e, $c] = $h2([['colors' => ['A', 'B'], 'min_colors' => 1, 'colorqty' => true]]);
+    $t('colorqty true + colors + min_colors -> satira indi', !$e && ($c[0]['colorqty'] ?? null) === true);
+    [$e, $c] = $h2([['colors' => ['A', 'B'], 'min_colors' => 1, 'colorqty' => 'true'], ['colors' => ['A'], 'colorqty' => true]]);
+    $t('dizge "true" ve min_colors\'siz satir -> 2 HATA', count($e) === 2 && !$c);
 }
 
 echo "\n== 4. Parti dosyasi: PDF ile tutarli, mektup her modelde fotoyu buluyor ==\n";

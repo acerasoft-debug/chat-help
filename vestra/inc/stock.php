@@ -89,19 +89,49 @@ function vestra_stock_band(string $cat, string $brand): array {
  * (negative, fractional or non-numeric quantity, empty size label) is ignored as a
  * whole rather than half-read: a partly-read stock line is a wrong stock line.
  *
- * @return array{sizes: array<string,int>, total: int, real: true}|null
+ * TWO SHAPES. Flat, one model: ['S' => 2, 'M' => 6]. Nested, one listing that
+ * carries several colourways (operator, 29 Sep 2026: the eight Burberry polos
+ * became ONE listing, "fotolari ve listeleri tek bir ilanda"): the keys are the
+ * listing's colour names and each value is a flat map --
+ * ['Green (8099164)' => ['S' => 2, ...], 'Black (8096425)' => [...]]. The nested
+ * shape returns the SAME 'sizes'/'total' (summed across colours, sizes in order of
+ * first appearance) so every existing reader -- line sheets, price list, e-mail --
+ * keeps working unchanged, plus 'by_colour' for the readers that want the split.
+ * Mixing the two shapes in one map is malformed and rejected as a whole.
+ *
+ * @return array{sizes: array<string,int>, total: int, real: true, by_colour?: array<string, array{sizes: array<string,int>, total: int}>}|null
  */
 function vestra_stock_real(array $p): ?array {
     $raw = $p['stock'] ?? null;
     if (!is_array($raw) || !$raw) return null;
-    $out = [];
-    foreach ($raw as $size => $qty) {
-        $size = trim((string)$size);
-        if ($size === '' || is_bool($qty) || !is_numeric($qty)) return null;
-        if ((float)$qty < 0 || (float)$qty != (int)$qty) return null;
-        $out[$size] = (int)$qty;
+    $flat = function (array $m): ?array {
+        if (!$m) return null;
+        $out = [];
+        foreach ($m as $size => $qty) {
+            $size = trim((string)$size);
+            if ($size === '' || is_bool($qty) || is_array($qty) || !is_numeric($qty)) return null;
+            if ((float)$qty < 0 || (float)$qty != (int)$qty) return null;
+            $out[$size] = (int)$qty;
+        }
+        return $out;
+    };
+    $nested = true; $anyArr = false;
+    foreach ($raw as $v) { if (is_array($v)) $anyArr = true; else $nested = false; }
+    if (!$anyArr) {
+        $out = $flat($raw);
+        if ($out === null) return null;
+        return ['sizes' => $out, 'total' => array_sum($out), 'real' => true];
     }
-    return ['sizes' => $out, 'total' => array_sum($out), 'real' => true];
+    if (!$nested) return null;                       // mixed shape: half a map is no map
+    $by = []; $sizes = [];
+    foreach ($raw as $colour => $m) {
+        $colour = trim((string)$colour);
+        $one = $flat((array)$m);
+        if ($colour === '' || $one === null) return null;
+        $by[$colour] = ['sizes' => $one, 'total' => array_sum($one)];
+        foreach ($one as $s => $q) $sizes[$s] = ($sizes[$s] ?? 0) + $q;
+    }
+    return ['sizes' => $sizes, 'total' => array_sum($sizes), 'real' => true, 'by_colour' => $by];
 }
 
 /**
@@ -144,4 +174,16 @@ function vestra_stock_line(array $st): string {
     $bits = [];
     foreach ($st['sizes'] as $s => $q) $bits[] = $s.' '.$q;
     return implode(' · ', $bits).'  ('.$st['total'].' pcs)';
+}
+/* The per-colour split as a row list, in the listing's own colour order --
+   [['colour' => 'Green (8099164)', 'sizes' => [...], 'total' => 19], ...]. A flat
+   (single-model) stock comes back as one row with an empty colour, so a reader
+   that wants "one line per colourway" needs no second code path. */
+function vestra_stock_rows(array $st): array {
+    if (!empty($st['by_colour']) && is_array($st['by_colour'])) {
+        $rows = [];
+        foreach ($st['by_colour'] as $c => $x) $rows[] = ['colour' => (string)$c, 'sizes' => (array)$x['sizes'], 'total' => (int)$x['total']];
+        return $rows;
+    }
+    return [['colour' => '', 'sizes' => (array)($st['sizes'] ?? []), 'total' => (int)($st['total'] ?? 0)]];
 }

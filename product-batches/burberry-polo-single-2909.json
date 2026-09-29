@@ -1,0 +1,52 @@
+[
+ {
+  "id": "bur-pique-polo-2909",
+  "brand": "Burberry",
+  "name": "Burberry Cotton Piqué Polo — 8 colourways",
+  "cat": "Polos",
+  "sku": "BUR-PIQUE-POLO",
+  "list": 59.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "sizes": "S · M · L · XL · XXL",
+  "min_colors": 1,
+  "colorqty": true,
+  "colors": [
+   "Green (8099164)",
+   "Black (8096425)",
+   "Navy (8099165)",
+   "White (8099166)",
+   "Beige (8099167)",
+   "Black · Check collar (8071620)",
+   "Navy · Check collar (8072661)",
+   "White · Check collar (8071621)"
+  ],
+  "images": [
+   "/uploads/burberry-polo/burberry-green-8099164.jpg",
+   "/uploads/burberry-polo/burberry-black-8096425.jpg",
+   "/uploads/burberry-polo/burberry-navy-8099165.jpg",
+   "/uploads/burberry-polo/burberry-white-8099166.jpg",
+   "/uploads/burberry-polo/burberry-beige-8099167.jpg",
+   "/uploads/burberry-polo/burberry-black-check-collar-8071620.jpg",
+   "/uploads/burberry-polo/burberry-navy-check-collar-8072661.jpg",
+   "/uploads/burberry-polo/burberry-white-check-collar-8071621.jpg"
+  ],
+  "tiers": [
+   {"min": 20, "price": 59.9},
+   {"min": 50, "price": 54.9},
+   {"min": 100, "price": 49.9}
+  ],
+  "stock": {
+   "Green (8099164)":                {"S": 2,  "M": 6,  "L": 5,  "XL": 4,  "XXL": 2},
+   "Black (8096425)":                {"S": 3,  "M": 9,  "L": 8,  "XL": 6,  "XXL": 3},
+   "Navy (8099165)":                 {"S": 3,  "M": 10, "L": 10, "XL": 5,  "XXL": 2},
+   "White (8099166)":                {"S": 0,  "M": 9,  "L": 9,  "XL": 6,  "XXL": 3},
+   "Beige (8099167)":                {"S": 2,  "M": 6,  "L": 6,  "XL": 4,  "XXL": 2},
+   "Black · Check collar (8071620)": {"S": 5,  "M": 15, "L": 15, "XL": 10, "XXL": 5},
+   "Navy · Check collar (8072661)":  {"S": 5,  "M": 15, "L": 15, "XL": 10, "XXL": 5},
+   "White · Check collar (8071621)": {"S": 10, "M": 28, "L": 30, "XL": 17, "XXL": 12}
+  },
+  "desc": "Original Burberry cotton piqué polos, eight colourways in one listing: five plain (8099164 green, 8096425 black, 8099165 navy, 8099166 white, 8099167 beige) and three with the Burberry Check collar (8071620 black, 8072661 navy, 8071621 white). Regular fit, short sleeves, 100% cotton, embroidered Equestrian Knight logo at the chest. Sold by the piece — enter the quantity per colourway; the stock on hand per size is listed on this page."
+ }
+]

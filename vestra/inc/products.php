@@ -1068,6 +1068,30 @@ function vestra_brand_min_shortfall(array $lines): array {
    here with an id the buyer was given directly, and a link sent in a letter must keep
    working even though the item is not in the catalogue. */
 function vestra_find($id){ foreach(vestra_products(true) as $p){ if($p['id']===$id) return $p; } return null; }
+/* ── A listing folded into another one keeps its address ───────────────────
+ *
+ * When several listings are merged into one (the eight Burberry polos into a
+ * single eight-colourway listing, 29 Sep 2026), the old ids have already been
+ * mailed: 100 offer letters carried /product?id=bur-8099164 that morning. A
+ * 404 there would send a buyer who clicked a letter nowhere. The old record
+ * stays in listings.json as `status: rejected` (out of every list, not
+ * orderable -- the 17 Sep 2026 decision for a removed listing) with
+ * `redirect_to: <new id>`, and the product page answers 301 to the new one.
+ *
+ * Reads the RAW record on purpose: the old listing is rejected, so vestra_find()
+ * no longer sees it. The target has to be live (vestra_find, so a hidden brand
+ * or a rejected target does not redirect into a 404) and must not itself
+ * redirect (no chains, no loops). Returns the target id or null.
+ */
+function vestra_product_redirect(string $id): ?string {
+  if ($id === '') return null;
+  $raw = vestra_listing_by_id($id);
+  $to = trim((string)($raw['redirect_to'] ?? ''));
+  if ($to === '' || $to === $id) return null;
+  $target = vestra_find($to);
+  if ($target === null || !empty($target['redirect_to'])) return null;
+  return $to;
+}
 function vestra_cats(){ $c=[]; foreach(vestra_products() as $p){ $c[$p['cat']]=1; } return array_keys($c); }
 function vestra_primary_image(array $p): string { if(!empty($p['images'])&&is_array($p['images'])) return $p['images'][0]; return $p['image']??''; }
 
@@ -1254,15 +1278,55 @@ function vestra_colors(){
     'Other'=>'linear-gradient(135deg,#b3242c 0 25%,#e3c14f 25% 50%,#2b46c4 50% 75%,#14532d 75% 100%)',
   ];
 }
+/* ── Colourway names that carry more than the colour ─────────────────────────
+ *
+ * A colour name in a listing is usually a bare palette key ("Black"). A listing
+ * that holds several MODELS in one record (the Burberry piqué polo, eight
+ * colourways, 29 Sep 2026) needs the model number in the colourway name, because
+ * two of its colourways are "Black" and an order line reading "Black ×20" would not
+ * say which article to pick: "Black (8096425)" / "Black · Check collar (8071620)".
+ *
+ * vestra_colour_base() finds the palette colour such a name STARTS with (longest
+ * key first, whole word, case-insensitive), so the swatch, the dark-ring rule and
+ * the translation all keep working: the dot is black, the label reads
+ * "Schwarz (8096425)" on a German page, and the suffix is carried verbatim. A name
+ * that starts with no palette colour resolves to nothing and is drawn as before
+ * (skipped in the dot row, grey in the pickers). 'Other' is never inferred.
+ */
+function vestra_colour_base(string $name): ?string {
+  $name = trim($name);
+  if ($name === '') return null;
+  $pal = vestra_colors();
+  if (isset($pal[$name])) return $name;
+  $keys = array_values(array_diff(array_keys($pal), ['Other']));
+  usort($keys, fn($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+  foreach ($keys as $k) {
+    if (preg_match('/^' . preg_quote($k, '/') . '(?![A-Za-z])/iu', $name)) return $k;
+  }
+  return null;
+}
+/* CSS background for a colourway name; '#666' when it starts with no palette colour. */
+function vestra_colour_css(string $name): string {
+  $b = vestra_colour_base($name);
+  return $b === null ? '#666' : vestra_colors()[$b];
+}
+/* Translated label: the palette colour goes through t(), the suffix stays as written. */
+function vestra_colour_label(string $name): string {
+  $name = trim($name);
+  $b = vestra_colour_base($name);
+  if ($b === null || strcasecmp($b, $name) === 0) return t($name);
+  return t($b) . substr($name, strlen($b));
+}
 /* Small colour-dot row (shop cards, product page, admin). $withNames adds the label after each dot. */
 function vestra_color_dots(array $colors, int $max=7, bool $withNames=false): string {
   $pal=vestra_colors(); $out=''; $shown=0;
   foreach($colors as $c){
-    if(!isset($pal[$c])) continue;
+    $c=(string)$c; $base=vestra_colour_base($c);
+    if($base===null) continue;
     if($shown>=$max){ $out.='<span class="cmore">+'.(count($colors)-$shown).'</span>'; break; }
-    $ring = in_array($c,['Black','Navy','Bordeaux','Brown','Green','Purple','Plum'],true) ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.25)';
-    $out.='<span class="cdot" title="'.htmlspecialchars(t($c)).'" style="background:'.$pal[$c].';box-shadow:inset 0 0 0 1px '.$ring.'"></span>';
-    if($withNames) $out.='<span class="cname">'.htmlspecialchars(t($c)).'</span>';
+    $ring = in_array($base,['Black','Navy','Bordeaux','Brown','Green','Purple','Plum'],true) ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.25)';
+    $out.='<span class="cdot" title="'.htmlspecialchars(vestra_colour_label($c)).'" style="background:'.$pal[$base].';box-shadow:inset 0 0 0 1px '.$ring.'"></span>';
+    if($withNames) $out.='<span class="cname">'.htmlspecialchars(vestra_colour_label($c)).'</span>';
     $shown++;
   }
   return $out ? '<span class="cdots">'.$out.'</span>' : '';
@@ -1284,9 +1348,16 @@ function vestra_pack_size(array $p): int {
   return $n > 1 ? $n : 1;
 }
 /* True for listings that use the per-colour carton picker (e.g. Lacoste/Ralph Lauren polos:
-   min 4 colours, cartons of 8 or 10 per colour) instead of a plain colour checklist. */
+   min 4 colours, cartons of 8 or 10 per colour) instead of a plain colour checklist.
+
+   `colorqty` (explicit flag) opens the same picker on a LOT-1 listing: the Burberry piqué
+   polo, eight colourways in one listing sold by the piece (29 Sep 2026). Without the flag a
+   buyer of that listing could only tick colours and give one total, and the seller would not
+   know the split. The flag is opt-in per listing rather than a relaxed step rule, so no
+   existing listing that carries colours + min_colors without a pack step changes behaviour. */
 function vestra_is_colorqty_listing(array $p): bool {
-  return !empty($p['colors']) && !empty($p['min_colors']) && (int)($p['size_step'] ?? 0) > 1;
+  return !empty($p['colors']) && !empty($p['min_colors'])
+      && ((int)($p['size_step'] ?? 0) > 1 || !empty($p['colorqty']));
 }
 /* Singular-safe "at least N colour(s)" phrasing — most listings require 4, but some
    only require 1, where "at least 1 colours" would read wrong. */
@@ -1304,7 +1375,7 @@ function vestra_colours_warn(int $n): string {
    included only once its snapped quantity is > 0, so it also doubles as "colours selected". */
 function vestra_parse_colorqty(array $p, array $posted): ?array {
   if (!vestra_is_colorqty_listing($p)) return null;
-  $step = (int)$p['size_step'];
+  $step = vestra_pack_size($p);                 // 1 on a by-the-piece listing (colorqty flag)
   $allowed = array_flip((array)$p['colors']);
   $lines = []; $qty = 0;
   foreach ($posted as $name => $raw) {
