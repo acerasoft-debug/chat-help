@@ -1859,6 +1859,45 @@ ekleyelim"* — VES-6B53D265).
   **€86,04** → belgede **Shipping US$100.00**, Total **US$5.539,60**; sipariş
   toplamı €4.766,04 ve denetim "tutuyor". Test: `tests/order_shipping_test.php`.
 
+**KURAL 5k (devamı) — KABUL EDİLMİŞ TEKLİFE navlun, fatura kesmeden; teklif ref'i
+siparişten ÖNCE sorulur** (operatör, 29 Eyl 2026: *"O34FE5 bu siparise 120 eur
+shipp cost yaz"*).
+- **Ölçüldü:** O34FE5 bir sipariş değil **kabul edilmiş TEKLİF** (`offers.csv` +
+  `offer_responses.json` `status=accept`; SKU XH9624, 320 ad. × €30, alıcı
+  Ecokemet, kesen Agaya Paris/GARAGE LE PARIS). `orders.csv`'de satırı yok,
+  fatura yok. Önce taslak: mal €9.600 + kargo **0** = €9.600.
+- **Yol YOKTU:** teklif faturası navlunu **teklifin kendi kaydından**
+  (`invoice_shipping`) okuyor. O alana yazan üç yol da belgeyi kesiyor ya da
+  yeniden çiziyordu (panelin *Approve & issue*'su, birleşik kesim, redraft).
+  `admin_mode=shipping` yalnız `orders.csv`'ye bakıyordu: faturasız teklifte
+  *"sipariş bulunamadı"* diyordu. Faturalı teklifte ise belgenin **okumadığı**
+  kopyayı yazıyor, sonraki yeniden çizim eski navlunu basıyordu. Talimat
+  "yaz"dı, "kes" değil; numara yakılmadı (O748EE dersi).
+- **Tek yazıcı `vestra_offer_set_invoice_shipping()`** (`inc/offers.php`). Şu
+  durumlarda reddeder: kabul edilmemiş, birleşik faturanın **üyesi** (birincili
+  söyler), **faturalı** (KURAL 5f yolunu söyler: `invoice_draft` + `apply=true`
+  + `notify=false`), **ödenmiş**, negatif ya da NaN. Açık `0` bir karar olarak
+  yazılır. Önce yedek alır (`data/offer_backups/<ref>-ship-<zaman>.json`, yalnız
+  o kayıt), sonra **geri okur**: alanı ve **fatura yükünün gördüğü** navlunu.
+  Sipariş satırı varsa onu da `vestra_order_set_shipping` ile aynı rakama çeker.
+- **İş akışı:** `admin_mode=shipping` teklif ref'ini sipariş aramasından **ÖNCE**
+  tanıyor. Tutar EUR; `USD`/`auto` reddediliyor; `|dry=1` kuru koşu. Okunamayan
+  tutar (`x`, `12O`) **0 diye yazılmıyor**: `vestra_price_input` bozuk girdide 0
+  ya da yanlış bir sayı döndürüyor.
+- **Canlı:** kuru koşu `36601137962`, uygulama `36601199493` → *"KAYDEDILDI —
+  fatura yükü navlunu 120.00 görüyor"*. Bağımsız ikinci okuma (`invoice_combine_draft`,
+  `send=false`, run `36601263983`): **mal €9.600 + kargo €120 = €9.720**, EUR,
+  ödeme kutusu 4 satır, taslak PDF 17.965 → 18.206 bayt, mektup bloğunda
+  `Shipping : EUR 120.00`. **Fatura kesilmedi, müşteriye hiçbir şey gitmedi.**
+  Kesim operatörün (panel *Approve & issue* ya da `invoice_combine_draft` +
+  `apply=true`); belge navlunu kayıttan okuyacak.
+- Test: `tests/offer_shipping_test.php` (66 iddia). Kum havuzunda yazıyor ve iş
+  akışı adımını bir **site kopyasında koşturuyor**. İki yön ölçülüyor: faturalı
+  teklifin sipariş kopyasına dokunulmuyor; kontrol grubu sipariş ref'i eski yoldan
+  yürüyor. Altı sabotajın altısı kırmızı. **İlk tutar probu (`abc`) sabotajda
+  YEŞİL kaldı:** sonu üç harf olduğu için para birimi dalında reddediliyordu,
+  tutar doğrulamasını ölçmüyordu. Probe'lar `x` / `12O` yapıldı.
+
 **KURAL 5l — Teslimat adresi de PANELDEN girilir ("kargo yeri")** (operatör,
 7 Eyl 2026: *"hem kargo yeri aç hem de faturayı güncelle"*).
 - Adres siparişin notlarında `Deliver to: …` parçasında duruyor; ekran onu
