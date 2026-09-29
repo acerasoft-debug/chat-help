@@ -9836,6 +9836,67 @@ için kendileri seçebilsin ad koyabilsin"*).
   Önceki hız 15 dakikada 25 satırdı (~1,7/dk); aynı pencerede 4-5 satır
   beklenirdi.
 
+**KURAL 35 (devamı) — Teslimat adresi ve posta kodu HER siparişte görünür; tek
+çözücü `vestra_order_ship_to()`** (operatör, 29 Eyl 2026: *"müsterilerin post codu
+ve teslimat adresi siparislerinde görünsün"*).
+
+- **Kusur:** kasa `Deliver to:` notunu yalnız alıcı başka bir adres seçince
+  yazıyor. "Fatura adresiyle aynı" seçilen siparişte adres hiçbir sipariş
+  ekranında yoktu. Alıcı ve satıcı sipariş sayfası satırı hiç çizmiyordu,
+  **sipariş özeti PDF'i hiç adres basmıyordu**, panel dosyası *"same as billing —
+  nothing on file"* yazıp adresi göstermiyordu, listede adres yoktu. Fatura ise
+  hesaba düşüp adresi basıyordu, yani aynı siparişin belgesindeki adres siparişin
+  kendisinde görünmüyordu.
+- **Tek çözücü** `vestra_order_ship_to($row, $acc=null, $findAccount=true)`
+  (`inc/orders.php`): önce siparişin kendi notu, sonra hesabın fatura adresi
+  (`vestra_account_billing_line`, ayrı posta kodu ve şehir dahil).
+  - Dönen alanlar: `address` (ülke hariç), `country`, `line` (ülke adreste yoksa
+    eklenir), `source` (`order`/`account`/boş), `postcode`, `pc_optional`.
+  - **Fatura da buradan okuyor.** `vestra_invoice_buyer` sırayı eskiden elle
+    yazıyordu. Ülke kararı `vestra_order_buyer_country()`'ye taşındı (kısaltılmış
+    "Nor" → hesabın "Norway"), fatura ve sayfa aynı cevabı veriyor.
+- **Görünen yerler:**
+  - alıcı ve satıcı sipariş sayfası (`.oshipto`): kaynak hesapsa
+    *"(Wie Rechnungsadresse)"*, posta kodu yoksa ⚠. Profil bağlantısı yalnız
+    alıcıya gösteriliyor.
+  - sipariş özeti PDF'i: *"Deliver to"* bloğu, *"(same as billing address)"* /
+    *"Postcode missing"* notlarıyla.
+  - panel dosyası: adres kalın, kaynak etiketi ve `⚠ no postcode`. Override formu
+    boş kalıyor (hesap adresi siparişe yazılmış gibi gösterilmiyor).
+  - panel listesi: şirketin altında `📍` satırı. Hesap eşlemesi döngü dışında bir
+    kez kuruluyor.
+- **Posta kodu işareti telefonu saymaz:** adres defteri satırı `, Tel +49 30 123456`
+  ile bitiyor ve 6 haneli grup posta kodu kalıbına uyuyordu. BAE, Katar, HK ve
+  Makao muaf (`vestra_postcode_optional`).
+- **Hesap adresi CANLI okunur, sipariş anının kopyası değil:** alıcı adresini
+  sonradan değiştirirse eski siparişin ekranı yeni adresi gösterir. Kesilmiş
+  faturanın PDF'i donmuş, o değişmez. Etiket bu yüzden *"same as billing —
+  account address"*. Kasaya fatura adresini de siparişe yazdırmak (kalıcı kopya)
+  ayrı bir karar, yapılmadı.
+- **İki yeni sözlük anahtarı 8 dilde:** `No delivery address on file`,
+  `No postcode on file`.
+- **Sonda:** `diag-live` → `accounts_report` artık siparişlerin kaynak dağılımını
+  (not / hesap / adressiz) ve posta kodsuz ya da adressiz siparişlerin
+  **REF**'ini basıyor. Adres basılmıyor. Kum havuzunda koşturuldu: Berlin (ayrı
+  PLZ alanı) geçti, Paris `POSTA KODSUZ: VES-FR1` diye listelendi.
+- **Önceden var olan, bu işle ilgisiz:** alıcı sipariş sayfasında yatay taşma.
+  Masaüstünde 37 px (zaman çizelgesinin son adımı), mobilde 111 px (kalem
+  tablosu ızgarası). Eski `orders.php` ile birebir aynı ölçüldü. Dokunulmadı.
+- Test: `tests/order_ship_to_test.php` (**51 iddia**). Sayfa, PDF ve `admin.php`
+  kum havuzunda gerçekten çizdiriliyor. Yedi sabotajın yedisi kırmızı; her
+  birinin uygulandığı sayıldı:
+  - hesap fallback'i kalkınca **19**;
+  - telefon ayıklaması kalkınca **1**;
+  - ülke hep eklenince **1**;
+  - sayfa eski hâline (yalnız not) dönünce **6**;
+  - liste satırı kalkınca **1**;
+  - PDF bloğu kalkınca **1**;
+  - profil bağlantısı satıcıya da çizilince **1**.
+  - *Telefon iddiası ilk yazımda HİÇ DÜŞEMİYORDU:* test numarasındaki 7 haneli
+    grup kalıba uymuyordu. Gerçekçi 6 haneli grupla düzeltildi.
+  Tam takım: yalnız önceden kayıtlı üç kırık (`dropship_plan` 4,
+  `msg_read_receipt` 1, `msg_thread_label` 10).
+
 **KURAL 36 — GİZLİ MARKA: sitenin HER yerinden görünmez, hiçbir şey SİLİNMEZ;
 geri açmak panelde tek tık** (operatör, 25 Eyl 2026: *"Gucci ve Balenciaga
 ürünlerini sitede görünmez yap ancak sonra tekrar konulabilecek şekilde...sitede
