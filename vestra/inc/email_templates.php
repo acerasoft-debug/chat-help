@@ -1904,12 +1904,27 @@ function vestra_listing_block_parts(array $blocks, array $L, bool $withPrices): 
             $priceLine = implode(' · ', $parts) . $L['per_piece'];
         }
 
+        /* KAYITLI (gercek) beden stogu -- yalniz cagiran verdiyse. Cagiran onu
+           inc/stock.php'nin vestra_stock_real()'inden aliyor, yani TURETILMIS
+           bant buraya hic girmiyor: mektupta "stokta" diye basilan her rakam
+           tedarikcinin verdigi rakam. Stok bir fiyat degil, o yuzden fiyat
+           kapisindan bagimsiz basiliyor. */
+        $stockLine = '';
+        $stk = (array)($b['stock']['sizes'] ?? []);
+        if ($stk) {
+            $bits = [];
+            foreach ($stk as $sz => $q) $bits[] = $sz . ' ' . (int)$q;
+            $stockLine = implode(' · ', $bits) . ' — ' . array_sum(array_map('intval', $stk)) . $L['pieces'];
+        }
+
         $chunks[] = $name . "\n" . $url . "\n"
                . $L['colours'] . ' (' . count($pairs) . '): ' . $cols . "\n"
                . ($min !== '' ? $L['minimum'] . ': ' . $min . "\n" : '')
+               . ($stockLine !== '' ? $L['stock'] . ': ' . $stockLine . "\n" : '')
                . ($priceLine !== '' ? $L['price'] . ': ' . $priceLine . "\n" : '');
 
         $rows[] = ['label' => $name, 'value' => $cols . ($min !== '' ? ' · ' . $min : ''), 'strong' => true];
+        if ($stockLine !== '') $rows[] = ['label' => $L['stock'], 'value' => $stockLine];
         if ($priceLine !== '') $rows[] = ['label' => $L['price'], 'value' => $priceLine];
 
         /* Etiket ilanin KENDI kayitli referansi (SKU), basliktan ayiklanmis bir
@@ -1934,25 +1949,25 @@ function vestra_listing_block_labels(string $lang): array {
     $c = fn(float $v): string => number_format($v, 2, ',', '.') . ' €';   // kita yazimi
     $e = fn(float $v): string => 'EUR ' . number_format($v, 2, '.', ',');
     $T = [
-      'en' => ['money'=>$e,'colours'=>'Colours','minimum'=>'Minimum','price'=>'Price',
+      'en' => ['money'=>$e,'colours'=>'Colours','stock'=>'In stock','minimum'=>'Minimum','price'=>'Price',
                'pieces'=>' pieces','from_colours'=>', from %d colours','cartons'=>', in cartons of %d',
                'from'=>'from ','pcs'=>' pcs ','per_piece'=>'  (per piece, plus shipping)'],
-      'de' => ['money'=>$c,'colours'=>'Farben','minimum'=>'Mindestabnahme','price'=>'Preis',
+      'de' => ['money'=>$c,'colours'=>'Farben','stock'=>'Auf Lager','minimum'=>'Mindestabnahme','price'=>'Preis',
                'pieces'=>' Stück','from_colours'=>', ab %d Farben','cartons'=>', in Kartons zu %d',
                'from'=>'ab ','pcs'=>' Stück ','per_piece'=>'  (pro Stück, zzgl. Versand)'],
-      'fr' => ['money'=>$c,'colours'=>'Coloris','minimum'=>'Minimum de commande','price'=>'Prix',
+      'fr' => ['money'=>$c,'colours'=>'Coloris','stock'=>'En stock','minimum'=>'Minimum de commande','price'=>'Prix',
                'pieces'=>' pièces','from_colours'=>', à partir de %d coloris','cartons'=>', en cartons de %d',
                'from'=>'à partir de ','pcs'=>' pièces ','per_piece'=>'  (la pièce, hors transport)'],
-      'it' => ['money'=>$c,'colours'=>'Colori','minimum'=>'Ordine minimo','price'=>'Prezzo',
+      'it' => ['money'=>$c,'colours'=>'Colori','stock'=>'Disponibili','minimum'=>'Ordine minimo','price'=>'Prezzo',
                'pieces'=>' pezzi','from_colours'=>', da %d colori','cartons'=>', in cartoni da %d',
                'from'=>'da ','pcs'=>' pz ','per_piece'=>'  (al pezzo, spedizione esclusa)'],
-      'es' => ['money'=>$c,'colours'=>'Colores','minimum'=>'Pedido mínimo','price'=>'Precio',
+      'es' => ['money'=>$c,'colours'=>'Colores','stock'=>'En stock','minimum'=>'Pedido mínimo','price'=>'Precio',
                'pieces'=>' piezas','from_colours'=>', desde %d colores','cartons'=>', en cajas de %d',
                'from'=>'desde ','pcs'=>' uds ','per_piece'=>'  (por pieza, transporte aparte)'],
-      'pt' => ['money'=>$c,'colours'=>'Cores','minimum'=>'Encomenda mínima','price'=>'Preço',
+      'pt' => ['money'=>$c,'colours'=>'Cores','stock'=>'Em stock','minimum'=>'Encomenda mínima','price'=>'Preço',
                'pieces'=>' peças','from_colours'=>', a partir de %d cores','cartons'=>', em caixas de %d',
                'from'=>'a partir de ','pcs'=>' un ','per_piece'=>'  (por peça, transporte à parte)'],
-      'nl' => ['money'=>$c,'colours'=>'Kleuren','minimum'=>'Minimumafname','price'=>'Prijs',
+      'nl' => ['money'=>$c,'colours'=>'Kleuren','stock'=>'Op voorraad','minimum'=>'Minimumafname','price'=>'Prijs',
                'pieces'=>' stuks','from_colours'=>', vanaf %d kleuren','cartons'=>', in dozen van %d',
                'from'=>'vanaf ','pcs'=>' st ','per_piece'=>'  (per stuk, excl. verzending)'],
     ];
@@ -1960,29 +1975,51 @@ function vestra_listing_block_labels(string $lang): array {
 }
 
 /**
- * ANGEBOT — kayitli musteriye, secilmis ilanlar icin, fotograflariyla.
+ * ANGEBOT — secilmis ilanlar icin, fotograflariyla. Kayitli musteriye (varsayilan)
+ * ya da LEAD'e ($lead = true).
  *
  * vestra_tpl_listing_colours'in ikinci kopyasi DEGIL: o mektup bir SIKAYETE
  * cevap ve acilis cumlesi oyle ("fotograf yoktu, duzeltildi") -- 57 kisiye
  * giden bir teklifte o cumlenin isi yok. Paylasilan sey paylasiliyor
  * (vestra_listing_block_parts), ayrilan sey yalnizca acilis ve imza.
  *
+ * MARKA ILANLARDAN OKUNUR (29 Eyl 2026). Metin "Fred Perry"ye gomuluydu; ayni
+ * mektubu Burberry icin gondermek ya ikinci bir sablon (ayni blok, ayni kart,
+ * ayni foto seridi -- bu depoda defalarca ayrisan kopya) ya da Burberry
+ * teklifinde "Fred Perry" yazan bir konu satiri demekti. Tek marka -> o marka;
+ * iki-uc marka -> "A & B"; hic/cok -> VESTRA. Fred Perry teklifinin ciktisi
+ * birebir ayni kaldi (test bunu tutuyor).
+ *
  * IMZA VESTRA, dukkanin adi degil: uye platformu bu adla taniyor ve kampanya
  * takma adi (Les Garage de Paris) soguk listeye ait -- bu karar Winter uye
- * mektubunda zaten kayitli.
+ * mektubunda zaten kayitli. LEAD surumu ise o listenin kendi imzasini tasiyor
+ * (wave3 ile ayni altbilgi).
  *
  * FIYAT CAGIRANIN KARARI ve alici basina soruluyor ($withPrices): kapisi kapali
  * bir aliciya rakam yazmak, sayfasinin gostermedigi fiyati mektupta soylemektir
  * (KURAL 2b'nin birebir tersi). Kapali olana rakam yerine "giris yapinca
  * fiyatlar sayfada" cumlesi gidiyor -- bos birakmak degil, dogrusunu soylemek.
+ * LEAD'E FIYAT HIC GITMEZ ($withPrices yok sayilir): hesabi yok, fiyat listesi
+ * girissiz acilmiyor (KURAL 19) ve lead mektuplarinin hicbiri rakam tasimiyor.
+ * Yerine "kayit ucretsiz" cumlesi + kayit baglantisi; "size iki kez yazmistik"
+ * gibi bir iddia YOK (secim yalniz ilk mektubu almis olmayi sart kosuyor).
  */
-function vestra_tpl_listing_offer(string $lang, string $company, array $blocks, bool $withPrices = false, string $moreUrl = ''): array {
+function vestra_tpl_listing_offer(string $lang, string $company, array $blocks, bool $withPrices = false, string $moreUrl = '', bool $lead = false): array {
     $lang = strtolower(substr(trim($lang), 0, 2));
+    if ($lead) $withPrices = false;
     $L    = vestra_listing_block_labels($lang);
     $parts = vestra_listing_block_parts($blocks, $L, $withPrices);
     $co   = trim($company);
     $nCol = (int)$parts['nCol'];
     $n    = count($blocks);
+
+    /* Marka KAYITTAN: harf duyarsiz tekillestirilir, ilk gorulen yazim basilir. */
+    $brands = [];
+    foreach ($blocks as $b) {
+        $bn = trim((string)(((array)($b['p'] ?? []))['brand'] ?? ''));
+        if ($bn !== '' && !isset($brands[mb_strtolower($bn)])) $brands[mb_strtolower($bn)] = $bn;
+    }
+    $brand = (count($brands) >= 1 && count($brands) <= 3) ? implode(' & ', array_values($brands)) : 'VESTRA';
 
     /* Model adlari KAYITTAN, metne gomulu degil: bir ilan yarin yeniden
        adlandirilirsa (bu depoda oldu) mektup sessizce yanlis ad yazardi. */
@@ -1990,64 +2027,92 @@ function vestra_tpl_listing_offer(string $lang, string $company, array $blocks, 
     foreach ($blocks as $b) $names[] = trim((string)(((array)($b['p'] ?? []))['name'] ?? ''));
     $names = implode(' · ', array_filter($names));
 
+    $reg = 'https://vestrasales.com/register?type=buyer';
+    $uns = 'https://vestrasales.com/lead-unsubscribe';
     $M = [
-      'en' => ['s'=>'VESTRA — Fred Perry offer: %1$s models, %2$d colours',
-        'g'=>'Hello','o'=>'Fred Perry is in stock with us and I have put the offer together for you — the models below, with a photo for every colour we can ship.',
+      'en' => ['s'=>'VESTRA — {brand} offer: %1$s models, %2$d colours', 's1'=>'VESTRA — {brand} offer: %1$s models',
+        'g'=>'Hello','o'=>'{brand} is in stock with us and I have put the offer together for you — the models below, with a photo for every colour we can ship.',
+        'ol'=>'At VESTRA, our B2B wholesale marketplace for branded fashion, {brand} is now in stock — the models below, each with its photo.',
         'p'=>'Your wholesale prices are shown on each product page once you are signed in.',
+        'pl'=>'Trade prices per piece are shown to registered businesses — registration is free and we ask for your trade licence: '.$reg,
         'c'=>'Reply to this e-mail if you would like a quotation for a particular make-up, or another view of one of the colours.',
         'u'=>'If you would rather not receive stock offers, just reply and say so — we will stop.',
-        'b'=>'Open the offer','badge'=>'Fred Perry offer','shots'=>'All %d colours'],
-      'de' => ['s'=>'VESTRA — Fred Perry Angebot: %1$s Modelle, %2$d Farben',
-        'g'=>'Guten Tag','o'=>'Fred Perry ist bei uns lieferbar, und ich habe Ihnen das Angebot zusammengestellt — die Modelle unten, mit einem Foto zu jeder lieferbaren Farbe.',
+        'ul'=>'If this is not relevant to your business, just say so and we will not write again. Unsubscribe: '.$uns,
+        'b'=>'Open the offer','badge'=>'{brand} offer','shots'=>'All %d colours'],
+      'de' => ['s'=>'VESTRA — {brand} Angebot: %1$s Modelle, %2$d Farben', 's1'=>'VESTRA — {brand} Angebot: %1$s Modelle',
+        'g'=>'Guten Tag','o'=>'{brand} ist bei uns lieferbar, und ich habe Ihnen das Angebot zusammengestellt — die Modelle unten, mit einem Foto zu jeder lieferbaren Farbe.',
+        'ol'=>'Bei VESTRA, unserem B2B-Großhandelsmarktplatz für Markenmode, ist {brand} jetzt ab Lager lieferbar — die Modelle unten, jeweils mit Foto.',
         'p'=>'Ihre Einkaufspreise stehen auf der jeweiligen Produktseite, sobald Sie angemeldet sind.',
+        'pl'=>'Die Einkaufspreise je Stück sehen registrierte Betriebe — die Registrierung ist kostenlos, wir fragen die Gewerbeanmeldung ab: '.$reg,
         'c'=>'Antworten Sie kurz auf diese E-Mail, wenn Sie ein Angebot über eine bestimmte Zusammenstellung oder von einer Farbe eine weitere Ansicht brauchen.',
         'u'=>'Wenn Sie keine Sortimentsangebote wünschen, genügt eine kurze Antwort — dann hören sie auf.',
-        'b'=>'Zum Angebot','badge'=>'Fred Perry Angebot','shots'=>'Alle %d Farben'],
-      'fr' => ['s'=>'VESTRA — offre Fred Perry : %1$s modèles, %2$d coloris',
-        'g'=>'Bonjour','o'=>'Fred Perry est disponible chez nous et je vous ai préparé l’offre — les modèles ci-dessous, avec une photo pour chaque coloris livrable.',
+        'ul'=>'Falls es für Ihr Geschäft nicht passt, sagen Sie einfach Bescheid — dann schreiben wir nicht wieder. Abmelden: '.$uns,
+        'b'=>'Zum Angebot','badge'=>'{brand} Angebot','shots'=>'Alle %d Farben'],
+      'fr' => ['s'=>'VESTRA — offre {brand} : %1$s modèles, %2$d coloris', 's1'=>'VESTRA — offre {brand} : %1$s modèles',
+        'g'=>'Bonjour','o'=>'{brand} est disponible chez nous et je vous ai préparé l’offre — les modèles ci-dessous, avec une photo pour chaque coloris livrable.',
+        'ol'=>'Chez VESTRA, notre place de marché B2B de gros pour la mode de marque, {brand} est désormais disponible du stock — les modèles ci-dessous, chacun avec sa photo.',
         'p'=>'Vos prix de gros s’affichent sur chaque fiche produit une fois connecté.',
+        'pl'=>'Les prix de gros à la pièce sont réservés aux entreprises enregistrées — l’inscription est gratuite et nous demandons votre extrait Kbis : '.$reg,
         'c'=>'Répondez à cet e-mail si vous souhaitez un devis pour un assortiment précis, ou une autre vue d’un coloris.',
         'u'=>'Si vous ne souhaitez plus recevoir d’offres, répondez simplement — nous arrêtons.',
-        'b'=>'Voir l’offre','badge'=>'Offre Fred Perry','shots'=>'Les %d coloris'],
-      'it' => ['s'=>'VESTRA — offerta Fred Perry: %1$s modelli, %2$d colori',
-        'g'=>'Buongiorno','o'=>'Fred Perry è disponibile da noi e le ho preparato l’offerta — i modelli qui sotto, con una foto per ogni colore consegnabile.',
+        'ul'=>'Si cela ne concerne pas votre activité, dites-le nous simplement et nous ne réécrirons pas. Se désabonner : '.$uns,
+        'b'=>'Voir l’offre','badge'=>'Offre {brand}','shots'=>'Les %d coloris'],
+      'it' => ['s'=>'VESTRA — offerta {brand}: %1$s modelli, %2$d colori', 's1'=>'VESTRA — offerta {brand}: %1$s modelli',
+        'g'=>'Buongiorno','o'=>'{brand} è disponibile da noi e le ho preparato l’offerta — i modelli qui sotto, con una foto per ogni colore consegnabile.',
+        'ol'=>'Su VESTRA, il nostro marketplace B2B all’ingrosso per la moda di marca, {brand} è ora disponibile da magazzino — i modelli qui sotto, ciascuno con la sua foto.',
         'p'=>'I suoi prezzi all’ingrosso sono indicati su ciascuna scheda prodotto una volta effettuato l’accesso.',
+        'pl'=>'I prezzi all’ingrosso per pezzo sono riservati alle aziende registrate — l’iscrizione è gratuita e chiediamo la visura camerale: '.$reg,
         'c'=>'Risponda a questa e-mail se desidera un preventivo per un assortimento specifico o un’altra immagine di un colore.',
         'u'=>'Se preferisce non ricevere offerte di stock, risponda e ci fermiamo.',
-        'b'=>'Vedi l’offerta','badge'=>'Offerta Fred Perry','shots'=>'Tutti i %d colori'],
-      'es' => ['s'=>'VESTRA — oferta Fred Perry: %1$s modelos, %2$d colores',
-        'g'=>'Buenos días','o'=>'Fred Perry está disponible en nuestro stock y le he preparado la oferta — los modelos abajo, con una foto de cada color servible.',
+        'ul'=>'Se non riguarda la Sua attività, basta dircelo e non scriveremo più. Annulla iscrizione: '.$uns,
+        'b'=>'Vedi l’offerta','badge'=>'Offerta {brand}','shots'=>'Tutti i %d colori'],
+      'es' => ['s'=>'VESTRA — oferta {brand}: %1$s modelos, %2$d colores', 's1'=>'VESTRA — oferta {brand}: %1$s modelos',
+        'g'=>'Buenos días','o'=>'{brand} está disponible en nuestro stock y le he preparado la oferta — los modelos abajo, con una foto de cada color servible.',
+        'ol'=>'En VESTRA, nuestro marketplace mayorista B2B de moda de marca, {brand} ya está disponible desde stock — los modelos abajo, cada uno con su foto.',
         'p'=>'Sus precios mayoristas aparecen en cada ficha de producto una vez que inicia sesión.',
+        'pl'=>'Los precios mayoristas por pieza se muestran a empresas registradas — el registro es gratuito y pedimos su licencia comercial: '.$reg,
         'c'=>'Responda a este correo si desea un presupuesto para un surtido concreto u otra vista de algún color.',
         'u'=>'Si prefiere no recibir ofertas de stock, respóndanos y dejaremos de enviarlas.',
-        'b'=>'Ver la oferta','badge'=>'Oferta Fred Perry','shots'=>'Los %d colores'],
-      'pt' => ['s'=>'VESTRA — oferta Fred Perry: %1$s modelos, %2$d cores',
-        'g'=>'Bom dia','o'=>'A Fred Perry está disponível connosco e preparei-lhe a oferta — os modelos abaixo, com uma foto de cada cor disponível.',
+        'ul'=>'Si no tiene que ver con su negocio, díganoslo y no volveremos a escribir. Darse de baja: '.$uns,
+        'b'=>'Ver la oferta','badge'=>'Oferta {brand}','shots'=>'Los %d colores'],
+      'pt' => ['s'=>'VESTRA — oferta {brand}: %1$s modelos, %2$d cores', 's1'=>'VESTRA — oferta {brand}: %1$s modelos',
+        'g'=>'Bom dia','o'=>'{brand} está disponível connosco e preparei-lhe a oferta — os modelos abaixo, com uma foto de cada cor disponível.',
+        'ol'=>'{brand} está agora disponível do stock na VESTRA, o nosso marketplace grossista B2B de moda de marca — os modelos abaixo, cada um com a sua foto.',
         'p'=>'Os seus preços grossistas aparecem em cada página de produto depois de iniciar sessão.',
+        'pl'=>'Os preços grossistas por peça são mostrados a empresas registadas — o registo é gratuito e pedimos a certidão permanente: '.$reg,
         'c'=>'Responda a este e-mail se quiser um orçamento para um sortido específico ou outra vista de alguma cor.',
         'u'=>'Se preferir não receber ofertas de stock, basta responder — deixamos de enviar.',
-        'b'=>'Ver a oferta','badge'=>'Oferta Fred Perry','shots'=>'As %d cores'],
-      'nl' => ['s'=>'VESTRA — Fred Perry aanbod: %1$s modellen, %2$d kleuren',
-        'g'=>'Goedendag','o'=>'Fred Perry is bij ons leverbaar en ik heb het aanbod voor u klaargezet — de modellen hieronder, met een foto van elke leverbare kleur.',
+        'ul'=>'Se não tiver a ver com o seu negócio, diga-nos e não voltaremos a escrever. Cancelar subscrição: '.$uns,
+        'b'=>'Ver a oferta','badge'=>'Oferta {brand}','shots'=>'As %d cores'],
+      'nl' => ['s'=>'VESTRA — {brand} aanbod: %1$s modellen, %2$d kleuren', 's1'=>'VESTRA — {brand} aanbod: %1$s modellen',
+        'g'=>'Goedendag','o'=>'{brand} is bij ons leverbaar en ik heb het aanbod voor u klaargezet — de modellen hieronder, met een foto van elke leverbare kleur.',
+        'ol'=>'Bij VESTRA, onze B2B-groothandelsmarktplaats voor merkmode, is {brand} nu uit voorraad leverbaar — de modellen hieronder, elk met een foto.',
         'p'=>'Uw inkoopprijzen staan op elke productpagina zodra u bent ingelogd.',
+        'pl'=>'Inkoopprijzen per stuk zijn zichtbaar voor geregistreerde bedrijven — registratie is gratis en wij vragen uw KvK-uittreksel: '.$reg,
         'c'=>'Antwoord op deze e-mail als u een offerte voor een bepaalde samenstelling of nog een aanzicht van een kleur wilt.',
         'u'=>'Wilt u geen voorraadaanbiedingen ontvangen, antwoord dan even — dan stoppen we.',
-        'b'=>'Naar het aanbod','badge'=>'Fred Perry aanbod','shots'=>'Alle %d kleuren'],
+        'ul'=>'Past het niet bij uw zaak, laat het dan weten — dan schrijven wij niet opnieuw. Afmelden: '.$uns,
+        'b'=>'Naar het aanbod','badge'=>'{brand} aanbod','shots'=>'Alle %d kleuren'],
     ];
     $t = $M[$lang] ?? $M['en'];
+    $fill = fn(string $x): string => str_replace('{brand}', $brand, $x);
 
-    $subject = sprintf($t['s'], $n, $nCol);
+    /* Her modelde TEK renk varsa (Burberry: her renk ayri model numarasi)
+       "8 modeller, 8 renk" ayni sayiyi iki kez soyler; konu yalniz model sayar. */
+    $subject = $fill(($nCol === $n) ? sprintf($t['s1'], $n) : sprintf($t['s'], $n, $nCol));
+    $sign = $lead ? "—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com"
+                  : "VESTRA\nvestrasales.com";
     $body = $t['g'] . ($co !== '' ? ' ' . $co : '') . ",\n\n"
-          . $t['o'] . "\n\n"
+          . $fill($lead ? $t['ol'] : $t['o']) . "\n\n"
           . implode("\n", $parts['chunks']) . "\n"
           . ($moreUrl !== '' ? $moreUrl . "\n" : '')
-          . (!$withPrices ? "\n" . $t['p'] . "\n" : '')
+          . ($lead ? "\n" . $t['pl'] . "\n" : (!$withPrices ? "\n" . $t['p'] . "\n" : ''))
           . "\n" . $t['c'] . "\n\n"
-          . $t['u'] . "\n\n"
-          . "VESTRA\nvestrasales.com";
+          . ($lead ? $t['ul'] : $t['u']) . "\n\n"
+          . $sign;
 
     $opts = [
-        'badge'       => $t['badge'],
+        'badge'       => $fill($t['badge']),
         'rows'        => $parts['rows'],
         'shots'       => $parts['shots'],
         'shots_title' => sprintf($t['shots'], $nCol),

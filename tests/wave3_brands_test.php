@@ -155,7 +155,9 @@ foreach (['en','de','fr','it','es','nl','pt','pl','cs','el','ja','ko'] as $lg) {
 echo "\n== 7. Workflow kablolamasi (send-outreach.yml) ==\n";
 $wf = (string)@file_get_contents(dirname(__DIR__).'/.github/workflows/send-outreach.yml');
 $t('wf okundu',                      strlen($wf) > 10000);
-$t('wave3 gecerli metin',            str_contains($wf, "['winter','shoes','wave3']"));
+/* Liste 29 Eyl 2026'da 'offer' (teklif kampanyasi) ile buyudu; olcut wave3'un
+   hala GECERLI bir deger olmasi, listenin tam yazimi degil. */
+$t('wave3 gecerli metin',            (bool)preg_match("/in_array\\(\\\$NC_LETTER, \\[[^\\]]*'wave3'[^\\]]*\\], true\\)/", $wf));
 $t('taninmayan metin DURDURUR',      str_contains($wf, 'newcoll_letter gecersiz'));
 $t('kendi damgasi last_wave3_at',    str_contains($wf, "\$NC_STAMP = \$IS_WAVE3 ? 'last_wave3_at'"));
 $t('yas olcusu onceki mektup',       str_contains($wf, "\$NC_PREV  = \$IS_WAVE3 ? 'last_newcollection_at'"));
