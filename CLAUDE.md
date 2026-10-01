@@ -11264,3 +11264,15 @@ ayakkabici olabilir"*).
   *"Alle 20 Farben"* iki renksiz modelin karesini saymıyor (bilerek: renk değil),
   hitap kopyada ilk seçilen üyenin adıyla kurulur (müşterinin gerçek adı kopyada
   görünür, kütüğe basılmaz).
+- **ELLE OKUMA, 96 üyenin listesinde (KURAL 1i'nin üye hâli):** kod hepsini geçirmişti;
+  hitap `company ?: name` olduğu için mektup *"Guten Tag <yer tutucu>,"* diye açılırdı.
+  Yer tutucu/test adları: **no name yet** (CH), **Pas de nom** (FR), **Nessuno** (IT),
+  **Keine** (DE, onay bekliyor), **company jehs** (RU), **bhb** (LT), ve platformun
+  kendi hesabı olan **Vestrasales** (GR, gmail). Atlama jetonları `yet,nom,nessuno,
+  keine,jehs,bhb,vestrasales` — kuru koşuda **tam 11 hesap** atlandı (eski dört
+  `389h68843j6789,verify,acera,pentest` + bu yedi) ve her jeton **tek** hesabı tuttu
+  (ATLANDI satırları adlarıyla okundu): SEÇİLEN 96 → **90**. Kuru koşu ayrıca iki
+  renksiz DSQUARED2 ilanının *"renk=0 (renksiz ilan, KAPAK seride)"* ile kurulduğunu
+  gösterdi. **Jetonla ayrılamayanlar:** `c` (PL) ve `ke` (PT, onay bekliyor) — bir
+  iki harfli ad herkesin alt dizesi; hesap ID'siyle atlanabilir, operatör isterse.
+  **Easyauto24** listede (açık fatura INV-2026-1016, 30 Eyl son gün); karar operatörün.
