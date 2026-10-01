@@ -11230,3 +11230,37 @@ ayakkabici olabilir"*).
   müşteri kutularında da bekleme riski var ve KURAL 18 zaten operatörün önizlemeyi
   görmesini şart koşuyor. Kopyayı yeniden yollamak yalnız operatörün kutusunu
   etkiler (müşteri yok, damga yok).
+- **Kopya ULAŞTI, 15,5 dakika geç** (Brevo `delivered` 20:34:32 UTC; ilk kopya
+  20:18:57'de çıkmıştı; 51,9 KB). Bekleme Brevo'nun olay listesinde **hiçbir
+  `deferred`/`blocked` olayı bırakmadı** — yalnız `requests` ve sonra `delivered`.
+  Sebep kesinleşmedi (alıcı sunucunun geçici erteleme + yeniden denemesi en olası);
+  **dörde bölünen deneyde** (6 ilan / 3 ilan / yalnız DSQUARED2) ilk dakikalarda
+  hiçbiri ulaşmadı, yani küçültmek çözüm değil. *Sonuç: müşteri partisinde mektupların
+  dakikalar değil on dakikalar içinde ulaşması beklenmeli; "gitmedi" demeden önce
+  `diag-messages` → `mail_days` ile bak.*
+- **Önizleme OKUNDU ve iki GERÇEK kusur çıktı** (kutuda, Gmail bağlayıcısıyla):
+  1. **Renksiz ilan:** DSQUARED2'nin ilanlarının çoğunda kayıtta `colors` alanı yok;
+     mektup *"Farben (0):"* diye boş satır basıyor ve ilanın fotoğrafı **şeritte hiç
+     yoktu** (20 foto = 8 + 6 + 5 + 1; Tipped Polo ve Clean Wash Jeans fotosuz).
+     "Görsellerle, estetik" bir kampanyada iki fotosuz model. Çözüm:
+     `vestra_listing_block_parts` renksiz ilanda renk satırını **basmıyor**, iş akışı
+     kapak karesini (`$b['cover']`) veriyor ve şeritte SKU etiketiyle görünüyor;
+     renk sayısına (konu, *"Alle N Farben"*) girmiyor. **Fotoğrafı hiç olmayan renksiz
+     ilanda iş DURUR** (mektubun tek iddiası fotoğraflı teklif).
+  2. **Fiil uyumu:** *"Burberry & Fred Perry & DSQUARED2 ist bei uns lieferbar"* —
+     iki-üç marka çoğul özne. Yedi dilde de tekil fiil basılıyordu (en *is*, fr *est*,
+     it *è*, es/pt *está*, nl *is*); tek markalı mektuplar bu yüzden hiç görünmedi.
+     Çoğul biçim yalnız 2–3 markada devreye giriyor, **tek marka ve 4+ marka
+     (= "VESTRA") birebir eskisi**; desteklenmeyen dil İngilizceye düştüğü için fiil de
+     İngilizce çoğul.
+  Test: `tests/offer_multibrand_test.php` (**53 iddia**, iki yön; iş akışındaki
+  gerçek kapak bloğu regex'le çıkarılıp sentetik ilanla koşturuluyor). Altı sabotajın
+  altısı kırmızı (2 / 18 / 5 / 2 / 2 / 3), her birinin **gerçekten uygulandığı**
+  (`count == 1` doğrulaması) görüldü ve dosyalar `cp` yedeğinden geri alındı. Tam
+  takım: yalnız önceden kayıtlı üç kırık (`dropship_plan` 4, `msg_read_receipt` 1,
+  `msg_thread_label` 10).
+- **Bilinen sınırlar (düzeltilmedi):** renk adları ve ilan başlığı mektupta İngilizce
+  kalıyor (*Green*, *Black · Check collar*; KURAL 41'de kayıtlı), şerit başlığı
+  *"Alle 20 Farben"* iki renksiz modelin karesini saymıyor (bilerek: renk değil),
+  hitap kopyada ilk seçilen üyenin adıyla kurulur (müşterinin gerçek adı kopyada
+  görünür, kütüğe basılmaz).

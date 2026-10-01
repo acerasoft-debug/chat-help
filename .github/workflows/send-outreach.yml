@@ -433,9 +433,18 @@ jobs:
                     foreach ($sh['pairs'] as &$pr) { $pr['img'] = $abs($pr['img']); } unset($pr);
                     $tag = trim((string)($prod['sku'] ?? '')) ?: (string)($prod['id'] ?? '');
                     $stk = vestra_stock_real($prod);
+                    /* RENKSIZ ilan (kayitta renk alani yok -- DSQUARED2'nin cogu): sablon
+                       "Farben (0):" basmaz ve seride ilanin KAPAK karesi gorunur. Kapak
+                       de yoksa is DURUR: mektubun tek iddiasi fotografli teklif. */
+                    $cover = '';
+                    if (!$sh['pairs'] && !array_filter((array)($prod['colors'] ?? []))) {
+                        $im0 = trim((string)(((array)($prod['images'] ?? []))[0] ?? ''));
+                        if ($im0 === '') { fwrite(STDERR, "ilanin HIC fotografi yok (renksiz ilan, kapak yok): {$pid}\nMektup bu haliyle gonderilmez.\n"); exit(1); }
+                        $cover = $abs($im0);
+                    }
                     $blocks[] = ['p'=>$prod, 'pairs'=>$sh['pairs'], 'rungs'=>vestra_price_ladder($prod),
-                                 'tag'=>$tag, 'stock'=>$stk];
-                    echo "ilan   : {$pid} | renk=".count($sh['pairs'])." | renge baglanmayan foto="
+                                 'tag'=>$tag, 'stock'=>$stk, 'cover'=>$cover];
+                    echo "ilan   : {$pid} | renk=".count($sh['pairs']).($cover !== '' ? ' (renksiz ilan, KAPAK seride)' : '')." | renge baglanmayan foto="
                        . count($sh['unbound'])." | kademe=".count(vestra_price_ladder($prod))
                        . " | kayitli stok=".($stk ? $stk['total'].' ad.' : 'YOK (mektupta stok satiri basilmaz)')."\n";
                 }

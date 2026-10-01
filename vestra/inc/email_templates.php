@@ -1912,6 +1912,12 @@ function vestra_listing_block_parts(array $blocks, array $L, bool $withPrices): 
         if ($firstUrl === '') $firstUrl = $url;
         $cols  = implode(', ', array_map(fn($x) => (string)$x['colour'], $pairs));
         $nCol += count($pairs);
+        /* RENKSIZ ILAN (DSQUARED2'nin cogu: kayitta renk alani yok): "Farben (0):"
+           bos satiri ve fotosuz bir blok basilmaz. Cagiran ilanin KAPAK fotografini
+           verdiyse ($b['cover']) o seride SKU etiketiyle gorunur; renk sayisina
+           (nCol) girmez -- "Alle N Farben" yalniz gercek renkleri sayar. */
+        $cover    = trim((string)($b['cover'] ?? ''));
+        $noColour = !$pairs && $cover !== '';
 
         $moq  = (int)($p['moq'] ?? 0);
         $minC = (int)($p['min_colors'] ?? 0);
@@ -1963,12 +1969,12 @@ function vestra_listing_block_parts(array $blocks, array $L, bool $withPrices): 
         }
 
         $chunks[] = $name . "\n" . $url . "\n"
-               . $L['colours'] . ' (' . count($pairs) . '): ' . $cols . "\n"
+               . ($noColour ? '' : $L['colours'] . ' (' . count($pairs) . '): ' . $cols . "\n")
                . ($min !== '' ? $L['minimum'] . ': ' . $min . "\n" : '')
                . $stockChunk
                . ($priceLine !== '' ? $L['price'] . ': ' . $priceLine . "\n" : '');
 
-        $rows[] = ['label' => $name, 'value' => $cols . ($min !== '' ? ' · ' . $min : ''), 'strong' => true];
+        $rows[] = ['label' => $name, 'value' => $noColour ? $min : $cols . ($min !== '' ? ' · ' . $min : ''), 'strong' => true];
         if ($stockByColour) {
             foreach ($stockByColour as $cn => $ln) $rows[] = ['label' => $L['stock'] . ' · ' . $cn, 'value' => $ln];
             $rows[] = ['label' => $L['stock_total'], 'value' => array_sum(array_map('intval', $stk)) . $L['pieces']];
@@ -1985,6 +1991,10 @@ function vestra_listing_block_parts(array $blocks, array $L, bool $withPrices): 
             $shots[] = ['img'   => (string)$x['img'],
                         'label' => ($tag !== '' ? $tag . ' · ' : '') . (string)$x['colour'],
                         'url'   => $url];
+        }
+        if ($noColour) {
+            $own = trim((string)($b['tag'] ?? ''));
+            $shots[] = ['img' => $cover, 'label' => $own !== '' ? $own : $name, 'url' => $url];
         }
     }
     return ['chunks' => $chunks, 'rows' => $rows, 'shots' => $shots,
@@ -2145,6 +2155,25 @@ function vestra_tpl_listing_offer(string $lang, string $company, array $blocks, 
         'b'=>'Naar het aanbod','badge'=>'{brand} aanbod','shots'=>'Alle %d kleuren'],
     ];
     $t = $M[$lang] ?? $M['en'];
+    /* IKI-UC MARKA = cogul ozne: "Burberry & Fred Perry & DSQUARED2 ist ..." her
+       dilde yanlis fiil biciminiydi (1 Eki 2026, ilk cok markali kampanya onizlemesinde
+       okundu). Tek marka metni DEGISMIYOR (anahtar bulunmazsa dokunulmaz); desteklenmeyen
+       dil Ingilizceye dustugu icin ayni yedek burada da. */
+    if (count($brands) >= 2 && count($brands) <= 3) {
+        $PL = [
+          'en' => ['{brand} is in stock'=>'{brand} are in stock', '{brand} is now in stock'=>'{brand} are now in stock'],
+          'de' => ['{brand} ist bei uns lieferbar'=>'{brand} sind bei uns lieferbar', 'ist {brand} jetzt ab Lager'=>'sind {brand} jetzt ab Lager'],
+          'fr' => ['{brand} est disponible chez nous'=>'{brand} sont disponibles chez nous', '{brand} est désormais disponible du stock'=>'{brand} sont désormais disponibles du stock'],
+          'it' => ['{brand} è disponibile da noi'=>'{brand} sono disponibili da noi', '{brand} è ora disponibile da magazzino'=>'{brand} sono ora disponibili da magazzino'],
+          'es' => ['{brand} está disponible en nuestro stock'=>'{brand} están disponibles en nuestro stock', '{brand} ya está disponible desde stock'=>'{brand} ya están disponibles desde stock'],
+          'pt' => ['{brand} está disponível connosco'=>'{brand} estão disponíveis connosco', '{brand} está agora disponível do stock'=>'{brand} estão agora disponíveis do stock'],
+          'nl' => ['{brand} is bij ons leverbaar'=>'{brand} zijn bij ons leverbaar', 'is {brand} nu uit voorraad leverbaar'=>'zijn {brand} nu uit voorraad leverbaar'],
+        ];
+        foreach (($PL[isset($M[$lang]) ? $lang : 'en'] ?? []) as $sg => $pl) {
+            $t['o'] = str_replace($sg, $pl, $t['o']);
+            $t['ol'] = str_replace($sg, $pl, $t['ol']);
+        }
+    }
     $fill = fn(string $x): string => str_replace('{brand}', $brand, $x);
 
     /* Her modelde TEK renk varsa (Burberry: her renk ayri model numarasi)
