@@ -22,6 +22,9 @@ function vestra_ensure_invoice($m,$i,$s,$f=false,$r=false){ global $INV; if($f) 
 function vestra_notify($s,$b){ global $NOTIF; $NOTIF[]=$s; }
 function vestra_msg_post_system(...$x){}
 function vestra_push_send(...$x){}
+/* Bildirimler 27 Eyl 2026'dan beri vestra_push_notify() ile (inc/push_texts.php);
+   bu dosya pazarlik akisini olcuyor, bildirim metnini degil -- stub. */
+function vestra_push_notify(...$x){ return ['devices'=>0,'ok'=>0,'failed'=>0,'pruned'=>0]; }
 function vestra_send_mail(...$a){ global $MAIL; $MAIL[]=$a[1]; return true; }
 function vestra_tpl_offer_response(...$a){ return ['counter-mail','b',[]]; }
 function vestra_tpl_offer_counter_accepted(...$a){ return ['accepted-mail','b',[]]; }
@@ -193,6 +196,43 @@ vestra_offer_respond('OF-1','counter',11.0,null,'V'); $x2=$tok();
 vestra_offer_decline_counter('OF-1',$x2);
 $t('3 tur dolu + reddedilmis',         $cnt()===3 && ($JSON['OF-1']['status']??'')==='decline');
 $t('yeniden acilamaz (tur hakki bitti)', !vestra_offer_respond('OF-1','counter',10.5,null,'V')['ok']);
+
+/* ── SATICI KENDI hala yanitlanmamis karsi teklifini DUZELTEBILIR ─────────
+ * (operator, 24 Eyl 2026, O748EE: satici 52 -> alici 33 -> satici 50
+ * gonderildi, sonra "50'yi sil, 44 gonder" dendi). Alicinin eline gecmis
+ * bir mektuptaki rakami GERCEKTEN silmenin yolu yok; durust olan sey YENI
+ * bir karsi teklif gondermek. $selfCorrect bunu acikca ister -- varsayilani
+ * false, yani butun eski cagiran (panel, yukaridaki her assert) davranisi
+ * AYNEN koruyor. */
+echo "\n== SATICI kendi bekleyen karsi teklifini duzeltebilir (selfCorrect) ==\n";
+$JSON=[]; $MAIL=[];
+$r=vestra_offer_respond('OF-1','counter',12.0,null,'V'); $firstTok=$tok();
+$t('TUR 1 satici 12.00, sira alicida', $r['ok'] && $cnt()===1 && $turn()==='buyer');
+$t('selfCorrect OLMADAN ikinci satici hamlesi HALA reddedilir',
+   !vestra_offer_respond('OF-1','counter',11.0,null,'V')['ok']);
+$r=vestra_offer_respond('OF-1','counter',11.0,null,'V',true,true);
+$t('selfCorrect ILE gecerli', $r['ok']);
+$t('durum hala counter, sira HALA alicida', ($JSON['OF-1']['status']??'')==='counter' && $turn()==='buyer');
+$t('YENI bir tur EKLENDI, 12 gecmisten SILINMEDI',
+   $cnt()===2 && count($JSON['OF-1']['counters'])===2
+   && abs((float)($JSON['OF-1']['counters'][0]['price']??0)-12.0)<0.001
+   && abs((float)($JSON['OF-1']['counters'][1]['price']??0)-11.0)<0.001);
+$t('TAZE token uretildi, eskisi artik calismaz', $tok()!=='' && $tok()!==$firstTok);
+$t('aliciya YENI mektup gitti', count($MAIL)>0);
+
+echo "\n== selfCorrect FIYAT KURALLARINI ve TUR SINIRINI ATLATAMAZ ==\n";
+$t('kendi son rakamindan PAHALI reddedilir', !vestra_offer_respond('OF-1','counter',11.5,null,'V',true,true)['ok']);
+$t('urun fiyatinin USTU reddedilir', !vestra_offer_respond('OF-1','counter',25.0,null,'V',true,true)['ok']);
+$t('reddedilenlerden tur artmadi', $cnt()===2);
+$t('daha ucuz GECER ve gercek tur harciyor', vestra_offer_respond('OF-1','counter',10.0,null,'V',true,true)['ok'] && $cnt()===3);
+$t('tur hakki bitince selfCorrect de calismaz', !vestra_offer_respond('OF-1','counter',9.0,null,'V',true,true)['ok']);
+
+echo "\n== Eski cagrilar (7. parametre verilmeden) davranis BIREBIR ayni ==\n";
+$JSON=[]; $MAIL=[];
+vestra_offer_respond('OF-1','counter',12.0,null,'V');
+$t('varsayilan false: ikinci satici hamlesi reddedilir',
+   !vestra_offer_respond('OF-1','counter',11.0,null,'V')['ok']);
+$t('tur hala 1, gecmis bozulmadi', $cnt()===1);
 
 /* ── Sabitin KENDISI: operator 9 Eyl 2026'da 5 dedi ──────────────────────
  * Bu dosya kendi basina 3 tanimliyor (mekanizmayi sinamak icin), o yuzden

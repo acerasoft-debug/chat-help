@@ -1,0 +1,322 @@
+[
+ {
+  "id": "bur-8099164",
+  "brand": "Burberry",
+  "name": "Burberry Cotton Piqué Polo, Green — 8099164",
+  "cat": "Polos",
+  "sku": "8099164",
+  "list": 59.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack",
+  "colors": [
+   "Green"
+  ],
+  "images": [
+   "/uploads/burberry-polo/burberry-8099164-green.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 59.9
+   },
+   {
+    "min": 50,
+    "price": 54.9
+   },
+   {
+    "min": 100,
+    "price": 49.9
+   }
+  ],
+  "stock": {
+   "S": 2,
+   "M": 6,
+   "L": 5,
+   "XL": 4,
+   "XXL": 2
+  },
+  "desc": "Original Burberry cotton piqué polo, model 8099164, in green. Regular fit, short sleeves, 100% cotton, tonal embroidered Equestrian Knight logo at the chest."
+ },
+ {
+  "id": "bur-8096425",
+  "brand": "Burberry",
+  "name": "Burberry Cotton Piqué Polo, Black — 8096425",
+  "cat": "Polos",
+  "sku": "8096425",
+  "list": 59.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack",
+  "colors": [
+   "Black"
+  ],
+  "images": [
+   "/uploads/burberry-polo/burberry-8096425-black.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 59.9
+   },
+   {
+    "min": 50,
+    "price": 54.9
+   },
+   {
+    "min": 100,
+    "price": 49.9
+   }
+  ],
+  "stock": {
+   "S": 3,
+   "M": 9,
+   "L": 8,
+   "XL": 6,
+   "XXL": 3
+  },
+  "desc": "Original Burberry cotton piqué polo, model 8096425, in black. Regular fit, short sleeves, 100% cotton, tonal embroidered Equestrian Knight logo at the chest."
+ },
+ {
+  "id": "bur-8099165",
+  "brand": "Burberry",
+  "name": "Burberry Cotton Piqué Polo, Navy — 8099165",
+  "cat": "Polos",
+  "sku": "8099165",
+  "list": 59.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack",
+  "colors": [
+   "Navy"
+  ],
+  "images": [
+   "/uploads/burberry-polo/burberry-8099165-navy.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 59.9
+   },
+   {
+    "min": 50,
+    "price": 54.9
+   },
+   {
+    "min": 100,
+    "price": 49.9
+   }
+  ],
+  "stock": {
+   "S": 3,
+   "M": 10,
+   "L": 10,
+   "XL": 5,
+   "XXL": 2
+  },
+  "desc": "Original Burberry cotton piqué polo, model 8099165, in navy. Regular fit, short sleeves, 100% cotton, tonal embroidered Equestrian Knight logo at the chest."
+ },
+ {
+  "id": "bur-8099166",
+  "brand": "Burberry",
+  "name": "Burberry Cotton Piqué Polo, White — 8099166",
+  "cat": "Polos",
+  "sku": "8099166",
+  "list": 59.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "sizes": "M×3 · L×3 · XL×2 · XXL×1 · 9/pack",
+  "colors": [
+   "White"
+  ],
+  "images": [
+   "/uploads/burberry-polo/burberry-8099166-white.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 59.9
+   },
+   {
+    "min": 50,
+    "price": 54.9
+   },
+   {
+    "min": 100,
+    "price": 49.9
+   }
+  ],
+  "stock": {
+   "S": 0,
+   "M": 9,
+   "L": 9,
+   "XL": 6,
+   "XXL": 3
+  },
+  "desc": "Original Burberry cotton piqué polo, model 8099166, in white. Regular fit, short sleeves, 100% cotton, tonal embroidered Equestrian Knight logo at the chest."
+ },
+ {
+  "id": "bur-8099167",
+  "brand": "Burberry",
+  "name": "Burberry Cotton Piqué Polo, Beige — 8099167",
+  "cat": "Polos",
+  "sku": "8099167",
+  "list": 59.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack",
+  "colors": [
+   "Beige"
+  ],
+  "images": [
+   "/uploads/burberry-polo/burberry-8099167-beige.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 59.9
+   },
+   {
+    "min": 50,
+    "price": 54.9
+   },
+   {
+    "min": 100,
+    "price": 49.9
+   }
+  ],
+  "stock": {
+   "S": 2,
+   "M": 6,
+   "L": 6,
+   "XL": 4,
+   "XXL": 2
+  },
+  "desc": "Original Burberry cotton piqué polo, model 8099167, in beige. Regular fit, short sleeves, 100% cotton, tonal embroidered Equestrian Knight logo at the chest."
+ },
+ {
+  "id": "bur-8071620",
+  "brand": "Burberry",
+  "name": "Burberry Check Collar Piqué Polo, Black — 8071620",
+  "cat": "Polos",
+  "sku": "8071620",
+  "list": 59.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack",
+  "colors": [
+   "Black"
+  ],
+  "images": [
+   "/uploads/burberry-polo/burberry-8071620-black.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 59.9
+   },
+   {
+    "min": 50,
+    "price": 54.9
+   },
+   {
+    "min": 100,
+    "price": 49.9
+   }
+  ],
+  "stock": {
+   "S": 5,
+   "M": 15,
+   "L": 15,
+   "XL": 10,
+   "XXL": 5
+  },
+  "desc": "Original Burberry cotton piqué polo, model 8071620, in black with the Burberry Check collar. Regular fit, short sleeves, 100% cotton."
+ },
+ {
+  "id": "bur-8072661",
+  "brand": "Burberry",
+  "name": "Burberry Check Collar Piqué Polo, Navy — 8072661",
+  "cat": "Polos",
+  "sku": "8072661",
+  "list": 59.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack",
+  "colors": [
+   "Navy"
+  ],
+  "images": [
+   "/uploads/burberry-polo/burberry-8072661-navy.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 59.9
+   },
+   {
+    "min": 50,
+    "price": 54.9
+   },
+   {
+    "min": 100,
+    "price": 49.9
+   }
+  ],
+  "stock": {
+   "S": 5,
+   "M": 15,
+   "L": 15,
+   "XL": 10,
+   "XXL": 5
+  },
+  "desc": "Original Burberry cotton piqué polo, model 8072661, in navy with the Burberry Check collar. Regular fit, short sleeves, 100% cotton."
+ },
+ {
+  "id": "bur-8071621",
+  "brand": "Burberry",
+  "name": "Burberry Check Collar Piqué Polo, White — 8071621",
+  "cat": "Polos",
+  "sku": "8071621",
+  "list": 59.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack",
+  "colors": [
+   "White"
+  ],
+  "images": [
+   "/uploads/burberry-polo/burberry-8071621-white.jpg"
+  ],
+  "tiers": [
+   {
+    "min": 20,
+    "price": 59.9
+   },
+   {
+    "min": 50,
+    "price": 54.9
+   },
+   {
+    "min": 100,
+    "price": 49.9
+   }
+  ],
+  "stock": {
+   "S": 10,
+   "M": 28,
+   "L": 30,
+   "XL": 17,
+   "XXL": 12
+  },
+  "desc": "Original Burberry cotton piqué polo, model 8071621, in white with the Burberry Check collar. Regular fit, short sleeves, 100% cotton."
+ }
+]

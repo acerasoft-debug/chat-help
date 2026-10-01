@@ -1364,6 +1364,10 @@ if ($soonBrands):
 /* ── YENI GELENLER / one alinan markalar ────────────────────────────────────
    Operator, 16 Eyl 2026: "ana sayfayi yenile yeni urunler koy F.Perry
    urunlerini Polo ve Sweatshirt on planda olsun Lacoste da".
+   Operator, 25 Eyl 2026: "ozellikle New arrivals bolumune ic camasiri
+   bolumunu koy" + "diger luks markalari azalt" -- ic camasiri bolmesi artik
+   seridin BASINDA, F.Perry/Lacoste payi 6'dan 3'e indi. Kural ve tavanlar
+   vestra_home_new_picks()'te; buradaki cagri degismedi.
 
    SECKI vestra_home_new_picks()'ten (inc/products.php) -- govdeye gomulu
    olsaydi sinanamazdi, ve bu depoda "govdeye gomulu oldugu surece
@@ -1710,7 +1714,7 @@ if ($shoePicks):
         <?php else: ?>
           <button class="btn btn-p" id="btnAndroid" type="button">🤖 <?= $t['app_and'] ?></button>
         <?php endif; ?>
-        <button class="btn btn-o" id="btnIos" type="button"> <?= $t['app_ios'] ?></button>
+        <button class="btn btn-o" id="btnIos" type="button">📱 <?= $t['app_ios'] ?></button>
         <button class="btn btn-o" id="btnNoti" type="button">🔔 <?= $t['app_noti'] ?></button>
       </div>
       <div class="appbox-hint" id="appHint" style="display:none"></div>
@@ -1760,42 +1764,10 @@ if ($shoePicks):
       mnav.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mnav.classList.remove('open');});});
     }
   }catch(e){}
-  /* ── PWA install + push opt-in (app box) ── */
-  try{
-    if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js').catch(function(){}); }
-    var appHint=document.getElementById('appHint');
-    function appSay(m){ if(appHint){ appHint.textContent=m; appHint.style.display='inline-block'; } }
-    var deferredInstall=null;
-    window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferredInstall=e; });
-    var bA=document.getElementById('btnAndroid'), bI=document.getElementById('btnIos'), bN=document.getElementById('btnNoti');
-    if(bA) bA.addEventListener('click',function(){
-      if(deferredInstall){ deferredInstall.prompt(); deferredInstall=null; }
-      else appSay(<?= json_encode($t['app_and_hint']) ?>);
-    });
-    if(bI) bI.addEventListener('click',function(){ appSay(<?= json_encode($t['app_ios_hint']) ?>); });
-    if(window.matchMedia && matchMedia('(display-mode: standalone)').matches){ if(bA)bA.style.display='none'; if(bI)bI.style.display='none'; }
-    async function vestraPushOptIn(){
-      if(!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window)) return 'unsupported';
-      var reg=await navigator.serviceWorker.ready;
-      if(await Notification.requestPermission()!=='granted') return 'denied';
-      var vk=(await (await fetch('/push?a=vapid')).json()).publicKey;
-      if(!vk) return 'error';
-      var pad='='.repeat((4-vk.length%4)%4), raw=atob((vk+pad).replace(/-/g,'+').replace(/_/g,'/'));
-      var key=new Uint8Array(raw.length); for(var i2=0;i2<raw.length;i2++) key[i2]=raw.charCodeAt(i2);
-      var sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key});
-      var r=await fetch('/push?a=subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sub)});
-      if(r.status===401) return 'signin';
-      return (await r.json()).ok?'ok':'error';
-    }
-    if(bN) bN.addEventListener('click',async function(){
-      bN.disabled=true;
-      var res='error'; try{ res=await vestraPushOptIn(); }catch(e){}
-      bN.disabled=false;
-      if(res==='ok'){ bN.textContent=<?= json_encode('✓ '.$t['app_noti_ok']) ?>; appSay(<?= json_encode($t['app_noti_ok']) ?>); }
-      else if(res==='signin'){ appSay(<?= json_encode($t['app_signin']) ?>); }
-      else { appSay(<?= json_encode($t['app_noti_no']) ?>); }
-    });
-  }catch(e){}
+  /* PWA kurulum + bildirim kutusu artik /inc/app.js'te (tabbar.php yukluyor):
+     bu sayfanin kendi kopyasi foot.php'dekinden ayrismisti ve iPhone Safari'de
+     "bildirimler engellendi" diyordu -- orada push yalnizca Ana Ekran'a
+     eklenince var. Kutunun metinleri asagida VESTRA_APP_STRINGS ile gidiyor. */
 
   try{
     if('IntersectionObserver' in window){
@@ -1847,6 +1819,8 @@ if ($shoePicks):
     }
   }catch(e){}
 </script>
-<?php require_once __DIR__.'/inc/tabbar.php'; ?>
+<?php
+  $GLOBALS['VESTRA_APP_STRINGS'] = ['on_short' => $t['app_noti_ok'], 'and_hint' => $t['app_and_hint'], 'ios_hint' => $t['app_ios_hint']];
+  require_once __DIR__.'/inc/tabbar.php'; ?>
 </body>
 </html>

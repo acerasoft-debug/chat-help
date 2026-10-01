@@ -144,7 +144,7 @@ function vestra_offer_price_error(?array $listing, string $side, float $price, ?
  *                            "sessiz" olan bildirim, kabulun kendisi degil.
  * @return array     ['ok'=>bool, 'error'=>string, 'invoice'=>?array]
  */
-function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $actor, string $label = 'VESTRA', bool $notify = true): array {
+function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $actor, string $label = 'VESTRA', bool $notify = true, bool $selfCorrect = false): array {
     $ref = trim($ref);
     if ($ref === '') return ['ok' => false, 'error' => 'ref yok'];
     if (!in_array($action, ['accept', 'decline', 'counter'], true)) return ['ok' => false, 'error' => 'gecersiz islem'];
@@ -177,13 +177,34 @@ function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $a
          - Fiyat kurallari AYNEN gecerli: yon kurali (satici her turda DUSER)
            asagida uygulaniyor, yani yeni teklif oncekinden ucuz olmak zorunda.
            Alici her halukarda daha iyi bir teklif goruyor.
-         - Tur sayaci da AYNEN gecerli: yeniden acmak bedava tur uretmiyor. */
+         - Tur sayaci da AYNEN gecerli: yeniden acmak bedava tur uretmiyor.
+
+       IKINCI ISTISNA -- SATICI KENDI hala yanitlanmamis karsi teklifini
+       DUZELTEBILIR (operator, 24 Eyl 2026, O748EE: 14:46'da 52, 15:10'da alici
+       33, 16:42'de satici 50 gonderdi -- sonra "50'yi sil, 44 gonder" dedi).
+       Alicinin eline gecmis bir mektuptaki rakami GERCEKTEN geri almanin
+       yolu yok; durust olan tek sey YENI bir karsi teklif gondermek ve
+       ESKI kabul linkini gecersiz kilmak (asagida zaten oyle calisiyor --
+       token her 'counter'da yeniden uretiliyor). Bu yuzden TARIH SILINMIYOR,
+       YENI bir tur EKLENIYOR (52,33,50,44) -- kayit "50 hic gonderilmedi"
+       demez, cunku gonderildi.
+         - $selfCorrect=true VE $turn==='buyer' VE son hamle GERCEKTEN
+           saticininse (prev.counter_by==='seller') calisir -- yani alicinin
+           SIRASI ATLANMIYOR, satici yalniz KENDI son hamlesini supurup
+           yenisini koyuyor. Alici bir onceki turda konustuysa (counter_by
+           buyer) bu YOL KAPALI ve normal tur kurali gecerli kalir.
+         - Fiyat kurallari ve tur sayaci AYNEN gecerli (asagida): yeni rakam
+           saticinin SON rakamindan (50) DUSUK olmak zorunda, tavan (urun
+           fiyati) asilamaz, ve kalan tur yoksa yine reddedilir -- bu bir
+           bedava tur degil, gercek bir tur harciyor. */
     $turn = vestra_offer_turn($prev);
     $reopen = $action === 'counter' && (string)($prev['status'] ?? '') === 'decline';
+    $selfCorrecting = $selfCorrect && $action === 'counter' && $turn === 'buyer'
+                    && (string)($prev['counter_by'] ?? 'seller') === 'seller';
     if ($turn === '' && !$reopen) {
         return ['ok' => false, 'error' => 'bu teklif zaten '.(($prev['status'] ?? '') === 'accept' ? 'kabul edildi' : 'reddedildi')];
     }
-    if ($turn !== 'seller' && !$reopen) {
+    if ($turn !== 'seller' && !$reopen && !$selfCorrecting) {
         return ['ok' => false, 'error' => 'sira alicida — son karsi teklifi o verdi'];
     }
     if ($action === 'counter' && vestra_offer_counters_left($prev) < 1) {
@@ -246,12 +267,9 @@ function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $a
             'product' => $prodName,
         ], (string)($actor['id'] ?? ''));
         require_once __DIR__.'/push.php';
-        $pushTxt = match ($action) {
-            'accept'  => ['VESTRA — offer accepted ✓', $prodName.' — your offer was accepted.'],
-            'counter' => ['VESTRA — counter offer ↩', $prodName.' — seller counters at €'.number_format($ctr, 2).'/unit.'],
-            default   => ['VESTRA — offer declined', $prodName.' — the seller declined this offer.'],
-        };
-        vestra_push_send($buyerAcc['id'], $pushTxt[0], $pushTxt[1], '/buyer?tab=offers');
+        vestra_push_notify($buyerAcc, match ($action) {
+            'accept' => 'offer_accepted', 'counter' => 'offer_countered', default => 'offer_declined',
+        }, ['product' => $prodName, 'ref' => $ref] + ($action === 'counter' ? ['price' => (float)$ctr] : []));
     }
 
     require_once __DIR__.'/notify.php';
@@ -305,6 +323,13 @@ function vestra_offer_accept_url(string $ref, string $token): string {
  * hicbir sey yazilmaz -- kirik bir baglanti, baglanti olmamasindan kotu. */
 function vestra_offer_product_url(?array $listing): string {
     $id = trim((string)($listing['id'] ?? ''));
+    /* Gizli markanin urun sayfasi 404 (vestra_hidden_brands): ayni gerekce --
+       kirik bir baglanti, baglanti olmamasindan kotu. Pazarlik ve fatura
+       ham kayittan yurumeye devam ediyor; yalniz vitrine giden link dusuyor.
+       function_exists: govdeyi eval ile cikaran teklif testleri products.php
+       yuklemiyor; orada cozulecek bir ilan da yok. */
+    if ($id !== '' && is_array($listing) && function_exists('vestra_product_brand_hidden')
+        && vestra_product_brand_hidden($listing)) return '';
     return $id === '' ? '' : 'https://vestrasales.com/product?id=' . rawurlencode($id);
 }
 
@@ -445,6 +470,126 @@ function vestra_offer_invoice_shipping(array $rec, array $lines, array $buyerAcc
     require_once __DIR__.'/orders.php';
     $sched = vestra_shipping_auto_schedule($lines, (string)($buyerAcc['country'] ?? ''));
     return $sched ? (float)$sched['amount'] : 0.0;
+}
+
+/* KABUL EDILMIS TEKLIFE NAVLUN -- FATURA KESMEDEN (29 Eyl 2026, O34FE5;
+ * operator: "O34FE5 bu siparise 120 eur shipp cost yaz").
+ *
+ * Teklif faturasi navlunu SIPARIS satirindan degil teklifin KENDI kaydindan
+ * okuyor (yukaridaki fonksiyon, offer_responses.json -> invoice_shipping). O
+ * alana yazan uc yol vardi ve ucu de belgeyi ya KESIYOR ya YENIDEN CIZIYORDU:
+ * panelin "Approve & issue"i, birlesik kesim ve redraft. Yani "yalniz navlunu
+ * yaz" diyen bir talimatin numara yakmayan yolu YOKTU -- ve is akisinin
+ * admin_mode=shipping'i yalniz orders.csv'ye bakip faturasiz teklifte
+ * "siparis bulunamadi" diyordu. Kes mi hazirla mi belirsizse numara yakilmaz
+ * (O748EE dersi, KURAL 5i devami).
+ *
+ * TEK YAZICI; is akisi teklif ref'inde bunu cagiriyor. Kurallar:
+ *  - yalniz KABUL edilmis teklif: fatura ancak ona kesilir (panelin kesim
+ *    eyleminin ayni sarti);
+ *  - BIRLESIK faturanin UYESI reddedilir: belge birincil ref adina kesilir ve
+ *    navlunu orada okur, uyeye yazmak hicbir belgeyi degistirmezdi;
+ *  - FATURASI KESILMIS teklif reddedilir: belge eski tutari tasiyor, yol
+ *    KURAL 5f (vestra_offer_invoice_redraft_apply: ayni numara, uc katman
+ *    birlikte, notify=false ile aliciya mektup yok);
+ *  - PARASI GELMIS satis reddedilir (KURAL 7b'nin tek karar noktasi);
+ *  - negatif ya da sayi olmayan tutar reddedilir -- 0'a kirpmak, operatorun
+ *    yazdigi rakami sessizce baska bir rakamla degistirmek olurdu.
+ * Once kaydin YEDEGI (data/offer_backups/<ref>-ship-<zaman>.json, yalniz o
+ * kayit), sonra yazma, sonra GERI OKUMA: yalniz alanin degil, FATURA YUKUNUN
+ * gordugu navlun -- belgeyi o yuk ciziyor.
+ * Siparis satiri (orders.csv) varsa o da ayni rakama cekilir
+ * (vestra_order_set_shipping): kesim satiri "varsa dokunma" kuraliyla
+ * (vestra_offer_order_ensure) guncellemez ve iki kopya ayrisirdi.
+ * $dry=true: hicbir sey yazilmaz, yazilacak rakamlar doner. */
+function vestra_offer_set_invoice_shipping(string $ref, float $amount, bool $dry = false): array {
+    require_once __DIR__.'/invoice.php';
+    require_once __DIR__.'/orders.php';
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
+    if ($ref === '') return ['error' => 'ref boş', 'code' => 'ref'];
+    if (!is_finite($amount) || $amount < 0) {
+        return ['error' => 'navlun negatif ya da sayı değil', 'code' => 'amount'];
+    }
+    $amount = round($amount, 2);
+
+    if (!vestra_offer_row($ref)) return ['error' => "teklif bulunamadı: {$ref}", 'code' => 'missing'];
+    $rec = (array)(vestra_read_json('offer_responses.json')[$ref] ?? []);
+    $st  = (string)($rec['status'] ?? '');
+    if ($st !== 'accept') {
+        return ['error' => 'teklif kabul edilmemiş (durum: '.($st !== '' ? $st : 'yanıtsız').') — navlun faturaya ait ve fatura yalnız kabul edilmiş teklife kesilir',
+                'code' => 'not_accepted'];
+    }
+    $grp = trim((string)($rec['invoice_group_ref'] ?? ''));
+    if ($grp !== '' && $grp !== $ref) {
+        return ['error' => "{$ref} birleşik bir faturanın ÜYESİ — navlun birincil ref'in kaydında durur: {$grp}",
+                'code' => 'member', 'primary' => $grp];
+    }
+    $inv = vestra_invoices_for_ref($ref, false);
+    if ($inv) {
+        $nos = array_map(fn($i) => (string)($i['no'] ?? ''), $inv);
+        return ['error' => 'fatura ZATEN KESİLMİŞ ('.implode(', ', $nos).') — belge eski tutarı taşıyor. Yol KURAL 5f: aynı numarayla yeniden çizim (send-campaign-preview → reply_letter=invoice_draft, spec ref=<ref>|ship=<EUR>|apply=true|notify=false).',
+                'code' => 'invoiced', 'invoices' => $nos];
+    }
+    $paid = vestra_order_payment_settled($ref);
+    if (!empty($paid['settled'])) {
+        return ['error' => 'satışın parası gelmiş — tahsil edilmiş bir tutar değiştirilmez (iade ayrı bir karar)', 'code' => 'paid'];
+    }
+
+    $prev = array_key_exists('invoice_shipping', $rec) ? round((float)$rec['invoice_shipping'], 2) : null;
+    $orderRow = null;
+    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) { $orderRow = $r; break; } }
+
+    /* Belgenin gorecegi rakamlar AYNI kurucudan: EUR taban ('base' cevrim
+       varsa orada, yoksa meta kendisi EUR). */
+    $sum = function (?array $p): array {
+        $m  = (array)($p['base']['meta'] ?? $p['meta'] ?? []);
+        $it = (array)($p['base']['items'] ?? $p['items'] ?? []);
+        $g  = 0.0; foreach ($it as $x) $g += (float)($x['line'] ?? 0);
+        return ['goods' => round($g, 2), 'shipping' => round((float)($m['shipping'] ?? 0), 2),
+                'doc_currency' => strtoupper((string)($p['meta']['currency'] ?? 'EUR')) ?: 'EUR'];
+    };
+    $out = ['ok' => true, 'dry' => $dry, 'ref' => $ref, 'prev' => $prev, 'shipping' => $amount,
+            'order_row' => $orderRow !== null];
+
+    if ($dry) {
+        $s = $sum(vestra_offer_invoice_payload($ref, '', null, $amount));
+        return $out + ['goods' => $s['goods'], 'total' => round($s['goods'] + $amount, 2),
+                       'doc_currency' => $s['doc_currency']];
+    }
+
+    $bdir = vestra_data_dir().'/offer_backups';
+    if (!is_dir($bdir)) @mkdir($bdir, 0775, true);
+    $bfile = $bdir.'/'.$ref.'-ship-'.date('Ymd-His').'.json';
+    if (@file_put_contents($bfile, json_encode([$ref => $rec], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) === false) {
+        return ['error' => 'yedek yazılamadı — hiçbir şey değişmedi', 'code' => 'backup'];
+    }
+
+    /* Taze okuma: yedekten bu yana baska bir alan yazilmis olabilir. */
+    $rs = vestra_read_json('offer_responses.json');
+    $rs[$ref]['invoice_shipping']    = $amount;
+    $rs[$ref]['invoice_shipping_by'] = 'operator';
+    $rs[$ref]['invoice_shipping_at'] = date('c');
+    vestra_write_json('offer_responses.json', $rs);
+
+    $back = (array)(vestra_read_json('offer_responses.json')[$ref] ?? []);
+    if (!array_key_exists('invoice_shipping', $back) || abs((float)$back['invoice_shipping'] - $amount) > 0.004) {
+        return ['error' => 'yazma geri okunamadı — kayıt değişmemiş olabilir (yedek: '.basename($bfile).')', 'code' => 'readback'];
+    }
+    $s = $sum(vestra_offer_invoice_payload($ref));
+    if (abs($s['shipping'] - $amount) > 0.004) {
+        return ['error' => 'kayıt yazıldı ama fatura yükü navlunu '.number_format($s['shipping'], 2, '.', '').' görüyor', 'code' => 'payload'];
+    }
+    $out += ['goods' => $s['goods'], 'total' => round($s['goods'] + $amount, 2),
+             'doc_currency' => $s['doc_currency'], 'backup' => $bfile];
+
+    if ($orderRow !== null) {
+        $os = vestra_order_set_shipping($ref, $amount, 'Shipping');
+        if (isset($os['error'])) {
+            return ['error' => 'teklif kaydı yazıldı ama sipariş satırı güncellenemedi: '.$os['error'], 'code' => 'order_sync'];
+        }
+        $out['order_total'] = (float)$os['total'];
+    }
+    return $out;
 }
 
 /* Teklifin FATURA yuku: alici blogu + tek satir + fatura kesecek satici.
@@ -1321,8 +1466,7 @@ function vestra_offer_accept_counter(string $ref, string $token, ?string $onBeha
             'counter_price' => $unit, 'product' => $prodName,
         ], (string)$buyerAcc['id']);
         require_once __DIR__.'/push.php';
-        vestra_push_send($buyerAcc['id'], 'VESTRA — counter offer accepted ✓',
-            $prodName.' — agreed at €'.number_format($unit, 2).'/unit.', '/buyer?tab=offers');
+        vestra_push_notify($buyerAcc, 'price_agreed', ['product' => $prodName, 'price' => (float)$unit, 'ref' => $ref]);
     }
 
     if (!empty($offerRow['email']) && filter_var($offerRow['email'], FILTER_VALIDATE_EMAIL)) {

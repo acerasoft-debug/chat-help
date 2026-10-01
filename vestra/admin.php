@@ -81,7 +81,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_listings($all);
     if($sellerUid){
       require_once __DIR__.'/inc/push.php';
-      vestra_push_send($sellerUid,'VESTRA — listing approved 🎉', ($pname?:'Your listing').' is now live in the catalog.','/seller?tab=listings');
+      vestra_push_notify($sellerUid,'listing_approved',['product'=>$pname?:'—','listing'=>$lid??'']);
       foreach(auth_accounts() as $sa){
         if(($sa['id']??'')!==$sellerUid || empty($sa['email'])) continue;
         [$lSubj,$lBody,$lOpts]=vestra_tpl_listing_approved(vestra_user_lang($sa),$sa['name']?:($sa['company']?:'there'),$pname?:'Your listing');
@@ -98,7 +98,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_listings($all);
     if($sellerUid){
       require_once __DIR__.'/inc/push.php';
-      vestra_push_send($sellerUid,'VESTRA — listing needs changes', ($pname?:'Your listing').($note?' — '.mb_substr($note,0,80):' was not approved. See your dashboard for details.'),'/seller?tab=listings');
+      vestra_push_notify($sellerUid,'listing_changes',['product'=>$pname?:'—','note'=>(string)$note,'listing'=>$lid??'']);
       foreach(auth_accounts() as $sa){
         if(($sa['id']??'')!==$sellerUid || empty($sa['email'])) continue;
         [$lSubj,$lBody,$lOpts]=vestra_tpl_listing_rejected(vestra_user_lang($sa),$sa['name']?:($sa['company']?:'there'),$pname?:'Your listing',$note);
@@ -152,6 +152,37 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $r=vestra_order_set_delivery($ref, (string)($_POST['address']??''));
     header('Location: /admin?tab=orders&view='.urlencode($ref)
           .'&msg='.(isset($r['error'])?'addr_fail&err='.urlencode(substr((string)$r['error'],0,140)):'addr_saved')); exit;
+  }
+  /* SONRAKI TESLIMAT YUVASI (operator, 29 Eyl 2026: "trackinglerde ikinci
+     lieferung icin yer ac"). Durum formundaki numara kutusu GECERLI paketi
+     duzeltir; yeni bir paket (Teslimat 2, 3 …) buradan yazilir ve onceki
+     paket KORUNUR. Yazma ile mektup ayri iki fonksiyon, ikisi de is akisinin
+     cagirdigi AYNI govdeler (vestra_order_add_parcel / vestra_order_parcel_notify). */
+  if($act==='order_parcel'){
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    require_once __DIR__.'/inc/orders.php';
+    $more=!empty($_POST['more']);
+    $r=vestra_order_add_parcel($ref, (string)($_POST['tracking']??''), (string)($_POST['ship_carrier']??''),
+                               (string)($_POST['ship_service']??''), $more, 'admin');
+    if(empty($r['ok'])){
+      header('Location: /admin?tab=orders&view='.urlencode($ref).'&msg=parcel_fail&err='.urlencode(substr((string)($r['error']??'?'),0,160))); exit;
+    }
+    $mail='off';
+    if(!empty($_POST['notify'])){
+      $nr=vestra_order_parcel_notify($ref, $r['shipment']);
+      $mail=!empty($nr['sent']) ? 'sent' : (!empty($nr['skipped']) ? 'skip' : 'fail');
+    }
+    header('Location: /admin?tab=orders&view='.urlencode($ref).'&msg=parcel_ok&n='.(int)$r['n'].'&mail='.$mail.($more?'&more=1':'')); exit;
+  }
+  /* Gecerli paketin mektubu gitmediyse (saglayici reddetti ya da kutucuk
+     isaretsizdi) tekrar dene. Damgali pakete ikinci mektup GITMEZ. */
+  if($act==='order_parcel_mail'){
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    require_once __DIR__.'/inc/orders.php';
+    $nr=vestra_order_parcel_notify($ref);
+    $mail=!empty($nr['sent']) ? 'sent' : (!empty($nr['skipped']) ? 'skip' : 'fail');
+    header('Location: /admin?tab=orders&view='.urlencode($ref).'&msg=parcel_mail&mail='.$mail
+          .($mail==='fail' ? '&err='.urlencode(substr((string)($nr['error']??'?'),0,120)) : '')); exit;
   }
   if($act==='order_shipping'){
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
@@ -663,6 +694,31 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_listings($all);
     header('Location: /admin?tab=listings&msg=listing_saved'); exit;
   }
+  /* GIZLI MARKA anahtari (operator, 25 Eyl 2026: "Gucci ve Balenciaga
+     urunlerini sitede gorunmez yap ancak sonra tekrar konulabilecek sekilde").
+     Tek yazici vestra_hidden_brands_save(); is akisinin admin_mode=brand_hide
+     kipi de ayni fonksiyonu cagiriyor. Ilan kaydina DOKUNULMUYOR -- geri acmak
+     markayi listeden cikarmak. Gizlenecek ad KATALOGDA olmak zorunda: yazim
+     hatasiyla "Gucc" gizlemek hicbir seyi gizlemez ama "gizlendi" derdi. Yazma
+     GERI OKUNUYOR (KURAL 5c'nin billing_saved dersi). */
+  if($act==='brand_hide' || $act==='brand_show'){
+    $bw = trim((string)($_POST['brand'] ?? ''));
+    $bk = vestra_brand_key($bw);
+    $cur = vestra_hidden_brands(true);
+    if ($act==='brand_hide') {
+      $canon = '';
+      foreach (vestra_listings() as $__l) {
+        if (vestra_brand_key((string)($__l['brand'] ?? '')) === $bk && $bk !== '') { $canon = trim((string)$__l['brand']); break; }
+      }
+      if ($canon === '') { header('Location: /admin?tab=listings&msg=brand_unknown'); exit; }
+      $cur[$bk] = $canon;
+    } else {
+      if (!isset($cur[$bk])) { header('Location: /admin?tab=listings&msg=brand_unknown'); exit; }
+      unset($cur[$bk]);
+    }
+    $res = vestra_hidden_brands_save(array_values($cur), 'operator:panel');
+    header('Location: /admin?tab=listings&msg='.($res['ok'] ? ($act==='brand_hide' ? 'brand_hidden' : 'brand_shown') : 'brand_hide_fail')); exit;
+  }
   /* Bulk: set MOQ to 20 on every listing whose brand is NOT Lacoste / Ralph
      Lauren / Amiri (matched loosely so "R. Lauren", "Ralph Lauren Polo", … are
      also kept as-is). Only touches seller listings in data/listings.json. */
@@ -959,7 +1015,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     if($acc){
       $panel=(($acc['type']??'')==='seller')?'/seller':'/buyer';
       require_once __DIR__.'/inc/push.php';
-      vestra_push_send($uid,'VESTRA — account verified ✓','Your business is verified. Full wholesale access is unlocked.',$panel);
+      vestra_push_notify($acc,'account_verified',['panel'=>ltrim($panel,'/')]);
       if(!empty($acc['email'])){
         [$kSubj,$kBody,$kOpts]=vestra_tpl_kyb_approved(vestra_user_lang($acc),$acc['name']?:($acc['company']?:'there'),$acc['type']??'buyer','https://vestrasales.com'.$panel);
         vestra_send_mail($acc['email'],$kSubj,$kBody,'','',null,'',$kOpts);
@@ -1182,7 +1238,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
         $panel=(($acc['type']??'')==='seller')?'/seller':'/buyer';
         require_once __DIR__.'/inc/push.php';
         $label=$tier==='premium'?'Elite':ucfirst($tier);
-        vestra_push_send($uid,'VESTRA — plan updated ⭐','Your VESTRA membership is now '.$label.'.',$panel);
+        vestra_push_notify($acc,'plan_updated',['plan'=>$label]);
         if(!empty($acc['email'])){
           // Plan names (Starter/Pro/Elite) stay in English in every locale, same as any
           // branded product-tier name — only the surrounding copy is translated.
@@ -1410,6 +1466,10 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
         $sv=trim(preg_replace('/\s+/',' ',(string)$_POST['ship_service']));
         if($sv==='') unset($all[$ref]['ship_service']); else $all[$ref]['ship_service']=mb_substr($sv,0,60);
       }
+      /* 'Shipped' = siparisin TAMAMI yolda. Kismi isaret kalsaydi alici ayni anda
+         "kalani ayri pakette gelecek" ve "teslim aldim" dugmesini gorurdu -- is
+         akisi bu celiskiyi reddediyor, panel de ayni sonuca varsin. */
+      if($st==='shipped') unset($all[$ref]['ship_partial_trk']);
       $all[$ref]['history'][] = vestra_order_history_entry($st, 'admin');
       vestra_write_json('order_statuses.json',$all);
       /* Invoice flow: on "paid", tell the buyer + the sellers whose SKUs are in the order,
@@ -1467,19 +1527,10 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
          Fires when the order becomes shipped, or when a tracking number is added or
          changed on an order that already is. */
       if($st==='shipped' && ($prev!=='shipped' || ($newTrk!=='' && $newTrk!==$prevTrk))){
-        $sRow=null;
-        foreach(vestra_read_csv('orders.csv') as $row){ if(($row['ref']??'')===$ref){ $sRow=$row; break; } }
-        if($sRow && !empty($sRow['email'])){
-          $buyerAcc=auth_find((string)$sRow['email']);
-          require_once __DIR__.'/inc/email_templates.php';
-          [$subj,$body,$opts]=vestra_tpl_order_shipped($sRow['name']?:($sRow['company']?:'there'), $ref, $newTrk, (bool)$buyerAcc, vestra_order_shipment($all[$ref]??null));
-          vestra_send_mail($sRow['email'],$subj,$body,'','',null,'',$opts);
-          if($buyerAcc){
-            require_once __DIR__.'/inc/push.php';
-            vestra_push_send($buyerAcc['id'], 'VESTRA — order shipped 🚚',
-              'Order '.$ref.($newTrk!=='' ? ' · Tracking: '.$newTrk : '').' is on its way.', '/buyer?tab=orders');
-          }
-        }
+        /* Mektup + bildirim TEK govdeden (inc/orders.php): onceki paket varsa
+           "siparisin kalani yola cikti" ALICININ dilinde, yoksa eski "gonderildi"
+           mektubu aynen. Kosul burada verildigi icin $force=true. */
+        vestra_order_parcel_notify($ref, vestra_order_shipment($all[$ref]??null), '', true);
       }
     }
     header('Location: /admin?tab=orders&msg=status_ok'); exit;
@@ -2174,9 +2225,12 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       };
       if($hit) $uids[]=$uid;
     }
-    $reached=vestra_push_broadcast($uids, mb_substr($title,0,80), mb_substr($body,0,160), $url);
-    vestra_push_log(['at'=>date('c'),'target'=>$target,'title'=>mb_substr($title,0,80),'reached'=>$reached]);
-    header('Location: /admin?tab=notify&msg=push_sent&n='.$reached); exit;
+    /* "Reached" artik push servisinin KABUL ettigi cihaz sayisi da: eskiden yalnizca
+       "cihazi olan hesap" sayiliyordu, yani hic teslim edilmeyen bir duyuru da
+       "12 kullaniciya ulasti" diye kayda geciyordu. */
+    $r=vestra_push_broadcast($uids, mb_substr($title,0,80), mb_substr($body,0,160), $url);
+    vestra_push_log(['at'=>date('c'),'target'=>$target,'title'=>mb_substr($title,0,80),'reached'=>$r['users'],'ok'=>$r['ok'],'failed'=>$r['failed']]);
+    header('Location: /admin?tab=notify&msg=push_sent&n='.$r['users']); exit;
   }
 }
 
@@ -2600,6 +2654,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'member_set'=>'✓ Membership plan updated.',
     'journal_saved'=>'✓ Article saved.','journal_deleted'=>'Article deleted.','journal_toggled'=>'Article visibility changed.',
     'listing_saved'=>'✓ Listing updated.','prices_saved'=>'✓ Prices & MOQ saved — live on the catalogue now.',
+    'brand_hidden'=>'✓ Marka gizlendi — sunucudan geri okunarak doğrulandı. İlanları sitenin hiçbir yerinde görünmüyor (vitrin, ana sayfa, ürün sayfası, fiyat listeleri, API, kampanyalar). İlan kayıtlarına dokunulmadı: “👁 Show again” ile aynen geri gelir.',
+    'brand_shown'=>'✓ Marka yeniden görünür — sunucudan geri okunarak doğrulandı. İlanları kaldıkları yerden (aynı durum, fiyat ve fotoğrafla) vitrine döndü.',
     /* Bu satir EKSIKTI: save_billing zaten msg=billing_saved'e yonlendiriyordu
        ama haritada karsiligi yoktu, yani form kaydediyor ve ekranda HICBIR SEY
        yazmiyordu. Onaylanmayan bir kayit, kaydedilmemis kayittan ayirt edilemez. */
@@ -2801,6 +2857,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Form boş gönderildi — değişen bir şey yok.</div>
 <?php elseif($msg==='ds_pay_fail'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Anahtar YAZILAMADI — geri okuma tutmadı, durum <b>değişmemiş olabilir</b>. Sayfayı yenileyip üstteki duruma bakın; yine olursa <code>data/dropship_settings.json</code> yazılabilir değil.</div>
+<?php elseif($msg==='brand_hide_fail'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Gizli marka listesi YAZILAMADI — geri okuma tutmadı, durum <b>değişmemiş olabilir</b>. Aşağıdaki “Hidden brands” kartı sunucudaki gerçek durumu gösteriyor; oradan kontrol edin.</div>
+<?php elseif($msg==='brand_unknown'): ?>
+<div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Bu marka adı ilan kayıtlarında yok (ya da zaten gizli değil) — <b>hiçbir şey değişmedi</b>. Yazım hatasıyla bir marka gizlemek hiçbir şeyi gizlemez ama “gizlendi” derdi.</div>
 <?php elseif($msg==='ship_auto_fail'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Anahtar YAZILAMADI — geri okuma tutmadı, durum <b>değişmemiş olabilir</b>. Sayfayı yenileyip üstteki duruma bakın; yine olursa <code>data/shipping_settings.json</code> yazılabilir değil.</div>
 <?php elseif($msg==='invoice_cur_bad'): ?>
@@ -2809,6 +2869,21 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg">✓ Teslimat adresi kaydedildi — <b>faturanın gerçekten bu adresi gördüğü</b> geri okunarak doğrulandı (satırın değişmesi yetmez; belgeyi besleyen çözücü de aynı adresi bulmalı). Gümrük ve kurye için gereken alan buydu.</div>
 <?php elseif($msg==='addr_fail'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Adres <b>kaydedilmedi</b>: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>. Hiçbir alan değişmedi.</div>
+<?php elseif($msg==='parcel_ok'): ?>
+<?php $pMail=(string)($_GET['mail']??''); $pN=(int)($_GET['n']??0); ?>
+<div class="amsg">✓ Teslimat <?= $pN ?> kaydedildi — kayıttan geri okunarak doğrulandı; önceki paket(ler) siparişte duruyor.
+  <?= !empty($_GET['more']) ? 'Durum değişmedi: sonraki teslimat için yuva açık kaldı.' : 'Sipariş tamamlandı: durum <b>Shipped</b>, alıcı artık teslimi onaylayabilir.' ?>
+  <?php if($pMail==='sent'): ?> Alıcıya mektup <b>kendi dilinde gitti</b> (Brevo kabul etti).
+  <?php elseif($pMail==='fail'): ?><br><b style="color:#c0392b">⚠ Mektup GİTMEDİ — sağlayıcı reddetti.</b> Kayıt yazıldı; paketi yeniden yazmayın (numara zaten kayıtlı) — teslimat satırındaki <b>✉ Send letter</b> düğmesiyle tekrar deneyin.
+  <?php elseif($pMail==='skip'): ?> Bu paket için mektup zaten gitmişti — ikincisi gönderilmedi.
+  <?php else: ?> Alıcıya mektup <b>gönderilmedi</b> (kutucuk işaretsizdi).<?php endif; ?></div>
+<?php elseif($msg==='parcel_mail'): ?>
+<?php $pMail=(string)($_GET['mail']??''); ?>
+<?php if($pMail==='sent'): ?><div class="amsg">✓ Teslimat mektubu alıcıya <b>kendi dilinde gitti</b> (Brevo kabul etti) ve paket damgalandı.</div>
+<?php elseif($pMail==='skip'): ?><div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Bu paket için mektup <b>zaten gitmişti</b> — ikincisi gönderilmedi.</div>
+<?php else: ?><div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Mektup <b>gitmedi</b>: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>.</div><?php endif; ?>
+<?php elseif($msg==='parcel_fail'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Teslimat <b>kaydedilmedi</b>: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>. Hiçbir alan değişmedi, kimseye bir şey gitmedi.</div>
 <?php elseif($msg==='disc_saved'): ?>
 <div class="amsg">✓ İndirim kaydedildi — <b>sipariş toplamı da</b> birlikte güncellendi ve geri okunarak doğrulandı. Belgede <code>Voucher &lt;kod&gt; −€x</code> satırı olarak çıkar.</div>
 <?php elseif($msg==='disc_fail'): ?>
@@ -4247,10 +4322,76 @@ elseif($tab==='orders'):
       <input name="tracking" value="<?= htmlspecialchars($vshp['tracking']) ?>" placeholder="Tracking no." style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
       <button class="abtn primary" type="submit">Save</button>
     </form>
-    <?php if($vshp['url']!==''): ?>
+    <?php /* Numarali teslimat listesi cizilecekse bu tek satir ayni paketi ikinci kez
+             yazardi -- liste her paketi kendi baglantisiyla zaten basiyor. */
+      $vmulti = count((array)($vshp['deliveries']??[]))>1 || (int)($vshp['next_n']??0)>0; ?>
+    <?php if($vshp['url']!=='' && !$vmulti): ?>
       <div class="ahint" style="margin-top:8px">🚚 <?= htmlspecialchars($vshp['carrier_name']) ?><?= $vshp['service']!==''?' · '.htmlspecialchars($vshp['service']):'' ?> — <a href="<?= htmlspecialchars($vshp['url']) ?>" target="_blank" rel="noopener nofollow"><?= htmlspecialchars($vshp['tracking']) ?></a></div>
     <?php elseif($vshp['tracking']!=='' && $vshp['carrier']===''): ?>
       <div class="ahint" style="margin-top:8px">⚠ Carrier not set — the buyer sees the number but no tracking link.</div>
+    <?php endif; ?>
+    <?php /* NUMARALI TESLIMATLAR + SONRAKI YUVA (operator, 29 Eyl 2026: "trackinglerde
+             ikinci lieferung icin yer ac"). Kismi pakette durum bilerek 'shipped' DEGIL
+             (alici "teslim aldim" deyip yarim siparisi kapatmasin); sonraki paket
+             asagidaki "Delivery N" yuvasina yazilir, onceki paket siparis ve alici
+             sayfasinda kalir. Yukaridaki durum formunun numara kutusu GECERLI paketi
+             duzeltir, yeni paket eklemez. */
+      $vdl=(array)($vshp['deliveries']??[]); $vnext=(int)($vshp['next_n']??0);
+      $vnotified=(array)($vst['ship_notified']??[]);
+      $vslotN=$vnext>0 ? $vnext : count($vdl)+1;
+      $vslotOk=$vshp['tracking']!=='' && !in_array((string)$vstatus,['cancelled','delivered','completed'],true);
+    ?>
+    <?php if(count($vdl)>1 || $vnext>0): ?>
+      <div style="margin-top:10px">
+        <div class="ahint" style="font-weight:600;margin-bottom:4px">📦 Deliveries<?= !empty($vshp['partial']) ? ' — partial: the rest is still to ship, status stays '.htmlspecialchars((string)$vstatus) : '' ?></div>
+        <?php foreach($vdl as $vd): ?>
+          <div class="ahint" style="padding:2px 0"><b>Delivery <?= (int)$vd['n'] ?></b><?= (string)($vd['at']??'')!=='' ? ' ('.htmlspecialchars(substr((string)$vd['at'],0,10)).')' : '' ?>:
+            <?= htmlspecialchars(trim((string)$vd['carrier_name'].((string)($vd['service']??'')!=='' ? ' · '.$vd['service'] : ''))) ?>
+            <?php if((string)($vd['url']??'')!==''): ?><a href="<?= htmlspecialchars((string)$vd['url']) ?>" target="_blank" rel="noopener nofollow"><?= htmlspecialchars((string)$vd['tracking']) ?></a><?php else: ?><?= htmlspecialchars((string)$vd['tracking']) ?><?php endif; ?>
+            <?= !empty($vnotified[$vd['tracking']]) ? ' · ✉ letter sent '.htmlspecialchars(substr((string)$vnotified[$vd['tracking']],0,10)) : '' ?>
+          </div>
+        <?php endforeach; ?>
+        <?php if($vnext>0): ?>
+          <div class="ahint" style="padding:2px 0"><b>Delivery <?= $vnext ?></b>: <i>not shipped yet — enter its tracking number below</i></div>
+        <?php endif; ?>
+      </div>
+      <?php if($vshp['tracking']!=='' && empty($vnotified[$vshp['tracking']])): ?>
+        <form method="post" style="margin-top:6px" onsubmit="return confirm('E-mail the buyer about this parcel now, in their language?')">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="order_parcel_mail">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+          <span class="ahint">No letter recorded for the current parcel.</span>
+          <button class="abtn" type="submit">✉ Send letter</button>
+        </form>
+      <?php endif; ?>
+    <?php endif; ?>
+    <?php if($vslotOk): ob_start(); ?>
+      <form method="post" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px" onsubmit="return confirm('Save delivery <?= $vslotN ?> for <?= htmlspecialchars($viewRef) ?>? The earlier parcel stays on the order.')">
+        <?= csrfField() ?>
+        <input type="hidden" name="_action" value="order_parcel">
+        <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+        <b style="font-size:12.5px">Delivery <?= $vslotN ?></b>
+        <select name="ship_carrier" style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
+          <option value="">Carrier — from the number</option>
+          <?php foreach(vestra_carriers() as $ck=>$cv): if($ck==='other') continue; ?>
+            <option value="<?= htmlspecialchars($ck) ?>"><?= htmlspecialchars($cv['name']) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <input name="ship_service" placeholder="Service (optional)" style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
+        <input name="tracking" required placeholder="Tracking no. of delivery <?= $vslotN ?>" style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
+        <?php if((string)$vstatus!=='shipped'): ?>
+          <label class="ahint" style="display:flex;gap:5px;align-items:center"><input type="checkbox" name="more" value="1"> more parcels will follow after this one</label>
+        <?php endif; ?>
+        <label class="ahint" style="display:flex;gap:5px;align-items:center"><input type="checkbox" name="notify" value="1" checked> e-mail the buyer (their language)</label>
+        <button class="abtn primary" type="submit">Save delivery <?= $vslotN ?></button>
+      </form>
+      <div class="ahint" style="margin-top:4px">Earlier parcels stay on the order and on the buyer's page. Without “more parcels” this parcel completes the order: status → <b>Shipped</b>, the buyer is told the rest has shipped (in their language) and can confirm receipt.</div>
+    <?php $vslotForm=ob_get_clean(); ?>
+      <?php if($vnext>0): ?>
+        <div style="margin-top:10px;padding:10px 12px;border:1px dashed var(--line);border-radius:9px"><?= $vslotForm ?></div>
+      <?php else: ?>
+        <details style="margin-top:10px"><summary class="ahint" style="cursor:pointer">+ Add another parcel (delivery <?= $vslotN ?>)</summary><?= $vslotForm ?></details>
+      <?php endif; ?>
     <?php endif; ?>
     <?php
       /* Havale dekontu (2 Eyl 2026): musteri panelden yukledi ya da operator
@@ -4423,7 +4564,8 @@ if($__dupRefs): ?>
       <div style="font-size:11.5px;<?= $__usd!==null?'':'color:var(--mut)' ?>" title="<?= $__fx?htmlspecialchars('EUR→USD '.vestra_order_fx_note($__fx)):'no rate stamped for this order date yet' ?>"><?= $__usd!==null ? '≈ '.vestra_usd($__usd) : 'US$ —' ?></div>
       <?php if(((float)($o['shipping']??0))>0): ?><div class="ahint" style="font-size:10.5px">incl. shipping <?= eur($o['shipping']) ?></div><?php endif; ?><?php if(($__iv=vestra_order_invoiced_note($o['ref']??''))!==''): ?><div class="ahint" style="font-size:10.5px"><?= htmlspecialchars($__iv) ?></div><?php endif; ?></td>
     <td class="ac"><?= orderBadge($st) ?></td>
-    <td class="ac" style="font-size:11px"><?= htmlspecialchars($trk) ?></td>
+    <?php $lshp=vestra_order_shipment($orderSt[$ref]??null); $lcnt=count($lshp['deliveries']); ?>
+    <td class="ac" style="font-size:11px"><?= htmlspecialchars($trk) ?><?php if($trk!=='' && ($lcnt>1 || $lshp['partial'])): ?><div class="ahint" style="font-size:10px">📦 <?= $lcnt>1 ? $lcnt.' parcels' : '' ?><?= $lcnt>1 && $lshp['partial'] ? ' · ' : '' ?><?= $lshp['partial'] ? 'partial — delivery '.(int)$lshp['next_n'].' to come' : '' ?></div><?php endif; ?></td>
     <td class="ac" style="font-size:11px"><?php foreach(vestra_invoices_for_ref($ref) as $iv): ?>
       <a href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener" style="color:var(--acc);display:block"><?= htmlspecialchars(vestra_invoice_link_label($iv)) ?></a>
     <?php endforeach; ?></td>
@@ -5337,7 +5479,11 @@ $fxLabel = ['ecb'=>'European Central Bank (daily reference rate)','market'=>'mar
 
 <?php // ══════════════════════════════════════════════════════ LISTINGS
 elseif($tab==='listings'):
-  $liveList   = array_filter($listings,fn($p)=>($p['status']??'approved')==='approved');
+  /* "Live" = vitrinde GERCEKTEN duran: onayli VE markasi gizli degil. Gizli
+     markanin onayli ilanini "Live" saymak, panelin musterinin gormedigi bir
+     seyi "canli" demesi olurdu (KURAL 21d: panel gercegi basar, isaretle). */
+  $liveList   = array_filter($listings,fn($p)=>($p['status']??'approved')==='approved' && !vestra_product_brand_hidden($p));
+  $hidList    = array_filter($listings,fn($p)=>vestra_product_brand_hidden($p));
   $rejList    = array_filter($listings,fn($p)=>($p['status']??'')==='rejected');
   $ledit      = ($leid=($_GET['edit']??'')) ? vestra_listing_by_id($leid) : null;
   /* Users sekmesindeki urun sayisi buraya link veriyor: sayiya tiklayinca
@@ -5354,7 +5500,7 @@ elseif($tab==='listings'):
 <div class="acard" style="margin-bottom:18px;border-color:var(--acc)">
   <div class="acard-hd"><h3>✏️ Edit listing — <?= htmlspecialchars(trim(($ledit['brand']??'').' '.($ledit['name']??''))) ?></h3>
     <div style="display:flex;gap:6px">
-      <?php if(($ledit['status']??'approved')==='approved'): ?><a class="abtn" href="/product?id=<?= urlencode($ledit['id']??'') ?>" target="_blank" rel="noopener" style="border-color:rgba(31,157,99,.4);color:#1f9d63">View live ↗</a><?php endif; ?>
+      <?php if(($ledit['status']??'approved')==='approved' && !vestra_product_brand_hidden($ledit)): ?><a class="abtn" href="/product?id=<?= urlencode($ledit['id']??'') ?>" target="_blank" rel="noopener" style="border-color:rgba(31,157,99,.4);color:#1f9d63">View live ↗</a><?php elseif(vestra_product_brand_hidden($ledit)): ?><span class="abtn" style="cursor:default;color:var(--mut)" title="Brand is hidden — the product page returns 404 for customers">🙈 Brand hidden</span><?php endif; ?>
       <a class="abtn" href="/admin?tab=listings">✕ Close</a>
     </div></div>
   <div class="acard-body">
@@ -5414,11 +5560,69 @@ elseif($tab==='listings'):
   </div>
 </div>
 <?php endif; ?>
-<div class="asgrid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+<div class="asgrid" style="grid-template-columns:repeat(<?= $hidList ? 5 : 4 ?>,1fr);margin-bottom:16px">
   <div class="ascard"><div class="sv"><?= count($listings) ?></div><div class="sl">Custom listings</div></div>
   <div class="ascard"><div class="sv" style="color:#1f9d63"><?= count($liveList) ?></div><div class="sl">Live / approved</div></div>
   <div class="ascard"><div class="sv" style="color:#a9781a"><?= count($pendingList) ?></div><div class="sl">Pending approval</div></div>
+  <?php if($hidList): ?><div class="ascard"><div class="sv" style="color:#6b6b80"><?= count($hidList) ?></div><div class="sl">Hidden (brand)</div></div><?php endif; ?>
   <div class="ascard"><div class="sv" style="color:var(--mut)"><?= count(vestra_demo_products()) ?></div><div class="sl">Demo products</div></div>
+</div>
+<?php /* GIZLI MARKALAR (operator, 25 Eyl 2026: "sitede gorunmez yap ancak sonra
+         tekrar konulabilecek sekilde"). Geri acmanin yolu BURADA durmali: bir
+         ekranda gorunmeyen secenek olmayan secenektir (KURAL 2e -- operator
+         "acacak dugmem yok"u iki kez soyledi). Sayilar HAM listeden: gizli
+         ilanlar vestra_products()'ta zaten yok, oradan saymak "0" derdi. */
+  $hbMap = vestra_hidden_brands(true);
+  $hbRec = vestra_hidden_brands_record();
+  $hbSince = is_array($hbRec['since'] ?? null) ? $hbRec['since'] : [];
+  $hbName = []; $hbAll = []; $hbAppr = [];
+  foreach ($listings as $__l) {
+    $__k = vestra_brand_key((string)($__l['brand'] ?? '')); if ($__k === '') continue;
+    $hbName[$__k] = $hbName[$__k] ?? trim((string)$__l['brand']);
+    $hbAll[$__k]  = ($hbAll[$__k] ?? 0) + 1;
+    if (($__l['status'] ?? 'approved') === 'approved') $hbAppr[$__k] = ($hbAppr[$__k] ?? 0) + 1;
+  }
+  unset($__l, $__k);
+  $hbPick = array_diff_key($hbName, $hbMap);
+  uasort($hbPick, fn($a, $b) => strcasecmp($a, $b));
+?>
+<div class="acard" id="hidden-brands" style="margin-bottom:16px;border-color:rgba(107,107,128,.4)">
+  <div class="acard-hd"><h3>🙈 Hidden brands — not shown anywhere on the site</h3></div>
+  <div class="acard-body">
+    <p style="font-size:13px;color:var(--mut);margin:0 0 12px;max-width:760px">
+      A hidden brand's listings disappear from the <b>whole</b> site: catalogue, home page, product pages (404),
+      brand/category pages, sitemap, price lists, catalogue files, API and campaign letters.
+      <b>Nothing is deleted</b> — the listings keep their status, prices and photos, and orders, offers and invoices
+      already made keep working. <b>👁 Show again</b> brings them back exactly as they were.
+    </p>
+    <?php if($hbMap): ?>
+    <table class="atable" style="margin-bottom:12px">
+      <?= arow(['Brand','Listings','Hidden since',''],true) ?>
+      <?php foreach($hbMap as $__k => $__b): ?>
+      <tr>
+        <td class="ac"><b><?= htmlspecialchars($__b) ?></b></td>
+        <td class="ac"><?= (int)($hbAll[$__k] ?? 0) ?> <span class="ahint">(<?= (int)($hbAppr[$__k] ?? 0) ?> approved)</span></td>
+        <td class="ac"><?= htmlspecialchars(str_replace('T', ' ', substr((string)($hbSince[$__k] ?? ''), 0, 16))) ?: '—' ?></td>
+        <td class="ac"><form method="post" action="/admin" style="margin:0" onsubmit="return confirm(<?= htmlspecialchars(json_encode('Show '.$__b.' again? Its approved listings return to the catalogue immediately.', JSON_UNESCAPED_UNICODE), ENT_QUOTES) ?>)">
+          <?= csrfField() ?><input type="hidden" name="_action" value="brand_show"><input type="hidden" name="brand" value="<?= htmlspecialchars($__b) ?>">
+          <button class="abtn" type="submit" style="border-color:rgba(31,157,99,.4);color:#1f9d63">👁 Show again</button></form></td>
+      </tr>
+      <?php endforeach; unset($__k, $__b); ?>
+    </table>
+    <?php else: ?>
+    <div class="ahint" style="margin-bottom:12px">No brand is hidden — every approved listing is on the site.</div>
+    <?php endif; ?>
+    <?php if($hbPick): ?>
+    <form method="post" action="/admin" style="margin:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap"
+      onsubmit="var s=this.brand; return confirm('Hide '+s.options[s.selectedIndex].text+' from the whole site? Nothing is deleted; you can show it again here.')">
+      <?= csrfField() ?><input type="hidden" name="_action" value="brand_hide">
+      <select name="brand" required style="padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:13px;min-width:220px">
+        <?php foreach($hbPick as $__k => $__b): ?><option value="<?= htmlspecialchars($__b) ?>"><?= htmlspecialchars($__b) ?> (<?= (int)($hbAll[$__k] ?? 0) ?>)</option><?php endforeach; unset($__k, $__b); ?>
+      </select>
+      <button class="abtn" type="submit">🙈 Hide brand</button>
+    </form>
+    <?php endif; ?>
+  </div>
 </div>
 <div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px">
   <form method="post" style="margin:0" onsubmit="return confirm('Set MOQ = 20 on EVERY listing except Lacoste, Ralph Lauren and Amiri? (Those three keep their current MOQ.)')">
@@ -5519,9 +5723,13 @@ elseif($tab==='listings'):
       <?php endif; ?>
     </td>
     <td class="ac"><?= htmlspecialchars($p['seller']??'—') ?></td>
-    <td class="ac"><?= match($st){'approved'=>abadge('✓ Live','#1f9d63'),'rejected'=>abadge('✗ Rejected','#c0392b'),default=>abadge('⏳ Pending','#a9781a')} ?></td>
+    <?php /* Gizli markanin onayli ilani "✓ Live" DEGIL: musteri onu hicbir
+             yerde gormuyor. Rozet gercegi soyluyor, ve 404 donecek bir
+             "View ↗" baglantisi da cizilmiyor. */
+      $__hid = vestra_product_brand_hidden($p); ?>
+    <td class="ac"><?= ($__hid && $st==='approved') ? abadge('🙈 Hidden (brand)','#6b6b80') : match($st){'approved'=>abadge('✓ Live','#1f9d63'),'rejected'=>abadge('✗ Rejected','#c0392b'),default=>abadge('⏳ Pending','#a9781a')} ?><?= ($__hid && $st!=='approved') ? ' <span class="ahint" title="Brand is hidden — even once approved it stays off the site">🙈 brand hidden</span>' : '' ?></td>
     <td class="ac"><div style="display:flex;gap:4px">
-      <?php if($st==='approved'): ?><a class="abtn" href="/product?id=<?= urlencode($p['id']??'') ?>" target="_blank" rel="noopener" style="border-color:rgba(31,157,99,.4);color:#1f9d63" title="Open the live product page in a new tab">View ↗</a><?php endif; ?>
+      <?php if($st==='approved' && !$__hid): ?><a class="abtn" href="/product?id=<?= urlencode($p['id']??'') ?>" target="_blank" rel="noopener" style="border-color:rgba(31,157,99,.4);color:#1f9d63" title="Open the live product page in a new tab">View ↗</a><?php endif; ?>
       <a class="abtn" href="/admin?tab=listings&edit=<?= urlencode($p['id']??'') ?>#top" style="border-color:rgba(201,168,106,.4)">Edit</a>
       <?php if($st==='pending'): ?><a class="abtn" href="/admin?tab=approvals">Review</a><?php endif; ?>
       <?= fBtn('Delete','delete_listing',['lid'=>$p['id']??''],'color:var(--bad);border-color:rgba(239,154,154,.3)','Delete this listing?') ?>
@@ -6566,8 +6774,9 @@ elseif($tab==='notify'):
 
 <div class="asgrid" style="margin-bottom:18px">
   <div class="ascard"><div class="sv" style="color:#9a7320"><?= (int)$pstats['users'] ?></div><div class="sl">Subscribed users (<?= $subscribedPct ?>%)</div></div>
-  <div class="ascard"><div class="sv"><?= (int)$pstats['devices'] ?></div><div class="sl">Devices reachable</div></div>
-  <div class="ascard"><div class="sv" style="color:#3366cc"><?= count($plog) ?></div><div class="sl">Broadcasts sent</div></div>
+  <div class="ascard"><div class="sv"><?= (int)$pstats['devices'] ?></div><div class="sl">Devices registered</div></div>
+  <div class="ascard"><div class="sv" style="color:#1f9d63"><?= (int)$pstats['healthy'] ?></div><div class="sl">Delivered last time</div></div>
+  <div class="ascard"><div class="sv" style="color:<?= $pstats['failing'] ? '#c0392b' : 'var(--mut)' ?>"><?= (int)$pstats['failing'] ?></div><div class="sl">Failing devices</div></div>
 </div>
 
 <div class="acols2" style="align-items:start">
@@ -6596,7 +6805,7 @@ elseif($tab==='notify'):
         <div class="afield"><label>Message (max 160)</label><textarea name="body" maxlength="160" rows="3" required placeholder="Fresh stock just landed: 29 new D&amp;G styles from €50/pc. First come, first served."></textarea></div>
         <div class="afield"><label>Opens page (tap target)</label><input name="url" value="/shop" placeholder="/shop"><div class="ahint">Site path only, e.g. <code>/shop</code>, <code>/product?id=…</code>, <code>/groups</code>, <code>/requests</code></div></div>
         <button class="abtn primary" type="submit" style="justify-content:center;padding:10px">🔔 Send notification</button>
-        <div class="ahint">Only users who enabled notifications (bell button on the homepage / app) receive pushes. Delivery is instant.</div>
+        <div class="ahint">Only users who turned notifications on (panel: My profile → Notifications, or the homepage app box) receive pushes. Delivery is instant; the table below shows which devices accepted it.</div>
       </form>
     </div>
   </div>
@@ -6609,12 +6818,13 @@ elseif($tab==='notify'):
       <div class="atscroll"><table class="atable">
         <?= arow(['When','Audience','Title','Reached'],true) ?>
         <?php foreach(array_slice($plog,0,15) as $le):
-          $tl=['all'=>'🌍 Everyone','buyers'=>'🛍️ Buyers','sellers'=>'🏷️ Sellers','user'=>'👤 One user'][$le['target']??'all']??($le['target']??'?'); ?>
+          $tl=['all'=>'🌍 Everyone','buyers'=>'🛍️ Buyers','sellers'=>'🏷️ Sellers','user'=>'👤 One user'][$le['target']??'all']??($le['target']??'?');
+          $dv = isset($le['ok']) ? ' · '.(int)$le['ok'].' device(s) accepted'.(!empty($le['failed'])?', <b style="color:#c0392b">'.(int)$le['failed'].' failed</b>':'') : ''; ?>
         <?= arow([
           htmlspecialchars(substr($le['at']??'',0,16)),
           abadge($tl,'#3366cc'),
           '<b>'.htmlspecialchars($le['title']??'').'</b>',
-          '<span style="color:'.((int)($le['reached']??0)>0?'#1f9d63':'var(--mut)').'">'.(int)($le['reached']??0).' user(s)</span>',
+          '<span style="color:'.((int)($le['reached']??0)>0?'#1f9d63':'var(--mut)').'">'.(int)($le['reached']??0).' user(s)'.$dv.'</span>',
         ]) ?>
         <?php endforeach; ?>
       </table></div>
@@ -6623,11 +6833,47 @@ elseif($tab==='notify'):
   </div>
 </div>
 
+<?php
+  /* Cihaz listesi: hangi hesabin hangi cihazi, son teslim ne zaman, son yanit kodu.
+     Endpoint ve anahtar BASILMIYOR (endpoint o cihaza yazma yetkisi). */
+  $pdev = [];
+  foreach (vestra_push_subs() as $puid => $devs) foreach ((array)$devs as $ph => $d) $pdev[] = [$puid, $ph, (array)$d];
+  usort($pdev, fn($a, $b) => strcmp((string)($b[2]['last_at'] ?? $b[2]['added'] ?? ''), (string)($a[2]['last_at'] ?? $a[2]['added'] ?? '')));
+  $pAcct = [];
+  foreach ($accounts as $a) $pAcct[(string)($a['id'] ?? '')] = ($a['company'] ?? '') ?: (($a['name'] ?? '') ?: '?');
+?>
+<div class="acard" style="margin-top:18px">
+  <div class="acard-hd"><h3>📱 Devices</h3></div>
+  <div class="acard-body">
+    <?php if(!$pdev): ?><div class="aempty">No device has turned notifications on yet. Customers do it from their panel (My profile → Notifications) or the homepage app box.</div>
+    <?php else: ?>
+    <div class="atscroll"><table class="atable">
+      <?= arow(['Account','Device','Added','Last delivery','Status'],true) ?>
+      <?php foreach(array_slice($pdev,0,60) as [$puid,$ph,$d]):
+        $code = (int)($d['last_code'] ?? 0); $fails = (int)($d['fails'] ?? 0);
+        $stt = !isset($d['last_code']) ? '<span style="color:var(--mut)">not used yet</span>'
+             : ($code >= 200 && $code < 300 ? '<span style="color:#1f9d63">✓ accepted</span>'
+             : '<span style="color:#c0392b">✗ '.($code === -3 ? 'push host not allowed' : ($code === -1 ? 'network error' : 'HTTP '.$code)).($fails > 1 ? ' ×'.$fails : '').'</span>');
+        $host = (string)(parse_url((string)($d['endpoint'] ?? ''), PHP_URL_HOST) ?? ''); ?>
+      <?= arow([
+        htmlspecialchars($pAcct[$puid] ?? $puid),
+        htmlspecialchars(($d['label'] ?? '') ?: '—').' <span class="ahint">'.htmlspecialchars($host).(empty($d['keys']) ? ' · no payload keys' : '').'</span>',
+        htmlspecialchars(substr((string)($d['added'] ?? ''), 0, 10) ?: '—'),
+        htmlspecialchars(substr((string)($d['last_ok'] ?? ''), 0, 16) ?: '—'),
+        $stt,
+      ]) ?>
+      <?php endforeach; ?>
+    </table></div>
+    <?php endif; ?>
+  </div>
+</div>
+
 <div class="acard" style="margin-top:18px">
   <div class="acard-hd"><h3>⚡ Automatic notifications — always on</h3></div>
   <div class="acard-body" style="font-size:13px;line-height:1.9;color:var(--mut)">
     <b style="color:var(--fg)">Buyers get pushed when:</b> an offer is accepted / countered / declined · a seller answers their sourcing request · payment is confirmed · the order ships (with tracking) · escrow secures their payment · a refund is issued · a new message arrives.<br>
-    <b style="color:var(--fg)">Sellers get pushed when:</b> a new order comes in · a new offer arrives · an escrow order is paid (ship now) · the buyer confirms delivery · escrow funds are released to their bank · their listing is approved or needs changes · their account is verified · a new message arrives.
+    <b style="color:var(--fg)">Sellers get pushed when:</b> a new order comes in · a new offer arrives · an escrow order is paid (ship now) · the buyer confirms delivery · escrow funds are released to their bank · their listing is approved or needs changes · their account is verified · a new message arrives.<br>
+    <b style="color:var(--fg)">How they read:</b> in the customer's own account language (9 languages), tapping opens the exact order, offer or conversation, and each device gets its own end-to-end encrypted copy (RFC 8291). Texts: <code>inc/push_texts.php</code>. Your manual announcements go out exactly as typed.
   </div>
 </div>
 

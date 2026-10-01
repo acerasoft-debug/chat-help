@@ -535,13 +535,26 @@ function vestra_next_invoice_no(string $sellerKey): string {
  * alone leaves a model code like WH1JQ040B139MAI whole, and a whole code wider than the SKU
  * column does not wrap — it just keeps drawing, straight over the description beside it.
  */
-function vestra_invoice_wrap(string $s, float $maxW, float $size, bool $bold = false): array {
-    /* Olcum VestraPdf ile AYNI fonksiyondan (inc/pdf.php): CJK tam genislik. */
-    $wide = fn(string $t): float => vestra_pdf_width($t, $size, $bold);
-    $chop = function (string $w) use ($wide, $maxW): array {
+function vestra_invoice_wrap(string $s, float $maxW, float $size, bool $bold = false, bool $exact = false): array {
+    /* Olcum VestraPdf ile AYNI fonksiyondan (inc/pdf.php): CJK tam genislik.
+       $exact: MODEL KODU sutunlari icin Helvetica'nin gercek AFM genisligi
+       (vestra_pdf_width_afm) -- 0.52 em ortalamasi buyuk harf + rakamda ~%15
+       DAR olcuyor ve kod komsu sutunun uzerine basiyordu (28 Eyl 2026). */
+    $wide = $exact ? fn(string $t): float => vestra_pdf_width_afm($t, $size, $bold)
+                   : fn(string $t): float => vestra_pdf_width($t, $size, $bold);
+    $chop = function (string $w) use ($wide, $maxW, $exact): array {
         $out = []; $cur = '';
         foreach (preg_split('//u', $w, -1, PREG_SPLIT_NO_EMPTY) as $ch) {
-            if ($cur !== '' && $wide($cur.$ch) > $maxW) { $out[] = $cur; $cur = ''; }
+            if ($cur !== '' && $wide($cur.$ch) > $maxW) {
+                /* Kod sutununda (exact) kod KENDI ayiracindan kirilir: "TENNIS-CLUB-" /
+                   "ICON-WHITE", "TENNIS-CLUB-ICON" / "-WHITE" degil. Kuyruk yeni
+                   karakterle sigmiyorsa eski davranis (harf harf). Genel metin
+                   sarmasi bu daldan HIC gecmez. */
+                $p = $exact ? max((int)strrpos($cur, '-'), (int)strrpos($cur, '/')) : 0;
+                if ($p > 0 && $p < strlen($cur) - 1 && $wide(substr($cur, $p + 1).$ch) <= $maxW) {
+                    $out[] = substr($cur, 0, $p + 1); $cur = substr($cur, $p + 1);
+                } else { $out[] = $cur; $cur = ''; }
+            }
             $cur .= $ch;
         }
         if ($cur !== '') $out[] = $cur;
@@ -949,15 +962,23 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
            fatura ve siparis e-postasi ayni fonksiyonu cagiriyor. */
         $desc = vestra_product_label((string)($it['brand'] ?? ''), (string)($it['name'] ?? ''));
         $descLines = vestra_invoice_wrap($desc, $colCol - $colDesc - 6, 9);
-        $skuLines  = vestra_invoice_wrap((string)($it['sku'] ?? ''), $colDesc - $colSku - 8, 8);
-        $rowH = max(13, max(count($descLines), count($skuLines)) * 11) + 8;
+        $skuLines  = vestra_invoice_wrap((string)($it['sku'] ?? ''), $colDesc - $colSku - 8, 8, false, true);
+        /* RENK SUTUNU DA SATIR YUKSEKLIGINE GIRER (1 Eki 2026, INV-2026-1022).
+           Satir yuksekligi yalniz aciklama ve SKU satirlarindan hesaplaniyordu; renk
+           listesi ise ~84 pt'lik dar sutuna sarilip satir basina 10 pt ilerliyor.
+           Bir kalemde 10 renk (numune kolisi: "her renkten bir parca") 6 satira
+           sariliyor, satir ise 30 pt yer ayiriyordu: renkler alttaki kalemin ve
+           toplam blogunun ustune basti. Metin sondasi "11/11 SKU cizili" ve "toplam
+           VAR" dedi -- ikisi de dogruydu, NEREYE cizildigini kimse sormadi; belgeyi
+           gozle acmak gerekti (SKU sutunundaki 28 Eyl kusurunun ayni sinifi). */
+        $colLines  = !empty($it['colors'])
+            ? vestra_invoice_wrap(implode(', ', (array)$it['colors']), $colQty - $colCol - 6, 8)
+            : [];
+        $rowH = max(13, max(count($descLines), count($skuLines), count($colLines)) * 11) + 8;
         $need($rowH);
         foreach ($skuLines as $j => $sl)  $pdf->text($colSku,  $y - ($j * 10), 8, $sl);
         foreach ($descLines as $j => $dl) $pdf->text($colDesc, $y - ($j * 11), 9, $dl);
-        if (!empty($it['colors'])) {
-            $colTxt = implode(', ', (array)$it['colors']);
-            foreach (vestra_invoice_wrap($colTxt, $colQty - $colCol - 6, 8) as $j => $cl) $pdf->text($colCol, $y - ($j * 10), 8, $cl);
-        }
+        foreach ($colLines as $j => $cl)  $pdf->text($colCol,  $y - ($j * 10), 8, $cl);
         $pdf->text($colQty, $y, 9, (string)((int)($it['qty'] ?? 0)));
         $pdf->text($colUnit, $y, 9, $money($it['unit'] ?? 0));
         $pdf->textR($right - 4, $y, 9, $money($it['line'] ?? 0));

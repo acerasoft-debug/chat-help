@@ -435,6 +435,43 @@ class VestraPdf {
 }
 
 /**
+ * Bu yazıcının ürettiği bir PDF'e GERÇEKTEN çizilmiş Latin metin — "belgede X
+ * yazıyor mu" sorusunun ölçüsü (28 Eyl 2026, VES-60594A18: modeli değişen
+ * siparişin faturasında yeni SKU VAR, eskisi YOK mu).
+ *
+ * Neden ham bayt araması yetmiyor: dar sütunlarda uzun bir değer iki satıra
+ * SARILIYOR ("TENNIS-CLUB-ICON-WH" / "ITE") ve tam dizge hamda hiç geçmiyor;
+ * önekle aramak ise aynı öneki paylaşan iki SKU'yu (…-WHITE / …-NAVYBLUE)
+ * ayıramıyor. Çizim sırası korunarak AYIRAÇSIZ birleştirildiğinde sarılmış
+ * değer yeniden bütünleşir. Bedeli: yalnız "bu metin çizildi mi" sorusu için
+ * geçerli (komşu hücreler de birbirine yapışık gelir).
+ *
+ * Yalnız içerik akışları okunur: görsel (/Subtype /Image) ve gömülü yazı tipi
+ * (/Length1) akışları atlanır — JPEG baytı tesadüfen "(...) Tj"ye benzeyebilir.
+ * Uzunluk başlıktaki /Length'ten alınır, "endstream" aranmaz (ikili veri onu
+ * içerebilir). Sıkıştırılmış belgede '' döner: "yok" demek yerine ölçülemedi.
+ * CJK (onaltılık <...> Tj) dizgeleri kapsam dışı.
+ */
+function vestra_pdf_drawn_text(string $pdf): string {
+    if ($pdf === '' || str_contains($pdf, '/FlateDecode')) return '';
+    if (!preg_match_all('/\d+ 0 obj\n(<<[^\n]*?) \/Length (\d+) >>\nstream\n/', $pdf, $mm, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) return '';
+    $out = '';
+    foreach ($mm as $m) {
+        $dict = $m[1][0];
+        if (str_contains($dict, '/Subtype /Image') || str_contains($dict, '/Length1')) continue;
+        $data = substr($pdf, $m[0][1] + strlen($m[0][0]), (int)$m[2][0]);
+        if (!preg_match_all('/\(((?:[^()\\\\]|\\\\.)*)\)\s*Tj/s', $data, $tm)) continue;
+        foreach ($tm[1] as $s) {
+            $s = (string)preg_replace_callback('/\\\\([0-7]{1,3}|.)/s',
+                fn($e) => ctype_digit($e[1][0]) ? chr(octdec($e[1]) & 0xFF) : $e[1], $s);
+            $u = @iconv('CP1252', 'UTF-8//IGNORE', $s);
+            $out .= $u === false ? $s : $u;
+        }
+    }
+    return $out;
+}
+
+/**
  * Bir dizgenin cizilecegi genislik (punto cinsinden).
  *
  * TEK OLCUM YERI: hem VestraPdf::strWidth() hem vestra_invoice_wrap() bunu
@@ -459,6 +496,46 @@ function vestra_pdf_width(string $s, float $size, bool $bold = false): float {
         }
     }
     return mb_strlen($s) * $size * ($bold ? 0.60 : 0.52);
+}
+
+/**
+ * Helvetica / Helvetica-Bold'un GERCEK genisligi (Adobe AFM, WinAnsi), punto cinsinden.
+ *
+ * vestra_pdf_width() Latin metinde 0.52 em ORTALAMA kullaniyor: karisik harfli
+ * metinde bu yeterince yakin (cogu zaman biraz GENIS), ama BUYUK HARF + rakam +
+ * tireden olusan MODEL KODLARINDA ~%15 DAR olcuyor. 28 Eyl 2026'da belgenin
+ * kendisinden olculdu (INV-2026-1016): "TENNIS-CLUB-ICON-WH" 8 pt'de 92,0 pt
+ * cizildi, ortalama 79 pt dedi -- sarma "sigdi" sanip SKU'yu aciklama
+ * sutununun 4 pt ICINE basti ("…ICON-WHCasablanca").
+ *
+ * Genel olcu (vestra_pdf_width) BILEREK degistirilmedi: fiyat listesinin ad
+ * kirpmalari (array_slice 0,2) ve kur notunun sarma testleri ona gore ayarli;
+ * onu degistirmek her PDF'in duzenini birden kaydirir. Bu fonksiyon yalniz
+ * KOD sutunlari icin (fatura ve siparis PDF'inin SKU sutunu).
+ *
+ * Tablo 32..126; iki tablo da PyMuPDF'in Base-14 olculeriyle 95/95 dogrulandi.
+ * Tabloda olmayan karakter (ASCII disi) vestra_pdf_width()'e duser -- CJK dahil.
+ */
+function vestra_pdf_width_afm(string $s, float $size, bool $bold = false): float {
+    static $reg = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,
+        556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,
+        667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,
+        278,278,278,469,556,333,
+        556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,
+        334,260,334,584];
+    static $bld = [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,
+        556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,
+        722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,
+        333,278,333,584,556,333,
+        556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,
+        389,280,389,584];
+    $tab = $bold ? $bld : $reg;
+    $w = 0.0;
+    foreach (preg_split('//u', $s, -1, PREG_SPLIT_NO_EMPTY) as $ch) {
+        $o = strlen($ch) === 1 ? ord($ch) : 0;
+        $w += ($o >= 32 && $o <= 126) ? $tab[$o - 32] * $size / 1000 : vestra_pdf_width($ch, $size, $bold);
+    }
+    return $w;
 }
 
 /**

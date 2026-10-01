@@ -49,7 +49,7 @@ $haystack = function(array $p) use ($norm) {
   return $norm(implode('|', array_map('strval', $bits)));
 };
 
-$ALLOWED = ['cat','price','moq','tiers','offers','sizes','name','name_i18n','desc','desc_i18n','status','sample_price','sample_platform_pay','seller_uid','seller','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','dropship_off','sale_list','ships_from','sold_out','preorder_ship',
+$ALLOWED = ['cat','price','moq','tiers','offers','sizes','name','name_i18n','desc','desc_i18n','status','sample_price','sample_platform_pay','seller_uid','seller','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','dropship_off','sale_list','ships_from','sold_out','preorder_ship','stock','colorqty','redirect_to',
             'group','group_target','group_price','group_deposit_pct','group_balance_days','group_extend_days','group_started','group_deadline','group_extended_to','group_min_qty','group_models','group_title','group_min_colors'];
 /* group_extended_to: cron_pool_sweep.php'nin bir havuzu KENDI koydugu tek seferlik
    uzatma tarihi (inc/products.php: vestra_group_deadline() bu alani group_deadline'in
@@ -230,6 +230,67 @@ foreach ($fixes as $n => $fx) {
     ];
   }
 
+  /* stock: GERCEK beden stogu (inc/stock.php: vestra_stock_real). Tedarikci
+     listesinden gelen adet; fiyat listeleri turetilmis bandin yerine bunu basar.
+     null = alani KALDIR (liste turetilmis banda doner). Dogrulama add-products
+     ile AYNI ve HEPSI ya da HICBIRI: yarim okunmus bir stok satiri, yanlis bir
+     stok satiridir. JSON'da "44" gibi sayisal beden PHP'de int anahtar olur --
+     anahtar (string)'e cevrilip denetleniyor; duz dizi ([2,6,5]) beden bilgisi
+     tasimadigi icin reddediliyor. */
+  if (array_key_exists('stock', $set) && $set['stock'] !== null) {
+    $rs = $set['stock'];
+    if (!is_array($rs) || !$rs || array_keys($rs) === range(0, count($rs) - 1)) {
+      $errors[] = "{$ctx} ({$m}): stock {beden: adet} nesnesi ya da null olmali"; continue;
+    }
+    /* IKI SEKIL (inc/stock.php: vestra_stock_real): duz {beden: adet} ya da renk
+       basina {renk: {beden: adet}} -- cok renkli TEK ilan (Burberry pike polo,
+       8 model, 29 Eyl 2026). Karisik sekil reddedilir; renk adlari ilanin kendi
+       renk listesinde olmak ZORUNDA (asagida, ilan bulununca denetleniyor):
+       olmayan bir rengin stogu, hicbir alicinin secemeyecegi bir stoktur. */
+    $flatOk = function (array $mm, string &$why): ?array {
+      $o = [];
+      foreach ($mm as $sz => $q) {
+        $sz = trim((string)$sz);
+        if (!preg_match('/^[A-Za-z0-9]{1,6}$/', $sz) || !is_int($q) || $q < 0) { $why = $sz; return null; }
+        $o[$sz] = $q;
+      }
+      return $o;
+    };
+    $nested = true; $anyArr = false;
+    foreach ($rs as $v0) { if (is_array($v0)) $anyArr = true; else $nested = false; }
+    $why = '';
+    if (!$anyArr) {
+      $stk = $flatOk($rs, $why);
+      if ($stk === null) { $errors[] = "{$ctx} ({$m}): stock icinde gecersiz beden/adet ('{$why}')"; continue; }
+    } elseif (!$nested) {
+      $errors[] = "{$ctx} ({$m}): stock ya {beden: adet} ya {renk: {beden: adet}} olmali, ikisi karisik olamaz"; continue;
+    } else {
+      $stk = [];
+      foreach ($rs as $cn => $mm) {
+        $cn = trim((string)$cn);
+        $o = ($cn === '' || !$mm) ? null : $flatOk((array)$mm, $why);
+        if ($o === null) { $errors[] = "{$ctx} ({$m}): stock.{$cn} icinde gecersiz beden/adet ('{$why}')"; continue 2; }
+        $stk[$cn] = $o;
+      }
+    }
+    $set['stock'] = $stk;
+  }
+  /* colorqty: parca (lot 1) ilanda renk basina adet secici (vestra_is_colorqty_listing).
+     sold_out ile ayni kural: yalniz gercek bool. */
+  if (array_key_exists('colorqty', $set) && !is_bool($set['colorqty'])) {
+    $errors[] = "{$ctx} ({$m}): colorqty true ya da false (tirnaksiz) olmali"; continue;
+  }
+  /* redirect_to: bu ilan bir BASKASINA katlandi (vestra_product_redirect). Hedef
+     kayitta VAR olmali ve kendisi olamaz; null alani kaldirir. Yazim hatasi
+     yapilmis bir hedef, mektuplardaki eski adresi 404'e yollar -- burada durur. */
+  if (array_key_exists('redirect_to', $set) && $set['redirect_to'] !== null) {
+    $rt = trim((string)$set['redirect_to']);
+    $rtOk = false;
+    foreach ($all as $pp) if (trim((string)($pp['id'] ?? '')) === $rt) { $rtOk = true; break; }
+    if ($rt === '' || !$rtOk) { $errors[] = "{$ctx} ({$m}): redirect_to '{$rt}' kayitta yok"; continue; }
+    $set['redirect_to'] = $rt;
+  }
+
   /* ─── Havuz (grup alimi) alanlari ───────────────────────────────
      Bu alanlar dogrudan PARA belirliyor: group_price alicinin odeyecegi
      birim fiyat, group_deposit_pct ise katilim aninda kartindan cekilecek
@@ -351,6 +412,19 @@ foreach ($fixes as $n => $fx) {
   $stepNew = isset($set['size_step']) ? (int)$set['size_step'] : null;
   $moqNew  = isset($set['moq'])       ? (int)$set['moq']       : null;
   foreach ($idx as $i) {
+    /* Renk basina stok: her renk ilanin renk listesinde olmali (ayni istekte
+       gelen liste varsa ondan, yoksa kayittakinden). */
+    if (isset($set['stock']) && is_array($set['stock']) && is_array(reset($set['stock']))) {
+      $offeredC = isset($set['colors']) && is_array($set['colors']) ? $set['colors'] : (array)($all[$i]['colors'] ?? []);
+      $offeredC = array_map(fn($c) => trim((string)$c), $offeredC);
+      foreach (array_keys($set['stock']) as $cn) if (!in_array((string)$cn, $offeredC, true)) {
+        $errors[] = "{$ctx} ({$m}): stock rengi '{$cn}' ilanin renk listesinde yok (".implode(', ', $offeredC).")";
+        continue 3;
+      }
+    }
+    if (isset($set['redirect_to']) && trim((string)$set['redirect_to']) === trim((string)($all[$i]['id'] ?? ''))) {
+      $errors[] = "{$ctx} ({$m}): redirect_to ilanin kendisi olamaz"; continue 2;
+    }
     $step = $stepNew ?? (int)($all[$i]['size_step'] ?? 0);
     $moq  = $moqNew  ?? (int)($all[$i]['moq'] ?? 0);
     if ($step > 1 && $moq > 0 && $moq % $step !== 0) {
@@ -553,6 +627,41 @@ foreach ($plan as [$i, $set, $m]) {
       $line[] = 'sold_out '.($old?'true':'false').' -> '.($v?'true':'false')
               . ($v ? '  (satin alinamaz; vitrinde SOLD rozetiyle durur)' : '  (yeniden SATISTA)');
       $all[$i]['sold_out'] = $v;   // gercek bool, "1"/"" degil
+      $changes++;
+    } elseif ($k === 'stock') {
+      /* Genel dal diziyi (string)'e cevirip "Array" yazardi. null alani
+         kaldirir: liste turetilmis banda doner. Renk basina sekilde satir
+         basina bir renk basilir. */
+      $fmtFlat = fn(array $st) => implode(' · ', array_map(fn($a, $b) => $a.' '.$b, array_keys($st), $st)).' ('.array_sum($st).' ad.)';
+      $fmtS = function ($st) use ($fmtFlat): string {
+        if (!is_array($st) || !$st) return '(kayitli stok yok -- turetilmis bant)';
+        if (is_array(reset($st))) {
+          $bits = []; $tot = 0;
+          foreach ($st as $cn => $mm) { $bits[] = $cn.': '.$fmtFlat((array)$mm); $tot += array_sum((array)$mm); }
+          return "\n          ".implode("\n          ", $bits)."\n          toplam ".$tot.' ad.';
+        }
+        return $fmtFlat($st);
+      };
+      $old = is_array($p['stock'] ?? null) ? $p['stock'] : null;
+      if ($old === $v) continue;
+      $line[] = 'stock '.$fmtS($old).' -> '.$fmtS($v);
+      if ($v === null) unset($all[$i]['stock']); else $all[$i]['stock'] = $v;
+      $changes++;
+    } elseif ($k === 'colorqty') {
+      /* sold_out ile ayni sebep: genel dal (string)false = "" yazardi. */
+      $old = !empty($p['colorqty']);
+      if ($old === $v) continue;
+      $line[] = 'colorqty '.($old?'true':'false').' -> '.($v?'true':'false')
+              . ($v ? '  (renk basina adet secici, lot 1)' : '  (renk basina adet secici KAPALI)');
+      if ($v) $all[$i]['colorqty'] = true; else unset($all[$i]['colorqty']);
+      $changes++;
+    } elseif ($k === 'redirect_to') {
+      $old = trim((string)($p['redirect_to'] ?? ''));
+      $new = $v === null ? '' : trim((string)$v);
+      if ($old === $new) continue;
+      $line[] = 'redirect_to '.($old === '' ? '(yok)' : $old).' -> '.($new === '' ? '(kaldirildi)' : $new)
+              . ($new !== '' ? '  (urun sayfasi 301 ile oraya gider; bu kaydi status=rejected ile de kapatin)' : '');
+      if ($new === '') unset($all[$i]['redirect_to']); else $all[$i]['redirect_to'] = $new;
       $changes++;
     } elseif ($k === 'dropship_off') {
       $old = !empty($p['dropship_off']);

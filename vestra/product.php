@@ -1,7 +1,15 @@
 <?php
 require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/dropship.php';   // vestra_dropship_enabled()
+require_once __DIR__.'/inc/stock.php';      // vestra_stock_real() -- recorded per-size stock (KURAL 15: own require)
 $p = vestra_find($_GET['id'] ?? '');
+/* Bir baskasina KATLANMIS ilan (bkz. vestra_product_redirect): eski adres mektuplarda
+   duruyor, 404 yerine yeni ilana 301. Kalici yonlendirme, cunku eski kayit bilerek
+   kapatildi ve geri acilmayacak. */
+if (!$p) {
+  $__to = vestra_product_redirect((string)($_GET['id'] ?? ''));
+  if ($__to !== null) { http_response_code(301); header('Location: /product?id='.rawurlencode($__to)); exit; }
+}
 /* SATILDI: sayfanin her yerinde tek karar. Satin alma bloklari bunun
    uzerinden kapaniyor; sunucu kapilari ayrica order.php/offer.php/
    sample-checkout.php/dropship-checkout.php icinde duruyor -- dugmeyi
@@ -70,20 +78,39 @@ $verifyHref = !$AUTH_USER
 
 /* Carton/lot listings (e.g. Lacoste & Ralph Lauren polos: min_colors + size_step) get a
    per-colour quantity picker — 0/8/16/24… per colour — instead of plain checkboxes, so the
-   buyer builds their own colour mix directly (matches how these ship: cartons per colourway). */
-$cqMode = !empty($p['colors']) && !empty($p['min_colors']) && (int)($p['size_step'] ?? 0) > 1;
+   buyer builds their own colour mix directly (matches how these ship: cartons per colourway).
+   KARAR TEK YERDE (vestra_is_colorqty_listing): bu sayfa ile /order ve /offer ayni
+   fonksiyonu soruyor; eskiden kosul burada iki kez elle yaziliydi. Lot-1 ilanda (colorqty
+   bayragi) secim kutusu yerine sayi alani ciziliyor -- 0..8 secenekli bir liste 20 adetlik
+   bir minimuma hic ulasamazdi. */
+$cqMode = vestra_is_colorqty_listing($p);
+/* Renk basina adet alani: paketli ilanda 0/8/16… secim kutusu, parca ilanda serbest sayi. */
+function vestra_colorqty_field(string $cn, int $step, string $onchange, string $name = ''): string {
+    $attr = ' data-color="'.htmlspecialchars($cn).'"'.($name !== '' ? ' name="'.htmlspecialchars($name).'"' : '');
+    if ($step > 1) {
+        $h = '<select'.$attr.' onchange="'.$onchange.'">';
+        for ($k = 0; $k <= 8; $k++) { $v = $k * $step; $h .= '<option value="'.$v.'">'.$v.'</option>'; }
+        return $h.'</select>';
+    }
+    return '<input type="number" min="0" step="1" value="0" inputmode="numeric" style="width:72px"'.$attr
+         . ' oninput="'.$onchange.'" onchange="'.$onchange.'">';
+}
 function vestra_colorqty_picker(array $p, string $idSuffix): string {
-    $step = (int)($p['size_step'] ?? 1);
-    $pal  = vestra_colors();
+    $step = vestra_pack_size($p);
     $h = '<div class="colorqty" id="cq-'.$idSuffix.'">';
     foreach ((array)$p['colors'] as $cn) {
-        $h .= '<div class="cqrow"><span class="cdot" style="background:'.($pal[$cn] ?? '#666').'"></span>'
-            . '<span class="cqname">'.htmlspecialchars(t($cn)).'</span>'
-            . '<select name="cq['.htmlspecialchars($cn).']" data-color="'.htmlspecialchars($cn).'" onchange="cqSync(\''.$idSuffix.'\')">';
-        for ($k = 0; $k <= 8; $k++) { $v = $k * $step; $h .= '<option value="'.$v.'">'.$v.'</option>'; }
-        $h .= '</select></div>';
+        $h .= '<div class="cqrow"><span class="cdot" style="background:'.vestra_colour_css((string)$cn).'"></span>'
+            . '<span class="cqname">'.htmlspecialchars(vestra_colour_label((string)$cn)).'</span>'
+            . vestra_colorqty_field((string)$cn, $step, 'cqSync(\''.$idSuffix.'\')', 'cq['.$cn.']')
+            . '</div>';
     }
     return $h.'</div>';
+}
+/* "Quantity per colour — at least N · multiples of S": adim 1 ise ikinci parca basilmiyor. */
+function vestra_colorqty_hint(array $p): string {
+    $step = vestra_pack_size($p);
+    return t('Quantity per colour').' — '.vestra_colours_phrase((int)$p['min_colors'])
+         . ($step > 1 ? ' · '.sprintf(t('multiples of %d'), $step) : '');
 }
 ?>
 <div class="wrap">
@@ -263,6 +290,33 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <div class="spec-row"><span><?= t('Returns') ?></span><b><a class="acc" href="/faq?cat=returns"><?= t('Returns &amp; claims') ?></a></b></div>
       </div>
 
+      <?php /* KAYITLI beden stogu (inc/stock.php: vestra_stock_real). Yalnizca ilan
+               tedarikci listesinden gelen GERCEK adedi tasiyorsa cizilir; turetilmis
+               bant (fiyat listelerinin yedegi) buraya hic girmez -- sayfada "stokta"
+               diye yazan her rakam tedarikcinin verdigi rakam. Cok renkli tek ilanda
+               (Burberry pike polo, 8 model, 29 Eyl 2026) satir basina bir RENK: alici
+               siparisi renk basina veriyor ve hangi rengin kac parcasi oldugunu tam
+               burada okuyor. Stok bir fiyat degil; fiyat kapisindan bagimsiz. */
+        $__stk = vestra_stock_real($p);
+        if ($__stk !== null):
+          $__rows = vestra_stock_rows($__stk); $__byc = !empty($__stk['by_colour']);
+          $__sz = []; foreach ($__rows as $__r) foreach (array_keys($__r['sizes']) as $__s) $__sz[$__s] = true; $__sz = array_keys($__sz); ?>
+      <div class="stockbox" style="margin:14px 0">
+        <div class="hint"><?= sprintf(t('%d pcs in stock'), (int)$__stk['total']) ?></div>
+        <div class="vscroll"><table class="tiers stocktbl" style="margin:8px 0">
+          <thead><tr><?php if ($__byc): ?><th><?= t('Colours') ?></th><?php endif; ?>
+            <?php foreach ($__sz as $__s): ?><th><?= htmlspecialchars((string)$__s) ?></th><?php endforeach; ?>
+            <th><?= t('Total') ?></th></tr></thead>
+          <tbody>
+          <?php foreach ($__rows as $__r): ?>
+            <tr><?php if ($__byc): ?><td><span class="cdot" style="background:<?= vestra_colour_css($__r['colour']) ?>;display:inline-block;vertical-align:middle"></span> <?= htmlspecialchars(vestra_colour_label($__r['colour'])) ?></td><?php endif; ?>
+              <?php foreach ($__sz as $__s): ?><td class="mono"><?= isset($__r['sizes'][$__s]) ? (int)$__r['sizes'][$__s] : '—' ?></td><?php endforeach; ?>
+              <td class="mono"><b><?= (int)$__r['total'] ?></b></td></tr>
+          <?php endforeach; ?>
+          </tbody></table></div>
+      </div>
+      <?php endif; ?>
+
       <?php if(!empty($p['linesheet'])): ?>
         <?php if($APPROVED): ?>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0">
@@ -392,7 +446,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
             <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;inset-inline-start:-9999px">
             <?php if($cqMode): ?>
             <div style="margin-bottom:12px">
-              <label class="hint"><?= t('Quantity per colour') ?> — <?= vestra_colours_phrase((int)$p['min_colors']) ?> · <?= sprintf(t('multiples of %d'), (int)$p['size_step']) ?></label>
+              <label class="hint"><?= vestra_colorqty_hint($p) ?></label>
               <?= vestra_colorqty_picker($p,'main') ?>
               <div class="warn" id="cqwarn-main" style="display:none;margin-top:8px"></div>
               <div class="hint" style="margin-top:6px"><?= t('Total quantity') ?>: <b><span id="cqtotal-main">0</span> <?= htmlspecialchars($p['unit']) ?></b></div>
@@ -406,8 +460,8 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
             <?php if(!empty($p['colors']) && !empty($p['min_colors'])): ?>
             <div style="margin-bottom:12px"><label class="hint"><?= t('Choose your colours') ?> — <?= sprintf(t('at least %d'), (int)$p['min_colors']) ?></label>
               <div class="colorpick" data-min="<?= (int)$p['min_colors'] ?>">
-                <?php $pal=vestra_colors(); foreach((array)$p['colors'] as $cn): ?>
-                <label class="colorchip"><input type="checkbox" name="colors[]" value="<?= htmlspecialchars($cn) ?>"><span class="cdot" style="background:<?= $pal[$cn]??'#666' ?>"></span><?= htmlspecialchars(t($cn)) ?></label>
+                <?php foreach((array)$p['colors'] as $cn): ?>
+                <label class="colorchip"><input type="checkbox" name="colors[]" value="<?= htmlspecialchars($cn) ?>"><span class="cdot" style="background:<?= vestra_colour_css((string)$cn) ?>"></span><?= htmlspecialchars(vestra_colour_label((string)$cn)) ?></label>
                 <?php endforeach; ?>
               </div>
               <div class="warn vcolwarn" style="display:none;margin-top:8px"><?= vestra_colours_warn((int)$p['min_colors']) ?></div>
@@ -476,18 +530,16 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
             <div class="warn" id="szwarn" style="display:none;margin-top:8px"><?= t('Choose at least one size.') ?></div>
           </div>
           <?php endif; ?>
-          <?php $colorQtyMode = !empty($p['colors']) && !empty($p['min_colors']) && (int)($p['size_step']??0) > 1; ?>
-          <?php if($colorQtyMode): $cqStep=(int)$p['size_step']; ?>
+          <?php $colorQtyMode = $cqMode; /* tek karar noktasi: vestra_is_colorqty_listing */ ?>
+          <?php if($colorQtyMode): $cqStep=vestra_pack_size($p); ?>
           <div style="margin-bottom:14px">
-            <label class="hint"><?= t('Quantity per colour') ?> — <?= vestra_colours_phrase((int)$p['min_colors']) ?> · <?= sprintf(t('multiples of %d'), $cqStep) ?></label>
+            <label class="hint"><?= vestra_colorqty_hint($p) ?></label>
             <div class="colorqty" id="ordColors">
-              <?php $pal=vestra_colors(); foreach((array)$p['colors'] as $cn): ?>
+              <?php foreach((array)$p['colors'] as $cn): ?>
               <div class="cqrow">
-                <span class="cdot" style="background:<?= $pal[$cn]??'#666' ?>"></span>
-                <span class="cqname"><?= htmlspecialchars(t($cn)) ?></span>
-                <select data-color="<?= htmlspecialchars($cn) ?>" onchange="recalc()">
-                  <?php for($k=0;$k<=8;$k++): $v=$k*$cqStep; ?><option value="<?= $v ?>"><?= $v ?></option><?php endfor; ?>
-                </select>
+                <span class="cdot" style="background:<?= vestra_colour_css((string)$cn) ?>"></span>
+                <span class="cqname"><?= htmlspecialchars(vestra_colour_label((string)$cn)) ?></span>
+                <?= vestra_colorqty_field((string)$cn, $cqStep, 'recalc()') ?>
               </div>
               <?php endforeach; ?>
             </div>
@@ -509,8 +561,8 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           <?php if($pickColors): ?>
           <div style="margin-bottom:14px"><label class="hint"><?= t('Choose your colours') ?> — <?= $minColors > 0 ? sprintf(t('at least %d'), $minColors) : t('at least one') ?></label>
             <div class="colorpick" id="ordColors">
-              <?php $pal=vestra_colors(); foreach($pickColors as $cn): ?>
-              <label class="colorchip"><input type="checkbox" value="<?= htmlspecialchars($cn) ?>" onchange="recalc()"><span class="cdot" style="background:<?= $pal[$cn]??'#666' ?>"></span><?= htmlspecialchars(t($cn)) ?></label>
+              <?php foreach($pickColors as $cn): ?>
+              <label class="colorchip"><input type="checkbox" value="<?= htmlspecialchars($cn) ?>" onchange="recalc()"><span class="cdot" style="background:<?= vestra_colour_css((string)$cn) ?>"></span><?= htmlspecialchars(vestra_colour_label((string)$cn)) ?></label>
               <?php endforeach; ?>
             </div>
             <div class="warn" id="clwarn" style="display:none;margin-top:8px"><?= t('Choose at least one colour.') ?></div>
@@ -555,7 +607,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
               <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;inset-inline-start:-9999px">
               <?php if($cqMode): ?>
               <div style="margin-bottom:10px">
-                <label class="hint"><?= t('Quantity per colour') ?> — <?= vestra_colours_phrase((int)$p['min_colors']) ?> · <?= sprintf(t('multiples of %d'), (int)$p['size_step']) ?></label>
+                <label class="hint"><?= vestra_colorqty_hint($p) ?></label>
                 <?= vestra_colorqty_picker($p,'sub') ?>
                 <div class="warn" id="cqwarn-sub" style="display:none;margin-top:8px"></div>
                 <div class="hint" style="margin-top:6px"><?= t('Total quantity') ?>: <b><span id="cqtotal-sub">0</span> <?= htmlspecialchars($p['unit']) ?></b></div>
@@ -569,8 +621,8 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
               <?php if(!empty($p['colors']) && !empty($p['min_colors'])): ?>
               <div style="margin-bottom:10px"><label class="hint"><?= t('Choose your colours') ?> — <?= sprintf(t('at least %d'), (int)$p['min_colors']) ?></label>
                 <div class="colorpick" data-min="<?= (int)$p['min_colors'] ?>">
-                  <?php $pal=vestra_colors(); foreach((array)$p['colors'] as $cn): ?>
-                  <label class="colorchip"><input type="checkbox" name="colors[]" value="<?= htmlspecialchars($cn) ?>"><span class="cdot" style="background:<?= $pal[$cn]??'#666' ?>"></span><?= htmlspecialchars(t($cn)) ?></label>
+                  <?php foreach((array)$p['colors'] as $cn): ?>
+                  <label class="colorchip"><input type="checkbox" name="colors[]" value="<?= htmlspecialchars($cn) ?>"><span class="cdot" style="background:<?= vestra_colour_css((string)$cn) ?>"></span><?= htmlspecialchars(vestra_colour_label((string)$cn)) ?></label>
                   <?php endforeach; ?>
                 </div>
                 <div class="warn vcolwarn" style="display:none;margin-top:8px"><?= vestra_colours_warn((int)$p['min_colors']) ?></div>
@@ -656,9 +708,10 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           if(CUR.step>0) v=Math.ceil(Math.round(v/CUR.step*1e6)/1e6)*CUR.step;
           return CUR.sym+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
         function bump(d){ var el=document.getElementById('qty'); el.value=Math.max(P.moq,(parseInt(el.value)||P.moq)+d); recalc(); }
-        /* Per-colour qty selects (carton listings) vs plain checkboxes */
+        /* Per-colour qty fields (carton listings: selects; by-the-piece listings with the
+           colorqty flag: number inputs) vs plain checkboxes. Both carry data-color. */
         function cqSelects(){ var el=document.getElementById('ordColors'); if(!el) return null;
-          var s=el.querySelectorAll('select[data-color]'); return s.length?s:null; }
+          var s=el.querySelectorAll('[data-color]'); return s.length?s:null; }
         function ordColors(){ var s=cqSelects();
           if(s) return Array.prototype.filter.call(s,function(x){return parseInt(x.value)>0;})
                      .map(function(x){return x.dataset.color+' ×'+parseInt(x.value);});
@@ -783,8 +836,8 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <tr>
           <td><div class="vcol">
             <?php if ($MEMBER && !empty($v['image'])): ?><img class="varthumb" src="<?= htmlspecialchars($v['image']) ?>" alt="<?= htmlspecialchars(trim($_imgAlt.' '.t($cn))) ?>" loading="lazy">
-            <?php else: ?><span class="vdot" style="background:<?= htmlspecialchars($pal[$cn] ?? '#888') ?>"></span><?php endif; ?>
-            <?= htmlspecialchars(t($cn)) ?>
+            <?php else: ?><span class="vdot" style="background:<?= htmlspecialchars(vestra_colour_css((string)$cn)) ?>"></span><?php endif; ?>
+            <?= htmlspecialchars(vestra_colour_label((string)$cn)) ?>
           </div></td>
           <td class="mono"><?= htmlspecialchars($v['art'] ?? '—') ?></td>
           <td class="mono"><?= htmlspecialchars($v['model'] ?? '—') ?></td>
@@ -1020,7 +1073,7 @@ function vcolOk(f){
    and the running total display for the given picker instance ('main' | 'sub'). */
 function cqSync(suffix){
   var wrap=document.getElementById('cq-'+suffix); if(!wrap) return 0;
-  var t=0; wrap.querySelectorAll('select[data-color]').forEach(function(s){ t+=parseInt(s.value)||0; });
+  var t=0; wrap.querySelectorAll('[data-color]').forEach(function(s){ t+=parseInt(s.value)||0; });
   var qtyEl=document.getElementById('qty-'+suffix); if(qtyEl) qtyEl.value=t;
   var totEl=document.getElementById('cqtotal-'+suffix); if(totEl) totEl.textContent=t;
   return t;
@@ -1028,7 +1081,7 @@ function cqSync(suffix){
 function cqOk(f,suffix){
   var need=<?= (int)($p['min_colors']??0) ?>;
   var wrap=document.getElementById('cq-'+suffix), warn=document.getElementById('cqwarn-'+suffix);
-  var got=0; if(wrap) wrap.querySelectorAll('select[data-color]').forEach(function(s){ if(parseInt(s.value)>0) got++; });
+  var got=0; if(wrap) wrap.querySelectorAll('[data-color]').forEach(function(s){ if(parseInt(s.value)>0) got++; });
   var t=cqSync(suffix);
   if(got<need || t<=0){
     if(warn){ warn.textContent=<?= json_encode(vestra_colours_warn((int)($p['min_colors']??0))) ?>; warn.style.display='block'; }

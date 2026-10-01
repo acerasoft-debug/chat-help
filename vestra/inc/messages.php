@@ -363,13 +363,25 @@ function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, s
       "{$fromLabel} sent a message on VESTRA".($listingId !== '' ? " (listing {$listingId})" : '').":\n\n".
       mb_substr($text, 0, 400)."\n\n".
       "Thread: https://vestrasales.com/admin?tab=messages");
-    // Push ping to the recipient's installed devices (fire-and-forget).
+    // Push to the recipient's installed devices (fire-and-forget).
     if ($recipient !== '') {
         require_once __DIR__.'/push.php';
         $recPanel = ($recipient === $sellerUid) ? 'seller' : 'buyer';
-        vestra_push_send($recipient, 'VESTRA — new message',
-            mb_substr(preg_replace('/\s+/', ' ', $text), 0, 90),
-            '/'.$recPanel.'?tab=messages');
+        /* Baslik GONDEREN, alicinin gormeye izinli oldugu adla (KURAL 8): aliciya
+           saticinin urun kimligi, magaza adi degil; Support kendi adiyla. Eskiden
+           baslik her mesajda "VESTRA — new message" idi, yani kilit ekraninda kimden
+           geldigi okunmuyordu. Dokunulunca DOGRUDAN o konusma aciliyor (eskiden
+           mesaj listesinin basi). Rozet: alicinin okunmamis konusma sayisi. */
+        $fromSupport = ($fromUid === VESTRA_SUPPORT_UID);
+        $toBuyerP = !$fromSupport && ($fromUid === $sellerUid && $recipient === $buyerUid);
+        vestra_push_notify($recAcc ?: $recipient, 'message_new', [
+            'from'         => $fromSupport ? 'VESTRA Support' : $fromLabel,
+            'seller_ident' => $toBuyerP ? vestra_msg_seller_ident($listingId, $sellerUid) : '',
+            'text'         => $text,
+            'thread'       => $id,
+            'url'          => '/'.$recPanel.'?tab=messages&thread='.rawurlencode($id),
+            'unread'       => vestra_msg_unread_count($recipient),
+        ]);
     }
     return ['ok'=>true, 'thread_id'=>$id];
 }

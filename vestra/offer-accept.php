@@ -216,7 +216,9 @@ $PAGE = t('Accept counter offer'); $NAV = ''; require __DIR__.'/inc/head.php';
       <?php /* Urun sayfasi buradan da erisilebilir olmali: alici "neydi bu"
                diye bakmadan karar vermek zorunda kalmasin. */
         $__l = vestra_listing_by_sku($offerRow['sku'] ?? '');
-        if ($__l && !empty($__l['id'])): ?>
+        /* Gizli markanin sayfasi 404 -- olmayan bir sayfaya "View product"
+           baglantisi vermek, hic vermemekten kotu (vestra_hidden_brands). */
+        if ($__l && !empty($__l['id']) && !vestra_product_brand_hidden($__l)): ?>
       <p style="text-align:center;margin-top:14px">
         <a href="/product?id=<?= urlencode((string)$__l['id']) ?>" target="_blank" rel="noopener" style="color:var(--acc);font-size:13.5px"><?= t('View product') ?> ↗</a>
       </p>

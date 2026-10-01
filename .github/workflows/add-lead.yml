@@ -119,7 +119,7 @@ jobs:
             $seen = [];
             foreach ($leads as $l) { $e = strtolower($l['email'] ?? ''); if ($e !== '') $seen[$e] = true; }
 
-            $free = ['gmail.com','googlemail.com','gmx.net','gmx.de','gmx.com','gmx.at','web.de','hotmail.com','hotmail.de','hotmail.fr','hotmail.it','outlook.com','outlook.de','live.com','live.de','yahoo.com','yahoo.de','yahoo.fr','yahoo.it','yahoo.es','icloud.com','me.com','aol.com','t-online.de','freenet.de','mail.com','protonmail.com','proton.me','orange.fr','wanadoo.fr','libero.it','virgilio.it','alice.it','terra.es'];
+            /* Serbest posta saglayicisi: TEK liste, vestra_email_is_shared_provider() (notify.php). */
             $cmap = ['gr'=>'Greece','de'=>'Germany','fr'=>'France','it'=>'Italy','es'=>'Spain','nl'=>'Netherlands','pl'=>'Poland','be'=>'Belgium','at'=>'Austria','pt'=>'Portugal','uk'=>'United Kingdom','ie'=>'Ireland','se'=>'Sweden','dk'=>'Denmark','fi'=>'Finland','cz'=>'Czechia','ro'=>'Romania','ch'=>'Switzerland'];
 
             $added = 0; $dup = 0; $invalid = 0;
@@ -135,11 +135,11 @@ jobs:
                 // Firma/ulke dosyadan geldi -- site TARANMAZ (100+ satirda her domaini
                 // taramak 6 dakikalik SSH sinirina carpar). premium_brands de bu yuzden
                 // bos kalir; istenirse ayrica taranabilir.
-                if (!in_array($domain, $free, true)) $website = 'https://'.$domain;
+                if (!vestra_email_is_shared_provider($domain)) $website = 'https://'.$domain;
                 if ($company === '') $company = $domain;
                 if ($country === '') { $tld = strtolower(substr(strrchr($domain, '.'), 1)); $country = $cmap[$tld] ?? ''; }
               } else {
-                if (in_array($domain, $free, true)) {
+                if (vestra_email_is_shared_provider($domain)) {
                   $lp = substr($email, 0, strpos($email, '@'));
                   $company = ucfirst(preg_replace('/[._-]+/', ' ', $lp));
                 } else {

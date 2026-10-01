@@ -1155,6 +1155,146 @@ function vestra_tpl_order_delivery_confirmed(string $buyerName, string $ref, str
 }
 
 /**
+ * SIPARISIN MODELI DEGISTI, TUTAR AYNI (operator, 28 Eyl 2026, VES-60594A18:
+ * "bu siparisi TENNIS-CLUB-ICON-WHITE bu model ile degistir ve tutari ayni
+ * olacak sekilde musteriye email gonder spama dusmesin"). Musteri bir gun once
+ * saticiyla sitede anlasmisti ("10 pieces de ce modele") ve "j'attend la
+ * facture demain" demisti -- yani bu mektup onun BEKLEDIGI mektup.
+ *
+ * SPAM'A DUSMEMESI ICIN BILEREK SADE:
+ *  - tek dugme (siparis sayfasi), baska baglanti yok; ek YOK (siparis
+ *    faturasi PDF'i siparis sayfasindan indiriliyor -- bu deponun tutarli
+ *    tasarimi, KURAL 28);
+ *  - banka numarasi YOK. Bunun yerine "banka bilgileri DEGISMEDI" cumlesi var:
+ *    "odeme bilgileri degisti, su hesaba yatirin" fatura dolandiriciliginin
+ *    (BEC) ders kitabi kalibi ve hem spam suzgeclerinin hem muhasebecilerin
+ *    aradigi sey. Ayni numarali ikinci bir belge gelen musteriye "hesap ayni"
+ *    demek, o kalibin tam tersi.
+ *  - musterinin KENDI dilinde (hesabin kayitli dili; cagiran secer).
+ *
+ * HICBIR RAKAM METNE GOMULU DEGIL: kalemler, birim, navlun ve toplam cagirandan
+ * gelir ve cagiran onlari SIPARIS KAYDINDAN okur (KURAL 6'nin dersi).
+ * $invoiceRedrafted: belge AYNI numarayla yeniden cizildi mi -- sablon bunu
+ * OLCEMEZ, operatorun ACIK bayragi (order_discount'un invoice_updated deseni).
+ *
+ * $fig: old_label, new_label, qty, colours, sizes, unit, goods, shipping,
+ *       total, currency
+ */
+function vestra_tpl_order_item_changed(string $buyerName, string $ref, array $fig, string $invoiceNo = '',
+        bool $invoiceRedrafted = false, bool $hasAccount = false, string $signer = '', string $lang = 'en'): array {
+    $buyerName = vestra_display_name($buyerName);
+    $lang = in_array(strtolower($lang), ['de', 'es', 'fr'], true) ? strtolower($lang) : 'en';
+    $cur = strtoupper(trim((string)($fig['currency'] ?? 'EUR'))) ?: 'EUR';
+    $sym = $cur === 'USD' ? 'US$' : '€';
+    $m = function (float $v) use ($lang, $sym): string {
+        return $lang === 'en' ? $sym.number_format($v, 2)
+                              : number_format($v, 2, ',', $lang === 'de' ? '.' : ' ').' '.$sym;
+    };
+    $old   = trim((string)($fig['old_label'] ?? ''));
+    $new   = trim((string)($fig['new_label'] ?? ''));
+    $qty   = (int)($fig['qty'] ?? 0);
+    $unit  = (float)($fig['unit'] ?? 0);
+    $goods = (float)($fig['goods'] ?? 0);
+    $ship  = (float)($fig['shipping'] ?? 0);
+    $total = (float)($fig['total'] ?? 0);
+    $cols  = implode(', ', array_filter(array_map('trim', (array)($fig['colours'] ?? []))));
+    $sizes = implode(', ', array_filter(array_map('trim', (array)($fig['sizes'] ?? []))));
+
+    $L = [
+        'en' => ['hi' => 'Customer', 'badge' => 'Order update', 'ref' => 'Order', 'model' => 'New model',
+                 'qty' => 'Quantity', 'tot' => 'Total (unchanged)', 'inv' => 'Invoice', 'btn' => 'View your order',
+                 'subj' => "Order {$ref} — model changed, amount unchanged",
+                 'open' => "as agreed with the seller, your order {$ref} is now for {$new}"
+                         .($old !== '' ? ", in place of {$old}" : '').'.',
+                 'col' => 'Colour', 'sz' => 'Sizes', 'pcs' => 'pcs',
+                 'same' => 'The amount stays the same:',
+                 'goods' => 'Goods', 'ship' => 'Shipping', 'total' => 'Total',
+                 'invU' => "Your invoice {$invoiceNo} has been updated with this model and keeps its number. It is available now on your order page; please use this version, the earlier copy is no longer valid.",
+                 'invY' => "Your invoice {$invoiceNo} shows this model; you will find it on your order page.",
+                 'invN' => "Your invoice will be issued with this model.",
+                 'bank' => "The bank details do not change: payment is made as planned, to the account shown on the invoice, quoting {$ref}.",
+                 'end' => "If anything is unclear, just reply to this e-mail.",
+                 'bye' => 'Kind regards,'],
+        'fr' => ['hi' => 'Madame, Monsieur', 'badge' => 'Commande', 'ref' => 'Commande', 'model' => 'Nouveau modèle',
+                 'qty' => 'Quantité', 'tot' => 'Total (inchangé)', 'inv' => 'Facture', 'btn' => 'Voir votre commande',
+                 'subj' => "Commande {$ref} — modèle modifié, montant inchangé",
+                 'open' => "comme convenu avec le vendeur, votre commande {$ref} porte désormais sur le modèle {$new}"
+                         .($old !== '' ? ", à la place du modèle {$old}" : '').'.',
+                 'col' => 'Couleur', 'sz' => 'Tailles', 'pcs' => 'pièces',
+                 'same' => 'Le montant reste inchangé :',
+                 'goods' => 'Marchandise', 'ship' => 'Livraison', 'total' => 'Total',
+                 'invU' => "Votre facture {$invoiceNo} a été mise à jour avec ce modèle et conserve son numéro. Elle est disponible dès maintenant sur la page de votre commande ; merci d'utiliser cette version, l'ancienne n'est plus valable.",
+                 'invY' => "Votre facture {$invoiceNo} indique ce modèle ; vous la trouverez sur la page de votre commande.",
+                 'invN' => "Votre facture sera établie avec ce modèle.",
+                 'bank' => "Les coordonnées bancaires ne changent pas : le règlement se fait comme prévu, sur le compte indiqué sur la facture, avec la référence {$ref}.",
+                 'end' => "Si quelque chose n'est pas clair, répondez simplement à ce courriel.",
+                 'bye' => 'Cordialement,'],
+        'de' => ['hi' => 'Kundin, sehr geehrter Kunde', 'badge' => 'Bestellung', 'ref' => 'Bestellung', 'model' => 'Neues Modell',
+                 'qty' => 'Menge', 'tot' => 'Gesamt (unverändert)', 'inv' => 'Rechnung', 'btn' => 'Bestellung ansehen',
+                 'subj' => "Bestellung {$ref} — Modell geändert, Betrag unverändert",
+                 'open' => "wie mit dem Verkäufer vereinbart, umfasst Ihre Bestellung {$ref} jetzt das Modell {$new}"
+                         .($old !== '' ? " anstelle von {$old}" : '').'.',
+                 'col' => 'Farbe', 'sz' => 'Größen', 'pcs' => 'Stück',
+                 'same' => 'Der Betrag bleibt unverändert:',
+                 'goods' => 'Warenwert', 'ship' => 'Versand', 'total' => 'Gesamt',
+                 'invU' => "Ihre Rechnung {$invoiceNo} wurde mit diesem Modell aktualisiert und behält ihre Nummer. Sie steht ab sofort auf Ihrer Bestellseite bereit; bitte verwenden Sie diese Fassung, die frühere ist nicht mehr gültig.",
+                 'invY' => "Ihre Rechnung {$invoiceNo} weist dieses Modell aus; Sie finden sie auf Ihrer Bestellseite.",
+                 'invN' => "Ihre Rechnung wird mit diesem Modell ausgestellt.",
+                 'bank' => "Die Bankverbindung ändert sich nicht: Die Zahlung erfolgt wie vorgesehen auf das Konto auf der Rechnung, mit dem Verwendungszweck {$ref}.",
+                 'end' => "Bei Fragen antworten Sie einfach auf diese E-Mail.",
+                 'bye' => 'Mit freundlichen Grüßen,'],
+        'es' => ['hi' => 'cliente', 'badge' => 'Pedido', 'ref' => 'Pedido', 'model' => 'Nuevo modelo',
+                 'qty' => 'Cantidad', 'tot' => 'Total (sin cambios)', 'inv' => 'Factura', 'btn' => 'Ver su pedido',
+                 'subj' => "Pedido {$ref} — modelo cambiado, mismo importe",
+                 'open' => "tal como acordó con el vendedor, su pedido {$ref} pasa a ser del modelo {$new}"
+                         .($old !== '' ? ", en lugar de {$old}" : '').'.',
+                 'col' => 'Color', 'sz' => 'Tallas', 'pcs' => 'piezas',
+                 'same' => 'El importe no cambia:',
+                 'goods' => 'Mercancía', 'ship' => 'Envío', 'total' => 'Total',
+                 'invU' => "Su factura {$invoiceNo} se ha actualizado con este modelo y conserva su número. Ya está disponible en la página de su pedido; utilice esta versión, la anterior queda sin efecto.",
+                 'invY' => "Su factura {$invoiceNo} recoge este modelo; la encontrará en la página de su pedido.",
+                 'invN' => "Su factura se emitirá con este modelo.",
+                 'bank' => "Los datos bancarios no cambian: el pago se hace como estaba previsto, a la cuenta que figura en la factura, con la referencia {$ref}.",
+                 'end' => "Si algo no queda claro, responda a este correo.",
+                 'bye' => 'Un cordial saludo,'],
+    ][$lang];
+
+    if ($buyerName === '') $buyerName = $L['hi'];
+    $greet = ['en' => "Dear {$buyerName},", 'fr' => "Bonjour {$buyerName},",
+              'de' => $buyerName === $L['hi'] ? "Sehr geehrte {$buyerName}," : "Guten Tag {$buyerName},",
+              'es' => "Estimado/a {$buyerName},"][$lang];
+    /* Ingilizce ve Ispanyolca hitaptan sonra BUYUK, Fransizca ve Almanca KUCUK
+       harfle devam eder (order_discount'un ayni kurali). */
+    $open = in_array($lang, ['en', 'es'], true) ? mb_strtoupper(mb_substr($L['open'], 0, 1)).mb_substr($L['open'], 1) : $L['open'];
+    $co = $lang === 'fr' ? ' : ' : ': ';
+
+    $detail = $L['qty'].$co.$qty.' '.$L['pcs']
+            . ($cols !== '' ? "\n".$L['col'].$co.$cols : '')
+            . ($sizes !== '' ? "\n".$L['sz'].$co.$sizes : '');
+    $money = $L['goods'].$co.$qty.' × '.$m($unit).' = '.$m($goods)."\n"
+           . ($ship > 0 ? $L['ship'].$co.$m($ship)."\n" : '')
+           . $L['total'].$co.$m($total);
+
+    $body = $greet."\n\n"
+          . $open."\n\n"
+          . $detail."\n\n"
+          . $L['same']."\n".$money."\n\n"
+          . ($invoiceNo !== '' ? ($invoiceRedrafted ? $L['invU'] : $L['invY']) : $L['invN'])."\n\n"
+          . ($invoiceNo !== '' ? $L['bank']."\n\n" : '')
+          . $L['end']."\n\n"
+          . $L['bye']."\n\n"
+          . ($signer !== '' ? $signer."\nVESTRA - vestrasales.com" : "VESTRA - vestrasales.com");
+
+    $rows = [['label' => $L['ref'], 'value' => $ref], ['label' => $L['model'], 'value' => $new],
+             ['label' => $L['qty'], 'value' => $qty.' '.$L['pcs']], ['label' => $L['tot'], 'value' => $m($total)]];
+    if ($invoiceNo !== '') $rows[] = ['label' => $L['inv'], 'value' => $invoiceNo];
+    $opts = ['badge' => $L['badge'], 'rows' => $rows];
+    if ($hasAccount) $opts['button'] = ['label' => $L['btn'],
+        'url' => 'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref)];
+    return [$L['subj'], $body, $opts];
+}
+
+/**
  * SIPARIS FATURASI, PDF EKLI (operator, 28 Eyl 2026, VES-D91DAB0B / Odzież
  * Premium: fatura panelden kesilip e-postalandi, musteri "I dont have inovice"
  * yazdi -- panelin mektubu PDF TASIMIYOR, siparis sayfasina yolluyor).
@@ -1165,17 +1305,25 @@ function vestra_tpl_order_delivery_confirmed(string $buyerName, string $ref, str
  * faturadan. $redrafted = "ayni numarayla yeniden cizildi, eski kopya gecersiz"
  * -- sablon bunu OLCEMEZ, operatorun ACIK bayragi (order_delivery /
  * order_discount deseni).
+ *
+ * $dueDate (28 Eyl 2026, siparis denetimi): odeme saati ISLIYORSA cagiran
+ * vestra_order_payment_grace()'in son tarihini verir ve mektup onu yazar --
+ * KURAL 7'nin ilkesi: mektubun verdigi son tarih, otomatik iptalin baktigi son
+ * tarihle AYNI olmali. Bos = saat henuz baslamamis, tarih YAZILMAZ (uydurulmaz).
  */
 function vestra_tpl_order_invoice_pdf(string $buyerName, string $ref, string $invoiceNo, float $total,
-        string $currency = 'EUR', bool $redrafted = false, bool $hasAccount = false, string $signer = ''): array {
+        string $currency = 'EUR', bool $redrafted = false, bool $hasAccount = false, string $signer = '',
+        string $dueDate = ''): array {
     $buyerName = vestra_display_name($buyerName);
     if ($buyerName === '') $buyerName = 'Customer';
     $cur = strtoupper(trim($currency)) ?: 'EUR';
     $amt = $cur.' '.number_format($total, 2, '.', ',');
+    $dueDate = trim($dueDate);
     $subject = "VESTRA — invoice {$invoiceNo} for order {$ref}";
 
     $rows = [['label'=>'Order ref', 'value'=>$ref], ['label'=>'Invoice', 'value'=>$invoiceNo],
              ['label'=>'Total due', 'value'=>$amt, 'strong'=>true]];
+    if ($dueDate !== '') $rows[] = ['label'=>'Payment due by', 'value'=>$dueDate];
     $opts = ['badge'=>'Invoice attached', 'rows'=>$rows];
     if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/order-confirm?ref='.rawurlencode($ref)];
 
@@ -1183,6 +1331,9 @@ function vestra_tpl_order_invoice_pdf(string $buyerName, string $ref, string $in
         "Dear {$buyerName},\n\n"
       . "Please find attached your invoice {$invoiceNo} for order {$ref} as a PDF.\n\n"
       . "Total due: {$amt}.\n\n"
+      . ($dueDate !== ''
+          ? "Payment is due by {$dueDate}. Orders that are not paid by then are cancelled automatically.\n\n"
+          : '')
       . ($redrafted
           ? "This copy keeps the same invoice number and replaces any earlier version of {$invoiceNo}.\n\n"
           : '')
@@ -1753,12 +1904,49 @@ function vestra_listing_block_parts(array $blocks, array $L, bool $withPrices): 
             $priceLine = implode(' · ', $parts) . $L['per_piece'];
         }
 
+        /* KAYITLI (gercek) beden stogu -- yalniz cagiran verdiyse. Cagiran onu
+           inc/stock.php'nin vestra_stock_real()'inden aliyor, yani TURETILMIS
+           bant buraya hic girmiyor: mektupta "stokta" diye basilan her rakam
+           tedarikcinin verdigi rakam. Stok bir fiyat degil, o yuzden fiyat
+           kapisindan bagimsiz basiliyor. */
+        $stockLine = '';
+        $stk = (array)($b['stock']['sizes'] ?? []);
+        $fmtStock = function (array $m) use ($L): string {
+            $bits = [];
+            foreach ($m as $sz => $q) $bits[] = $sz . ' ' . (int)$q;
+            return implode(' · ', $bits) . ' — ' . array_sum(array_map('intval', $m)) . $L['pieces'];
+        };
+        if ($stk) $stockLine = $fmtStock($stk);
+        /* Cok renkli TEK ilan (Burberry pike polo, 8 model): renk basina bir satir,
+           altinda toplam. Renk adi ilanin kendi adi -- model numarasi onun icinde
+           (bkz. vestra_colour_base); ikinci bir etiket uydurulmuyor. */
+        $stockByColour = [];
+        foreach ((array)($b['stock']['by_colour'] ?? []) as $cn => $x) {
+            $stockByColour[(string)$cn] = $fmtStock((array)($x['sizes'] ?? []));
+        }
+
+        $stockChunk = '';
+        if ($stockByColour) {
+            $stockChunk = $L['stock'] . ":\n";
+            foreach ($stockByColour as $cn => $ln) $stockChunk .= '  ' . $cn . ': ' . $ln . "\n";
+            $stockChunk .= '  ' . $L['stock_total'] . ': ' . array_sum(array_map('intval', $stk)) . $L['pieces'] . "\n";
+        } elseif ($stockLine !== '') {
+            $stockChunk = $L['stock'] . ': ' . $stockLine . "\n";
+        }
+
         $chunks[] = $name . "\n" . $url . "\n"
                . $L['colours'] . ' (' . count($pairs) . '): ' . $cols . "\n"
                . ($min !== '' ? $L['minimum'] . ': ' . $min . "\n" : '')
+               . $stockChunk
                . ($priceLine !== '' ? $L['price'] . ': ' . $priceLine . "\n" : '');
 
         $rows[] = ['label' => $name, 'value' => $cols . ($min !== '' ? ' · ' . $min : ''), 'strong' => true];
+        if ($stockByColour) {
+            foreach ($stockByColour as $cn => $ln) $rows[] = ['label' => $L['stock'] . ' · ' . $cn, 'value' => $ln];
+            $rows[] = ['label' => $L['stock_total'], 'value' => array_sum(array_map('intval', $stk)) . $L['pieces']];
+        } elseif ($stockLine !== '') {
+            $rows[] = ['label' => $L['stock'], 'value' => $stockLine];
+        }
         if ($priceLine !== '') $rows[] = ['label' => $L['price'], 'value' => $priceLine];
 
         /* Etiket ilanin KENDI kayitli referansi (SKU), basliktan ayiklanmis bir
@@ -1783,25 +1971,25 @@ function vestra_listing_block_labels(string $lang): array {
     $c = fn(float $v): string => number_format($v, 2, ',', '.') . ' €';   // kita yazimi
     $e = fn(float $v): string => 'EUR ' . number_format($v, 2, '.', ',');
     $T = [
-      'en' => ['money'=>$e,'colours'=>'Colours','minimum'=>'Minimum','price'=>'Price',
+      'en' => ['money'=>$e,'colours'=>'Colours','stock'=>'In stock','stock_total'=>'Total in stock','minimum'=>'Minimum','price'=>'Price',
                'pieces'=>' pieces','from_colours'=>', from %d colours','cartons'=>', in cartons of %d',
                'from'=>'from ','pcs'=>' pcs ','per_piece'=>'  (per piece, plus shipping)'],
-      'de' => ['money'=>$c,'colours'=>'Farben','minimum'=>'Mindestabnahme','price'=>'Preis',
+      'de' => ['money'=>$c,'colours'=>'Farben','stock'=>'Auf Lager','stock_total'=>'Gesamt auf Lager','minimum'=>'Mindestabnahme','price'=>'Preis',
                'pieces'=>' Stück','from_colours'=>', ab %d Farben','cartons'=>', in Kartons zu %d',
                'from'=>'ab ','pcs'=>' Stück ','per_piece'=>'  (pro Stück, zzgl. Versand)'],
-      'fr' => ['money'=>$c,'colours'=>'Coloris','minimum'=>'Minimum de commande','price'=>'Prix',
+      'fr' => ['money'=>$c,'colours'=>'Coloris','stock'=>'En stock','stock_total'=>'Total en stock','minimum'=>'Minimum de commande','price'=>'Prix',
                'pieces'=>' pièces','from_colours'=>', à partir de %d coloris','cartons'=>', en cartons de %d',
                'from'=>'à partir de ','pcs'=>' pièces ','per_piece'=>'  (la pièce, hors transport)'],
-      'it' => ['money'=>$c,'colours'=>'Colori','minimum'=>'Ordine minimo','price'=>'Prezzo',
+      'it' => ['money'=>$c,'colours'=>'Colori','stock'=>'Disponibili','stock_total'=>'Totale disponibile','minimum'=>'Ordine minimo','price'=>'Prezzo',
                'pieces'=>' pezzi','from_colours'=>', da %d colori','cartons'=>', in cartoni da %d',
                'from'=>'da ','pcs'=>' pz ','per_piece'=>'  (al pezzo, spedizione esclusa)'],
-      'es' => ['money'=>$c,'colours'=>'Colores','minimum'=>'Pedido mínimo','price'=>'Precio',
+      'es' => ['money'=>$c,'colours'=>'Colores','stock'=>'En stock','stock_total'=>'Total en stock','minimum'=>'Pedido mínimo','price'=>'Precio',
                'pieces'=>' piezas','from_colours'=>', desde %d colores','cartons'=>', en cajas de %d',
                'from'=>'desde ','pcs'=>' uds ','per_piece'=>'  (por pieza, transporte aparte)'],
-      'pt' => ['money'=>$c,'colours'=>'Cores','minimum'=>'Encomenda mínima','price'=>'Preço',
+      'pt' => ['money'=>$c,'colours'=>'Cores','stock'=>'Em stock','stock_total'=>'Total em stock','minimum'=>'Encomenda mínima','price'=>'Preço',
                'pieces'=>' peças','from_colours'=>', a partir de %d cores','cartons'=>', em caixas de %d',
                'from'=>'a partir de ','pcs'=>' un ','per_piece'=>'  (por peça, transporte à parte)'],
-      'nl' => ['money'=>$c,'colours'=>'Kleuren','minimum'=>'Minimumafname','price'=>'Prijs',
+      'nl' => ['money'=>$c,'colours'=>'Kleuren','stock'=>'Op voorraad','stock_total'=>'Totaal op voorraad','minimum'=>'Minimumafname','price'=>'Prijs',
                'pieces'=>' stuks','from_colours'=>', vanaf %d kleuren','cartons'=>', in dozen van %d',
                'from'=>'vanaf ','pcs'=>' st ','per_piece'=>'  (per stuk, excl. verzending)'],
     ];
@@ -1809,29 +1997,51 @@ function vestra_listing_block_labels(string $lang): array {
 }
 
 /**
- * ANGEBOT — kayitli musteriye, secilmis ilanlar icin, fotograflariyla.
+ * ANGEBOT — secilmis ilanlar icin, fotograflariyla. Kayitli musteriye (varsayilan)
+ * ya da LEAD'e ($lead = true).
  *
  * vestra_tpl_listing_colours'in ikinci kopyasi DEGIL: o mektup bir SIKAYETE
  * cevap ve acilis cumlesi oyle ("fotograf yoktu, duzeltildi") -- 57 kisiye
  * giden bir teklifte o cumlenin isi yok. Paylasilan sey paylasiliyor
  * (vestra_listing_block_parts), ayrilan sey yalnizca acilis ve imza.
  *
+ * MARKA ILANLARDAN OKUNUR (29 Eyl 2026). Metin "Fred Perry"ye gomuluydu; ayni
+ * mektubu Burberry icin gondermek ya ikinci bir sablon (ayni blok, ayni kart,
+ * ayni foto seridi -- bu depoda defalarca ayrisan kopya) ya da Burberry
+ * teklifinde "Fred Perry" yazan bir konu satiri demekti. Tek marka -> o marka;
+ * iki-uc marka -> "A & B"; hic/cok -> VESTRA. Fred Perry teklifinin ciktisi
+ * birebir ayni kaldi (test bunu tutuyor).
+ *
  * IMZA VESTRA, dukkanin adi degil: uye platformu bu adla taniyor ve kampanya
  * takma adi (Les Garage de Paris) soguk listeye ait -- bu karar Winter uye
- * mektubunda zaten kayitli.
+ * mektubunda zaten kayitli. LEAD surumu ise o listenin kendi imzasini tasiyor
+ * (wave3 ile ayni altbilgi).
  *
  * FIYAT CAGIRANIN KARARI ve alici basina soruluyor ($withPrices): kapisi kapali
  * bir aliciya rakam yazmak, sayfasinin gostermedigi fiyati mektupta soylemektir
  * (KURAL 2b'nin birebir tersi). Kapali olana rakam yerine "giris yapinca
  * fiyatlar sayfada" cumlesi gidiyor -- bos birakmak degil, dogrusunu soylemek.
+ * LEAD'E FIYAT HIC GITMEZ ($withPrices yok sayilir): hesabi yok, fiyat listesi
+ * girissiz acilmiyor (KURAL 19) ve lead mektuplarinin hicbiri rakam tasimiyor.
+ * Yerine "kayit ucretsiz" cumlesi + kayit baglantisi; "size iki kez yazmistik"
+ * gibi bir iddia YOK (secim yalniz ilk mektubu almis olmayi sart kosuyor).
  */
-function vestra_tpl_listing_offer(string $lang, string $company, array $blocks, bool $withPrices = false, string $moreUrl = ''): array {
+function vestra_tpl_listing_offer(string $lang, string $company, array $blocks, bool $withPrices = false, string $moreUrl = '', bool $lead = false): array {
     $lang = strtolower(substr(trim($lang), 0, 2));
+    if ($lead) $withPrices = false;
     $L    = vestra_listing_block_labels($lang);
     $parts = vestra_listing_block_parts($blocks, $L, $withPrices);
     $co   = trim($company);
     $nCol = (int)$parts['nCol'];
     $n    = count($blocks);
+
+    /* Marka KAYITTAN: harf duyarsiz tekillestirilir, ilk gorulen yazim basilir. */
+    $brands = [];
+    foreach ($blocks as $b) {
+        $bn = trim((string)(((array)($b['p'] ?? []))['brand'] ?? ''));
+        if ($bn !== '' && !isset($brands[mb_strtolower($bn)])) $brands[mb_strtolower($bn)] = $bn;
+    }
+    $brand = (count($brands) >= 1 && count($brands) <= 3) ? implode(' & ', array_values($brands)) : 'VESTRA';
 
     /* Model adlari KAYITTAN, metne gomulu degil: bir ilan yarin yeniden
        adlandirilirsa (bu depoda oldu) mektup sessizce yanlis ad yazardi. */
@@ -1839,64 +2049,99 @@ function vestra_tpl_listing_offer(string $lang, string $company, array $blocks, 
     foreach ($blocks as $b) $names[] = trim((string)(((array)($b['p'] ?? []))['name'] ?? ''));
     $names = implode(' · ', array_filter($names));
 
+    $reg = 'https://vestrasales.com/register?type=buyer';
+    $uns = 'https://vestrasales.com/lead-unsubscribe';
     $M = [
-      'en' => ['s'=>'VESTRA — Fred Perry offer: %1$s models, %2$d colours',
-        'g'=>'Hello','o'=>'Fred Perry is in stock with us and I have put the offer together for you — the models below, with a photo for every colour we can ship.',
+      'en' => ['s'=>'VESTRA — {brand} offer: %1$s models, %2$d colours', 's1'=>'VESTRA — {brand} offer: %1$s models', 's0'=>'VESTRA — {brand} offer: %d colours',
+        'g'=>'Hello','o'=>'{brand} is in stock with us and I have put the offer together for you — the models below, with a photo for every colour we can ship.',
+        'ol'=>'At VESTRA, our B2B wholesale marketplace for branded fashion, {brand} is now in stock — the models below, each with its photo.',
         'p'=>'Your wholesale prices are shown on each product page once you are signed in.',
+        'pl'=>'Trade prices per piece are shown to registered businesses — registration is free and we ask for your trade licence: '.$reg,
         'c'=>'Reply to this e-mail if you would like a quotation for a particular make-up, or another view of one of the colours.',
         'u'=>'If you would rather not receive stock offers, just reply and say so — we will stop.',
-        'b'=>'Open the offer','badge'=>'Fred Perry offer','shots'=>'All %d colours'],
-      'de' => ['s'=>'VESTRA — Fred Perry Angebot: %1$s Modelle, %2$d Farben',
-        'g'=>'Guten Tag','o'=>'Fred Perry ist bei uns lieferbar, und ich habe Ihnen das Angebot zusammengestellt — die Modelle unten, mit einem Foto zu jeder lieferbaren Farbe.',
+        'ul'=>'If this is not relevant to your business, just say so and we will not write again. Unsubscribe: '.$uns,
+        'b'=>'Open the offer','badge'=>'{brand} offer','shots'=>'All %d colours'],
+      'de' => ['s'=>'VESTRA — {brand} Angebot: %1$s Modelle, %2$d Farben', 's1'=>'VESTRA — {brand} Angebot: %1$s Modelle', 's0'=>'VESTRA — {brand} Angebot: %d Farben',
+        'g'=>'Guten Tag','o'=>'{brand} ist bei uns lieferbar, und ich habe Ihnen das Angebot zusammengestellt — die Modelle unten, mit einem Foto zu jeder lieferbaren Farbe.',
+        'ol'=>'Bei VESTRA, unserem B2B-Großhandelsmarktplatz für Markenmode, ist {brand} jetzt ab Lager lieferbar — die Modelle unten, jeweils mit Foto.',
         'p'=>'Ihre Einkaufspreise stehen auf der jeweiligen Produktseite, sobald Sie angemeldet sind.',
+        'pl'=>'Die Einkaufspreise je Stück sehen registrierte Betriebe — die Registrierung ist kostenlos, wir fragen die Gewerbeanmeldung ab: '.$reg,
         'c'=>'Antworten Sie kurz auf diese E-Mail, wenn Sie ein Angebot über eine bestimmte Zusammenstellung oder von einer Farbe eine weitere Ansicht brauchen.',
         'u'=>'Wenn Sie keine Sortimentsangebote wünschen, genügt eine kurze Antwort — dann hören sie auf.',
-        'b'=>'Zum Angebot','badge'=>'Fred Perry Angebot','shots'=>'Alle %d Farben'],
-      'fr' => ['s'=>'VESTRA — offre Fred Perry : %1$s modèles, %2$d coloris',
-        'g'=>'Bonjour','o'=>'Fred Perry est disponible chez nous et je vous ai préparé l’offre — les modèles ci-dessous, avec une photo pour chaque coloris livrable.',
+        'ul'=>'Falls es für Ihr Geschäft nicht passt, sagen Sie einfach Bescheid — dann schreiben wir nicht wieder. Abmelden: '.$uns,
+        'b'=>'Zum Angebot','badge'=>'{brand} Angebot','shots'=>'Alle %d Farben'],
+      'fr' => ['s'=>'VESTRA — offre {brand} : %1$s modèles, %2$d coloris', 's1'=>'VESTRA — offre {brand} : %1$s modèles', 's0'=>'VESTRA — offre {brand} : %d coloris',
+        'g'=>'Bonjour','o'=>'{brand} est disponible chez nous et je vous ai préparé l’offre — les modèles ci-dessous, avec une photo pour chaque coloris livrable.',
+        'ol'=>'Chez VESTRA, notre place de marché B2B de gros pour la mode de marque, {brand} est désormais disponible du stock — les modèles ci-dessous, chacun avec sa photo.',
         'p'=>'Vos prix de gros s’affichent sur chaque fiche produit une fois connecté.',
+        'pl'=>'Les prix de gros à la pièce sont réservés aux entreprises enregistrées — l’inscription est gratuite et nous demandons votre extrait Kbis : '.$reg,
         'c'=>'Répondez à cet e-mail si vous souhaitez un devis pour un assortiment précis, ou une autre vue d’un coloris.',
         'u'=>'Si vous ne souhaitez plus recevoir d’offres, répondez simplement — nous arrêtons.',
-        'b'=>'Voir l’offre','badge'=>'Offre Fred Perry','shots'=>'Les %d coloris'],
-      'it' => ['s'=>'VESTRA — offerta Fred Perry: %1$s modelli, %2$d colori',
-        'g'=>'Buongiorno','o'=>'Fred Perry è disponibile da noi e le ho preparato l’offerta — i modelli qui sotto, con una foto per ogni colore consegnabile.',
+        'ul'=>'Si cela ne concerne pas votre activité, dites-le nous simplement et nous ne réécrirons pas. Se désabonner : '.$uns,
+        'b'=>'Voir l’offre','badge'=>'Offre {brand}','shots'=>'Les %d coloris'],
+      'it' => ['s'=>'VESTRA — offerta {brand}: %1$s modelli, %2$d colori', 's1'=>'VESTRA — offerta {brand}: %1$s modelli', 's0'=>'VESTRA — offerta {brand}: %d colori',
+        'g'=>'Buongiorno','o'=>'{brand} è disponibile da noi e le ho preparato l’offerta — i modelli qui sotto, con una foto per ogni colore consegnabile.',
+        'ol'=>'Su VESTRA, il nostro marketplace B2B all’ingrosso per la moda di marca, {brand} è ora disponibile da magazzino — i modelli qui sotto, ciascuno con la sua foto.',
         'p'=>'I suoi prezzi all’ingrosso sono indicati su ciascuna scheda prodotto una volta effettuato l’accesso.',
+        'pl'=>'I prezzi all’ingrosso per pezzo sono riservati alle aziende registrate — l’iscrizione è gratuita e chiediamo la visura camerale: '.$reg,
         'c'=>'Risponda a questa e-mail se desidera un preventivo per un assortimento specifico o un’altra immagine di un colore.',
         'u'=>'Se preferisce non ricevere offerte di stock, risponda e ci fermiamo.',
-        'b'=>'Vedi l’offerta','badge'=>'Offerta Fred Perry','shots'=>'Tutti i %d colori'],
-      'es' => ['s'=>'VESTRA — oferta Fred Perry: %1$s modelos, %2$d colores',
-        'g'=>'Buenos días','o'=>'Fred Perry está disponible en nuestro stock y le he preparado la oferta — los modelos abajo, con una foto de cada color servible.',
+        'ul'=>'Se non riguarda la Sua attività, basta dircelo e non scriveremo più. Annulla iscrizione: '.$uns,
+        'b'=>'Vedi l’offerta','badge'=>'Offerta {brand}','shots'=>'Tutti i %d colori'],
+      'es' => ['s'=>'VESTRA — oferta {brand}: %1$s modelos, %2$d colores', 's1'=>'VESTRA — oferta {brand}: %1$s modelos', 's0'=>'VESTRA — oferta {brand}: %d colores',
+        'g'=>'Buenos días','o'=>'{brand} está disponible en nuestro stock y le he preparado la oferta — los modelos abajo, con una foto de cada color servible.',
+        'ol'=>'En VESTRA, nuestro marketplace mayorista B2B de moda de marca, {brand} ya está disponible desde stock — los modelos abajo, cada uno con su foto.',
         'p'=>'Sus precios mayoristas aparecen en cada ficha de producto una vez que inicia sesión.',
+        'pl'=>'Los precios mayoristas por pieza se muestran a empresas registradas — el registro es gratuito y pedimos su licencia comercial: '.$reg,
         'c'=>'Responda a este correo si desea un presupuesto para un surtido concreto u otra vista de algún color.',
         'u'=>'Si prefiere no recibir ofertas de stock, respóndanos y dejaremos de enviarlas.',
-        'b'=>'Ver la oferta','badge'=>'Oferta Fred Perry','shots'=>'Los %d colores'],
-      'pt' => ['s'=>'VESTRA — oferta Fred Perry: %1$s modelos, %2$d cores',
-        'g'=>'Bom dia','o'=>'A Fred Perry está disponível connosco e preparei-lhe a oferta — os modelos abaixo, com uma foto de cada cor disponível.',
+        'ul'=>'Si no tiene que ver con su negocio, díganoslo y no volveremos a escribir. Darse de baja: '.$uns,
+        'b'=>'Ver la oferta','badge'=>'Oferta {brand}','shots'=>'Los %d colores'],
+      'pt' => ['s'=>'VESTRA — oferta {brand}: %1$s modelos, %2$d cores', 's1'=>'VESTRA — oferta {brand}: %1$s modelos', 's0'=>'VESTRA — oferta {brand}: %d cores',
+        'g'=>'Bom dia','o'=>'{brand} está disponível connosco e preparei-lhe a oferta — os modelos abaixo, com uma foto de cada cor disponível.',
+        'ol'=>'{brand} está agora disponível do stock na VESTRA, o nosso marketplace grossista B2B de moda de marca — os modelos abaixo, cada um com a sua foto.',
         'p'=>'Os seus preços grossistas aparecem em cada página de produto depois de iniciar sessão.',
+        'pl'=>'Os preços grossistas por peça são mostrados a empresas registadas — o registo é gratuito e pedimos a certidão permanente: '.$reg,
         'c'=>'Responda a este e-mail se quiser um orçamento para um sortido específico ou outra vista de alguma cor.',
         'u'=>'Se preferir não receber ofertas de stock, basta responder — deixamos de enviar.',
-        'b'=>'Ver a oferta','badge'=>'Oferta Fred Perry','shots'=>'As %d cores'],
-      'nl' => ['s'=>'VESTRA — Fred Perry aanbod: %1$s modellen, %2$d kleuren',
-        'g'=>'Goedendag','o'=>'Fred Perry is bij ons leverbaar en ik heb het aanbod voor u klaargezet — de modellen hieronder, met een foto van elke leverbare kleur.',
+        'ul'=>'Se não tiver a ver com o seu negócio, diga-nos e não voltaremos a escrever. Cancelar subscrição: '.$uns,
+        'b'=>'Ver a oferta','badge'=>'Oferta {brand}','shots'=>'As %d cores'],
+      'nl' => ['s'=>'VESTRA — {brand} aanbod: %1$s modellen, %2$d kleuren', 's1'=>'VESTRA — {brand} aanbod: %1$s modellen', 's0'=>'VESTRA — {brand} aanbod: %d kleuren',
+        'g'=>'Goedendag','o'=>'{brand} is bij ons leverbaar en ik heb het aanbod voor u klaargezet — de modellen hieronder, met een foto van elke leverbare kleur.',
+        'ol'=>'Bij VESTRA, onze B2B-groothandelsmarktplaats voor merkmode, is {brand} nu uit voorraad leverbaar — de modellen hieronder, elk met een foto.',
         'p'=>'Uw inkoopprijzen staan op elke productpagina zodra u bent ingelogd.',
+        'pl'=>'Inkoopprijzen per stuk zijn zichtbaar voor geregistreerde bedrijven — registratie is gratis en wij vragen uw KvK-uittreksel: '.$reg,
         'c'=>'Antwoord op deze e-mail als u een offerte voor een bepaalde samenstelling of nog een aanzicht van een kleur wilt.',
         'u'=>'Wilt u geen voorraadaanbiedingen ontvangen, antwoord dan even — dan stoppen we.',
-        'b'=>'Naar het aanbod','badge'=>'Fred Perry aanbod','shots'=>'Alle %d kleuren'],
+        'ul'=>'Past het niet bij uw zaak, laat het dan weten — dan schrijven wij niet opnieuw. Afmelden: '.$uns,
+        'b'=>'Naar het aanbod','badge'=>'{brand} aanbod','shots'=>'Alle %d kleuren'],
     ];
     $t = $M[$lang] ?? $M['en'];
+    $fill = fn(string $x): string => str_replace('{brand}', $brand, $x);
 
-    $subject = sprintf($t['s'], $n, $nCol);
+    /* Her modelde TEK renk varsa (Burberry: her renk ayri model numarasi)
+       "8 modeller, 8 renk" ayni sayiyi iki kez soyler; konu yalniz model sayar. */
+    /* TEK ilan, birden cok renk (Burberry pike polo: 8 model TEK kayitta, 29 Eyl 2026):
+       "1 models, 8 colours" hem yanlis sayida hem yanlis dilbilgisinde -- konu yalniz
+       rengi sayar. Tek ilan tek renk: yalniz marka. */
+    if ($n === 1) {
+        $subject = $fill($nCol > 1 ? sprintf($t['s0'], $nCol) : 'VESTRA — ' . $t['badge']);
+    } else {
+        $subject = $fill(($nCol === $n) ? sprintf($t['s1'], $n) : sprintf($t['s'], $n, $nCol));
+    }
+    $sign = $lead ? "—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com"
+                  : "VESTRA\nvestrasales.com";
     $body = $t['g'] . ($co !== '' ? ' ' . $co : '') . ",\n\n"
-          . $t['o'] . "\n\n"
+          . $fill($lead ? $t['ol'] : $t['o']) . "\n\n"
           . implode("\n", $parts['chunks']) . "\n"
           . ($moreUrl !== '' ? $moreUrl . "\n" : '')
-          . (!$withPrices ? "\n" . $t['p'] . "\n" : '')
+          . ($lead ? "\n" . $t['pl'] . "\n" : (!$withPrices ? "\n" . $t['p'] . "\n" : ''))
           . "\n" . $t['c'] . "\n\n"
-          . $t['u'] . "\n\n"
-          . "VESTRA\nvestrasales.com";
+          . ($lead ? $t['ul'] : $t['u']) . "\n\n"
+          . $sign;
 
     $opts = [
-        'badge'       => $t['badge'],
+        'badge'       => $fill($t['badge']),
         'rows'        => $parts['rows'],
         'shots'       => $parts['shots'],
         'shots_title' => sprintf($t['shots'], $nCol),
@@ -2179,10 +2424,23 @@ function vestra_tpl_order_shipped(string $buyerName, string $ref, string $tracki
     if ($carrier !== '' || $service !== '') {
         $carrierLine = "Carrier: ".($carrier !== '' ? $carrier : '—').($service !== '' ? " ".$service : '')."\n";
     }
+    /* Daha once KISMI paket(ler) gittiyse (vestra_tpl_order_part_shipped) bu mektup
+       siparisi TAMAMLAYAN paketi duyuruyor. Alici ilk paketin mektubunu da aldi;
+       ikinci bir "siparisiniz gonderildi" o paketle ayni sey sanilir. Bir cumle,
+       ve onceki numara yeniden yaziliyor ki ikisini eslestirebilsin. */
+    $earlierTrk = [];
+    foreach ((array)($shipment['earlier'] ?? []) as $pe) {
+        $pt = trim((string)($pe['tracking'] ?? ''));
+        if ($pt !== '' && $pt !== $tracking) $earlierTrk[] = $pt;
+    }
     $subject = "VESTRA — your order {$ref} has shipped";
     $body =
         "Hello {$buyerName},\n\n"
       . "Good news — your order {$ref} has been shipped.\n\n"
+      . ($earlierTrk
+          ? "This shipment completes your order: the first part was sent earlier (tracking number "
+            .implode(', ', $earlierTrk).").\n\n"
+          : '')
       . $carrierLine
       . ($tracking !== '' ? "Tracking number: {$tracking}\n" : '')
       . ($trkUrl !== '' ? "Track it here: {$trkUrl}\n" : '')
@@ -2191,6 +2449,203 @@ function vestra_tpl_order_shipped(string $buyerName, string $ref, string $tracki
           ? "Once the goods arrive and you have inspected them, please confirm receipt in your buyer dashboard:\nhttps://vestrasales.com/buyer?tab=orders\n\n"
           : "If anything about the delivery needs our attention, simply reply to this e-mail.\n\n")
       . "—\nVESTRA · vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
+ * "PART of your order has shipped" (operator, 29 Sep 2026: two UPS numbers for
+ * two orders — "siparişlerin bir kısmının çıktığını belirt ve müşterilere email
+ * gönder").
+ *
+ * WHY NOT vestra_tpl_order_shipped(): that letter says "your order has been
+ * shipped" and asks the buyer to confirm receipt. On a partial parcel both are
+ * false — the buyer would open the box, find items "missing" and either report
+ * them as missing or confirm receipt of an order that is only half there.
+ *
+ * WHAT IT DOES NOT SAY, on purpose: WHICH items are in this parcel. The operator
+ * gave the tracking number, not the packing list; naming lines here would be a
+ * guess printed as fact (KURAL 3). "Part of the order" is what we know.
+ *
+ * Written per language like vestra_tpl_order_stage() — the same five languages,
+ * the same formal address — because the caller mails in the BUYER's language, not
+ * the admin's. A language outside the five falls back to English.
+ *
+ * Facts (carrier, service, number, link) come from vestra_order_shipment(), never
+ * resolved here: the order page and the letter must show the same parcel.
+ */
+function vestra_tpl_order_part_shipped(string $lang, string $buyerName, string $ref, array $shipment, bool $hasAccount = false): array {
+    return vestra_tpl_order_parcel_core($lang, $buyerName, $ref, $shipment, $hasAccount, false);
+}
+
+/**
+ * "The REST of your order has shipped" -- the parcel that completes an order whose
+ * first part went earlier (operator, 29 Sep 2026: "trackinglerde ikinci lieferung
+ * icin yer ac"). Same language table as the partial letter: the buyer who got the
+ * first letter in Spanish gets the second in Spanish too, not the English-only
+ * vestra_tpl_order_shipped().
+ *
+ * Earlier parcels are listed by number and link so the two can be matched; the
+ * letter asks for receipt confirmation only now, when the whole order is on its way
+ * (the partial letter must not -- half an order is not a delivery).
+ */
+function vestra_tpl_order_rest_shipped(string $lang, string $buyerName, string $ref, array $shipment, bool $hasAccount = false): array {
+    return vestra_tpl_order_parcel_core($lang, $buyerName, $ref, $shipment, $hasAccount, true);
+}
+
+/**
+ * The ONE place that decides which shipment letter a parcel gets -- the admin slot,
+ * the admin status form, the seller's "shipped" and the workflow all call this, via
+ * vestra_order_parcel_notify() (inc/orders.php):
+ *   partial parcel            -> "part of your order has shipped" (another part, if earlier ones exist)
+ *   final parcel, earlier ones -> "the rest of your order has shipped" (buyer's language)
+ *   single parcel             -> vestra_tpl_order_shipped(), unchanged
+ */
+function vestra_tpl_order_parcel_letter(string $lang, string $buyerName, string $ref, array $shipment, bool $hasAccount = false): array {
+    if (!empty($shipment['partial'])) return vestra_tpl_order_part_shipped($lang, $buyerName, $ref, $shipment, $hasAccount);
+    if (!empty($shipment['earlier'])) return vestra_tpl_order_rest_shipped($lang, $buyerName, $ref, $shipment, $hasAccount);
+    return vestra_tpl_order_shipped($buyerName, $ref, (string)($shipment['tracking'] ?? ''), $hasAccount, $shipment);
+}
+
+/* Govde: kismi ($final=false) ya da siparisi tamamlayan ($final=true) paket.
+   Kalem ALMAZ -- hangi kalemin hangi pakette oldugu tahmin edilmez (KURAL 3). */
+function vestra_tpl_order_parcel_core(string $lang, string $buyerName, string $ref, array $shipment, bool $hasAccount, bool $final): array {
+    $lang = in_array($lang, ['en','fr','es','it','de'], true) ? $lang : 'en';
+    $buyerName = vestra_display_name($buyerName);
+    $carrier = trim((string)($shipment['carrier_name'] ?? ''));
+    $service = trim((string)($shipment['service'] ?? ''));
+    $trk     = trim((string)($shipment['tracking'] ?? ''));
+    $trkUrl  = trim((string)($shipment['url'] ?? ''));
+
+    $L = [
+      'en' => [
+        'subject' => "VESTRA — part of your order {$ref} has shipped",
+        'hi'      => $buyerName !== '' ? "Hello {$buyerName}," : "Hello,",
+        'lead'    => "Part of your order {$ref} has been shipped.",
+        'carrier' => 'Carrier', 'tracking' => 'Tracking number', 'ref' => 'Order ref', 'track' => 'Track it here:',
+        'rest'    => "This parcel contains part of the order. The remaining items have not been forgotten: "
+                   . "they will follow in a separate shipment, and we will send you that tracking number as soon as it leaves.",
+        'acct'    => "Your order and its tracking are also in your VESTRA account:",
+        'noacct'  => "If anything about the delivery needs our attention, simply reply to this e-mail.",
+        'badge'   => '📦 Partly shipped', 'btn' => 'Track this shipment', 'btn2' => 'View my order',
+        'lead2'   => "Another part of your order {$ref} has been shipped.",
+        'subject_rest' => "VESTRA — the rest of your order {$ref} has shipped",
+        'lead_rest'    => "The remaining items of your order {$ref} have been shipped. With this parcel your order is complete.",
+        'earlier' => 'Earlier parcel',
+        'confirm' => "Once all parcels have arrived and you have checked the goods, please confirm receipt in your VESTRA account:",
+        'badge_rest' => '📦 Order complete',
+      ],
+      'fr' => [
+        'subject' => "VESTRA — une partie de votre commande {$ref} a été expédiée",
+        'hi'      => $buyerName !== '' ? "Bonjour {$buyerName}," : "Bonjour,",
+        'lead'    => "Une partie de votre commande {$ref} a été expédiée.",
+        'carrier' => 'Transporteur', 'tracking' => 'Numéro de suivi', 'ref' => 'Référence de commande', 'track' => 'Suivre le colis :',
+        'rest'    => "Ce colis contient une partie de la commande. Les articles restants ne sont pas oubliés : "
+                   . "ils partiront dans un envoi séparé, et nous vous enverrons aussi ce numéro de suivi dès leur départ.",
+        'acct'    => "Votre commande et son suivi figurent aussi dans votre compte VESTRA :",
+        'noacct'  => "Si la livraison demande notre attention, répondez simplement à cet e-mail.",
+        'badge'   => '📦 Expédition partielle', 'btn' => 'Suivre ce colis', 'btn2' => 'Voir ma commande',
+        'lead2'   => "Une autre partie de votre commande {$ref} a été expédiée.",
+        'subject_rest' => "VESTRA — le reste de votre commande {$ref} a été expédié",
+        'lead_rest'    => "Les articles restants de votre commande {$ref} ont été expédiés. Avec ce colis, votre commande est complète.",
+        'earlier' => 'Colis précédent',
+        'confirm' => "Une fois tous les colis arrivés et la marchandise vérifiée, merci de confirmer la réception dans votre compte VESTRA :",
+        'badge_rest' => '📦 Commande complète',
+      ],
+      'es' => [
+        'subject' => "VESTRA — parte de su pedido {$ref} ya ha sido enviada",
+        'hi'      => $buyerName !== '' ? "Hola {$buyerName}:" : "Hola:",
+        'lead'    => "Parte de su pedido {$ref} ha sido enviada.",
+        'carrier' => 'Transportista', 'tracking' => 'Número de seguimiento', 'ref' => 'Referencia del pedido', 'track' => 'Seguir el envío:',
+        'rest'    => "Este paquete contiene una parte del pedido. Los artículos restantes no se han olvidado: "
+                   . "saldrán en un envío aparte y le enviaremos también ese número de seguimiento en cuanto salga.",
+        'acct'    => "Su pedido y su seguimiento también aparecen en su cuenta de VESTRA:",
+        'noacct'  => "Si algo de la entrega requiere nuestra atención, responda simplemente a este correo.",
+        'badge'   => '📦 Envío parcial', 'btn' => 'Seguir este envío', 'btn2' => 'Ver mi pedido',
+        'lead2'   => "Otra parte de su pedido {$ref} ha sido enviada.",
+        'subject_rest' => "VESTRA — el resto de su pedido {$ref} ya ha sido enviado",
+        'lead_rest'    => "Los artículos restantes de su pedido {$ref} han sido enviados. Con este paquete su pedido queda completo.",
+        'earlier' => 'Paquete anterior',
+        'confirm' => "Cuando hayan llegado todos los paquetes y haya revisado la mercancía, confirme por favor la recepción en su cuenta de VESTRA:",
+        'badge_rest' => '📦 Pedido completo',
+      ],
+      'it' => [
+        'subject' => "VESTRA — parte del suo ordine {$ref} è stata spedita",
+        'hi'      => $buyerName !== '' ? "Buongiorno {$buyerName}," : "Buongiorno,",
+        'lead'    => "Parte del suo ordine {$ref} è stata spedita.",
+        'carrier' => 'Corriere', 'tracking' => 'Numero di tracciamento', 'ref' => 'Riferimento ordine', 'track' => 'Segua la spedizione:',
+        'rest'    => "Questo pacco contiene una parte dell’ordine. Gli articoli restanti non sono stati dimenticati: "
+                   . "partiranno con una spedizione separata e le invieremo anche quel numero di tracciamento appena partono.",
+        'acct'    => "Il suo ordine e il tracciamento sono anche nel suo account VESTRA:",
+        'noacct'  => "Se la consegna richiede la nostra attenzione, risponda semplicemente a questa e-mail.",
+        'badge'   => '📦 Spedizione parziale', 'btn' => 'Segui questa spedizione', 'btn2' => 'Vedi il mio ordine',
+        'lead2'   => "Un’altra parte del suo ordine {$ref} è stata spedita.",
+        'subject_rest' => "VESTRA — il resto del suo ordine {$ref} è stato spedito",
+        'lead_rest'    => "Gli articoli rimanenti del suo ordine {$ref} sono stati spediti. Con questo pacco il suo ordine è completo.",
+        'earlier' => 'Pacco precedente',
+        'confirm' => "Quando saranno arrivati tutti i pacchi e avrà controllato la merce, confermi per favore la ricezione nel suo account VESTRA:",
+        'badge_rest' => '📦 Ordine completo',
+      ],
+      'de' => [
+        'subject' => "VESTRA — ein Teil Ihrer Bestellung {$ref} wurde versandt",
+        'hi'      => $buyerName !== '' ? "Guten Tag {$buyerName}," : "Guten Tag,",
+        'lead'    => "Ein Teil Ihrer Bestellung {$ref} wurde versandt.",
+        'carrier' => 'Versanddienstleister', 'tracking' => 'Sendungsnummer', 'ref' => 'Bestellnummer', 'track' => 'Sendung verfolgen:',
+        'rest'    => "Dieses Paket enthält einen Teil der Bestellung. Die übrigen Artikel sind nicht vergessen – "
+                   . "sie folgen in einer separaten Sendung, und wir schicken Ihnen auch diese Sendungsnummer, sobald sie unterwegs ist.",
+        'acct'    => "Ihre Bestellung und die Sendungsverfolgung finden Sie auch in Ihrem VESTRA-Konto:",
+        'noacct'  => "Falls bei der Zustellung etwas unsere Aufmerksamkeit braucht, antworten Sie einfach auf diese E-Mail.",
+        'badge'   => '📦 Teillieferung', 'btn' => 'Sendung verfolgen', 'btn2' => 'Meine Bestellung ansehen',
+        'lead2'   => "Ein weiterer Teil Ihrer Bestellung {$ref} wurde versandt.",
+        'subject_rest' => "VESTRA — der Rest Ihrer Bestellung {$ref} wurde versandt",
+        'lead_rest'    => "Die übrigen Artikel Ihrer Bestellung {$ref} wurden versandt. Mit diesem Paket ist Ihre Bestellung vollständig.",
+        'earlier' => 'Früheres Paket',
+        'confirm' => "Sobald alle Pakete angekommen sind und Sie die Ware geprüft haben, bestätigen Sie bitte den Empfang in Ihrem VESTRA-Konto:",
+        'badge_rest' => '📦 Bestellung vollständig',
+      ],
+    ];
+    $d = $L[$lang];
+    $orderUrl = 'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref);
+    /* Onceki paketler: numara + baglanti, ki alici iki mektubu eslestirebilsin. */
+    $earlierRows = []; $earlierTxt = '';
+    foreach ((array)($shipment['earlier'] ?? []) as $pe) {
+        $pt = trim((string)($pe['tracking'] ?? ''));
+        if ($pt === '' || $pt === $trk) continue;
+        $pc = trim((string)($pe['carrier_name'] ?? ''));
+        $pu = trim((string)($pe['url'] ?? ''));
+        $earlierRows[] = ['label' => $d['earlier'], 'value' => trim($pc.' '.$pt)];
+        $earlierTxt .= $d['earlier'].": ".trim($pc.' '.$pt).($pu !== '' ? " — ".$pu : '')."\n";
+    }
+    $subject = $final ? $d['subject_rest'] : $d['subject'];
+    $lead    = $final ? $d['lead_rest'] : ($earlierRows ? $d['lead2'] : $d['lead']);
+
+    $rows = [['label' => $d['ref'], 'value' => $ref]];
+    if ($carrier !== '') $rows[] = ['label' => $d['carrier'], 'value' => $carrier.($service !== '' ? ' · '.$service : '')];
+    if ($trk !== '')     $rows[] = ['label' => $d['tracking'], 'value' => $trk, 'strong' => true];
+    foreach ($earlierRows as $er) $rows[] = $er;
+    $opts = ['badge' => $final ? $d['badge_rest'] : $d['badge'], 'rows' => $rows];
+    /* Ana dugme TAKIP sayfasi (vestra_tpl_order_shipped ile ayni ders: tek islevi olan
+       mektubun dugmesi o islev). Hesabi olan aliciya siparis sayfasi ikincil. */
+    if ($trkUrl !== '')  $opts['button'] = ['label' => $d['btn'], 'url' => $trkUrl];
+    elseif ($hasAccount) $opts['button'] = ['label' => $d['btn2'], 'url' => $orderUrl];
+    if ($trkUrl !== '' && $hasAccount) $opts['button_alt'] = ['label' => $d['btn2'], 'url' => $orderUrl];
+
+    $facts = '';
+    if ($carrier !== '') $facts .= $d['carrier'].": ".$carrier.($service !== '' ? " · ".$service : '')."\n";
+    if ($trk !== '')     $facts .= $d['tracking'].": ".$trk."\n";
+    if ($trkUrl !== '')  $facts .= $d['track']." ".$trkUrl."\n";
+
+    /* Kismi pakette teslim onayi ISTENMEZ (yarim siparis teslimat degil); siparisi
+       tamamlayan pakette istenir -- durum artik 'shipped' ve dugme sayfada. */
+    $tail = $final
+        ? ($hasAccount ? $d['confirm']."\n".$orderUrl."\n\n" : $d['noacct']."\n\n")
+        : ($hasAccount ? $d['acct']."\n".$orderUrl."\n\n" : $d['noacct']."\n\n");
+    $body = $d['hi']."\n\n"
+          . $lead."\n\n"
+          . ($facts !== '' ? $facts."\n" : '')
+          . ($final ? '' : $d['rest']."\n\n")
+          . ($earlierTxt !== '' ? $earlierTxt."\n" : '')
+          . $tail
+          . "—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com";
     return [$subject, $body, $opts];
 }
 
@@ -2582,6 +3037,406 @@ function vestra_tpl_new_collection_shoes(string $lang, string $company, array $f
            . "\n\n—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com";
 
     return [$subject, $body, ['button' => ['label' => 'VESTRA', 'url' => 'https://vestrasales.com/price-list']]];
+}
+
+/**
+ * AYAKKABI DUKKANLARINA ILK TEMAS (operator, 26 Eyl 2026: *"sende tum
+ * avrupadan ayakkabi dukkani bul zincir olmasin gercek email adreslerine
+ * ayakkabi kategorisini ve bir kac diger kategorilerden gonder"*).
+ *
+ * NEDEN AYRI BIR SABLON. Soguk ilk mektup (vestra_campaign_preview_base)
+ * "tasarimci evleri" satiyor ve govdesinde ayakkabi kelimesi HIC gecmiyor;
+ * feature_category yalnizca fotograf seridine iki kare ekliyor. Bir ayakkabi
+ * dukkanina "designer giyim toptancisi" diye yazmak, ilgisini cekecek tek
+ * bolumu bir fotografa indirir. Ikinci mektup (new_collection_shoes) ise
+ * "size daha once yazmistik" diye aciliyor -- ilk temasta kendi acilisini
+ * yalanlar.
+ *
+ * RAKAMLAR PARAMETREDEN, METNE GOMULU DEGIL (KURAL 13'un journal dersi):
+ * model sayisi, turler, kutu buyuklugu, yetiskin/cocuk ayrimi ve giyim
+ * kategorileri cagiranin CANLI katalogdan saydigi degerler. Sifir olan cumle
+ * HIC basilmaz. "Ispanyol uretici" ifadesi yalnizca cagiran bolmedeki markayi
+ * olcup dogrularsa ($f['origin_es']) yazilir -- yarin bolmeye baska bir marka
+ * girerse cumle kendiliginden susar.
+ *
+ * "STOKTAN" DENMIYOR: ayakkabi ilanlarinda ships_from bos (KURAL 3 -- saticiya
+ * soruldu). Ikinci mektubun "from stock" cumlesi bu mektuba tasinmadi;
+ * dogrulayamadigimiz bir soz ilk temasta verilmez. Test bunu 10 dilde tutuyor.
+ *
+ * FIYAT YOK (KURAL 19): toptan fiyat hesap kapisinin arkasinda; mektup
+ * "kayitli isletmelere gosteriliyor, kayit ucretsiz" diyor.
+ *
+ * CIKIS YOLU hem metnin icinde ("ilgilenmiyorsaniz yanitlayin") hem kunyede
+ * (abonelikten cikma linki; cagiran leadin kendi jetonunu ekliyor).
+ */
+function vestra_tpl_footwear_intro_strings(): array {
+    return [
+      'en' => [
+        'subject' => 'VESTRA — %N% %MODELS% for your shop, at trade prices',
+        'models'  => ['footwear model', 'footwear models'],
+        'hi' => 'Hello %CO%,', 'hi0' => 'Hello,',
+        'intro' => 'A short introduction: VESTRA is a verified B2B wholesale marketplace for footwear and branded fashion. We are writing to independent shoe shops because our footwear range may suit your shelves.',
+        'colon' => ': ', 'origin' => ' from a Spanish manufacturer', 'aud' => ', for adults and children', 'and' => 'and',
+        'box_range' => 'Ordered by the box: %MIN% to %MAX% pairs of one model per box.',
+        'box_one'   => 'Ordered by the box: %MIN% pairs of one model per box.',
+        'app'    => 'On the same account you can also order branded apparel:',
+        'prices' => 'Trade prices are shown to registered businesses — registration is free and we ask for your trade licence. If this is not relevant to your shop, simply reply and we will not write again.',
+        'sign'   => "Kind regards,\nVESTRA",
+        'foot'   => "VESTRA (operated by Acerasoft LLC). One-time business message — your shop was identified as a possible trade partner.\nUnsubscribe instantly: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Footwear wholesale', 'title' => 'Footwear for your shelves — at trade terms.',
+        'badge'  => 'Verified B2B marketplace · trade accounts only',
+        'shots'  => 'From the current selection',
+        'dl'     => 'Apparel line-sheets (Excel, with photos)',
+        'btn'    => 'See the footwear range',
+        'types'  => ['Sneakers'=>'sneakers','Flats'=>'flats','Sandals'=>'sandals','Boots'=>'boots','Loafers'=>'loafers','Slippers'=>'slippers','Heels'=>'heels'],
+        'cats'   => ['T-Shirts'=>'T-shirts','Polos'=>'Polo shirts','Hoodies & Sweatshirts'=>'Hoodies & sweatshirts','Jeans'=>'Jeans','Shirts'=>'Shirts',
+                     'Sweaters & Knitwear'=>'Knitwear','Jackets'=>'Jackets','Shorts'=>'Shorts','Jeans Shorts'=>'Denim shorts','Swim Shorts'=>'Swim shorts',
+                     'Tracksuit Sets'=>'Tracksuits','Trousers & Chinos'=>'Trousers',"Women's T-Shirts"=>"Women's T-shirts",'Skirts'=>'Skirts','Coats'=>'Coats'],
+      ],
+      'de' => [
+        'subject' => 'VESTRA — %N% %MODELS% für Ihr Geschäft, zu Händlerpreisen',
+        'models'  => ['Schuhmodell', 'Schuhmodelle'],
+        'hi' => 'Guten Tag %CO%,', 'hi0' => 'Guten Tag,',
+        'intro' => 'Eine kurze Vorstellung: VESTRA ist ein verifizierter B2B-Großhandelsmarktplatz für Schuhe und Markenmode. Wir schreiben unabhängigen Schuhgeschäften, weil unser Schuhsortiment gut zu Ihrem Geschäft passen könnte.',
+        'colon' => ': ', 'origin' => ' eines spanischen Herstellers', 'aud' => ', für Erwachsene und Kinder', 'and' => 'und',
+        'box_range' => 'Bestellt wird kartonweise: %MIN% bis %MAX% Paar eines Modells pro Karton.',
+        'box_one'   => 'Bestellt wird kartonweise: %MIN% Paar eines Modells pro Karton.',
+        'app'    => 'Über dasselbe Konto können Sie auch Markenmode bestellen:',
+        'prices' => 'Die Händlerpreise sehen registrierte Betriebe — die Registrierung ist kostenlos, wir fragen einen Gewerbenachweis ab. Falls es für Ihr Geschäft nicht passt, antworten Sie einfach kurz — dann schreiben wir nicht wieder.',
+        'sign'   => "Mit freundlichen Grüßen\nVESTRA",
+        'foot'   => "VESTRA (betrieben von Acerasoft LLC). Einmalige geschäftliche Nachricht — Ihr Geschäft wurde als möglicher Handelspartner identifiziert.\nSofort abmelden: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Schuhe im Großhandel', 'title' => 'Schuhe für Ihr Regal — zu Händlerkonditionen.',
+        'badge'  => 'Verifizierter B2B-Marktplatz · nur für Gewerbekunden',
+        'shots'  => 'Aus der aktuellen Auswahl',
+        'dl'     => 'Line-Sheets Markenmode (Excel, mit Fotos)',
+        'btn'    => 'Zum Schuhsortiment',
+        'types'  => ['Sneakers'=>'Sneaker','Flats'=>'Ballerinas','Sandals'=>'Sandalen','Boots'=>'Stiefel','Loafers'=>'Loafer','Slippers'=>'Hausschuhe','Heels'=>'High Heels'],
+        'cats'   => ['T-Shirts'=>'T-Shirts','Polos'=>'Poloshirts','Hoodies & Sweatshirts'=>'Hoodies & Sweatshirts','Jeans'=>'Jeans','Shirts'=>'Hemden',
+                     'Sweaters & Knitwear'=>'Strickmode','Jackets'=>'Jacken','Shorts'=>'Shorts','Jeans Shorts'=>'Jeansshorts','Swim Shorts'=>'Badeshorts',
+                     'Tracksuit Sets'=>'Trainingsanzüge','Trousers & Chinos'=>'Hosen',"Women's T-Shirts"=>'Damen-T-Shirts','Skirts'=>'Röcke','Coats'=>'Mäntel'],
+      ],
+      'fr' => [
+        'subject' => 'VESTRA — %N% %MODELS% pour votre boutique, aux prix de gros',
+        'models'  => ['modèle de chaussures', 'modèles de chaussures'],
+        'hi' => 'Bonjour %CO%,', 'hi0' => 'Bonjour,',
+        'intro' => 'Une brève présentation : VESTRA est une place de marché B2B de gros vérifiée, dédiée à la chaussure et à la mode de marque. Nous écrivons aux chausseurs indépendants, car notre gamme de chaussures pourrait trouver sa place dans votre boutique.',
+        'colon' => ' : ', 'origin' => " d'un fabricant espagnol", 'aud' => ', pour adultes et enfants', 'and' => 'et',
+        'box_range' => "Commande au carton : de %MIN% à %MAX% paires d'un même modèle par carton.",
+        'box_one'   => "Commande au carton : %MIN% paires d'un même modèle par carton.",
+        'app'    => 'Sur le même compte, vous pouvez aussi commander de la mode de marque :',
+        'prices' => "Les prix de gros sont affichés aux entreprises enregistrées — l'inscription est gratuite et nous demandons un justificatif d'immatriculation (Kbis ou équivalent). Si cela ne concerne pas votre boutique, répondez-nous simplement et nous ne vous écrirons plus.",
+        'sign'   => "Cordialement,\nVESTRA",
+        'foot'   => "VESTRA (exploité par Acerasoft LLC). Message professionnel unique — votre boutique a été identifiée comme partenaire commercial potentiel.\nSe désinscrire immédiatement : https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Chaussures en gros', 'title' => 'Des chaussures pour vos rayons — aux conditions professionnelles.',
+        'badge'  => 'Place de marché B2B vérifiée · réservée aux professionnels',
+        'shots'  => 'De la sélection actuelle',
+        'dl'     => 'Line-sheets mode de marque (Excel, avec photos)',
+        'btn'    => 'Voir la gamme chaussures',
+        'types'  => ['Sneakers'=>'baskets','Flats'=>'ballerines','Sandals'=>'sandales','Boots'=>'bottes','Loafers'=>'mocassins','Slippers'=>'chaussons','Heels'=>'talons'],
+        'cats'   => ['T-Shirts'=>'T-shirts','Polos'=>'Polos','Hoodies & Sweatshirts'=>'Sweats à capuche & sweats','Jeans'=>'Jeans','Shirts'=>'Chemises',
+                     'Sweaters & Knitwear'=>'Pulls & mailles','Jackets'=>'Vestes','Shorts'=>'Shorts','Jeans Shorts'=>'Shorts en jean','Swim Shorts'=>'Shorts de bain',
+                     'Tracksuit Sets'=>'Ensembles survêtement','Trousers & Chinos'=>'Pantalons',"Women's T-Shirts"=>'T-shirts femme','Skirts'=>'Jupes','Coats'=>'Manteaux'],
+      ],
+      'nl' => [
+        'subject' => 'VESTRA — %N% %MODELS% voor uw winkel, tegen groothandelsprijzen',
+        'models'  => ['schoenmodel', 'schoenmodellen'],
+        'hi' => 'Goedendag %CO%,', 'hi0' => 'Goedendag,',
+        'intro' => 'Een korte kennismaking: VESTRA is een geverifieerde B2B-groothandelsmarktplaats voor schoenen en merkmode. Wij schrijven zelfstandige schoenenwinkels aan, omdat ons schoenenassortiment goed bij uw winkel zou kunnen passen.',
+        'colon' => ': ', 'origin' => ' van een Spaanse fabrikant', 'aud' => ', voor volwassenen en kinderen', 'and' => 'en',
+        'box_range' => 'U bestelt per doos: %MIN% tot %MAX% paar van één model per doos.',
+        'box_one'   => 'U bestelt per doos: %MIN% paar van één model per doos.',
+        'app'    => 'Via hetzelfde account kunt u ook merkkleding bestellen:',
+        'prices' => 'Inkoopprijzen zijn zichtbaar voor geregistreerde bedrijven — registratie is gratis en wij vragen een uittreksel van uw inschrijving (KvK of KBO). Past dit niet bij uw winkel, antwoord dan kort — dan schrijven wij niet opnieuw.',
+        'sign'   => "Met vriendelijke groet,\nVESTRA",
+        'foot'   => "VESTRA (beheerd door Acerasoft LLC). Eenmalig zakelijk bericht — uw winkel is geïdentificeerd als mogelijke handelspartner.\nDirect uitschrijven: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Schoenen in de groothandel', 'title' => 'Schoenen voor uw schappen — tegen handelsvoorwaarden.',
+        'badge'  => 'Geverifieerde B2B-marktplaats · alleen voor zakelijke klanten',
+        'shots'  => 'Uit de actuele selectie',
+        'dl'     => "Line-sheets merkkleding (Excel, met foto's)",
+        'btn'    => 'Bekijk het schoenenassortiment',
+        'types'  => ['Sneakers'=>'sneakers','Flats'=>"ballerina's",'Sandals'=>'sandalen','Boots'=>'laarzen','Loafers'=>'loafers','Slippers'=>'pantoffels','Heels'=>'pumps'],
+        'cats'   => ['T-Shirts'=>'T-shirts','Polos'=>'Poloshirts','Hoodies & Sweatshirts'=>'Hoodies & sweatshirts','Jeans'=>'Jeans','Shirts'=>'Overhemden',
+                     'Sweaters & Knitwear'=>'Truien & breigoed','Jackets'=>'Jassen','Shorts'=>'Shorts','Jeans Shorts'=>'Jeansshorts','Swim Shorts'=>'Zwemshorts',
+                     'Tracksuit Sets'=>'Trainingspakken','Trousers & Chinos'=>'Broeken',"Women's T-Shirts"=>'Dames-T-shirts','Skirts'=>'Rokken','Coats'=>'Mantels'],
+      ],
+      'it' => [
+        'subject' => "VESTRA — %N% %MODELS% per il Suo negozio, a prezzi all'ingrosso",
+        'models'  => ['modello di calzature', 'modelli di calzature'],
+        'hi' => 'Buongiorno %CO%,', 'hi0' => 'Buongiorno,',
+        'intro' => "Una breve presentazione: VESTRA è un marketplace B2B all'ingrosso verificato per calzature e moda di marca. Scriviamo ai negozi di calzature indipendenti perché il nostro assortimento potrebbe adattarsi bene al Suo negozio.",
+        'colon' => ': ', 'origin' => ' di un produttore spagnolo', 'aud' => ', per adulti e bambini', 'and' => 'e',
+        'box_range' => 'Si ordina a cartone: da %MIN% a %MAX% paia dello stesso modello per cartone.',
+        'box_one'   => 'Si ordina a cartone: %MIN% paia dello stesso modello per cartone.',
+        'app'    => 'Con lo stesso account può ordinare anche abbigliamento di marca:',
+        'prices' => "I prezzi all'ingrosso sono visibili alle aziende registrate — l'iscrizione è gratuita e chiediamo la visura camerale. Se non riguarda il Suo negozio, basta risponderci e non scriveremo più.",
+        'sign'   => "Cordiali saluti,\nVESTRA",
+        'foot'   => "VESTRA (gestito da Acerasoft LLC). Messaggio commerciale unico — il Suo negozio è stato individuato come possibile partner commerciale.\nAnnulla subito l'iscrizione: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => "Calzature all'ingrosso", 'title' => 'Calzature per i Suoi scaffali — a condizioni per rivenditori.',
+        'badge'  => 'Marketplace B2B verificato · solo per rivenditori',
+        'shots'  => 'Dalla selezione attuale',
+        'dl'     => 'Line-sheet abbigliamento di marca (Excel, con foto)',
+        'btn'    => 'Vedi le calzature',
+        'types'  => ['Sneakers'=>'sneakers','Flats'=>'ballerine','Sandals'=>'sandali','Boots'=>'stivali','Loafers'=>'mocassini','Slippers'=>'pantofole','Heels'=>'scarpe con tacco'],
+        'cats'   => ['T-Shirts'=>'T-shirt','Polos'=>'Polo','Hoodies & Sweatshirts'=>'Felpe e hoodie','Jeans'=>'Jeans','Shirts'=>'Camicie',
+                     'Sweaters & Knitwear'=>'Maglieria','Jackets'=>'Giacche','Shorts'=>'Shorts','Jeans Shorts'=>'Shorts in jeans','Swim Shorts'=>'Costumi a pantaloncino',
+                     'Tracksuit Sets'=>'Tute','Trousers & Chinos'=>'Pantaloni',"Women's T-Shirts"=>'T-shirt donna','Skirts'=>'Gonne','Coats'=>'Cappotti'],
+      ],
+      'es' => [
+        'subject' => 'VESTRA — %N% %MODELS% para su tienda, a precio mayorista',
+        'models'  => ['modelo de calzado', 'modelos de calzado'],
+        'hi' => 'Buenos días %CO%,', 'hi0' => 'Buenos días,',
+        'intro' => 'Una breve presentación: VESTRA es un marketplace mayorista B2B verificado de calzado y moda de marca. Escribimos a zapaterías independientes porque nuestro surtido de calzado podría encajar en su tienda.',
+        'colon' => ': ', 'origin' => ' de un fabricante español', 'aud' => ', para adultos y niños', 'and' => 'y',
+        'box_range' => 'Se pide por caja: de %MIN% a %MAX% pares de un mismo modelo por caja.',
+        'box_one'   => 'Se pide por caja: %MIN% pares de un mismo modelo por caja.',
+        'app'    => 'Con la misma cuenta también puede pedir moda de marca:',
+        'prices' => 'Los precios mayoristas se muestran a empresas registradas — el registro es gratuito y pedimos un justificante de alta de su actividad. Si no encaja con su tienda, respóndanos simplemente y no volveremos a escribir.',
+        'sign'   => "Saludos cordiales,\nVESTRA",
+        'foot'   => "VESTRA (gestionado por Acerasoft LLC). Mensaje comercial único — su tienda fue identificada como posible socio comercial.\nDarse de baja al instante: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Calzado al por mayor', 'title' => 'Calzado para sus estanterías — en condiciones profesionales.',
+        'badge'  => 'Marketplace B2B verificado · solo para profesionales',
+        'shots'  => 'De la selección actual',
+        'dl'     => 'Line-sheets de moda de marca (Excel, con fotos)',
+        'btn'    => 'Ver el calzado',
+        'types'  => ['Sneakers'=>'deportivas','Flats'=>'bailarinas','Sandals'=>'sandalias','Boots'=>'botas','Loafers'=>'mocasines','Slippers'=>'zapatillas de casa','Heels'=>'zapatos de tacón'],
+        'cats'   => ['T-Shirts'=>'Camisetas','Polos'=>'Polos','Hoodies & Sweatshirts'=>'Sudaderas','Jeans'=>'Vaqueros','Shirts'=>'Camisas',
+                     'Sweaters & Knitwear'=>'Punto','Jackets'=>'Chaquetas','Shorts'=>'Pantalones cortos','Jeans Shorts'=>'Shorts vaqueros','Swim Shorts'=>'Bañadores',
+                     'Tracksuit Sets'=>'Chándales','Trousers & Chinos'=>'Pantalones',"Women's T-Shirts"=>'Camisetas de mujer','Skirts'=>'Faldas','Coats'=>'Abrigos'],
+      ],
+      'pt' => [
+        'subject' => 'VESTRA — %N% %MODELS% para a sua loja, a preços de revenda',
+        'models'  => ['modelo de calçado', 'modelos de calçado'],
+        'hi' => 'Bom dia %CO%,', 'hi0' => 'Bom dia,',
+        'intro' => 'Uma breve apresentação: a VESTRA é um marketplace grossista B2B verificado de calçado e moda de marca. Escrevemos a sapatarias independentes porque a nossa gama de calçado pode encaixar na sua loja.',
+        'colon' => ': ', 'origin' => ' de um fabricante espanhol', 'aud' => ', para adultos e crianças', 'and' => 'e',
+        'box_range' => 'Encomenda por caixa: de %MIN% a %MAX% pares do mesmo modelo por caixa.',
+        'box_one'   => 'Encomenda por caixa: %MIN% pares do mesmo modelo por caixa.',
+        'app'    => 'Na mesma conta pode também encomendar moda de marca:',
+        'prices' => 'Os preços de revenda são mostrados a empresas registadas — o registo é gratuito e pedimos a certidão permanente. Se não se aplicar à sua loja, basta responder e não voltaremos a escrever.',
+        'sign'   => "Com os melhores cumprimentos,\nVESTRA",
+        'foot'   => "VESTRA (gerida pela Acerasoft LLC). Mensagem comercial única — a sua loja foi identificada como possível parceiro comercial.\nCancelar a subscrição de imediato: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Calçado por grosso', 'title' => 'Calçado para as suas prateleiras — em condições de revenda.',
+        'badge'  => 'Marketplace B2B verificado · apenas para empresas',
+        'shots'  => 'Da seleção atual',
+        'dl'     => 'Line-sheets de moda de marca (Excel, com fotos)',
+        'btn'    => 'Ver o calçado',
+        'types'  => ['Sneakers'=>'ténis','Flats'=>'sapatos rasos','Sandals'=>'sandálias','Boots'=>'botas','Loafers'=>'mocassins','Slippers'=>'pantufas','Heels'=>'sapatos de salto'],
+        'cats'   => ['T-Shirts'=>'T-shirts','Polos'=>'Polos','Hoodies & Sweatshirts'=>'Hoodies e sweatshirts','Jeans'=>'Jeans','Shirts'=>'Camisas',
+                     'Sweaters & Knitwear'=>'Malhas','Jackets'=>'Casacos','Shorts'=>'Calções','Jeans Shorts'=>'Calções de ganga','Swim Shorts'=>'Calções de banho',
+                     'Tracksuit Sets'=>'Fatos de treino','Trousers & Chinos'=>'Calças',"Women's T-Shirts"=>'T-shirts de senhora','Skirts'=>'Saias','Coats'=>'Casacos compridos'],
+      ],
+      'pl' => [
+        'subject' => 'VESTRA — %N% %MODELS% dla Państwa sklepu, w cenach hurtowych',
+        /* Trzy formy: 1 model / 2-4 modele (bez 12-14) / pozostale modeli. */
+        'models'  => ['model obuwia', 'modele obuwia', 'modeli obuwia'],
+        'hi' => 'Dzień dobry %CO%,', 'hi0' => 'Dzień dobry,',
+        'intro' => 'Krótko o nas: VESTRA to zweryfikowana hurtowa platforma B2B z obuwiem i odzieżą markową. Piszemy do niezależnych sklepów obuwniczych, ponieważ nasza oferta obuwia może pasować do Państwa sklepu.',
+        'colon' => ': ', 'origin' => ' od hiszpańskiego producenta', 'aud' => ', dla dorosłych i dzieci', 'and' => 'i',
+        'box_range' => 'Zamówienia w kartonach: od %MIN% do %MAX% par jednego modelu w kartonie.',
+        'box_one'   => 'Zamówienia w kartonach: %MIN% par jednego modelu w kartonie.',
+        'app'    => 'Na tym samym koncie można też zamawiać odzież markową:',
+        'prices' => 'Ceny hurtowe widzą zarejestrowane firmy — rejestracja jest bezpłatna, prosimy o dokument rejestracji działalności. Jeśli to nie dotyczy Państwa sklepu, wystarczy krótko odpowiedzieć — nie napiszemy ponownie.',
+        'sign'   => "Z poważaniem\nVESTRA",
+        'foot'   => "VESTRA (prowadzona przez Acerasoft LLC). Jednorazowa wiadomość biznesowa — Państwa sklep został wskazany jako potencjalny partner handlowy.\nNatychmiastowa rezygnacja: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Obuwie w hurcie', 'title' => 'Obuwie na Państwa półki — na warunkach hurtowych.',
+        'badge'  => 'Zweryfikowana platforma B2B · tylko dla firm',
+        'shots'  => 'Z aktualnej oferty',
+        'dl'     => 'Line-sheety odzieży markowej (Excel, ze zdjęciami)',
+        'btn'    => 'Zobacz obuwie',
+        'types'  => ['Sneakers'=>'sneakersy','Flats'=>'baleriny','Sandals'=>'sandały','Boots'=>'botki','Loafers'=>'mokasyny','Slippers'=>'kapcie','Heels'=>'buty na obcasie'],
+        'cats'   => ['T-Shirts'=>'T-shirty','Polos'=>'Koszulki polo','Hoodies & Sweatshirts'=>'Bluzy','Jeans'=>'Jeansy','Shirts'=>'Koszule',
+                     'Sweaters & Knitwear'=>'Swetry','Jackets'=>'Kurtki','Shorts'=>'Szorty','Jeans Shorts'=>'Szorty jeansowe','Swim Shorts'=>'Szorty kąpielowe',
+                     'Tracksuit Sets'=>'Dresy','Trousers & Chinos'=>'Spodnie',"Women's T-Shirts"=>'T-shirty damskie','Skirts'=>'Spódnice','Coats'=>'Płaszcze'],
+      ],
+      'cs' => [
+        'subject' => 'VESTRA — %N% %MODELS% pro Vaši prodejnu, za velkoobchodní ceny',
+        /* Tri tvary: 1 model / 2-4 modely / 5+ modelu. */
+        'models'  => ['model obuvi', 'modely obuvi', 'modelů obuvi'],
+        'hi' => 'Dobrý den %CO%,', 'hi0' => 'Dobrý den,',
+        'intro' => 'Krátké představení: VESTRA je ověřené velkoobchodní B2B tržiště s obuví a značkovou módou. Píšeme nezávislým obchodům s obuví, protože naše nabídka obuvi by se mohla hodit do Vaší prodejny.',
+        'colon' => ': ', 'origin' => ' od španělského výrobce', 'aud' => ', pro dospělé i děti', 'and' => 'a',
+        'box_range' => 'Objednává se po kartonech: od %MIN% do %MAX% párů jednoho modelu v kartonu.',
+        'box_one'   => 'Objednává se po kartonech: %MIN% párů jednoho modelu v kartonu.',
+        'app'    => 'Na stejném účtu můžete objednat i značkové oblečení:',
+        'prices' => 'Velkoobchodní ceny vidí registrované firmy — registrace je zdarma a žádáme doklad o podnikání (živnostenský list nebo výpis z obchodního rejstříku). Pokud se to Vaší prodejny netýká, stačí krátce odpovědět a znovu psát nebudeme.',
+        'sign'   => "S pozdravem\nVESTRA",
+        'foot'   => "VESTRA (provozuje Acerasoft LLC). Jednorázová obchodní zpráva — Vaše prodejna byla vybrána jako možný obchodní partner.\nOkamžité odhlášení: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Obuv ve velkoobchodě', 'title' => 'Obuv do Vašich regálů — za velkoobchodních podmínek.',
+        'badge'  => 'Ověřené B2B tržiště · pouze pro firmy',
+        'shots'  => 'Z aktuální nabídky',
+        'dl'     => 'Line-sheety značkového oblečení (Excel, s fotografiemi)',
+        'btn'    => 'Prohlédnout obuv',
+        'types'  => ['Sneakers'=>'tenisky','Flats'=>'baleríny','Sandals'=>'sandály','Boots'=>'kozačky','Loafers'=>'mokasíny','Slippers'=>'bačkory','Heels'=>'boty na podpatku'],
+        'cats'   => ['T-Shirts'=>'Trička','Polos'=>'Pólo trička','Hoodies & Sweatshirts'=>'Mikiny','Jeans'=>'Džíny','Shirts'=>'Košile',
+                     'Sweaters & Knitwear'=>'Svetry','Jackets'=>'Bundy','Shorts'=>'Kraťasy','Jeans Shorts'=>'Džínové kraťasy','Swim Shorts'=>'Plavkové šortky',
+                     'Tracksuit Sets'=>'Teplákové soupravy','Trousers & Chinos'=>'Kalhoty',"Women's T-Shirts"=>'Dámská trička','Skirts'=>'Sukně','Coats'=>'Kabáty'],
+      ],
+      'el' => [
+        'subject' => 'VESTRA — %N% %MODELS% για το κατάστημά σας, σε τιμές χονδρικής',
+        'models'  => ['μοντέλο υποδημάτων', 'μοντέλα υποδημάτων'],
+        'hi' => 'Καλημέρα %CO%,', 'hi0' => 'Καλημέρα,',
+        'intro' => 'Μια σύντομη γνωριμία: η VESTRA είναι μια επαληθευμένη B2B πλατφόρμα χονδρικής για υποδήματα και επώνυμη μόδα. Γράφουμε σε ανεξάρτητα καταστήματα υποδημάτων, γιατί η γκάμα υποδημάτων μας θα μπορούσε να ταιριάξει στο κατάστημά σας.',
+        'colon' => ': ', 'origin' => ' από Ισπανό κατασκευαστή', 'aud' => ', για ενήλικες και παιδιά', 'and' => 'και',
+        'box_range' => 'Η παραγγελία γίνεται ανά κουτί: από %MIN% έως %MAX% ζευγάρια του ίδιου μοντέλου ανά κουτί.',
+        'box_one'   => 'Η παραγγελία γίνεται ανά κουτί: %MIN% ζευγάρια του ίδιου μοντέλου ανά κουτί.',
+        'app'    => 'Από τον ίδιο λογαριασμό μπορείτε να παραγγείλετε και επώνυμα ρούχα:',
+        'prices' => 'Οι τιμές χονδρικής εμφανίζονται σε εγγεγραμμένες επιχειρήσεις — η εγγραφή είναι δωρεάν και ζητάμε βεβαίωση έναρξης δραστηριότητας. Αν δεν αφορά το κατάστημά σας, απλώς απαντήστε μας και δεν θα ξαναγράψουμε.',
+        'sign'   => "Με εκτίμηση,\nVESTRA",
+        'foot'   => "VESTRA (λειτουργεί από την Acerasoft LLC). Μεμονωμένο επαγγελματικό μήνυμα — το κατάστημά σας εντοπίστηκε ως πιθανός εμπορικός συνεργάτης.\nΆμεση διαγραφή: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Υποδήματα χονδρικής', 'title' => 'Υποδήματα για τα ράφια σας — με όρους χονδρικής.',
+        'badge'  => 'Επαληθευμένη B2B πλατφόρμα · μόνο για επιχειρήσεις',
+        'shots'  => 'Από την τρέχουσα συλλογή',
+        'dl'     => 'Line-sheets επώνυμων ρούχων (Excel, με φωτογραφίες)',
+        'btn'    => 'Δείτε τα υποδήματα',
+        'types'  => ['Sneakers'=>'αθλητικά παπούτσια','Flats'=>'μπαλαρίνες','Sandals'=>'σανδάλια','Boots'=>'μπότες','Loafers'=>'μοκασίνια','Slippers'=>'παντόφλες','Heels'=>'γόβες'],
+        'cats'   => ['T-Shirts'=>'T-shirts','Polos'=>'Πόλο','Hoodies & Sweatshirts'=>'Φούτερ','Jeans'=>'Τζιν','Shirts'=>'Πουκάμισα',
+                     'Sweaters & Knitwear'=>'Πλεκτά','Jackets'=>'Μπουφάν','Shorts'=>'Σορτς','Jeans Shorts'=>'Τζιν σορτς','Swim Shorts'=>'Μαγιό σορτς',
+                     'Tracksuit Sets'=>'Φόρμες','Trousers & Chinos'=>'Παντελόνια',"Women's T-Shirts"=>'Γυναικεία T-shirts','Skirts'=>'Φούστες','Coats'=>'Παλτά'],
+      ],
+    ];
+}
+
+/* Sayiya gore isim bicimi. Iki bicimli dillerde 1 tekil, gerisi cogul.
+ * Lehce: 1 / 2-4 (12-14 haric, son hane) / gerisi. Cekce: 1 / 2-4 / 5+.
+ * "335 modele obuwia" yazan bir mektup, sayiyi uyduran bir mektup kadar
+ * dikkatsiz gorunur; iki dilin kurali farkli oldugu icin ayri dal. */
+function vestra_tpl_count_form(int $n, array $forms, string $lang): string {
+    $forms = array_values($forms);
+    if (!$forms) return '';
+    if ($n === 1 || count($forms) === 1) return (string)$forms[0];
+    if (count($forms) >= 3) {
+        if ($lang === 'pl') {
+            $m10 = $n % 10; $m100 = $n % 100;
+            return (string)(($m10 >= 2 && $m10 <= 4 && ($m100 < 12 || $m100 > 14)) ? $forms[1] : $forms[2]);
+        }
+        return (string)(($n >= 2 && $n <= 4) ? $forms[1] : $forms[2]);
+    }
+    return (string)$forms[1];
+}
+
+/* HITAPTA KULLANILACAK AD. Tarayici firma adini sayfanin <title>/og:site_name
+ * alanindan aliyor ve bazi sayfalar kendini ad yerine baslikla tanitiyor.
+ * 27 Eyl 2026 ayakkabi partisinde taranan adlar: "Willkommen bei Schuhhaus
+ * Zeller", "Startseite", "Willkommen bei Schuh Seidl, 8079...", "Schuhhaus
+ * Tervooren · Seit 1904", "Schuhhaus Zimmermann." -- mektup "Guten Tag
+ * Startseite," diye acilirdi (factoryoutlet.gr / "Αρχική" vakasinin aynisi).
+ *
+ * KAYDA DOKUNMAZ, yalnizca HITABI kurar: lead'in adi oldugu gibi kalir.
+ * DAR tutuldu: bir karsilama oneki, bir slogan/adres kuyrugu, sondaki
+ * noktalama ve SAYFANIN KENDI adi (Startseite, Home, Accueil...). Sayfa adiyla
+ * tam esit olan ad NOTR hitaba duser -- yanlis bir ad, adsiz bir hitaptan
+ * kotudur. Temizlenemeyen bir baslik ("Schuhe in Tettnang am Bodensee")
+ * burada TAHMINLE duzeltilmez; o kayit lead_rename ile elle duzeltilir. */
+function vestra_tpl_greeting_name(string $co): string {
+    $k = trim(html_entity_decode($co, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    if ($k === '') return '';
+    $k = (string)preg_replace('/^(?:herzlich\s+)?(?:willkommen\s+(?:bei|im|in\s+der|in)|welcome\s+to|bienvenue\s+(?:chez|à|a|sur)'
+        .'|benvenut[oi]\s+(?:da|a|in|su)|bienvenid[oa]s?\s+a|welkom\s+bij|velkommen\s+til|välkommen\s+till)\s+/iu', '', $k);
+    /* Slogan ya da adres kuyrugu: " · ", " | ", " – ", " — ", " - " ve ", <rakam>"
+       sonrasi atilir. "Schuh- und Sporthaus" gibi bitisik tire ETKILENMEZ
+       (ayractan once bosluk sart). */
+    $k = (string)(preg_split('/\s+[·|–—-]\s+|,\s*\d/u', $k)[0] ?? '');
+    $k = trim($k, " \t\n\r\0\x0B,;:");
+    /* Sondaki nokta ancak NOKTALI bir kisaltmanin parcasi DEGILSE atilir:
+       "Schuhhaus Zimmermann." -> nokta atilir, "Schuhhaus Zeller e.K." ->
+       KALIR (27 Eyl'de "…Zeller e.K," diye gitti). Ayni sinif: S.L., S.A.,
+       e.U., S.p.A., B.V. -- harf-nokta dizisi en az iki kez. */
+    if (str_ends_with($k, '.') && !preg_match('/(?:^|[\s(])(?:\p{L}{1,2}\.){2,}$/u', $k)) $k = rtrim($k, '.');
+    $k = trim($k);
+    if (preg_match('/^(?:home|homepage|home\s*page|startseite|start|accueil|inicio|welkom|hjem|etusivu|index'
+        .'|strona\s+główna|úvod|αρχική|αρχικη)$/iu', $k)) return '';
+    return $k;
+}
+
+/* "a, b ve c" -- son ogeden once dilin kendi baglaci. */
+function vestra_tpl_join_and(array $words, string $and): string {
+    $w = array_values(array_filter(array_map('strval', $words), fn($x) => trim($x) !== ''));
+    if (count($w) <= 1) return $w[0] ?? '';
+    $last = array_pop($w);
+    return implode(', ', $w).' '.$and.' '.$last;
+}
+
+function vestra_tpl_footwear_intro(string $lang, string $company, array $f): array {
+    $S  = vestra_tpl_footwear_intro_strings();
+    $en = $S['en'];
+    $d  = ($S[$lang] ?? []) + $en;           // eksik anahtar Ingilizceye duser
+    $co = trim($company);
+    /* Taranan ad ciplak bir alan adiysa hitapta kullanilmaz (soguk mektubun
+       ayni karari: "Hello chiarulli.it," makine urunu oldugunu ele verir). */
+    if ($co !== '' && function_exists('vestra_name_is_bare_domain') && vestra_name_is_bare_domain($co)) $co = '';
+    $co = vestra_tpl_greeting_name($co);
+
+    $n      = max(0, (int)($f['shoes'] ?? 0));
+    $models = vestra_tpl_count_form($n, (array)$d['models'], $lang);
+
+    $typeWords = [];
+    foreach ((array)($f['types'] ?? []) as $cat => $cnt) {
+        if ((int)$cnt <= 0) continue;
+        $w = (string)($d['types'][$cat] ?? '');
+        if ($w !== '') $typeWords[] = $w;   // tanimsiz tur BASILMAZ: yarim cevrilmis bir liste yazilmaz
+    }
+    $typesStr = vestra_tpl_join_and($typeWords, (string)$d['and']);
+
+    $fw = $n.' '.$models
+        .(!empty($f['origin_es']) ? $d['origin'] : '')
+        .($typesStr !== '' ? $d['colon'].$typesStr : '')
+        .(!empty($f['kids']) ? $d['aud'] : '')
+        .'.';
+
+    $bmin = (int)($f['box_min'] ?? 0); $bmax = (int)($f['box_max'] ?? 0);
+    $box  = '';
+    if ($bmin > 0) {
+        $box = $bmax > $bmin
+            ? str_replace(['%MIN%', '%MAX%'], [(string)$bmin, (string)$bmax], (string)$d['box_range'])
+            : str_replace('%MIN%', (string)$bmin, (string)$d['box_one']);
+    }
+
+    $appLines = []; $appBrands = [];
+    foreach ((array)($f['apparel'] ?? []) as $a) {
+        $cat    = trim((string)($a['cat'] ?? ''));
+        $brands = array_values(array_filter(array_map(fn($b) => trim((string)$b), (array)($a['brands'] ?? [])), fn($b) => $b !== ''));
+        if ($cat === '' || !$brands) continue;
+        $label  = (string)($d['cats'][$cat] ?? $cat);   // marka ve bilinmeyen kategori adi CEVRILMEZ
+        $appLines[] = '• '.$label.' — '.implode(', ', $brands);
+        foreach ($brands as $b) $appBrands[$b] = true;
+    }
+
+    $parts   = [];
+    $parts[] = $co !== '' ? str_replace('%CO%', $co, (string)$d['hi']) : (string)$d['hi0'];
+    $parts[] = (string)$d['intro'];
+    if ($n > 0) $parts[] = '• '.$fw.($box !== '' ? "\n• ".$box : '');
+    if ($appLines) $parts[] = $d['app']."\n".implode("\n", $appLines);
+    $parts[] = (string)$d['prices'];
+    $parts[] = (string)$d['sign'];
+    $body    = implode("\n\n", $parts)."\n\n—\n".$d['foot'];
+
+    $subject = str_replace(['%N%', '%MODELS%'], [(string)$n, $models], (string)$d['subject']);
+
+    /* Fotograf seridi: cagiran kareleri DISKTE dogrulayip veriyor; burada yalnizca
+       etiket dile cevriliyor (ayakkabi karesinde tur, giyim karesinde marka). */
+    $shots = [];
+    foreach ((array)($f['shots'] ?? []) as $s) {
+        $img = trim((string)($s['img'] ?? '')); if ($img === '') continue;
+        $lab = !empty($s['cat']) ? (string)($d['types'][(string)$s['cat']] ?? (string)$s['cat'])
+                                 : trim((string)($s['brand'] ?? ''));
+        $shots[] = ['img' => $img, 'label' => $lab, 'url' => (string)($s['url'] ?? '')];
+        if (count($shots) >= 9) break;
+    }
+
+    $opts = [
+      'hero'   => ['kicker' => (string)$d['kicker'], 'title' => (string)$d['title']],
+      'badge'  => (string)$d['badge'],
+      'button' => ['label' => (string)$d['btn'], 'url' => 'https://vestrasales.com/shop?section=footwear'],
+    ];
+    if ($shots) { $opts['shots'] = $shots; $opts['shots_title'] = (string)$d['shots']; }
+    if ($appBrands) {
+        $items = [];
+        foreach (array_slice(array_keys($appBrands), 0, 6) as $b) {
+            $items[] = ['label' => $b, 'url' => 'https://vestrasales.com/catalog?brand='.rawurlencode($b)];
+        }
+        $opts['downloads'] = ['title' => (string)$d['dl'], 'items' => $items];
+    }
+    return [$subject, $body, $opts];
 }
 
 /**

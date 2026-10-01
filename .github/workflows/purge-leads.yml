@@ -245,17 +245,15 @@ jobs:
 
             /* Alan adlarini topla. Ucretsiz saglayicilar hic sorulmuyor: gmail.com
                zaten yasiyor, sorgulamak bosuna DNS trafigi. */
-            $FREE = ['gmail.com','googlemail.com','hotmail.com','outlook.com','yahoo.com',
-                     'ymail.com','libero.it','gmx.de','gmx.net','web.de','icloud.com',
-                     'aol.com','live.com','msn.com','free.fr','orange.fr','wanadoo.fr'];
-            $FREE = array_flip($FREE);
+            /* Liste TEK yerde: vestra_email_is_shared_provider() (notify.php;
+               products.php onu require_once ile yukluyor). */
 
             $domains = [];
             foreach ($leads as $l) {
               $e = strtolower(trim((string)($l['email'] ?? '')));
               if ($e === '' || !str_contains($e, '@')) continue;
               $d = substr($e, strrpos($e, '@') + 1);
-              if ($d === '' || isset($FREE[$d])) continue;
+              if ($d === '' || vestra_email_is_shared_provider($d)) continue;
               $domains[$d] = true;
             }
             $domains = array_keys($domains);

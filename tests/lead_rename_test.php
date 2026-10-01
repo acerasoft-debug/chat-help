@@ -130,10 +130,118 @@ $t('lead_rename adimi var', $step !== '');
 $t('kuru kosu varsayilan (move_apply ile uygulaniyor)', $step !== '' && str_contains($step, "=== 'true'"));
 $t('TAM 1 eslesme sarti', $step !== '' && str_contains($step, 'count($hits) !== 1'));
 $t('adres MASKELI basiliyor', $step !== '' && str_contains($step, '$mask('));
-$t('eslesme alt dize DEGIL (id/alan adi tam esitlik)',
-   $step !== '' && str_contains($step, '$id === $sel') && str_contains($step, '$dom === $sel'));
+$t('eslesme alt dize DEGIL (id / e-posta alan adi / site alan adi tam esitlik)',
+   $step !== '' && str_contains($step, '$id === $ref') && str_contains($step, '$dom === $ref')
+   && str_contains($step, '$web === $ref'));
 $t('yazma GERI OKUNUYOR', $step !== '' && str_contains($step, 'geri okuma'));
 $t('damgalarin korundugu da dogrulaniyor', $step !== '' && str_contains($step, '$okS1') && str_contains($step, '$okS2'));
+
+echo "\n== 9. is akisinin GERCEK PHP'si kum havuzunda (toplu kip + site alan adi) ==\n";
+/* 27 Eyl 2026: ayakkabi partisinde 13 lead'in adi sayfa basligi olarak
+   kaydedildi; bir kismi serbest posta saglayicili (gmail, libero), yani
+   e-posta alan adiyla bulunamiyor. Toplu kip + site alan adi eslesmesi
+   eklendi. Kaynak taramasi bunu olcemez: betik workflow'dan cikarilip
+   sahte bir lead kaydiyla GERCEKTEN kosturuluyor. */
+$php9 = '';
+if ($step !== '' && preg_match("/<<'PHPEOF'\n(.*?)\n\s*PHPEOF\n/s", $step, $pm)) {
+  $lines = explode("\n", $pm[1]); $ind = null;
+  foreach ($lines as $ln) { if (trim($ln) === '') continue; $w = strlen($ln) - strlen(ltrim($ln, ' ')); $ind = $ind === null ? $w : min($ind, $w); }
+  $php9 = implode("\n", array_map(fn($ln) => substr($ln, (int)$ind), $lines));
+}
+$t('betik cikarildi', $php9 !== '' && str_starts_with(ltrim($php9), '<?php'));
+$sb = sys_get_temp_dir().'/vestra_lr9_'.bin2hex(random_bytes(4));
+$ph = $sb.'/public_html';
+@mkdir($ph.'/data', 0777, true);
+$rii = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root.'/inc', FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST);
+foreach ($rii as $f) {
+  $dst = $ph.'/inc/'.substr($f->getPathname(), strlen($root.'/inc/'));
+  if ($f->isDir()) @mkdir($dst, 0777, true); else { @mkdir(dirname($dst), 0777, true); copy($f->getPathname(), $dst); }
+}
+file_put_contents($sb.'/run.php', $php9);
+$S9 = [
+  ['id'=>'LDA','company'=>'Modische & bequeme Schuhe in Lus','email'=>'schuhhaus.test@gmail.com','website'=>'https://schuhhaus-a.at',
+   'country'=>'Austria','status'=>'new','last_contacted_at'=>'','last_newcollection_at'=>''],
+  ['id'=>'LDB','company'=>'Schuhgesch?ft','email'=>'shop@peter-b.ch','website'=>'https://www.peter-b.ch',
+   'country'=>'Switzerland','status'=>'contacted','last_contacted_at'=>'2026-09-20T10:00:00Z','last_newcollection_at'=>'2026-09-24T10:00:00Z'],
+  ['id'=>'LDC','company'=>'Scarpe per uomo e per donna','email'=>'dimarco.test@libero.it','website'=>'https://dimarco-c.it',
+   'country'=>'Italy','status'=>'new','last_contacted_at'=>'','last_newcollection_at'=>''],
+  /* KONTROL GRUBU: hic dokunulmamali. */
+  ['id'=>'LDD','company'=>'Kontroll Schuhe','email'=>'info@kontroll.de','website'=>'https://kontroll.de',
+   'country'=>'Germany','status'=>'contacted','last_contacted_at'=>'2026-09-01T08:00:00Z','last_newcollection_at'=>''],
+  /* Ayni firmanin iki kutusu: site alan adi IKI kayda uyar -> TAM 1 kurali durdurmali. */
+  ['id'=>'LDE','company'=>'Twin','email'=>'info@twin.fr','website'=>'https://twin.fr','country'=>'France','status'=>'new','last_contacted_at'=>''],
+  ['id'=>'LDF','company'=>'Twin','email'=>'shop@twin.fr','website'=>'https://twin.fr','country'=>'France','status'=>'new','last_contacted_at'=>''],
+  /* Ikinci gmail lead'i: "gmail.com" ref'i yuzlerce kayda uyar gibi burada 2'ye uyar. */
+  ['id'=>'LDG','company'=>'Someone','email'=>'someone.else@gmail.com','website'=>'','country'=>'Spain','status'=>'new','last_contacted_at'=>''],
+  /* ALT DIZE TUZAGI: 'peter-b.ch' bunun icinde geciyor. Tam esitlik 1 kayit
+     bulur; alt dize eslesmesi 2 bulur ve parti durur. */
+  ['id'=>'LDI','company'=>'Neu Peter','email'=>'kontakt@neu-peter-b.ch','website'=>'https://neu-peter-b.ch',
+   'country'=>'Switzerland','status'=>'new','last_contacted_at'=>''],
+];
+$seed9 = fn() => file_put_contents($ph.'/data/leads.json', json_encode($S9, JSON_UNESCAPED_UNICODE));
+$load9 = fn(): array => json_decode((string)file_get_contents($ph.'/data/leads.json'), true) ?: [];
+$raw9  = fn(): string => (string)file_get_contents($ph.'/data/leads.json');
+$run9 = function (string $sel, string $name, bool $go) use ($sb, $ph): string {
+  return (string)shell_exec('cd '.escapeshellarg($ph).' && env HOME='.escapeshellarg($sb)
+    .' LR_SEL='.escapeshellarg($sel).' LR_NAME='.escapeshellarg($name).' LR_GO='.($go ? 'true' : 'false')
+    .' php '.escapeshellarg($sb.'/run.php').' 2>&1; echo "RC=$?"');
+};
+$co = function (array $L, string $id): string { foreach ($L as $l) if (($l['id'] ?? '') === $id) return (string)($l['company'] ?? ''); return '?'; };
+$BATCH = 'schuhhaus-a.at=Schuhhaus Günter|peter-b.ch=Schuhhaus Peterhans|https://www.dimarco-c.it/contatti=Di Marco Calzature';
+
+$seed9(); $r0 = $raw9();
+$o = $run9('batch', $BATCH, false);
+$t('toplu kuru kosu: cikis 0 ve KURU KOSU yaziyor', str_contains($o, 'RC=0') && str_contains($o, 'KURU KOSU') && str_contains($o, 'degisecek: 3'));
+$t('toplu kuru kosu: leads.json DEGISMEDI', $raw9() === $r0);
+$t('link verilen ref alan adina indirgendi', str_contains($o, "-- dimarco-c.it\n"));
+$t('adres MASKELI (tam adres cikti da yok)', str_contains($o, 's***@gmail.com') && !str_contains($o, 'schuhhaus.test@gmail.com'));
+
+$o = $run9('batch', $BATCH, true);
+$L = $load9();
+$t('toplu uygula: cikis 0, 3 ad yazildi', str_contains($o, 'RC=0') && str_contains($o, 'YAZILDI (3 ad)'));
+$t('serbest posta saglayicili lead SITE alan adiyla bulundu (gmail)', $co($L, 'LDA') === 'Schuhhaus Günter');
+$t('www. ile kayitli site eslesti', $co($L, 'LDB') === 'Schuhhaus Peterhans');
+$t('serbest posta saglayicili lead (libero) linkten bulundu', $co($L, 'LDC') === 'Di Marco Calzature');
+$b9 = []; foreach ($L as $l) if (($l['id'] ?? '') === 'LDB') $b9 = $l;
+$t('damgalar KORUNDU (ilk + ikinci mektup)', ($b9['last_contacted_at'] ?? '') === '2026-09-20T10:00:00Z' && ($b9['last_newcollection_at'] ?? '') === '2026-09-24T10:00:00Z');
+$t('durum KORUNDU', ($b9['status'] ?? '') === 'contacted');
+$untouched = true;
+foreach ($S9 as $k => $l) { if (in_array($l['id'], ['LDA','LDB','LDC'], true)) continue; if (($L[$k] ?? null) != $l) $untouched = false; }
+$t('IKI YON: hedef disi 5 lead AYNEN duruyor', $untouched && count($L) === count($S9));
+$t('geri okuma satiri hedef disini da sayiyor', str_contains($o, 'hedef disi lead: 5 kayit, degisen: 0'));
+
+$o = $run9('batch', $BATCH, true);
+$t('ikinci kez: ZATEN BU AD, cikis 0', str_contains($o, 'RC=0') && str_contains($o, 'yapilacak bir sey yok'));
+
+/* HEPSI YA DA HICBIRI */
+$seed9(); $r0 = $raw9();
+$o = $run9('batch', 'schuhhaus-a.at=Schuhhaus Günter|twin.fr=Twin Store', true);
+$t('belirsiz ref (ayni sitede 2 kutu): cikis 1', str_contains($o, 'RC=1') && str_contains($o, 'twin.fr: TAM 1 eslesme gerekiyor, bulunan: 2'));
+$t('belirsiz ref: GECERLI olan cift de YAZILMADI', $raw9() === $r0);
+$t('adaylar maskeli listelendi', str_contains($o, 'i***@twin.fr') && !str_contains($o, 'info@twin.fr'));
+
+$o = $run9('batch', 'peter-b.ch=Schuhhaus Peterhans|yok.example=Hayalet', true);
+$t('olmayan ref: cikis 1, hicbir sey yazilmadi', str_contains($o, 'RC=1') && $raw9() === $r0);
+
+$o = $run9('batch', 'gmail.com=Hepsi', true);
+$t('serbest posta alan adi (gmail.com) ref olamaz: durdu', str_contains($o, 'RC=1') && str_contains($o, 'gmail.com: TAM 1 eslesme gerekiyor, bulunan: 2') && $raw9() === $r0);
+
+$o = $run9('batch', 'peter-b.ch=A|LDB=B', true);
+$t('iki ref ayni lead: durdu', str_contains($o, 'RC=1') && str_contains($o, "ayni lead'e ikinci ref") && $raw9() === $r0);
+
+$o = $run9('batch', 'peter-b.ch Schuhhaus Peterhans', true);
+$t("'=' olmayan parca: durdu", str_contains($o, 'RC=1') && $raw9() === $r0);
+
+$o = $run9('batch', 'eter-b.ch=Kesik', true);
+$t('alt dize ile eslesme YOK (eter-b.ch -> 0)', str_contains($o, 'RC=1') && str_contains($o, 'bulunan: 0') && $raw9() === $r0);
+
+/* TEKIL KIP geriye uyumlu: id ile ve site alan adiyla. */
+$o = $run9('LDC', 'Di Marco Calzature', true);
+$t('tekil kip, id ile: yazildi', str_contains($o, 'RC=0') && $co($load9(), 'LDC') === 'Di Marco Calzature');
+$o = $run9('schuhhaus-a.at', 'Schuhhaus Günter', true);
+$t('tekil kip, site alan adiyla: yazildi', str_contains($o, 'RC=0') && $co($load9(), 'LDA') === 'Schuhhaus Günter');
+$t('uyari/fatal yok', !preg_match('/Fatal|Warning|Deprecated|Notice/i', $o));
+shell_exec('rm -rf '.escapeshellarg($sb));
 
 echo "\n".($bad ? "KIRMIZI: {$bad}\n" : '')."lead_rename_test: {$ok} iddia gecti".($bad ? ", {$bad} DUSTU" : '')."\n";
 exit($bad ? 1 : 0);

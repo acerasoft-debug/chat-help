@@ -146,7 +146,31 @@ jobs:
             echo 'geri okundu: sunucudaki HEAD push edilen SHA ile ayni'
           "
 
+      # BIR KEZ YENIDEN DENENIR. Barindirici art arda gelen SSH baglantilarini
+      # zaman zaman el sikismada kesiyor: 27 Eyl 2026'da iki kosu ust uste bu
+      # adimda "ssh: handshake failed: read: connection reset by peer" ile dustu
+      # -- bir saniye onceki klon adimi AYNI runner'dan basariyla baglanmisti.
+      # Sonuc sinsi: kod ~/vestra-repo'ya iniyor ama public_html'e hic
+      # kopyalanmiyor, yani "sunucuda hangi surum" sorusunun iki ayri cevabi
+      # oluyor. deploy.sh dosya kopyaliyor (idempotent), iki kez kosmasi zararsiz;
+      # ikinci deneme de duserse is yine KIRMIZI biter.
       - name: Sunucuda deploy.sh çalıştır
+        id: deploysh
+        continue-on-error: true
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          script: bash ~/deploy.sh
+
+      - name: deploy.sh düştüyse bekle (SSH kesintisi geçsin)
+        if: steps.deploysh.outcome == 'failure'
+        run: sleep 45
+
+      - name: Sunucuda deploy.sh çalıştır (ikinci deneme)
+        if: steps.deploysh.outcome == 'failure'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}

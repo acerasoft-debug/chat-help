@@ -50,6 +50,19 @@ if (stripe_available()) {
     <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
       <?= t('Size selection missing — open the product page, choose at least one size and add the item again.') ?></div>
   <?php endif; ?>
+  <?php /* order.php sepetteki bir satiri artik SESSIZCE dusurmuyor (satilmis,
+           gizli marka, katalogdan cekilmis): durup buraya donuyor. Bu bant
+           YOKTU -- soldout reddi baslangictan beri bandsizdi, yani alici
+           "Siparis ver"e basip ayni sayfaya hicbir aciklama olmadan donuyordu.
+           Metin 8 dilde zaten duran iki anahtardan; hangi satir oldugu
+           tarayicinin kendi sepetinden (VCart) okunup yaziliyor ve ayni
+           kaldirma mekanizmasi (data-remove-id) dugme olarak veriliyor. */
+    if(isset($_GET['err']) && in_array($_GET['err'], ['soldout','unavailable'], true)):
+      $uaId = preg_replace('/[^A-Za-z0-9._-]/', '', (string)($_GET['id'] ?? '')); ?>
+    <div class="banner" id="cartUnavail" data-id="<?= htmlspecialchars($uaId) ?>" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
+      <?php if($_GET['err']==='soldout'): ?><b><?= t('Sold out') ?></b> — <?php endif; ?><span id="cartUnavailItem"></span><?= t('This item is no longer available to order.') ?>
+      <?php if($uaId !== ''): ?> <button type="button" class="btn btn-o btn-sm" data-remove-id="<?= htmlspecialchars($uaId) ?>" style="margin-left:6px">✕ <?= t('Remove') ?></button><?php endif; ?></div>
+  <?php endif; ?>
   <?php if(isset($_GET['err']) && $_GET['err']==='escrow'): ?>
     <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
       <?= t('Secure escrow couldn’t be started for this cart — it’s available only when all items are from a single verified seller. Please choose bank transfer instead.') ?></div>
@@ -483,6 +496,22 @@ document.getElementById('orderForm') && document.getElementById('orderForm').add
 /* VCart is defined in foot.php which loads after this block — use DOMContentLoaded */
 document.addEventListener('DOMContentLoaded', function(){
   render();
+  /* Satilmis / artik satista olmayan satir bandi: HANGI satir oldugunu
+     tarayicinin kendi sepetinden yaz. Satir sepette yoksa (zaten kaldirilmis)
+     bant da kalkar -- eyleme donusmeyen bir uyari birakmamak icin. */
+  (function(){
+    var b=document.getElementById('cartUnavail'); if(!b) return;
+    var id=b.getAttribute('data-id')||'';
+    if(id==='') return;
+    var it=VCart.all().filter(function(x){ return x.id===id; })[0];
+    if(!it){ b.style.display='none'; return; }
+    var lbl=document.getElementById('cartUnavailItem');
+    if(lbl) lbl.textContent=(it.brand?it.brand+' — ':'')+(it.name||'')+(it.sku?' (SKU '+it.sku+')':'')+': ';
+    b.addEventListener('click', function(e){
+      var rid=e.target && e.target.dataset ? e.target.dataset.removeId : null;
+      if(rid){ VCart.remove(rid); render(); b.style.display='none'; }
+    });
+  })();
   /* A code arriving as ?voucher=… (the link in the welcome mail) checks itself on load. */
   var i=document.getElementById('voucherInput'); if(i && i.value.trim()) voucherApply();
 });

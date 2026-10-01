@@ -194,6 +194,9 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         $st = vestra_read_json('order_statuses.json');
         $tracking = trim($_POST['tracking']??'');
         $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'shipped','tracking'=>$tracking,'shipped_at'=>date('c')]);
+        /* 'Shipped' = siparisin tamami yolda: kismi isaret kalkar (panel ve is
+           akisiyla ayni kural). */
+        unset($st[$ref]['ship_partial_trk']);
         /* Tasiyici + servis: admin tarafiyla ayni kural -- alan formda yoksa
            kayitli deger KORUNUR (bu form sadece 'tracking' tasiyabiliyor). */
         if (array_key_exists('ship_carrier', $_POST)) {
@@ -217,21 +220,12 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
                 'kind'=>'order','status'=>'shipped','ref'=>$ref,'tracking'=>$tracking,
             ], $uid);
         }
-        /* Push ping to the buyer's installed devices */
-        if ($buyerAcc) {
-            require_once __DIR__.'/inc/push.php';
-            vestra_push_send($buyerAcc['id'], 'VESTRA — order shipped 🚚',
-                'Order '.$ref.($tracking !== '' ? ' · Tracking: '.$tracking : '').' is on its way.', '/buyer?tab=orders');
-        }
-        /* Email buyer — same template the admin panel uses (vestra_tpl_order_shipped),
-           so the two ways of marking an order shipped read the same. */
+        /* Mektup + uygulama bildirimi: panelin ve is akisinin cagirdigi AYNI govde
+           (inc/orders.php). Onceki paket varsa "siparisin kalani yola cikti"
+           ALICININ dilinde; yoksa eski "gonderildi" mektubu aynen. Iki ayri
+           gonderim kopyasi ilk degisiklikte iki ayri mektup demekti. */
         require_once __DIR__.'/inc/notify.php';
-        if (!empty($orderRow['email'])) {
-            require_once __DIR__.'/inc/email_templates.php';
-            [$sSubj, $sBody, $sOpts] = vestra_tpl_order_shipped(
-                $orderRow['name'] ?: ($orderRow['company'] ?: 'there'), $ref, $tracking, (bool)$buyerAcc, $shpNow);
-            vestra_send_mail($orderRow['email'], $sSubj, $sBody, '', '', null, '', $sOpts);
-        }
+        vestra_order_parcel_notify($ref, $shpNow, '', true);
     }
     header('Location: /seller?tab=orders&shipped=1'); exit;
 }
@@ -298,8 +292,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
                 require_once __DIR__.'/inc/messages.php';
                 vestra_msg_post_system($buyerAcc['id'], $uid, '', ['kind'=>'order','status'=>'paid','ref'=>$ref], $uid);
                 require_once __DIR__.'/inc/push.php';
-                vestra_push_send($buyerAcc['id'], 'VESTRA — payment confirmed 💶',
-                    'Order '.$ref.' — payment received. Your goods are being prepared.', '/buyer?tab=orders');
+                vestra_push_notify($buyerAcc, 'order_paid', ['ref'=>$ref]);
             }
         }
     }
@@ -376,8 +369,10 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
                 require_once __DIR__.'/inc/messages.php';
                 vestra_msg_post_system($buyerAcc['id'], $uid, '', ['kind'=>'order','status'=>'delivered','ref'=>$ref], $uid);
                 require_once __DIR__.'/inc/push.php';
-                vestra_push_send($buyerAcc['id'], 'VESTRA — order delivered 📦',
-                    'Order '.$ref.' — please confirm receipt. Auto-release on '.$deadline.'.', '/buyer?tab=orders');
+                /* Bildirimdeki tarih TALEP penceresinin sonu (her sipariste dogru);
+                   "odeme su tarihte otomatik serbest" yalniz kart/escrow siparisinde
+                   dogruydu ve havale siparisine de gidiyordu. */
+                vestra_push_notify($buyerAcc, 'order_delivered', ['ref'=>$ref, 'date'=>vestra_claim_deadline(time())]);
             }
         }
     }
@@ -589,7 +584,7 @@ if(!$MEMBER){
     <h3 style="margin:0 0 6px">'.t('Seller workspace').'</h3>
     <p style="color:var(--mut);margin:0 0 20px">'.t('Sign in to manage your listings, orders and offers.').'</p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-    <a class="btn btn-p" href="/login?back=/seller">'.t('Sign in').'</a>
+    <a class="btn btn-p" href="/login?back='.rawurlencode(preg_match('#^/seller(\\?|$)#', (string)($_SERVER['REQUEST_URI'] ?? '')) ? (string)$_SERVER['REQUEST_URI'] : '/seller').'">'.t('Sign in').'</a>
     <a class="btn btn-o" href="/register">'.t('Create account').'</a></div></div></div>';
   require __DIR__.'/inc/foot.php'; exit;
 }
@@ -664,8 +659,9 @@ if (in_array($docGrace['phase'], ['running','due_soon','expired','suspended'], t
 
 // ── OVERVIEW ──────────────────────────────────────────────────────────────────
 if($tab==='overview'){
+  require_once __DIR__.'/inc/app_ui.php'; echo vestra_push_nudge(); // bildirim: hic sorulmamis cihaza tek satir
   $rev=0; foreach($orders as $o){ $rev+=(float)($o['total']??0); }
-  $liveListings = count(array_filter($listings, fn($p) => ($p['status']??'approved')==='approved'));
+  $liveListings = count(array_filter($listings, fn($p) => ($p['status']??'approved')==='approved' && !vestra_product_brand_hidden($p)));
   $pendingOffers = count(array_filter($offers, fn($o) => empty($offerResp[$o['ref']??''])));
   stat_cards([
     ['<span class="acc">'.$liveListings.'</span>', t('Live listings')],
@@ -1002,7 +998,12 @@ if($tab==='overview'){
     echo '<tr><td><b>'.htmlspecialchars($p['brand']??'').'</b> — '.htmlspecialchars($p['name']??'').'<div class="hint">SKU '.htmlspecialchars($p['sku']??'').'</div></td>'.
       '<td><span class="modechip '.($p['mode']??'fixed').'">'.($p['mode']??'fixed').'</span></td><td>'.($p['moq']??1).' '.htmlspecialchars($p['unit']??'pc').'</td>'.
       '<td class="r">'.(($p['mode']??'')==='offer'?'—':eur(vestra_from_price($p, true))).'</td>'.
-      '<td>'.match($p['status']??'approved'){'pending'=>'<span class="status open">⏳ '.t('Pending approval').'</span>','rejected'=>'<span class="status" style="background:rgba(239,154,154,.12);color:var(--bad);border:1px solid rgba(239,154,154,.3)">✗ '.t('Rejected').'</span>','suspended'=>'<span class="status" style="background:rgba(239,154,154,.12);color:var(--bad);border:1px solid rgba(239,154,154,.3)">⊘ '.t('Suspended').'</span>',default=>'<span class="status offers">✓ '.t('Live').'</span>'}.'</td>'.
+      '<td>'.match($p['status']??'approved'){'pending'=>'<span class="status open">⏳ '.t('Pending approval').'</span>','rejected'=>'<span class="status" style="background:rgba(239,154,154,.12);color:var(--bad);border:1px solid rgba(239,154,154,.3)">✗ '.t('Rejected').'</span>','suspended'=>'<span class="status" style="background:rgba(239,154,154,.12);color:var(--bad);border:1px solid rgba(239,154,154,.3)">⊘ '.t('Suspended').'</span>',default=>(vestra_product_brand_hidden($p)
+              /* Gizli marka (vestra_hidden_brands): ilan onayli ama vitrinde YOK. "✓ Live"
+                 yazmak saticiya olmayan bir sey soylemek olurdu; mevcut, 8 dilde
+                 cevrili anahtar kullaniliyor. */
+              ? '<span class="status" style="background:rgba(160,160,180,.12);color:var(--mut);border:1px solid rgba(160,160,180,.3)">⊘ '.t('Product no longer listed').'</span>'
+              : '<span class="status offers">✓ '.t('Live').'</span>')}.'</td>'.
       '<td class="r" style="white-space:nowrap">'.
       '<a class="btn btn-o btn-sm" href="/seller?tab=edit&lid='.urlencode($p['id']).'">'.t('Edit').'</a> '.
       '<form method="post" action="/seller?tab=listings" style="display:inline">
@@ -1449,6 +1450,10 @@ function sellerSend(btn){
   elseif(isset($_GET['error'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.t('Something went wrong — please try again or contact support.').'</div>';
 
   ?>
+  <?php /* Bildirim ayari: bu cihazda acik mi, ac/kapat, deneme bildirimi. Daha once
+           tek acma yolu ANA SAYFADAKI kutuydu ve hicbir yerde kapatmak ya da
+           durumu gormek mumkun degildi. */
+        require_once __DIR__.'/inc/app_ui.php'; echo vestra_push_card(); ?>
   <div class="panelcard">
     <form method="post" action="/seller?tab=profile" class="addform">
       <input type="hidden" name="_action" value="profile">

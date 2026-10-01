@@ -192,8 +192,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
             if(in_array($listing['seller_uid'],$notified,true)) continue;
             $notified[]=$listing['seller_uid'];
             require_once __DIR__.'/inc/push.php';
-            vestra_push_send($listing['seller_uid'], 'VESTRA — receipt confirmed ✓',
-                'Order '.$ref.' — the buyer confirmed delivery. Payout in progress.', '/seller?tab=orders');
+            vestra_push_notify((string)$listing['seller_uid'], 'receipt_confirmed', ['ref'=>$ref]);
             /* Completed card into the seller's conversation */
             if($me){
                 require_once __DIR__.'/inc/messages.php';
@@ -312,7 +311,7 @@ if(!$MEMBER){
     <h3 style="margin:0 0 6px">'.t('Buyer workspace').'</h3>
     <p style="color:var(--mut);margin:0 0 20px">'.t('Sign in to track your orders, sourcing requests and offers.').'</p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-    <a class="btn btn-p" href="/login?back=/buyer">'.t('Sign in').'</a>
+    <a class="btn btn-p" href="/login?back='.rawurlencode(preg_match('#^/buyer(\\?|$)#', (string)($_SERVER['REQUEST_URI'] ?? '')) ? (string)$_SERVER['REQUEST_URI'] : '/buyer').'">'.t('Sign in').'</a>
     <a class="btn btn-o" href="/register">'.t('Create account').'</a></div></div></div>';
   require __DIR__.'/inc/foot.php'; exit;
 }
@@ -330,6 +329,7 @@ dash_open('buyer',$tab,
   $tab==='overview'?t('Your purchasing activity at a glance'):'');
 
 if($tab==='overview'){
+  require_once __DIR__.'/inc/app_ui.php'; echo vestra_push_nudge(); // bildirim: hic sorulmamis cihaza tek satir
   $spent=0; foreach($orders as $o){ $spent+=(float)($o['total']??0); }
   stat_cards([
     [count($orders),t('Orders')],
@@ -435,7 +435,10 @@ if($tab==='overview'){
       foreach(vestra_invoices_for_ref($ref) as $iv){
         $invLinks.='<a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener">📄 '.t('Invoice').' '.htmlspecialchars(vestra_invoice_link_label($iv)).'</a> ';
       }
-      $trk = !empty($orderSt[$ref]['tracking']) ? '<div class="hint" style="margin-top:8px">🚚 '.t('Tracking').': '.htmlspecialchars($orderSt[$ref]['tracking']).'</div>' : '';
+      /* Birden fazla paket ya da kismi paket: "Teslimat 1: … · Teslimat 2: henuz
+         cikmadi" -- tek satir yalnizca SON numarayi gosterirdi (29 Eyl 2026). */
+      $trk = vestra_order_deliveries_html(vestra_order_shipment($orderSt[$ref] ?? null), true);
+      if ($trk === '' && !empty($orderSt[$ref]['tracking'])) $trk = '<div class="hint" style="margin-top:8px">🚚 '.t('Tracking').': '.htmlspecialchars($orderSt[$ref]['tracking']).'</div>';
       /* The raw items field ("2x SKU @25 | …") is the storage format, not something a buyer
          should have to decode. Rebuild the real lines so each product is named, pictured and
          clickable straight through to its page — the thing they actually want to re-check. */
@@ -741,6 +744,10 @@ if($tab==='overview'){
     t('We are not able to serve this market. Nothing was saved.').'</div>';
 
   ?>
+  <?php /* Bildirim ayari: bu cihazda acik mi, ac/kapat, deneme bildirimi. Daha once
+           tek acma yolu ANA SAYFADAKI kutuydu ve hicbir yerde kapatmak ya da
+           durumu gormek mumkun degildi. */
+        require_once __DIR__.'/inc/app_ui.php'; echo vestra_push_card(); ?>
   <div class="panelcard">
     <form method="post" action="/buyer?tab=profile" class="addform">
       <input type="hidden" name="_action" value="profile">

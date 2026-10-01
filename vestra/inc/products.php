@@ -597,10 +597,129 @@ function vestra_suspended_seller_uids(): array {
     }
     return $c;
 }
+/* ── GIZLI MARKALAR ────────────────────────────────────────────────────────────
+ *
+ * Operator, 25 Eyl 2026: *"Gucci ve Balenciaga urunlerini sitede gorunmez yap
+ * ancak sonra tekrar konulabilecek sekilde...sitede hic gorunmesin"*.
+ *
+ * Yukaridaki satici askisinin MARKA karsiligi ve ayni katmanda duruyor:
+ * gizli markanin ilanlari vestra_live_listings()'ten dusuyor, yani vitrin,
+ * ana sayfa (film + New arrivals + marka duvari), /wholesale ve /b2b sayfalari,
+ * sitemap, fiyat listeleri, katalog dosyalari, API, showroom, arama, kampanya
+ * mektuplarinin marka listeleri VE urun sayfasi (vestra_find) -- hepsi TEK
+ * kapidan. Tek tek sayfaya "bu marka gizli mi" diye sormak, unutulan ilk
+ * sayfada markayi geri getirirdi; bu depoda kapinin ikinci bir kopyasi alti
+ * kez yanlis yere bakti.
+ *
+ * GERI ALINABILIR, cunku HICBIR SEY SILINMIYOR ve ilan kaydina DOKUNULMUYOR:
+ * listings.json aynen duruyor (durum, fiyat, foto, satici), karar ayri bir
+ * dosyada (data/hidden_brands.json). Marka listeden cikinca ilanlar
+ * kendiliginden geri gelir -- askinin kalkmasiyla ayni sekilde, yeniden onay
+ * gerekmeden. Ilanlarin durumunu 'rejected' yapmak da gizlerdi ama iki kusuru
+ * var: (1) geri acarken hangi ilanin ONCEDEN reddedilmis oldugu kaybolur,
+ * (2) yarin gelecek yeni bir Gucci ilani gizlenmez. Marka duzeyinde karar
+ * ikisini de cozuyor.
+ *
+ * Kayitlari cozen yollar ETKILENMEZ: siparis satiri (vestra_product_by_sku ->
+ * ham listings.json yedegi), teklif/fatura (vestra_listing_by_sku), mesaj
+ * etiketleri (vestra_listing_by_id yedegi) ham listeyi okuyor. Kesilmis bir
+ * fatura, acik bir pazarlik ya da gecmis bir siparis marka gizlendi diye
+ * bozulmuyor.
+ *
+ * ESLESME TAM (buyuk/kucuk harf ve bas/son bosluk disinda): "Gucci Kids" gibi
+ * bir ad gizlenmez -- mango/zara dersi; burada bedeli, gizlenmesi istenmeyen
+ * bir markayi sessizce vitrinden silmek olurdu.
+ *
+ * Dosya YOKSA hicbir marka gizli degil (bugunku davranis). Dosya BOZUKSA da
+ * hicbir sey gizlenmez ve error_log'a yazilir: bozuk bir dosyadan hangi
+ * markalarin kastedildigi okunamaz, ve yazici atomik (gecici dosya + rename),
+ * yani bu yol pratikte olusmuyor. */
+function vestra_hidden_brands_file(): string {
+    return vestra_data_dir().'/hidden_brands.json';
+}
+function vestra_brand_key(string $brand): string {
+    return mb_strtoupper(trim($brand));
+}
+/** Gizli markalar: ANAHTAR -> kayitli yazim. Surec-ici onbellekli
+ *  (vestra_live_listings() bir istekte defalarca cagriliyor); $fresh yaziciyi
+ *  geri okurken ve testlerde onbellegi atlar. */
+function vestra_hidden_brands(bool $fresh = false): array {
+    static $c = null;
+    if ($c !== null && !$fresh) return $c;
+    $c = [];
+    $f = vestra_hidden_brands_file();
+    if (!is_file($f)) return $c;
+    $j = json_decode((string)@file_get_contents($f), true);
+    if (!is_array($j) || !is_array($j['brands'] ?? null)) {
+        error_log('[VESTRA hidden-brands] '.basename($f).' okunamadi -- hicbir marka gizlenmiyor');
+        return $c;
+    }
+    foreach ($j['brands'] as $b) {
+        $k = vestra_brand_key((string)$b);
+        if ($k !== '') $c[$k] = trim((string)$b);
+    }
+    return $c;
+}
+/** Dosyanin tamami (panel "ne zamandan beri" basiyor). Yoksa bos dizi. */
+function vestra_hidden_brands_record(): array {
+    $f = vestra_hidden_brands_file();
+    $j = is_file($f) ? json_decode((string)@file_get_contents($f), true) : null;
+    return is_array($j) ? $j : [];
+}
+function vestra_brand_is_hidden(string $brand): bool {
+    $k = vestra_brand_key($brand);
+    return $k !== '' && isset(vestra_hidden_brands()[$k]);
+}
+function vestra_product_brand_hidden(array $p): bool {
+    return vestra_brand_is_hidden((string)($p['brand'] ?? ''));
+}
+/**
+ * Gizli marka listesini YAZAR ve geri okuyarak dogrular. Liste KUMEDIR: ayni
+ * marka iki kez yazilmaz, bos ad dusurulur. Her markanin gizlendigi an
+ * ('since') ve son 30 degisiklik ('history') dosyada kaliyor -- aylar sonra
+ * "bu marka neden/ne zamandan beri gizli" sorusunun cevabi bir yerde durmali
+ * (KURAL 2h'nin kyb_auto dersi: gerekcesiz bir kapi, sessiz bir kapidir).
+ * Atomik: gecici dosyaya yazip rename -- yarim yazilmis bir dosya, okuyucuyu
+ * "bozuk dosya = hicbir sey gizli degil" dalina dusururdu.
+ * Donus: ['ok'=>bool, 'hidden'=>[yazimlar], 'added'=>[], 'removed'=>[]].
+ */
+function vestra_hidden_brands_save(array $brands, string $by = 'operator'): array {
+    $want = [];
+    foreach ($brands as $b) {
+        $b = trim((string)$b); $k = vestra_brand_key($b);
+        if ($k !== '' && !isset($want[$k])) $want[$k] = $b;
+    }
+    $prevRec = vestra_hidden_brands_record();
+    $prev    = vestra_hidden_brands(true);
+    $added   = array_values(array_diff_key($want, $prev));
+    $removed = array_values(array_diff_key($prev, $want));
+    $since   = is_array($prevRec['since'] ?? null) ? $prevRec['since'] : [];
+    $now     = date('c');
+    $newSince = [];
+    foreach ($want as $k => $b) $newSince[$k] = (string)($since[$k] ?? $now);
+    $hist = is_array($prevRec['history'] ?? null) ? $prevRec['history'] : [];
+    if ($added || $removed) {
+        array_unshift($hist, ['at' => $now, 'by' => $by, 'hide' => $added, 'show' => $removed]);
+        $hist = array_slice($hist, 0, 30);
+    }
+    $rec = ['brands' => array_values($want), 'since' => $newSince,
+            'changed_at' => $now, 'changed_by' => $by, 'history' => $hist];
+    $f = vestra_hidden_brands_file();
+    $dir = dirname($f); if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    $tmp = $f.'.tmp'.getmypid();
+    $out = ['ok' => false, 'hidden' => array_values($want), 'added' => $added, 'removed' => $removed];
+    if (@file_put_contents($tmp, json_encode($rec, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE), LOCK_EX) === false) return $out;
+    if (!@rename($tmp, $f)) { @unlink($tmp); return $out; }
+    $back = vestra_hidden_brands(true);
+    $a = array_keys($back); $w = array_keys($want); sort($a); sort($w);
+    $out['ok'] = ($a === $w);
+    return $out;
+}
 function vestra_live_listings(){
     $sus = vestra_suspended_seller_uids();
     return array_values(array_filter(vestra_listings(),
-        fn($p) => ($p['status']??'approved')==='approved' && empty($sus[(string)($p['seller_uid'] ?? '')])));
+        fn($p) => ($p['status']??'approved')==='approved' && empty($sus[(string)($p['seller_uid'] ?? '')])
+                  && !vestra_product_brand_hidden($p)));
 }
 /* Bundled catalogue drops shipped in code (e.g. the DSQUARED2 model list). They show
    in the catalogue straight after a deploy — no import click needed — but are hidden
@@ -638,6 +757,12 @@ function vestra_products(bool $includeUnlisted = false){
         $seed[] = $p;
     }
     $all = array_merge(vestra_demo_products(), $live, $seed);
+    /* Gizli marka (bkz. vestra_hidden_brands): canli ilanlar zaten
+       vestra_live_listings()'te dustu; bu satir kodda gomulu demo urunlerini
+       ve seed katalogunu da ayni karara bagliyor. $includeUnlisted'ten ONCE:
+       o bayrak "dogrudan linkle erisilen numune" icin, gizli marka ise HER
+       yoldan gorunmez olmali -- urun sayfasi (vestra_find) dahil. */
+    $all = array_values(array_filter($all, fn($p) => !vestra_product_brand_hidden($p)));
     if ($includeUnlisted) return $all;
     return array_values(array_filter($all, fn($p) => empty($p['unlisted'])));
 }
@@ -943,6 +1068,30 @@ function vestra_brand_min_shortfall(array $lines): array {
    here with an id the buyer was given directly, and a link sent in a letter must keep
    working even though the item is not in the catalogue. */
 function vestra_find($id){ foreach(vestra_products(true) as $p){ if($p['id']===$id) return $p; } return null; }
+/* ── A listing folded into another one keeps its address ───────────────────
+ *
+ * When several listings are merged into one (the eight Burberry polos into a
+ * single eight-colourway listing, 29 Sep 2026), the old ids have already been
+ * mailed: 100 offer letters carried /product?id=bur-8099164 that morning. A
+ * 404 there would send a buyer who clicked a letter nowhere. The old record
+ * stays in listings.json as `status: rejected` (out of every list, not
+ * orderable -- the 17 Sep 2026 decision for a removed listing) with
+ * `redirect_to: <new id>`, and the product page answers 301 to the new one.
+ *
+ * Reads the RAW record on purpose: the old listing is rejected, so vestra_find()
+ * no longer sees it. The target has to be live (vestra_find, so a hidden brand
+ * or a rejected target does not redirect into a 404) and must not itself
+ * redirect (no chains, no loops). Returns the target id or null.
+ */
+function vestra_product_redirect(string $id): ?string {
+  if ($id === '') return null;
+  $raw = vestra_listing_by_id($id);
+  $to = trim((string)($raw['redirect_to'] ?? ''));
+  if ($to === '' || $to === $id) return null;
+  $target = vestra_find($to);
+  if ($target === null || !empty($target['redirect_to'])) return null;
+  return $to;
+}
 function vestra_cats(){ $c=[]; foreach(vestra_products() as $p){ $c[$p['cat']]=1; } return array_keys($c); }
 function vestra_primary_image(array $p): string { if(!empty($p['images'])&&is_array($p['images'])) return $p['images'][0]; return $p['image']??''; }
 
@@ -1129,15 +1278,55 @@ function vestra_colors(){
     'Other'=>'linear-gradient(135deg,#b3242c 0 25%,#e3c14f 25% 50%,#2b46c4 50% 75%,#14532d 75% 100%)',
   ];
 }
+/* ── Colourway names that carry more than the colour ─────────────────────────
+ *
+ * A colour name in a listing is usually a bare palette key ("Black"). A listing
+ * that holds several MODELS in one record (the Burberry piqué polo, eight
+ * colourways, 29 Sep 2026) needs the model number in the colourway name, because
+ * two of its colourways are "Black" and an order line reading "Black ×20" would not
+ * say which article to pick: "Black (8096425)" / "Black · Check collar (8071620)".
+ *
+ * vestra_colour_base() finds the palette colour such a name STARTS with (longest
+ * key first, whole word, case-insensitive), so the swatch, the dark-ring rule and
+ * the translation all keep working: the dot is black, the label reads
+ * "Schwarz (8096425)" on a German page, and the suffix is carried verbatim. A name
+ * that starts with no palette colour resolves to nothing and is drawn as before
+ * (skipped in the dot row, grey in the pickers). 'Other' is never inferred.
+ */
+function vestra_colour_base(string $name): ?string {
+  $name = trim($name);
+  if ($name === '') return null;
+  $pal = vestra_colors();
+  if (isset($pal[$name])) return $name;
+  $keys = array_values(array_diff(array_keys($pal), ['Other']));
+  usort($keys, fn($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+  foreach ($keys as $k) {
+    if (preg_match('/^' . preg_quote($k, '/') . '(?![A-Za-z])/iu', $name)) return $k;
+  }
+  return null;
+}
+/* CSS background for a colourway name; '#666' when it starts with no palette colour. */
+function vestra_colour_css(string $name): string {
+  $b = vestra_colour_base($name);
+  return $b === null ? '#666' : vestra_colors()[$b];
+}
+/* Translated label: the palette colour goes through t(), the suffix stays as written. */
+function vestra_colour_label(string $name): string {
+  $name = trim($name);
+  $b = vestra_colour_base($name);
+  if ($b === null || strcasecmp($b, $name) === 0) return t($name);
+  return t($b) . substr($name, strlen($b));
+}
 /* Small colour-dot row (shop cards, product page, admin). $withNames adds the label after each dot. */
 function vestra_color_dots(array $colors, int $max=7, bool $withNames=false): string {
   $pal=vestra_colors(); $out=''; $shown=0;
   foreach($colors as $c){
-    if(!isset($pal[$c])) continue;
+    $c=(string)$c; $base=vestra_colour_base($c);
+    if($base===null) continue;
     if($shown>=$max){ $out.='<span class="cmore">+'.(count($colors)-$shown).'</span>'; break; }
-    $ring = in_array($c,['Black','Navy','Bordeaux','Brown','Green','Purple','Plum'],true) ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.25)';
-    $out.='<span class="cdot" title="'.htmlspecialchars(t($c)).'" style="background:'.$pal[$c].';box-shadow:inset 0 0 0 1px '.$ring.'"></span>';
-    if($withNames) $out.='<span class="cname">'.htmlspecialchars(t($c)).'</span>';
+    $ring = in_array($base,['Black','Navy','Bordeaux','Brown','Green','Purple','Plum'],true) ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.25)';
+    $out.='<span class="cdot" title="'.htmlspecialchars(vestra_colour_label($c)).'" style="background:'.$pal[$base].';box-shadow:inset 0 0 0 1px '.$ring.'"></span>';
+    if($withNames) $out.='<span class="cname">'.htmlspecialchars(vestra_colour_label($c)).'</span>';
     $shown++;
   }
   return $out ? '<span class="cdots">'.$out.'</span>' : '';
@@ -1159,9 +1348,16 @@ function vestra_pack_size(array $p): int {
   return $n > 1 ? $n : 1;
 }
 /* True for listings that use the per-colour carton picker (e.g. Lacoste/Ralph Lauren polos:
-   min 4 colours, cartons of 8 or 10 per colour) instead of a plain colour checklist. */
+   min 4 colours, cartons of 8 or 10 per colour) instead of a plain colour checklist.
+
+   `colorqty` (explicit flag) opens the same picker on a LOT-1 listing: the Burberry piqué
+   polo, eight colourways in one listing sold by the piece (29 Sep 2026). Without the flag a
+   buyer of that listing could only tick colours and give one total, and the seller would not
+   know the split. The flag is opt-in per listing rather than a relaxed step rule, so no
+   existing listing that carries colours + min_colors without a pack step changes behaviour. */
 function vestra_is_colorqty_listing(array $p): bool {
-  return !empty($p['colors']) && !empty($p['min_colors']) && (int)($p['size_step'] ?? 0) > 1;
+  return !empty($p['colors']) && !empty($p['min_colors'])
+      && ((int)($p['size_step'] ?? 0) > 1 || !empty($p['colorqty']));
 }
 /* Singular-safe "at least N colour(s)" phrasing — most listings require 4, but some
    only require 1, where "at least 1 colours" would read wrong. */
@@ -1179,7 +1375,7 @@ function vestra_colours_warn(int $n): string {
    included only once its snapped quantity is > 0, so it also doubles as "colours selected". */
 function vestra_parse_colorqty(array $p, array $posted): ?array {
   if (!vestra_is_colorqty_listing($p)) return null;
-  $step = (int)$p['size_step'];
+  $step = vestra_pack_size($p);                 // 1 on a by-the-piece listing (colorqty flag)
   $allowed = array_flip((array)$p['colors']);
   $lines = []; $qty = 0;
   foreach ($posted as $name => $raw) {
@@ -2404,17 +2600,47 @@ function vestra_product_is_new(array $p, ?int $now = null, ?int $days = null): b
    cikinca silinmemisti). Olcut canli katalog: klasoru silmek hatirlamaya
    birakilan bir is olurdu. Eslesme marka adi basina TAM, buyuk/kucuk harf
    duyarsiz (mango/zara dersi): "Lacoste" satista diye "Lacoste Kids" klasoru
-   dusmez. Saf fonksiyon; klasoru okuyan taraf index.php. */
-function vestra_soon_brands_filter(array $soon, array $products): array {
+   dusmez. Saf fonksiyon; klasoru okuyan taraf index.php.
+   GIZLI MARKA da basilmaz (25 Eyl 2026, vestra_hidden_brands): yukaridaki
+   olcut "satista olan dusar" diyor, gizli marka ise tam da satista GORUNMEDIGI
+   icin burada "Coming soon: Gucci" diye geri gelirdi -- "sitede hic
+   gorunmesin" talimatinin arka kapisi. $hidden verilmezse kayitli karar
+   okunur; fonksiyon tek basina yuklendiyse (test) bos kume. */
+function vestra_soon_brands_filter(array $soon, array $products, ?array $hidden = null): array {
+    $hidden = $hidden ?? (function_exists('vestra_hidden_brands') ? vestra_hidden_brands() : []);
+    /* Hem vestra_hidden_brands()'in ANAHTAR=>yazim haritasini hem duz bir ad
+       listesini kabul et: ['Gucci'] verilip sessizce hicbir sey gizlenmemesi,
+       tam da bu fonksiyonun kapattigi aciga geri donmek olurdu. */
+    $hk = [];
+    foreach ($hidden as $k => $v) {
+        $nm = mb_strtoupper(trim(is_string($k) ? $k : (string)$v));
+        if ($nm !== '') $hk[$nm] = true;
+    }
     $live = [];
     foreach ($products as $p) {
         $b = mb_strtoupper(trim((string)($p['brand'] ?? '')));
         if ($b !== '') $live[$b] = true;
     }
-    return array_values(array_filter($soon,
-        fn($s) => !isset($live[mb_strtoupper(trim((string)($s['name'] ?? '')))])));
+    return array_values(array_filter($soon, function ($s) use ($live, $hk) {
+        $k = mb_strtoupper(trim((string)($s['name'] ?? '')));
+        return !isset($live[$k]) && !isset($hk[$k]);
+    }));
 }
-const VESTRA_HOME_FEATURED_MAX = 6;
+/* 25 Eyl 2026, operatorun ayni is uzerinde uc kez daralttigi talimat: "bu
+   urunleri on plana al diger luks markalari azalt" -> "ana sayfadan" ->
+   "resimleri sadece" -> son ve kesin hedef: "ozellikle New arrivals
+   bolumune ic camasiri bolumunu koy". Hedef bu serit -- ilk uc cumlenin
+   "resimleri sadece" belirsizligi dorduncu cumleyle somut, ADIYLA verilen
+   ve zaten var olan bir bolume (New arrivals) daralmis oldu; bu serit zaten
+   kart basiyor (ad+marka), sadece hangi kartlarin bastigi degisiyor.
+   Tavan YARIYA cekildi (6 -> 3): sectionMax + featMax ikisi de tavansiz
+   olsaydi 6+6=12, yani butun izgara -- ayni tuzak asagidaki $nFeat
+   yorumunda zaten bir kez kayitli ("GERCEKTEN YENI hicbir ilan seride
+   giremiyordu"). Simdi 6 (bolme) + 3 (marka) = 9, en az 3 slot GERCEKTEN
+   yeni ilana kaliyor. Rakamlar operatorden gelmedi, tek satirda -- baska bir
+   denge istenirse degistirilecek yer burasi. */
+const VESTRA_HOME_FEATURED_MAX = 3;
+const VESTRA_HOME_SECTION_MAX  = 6;
 
 function vestra_home_featured_brands(): array {
     /* Tek satirda YAZILMIYOR: bu depodaki testler fonksiyon govdesini
@@ -2425,15 +2651,27 @@ function vestra_home_featured_brands(): array {
     return ['FRED PERRY', 'LACOSTE'];
 }
 
+/* Bolme (section) bir MARKA degil -- yukaridaki liste $p['brand']'a bakiyor,
+   ic camasiri ise vestra_product_section($p)'nin dondurdugu ayri bir alan
+   (/shop?section=underwear'in kendisi, operatorun kendi yapistirdigi adres).
+   Ic camasiriyi $featured dizisine eklemek onu bir marka adi sanip hicbir
+   urune eslesmeyen olu bir satir birakirdi -- ayri liste, ayri tavan. */
+function vestra_home_featured_sections(): array {
+    return ['underwear'];
+}
+
 function vestra_home_new_picks(array $products, ?array $featured = null,
                                int $max = 12, ?int $now = null, ?int $newDays = null,
-                               ?int $featMax = null): array {
-    $featured = $featured ?? vestra_home_featured_brands();
-    $featMax  = $featMax ?? VESTRA_HOME_FEATURED_MAX;
+                               ?int $featMax = null, ?array $sections = null,
+                               ?int $sectionMax = null): array {
+    $featured   = $featured   ?? vestra_home_featured_brands();
+    $featMax    = $featMax    ?? VESTRA_HOME_FEATURED_MAX;
+    $sections   = $sections   ?? vestra_home_featured_sections();
+    $sectionMax = $sectionMax ?? VESTRA_HOME_SECTION_MAX;
     if ($max <= 0) return [];
     $up = fn($v) => strtoupper(trim((string)$v));
 
-    $fr = []; $new = [];
+    $sec = []; $fr = []; $new = [];
     foreach (array_values($products) as $i => $p) {
         $id = trim((string)($p['id'] ?? ''));
         if ($id === '') continue;                       // id'siz urunun urun sayfasi yok
@@ -2442,6 +2680,11 @@ function vestra_home_new_picks(array $products, ?array $featured = null,
            yalanlar. Olcut vestra_is_sold_out() -- alanin dolu olup olmadigina
            bakmak bos dizgeyi SATILDI sayardi. */
         if (vestra_is_sold_out($p)) continue;
+        /* Bolme ONCE sorulur: "on plana al" budur. Ayni urun teorik olarak
+           hem bir bolmeye hem one alinan bir markaya uysa (bugun katalogda
+           hic olmuyor -- ic camasiri ayri bir saticida) bolme kazanir, iki
+           kovaya birden dusmez. */
+        if (in_array(vestra_product_section($p), $sections, true)) { $sec[] = $p; continue; }
         $j = array_search($up($p['brand'] ?? ''), $featured, true);
         if ($j !== false) { $fr[$j][] = $p; continue; }
         if (vestra_product_is_new($p, $now, $newDays)) $new[] = [strtotime((string)$p['added_at']), $i, $p];
@@ -2457,6 +2700,16 @@ function vestra_home_new_picks(array $products, ?array $featured = null,
         $seen[$id] = true; $out[] = $p;
         return count($out) < $max;
     };
+    /* Bolme ILK cizilir -- "ozellikle New arrivals bolumune ic camasiri
+       bolumunu koy" tam bunu istiyor. Kendi tavani var, feat'inkiyle ayni
+       gerekceyle: tavansiz birakinca dolu bir bolme tek basina butun
+       izgarayi kaplardi. */
+    $nSec = 0;
+    foreach ($sec as $p) {
+        if ($nSec >= $sectionMax) break;
+        if (!$push($p)) return $out;
+        $nSec++;
+    }
     /* array_keys DEGIL, indis uzerinden: bir marka hic urun vermezse kendinden
        sonrakiler one kaymamali, liste sirasi korunmali. */
     $nFeat = 0;
@@ -2469,15 +2722,20 @@ function vestra_home_new_picks(array $products, ?array $featured = null,
                Lacoste 13), yani tavansiz birakinca 12 kartin 12'sini de onlar
                dolduruyor ve GERCEKTEN YENI hicbir ilan seride giremiyordu --
                yani talimatin yarisi sessizce uygulanmiyordu. Tavan, iki yarinin
-               da gorunmesini garanti ediyor. */
+               da gorunmesini garanti ediyor. 25 Eyl 2026'da bolme bucketi
+               eklenince tavan 6'dan 3'e cekildi -- "diger luks markalari
+               azalt" bunun karsiligi. */
             if ($nFeat >= $featMax) break 2;
             if (!$push($p)) return $out;
             $nFeat++;
         }
     }
     foreach ($new as $n) if (!$push($n[2])) return $out;
-    /* Yeni ilan yoksa bos slotlari one alinanlarin geri kalani doldurur:
-       yarim dolu bir izgara, dolu bir izgaradan kotu gorunur. */
+    /* Yeni ilan yoksa bos slotlari once bolmenin, sonra one alinanlarin geri
+       kalani doldurur: yarim dolu bir izgara, dolu bir izgaradan kotu
+       gorunur. $push zaten $seen'den geciyor, yani burada yeniden gecmek
+       cift saymaz. */
+    foreach ($sec as $p) if (!$push($p)) return $out;
     for ($i = 0; $i < count($featured); $i++) {
         foreach ($fr[$i] ?? [] as $p) if (!$push($p)) return $out;
     }

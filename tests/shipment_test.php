@@ -17,7 +17,9 @@ $root = __DIR__.'/../vestra';
 /* orders.php'nin tamami yuklenemez (t(), vestra_products() vs. ister); gonderim
    fonksiyonlari SAF, kaynaktan tek tek aliniyor. */
 $src = file_get_contents($root.'/inc/orders.php');
-foreach (['vestra_carriers', 'vestra_carrier_from_tracking', 'vestra_order_shipment'] as $fn) {
+/* vestra_order_parcel_time: okuyucunun son paket tarihini 'shipped' tarihcesinden
+   aldigi SAF yardimci (29 Eyl 2026, numarali teslimatlar). */
+foreach (['vestra_carriers', 'vestra_carrier_from_tracking', 'vestra_order_shipment', 'vestra_order_parcel_time'] as $fn) {
     if (!preg_match('/^function '.preg_quote($fn, '/').'\(.*?^}/ms', $src, $m)) { echo "HATA: $fn bulunamadi\n"; exit(1); }
     eval($m[0]);
 }
@@ -124,9 +126,18 @@ echo "-- 10. Kablolama: uc yol da AYNI cozucuyu cagiriyor --\n";
 $adminSrc  = file_get_contents($root.'/admin.php');
 $sellerSrc = file_get_contents($root.'/seller.php');
 $t('orders.php kartinda vestra_order_shipment', str_contains($src, '$shp = vestra_order_shipment($statusEntry)'));
-$t('admin mektubu shipment gonderiyor',        preg_match('/vestra_tpl_order_shipped\([^;]*vestra_order_shipment\(/s', $adminSrc) === 1);
+/* 29 Eyl 2026: iki yol artik mektubu KENDISI kurmuyor, tek gonderim govdesine
+   (vestra_order_parcel_notify) cozulmus shipment'i veriyor; govde onu
+   vestra_tpl_order_parcel_letter() uzerinden tek-paket mektubuna AYNEN geciriyor.
+   Olcu ayni kaldi: mektup, sayfanin okudugu cozucunun ciktisini aliyor mu. */
+$t('admin mektubu shipment gonderiyor',        str_contains($adminSrc, "vestra_order_parcel_notify(\$ref, vestra_order_shipment(\$all[\$ref]??null), '', true)"));
 $t('seller mektubu shipment gonderiyor',       str_contains($sellerSrc, '$shpNow = vestra_order_shipment(')
-                                               && preg_match('/vestra_tpl_order_shipped\([^;]*\$shpNow\)/s', $sellerSrc) === 1);
+                                               && str_contains($sellerSrc, "vestra_order_parcel_notify(\$ref, \$shpNow, '', true)"));
+$notifyBody = preg_match('/^function vestra_order_parcel_notify\(.*?^}/ms', $src, $mm) ? $mm[0] : '';
+$t('govde verilen shipment\'i mektuba geciriyor', $notifyBody !== ''
+                                               && str_contains($notifyBody, '$shp = $shipment ?? vestra_order_shipment(')
+                                               && preg_match('/vestra_tpl_order_parcel_letter\([^;]*\$shp[,)]/s', $notifyBody) === 1);
+$t('secici tek paket mektubuna shipment veriyor', preg_match('/^function vestra_tpl_order_parcel_letter\(.*?vestra_tpl_order_shipped\([^;]*\$shipment\)/ms', $tplSrc) === 1);
 $t('admin formunda tasiyici secici',           str_contains($adminSrc, 'name="ship_carrier"'));
 $t('admin formunda servis alani',              str_contains($adminSrc, 'name="ship_service"'));
 $t('satici formunda tasiyici secici',          str_contains($src, 'name="ship_carrier"'));

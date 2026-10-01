@@ -1217,3 +1217,47 @@ html[lang="ja"] body{ line-height:1.75; word-break:normal; overflow-wrap:anywher
    yonunde kalir; yalniz satirin ic sirasi duzelir. */
 .addrbody>div,.shipopt-b .hint{unicode-bidi:plaintext}
 [dir="rtl"] .addrbody,[dir="rtl"] .shipopt-b{text-align:right}
+
+/* ── Bildirim karti ve ozet satiri (inc/app_ui.php + inc/app.js) ──────────
+   [hidden] AYRICA zorlaniyor: .btn{display:inline-flex} tarayicinin kendi
+   [hidden]{display:none} kuralini eziyor, yani "gizli" dugmeler gorunurdu.
+   Kenar bosluklari mantiksal (inline-start): Arapca panelde durum rozeti
+   sola gecmeli, sabit margin-left ile saga yapisik kalirdi. */
+.vpush [hidden],.vpush-nudge[hidden],.vpush-nudge [hidden]{display:none!important}
+.vpush-hd{display:flex;gap:14px;align-items:flex-start}
+.vpush-ic{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;
+  background:rgba(169,127,44,.12);color:var(--acc)}
+/* Metin kolonu 180px'lik tabanla BUYUR: tabani max-content kalsaydi uzun ipucu
+   metni mobilde simgeyi kendi satirinda yalniz birakiyordu. */
+.vpush-tx{flex:1 1 180px;min-width:0}
+.vpush-tx h3{margin:0 0 3px;font-size:16px}
+.vpush-tx .hint{margin:0;line-height:1.5}
+/* Rozet SARILABILIR: "iPhone/iPad : ajoutez d'abord a l'ecran d'accueil" gibi uzun
+   durumlar nowrap iken kartin disina 63px tasiyordu (Fransizca iPhone cizimi).
+   Sabit genislik yok — dil dile uzunluk degisiyor; ust sinir ve kucuk yaricap yeter. */
+.vpush-st{margin-inline-start:auto;flex:0 1 auto;max-width:46%;font-size:12px;font-weight:700;line-height:1.35;
+  padding:5px 11px;border-radius:14px;text-align:center;overflow-wrap:anywhere;
+  background:var(--bg3);border:1px solid var(--line);color:var(--mut)}
+.vpush-st[data-state="on"]{color:#17744a;background:rgba(31,157,99,.10);border-color:rgba(31,157,99,.32)}
+.vpush-st[data-state="denied"],.vpush-st[data-state="error"]{color:#a8322a;background:rgba(192,57,43,.07);border-color:rgba(192,57,43,.3)}
+.vpush-st[data-state="ios-install"]{color:#8a6420;background:rgba(169,127,44,.10);border-color:rgba(169,127,44,.32)}
+.vpush-note{margin:12px 0 0;font-size:13px;line-height:1.55;color:var(--ink);background:var(--bg3);
+  border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.vpush-btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.vpush-btns:not(:has(button:not([hidden]))){display:none}
+.vpush-foot{margin:12px 0 0;line-height:1.5}
+.vpush-nudge{display:flex;align-items:center;gap:12px;margin:0 0 16px;padding:10px 12px 10px 16px;
+  background:var(--bg2);border:1px solid var(--line);border-inline-start:3px solid var(--acc);border-radius:12px}
+.vpush-nudge-tx{flex:1;min-width:0;font-size:13.5px;line-height:1.45}
+.vpush-x{flex:none;width:32px;height:32px;border:0;background:none;color:var(--mut);font-size:20px;line-height:1;
+  cursor:pointer;border-radius:8px}
+.vpush-x:hover{background:var(--bg3);color:var(--ink)}
+@media(max-width:560px){
+  .vpush-hd{flex-wrap:wrap}
+  .vpush-st{margin-inline-start:54px;max-width:calc(100% - 54px)}
+  .vpush-btns .btn{flex:1 1 auto;justify-content:center}
+  .vpush-nudge{flex-wrap:wrap}
+  .vpush-nudge-tx{flex-basis:calc(100% - 44px)}
+  /* Kapatma x'i metnin yaninda (ust satir) kalsin; dugme alt satira insin. */
+  .vpush-nudge .btn{order:2}
+}

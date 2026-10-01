@@ -449,7 +449,18 @@ foreach ([
   ['Purdeys Vintage Room','hi@purdeysvintage.co.uk'], /* 'purdey' exact_only */
   ['Frye Street Vintage','hello@fryestreet.com'],  /* 'frye company' tam ifade */
   ['Change Boutique Riga','info@changeboutique.lv'],
+  /* 27 Eyl 2026: 'libero' girisi e-posta ALAN ADI uzerinden libero.it kullanan
+     HER Italyan dukkanini eliyordu (Di Marco Calzature, Roma). Serbest posta
+     saglayicisinin alan adi firma kimligi degil; site ve ad kontrolu duruyor. */
+  ['Di Marco Calzature','dimarcocalzature@libero.it'],
+  ['Calzature Rossi','calzature.rossi@libero.it'],
+  ['Boutique Mode','boutique.mode@orange.fr'],
 ] as [$n,$e]) $t("gecmeli: $n", !$blocked($n,$e,''));
+/* IKI YON: saglayici muafiyeti KURAL 1'i delmemeli -- zincirin ADI yine yakalar,
+   ve SITESI saglayicinin kendi sayfasi olan kayit (taramanin ISS sayfasini dukkan
+   sanmasi) site etiketinden yine engellenir. */
+$t('engellenmeli: zincir adi serbest posta adresiyle', $blocked('Zalando Outlet', 'zalando.outlet@gmail.com', ''));
+$t('engellenmeli: sitesi ISS sayfasi olan kayit', vestra_domain_is_blocked('shop@libero.it', 'https://libero.it'));
 
 echo "\n== 13h. \"global 200 unique independent\" CSV'sinden ==\n";
 foreach ([
@@ -660,6 +671,79 @@ foreach ([
     ['The Design Shop','thedesignshop.co.uk'],
     ['Peaks & Valleys','peaksandvalleys.se'],
     ['Studio Design Milano','studiodesign.it'],
+] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
+
+echo "\n== 20. 26 Eyl 2026 — ayakkabi dukkani kampanyasi: zincirler ve kendi markasi ==\n";
+/* Operatorun yapistirdigi yapay-zeka listesi ve Avrupa aramasi okunurken
+   ayiklananlar. Iki taraf da test ediliyor: ad VE alan adi. */
+foreach ([
+    ['Schuhhaus Werdich','werdich.com'],        ['Zumnorde','zumnorde.de'],
+    ['Schuhhaus Marcus','schuhhaus-marcus.de'], ['Schuhhaus Kocken','kocken-online.de'],
+    ["Mayer's Markenschuhe",'mayers-markenschuhe.de'], ['Schuh Schweizer','schuh-schweizer.de'],
+    ['Bessec Chaussures','bessec.fr'],          ['Chaussea','chaussea.com'],
+    ['Besson Chaussures','besson-chaussures.com'], ['Charles Clinkard','charlesclinkard.co.uk'],
+    ['Begg Shoes','beggshoes.com'],             ['Sorelle Ramonda','sorelleramonda.com'],
+    ['Moda in Pelle','modainpelle.com'],        ['Grünbein Store','shoes-berlin.de'],
+    ["Pelin's Shoes",'pelinshoes.com'],         ['Atheist Shoes','atheist.shoes'],
+    ['Highest Heels','highestheels.eu'],
+    // 27 Eyl 2026: gonderim oncesi elle okumada ayiklananlar
+    ['Calzature Trancanelli','trancanelli.com'], ['Trancanelli Sabotino','trancanellisabotino.it'],
+    ['Fanny Chaussures','fanny-chaussures.com'], ['Chaussures Meger','meger.fr'],
+    ['Zjoos Hjørring','zjoos-hjoerring.dk'],      ['Skoringen','skoringen.dk'],
+    ['Walter Calzature','waltercalzature.it'],     ['Le Walterine','lewalterine.it'],
+] as [$n,$d]) $t("blok: {$n}", $blocked($n,'','https://'.$d));
+/* Yalniz ALAN ADINDAN yakalanmasi gerekenler: taranan ad cogu zaman markanin
+   kendisi degil ("Shop", "Home"), alan adi ise operatorden geliyor. */
+foreach ([
+    ['Shop','sorbasshoes.com'], ['Home','gruenbein.de'], ['Store','pelinshoes.com'],
+    ['Welcome','atheist.shoes'], ['Startseite','werdich.com'],
+    ['Accueil','fanny-chaussures.com'], ['Home','trancanelli.com'],
+    ['Forside','zjoos-hjoerring.dk'], ['Sko til hele familien','zjoosgive.dk'], ['Velkommen','zjoos.dk'],
+] as [$n,$d]) $t("blok (alan adindan): {$d}", $blocked($n,'','https://'.$d));
+
+echo "\n== 20b. GECMELI — ayni kelimeyi tasiyan bagimsiz dukkanlar ==\n";
+/* 'kocken', 'marcus', 'schweizer', 'besson', 'sorbas', 'heels', 'shoes'
+   TEK BASINA listede degil. Konsalardi asagidakilerin hepsi SESSIZCE
+   elenirdi -- mango/zara ve scarpa dersinin ayakkabi hali. */
+foreach ([
+    ['Marcus Schuhmode','marcus-schuhmode.de'],     ['Schweizer Mode','schweizer-mode.ch'],
+    ['Kocken Mode','kocken-mode.nl'],               ['Besson Fleurs','besson-fleurs.fr'],
+    ['Sorbas Moda','sorbasmoda.es'],                ['Heels & Soles','heelsandsoles.co.uk'],
+    ['CC Shoes','ccshoes.se'],                      ['Schuhhaus Galipp','galipp-schuhmode.de'],
+    ['Schuhe Lüke','schuhe-lueke.de'],              ['Calzados Vesga','calzadosvesga.com'],
+    ['Moda Italiana Boutique','modaitaliana.it'],   ['Charles Street Shoes','charlesstreetshoes.com'],
+    // 'fanny' / 'meger' tek basina listede degil
+    ["Fanny's Boutique",'fannysboutique.fr'],       ['Chez Fanny','chezfanny.be'],
+    ['Meger Moda','megermoda.it'],                  ["L'Entrepôt Chaussures",'entrepotchaussure.fr'],
+    ['Sko Karlsson','skokarlsson.se'],              ['Sköna Skon','skonaskon.se'],
+    ['Walter Moda Uomo','waltermoda.it'],           ['Calzature Walter & Figli','calzaturewalterfigli.it'],
+] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
+
+echo "\n== 21. 28 Eyl 2026 — Overture kesfinin HAZIR listesinde elle okunanlar ==\n";
+/* Kod dordunu de geciriyordu; hepsi ARASTIRILARAK dogrulandi (KURAL 1i):
+   Mephisto Vichy yalniz Mephisto grubunun markalarini satan bir marka dukkani,
+   Ally Capellino tasarimcinin KENDI etiketi ve dukkani, James Taylor & Son
+   butun ayakkabisini kendi atolyesinde yapan bir uretici, Norbert Bottier
+   1981'den beri kendi markasi. */
+foreach ([
+    ['Mephisto Vichy','mephisto-vichy.fr'],          ['Mephisto Shop Brugge','mephistobrugge.be'],
+    ['Ally Capellino','allycapellino.co.uk'],        ['James Taylor & Son','taylormadeshoes.co.uk'],
+    ['James Taylor and Son','taylormadeshoes.co.uk'], ['Norbert Bottier','norbertbottier.com'],
+] as [$n,$d]) $t("blok: {$n}", $blocked($n,'','https://'.$d));
+foreach ([['Home','mephisto-vichy.fr'], ['Shop','allycapellino.co.uk'], ['Bespoke Shoes','taylormadeshoes.co.uk'],
+          ['Accueil','norbertbottier.com']] as [$n,$d]) $t("blok (alan adindan): {$d}", $blocked($n,'','https://'.$d));
+
+echo "\n== 21b. GECMELI — ayni kelimeyi tasiyan bagimsizlar ve SINIRDA birakilanlar ==\n";
+/* 'taylor', 'james', 'norbert', 'bottier', 'capellino' TEK BASINA listede degil.
+   Maury (iki kapisi da Knokke'de), Pas a Pas (Reims, tek dukkan) ve Gabrielli
+   (tek dukkan + ayni sehirde outlet) bagimsiz; Chapellerie Traclet (kendi
+   atolyesi + perakende) SINIRDA, operator karari -- eklenmedi. */
+foreach ([
+    ['Taylor Shoes','taylorshoes.co.uk'],           ['James Shoe Boutique','jamesshoes.co.uk'],
+    ['Norbert Schuhmode','norbert-schuhmode.de'],   ['Le Bottier Parisien','lebottierparisien.fr'],
+    ['Capellino Moda','capellinomoda.it'],          ['Maury Knokke','maury.be'],
+    ['Magasin PAS A PAS - Reims','pasapas.fr'],     ['Gabrielli Outlet','gabrielli-roeselare.be'],
+    ['Chapellerie Traclet','chapellerie-traclet.com'],
 ] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
 
 echo "\nTOPLAM: {$ok} gecti, {$fail} kaldi\n";

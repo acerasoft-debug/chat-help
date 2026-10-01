@@ -126,4 +126,11 @@ body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain}
   }
 })();
 </script>
-<?php } ?>
+<?php
+    /* App istemcisi (servis calisani, kurulum, bildirim, uygulama rozeti) -- TEK
+       yerden: bu dosya foot.php ve index.php'nin ikisinin de </body>'den once
+       yukledigi ortak "uygulama kabugu". Iki sayfanin kendi kopyasi vardi ve
+       ayrismislardi (inc/app.js'in basindaki not). */
+    require_once __DIR__.'/app_ui.php';
+    echo vestra_app_boot();
+} ?>

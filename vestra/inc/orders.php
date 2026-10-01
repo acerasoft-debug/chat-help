@@ -252,6 +252,55 @@ function vestra_order_shipment(?array $statusEntry): array {
     if ($tracking !== '' && $carrier !== '' && !empty($known[$carrier]['url'])) {
         $url = sprintf((string)$known[$carrier]['url'], rawurlencode($tracking));
     }
+    /* KISMI GONDERIM (operator, 29 Eyl 2026: "siparislerin bir kisminin ciktigini
+       belirt"). Isaret bir BAYRAK degil, bir PAKETE bagli: `ship_partial_trk`
+       kismi paketin numarasini tutar ve isaret yalnizca O numara hala gecerli
+       takip numarasiyken gecerlidir. Panel ya da satici formu sonradan yeni bir
+       numara yazarsa isaret kendiliginden duser -- dort ayri yazici var
+       (admin iki form, satici iki form) ve hicbirinin bu kurali hatirlamasi
+       gerekmiyor. Kismi paketler ayrica `parcels` gunlugunde durur: sonraki
+       numara `tracking`'i ezse bile alicinin elindeki ilk paketin baglantisi
+       kaybolmaz ("onceki paket" olarak gorunur). */
+    $norm = fn(string $s): string => strtoupper(preg_replace('/\s+/', '', $s));
+    $pTrk = $norm((string)($st['ship_partial_trk'] ?? ''));
+    $partial = $tracking !== '' && $pTrk !== '' && $pTrk === $norm($tracking);
+    $earlier = []; $seen = [];
+    $curAt = '';
+    foreach ((array)($st['parcels'] ?? []) as $p) {
+        if (!is_array($p)) continue;
+        $pt = trim((string)($p['tracking'] ?? ''));
+        if ($pt !== '' && $norm($pt) === $norm($tracking)) { $curAt = (string)($p['at'] ?? ''); continue; }
+        if ($pt === '' || isset($seen[$norm($pt)])) continue;
+        $seen[$norm($pt)] = true;
+        $pc = strtolower(trim((string)($p['carrier'] ?? '')));
+        if ($pc === '' || !isset($known[$pc])) $pc = vestra_carrier_from_tracking($pt);
+        $earlier[] = [
+            'tracking'     => $pt,
+            'carrier'      => $pc,
+            'carrier_name' => $pc !== '' ? (string)($known[$pc]['name'] ?? '') : '',
+            'service'      => trim((string)($p['service'] ?? '')),
+            'url'          => ($pc !== '' && !empty($known[$pc]['url'])) ? sprintf((string)$known[$pc]['url'], rawurlencode($pt)) : '',
+            'at'           => (string)($p['at'] ?? ''),
+        ];
+    }
+    /* NUMARALI TESLIMATLAR (operator, 29 Eyl 2026: "trackinglerde ikinci
+       lieferung icin yer ac"). Liste KAYITTAN turer, ikinci bir alan yok:
+       gunlukteki onceki paketler cikis sirasiyla, sonra gecerli numara. Kismi
+       pakette bir SONRAKI yuva bos acilir (next_n): alici "Teslimat 2: henuz
+       cikmadi" gorur, panel o yuvaya numarayi yazar. Numara degisince liste
+       kendiliginden yeniden numaralanir -- elle tutulan bir sayac olsaydi
+       paketlerle er gec ayrisirdi. */
+    $deliveries = [];
+    foreach ($earlier as $e) { $e['current'] = false; $deliveries[] = $e; }
+    /* Son (kismi olmayan) paket gunluge BILEREK yazilmaz: kismi olmayan bir
+       numaranin degismesi DUZELTME sayilir, gunlukte dursaydi eski (yanlis)
+       numara "onceki paket" diye gorunurdu. Tarihi 'shipped' tarihcesinden. */
+    if ($tracking !== '' && $curAt === '' && !$partial) $curAt = vestra_order_parcel_time($st);
+    if ($tracking !== '') {
+        $deliveries[] = ['tracking' => $tracking, 'carrier' => $carrier, 'carrier_name' => $name,
+                         'service' => $service, 'url' => $url, 'at' => $curAt, 'current' => true];
+    }
+    foreach ($deliveries as $i => $d) $deliveries[$i]['n'] = $i + 1;
     return [
         'tracking'     => $tracking,
         'carrier'      => $carrier,
@@ -259,7 +308,22 @@ function vestra_order_shipment(?array $statusEntry): array {
         'service'      => $service,
         'url'          => $url,
         'has'          => $tracking !== '' || $name !== '' || $service !== '',
+        'partial'      => $partial,
+        'earlier'      => $earlier,
+        'deliveries'   => $deliveries,
+        'next_n'       => $partial ? count($deliveries) + 1 : 0,
     ];
+}
+
+/** Paketin cikis ani: son 'shipped' tarihcesi > shipped_at > bos. Bilinmeyen bir
+ *  tarih uydurulmaz (KURAL 3) -- updated_at bilerek okunmaz, o kaydin son
+ *  yazilma ani, paketin degil. */
+function vestra_order_parcel_time(array $row): string {
+    $at = '';
+    foreach ((array)($row['history'] ?? []) as $h) {
+        if (is_array($h) && ($h['status'] ?? '') === 'shipped' && !empty($h['at'])) $at = (string)$h['at'];
+    }
+    return $at !== '' ? $at : (string)($row['shipped_at'] ?? '');
 }
 
 /**
@@ -267,12 +331,48 @@ function vestra_order_shipment(?array $statusEntry): array {
  * `vestra_order_set_shipping()` (navlun tutarı) ile karıştırma: o para, bu paket.
  *
  * Boş dizge alanı SİLER: bir taşıyıcıyı kaldırmanın başka yolu olmazdı.
+ *
+ * $partial: true = bu paket siparişin YALNIZCA BİR KISMI (işaret o numaraya
+ * bağlanır ve paket `parcels` günlüğüne yazılır); false = işareti kaldır;
+ * null = dokunma (eski dört argümanlı çağıranların davranışı aynen).
+ *
+ * $newParcel: true = bu numara YENİ bir paket (teslimat N+1), mevcut numaranın
+ * DÜZELTİLMESİ değil. O zaman mevcut paket — kısmi işaretli olmasa bile —
+ * yazmadan ÖNCE günlüğe alınır; aksi hâlde ilk paketin numarası ve bağlantısı
+ * ikinci numaranın altında kaybolurdu. Aynı numara zaten bir teslimatsa reddedilir.
+ * Yeni paketin taşıyıcı/servisi öncekinden MİRAS alınmaz (verilmezse numaradan
+ * çözülür): UPS'le giden ilk paketin servisi ikinci pakete yazılmamalı.
+ * false (varsayılan) = eski davranış: numara değişikliği düzeltme sayılır.
  */
-function vestra_order_set_shipment(string $ref, ?string $tracking, ?string $carrier, ?string $service): array {
+function vestra_order_set_shipment(string $ref, ?string $tracking, ?string $carrier, ?string $service, ?bool $partial = null, bool $newParcel = false): array {
     $ref = trim($ref);
     if ($ref === '') return ['ok' => false, 'error' => 'ref yok'];
     $all = vestra_read_json('order_statuses.json');
     $row = (array)($all[$ref] ?? []);
+    if ($newParcel) {
+        $new = strtoupper(preg_replace('/\s+/', '', trim((string)$tracking)));
+        if ($new === '') return ['ok' => false, 'error' => 'yeni paket takip numarasi ister'];
+        foreach (vestra_order_shipment($row)['deliveries'] as $d) {
+            if (strtoupper(preg_replace('/\s+/', '', (string)$d['tracking'])) === $new) {
+                return ['ok' => false, 'error' => 'bu numara zaten '.$d['n'].'. teslimat -- ikinci kez yazilmaz'];
+            }
+        }
+        $cur = strtoupper(preg_replace('/\s+/', '', trim((string)($row['tracking'] ?? ''))));
+        if ($cur !== '') {
+            $log = array_values(array_filter((array)($row['parcels'] ?? []), 'is_array'));
+            $in = false;
+            foreach ($log as $p) {
+                if (strtoupper(preg_replace('/\s+/', '', (string)($p['tracking'] ?? ''))) === $cur) { $in = true; break; }
+            }
+            if (!$in) {
+                $log[] = ['tracking' => $cur, 'carrier' => (string)($row['ship_carrier'] ?? ''),
+                          'service' => (string)($row['ship_service'] ?? ''), 'at' => vestra_order_parcel_time($row)];
+                $row['parcels'] = $log;
+            }
+        }
+        if ($carrier === null) $carrier = '';
+        if ($service === null) $service = '';
+    }
     if ($tracking !== null) {
         $t = strtoupper(preg_replace('/\s+/', '', trim($tracking)));
         if ($t === '') unset($row['tracking']); else $row['tracking'] = $t;
@@ -289,12 +389,171 @@ function vestra_order_set_shipment(string $ref, ?string $tracking, ?string $carr
         if (mb_strlen($s) > 60) return ['ok' => false, 'error' => 'servis adi 60 karakteri asiyor'];
         if ($s === '') unset($row['ship_service']); else $row['ship_service'] = $s;
     }
+    if ($partial === true) {
+        /* Kismi isaret bir PAKETE baglanir; numarasiz "kismi gonderim" hangi paketin
+           kismi oldugunu soyleyemez ve sonraki bir numara onu ayirt edemez. */
+        $cur = (string)($row['tracking'] ?? '');
+        if ($cur === '') return ['ok' => false, 'error' => 'kismi gonderim takip numarasi ister'];
+        $row['ship_partial_trk'] = $cur;
+        $log = array_values(array_filter((array)($row['parcels'] ?? []), 'is_array'));
+        $hit = false;
+        foreach ($log as $i => $p) {
+            if (strcasecmp(preg_replace('/\s+/', '', (string)($p['tracking'] ?? '')), $cur) !== 0) continue;
+            /* Ayni paket ikinci kez yazildi: tasiyici/servis guncellenir, tarih KORUNUR
+               (paketin cikis ani ikinci yazmanin ani degil). */
+            $log[$i]['carrier'] = (string)($row['ship_carrier'] ?? '');
+            $log[$i]['service'] = (string)($row['ship_service'] ?? '');
+            $hit = true;
+        }
+        if (!$hit) $log[] = ['tracking' => $cur, 'carrier' => (string)($row['ship_carrier'] ?? ''),
+                             'service' => (string)($row['ship_service'] ?? ''), 'at' => date('c')];
+        $row['parcels'] = $log;
+    } elseif ($partial === false) {
+        unset($row['ship_partial_trk']);
+    }
     $row['updated_at'] = date('c');
     $all[$ref] = $row;
     vestra_write_json('order_statuses.json', $all);
     /* GERİ OKU: "kaydedildi" diyen bir satır tek başına kanıt değil. */
     $back = vestra_read_json('order_statuses.json');
     return ['ok' => true, 'error' => '', 'shipment' => vestra_order_shipment($back[$ref] ?? null)];
+}
+
+/**
+ * Siparise YENI bir paket (teslimat N+1) yazar -- panelin "Delivery N" yuvasi
+ * (operator, 29 Eyl 2026: "trackinglerde ikinci lieferung icin yer ac").
+ *
+ * $more = true : bu paketten sonra da paket gelecek (kismi); durum DEGISMEZ.
+ * $more = false: bu paket siparisi TAMAMLIYOR; durum 'shipped' olur (alici
+ *                "teslim aldim" diyebilir) ve kismi isaret kalkar.
+ *
+ * Onceki paket(ler) KORUNUR (vestra_order_set_shipment $newParcel). Iptal,
+ * teslim edilmis ya da tamamlanmis sipariste yazilmaz; 'shipped' bir siparise
+ * "daha gelecek" denemez (alici o an "teslim aldim" diyebiliyor -- iki olgu
+ * ayni anda dogru olamaz, is akisindaki partial+shipped reddinin aynisi).
+ * Mektup AYRI adim: vestra_order_parcel_notify(). Yazma ile gonderme ayri
+ * tutuluyor ki kuru bir yazma kimseye bir sey gondermesin.
+ */
+function vestra_order_add_parcel(string $ref, string $tracking, string $carrier = '', string $service = '', bool $more = false, string $by = 'admin'): array {
+    $ref = trim($ref);
+    if ($ref === '') return ['ok' => false, 'error' => 'ref yok'];
+    $found = false;
+    foreach (vestra_read_csv('orders.csv') as $r) {
+        if (trim((string)($r['ref'] ?? '')) === $ref) { $found = true; break; }
+    }
+    if (!$found) return ['ok' => false, 'error' => 'siparis bulunamadi: '.$ref];
+    $all = vestra_read_json('order_statuses.json');
+    $before = (string)($all[$ref]['status'] ?? 'pending');
+    if (in_array($before, ['cancelled', 'delivered', 'completed'], true)) {
+        return ['ok' => false, 'error' => "siparis durumu '{$before}' -- yeni paket bu yoldan yazilmaz"];
+    }
+    if ($more && $before === 'shipped') {
+        return ['ok' => false, 'error' => "siparis zaten 'shipped' -- 'daha paket gelecek' isaretlenemez (alici su an teslimi onaylayabiliyor)"];
+    }
+    $res = vestra_order_set_shipment($ref, $tracking, $carrier, $service, $more, true);
+    if (empty($res['ok'])) return $res;
+    $n = 0;
+    foreach ($res['shipment']['deliveries'] as $d) if (!empty($d['current'])) $n = (int)$d['n'];
+    $all = vestra_read_json('order_statuses.json');
+    $row = (array)($all[$ref] ?? []);
+    $note = 'Delivery '.$n.': '.$res['shipment']['tracking'].($more ? ' (more to follow)' : ' (completes the order)');
+    if (!$more && $before !== 'shipped') {
+        $row['status'] = 'shipped';
+        if (empty($row['shipped_at'])) $row['shipped_at'] = date('c');
+        $row['history'][] = vestra_order_history_entry('shipped', $by, $note);
+    } else {
+        $row['history'][] = vestra_order_history_entry($before, $by, $note);
+    }
+    $row['updated_at'] = date('c');
+    $all[$ref] = $row;
+    vestra_write_json('order_statuses.json', $all);
+    $back = vestra_read_json('order_statuses.json');
+    return ['ok' => true, 'error' => '', 'n' => $n, 'status_before' => $before,
+            'status_after' => (string)($back[$ref]['status'] ?? 'pending'),
+            'shipment' => vestra_order_shipment($back[$ref] ?? null)];
+}
+
+/**
+ * Paket mektubunu ALICININ dilinde gonderir -- panelin yuvasi, panelin durum
+ * formu, saticinin "gonderildi"si ve is akisi AYNI gövdeyi cagirir. Dort ayri
+ * gonderim kopyasi, ilk degisiklikte dort ayri mektup demekti (KURAL 5o).
+ *
+ * Hangi mektup: vestra_tpl_order_parcel_letter() secer (kismi / kalan / tek paket).
+ * Damga (ship_notified[<numara>]) YALNIZ basarili gonderimden sonra duser ve geri
+ * okunur; $force=false iken damgali pakete ikinci mektup gitmez.
+ */
+function vestra_order_parcel_notify(string $ref, ?array $shipment = null, string $lang = '', bool $force = false): array {
+    if (!function_exists('vestra_send_mail')) require_once __DIR__.'/notify.php';
+    if (!function_exists('vestra_tpl_order_parcel_letter')) require_once __DIR__.'/email_templates.php';
+    if (!function_exists('vestra_user_lang')) require_once __DIR__.'/i18n.php';
+    $row = null;
+    foreach (vestra_read_csv('orders.csv') as $r) {
+        if (trim((string)($r['ref'] ?? '')) === $ref) { $row = $r; break; }
+    }
+    $email = trim((string)($row['email'] ?? ''));
+    if (!$row || $email === '') return ['sent' => false, 'skipped' => false, 'stamped' => false, 'error' => 'siparisin e-postasi yok'];
+    $all = vestra_read_json('order_statuses.json');
+    $shp = $shipment ?? vestra_order_shipment($all[$ref] ?? null);
+    $trk = (string)($shp['tracking'] ?? '');
+    if (!$force && $trk !== '' && !empty($all[$ref]['ship_notified'][$trk])) {
+        return ['sent' => false, 'skipped' => true, 'stamped' => true, 'error' => 'bu paket icin mektup zaten gitti'];
+    }
+    $acc  = auth_find($email);
+    $lang = $lang !== '' ? $lang : vestra_user_lang($acc);
+    $who  = (string)(($row['name'] ?? '') ?: (($row['company'] ?? '') ?: 'there'));
+    [$s, $b, $o] = vestra_tpl_order_parcel_letter($lang, $who, $ref, $shp, (bool)$acc);
+    $sent = vestra_send_mail($email, $s, $b, '', '', null, '', $o);
+    $stamped = false;
+    if ($sent && $trk !== '') {
+        $all2 = vestra_read_json('order_statuses.json');
+        $all2[$ref]['ship_notified'][$trk] = date('c');
+        vestra_write_json('order_statuses.json', $all2);
+        $stamped = !empty(vestra_read_json('order_statuses.json')[$ref]['ship_notified'][$trk]);
+    }
+    if ($acc) {
+        require_once __DIR__.'/push.php';
+        if (function_exists('vestra_push_notify')) {
+            vestra_push_notify($acc, !empty($shp['partial']) ? 'order_part_shipped' : 'order_shipped',
+                ['ref' => $ref, 'tracking' => trim((string)($shp['carrier_name'] ?? '').' '.$trk)]);
+        }
+    }
+    return ['sent' => $sent, 'skipped' => false, 'stamped' => $stamped, 'lang' => $lang,
+            'subject' => $s, 'error' => $sent ? '' : 'saglayici reddetti'];
+}
+
+/**
+ * Numarali teslimat blogu (alici ve satici gorunumu, alicinin siparis listesi).
+ * Tek paketli, kismi olmayan sipariste BOS doner: o sipariste eski tek satirlik
+ * "Takip numarasi" gorunumu aynen kalir.
+ */
+function vestra_order_deliveries_html(array $shp, bool $compact = false): string {
+    $dl   = (array)($shp['deliveries'] ?? []);
+    $next = (int)($shp['next_n'] ?? 0);
+    if (count($dl) < 2 && $next === 0) return '';
+    $label = fn(int $n): string => htmlspecialchars(sprintf(t('Delivery %d'), $n));
+    $num = function (array $d): string {
+        return (string)($d['url'] ?? '') !== ''
+            ? '<a class="acc" href="'.htmlspecialchars((string)$d['url']).'" target="_blank" rel="noopener nofollow">'.htmlspecialchars((string)$d['tracking']).'</a>'
+            : htmlspecialchars((string)$d['tracking']);
+    };
+    if ($compact) {
+        $parts = [];
+        foreach ($dl as $d) $parts[] = $label((int)$d['n']).': '.$num($d);
+        if ($next > 0) $parts[] = $label($next).': '.htmlspecialchars(t('Not shipped yet'));
+        return '<div class="hint" style="margin-top:8px">🚚 '.implode(' · ', $parts).'</div>';
+    }
+    $h = '';
+    if (!empty($shp['partial'])) {
+        $h .= '<p class="hint" style="margin:0 0 6px">📦 '.t('Partial shipment — the remaining items will follow in a separate parcel.').'</p>';
+    }
+    foreach ($dl as $d) {
+        $who = trim((string)($d['carrier_name'] ?? '').((string)($d['service'] ?? '') !== '' ? ' · '.$d['service'] : ''));
+        $h .= '<p style="margin:0 0 6px"><b>'.$label((int)$d['n']).':</b> '.($who !== '' ? htmlspecialchars($who).' · ' : '').$num($d).'</p>';
+    }
+    if ($next > 0) {
+        $h .= '<p style="margin:0 0 6px"><b>'.$label($next).':</b> <span class="hint">'.htmlspecialchars(t('Not shipped yet')).'</span></p>';
+    }
+    return $h;
 }
 
 /** Distinct sellers whose SKUs appear in this order (uid => label), for the "seller(s)" info block. */
@@ -669,6 +928,16 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
        satıcı formu ve mektup aynı üç olguyu okumalı. Operatör, 9 Eyl 2026:
        "her pakette gönderici kargo bölümüde olsun". */
     $shp = vestra_order_shipment($statusEntry);
+    /* Kismi gonderim + onceki paketler (29 Eyl 2026). Mektup "siparisin bir kismi
+       yola cikti, kalani ayri pakette gelecek" diyor; sayfa ayni seyi soylemezse
+       alici takip numarasini gorup siparisin tamaminin ciktigini sanar ve eksik
+       kalemleri "eksik" diye bildirir. Iki rol de gorur: satici da bu paketin
+       kismi oldugunu bilmeli. */
+    /* Numarali teslimatlar (29 Eyl 2026, "ikinci lieferung icin yer ac"): birden
+       fazla paket ya da kismi paket varsa "Teslimat 1 / Teslimat 2" satirlari --
+       bekleyen yuva "henuz cikmadi" diye gorunur. Tek paketli sipariste bos,
+       yani eski tek satirlik gorunum aynen kalir. */
+    $parcelHtml = vestra_order_deliveries_html($shp);
     if ($viewerRole === 'seller') {
         $carrierOpts = '';
         foreach (vestra_carriers() as $ck => $cv) {
@@ -687,22 +956,29 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
           <label class="hint">'.t('Note to buyer').'</label>
           <textarea name="seller_note" rows="2" style="width:100%;margin-bottom:10px">'.htmlspecialchars($statusEntry['seller_note'] ?? '').'</textarea>
           <button class="btn btn-p btn-sm" type="submit">'.t('Save').'</button>
-        </form>';
+        </form>'.$parcelHtml;
     } else {
-        if ($shp['carrier_name'] !== '') {
-            $h .= '<p style="margin:0 0 6px"><b>'.t('Carrier').':</b> '.htmlspecialchars($shp['carrier_name'])
-                . ($shp['service'] !== '' ? ' · '.htmlspecialchars($shp['service']) : '').'</p>';
-        } elseif ($shp['service'] !== '') {
-            $h .= '<p style="margin:0 0 6px"><b>'.t('Service').':</b> '.htmlspecialchars($shp['service']).'</p>';
+        if ($parcelHtml !== '') {
+            /* Birden fazla paket: tek "Takip numarasi" satiri yalnizca SONUNCUSUNU
+               gosterirdi -- teslimatlar numarasiyla, her biri kendi baglantisiyla.
+               Teslim onayi dugmesi asagida, iki gorunumde de AYNI yerde. */
+            $h .= $parcelHtml;
+        } else {
+            if ($shp['carrier_name'] !== '') {
+                $h .= '<p style="margin:0 0 6px"><b>'.t('Carrier').':</b> '.htmlspecialchars($shp['carrier_name'])
+                    . ($shp['service'] !== '' ? ' · '.htmlspecialchars($shp['service']) : '').'</p>';
+            } elseif ($shp['service'] !== '') {
+                $h .= '<p style="margin:0 0 6px"><b>'.t('Service').':</b> '.htmlspecialchars($shp['service']).'</p>';
+            }
+            /* Numara BAĞLANTI olarak basılıyor — çözülebildiyse. Çözülemeyen taşıyıcıda
+               düz metin kalır: kırık bir bağlantı, bağlantı olmamasından kötü. */
+            $trkTxt = $shp['tracking'] === ''
+                ? '<span class="hint">'.t('Not shipped yet').'</span>'
+                : ($shp['url'] !== ''
+                    ? '<a class="acc" href="'.htmlspecialchars($shp['url']).'" target="_blank" rel="noopener nofollow">'.htmlspecialchars($shp['tracking']).'</a>'
+                    : htmlspecialchars($shp['tracking']));
+            $h .= '<p style="margin:0 0 6px"><b>'.t('Tracking number').':</b> '.$trkTxt.'</p>';
         }
-        /* Numara BAĞLANTI olarak basılıyor — çözülebildiyse. Çözülemeyen taşıyıcıda
-           düz metin kalır: kırık bir bağlantı, bağlantı olmamasından kötü. */
-        $trkTxt = $shp['tracking'] === ''
-            ? '<span class="hint">'.t('Not shipped yet').'</span>'
-            : ($shp['url'] !== ''
-                ? '<a class="acc" href="'.htmlspecialchars($shp['url']).'" target="_blank" rel="noopener nofollow">'.htmlspecialchars($shp['tracking']).'</a>'
-                : htmlspecialchars($shp['tracking']));
-        $h .= '<p style="margin:0 0 6px"><b>'.t('Tracking number').':</b> '.$trkTxt.'</p>';
         if (!empty($statusEntry['seller_note'])) $h .= '<p style="margin:0"><b>'.t('Note from seller').':</b> '.htmlspecialchars($statusEntry['seller_note']).'</p>';
         /* 'delivered' da dahil: buyer.php'nin isleyicisi ikisini de kabul ediyor,
            bu gorunum yalnizca 'shipped'e dugme basiyordu -- teslim edilmis
@@ -1634,6 +1910,284 @@ function vestra_order_add_line(
 }
 
 /**
+ * Bir ilanın BEDEN SERİSİNİ (`S×1 · M×3 · …`) adetle ölçekler: 10'luk seride 20
+ * adet → S×2, M×6 … Adet serinin katı değilse ya da ilanda seri yoksa BOŞ döner
+ * — tahmin edilmiş bir beden dökümü faturaya girerdi (KURAL 3).
+ *
+ * Kalıp `order_write`'ın toptan dalındakiyle AYNI; o dal iş akışının içinde ve
+ * çağrılamadığı için burada ikinci bir yazımı var. Ayrışırsa elle kurulan
+ * sipariş ile değiştirilen kalem iki farklı döküm yazar — testte ikisi aynı
+ * dizge üzerinde karşılaştırılıyor.
+ *
+ * @return string[]  ['S×1','M×3',…] ya da []
+ */
+function vestra_listing_size_run(array $p, int $qty): array {
+    $raw = is_array($p['sizes'] ?? null) ? implode(' ', array_map('strval', $p['sizes'])) : (string)($p['sizes'] ?? '');
+    $run = [];
+    if (preg_match_all('/([0-9]{2,3}|XXXL|XXL|XL|XS|S|M|L)\s*[×xX]\s*([0-9]+)/u', $raw, $rm, PREG_SET_ORDER)) {
+        foreach ($rm as $r1) $run[mb_strtoupper($r1[1])] = (int)$r1[2];
+    }
+    $per = array_sum($run);
+    if ($per <= 0 || $qty < 1 || $qty % $per !== 0) return [];
+    $packs = intdiv($qty, $per);
+    $out = [];
+    foreach ($run as $s => $n) $out[] = $s.'×'.($n * $packs);
+    return $out;
+}
+
+/**
+ * Var olan bir siparişte bir kalemin MODELİNİ değiştirir (operatör, 28 Eyl 2026:
+ * "VES-60594A18 bu siparişi TENNIS-CLUB-ICON-WHITE bu model ile değiştir ve
+ * tutarı aynı olacak şekilde müşteriye email gönder").
+ *
+ * BOŞLUK NEREDE: `vestra_order_add_line()` aynı SKU'yu reddediyor ve kalemi
+ * SİLEN bir yol hiç yok; `vestra_order_set_colours()` yalnız rengi düzeltiyor.
+ * Modeli değiştirmenin tek yolu siparişi silip yeniden yazmaktı — ki o YENİ bir
+ * ref, yeni bir fatura numarası ve müşterinin elindeki belgeyi geçersiz kılan
+ * ikinci bir kayıt demek. Ödeme saati (KURAL 7) de sıfırlanırdı.
+ *
+ * TUTAR VARSAYILAN OLARAK AYNI: eski satırın ANLAŞILAN birimi ve adedi taşınır
+ * (operatörün "tutarı aynı" talimatı). İstenirse `unit`/`qty` ile ezilir. Yeni
+ * ilanın kademesinden PAHALI bir birim reddedilir (alıcı aleyhine —
+ * `vestra_order_add_line`'ın aynı yön kuralı).
+ *
+ * NOTLAR, OKUYUCUNUN kendi ayrıştırıcısıyla (`vestra_order_notes_map`) sökülür:
+ *  - `Colours —` / `Sizes —` haritalarında eski anahtar kalkar, yenisi eklenir.
+ *    Renk verilmemişse ilanın TEK rengi alınır; ilanda birden fazla renk varsa
+ *    renk ŞART (tahmin edilmez). Beden dökümü yeni ilanın KENDİ serisinden.
+ *  - Eski SKU'ya ait `… colour split: …` cümlesi (add_line'ın yazdığı) silinir:
+ *    kalsaydı sipariş sayfasında artık olmayan bir kalemin dökümü dururdu.
+ *  - Serbest metnin gerisine (Payment, Deliver to, feragat notları, Shipping)
+ *    DOKUNULMAZ. Feragat cümleleri yeni ilan için artık DOĞRU DEĞİLSE (ör. adet
+ *    yeni ilanın MOQ'sunu karşılıyor ama not "asgarinin altında" diyor) bu
+ *    SİLİNMEZ, UYARI olarak döner — metni yeniden yazmak operatörün kararı.
+ *
+ * TOPLAM `vestra_order_add_line()`/`vestra_order_set_shipping()` ile AYNI
+ * formülle: mal `vestra_order_lines()`'dan, indirim ve navlun dokunulmadan,
+ * eski ücret (varsa) eski toplamdan geri türetilip korunur.
+ *
+ * FATURALI siparişte varsayılan RED; `allow_invoiced` ile yazılır ve
+ * `must_redraft` döner (KURAL 5f: AYNI numarayla yeniden çizim).
+ *
+ * @param array $opt ['unit'=>?float, 'qty'=>?int, 'colours'=>string[]]
+ */
+function vestra_order_replace_line(string $ref, string $oldSku, string $newSku, array $opt = [],
+                                   bool $allowInvoiced = false): array {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
+    if ($ref === '') return ['error' => 'ref yok'];
+    $oldSku = trim($oldSku); $newSku = trim($newSku);
+    if ($oldSku === '' || $newSku === '') return ['error' => 'eski ve yeni SKU gerekli'];
+    if (strcasecmp($oldSku, $newSku) === 0) return ['error' => 'eski ve yeni SKU aynı — renk düzeltmek için vestra_order_set_colours()'];
+
+    $p = vestra_product_by_sku($newSku);
+    if (!$p) return ['error' => 'yeni SKU katalogda yok: '.$newSku];
+    $newSku = (string)($p['sku'] ?? $newSku);   // kaydın kendi yazımı
+
+    require_once __DIR__.'/invoice.php';
+    $invoiced = vestra_invoices_for_ref($ref);
+    if ($invoiced && !$allowInvoiced) {
+        return ['error' => 'bu siparişin faturası kesilmiş — belge alıcının elinde olabilir. '
+                         . 'Yazmak için allow_invoiced opt-in, SONRA AYNI numarayla yeniden çizim (KURAL 5f).'];
+    }
+
+    $file = vestra_data_dir().'/orders.csv';
+    if (!is_readable($file)) return ['error' => 'orders.csv okunamıyor'];
+    $in = fopen($file, 'r'); if (!$in) return ['error' => 'orders.csv açılamadı'];
+    $head = fgetcsv($in, null, ',', '"', '\\');
+    if (!$head) { fclose($in); return ['error' => 'orders.csv başlıksız']; }
+    $idx = array_flip($head);
+    foreach (['ref', 'items', 'notes', 'total'] as $need) {
+        if (!isset($idx[$need])) { fclose($in); return ['error' => "orders.csv '{$need}' sütunu yok"]; }
+    }
+    $rows = []; $hit = null;
+    while (($r = fgetcsv($in, null, ',', '"', '\\')) !== false) {
+        $r = array_slice(array_pad($r, count($head), ''), 0, count($head));
+        if ((string)$r[$idx['ref']] === $ref) $hit = count($rows);
+        $rows[] = $r;
+    }
+    fclose($in);
+    if ($hit === null) return ['error' => 'sipariş bulunamadı: '.$ref];
+    $oldAssoc = array_combine($head, $rows[$hit]);
+
+    /* Durum: kargoya verilmiş/iptal bir siparişin modelini değiştirmek, giden
+       paketle ya da kapanmış bir kayıtla çelişen bir belge üretir. */
+    $st = vestra_read_json('order_statuses.json');
+    $status = (string)($st[$ref]['status'] ?? 'pending');
+    if (in_array($status, ['shipped', 'delivered', 'completed', 'cancelled'], true)) {
+        return ['error' => "sipariş durumu '{$status}' — model değiştirilemez"];
+    }
+
+    $oldLine = null;
+    foreach (vestra_order_lines($oldAssoc)['lines'] as $l) {
+        if (strcasecmp((string)$l['sku'], $oldSku) === 0) { $oldLine = $l; }
+        if (strcasecmp((string)$l['sku'], $newSku) === 0) {
+            return ['error' => 'yeni SKU zaten siparişte ('.(int)$l['qty'].' adet) — ikinci satır açılmaz'];
+        }
+    }
+    if (!$oldLine) return ['error' => 'eski SKU bu siparişte yok: '.$oldSku];
+    $oldSku = (string)$oldLine['sku'];
+
+    $qty  = isset($opt['qty'])  && (int)$opt['qty'] > 0 ? (int)$opt['qty'] : (int)$oldLine['qty'];
+    $unit = isset($opt['unit']) && $opt['unit'] !== null ? round((float)$opt['unit'], 2) : round((float)$oldLine['unit'], 2);
+    if ($unit <= 0) return ['error' => 'birim fiyat geçersiz'];
+
+    /* YÖN: yeni ilanın bu adetteki kademesinden PAHALI olamaz. */
+    $listUnit = round((float)vestra_unit_price($p, $qty, true), 2);
+    if ($listUnit > 0 && $unit > $listUnit + 0.005) {
+        return ['error' => sprintf('birim %s, yeni ilanın kademesi %s — ilandan pahalı, alıcı aleyhine',
+                                    number_format($unit, 2), number_format($listUnit, 2))];
+    }
+
+    /* RENK: verilmemişse ilanın TEK rengi; birden fazlaysa tahmin yok. */
+    $listed = array_values(array_filter(array_map(fn($c) => trim((string)$c), (array)($p['colors'] ?? [])), fn($c) => $c !== ''));
+    $colours = [];
+    foreach ((array)($opt['colours'] ?? []) as $c) {
+        $c = trim(preg_replace('/\s+/u', ' ', (string)$c));
+        if ($c === '') continue;
+        if (str_contains($c, ',') || str_contains($c, '|') || str_contains($c, '.')) return ['error' => 'renk adında , | . olamaz: '.$c];
+        $colours[] = $c;
+    }
+    if (!$colours) {
+        if (count($listed) === 1) $colours = $listed;
+        elseif (count($listed) > 1) return ['error' => 'yeni ilanda '.count($listed).' renk var ('.implode(' / ', $listed).') — renk belirtilmeli'];
+    }
+    $notListed = [];
+    $lcListed = array_map('mb_strtolower', $listed);
+    foreach ($colours as $c) if ($lcListed && !in_array(mb_strtolower($c), $lcListed, true)) $notListed[] = $c;
+
+    $sizes = vestra_listing_size_run($p, $qty);
+
+    /* ITEMS: segment segment; ayrıştırılamayan bir segment OLDUĞU GİBİ kalır
+       (vestra_parse_order_items onu sessizce atar — yeniden kurmak onu kaybederdi). */
+    $segs = [];
+    foreach (explode(' | ', (string)($oldAssoc['items'] ?? '')) as $seg) {
+        if (preg_match('/^(\d+)x\s+(.+)\s+@([\d.]+)$/', trim($seg), $m) && strcasecmp(trim($m[2]), $oldSku) === 0) {
+            $segs[] = $qty.'x '.$newSku.' @'.number_format($unit, 2, '.', '');
+        } else {
+            $segs[] = $seg;
+        }
+    }
+    $newItemsRaw = implode(' | ', $segs);
+
+    /* NOTLAR */
+    $notes0 = (string)($oldAssoc['notes'] ?? '');
+    [$colMap, $rest]  = vestra_order_notes_map($notes0, 'Colours');
+    [$sizeMap, $rest] = vestra_order_notes_map($rest, 'Sizes');
+    $oldColours = (array)($colMap[$oldSku] ?? []);
+    $oldSizes   = (array)($sizeMap[$oldSku] ?? []);
+    unset($colMap[$oldSku], $sizeMap[$oldSku]);
+    if ($colours) $colMap[$newSku] = $colours;
+    if ($sizes)   $sizeMap[$newSku] = $sizes;
+    $rest = (string)preg_replace('/(?:^|\s)'.preg_quote($oldSku, '/').' colour split: [^.]*\./u', ' ', $rest);
+    $notes = trim((string)preg_replace('/[ \t]{2,}/', ' ', $rest));
+    $frag = function (string $label, array $map): string {
+        $out = [];
+        foreach ($map as $k => $v) {
+            $v = array_values(array_filter(array_map('trim', (array)$v), fn($x) => $x !== ''));
+            if ($v) $out[] = $k.': '.implode(', ', $v);
+        }
+        return $out ? ' '.$label.' — '.implode(' | ', $out).'.' : '';
+    };
+    $notes = trim($notes.$frag('Colours', $colMap).$frag('Sizes', $sizeMap));
+
+    /* Feragat cümleleri yeni ilan için hâlâ doğru mu? Silmiyoruz, söylüyoruz. */
+    $stale = [];
+    $moq = max(1, (int)($p['moq'] ?? 1));
+    if (stripos($notes, 'below the listed minimum order') !== false && $qty >= $moq) {
+        $stale[] = "not 'asgarinin altında' diyor ama {$qty} adet yeni ilanın MOQ'sunu ({$moq}) karşılıyor";
+    }
+    if (stripos($notes, 'outside the listed tiers') !== false && $listUnit > 0 && abs($unit - $listUnit) < 0.005) {
+        $stale[] = "not 'kademe dışı anlaşılan fiyat' diyor ama birim yeni ilanın kademesiyle aynı";
+    }
+    if (vestra_is_sold_out($p)) $stale[] = 'yeni ilan SATILDI olarak işaretli';
+    if (($p['status'] ?? 'approved') !== 'approved') $stale[] = "yeni ilanın durumu '".(string)($p['status'] ?? '')."'";
+
+    /* TOPLAM — add_line ile aynı formül. */
+    $sumGoods = function (array $row): float {
+        $g = 0.0; foreach (vestra_order_lines($row)['lines'] as $l) $g += (float)($l['line'] ?? 0);
+        return round($g, 2);
+    };
+    $oldGoods = $sumGoods($oldAssoc);
+    $discount = round((float)($oldAssoc['discount'] ?? 0), 2);
+    $ship     = round((float)($oldAssoc['shipping'] ?? 0), 2);
+    $oldTot   = round((float)($oldAssoc['total'] ?? 0), 2);
+    $fee      = round($oldTot - (max(0.0, $oldGoods - $discount) + $ship), 2);
+    if ($fee < 0) $fee = 0.0;
+    $newAssoc = $oldAssoc; $newAssoc['items'] = $newItemsRaw; $newAssoc['notes'] = $notes;
+    $newGoods    = $sumGoods($newAssoc);
+    $newSubtotal = round(max(0.0, $newGoods - $discount), 2);
+    $newTotal    = round($newSubtotal + $ship + $fee, 2);
+    $newPayout   = round($newSubtotal - round((float)($oldAssoc['commission'] ?? 0), 2), 2);
+
+    /* PARASI GELMİŞ sipariş: model değişebilir — tutar aynıysa ödenen para hâlâ
+       tutuyor (müşteri ödedikten sonra değişim istemesi olağan). TUTARI
+       değiştiren bir değişiklik ise REDDEDİLİR: tahsil edilmiş bir tutardan
+       farklı bir belge üretir; iade/ek ödeme ayrı bir karar (KURAL 32'nin
+       indirim yazıcısıyla aynı ilke, aynı tek karar noktası). */
+    $settled = vestra_order_payment_settled($ref);
+    if (!empty($settled['settled']) && abs($newTotal - $oldTot) > 0.005) {
+        return ['error' => 'siparişin parası gelmiş ('.(string)($settled['via'] ?? '').') — tutarı değiştiren model '
+                         . 'değişimi yapılmaz (eski '.number_format($oldTot, 2).', yeni '.number_format($newTotal, 2).'); iade/ek ödeme ayrı karar'];
+    }
+
+    $res = ['ok' => true, 'old_sku' => $oldSku, 'new_sku' => $newSku, 'qty' => $qty, 'unit' => $unit,
+            'list_unit' => $listUnit, 'colours' => $colours, 'old_colours' => $oldColours,
+            'sizes' => $sizes, 'old_sizes' => $oldSizes, 'not_listed' => $notListed, 'stale' => $stale,
+            'old_goods' => $oldGoods, 'goods' => $newGoods, 'discount' => $discount, 'shipping' => $ship,
+            'fee' => $fee, 'old_total' => $oldTot, 'subtotal' => $newSubtotal, 'payout' => $newPayout,
+            'total' => $newTotal, 'items' => $newItemsRaw, 'notes' => $notes,
+            'must_redraft' => (bool)$invoiced];
+    /* KURU KOŞU aynı gövdeden: önizleme ile yazma AYRI hesaplasaydı operatör bir
+       şey görür, kayda başkası girerdi (KURAL 5d'nin dersi). */
+    if (!empty($opt['dry'])) return $res + ['dry' => true];
+
+    $rows[$hit][$idx['items']] = $newItemsRaw;
+    $rows[$hit][$idx['notes']] = $notes;
+    if (isset($idx['subtotal'])) $rows[$hit][$idx['subtotal']] = number_format($newSubtotal, 2, '.', '');
+    if (isset($idx['payout']))   $rows[$hit][$idx['payout']]   = number_format($newPayout, 2, '.', '');
+    $rows[$hit][$idx['total']] = number_format($newTotal, 2, '.', '');
+
+    $bak = $file.'.bak-repline-'.date('Ymd_His');
+    if (!@copy($file, $bak)) return ['error' => 'yedek alınamadı — yazmıyorum'];
+    $tmp = $file.'.tmp';
+    $out = fopen($tmp, 'w'); if (!$out) return ['error' => 'geçici dosya açılamadı'];
+    fputcsv($out, $head, ',', '"', '\\');
+    foreach ($rows as $r) fputcsv($out, $r, ',', '"', '\\');
+    fclose($out);
+    if (!rename($tmp, $file)) { @unlink($tmp); return ['error' => 'orders.csv yazılamadı (izin?)']; }
+
+    /* GERİ OKU — belgeyi besleyen yol (vestra_order_lines) yeni kalemi görmeli,
+       eskisini GÖRMEMELİ. */
+    $back = null;
+    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) { $back = $r; break; } }
+    if (!$back) return ['error' => 'yazıldı ama satır geri okunamadı (yedek: '.basename($bak).')'];
+    $seen = null;
+    foreach (vestra_order_lines($back)['lines'] as $l) {
+        if (strcasecmp((string)$l['sku'], $oldSku) === 0) return ['error' => 'yazıldı ama ESKİ kalem hâlâ görünüyor (yedek: '.basename($bak).')'];
+        if (strcasecmp((string)$l['sku'], $newSku) === 0) $seen = $l;
+    }
+    if (!$seen || (int)$seen['qty'] !== $qty || abs((float)$seen['unit'] - $unit) > 0.005) {
+        return ['error' => 'yazıldı ama yeni kalem doğru okunamıyor (yedek: '.basename($bak).')'];
+    }
+    if (array_map('strval', (array)$seen['colors']) !== $colours) {
+        return ['error' => 'yazıldı ama fatura rengi göremiyor ("'.implode(', ', (array)$seen['colors']).'")'];
+    }
+    if (abs((float)($back['total'] ?? -1) - $newTotal) > 0.005) {
+        return ['error' => 'yazıldı ama toplam beklenenle uyuşmuyor (yedek: '.basename($bak).')'];
+    }
+
+    $st = vestra_read_json('order_statuses.json');
+    if (!isset($st[$ref]) || !is_array($st[$ref])) $st[$ref] = [];
+    $st[$ref]['line_changes'] = array_slice(array_merge((array)($st[$ref]['line_changes'] ?? []), [[
+        'at' => date('c'), 'by' => 'operator', 'from' => $oldSku, 'to' => $newSku,
+        'qty' => $qty, 'unit' => $unit,
+    ]]), -20);
+    vestra_write_json('order_statuses.json', $st);
+
+    return $res + ['backup' => basename($bak)];
+}
+
+/**
  * Var olan bir sipariş kaleminin BİRİM FİYATINI düzeltir (operatör, 28 Eyl
  * 2026, VES-D91DAB0B / Odzież Premium: *"faturasını da 60 eur tam yap shipp
  * cost free olsun"* — €39,90 mal + €20,10 navlun yerine €60 mal + €0 navlun).
@@ -2197,29 +2751,39 @@ function vestra_render_order_pdf(array $orderRow, array $lines, string $statusLa
     $pdf->textR($right - 4, $y, 9, 'Line', true);
     $y -= 24;
 
+    /* SKU sutunu 96 pt ve kod ESKIDEN hic sarilmiyordu: "TENNIS-CLUB-ICON-WHITE"
+       9 pt'de ~117 pt, yani urun adinin uzerine basiyordu. Faturadaki SKU
+       sutunuyla AYNI sarici ve AYNI gercek olcu (vestra_pdf_width_afm). */
+    require_once __DIR__.'/invoice.php';
     $goods = 0.0;
     foreach ($lines as $l) {
         $desc = trim((string)($l['brand'] ?? '').' '.(string)($l['name'] ?? ''));
         $descLines = $pdf->wrap($desc, $colQty - $colDesc - 8, 9);
-        $rowH = max(13, count($descLines) * 11) + 8;
-        $need($rowH);
-        $pdf->text($colSku, $y, 9, (string)($l['sku'] ?? ''));
-        foreach ($descLines as $j => $dl) $pdf->text($colDesc, $y - ($j * 11), 9, $dl);
+        $skuLines  = vestra_invoice_wrap((string)($l['sku'] ?? ''), $colDesc - $colSku - 8, 9, false, true);
         /* Renk ve beden TEK alt satirda birlesiyor. Ayri bir blok yazsaydim
            satir yuksekligi hesabi (asagidaki `$y -= $rowH + …`) yalnizca BIR
-           blok sayiyor, yani ikincisi bir sonraki satirin uzerine binerdi. */
+           blok sayiyor, yani ikincisi bir sonraki satirin uzerine binerdi.
+           ALT BLOK KAC SATIRA SARILIYORSA O KADAR YER AYRILIR (1 Eki 2026):
+           eskiden yalnizca TEK satirlik 10 pt ayriliyordu; 10 renk + beden dizisi
+           iki-uc satira sariliyor ve fazlasi alttaki kalemin ustune biniyordu --
+           faturadaki renk sutunuyla ayni kusur. Tek satirlik alt blokta davranis
+           ayni (10 pt). */
         $sub = [];
         if (!empty($l['colors'])) $sub[] = implode(', ', (array)$l['colors']);
         if (!empty($l['sizes']))  $sub[] = t('Sizes').': '.implode(', ', (array)$l['sizes']);
-        if ($sub) {
-            foreach ($pdf->wrap(implode(' · ', $sub), $colQty - $colDesc - 8, 8) as $j => $cl)
-                $pdf->text($colDesc, $y - (count($descLines) * 11) - ($j * 10) + 1, 8, $cl);
-        }
+        $subLines = $sub ? $pdf->wrap(implode(' · ', $sub), $colQty - $colDesc - 8, 8) : [];
+        $rowH = max(13, max(count($descLines), count($skuLines)) * 11) + 8;
+        $subH = count($subLines) * 10;
+        $need($rowH + $subH);
+        foreach ($skuLines as $j => $sl) $pdf->text($colSku, $y - ($j * 11), 9, $sl);
+        foreach ($descLines as $j => $dl) $pdf->text($colDesc, $y - ($j * 11), 9, $dl);
+        foreach ($subLines as $j => $cl)
+            $pdf->text($colDesc, $y - (count($descLines) * 11) - ($j * 10) + 1, 8, $cl);
         $pdf->textR($colQty + 34, $y, 9, (string)(int)($l['qty'] ?? 0));
         $pdf->textR($colUnit + 40, $y, 9, eur($l['unit'] ?? 0));
         $pdf->textR($right - 4, $y, 9, eur($l['line'] ?? 0));
         $goods += (float)($l['line'] ?? 0);
-        $y -= $rowH + ($sub ? 10 : 0);
+        $y -= $rowH + $subH;
     }
 
     $need(70);

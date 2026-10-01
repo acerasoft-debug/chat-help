@@ -1,0 +1,142 @@
+name: (Lead) Butik ayakkabı + aksesuar keşfi (Overture, ücretsiz) — gönderim YOK
+on:
+  workflow_dispatch:
+    inputs:
+      countries:
+        description: "Ülke ISO kodları, virgülle (boş = FR,BE,NL,GB — soğuk B2B e-postanın izinsiz ya da kısmen serbest olduğu ülkeler; DE/AT/IT/ES önceden izin ister, rapor her ülkede yazar). Tanımlı: AT BE BG CH CY CZ DE DK EE ES FI FR GB GR HR HU IE IT LT LU LV MT NL NO PL PT RO SE SI SK"
+        required: false
+        default: ""
+      kinds:
+        description: "Dükkân türleri (boş = shoes,accessories,bags,hats): shoes (ayakkabı) | accessories (moda aksesuarı) | bags (çanta + deri ürünleri) | hats (şapka) | boutiques (genel moda butiği — istenirse)"
+        required: false
+        default: ""
+      per_country:
+        description: "Ülke başına en fazla aday, e-posta ölçümüne girecek (boş = 80)"
+        required: false
+        default: ""
+      min_confidence:
+        description: "Overture güven eşiği 0-1, düşük = daha çok ama belirsiz kayıt (boş = 0.5)"
+        required: false
+        default: ""
+      release:
+        description: "Overture sürümü (boş = en yenisi, ör: 2026-09-23.1)"
+        required: false
+        default: ""
+  # KAYIT TETIKLEYICISI. Varsayilan dalda olmayan YENI bir is akisi dosyasi GitHub'a
+  # kaydolmuyor ve dispatch 404 veriyor (CLAUDE.md: pool-sweep.yml, 31 Agu 2026;
+  # bu dosya da 28 Eyl'de ilk push'tan sonra 404 verdi). Yalniz BU dosyaya dokunan
+  # push onu bir kez kosturur ve kaydeder; o kosu varsayilan girdilerle calisir.
+  # Guvenli cunku is salt okunur: yazma yok, gonderim yok.
+  push:
+    branches: [claude/wizardly-planck-7ylnmk]
+    paths: [.github/workflows/discover-shops.yml]
+
+concurrency:
+  group: discover-shops
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+# BUTIK AYAKKABI + AKSESUAR KESFI (operator, 28 Eyl 2026). Ne yapar:
+#   1) Overture Maps Places (ucretsiz, kayitsiz, saklanabilir lisans) -> ulke +
+#      tur (shoe_store / fashion_accessories_store / handbag_store /
+#      leather_goods_store / hat_store). Kategoriler 2026-09-23.1 verisinden SAYILDI.
+#   2) Eleme, sebebiyle raporlanir: ZINCIR (Overture'in Wikidata marka eslemesi),
+#      COK SUBELI (ayni site ya da ad >=3 yerde, >=2 sehirde -- KURAL 38 siniri),
+#      DAGITICI sinyali (adda toptan/dagitim kelimesi), KAPALI, SITESIZ (ya da
+#      yalniz sosyal medya / rehber), ZATEN KAYITLI (sunucudaki lead + hesaplar).
+#   3) KURAL 1 kapisi SITENIN KENDI kodundan (vestra_lead_is_blocked), park alan
+#      adi, ve sitede YAYINLANMIS adres var mi (vestra_scrape_email) -- GitHub
+#      makinesinde, 16 paralel. ADRES HICBIR YERE YAZILMAZ; yalniz "var / yok /
+#      kendi alan adinda mi".
+#   4) Rapor: ulke basina HAZIR (site adla uyumlu + adres var) ve ELLE DOGRULA
+#      (site adla uyusmuyor: marka / rehber sitesi olabilir; ya da adres BASKA alan
+#      adinda: ajans / eklenti olabilir -- KURAL 1h). HAZIR olanlar add-and-send'e
+#      verilecek SITE LINKLERI olarak <=20'lik partilerle basilir.
+#
+# GONDERIM YOK, YAZMA YOK. Sunucuya yalniz OKUMAK icin baglanir (kayitli alan
+# adlari). Ekleme ve gonderim ayri is: add-and-send.yml (country=<ulke>,
+# letter=footwear), ONCE send=false -- adres orada SUNUCUDA siteden cozulur
+# (KURAL 1f) ve butun gonderim kapilari (KURAL 1, ayni firma, DNS) yine calisir.
+#
+# HUKUK: soguk B2B e-posta DE/AT/IT/ES'de ONCEDEN IZIN istiyor, BE/NL/GB'de kismen
+# serbest, FR'de meslekle ilgiliyse serbest (ozet, KURAL 40). Rapor her ulkenin
+# satirini basar ve izin isteyen ulkenin partisinin ustune UYARI yazar; karar operatorun.
+#
+# Uyelik / anahtar GEREKMEZ: Overture herkese acik S3'te, DuckDB ile okunuyor.
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    # 90, 60 degil: Overture adimi 5 ulkede ~15-20 dk (28 Eyl olcumu), adres olcumu
+    # isci basina 1500 sn tavanli. 60'ta ikisi ust uste binince RAPOR ADIMI hic
+    # kosmazdi -- yani kosu "bitti" der ama tek satir sonuc vermezdi.
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Araçlar (DuckDB + PHP curl)
+        run: |
+          python3 -m pip install --quiet duckdb
+          php -v | head -1
+          if ! php -m | grep -qi '^curl$'; then sudo apt-get update -qq && sudo apt-get install -y -qq php-curl php-mbstring >/dev/null; fi
+          php -m | grep -qi '^curl$' || { echo "PHP curl eklentisi yok"; exit 1; }
+
+      # Sunucudan YALNIZ kayitli site hostlari / e-posta alan adlari (salt okunur).
+      # Cikti DOSYAYA gider, kutuge basilmaz; anahtar dosyasi is biter bitmez silinir.
+      # Okunamazsa kesif yine calisir: tekrar kontrolunu add-and-send zaten yapiyor.
+      - name: Kayıtlı alan adları (sunucudan okunur, günlüğe basılmaz)
+        env:
+          SSH_KEY:  ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_USER }}
+          SSH_PORT: ${{ secrets.DEPLOY_PORT || 22 }}
+        run: |
+          umask 077
+          printf '%s\n' "$SSH_KEY" > "$RUNNER_TEMP/dk"
+          # Barindirici ardisik SSH baglantilarini kesiyor (CLAUDE.md, 26 Eyl: 7 denemenin
+          # 5'i "connection reset"). Salt okunur bir okuma: 3 deneme, aralarinda 20 sn.
+          # Her deneme known.txt'yi bastan yazar; yarim kalan cikti bir sonrakinde silinir.
+          ok=0
+          for attempt in 1 2 3; do
+            if ssh -i "$RUNNER_TEMP/dk" -p "$SSH_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+                 -o LogLevel=ERROR -o ConnectTimeout=25 "$SSH_USER@$SSH_HOST" php < scripts/discover_known.php > known.txt; then
+              ok=1; break
+            fi
+            echo "(sunucu baglanti denemesi $attempt basarisiz)"
+            if [ "$attempt" -lt 3 ]; then sleep 20; fi
+          done
+          if [ "$ok" = 1 ]; then
+            echo "kayitli site/alan adi satiri: $(wc -l < known.txt)"
+          else
+            : > known.txt
+            echo "(uyari: sunucudan okunamadi -- ZATEN KAYITLI elemesi yapilmayacak; rapor bunu EN USTTE yazar)"
+          fi
+          rm -f "$RUNNER_TEMP/dk"
+
+      - name: Overture sorgusu + zincir / çok şube / dağıtıcı eleme
+        env:
+          # Varsayilanlar TEK yerde (burada): girdi bos gelirse -- push kosusu dahil.
+          # FR,BE,NL,GB: soguk B2B e-posta ya serbest (FR) ya kismen serbest (BE genel
+          # adres, NL tuzel kisi, GB sirket). DE/AT/IT/ES onceden izin istiyor
+          # (KURAL 40) -- istenirse girdiyle verilir, rapor her ulkede hukuk satiri basar.
+          IN_COUNTRIES: ${{ github.event.inputs.countries || 'FR,BE,NL,GB' }}
+          IN_KINDS:     ${{ github.event.inputs.kinds || 'shoes,accessories,bags,hats' }}
+          IN_LIMIT:     ${{ github.event.inputs.per_country || '80' }}
+          IN_CONF:      ${{ github.event.inputs.min_confidence || '0.5' }}
+          IN_RELEASE:   ${{ github.event.inputs.release }}
+        run: |
+          python3 scripts/discover_overture.py --countries "$IN_COUNTRIES" --kinds "$IN_KINDS" \
+            --limit "$IN_LIMIT" --min-confidence "$IN_CONF" --release "$IN_RELEASE" \
+            --known known.txt --out cands.json --dropped-out dropped.json
+
+      - name: KURAL 1 + sitede yayınlanmış adres ölçümü (16 paralel, adres yazılmaz)
+        run: |
+          N=16
+          for i in $(seq 0 $((N-1))); do
+            php scripts/discover_resolve.php cands.json "res_$i.json" "$i" "$N" 1500 &
+          done
+          wait
+
+      - name: Rapor
+        run: KNOWN_COUNT="$(wc -l < known.txt)" python3 scripts/discover_report.py cands.json dropped.json res_*.json

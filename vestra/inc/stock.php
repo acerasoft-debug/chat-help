@@ -4,6 +4,9 @@
  *
  * NOTHING IS STORED. The figures are derived from the product id, so listings.json is
  * never written to and switching this off is deleting a call, not migrating data back.
+ * One exception, and it only ever makes a figure truer: a listing that carries its own
+ * recorded stock ('stock', from a supplier line sheet) prints that instead -- see
+ * vestra_stock_real().
  *
  * DETERMINISTIC BY DESIGN. Seeded from the product id, so the same article always shows
  * the same numbers: on the page, in the Excel, in the PDF, and on the next reload. Fresh
@@ -72,9 +75,72 @@ function vestra_stock_band(string $cat, string $brand): array {
 }
 
 /**
- * @return array{sizes: array<string,int>, total: int}
+ * REAL stock, where the listing carries it ('stock' => ['S' => 2, 'M' => 6, ...]).
+ *
+ * A supplier line sheet sometimes gives the actual quantity on hand per size. The
+ * Burberry piqué polo sheet of 29 Sep 2026 did: 19 to 97 pieces per model, and one
+ * model with no size S at all. The derived band for a polo is 100-150, so without this
+ * the trade list would have printed "116 pcs in stock" for an article that has 19 --
+ * and the order that follows could not be filled. A recorded figure always wins; the
+ * derived one is only the fallback for listings that carry none.
+ *
+ * Sizes are kept in the listing's own order and a zero stays a zero ("S 0" is the
+ * truth about that model, and dropping the size would hide it). A malformed map
+ * (negative, fractional or non-numeric quantity, empty size label) is ignored as a
+ * whole rather than half-read: a partly-read stock line is a wrong stock line.
+ *
+ * TWO SHAPES. Flat, one model: ['S' => 2, 'M' => 6]. Nested, one listing that
+ * carries several colourways (operator, 29 Sep 2026: the eight Burberry polos
+ * became ONE listing, "fotolari ve listeleri tek bir ilanda"): the keys are the
+ * listing's colour names and each value is a flat map --
+ * ['Green (8099164)' => ['S' => 2, ...], 'Black (8096425)' => [...]]. The nested
+ * shape returns the SAME 'sizes'/'total' (summed across colours, sizes in order of
+ * first appearance) so every existing reader -- line sheets, price list, e-mail --
+ * keeps working unchanged, plus 'by_colour' for the readers that want the split.
+ * Mixing the two shapes in one map is malformed and rejected as a whole.
+ *
+ * @return array{sizes: array<string,int>, total: int, real: true, by_colour?: array<string, array{sizes: array<string,int>, total: int}>}|null
+ */
+function vestra_stock_real(array $p): ?array {
+    $raw = $p['stock'] ?? null;
+    if (!is_array($raw) || !$raw) return null;
+    $flat = function (array $m): ?array {
+        if (!$m) return null;
+        $out = [];
+        foreach ($m as $size => $qty) {
+            $size = trim((string)$size);
+            if ($size === '' || is_bool($qty) || is_array($qty) || !is_numeric($qty)) return null;
+            if ((float)$qty < 0 || (float)$qty != (int)$qty) return null;
+            $out[$size] = (int)$qty;
+        }
+        return $out;
+    };
+    $nested = true; $anyArr = false;
+    foreach ($raw as $v) { if (is_array($v)) $anyArr = true; else $nested = false; }
+    if (!$anyArr) {
+        $out = $flat($raw);
+        if ($out === null) return null;
+        return ['sizes' => $out, 'total' => array_sum($out), 'real' => true];
+    }
+    if (!$nested) return null;                       // mixed shape: half a map is no map
+    $by = []; $sizes = [];
+    foreach ($raw as $colour => $m) {
+        $colour = trim((string)$colour);
+        $one = $flat((array)$m);
+        if ($colour === '' || $one === null) return null;
+        $by[$colour] = ['sizes' => $one, 'total' => array_sum($one)];
+        foreach ($one as $s => $q) $sizes[$s] = ($sizes[$s] ?? 0) + $q;
+    }
+    return ['sizes' => $sizes, 'total' => array_sum($sizes), 'real' => true, 'by_colour' => $by];
+}
+
+/**
+ * @return array{sizes: array<string,int>, total: int, real: bool}
  */
 function vestra_stock_for(array $p): array {
+    $real = vestra_stock_real($p);
+    if ($real !== null) return $real;
+
     $id    = (string)($p['id'] ?? '');
     $brand = (string)($p['brand'] ?? '');
     $cat   = (string)($p['cat'] ?? '');
@@ -100,7 +166,7 @@ function vestra_stock_for(array $p): array {
         $out[$deepest] = max(1, $out[$deepest] + $drift);
     }
 
-    return ['sizes' => $out, 'total' => array_sum($out)];
+    return ['sizes' => $out, 'total' => array_sum($out), 'real' => false];
 }
 
 /* One-line rendering: "S 18 · M 29 · L 29 · XL 23 · XXL 17  (116 pcs)" */
@@ -108,4 +174,16 @@ function vestra_stock_line(array $st): string {
     $bits = [];
     foreach ($st['sizes'] as $s => $q) $bits[] = $s.' '.$q;
     return implode(' · ', $bits).'  ('.$st['total'].' pcs)';
+}
+/* The per-colour split as a row list, in the listing's own colour order --
+   [['colour' => 'Green (8099164)', 'sizes' => [...], 'total' => 19], ...]. A flat
+   (single-model) stock comes back as one row with an empty colour, so a reader
+   that wants "one line per colourway" needs no second code path. */
+function vestra_stock_rows(array $st): array {
+    if (!empty($st['by_colour']) && is_array($st['by_colour'])) {
+        $rows = [];
+        foreach ($st['by_colour'] as $c => $x) $rows[] = ['colour' => (string)$c, 'sizes' => (array)$x['sizes'], 'total' => (int)$x['total']];
+        return $rows;
+    }
+    return [['colour' => '', 'sizes' => (array)($st['sizes'] ?? []), 'total' => (int)($st['total'] ?? 0)]];
 }

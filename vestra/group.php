@@ -258,7 +258,7 @@ $GMINCOL = vestra_group_min_colors($p);
                 <label class="hint"><?= t('Choose your colours') ?> — <?= sprintf(t('at least %d'), $GMINCOL) ?></label>
                 <div class="colorpick" data-min="<?=$GMINCOL?>">
                   <?php $pal=vestra_colors(); foreach((array)$p['colors'] as $cn): ?>
-                    <label class="colorchip"><input type="checkbox" name="colors[]" value="<?=htmlspecialchars($cn)?>"><span class="cdot" style="background:<?= $pal[$cn]??'#666' ?>"></span><?=htmlspecialchars(t($cn))?></label>
+                    <label class="colorchip"><input type="checkbox" name="colors[]" value="<?=htmlspecialchars($cn)?>"><span class="cdot" style="background:<?= vestra_colour_css((string)$cn) ?>"></span><?=htmlspecialchars(vestra_colour_label((string)$cn))?></label>
                   <?php endforeach; ?>
                 </div>
                 <div class="warn vcolwarn" style="display:none;margin-top:8px"><?= vestra_colours_warn($GMINCOL) ?></div>

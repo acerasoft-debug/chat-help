@@ -294,10 +294,10 @@ function vestra_claim_notify(string $event, string $ref, array $orderRow, array 
 
     if ($buyerAcc) {
         require_once __DIR__.'/push.php';
-        vestra_push_send($buyerAcc['id'],
-            $event === 'opened' ? 'VESTRA — claim '.$claimRef.' received' : 'VESTRA — claim '.$claimRef.' resolved',
-            'Order '.$ref.($event === 'opened' ? ' — we review within '.VESTRA_CLAIM_REVIEW_BDAYS.' business days.' : ' — '.mb_substr((string)($claim['outcome'] ?? ''), 0, 90)),
-            '/buyer?tab=orders&view='.rawurlencode($ref));
+        vestra_push_notify($buyerAcc, $event === 'opened' ? 'claim_opened' : 'claim_resolved', [
+            'ref' => $ref, 'claim' => $claimRef, 'days' => VESTRA_CLAIM_REVIEW_BDAYS,
+            'outcome' => (string)($claim['outcome'] ?? ''),
+        ]);
         /* Siparişteki her saticinin ipligine bir kart. Satici uid'si ilanlardan
            (vestra_order_lines), sipariş satirindan degil -- orders.csv satici
            tasimiyor. */

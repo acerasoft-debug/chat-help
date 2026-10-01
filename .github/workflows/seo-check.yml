@@ -63,7 +63,14 @@ jobs:
               echo "  Googlebot UA  : normal sayfa ($(wc -c < /tmp/bot.html) bayt)"
             fi
             # Asil olcum normal tarayici kimligiyle: uye olmayan ziyaretcinin gordugu HTML.
-            curl -sS -A "$UA_WEB" --max-time 30 -o /tmp/p.html "$URL" || { echo "  CEKILEMEDI"; continue; }
+            # -L YOK, bilerek: yonlendirme IZLENMEZ, OLCULUR. Durum kodu ve Location
+            # basiliyor (29 Eyl 2026: sekiz Burberry ilani tek ilana katlandi, eski
+            # id'ler 301 ile yenisine gidiyor -- "sayfa 0 bayt" bunu gostermiyordu,
+            # "HTTP 301 -> /product?id=..." gosteriyor).
+            curl -sS -A "$UA_WEB" --max-time 30 -o /tmp/p.html -D /tmp/p.hdr "$URL" || { echo "  CEKILEMEDI"; continue; }
+            CODE=$(sed -n 's/^HTTP\/[0-9.]* \([0-9][0-9][0-9]\).*/\1/p' /tmp/p.hdr | tail -1)
+            LOC=$(grep -i '^location:' /tmp/p.hdr | tail -1 | sed 's/^[Ll]ocation: *//' | tr -d '\r')
+            echo "  HTTP ${CODE:-?}${LOC:+  ->  $LOC}"
             if grep -qiE 'one moment|just a moment|checking your browser|challenge-platform' /tmp/p.html 2>/dev/null; then
               echo "  Tarayici UA   : CHALLENGE ($(wc -c < /tmp/p.html) bayt) — CIDDI: sayfa kimseye acilmiyor"
             else

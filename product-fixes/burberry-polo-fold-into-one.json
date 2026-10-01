@@ -1,0 +1,10 @@
+[
+ {"match": "bur-8099164", "expect": 1, "status": "rejected", "redirect_to": "bur-pique-polo-2909"},
+ {"match": "bur-8096425", "expect": 1, "status": "rejected", "redirect_to": "bur-pique-polo-2909"},
+ {"match": "bur-8099165", "expect": 1, "status": "rejected", "redirect_to": "bur-pique-polo-2909"},
+ {"match": "bur-8099166", "expect": 1, "status": "rejected", "redirect_to": "bur-pique-polo-2909"},
+ {"match": "bur-8099167", "expect": 1, "status": "rejected", "redirect_to": "bur-pique-polo-2909"},
+ {"match": "bur-8071620", "expect": 1, "status": "rejected", "redirect_to": "bur-pique-polo-2909"},
+ {"match": "bur-8072661", "expect": 1, "status": "rejected", "redirect_to": "bur-pique-polo-2909"},
+ {"match": "bur-8071621", "expect": 1, "status": "rejected", "redirect_to": "bur-pique-polo-2909"}
+]

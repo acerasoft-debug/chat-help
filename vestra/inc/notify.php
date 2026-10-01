@@ -101,6 +101,13 @@ function vestra_email_is_junk(string $email): bool {
      The real mailbox is the SAME address without the prefix, so dropping it here
      costs nothing: a re-harvest of that domain picks up the correct one. */
   if(str_starts_with($dp,'www.')) return true;
+  /* Same artefact from the other side: the address's TLD GLUED to the "www." of a URL
+     printed right after it ("…@brand.comwww.brand-group.comangaben"). Caught 27 Sep
+     2026 on a German shoe shop's imprint -- the text had no separator, the harvest
+     regex swallowed the whole run, and the result was a foreign brand's address that
+     filter_var() accepts. Anchored on both dots with a TLD-sized label, so an ordinary
+     domain that merely contains "www" somewhere is untouched. */
+  if(preg_match('/\.[a-z]{2,4}www\./',$dp)) return true;
   // Placeholder LOCAL parts on an otherwise ordinary domain ("example@mail.com" was scraped from
   // a boilerplate contact form). The domain-side patterns below can't see these.
   // NB: 'mail'/'info'/'contact' are deliberately NOT here — they're real generic mailboxes
@@ -141,6 +148,64 @@ function vestra_email_is_junk(string $email): bool {
        // software vendor, wastes a daily credit and invites a spam complaint.
        .'|@glood\.|@virtualminds\.)#i';
   return (bool)preg_match($junk,$e);
+}
+
+/* Is the address's domain a SHARED mailbox provider (webmail / consumer ISP) rather than a
+ * firm's own domain? On these, two addresses are two unrelated shops, so the domain carries
+ * no firm identity: KURAL 1c's "one cold letter per firm" must NOT key on it, and a site
+ * must not be derived from it (shop@hotmail.fr -> https://hotmail.fr scraped Outlook's page).
+ *
+ * WHY ONE FUNCTION: the answer used to live in SEVEN hand-written lists across the workflows
+ * and they had drifted apart. The same-firm check in add-and-send knew orange.fr and free.fr
+ * but not wanadoo.fr (Orange's older domain) or hotmail.fr, so on 27 Sep 2026 two
+ * independent French shoe shops were SILENTLY skipped as "already mailed" -- because three
+ * unrelated shops on wanadoo.fr and one on hotmail.fr had been written to weeks earlier.
+ * A silent skip is costlier than a wrong send: nobody sees it.
+ *
+ * Exact domain membership, plus the big webmail brands on ANY country TLD
+ * (hotmail.fr, outlook.it, yahoo.co.uk, gmx.at, live.be ...): the label must be the WHOLE
+ * first label followed by a bare TLD, so "outlookstore.com", "live-shoes.de" or
+ * "yahoo.fr.example.com" stay firm domains. Accepts an address or a bare domain. */
+function vestra_email_is_shared_provider(string $emailOrDomain): bool {
+  $d = strtolower(trim($emailOrDomain));
+  if (($p = strrpos($d, '@')) !== false) $d = substr($d, $p + 1);
+  $d = rtrim($d, '.');
+  if ($d === '' || strpos($d, '.') === false) return false;
+  if (preg_match('/^(?:gmail|googlemail|hotmail|outlook|live|msn|windowslive|yahoo|ymail|rocketmail|aol|gmx|yandex|protonmail)\.(?:com?\.)?[a-z]{2,3}$/', $d)) return true;
+  static $shared = null;
+  if ($shared === null) $shared = array_flip([
+    // webmail / privacy mail
+    'icloud.com','me.com','mac.com','proton.me','pm.me','tutanota.com','tutanota.de','tuta.io',
+    'zoho.com','zohomail.eu','mail.com','hushmail.com','fastmail.com','fastmail.fm',
+    // Germany / Austria / Switzerland
+    'web.de','t-online.de','freenet.de','arcor.de','posteo.de','mail.de','online.de',
+    'vodafone.de','kabelmail.de','aon.at','chello.at','a1.net','utanet.at','bluewin.ch',
+    'hispeed.ch','sunrise.ch','swissonline.ch',
+    // France / Benelux
+    'orange.fr','wanadoo.fr','free.fr','sfr.fr','neuf.fr','laposte.net','bbox.fr',
+    'numericable.fr','club-internet.fr','aliceadsl.fr','cegetel.net','noos.fr','voila.fr',
+    'skynet.be','telenet.be','proximus.be','scarlet.be','ziggo.nl','kpnmail.nl','planet.nl',
+    'home.nl','hetnet.nl','xs4all.nl','casema.nl','upcmail.nl','chello.nl','zonnet.nl',
+    // Italy / Iberia
+    'libero.it','virgilio.it','tin.it','alice.it','tiscali.it','fastwebnet.it','email.it',
+    'inwind.it','iol.it','katamail.com','telefonica.net','terra.es','movistar.es','ono.com',
+    'sapo.pt','netcabo.pt','clix.pt',
+    // UK / Ireland / Nordics
+    'btinternet.com','sky.com','virginmedia.com','talktalk.net','ntlworld.com',
+    'blueyonder.co.uk','tiscali.co.uk','eircom.net','telia.com','online.no','jubii.dk',
+    // Central / Eastern / South-Eastern Europe
+    'seznam.cz','email.cz','centrum.cz','volny.cz','wp.pl','o2.pl','onet.pl','onet.eu',
+    'interia.pl','interia.eu','op.pl','gazeta.pl','tlen.pl','poczta.fm','abv.bg','mail.bg',
+    'dir.bg','freemail.hu','citromail.hu','otenet.gr','hol.gr','forthnet.gr','ukr.net','i.ua',
+    'mail.ru','bk.ru','list.ru','inbox.ru','rambler.ru',
+    // Americas / Asia-Pacific
+    'comcast.net','verizon.net','att.net','sbcglobal.net','bellsouth.net','cox.net',
+    'charter.net','earthlink.net','shaw.ca','rogers.com','sympatico.ca','bigpond.com',
+    'bigpond.net.au','optusnet.com.au','xtra.co.nz','uol.com.br','bol.com.br','terra.com.br',
+    'ig.com.br','naver.com','daum.net','hanmail.net','nate.com','qq.com','163.com','126.com',
+    'sina.com','sohu.com','docomo.ne.jp','ezweb.ne.jp','softbank.ne.jp','rediffmail.com',
+  ]);
+  return isset($shared[$d]);
 }
 
 /* Bir sayfa basligindan firma adi cikar.
@@ -932,6 +997,60 @@ function vestra_discover_blocklist(): array {
        Peak Boutique). TAM IKI KELIMELIK ad yazildi -- 'scarpa' dersinin
        aynisi, sessiz eleme yanlis gonderimden pahali. */
     'peak design','peakdesign',
+
+    /* 26 Eyl 2026 — AYAKKABI DUKKANI kampanyasi (operator: "zincir olmasin").
+       Operatorun yapistirdigi yapay-zeka listesi arastirilarak okundu ve
+       Avrupa'da bagimsiz ayakkabi dukkani ararken zincirler ayiklandi.
+       ZINCIR (4+ sube): Werdich (40+ sube, Guney Almanya), Zumnorde (25-28
+       magaza; "Schuhhaus Marcus" Munster'deki magazasi), Schuhhaus Kocken
+       (8+ sube + Tamaris konsept magazalari), Mayer's Markenschuhe (100+),
+       Schuh Schweizer (~60), Bessec (Bretanya, 23), Chaussea (Fransa, 250+),
+       Besson Chaussures (Fransa), Charles Clinkard (Ingiltere), Begg Shoes
+       (Iskocya, 9), Sorelle Ramonda (Veneto).
+       KENDI MARKASI: Moda in Pelle (UK markasi + magazalari), Grunbein
+       (resmi marka magazalari), Pelin's Shoes (Turk markasinin AB kolu),
+       SORBAS ve Atheist Shoes (Berlin, dogrudan tuketiciye kendi markasi),
+       Highest Heels (siparise ozel kendi uretimi).
+       Adlar TAM yazildi: 'kocken', 'marcus', 'schweizer', 'besson',
+       'sorbas' (Endulus'te bir kasaba) TEK BASINA gunluk ad/soyad -- gercek
+       bagimsiz dukkanlari sessizce elerdi. Umlautlu adin alan adi yazimi ayri
+       ('gruenbein'): alan adi tarafi ASCII olmayan harfi siliyor ve 'grünbein'
+       yalniz basina 'gruenbein.de' ile eslesmez. Sinirda kalan Horsch Schuhe
+       (4 sube, buyuk/kucuk numara uzmani) EKLENMEDI -- operator karari.
+       27 Eyl 2026, gonderim oncesi elle okuma (kod ikisini de geciriyordu):
+       Trancanelli (Roma, 1919'dan beri 4 sube + KENDI markasi ve uretimi) ve
+       Fanny Chaussures (Aubagne; kendi fabrikasi Chaussures Meger, "Fanny by
+       Meger" markasi + 2 magaza). 'fanny' ve 'meger' TEK BASINA eklenmedi:
+       ilki siradan bir kadin adi ("Fanny's Boutique"), ikincisi soyad.
+       Asai Zapaterias (Valensiya 3 + Vigo 1, aile isi) SINIRDA: eklenmedi,
+       gonderilmedi (Sinonim Baku emsali).
+       Zjoos: "zjoos-hjoerring.dk" tek dukkan gibi gorunuyordu; gercekte
+       Danimarka'da ~65, Norvec'te 4 magazali gonullu ZINCIR, Shoe-D-Vision
+       catisinda (Skoringen ile ayni ev). Sehre ozel alan adlari (zjoosgive.dk,
+       zjoos-hjoerring.dk) alan adi tarafinda 'zjoos'un TAM eslesme sinirina
+       takildigi icin ikisi de ayrica yazildi.
+       Walter Calzature (Milano): 1968'den beri kendi el yapimi ayakkabisi,
+       kendi markasi "Le Walterine" ve 3 kendi magazasi -- Trancanelli'nin
+       sinifi. 'walter' TEK BASINA eklenmedi (siradan bir ad). */
+    'walter calzature','waltercalzature','le walterine',
+    'trancanelli','fanny chaussures','chaussures meger',
+    'zjoos','zjoos-hjoerring','zjoosgive','skoringen','shoe-d-vision',
+    'werdich','zumnorde','schuhhaus marcus','schuhhaus kocken','kocken-online','kocken online',
+    "mayer's markenschuhe",'mayers markenschuhe','schuh schweizer','bessec','chaussea',
+    'besson chaussures','charles clinkard','begg shoes','sorelle ramonda',
+    'moda in pelle','grünbein','gruenbein',"pelin's shoes",'pelinshoes',
+    'sorbas shoes','sorbasshoes','atheist shoes','atheistshoes','highest heels','highestheels',
+    /* 28 Eyl 2026 — discover-shops (Overture) ilk canli raporunun HAZIR listesi elle
+       okundu (KURAL 1i); kod dordunu de geciriyordu, hepsi arastirilarak dogrulandi:
+       Mephisto Vichy yalniz Mephisto grubunun markalarini (Mephisto, Allrounder,
+       Mobilis) satan bir marka dukkani -- Brugge'deki "Mephisto Shop" ayni sinif;
+       Ally Capellino tasarimcinin kendi etiketi ve kendi dukkani; James Taylor & Son
+       (1857) butun ayakkabisini kendi atolyesinde yapan uretici; Norbert Bottier
+       1981'den beri kendi markasi. 'taylor', 'james', 'norbert', 'bottier' TEK BASINA
+       eklenmedi (soyad / meslek adi). Chapellerie Traclet (kendi atolyesi +
+       perakende) SINIRDA -- eklenmedi, operator karari. */
+    'mephisto','ally capellino','james taylor & son','james taylor and son','taylormadeshoes',
+    'norbert bottier',
   ];
 }
 /* PARK EDILMIS / SATILIK alan adi: dukkan degil, satis sayfasi.
@@ -1013,7 +1132,16 @@ function vestra_name_is_parked_domain(string $company): bool {
  * shared host (mystore.wixsite.com) is not judged by its host's name. */
 function vestra_domain_is_blocked(string $email, string $website=''): bool {
   $labels=[];
-  if(($at=strrpos($email,'@'))!==false) $labels[]=substr($email,$at+1);
+  /* The ADDRESS's domain is a firm identity only on the firm's own domain. On a shared
+     mailbox provider it names the ISP, not the shop: the 'libero' entry below was added
+     for a scraped "Libero.it" lead (01zen@libero.it, still blocked by its NAME), and
+     through this label it silently blocked EVERY Italian shop with a libero.it mailbox
+     under KURAL 1 -- caught 27 Sep 2026 on "Di Marco Calzature". The website label is
+     still checked, so a lead whose site IS the ISP's page stays blocked. */
+  if(($at=strrpos($email,'@'))!==false){
+    $ed=substr($email,$at+1);
+    if(!vestra_email_is_shared_provider($ed)) $labels[]=$ed;
+  }
   if($website!=='') $labels[]=vestra_domain_of($website);
   foreach($labels as $host){
     $host=strtolower(trim((string)$host)); if($host==='') continue;
