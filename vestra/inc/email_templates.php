@@ -1356,18 +1356,46 @@ function vestra_tpl_order_invoice_pdf(string $buyerName, string $ref, string $in
  *
  * METIN OPERATORUN ONAYLADIGI METIN, sablon ekleme yapmaz: hitap + metin +
  * imza. Tutar/numara metnin icinde ise operator yazdi; sablon rakam uydurmaz.
+ *
+ * DIL VE HITAP (1 Eki 2026, LA ISLA DE MIRABEL SL / O7BA9A: operator Ispanyolca
+ * bir metin verip "bu emaili VESTRA'dan email ile gonder, mesaj ile degil" dedi).
+ * Sarmal -- hitap, kapanis, kutunun basligi ve satir etiketi, dugme, varsayilan
+ * konu -- metinle AYNI dilde olabilir: en | fr | de | es, order_item_changed ile
+ * ayni sozcukler. Dil metinden CIKARILMIYOR, cagiran soyluyor: bir cumlenin dilini
+ * tahmin eden kod, yanlis tahminde musteriye yabanci dilde bir kapanis yazar.
+ * Taninmayan dil 'en'e duser (hata degil: eski cagrilarin hepsi dil vermiyor).
+ * VARSAYILAN 'en' ve o durumda cikti onceki surumle BIREBIR AYNI (test tutuyor):
+ * bu fonksiyonla gonderilmis ve gonderilecek Ingilizce notlar degismedi.
+ *
+ * $greet=false: metin KENDI hitabiyla basliyor ("Hola, gracias ..."), sablon ikinci
+ * bir hitap eklemez. "Dear X, / Hola," cift hitabi, operatorun yazdigi metni bir
+ * sablona yapistirilmis gibi gosterir. Kapanis ve imza yine sablondan.
  */
 function vestra_tpl_order_note(string $buyerName, string $ref, string $message, string $subject = '',
-        bool $hasAccount = false, string $signer = ''): array {
+        bool $hasAccount = false, string $signer = '', string $lang = 'en', bool $greet = true): array {
     $buyerName = vestra_display_name($buyerName);
-    if ($buyerName === '') $buyerName = 'Customer';
-    $subject = trim($subject) !== '' ? trim($subject) : "VESTRA — update on your order {$ref}";
-    $opts = ['badge' => 'Order update', 'rows' => [['label' => 'Order ref', 'value' => $ref]]];
-    if ($hasAccount) $opts['button'] = ['label' => 'View my order', 'url' => 'https://vestrasales.com/order-confirm?ref='.rawurlencode($ref)];
+    $lang = in_array(strtolower($lang), ['de', 'es', 'fr'], true) ? strtolower($lang) : 'en';
+    $L = [
+        'en' => ['hi' => 'Customer', 'badge' => 'Order update', 'ref' => 'Order ref', 'btn' => 'View my order',
+                 'subj' => "VESTRA — update on your order {$ref}", 'bye' => 'Kind regards,'],
+        'fr' => ['hi' => 'Madame, Monsieur', 'badge' => 'Commande', 'ref' => 'Commande', 'btn' => 'Voir ma commande',
+                 'subj' => "VESTRA — des nouvelles de votre commande {$ref}", 'bye' => 'Cordialement,'],
+        'de' => ['hi' => 'Kundin, sehr geehrter Kunde', 'badge' => 'Bestellung', 'ref' => 'Bestellung', 'btn' => 'Bestellung ansehen',
+                 'subj' => "VESTRA — Neuigkeiten zu Ihrer Bestellung {$ref}", 'bye' => 'Mit freundlichen Grüßen,'],
+        'es' => ['hi' => 'cliente', 'badge' => 'Pedido', 'ref' => 'Pedido', 'btn' => 'Ver mi pedido',
+                 'subj' => "VESTRA — novedades de su pedido {$ref}", 'bye' => 'Un cordial saludo,'],
+    ][$lang];
+    if ($buyerName === '') $buyerName = $L['hi'];
+    $subject = trim($subject) !== '' ? trim($subject) : $L['subj'];
+    $opts = ['badge' => $L['badge'], 'rows' => [['label' => $L['ref'], 'value' => $ref]]];
+    if ($hasAccount) $opts['button'] = ['label' => $L['btn'], 'url' => 'https://vestrasales.com/order-confirm?ref='.rawurlencode($ref)];
+    $hello = ['en' => "Dear {$buyerName},", 'fr' => "Bonjour {$buyerName},",
+              'de' => $buyerName === $L['hi'] ? "Sehr geehrte {$buyerName}," : "Guten Tag {$buyerName},",
+              'es' => "Estimado/a {$buyerName},"][$lang];
     $body =
-        "Dear {$buyerName},\n\n"
+        ($greet ? $hello."\n\n" : '')
       . trim($message)."\n\n"
-      . "Kind regards,\n\n"
+      . $L['bye']."\n\n"
       . ($signer !== ''
           ? $signer."\nVESTRA – vestrasales.com"
           : "VESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com");
