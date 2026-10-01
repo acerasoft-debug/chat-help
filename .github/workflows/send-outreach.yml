@@ -120,7 +120,7 @@ on:
         required: false
         default: "winter"
       member_spec:
-        description: "KAYITLI MUSTERI KIPI ayarlari (TEKLIF kampanyasinda lead kosusu da tag/pids/copy okur), boru ile: letter=winter|fp_offer|wave3|offer · tag=<teklif adi, 3-20 kucuk harf/rakam; damga offer_<tag>_at, letter=offer ve newcoll_letter=offer icin SART> · pids=<ilan id'leri, virgulle> · skip=<hesap ID / firma adi parcasi, virgulle — ADRES YAZMAYIN, girdi herkese acik> · country=<hesabin kayitli ulkesi, virgulle, TAM esleme: Deutschland,Germany,DE> · copy=true (mektup MUSTERIYE DEGIL yalniz operator kutusuna; hicbir damga dusmez). Ornek: letter=fp_offer|skip=849aaa5ab65a0b3f|copy=true"
+        description: "KAYITLI MUSTERI KIPI ayarlari (TEKLIF kampanyasinda lead kosusu da tag/pids/copy okur), boru ile: letter=winter|fp_offer|wave3|offer · tag=<teklif adi, 3-20 kucuk harf/rakam; damga offer_<tag>_at, letter=offer ve newcoll_letter=offer icin SART> · pids=<ilan id'leri, virgulle> · skip=<hesap ID / firma adi parcasi, virgulle — ADRES YAZMAYIN, girdi herkese acik> · country=<hesabin kayitli ulkesi, virgulle, TAM esleme: Deutschland,Germany,DE> · brand_orders=<marka TAM adi, virgulle: o markadan SIPARIS vermis alici ELENIR; teklif verip siparis vermeyen elenmez, yalniz sayilir> · copy=true (mektup MUSTERIYE DEGIL yalniz operator kutusuna; hicbir damga dusmez). Ornek: letter=fp_offer|skip=849aaa5ab65a0b3f|copy=true"
         required: false
         default: ""
       newcoll_min_days:
@@ -836,6 +836,43 @@ jobs:
                 return false;
               };
 
+              /* MARKA SIPARISI VERENLERI ELE (operator, 1 Eki 2026: "F.Perry siparis
+                 verenler haric hepsine gonder"). brand_orders=<marka[,marka]>: o
+                 markanin ilanlarindan SIPARIS vermis alici bu mektubu almaz.
+                 Siparis = orders.csv (kabul edilen teklif de oraya siparis olarak
+                 iner). Marka ilanin KAYITLI markasindan, SKU'yu da ilan id'sini de
+                 tanir: eski siparisler SKU yerine ilan id'si tasiyabilir. HAM liste
+                 (vestra_listings): siparis o ilan canliyken verilmis olabilir, bugun
+                 satilmis/gizli/reddedilmis olmasi siparisi silmez. Esleme TAM,
+                 harf duyarsiz (mango/zara dersi). TEKLIF verip siparis vermemis olan
+                 ELENMEZ -- yalniz sayilir: operator kararini goruyor. */
+              $BRAND_ORD = [];
+              foreach (explode(',', (string)($mspec['brand_orders'] ?? '')) as $bo) {
+                $bo = mb_strtolower(trim($bo)); if ($bo !== '') $BRAND_ORD[$bo] = true;
+              }
+              $ordBrand = []; $offBrand = []; $brandOrdHit = 0; $offOnlyHit = 0;
+              if ($BRAND_ORD) {
+                $skuBrand = [];
+                foreach (vestra_listings() as $lp) {
+                  if (!isset($BRAND_ORD[mb_strtolower(trim((string)($lp['brand'] ?? '')))])) continue;
+                  foreach (['sku', 'id'] as $lk) {
+                    $lv = mb_strtolower(trim((string)($lp[$lk] ?? '')));
+                    if ($lv !== '') $skuBrand[$lv] = true;
+                  }
+                }
+                foreach (vestra_read_csv('orders.csv') as $or) {
+                  $oe = strtolower(trim((string)($or['email'] ?? '')));
+                  if ($oe === '' || isset($ordBrand[$oe])) continue;
+                  if (!preg_match_all('/\d+x\s+(.+?)\s+@\s*[\d.,]+/u', (string)($or['items'] ?? ''), $om)) continue;
+                  foreach ($om[1] as $osku) { if (isset($skuBrand[mb_strtolower(trim($osku))])) { $ordBrand[$oe] = true; break; } }
+                }
+                foreach (vestra_read_csv('offers.csv') as $of) {
+                  $oe = strtolower(trim((string)($of['email'] ?? '')));
+                  if ($oe !== '' && isset($skuBrand[mb_strtolower(trim((string)($of['sku'] ?? '')))])) $offBrand[$oe] = true;
+                }
+                echo "marka siparisi: ".implode(', ', array_keys($BRAND_ORD))." -> ".count($skuBrand)." SKU/id | siparis veren ".count($ordBrand)." adres | teklif veren ".count($offBrand)." adres\n";
+              }
+
               /* ── ANGEBOT: ilanlar bir kez cozulur, herkese ayni mal ────────
                  Renk->foto eslestirmesi kutuphaneden (vestra_listing_colour_shots),
                  is akisinin icinde ikinci kez yazilmadi. Bir rengin fotografi
@@ -883,6 +920,7 @@ jobs:
                   }
                 }
                 if ($isSkipped($a)) { echo "  - ATLANDI (skip_accounts): ".(($a['company'] ?? '') ?: '?')."\n"; $skipAccHit++; continue; }
+                if ($BRAND_ORD && isset($ordBrand[$em])) { echo "  - ATLANDI (marka siparisi var: ".implode('/', array_keys($BRAND_ORD))."): ".$maskMail($em)."\n"; $brandOrdHit++; continue; }
                 /* AYNI ADRES IKI HESAPTA olabilir ve oluyor: kuru kosuda
                    "M&F Resell" iki kez cikti. Damga HESABIN uzerinde, yani
                    ikisi de uygun gorunuyor ve ayni kutuya IKI ayni mektup
@@ -897,6 +935,7 @@ jobs:
                   echo "  - ATLANDI (KURAL: zincir/kendi markasi eslesmesi): ".$maskMail($em)."\n"; $skipped++; continue;
                 }
                 $cand[] = $i;
+                if ($BRAND_ORD && isset($offBrand[$em])) $offOnlyHit++;
                 if (count($cand) >= $COUNT) break;
               }
               $M_LABEL = ['fp_offer' => 'ANGEBOT', 'wave3' => 'UCUNCU MEKTUP — adiyla sayilan evler', 'winter' => 'YENI KOLEKSIYON',
@@ -913,6 +952,7 @@ jobs:
               echo "uygun secilen: ".count($cand)." / hedef: {$COUNT}"
                  . ($skipped ? " (kural geregi atlanan: {$skipped})" : '')
                  . ($skipAccHit ? " (skip_accounts ile atlanan: {$skipAccHit})" : '')
+                 . ($brandOrdHit ? " (marka siparisi oldugu icin atlanan: {$brandOrdHit})" : '')
                  . ($tooNewHit ? " (son {$NC_MIN_DAYS} gunde baska kampanya aldigi icin atlanan: {$tooNewHit})" : '')."\n";
               /* Fiyat kapisi ALICI BASINA. Sayim burada basiliyor cunku
                  "kac kisiye rakamli mektup gidiyor" gonderimden ONCE okunmasi
@@ -930,8 +970,9 @@ jobs:
                 echo "\n---- OZET (liste uzun, get_job_logs yalniz kuyrugu gosteriyor) ----\n";
                 echo "metin        : {$MLETTER} | damga: {$STAMP}\n";
                 echo "SECILEN      : ".count($cand)." / hedef {$COUNT}\n";
-                echo "elenen       : kural {$skipped} | skip_accounts {$skipAccHit} | ayni adres {$dupHit} | son {$NC_MIN_DAYS} gunde baska kampanya {$tooNewHit}"
+                echo "elenen       : kural {$skipped} | skip_accounts {$skipAccHit} | marka siparisi {$brandOrdHit} | ayni adres {$dupHit} | son {$NC_MIN_DAYS} gunde baska kampanya {$tooNewHit}"
                    . ($MCOUNTRIES ? " | ulke suzgeci disi {$countryOut}" : '')."\n";
+                if ($BRAND_ORD) echo "marka TEKLIFI olup siparisi olmayan (ELENMEDI, secilenler icinde): {$offOnlyHit}\n";
                 echo "fiyat kapisi : ACIK {$gateOpen} (rakamli) | KAPALI {$gateShut} (rakamsiz)\n";
                 echo "dil dagilimi : "; foreach ($lc as $l => $n) echo "{$l}={$n}  "; echo "\n";
                 echo "gercek gonderim koşu basina 50'ye kirpilir (".(int)ceil(count($cand)/50)." kosu gerekir)\n";
