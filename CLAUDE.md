@@ -9883,6 +9883,22 @@ dosyaya yazılmaz).
   (yukarıda); (3) Fransa'daki alıcıya ABD'li tüzel kişi (Acerasoft LLC) adına
   kesilen belgede KDV satırı ve ters ibraz notu YOK — rejim operatör kararı,
   uydurulmadı.
+- **Yarın 14:00 UTC `cron_order_payment` bu siparişe `payment_due` mektubunu
+  GÖNDERİP 5 iş günlük saati başlatacak** (faz `unstamped`, cron'un baktığı hiçbir
+  koşul engellemiyor; `order_audit`: *"ODEME YOK | saat=unstamped | hatırlatma YOK"*,
+  Brevo'da bu ref/fatura için mektup YOK). Yani "fatura oluştur" müşteriye otomatik
+  bir mektup da demek; alıcı faturayı ilk kez o mektupla / sipariş sayfasından
+  görecek. PDF EKLİ mektup istenirse **ondan önce** gönderilmeli.
+- **O34FE5 KAPANDI (yeniden ölçüldü, kod yazılmadı):** bundan önce yarım kalan
+  *"O34FE5 bu siparisi müsteriye gönder gönderim 5 ila 10 gün arasi sürecek /
+  faturayi gönder"* talimatının işi zaten yapılmıştı — `order_audit`: INV-2026-1020
+  (€9.720, kesen VESTRA) **29 Eyl 17:03'te operatörün panelinden kesilip
+  e-postalanmış** (Brevo *"VESTRA — invoice for O34FE5"* delivered), 30 Eyl 14:00
+  cron hatırlatması **açıldı + tıklandı**, ödeme saati 30 Eyl'de başlamış (son gün
+  **7 Eki**); *"5 à 10 jours"* teslim süresini satıcı sohbette 30 Eyl 06:38'de
+  yazmış. Faturalı birleşik mektuba teslim süresi cümlesi eklemek için yazılmak
+  istenen kod **gereksiz çıktı**; iş akışı yazılmadan önce kaydı ölçmenin bedeli
+  tam da buydu. Müşteriye hiçbir şey gönderilmedi.
 
 **24 Eyl 2026 — G7JV9-1 (D&G Logo T-Shirt): kayıt "White" diyordu, fotoğraf
 KIRMIZI — düzeltildi** (operatör, ilanın kendi sayfasından pasteledi:
