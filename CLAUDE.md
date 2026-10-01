@@ -11164,3 +11164,69 @@ listerleri tek bir ilanda yap"*).
   operatör "devam" deyince gider. Damga aynı (`offer_bur2909_at`), yani 100 üye
   ikinci mektubu **almaz**. Kota kopya anında **147 kalan / 60 ayrılmış**: kalan
   üyeler bugün sığar, lead partisi yarına ve sonrasına taşar (günde ~240).
+
+**KURAL 42 — ÇOK MARKALI GÖRSELLİ TEKLİF KAMPANYASI (Burberry + Fred Perry + DSQUARED2);
+"X marka SİPARİŞİ verenler hariç" kapısı ve tek renkli ilanın kapak fotoğrafı**
+(operatör, 1 Eki 2026: *"müsterilere Burberry F.Perry ve Dsq2 leri kampanya yaparak
+estetik bir sekilde görsellerle gönder tüm layitli müsterilerden basla f.perry siparis
+verenler haric hepsine teker teker gönder yeni müsterilerde bul avrupadan en az 50 tane
+ayakkabici olabilir"*).
+
+- **KURAL 18 geçerli: gönderilmedi.** Bu turda yalnız kod, kuru koşu ve **operatör
+  kopyası** (`copy=true`) var; müşteriye hiçbir şey gitmedi, damga düşmedi.
+- **"Siparişi olanlar hariç" için araç YOKTU, yazıldı:** `send-outreach.yml` →
+  `member_spec` → **`brand_orders=<marka[,marka]>`**. O markanın ilanlarından
+  `orders.csv`'de **SİPARİŞİ** olan alıcı mektubu almaz.
+  - **Marka ilanın KAYITLI markasından** çözülür, SKU ve ilan id'siyle eşleşir ve
+    **ham listeden** (`vestra_listings()`, satılmış/gizli ilan dahil) okunur: sipariş
+    satırı SKU yazıyor, ilan bir gün satıldı/gizlendiyse `vestra_products()` onu
+    bulamaz ve o alıcı sessizce hariçlikten kurtulurdu.
+  - **Eşleşme TAM, alt dize değil** (mango/zara dersi): "Fred Perry Kids" elenmez.
+  - **TEKLİF ≠ SİPARİŞ:** teklif verip sipariş vermeyen **elenmez**, yalnız sayılır
+    (`marka TEKLİFİ olup siparişi olmayan …`). Operatörün cümlesi *sipariş* diyor;
+    daha geniş okumak kendiliğinden bir müşteriyi kampanyadan çıkarmak olurdu.
+  - Verilmezse davranış **birebir** eskisi. Test: `tests/member_brand_orders_test.php`
+    (29 iddia; iş akışındaki **gerçek bloklar** regex'le çıkarılıp sentetik
+    sipariş/teklif/ilan verisiyle koşturuluyor). Beş sabotajın beşi kırmızı
+    (4 / 4 / 1 / 4 / 8), her biri uygulandığı doğrulanıp yedekten geri alındı.
+- **TEK RENKLİ İLANIN FOTOĞRAFI YALNIZ STİL KODUYLA ADLANDIRILMIŞSA kampanya
+  duruyordu:** kuru koşu *"FOTOGRAFI OLMAYAN RENK -> dsq-101213: Black"* dedi.
+  `vestra_listing_colour_shots()` rengi dosya adında arıyor (`black` kelimesi);
+  DSQUARED2 fotoğrafları `dsq-101213.png` gibi. Kural: **renk sayısı TAM 1 ve ad
+  eşleşmesi yoksa kapak (ilk fotoğraf) o rengin fotoğrafıdır**. İki renkli ilanda tek
+  adsız foto hâlâ EKSİK sayılır — *"her renge foto"* iddiası orada gevşemiyor.
+  Ad eşleşmesi varsa o kazanır. Test: `tests/colour_shots_single_test.php`
+  (15 iddia, üç sabotajın üçü kırmızı).
+- **Spec:** `letter=offer|tag=bfd0110|pids=bur-pique-polo-2909,fp-m3600-polo,
+  fp-m7535-sweat,dsq-101213,dsq-s74gl0064,dsq-s74lb0658|brand_orders=Fred Perry|
+  skip=389h68843j6789,verify,acera,pentest`. Damga `offer_bfd0110_at`. Üç marka
+  konuda `&` ile birleşiyor (şablon en çok üçünü alıyor). DSQUARED2'den üç ilan:
+  oversize grafik tişört (S74GD1399), Tipped Polo (S74GL0064), Clean Wash Jeans
+  (S74LB0658).
+- **Kuru koşu ölçümü (run `36920496177`):** SEÇİLEN **96**; elenen: skip_accounts 4,
+  **marka siparişi 1**, aynı adres 0, **son 3 günde başka kampanya 100** (29 Eylül
+  Burberry mektubunu alan 100 üye; **2 Ekim'den itibaren uygun**). Fiyat kapısı
+  AÇIK 92 / KAPALI 4. Diller: en 34 · fr 31 · de 9 · es 7 · it 7 · ru 4 · pt 2 ·
+  ja 1 · ar 1. Gerçek gönderim koşu başına 50'ye kırpılır → **2 koşu**, sırayla.
+  Teklif-yalnız sayacı 0.
+- **Operatör kopyası (run `36920638093`):** *"dil=de | fiyat=acik | govde=2559
+  karakter | foto=20 — MUSTERIYE HICBIR SEY GITMEDI"*. **Brevo'da yalnız
+  `requests`, `delivered` YOK:** ilk kopya 20:18:57 UTC'den 11+ dakika sonra hâlâ
+  teslim edilmemişti, aynı kutuya giden diğer 12 mektup (fatura, mesaj bildirimi)
+  aynı pencerede teslim edilmişti. İkinci kopya 20:29:44 UTC'de çıktı. Önceki
+  kopyalar (29 Eyl: 8 fotoluk, 28–45 KB) dakikalar içinde ulaşmıştı. *Gmail
+  bağlayıcısının "yok" demesi kanıt değil: Brevo'da `delivered` olan mektup da
+  aynı dakikalarda Gmail aramasında görünmüyordu (indeks gecikmesi).*
+- **Ölçüm tuzağı:** Actions günlüğü Brevo saatindeki `22`'yi (`22:18:57+02:00`)
+  maskeliyor (`***:18:57`); +02:00 saat dilimi olduğu için 22:18 = 20:18 UTC.
+- **Teşhis (1 Eki 2026, akşam):** dört kopya Brevo'ya kabul edildi, `delivered`
+  gelmedi: (1) 6 ilan / 20 foto / 2559 karakter, 20:18:57 UTC; (2) aynı, 20:29:44;
+  (3) 3 ilan (Burberry polo + FP polo + dsq-101213) / 15 foto / 1937 karakter,
+  20:32:20; (4) yalnız üç DSQUARED2 ilanı. Olay listesi **tüm türleri** basıyor
+  (`deferred`/`blocked`/`hardBounces` dahil) ve hiçbiri yok — yani mektup Brevo'da
+  **bekliyor**, reddedilmiş görünmüyor. Aynı kutuya giden **12 mektup aynı
+  pencerede teslim edildi**: sorun Brevo'nun geneli değil bu içerik.
+  **Müşteriye gönderim, önizleme ulaşana kadar BEKLETİLİYOR** — aynı şablonun
+  müşteri kutularında da bekleme riski var ve KURAL 18 zaten operatörün önizlemeyi
+  görmesini şart koşuyor. Kopyayı yeniden yollamak yalnız operatörün kutusunu
+  etkiler (müşteri yok, damga yok).
