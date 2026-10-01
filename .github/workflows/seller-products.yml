@@ -1704,6 +1704,11 @@ jobs:
             foreach ($all as $p) { $sk = trim((string)($p['sku'] ?? '')); if ($sk !== '') $bySku[mb_strtolower($sk)] = $p; }
 
             $subtotal = 0.0; $problems = 0; $lines = []; $anyAgreed = false;
+            /* "HER RENKTEN BIR PARCA" OLCUSU VERIDEN TURER, bayraktan degil: her satirda
+               adet = o satirdaki FARKLI renk sayisi ise (esit agirlik: renkler ';' ile
+               verilip adet esit bolunuyor) satis gercekten her renkten bir parca. Bir
+               bayrak yanlis girilirse nota yalan yazardi; olcut yanlis olamaz. */
+            $onePerColour = true; $multiColourLines = 0;
             foreach (array_filter(array_map('trim', explode(',', $spec0))) as $spec) {
                 $parts = array_map('trim', explode(':', $spec));
                 $sku = $parts[0] ?? ''; $size = $parts[1] ?? ''; $qty = max(1, (int)($parts[2] ?? 1));
@@ -1773,6 +1778,10 @@ jobs:
                     $cols = array_values(array_filter(array_map('trim', array_map('strval', (array)($p['colors'] ?? []))), fn($c) => $c !== ''));
                     $want = array_values(array_filter(array_map('trim', explode(';', $colour))));
                     $lc   = array_map('mb_strtolower', $cols);
+                    /* Her renkten BIR parca mi? (yukaridaki sayaclarin gerekcesi) */
+                    $nWant = count(array_unique(array_map('mb_strtolower', $want)));
+                    if ($nWant !== $qty) $onePerColour = false;
+                    if ($nWant >= 2)     $multiColourLines++;
                     foreach ($want as $w) {
                         if (!in_array(mb_strtolower($w), $lc, true)) {
                             $msgs[] = "!! renk '{$w}' ILANDA YOK -- ilanda: ".($cols ? implode(' / ', $cols) : '(renk yok)');
@@ -1799,9 +1808,19 @@ jobs:
                     }
                     $perPack = array_sum($run);
                     $sizeOut = [];
-                    if ($perPack > 0 && $qty % $perPack === 0) {
+                    /* PAKET ADIMI FERAGATINDA BEDEN DOKUMU HIC YAZILMAZ (1 Eki 2026,
+                       Lacoste "her renkten bir parca" numune kolisi). Adet ilanin
+                       seri toplamina TESADUFEN esitse (8 rengi olan ve 8'lik serisi olan
+                       tisort: 8 adet; 10 renkli 10'luk sweatshirt: 10 adet) eski kod
+                       "bir karton" sanip ilanin kendi serisini (S×1, M×2 ...) dokum diye
+                       yaziyordu -- oysa kimse o bedenleri secmedi: parcalar renk basina
+                       BIRER tane ve bedenleri belli degil. Notun kendi cumlesi de
+                       "no size breakdown" diyor; yazilan dokum o cumleyi yalanlardi. */
+                    if ($perPack > 0 && !$waivePack && $qty % $perPack === 0) {
                         $packs = intdiv($qty, $perPack);
                         foreach ($run as $sName => $sQty) $sizeOut[] = $sName.'×'.($sQty * $packs);
+                    } elseif ($perPack > 0 && $waivePack) {
+                        if ($qty % $perPack === 0) $msgs[] = sprintf('(beden dokumu yazilmadi: paket adimi feragati, adet %d)', $qty);
                     } elseif ($perPack > 0) {
                         $msgs[] = sprintf('(beden dokumu yazilmadi: adet %d, seri toplami %d katı degil)', $qty, $perPack);
                     }
@@ -1921,6 +1940,38 @@ jobs:
             if ($r > 0) printf("  (~US$%s, 1 EUR = %s)\n", number_format($total * $r, 2), number_format($r, 4));
             printf("\n  kalem sayisi: %d   sorunlu: %d\n", count($lines), $problems);
 
+            /* NOT, SATISIN NE OLDUGUNU SOYLER. Toptan bir lot siparisine
+               "dropship, single pieces" yazmak, kaydi okuyan herkese yanlis
+               satisi anlatirdi -- ve o not siparis sayfasinda, panelde ve
+               faturanin toplama listesinde oldugu gibi basiliyor.
+               Renk asgarisinden feragat edildiyse GEREKCE de kayitta durur:
+               aylar sonra "bu lot neden tek renk" sorusunun cevabi, ilanin
+               bugun hala "en az N renk" diyen metni degil, bu satir olur. */
+            /* NOT, FIYATIN NEREDEN GELDIGINI DE SOYLEMEK ZORUNDA. Anlasilan bir
+               birimle kesilen satisa "wholesale tier pricing" yazmak, kaydi
+               okuyan herkese YANLIS bir sey anlatirdi: kademeyi acip "bu fiyat
+               nereden cikti" diye bakan kisi hicbir kademede o rakami bulamaz.
+               `desc` ile `sizes`'in celistigi hatanin aynisi. */
+            /* "FULL CARTONS" PAKET ADIMI FERAGATINDA YALAN (1 Eki 2026): koli tam
+               karton degilse (ya da seri toplamina tesaduf eden bir adetse bile
+               kimse karton secmediyse) not "full cartons" diyemez -- ve ayni notun
+               devami zaten "not a whole number of cartons" diyordu, yani ayni cumle
+               iki ters sey soyluyordu. Notu alici KENDI siparis sayfasinda okuyor. */
+            $note = $wholesale
+                ? ($anyAgreed
+                    ? 'Unit price agreed with the buyer, outside the listed tiers.'.($waivePack ? '' : ' Full cartons.')
+                    : 'Wholesale tier pricing, '.($waivePack ? '' : 'full cartons, ').'agreed with the buyer.')
+                  .(($onePerColour && $multiColourLines > 0) ? ' One piece of each colour.' : '')
+                  .($waiveMinCol ? ' Single-colour lots agreed as an exception to the listed colour minimum.' : '')
+                  .($waiveMoq ? ' Quantity below the listed minimum order, agreed as an exception.' : '')
+                  .($waivePack ? ' Quantity is not a whole number of cartons, agreed as an exception; no size breakdown.' : '')
+                : 'Dropship pricing (wholesale +'.(int)round(VESTRA_DROPSHIP_MARKUP*100).'%), single pieces, agreed with the buyer.';
+            /* SIPARIS SAYFASINDA ALICININ OKUYACAGI NOT, TASLAKTA DA GORUNUR (1 Eki
+               2026): not yalniz yazim dalinda kuruluyordu, yani taslak "temiz" derken
+               yazilacak cumle -- aliciya gorunen tek serbest metin -- ilk kez ancak
+               kayitta okunabiliyordu. Renk/beden/navlun parcalari yazicida eklenir. */
+            printf("  siparis notu   : %s\n", $note);
+
             /* YAZMA, AYNI ADIMDA VE AYNI HESAPTAN. Ikinci bir adim, fiyat
                mantiginin ikinci kopyasi demek olurdu; bu depo ayrisan iki
                kopyanin bedelini KURAL 5d/5f'te zaten yazdi. Taslak ile yazim
@@ -1935,26 +1986,6 @@ jobs:
 
             $mkLines = [];
             foreach ($lines as $L) $mkLines[] = ['sku'=>$L[0], 'size'=>$L[1], 'qty'=>$L[2], 'unit'=>$L[3], 'colour'=>$L[5] ?? ''];
-            /* NOT, SATISIN NE OLDUGUNU SOYLER. Toptan bir lot siparisine
-               "dropship, single pieces" yazmak, kaydi okuyan herkese yanlis
-               satisi anlatirdi -- ve o not siparis sayfasinda, panelde ve
-               faturanin toplama listesinde oldugu gibi basiliyor.
-               Renk asgarisinden feragat edildiyse GEREKCE de kayitta durur:
-               aylar sonra "bu lot neden tek renk" sorusunun cevabi, ilanin
-               bugun hala "en az N renk" diyen metni degil, bu satir olur. */
-            /* NOT, FIYATIN NEREDEN GELDIGINI DE SOYLEMEK ZORUNDA. Anlasilan bir
-               birimle kesilen satisa "wholesale tier pricing" yazmak, kaydi
-               okuyan herkese YANLIS bir sey anlatirdi: kademeyi acip "bu fiyat
-               nereden cikti" diye bakan kisi hicbir kademede o rakami bulamaz.
-               `desc` ile `sizes`'in celistigi hatanin aynisi. */
-            $note = $wholesale
-                ? ($anyAgreed
-                    ? 'Unit price agreed with the buyer, outside the listed tiers. Full cartons.'
-                    : 'Wholesale tier pricing, full cartons, agreed with the buyer.')
-                  .($waiveMinCol ? ' Single-colour lots agreed as an exception to the listed colour minimum.' : '')
-                  .($waiveMoq ? ' Quantity below the listed minimum order, agreed as an exception.' : '')
-                  .($waivePack ? ' Quantity is not a whole number of cartons, agreed as an exception; no size breakdown.' : '')
-                : 'Dropship pricing (wholesale +'.(int)round(VESTRA_DROPSHIP_MARKUP*100).'%), single pieces, agreed with the buyer.';
             /* Taslakta gosterilen navlunun AYNISI yaziliyor (auto cozumlendi):
                null gecirip fonksiyona yeniden hesaplatmak, iki yerde iki farkli
                rakam uretebilecek ikinci bir hesap yolu olurdu. */
