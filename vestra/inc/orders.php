@@ -2760,25 +2760,30 @@ function vestra_render_order_pdf(array $orderRow, array $lines, string $statusLa
         $desc = trim((string)($l['brand'] ?? '').' '.(string)($l['name'] ?? ''));
         $descLines = $pdf->wrap($desc, $colQty - $colDesc - 8, 9);
         $skuLines  = vestra_invoice_wrap((string)($l['sku'] ?? ''), $colDesc - $colSku - 8, 9, false, true);
-        $rowH = max(13, max(count($descLines), count($skuLines)) * 11) + 8;
-        $need($rowH);
-        foreach ($skuLines as $j => $sl) $pdf->text($colSku, $y - ($j * 11), 9, $sl);
-        foreach ($descLines as $j => $dl) $pdf->text($colDesc, $y - ($j * 11), 9, $dl);
         /* Renk ve beden TEK alt satirda birlesiyor. Ayri bir blok yazsaydim
            satir yuksekligi hesabi (asagidaki `$y -= $rowH + …`) yalnizca BIR
-           blok sayiyor, yani ikincisi bir sonraki satirin uzerine binerdi. */
+           blok sayiyor, yani ikincisi bir sonraki satirin uzerine binerdi.
+           ALT BLOK KAC SATIRA SARILIYORSA O KADAR YER AYRILIR (1 Eki 2026):
+           eskiden yalnizca TEK satirlik 10 pt ayriliyordu; 10 renk + beden dizisi
+           iki-uc satira sariliyor ve fazlasi alttaki kalemin ustune biniyordu --
+           faturadaki renk sutunuyla ayni kusur. Tek satirlik alt blokta davranis
+           ayni (10 pt). */
         $sub = [];
         if (!empty($l['colors'])) $sub[] = implode(', ', (array)$l['colors']);
         if (!empty($l['sizes']))  $sub[] = t('Sizes').': '.implode(', ', (array)$l['sizes']);
-        if ($sub) {
-            foreach ($pdf->wrap(implode(' · ', $sub), $colQty - $colDesc - 8, 8) as $j => $cl)
-                $pdf->text($colDesc, $y - (count($descLines) * 11) - ($j * 10) + 1, 8, $cl);
-        }
+        $subLines = $sub ? $pdf->wrap(implode(' · ', $sub), $colQty - $colDesc - 8, 8) : [];
+        $rowH = max(13, max(count($descLines), count($skuLines)) * 11) + 8;
+        $subH = count($subLines) * 10;
+        $need($rowH + $subH);
+        foreach ($skuLines as $j => $sl) $pdf->text($colSku, $y - ($j * 11), 9, $sl);
+        foreach ($descLines as $j => $dl) $pdf->text($colDesc, $y - ($j * 11), 9, $dl);
+        foreach ($subLines as $j => $cl)
+            $pdf->text($colDesc, $y - (count($descLines) * 11) - ($j * 10) + 1, 8, $cl);
         $pdf->textR($colQty + 34, $y, 9, (string)(int)($l['qty'] ?? 0));
         $pdf->textR($colUnit + 40, $y, 9, eur($l['unit'] ?? 0));
         $pdf->textR($right - 4, $y, 9, eur($l['line'] ?? 0));
         $goods += (float)($l['line'] ?? 0);
-        $y -= $rowH + ($sub ? 10 : 0);
+        $y -= $rowH + $subH;
     }
 
     $need(70);

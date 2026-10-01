@@ -963,14 +963,22 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         $desc = vestra_product_label((string)($it['brand'] ?? ''), (string)($it['name'] ?? ''));
         $descLines = vestra_invoice_wrap($desc, $colCol - $colDesc - 6, 9);
         $skuLines  = vestra_invoice_wrap((string)($it['sku'] ?? ''), $colDesc - $colSku - 8, 8, false, true);
-        $rowH = max(13, max(count($descLines), count($skuLines)) * 11) + 8;
+        /* RENK SUTUNU DA SATIR YUKSEKLIGINE GIRER (1 Eki 2026, INV-2026-1022).
+           Satir yuksekligi yalniz aciklama ve SKU satirlarindan hesaplaniyordu; renk
+           listesi ise ~84 pt'lik dar sutuna sarilip satir basina 10 pt ilerliyor.
+           Bir kalemde 10 renk (numune kolisi: "her renkten bir parca") 6 satira
+           sariliyor, satir ise 30 pt yer ayiriyordu: renkler alttaki kalemin ve
+           toplam blogunun ustune basti. Metin sondasi "11/11 SKU cizili" ve "toplam
+           VAR" dedi -- ikisi de dogruydu, NEREYE cizildigini kimse sormadi; belgeyi
+           gozle acmak gerekti (SKU sutunundaki 28 Eyl kusurunun ayni sinifi). */
+        $colLines  = !empty($it['colors'])
+            ? vestra_invoice_wrap(implode(', ', (array)$it['colors']), $colQty - $colCol - 6, 8)
+            : [];
+        $rowH = max(13, max(count($descLines), count($skuLines), count($colLines)) * 11) + 8;
         $need($rowH);
         foreach ($skuLines as $j => $sl)  $pdf->text($colSku,  $y - ($j * 10), 8, $sl);
         foreach ($descLines as $j => $dl) $pdf->text($colDesc, $y - ($j * 11), 9, $dl);
-        if (!empty($it['colors'])) {
-            $colTxt = implode(', ', (array)$it['colors']);
-            foreach (vestra_invoice_wrap($colTxt, $colQty - $colCol - 6, 8) as $j => $cl) $pdf->text($colCol, $y - ($j * 10), 8, $cl);
-        }
+        foreach ($colLines as $j => $cl)  $pdf->text($colCol,  $y - ($j * 10), 8, $cl);
         $pdf->text($colQty, $y, 9, (string)((int)($it['qty'] ?? 0)));
         $pdf->text($colUnit, $y, 9, $money($it['unit'] ?? 0));
         $pdf->textR($right - 4, $y, 9, $money($it['line'] ?? 0));
