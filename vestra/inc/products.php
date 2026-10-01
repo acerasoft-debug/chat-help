@@ -1460,6 +1460,18 @@ function vestra_listing_colour_shots(array $p): array {
         if ($hit === '') { $missing[] = $c; continue; }
         $used[$hit] = true; $hitOf[$c] = $hit;
     }
+    /* TEK RENKLI ILAN: dosya adi rengi tasimasa da foto O RENGIN fotografi.
+       DSQUARED2'nin 64 ilaninin cogu tek renk ve fotograf adi yalniz stil
+       kodu ("dsq-101213.png"); katı eslesme "Black" icin foto bulamayip
+       Burberry/Fred Perry/DSQUARED2 kampanyasini durdurdu (1 Eki 2026). Tek
+       renkte "hangi foto hangi renk" sorusu yok -- ilanin kapagi o rengin
+       fotografi, geri kalan kareler bagsiz kalir. SINIRLI: yalniz renk SAYISI
+       TAM 1 ve ad eslesmesi yoksa; iki renkli ilanda tek bir adsiz foto hala
+       "eksik" (hangisinin hangi renk oldugu bilinemez), yani "her renge foto"
+       iddiasi orada gevsemiyor. */
+    if (count($cols) === 1 && $missing && $imgs) {
+        $hitOf[$cols[0]] = $imgs[0]; $used[$imgs[0]] = true; $missing = [];
+    }
     /* Sira ILANIN kendi renk sirasi, eslestirmenin sirasi degil: alicinin
        sayfada gordugu sira budur. */
     $pairs = [];
