@@ -99,7 +99,7 @@ on:
         required: false
         default: ""
       reply_spec:
-        description: "ALICI CEVABI: alan=değer, | ile ayrık. to(adres YA DA account:<isim-parçası> YA DA order:<sipariş ref> YA DA enc:<ŞİFRELİ zarf — scripts/envelope_seal.php + seller-products keygen'in public key'i; adres sunucuda çözülür, hesaba TAM eşleşmeyle bağlanır, çıktıda maskeli> — adres sunucudan, girdiye yazılmaz)/send(true|false)/salutation/vat/signer(varsayılan Marco Bellini)/for(seller_setup: mektubun VERİSİNİ veren satıcı — to farklıysa test demektir). to boş = operatör test kutusu. copy=true = mektup MÜŞTERİYE GİTMEZ, birebir aynısı (ekleriyle) operatörün kutusuna gider — KURAL 18'in inceleme adımı; send=true ile birlikte verilirse kopya kazanır. msg_reply KENDİ alanlarını kullanır (to= YOK): listing=<ilan id>/buyer=<alıcı adında geçen metin, thread'i bulmak için>/body=<mesaj metni>/send(true|false)"
+        description: "ALICI CEVABI: alan=değer, | ile ayrık. to(adres YA DA account:<isim-parçası> YA DA order:<sipariş ref> YA DA enc:<ŞİFRELİ zarf — scripts/envelope_seal.php + seller-products keygen'in public key'i; adres sunucuda çözülür, hesaba TAM eşleşmeyle bağlanır, çıktıda maskeli> — adres sunucudan, girdiye yazılmaz)/send(true|false)/salutation/vat/signer(varsayılan Marco Bellini)/for(seller_setup: mektubun VERİSİNİ veren satıcı — to farklıysa test demektir). to boş = operatör test kutusu. copy=true = mektup MÜŞTERİYE GİTMEZ, birebir aynısı (ekleriyle) operatörün kutusuna gider — KURAL 18'in inceleme adımı; send=true ile birlikte verilirse kopya kazanır. msg_reply KENDİ alanlarını kullanır (to= YOK): listing=<ilan id>/buyer=<alıcı adında geçen metin, thread'i bulmak için>/body=<mesaj metni; \\n = yeni satır; gövdede | ve ASCII tırnak KULLANMA, ’ kullan>/send(true|false)"
         required: false
         default: "send=false"
 
@@ -1457,7 +1457,14 @@ jobs:
             if ($letter === 'msg_reply') {
               $mrListing = trim($E('listing'));
               $mrBuyerQ  = trim($E('buyer'));
-              $mrBody    = trim($E('body'));
+              /* '\\n' = YENI SATIR (order_note'un msg= alaniyla ayni kural): girdi tek
+                 satir, oysa bir siparis dokumu (referans / renk / adet satirlari) tek
+                 paragraf olarak okunmaz. Site mesaji nl2br ile basiyor
+                 (inc/messages.php), yani satir sonlari gorunuyor; vestra_msg_send
+                 yalniz bosluk/tab'lari sadelestiriyor, satir sonuna dokunmuyor.
+                 SPEC AYRACI '|' ve ilk '=': govdede '|' olmamali; ASCII tirnak yerine
+                 tipografik ’ kullan (kabuk tirnaklamasina girmesin). */
+              $mrBody    = trim(str_replace('\\n', "\n", $E('body')));
               if ($mrListing === '' || $mrBuyerQ === '' || $mrBody === '') {
                 fwrite(STDERR, "msg_reply: listing= ve buyer= ve body= hepsi gerekli\n"); exit(1);
               }
