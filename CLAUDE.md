@@ -9794,6 +9794,96 @@ degistir ve tutari ayni olacak sekilde müsteriye email gönder spama düsmesin"
   30 Eyl** — model değişimi saati sıfırlamadı (bilerek: tutar aynı, müşteri
   bugün ödeyeceğini yazdı); (3) genel PDF ölçüsünü AFM'e taşımak ayrı bir iş.
 
+**KURAL 28 (devamı) — Ecokemet'e "tüm Lacoste, her renkten bir parça" numune
+kolisi: VES-3507BF86 / INV-2026-1022 (1 Eki 2026)** (operatör: *"Bana catalog takii
+tüm Lacoste ürünlerinin her renginden Sweatshirt Hoodie siyah kapsonlu haric
+<müşterinin e-postası> bu email sahibi musteri adına toptan fiyatlardan + shipping
+30 eur ekleyerek sipariş yap ve fatura olustur satıcı Vestra olucak"*; adres bu
+dosyaya yazılmaz).
+
+- **Müşteri adresten bulundu, adres açık girdiye YAZILMADAN:** `to=enc:<zarf>`
+  (`send-campaign-preview` → `reply_letter=terms_reply`, `send=false`) → `auth_find()`
+  TAM eşleşme → hesap `0d3670a2500e5b15` = **Ecokemet** (25 Eylül'de €80 numune
+  linkini alan aynı hesap; buyer/active, kapı açık, FR, VAT kayıtlı). Önizleme
+  hiçbir şey göndermedi.
+- **Miktar ve istisna talimattan değil YAZIŞMADAN okundu** (`thread_dump`, şifreli,
+  yerelde çözüldü): müşteri 30 Eylül'de *"Pouvez-vous mettre tous vos articles
+  Lacoste ?"* ve *"Une pièce de chaque couleur s'il vous plaît"* yazmış → **her
+  renkten 1 parça, ilk kademe toptan fiyatı**. *"Siyah kapüşonlu hariç"*, müşterinin
+  elindeki ücretli numune (SPL-FD5C39E1, **Zip Up Fleece Hoodie SH9626**) olarak
+  okundu: yalnız **SH9626 Black** çıkarıldı. **SH9623 Fleece Hoodie'nin Black'i
+  siparişte VAR** — operatör onu da kastettiyse tek satır düzeltme (`order_colours`
+  + `issue_redraft`). **Satılmış** `LAC-LT-TEE-01` (Trim Cotton Jersey, 12 Eyl)
+  alınmadı.
+- **İş akışının toptan dalı tam KARTON satışı için yazılmıştı ve canlı taslakta üç
+  şey ters çıktı** (commit `9a93e7e`): (1) adet, ilanın seri toplamına TESADÜFEN eşit
+  olan iki satırda (8 renkli 8'lik tişört, 10 renkli 10'luk sweatshirt) ilanın karton
+  serisi *beden dökümü* diye yazılacaktı — kimse o bedenleri seçmedi; (2) not *"full
+  cartons"* derken aynı notun devamı *"not a whole number of cartons"* diyordu;
+  (3) not alıcının kendi sipariş sayfasında okunuyor ama taslakta görünmüyordu.
+  Artık "her renkten bir parça" ise not **One piece of each colour.** diyor, döküm
+  yazılmıyor, not taslakta basılıyor. Test: `tests/order_wholesale_sample_test.php`
+  (**43 iddia**, iş akışı adımı bir site kopyasında gerçekten koşuyor; kontrol
+  grubu: tam karton siparişte eski davranış AYNEN). Altı sabotaj kırmızı
+  (4/5/1/3/1/3).
+- **Sipariş `VES-3507BF86`:** 11 kalem / **71 parça**, her renkten 1 — LAC-L1212 ×10
+  (@34,00), PH5522 ×9 (32,00), TH6709 ×8 (19,90), PH9863 ×4 (29,90), SH9623 ×8
+  (49,90), XH9624 ×5 (55,00), SH1927 ×5 (55,00), TH6710 ×4 (19,90), DH1417 ×2
+  (35,00), SH9626 ×6 (55,00), SH9608 ×10 (39,90) = mal **€2.734,60** + kargo
+  **€30,00** = **€2.764,60**. Fiyat `vestra_unit_price`'tan (ilk kademe), elle
+  yazılmadı; MOQ, paket adımı ve renk asgarisi feragatleri satırın notunda; kargo
+  elle (KURAL 34). **Demo polo (LAC-L1212, `lac-pique-polo`) dahil:** sepetin tahsil
+  ettiği ilk kademe €34,00, kayıtlı `list` alanı 29,90 — `price_audit`'in eski
+  "[A] alıcı aleyhine" satırı aynı kayıt; sipariş sepetin tahsil ettiği rakamla
+  yazıldı, düzeltilmedi.
+- **Kesen VESTRA** (`admin_mode=seller`, `payload=vestra`; geri okundu),
+  **INV-2026-1022** (Actions "22"yi maskeliyor: günlükte `INV-2026-10***`, `PH5522`
+  → `PH55***`), EUR, Banking Circle ödeme kutusu (KURAL 5r geçti), 2 sayfa.
+  **E-posta GÖNDERİLMEDİ, müşteriye hiçbir şey gitmedi** (KURAL 18; Arelisshop /
+  Easyauto24 emsali: "fatura oluştur" kes demek, gönder demek değil).
+- **BELGEYİ GÖZLE AÇMAK YENİ BİR KUSUR BULDU — hiçbir metin sondası bulamazdı** (28
+  Eyl'deki SKU sütununun aynı sınıfı): renk sütunu ~84 pt, 8 pt'de satır başına
+  10 pt ilerleyerek 4–6 satıra sarılıyordu; satır yüksekliği yalnız açıklama + SKU
+  satırından hesaplandığı için (30 pt) renkler **alttaki kalemin ve "Goods total"
+  bloğunun üstüne basıyordu**. Üretim adımının kendi ölçümleri (*"11/11 SKU çizili",
+  "toplam VAR", "ödeme kutusu VAR"*) hepsi DOĞRUYDU — hiçbiri NEREYE çizildiğini
+  sormuyordu. Düzeltme: `$rowH` renk satırlarını da sayıyor (`inc/invoice.php`).
+  **Sipariş özeti PDF'i aynı kusuru taşıyordu** (renk + beden alt bloğu için yalnız
+  TEK satırlık 10 pt ayrılıyordu): alt blok, sarıldığı satır sayısı kadar yer
+  ayırıyor (`inc/orders.php`). Tek renkli kalemlerin satır yüksekliği ESKİSİYLE
+  aynı (21 pt; alt blokla 31 pt) — var olan belgelerin düzeni kaymadı. Sipariş
+  *sheet* PDF'inin satır yüksekliği zaten kendi renk satırlarından kuruluyor
+  (kaynaktan okundu; çizdirilmedi).
+- **Aynı numarayla yeniden çizildi** (KURAL 5f; deploy `f789240`, run
+  `36891120351`): `(AYNI numarayla yeniden uretildi)`, 23.238 bayt, **sha256 değişti**
+  (`c6fba96a…` → `4d86d65e…`) — bayt sayısı AYNI kaldı çünkü yalnız y koordinatları
+  kaydı: *boyuta bakan bir sonda yeniden çizimi "değişmedi" sanırdı.* Şifreli PDF
+  yerelde çözüldü, sha256 kütükle birebir tuttu, PyMuPDF ile çizdirilip **gözle**
+  okundu: 9 kalem 1. sayfada, 2 kalem + toplam 2. sayfada, üst üste binme yok, 11
+  satırın renk sayıları adetlerle tutuyor, toplam doğru. Belge müşteriye gitmediği
+  için yeniden çizim kimsenin elindeki bir kopyayı geçersiz kılmadı.
+- Test: `tests/pdf_row_height_test.php` (**33 iddia**, koordinatlar **içerik
+  akışından**; renk parçaları kalemlere **akış sırasıyla** atfediliyor — y'ye göre
+  atfetmek, binen satırları yanlış kalemin sayar ve kusuru gizlerdi). Dört sabotaj,
+  her biri tek eşleşmeyle uygulandığı doğrulanarak: fatura formülü eskiye dönünce
+  **4 kırmızı**, sipariş özeti alt bloğu yine 10 pt ayırınca **2**, sayfa sonu
+  kontrolü alt bloğu saymayınca **1**, renkler ikinci kez farklı genişlikle
+  sarılınca **3**. **Kendi fixture hatam:** ilk yazımda en çok sarılan kalem
+  SONDAYDI ve eski (kusurlu) sipariş özeti davranışı davranış iddialarından
+  GEÇİYORDU — son kalemin altında "Goods total"a kadar bol yer var; falsifikasyon
+  yalnız kablolama iddiasını kırmızı gösterdi. En çok sarılan kalem ORTAYA alındı.
+  *İkinci küçük hata:* "renk adları belgede çizili" iddiası boşluksuz biçimi
+  arıyordu, aynı satırda kalan "Light Blue" ise boşluklu çiziliyor (kod doğru,
+  iddia yanlıştı) — iki yazım da kabul. Tam takım: önceden kayıtlı üç kırık dışında
+  yeşil (`dropship_plan` 4, `msg_read_receipt` 1, `msg_thread_label` 10).
+- **Operatör kararı bekleyen:** (1) faturayı müşteriye **göndermek** — PDF EKLİ yol
+  `reply_letter=order_invoice_pdf` + `to=order:VES-3507BF86` (KURAL 37 devamı 2; önce
+  `send=false`); panelin *Approve & issue* mektubu PDF taşımıyor, `payment_due` ise
+  5 iş günlük otomatik iptal saatini başlatır; (2) **SH9623 Black** kalsın mı
+  (yukarıda); (3) Fransa'daki alıcıya ABD'li tüzel kişi (Acerasoft LLC) adına
+  kesilen belgede KDV satırı ve ters ibraz notu YOK — rejim operatör kararı,
+  uydurulmadı.
+
 **24 Eyl 2026 — G7JV9-1 (D&G Logo T-Shirt): kayıt "White" diyordu, fotoğraf
 KIRMIZI — düzeltildi** (operatör, ilanın kendi sayfasından pasteledi:
 *"Logo T-Shirt — White … SKU G7JV9-1 tshirt rengi red olacak fotoda red ama
