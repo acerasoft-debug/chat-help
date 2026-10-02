@@ -648,7 +648,12 @@ jobs:
                hic BAKMIYORDU. Gormedigi bir dosya hakkinda hukum veren sonda,
                bu depoda ucuncu kez kayitli ders. pay_token $safe'te YOK ve
                asla eklenmemeli (jeton tek basina odeme sayfasini acar). */
-            $jsonFiles = ['order_statuses.json','offer_responses.json','listings.json','leads.json','samples.json'];
+            /* escrow.json 2 Eki 2026'da EKLENDI: kart/escrow siparisinin Stripe oturumu
+               ve escrow durumu (pending/held/...) hicbir sondada gorunmuyordu ve
+               VES-8E46FFA2'de "neden faturalanamiyor" sorusu ancak notlardaki ödeme
+               etiketinden tahmin edilebildi. Alici bilgisi (buyer dizisi) basilmaz;
+               oturum ve payment_intent yalniz VAR/YOK. */
+            $jsonFiles = ['order_statuses.json','offer_responses.json','listings.json','leads.json','samples.json','escrow.json'];
             $hits = 0;
 
             foreach ($csvFiles as $f) {
@@ -694,7 +699,9 @@ jobs:
                           numara degil -- IBAN/hesap no burada hic yok. */
                        'invoice_bank','invoice_bank_at','shipping_set_at',
                        /* samples.json (numune): tutar/durum/tarih; kisiye ait ve jeton YOK */
-                       'via','product_id','sku','amount','currency','created','link_sent_at','fulfilled'];
+                       'via','product_id','sku','amount','currency','created','link_sent_at','fulfilled',
+                       /* escrow.json: tutarlar (sent) ve yasam dongusu damgalari */
+                       'fee','total','commission','payout','released_at','refunded_at'];
               foreach ((array)$d as $k => $rec) {
                 if (stripos((string)$k, $needle) === false) continue;
                 if (!is_array($rec)) continue;
@@ -707,6 +714,8 @@ jobs:
                 if (array_key_exists('session_id', $rec)) $line[] = 'stripe_oturumu='.(str_starts_with((string)$rec['session_id'], 'cs_') ? 'VAR' : 'YOK');
                 if (array_key_exists('pay_token', $rec))  $line[] = 'jeton='.(strlen((string)$rec['pay_token']) === 32 ? 'VAR (32)' : 'YOK');
                 if (array_key_exists('ship_to', $rec))    $line[] = 'teslimat_adresi='.(!empty($rec['ship_to']) ? 'VAR' : 'YOK');
+                if (array_key_exists('payment_intent', $rec)) $line[] = 'payment_intent='.(str_starts_with((string)$rec['payment_intent'], 'pi_') ? 'VAR' : 'YOK');
+                if (is_array($rec['pay_method_changed'] ?? null)) $line[] = 'odeme_yolu_degisti='.(string)($rec['pay_method_changed']['from'] ?? '?').'->'.(string)($rec['pay_method_changed']['to'] ?? '?').' '.substr((string)($rec['pay_method_changed']['at'] ?? ''), 0, 16);
                 if ($line) echo "   ".mb_substr((string)$k, 0, 24)."  ".implode(' | ', $line)."\n";
                 if (!empty($rec['history']) && is_array($rec['history'])) {
                   foreach (array_slice($rec['history'], -6) as $h) {
