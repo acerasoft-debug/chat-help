@@ -688,6 +688,11 @@ jobs:
                        'invoice_at','invoice_currency','invoice_seller_uid','shipping','disputed',
                        'payment_grace_start','payment_reminder_sent_at','escrow_status',
                        'invoice_paid_at','invoice_group_ref',
+                       /* 2 Eki 2026: banka profili + kesim kapisinin iki karar damgasi
+                          (KURAL 43). Yoklardi; "banka secildi mi, kargo girildi mi"
+                          sorusunu sonda cevaplayamiyordu. Profil ANAHTARI ('nl') bir
+                          numara degil -- IBAN/hesap no burada hic yok. */
+                       'invoice_bank','invoice_bank_at','shipping_set_at',
                        /* samples.json (numune): tutar/durum/tarih; kisiye ait ve jeton YOK */
                        'via','product_id','sku','amount','currency','created','link_sent_at','fulfilled'];
               foreach ((array)$d as $k => $rec) {
