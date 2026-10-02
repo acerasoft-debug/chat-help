@@ -1249,6 +1249,114 @@ siparis geldiginde otomatik Vestra siparislerine bu bankayi ekle"*).
   form/kayıt yolu kablolaması). Sabotajın gerçekten uygulandığı `grep -c` ile
   doğrulanarak: rails kuralı geri alınınca **3 kırmızı**, IBAN kapısı silinince **2**.
 
+**KURAL 43 — PLATFORMUN BANKA PROFİLLERİ: ikinci bir EUR hesabı DÜZ KÜNYEYİ
+EZMEZ, belge başına SEÇİLİR; profil yoksa ya da birimi tutmuyorsa kesim DURUR**
+(operatör, 2 Eki 2026: *"VES-2DDC94D9 bu siparisi 10 ad. navy white ve 10 ad.
+white navy seklinde yap ayrica yüzde 5 lik welcome indirimi ile + 20 eur
+shipping ve Hollanda bankasi ile olustur banka secimi kargo ve digerler
+secilebilmeli adminden"* + aynı turda Airwallex (Netherlands) B.V. üzerinde
+Acerasoft LLC adına NL/SEPA IBAN'lı hesap).
+
+- **Rakamlar bu dosyaya, test fikstürüne, iş akışı girdisine ve kütüğe
+  GİRMEDİ** (Güvenlik bölümü; KURAL 5r'nin 19 Eyl'de ödediği ders). IBAN önce
+  **sitenin kendi doğrulayıcısıyla** yerelde ölçüldü (`vestra_iban_normalize` +
+  `vestra_iban_valid` → NL, 18 hane, mod-97 GEÇERLİ — geçmeseydi yazıcı hiçbir
+  alanı kaydetmezdi), sonra `scripts/envelope_seal.php` ile **şifreli zarfa**
+  kondu (`create_buyer`/`to=enc:` zarfının aynısı; zarf dosyasında rakam 0,
+  `***` 0) ve `seller-products.yml` → `admin_mode=platform_bank` + zarfta
+  **`bank_key`** ile yazıldı. Kütükte yalnız `NL, 18 hane, mod-97 GECERLI`,
+  profil adı, lehdar ve banka adı var. *Kütükte BIC'in sonu `***` görünüyor:
+  Actions'ın "22" maskesi, veri hatası değil.*
+- **NEDEN PROFİL, neden düz künyeye yazılmadı:** düz kayıt tam olarak BİR EUR
+  rayı (Almanya/Banking Circle, 17 Eyl) ve BİR USD rayı taşıyor. Hollanda
+  IBAN'ını `bank_iban`'a yazmak Alman IBAN'ını **silerdi** — "bu faturada hangi
+  banka" hiçbir zaman bir seçim olmaz, "en son hangisi girildi" olurdu.
+  Profiller `platform_seller.json['banks'][<anahtar>]` altında (label,
+  currency, holder, IBAN/BIC/banka adı/adresi ya da hesap no/ABA); **düz
+  alanlar varsayılan ray olarak AYNEN duruyor**, yani bugüne kadarki her fatura
+  birebir eskisi gibi kesiliyor (düz künye: EUR 5 / USD 6 satır, DEĞİŞMEDİ).
+- **Seçim kardeşlerinin yanında:** `order_statuses[ref].invoice_bank` ve
+  `offer_responses[ref].invoice_bank` — `invoice_currency` ve
+  `invoice_seller_uid`'in hemen yanı. `vestra_order_invoice_payloads()` 'vestra'
+  dilimine **profille bindirilmiş** platform kaydını veriyor
+  (`vestra_platform_seller_bank($key)`): kayıt `id` taşımıyor, yani kesen hâlâ
+  platform (`vestra_invoice_is_platform_issuer`), dosya anahtarı ve numara
+  sayacı değişmiyor, çizici / taslak notları / KURAL 5r muhafazası **aynı**
+  kaydı okuyor. Teklif yolu da aynı: `vestra_offer_invoice_seller()` ve
+  `vestra_offer_invoice_payload()` `$bankOverride` alıyor, birleşik belge
+  birincil ref'ten okuyor.
+- **EUR profili EUR rayının DÖRT alanını da yeniden yazıyor, dolu olsun
+  olmasın:** BIC'siz bir profil Hollanda IBAN'ının yanına Alman bankasının
+  BIC'ini basmamalı (KURAL 5j: çelişen çift, eksik satırdan pahalı). **Ray
+  seçimi yine para biriminin** (KURAL 5s) — profil yalnız o rayın alanlarını
+  değiştirir; USD profil EUR belgede hiçbir şey yapmaz ve bu zaten **durma**
+  sebebi.
+- **İki yerde DURUR, numara yanmadan:** seçili profil artık yoksa
+  (`bank_error`) ya da profilin birimi belgenin biriminden farklıysa
+  (`vestra_platform_bank_mismatch`). Alternatif, operatörün seçmediği bir
+  hesabı taşıyan bir belge. Üç kesim yolu da (`vestra_issue_order_invoices`,
+  `vestra_offer_issue_invoice($force)`, `vestra_offers_combined_invoice_issue`)
+  KURAL 5r'nin kapısının **yanında**, aynı "hep ya da hiç" kalıbıyla.
+- **`bank_address` BİLEREK BOŞ:** operatörün verdiği *"Netherlands (SEPA)"* bir
+  konum, banka adresi değil — uydurmak KURAL 3'ün yasakladığı şey. Belçikalı
+  alıcı SEPA içinde, IBAN yeter; kutu bu yüzden **4 satır** (Alman profili 5).
+  Panelden eklenirse 5'e çıkar.
+- **Panel:** `Admin ▸ Orders ▸ 🏦 Platform billing` altında *Bank profiles*
+  tablosu + form (IBAN listede yalnız `ülke · hane · mod-97`), sipariş
+  dosyasında **"Payment account (platform)"** seçicisi + `💳 Save bank`, iki onay
+  kuyruğunda da (sipariş satırı ve teklif satırı) aynı seçici — birim
+  seçicisiyle **aynı form**. Profil birimi ≠ belge birimi ise kırmızı çip
+  (*"kesim durur"*), tıklamadan önce. **Kesilmiş belgede seçim reddediliyor**
+  (`invoice_bank_late`; belge alıcının elinde, yol KURAL 5f).
+- **İş akışı:** `admin_mode=bank` (`issue_ref=<sipariş ya da teklif>`,
+  `payload=<anahtar | clear>`) — yazıp geri okuyor ve seçimin belgede ne
+  yaptığını **kesimin sorduğu aynı gövdelerle** basıyor (kutu satır sayısı,
+  lehdar, banka adı, profil etiketi, uyumsuzluk); `platform_bank` zarfında
+  `bank_key` varsa düz künyeye değil profile yazıyor. Sonda: `diag-messages` →
+  `billing_for=vestra` profilleri listeliyor (VAR/YOK + satır sayısı).
+- **`order_colours` artık `Renk=Adet` alıyor** (*"10 ad. navy white ve 10 ad.
+  white navy"*): toplam satırın adediyle TUTMAK zorunda (20'ye 10+5 yazmak 5
+  parçanın rengini belgeden düşürmek), ya hepsi adetli ya hiçbiri, ve kırılım
+  `vestra_order_add_line()`'ın yazdığı **AYNI** cümleyle nota giriyor
+  (`SKU colour split: A×10, B×10.`) — ikinci bir biçim `order_replace_line`'ın
+  temizliğini kaçırırdı.
+- **VES-2DDC94D9 (JEDDI & CO, BE), sırayla ve her adım geri okunarak:**
+  profil `nl` yazıldı → renk `Navy/White=10,White/Navy=10` (fatura `Navy/White,
+  White/Navy` görüyor; **ilan yalnız "Navy" satıyor**, `not_listed` uyarısı
+  basıldı, ilana DOKUNULMADI — belge satılan malı yazar, ilanı değiştirmek her
+  alıcının gördüğü şeyi değiştirir) → navlun 20 (mal 1.198,00 − WELCOME5
+  **59,90 dokunulmadı** + 20,00 = **1.158,10**, geri okundu) → banka `nl`
+  (*"EUR odeme kutusu: CIKAR (4 satir) · Beneficiary: Acerasoft LLC ·
+  Beneficiary bank: Airwallex (Netherlands) B.V."*). Kesen zaten `vestra`.
+  **Fatura KESİLMEDİ, müşteriye hiçbir şey gitmedi:** *"olustur"* "kes" mi
+  "hazırla" mı belirsiz (O748EE dersi) — numara yakmak geri alınmaz, sormak bir
+  tur gecikir.
+- Test: `tests/platform_bank_profiles_test.php` (**106 iddia**, iki yön: profil
+  seçilince belgede NL IBAN **var**, DE IBAN **yok**; kontrol grubu düz kayıt
+  eskisi gibi; silinmiş profil ve EUR belgede USD profil **durur**; teklif yolu;
+  `admin.php` kum havuzunda çizdiriliyor — seçiciler ve çipler var, PHP uyarısı
+  0). Yedi sabotaj, her biri **tam 1 eşleşmeyle uygulandığı** doğrulanıp `cp`
+  yedeğinden geri alınarak: bindirme kapatılınca **5 kırmızı**, EUR profili eski
+  BIC'i bırakınca **1**, eksik-profil kapısı kalkınca **1**, uyumsuzluk kapısı
+  kalkınca **2**, tanınmayan anahtar kabul edilince **1**, teklif bindirmesi
+  kapatılınca **3**, düz yazıcı profilleri düşürünce **6**. Üç eval-sandbox
+  testi (`invoice_seller_pick`, `offers_flow`, `offers_rounds`) belgeli stub
+  aldı; `invoice_currency_test`'in iki pinlenmiş dizgesi bilerek değişen imza
+  için güncellendi; `platform_bank_save_test` tarama penceresi 8.000 → 20.000
+  (adım büyüdü); `no_real_iban_test` izin listesine ABN AMRO'nun **sentetik**
+  örnek IBAN'ı girdi (fikstür).
+- **Kendi ölçüm hatalarım:** (1) `vestra_platform_seller_save` geri okuması
+  `banks` dizisini dizgeyle karşılaştırıp *"Array to string conversion"* verdi →
+  `json_encode`; (2) test `'987654321'` bekledi, `preg_replace` 10 hane
+  bırakıyor — **kod doğruydu, iddia yanlıştı**; (3) PDF parantezi kaçırıyor,
+  `Airwallex (Netherlands) B.V.` birebir aranamaz → `Beneficiary bank: Airwallex`
+  + `Netherlands`; (4) çizim iddiası düz platform formunun `<input value=…>`'una
+  önceden doldurulan DE IBAN'ı yakaladı (operatöre özel sayfa, mevcut davranış)
+  → iddia "profil IBAN'ı yok + maske var"a daraltıldı.
+- **Deploy yarışı:** aynı dalda ikinci bir oturum çalışıyor; cherry-pick'ten
+  önce `merge --ff-only origin/<deploy dalı>` alındı (bu dosyanın *"iki deploy
+  aynı anda koşuyorsa sonuncusu kazanır"* dersi).
+
 **KURAL 5r — ÖDEME KUTUSU BOŞSA FATURA KESİLMEZ; "otomatik kullanılmıyor" bir
 VERİ sorusuydu, kod sorusu değil** (operatör, 19 Eyl 2026: *"sana verdigim
 acerasoft LLC alman hesabi avrupa müsterilerinde otomatik kullanilmiyor … bu
@@ -4980,6 +5088,25 @@ ezildi).
   `echo "-----BEGIN DUMP ENC-----"` satırı da işaretçiye uydu ve gövde bozuldu
   (`body decrypt fail`). Yalnız `out: ` önekli satırlar okunmalı (27 Eyl'de
   kayıtlı ders, bu sefer `grep "Z out: "` ile).
+
+**KURAL 19 (devamı) — JEDDI & CO ↔ VESTRA Support (gd-t04) konuşması Marca
+Online'a taşındı; "bu mesajı gönder" denen METİN gelmedi, gönderilmedi**
+(operatör, 2 Eki 2026: *"bu konuşmayı Marca Online satıcısına ayarla ve … bu
+mesaji gönder"* — iki kez konuşma başlığı yapıştırıldı, mesaj metni yapıştırılmadı).
+- `seller-products.yml` → `admin_mode=thread_seller`, `move_to=0cb79eb883f2a0fa`,
+  `move_threads=ilan:gd-t04`; kuru koşu **tek** konuşma gösterdi
+  (`61e5110243cb4970`, 3 mesaj, satıcı `vestra-support`, eski satıcının adı
+  metinde 0, engellenen kayıt 0, çakışan thread yok), sonra `move_apply=true`:
+  `vestra-support ⇒ Marca Online | id 61e5110243cb4970 ⇒ 56b196f473c46ae1`,
+  yedek `messages.json.bak-20261002-084158`, **1/1 geri okundu**. Yedi gün
+  önceki Odzież vakasının (26 Eyl) birebir aynı yolu; ilanın `seller_uid`'ine
+  **dokunulmadı** (bu ilan platformun, kesen `vestra` — KURAL 5b sırası).
+- **Mesaj gönderilmedi:** gönderilecek metin verilmedi; tahmin edilmez
+  (KURAL 18). Gelince `msg_reply` Marca Online adına, önce kuru koşu.
+- *Ölçüm notu:* `move_apply=true` koşusu GitHub tarafında bir dakika geç
+  kuyruğa girdi ve o arada kardeş oturumun push'u (`2942cdb`) geldiği için koşu
+  **yeni sha** ile açıldı — adım betiği iki commit'te de aynı, sonuç aynı. Koşu
+  listesinde "benim koşum" diye bakılacak şey saat değil, **çalışan adım**.
 
 - **KURAL 20 — Her pakette TAŞIYICI + SERVİS + takip BAĞLANTISI; bağlantı
   numaradan TÜRETİLİR** (operatör, 9 Eyl 2026: *"bu gönderim numarasini ekle
