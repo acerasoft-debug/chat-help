@@ -9900,6 +9900,83 @@ dosyaya yazılmaz).
   istenen kod **gereksiz çıktı**; iş akışı yazılmadan önce kaydı ölçmenin bedeli
   tam da buydu. Müşteriye hiçbir şey gönderilmedi.
 
+**KURAL 28 (devamı) — LA ISLA DE MIRABEL / O7BA9A / INV-2026-1021: operatörün
+İSPANYOLCA metni SİTE MESAJI olarak gitmişti, E-POSTA olarak istendi; `order_note`
+artık es/fr/de ve hitapsız yazabiliyor** (operatör, 1 Eki 2026 20:13 UTC, İspanyolca
+bir mektup metni yapıştırıp: *"bu emaili vertradan email ile gönderecektin mesaj
+ile degil"*).
+
+- **Hangi sipariş, kayıttan ölçüldü (`order_audit`, 2 Eki 07:33 UTC):** INV-2026-1021 =
+  teklif **O7BA9A**, alıcı **LA ISLA DE MIRABEL SL** (ES, hesap `1ec02a5935275dd6`),
+  80 × DH1417 @ €31 (Black ×40, Blue ×40) + €30 kargo = **€2.510,00**, kesen VESTRA.
+  Ödenmemiş, dekont yok, ödeme saati açık (son gün **8 Eki**), hatırlatma 1 Eki
+  14:00 UTC'de gitmiş; teklif mektubu, fatura bağlantısı, PDF'li fatura ve
+  hatırlatmanın hepsi Brevo'da `delivered` + `opened`. Metindeki *"Fred Perry …
+  pedido anterior"* cümlesi **VES-A11C0C97** ile tutuyor (104 × TH6710 + 60 × M7535 +
+  100 × M3600, €7.465,62, kısmi gönderim 29 Eyl).
+- **Metin zaten bir kez gitmişti — SİTE MESAJI olarak** (`thread_dump`, şifreli, yerelde
+  çözüldü + Brevo): 1 Eki **19:48:10 UTC** operatör gelen kutusuna *"💬 VESTRA message —
+  GARAGE LE PARIS (listing lac-monogram-polo)"* düştü; alıcıya yalnız **içeriksiz**
+  zil gitti (*"nuevo mensaje de Seller DH1417"*, 19:48:11 delivered, 19:49:41
+  **opened**) — KURAL 8: satıcı ident'le görünür, **içerik sitede kalır**. Yani
+  operatörün şikâyeti doğru: konuşmaya yazılan şey müşterinin posta kutusuna metin
+  olarak **hiç ulaşmaz**. 20:18'de iplikte yalnız teklif kartı vardı (mesaj
+  silinmiş; kim sildiği kayıtta yok, büyük olasılıkla panelin 🗑'sü). Gönderen bu
+  oturumun kaydında yok — o dakikalarda bu oturum bağlam özetliyordu; aynı dalda
+  çalışan diğer oturumun `msg_reply`'ı olması muhtemel, **doğrulanmadı**.
+  *Ders:* operatör **"email"** derse `msg_reply` değil mektup kipi (`order_note` ya da
+  uyan başka `reply_letter`); `msg_reply` yalnız **"mesaj"** denince.
+- **Kodda neden değişiklik gerekti:** `vestra_tpl_order_note()` İngilizce *"Dear … /
+  Kind regards"* kabuğu giyiyordu; operatörün metni kendi *"Hola,"*sıyla başladığı
+  için sonuç **çift hitap + karma dil** olurdu, ve metin İspanyolca olduğu hâlde
+  düğme/rozet/imza satırı İngilizce kalırdı. Şimdi `$lang` (en|fr|de|es) ve `$greet`:
+  rozet, düğme, konu, kapanış ve hitap seçilen dilde; `nogreet=1` metni **olduğu
+  gibi** başlatır. **Varsayılan (en) davranış BİREBİR AYNI** — eski fonksiyon ile 480
+  kombinasyon (5 ad × 2 sipariş no × 4 metin × 2 konu × hesap var/yok × 3 imza) bayt
+  bayt karşılaştırıldı; açık `en` + hitap ve **tanınmayan dil** de aynı baytı veriyor.
+  Yani var olan `order_note` kullanımları değişmedi.
+- **İş akışı** (`send-campaign-preview.yml`, `order_note` dalı): `lang=` ve
+  `nogreet=1` spec anahtarları. **Tanınmayan dil DURUR** (`lang=pt` sessizce
+  İngilizceye düşmez). **Çift hitap uyarısı:** metin bir hitapla başlıyorsa ve
+  `nogreet` verilmemişse önizleme *"UYARI … çift hitap"* basıyor — operatörün
+  metnini bozmadan ama **göstererek**. Dedektör kelime sınırlı (`\b`): *Holanda,
+  Hindi, Hiking boots, Dearest, Estimation* hitap sayılmaz (mango/zara dersinin
+  hitap hâli).
+- **Önizleme (KURAL 18) operatörün kutusunda:** `copy=true`, 1 Eki 20:29:25 UTC,
+  *"MUSTERIYE GITMEDI"*. İçerik operatörün metninin **birebir 4 paragrafı**
+  (`\n` literal dizisiyle), *"Un cordial saludo,"*, Marco Bellini, konu *"VESTRA — su
+  pedido O7BA9A está listo para el envío (factura INV-2026-1021)"*. Günlük metni
+  basmıyor, yalnız uzunluk (738 karakter / gövde 798).
+- **GÖNDERİLMEDİ, ve sebepleri ölçülmüş:** (1) *"gönderecektin"* geçmiş zaman —
+  şimdi mi gitsin sorusunu açık bırakıyor; (2) metin *"el pedido de hoy"* diyor ve
+  üstünden 11 saat geçti; (3) *"las últimas 100 unidades"* **operatörün kendi
+  beyanı** — `lac-monogram-polo` kaydında `stock` alanı **yok** (MOQ 80, kademe €35,
+  Black/Blue, approved, satılmamış), kodla doğrulanamıyor ve KURAL 3 stok rakamı
+  uydurmayı yasaklıyor; (4) alıcı metni sitede zaten okumuş olabilir. Hedef ve
+  *"gönder"* aynı mesajda **açıkça** yazılmadığı için KURAL 18'in dar istisnası
+  uygulanmadı: **operatör "gönder" diyene kadar bekliyor.** Gönderim tek dispatch
+  (`reply_letter=order_note`, aynı spec, `copy=true` yerine `send=true`); göndermeden
+  **hemen önce** `order_audit` yeniden koşulur (ödeme ya da paralel bir mektup var
+  mı).
+- Test: `tests/order_note_lang_test.php` (**70 iddia**; §1 eski İngilizce davranış
+  **harfiyen** pinli, §2 İspanyolca hitapsız/hitaplı, §2c fr/de, §2d diller arası
+  sızıntı yok, §3 iş akışı kablolaması kaynaktan çıkarılıp, §3b hitap dedektörü
+  kaynaktan **çıkarılıp 14 pozitif + 10 negatif örnekle koşturuluyor**). Dokuz
+  sabotajın dokuzu kırmızı, her biri tek eşleşmeyle uygulandığı doğrulanarak ve `cp`
+  yedeğinden geri alınarak: varsayılan dil es olunca **5**, `$greet` yok sayılınca
+  **2**, es kapanışı İngilizce kalınca **3**, es düğmesi İngilizce kalınca **2**,
+  `lang`/`greet` çağrıya geçmeyince **1**, tanınmayan dil durmayınca **1**, uyarı
+  silinince **1**, `nogreet` ters çevrilince **1**, dedektör `\b`'siz **5**.
+  Rebase sonrası tam takım: **129 geçti**, yalnız önceden kayıtlı üç kırık
+  (`dropship_plan` 4, `msg_read_receipt` 1, `msg_thread_label` 10).
+  **Kendi hatam:** "tanınmayan dil durur" iddiasının ilk regex'i `[^}]*` ile yazılmıştı
+  ve mesaj metnindeki `{$onLang}`'ın kapanış parantezinde bitip hiçbir yere uymadı
+  (`[^\n]*?` ile düzeldi) — hiç düşemeyen bir iddia olacaktı.
+- **Ecokemet bekliyor (aynı gün, ayrı iş):** PDF'li fatura e-postası ve Fransızca site
+  mesajı hazır ve önizlendi, **operatörün "gönder"i yok**. Sunucu cron'u
+  `payment_due`'yu **2 Eki 14:00 UTC'de** otomatik gönderip 5 iş günlük saati
+  başlatacak; PDF'li mektup istenirse ondan önce gitmeli.
+
 **24 Eyl 2026 — G7JV9-1 (D&G Logo T-Shirt): kayıt "White" diyordu, fotoğraf
 KIRMIZI — düzeltildi** (operatör, ilanın kendi sayfasından pasteledi:
 *"Logo T-Shirt — White … SKU G7JV9-1 tshirt rengi red olacak fotoda red ama
