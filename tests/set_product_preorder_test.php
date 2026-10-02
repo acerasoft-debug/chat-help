@@ -54,6 +54,9 @@ $seed = function () use ($listings) {
         $base + ['id'=>'gd-a','name'=>'Alpha Tee'],
         array_merge($base, ['id'=>'gd-b','name'=>'Beta Tee','sold_out'=>true]),
         array_merge($base, ['id'=>'gd-c','name'=>'Gamma Tee','status'=>'pending']),
+        // marka kapsami denetimi icin: ayni marka, KUCUK HARFLI yazim, REDDEDILMIS
+        // (vestra_products() bunu hic gostermez) -- dosyada olmayan "kardes"
+        array_merge($base, ['id'=>'gd-d','name'=>'Delta Tee','brand'=>'gallery dept.','status'=>'rejected']),
         // kontrol grubu: baska marka, kendi tarihi var -- hicbiri degismemeli
         ['id'=>'lac-x','brand'=>'Lacoste','cat'=>'Polos','mode'=>'fixed','name'=>'Control Polo','moq'=>10,
          'list'=>70.20,'tiers'=>[['min'=>10,'price'=>70.20]],'status'=>'approved','preorder_ship'=>'2031-03-03'],
@@ -115,6 +118,8 @@ $t('SAYFA fonksiyonu kaydi okuyup cumleyi basiyor',    vestra_preorder_note($m['
 $t('KONTROL GRUBU: baska markanin ilani AYNEN',        json_encode($m['lac-x'] ?? null) === $ctlBefore);
 $t('yedek alindi',                                     count(glob($listings.'.bak-*')) >= 1);
 $t('SATILDI bayragi bu yazmada degismedi (gd-b)',      !empty($m['gd-b']['sold_out']));
+$t('dosyada OLMAYAN kardes (gd-d) dokunulmadi',        !isset($m['gd-d']['preorder_ship']));
+$t('uygulama kipinde de marka kapsami basiliyor',      str_contains($out2, 'MARKA KAPSAMI: Gallery Dept.'));
 
 echo "\n== 3. IDEMPOTENT: ayni dosya ikinci kez 0 degisiklik ==\n";
 [$rc3, $out3] = $run($three($fut), false);
@@ -161,6 +166,29 @@ $t('"Tee" uc ilana uyar -> is DURUR',                  $rce !== 0);
    oncelikli): ilk yazimda bu satir alan YAZILMISSA bile dolu dizgeyi dondurup
    gecerdi -- hic dusemeyen bir iddia. Tek ve acik: alan hic yok. */
 $t('hicbir ilan yazilmadi (alan hic yok)',             !isset(($byId())['gd-a']['preorder_ship']) && !isset(($byId())['gd-b']['preorder_ship']));
+
+echo "\n== 7. MARKA KAPSAMI: operator markayi soyler, dosya id listesidir ==\n";
+/* 2 Eki 2026, Gallery Dept. / Casablanca: "Casablanca urunleri" denince dosya bir
+   id LISTESI. Listede olmayan bir kardes (sonradan eklenen, onay bekleyen,
+   reddedilmis) SESSIZCE eski durumunda kalir ve operator "tum marka" yazdigini
+   sanir. Arac artik markanin ham listedeki TUM ilanlarini sayip dokunulmayanlari
+   adiyla yaziyor. Yalniz okur: hicbir sey yazmaz. */
+$seed();
+[, $o7a] = $run($three($fut), false);
+$t('kismi kapsam: sayi + dokunulmayan kardes adiyla yaziliyor',
+   str_contains($o7a, 'MARKA KAPSAMI: Gallery Dept. kayitta 4 ilan, bu dosya 3 tanesine dokunuyor; DOKUNULMAYAN 1: gd-d[rejected]'));
+$t('KUCUK HARFLI marka yazimi AYNI marka sayiliyor (4, 3 degil)', str_contains($o7a, 'kayitta 4 ilan'));
+$t('REDDEDILMIS kardes de sayiliyor (ham liste, her durum)',      str_contains($o7a, 'gd-d[rejected]'));
+$t('dokunulmayan marka (Lacoste) hic anilmiyor',                  !str_contains($o7a, 'MARKA KAPSAMI: Lacoste'));
+$seed();
+$b7 = (string)file_get_contents($listings);
+[, $o7b] = $run(array_merge($three($fut), [$fix('gd-d', $fut)]), false);
+$t('tam kapsam: "markanin TUM 4 ilani bu dosyada"',               str_contains($o7b, 'MARKA KAPSAMI: Gallery Dept. -- markanin TUM 4 ilani bu dosyada'));
+$t('tam kapsamda "DOKUNULMAYAN" yok',                             !str_contains($o7b, 'DOKUNULMAYAN'));
+$t('kuru kosu dosyaya dokunmadi (kapsam denetimi dahil)',         (string)file_get_contents($listings) === $b7);
+[, $o7c] = $run(array_merge($three($fut), [$fix('gd-d', $fut), $fix('lac-x', $fut)]), false);
+$t('iki marka dokunulunca IKI satir (Gallery + Lacoste)',         str_contains($o7c, 'MARKA KAPSAMI: Gallery Dept.') && str_contains($o7c, 'MARKA KAPSAMI: Lacoste -- markanin TUM 1 ilani bu dosyada'));
+$t('kapsam satiri ilan baslarina karismiyor (gd-a blogu temiz)',  !str_contains($block($o7a, 'gd-a'), 'MARKA KAPSAMI'));
 
 foreach (array_merge([$listings], glob($listings.'.bak-*') ?: []) as $f) @unlink($f);
 @unlink($home.'/public_html');

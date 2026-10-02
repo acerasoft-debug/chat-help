@@ -10148,17 +10148,32 @@ ile degil"*).
   (`\n` literal dizisiyle), *"Un cordial saludo,"*, Marco Bellini, konu *"VESTRA — su
   pedido O7BA9A está listo para el envío (factura INV-2026-1021)"*. Günlük metni
   basmıyor, yalnız uzunluk (738 karakter / gövde 798).
-- **GÖNDERİLMEDİ, ve sebepleri ölçülmüş:** (1) *"gönderecektin"* geçmiş zaman —
+- **İlk rapor GÖNDERMEDİ, sebepleri ölçülmüştü:** (1) *"gönderecektin"* geçmiş zaman —
   şimdi mi gitsin sorusunu açık bırakıyor; (2) metin *"el pedido de hoy"* diyor ve
   üstünden 11 saat geçti; (3) *"las últimas 100 unidades"* **operatörün kendi
   beyanı** — `lac-monogram-polo` kaydında `stock` alanı **yok** (MOQ 80, kademe €35,
   Black/Blue, approved, satılmamış), kodla doğrulanamıyor ve KURAL 3 stok rakamı
   uydurmayı yasaklıyor; (4) alıcı metni sitede zaten okumuş olabilir. Hedef ve
   *"gönder"* aynı mesajda **açıkça** yazılmadığı için KURAL 18'in dar istisnası
-  uygulanmadı: **operatör "gönder" diyene kadar bekliyor.** Gönderim tek dispatch
-  (`reply_letter=order_note`, aynı spec, `copy=true` yerine `send=true`); göndermeden
-  **hemen önce** `order_audit` yeniden koşulur (ödeme ya da paralel bir mektup var
-  mı).
+  uygulanmadı ve operatöre sorulacak şekilde bırakıldı.
+- **GÖNDERİLDİ (2 Eki 2026 08:20:32 UTC), operatörün "gönder"inden SONRA** (operatör,
+  08:09:12 UTC: *"gönderdinmi e postalari gönder"*; yukarıdaki dört çekince rapora
+  yazılmıştı ve o yine de gönder dedi, **metin değiştirilmedi**). Onayın gerçek bir
+  operatör mesajı olduğu transkriptten doğrulandı (bir arka plan bildirimi onay
+  değildir). Göndermeden hemen önce `order_audit` (08:12 UTC): O7BA9A hâlâ ödenmemiş,
+  dekont yok, saat işliyor (son gün 8 Eki), Brevo'da bu konuyla ikinci mektup yok.
+  - **İlk deneme DÜŞTÜ ve hiçbir şey göndermedi:** koşu `36982785627`,
+    `dial tcp …: i/o timeout`. Adım listesi kanıt: `betik 1/2` **failure**,
+    `betik 2/2 + çalıştır` **skipped** — PHP hiç koşmadı. Denemeyle bir önceki
+    başarılı SSH (`order_audit`, 08:12:06) arasında **~1 dakika** vardı; barındırıcı
+    ardışık bağlantıyı kesiyor (KURAL 38'de kayıtlı). Yeniden deneme çift gönderim
+    riski taşımıyordu *çünkü bu kanıt vardı* — yalnız "failure" kelimesi yetmezdi.
+    ~6,5 dk arayla ikinci deneme geçti.
+  - **Parmak izi önizlemeyle birebir:** metin **738**, gövde **798** karakter, dil es,
+    `nogreet`, imza Marco Bellini, konu *"VESTRA — su pedido O7BA9A está listo para el
+    envío (factura INV-2026-1021)"* → `GONDERILDI -> l***@gmail.com` (koşu
+    `36983454544`). Brevo (08:33 `order_audit`): **`requests` + `delivered`**; `opened`
+    henüz yok (teslim ≠ posta kutusu, açılma yokluğu da kanıt değil).
 - Test: `tests/order_note_lang_test.php` (**70 iddia**; §1 eski İngilizce davranış
   **harfiyen** pinli, §2 İspanyolca hitapsız/hitaplı, §2c fr/de, §2d diller arası
   sızıntı yok, §3 iş akışı kablolaması kaynaktan çıkarılıp, §3b hitap dedektörü
@@ -10173,10 +10188,22 @@ ile degil"*).
   **Kendi hatam:** "tanınmayan dil durur" iddiasının ilk regex'i `[^}]*` ile yazılmıştı
   ve mesaj metnindeki `{$onLang}`'ın kapanış parantezinde bitip hiçbir yere uymadı
   (`[^\n]*?` ile düzeldi) — hiç düşemeyen bir iddia olacaktı.
-- **Ecokemet bekliyor (aynı gün, ayrı iş):** PDF'li fatura e-postası ve Fransızca site
-  mesajı hazır ve önizlendi, **operatörün "gönder"i yok**. Sunucu cron'u
-  `payment_due`'yu **2 Eki 14:00 UTC'de** otomatik gönderip 5 iş günlük saati
-  başlatacak; PDF'li mektup istenirse ondan önce gitmeli.
+- **Ecokemet — PDF'li fatura e-postası GÖNDERİLDİ (2 Eki 2026 08:26:33 UTC), Fransızca
+  site mesajı BEKLİYOR.** Operatörün *"e postalari gönder"* cümlesi iki **e-postayı**
+  (LA ISLA + Ecokemet PDF'li fatura) kapsıyor. Fransızca parça bir **site mesajı** ve
+  *"email → mektup kipi, mesaj → msg_reply"* ayrımı bu bölümün kendi dersi (yukarı):
+  ikisi arasında kendiliğinden köprü kurulmadı, ayrı onay bekliyor (KURAL 18).
+  - `order_invoice_pdf` (koşu `36984009355`): ödeme saati `unstamped` → mektuba tarih
+    yazılmadı; belge INV-2026-1022 (günlükte `INV-2026-10***`), PDF **23.238 bayt**
+    (1 Eki 16:19 UTC çizimi, satır yüksekliği düzeltmesinden sonraki), `kayıt: son
+    değişiklik yok`, toplam **EUR 2.764,60** (sipariş satırıyla aynı), ek
+    `Invoice-INV-2026-1022.pdf`, gövde 413 karakter, imza Marco Bellini →
+    `GONDERILDI -> l***@hotmail.fr`. Brevo (08:33): **`requests` + `delivered`**.
+  - Müşteri bugün **iki** mektup alacak: bu PDF'li fatura ve **14:00 UTC'de**
+    `cron_order_payment`'ın standart `payment_due`'su (faz `unstamped`; 5 iş günlük saati
+    o başlatır). PDF'li mektup saat BAŞLATMAZ.
+  - Fransızca site mesajı PDF'in e-postayla gittiğini söylüyor, yani artık gönderilebilir
+    hâlde (`msg_reply`; sipariş dökümü 11 kalem, 71 parça, 2.764,60 €). Gönderilmedi.
 
 **24 Eyl 2026 — G7JV9-1 (D&G Logo T-Shirt): kayıt "White" diyordu, fotoğraf
 KIRMIZI — düzeltildi** (operatör, ilanın kendi sayfasından pasteledi:

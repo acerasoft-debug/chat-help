@@ -755,6 +755,35 @@ foreach ($plan as [$i, $set, $m]) {
   echo $line ? "      ".implode("\n      ", $line)."\n" : "      (zaten istenen durumda)\n";
 }
 
+/* MARKA KAPSAMI (2 Eki 2026, Gallery Dept. / Casablanca). Operator MARKAYI
+   soyluyor ("Casablanca urunleri"), dosya ise bir id LISTESI. Liste markanin
+   hepsini kapsamiyorsa -- sonradan eklenen, baska bir partiden gelen, onay
+   bekleyen ya da reddedilmis bir kayit -- eksik kalan ilan SESSIZCE eski
+   durumunda kalir ve operator "tum marka" yazdigini sanir; parti dosyasi da
+   canli kaydin aynasi degil (bu depoda defalarca kayitli). Sayim HAM listeden,
+   her durumda: vestra_products() onay bekleyeni ve gizli markayi zaten gostermez.
+   Eslesme marka adi TAM (buyuk/kucuk harf ve bosluk hosgorusu). Yalniz OKUR. */
+$touchedBrands = [];
+foreach ($plan as [$pi]) {
+  $bn = trim((string)($all[$pi]['brand'] ?? ''));
+  /* Gorunen ad ILK dokunulan ilanin yazimi: sonrakiler eziyorsa ayni marka
+     kayitlardaki yazim farkina gore bir calistirmada "Gallery Dept.", digerinde
+     "gallery dept." diye cikar. */
+  if ($bn !== '' && !isset($touchedBrands[mb_strtolower($bn)])) $touchedBrands[mb_strtolower($bn)] = $bn;
+}
+foreach ($touchedBrands as $bl => $bn) {
+  $tot = 0; $miss = [];
+  foreach ($all as $j => $q) {
+    if (mb_strtolower(trim((string)($q['brand'] ?? ''))) !== $bl) continue;
+    $tot++;
+    if (!isset($seen[$j])) $miss[] = ($q['id'] ?? '?').'['.($q['status'] ?? 'approved').']';
+  }
+  echo $miss
+    ? "  MARKA KAPSAMI: {$bn} kayitta {$tot} ilan, bu dosya ".($tot - count($miss))." tanesine dokunuyor; DOKUNULMAYAN "
+      .count($miss).": ".implode(', ', array_slice($miss, 0, 30)).(count($miss) > 30 ? ' ...' : '')."\n"
+    : "  MARKA KAPSAMI: {$bn} -- markanin TUM {$tot} ilani bu dosyada\n";
+}
+
 echo "\ndegisecek alan: {$changes}\n";
 if ($dry) { echo "\nDRY RUN — hicbir sey kaydedilmedi. Uygulamak icin dry_run=false.\n"; exit(0); }
 if (!$changes) { echo "\nDegisiklik yok.\n"; exit(0); }
