@@ -249,9 +249,14 @@ $t('sipariş kuyruğundaki çip de sarmalı çağırıyor',  str_contains($adm2,
 /* ELLE yazma yolu DOKUNULMADI: manuel "🚚 Save shipping" formunun işleyicisi
    hâlâ doğrudan yazıcıyı çağırıyor, anahtara hiç sormuyor -- operatörün
    "ben hesaplarım siparişten sonra" dediği yol bu. */
+/* 2 Eki 2026: isleyici etiketi korumak icin degisti (onay kuyrugunun kisa kutusu
+   etiket gondermiyor). Iddia artik CAGRININ YAZIMINA degil OLGUYA bagli: isleyici
+   yaziciyi dogrudan cagiriyor ve otomasyon anahtarina/tarifeye HIC sormuyor. */
+$__osh = preg_match("/if\\(\\\$act==='order_shipping'\\)\\{(.*?)\n  \\}\n/s", $adm2, $__m) ? $__m[1] : '';
 $t('manuel Save-shipping işleyicisi DEĞİŞMEDİ (anahtara sormuyor)',
-   str_contains($adm2, "if(\$act==='order_shipping'){")
-   && str_contains($adm2, "\$r=vestra_order_set_shipping(\$ref, vestra_price_input((string)(\$_POST['shipping']??'0')), (string)(\$_POST['shipping_label']??''));"));
+   $__osh !== ''
+   && str_contains($__osh, "vestra_order_set_shipping(\$ref, vestra_price_input((string)(\$_POST['shipping']??'0'))")
+   && !str_contains($__osh, 'vestra_shipping_auto_enabled') && !str_contains($__osh, 'auto_schedule'));
 $t('panelde otomasyon anahtarı formu var',   str_contains($adm2, 'value="shipping_auto"'));
 $t('işleyici yazıp geri okuyor',             str_contains($adm2, "if(\$act==='shipping_auto'){") && str_contains($adm2, 'vestra_shipping_set_auto($saWant)'));
 $t('yazılamazsa KIRMIZI uyarı',              str_contains($adm2, "elseif(\$msg==='ship_auto_fail')"));

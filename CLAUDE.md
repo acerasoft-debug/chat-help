@@ -1357,6 +1357,71 @@ Acerasoft LLC adına NL/SEPA IBAN'lı hesap).
   önce `merge --ff-only origin/<deploy dalı>` alındı (bu dosyanın *"iki deploy
   aynı anda koşuyorsa sonuncusu kazanır"* dersi).
 
+**KURAL 43 (devamı) — SİPARİŞ FATURASINDAN ÖNCE İKİ KARAR: kargo girildi mi,
+banka seçildi mi; ikisi yoksa numara YANMAZ** (operatör, 2 Eki 2026, VES-2DDC94D9
+hazırlanırken: *"o siparisi durdurabilirsin banka bilgilerini ve siparislerden
+önce bunlarin secilmesi kargo fiyati girilmesi önemli"*).
+- **VES-2DDC94D9 olduğu yerde DURDURULDU:** hazırlık (renk, navlun, banka `nl`)
+  kayıtta duruyor; fatura kesilmedi, müşteriye hiçbir şey gitmedi, durumu
+  **değiştirilmedi** (*"durdur"* iptal demek değil; iptal mektup üretir ve geri
+  alınmaz).
+- **Tek karar noktası `vestra_order_issue_prereqs($ref)`** (`inc/invoice.php`,
+  `[]` = hazır, dolu = eksik karar → sebep). Kesim yolu (`vestra_issue_order_invoices`,
+  panelin *Approve & issue*'su ve iş akışının `admin_mode=issue`'su ikisi de oradan
+  geçiyor) **ödeme kutusu kontrolünden ÖNCE** soruyor ve `error_code=prereq` ile
+  duruyor — numara yanmadan. **Redraft MUAF** (belge zaten kesilmiş; KURAL 5f'in
+  yolu). Panel çipleri **aynı** fonksiyonu çağırıyor: iki kopya bir gün *"çip hazır
+  diyor, kesim duruyor"* demekti.
+- **KARGO:** navlun > 0 **ya da** `shipping_set_at` damgası (navlun yazıcısı her
+  yazmada düşürüyor). **0 tek başına "girilmedi" sayılıyor**, çünkü KURAL 34'ten beri
+  kasa navlunu 0 yazıyor ve operatör elle giriyor — 0'lı bir siparişte en olası
+  durum "kargo eklenmedi". Ücretsiz kargo = **0'ı KAYDET** (damga düşer).
+- **BANKA:** yalnız **platform** kestiğinde ve belgenin biriminde **gerçekten bir
+  seçim varsa** (`vestra_platform_bank_choices($cur) >= 2`; bugün EUR'da Almanya
+  varsayılanı + NL profili). Satıcı kesiminde kendi IBAN'ı basılır, tek hesaplı
+  birimde (USD) sorulacak bir şey yok — sormak, cevabı tek olan soruyu her
+  siparişte yeniden sordurmak olurdu. **Varsayılan hesap da bir seçim:**
+  `vestra_order_set_invoice_bank('')` artık profil anahtarını siliyor ama
+  `invoice_bank_at` **karar damgasını** yazıyor (eskiden ikisini birden siliyordu).
+  İş akışında `admin_mode=bank` + `payload=default`.
+- **Panel:** sipariş dosyasında ve onay kuyruğunda *Approve* düğmesinin yanında
+  kırmızı çipler (*"⚠ önce kargo girin"*, *"⚠ önce banka seçin"*) ve düğme **kapalı**
+  (sebep `title`'da); sunucu ayrıca duruyor (düğmeyi kapatmak kapı değildir).
+  **Onay kuyruğuna kargo kutusu eklendi** (`order_shipping`, `from=invoices`) —
+  navlun kutusu yalnız sipariş dosyasındaydı ve kuyruktan bakan operatör kargoyu
+  girmeden kesebiliyordu. Kısa kutu etiket göndermiyor; işleyici **kayıtlı etiketi
+  koruyor** (yazıcı boş etiketi "sil" diye yazıyor). Yeni kırmızı bant
+  `invoice_prereq`.
+- **Teklif faturası kapsam DIŞI, bilerek:** teklif onay formu Kargo € kutusunu ve
+  banka seçicisini **aynı formda** taşıyor; operatör onaylarken ikisini görüyor.
+- **YOLDA BULUNAN ESKİ KUSUR — bandın etiketi yalan söylüyordu:**
+  `vestra_order_invoice_issue()` alt fonksiyonun durmasını yukarı taşırken yalnız
+  `error`'u döndürüyor, `error_code`'u **atıyordu** — yani panel, **ödeme kutusu
+  yok** diye durdurulan bir sipariş kesimini **"para birimi çevrilemedi"** bandıyla
+  gösteriyordu (KURAL 5r'nin özellikle önlemek için yazdığı şey; teklif yolu
+  doğruydu). İş akışının `issue` adımı da her duruşu *"para birimi:"* diye
+  yazıyordu. İkisi de artık sebebe göre (`nopay` / `prereq` / kur).
+- **İş akışı:** `bank` ve `shipping` adımları yazdıktan sonra *"kesime hazır mı:
+  EVET / HAYIR — <eksik>"* basıyor (kesimin sorduğu aynı fonksiyon).
+- Test: `tests/order_issue_prereq_test.php` (**49 iddia**, iki yön: eksikken durur
+  ve belge yazılmaz; karar verilince geçer; satıcı kesiminde ve tek hesaplı USD
+  belgede banka **sorulmaz**; redraft muaf; `admin.php` kum havuzunda çizdiriliyor —
+  çipler, kapalı/açık düğme, kuyruktaki kargo kutusu ve kayıtlı navlun, PHP uyarısı
+  0). On sabotaj, her biri **tam 1 eşleşmeyle uygulandığı** doğrulanıp `cp`
+  yedeğinden geri alınarak: kapı kalkınca **6 kırmızı**, redraft muafiyeti kalkınca
+  **2**, kargo damgası yok sayılınca **5**, banka satıcıya da sorulunca **1**, tek
+  hesapta da sorulunca **1**, varsayılan seçim damgalanmayınca **5**, `error_code`
+  atılınca **1**, dosyada düğme kapanmayınca **1**, kuyruk kutusu kalkınca **1**,
+  etiket korunmayınca **1**.
+- **Davranış bilerek değişti, üç test düzeltildi:** `invoice_payment_gap_test`'in
+  kesim fikstürü kargo kararı taşımıyordu ve kapı onu kutu kontrolünden önce
+  durdurdu — fikstüre operatörün *"0 kaydet"*inin yazdığı damga kondu (o bölüm kutuyu
+  ölçüyor, kargoyu değil); aynı dosyanın bant iddiası yazımı pinliyordu, olguya
+  bağlandı (+1 iddia: `error_code` yukarı taşınıyor). `shipping_tariff_test`'in
+  *"manuel Save-shipping işleyicisi anahtara sormuyor"* iddiası çağrının **birebir
+  metnini** pinliyordu; işleyici gövdesine ve olguya bağlandı ve işleyiciye anahtar
+  sorgusu sokulunca hâlâ **1 kırmızı** veriyor.
+
 **KURAL 5r — ÖDEME KUTUSU BOŞSA FATURA KESİLMEZ; "otomatik kullanılmıyor" bir
 VERİ sorusuydu, kod sorusu değil** (operatör, 19 Eyl 2026: *"sana verdigim
 acerasoft LLC alman hesabi avrupa müsterilerinde otomatik kullanilmiyor … bu

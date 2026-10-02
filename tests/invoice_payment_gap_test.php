@@ -127,6 +127,10 @@ fputcsv($h, ['VES-GAP1', date('c'), 'Mob SARL', 'Test Buyer', 'buyer@example.com
              '10x SKU1 @120.00', '1200.00', '0.00', '1200.00', 'Payment: Bank transfer.'], ',', '"', '\\');
 fclose($h);
 file_put_contents($sand.'/data/accounts.json', json_encode([]));
+/* KARGO KARARI KAYITLI (2 Eki 2026): kesim artik navlunu girilmemis siparisi
+   durduruyor (vestra_order_issue_prereqs) ve bu bolum KUTUYU olcuyor, kargoyu
+   degil. Damga, operatorun "0 kaydet"inin yazdigi kaydin aynisi. */
+file_put_contents($sand.'/data/order_statuses.json', json_encode(['VES-GAP1' => ['shipping_set_at' => date('c'), 'shipping_set_by' => 'operator']]));
 
 $invDir = vestra_invoice_dir();
 $before = glob($invDir.'/*.pdf') ?: [];
@@ -167,8 +171,14 @@ $t('nopay bandi var', str_contains($a, "\$msg==='invoice_nopay'"));
 $t('bant NUMARA YAKILMADIGINI yaziyor', str_contains($a, 'Hiçbir numara yakılmadı'));
 /* Sebebe gore bant secimi: metne bakip karar vermek (str_contains) bir gun
    cumle degisince sessizce para birimi bandina donerdi. */
+/* 2 Eki 2026: siparis isleyicisi artik ucuncu bir sebep tasiyor ('prereq');
+   iddia YAZIMA degil olguya bagli -- iki isleyici de bandi error_code'dan seciyor
+   ve 'nopay' kutu bandina gidiyor. */
 $t('siparis yolu error_code ile bant seciyor',
-   substr_count($a, "(\$r['error_code']??'')==='nopay'") + substr_count($a, "(\$iv['error_code']??'')==='nopay'") === 2);
+   preg_match("/\\\$act==='issue_invoice'.*?'nopay'=>'invoice_nopay'.*?\\\$r\\['error_code'\\]/s", $a) === 1
+   && substr_count($a, "(\$iv['error_code']??'')==='nopay'") === 1);
+$t('siparis kesimi error_code\'u YUKARI tasiyor (panel bandi icin)',
+   preg_match("/function vestra_order_invoice_issue\\(.*?'error_code' => \\(string\\)\\(\\\$issued\\['error_code'\\]/s", (string)file_get_contents($root.'/inc/invoice.php')) === 1);
 $t('onay satirinda TIKLAMADAN ONCE uyari cipi var',
    str_contains($a, 'ödeme kutusu YOK') && str_contains($a, 'vestra_invoice_payment_gap('));
 
