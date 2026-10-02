@@ -9283,6 +9283,185 @@ olarak not düş ilana"*).
   temizlendi) ama *bir sandbox'ın gerçekten izole olduğunu varsaymak yerine
   ölçmek* gerektiğini bir kez daha gösterdi.
 
+**GALLERY DEPT. (31 Ekim) ve CASABLANCA (15 Ekim) — "mal sonra gelecek, siparişleri
+kabul ediyoruz": alan ZATEN vardı; eksik olan YAZAN TARAFIN güvenliğiydi ve operatör
+MARKAYI söylerken dosya bir id LİSTESİ idi** (operatör, 2 Eki 2026: *"Gallery Dept.
+ürünlerine stock giris tarihi ekim sonu yap fakat siparisleri kabul ediyoruz"* →
+hemen ardından *"Casablanca ürünleride 15 ekimde stoga geliyor onuda belirtilanlarda"*).
+- **Yeni mekanizma yazılmadı.** `preorder_ship` (`YYYY-MM-DD`) ürün sayfasına
+  *"Pre-order · Pre-orders are being accepted · dispatch late October 2026."*
+  kutusunu ve bir "Lead time" satırı basıyor (`vestra_preorder_note()`),
+  **siparişi ENGELLEMİYOR** — kapıyı yalnız `sold_out` kapatır; operatörün
+  *"siparişleri kabul ediyoruz"* cümlesinin karşılığı bu — ve tarih geçince
+  **kendiliğinden susuyor**. Cümleyi tarihin GÜNÜ seçiyor: ≤10 *early*, ≤20 *mid*,
+  gerisi *late*. **"Ekim sonu" için 31 seçildi** (ayın son günü): not tarih geçene
+  kadar görünür; 25'i seçmek 25 Ekim'den sonra notu, mal henüz gelmemişken
+  sessizce kaldırırdı. Operatör başka bir gün isterse tek satır (JSON'daki tarih).
+- **Notun metni her dilde İNGİLİZCE:** `Pre-order` etiketi çevriliyor, cümlenin
+  kendisi sözlükte yok (AMI PARIS'te de böyleydi, yeni bir gerileme değil). Dokuz
+  dile anahtar yazmak ayrı bir iş; kendiliğinden yapılmadı.
+- **Notu okuyan yalnız ürün sayfası değil**, ve bu iki marka için bundan sonra
+  şunlar tarihi taşır: (1) `vestra_order_add_line()` var olan siparişe sonradan
+  eklenen kalemin notuna aynı cümleyi yazıyor, (2) `reply_letter=order_invoice_soon`
+  mektubu *"ön sipariş sevk tarihi"* cümlesini ilanın `preorder_ship`'inden okuyor
+  (tarih mektuba gömülü değil). **Mevcut siparişler, kesilmiş faturalar ve gitmiş
+  mektuplar DEĞİŞMEDİ** — ilan alanı onları yeniden yazmıyor.
+- **Eksik olan yazan tarafın güvenliğiydi** (`scripts/set_product.php`; betik
+  `set-product.yml` içinden base64 ile sunucuya gidiyor, yani **deploy gerektirmez**
+  — iki koşu da yeni betikle çalıştı, kuru koşudaki *MARKA KAPSAMI* satırı kanıt):
+  1. *Doğrulama yalnız BİÇİME bakıyordu:* `2026-13-45` regex'ten geçiyor,
+     `strtotime` false dönüyor ve not **sessizce** susuyordu; `2026-02-31`
+     3 Mart'a kayıyordu. `checkdate` eklendi — `2026-13-45`, `2026-02-31`,
+     `2027-02-29`, `31/10/2026`, `2026-10-3`, `yakinda` reddediliyor,
+     `2028-02-29` kabul.
+  2. *Kuru koşu sayfanın CÜMLESİNİ basıyor:* genel dal yalnız
+     `preorder_ship '(yok)' -> '2026-10-31'` yazıyordu; artık sayfanın çağırdığı
+     **aynı** `vestra_preorder_note()`'un cümlesini basıyor ve uyarıyor — geçmiş
+     tarih (sayfa hiç not basmaz), SATILDI ilan (not görünür ama sipariş
+     alınamaz), onay bekleyen/reddedilmiş ilan (katalogda görünmüyor); fonksiyon
+     sunucuda yoksa (kod eski) bunu da yazıyor.
+  3. **MARKA KAPSAMI satırı.** Operatör MARKAYI söylüyor (*"Gallery Dept.
+     ürünleri"*, *"Casablanca ürünleri"*), dosya ise bir id LİSTESİ ve parti dosyası
+     canlı kaydın aynası DEĞİL (Lacoste ve D&G'de kayıtlı ders). Listede olmayan
+     bir kardeş (sonradan eklenen, onay bekleyen, reddedilmiş) **sessizce eski
+     durumunda** kalırdı. Kuru koşu ve uygulama çıktısı dokunulan her markanın
+     **ham listedeki (her durum)** bütün ilanlarını sayıyor ve dosyada OLMAYANLARI
+     adıyla + durumuyla yazıyor, ya da *"markanın TÜM N ilanı bu dosyada"* diyor.
+     Eşleşme marka adında TAM (büyük/küçük harf ve baş/son boşluk hoşgörülü —
+     mango/zara dersi); görünen ad ilk dokunulan ilanın yazımı. Yalnız okur.
+- **Canlı (2 Eki 2026), iki yön de ölçüldü:**
+
+  | | Gallery Dept. | Casablanca |
+  |---|---|---|
+  | tarih | 2026-10-31 → *late October 2026* | 2026-10-15 → *mid October 2026* |
+  | marka kapsamı | TÜM **9** ilan dosyada | TÜM **27** ilan dosyada |
+  | önceki tarih | yok (9/9) | yok (27/27) |
+  | uyarı (satıldı / onay bekleyen / geçmiş tarih) | 0 | 0 |
+  | kuru koşu | `36985983700` (08:46 UTC) | `36987799398` (09:05 UTC) |
+  | uygulama | `36986546248` (08:52 UTC) — `KAYDEDILDI — 9 alan guncellendi`, yedek `listings.json.bak-20261002-085257` | `36988378049` (09:11 UTC) — `KAYDEDILDI — 27 alan guncellendi`, yedek `listings.json.bak-20261002-091210` |
+
+  Casablanca dosyası 9 Gallery satırını **bilerek TEKRAR ediyor** (31 Ekim): kuru
+  koşuda ve uygulamada *"(zaten istenen durumda)"* = 08:52'de yazılan değerlerin
+  **sunucudan geri okunması**; uygulamada no-op (yazılan **27**, 36 değil).
+- **GERİ OKUMA** (ikinci kuru koşu, aynı dosya; `37013033298`, 2 Eki 13:27 UTC — yani
+  sunucudan, yazma mesajından değil): **36 satırın 36'sı** *"(zaten istenen durumda)"*,
+  *"degisecek alan: 0"*, *"MARKA KAPSAMI: Casablanca -- markanın TÜM 27 ilanı bu dosyada"*
+  ve *"Gallery Dept. -- markanın TÜM 9 ilanı bu dosyada"*. Aradan geçen sürede (13:15)
+  aynı dokuz Gallery ilanının **`sizes` alanı değişti** (aşağıdaki madde) ve ön sipariş
+  tarihi o yazmadan **etkilenmedi** — iki alan ayrı, oku-değiştir-yaz birbirini ezmedi.
+- **Numune kutusu ↔ ön sipariş (açık nokta):** ürün sayfası numune kutusunu
+  (`vestra_sample_price($p) > 0`) ön sipariş notundan BAĞIMSIZ çiziyor
+  (`product.php` 242 ↔ 651). AMI PARIS'te operatör bunu bilinçli kapatmıştı
+  (`products.php`'deki yorum: *"elde olmayan malı 'hemen' satan bir düğme,
+  mektuptaki yanlış tarihle aynı sınıf hata"*). Bu 36 ilanda **ÖLÇÜLDÜ** (`inspect-products`,
+  Gallery Dept. 13:00 + 13:21 UTC, Casablanca `37013703266` 13:33 UTC): **numune=yok 36/36** —
+  hiçbirinde `sample_price` yok, yani *"şimdi tek parça gönder"* diyen bir düğme ön sipariş
+  notunun yanında durmuyor ve AMI PARIS emsali bu iki marka için tetiklenmiyor.
+  Casablanca'nın 27 ilanı ayrıca `status=approved`, `teklif=ACIK` (`mode=sale`) ve MOQ 20:
+  teklif kutusu açık kalıyor, ön sipariş notu teklifi engellemiyor (bilinçli: kapıyı yalnız
+  `sold_out` kapatır).
+- **Operatör kararı bekleyenler:** (1) **Casablanca siparişleri — `order_audit`, 2 Eki
+  13:45 UTC, `37015076921`; bu maddenin ilk yazımı "iki açık sipariş" diyordu ve YANLIŞTI,
+  ölçüm düzeltti:** `VES-60594A18` (Easyauto24, Tennis Club Icon White, INV-2026-1016,
+  €520) **açık DEĞİL** — ödeme gelmediği için 30 Eyl 14:00'te **otomatik iptal** edildi
+  (iptal mektubu delivered + opened + clicks); `VES-8D231E8D` (Ash Vintage, CASAWAY-WHITE,
+  INV-2026-1005, €715) **ÖDENDİ** (1 Eki; *payment received* mektubu opened) — yani ön
+  sipariş tarihinin değdiği tek canlı Casablanca siparişi o. İkisi de tarih alanından ÖNCE
+  yazıldı; faturaları ve gitmiş mektupları (fatura bağlantısı, PDF, hatırlatma, ödeme
+  alındı) *"15 Ekim"* demiyor — şablonlarında tarih yok. Ash Vintage'e bunun yazışmada
+  söylenip söylenmediği **okunmadı**; gitmediyse haber verilsin mi? Karar operatörün.
+  Dikkat: `order_invoice_soon` (*"faturanız yakında"*, VES-6B53D265'in dersi) ödenmiş
+  siparişe uymaz; serbest metinli `order_note` (`lang`/`nogreet`) uyar ve KURAL 18'e göre
+  önce `send=false` önizlenir. (2) Not metni İngilizce; dokuz dil istenirse ayrı iş. (3)
+  "Ekim sonu" yerine başka bir gün istenirse tek satır.
+- **Test:** `tests/set_product_preorder_test.php` (**50 iddia**; betik kum
+  havuzunda GERÇEKTEN koşuyor, tarihler **bugünden türetiliyor** — sabit bir tarih
+  bir gün geçmişe düşer ve bütün "gelecek" iddiaları sessizce yanlış olurdu;
+  kontrol grubu başka marka, geçmiş tarihli kardeş, satılmış/onay bekleyen/reddedilmiş
+  kardeşler). İki tur sabotaj, her biri **tam 1 eşleşmeyle uygulanıp** `cp`
+  yedeğinden geri alınarak: ilk tur **7/7 kırmızı** (2/6/1/1/1/3/5), MARKA KAPSAMI
+  için **6/6** (6/4/4/2/2/4).
+  *Kendi hatalarım, ikisi de testte yakalandı:* (a) bir iddia
+  `$x ?? '(yok)' === '(yok)' || …` yazıyordu — `??`, `===`'ten daha DÜŞÜK
+  öncelikli, ifade hiçbir zaman yanlış olamazdı (hiç düşemeyen iddia); `!isset(…)`'e
+  çevrildi, ayrıca hiçbir şey ölçmeyen bir iddia kaldırıldı. (b) MARKA KAPSAMI'nın
+  görünen adı SON dokunulan ilanın yazımından geliyordu ve küçük harfli bir kardeş
+  (`gallery dept.`, reddedilmiş) *"Gallery Dept."* yazımını eziyordu — iki kırmızı
+  iddia **gevşetilmedi, kod düzeltildi** (ilk yazım kalıyor).
+  `sold_out_test.php` §5'in iddiası eski hata MESAJININ yazımını pinliyordu;
+  doğrulama sıkılaşınca yalnız cümle değiştiği için kırmızı döndü — doğrulamanın
+  **varlığına** bağlandı (davranış artık yeni testte koşuyor). Tam takım
+  (`3af543a` üstünde, 2 Eki 09:19 UTC): **136 dosya geçti**, kalan üçü önceden
+  kayıtlı kırıklar (`dropship_plan`, `msg_read_receipt`, `msg_thread_label`).
+- **Deploy notu:** `2942cdb`'nin deploy'u başarılı, `117cbeb`'ninki (`1477`)
+  `ssh: connect … Connection timed out` ile düştü — sunucuda hiçbir şey çalışmadı;
+  aynı dalda çalışan diğer oturumun sonraki push'u (`3af543a`, `1478`, 09:13 UTC)
+  sunucuyu yeniden eşitledi ve başarılı, yani sunucu bugün `117cbeb`'yi de içeriyor.
+
+**GALLERY DEPT. beden serisi 1-3-3-2-1 → 2-3-3-2: XXL seriden çıktı** (operatör,
+2 Eki 2026, ön sipariş tarihinin hemen ardından: *"Gallery DPT. Nin bedenlerini 2×S,
+3×M, 3×L, 2×XL Böyle yap"*).
+
+- **Kapsam MARKA ve bu söylenerek uygulandı:** cümle bir ürün değil markayı adlandırıyor.
+  Dokuz ilanın dokuzu: sekiz tişört + fermuarlı hoodie (`gd-h01`). Hoodie ayrı bir
+  kategori ama marka cümlesi kategori ayrımı yapmadı; operatör hoodie'nin eski eğride
+  kalmasını isterse tek satır (`gd-h01`'i eski dizgeyle geri yazmak).
+- **Seri geçerli:** 2+3+3+2 = **10**. Karton 10, MOQ 20 (2 karton) ve `size_step` 10
+  aynen tutuyor; fiyat, kademe, ön sipariş tarihi, görsel, durum **kımıldamadı**
+  (geri okumada 59,90 / 61,90 / 64 / 145, MOQ 20, adım 10, `approved`). Değişen yalnız
+  XXL'nin çıkması ve S'nin 1'den 2'ye çıkması: alıcı bu ilanlarda artık XXL alamıyor.
+  Sepette beden seçici hiç yok (karışım ilanın kendisinde — `beden secici=YOK`), yani
+  XXL seçilebilir bir seçenek olarak değil, serinin bir parçası olarak kalkıyor.
+- **ÖNCE canlıdan ölçüldü, parti dosyasından değil** (`inspect-products`,
+  `brand=Gallery Dept.`, 13:00 UTC): dokuz ilanın dokuzunda
+  `sizes = S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack`. **`desc` seri TAŞIMIYOR**
+  (parti metni *"Mixed-size carton assortment"*; `fit_scan`: açıklama ↔ beden çelişkisi
+  **0**), yani bu ilanlarda olgu **tek yerde** yazılı ve yalnız `sizes` değişti.
+  Balenciaga (9 Eyl), NBB (10 Eyl) ve Lacoste (18 Eyl) dersleri bu yüzden sorulmuştu;
+  bu sefer cevap "yok". *Bu bir çıkarımdı ve değişiklikten SONRA ölçüldü:* `desc`'te
+  eski seri olsaydı artık çelişirdi — `fit_scan` yeniden koştu, çelişki **0**.
+- **Yazım katalogun kendi biçimi:** `S×2` (harf×adet, orta nokta ayırıcı), paket eki
+  `10 pcs/pack` AYNEN. `VESTRA_SIZE_PACK_RE` yalnız tanıdığı yazımı paket eki sayıyor;
+  başka bir yazım `10`'u sessizce BEDEN yapardı (KURAL 21b'nin `3/pack` tuzağı).
+  Operatörün *"2×S"* yazımı sitenin biçimine (`S×2`) çevrildi.
+- **Sitenin KENDİ ayrıştırıcıları yeni dizgeyle yerelde koşturuldu** (kaynak okumak
+  ölçüm değil): `vestra_pack_size` **10**, `vestra_size_options` **[S, M, L, XL]**
+  (eskiden …XXL), `vestra_listing_size_run(20)` = **S×4 · M×6 · L×6 · XL×4** (eskiden
+  S×2 · M×6 · L×6 · XL×4 · XXL×2), 15 adet kartona bölünmüyor → boş (değişmedi),
+  `vestra_sizes_selectable` boş (değişmedi). Yani bundan sonra elle yazılan bir Gallery
+  siparişinin beden dökümü (`order_write`, `order_replace_line`) yeni seriden çıkar.
+- **Koşular (sırayla, 5–6 dk arayla — barındırıcı ardışık SSH'yi kesiyor):**
+  kuru koşu `37011050473` (13:09 UTC) → *"degisecek alan: 9"*, *"markanın TÜM 9 ilanı bu
+  dosyada"*; uygulama `37011730074` (13:15 UTC) → *"KAYDEDILDI — 9 alan guncellendi"*,
+  yedek `listings.json.bak-20261002-131510`; geri okuma `37012378904` (13:21 UTC,
+  `inspect-products` + `fit_scan`): dokuz ilanın dokuzunda yeni dizge, kalan alanlar aynı,
+  çelişki **0**. Dosya: `product-fixes/gallery-dept-sizes.json`.
+- **"Bu olgu başka nerede yazılı?" (soruldu):** (1) `desc` — yazmıyor (yukarıda); (2)
+  fiyat listesi, Excel, PDF, sipariş özeti ve ürün sayfası beden satırı **canlı ilandan**
+  üretiliyor, değişiklik kendiliğinden yansıyor; (3) **geçmiş siparişler ve kesilmiş
+  fatura değişmedi** — `diag-live` → `find_ref=vs-gd` (13:39 UTC): Gallery SKU'larına
+  bağlı **tek** kayıt sipariş `VES-2DDC94D9` (JEDDI & CO / BE, 20 × `VS-GD-T04` @ €59,90,
+  2 Eki 07:58 UTC); teklif 0, numune 0. `order_audit` (13:45 UTC): o siparişin faturası
+  artık KESİLMİŞ — `INV-2026-1024`, €1.158,10, kesen VESTRA, **09:21 UTC'de panelden**
+  (KURAL 43'ün "kesilmedi" notu o saatten önceydi), bağlantı mektubu delivered + opened;
+  ödeme yok, saat `unstamped` (14:00 UTC cron'u `payment_due`'yu gönderip 5 iş günlük
+  saati başlatacak). Siparişin notu yalnız **renk** kırılımını taşıyor (`Navy/White,
+  White/Navy`), beden dökümü YOK; sipariş ekranlarının beden satırı sipariş notundan
+  okunuyor (`orders.php:177`), `invoice.php` `sizes` alanını hiç okumuyor (arandı) — yani
+  değişiklik o siparişin kayıtlı ya da çizilen hiçbir rakamını kımıldatmadı, yeniden çizim
+  de kımıldatmaz. Gerçek hayattaki sonucu: 20 adet = 2 karton, yeni seride S×4 · M×6 · L×6
+  · XL×4 (eskiden S×2 · M×6 · L×6 · XL×4 · XXL×2); koli hangi dökümle hazırlanıyorsa onu
+  operatör bilir, kod yazmaz; (4) otomatik günlük yazı (KURAL 13) bedenleri ilandan
+  toplayıp *"Sizes S, M, L, XL, XXL."* basıyor: Gallery Dept.'i duyuran bir yazı
+  yayımlandıysa o yazı **o günün** durumunu yazar ve geri yazılmaz — **ÖLÇÜLMEDİ**
+  (`cron_probe` yalnız son 5 otomatik yazının slug'ını verir, gövdesini okumaz); böyle bir
+  yazı varsa `journal-seed.yml` → `rebuild_auto=true` + `rebuild_slug=<slug>` (varsayılan
+  kuru koşu) aynı kurucuyla bugünün verisinden yeniden kurar. Operatör istemedi,
+  kendiliğinden yapılmadı.
+- Test yazılmadı: davranış değişmedi, bir veri düzeltmesi; beden ayrıştırıcılarının
+  kendi testleri (`size_pick_test`, `order_wholesale_sample_test`, `order_replace_line_test`)
+  aynı fonksiyonlardan geçiyor.
+
 **22 Eyl 2026 — VES-1A68FCD1'e AMI Paris Polo eklendi; KODDA "var olan siparişe
 sonradan yeni kalem ekleme" diye bir yol HİÇ yoktu.** Operatör, iki ayrı mesajda:
 *"Black x 20 , White x10 , Navy 20 , Grey 10"* → *"bu siparisi bu siparise ekle
