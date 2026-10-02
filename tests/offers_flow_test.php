@@ -69,6 +69,14 @@ if (!function_exists('vestra_shipping_schedule')) { function vestra_shipping_sch
    pazarlik akisini olcuyor. Anahtarin KENDISI ayri bir dosyada olculuyor:
    tests/shipping_tariff_test.php §11-12. */
 if (!function_exists('vestra_shipping_auto_schedule')) { function vestra_shipping_auto_schedule($l,$c){ return null; } }
+/* PLATFORM BANKA PROFILI (2 Eki 2026) invoice.php'de ve require'lar siliniyor.
+   Stub GUVENLI: bu dosyanin hicbir teklif kaydi `invoice_bank` tasimiyor, yani
+   gercek govde de ''/[]/null donup duz kunyeye duser -- stub ayni cevabi
+   veriyor. Profilin KENDISI: tests/platform_bank_profiles_test.php. */
+if (!function_exists('vestra_platform_bank_key_ok'))   { function vestra_platform_bank_key_ok($k){ return false; } }
+if (!function_exists('vestra_platform_banks'))         { function vestra_platform_banks(){ return []; } }
+if (!function_exists('vestra_platform_seller_bank'))   { function vestra_platform_seller_bank($k){ return null; } }
+if (!function_exists('vestra_platform_bank_mismatch')) { function vestra_platform_bank_mismatch($k,$c){ return ''; } }
 
 
 preg_match_all('/^function \w+\(.*?^}/ms', $src, $fns);

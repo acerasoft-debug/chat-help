@@ -101,9 +101,205 @@ function vestra_platform_seller_save(array $fields): array {
     @chmod($f, 0600);
     $back = is_readable($f) ? json_decode((string)file_get_contents($f), true) : null;
     $stuck = is_array($back);
-    if ($stuck) foreach ($cur as $k => $v) { if (trim((string)($back[$k] ?? '')) !== trim((string)$v)) { $stuck = false; break; } }
+    /* 'banks' (adli profiller, dizi) bu yazicinin konusu degil: olduğu gibi
+       tasinir, geri okumada JSON olarak karsilastirilir. */
+    if ($stuck) foreach ($cur as $k => $v) {
+        $a = is_array($v) ? json_encode($v) : trim((string)$v);
+        $b = is_array($back[$k] ?? null) ? json_encode($back[$k]) : trim((string)($back[$k] ?? ''));
+        if ($a !== $b) { $stuck = false; break; }
+    }
     if ($ok === false || !$stuck) return ['ok' => false, 'error' => 'write_failed'];
     return ['ok' => true, 'saved' => $new];
+}
+
+/* ── PLATFORMUN ADLI BANKA PROFİLLERİ (2 Eki 2026) ────────────────────────────
+ *
+ * Operatör kararı (VES-2DDC94D9): *"Hollanda bankasi ile olustur, banka secimi
+ * ... secilebilmeli adminden"*. Platform künyesi o güne kadar TEK düz kayıttı:
+ * bir EUR rayı (bank_iban + bank_eur_*) ve bir USD rayı. İkinci bir EUR hesabı
+ * (Airwallex NL) eklemenin tek yolu Alman IBAN'ının ÜZERİNE yazmaktı — yani
+ * "hangi bankadan kesileceği" diye bir seçim yoktu, yalnız "en son hangisi
+ * girildi" vardı.
+ *
+ * Profil = `platform_seller.json['banks'][<anahtar>]`:
+ *   label, currency (EUR|USD), bank_holder, bank_iban, bank_bic, bank_name,
+ *   bank_address  (USD: bank_account, bank_routing, bank_acct_type, bank_bic,
+ *   bank_name, bank_address).
+ * Düz alanlar OLDUĞU GİBİ kalıyor ve hiçbir seçim yokken VARSAYILAN ray onlar:
+ * mevcut her fatura bugün nasıl kesiliyorsa yarın da öyle kesiliyor.
+ *
+ * SEÇİM belgenin kendi kaydında (sipariş: order_statuses[ref].invoice_bank,
+ * teklif: offer_responses[ref].invoice_bank) — `invoice_currency` ve
+ * `invoice_seller_uid` ile AYNI yerde, AYNI desen. RAYI SEÇEN YİNE PARA BİRİMİ
+ * (vestra_payment_rails): profil yalnız o birimin alanlarını EZİYOR. Yani EUR
+ * belgeye bir USD profili seçmek kutuyu DEĞİŞTİRMEZ — kutu boş kalmaz, ama
+ * seçim de işlemez; panel bunu "profil birimi ≠ belge birimi" diye yazıyor.
+ *
+ * ÇELİŞEN ÇİFT YOK: EUR profili `bank_eur_bic/name/address`'i DOLU-BOŞ
+ * ayırmadan baştan yazıyor. Profilde BIC yoksa Banking Circle'ın BIC'i
+ * Airwallex IBAN'ının yanına DÜŞMEZ (KURAL 5j'nin "çelişen çift, eksik
+ * satırdan pahalı" kuralı). Rakamlar bu dosyaya girmez; teşhis VAR/YOK basar.
+ */
+function vestra_platform_bank_currencies(): array { return ['EUR', 'USD']; }
+
+/** Kayıtlı profiller, anahtar → alanlar. Bozuk kayıt sessizce atlanmaz, yok sayılır: boş döner. */
+function vestra_platform_banks(): array {
+    $f = vestra_data_dir().'/platform_seller.json';
+    if (!is_readable($f)) return [];
+    $j = json_decode((string)file_get_contents($f), true);
+    $b = is_array($j) && isset($j['banks']) && is_array($j['banks']) ? $j['banks'] : [];
+    $out = [];
+    foreach ($b as $k => $p) {
+        if (!is_array($p) || !vestra_platform_bank_key_ok((string)$k)) continue;
+        $out[(string)$k] = $p;
+    }
+    return $out;
+}
+
+/** Anahtar: kısa, küçük harf, URL/dosya adına güvenle girer; 'default' bilerek yasak (düz alanların adı). */
+function vestra_platform_bank_key_ok(string $k): bool {
+    return (bool)preg_match('/^[a-z0-9][a-z0-9_-]{0,23}$/', $k) && $k !== 'default';
+}
+
+/**
+ * Profil yazar / günceller. HEP YA DA HİÇ: EUR profilinde IBAN mod-97'den
+ * geçmezse hiçbir alan yazılmaz (KURAL 5c'nin aynısı); USD profilinde hesap no +
+ * ABA ikisi birden şart (vestra_payment_rails ikisini birden istiyor; tekini
+ * yazıp "kaydedildi" demek kutusu çıkmayan bir profil kaydetmek olurdu).
+ * Boş alan mevcut değeri SİLMEZ; `label` ilk kayıtta şart. Yazma GERİ OKUNUR.
+ */
+function vestra_platform_bank_save(string $key, array $fields): array {
+    $key = strtolower(trim($key));
+    if (!vestra_platform_bank_key_ok($key)) return ['ok' => false, 'error' => 'key_bad'];
+    $dir = vestra_data_dir(); if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    $f = $dir.'/platform_seller.json';
+    $cur = is_readable($f) ? json_decode((string)file_get_contents($f), true) : [];
+    if (!is_array($cur)) $cur = [];
+    $banks = isset($cur['banks']) && is_array($cur['banks']) ? $cur['banks'] : [];
+    $prof  = isset($banks[$key]) && is_array($banks[$key]) ? $banks[$key] : [];
+    $g = fn(string $k) => trim((string)($fields[$k] ?? ''));
+
+    $cc = strtoupper($g('currency') !== '' ? $g('currency') : (string)($prof['currency'] ?? ''));
+    if (!in_array($cc, vestra_platform_bank_currencies(), true)) return ['ok' => false, 'error' => 'currency_bad'];
+    $label = $g('label') !== '' ? mb_substr($g('label'), 0, 60) : (string)($prof['label'] ?? '');
+    if ($label === '') return ['ok' => false, 'error' => 'label_missing'];
+
+    $new = ['label' => $label, 'currency' => $cc];
+    foreach (['bank_holder','bank_iban','bank_bic','bank_name','bank_address',
+              'bank_account','bank_routing','bank_acct_type'] as $k) {
+        $v = $g($k);
+        if ($v === '') continue;
+        if ($k === 'bank_iban') { $v = vestra_iban_normalize($v); if (!vestra_iban_valid($v)) return ['ok' => false, 'error' => 'iban_bad']; }
+        if ($k === 'bank_bic')     $v = strtoupper(preg_replace('/\s+/', '', $v));
+        if ($k === 'bank_routing') $v = preg_replace('/\D/', '', $v);
+        if ($k === 'bank_account') $v = preg_replace('/[^0-9A-Za-z]/', '', $v);
+        if ($k === 'bank_acct_type' && !in_array($v, ['Checking','Savings'], true)) continue;
+        if ($v !== '') $new[$k] = $v;
+    }
+    $merged = array_merge($prof, $new);
+    /* KUTU ÇIKAR MI? Profil, rayın okuduğu alanlarla ölçülüyor — kaydedilen ama
+       kutu üretmeyen bir profil, seçildiği belgeyi KURAL 5r ile kesilemez yapar. */
+    if ($cc === 'EUR' && trim((string)($merged['bank_iban'] ?? '')) === '') return ['ok' => false, 'error' => 'iban_missing'];
+    if ($cc === 'USD' && (trim((string)($merged['bank_account'] ?? '')) === '' || trim((string)($merged['bank_routing'] ?? '')) === '')) {
+        return ['ok' => false, 'error' => 'us_rails_missing'];
+    }
+    if (!isset($prof['created_at'])) $merged['created_at'] = date('c');
+    $merged['updated_at'] = date('c');
+    $banks[$key] = $merged;
+    $cur['banks'] = $banks;
+    $ok = @file_put_contents($f, json_encode($cur, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES), LOCK_EX);
+    @chmod($f, 0600);
+    $back = vestra_platform_banks();
+    $stuck = isset($back[$key]);
+    if ($stuck) foreach ($merged as $k => $v) { if (trim((string)($back[$key][$k] ?? '')) !== trim((string)$v)) { $stuck = false; break; } }
+    if ($ok === false || !$stuck) return ['ok' => false, 'error' => 'write_failed'];
+    return ['ok' => true, 'key' => $key, 'saved' => $new];
+}
+
+/** Profili kaldırır; düz alanlara dokunmaz. Yazma geri okunur. */
+function vestra_platform_bank_delete(string $key): bool {
+    $key = strtolower(trim($key));
+    $f = vestra_data_dir().'/platform_seller.json';
+    $cur = is_readable($f) ? json_decode((string)file_get_contents($f), true) : [];
+    if (!is_array($cur) || !isset($cur['banks'][$key])) return false;
+    unset($cur['banks'][$key]);
+    if (!$cur['banks']) unset($cur['banks']);
+    $ok = @file_put_contents($f, json_encode($cur, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES), LOCK_EX);
+    @chmod($f, 0600);
+    return $ok !== false && !isset(vestra_platform_banks()[$key]);
+}
+
+/**
+ * Platform künyesi, SEÇİLEN profilin rayı üstüne bindirilmiş hâliyle.
+ *
+ * '' → düz künye (bugünkü davranış). Tanınmayan anahtar → NULL, sessiz düşüş
+ * YOK: silinmiş bir profil adına kesilen belge, operatörün seçmediği bir hesabı
+ * basardı. Dönen kayıtta `id` YOK, yani vestra_invoice_is_platform_issuer()
+ * için hâlâ platform; dosya adı/numara sayacı (`vestra_invoice_seller_key`)
+ * değişmiyor — profil belgenin KİMLİĞİNİ değil ödeme kutusunu seçiyor.
+ */
+function vestra_platform_seller_bank(string $key): ?array {
+    $acc = vestra_platform_seller();
+    $key = strtolower(trim($key));
+    if ($key === '') return $acc;
+    $p = vestra_platform_banks()[$key] ?? null;
+    if ($p === null) return null;
+    $g = fn(string $k) => trim((string)($p[$k] ?? ''));
+    if (strtoupper((string)($p['currency'] ?? '')) === 'USD') {
+        foreach (['bank_account','bank_routing','bank_acct_type','bank_bic','bank_name','bank_address'] as $k) {
+            if ($g($k) !== '') $acc[$k] = $g($k); else unset($acc[$k]);
+        }
+    } else {
+        /* EUR: rails ABD hesabı da varken yalnız bank_eur_* okur; o dört alan
+           profilden BAŞTAN yazılıyor — dolu/boş ayırmadan, çelişen çift olmasın. */
+        $acc['bank_iban'] = $g('bank_iban');
+        foreach (['bank_bic' => 'bank_eur_bic', 'bank_name' => 'bank_eur_name', 'bank_address' => 'bank_eur_address'] as $from => $to) {
+            if ($g($from) !== '') $acc[$to] = $g($from); else unset($acc[$to]);
+        }
+    }
+    if ($g('bank_holder') !== '') $acc['bank_holder'] = $g('bank_holder');
+    $acc['bank_key']   = $key;
+    $acc['bank_label'] = (string)($p['label'] ?? $key);
+    return $acc;
+}
+
+/** Seçili profilin belgenin birimiyle uyuşup uyuşmadığı: '' = sorun yok, dolu = insan diliyle uyarı. */
+function vestra_platform_bank_mismatch(string $key, string $currency): string {
+    $key = strtolower(trim($key));
+    if ($key === '') return '';
+    $p = vestra_platform_banks()[$key] ?? null;
+    if ($p === null) return 'Selected bank profile "'.$key.'" no longer exists — pick another or clear the choice.';
+    $pc = strtoupper((string)($p['currency'] ?? ''));
+    $cc = strtoupper(trim($currency)) ?: 'EUR';
+    if ($pc !== $cc) return 'Bank profile "'.($p['label'] ?? $key).'" holds a '.$pc.' account but this invoice is in '.$cc.' — the payment box will use the default '.$cc.' rail, not this profile.';
+    return '';
+}
+
+/** Siparişin seçili platform banka profili; '' = varsayılan düz künye. */
+function vestra_order_invoice_bank(string $ref): string {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    $st  = vestra_read_json('order_statuses.json');
+    $k   = strtolower(trim((string)($st[$ref]['invoice_bank'] ?? '')));
+    return vestra_platform_bank_key_ok($k) ? $k : '';
+}
+
+/** Seçimi kaydeder. '' kaldırır. VAR OLMAYAN profil YAZILMAZ (false). */
+function vestra_order_set_invoice_bank(string $ref, string $key): bool {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    if ($ref === '') return false;
+    $key = strtolower(trim($key));
+    if ($key !== '' && !isset(vestra_platform_banks()[$key])) return false;
+    $st = vestra_read_json('order_statuses.json');
+    if (!isset($st[$ref]) || !is_array($st[$ref])) $st[$ref] = [];
+    if ($key === '') {
+        unset($st[$ref]['invoice_bank'], $st[$ref]['invoice_bank_by'], $st[$ref]['invoice_bank_at']);
+    } else {
+        $st[$ref]['invoice_bank']    = $key;
+        $st[$ref]['invoice_bank_by'] = 'operator';
+        $st[$ref]['invoice_bank_at'] = date('c');
+    }
+    vestra_write_json('order_statuses.json', $st);
+    return true;
 }
 
 /**
@@ -657,6 +853,10 @@ function vestra_invoice_draft_notes(array $order, array $items, ?array $sellerAc
        hatasinin en pahali hali olurdu: numara yanmis, belge aliciya gitmis. */
     $gapNote = vestra_invoice_payment_gap($sellerAcc, $cur, !empty($order['paid']));
     if ($gapNote !== '') $notes[] = 'NOTE - '.$gapNote;
+    /* Seçili banka profili belgenin birimiyle uyuşmuyorsa taslak bunu YAZAR;
+       kesim yolu aynı cümleyle DURUR (vestra_issue_order_invoices). */
+    $bankMix = vestra_platform_bank_mismatch((string)($order['bank'] ?? ''), $cur);
+    if ($bankMix !== '') $notes[] = 'NOTE - '.$bankMix;
     $bVat = trim((string)(($b['vat'] ?? '') ?: ($order['vat_id'] ?? '')));
     if ($bVat !== '' && preg_match('/\d/', $bVat) !== 1) {
         $notes[] = 'NOTE - the buyer VAT/tax field holds no digits, so it is not a tax number and was left off the document. Correct it in Admin > Users > Edit billing details.';
@@ -1333,6 +1533,10 @@ function vestra_ensure_invoice(array $order, array $items, ?array $sellerAcc, bo
         'buyer' => trim((string)(($order['buyer']['company'] ?? '') ?: ($order['buyer']['name'] ?? ''))),
         'currency' => strtoupper(trim((string)($order['currency'] ?? 'EUR'))),
         'total'    => $total,
+        /* Hangi platform banka profiliyle kesildiği (2 Eki 2026). Aylar sonra
+           "bu belge hangi hesabı gösteriyor" sorusunun cevabı PDF'i açmadan
+           okunabilsin; boşsa düz künye. */
+        'bank'     => (string)($order['bank'] ?? ''),
     ], JSON_PRETTY_PRINT), LOCK_EX);
     return ['no' => $no, 'path' => $pdfPath, 'seller_key' => $sellerKey];
 }
@@ -1897,12 +2101,32 @@ function vestra_order_invoice_payloads(string $ref, string $currencyOverride = '
         $fxStamp = vestra_order_fx($ref);
     }
 
+    /* PLATFORM BANKA PROFİLİ (2 Eki 2026). Seçim varsa 'vestra' dilimine düz
+       künye yerine profil bindirilmiş künye geçiyor — `id`'si yok, yani kesen
+       taraf yine platform, dosya adı yine 'vestra'; yalnız ödeme kutusu
+       değişiyor. Çizici, taslak notu ve KURAL 5r muhafazası hepsi
+       `$sellerAcc ?: vestra_platform_seller()` okuduğu için tek yerden
+       besleniyorlar. SİLİNMİŞ profil → `bank_error`: kesim durur (currency_error
+       ile aynı "hep ya da hiç" kalıbı), varsayılana SESSİZCE düşülmez. */
+    $bankKey = vestra_order_invoice_bank($ref);
+    $bankAcc = $bankKey !== '' ? vestra_platform_seller_bank($bankKey) : null;
+
     $out = [];
     foreach ($bySeller as $sid => $sellerItems) {
         $sellerAcc = null;
         if ($sid !== 'vestra') { foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $sid) { $sellerAcc = $a; break; } } }
+        elseif ($bankKey !== '') {
+            if ($bankAcc === null) {
+                $out[] = ['meta' => $orderMeta + ['currency' => $orderCur], 'items' => $sellerItems, 'seller' => null,
+                          'seller_key' => 'vestra',
+                          'bank_error' => 'Selected bank profile "'.$bankKey.'" no longer exists on the platform record — pick another under Admin > Orders or clear the choice.'];
+                continue;
+            }
+            $sellerAcc = $bankAcc;
+        }
         $meta = $orderMeta;
         $meta['currency'] = $orderCur;
+        if ($sid === 'vestra' && $bankKey !== '') { $meta['bank'] = $bankKey; $meta['bank_label'] = (string)($bankAcc['bank_label'] ?? $bankKey); }
         if (!empty($shares[$sid])) { $meta['discount'] = $shares[$sid]; $meta['voucher_code'] = $voucherCode; }
         if ($sid !== array_key_first($bySeller)) { $meta['shipping'] = 0.0; }   // carriage billed once
         $conv = ($wantCur !== '' && $wantCur !== $orderCur)
@@ -1937,6 +2161,14 @@ function vestra_issue_order_invoices(string $ref, bool $redraft = false): array 
        geri alınamaz bir belgeyi düzeltmekten ucuz. */
     foreach ($payloads as $p) {
         if (!empty($p['currency_error'])) return ['error' => (string)$p['currency_error']];
+        /* Seçili banka profili yoksa da durur: silinmiş bir profilin yerine
+           varsayılan hesabı basmak, operatörün seçmediği hesaba ödeme istemek. */
+        if (!empty($p['bank_error'])) return ['error' => (string)$p['bank_error'], 'error_code' => 'nopay'];
+        /* Profil birimi ≠ belge birimi: kutu DOLU çıkar ama operatörün SEÇMEDİĞİ
+           (varsayılan) hesapla. Bu özelliğin var olma sebebi tam bunu önlemek;
+           redraft'ta da durur — belgeyi yanlış hesapla yeniden çizmenin anlamı yok. */
+        $mix = vestra_platform_bank_mismatch((string)($p['meta']['bank'] ?? ''), (string)($p['meta']['currency'] ?? 'EUR'));
+        if ($mix !== '') return ['error' => $mix, 'error_code' => 'nopay'];
     }
     /* ODEME KUTUSU BOSSA NUMARA YANMAZ (19 Eyl 2026). Cevrilemeyen dilimin
        hemen yanina, ayni "hep ya da hic" kaliyla: yarim bir kesim degil,

@@ -71,7 +71,9 @@ $hb = substr($a, strpos($a, "if(\$act==='save_platform_billing'){"), 1200);
 $t('admin.php handler yaziciyi cagiriyor', str_contains($hb, 'vestra_platform_seller_save($_POST)'));
 $t('admin.php handler kendi file_put_contents tasimiyor', !str_contains($hb, 'file_put_contents'));
 $t('admin.php iban_bad -> platform_billing_iban_bad', str_contains($hb, "platform_billing_iban_bad"));
-$ws = substr($w, strpos($w, "admin_mode == 'platform_bank'"), 8000);
+/* Pencere 8000 -> 20000 (2 Eki 2026): adim ayni govdede adli profil dalini da
+   tasiyor (bank_key) ve duz-kunye yazicisi artik 8000. karakterin otesinde. */
+$ws = substr($w, strpos($w, "admin_mode == 'platform_bank'"), 20000);
 $t('is akisi adimi var', $ws !== '' && str_contains($ws, 'vestra_platform_seller_save($in)'));
 $t('is akisi kuru kosuda YAZMIYOR', str_contains($ws, "if (!\$APPLY) {") && strpos($ws, "if (!\$APPLY) {") < strpos($ws, 'vestra_platform_seller_save($in)'));
 /* Iddia olguya bagli, yazima degil: maske ulke kodu + hane sayisi basiyor ve

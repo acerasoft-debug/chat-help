@@ -332,7 +332,8 @@ $t('EUR mektubu EUR etiketliyor',      str_contains($L8e, 'TOTAL DUE   : EUR 1,0
 /* Panelde SEÇENEK: bir ekranda görünmeyen seçenek olmayan seçenektir. */
 $t('teklif satırında seçici var',     str_contains($adm, 'Faturayı <?= htmlspecialchars($__c) ?> kes'));
 $t('birleşik çubukta da var',         str_contains($adm, '<?= htmlspecialchars($__c) ?> kes</option>'));
-$t('taslak formdakini taşıyor',       str_contains($adm, 'vestra_offer_invoice_payload($ref, $pick, $vn, $sh, $vr, $cu)'));
+/* 2 Eki 2026: taslak artık banka profilini de taşıyor ($bk) — aynı desen. */
+$t('taslak formdakini taşıyor',       str_contains($adm, 'vestra_offer_invoice_payload($ref, $pick, $vn, $sh, $vr, $cu, $bk)'));
 $t('kesim kayda yazıyor',             str_contains($adm, "\$rs[\$ref]['invoice_currency']=\$cu;"));
 $t('birleşik kesim de yazıyor',       str_contains($ofs, "\$rs[\$primary]['invoice_currency'] = \$cw;"));
 /* Onay penceresi belgenin birimini söylüyor: kesimden sonra değiştirilemez. */
@@ -341,7 +342,7 @@ $t('onay metni birimi söylüyor',      str_contains($adm, 'Document currency: '
    içinde olmalı — kardeş bir fonksiyonun require'ına yaslanmak, çağırma sırası
    değişince veriye bağlı bir fatal demek. */
 $t('kurucu kendi require\'ını yapıyor',
-   str_contains($ofs, "string \$currencyOverride = ''): ?array {\n    /* KENDI require'i")
+   str_contains($ofs, "?string \$bankOverride = null): ?array {\n    /* KENDI require'i")
    && str_contains(explode('function vestra_offer_invoice_payload(', $ofs)[1] ?? '', "require_once __DIR__.'/invoice.php';"));
 
 printf("\n%d ok, %d hata\n", $ok, $fail);

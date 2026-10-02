@@ -223,6 +223,20 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $back=(($_POST['from']??'')==='view')?'orders&view='.urlencode($ref):'invoices';
     header('Location: /admin?tab='.$back.'&msg='.($okCur?'invoice_cur_saved':'invoice_cur_bad')); exit;
   }
+  /* PLATFORM BANKA PROFİLİ -- sipariş başına (2 Eki 2026, operatör: "Hollanda
+     bankasi ile olustur, banka secimi ... secilebilmeli adminden"). Para birimi
+     seçiciyle AYNI kayıt dosyası, AYNI kapı: kesilmiş faturada seçim artık
+     belgeyi değiştirmez, kaydedilmez. Var olmayan profil yazılmaz. */
+  if($act==='order_invoice_bank'){
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    require_once __DIR__.'/inc/invoice.php';
+    if(vestra_invoices_for_ref($ref)){
+      header('Location: /admin?tab=orders&view='.urlencode($ref).'&msg=invoice_bank_late'); exit;
+    }
+    $okBank=vestra_order_set_invoice_bank($ref,(string)($_POST['bank']??''));
+    $back=(($_POST['from']??'')==='view')?'orders&view='.urlencode($ref):'invoices';
+    header('Location: /admin?tab='.$back.'&msg='.($okBank?'invoice_bank_saved':'invoice_bank_bad')); exit;
+  }
   /* FATURAYI KALDIR (operator, 16 Eyl 2026: "faturalari siparisleri silmek
      icin button koy"). Siparis silme zaten vardi; TEK bir yanlis kesilmis
      belgeyi kaldirmanin hicbir yolu yoktu -- tek care siparisin tamamini
@@ -305,7 +319,9 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
        belge gorurdu -- kontrol adiminin kendisi yanlis belgeyi gosterir
        (KURAL 5m'de KDV oraniyla birebir yasandi). */
     $cu = strtoupper(trim((string)($_POST['currency'] ?? '')));
-    $p = vestra_offer_invoice_payload($ref, $pick, $vn, $sh, $vr, $cu);
+    /* BANKA PROFİLİ de aynı desen: taslak formda O AN seçili olanı taşır. */
+    $bk = array_key_exists('bank',$_POST) ? strtolower(trim((string)$_POST['bank'])) : null;
+    $p = vestra_offer_invoice_payload($ref, $pick, $vn, $sh, $vr, $cu, $bk);
     if(!$p){ header('Location: /admin?tab=invoices&msg=invoice_none'); exit; }
     /* Cevrilemeyen taslak CIZILMEZ: EUR bir belgeyi "USD taslagi" diye
        gostermek, operatorun kontrol ettigi belge ile aliciya gidecek belgeyi
@@ -609,6 +625,19 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       if($cu !== $cuNow){
         if($cu==='' || $cu==='EUR') unset($rs[$ref]['invoice_currency'],$rs[$ref]['invoice_currency_by'],$rs[$ref]['invoice_currency_at']);
         else { $rs[$ref]['invoice_currency']=$cu; $rs[$ref]['invoice_currency_by']='operator'; $rs[$ref]['invoice_currency_at']=date('c'); }
+        $dirty=true;
+      }
+    }
+    /* BANKA PROFİLİ (2 Eki 2026): kardeşleriyle aynı anda kayda geçer, belge
+       kayıttan okur. Var olmayan profil yazılmaz; boş = düz künye. */
+    if(array_key_exists('bank',$_POST)){
+      $bk = strtolower(trim((string)$_POST['bank']));
+      if($bk!=='' && !isset(vestra_platform_banks()[$bk])){
+        header('Location: /admin?tab=invoices&msg=invoice_bank_bad'); exit;
+      }
+      if($bk !== (string)($rs[$ref]['invoice_bank'] ?? '')){
+        if($bk==='') unset($rs[$ref]['invoice_bank'],$rs[$ref]['invoice_bank_by'],$rs[$ref]['invoice_bank_at']);
+        else { $rs[$ref]['invoice_bank']=$bk; $rs[$ref]['invoice_bank_by']='operator'; $rs[$ref]['invoice_bank_at']=date('c'); }
         $dirty=true;
       }
     }
@@ -1048,6 +1077,25 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       header('Location: /admin?tab=orders&msg='.(($r['error']??'')==='iban_bad' ? 'platform_billing_iban_bad' : 'platform_billing_failed')); exit;
     }
     header('Location: /admin?tab=orders&msg=platform_billing_saved'); exit;
+  }
+  /* ADLI BANKA PROFİLİ (2 Eki 2026). Düz künye tek EUR + tek USD rayı tutuyor;
+     ikinci bir EUR hesabı (Hollanda) ancak profil olarak durabilir ve sipariş
+     başına seçilir. TEK YAZICI vestra_platform_bank_save() -- iş akışının
+     platform_bank modu da aynı gövdeyi çağırıyor. Geçersiz IBAN'da HİÇBİR alan
+     yazılmaz; sonuç geri okunur. Rakamlar yalnız bu formdan girer, kütüğe
+     ve depoya girmez. */
+  if($act==='save_platform_bank'){
+    require_once __DIR__.'/inc/invoice.php';
+    $r = vestra_platform_bank_save((string)($_POST['bank_key']??''), $_POST);
+    if(empty($r['ok'])){
+      header('Location: /admin?tab=orders&msg=platform_bank_bad&err='.urlencode((string)($r['error']??'?'))); exit;
+    }
+    header('Location: /admin?tab=orders&msg=platform_bank_saved&key='.urlencode((string)$r['key'])); exit;
+  }
+  if($act==='delete_platform_bank'){
+    require_once __DIR__.'/inc/invoice.php';
+    $okDel = vestra_platform_bank_delete((string)($_POST['bank_key']??''));
+    header('Location: /admin?tab=orders&msg='.($okDel?'platform_bank_deleted':'platform_bank_bad&err=delete_failed')); exit;
   }
   if($act==='save_billing'){
     require_once __DIR__.'/inc/invoice.php';
@@ -2678,6 +2726,9 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
        kendi KIRMIZI bloklarinda -- yesile boyanmis bir ret, bu dosyanin kendi
        uyarisinin tekrari olurdu. */
     'invoice_cur_saved'=>'✓ Fatura para birimi kaydedildi. Tutarlar SİPARİŞ TARİHİNDEKİ kurla çevrilir; taslağı (👁) açıp rakamları ve ödeme kutusunu görün.',
+    'invoice_bank_saved'=>'✓ Faturanın banka hesabı (platform profili) kaydedildi. Ödeme kutusu o hesabı basar; taslağı (👁) açıp kutuyu görün.',
+    'platform_bank_saved'=>'✓ Banka profili kaydedildi — sunucudan geri okundu. Siparişte "Payment account" seçicisinde görünür.',
+    'platform_bank_deleted'=>'✓ Banka profili silindi. O profili seçmiş bekleyen siparişlerde kesim DURUR (seçimi değiştirin).',
     'ds_pay_off'=>'⏸ Dropship tek-parça ödemesi DURDURULDU — site formu da ortak API\'si de yeni sipariş oluşturmuyor (503 payments_paused). Hiçbir şey silinmedi: katalog, fiyatlar, bölgeler, list/stock uçları ve mevcut siparişler yerinde. Aynı düğme geri açar.',
     'ds_pay_on'=>'▶ Dropship tek-parça ödemesi AÇIK — ortaklar yeniden sipariş verip kartla ödeyebilir.',
     'ship_auto_off'=>'⏸ Otomatik navlun tarifesi DURDURULDU — kasa, sepet önizlemesi, teklif faturası varsayılanı ve bu sayfadaki "Apply tariff" önerisi artık hiçbir rakam basmıyor (navlun 0 kalır). Hiçbir şey silinmedi: tarife tablosu, bölge tespiti ve manuel "🚚 Save shipping" formu yerinde — navlunu siparişten sonra elle yazın. Aynı düğme geri açar.',
@@ -2894,6 +2945,23 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Navlun <b>kaydedilmedi</b>: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>. Hiçbir alan değişmedi.</div>
 <?php elseif($msg==='invoice_cur_late'): ?>
 <div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Bu siparişin faturası <b>zaten kesilmiş</b> — para birimi seçimi artık belgeyi değiştirmez, o yüzden <b>kaydedilmedi</b>. Belge alıcının elinde ve numara yanmış durumda; değiştirmek için <b>Invoice approvals ▸ 🔁 Redraft</b> (aynı numarayla yeniden çizer) ya da faturayı iptal edip yeniden kesmek gerekir.</div>
+<?php elseif($msg==='invoice_bank_late'): ?>
+<div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Bu siparişin faturası <b>zaten kesilmiş</b> — banka seçimi artık belgeyi değiştirmez, o yüzden <b>kaydedilmedi</b>. Değiştirmek için <b>Invoice approvals ▸ 🔁 Redraft</b> (aynı numarayla yeniden çizer).</div>
+<?php elseif($msg==='invoice_bank_bad'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Banka seçimi <b>kaydedilmedi</b>: böyle bir profil yok. Önce <b>Admin ▸ Orders ▸ 🏦 Platform billing ▸ Bank profiles</b> altında ekleyin.</div>
+<?php elseif($msg==='platform_bank_bad'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Banka profili <b>kaydedilmedi</b> — HİÇBİR alan yazılmadı: <?php
+  $__pbe=(string)($_GET['err']??'');
+  echo htmlspecialchars([
+    'key_bad'=>'profil anahtarı geçersiz (küçük harf/rakam/tire, en çok 24 karakter; "default" olamaz)',
+    'currency_bad'=>'para birimi EUR ya da USD olmalı',
+    'label_missing'=>'profilin adı (label) boş',
+    'iban_bad'=>'IBAN sağlama (mod-97) geçmiyor — haneleri kontrol edin',
+    'iban_missing'=>'EUR profili IBAN olmadan ödeme kutusu üretemez',
+    'us_rails_missing'=>'USD profili hesap numarası + ABA routing ister',
+    'write_failed'=>'sunucuya yazılamadı (izin / disk)',
+    'delete_failed'=>'silinecek profil bulunamadı',
+  ][$__pbe] ?? $__pbe); ?>.</div>
 <?php elseif($msg==='invoice_nopay'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ <b>FATURA KESİLMEDİ</b> — kesen tarafın bu para biriminde <b>ödeme bilgisi yok</b>, yani belge <b>ödeme kutusuz</b> çıkardı: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?><br><b>Hiçbir numara yakılmadı, hiçbir belge yazılmadı, alıcıya hiçbir şey gitmedi.</b> Alıcıya giden mektup “faturada gösterilen hesaba havale edin” diyor — kutu boşken o cümle hiçbir yeri göstermez. Banka bilgisini girip tekrar deneyin; <b>👁 Draft</b> ile önce kontrol edebilirsiniz.</div>
 <?php elseif($msg==='invoice_cur_err'): ?>
@@ -3983,6 +4051,71 @@ elseif($tab==='orders'):
       ?>
       <div style="align-self:end"><button class="abtn" type="submit" style="color:var(--ok);border-color:rgba(122,214,160,.4)">Save platform billing</button></div>
     </form>
+    <?php /* ADLI BANKA PROFİLLERİ (2 Eki 2026). Yukarıdaki düz alanlar VARSAYILAN
+             ray (EUR + USD birer tane). İkinci bir EUR hesabı (Hollanda / Airwallex)
+             burada profil olarak durur ve sipariş/teklif başına seçilir
+             (Admin ▸ Orders ▸ sipariş ▸ "Payment account"). Rakamlar yalnız bu
+             formdan girer; listede IBAN yalnız ülke + hane sayısı olarak görünür. */
+      $PBANKS = vestra_platform_banks(); ?>
+    <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">🏦 Bank profiles (selectable per order)</div>
+      <div class="ahint" style="font-size:11.5px;margin-bottom:8px">The fields above are the default rail. A profile is an extra account the operator can pick on a single order or offer — e.g. a second EUR/SEPA account. The invoice currency still decides which rail prints (EUR → IBAN, USD → account + ABA); a profile only replaces that rail's fields.</div>
+      <?php if($PBANKS): ?>
+      <table class="atable" style="margin-bottom:10px">
+        <?= arow(['Key','Label','Currency','Holder','Account','Bank','Payment box',''],true) ?>
+        <?php foreach($PBANKS as $__bk=>$__bp):
+          $__bacc = vestra_platform_seller_bank((string)$__bk);
+          $__bcur = strtoupper((string)($__bp['currency']??'EUR'));
+          $__bibn = vestra_iban_normalize((string)($__bp['bank_iban']??''));
+          $__bmask = $__bcur==='USD'
+            ? 'acct '.strlen((string)($__bp['bank_account']??'')).' digits · ABA '.strlen((string)($__bp['bank_routing']??'')).' digits'
+            : ($__bibn!=='' ? substr($__bibn,0,2).' · '.strlen($__bibn).' chars · mod-97 '.(vestra_iban_valid($__bibn)?'ok':'BAD') : '—');
+          $__brails = $__bacc ? vestra_payment_rails($__bacc, $__bcur) : []; ?>
+        <tr>
+          <td><code><?= htmlspecialchars((string)$__bk) ?></code></td>
+          <td><?= htmlspecialchars((string)($__bp['label']??'')) ?></td>
+          <td><?= htmlspecialchars($__bcur) ?></td>
+          <td><?= htmlspecialchars((string)($__bp['bank_holder']??'')) ?: '<span class="ahint">(default holder)</span>' ?></td>
+          <td class="ahint"><?= htmlspecialchars($__bmask) ?></td>
+          <td><?= htmlspecialchars((string)($__bp['bank_name']??'')) ?><?= trim((string)($__bp['bank_bic']??''))!=='' ? ' <span class="ahint">'.htmlspecialchars((string)$__bp['bank_bic']).'</span>' : '' ?></td>
+          <td><?= $__brails ? '<span style="color:var(--ok)">prints ('.count($__brails).' lines)</span>' : '<b style="color:var(--bad)">EMPTY</b>' ?></td>
+          <td><form method="post" style="margin:0" onsubmit="return confirm('Delete bank profile <?= htmlspecialchars((string)$__bk) ?>? Orders that selected it will refuse to issue until the choice is changed.')">
+            <?= csrfField() ?><input type="hidden" name="_action" value="delete_platform_bank"><input type="hidden" name="bank_key" value="<?= htmlspecialchars((string)$__bk) ?>">
+            <button class="abtn" type="submit" style="font-size:11px;color:var(--bad)">🗑</button></form></td>
+        </tr>
+        <?php endforeach; ?>
+      </table>
+      <?php else: ?>
+      <div class="ahint" style="margin-bottom:8px">No profiles yet — the default rail above is used on every invoice.</div>
+      <?php endif; ?>
+      <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+        <?= csrfField() ?>
+        <input type="hidden" name="_action" value="save_platform_bank">
+        <?php
+        $__pbf = function(string $name, string $label, string $ph='') {
+          printf('<label style="font-size:11px;color:var(--mut)">%s<input name="%s" placeholder="%s" style="width:100%%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>',
+            htmlspecialchars($label), htmlspecialchars($name), htmlspecialchars($ph));
+        };
+        $__pbf('bank_key','Profile key (short, lowercase; existing key = update)','nl');
+        $__pbf('label','Label (shown in the order selector)','Airwallex NL (EUR)');
+        ?>
+        <label style="font-size:11px;color:var(--mut)">Currency of this account
+          <select name="currency" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px">
+            <?php foreach(vestra_platform_bank_currencies() as $__c): ?><option value="<?= htmlspecialchars($__c) ?>"><?= htmlspecialchars($__c) ?></option><?php endforeach; ?>
+          </select></label>
+        <?php
+        $__pbf('bank_holder','Account holder (blank = default holder)');
+        $__pbf('bank_iban','IBAN (EUR profile)');
+        $__pbf('bank_bic','BIC / SWIFT');
+        $__pbf('bank_name','Bank name');
+        $__pbf('bank_address','Bank address / country');
+        $__pbf('bank_account','Account number (USD profile)');
+        $__pbf('bank_routing','Routing (ABA) (USD profile)');
+        $__pbf('bank_acct_type','Account type (USD: Checking/Savings)');
+        ?>
+        <div style="align-self:end"><button class="abtn" type="submit" style="color:var(--ok);border-color:rgba(122,214,160,.4)">Save bank profile</button></div>
+      </form>
+    </div>
   </div>
 </details>
 <?php /* NAVLUN OTOMASYONU anahtari (KURAL 34, 19 Eyl 2026: "shipping cost
@@ -4253,6 +4386,39 @@ elseif($tab==='orders'):
             <?php endif; ?>
           </div>
         <?php endif; ?>
+        <?php /* BANKA HESABI -- sipariş başına (2 Eki 2026). Yalnız PLATFORM
+                 kesiminde anlamlı: satıcı hesabı kendi IBAN'ını basar. Seçici
+                 yine de her siparişte çiziliyor ve bunu söylüyor -- bir ekranda
+                 görünmeyen seçenek olmayan seçenektir (KURAL 2e). Profil
+                 birimi belge birimiyle uyuşmuyorsa uyarı TIKLAMADAN ÖNCE. */
+          $__vbanks = vestra_platform_banks();
+          $__vbank  = vestra_order_invoice_bank($viewRef);
+          $__vpick  = vestra_order_invoice_seller_pick($viewRef);
+          $__vplat  = ($__vpick === 'vestra') || ($__vpick === '' && !array_filter(vestra_order_lines($viewRow)['lines'], fn($l)=>($l['seller_uid']??'')!==''));
+          $__veffc  = $__vpcur !== '' ? $__vpcur : $__vocur;
+          $__vmix   = vestra_platform_bank_mismatch($__vbank, $__veffc); ?>
+        <form method="post" style="margin:0 0 8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="order_invoice_bank">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+          <input type="hidden" name="from" value="view">
+          <span class="ahint">Payment account (platform):</span>
+          <select name="bank" style="font-size:12px;max-width:260px"
+                  title="Hangi platform banka hesabı faturanın ödeme kutusuna basılsın? Boş = varsayılan künye. Yalnız VESTRA kestiğinde geçerli; satıcı hesabı kendi IBAN'ını basar.">
+            <option value="">— default (<?= htmlspecialchars((string)($PLAT['bank_eur_name'] ?? $PLAT['bank_name'] ?? 'platform record')) ?>) —</option>
+            <?php foreach($__vbanks as $__bk=>$__bp): ?>
+              <option value="<?= htmlspecialchars((string)$__bk) ?>"<?= $__vbank===(string)$__bk?' selected':'' ?>><?= htmlspecialchars((string)($__bp['label']??$__bk)) ?> (<?= htmlspecialchars(strtoupper((string)($__bp['currency']??''))) ?>)</option>
+            <?php endforeach; ?>
+          </select>
+          <button class="abtn" type="submit" style="font-size:12px">💳 Save bank</button>
+          <?php if(!$__vplat): ?>
+            <span class="ahint" style="font-size:10.5px">seller account issues — its own IBAN prints, this choice is ignored</span>
+          <?php elseif($__vmix !== ''): ?>
+            <span title="<?= htmlspecialchars($__vmix) ?>" style="font-size:11px;padding:2px 7px;border-radius:9px;background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ profil birimi ≠ belge birimi — kesim durur</span>
+          <?php elseif($__vbank !== ''): ?>
+            <span class="ahint" style="font-size:10.5px">belgede: <?= htmlspecialchars((string)($__vbanks[$__vbank]['label'] ?? $__vbank)) ?></span>
+          <?php endif; ?>
+        </form>
         <?php if(!str_contains((string)($viewRow['notes']??''),'Secure escrow')): ?>
         <form method="post" style="margin:0" onsubmit="return confirm('Issue the invoice(s) for this order and email the buyer? Do this once stock is confirmed.')">
           <?= csrfField() ?>
@@ -4762,6 +4928,18 @@ elseif($tab==='invoices'): ?>
             ? htmlspecialchars('@ '.vestra_order_fx_note($__ffx))
             : '<b style="color:var(--bad)">kur damgası yok — kesim durur</b>' ?></div>
         <?php endif; ?>
+        <?php /* BANKA PROFİLİ (2 Eki 2026) -- siparişlerle aynı kayıt deseni,
+                 teklifin kendi kaydında (invoice_bank). Yalnız platform
+                 kestiğinde işler; satıcı hesabı kendi IBAN'ını basar. */
+              $__fbanks = vestra_platform_banks(); $__fbank = vestra_offer_invoice_bank($fref); ?>
+        <select name="bank" form="<?= htmlspecialchars($fFid) ?>"
+                title="Platform kestiğinde ödeme kutusuna hangi banka hesabı basılsın? Boş = varsayılan künye. Satıcı hesabı kesiyorsa yok sayılır."
+                style="margin-top:4px;width:100%;max-width:200px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:11px">
+          <option value="">— bank: default —</option>
+          <?php foreach($__fbanks as $__bk=>$__bp): ?>
+            <option value="<?= htmlspecialchars((string)$__bk) ?>"<?= $__fbank===(string)$__bk?' selected':'' ?>><?= htmlspecialchars((string)($__bp['label']??$__bk)) ?> (<?= htmlspecialchars(strtoupper((string)($__bp['currency']??''))) ?>)</option>
+          <?php endforeach; ?>
+        </select>
       </td>
       <td>
         <?php /* _action GIZLI ALANDA DEGIL, dugmelerin uzerinde: iki dugme ayni
@@ -5122,6 +5300,28 @@ foreach($issuedOfferInvs as $__e):
               <span class="ahint" style="font-size:10.5px"><?= $__ofx
                 ? htmlspecialchars('@ '.vestra_order_fx_note($__ofx))
                 : '<b style="color:var(--bad)">kur damgası yok — kesim durur</b>' ?></span>
+            <?php endif; ?>
+          </form>
+          <?php /* BANKA PROFİLİ (2 Eki 2026) -- para birimi seçicisinin yanında,
+                   aynı kayıt. Profil birimi belge birimiyle uyuşmuyorsa çip
+                   TIKLAMADAN ÖNCE (kesim durur). */
+                $__obanks = vestra_platform_banks();
+                $__obank  = vestra_order_invoice_bank($oref);
+                $__omix   = vestra_platform_bank_mismatch($__obank, (string)($__pl[0]['want_currency'] ?? ($__pl[0]['meta']['currency'] ?? $__ocur))); ?>
+          <form method="post" style="margin:0;display:flex;gap:4px;align-items:center">
+            <?= csrfField() ?>
+            <input type="hidden" name="_action" value="order_invoice_bank">
+            <input type="hidden" name="ref" value="<?= htmlspecialchars($oref) ?>">
+            <select name="bank" style="font-size:12px;max-width:190px"
+                    title="Platform kestiğinde ödeme kutusuna hangi banka hesabı basılsın? Boş = varsayılan künye.">
+              <option value="">— bank: default —</option>
+              <?php foreach($__obanks as $__bk=>$__bp): ?>
+                <option value="<?= htmlspecialchars((string)$__bk) ?>"<?= $__obank===(string)$__bk?' selected':'' ?>><?= htmlspecialchars((string)($__bp['label']??$__bk)) ?> (<?= htmlspecialchars(strtoupper((string)($__bp['currency']??''))) ?>)</option>
+              <?php endforeach; ?>
+            </select>
+            <button class="abtn" type="submit" style="font-size:12px">Kaydet</button>
+            <?php if($__omix !== ''): ?>
+              <span title="<?= htmlspecialchars($__omix) ?>" style="font-size:11px;padding:2px 7px;border-radius:9px;background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.35);color:#c0392b;white-space:nowrap">⚠ banka ≠ belge birimi — kesilemez</span>
             <?php endif; ?>
           </form>
           <form method="post" style="margin:0" onsubmit="return confirm('Issue the invoice for order <?= htmlspecialchars($oref) ?>? This burns the number(s), stores the PDF(s) and EMAILS THE BUYER. Check the draft (👁) first. Do this once stock is confirmed.')">

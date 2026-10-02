@@ -823,6 +823,27 @@ jobs:
                 $r = vestra_payment_rails($P, $c);
                 echo "    -> ".$c." faturasinda odeme kutusu: ".($r ? 'CIKAR ('.count($r).' satir)' : '*** CIKMAZ (bos) ***')."\n";
               }
+              /* ADLI BANKA PROFILLERI (2 Eki 2026): siparis basina secilebilen ek
+                 hesaplar. Ayni maske: numara yok, VAR/YOK + hane + satir sayisi. */
+              echo "  --- BANKA PROFILLERI (siparis basina secilebilir) ---\n";
+              if (!function_exists('vestra_platform_banks')) {
+                echo "    *** DEPLOY INMEMIS -- profil kodu yok ***\n";
+              } else {
+                $PB = vestra_platform_banks();
+                if (!$PB) echo "    (profil yok -- her belge duz kunyeyle)\n";
+                foreach ($PB as $bk => $bp) {
+                  $bc  = strtoupper((string)($bp['currency'] ?? 'EUR'));
+                  $ba  = vestra_platform_seller_bank((string)$bk);
+                  $br  = $ba ? vestra_payment_rails($ba, $bc) : [];
+                  $ibn = vestra_iban_normalize((string)($bp['bank_iban'] ?? ''));
+                  printf("    %-10s %-24s %s  lehdar=%s  banka=%s  %s  -> kutu: %s\n", $bk, '"'.(string)($bp['label'] ?? '').'"', $bc,
+                         (string)($bp['bank_holder'] ?? '') ?: '(duz kunyeden)',
+                         (string)($bp['bank_name'] ?? '') ?: '(yok)',
+                         $bc === 'USD' ? 'hesap '.$has($bp['bank_account'] ?? '').' / ABA '.$has($bp['bank_routing'] ?? '')
+                                       : 'IBAN '.($ibn !== '' ? substr($ibn,0,2).' '.strlen($ibn).' hane mod-97 '.(vestra_iban_valid($ibn) ? 'OK' : '*** GECERSIZ') : '*** BOS'),
+                         $br ? 'CIKAR ('.count($br).' satir)' : '*** CIKMAZ ***');
+                }
+              }
               /* MUHAFAZA SUNUCUYA INDI MI (KURAL 5r). "Dosya parse edildi"
                  yetmez -- ESKI bir kopya da parse edilir; o yuzden fonksiyonun
                  VARLIGI degil, gercek bir cagrinin CEVABI olculuyor.
