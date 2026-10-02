@@ -29,6 +29,7 @@ $ALLOW = [
     'FR1420041010050500013M02606' => 'La Banque Postale ornek IBAN',
     'FR4720041010125740964U03334' => 'ornek FR IBAN (iban_valid_test)',
     'NL02ABNA0123456789'          => 'ornek NL IBAN (0123456789 dizisi)',
+    'NL91ABNA0417164300'          => 'ABN AMRO ornek IBAN (her NL IBAN belgesinde; platform_bank_profiles_test fiksturu)',
 ];
 
 /** Bir dosya listesinde izin listesinde OLMAYAN gecerli IBAN arar. */

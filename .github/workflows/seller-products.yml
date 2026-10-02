@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir; issue_shipping='auto' = bölge tarifesi). Kabul edilmiş TEKLİF ref'i (O…) verilirse navlun teklifin KENDİ kaydına yazılır (EUR, fatura kesilmez; kuru koşu '120|dry=1'; faturalı teklifte REDDEDER ve KURAL 5f yolunu söyler). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ, PARASI GELMİŞ ya da DEKONTU YÜKLENMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'thread_dump' = bir alıcının TÜM site içi yazışmalarını + numune/teklif/sipariş kayıtlarını ŞİFRELİ döker (issue_ref=hesap ID ya da firma parçası — TAM 1 eşleşme; issue_pubkey ŞART, metin şifresiz basılmaz; salt okunur). 'invoice_delete' = KESİLMİŞ bir faturayı KALDIRIR (issue_ref=sipariş/teklif ref, payload=satıcı anahtarı — tek dilimse boş; move_apply=true ile uygular, varsayılan kuru koşu; panelin 🗑 Remove düğmesiyle AYNI fonksiyon — dosyayı ARŞİVLER, silmez; numara yanmış kalır, yeniden kesim YENİ numara yakar; sipariş satırına dokunmaz, gerekirse ardından order_delete). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır); 'redact:<thread>:<tarih>' + payload='ESKI=>YENI' (ya da 'b64:<base64>') ise mesajı silmez, yalnız o ifadeyi metinden çıkarır (TAM 1 mesaj, ifade TAM 1 kez; yedek + geri okuma). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. Ref SİLİNMEMİŞ, hâlâ AÇIK bir tekliftesin ve satıcının kendi bekleyen karşı teklifini (alıcı henüz yanıtlamadan) düzeltmek istiyorsan offer_selfcorrect=true ekle (KURAL 4'ün 'kendi hamleni düzelt' istisnası — yeni tur EKLER, eskiyi SİLMEZ). 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. 'order_colours' = siparişin RENGİNİ düzeltir (issue_ref=sipariş, payload='SKU:Renk,Renk', move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_add_line' = var olan bir siparişe YENİ bir SKU satırı ekler (issue_ref=sipariş, payload='SKU:ADET[:Renk=Adet,Renk=Adet]|allow_invoiced=1|unit=<fiyat>|note=<metin>', move_apply=true; renk kırılımı verilirse toplamı ADET'e eşit olmalı, ilanda kayıtlı olmayan renk yazılır ama UYARILIR; birim fiyat verilmezse katalog kademesinden, verilirse yalnız ilandan UCUZ olabilir; goods `vestra_order_lines()`'dan yeniden hesaplanır, indirim ve kargo DOKUNULMADAN kalır — ikinci bir hesap yolu yazılmadı; aynı SKU zaten sipariştaysa REDDEDİLİR, vestra_order_set_colours'a yönlendirir; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_replace_line' = siparişte bir kalemin MODELİNİ değiştirir (issue_ref=sipariş, payload='ESKİ-SKU>YENİ-SKU[|unit=..][|qty=..][|colours=A;B][|allow_invoiced=1]', move_apply=true; birim ve adet varsayılan olarak ESKİ satırdan — tutar aynı kalır; renk yeni ilanın TEK renginden (çok renkliyse colours= şart), beden dökümü yeni ilanın KENDİ serisinden; kuru koşu yazıcının kendi dry kipi; ilandan PAHALI birim reddedilir; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_unit' = VAR OLAN bir kalemin BİRİM FİYATINI düzeltir (issue_ref=sipariş, payload='SKU:BIRIM|allow_invoiced=1|above_list=1', move_apply=true; varsayılan kuru koşu; ilandan PAHALI birim above_list=1 ister, parası gelmiş sipariş koşulsuz RED, faturalıysa AYNI numarayla yeniden çizim İSTER — KURAL 5f). 'order_delivery' = siparişin TESLİMAT ADRESİNİ yazar/düzeltir (issue_ref=sipariş, payload='adres metni|allow_invoiced=1' — MÜŞTERİ ADRESİ açık girdiye yazılmasın diye 'enc:<zarf>' (scripts/envelope_seal.php, gövde {\"address\":\"…\"}) tercih edilir; çıktıda adres MASKELİ — boş adres=SİLER, move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5l/5f). 'order_discount' = siparişe HOŞ GELDİN İNDİRİMİ işler (issue_ref=sipariş, payload='pct=5|code=<kupon>|allow_invoiced=1', move_apply=true; TUTAR yüzdeden türer, elle verilmez; indirim + toplam + payout BİRLİKTE yazılır ve geri okunur; PARASI GELMİŞ sipariş koşulsuz RED, faturalı sipariş opt-in ister ve AYNI numarayla yeniden çizim İSTER; kuru koşu vestra_welcome_auto'nun KARARINI ve bölgesel indirimi de basar — pct=0 indirimi KALDIRIR). 'create_buyer' = ELLE alıcı hesabı açar (payload=ŞİFRELİ zarf — müşterinin e-postası açık girdiye yazılmaz, çıktıda maskeli; move_apply=true ile uygular, varsayılan kuru koşu; panelin ➕ New buyer account formuyla AYNI yazıcı, müşteriye HİÇBİR ŞEY gitmez). 'lead_rename' = bir lead'in SADECE firma adını düzeltir (issue_ref=lead id, e-postanın ALAN ADI ya da SİTENİN alan adı — müşterinin adresi açık girdiye yazılmaz, çıktıda maskeli; payload=yeni ad; TOPLU: issue_ref=batch, payload='alanadi=Yeni Ad|alanadi=Yeni Ad' — biri tutmazsa HİÇBİRİ yazılmaz; her ref için TAM 1 eşleşme yoksa durur; damgalara DOKUNMAZ, yani ilk mektup ikinci kez gitmez; move_apply=true ile uygular, varsayılan kuru koşu). 'preorder_ship' = kodda GÖMÜLÜ (demo) bir ürünün ön sipariş teslim tarihini yazar (issue_ref=ürün id, ör. amiri-core-polo; payload=YYYY-MM-DD, boş = KALDIR; sayfada görünecek cümleyi ÖNİZLER; moq/tiers gibi kardeş alanlara dokunmaz; move_apply=true ile uygular, varsayılan kuru koşu — CANLI LİSTELER için bu alan set-product.yml'den yazılır, orada reddedilir). 'platform_bank' = PLATFORMUN banka künyesini yazar (payload=ŞİFRELİ zarf, keygen'in public key'iyle; gövde {bank_iban, bank_eur_bic, bank_eur_name, …}; panelin 🏦 Platform billing formuyla AYNI yazıcı — mod-97 geçmezse HİÇBİR alan yazılmaz; çıktıda numara YOK; kuru koşu EUR kutusunun çıkıp çıkmayacağını BELLEKTE gösterir; move_apply=true ile yazar). 'password_setup' = elle açılan hesaba 'şifreni seç' MEKTUBU GÖNDERİR (issue_ref=hesap ID — adres açık girdiye yazılmaz, kayıttan çözülür; TAM 1 eşleşme yoksa durur; link/jeton/gövde log'a YAZILMAZ; move_apply=true ile gönderir, varsayılan kuru koşu ve kuru koşu jeton ÜRETMEZ). 'brand_hide' = markayı sitenin HER YERİNDE gizler / geri açar (payload=gizli markaların TAM listesi, virgülle — örn. 'Gucci,Balenciaga'; verilmeyen marka GÖRÜNÜR olur; 'clear' = hepsini geri aç; ilan kaydına DOKUNMAZ, panelin Hidden brands kartıyla aynı yazıcı; varsayılan kuru koşu, move_apply=true ile yazar). Boş = sadece listeler. 'sample_link' = ALICIYA tek seferlik NUMUNE ODEME LINKI (issue_ref=alici hesap ID, payload='product=<ilan id>|price=<EUR>|lang=<xx>'; adres Stripe sayfasinda girilir, odeme platform hesabina, link odenene kadar gecerli; varsayilan kuru kosu, move_apply=true kaydi yazar ve MEKTUBU GONDERIR). 'order_audit' = TUM siparislerin SALT OKUNUR denetimi: fatura (no/tutar/kesen), odendi mi, dekont, odeme saati (son tarih, hatirlatma), ve Brevo'da o siparisin ref'ini ya da fatura no'sunu tasiyan mektuplar (PDF ekli / baglanti / hatirlatma, teslim-acilma); issue_ref=ref[,ref] ile daraltilir; adresler maskeli, hicbir sey yazilmaz ya da gonderilmez. 'push_probe' = bildirim cihazlarinin SALT OKUNUR sayimi: kod indi mi, ana makine izin listesinde mi, sifreleme anahtari var mi, bir cihaz birden fazla hesapta mi, son teslim; uc nokta/hesap/anahtar BASILMAZ. 'sample_cancel' = bir alicinin ODENMEMIS numune kayitlarini IPTAL EDER VE SILER (issue_ref=alici hesap ID -- TAM esleme; payload='ref=SPL-...' verilirse yalniz o kayit; once Stripe oturumu KAPATILIR, Stripe 'odendi' derse is DURUR; kayit sample_backups'a yedeklenir, geri okunur; ODENMIS numune bu yoldan silinmez; musteriye HICBIR SEY gitmez; move_apply=true ile uygular, varsayilan kuru kosu)."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir; issue_shipping='auto' = bölge tarifesi). Kabul edilmiş TEKLİF ref'i (O…) verilirse navlun teklifin KENDİ kaydına yazılır (EUR, fatura kesilmez; kuru koşu '120|dry=1'; faturalı teklifte REDDEDER ve KURAL 5f yolunu söyler). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'order_delete' = siparişi SİLER (issue_ref=sipariş, move_apply=true; varsayılan kuru koşu, panelin Delete düğmesiyle AYNI yazıcı, yedek alır, geri okunur — FATURASI KESİLMİŞ, PARASI GELMİŞ ya da DEKONTU YÜKLENMİŞ siparişi reddeder, force yolu yalnız Admin ▸ Orders'ta). 'thread_dump' = bir alıcının TÜM site içi yazışmalarını + numune/teklif/sipariş kayıtlarını ŞİFRELİ döker (issue_ref=hesap ID ya da firma parçası — TAM 1 eşleşme; issue_pubkey ŞART, metin şifresiz basılmaz; salt okunur). 'invoice_delete' = KESİLMİŞ bir faturayı KALDIRIR (issue_ref=sipariş/teklif ref, payload=satıcı anahtarı — tek dilimse boş; move_apply=true ile uygular, varsayılan kuru koşu; panelin 🗑 Remove düğmesiyle AYNI fonksiyon — dosyayı ARŞİVLER, silmez; numara yanmış kalır, yeniden kesim YENİ numara yakar; sipariş satırına dokunmaz, gerekirse ardından order_delete). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'msg_del' = mesaj / engellenen deneme kaydı SİLER (move_threads='blocked:<tarih>' ya da 'msg:<thread>:<tarih>', move_apply=true ile uygular; panelin 🗑 düğmesiyle aynı fonksiyon, yedek alır); 'redact:<thread>:<tarih>' + payload='ESKI=>YENI' (ya da 'b64:<base64>') ise mesajı silmez, yalnız o ifadeyi metinden çıkarır (TAM 1 mesaj, ifade TAM 1 kez; yedek + geri okuma). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. Ref SİLİNMEMİŞ, hâlâ AÇIK bir tekliftesin ve satıcının kendi bekleyen karşı teklifini (alıcı henüz yanıtlamadan) düzeltmek istiyorsan offer_selfcorrect=true ekle (KURAL 4'ün 'kendi hamleni düzelt' istisnası — yeni tur EKLER, eskiyi SİLMEZ). 'seller_activate' = ASKIDAKİ bir satıcıyı geri açar (issue_ref=hesap ID, move_apply=true; panelin Activate düğmesiyle aynı iki yazma, geri okunur). 'diskclean' = sunucunun DOLAN disk kotasını boşaltır (move_threads=spec, move_apply=true; varsayılan kuru koşu — müşteri belgesine, faturaya, dekonta ve teklif/mesaj yedeklerine DOKUNMAZ). 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. 'order_colours' = siparişin RENGİNİ düzeltir (issue_ref=sipariş, payload='SKU:Renk,Renk', move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_add_line' = var olan bir siparişe YENİ bir SKU satırı ekler (issue_ref=sipariş, payload='SKU:ADET[:Renk=Adet,Renk=Adet]|allow_invoiced=1|unit=<fiyat>|note=<metin>', move_apply=true; renk kırılımı verilirse toplamı ADET'e eşit olmalı, ilanda kayıtlı olmayan renk yazılır ama UYARILIR; birim fiyat verilmezse katalog kademesinden, verilirse yalnız ilandan UCUZ olabilir; goods `vestra_order_lines()`'dan yeniden hesaplanır, indirim ve kargo DOKUNULMADAN kalır — ikinci bir hesap yolu yazılmadı; aynı SKU zaten sipariştaysa REDDEDİLİR, vestra_order_set_colours'a yönlendirir; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_replace_line' = siparişte bir kalemin MODELİNİ değiştirir (issue_ref=sipariş, payload='ESKİ-SKU>YENİ-SKU[|unit=..][|qty=..][|colours=A;B][|allow_invoiced=1]', move_apply=true; birim ve adet varsayılan olarak ESKİ satırdan — tutar aynı kalır; renk yeni ilanın TEK renginden (çok renkliyse colours= şart), beden dökümü yeni ilanın KENDİ serisinden; kuru koşu yazıcının kendi dry kipi; ilandan PAHALI birim reddedilir; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5f). 'order_unit' = VAR OLAN bir kalemin BİRİM FİYATINI düzeltir (issue_ref=sipariş, payload='SKU:BIRIM|allow_invoiced=1|above_list=1', move_apply=true; varsayılan kuru koşu; ilandan PAHALI birim above_list=1 ister, parası gelmiş sipariş koşulsuz RED, faturalıysa AYNI numarayla yeniden çizim İSTER — KURAL 5f). 'order_delivery' = siparişin TESLİMAT ADRESİNİ yazar/düzeltir (issue_ref=sipariş, payload='adres metni|allow_invoiced=1' — MÜŞTERİ ADRESİ açık girdiye yazılmasın diye 'enc:<zarf>' (scripts/envelope_seal.php, gövde {\"address\":\"…\"}) tercih edilir; çıktıda adres MASKELİ — boş adres=SİLER, move_apply=true; faturalıysa varsayılan RED — '|allow_invoiced=1' ile yazar ve AYNI numarayla yeniden çizim İSTER, KURAL 5l/5f). 'order_discount' = siparişe HOŞ GELDİN İNDİRİMİ işler (issue_ref=sipariş, payload='pct=5|code=<kupon>|allow_invoiced=1', move_apply=true; TUTAR yüzdeden türer, elle verilmez; indirim + toplam + payout BİRLİKTE yazılır ve geri okunur; PARASI GELMİŞ sipariş koşulsuz RED, faturalı sipariş opt-in ister ve AYNI numarayla yeniden çizim İSTER; kuru koşu vestra_welcome_auto'nun KARARINI ve bölgesel indirimi de basar — pct=0 indirimi KALDIRIR). 'create_buyer' = ELLE alıcı hesabı açar (payload=ŞİFRELİ zarf — müşterinin e-postası açık girdiye yazılmaz, çıktıda maskeli; move_apply=true ile uygular, varsayılan kuru koşu; panelin ➕ New buyer account formuyla AYNI yazıcı, müşteriye HİÇBİR ŞEY gitmez). 'lead_rename' = bir lead'in SADECE firma adını düzeltir (issue_ref=lead id, e-postanın ALAN ADI ya da SİTENİN alan adı — müşterinin adresi açık girdiye yazılmaz, çıktıda maskeli; payload=yeni ad; TOPLU: issue_ref=batch, payload='alanadi=Yeni Ad|alanadi=Yeni Ad' — biri tutmazsa HİÇBİRİ yazılmaz; her ref için TAM 1 eşleşme yoksa durur; damgalara DOKUNMAZ, yani ilk mektup ikinci kez gitmez; move_apply=true ile uygular, varsayılan kuru koşu). 'preorder_ship' = kodda GÖMÜLÜ (demo) bir ürünün ön sipariş teslim tarihini yazar (issue_ref=ürün id, ör. amiri-core-polo; payload=YYYY-MM-DD, boş = KALDIR; sayfada görünecek cümleyi ÖNİZLER; moq/tiers gibi kardeş alanlara dokunmaz; move_apply=true ile uygular, varsayılan kuru koşu — CANLI LİSTELER için bu alan set-product.yml'den yazılır, orada reddedilir). 'platform_bank' = PLATFORMUN banka künyesini yazar (payload=ŞİFRELİ zarf, keygen'in public key'iyle; gövde {bank_iban, bank_eur_bic, bank_eur_name, …}; panelin 🏦 Platform billing formuyla AYNI yazıcı — mod-97 geçmezse HİÇBİR alan yazılmaz; çıktıda numara YOK; kuru koşu EUR kutusunun çıkıp çıkmayacağını BELLEKTE gösterir; move_apply=true ile yazar). 'password_setup' = elle açılan hesaba 'şifreni seç' MEKTUBU GÖNDERİR (issue_ref=hesap ID — adres açık girdiye yazılmaz, kayıttan çözülür; TAM 1 eşleşme yoksa durur; link/jeton/gövde log'a YAZILMAZ; move_apply=true ile gönderir, varsayılan kuru koşu ve kuru koşu jeton ÜRETMEZ). 'brand_hide' = markayı sitenin HER YERİNDE gizler / geri açar (payload=gizli markaların TAM listesi, virgülle — örn. 'Gucci,Balenciaga'; verilmeyen marka GÖRÜNÜR olur; 'clear' = hepsini geri aç; ilan kaydına DOKUNMAZ, panelin Hidden brands kartıyla aynı yazıcı; varsayılan kuru koşu, move_apply=true ile yazar). Boş = sadece listeler. 'sample_link' = ALICIYA tek seferlik NUMUNE ODEME LINKI (issue_ref=alici hesap ID, payload='product=<ilan id>|price=<EUR>|lang=<xx>'; adres Stripe sayfasinda girilir, odeme platform hesabina, link odenene kadar gecerli; varsayilan kuru kosu, move_apply=true kaydi yazar ve MEKTUBU GONDERIR). 'order_audit' = TUM siparislerin SALT OKUNUR denetimi: fatura (no/tutar/kesen), odendi mi, dekont, odeme saati (son tarih, hatirlatma), ve Brevo'da o siparisin ref'ini ya da fatura no'sunu tasiyan mektuplar (PDF ekli / baglanti / hatirlatma, teslim-acilma); issue_ref=ref[,ref] ile daraltilir; adresler maskeli, hicbir sey yazilmaz ya da gonderilmez. 'push_probe' = bildirim cihazlarinin SALT OKUNUR sayimi: kod indi mi, ana makine izin listesinde mi, sifreleme anahtari var mi, bir cihaz birden fazla hesapta mi, son teslim; uc nokta/hesap/anahtar BASILMAZ. 'sample_cancel' = bir alicinin ODENMEMIS numune kayitlarini IPTAL EDER VE SILER (issue_ref=alici hesap ID -- TAM esleme; payload='ref=SPL-...' verilirse yalniz o kayit; once Stripe oturumu KAPATILIR, Stripe 'odendi' derse is DURUR; kayit sample_backups'a yedeklenir, geri okunur; ODENMIS numune bu yoldan silinmez; musteriye HICBIR SEY gitmez; move_apply=true ile uygular, varsayilan kuru kosu). 'bank' = faturanın ödeme kutusuna hangi PLATFORM BANKA PROFİLİ basılacağını kayda yazar (issue_ref=sipariş ya da teklif ref, payload=profil anahtarı | 'clear'; panelin \"Payment account\" seçicisiyle AYNI kayıt, numara yakmaz, kesilmiş faturada reddeder). 'platform_bank' zarfında bank_key verilirse düz künye DEĞİL adlı profil yazılır (banks[<key>]; label, currency, bank_holder, bank_iban, bank_bic, bank_name, bank_address)."
         required: false
         default: ""
       issue_currency:
@@ -307,6 +307,62 @@ jobs:
               return $n === '' ? '(bos)' : substr($n,0,2).', '.strlen($n).' hane, mod-97 '.(vestra_iban_valid($n) ? 'GECERLI' : '*** GECERSIZ ***');
             };
             $secret = ['bank_iban','bank_account','bank_routing'];
+
+            /* ADLI PROFIL (2 Eki 2026): zarfta `bank_key` varsa duz kunyeye DEGIL,
+               `banks[<key>]` profiline yazilir (vestra_platform_bank_save -- panelin
+               "Save bank profile" formuyla AYNI yazici). Duz alanlar hic degismez;
+               siparis basina secim admin_mode=bank ya da Admin > Orders. */
+            if (isset($in['bank_key'])) {
+              if (!function_exists('vestra_platform_bank_save')) {
+                fwrite(STDERR, "*** DEPLOY INMEMIS -- vestra_platform_bank_save() yok ***\n"); exit(1);
+              }
+              $bkey = strtolower(trim((string)$in['bank_key']));
+              echo "PROFIL: {$bkey}\n";
+              foreach ($in as $k => $v) {
+                $v = trim((string)$v); if ($v === '' || $k === 'bank_key') continue;
+                if ($k === 'bank_iban')      echo "  bank_iban        : ".$ibanMask($v)."\n";
+                elseif (in_array($k, $secret, true)) echo "  {$k}: VAR (".strlen(preg_replace('/\D/','',$v))." hane)\n";
+                else echo "  ".str_pad($k,17).": ".$v."\n";
+              }
+              $exists = isset(vestra_platform_banks()[$bkey]);
+              echo "mevcut profil     : ".($exists ? 'VAR (guncellenir)' : 'yok (yeni)')."\n";
+              /* Kutu, cizicinin okudugu fonksiyondan -- bellekte, yazmadan. */
+              $prev = vestra_platform_banks()[$bkey] ?? [];
+              $sim  = array_merge($prev, array_filter(array_map('trim', array_map('strval', $in)), fn($x) => $x !== ''));
+              $simCur = strtoupper((string)($sim['currency'] ?? 'EUR'));
+              $simAcc = vestra_platform_seller();
+              if ($simCur === 'USD') { foreach (['bank_account','bank_routing','bank_acct_type','bank_bic','bank_name','bank_address'] as $k) { if (trim((string)($sim[$k] ?? '')) !== '') $simAcc[$k] = $sim[$k]; else unset($simAcc[$k]); } }
+              else { $simAcc['bank_iban'] = vestra_iban_normalize((string)($sim['bank_iban'] ?? '')); foreach (['bank_bic'=>'bank_eur_bic','bank_name'=>'bank_eur_name','bank_address'=>'bank_eur_address'] as $f=>$t) { if (trim((string)($sim[$f] ?? '')) !== '') $simAcc[$t] = $sim[$f]; else unset($simAcc[$t]); } }
+              if (trim((string)($sim['bank_holder'] ?? '')) !== '') $simAcc['bank_holder'] = $sim['bank_holder'];
+              $simRails = vestra_payment_rails($simAcc, $simCur);
+              printf("ODEME KUTUSU (%s, bu profil secilince): %d satir\n", $simCur, count($simRails));
+              if (!$simRails) echo "*** UYARI: bu profil secilse de kutu BOS kalir -- yazici zaten reddeder ***\n";
+              if (!$APPLY) {
+                $bad = isset($in['bank_iban']) && !vestra_iban_valid(vestra_iban_normalize((string)$in['bank_iban']));
+                echo "\nKURU KOSU -- hicbir sey yazilmadi.\n";
+                echo $bad ? "ENGEL: IBAN mod-97'den gecmiyor; yazici HICBIR alani kaydetmez.\n" : "engel yok; move_apply=true ile yazilir.\n";
+                exit($bad ? 1 : 0);
+              }
+              $r = vestra_platform_bank_save($bkey, $in);
+              if (empty($r['ok'])) { fwrite(STDERR, "\nYAZILMADI: ".($r['error'] ?? '?')."\n"); exit(1); }
+              $after = vestra_platform_banks()[$bkey] ?? [];
+              echo "\nYAZILDI: profil '{$bkey}' -> ".implode(', ', array_keys($r['saved']))."\n";
+              echo "geri okuma:\n";
+              echo "  label            : ".(string)($after['label'] ?? '(yok)')."\n";
+              echo "  currency         : ".(string)($after['currency'] ?? '(yok)')."\n";
+              echo "  bank_iban        : ".$ibanMask((string)($after['bank_iban'] ?? ''))."\n";
+              echo "  bank_bic         : ".((string)($after['bank_bic'] ?? '') ?: '(yok)')."\n";
+              echo "  bank_name        : ".((string)($after['bank_name'] ?? '') ?: '(yok)')."\n";
+              echo "  bank_address     : ".(trim((string)($after['bank_address'] ?? '')) !== '' ? 'VAR' : '(yok)')."\n";
+              $accB = vestra_platform_seller_bank($bkey);
+              $cB   = strtoupper((string)($after['currency'] ?? 'EUR'));
+              printf("  odeme kutusu     : %s %d satir (profil secili)   duz kunye: EUR %d / USD %d satir (DEGISMEDI)\n",
+                     $cB, $accB ? count(vestra_payment_rails($accB, $cB)) : 0,
+                     count(vestra_payment_rails(vestra_platform_seller(), 'EUR')), count(vestra_payment_rails(vestra_platform_seller(), 'USD')));
+              $gapB = $accB ? vestra_invoice_payment_gap($accB, $cB, false) : 'profil okunamadi';
+              echo "  ".$cB." kesimi (KURAL 5r): ".($gapB === '' ? 'GECER' : '*** DURUR -- '.$gapB)."\n";
+              exit(0);
+            }
             echo "ZARFTAKI ALANLAR:\n";
             foreach ($in as $k => $v) {
               $v = trim((string)$v); if ($v === '') continue;
@@ -903,6 +959,11 @@ jobs:
               echo "ilanin renkleri: ".($p && !empty($p['colors']) ? implode(' / ', (array)$p['colors']) : '(kayitli degil)')."\n";
             }
             echo "istenen renk : ".implode(', ', $cols)."\n";
+            /* Renk=Adet kirilimi (2 Eki 2026): toplam satirin adediyle tutmali;
+               yazici reddeder ama kuru kosu bunu ONCEDEN soylemeli. */
+            $qsum = 0; $qall = true;
+            foreach ($cols as $c) { if (preg_match('/=\s*(\d+)$/', $c, $qm)) $qsum += (int)$qm[1]; else $qall = false; }
+            if ($qsum > 0) echo "renk kirilimi: ".($qall ? "toplam {$qsum} adet" : "*** yarisi adetli -- yazici reddeder")."\n";
             echo "kesilmis fatura: ".(count($inv) ?: 'yok')."\n";
             foreach ($inv as $iv) echo "   - ".(string)($iv['no'] ?? '?')."\n";
 
@@ -2871,6 +2932,100 @@ jobs:
             php -l /tmp/vestra_cur.php
             php /tmp/vestra_cur.php
             rm -f /tmp/vestra_cur.php
+
+      # Faturanin odeme kutusuna HANGI PLATFORM BANKA PROFILI basilacagini KAYDA
+      # yazar (2 Eki 2026, VES-2DDC94D9: "Hollanda bankasi ile olustur, banka
+      # secimi ... secilebilmeli adminden"). Panelin "Payment account"
+      # secicisiyle AYNI kayit (order_statuses[ref].invoice_bank) ve AYNI
+      # dogrulayici (vestra_order_set_invoice_bank). Kabul edilmis TEKLIF ref'i
+      # verilirse offer_responses[ref].invoice_bank (vestra_offer_set_invoice_bank).
+      #
+      #   issue_ref : siparis ref (VES-…) ya da teklif ref (O…)
+      #   payload   : profil anahtari (orn. 'nl') | 'clear' = secimi kaldir
+      #   Numara yakmaz, belge uretmez, kimseye gitmez. Kesilmis faturada REDDEDER.
+      - name: Faturanın banka profilini kaydet (bank) — numara yakmaz
+        if: ${{ github.event.inputs.admin_mode == 'bank' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          BK_REF:  ${{ github.event.inputs.issue_ref }}
+          BK_WANT: ${{ github.event.inputs.payload }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: BK_REF,BK_WANT
+          script: |
+            set -e
+            cat > /tmp/vestra_bank.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/invoice.php";
+            require_once $doc."/inc/offers.php";
+            require_once $doc."/inc/fx_orders.php";
+
+            $ref  = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('BK_REF'));
+            $want = strtolower(trim((string)getenv('BK_WANT')));
+            if ($want === 'clear' || $want === '-') $want = '';
+            if ($ref === '') { fwrite(STDERR, "ref yok (issue_ref)\n"); exit(1); }
+            if (!function_exists('vestra_platform_banks')) { fwrite(STDERR, "*** DEPLOY INMEMIS -- vestra_platform_banks() yok ***\n"); exit(1); }
+
+            $banks = vestra_platform_banks();
+            echo "kayitli profiller: ".($banks ? implode(', ', array_map(fn($k, $p) => $k.' ('.($p['label'] ?? '?').' / '.strtoupper((string)($p['currency'] ?? '')).')', array_keys($banks), $banks)) : '(hic yok)')."\n";
+            if ($want !== '' && !isset($banks[$want])) { fwrite(STDERR, "profil yok: '{$want}' -- once Admin > Orders > Bank profiles ya da admin_mode=platform_bank (bank_key) ile ekleyin\n"); exit(1); }
+
+            $already = vestra_invoices_for_ref($ref);
+            if ($already) {
+              fwrite(STDERR, "fatura ZATEN KESILMIS (".implode(', ', array_map(fn($i)=>(string)($i['no']??'?'), $already)).") -- banka secimi artik belgeyi degistirmez (KURAL 5f: ayni numarayla yeniden cizim).\n");
+              exit(1);
+            }
+
+            $row = null;
+            foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $row = $r; break; }
+            $isOffer = false;
+            if (!$row) {
+              $rs = vestra_read_json('offer_responses.json');
+              if (!isset($rs[$ref])) { fwrite(STDERR, "siparis/teklif bulunamadi: {$ref}\n"); exit(1); }
+              $isOffer = true;
+            }
+            $before = $isOffer ? vestra_offer_invoice_bank($ref) : vestra_order_invoice_bank($ref);
+            $ok     = $isOffer ? vestra_offer_set_invoice_bank($ref, $want) : vestra_order_set_invoice_bank($ref, $want);
+            $after  = $isOffer ? vestra_offer_invoice_bank($ref) : vestra_order_invoice_bank($ref);
+            printf("%-18s: %s\n", $isOffer ? 'teklif' : 'siparis', $ref);
+            printf("onceki secim      : %s\n", $before === '' ? '(yok -- duz kunye)' : $before);
+            printf("istenen           : %s\n", $want === '' ? '(secimi kaldir)' : $want);
+            if (!$ok || $after !== $want) { fwrite(STDERR, "YAZILAMADI -- kayit '".($after === '' ? '(yok)' : $after)."' olarak kaldi\n"); exit(1); }
+            printf("KAYITLI           : %s  (geri okundu, dogrulandi)\n", $after === '' ? '(yok -- duz kunye)' : $after);
+
+            /* Secimin BELGEDE ne yaptigi: yuk kurulup kesimin sordugu ayni gövdelerle olculuyor.
+               Degerler basilmaz (kutuk herkese acik) -- yalniz satir sayisi + lehdar/banka ADI. */
+            $ps = $isOffer ? [vestra_offer_invoice_payload($ref)] : vestra_order_invoice_payloads($ref);
+            foreach (array_filter($ps) as $p) {
+              $acc = $p['seller'];
+              $cur = (string)($p['meta']['currency'] ?? 'EUR');
+              $who = ($acc && (string)($acc['id'] ?? '') !== '') ? ($acc['company'] ?: $acc['name']) : 'VESTRA (platform)';
+              if (!empty($p['bank_error']))     { printf("  %-26s *** %s\n", mb_substr($who,0,24), $p['bank_error']); continue; }
+              if (!empty($p['currency_error'])) { printf("  %-26s CEVRILEMEDI: %s\n", mb_substr($who,0,24), $p['currency_error']); continue; }
+              $payAcc = $acc ?: vestra_platform_seller();
+              $rails  = vestra_payment_rails($payAcc, $cur);
+              $gap    = vestra_invoice_payment_gap($acc, $cur, false);
+              $mix    = vestra_platform_bank_mismatch((string)($p['meta']['bank'] ?? ''), $cur);
+              printf("  %-26s %s odeme kutusu: %s\n", mb_substr($who,0,24), $cur,
+                     $gap === '' ? 'CIKAR ('.count($rails).' satir)' : '*** CIKMAZ -- KESIM DURUR: '.$gap);
+              foreach ($rails as $ln) { if (str_starts_with($ln, 'Beneficiary') || str_starts_with($ln, 'Bank address')) echo "       ".$ln."\n"; }
+              echo "       profil: ".((string)($p['meta']['bank_label'] ?? '') ?: '(duz kunye)')."\n";
+              if ($mix !== '') echo "       *** ".$mix." -- KESIM DURUR\n";
+            }
+            echo "kesim             : YAPILMADI (numara yanmadi, PDF uretilmedi, aliciya hicbir sey gitmedi)\n";
+            PHPEOF
+            php -l /tmp/vestra_bank.php
+            php /tmp/vestra_bank.php
+            rm -f /tmp/vestra_bank.php
 
       # Faturayi KIMIN kesecegini KAYDA yazar -- panelin acilir listesiyle AYNI
       # kayit (order_statuses.json[ref].invoice_seller_uid, KURAL 5b).

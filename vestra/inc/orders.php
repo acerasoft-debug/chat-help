@@ -1600,15 +1600,31 @@ function vestra_order_set_colours(string $ref, string $sku, array $colours, bool
     $sku = trim($sku);
     if ($sku === '') return ['error' => 'sku yok'];
 
-    /* Virgül ve boru AYIRAÇ: bir rengin adında geçerlerse harita bozulur. */
-    $clean = [];
+    /* Virgül ve boru AYIRAÇ: bir rengin adında geçerlerse harita bozulur.
+       RENK BAŞINA ADET (2 Eki 2026, VES-2DDC94D9: *"10 ad. navy white ve
+       10 ad. white navy"*): `Renk=Adet` biçimi kabul ediliyor. Kırılım
+       `vestra_order_add_line()`'ın yazdığı AYNI cümleyle nota giriyor
+       (`SKU colour split: A×10, B×10.`) — ikinci bir biçim, onu okuyan
+       `vestra_order_replace_line()`'ın temizliğini kaçırırdı. Ya hepsi
+       adetli ya hiçbiri: yarısı adetli bir liste, kalanın adedini tahmin
+       etmek olurdu. Toplam satırın adediyle TUTMAK zorunda — 20 adetlik
+       kaleme 10+5 yazmak, 5 parçanın rengini belgeden düşürmek demek. */
+    $clean = []; $split = []; $plain = 0;
     foreach ($colours as $c) {
         $c = trim(preg_replace('/\s+/u', ' ', (string)$c));
         if ($c === '') continue;
         if (str_contains($c, ',') || str_contains($c, '|')) return ['error' => 'renk adında , ya da | olamaz: '.$c];
-        $clean[] = $c;
+        if (preg_match('/^(.*?)\s*=\s*(\d+)$/u', $c, $qm)) {
+            $cn = trim($qm[1]); $cq = (int)$qm[2];
+            if ($cn === '' || $cq <= 0) return ['error' => 'renk=adet biçimi hatalı: '.$c];
+            if (isset($split[$cn])) return ['error' => 'aynı renk iki kez: '.$cn];
+            $split[$cn] = $cq; $clean[] = $cn;
+        } else {
+            $plain++; $clean[] = $c;
+        }
     }
     if (!$clean) return ['error' => 'en az bir renk gerekli'];
+    if ($split && $plain > 0) return ['error' => 'ya her renge adet yazın (Renk=Adet) ya hiçbirine'];
 
     require_once __DIR__.'/invoice.php';
     $invoiced = vestra_invoices_for_ref($ref);
@@ -1636,6 +1652,18 @@ function vestra_order_set_colours(string $ref, string $sku, array $colours, bool
     if ($hit === null) return ['error' => 'sipariş bulunamadı: '.$ref];
 
     $notes = (string)$rows[$hit][$idx['notes']];
+    /* Kırılım verildiyse SATIRIN ADEDİYLE tutmalı — kalem `items`'ten, okuyucunun
+       kendi fonksiyonuyla (`vestra_order_lines`), elle ayrıştırılmadan. */
+    if ($split) {
+        $lineQty = null;
+        foreach (vestra_order_lines(array_combine($head, $rows[$hit]))['lines'] as $l) {
+            if ((string)$l['sku'] === $sku) { $lineQty = (int)$l['qty']; break; }
+        }
+        if ($lineQty === null) return ['error' => 'bu SKU siparişte yok: '.$sku];
+        if (array_sum($split) !== $lineQty) {
+            return ['error' => 'renk adetleri toplamı ('.array_sum($split).') satırın adediyle ('.$lineQty.') tutmuyor'];
+        }
+    }
     /* OKUYUCUNUN kendi ayrıştırıcısıyla sökülüyor: ikinci bir kalıp yazmak, bir
        gün birinin diğerinin yazdığını bulamaması demek — bu depoda tam olarak
        bu yaşandı (`Colours — …` kalıbı başa bağlıydı, hiçbir gerçek siparişe
@@ -1643,6 +1671,10 @@ function vestra_order_set_colours(string $ref, string $sku, array $colours, bool
     [$map, $rest] = vestra_order_notes_map($notes, 'Colours');
     $before = $map[$sku] ?? [];
     $map[$sku] = $clean;
+    /* Bu SKU'nun ESKİ kırılım cümlesi kalkar (add_line / replace_line ile aynı
+       kalıp): kalsaydı renk listesi yeni, adet dökümü eski olurdu. */
+    $rest = (string)preg_replace('/(?:^|\s)'.preg_quote($sku, '/').' colour split: [^.]*\./u', ' ', $rest);
+    $rest = trim((string)preg_replace('/[ \t]{2,}/', ' ', $rest));
 
     $segs = [];
     foreach ($map as $k => $v) {
@@ -1651,6 +1683,11 @@ function vestra_order_set_colours(string $ref, string $sku, array $colours, bool
     }
     $notes = trim($rest);
     if ($segs) $notes = trim(($notes !== '' ? $notes.' ' : '').'Colours — '.implode(' | ', $segs).'.');
+    if ($split) {
+        $parts = [];
+        foreach ($split as $cn => $cq) $parts[] = $cn.'×'.(int)$cq;
+        $notes = trim($notes.' '.$sku.' colour split: '.implode(', ', $parts).'.');
+    }
     $rows[$hit][$idx['notes']] = $notes;
 
     @copy($file, $file.'.bak-col-'.date('Ymd_His'));
@@ -1688,7 +1725,7 @@ function vestra_order_set_colours(string $ref, string $sku, array $colours, bool
     vestra_write_json('order_statuses.json', $st);
 
     return ['ok' => true, 'sku' => $sku, 'before' => $before, 'colours' => $clean,
-            'on_invoice' => $seen, 'not_listed' => $notListed, 'notes' => $notes,
+            'split' => $split, 'on_invoice' => $seen, 'not_listed' => $notListed, 'notes' => $notes,
             'must_redraft' => (bool)$invoiced];
 }
 

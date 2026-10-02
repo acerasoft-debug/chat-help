@@ -364,7 +364,7 @@ function vestra_offer_agreed_unit(string $ref, ?array $resp = null, ?array $offe
  *
  * $pickOverride: KAYDETMEDEN "bu satici secilseydi" cozumu -- onizleme
  * taslagi icin. Kalici secimle ayni oncelige oturur; bos ise kayit okunur. */
-function vestra_offer_invoice_seller(string $ref, ?array $listing = null, string $pickOverride = ''): array {
+function vestra_offer_invoice_seller(string $ref, ?array $listing = null, string $pickOverride = '', ?string $bankOverride = null): array {
     require_once __DIR__.'/invoice.php';
     $rs   = vestra_read_json('offer_responses.json');
     $pick = $pickOverride !== '' ? $pickOverride : trim((string)($rs[$ref]['invoice_seller_uid'] ?? ''));
@@ -372,7 +372,41 @@ function vestra_offer_invoice_seller(string $ref, ?array $listing = null, string
     if ($uid !== '' && $uid !== 'vestra') {
         foreach (auth_accounts() as $sa) { if (($sa['id'] ?? '') === $uid) return $sa; }
     }
-    return vestra_platform_seller();
+    /* PLATFORM BANKA PROFİLİ (2 Eki 2026) — siparişlerle AYNI kayıt deseni
+       (offer_responses[ref].invoice_bank). Siparişte eklenip burada atlansaydı
+       aynı alıcı siparişinde Hollanda hesabını, kabul ettiği teklifte Alman
+       hesabını görürdü (KURAL 5m'in "kardeşlerinin durduğu her yere" dersi).
+       null = kayıt okunur; '' = düz künye; silinmiş profil → düz künyeye
+       SESSİZCE düşülmez, kayıt 'bank_error' taşır ve kesim orada durur. */
+    $bank = $bankOverride !== null ? strtolower(trim($bankOverride)) : vestra_offer_invoice_bank($ref);
+    if ($bank === '') return vestra_platform_seller();
+    $acc = vestra_platform_seller_bank($bank);
+    if ($acc === null) { $acc = vestra_platform_seller(); $acc['bank_error'] = 'Selected bank profile "'.$bank.'" no longer exists on the platform record.'; }
+    return $acc;
+}
+
+/** Teklifin seçili platform banka profili; '' = düz künye. Siparişteki okuyucunun aynısı. */
+function vestra_offer_invoice_bank(string $ref): string {
+    require_once __DIR__.'/invoice.php';
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    $rs  = vestra_read_json('offer_responses.json');
+    $k   = strtolower(trim((string)($rs[$ref]['invoice_bank'] ?? '')));
+    return vestra_platform_bank_key_ok($k) ? $k : '';
+}
+
+/** Seçimi kaydeder. '' kaldırır. VAR OLMAYAN profil YAZILMAZ (false). */
+function vestra_offer_set_invoice_bank(string $ref, string $key): bool {
+    require_once __DIR__.'/invoice.php';
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    if ($ref === '') return false;
+    $key = strtolower(trim($key));
+    if ($key !== '' && !isset(vestra_platform_banks()[$key])) return false;
+    $rs = vestra_read_json('offer_responses.json');
+    if (!isset($rs[$ref]) || !is_array($rs[$ref])) $rs[$ref] = [];
+    if ($key === '') unset($rs[$ref]['invoice_bank'], $rs[$ref]['invoice_bank_by'], $rs[$ref]['invoice_bank_at']);
+    else { $rs[$ref]['invoice_bank'] = $key; $rs[$ref]['invoice_bank_by'] = 'operator'; $rs[$ref]['invoice_bank_at'] = date('c'); }
+    vestra_write_json('offer_responses.json', $rs);
+    return true;
 }
 
 /* Teklif faturasinin PARA BIRIMI (KURAL 5i, siparislerdekiyle ayni kural).
@@ -596,7 +630,7 @@ function vestra_offer_set_invoice_shipping(string $ref, float $amount, bool $dry
  * Uc yerde (operator kabulu, alici kabulu, panelden onayli kesim) elle
  * kuruluyordu; ucu de ayni rakami uretmek ZORUNDA, cunku ayni belge.
  * Ayri kopyalar zamanla ayrisir ve ayrisma faturada gorunur. */
-function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = '', ?string $vatNoteOverride = null, ?float $shippingOverride = null, ?float $vatRateOverride = null, string $currencyOverride = ''): ?array {
+function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = '', ?string $vatNoteOverride = null, ?float $shippingOverride = null, ?float $vatRateOverride = null, string $currencyOverride = '', ?string $bankOverride = null): ?array {
     /* KENDI require'i: bu govde vestra_invoice_currencies() ve
        vestra_invoice_convert_payload() cagiriyor. Dosya bugun zaten yuklu
        geliyor (vestra_offer_invoice_seller kendi require'ini yapiyor) ama
@@ -611,7 +645,7 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
     $unit = vestra_offer_agreed_unit($ref, null, $offerRow);
     $qty  = (int)($offerRow['qty'] ?? 0);
 
-    $sellerAcc = vestra_offer_invoice_seller($ref, $listing, $sellerPickOverride);
+    $sellerAcc = vestra_offer_invoice_seller($ref, $listing, $sellerPickOverride, $bankOverride);
 
     /* KDV satiri (serbest metin, orn. "TVA non applicable -- article 293 B du
        CGI" ya da "Intra-Community supply -- reverse charge"). Siparis faturasi
@@ -685,8 +719,12 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
             'line'   => round($unit * $qty, 2),
     ]];
 
+    /* Banka profili yüke iz olarak giriyor (taslak notu + kesim muhafazası
+       `meta['bank']` okuyor); silinmiş profil 'bank_error' ile kesimi durdurur. */
+    if (!empty($sellerAcc['bank_key'])) { $meta['bank'] = (string)$sellerAcc['bank_key']; $meta['bank_label'] = (string)($sellerAcc['bank_label'] ?? $sellerAcc['bank_key']); }
     $out = ['meta' => $meta, 'items' => $items, 'seller' => $sellerAcc,
             'unit' => round($unit, 2), 'qty' => $qty];
+    if (!empty($sellerAcc['bank_error'])) $out['bank_error'] = (string)$sellerAcc['bank_error'];
     if ($wantCur === '' || $wantCur === $baseCur) return $out;
 
     /* Damgayi burada ARIYORUZ ama uydurmuyoruz: vestra_offer_fx_ensure yalniz
@@ -839,6 +877,9 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
             ],
     ];
 
+    /* Banka profili BIRINCIL ref'ten (vestra_offer_invoice_seller zaten onu
+       okudu); yüke iz + silinmiş profilde durdurucu, tek faturayla aynı. */
+    if (!empty($sellerAcc['bank_key'])) { $meta['bank'] = (string)$sellerAcc['bank_key']; $meta['bank_label'] = (string)($sellerAcc['bank_label'] ?? $sellerAcc['bank_key']); }
     $out = [
         'refs'   => $refs,
         'meta'   => $meta,
@@ -848,6 +889,7 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
         'total'  => round(array_sum(array_column($items, 'line')), 2),
         'qty'    => (int)array_sum(array_column($items, 'qty')),
     ];
+    if (!empty($sellerAcc['bank_error'])) $out['bank_error'] = (string)$sellerAcc['bank_error'];
     if ($wantCur === '' || $wantCur === 'EUR') return $out;
 
     /* Kur damgasi BIRINCIL ref'in: belge onun adina kesiliyor, tarihi ve
@@ -917,6 +959,10 @@ function vestra_offers_combined_invoice_issue(array $refs, string $sellerPick = 
         return ['error' => 'Kur damgası yok, belge çevrilemedi: '.$p['currency_error']
                           .' — Admin ▸ Orders ▸ ⟳ Fetch missing rates ile kuru çekin ya da faturayı EUR kesin.'];
     }
+    /* Silinmiş ya da birimi uyuşmayan BANKA PROFİLİ de KAYITTAN ÖNCE durur. */
+    if (!empty($p['bank_error'])) return ['error' => (string)$p['bank_error'], 'error_code' => 'nopay'];
+    $mix = vestra_platform_bank_mismatch((string)($p['meta']['bank'] ?? ''), (string)($p['meta']['currency'] ?? 'EUR'));
+    if ($mix !== '') return ['error' => $mix, 'error_code' => 'nopay'];
     /* ODEME KUTUSU BOSSA NUMARA YANMAZ (19 Eyl 2026) -- ve cevrim reddiyle
        AYNI sebepten KAYITTAN ONCE: asagisi once uyeleri baglayip sonra belgeyi
        kesiyor, yani burada durmasaydik teklifler bir gruba baglanmis ama
@@ -1269,6 +1315,11 @@ function vestra_offer_issue_invoice(string $ref, bool $force): ?array {
        $force=false hicbir sey yakmiyor, yalnizca 'pending' donuyor (kabul
        ani) -- orada durmak, teklifin kabul edilmesini engellerdi. */
     if ($force) {
+        /* Silinmiş ya da belgenin birimiyle uyuşmayan banka profili de durdurur
+           (siparişte vestra_issue_order_invoices ile aynı iki kontrol). */
+        if (!empty($p['bank_error'])) return ['error' => (string)$p['bank_error'], 'error_code' => 'nopay'];
+        $mix = vestra_platform_bank_mismatch((string)($p['meta']['bank'] ?? ''), (string)($p['meta']['currency'] ?? 'EUR'));
+        if ($mix !== '') return ['error' => $mix, 'error_code' => 'nopay'];
         $gap = vestra_invoice_payment_gap($p['seller'], (string)($p['meta']['currency'] ?? 'EUR'),
                                           !empty($p['meta']['paid']));
         if ($gap !== '') return ['error' => $gap, 'error_code' => 'nopay'];
