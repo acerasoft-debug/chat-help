@@ -1,0 +1,49 @@
+[
+ {
+  "_not": "Operator, 2 Eki 2026: 'Gallery Dept. urunlerine stock giris tarihi ekim sonu yap fakat siparisleri kabul ediyoruz'. preorder_ship=2026-10-31 -> urun sayfasi 'Pre-orders are being accepted · dispatch late October 2026.' basar ve siparis KABUL EDILMEYE devam eder (satin alma yolu bu alana bakmiyor, engelleyen tek sey sold_out). Tarih gecince not kendiliginden susar. 31 Ekim secildi: 'ekim sonu' icin en gec gun; daha erken bir tarih (orn. 25) mal henuz gelmemisken notu susturabilirdi.",
+  "_nasil": "match ILAN ID'sine dusuyor (gd-t01..t08, gd-h01): bu partide dort ilanin adi 'Logo Chest Print T-Shirt' ile basliyor ve ada gore eslesme birden fazlasina uyar. Fiyat, MOQ, durum, foto DEGISMIYOR -- yalniz preorder_ship.",
+  "match": "gd-t01",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ },
+ {
+  "match": "gd-t02",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ },
+ {
+  "match": "gd-t03",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ },
+ {
+  "match": "gd-t04",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ },
+ {
+  "match": "gd-t05",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ },
+ {
+  "match": "gd-t06",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ },
+ {
+  "match": "gd-t07",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ },
+ {
+  "match": "gd-t08",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ },
+ {
+  "match": "gd-h01",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ }
+]
