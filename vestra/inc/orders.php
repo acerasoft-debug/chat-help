@@ -1476,6 +1476,189 @@ function vestra_order_set_shipping(string $ref, float $amount, string $label = '
 }
 
 /**
+ * Bir siparişin BANKA HAVALESİ rakamları -- kasanın havale dalıyla AYNI formül
+ * (order.php: VESTRA_FEE_BUYER / VESTRA_FEE_SELLER, ikisi de bugün 0). Taban
+ * SATIRLARDAN (`vestra_order_lines`) eksi indirim, `subtotal` sütunundan değil
+ * (KURAL 32: o sütun bir kez yanlış yazılırsa üstüne kurulan her hesap da yanlış).
+ * Navlun aynen. Saf: dosya okumaz, Stripe'a çıkmaz -- panel bunu her sayfa
+ * açılışında gösterebilsin diye.
+ */
+function vestra_order_bank_figures(array $row): array {
+    $goods = 0.0;
+    foreach ((vestra_order_lines($row))['lines'] as $l) $goods += (float)($l['line'] ?? 0);
+    $goods = round($goods, 2);
+    $disc  = round((float)($row['discount'] ?? 0), 2);
+    $sub   = round(max(0.0, $goods - $disc), 2);
+    $ship  = round((float)($row['shipping'] ?? 0), 2);
+    $bf    = round($sub * (float)VESTRA_FEE_BUYER, 2);
+    $sf    = round($sub * (float)VESTRA_FEE_SELLER, 2);
+    $total = round($sub + $bf + $ship, 2);
+    $old   = round((float)($row['total'] ?? 0), 2);
+    return ['goods' => $goods, 'discount' => $disc, 'subtotal' => $sub, 'shipping' => $ship,
+            'buyer_fee' => $bf, 'seller_fee' => $sf, 'commission' => round($bf + $sf, 2),
+            'payout' => round($sub - $sf, 2), 'total' => $total,
+            'old_total' => $old, 'old_subtotal' => round((float)($row['subtotal'] ?? 0), 2),
+            'old_commission' => round((float)($row['commission'] ?? 0), 2),
+            'old_payout' => round((float)($row['payout'] ?? 0), 2),
+            'fee_removed' => round($old - $total, 2)];
+}
+
+/**
+ * ÖDENMEMİŞ bir kart/escrow siparişini BANKA HAVALESİNE çevirir (operatör, 2 Eki
+ * 2026, VES-8E46FFA2: *"fatura yapamiyorum fatura sayfasina düsmüyor"*).
+ *
+ * Neden gerekiyor: escrow siparişi faturasını ÖDEME ANINDA kendisi keser; bu
+ * yüzden onay kuyruğundan dışlanıyor, dosyada Approve çizilmiyor ve kesim yolu
+ * reddediyor (üçü de doğru). Ama alıcı kart sayfasında ödemeyi hiç
+ * tamamlamadıysa sipariş HİÇBİR yolda faturalanamıyordu -- havaleyle ödemek
+ * isteyen bir alıcıyı kaybetmenin tek sebebi kayıttaki bir ödeme etiketiydi.
+ *
+ * SIRA, ve her adım geri okunuyor:
+ *   1. Para hareket etmiş mi? Sipariş durumu 'paid' ve ötesi, escrow kaydı
+ *      'held'/'released'/'refunded', ya da Stripe oturumu ödenmiş/tamamlanmış
+ *      -> DURUR. Faturası kesilmiş ya da iptal edilmiş sipariş de durur.
+ *   2. Stripe oturumu AÇIKSA önce KAPATILIR (expire) ve 'expired' geri okunur.
+ *      Kapatmadan kaydı kaldırmak, webhook'un bulamayacağı bir ödemeye kapıyı
+ *      açık bırakmak olurdu: para çekilir, sipariş hiçbir yerde ödenmiş görünmez.
+ *   3. Escrow kaydı ARŞİVLENİR (escrow_archive -- yedek + geri okuma).
+ *   4. orders.csv: notlardaki 'Payment: Secure escrow (card).' -> 'Payment: Bank
+ *      transfer.'; subtotal/commission/payout/total havale formülüyle
+ *      (vestra_order_bank_figures) -- escrow alıcı koruma ücreti TOPLAMDAN düşer
+ *      (o ücret kart koruması karşılığıydı; havalede koruma yok, ücret de yok).
+ *   5. order_statuses: `pay_method_changed` izi (önceki toplam dahil).
+ *
+ * $stripe: fn(string $method, string $path, string $acct): object -- test bunu
+ * enjekte ediyor; verilmezse stripe_api(). Stripe yapılandırılmamışsa ve bir
+ * oturum varsa iş DURUR (oturumu göremeyen bir kod "ödenmemiş" diyemez).
+ * $dry: hiçbir şey yazmaz ve Stripe'ta hiçbir şey KAPATMAZ, yalnız okur.
+ */
+function vestra_order_escrow_to_bank(string $ref, bool $dry = false, ?callable $stripe = null): array {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
+    if ($ref === '') return ['error' => 'ref yok'];
+    require_once __DIR__.'/invoice.php';
+    require_once __DIR__.'/escrow.php';
+
+    if ($inv = vestra_invoices_for_ref($ref)) {
+        return ['error' => 'bu siparişin faturası zaten kesilmiş ('.implode(', ', array_map(fn($i) => (string)($i['no'] ?? ''), $inv)).') -- ödeme yolu artık değiştirilmez'];
+    }
+
+    $file = vestra_data_dir().'/orders.csv';
+    if (!is_readable($file)) return ['error' => 'orders.csv okunamıyor'];
+    $in = fopen($file, 'r'); if (!$in) return ['error' => 'orders.csv açılamadı'];
+    $head = fgetcsv($in, null, ',', '"', '\\');
+    if (!$head) { fclose($in); return ['error' => 'orders.csv başlıksız']; }
+    $idx = array_flip($head);
+    foreach (['ref', 'notes', 'subtotal', 'commission', 'payout', 'total'] as $need) {
+        if (!isset($idx[$need])) { fclose($in); return ['error' => "orders.csv '{$need}' sütunu yok"]; }
+    }
+    $rows = []; $hit = null;
+    while (($r = fgetcsv($in, null, ',', '"', '\\')) !== false) {
+        $r = array_slice(array_pad($r, count($head), ''), 0, count($head));
+        if ((string)$r[$idx['ref']] === $ref) $hit = count($rows);
+        $rows[] = $r;
+    }
+    fclose($in);
+    if ($hit === null) return ['error' => 'sipariş bulunamadı: '.$ref];
+    $assoc = array_combine($head, $rows[$hit]);
+    $notes = (string)$assoc['notes'];
+    if (!str_contains($notes, 'Secure escrow')) return ['error' => 'bu sipariş zaten banka havalesi -- çevrilecek bir şey yok', 'error_code' => 'not_escrow'];
+
+    $stAll = vestra_read_json('order_statuses.json');
+    $stE   = is_array($stAll[$ref] ?? null) ? $stAll[$ref] : [];
+    $status = (string)($stE['status'] ?? 'pending');
+    if ($status === 'cancelled') return ['error' => 'sipariş iptal edilmiş -- önce yeniden açılmalı'];
+    $settled = vestra_order_payment_settled($ref, $stE);
+    if (!empty($settled['settled'])) return ['error' => 'siparişin parası gelmiş görünüyor (durum: '.$status.') -- ödeme yolu değiştirilmez, iade ayrı karar'];
+
+    /* ESCROW KAYDI + STRIPE. Kayıt yoksa kasa Stripe sayfasını hiç kuramamış
+       demektir (order.php satırı ÖNCE yazıyor, oturumu SONRA kuruyor). */
+    $er = escrow_get($ref);
+    $plan = ['record' => $er ? (string)($er['status'] ?? '?') : 'none', 'session' => 'none', 'payment' => '', 'expire' => false];
+    if ($er) {
+        if ((string)($er['status'] ?? '') !== 'pending') {
+            return ['error' => 'escrow kaydı '.(string)($er['status'] ?? '?').' -- para hareket etmiş, bu yoldan çevrilmez', 'plan' => $plan];
+        }
+        $sid  = (string)($er['session_id'] ?? '');
+        $acct = (string)($er['acct_id'] ?? '');
+        if ($sid !== '') {
+            if ($stripe === null) {
+                require_once __DIR__.'/stripe.php';
+                if (!stripe_available()) return ['error' => 'Stripe oturumu var ama Stripe yapılandırılmamış -- oturumu göremeden "ödenmemiş" diyemem', 'plan' => $plan];
+                $stripe = fn(string $m, string $p, string $a) => stripe_api($m, $p, [], $a);
+            }
+            try { $o = $stripe('GET', '/v1/checkout/sessions/'.$sid, $acct); }
+            catch (\Throwable $e) { return ['error' => 'Stripe oturumu okunamadı -- ödenmiş olabilir, çevirmiyorum', 'plan' => $plan]; }
+            $plan['session'] = (string)($o->status ?? '?');
+            $plan['payment'] = (string)($o->payment_status ?? '?');
+            if ($plan['payment'] === 'paid' || $plan['session'] === 'complete') {
+                return ['error' => 'Stripe oturumu '.$plan['session'].' / '.$plan['payment'].' -- ödeme yapılmış ya da işlemde; webhook gecikmiş olabilir, ÇEVRİLMEDİ', 'plan' => $plan];
+            }
+            if ($plan['session'] === 'open') $plan['expire'] = true;
+            elseif ($plan['session'] !== 'expired') return ['error' => 'Stripe oturumu beklenmeyen durumda ('.$plan['session'].') -- çevrilmedi', 'plan' => $plan];
+        }
+    }
+
+    $fig = vestra_order_bank_figures($assoc);
+    $newNotes = preg_replace('/Payment:\s*Secure escrow\s*\(card\)\.?/u', 'Payment: Bank transfer.', $notes, 1);
+    if ($newNotes === null || str_contains($newNotes, 'Secure escrow')) {
+        /* Beklenmeyen yazım: etiket başka bir biçimde duruyor. Notun gerisini
+           tahminle yeniden yazmak yerine dur -- kayıt sipariş sayfasında basılıyor. */
+        return ['error' => 'notlardaki ödeme etiketi tanınan biçimde değil -- elle bakılmalı', 'plan' => $plan, 'figures' => $fig];
+    }
+    if ($dry) return ['ok' => true, 'dry' => true, 'plan' => $plan, 'figures' => $fig, 'status' => $status];
+
+    /* 2. ÖNCE Stripe. */
+    if ($plan['expire']) {
+        try {
+            $stripe('POST', '/v1/checkout/sessions/'.(string)$er['session_id'].'/expire', (string)($er['acct_id'] ?? ''));
+            $o = $stripe('GET', '/v1/checkout/sessions/'.(string)$er['session_id'], (string)($er['acct_id'] ?? ''));
+        } catch (\Throwable $e) { return ['error' => 'Stripe oturumu kapatılamadı -- hiçbir şey değişmedi', 'plan' => $plan]; }
+        if ((string)($o->payment_status ?? '') === 'paid') return ['error' => 'kapatırken ÖDENMİŞ çıktı -- hiçbir şey değişmedi', 'plan' => $plan];
+        if ((string)($o->status ?? '') !== 'expired') return ['error' => 'Stripe oturumu kapanmadı ('.(string)($o->status ?? '?').') -- hiçbir şey değişmedi', 'plan' => $plan];
+        $plan['session'] = 'expired (bu koşu)';
+    }
+    /* 3. Escrow kaydı. */
+    $backup = '';
+    if ($er) {
+        $a = escrow_archive($ref);
+        if (empty($a['ok'])) return ['error' => 'escrow kaydı arşivlenemedi: '.(string)($a['error'] ?? '?'), 'plan' => $plan];
+        $backup = (string)$a['backup'];
+    }
+    /* 4. Sipariş satırı. */
+    $rows[$hit][$idx['notes']]      = $newNotes;
+    $rows[$hit][$idx['subtotal']]   = number_format($fig['subtotal'], 2, '.', '');
+    $rows[$hit][$idx['commission']] = number_format($fig['commission'], 2, '.', '');
+    $rows[$hit][$idx['payout']]     = number_format($fig['payout'], 2, '.', '');
+    $rows[$hit][$idx['total']]      = number_format($fig['total'], 2, '.', '');
+    @copy($file, $file.'.bak-paymethod-'.date('Ymd_His'));
+    $tmp = $file.'.tmp';
+    $out = fopen($tmp, 'w'); if (!$out) return ['error' => 'geçici dosya açılamadı (escrow kaydı arşivde: '.basename($backup).')'];
+    fputcsv($out, $head, ',', '"', '\\');
+    foreach ($rows as $r) fputcsv($out, $r, ',', '"', '\\');
+    fclose($out);
+    if (!rename($tmp, $file)) { @unlink($tmp); return ['error' => 'orders.csv yazılamadı (escrow kaydı arşivde: '.basename($backup).')']; }
+
+    $back = null;
+    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) { $back = $r; break; } }
+    if (!$back || str_contains((string)($back['notes'] ?? ''), 'Secure escrow')
+        || abs((float)($back['total'] ?? -1) - $fig['total']) > 0.004
+        || abs((float)($back['commission'] ?? -1) - $fig['commission']) > 0.004) {
+        return ['error' => 'yazıldı ama geri okuma tutmadı -- kayıt değişmemiş olabilir'];
+    }
+
+    /* 5. İz. */
+    $stAll = vestra_read_json('order_statuses.json');
+    if (!isset($stAll[$ref]) || !is_array($stAll[$ref])) $stAll[$ref] = [];
+    $stAll[$ref]['pay_method_changed'] = ['from' => 'escrow', 'to' => 'bank', 'at' => date('c'), 'by' => 'operator',
+        'prev_total' => $fig['old_total'], 'prev_commission' => $fig['old_commission'], 'prev_payout' => $fig['old_payout'],
+        'stripe' => $plan['session'], 'escrow_backup' => basename($backup)];
+    vestra_write_json('order_statuses.json', $stAll);
+
+    return ['ok' => true, 'dry' => false, 'plan' => $plan, 'figures' => $fig, 'status' => $status,
+            'escrow_backup' => $backup];
+}
+
+/**
  * Bir siparişe TESLİMAT ADRESİ yazar (operatör, 7 Eyl 2026: *"kargo yeri aç"*).
  *
  * Adres siparişin `notes` alanında `Deliver to: …` parçası olarak duruyor —

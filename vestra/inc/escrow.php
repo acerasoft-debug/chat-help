@@ -24,7 +24,12 @@
  *   refunded  Platform refunded the buyer in full before release.
  */
 
-function escrow_file(): string { return __DIR__ . '/../data/escrow.json'; }
+/* vestra_data_dir() varsa ONU okur (uretimde ayni yol: dirname(inc)/data). Sabit
+   yol testin kum havuzunu delip GERCEK data/escrow.json'a yaziyordu -- KURAL 2'nin
+   VESTRA_ACCOUNTS dersi; escrow->havale donusumu bu dosyadan kayit SILIYOR. */
+function escrow_file(): string {
+    return (function_exists('vestra_data_dir') ? vestra_data_dir() : __DIR__ . '/../data') . '/escrow.json';
+}
 
 function escrow_all(): array {
     $f = escrow_file();
@@ -71,6 +76,44 @@ function escrow_update(string $ref, array $patch): ?array {
     $all[$ref] = array_merge($all[$ref], $patch);
     @file_put_contents(escrow_file(), json_encode($all, JSON_PRETTY_PRINT), LOCK_EX);
     return $all[$ref];
+}
+
+/**
+ * Bir escrow kaydini ARSIVLER (silmez): once data/escrow_backups/<ref>-<zaman>.json,
+ * sonra escrow.json'dan cikarir, sonra GERI OKUR. Yalniz odenmemis ('pending')
+ * kayit -- 'held'/'released'/'refunded' kaydi para hareketinin izi ve bu yoldan
+ * kaldirilmaz (iade ayri karar). Cagiran (escrow->havale donusumu) Stripe oturumunu
+ * ONCE kapatmak zorunda: kayit gidince webhook o oturumun odemesini bulamaz.
+ * Neden silmek ve 'converted' durumu degil: siparisin escrow olup olmadigini on
+ * yerden fazla kod escrow_get($ref) ile soruyor (satici/alici paneli, admin dosyasi,
+ * talep akisi...) ve kayit durdukca siparis her yerde "escrow" gorunurdu.
+ */
+function escrow_archive(string $ref): array {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    if ($ref === '') return ['error' => 'ref yok'];
+    $fp = @fopen(escrow_file(), 'c+');
+    if (!$fp) return ['error' => 'escrow.json acilamadi'];
+    flock($fp, LOCK_EX);
+    $all = json_decode((string) stream_get_contents($fp), true);
+    if (!is_array($all) || !isset($all[$ref])) { flock($fp, LOCK_UN); fclose($fp); return ['error' => 'escrow kaydi yok: '.$ref]; }
+    $rec = $all[$ref];
+    if ((string)($rec['status'] ?? '') !== 'pending') {
+        flock($fp, LOCK_UN); fclose($fp);
+        return ['error' => 'escrow kaydi '.(string)($rec['status'] ?? '?').' -- para hareket etmis, bu yoldan kaldirilmaz'];
+    }
+    $bdir = dirname(escrow_file()).'/escrow_backups';
+    if (!is_dir($bdir)) @mkdir($bdir, 0775, true);
+    $bak = $bdir.'/'.$ref.'-'.date('Ymd-His').'.json';
+    if (@file_put_contents($bak, json_encode([$ref => $rec], JSON_PRETTY_PRINT)) === false) {
+        flock($fp, LOCK_UN); fclose($fp); return ['error' => 'yedek yazilamadi -- kayit KALDIRILMADI'];
+    }
+    unset($all[$ref]);
+    ftruncate($fp, 0); rewind($fp);
+    fwrite($fp, json_encode($all, JSON_PRETTY_PRINT));
+    fflush($fp); flock($fp, LOCK_UN); fclose($fp);
+    clearstatcache();
+    if (escrow_get($ref) !== null) return ['error' => 'yazildi ama geri okuma: kayit HALA duruyor', 'backup' => $bak];
+    return ['ok' => true, 'backup' => $bak, 'record' => $rec];
 }
 
 /** Human status label + colour for UI badges (localised where t() is loaded). */

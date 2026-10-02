@@ -263,6 +263,25 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     }
     header('Location: /admin?tab='.$back.'&msg=invoice_deleted&no='.urlencode((string)$r['no']).'&n='.(int)$r['unlinked']); exit;
   }
+  /* KART/ESCROW -> BANKA HAVALESI (2 Eki 2026, VES-8E46FFA2: "fatura
+     yapamiyorum fatura sayfasina dusmuyor"). Odenmemis bir escrow siparisi
+     hicbir yolda faturalanamiyordu. Tek yazici: vestra_order_escrow_to_bank()
+     -- Stripe oturumunu ONCE kapatir ve geri okur, escrow kaydini arsivler,
+     koruma ucretini toplamdan dusurur. Is akisi (admin_mode=escrow_to_bank)
+     AYNI fonksiyonu cagiriyor. Musteriye hicbir sey gitmez. */
+  if($act==='order_escrow_to_bank'){
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    require_once __DIR__.'/inc/orders.php';
+    $r=vestra_order_escrow_to_bank($ref);
+    $back=(($_POST['from']??'')==='invoices')?'invoices':'orders&view='.urlencode($ref);
+    if(empty($r['ok'])){
+      header('Location: /admin?tab='.$back.'&msg=pay_switch_fail&err='.urlencode(substr((string)($r['error']??'?'),0,200))); exit;
+    }
+    header('Location: /admin?tab='.$back.'&msg=pay_switched&ref='.urlencode($ref)
+          .'&old='.urlencode(number_format((float)$r['figures']['old_total'],2,'.',''))
+          .'&new='.urlencode(number_format((float)$r['figures']['total'],2,'.',''))
+          .'&ss='.urlencode((string)($r['plan']['session']??''))); exit;
+  }
   if($act==='issue_invoice'){
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
     require_once __DIR__.'/inc/invoice.php';
@@ -2974,6 +2993,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   ][$__pbe] ?? $__pbe); ?>.</div>
 <?php elseif($msg==='invoice_nopay'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ <b>FATURA KESİLMEDİ</b> — kesen tarafın bu para biriminde <b>ödeme bilgisi yok</b>, yani belge <b>ödeme kutusuz</b> çıkardı: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?><br><b>Hiçbir numara yakılmadı, hiçbir belge yazılmadı, alıcıya hiçbir şey gitmedi.</b> Alıcıya giden mektup “faturada gösterilen hesaba havale edin” diyor — kutu boşken o cümle hiçbir yeri göstermez. Banka bilgisini girip tekrar deneyin; <b>👁 Draft</b> ile önce kontrol edebilirsiniz.</div>
+<?php elseif($msg==='pay_switched'): ?>
+<div class="amsg ok">✓ <b><?= htmlspecialchars((string)($_GET['ref'] ?? '')) ?></b> artık <b>banka havalesi</b>: <?php $__ss=(string)($_GET['ss']??''); echo $__ss==='none'?'kart ödeme sayfası hiç kurulmamıştı':($__ss==='expired'?'kart ödeme sayfasının süresi zaten dolmuştu':'kart ödeme sayfası kapatıldı'); ?>, escrow koruma ücreti toplamdan düştü (€<?= htmlspecialchars((string)($_GET['old'] ?? '')) ?> → €<?= htmlspecialchars((string)($_GET['new'] ?? '')) ?>). Sipariş artık fatura kuyruğunda — önce <b>🚚 kargo</b> ve <b>banka</b>, sonra <b>Approve</b>. Alıcıya hiçbir şey gitmedi.</div>
+<?php elseif($msg==='pay_switch_fail'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ <b>Ödeme yolu DEĞİŞTİRİLMEDİ</b> — <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?></div>
 <?php elseif($msg==='invoice_prereq'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ <b>FATURA KESİLMEDİ — önce iki karar:</b> <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?><br>Siparişin satırında <b>🚚 kargo</b> kutusuna navlunu yazıp kaydedin (ücretsizse <b>0</b>) ve <b>banka hesabını</b> seçip kaydedin. <b>Hiçbir numara yakılmadı, hiçbir belge yazılmadı, alıcıya hiçbir şey gitmedi.</b></div>
 <?php elseif($msg==='invoice_cur_err'): ?>
@@ -4449,6 +4472,23 @@ elseif($tab==='orders'):
             <button class="abtn primary" type="submit" style="font-size:12px"<?= $__vpre ? ' disabled title="'.htmlspecialchars(implode(' ', $__vpre)).'"' : '' ?>>✓ Approve &amp; issue invoice</button>
           </form>
         </div>
+        <?php elseif(!$ver || ($ver['status']??'')==='pending'):
+          /* KART/ESCROW, ODENMEMIS: Approve bilerek yok (escrow faturasini odeme
+             aninda kendisi keser). Ama alici kart sayfasinda odemeyi hic
+             tamamlamadiysa bu siparisi faturalamanin TEK yolu havaleye cevirmek
+             -- ve o yol bu ekranda yoktu (KURAL 2e: gorunmeyen secenek olmayan
+             secenektir). Rakamlar kesimin kullanacagi AYNI fonksiyondan. */
+          $__vbf = vestra_order_bank_figures($viewRow); ?>
+        <div class="vescrow-switch" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px">
+          <span style="font-size:11px;padding:2px 7px;border-radius:9px;background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">💳 kart ödemesi bekleniyor — bu hâliyle faturalanamaz</span>
+          <form method="post" style="margin:0" onsubmit="return confirm('Switch this order to BANK TRANSFER?\n\n• The card payment page is closed on Stripe first (stops if Stripe says it was paid).\n• Buyer-protection fee is removed: €<?= number_format((float)$__vbf['old_total'],2,'.','') ?> → €<?= number_format((float)$__vbf['total'],2,'.','') ?> (before shipping changes).\n• The order then appears in Invoice approvals.\n\nNothing is sent to the buyer.')">
+            <?= csrfField() ?>
+            <input type="hidden" name="_action" value="order_escrow_to_bank">
+            <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+            <button class="abtn primary" type="submit" style="font-size:12px">🏦 Switch to bank transfer</button>
+          </form>
+          <span class="ahint" style="font-size:10.5px">€<?= number_format((float)$__vbf['old_total'],2,',','.') ?> → €<?= number_format((float)$__vbf['total'],2,',','.') ?> (koruma ücreti −€<?= number_format((float)$__vbf['fee_removed'],2,',','.') ?>)</span>
+        </div>
         <?php endif; ?>
       <?php else: foreach($vinvs as $iv): ?>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
@@ -5208,6 +5248,48 @@ foreach($issuedOfferInvs as $__e):
 </div>
 <?php endif; ?>
 
+<?php
+  /* KART/ESCROW siparisleri bu kuyruga bilerek GIRMIYOR (faturalarini odeme
+     aninda kendileri keser). Ama odenmemis olanlar burada HIC gorunmuyordu ve
+     operator "fatura sayfasina dusmuyor" diye aradi (2 Eki 2026, VES-8E46FFA2).
+     Liste salt bilgi + tek dugme: havaleye cevirmek, sonra siparis yukaridaki
+     kuyruga kendiliginden duser. Odenmis/serbest birakilmis escrow ve iptal
+     edilmis siparis listelenmez. */
+  $__escWait = array_values(array_filter($orders, function($o) use ($orderSt, $escrowAll){
+      $ref = (string)($o['ref'] ?? ''); if($ref==='') return false;
+      if (!str_contains((string)($o['notes'] ?? ''), 'Secure escrow')) return false;
+      if ((string)($orderSt[$ref]['status'] ?? 'pending') !== 'pending') return false;
+      $er = $escrowAll[$ref] ?? null;
+      if ($er && (string)($er['status'] ?? '') !== 'pending') return false;
+      return count(vestra_invoices_for_ref($ref)) === 0;
+  }));
+  if($__escWait): ?>
+<div class="acard" id="escrow-wait">
+  <div class="acard-hd"><h3>💳 <?= count($__escWait) ?> card (escrow) order(s) — card payment not completed, not invoiceable as they are</h3></div>
+  <div class="ahint" style="padding:0 14px 8px">Alıcı havaleyle ödeyecekse siparişi <b>🏦 Switch to bank transfer</b> ile çevirin: Stripe ödeme sayfası önce kapatılır (Stripe “ödendi” derse durur), koruma ücreti toplamdan düşer ve sipariş yukarıdaki onay kuyruğuna girer. Alıcıya hiçbir şey gitmez.</div>
+  <div class="atscroll"><table class="atable">
+    <?= arow(['Order','Buyer','Placed','Card total','As bank transfer',''],true) ?>
+    <?php foreach($__escWait as $o): $oref=(string)($o['ref']??''); $__bf=vestra_order_bank_figures($o); ?>
+    <tr class="escwait-row" data-ref="<?= htmlspecialchars($oref) ?>">
+      <td><a class="acc" href="/admin?tab=orders&view=<?= urlencode($oref) ?>"><?= htmlspecialchars($oref) ?></a></td>
+      <td><?= htmlspecialchars($o['company']??'') ?><div class="ahint"><?= htmlspecialchars($o['name']??'') ?></div></td>
+      <td style="font-size:12px;white-space:nowrap"><?= htmlspecialchars(substr($o['timestamp']??'',0,16)) ?></td>
+      <td><?= eur($__bf['old_total']) ?><div class="ahint" style="font-size:10.5px"><?= isset($escrowAll[$oref]) ? 'Stripe sayfası kuruldu, ödeme kaydı yok' : 'Stripe sayfası hiç kurulmadı' ?></div></td>
+      <td><b><?= eur($__bf['total']) ?></b><div class="ahint" style="font-size:10.5px">koruma ücreti −<?= eur($__bf['fee_removed']) ?></div></td>
+      <td>
+        <form method="post" style="margin:0" onsubmit="return confirm('Switch <?= htmlspecialchars($oref) ?> to BANK TRANSFER? The Stripe card page is closed first; the buyer-protection fee is removed; the order then appears in the queue above. Nothing is sent to the buyer.')">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="order_escrow_to_bank">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($oref) ?>">
+          <input type="hidden" name="from" value="invoices">
+          <button class="abtn primary" type="submit" style="font-size:12px">🏦 Switch to bank transfer</button>
+        </form>
+      </td>
+    </tr>
+    <?php endforeach; ?>
+  </table></div>
+</div>
+<?php endif; ?>
 <?php if(!$pendingInvoiceOrders): ?>
   <?php if(!$pendingInvoiceOffers): ?>
   <div class="acard"><div style="padding:26px;text-align:center;color:var(--mut)">✓ Nothing is awaiting an invoice.</div></div>
