@@ -2811,6 +2811,10 @@ jobs:
             if ((float)($r['fee'] ?? 0) > 0) printf("ucret            : %s  (kayittan okundu, KORUNDU)\n", number_format((float)$r['fee'], 2));
             printf("navlun           : %s%s\n", number_format($r['shipping'], 2), $r['label'] !== '' ? '  ('.$r['label'].')' : '');
             printf("SIPARIS TOPLAMI  : %s  (geri okundu, dogrulandi)\n", number_format($r['total'], 2));
+            if (!$inv && function_exists('vestra_order_issue_prereqs')) {
+              $pre = vestra_order_issue_prereqs($ref);
+              echo "kesime hazir mi  : ".($pre ? '*** HAYIR -- '.implode(' ', $pre) : 'EVET (kargo girildi, banka secildi)')."\n";
+            }
             echo "kesim            : YAPILMADI (numara yanmadi, PDF uretilmedi, aliciya hicbir sey gitmedi)\n";
             if (!empty($r['must_redraft'])) {
               printf("*** BELGE ESKI TUTARI TASIYOR: %s -- ayni numarayla YENIDEN CIZ (KURAL 5f):\n"
@@ -2971,7 +2975,9 @@ jobs:
 
             $ref  = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('BK_REF'));
             $want = strtolower(trim((string)getenv('BK_WANT')));
-            if ($want === 'clear' || $want === '-') $want = '';
+            /* 'default' = varsayilan hesap, BILINCLI secim olarak kaydedilir
+               (kesim kapisi bunu soruyor -- vestra_order_issue_prereqs). */
+            if ($want === 'clear' || $want === '-' || $want === 'default') $want = '';
             if ($ref === '') { fwrite(STDERR, "ref yok (issue_ref)\n"); exit(1); }
             if (!function_exists('vestra_platform_banks')) { fwrite(STDERR, "*** DEPLOY INMEMIS -- vestra_platform_banks() yok ***\n"); exit(1); }
 
@@ -3020,6 +3026,11 @@ jobs:
               foreach ($rails as $ln) { if (str_starts_with($ln, 'Beneficiary') || str_starts_with($ln, 'Bank address')) echo "       ".$ln."\n"; }
               echo "       profil: ".((string)($p['meta']['bank_label'] ?? '') ?: '(duz kunye)')."\n";
               if ($mix !== '') echo "       *** ".$mix." -- KESIM DURUR\n";
+            }
+            /* Kesimden ONCE istenen iki karar (2 Eki 2026) -- kesimin sordugu AYNI fonksiyon. */
+            if (!$isOffer && function_exists('vestra_order_issue_prereqs')) {
+              $pre = vestra_order_issue_prereqs($ref);
+              echo "kesime hazir mi   : ".($pre ? '*** HAYIR -- '.implode(' ', $pre) : 'EVET (kargo girildi, banka secildi)')."\n";
             }
             echo "kesim             : YAPILMADI (numara yanmadi, PDF uretilmedi, aliciya hicbir sey gitmedi)\n";
             PHPEOF
@@ -3233,7 +3244,13 @@ jobs:
             $issued = vestra_issue_order_invoices($ref, $redraft);
             /* Para birimi cevrilemediyse hicbir numara yakilmadi; hata dizisi de
                "dolu" oldugu icin asagidaki count() onu 1 fatura sanardi. */
-            if (isset($issued['error'])) { fwrite(STDERR, "fatura kesilmedi -- para birimi: ".$issued['error']."\n"); exit(1); }
+            /* Etiket SEBEBE gore (2 Eki 2026): her duruşu "para birimi" diye yazmak,
+               odeme kutusu ya da kargo/banka karari yuzunden duran bir kesimi kur
+               sorunu gibi gosteriyordu -- rakam dogru, etiket yalan. */
+            if (isset($issued['error'])) {
+              $why = ['nopay' => 'odeme kutusu', 'prereq' => 'ONCE KARGO/BANKA KARARI'][(string)($issued['error_code'] ?? '')] ?? 'para birimi';
+              fwrite(STDERR, "fatura kesilmedi -- {$why}: ".$issued['error']."\n"); exit(1);
+            }
             if (!$issued) { fwrite(STDERR, "fatura kesilemedi (siparis yok ya da satir yok)\n"); exit(1); }
             echo "onceden kesilmis : ".(count($before) ?: 'yok')."\n";
             echo "fatura sayisi    : ".count($issued)."\n";

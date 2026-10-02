@@ -291,15 +291,74 @@ function vestra_order_set_invoice_bank(string $ref, string $key): bool {
     if ($key !== '' && !isset(vestra_platform_banks()[$key])) return false;
     $st = vestra_read_json('order_statuses.json');
     if (!isset($st[$ref]) || !is_array($st[$ref])) $st[$ref] = [];
+    /* `invoice_bank_at` bir KARAR damgasi, profil damgasi degil (2 Eki 2026):
+       "varsayilan hesap" da bilincli bir secim ve kesim kapisi
+       (vestra_order_issue_prereqs) tam bunu soruyor. Bos secimde profil
+       anahtari silinir, damga kalir. */
     if ($key === '') {
-        unset($st[$ref]['invoice_bank'], $st[$ref]['invoice_bank_by'], $st[$ref]['invoice_bank_at']);
+        unset($st[$ref]['invoice_bank']);
     } else {
-        $st[$ref]['invoice_bank']    = $key;
-        $st[$ref]['invoice_bank_by'] = 'operator';
-        $st[$ref]['invoice_bank_at'] = date('c');
+        $st[$ref]['invoice_bank'] = $key;
     }
+    $st[$ref]['invoice_bank_by'] = 'operator';
+    $st[$ref]['invoice_bank_at'] = date('c');
     vestra_write_json('order_statuses.json', $st);
     return true;
+}
+
+/** Platformun bu para biriminde kac hesabi var: duz kunyenin rayi (0/1) + o birimdeki profiller. */
+function vestra_platform_bank_choices(string $currency): int {
+    $cur = strtoupper(trim($currency)) ?: 'EUR';
+    $n = vestra_payment_rails(vestra_platform_seller(), $cur) ? 1 : 0;
+    foreach (vestra_platform_banks() as $p) {
+        if (strtoupper((string)($p['currency'] ?? '')) === $cur) $n++;
+    }
+    return $n;
+}
+
+/*
+ * SIPARIS FATURASINDAN ONCE IKI KARAR (operator, 2 Eki 2026: "banka bilgilerini
+ * ve siparislerden once bunlarin secilmesi kargo fiyati girilmesi onemli").
+ *
+ * Doner: [] = hazir; dolu = eksik kararlar ('shipping', 'bank') -> insan diliyle sebep.
+ *
+ * KARGO: siparisin navlunu > 0 ya da operator navlunu ACIKCA kaydetmis
+ * (`shipping_set_at` -- vestra_order_set_shipping her yazmada damgaliyor). 0 tek
+ * basina "girilmedi" ile "ucretsiz" arasinda AYRIM YAPMIYOR: KURAL 34'ten beri kasa
+ * navlunu 0 yaziyor ve operator elle giriyor, yani 0'li bir sipariste "kargo
+ * eklenmedi" en olasi durum. Ucretsiz kargo isteyen 0'i KAYDEDER, damga duser.
+ *
+ * BANKA: yalniz PLATFORM kestiginde ve belgenin biriminde GERCEKTEN bir secim varsa
+ * (>= 2 hesap; bugun EUR'da Almanya varsayilani + NL profili). Satici hesabi kendi
+ * IBAN'ini basar, tek hesapli birimde sorulacak bir sey yok -- sormak, cevabi tek
+ * olan bir soruyu operatore her sipariste yeniden sordurmak olurdu.
+ *
+ * Kesim yolunda (vestra_issue_order_invoices) duruyor, numara yanmadan; panel ayni
+ * fonksiyonu cipler icin cagiriyor -- iki kopya, bir gun "cip hazir diyor, kesim
+ * duruyor" demekti.
+ */
+function vestra_order_issue_prereqs(string $ref, ?array $payloads = null): array {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    $row = null;
+    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) { $row = $r; break; } }
+    if (!$row) return [];
+    $st = vestra_read_json('order_statuses.json')[$ref] ?? [];
+    if (!is_array($st)) $st = [];
+    $missing = [];
+    if (round((float)($row['shipping'] ?? 0), 2) <= 0 && trim((string)($st['shipping_set_at'] ?? '')) === '') {
+        $missing['shipping'] = 'Kargo ücreti girilmedi — önce navlunu kaydedin (ücretsizse 0 kaydedin).';
+    }
+    if (trim((string)($st['invoice_bank_at'] ?? '')) === '') {
+        foreach (($payloads ?? vestra_order_invoice_payloads($ref)) as $p) {
+            if (!vestra_invoice_is_platform_issuer($p['seller'] ?? null)) continue;
+            $cur = strtoupper((string)($p['want_currency'] ?? ($p['meta']['currency'] ?? 'EUR'))) ?: 'EUR';
+            if (vestra_platform_bank_choices($cur) >= 2) {
+                $missing['bank'] = 'Banka hesabı seçilmedi — platformun '.$cur.' için birden fazla hesabı var; önce hangisinin faturaya basılacağını seçin (varsayılan da bir seçimdir).';
+                break;
+            }
+        }
+    }
+    return $missing;
 }
 
 /**
@@ -2170,6 +2229,13 @@ function vestra_issue_order_invoices(string $ref, bool $redraft = false): array 
         $mix = vestra_platform_bank_mismatch((string)($p['meta']['bank'] ?? ''), (string)($p['meta']['currency'] ?? 'EUR'));
         if ($mix !== '') return ['error' => $mix, 'error_code' => 'nopay'];
     }
+    /* ONCE IKI KARAR: KARGO GIRILDI MI, BANKA SECILDI MI (2 Eki 2026). Numara
+       yanmadan durur. REDRAFT MUAF: belge zaten kesilmis, yeniden cizim
+       duzeltmenin yolu (KURAL 5f) -- onu engellemek kapinin korudugu seyin tersi. */
+    if (!$redraft) {
+        $miss = vestra_order_issue_prereqs($ref, $payloads);
+        if ($miss) return ['error' => implode(' ', $miss), 'error_code' => 'prereq', 'missing' => array_keys($miss)];
+    }
     /* ODEME KUTUSU BOSSA NUMARA YANMAZ (19 Eyl 2026). Cevrilemeyen dilimin
        hemen yanina, ayni "hep ya da hic" kaliyla: yarim bir kesim degil,
        hic kesim.
@@ -2233,7 +2299,12 @@ function vestra_order_invoice_issue(string $ref, bool $notify = true, string $co
     /* Para birimi cevrilemediyse HICBIR numara yakilmadi. Hata dizisi de
        "dolu" oldugu icin duz bir if($issued) onu kesilmis sanar ve aliciya
        "faturaniz hazir" yazardi. */
-    if (isset($issued['error'])) return ['error' => (string)$issued['error']];
+    /* error_code YUKARI TASINIR: burasi yalniz 'error'u donduruyordu, yani panel
+       "odeme kutusu yok" ile durdurulan bir kesimi "para birimi cevrilemedi"
+       bandiyla gosteriyordu (2 Eki 2026'da bulundu) -- rakam dogru, etiket yalan. */
+    if (isset($issued['error'])) return ['error' => (string)$issued['error'],
+                                         'error_code' => (string)($issued['error_code'] ?? ''),
+                                         'missing' => (array)($issued['missing'] ?? [])];
     if (!$issued) return ['error' => 'Fatura kesilemedi (numara üretilmedi).'];
 
     $nos = array_values(array_filter(array_map(fn($i) => (string)($i['no'] ?? ''), $issued)));

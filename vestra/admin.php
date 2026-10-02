@@ -187,8 +187,18 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   if($act==='order_shipping'){
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
     require_once __DIR__.'/inc/orders.php';
-    $r=vestra_order_set_shipping($ref, vestra_price_input((string)($_POST['shipping']??'0')), (string)($_POST['shipping_label']??''));
-    header('Location: /admin?tab=orders&view='.urlencode($ref)
+    /* Etiket alani GONDERILMEDIYSE (onay kuyrugundaki kisa kutu, 2 Eki 2026)
+       kayitli etiket KORUNUR: yazici bos etiketi "etiketi sil" diye yaziyor ve
+       kuyruktan navlun girmek siparis dosyasinda yazilmis etiketi sessizce
+       silerdi (KURAL 4b'nin "isaretsiz kutucuk hic gonderilmez" dersi). */
+    $lbl = array_key_exists('shipping_label', $_POST) ? (string)$_POST['shipping_label'] : null;
+    if ($lbl === null) {
+      $lbl = '';
+      foreach (vestra_read_csv('orders.csv') as $__r) if (($__r['ref'] ?? '') === $ref) { $lbl = (string)($__r['shipping_label'] ?? ''); break; }
+    }
+    $r=vestra_order_set_shipping($ref, vestra_price_input((string)($_POST['shipping']??'0')), $lbl);
+    $back=(($_POST['from']??'')==='invoices')?'invoices':'orders&view='.urlencode($ref);
+    header('Location: /admin?tab='.$back
           .'&msg='.(isset($r['error'])?'ship_fail&err='.urlencode(substr((string)$r['error'],0,140)):'ship_saved')); exit;
   }
   /* SIPARISE INDIRIM (operator, 19 Eyl 2026: "yuzde 5 welcome indirimi
@@ -268,8 +278,8 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
          "para birimi cevrilemedi" bandiyla gostermek, bu deponun kayitli
          "rakam dogru, etiket yalan" hatasi olurdu: yanlis rakam sorgulanir,
          yanlis etikete inanilir ve operator kuru damgalamaya calisir. */
-      $__ik = (($r['error_code']??'')==='nopay') ? 'invoice_nopay' : 'invoice_cur_err';
-      header('Location: /admin?tab='.$back.'&msg='.$__ik.'&err='.urlencode(substr((string)$r['error'],0,200))); exit;
+      $__ik = ['nopay'=>'invoice_nopay','prereq'=>'invoice_prereq'][(string)($r['error_code']??'')] ?? 'invoice_cur_err';
+      header('Location: /admin?tab='.$back.'&msg='.$__ik.'&err='.urlencode(substr((string)$r['error'],0,240))); exit;
     }
     header('Location: /admin?tab='.$back.'&msg=invoice_issued'); exit;
   }
@@ -2964,6 +2974,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   ][$__pbe] ?? $__pbe); ?>.</div>
 <?php elseif($msg==='invoice_nopay'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ <b>FATURA KESİLMEDİ</b> — kesen tarafın bu para biriminde <b>ödeme bilgisi yok</b>, yani belge <b>ödeme kutusuz</b> çıkardı: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?><br><b>Hiçbir numara yakılmadı, hiçbir belge yazılmadı, alıcıya hiçbir şey gitmedi.</b> Alıcıya giden mektup “faturada gösterilen hesaba havale edin” diyor — kutu boşken o cümle hiçbir yeri göstermez. Banka bilgisini girip tekrar deneyin; <b>👁 Draft</b> ile önce kontrol edebilirsiniz.</div>
+<?php elseif($msg==='invoice_prereq'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ <b>FATURA KESİLMEDİ — önce iki karar:</b> <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?><br>Siparişin satırında <b>🚚 kargo</b> kutusuna navlunu yazıp kaydedin (ücretsizse <b>0</b>) ve <b>banka hesabını</b> seçip kaydedin. <b>Hiçbir numara yakılmadı, hiçbir belge yazılmadı, alıcıya hiçbir şey gitmedi.</b></div>
 <?php elseif($msg==='invoice_cur_err'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ <b>FATURA KESİLMEDİ</b> — para birimi çevrilemedi: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>. Hiçbir numara yakılmadı, hiçbir belge yazılmadı. Sipariş tarihinin kuru damgalı değilse <b>Admin ▸ Orders ▸ ⟳ Fetch missing rates</b> ile damgalayın, sonra tekrar deneyin. (Bugünün kuruyla doldurmuyoruz: sipariş tarihinde geçerli olan kur neyse fatura odur.)</div>
 <?php elseif($msg==='offer_del_invoiced'): ?>
@@ -4419,14 +4431,24 @@ elseif($tab==='orders'):
             <span class="ahint" style="font-size:10.5px">belgede: <?= htmlspecialchars((string)($__vbanks[$__vbank]['label'] ?? $__vbank)) ?></span>
           <?php endif; ?>
         </form>
-        <?php if(!str_contains((string)($viewRow['notes']??''),'Secure escrow')): ?>
-        <form method="post" style="margin:0" onsubmit="return confirm('Issue the invoice(s) for this order and email the buyer? Do this once stock is confirmed.')">
-          <?= csrfField() ?>
-          <input type="hidden" name="_action" value="issue_invoice">
-          <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
-          <input type="hidden" name="from" value="view">
-          <button class="abtn primary" type="submit" style="font-size:12px">✓ Approve &amp; issue invoice</button>
-        </form>
+        <?php if(!str_contains((string)($viewRow['notes']??''),'Secure escrow')):
+          /* ONCE IKI KARAR (2 Eki 2026): kargo girildi mi, banka secildi mi.
+             Karar KESIMIN sordugu ayni fonksiyondan; eksikse dugme kapali ve
+             sebebi yaninda -- sunucu da ayrica durduruyor (dugmeyi kapatmak
+             kapi degildir). */
+          $__vpre = vestra_order_issue_prereqs($viewRef); ?>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <?php foreach($__vpre as $__pk=>$__pm): ?>
+            <span class="vprereq" data-missing="<?= htmlspecialchars($__pk) ?>" title="<?= htmlspecialchars($__pm) ?>" style="font-size:11px;padding:2px 7px;border-radius:9px;background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.35);color:#c0392b"><?= $__pk==='shipping' ? '⚠ önce kargo girin' : '⚠ önce banka seçin' ?></span>
+          <?php endforeach; ?>
+          <form method="post" style="margin:0" onsubmit="return confirm('Issue the invoice(s) for this order and email the buyer? Do this once stock is confirmed.')">
+            <?= csrfField() ?>
+            <input type="hidden" name="_action" value="issue_invoice">
+            <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+            <input type="hidden" name="from" value="view">
+            <button class="abtn primary" type="submit" style="font-size:12px"<?= $__vpre ? ' disabled title="'.htmlspecialchars(implode(' ', $__vpre)).'"' : '' ?>>✓ Approve &amp; issue invoice</button>
+          </form>
+        </div>
         <?php endif; ?>
       <?php else: foreach($vinvs as $iv): ?>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
@@ -5324,11 +5346,33 @@ foreach($issuedOfferInvs as $__e):
               <span title="<?= htmlspecialchars($__omix) ?>" style="font-size:11px;padding:2px 7px;border-radius:9px;background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.35);color:#c0392b;white-space:nowrap">⚠ banka ≠ belge birimi — kesilemez</span>
             <?php endif; ?>
           </form>
+          <?php /* KARGO -- onay dugmesinin YANINDA (2 Eki 2026, operator: "siparislerden
+                   once bunlarin secilmesi kargo fiyati girilmesi onemli"). Navlun
+                   kutusu yalniz siparis dosyasindaydi; onay kuyrugundan bakan
+                   operator kargoyu girmeden kesebiliyordu. AYNI eylem
+                   (`order_shipping`) ve AYNI yazici; etiket gonderilmiyor, kayitli
+                   etiket korunuyor. */
+                $__opre  = vestra_order_issue_prereqs($oref, $__pl);
+                $__oship = round((float)($o['shipping'] ?? 0), 2); ?>
+          <form method="post" style="margin:0;display:flex;gap:4px;align-items:center">
+            <?= csrfField() ?>
+            <input type="hidden" name="_action" value="order_shipping">
+            <input type="hidden" name="ref" value="<?= htmlspecialchars($oref) ?>">
+            <input type="hidden" name="from" value="invoices">
+            <span class="ahint" style="font-size:11px">🚚 <?= htmlspecialchars($__ocur) ?></span>
+            <input name="shipping" inputmode="decimal" value="<?= $__oship > 0 ? htmlspecialchars(number_format($__oship, 2, '.', '')) : '' ?>" placeholder="0.00"
+                   title="Navlun (sipariş biriminde). Ücretsizse 0 yazıp kaydedin — kaydetmek de bir karardır."
+                   style="width:70px;font-size:12px;padding:3px 5px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)">
+            <button class="abtn" type="submit" style="font-size:12px">Kaydet</button>
+          </form>
+          <?php foreach($__opre as $__pk=>$__pm): ?>
+            <span class="vprereq" data-missing="<?= htmlspecialchars($__pk) ?>" title="<?= htmlspecialchars($__pm) ?>" style="font-size:11px;padding:2px 7px;border-radius:9px;background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.35);color:#c0392b;white-space:nowrap"><?= $__pk==='shipping' ? '⚠ önce kargo girin' : '⚠ önce banka seçin' ?></span>
+          <?php endforeach; ?>
           <form method="post" style="margin:0" onsubmit="return confirm('Issue the invoice for order <?= htmlspecialchars($oref) ?>? This burns the number(s), stores the PDF(s) and EMAILS THE BUYER. Check the draft (👁) first. Do this once stock is confirmed.')">
             <?= csrfField() ?>
             <input type="hidden" name="_action" value="issue_invoice">
             <input type="hidden" name="ref" value="<?= htmlspecialchars($oref) ?>">
-            <button class="abtn primary" type="submit" style="font-size:12px">✓ Approve &amp; issue</button>
+            <button class="abtn primary" type="submit" style="font-size:12px"<?= $__opre ? ' disabled title="'.htmlspecialchars(implode(' ', $__opre)).'"' : '' ?>>✓ Approve &amp; issue</button>
           </form>
           <?php /* SIL (operator, 16 Eyl 2026, teklifle ayni cumle). Sipariş
                    silme dugmesi `Admin ▸ Orders`'ta vardi ama BU kuyrukta
