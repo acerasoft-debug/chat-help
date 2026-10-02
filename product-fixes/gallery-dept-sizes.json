@@ -1,0 +1,49 @@
+[
+  {
+    "_not": "Operator, 2 Eki 2026: 'Gallery DPT. Nin bedenlerini 2×S, 3×M, 3×L, 2×XL Boyle yap'. Marka cumlesi: 9 ilanin hepsi (8 tisort + fermuarli hoodie gd-h01). Toplam 10 kaldigi icin 10'luk karton, MOQ 20 ve size_step 10 gecerli; XXL serideki yerini kaybediyor. Paket eki '10 pcs/pack' AYNEN (tanidigi tek yazim: VESTRA_SIZE_PACK_RE) -- baska bir yazim '10'u sessizce BEDEN yapardi.",
+    "_nasil": "Canli kayit sunucudan olculdu (inspect-products, brand=Gallery Dept., 2 Eki 13:00 UTC): dokuz ilanin dokuzunda sizes = 'S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack'; desc seri TASIMIYOR (fit_scan: aciklama/beden celiskisi 0), yani yalniz sizes degisir. Degisiklikten sonra fit_scan yeniden kosulur: desc'te seri olsaydi artik celisirdi.",
+    "match": "gd-t01",
+    "expect": 1,
+    "sizes": "S×2 · M×3 · L×3 · XL×2 · 10 pcs/pack"
+  },
+  {
+    "match": "gd-t02",
+    "expect": 1,
+    "sizes": "S×2 · M×3 · L×3 · XL×2 · 10 pcs/pack"
+  },
+  {
+    "match": "gd-t03",
+    "expect": 1,
+    "sizes": "S×2 · M×3 · L×3 · XL×2 · 10 pcs/pack"
+  },
+  {
+    "match": "gd-t04",
+    "expect": 1,
+    "sizes": "S×2 · M×3 · L×3 · XL×2 · 10 pcs/pack"
+  },
+  {
+    "match": "gd-t05",
+    "expect": 1,
+    "sizes": "S×2 · M×3 · L×3 · XL×2 · 10 pcs/pack"
+  },
+  {
+    "match": "gd-t06",
+    "expect": 1,
+    "sizes": "S×2 · M×3 · L×3 · XL×2 · 10 pcs/pack"
+  },
+  {
+    "match": "gd-t07",
+    "expect": 1,
+    "sizes": "S×2 · M×3 · L×3 · XL×2 · 10 pcs/pack"
+  },
+  {
+    "match": "gd-t08",
+    "expect": 1,
+    "sizes": "S×2 · M×3 · L×3 · XL×2 · 10 pcs/pack"
+  },
+  {
+    "match": "gd-h01",
+    "expect": 1,
+    "sizes": "S×2 · M×3 · L×3 · XL×2 · 10 pcs/pack"
+  }
+]
