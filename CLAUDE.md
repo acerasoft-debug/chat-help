@@ -1421,6 +1421,15 @@ hazırlanırken: *"o siparisi durdurabilirsin banka bilgilerini ve siparislerden
   *"manuel Save-shipping işleyicisi anahtara sormuyor"* iddiası çağrının **birebir
   metnini** pinliyordu; işleyici gövdesine ve olguya bağlandı ve işleyiciye anahtar
   sorgusu sokulunca hâlâ **1 kırmızı** veriyor.
+- **Canlı (deploy `7b37779`, run 1474 yeşil, `deploy.sh` ilk denemede):**
+  `admin_mode=bank` VES-2DDC94D9 → *"EUR odeme kutusu: CIKAR (4 satir) ·
+  Beneficiary bank: Airwallex (Netherlands) B.V. · kesime hazir mi: EVET (kargo
+  girildi, banka secildi) · kesim: YAPILMADI"*. Bağımsız ikinci okuma
+  (`diag-live` → `find_ref`): toplam **1.158,10**, navlun 20,00, WELCOME5 −59,90,
+  renk `Navy/White, White/Navy`. **Sondanın kendi körlüğü de düzeltildi:**
+  `find_ref`'in alan listesi `invoice_bank` ve iki karar damgasını taşımıyordu —
+  yani "banka seçildi mi, kargo girildi mi" sorusunu cevaplayamıyordu (bu dosyada
+  dördüncü kez kayıtlı ders); eklendi (`ca3908f`, yalnız profil anahtarı, rakam yok).
 
 **KURAL 5r — ÖDEME KUTUSU BOŞSA FATURA KESİLMEZ; "otomatik kullanılmıyor" bir
 VERİ sorusuydu, kod sorusu değil** (operatör, 19 Eyl 2026: *"sana verdigim
