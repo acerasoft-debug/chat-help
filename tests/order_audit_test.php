@@ -29,6 +29,18 @@ $t('hicbir yazici cagirmiyor (write_json / write_csv / send_mail / file_put)',
    !preg_match('/vestra_write_json|vestra_write_csv|vestra_send_mail|file_put_contents|vestra_order_payment_reminder_send|fopen\([^)]*[\'"]w/', $code));
 $t('odeme karari TEK kaynaktan (settled + grace)', str_contains($code, 'vestra_order_payment_settled(') && str_contains($code, 'vestra_order_payment_grace('));
 $t('kisi adi (name alani) basilmiyor', !preg_match("/\\\$row\['name'\]/", $code));
+/* Mektup turu konudan okunuyor; order_invoice_pdf'in Fransizca ve "duzeltilmis" konulari
+   (3 Eki 2026) PDF sayilmali -- yoksa denetim PDF'li bir faturayi "diger" diye gosterir. */
+$kA = strpos($code, '$kind = function'); $kB = $kA === false ? false : strpos($code, "};", $kA);
+$kindFn = null;
+if ($kA !== false && $kB !== false) $kindFn = eval('return '.substr(substr($code, $kA, $kB + 2 - $kA), strlen('$kind = ')));
+$kk = fn(string $s) => $kindFn ? $kindFn($s) : '?';
+$t('konu turu: Fransizca duzeltilmis fatura -> PDF', $kk('VESTRA — facture corrigée INV-2026-1022 pour la commande VES-3507BF86') === 'PDF');
+$t('konu turu: Fransizca fatura -> PDF', $kk('VESTRA — facture INV-2026-1022 pour la commande VES-X') === 'PDF');
+$t('konu turu: Ingilizce duzeltilmis -> PDF', $kk('VESTRA — corrected invoice INV-9 for order VES-X') === 'PDF');
+$t('konu turu: eski PDF konusu -> PDF', $kk('VESTRA — invoice INV-9 for order VES-X') === 'PDF');
+$t('konu turu: panel mektubu -> LINK (degismedi)', $kk('VESTRA — invoice for order VES-X') === 'LINK');
+$t('konu turu: ilgisiz Fransizca -> diger', $kk('VESTRA — des nouvelles de votre commande VES-X') === 'diger');
 
 echo "\n== 2. kum havuzunda kostur ==\n";
 $sand = sys_get_temp_dir().'/vestra_audit_'.bin2hex(random_bytes(4));
