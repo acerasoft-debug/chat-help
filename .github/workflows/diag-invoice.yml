@@ -1,0 +1,105 @@
+name: (Salt-okunur) Fatura durumunu ve gönderim yolunu teşhis et
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Sipariş referansı (örn: VES-3D2342FC)"
+        required: true
+
+permissions:
+  contents: read
+
+# SALT-OKUNUR. Fatura KESMEZ, mail GÖNDERMEZ, hiçbir dosyaya yazmaz.
+#
+# Soru: bu siparişin faturası müşteriye gitti mi, gitmediyse hangi fonksiyon
+# gönderiyor? Fatura kaydı sunucuda zaten var (data/invoices/...), ama kayıt
+# "kesildi"yi gösteriyor, "mail gitti"yi göstermiyor. İkinci kez göndermek
+# müşteriyi şaşırtır ve çift fatura izlenimi yaratır — o yüzden önce okunur.
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Teşhis
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          REF: ${{ github.event.inputs.ref }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: REF
+          command_timeout: 10m
+          script: |
+            set -u
+            D=~/public_html
+            echo "referans: $REF"
+            echo
+
+            echo "===== 1. FATURA DOSYALARI ====="
+            ls -la "$D/data/invoices/" 2>/dev/null | head -30
+            echo "-- bu referansa ait --"
+            for f in "$D"/data/invoices/*"$REF"* "$D"/data/invoices/deleted/*"$REF"*; do
+              [ -f "$f" ] || continue
+              echo "-- $f --"
+              cat "$f"; echo
+            done
+            echo
+
+            echo "===== 2. FATURA GÖNDERİMİNİ YAPAN KOD ====="
+            echo "-- issue_invoice gövdesi (offers.php:1301 civarı) --"
+            sed -n '1295,1400p' "$D/inc/offers.php" 2>/dev/null
+            echo
+            echo "-- invoice.php içinde mail gönderen satırlar --"
+            grep -n -iE 'vestra_mail|vestra_send|mail_send|tpl_invoice|tpl_order_invoice|invoiced_at|invoice_sent' \
+              "$D/inc/invoice.php" "$D/inc/offers.php" 2>/dev/null | head -60
+            echo
+
+            echo "===== 3. FATURA MAILİ GİTTİĞİNE DAİR KAYIT VAR MI ====="
+            echo "-- data/ içinde invoice_sent / invoiced_at izleri --"
+            grep -ril -e 'invoice_sent' -e 'invoiced_at' --include='*.json' "$D/data" 2>/dev/null | head -10
+            echo "-- mail gönderim defteri var mı --"
+            ls -la "$D/data" 2>/dev/null | grep -iE 'mail|sent|outbox|log' | head -20
+            echo
+
+            echo "===== 4. BU REFERANSIN TAM SİPARİŞ KAYDI ====="
+            grep -n "$REF" "$D/data/orders.csv" 2>/dev/null | head -5
+            echo "-- orders.csv başlık satırı (alan adları) --"
+            head -1 "$D/data/orders.csv" 2>/dev/null
+            echo
+            echo "-- order_statuses.json kaydı --"
+            php -r '
+              $d = json_decode((string)file_get_contents($argv[1]), true) ?: [];
+              $r = $d[$argv[2]] ?? null;
+              echo $r === null ? "(kayit yok)\n"
+                : json_encode($r, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n";
+            ' "$D/data/order_statuses.json" "$REF" 2>/dev/null
+            echo
+
+            echo "===== 5. MESAJ THREADİNDE FATURA MESAJI VAR MI ====="
+            php -r '
+              $d = json_decode((string)file_get_contents($argv[1]), true) ?: [];
+              $ref = $argv[2];
+              foreach ($d as $i => $t) {
+                $hit = false;
+                foreach (($t["messages"] ?? []) as $m) {
+                  if (str_contains(json_encode($m), $ref)) { $hit = true; break; }
+                }
+                if (!$hit) continue;
+                echo "thread {$i} (id=".($t["id"] ?? "?").") buyer=".($t["buyer_uid"] ?? "")." seller=".($t["seller_uid"] ?? "")."\n";
+                foreach (($t["messages"] ?? []) as $j => $m) {
+                  $kind = $m["meta"]["kind"] ?? "text";
+                  $txt  = mb_substr((string)($m["text"] ?? ""), 0, 120);
+                  echo "  [{$j}] {$m["at"]} from=".($m["from"] ?? "?")." kind={$kind} :: {$txt}\n";
+                }
+              }
+            ' "$D/data/messages.json" "$REF" 2>/dev/null
+            echo
+
+            echo "===== 6. BREVO GÖNDERİM LOGU (bugün) ====="
+            TODAY=$(date -u +%d-%b-%Y)
+            for L in "$D/error_log" ~/error_log ~/logs/error_log; do
+              [ -f "$L" ] || continue
+              echo "-- $L --"
+              grep -iE 'VESTRA (Mail|API|SMTP)|brevo|invoice' "$L" | tail -40
+            done

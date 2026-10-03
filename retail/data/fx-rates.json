@@ -1,0 +1,23 @@
+{
+  "_note": [
+    "GÖSTERGE kurlar. Bağlayıcı fiyat her zaman EUR (PAngV); bu tablo yalnızca",
+    "yabancı alıcıya 'yaklaşık ne kadar' demek için. Kasada EUR çekilir.",
+    "",
+    "Kaynak: ECB euro referans kurları, as_of tarihindeki fixing. AED, SAR ve",
+    "HKD ECB listesinde yok; üçü de ABD dolarına sabit kurla bağlı (AED 3,6725 ·",
+    "SAR 3,75 · HKD 7,80 bant ortası), o yüzden USD kurundan türetildi.",
+    "",
+    "45 günden eski tablo GÖSTERİLMEZ (inc/fx.php): bayat kur, kur yokluğundan",
+    "kötü. Güncellemek için as_of ve rates'i değiştirmek yeter."
+  ],
+  "as_of": "2026-09-15",
+  "source": "ECB reference rates",
+  "rates": {
+    "USD": 1.1539,
+    "GBP": 0.8558,
+    "CHF": 0.9441,
+    "AED": 4.2377,
+    "SAR": 4.3271,
+    "HKD": 9.0004
+  }
+}
