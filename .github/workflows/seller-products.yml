@@ -5311,6 +5311,8 @@ jobs:
                diger= ref'i ya da fatura no'yu tasiyan baska mektup */
             $kind = function (string $s): string {
               if (preg_match('/\binvoice\s+INV-\S+\s+for order\b/i', $s)) return 'PDF';
+              /* order_invoice_pdf'in Fransizca konusu (3 Eki 2026): "facture [corrigée] INV-… pour la commande" */
+              if (preg_match('/\bfacture(?:\s+corrig\S+)?\s+INV-\S+\s+pour la commande\b/iu', $s)) return 'PDF';
               if (preg_match('/your invoice\s+INV-\S+\s+is ready/i', $s))  return 'PDF';
               if (preg_match('/\binvoice for order\b/i', $s))              return 'LINK';
               if (preg_match('/payment reminder|let us know once the transfer|payment for your order/i', $s)) return 'HAT';

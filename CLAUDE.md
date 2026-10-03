@@ -10279,6 +10279,43 @@ dosyaya yazılmaz).
   yazmış. Faturalı birleşik mektuba teslim süresi cümlesi eklemek için yazılmak
   istenen kod **gereksiz çıktı**; iş akışı yazılmadan önce kaydı ölçmenin bedeli
   tam da buydu. Müşteriye hiçbir şey gönderilmedi.
+- **DÜZELTİLMİŞ FATURA FRANSIZCA, PDF EKİYLE YENİDEN GÖNDERİLDİ (3 Eki 2026)**
+  (operatör: *"VES-3507BF86 bu siparisin faturasinin düzeltildigini ident ve
+  renklerin konuldugunu belirterek tekrar gönder müsteriye...fransizca"*; hedef ve
+  "gönder" aynı mesajda — KURAL 18'in dar istisnası, yine de önce `send=false`).
+  - **Önce ölçüldü** (`order_audit`): PDF'li fatura mektubu **2 Eki 08:26**
+    gitmiş (açıldı + tıklandı), 14:00 cron hatırlatması gitmiş (açıldı), saat
+    **2 Eki'de başlamış, son gün 9 Eki**, ödeme/dekont yok. Belge 1 Eki 16:19'da
+    çizilmiş (satır yüksekliği düzeltmesinden sonraki yeniden çizim), sonraki
+    kayıt değişikliği yok — yani gönderilen belge düzeltilmiş belgenin kendisi.
+  - **`order_invoice_pdf` yalnız İngilizceydi ve "neyin düzeltildiğini" söyleyemiyordu.**
+    `vestra_tpl_order_invoice_pdf()` artık `lang` (en|fr) ve `itemsFixed` alıyor.
+    **Varsayılan çıktı bayt bayt aynı** (8 çağrı biçiminde md5 ölçüldü); düzeltme
+    cümlesi "aynı numara" cümlesinin **yerine** geçiyor (iki kez yazılmaz). İş
+    akışı: spec `lang=en|fr` (başka dil **durur**, sessizce İngilizceye düşmez),
+    Fransızca son tarih `vestra_push_date` ile ve `gmdate`'in **aynı takvim
+    gününde** (öğle UTC), **`fixed=items` bir BELGE iddiası ve belgede ölçülüyor**:
+    siparişin her SKU'su ve her rengi PDF'te çizili olmalı (boşluklar atılarak,
+    sarılan parçalar birleşik), renksiz kalem "renkler konuldu" diyemez — durur.
+  - **Canlı:** kuru koşu → `belgede : SKU 11/11 | renk 71/71`, konu *"VESTRA —
+    facture corrigée INV-2026-1022 pour la commande VES-3507BF86"*, son tarih
+    *9 octobre 2026*, gövde 806 karakter, imza Marco Bellini, ek
+    `Invoice-INV-2026-1022.pdf` (23.238 bayt). Gönderim (run `37136391184`):
+    `GONDERILDI -> l***@hotmail.fr`; Brevo (`order_audit`) **16:19 UTC
+    `requests` → `delivered`**. Saat **değişmedi** (son gün hâlâ 9 Eki).
+  - **Sonda kör noktası düzeltildi:** `order_audit`'in tür sınıflandırıcısı
+    yalnız İngilizce konuları tanıyordu ve Fransızca PDF'li faturayı **"diger"**
+    gösterdi — İngilizce PDF mektubu olmayan bir siparişte "PDF-mektup: yok"
+    diyerek **gitmiş bir faturayı gitmemiş** gösterirdi. Fransızca konu artık PDF.
+  - **Bilinen sınır:** belgede ölçüm ayıraçsız çizim metninde `str_contains`;
+    kayıttaki kod belgedeki başka bir kodun **öneki** ise (G7JV9 / G7JV9-1) ayırt
+    edilemez. Ters yön (belgede olmayan uzun kod) testli.
+  - Test: `tests/invoice_pdf_letter_fr_test.php` (**42 iddia**; iş akışı bloğu
+    gerçek bir fatura PDF'inde koşuyor: tam belge geçer, eksik renk / eksik SKU /
+    renksiz kalem durur). Yedi sabotajın yedisi kırmızı (tek eşleşmeyle uygulandığı
+    doğrulanarak). `order_audit_test` 33 → **39**: iki iddia eski tarih satırını
+    **birebir** pinliyordu (olguya bağlandı, sabotajda yine kırmızı) + konu türü
+    iddiaları (Fransızca regex silinince 2 kırmızı).
 
 **KURAL 28 (devamı) — LA ISLA DE MIRABEL / O7BA9A / INV-2026-1021: operatörün
 İSPANYOLCA metni SİTE MESAJI olarak gitmişti, E-POSTA olarak istendi; `order_note`
