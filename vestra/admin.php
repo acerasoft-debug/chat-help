@@ -6,6 +6,7 @@ require_once __DIR__.'/inc/vouchers.php';
 require_once __DIR__.'/inc/auth.php';
 require_once __DIR__.'/inc/invoice.php';
 require_once __DIR__.'/inc/orders.php';
+require_once __DIR__.'/inc/account_delete.php';
 require_once __DIR__.'/inc/addresses.php';
 require_once __DIR__.'/inc/leads.php';
 require_once __DIR__.'/inc/notify.php';
@@ -1248,56 +1249,21 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
      and the seller's listings go with them — leaving those behind would keep products on the
      catalogue pointing at a seller_uid that no longer resolves (buyers could still open and
      order them). Refuses while the seller still has a live order, so nothing in flight is
-     orphaned; suspend covers that case instead. */
+     orphaned; suspend covers that case instead.
+
+     Gate, backups, removal and read-back live in inc/account_delete.php (3 Oct 2026): the
+     workflow path (seller-products.yml -> admin_mode=seller_delete) calls the SAME function,
+     so the two gates cannot drift apart. The panel passes strict=false: behaviour is what it
+     always was (listings go with the account), except that listings.json is now backed up
+     first and a failed backup stops the delete instead of being silently ignored. */
   if($act==='delete_account'){
-    $uid=(string)($_POST['uid']??'');
-    $victim=null;
-    foreach(auth_accounts() as $a){ if(($a['id']??'')===$uid){ $victim=$a; break; } }
-    if(!$victim){ header('Location: /admin?tab=users&msg=acct_notfound'); exit; }
-
-    /* Silme kapisi. Onay kutusu "Accounts with orders or invoices cannot be
-       deleted" diyordu ama kod yalnizca SATICI tarafindaki acik siparislere
-       bakiyordu: alicinin siparisi ve KESILMIS FATURA hic kontrol edilmiyordu.
-       Fatura numarali bir belgedir ve musteriye gitmistir -- konusu silinirse
-       numara hicbir seye isaret etmez ve muhasebe izi kopar. Kural yaziliydi,
-       kapi calismiyordu; bu desen bu projede birkac kez cikti. */
-    $openOrders=0; $invoiced=0;
-    $vEmail=strtolower(trim((string)($victim['email']??'')));
-    foreach(vestra_read_csv('orders.csv') as $o){
-      $ref=(string)($o['ref']??'');
-      /* Alici tarafi: siparis satirindaki e-posta. Kapali siparis de sayilir
-         cunku fatura kontrolu ondan turuyor. */
-      $isBuyer  = $vEmail!=='' && strtolower(trim((string)($o['email']??'')))===$vEmail;
-      $isSeller = false;
-      foreach(vestra_order_lines($o)['lines'] as $l){
-        if((string)($l['seller_uid']??'')===$uid){ $isSeller=true; break; }
-      }
-      if(!$isBuyer && !$isSeller) continue;
-      if($ref!=='' && count(vestra_invoices_for_ref($ref))>0){ $invoiced++; continue; }
-      if(in_array(strtolower((string)($o['status']??'')),['completed','cancelled','refunded'],true)) continue;
-      $openOrders++;
-    }
-    if($invoiced>0){   header('Location: /admin?tab=users&msg=acct_has_invoice&n='.$invoiced); exit; }
-    if($openOrders>0){ header('Location: /admin?tab=users&msg=acct_has_orders'); exit; }
-
-    $af=vestra_data_dir().'/accounts.json';
-    if(is_readable($af)) @copy($af,$af.'.bak.'.date('Ymd_His'));
-    /* Silinen hesabin KENDI JSON yedegi. accounts.json'in tam kopyasi zaten
-       alindi ama onun icinden tek hesabi bulmak, dosya buyudukce is haline
-       geliyor. GDPR silme talebi de gelse, "yanlis hesabi sildim" kazasi da
-       olsa, aranan sey tek bir kayit. */
-    $ddir=vestra_data_dir().'/deleted-accounts';
-    if(!is_dir($ddir)) @mkdir($ddir,0775,true);
-    @file_put_contents($ddir.'/'.preg_replace('/[^a-z0-9_-]/i','',$uid).'-'.gmdate('Ymd-His').'.json',
-      json_encode($victim+['deleted_at'=>gmdate('c')], JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
-
-    $kept=array_values(array_filter(auth_accounts(), fn($a)=>($a['id']??'')!==$uid));
-    auth_save_accounts($kept);
-
-    $ls=vestra_listings(); $before=count($ls);
-    $ls=array_values(array_filter($ls, fn($l)=>(string)($l['seller_uid']??'')!==$uid));
-    if(count($ls)!==$before) vestra_save_listings($ls);
-
+    $dr=vestra_account_delete((string)($_POST['uid']??''),true,false);
+    $dc=(string)$dr['code'];
+    if($dc==='not_found'){   header('Location: /admin?tab=users&msg=acct_notfound'); exit; }
+    if($dc==='has_invoice'){ header('Location: /admin?tab=users&msg=acct_has_invoice&n='.(int)$dr['n']); exit; }
+    if($dc==='has_orders'){  header('Location: /admin?tab=users&msg=acct_has_orders'); exit; }
+    if($dc==='backup'){      header('Location: /admin?tab=users&msg=acct_backup_failed'); exit; }
+    if($dc!==''){            header('Location: /admin?tab=users&msg=acct_delete_unverified'); exit; }
     header('Location: /admin?tab=users&msg=acct_deleted'); exit;
   }
   /* Admin-managed membership plan (comp / manual upgrade). Sets the tier + marks
@@ -2728,6 +2694,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'acct_deleted'=>'✓ Account permanently deleted (backup saved; their listings were removed too).',
     'acct_has_orders'=>'⚠ Not deleted — this seller still has open orders. Complete or cancel them first, or suspend the account instead.',
     'acct_notfound'=>'⚠ Account not found — nothing was deleted.',
+    'acct_backup_failed'=>'⚠ Not deleted — a backup could not be written (disk full or not writable). Nothing was changed.',
+    'acct_delete_unverified'=>'⚠ The delete did not verify — check Users and the backups (accounts.json.bak.*, deleted-accounts/) before trying again.',
     'member_set'=>'✓ Membership plan updated.',
     'journal_saved'=>'✓ Article saved.','journal_deleted'=>'Article deleted.','journal_toggled'=>'Article visibility changed.',
     'listing_saved'=>'✓ Listing updated.','prices_saved'=>'✓ Prices & MOQ saved — live on the catalogue now.',

@@ -33,17 +33,19 @@ $t('hicbir yazici / silici / posta cagirmiyor',
    !preg_match('/vestra_write_json|vestra_write_csv|vestra_send_mail|file_put_contents|vestra_save_listings|vestra_msg_save_threads|auth_save_accounts|auth_update|sample_save|unlink\(|rename\(|copy\(|fopen\([^)]*[\'"][wax]/', $code));
 $t('admin_mode aciklamasinda yeni mod anlatiliyor', (bool)preg_match('/admin_mode:\s*\n\s*description:\s*"[^\n]*seller_footprint/', $wf));
 
-$adm = (string)file_get_contents($root.'/vestra/admin.php');
-$ai = strpos($adm, "if(\$act==='delete_account'){");
-$guard = $ai === false ? '' : substr($adm, $ai, 3200);
-$t('panel kapisi: kapali durum listesi probe ile ayni',
+/* 3 Eki 2026: panelin satir ici kapisi inc/account_delete.php'ye tasindi (panel ve seller_delete
+   AYNI fonksiyonu cagirir). Probe'un kopyasi artik O dosyayla esleniyor; admin.php'de ikinci kopya
+   KALMADI (account_delete_test.php bunu ayrica tutuyor). */
+$guard = (string)file_get_contents($root.'/vestra/inc/account_delete.php');
+$t('ortak fonksiyonun kapisi: kapali durum listesi probe ile ayni',
    str_contains($guard, "['completed','cancelled','refunded']") && str_contains($code, "['completed', 'cancelled', 'refunded']"));
-$t('panel kapisi: faturali siparis saymasi probe ile ayni mantik',
+$t('ortak fonksiyonun kapisi: faturali siparis saymasi probe ile ayni mantik',
    str_contains($guard, 'count(vestra_invoices_for_ref($ref))>0') && str_contains($code, 'count($invs) > 0'));
-$t('panel kapisi: durumu orders.csv satirindan okuyor (probe de AYNEN)',
+$t('ortak fonksiyonun kapisi: durumu orders.csv satirindan okuyor (probe de AYNEN)',
    str_contains($guard, "(\$o['status']??'')") && str_contains($code, "(\$o['status'] ?? '')"));
-$t('panel kapisi: ilanlari silen satir hala orada (probe bunu uyariyor)',
-   str_contains($guard, '$ls=array_values(array_filter($ls') && str_contains($php, 'YEDEKSIZ silinir'));
+$t('ortak fonksiyon: ilanlari silen satir hala orada, ama ONCE yedek aliniyor (probe bunu anlatiyor)',
+   str_contains($guard, '$ls = array_values(array_filter($ls') && str_contains($guard, 'listings.json') && str_contains($guard, '.bak-del-')
+   && str_contains($php, 'silmeden once listings.json yedeklenir'));
 
 echo "\n== 2. kum havuzunda kostur ==\n";
 $sand = sys_get_temp_dir().'/vestra_sfoot_'.bin2hex(random_bytes(4));
@@ -166,7 +168,7 @@ $t('yalniz KESEN-SECIMI olan siparis', preg_match('/VES-A3 .*KESEN-SECIMI\s+fatu
 $t('ALICI siparisi, GERCEK durum (cancelled) yaninda', preg_match('/VES-A4 .*cancelled\s+ALICI\s+faturasiz/', $ords) === 1);
 $t('KONTROL: baska alicinin / baska saticinin siparisi yok', !str_contains($ords, 'VES-A2'));
 $t('panel kapisi: ENGELLER (faturali siparis 1)', str_contains($out, "panel 'Delete' kapisi    : ENGELLER (faturali siparis 1)"));
-$t('panel ilanlari yedeksiz siler: 3 ilan, 1 approved', str_contains($out, 'panel \'Delete\' ilanlari  : 3 ilan YEDEKSIZ silinir (1 approved)'));
+$t('panel ilanlari hesapla birlikte siler (yedekli): 3 ilan, 1 approved', str_contains($out, 'panel \'Delete\' ilanlari  : 3 ilan hesapla birlikte silinir (1 approved)'));
 
 echo "\n== 6. diskteki fatura / teklif / konusma / numune ==\n";
 $t('bu hesabin kestigi fatura (siparis listesinde olmayan ref)', str_contains($sec('BU HESABIN KESTIGI'), 'INV-T-9') && str_contains($sec('BU HESABIN KESTIGI'), 'VES-A5'));
@@ -177,6 +179,8 @@ $t('konusma: iki konusma, satici yazan sayisi dogru, kontrol YOK',
    str_contains($th, 'thr0000000000001') && str_contains($th, 'thr0000000000002') && !str_contains($th, 'thr0000000000003')
    && preg_match('/thr0000000000001.*mesaj=2 \(satici yazan 1\)/', $th) === 1 && preg_match('/thr0000000000002.*mesaj=1 \(satici yazan 0\)/', $th) === 1);
 $t('konusmada alici FIRMA adi (e-posta degil)', str_contains($th, 'Buyer One Ltd') && str_contains($th, 'Buyer Two GmbH'));
+$t('konusma satirinda thread id KARAKTER ARASI BOSLUKLU da var (Actions maskesine takilmasin)',
+   str_contains($th, 'id='.implode(' ', str_split('thr0000000000001'))) && str_contains($th, 'id='.implode(' ', str_split('thr0000000000002'))));
 $sm = $sec('NUMUNE');
 $t('numune: yalniz bu satici, acik; istek teklifi yalniz bu firma', str_contains($sm, 'SPL-T1') && !str_contains($sm, 'SPL-T2') && str_contains($sm, 'numune: 1 (acik 1)') && str_contains($sm, 'istek teklifi (uid ya da firma adi gecen satir): 1'));
 $t('numune satirinda ALICI firma adi + hesap ID (karakter arasi bosluklu: Actions maskesi), e-posta YOK',
@@ -205,7 +209,7 @@ $t('faturali siparis kalmayinca: ENGELLER (acik siparis 2) -- SATICI siparisi + 
 file_put_contents($sand.'/data/orders.csv', implode(',', $head)."\n");
 [$o7, $r7] = $exec($P);
 $t('siparis kalmayinca: GECER (ilanlar yine yedeksiz silinir uyarisi duruyor)',
-   $r7 === 0 && str_contains($o7, "panel 'Delete' kapisi    : GECER") && str_contains($o7, '3 ilan YEDEKSIZ silinir')
+   $r7 === 0 && str_contains($o7, "panel 'Delete' kapisi    : GECER") && str_contains($o7, '3 ilan hesapla birlikte silinir')
    && str_contains($o7, '(bu hesaba bagli siparis yok)'));
 [$o8, $r8] = $exec($C);
 $t('KONTROL SATICISI: yalniz kendi ilani, bu satici hesabinin kayitlari girmiyor',
