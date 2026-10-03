@@ -1,0 +1,215 @@
+name: (Salt-okunur) Sipariş numarasını sunucuda ara
+on:
+  workflow_dispatch:
+    inputs:
+      number:
+        description: "Aranacak sipariş/işlem numarası (örn: VES-3D2342FC)"
+        required: true
+      full:
+        description: "true = eşleşen kaydın TAMAMINI yaz (müşteri adı/e-postası dahil). false = maskeli."
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+# SALT-OKUNUR. Hiçbir dosyaya yazmaz, hiç mail göndermez, hiçbir şeyi silmez.
+#
+# Neden gerekli: sipariş kayıtları repoda DEĞİL — çalışma anında sunucudaki
+# JSON defterlerine yazılıyor. Bir numaranın hangi uygulamaya (VESTRA B2B /
+# MAXSALES perakende) ve hangi deftere ait olduğunu tahminle bilemeyiz; bu iş
+# numarayı iki uygulamanın bütün JSON defterlerinde arar ve bulduğu kaydı
+# yazar. Fatura kesmeden önce atılması gereken ilk adım bu.
+#
+# Ayrıca: iki tarafta fatura (Rechnung) üreten bir fonksiyon var mı, ve mail
+# kanalı açık mı — ikisini de rapor eder.
+jobs:
+  find:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ara
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          NEEDLE: ${{ github.event.inputs.number }}
+          FULL: ${{ github.event.inputs.full }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: NEEDLE,FULL
+          command_timeout: 10m
+          script: |
+            set -u
+            echo "aranan: $NEEDLE"
+            echo
+
+            # Numaranın hem tamamını hem de prefix'siz blogunu ariyoruz: defterde
+            # "VES-3D2342FC" yazabilir, ama "3d2342fc" olarak da durabilir.
+            BARE=$(printf '%s' "$NEEDLE" | sed 's/^[A-Za-z]*-//')
+
+            echo "===== 1. HANGİ UYGULAMA KÖKLERİ VAR ====="
+            for R in ~/public_html ~/maxsales_de ~/public_html/shop ~/public_html/maxsales; do
+              if [ -d "$R" ]; then
+                echo "  VAR   $R  (data/: $([ -d "$R/data" ] && find "$R/data" -maxdepth 1 -name '*.json' | wc -l || echo 0) json)"
+              else
+                echo "  yok   $R"
+              fi
+            done
+            echo
+
+            echo "===== 2. NUMARA HANGİ DOSYALARDA GEÇİYOR ====="
+            # Process substitution yok (uzak kabuk sh olabilir) — gecici dosya.
+            : > /tmp/order_hits.txt
+            for R in ~/public_html ~/maxsales_de ~/public_html/shop ~/public_html/maxsales; do
+              [ -d "$R" ] || continue
+              # data/ + uploads/ altindaki json ve log dosyalari; kod dosyalarina bakmiyoruz.
+              grep -ril -e "$NEEDLE" -e "$BARE" \
+                --include='*.json' --include='*.jsonl' --include='*.log' --include='*.csv' \
+                "$R/data" "$R/uploads" 2>/dev/null >> /tmp/order_hits.txt || true
+            done
+            sort -u /tmp/order_hits.txt -o /tmp/order_hits.txt
+            HITS=$(tr '\n' ' ' < /tmp/order_hits.txt)
+            if [ -s /tmp/order_hits.txt ]; then
+              sed 's/^/  /' /tmp/order_hits.txt
+            else
+              echo "  (HİÇBİR DEFTERDE YOK)"
+            fi
+            echo
+
+            echo "===== 3. ERROR LOG'DA GEÇİYOR MU ====="
+            for L in ~/public_html/error_log ~/maxsales_de/error_log ~/error_log ~/logs/error_log; do
+              [ -f "$L" ] || continue
+              m=$(grep -i -e "$NEEDLE" -e "$BARE" "$L" | tail -20)
+              [ -n "$m" ] && { echo "-- $L --"; printf '%s\n' "$m"; }
+            done
+            echo
+
+            echo "===== 4. EŞLEŞEN KAYITLAR ====="
+            cat > /tmp/find_order.php <<'PHPEOF'
+            <?php
+            // Salt-okunur. Argümanlar: needle, bare, full(0/1), dosya...
+            declare(strict_types=1);
+            $needle = strtolower((string)($argv[1] ?? ''));
+            $bare   = strtolower((string)($argv[2] ?? ''));
+            $full   = ((string)($argv[3] ?? '0')) === '1';
+            $files  = array_slice($argv, 4);
+            if ($needle === '') { echo "needle bos\n"; exit(0); }
+
+            /** E-posta/telefon/adres maskesi — full=0 iken. */
+            function mask($v) {
+                if (!is_string($v)) return $v;
+                if (filter_var($v, FILTER_VALIDATE_EMAIL)) {
+                    [$a, $b] = explode('@', $v, 2);
+                    return mb_substr($a, 0, 2) . str_repeat('*', max(1, mb_strlen($a) - 2)) . '@' . $b;
+                }
+                if (preg_match('/^[\d\s+()\/-]{7,}$/', $v)) return mb_substr($v, 0, 4) . '…(maskeli)';
+                return $v;
+            }
+            function scrub(array $a, bool $full): array {
+                if ($full) return $a;
+                $secret = ['email','mail','e_mail','phone','tel','telefon','iban'];
+                $addr   = ['street','strasse','straße','address','adresse','line1','line2','house','hausnummer'];
+                foreach ($a as $k => $v) {
+                    if (is_array($v)) { $a[$k] = scrub($v, $full); continue; }
+                    $lk = strtolower((string)$k);
+                    if (in_array($lk, $secret, true)) $a[$k] = mask($v);
+                    elseif (in_array($lk, $addr, true) && is_string($v) && $v !== '') {
+                        $a[$k] = mb_substr($v, 0, 3) . '…(maskeli)';
+                    }
+                }
+                return $a;
+            }
+            function hit(string $v, string $needle, string $bare): bool {
+                $s = strtolower($v);
+                return str_contains($s, $needle) || ($bare !== '' && str_contains($s, $bare));
+            }
+            /**
+             * Needle'ı DOĞRUDAN bir skaler alanında taşıyan düğümleri topla.
+             * Böylece 300 kayıtlık defterde tüm defter değil, yalnızca o sipariş
+             * kaydı yazılır. Eşleşme bir alt-dizide ise üst düğüm atlanır ve
+             * rekürsiyon o alt düğümü bulur.
+             */
+            function hunt($node, string $needle, string $bare, array &$out, string $path = ''): void {
+                if (!is_array($node)) return;
+                foreach ($node as $k => $v) {
+                    // Anahtar da olabilir: bazı defterler kaydı sipariş no ile indeksliyor.
+                    if (is_string($k) && hit($k, $needle, $bare)) {
+                        $out[] = [($path === '' ? '' : $path) . '/' . $k, is_array($v) ? $v : [$k => $v]];
+                        return;
+                    }
+                    if (is_string($v) && hit($v, $needle, $bare)) {
+                        $out[] = [$path === '' ? '(kök)' : $path, $node];
+                        return;
+                    }
+                }
+                foreach ($node as $k => $v) {
+                    if (is_array($v)) hunt($v, $needle, $bare, $out, $path . '/' . $k);
+                }
+            }
+
+            foreach ($files as $f) {
+                if (!is_file($f) || !is_readable($f)) continue;
+                $size = filesize($f);
+                echo "\n--- {$f}  (" . round($size / 1024) . " KB) ---\n";
+                $raw = file_get_contents($f);
+                if ($raw === false) { echo "  okunamadi\n"; continue; }
+                $data = json_decode($raw, true);
+                if (!is_array($data)) {
+                    // JSON degil (log/jsonl/csv) → satir satir
+                    $n = 0;
+                    foreach (preg_split('/\R/', $raw) ?: [] as $line) {
+                        $s = strtolower($line);
+                        if (!str_contains($s, $needle) && !($bare !== '' && str_contains($s, $bare))) continue;
+                        echo "  " . mb_substr($line, 0, 2000) . "\n";
+                        if (++$n >= 20) { echo "  … (ilk 20 satir)\n"; break; }
+                    }
+                    if ($n === 0) echo "  (JSON degil, satir eslesmesi de yok)\n";
+                    continue;
+                }
+                $out = [];
+                hunt($data, $needle, $bare, $out);
+                if (!$out) { echo "  (dosyada metin geciyor ama yapisal kayit bulunamadi)\n"; continue; }
+                foreach ($out as [$path, $node]) {
+                    echo "  yol: {$path}\n";
+                    echo preg_replace('/^/m', '    ',
+                        json_encode(scrub($node, $full), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                    ) . "\n";
+                }
+            }
+            PHPEOF
+            php -l /tmp/find_order.php >/dev/null || { echo "script sozdizimi hatasi"; exit 1; }
+            FULLFLAG=0; [ "$FULL" = "true" ] && FULLFLAG=1
+            if [ -s /tmp/order_hits.txt ]; then
+              php /tmp/find_order.php "$NEEDLE" "$BARE" "$FULLFLAG" $HITS
+            else
+              echo "  (eslesme yok)"
+            fi
+            rm -f /tmp/find_order.php /tmp/order_hits.txt
+            echo
+
+            echo "===== 5. FATURA (Rechnung) ÜRETEN KOD VAR MI ====="
+            for R in ~/public_html ~/maxsales_de; do
+              [ -d "$R" ] || continue
+              echo "-- $R --"
+              grep -rn --include='*.php' -iE 'function [a-z_]*(invoice|rechnung)|invoice_pdf|rechnung_pdf' "$R/inc" "$R/admin" "$R/api" 2>/dev/null | head -20 \
+                || true
+              c=$(grep -rl --include='*.php' -iE 'function [a-z_]*(invoice|rechnung)' "$R/inc" "$R/admin" "$R/api" 2>/dev/null | wc -l)
+              [ "$c" = "0" ] && echo "  (fatura ureten fonksiyon YOK)"
+            done
+            echo
+
+            echo "===== 6. MAIL KANALI AÇIK MI ====="
+            for R in ~/public_html ~/maxsales_de; do
+              [ -f "$R/data/email_settings.json" ] || { echo "$R: email_settings.json yok"; continue; }
+              php -r '
+                $f = $argv[1];
+                $d = json_decode((string)file_get_contents($f), true) ?: [];
+                $k = (string)($d["mail_api_key"] ?? $d["api_key"] ?? "");
+                echo $argv[2].":\n";
+                echo "  mail_enabled = ".(!empty($d["mail_enabled"]) ? "true" : "false")."\n";
+                echo "  provider     = ".($d["mail_api_provider"] ?? "(bos)")."\n";
+                echo "  api_key      = ".($k !== "" ? "SET (uzunluk ".strlen($k).")" : "(BOS)")."\n";
+                echo "  mail_from    = ".($d["mail_from"] ?? "(bos)")."\n";
+              ' "$R/data/email_settings.json" "$R"
+            done
