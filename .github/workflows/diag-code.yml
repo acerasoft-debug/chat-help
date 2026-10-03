@@ -1,0 +1,66 @@
+name: (Salt-okunur) Sunucudaki bir kod bölgesini oku
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: "public_html'e göreli yol (örn: inc/invoice.php)"
+        required: true
+      grep:
+        description: "Bu deseni içeren satırları ve çevresini göster (boşsa from/to kullanılır)"
+        required: false
+        default: ""
+      from:
+        description: "Başlangıç satırı"
+        required: false
+        default: "1"
+      to:
+        description: "Bitiş satırı"
+        required: false
+        default: "120"
+
+permissions:
+  contents: read
+
+# SALT-OKUNUR. Sunucudaki B2B kod tabanı bu repoda YOK; bir fonksiyonu
+# çağırmadan önce gövdesini okumak gerekiyor. Yalnızca public_html altını
+# okur, yol dışına çıkmaya izin vermez, hiçbir şey yazmaz.
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Oku
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          F: ${{ github.event.inputs.file }}
+          G: ${{ github.event.inputs.grep }}
+          A: ${{ github.event.inputs.from }}
+          B: ${{ github.event.inputs.to }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: F,G,A,B
+          command_timeout: 5m
+          script: |
+            set -u
+            case "$F" in
+              /*|*..*) echo "HATA: gecersiz yol"; exit 1 ;;
+            esac
+            P="$HOME/public_html/$F"
+            [ -f "$P" ] || { echo "HATA: yok -> $P"; exit 1; }
+            echo "dosya: $F  ($(wc -l < "$P") satir)"
+            echo
+            if [ -n "$G" ]; then
+              grep -n -- "$G" "$P" | head -40
+              echo
+              echo "-- ilk eslesmenin cevresi --"
+              N=$(grep -n -- "$G" "$P" | head -1 | cut -d: -f1)
+              if [ -n "${N:-}" ]; then
+                S=$((N > 40 ? N - 40 : 1))
+                E=$((N + 90))
+                sed -n "${S},${E}p" "$P" | nl -ba -v "$S"
+              fi
+            else
+              sed -n "${A},${B}p" "$P" | nl -ba -v "$A"
+            fi
