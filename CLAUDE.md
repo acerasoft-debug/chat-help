@@ -11834,3 +11834,182 @@ ayakkabici olabilir"*).
   gösterdi. **Jetonla ayrılamayanlar:** `c` (PL) ve `ke` (PT, onay bekliyor) — bir
   iki harfli ad herkesin alt dizesi; hesap ID'siyle atlanabilir, operatör isterse.
   **Easyauto24** listede (açık fatura INV-2026-1016, 30 Eyl son gün); karar operatörün.
+
+**KURAL 44 — SATICI HESABINI SİLMEK: panelin Delete'i yedeksizdi ve yarı kördü; "Devret + sil"
+sırası, TEK silme fonksiyonu ve ALICI TARAFI bağları** (operatör, 3 Eki 2026: *"Tyrex Internatioal
+BV yi saticilardan sil"* → soru → **"Devret + sil"**, hedef satıcı **Marca Online**).
+
+- **Önce ÖLÇÜLDÜ, silinmedi** (`seller_footprint`, salt okunur; 3 Eki 09:20 ve 16:31 UTC).
+  TYREX INTERNATIONAL BV. (NL, seller/active/kyb approved; Stripe VAR, IBAN VAR, 1 belge
+  dosyası): **26 ilan** (hepsi approved), **4 faturalı sipariş** (dördünün faturası VESTRA
+  kesen; satır satıcısı ilandan CANLI çözülüyor), **11 konuşma / 53 mesaj / 21'i TYREX'in
+  yazdığı**, **1 açık numune**; teklif 0, kesen-seçimi 0, diskte fatura 0, istek teklifi 0.
+- **Panelin eski `Delete`'i iki ayrı yerde yetersizdi:** (1) kapısı yalnız `orders.csv`'ye
+  bakıyordu — teklif, konuşma, numune, kesen-seçimi ve diskteki fatura **görünmüyordu**;
+  (2) ilanları `vestra_save_listings()` ile **yedeksiz** siliyordu (o fonksiyon yedek almaz).
+  TYREX'te kapı 4 faturalı sipariş yüzünden zaten ENGELLİYORDU; bir siparişi olmayan satıcıda
+  ise ilanlar ve konuşmalar tek tıkla, geri dönüşsüz giderdi.
+- **TEK fonksiyon:** `vestra_account_delete($uid, $apply, $strict)` (`vestra/inc/account_delete.php`).
+  Panelin Delete'i (`strict=false`) ve `seller-products.yml` → `admin_mode=seller_delete`
+  (`strict=true`) **aynı kodu** çağırır; kapı panelin eski satır içi kapısıyla **birebir**
+  (faturalı → engel, açık → engel, alıcı tarafı da) — testte iki kaynağın jetonları eşleştiriliyor.
+  - **Yedekler silmeden ÖNCE ve doğrulanarak:** `accounts.json.bak.<zaman>`,
+    `deleted-accounts/<uid>-<zaman>.json` (decode + id eşleşmesi), ilan silinecekse
+    `listings.json.bak-del-<zaman>`. Biri alınamazsa **hiçbir şey silinmez** (panel
+    `acct_backup_failed` der).
+  - **Tekillik:** silmeden önce "kalan hesap sayısı = önceki − 1" kontrolü (aynı id'li iki kayıt
+    varsa ikisi birden giderdi); yedeklerden **önce** bakılıyor, yoksa reddedilen bir silme
+    arkasında yedek bırakırdı. Yazma **geri okunuyor** (`hesap kayitta YOK`, `hesap sayisi N -> N-1`).
+  - **STRICT (yalnız iş akışı):** hesap ilan / konuşma (satıcı **ya da alıcı**) / numune (satıcı ya
+    da alıcı) / teklif (SKU kümesiyle) / kesen-seçimi / diskte kesilmiş fatura taşıyorsa
+    **silmez** ve neyin kaldığını sayar. Panel strict değil: o davranışı kendiliğinden
+    değiştirmek paneli kullanan her akışı değiştirirdi — karar operatörün.
+  - Kendi bağımlılıklarını **kendisi** yükler (KURAL 15); testte yalnız bu dosyayı yükleyen ayrı bir
+    PHP süreci var.
+  - `seller_delete` varsayılan **kuru koşu**; yalnız `type=seller`; yalnız **TAM** hesap id'si;
+    e-posta ve banka çıktıya girmez.
+- **SIRA ve NEDEN:** önce **devir**, sonra konuşma, sonra numune, en son silme. Kapının
+  "faturalı sipariş" saydığı şey siparişin **satır satıcısı** (ilandan canlı çözülür): 26 ilanın
+  `seller_uid`'i Marca Online'a yazılınca 4 sipariş TYREX'e bağlı olmaktan çıktı ve kapı
+  **gevşetilmeden** GEÇTİ. Faturalar zaten VESTRA adına kesilmişti; hiçbiri değişmedi.
+  - **Devir:** `product-fixes/tyrex-to-marca-online.json` (26 satır, `expect:1`, **yalnız**
+    `seller_uid`), `set-product.yml` kuru koşu → uygula (run `37136389846`, 16:19 UTC,
+    *"KAYDEDILDI — 26 alan"*, yedek `listings.json.bak-20261003-161907`). Fiyat, durum, foto, SKU,
+    beden, kademe, ön sipariş **dokunulmadı**.
+  - **Görünen `seller` adı kontrol edildi, YAZILMADI:** admin.php'nin TYREX yolları ilana
+    `seller: 'Tyrex International BV'` yazabiliyor (satır 805/986/1057) ve ürün sayfası ile katalog
+    PDF/CSV/API o alanı basıyor. Kuru koşu (`set-product`, `seller` alanına probe) 26 ilanın
+    **26'sında da `seller` alanının olmadığını** gösterdi → hiçbir sayfada TYREX adı yoktu,
+    ürün sayfasında Satıcı satırı da yok. Probe'u uygulamak **yeni bir görünür satıcı adı
+    eklerdi** (operatörün istemediği bir değişiklik, ve KURAL 21d'nin "Marca Online belli
+    olmasın" tercihine ters); dosya repodan **silindi** (uygulanması zararlı bir tuzak olurdu).
+    `set_product.php` `seller`'ı kabul ediyor, `hide_seller`'ı etmiyor.
+  - **Konuşmalar:** 11 thread, `thread_seller` + `yazar:devret` (21 mesajın yazarı Marca Online
+    olur — geri dönüşü yedekten). Thread kimliği satıcıdan türeyen bir özet olduğundan 11 id'nin
+    11'i **yeniden hesaplandı**. İki id'nin ortasında "22" vardı ve Actions günlüğü
+    `***` yaptı (`8d797458d***8ce27`, `b8d08c514aca***58`): footprint adımı kimlikleri artık
+    **karakter arası boşluklu** basıyor ve değer kuru koşuyla doğrulandı, tahmin edilmedi.
+    Kuru koşu: 11/11 çözüldü, çakışma yok, engellenen kayıt 0. Uygulama (16:41:56 UTC):
+    *"KAYDEDILDI — 11/11 thread yeni saticida ve yeni id ile geri okundu"*, *"eski saticinin
+    yazarligi kalan mesaj: 0"*, yedek `messages.json.bak-20261003-164156`.
+  - **Mesaj METNİNDEKİ ad:** Stock&chic konuşmasında (`bur-8045006`) **2 mesajın metninde**
+    "tyrex" geçiyor; yeniden yazılmadı (müşterinin okuduğu cümleyi sessizce değiştirmek ayrı bir
+    karar; `msg_del` → `redact:` yolu duruyor).
+- **Satıcı tarafındaki açık numune** (`SPL-B7C8EAF3`, TYREX ilanı, alıcı bir müşteri): ürün sayfasından
+  açılmış, süresi dolmuş, hiç ödenmemiş bir ödeme sayfası. `sample_cancel` ile (Stripe oturumu önce
+  okundu, `expired / unpaid`; kayıt `sample_backups`'a yedeklendi, geri okundu) kaldırıldı
+  (16:56 UTC). Müşteriye hiçbir şey gitmedi; ürün sayfasından yeniden isteyebilir.
+- **ALICI TARAFI: ayak izi satıcı tarafını gösteriyordu, strict kapı iki tarafı da sayıyordu.**
+  `seller_delete` kuru koşusu (17:03 UTC) *"hesaba bağlı 3 kayıt"* ile **durdu** ve nedeni ayak
+  izinde yoktu: bir satıcı hesabı konuşmada/numunede ALICI da olabilir (VESTRA Support'a yazdığında
+  thread'in alıcısı o hesaptır; satıcı hesabı numune de sipariş eder). Footprint'e **ALICI TARAFI**
+  bölümü eklendi (konuşma + numune; metin basılmaz, karşı tarafın adı ve sayılar) ve test ikisini
+  **ayrı süreçte aynı fikstürle** karşılaştırıyor (ayak izinin saydığı = kapının saydığı).
+  Canlı (17:12 UTC): TYREX alıcı olarak **1 konuşma** (ilan `dg-101202`, 2 mesaj, 1'ini TYREX
+  yazmış, son 1 Ağu 2026, **karşı taraf kayıtlı bir hesap değil**) ve **2 bekleyen numune**
+  (`LAC-L1212`, 50 EUR, 2 Ağu 2026); teklif 0, sipariş 0 (`thread_dump` sayımı).
+- **`sample_cancel` DOĞRUDAN TAHSİLAT numunesini okuyamıyordu — ve bunu "okunamadı" diye
+  gizliyordu.** İki Ağustos numunesinin kuru koşusu *"Stripe oturumu okunamadı — ödenmiş olabilir,
+  silmiyorum"* ile durdu (doğru, güvenli duruş) ama ödenmiş mi ödenmemiş mi sorusu cevapsızdı.
+  - **Önce yanlış teşhis koydum:** "test modunda kalmış oturum" dedim, okunamayan oturumda yalnız
+    iki **mod** (oturum `cs_test/cs_live`, anahtar `sk_test/sk_live`) ve kimlik-temizlenmiş bir
+    sebep basan teşhis ekledim. Teşhis varsayımı çürüttü: **`live | live`, sebep `No such
+    checkout.session`**. (Eklediğim "test oturumu + canlı anahtar = ödenmemiş" kuralı bu veride
+    GEREKMEDİ; doğru ve testli olduğu için bırakıldı — iki şarta bağlı, aksi hâlde durur.)
+  - **Kök neden:** `samples.php`'nin kendi başlığı yazıyor — doğrudan tahsilat numunesinde
+    (`acct_id` dolu) oturum **satıcının BAĞLI hesabında** açılır (`stripe_escrow_checkout`,
+    `Stripe-Account` başlığı). Adım onu platform anahtarıyla başlıksız okuyordu; Stripe'ın "yok"
+    cevabı "hiç olmadı" ile ayırt edilemiyordu. Düzeltmeden sonra **aynı iki oturum**
+    `expired / unpaid [bagli hesap]` okundu: ikisi de ödenmemiş, 24 saatte kapanmış.
+  - **Düzeltme tek yerde:** `sample_scrub_error` / `sample_session_read` /
+    `sample_session_expire` (`inc/samples.php`). Hesap başlığı **kayıttan** gelir, çağıran
+    veremez; kapatma geri okunur ve yalnız Stripe `expired` derse ok; `stripe_api` yoksa
+    `stripe.php`'yi kendisi yükler (KURAL 15). Adım çıktısında yalnız `[platform]` /
+    `[bagli hesap]`; hesap kimliği, oturum kimliği, jeton, anahtar basılmaz.
+  - **Eski davranış güvenli tarafta başarısız oluyordu** (okuyamadı → silmedi), yani hiçbir kayıt
+    yanlış silinmedi; ama doğrudan tahsilatlı bekleyen **her** numune bu araçla iptal edilemezdi.
+- **ALICI TARAFI numuneleri kapatıldı** (`sample_cancel`, 17:55 UTC; önce kuru koşu, sonra uygulama): TYREX'in
+  alıcı olarak 2 Ağustos 2026'da açtığı **iki** doğrudan tahsilat numunesi (`LAC-L1212`, 50 EUR). Stripe
+  oturumları satıcının bağlı hesabında okundu, ikisi de `expired / unpaid`; iki kayıt `data/sample_backups/`
+  altına yedeklendi, silindi ve geri okundu (*"kayıtta yok"*). Hiçbir müşteriye mektup gitmedi. (Günlükte
+  ikinci kaydın kimliği Actions maskesi yüzünden `SPL-BA3CC***7` görünür; mask değeri tahminle yazılmadı.)
+- **Alıcı tarafındaki konuşma silindi** (`msg_del`; kuru koşu 18:00, uygulama 18:07 UTC): ilan `dg-101202`, iki
+  mesaj (30 Tem ve 1 Ağu 2026; 28 ve 2 karakter — metin günlüğe basılmadı, yalnız tarih/uzunluk/anahtar). Silme
+  `vestra_msg_delete` ile (zaman damgalı yedek + geri okuma); son mesaj gidince konuşma da kapandı
+  (*"konusma da kapandi"*). Karşı taraf kayıtlı bir hesap değildi: **hiçbir müşterinin konuşması silinmedi**.
+- **HESAP SİLİNDİ** (`seller_delete`; kuru koşu 18:12, uygulama **18:18 UTC**): strict kapı **GEÇTİ** —
+  *"bağlı: ilan 0 | konuşma 0 | numune 0 | teklif 0 | kesen-seçimi 0 | diskte fatura 0"*,
+  *"siparişler: 0 bağlı | faturalı 0 | açık 0"*. Üç yedekten ikisi alındı (ilan kalmadığı için
+  `listings.json.bak-del` gerekmedi): `accounts.json.bak.20261003_181840` ve
+  `deleted-accounts/d7824e27204c0177-20261003-181840.json` (kaydın tamamı). Geri okuma:
+  *"hesap kayıtta YOK (doğrulandı)"*, **hesap sayısı 236 → 235**, kalan ilan 0; fonksiyonun dışındaki
+  ayrı bir `auth_accounts()` taraması da *"hesap kayıtta yok"* dedi. Müşteriye hiçbir şey gönderilmedi.
+  **Geri alma:** yedek JSON'daki kayıt ya da `accounts.json.bak.<zaman>`; hazır bir geri yükleme düğmesi
+  yazılmadı (silinen hesabı geri getirmek ayrı bir karar).
+- **Silme sonrası bağımsız kontrol** (`diag-messages` → `blocked=true`, 18:24 UTC): engellenen mesaj
+  kaydında **tek** giriş var ve TYREX'le ilgisi yok (Ecokemet ↔ GARAGE LE PARIS, `IBAN` bayrağı, 30 Eyl 2026);
+  silinmiş hesabı gösteren yetim bir referans çıkmadı. Önceki turda bu kayıt *"sahibi bilinmiyor"* diye
+  açık bırakılmıştı — ne ayak izi ne strict kapı engelleme günlüğüne bakıyor, o yüzden ayrıca ölçüldü.
+  **Ölçülmeyen (bilerek):** `push_subs.json`'da TYREX'e ait bir cihaz kaydı var mı (yetim kayıt zararsız:
+  yayınlar hesap listesinden uid seçiyor) ve Stripe tarafı.
+- **Silmeyle GİTMEYEN, ve bilerek:** Stripe Connect hesabı (Stripe panelinde), yüklenmiş **1
+  belge dosyası** (`data/docs`; kayıt yedek JSON'unda duruyor), kayıtlı **bildirim cihazı**
+  varsa (`push_subs.json`; yetim kayıt zararsız — yayınlar hesap listesinden uid seçiyor).
+- **Operatör kararı bekleyen / yan etkiler:**
+  1. 26 ilanın **varsayılan fatura kesicisi** artık Marca Online (KURAL 5b sırası: operatör seçimi >
+     ilanın `seller_uid`'i > platform). Platform adına kesmek isteniyorsa her teklif/sipariş için
+     `admin_mode=seller` ile `vestra` seçilmeli.
+  2. Ürün sayfasında **"Ships from"** satırı bu 26 ilan için artık **basılmıyor**
+     (KURAL 21d: Marca Online satıcısının ilanlarında gizli). İlan açıklamaları *"EEA stock with
+     full invoice trail"* diyor; satıcı değişince bu olgunun doğrulanması operatörün.
+  3. Kart/escrow ödemesi **ilanın satıcısının** Stripe Connect durumuna bağlı (`escrow_ready`);
+     Marca Online bağlı değilse bu 26 ilanda kart seçeneği çıkmaz.
+  4. 4 canlı siparişin satır satıcısı artık Marca Online (KURAL 33 satıcıya ödeme
+     hesabı bunu okur); TYREX'le yapılacak tedarikçi mutabakatı muhasebe işi, kodda karşılığı yok.
+  5. Marca Online'ın vitrini (showroom) 146 iç çamaşırına **26 tasarımcı ilanını** ekledi.
+  6. **Panelde TYREX'i geri getirebilecek iki düğme duruyor:** `Create Tyrex Elite & migrate`
+     (`create_tyrex_migrate`) hesabı yeniden açar ve satıcı metni `sb e-commerce` ya da `tyrex`
+     geçen **her ilanı** ona bağlayıp ilana `seller: 'Tyrex International BV'` **yazar** (görünür
+     ad); `Sync Tyrex` hesap yokken `tyrex_missing` der. İkisi de yalnız operatör basarsa çalışır;
+     kaldırılmadı çünkü o akış operatörün kararı.
+  7. **Panelin Delete'i hâlâ strict değil:** konuşma/numune/teklif taşıyan bir satıcıyı tek tıkla
+     siler (yedek artık alıyor). Strict kapı yalnız `seller_delete` iş akışında.
+- **Test:** `tests/account_delete_test.php` (**85 iddia**: kapı eşliği iki yön, her bağ türü ayrı
+  ayrı, kontrol satıcısı yerinde, yedek yazılamazsa/yinelenen id'de **hiçbir şey silinmez**, adımın
+  PHP'si kum havuzunda, panelin POST'u gerçek `admin.php` üzerinde), `seller_footprint_test`
+  (**51**; ayak izi = kapı eşliği ayrı süreçte) ve `sample_delete_test` (**76**: adımın GERÇEK
+  PHP'si kum havuzunda — sahte proxy her Stripe çağrısını anında düşürür —, ve in-process sahte
+  `stripe_api` ile başlığın kayıttan geldiği, negatif kontrolde başlıksız okumanın "No such
+  checkout.session" verdiği, geri okumanın `expired` şartı). Sabotajlar tam 1 eşleşmeyle uygulanıp
+  kırmızıya döndü, dosyalar `cp` yedeğinden bayt bayt geri alındı: hesap silme **20/20**, ayak izi
+  **5/5**, numune iptali **10/10** (4 + 6). Tam takım: yalnız önceden kayıtlı üç kırık
+  (`dropship_plan` 4, `msg_read_receipt` 1, `msg_thread_label` 10).
+- **Kendi hatalarım (kayda geçsin):**
+  1. İlk yazımda bütünlük kontrolü (**kalan hesap sayısı**) yedeklerden **sonra**
+     çalışıyordu; yinelenen id'li bir hesapta silme reddediliyor ama geride 3 yedek dosyası
+     kalıyordu. Test yakaladı, kontrol öne alındı.
+  2. Panelin Delete'ini fonksiyona bağlarken `seller_footprint_test`'in eşlik iddiaları eski
+     satır içi kapıyı `admin.php`'de arıyordu ve kırmızı döndü: iddialar yeni dosyaya taşındı,
+     gevşetilmedi.
+  3. **"Ayak izi bitti" dedim ve bitmemişti.** Footprint yalnız hesabın SATICI tarafına
+     bakıyordu; thread id'lerini **maskeli** basıyordu (`***`), numunenin **alıcısını** hiç
+     yazmıyordu (`sample_cancel` alıcı hesap id'si ister) ve **alıcı tarafını** hiç saymıyordu.
+     Son eksiği kapı kendisi gösterdi. *Ön kontrol aracı, kapının saydığı HER şeyi saymalı;
+     parite testi bunu ayrı süreçte tutuyor.*
+  4. `seller_footprint` ilan tablosunu hesabın **şu anki** ilanlarından kuruyor; devirden sonra
+     TYREX için boş. "Devir oldu mu" sorusu bu yüzden ayrıca **ilan id'leriyle** geri okundu
+     (set-product kuru koşusu + Marca Online tarafı), yalnız "TYREX'te ilan 0" ile yetinilmedi.
+  5. **`thread_dump` için açık anahtarı dosyadan değil HAFIZADAN yazdım** (604 karakterlik
+     base64): dosyadaki değerle aynı değildi. İş **"success"** bitti, çünkü uydurma metin geçerli
+     bir RSA yapısı olarak ayrıştı; çıktı kimsenin özel anahtarına sahip olmadığı bir anahtarla
+     şifrelendi (sızıntı yok, ama bir SSH aralığı ve ~6 dk boşa). Açık sayımlar yine işe yaradı
+     (teklif 0, sipariş 0, gövde 436 bayt). *"Success" çıktının KULLANILABİLİR olduğunu
+     söylemez; opak bir dizgiyi elle yazma, dosyadan kopyala ve karşılaştır.*
+  6. Yeni `$sidMode` değişkeni eski iddiayı kırdı: `oturum kimliği BASILMAZ` iddiası
+     `printf(…$sid…)` aradı ve `$sidMode`'u (yalnız MOD) `$sid` sandı. Kod haklıydı, iddia
+     gevşekti; `\b` ile tam değişken adına daraltıldı ve sabotajla (`.$sid.` basılınca) hâlâ
+     düşebildiği doğrulandı.
+  7. **İzleme döngümün `case` deseni ters yazılmıştı** (`*sha*completed*`, oysa çıktıda
+     `completed` sha'dan ÖNCE) ve deploy 17:43'te bittiği hâlde 6 dk boşuna bekledim. Ayrıca
+     `?branch=` süzgeçli koşu listesinin ilk satırı bir kez ESKİ bir koşuyu verdi; bir koşuyu
+     **`created_at` ile** doğrula, listenin ilk satırına güvenme.
