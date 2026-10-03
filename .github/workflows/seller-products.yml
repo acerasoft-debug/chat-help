@@ -3904,12 +3904,40 @@ jobs:
             }
             printf("  numune: %d (acik %d) | istek teklifi (uid ya da firma adi gecen satir): %d\n", $nSmp, $smpOpen, $nRq);
 
+            /* ---- ALICI TARAFI. seller_delete (strict) bir konusmayi ya da numuneyi hesap SATICI
+               YA DA ALICI olarak tasiyorsa sayar; yukaridaki iki bolum yalniz SATICI tarafini
+               gosteriyordu. Bir satici hesabi VESTRA Support'a yazdiginda thread'in ALICISI o
+               hesaptir; satici hesabi numune de siparis edebilir. 3 Eki 2026'da TYREX'te ancak
+               kapi reddedince ("konusma 1 | numune 2") gorundu: probe, kapinin saydigini AYNEN
+               gostermeli. Mesaj METNI basilmaz, yalniz sayi ve karsi tarafin adi. ---- */
+            echo "\n===== ALICI TARAFI (hesap konusmada / numunede ALICI) =====\n";
+            $bThr = 0; $bSmp = 0;
+            foreach (vestra_msg_threads() as $t) {
+              if ((string)($t['buyer_uid'] ?? '') !== $uid || (string)($t['seller_uid'] ?? '') === $uid) continue;
+              $bThr++;
+              $msgs = (array)($t['messages'] ?? []);
+              $w = 0;
+              foreach ($msgs as $mm) if ((string)($mm['from'] ?? '') === $uid || (string)($mm['by'] ?? '') === $uid) $w++;
+              printf("  konusma %s ilan=%-26s karsi=%-24s mesaj=%d (bu hesabin yazdigi %d) son=%s  id=%s\n", $cut((string)($t['id'] ?? ''), 16),
+                $cut((string)($t['listing_id'] ?? ''), 26), $cut($nameOf((string)($t['seller_uid'] ?? '')), 24), count($msgs), $w, $D((string)($t['last_at'] ?? '')),
+                implode(' ', mb_str_split((string)($t['id'] ?? ''))));
+            }
+            foreach (samples_all() as $sr) {
+              if ((string)($sr['buyer_id'] ?? '') !== $uid || (string)($sr['seller_uid'] ?? '') === $uid) continue;
+              $bSmp++;
+              printf("  numune  %-14s %-9s %-14s %s %8s %s  satici=%s\n", (string)($sr['ref'] ?? '?'), (string)($sr['status'] ?? '?'),
+                $cut((string)($sr['sku'] ?? ''), 14), $D((string)($sr['created'] ?? '')), number_format((float)($sr['amount'] ?? 0), 2),
+                strtoupper((string)($sr['currency'] ?? '')), $cut($nameOf((string)($sr['seller_uid'] ?? '')), 24));
+            }
+            if ($bThr + $bSmp === 0) echo "  (yok)\n";
+
             echo "\n===== SILMENIN ETKISI =====\n";
             printf("panel 'Delete' kapisi    : %s\n", $gInv > 0 ? "ENGELLER (faturali siparis {$gInv})"
               : ($gOpen > 0 ? "ENGELLER (acik siparis {$gOpen})" : 'GECER'));
             printf("panel 'Delete' ilanlari  : %d ilan hesapla birlikte silinir (%d approved); silmeden once listings.json yedeklenir. seller_delete (strict) ilani olan hesabi SILMEZ\n", count($mine), $live);
             printf("kapinin GORMEDIGI baglar : teklif %d (faturali %d, yalniz kesen-secimi %d) | konusma %d (%d mesaj, satici yazan %d) | numune %d (acik %d) | siparis kesen-secimi %d | diskte fatura %d | istek teklifi %d\n",
               $nOff, $offInv, $offPick, $nThr, $nMsg, $nWrote, $nSmp, $smpOpen, $ordPick, $nInvDisk, $nRq);
+            printf("alici tarafi baglar      : konusma %d | numune %d  (strict kapi bunlari da sayar: toplam konusma %d, numune %d)\n", $bThr, $bSmp, $nThr + $bThr, $nSmp + $bSmp);
             echo "(salt okunur: hicbir sey yazilmadi, kimseye gonderilmedi)\n";
             PHPEOF
             php -l /tmp/vestra_sfoot.php
@@ -3967,7 +3995,7 @@ jobs:
             $why = [
               'has_invoice' => "faturali siparis {$r['n']} -- fatura numarali bir belge, musteriye gitmis",
               'has_orders'  => "acik siparis {$r['n']} -- once tamamlayin ya da iptal edin (panelin kapisi iptal/tamamlanmis siparisi de ACIK sayar; bilerek ayni)",
-              'has_links'   => "hesaba bagli {$r['n']} kayit var ('bagli' satiri) -- once devredin / kapatin, sonra tekrar deneyin",
+              'has_links'   => "hesaba bagli {$r['n']} kayit var ('bagli' satiri; konusma/numune SATICI ya da ALICI tarafinda sayilir -- ayrinti: admin_mode=seller_footprint, 'ALICI TARAFI' bolumu) -- once devredin / kapatin, sonra tekrar deneyin",
             ];
             if ($r['code'] !== '') { fwrite(STDERR, "\nKAPI: ENGELLER -- ".($why[$r['code']] ?? (string)$r['code'])."\n"); exit(1); }
             echo "\nKAPI: GECER (hesap hicbir seye sahip degil; faturali ya da acik siparis yok)\n";

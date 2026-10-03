@@ -102,11 +102,17 @@ file_put_contents($sand.'/data/messages.json', json_encode([
   $thr('thr0000000000001', $B1, $P, 'p-approved', [['from'=>$B1,'text'=>'hello','at'=>'2026-09-30T09:00:00+00:00'], ['from'=>$P,'text'=>'hi','at'=>'2026-09-30T10:00:00+00:00']]),
   $thr('thr0000000000002', $B2, $P, 'p-pending',  [['from'=>$B2,'text'=>'question','at'=>'2026-09-29T09:00:00+00:00']]),
   $thr('thr0000000000003', $B1, $C, 'c-approved', [['from'=>$B1,'text'=>'control thread','at'=>'2026-09-28T09:00:00+00:00']]),
+  // ALICI TARAFI: bir satici hesabi VESTRA Support'a yazdiginda thread'in ALICISI o hesaptir (3 Eki 2026, TYREX).
+  $thr('thr0000000000004', $P, 'sup00000support0', '', [['from'=>$P,'text'=>'support question','at'=>'2026-09-27T09:00:00+00:00'], ['from'=>'sup00000support0','text'=>'support reply','at'=>'2026-09-27T10:00:00+00:00']]),
+  $thr('thr0000000000005', $C, 'sup00000support0', '', [['from'=>$C,'text'=>'control support question','at'=>'2026-09-27T09:00:00+00:00']]),
 ]));
 file_put_contents($sand.'/data/blocked_messages.json', '[]');
 file_put_contents($sand.'/data/samples.json', json_encode([
   'SPL-T1' => ['ref'=>'SPL-T1', 'seller_uid'=>$P, 'buyer_id'=>$B1, 'status'=>'pending', 'sku'=>'SKU-P1', 'created'=>'2026-09-26T10:00:00+00:00'],
   'SPL-T2' => ['ref'=>'SPL-T2', 'seller_uid'=>$C, 'status'=>'paid',    'sku'=>'SKU-C1', 'created'=>'2026-09-26T10:00:00+00:00'],
+  // ALICI TARAFI: satici hesabi baska bir saticidan numune siparis etmis (buyer_id = bu hesap).
+  'SPL-T3' => ['ref'=>'SPL-T3', 'seller_uid'=>'eeee5555eeee5555', 'buyer_id'=>$P, 'status'=>'paid', 'sku'=>'SKU-Z9', 'amount'=>25, 'currency'=>'eur', 'created'=>'2026-09-25T10:00:00+00:00'],
+  'SPL-T4' => ['ref'=>'SPL-T4', 'seller_uid'=>'eeee5555eeee5555', 'buyer_id'=>$C, 'status'=>'pending', 'sku'=>'SKU-Z8', 'amount'=>30, 'currency'=>'eur', 'created'=>'2026-09-25T10:00:00+00:00'],
 ]));
 $h = fopen($sand.'/data/request_offers.csv', 'w'); fputcsv($h, ['timestamp','ref','request_ref','company','email','unit_price'], ',', '"', '\\');
 fputcsv($h, ['2026-09-27T10:00:00+00:00', 'RO1', 'RQ1', 'Probe Seller BV', 'x@y.example', '5'], ',', '"', '\\');
@@ -189,6 +195,19 @@ $t('numune satirinda ALICI firma adi + hesap ID (karakter arasi bosluklu: Action
 $t('ozet satiri: kapinin GORMEDIGI baglar tam sayilarla',
    str_contains($out, 'teklif 2 (faturali 0, yalniz kesen-secimi 1)') && str_contains($out, 'konusma 2 (3 mesaj, satici yazan 1)')
    && str_contains($out, 'numune 1 (acik 1)') && str_contains($out, 'siparis kesen-secimi 1') && str_contains($out, 'diskte fatura 1') && str_contains($out, 'istek teklifi 1'));
+$bt = $sec('ALICI TARAFI');
+$t('ALICI TARAFI bolumu var; bu hesabin alici oldugu konusma listede, thread id KARAKTER ARASI BOSLUKLU da var',
+   $bt !== '' && str_contains($bt, 'thr0000000000004') && str_contains($bt, 'id='.implode(' ', str_split('thr0000000000004'))));
+$t('ALICI TARAFI: konusma satiri mesaj sayisi + bu hesabin yazdigi (metin YOK)',
+   preg_match('/thr0000000000004.*mesaj=2 \(bu hesabin yazdigi 1\)/', $bt) === 1 && !str_contains($bt, 'support question') && !str_contains($bt, 'support reply'));
+$t('ALICI TARAFI: numune satiri (ref, durum, SKU, tutar) ve satici adi; baska alicinin numunesi YOK',
+   preg_match('/numune\s+SPL-T3\s+paid\s+SKU-Z9\s+\S+\s+25\.00 EUR/', $bt) === 1 && !str_contains($bt, 'SPL-T4'));
+$t('ALICI TARAFI: KONTROL saticisinin Support konusmasi yok, satici tarafi konusmalar bu bolume tasmiyor',
+   !str_contains($bt, 'thr0000000000005') && !str_contains($bt, 'thr0000000000001') && !str_contains($bt, 'thr0000000000002') && !str_contains($bt, '@'));
+$t('ozet: alici tarafi satiri ve STRICT kapinin saydigi toplam (satici + alici tarafi)',
+   str_contains($out, 'alici tarafi baglar      : konusma 1 | numune 1  (strict kapi bunlari da sayar: toplam konusma 3, numune 2)'));
+$t('satici tarafi bolumleri DEGISMEDI: seller-side konusma/numune sayisi eskisi gibi',
+   str_contains($th, 'thr0000000000001') && !str_contains($th, 'thr0000000000004') && str_contains($sm, 'numune: 1 (acik 1)') && !str_contains($sm, 'SPL-T3'));
 $t('son satir: salt okunur beyani', str_contains($out, '(salt okunur: hicbir sey yazilmadi, kimseye gonderilmedi)'));
 
 echo "\n== 7. secim: firma parcasi, belirsiz, yok, bos ==\n";
@@ -211,6 +230,17 @@ file_put_contents($sand.'/data/orders.csv', implode(',', $head)."\n");
 $t('siparis kalmayinca: GECER (ilanlar yine yedeksiz silinir uyarisi duruyor)',
    $r7 === 0 && str_contains($o7, "panel 'Delete' kapisi    : GECER") && str_contains($o7, '3 ilan hesapla birlikte silinir')
    && str_contains($o7, '(bu hesaba bagli siparis yok)'));
+/* PARITE: probe'un sayisi, seller_delete'in (STRICT) saydigiyla AYNI olmali -- iki taraf da. Probe yalniz
+   satici tarafini sayinca TYREX'te "konusma 1 | numune 2" ancak kapi reddedince gorundu. Fonksiyon ayri
+   bir surecte, ayni kum havuzunda kosuyor (siparis kalmadigi icin kapi ilk iki kontrolu gecer). */
+file_put_contents($sand.'/del.php', $prelude."require_once ".var_export($root.'/vestra/inc/account_delete.php', true).";\n"
+  ."\$r = vestra_account_delete(".var_export($P, true).", false, true);\n"
+  ."echo json_encode(['code'=>\$r['code'], 'links'=>\$r['links'] ?? []]);\n");
+exec(escapeshellarg(PHP_BINARY).' '.escapeshellarg($sand.'/del.php').' 2>&1', $dl, $drc);
+$dj = json_decode(implode("\n", $dl), true);
+$t('PARITE: seller_delete (strict) kapisi calisiyor ve BAGLI diyor', is_array($dj) && ($dj['code'] ?? '') === 'has_links');
+$t('PARITE: konusma sayisi = probe\'un toplami (satici 2 + alici 1 = 3)', is_array($dj) && (int)($dj['links']['threads'] ?? -1) === 3 && str_contains($o7, 'toplam konusma 3'));
+$t('PARITE: numune sayisi = probe\'un toplami (satici 1 + alici 1 = 2)', is_array($dj) && (int)($dj['links']['samples'] ?? -1) === 2 && str_contains($o7, 'numune 2)'));
 [$o8, $r8] = $exec($C);
 $t('KONTROL SATICISI: yalniz kendi ilani, bu satici hesabinin kayitlari girmiyor',
    $r8 === 0 && str_contains($o8, 'toplam 1 |') && str_contains($o8, 'c-approved') && !str_contains($o8, 'p-approved') && !str_contains($o8, 'thr0000000000001')
