@@ -103,7 +103,7 @@ file_put_contents($sand.'/data/messages.json', json_encode([
 ]));
 file_put_contents($sand.'/data/blocked_messages.json', '[]');
 file_put_contents($sand.'/data/samples.json', json_encode([
-  'SPL-T1' => ['ref'=>'SPL-T1', 'seller_uid'=>$P, 'status'=>'pending', 'sku'=>'SKU-P1', 'created'=>'2026-09-26T10:00:00+00:00'],
+  'SPL-T1' => ['ref'=>'SPL-T1', 'seller_uid'=>$P, 'buyer_id'=>$B1, 'status'=>'pending', 'sku'=>'SKU-P1', 'created'=>'2026-09-26T10:00:00+00:00'],
   'SPL-T2' => ['ref'=>'SPL-T2', 'seller_uid'=>$C, 'status'=>'paid',    'sku'=>'SKU-C1', 'created'=>'2026-09-26T10:00:00+00:00'],
 ]));
 $h = fopen($sand.'/data/request_offers.csv', 'w'); fputcsv($h, ['timestamp','ref','request_ref','company','email','unit_price'], ',', '"', '\\');
@@ -179,6 +179,9 @@ $t('konusma: iki konusma, satici yazan sayisi dogru, kontrol YOK',
 $t('konusmada alici FIRMA adi (e-posta degil)', str_contains($th, 'Buyer One Ltd') && str_contains($th, 'Buyer Two GmbH'));
 $sm = $sec('NUMUNE');
 $t('numune: yalniz bu satici, acik; istek teklifi yalniz bu firma', str_contains($sm, 'SPL-T1') && !str_contains($sm, 'SPL-T2') && str_contains($sm, 'numune: 1 (acik 1)') && str_contains($sm, 'istek teklifi (uid ya da firma adi gecen satir): 1'));
+$t('numune satirinda ALICI firma adi + hesap ID (karakter arasi bosluklu: Actions maskesi), e-posta YOK',
+   str_contains($sm, 'alici=Buyer One Ltd') && str_contains($sm, 'id='.implode(' ', str_split($B1)))
+   && !str_contains($sm, $B1) && !str_contains($sm, '@'));
 $t('ozet satiri: kapinin GORMEDIGI baglar tam sayilarla',
    str_contains($out, 'teklif 2 (faturali 0, yalniz kesen-secimi 1)') && str_contains($out, 'konusma 2 (3 mesaj, satici yazan 1)')
    && str_contains($out, 'numune 1 (acik 1)') && str_contains($out, 'siparis kesen-secimi 1') && str_contains($out, 'diskte fatura 1') && str_contains($out, 'istek teklifi 1'));

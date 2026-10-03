@@ -3882,7 +3882,12 @@ jobs:
               $nSmp++;
               $stt = (string)($sr['status'] ?? '?');
               if (in_array($stt, ['pending', 'paid'], true)) $smpOpen++;
-              printf("  %-14s %-9s %-14s %s\n", (string)($sr['ref'] ?? '?'), $stt, $cut((string)($sr['sku'] ?? ''), 14), $D((string)($sr['created'] ?? '')));
+              /* ALICI: firma adi + hesap ID'si (sample_cancel'in girdisi bu ID). ID, Actions
+                 gunlugunun "22" maskesine takilmasin diye karakter arasi bosluklu basiliyor
+                 (maskelenmis bir ID'yi tahminle okumak, yanlis hesabin numunesini aramaktir). */
+              $bid = (string)($sr['buyer_id'] ?? '');
+              printf("  %-14s %-9s %-14s %s  alici=%s  id=%s\n", (string)($sr['ref'] ?? '?'), $stt, $cut((string)($sr['sku'] ?? ''), 14), $D((string)($sr['created'] ?? '')),
+                $cut($nameOf($bid), 24), $bid !== '' ? implode(' ', mb_str_split($bid)) : '(yok)');
             }
             $nRq = 0; $coLow = strtolower(trim((string)($acc['company'] ?? '')));
             foreach (vestra_read_csv('request_offers.csv') as $rr) {

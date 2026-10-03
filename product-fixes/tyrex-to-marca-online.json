@@ -1,0 +1,133 @@
+[
+  {
+    "match": "dsq-101213",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa",
+    "_why": "Operator karari (3 Eki 2026): 'TYREX INTERNATIONAL BV. saticilardan silinsin' -> 'Devret + sil', hedef Marca Online. Panelin Delete dugmesi hesabin ilanlarini YEDEKSIZ siler; bu yuzden once ilanlar el degistirir. Yalniz seller_uid yazilir -- fiyat, durum, foto, SKU, beden, kademe, preorder dokunulmaz. Eski satici d7824e27204c0177 (seller_footprint, 3 Eki 09:20 UTC: 26 ilan, hepsi approved)."
+  },
+  {
+    "match": "dsq-101231",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "dsq-101232",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "dsq-101215",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "blm-bkbu30810",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "blm-bwb410360",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "blm-wh1jq040b139mai",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "blm-xh1eg000bb19",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "blc-612966tmvg7",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "blc-612966tnvn4",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "bur-8014004",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "bur-8045006",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "bur-8052119",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "gvy-bm716g3yac",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "dsq-s71lb0937",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "dsq-s74lb0869",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "dsq-s79la0021",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "dsq-s74mu0683",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "dsq-s74mu0708",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "vltn-wv0mg10w7ss0ni",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "fnd-t02",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "dgn-g80a3tfu7eqw",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "dgn-g8nc5zg7b9x",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "dgn-g8ob1tg7b2m",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "lac-pima-tshirt",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  },
+  {
+    "match": "rl-csf-polo-white",
+    "expect": 1,
+    "seller_uid": "0cb79eb883f2a0fa"
+  }
+]
