@@ -732,22 +732,43 @@ jobs:
             if (!$mine) { echo "bu aliciya ait numune kaydi YOK".($only !== '' ? " ({$only})" : '')." -- yapilacak bir sey yok.\n"; exit(0); }
 
             /* 1. OKU: her kaydin durumu + Stripe'in gordugu. Jeton, oturum kimligi,
-               adres BASILMAZ (jeton tek basina odeme sayfasini acar). */
+               adres BASILMAZ (jeton tek basina odeme sayfasini acar). Okunamayan
+               oturumda yalniz iki MOD (test/live) ve kimlik-temizlenmis bir sebep
+               basilir: "okunamadi" tek basina odenmis mi, yoksa baska bir Stripe
+               modunda mi kaldigini soylemiyordu (3 Eki 2026, TYREX'in 2 Agustos
+               numuneleri). */
+            $keyMode = preg_match('/^[sr]k_(test|live)_/', (string)getenv('STRIPE_SECRET_KEY'), $km) ? $km[1] : '?';
             $plan = [];
             foreach ($mine as $ref => $rec) {
               $st = (string)($rec['status'] ?? '?');
               $sid = (string)($rec['session_id'] ?? '');
-              $ss = '(oturum yok)'; $sp = '';
+              $sidMode = preg_match('/^cs_(test|live)_/', $sid, $sm) ? $sm[1] : '?';
+              $ss = '(oturum yok)'; $sp = ''; $why = '';
               if ($sid !== '' && !stripe_available()) { fwrite(STDERR, "\n*** {$ref}: Stripe oturumu var ama Stripe yapilandirilmamis -- kapatamam, silmiyorum.\n"); exit(1); }
               if ($sid !== '') {
                 try { $o = stripe_api('GET', '/v1/checkout/sessions/'.$sid); $ss = (string)($o->status ?? '?'); $sp = (string)($o->payment_status ?? '?'); }
-                catch (\Throwable $e) { $ss = 'OKUNAMADI'; }
+                catch (\Throwable $e) {
+                  $ss = 'OKUNAMADI';
+                  $why = mb_substr((string)preg_replace('/\b[a-z]{2,5}_(?:live_|test_)?[A-Za-z0-9*]{8,}\b/i', '<kimlik>', (string)$e->getMessage()), 0, 140);
+                }
               }
               printf("  %-14s %-8s %-22s %6s EUR  %s  | stripe: %s%s\n", $ref, $st, (string)($rec['sku'] ?? '?'),
                      number_format((float)($rec['amount'] ?? 0), 2), substr((string)($rec['created'] ?? ''), 0, 10),
                      $ss, $sp !== '' ? " / {$sp}" : '');
+              if ($ss === 'OKUNAMADI') printf("      oturum modu: %s | anahtar modu: %s | sebep: %s\n", $sidMode, $keyMode, $why);
               if ($st !== 'pending') { echo "      -> ATLANDI: odenmis/serbest birakilmis numune bu yoldan SILINMEZ (iade ayri karar)\n"; continue; }
               if ($sp === 'paid')    { fwrite(STDERR, "\n*** {$ref}: Stripe ODENDI diyor ama kayit pending -- webhook gecikmis. HICBIR SEY silinmedi.\n"); exit(1); }
+              /* TEST-MODU OTURUM, CANLI ANAHTARLA OKUNAMAZ -- ve gercek para tasiyamaz.
+                 Stripe'ta test ve canli modlar tamamen ayri: cs_test_ oturumu hicbir
+                 zaman gercek bir tahsilat uretmez. Kural IKI sarta bagli: oturum
+                 TEST, anahtar CANLI. Oturum canliysa, anahtar da testse ya da mod
+                 bilinmiyorsa okunamama GERCEK bir belirsizliktir ve asagidaki
+                 "odenmis olabilir" durusu aynen gecerli. */
+              if ($ss === 'OKUNAMADI' && $sidMode === 'test' && $keyMode === 'live') {
+                echo "      -> test-modu oturum: gercek odeme tasiyamaz, canli anahtarla okunamaz -- odenmemis sayiliyor, kapatilacak bir sey yok\n";
+                $plan[$ref] = ['sid' => $sid, 'open' => false];
+                continue;
+              }
               if ($ss === 'OKUNAMADI') { fwrite(STDERR, "\n*** {$ref}: Stripe oturumu okunamadi -- odenmis olabilir, silmiyorum.\n"); exit(1); }
               $plan[$ref] = ['sid' => $sid, 'open' => $ss === 'open'];
             }
