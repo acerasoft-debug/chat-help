@@ -1310,31 +1310,82 @@ function vestra_tpl_order_item_changed(string $buyerName, string $ref, array $fi
  * vestra_order_payment_grace()'in son tarihini verir ve mektup onu yazar --
  * KURAL 7'nin ilkesi: mektubun verdigi son tarih, otomatik iptalin baktigi son
  * tarihle AYNI olmali. Bos = saat henuz baslamamis, tarih YAZILMAZ (uydurulmaz).
+ *
+ * $lang (3 Eki 2026, VES-3507BF86 / Ecokemet: "faturanin duzeltildigini, ident ve
+ * renklerin konuldugunu belirterek tekrar gonder ... fransizca"): en | fr.
+ * VARSAYILAN en ve o durumda cikti onceki surumle BIREBIR AYNI (test tutuyor).
+ * Taninmayan dil sessizce Ingilizceye DUSMEZ -- cagiran (is akisi) reddeder.
+ * $itemsFixed: "duzeltildi, her kalem ident no. ve renkleriyle" cumlesi. Sablon
+ * bunu OLCEMEZ; cagiran belgenin KENDISINDE her SKU'nun ve her rengin cizildigini
+ * dogrulamadan bu bayragi VERMEZ (is akisi oyle yapiyor). Duzeltme cumlesi ayni
+ * numarayi zaten soyledigi icin $redrafted cumlesini yerine gecirir (iki kez
+ * yazilmaz).
  */
 function vestra_tpl_order_invoice_pdf(string $buyerName, string $ref, string $invoiceNo, float $total,
         string $currency = 'EUR', bool $redrafted = false, bool $hasAccount = false, string $signer = '',
-        string $dueDate = ''): array {
+        string $dueDate = '', string $lang = 'en', bool $itemsFixed = false): array {
     $buyerName = vestra_display_name($buyerName);
-    if ($buyerName === '') $buyerName = 'Customer';
+    $lang = strtolower(trim($lang)) === 'fr' ? 'fr' : 'en';
     $cur = strtoupper(trim($currency)) ?: 'EUR';
-    $amt = $cur.' '.number_format($total, 2, '.', ',');
     $dueDate = trim($dueDate);
-    $subject = "VESTRA — invoice {$invoiceNo} for order {$ref}";
+
+    if ($lang === 'fr') {
+        if ($buyerName === '') $buyerName = 'Madame, Monsieur';
+        $amt = number_format($total, 2, ',', ' ').' '.($cur === 'EUR' ? '€' : ($cur === 'USD' ? 'US$' : $cur));
+        $subject = $itemsFixed ? "VESTRA — facture corrigée {$invoiceNo} pour la commande {$ref}"
+                               : "VESTRA — facture {$invoiceNo} pour la commande {$ref}";
+        $rows = [['label'=>'Commande', 'value'=>$ref], ['label'=>'Facture', 'value'=>$invoiceNo],
+                 ['label'=>'Montant à régler', 'value'=>$amt, 'strong'=>true]];
+        if ($dueDate !== '') $rows[] = ['label'=>'À régler avant le', 'value'=>$dueDate];
+        $opts = ['badge'=>$itemsFixed ? 'Facture corrigée' : 'Facture jointe', 'rows'=>$rows];
+        if ($hasAccount) $opts['button'] = ['label'=>'Voir ma commande', 'url'=>'https://vestrasales.com/order-confirm?ref='.rawurlencode($ref)];
+        $body =
+            "Bonjour {$buyerName},\n\n"
+          . "Vous trouverez ci-joint votre facture {$invoiceNo} pour la commande {$ref}, au format PDF.\n\n"
+          . ($itemsFixed
+              ? "Nous avons corrigé cette facture : chaque article y figure désormais avec son numéro d'identification (référence) et ses coloris. "
+                ."Elle conserve le même numéro et remplace la version précédente de {$invoiceNo}.\n\n"
+              : '')
+          . "Montant à régler : {$amt}.\n\n"
+          . ($dueDate !== ''
+              ? "Le règlement est attendu au plus tard le {$dueDate}. Les commandes non réglées à cette date sont annulées automatiquement.\n\n"
+              : '')
+          . ($redrafted && !$itemsFixed
+              ? "Cette version conserve le même numéro de facture et remplace toute version précédente de {$invoiceNo}.\n\n"
+              : '')
+          . "Merci de régler par virement bancaire sur le compte indiqué sur la facture, en indiquant la référence {$ref}. "
+          . "Une fois le virement effectué, prévenez-nous : déposez la preuve de paiement sur la page de votre commande, "
+          . "ou répondez simplement à ce courriel.\n\n"
+          . "Cordialement,\n\n"
+          . ($signer !== ''
+              ? $signer."\nVESTRA – vestrasales.com"
+              : "VESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com");
+        return [$subject, $body, $opts];
+    }
+
+    if ($buyerName === '') $buyerName = 'Customer';
+    $amt = $cur.' '.number_format($total, 2, '.', ',');
+    $subject = $itemsFixed ? "VESTRA — corrected invoice {$invoiceNo} for order {$ref}"
+                           : "VESTRA — invoice {$invoiceNo} for order {$ref}";
 
     $rows = [['label'=>'Order ref', 'value'=>$ref], ['label'=>'Invoice', 'value'=>$invoiceNo],
              ['label'=>'Total due', 'value'=>$amt, 'strong'=>true]];
     if ($dueDate !== '') $rows[] = ['label'=>'Payment due by', 'value'=>$dueDate];
-    $opts = ['badge'=>'Invoice attached', 'rows'=>$rows];
+    $opts = ['badge'=>$itemsFixed ? 'Corrected invoice' : 'Invoice attached', 'rows'=>$rows];
     if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/order-confirm?ref='.rawurlencode($ref)];
 
     $body =
         "Dear {$buyerName},\n\n"
       . "Please find attached your invoice {$invoiceNo} for order {$ref} as a PDF.\n\n"
+      . ($itemsFixed
+          ? "We have corrected this invoice: each item is now listed with its ident no. (style reference) and its colours. "
+            ."It keeps the same number and replaces the earlier version of {$invoiceNo}.\n\n"
+          : '')
       . "Total due: {$amt}.\n\n"
       . ($dueDate !== ''
           ? "Payment is due by {$dueDate}. Orders that are not paid by then are cancelled automatically.\n\n"
           : '')
-      . ($redrafted
+      . ($redrafted && !$itemsFixed
           ? "This copy keeps the same invoice number and replaces any earlier version of {$invoiceNo}.\n\n"
           : '')
       . "Please pay by bank transfer to the account shown on the invoice and quote {$ref} as the reference. "
