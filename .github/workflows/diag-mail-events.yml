@@ -1,0 +1,84 @@
+name: (Salt-okunur) Bir adrese giden mailleri Brevo'dan sor
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Sorgulanacak alıcı adresi"
+        required: true
+      days:
+        description: "Kaç günlük geçmiş"
+        required: false
+        default: "3"
+
+permissions:
+  contents: read
+
+# SALT-OKUNUR. Brevo'nun transactional olay kaydını sorar: bir mail GERÇEKTEN
+# gitti mi, teslim edildi mi, bounce mu etti, spam mı işaretlendi.
+#
+# Neden gerekli: sunucunun error_log'u yalnızca BAŞARISIZ gönderimi yazıyor.
+# "logda hata yok" = "mail gitti" demek DEĞİL; hiç denenmemiş de olabilir.
+# Müşteriye ikinci kez fatura maili atmadan önce bunu bilmek gerekiyor.
+#
+# API anahtarı sunucudaki data/email_settings.json'da duruyor; bu iş onu
+# okur ama EKRANA YAZMAZ.
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sor
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          EM: ${{ github.event.inputs.email }}
+          DAYS: ${{ github.event.inputs.days }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: EM,DAYS
+          command_timeout: 5m
+          script: |
+            set -u
+            cat > /tmp/brevo_events.php <<'PHPEOF'
+            <?php
+            declare(strict_types=1);
+            $email = (string)($argv[1] ?? '');
+            $days  = max(1, min(30, (int)($argv[2] ?? 3)));
+            $cfg   = json_decode((string)@file_get_contents(getenv('HOME').'/public_html/data/email_settings.json'), true) ?: [];
+            $key   = (string)($cfg['mail_api_key'] ?? $cfg['api_key'] ?? '');
+            if ($key === '') { echo "API anahtari yok — sorulamadi.\n"; exit(0); }
+
+            $url = 'https://api.brevo.com/v3/smtp/statistics/events?limit=100&days=' . $days
+                 . '&email=' . rawurlencode($email);
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => 30,
+                CURLOPT_HTTPHEADER     => ['accept: application/json', 'api-key: ' . $key],
+            ]);
+            $raw  = (string)curl_exec($ch);
+            $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            echo "HTTP {$code}\n";
+            if ($code !== 200) {
+                // Anahtar govdede gecmez; yine de kisaltarak yaziyoruz.
+                echo "yanit: " . mb_substr($raw, 0, 400) . "\n";
+                exit(0);
+            }
+            $d = json_decode($raw, true);
+            $ev = $d['events'] ?? [];
+            if (!$ev) { echo "Bu adrese {$days} gun icinde HIC mail KAYDI YOK.\n"; exit(0); }
+            printf("%-22s %-14s %s\n", 'ZAMAN', 'OLAY', 'KONU');
+            foreach ($ev as $e) {
+                printf("%-22s %-14s %s\n",
+                    (string)($e['date'] ?? ''),
+                    (string)($e['event'] ?? ''),
+                    mb_substr((string)($e['subject'] ?? ''), 0, 80)
+                );
+            }
+            echo "\ntoplam olay: " . count($ev) . "\n";
+            PHPEOF
+            php -l /tmp/brevo_events.php >/dev/null || { echo "sozdizimi hatasi"; exit 1; }
+            php /tmp/brevo_events.php "$EM" "$DAYS"
+            rm -f /tmp/brevo_events.php
