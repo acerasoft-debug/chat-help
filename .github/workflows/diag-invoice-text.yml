@@ -1,0 +1,96 @@
+name: (Salt-okunur) Kesilmiş faturanın metnini oku
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Sipariş referansı (örn: VES-3D2342FC)"
+        required: true
+      deleted:
+        description: "true = silinmiş faturaları da oku"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+# SALT-OKUNUR. Faturanın PDF'inden metni çıkarır ve sırayla yazar.
+#
+# Neden: belgenin ne YAZDIĞI, panelde hangi düğmeye basıldığından ayrı bir
+# sorudur. KDV satırı, gerekçe notu, satıcı kaydı ve banka bloğu belgenin
+# üstünde ne diyorsa müşteri onu okuyor ve mali müşavir onu görüyor. Kesilmiş
+# bir belge hakkında konuşurken kaynak, belgenin kendisidir.
+#
+# PDF'ler bu uygulamada sıkıştırılmamış metin operatörleriyle üretiliyor,
+# o yüzden harici araç gerekmeden "(...) Tj" dizileri okunabiliyor.
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Oku
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          REF: ${{ github.event.inputs.ref }}
+          DEL: ${{ github.event.inputs.deleted }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: REF,DEL
+          command_timeout: 5m
+          script: |
+            set -u
+            case "$REF" in
+              */*|*..*) echo "HATA: gecersiz referans"; exit 1 ;;
+            esac
+            INV="$HOME/public_html/data/invoices"
+            echo "===== BU REFERANSA AIT DOSYALAR ====="
+            ls -la "$INV" 2>/dev/null | grep -F "$REF" || echo "  (yok)"
+            if [ "$DEL" = "true" ]; then
+              echo "-- silinmisler --"
+              ls -la "$INV/deleted" 2>/dev/null | grep -F "$REF" || echo "  (yok)"
+            fi
+            echo
+
+            cat > /tmp/pdftext.php <<'PHPEOF'
+            <?php
+            declare(strict_types=1);
+            // PDF'teki metin gosterme operatorlerini SIRAYLA cikarir.
+            foreach (array_slice($argv, 1) as $f) {
+                if (!is_file($f)) continue;
+                echo "\n===== {$f} =====\n";
+                $raw = (string)@file_get_contents($f);
+                if ($raw === '') { echo "(bos)\n"; continue; }
+                // Td/TD/TJ konumlandirmalari metni satirlara boluyor; her Tj
+                // bir parca. Parcalari Td y-konumuna gore gruplamak yerine
+                // dosyadaki siralariyla basiyoruz -- belge zaten yukaridan
+                // asagiya uretiliyor.
+                if (!preg_match_all('/\(((?:\\\\.|[^()\\\\])*)\)\s*Tj/', $raw, $m)) {
+                    echo "(metin operatoru bulunamadi — PDF sikistirilmis olabilir)\n";
+                    continue;
+                }
+                foreach ($m[1] as $s) {
+                    $s = str_replace(['\\(', '\\)', '\\\\'], ['(', ')', '\\'], $s);
+                    $s = trim($s);
+                    if ($s === '') continue;
+                    echo $s . "\n";
+                }
+            }
+            PHPEOF
+            php -l /tmp/pdftext.php >/dev/null || { echo "sozdizimi hatasi"; exit 1; }
+
+            echo "===== FATURA METNI ====="
+            set -- "$INV"/*"$REF"*.pdf
+            [ -f "$1" ] && php /tmp/pdftext.php "$@" || echo "(pdf yok)"
+            if [ "$DEL" = "true" ]; then
+              set -- "$INV"/deleted/*"$REF"*.pdf
+              [ -f "$1" ] && php /tmp/pdftext.php "$@" || echo "(silinmis pdf yok)"
+            fi
+            rm -f /tmp/pdftext.php
+            echo
+
+            echo "===== FATURA ÜSTVERİSİ (json) ====="
+            for f in "$INV"/*"$REF"*.json; do
+              [ -f "$f" ] || continue
+              echo "-- $f --"; cat "$f"; echo
+            done
