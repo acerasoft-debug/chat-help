@@ -1431,6 +1431,43 @@ hazırlanırken: *"o siparisi durdurabilirsin banka bilgilerini ve siparislerden
   yani "banka seçildi mi, kargo girildi mi" sorusunu cevaplayamıyordu (bu dosyada
   dördüncü kez kayıtlı ders); eklendi (`ca3908f`, yalnız profil anahtarı, rakam yok).
 
+**KURAL 43 (devamı 2) — ÖDENMEMİŞ KART/ESCROW SİPARİŞİ HAVALEYE ÇEVRİLEBİLİR; çevrilmeden
+fatura kuyruğuna HİÇ düşmüyordu** (operatör, 2 Eki 2026: *"VES-8E46FFA2 banka bilgilerini
+girebiliyorum NL olucak 30 eur shipping cost ama fatura yapamiyorum fatura sayfasina
+düsmüyor konforlu bir sekilde düzelt ve fatura yap siparise"*).
+- **Ölçüldü:** VES-8E46FFA2 (in&outlet, IT, 50 × SH9608 @ €39,90 = €1.995, WELCOME5
+  −€99,75) **kart/escrow** siparişiydi; alıcı Stripe sayfasını hiç tamamlamamıştı
+  (`escrow.json`: `pending`, Stripe oturumu `open/unpaid`). Escrow siparişi faturasını
+  **ödeme anında kendisi** keser, o yüzden onay kuyruğundan bilerek dışlanıyor, Approve
+  düğmesi gizli ve kesim reddediyor — yani **ödenmemiş** bir escrow siparişinin
+  faturalanmasının hiçbir yolu yoktu. Sonda da kördü: `diag-live` → `find_ref`
+  `escrow.json`'u **okumuyordu** (eklendi).
+- **Tek yazıcı `vestra_order_escrow_to_bank()`** (`inc/orders.php`); panel (sipariş
+  dosyasında düğme + Invoice approvals'ta kart) ve `seller-products.yml` →
+  `admin_mode=escrow_to_bank` (varsayılan kuru koşu, `move_apply=true` uygular) **aynı**
+  gövdeyi çağırıyor. Sıra: Stripe oturumu **önce kapatılır ve geri okunur** — Stripe
+  `paid`/`complete` ya da okunamaz derse **DURUR** (parası yolda olan bir siparişi
+  havaleye çevirmek çift tahsilat olurdu); faturalı, iptal, ödenmiş sipariş RED; escrow
+  kaydı **silinmez, arşivlenir**; ödeme etiketi yeniden yazılır ve **alıcı koruma ücreti
+  toplamdan düşer** (havale formülü); yedek + geri okuma + iz damgası. Müşteriye hiçbir
+  şey gitmez. `escrow_file()` artık `vestra_data_dir()`'e uyuyor (test gerçek veriye
+  dokunmasın diye).
+- **Canlı (2 Eki 2026):** kuru koşu → toplam **€1.967,27** (koruma ücreti dahil), Stripe
+  hiçbir şey kapatılmadı; uygulama → Stripe oturumu **expired (bu koşu)**, escrow kaydı
+  **arşivde**, toplam **€1.895,25**. Ardından `shipping` 30 → **€1.925,25** (geri okundu),
+  `bank` = `nl` (Airwallex NL, EUR kutusu 4 satır), *"kesime hazır mı: EVET"*.
+- **Fatura operatörün panelinden kesildi, benden önce:** **INV-2026-1023**, 2 Eki 09:19 UTC,
+  panelin bağlantılı mektubu (`VESTRA — invoice for order VES-8E46FFA2`) teslim edildi;
+  14:00 cron hatırlatması teslim edildi ve **tıklandı**; saat 2 Eki'de başladı, **son gün
+  9 Eki**. 3 Eki'deki `admin_mode=issue` koşum **yeni numara yakmadı** (*"onceden kesilmis:
+  1"*, redraft yok → kayıttaki belge). Belge yerelde çözülüp çizdirildi: 1 × SH9608 50 ad.
+  (Navy ×20, Black ×10, Bordeaux ×10, Green ×10), WELCOME5 −€99,75, navlun €30, toplam
+  **€1.925,25**, kesen Acerasoft LLC, ödeme kutusu **Airwallex (Netherlands)** profilinden
+  (4 satır; banka adresi bilerek boş — KURAL 43). **Alıcıda PDF'li mektup YOK** (panel
+  mektubu PDF taşımıyor); gerekirse `reply_letter=order_invoice_pdf` + `to=order:VES-8E46FFA2`
+  — operatör kararı, gönderilmedi.
+- Test: `tests/escrow_to_bank_test.php` (59 iddia); sekiz sabotajın sekizi kırmızı.
+
 **KURAL 5r — ÖDEME KUTUSU BOŞSA FATURA KESİLMEZ; "otomatik kullanılmıyor" bir
 VERİ sorusuydu, kod sorusu değil** (operatör, 19 Eyl 2026: *"sana verdigim
 acerasoft LLC alman hesabi avrupa müsterilerinde otomatik kullanilmiyor … bu
