@@ -320,6 +320,74 @@ function sample_do_release(string $ref): array {
 }
 
 /**
+ * Strip every Stripe identifier from an error message before it is printed or
+ * logged (cs_…, pi_…, sk_…, acct_…, cus_… — the id is part of a checkout URL, a
+ * key is a key). Keeps the words (resource_missing, host names) so the REASON
+ * stays readable. 140 characters at most.
+ */
+function sample_scrub_error(string $m): string {
+    return mb_substr((string) preg_replace('/\b[a-z]{2,5}_(?:live_|test_)?[A-Za-z0-9*]{8,}\b/i', '<kimlik>', $m), 0, 140);
+}
+
+/**
+ * Read a sample's Stripe Checkout Session — on the account it LIVES on.
+ *
+ * A direct-charge sample (acct_id set, see the header) was created ON THE SELLER'S
+ * CONNECTED ACCOUNT: stripe_escrow_checkout() passes that id as the Stripe-Account
+ * header. Reading it with the platform key and no header answers "No such
+ * checkout.session" — indistinguishable from a session that never existed (3 Oct
+ * 2026: two of TYREX's August samples; the cancel tool stopped, correctly, but could
+ * not tell paid from never-created). So the header comes from the RECORD, never
+ * from the caller.
+ *
+ * @return array{ok:bool, status:string, payment:string, err:string, scope:string}
+ *   scope: 'connected' | 'platform' (which account was asked — never the id itself).
+ */
+function sample_session_read(array $rec): array {
+    if (!function_exists('stripe_api')) require_once __DIR__ . '/stripe.php';
+    $sid  = (string)($rec['session_id'] ?? '');
+    $acct = (string)($rec['acct_id'] ?? '');
+    $out  = ['ok' => false, 'status' => '', 'payment' => '', 'err' => '', 'scope' => $acct !== '' ? 'connected' : 'platform'];
+    if ($sid === '') { $out['err'] = 'no session id'; return $out; }
+    try {
+        $o = stripe_api('GET', '/v1/checkout/sessions/' . rawurlencode($sid), [], $acct);
+        $out['ok'] = true;
+        $out['status']  = (string)($o->status ?? '?');
+        $out['payment'] = (string)($o->payment_status ?? '?');
+    } catch (\Throwable $e) {
+        $out['err'] = sample_scrub_error($e->getMessage());
+    }
+    return $out;
+}
+
+/**
+ * Close a sample's open Checkout Session on the account it lives on, then READ IT
+ * BACK. ok only when Stripe says `expired` and not `paid` — "the POST did not
+ * throw" is not proof (a payment can land between the read and the close).
+ *
+ * @return array{ok:bool, status:string, payment:string, err:string, scope:string}
+ */
+function sample_session_expire(array $rec): array {
+    if (!function_exists('stripe_api')) require_once __DIR__ . '/stripe.php';
+    $sid  = (string)($rec['session_id'] ?? '');
+    $acct = (string)($rec['acct_id'] ?? '');
+    $out  = ['ok' => false, 'status' => '', 'payment' => '', 'err' => '', 'scope' => $acct !== '' ? 'connected' : 'platform'];
+    if ($sid === '') { $out['err'] = 'no session id'; return $out; }
+    try {
+        stripe_api('POST', '/v1/checkout/sessions/' . rawurlencode($sid) . '/expire', [], $acct);
+        $o = stripe_api('GET', '/v1/checkout/sessions/' . rawurlencode($sid), [], $acct);
+        $out['status']  = (string)($o->status ?? '?');
+        $out['payment'] = (string)($o->payment_status ?? '?');
+        if ($out['payment'] === 'paid')       $out['err'] = 'paid while closing';
+        elseif ($out['status'] !== 'expired') $out['err'] = 'session not closed (' . $out['status'] . ')';
+        else                                  $out['ok'] = true;
+    } catch (\Throwable $e) {
+        $out['err'] = sample_scrub_error($e->getMessage());
+    }
+    return $out;
+}
+
+/**
  * DELETE one UNPAID sample record (operator, 28 Sep 2026, Odzież Premium:
  * "diger tüm siparislerini iptal et ve sil"). Before this there was no way to
  * withdraw a pay link at all: the record stayed `pending` forever and the link

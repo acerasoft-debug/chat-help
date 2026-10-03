@@ -744,17 +744,21 @@ jobs:
               $sid = (string)($rec['session_id'] ?? '');
               $sidMode = preg_match('/^cs_(test|live)_/', $sid, $sm) ? $sm[1] : '?';
               $ss = '(oturum yok)'; $sp = ''; $why = '';
+              /* DOGRUDAN TAHSILAT (kayitta acct_id): oturum SATICININ BAGLI HESABINDA
+                 acilmistir -- platform anahtariyla hesap basligi olmadan okumak
+                 "No such checkout.session" verir ve "hic olmadi" ile ayirt edilemez
+                 (3 Eki 2026, TYREX'in 2 Agustos numuneleri). Baslik KAYITTAN gelir
+                 (sample_session_read); basilan tek sey hangi hesabin sorulduguDUR. */
+              $scope = trim((string)($rec['acct_id'] ?? '')) !== '' ? 'bagli hesap' : 'platform';
               if ($sid !== '' && !stripe_available()) { fwrite(STDERR, "\n*** {$ref}: Stripe oturumu var ama Stripe yapilandirilmamis -- kapatamam, silmiyorum.\n"); exit(1); }
               if ($sid !== '') {
-                try { $o = stripe_api('GET', '/v1/checkout/sessions/'.$sid); $ss = (string)($o->status ?? '?'); $sp = (string)($o->payment_status ?? '?'); }
-                catch (\Throwable $e) {
-                  $ss = 'OKUNAMADI';
-                  $why = mb_substr((string)preg_replace('/\b[a-z]{2,5}_(?:live_|test_)?[A-Za-z0-9*]{8,}\b/i', '<kimlik>', (string)$e->getMessage()), 0, 140);
-                }
+                $rd = sample_session_read($rec);
+                if ($rd['ok']) { $ss = $rd['status']; $sp = $rd['payment']; }
+                else           { $ss = 'OKUNAMADI'; $why = $rd['err']; }
               }
-              printf("  %-14s %-8s %-22s %6s EUR  %s  | stripe: %s%s\n", $ref, $st, (string)($rec['sku'] ?? '?'),
+              printf("  %-14s %-8s %-22s %6s EUR  %s  | stripe: %s%s  [%s]\n", $ref, $st, (string)($rec['sku'] ?? '?'),
                      number_format((float)($rec['amount'] ?? 0), 2), substr((string)($rec['created'] ?? ''), 0, 10),
-                     $ss, $sp !== '' ? " / {$sp}" : '');
+                     $ss, $sp !== '' ? " / {$sp}" : '', $scope);
               if ($ss === 'OKUNAMADI') printf("      oturum modu: %s | anahtar modu: %s | sebep: %s\n", $sidMode, $keyMode, $why);
               if ($st !== 'pending') { echo "      -> ATLANDI: odenmis/serbest birakilmis numune bu yoldan SILINMEZ (iade ayri karar)\n"; continue; }
               if ($sp === 'paid')    { fwrite(STDERR, "\n*** {$ref}: Stripe ODENDI diyor ama kayit pending -- webhook gecikmis. HICBIR SEY silinmedi.\n"); exit(1); }
@@ -766,11 +770,11 @@ jobs:
                  "odenmis olabilir" durusu aynen gecerli. */
               if ($ss === 'OKUNAMADI' && $sidMode === 'test' && $keyMode === 'live') {
                 echo "      -> test-modu oturum: gercek odeme tasiyamaz, canli anahtarla okunamaz -- odenmemis sayiliyor, kapatilacak bir sey yok\n";
-                $plan[$ref] = ['sid' => $sid, 'open' => false];
+                $plan[$ref] = ['sid' => $sid, 'open' => false, 'rec' => $rec];
                 continue;
               }
               if ($ss === 'OKUNAMADI') { fwrite(STDERR, "\n*** {$ref}: Stripe oturumu okunamadi -- odenmis olabilir, silmiyorum.\n"); exit(1); }
-              $plan[$ref] = ['sid' => $sid, 'open' => $ss === 'open'];
+              $plan[$ref] = ['sid' => $sid, 'open' => $ss === 'open', 'rec' => $rec];
             }
             printf("\nsilinecek: %d kayit%s\n", count($plan), $plan ? ' ('.implode(', ', array_keys($plan)).')' : '');
             if (!$plan) exit(0);
@@ -780,13 +784,14 @@ jobs:
             $fail = 0;
             foreach ($plan as $ref => $pl) {
               if ($pl['open']) {
-                try {
-                  stripe_api('POST', '/v1/checkout/sessions/'.$pl['sid'].'/expire');
-                  $o = stripe_api('GET', '/v1/checkout/sessions/'.$pl['sid']);
-                  if (($o->payment_status ?? '') === 'paid') { fwrite(STDERR, "*** {$ref}: kapatirken ODENMIS cikti -- silinmedi\n"); $fail++; continue; }
-                  if (($o->status ?? '') !== 'expired') { fwrite(STDERR, "*** {$ref}: oturum kapanmadi (".(string)($o->status ?? '?').") -- silinmedi\n"); $fail++; continue; }
-                  echo "  {$ref}: Stripe oturumu KAPATILDI (expired, geri okundu)\n";
-                } catch (\Throwable $e) { fwrite(STDERR, "*** {$ref}: Stripe kapatma hatasi -- silinmedi\n"); $fail++; continue; }
+                /* Kapatma da oturumun YASADIGI hesapta (sample_session_expire: kayittaki
+                   acct_id basligi) ve geri okunur; "expired" gorulmeden kayit silinmez. */
+                $ex = sample_session_expire($pl['rec']);
+                if (!$ex['ok']) {
+                  fwrite(STDERR, "*** {$ref}: Stripe oturumu kapatilamadi (".($ex['payment'] === 'paid' ? 'ODENMIS cikti' : ($ex['err'] !== '' ? $ex['err'] : 'bilinmiyor')).") -- silinmedi\n");
+                  $fail++; continue;
+                }
+                echo "  {$ref}: Stripe oturumu KAPATILDI (expired, geri okundu) [{$ex['scope']}]\n";
               }
               $r = sample_delete($ref);
               if (empty($r['ok'])) { fwrite(STDERR, "*** {$ref}: SILINEMEDI: ".(string)($r['error'] ?? '?')."\n"); $fail++; continue; }
