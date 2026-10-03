@@ -122,8 +122,13 @@ $pOver = strpos($sc, "if (\$og['phase'] === 'overdue')");
 $t('dekontlu sipariste mektup kurulmadan DURUR', $pRcpt !== false && $pTpl !== false && $pRcpt < $pTpl && str_contains(substr($sc, $pRcpt, 220), 'exit(1)'));
 $t('suresi dolmus sipariste mektup kurulmadan DURUR', $pOver !== false && $pOver < $pTpl && str_contains(substr($sc, $pOver, 260), 'exit(1)'));
 $t('saat cron\'un fonksiyonundan (vestra_order_payment_grace)', str_contains($sc, '$og = vestra_order_payment_grace($ost, time(), $oref);'));
-$t('tarih YALNIZ saat isliyorsa', str_contains($sc, "\$odue = \$og['phase'] === 'running' ? gmdate('j F Y', (int)\$og['deadline']) : '';"));
-$t('tarih sablona iletiliyor', str_contains($sc, '$persona, $odue);'));
+/* 3 Eki 2026: tarih artik dile gore (fr: vestra_push_date) bicimleniyor; iddia yazima
+   degil olguya bagli -- bos baslar ve YALNIZ 'running' dalinda dolar. */
+$pOd0 = strpos($sc, "\$odue = '';");
+$pRun = strpos($sc, "if (\$og['phase'] === 'running') {");
+$t('tarih YALNIZ saat isliyorsa', $pOd0 !== false && $pRun !== false && $pOd0 < $pRun
+    && substr_count(substr($sc, (int)$pOd0, (int)$pTpl - (int)$pOd0), '$odue = ') === 3);
+$t('tarih sablona iletiliyor', (bool)preg_match('/\$persona, \$odue[,)]/', $sc));
 
 echo "\n== 4. saat asamalari (mektubun okudugu ayni fonksiyon) ==\n";
 if (!defined('VESTRA_DATA_DIR')) define('VESTRA_DATA_DIR', $sand.'/data');
