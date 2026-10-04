@@ -611,9 +611,15 @@ foreach ($plan as [$i, $set, $m]) {
     } elseif ($k === 'sale_list') {
       $new = (float)$v; $old = (float)($p['list'] ?? 0);
       if ($old === $new) continue;
-      $base = !empty($p['tiers'][0]['price']) ? (float)$p['tiers'][0]['price'] : $old;
-      $disc = $new > 0 ? (int)round(100*($new-$base)/$new) : 0;
-      $line[] = "sale_list(SADECE was) {$old} -> {$new}  (tiers[0] {$base} degismedi, gorunen indirim ~%{$disc})";
+      /* Burada ESKIDEN "gorunen indirim ~%X" yaziyordu ve X'i ESKI ilk kademeden
+         (tiers[0]) hesapliyordu. Sayfanin rozeti ise EN DUSUK kademeden
+         (vestra_discount -> vestra_from_price) hesaplaniyor: iki kademeli
+         26,90/25,00 bir ilanda list 33,33 icin satir "%19" diyor, sayfa "-%25"
+         basiyordu -- ve ayni satirda kademeler de degisiyorsa X, henuz
+         yazilmamis eski merdivenden cikiyordu. Rakam artik burada tahmin
+         edilmiyor: satirin sonundaki SAYFADA satiri, SAYFANIN cagirdigi ayni
+         fonksiyonlarla son kayittan hesaplaniyor. */
+      $line[] = "sale_list(SADECE was) {$old} -> {$new}  (tiers'a dokunmaz; sayfanin gosterecegi rozet asagidaki SAYFADA satirinda)";
       $all[$i]['list'] = $new;
       $changes++;
     } elseif ($k === 'preorder_ship') {
@@ -749,6 +755,38 @@ foreach ($plan as [$i, $set, $m]) {
       $line[] = "{$k} '".($old === '' ? '(yok)' : $old)."' -> '{$new}'";
       $all[$i][$k] = $new;
       $changes++;
+    }
+  }
+  /* SAYFADA: list / tiers / price degistiyse urun sayfasinin bu kayittan NE
+     basacagi. Hesap sayfanin cagirdigi AYNI fonksiyonlardan (vestra_display_mode,
+     vestra_from_price, vestra_discount) ve SON kayittan (bu satirin tiers ve list
+     yazilari dahil) -- ikinci bir formul yazilmadi. Uc sey gorunur hale geliyor:
+       - rozet kac: en dusuk kademeye gore, ilk kademeye degil;
+       - mode='sale' degilse sayfa ustu cizili "was" fiyatini ve rozeti HIC
+         basmaz (sale_list yalniz mode=sale'de gorunur): eskiden sessizce
+         ise yaramaz bir yazma ve satir yine de "gorunen indirim" diyordu;
+       - list en dusuk kademeden yuksek degilse "-%0" yerine sayfa sabit fiyat
+         gosterir (vestra_on_sale).
+     Satir yalniz bu satir bir sey DEGISTIRDIYSE basiliyor: aksi halde
+     "(zaten istenen durumda)" yazisini ezer ve tekrar kosan bir dosya
+     degisiklik varmis gibi gorunurdu. */
+  if ($line && (isset($set['sale_list']) || isset($set['tiers']) || isset($set['price']))) {
+    if (!function_exists('vestra_display_mode') || !function_exists('vestra_from_price') || !function_exists('vestra_discount')) {
+      $line[] = "  UYARI: sayfa fonksiyonlari sunucuda YOK (kod eski) -- rozet gosterilemedi";
+    } else {
+      $fin  = $all[$i];
+      $fm   = number_format((float)($fin['list'] ?? 0), 2);
+      $fp   = number_format((float)vestra_from_price($fin, true), 2);
+      if (($fin['mode'] ?? '') !== 'sale') {
+        if (isset($set['sale_list']))
+          $line[] = "  UYARI: mode='".($fin['mode'] ?? '')."' -- sayfa ustu cizili fiyati ve rozeti HIC basmaz (sale_list yalniz mode=sale'de gorunur)";
+        else
+          $line[] = "  SAYFADA: mode='".($fin['mode'] ?? '')."' -- sabit fiyat, rozet yok, from €{$fp}";
+      } elseif (vestra_display_mode($fin) !== 'sale') {
+        $line[] = "  UYARI: list €{$fm} en dusuk kademe €{$fp} ustunde degil -- indirim yok, sayfa sabit fiyat gosterir (\"-%0\" basmaz)";
+      } else {
+        $line[] = "  SAYFADA: ustu cizili €{$fm} · from €{$fp} · rozet -%".vestra_discount($fin)."  (mode=sale; sayfanin kendi fonksiyonlari)";
+      }
     }
   }
   printf("  %-26s | %-14s | %s\n", $p['id'] ?? '?', $p['brand'] ?? '?', "match='{$m}'");
