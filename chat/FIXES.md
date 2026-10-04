@@ -166,3 +166,79 @@ kullanıcı portala dönüp oradan ödüyor.
 - jsPDF yüklenmezse çökme → güvenli kontrol eklendi
 - Paywall kapatma seçicisi sağlamlaştırıldı (Escape + arka plan tıkı)
 - "Portal'a git" artık yeni sekmede açılıyor (form kaybolmuyor)
+
+---
+
+# App'te "Kostenlos selbst ausdrucken" çalışmıyor — KÖK NEDEN ve KALICI ÇÖZÜM
+_(2026-07-25/26, task #152)_
+
+## Kök neden: `isWV` kapsam (scope) hatası
+
+`isWV()` — App (Android WebView) tespiti yapan fonksiyon — `index.php` içinde
+**6 kez** tanımlıydı, ama **hepsi bir IIFE'nin içinde**:
+
+```js
+try{(function(){
+  function isWV(){ ... }     // ← yalnız bu blok içinde görünür
+  ...
+})();}catch(e){}
+```
+
+Buna karşılık `makePDF` ve `chPrintDoc` içindeki **6 App dalı** globali arıyordu:
+
+```js
+var _isWv2=false;
+try{ _isWv2=(typeof isWV==='function')&&isWV(); }catch(e0){}
+if(_isWv2){ /* App yolu: dl.php'ye form-POST */ }
+```
+
+`window.isWV` hiç tanımlanmadığı için `_isWv2` **daima `false`** oluyordu →
+App dalları hiç çalışmıyor → akış `f.contentWindow.print()`'e düşüyor →
+**Android WebView'de `window.print()` sessizce hiçbir şey yapmaz.**
+Web'de sorun görünmüyordu, çünkü tarayıcılar `print()`'i destekler.
+
+Aynı hata #148 (App'te PDF) ve #107 (App mikrofonu) işlerinin de neden hiç
+tutmadığını açıklıyor — o kodlar da aynı bozuk kapıya bağlıydı.
+
+## Teşhis yöntemi (tekrar gerekirse)
+
+`alert()` bu WebView'de görünmüyor (app `onJsAlert` kurmamış), o yüzden popup
+teşhisi işe yaramaz. Bunun yerine **sunucuya beacon**:
+`new Image().src="chlog9k1.php?k=...&d=..."` → `chlog9k1.txt`.
+Okuma URL'ine her seferinde farklı `&z=<rastgele>` ekle (CDN boş cevabı
+önbelleğe alıyor).
+
+Kanıt zinciri:
+- `LOAD stamp=… | sw=sw-idle | isWV=fn-yok | ua=…; wv)` → App taze sayfayı
+  yüklüyor, service worker suçlu değil, ama `isWV` global değil
+- `CLICK … Kostenlos selbst ausdrucken` → tıklama algılanıyor
+- Düzeltmeden sonra **`CPD2 true`** → App dalı artık çalışıyor ✅
+
+## Uygulanan düzeltmeler
+
+| Marker | Dosya/Betik | Ne yapar |
+|---|---|---|
+| `CH_ISWV_GLOBAL` | `apply-iswvfix.php` | `window.isWV`'yi **global** tanımlar (IIFE'lerdeki mantığın aynısı). 6 App dalını da uyandırır. **Asıl düzeltme budur.** |
+| — | `apply-iswvfix.php` | Teşhis `alert`'lerini (CH_APPDIAG/2/3) siler — koşulsuz yerlerdeydi ve **web kullanıcılarına popup çıkıyordu** |
+| `CH_APPVIEW3` + `CH_APPVIEW2C` | `apply-appview3.php` | WebView dosya indiremediği/yazdıramadığı için belgeyi **premium kurumsal katmanda** gösterir (A4 kâğıt, Georgia serif, antet çizgisi + altın aksan, sağ tarih, kalın Betreff) |
+| `pv.php` / `pvsave.php` | `apply-appview3.php` | 🖨 Drucken → belgeyi token ile kaydeder → **tarayıcıda** açar; orada yazdırma penceresi gelir, PDF de iner |
+
+## Kalıcılık (kilit)
+
+```
+apply-applock.php          → çalışan hâli kilitler (index.php.GOOD-appprint + ch-applock.json)
+chk-applock.php            → sağlık kontrolü (salt-okunur): işaretler + dosyalar yerinde mi
+apply-applock-restore.php  → bozulursa kilitli hâle geri döner
+```
+
+**Yeni bir yama yazarken dikkat:** `CH_ISWV_GLOBAL`, `CH_APPVIEW3` ve
+`CH_APPVIEW2C` (4 çağrı) işaretlerine dokunma. Büyük bir değişiklikten sonra
+`chk-applock.php` çalıştır — hepsi OK demiyorsa App yazdırma bozulmuştur.
+
+## Bilinen sınır
+
+Gerçek "indir/yazdır" desteği **APK tarafı** özelliğidir (DownloadListener /
+PrintManager). Web'den açılamaz. Bu yüzden App'te akış: belge ekranda gösterilir
+→ 🖨 Drucken tarayıcıya devreder → yazdırma/indirme orada yapılır.
+İleride APK'ya DownloadListener eklenirse ⬇️ PDF düğmesi doğrudan çalışır
+(kod zaten dört yolu sırayla deniyor).

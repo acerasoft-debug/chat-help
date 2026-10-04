@@ -54,8 +54,26 @@
     document.body.appendChild(overlay);
   }
 
+  // ── Formda en az bir alan dolu mu? (boş formdan PDF üretmeyi engeller) ──
+  function anyFieldFilled(){
+    const sel = '.form-field input, .form-field select, .form-field textarea, .field-group input, .field-group select, .field-group textarea';
+    return Array.prototype.some.call(document.querySelectorAll(sel), function(i){
+      return i.value && i.value.trim() && i.value !== '— Bundesland wählen —';
+    });
+  }
+
   // ── PDF Export with plan check ──
   window.exportFormPDF = async function(title, filename){
+    /* CH_STAAT_REQFIX — Pflichtfelder vor PDF prüfen (paywall'dan da önce) */
+    if (typeof window.validateForm === 'function' && !window.validateForm()){
+      alert('Bitte füllen Sie alle Pflichtfelder aus (rot markiert).');
+      return;
+    }
+    if (!anyFieldFilled()){
+      alert('Das Formular ist leer — bitte füllen Sie es zuerst aus.');
+      return;
+    }
+
     const plan = getUserPlan();
     const logged = isLoggedIn();
 
@@ -169,6 +187,8 @@
     let valid = true;
     let first = null;
     document.querySelectorAll('[required]').forEach(inp=>{
+      /* CH_STAAT_REQFIX: gizli/devre dışı alanlar doğrulamaya girmez */
+      if(inp.disabled || inp.getClientRects().length === 0){ inp.style.borderColor=''; return; }
       if(!inp.value.trim()){
         inp.style.borderColor = '#e04858';
         valid = false;
