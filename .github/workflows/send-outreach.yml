@@ -525,7 +525,17 @@ jobs:
                dokunulmadi"*). Cikarmak bir EYLEM, birakmak eylemsizlik;
                istenmeyen bir cikarma sessiz bir daraltma olurdu. Silmek tek
                satir ve operatorun karari. */
-            $W3_WANT = ['Fred Perry', 'Gallery Dept.', 'Lacoste', 'Gucci', 'Balenciaga', 'DSQUARED2'];
+            /* 5 Eki 2026 (*"kampanya gonder 10 marka estetik sekilde"* +
+               *"3. email almayanlara gonder"*): operator ON MARKA saydi ama
+               ADLANDIRMADI. Ilk alti onun kendi sirasi (yukarida) ve aynen
+               duruyor; arkasina katalogun en derin GORUNUR evleri eklendi.
+               Gucci ve Balenciaga gizli (KURAL 36) ve asagida zaten dusuyor;
+               W3_MAX gorunur evi ona kesiyor -- iki ev bir gun geri acilirsa
+               mektup 12 degil yine 10 ev sayar ve sondakiler (Givenchy, Pili
+               Perez) duser. Sira operatorun sirasi oldugu icin bu dogru yon. */
+            $W3_WANT = ['Fred Perry', 'Gallery Dept.', 'Lacoste', 'Gucci', 'Balenciaga', 'DSQUARED2',
+                        'Burberry', 'Dolce & Gabbana', 'Casablanca', 'BALMAIN', 'Givenchy', 'Pili Pérez'];
+            $W3_MAX  = 10;
             /* Ev basina ISTEGE BAGLI not: adin hemen arkasina parantez icinde
                basiliyor. YALNIZ CEVRILMESI GEREKMEYEN tanimlayicilar giriyor
                (uretici model numaralari) -- "polo"/"sweatshirt" gibi urun
@@ -547,13 +557,20 @@ jobs:
                ilan) ayni tavan yalnizca ilk 2'sini gosterir; bu bilincli,
                "estetik" istegi bir katalog dokumu degil kisa bir vitrin. */
             $W3_SHOTS = 2;
-            $w3facts = function () use ($W3_WANT, $W3_NOTE, $W3_SHOTS, $home): array {
+            $w3facts = function () use ($W3_WANT, $W3_NOTE, $W3_SHOTS, $W3_MAX, $home): array {
                 $byBrand = [];
                 foreach (vestra_products() as $wp) {
                     $wb = trim((string)($wp['brand'] ?? ''));
                     if ($wb !== '') $byBrand[$wb][] = $wp;
                 }
-                $houses = []; $missing = []; $w3hidden = [];
+                /* SAYIM: hangi evlerin gercekten derin oldugu tahminle degil bu
+                   satirdan okunur. Gorunur katalog (vestra_products gizli
+                   markayi ve askidaki saticiyi zaten eliyor), ilan sayisina
+                   gore. Kisi verisi yok. */
+                $census = array_map('count', $byBrand); arsort($census);
+                $cl = []; foreach (array_slice($census, 0, 25, true) as $cb => $cn) $cl[] = "{$cb} {$cn}";
+                echo "KATALOG MARKALARI (gorunur, ilan): ".implode(' · ', $cl)."\n";
+                $houses = []; $missing = []; $w3hidden = []; $w3cut = [];
                 foreach ($W3_WANT as $want) {
                     /* GIZLI MARKA (vestra_hidden_brands, 25 Eyl 2026: "sitede
                        hic gorunmesin"): mektupta da SAYILMAZ -- musteriye
@@ -572,6 +589,7 @@ jobs:
                         if (strcasecmp(trim((string)$b), trim($want)) === 0) { $hit = [(string)$b, $ps]; break; }
                     }
                     if ($hit === null || !$hit[1]) { $missing[] = $want; continue; }
+                    if (count($houses) >= $W3_MAX) { $w3cut[] = $want; continue; }
                     [$brandName, $ps] = $hit;
                     /* Fotograf UYDURULMAZ: SATILMAMIS ve DISKTE GERCEKTEN VAR
                        olan ilk W3_SHOTS urun. Kaydin "var" demesi yetmiyor --
@@ -590,12 +608,30 @@ jobs:
                     /* Not, ISTENEN ada bagli (katalogun yazimina degil):
                        yarin katalog "FRED PERRY" diye yazarsa not sessizce
                        dusmesin. Mektuba basilan ad yine katalogunki. */
+                    /* ON SIPARIS: evin SATILMAMIS ilanlarindan HICBIRI stokta
+                       degilse (hepsinin gelecek bir preorder_ship tarihi
+                       varsa) mektup o evi "stokta" diye YAZMAZ -- en gec
+                       tarihi verir, sablon "on siparis: gonderim <ay>" basar.
+                       Tek bir stoktaki ilan yeter: ev stokta sayilir. Olcut
+                       sitenin kendi fonksiyonu (gecmis tarih = stokta). */
+                    $preIso = ''; $anyStock = false;
+                    foreach ($ps as $wp) {
+                        if (function_exists('vestra_is_sold_out') && vestra_is_sold_out($wp)) continue;
+                        $iso = trim((string)($wp['preorder_ship'] ?? ''));
+                        $future = function_exists('vestra_preorder_ship_phrase') && vestra_preorder_ship_phrase($wp) !== '';
+                        if (!$future) { $anyStock = true; break; }
+                        if ($iso > $preIso) $preIso = $iso;
+                    }
                     $houses[] = ['name' => $brandName, 'n' => count($ps),
-                                 'note' => (string)($W3_NOTE[$want] ?? ''), 'imgs' => $imgs];
+                                 'note' => (string)($W3_NOTE[$want] ?? ''), 'imgs' => $imgs,
+                                 'preorder' => $anyStock ? '' : $preIso];
                 }
                 foreach ($houses as $h) echo "EV: {$h['name']} -> {$h['n']} artikel"
                                             . ($h['note'] !== '' ? " ({$h['note']})" : '')
-                                            . " · foto " . count($h['imgs']) . "/{$W3_SHOTS}\n";
+                                            . " · foto " . count($h['imgs']) . "/{$W3_SHOTS}"
+                                            . ($h['preorder'] !== '' ? " · ON SIPARIS (gonderim {$h['preorder']})" : " · stokta")
+                                            . "\n";
+                if ($w3cut) echo "TAVAN {$W3_MAX} -- mektuba GIRMEYEN ev: ".implode(', ', $w3cut)."\n";
                 if ($w3hidden) echo "GIZLI MARKA -- mektuptan DUSTU (sitede gorunmuyor): ".implode(', ', $w3hidden)."\n";
                 if ($missing) {
                     /* Operatorun ADIYLA istedigi bir ev eslesmiyorsa is DURUR.

@@ -746,5 +746,31 @@ foreach ([
     ['Chapellerie Traclet','chapellerie-traclet.com'],
 ] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
 
+echo "\n== 22. 5 Eki 2026 — 'global fashion accessories wholesale list': 14 TEDARIKCI ==\n";
+/* Liste 200 satir; 186'si uydurma kalip. Gercek gorunen 14'un hepsi arastirildi:
+   kendi markasini ureten ya da toptanci. Kod hicbirini tutmuyordu. */
+foreach ([
+    ['Carbotti Handbags','carbotti.it','wholesale@carbotti.it'], ['Erfurt Luxury','erfurt.dk','erfurt@erfurt.dk'],
+    ['Breuer SAS','breuer.fr','alain@breuer.fr'],                ['Miss Milly','missmilly.co.uk','hello@missmilly.co.uk'],
+    ['ByNouck Jewelry','bynouck.com','wholesale@bynouck.com'],   ['Euro Bijoux','eurobijoux.co.uk','sales@eurobijoux.co.uk'],
+    ['Avantgarde Firenze','avantgardefirenze.it','sales@avantgardefirenze.it'],
+    ['Tempest Designs','tempestdesigns.co.uk','info@tempestdesigns.co.uk'],
+    ['Opalook','opalook.eu','wholesale@opalook.eu'],             ['Felizz','felizz.fr','contact@felizz.fr'],
+    ['Boston Exclusives','bostonexclusives.com','jkk@bostonexclusives.com'],
+    ['Mitch Jewelry','','mitchjewelry@gmail.com'],
+    ['See You Jewelry','seeyoumemorialjewelry.com','info@seeyoumemorialjewelry.com'],
+    ['Say It With','sayitwith.com','enquiries@sayitwith.com'],
+] as [$n,$d,$e]) $t("blok: {$n}", $blocked($n, $e, $d !== '' ? 'https://'.$d : ''));
+
+echo "\n== 22b. GECMELI — ayni kelimeyi tasiyan bagimsizlar ==\n";
+/* 'erfurt' bir sehir, 'breuer' bir soyad, 'boston'/'tempest'/'milly' gunluk ad;
+   'sayitwith' bir butigin alan adinin icinde gecebilir. */
+foreach ([
+    ['Mode Erfurt','mode-erfurt.de'],               ['Schuhhaus Breuer','schuhhaus-breuer.de'],
+    ['Boston Boutique','bostonboutique.com'],       ['Tempest Boutique','tempestboutique.co.uk'],
+    ['Milly Mode','millymode.nl'],                  ['Say It With Style','sayitwithstyle.com'],
+    ['Avantgarde Concept Store','avantgarde-store.de'], ['Nouck Mode','nouckmode.nl'],
+] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
+
 echo "\nTOPLAM: {$ok} gecti, {$fail} kaldi\n";
 exit($fail === 0 ? 0 : 1);
