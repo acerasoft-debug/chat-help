@@ -531,10 +531,13 @@ jobs:
                duruyor; arkasina katalogun en derin GORUNUR evleri eklendi.
                Gucci ve Balenciaga gizli (KURAL 36) ve asagida zaten dusuyor;
                W3_MAX gorunur evi ona kesiyor -- iki ev bir gun geri acilirsa
-               mektup 12 degil yine 10 ev sayar ve sondakiler (Givenchy, Pili
-               Perez) duser. Sira operatorun sirasi oldugu icin bu dogru yon. */
+               mektup 12 degil yine 10 ev sayar ve sondakiler (Givenchy,
+               Fendi) duser. Sira operatorun sirasi oldugu icin bu dogru yon.
+               Pili Perez (335 ilan) BILEREK yok: ev satiri "from stock" diyor ve
+               KURAL 38 o ayakkabilar icin "stoktan" demeyi yasakladi
+               (ships_from bos -- KURAL 3). */
             $W3_WANT = ['Fred Perry', 'Gallery Dept.', 'Lacoste', 'Gucci', 'Balenciaga', 'DSQUARED2',
-                        'Burberry', 'Dolce & Gabbana', 'Casablanca', 'BALMAIN', 'Givenchy', 'Pili Pérez'];
+                        'Burberry', 'Dolce & Gabbana', 'Casablanca', 'BALMAIN', 'Givenchy', 'Fendi'];
             $W3_MAX  = 10;
             /* Ev basina ISTEGE BAGLI not: adin hemen arkasina parantez icinde
                basiliyor. YALNIZ CEVRILMESI GEREKMEYEN tanimlayicilar giriyor
