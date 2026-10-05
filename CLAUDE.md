@@ -12034,3 +12034,53 @@ BV yi saticilardan sil"* → soru → **"Devret + sil"**, hedef satıcı **Marca
 - **ÇİZDİRİLDİ, kaynak okunmadı** (kum havuzu, `php -S`, **onaylı alıcı oturumu** — girişsiz çekmek fiyat kapısını ölçerdi): ürün sayfası `€33.33 from €25.00 −25% / pc · clearance`, tablo `80–99 €29.90 −10% | 100–159 €26.90 −19% | 160+ €25.00 −25%`, teklif ve numune kutuları duruyor, PHP uyarısı 0; katalog kartı `−25%` ve `€33.33 €25.00`. *Kendi ölçüm hatam:* ilk çizimde kart rozetini sayfadaki **ilk** `smodetag`'dan okudum ve **−%28** çıktı — o, sayfadaki demo ilanlardan birinindi; kartı ilanın kendi bağlantısından bulunca −%25 çıktı. Bu dosyada kayıtlı sınıf (aracın gürültüsü / yanlış yere bakan ölçü).
 - **CANLI GERİ OKUMA** (`inspect-products` run `37185051752`, 07:11 UTC, yazmadan ~6 dk sonra, kayıt sunucudan okundu — yazma mesajından değil): `fiyat(list)=33.33`, `tiers: 80+ → €29.9 | 100+ → €26.9 | 160+ → €25`, MOQ 80, paket adımı 8, altı renk, `min_colors` 4, teklif AÇIK, numune €50 **aynen**. Fiyat denetimi (sepetin TAHSİL ETTİĞİNE bakar): `tutarli` 791 → **790**, `kasitli indirim` 66 → **67** — polo "tutarlı"dan "kasıtlı indirim"e geçti (list 33,33, MOQ'daki sepet fiyatı 29,90); `ALICI ALEYHINE` hâlâ yalnız eski demo `lac-pique-polo` (1), yani yeni merdiven listede ucuz görünüp sepette pahalı çıkan bir satır üretmedi. (Polonun kendi [C] satırı listenin görünmeyen `+57 satır daha` kısmında; sayım farkı onu gösteriyor.) Toptan fiyat listesi satırı: `LISTE 33.33 | KADEME 25.00 | PERAKENDE 75.00 (tahmin, guide x3) | satista`.
 - **Geride kalanlar / operatör kararı:** (1) **orta basamak (100–159) €26,90 bir varsayım** — başka bir rakam isteniyorsa tek satır; (2) `list` tabanı 33,33 (rozet −%25) mi yoksa 39,90 (rozet −%37) mi — yukarıda; (3) 100 yerine 104 (UYARI'sız, tabloda "104–159"); (4) **gitmiş mektuplar ve fiyat listeleri eski merdiveni taşır** ve geri alınamaz (16 Eyl'de İsrailli adaya giden Lacoste/Ralph Lauren/Fred Perry fiyat listesi dahil); bundan sonra üretilen Excel/PDF listeleri `LISTE` sütununda üstü çizili **33,33**'ü basar (`mode=sale` ilanlarda zaten böyle — fiyat denetiminin [C] sınıfı).
+
+**KURAL 31 (devamı) — 5 Eki 2026: "10 marka estetik" 3. mektup; 180 mektup, 0 hata.
+Ekli "global fashion accessories wholesale list" ile gönderim YAPILMADI**
+(operatör: *"kampanya gönder 10 marka estetik sekilde"* + xlsx, ardından *"daha
+sonra 250 emaile tamamlar 3. email almayanlara gönder"*).
+- **Liste (200 satır) → 0 gönderim.** 186'sı uydurma kalıp (`Luna 1 Label`,
+  `hello@luna1.fr` … `Vera 186 Label`; "Concept Store Variant N"in aynı imzası).
+  Gerçek görünen 14'ün HEPSİ araştırıldı ve hepsi TEDARİKÇİ: kendi markasını
+  üreten (Carbotti 1960, Erfurt, Breuer 1882, ByNouck, Say It With, See You
+  Memorial, Mitch Jewelry) ya da toptancı/ithalatçı (Euro Bijoux, Opalook, Felizz,
+  Tempest Designs, Avantgarde Firenze, Miss Milly, Boston Exclusives). Üstelik
+  aksesuar satıyorlar, katalogda aksesuar yok. Kod 200'ün hiçbirini tutmuyordu;
+  14'ü blok listesine girdi (`blocklist_test` 530: 'erfurt' şehir, 'breuer' soyad
+  TEK BAŞINA eklenmedi, 'sayitwith' alan adında exact-only).
+- **3. mektup artık 10 ev** (`$W3_WANT` + `$W3_MAX = 10`): operatörün altısı
+  aynı sırayla başta, arkasına Burberry, Dolce & Gabbana, Casablanca, BALMAIN,
+  Givenchy, Fendi. Gucci/Balenciaga gizli (KURAL 36), düşüyor. **Pili Pérez BİLEREK
+  yok:** ev satırı "from stock" diyor, KURAL 38 o ayakkabılar için "stoktan"
+  demeyi yasakladı. Kuru koşu artık görünür katalog sayımını basıyor
+  (`KATALOG MARKALARI`).
+- **ÖN SİPARİŞTEKİ EV "stokta" YAZILMAZ — yakalanan kusur:** Gallery Dept.
+  (31 Eki) ve Casablanca (15 Eki) ön siparişteydi ama mektup "full size runs,
+  from stock" ve konu "now in stock" diyordu. Evin satılmamış ilanlarının hiçbiri
+  stokta değilse (sitenin `vestra_preorder_ship_phrase`'i) satır *"pre-order:
+  dispatch late October 2026"* olur (12 dil, sitenin bas/orta/son ifadesi, ay
+  adları dilin hâliyle: pl dopełniacz, cs genitiv, el γενική, ja 下旬) ve konuya
+  yalnız STOKTAKİ evler girer. Test `wave3_brands_test` 202 (iki sabotaj: 20 ve 1
+  kırmızı).
+- **Üye atlama `=ad` = TAM eşitlik:** "c" ve "ke" adlı hesaplar parça olarak
+  atlanamıyordu (her firmayı elerdi). Kuru koşu 13 atlamanın 13'ünü adıyla
+  bastı: eski 9 + `=c`, `=ke`, `нету` (Rusça "yok"), `mama310107`.
+- **Lead havuzu:** varsayılan `min_brands=2` ile yalnız **3** aday vardı; 1.794
+  lead hiç 2. mektubu almamış. `min_brands=1` → **142** aday, ELLE okundu (KURAL
+  1i) ve **23'ü atlandı** (skip_email_regex + skip_names; ikinci kuru koşu tam bu
+  23'ün düştüğünü, başka hiçbirinin düşmediğini gösterdi): kendi markası (Banana
+  Moon, Payote, TinaR, Yumiko, FeFè, Zumo, KMM & Co., Drm-Lnd, Tatoo, Universe on
+  a T-Shirt, Embla bunader, Krokodil Corso = Sebastiano), zincir (Gorsuch, Tyler's,
+  Sneaker Politics, Social Status), outlet merkezi / monobrand outlet (Vingåkers,
+  Rossignol), dağıtıcı görünümlü (ibizamode = Brands of Ibiza), gelinlik/üniforma
+  (L'elite, De Stafford, Eden Bride, Austin Uniform). **Blok listesine EKLENMEDİLER**
+  (hafızadan, araştırılmadan), yalnız bu koşudan atlandılar.
+  `min_brands=0` havuzu 300'ü aşıyor ama Rains, Armedangels, odlo, Colorful
+  Standard, Anja Gockel, Appelrath-Cüpper gibi markalar/zincirler taşıyor —
+  okunmadan gönderilmez.
+- **Gönderim:** operatör kopyası (fr, 20 foto) → üyeler 50 + 11 = **61** → lead
+  50 + 50 + 19 = **119**. **Toplam 180, hata 0.** Kota 278 → 106 kalan (60
+  ayrılmış). 250'ye **70 eksik**: gerçek 3. mektup havuzu (iki mektubu almış,
+  en az bir premium marka işareti olan) bitti; gerisi ya `min_brands=0` havuzunun
+  elle okunması ya da 1. mektubu almış lead'lere 2. mektup — ikisi de operatör
+  kararı.
