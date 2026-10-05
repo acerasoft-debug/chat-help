@@ -236,5 +236,16 @@ $t('workflow olcut sitenin fonksiyonu', str_contains($wf, "vestra_preorder_ship_
 $t('kuru kosu ON SIPARIS satirini yaziyor', str_contains($wf, 'ON SIPARIS (gonderim'));
 $t('kuru kosu katalog sayimini basiyor', str_contains($wf, 'KATALOG MARKALARI (gorunur, ilan)'));
 
+echo "\n== 10. Uye atlama: '=ad' TAM esitlik ==\n";
+preg_match('/(\$isSkipped = function \(array \$a\) use \(\$skipAcc\): bool \{.*?\n\s*\};)/s', $wf, $mm);
+$t('isSkipped bloku bulundu', isset($mm[1]));
+$skipAcc = ['=c', '=ke', 'нету', 'abc123id'];
+eval($mm[1] ?? '$isSkipped = fn($a) => false;');
+$t("'=c' adi tam 'c' olani atlar",        $isSkipped(['id' => 'x1', 'company' => 'c']));
+$t("'=c' baska firmayi ATLAMAZ",          !$isSkipped(['id' => 'x2', 'company' => 'Comercioagc']));
+$t("'=ke' 'Keine'yi ATLAMAZ",             !$isSkipped(['id' => 'x3', 'company' => 'Keine']));
+$t('kiril parca atlar',                   $isSkipped(['id' => 'x4', 'company' => 'Нету']));
+$t('hesap ID tam esitlik hala calisiyor', $isSkipped(['id' => 'abc123id', 'company' => 'Shop']));
+
 echo "\n---- ".($bad === 0 ? 'HEPSI GECTI' : "{$bad} KIRMIZI")." | ok={$ok} hata={$bad} ----\n";
 exit($bad === 0 ? 0 : 1);

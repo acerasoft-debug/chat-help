@@ -876,6 +876,11 @@ jobs:
                 $co = mb_strtolower((string)($a['company'] ?? ''));
                 foreach ($skipAcc as $s) {
                   $s = mb_strtolower($s);
+                  /* '=ad' = firma adi TAM esitlik (5 Eki 2026). Bir-iki harfli
+                     yer tutucu adlar ("c", "ke") parca olarak verilemiyordu:
+                     'c' adinda c gecen HER firmayi elerdi. Ham hitap
+                     "Hello c," diye acilirdi. */
+                  if ($s !== '' && $s[0] === '=') { if ($co !== '' && trim($co) === trim(mb_substr($s, 1))) return true; continue; }
                   if ($s !== '' && ($id === $s || ($co !== '' && mb_strpos($co, $s) !== false))) return true;
                 }
                 return false;
