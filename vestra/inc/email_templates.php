@@ -3618,7 +3618,8 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
            kareyi anmak, musteriyi onu aramaya yollar). Bos gelirse ev
            yalnizca metinle kalir, uydurma bir foto eklenmez. */
         $himgs = array_values(array_filter(array_map('strval', (array)($h['imgs'] ?? [])), fn($x) => trim($x) !== ''));
-        if ($hn !== '' && $hq > 0) $houses[] = ['name' => $hn, 'n' => $hq, 'note' => $hnote, 'imgs' => $himgs];
+        if ($hn !== '' && $hq > 0) $houses[] = ['name' => $hn, 'n' => $hq, 'note' => $hnote, 'imgs' => $himgs,
+                                                'preorder' => trim((string)($h['preorder'] ?? ''))];
     }
 
     $L = [
@@ -3756,10 +3757,61 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
        bir cumle degil, o yuzden sozluge dokunmadan basiliyor. Konu satirinin
        adi temiz kaliyor -- kisa bir baslikta parantezli bir kod ekleneni
        kalabalik gosterirdi. */
-    $bullets = ''; $shots = [];
+    /* ON SIPARISTEKI EV (5 Eki 2026). Ev satiri "full size runs, FROM STOCK"
+       diyor ve konu "now in stock" -- ama Gallery Dept. (31 Eki) ve
+       Casablanca (15 Eki) artik stokta degil, on sipariste. Onlara "stokta"
+       demek KURAL 3'un mektup hali olurdu: musteri teslim suresini bu
+       satirdan okuyor. Cagiran, evin SATILMAMIS ilanlarinin HICBIRI stokta
+       degilse (hepsinin gelecek bir preorder_ship tarihi varsa) 'preorder'
+       alanina EN GEC tarihi koyar -- en erkeni yazmak, gec gelen ilan icin
+       tutulamayacak bir soz olurdu. Ifade sitenin kendi ifadesi
+       (vestra_preorder_ship_phrase): gun <=10 bas, <=20 orta, aksi son --
+       kesin bir gun vaat etmiyor, urun sayfasiyla ayni sey soyleniyor.
+       Tarih gecmisse ya da okunamiyorsa satir STOK satirina doner (sitenin
+       kendisi de gecmis tarihte susuyor). */
+    $PRE = [
+      'en' => ["%1\$s — %2\$d articles, pre-order: dispatch %3\$s.", ['early %M %Y', 'mid %M %Y', 'late %M %Y'],
+               ['January','February','March','April','May','June','July','August','September','October','November','December']],
+      'de' => ["%1\$s — %2\$d Artikel, Vorbestellung: Versand %3\$s.", ['Anfang %M %Y', 'Mitte %M %Y', 'Ende %M %Y'],
+               ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']],
+      'fr' => ["%1\$s — %2\$d références, en précommande : expédition %3\$s.", ['début %M %Y', 'mi-%M %Y', 'fin %M %Y'],
+               ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre']],
+      'it' => ["%1\$s — %2\$d referenze, in preordine: spedizione a %3\$s.", ['inizio %M %Y', 'metà %M %Y', 'fine %M %Y'],
+               ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre']],
+      'es' => ["%1\$s — %2\$d referencias, en preventa: envío %3\$s.", ['a principios de %M de %Y', 'a mediados de %M de %Y', 'a finales de %M de %Y'],
+               ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']],
+      'nl' => ["%1\$s — %2\$d artikelen, voorverkoop: verzending %3\$s.", ['begin %M %Y', 'midden %M %Y', 'eind %M %Y'],
+               ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december']],
+      'pt' => ["%1\$s — %2\$d referências, em pré-venda: envio %3\$s.", ['no início de %M de %Y', 'em meados de %M de %Y', 'no final de %M de %Y'],
+               ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']],
+      'pl' => ["%1\$s — %2\$d pozycji, przedsprzedaż: wysyłka %3\$s.", ['na początku %M %Y', 'w połowie %M %Y', 'pod koniec %M %Y'],
+               ['stycznia','lutego','marca','kwietnia','maja','czerwca','lipca','sierpnia','września','października','listopada','grudnia']],
+      'cs' => ["%1\$s — %2\$d položek, předprodej: odeslání %3\$s.", ['začátkem %M %Y', 'v polovině %M %Y', 'koncem %M %Y'],
+               ['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince']],
+      'el' => ["%1\$s — %2\$d κωδικοί, προπαραγγελία: αποστολή %3\$s.", ['στις αρχές %M %Y', 'στα μέσα %M %Y', 'στα τέλη %M %Y'],
+               ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου']],
+      'ja' => ["%1\$s — %2\$d型、予約受付中：%3\$s発送予定。", ['%Y年%N月上旬', '%Y年%N月中旬', '%Y年%N月下旬'], []],
+      'ko' => ["%1\$s — %2\$d개 품목, 예약 판매: %3\$s 발송 예정.", ['%Y년 %N월 초순', '%Y년 %N월 중순', '%Y년 %N월 하순'], []],
+    ];
+    $pre = $PRE[$lang] ?? $PRE['en'];
+    $prePhrase = function (string $iso) use ($pre): string {
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', trim($iso), $m)) return '';
+        [$y, $mo, $dd] = [(int)$m[1], (int)$m[2], (int)$m[3]];
+        if ($mo < 1 || $mo > 12 || $dd < 1 || $dd > 31) return '';
+        $tpl = $pre[1][$dd <= 10 ? 0 : ($dd <= 20 ? 1 : 2)];
+        return strtr($tpl, ['%M' => (string)($pre[2][$mo - 1] ?? ''), '%N' => (string)$mo, '%Y' => (string)$y]);
+    };
+
+    $bullets = ''; $shots = []; $inStock = [];
     foreach ($houses as $h) {
         $hname = $h['name'] . (($h['note'] ?? '') !== '' ? ' ('.$h['note'].')' : '');
-        $bullets .= "• ".sprintf($lineHouse, $hname, $h['n'])."\n";
+        $ph = $prePhrase((string)($h['preorder'] ?? ''));
+        if ($ph !== '') {
+            $bullets .= "• ".sprintf($pre[0], $hname, $h['n'], $ph)."\n";
+        } else {
+            $bullets .= "• ".sprintf($lineHouse, $hname, $h['n'])."\n";
+            $inStock[] = $h['name'];
+        }
         /* Fotograf seridi: ev basina asamalanmis kareler, ayni HTML
            gorseli notify.php'nin listing_colours mektubunda zaten kullandigi
            mekanizmadan ('shots' -> uzak <img>, cid ekli degil, boyut siniri
@@ -3777,7 +3829,10 @@ function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $
     /* Konuda EN COK UC ad: dorduncusu cogu istemcide zaten kirpiliyor ve
        kirpilmis bir konu satiri, adini saydigimiz evi yarim gosterir. Govdede
        hepsi yaziyor. */
-    $names = array_map(fn($h) => $h['name'], $houses);
+    /* Konu "now in stock: ..." diyor -- yani konuya yalniz STOKTAKI evler
+       girer; on siparisteki ev govdede kendi satiriyla duruyor. Hicbiri
+       stokta degilse (savunma) eski davranis: butun adlar. */
+    $names = $inStock ?: array_map(fn($h) => $h['name'], $houses);
     $short = implode(', ', array_slice($names, 0, 3));
     $subject = str_replace('%NAMES%', $short, $subject);
 

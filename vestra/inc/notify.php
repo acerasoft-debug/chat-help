@@ -1051,6 +1051,21 @@ function vestra_discover_blocklist(): array {
        perakende) SINIRDA -- eklenmedi, operator karari. */
     'mephisto','ally capellino','james taylor & son','james taylor and son','taylormadeshoes',
     'norbert bottier',
+    /* 5 Eki 2026 -- operatorun verdigi "global fashion accessories wholesale list"
+       (200 satir). 186'si uydurma kalip ("Luna 1 Label", hello@luna1.fr); gercek
+       gorunen 14'un HEPSI arastirilarak dogrulandi ve hepsi TEDARIKCI: kendi
+       markasini ureten (Carbotti 1960, Erfurt, Breuer 1882, ByNouck, Say It With,
+       See You Memorial) ya da toptanci/ithalatci (Euro Bijoux, Opalook, Felizz,
+       Tempest Designs, Avantgarde Firenze, Miss Milly, Boston Exclusives). Kanalda
+       musteri degil, ayni kanalin saticisi; ustelik aksesuar satiyorlar ve
+       katalogda aksesuar yok. Kod 200'un hicbirini tutmuyordu. 'erfurt' (sehir),
+       'breuer' (soyad), 'boston', 'tempest', 'mitch' TEK BASINA eklenmedi;
+       'sayitwith' alan adinda yalniz TAM eslesir (exact-only listesi). */
+    'carbotti','carbottibags','erfurt luxury','erfurtluxury','breuer sas','breuer paris',
+    'miss milly','missmilly','bynouck','by nouck','euro bijoux','eurobijoux',
+    'avantgarde firenze','avantgardefirenze','tempest designs','tempestdesigns',
+    'opalook','felizz','boston exclusives','bostonexclusives','mitch jewelry','mitchjewelry',
+    'see you memorial','seeyoumemorialjewelry','say it with jewellery','sayitwith',
   ];
 }
 /* PARK EDILMIS / SATILIK alan adi: dukkan degil, satis sayfasi.
@@ -1190,6 +1205,9 @@ function vestra_blocklist_exact_only(): array {
              /* 6 harften uzun ama gunluk kelime: alan adinda alt dizi aranirsa
                 "dynamiteboutique.it" gibi gercek bir dukkani elerdi. */
              'dynamite','herschel',
+             /* 5 Eki 2026: 'sayitwith' -> "sayitwithstyle.com" gibi bir butigin
+                alan adinin icinde gecer; yalniz Say It With'in kendi alan adi. */
+             'sayitwith',
              /* 31 Agu 2026 listesinden: kisa ya da baska sozcuklerin icinde
                 gecebilen adlar. 'atmos' -> atmosphere/atmosfera, 'kith' -> kithara,
                 'lemaire' -> kisi soyadi olabilir, 'nepenthes' bitki adi. */

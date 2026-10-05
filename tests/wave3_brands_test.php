@@ -173,10 +173,15 @@ $t('uye capraz damgasi',             str_contains($wf, "'wave3' => 'last_wave3_a
 $t('evler CANLI kayittan sayiliyor', str_contains($wf, 'foreach (vestra_products() as $wp)'));
 $t('eslesme TAM esitlik',            str_contains($wf, 'strcasecmp(trim((string)$b), trim($want)) === 0'));
 $t('eslesmeyen ev DURDURUR',         str_contains($wf, 'KATALOGDA ESLESMEYEN EV'));
-$t('alti ev adiyla, one cikan sirayla', str_contains($wf, "\$W3_WANT = ['Fred Perry', 'Gallery Dept.', 'Lacoste', 'Gucci', 'Balenciaga', 'DSQUARED2'];"));
+/* 5 Eki 2026: "10 marka" -- operatorun ilk alti evi AYNI SIRADA basta kaliyor,
+   arkasina katalogun derin evleri; gorunur ev W3_MAX ile ona kesiliyor. */
+$t('operatorun alti evi basta, ayni sirayla', str_contains($wf, "\$W3_WANT = ['Fred Perry', 'Gallery Dept.', 'Lacoste', 'Gucci', 'Balenciaga', 'DSQUARED2',"));
+$t('gorunur ev tavani 10',           str_contains($wf, '$W3_MAX  = 10;'));
+$t('tavan GORUNUR evi sayiyor (gizli once dusuyor)', strpos($wf, "vestra_brand_is_hidden(\$want)) { \$w3hidden[] = \$want; continue; }") < strpos($wf, 'if (count($houses) >= $W3_MAX)'));
+$t('tavanin disinda kalan ev YAZILIYOR', str_contains($wf, 'mektuba GIRMEYEN ev'));
 $t('Fred Perry not tasiyor',         str_contains($wf, "\$W3_NOTE = ['Fred Perry' => 'M3600, M7535'];"));
 $t('not istenen ada bagli',          str_contains($wf, "(string)(\$W3_NOTE[\$want] ?? '')"));
-$t('facts closure notu ALIYOR',      str_contains($wf, 'function () use ($W3_WANT, $W3_NOTE, $W3_SHOTS, $home): array'));
+$t('facts closure notu ALIYOR',      str_contains($wf, 'function () use ($W3_WANT, $W3_NOTE, $W3_SHOTS, $W3_MAX, $home): array'));
 
 echo "\n== 7b. Fotograf seridi kablolamasi (workflow) ==\n";
 /* Fred Perry'nin tam 2 ilani var (M3600+M7535); tavan da 2 -- marka-ozel bir
@@ -187,12 +192,49 @@ $t('urunler marka basina TOPLANIYOR', str_contains($wf, '$byBrand[$wb][] = $wp;'
 $t('SATILMIS urun foto icin atlaniyor', str_contains($wf, 'vestra_is_sold_out($wp)) continue;'));
 $t('foto DISKTE VAR MI diye dogrulaniyor', str_contains($wf, "is_file(\$home.'/public_html'.\$im)"));
 $t('foto uzak adrese vestrasales.com onekiyle giriyor', str_contains($wf, "'https://vestrasales.com'.\$im;"));
-$t('ev kaydina imgs eklendi',        str_contains($wf, "'note' => (string)(\$W3_NOTE[\$want] ?? ''), 'imgs' => \$imgs];"));
+$t('ev kaydina imgs eklendi',        str_contains($wf, "'note' => (string)(\$W3_NOTE[\$want] ?? ''), 'imgs' => \$imgs,"));
 $t('bulunamayan foto is DURDURMUYOR (mektup yine gider)', !str_contains($wf, "if (!\$imgs) exit(1)") && !str_contains($wf, "if (empty(\$imgs)) exit(1)"));
 /* Uye dalinda gunler icinde ikinci kampanya mektubu: 17 Eyl'de elle yapilmisti. */
 $t('uye: yakin kampanya elemesi',    str_contains($wf, 'baska bir kampanya mektubu aldi'));
 /* 25 girdi siniri: yeni girdi EKLENMEDI. */
 $t('girdi sayisi 25 i asmiyor',      preg_match_all('/^      [a-z_]+:$/m', $wf) <= 25);
+
+echo "\n== 9. On siparisteki ev 'stokta' YAZILMAZ (5 Eki 2026) ==\n";
+/* Gallery Dept. 31 Eki, Casablanca 15 Eki on sipariste. Ev satiri "from stock",
+   konu "now in stock" diyordu -- musteri teslim suresini bu satirdan okuyor. */
+$pf = ['houses' => [
+    ['name' => 'Fred Perry', 'n' => 2, 'note' => 'M3600, M7535', 'imgs' => []],
+    ['name' => 'Gallery Dept.', 'n' => 9, 'imgs' => [], 'preorder' => '2026-10-31'],
+    ['name' => 'Lacoste', 'n' => 12, 'imgs' => []],
+    ['name' => 'Casablanca', 'n' => 14, 'imgs' => [], 'preorder' => '2026-10-15'],
+    ['name' => 'Burberry', 'n' => 40, 'imgs' => []],
+]];
+[$ps, $pb] = vestra_tpl_wave3_brands('en', 'Shop', $pf);
+$t('en: on siparis satiri ay ve donemle', str_contains($pb, 'Gallery Dept. — 9 articles, pre-order: dispatch late October 2026.'));
+$t('en: orta ay donemi',               str_contains($pb, 'Casablanca — 14 articles, pre-order: dispatch mid October 2026.'));
+$t('en: on siparisteki ev "from stock" DEMIYOR', !str_contains($pb, 'Gallery Dept. — 9 articles, full size runs, from stock.'));
+$t('en: stoktaki ev eskisi gibi',      str_contains($pb, 'Lacoste — 12 articles, full size runs, from stock.'));
+$t('konu yalniz STOKTAKI evleri sayar', str_contains($ps, 'now in stock: Fred Perry, Lacoste, Burberry') && !str_contains($ps, 'Gallery'));
+[$dsub, $db] = vestra_tpl_wave3_brands('de', 'Laden', $pf);
+$t('de: Vorbestellung + Ende Oktober', str_contains($db, 'Gallery Dept. — 9 Artikel, Vorbestellung: Versand Ende Oktober 2026.'));
+$t('de: Mitte Oktober',                str_contains($db, 'Versand Mitte Oktober 2026.'));
+[, $plb] = vestra_tpl_wave3_brands('pl', 'Sklep', $pf);
+$t('pl: dopelniacz miesiaca',          str_contains($plb, 'pod koniec października 2026'));
+[, $jab] = vestra_tpl_wave3_brands('ja', '', $pf);
+$t('ja: 下旬',                         str_contains($jab, '2026年10月下旬発送予定'));
+foreach (['en','de','fr','it','es','nl','pt','pl','cs','el','ja','ko'] as $pl) {
+    [, $bb] = vestra_tpl_wave3_brands($pl, 'X', $pf);
+    $t("{$pl}: ham yer tutucu kalmadi", !preg_match('/%[MNY]|%\d\$/', $bb) && str_contains($bb, '2026'));
+}
+[, $bad1] = vestra_tpl_wave3_brands('en', 'X', ['houses' => [['name' => 'Gallery Dept.', 'n' => 9, 'imgs' => [], 'preorder' => '31.10.2026']]]);
+$t('okunamayan tarih -> stok satirina doner (uydurma ay yok)', str_contains($bad1, 'Gallery Dept. — 9 articles, full size runs, from stock.'));
+[$allps] = vestra_tpl_wave3_brands('en', 'X', ['houses' => [['name' => 'Gallery Dept.', 'n' => 9, 'imgs' => [], 'preorder' => '2026-10-31']]]);
+$t('hepsi on sipariste: konu bos kalmaz', str_contains($allps, 'now in stock: Gallery Dept.'));
+/* Kablolama: workflow evin on sipariste oldugunu SITENIN fonksiyonuyla soruyor. */
+$t('workflow preorder alanini veriyor', str_contains($wf, "'preorder' => \$anyStock ? '' : \$preIso"));
+$t('workflow olcut sitenin fonksiyonu', str_contains($wf, "vestra_preorder_ship_phrase(\$wp) !== ''"));
+$t('kuru kosu ON SIPARIS satirini yaziyor', str_contains($wf, 'ON SIPARIS (gonderim'));
+$t('kuru kosu katalog sayimini basiyor', str_contains($wf, 'KATALOG MARKALARI (gorunur, ilan)'));
 
 echo "\n---- ".($bad === 0 ? 'HEPSI GECTI' : "{$bad} KIRMIZI")." | ok={$ok} hata={$bad} ----\n";
 exit($bad === 0 ? 0 : 1);
