@@ -177,6 +177,9 @@ $t('eslesmeyen ev DURDURUR',         str_contains($wf, 'KATALOGDA ESLESMEYEN EV'
    arkasina katalogun derin evleri; gorunur ev W3_MAX ile ona kesiliyor. */
 $t('operatorun alti evi basta, ayni sirayla', str_contains($wf, "\$W3_WANT = ['Fred Perry', 'Gallery Dept.', 'Lacoste', 'Gucci', 'Balenciaga', 'DSQUARED2',"));
 $t('gorunur ev tavani 10',           str_contains($wf, '$W3_MAX  = 10;'));
+/* KURAL 38: Pili Perez ayakkabilari icin "stoktan" denmiyor (ships_from bos);
+   bu mektubun ev satiri "from stock" diyor, yani o ev listede olamaz. */
+$t('Pili Perez listede YOK (stoktan iddiasi)', !preg_match("/\\\$W3_WANT = \\[[^\\]]*Pili P/s", $wf));
 $t('tavan GORUNUR evi sayiyor (gizli once dusuyor)', strpos($wf, "vestra_brand_is_hidden(\$want)) { \$w3hidden[] = \$want; continue; }") < strpos($wf, 'if (count($houses) >= $W3_MAX)'));
 $t('tavanin disinda kalan ev YAZILIYOR', str_contains($wf, 'mektuba GIRMEYEN ev'));
 $t('Fred Perry not tasiyor',         str_contains($wf, "\$W3_NOTE = ['Fred Perry' => 'M3600, M7535'];"));
