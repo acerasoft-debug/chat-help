@@ -9320,6 +9320,185 @@ olarak not düş ilana"*).
   temizlendi) ama *bir sandbox'ın gerçekten izole olduğunu varsaymak yerine
   ölçmek* gerektiğini bir kez daha gösterdi.
 
+**GALLERY DEPT. (31 Ekim) ve CASABLANCA (15 Ekim) — "mal sonra gelecek, siparişleri
+kabul ediyoruz": alan ZATEN vardı; eksik olan YAZAN TARAFIN güvenliğiydi ve operatör
+MARKAYI söylerken dosya bir id LİSTESİ idi** (operatör, 2 Eki 2026: *"Gallery Dept.
+ürünlerine stock giris tarihi ekim sonu yap fakat siparisleri kabul ediyoruz"* →
+hemen ardından *"Casablanca ürünleride 15 ekimde stoga geliyor onuda belirtilanlarda"*).
+- **Yeni mekanizma yazılmadı.** `preorder_ship` (`YYYY-MM-DD`) ürün sayfasına
+  *"Pre-order · Pre-orders are being accepted · dispatch late October 2026."*
+  kutusunu ve bir "Lead time" satırı basıyor (`vestra_preorder_note()`),
+  **siparişi ENGELLEMİYOR** — kapıyı yalnız `sold_out` kapatır; operatörün
+  *"siparişleri kabul ediyoruz"* cümlesinin karşılığı bu — ve tarih geçince
+  **kendiliğinden susuyor**. Cümleyi tarihin GÜNÜ seçiyor: ≤10 *early*, ≤20 *mid*,
+  gerisi *late*. **"Ekim sonu" için 31 seçildi** (ayın son günü): not tarih geçene
+  kadar görünür; 25'i seçmek 25 Ekim'den sonra notu, mal henüz gelmemişken
+  sessizce kaldırırdı. Operatör başka bir gün isterse tek satır (JSON'daki tarih).
+- **Notun metni her dilde İNGİLİZCE:** `Pre-order` etiketi çevriliyor, cümlenin
+  kendisi sözlükte yok (AMI PARIS'te de böyleydi, yeni bir gerileme değil). Dokuz
+  dile anahtar yazmak ayrı bir iş; kendiliğinden yapılmadı.
+- **Notu okuyan yalnız ürün sayfası değil**, ve bu iki marka için bundan sonra
+  şunlar tarihi taşır: (1) `vestra_order_add_line()` var olan siparişe sonradan
+  eklenen kalemin notuna aynı cümleyi yazıyor, (2) `reply_letter=order_invoice_soon`
+  mektubu *"ön sipariş sevk tarihi"* cümlesini ilanın `preorder_ship`'inden okuyor
+  (tarih mektuba gömülü değil). **Mevcut siparişler, kesilmiş faturalar ve gitmiş
+  mektuplar DEĞİŞMEDİ** — ilan alanı onları yeniden yazmıyor.
+- **Eksik olan yazan tarafın güvenliğiydi** (`scripts/set_product.php`; betik
+  `set-product.yml` içinden base64 ile sunucuya gidiyor, yani **deploy gerektirmez**
+  — iki koşu da yeni betikle çalıştı, kuru koşudaki *MARKA KAPSAMI* satırı kanıt):
+  1. *Doğrulama yalnız BİÇİME bakıyordu:* `2026-13-45` regex'ten geçiyor,
+     `strtotime` false dönüyor ve not **sessizce** susuyordu; `2026-02-31`
+     3 Mart'a kayıyordu. `checkdate` eklendi — `2026-13-45`, `2026-02-31`,
+     `2027-02-29`, `31/10/2026`, `2026-10-3`, `yakinda` reddediliyor,
+     `2028-02-29` kabul.
+  2. *Kuru koşu sayfanın CÜMLESİNİ basıyor:* genel dal yalnız
+     `preorder_ship '(yok)' -> '2026-10-31'` yazıyordu; artık sayfanın çağırdığı
+     **aynı** `vestra_preorder_note()`'un cümlesini basıyor ve uyarıyor — geçmiş
+     tarih (sayfa hiç not basmaz), SATILDI ilan (not görünür ama sipariş
+     alınamaz), onay bekleyen/reddedilmiş ilan (katalogda görünmüyor); fonksiyon
+     sunucuda yoksa (kod eski) bunu da yazıyor.
+  3. **MARKA KAPSAMI satırı.** Operatör MARKAYI söylüyor (*"Gallery Dept.
+     ürünleri"*, *"Casablanca ürünleri"*), dosya ise bir id LİSTESİ ve parti dosyası
+     canlı kaydın aynası DEĞİL (Lacoste ve D&G'de kayıtlı ders). Listede olmayan
+     bir kardeş (sonradan eklenen, onay bekleyen, reddedilmiş) **sessizce eski
+     durumunda** kalırdı. Kuru koşu ve uygulama çıktısı dokunulan her markanın
+     **ham listedeki (her durum)** bütün ilanlarını sayıyor ve dosyada OLMAYANLARI
+     adıyla + durumuyla yazıyor, ya da *"markanın TÜM N ilanı bu dosyada"* diyor.
+     Eşleşme marka adında TAM (büyük/küçük harf ve baş/son boşluk hoşgörülü —
+     mango/zara dersi); görünen ad ilk dokunulan ilanın yazımı. Yalnız okur.
+- **Canlı (2 Eki 2026), iki yön de ölçüldü:**
+
+  | | Gallery Dept. | Casablanca |
+  |---|---|---|
+  | tarih | 2026-10-31 → *late October 2026* | 2026-10-15 → *mid October 2026* |
+  | marka kapsamı | TÜM **9** ilan dosyada | TÜM **27** ilan dosyada |
+  | önceki tarih | yok (9/9) | yok (27/27) |
+  | uyarı (satıldı / onay bekleyen / geçmiş tarih) | 0 | 0 |
+  | kuru koşu | `36985983700` (08:46 UTC) | `36987799398` (09:05 UTC) |
+  | uygulama | `36986546248` (08:52 UTC) — `KAYDEDILDI — 9 alan guncellendi`, yedek `listings.json.bak-20261002-085257` | `36988378049` (09:11 UTC) — `KAYDEDILDI — 27 alan guncellendi`, yedek `listings.json.bak-20261002-091210` |
+
+  Casablanca dosyası 9 Gallery satırını **bilerek TEKRAR ediyor** (31 Ekim): kuru
+  koşuda ve uygulamada *"(zaten istenen durumda)"* = 08:52'de yazılan değerlerin
+  **sunucudan geri okunması**; uygulamada no-op (yazılan **27**, 36 değil).
+- **GERİ OKUMA** (ikinci kuru koşu, aynı dosya; `37013033298`, 2 Eki 13:27 UTC — yani
+  sunucudan, yazma mesajından değil): **36 satırın 36'sı** *"(zaten istenen durumda)"*,
+  *"degisecek alan: 0"*, *"MARKA KAPSAMI: Casablanca -- markanın TÜM 27 ilanı bu dosyada"*
+  ve *"Gallery Dept. -- markanın TÜM 9 ilanı bu dosyada"*. Aradan geçen sürede (13:15)
+  aynı dokuz Gallery ilanının **`sizes` alanı değişti** (aşağıdaki madde) ve ön sipariş
+  tarihi o yazmadan **etkilenmedi** — iki alan ayrı, oku-değiştir-yaz birbirini ezmedi.
+- **Numune kutusu ↔ ön sipariş (açık nokta):** ürün sayfası numune kutusunu
+  (`vestra_sample_price($p) > 0`) ön sipariş notundan BAĞIMSIZ çiziyor
+  (`product.php` 242 ↔ 651). AMI PARIS'te operatör bunu bilinçli kapatmıştı
+  (`products.php`'deki yorum: *"elde olmayan malı 'hemen' satan bir düğme,
+  mektuptaki yanlış tarihle aynı sınıf hata"*). Bu 36 ilanda **ÖLÇÜLDÜ** (`inspect-products`,
+  Gallery Dept. 13:00 + 13:21 UTC, Casablanca `37013703266` 13:33 UTC): **numune=yok 36/36** —
+  hiçbirinde `sample_price` yok, yani *"şimdi tek parça gönder"* diyen bir düğme ön sipariş
+  notunun yanında durmuyor ve AMI PARIS emsali bu iki marka için tetiklenmiyor.
+  Casablanca'nın 27 ilanı ayrıca `status=approved`, `teklif=ACIK` (`mode=sale`) ve MOQ 20:
+  teklif kutusu açık kalıyor, ön sipariş notu teklifi engellemiyor (bilinçli: kapıyı yalnız
+  `sold_out` kapatır).
+- **Operatör kararı bekleyenler:** (1) **Casablanca siparişleri — `order_audit`, 2 Eki
+  13:45 UTC, `37015076921`; bu maddenin ilk yazımı "iki açık sipariş" diyordu ve YANLIŞTI,
+  ölçüm düzeltti:** `VES-60594A18` (Easyauto24, Tennis Club Icon White, INV-2026-1016,
+  €520) **açık DEĞİL** — ödeme gelmediği için 30 Eyl 14:00'te **otomatik iptal** edildi
+  (iptal mektubu delivered + opened + clicks); `VES-8D231E8D` (Ash Vintage, CASAWAY-WHITE,
+  INV-2026-1005, €715) **ÖDENDİ** (1 Eki; *payment received* mektubu opened) — yani ön
+  sipariş tarihinin değdiği tek canlı Casablanca siparişi o. İkisi de tarih alanından ÖNCE
+  yazıldı; faturaları ve gitmiş mektupları (fatura bağlantısı, PDF, hatırlatma, ödeme
+  alındı) *"15 Ekim"* demiyor — şablonlarında tarih yok. Ash Vintage'e bunun yazışmada
+  söylenip söylenmediği **okunmadı**; gitmediyse haber verilsin mi? Karar operatörün.
+  Dikkat: `order_invoice_soon` (*"faturanız yakında"*, VES-6B53D265'in dersi) ödenmiş
+  siparişe uymaz; serbest metinli `order_note` (`lang`/`nogreet`) uyar ve KURAL 18'e göre
+  önce `send=false` önizlenir. (2) Not metni İngilizce; dokuz dil istenirse ayrı iş. (3)
+  "Ekim sonu" yerine başka bir gün istenirse tek satır.
+- **Test:** `tests/set_product_preorder_test.php` (**50 iddia**; betik kum
+  havuzunda GERÇEKTEN koşuyor, tarihler **bugünden türetiliyor** — sabit bir tarih
+  bir gün geçmişe düşer ve bütün "gelecek" iddiaları sessizce yanlış olurdu;
+  kontrol grubu başka marka, geçmiş tarihli kardeş, satılmış/onay bekleyen/reddedilmiş
+  kardeşler). İki tur sabotaj, her biri **tam 1 eşleşmeyle uygulanıp** `cp`
+  yedeğinden geri alınarak: ilk tur **7/7 kırmızı** (2/6/1/1/1/3/5), MARKA KAPSAMI
+  için **6/6** (6/4/4/2/2/4).
+  *Kendi hatalarım, ikisi de testte yakalandı:* (a) bir iddia
+  `$x ?? '(yok)' === '(yok)' || …` yazıyordu — `??`, `===`'ten daha DÜŞÜK
+  öncelikli, ifade hiçbir zaman yanlış olamazdı (hiç düşemeyen iddia); `!isset(…)`'e
+  çevrildi, ayrıca hiçbir şey ölçmeyen bir iddia kaldırıldı. (b) MARKA KAPSAMI'nın
+  görünen adı SON dokunulan ilanın yazımından geliyordu ve küçük harfli bir kardeş
+  (`gallery dept.`, reddedilmiş) *"Gallery Dept."* yazımını eziyordu — iki kırmızı
+  iddia **gevşetilmedi, kod düzeltildi** (ilk yazım kalıyor).
+  `sold_out_test.php` §5'in iddiası eski hata MESAJININ yazımını pinliyordu;
+  doğrulama sıkılaşınca yalnız cümle değiştiği için kırmızı döndü — doğrulamanın
+  **varlığına** bağlandı (davranış artık yeni testte koşuyor). Tam takım
+  (`3af543a` üstünde, 2 Eki 09:19 UTC): **136 dosya geçti**, kalan üçü önceden
+  kayıtlı kırıklar (`dropship_plan`, `msg_read_receipt`, `msg_thread_label`).
+- **Deploy notu:** `2942cdb`'nin deploy'u başarılı, `117cbeb`'ninki (`1477`)
+  `ssh: connect … Connection timed out` ile düştü — sunucuda hiçbir şey çalışmadı;
+  aynı dalda çalışan diğer oturumun sonraki push'u (`3af543a`, `1478`, 09:13 UTC)
+  sunucuyu yeniden eşitledi ve başarılı, yani sunucu bugün `117cbeb`'yi de içeriyor.
+
+**GALLERY DEPT. beden serisi 1-3-3-2-1 → 2-3-3-2: XXL seriden çıktı** (operatör,
+2 Eki 2026, ön sipariş tarihinin hemen ardından: *"Gallery DPT. Nin bedenlerini 2×S,
+3×M, 3×L, 2×XL Böyle yap"*).
+
+- **Kapsam MARKA ve bu söylenerek uygulandı:** cümle bir ürün değil markayı adlandırıyor.
+  Dokuz ilanın dokuzu: sekiz tişört + fermuarlı hoodie (`gd-h01`). Hoodie ayrı bir
+  kategori ama marka cümlesi kategori ayrımı yapmadı; operatör hoodie'nin eski eğride
+  kalmasını isterse tek satır (`gd-h01`'i eski dizgeyle geri yazmak).
+- **Seri geçerli:** 2+3+3+2 = **10**. Karton 10, MOQ 20 (2 karton) ve `size_step` 10
+  aynen tutuyor; fiyat, kademe, ön sipariş tarihi, görsel, durum **kımıldamadı**
+  (geri okumada 59,90 / 61,90 / 64 / 145, MOQ 20, adım 10, `approved`). Değişen yalnız
+  XXL'nin çıkması ve S'nin 1'den 2'ye çıkması: alıcı bu ilanlarda artık XXL alamıyor.
+  Sepette beden seçici hiç yok (karışım ilanın kendisinde — `beden secici=YOK`), yani
+  XXL seçilebilir bir seçenek olarak değil, serinin bir parçası olarak kalkıyor.
+- **ÖNCE canlıdan ölçüldü, parti dosyasından değil** (`inspect-products`,
+  `brand=Gallery Dept.`, 13:00 UTC): dokuz ilanın dokuzunda
+  `sizes = S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack`. **`desc` seri TAŞIMIYOR**
+  (parti metni *"Mixed-size carton assortment"*; `fit_scan`: açıklama ↔ beden çelişkisi
+  **0**), yani bu ilanlarda olgu **tek yerde** yazılı ve yalnız `sizes` değişti.
+  Balenciaga (9 Eyl), NBB (10 Eyl) ve Lacoste (18 Eyl) dersleri bu yüzden sorulmuştu;
+  bu sefer cevap "yok". *Bu bir çıkarımdı ve değişiklikten SONRA ölçüldü:* `desc`'te
+  eski seri olsaydı artık çelişirdi — `fit_scan` yeniden koştu, çelişki **0**.
+- **Yazım katalogun kendi biçimi:** `S×2` (harf×adet, orta nokta ayırıcı), paket eki
+  `10 pcs/pack` AYNEN. `VESTRA_SIZE_PACK_RE` yalnız tanıdığı yazımı paket eki sayıyor;
+  başka bir yazım `10`'u sessizce BEDEN yapardı (KURAL 21b'nin `3/pack` tuzağı).
+  Operatörün *"2×S"* yazımı sitenin biçimine (`S×2`) çevrildi.
+- **Sitenin KENDİ ayrıştırıcıları yeni dizgeyle yerelde koşturuldu** (kaynak okumak
+  ölçüm değil): `vestra_pack_size` **10**, `vestra_size_options` **[S, M, L, XL]**
+  (eskiden …XXL), `vestra_listing_size_run(20)` = **S×4 · M×6 · L×6 · XL×4** (eskiden
+  S×2 · M×6 · L×6 · XL×4 · XXL×2), 15 adet kartona bölünmüyor → boş (değişmedi),
+  `vestra_sizes_selectable` boş (değişmedi). Yani bundan sonra elle yazılan bir Gallery
+  siparişinin beden dökümü (`order_write`, `order_replace_line`) yeni seriden çıkar.
+- **Koşular (sırayla, 5–6 dk arayla — barındırıcı ardışık SSH'yi kesiyor):**
+  kuru koşu `37011050473` (13:09 UTC) → *"degisecek alan: 9"*, *"markanın TÜM 9 ilanı bu
+  dosyada"*; uygulama `37011730074` (13:15 UTC) → *"KAYDEDILDI — 9 alan guncellendi"*,
+  yedek `listings.json.bak-20261002-131510`; geri okuma `37012378904` (13:21 UTC,
+  `inspect-products` + `fit_scan`): dokuz ilanın dokuzunda yeni dizge, kalan alanlar aynı,
+  çelişki **0**. Dosya: `product-fixes/gallery-dept-sizes.json`.
+- **"Bu olgu başka nerede yazılı?" (soruldu):** (1) `desc` — yazmıyor (yukarıda); (2)
+  fiyat listesi, Excel, PDF, sipariş özeti ve ürün sayfası beden satırı **canlı ilandan**
+  üretiliyor, değişiklik kendiliğinden yansıyor; (3) **geçmiş siparişler ve kesilmiş
+  fatura değişmedi** — `diag-live` → `find_ref=vs-gd` (13:39 UTC): Gallery SKU'larına
+  bağlı **tek** kayıt sipariş `VES-2DDC94D9` (JEDDI & CO / BE, 20 × `VS-GD-T04` @ €59,90,
+  2 Eki 07:58 UTC); teklif 0, numune 0. `order_audit` (13:45 UTC): o siparişin faturası
+  artık KESİLMİŞ — `INV-2026-1024`, €1.158,10, kesen VESTRA, **09:21 UTC'de panelden**
+  (KURAL 43'ün "kesilmedi" notu o saatten önceydi), bağlantı mektubu delivered + opened;
+  ödeme yok, saat `unstamped` (14:00 UTC cron'u `payment_due`'yu gönderip 5 iş günlük
+  saati başlatacak). Siparişin notu yalnız **renk** kırılımını taşıyor (`Navy/White,
+  White/Navy`), beden dökümü YOK; sipariş ekranlarının beden satırı sipariş notundan
+  okunuyor (`orders.php:177`), `invoice.php` `sizes` alanını hiç okumuyor (arandı) — yani
+  değişiklik o siparişin kayıtlı ya da çizilen hiçbir rakamını kımıldatmadı, yeniden çizim
+  de kımıldatmaz. Gerçek hayattaki sonucu: 20 adet = 2 karton, yeni seride S×4 · M×6 · L×6
+  · XL×4 (eskiden S×2 · M×6 · L×6 · XL×4 · XXL×2); koli hangi dökümle hazırlanıyorsa onu
+  operatör bilir, kod yazmaz; (4) otomatik günlük yazı (KURAL 13) bedenleri ilandan
+  toplayıp *"Sizes S, M, L, XL, XXL."* basıyor: Gallery Dept.'i duyuran bir yazı
+  yayımlandıysa o yazı **o günün** durumunu yazar ve geri yazılmaz — **ÖLÇÜLMEDİ**
+  (`cron_probe` yalnız son 5 otomatik yazının slug'ını verir, gövdesini okumaz); böyle bir
+  yazı varsa `journal-seed.yml` → `rebuild_auto=true` + `rebuild_slug=<slug>` (varsayılan
+  kuru koşu) aynı kurucuyla bugünün verisinden yeniden kurar. Operatör istemedi,
+  kendiliğinden yapılmadı.
+- Test yazılmadı: davranış değişmedi, bir veri düzeltmesi; beden ayrıştırıcılarının
+  kendi testleri (`size_pick_test`, `order_wholesale_sample_test`, `order_replace_line_test`)
+  aynı fonksiyonlardan geçiyor.
+
 **22 Eyl 2026 — VES-1A68FCD1'e AMI Paris Polo eklendi; KODDA "var olan siparişe
 sonradan yeni kalem ekleme" diye bir yol HİÇ yoktu.** Operatör, iki ayrı mesajda:
 *"Black x 20 , White x10 , Navy 20 , Grey 10"* → *"bu siparisi bu siparise ekle
@@ -10174,6 +10353,110 @@ dosyaya yazılmaz).
     doğrulanarak). `order_audit_test` 33 → **39**: iki iddia eski tarih satırını
     **birebir** pinliyordu (olguya bağlandı, sabotajda yine kırmızı) + konu türü
     iddiaları (Fransızca regex silinince 2 kırmızı).
+
+**KURAL 28 (devamı) — LA ISLA DE MIRABEL / O7BA9A / INV-2026-1021: operatörün
+İSPANYOLCA metni SİTE MESAJI olarak gitmişti, E-POSTA olarak istendi; `order_note`
+artık es/fr/de ve hitapsız yazabiliyor** (operatör, 1 Eki 2026 20:13 UTC, İspanyolca
+bir mektup metni yapıştırıp: *"bu emaili vertradan email ile gönderecektin mesaj
+ile degil"*).
+
+- **Hangi sipariş, kayıttan ölçüldü (`order_audit`, 2 Eki 07:33 UTC):** INV-2026-1021 =
+  teklif **O7BA9A**, alıcı **LA ISLA DE MIRABEL SL** (ES, hesap `1ec02a5935275dd6`),
+  80 × DH1417 @ €31 (Black ×40, Blue ×40) + €30 kargo = **€2.510,00**, kesen VESTRA.
+  Ödenmemiş, dekont yok, ödeme saati açık (son gün **8 Eki**), hatırlatma 1 Eki
+  14:00 UTC'de gitmiş; teklif mektubu, fatura bağlantısı, PDF'li fatura ve
+  hatırlatmanın hepsi Brevo'da `delivered` + `opened`. Metindeki *"Fred Perry …
+  pedido anterior"* cümlesi **VES-A11C0C97** ile tutuyor (104 × TH6710 + 60 × M7535 +
+  100 × M3600, €7.465,62, kısmi gönderim 29 Eyl).
+- **Metin zaten bir kez gitmişti — SİTE MESAJI olarak** (`thread_dump`, şifreli, yerelde
+  çözüldü + Brevo): 1 Eki **19:48:10 UTC** operatör gelen kutusuna *"💬 VESTRA message —
+  GARAGE LE PARIS (listing lac-monogram-polo)"* düştü; alıcıya yalnız **içeriksiz**
+  zil gitti (*"nuevo mensaje de Seller DH1417"*, 19:48:11 delivered, 19:49:41
+  **opened**) — KURAL 8: satıcı ident'le görünür, **içerik sitede kalır**. Yani
+  operatörün şikâyeti doğru: konuşmaya yazılan şey müşterinin posta kutusuna metin
+  olarak **hiç ulaşmaz**. 20:18'de iplikte yalnız teklif kartı vardı (mesaj
+  silinmiş; kim sildiği kayıtta yok, büyük olasılıkla panelin 🗑'sü). Gönderen bu
+  oturumun kaydında yok — o dakikalarda bu oturum bağlam özetliyordu; aynı dalda
+  çalışan diğer oturumun `msg_reply`'ı olması muhtemel, **doğrulanmadı**.
+  *Ders:* operatör **"email"** derse `msg_reply` değil mektup kipi (`order_note` ya da
+  uyan başka `reply_letter`); `msg_reply` yalnız **"mesaj"** denince.
+- **Kodda neden değişiklik gerekti:** `vestra_tpl_order_note()` İngilizce *"Dear … /
+  Kind regards"* kabuğu giyiyordu; operatörün metni kendi *"Hola,"*sıyla başladığı
+  için sonuç **çift hitap + karma dil** olurdu, ve metin İspanyolca olduğu hâlde
+  düğme/rozet/imza satırı İngilizce kalırdı. Şimdi `$lang` (en|fr|de|es) ve `$greet`:
+  rozet, düğme, konu, kapanış ve hitap seçilen dilde; `nogreet=1` metni **olduğu
+  gibi** başlatır. **Varsayılan (en) davranış BİREBİR AYNI** — eski fonksiyon ile 480
+  kombinasyon (5 ad × 2 sipariş no × 4 metin × 2 konu × hesap var/yok × 3 imza) bayt
+  bayt karşılaştırıldı; açık `en` + hitap ve **tanınmayan dil** de aynı baytı veriyor.
+  Yani var olan `order_note` kullanımları değişmedi.
+- **İş akışı** (`send-campaign-preview.yml`, `order_note` dalı): `lang=` ve
+  `nogreet=1` spec anahtarları. **Tanınmayan dil DURUR** (`lang=pt` sessizce
+  İngilizceye düşmez). **Çift hitap uyarısı:** metin bir hitapla başlıyorsa ve
+  `nogreet` verilmemişse önizleme *"UYARI … çift hitap"* basıyor — operatörün
+  metnini bozmadan ama **göstererek**. Dedektör kelime sınırlı (`\b`): *Holanda,
+  Hindi, Hiking boots, Dearest, Estimation* hitap sayılmaz (mango/zara dersinin
+  hitap hâli).
+- **Önizleme (KURAL 18) operatörün kutusunda:** `copy=true`, 1 Eki 20:29:25 UTC,
+  *"MUSTERIYE GITMEDI"*. İçerik operatörün metninin **birebir 4 paragrafı**
+  (`\n` literal dizisiyle), *"Un cordial saludo,"*, Marco Bellini, konu *"VESTRA — su
+  pedido O7BA9A está listo para el envío (factura INV-2026-1021)"*. Günlük metni
+  basmıyor, yalnız uzunluk (738 karakter / gövde 798).
+- **İlk rapor GÖNDERMEDİ, sebepleri ölçülmüştü:** (1) *"gönderecektin"* geçmiş zaman —
+  şimdi mi gitsin sorusunu açık bırakıyor; (2) metin *"el pedido de hoy"* diyor ve
+  üstünden 11 saat geçti; (3) *"las últimas 100 unidades"* **operatörün kendi
+  beyanı** — `lac-monogram-polo` kaydında `stock` alanı **yok** (MOQ 80, kademe €35,
+  Black/Blue, approved, satılmamış), kodla doğrulanamıyor ve KURAL 3 stok rakamı
+  uydurmayı yasaklıyor; (4) alıcı metni sitede zaten okumuş olabilir. Hedef ve
+  *"gönder"* aynı mesajda **açıkça** yazılmadığı için KURAL 18'in dar istisnası
+  uygulanmadı ve operatöre sorulacak şekilde bırakıldı.
+- **GÖNDERİLDİ (2 Eki 2026 08:20:32 UTC), operatörün "gönder"inden SONRA** (operatör,
+  08:09:12 UTC: *"gönderdinmi e postalari gönder"*; yukarıdaki dört çekince rapora
+  yazılmıştı ve o yine de gönder dedi, **metin değiştirilmedi**). Onayın gerçek bir
+  operatör mesajı olduğu transkriptten doğrulandı (bir arka plan bildirimi onay
+  değildir). Göndermeden hemen önce `order_audit` (08:12 UTC): O7BA9A hâlâ ödenmemiş,
+  dekont yok, saat işliyor (son gün 8 Eki), Brevo'da bu konuyla ikinci mektup yok.
+  - **İlk deneme DÜŞTÜ ve hiçbir şey göndermedi:** koşu `36982785627`,
+    `dial tcp …: i/o timeout`. Adım listesi kanıt: `betik 1/2` **failure**,
+    `betik 2/2 + çalıştır` **skipped** — PHP hiç koşmadı. Denemeyle bir önceki
+    başarılı SSH (`order_audit`, 08:12:06) arasında **~1 dakika** vardı; barındırıcı
+    ardışık bağlantıyı kesiyor (KURAL 38'de kayıtlı). Yeniden deneme çift gönderim
+    riski taşımıyordu *çünkü bu kanıt vardı* — yalnız "failure" kelimesi yetmezdi.
+    ~6,5 dk arayla ikinci deneme geçti.
+  - **Parmak izi önizlemeyle birebir:** metin **738**, gövde **798** karakter, dil es,
+    `nogreet`, imza Marco Bellini, konu *"VESTRA — su pedido O7BA9A está listo para el
+    envío (factura INV-2026-1021)"* → `GONDERILDI -> l***@gmail.com` (koşu
+    `36983454544`). Brevo (08:33 `order_audit`): **`requests` + `delivered`**; `opened`
+    henüz yok (teslim ≠ posta kutusu, açılma yokluğu da kanıt değil).
+- Test: `tests/order_note_lang_test.php` (**70 iddia**; §1 eski İngilizce davranış
+  **harfiyen** pinli, §2 İspanyolca hitapsız/hitaplı, §2c fr/de, §2d diller arası
+  sızıntı yok, §3 iş akışı kablolaması kaynaktan çıkarılıp, §3b hitap dedektörü
+  kaynaktan **çıkarılıp 14 pozitif + 10 negatif örnekle koşturuluyor**). Dokuz
+  sabotajın dokuzu kırmızı, her biri tek eşleşmeyle uygulandığı doğrulanarak ve `cp`
+  yedeğinden geri alınarak: varsayılan dil es olunca **5**, `$greet` yok sayılınca
+  **2**, es kapanışı İngilizce kalınca **3**, es düğmesi İngilizce kalınca **2**,
+  `lang`/`greet` çağrıya geçmeyince **1**, tanınmayan dil durmayınca **1**, uyarı
+  silinince **1**, `nogreet` ters çevrilince **1**, dedektör `\b`'siz **5**.
+  Rebase sonrası tam takım: **129 geçti**, yalnız önceden kayıtlı üç kırık
+  (`dropship_plan` 4, `msg_read_receipt` 1, `msg_thread_label` 10).
+  **Kendi hatam:** "tanınmayan dil durur" iddiasının ilk regex'i `[^}]*` ile yazılmıştı
+  ve mesaj metnindeki `{$onLang}`'ın kapanış parantezinde bitip hiçbir yere uymadı
+  (`[^\n]*?` ile düzeldi) — hiç düşemeyen bir iddia olacaktı.
+- **Ecokemet — PDF'li fatura e-postası GÖNDERİLDİ (2 Eki 2026 08:26:33 UTC), Fransızca
+  site mesajı BEKLİYOR.** Operatörün *"e postalari gönder"* cümlesi iki **e-postayı**
+  (LA ISLA + Ecokemet PDF'li fatura) kapsıyor. Fransızca parça bir **site mesajı** ve
+  *"email → mektup kipi, mesaj → msg_reply"* ayrımı bu bölümün kendi dersi (yukarı):
+  ikisi arasında kendiliğinden köprü kurulmadı, ayrı onay bekliyor (KURAL 18).
+  - `order_invoice_pdf` (koşu `36984009355`): ödeme saati `unstamped` → mektuba tarih
+    yazılmadı; belge INV-2026-1022 (günlükte `INV-2026-10***`), PDF **23.238 bayt**
+    (1 Eki 16:19 UTC çizimi, satır yüksekliği düzeltmesinden sonraki), `kayıt: son
+    değişiklik yok`, toplam **EUR 2.764,60** (sipariş satırıyla aynı), ek
+    `Invoice-INV-2026-1022.pdf`, gövde 413 karakter, imza Marco Bellini →
+    `GONDERILDI -> l***@hotmail.fr`. Brevo (08:33): **`requests` + `delivered`**.
+  - Müşteri bugün **iki** mektup alacak: bu PDF'li fatura ve **14:00 UTC'de**
+    `cron_order_payment`'ın standart `payment_due`'su (faz `unstamped`; 5 iş günlük saati
+    o başlatır). PDF'li mektup saat BAŞLATMAZ.
+  - Fransızca site mesajı PDF'in e-postayla gittiğini söylüyor, yani artık gönderilebilir
+    hâlde (`msg_reply`; sipariş dökümü 11 kalem, 71 parça, 2.764,60 €). Gönderilmedi.
 
 **24 Eyl 2026 — G7JV9-1 (D&G Logo T-Shirt): kayıt "White" diyordu, fotoğraf
 KIRMIZI — düzeltildi** (operatör, ilanın kendi sayfasından pasteledi:
@@ -11551,3 +11834,203 @@ ayakkabici olabilir"*).
   gösterdi. **Jetonla ayrılamayanlar:** `c` (PL) ve `ke` (PT, onay bekliyor) — bir
   iki harfli ad herkesin alt dizesi; hesap ID'siyle atlanabilir, operatör isterse.
   **Easyauto24** listede (açık fatura INV-2026-1016, 30 Eyl son gün); karar operatörün.
+
+**KURAL 44 — SATICI HESABINI SİLMEK: panelin Delete'i yedeksizdi ve yarı kördü; "Devret + sil"
+sırası, TEK silme fonksiyonu ve ALICI TARAFI bağları** (operatör, 3 Eki 2026: *"Tyrex Internatioal
+BV yi saticilardan sil"* → soru → **"Devret + sil"**, hedef satıcı **Marca Online**).
+
+- **Önce ÖLÇÜLDÜ, silinmedi** (`seller_footprint`, salt okunur; 3 Eki 09:20 ve 16:31 UTC).
+  TYREX INTERNATIONAL BV. (NL, seller/active/kyb approved; Stripe VAR, IBAN VAR, 1 belge
+  dosyası): **26 ilan** (hepsi approved), **4 faturalı sipariş** (dördünün faturası VESTRA
+  kesen; satır satıcısı ilandan CANLI çözülüyor), **11 konuşma / 53 mesaj / 21'i TYREX'in
+  yazdığı**, **1 açık numune**; teklif 0, kesen-seçimi 0, diskte fatura 0, istek teklifi 0.
+- **Panelin eski `Delete`'i iki ayrı yerde yetersizdi:** (1) kapısı yalnız `orders.csv`'ye
+  bakıyordu — teklif, konuşma, numune, kesen-seçimi ve diskteki fatura **görünmüyordu**;
+  (2) ilanları `vestra_save_listings()` ile **yedeksiz** siliyordu (o fonksiyon yedek almaz).
+  TYREX'te kapı 4 faturalı sipariş yüzünden zaten ENGELLİYORDU; bir siparişi olmayan satıcıda
+  ise ilanlar ve konuşmalar tek tıkla, geri dönüşsüz giderdi.
+- **TEK fonksiyon:** `vestra_account_delete($uid, $apply, $strict)` (`vestra/inc/account_delete.php`).
+  Panelin Delete'i (`strict=false`) ve `seller-products.yml` → `admin_mode=seller_delete`
+  (`strict=true`) **aynı kodu** çağırır; kapı panelin eski satır içi kapısıyla **birebir**
+  (faturalı → engel, açık → engel, alıcı tarafı da) — testte iki kaynağın jetonları eşleştiriliyor.
+  - **Yedekler silmeden ÖNCE ve doğrulanarak:** `accounts.json.bak.<zaman>`,
+    `deleted-accounts/<uid>-<zaman>.json` (decode + id eşleşmesi), ilan silinecekse
+    `listings.json.bak-del-<zaman>`. Biri alınamazsa **hiçbir şey silinmez** (panel
+    `acct_backup_failed` der).
+  - **Tekillik:** silmeden önce "kalan hesap sayısı = önceki − 1" kontrolü (aynı id'li iki kayıt
+    varsa ikisi birden giderdi); yedeklerden **önce** bakılıyor, yoksa reddedilen bir silme
+    arkasında yedek bırakırdı. Yazma **geri okunuyor** (`hesap kayitta YOK`, `hesap sayisi N -> N-1`).
+  - **STRICT (yalnız iş akışı):** hesap ilan / konuşma (satıcı **ya da alıcı**) / numune (satıcı ya
+    da alıcı) / teklif (SKU kümesiyle) / kesen-seçimi / diskte kesilmiş fatura taşıyorsa
+    **silmez** ve neyin kaldığını sayar. Panel strict değil: o davranışı kendiliğinden
+    değiştirmek paneli kullanan her akışı değiştirirdi — karar operatörün.
+  - Kendi bağımlılıklarını **kendisi** yükler (KURAL 15); testte yalnız bu dosyayı yükleyen ayrı bir
+    PHP süreci var.
+  - `seller_delete` varsayılan **kuru koşu**; yalnız `type=seller`; yalnız **TAM** hesap id'si;
+    e-posta ve banka çıktıya girmez.
+- **SIRA ve NEDEN:** önce **devir**, sonra konuşma, sonra numune, en son silme. Kapının
+  "faturalı sipariş" saydığı şey siparişin **satır satıcısı** (ilandan canlı çözülür): 26 ilanın
+  `seller_uid`'i Marca Online'a yazılınca 4 sipariş TYREX'e bağlı olmaktan çıktı ve kapı
+  **gevşetilmeden** GEÇTİ. Faturalar zaten VESTRA adına kesilmişti; hiçbiri değişmedi.
+  - **Devir:** `product-fixes/tyrex-to-marca-online.json` (26 satır, `expect:1`, **yalnız**
+    `seller_uid`), `set-product.yml` kuru koşu → uygula (run `37136389846`, 16:19 UTC,
+    *"KAYDEDILDI — 26 alan"*, yedek `listings.json.bak-20261003-161907`). Fiyat, durum, foto, SKU,
+    beden, kademe, ön sipariş **dokunulmadı**.
+  - **Görünen `seller` adı kontrol edildi, YAZILMADI:** admin.php'nin TYREX yolları ilana
+    `seller: 'Tyrex International BV'` yazabiliyor (satır 805/986/1057) ve ürün sayfası ile katalog
+    PDF/CSV/API o alanı basıyor. Kuru koşu (`set-product`, `seller` alanına probe) 26 ilanın
+    **26'sında da `seller` alanının olmadığını** gösterdi → hiçbir sayfada TYREX adı yoktu,
+    ürün sayfasında Satıcı satırı da yok. Probe'u uygulamak **yeni bir görünür satıcı adı
+    eklerdi** (operatörün istemediği bir değişiklik, ve KURAL 21d'nin "Marca Online belli
+    olmasın" tercihine ters); dosya repodan **silindi** (uygulanması zararlı bir tuzak olurdu).
+    `set_product.php` `seller`'ı kabul ediyor, `hide_seller`'ı etmiyor.
+  - **Konuşmalar:** 11 thread, `thread_seller` + `yazar:devret` (21 mesajın yazarı Marca Online
+    olur — geri dönüşü yedekten). Thread kimliği satıcıdan türeyen bir özet olduğundan 11 id'nin
+    11'i **yeniden hesaplandı**. İki id'nin ortasında "22" vardı ve Actions günlüğü
+    `***` yaptı (`8d797458d***8ce27`, `b8d08c514aca***58`): footprint adımı kimlikleri artık
+    **karakter arası boşluklu** basıyor ve değer kuru koşuyla doğrulandı, tahmin edilmedi.
+    Kuru koşu: 11/11 çözüldü, çakışma yok, engellenen kayıt 0. Uygulama (16:41:56 UTC):
+    *"KAYDEDILDI — 11/11 thread yeni saticida ve yeni id ile geri okundu"*, *"eski saticinin
+    yazarligi kalan mesaj: 0"*, yedek `messages.json.bak-20261003-164156`.
+  - **Mesaj METNİNDEKİ ad:** Stock&chic konuşmasında (`bur-8045006`) **2 mesajın metninde**
+    "tyrex" geçiyor; yeniden yazılmadı (müşterinin okuduğu cümleyi sessizce değiştirmek ayrı bir
+    karar; `msg_del` → `redact:` yolu duruyor).
+- **Satıcı tarafındaki açık numune** (`SPL-B7C8EAF3`, TYREX ilanı, alıcı bir müşteri): ürün sayfasından
+  açılmış, süresi dolmuş, hiç ödenmemiş bir ödeme sayfası. `sample_cancel` ile (Stripe oturumu önce
+  okundu, `expired / unpaid`; kayıt `sample_backups`'a yedeklendi, geri okundu) kaldırıldı
+  (16:56 UTC). Müşteriye hiçbir şey gitmedi; ürün sayfasından yeniden isteyebilir.
+- **ALICI TARAFI: ayak izi satıcı tarafını gösteriyordu, strict kapı iki tarafı da sayıyordu.**
+  `seller_delete` kuru koşusu (17:03 UTC) *"hesaba bağlı 3 kayıt"* ile **durdu** ve nedeni ayak
+  izinde yoktu: bir satıcı hesabı konuşmada/numunede ALICI da olabilir (VESTRA Support'a yazdığında
+  thread'in alıcısı o hesaptır; satıcı hesabı numune de sipariş eder). Footprint'e **ALICI TARAFI**
+  bölümü eklendi (konuşma + numune; metin basılmaz, karşı tarafın adı ve sayılar) ve test ikisini
+  **ayrı süreçte aynı fikstürle** karşılaştırıyor (ayak izinin saydığı = kapının saydığı).
+  Canlı (17:12 UTC): TYREX alıcı olarak **1 konuşma** (ilan `dg-101202`, 2 mesaj, 1'ini TYREX
+  yazmış, son 1 Ağu 2026, **karşı taraf kayıtlı bir hesap değil**) ve **2 bekleyen numune**
+  (`LAC-L1212`, 50 EUR, 2 Ağu 2026); teklif 0, sipariş 0 (`thread_dump` sayımı).
+- **`sample_cancel` DOĞRUDAN TAHSİLAT numunesini okuyamıyordu — ve bunu "okunamadı" diye
+  gizliyordu.** İki Ağustos numunesinin kuru koşusu *"Stripe oturumu okunamadı — ödenmiş olabilir,
+  silmiyorum"* ile durdu (doğru, güvenli duruş) ama ödenmiş mi ödenmemiş mi sorusu cevapsızdı.
+  - **Önce yanlış teşhis koydum:** "test modunda kalmış oturum" dedim, okunamayan oturumda yalnız
+    iki **mod** (oturum `cs_test/cs_live`, anahtar `sk_test/sk_live`) ve kimlik-temizlenmiş bir
+    sebep basan teşhis ekledim. Teşhis varsayımı çürüttü: **`live | live`, sebep `No such
+    checkout.session`**. (Eklediğim "test oturumu + canlı anahtar = ödenmemiş" kuralı bu veride
+    GEREKMEDİ; doğru ve testli olduğu için bırakıldı — iki şarta bağlı, aksi hâlde durur.)
+  - **Kök neden:** `samples.php`'nin kendi başlığı yazıyor — doğrudan tahsilat numunesinde
+    (`acct_id` dolu) oturum **satıcının BAĞLI hesabında** açılır (`stripe_escrow_checkout`,
+    `Stripe-Account` başlığı). Adım onu platform anahtarıyla başlıksız okuyordu; Stripe'ın "yok"
+    cevabı "hiç olmadı" ile ayırt edilemiyordu. Düzeltmeden sonra **aynı iki oturum**
+    `expired / unpaid [bagli hesap]` okundu: ikisi de ödenmemiş, 24 saatte kapanmış.
+  - **Düzeltme tek yerde:** `sample_scrub_error` / `sample_session_read` /
+    `sample_session_expire` (`inc/samples.php`). Hesap başlığı **kayıttan** gelir, çağıran
+    veremez; kapatma geri okunur ve yalnız Stripe `expired` derse ok; `stripe_api` yoksa
+    `stripe.php`'yi kendisi yükler (KURAL 15). Adım çıktısında yalnız `[platform]` /
+    `[bagli hesap]`; hesap kimliği, oturum kimliği, jeton, anahtar basılmaz.
+  - **Eski davranış güvenli tarafta başarısız oluyordu** (okuyamadı → silmedi), yani hiçbir kayıt
+    yanlış silinmedi; ama doğrudan tahsilatlı bekleyen **her** numune bu araçla iptal edilemezdi.
+- **ALICI TARAFI numuneleri kapatıldı** (`sample_cancel`, 17:55 UTC; önce kuru koşu, sonra uygulama): TYREX'in
+  alıcı olarak 2 Ağustos 2026'da açtığı **iki** doğrudan tahsilat numunesi (`LAC-L1212`, 50 EUR). Stripe
+  oturumları satıcının bağlı hesabında okundu, ikisi de `expired / unpaid`; iki kayıt `data/sample_backups/`
+  altına yedeklendi, silindi ve geri okundu (*"kayıtta yok"*). Hiçbir müşteriye mektup gitmedi. (Günlükte
+  ikinci kaydın kimliği Actions maskesi yüzünden `SPL-BA3CC***7` görünür; mask değeri tahminle yazılmadı.)
+- **Alıcı tarafındaki konuşma silindi** (`msg_del`; kuru koşu 18:00, uygulama 18:07 UTC): ilan `dg-101202`, iki
+  mesaj (30 Tem ve 1 Ağu 2026; 28 ve 2 karakter — metin günlüğe basılmadı, yalnız tarih/uzunluk/anahtar). Silme
+  `vestra_msg_delete` ile (zaman damgalı yedek + geri okuma); son mesaj gidince konuşma da kapandı
+  (*"konusma da kapandi"*). Karşı taraf kayıtlı bir hesap değildi: **hiçbir müşterinin konuşması silinmedi**.
+- **HESAP SİLİNDİ** (`seller_delete`; kuru koşu 18:12, uygulama **18:18 UTC**): strict kapı **GEÇTİ** —
+  *"bağlı: ilan 0 | konuşma 0 | numune 0 | teklif 0 | kesen-seçimi 0 | diskte fatura 0"*,
+  *"siparişler: 0 bağlı | faturalı 0 | açık 0"*. Üç yedekten ikisi alındı (ilan kalmadığı için
+  `listings.json.bak-del` gerekmedi): `accounts.json.bak.20261003_181840` ve
+  `deleted-accounts/d7824e27204c0177-20261003-181840.json` (kaydın tamamı). Geri okuma:
+  *"hesap kayıtta YOK (doğrulandı)"*, **hesap sayısı 236 → 235**, kalan ilan 0; fonksiyonun dışındaki
+  ayrı bir `auth_accounts()` taraması da *"hesap kayıtta yok"* dedi. Müşteriye hiçbir şey gönderilmedi.
+  **Geri alma:** yedek JSON'daki kayıt ya da `accounts.json.bak.<zaman>`; hazır bir geri yükleme düğmesi
+  yazılmadı (silinen hesabı geri getirmek ayrı bir karar).
+- **Silme sonrası bağımsız kontrol** (`diag-messages` → `blocked=true`, 18:24 UTC): engellenen mesaj
+  kaydında **tek** giriş var ve TYREX'le ilgisi yok (Ecokemet ↔ GARAGE LE PARIS, `IBAN` bayrağı, 30 Eyl 2026);
+  silinmiş hesabı gösteren yetim bir referans çıkmadı. Önceki turda bu kayıt *"sahibi bilinmiyor"* diye
+  açık bırakılmıştı — ne ayak izi ne strict kapı engelleme günlüğüne bakıyor, o yüzden ayrıca ölçüldü.
+  **Ölçülmeyen (bilerek):** `push_subs.json`'da TYREX'e ait bir cihaz kaydı var mı (yetim kayıt zararsız:
+  yayınlar hesap listesinden uid seçiyor) ve Stripe tarafı.
+- **Silmeyle GİTMEYEN, ve bilerek:** Stripe Connect hesabı (Stripe panelinde), yüklenmiş **1
+  belge dosyası** (`data/docs`; kayıt yedek JSON'unda duruyor), kayıtlı **bildirim cihazı**
+  varsa (`push_subs.json`; yetim kayıt zararsız — yayınlar hesap listesinden uid seçiyor).
+- **Operatör kararı bekleyen / yan etkiler:**
+  1. 26 ilanın **varsayılan fatura kesicisi** artık Marca Online (KURAL 5b sırası: operatör seçimi >
+     ilanın `seller_uid`'i > platform). Platform adına kesmek isteniyorsa her teklif/sipariş için
+     `admin_mode=seller` ile `vestra` seçilmeli.
+  2. Ürün sayfasında **"Ships from"** satırı bu 26 ilan için artık **basılmıyor**
+     (KURAL 21d: Marca Online satıcısının ilanlarında gizli). İlan açıklamaları *"EEA stock with
+     full invoice trail"* diyor; satıcı değişince bu olgunun doğrulanması operatörün.
+  3. Kart/escrow ödemesi **ilanın satıcısının** Stripe Connect durumuna bağlı (`escrow_ready`);
+     Marca Online bağlı değilse bu 26 ilanda kart seçeneği çıkmaz.
+  4. 4 canlı siparişin satır satıcısı artık Marca Online (KURAL 33 satıcıya ödeme
+     hesabı bunu okur); TYREX'le yapılacak tedarikçi mutabakatı muhasebe işi, kodda karşılığı yok.
+  5. Marca Online'ın vitrini (showroom) 146 iç çamaşırına **26 tasarımcı ilanını** ekledi.
+  6. **Panelde TYREX'i geri getirebilecek iki düğme duruyor:** `Create Tyrex Elite & migrate`
+     (`create_tyrex_migrate`) hesabı yeniden açar ve satıcı metni `sb e-commerce` ya da `tyrex`
+     geçen **her ilanı** ona bağlayıp ilana `seller: 'Tyrex International BV'` **yazar** (görünür
+     ad); `Sync Tyrex` hesap yokken `tyrex_missing` der. İkisi de yalnız operatör basarsa çalışır;
+     kaldırılmadı çünkü o akış operatörün kararı.
+  7. **Panelin Delete'i hâlâ strict değil:** konuşma/numune/teklif taşıyan bir satıcıyı tek tıkla
+     siler (yedek artık alıyor). Strict kapı yalnız `seller_delete` iş akışında.
+- **Test:** `tests/account_delete_test.php` (**85 iddia**: kapı eşliği iki yön, her bağ türü ayrı
+  ayrı, kontrol satıcısı yerinde, yedek yazılamazsa/yinelenen id'de **hiçbir şey silinmez**, adımın
+  PHP'si kum havuzunda, panelin POST'u gerçek `admin.php` üzerinde), `seller_footprint_test`
+  (**51**; ayak izi = kapı eşliği ayrı süreçte) ve `sample_delete_test` (**76**: adımın GERÇEK
+  PHP'si kum havuzunda — sahte proxy her Stripe çağrısını anında düşürür —, ve in-process sahte
+  `stripe_api` ile başlığın kayıttan geldiği, negatif kontrolde başlıksız okumanın "No such
+  checkout.session" verdiği, geri okumanın `expired` şartı). Sabotajlar tam 1 eşleşmeyle uygulanıp
+  kırmızıya döndü, dosyalar `cp` yedeğinden bayt bayt geri alındı: hesap silme **20/20**, ayak izi
+  **5/5**, numune iptali **10/10** (4 + 6). Tam takım: yalnız önceden kayıtlı üç kırık
+  (`dropship_plan` 4, `msg_read_receipt` 1, `msg_thread_label` 10).
+- **Kendi hatalarım (kayda geçsin):**
+  1. İlk yazımda bütünlük kontrolü (**kalan hesap sayısı**) yedeklerden **sonra**
+     çalışıyordu; yinelenen id'li bir hesapta silme reddediliyor ama geride 3 yedek dosyası
+     kalıyordu. Test yakaladı, kontrol öne alındı.
+  2. Panelin Delete'ini fonksiyona bağlarken `seller_footprint_test`'in eşlik iddiaları eski
+     satır içi kapıyı `admin.php`'de arıyordu ve kırmızı döndü: iddialar yeni dosyaya taşındı,
+     gevşetilmedi.
+  3. **"Ayak izi bitti" dedim ve bitmemişti.** Footprint yalnız hesabın SATICI tarafına
+     bakıyordu; thread id'lerini **maskeli** basıyordu (`***`), numunenin **alıcısını** hiç
+     yazmıyordu (`sample_cancel` alıcı hesap id'si ister) ve **alıcı tarafını** hiç saymıyordu.
+     Son eksiği kapı kendisi gösterdi. *Ön kontrol aracı, kapının saydığı HER şeyi saymalı;
+     parite testi bunu ayrı süreçte tutuyor.*
+  4. `seller_footprint` ilan tablosunu hesabın **şu anki** ilanlarından kuruyor; devirden sonra
+     TYREX için boş. "Devir oldu mu" sorusu bu yüzden ayrıca **ilan id'leriyle** geri okundu
+     (set-product kuru koşusu + Marca Online tarafı), yalnız "TYREX'te ilan 0" ile yetinilmedi.
+  5. **`thread_dump` için açık anahtarı dosyadan değil HAFIZADAN yazdım** (604 karakterlik
+     base64): dosyadaki değerle aynı değildi. İş **"success"** bitti, çünkü uydurma metin geçerli
+     bir RSA yapısı olarak ayrıştı; çıktı kimsenin özel anahtarına sahip olmadığı bir anahtarla
+     şifrelendi (sızıntı yok, ama bir SSH aralığı ve ~6 dk boşa). Açık sayımlar yine işe yaradı
+     (teklif 0, sipariş 0, gövde 436 bayt). *"Success" çıktının KULLANILABİLİR olduğunu
+     söylemez; opak bir dizgiyi elle yazma, dosyadan kopyala ve karşılaştır.*
+  6. Yeni `$sidMode` değişkeni eski iddiayı kırdı: `oturum kimliği BASILMAZ` iddiası
+     `printf(…$sid…)` aradı ve `$sidMode`'u (yalnız MOD) `$sid` sandı. Kod haklıydı, iddia
+     gevşekti; `\b` ile tam değişken adına daraltıldı ve sabotajla (`.$sid.` basılınca) hâlâ
+     düşebildiği doğrulandı.
+  7. **İzleme döngümün `case` deseni ters yazılmıştı** (`*sha*completed*`, oysa çıktıda
+     `completed` sha'dan ÖNCE) ve deploy 17:43'te bittiği hâlde 6 dk boşuna bekledim. Ayrıca
+     `?branch=` süzgeçli koşu listesinin ilk satırı bir kez ESKİ bir koşuyu verdi; bir koşuyu
+     **`created_at` ile** doğrula, listenin ilk satırına güvenme.
+
+**KURAL 45 — "Yüzde X indirimli göster": rozet EN DÜŞÜK kademeden hesaplanır; ve `set-product` kuru koşusu artık rozeti SAYFANIN hesabıyla yazar** (operatör, 4 Eki 2026, Ralph Lauren Custom Slim Fit Polo `710548797001`: *"fiyati yüzde 25 inidirmli göster üstüne yüzde 100 adetten asagisini yüzde daha pahali yap 29,90 gibi +160 ad. 25 eur yap"*).
+
+- **Önce ölçüldü** (`inspect-products` run `37183534483`, `diag-live` → `find_ref` run `37183804759`, 4 Eki 06:41–06:47 UTC): ilan `rl-csf-polo-white`, `mode=sale`, `list` 26,90, kademeler `80+ → 26,90 | 160+ → 25,00`, MOQ 80, paket adımı 8, `min_colors` 4, altı renk, teklif AÇIK, numune 50 EUR, satıcı Marca Online (KURAL 44'te devredilen 26 ilandan biri), approved. Sayfa o gün üstü çizili 26,90 + from 25,00 + **−%7** gösteriyordu. SKU'ya bağlı kayıt: **1 sipariş** (`VES-3D2342FC`, Fransa, **160 × €25,00**, 3 Eki, havale — satırda birim fiyat yazılı, merdiven değişikliğinden etkilenmez), **4 numune kaydı**, teklif 0. Ralph Lauren'in kayıttaki 14 ilanından yalnız bu polo ve tişört (`rl-csf-tee-navy`, satıldı) canlı; kalan 12'si reddedilmiş birleştirme kalıntıları — kuru koşunun MARKA KAPSAMI satırı bunu adlarıyla yazdı.
+- **Cümle sesli yazım gibiydi ve iki belirsizlik işaretli olarak çözüldü** (soru sorulmadı; geri dönüşü tek koşu):
+  1. *"yüzde 100 adetten aşağısını yüzde daha pahalı yap 29,90 gibi"*: "yüzde" iki yerde fazla, **100 adet** diye okundu; ikinci "yüzde" için yüzde rakamı verilmedi, rakamı **"29,90 gibi"** veriyor → 80–99 adet **€29,90**. Orta basamak operatörün anmadığı bir fiyat: **eski MOQ fiyatı €26,90 korundu**, yalnız başlangıcı 80'den 100'e kaydı. Son merdiven `80+ 29,90 | 100+ 26,90 | 160+ 25,00` (160+ zaten böyleydi, aynı rakam yeniden yazıldı).
+  2. *"yüzde 25 indirimli göster"*: sayfanın rozeti −%25 okusun diye `list` (üstü çizili "was") **33,33** yazıldı. Rozeti `vestra_discount()` hesaplıyor ve **en düşük kademeye** bakıyor, ilk kademeye değil: `round(100 × (list − 25,00) / list)` → list = 25,00 / 0,75 = 33,33. Aynı yöntem Lacoste Fleece Crew için kayıtlı (`tiers[0]` 55,00 / 0,85 = 64,71 → −%15). Sayfada basamak başına Saving sütunu `list`'e göre: **−%10 / −%19 / −%25**. *Alternatif, operatöre söylendi:* indirim ilk basamaktan (29,90) gösterilmek istenirse `list` 39,90 olur ve rozet **−%37** çıkar (−%25 yalnız tablonun ilk satırında görünürdü); operatörün "yüzde 25" rakamı rozette görünsün diye 33,33 seçildi.
+- **`price` DEĞİL `sale_list`:** `price` tüm kademeleri tek rakama düzleştirirdi. `mode` zaten `sale`; `set_product.php` mode yazamaz ve `mode='sale'` değilse sayfa üstü çizili fiyatı ve rozeti hiç basmaz.
+- **100, paket adımının (8) katı değil** → `set_product.php` UYARI verdi (hata değil, KURAL 4b). Bu ilan renk-adet kipinde (her rengin adedi 8'in katına yuvarlanır), yani sipariş toplamı **hep 8'in katı**: 96 → 29,90, **104** → 26,90; 97–103 arası geçerli toplam yok. 100 ile 104 aynı davranışı verir, yalnız tablo etiketi "100–159" yazar; operatörün söylediği rakam (100) yazıldı. İstenirse tek satır 104.
+- **Dokunulmayanlar, bilerek:** MOQ 80 ve paket adımı 8 (`tiers[0].min` MOQ'ya eşit olmak zorunda; 29,90 tam 80–99 bandı), `min_colors`, renkler, fotoğraflar, beden, **numune 50 EUR**, teklif kutusu. **Teklif tabanı** en düşük kademenin yarısı (`vestra_offer_ref_price`): en düşük kademe 25,00 kaldığı için **12,50 AYNEN**.
+- **KURU KOŞUNUN YANLIŞ RAKAMI — bu işte bulundu, düzeltildi.** `scripts/set_product.php`'nin `sale_list` dalı kuru koşuda *"görünen indirim ~%X"* yazıyordu ve X'i **ESKİ ilk kademeden** (`tiers[0]`) hesaplıyordu; sayfanın rozeti ise en düşük kademeden. Bu ilanda satır **"%19"** derdi, sayfa **"−%25"** basardı — ve kademeler AYNI satırda değiştiği için X henüz yazılmamış eski merdivenden çıkıyordu. Operatörün tek önizlemesi, sayfanın göstereceğinden başka bir rakam söylüyordu. Artık list/tiers/price değişen her satırın sonunda, **son kayıttan ve sayfanın çağırdığı aynı fonksiyonlarla** (`vestra_display_mode`, `vestra_from_price`, `vestra_discount`) bir `SAYFADA:` satırı basılıyor; ikinci formül yazılmadı:
+  - `SAYFADA: ustu cizili €33.33 · from €25.00 · rozet -%25`;
+  - `mode='sale'` değilse `sale_list` sayfaya **hiç yansımaz** → `UYARI` (eskiden sessizce işe yaramaz bir yazma ve satır yine de "görünen indirim" diyordu);
+  - `list` en düşük kademeden yüksek değilse sayfa "−%0" yerine sabit fiyat gösterir → `UYARI`;
+  - satır yalnız o satır bir şey **DEĞİŞTİRDİYSE** basılıyor, aksi halde "(zaten istenen durumda)" ezilir ve tekrar koşan bir dosya değişiklik varmış gibi görünürdü.
+  - Test: `tests/set_product_sale_view_test.php` (**39 iddia**, betik kum havuzunda gerçekten koşuyor). **Asıl iddia sayfanın kendi fonksiyonuyla kurulu:** kuru koşunun yazdığı rozet == `vestra_discount()`'ın yazılan kayıtta okuduğu rozet; ayrıca sepetin tahsil ettiği: 80 ve 96 adette 29,90, 104'te 26,90, 160'ta 25,00. Dört sabotaj, her biri `grep -c` ile **gerçekten uygulandığı doğrulanıp** yedekten (`cp`) geri alındı: eski `tiers[0]` formülü **4 kırmızı**, mode uyarısı kalkınca **1**, `$line &&` kalkınca **2**, eski kayıttan hesap **7**. Tam takım: yalnız önceden kayıtlı üç kırık (`dropship_plan` 4, `msg_read_receipt` 1, `msg_thread_label` 10).
+  - *İlk koşuda iki iddiam kodu değil kendi yazımımı düşürdü:* paket adımı UYARISI doğrulama aşamasında, ilan bloğunun **üstünde** basılıyor (bloğa bakan iddia onu hiç bulamazdı); ve `json_encode` tam sayılı bir float'ı (25,0) `JSON_PRESERVE_ZERO_FRACTION` olmadan `25` yazıp diskten `int(25)` döndürüyor — katı `===` bunu kayıp sanırdı (bu dosyada `39.0` vakasıyla kayıtlı). Tipi normalleştirip karşılaştırdım.
+- **Uygulama (sırayla, SSH'ler 5–6 dk arayla):** kuru koşu `37184433254` (06:59 UTC, `degisecek alan: 2`), uygulama `37184753686` (07:05 UTC, *"KAYDEDILDI — 2 alan guncellendi"*, yedek `listings.json.bak-20261004-070600`). Kuru koşunun `SAYFADA` satırı yukarıdaki rakamları birebir yazdı.
+- **ÇİZDİRİLDİ, kaynak okunmadı** (kum havuzu, `php -S`, **onaylı alıcı oturumu** — girişsiz çekmek fiyat kapısını ölçerdi): ürün sayfası `€33.33 from €25.00 −25% / pc · clearance`, tablo `80–99 €29.90 −10% | 100–159 €26.90 −19% | 160+ €25.00 −25%`, teklif ve numune kutuları duruyor, PHP uyarısı 0; katalog kartı `−25%` ve `€33.33 €25.00`. *Kendi ölçüm hatam:* ilk çizimde kart rozetini sayfadaki **ilk** `smodetag`'dan okudum ve **−%28** çıktı — o, sayfadaki demo ilanlardan birinindi; kartı ilanın kendi bağlantısından bulunca −%25 çıktı. Bu dosyada kayıtlı sınıf (aracın gürültüsü / yanlış yere bakan ölçü).
+- **CANLI GERİ OKUMA** (`inspect-products` run `37185051752`, 07:11 UTC, yazmadan ~6 dk sonra, kayıt sunucudan okundu — yazma mesajından değil): `fiyat(list)=33.33`, `tiers: 80+ → €29.9 | 100+ → €26.9 | 160+ → €25`, MOQ 80, paket adımı 8, altı renk, `min_colors` 4, teklif AÇIK, numune €50 **aynen**. Fiyat denetimi (sepetin TAHSİL ETTİĞİNE bakar): `tutarli` 791 → **790**, `kasitli indirim` 66 → **67** — polo "tutarlı"dan "kasıtlı indirim"e geçti (list 33,33, MOQ'daki sepet fiyatı 29,90); `ALICI ALEYHINE` hâlâ yalnız eski demo `lac-pique-polo` (1), yani yeni merdiven listede ucuz görünüp sepette pahalı çıkan bir satır üretmedi. (Polonun kendi [C] satırı listenin görünmeyen `+57 satır daha` kısmında; sayım farkı onu gösteriyor.) Toptan fiyat listesi satırı: `LISTE 33.33 | KADEME 25.00 | PERAKENDE 75.00 (tahmin, guide x3) | satista`.
+- **Geride kalanlar / operatör kararı:** (1) **orta basamak (100–159) €26,90 bir varsayım** — başka bir rakam isteniyorsa tek satır; (2) `list` tabanı 33,33 (rozet −%25) mi yoksa 39,90 (rozet −%37) mi — yukarıda; (3) 100 yerine 104 (UYARI'sız, tabloda "104–159"); (4) **gitmiş mektuplar ve fiyat listeleri eski merdiveni taşır** ve geri alınamaz (16 Eyl'de İsrailli adaya giden Lacoste/Ralph Lauren/Fred Perry fiyat listesi dahil); bundan sonra üretilen Excel/PDF listeleri `LISTE` sütununda üstü çizili **33,33**'ü basar (`mode=sale` ilanlarda zaten böyle — fiyat denetiminin [C] sınıfı).

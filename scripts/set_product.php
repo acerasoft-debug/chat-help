@@ -138,10 +138,17 @@ foreach ($fixes as $n => $fx) {
   if (array_key_exists('sold_out', $set) && !is_bool($set['sold_out'])) {
     $errors[] = "{$ctx} ({$m}): sold_out true ya da false (tirnaksiz) olmali"; continue;
   }
-  /* preorder_ship: YYYY-MM-DD ve gecerli bir tarih. Bozuk bir tarih notu
-     sessizce susturur, yani operator ilanda "Ekim basi" yazdigini sanir. */
-  if (isset($set['preorder_ship']) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$set['preorder_ship'])) {
-    $errors[] = "{$ctx} ({$m}): preorder_ship YYYY-MM-DD olmali"; continue;
+  /* preorder_ship: YYYY-MM-DD ve GERCEK bir takvim gunu. Bozuk bir tarih notu
+     sessizce susturur, yani operator ilanda "Ekim basi" yazdigini sanir.
+     Eski kontrol yalniz BICIME bakiyordu, yani bu yorumun vaat ettigi "gecerli
+     tarih" hic denetlenmiyordu (2 Eki 2026, Gallery Dept.): '2026-13-45'
+     regex'ten geciyor, strtotime() false donuyor ve not SESSIZCE susuyordu;
+     '2026-02-31' ise 3 Mart'a kayip sayfaya yanlis bir ay yazdiriyordu. */
+  if (isset($set['preorder_ship'])) {
+    $pd = (string)$set['preorder_ship'];
+    if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $pd, $pm) || !checkdate((int)$pm[2], (int)$pm[3], (int)$pm[1])) {
+      $errors[] = "{$ctx} ({$m}): preorder_ship YYYY-MM-DD ve gercek bir takvim gunu olmali ('{$pd}')"; continue;
+    }
   }
   /* 'rejected' de yazilabilir ve bu bir genisletme degil, eksigin kapatilmasi:
      panelin KENDI "ilani reddet" dugmesi (admin.php:96) tam bu degeri yaziyor,
@@ -604,10 +611,41 @@ foreach ($plan as [$i, $set, $m]) {
     } elseif ($k === 'sale_list') {
       $new = (float)$v; $old = (float)($p['list'] ?? 0);
       if ($old === $new) continue;
-      $base = !empty($p['tiers'][0]['price']) ? (float)$p['tiers'][0]['price'] : $old;
-      $disc = $new > 0 ? (int)round(100*($new-$base)/$new) : 0;
-      $line[] = "sale_list(SADECE was) {$old} -> {$new}  (tiers[0] {$base} degismedi, gorunen indirim ~%{$disc})";
+      /* Burada ESKIDEN "gorunen indirim ~%X" yaziyordu ve X'i ESKI ilk kademeden
+         (tiers[0]) hesapliyordu. Sayfanin rozeti ise EN DUSUK kademeden
+         (vestra_discount -> vestra_from_price) hesaplaniyor: iki kademeli
+         26,90/25,00 bir ilanda list 33,33 icin satir "%19" diyor, sayfa "-%25"
+         basiyordu -- ve ayni satirda kademeler de degisiyorsa X, henuz
+         yazilmamis eski merdivenden cikiyordu. Rakam artik burada tahmin
+         edilmiyor: satirin sonundaki SAYFADA satiri, SAYFANIN cagirdigi ayni
+         fonksiyonlarla son kayittan hesaplaniyor. */
+      $line[] = "sale_list(SADECE was) {$old} -> {$new}  (tiers'a dokunmaz; sayfanin gosterecegi rozet asagidaki SAYFADA satirinda)";
       $all[$i]['list'] = $new;
+      $changes++;
+    } elseif ($k === 'preorder_ship') {
+      /* ON SIPARIS SEVK TARIHI (operator, 22 Eyl 2026 AMI Paris; 2 Eki 2026
+         Gallery Dept.: "stock giris tarihi ekim sonu yap fakat siparisleri
+         kabul ediyoruz"). Genel dal yalniz "preorder_ship '(yok)' ->
+         '2026-10-31'" yaziyordu ve SAYFANIN NE BASACAGINI soylemiyordu. Not
+         tarihten uretiliyor ve tarih gecince KENDILIGINDEN susuyor; yani gecmis
+         bir tarih yazmak sessizce "notu kaldirmak" demek (bos deger bu betikte
+         zaten elenir, kaldirmanin tek yolu bu) -- yazmadan once gostermek gerek.
+         Cumle vestra_preorder_note()'tan: urun sayfasinin cagirdigi AYNI
+         fonksiyon, ikinci bir kopya yok. Not siparisi ENGELLEMIYOR (satin alma
+         yolu bu alana bakmiyor); engelleyen tek sey sold_out ve o da UYARI
+         olarak yaziliyor. */
+      $new = (string)$v; $old = (string)($p['preorder_ship'] ?? '');
+      if ($old === $new) continue;
+      $hasNote = function_exists('vestra_preorder_note');
+      $note    = $hasNote ? vestra_preorder_note(['preorder_ship' => $new]) : '';
+      $line[] = "preorder_ship '".($old === '' ? '(yok)' : $old)."' -> '{$new}'";
+      if (!$hasNote)         $line[] = "  UYARI: vestra_preorder_note() sunucuda YOK (kod eski) -- sayfa cumlesi gosterilemedi";
+      elseif ($note !== '')  $line[] = "  sayfada: \"{$note}\"  (siparis KABUL EDILMEYE devam eder)";
+      else                   $line[] = "  UYARI: tarih gecmis -- sayfa HIC on siparis notu basmaz";
+      if (vestra_is_sold_out($p)) $line[] = "  UYARI: ilan SATILDI -- on siparis notu gorunur ama siparis ALINAMAZ";
+      if (isset($p['status']) && $p['status'] !== 'approved')
+        $line[] = "  UYARI: ilan durumu '{$p['status']}' -- katalogda GORUNMUYOR";
+      $all[$i]['preorder_ship'] = $new;
       $changes++;
     } elseif ($k === 'sold_out') {
       /* GENEL DAL BU ALANI BOZAR ve bu dal tam onun icin var. En asagidaki
@@ -719,8 +757,69 @@ foreach ($plan as [$i, $set, $m]) {
       $changes++;
     }
   }
+  /* SAYFADA: list / tiers / price degistiyse urun sayfasinin bu kayittan NE
+     basacagi. Hesap sayfanin cagirdigi AYNI fonksiyonlardan (vestra_display_mode,
+     vestra_from_price, vestra_discount) ve SON kayittan (bu satirin tiers ve list
+     yazilari dahil) -- ikinci bir formul yazilmadi. Uc sey gorunur hale geliyor:
+       - rozet kac: en dusuk kademeye gore, ilk kademeye degil;
+       - mode='sale' degilse sayfa ustu cizili "was" fiyatini ve rozeti HIC
+         basmaz (sale_list yalniz mode=sale'de gorunur): eskiden sessizce
+         ise yaramaz bir yazma ve satir yine de "gorunen indirim" diyordu;
+       - list en dusuk kademeden yuksek degilse "-%0" yerine sayfa sabit fiyat
+         gosterir (vestra_on_sale).
+     Satir yalniz bu satir bir sey DEGISTIRDIYSE basiliyor: aksi halde
+     "(zaten istenen durumda)" yazisini ezer ve tekrar kosan bir dosya
+     degisiklik varmis gibi gorunurdu. */
+  if ($line && (isset($set['sale_list']) || isset($set['tiers']) || isset($set['price']))) {
+    if (!function_exists('vestra_display_mode') || !function_exists('vestra_from_price') || !function_exists('vestra_discount')) {
+      $line[] = "  UYARI: sayfa fonksiyonlari sunucuda YOK (kod eski) -- rozet gosterilemedi";
+    } else {
+      $fin  = $all[$i];
+      $fm   = number_format((float)($fin['list'] ?? 0), 2);
+      $fp   = number_format((float)vestra_from_price($fin, true), 2);
+      if (($fin['mode'] ?? '') !== 'sale') {
+        if (isset($set['sale_list']))
+          $line[] = "  UYARI: mode='".($fin['mode'] ?? '')."' -- sayfa ustu cizili fiyati ve rozeti HIC basmaz (sale_list yalniz mode=sale'de gorunur)";
+        else
+          $line[] = "  SAYFADA: mode='".($fin['mode'] ?? '')."' -- sabit fiyat, rozet yok, from €{$fp}";
+      } elseif (vestra_display_mode($fin) !== 'sale') {
+        $line[] = "  UYARI: list €{$fm} en dusuk kademe €{$fp} ustunde degil -- indirim yok, sayfa sabit fiyat gosterir (\"-%0\" basmaz)";
+      } else {
+        $line[] = "  SAYFADA: ustu cizili €{$fm} · from €{$fp} · rozet -%".vestra_discount($fin)."  (mode=sale; sayfanin kendi fonksiyonlari)";
+      }
+    }
+  }
   printf("  %-26s | %-14s | %s\n", $p['id'] ?? '?', $p['brand'] ?? '?', "match='{$m}'");
   echo $line ? "      ".implode("\n      ", $line)."\n" : "      (zaten istenen durumda)\n";
+}
+
+/* MARKA KAPSAMI (2 Eki 2026, Gallery Dept. / Casablanca). Operator MARKAYI
+   soyluyor ("Casablanca urunleri"), dosya ise bir id LISTESI. Liste markanin
+   hepsini kapsamiyorsa -- sonradan eklenen, baska bir partiden gelen, onay
+   bekleyen ya da reddedilmis bir kayit -- eksik kalan ilan SESSIZCE eski
+   durumunda kalir ve operator "tum marka" yazdigini sanir; parti dosyasi da
+   canli kaydin aynasi degil (bu depoda defalarca kayitli). Sayim HAM listeden,
+   her durumda: vestra_products() onay bekleyeni ve gizli markayi zaten gostermez.
+   Eslesme marka adi TAM (buyuk/kucuk harf ve bosluk hosgorusu). Yalniz OKUR. */
+$touchedBrands = [];
+foreach ($plan as [$pi]) {
+  $bn = trim((string)($all[$pi]['brand'] ?? ''));
+  /* Gorunen ad ILK dokunulan ilanin yazimi: sonrakiler eziyorsa ayni marka
+     kayitlardaki yazim farkina gore bir calistirmada "Gallery Dept.", digerinde
+     "gallery dept." diye cikar. */
+  if ($bn !== '' && !isset($touchedBrands[mb_strtolower($bn)])) $touchedBrands[mb_strtolower($bn)] = $bn;
+}
+foreach ($touchedBrands as $bl => $bn) {
+  $tot = 0; $miss = [];
+  foreach ($all as $j => $q) {
+    if (mb_strtolower(trim((string)($q['brand'] ?? ''))) !== $bl) continue;
+    $tot++;
+    if (!isset($seen[$j])) $miss[] = ($q['id'] ?? '?').'['.($q['status'] ?? 'approved').']';
+  }
+  echo $miss
+    ? "  MARKA KAPSAMI: {$bn} kayitta {$tot} ilan, bu dosya ".($tot - count($miss))." tanesine dokunuyor; DOKUNULMAYAN "
+      .count($miss).": ".implode(', ', array_slice($miss, 0, 30)).(count($miss) > 30 ? ' ...' : '')."\n"
+    : "  MARKA KAPSAMI: {$bn} -- markanin TUM {$tot} ilani bu dosyada\n";
 }
 
 echo "\ndegisecek alan: {$changes}\n";

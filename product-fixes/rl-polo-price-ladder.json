@@ -1,0 +1,26 @@
+[
+ {
+  "match": "rl-csf-polo-white",
+  "expect": 1,
+  "tiers": [
+   { "min": 80,  "price": 29.90 },
+   { "min": 100, "price": 26.90 },
+   { "min": 160, "price": 25.00 }
+  ],
+  "sale_list": 33.33,
+
+  "_why": "Operator, 4 Eki 2026: 'Custom Slim Fit Polo Shirt 710548797001 fiyati yuzde 25 inidirmli goster ustune yuzde 100 adetten asagisini yuzde daha pahali yap 29,90 gibi +160 ad. 25 eur yap'. Onceki hali (inspect-products, ayni gun, run 37183534483): mode=sale, list 26,90, kademeler 80+ -> 26,90 | 160+ -> 25,00, MOQ 80, paket adimi 8, min_colors 4, teklif ACIK, numune 50 EUR, satici Marca Online (0cb79eb883f2a0fa), approved. Sayfa o gun ustu cizili 26,90 + from 25,00 + rozet -%7 gosteriyordu.",
+
+  "_okuma": "Cumle sesli yazim gibi ('yuzde 100 adetten', 'yuzde daha pahali'): 'yuzde' iki yerde fazla, ve 'yuz adetten asagisi' diye okundu -- ikinci 'yuzde' icin hicbir yuzde rakami verilmedi, '29,90 gibi' ise rakami veriyor. Uc basamak: 80-99 adet 29,90 (YENI, daha pahali) | 100-159 adet 26,90 (eski MOQ fiyati; operator orta fiyatdan soz etmedi, eski rakam korundu, yalniz baslangici 80'den 100'e kaydi) | 160+ 25,00 (zaten boyleydi, ayni rakam tekrar yazildi). Orta basamak icin baska bir rakam isteniyorsa tek satir.",
+
+  "_list_33_33": "'yuzde 25 indirimli goster' = sayfanin rozeti -%25 okusun. Rozeti vestra_discount() hesapliyor ve EN DUSUK kademeye bakiyor (ilk kademeye degil): round(100 x (list - 25,00) / list). list = 25,00 / 0,75 = 33,33 -> -%25. Ayni yontem Lacoste Fleece Crew icin kayitli (product-fixes/lacoste-fleece-crew-sweatshirt-discount.json: tiers[0] 55,00 / 0,85 = 64,71 -> -%15). Sayfada: ustu cizili 33,33, from 25,00, rozet -%25; tablodaki Saving sutunu basamak basina list'e gore: 29,90 -> -%10, 26,90 -> -%19, 25,00 -> -%25. SADECE sale_list yaziliyor, 'price' DEGIL: price tum kademeleri tek rakama duzlestirirdi.",
+
+  "_list_alternatifi": "Eger indirim ILK basamaktan (29,90) gosterilmek istenseydi list 39,90 olurdu ve rozet -%37 cikardi (rozet en dusuk kademeye bakiyor, tabloda -%25 yalniz ilk satirda gorunurdu). Operatorun 'yuzde 25' rakami rozette gorunsun diye 33,33 secildi.",
+
+  "_moq_dokunulmadi": "MOQ 80 ve paket adimi 8 AYNEN: ilk kademe MOQ'dan baslamak zorunda (set_product.php: tiers[0].min != moq reddeder) ve 29,90 tam olarak 80-99 bandi. min_colors 4, renkler, beden, numune, teklif kutusu dokunulmadi.",
+
+  "_100_ve_8": "100, paket adiminin (8) kati degil: set_product.php UYARI veriyor, hata degil. Bu ilan renk-adet kipinde (her rengin adedi 8'in katina yuvarlanir), yani siparis toplami HEP 8'in kati: 96 -> 29,90, 104 -> 26,90; 97-103 arasi gecerli bir toplam yok. 100 ile 104 ayni davranisi verir; yalniz tablodaki etiket '100-159' yaziyor. Operatorun soyledigi rakam (100) yazildi.",
+
+  "_teklif": "Teklif tabani en dusuk kademenin yarisi (vestra_offer_ref_price): 25,00 degismedi, yani alici teklif tabani 12,50 AYNEN. mode=sale oldugu icin teklif kutusu acik kalmaya devam ediyor."
+ }
+]

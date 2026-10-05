@@ -81,7 +81,13 @@ $t("ALLOWED'da sold_out var",   str_contains($sp, "'sold_out'"));
 $t("ALLOWED'da preorder_ship var", str_contains($sp, "'preorder_ship'"));
 /* "false" STRINGI kabul edilirse operator kapattigini sanip satmaya devam eder. */
 $t('sold_out yalniz gercek bool', str_contains($sp, "!is_bool(\$set['sold_out'])"));
-$t('preorder_ship tarih bicimi dogrulaniyor', str_contains($sp, 'preorder_ship YYYY-MM-DD olmali'));
+/* Dogrulamanin VARLIGINI tutuyor, mesajin yazimini degil: ilk yazimda burada
+   'preorder_ship YYYY-MM-DD olmali' cumlesi birebir pinliydi ve 2 Eki 2026'da
+   dogrulama sikilastirilinca (gercek takvim gunu) yalnizca cumle degistigi icin
+   kirmizi dondu -- olculen sey davranis degil yazimdi. Davranis artik gercekten
+   kosturuluyor: tests/set_product_preorder_test.php §5 (alti bozuk girdi
+   reddediliyor, gecerli artik gunu kabul ediliyor). */
+$t('preorder_ship tarih bicimi dogrulaniyor', str_contains($sp, 'preorder_ship YYYY-MM-DD'));
 
 echo "\n== 6. Metinler 9 dilde ==\n";
 $missing = [];

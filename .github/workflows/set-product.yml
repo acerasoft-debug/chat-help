@@ -32,6 +32,14 @@ permissions:
 #   vestra_offers_open). mode='offer' ilanda kapatmak REDDEDILIR: o urunun
 #   sabit fiyati yok, teklif kapaninca satin alinamaz kalirdi.
 #
+# sale_list -- SADECE ustu cizili "was" (list) fiyatini yazar, tiers'a dokunmaz.
+#   Sayfanin rozeti (-%X) EN DUSUK kademeye gore hesaplanir (ilk kademeye
+#   degil): -%25 icin list = en dusuk kademe / 0,75. Kuru kosu her satirin
+#   sonunda "SAYFADA: ustu cizili .. · from .. · rozet -%X" yazar -- hesap
+#   sayfanin kendi fonksiyonlarindan, son kayittan (ayni satirdaki tiers dahil).
+#   mode='sale' DEGILSE sayfa ustu cizili fiyati ve rozeti hic basmaz; kuru
+#   kosu bunu UYARI olarak yazar (bu betik mode yazamaz).
+#
 # sample_price -- 0 yazmak numune kutusunu KALDIRIR (eskiden sifir "gecersiz
 #   fiyat" sayiliyordu, yani numuneyi kaldirmanin hicbir yolu yoktu).
 #
