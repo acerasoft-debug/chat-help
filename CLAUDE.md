@@ -12084,3 +12084,26 @@ sonra 250 emaile tamamlar 3. email almayanlara gönder"*).
   en az bir premium marka işareti olan) bitti; gerisi ya `min_brands=0` havuzunun
   elle okunması ya da 1. mektubu almış lead'lere 2. mektup — ikisi de operatör
   kararı.
+
+**Admin ▸ Messages: konuşmanın İÇİNDE en yeni mesaj ÜSTTE, cevap kutusu en üstte**
+(operatör, 5 Eki 2026: *"Vestra mesajlarında en başta yeni mesajlar görünsün en alta
+doğru eskiler gitsin"*).
+- **Önce ölçüldü:** konuşma KARTLARI zaten `last_at`'e göre yeni-önce sıralıydı (panelde
+  `usort`, müşteri panelinde `vestra_msg_my_threads`), engellenen denemeler de
+  (`array_reverse`). Ters duran **kartın içiydi:** "Read conversation" mesajları eskiden
+  yeniye diziyordu; 90+ mesajlık bir konuşmada (Odzież ↔ Agaya Paris) son mesaj sayfanın
+  dibinde, cevap kutusu da onun altındaydı.
+- **Yalnız GÖSTERİM ters:** `messages.json` kronolojik kalıyor, çünkü okundu sayacı
+  (`read[]` = görülen mesaj SAYISI) ve yoklama konuma bakıyor; kaydı ters yazmak her
+  müşterinin onay işaretini bozardı. Silme anahtarı içerikten türüyor (`vestra_msg_key`),
+  yani sıra değişikliği silinen satırı kaydırmıyor.
+- **Müşteri sohbet paneli (`vestra_msg_panel_html`) BİLEREK değişmedi:** orada yazma
+  kutusu altta ve sayfa açılınca en yeni mesaja kendiliğinden kayıyor (sohbet
+  uygulaması kalıbı). Operatör alıcı/satıcı ekranında da ters sıra isterse ayrı iş:
+  yazma kutusu üste, kaydırma kalkar, okundu işareti kayıt dizinini korur.
+- Test: `tests/admin_msg_order_test.php` (**24 iddia**; `admin.php` kum havuzunda
+  gerçekten çiziliyor; kontrol grubu: dosyada ESKİ konuşma önce duruyor ama kartı sonra
+  basılıyor; kayıt çizimden sonra bayt bayt aynı; müşteri paneli kronolojik). Üç sabotaj,
+  her biri tek eşleşmeyle uygulanıp `cp` yedeğinden geri alınarak: `array_reverse`
+  kalkınca **2 kırmızı**, kart sıralaması kalkınca **13**, cevap formu alta dönünce **1**.
+  Tam takım: yalnız önceden kayıtlı üç kırık.

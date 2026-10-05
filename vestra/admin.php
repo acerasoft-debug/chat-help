@@ -7018,9 +7018,30 @@ elseif($tab==='messages'):
     </div>
   </div>
   <div class="acard-body">
-    <details><summary style="cursor:pointer;font-size:12px;color:var(--acc)">Read conversation</summary>
+    <details><summary style="cursor:pointer;font-size:12px;color:var(--acc)">Read conversation <span class="ahint">· newest first</span></summary>
+      <?php /* Operator, 5 Eki 2026: "Vestra mesajlarinda en basta yeni mesajlar
+               gorunsun en alta dogru eskiler gitsin". Konusma kartlari zaten
+               last_at'e gore YENI ONCE siraliydi; ters duran, kartin ICI idi:
+               mesajlar eskiden yeniye diziliyordu ve 90+ mesajlik bir konusmada
+               son mesaj ancak sayfanin dibinde okunuyordu, cevap kutusu da
+               onun altinda. Simdi cevap kutusu USTTE, hemen altinda en yeni
+               mesaj, eskiler asagi.
+               Yalniz GOSTERIM ters: kayit (messages.json) kronolojik kaliyor,
+               cunku okundu sayaci (read[] = goruleni SAYISI) ve yoklama
+               konuma bakiyor. Silme anahtari icerikten turuyor
+               (vestra_msg_key), yani sira degismesi silinen satiri
+               kaydirmaz. Musteri sohbet paneli (vestra_msg_panel_html) bilerek
+               DEGISMEDI: orada yazma kutusu altta ve sayfa en yeni mesaja
+               kendiliginden kayiyor -- sohbet uygulamasi kalibi. */ ?>
+      <form method="post" style="margin-top:10px;display:flex;gap:8px">
+        <?= csrfField() ?>
+        <input type="hidden" name="_action" value="admin_reply">
+        <input type="hidden" name="thread_id" value="<?= htmlspecialchars($th['id']??'') ?>">
+        <input name="body" required placeholder="Reply as <?= htmlspecialchars($accLabel($th['seller_uid']??'')) ?>…" style="flex:1;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:12.5px">
+        <button class="abtn primary" type="submit">Reply</button>
+      </form>
       <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
-        <?php foreach(($th['messages']??[]) as $m): $isBuyer=($m['from']??'')===($th['buyer_uid']??'');
+        <?php foreach(array_reverse($th['messages']??[]) as $m): $isBuyer=($m['from']??'')===($th['buyer_uid']??'');
           $mKey = vestra_msg_key($m); ?>
         <div style="font-size:12.5px;line-height:1.5">
           <b style="color:<?= $isBuyer?'#3366cc':'#9a7320' ?>"><?= htmlspecialchars($accLabel($m['from']??'')) ?></b>
@@ -7041,13 +7062,6 @@ elseif($tab==='messages'):
         </div>
         <?php endforeach; ?>
       </div>
-      <form method="post" style="margin-top:10px;display:flex;gap:8px">
-        <?= csrfField() ?>
-        <input type="hidden" name="_action" value="admin_reply">
-        <input type="hidden" name="thread_id" value="<?= htmlspecialchars($th['id']??'') ?>">
-        <input name="body" required placeholder="Reply as <?= htmlspecialchars($accLabel($th['seller_uid']??'')) ?>…" style="flex:1;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:12.5px">
-        <button class="abtn primary" type="submit">Reply</button>
-      </form>
     </details>
   </div>
 </div>
