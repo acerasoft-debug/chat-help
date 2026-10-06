@@ -60,7 +60,10 @@ if ($slug !== '') {
             ['@type' => 'ListItem', 'position' => 3, 'name' => (string)($art['title'] ?? ''), 'item' => $_jurl],
         ]]];
         require __DIR__.'/inc/head.php';
-        $more = array_values(array_filter(vestra_journal_published(), fn($p) => ($p['id'] ?? '') !== ($art['id'] ?? '')));
+        /* Ayni TUR: yazinin altinda yazi, stok raporunun altinda rapor (ayri yerler karismasin). */
+        $artStock = vestra_journal_is_stock_report($art);
+        $more = array_values(array_filter(vestra_journal_published(), fn($p) => ($p['id'] ?? '') !== ($art['id'] ?? '')
+                && vestra_journal_is_stock_report($p) === $artStock));
         $more = array_map(fn($p) => vestra_journal_localize($p, $lang), array_slice($more, 0, 3));
         ?>
         <style><?= vestra_journal_css() ?></style>
@@ -106,9 +109,17 @@ $META = t('Fashion, brand and wholesale-market news from VESTRA — updated regu
 require __DIR__.'/inc/head.php';
 
 $all = vestra_journal_published();
-if ($cat !== '') $all = array_values(array_filter($all, fn($p) => ($p['category'] ?? '') === $cat));
 $lang = vlang();
+/* Markali stok raporlari yazilardan AYRI: kendi sekmesi (?cat=stock) ve "Tumu"
+   gorunumunde yazilarin altinda ayri bir bant. Kategori sekmeleri yalniz yaziyi
+   gosterir -- 'Brand News' sekmesi raporlarla dolmasin. */
+$stockAll = array_values(array_filter($all, 'vestra_journal_is_stock_report'));
+$all      = array_values(array_filter($all, fn($p) => !vestra_journal_is_stock_report($p)));
+$isStock  = ($cat === 'stock');
+if ($isStock) $all = $stockAll;
+elseif ($cat !== '') $all = array_values(array_filter($all, fn($p) => ($p['category'] ?? '') === $cat));
 $all = array_map(fn($p) => vestra_journal_localize($p, $lang), $all);
+$stockBand = ($cat === '') ? array_map(fn($p) => vestra_journal_localize($p, $lang), array_slice($stockAll, 0, 6)) : [];
 $featured = $all[0] ?? null;
 $rest = $featured ? array_slice($all, 1) : [];
 ?>
@@ -125,6 +136,9 @@ $rest = $featured ? array_slice($all, 1) : [];
     <?php foreach (VESTRA_JOURNAL_CATS as $c): ?>
       <a href="/journal?cat=<?= urlencode($c) ?>" class="<?= $cat===$c?'on':'' ?>"><?= htmlspecialchars(t($c)) ?></a>
     <?php endforeach; ?>
+    <?php if ($stockAll): ?>
+      <a href="/journal?cat=stock" class="jr-cat-stock <?= $isStock?'on':'' ?>"><?= t('In stock now') ?></a>
+    <?php endif; ?>
   </div>
 
   <?php if (!$all): ?>
@@ -157,6 +171,26 @@ $rest = $featured ? array_slice($all, 1) : [];
     </div>
     <?php endif; ?>
   <?php endif; ?>
+
+  <?php if ($stockBand): ?>
+  <section class="jr-stock">
+    <div class="jr-stock-h">
+      <h3><?= t('In stock now') ?></h3>
+      <a href="/journal?cat=stock"><?= t('All') ?> →</a>
+    </div>
+    <div class="jr-stock-row">
+      <?php foreach ($stockBand as $p): ?>
+      <a class="jr-scard" href="/journal?slug=<?= urlencode($p['slug'] ?? '') ?>">
+        <div class="jr-sthumb" style="background-image:<?= vestra_journal_cover_bg($p) ?>"></div>
+        <div class="jr-sbody">
+          <h4><?= htmlspecialchars($p['title'] ?? '') ?></h4>
+          <div class="jr-meta"><?= $fmtDate($p['created'] ?? '') ?></div>
+        </div>
+      </a>
+      <?php endforeach; ?>
+    </div>
+  </section>
+  <?php endif; ?>
 </div>
 <?php require __DIR__.'/inc/foot.php';
 
@@ -179,6 +213,19 @@ footer a:hover{color:#ffffff}
 .jr-cats a{font-size:13px;padding:7px 15px;border:1px solid var(--line);border-radius:999px;color:var(--mut);transition:.2s}
 .jr-cats a:hover{color:var(--ink);border-color:var(--acc)}
 .jr-cats a.on{background:var(--acc);color:#1a1205;border-color:var(--acc);font-weight:600}
+.jr-cats a.jr-cat-stock{border-style:dashed}
+.jr-stock{margin-top:56px;padding-top:28px;border-top:1px solid var(--line)}
+.jr-stock-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:16px}
+.jr-stock-h h3{margin:0;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);font-weight:600}
+.jr-stock-h a{font-size:13px;color:var(--mut)}
+.jr-stock-h a:hover{color:var(--ink)}
+.jr-stock-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.jr-scard{display:grid;grid-template-columns:88px 1fr;gap:12px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;transition:.2s}
+.jr-scard:hover{border-color:var(--acc)}
+.jr-sthumb{width:88px;height:88px;border-radius:8px;background-size:cover;background-position:center}
+.jr-sbody h4{margin:0 0 6px;font-size:14px;line-height:1.35;color:var(--ink)}
+@media(max-width:820px){ .jr-stock-row{grid-template-columns:1fr 1fr} }
+@media(max-width:560px){ .jr-stock-row{grid-template-columns:1fr} }
 .jr-empty{text-align:center;color:var(--mut);padding:60px 20px}
 .jr-feature{display:grid;grid-template-columns:1.15fr 1fr;gap:0;border:1px solid var(--line);border-radius:20px;overflow:hidden;margin-bottom:30px;text-decoration:none;color:inherit;transition:.22s;background:var(--bg2)}
 .jr-feature:hover{border-color:var(--acc);transform:translateY(-3px);box-shadow:0 24px 50px -24px rgba(60,50,30,.16)}

@@ -10,6 +10,16 @@ require_once __DIR__.'/products.php'; // vestra_read_json / vestra_write_json / 
 
 const VESTRA_JOURNAL_CATS = ['Brand News', 'Market & Prices', 'Wholesale Trends', 'Style Edit'];
 
+/* Otomatik stok raporu mu (journal_auto.php: "New in stock: N new lines from <marka>").
+   Operator, 6 Eki 2026: "jornalden markali urunleri ayri bir yere koy" -- bu raporlar
+   yazilarin arasinda duruyordu; artik /journal'da kendi sekmesinde (?cat=stock) ve
+   yazilarin ALTINDA ayri bir bantta. Bayrak journal_auto.php'nin sabiti; o dosya bu
+   sayfada yuklenmiyor, o yuzden ayni deger burada da yazili (test ikisini esitliyor). */
+const VESTRA_JOURNAL_STOCK_SOURCE = 'auto_stock_report';
+function vestra_journal_is_stock_report(array $p): bool {
+    return ($p['source'] ?? '') === VESTRA_JOURNAL_STOCK_SOURCE;
+}
+
 function vestra_journal_all(): array {
     $a = vestra_read_json('journal.json');
     usort($a, fn($x, $y) => strcmp((string)($y['created'] ?? ''), (string)($x['created'] ?? ''))); // newest first
