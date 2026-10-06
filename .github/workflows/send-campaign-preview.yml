@@ -1832,9 +1832,17 @@ jobs:
                  edilecek siparise fatura yollamak iki celisen mektup demek. Saat
                  isliyorsa mektup cron'un BAKTIGI son tarihi yazar (KURAL 7). */
               $og = vestra_order_payment_grace($ost, time(), $oref);
-              if ($og['phase'] === 'has_receipt') {
-                fwrite(STDERR, "odeme DEKONTU yuklenmis -- 'lutfen odeyin' yazilmaz; once dekontu kontrol edip Paid isaretleyin\n"); exit(1);
+              /* allow_receipt=1 YALNIZ replaced=1 ile: dekontlu siparis operator kararıyla
+                 (para GELMEDI) yeni birimde yeniden kesildiyse ve kayit bunu
+                 (invoice_replaced.receipt_overridden) tasiyorsa. Mektup zaten "eski faturayi
+                 odediyseniz bize bildirin" diyor. */
+              $ogHist = is_array($ost['invoice_replaced'] ?? null) ? $ost['invoice_replaced'] : [];
+              $ogRepl = $ogHist ? (array)end($ogHist) : [];
+              $ogOver = trim($E('allow_receipt')) === '1' && trim($E('replaced')) === '1' && !empty($ogRepl['receipt_overridden']);
+              if ($og['phase'] === 'has_receipt' && !$ogOver) {
+                fwrite(STDERR, "odeme DEKONTU yuklenmis -- 'lutfen odeyin' yazilmaz; once dekontu kontrol edip Paid isaretleyin (yeniden kesimde dekont operator karariyla gecildiyse: replaced=1|allow_receipt=1)\n"); exit(1);
               }
+              if ($og['phase'] === 'has_receipt') echo "dekont : YUKLU ama operator karariyla gecildi (yeniden kesimde receipt_overridden)\n";
               if ($og['phase'] === 'overdue') {
                 fwrite(STDERR, "odeme suresi DOLMUS (".gmdate('Y-m-d', (int)$og['deadline']).") -- bir sonraki cron siparisi iptal eder; mektup gonderilmez, karar operatorun\n"); exit(1);
               }

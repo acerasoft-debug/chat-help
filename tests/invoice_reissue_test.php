@@ -174,6 +174,18 @@ $i1 = $snapInv();
 $r2 = vestra_invoice_reissue_apply(['VES-OK1'], 'USD');
 $t('belge zaten USD: REDDEDILIR, yeni numara YAKILMAZ', $r2['ok'] === false && $snapInv() === $i1);
 
+echo "\n== 5b. dekontlu siparis: allow_receipt (operator parayi kontrol etti, GELMEDI) ==\n";
+$pr = vestra_invoice_reissue_plan('VES-RCPT', 'USD', true);
+$t('allow_receipt ile dekontlu siparis GECER', $pr['ok'] === true && !empty($pr['receipt_overridden']));
+$t('...bayraksiz yine DURUR', !vestra_invoice_reissue_plan('VES-RCPT', 'USD')['ok']);
+$t('...dekontsuz sipariste receipt_overridden YOK', empty(vestra_invoice_reissue_plan('VES-CTRL', 'USD', true)['receipt_overridden']));
+$rr = vestra_invoice_reissue_apply(['VES-RCPT'], 'USD', true);
+$sr = vestra_read_json('order_statuses.json')['VES-RCPT'];
+$rpr = end($sr['invoice_replaced']);
+$t('...uygulama gecti, belge USD', $rr['ok'] === true && strtoupper((string)(vestra_invoices_for_ref('VES-RCPT')[0]['currency'] ?? '')) === 'USD');
+$t('...dekont KAYDI silinmedi', !empty($sr['payment_receipt']));
+$t('...karar kayitta (receipt_overridden)', !empty($rpr['receipt_overridden']));
+
 echo "\n== 6. mektup (yerine gecen belge) ==\n";
 require_once $root.'/inc/notify.php';
 require_once $root.'/inc/email_templates.php';

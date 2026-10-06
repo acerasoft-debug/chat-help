@@ -2439,14 +2439,19 @@ jobs:
             require_once $doc."/inc/invoice_reissue.php";
             $refs  = array_values(array_filter(array_map(fn($r) => preg_replace('/[^A-Za-z0-9_-]/', '', $r),
                        explode(',', (string)getenv('IRS_REFS')))));
-            $cur   = strtoupper(trim((string)getenv('IRS_CUR'))) ?: 'USD';
+            /* payload: birim ve istege bagli bayrak, 'USD|allow_receipt=1' (dekont yuklu ama
+               operator parayi kontrol edip GELMEDI dedi). */
+            $irsP  = explode('|', (string)getenv('IRS_CUR'));
+            $cur   = strtoupper(trim((string)$irsP[0])) ?: 'USD';
+            $allowRcpt = in_array('allow_receipt=1', array_map('trim', array_slice($irsP, 1)), true);
+            if ($allowRcpt) echo "!! allow_receipt=1 -- dekontu yuklu siparis operator karariyla yeniden kesilir (dekont kaydi SILINMEZ)\n";
             $apply = strtolower(trim((string)getenv('IRS_APPLY'))) === 'true';
             if (!$refs) { fwrite(STDERR, "ref yok (issue_ref=ref[,ref])\n"); exit(1); }
             echo ($apply ? "=== UYGULAMA" : "=== KURU KOSU (hicbir sey yazilmaz)")." -- hedef birim {$cur}, ".count($refs)." ref ===\n";
             $fmt = fn($c, $v) => $c.' '.number_format((float)$v, 2);
             $allOk = true;
             foreach ($refs as $r) {
-              $p = vestra_invoice_reissue_plan($r, $cur);
+              $p = vestra_invoice_reissue_plan($r, $cur, $allowRcpt);
               $allOk = $allOk && $p['ok'];
               echo "\n{$r} [{$p['kind']}] {$p['buyer']} | dil ".($p['lang'] ?: '-')."\n";
               if ($p['old']) echo "  eski : {$p['old']['no']} ".$fmt($p['old']['currency'], $p['old']['total'])."\n";
@@ -2461,7 +2466,7 @@ jobs:
               echo "  karar: ".($p['ok'] ? 'UYGUN' : '*** DURUR: '.implode(' | ', $p['errors']))."\n";
             }
             if (!$apply) { echo "\nKURU KOSU -- ".($allOk ? "hepsi uygun; move_apply=true ile uygulanir." : "uygunsuz ref var; uygulama HICBIRINE dokunmaz.")."\n"; exit($allOk ? 0 : 1); }
-            $res = vestra_invoice_reissue_apply($refs, $cur);
+            $res = vestra_invoice_reissue_apply($refs, $cur, $allowRcpt);
             echo "\n=== SONUC ===\n";
             foreach ($res['done'] as $r => $d) echo "  {$r}: {$d['old']} ARSIVDE -> YENI {$d['no']} ".$fmt($d['currency'], $d['total'])." (geri okundu)\n";
             if (!$res['ok']) { fwrite(STDERR, "DURDU: {$res['error']}\n"); exit(1); }

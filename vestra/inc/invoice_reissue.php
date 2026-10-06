@@ -54,7 +54,7 @@ function vestra_invoice_reissue_kind(string $ref): string {
 
 /** Tek ref'in SALT OKUNUR plani: kontroller + hedef birimdeki yeni belgenin onizlemesi.
  *  Hicbir sey yazmaz. */
-function vestra_invoice_reissue_plan(string $ref, string $cur): array {
+function vestra_invoice_reissue_plan(string $ref, string $cur, bool $allowReceipt = false): array {
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
     $cur = strtoupper(trim($cur));
     $out = ['ref' => $ref, 'kind' => '', 'ok' => false, 'errors' => [], 'old' => [], 'new' => [],
@@ -100,7 +100,11 @@ function vestra_invoice_reissue_plan(string $ref, string $cur): array {
     if (!empty($paid['settled'])) $out['errors'][] = 'parasi GELMIS ('.$paid['via'].')';
     $g = vestra_order_payment_grace($st, time(), $ref);
     $out['grace'] = ['phase' => $g['phase'], 'deadline' => $g['deadline']];
-    if ($g['phase'] === 'has_receipt') $out['errors'][] = 'DEKONT yuklenmis -- para yolda olabilir, once dekontu kontrol edin';
+    /* allow_receipt (6 Eki 2026, JEDDI & CO / VES-2DDC94D9: operator dekontu kontrol etti,
+       "para gelmedi" dedi). Dekont KAYDI silinmez -- iz kalir; yalniz bu kapi ACIK bir
+       operator karariyla gecilir ve karar invoice_replaced kaydina yazilir. */
+    if ($g['phase'] === 'has_receipt' && !$allowReceipt) $out['errors'][] = 'DEKONT yuklenmis -- para yolda olabilir, once dekontu kontrol edin (operator kontrol ettiyse: allow_receipt=1)';
+    $out['receipt_overridden'] = $g['phase'] === 'has_receipt' && $allowReceipt;
 
     $invs = vestra_invoices_for_ref($ref);
     if (count($invs) !== 1) { $out['errors'][] = 'kesilmis belge sayisi '.count($invs).' -- TAM 1 gerekli'; return $out; }
@@ -174,7 +178,7 @@ function vestra_invoice_reissue_fix_ref(string $ref): bool {
 }
 
 /** Saati SIFIRLA, eski degerleri ve eski belgeyi iz olarak sakla. Diger alanlara dokunmaz. */
-function vestra_invoice_reissue_reset_clock(string $ref, array $old, string $cur): void {
+function vestra_invoice_reissue_reset_clock(string $ref, array $old, string $cur, bool $receiptOverridden = false): void {
     $st = vestra_read_json('order_statuses.json');
     $e = (isset($st[$ref]) && is_array($st[$ref])) ? $st[$ref] : [];
     $prev = array_intersect_key($e, array_flip(['payment_grace_start', 'payment_reminder_sent_at']));
@@ -182,7 +186,8 @@ function vestra_invoice_reissue_reset_clock(string $ref, array $old, string $cur
     $rep = (isset($e['invoice_replaced']) && is_array($e['invoice_replaced'])) ? $e['invoice_replaced'] : [];
     $rep[] = ['no' => (string)($old['no'] ?? ''), 'currency' => (string)($old['currency'] ?? ''),
               'total' => (float)($old['total'] ?? 0), 'to_currency' => $cur, 'at' => date('c'),
-              'clock' => $prev];
+              'clock' => $prev]
+            + ($receiptOverridden ? ['receipt_overridden' => true] : []);
     $e['invoice_replaced'] = $rep;
     $st[$ref] = $e;
     vestra_write_json('order_statuses.json', $st);
@@ -193,12 +198,12 @@ function vestra_invoice_reissue_reset_clock(string $ref, array $old, string $cur
  * Bir ref yarida kalirsa (arsivlendi ama kesilemedi) DURUR, hangisinde kaldigini
  * soyler ve sonrakilere gecmez.
  */
-function vestra_invoice_reissue_apply(array $refs, string $cur): array {
+function vestra_invoice_reissue_apply(array $refs, string $cur, bool $allowReceipt = false): array {
     $cur = strtoupper(trim($cur));
     $refs = array_values(array_unique(array_filter(array_map(fn($r) => preg_replace('/[^A-Za-z0-9_-]/', '', (string)$r), $refs))));
     $out = ['ok' => false, 'error' => '', 'plans' => [], 'done' => []];
     if (!$refs) { $out['error'] = 'ref yok'; return $out; }
-    foreach ($refs as $r) $out['plans'][$r] = vestra_invoice_reissue_plan($r, $cur);
+    foreach ($refs as $r) $out['plans'][$r] = vestra_invoice_reissue_plan($r, $cur, $allowReceipt);
     $bad = array_filter($out['plans'], fn($p) => !$p['ok']);
     if ($bad) { $out['error'] = 'plan tutmuyor: '.implode(', ', array_keys($bad)).' -- HICBIR sey yapilmadi'; return $out; }
 
@@ -216,7 +221,7 @@ function vestra_invoice_reissue_apply(array $refs, string $cur): array {
             if ($pl['new']['bank_clear'] !== '') vestra_order_set_invoice_bank($r, '');
             vestra_order_set_invoice_currency($r, $cur);
         }
-        vestra_invoice_reissue_reset_clock($r, $pl['old'], $cur);
+        vestra_invoice_reissue_reset_clock($r, $pl['old'], $cur, !empty($pl['receipt_overridden']));
 
         if ($pl['kind'] === 'offer') {
             $res = vestra_offers_combined_invoice_issue([$r], 'vestra', null, null, null, false, '', $cur);
