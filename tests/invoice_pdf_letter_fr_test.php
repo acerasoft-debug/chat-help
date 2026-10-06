@@ -80,7 +80,7 @@ $br = $a !== false && $b !== false ? substr($wf, $a, $b - $a) : '';
 $t('dal bulundu', $br !== '');
 $t('lang en|fr disi reddediliyor', str_contains($br, "in_array(\$ilang, ['en', 'fr'], true)") && str_contains($br, 'desteklenmiyor (en|fr)'));
 $t('fr son tarih vestra_push_date ile', str_contains($br, "vestra_push_date(") && str_contains($br, "'fr')"));
-$t('sablona lang ve fixed geciyor', (bool)preg_match('/vestra_tpl_order_invoice_pdf\(.*?\$ilang, \$ifix\);/s', $br));
+$t('sablona lang ve fixed geciyor', (bool)preg_match('/vestra_tpl_order_invoice_pdf\(.*?\$ilang, \$ifix(, \$irep)?\);/s', $br));
 $t('fixed=items belgeyi drawn_text ile olcuyor', str_contains($br, 'vestra_pdf_drawn_text((string)file_get_contents($pdf))'));
 
 echo "\n== 5. Is akisi: fixed=items blogu GERCEK bir faturada kosuyor ==\n";

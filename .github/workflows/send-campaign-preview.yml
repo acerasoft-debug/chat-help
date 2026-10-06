@@ -1922,12 +1922,27 @@ jobs:
                 echo "belgede : SKU {$skuOk}/".count($ilines)." | renk {$colOk}/{$colAll}\n";
                 if ($miss) { fwrite(STDERR, "'ident ve renkler faturada' denemez -- eksik: ".implode('; ', array_slice($miss, 0, 8))."\n"); exit(1); }
               }
+              /* replaced=1 (6 Eki 2026): belge BASKA BIRIMDE yeniden kesildi
+                 (admin_mode=invoice_reissue). Eski numara/tutar KAYITTAN
+                 (invoice_replaced); kayit yoksa, eski numara bugunkuyle ayniysa
+                 ya da kaydin hedef birimi belgeninkiyle tutmuyorsa DURUR --
+                 olmamis bir degisikligi duyurmak, en pahali mektup olurdu. */
+              $irep = [];
+              if (trim($E('replaced')) === '1') {
+                $hist = (array)($ost['invoice_replaced'] ?? []);
+                $irep = (array)end($hist);
+                if (!$hist || trim((string)($irep['no'] ?? '')) === '' || (string)$irep['no'] === $invNo
+                    || strtoupper((string)($irep['to_currency'] ?? '')) !== $ocur) {
+                  fwrite(STDERR, "replaced=1 ama kayitta bu belgenin yerine gectigi bir fatura yok (invoice_replaced) -- once admin_mode=invoice_reissue\n"); exit(1);
+                }
+                echo "yerine : {$irep['no']} ".strtoupper((string)$irep['currency'])." ".number_format((float)$irep['total'], 2)." (iptal) -> {$invNo} {$ocur}\n";
+              }
               $buyerName = trim((string)($orderRow['company'] ?? '')) ?: trim((string)($orderRow['name'] ?? ''));
               if (trim($E('salutation')) !== '') $buyerName = preg_replace('/^dear\s+/i', '', trim($E('salutation')));
               $persona = trim($E('signer')) !== '' ? trim($E('signer')) : 'Marco Bellini';
               [$subject, $body, $opts] = vestra_tpl_order_invoice_pdf(
                   $buyerName, $oref, $invNo, $amount, $ocur, trim($E('invoice_updated')) === '1', (bool)$acc, $persona, $odue,
-                  $ilang, $ifix);
+                  $ilang, $ifix, $irep);
               $opts['attachments'] = [['name' => 'Invoice-'.$invNo.'.pdf', 'path' => $pdf]];
               echo "ek      : Invoice-{$invNo}.pdf\n";
               $fromName = $persona.' — VESTRA';

@@ -1323,25 +1323,44 @@ function vestra_tpl_order_item_changed(string $buyerName, string $ref, array $fi
  */
 function vestra_tpl_order_invoice_pdf(string $buyerName, string $ref, string $invoiceNo, float $total,
         string $currency = 'EUR', bool $redrafted = false, bool $hasAccount = false, string $signer = '',
-        string $dueDate = '', string $lang = 'en', bool $itemsFixed = false): array {
+        string $dueDate = '', string $lang = 'en', bool $itemsFixed = false, array $replaces = []): array {
     $buyerName = vestra_display_name($buyerName);
     $lang = strtolower(trim($lang)) === 'fr' ? 'fr' : 'en';
     $cur = strtoupper(trim($currency)) ?: 'EUR';
     $dueDate = trim($dueDate);
+    /* YERINE GECEN BELGE (fatura baska birimde yeniden kesildi -- inc/invoice_reissue.php): eski
+       numara ve tutar CAGIRANIN uydurdugu degil, kaydin (order_statuses
+       invoice_replaced) verdigi deger. Mektup "eski fatura iptal, bu belgeyle
+       odeyin" der ve -- banka hesabi degisen bir mektubun dolandiricilik kalibina
+       benzememesi icin -- belgenin alicinin KENDI hesabinda da durdugunu yazar. */
+    $repNo  = trim((string)($replaces['no'] ?? ''));
+    $repCur = strtoupper(trim((string)($replaces['currency'] ?? ''))) ?: 'EUR';
+    $repTot = (float)($replaces['total'] ?? 0);
 
     if ($lang === 'fr') {
         if ($buyerName === '') $buyerName = 'Madame, Monsieur';
         $amt = number_format($total, 2, ',', ' ').' '.($cur === 'EUR' ? '€' : ($cur === 'USD' ? 'US$' : $cur));
-        $subject = $itemsFixed ? "VESTRA — facture corrigée {$invoiceNo} pour la commande {$ref}"
-                               : "VESTRA — facture {$invoiceNo} pour la commande {$ref}";
-        $rows = [['label'=>'Commande', 'value'=>$ref], ['label'=>'Facture', 'value'=>$invoiceNo],
-                 ['label'=>'Montant à régler', 'value'=>$amt, 'strong'=>true]];
+        $subject = $repNo !== '' ? "VESTRA — nouvelle facture {$invoiceNo} (remplace {$repNo}) pour la commande {$ref}"
+                 : ($itemsFixed ? "VESTRA — facture corrigée {$invoiceNo} pour la commande {$ref}"
+                                : "VESTRA — facture {$invoiceNo} pour la commande {$ref}");
+        $rows = [['label'=>'Commande', 'value'=>$ref], ['label'=>'Facture', 'value'=>$invoiceNo]];
+        if ($repNo !== '') $rows[] = ['label'=>'Remplace', 'value'=>$repNo.' (annulée)'];
+        $rows[] = ['label'=>'Montant à régler', 'value'=>$amt, 'strong'=>true];
         if ($dueDate !== '') $rows[] = ['label'=>'À régler avant le', 'value'=>$dueDate];
-        $opts = ['badge'=>$itemsFixed ? 'Facture corrigée' : 'Facture jointe', 'rows'=>$rows];
+        $opts = ['badge'=>$repNo !== '' ? 'Facture de remplacement' : ($itemsFixed ? 'Facture corrigée' : 'Facture jointe'), 'rows'=>$rows];
         if ($hasAccount) $opts['button'] = ['label'=>'Voir ma commande', 'url'=>'https://vestrasales.com/order-confirm?ref='.rawurlencode($ref)];
         $body =
             "Bonjour {$buyerName},\n\n"
           . "Vous trouverez ci-joint votre facture {$invoiceNo} pour la commande {$ref}, au format PDF.\n\n"
+          . ($repNo !== ''
+              ? "Cette facture remplace la facture {$repNo} ("
+                .number_format($repTot, 2, ',', ' ').' '.($repCur === 'EUR' ? '€' : ($repCur === 'USD' ? 'US$' : $repCur))
+                ."), qui est annulée. Le montant est désormais facturé en "
+                .($cur === 'USD' ? 'dollars américains' : $cur)
+                ." et se règle sur le compte indiqué sur cette nouvelle facture. "
+                ."Si vous avez déjà réglé la facture {$repNo}, merci de ne pas tenir compte de ce courriel et de nous le signaler. "
+                ."Cette facture figure aussi sur la page de votre commande, dans votre compte VESTRA.\n\n"
+              : '')
           . ($itemsFixed
               ? "Nous avons corrigé cette facture : chaque article y figure désormais avec son numéro d'identification (référence) et ses coloris. "
                 ."Elle conserve le même numéro et remplace la version précédente de {$invoiceNo}.\n\n"
@@ -1365,18 +1384,27 @@ function vestra_tpl_order_invoice_pdf(string $buyerName, string $ref, string $in
 
     if ($buyerName === '') $buyerName = 'Customer';
     $amt = $cur.' '.number_format($total, 2, '.', ',');
-    $subject = $itemsFixed ? "VESTRA — corrected invoice {$invoiceNo} for order {$ref}"
-                           : "VESTRA — invoice {$invoiceNo} for order {$ref}";
+    $subject = $repNo !== '' ? "VESTRA — new invoice {$invoiceNo} (replaces {$repNo}) for order {$ref}"
+             : ($itemsFixed ? "VESTRA — corrected invoice {$invoiceNo} for order {$ref}"
+                            : "VESTRA — invoice {$invoiceNo} for order {$ref}");
 
-    $rows = [['label'=>'Order ref', 'value'=>$ref], ['label'=>'Invoice', 'value'=>$invoiceNo],
-             ['label'=>'Total due', 'value'=>$amt, 'strong'=>true]];
+    $rows = [['label'=>'Order ref', 'value'=>$ref], ['label'=>'Invoice', 'value'=>$invoiceNo]];
+    if ($repNo !== '') $rows[] = ['label'=>'Replaces', 'value'=>$repNo.' (cancelled)'];
+    $rows[] = ['label'=>'Total due', 'value'=>$amt, 'strong'=>true];
     if ($dueDate !== '') $rows[] = ['label'=>'Payment due by', 'value'=>$dueDate];
-    $opts = ['badge'=>$itemsFixed ? 'Corrected invoice' : 'Invoice attached', 'rows'=>$rows];
+    $opts = ['badge'=>$repNo !== '' ? 'Replacement invoice' : ($itemsFixed ? 'Corrected invoice' : 'Invoice attached'), 'rows'=>$rows];
     if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/order-confirm?ref='.rawurlencode($ref)];
 
     $body =
         "Dear {$buyerName},\n\n"
       . "Please find attached your invoice {$invoiceNo} for order {$ref} as a PDF.\n\n"
+      . ($repNo !== ''
+          ? "This invoice replaces invoice {$repNo} ({$repCur} ".number_format($repTot, 2, '.', ',')."), which has been cancelled. "
+            ."The amount is now invoiced in ".($cur === 'USD' ? 'US dollars' : $cur)
+            ." and is payable to the account shown on this new invoice. "
+            ."If you have already paid invoice {$repNo}, please disregard this e-mail and let us know. "
+            ."You can also find this invoice on your order page in your VESTRA account.\n\n"
+          : '')
       . ($itemsFixed
           ? "We have corrected this invoice: each item is now listed with its ident no. (style reference) and its colours. "
             ."It keeps the same number and replaces the earlier version of {$invoiceNo}.\n\n"
