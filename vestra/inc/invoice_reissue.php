@@ -67,7 +67,21 @@ function vestra_invoice_reissue_plan(string $ref, string $cur): array {
        vestra_offer_order_ensure ayni teklife IKINCI bir siparis satiri acardi. */
     $row = null; $rawRef = '';
     foreach (vestra_read_csv('orders.csv') as $r) { if (trim((string)($r['ref'] ?? '')) === $ref) { $row = $r; $rawRef = (string)$r['ref']; break; } }
-    if (!$row) { $out['errors'][] = 'orders.csv satiri yok'; return $out; }
+    if (!$row) {
+        /* TESHIS: gorunmez bir karakter (trim'in silmedigi) tasiyan satir var mi?
+           Ham ref onaltilik basiliyor -- olcmeden duzeltme yazilmaz. */
+        foreach (vestra_read_csv('orders.csv') as $r) {
+            $raw = (string)($r['ref'] ?? '');
+            if ($raw !== $ref && preg_replace('/[^A-Za-z0-9_-]/', '', $raw) === $ref) {
+                $stAll = vestra_read_json('order_statuses.json');
+                $out['errors'][] = "orders.csv satirinin ref'i GORUNMEZ karakter tasiyor (hex ".bin2hex($raw).")"
+                    ." | order_statuses ham anahtar ".(isset($stAll[$raw]) ? 'VAR' : 'yok')
+                    .", temiz anahtar ".(isset($stAll[$ref]) ? 'VAR' : 'yok');
+                return $out;
+            }
+        }
+        $out['errors'][] = 'orders.csv satiri yok'; return $out;
+    }
     $out['kind']  = vestra_invoice_reissue_kind($ref);
     $out['ref_dirty'] = $rawRef !== $ref ? (string)json_encode($rawRef) : '';
     if ($out['ref_dirty'] !== '' && $out['kind'] !== 'offer') {
