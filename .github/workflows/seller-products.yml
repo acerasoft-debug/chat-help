@@ -3028,6 +3028,150 @@ jobs:
             php /tmp/vestra_cur.php
             rm -f /tmp/vestra_cur.php
 
+      # KESILMIS FATURALARI USD (Mercury) OLARAK YENIDEN KES (6 Eki 2026, operator:
+      # "Awaiting payment olanlarin hepsini USD hesabi yap" -> "7 si birden").
+      # Bir kesilmis belge para birimini degistiremez (KURAL 5i): yol, belgeyi
+      # ARSIVLEMEK (vestra_invoice_delete, numara yanmis kalir), birimi USD yapmak,
+      # EUR banka profilini temizlemek ve YENI numarayla kesmek. Mektup YOK
+      # (KURAL 18) -- musteriye bildirim ayri adim.
+      #   issue_ref  : virgulle ref listesi (VES-... ya da kabul edilmis teklif O...)
+      #   move_apply : 'true' uygular; varsayilan KURU KOSU (hicbir sey yazmaz)
+      # HEPSI YA DA HICBIRI: once her ref icin yazmadan denetlenir (tek VESTRA
+      # dilimi, odenmemis, birlesik fatura degil, USD yuku cevrilebiliyor,
+      # odeme kutusu cikiyor, kargo karari var); biri tutmazsa hicbirine
+      # dokunulmaz. Uygulamada bir ref yarida kalirsa durur ve hangisi oldugunu yazar.
+      - name: Kesilmiş faturaları USD olarak yeniden kes (usd_reissue)
+        if: ${{ github.event.inputs.admin_mode == 'usd_reissue' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          UR_REFS: ${{ github.event.inputs.issue_ref }}
+          UR_APPLY: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 6m
+          envs: UR_REFS,UR_APPLY
+          script: |
+            cat > /tmp/vestra_usdre.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','stderr'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/invoice.php";
+            require_once $doc."/inc/fx_orders.php";
+            require_once $doc."/inc/offers.php";
+            $apply = strtolower(trim((string)getenv('UR_APPLY'))) === 'true';
+            $refs = array_values(array_unique(array_filter(array_map(
+                      fn($r) => preg_replace('/[^A-Za-z0-9_-]/', '', trim($r)),
+                      explode(',', (string)getenv('UR_REFS'))))));
+            if (!$refs) { fwrite(STDERR, "issue_ref bos\n"); exit(1); }
+            $banks = vestra_platform_banks();
+            $rs  = vestra_read_json('offer_responses.json');
+            $st  = vestra_read_json('order_statuses.json');
+            $ord = [];
+            foreach (vestra_read_csv('orders.csv') as $r) $ord[(string)($r['ref'] ?? '')] = $r;
+            $plan = []; $bad = 0;
+            echo ($apply ? "UYGULAMA" : "KURU KOSU (hicbir sey yazilmaz)")." -- ".count($refs)." ref\n";
+            foreach ($refs as $ref) {
+              $isOffer = (($rs[$ref]['status'] ?? '') === 'accept');
+              $err = [];
+              $inv = vestra_invoices_for_ref($ref, false);
+              if (count($inv) !== 1) $err[] = 'kesilmis fatura sayisi '.count($inv).' (1 olmali)';
+              $sk = (string)($inv[0]['seller_key'] ?? '');
+              if ($inv && $sk !== 'vestra') $err[] = "kesen '{$sk}' (VESTRA degil -- Mercury yalniz platformun)";
+              $no = (string)($inv[0]['no'] ?? '');
+              $members = [];
+              foreach ($rs as $k => $v) if (is_array($v) && (string)($v['invoice_group_ref'] ?? '') === $ref && $k !== $ref) $members[] = $k;
+              if ($members) $err[] = 'birlesik fatura (uyeler: '.implode(',', $members).')';
+              if (!$isOffer && !isset($ord[$ref])) $err[] = 'siparis/teklif kaydi yok';
+              $paid = vestra_order_payment_settled($ref);
+              if (!empty($paid['settled'])) $err[] = 'ODENMIS ('.$paid['via'].')';
+              $bankNow = $isOffer ? (string)($rs[$ref]['invoice_bank'] ?? '') : (string)($st[$ref]['invoice_bank'] ?? '');
+              $bankCur = $bankNow !== '' ? strtoupper((string)($banks[$bankNow]['currency'] ?? '?')) : '';
+              $clearBank = ($bankNow !== '' && $bankCur !== 'USD');
+              $total = ''; $fxn = '';
+              if ($isOffer) {
+                if (function_exists('vestra_offer_fx_ensure')) vestra_offer_fx_ensure($ref);
+                $p = vestra_offer_invoice_payload($ref, '', null, null, null, 'USD', $clearBank ? '' : null);
+                if (!$p) $err[] = 'teklif yuku kurulamadi';
+                else {
+                  if (!empty($p['currency_error'])) $err[] = 'kur: '.$p['currency_error'];
+                  if (!empty($p['bank_error'])) $err[] = 'banka: '.$p['bank_error'];
+                  $cur = strtoupper((string)($p['meta']['currency'] ?? ''));
+                  if (empty($p['currency_error']) && $cur !== 'USD') $err[] = "yuk birimi {$cur}";
+                  $gap = vestra_invoice_payment_gap($p['seller'] ?? null, 'USD', false);
+                  if ($gap !== '') $err[] = 'odeme kutusu: '.$gap;
+                  $fxn = (string)($p['meta']['fx_note'] ?? '');
+                }
+              } else {
+                $pls = vestra_order_invoice_payloads($ref, 'USD');
+                if (count($pls) !== 1) $err[] = 'dilim sayisi '.count($pls);
+                foreach ($pls as $p) {
+                  if (!empty($p['currency_error'])) $err[] = 'kur: '.$p['currency_error'];
+                  if (!vestra_invoice_is_platform_issuer($p['seller'] ?? null)) $err[] = 'dilim platformun degil';
+                  $gap = vestra_invoice_payment_gap($p['seller'] ?? null, 'USD', false);
+                  if ($gap !== '') $err[] = 'odeme kutusu: '.$gap;
+                  $fxn = (string)($p['meta']['fx_note'] ?? '');
+                }
+                $row = $ord[$ref] ?? [];
+                if ($row && round((float)($row['shipping'] ?? 0), 2) <= 0 && trim((string)($st[$ref]['shipping_set_at'] ?? '')) === '')
+                  $err[] = 'kargo karari yok (navlun 0, damga yok)';
+                $fx = function_exists('vestra_order_fx') ? vestra_order_fx($ref) : null;
+                if (!$fx || empty($fx['usd'])) $err[] = 'siparis kur damgasi yok';
+              }
+              $eur = $isOffer ? '' : (string)($ord[$ref]['total'] ?? '');
+              printf("\n%s  [%s]  eski fatura %s  kesen %s  banka '%s'%s%s\n", $ref, $isOffer ? 'teklif' : 'siparis', $no ?: '-', $sk ?: '-',
+                     $bankNow ?: 'varsayilan', $clearBank ? " ({$bankCur} profil -> TEMIZLENECEK)" : '', $eur !== '' ? "  toplam EUR {$eur}" : '');
+              if ($fxn !== '') echo "   kur notu: ".mb_substr(preg_replace('/\s+/', ' ', $fxn), 0, 230)."\n";
+              if ($err) { $bad++; echo "   *** DURUR: ".implode(' | ', $err)."\n"; }
+              else echo "   denetim: GECER\n";
+              $plan[] = ['ref' => $ref, 'offer' => $isOffer, 'sk' => $sk, 'no' => $no, 'clear' => $clearBank];
+            }
+            if ($bad) { echo "\nDENETIM: {$bad} ref gecmedi -- HICBIRINE DOKUNULMADI.\n"; exit(1); }
+            if (!$apply) { echo "\nDENETIM: hepsi gecer. Uygulamak icin move_apply=true.\n"; exit(0); }
+            $done = 0;
+            foreach ($plan as $x) {
+              $ref = $x['ref'];
+              echo "\n== {$ref} ==\n";
+              $d = vestra_invoice_delete($ref, $x['sk']);
+              if (empty($d['ok'])) { fwrite(STDERR, "{$ref}: arsivleme basarisiz: ".($d['error'] ?? '?')."\n"); exit(2); }
+              echo "   arsivlendi: {$x['no']} ({$d['moved']} dosya)\n";
+              $okc = $x['offer'] ? vestra_offer_set_invoice_currency($ref, 'USD') : vestra_order_set_invoice_currency($ref, 'USD');
+              if (!$okc) { fwrite(STDERR, "{$ref}: birim yazilamadi -- FATURASIZ KALDI, elle tamamlayin\n"); exit(2); }
+              if ($x['clear']) {
+                $okb = $x['offer'] ? vestra_offer_set_invoice_bank($ref, '') : vestra_order_set_invoice_bank($ref, '');
+                if (!$okb) { fwrite(STDERR, "{$ref}: banka temizlenemedi -- FATURASIZ KALDI\n"); exit(2); }
+                echo "   banka profili temizlendi (varsayilan USD hesabi)\n";
+              }
+              if ($x['offer']) {
+                $iv = vestra_offer_issue_invoice($ref, true);
+                if (is_array($iv) && empty($iv['error']) && ($iv['no'] ?? '') !== '') {
+                  $op = vestra_offer_invoice_payload($ref);
+                  if ($op) { $op['refs'] = [$ref]; vestra_offer_order_ensure($op); }
+                }
+              } else {
+                $r = vestra_issue_order_invoices($ref, false);
+                $iv = !empty($r['error']) ? $r : (array)($r[0] ?? (is_array($r) ? reset($r) : []));
+              }
+              if (!is_array($iv) || !empty($iv['error']) || ($iv['no'] ?? '') === '') {
+                fwrite(STDERR, "{$ref}: KESIM DURDU: ".(is_array($iv) ? ($iv['error'] ?? 'numara yok') : 'null')." -- FATURASIZ KALDI\n"); exit(2);
+              }
+              $back = vestra_invoices_for_ref($ref, false);
+              $m = $back[0] ?? [];
+              printf("   YENI: %s  %s %s  (geri okundu: %d belge)\n", (string)($m['no'] ?? '?'), (string)($m['currency'] ?? '?'),
+                     number_format((float)($m['total'] ?? 0), 2, '.', ','), count($back));
+              if (strtoupper((string)($m['currency'] ?? '')) !== 'USD') { fwrite(STDERR, "{$ref}: geri okunan birim USD degil\n"); exit(2); }
+              $done++;
+            }
+            echo "\nTAMAM: {$done}/".count($plan)." fatura USD olarak yeniden kesildi. Musteriye HICBIR SEY gitmedi.\n";
+            PHPEOF
+            php -d display_errors=stderr -d error_reporting=-1 /tmp/vestra_usdre.php; RC=$?
+            rm -f /tmp/vestra_usdre.php
+            exit $RC
       # Faturanin odeme kutusuna HANGI PLATFORM BANKA PROFILI basilacagini KAYDA
       # yazar (2 Eki 2026, VES-2DDC94D9: "Hollanda bankasi ile olustur, banka
       # secimi ... secilebilmeli adminden"). Panelin "Payment account"
