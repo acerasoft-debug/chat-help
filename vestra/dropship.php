@@ -393,7 +393,11 @@ require __DIR__ . '/inc/head.php';
       <?php endif; ?>
       <label class="hint" style="margin-top:8px;display:block"><?= t('Quantity') ?></label>
       <input type="number" name="qty" value="1" min="1" style="width:90px">
-      <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Buy now') ?> — <?= vestra_money((float)$dsUnit) ?></button>
+      <?php /* Kur yoksa alttaki satir "siparisler durduruldu" diyor; dugme yine de
+               tiklanabilir kalirsa iki cumle birbirini yalanlar (KURAL 4: gosterilip
+               reddedilen dugme, olmayan dugmeden kotu). Kapi sunucuda zaten kapali;
+               burasi yalnizca onu gosteriyor. */ ?>
+      <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px<?= $dsUsd === null ? ';opacity:.45;cursor:not-allowed' : '' ?>"<?= $dsUsd === null ? ' disabled aria-disabled="true"' : '' ?>><?= t('Buy now') ?> — <?= vestra_money((float)$dsUnit) ?></button>
       <?php /* TAHSILAT USD (operator, 8 Eyl 2026). Katalog EUR tabanli, kart
                USD cekiliyor; alici bunu Stripe sayfasinda degil BURADA gormeli.
                Kur ve kaynagi da yaziliyor: rakami dogrulayamadigi bir cevrim,

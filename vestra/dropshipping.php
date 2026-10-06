@@ -40,14 +40,29 @@ $dsSections = vestra_dropship_excluded_sections();   // ayakkabi: bolme geneli k
   padding:14px 16px;overflow-x:auto;font-size:12.5px;line-height:1.65;color:var(--ink);margin:0 0 16px}
 .dsdoc pre code{background:none;padding:0}
 .dsdoc table{width:100%;border-collapse:collapse;font-size:13.5px;margin:0 0 16px}
-.dsdoc th,.dsdoc td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-.dsdoc th{color:var(--ink);font-weight:600;white-space:nowrap}
-.dsdoc td:first-child{white-space:nowrap;color:var(--ink)}
+/* Hucreler sarilmiyor: telefonda "5–7 working days" uc satira boluniyordu.
+   Tablo zaten .dsscroll icinde yana kayiyor; dar ekranda kaydirmak, her
+   satiri uc kat uzatmaktan iyi. */
+.dsdoc th,.dsdoc td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
+.dsdoc th{color:var(--ink);font-weight:600}
+.dsdoc td:first-child{color:var(--ink)}
 .dsnote{border:1px solid rgba(169,127,44,.45);background:rgba(169,127,44,.07);
   border-radius:10px;padding:14px 16px;margin:0 0 18px}
 .dsnote p{margin:0;color:var(--ink);font-size:14px}
 .dsnote p+p{margin-top:8px}
 .dsscroll{overflow-x:auto}
+/* Dar ekranda tablo kaydirilmiyor, her bolge tek kart satiri oluyor:
+   "Japan delivery" ustte, altinda "€30.00 · 7–14 working days". Baslik
+   satiri (ilk tr) gizli -- iki hucrenin ne oldugu zaten okunuyor. */
+@media(max-width:640px){
+  .dsdoc table,.dsdoc tbody{display:block;width:100%}
+  .dsdoc tr{display:flex;flex-wrap:wrap;gap:2px 8px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .dsdoc tr:first-child{display:none}
+  .dsdoc td{display:block;padding:0;border:0;white-space:normal}
+  .dsdoc td:first-child{flex:0 0 100%;font-weight:600}
+  .dsdoc td+td{color:var(--mut)}
+  .dsdoc td+td+td::before{content:'· ';color:var(--mut)}
+}
 .dssteps{counter-reset:dsstep;list-style:none;padding:0;margin:0 0 16px}
 .dssteps li{counter-increment:dsstep;position:relative;padding-left:38px;margin-bottom:12px}
 .dssteps li::before{content:counter(dsstep);position:absolute;left:0;top:1px;width:24px;height:24px;

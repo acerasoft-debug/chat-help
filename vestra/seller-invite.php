@@ -24,7 +24,8 @@ $invClaim = $AUTH_USER ? t('Open my dashboard') : t('Claim your invite');
 .inv-hero p{font-size:clamp(15px,2vw,18px);color:var(--mut);max-width:580px;margin:0 auto 28px}
 .inv-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(201,168,106,.1);border:1px solid rgba(201,168,106,.35);border-radius:999px;padding:8px 18px;font-size:13px;font-weight:600;color:var(--acc);margin-bottom:28px;letter-spacing:.4px}
 .inv-stats{display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin:0 0 44px;padding:24px 28px;background:var(--bg2);border:1px solid var(--line);border-radius:18px;max-width:680px;margin-inline:auto}
-.inv-stats .ist b{font-family:'Playfair Display',serif;font-size:32px;color:var(--acc);display:block;line-height:1}
+.inv-stats .ist{text-align:center}
+.inv-stats .ist b{font-family:'Playfair Display',serif;font-size:32px;color:var(--acc);display:block;line-height:1;white-space:nowrap}
 .inv-stats .ist span{font-size:13px;color:var(--mut);display:block;margin-top:4px}
 .inv-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin:0 0 48px}
 .inv-step{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:22px 20px}
@@ -43,7 +44,10 @@ $invClaim = $AUTH_USER ? t('Open my dashboard') : t('Claim your invite');
 .inv-ben span{font-size:13px;color:var(--mut)}
 .inv-faq{max-width:700px;margin:0 auto 48px}
 .inv-faq h2{text-align:center;font-size:28px;margin:0 0 18px}
-@media(max-width:720px){.inv-steps,.inv-benefits{grid-template-columns:1fr}.inv-stats{gap:22px}}
+@media(max-width:720px){.inv-steps,.inv-benefits{grid-template-columns:1fr}
+  /* Dort rakam flex'te 3+1 kiriliyordu ve komisyon tek basina ikinci satira
+     dusuyordu; 2x2 izgara her genislikte simetrik kalir. */
+  .inv-stats{display:grid;grid-template-columns:1fr 1fr;gap:22px 12px}}
 </style>
 
 <div class="wrap">
@@ -80,7 +84,9 @@ $invClaim = $AUTH_USER ? t('Open my dashboard') : t('Claim your invite');
     ]; foreach($bens as $b): $txt = t($b[2]); if (isset($b[3])) $txt = sprintf($txt, $b[3]); ?>
     <div class="inv-ben">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-      <div><strong><?= $b[0].' '.t($b[1]) ?></strong><span><?= $txt ?></span></div>
+      <?php /* Onay isareti yalnizca soldaki SVG: metne de '✓' basmak basligi
+               "✓ ✓ Documented..." diye cift isaretli gosteriyordu. */ ?>
+      <div><strong><?= t($b[1]) ?></strong><span><?= $txt ?></span></div>
     </div>
     <?php endforeach; ?>
   </div>

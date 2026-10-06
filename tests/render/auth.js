@@ -15,7 +15,7 @@ const ACCOUNTS = [
 ];
 const PAGES = {
   buyer:  [['b-kyc', '/buyer?tab=kyc'], ['b-overview', '/buyer'], ['b-shop', '/shop'], ['b-product', '/product?id=lac-pique-polo'],
-           ['b-cart', '/cart'], ['b-pricelist', '/price-list'], ['b-profile', '/buyer?tab=profile'], ['b-orders', '/buyer?tab=orders'], ['b-messages', '/buyer?tab=messages']],
+           ['b-cart', '/cart'], ['b-pricelist', '/price-list'], ['b-profile', '/buyer?tab=profile'], ['b-orders', '/buyer?tab=orders'], ['b-messages', '/buyer?tab=messages'], ['b-dropship', '/dropship'], ['b-dropship-item', '/dropship?id=lac-pique-polo']],
   seller: [['s-kyc', '/seller?tab=kyc'], ['s-overview', '/seller'], ['s-add', '/seller?tab=add'], ['s-listings', '/seller?tab=listings'],
            ['s-profile', '/seller?tab=profile'], ['s-orders', '/seller?tab=orders']],
 };

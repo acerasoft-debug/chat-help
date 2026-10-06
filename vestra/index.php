@@ -986,7 +986,8 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
 
   footer{border-top:1px solid var(--line);padding:46px 0;color:var(--mut);font-size:13px}
   .foot{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;align-items:center}
-  .foot-links{display:flex;gap:22px}
+  .foot-links{display:flex;gap:12px 22px;flex-wrap:wrap}
+  .foot-links a{white-space:nowrap}
   .foot-links a:hover{color:var(--ink)}
 
   /* Scroll-reveal is progressive enhancement ONLY: the keyframe fallback forces every
