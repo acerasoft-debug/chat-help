@@ -638,7 +638,32 @@ function vestra_journal_photo_reject(): array {
             /* 6 Eki 2026 kuru kosusundan: kokpit, otel, berber tablosu, salgin
                uyarisi ve askeri malzeme dukkan konusu degil. */
             'cockpit', 'hotel', 'barber', 'covid', 'military', 'notice', 'shipwreck',
-            'container ship sinking', 'refugee', 'container house', 'container home'];
+            'container ship sinking', 'refugee', 'container house', 'container home',
+            /* 6 Eki 2026, havuzun TAMAMI kontakt sayfasiyla GOZLE okundu (214 dosya).
+               Elenenler: kitap sayfasi taramalari, muze objesi ve katalog karesi, tablo ve
+               stereo kart, taninabilir kisi portresi, cocuk iscilik fotografi, manzara ve
+               kopru, araba koltugu, cam bardak, bina disi, render, karanlik/bulanik kare
+               ve ayni kareden alti kopya. 'child' bu fotografi yakalamiyordu: dosya adi
+               cocugun ADINI tasiyor. Her desen tam bir dosya ailesine eslesir (test). */
+            'manual of dyeing', 'glimpse of guatemala', '13th century textile', 'santo ni o',
+            'acqua di parma', 'tailors wedding', 'woman signing for a parcel', 'addie card',
+            'alex salmond', 'dawn robson', 'anchor hocking', 'anderson orr', 'mrs james watson',
+            'amoskeag', 'robert perrier', 'amrik singh', 'atelier 66590993', 'axznt',
+            'baggage trolley', 'balashikha', 'bales of flax', 'belfast container', 'belton belton',
+            'berwick upon tweed', 'bleached linen stockings', 'blue gingham and shorts',
+            'building of garment factory', 'calendering the finished', 'cargo container handling',
+            'cashmere panoramio', 'cashmere sweater jpg', 'clay denim', 'cloth flat cap',
+            'clothes 58987235', 'clothes and armchair', 'clothes shop carrollton', 'lccn2016824584',
+            'colorful zara', 'compact hand sewing', 'conner prairie', 'dundalk marine',
+            'corduroy canyon', 'crinkle challis', 'dat girl', 'allegro parcel locker',
+            'delivery robots', 'rico cilliers', 'dfc 1570', 'dhakai muslin', 'doll s blue',
+            'drop of water', 'eri silk', 'esporles', 'every village has one',
+            'embroidery and haberdashery shop hungerford', 'dress or furnishing fabric', 'fersfield',
+            'floor loom with two', 'floral paisley vase', 'old parcel force', 'ford transit',
+            'giovanni battista', 'gritzner', 'hand loom weaving bonhams', 'irving of bonshaw',
+            'jacquard loom at work', 'jacquard loom cards', 'manila textile market', 'parcelshop na',
+            'renault clio', 'the shuttle a fabric', 'win patterned sweater',
+            'fabric shop in the high street', 'dick s sporting'];
 }
 
 /* Fetch editorial photography from Wikimedia Commons into uploads/journal/ and record who
