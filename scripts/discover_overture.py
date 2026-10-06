@@ -48,6 +48,10 @@ KINDS = {
     "hats":        ["hat_store"],
     # istege bagli: genel moda butikleri (ayakkabi/aksesuar da satabilir)
     "boutiques":   ["fashion_boutique"],
+    # giyim magazasi (operator, 6 Eki 2026: "ayakkabi yada giyim"). Alt dallar
+    # Overture taksonomisinden; cocuk giyimi ve ic camasiri BILEREK disarida --
+    # hiyerarsiyle gelirlerse "hedef disi dal" diye sayilir, sessizce kaybolmaz.
+    "clothing":    ["clothing_store", "womens_clothing_store", "mens_clothing_store"],
 }
 # Hiyerarsinin altinda olup HEDEF OLMAYAN dallar (tibbi / tamir).
 EXCLUDE_CATS = {"orthopedic_shoe_store", "shoe_repair"}
