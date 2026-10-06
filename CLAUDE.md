@@ -12245,3 +12245,29 @@ sayfadaki ürünleri değiştir"* → *"avrupanın en estetik B2B sitesi olması
   *Sondanın kendi gürültüsü:* *"bu yol giriş ekranı dönüyor"* uyarısı yanlış pozitif — her sayfadaki
   `VESTRA_BOOT` sözlüğünde *"Sign in first to receive notifications."* dizgesi var ve sonda
   `Sign in` arıyor; `/buyer` aynı koşuda *"panel gövdesi geldi"* dedi.
+
+**6 Eki 2026 — ÜÇ FİYAT KARARI, hepsi `set-product.yml` ile (kuru koşu → uygula → geri okuma);
+Gucci GİZLİ markada yazıldı** (operatör, sırayla: *"givency tshirtleri 120 eur ya kaldir"* +
+*"en az daha pahali tshirtleride 130 eur ya"* + *"givenchy sweatshirtler 145 eur ya en az 155 te
+yap bazilarini"* → *"Burberry Polo larida tek fiyat 89,90 eur yap"* + *"en az alim 20 ad."* →
+*"gucci tshirtleri 139 eur ya cikar"*). "Kaldır"/"çıkar" = **yükselt** (bağlam: 89,90 → 120).
+- **Önce ölçüldü** (`inspect-products`, marka+kategori, `price_list=true`), hedefler **id ile**
+  (`expect:1`), hiçbir ad/alt dize eşleşmesi yok. Dosyalar `product-fixes/givenchy-tees-sweats-2026-10.json`
+  (36 satır), `burberry-polos-89-90.json` (7), `gucci-tshirts-139.json` (12).
+- **Givenchy** (run `37516898976`, yedek `listings.json.bak-20261006-191017`): 24 T-shirt 89,90 → **120**;
+  zaten pahalı olan 2 (BM71CT3Y6B, BM71CT3Y6B 1) 99,90 → **130**; 6 VS-GV iç kodlu sweat/hoodie 120 →
+  **145**; 4 orijinal BMJ artikel numaralı hoodie (BMJ0HC3Y7M 125'ten) → **155** — *"bazılarını"* için
+  seçim benim: artikel numaralı + stüdyo fotoğraflı dördü. Polo ve 2 Tracksuit Set dokunulmadı.
+  Operatöre "onay almadan uyguladım" diye ayrıca yazıldı; o da bir sonraki talimatı verdi.
+- **Burberry polo** (run `37537593273`, yedek `…bak-20261006-215913`): 7 ilan. `bur-pique-polo-2909`
+  (8 renk, `mode=fixed`): 59,90/54,90/49,90 merdiveni → **tek kademe 20+ → 89,90** — `price` list'i +
+  üç kademeyi 89,90 yazar ama **üç kademe kalırdı**; aynı satırda `tiers:[{min:20,price:89.90}]` ile tek
+  basamağa indirildi (`$ALLOWED` sırası price→tiers, ikisi aynı satırda çalışıyor). Diğer 6 (`mode=sale`)
+  60 → 89,90, list=kademe → rozet yok. **MOQ 7/7 zaten 20** — `moq:20` satırı no-op, kuru koşu satır basmadı.
+- **Gucci T-shirt** (run `37537701702`, yedek `…bak-20261006-220018`): 12 ilan 120 → **139**, MOQ 10
+  aynen; 3 polo (guc-p01..p03) dokunulmadı. **Marka KURAL 36 ile GİZLİ** (25 Eyl): `set_product.php`
+  ham kaydı yazar, `inspect-products` de ham kaydı okur, yani fiyat kayda indi ama vitrinde görünmüyor;
+  görünmesi `Admin ▸ Listings ▸ 🙈 Hidden brands ▸ Show again` ya da `admin_mode=brand_hide`
+  (`payload=Balenciaga` — Gucci'siz TAM liste). Operatör kararı; kendiliğinden açılmadı.
+- Dosyalar `claude/optimistic-cray-bzu44d` dalında; `set-product.yml` checkout'tan okuduğu için deploy
+  dalına taşımak gerekmedi (deploy yalnız `wizardly-planck`'tan iner, fix dosyası siteyi etkilemez).
