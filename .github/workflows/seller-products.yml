@@ -2455,6 +2455,7 @@ jobs:
                    .($p['new']['bank_clear'] !== '' ? " | banka profili '{$p['new']['bank_clear']}' KALDIRILACAK" : '')."\n";
                 if ($p['new']['fx_note'] !== '') echo "  kur  : ".preg_replace('/\s+/', ' ', $p['new']['fx_note'])."\n";
               }
+              if ($p['ref_dirty'] !== '') echo "  not  : orders.csv ref'i bosluklu ({$p['ref_dirty']}) -- uygulama once temizler (yedekli)\n";
               echo "  saat : ".$p['grace']['phase'].(!empty($p['grace']['deadline']) ? " (son ".gmdate('Y-m-d', (int)$p['grace']['deadline']).")" : '')
                  .($p['ok'] ? " -> SIFIRLANACAK (cron yeni belge icin hatirlatip yeniden baslatir)" : '')."\n";
               echo "  karar: ".($p['ok'] ? 'UYGUN' : '*** DURUR: '.implode(' | ', $p['errors']))."\n";
