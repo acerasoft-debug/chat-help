@@ -1,0 +1,17 @@
+[
+  {
+    "match": "rl-csf-polo-white",
+    "expect": 1,
+    "colors": ["White", "Dark Green", "Fuchsia", "Yellow", "Orange", "Pink", "Black", "Navy"],
+    "images": [
+      "/uploads/rl/csf-polo-white.png",
+      "/uploads/rl/csf-polo-darkgreen.jpg",
+      "/uploads/rl/csf-polo-fuchsia.png",
+      "/uploads/rl/csf-polo-yellow.jpg",
+      "/uploads/rl/csf-polo-orange.jpg",
+      "/uploads/rl/csf-polo-pink.jpg",
+      "/uploads/rl/csf-polo-black-c3870.jpg",
+      "/uploads/rl/csf-polo-navy-c3870.jpg"
+    ]
+  }
+]
