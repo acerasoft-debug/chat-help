@@ -113,7 +113,16 @@ function vestra_colorqty_hint(array $p): string {
          . ($step > 1 ? ' · '.sprintf(t('multiples of %d'), $step) : '');
 }
 ?>
-<div class="wrap">
+<style>
+/* Urun sayfasi KAGIT uzerinde (6 Eki 2026). Katalog ve paneller zaten acik temadaydi;
+   urun sayfasi koyu kalinca beyaz paket cekimleri siyah zemine yapistirilmis gibi
+   duruyordu ve bir sayfadan digerine tema degisiyordu. Token seti inc/style.css'te
+   (.pwrap); body ve altbilgi burada boyaniyor, shop.php ile ayni karar. */
+body{background:#f5f2ec}
+footer{background:#14110c;border-top:0;color:#b8b2a4;margin-top:0}
+footer a{color:#d8bd86}
+</style>
+<div class="wrap pwrap pdpage">
   <?php /* GERIYE DONUS (operator, 10 Eyl 2026). Tarayicinin geri dugmesi
            listeye doner ama kampanya mektubundan / Google'dan / paylasilan
            linkten gelen ziyaretcide gidilecek bir "geri" yok -- onlarda
@@ -220,11 +229,35 @@ function vestra_colorqty_hint(array $p): string {
 
     <!-- ── Product info ───────────────────────────────────────────────────── -->
     <div class="pinfo">
-      <span class="acc" style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700"><?= htmlspecialchars($p['brand']) ?></span>
-      <h1 style="margin:6px 0 10px"><?= htmlspecialchars(vestra_product_name($p)) ?></h1>
+      <?php /* Marka satiri evin kendi sayfasina gider (/wholesale/<marka>): alici ayni
+               evin diger ilanlarina tek dokunusla gecsin. Dogrulama rozeti de burada,
+               fotografin ustundeki damgaya ek olarak -- fotografsiz (misafir) gorunumde
+               tek gorunen yer burasi. */ ?>
+      <a class="pd-brand" href="<?= function_exists('vestra_brand_slug') ? '/wholesale/'.urlencode(vestra_brand_slug((string)$p['brand'])) : '/shop' ?>">
+        <?= htmlspecialchars($p['brand']) ?>
+        <?php if(!empty($p['verified'])): ?><span class="pd-ver"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M8.2 12.4l2.6 2.6 5-5.4"/></svg><?= t('Verified seller') ?></span><?php endif; ?>
+      </a>
+      <h1><?= htmlspecialchars(vestra_product_name($p)) ?></h1>
       <?php if(vestra_product_desc($p) !== ''): ?>
-        <p style="color:var(--mut);margin:0 0 18px;line-height:1.65"><?= htmlspecialchars(vestra_product_desc($p)) ?></p>
+        <p class="pd-desc"><?= htmlspecialchars(vestra_product_desc($p)) ?></p>
       <?php endif; ?>
+      <?php /* ONEMLI BILGILER tek bakista: MOQ, paket adimi, beden serisi, renk
+               sayisi, gonderim yeri. Hepsi asagidaki tabloda da var; cipler
+               alicinin "en az ne alabilirim, nereden gelir" sorusunu kaydirmadan
+               cevapliyor. Rakamlar ilan kaydindan, metne gomulu degil. */
+            $__facts = [];
+            $__facts[] = '<span>MOQ</span> '.(int)($p['moq'] ?? 0).' '.htmlspecialchars((string)($p['unit'] ?? 'pc'));
+            $__step = (int)($p['size_step'] ?? 0);
+            if ($__step > 1) $__facts[] = '<span>'.t('Carton').'</span> '.$__step.' '.htmlspecialchars((string)($p['unit'] ?? 'pc'));
+            if (!empty($p['sizes'])) $__facts[] = '<span>'.t('Sizes').'</span> '.htmlspecialchars(vestra_sizes_label((string)$p['sizes']));
+            /* Renk SAYISI, noktalar degil: noktalar hemen altindaki tabloda zaten
+               duruyor ve testler sayfadaki nokta sayisini renk sayisina esitliyor. */
+            if (!empty($p['colors'])) $__facts[] = '<span>'.t('Colours').'</span> '.count((array)$p['colors']);
+            if (!vestra_hides_ships_from($p)) $__facts[] = vestra_ships_from_flag($p).' '.htmlspecialchars(vestra_ships_from_label($p));
+      ?>
+      <div class="pd-facts">
+        <?php foreach ($__facts as $__f): ?><span class="pd-fact"><?= $__f ?></span><?php endforeach; ?>
+      </div>
       <?php /* SATILDI: satin alma kutusundan ONCE ve en gorunur yerde. Sayfa
                ayakta kaliyor (SEO ve gelen baglantilar), yalnizca satis kapali. */
             if ($SOLD): ?>
@@ -598,7 +631,7 @@ function vestra_colorqty_hint(array $p): string {
                  AYNI fonksiyonu cagiriyor, yani burada cizilmeyen bir kutunun
                  formu elle gonderilse de sunucu reddediyor. */ ?>
         <?php if(!$SOLD && vestra_offers_open($p)): ?>
-        <div class="order-box" style="margin-top:14px">
+        <div class="order-box pd-aux">
           <div class="hint" style="margin-bottom:8px">💬 <?= t('This seller also accepts offers.') ?></div>
           <details class="offerdetails">
             <summary class="btn btn-o" style="width:100%;justify-content:center"><?= t('Make an offer') ?></summary>
@@ -650,7 +683,7 @@ function vestra_colorqty_hint(array $p): string {
         <?php $isOwnListing = $AUTH_USER && !empty($p['seller_uid']) && $AUTH_USER['id']===$p['seller_uid'];
               $samplePrice = vestra_sample_price($p); ?>
         <?php if(!$SOLD && !$isOwnListing && $samplePrice > 0): ?>
-        <div class="order-box" style="margin-top:14px">
+        <div class="order-box pd-aux">
           <div class="hint" style="margin-bottom:8px">📦 <?= t('Want to check it in hand first?') ?></div>
           <details class="offerdetails">
             <summary class="btn btn-o" style="width:100%;justify-content:center">📦 <?= t('Sample order') ?> — <?= vestra_money($samplePrice) ?></summary>
@@ -670,7 +703,7 @@ function vestra_colorqty_hint(array $p): string {
         </div>
         <?php endif; ?>
         <?php if(!$isOwnListing): ?>
-        <div class="order-box" style="margin-top:14px">
+        <div class="order-box pd-aux">
           <?php if($AUTH_USER): ?>
           <details class="offerdetails">
             <summary class="btn btn-o" style="width:100%;justify-content:center">💬 <?= t('Message seller') ?></summary>
@@ -857,7 +890,9 @@ function vestra_colorqty_hint(array $p): string {
         $rimgs = ($MEMBER && !empty($rp['images']) && is_array($rp['images'])) ? array_values(array_filter($rp['images'])) : [];
         $rimg = $rimgs[0] ?? ''; ?>
         <a class="scard" href="/product?id=<?= urlencode($rp['id']) ?>">
-          <div class="sthumb" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($rp)) ?>,#0e0e11)">
+          <?php /* Fotografli kart ACIK studyo zemininde (shop.php ile ayni karar: beyaz
+                   paket cekimi koyu gradyanin icinde kutu gibi duruyordu). */ ?>
+          <div class="sthumb<?= $rimg ? ' sphoto' : '' ?>"<?= $rimg ? '' : ' style="background:linear-gradient(135deg,'.htmlspecialchars(vestra_accent($rp)).',#0e0e11)"' ?>>
             <?php if ($rimg): ?><img src="<?= htmlspecialchars($rimg) ?>" alt="<?= htmlspecialchars(vestra_product_title($rp)) ?>" loading="lazy" class="sthumbi"><?php endif; ?>
             <?php if (!empty($rp['verified'])) echo vestra_verified_badge(); ?>
             <?php if (!$rimg) echo vestra_brand_card($rp['brand'] ?? ''); ?>
@@ -889,6 +924,24 @@ function vestra_colorqty_hint(array $p): string {
   </div><!-- /.lockwrap -->
 <?php endif; ?>
 </div>
+
+<?php /* TELEFONDA SABIT SIPARIS CUBUGU: fiyat ve "siparise ekle" alt sekme cubugunun
+         hemen ustunde durur; siparis kutusu ekrandayken kendini gizler (ayni dugmeyi
+         iki kez gostermemek icin). Yalniz fiyati acik, satista ve sabit fiyatli
+         ilanda: kapali kapida ve teklif kipinde gosterecek rakam yok. Dugme kutuya
+         kaydirir, siparisi dogrudan vermez -- renk/beden secimi kutuda. */
+      if ($PRICES && !$SOLD && !$offered && $mode !== 'offer' && !empty($p['tiers'])): ?>
+<div class="pd-stick" id="pdStick" aria-hidden="true">
+  <div class="pd-stick-tx"><small><?= t('from') ?> · MOQ <?= (int)($p['moq'] ?? 0) ?> <?= htmlspecialchars((string)($p['unit'] ?? 'pc')) ?></small>
+    <b><?= vestra_money($from) ?> / <?= htmlspecialchars((string)($p['unit'] ?? 'pc')) ?></b></div>
+  <a class="btn btn-p" href="#addBtn" onclick="var b=document.getElementById('addBtn');if(b){b.scrollIntoView({behavior:'smooth',block:'center'});return false;}"><?= t('Add to order') ?></a>
+</div>
+<script>(function(){
+  var bar=document.getElementById('pdStick'), btn=document.getElementById('addBtn');
+  if(!bar||!btn||!('IntersectionObserver' in window)) return;
+  new IntersectionObserver(function(es){ es.forEach(function(e){ bar.classList.toggle('on', !e.isIntersecting); }); },{threshold:0.01}).observe(btn);
+})();</script>
+<?php endif; ?>
 
 <?php if($images): ?>
 <script>

@@ -2,6 +2,9 @@
 /* VESTRA UI strings — AR (English keys → translations; complete against inc/lang/de.php,
    enforced by tests/seo_landing_test.php) */
 return array (
+  'Carton' => 'كرتونة',
+  'The edit' => 'التشكيلة',
+  'One piece from every house in stock.' => 'قطعة واحدة من كل دار متوفرة في المخزون.',
   'Sample order' => 'طلب عيّنة',
   'Want to check it in hand first?' => 'تريد فحصها بيدك أولًا؟',
   'Size or note (optional)' => 'المقاس أو ملاحظة (اختياري)',

@@ -2,6 +2,9 @@
 /* VESTRA UI strings — PT (pt-PT) (English keys → translations; complete against inc/lang/de.php,
    enforced by tests/seo_landing_test.php) */
 return array (
+  'Carton' => 'Caixa',
+  'The edit' => 'A seleção',
+  'One piece from every house in stock.' => 'Uma peça de cada casa em stock.',
   'Sample order' => 'Encomenda de amostra',
   'Want to check it in hand first?' => 'Quer ver primeiro ao vivo?',
   'Size or note (optional)' => 'Tamanho ou nota (opcional)',

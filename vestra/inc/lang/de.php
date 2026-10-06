@@ -1,6 +1,9 @@
 <?php
 /* VESTRA UI strings — DE (auto-sorted; English keys → translations) */
 return array (
+  'Carton' => 'Karton',
+  'The edit' => 'Die Auswahl',
+  'One piece from every house in stock.' => 'Ein Stück von jedem Haus im Bestand.',
   'Sample order' => 'Musterbestellung',
   'Want to check it in hand first?' => 'Erst in der Hand prüfen, bevor Sie bestellen?',
   'Size or note (optional)' => 'Größe oder Anmerkung (optional)',

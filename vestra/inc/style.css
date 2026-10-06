@@ -1261,3 +1261,300 @@ html[lang="ja"] body{ line-height:1.75; word-break:normal; overflow-wrap:anywher
   /* Kapatma x'i metnin yaninda (ust satir) kalsin; dugme alt satira insin. */
   .vpush-nudge .btn{order:2}
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ATELIER — the second layer of the design system (6 Eki 2026, operator:
+   "ana sayfa ve ürün sayfasını daha estetik hale getir … satıcı ve buyer
+   panelleri de çok iyi olmalı mesajlaşmalar ve app").
+
+   Everything below OVERRIDES what is above by cascade order, on purpose: the
+   earlier rules are what the source-scanning tests pin (exact strings), so
+   they stay untouched and this layer re-paints on top of them.
+
+   One idea runs through all of it: the catalogue is white packshots, so the
+   working surfaces — catalogue, product, panels, messages — live on warm PAPER
+   (#f5f2ec) with white cards, dark ink and a deeper gold. The dark theme is
+   kept for the chrome (header, footer, tab bar) and the homepage hero, where
+   the brand voice lives. Soft warm shadows instead of hairline-only borders,
+   Playfair at 600 rather than 700 (less heavy, more couture), one easing. */
+:root{
+  --paper:#f5f2ec; --paper-2:#efeae1; --card:#ffffff;
+  --ink-1:#1a1714; --ink-2:#3b352d; --mut-1:#736d62;
+  --line-1:#e6e0d4; --line-2:#d8d0c1;
+  --gold:#a8812f; --gold-soft:rgba(168,129,47,.10); --gold-line:rgba(168,129,47,.32);
+  --sh-1:0 1px 2px rgba(40,32,18,.05),0 10px 28px -20px rgba(40,32,18,.25);
+  --sh-2:0 2px 4px rgba(40,32,18,.06),0 24px 56px -24px rgba(40,32,18,.32);
+  --r-s:10px; --r-m:16px; --r-l:22px;
+}
+h1,h2,h3{font-weight:600}
+h1{letter-spacing:-.024em}
+/* Light scope shared by catalogue, product page and dashboards. shop.php and
+   dash.php already paint their own token sets; .pwrap is the product page's. */
+.pwrap{--bg:var(--paper);--bg2:var(--card);--bg3:var(--paper-2);--ink:var(--ink-1);--mut:var(--mut-1);
+  --acc:var(--gold);--line:var(--line-1);--ok:#1f9d63;--bad:#b9372b;color:var(--ink)}
+.pwrap h1,.pwrap h2,.pwrap h3{color:var(--ink)}
+.pwrap input,.pwrap select,.pwrap textarea{background:#fff;color:var(--ink);border-color:var(--line-2)}
+.pwrap input:focus,.pwrap select:focus,.pwrap textarea:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--gold-soft)}
+/* Buttons on paper: the gold fill reads warmer with ink text; the outline
+   button gets a real surface instead of a hairline. */
+.pwrap .btn,.shopwrap .btn,.dashwrap .btn{font-weight:600;letter-spacing:.005em;
+  transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .25s var(--ease),border-color .25s var(--ease),color .25s var(--ease)}
+.pwrap .btn-p,.shopwrap .btn-p,.dashwrap .btn-p{background:var(--ink);border-color:var(--ink);color:#f7f3ea;
+  box-shadow:0 10px 24px -14px rgba(26,23,20,.6)}
+.pwrap .btn-p:hover,.shopwrap .btn-p:hover,.dashwrap .btn-p:hover{filter:none;background:#2a251e;border-color:#2a251e;transform:translateY(-1px);
+  box-shadow:0 14px 28px -14px rgba(26,23,20,.65)}
+.pwrap .btn-o,.shopwrap .btn-o,.dashwrap .btn-o{background:#fff;border-color:var(--line-2);color:var(--ink)}
+.pwrap .btn-o:hover,.shopwrap .btn-o:hover,.dashwrap .btn-o:hover{background:#fff;border-color:var(--ink);transform:translateY(-1px)}
+.pwrap .btn-sm,.shopwrap .btn-sm,.dashwrap .btn-sm{padding:9px 15px}
+.pwrap .banner.info,.dashwrap .banner.info,.shopwrap .banner.info{background:#fff;border-color:var(--gold-line);box-shadow:var(--sh-1)}
+.pwrap .banner.ok,.dashwrap .banner.ok{background:rgba(31,157,99,.08);border-color:rgba(31,157,99,.35);color:#166b45}
+.pwrap .hint,.dashwrap .hint{color:var(--mut)}
+.pwrap .curnote,.dashwrap .curnote{background:#fff;border-color:var(--line)}
+
+/* ── Product page ──────────────────────────────────────────────────────── */
+.pdpage{padding-bottom:40px}
+.pdpage .crumbs{margin:24px 0 16px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pdpage .crumb-back{background:#fff;border-color:var(--line-2);box-shadow:var(--sh-1)}
+.pdpage .crumb-back:hover{border-color:var(--ink);background:#fff}
+.pdpage .pdetail{grid-template-columns:minmax(0,1.06fr) minmax(0,.94fr);gap:48px;margin:8px 0 56px}
+.pdpage .gal-col,.pdpage .pinfo{min-width:0}
+.pdpage .gal-col{gap:12px;top:84px}
+.pdpage .gal-main{border-radius:var(--r-l);border:1px solid var(--line-1);background:#fff;
+  box-shadow:var(--sh-2)}
+.pdpage .gal-main::after{inset:16px;border-color:rgba(120,96,48,.13);border-radius:12px}
+/* MUTLAK konumlu: fotograf sahnenin boyutuna katilmaz. Yuzdeli yukseklik
+   telefonda cozulemeyince fotograf dogal boyutuna acilip sahneyi 808px'e
+   genisletiyor ve sayfayi yana kaydiriyordu (olculdu: innerWidth 390 -> 833). */
+.pdpage .gal-img{position:absolute;inset:28px;margin:auto;width:calc(100% - 56px);height:calc(100% - 56px);
+  max-width:calc(100% - 56px);max-height:calc(100% - 56px);transition:transform .6s var(--ease)}
+.pdpage .gal-main{min-height:0;min-width:0}
+.pdpage .gal-main:hover .gal-img{transform:scale(1.015)}
+.pdpage .gal-nav{width:42px;height:42px;background:rgba(255,255,255,.92);opacity:0;transform:translateY(-50%) scale(.94)}
+.pdpage .gal-main:hover .gal-nav{opacity:1;transform:translateY(-50%) scale(1)}
+.pdpage .gal-nav:hover{background:var(--ink);color:#fff}
+.pdpage .gal-vbadge{top:16px;left:16px}
+.pdpage .modetag{top:16px;right:16px;z-index:6;font-size:11px;padding:6px 12px}
+.pdpage .modetag.sale{background:var(--ink);color:#f7f3ea}
+.pdpage .modetag.offer{background:#fff;color:var(--ink);border:1px solid var(--line-2)}
+/* Thumbnails: a rail of rounded tiles under the stage. The active one is
+   marked with ink, not gold: gold is for prices and verified marks. */
+.pdpage .gal-thumbs{gap:10px;flex-wrap:nowrap;overflow-x:auto;padding:4px 2px 6px;scrollbar-width:none;
+  -webkit-mask-image:linear-gradient(90deg,#000 94%,transparent);mask-image:linear-gradient(90deg,#000 94%,transparent)}
+.pdpage .gal-thumbs::-webkit-scrollbar{display:none}
+.pdpage .gal-thumb{width:74px;height:74px;border-radius:14px;border:1.5px solid var(--line-1);background:#fff;
+  box-shadow:var(--sh-1);transition:border-color .25s var(--ease),transform .25s var(--ease)}
+.pdpage .gal-thumb:hover{border-color:var(--line-2);transform:translateY(-2px);box-shadow:var(--sh-1)}
+.pdpage .gal-thumb.active{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.pdpage .gal-thumb img{padding:5px;object-fit:contain;background:#fff}
+/* Info column */
+.pdpage .pinfo{gap:0;padding-top:4px}
+.pd-brand{display:inline-flex;align-items:center;gap:10px;font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;
+  font-weight:700;color:var(--acc);text-decoration:none}
+.pd-brand:hover{color:var(--ink)}
+.pd-brand .pd-ver{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;letter-spacing:.06em;
+  text-transform:none;font-weight:600;color:#0f5132;background:rgba(15,81,50,.08);border:1px solid rgba(15,81,50,.18);
+  padding:3px 9px 3px 7px;border-radius:999px}
+.pdpage .pdetail h1{font-size:clamp(28px,3.1vw,40px);line-height:1.08;margin:10px 0 12px;letter-spacing:-.022em;text-wrap:balance}
+.pd-desc{color:var(--ink-2);font-size:15px;line-height:1.7;max-width:58ch;margin:0 0 18px}
+.pd-facts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.pd-fact{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:999px;background:#fff;
+  border:1px solid var(--line-1);font-size:12.5px;color:var(--ink);box-shadow:var(--sh-1);font-variant-numeric:tabular-nums}
+.pd-fact span{color:var(--mut)}
+.pd-fact .cdots .cdot{width:12px;height:12px}
+.pdpage .spec-grid{border-radius:var(--r-m);background:#fff;box-shadow:var(--sh-1);margin:0 0 18px}
+.pdpage .spec-row{padding:11px 16px;font-size:13.5px}
+.pdpage .spec-row b{font-weight:600}
+.pdpage .sold-note,.pdpage .preorder-note{border-radius:14px!important;box-shadow:var(--sh-1)}
+.pdpage .stockbox{background:#fff;border:1px solid var(--line-1);border-radius:var(--r-m);padding:14px 16px;box-shadow:var(--sh-1)}
+.pdpage .stockbox .hint{font-weight:600;color:var(--ink)}
+.pdpage .stocktbl{font-size:13px}
+.pdpage .stocktbl th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
+/* Price tiers: a quiet table with the active tier picked out by an ink bar. */
+.pdpage .tiers{border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--line-1);
+  border-radius:var(--r-m);overflow:hidden;margin:20px 0 14px;box-shadow:var(--sh-1);font-variant-numeric:tabular-nums}
+.pdpage .tiers th{background:var(--paper-2);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:11px 16px;color:var(--mut);border-bottom:1px solid var(--line-1)}
+.pdpage .tiers td{padding:13px 16px;border-bottom:1px solid var(--line-1);font-size:14px}
+.pdpage .tiers tbody tr:last-child td{border-bottom:0}
+.pdpage .tiers .amt{color:var(--ink);font-size:15px}
+.pdpage .tiers tr.active td{background:var(--gold-soft)}
+.pdpage .tiers tr.active td:first-child{box-shadow:inset 3px 0 0 var(--acc);font-weight:600}
+.pdpage .tiers tr.active .amt{color:var(--acc)}
+.pdpage .saleline{margin:18px 0 0}
+.pdpage .saleline .now{font-family:'Playfair Display',serif;font-size:26px;font-weight:600}
+.pdpage .saleline .badge-sale{background:var(--ink);color:#f7f3ea}
+.pdpage .order-box{background:#fff;border:1px solid var(--line-1);border-radius:var(--r-l);padding:24px;box-shadow:var(--sh-2);margin-top:10px}
+.pdpage .order-box .hint{font-size:13px}
+.pdpage .order-box>label.hint,.pdpage .order-box label.hint{display:block;margin-bottom:8px;font-weight:600;color:var(--ink);font-size:12.5px;letter-spacing:.02em}
+.pdpage .colorchip{background:#fff;border-color:var(--line-2);color:var(--ink-2);padding:8px 14px 8px 10px;font-size:13px}
+.pdpage .colorchip:hover{border-color:var(--ink);color:var(--ink)}
+.pdpage .colorchip:has(input:checked){border-color:var(--ink);background:var(--ink);color:#f7f3ea}
+.pdpage .colorchip .cdot{box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.pdpage .cqrow{background:#fff;border-color:var(--line-1);border-radius:12px;padding:8px 12px}
+.pdpage .cqrow:has(select option:checked:not([value="0"])){border-color:var(--acc);background:var(--gold-soft)}
+.pdpage .cqrow select,.pdpage .cqrow input{background:#fff;border-color:var(--line-2)}
+.pdpage .stepper{border-radius:12px;border-color:var(--line-2);background:#fff}
+.pdpage .stepper button{background:var(--paper-2);color:var(--ink);width:42px;height:44px}
+.pdpage .stepper button:hover{background:var(--line-1)}
+.pdpage .stepper input{background:#fff}
+.pdpage .calc{margin:18px 0 14px;padding-top:16px;border-top:1px dashed var(--line-2)}
+.pdpage .calc .total{font-family:'Playfair Display',serif;font-size:32px;font-weight:600;letter-spacing:-.02em;line-height:1}
+.pdpage .calc .total small{font-family:'Inter',system-ui,sans-serif;font-size:12.5px;display:block;margin-top:6px;letter-spacing:0}
+.pdpage #addBtn{padding:16px 24px;font-size:15px;border-radius:14px}
+.pdpage .warn{font-weight:500}
+/* Secondary boxes (sample, message, offer): quiet rows, not three more cards. */
+.pdpage .order-box.pd-aux{background:transparent;box-shadow:none;border:1px solid var(--line-1);padding:16px 18px;margin-top:12px}
+.pdpage .order-box.pd-aux .hint{margin-bottom:8px}
+.pdpage .offerdetails summary.btn{border-radius:12px}
+.pdpage .gate{background:#fff;border-radius:var(--r-l);box-shadow:var(--sh-2);padding:30px 26px}
+.pdpage .gate h3{font-size:22px}
+/* Lower sections */
+.pdpage .pmore{margin:56px 0 0;padding-top:36px;border-top:1px solid var(--line-1)}
+.pdpage .pmore>h2{font-size:24px;margin:0 0 18px}
+.pdpage .specs2{background:#fff;border-radius:var(--r-m);box-shadow:var(--sh-1)}
+.pdpage .vscroll{background:#fff;border-radius:var(--r-m);box-shadow:var(--sh-1)}
+.pdpage .vartable .mono{color:var(--ink-2)}
+.pdpage .shopgrid{gap:18px}
+.pdpage .scard{background:#fff;border-color:var(--line-1);border-radius:18px;box-shadow:var(--sh-1)}
+.pdpage .scard:hover{box-shadow:var(--sh-2);border-color:var(--line-2);transform:translateY(-4px)}
+/* Guest lock, on paper: the veil is cream, the panel is a white card. */
+.pdpage .lockveil{background:radial-gradient(120% 70% at 50% 30%,rgba(245,242,236,.25) 0%,rgba(245,242,236,.9) 78%)}
+.pdpage .lockblur{opacity:.6}
+.pdpage .lockpanel{background:rgba(255,255,255,.9);border-color:var(--line-1);box-shadow:var(--sh-2)}
+.pdpage .lockpanel h3{color:var(--ink)}
+.pdpage .lockpanel p{color:var(--mut)}
+/* Mobile: full-bleed stage, horizontal thumbs, and a sticky order bar above
+   the tab bar so the buyer never loses the price while reading the specs. */
+.pd-stick{display:none}
+@media(max-width:900px){
+  /* minmax(0,1fr) + min-width:0 SART: kucuk resim rayi nowrap ve 11 karo yan yana
+     ~800px; `1fr` tek basina min-content'e kadar genisliyor, sutun 808px oluyor ve
+     sayfa yana kayiyordu (olculdu: gal-col 808 / pdetail 342). */
+  .pdpage .pdetail{grid-template-columns:minmax(0,1fr);gap:28px;margin-bottom:40px}
+  .pdpage .gal-col,.pdpage .pinfo{min-width:0}
+  .pdpage .gal-thumbs{min-width:0;width:100%}
+  .pdpage .gal-col{position:static}
+  .pdpage .gal-main{border-radius:18px;aspect-ratio:4/5}
+  .pdpage .gal-nav{opacity:1;transform:translateY(-50%)}
+  .pdpage .gal-thumb{width:64px;height:64px;border-radius:12px}
+  .pdpage .pdetail h1{font-size:28px}
+  .pdpage .order-box{padding:20px 18px}
+  .pd-stick{position:fixed;left:12px;right:12px;bottom:calc(74px + env(safe-area-inset-bottom,0px));z-index:58;
+    display:flex;align-items:center;gap:12px;padding:10px 10px 10px 16px;border-radius:18px;
+    background:rgba(26,23,20,.94);color:#f7f3ea;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 18px 40px -16px rgba(0,0,0,.6);transform:translateY(120%);opacity:0;
+    transition:transform .35s var(--ease),opacity .35s var(--ease)}
+  .pd-stick.on{transform:none;opacity:1}
+  .pd-stick-tx{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+  .pd-stick-tx small{font-size:11px;color:rgba(247,243,234,.6);letter-spacing:.04em;text-transform:uppercase}
+  .pd-stick-tx b{font-size:16px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pd-stick .btn{background:#c9a86a;border-color:#c9a86a;color:#1a1408;padding:12px 18px;border-radius:12px;white-space:nowrap}
+  @media(min-width:821px){.pd-stick{bottom:16px}}
+}
+
+/* ── Dashboards (buyer / seller) ───────────────────────────────────────── */
+.dashwrap{--sh-1:0 1px 2px rgba(40,32,18,.05),0 10px 28px -20px rgba(40,32,18,.25)}
+.dashwrap .dashtop{padding:30px 0 22px}
+.dashwrap .dashtop h1{font-size:clamp(26px,3.4vw,36px);letter-spacing:-.022em}
+.dashwrap .crumbs{font-size:12.5px;letter-spacing:.02em}
+.dashwrap .rolepill{background:#fff;border-color:var(--line-1);color:var(--ink-2);box-shadow:var(--sh-1);font-weight:600;padding:8px 14px}
+.dashwrap .dashlayout{gap:28px;grid-template-columns:224px 1fr}
+.dashwrap .dashside{gap:2px}
+.dashwrap .dashside a{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:12px;font-size:14px;color:var(--mut-1);
+  border:1px solid transparent;transition:background .25s var(--ease),color .25s var(--ease),box-shadow .25s var(--ease)}
+.dashwrap .dashside a:hover{background:rgba(255,255,255,.7);color:var(--ink)}
+.dashwrap .dashside a.on{background:#fff;color:var(--ink);font-weight:600;border-color:var(--line-1);box-shadow:var(--sh-1)}
+.dashwrap .dashside a .dsi{flex:none;width:18px;height:18px;opacity:.72;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.dashwrap .dashside a.on .dsi{opacity:1;color:var(--acc)}
+.dashwrap .dashside .signout{margin-top:12px;padding:8px 13px;font-size:13px}
+.dashwrap .dashside .signout:hover{background:rgba(185,55,43,.06);color:var(--bad)}
+.dashwrap .dashside .navdot{margin-left:auto;background:var(--acc);color:#fff;min-width:20px;height:20px;border-radius:10px;font-size:11px}
+.dashwrap .dashlang{background:#fff;border-color:var(--line-1);border-radius:12px;margin:14px 0 4px;padding:10px 12px}
+.dashwrap .dashlang .dashsw .lsw{border-color:var(--line-1);color:var(--mut-1);padding:5px 8px;border-radius:8px}
+.dashwrap .dashlang .dashsw .lsw.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.dashwrap .statgrid{gap:14px;margin-bottom:18px}
+.dashwrap .statcard{position:relative;overflow:hidden;background:#fff;border-color:var(--line-1);border-radius:18px;padding:20px 22px 18px;
+  box-shadow:var(--sh-1);transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
+.dashwrap .statcard:hover{transform:translateY(-2px);box-shadow:var(--sh-2)}
+.dashwrap .statcard::after{content:'';position:absolute;right:-26px;top:-26px;width:96px;height:96px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(168,129,47,.11),transparent 68%)}
+.dashwrap .statcard .sv{font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.05}
+.dashwrap .statcard .sl{font-size:12.5px;margin-top:6px;letter-spacing:.01em}
+.dashwrap .panelcard{background:#fff;border-color:var(--line-1);border-radius:18px;padding:22px 24px;box-shadow:var(--sh-1);margin-bottom:16px}
+.dashwrap .pcfhead{margin-bottom:14px;gap:12px}
+.dashwrap .pcfhead h3{font-size:18px;font-weight:600}
+.dashwrap .quickrow{gap:10px}
+.dashwrap .status{font-size:11.5px;padding:4px 11px;letter-spacing:.01em}
+.dashwrap .status.offers{background:rgba(31,157,99,.1);color:#166b45;border:1px solid rgba(31,157,99,.22)}
+.dashwrap .status.open{background:var(--gold-soft);color:#7d5f22;border:1px solid var(--gold-line)}
+.dashwrap .ctable th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut-1);border-bottom:1px solid var(--line-1)}
+.dashwrap .ctable td{border-bottom:1px solid var(--line-1)}
+.dashwrap .ctable tr:last-child td{border-bottom:0}
+.dashwrap .addform label{font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
+.dashwrap input,.dashwrap select,.dashwrap textarea{border-color:var(--line-2);border-radius:12px;padding:11px 14px}
+.dashwrap input:focus,.dashwrap select:focus,.dashwrap textarea:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--gold-soft)}
+.dashwrap .moderadio{background:#fff;border-radius:12px;border-color:var(--line-2)}
+.dashwrap .moderadio:has(input:checked){border-color:var(--ink);background:var(--paper-2)}
+.dashwrap .gate{background:#fff;border-radius:18px;box-shadow:var(--sh-1)}
+.dashwrap .empty{background:#fff;border:1px dashed var(--line-2);border-radius:16px;padding:44px 20px}
+.dashwrap .ordcard{border-radius:18px}
+.dashwrap .vpush-nudge{background:#fff;border-radius:14px;box-shadow:var(--sh-1)}
+@media(max-width:820px){
+  .dashwrap .dashlayout{grid-template-columns:1fr;gap:16px}
+  .dashwrap .dashtop{padding:22px 0 12px}
+  .dashwrap .dashside{padding:2px 24px 10px;gap:6px}
+  .dashwrap .dashside a{background:#fff;border-color:var(--line-1);padding:9px 13px;min-height:42px;border-radius:999px;font-size:13.5px}
+  .dashwrap .dashside a .dsi{width:16px;height:16px}
+  .dashwrap .dashside a.on{background:var(--ink);color:#fff;border-color:var(--ink);box-shadow:none}
+  .dashwrap .dashside a.on .dsi{color:#c9a86a}
+  .dashwrap .dashside .signout{margin:0;background:transparent;border-color:transparent}
+  .dashwrap .dashlang{margin:0}
+  .dashwrap .statcard{padding:16px 16px 14px}
+  .dashwrap .statcard .sv{font-size:24px}
+  .dashwrap .panelcard{padding:18px 16px;border-radius:16px}
+}
+
+/* ── Messages ──────────────────────────────────────────────────────────── */
+.dashwrap .msgshell{grid-template-columns:316px 1fr;background:#fff}
+.dashwrap .msgshell .mslist{padding:12px;border-color:var(--line-1)}
+.dashwrap .msgshell .mssearch{background:#fff}
+.dashwrap .msgshell .mssearch input{background:var(--paper-2);border-color:transparent;border-radius:12px}
+.dashwrap .msgshell .mssearch input:focus{background:#fff;border-color:var(--acc)}
+.dashwrap .threadrow{padding:10px 12px;border-radius:14px;min-height:66px;border:1px solid transparent}
+.dashwrap .threadrow:hover{background:var(--paper)}
+.dashwrap .threadrow.active{background:var(--paper);border-color:var(--line-1)}
+.dashwrap .tr-ava{border-radius:14px;background:var(--paper-2);border-color:var(--line-1);color:var(--acc)}
+.dashwrap .tr-ava img{background:#fff}
+.dashwrap .tr-name{font-size:14px}
+.dashwrap .tr-snippet{font-size:12.5px}
+.dashwrap .tr-time{font-size:11px}
+.dashwrap .msghead{padding:14px 18px;border-color:var(--line-1)}
+.dashwrap .msghead-n{font-size:15px}
+.dashwrap .msgthread{padding:18px 20px;gap:6px;background:var(--paper);
+  background-image:radial-gradient(rgba(40,32,18,.045) 1px,transparent 1px);background-size:18px 18px}
+.dashwrap .msgday span{background:#fff;border-color:var(--line-1);box-shadow:var(--sh-1)}
+.dashwrap .msgbubble{max-width:70%;padding:10px 14px 7px;border-radius:18px 18px 18px 6px;font-size:14.5px;line-height:1.5;
+  background:#fff;border:1px solid var(--line-1);box-shadow:var(--sh-1);color:var(--ink)}
+.dashwrap .msgbubble.mine{border-radius:18px 18px 6px 18px;background:var(--ink);border-color:var(--ink);color:#f7f3ea}
+.dashwrap .msgbubble.mine .msgtime{color:rgba(247,243,234,.62)}
+.dashwrap .msgbubble.mine .msgtick{color:rgba(247,243,234,.7)}
+.dashwrap .msgbubble.mine .msgtick.seen{color:#c9a86a}
+.dashwrap .msgbubblewrap+.msgbubblewrap.mine .msgbubble.mine{border-top-right-radius:8px}
+.dashwrap .msgbubblewrap:not(.mine)+.msgbubblewrap:not(.mine) .msgbubble{border-top-left-radius:8px}
+.dashwrap .msgoffer{background:#fff;border-color:var(--gold-line);box-shadow:var(--sh-1);border-radius:16px}
+.dashwrap .msgcompose{padding:12px 14px;gap:10px;border-color:var(--line-1);background:#fff}
+.dashwrap .msgcompose textarea{background:var(--paper-2);border-color:transparent;border-radius:16px;padding:12px 16px}
+.dashwrap .msgcompose textarea:focus{background:#fff;border-color:var(--acc)}
+.dashwrap .mssend{background:var(--ink);border-color:var(--ink);color:#fff;box-shadow:none}
+.dashwrap .mssend:hover{background:#2a251e;border-color:#2a251e}
+.dashwrap .mshint{font-size:11.5px;padding:0 16px 12px;color:var(--mut-1)}
+.dashwrap .msempty{color:var(--mut-1)}
+.dashwrap .msempty svg{opacity:.35}
+[dir="rtl"] .dashwrap .msgbubble{border-radius:18px 18px 6px 18px}
+[dir="rtl"] .dashwrap .msgbubble.mine{border-radius:18px 18px 18px 6px}
+@media(max-width:820px){
+  .dashwrap .msgshell{grid-template-columns:1fr}
+  .dashwrap .msgpanel{border-radius:0}
+  .dashwrap .msgbubble{max-width:84%;font-size:15px}
+  .dashwrap .msgthread{padding:14px 12px 10px}
+  .dashwrap .msgcompose{padding:10px 12px}
+}

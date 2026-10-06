@@ -1,6 +1,9 @@
 <?php
 /* VESTRA UI strings — IT (auto-sorted; English keys → translations) */
 return array (
+  'Carton' => 'Cartone',
+  'The edit' => 'La selezione',
+  'One piece from every house in stock.' => 'Un capo per ogni maison disponibile.',
   '"Verified Seller" badge' => 'Badge "Venditore verificato"',
   '%d verified boutiques already committed' => '%d boutique verificate già impegnate',
   '%s pc to unlock' => '%s pz per sbloccare',

@@ -12174,3 +12174,60 @@ operatöre açıklandı → *"sen yap hepsini usd faturasina gecir"*).
   kapanınca **2**. `invoice_pdf_letter_fr_test`'in çağrı kalıbı yeni parametreyi kabul edecek şekilde
   genişletildi; `order_audit_test`'in "şablonda gömülü tarih yok" taraması yeni yorumdaki yıllı bir
   tarihi yakaladı → yorum yılsız yazıldı (tarama gevşetilmedi).
+
+**KURAL 47 — ATELIER: çalışma yüzeyleri KÂĞIT üstünde, marka sesi koyu; ana sayfada "The edit"**
+(operatör, 6 Eki 2026: *"vestrasales.com ana sayfa ve ürün sayfasını daha estetik hale getir ana
+sayfadaki ürünleri değiştir"* → *"avrupanın en estetik B2B sitesi olmasını istiyorum … zekanı kullan"*
+→ *"daha konfor ve görseli iyi yap"* → *"satıcı ve buyer panelleri de çok iyi olmalı mesajlaşmalar ve app"*).
+
+- **Önce ölçüldü (yerel `php -S` + Playwright, misafir / onaylı alıcı / satıcı, 1440 + 390):** site
+  sayfadan sayfaya TEMA değiştiriyordu — ana sayfa ve ürün sayfası koyu, katalog ve paneller açık.
+  Ürün sayfasında beyaz paket çekimleri siyah zemine yapıştırılmış gibi duruyordu; ana sayfanın tek
+  ürün bölümü 6 iç çamaşırı + 3 Lacoste/Fred Perry kartıydı ve 20 evin kataloğunu anlatmıyordu;
+  panel menüsü on satırlık düz metin, mesaj baloncukları ayırt edilmiyordu.
+- **Karar — tek dil:** çalışma yüzeyleri (katalog, ürün, paneller, mesajlar) sıcak kâğıt `#f5f2ec`
+  + beyaz kart + mürekkep `#1a1714` + kâğıt üstünde okunan derin altın `#a8812f`; koyu tema yalnız
+  kromda (üst menü, altbilgi, sekme çubuğu) ve ana sayfa kahramanında kalıyor. Playfair 700 → **600**
+  (gazete manşeti gibi okunuyordu), tek easing, yumuşak sıcak gölgeler. Hepsi `inc/style.css`'in
+  SONUNA eklenen bir katman: üstteki kurallar kaynak tarayan testlerin sabitlediği dizgeler, dokunulmadı.
+- **Ürün sayfası (`product.php`)** `.pwrap.pdpage` kapsamında açık temaya geçti (shop.php/dash.php ile
+  aynı token seti). Marka satırı artık `/wholesale/<marka>` bağlantısı + doğrulama rozeti; açıklamanın
+  altında **"önemli bilgiler" çipleri** (MOQ, karton, beden serisi, renk SAYISI, gönderim yeri — hepsi
+  ilan kaydından); kademe tablosu aktif kademeyi mürekkep çubuğuyla gösteriyor; numune/mesaj/teklif
+  kutuları sessiz satırlar (`pd-aux`); "benzer ürünler" kartı fotoğraflıysa açık stüdyo zemininde
+  (`sphoto`, shop.php'nin kararı). **Telefonda sabit sipariş çubuğu** (`.pd-stick`): fiyat + "siparişe
+  ekle", sipariş kutusu ekrandayken kendini gizler; yalnız fiyatı açık, satışta, sabit fiyatlı ilanda.
+- **İki ölçülen kusur, düzeltildi:** (1) fotoğrafın yüzdeli yüksekliği telefonda çözülemeyince sahne
+  808px'e açılıp sayfayı yana kaydırıyordu (innerWidth 390 → 833) — fotoğraf artık MUTLAK konumlu;
+  (2) küçük resim rayı nowrap olunca `1fr` sütun min-content'e (11 karo ≈ 800px) genişledi —
+  `minmax(0,1fr)` + `min-width:0`. İkisi de yalnız ölçümle görüldü, kaynaktan görülmezdi.
+- **Ana sayfa (`index.php`):** kahraman kaldı (manşet italik vurgu, 600 ağırlık); altında **evler
+  şeridi** (`.ticker`, canlı `$_brands`, salt CSS, reduced-motion'da durur); sonra **KÂĞIT BÖLGESİ**
+  (`.paper` sarmalayıcı token'ları açık değerlere çeviriyor, içerideki bölümler kendini yeniden boyuyor):
+  yakında-geliyor, **The edit**, yeni gelenler RAYI, ayakkabı rayı, kategoriler; **marka duvarı koyu
+  bant** (wordmark'lar beyaz çizili); sonra yine kâğıt (neden/nasıl); kapanış koyu (kayıt kartları,
+  uygulama, altbilgi).
+- **"Ürünleri değiştir" = `vestra_home_edit_picks()` (inc/products.php):** her EVDEN BİR parça,
+  operatörün vitrin sırasında (`vestra_shop_front_brands` → `vestra_shop_lead_brands` → kalan evler ilan
+  sayısına göre), ev içinde en yeni (pinned başta), ikinci tur ancak her ev bir kez girince; satılmış,
+  ayakkabı/iç çamaşırı bölmesi, id'siz/markasız kayıt girmez. **9 kart** = büyük kart (2×2) + 8 → dört
+  sütunda tam üç satır, telefonda boşluksuz. "Yeni gelenler" (`vestra_home_new_picks`, iç çamaşırı
+  önde) KALDI, rail oldu ve The edit'teki ilanı tekrar basmıyor. Fiyat yok (KURAL 19).
+- **Paneller (`inc/dash.php` + CSS):** her sekmede çizgi simge (emoji değil — platforma göre değişiyor),
+  açık sekme beyaz kart, istatistik kartları, formlar, tablolar yeni token'larda; telefonda sekme
+  şeridi hap biçiminde. **Mesajlar:** kendi baloncuğun mürekkep renginde (iMessage mantığı, okundu
+  çengeli altın), karşı taraf beyaz, zemin noktalı kâğıt, kare-yuvarlak avatar; mobil kabuk aynen
+  (test edilen kurallar değişmedi). **Uygulama sekme çubuğu:** açık sekme altın hap, 20px blur.
+- **Çizdirildi:** 50 sayfa × 2 genişlik (misafir/alıcı/satıcı) + Arapça RTL 3 sayfa × 2 — yatay
+  kaydırma 0, PHP uyarısı 0; mesaj ipliği yerelde tohumlanarak (seller uid demo) iki yönlü görüldü.
+- **Sözlük:** `The edit`, `One piece from every house in stock.`, `Carton` (ürün sayfasında zaten
+  çağrılıyordu, 8 dilde yoktu) — 8 dile eklendi (KURAL 10).
+- Test: `tests/home_edit_picks_test.php` (**38 iddia**, iki yön: sıra, ikinci tur, satılmış/bölme/id'siz
+  eleme, pinned, ana sayfa kablolaması, fiyat yok, 8 sözlük). `single_listing_polo_test` ilk koşuda
+  **1 kırmızı** döndü: çiplerdeki renk noktaları sayfadaki nokta sayısını 8 → 14 yapmıştı; çip artık
+  renk SAYISI basıyor (noktalar tabloda zaten duruyor), test gevşetilmedi. Tam takım: **142 geçti**;
+  kalan 4 kırmızı (dropship_plan, msg_read_receipt, msg_thread_label, order_wholesale_sample) bu
+  işten ÖNCE de kırmızıydı (ölçüldü: başlangıç 141 geçti / aynı 4).
+- **Canlıya ALINMADI (bu kayıt yazılırken):** deploy `claude/wizardly-planck-7ylnmk`'ye push ile
+  tetikleniyor; bu iş `claude/optimistic-cray-bzu44d` dalında. Canlı ölçüm (ana sayfada 20+ evle
+  The edit'in gerçek görünümü, canlı fotoğraflarla sahne) deploy'dan sonra yapılacak.

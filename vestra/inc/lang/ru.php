@@ -2,6 +2,9 @@
 /* VESTRA UI strings — RU (English keys → translations; complete against inc/lang/de.php,
    enforced by tests/seo_landing_test.php) */
 return array (
+  'Carton' => 'Коробка',
+  'The edit' => 'Подборка',
+  'One piece from every house in stock.' => 'По одной вещи от каждого бренда в наличии.',
   'Sample order' => 'Заказ образца',
   'Want to check it in hand first?' => 'Хотите сначала посмотреть вживую?',
   'Size or note (optional)' => 'Размер или примечание (необязательно)',

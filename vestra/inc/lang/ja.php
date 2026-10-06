@@ -2,6 +2,9 @@
 /* VESTRA UI strings — JA (English keys → translations; complete against inc/lang/de.php,
    enforced by tests/seo_landing_test.php) */
 return array (
+  'Carton' => 'カートン',
+  'The edit' => 'セレクション',
+  'One piece from every house in stock.' => '在庫のある各ブランドから1点ずつ。',
   'Sample order' => 'サンプル注文',
   'Want to check it in hand first?' => 'まず実物を確認したいですか？',
   'Size or note (optional)' => 'サイズまたは備考（任意）',

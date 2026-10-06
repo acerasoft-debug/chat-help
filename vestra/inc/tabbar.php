@@ -55,25 +55,28 @@ body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain}
   .vtabbar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;height:64px;
     grid-template-columns:repeat(5,1fr);align-items:stretch;
     padding-bottom:env(safe-area-inset-bottom,0px);
-    background:rgba(14,14,17,.86);
-    -webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3);
-    border-top:1px solid rgba(255,255,255,.09);
-    box-shadow:0 -8px 28px -14px rgba(0,0,0,.75)}
+    background:rgba(16,15,13,.88);
+    -webkit-backdrop-filter:blur(20px) saturate(1.4);backdrop-filter:blur(20px) saturate(1.4);
+    border-top:1px solid rgba(255,255,255,.08);
+    box-shadow:0 -10px 30px -16px rgba(0,0,0,.8)}
   .vtab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-    min-height:56px;padding:9px 4px 8px;text-decoration:none;color:rgba(244,241,234,.56);
+    min-height:56px;padding:8px 4px 7px;text-decoration:none;color:rgba(244,241,234,.52);
     position:relative;background:none;border:0;font:inherit;
     transition:color .3s cubic-bezier(.16,.66,.25,1)}
+  /* Simge kucuk bir "hap"in icinde: acik sekmede hap altin tonunda dolar. Alt
+     cizgi yerine hap -- iOS/Android sekme cubuklarinin bugunku dili, ve dokunma
+     hedefini parmak genisliginde gosteriyor. */
   .vtab svg{width:22px;height:22px;stroke:currentColor;fill:none;
-    stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;
+    stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;position:relative;z-index:1;
     transition:transform .35s cubic-bezier(.16,.66,.25,1)}
-  .vtab span{font-size:9.5px;letter-spacing:.055em;font-weight:600;
+  .vtab::before{content:'';position:absolute;top:7px;left:50%;width:46px;height:30px;margin-left:-23px;
+    border-radius:999px;background:rgba(201,168,106,0);transition:background .35s cubic-bezier(.16,.66,.25,1),transform .35s cubic-bezier(.16,.66,.25,1);
+    transform:scale(.8)}
+  .vtab span{font-size:10px;letter-spacing:.04em;font-weight:600;
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .vtab.on{color:#c9a86a}
+  .vtab.on{color:#e4cb95}
+  .vtab.on::before{background:rgba(201,168,106,.16);transform:scale(1)}
   .vtab.on svg{transform:translateY(-1px)}
-  /* Active marker sits on the top edge, matching the gold hairline used on the
-     brand rail and the catalogue cards rather than inventing a third idiom. */
-  .vtab.on::before{content:'';position:absolute;top:-1px;left:24%;right:24%;height:2px;
-    background:#c9a86a;border-radius:0 0 2px 2px}
   .vtab:active svg{transform:scale(.9)}
   .vtab-badge{position:absolute;top:5px;left:calc(50% + 6px);min-width:15px;height:15px;
     padding:0 4px;border-radius:999px;background:#c9a86a;color:#1a1408;

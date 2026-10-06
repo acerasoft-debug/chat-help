@@ -575,7 +575,7 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#0e0e11;--bg2:#15151a;--ink:#f4f1ea;--mut:#9a988f;
+  :root{--bg:#0f0e0c;--bg2:#161512;--ink:#f4f1ea;--mut:#9f9a8f;
     --acc:<?= htmlspecialchars($ACCENT) ?>;--line:rgba(255,255,255,.08);
     /* Same house curve as inc/style.css — this page carries its own copy because it
        does not load the shared stylesheet. */
@@ -587,7 +587,7 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
     line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
     text-rendering:optimizeLegibility;overflow-x:hidden}
   a{color:inherit;text-decoration:none}
-  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
   /* Tracking in em so the correction scales with the size; the display step is tighter
      than the card-heading step, which a single -.5px could never express. */
   /* Japonca: Latin yigininda kana/kanji yok, Playfair'de hic yok. Sistem
@@ -595,9 +595,11 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
   html[lang="ja"] body,html[lang="ja"] input,html[lang="ja"] select,html[lang="ja"] textarea,html[lang="ja"] button{font-family:'Inter','Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP','Yu Gothic UI','Yu Gothic','Meiryo','MS PGothic',system-ui,sans-serif}
   html[lang="ja"] h1,html[lang="ja"] h2,html[lang="ja"] h3,html[lang="ja"] .logo{font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP','Yu Gothic UI','Yu Gothic','Meiryo','MS PGothic',system-ui,sans-serif}
   html[lang="ja"] body{line-height:1.75;word-break:normal;overflow-wrap:anywhere}
-  h1,h2,h3{font-family:'Playfair Display',Georgia,serif;font-weight:700;line-height:1.12;
-    letter-spacing:-.012em;text-wrap:balance}
-  h1{letter-spacing:-.022em}
+  /* Playfair at 600, not 700: the heavier cut read as a newspaper masthead; 600
+     keeps the couture serif voice without the ink weight. */
+  h1,h2,h3{font-family:'Playfair Display',Georgia,serif;font-weight:600;line-height:1.12;
+    letter-spacing:-.014em;text-wrap:balance}
+  h1{letter-spacing:-.024em}
   ::selection{background:rgba(201,168,106,.28);color:var(--ink)}
   :where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{
     outline:2px solid var(--acc);outline-offset:2px;border-radius:4px}
@@ -605,8 +607,8 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
   section{scroll-margin-top:84px}
   svg{display:block}
 
-  header{position:sticky;top:0;z-index:30;background:rgba(14,14,17,.72);
-    backdrop-filter:saturate(140%) blur(12px);border-bottom:1px solid var(--line)}
+  header{position:sticky;top:0;z-index:30;background:rgba(15,14,12,.72);
+    backdrop-filter:saturate(140%) blur(14px);border-bottom:1px solid var(--line)}
   /* The nav carries 6 links + 5 languages + sign-in + CTA; that does not fit the 1080px
      reading measure the rest of the page uses, and .wrap capped it there no matter how
      wide the window got. The header gets its own measure so the menu has somewhere to go. */
@@ -628,8 +630,9 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
   .nav-links{display:flex;align-items:center;gap:16px;font-size:14px;font-weight:500;white-space:nowrap}
   .nav-links>a{color:var(--mut);transition:color .2s}
   .nav-links>a:hover{color:var(--ink)}
-  .nav-cta{border:1px solid var(--line);padding:9px 18px;border-radius:999px;color:var(--ink)!important;transition:.2s}
-  .nav-cta:hover{border-color:var(--acc);color:var(--acc)!important}
+  .nav-cta{border:1px solid rgba(201,168,106,.55);padding:9px 18px;border-radius:999px;color:var(--ink)!important;transition:.2s;
+    background:rgba(201,168,106,.08)}
+  .nav-cta:hover{border-color:var(--acc);background:var(--acc);color:#1a1408!important}
   /* Dil secici (acilir). inc/style.css'teki para birimi menusuyle ayni davranis;
      bu sayfa o dosyayi yuklemedigi icin kurallar burada tekrar yazili -- sayfanin
      geri kalani da ayni sebeple kendi kopyasini tasiyor. */
@@ -645,16 +648,16 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
   .lswcur{font-weight:600;letter-spacing:.3px}
   .lswmenu{position:absolute;top:calc(100% + 9px);right:0;z-index:60;
     padding:5px;display:grid;grid-template-columns:1fr 1fr;gap:2px;
-    background:rgba(20,20,25,.98);backdrop-filter:saturate(140%) blur(14px);
-    border:1px solid var(--line);border-radius:10px;
+    background:rgba(22,21,18,.98);backdrop-filter:saturate(140%) blur(14px);
+    border:1px solid var(--line);border-radius:12px;
     box-shadow:0 18px 40px -12px rgba(0,0,0,.65)}
   .lswmenu a{font-size:12.5px;font-weight:600;letter-spacing:.3px;color:var(--mut);
-    padding:7px 14px;border-radius:6px;line-height:1;text-align:center;white-space:nowrap;
+    padding:7px 14px;border-radius:8px;line-height:1;text-align:center;white-space:nowrap;
     transition:color .2s,background .2s}
   .lswmenu a:hover{color:var(--ink);background:rgba(255,255,255,.07)}
   .lswmenu a.on{color:var(--acc);background:rgba(201,168,106,.12)}
   .burger{display:none;background:none;border:0;cursor:pointer;padding:8px;color:var(--ink)}
-  .mnav{display:none;border-top:1px solid var(--line);background:rgba(14,14,17,.97);backdrop-filter:blur(12px)}
+  .mnav{display:none;border-top:1px solid var(--line);background:rgba(15,14,12,.97);backdrop-filter:blur(12px)}
   .mnav a{display:block;padding:16px 24px;border-bottom:1px solid var(--line);color:var(--ink);font-weight:500}
   .mnav .mlangs{display:flex;gap:16px;padding:16px 24px}
   .mnav .mlangs a{border:0;padding:0;font-size:14px;color:var(--ink)}
@@ -662,160 +665,86 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
   .mnav.open{display:block;animation:drop .25s ease}
   @keyframes drop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 
+  /* ── Hero ─────────────────────────────────────────────────────────────────── */
   .hero{padding:96px 0 70px;text-align:center;position:relative}
   .hero:before{content:"";position:absolute;inset:-30% 0 auto 0;height:560px;z-index:-1;
     background:radial-gradient(58% 60% at 50% 0,rgba(201,168,106,.18),transparent 72%)}
-  .pill{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;letter-spacing:2px;
+  .pill{display:inline-flex;align-items:center;gap:9px;font-size:11.5px;letter-spacing:.2em;
     text-transform:uppercase;color:var(--acc);border:1px solid rgba(201,168,106,.3);
-    padding:7px 15px;border-radius:999px;margin-bottom:26px;background:rgba(201,168,106,.06)}
+    padding:7px 15px;border-radius:999px;margin-bottom:28px;background:rgba(201,168,106,.06);
+    backdrop-filter:blur(6px)}
   .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--acc);animation:pulse 2.4s infinite}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(201,168,106,.5)}70%{box-shadow:0 0 0 8px rgba(201,168,106,0)}100%{box-shadow:0 0 0 0 rgba(201,168,106,0)}}
-  /* Hero film: each frame fades up, drifts slowly, fades out; the sequence loops.
-     Total cycle = frames x 6s, and each frame's delay is staggered by 6s so exactly
-     one is visible at a time. Sits behind everything (z-index 0) with the content
-     lifted above it. */
   /* Give the film band a floor so a contained packshot has room to read as a garment
      rather than a stamp. Capped in vh so it never pushes the CTAs below the fold. */
   .hero.hasfilm{padding:132px 0 104px;min-height:min(80vh,720px);display:flex;align-items:center}
   .hero.hasfilm>.wrap{position:relative;z-index:2;width:100%}
   .herofilm{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none}
-
-  /* ── Hero film, video cut ───────────────────────────────────────────────────
-     The clip is already graded and vignetted when it is cut, so what goes over it
-     here is only a scrim for type contrast -- laying the full .herofilm-veil on top
-     of an already-graded clip crushed it to near-black. */
-  /* Anchored to the BOTTOM, not the centre. The band is wider than the clip's 16:9,
-     so `cover` has to lose some height -- centred it ate the bottom of the frame and
-     sliced every garment off mid-chest at the section seam. Anchoring the bottom
-     spends the crop on empty stage at the top instead, and the rail lands flush on
-     the seam where it belongs. */
+  /* ── Hero film, video cut: the clip is graded when it is cut, so what goes over it
+     here is only a scrim for type contrast. Anchored to the BOTTOM: the band is wider
+     than the clip's 16:9, so `cover` has to lose some height -- centred it ate the
+     bottom of the frame and sliced every garment off mid-chest at the section seam. */
   .herovid-poster,.herovid{position:absolute;inset:0;width:100%;height:100%;
     object-fit:cover;object-position:center bottom;
     background-size:cover;background-position:center bottom}
   .herovid{opacity:0;transition:opacity .9s ease}
   .herovid.on{opacity:1}
-  /* Type to the top, rail along the base. Centred content sat right on the plates.
-     The band is also taller than the still version: with the clip anchored to its
-     bottom edge the rail always claims the last ~190px, and at 80vh the trust line
-     landed inside that. The extra height is what buys the two a lane each. */
-  /* The bottom padding is the RAIL'S LANE, and it has to be reserved explicitly.
-     The clip is bottom-anchored and covers by width, so the plates always occupy a
-     fixed band above the section seam -- roughly an eighth of the viewport width --
-     no matter how tall the band is. Leaving that to min-height worked at 1600x900
-     and failed at 1440x780: the hero became content-driven, its bottom edge rose,
-     and the plates cut straight through "Invoice-based payment · Transaction
-     records". Reserving the band in vw, the same unit the rail scales in, keeps the
-     two apart at every width instead of at the one that happened to be tested. */
+  /* Type to the top, rail along the base. The bottom padding is the RAIL'S LANE,
+     reserved in vw -- the same unit the rail scales in -- so the two stay apart at
+     every width instead of at the one that happened to be tested. */
   .hero.hasvideo{padding:48px 0 clamp(180px,17vw,275px);align-items:flex-start;
     min-height:min(88vh,820px)}
   @media(max-height:840px){ .hero.hasvideo{padding-top:32px} }
-  /* The film claims only the LOWER part of the band, not all of it.
-     Full-bleed, the clip's own lit stage ran up behind the two registration buttons
-     and the eye went to the moving garments instead of to the thing the page is
-     asking for. Handing the top third back to the plain graded stage puts the
-     headline and both calls to action on quiet ground, and drops the garments
-     visibly further down the page.
-     The top edge is MASKED rather than cut: a hard horizontal line across a dark
-     hero reads as a grey box with a straight edge -- the exact defect this hero was
-     rebuilt to get rid of. The fade makes the film emerge out of the stage instead. */
+  /* The film claims only the LOWER part of the band; the top third stays quiet
+     stage for the headline and both calls to action. Masked, not cut: a hard
+     horizontal line across a dark hero reads as a grey box with a straight edge. */
   .hero.hasvideo .herofilm{top:auto;bottom:0;height:70%;
     -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 20%,#000 100%);
             mask-image:linear-gradient(to bottom,transparent 0,#000 20%,#000 100%)}
-  /* Short viewports have no room to give a third away -- there the film keeps more
-     of the band, or the garments fall off the bottom of the screen entirely. */
   @media(max-height:760px){ .hero.hasvideo .herofilm{height:82%} }
-  /* Wide screens get the clip, so the still strip stands down. Below the breakpoint
-     the two swap -- see the phone rule further down. 700px matches the width the
-     loader script tests before it will fetch anything, so the picture and the
-     download decision can never disagree. */
   .hero.hasvideo .herostrip{display:none}
   .herofilm-scrim{position:absolute;inset:0;
     background:
-      /* Weight on the type, not on the rail. The clip already carries its own grade,
-         so a heavy bottom stop here lands on the garments a SECOND time -- the pair
-         of them turned the rail to mud. Bottom is deliberately barely tinted. */
-      radial-gradient(64% 50% at 50% 36%,rgba(13,13,16,.74),rgba(13,13,16,.30) 74%,transparent),
-      linear-gradient(to bottom,rgba(13,13,16,.62) 0%,rgba(13,13,16,.12) 34%,
-                      rgba(13,13,16,.04) 66%,rgba(13,13,16,.16) 100%)}
-
-  /* The catalogue is packshots — a garment on a studio sweep — and a packshot cannot be
-     bled across a dark page: its light background arrives with it and shows as a grey
-     rectangle with a straight edge, while a black polo on a near-black stage disappears
-     entirely. Measured on this hero: at every point in the cycle the garment read as a
-     smudge and the sweep as a box behind the headline.
-     So the photography is presented as what it is — plates. Each piece sits on its own
-     lit card in a strip below the call to action, where a light ground is correct and a
-     hairline frame makes it look deliberate. The headline gets a clean graded stage with
-     nothing behind it, so the type is crisp at every moment instead of fighting a photo
-     whose brightness changes every seven seconds. */
+      radial-gradient(64% 50% at 50% 36%,rgba(15,14,12,.74),rgba(15,14,12,.30) 74%,transparent),
+      linear-gradient(to bottom,rgba(15,14,12,.62) 0%,rgba(15,14,12,.12) 34%,
+                      rgba(15,14,12,.04) 66%,rgba(15,14,12,.16) 100%)}
+  /* Plates: each packshot sits on its own lit card in a strip below the call to
+     action, where a light ground is correct and a hairline frame makes it deliberate. */
   .herostrip{display:flex;gap:13px;justify-content:center;margin:46px auto 0;max-width:660px;
     padding:0 4px}
-  .hplate{position:relative;flex:1 1 0;aspect-ratio:3/4;border-radius:14px;overflow:hidden;
-    /* Near-white, because the packshot arrives with its own white sweep: a warmer plate
-       showed that sweep as a second rectangle inside the first. Matching them makes the
-       garment sit on the plate instead of on a card on a plate. */
+  .hplate{position:relative;flex:1 1 0;aspect-ratio:3/4;border-radius:16px;overflow:hidden;
     background:linear-gradient(165deg,#fbfaf8,#eeebe5);
     border:1px solid rgba(201,168,106,.30);
     box-shadow:0 18px 40px -22px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.5);
-    transition:transform .5s cubic-bezier(.4,0,.2,1), box-shadow .5s}
+    transition:transform .5s var(--ease), box-shadow .5s var(--ease)}
   .hplate:hover{transform:translateY(-6px);box-shadow:0 26px 54px -22px rgba(0,0,0,.95)}
-  /* `contain`: the plate is 3:4 and so is the shot, but a squarer photo must still fit
-     whole rather than be cropped into an abstract sliver of fabric. */
   .hplate .hf{position:absolute;inset:0;background-size:contain;background-position:center;
     background-repeat:no-repeat;opacity:0;will-change:opacity,transform;
     animation-timing-function:cubic-bezier(.4,0,.2,1);animation-iteration-count:infinite;
-    /* The plate stagger is applied as a NEGATIVE delay, which starts the animation
-       already part-way through instead of holding it back: a positive offset left the
-       later plates blank for their first few seconds, because the frame's own opening
-       keyframe is transparent and no fill-mode can conjure a picture out of it.
-       backwards still covers the first frame of the first plate, whose delay is 0. */
     animation-fill-mode:backwards}
-  /* A soft sheen across the plate so five identical cards do not read as a spreadsheet. */
   .hplate:after{content:'';position:absolute;inset:0;pointer-events:none;
     background:linear-gradient(150deg,rgba(255,255,255,.30),transparent 44%),
                radial-gradient(80% 60% at 50% 108%,rgba(60,52,40,.13),transparent 70%)}
-
-  /* Each frame owns 1/N of the cycle, so the visible window has to be written as a
-     share of the whole — a fixed window would leave the column empty between frames
-     on a short catalogue. The count is emitted as a class rather than sniffed out of
-     the inline style, so it stays correct however many frames the catalogue yields. */
   .hfn1 .hf{animation-name:hf1} .hfn2 .hf{animation-name:hf2} .hfn3 .hf{animation-name:hf3}
   .hfn4 .hf{animation-name:hf4} .hfn5 .hf{animation-name:hf5} .hfn6 .hf{animation-name:hf6}
-  /* Each frame holds its whole slot and only fades out while the next one is fading in.
-     Written as separate windows the plate went blank between frames -- a frame ended at
-     ~80% of its slot and the next did not start until 100%, so five white cards blinked
-     empty every few seconds. The 10% overlap is what makes the strip continuous. */
   @keyframes hf1{0%,100%{opacity:1;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
   @keyframes hf2{0%{opacity:0;transform:scale(1) translateY(5px)}5.0%{opacity:1;transform:scale(1.01)}50.0%{opacity:1}55.0%{opacity:0;transform:scale(1.06) translateY(-5px)}100%{opacity:0;transform:scale(1.06) translateY(-5px)}}
   @keyframes hf3{0%{opacity:0;transform:scale(1) translateY(5px)}3.33%{opacity:1;transform:scale(1.01)}33.33%{opacity:1}36.67%{opacity:0;transform:scale(1.06) translateY(-5px)}100%{opacity:0;transform:scale(1.06) translateY(-5px)}}
   @keyframes hf4{0%{opacity:0;transform:scale(1) translateY(5px)}2.5%{opacity:1;transform:scale(1.01)}25.0%{opacity:1}27.5%{opacity:0;transform:scale(1.06) translateY(-5px)}100%{opacity:0;transform:scale(1.06) translateY(-5px)}}
   @keyframes hf5{0%{opacity:0;transform:scale(1) translateY(5px)}2.0%{opacity:1;transform:scale(1.01)}20.0%{opacity:1}22.0%{opacity:0;transform:scale(1.06) translateY(-5px)}100%{opacity:0;transform:scale(1.06) translateY(-5px)}}
   @keyframes hf6{0%{opacity:0;transform:scale(1) translateY(5px)}1.67%{opacity:1;transform:scale(1.01)}16.67%{opacity:1}18.33%{opacity:0;transform:scale(1.06) translateY(-5px)}100%{opacity:0;transform:scale(1.06) translateY(-5px)}}
-
-  /* The stage the type stands on: a warm key from the upper right, a cool floor at the
-     lower left, and a vignette pinning the corners. Gradients rather than a photograph,
-     so the headline's contrast is the same at every moment. */
   .herofilm-veil{position:absolute;inset:0;
     background:
-      radial-gradient(70% 60% at 50% 34%,rgba(38,34,30,.55),rgba(14,14,17,.96) 78%),
+      radial-gradient(70% 60% at 50% 34%,rgba(38,34,30,.55),rgba(15,14,12,.96) 78%),
       radial-gradient(42% 48% at 80% 8%,rgba(201,168,106,.24),transparent 72%),
       radial-gradient(48% 44% at 14% 98%,rgba(92,112,152,.14),transparent 74%),
-      linear-gradient(to bottom,rgba(14,14,17,.55) 0%,rgba(14,14,17,.18) 40%,rgba(14,14,17,.92) 100%)}
-  /* Fine film grain, the same trick the journal covers use: it costs one inline SVG and
-     stops the large flat gradients from banding on a wide screen. */
+      linear-gradient(to bottom,rgba(15,14,12,.55) 0%,rgba(15,14,12,.18) 40%,rgba(15,14,12,.92) 100%)}
   .herofilm-grain{position:absolute;inset:0;opacity:.055;mix-blend-mode:overlay;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>")}
-  /* A hairline of light where the band meets the page below — the seam a graded still
-     would have, and the cue that the hero is a frame rather than a background colour. */
   .hero.hasfilm:after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;z-index:1;
     background:linear-gradient(to right,transparent,rgba(201,168,106,.34),transparent)}
-  /* Fewer plates as the strip narrows — five cards on a phone would be thumbnails. */
   @media(max-width:820px){ .herostrip{gap:10px;max-width:520px} .hplate:nth-child(n+4){display:none} }
   @media(max-width:520px){ .herostrip{max-width:340px} .hplate:nth-child(n+3){display:none} }
-  /* Phones: the clip and its poster step aside and the plate strip comes back. A 16:9
-     rail cropped to a phone's narrow band is one plate and a lot of empty stage, and
-     it landed behind the call to action. The scrim and grain stay -- they are the
-     hero's grade, not part of the film. */
   @media(max-width:700px){
     .hero.hasvideo .herovid,.hero.hasvideo .herovid-poster{display:none}
     .hero.hasvideo .herostrip{display:flex}
@@ -824,29 +753,24 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
   @media(prefers-reduced-motion:reduce){
     .hplate .hf{animation:none;opacity:0;transform:none}
     .hplate .hf:first-child{opacity:1}
-    /* the loader already declines to fetch the clip here; this is the belt to that
-       brace, so a cached <video> cannot fade itself in either */
     .herovid{display:none}
   }
-  .hero h1{font-size:clamp(34px,6.2vw,62px);margin:0 0 20px}
-  .hero>.wrap>p{font-size:clamp(16px,2.4vw,20px);color:var(--mut);max-width:630px;margin:0 auto 36px}
+  .hero h1{font-size:clamp(36px,6.4vw,70px);margin:0 0 22px;line-height:1.04}
+  /* The one accented word is set in the italic: the serif's own flourish, instead
+     of a second colour doing all the work. */
+  .hero h1 .acc{font-style:italic;font-weight:500}
+  .hero>.wrap>p{font-size:clamp(16px,2.2vw,19px);color:var(--mut);max-width:600px;margin:0 auto 34px;line-height:1.65}
   .btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
   .btn{padding:15px 30px;border-radius:999px;font-weight:600;font-size:15px;cursor:pointer;
-    border:1px solid var(--acc);transition:.2s;display:inline-flex;align-items:center;gap:9px}
+    border:1px solid var(--acc);transition:.25s var(--ease);display:inline-flex;align-items:center;gap:9px}
   .btn-p{background:var(--acc);color:#1a1408}
-  .btn-p:hover{filter:brightness(1.08);transform:translateY(-2px);box-shadow:0 10px 30px -10px rgba(201,168,106,.5)}
+  .btn-p:hover{filter:brightness(1.06);transform:translateY(-2px);box-shadow:0 14px 30px -12px rgba(201,168,106,.55)}
   .btn-o{background:transparent;color:var(--ink)}
   .btn-o:hover{background:rgba(201,168,106,.1);transform:translateY(-2px)}
-  /* The two registration buttons are what the homepage is FOR, so on the hero they
-     are given a size of their own rather than the sitewide one. The outline button
-     also stops being fully transparent: over the film it was reading as a hairline
-     ring and the "buy" half of the marketplace looked like an afterthought next to
-     the filled "sell" half. A dark, slightly blurred fill keeps it clearly secondary
-     while making it a button rather than an outline. */
   .hero .btns{gap:16px}
   .hero .btns .btn{padding:17px 34px;font-size:16px}
   .hero .btn-p{box-shadow:0 14px 34px -14px rgba(201,168,106,.55)}
-  .hero .btn-o{background:rgba(13,13,16,.55);backdrop-filter:blur(3px);
+  .hero .btn-o{background:rgba(15,14,12,.55);backdrop-filter:blur(3px);
     border-color:rgba(201,168,106,.75)}
   .hero .btn-o:hover{background:rgba(201,168,106,.16)}
   .btn:active{transform:scale(.96)}
@@ -854,14 +778,13 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
   .trustline span{display:inline-flex;align-items:center;gap:7px}
 
   /* Ilk siparis indirimi. Kahraman metniyle birincil dugmenin ARASINDA duruyor:
-     ilk ekranda, tiklanacak yerin hemen ustunde. Vurgu rengi zaten sayfanin
-     birincil dugmesinin rengi, o yuzden band cerceve + hafif dolgu ile ayriliyor;
-     dolu altin bir blok, altindaki "Register as Buyer" dugmesiyle yarisirdi.
-     inline-flex: genisligi metin kadar, bir kenardan kenara serit degil. */
+     ilk ekranda, tiklanacak yerin hemen ustunde. inline-flex: genisligi metin
+     kadar, bir kenardan kenara serit degil. */
   .offer{display:inline-flex;align-items:center;gap:14px;margin:0 auto 26px;
-    padding:12px 20px 12px 14px;border-radius:14px;text-decoration:none;
+    padding:12px 20px 12px 14px;border-radius:16px;text-decoration:none;
     border:1px solid rgba(201,168,106,.42);background:rgba(201,168,106,.09);
-    box-shadow:0 10px 30px -18px rgba(201,168,106,.7);transition:.25s;text-align:left}
+    box-shadow:0 10px 30px -18px rgba(201,168,106,.7);transition:.25s var(--ease);text-align:left;
+    backdrop-filter:blur(6px)}
   .offer:hover{background:rgba(201,168,106,.16);border-color:rgba(201,168,106,.72);transform:translateY(-1px)}
   .offer-tag{flex:none;font-size:19px;font-weight:800;letter-spacing:-.5px;line-height:1;
     color:#1a1408;background:var(--acc);border-radius:10px;padding:11px 12px}
@@ -869,37 +792,115 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
   .offer-t{font-size:15.5px;color:#f2ead9;letter-spacing:.1px}
   .offer-t b{color:var(--acc);font-weight:700}
   .offer-s{font-size:12.5px;color:var(--mut)}
-  /* Arapcada blok saga yaslanir; flex yonu <html dir> ile kendiliginden donuyor,
-     yalnizca metnin hizasi acikca yaziliyor. */
   [dir="rtl"] .offer{text-align:right}
 
-  .pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin:84px 0}
-  .card{background:linear-gradient(180deg,var(--bg2),#101015);border:1px solid var(--line);
-    border-radius:18px;padding:30px;transition:.3s}
-  .card:hover{border-color:rgba(201,168,106,.35);transform:translateY(-4px)}
-  .card .ic{width:50px;height:50px;display:grid;place-items:center;border-radius:13px;
-    background:rgba(201,168,106,.1);color:var(--acc);margin-bottom:18px}
+  /* ── Houses ticker: the wordmarks as a slow, continuous line under the hero.
+     The brand wall further down carries the drawn logos; this is the editorial
+     masthead version, type only, from the same live list. Duplicated once in
+     the markup so the loop has no seam. ──────────────────────────────────── */
+  .ticker{position:relative;overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    padding:18px 0;background:linear-gradient(180deg,rgba(201,168,106,.04),transparent);
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+            mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+  .ticker-track{display:flex;width:max-content;gap:0;animation:tick 48s linear infinite}
+  .ticker:hover .ticker-track{animation-play-state:paused}
+  .ticker-track span{display:inline-flex;align-items:center;gap:28px;padding:0 14px;
+    font-family:'Playfair Display',serif;font-size:17px;letter-spacing:.14em;text-transform:uppercase;
+    color:rgba(244,241,234,.78);white-space:nowrap}
+  .ticker-track span::after{content:'';width:5px;height:5px;border-radius:50%;background:var(--acc);opacity:.75}
+  @keyframes tick{to{transform:translateX(-50%)}}
+  @media(prefers-reduced-motion:reduce){.ticker-track{animation:none;flex-wrap:wrap;width:auto;justify-content:center}}
+
+  /* ── Paper: the working sections live on warm paper, so the white packshots
+     sit on a ground that belongs to them instead of being stuck onto black.
+     Every rule inside reads the tokens, so the sections re-theme themselves. ── */
+  .paper{--bg:#f5f2ec;--bg2:#ffffff;--ink:#1a1714;--mut:#736d62;--acc:#a8812f;--line:#e6e0d4;
+    background:var(--bg);color:var(--ink)}
+  .paper ::selection{background:rgba(168,129,47,.22)}
+  .paper .btn-p{background:var(--ink);border-color:var(--ink);color:#f7f3ea;box-shadow:0 12px 26px -14px rgba(26,23,20,.6)}
+  .paper .btn-p:hover{filter:none;background:#2a251e;border-color:#2a251e;box-shadow:0 16px 30px -14px rgba(26,23,20,.65)}
+  .paper .btn-o{background:#fff;border-color:#d8d0c1;color:var(--ink)}
+  .paper .btn-o:hover{background:#fff;border-color:var(--ink)}
+  .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:28px}
+  .sec-head .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--acc);margin-bottom:10px}
+  .sec-head .eyebrow::before{content:'';width:22px;height:1px;background:var(--acc)}
+  .sec-head h2{margin:0;font-size:clamp(28px,4vw,42px)}
+  .sec-head p{margin:8px 0 0;color:var(--mut);max-width:52ch;font-size:15px}
+  .sec-head .more{flex:none;font-size:14px;font-weight:600;color:var(--ink);border-bottom:1px solid var(--acc);padding-bottom:3px;
+    transition:color .2s,border-color .2s}
+  .sec-head .more:hover{color:var(--acc)}
+  @media(max-width:640px){.sec-head{flex-direction:column;align-items:flex-start;gap:12px;margin-bottom:20px}}
+
+  /* The edit: one piece from every house. The first card is the lead tile (2x2). */
+  .edit{padding:72px 0 28px}
+  .edit .wrap{max-width:1180px}
+  .edit-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;grid-auto-flow:dense}
+  .ed-card{position:relative;display:flex;flex-direction:column;border-radius:20px;background:#fff;overflow:hidden;
+    border:1px solid var(--line);box-shadow:0 1px 2px rgba(40,32,18,.05),0 14px 34px -24px rgba(40,32,18,.35);
+    transition:transform .4s var(--ease),box-shadow .4s var(--ease),border-color .4s var(--ease)}
+  .ed-card:hover{transform:translateY(-5px);border-color:#d8d0c1;box-shadow:0 2px 4px rgba(40,32,18,.05),0 28px 54px -24px rgba(40,32,18,.42)}
+  .ed-card.lead{grid-column:span 2;grid-row:span 2}
+  .ed-ph{position:relative;aspect-ratio:4/5;overflow:hidden;background:linear-gradient(178deg,#fdfcfa 0%,#f6f3ee 100%)}
+  .ed-card.lead .ed-ph{aspect-ratio:auto;flex:1;min-height:420px}
+  .ed-ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:9% 9% 10%;
+    transition:transform .7s var(--ease)}
+  .ed-card:hover .ed-ph img{transform:scale(1.045)}
+  .ed-ph::after{content:'';position:absolute;inset:auto 0 0 0;height:34%;pointer-events:none;
+    background:linear-gradient(transparent,rgba(40,32,18,.05))}
+  .ed-tag{position:absolute;top:14px;left:14px;z-index:2;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--ink);color:#f7f3ea;padding:5px 10px;border-radius:999px}
+  .ed-tx{padding:14px 16px 16px;display:flex;flex-direction:column;gap:3px}
+  .ed-brand{font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--acc)}
+  .ed-name{font-size:14px;font-weight:600;line-height:1.35;color:var(--ink);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .ed-cat{font-size:12px;color:var(--mut)}
+  .ed-card.lead .ed-tx{padding:18px 22px 22px}
+  .ed-card.lead .ed-brand{font-size:11.5px}
+  .ed-card.lead .ed-name{font-family:'Playfair Display',serif;font-size:24px;font-weight:600;line-height:1.2}
+  .ed-foot{display:flex;justify-content:center;margin-top:30px}
+  @media(max-width:1000px){.edit-grid{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:640px){
+    .edit{padding:48px 0 20px}
+    .edit-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+    .ed-card.lead{grid-column:span 2;grid-row:span 1}
+    .ed-card.lead .ed-ph{aspect-ratio:4/3;min-height:0}
+    .ed-card.lead .ed-name{font-size:19px}
+    .ed-tx{padding:11px 12px 13px}
+  }
+
+  /* Cards shared by the rails below (new arrivals, footwear): white, contain,
+     name on the card. The rails themselves are defined next to their markup
+     because each one prints only when it has stock. */
+  .pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin:0 0 84px}
+  .card{background:var(--bg2);border:1px solid var(--line);
+    border-radius:20px;padding:30px;transition:.35s var(--ease)}
+  .paper .card{box-shadow:0 1px 2px rgba(40,32,18,.05),0 14px 34px -24px rgba(40,32,18,.3)}
+  .card:hover{border-color:rgba(168,129,47,.4);transform:translateY(-4px)}
+  .card .ic{width:50px;height:50px;display:grid;place-items:center;border-radius:14px;
+    background:rgba(168,129,47,.1);color:var(--acc);margin-bottom:18px}
   .card .ic svg{width:26px;height:26px}
   .card h3{font-size:19px;margin:0 0 8px}
-  .card p{color:var(--mut);font-size:15px;margin:0}
+  .card p{color:var(--mut);font-size:15px;margin:0;line-height:1.6}
 
-  /* ── Brand wall — every house currently live in the catalogue ──
-     auto-fit stretched each cell to fill the row, so a short brand list rendered as
-     a handful of enormous boxes around a 150px logo (~55% dead space). auto-fill with
-     a max column width keeps the cell close to the wordmark it holds, and the grid
-     centres so a partial last row doesn't read as a broken table. */
-  .catstrip{padding:56px 0 8px}
-  .cs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:26px}
-  .cs-cell{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--bg2);transition:border-color .2s var(--ease)}
-  .cs-cell:hover{border-color:var(--acc)}
-  .cs-coll{border-color:rgba(201,168,106,.45)}
+  /* ── Category strip ── */
+  .catstrip{padding:36px 0 72px}
+  .cs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-top:26px}
+  .cs-cell{display:flex;flex-direction:column;gap:4px;padding:15px 17px;border:1px solid var(--line);border-radius:14px;background:var(--bg2);
+    transition:border-color .25s var(--ease),transform .25s var(--ease),box-shadow .25s var(--ease)}
+  .paper .cs-cell{box-shadow:0 1px 2px rgba(40,32,18,.04)}
+  .cs-cell:hover{border-color:var(--acc);transform:translateY(-2px)}
+  .cs-coll{border-color:rgba(168,129,47,.45);background:linear-gradient(135deg,rgba(168,129,47,.08),transparent 60%),var(--bg2)}
   .cs-name{font-weight:600;font-size:14px}
   .cs-n{font-size:12px;color:var(--mut)}
   .shoe-cats{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:18px}
-  .shoe-cats a{border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;color:var(--mut);transition:border-color .2s var(--ease),color .2s var(--ease)}
+  .shoe-cats a{border:1px solid var(--line);background:var(--bg2);border-radius:999px;padding:7px 14px;font-size:13px;color:var(--mut);transition:border-color .2s var(--ease),color .2s var(--ease)}
   .shoe-cats a:hover{color:var(--ink);border-color:var(--acc)}
-  .brandwall{background:linear-gradient(180deg,var(--bg2),var(--bg));
-    border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:76px 0 80px}
+
+  /* ── Brand wall: a dark band between the paper sections, because the wordmarks
+     are drawn white. Gold hairline draws in from the centre on hover. ── */
+  .brandwall{background:linear-gradient(180deg,#141310,#0f0e0c);
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:80px 0 84px}
   .bw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
     max-width:960px;margin:0 auto;justify-content:center;
     border-top:1px solid var(--line);border-left:1px solid var(--line)}
@@ -908,7 +909,6 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
     padding:22px 18px;text-decoration:none;position:relative;
     transition:background .35s var(--ease)}
   .bw-cell:hover{background:rgba(201,168,106,.07)}
-  /* Gold hairline draws in from the centre on hover — the one flourish on this module. */
   .bw-cell::after{content:'';position:absolute;left:50%;right:50%;bottom:-1px;height:1px;
     background:var(--acc);opacity:0;transition:left .45s var(--ease),right .45s var(--ease),opacity .45s var(--ease)}
   .bw-cell:hover::after{left:0;right:0;opacity:.75}
@@ -916,9 +916,6 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
     filter:drop-shadow(0 1px 8px rgba(0,0,0,.5));
     transition:opacity .35s var(--ease),transform .35s var(--ease)}
   .bw-cell:hover .brand-logo{opacity:1;transform:translateY(-2px)}
-  /* Monogram fallback for any house with no drawn wordmark. The base rules live in
-     inc/style.css, which this page does not load — without them the mark rendered in
-     body Inter, lowercase and with no rule under it. Restated here. */
   .bw-cell .bmono{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;
     gap:5px;padding:0 12px;text-align:center}
   .bw-cell .bmono-mark{font-family:'Playfair Display',serif;font-weight:700;line-height:1;
@@ -930,22 +927,25 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
 
   .sec-title{text-align:center;margin:0 0 8px;font-size:clamp(26px,4vw,38px)}
   .sec-sub{text-align:center;color:var(--mut);margin:0 auto 46px;max-width:520px}
+  .how{padding:0 0 84px}
   .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
-  .step .n{font-family:'Playfair Display',serif;font-size:42px;color:var(--acc);opacity:.45;line-height:1}
-  .step h3{font-size:18px;margin:10px 0 6px}
-  .step p{color:var(--mut);font-size:15px;margin:0}
+  .step{position:relative;padding:26px 26px 24px;border-radius:20px;background:var(--bg2);border:1px solid var(--line)}
+  .paper .step{box-shadow:0 1px 2px rgba(40,32,18,.05),0 14px 34px -24px rgba(40,32,18,.3)}
+  .step .n{font-family:'Playfair Display',serif;font-size:40px;color:var(--acc);opacity:.55;line-height:1;font-style:italic}
+  .step h3{font-size:18px;margin:12px 0 6px}
+  .step p{color:var(--mut);font-size:15px;margin:0;line-height:1.6}
 
-  /* ── Registration cards ── */
-  .join{margin:90px auto 80px;max-width:960px;text-align:center}
+  /* ── Registration cards (dark closing section) ── */
+  .join{margin:84px auto 72px;max-width:960px;text-align:center}
   .join-cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:40px;text-align:left}
-  .jcard{background:linear-gradient(160deg,var(--bg2),#101015);border:1px solid var(--line);
-    border-radius:22px;padding:36px;transition:.3s;display:flex;flex-direction:column;gap:20px;position:relative;overflow:hidden}
-  .jcard:before{content:"";position:absolute;inset:0;border-radius:22px;opacity:0;transition:.3s;
+  .jcard{background:linear-gradient(160deg,var(--bg2),#111009);border:1px solid var(--line);
+    border-radius:24px;padding:36px;transition:.35s var(--ease);display:flex;flex-direction:column;gap:20px;position:relative;overflow:hidden}
+  .jcard:before{content:"";position:absolute;inset:0;border-radius:24px;opacity:0;transition:.3s;
     pointer-events:none;
-    background:radial-gradient(60% 50% at 50% 0,rgba(201,168,106,.07),transparent 70%)}
+    background:radial-gradient(60% 50% at 50% 0,rgba(201,168,106,.09),transparent 70%)}
   .jcard:hover:before{opacity:1}
   .jcard:hover{border-color:rgba(201,168,106,.4);transform:translateY(-4px);box-shadow:0 20px 50px -20px rgba(0,0,0,.5)}
-  .jcard-icon{width:54px;height:54px;display:grid;place-items:center;border-radius:15px;
+  .jcard-icon{width:54px;height:54px;display:grid;place-items:center;border-radius:16px;
     background:rgba(201,168,106,.12);color:var(--acc)}
   .jcard-icon svg{width:28px;height:28px}
   .jcard h3{font-size:24px;margin:0}
@@ -955,7 +955,7 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
   .jcard .jfeats li:before{content:"✓";color:var(--acc);font-weight:700;flex:none;font-size:15px}
   .jcard .jbtn{margin-top:auto;display:inline-flex;align-items:center;justify-content:center;
     gap:9px;padding:15px 28px;border-radius:999px;font-weight:600;font-size:15px;border:1px solid var(--acc);
-    transition:.2s;text-decoration:none;width:100%}
+    transition:.25s var(--ease);text-decoration:none;width:100%}
   .jcard.seller .jbtn{background:var(--acc);color:#1a1408}
   .jcard.seller .jbtn:hover{filter:brightness(1.08);transform:translateY(-2px);box-shadow:0 10px 28px -8px rgba(201,168,106,.5)}
   .jcard.buyer .jbtn{background:transparent;color:var(--ink)}
@@ -964,12 +964,12 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
   .join-note a{color:var(--acc);font-weight:500}
   /* "VESTRA as an app" — store-independent install box (PWA + push) */
   .appbox{position:relative;display:flex;gap:22px;align-items:flex-start;
-    width:min(760px,calc(100% - 40px));margin:6px auto 64px;padding:26px 28px;
-    border-radius:20px;border:1px solid rgba(201,168,106,.35);overflow:hidden;
-    background:linear-gradient(160deg,rgba(201,168,106,.10),rgba(20,20,24,.92) 55%)}
+    width:min(760px,calc(100% - 40px));margin:6px auto 72px;padding:28px 30px;
+    border-radius:22px;border:1px solid rgba(201,168,106,.35);overflow:hidden;
+    background:linear-gradient(160deg,rgba(201,168,106,.10),rgba(22,21,18,.92) 55%)}
   .appbox-glow{position:absolute;top:-70px;left:-50px;width:240px;height:240px;border-radius:50%;
     background:radial-gradient(circle,rgba(201,168,106,.22),transparent 70%);pointer-events:none}
-  .appbox-icon{flex:none;width:64px;height:64px;border-radius:16px;background:#101014;
+  .appbox-icon{flex:none;width:64px;height:64px;border-radius:18px;background:#121110;
     border:1px solid var(--line);display:grid;place-items:center;position:relative}
   .appbox-tx h3{margin:0 0 6px;font-size:20px;font-family:'Playfair Display',serif}
   .appbox-tx p{margin:0 0 14px;color:var(--mut);font-size:14px;line-height:1.6;max-width:480px}
@@ -986,43 +986,36 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
 
   footer{border-top:1px solid var(--line);padding:46px 0;color:var(--mut);font-size:13px}
   .foot{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;align-items:center}
-  .foot-links{display:flex;gap:22px}
+  .foot-links{display:flex;gap:22px;flex-wrap:wrap}
   .foot-links a:hover{color:var(--ink)}
 
   /* Scroll-reveal is progressive enhancement ONLY: the keyframe fallback forces every
-     section visible ~1s after load even if ALL JavaScript fails (old browser, blocked
-     storage, extension error) — the register cards must never stay hidden. */
-  .reveal{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s ease;
-    animation:revealauto .7s ease 1.1s forwards}
+     section visible ~1s after load even if ALL JavaScript fails. */
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .8s var(--ease),transform .8s var(--ease);
+    animation:revealauto .8s var(--ease) 1.1s forwards}
   .reveal.in{animation:none;opacity:1;transform:none}
   @keyframes revealauto{to{opacity:1;transform:none}}
   @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none;animation:none}.dot{animation:none}}
 
-  /* 1280, not 1024: the full menu genuinely needs ~1266px in French (the longest of the
-     five languages). Below that it used to overflow and jam against the logo instead of
-     collapsing, so the drawer — which carries every item — takes over earlier. */
   @media(max-width:1280px){.nav-links{display:none}.burger{display:block}}
   @media(max-width:760px){
     .pillars,.steps{grid-template-columns:1fr}
     .join-cards{grid-template-columns:1fr}
     .hero{padding:64px 0 44px}
-    /* On a phone the band is nearly square, so the contained packshot already fills
-       most of the width -- it needs less height here than on a wide desktop, and the
-       headline has to stay above the fold. */
     .hero.hasfilm{padding:76px 0 56px;min-height:auto}
-    /* The clip is a wide 16:9 rail. Cropped to a phone's near-square band it becomes
-       two plates and a lot of empty stage, so the phone keeps the still frame and the
-       loader never fetches the megabytes over cellular. */
     .hero.hasvideo{padding:76px 0 64px;min-height:56vh}
     .trustline{gap:14px}
-    /* Telefonda iki satirlik metin + rozet yan yana dar kaliyor; rozet ustte,
-       metin altinda ve ortalanmis. */
     .offer{gap:11px;padding:11px 15px;margin-bottom:22px}
     .offer-t{font-size:14.5px}
     .offer-s{font-size:12px}
+    .ticker{padding:13px 0}
+    .ticker-track span{font-size:14px;gap:18px}
     .brandwall{padding:56px 0 60px}
     .bw-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));max-width:none}
     .bw-cell{min-height:84px;padding:18px 12px}
+    .pillars{margin-bottom:56px}
+    .how{padding-bottom:56px}
+    .join{margin:56px auto 48px}
   }
 </style>
 </head>
@@ -1173,6 +1166,22 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
     <?php endif; ?>
   </div>
 </section>
+<?php /* Evlerin adi, kahramanin hemen altinda, yavas akan tek bir satir: marka
+         duvari asagida cizili logolari tasiyor, bu onun yazi hali. Liste CANLI
+         katalogdan ($_brands) -- stokta olmayan bir ev buraya giremez. Isaretleme
+         iki kez basiliyor ki dongu dikissiz olsun; ikinci kopya ekran okuyucudan
+         gizli (aria-hidden), ilki de: bilgi degil, ritim. */
+      if ($_brands): ?>
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track"><?php for ($_r = 0; $_r < 2; $_r++) foreach ($_brands as $_b) echo '<span>'.htmlspecialchars($_b).'</span>'; ?></div>
+</div>
+<?php endif; ?>
+<?php /* KAGIT BOLGESI: buradan marka duvarina kadar her bolum acik zeminde. Icerideki
+         kurallar token okuyor (var(--ink), var(--mut), var(--acc), var(--line),
+         var(--bg2)); .paper o tokenlari acik degerlere ceviriyor, bolumler kendini
+         yeniden boyuyor. Beyaz paket cekimleri siyah zemine yapistirilmis gibi
+         durmasin diye (6 Eki 2026). */ ?>
+<div class="paper">
 
 <?php
 /* ── Yakinda geliyor / Coming soon ─────────────────────────────────────────
@@ -1344,6 +1353,66 @@ if ($soonBrands):
 <?php endif; ?>
 
 <?php
+/* ── THE EDIT: her evden bir parca (operator, 6 Eki 2026: "ana sayfadaki urunleri
+   degistir" + "Avrupa'nin en estetik B2B sitesi"). Secki vestra_home_edit_picks()'ten
+   (inc/products.php), gerekcesi ve siralama orada; govdeye gomulu olsaydi sinanamazdi.
+
+   FOTOGRAFI DISKTE OLAN aday geciyor; suzgec BURADA cunku dosya sistemi okuyan bir
+   fonksiyon test edilemezdi (yeni gelenler seridiyle ayni karar).
+
+   FIYAT YOK: ana sayfa girissiz aciliyor ve toptan fiyat hesap kapisinin arkasinda
+   (KURAL 19).
+
+   ILK KART BUYUK (2x2): operatorun vitrin sirasindaki ilk ev -- "en basa al"
+   talimatinin ana sayfadaki hali. 9 kart = buyuk kart (4 hucre) + 8, yani dort
+   sutunlu izgarada tam uc satir, telefonda (2 sutun) bosluksuz. */
+$editPicks = []; $editIds = [];
+if (function_exists('vestra_home_edit_picks')) {
+    $edCand = [];
+    foreach (vestra_products() as $ep) {
+        $im = '';
+        foreach ((array)($ep['images'] ?? []) as $ei) {
+            if (!is_string($ei) || $ei === '' || $ei[0] !== '/') continue;
+            if (!is_file(__DIR__.$ei)) continue;
+            $im = $ei; break;
+        }
+        if ($im === '' || ($ep['id'] ?? '') === '') continue;
+        $ep['_img'] = $im;
+        $edCand[] = $ep;
+    }
+    $editPicks = vestra_home_edit_picks($edCand, null, null, 9);
+    foreach ($editPicks as $ep) $editIds[(string)$ep['id']] = true;
+}
+if ($editPicks):
+?>
+<section class="edit reveal" id="the-edit">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="eyebrow"><?= t('In stock now') ?></div>
+        <h2><?= t('The edit') ?></h2>
+        <p><?= t('One piece from every house in stock.') ?></p></div>
+      <a class="more" href="/shop"><?= t('Browse the catalog') ?> →</a>
+    </div>
+    <div class="edit-grid">
+      <?php foreach ($editPicks as $i => $ec): $eName = vestra_product_name($ec); ?>
+      <a class="ed-card<?= $i === 0 ? ' lead' : '' ?>" href="/product?id=<?= urlencode((string)$ec['id']) ?>">
+        <span class="ed-ph">
+          <img src="<?= htmlspecialchars($ec['_img']) ?>" alt="<?= htmlspecialchars(trim(((string)($ec['brand'] ?? '')).' '.$eName)) ?>" loading="<?= $i < 3 ? 'eager' : 'lazy' ?>" width="720" height="900">
+          <?php if (vestra_product_is_new($ec)): ?><span class="ed-tag"><?= t('NEW') ?></span><?php endif; ?>
+        </span>
+        <span class="ed-tx">
+          <span class="ed-brand"><?= htmlspecialchars((string)($ec['brand'] ?? '')) ?></span>
+          <span class="ed-name"><?= htmlspecialchars($eName) ?></span>
+          <?php if (trim((string)($ec['cat'] ?? '')) !== ''): ?><span class="ed-cat"><?= htmlspecialchars(t((string)$ec['cat'])) ?></span><?php endif; ?>
+        </span>
+      </a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
+
+<?php
 /* ── Ayakkabi bolmesi ──────────────────────────────────────────────────────
    Operator karari, 3 Eyl 2026: "ayakkabilari ana sayfaya al yeni gelen
    urunlerin altina ... ana sayfadan da direkt girilebilsin, tiklandiginda".
@@ -1394,6 +1463,8 @@ if (function_exists('vestra_home_new_picks')) {
             $im = $ni; break;
         }
         if ($im === '' || ($np['id'] ?? '') === '') continue;
+        /* The edit'te zaten duran ilan rayda ikinci kez gorunmesin. */
+        if (isset($editIds[(string)$np['id']])) continue;
         $np['_img'] = $im;
         $npCand[] = $np;
     }
@@ -1402,46 +1473,37 @@ if (function_exists('vestra_home_new_picks')) {
 if ($newPicks):
 ?>
 <style>
-.newband{padding:54px 0 44px;background:
-  radial-gradient(900px 320px at 50% -80px, rgba(201,168,106,.07), transparent 70%);
-  border-top:1px solid rgba(201,168,106,.12)}
+/* Yeni gelenler artik bir RAY (yatay, kaydirmali): The edit ustte buyuk
+   izgarayi tasiyor, bu serit onun altinda tek satir. Kart zemini BEYAZ ve
+   fotograf CONTAIN: katalogun fotograflarinin neredeyse tamami beyaz fonlu
+   paket cekimi (35'te 33 olculmustu) ve cover onlari kirpiyordu. */
+.newband{padding:28px 0 36px}
 .newband .wrap{max-width:1180px}
-.new-kick{display:flex;align-items:center;gap:14px;justify-content:center;margin-bottom:12px}
-.new-kick .ln{height:1px;width:min(120px,18vw);background:linear-gradient(90deg,transparent,rgba(201,168,106,.55))}
-.new-kick .ln:last-child{transform:scaleX(-1)}
-.new-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(201,168,106,.45);
-  color:var(--acc);font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
-  padding:7px 16px;border-radius:999px;white-space:nowrap}
-.newband h2.sec-title{margin-bottom:6px}
-.new-grid{display:grid;gap:16px;margin-top:24px;
-  grid-template-columns:repeat(auto-fill,minmax(184px,1fr))}
-/* Kart zemini BEYAZ ve fotograf CONTAIN: katalogun fotograflarinin neredeyse
-   tamami beyaz fonlu paket cekimi (35'te 33 olculmustu) ve cover onlari
-   kirpiyordu -- vitrin karosunda ayni karar verilmisti. */
-.new-card{position:relative;display:block;border-radius:16px;background:#fff;overflow:hidden;
-  text-decoration:none;box-shadow:0 1px 0 rgba(255,255,255,.05), 0 14px 34px -22px rgba(0,0,0,.65);
-  transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s}
-.new-card:hover{transform:translateY(-3px);box-shadow:0 1px 0 rgba(255,255,255,.06), 0 22px 40px -22px rgba(0,0,0,.75)}
-.new-card::after{content:"";position:absolute;inset:0;border-radius:inherit;
-  box-shadow:inset 0 0 0 1px rgba(26,20,8,.06);pointer-events:none}
+.new-grid{display:flex;gap:14px;overflow-x:auto;padding:6px 4px 16px;scroll-snap-type:x mandatory;scrollbar-width:none;
+  -webkit-mask-image:linear-gradient(90deg,#000 96%,transparent);mask-image:linear-gradient(90deg,#000 96%,transparent)}
+.new-grid::-webkit-scrollbar{display:none}
+.new-card{flex:0 0 clamp(160px,17vw,210px);scroll-snap-align:start;position:relative;display:block;border-radius:18px;background:#fff;overflow:hidden;
+  text-decoration:none;border:1px solid var(--line);box-shadow:0 1px 2px rgba(40,32,18,.05),0 14px 34px -24px rgba(40,32,18,.35);
+  transition:transform .4s var(--ease),box-shadow .4s var(--ease),border-color .4s var(--ease)}
+.new-card:hover{transform:translateY(-4px);border-color:#d8d0c1;box-shadow:0 2px 4px rgba(40,32,18,.05),0 26px 50px -24px rgba(40,32,18,.42)}
 .new-card img{display:block;width:100%;height:auto;aspect-ratio:4/5;object-fit:contain;
-  padding:10px 8px 44px;transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+  padding:10px 8px 50px;transition:transform .6s var(--ease)}
 .new-card:hover img{transform:scale(1.045)}
-.new-meta{position:absolute;left:12px;right:12px;bottom:9px}
-.new-brand{display:block;font-size:9.5px;font-weight:700;letter-spacing:.14em;
-  text-transform:uppercase;color:#8c857a;margin-bottom:2px}
-.new-name{display:block;font-size:11px;font-weight:700;letter-spacing:.02em;color:#2a2620;
+.new-meta{position:absolute;left:13px;right:13px;bottom:11px}
+.new-brand{display:block;font-size:9.5px;font-weight:700;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--acc);margin-bottom:2px}
+.new-name{display:block;font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--ink);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.new-foot{display:flex;gap:10px 18px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:22px}
-@media (max-width:640px){.newband{padding:40px 0 34px}
-  .new-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}}
+.new-foot{display:flex;gap:10px 18px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:8px}
+@media (max-width:640px){.newband{padding:16px 0 28px}.new-card{flex-basis:150px}}
 </style>
 <section class="newband reveal" id="new-arrivals">
   <div class="wrap">
-    <div class="new-kick"><span class="ln"></span>
-      <span class="new-pill"><?= t('In stock now') ?></span>
-    <span class="ln"></span></div>
-    <h2 class="sec-title" style="text-align:center"><?= t('New arrivals') ?></h2>
+    <div class="sec-head" style="margin-bottom:14px">
+      <div><div class="eyebrow"><?= t('In stock now') ?></div>
+        <h2 style="font-size:clamp(24px,3vw,32px)"><?= t('New arrivals') ?></h2></div>
+      <a class="more" href="/shop"><?= t('Browse the catalog') ?> →</a>
+    </div>
     <div class="new-grid">
       <?php foreach ($newPicks as $nc):
               $nName = function_exists('vestra_product_name') ? vestra_product_name($nc) : (string)($nc['name'] ?? '');
@@ -1456,9 +1518,6 @@ if ($newPicks):
         </span>
       </a>
       <?php endforeach; ?>
-    </div>
-    <div class="new-foot">
-      <a class="btn btn-p" href="/shop"><?= t('Browse the catalog') ?> →</a>
     </div>
   </div>
 </section>
@@ -1503,52 +1562,37 @@ if (function_exists('vestra_products') && function_exists('vestra_product_sectio
 if ($shoePicks):
 ?>
 <style>
-.shoeband{padding:52px 0 46px;background:
-  radial-gradient(880px 320px at 50% -70px, rgba(201,168,106,.06), transparent 70%);
-  border-top:1px solid rgba(201,168,106,.12)}
+.shoeband{padding:28px 0 40px}
 .shoeband .wrap{max-width:1180px}
-.shoe-kick{display:flex;align-items:center;gap:14px;justify-content:center;margin-bottom:12px}
-.shoe-kick .ln{height:1px;width:min(120px,18vw);background:linear-gradient(90deg,transparent,rgba(201,168,106,.55))}
-.shoe-kick .ln:last-child{transform:scaleX(-1)}
-.shoe-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(201,168,106,.45);
-  color:var(--acc);font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
-  padding:7px 16px;border-radius:999px;white-space:nowrap}
-.shoeband h2.sec-title{margin-bottom:6px}
-.shoe-sub{text-align:center;max-width:620px;margin:0 auto;font-size:13.5px;color:var(--mut)}
-.shoe-strip{display:flex;gap:16px;overflow-x:auto;padding:8px 4px 14px;margin-top:22px;
+.shoe-strip{display:flex;gap:14px;overflow-x:auto;padding:6px 4px 16px;margin-top:0;
   scroll-snap-type:x mandatory;scrollbar-width:none;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);
-          mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
+  -webkit-mask-image:linear-gradient(90deg,#000 96%,transparent);mask-image:linear-gradient(90deg,#000 96%,transparent)}
 .shoe-strip::-webkit-scrollbar{display:none}
-/* Kart zemini BEYAZ: urun fotograflarinin zemini de beyaz, kremrengi bir kartta
-   her fotograf gorunur bir dikdortgen olarak duruyordu (ayni ders yukarida). */
-.shoe-card{flex:0 0 clamp(168px,20vw,224px);scroll-snap-align:start;border-radius:16px;
+/* Kart zemini BEYAZ: urun fotograflarinin zemini de beyaz (ayni ders yukarida). */
+.shoe-card{flex:0 0 clamp(160px,17vw,210px);scroll-snap-align:start;border-radius:18px;
   background:#fff;position:relative;overflow:hidden;text-decoration:none;display:block;
-  box-shadow:0 1px 0 rgba(255,255,255,.05), 0 14px 34px -22px rgba(0,0,0,.65);
-  transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s}
-.shoe-card:hover{transform:translateY(-3px);box-shadow:0 1px 0 rgba(255,255,255,.06), 0 22px 40px -22px rgba(0,0,0,.75)}
-.shoe-card::after{content:"";position:absolute;inset:0;border-radius:inherit;
-  box-shadow:inset 0 0 0 1px rgba(26,20,8,.06);pointer-events:none}
+  border:1px solid var(--line);box-shadow:0 1px 2px rgba(40,32,18,.05),0 14px 34px -24px rgba(40,32,18,.35);
+  transition:transform .4s var(--ease),box-shadow .4s var(--ease),border-color .4s var(--ease)}
+.shoe-card:hover{transform:translateY(-4px);border-color:#d8d0c1;box-shadow:0 2px 4px rgba(40,32,18,.05),0 26px 50px -24px rgba(40,32,18,.42)}
 .shoe-card img{display:block;width:100%;height:auto;aspect-ratio:4/5;object-fit:contain;
-  padding:10px 8px 34px;transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+  padding:10px 8px 38px;transition:transform .6s var(--ease)}
 .shoe-card:hover img{transform:scale(1.045)}
-.shoe-meta{position:absolute;left:12px;right:12px;bottom:9px;display:flex;align-items:baseline;gap:6px}
-.shoe-name{font-size:11px;font-weight:700;letter-spacing:.02em;color:#2a2620;
+.shoe-meta{position:absolute;left:13px;right:13px;bottom:11px;display:flex;align-items:baseline;gap:6px}
+.shoe-name{font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--ink);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.shoe-cat{font-size:10px;color:#8c857a;white-space:nowrap;margin-left:auto}
-.shoe-foot{display:flex;gap:10px 18px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.shoe-cat{font-size:10.5px;color:var(--mut);white-space:nowrap;margin-left:auto}
+.shoe-foot{display:flex;gap:10px 18px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:4px}
 .shoe-foot .hint{font-size:12.5px;color:var(--mut)}
-@media (max-width:640px){.shoeband{padding:40px 0 36px}}
+@media (max-width:640px){.shoeband{padding:16px 0 30px}.shoe-card{flex-basis:150px}}
 </style>
 <section class="shoeband reveal" id="footwear">
   <div class="wrap">
-    <div class="shoe-kick"><span class="ln"></span>
-      <span class="shoe-pill"><?= t('In stock now') ?></span>
-    <span class="ln"></span></div>
-    <h2 class="sec-title" style="text-align:center"><?= t('Footwear') ?></h2>
-    <p class="shoe-sub">
-      <?= sprintf(t('Spanish-made shoes for children, women and men — %d references, ordered by the size series.'), $shoeTotal) ?>
-    </p>
+    <div class="sec-head">
+      <div><div class="eyebrow"><?= t('In stock now') ?></div>
+        <h2><?= t('Footwear') ?></h2>
+        <p><?= sprintf(t('Spanish-made shoes for children, women and men — %d references, ordered by the size series.'), $shoeTotal) ?></p></div>
+      <a class="more" href="/shop?section=footwear"><?= sprintf(t('Browse all %d shoes'), $shoeTotal) ?> →</a>
+    </div>
     <div class="shoe-strip">
       <?php foreach ($shoePicks as $sc): ?>
       <a class="shoe-card" href="/product?id=<?= urlencode($sc['id']) ?>">
@@ -1561,7 +1605,6 @@ if ($shoePicks):
       <?php endforeach; ?>
     </div>
     <div class="shoe-foot">
-      <a class="btn btn-p" href="/shop?section=footwear"><?= sprintf(t('Browse all %d shoes'), $shoeTotal) ?> →</a>
       <span class="hint">🇪🇸 <?= t('Made in Spain · full size series') ?></span>
     </div>
     <?php /* One link per shoe category, each to its own landing page -- "boots wholesale"
@@ -1574,23 +1617,6 @@ if ($shoePicks):
       <?php endforeach; ?>
     </div>
     <?php endif; ?>
-  </div>
-</section>
-<?php endif; ?>
-
-<?php if ($_brands): ?>
-<section class="brandwall reveal" id="brands">
-  <div class="wrap">
-    <h2 class="sec-title"><?= $t['brands_t'] ?></h2>
-    <p class="sec-sub" style="margin-bottom:34px"><?= $t['brands_s'] ?></p>
-    <div class="bw-grid">
-      <?php foreach ($_brands as $_b): ?>
-      <?php /* Each house links to its own landing page, not the generic catalogue: the
-               brand wall is the strongest internal link on the site and it used to
-               point every crawler at one URL. */ ?>
-      <a class="bw-cell" href="<?= function_exists('vestra_brand_slug') ? '/wholesale/'.urlencode(vestra_brand_slug($_b)) : '/shop' ?>" title="<?= htmlspecialchars($_b) ?>"><?= vestra_brand_card($_b) ?></a>
-      <?php endforeach; ?>
-    </div>
   </div>
 </section>
 <?php endif; ?>
@@ -1615,8 +1641,27 @@ if ($shoePicks):
   </div>
 </section>
 <?php endif; ?>
+</div><!-- /.paper -->
 
-<div class="wrap">
+<?php if ($_brands): ?>
+<section class="brandwall reveal" id="brands">
+  <div class="wrap">
+    <h2 class="sec-title"><?= $t['brands_t'] ?></h2>
+    <p class="sec-sub" style="margin-bottom:34px"><?= $t['brands_s'] ?></p>
+    <div class="bw-grid">
+      <?php foreach ($_brands as $_b): ?>
+      <?php /* Each house links to its own landing page, not the generic catalogue: the
+               brand wall is the strongest internal link on the site and it used to
+               point every crawler at one URL. */ ?>
+      <a class="bw-cell" href="<?= function_exists('vestra_brand_slug') ? '/wholesale/'.urlencode(vestra_brand_slug($_b)) : '/shop' ?>" title="<?= htmlspecialchars($_b) ?>"><?= vestra_brand_card($_b) ?></a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
+
+
+<div class="paper"><div class="wrap" style="padding-top:72px">
   <section class="pillars" id="why">
     <div class="card reveal">
       <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.6-3 7.7-7 9-4-1.3-7-4.4-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
@@ -1632,7 +1677,7 @@ if ($shoePicks):
     </div>
   </section>
 
-  <section id="how">
+  <section id="how" class="how">
     <h2 class="sec-title reveal"><?= $t['how'] ?></h2>
     <p class="sec-sub reveal"><?= $t['hsub'] ?></p>
     <div class="steps">
@@ -1641,6 +1686,8 @@ if ($shoePicks):
       <div class="step reveal"><div class="n">03</div><h3><?= $t['s3t'] ?></h3><p><?= $t['s3d'] ?></p></div>
     </div>
   </section>
+</div></div><!-- /.paper -->
+<div class="wrap">
 
   <?php /* Giris yapmis kullaniciya KENDI kayit formunu gosterme. Bolumun en alt
            satiri ("zaten hesabiniz var mi? Giris yapin") zaten !$LOGGED ile

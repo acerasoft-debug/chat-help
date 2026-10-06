@@ -2754,6 +2754,74 @@ function vestra_home_new_picks(array $products, ?array $featured = null,
     return $out;
 }
 
+/* ANA SAYFANIN "THE EDIT" SECKISI (operator, 6 Eki 2026: "ana sayfadaki
+ * urunleri degistir" + "Avrupa'nin en estetik B2B sitesi").
+ *
+ * Her EVDEN BIR PARCA: giyim bolmesindeki her marka seride bir urunle girer,
+ * sonra yer kalirsa ikinci tur. "Yeni gelenler" seridi (vestra_home_new_picks)
+ * tazelige ve one alinan bolme/markalara bakiyor; bu seckinin isi baska --
+ * katalogun GENISLIGINI gostermek. Alti ic camasiri karti + uc Lacoste, 20
+ * evin katalogunu anlatmiyordu.
+ *
+ * SIRA operatorun vitrin sirasi (vestra_shop_front_brands, sonra
+ * vestra_shop_lead_brands), geri kalan evler ilan sayisina gore. Ev icinde
+ * EN YENI once (pinned en basa); ayni gun eklenen partide katalog sirasi.
+ * Gizli marka buraya hic gelmez (vestra_products zaten eliyor), satilmis
+ * ilan seride giremez (rozet "In stock now"), ayakkabi ve ic camasiri kendi
+ * bantlarinda -- yalniz giyim bolmesi.
+ *
+ * SAF: fotografi diskte var mi diye bakmiyor; sayfa o suzgeci ONCE uyguluyor
+ * (vestra_home_new_picks ile ayni gerekce). Listeler parametre, test kendi
+ * degerleriyle sinasin diye. */
+function vestra_home_edit_picks(array $products, ?array $front = null, ?array $lead = null,
+                                int $max = 12, ?int $now = null): array {
+    $front = $front ?? vestra_shop_front_brands();
+    $lead  = $lead  ?? vestra_shop_lead_brands();
+    if ($max <= 0) return [];
+    $up = fn($v) => strtoupper(trim((string)$v));
+
+    $byBrand = []; $count = [];
+    foreach (array_values($products) as $i => $p) {
+        $id = trim((string)($p['id'] ?? ''));
+        if ($id === '') continue;
+        if (vestra_is_sold_out($p)) continue;
+        if (vestra_product_section($p) !== 'premium') continue;
+        $b = $up($p['brand'] ?? '');
+        if ($b === '') continue;
+        $ts = !empty($p['added_at']) ? (strtotime((string)$p['added_at']) ?: 0) : 0;
+        $byBrand[$b][] = [!empty($p['pinned']) ? 0 : 1, -$ts, $i, $p];
+        $count[$b] = ($count[$b] ?? 0) + 1;
+    }
+    foreach ($byBrand as &$rows) usort($rows, fn($a, $c) => [$a[0], $a[1], $a[2]] <=> [$c[0], $c[1], $c[2]]);
+    unset($rows);
+
+    /* Marka sirasi: once operatorun listeleri (liste sirasinda, yalnizca
+       katalogda GERCEKTEN olanlar), sonra geri kalan ilan sayisina gore. */
+    $order = [];
+    foreach (array_merge($front, $lead) as $b) {
+        $b = $up($b);
+        if (isset($byBrand[$b]) && !in_array($b, $order, true)) $order[] = $b;
+    }
+    $rest = array_diff(array_keys($byBrand), $order);
+    usort($rest, fn($a, $c) => [-$count[$a], $a] <=> [-$count[$c], $c]);
+    $order = array_merge($order, $rest);
+
+    $out = []; $seen = [];
+    for ($round = 0; count($out) < $max; $round++) {
+        $added = false;
+        foreach ($order as $b) {
+            if (!isset($byBrand[$b][$round])) continue;
+            $p = $byBrand[$b][$round][3];
+            $id = trim((string)$p['id']);
+            if (isset($seen[$id])) continue;
+            $seen[$id] = true; $out[] = $p; $added = true;
+            if (count($out) >= $max) break;
+        }
+        if (!$added) break;
+    }
+    return $out;
+}
+
 /* Listeler parametre, cunku test mekanizmayi KENDI tanimladigi degerlerle
    sinamali; sevk edilen markalar ayrica kaynaktan dogrulaniyor. Ikisi tek iddiada
    birlesseydi, listeye bir marka eklendigi gun mekanizmanin testi de kirmizi
