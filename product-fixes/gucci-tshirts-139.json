@@ -1,0 +1,74 @@
+[
+  {
+    "match": "guc-t01",
+    "expect": 1,
+    "price": "139.00",
+    "_why": "Rainbow Logo T-Shirt, Blue — 616036 XJDV9, 120 -> 139. DOSYA NOTU: 6 Eki 2026 -- operator: 'gucci tshirtleri 139 eur ya cikar'. 12 Gucci T-Shirt ilani, hepsi 120/MOQ 10/tek kademe. Marka KURAL 36 ile GIZLI (25 Eyl): fiyat kayda yazilir, vitrinde marka acilana kadar gorunmez. MOQ, kademe yapisi, mode dokunulmadi."
+  },
+  {
+    "match": "guc-t02",
+    "expect": 1,
+    "price": "139.00",
+    "_why": "Rainbow Logo T-Shirt, White — 616036 XJDV9, 120 -> 139"
+  },
+  {
+    "match": "guc-t03",
+    "expect": 1,
+    "price": "139.00",
+    "_why": "The North Face x Gucci T-Shirt, Cream — 616036 XJDC, 120 -> 139"
+  },
+  {
+    "match": "guc-t04",
+    "expect": 1,
+    "price": "139.00",
+    "_why": "The North Face x Gucci T-Shirt, Black — 616036 XJDC, 120 -> 139"
+  },
+  {
+    "match": "guc-t05",
+    "expect": 1,
+    "price": "139.00",
+    "_why": "Floral Print T-Shirt, Black — XJD3W, 120 -> 139"
+  },
+  {
+    "match": "guc-t06",
+    "expect": 1,
+    "price": "139.00",
+    "_why": "Gucci Tiger T-Shirt, White — XJD3X, 120 -> 139"
+  },
+  {
+    "match": "guc-t07",
+    "expect": 1,
+    "price": "139.00",
+    "_why": "GG Print T-Shirt, White — XJDEZ, 120 -> 139"
+  },
+  {
+    "match": "guc-t08",
+    "expect": 1,
+    "price": "139.00",
+    "_why": "Logo Pocket T-Shirt, Cream — XJDVI, 120 -> 139"
+  },
+  {
+    "match": "guc-t09",
+    "expect": 1,
+    "price": "139.00",
+    "_why": "Gucci Tiger T-Shirt, Orange — XJDX31, 120 -> 139"
+  },
+  {
+    "match": "guc-t10",
+    "expect": 1,
+    "price": "139.00",
+    "_why": "Gucci Songs T-Shirt, Yellow — XJDXM, 120 -> 139"
+  },
+  {
+    "match": "guc-t11",
+    "expect": 1,
+    "price": "139.00",
+    "_why": "Music Is Mine T-Shirt, Red — XJDXN, 120 -> 139"
+  },
+  {
+    "match": "guc-t12",
+    "expect": 1,
+    "price": "139.00",
+    "_why": "Original Gucci Label T-Shirt, Black (VS-GU-T01), 120 -> 139"
+  }
+]
