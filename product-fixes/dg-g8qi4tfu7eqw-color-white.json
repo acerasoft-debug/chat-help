@@ -1,0 +1,9 @@
+[
+ {
+  "match": "dgn-g8qi4tfu7eqw",
+  "expect": 1,
+  "name": "T-Shirt — White",
+  "colors": ["White"],
+  "_why": "Operator, 6 Eki 2026: 'G8QI4TFU7EQ W bu urun rengi yellow degil beyaz'. Ithalat (product-batches/dg-tshirt-new.json) adi 'T-Shirt — Yellow', rengi Yellow yazmisti; SKU'nun kendisi de 'W' ile bitiyor. G7JV9-1 duzeltmesinin (24 Eyl) ayni deseni: ad + renk; desc renk tasimiyor, dokunulmadi."
+ }
+]
