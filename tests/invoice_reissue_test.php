@@ -49,7 +49,8 @@ $row = fn(string $ref, string $notes = 'Payment: Bank transfer.') => ['2026-10-0
 foreach (['VES-OK1', 'VES-RCPT', 'VES-PAID', 'VES-SELL', 'VES-NOFX', 'VES-USD', 'VES-ESC', 'VES-CTRL'] as $r) {
     fputcsv($h, $row($r, $r === 'VES-ESC' ? 'Payment: Secure escrow (card).' : 'Payment: Bank transfer.'), ',', '"', '\\');
 }
-fputcsv($h, ['2026-09-29T15:09:43+00:00', 'OTEST1', 'Buyer Co', '', 'Buyer', 'b@example.com', 'Italia', '',
+/* Canlidaki O34FE5 gibi: satirin ref'i SONDA BOSLUKLU. */
+fputcsv($h, ['2026-09-29T15:09:43+00:00', 'OTEST1 ', 'Buyer Co', '', 'Buyer', 'b@example.com', 'Italia', '',
              '10x ZZ-TEST-O @30.00', '300.00', '0', '300.00', '320.00', 'Payment: Bank transfer. Created from accepted offer(s) OTEST1 — invoiced together.',
              'yes', '2026-06-26', '', '0', '20.00', ''], ',', '"', '\\');
 fclose($h);
@@ -124,6 +125,7 @@ $po = vestra_invoice_reissue_plan('OTEST1', 'USD');
 $t('kabul edilmis TEKLIF GECER', $po['ok'] === true && $po['kind'] === 'offer');
 $t('...teklif USD tutari (300+20 EUR -> 368.00)', abs((float)($po['new']['total'] ?? 0) - 368.00) < 0.011);
 $t('...teklifin NL profili de kaldirilacak', ($po['new']['bank_clear'] ?? '') === 'nl');
+$t('...bosluklu satir ref\'i GORULUYOR', ($po['ref_dirty'] ?? '') === '"OTEST1 "');
 
 echo "\n== 2. hep ya da hic ==\n";
 $i0 = $snapInv(); $s0 = $snapSt();
@@ -162,7 +164,9 @@ $rs = vestra_read_json('offer_responses.json')['OTEST1'];
 $t('...teklif kaydinda birim USD, NL profili yok', ($rs['invoice_currency'] ?? '') === 'USD' && !isset($rs['invoice_bank']));
 $t('...navlun kayittan (20) korundu', (float)($rs['invoice_shipping'] ?? -1) === 20.0);
 $n = 0; foreach (vestra_read_csv('orders.csv') as $o) if (($o['ref'] ?? '') === 'OTEST1') $n++;
-$t('...siparis satiri TEK kaldi (ikinci kopya yok)', $n === 1);
+$m = 0; foreach (vestra_read_csv('orders.csv') as $o) if (trim((string)($o['ref'] ?? '')) === 'OTEST1') $m++;
+$t('...siparis satiri TEK kaldi ve ref\'i TEMIZ (ikinci kopya yok)', $n === 1 && $m === 1);
+$t('...orders.csv yedegi alindi', count(glob($sand.'/data/orders.csv.bak-reissue-*') ?: []) === 1);
 $t('...teklifin saati de sifirlandi', !isset(vestra_read_json('order_statuses.json')['OTEST1']['payment_grace_start']));
 
 echo "\n== 5. ikinci kosu ==\n";

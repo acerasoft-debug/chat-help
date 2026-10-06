@@ -58,14 +58,22 @@ function vestra_invoice_reissue_plan(string $ref, string $cur): array {
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
     $cur = strtoupper(trim($cur));
     $out = ['ref' => $ref, 'kind' => '', 'ok' => false, 'errors' => [], 'old' => [], 'new' => [],
-            'grace' => [], 'buyer' => '', 'lang' => ''];
+            'grace' => ['phase' => '-', 'deadline' => null], 'buyer' => '', 'lang' => '', 'ref_dirty' => ''];
     if ($ref === '') { $out['errors'][] = 'ref bos'; return $out; }
     if (!in_array($cur, vestra_invoice_currencies(), true)) { $out['errors'][] = "desteklenmeyen birim: {$cur}"; return $out; }
 
-    $row = null;
-    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) { $row = $r; break; } }
+    /* Satir ref'i BOSLUKLU olabilir (canlida O34FE5: denetim trim'le buluyor, kesim
+       yolu tam esitlik ariyor). Teklifte uygulama once ref'i temizler -- yoksa
+       vestra_offer_order_ensure ayni teklife IKINCI bir siparis satiri acardi. */
+    $row = null; $rawRef = '';
+    foreach (vestra_read_csv('orders.csv') as $r) { if (trim((string)($r['ref'] ?? '')) === $ref) { $row = $r; $rawRef = (string)$r['ref']; break; } }
     if (!$row) { $out['errors'][] = 'orders.csv satiri yok'; return $out; }
     $out['kind']  = vestra_invoice_reissue_kind($ref);
+    $out['ref_dirty'] = $rawRef !== $ref ? (string)json_encode($rawRef) : '';
+    if ($out['ref_dirty'] !== '' && $out['kind'] !== 'offer') {
+        $out['errors'][] = "orders.csv satirinin ref'i bosluklu ({$out['ref_dirty']}) -- siparis yolu onu bulamaz";
+        return $out;
+    }
     $out['buyer'] = trim((string)($row['company'] ?? '')) ?: trim((string)($row['name'] ?? ''));
     $acc = vestra_order_buyer_account($row);
     $out['lang'] = $acc ? (string)($acc['lang'] ?? '') : '';
@@ -126,6 +134,31 @@ function vestra_invoice_reissue_plan(string $ref, string $cur): array {
     return $out;
 }
 
+/** orders.csv'de ref'i bosluklu satirin ref'ini temizler. Ayni ref'in temiz bir satiri
+ *  da varsa DOKUNMAZ (ikisini birlestirmek ayri karar). Yedek + atomik takas + geri okuma. */
+function vestra_invoice_reissue_fix_ref(string $ref): bool {
+    $file = vestra_data_dir().'/orders.csv';
+    $in = @fopen($file, 'r'); if (!$in) return false;
+    $head = fgetcsv($in, null, ',', '"', '\\');
+    $idx = is_array($head) ? array_search('ref', $head, true) : false;
+    if ($idx === false) { fclose($in); return false; }
+    $rows = []; while (($r = fgetcsv($in, null, ',', '"', '\\')) !== false) $rows[] = $r;
+    fclose($in);
+    $clean = 0; $dirty = 0;
+    foreach ($rows as $r) { $v = (string)($r[$idx] ?? ''); if ($v === $ref) $clean++; elseif (trim($v) === $ref) $dirty++; }
+    if ($clean > 0 || $dirty !== 1) return $clean > 0 && $dirty === 0;
+    foreach ($rows as &$r) { if (trim((string)($r[$idx] ?? '')) === $ref) $r[$idx] = $ref; } unset($r);
+    @copy($file, $file.'.bak-reissue-'.date('Ymd_His'));
+    $tmp = $file.'.tmp-reissue';
+    $out = fopen($tmp, 'w'); if (!$out) return false;
+    fputcsv($out, $head, ',', '"', '\\');
+    foreach ($rows as $r) fputcsv($out, $r, ',', '"', '\\');
+    fclose($out);
+    if (!@rename($tmp, $file)) { @unlink($tmp); return false; }
+    $n = 0; foreach (vestra_read_csv('orders.csv') as $r) if ((string)($r['ref'] ?? '') === $ref) $n++;
+    return $n === 1;
+}
+
 /** Saati SIFIRLA, eski degerleri ve eski belgeyi iz olarak sakla. Diger alanlara dokunmaz. */
 function vestra_invoice_reissue_reset_clock(string $ref, array $old, string $cur): void {
     $st = vestra_read_json('order_statuses.json');
@@ -157,6 +190,9 @@ function vestra_invoice_reissue_apply(array $refs, string $cur): array {
 
     foreach ($refs as $r) {
         $pl = $out['plans'][$r];
+        if ($pl['ref_dirty'] !== '' && !vestra_invoice_reissue_fix_ref($r)) {
+            $out['error'] = "{$r}: orders.csv ref'i temizlenemedi -- burada durdum (bu ref'te hicbir sey degismedi)"; return $out;
+        }
         $del = vestra_invoice_delete($r, 'vestra');
         if (empty($del['ok'])) { $out['error'] = "{$r}: eski belge arsivlenemedi ({$del['error']}) -- burada durdum"; return $out; }
         if ($pl['kind'] === 'offer') {
