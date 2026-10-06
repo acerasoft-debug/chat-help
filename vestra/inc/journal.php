@@ -553,6 +553,22 @@ function vestra_journal_photo_queries(): array {
         'knitwear factory Italy',
         'Italian tailoring',
         'boutique Milan',
+        /* "Gercek hayattan" (operator, 6 Eki 2026): kumas yakin cekimleri yerine dukkan,
+           pazar ve vitrin sahneleri. Kuru kosuda okunarak secildi; 'boutique interior'
+           ucak kokpiti ve otel getirdigi icin, 'tailor shop' tabela ve tavan
+           cinileri getirdigi icin ALINMADI. */
+        'clothing store interior',
+        'clothes shop street',
+        'clothing market',
+        'textile market',
+        'fabric shop',
+        'clothing rack',
+        'second-hand clothing',
+        /* gumruk/kargo yazilari icin: koli ayirma ve konteyner limani. Kelimeleri
+           require() listesine ayrica eklendi ('parcel', 'cargo', 'container'). */
+        'parcel sorting',
+        'parcel delivery',
+        'cargo container port',
     ];
 }
 
@@ -577,7 +593,11 @@ function vestra_journal_photo_require(): array {
                'dyeing' and 'dyed' rather than 'dye', which any surname Dyer would satisfy. */
             'tweed', 'corduroy', 'velvet', 'cashmere', 'embroider', 'dyeing', 'dyed',
             'spool', 'bobbin', 'haberdash', 'mannequin', 'jacquard', 'tartan', 'houndstooth',
-            'gingham', 'flax'];
+            'gingham', 'flax',
+            /* gumruk ve lojistik yazilari icin (6 Eki 2026). 'container' tek basina genis
+               ama 'cargo container port' sorgusuyla geliyor; konu disi kalanlari reject()
+               listesi ve kuru kosunun okunmasi eliyor. */
+            'parcel', 'cargo', 'container'];
 }
 
 /** Commons titles carrying any of these are never published, whatever their licence.
@@ -614,7 +634,11 @@ function vestra_journal_photo_reject(): array {
                because the title names the sitter, not the medium; and 'gingham fabric'
                returned a named idol at a promotional event, which is the likeness problem
                'red carpet' and 'premiere' exist to stop, arriving through a cloth word. */
-            'au rouet', 'lithograph', 'bnk48', 'akb48', 'roadshow', 'idol'];
+            'au rouet', 'lithograph', 'bnk48', 'akb48', 'roadshow', 'idol',
+            /* 6 Eki 2026 kuru kosusundan: kokpit, otel, berber tablosu, salgin
+               uyarisi ve askeri malzeme dukkan konusu degil. */
+            'cockpit', 'hotel', 'barber', 'covid', 'military', 'notice', 'shipwreck',
+            'container ship sinking', 'refugee', 'container house', 'container home'];
 }
 
 /* Fetch editorial photography from Wikimedia Commons into uploads/journal/ and record who
