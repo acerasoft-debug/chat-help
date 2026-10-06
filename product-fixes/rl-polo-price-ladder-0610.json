@@ -1,0 +1,15 @@
+[
+ {
+  "match": "rl-csf-polo-white",
+  "expect": 1,
+  "tiers": [
+   { "min": 80,  "price": 34.90 },
+   { "min": 160, "price": 29.90 }
+  ],
+  "sale_list": 39.87,
+
+  "_why": "Operator, 6 Eki 2026: 'R.Lauren Poloshirt leri 80 adete kadar 34,90 eur 160 adetten itibaren 29,90 eur yap'. Onceki hal (4 Eki, rl-polo-price-ladder.json): list 33,33, 80+ 29,90 | 100+ 26,90 | 160+ 25,00.",
+  "_okuma": "MOQ 80 oldugu icin '80 adete kadar' = ilk basamak (80-159) 34,90; 160+ 29,90. Orta basamak (100+) operatorun yeni cumlesinde yok, kaldirildi. MOQ 80, paket adimi 8, renkler, numune, teklif dokunulmadi.",
+  "_list": "4 Eki'de istenen -%25 rozeti korunuyor: rozet en dusuk kademeye bakiyor, 29,90 / 0,75 = 39,87. Eski 33,33 yeni ilk kademenin (34,90) ALTINDA kalirdi."
+ }
+]
