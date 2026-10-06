@@ -1,0 +1,10 @@
+[
+  { "match": "bur-pique-polo-2909", "expect": 1, "price": "89.90", "tiers": [{"min": 20, "price": 89.90}], "moq": 20,
+    "_why": "6 Eki 2026 -- operator: 'Burberry Polo larida tek fiyat 89,90 eur yap' + 'en az alim 20 ad.'. 8 renkli tek ilan: 59,90/54,90/49,90 merdiveni TEK kademeye (20+ -> 89,90) iniyor; 'price' list'i de 89,90 yazar. MOQ zaten 20 (kuru kosu 'zaten istenen durumda' der)." },
+  { "match": "bur-8014004",  "expect": 1, "price": "89.90", "moq": 20, "_why": "Burberry Polo 8014004, 60 -> 89,90 (mode=sale, list=kademe: rozet yok)" },
+  { "match": "bur-8014006",  "expect": 1, "price": "89.90", "moq": 20, "_why": "Burberry Polo 8014006, 60 -> 89,90" },
+  { "match": "bur-80170071", "expect": 1, "price": "89.90", "moq": 20, "_why": "Burberry Polo 80170071, 60 -> 89,90" },
+  { "match": "bur-8040702",  "expect": 1, "price": "89.90", "moq": 20, "_why": "Burberry Polo 8040702, 60 -> 89,90" },
+  { "match": "bur-8052068",  "expect": 1, "price": "89.90", "moq": 20, "_why": "Burberry Polo 8052068, 60 -> 89,90" },
+  { "match": "bur-8053773",  "expect": 1, "price": "89.90", "moq": 20, "_why": "Burberry Striped Collar Polo 8053773, 60 -> 89,90" }
+]
