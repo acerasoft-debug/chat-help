@@ -1,0 +1,11 @@
+[
+ {
+  "match": "rl-csf-polo-white",
+  "expect": 1,
+  "tiers": [
+   { "min": 80,  "price": 32.00 },
+   { "min": 160, "price": 29.90 }
+  ],
+  "_why": "Operator, 6 Eki 2026 (ayni gun ikinci kez): 'r.lauren i 80 adete kadar 32,00 eur yap'. Ilk basamak (80-159) 34,90 -> 32,00; 160+ 29,90 ve ustu cizili 39,87 (rozet -%25, en dusuk kademeye bakar) DEGISMEDI."
+ }
+]
