@@ -12107,3 +12107,70 @@ doğru eskiler gitsin"*).
   her biri tek eşleşmeyle uygulanıp `cp` yedeğinden geri alınarak: `array_reverse`
   kalkınca **2 kırmızı**, kart sıralaması kalkınca **13**, cevap formu alta dönünce **1**.
   Tam takım: yalnız önceden kayıtlı üç kırık.
+
+**KURAL 46 — ÖDENMEMİŞ PLATFORM FATURASI BAŞKA BİRİMDE YENİDEN KESİLİR: arşivle + birim + SAATİ SIFIRLA + yeni numara, TEK gövdede; mektup "şu faturanın yerine geçti" der**
+(operatör, 6 Eki 2026: *"VES-8E46FFA2 bu siparis ve diger ödemesi alinmamis Avrupa hesabi ile
+kesilmis tüm faturalari USD ile Mercury faturasi ile yap"* → otomatik izin denetimi iki kez durdurdu,
+operatöre açıklandı → *"sen yap hepsini usd faturasina gecir"*).
+
+- **Ölçüm önce** (`order_audit`): ödenmemiş, dekontsuz, keseni VESTRA olan **5 EUR fatura**, toplam
+  **€20.934,85**. Kapsam dışı: JEDDI (VES-2DDC94D9) ve Arelisshop (VES-CD68AD53) **dekont yüklemiş**
+  (para yolda olabilir), O7BA9A'nın kesilmiş faturası yok, VES-E29B7A24 zaten USD.
+- **O34FE5 (Ecokemet, INV-2026-1020, €9.720, son gün 7 Eki) 12:18–12:54 UTC arasında BAŞKA bir yerden
+  silindi** — `find_ref` bütün kayıt dosyalarında yok diyor; kimin sildiği kayıtta yok. Geri getirilmedi
+  (karar operatörün), reissue'ya alınmadı.
+- **Neden yeni yol:** kesilmiş belgenin birimi kilitli (`invoice_cur_late`). Paneldeki üç adım (🗑 kaldır,
+  💱 USD, Approve) arasında sipariş faturasız kalıyor ve dört ayrı kusur taşıyor: (1) **ödeme saati
+  SIFIRLANMIYOR** — `vestra_invoice_delete` ona dokunmuyor; yarın dolan bir saat, alıcının daha yeni
+  gördüğü USD belgeyi otomatik İPTAL ettirirdi (ABD hesabına SWIFT havalesi 2–5 iş günü); (2) seçili
+  **EUR banka profili** (NL) USD belgede kesimi durdurur (`vestra_platform_bank_mismatch`); (3) panelin
+  mektubu yeni belgenin eskisinin **yerine geçtiğini söylemiyor**; (4) PDF taşımıyor.
+- **Tek gövde `vestra/inc/invoice_reissue.php`:** `vestra_invoice_reissue_plan()` (salt okunur; eski/yeni
+  tutar, kur notu, ödeme kutusu satır sayısı, kaldırılacak profil, saat) ve
+  `vestra_invoice_reissue_apply()` — **önce bütün refleri planlar, biri tutmazsa HİÇBİRİNE dokunmaz**;
+  sonra ref başına arşiv → profil temizliği → birim → saat sıfırlama → kesim → **geri okuma** (tek belge,
+  yeni numara ≠ eski, birim = hedef). İlk hatada durur ve nerede durduğunu söyler.
+  - Kapsam BİLEREK dar: TAM 1 kesilmiş belge, keseni **'vestra'** (satıcı kestiyse belgedeki tüzel kişi
+    başka — Acerasoft'un ABD hesabını onun belgesine basmak ayrı karar), `pending`, parası gelmemiş,
+    **dekontsuz**, escrow değil, eski birim ≠ hedef, yeni yük kurulabiliyor (kur damgası), ödeme kutusu
+    ÇIKIYOR (KURAL 5r), sipariş kesim kapısından geçiyor (KURAL 43).
+  - **Teklif ise birleşik kurucudan**, sipariş ise sipariş kurucusundan kesiliyor — teklif satışını sipariş
+    yolundan kesmek aynı satışa başka bir belge çizerdi. `orders.csv` ref'i boşluk taşıyan teklif satırı
+    önce temizleniyor (yalnız tek kirli satır + temiz satır yoksa; yedek, atomik takas, geri okuma).
+  - **Saat:** `payment_grace_start`/`payment_reminder_sent_at` silinir, eski değerler
+    `invoice_replaced[].clock`'a (iz). Faz `unstamped` olur; `cron_order_payment` ertesi gün 14:00 UTC
+    yeni belge için `payment_due` gönderip 5 iş günlük saati **yeniden** başlatır — "ilk mektup gitmeden
+    iptal yok" aynen geçerli. **Müşteriye bu adımda hiçbir şey gitmez.**
+- **Zamanlama dersi:** uygulama günün 14:00 UTC cron'undan **SONRA** (14:03) koşturuldu. Önce koşsaydı
+  cron aynı dakika dört alıcıya açıklamasız bir USD `payment_due` gönderirdi; sonra koşunca, yerini
+  anlatan mektuba bir günlük pencere kalıyor.
+- **Mektup:** `send-campaign-preview` → `reply_letter=order_invoice_pdf` + spec **`replaced=1`** (en|fr).
+  Eski numara ve tutar **kayıttan** (`invoice_replaced`); kayıt yoksa, eski numara bugünküyle aynıysa ya
+  da kaydın hedef birimi belgeninkiyle tutmuyorsa **DURUR**. Gövde: *"Bu fatura {eski} ({tutar}) yerine
+  geçer, o fatura iptal edildi; tutar artık ABD doları ve yeni faturadaki hesaba ödenir; {eski}'yi zaten
+  ödediyseniz bu mektubu yok sayıp haber verin."* Varsayılan çıktı bayt bayt eskisi. İtalyanca yok →
+  in&outlet'e İngilizce.
+- **İş akışı:** `seller-products.yml` → `admin_mode=invoice_reissue` (`issue_ref=<ref,ref>`,
+  `payload=USD`, `move_apply=true`; varsayılan kuru koşu). Banka rakamı hiçbir yere basılmıyor, yalnız
+  ödeme kutusunun satır sayısı.
+- **CANLI (6 Eki 2026, 14:03 UTC, run `37475724423`), dördü de geri okundu:**
+
+  | Ref | Alıcı | Eski (arşivde, numara yanmış) | Yeni | Kur |
+  |---|---|---|---|---|
+  | VES-8E46FFA2 | in&outlet (IT) | INV-2026-1023 €1.925,25 | **INV-2026-1028 US$2.175,19** | 1,1298 (ECB 1 Eki) |
+  | VES-3D2342FC | Syriano (FR) | INV-2026-1025 €3.830,00 | **INV-2026-1029 US$4.298,78** | 1,1225 (ECB 2 Eki) |
+  | VES-3507BF86 | Ecokemet (FR) | INV-2026-1022 €2.764,60 | **INV-2026-1030 US$3.123,38** | 1,1298 (ECB 1 Eki) |
+  | O31910 | AlexaShop S.A.S (FR) | INV-2026-1026 €2.695,00 | **INV-2026-1031 US$3.025,49** | 1,1225 (ECB 2 Eki) |
+
+  Dördünde de USD ödeme kutusu 6 satır (Choice Financial / Mercury); üçünde NL EUR profili kaldırıldı;
+  dördünün saati (son gün 9 Eki) sıfırlandı. INV-2026-1027 bu işin numarası değil (aynı gün başka kesim).
+  *Actions maskesi:* günlükte `1.1***5` = 1,1225, `INV-2026-10***` = INV-2026-1022.
+- **Bilinen küçük tutarsızlık, düzeltilmedi:** O31910'un kur notu *"order date 6 October"* diyor ama kur
+  2 Eki'nin — birleşik belge **kesim gününü** taşıyor, kur ise teklifin damgası (KURAL 5i O748EE'de aynı
+  kayıtlı).
+- Test: `tests/invoice_reissue_test.php` (**46 iddia**; kum havuzu, sentetik IBAN; plan, hep-ya-da-hiç,
+  uygulama, PDF'te ABD hesabı VAR / EUR IBAN'ları YOK, teklif yolu + kirli ref, ikinci koşu reddi, mektup).
+  Sabotajlar: saat sıfırlaması kalkınca **2 kırmızı**, hep-ya-da-hiç kalkınca **5**, kirli ref temizliği
+  kapanınca **2**. `invoice_pdf_letter_fr_test`'in çağrı kalıbı yeni parametreyi kabul edecek şekilde
+  genişletildi; `order_audit_test`'in "şablonda gömülü tarih yok" taraması yeni yorumdaki yıllı bir
+  tarihi yakaladı → yorum yılsız yazıldı (tarama gevşetilmedi).
