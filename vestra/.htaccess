@@ -1,0 +1,131 @@
+# VESTRA — Apache config (Host Europe / cPanel, paylaşımlı hosting)
+# Bu dosya document root'a (public_html) konur.
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # ── /membership çakışması ──────────────────────────────────────────────
+  # public_html/membership/ diye bir KLASÖR var (Stripe success + cancel sayfaları).
+  # O yüzden /membership isteğini Apache klasör sanıp /membership/ adresine 301
+  # atıyor, orada index olmadığı için 403 veriyor. DirectorySlash Off bu otomatik
+  # slash-ekleme yönlendirmesini kapatır; alttaki kural da /membership'i doğrudan
+  # fiyatlandırma sayfasına (membership.php) yönlendirir. /membership/success ve
+  # /membership/cancel ise aşağıdaki genel *.php kuralıyla çalışmaya devam eder.
+  DirectorySlash Off
+  RewriteRule ^membership/?$ membership.php [L]
+
+  # /shop yüzeyde aynı durumda: public_html/shop/ diye bir klasör var, aşağıdaki genel
+  # kural "klasör varsa dokunma" (!-d) diyor, sonuç 403. Ama bu kural /membership'teki
+  # gibi ÇÖZMÜYOR ve sebebini yazmadan bırakmak yanıltıcı olurdu: o klasör aslında
+  # ikinci bir sitenin kökü ve KENDİ .htaccess'inde `RewriteEngine On` taşıyor.
+  # Apache'de bir alt dizin kendi rewrite yapılandırmasını tanımlayınca üstündekini
+  # DEVRALMAZ (RewriteOptions Inherit yoksa) -- /shop isteği o klasörün bağlamına
+  # düştüğü için aşağıdaki satır o istek sırasında hiç değerlendirilmiyor. Kuralın
+  # yerinde durmasının tek nedeni, klasör bir gün oradan kalkarsa /shop'un aynı
+  # arızaya geri dönmemesi; tek başına yeterli DEĞİL.
+  # Kalıcı çözüm iki sitenin aynı yolu paylaşmamasından geçiyor ve bu bir ürün kararı:
+  # ya katalog /shop'ta kalır ve diğer site başka bir yola taşınır, ya tersi.
+  # (Klasörün taşınan kopyası ~/_golge-shop-20260809-123507 altında duruyor.)
+  RewriteRule ^shop/?$ shop.php [L]
+
+  # /wholesale/<marka> → markaya özel B2B iniş sayfası. Toptan alıcı "Lacoste wholesale"
+  # arar, "marketplace" aramaz; bu kural o aramanın ineceği sayfayı açar. Slug canlı
+  # stoktan çözülür, sabit listeden değil (bkz. wholesale.php).
+  # /wholesale-list.pdf ile çakışmaz: bu kalıp "wholesale" ardından EĞİK ÇİZGİ ister,
+  # fiyat listesi ise "wholesale-list" -- tire ile devam ettiği için hiç eşleşmez.
+
+  # /wholesale/<marka>/<kategori> → marka × kategori ("Lacoste polos wholesale") ve
+  # /b2b/<kategori> → kategori / koleksiyon iniş sayfası ("sneakers wholesale",
+  # "T-Shirts Großhandel"). İkisi de b2b.php; sözlük inc/seo.php. Marka kuralının
+  # ÜSTÜNDE duruyor ama çakışmaz: o kural ikinci bir eğik çizgiye izin vermiyor.
+  # /wholesale-to/<pazar> → ülke/bölge iniş sayfası ("wholesale fashion supplier
+  # Australia"). Sözlük inc/seo.php'de (vestra_seo_markets); sayfa market.php.
+  # ÇAKIŞMAZ: aşağıdaki marka kuralı "wholesale" ardından EĞİK ÇİZGİ istiyor,
+  # burası tire ile devam ediyor -- /wholesale-list.pdf ile aynı ayrım.
+  RewriteRule ^wholesale-to/([A-Za-z0-9][A-Za-z0-9-]*)/?$ market.php?market=$1 [L,QSA]
+  RewriteRule ^wholesale/([A-Za-z0-9][A-Za-z0-9-]*)/([A-Za-z0-9][A-Za-z0-9-]*)/?$ b2b.php?brand=$1&cat=$2 [L,QSA]
+  RewriteRule ^b2b/([A-Za-z0-9][A-Za-z0-9-]*)/?$ b2b.php?cat=$1 [L,QSA]
+  RewriteRule ^wholesale/([A-Za-z0-9][A-Za-z0-9-]*)/?$ wholesale.php?brand=$1 [L,QSA]
+
+  # /sitemap.xml → dinamik sitemap.php
+  RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
+  # /wholesale-list.pdf → toptan fiyat listesi (gerçek PDF üretir).
+  # Uzantılı adres BİLEREK: bu dosyanın adresi hesabı olmayan bir müşteriye
+  # e-postayla gönderiliyor ve ".pdf" ile biten bir bağlantı, tıklanmadan önce
+  # ne olduğunu söylüyor. Marka süzgeci sorgu dizesiyle: ?brand=Balmain
+  RewriteRule ^wholesale-list\.pdf$ wholesale-list.php [QSA,L]
+  # Ayni liste Excel olarak: alici siralayip suzup kendi alim tablosuna yapistirabilsin.
+  RewriteRule ^wholesale-list\.xlsx$ wholesale-xlsx.php [QSA,L]
+  # Marka marka indirme sayfasi. Katalogdan kendisi ureyor: elle yazilan bir marka
+  # listesi ilk yeni markada bayatlar, ve yanlis yazilan bir marka adi hata degil BOS
+  # liste dondurur -- sessiz oldugu icin de fark edilmez.
+  RewriteRule ^price-lists/?$ price-lists.php [L]
+  # Katalogun kendisi SAYFA olarak. PDF yerine bu: her urun gercek bir baglanti,
+  # tarayicidan aranabiliyor, telefonda okuyucu istemiyor ve markaya link verilebiliyor.
+  RewriteRule ^price-list/?$ price-list.php [QSA,L]
+
+  # ── Temiz adresler: /shop  →  /shop.php (uzantı görünmez) ──────────────
+
+  # index.php  →  /
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteCond %{THE_REQUEST} \s/+index\.php[?\s] [NC]
+  RewriteRule ^ / [R=301,L]
+
+  # /sayfa.php  →  /sayfa   (sadece GET; form POST'ları *.php'ye gider, bozulmaz)
+  # /api/ HARİÇ: bu bir tarayıcı adresi değil, makinelerin çağırdığı bir uç.
+  # Yönlendirmeyi izlemeyen bir HTTP istemcisi 301'i cevap sanar ve "API bozuk"
+  # der; üstelik kural sadece GET'e baktığı için aynı adres GET'te yönleniyor,
+  # POST'ta yönlenmiyordu — aynı ucun iki fiile farklı davranması, hata ayıklaması
+  # en zor türden. Artık /api/catalog ve /api/catalog.php ikisi de doğrudan çalışır.
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteCond %{THE_REQUEST} !\s/+api/ [NC]
+  RewriteCond %{THE_REQUEST} \s/+([^.\s?]+)\.php[?\s] [NC]
+  RewriteRule ^ /%1 [R=301,L]
+
+  # /sayfa isteğini içeride /sayfa.php olarak sun
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}\.php -f
+  RewriteRule ^(.+?)/?$ $1.php [L]
+
+  # Hiçbir dosyaya çıkmayan adres → markalı 404. ErrorDocument aşağıda ZATEN
+  # tanımlı ama canlıda tetiklenmiyor: bilinmeyen adres 13 baytlık düz
+  # "404 Not Found" alıyordu (ölçüm 29 Ağustos; /404.php'nin kendisi 19,5KB
+  # markalı sayfayı sorunsuz basıyor). Sunucunun ErrorDocument davranışını
+  # tartışmak yerine 404'ü rewrite katmanı sahiplensin: deterministik, ve
+  # ErrorDocument çalışan kurulumda da aynı sonucu verir. 404.php kendi
+  # http_response_code(404) satırını taşıdığı için kod da doğru döner.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}\.php !-f
+  RewriteRule . 404.php [L]
+
+  # ── HTTPS + www → apex (SSL aktif; sertifika sorunu olursa bu 5 satırı tekrar yorumla) ──
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+  RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+  RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# data/ ve vendor/ dizinlerini tarayıcıdan koru
+<IfModule mod_rewrite.c>
+  RewriteRule ^data/ - [F,L]
+  RewriteRule ^vendor/ - [F,L]
+</IfModule>
+
+# Varsayılan açılış sayfası
+DirectoryIndex index.php index.html
+
+# Özel 404 sayfası
+ErrorDocument 404 /404.php
+
+# Dizin listelemesini kapat
+Options -Indexes
+
+# Temel güvenlik başlıkları
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

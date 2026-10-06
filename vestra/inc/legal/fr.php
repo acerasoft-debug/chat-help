@@ -1,0 +1,221 @@
+<?php
+/* TALEP PENCERESI ve SATICIYA ODEME SURESI sabitleri escrow.php'de; bu dosya
+   vestra_legal() icinden require ediliyor ve kardes bir dosyanin require'ina
+   yaslanmak KURAL 15'in fatal'i. Rakam METNE GOMULMUYOR (KURAL 6). */
+require_once __DIR__.'/../escrow.php';
+$co = 'Acerasoft LLC';
+$claimDays = (int)VESTRA_CLAIM_DAYS;
+$setDays   = (int)VESTRA_SELLER_SETTLEMENT_DAYS;
+return [
+  'imprint'   => ['title'=>"Mentions légales", 'html'=>"
+    <p>Informations conformément aux règles applicables en matière de commerce électronique et d&rsquo;information des consommateurs.</p>
+    <h3>Exploitant</h3>
+    <ul><li><b>Société :</b> Acerasoft LLC</li>
+    <li><b>Forme juridique :</b> Société à responsabilité limitée américaine (State of Delaware)</li>
+    <li><b>Adresse du siège :</b> 8 The Green, Suite B, Dover, Delaware 19901, USA</li>
+    <li><b>Représentée par :</b> Management</li>
+    <li><b>Contact :</b> <a href='mailto:legal@vestrasales.com'>legal@vestrasales.com</a> · <a href='mailto:support@vestrasales.com'>support@vestrasales.com</a></li></ul>
+    <h3>Rôle</h3>
+    <p>VESTRA exploite une place de marché en ligne de vente en gros B2B et agit <b>uniquement en tant qu&rsquo;intermédiaire et plateforme technique</b>.
+    Elle n&rsquo;est pas partie aux contrats de vente conclus entre vendeurs et acheteurs et n&rsquo;acquiert pas la propriété des marchandises.
+    <b>Exception&nbsp;:</b> pour les commandes qu&rsquo;Acerasoft LLC facture en son propre nom, elle contracte avec l&rsquo;acheteur en qualité de vendeur&nbsp;;
+    la facture de chaque commande indique le cas applicable (CGV, section 3c).</p>
+    <h3>Règlement en ligne des litiges</h3>
+    <p>La plateforme ODR de l&rsquo;UE est disponible à l&rsquo;adresse ec.europa.eu/consumers/odr. VESTRA s&rsquo;adresse aux entreprises (B2B).</p>
+"],
+  'terms'     => ['title'=>"Conditions générales d&rsquo;utilisation", 'html'=>"
+    <p><b>Exploitant :</b> Acerasoft LLC, 8 The Green, Suite B, Dover, Delaware 19901, USA (&ldquo;VESTRA&rdquo;, &ldquo;nous&rdquo;). <b>En vigueur :</b> 26 juin 2026.
+    En créant un compte, en rejoignant la liste d&rsquo;attente, en publiant une annonce, en passant commande ou en utilisant VESTRA de toute autre manière, vous confirmez que vous êtes une
+    entreprise agissant à titre commercial et vous acceptez les présentes Conditions.</p>
+    <h3>1. Ce qu&rsquo;est VESTRA</h3><p>VESTRA est une place de marché de vente en gros B2B qui met en relation des vendeurs et acheteurs professionnels vérifiés.
+    VESTRA est <b>uniquement un intermédiaire et une plateforme technique</b>. Elle n&rsquo;est <b>pas partie</b> à une vente ; elle ne possède pas, ne
+    détient pas, n&rsquo;inspecte pas, ne stocke pas, n&rsquo;expédie pas et n&rsquo;acquiert pas la propriété des marchandises, et ne conserve pas les fonds (un prestataire tiers agréé d&rsquo;entiercement/de paiement
+    s&rsquo;en charge). Les contrats de vente sont conclus <b>exclusivement entre l&rsquo;acheteur et le vendeur</b>.
+    La présente section s&rsquo;applique sous réserve de la section 3c&nbsp;: pour les commandes qu&rsquo;Acerasoft LLC facture en son propre nom, elle est
+    elle-même le vendeur et le contrat est conclu avec elle.</p>
+    <h3>2. Utilisateurs professionnels uniquement (pas de consommateurs)</h3><p>VESTRA est strictement réservée aux entreprises (B2B) ; elle ne s&rsquo;adresse pas aux
+    consommateurs et les droits de rétractation des consommateurs ne s&rsquo;appliquent pas. Vous devez compléter la vérification (KYB/KYC) avant de transiger et
+    garantissez que toutes les informations que vous fournissez sont exactes et tenues à jour.</p>
+    <h3>2a. Commandes en dropshipping</h3><p>Les commandes à l&rsquo;unité en <b>dropshipping</b> sont passées par un partenaire professionnel vérifié <b>en vue de la revente à son propre client</b>. Le partenaire est l&rsquo;acheteur et le vendeur vis-à-vis de son client ; il indique l&rsquo;adresse de livraison, la couleur et la taille lors du paiement. <b>Aucun contrat de vente ne se forme entre VESTRA et le client final du partenaire</b>, et la présente section n&rsquo;ouvre pas la plateforme aux consommateurs. Le prix dropshipping correspond au prix de gros majoré d&rsquo;une marge de traitement, auquel s&rsquo;ajoute le tarif d&rsquo;expédition de la zone de destination affiché au paiement. Le stock à l&rsquo;unité n&rsquo;est pas suivi : la disponibilité est confirmée avec le vendeur après la commande, à défaut la commande est intégralement remboursée. <b>Les droits de douane, taxes à l&rsquo;importation et frais de dédouanement dans le pays de destination ne sont inclus ni dans le prix ni dans le tarif d&rsquo;expédition</b> et sont exigibles à la livraison. Ils incombent au partenaire professionnel qui passe la commande, lequel peut les régler directement ou les faire régler par son propre client. Les marchandises d&rsquo;origine préférentielle UE peuvent bénéficier d&rsquo;un droit nul à l&rsquo;entrée au Japon au titre de l&rsquo;accord de partenariat économique UE&ndash;Japon lorsqu&rsquo;une déclaration d&rsquo;origine accompagne l&rsquo;envoi ; cela ne couvre ni la taxe à la consommation ni les frais de dédouanement du transporteur.</p>
+    <h3>3. Annonces, commandes &amp; exécution</h3><p>Les vendeurs sont <b>seuls responsables</b> de leurs annonces ainsi que de la
+    légalité, la sécurité, la conformité, l&rsquo;étiquetage, la description, le prix, l&rsquo;authenticité, la livraison, les garanties et les taxes de leurs
+    marchandises. Une commande forme un contrat contraignant entre l&rsquo;acheteur et le vendeur ; VESTRA n&rsquo;est pas responsable de l&rsquo;exécution par l&rsquo;une ou l&rsquo;autre des parties.
+    Pour les commandes qu&rsquo;Acerasoft LLC facture en son propre nom, la section 3c s&rsquo;applique &agrave; la place.</p>
+    <h3>3c. Commandes factur&eacute;es par VESTRA</h3><p>Pour certaines commandes, VESTRA &eacute;met la facture <b>en son propre nom</b>.
+    Ce n&rsquo;est pas le cas g&eacute;n&eacute;ral et cela ne se d&eacute;duit pas de la page de l&rsquo;annonce&nbsp;: <b>la facture d&rsquo;une commande
+    indique qui en est le vendeur au sens juridique</b>, et c&rsquo;est ce document qui fait foi. Lorsqu&rsquo;une facture d&eacute;signe Acerasoft LLC comme
+    vendeur, les sections 1 et 3 (VESTRA uniquement interm&eacute;diaire, contrat entre acheteur et vendeur) <b>ne s&rsquo;appliquent pas &agrave; cette
+    commande</b>&nbsp;; s&rsquo;appliquent alors&nbsp;:</p>
+    <ul>
+    <li><b>Contrat.</b> Le contrat de vente relatif &agrave; cette commande est conclu entre l&rsquo;acheteur et Acerasoft LLC, qui contracte en son propre nom
+    et pour son propre compte &mdash; que les marchandises proviennent du stock propre de VESTRA ou aient &eacute;t&eacute; achet&eacute;es &agrave; un vendeur
+    fournisseur en vue de leur revente &agrave; l&rsquo;acheteur.</li>
+    <li><b>Facture et fiscalit&eacute;.</b> La facture porte les coordonn&eacute;es, l&rsquo;adresse enregistr&eacute;e et les identifiants fiscaux propres
+    &agrave; Acerasoft LLC et indique le traitement TVA appliqu&eacute; &agrave; cette livraison&nbsp;; lorsqu&rsquo;une livraison transfrontali&egrave;re entre
+    entreprises rel&egrave;ve de l&rsquo;autoliquidation, la facture le mentionne et aucune TVA n&rsquo;est factur&eacute;e. Si des montants ont &eacute;t&eacute;
+    convertis dans une autre devise, la facture indique le taux, sa source et la date de sa publication.</li>
+    <li><b>Paiement.</b> Le paiement est effectu&eacute; sur le compte bancaire indiqu&eacute; sur cette facture et n&rsquo;est <b>pas</b> conserv&eacute; sous
+    s&eacute;questre&nbsp;; les dispositions d&rsquo;entiercement de la politique &laquo;&nbsp;Paiements, entiercement &amp; remboursements&nbsp;&raquo; ne
+    s&rsquo;appliquent pas &agrave; une telle commande. Les conditions de paiement et, le cas &eacute;ch&eacute;ant, le d&eacute;lai au-del&agrave; duquel une
+    commande impay&eacute;e est annul&eacute;e figurent sur la facture.</li>
+    <li><b>Retours, d&eacute;fauts et obligation de v&eacute;rification.</b> La <a href='/faq?cat=returns'>politique de retours et de r&eacute;clamations</a>
+    ainsi que l&rsquo;obligation de v&eacute;rification et de d&eacute;nonciation des d&eacute;fauts s&rsquo;appliquent sans changement, Acerasoft LLC &eacute;tant
+    la contrepartie de l&rsquo;acheteur pour cette commande. Les droits de l&rsquo;acheteur ne sont pas r&eacute;duits du fait que le vendeur est VESTRA
+    plut&ocirc;t qu&rsquo;un vendeur de la place de march&eacute;.</li>
+    <li><b>Vendeur fournisseur.</b> Lorsque les marchandises ont &eacute;t&eacute; achet&eacute;es pour revente, les garanties du vendeur fournisseur au titre de
+    la Politique vendeur &mdash; authenticit&eacute;, droit de vendre, conformit&eacute;, s&eacute;curit&eacute; et exactitude des d&eacute;clarations &mdash;
+    sont donn&eacute;es &agrave; Acerasoft LLC et, dans la mesure permise par la loi, transmises &agrave; l&rsquo;acheteur.</li>
+    <li><b>Facturation au nom d&rsquo;un vendeur.</b> Par accord pr&eacute;alable avec un vendeur, VESTRA peut au contraire &eacute;mettre une facture
+    <b>au nom et pour le compte</b> de ce vendeur (autofacturation). Une telle facture porte l&rsquo;identit&eacute; et les identifiants fiscaux du
+    <b>vendeur</b>&nbsp;; celui-ci demeure le vendeur au sens juridique et les sections 1 et 3 s&rsquo;appliquent sans changement.</li>
+    </ul>
+    <h3>4. Paiements, entiercement &amp; frais</h3><p>Les paiements sont traités et conservés sous séquestre par un prestataire tiers agréé et
+    libérés selon les conditions convenues (par ex. confirmation de l&rsquo;acheteur / livraison vérifiée). VESTRA prélève une commission de plateforme (une
+    commission vendeur plus des frais de protection de l&rsquo;acheteur) et/ou des frais d&rsquo;abonnement ; les frais du prestataire s&rsquo;appliquent tels que facturés. Les frais sont indiqués
+    avant le paiement et ne sont pas remboursables, sauf disposition légale contraire.</p>
+    <h3>5. Authenticité &amp; propriété intellectuelle</h3><p>Seules des marchandises authentiques et licites que le vendeur est en droit de vendre peuvent être
+    mises en vente. Les marchandises contrefaites, les répliques et les marchandises du marché gris non vérifiées sont interdites ; nous appliquons une procédure de notification et de retrait
+    (voir la Politique de propriété intellectuelle &amp; de lutte contre la contrefaçon).</p>
+    <h3>6. Conduite interdite</h3><p>Aucune activité illégale, fraude, fausse déclaration, atteinte à la propriété intellectuelle, contournement de la
+    vérification/de l&rsquo;entiercement/des frais, extraction de données (scraping) ou sollicitation hors plateforme visant à éluder les frais ou les protections. Vous êtes responsable de toute
+    activité sous votre compte et de la sécurité de vos identifiants.</p>
+    <h3>7. Exclusion de garanties</h3><p>La plateforme est fournie <b>&ldquo;en l&rsquo;état&rdquo; et &ldquo;selon disponibilité&rdquo;</b>,
+    sans garantie d&rsquo;aucune sorte, expresse ou implicite, y compris la qualité marchande, l&rsquo;adéquation à un usage particulier,
+    l&rsquo;absence de contrefaçon, l&rsquo;exactitude ou un fonctionnement ininterrompu/sans erreur. VESTRA ne <b>garantit ni n&rsquo;assure</b> aucun vendeur,
+    acheteur, annonce, marchandise, description, authenticité, quantité, qualité ou livraison, ni l&rsquo;issue d&rsquo;une transaction, ni aucun
+    prestataire tiers.</p>
+    <h3>8. Limitation de responsabilité</h3><p>Dans toute la mesure permise par le droit applicable : (a) VESTRA n&rsquo;est <b>pas responsable</b>
+    des marchandises, des annonces, des actes ou omissions des acheteurs, vendeurs ou tiers, de la non-livraison, des défauts ou de l&rsquo;authenticité,
+    ni de tout litige entre utilisateurs ; (b) VESTRA n&rsquo;est pas responsable des <b>dommages indirects, accessoires, spéciaux, consécutifs,
+    exemplaires ou punitifs</b>, ni de la perte de bénéfices, de revenus, d&rsquo;activité, de clientèle ou de données ; et (c) la
+    <b>responsabilité globale totale</b> de VESTRA découlant de ou liée à la plateforme ou aux présentes Conditions ne saurait excéder le plus élevé des deux montants suivants :
+    les frais de plateforme effectivement payés par vous à VESTRA au cours des <b>three (3) months</b> précédant l&rsquo;événement à l&rsquo;origine de la réclamation,
+    ou <b>EUR 100</b>. Rien n&rsquo;exclut la responsabilité qui ne peut être limitée par la loi (par ex. fraude, faute lourde, ou décès/dommage corporel
+    causé par notre négligence) ; vos droits impératifs ne sont pas affectés.</p>
+    <h3>9. Indemnisation</h3><p>Vous acceptez d&rsquo;<b>indemniser, défendre et dégager de toute responsabilité</b> Acerasoft LLC, ses sociétés affiliées, dirigeants,
+    membres et personnel contre toute réclamation, demande, perte, responsabilité, amende, pénalité, dommage et frais juridiques raisonnables
+    découlant de ou liés à votre utilisation de la plateforme, à vos marchandises, annonces ou contenus, à vos transactions, à votre violation
+    des présentes Conditions ou de toute loi, ou à votre atteinte à un droit de tiers.</p>
+    <h3>10. Suspension &amp; résiliation</h3><p>Nous pouvons suspendre, restreindre ou résilier l&rsquo;accès à tout moment, avec ou sans
+    préavis, en cas de violation, de fraude présumée, de motifs juridiques/de risque, de non-paiement ou d&rsquo;atteinte répétée. Les dispositions qui par leur
+    nature doivent survivre (y compris les sections 7–9 et 11–13) survivent à la résiliation.</p>
+    <h3>11. Licence de contenu &amp; force majeure</h3><p>Vous accordez à VESTRA une licence non exclusive d&rsquo;héberger et d&rsquo;afficher vos
+    annonces et contenus aux fins de l&rsquo;exploitation de la plateforme, et garantissez que vous détenez les droits pour ce faire. VESTRA n&rsquo;est pas
+    responsable d&rsquo;un manquement ou d&rsquo;un retard causé par des événements échappant à son contrôle raisonnable (force majeure).</p>
+    <h3>12. Modifications</h3><p>Nous pouvons mettre à jour les présentes Conditions ; la version actuelle est publiée ici avec sa date d&rsquo;entrée en vigueur.
+    La poursuite de l&rsquo;utilisation après modification vaut acceptation.</p>
+    <h3>13. Droit applicable &amp; litiges</h3><p>Les présentes Conditions sont régies par les lois de l&rsquo;<b>État du Delaware, USA</b>,
+    sans égard aux règles de conflit de lois. Sous réserve du droit impératif, les tribunaux situés dans le Delaware sont compétents ;
+    les parties peuvent convenir de résoudre les litiges B2B par arbitrage contraignant. Les <b>dispositions impératives</b> du droit local de l&rsquo;utilisateur
+    et la plateforme ODR de l&rsquo;UE (ec.europa.eu/consumers/odr) restent disponibles le cas échéant.</p>
+    <h3>14. Dispositions diverses</h3><p>Si une disposition est inapplicable, le reste demeure en vigueur (divisibilité). Les présentes Conditions
+    constituent l&rsquo;intégralité de l&rsquo;accord sur leur objet. Nous pouvons céder les présentes Conditions dans le cadre d&rsquo;une fusion, acquisition ou
+    cession d&rsquo;actifs ; vous ne pouvez pas céder sans notre consentement. Le fait que nous n&rsquo;exercions pas une disposition ne constitue pas une renonciation.</p>
+    <p class='muted'>L&rsquo;acceptation est enregistrée lors de l&rsquo;inscription (date, version, langue). Contact : <a href='mailto:legal@vestrasales.com'>legal@vestrasales.com</a></p>
+"],
+  'privacy'   => ['title'=>"Politique de confidentialité", 'html'=>"
+    <p><b>Responsable du traitement :</b> Acerasoft LLC, 8 The Green, Suite B, Dover, Delaware 19901, USA. <b>Contact :</b> privacy@vestrasales.com. <b>En vigueur :</b> 26 juin 2026.</p>
+    <h3>1. Données que nous collectons</h3><p>Données de compte &amp; de vérification (nom, informations sur l&rsquo;entreprise, numéro d&rsquo;identification fiscale/TVA, identité du bénéficiaire
+    effectif &amp; justificatifs d&rsquo;adresse), données transactionnelles (commandes, annonces, communications) et données techniques/de journalisation.</p>
+    <h3>2. Pourquoi (finalités &amp; bases juridiques)</h3><ul>
+    <li>Fournir et sécuriser la place de marché — contrat.</li>
+    <li>Vérification d&rsquo;identité, prévention de la fraude, obligations AML/IP — obligation légale / intérêts légitimes.</li>
+    <li>Traiter les paiements/l&rsquo;entiercement — contrat (partagé avec le prestataire agréé).</li></ul>
+    <h3>3. Partage</h3><p>Avec le prestataire de paiement/d&rsquo;entiercement agréé, les fournisseurs KYC, la contrepartie d&rsquo;une transaction,
+    les prestataires de services et les autorités lorsque la loi l&rsquo;exige. Nous ne vendons pas de données personnelles. <b>Les données d'identité des vendeurs ne sont pas divulguées à des tiers sans ordonnance judiciaire ou demande d'une autorité compétente</b> (RGPD Art. 6).</p>
+    <h3>4. Transferts internationaux</h3><p>Lorsque des données quittent l&rsquo;EEA, des garanties appropriées (par ex. les SCCs) s&rsquo;appliquent.</p>
+    <h3>5. Conservation</h3><p>Uniquement aussi longtemps que nécessaire et pour satisfaire aux exigences légales de conservation.</p>
+    <h3>6. Vos droits</h3><p>Accès, rectification, effacement, limitation, portabilité, opposition et réclamation auprès d&rsquo;une
+    autorité de contrôle.</p>
+"],
+  'seller'    => ['title'=>"Contrat vendeur", 'html'=>"
+    <p>Entre Acerasoft LLC et le vendeur professionnel enregistré. <b>En vigueur :</b> 26 juin 2026.</p>
+    <h3>1. Vérification</h3><p>Fournir et tenir à jour l&rsquo;enregistrement de l&rsquo;entreprise, le numéro d&rsquo;identification fiscale/TVA et l&rsquo;identité du bénéficiaire effectif.</p>
+    <h3>2. Vendeur officiel</h3><p>Le vendeur est le vendeur légal de ses marchandises et est seul responsable de la conformité, de la sécurité,
+    de la livraison, des garanties et des taxes. VESTRA est uniquement un intermédiaire et n&rsquo;est pas partie à la vente.
+    <b>Lorsqu&rsquo;Acerasoft LLC achète des marchandises au vendeur afin de les revendre</b>, Acerasoft LLC est le vendeur vis-à-vis de cet acheteur et
+    facture en son propre nom (CGV, section 3c)&nbsp;; les garanties du vendeur ci-dessous sont alors données à Acerasoft LLC. Par accord préalable avec un
+    vendeur, VESTRA peut également émettre des factures au nom et pour le compte de ce vendeur&nbsp;; celui-ci demeure alors le vendeur au sens juridique.</p>
+    <h3>3. Authenticité &amp; droit de vendre</h3><p>Pour chaque article, le vendeur garantit que les marchandises sont <b>authentiques</b> et qu&rsquo;il est
+    <b>autorisé/en droit de les vendre</b> sur le marché de destination (y compris l&rsquo;épuisement des droits de marque dans l&rsquo;EEA le cas échéant),
+    et fournira une preuve d&rsquo;authenticité/de provenance sur demande.</p>
+    <h3>4. Indemnisation &amp; responsabilité</h3><p>Le vendeur indemnise et dégage Acerasoft LLC de toute responsabilité concernant toute réclamation, perte, amende
+    ou frais découlant de ses marchandises, annonces, violation de garanties ou atteinte à la propriété intellectuelle, et est responsable envers les acheteurs de ses marchandises ;
+    la responsabilité de VESTRA est limitée comme indiqué dans les Conditions générales d&rsquo;utilisation.</p>
+    <h3>5. Notification et retrait</h3><p>Le vendeur se conformera à la Politique de propriété intellectuelle &amp; de lutte contre la contrefaçon, répondra aux notifications et
+    acceptera le retrait des annonces dans l&rsquo;attente d&rsquo;une résolution.</p>
+    <h3>6. Commandes, entiercement &amp; versements</h3><p>Les fonds sont conservés sous séquestre et libérés après confirmation de l&rsquo;acheteur / livraison
+    vérifiée, déduction faite de la commission de VESTRA.</p>
+    <h3>7. Avertissements &amp; suspension</h3><p>La contrefaçon, l&rsquo;atteinte à la propriété intellectuelle, les plaintes valides répétées ou la fraude entraînent le retrait,
+    des avertissements et la suspension. Une contrefaçon/fraude manifeste peut entraîner une suspension immédiate.</p>
+    <h3>8. Vérification des marchandises &amp; notification des défauts (HGB §377)</h3><p>Les acheteurs doivent inspecter les marchandises reçues immédiatement après la livraison. <b>Les défauts apparents, les manquants ou les livraisons incorrectes doivent être notifiés par écrit dans les 48 heures</b> suivant la réception. Les défauts cachés doivent être signalés dès leur découverte. À défaut de notification dans les délais, la marchandise est réputée acceptée et les droits à garantie sont perdus.</p>
+
+    <h3>9. Commandes facturées par {$co} en son propre nom — prix d&rsquo;achat &amp; règlement</h3>
+    <p>Cette section s&rsquo;applique <b>uniquement</b> aux commandes que {$co} facture en son propre nom (CGU, section 3c). Pour ces commandes, {$co} <b>achète la marchandise au vendeur et la revend</b> : la contrepartie du vendeur est {$co}, et non l&rsquo;acheteur ; le §2 du présent contrat s&rsquo;applique en conséquence.</p>
+    <ul>
+    <li><b>Prix d&rsquo;achat.</b> Le prix et la quantité confirmés pour la commande dans le tableau de bord vendeur, majorés des frais de transport convenus, diminués de toute commission de plateforme applicable à cette commande. La page de la commande indique le montant dû ; aucune autre retenue n&rsquo;est opérée sans accord écrit du vendeur.</li>
+    <li><b>Facturation.</b> Le vendeur facture ce montant à {$co} (autoliquidation ou exportation, le cas échéant). Chaque partie reste responsable de ses propres impôts et déclarations.</li>
+    <li><b>Quand une commande est &laquo;&nbsp;réussie&nbsp;&raquo;.</b> Toutes les conditions suivantes doivent être réunies : (a) le paiement de l&rsquo;acheteur a été reçu intégralement et est disponible ; (b) la marchandise a été livrée à l&rsquo;acheteur ; (c) le délai de réclamation de l&rsquo;acheteur — {$claimDays} jours ouvrés à compter de la livraison, voir la <a href=\"/faq?cat=returns\">politique de retours &amp; réclamations</a> — est expiré sans réclamation ouverte ; et (d) aucune rétrofacturation, annulation ou remboursement n&rsquo;est en cours.</li>
+    <li><b>Règlement.</b> {$co} paie le prix d&rsquo;achat dans les <b>{$setDays} jours ouvrés</b> suivant le moment où la commande devient réussie, par virement sur le compte bancaire enregistré dans le profil vendeur vérifié et ouvert au nom de ce vendeur. La mise à jour de ces coordonnées incombe au vendeur ; aucun paiement n&rsquo;est effectué à un tiers.</li>
+    <li><b>Commandes non réussies.</b> Les commandes annulées, impayées ou remboursées à l&rsquo;acheteur ne donnent lieu à aucun règlement. Lorsqu&rsquo;une réclamation est admise en partie, le règlement est réduit du montant crédité à l&rsquo;acheteur. {$co} peut compenser les sommes déjà versées, ainsi que toute créance née du §4, avec des règlements ultérieurs.</li>
+    <li><b>Propriété et risques.</b> La propriété de la marchandise est transférée à {$co} au moment de sa remise au transporteur pour l&rsquo;acheteur, puis à l&rsquo;acheteur selon les conditions indiquées sur la facture de {$co}. Les risques suivent les conditions de livraison de cette facture.</li>
+    <li><b>Garanties du vendeur inchangées.</b> Les garanties et l&rsquo;indemnisation prévues aux §3 et §4 sont consenties à {$co} pour ces commandes et demeurent inchangées. Un défaut établi par l&rsquo;acheteur à l&rsquo;encontre de {$co} peut être répercuté au vendeur dans les mêmes conditions.</li>
+    </ul>"],
+  'ip'        => ['title'=>"Propriété intellectuelle &amp; lutte contre la contrefaçon / Notification et retrait", 'html'=>"
+    <h3>Tolérance zéro</h3><p>Les marchandises contrefaites, les répliques, les marchandises de marque non autorisées et les marchandises du marché gris non vérifiées, ainsi que toute
+    annonce portant atteinte à la propriété intellectuelle, sont interdites.</p>
+    <h3>Signaler une atteinte</h3><p>Envoyez une notification à <a href='mailto:ip@vestrasales.com'>ip@vestrasales.com</a> avec :
+    le droit invoqué (par ex. numéro de marque) et la preuve de propriété ; la ou les URL exactes de l&rsquo;annonce ; le motif de l&rsquo;atteinte ;
+    et une déclaration de bonne foi avec vos coordonnées. Une notification peut indiquer plusieurs URL.</p>
+    <h3>Notre procédure</h3><ol><li>Accuser réception.</li><li>Évaluer ; retirer/désactiver rapidement les cas étayés ou manifestes.</li>
+    <li>Notifier le vendeur en précisant le motif.</li><li>Permettre une contre-notification accompagnée de preuves (authenticité/autorisation/preuve EEA).</li>
+    <li>Rétablir uniquement sur preuve suffisante ; en cas de doute, l&rsquo;annonce reste retirée.</li></ol>
+    <h3>Récidivistes &amp; maintien du retrait</h3><p>Un système d&rsquo;avertissements s&rsquo;applique ; des plaintes valides répétées entraînent la suspension.
+    Pour les articles identifiés comme contrevenants, nous prenons des mesures raisonnables pour empêcher leur remise en vente (maintien du retrait).</p>
+    <h3>Titulaires de droits de confiance</h3><p>Les propriétaires de marques peuvent demander un canal prioritaire ; nous préservons une procédure équitable de contre-notification
+    pour les vendeurs (conformément aux obligations du DSA de l&rsquo;UE). Les notifications abusives peuvent être restreintes.</p>
+    <h3>Protection des données des vendeurs</h3><p>Les données d'identité des vendeurs enregistrés ne sont pas divulguées aux titulaires de droits ou à des tiers <b>sans ordonnance judiciaire ou demande d'une autorité compétente</b>. Les titulaires de droits souhaitant obtenir des données d'identité de vendeurs doivent engager une procédure judiciaire formelle (RGPD Art. 6).</p>
+"],
+  'aml'       => ['title'=>"Politique AML / KYC", 'html'=>"
+    <h3>Objet</h3><p>Prévenir le blanchiment d&rsquo;argent, le contournement des sanctions, la fraude et le financement du terrorisme, et vérifier les utilisateurs professionnels.</p>
+    <h3>Vérification (KYB/KYC)</h3><p>Avant toute transaction, nous vérifions : l&rsquo;enregistrement de l&rsquo;entreprise ; l&rsquo;identifiant fiscal/TVA ;
+    l&rsquo;identité et l&rsquo;adresse des bénéficiaires effectifs ultimes (&ge;25%) ; l&rsquo;adresse de l&rsquo;entreprise.</p>
+    <h3>Filtrage des sanctions</h3><p>Les utilisateurs et bénéficiaires effectifs sont filtrés par rapport aux listes applicables (OFAC, EU, UN).
+    Nous n&rsquo;intégrons pas d&rsquo;utilisateurs dans des juridictions interdites/sanctionnées.</p>
+    <h3>Fonds</h3><p>La collecte, l&rsquo;entiercement et le règlement sont assurés par un prestataire de paiement/d&rsquo;entiercement agréé ; VESTRA ne
+    détient ni ne transmet les fonds des utilisateurs. <b>Exception :</b> pour les commandes que {$co} facture en son propre nom (CGU, section 3c), l&rsquo;acheteur paie sur le compte de {$co}, et {$co} paie le vendeur fournisseur pour une commande réussie. Ces paiements ne sont effectués que sur un compte bancaire ouvert au nom du vendeur vérifié ; {$co} ne paie pas de tiers, n&rsquo;effectue aucun paiement vers ou depuis des juridictions sous sanctions et ne rembourse que sur le compte d&rsquo;origine.</p>
+    <h3>Surveillance &amp; archives</h3><p>Nous surveillons les schémas suspects et conservons les archives de vérification et de transactions
+    pendant la durée légalement requise.</p>
+"],
+  'payments'  => ['title'=>"Paiements, entiercement &amp; remboursements", 'html'=>"
+    <p><b>Statut actuel :</b> les paiements se font temporairement <b>sur facture</b> — l&rsquo;acheteur reçoit une facture proforma et paie par
+    virement bancaire ; la marchandise est expédiée après réception du paiement. Le paiement par entiercement/carte décrit ci-dessous est suspendu jusqu&rsquo;à nouvel ordre.</p>
+    <h3>Comment fonctionne le paiement</h3><p>Les acheteurs paient via le prestataire d&rsquo;entiercement agréé (virement bancaire SEPA pour le B2B de l&rsquo;UE ; cartes disponibles).
+    Les fonds sont <b>conservés sous séquestre</b> — VESTRA ne détient jamais l&rsquo;argent.
+    <b>Les commandes facturées par Acerasoft LLC en son propre nom font exception</b> (CGV, section 3c)&nbsp;: elles sont réglées par virement sur le compte
+    bancaire indiqué sur la facture, et non sous séquestre&nbsp;; les règles d&rsquo;entiercement de cette page &mdash; libération, libération automatique et
+    remboursement depuis le séquestre &mdash; ne leur sont pas applicables. La <a href='/faq?cat=returns'>politique de retours et de réclamations</a> leur
+    s&rsquo;applique sans changement.</p>
+    <h3>Libération de l&rsquo;entiercement</h3><p>Les fonds sont libérés sur confirmation de l&rsquo;acheteur, livraison vérifiée, ou expiration d&rsquo;une fenêtre convenue de libération automatique
+    si aucun litige n&rsquo;est soulevé. Le prestataire verse le paiement au vendeur + la commission de VESTRA.</p>
+    <h3>Commandes facturées par VESTRA en son propre nom — comment le vendeur est payé</h3>
+    <p>Pour ces commandes (CGU, section 3c), {$co} est le vendeur au sens juridique : elle encaisse le paiement de l&rsquo;acheteur sur son propre compte et <b>achète la marchandise au vendeur fournisseur</b>. Ce vendeur est payé pour une <b>commande réussie</b> — paiement de l&rsquo;acheteur reçu et disponible, marchandise livrée, délai de réclamation de {$claimDays} jours ouvrés expiré sans réclamation ouverte, aucune rétrofacturation ni remboursement en cours — dans les <b>{$setDays} jours ouvrés</b> suivant la réunion de ces conditions, sur un compte ouvert à son nom. Les commandes annulées, impayées et remboursées ne sont pas réglées ; une réclamation admise en partie réduit le règlement du montant crédité à l&rsquo;acheteur. Les conditions complètes figurent au <a href=\"/legal?doc=seller\">contrat vendeur</a>, section 9. <b>Rien ne change pour l&rsquo;acheteur :</b> le délai de réclamation, la <a href=\"/faq?cat=returns\">politique de retours &amp; réclamations</a> et le droit au remboursement restent identiques ; pour ces commandes, l&rsquo;acheteur les exerce à l&rsquo;encontre de {$co}.</p>
+    <h3>Frais</h3><p>VESTRA prélève une commission de plateforme par commande — une commission vendeur plus de légers frais de protection de l&rsquo;acheteur — et/ou des frais d&rsquo;abonnement ; les frais du prestataire tels que facturés. Les montants exacts sont indiqués avant le paiement.</p>
+    <h3>Remboursements &amp; litiges</h3><p>Pendant un litige, les fonds restent sous séquestre. En cas de résolution en faveur de l&rsquo;acheteur (non-livraison,
+    non-conformité matérielle à la description, contrefaçon prouvée), les fonds sous séquestre sont remboursés avant libération.</p>
+    <h3>Rétrofacturations</h3><p>Les paiements SEPA ne sont pas soumis aux rétrofacturations de cartes ; les paiements par carte suivent la procédure du prestataire.</p>
+"],
+  'prohibited'=> ['title'=>"Articles interdits &amp; restreints", 'html'=>"
+    <h3>Interdits</h3><ul>
+    <li>Marchandises contrefaites, répliques ou imitations.</li>
+    <li>Marchandises de marque non autorisées, ou marchandises que le vendeur n&rsquo;est pas en droit de vendre sur le marché de destination (y compris les
+    importations parallèles / du marché gris non vérifiées sans preuve d&rsquo;épuisement EEA ou d&rsquo;autorisation).</li>
+    <li>Marchandises volées, de contrebande ou d&rsquo;origine illégale ; tout article portant atteinte à la propriété intellectuelle.</li>
+    <li>Articles illégaux, armes, drogues, produits dangereux/rappelés.</li></ul>
+    <h3>Restreints (conditions/preuve)</h3><ul>
+    <li>Marchandises de marque — nécessitent une vérification et, sur demande, une preuve d&rsquo;authenticité/d&rsquo;autorisation/de provenance.</li>
+    <li>Les catégories soumises à des règles de sécurité/d&rsquo;étiquetage (par ex. étiquetage de la composition des fibres textiles, GPSR de l&rsquo;UE) doivent s&rsquo;y conformer.</li></ul>
+    <h3>Application</h3><p>Les violations entraînent le retrait, des avertissements et la suspension, et peuvent être signalées aux titulaires de droits et
+    aux autorités. Contrefaçon/fraude manifeste → suspension immédiate.</p>
+"],
+];

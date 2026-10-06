@@ -1,0 +1,9 @@
+[
+  {
+    "_why": "Operatör, 24 Eyl 2026: SKU G7JV9-1 (D&G Logo T-Shirt) kayıtta 'White' olarak duruyor ama fotoğraf kırmızı. inspect-products (img_contains=g7jv9) tek ilanı verdi: id=dgn-g7jv91, name='Logo T-Shirt — White', renk(1)=White, gorsel=/uploads/dg-root4/d-g-g7jv9-1.jpg. Fotoğraf diag-live wetransfer_probe (sheet:public_html/uploads/dg-root4|perfile|from=5|count=1) ile bizzat görüldü: giysi KIRMIZI, üzerinde beyaz olan tek şey model fotoğrafının arka planı ve DOLCE&GABBANA marka etiketi. KURAL 3'ün fotoğraf-metin çelişki kararı (Pili Pérez dersi): fotoğraf kazanır. desc alanı ('Original Dolce & Gabbana, model G7JV9-1. EEA stock with full invoice trail.') hiç renk kelimesi taşımıyor, yalnız name ve colors alanı yanlıştı.",
+    "match": "dgn-g7jv91",
+    "expect": 1,
+    "name": "Logo T-Shirt — Red",
+    "colors": ["Red"]
+  }
+]

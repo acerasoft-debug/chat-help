@@ -1,0 +1,26 @@
+[
+  { "match": "blc-612966",          "expect": 1, "price": "109.90" },
+  { "match": "blc-612966tlvb3",     "expect": 1, "price": "109.90" },
+  { "match": "blc-612966tlvf1",     "expect": 1, "price": "109.90" },
+  { "match": "blc-612966tmvg7",     "expect": 1, "price": "109.90" },
+  { "match": "blc-612966tnvn4",     "expect": 1, "price": "109.90" },
+  { "match": "blc-612966tnvn4w",    "expect": 1, "price": "109.90" },
+  { "match": "blc-tnvg9",           "expect": 1, "price": "109.90" },
+  { "match": "blc-681314tlvh4",     "expect": 1, "price": "109.90" },
+
+  { "match": "blc-641675tlvf9",     "expect": 1, "price": "119.90" },
+
+  { "match": "blc-676589",          "expect": 1, "price": "129.90" },
+  { "match": "blc-676589tlvg70901", "expect": 1, "price": "129.90" },
+
+  { "match": "blc-600583tmvf5",     "expect": 1, "price": "154.00" },
+  { "match": "blc-tmvf5",           "expect": 1, "price": "154.00" },
+  { "match": "blc-662853tjw90",     "expect": 1, "price": "154.00" },
+  { "match": "blc-672410tllj4",     "expect": 1, "price": "154.00" },
+  { "match": "blc-681734tjw60",     "expect": 1, "price": "154.00" },
+  { "match": "blc-twj90",           "expect": 1, "price": "154.00" },
+
+  { "match": "blc-674986tlvl8",     "expect": 1, "price": "164.00" },
+
+  { "match": "blc-620973tkv72",     "expect": 1, "price": "174.00" }
+]

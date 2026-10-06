@@ -1,0 +1,716 @@
+[
+    {
+        "match": "nbb-1901",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Shaping brief, silicone. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Shaping brief, silicone. NBB, wholesale only.",
+            "fr": "Culotte gainante, silicone. NBB, vente en gros uniquement.",
+            "es": "Braga moldeadora, silicona. NBB, solo venta al por mayor.",
+            "it": "Slip modellante, silicone. NBB, solo ingrosso.",
+            "de": "Formslip, Silikon. NBB, nur Großhandel.",
+            "pt": "Cueca modeladora, silicone. NBB, apenas venda por grosso.",
+            "ru": "Корректирующие трусы, силикон. NBB, только опт.",
+            "ar": "سروال داخلي مشد، سيليكون. NBB، بالجملة فقط.",
+            "ja": "補正ショーツ・シリコン。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-2029",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Cycling shorts, seamless. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Cycling shorts, seamless. NBB, wholesale only.",
+            "fr": "Cycliste, sans coutures. NBB, vente en gros uniquement.",
+            "es": "Culotte ciclista, sin costuras. NBB, solo venta al por mayor.",
+            "it": "Pantaloncini ciclista, senza cuciture. NBB, solo ingrosso.",
+            "de": "Radlerhose, nahtlos. NBB, nur Großhandel.",
+            "pt": "Calção ciclista, sem costuras. NBB, apenas venda por grosso.",
+            "ru": "Велосипедки, бесшовный. NBB, только опт.",
+            "ar": "شورت طويل، بدون خياطة. NBB، بالجملة فقط.",
+            "ja": "サイクルショーツ・シームレス。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-2403",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Bandeau bra. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Bandeau bra. NBB, wholesale only.",
+            "fr": "Soutien-gorge bandeau. NBB, vente en gros uniquement.",
+            "es": "Sujetador bandeau. NBB, solo venta al por mayor.",
+            "it": "Reggiseno a fascia. NBB, solo ingrosso.",
+            "de": "Bandeau-BH. NBB, nur Großhandel.",
+            "pt": "Sutiã bandeau. NBB, apenas venda por grosso.",
+            "ru": "Бюстгальтер-бандо. NBB, только опт.",
+            "ar": "حمالة صدر بدون حمالات كتف. NBB، بالجملة فقط.",
+            "ja": "バンドゥブラ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-2404",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Bandeau top, strapless. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Bandeau top, strapless. NBB, wholesale only.",
+            "fr": "Bustier, sans bretelles. NBB, vente en gros uniquement.",
+            "es": "Top bandeau, sin tirantes. NBB, solo venta al por mayor.",
+            "it": "Top a fascia, senza spalline. NBB, solo ingrosso.",
+            "de": "Bandeau-Top, trägerlos. NBB, nur Großhandel.",
+            "pt": "Top bandeau, sem alças. NBB, apenas venda por grosso.",
+            "ru": "Топ-бандо, без бретелей. NBB, только опт.",
+            "ar": "توب بندو، بدون حمالات. NBB، بالجملة فقط.",
+            "ja": "バンドゥトップ・ストラップレス。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-2410",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Bandeau top, wide straps. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Bandeau top, wide straps. NBB, wholesale only.",
+            "fr": "Bustier, bretelles larges. NBB, vente en gros uniquement.",
+            "es": "Top bandeau, tirantes anchos. NBB, solo venta al por mayor.",
+            "it": "Top a fascia, spalline larghe. NBB, solo ingrosso.",
+            "de": "Bandeau-Top, breite Träger. NBB, nur Großhandel.",
+            "pt": "Top bandeau, alças largas. NBB, apenas venda por grosso.",
+            "ru": "Топ-бандо, широкие бретели. NBB, только опт.",
+            "ar": "توب بندو، حمالات عريضة. NBB، بالجملة فقط.",
+            "ja": "バンドゥトップ・太ストラップ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-2415",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Bandeau top, spaghetti straps. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Bandeau top, spaghetti straps. NBB, wholesale only.",
+            "fr": "Bustier, fines bretelles. NBB, vente en gros uniquement.",
+            "es": "Top bandeau, tirantes finos. NBB, solo venta al por mayor.",
+            "it": "Top a fascia, spalline sottili. NBB, solo ingrosso.",
+            "de": "Bandeau-Top, schmale Träger. NBB, nur Großhandel.",
+            "pt": "Top bandeau, alças finas. NBB, apenas venda por grosso.",
+            "ru": "Топ-бандо, тонкие бретели. NBB, только опт.",
+            "ar": "توب بندو، حمالات رفيعة. NBB، بالجملة فقط.",
+            "ja": "バンドゥトップ・細ストラップ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-2428",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Wire-free bra, seamless. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Wire-free bra, seamless. NBB, wholesale only.",
+            "fr": "Soutien-gorge sans armatures, sans coutures. NBB, vente en gros uniquement.",
+            "es": "Sujetador sin aros, sin costuras. NBB, solo venta al por mayor.",
+            "it": "Reggiseno senza ferretto, senza cuciture. NBB, solo ingrosso.",
+            "de": "BH ohne Bügel, nahtlos. NBB, nur Großhandel.",
+            "pt": "Sutiã sem aro, sem costuras. NBB, apenas venda por grosso.",
+            "ru": "Бюстгальтер без косточек, бесшовный. NBB, только опт.",
+            "ar": "حمالة صدر بدون أسلاك، بدون خياطة. NBB، بالجملة فقط.",
+            "ja": "ノンワイヤーブラ・シームレス。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-2441",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Camisole, wide straps. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Camisole, wide straps. NBB, wholesale only.",
+            "fr": "Caraco, bretelles larges. NBB, vente en gros uniquement.",
+            "es": "Camiseta interior, tirantes anchos. NBB, solo venta al por mayor.",
+            "it": "Canotta, spalline larghe. NBB, solo ingrosso.",
+            "de": "Unterhemd, breite Träger. NBB, nur Großhandel.",
+            "pt": "Camisola interior, alças largas. NBB, apenas venda por grosso.",
+            "ru": "Майка, широкие бретели. NBB, только опт.",
+            "ar": "قميص داخلي، حمالات عريضة. NBB، بالجملة فقط.",
+            "ja": "キャミソール・太ストラップ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-2900",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Half slip, short length. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Half slip, short length. NBB, wholesale only.",
+            "fr": "Jupon, longueur courte. NBB, vente en gros uniquement.",
+            "es": "Enagua, largo corto. NBB, solo venta al por mayor.",
+            "it": "Sottogonna, lunghezza corta. NBB, solo ingrosso.",
+            "de": "Unterrock, kurze Länge. NBB, nur Großhandel.",
+            "pt": "Saiote, comprimento curto. NBB, apenas venda por grosso.",
+            "ru": "Нижняя юбка, короткая длина. NBB, только опт.",
+            "ar": "تنورة داخلية، طول قصير. NBB، بالجملة فقط.",
+            "ja": "ペチコート・ショート丈。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-2901",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Half slip, long length. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Half slip, long length. NBB, wholesale only.",
+            "fr": "Jupon, longueur longue. NBB, vente en gros uniquement.",
+            "es": "Enagua, largo largo. NBB, solo venta al por mayor.",
+            "it": "Sottogonna, lunghezza lunga. NBB, solo ingrosso.",
+            "de": "Unterrock, lange Länge. NBB, nur Großhandel.",
+            "pt": "Saiote, comprimento longo. NBB, apenas venda por grosso.",
+            "ru": "Нижняя юбка, длинная длина. NBB, только опт.",
+            "ar": "تنورة داخلية، طول طويل. NBB، بالجملة فقط.",
+            "ja": "ペチコート・ロング丈。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-30001",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Wire-free bra, strapless. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Wire-free bra, strapless. NBB, wholesale only.",
+            "fr": "Soutien-gorge sans armatures, sans bretelles. NBB, vente en gros uniquement.",
+            "es": "Sujetador sin aros, sin tirantes. NBB, solo venta al por mayor.",
+            "it": "Reggiseno senza ferretto, senza spalline. NBB, solo ingrosso.",
+            "de": "BH ohne Bügel, trägerlos. NBB, nur Großhandel.",
+            "pt": "Sutiã sem aro, sem alças. NBB, apenas venda por grosso.",
+            "ru": "Бюстгальтер без косточек, без бретелей. NBB, только опт.",
+            "ar": "حمالة صدر بدون أسلاك، بدون حمالات. NBB، بالجملة فقط.",
+            "ja": "ノンワイヤーブラ・ストラップレス。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3050",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Nursing camisole. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Nursing camisole. NBB, wholesale only.",
+            "fr": "Caraco d’allaitement. NBB, vente en gros uniquement.",
+            "es": "Camiseta de lactancia. NBB, solo venta al por mayor.",
+            "it": "Canotta per allattamento. NBB, solo ingrosso.",
+            "de": "Still-Top. NBB, nur Großhandel.",
+            "pt": "Camisola de amamentação. NBB, apenas venda por grosso.",
+            "ru": "Майка для кормления. NBB, только опт.",
+            "ar": "قميص داخلي للرضاعة. NBB، بالجملة فقط.",
+            "ja": "授乳キャミソール。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3212",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Nightdress and robe set, combed cotton. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Nightdress and robe set, combed cotton. NBB, wholesale only.",
+            "fr": "Ensemble chemise de nuit et déshabillé, coton peigné. NBB, vente en gros uniquement.",
+            "es": "Conjunto de camisón y bata, algodón peinado. NBB, solo venta al por mayor.",
+            "it": "Completo camicia da notte e vestaglia, cotone pettinato. NBB, solo ingrosso.",
+            "de": "Set aus Nachthemd und Morgenmantel, gekämmte Baumwolle. NBB, nur Großhandel.",
+            "pt": "Conjunto de camisa de noite e robe, algodão penteado. NBB, apenas venda por grosso.",
+            "ru": "Комплект: сорочка и халат, чесаный хлопок. NBB, только опт.",
+            "ar": "طقم قميص نوم وروب، قطن ممشط. NBB، بالجملة فقط.",
+            "ja": "ナイトドレス＆ガウン セット・コーマ綿。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3244",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Nightdress and robe set, satin. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Nightdress and robe set, satin. NBB, wholesale only.",
+            "fr": "Ensemble chemise de nuit et déshabillé, satin. NBB, vente en gros uniquement.",
+            "es": "Conjunto de camisón y bata, satén. NBB, solo venta al por mayor.",
+            "it": "Completo camicia da notte e vestaglia, raso. NBB, solo ingrosso.",
+            "de": "Set aus Nachthemd und Morgenmantel, Satin. NBB, nur Großhandel.",
+            "pt": "Conjunto de camisa de noite e robe, cetim. NBB, apenas venda por grosso.",
+            "ru": "Комплект: сорочка и халат, сатин. NBB, только опт.",
+            "ar": "طقم قميص نوم وروب، ساتان. NBB، بالجملة فقط.",
+            "ja": "ナイトドレス＆ガウン セット・サテン。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3412",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Wire-free bra, moulded cup. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Wire-free bra, moulded cup. NBB, wholesale only.",
+            "fr": "Soutien-gorge sans armatures, bonnet moulé. NBB, vente en gros uniquement.",
+            "es": "Sujetador sin aros, copa moldeada. NBB, solo venta al por mayor.",
+            "it": "Reggiseno senza ferretto, coppa preformata. NBB, solo ingrosso.",
+            "de": "BH ohne Bügel, vorgeformte Cups. NBB, nur Großhandel.",
+            "pt": "Sutiã sem aro, taça moldada. NBB, apenas venda por grosso.",
+            "ru": "Бюстгальтер без косточек, формованная чашка. NBB, только опт.",
+            "ar": "حمالة صدر بدون أسلاك، كأس مقولب. NBB، بالجملة فقط.",
+            "ja": "ノンワイヤーブラ・モールドカップ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-350",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Shaping bra, microfibre. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Shaping bra, microfibre. NBB, wholesale only.",
+            "fr": "Soutien-gorge gainant, microfibre. NBB, vente en gros uniquement.",
+            "es": "Sujetador reductor, microfibra. NBB, solo venta al por mayor.",
+            "it": "Reggiseno modellante, microfibra. NBB, solo ingrosso.",
+            "de": "Formender BH, Mikrofaser. NBB, nur Großhandel.",
+            "pt": "Sutiã modelador, microfibra. NBB, apenas venda por grosso.",
+            "ru": "Утягивающий бюстгальтер, микрофибра. NBB, только опт.",
+            "ar": "حمالة صدر مشدة، ألياف دقيقة. NBB، بالجملة فقط.",
+            "ja": "補正ブラ・マイクロファイバー。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-350-b",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Shaping bra, microfibre, plus size. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Shaping bra, microfibre, plus size. NBB, wholesale only.",
+            "fr": "Soutien-gorge gainant, microfibre, grande taille. NBB, vente en gros uniquement.",
+            "es": "Sujetador reductor, microfibra, talla grande. NBB, solo venta al por mayor.",
+            "it": "Reggiseno modellante, microfibra, taglie forti. NBB, solo ingrosso.",
+            "de": "Formender BH, Mikrofaser, große Größen. NBB, nur Großhandel.",
+            "pt": "Sutiã modelador, microfibra, tamanho grande. NBB, apenas venda por grosso.",
+            "ru": "Утягивающий бюстгальтер, микрофибра, большие размеры. NBB, только опт.",
+            "ar": "حمالة صدر مشدة، ألياف دقيقة، مقاسات كبيرة. NBB، بالجملة فقط.",
+            "ja": "補正ブラ・マイクロファイバー・大きいサイズ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3505",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Wire-free bra, microfibre, moulded cup. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Wire-free bra, microfibre, moulded cup. NBB, wholesale only.",
+            "fr": "Soutien-gorge sans armatures, microfibre, bonnet moulé. NBB, vente en gros uniquement.",
+            "es": "Sujetador sin aros, microfibra, copa moldeada. NBB, solo venta al por mayor.",
+            "it": "Reggiseno senza ferretto, microfibra, coppa preformata. NBB, solo ingrosso.",
+            "de": "BH ohne Bügel, Mikrofaser, vorgeformte Cups. NBB, nur Großhandel.",
+            "pt": "Sutiã sem aro, microfibra, taça moldada. NBB, apenas venda por grosso.",
+            "ru": "Бюстгальтер без косточек, микрофибра, формованная чашка. NBB, только опт.",
+            "ar": "حمالة صدر بدون أسلاك، ألياف دقيقة، كأس مقولب. NBB، بالجملة فقط.",
+            "ja": "ノンワイヤーブラ・マイクロファイバー・モールドカップ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-351",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Shaping bra, combed cotton. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Shaping bra, combed cotton. NBB, wholesale only.",
+            "fr": "Soutien-gorge gainant, coton peigné. NBB, vente en gros uniquement.",
+            "es": "Sujetador reductor, algodón peinado. NBB, solo venta al por mayor.",
+            "it": "Reggiseno modellante, cotone pettinato. NBB, solo ingrosso.",
+            "de": "Formender BH, gekämmte Baumwolle. NBB, nur Großhandel.",
+            "pt": "Sutiã modelador, algodão penteado. NBB, apenas venda por grosso.",
+            "ru": "Утягивающий бюстгальтер, чесаный хлопок. NBB, только опт.",
+            "ar": "حمالة صدر مشدة، قطن ممشط. NBB، بالجملة فقط.",
+            "ja": "補正ブラ・コーマ綿。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-351-b",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Shaping bra, combed cotton, plus size. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Shaping bra, combed cotton, plus size. NBB, wholesale only.",
+            "fr": "Soutien-gorge gainant, coton peigné, grande taille. NBB, vente en gros uniquement.",
+            "es": "Sujetador reductor, algodón peinado, talla grande. NBB, solo venta al por mayor.",
+            "it": "Reggiseno modellante, cotone pettinato, taglie forti. NBB, solo ingrosso.",
+            "de": "Formender BH, gekämmte Baumwolle, große Größen. NBB, nur Großhandel.",
+            "pt": "Sutiã modelador, algodão penteado, tamanho grande. NBB, apenas venda por grosso.",
+            "ru": "Утягивающий бюстгальтер, чесаный хлопок, большие размеры. NBB, только опт.",
+            "ar": "حمالة صدر مشدة، قطن ممشط، مقاسات كبيرة. NBB، بالجملة فقط.",
+            "ja": "補正ブラ・コーマ綿・大きいサイズ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3510",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Wire-free bra, strapless. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Wire-free bra, strapless. NBB, wholesale only.",
+            "fr": "Soutien-gorge sans armatures, sans bretelles. NBB, vente en gros uniquement.",
+            "es": "Sujetador sin aros, sin tirantes. NBB, solo venta al por mayor.",
+            "it": "Reggiseno senza ferretto, senza spalline. NBB, solo ingrosso.",
+            "de": "BH ohne Bügel, trägerlos. NBB, nur Großhandel.",
+            "pt": "Sutiã sem aro, sem alças. NBB, apenas venda por grosso.",
+            "ru": "Бюстгальтер без косточек, без бретелей. NBB, только опт.",
+            "ar": "حمالة صدر بدون أسلاك، بدون حمالات. NBB، بالجملة فقط.",
+            "ja": "ノンワイヤーブラ・ストラップレス。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3520",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Strapless bra, microfibre, padded. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Strapless bra, microfibre, padded. NBB, wholesale only.",
+            "fr": "Soutien-gorge sans bretelles, microfibre, rembourré. NBB, vente en gros uniquement.",
+            "es": "Sujetador sin tirantes, microfibra, con relleno. NBB, solo venta al por mayor.",
+            "it": "Reggiseno senza spalline, microfibra, imbottito. NBB, solo ingrosso.",
+            "de": "Trägerloser BH, Mikrofaser, wattiert. NBB, nur Großhandel.",
+            "pt": "Sutiã sem alças, microfibra, com enchimento. NBB, apenas venda por grosso.",
+            "ru": "Бюстгальтер без бретелей, микрофибра, с пуш-ап. NBB, только опт.",
+            "ar": "حمالة صدر بدون حمالات، ألياف دقيقة، مبطن. NBB، بالجملة فقط.",
+            "ja": "ストラップレスブラ・マイクロファイバー・パッド入り。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3525",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Underwired bra, moulded cup. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Underwired bra, moulded cup. NBB, wholesale only.",
+            "fr": "Soutien-gorge à armatures, bonnet moulé. NBB, vente en gros uniquement.",
+            "es": "Sujetador con aros, copa moldeada. NBB, solo venta al por mayor.",
+            "it": "Reggiseno con ferretto, coppa preformata. NBB, solo ingrosso.",
+            "de": "BH mit Bügel, vorgeformte Cups. NBB, nur Großhandel.",
+            "pt": "Sutiã com aro, taça moldada. NBB, apenas venda por grosso.",
+            "ru": "Бюстгальтер на косточках, формованная чашка. NBB, только опт.",
+            "ar": "حمالة صدر بأسلاك، كأس مقولب. NBB، بالجملة فقط.",
+            "ja": "ワイヤーブラ・モールドカップ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3532",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Wire-free bra. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Wire-free bra. NBB, wholesale only.",
+            "fr": "Soutien-gorge sans armatures. NBB, vente en gros uniquement.",
+            "es": "Sujetador sin aros. NBB, solo venta al por mayor.",
+            "it": "Reggiseno senza ferretto. NBB, solo ingrosso.",
+            "de": "BH ohne Bügel. NBB, nur Großhandel.",
+            "pt": "Sutiã sem aro. NBB, apenas venda por grosso.",
+            "ru": "Бюстгальтер без косточек. NBB, только опт.",
+            "ar": "حمالة صدر بدون أسلاك. NBB، بالجملة فقط.",
+            "ja": "ノンワイヤーブラ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3565",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Shaping bra, microfibre, double layer. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Shaping bra, microfibre, double layer. NBB, wholesale only.",
+            "fr": "Soutien-gorge gainant, microfibre, double épaisseur. NBB, vente en gros uniquement.",
+            "es": "Sujetador reductor, microfibra, doble capa. NBB, solo venta al por mayor.",
+            "it": "Reggiseno modellante, microfibra, doppio strato. NBB, solo ingrosso.",
+            "de": "Formender BH, Mikrofaser, doppellagig. NBB, nur Großhandel.",
+            "pt": "Sutiã modelador, microfibra, camada dupla. NBB, apenas venda por grosso.",
+            "ru": "Утягивающий бюстгальтер, микрофибра, двойной слой. NBB, только опт.",
+            "ar": "حمالة صدر مشدة، ألياف دقيقة، طبقة مزدوجة. NBB، بالجملة فقط.",
+            "ja": "補正ブラ・マイクロファイバー・二重仕立て。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3565-b",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Shaping bra, microfibre, double layer, plus size. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Shaping bra, microfibre, double layer, plus size. NBB, wholesale only.",
+            "fr": "Soutien-gorge gainant, microfibre, double épaisseur, grande taille. NBB, vente en gros uniquement.",
+            "es": "Sujetador reductor, microfibra, doble capa, talla grande. NBB, solo venta al por mayor.",
+            "it": "Reggiseno modellante, microfibra, doppio strato, taglie forti. NBB, solo ingrosso.",
+            "de": "Formender BH, Mikrofaser, doppellagig, große Größen. NBB, nur Großhandel.",
+            "pt": "Sutiã modelador, microfibra, camada dupla, tamanho grande. NBB, apenas venda por grosso.",
+            "ru": "Утягивающий бюстгальтер, микрофибра, двойной слой, большие размеры. NBB, только опт.",
+            "ar": "حمالة صدر مشدة، ألياف دقيقة، طبقة مزدوجة، مقاسات كبيرة. NBB، بالجملة فقط.",
+            "ja": "補正ブラ・マイクロファイバー・二重仕立て・大きいサイズ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3581",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Nursing bra. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Nursing bra. NBB, wholesale only.",
+            "fr": "Soutien-gorge d’allaitement. NBB, vente en gros uniquement.",
+            "es": "Sujetador de lactancia. NBB, solo venta al por mayor.",
+            "it": "Reggiseno per allattamento. NBB, solo ingrosso.",
+            "de": "Still-BH. NBB, nur Großhandel.",
+            "pt": "Sutiã de amamentação. NBB, apenas venda por grosso.",
+            "ru": "Бюстгальтер для кормления. NBB, только опт.",
+            "ar": "حمالة صدر للرضاعة. NBB، بالجملة فقط.",
+            "ja": "授乳ブラ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3586",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Underwired bra, clear back. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Underwired bra, clear back. NBB, wholesale only.",
+            "fr": "Soutien-gorge à armatures, dos transparent. NBB, vente en gros uniquement.",
+            "es": "Sujetador con aros, espalda transparente. NBB, solo venta al por mayor.",
+            "it": "Reggiseno con ferretto, schienale trasparente. NBB, solo ingrosso.",
+            "de": "BH mit Bügel, transparenter Rücken. NBB, nur Großhandel.",
+            "pt": "Sutiã com aro, costas transparentes. NBB, apenas venda por grosso.",
+            "ru": "Бюстгальтер на косточках, прозрачная спинка. NBB, только опт.",
+            "ar": "حمالة صدر بأسلاك، ظهر شفاف. NBB، بالجملة فقط.",
+            "ja": "ワイヤーブラ・クリアバック。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3596",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Shaping bra. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Shaping bra. NBB, wholesale only.",
+            "fr": "Soutien-gorge gainant. NBB, vente en gros uniquement.",
+            "es": "Sujetador reductor. NBB, solo venta al por mayor.",
+            "it": "Reggiseno modellante. NBB, solo ingrosso.",
+            "de": "Formender BH. NBB, nur Großhandel.",
+            "pt": "Sutiã modelador. NBB, apenas venda por grosso.",
+            "ru": "Утягивающий бюстгальтер. NBB, только опт.",
+            "ar": "حمالة صدر مشدة. NBB، بالجملة فقط.",
+            "ja": "補正ブラ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3616",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Strapless bra, clear back. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Strapless bra, clear back. NBB, wholesale only.",
+            "fr": "Soutien-gorge sans bretelles, dos transparent. NBB, vente en gros uniquement.",
+            "es": "Sujetador sin tirantes, espalda transparente. NBB, solo venta al por mayor.",
+            "it": "Reggiseno senza spalline, schienale trasparente. NBB, solo ingrosso.",
+            "de": "Trägerloser BH, transparenter Rücken. NBB, nur Großhandel.",
+            "pt": "Sutiã sem alças, costas transparentes. NBB, apenas venda por grosso.",
+            "ru": "Бюстгальтер без бретелей, прозрачная спинка. NBB, только опт.",
+            "ar": "حمالة صدر بدون حمالات، ظهر شفاف. NBB، بالجملة فقط.",
+            "ja": "ストラップレスブラ・クリアバック。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3628",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Nursing bra, moulded cup. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Nursing bra, moulded cup. NBB, wholesale only.",
+            "fr": "Soutien-gorge d’allaitement, bonnet moulé. NBB, vente en gros uniquement.",
+            "es": "Sujetador de lactancia, copa moldeada. NBB, solo venta al por mayor.",
+            "it": "Reggiseno per allattamento, coppa preformata. NBB, solo ingrosso.",
+            "de": "Still-BH, vorgeformte Cups. NBB, nur Großhandel.",
+            "pt": "Sutiã de amamentação, taça moldada. NBB, apenas venda por grosso.",
+            "ru": "Бюстгальтер для кормления, формованная чашка. NBB, только опт.",
+            "ar": "حمالة صدر للرضاعة، كأس مقولب. NBB، بالجملة فقط.",
+            "ja": "授乳ブラ・モールドカップ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3666",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Silicone bra, self-adhesive. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Silicone bra, self-adhesive. NBB, wholesale only.",
+            "fr": "Soutien-gorge silicone, autoadhésif. NBB, vente en gros uniquement.",
+            "es": "Sujetador de silicona, autoadhesivo. NBB, solo venta al por mayor.",
+            "it": "Reggiseno in silicone, autoadesivo. NBB, solo ingrosso.",
+            "de": "Silikon-BH, selbstklebend. NBB, nur Großhandel.",
+            "pt": "Sutiã de silicone, autoadesivo. NBB, apenas venda por grosso.",
+            "ru": "Силиконовый бюстгальтер, самоклеящийся. NBB, только опт.",
+            "ar": "حمالة صدر سيليكون، لاصق ذاتيًا. NBB، بالجملة فقط.",
+            "ja": "シリコンブラ・粘着タイプ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3851",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Slip, spaghetti straps. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Slip, spaghetti straps. NBB, wholesale only.",
+            "fr": "Fond de robe, fines bretelles. NBB, vente en gros uniquement.",
+            "es": "Combinación, tirantes finos. NBB, solo venta al por mayor.",
+            "it": "Sottoveste, spalline sottili. NBB, solo ingrosso.",
+            "de": "Unterkleid, schmale Träger. NBB, nur Großhandel.",
+            "pt": "Combinação, alças finas. NBB, apenas venda por grosso.",
+            "ru": "Нижнее платье, тонкие бретели. NBB, только опт.",
+            "ar": "قميص داخلي طويل، حمالات رفيعة. NBB، بالجملة فقط.",
+            "ja": "スリップ・細ストラップ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-3963",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Nightdress. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Nightdress. NBB, wholesale only.",
+            "fr": "Chemise de nuit. NBB, vente en gros uniquement.",
+            "es": "Camisón. NBB, solo venta al por mayor.",
+            "it": "Camicia da notte. NBB, solo ingrosso.",
+            "de": "Nachthemd. NBB, nur Großhandel.",
+            "pt": "Camisa de noite. NBB, apenas venda por grosso.",
+            "ru": "Ночная сорочка. NBB, только опт.",
+            "ar": "قميص نوم. NBB، بالجملة فقط.",
+            "ja": "ナイトドレス。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-540",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Maternity brief. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Maternity brief. NBB, wholesale only.",
+            "fr": "Culotte de grossesse. NBB, vente en gros uniquement.",
+            "es": "Braga de maternidad. NBB, solo venta al por mayor.",
+            "it": "Slip premaman. NBB, solo ingrosso.",
+            "de": "Umstandsslip. NBB, nur Großhandel.",
+            "pt": "Cueca de grávida. NBB, apenas venda por grosso.",
+            "ru": "Трусы для беременных. NBB, только опт.",
+            "ar": "سروال داخلي للحوامل. NBB، بالجملة فقط.",
+            "ja": "マタニティショーツ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-701",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Men’s vest. NBB, wholesale only.",
+        "desc_i18n": {
+            "en": "Men’s vest. NBB, wholesale only.",
+            "fr": "Débardeur homme. NBB, vente en gros uniquement.",
+            "es": "Camiseta interior de hombre. NBB, solo venta al por mayor.",
+            "it": "Canottiera uomo. NBB, solo ingrosso.",
+            "de": "Herren-Unterhemd. NBB, nur Großhandel.",
+            "pt": "Camisola interior de homem. NBB, apenas venda por grosso.",
+            "ru": "Мужская майка. NBB, только опт.",
+            "ar": "فانلة رجالية. NBB، بالجملة فقط.",
+            "ja": "メンズ タンクトップ。NBB、卸売専用。"
+        }
+    },
+    {
+        "match": "nbb-730",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Men’s briefs, three-pack. NBB, wholesale only — ordered by the pack, not by the piece.",
+        "desc_i18n": {
+            "en": "Men’s briefs, three-pack. NBB, wholesale only — ordered by the pack, not by the piece.",
+            "fr": "Slip homme, lot de trois. NBB, vente en gros uniquement — commande par lot, non à l’unité.",
+            "es": "Slip de hombre, pack de tres. NBB, solo venta al por mayor — se pide por paquete, no por unidad.",
+            "it": "Slip uomo, confezione da tre. NBB, solo ingrosso — si ordina a confezione, non al pezzo.",
+            "de": "Herren-Slip, Dreierpack. NBB, nur Großhandel — Bestellung im Pack, nicht als Einzelstück.",
+            "pt": "Cueca de homem, pack de três. NBB, apenas venda por grosso — encomenda por pack, não à unidade.",
+            "ru": "Мужские трусы, набор из трёх. NBB, только опт — заказ упаковками, не поштучно.",
+            "ar": "سروال داخلي رجالي، عبوة ثلاثية. NBB، بالجملة فقط — يُطلب بالعبوة وليس بالقطعة.",
+            "ja": "メンズ ブリーフ・3枚組。NBB、卸売専用 — 1点単位ではなくパック単位でのご注文となります。"
+        }
+    },
+    {
+        "match": "nbb-9001",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Trouser socks, 15 denier. NBB, wholesale only — ordered by the pack, not by the piece.",
+        "desc_i18n": {
+            "en": "Trouser socks, 15 denier. NBB, wholesale only — ordered by the pack, not by the piece.",
+            "fr": "Mi-bas, 15 deniers. NBB, vente en gros uniquement — commande par lot, non à l’unité.",
+            "es": "Media pantalón, 15 deniers. NBB, solo venta al por mayor — se pide por paquete, no por unidad.",
+            "it": "Gambaletto, 15 denari. NBB, solo ingrosso — si ordina a confezione, non al pezzo.",
+            "de": "Kniestrumpf, 15 den. NBB, nur Großhandel — Bestellung im Pack, nicht als Einzelstück.",
+            "pt": "Meia até ao joelho, 15 deniers. NBB, apenas venda por grosso — encomenda por pack, não à unidade.",
+            "ru": "Гольфы, 15 den. NBB, только опт — заказ упаковками, не поштучно.",
+            "ar": "جوارب تحت الركبة، 15 دينير. NBB، بالجملة فقط — يُطلب بالعبوة وليس بالقطعة.",
+            "ja": "ハイソックス・15デニール。NBB、卸売専用 — 1点単位ではなくパック単位でのご注文となります。"
+        }
+    },
+    {
+        "match": "nbb-9083",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Tights, 15 denier. NBB, wholesale only — ordered by the pack, not by the piece.",
+        "desc_i18n": {
+            "en": "Tights, 15 denier. NBB, wholesale only — ordered by the pack, not by the piece.",
+            "fr": "Collant, 15 deniers. NBB, vente en gros uniquement — commande par lot, non à l’unité.",
+            "es": "Medias panty, 15 deniers. NBB, solo venta al por mayor — se pide por paquete, no por unidad.",
+            "it": "Collant, 15 denari. NBB, solo ingrosso — si ordina a confezione, non al pezzo.",
+            "de": "Strumpfhose, 15 den. NBB, nur Großhandel — Bestellung im Pack, nicht als Einzelstück.",
+            "pt": "Collants, 15 deniers. NBB, apenas venda por grosso — encomenda por pack, não à unidade.",
+            "ru": "Колготки, 15 den. NBB, только опт — заказ упаковками, не поштучно.",
+            "ar": "جوارب طويلة، 15 دينير. NBB، بالجملة فقط — يُطلب بالعبوة وليس بالقطعة.",
+            "ja": "パンティストッキング・15デニール。NBB、卸売専用 — 1点単位ではなくパック単位でのご注文となります。"
+        }
+    },
+    {
+        "match": "nbb-9152",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Knee-high socks, 15 denier. NBB, wholesale only — ordered by the pack, not by the piece.",
+        "desc_i18n": {
+            "en": "Knee-high socks, 15 denier. NBB, wholesale only — ordered by the pack, not by the piece.",
+            "fr": "Chaussettes montantes, 15 deniers. NBB, vente en gros uniquement — commande par lot, non à l’unité.",
+            "es": "Calcetines altos, 15 deniers. NBB, solo venta al por mayor — se pide por paquete, no por unidad.",
+            "it": "Calzini alti, 15 denari. NBB, solo ingrosso — si ordina a confezione, non al pezzo.",
+            "de": "Kniestrümpfe, 15 den. NBB, nur Großhandel — Bestellung im Pack, nicht als Einzelstück.",
+            "pt": "Meias altas, 15 deniers. NBB, apenas venda por grosso — encomenda por pack, não à unidade.",
+            "ru": "Высокие носки, 15 den. NBB, только опт — заказ упаковками, не поштучно.",
+            "ar": "جوارب عالية، 15 دينير. NBB، بالجملة فقط — يُطلب بالعبوة وليس بالقطعة.",
+            "ja": "ニーハイソックス・15デニール。NBB、卸売専用 — 1点単位ではなくパック単位でのご注文となります。"
+        }
+    },
+    {
+        "match": "nbb-9266",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Trouser socks, 15 denier. NBB, wholesale only — ordered by the pack, not by the piece.",
+        "desc_i18n": {
+            "en": "Trouser socks, 15 denier. NBB, wholesale only — ordered by the pack, not by the piece.",
+            "fr": "Mi-bas, 15 deniers. NBB, vente en gros uniquement — commande par lot, non à l’unité.",
+            "es": "Media pantalón, 15 deniers. NBB, solo venta al por mayor — se pide por paquete, no por unidad.",
+            "it": "Gambaletto, 15 denari. NBB, solo ingrosso — si ordina a confezione, non al pezzo.",
+            "de": "Kniestrumpf, 15 den. NBB, nur Großhandel — Bestellung im Pack, nicht als Einzelstück.",
+            "pt": "Meia até ao joelho, 15 deniers. NBB, apenas venda por grosso — encomenda por pack, não à unidade.",
+            "ru": "Гольфы, 15 den. NBB, только опт — заказ упаковками, не поштучно.",
+            "ar": "جوارب تحت الركبة، 15 دينير. NBB، بالجملة فقط — يُطلب بالعبوة وليس بالقطعة.",
+            "ja": "ハイソックス・15デニール。NBB、卸売専用 — 1点単位ではなくパック単位でのご注文となります。"
+        }
+    },
+    {
+        "match": "nbb-9293",
+        "expect": 1,
+        "status": "pending",
+        "desc": "Trouser socks, 40 denier. NBB, wholesale only — ordered by the pack, not by the piece.",
+        "desc_i18n": {
+            "en": "Trouser socks, 40 denier. NBB, wholesale only — ordered by the pack, not by the piece.",
+            "fr": "Mi-bas, 40 deniers. NBB, vente en gros uniquement — commande par lot, non à l’unité.",
+            "es": "Media pantalón, 40 deniers. NBB, solo venta al por mayor — se pide por paquete, no por unidad.",
+            "it": "Gambaletto, 40 denari. NBB, solo ingrosso — si ordina a confezione, non al pezzo.",
+            "de": "Kniestrumpf, 40 den. NBB, nur Großhandel — Bestellung im Pack, nicht als Einzelstück.",
+            "pt": "Meia até ao joelho, 40 deniers. NBB, apenas venda por grosso — encomenda por pack, não à unidade.",
+            "ru": "Гольфы, 40 den. NBB, только опт — заказ упаковками, не поштучно.",
+            "ar": "جوارب تحت الركبة، 40 دينير. NBB، بالجملة فقط — يُطلب بالعبوة وليس بالقطعة.",
+            "ja": "ハイソックス・40デニール。NBB、卸売専用 — 1点単位ではなくパック単位でのご注文となります。"
+        }
+    }
+]

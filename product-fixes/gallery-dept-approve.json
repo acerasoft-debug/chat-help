@@ -1,0 +1,49 @@
+[
+ {
+  "_not": "Operator, 17 Eyl 2026: 'ayrica urunleri aprrova yap siteden'. Gallery Dept. partisi (9 ilan) ayni gun pending yazilmisti; bu dosya onlari katalogda gorunur yapiyor.",
+  "_nasil": "match ILAN ID'sine dusuyor, ada degil: bu partide dort ilanin adi 'Logo Chest Print T-Shirt' ile basliyor ve ada gore eslesme birden fazlasina uyar. expect:1 zaten durdururdu, ama id ile hic o riske girilmiyor.",
+  "match": "gd-t01",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "gd-t02",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "gd-t03",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "gd-t04",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "gd-t05",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "gd-t06",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "gd-t07",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "gd-t08",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "gd-h01",
+  "expect": 1,
+  "status": "approved"
+ }
+]

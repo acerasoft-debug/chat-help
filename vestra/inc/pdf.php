@@ -1,0 +1,593 @@
+<?php
+/**
+ * VestraPdf — minimal, dependency-free PDF 1.4 writer for one purpose:
+ * generating invoice documents without a Composer package (no dompdf/tcpdf —
+ * nothing to forget to `composer install` on the server). Hand-built PDF
+ * objects; standard Helvetica / Helvetica-Bold fonts (Type1, never embedded —
+ * every PDF reader ships them per spec); WinAnsi (CP1252) text encoding,
+ * which covers the accented characters used in DE/FR/IT/ES business text.
+ *
+ * Deliberately NOT a general-purpose PDF library — just enough primitives
+ * (absolute-positioned text, right-aligned text, lines, filled rectangles,
+ * JPEG placement, manual page breaks) to lay out an invoice or an order
+ * sheet. Callers own all layout/cursor logic; this class only turns drawing
+ * calls into a valid PDF byte stream.
+ */
+/**
+ * Any site image as a small baseline JPEG, ready for VestraPdf::imageJpeg().
+ *
+ * Re-encoded rather than passed straight through: the originals run to several MB, and the
+ * folder holds PNG, WebP and progressive JPEG alongside baseline — none of which /DCTDecode
+ * accepts. Returns '' when the file is missing or GD is unavailable; the caller draws a
+ * placeholder rather than failing.
+ */
+function vestra_pdf_thumb(string $src, int $maxPx = 200, int $quality = 80): string {
+    $src = trim($src);
+    if ($src === '' || $src[0] !== '/') return '';
+    $file = dirname(__DIR__).$src;
+    if (!is_file($file)) return '';
+    $raw = @file_get_contents($file);
+    if ($raw === false || $raw === '') return '';
+    if (!function_exists('imagecreatefromstring')) {
+        // No GD on this host: pass a JPEG through untouched if it is small enough to
+        // carry, and give up on anything else rather than embedding what /DCTDecode
+        // cannot read. imageJpeg() still validates the bytes before they go in.
+        return (strlen($raw) <= 1500000 && substr($raw, 0, 2) === "\xFF\xD8") ? $raw : '';
+    }
+    $im = @imagecreatefromstring($raw);
+    if (!$im) return '';
+
+    $w = imagesx($im); $h = imagesy($im);
+    $s  = min(1.0, $maxPx / max($w, $h));
+    $nw = max(1, (int)round($w * $s)); $nh = max(1, (int)round($h * $s));
+    $dst = imagecreatetruecolor($nw, $nh);
+    // Cut-outs are shot on white; without this fill a transparent PNG lands on black.
+    imagefilledrectangle($dst, 0, 0, $nw, $nh, imagecolorallocate($dst, 255, 255, 255));
+    imagecopyresampled($dst, $im, 0, 0, 0, 0, $nw, $nh, $w, $h);
+    /* Product photos ride at the default quality — there are dozens per document and the file
+       size is theirs. A logo is one small image with hard edges and flat colour, exactly what
+       JPEG handles worst, so the caller can pay a few KB for it and keep the edges clean. */
+    ob_start(); imagejpeg($dst, null, max(1, min(100, $quality))); $out = (string)ob_get_clean();
+    imagedestroy($im); imagedestroy($dst);
+    return $out;
+}
+
+class VestraPdf {
+    const PAGE_W = 595; // A4 in points, 72dpi
+    const PAGE_H = 842;
+
+    /** @var string[] completed page content streams */
+    private array $pages = [];
+    private string $cur = '';
+    /** @var array<string,array> embedded JPEGs, keyed by the /ImN name used in content streams */
+    private array $imgs = [];
+    /** @var array<int,array<int,array{0:float,1:float,2:float,3:float,4:string}>> per-page link rects */
+    private array $links = [];
+
+    public function addPage(): void {
+        $this->pages[] = $this->cur;
+        $this->cur = '';
+    }
+
+    /**
+     * A clickable region on the current page.
+     *
+     * Printing a URL as text is readable but dead: a price list gets opened on a phone and
+     * forwarded as an attachment, and nobody retypes vestrasales.com/product?id=blc-612966
+     * by hand. The visible text stays — it survives printing and copy-paste — and this puts
+     * a real annotation over it so the same thing is also tappable.
+     *
+     * ($x,$y) is the bottom-left of the rect in PDF coordinates, matching text().
+     * Call it while laying the page out; annotations added from inside stampEachPage()
+     * would have no page to attach to, so footers keep to plain text.
+     */
+    public function link(float $x, float $y, float $w, float $h, string $url): void {
+        if ($url === '' || $w <= 0 || $h <= 0) return;
+        $this->links[count($this->pages)][] = [$x, $y, $x + $w, $y + $h, $url];
+    }
+
+    /**
+     * Draw the same furniture on every page once the document is finished.
+     *
+     * Page footers cannot be drawn as the pages are laid out, because "page 2 of 5" is not
+     * knowable until page 5 exists. The callback receives ($pdf, $pageNumber, $pageCount) and
+     * draws through the normal methods; the output is appended to that page's stream, so it
+     * lands on top of the content already there.
+     */
+    public function stampEachPage(callable $draw): void {
+        $all = $this->pages;
+        $all[] = $this->cur;
+        $total = count($all);
+        $held  = [];
+        foreach ($all as $i => $content) {
+            $this->cur = '';                      // every draw call appends here
+            $draw($this, $i + 1, $total);
+            $held[$i] = $content.$this->cur;
+        }
+        $this->cur   = array_pop($held);
+        $this->pages = $held;
+    }
+
+    private function esc(string $s): string {
+        $conv = @iconv('UTF-8', 'CP1252//TRANSLIT//IGNORE', $s);
+        if ($conv === false) $conv = preg_replace('/[^\x20-\x7E]/', '?', $s) ?? '';
+        return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $conv);
+    }
+
+    /* ── Gömülü CJK yazı tipi ────────────────────────────────────────────────
+       Helvetica + WinAnsi yalnızca CP1252 taşır. CP1252'ye sığmayan bir
+       karakter gören dizge, TAMAMI gömülü yazı tipiyle çizilir (o yazı tipi
+       Latin'i de taşıyor) — dizgeyi parçalayıp iki tipografiyi yan yana
+       koymaktansa satırı bütün bırakmak hem daha basit hem daha iyi duruyor.
+       Sadece Latin olan hiçbir belge etkilenmez: aşağıdaki alan boş kalır,
+       kaynak dosyaya font nesnesi bile eklenmez. */
+    private array $cjkCid = [];      // "CID sırası": [kod noktası, ...] (CID = sıra + 1)
+    private array $cjkSeen = [];     // kod noktası => CID (aynı karaktere ikinci CID vermemek için)
+
+    /** Bu dizge gömülü yazı tipini gerektiriyor mu? */
+    private function needsCjk(string $s): bool {
+        if ($s === '') return false;
+        if (!preg_match('/[^\x00-\x7F]/', $s)) return false;         // saf ASCII: hızlı çıkış
+        return vestra_pdf_unrenderable($s) !== [];
+    }
+    private function cjkFont(): ?VestraTtf {
+        require_once __DIR__.'/pdf_font.php';
+        return VestraTtf::shared();
+    }
+    /** Dizgeyi CID dizisine çevirir ve kullanılan karakterleri belgeye kaydeder. */
+    private function cjkHex(string $s): string {
+        $hex = '';
+        $len = mb_strlen($s, 'UTF-8');
+        for ($i = 0; $i < $len; $i++) {
+            $ch = mb_substr($s, $i, 1, 'UTF-8');
+            $u  = mb_ord($ch, 'UTF-8');
+            if ($u === false) continue;
+            if (!isset($this->cjkSeen[$u])) {
+                $this->cjkCid[] = $u;
+                $this->cjkSeen[$u] = count($this->cjkCid);
+            }
+            $hex .= sprintf('%04X', $this->cjkSeen[$u]);
+        }
+        return $hex;
+    }
+
+    /**
+     * Left-aligned text; ($x,$y) is the text baseline origin, PDF coordinates (origin bottom-left).
+     *
+     * $gray is the fill level, 0 black … 1 white. It exists so a document can separate what the
+     * reader needs from the boilerplate it is obliged to carry: a commercial invoice ends in
+     * several sentences of certification that must be printed and are almost never read, and set
+     * in the same black as the amounts they compete with them. Grey is restored to black straight
+     * after, so callers that do not ask for it are unaffected.
+     */
+    public function text(float $x, float $y, float $size, string $s, bool $bold = false, float $gray = 0.0): void {
+        if ($s === '') return;
+        $g = $gray > 0 ? sprintf("%.2F g ", $gray) : '';
+        if ($this->needsCjk($s) && $this->cjkFont()) {
+            /* Gömülü yazı tipinin kalın kesimi yok: kalın istenen satır aynı
+               kesimle çizilir. Sahte kalınlaştırma (çift çizim) CJK'da lekeli
+               çıkar; müşterinin adını okunur basmak, kalın basmaktan önemli. */
+            $this->cur .= sprintf("%sBT /F3 %.1F Tf %.2F %.2F Td <%s> Tj ET%s\n",
+                $g, $size, $x, $y, $this->cjkHex($s), $gray > 0 ? ' 0 g' : '');
+            return;
+        }
+        $font = $bold ? 'F2' : 'F1';
+        $this->cur .= sprintf("%sBT /%s %.1F Tf %.2F %.2F Td (%s) Tj ET%s\n",
+            $g, $font, $size, $x, $y, $this->esc($s), $gray > 0 ? ' 0 g' : '');
+    }
+
+    /** Right-aligned text ending at $xRight (approximate Helvetica average glyph width — fine for labels/amounts). */
+    public function textR(float $xRight, float $y, float $size, string $s, bool $bold = false, float $gray = 0.0): void {
+        $this->text($xRight - $this->strWidth($s, $size, $bold), $y, $size, $s, $bold, $gray);
+    }
+
+    public function strWidth(string $s, float $size, bool $bold = false): float {
+        return vestra_pdf_width($s, $size, $bold);
+    }
+
+    /** Word-wrap plain text to fit $maxW; returns an array of lines. */
+    public function wrap(string $s, float $maxW, float $size, bool $bold = false): array {
+        $words = preg_split('/\s+/', trim($s));
+        $lines = []; $cur = '';
+        foreach ($words as $w) {
+            if ($w === '') continue;
+            $try = $cur === '' ? $w : $cur.' '.$w;
+            if ($this->strWidth($try, $size, $bold) > $maxW && $cur !== '') { $lines[] = $cur; $cur = $w; }
+            else $cur = $try;
+        }
+        if ($cur !== '') $lines[] = $cur;
+        $lines = $lines ?: [''];
+        /* Çince/Japonca metinde BOŞLUK YOKTUR: yukarıdaki sarma bir adresin
+           tamamını tek "kelime" sayar ve satır kutudan taşar. Hâlâ sığmayan
+           satırlar karakter karakter kırılır (yalnızca gerekirse — Latin metin
+           bu daldan hiç geçmez). */
+        $out = [];
+        foreach ($lines as $line) {
+            if ($this->strWidth($line, $size, $bold) <= $maxW) { $out[] = $line; continue; }
+            $buf = '';
+            $len = mb_strlen($line, 'UTF-8');
+            for ($i = 0; $i < $len; $i++) {
+                $ch = mb_substr($line, $i, 1, 'UTF-8');
+                if ($buf !== '' && $this->strWidth($buf.$ch, $size, $bold) > $maxW) { $out[] = $buf; $buf = ''; }
+                $buf .= $ch;
+            }
+            if ($buf !== '') $out[] = $buf;
+        }
+        return $out ?: [''];
+    }
+
+    public function line(float $x1, float $y1, float $x2, float $y2, float $w = 0.6, float $gray = 0.6): void {
+        $this->cur .= sprintf("%.2F w %.2F G %.2F %.2F m %.2F %.2F l S\n", $w, $gray, $x1, $y1, $x2, $y2);
+    }
+
+    public function rectFill(float $x, float $y, float $w, float $h, float $gray = 0.93): void {
+        $this->cur .= sprintf("%.2F g %.2F %.2F %.2F %.2F re f 0 g\n", $gray, $x, $y, $w, $h);
+    }
+
+    /**
+     * Place a JPEG inside the box whose bottom-left corner is ($x,$y), scaled to fit and
+     * centred so photos of different crops still line up in a column.
+     *
+     * The bytes go into the file untouched (/DCTDecode is JPEG), so the caller must hand
+     * over a *baseline* JPEG — progressive ones are legal JPEG but not legal DCTDecode, and
+     * some readers show them as a grey box. Returns false rather than throwing when the
+     * bytes cannot be described: one unreadable photo should cost that row's thumbnail,
+     * not the whole document.
+     */
+    public function imageJpeg(string $jpeg, float $x, float $y, float $boxW, float $boxH, float $radius = 0.0): bool {
+        $info = self::jpegInfo($jpeg);
+        if (!$info || $info['w'] < 1 || $info['h'] < 1) return false;
+
+        // The same photo can appear on several rows (one model, several colours). Embed once.
+        $hash = md5($jpeg);
+        $key  = '';
+        foreach ($this->imgs as $k => $im) { if ($im['hash'] === $hash) { $key = $k; break; } }
+        if ($key === '') {
+            $key = 'Im'.(count($this->imgs) + 1);
+            $this->imgs[$key] = $info + ['data' => $jpeg, 'hash' => $hash];
+        }
+
+        $s  = min($boxW / $info['w'], $boxH / $info['h']);
+        $w  = $info['w'] * $s;  $h  = $info['h'] * $s;
+        $ox = $x + ($boxW - $w) / 2;  $oy = $y + ($boxH - $h) / 2;
+        $this->cur .= "q\n".self::roundClip($ox, $oy, $w, $h, $radius)
+            .sprintf("%.2F 0 0 %.2F %.2F %.2F cm /%s Do Q\n", $w, $h, $ox, $oy, $key);
+        return true;
+    }
+
+    /**
+     * Clip path confining the next drawing to a rounded rectangle; '' when $r is 0.
+     *
+     * The site's logo files are square rasters — the rounded plate you see on a phone is the
+     * OS clipping the icon, and nothing clips it on paper, so the mark lands on an invoice as
+     * a hard black tile. Corners are quarter-circle Béziers (0.5523 is the standard
+     * circle-from-cubic constant).
+     */
+    private static function roundClip(float $x, float $y, float $w, float $h, float $r): string {
+        $r = min($r, $w / 2, $h / 2);
+        if ($r <= 0) return '';
+        $k  = $r * 0.5523;
+        $x2 = $x + $w; $y2 = $y + $h;
+        $p  = sprintf("%.2F %.2F m\n", $x + $r, $y);
+        $p .= sprintf("%.2F %.2F l %.2F %.2F %.2F %.2F %.2F %.2F c\n", $x2 - $r, $y,  $x2 - $r + $k, $y,  $x2, $y + $r - $k,  $x2, $y + $r);
+        $p .= sprintf("%.2F %.2F l %.2F %.2F %.2F %.2F %.2F %.2F c\n", $x2, $y2 - $r, $x2, $y2 - $r + $k, $x2 - $r + $k, $y2, $x2 - $r, $y2);
+        $p .= sprintf("%.2F %.2F l %.2F %.2F %.2F %.2F %.2F %.2F c\n", $x + $r, $y2, $x + $r - $k, $y2, $x, $y2 - $r + $k,  $x, $y2 - $r);
+        $p .= sprintf("%.2F %.2F l %.2F %.2F %.2F %.2F %.2F %.2F c\n", $x, $y + $r,  $x, $y + $r - $k,  $x + $r - $k, $y,  $x + $r, $y);
+        return $p."h W n\n";
+    }
+
+    /** A URL inside a PDF string literal. Only the three delimiters need escaping, and a URL
+     *  is ASCII by construction here, so this stays separate from esc() — that one transcodes
+     *  to CP1252 for display text, which would mangle a percent-encoded address. */
+    private static function escUri(string $u): string {
+        return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $u);
+    }
+
+    /** Pixel size and component count from the JPEG's frame header; null if it isn't one. */
+    private static function jpegInfo(string $d): ?array {
+        $len = strlen($d);
+        if ($len < 4 || substr($d, 0, 2) !== "\xFF\xD8") return null;
+        $adobe = false;
+        $i = 2;
+        while ($i < $len) {
+            if ($d[$i] !== "\xFF") { $i++; continue; }
+            while ($i < $len && $d[$i] === "\xFF") $i++;   // fill bytes are legal before a marker
+            if ($i >= $len) break;
+            $m = ord($d[$i]); $i++;
+            if ($m === 0x01 || ($m >= 0xD0 && $m <= 0xD8)) continue;   // standalone markers, no payload
+            if ($m === 0xD9 || $m === 0xDA) break;                     // end of image / start of scan
+            if ($i + 2 > $len) break;
+            $seg = (ord($d[$i]) << 8) | ord($d[$i + 1]);
+            if ($seg < 2) break;
+            if ($m === 0xEE) $adobe = true;                            // APP14 "Adobe" — CMYK is stored inverted
+            // SOF0..SOF15 carry the frame header; C4/C8/CC share the range but are not frames.
+            if ($m >= 0xC0 && $m <= 0xCF && $m !== 0xC4 && $m !== 0xC8 && $m !== 0xCC) {
+                if ($i + 8 > $len) break;
+                return [
+                    'h'     => (ord($d[$i + 3]) << 8) | ord($d[$i + 4]),
+                    'w'     => (ord($d[$i + 5]) << 8) | ord($d[$i + 6]),
+                    'nc'    => ord($d[$i + 7]),
+                    'adobe' => $adobe,
+                ];
+            }
+            $i += $seg;
+        }
+        return null;
+    }
+
+    /** Serialize all pages into a complete PDF byte string. */
+    public function output(): string {
+        $pages = $this->pages;
+        $pages[] = $this->cur;
+
+        // Fixed numbering: 1=Catalog 2=Pages 3=Font(regular) 4=Font(bold), then images, then
+        // Page/Content pairs. Streams are [openingDict, bytes] — /Length is appended on write.
+        $objs = [];
+        $streams = [];
+        $objs[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+        $objs[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+        $objs[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+
+        $id = 5;
+        $cjkRes = '';
+        /* GÖMÜLÜ CJK YAZI TİPİ — yalnızca belgede gerçekten geçtiyse.
+           Type0/Identity-H + CIDFontType2: metin akışında yazdığımız CID doğrudan
+           yeni glif numarasıdır (/CIDToGIDMap /Identity). Alt küme yalnız bu
+           belgede geçen glifleri taşır: tam yazı tipi 10 MB, buradaki parça
+           tipik olarak birkaç KB.
+           ToUnicode ŞART: onsuz belge doğru GÖRÜNÜR ama kopyalanamaz ve
+           pdftotext boş döker — gümrükte adresi elle yeniden yazmak demektir. */
+        if ($this->cjkCid) {
+            require_once __DIR__.'/pdf_font.php';
+            $font = VestraTtf::shared();
+            $sub  = $font ? $font->subset($this->cjkCid) : null;
+            if ($sub) {
+                $d   = $font->descriptor();
+                $fid = $id++; $dfid = $id++; $fdid = $id++; $ffid = $id++; $tuid = $id++;
+                $objs[$fid]  = '<< /Type /Font /Subtype /Type0 /BaseFont /VESTRACJK /Encoding /Identity-H'
+                             . ' /DescendantFonts ['.$dfid.' 0 R] /ToUnicode '.$tuid.' 0 R >>';
+                $w = [];
+                foreach ($this->cjkCid as $i => $u) $w[] = (string)($sub['widths'][$i + 1] ?? 1000);
+                $objs[$dfid] = '<< /Type /Font /Subtype /CIDFontType2 /BaseFont /VESTRACJK'
+                             . ' /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >>'
+                             . ' /FontDescriptor '.$fdid.' 0 R /DW 1000 /W [1 ['.implode(' ', $w).']]'
+                             . ' /CIDToGIDMap /Identity >>';
+                $objs[$fdid] = '<< /Type /FontDescriptor /FontName /VESTRACJK /Flags 4 /FontBBox ['
+                             . implode(' ', $d['bbox']).'] /ItalicAngle 0 /Ascent '.$d['ascent']
+                             . ' /Descent '.$d['descent'].' /CapHeight 700 /StemV 80 /FontFile2 '.$ffid.' 0 R >>';
+                $streams[$ffid] = ['<< /Length1 '.strlen($sub['data']), $sub['data']];
+                $cmap = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n"
+                      . "/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n"
+                      . "/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n";
+                $rows = [];
+                foreach ($this->cjkCid as $i => $u) {
+                    /* BMP dışı kod noktaları UTF-16BE vekil çiftine açılır. */
+                    $t = $u > 0xFFFF
+                        ? sprintf('%04X%04X', 0xD800 + (($u - 0x10000) >> 10), 0xDC00 + (($u - 0x10000) & 0x3FF))
+                        : sprintf('%04X', $u);
+                    $rows[] = sprintf('<%04X> <%s>', $i + 1, $t);
+                }
+                foreach (array_chunk($rows, 100) as $chunk) {
+                    $cmap .= count($chunk)." beginbfchar\n".implode("\n", $chunk)."\nendbfchar\n";
+                }
+                $cmap .= "endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend";
+                $streams[$tuid] = ['<<', $cmap];
+                $cjkRes = ' /F3 '.$fid.' 0 R';
+            }
+        }
+        $xobj = '';
+        foreach ($this->imgs as $name => $im) {
+            $imgId = $id++;
+            $cs = match ((int)$im['nc']) { 1 => '/DeviceGray', 4 => '/DeviceCMYK', default => '/DeviceRGB' };
+            // Photoshop writes CMYK JPEGs inverted and flags it with APP14; without /Decode
+            // the photo comes out as a colour negative.
+            $decode = ((int)$im['nc'] === 4 && !empty($im['adobe'])) ? ' /Decode [1 0 1 0 1 0 1 0]' : '';
+            $streams[$imgId] = ['<< /Type /XObject /Subtype /Image /Width '.(int)$im['w'].
+                ' /Height '.(int)$im['h'].' /ColorSpace '.$cs.' /BitsPerComponent 8'.$decode.
+                ' /Filter /DCTDecode', $im['data']];
+            $xobj .= '/'.$name.' '.$imgId.' 0 R ';
+        }
+        $res = '/Font << /F1 3 0 R /F2 4 0 R'.$cjkRes.' >>'.($xobj !== '' ? ' /XObject << '.trim($xobj).' >>' : '');
+
+        $kids = [];
+        foreach ($pages as $pageIdx => $content) {
+            $pageId = $id++; $contentId = $id++;
+            $kids[] = "$pageId 0 R";
+            /* Link annotations are their own objects and the page points at them. /Border
+               [0 0 0] keeps the viewer from drawing its default blue box over the text —
+               the address is already visible, the annotation only makes it tappable. */
+            $annots = '';
+            if (!empty($this->links[$pageIdx])) {
+                $refs = [];
+                foreach ($this->links[$pageIdx] as [$x1, $y1, $x2, $y2, $url]) {
+                    $aId = $id++;
+                    $objs[$aId] = '<< /Type /Annot /Subtype /Link /Rect ['
+                        .sprintf('%.2F %.2F %.2F %.2F', $x1, $y1, $x2, $y2)
+                        .'] /Border [0 0 0] /A << /S /URI /URI ('.self::escUri($url).') >> >>';
+                    $refs[] = $aId.' 0 R';
+                }
+                $annots = ' /Annots ['.implode(' ', $refs).']';
+            }
+            $objs[$pageId] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '.self::PAGE_W.' '.self::PAGE_H.
+                '] /Resources << '.$res.' >>'.$annots.' /Contents '.$contentId.' 0 R >>';
+            $streams[$contentId] = ['<<', $content];
+        }
+        $objs[2] = '<< /Type /Pages /Kids ['.implode(' ', $kids).'] /Count '.count($kids).' >>';
+
+        $maxId = $id - 1;
+        $out = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
+        $offsets = [];
+        for ($i = 1; $i <= $maxId; $i++) {
+            $offsets[$i] = strlen($out);
+            if (isset($streams[$i])) {
+                [$dict, $data] = $streams[$i];
+                $out .= "$i 0 obj\n{$dict} /Length ".strlen($data)." >>\nstream\n{$data}\nendstream\nendobj\n";
+            } else {
+                $out .= "$i 0 obj\n{$objs[$i]}\nendobj\n";
+            }
+        }
+        $xrefStart = strlen($out);
+        $out .= "xref\n0 ".($maxId + 1)."\n0000000000 65535 f \n";
+        for ($i = 1; $i <= $maxId; $i++) $out .= sprintf("%010d 00000 n \n", $offsets[$i]);
+        $out .= "trailer\n<< /Size ".($maxId + 1)." /Root 1 0 R >>\nstartxref\n{$xrefStart}\n%%EOF";
+        return $out;
+    }
+}
+
+/**
+ * Bu yazıcının ürettiği bir PDF'e GERÇEKTEN çizilmiş Latin metin — "belgede X
+ * yazıyor mu" sorusunun ölçüsü (28 Eyl 2026, VES-60594A18: modeli değişen
+ * siparişin faturasında yeni SKU VAR, eskisi YOK mu).
+ *
+ * Neden ham bayt araması yetmiyor: dar sütunlarda uzun bir değer iki satıra
+ * SARILIYOR ("TENNIS-CLUB-ICON-WH" / "ITE") ve tam dizge hamda hiç geçmiyor;
+ * önekle aramak ise aynı öneki paylaşan iki SKU'yu (…-WHITE / …-NAVYBLUE)
+ * ayıramıyor. Çizim sırası korunarak AYIRAÇSIZ birleştirildiğinde sarılmış
+ * değer yeniden bütünleşir. Bedeli: yalnız "bu metin çizildi mi" sorusu için
+ * geçerli (komşu hücreler de birbirine yapışık gelir).
+ *
+ * Yalnız içerik akışları okunur: görsel (/Subtype /Image) ve gömülü yazı tipi
+ * (/Length1) akışları atlanır — JPEG baytı tesadüfen "(...) Tj"ye benzeyebilir.
+ * Uzunluk başlıktaki /Length'ten alınır, "endstream" aranmaz (ikili veri onu
+ * içerebilir). Sıkıştırılmış belgede '' döner: "yok" demek yerine ölçülemedi.
+ * CJK (onaltılık <...> Tj) dizgeleri kapsam dışı.
+ */
+function vestra_pdf_drawn_text(string $pdf): string {
+    if ($pdf === '' || str_contains($pdf, '/FlateDecode')) return '';
+    if (!preg_match_all('/\d+ 0 obj\n(<<[^\n]*?) \/Length (\d+) >>\nstream\n/', $pdf, $mm, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) return '';
+    $out = '';
+    foreach ($mm as $m) {
+        $dict = $m[1][0];
+        if (str_contains($dict, '/Subtype /Image') || str_contains($dict, '/Length1')) continue;
+        $data = substr($pdf, $m[0][1] + strlen($m[0][0]), (int)$m[2][0]);
+        if (!preg_match_all('/\(((?:[^()\\\\]|\\\\.)*)\)\s*Tj/s', $data, $tm)) continue;
+        foreach ($tm[1] as $s) {
+            $s = (string)preg_replace_callback('/\\\\([0-7]{1,3}|.)/s',
+                fn($e) => ctype_digit($e[1][0]) ? chr(octdec($e[1]) & 0xFF) : $e[1], $s);
+            $u = @iconv('CP1252', 'UTF-8//IGNORE', $s);
+            $out .= $u === false ? $s : $u;
+        }
+    }
+    return $out;
+}
+
+/**
+ * Bir dizgenin cizilecegi genislik (punto cinsinden).
+ *
+ * TEK OLCUM YERI: hem VestraPdf::strWidth() hem vestra_invoice_wrap() bunu
+ * cagirir. Ayri ayri yazildiklarinda ayrisirlardi ve fatura kutusunda tam
+ * bunun bedeli goruluyordu: Helvetica'nin 0.52 em'lik ortalamasi bir Han
+ * karakterini (tam genislik, 1 em) YARI genislikte saniyor, Cince adres satiri
+ * kendi sutunundan tasip satici kutusunun uzerine biniyordu.
+ *
+ * Gomulu yazi tipiyle cizilecek dizgede olcu tahmin degil: hmtx'ten okunur.
+ */
+function vestra_pdf_width(string $s, float $size, bool $bold = false): float {
+    if ($s !== '' && preg_match('/[^\x00-\x7F]/', $s) && vestra_pdf_unrenderable($s) !== []) {
+        require_once __DIR__.'/pdf_font.php';
+        if ($f = VestraTtf::shared()) {
+            $w = 0;
+            $len = mb_strlen($s, 'UTF-8');
+            for ($i = 0; $i < $len; $i++) {
+                $u = mb_ord(mb_substr($s, $i, 1, 'UTF-8'), 'UTF-8');
+                if ($u !== false) $w += $f->advance1000($u);
+            }
+            return $w * $size / 1000;
+        }
+    }
+    return mb_strlen($s) * $size * ($bold ? 0.60 : 0.52);
+}
+
+/**
+ * Helvetica / Helvetica-Bold'un GERCEK genisligi (Adobe AFM, WinAnsi), punto cinsinden.
+ *
+ * vestra_pdf_width() Latin metinde 0.52 em ORTALAMA kullaniyor: karisik harfli
+ * metinde bu yeterince yakin (cogu zaman biraz GENIS), ama BUYUK HARF + rakam +
+ * tireden olusan MODEL KODLARINDA ~%15 DAR olcuyor. 28 Eyl 2026'da belgenin
+ * kendisinden olculdu (INV-2026-1016): "TENNIS-CLUB-ICON-WH" 8 pt'de 92,0 pt
+ * cizildi, ortalama 79 pt dedi -- sarma "sigdi" sanip SKU'yu aciklama
+ * sutununun 4 pt ICINE basti ("…ICON-WHCasablanca").
+ *
+ * Genel olcu (vestra_pdf_width) BILEREK degistirilmedi: fiyat listesinin ad
+ * kirpmalari (array_slice 0,2) ve kur notunun sarma testleri ona gore ayarli;
+ * onu degistirmek her PDF'in duzenini birden kaydirir. Bu fonksiyon yalniz
+ * KOD sutunlari icin (fatura ve siparis PDF'inin SKU sutunu).
+ *
+ * Tablo 32..126; iki tablo da PyMuPDF'in Base-14 olculeriyle 95/95 dogrulandi.
+ * Tabloda olmayan karakter (ASCII disi) vestra_pdf_width()'e duser -- CJK dahil.
+ */
+function vestra_pdf_width_afm(string $s, float $size, bool $bold = false): float {
+    static $reg = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,
+        556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,
+        667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,
+        278,278,278,469,556,333,
+        556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,
+        334,260,334,584];
+    static $bld = [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,
+        556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,
+        722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,
+        333,278,333,584,556,333,
+        556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,
+        389,280,389,584];
+    $tab = $bold ? $bld : $reg;
+    $w = 0.0;
+    foreach (preg_split('//u', $s, -1, PREG_SPLIT_NO_EMPTY) as $ch) {
+        $o = strlen($ch) === 1 ? ord($ch) : 0;
+        $w += ($o >= 32 && $o <= 126) ? $tab[$o - 32] * $size / 1000 : vestra_pdf_width($ch, $size, $bold);
+    }
+    return $w;
+}
+
+/**
+ * CP1252 (gomulu olmayan Helvetica + WinAnsi) DISINDA kalan karakterler.
+ *
+ * Bunlar belgeye Helvetica ile basilamaz: iconv'un '//TRANSLIT//IGNORE' bayragi
+ * onlari sessizce SORU ISARETINE cevirir. 5 Eyl 2026'da olculdu:
+ * "香港风徕贸易有限公司" faturaya "??????????" diye basiliyordu -- gecerli
+ * GORUNEN ama musterinin adini kaybetmis bir fatura. Bu depoda tekrar eden
+ * ders: sessiz kayip, gurultulu hatadan pahali.
+ *
+ * 7 Eyl 2026'dan beri bu karakterler kaybolmuyor: VestraPdf::text() boyle bir
+ * dizgeyi gomulu CJK yazi tipiyle ciziyor (inc/pdf_font.php). Yani bu
+ * fonksiyon artik "kayip" degil, "Helvetica'nin disinda" demektir --
+ * gomulu yolun tetikleyicisi odur. Gercekten basilamayacak olanlari
+ * vestra_pdf_unprintable() verir.
+ *
+ * @return string[]
+ */
+function vestra_pdf_unrenderable(string $s): array {
+    if ($s === '') return [];
+    $bad = [];
+    $len = mb_strlen($s, 'UTF-8');
+    for ($i = 0; $i < $len; $i++) {
+        $ch = mb_substr($s, $i, 1, 'UTF-8');
+        $c  = @iconv('UTF-8', 'CP1252//TRANSLIT//IGNORE', $ch);
+        /* Kaynak '?' degilken sonuc '?' ya da bos ise o karakter kaybolmustur. */
+        if ($c === false || $c === '' || ($c === '?' && $ch !== '?')) $bad[$ch] = true;
+    }
+    return array_keys($bad);
+}
+
+/**
+ * Belgenin GERCEKTEN basamayacagi karakterler: ne CP1252'de ne de gomulu
+ * yazi tipinde olanlar (emoji, nadir duzlemler, yazi tipi dosyasi sunucuda
+ * yoksa CP1252 disindaki her sey).
+ *
+ * Karar vermez, olcer. Taslak uzerindeki uyari bunu kullanir: operator numarayi
+ * yakmadan once neyin bos kutu cikacagini gorur.
+ *
+ * @return string[]
+ */
+function vestra_pdf_unprintable(string $s): array {
+    $bad = vestra_pdf_unrenderable($s);
+    if (!$bad) return [];
+    require_once __DIR__.'/pdf_font.php';
+    $font = VestraTtf::shared();
+    if (!$font) return $bad;                       // yazi tipi yok: hepsi kayip
+    $out = [];
+    foreach ($bad as $ch) {
+        $u = mb_ord($ch, 'UTF-8');
+        if ($u === false || !$font->hasChar($u)) $out[] = $ch;
+    }
+    return $out;
+}

@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img">
+  <title>Two deal structures: on one side ownership changes above an unmoved company, on the other named assets move into a new company</title>
+  <desc>Share purchase and asset purchase. In one the contract never moves; in the other the store has to.</desc>
+  <rect width="1200" height="675" fill="#3a2016"/>
+  <g stroke="#7a4026" stroke-width="1"><path d="M0 168h1200M0 337h1200M0 506h1200"/></g>
+  <path d="M600 96v492" stroke="#7a4026" stroke-width="2"/>
+  <!-- SOL PANEL: hisse devri — sahip degisir, sirket ve sozlesme yerinde -->
+  <g fill="none" stroke="#f0c9a0" stroke-width="3">
+    <circle cx="180" cy="176" r="26"/>
+    <circle cx="392" cy="176" r="26"/>
+    <path d="M212 176h140"/>
+  </g>
+  <path d="M340 164l22 12-22 12z" fill="#f0c9a0"/>
+  <path d="M392 202v56" stroke="#f0c9a0" stroke-width="3" stroke-dasharray="8 9"/>
+  <g fill="none" stroke="#f0c9a0" stroke-width="3">
+    <rect x="112" y="258" width="376" height="230" rx="14"/>
+    <rect x="176" y="316" width="152" height="118" rx="10"/>
+  </g>
+  <g fill="#f0c9a0" opacity=".24">
+    <rect x="200" y="342" width="104" height="10" rx="5"/>
+    <rect x="200" y="366" width="76" height="10" rx="5"/>
+    <rect x="200" y="390" width="92" height="10" rx="5"/>
+  </g>
+  <g fill="none" stroke="#f0c9a0" stroke-width="3">
+    <path d="M366 372v-12a18 18 0 0 1 36 0v12"/>
+    <rect x="358" y="372" width="52" height="40" rx="8"/>
+  </g>
+  <!-- SAG PANEL: varlik devri — adlandirilmis parcalar yeni sirkete gecer -->
+  <g fill="none" stroke="#f0c9a0" stroke-width="3" opacity=".38">
+    <rect x="648" y="258" width="184" height="230" rx="14"/>
+  </g>
+  <g fill="#f0c9a0" opacity=".12">
+    <rect x="676" y="292" width="112" height="12" rx="6"/>
+    <rect x="676" y="318" width="76" height="12" rx="6"/>
+  </g>
+  <g fill="none" stroke="#f0c9a0" stroke-width="3">
+    <rect x="968" y="258" width="184" height="230" rx="14"/>
+    <circle cx="1016" cy="316" r="20"/>
+    <path d="M1006 316h20M1016 306v20"/>
+    <rect x="1056" y="296" width="72" height="42" rx="7"/>
+    <rect x="994" y="368" width="134" height="30" rx="6"/>
+    <rect x="994" y="410" width="134" height="30" rx="6"/>
+  </g>
+  <!-- Gecis oklari -->
+  <g stroke="#f0c9a0" stroke-width="3" fill="none">
+    <path d="M844 316h100"/><path d="M844 372h100"/><path d="M844 428h100"/>
+  </g>
+  <g fill="#f0c9a0">
+    <path d="M932 304l22 12-22 12z"/><path d="M932 360l22 12-22 12z"/><path d="M932 416l22 12-22 12z"/>
+  </g>
+  <!-- Yeni sirketin KENDI sozlesmesi: yeni cerceveye bagli, havada degil -->
+  <path d="M1060 258v-38" stroke="#f0c9a0" stroke-width="2" stroke-dasharray="8 9" opacity=".6"/>
+  <g fill="none" stroke="#f0c9a0" stroke-width="3" opacity=".85">
+    <rect x="1022" y="154" width="76" height="66" rx="10"/>
+    <path d="M1038 154v-14a22 22 0 0 1 44 0v14"/>
+  </g>
+</svg>

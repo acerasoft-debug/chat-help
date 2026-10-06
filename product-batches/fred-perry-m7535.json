@@ -1,0 +1,26 @@
+[
+ {
+  "id": "fp-m7535-sweat",
+  "brand": "Fred Perry",
+  "name": "Fred Perry Crew Neck Sweatshirt — M7535",
+  "cat": "Hoodies & Sweatshirts",
+  "sku": "M7535",
+  "list": 39.90,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "fixed",
+  "size_step": 10,
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack",
+  "colors": ["Bordeaux", "White", "Navy", "Green", "Black"],
+  "seller_uid": "7ab30f26afedd840",
+  "seller": "GARAGE LE PARIS",
+  "images": [
+   "/uploads/fred-perry/fp-m7535-bordeaux.jpg",
+   "/uploads/fred-perry/fp-m7535-white.jpg",
+   "/uploads/fred-perry/fp-m7535-navy.jpg",
+   "/uploads/fred-perry/fp-m7535-green.jpg",
+   "/uploads/fred-perry/fp-m7535-black.jpg"
+  ],
+  "desc": "Original Fred Perry, model M7535. Crew neck sweatshirt, 100% cotton, regular fit, twin tipped cuff. Five colours: Bordeaux, White, Navy, Green, Black. S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack. EEA stock with full invoice trail."
+ }
+]

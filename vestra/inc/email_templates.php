@@ -1,0 +1,5197 @@
+<?php
+/**
+ * VESTRA — localized premium email templates for order/offer, message and
+ * membership notifications (registration's own verify/welcome templates stay
+ * in inc/notify.php next to vestra_send_mail()).
+ *
+ * Every function here returns [$subject, $bodyPlain, $opts] — $opts is the
+ * structured badge/rows/button data vestra_html_email() (inc/notify.php)
+ * renders on top of the plain-text body. Callers pass $bodyPlain AND $opts
+ * straight into vestra_send_mail($to,$subject,$body,$replyTo,$fromName,$cfg,
+ * $heroImage,$opts).
+ *
+ * Language: always resolved from the RECIPIENT's stored account field
+ * (vestra_user_lang() in inc/i18n.php), never from the current request's
+ * vlang() — these fire from someone else's request (the other party in a
+ * deal, or an admin action), so there is no live language cookie to read.
+ */
+
+/* Short, localized name for a doc_requests 'type' — the stored 'note' field is a full
+ * "please upload..." instruction, not a noun phrase that reads naturally inside a
+ * sentence like "your ___ was approved", so this is a separate small vocabulary. Falls
+ * back to the raw type string for any custom/unknown type an admin might request. */
+function vestra_doc_type_label(string $lang, string $type): string {
+  $L = [
+    'en'=>['trade_licence'=>'trade licence / business registration','company_reg'=>'company registration certificate','vat_cert'=>'VAT/tax registration certificate','id_document'=>'government-issued ID','auth_letter'=>'authorization letter'],
+    'de'=>['trade_licence'=>'Gewerbeschein','company_reg'=>'Handelsregisterauszug','vat_cert'=>'Umsatzsteuer-/Steuerregistrierungsnachweis','id_document'=>'amtlichen Ausweis','auth_letter'=>'Vollmachtsschreiben'],
+    'fr'=>['trade_licence'=>'licence commerciale / extrait d\'immatriculation','company_reg'=>'extrait Kbis / immatriculation','vat_cert'=>'justificatif de TVA','id_document'=>'pièce d\'identité officielle','auth_letter'=>'lettre d\'autorisation'],
+    'it'=>['trade_licence'=>'licenza commerciale / visura di attività','company_reg'=>'visura camerale','vat_cert'=>'certificato di partita IVA','id_document'=>'documento d\'identità','auth_letter'=>'lettera di autorizzazione'],
+    'es'=>['trade_licence'=>'licencia de actividad / alta censal','company_reg'=>'certificado de registro mercantil','vat_cert'=>'certificado de IVA','id_document'=>'documento de identidad oficial','auth_letter'=>'carta de autorización'],
+  ];
+  return ($L[$lang] ?? $L['en'])[$type] ?? $type;
+}
+
+/**
+ * Sign-off for mail a person at VESTRA writes — support replies and admin-started threads —
+ * as opposed to the system's own notifications, which stay unsigned.
+ *
+ * Pass the result as $opts['signature']; vestra_html_email() renders the card and the
+ * text/plain alternative gets the same lines (see vestra_email_signature_html()).
+ *
+ * The reply address is read from config rather than written here so it can never drift from
+ * the identity the mail is actually sent under.
+ */
+function vestra_support_signature(string $lang='en'): array {
+  $roles=[
+    'en'=>'Client Services', 'de'=>'Kundenbetreuung', 'fr'=>'Service clients',
+    'it'=>'Servizio clienti', 'es'=>'Atención al cliente',
+  ];
+  return [
+    'name'  => 'VESTRA Support',
+    'role'  => $roles[$lang] ?? $roles['en'],
+    'email' => (string)(function_exists('vestra_cfg') ? vestra_cfg('mail_from','support@vestrasales.com') : 'support@vestrasales.com'),
+    'site'  => 'vestrasales.com',
+  ];
+}
+
+/* Shared vocabulary reused across templates (row labels, button labels, status
+ * badges) so every template speaks the same terms instead of drifting. */
+function vestra_email_labels(string $lang): array {
+  $L = [
+    'en' => [
+      'product'=>'Product','qty'=>'Quantity','unit_price'=>'Unit price','total'=>'Total',
+      'colours'=>'Colours','ref'=>'Reference','message'=>'Message','plan'=>'Plan','amount'=>'Amount',
+      'counter_price'=>'Counter price',
+      'btn_seller_offers'=>'View & respond','btn_buyer_offers'=>'View in my dashboard',
+      'btn_messages'=>'Open conversation','btn_orders_seller'=>'View order','btn_orders_buyer'=>'View order',
+      'btn_dashboard'=>'Go to my dashboard',
+      'badge_new_offer'=>'💶 New offer','badge_offer_received'=>'✓ Offer received',
+      'badge_accepted'=>'✓ Offer accepted','badge_declined'=>'✗ Offer declined','badge_countered'=>'↩ Counter offer',
+      'badge_message'=>'💬 New message','badge_verified'=>'✅ Account verified','badge_plan'=>'⭐ Plan updated',
+      'badge_released'=>'✓ Funds released','badge_refunded'=>'↩ Refunded',
+      'btn_listings'=>'View my listings','badge_listing_live'=>'🎉 Listing live','badge_listing_changes'=>'✎ Changes requested',
+    ],
+    'de' => [
+      'product'=>'Produkt','qty'=>'Menge','unit_price'=>'Stückpreis','total'=>'Gesamt',
+      'colours'=>'Farben','ref'=>'Referenz','message'=>'Nachricht','plan'=>'Tarif','amount'=>'Betrag',
+      'counter_price'=>'Gegenangebot',
+      'btn_seller_offers'=>'Ansehen & antworten','btn_buyer_offers'=>'In meinem Dashboard ansehen',
+      'btn_messages'=>'Unterhaltung öffnen','btn_orders_seller'=>'Bestellung ansehen','btn_orders_buyer'=>'Bestellung ansehen',
+      'btn_dashboard'=>'Zu meinem Dashboard',
+      'badge_new_offer'=>'💶 Neues Angebot','badge_offer_received'=>'✓ Angebot erhalten',
+      'badge_accepted'=>'✓ Angebot angenommen','badge_declined'=>'✗ Angebot abgelehnt','badge_countered'=>'↩ Gegenangebot',
+      'badge_message'=>'💬 Neue Nachricht','badge_verified'=>'✅ Konto verifiziert','badge_plan'=>'⭐ Tarif aktualisiert',
+      'badge_released'=>'✓ Guthaben freigegeben','badge_refunded'=>'↩ Rückerstattet',
+      'btn_listings'=>'Meine Angebote ansehen','badge_listing_live'=>'🎉 Angebot live','badge_listing_changes'=>'✎ Änderungen erforderlich',
+    ],
+    'fr' => [
+      'product'=>'Produit','qty'=>'Quantité','unit_price'=>'Prix unitaire','total'=>'Total',
+      'colours'=>'Couleurs','ref'=>'Référence','message'=>'Message','plan'=>'Formule','amount'=>'Montant',
+      'counter_price'=>'Contre-offre',
+      'btn_seller_offers'=>'Voir et répondre','btn_buyer_offers'=>'Voir dans mon espace',
+      'btn_messages'=>'Ouvrir la conversation','btn_orders_seller'=>'Voir la commande','btn_orders_buyer'=>'Voir la commande',
+      'btn_dashboard'=>'Accéder à mon espace',
+      'badge_new_offer'=>'💶 Nouvelle offre','badge_offer_received'=>'✓ Offre reçue',
+      'badge_accepted'=>'✓ Offre acceptée','badge_declined'=>'✗ Offre refusée','badge_countered'=>'↩ Contre-offre',
+      'badge_message'=>'💬 Nouveau message','badge_verified'=>'✅ Compte vérifié','badge_plan'=>'⭐ Formule mise à jour',
+      'badge_released'=>'✓ Fonds libérés','badge_refunded'=>'↩ Remboursé',
+      'btn_listings'=>'Voir mes annonces','badge_listing_live'=>'🎉 Annonce en ligne','badge_listing_changes'=>'✎ Modifications requises',
+    ],
+    'it' => [
+      'product'=>'Prodotto','qty'=>'Quantità','unit_price'=>'Prezzo unitario','total'=>'Totale',
+      'colours'=>'Colori','ref'=>'Riferimento','message'=>'Messaggio','plan'=>'Piano','amount'=>'Importo',
+      'counter_price'=>'Controfferta',
+      'btn_seller_offers'=>'Visualizza e rispondi','btn_buyer_offers'=>'Vedi nella mia area',
+      'btn_messages'=>'Apri la conversazione','btn_orders_seller'=>'Visualizza ordine','btn_orders_buyer'=>'Visualizza ordine',
+      'btn_dashboard'=>'Vai alla mia area',
+      'badge_new_offer'=>'💶 Nuova offerta','badge_offer_received'=>'✓ Offerta ricevuta',
+      'badge_accepted'=>'✓ Offerta accettata','badge_declined'=>'✗ Offerta rifiutata','badge_countered'=>'↩ Controfferta',
+      'badge_message'=>'💬 Nuovo messaggio','badge_verified'=>'✅ Account verificato','badge_plan'=>'⭐ Piano aggiornato',
+      'badge_released'=>'✓ Fondi rilasciati','badge_refunded'=>'↩ Rimborsato',
+      'btn_listings'=>'Vedi i miei annunci','badge_listing_live'=>'🎉 Annuncio online','badge_listing_changes'=>'✎ Modifiche richieste',
+    ],
+    'es' => [
+      'product'=>'Producto','qty'=>'Cantidad','unit_price'=>'Precio unitario','total'=>'Total',
+      'colours'=>'Colores','ref'=>'Referencia','message'=>'Mensaje','plan'=>'Plan','amount'=>'Importe',
+      'counter_price'=>'Contraoferta',
+      'btn_seller_offers'=>'Ver y responder','btn_buyer_offers'=>'Ver en mi panel',
+      'btn_messages'=>'Abrir conversación','btn_orders_seller'=>'Ver pedido','btn_orders_buyer'=>'Ver pedido',
+      'btn_dashboard'=>'Ir a mi panel',
+      'badge_new_offer'=>'💶 Nueva oferta','badge_offer_received'=>'✓ Oferta recibida',
+      'badge_accepted'=>'✓ Oferta aceptada','badge_declined'=>'✗ Oferta rechazada','badge_countered'=>'↩ Contraoferta',
+      'badge_message'=>'💬 Nuevo mensaje','badge_verified'=>'✅ Cuenta verificada','badge_plan'=>'⭐ Plan actualizado',
+      'badge_released'=>'✓ Fondos liberados','badge_refunded'=>'↩ Reembolsado',
+      'btn_listings'=>'Ver mis anuncios','badge_listing_live'=>'🎉 Anuncio publicado','badge_listing_changes'=>'✎ Cambios necesarios',
+    ],
+  ];
+  return $L[$lang] ?? $L['en'];
+}
+
+/* Buyer's confirmation right after submitting an offer. */
+function vestra_tpl_offer_received(string $lang, string $buyerName, string $product, string $sku, int $qty, float $price, float $total, string $ref, string $colorsTxt): array {
+  $Lb = vestra_email_labels($lang);
+  $rows = [
+    ['label'=>$Lb['product'],'value'=>$product.($sku!==''?" ({$sku})":'')],
+    ['label'=>$Lb['qty'],'value'=>(string)$qty],
+    ['label'=>$Lb['unit_price'],'value'=>'€'.number_format($price,2)],
+  ];
+  if ($colorsTxt !== '') $rows[] = ['label'=>$Lb['colours'],'value'=>$colorsTxt];
+  $rows[] = ['label'=>$Lb['total'],'value'=>'€'.number_format($total,2),'strong'=>true];
+  $rows[] = ['label'=>$Lb['ref'],'value'=>$ref];
+  $opts = ['badge'=>$Lb['badge_offer_received'],'rows'=>$rows,'button'=>['label'=>$Lb['btn_buyer_offers'],'url'=>'https://vestrasales.com/buyer?tab=offers']];
+  $T = [
+    'en'=>["VESTRA — offer %2\$s received", "Hello %1\$s,\n\nWe have received your offer. The seller will review and respond shortly — you can track its status any time in your buyer dashboard."],
+    'de'=>["VESTRA — Angebot %2\$s erhalten", "Hallo %1\$s,\n\nWir haben Ihr Angebot erhalten. Der Verkäufer prüft es und antwortet in Kürze — den Status sehen Sie jederzeit in Ihrem Käufer-Dashboard."],
+    'fr'=>["VESTRA — offre %2\$s reçue", "Bonjour %1\$s,\n\nNous avons bien reçu votre offre. Le vendeur va l'examiner et vous répondre rapidement — vous pouvez suivre son statut à tout moment dans votre espace acheteur."],
+    'it'=>["VESTRA — offerta %2\$s ricevuta", "Ciao %1\$s,\n\nAbbiamo ricevuto la tua offerta. Il venditore la esaminerà e risponderà a breve — puoi seguirne lo stato in qualsiasi momento nella tua area acquirente."],
+    'es'=>["VESTRA — oferta %2\$s recibida", "Hola %1\$s,\n\nHemos recibido tu oferta. El vendedor la revisará y responderá en breve — puedes consultar su estado en cualquier momento desde tu panel de comprador."],
+  ];
+  [$subjT,$bodyT] = $T[$lang] ?? $T['en'];
+  $subject = sprintf($subjT, $buyerName, $ref);
+  $body = sprintf($bodyT, $buyerName) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/* Seller's notification of a new incoming offer. */
+function vestra_tpl_offer_new(string $lang, string $sellerName, string $buyerCompany, string $product, string $sku, int $qty, float $price, float $total, string $ref, string $colorsTxt, string $message): array {
+  $Lb = vestra_email_labels($lang);
+  $rows = [
+    ['label'=>$Lb['product'],'value'=>$product.($sku!==''?" ({$sku})":'')],
+    ['label'=>$Lb['qty'],'value'=>(string)$qty],
+    ['label'=>$Lb['unit_price'],'value'=>'€'.number_format($price,2)],
+  ];
+  if ($colorsTxt !== '') $rows[] = ['label'=>$Lb['colours'],'value'=>$colorsTxt];
+  $rows[] = ['label'=>$Lb['total'],'value'=>'€'.number_format($total,2),'strong'=>true];
+  $rows[] = ['label'=>$Lb['ref'],'value'=>$ref];
+  $opts = ['badge'=>$Lb['badge_new_offer'],'rows'=>$rows,'button'=>['label'=>$Lb['btn_seller_offers'],'url'=>'https://vestrasales.com/seller?tab=offers']];
+  $msgLine = $message !== '' ? "\n\n".$Lb['message'].": ".$message : '';
+  $T = [
+    'en'=>["VESTRA — new offer from %2\$s (%3\$s)", "Hello %1\$s,\n\nYou received a new offer on VESTRA from %2\$s.%4\$s"],
+    'de'=>["VESTRA — neues Angebot von %2\$s (%3\$s)", "Hallo %1\$s,\n\nSie haben ein neues Angebot auf VESTRA von %2\$s erhalten.%4\$s"],
+    'fr'=>["VESTRA — nouvelle offre de %2\$s (%3\$s)", "Bonjour %1\$s,\n\nVous avez reçu une nouvelle offre sur VESTRA de la part de %2\$s.%4\$s"],
+    'it'=>["VESTRA — nuova offerta da %2\$s (%3\$s)", "Ciao %1\$s,\n\nHai ricevuto una nuova offerta su VESTRA da %2\$s.%4\$s"],
+    'es'=>["VESTRA — nueva oferta de %2\$s (%3\$s)", "Hola %1\$s,\n\nHas recibido una nueva oferta en VESTRA de %2\$s.%4\$s"],
+  ];
+  [$subjT,$bodyT] = $T[$lang] ?? $T['en'];
+  $subject = sprintf($subjT, $sellerName, $buyerCompany, $ref);
+  $body = sprintf($bodyT, $sellerName, $buyerCompany, $ref, $msgLine) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/* Buyer notification when the seller accepts / declines / counters. $counterPrice only
+ * used when $action==='counter'. */
+function vestra_tpl_offer_response(string $lang, string $action, string $buyerName, string $product, string $ref, ?float $counterPrice, ?string $acceptUrl = null, ?string $productUrl = null, int $countersLeft = 0): array {
+  $Lb = vestra_email_labels($lang);
+  $rows = [['label'=>$Lb['product'],'value'=>$product],['label'=>$Lb['ref'],'value'=>$ref]];
+  $badge = $Lb['badge_accepted'];
+  if ($action === 'decline') $badge = $Lb['badge_declined'];
+  if ($action === 'counter') { $badge = $Lb['badge_countered']; $rows[] = ['label'=>$Lb['counter_price'],'value'=>'€'.number_format((float)$counterPrice,2),'strong'=>true]; }
+  $opts = ['badge'=>$badge,'rows'=>$rows,'button'=>['label'=>$Lb['btn_buyer_offers'],'url'=>'https://vestrasales.com/buyer?tab=offers']];
+  /* Karsi teklifte dugme PANELE degil, dogrudan KABUL ekranina gider.
+     Onceden mektup "panelinizden kabul edebilirsiniz" diyordu ama panelde
+     kabul dugmesi YOKTU: alici tarif edilen yere gidiyor ve orada anlatilan
+     seyi bulamiyordu. Tek islevi olan bir mektubun dugmesi o islev olmali. */
+  $accLbl = ['en'=>'Accept €%s/unit','de'=>'€%s/Stück annehmen','fr'=>'Accepter %s €/unité',
+             'it'=>'Accetta €%s/unità','es'=>'Aceptar €%s/unidad'];
+  /* REDDETME de mektupta olmali. Tek dugme yalnizca "kabul et" diyordu:
+     hayir demek isteyen alicinin mektupta hicbir yolu yoktu, panele
+     gitmesi gerekiyordu. Ana dugmenin altinda sessiz bir baglanti --
+     karar alicinin, vurgu degil. */
+  $decLbl = ['en'=>'Decline this counter offer','de'=>'Gegenangebot ablehnen','fr'=>'Refuser cette contre-offre',
+             'it'=>'Rifiuta questa controfferta','es'=>'Rechazar esta contraoferta'];
+  if ($action === 'counter' && $acceptUrl !== null && $acceptUrl !== '') {
+    $opts['button'] = [
+      'label' => sprintf($accLbl[$lang] ?? $accLbl['en'], number_format((float)$counterPrice, 2)),
+      'url'   => $acceptUrl,
+    ];
+    $opts['button_alt'] = [
+      'label' => $decLbl[$lang] ?? $decLbl['en'],
+      'url'   => $acceptUrl.'&intent=decline',
+    ];
+  }
+  /* URUN BAGLANTISI. Mektupta urunun yalnizca ADI vardi; alici "hangi
+     modeldi, fiyati neydi" diye bakmak istediginde katalogda elle aramak
+     zorundaydi -- pazarlik suren bir mektupta en cok tiklanacak sey bu.
+     Govdeye konuyor, satira degil: satir degerleri htmlspecialchars'tan
+     geciyor ve link olmuyor, govde ise linkify ediliyor. */
+  $prodLine = ['en'=>"See the product: %s", 'de'=>"Zum Produkt: %s", 'fr'=>"Voir le produit : %s",
+               'it'=>"Vedi il prodotto: %s", 'es'=>"Ver el producto: %s"];
+  $T = [
+    'en'=>[
+      'accept'  => ["VESTRA — your offer on %2\$s was accepted ✓", "Hello %1\$s,\n\nGreat news — the seller accepted your offer. Your invoice will be available in your buyer dashboard shortly."],
+      'decline' => ["VESTRA — your offer on %2\$s was declined", "Hello %1\$s,\n\nThe seller declined your offer. You can browse similar listings or message the seller directly from your dashboard."],
+      'counter' => ["VESTRA — counter offer on %2\$s", "Hello %1\$s,\n\nThe seller has countered your offer. You can accept or decline it straight from this e-mail — no sign-in needed. If you accept, we issue the invoice at that price; nothing is charged until you pay it."],
+    ],
+    'de'=>[
+      'accept'  => ["VESTRA — Ihr Angebot für %2\$s wurde angenommen ✓", "Hallo %1\$s,\n\ngute Nachricht — der Verkäufer hat Ihr Angebot angenommen. Ihre Rechnung finden Sie in Kürze in Ihrem Käufer-Dashboard."],
+      'decline' => ["VESTRA — Ihr Angebot für %2\$s wurde abgelehnt", "Hallo %1\$s,\n\nder Verkäufer hat Ihr Angebot abgelehnt. Sie können ähnliche Angebote durchsuchen oder den Verkäufer direkt aus Ihrem Dashboard kontaktieren."],
+      'counter' => ["VESTRA — Gegenangebot für %2\$s", "Hallo %1\$s,\n\nder Verkäufer hat Ihnen ein Gegenangebot gemacht. Sie können es direkt aus dieser E-Mail annehmen oder ablehnen — ohne Anmeldung. Bei Annahme stellen wir die Rechnung zu diesem Preis aus; abgebucht wird nichts, bis Sie sie bezahlen."],
+    ],
+    'fr'=>[
+      'accept'  => ["VESTRA — votre offre sur %2\$s a été acceptée ✓", "Bonjour %1\$s,\n\nbonne nouvelle — le vendeur a accepté votre offre. Votre facture sera bientôt disponible dans votre espace acheteur."],
+      'decline' => ["VESTRA — votre offre sur %2\$s a été refusée", "Bonjour %1\$s,\n\nle vendeur a refusé votre offre. Vous pouvez parcourir des articles similaires ou contacter directement le vendeur depuis votre espace."],
+      'counter' => ["VESTRA — contre-offre sur %2\$s", "Bonjour %1\$s,\n\nle vendeur vous a fait une contre-offre. Vous pouvez l'accepter ou la refuser directement depuis cet e-mail — sans connexion. Si vous acceptez, nous établissons la facture à ce prix ; rien n'est prélevé tant que vous ne l'avez pas payée."],
+    ],
+    'it'=>[
+      'accept'  => ["VESTRA — la tua offerta su %2\$s è stata accettata ✓", "Ciao %1\$s,\n\nottima notizia — il venditore ha accettato la tua offerta. La fattura sarà presto disponibile nella tua area acquirente."],
+      'decline' => ["VESTRA — la tua offerta su %2\$s è stata rifiutata", "Ciao %1\$s,\n\nil venditore ha rifiutato la tua offerta. Puoi sfogliare articoli simili o scrivere direttamente al venditore dalla tua area."],
+      'counter' => ["VESTRA — controfferta su %2\$s", "Ciao %1\$s,\n\nil venditore ti ha fatto una controfferta. Puoi accettarla o rifiutarla direttamente da questa e-mail — senza accedere. Se accetti, emettiamo la fattura a quel prezzo; non viene addebitato nulla finché non la paghi."],
+    ],
+    'es'=>[
+      'accept'  => ["VESTRA — tu oferta sobre %2\$s fue aceptada ✓", "Hola %1\$s,\n\nbuenas noticias — el vendedor aceptó tu oferta. Tu factura estará disponible en breve en tu panel de comprador."],
+      'decline' => ["VESTRA — tu oferta sobre %2\$s fue rechazada", "Hola %1\$s,\n\nel vendedor rechazó tu oferta. Puedes explorar artículos similares o escribir directamente al vendedor desde tu panel."],
+      'counter' => ["VESTRA — contraoferta sobre %2\$s", "Hola %1\$s,\n\nel vendedor te ha hecho una contraoferta. Puedes aceptarla o rechazarla directamente desde este correo — sin iniciar sesión. Si aceptas, emitimos la factura a ese precio; no se cobra nada hasta que la pagues."],
+    ],
+  ];
+  $set = $T[$lang] ?? $T['en'];
+  [$subjT,$bodyT] = $set[$action] ?? $set['decline'];
+  $subject = sprintf($subjT, $buyerName, $product);
+  $body = sprintf($bodyT, $buyerName, $product);
+  /* Karsi teklif verme hakki: mektupta yaziyor. Alici sayfaya gidip
+     "cevap ver" dugmesini aradiginda hakkinin bittigini ogrenirse, bu
+     verilmemis bir sozun geri alinmasi gibi okunur. */
+  if ($action === 'counter') {
+    $cl = ['en'=>["You can also send a counter offer of your own — %d left in this negotiation.",
+                  "This is the last round: it can now only be accepted or declined."],
+           'de'=>["Sie können auch ein eigenes Gegenangebot senden — noch %d in dieser Verhandlung.",
+                  "Dies ist die letzte Runde: es kann jetzt nur noch angenommen oder abgelehnt werden."],
+           'fr'=>["Vous pouvez aussi envoyer votre propre contre-offre — il en reste %d dans cette négociation.",
+                  "C'est le dernier tour : il ne reste plus qu'à accepter ou refuser."],
+           'it'=>["Puoi anche inviare una tua controfferta — ne restano %d in questa trattativa.",
+                  "Questo è l'ultimo round: ora si può solo accettare o rifiutare."],
+           'es'=>["También puedes enviar tu propia contraoferta — quedan %d en esta negociación.",
+                  "Esta es la última ronda: ahora solo se puede aceptar o rechazar."]];
+    $set2 = $cl[$lang] ?? $cl['en'];
+    $body .= "\n\n" . ($countersLeft > 0 ? sprintf($set2[0], $countersLeft) : $set2[1]);
+  }
+  if ($productUrl !== null && $productUrl !== '') {
+    $body .= "\n\n" . sprintf($prodLine[$lang] ?? $prodLine['en'], $productUrl);
+  }
+  $body .= "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/* "You have a new message" doorbell — deliberately content-free (the conversation itself
+ * only ever lives on VESTRA), just localized + premium-wrapped. */
+function vestra_tpl_message(string $lang, string $recipientName, string $fromLabel, string $panelUrl): array {
+  $Lb = vestra_email_labels($lang);
+  $opts = ['badge'=>$Lb['badge_message'],'button'=>['label'=>$Lb['btn_messages'],'url'=>$panelUrl]];
+  $T = [
+    'en'=>["VESTRA — new message from %2\$s", "Hello %1\$s,\n\nYou have a new message from %2\$s on VESTRA."],
+    'de'=>["VESTRA — neue Nachricht von %2\$s", "Hallo %1\$s,\n\nSie haben eine neue Nachricht von %2\$s auf VESTRA."],
+    'fr'=>["VESTRA — nouveau message de %2\$s", "Bonjour %1\$s,\n\nVous avez un nouveau message de %2\$s sur VESTRA."],
+    'it'=>["VESTRA — nuovo messaggio da %2\$s", "Ciao %1\$s,\n\nHai un nuovo messaggio da %2\$s su VESTRA."],
+    'es'=>["VESTRA — nuevo mensaje de %2\$s", "Hola %1\$s,\n\nTienes un nuevo mensaje de %2\$s en VESTRA."],
+  ];
+  [$subjT,$bodyT] = $T[$lang] ?? $T['en'];
+  $subject = sprintf($subjT, $recipientName, $fromLabel);
+  $body = sprintf($bodyT, $recipientName, $fromLabel) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/* KYB/account verification approved — the "you're fully unlocked" moment. Currently
+ * push-only; this is the reliable email fallback for anyone without push enabled. */
+function vestra_tpl_kyb_approved(string $lang, string $name, string $type, string $panelUrl): array {
+  $Lb = vestra_email_labels($lang);
+  $opts = ['badge'=>$Lb['badge_verified'],'button'=>['label'=>$Lb['btn_dashboard'],'url'=>$panelUrl]];
+  $roleWord = ['en'=>$type==='seller'?'seller':'buyer','de'=>$type==='seller'?'Verkäufer':'Käufer',
+    'fr'=>$type==='seller'?'vendeur':'acheteur','it'=>$type==='seller'?'venditore':'acquirente',
+    'es'=>$type==='seller'?'vendedor':'comprador'];
+  $T = [
+    'en'=>["VESTRA — your account is verified ✓", "Hello %1\$s,\n\nYour business is now verified as a %2\$s on VESTRA. Full wholesale access is unlocked — welcome aboard!"],
+    'de'=>["VESTRA — Ihr Konto ist verifiziert ✓", "Hallo %1\$s,\n\nIhr Unternehmen ist jetzt als %2\$s auf VESTRA verifiziert. Der vollständige Großhandelszugang ist freigeschaltet — willkommen an Bord!"],
+    'fr'=>["VESTRA — votre compte est vérifié ✓", "Bonjour %1\$s,\n\nVotre entreprise est désormais vérifiée en tant que %2\$s sur VESTRA. L'accès complet au catalogue de gros est débloqué — bienvenue !"],
+    'it'=>["VESTRA — il tuo account è verificato ✓", "Ciao %1\$s,\n\nLa tua azienda è ora verificata come %2\$s su VESTRA. L'accesso completo all'ingrosso è sbloccato — benvenuto a bordo!"],
+    'es'=>["VESTRA — tu cuenta está verificada ✓", "Hola %1\$s,\n\nTu empresa ya está verificada como %2\$s en VESTRA. El acceso completo al catálogo mayorista está desbloqueado — ¡bienvenido!"],
+  ];
+  [$subjT,$bodyT] = $T[$lang] ?? $T['en'];
+  $subject = $subjT;
+  $body = sprintf($bodyT, $name, $roleWord[$lang] ?? $roleWord['en']) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/* Belge talebi. Bu e-posta yoktu: auth_request_doc() talebi acikca kaydediyor ama
+   kimseye haber vermiyordu -- musteri ancak kendiliginden panele girerse gorurdu,
+   ki girmesi icin bir sebebi yok. Talep, ulasmadigi surece talep degil.
+   Belge adi ziyaretcinin ULKESINE gore geliyor ($docPhrase): Almanyali icin
+   "Gewerbeschein", Fransizli icin "extrait Kbis". Fiyat kapisini da burada
+   soyluyoruz -- "neden yukleyeyim" sorusunun cevabi bu. */
+function vestra_tpl_doc_requested(string $lang, string $name, string $docPhrase, string $panelUrl): array {
+  $Lb   = vestra_email_labels($lang);
+  $BTN  = ['en'=>'Upload document','de'=>'Dokument hochladen','fr'=>'Déposer le document',
+           'it'=>'Carica il documento','es'=>'Subir documento'];
+  $opts = ['button'=>['label'=>$BTN[$lang] ?? $BTN['en'], 'url'=>$panelUrl]];
+  /* "Yukleyince fiyatlar hemen acilir" YALANDI: kapiyi operator onayi acar
+     (KURAL 2, auth_prices_unlocked). Mektup artik belgeyi ne icin istedigimizi
+     ve IKI yolu soyluyor -- panelden yukle YA DA bu mektuba ekleyip yanitla
+     (KURAL 2d). Kapi hakkinda soz vermiyor. */
+  $T = [
+    'en'=>["VESTRA — one document for your account: %2\$s",
+           "Hello %1\$s,\n\nFor your VESTRA account we need one document on file: your %2\$s.\n\nUpload it in your panel — or simply reply to this e-mail with the file attached (PDF or a photo) and we add it to your account for you. We check it usually the same day.\n\nThis is standard for B2B wholesale: trade prices are shown to businesses only, and the document is how we know there is a business behind the account."],
+    'de'=>["VESTRA — ein Dokument für Ihr Konto: %2\$s",
+           "Hallo %1\$s,\n\nFür Ihr VESTRA-Konto benötigen wir ein Dokument: Ihren %2\$s.\n\nLaden Sie es in Ihrem Konto hoch — oder antworten Sie einfach auf diese E-Mail mit der Datei im Anhang (PDF oder Foto), dann fügen wir es für Sie hinzu. Die Prüfung erfolgt meist am selben Tag.\n\nDas ist im B2B-Großhandel üblich: Großhandelspreise sehen nur Gewerbetreibende, und das Dokument belegt, dass hinter dem Konto ein Unternehmen steht."],
+    'fr'=>["VESTRA — un document pour votre compte : %2\$s",
+           "Bonjour %1\$s,\n\nPour votre compte VESTRA, il nous faut un document : votre %2\$s.\n\nDéposez-le dans votre espace — ou répondez simplement à cet e-mail avec le fichier en pièce jointe (PDF ou photo) et nous l'ajouterons à votre compte. La vérification se fait en général le jour même.\n\nC'est la norme en gros B2B : les prix de gros sont réservés aux professionnels, et ce document atteste qu'une entreprise se trouve derrière le compte."],
+    'it'=>["VESTRA — un documento per il tuo account: %2\$s",
+           "Ciao %1\$s,\n\nPer il tuo account VESTRA ci serve un documento: la tua %2\$s.\n\nCaricala nel tuo pannello — oppure rispondi semplicemente a questa e-mail allegando il file (PDF o foto) e la aggiungeremo noi al tuo account. Il controllo avviene di solito in giornata.\n\nÈ la prassi nell'ingrosso B2B: i prezzi all'ingrosso sono riservati alle aziende, e il documento è ciò che ci dice che dietro l'account c'è un'azienda."],
+    'es'=>["VESTRA — un documento para tu cuenta: %2\$s",
+           "Hola %1\$s,\n\nPara tu cuenta de VESTRA necesitamos un documento: tu %2\$s.\n\nSúbelo en tu panel — o simplemente responde a este correo adjuntando el archivo (PDF o foto) y lo añadiremos a tu cuenta. Lo revisamos normalmente el mismo día.\n\nEs lo habitual en el mayorista B2B: los precios mayoristas se muestran solo a empresas, y el documento es lo que nos dice que hay una empresa detrás de la cuenta."],
+  ];
+  [$subj,$bodyT] = $T[$lang] ?? $T['en'];
+  $body = sprintf($bodyT, $name, $docPhrase) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subj, $body, $opts];
+}
+
+/* Welcome voucher — a personal first-order discount code for a registered customer.
+   The code is printed in the body as well as sitting on the button, because a buyer who
+   forwards the mail to whoever places their orders needs the code itself to survive the
+   forward; a button alone does not. The link carries ?voucher= so the cart fills it in. */
+function vestra_tpl_welcome_voucher(string $lang, string $name, string $code, string $valueLabel, string $expiry): array {
+  $Lb  = vestra_email_labels($lang);
+  $url = 'https://vestrasales.com/shop?voucher='.rawurlencode($code);
+  $BTN   = ['en'=>'Browse the catalogue','de'=>'Zum Katalog','fr'=>'Voir le catalogue',
+            'it'=>'Vai al catalogo','es'=>'Ver el catálogo'];
+  $ROWL  = ['en'=>['Voucher code','Discount','Valid until'],'de'=>['Gutscheincode','Rabatt','Gültig bis'],
+            'fr'=>['Code du bon','Remise','Valable jusqu\'au'],'it'=>['Codice buono','Sconto','Valido fino al'],
+            'es'=>['Código del vale','Descuento','Válido hasta']];
+  $rl = $ROWL[$lang] ?? $ROWL['en'];
+  $KICK = ['en'=>'Welcome voucher','de'=>'Willkommensgutschein','fr'=>'Bon de bienvenue',
+           'it'=>'Buono di benvenuto','es'=>'Vale de bienvenida'];
+  $CAP  = ['en'=>'off your first wholesale order',
+           'de'=>'Rabatt auf Ihre erste Großhandelsbestellung',
+           'fr'=>'de remise sur votre première commande en gros',
+           'it'=>'di sconto sul tuo primo ordine all\'ingrosso',
+           'es'=>'de descuento en tu primer pedido mayorista'];
+  /* The coupon block instead of the generic rows, and no badge above it. Through the rows
+     the whole offer arrived as one grey line — the same furniture this shell puts under a
+     plan change or an escrow release, for the one mail whose entire job is to carry a code.
+     The badge is dropped because the coupon's own kicker already names it; keeping both
+     printed "Your voucher" twice, six lines apart. */
+  $opts = [
+    'voucher' => [
+      'kicker'       => $KICK[$lang] ?? $KICK['en'],
+      'amount'       => $valueLabel,
+      'caption'      => $CAP[$lang] ?? $CAP['en'],
+      'code_label'   => $rl[0],
+      'code'         => $code,
+      'expiry_label' => $rl[2],
+      'expiry'       => $expiry,
+    ],
+    'button' => ['label'=>$BTN[$lang] ?? $BTN['en'], 'url'=>$url],
+  ];
+  $T = [
+    'en'=>["Your %2\$s welcome voucher for your first VESTRA order",
+      "Hello %1\$s,\n\nThank you for registering with VESTRA. Here is %2\$s off your first wholesale order.\n\nYour code: %3\$s\n\nEnter it in the cart under \"Voucher code\" before placing the order. The code is tied to your account, can be used once, and is valid on a first order until %4\$s."],
+    'de'=>["Ihr %2\$s Willkommensgutschein für Ihre erste VESTRA-Bestellung",
+      "Hallo %1\$s,\n\nvielen Dank für Ihre Registrierung bei VESTRA. Hier sind %2\$s Rabatt auf Ihre erste Großhandelsbestellung.\n\nIhr Code: %3\$s\n\nGeben Sie ihn im Warenkorb unter \"Gutscheincode\" ein, bevor Sie die Bestellung abschicken. Der Code ist an Ihr Konto gebunden, einmal einlösbar und für eine Erstbestellung bis zum %4\$s gültig."],
+    'fr'=>["Votre bon de bienvenue de %2\$s pour votre première commande VESTRA",
+      "Bonjour %1\$s,\n\nMerci de votre inscription sur VESTRA. Voici %2\$s de remise sur votre première commande en gros.\n\nVotre code : %3\$s\n\nSaisissez-le dans le panier sous « Code du bon » avant de valider la commande. Le code est lié à votre compte, utilisable une fois, et valable sur une première commande jusqu'au %4\$s."],
+    'it'=>["Il tuo buono di benvenuto del %2\$s per il primo ordine VESTRA",
+      "Ciao %1\$s,\n\ngrazie per esserti registrato su VESTRA. Ecco %2\$s di sconto sul tuo primo ordine all'ingrosso.\n\nIl tuo codice: %3\$s\n\nInseriscilo nel carrello alla voce \"Codice buono\" prima di confermare l'ordine. Il codice è collegato al tuo account, utilizzabile una volta e valido su un primo ordine fino al %4\$s."],
+    'es'=>["Tu vale de bienvenida del %2\$s para tu primer pedido VESTRA",
+      "Hola %1\$s,\n\ngracias por registrarte en VESTRA. Aquí tienes un %2\$s de descuento en tu primer pedido mayorista.\n\nTu código: %3\$s\n\nIntrodúcelo en el carrito en \"Código del vale\" antes de confirmar el pedido. El código está vinculado a tu cuenta, se puede usar una vez y es válido en un primer pedido hasta el %4\$s."],
+  ];
+  [$subjT,$bodyT] = $T[$lang] ?? $T['en'];
+  return [
+    sprintf($subjT, $name, $valueLabel, $code, $expiry),
+    sprintf($bodyT, $name, $valueLabel, $code, $expiry)."\n\n—\nVESTRA · vestrasales.com",
+    $opts,
+  ];
+}
+
+/* Membership tier changed (comp / manual upgrade by admin). */
+function vestra_tpl_membership_changed(string $lang, string $name, string $tierLabel, string $panelUrl): array {
+  $Lb = vestra_email_labels($lang);
+  $opts = ['badge'=>$Lb['badge_plan'],'rows'=>[['label'=>$Lb['plan'],'value'=>$tierLabel,'strong'=>true]],'button'=>['label'=>$Lb['btn_dashboard'],'url'=>$panelUrl]];
+  $T = [
+    'en'=>["VESTRA — your plan is now %2\$s ⭐", "Hello %1\$s,\n\nYour VESTRA membership has been updated."],
+    'de'=>["VESTRA — Ihr Tarif ist jetzt %2\$s ⭐", "Hallo %1\$s,\n\nIhre VESTRA-Mitgliedschaft wurde aktualisiert."],
+    'fr'=>["VESTRA — votre formule est désormais %2\$s ⭐", "Bonjour %1\$s,\n\nVotre abonnement VESTRA a été mis à jour."],
+    'it'=>["VESTRA — il tuo piano ora è %2\$s ⭐", "Ciao %1\$s,\n\nIl tuo abbonamento VESTRA è stato aggiornato."],
+    'es'=>["VESTRA — tu plan ahora es %2\$s ⭐", "Hola %1\$s,\n\nTu membresía de VESTRA ha sido actualizada."],
+  ];
+  [$subjT,$bodyT] = $T[$lang] ?? $T['en'];
+  $subject = sprintf($subjT, $name, $tierLabel);
+  $body = sprintf($bodyT, $name, $tierLabel) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/* Escrow funds released to the seller (dispute resolved / order confirmed) — one function,
+ * $role toggles the wording + dashboard link between the seller and the buyer side. */
+function vestra_tpl_escrow_release(string $lang, string $name, string $role, string $ref, float $amount): array {
+  $Lb = vestra_email_labels($lang);
+  $panel = $role === 'seller' ? 'https://vestrasales.com/seller?tab=orders' : 'https://vestrasales.com/buyer?tab=orders';
+  $opts = ['badge'=>$Lb['badge_released'],'rows'=>[['label'=>$Lb['ref'],'value'=>$ref],['label'=>$Lb['amount'],'value'=>'€'.number_format($amount,2),'strong'=>true]],
+    'button'=>['label'=>$role==='seller'?$Lb['btn_orders_seller']:$Lb['btn_orders_buyer'],'url'=>$panel]];
+  $T = [
+    'en'=>['seller'=>["VESTRA — funds released for order %2\$s", "Hello %1\$s,\n\nVESTRA has released the held funds for your order — they're on their way to your bank."],
+           'buyer' =>["VESTRA — order %2\$s resolved, funds released", "Hello %1\$s,\n\nYour order has been resolved — the held funds have been released to the seller."]],
+    'de'=>['seller'=>["VESTRA — Guthaben für Bestellung %2\$s freigegeben", "Hallo %1\$s,\n\nVESTRA hat das einbehaltene Guthaben für Ihre Bestellung freigegeben — es ist auf dem Weg zu Ihrer Bank."],
+           'buyer' =>["VESTRA — Bestellung %2\$s abgeschlossen, Guthaben freigegeben", "Hallo %1\$s,\n\nIhre Bestellung wurde abgeschlossen — das einbehaltene Guthaben wurde an den Verkäufer freigegeben."]],
+    'fr'=>['seller'=>["VESTRA — fonds débloqués pour la commande %2\$s", "Bonjour %1\$s,\n\nVESTRA a débloqué les fonds retenus pour votre commande — ils sont en route vers votre banque."],
+           'buyer' =>["VESTRA — commande %2\$s résolue, fonds débloqués", "Bonjour %1\$s,\n\nVotre commande a été résolue — les fonds retenus ont été versés au vendeur."]],
+    'it'=>['seller'=>["VESTRA — fondi rilasciati per l'ordine %2\$s", "Ciao %1\$s,\n\nVESTRA ha rilasciato i fondi trattenuti per il tuo ordine — sono in arrivo sul tuo conto."],
+           'buyer' =>["VESTRA — ordine %2\$s risolto, fondi rilasciati", "Ciao %1\$s,\n\nIl tuo ordine è stato risolto — i fondi trattenuti sono stati rilasciati al venditore."]],
+    'es'=>['seller'=>["VESTRA — fondos liberados para el pedido %2\$s", "Hola %1\$s,\n\nVESTRA ha liberado los fondos retenidos de tu pedido — están en camino a tu banco."],
+           'buyer' =>["VESTRA — pedido %2\$s resuelto, fondos liberados", "Hola %1\$s,\n\nTu pedido ha sido resuelto — los fondos retenidos se han liberado al vendedor."]],
+  ];
+  $set = $T[$lang] ?? $T['en'];
+  [$subjT,$bodyT] = $set[$role] ?? $set['buyer'];
+  $subject = sprintf($subjT, $name, $ref);
+  $body = sprintf($bodyT, $name, $ref) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/* Escrow refund to the buyer (order cancelled). */
+function vestra_tpl_escrow_refund(string $lang, string $name, string $role, string $ref, float $amount): array {
+  $Lb = vestra_email_labels($lang);
+  $panel = $role === 'seller' ? 'https://vestrasales.com/seller?tab=orders' : 'https://vestrasales.com/buyer?tab=orders';
+  $opts = ['badge'=>$Lb['badge_refunded'],'rows'=>[['label'=>$Lb['ref'],'value'=>$ref],['label'=>$Lb['amount'],'value'=>'€'.number_format($amount,2),'strong'=>true]],
+    'button'=>['label'=>$role==='seller'?$Lb['btn_orders_seller']:$Lb['btn_orders_buyer'],'url'=>$panel]];
+  $T = [
+    'en'=>['buyer' =>["VESTRA — order %2\$s refunded", "Hello %1\$s,\n\nYour order has been cancelled and refunded in full — the amount is being returned to your card."],
+           'seller'=>["VESTRA — order %2\$s refunded to buyer", "Hello %1\$s,\n\nOrder %2\$s was cancelled — the buyer has been refunded in full and no funds will be released to you for it."]],
+    'de'=>['buyer' =>["VESTRA — Bestellung %2\$s erstattet", "Hallo %1\$s,\n\nIhre Bestellung wurde storniert und vollständig erstattet — der Betrag wird auf Ihre Karte zurückerstattet."],
+           'seller'=>["VESTRA — Bestellung %2\$s an Käufer erstattet", "Hallo %1\$s,\n\nBestellung %2\$s wurde storniert — der Käufer wurde vollständig erstattet, es wird kein Guthaben dafür an Sie ausgezahlt."]],
+    'fr'=>['buyer' =>["VESTRA — commande %2\$s remboursée", "Bonjour %1\$s,\n\nVotre commande a été annulée et intégralement remboursée — le montant est en cours de retour sur votre carte."],
+           'seller'=>["VESTRA — commande %2\$s remboursée à l'acheteur", "Bonjour %1\$s,\n\nLa commande %2\$s a été annulée — l'acheteur a été intégralement remboursé et aucun fonds ne vous sera versé pour celle-ci."]],
+    'it'=>['buyer' =>["VESTRA — ordine %2\$s rimborsato", "Ciao %1\$s,\n\nIl tuo ordine è stato annullato e rimborsato per intero — l'importo sta per essere restituito sulla tua carta."],
+           'seller'=>["VESTRA — ordine %2\$s rimborsato all'acquirente", "Ciao %1\$s,\n\nL'ordine %2\$s è stato annullato — l'acquirente è stato rimborsato per intero e non ti verrà rilasciato alcun fondo per questo ordine."]],
+    'es'=>['buyer' =>["VESTRA — pedido %2\$s reembolsado", "Hola %1\$s,\n\nTu pedido ha sido cancelado y reembolsado por completo — el importe se está devolviendo a tu tarjeta."],
+           'seller'=>["VESTRA — pedido %2\$s reembolsado al comprador", "Hola %1\$s,\n\nEl pedido %2\$s fue cancelado — el comprador ha sido reembolsado por completo y no se te liberarán fondos por este pedido."]],
+  ];
+  $set = $T[$lang] ?? $T['en'];
+  [$subjT,$bodyT] = $set[$role] ?? $set['buyer'];
+  $subject = sprintf($subjT, $name, $ref);
+  $body = sprintf($bodyT, $name, $ref) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/* A seller's pending listing goes live. */
+function vestra_tpl_listing_approved(string $lang, string $name, string $product): array {
+  $Lb = vestra_email_labels($lang);
+  $opts = ['badge'=>$Lb['badge_listing_live'],'rows'=>[['label'=>$Lb['product'],'value'=>$product]],
+    'button'=>['label'=>$Lb['btn_listings'],'url'=>'https://vestrasales.com/seller?tab=listings']];
+  $T = [
+    'en'=>["VESTRA — %2\$s is now live 🎉", "Hello %1\$s,\n\nGood news — your listing has been approved and is now live in the VESTRA catalog."],
+    'de'=>["VESTRA — %2\$s ist jetzt live 🎉", "Hallo %1\$s,\n\ngute Nachricht — Ihr Angebot wurde genehmigt und ist jetzt im VESTRA-Katalog live."],
+    'fr'=>["VESTRA — %2\$s est maintenant en ligne 🎉", "Bonjour %1\$s,\n\nbonne nouvelle — votre annonce a été approuvée et est désormais en ligne dans le catalogue VESTRA."],
+    'it'=>["VESTRA — %2\$s è ora online 🎉", "Ciao %1\$s,\n\nottima notizia — il tuo annuncio è stato approvato ed è ora online nel catalogo VESTRA."],
+    'es'=>["VESTRA — %2\$s ya está en línea 🎉", "Hola %1\$s,\n\nbuenas noticias — tu anuncio ha sido aprobado y ya está en línea en el catálogo de VESTRA."],
+  ];
+  [$subjT,$bodyT] = $T[$lang] ?? $T['en'];
+  $subject = sprintf($subjT, $name, $product);
+  $body = sprintf($bodyT, $name) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/* A seller's pending listing was rejected / needs changes. $note is the admin's own text
+ * (already in whatever language they wrote it — inserted as-is, not translated). */
+function vestra_tpl_listing_rejected(string $lang, string $name, string $product, string $note): array {
+  $Lb = vestra_email_labels($lang);
+  $rows = [['label'=>$Lb['product'],'value'=>$product]];
+  $opts = ['badge'=>$Lb['badge_listing_changes'],'rows'=>$rows,
+    'button'=>['label'=>$Lb['btn_listings'],'url'=>'https://vestrasales.com/seller?tab=listings']];
+  $noteLine = $note !== '' ? "\n\n".$note : '';
+  $T = [
+    'en'=>["VESTRA — %2\$s needs changes", "Hello %1\$s,\n\nYour listing wasn't approved as submitted and needs a few changes before it can go live.%3\$s"],
+    'de'=>["VESTRA — %2\$s benötigt Änderungen", "Hallo %1\$s,\n\nIhr Angebot wurde in der eingereichten Form nicht genehmigt und benötigt einige Änderungen, bevor es live gehen kann.%3\$s"],
+    'fr'=>["VESTRA — %2\$s nécessite des modifications", "Bonjour %1\$s,\n\nvotre annonce n'a pas été approuvée telle quelle et nécessite quelques modifications avant de pouvoir être publiée.%3\$s"],
+    'it'=>["VESTRA — %2\$s richiede modifiche", "Ciao %1\$s,\n\nil tuo annuncio non è stato approvato così come inviato e richiede alcune modifiche prima di poter andare online.%3\$s"],
+    'es'=>["VESTRA — %2\$s necesita cambios", "Hola %1\$s,\n\ntu anuncio no fue aprobado tal como se envió y necesita algunos cambios antes de poder publicarse.%3\$s"],
+  ];
+  [$subjT,$bodyT] = $T[$lang] ?? $T['en'];
+  $subject = sprintf($subjT, $name, $product);
+  $body = sprintf($bodyT, $name, $product, $noteLine) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/* One uploaded verification document reviewed (approved or rejected) — distinct from
+ * vestra_tpl_kyb_approved(), which is the OVERALL account-verified moment once every
+ * required document has been approved. $docLabel is the doc's own request note/type
+ * (already human-readable, e.g. "company registration certificate"). */
+function vestra_tpl_doc_reviewed(string $lang, string $name, string $status, string $docLabel, string $adminNote): array {
+  $Lb = vestra_email_labels($lang);
+  $approved = $status === 'approved';
+  $badge = ['en'=>$approved?'✓ Document approved':'✎ Document needs changes',
+    'de'=>$approved?'✓ Dokument genehmigt':'✎ Dokument benötigt Änderungen',
+    'fr'=>$approved?'✓ Document approuvé':'✎ Document à corriger',
+    'it'=>$approved?'✓ Documento approvato':'✎ Documento da correggere',
+    'es'=>$approved?'✓ Documento aprobado':'✎ Documento requiere cambios'][$lang] ?? ($approved?'✓ Document approved':'✎ Document needs changes');
+  $btnLabel = ['en'=>'Go to my documents','de'=>'Zu meinen Dokumenten','fr'=>'Voir mes documents',
+    'it'=>'Vai ai miei documenti','es'=>'Ir a mis documentos'][$lang] ?? 'Go to my documents';
+  $opts = ['badge'=>$badge,'button'=>['label'=>$btnLabel,'url'=>'https://vestrasales.com/seller?tab=kyc']];
+  $noteLine = $adminNote !== '' ? "\n\n".$adminNote : '';
+  $T = [
+    'en'=>[
+      true  => ["VESTRA — your %2\$s was approved ✓", "Hello %1\$s,\n\nYour uploaded %2\$s has been reviewed and approved."],
+      false => ["VESTRA — your %2\$s needs changes", "Hello %1\$s,\n\nYour uploaded %2\$s couldn't be approved as submitted and needs a re-upload.%3\$s"],
+    ],
+    'de'=>[
+      true  => ["VESTRA — Ihr %2\$s wurde genehmigt ✓", "Hallo %1\$s,\n\nIhr hochgeladenes Dokument (%2\$s) wurde geprüft und genehmigt."],
+      false => ["VESTRA — %2\$s benötigt Änderungen", "Hallo %1\$s,\n\nIhr hochgeladenes Dokument (%2\$s) konnte in der eingereichten Form nicht genehmigt werden und muss erneut hochgeladen werden.%3\$s"],
+    ],
+    'fr'=>[
+      true  => ["VESTRA — votre document (%2\$s) a été approuvé ✓", "Bonjour %1\$s,\n\nvotre document envoyé (%2\$s) a été examiné et approuvé."],
+      false => ["VESTRA — votre document (%2\$s) nécessite des modifications", "Bonjour %1\$s,\n\nvotre document envoyé (%2\$s) n'a pas pu être approuvé tel quel et doit être renvoyé.%3\$s"],
+    ],
+    'it'=>[
+      true  => ["VESTRA — il tuo documento (%2\$s) è stato approvato ✓", "Ciao %1\$s,\n\nil documento caricato (%2\$s) è stato esaminato e approvato."],
+      false => ["VESTRA — il tuo documento (%2\$s) richiede modifiche", "Ciao %1\$s,\n\nil documento caricato (%2\$s) non è stato approvato così come inviato e deve essere ricaricato.%3\$s"],
+    ],
+    'es'=>[
+      true  => ["VESTRA — tu documento (%2\$s) fue aprobado ✓", "Hola %1\$s,\n\ntu documento subido (%2\$s) ha sido revisado y aprobado."],
+      false => ["VESTRA — tu documento (%2\$s) necesita cambios", "Hola %1\$s,\n\ntu documento subido (%2\$s) no pudo aprobarse tal como se envió y debe volver a subirse.%3\$s"],
+    ],
+  ];
+  $set = $T[$lang] ?? $T['en'];
+  [$subjT,$bodyT] = $set[$approved];
+  $subject = sprintf($subjT, $name, $docLabel);
+  $body = sprintf($bodyT, $name, $docLabel, $noteLine) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/**
+ * Kabul edilen bir teklif icin "eksik bilgileri tamamla" e-postasi.
+ *
+ * Kabul bildirimi (vestra_tpl_offer_response) tek basina yetmiyor: alici "kabul
+ * edildi" diyen bir e-posta aliyor ama fatura ve sevkiyat icin gereken bilgiler
+ * hesabinda EKSIK olabiliyor ve bunu kimse istemiyor. Canli ornek O39419: teslimat
+ * adresinde sehir/eyalet/ZIP yok, vergi numarasi ve sicil numarasi "n/a" yazili.
+ * O halde siparis, kimsenin takip etmedigi bir bosluga giriyor.
+ *
+ * Sadece EKSIK olan maddeler yaziliyor. Zaten verilmis bir bilgiyi tekrar sormak
+ * hem alicinin gozunde ozensiz duruyor hem de cevap oranini dusuruyor.
+ *
+ * Ingilizce tek dil: bu akis su an ABD/uluslararasi alicilar icin kullaniliyor ve
+ * yanlis dilde gonderilen bir ticari talep, hic gondermemekten kotudur.
+ */
+function vestra_tpl_order_details_needed(
+    string $buyerName, string $product, string $ref, int $qty, float $unit, float $total,
+    string $colourNote = '', array $missing = [], float $usdRate = 0.0, string $rateNote = '',
+    float $shipUsd = 0.0, string $leadTime = ''
+): array {
+    $rows = [
+        ['label'=>'Product',    'value'=>$product],
+        ['label'=>'Reference',  'value'=>$ref],
+        ['label'=>'Quantity',   'value'=>$qty.' pcs'.($colourNote !== '' ? ' — '.$colourNote : '')],
+        ['label'=>'Unit price', 'value'=>'€'.number_format($unit, 2)],
+    ];
+
+    /* Nakliye USD olarak belirleniyor ama siparis EUR. Ikisini ayni belgede yan yana
+       birakmak ("EUR 1.798 + US$50") aliciya toplami KENDISININ hesaplamasini birakir
+       ve iki para birimli bir toplam faturaya yazilamaz. O yuzden ucret ayni referans
+       kuruyla euroya cevriliyor, dolar karsiligi parantezde kaliyor ve TOPLAM tek para
+       biriminde veriliyor. */
+    $shipEur = ($shipUsd > 0 && $usdRate > 0) ? round($shipUsd / $usdRate, 2) : 0.0;
+    $grand   = $total + $shipEur;
+
+    if ($shipUsd > 0 && $usdRate > 0) {
+        $rows[] = ['label'=>'Goods',    'value'=>'€'.number_format($total, 2)];
+        $rows[] = ['label'=>'Shipping', 'value'=>'€'.number_format($shipEur, 2).'  (US$'.number_format($shipUsd, 2).')'];
+        $rows[] = ['label'=>'Total',    'value'=>'€'.number_format($grand, 2), 'strong'=>true];
+    } elseif ($shipUsd > 0) {
+        /* Kur yok: cevrim yapilamaz. Ucret kendi para biriminde ve AYRI duruyor;
+           uydurma bir kurla euro yazmaktansa toplami vermemek dogru. */
+        $rows[] = ['label'=>'Goods',    'value'=>'€'.number_format($total, 2), 'strong'=>true];
+        $rows[] = ['label'=>'Shipping', 'value'=>'US$'.number_format($shipUsd, 2).' — invoiced in euro at the rate on the invoice date'];
+    } else {
+        $rows[] = ['label'=>'Total',    'value'=>'€'.number_format($total, 2), 'strong'=>true];
+    }
+
+    /* USD karsiligi ABD'li alici icin isi kolaylastiriyor, ama sozlesme EUR uzerinden:
+       teklif EUR verildi, fatura EUR kesilecek. O yuzden satir "approx." diye ve KURU
+       ACIKCA yazarak geciyor. Kursuz bir dolar rakami, aliciya sabit bir dolar fiyati
+       taahhut etmis gibi okunur; odeme gunu kur oynayinca aradaki fark tartisma konusu
+       olur. Kur cekilemezse satir HIC basilmiyor -- yanlis ya da eski bir kur, hic
+       olmamasindan kotudur. */
+    if ($usdRate > 0) {
+        $rows[] = [
+            'label' => 'Total (approx.)',
+            'value' => 'US$'.number_format($grand * $usdRate, 2)
+                     . ($rateNote !== '' ? '  ·  '.$rateNote : ''),
+        ];
+    }
+    $opts = [
+        'badge'  => 'Offer accepted',
+        'rows'   => $rows,
+        'button' => ['label'=>'Confirm my details', 'url'=>'https://vestrasales.com/buyer'],
+    ];
+
+    $ask = [];
+    if (in_array('address', $missing, true)) {
+        $ask[] = "1. Complete delivery address — including city, state and ZIP code, and the company name that should appear on the shipping documents.";
+    }
+    if (in_array('tax_id', $missing, true)) {
+        $ask[] = ($ask ? count($ask)+1 : 1).". Billing details for the invoice — the company name and address exactly as they should appear, and your EIN (Federal Tax ID). Customs clearance requires a valid EIN for the importer of record.";
+    }
+    if (in_array('incoterm', $missing, true)) {
+        $ask[] = (count($ask)+1).". Delivery terms — DAP (you act as importer of record and pay duties and clearance) or DDP (we arrange clearance and quote duties separately). Import duty on knitwear is significant, so we would rather agree this now than after dispatch.";
+    }
+    if (in_array('phone', $missing, true)) {
+        $ask[] = (count($ask)+1).". A contact name and phone number for the carrier at the delivery address.";
+    }
+    $askTxt = $ask ? implode("\n\n", $ask) : "Please confirm the delivery address so we can prepare the shipment.";
+
+    $subject = "VESTRA — offer {$ref} accepted · details required to complete your order";
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "We are pleased to confirm that your offer {$ref} has been accepted.\n\n"
+      /* "Reply with the following" cevap yazma isi gibi okunuyor ve bir is
+         e-postasinda erteleniyor. "Confirm your details" ise zaten sahip olduklari
+         bilgiyi onaylamaya davet ediyor: daha kucuk bir istek, daha yuksek cevap. */
+      . "To issue your invoice and prepare the shipment, please confirm your details below:\n\n"
+      . $askTxt . "\n\n"
+      . "Payment terms are 100% in advance. Once the above is confirmed we will issue the invoice with our banking details, and the goods are dispatched as soon as payment is received.\n\n"
+      /* Sevkiyat aciklamasi. Iki sey acikca yaziliyor:
+         - Mal AVRUPA'dan cikiyor. Alici ABD'de ve satici Delaware kayitli bir sirket;
+           soylenmezse mal ABD ici bir depodan gelecek sanilir, oysa sevkiyat sinir
+           asiyor. Bunu sonradan ogrenmek, teslim suresi ve gumruk beklentisini bozar.
+         - Sure PARA ALINDIKTAN sonra basliyor. "Iki hafta"yi siparis tarihinden sayan
+           bir alici, odemeyi uc gun sonra yaparsa gecikmis gibi hisseder. */
+      . ($leadTime !== ''
+          ? "Dispatch and delivery: the goods are checked at our warehouse before dispatch and ship from Europe. Total delivery time is {$leadTime} on average, counted from receipt of payment.\n\n"
+          : '')
+      /* Kur satiri bilgi kutusunda "approx." diye geciyor; govdede de bir kez daha
+         soyluyoruz ki alici dolar rakamini sabit fiyat sanmasin. Faturayi EUR kesip
+         e-postada dolar yazip sonra "aslinda kur degisti" demek, satisi degil guveni
+         kaybettirir. */
+      . ($shipUsd > 0
+          ? "Shipping is charged at a flat US$".number_format($shipUsd, 2).", shown above converted to euro.\n\n"
+          : '')
+      . ($usdRate > 0
+          ? "The US dollar figure above is indicative only, converted at the reference rate shown. The order and the invoice are in euro, and the amount received depends on the rate applied by your bank on the day of payment.\n\n"
+          : '')
+      . "If any of these details change the delivery country, please tell us — it affects the export paperwork, and we would rather correct it before the invoice is issued than after.\n\n"
+      . "—\n"
+      . "VESTRA · Acerasoft LLC\n"
+      . "8 The Green, Suite B, Dover, Delaware 19901, USA\n"
+      . "support@vestrasales.com · vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
+ * The letter a newly registered seller gets: what to do, in the order it has to happen.
+ *
+ * Four asks, and the order is the point. Publishing is free and needs nothing, so it comes
+ * first and the seller can act on it today; the catalogue offer removes the work that
+ * actually stops people (typing hundreds of references by hand); the commission card is
+ * required before money moves; Stripe is optional and clearly labelled as such. Putting the
+ * two payment steps first would read as a bill arriving before any benefit.
+ *
+ * Every link and label names something that exists in the seller panel — "Commission card",
+ * "Payouts & Escrow (Stripe)", both under /seller?tab=profile. A welcome letter that sends
+ * someone hunting for a button that is not there costs more trust than it builds.
+ *
+ * @param float $rate Commission as a fraction (0.035) — printed, never hardcoded in the
+ *                    text, so a rate change in one constant cannot leave this letter lying.
+ */
+function vestra_tpl_seller_onboarding(string $lang, string $name, float $rate, bool $isCompany = true): array {
+    /* Ispanyolcada ondalik ayirici VIRGUL: "3.5%" bir Ispanyol okura makine
+       cevirisi gibi gorunur, "3,5 %" dogal. Yuzde isaretinden onceki bosluk da
+       Ispanyolca yazim kuralidir. */
+    $pct  = $lang === 'es' ? number_format($rate * 100, 1, ',', '.').' %' : number_format($rate * 100, 1).'%';
+    /* Bir SIRKETE "Estimado/a Calzados Pili Perez:" diye hitap edilmez -- tekil
+       nezaket kalibi kisiye aittir. Ticari yazismada sirkete "Estimados senores:"
+       yazilir ve sirket adi ilk cumlede gecer. Sahis ise "Estimado/a X:" dogru.
+       Ayrimi cagiran biliyor (hesapta company mi name mi doluydu), tahmin
+       etmiyoruz. */
+    $greetEs = $isCompany ? 'Estimados señores:' : "Estimado/a {$name}:";
+    $openEs  = $isCompany
+        ? "Bienvenidos a VESTRA. La cuenta de vendedor de {$name} ya está activa y pueden empezar hoy mismo."
+        : "Bienvenido a VESTRA. Su cuenta de vendedor ya está activa y puede empezar hoy mismo.";
+    $opts = [
+        'badge'  => $lang === 'es' ? 'Cuenta activa · plataforma gratuita' : 'Account active · platform free',
+        'button' => [
+            'label' => $lang === 'es' ? 'Abrir mi panel' : 'Open my dashboard',
+            'url'   => 'https://vestrasales.com/seller',
+        ],
+    ];
+
+    if ($lang === 'es') {
+        /* Ispanyolcada nezaket kalibi FIILI de degistirir. "Estimados senores:"
+           deyip govdede "puede/envienos" (tekil) devam etmek, bir Ispanyol okura
+           yarim cevrilmis metin gibi gorunur. Iyelik sifatlari (su/sus) iki kalipta
+           da ayni oldugu icin yalnizca fiiller degisiyor -- asagidaki cift. */
+        $vPueden   = $isCompany ? 'pueden'    : 'puede';
+        $vEnvien   = $isCompany ? 'envíennos' : 'envíenos';
+        $vRespondan= $isCompany ? 'respondan' : 'responda';
+        $vQuieren  = $isCompany ? 'quieren'   : 'quiere';
+        $vConecten = $isCompany ? 'conecten'  : 'conecte';
+        $vCompleten= $isCompany ? 'completen' : 'complete';
+        $vVendan   = $isCompany ? 'vendan'    : 'venda';
+        $vTienen   = $isCompany ? 'tienen'    : 'tiene';
+        $vDisponen = $isCompany ? 'disponen'  : 'dispone';
+        $vNecesitan= $isCompany ? 'necesitan' : 'necesita';
+        $vPrefieren= $isCompany ? 'prefieren' : 'prefiere';
+        $vConsideren=$isCompany ? 'consideren': 'considere';
+
+        $subject = 'VESTRA — su cuenta de vendedor está activa: la plataforma es gratuita';
+        $body =
+            $greetEs."\n\n"
+          . $openEs."\n\n"
+
+          . "1) La plataforma es gratuita por el momento\n"
+          . "Hoy por hoy publicar en VESTRA no cuesta nada: sin cuota de alta, sin mensualidad "
+          . "y sin límite de referencias. ".ucfirst($vPueden)." subir su surtido completo de hombre, mujer "
+          . "y niño.\n\n"
+
+          . "2) Su catálogo: lo damos de alta nosotros\n"
+          . "Si {$vDisponen} de catálogo o tarifa (Excel, PDF o un enlace), {$vEnvien} el archivo "
+          . "respondiendo a este correo y nos encargamos de dar de alta los artículos. Para cada "
+          . "referencia nos ayuda tener: código, descripción, materiales, tallas, precio mayorista, "
+          . "pedido mínimo y fotografías.\n"
+          /* Sinir "olabilir" diye geciyor, "vardir" diye degil: henuz konmus bir sinir
+             yok ve olmayan bir kurali varmis gibi yazmak, sonradan geri almasi zor bir
+             beklenti yaratir. Oncelik sorusu ayni cumlede: karsi taraf 400 referansi
+             birden gondermek zorunda hissetmesin. */
+          . "Más adelante es posible que establezcamos algún límite de referencias, pero para "
+          . "esta primera fase {$vPueden} enviarnos el catálogo completo o, si lo {$vPrefieren}, "
+          . "empezar por las líneas que {$vConsideren} prioritarias.\n\n"
+
+          . "3) Tarjeta para las comisiones\n"
+          . "Para poder liquidar la comisión de la plataforma {$vNecesitan} registrar una tarjeta "
+          . "en su cuenta. Se cobra únicamente el {$pct} sobre los pedidos que {$vVendan}, y solo "
+          . "cuando el pago del comprador está confirmado — no hay cargos fijos.\n"
+          . "Panel → Perfil → «Commission card» → «Add commission card».\n\n"
+
+          . "4) Venta con pago protegido (nuestra recomendación)\n"
+          /* Tavsiye BASA aliniyor, sonundaki "opsiyonel"den once: sonda kalsaydi
+             okuyan once "istege bagli" gorup maddeyi atlardi. Ikisi celismiyor --
+             tavsiye ediyoruz ama zorunlu degil, ve ikisini de acikca soyluyoruz. */
+          . "Es el método que recomendamos, sobre todo para las primeras operaciones con un "
+          . "comprador nuevo. Si {$vQuieren} ofrecer a sus clientes una compra con garantía, {$vConecten} su cuenta "
+          . "con Stripe desde el panel y {$vCompleten} los pasos de verificación. Con el depósito "
+          . "en garantía el importe queda retenido hasta que el comprador confirma la recepción, y "
+          . "su liquidación (menos la comisión) se abona automáticamente. Stripe verifica su "
+          . "identidad y sus datos bancarios; VESTRA no los ve en ningún momento.\n"
+          . "Panel → Perfil → «Payouts & Escrow (Stripe)» → «Set up Stripe payouts».\n"
+          . "Es opcional: la transferencia bancaria contra factura sigue funcionando sin esto, pero "
+          . "un primer pedido se cierra con mucha más facilidad cuando el comprador ve el pago "
+          . "protegido.\n\n"
+
+          . "Si {$vTienen} cualquier duda, {$vRespondan} a este mensaje y le ayudamos.\n\n"
+          . "—\n"
+          . "VESTRA · Acerasoft LLC\n"
+          . "8 The Green, Suite B, Dover, Delaware 19901, USA\n"
+          . "support@vestrasales.com · vestrasales.com";
+        return [$subject, $body, $opts];
+    }
+
+    $subject = 'VESTRA — your seller account is active: the platform is free';
+    $body =
+        "Dear {$name},\n\n"
+      . "Welcome to VESTRA. Your seller account is active and you can start today.\n\n"
+      . "1) The platform is free for now\n"
+      . "As things stand, listing on VESTRA costs you nothing: no joining fee, no monthly charge "
+      . "and no limit on the number of references. You can upload your full range for men, women "
+      . "and children.\n\n"
+      . "2) Your catalogue: we create the listings\n"
+      . "If you have a catalogue or price list (Excel, PDF or a link), reply to this email and we "
+      . "will create the listings for you. For each reference it helps to have: code, description, "
+      . "materials, sizes, wholesale price, minimum order and photographs.\n"
+      . "We may introduce a limit on the number of references later on, but for this first stage "
+      . "you can send the full catalogue — or start with the lines you consider a priority.\n\n"
+      . "3) Card for commission\n"
+      . "To settle the platform commission we need a card on file. Only {$pct} is charged on the "
+      . "orders you sell, and only once the buyer's payment is confirmed — there are no fixed fees.\n"
+      . "Dashboard → Profile → \"Commission card\" → \"Add commission card\".\n\n"
+      . "4) Protected payment (our recommendation)\n"
+      . "This is the method we recommend, particularly for first orders with a new buyer. "
+      . "To offer your customers a guaranteed purchase, connect your account to Stripe from the "
+      . "dashboard and complete the verification steps. With escrow the amount is held until the "
+      . "buyer confirms delivery, and your payout (less commission) is released automatically. "
+      . "Stripe verifies your identity and bank details; VESTRA never sees them.\n"
+      . "Dashboard → Profile → \"Payouts & Escrow (Stripe)\" → \"Set up Stripe payouts\".\n"
+      . "This is optional: bank transfer against an invoice still works without it, but a first "
+      . "order closes far more easily when the buyer sees protected payment.\n\n"
+      . "If anything is unclear, reply to this message and we will help.\n\n"
+      . "—\n"
+      . "VESTRA · Acerasoft LLC\n"
+      . "8 The Green, Suite B, Dover, Delaware 19901, USA\n"
+      . "support@vestrasales.com · vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
+ * A person's name as a letter should open with it.
+ *
+ * Registration stores exactly what was typed, and people type their name in the same
+ * lowercase they use for a password field — the live account for this buyer holds
+ * "samuel kozak". Printed straight into a salutation that reads "Dear samuel kozak,",
+ * which on a commercial invoice looks like a mail merge that went wrong.
+ *
+ * Only an all-lowercase name is touched. That single condition is what makes this safe:
+ * a name carrying any capital was written deliberately, and title-casing it would break
+ * exactly the names that most need leaving alone — "McDonald" would become "Mcdonald",
+ * "van der Berg" would become "Van Der Berg", "DKNY" would become "Dkny". The stored
+ * value is never rewritten; this is a display rule, and the account keeps what its owner
+ * typed.
+ */
+function vestra_display_name(string $name): string {
+    $name = trim($name);
+    if ($name === '' || preg_match('/\p{Lu}/u', $name)) return $name;
+    return mb_convert_case($name, MB_CASE_TITLE, 'UTF-8');
+}
+
+/**
+ * The letter a buyer gets when the invoice is issued and attached.
+ *
+ * A PDF arriving on its own is a demand with no context: the reader has to open it to find
+ * out what it is for, what the amount covers and what they are expected to do next. The
+ * figures are therefore repeated in the body — not because the PDF is untrustworthy, but
+ * because a purchasing clerk reads the mail on a phone and forwards it to whoever pays.
+ *
+ * The one instruction that earns its place: quote the order reference on the transfer. A
+ * five-figure payment that arrives carrying whatever the payer's clerk typed has to be
+ * matched by hand, and until it is matched the goods do not move.
+ *
+ * @param string $money  Currency symbol already chosen by the caller ('US$' / '€') — the
+ *                       invoice and the letter must not disagree about which one it is.
+ */
+function vestra_tpl_invoice_issued(
+    string $buyerName, string $product, string $ref, string $invoiceNo,
+    int $qty, string $colourNote, float $goods, float $shipping, float $total,
+    string $money = '€', string $incoterms = '', string $leadTime = '', string $fxNote = ''
+): array {
+    $fmt = fn(float $n) => $money.number_format($n, 2);
+    $rows = [
+        ['label'=>'Invoice',    'value'=>$invoiceNo],
+        ['label'=>'Order ref',  'value'=>$ref],
+        ['label'=>'Product',    'value'=>$product],
+        ['label'=>'Quantity',   'value'=>$qty.' pcs'.($colourNote !== '' ? ' — '.$colourNote : '')],
+    ];
+    /* Nakliye varsa mal ve nakliye AYRI satirda: tek bir "Toplam" gosterip icinde
+       navlun oldugunu soylememek, aliciya faturayi acip cikarma yaptiriyor. */
+    if ($shipping > 0) {
+        $rows[] = ['label'=>'Goods',    'value'=>$fmt($goods)];
+        $rows[] = ['label'=>'Shipping', 'value'=>$fmt($shipping)];
+    }
+    $rows[] = ['label'=>'Total due', 'value'=>$fmt($total), 'strong'=>true];
+
+    $opts = [
+        'badge'  => 'Invoice issued',
+        'rows'   => $rows,
+        'button' => ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=offers'],
+    ];
+
+    $subject = "VESTRA — invoice {$invoiceNo} for order {$ref}";
+    $buyerName = vestra_display_name($buyerName);
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Thank you for confirming your details. The invoice for order {$ref} is attached, "
+      . "and a copy is available in your VESTRA account.\n\n"
+      . "Invoice {$invoiceNo} — total ".$fmt($total)
+      . ($shipping > 0 ? ", including shipping" : "").".\n\n"
+      . "Payment terms are 100% in advance. Please transfer the full amount to the account "
+      . "shown on the invoice and quote reference {$ref} — that reference is what matches "
+      . "your transfer to this order.\n\n"
+      /* Malin AVRUPA'dan ciktigi ve surenin ODEME ALINDIKTAN sonra basladigi, kabul
+         mektubunda ne icin yazildiysa burada da ayni sebeple yaziliyor: satici
+         Delaware kayitli, alici ABD'de -- soylenmezse mal ic piyasadan gelecek
+         sanilir, ve "iki hafta"yi siparis gununden sayan alici kendi odemesinin
+         gecikmesini bize yazar. */
+      . ($leadTime !== ''
+          ? "Dispatch and delivery: the goods are checked at our warehouse before dispatch "
+            ."and ship from Europe. Total delivery time is {$leadTime} on average, counted "
+            ."from receipt of payment.\n\n"
+          : '')
+      . ($incoterms !== '' ? "Delivery terms: {$incoterms}.\n\n" : '')
+      /* $fxNote bazen noktayla biter bazen bitmez; kosulsuz nokta "piece.." uretiyordu. */
+      . ($fxNote !== '' ? rtrim($fxNote, '.').".\n\n" : '')
+      /* Duzeltmeyi ODEMEDEN once istemek, hem aliciya hem bize is kazandiriyor:
+         kesilmis bir faturanin numarasi geri alinamaz, odeme sonrasi duzeltme
+         alacak dekontu + yeni fatura demek. */
+      . "If anything on the invoice needs correcting — the company name, the address or the "
+      . "tax ID — please tell us before you pay. Once payment has been made a correction "
+      . "means a credit note and a new invoice.\n\n"
+      . "—\n"
+      . "VESTRA · Acerasoft LLC\n"
+      . "8 The Green, Suite B, Dover, Delaware 19901, USA\n"
+      . "support@vestrasales.com · vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
+ * The note a buyer gets when their order moves to a new stage.
+ *
+ * Written per language rather than through t(): t() resolves against the ACTIVE
+ * request's language, and the active request here is the admin's, not the buyer's.
+ * Sending a French boutique an English email while their own panel reads
+ * "En cours de préparation" is the inconsistency this exists to avoid. Same shape as
+ * vestra_verify_text() and the seller onboarding letter, which solved it the same way.
+ *
+ * @param string $stage 'preparing' | 'to_vestra' | 'cancelled'
+ */
+function vestra_tpl_order_stage(string $lang, string $stage, string $name, string $ref): array {
+    $lang = in_array($lang, ['en','fr','es','it','de'], true) ? $lang : 'en';
+
+    $L = [
+      'en' => [
+        'hi'    => "Hello {$name},",
+        'ref'   => "Order ref: {$ref}",
+        'track' => 'Track your order:',
+        'btn'   => 'View my order',
+        'preparing' => ["VESTRA — order {$ref} is being prepared",
+          'Your order is now being prepared for despatch. We will write again as soon as it moves.'],
+        'to_vestra' => ["VESTRA — order {$ref} is on its way to VESTRA",
+          'The goods have left the supplier and are in transit to VESTRA, where they are checked before they go out to you.'],
+        'cancelled' => ["VESTRA — order {$ref} has been cancelled",
+          'Your order has been cancelled. If that is unexpected, reply to this message and we will look into it.'],
+      ],
+      'fr' => [
+        'hi'    => "Bonjour {$name},",
+        'ref'   => "Référence de commande : {$ref}",
+        'track' => 'Suivre ma commande :',
+        'btn'   => 'Voir ma commande',
+        'preparing' => ["VESTRA — la commande {$ref} est en cours de préparation",
+          'Votre commande est en cours de préparation pour l’expédition. Nous vous réécrivons dès qu’elle avance.'],
+        'to_vestra' => ["VESTRA — la commande {$ref} est en route vers VESTRA",
+          'La marchandise a quitté le fournisseur et est en route vers VESTRA, où elle est contrôlée avant de vous être expédiée.'],
+        'cancelled' => ["VESTRA — la commande {$ref} a été annulée",
+          'Votre commande a été annulée. Si cela vous surprend, répondez à ce message et nous vérifierons.'],
+      ],
+      'es' => [
+        'hi'    => "Hola {$name}:",
+        'ref'   => "Referencia del pedido: {$ref}",
+        'track' => 'Seguir mi pedido:',
+        'btn'   => 'Ver mi pedido',
+        'preparing' => ["VESTRA — el pedido {$ref} se está preparando",
+          'Su pedido se está preparando para el envío. Le escribiremos de nuevo en cuanto avance.'],
+        'to_vestra' => ["VESTRA — el pedido {$ref} va camino de VESTRA",
+          'La mercancía ha salido del proveedor y está en camino a VESTRA, donde se revisa antes de enviársela a usted.'],
+        'cancelled' => ["VESTRA — el pedido {$ref} ha sido cancelado",
+          'Su pedido ha sido cancelado. Si no lo esperaba, responda a este mensaje y lo revisamos.'],
+      ],
+      'it' => [
+        'hi'    => "Buongiorno {$name},",
+        'ref'   => "Riferimento ordine: {$ref}",
+        'track' => 'Segui il mio ordine:',
+        'btn'   => 'Vedi il mio ordine',
+        'preparing' => ["VESTRA — l’ordine {$ref} è in preparazione",
+          'Il suo ordine è in preparazione per la spedizione. Le scriveremo di nuovo appena si muove.'],
+        'to_vestra' => ["VESTRA — l’ordine {$ref} è in viaggio verso VESTRA",
+          'La merce è partita dal fornitore ed è in viaggio verso VESTRA, dove viene controllata prima di essere spedita a lei.'],
+        'cancelled' => ["VESTRA — l’ordine {$ref} è stato annullato",
+          'Il suo ordine è stato annullato. Se non se lo aspettava, risponda a questo messaggio e verifichiamo.'],
+      ],
+      'de' => [
+        'hi'    => "Guten Tag {$name},",
+        'ref'   => "Bestellnummer: {$ref}",
+        'track' => 'Bestellung verfolgen:',
+        'btn'   => 'Meine Bestellung ansehen',
+        'preparing' => ["VESTRA — Bestellung {$ref} wird vorbereitet",
+          'Ihre Bestellung wird jetzt für den Versand vorbereitet. Wir melden uns wieder, sobald sie weitergeht.'],
+        'to_vestra' => ["VESTRA — Bestellung {$ref} ist unterwegs zu VESTRA",
+          'Die Ware hat den Lieferanten verlassen und ist unterwegs zu VESTRA, wo sie geprüft wird, bevor sie an Sie hinausgeht.'],
+        'cancelled' => ["VESTRA — Bestellung {$ref} wurde storniert",
+          'Ihre Bestellung wurde storniert. Falls das unerwartet kommt, antworten Sie einfach auf diese Nachricht und wir sehen nach.'],
+      ],
+    ];
+
+    $d = $L[$lang];
+    $stage = isset($d[$stage]) && is_array($d[$stage]) ? $stage : 'preparing';
+    [$subject, $line] = $d[$stage];
+
+    $url  = 'https://vestrasales.com/buyer?tab=orders';
+    $body = $d['hi']."\n\n".$line."\n\n".$d['ref']."\n\n".$d['track']." ".$url
+          . "\n\n—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com";
+
+    return [$subject, $body, ['button' => ['label' => $d['btn'], 'url' => $url]]];
+}
+
+/**
+ * Reply to a buyer who asks "when are you shipping?": the tracking number will be
+ * entered within a few days, thank you for your patience (operator instruction,
+ * 2 Sep 2026, order O39419 / invoice INV-2026-1009).
+ *
+ * No date and no carrier on purpose: we do not hold either, and a guessed one is
+ * the kind of promise KURAL 3 forbids. The one promise the letter DOES make — "we
+ * send the number the moment it is entered" — is kept by admin.php's 'shipped'
+ * notification, added the same day; before that a tracking number typed into the
+ * admin panel reached nobody (only the seller panel mailed the buyer).
+ *
+ * Signature: this buyer's order correspondence (offer accepted, invoice issued)
+ * went out under the company block, not a persona, so the reply stays on that
+ * channel. Pass $signer to sign with a persona instead.
+ */
+function vestra_tpl_order_tracking_soon(string $buyerName, string $ref, string $invoiceNo = '', bool $hasAccount = false, string $signer = ''): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $invBit  = $invoiceNo !== '' ? " (invoice {$invoiceNo})" : '';
+    $subject = "Re: order {$ref}".($invoiceNo !== '' ? " / invoice {$invoiceNo}" : '')." — dispatch update";
+
+    $rows = [['label'=>'Order ref', 'value'=>$ref]];
+    if ($invoiceNo !== '') $rows[] = ['label'=>'Invoice', 'value'=>$invoiceNo];
+    $opts = ['badge'=>'Order update', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders'];
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Thank you for your message, and thank you for your patience.\n\n"
+      . "Your order {$ref}{$invBit} is being prepared for dispatch. The tracking number will be "
+      . "entered on your order within the next few days, and we will send it to you by e-mail "
+      . "the moment it is added"
+      . ($hasAccount ? "; it will also appear under Orders in your VESTRA account." : ".")
+      . "\n\n"
+      . "If the delivery address or the contact for the carrier has changed since you ordered, "
+      . "please tell us now so the shipping documents are correct.\n\n"
+      . "Kind regards,\n\n"
+      . ($signer !== ''
+          ? $signer."\nVESTRA – vestrasales.com"
+          : "VESTRA · Acerasoft LLC\n8 The Green, Suite B, Dover, Delaware 19901, USA\nsupport@vestrasales.com · vestrasales.com");
+    return [$subject, $body, $opts];
+}
+
+/**
+ * "Havale yaptiktan sonra haber versin" (operator, 7 Eyl 2026, INV-2026-1103 /
+ * Stock&chic). Fatura ZATEN gitti; eksik olan sey odemeyi bildirme yolu:
+ * kesilen mektup "hesaba havale edin, mal odeme gelince cikar" deyip
+ * duruyordu, yani parayi gonderen musterinin soyleyecek yeri yoktu ve iki
+ * taraf da otekinin sirasini bekliyordu.
+ *
+ * Bu mektup SAAT BASLATMAZ. KURAL 7'nin payment_due'su "5 is gunu icinde
+ * gelmezse iptal" diyor ve gercekten o saati kuruyor -- burada istenen o
+ * degil, yalnizca "gonderince haber ver". Ikisini ayni mektupta birlestirmek,
+ * operatorun sormadigi bir tehdidi de gondermek olurdu.
+ *
+ * Iki yol da yaziliyor: siparis sayfasindaki dekont kutusu (yukleme operatore
+ * haber dusurur ve otomatik iptal saatini DURDURUR -- yani "haber verdim" ile
+ * sistemin gordugu sey ayni sey olur) ve duz cevap. Kutuyu bulamayan musteri
+ * cevapsiz kalmasin.
+ */
+function vestra_tpl_order_payment_notice(string $buyerName, string $ref, string $invoiceNo = '', float $amount = 0.0, string $currency = 'EUR', bool $hasAccount = false, string $signer = ''): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $sym  = strtoupper($currency) === 'USD' ? 'US$' : '€';
+    $amt  = $amount > 0 ? $sym.number_format($amount, 2) : '';
+    $subject = "Invoice ".($invoiceNo !== '' ? $invoiceNo." " : '')."— please let us know once the transfer is sent";
+
+    $rows = [['label'=>'Order ref', 'value'=>$ref]];
+    if ($invoiceNo !== '') $rows[] = ['label'=>'Invoice', 'value'=>$invoiceNo];
+    if ($amt !== '')       $rows[] = ['label'=>'Amount due', 'value'=>$amt];
+    $opts = ['badge'=>'Payment', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'Upload payment confirmation',
+                                        'url'=>'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref)];
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Your invoice".($invoiceNo !== '' ? " {$invoiceNo}" : '')." for order {$ref} is with you"
+      . ($amt !== '' ? ", for {$amt}" : '').". Payment is by bank transfer to the account shown on the invoice; "
+      . "please quote {$ref} as the reference so we can match it.\n\n"
+      . "One thing we would ask: once you have sent the transfer, please let us know. "
+      . "Bank transfers can take a few days to appear on our side, and a word from you means we can "
+      . "start preparing your goods straight away instead of waiting for the credit to show.\n\n"
+      . ($hasAccount
+          ? "The quickest way is to upload the payment confirmation on your order page — the link is above. "
+            . "It reaches us immediately and you will see it recorded against the order.\n\n"
+            . "If that is inconvenient, simply reply to this e-mail and tell us the date you sent it.\n\n"
+          : "Simply reply to this e-mail with the date you sent it, or attach the payment confirmation.\n\n")
+      . "We will confirm as soon as we have the funds.\n\n"
+      /* Operator, 14 Eyl 2026 (O2E880 / Easyauto24): *"herhengi bir sorusu varsa
+         sorabilecegini soyleyelim"*. Mektup o ana kadar YALNIZCA havale tarihini
+         soruyordu; "cevap yazabilirsiniz" cumlesi vardi ama kapsami tek bir
+         bilgiydi. Odemeyi bekleyen bir musterinin sorusu genelde baska oluyor
+         (kalemler, navlun, teslim suresi, banka bilgisi) ve sorulacak yeri
+         soylemeyen bir mektup, musteriyi ya sessiz birakir ya destek arayisina
+         yollar. Bir cumle, ve kapi acik. */
+      . "And if anything about the order or the invoice is unclear — the items, the "
+      . "shipping cost, the delivery time or the bank details — just reply to this "
+      . "e-mail and ask. We are happy to go through it with you.\n\n"
+      . "Kind regards,\n\n"
+      . ($signer !== ''
+          ? $signer."\nVESTRA – vestrasales.com"
+          : "VESTRA · Acerasoft LLC\n8 The Green, Suite B, Dover, Delaware 19901, USA\nsupport@vestrasales.com · vestrasales.com");
+    return [$subject, $body, $opts];
+}
+
+/**
+ * TESLIMAT ADRESI EKLENDI/DUZELTILDI onayi (operator, 23 Eyl 2026, VES-60594A18:
+ * musteriden gelen adres siparise elle eklendi -- fatura ZATEN kesilmisti ve
+ * KURAL 5f ile AYNI numarayla yeniden cizildi -- sonra "email ile musteriye
+ * gönder" dedi).
+ *
+ * ADRES METNE ELLE YAZILMAZ: cagiran onu siparis kaydindan
+ * (vestra_order_delivery_address) okuyup geciriyor, KURAL 3'un ayni ilkesi --
+ * burada da bir olguyu UYDURMAK yerine kayittan okumak sart.
+ *
+ * $invoiceRedrafted TRUE ise "faturaniz AYNI numarayla yeniden cizildi, eski
+ * kopya gecersiz" cumlesi yaziliyor. Sablon bunu OLCEMEZ (numara zaten
+ * kesilmis bir belge dun de vardi bugun de var) -- operatorun ACIK bayragi,
+ * `vestra_tpl_order_discount()`'un `invoice_updated` deseninin aynisi.
+ *
+ * TEK DIL (Ingilizce), payment_notice/tracking_soon/payment_ask ile ayni
+ * gerekce: bu bir durum bildirimi, kampanya degil -- coklu ulkeye giden
+ * order_discount'un 4-dil yatirimini hak eden hacim burada yok.
+ */
+function vestra_tpl_order_delivery_confirmed(string $buyerName, string $ref, string $address,
+        string $invoiceNo = '', bool $invoiceRedrafted = false, bool $hasAccount = false, string $signer = ''): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $subject = "Order {$ref} — delivery address confirmed";
+
+    $rows = [['label'=>'Order ref', 'value'=>$ref], ['label'=>'Delivery address', 'value'=>$address]];
+    if ($invoiceNo !== '') $rows[] = ['label'=>'Invoice', 'value'=>$invoiceNo];
+    $opts = ['badge'=>'Order update', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders'];
+
+    $invBit = $invoiceNo === '' ? ''
+            : ($invoiceRedrafted
+                ? "Your invoice {$invoiceNo} has been reissued under the same number to carry this address — "
+                  . "please use the updated copy; any earlier one is superseded.\n\n"
+                : "Your invoice {$invoiceNo} will carry this address.\n\n");
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "We have added the following delivery address to your order {$ref}:\n\n"
+      . $address."\n\n"
+      . $invBit
+      . "If anything about this address is not correct, just reply to this e-mail and we will fix it.\n\n"
+      . "Kind regards,\n\n"
+      . ($signer !== ''
+          ? $signer."\nVESTRA – vestrasales.com"
+          : "VESTRA · Acerasoft LLC\n8 The Green, Suite B, Dover, Delaware 19901, USA\nsupport@vestrasales.com · vestrasales.com");
+    return [$subject, $body, $opts];
+}
+
+/**
+ * SIPARISIN MODELI DEGISTI, TUTAR AYNI (operator, 28 Eyl 2026, VES-60594A18:
+ * "bu siparisi TENNIS-CLUB-ICON-WHITE bu model ile degistir ve tutari ayni
+ * olacak sekilde musteriye email gonder spama dusmesin"). Musteri bir gun once
+ * saticiyla sitede anlasmisti ("10 pieces de ce modele") ve "j'attend la
+ * facture demain" demisti -- yani bu mektup onun BEKLEDIGI mektup.
+ *
+ * SPAM'A DUSMEMESI ICIN BILEREK SADE:
+ *  - tek dugme (siparis sayfasi), baska baglanti yok; ek YOK (siparis
+ *    faturasi PDF'i siparis sayfasindan indiriliyor -- bu deponun tutarli
+ *    tasarimi, KURAL 28);
+ *  - banka numarasi YOK. Bunun yerine "banka bilgileri DEGISMEDI" cumlesi var:
+ *    "odeme bilgileri degisti, su hesaba yatirin" fatura dolandiriciliginin
+ *    (BEC) ders kitabi kalibi ve hem spam suzgeclerinin hem muhasebecilerin
+ *    aradigi sey. Ayni numarali ikinci bir belge gelen musteriye "hesap ayni"
+ *    demek, o kalibin tam tersi.
+ *  - musterinin KENDI dilinde (hesabin kayitli dili; cagiran secer).
+ *
+ * HICBIR RAKAM METNE GOMULU DEGIL: kalemler, birim, navlun ve toplam cagirandan
+ * gelir ve cagiran onlari SIPARIS KAYDINDAN okur (KURAL 6'nin dersi).
+ * $invoiceRedrafted: belge AYNI numarayla yeniden cizildi mi -- sablon bunu
+ * OLCEMEZ, operatorun ACIK bayragi (order_discount'un invoice_updated deseni).
+ *
+ * $fig: old_label, new_label, qty, colours, sizes, unit, goods, shipping,
+ *       total, currency
+ */
+function vestra_tpl_order_item_changed(string $buyerName, string $ref, array $fig, string $invoiceNo = '',
+        bool $invoiceRedrafted = false, bool $hasAccount = false, string $signer = '', string $lang = 'en'): array {
+    $buyerName = vestra_display_name($buyerName);
+    $lang = in_array(strtolower($lang), ['de', 'es', 'fr'], true) ? strtolower($lang) : 'en';
+    $cur = strtoupper(trim((string)($fig['currency'] ?? 'EUR'))) ?: 'EUR';
+    $sym = $cur === 'USD' ? 'US$' : '€';
+    $m = function (float $v) use ($lang, $sym): string {
+        return $lang === 'en' ? $sym.number_format($v, 2)
+                              : number_format($v, 2, ',', $lang === 'de' ? '.' : ' ').' '.$sym;
+    };
+    $old   = trim((string)($fig['old_label'] ?? ''));
+    $new   = trim((string)($fig['new_label'] ?? ''));
+    $qty   = (int)($fig['qty'] ?? 0);
+    $unit  = (float)($fig['unit'] ?? 0);
+    $goods = (float)($fig['goods'] ?? 0);
+    $ship  = (float)($fig['shipping'] ?? 0);
+    $total = (float)($fig['total'] ?? 0);
+    $cols  = implode(', ', array_filter(array_map('trim', (array)($fig['colours'] ?? []))));
+    $sizes = implode(', ', array_filter(array_map('trim', (array)($fig['sizes'] ?? []))));
+
+    $L = [
+        'en' => ['hi' => 'Customer', 'badge' => 'Order update', 'ref' => 'Order', 'model' => 'New model',
+                 'qty' => 'Quantity', 'tot' => 'Total (unchanged)', 'inv' => 'Invoice', 'btn' => 'View your order',
+                 'subj' => "Order {$ref} — model changed, amount unchanged",
+                 'open' => "as agreed with the seller, your order {$ref} is now for {$new}"
+                         .($old !== '' ? ", in place of {$old}" : '').'.',
+                 'col' => 'Colour', 'sz' => 'Sizes', 'pcs' => 'pcs',
+                 'same' => 'The amount stays the same:',
+                 'goods' => 'Goods', 'ship' => 'Shipping', 'total' => 'Total',
+                 'invU' => "Your invoice {$invoiceNo} has been updated with this model and keeps its number. It is available now on your order page; please use this version, the earlier copy is no longer valid.",
+                 'invY' => "Your invoice {$invoiceNo} shows this model; you will find it on your order page.",
+                 'invN' => "Your invoice will be issued with this model.",
+                 'bank' => "The bank details do not change: payment is made as planned, to the account shown on the invoice, quoting {$ref}.",
+                 'end' => "If anything is unclear, just reply to this e-mail.",
+                 'bye' => 'Kind regards,'],
+        'fr' => ['hi' => 'Madame, Monsieur', 'badge' => 'Commande', 'ref' => 'Commande', 'model' => 'Nouveau modèle',
+                 'qty' => 'Quantité', 'tot' => 'Total (inchangé)', 'inv' => 'Facture', 'btn' => 'Voir votre commande',
+                 'subj' => "Commande {$ref} — modèle modifié, montant inchangé",
+                 'open' => "comme convenu avec le vendeur, votre commande {$ref} porte désormais sur le modèle {$new}"
+                         .($old !== '' ? ", à la place du modèle {$old}" : '').'.',
+                 'col' => 'Couleur', 'sz' => 'Tailles', 'pcs' => 'pièces',
+                 'same' => 'Le montant reste inchangé :',
+                 'goods' => 'Marchandise', 'ship' => 'Livraison', 'total' => 'Total',
+                 'invU' => "Votre facture {$invoiceNo} a été mise à jour avec ce modèle et conserve son numéro. Elle est disponible dès maintenant sur la page de votre commande ; merci d'utiliser cette version, l'ancienne n'est plus valable.",
+                 'invY' => "Votre facture {$invoiceNo} indique ce modèle ; vous la trouverez sur la page de votre commande.",
+                 'invN' => "Votre facture sera établie avec ce modèle.",
+                 'bank' => "Les coordonnées bancaires ne changent pas : le règlement se fait comme prévu, sur le compte indiqué sur la facture, avec la référence {$ref}.",
+                 'end' => "Si quelque chose n'est pas clair, répondez simplement à ce courriel.",
+                 'bye' => 'Cordialement,'],
+        'de' => ['hi' => 'Kundin, sehr geehrter Kunde', 'badge' => 'Bestellung', 'ref' => 'Bestellung', 'model' => 'Neues Modell',
+                 'qty' => 'Menge', 'tot' => 'Gesamt (unverändert)', 'inv' => 'Rechnung', 'btn' => 'Bestellung ansehen',
+                 'subj' => "Bestellung {$ref} — Modell geändert, Betrag unverändert",
+                 'open' => "wie mit dem Verkäufer vereinbart, umfasst Ihre Bestellung {$ref} jetzt das Modell {$new}"
+                         .($old !== '' ? " anstelle von {$old}" : '').'.',
+                 'col' => 'Farbe', 'sz' => 'Größen', 'pcs' => 'Stück',
+                 'same' => 'Der Betrag bleibt unverändert:',
+                 'goods' => 'Warenwert', 'ship' => 'Versand', 'total' => 'Gesamt',
+                 'invU' => "Ihre Rechnung {$invoiceNo} wurde mit diesem Modell aktualisiert und behält ihre Nummer. Sie steht ab sofort auf Ihrer Bestellseite bereit; bitte verwenden Sie diese Fassung, die frühere ist nicht mehr gültig.",
+                 'invY' => "Ihre Rechnung {$invoiceNo} weist dieses Modell aus; Sie finden sie auf Ihrer Bestellseite.",
+                 'invN' => "Ihre Rechnung wird mit diesem Modell ausgestellt.",
+                 'bank' => "Die Bankverbindung ändert sich nicht: Die Zahlung erfolgt wie vorgesehen auf das Konto auf der Rechnung, mit dem Verwendungszweck {$ref}.",
+                 'end' => "Bei Fragen antworten Sie einfach auf diese E-Mail.",
+                 'bye' => 'Mit freundlichen Grüßen,'],
+        'es' => ['hi' => 'cliente', 'badge' => 'Pedido', 'ref' => 'Pedido', 'model' => 'Nuevo modelo',
+                 'qty' => 'Cantidad', 'tot' => 'Total (sin cambios)', 'inv' => 'Factura', 'btn' => 'Ver su pedido',
+                 'subj' => "Pedido {$ref} — modelo cambiado, mismo importe",
+                 'open' => "tal como acordó con el vendedor, su pedido {$ref} pasa a ser del modelo {$new}"
+                         .($old !== '' ? ", en lugar de {$old}" : '').'.',
+                 'col' => 'Color', 'sz' => 'Tallas', 'pcs' => 'piezas',
+                 'same' => 'El importe no cambia:',
+                 'goods' => 'Mercancía', 'ship' => 'Envío', 'total' => 'Total',
+                 'invU' => "Su factura {$invoiceNo} se ha actualizado con este modelo y conserva su número. Ya está disponible en la página de su pedido; utilice esta versión, la anterior queda sin efecto.",
+                 'invY' => "Su factura {$invoiceNo} recoge este modelo; la encontrará en la página de su pedido.",
+                 'invN' => "Su factura se emitirá con este modelo.",
+                 'bank' => "Los datos bancarios no cambian: el pago se hace como estaba previsto, a la cuenta que figura en la factura, con la referencia {$ref}.",
+                 'end' => "Si algo no queda claro, responda a este correo.",
+                 'bye' => 'Un cordial saludo,'],
+    ][$lang];
+
+    if ($buyerName === '') $buyerName = $L['hi'];
+    $greet = ['en' => "Dear {$buyerName},", 'fr' => "Bonjour {$buyerName},",
+              'de' => $buyerName === $L['hi'] ? "Sehr geehrte {$buyerName}," : "Guten Tag {$buyerName},",
+              'es' => "Estimado/a {$buyerName},"][$lang];
+    /* Ingilizce ve Ispanyolca hitaptan sonra BUYUK, Fransizca ve Almanca KUCUK
+       harfle devam eder (order_discount'un ayni kurali). */
+    $open = in_array($lang, ['en', 'es'], true) ? mb_strtoupper(mb_substr($L['open'], 0, 1)).mb_substr($L['open'], 1) : $L['open'];
+    $co = $lang === 'fr' ? ' : ' : ': ';
+
+    $detail = $L['qty'].$co.$qty.' '.$L['pcs']
+            . ($cols !== '' ? "\n".$L['col'].$co.$cols : '')
+            . ($sizes !== '' ? "\n".$L['sz'].$co.$sizes : '');
+    $money = $L['goods'].$co.$qty.' × '.$m($unit).' = '.$m($goods)."\n"
+           . ($ship > 0 ? $L['ship'].$co.$m($ship)."\n" : '')
+           . $L['total'].$co.$m($total);
+
+    $body = $greet."\n\n"
+          . $open."\n\n"
+          . $detail."\n\n"
+          . $L['same']."\n".$money."\n\n"
+          . ($invoiceNo !== '' ? ($invoiceRedrafted ? $L['invU'] : $L['invY']) : $L['invN'])."\n\n"
+          . ($invoiceNo !== '' ? $L['bank']."\n\n" : '')
+          . $L['end']."\n\n"
+          . $L['bye']."\n\n"
+          . ($signer !== '' ? $signer."\nVESTRA - vestrasales.com" : "VESTRA - vestrasales.com");
+
+    $rows = [['label' => $L['ref'], 'value' => $ref], ['label' => $L['model'], 'value' => $new],
+             ['label' => $L['qty'], 'value' => $qty.' '.$L['pcs']], ['label' => $L['tot'], 'value' => $m($total)]];
+    if ($invoiceNo !== '') $rows[] = ['label' => $L['inv'], 'value' => $invoiceNo];
+    $opts = ['badge' => $L['badge'], 'rows' => $rows];
+    if ($hasAccount) $opts['button'] = ['label' => $L['btn'],
+        'url' => 'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref)];
+    return [$L['subj'], $body, $opts];
+}
+
+/**
+ * SIPARIS FATURASI, PDF EKLI (operator, 28 Eyl 2026, VES-D91DAB0B / Odzież
+ * Premium: fatura panelden kesilip e-postalandi, musteri "I dont have inovice"
+ * yazdi -- panelin mektubu PDF TASIMIYOR, siparis sayfasina yolluyor).
+ * Teklif faturalarinin mektubu belgeyi zaten ekliyordu; siparis faturasinin
+ * hic eklenmemesi bu yuzden kalmisti.
+ *
+ * RAKAMLAR CAGIRANDAN, kayittan: tutar siparis satirindan, numara kesilmis
+ * faturadan. $redrafted = "ayni numarayla yeniden cizildi, eski kopya gecersiz"
+ * -- sablon bunu OLCEMEZ, operatorun ACIK bayragi (order_delivery /
+ * order_discount deseni).
+ *
+ * $dueDate (28 Eyl 2026, siparis denetimi): odeme saati ISLIYORSA cagiran
+ * vestra_order_payment_grace()'in son tarihini verir ve mektup onu yazar --
+ * KURAL 7'nin ilkesi: mektubun verdigi son tarih, otomatik iptalin baktigi son
+ * tarihle AYNI olmali. Bos = saat henuz baslamamis, tarih YAZILMAZ (uydurulmaz).
+ *
+ * $lang (3 Eki 2026, VES-3507BF86 / Ecokemet: "faturanin duzeltildigini, ident ve
+ * renklerin konuldugunu belirterek tekrar gonder ... fransizca"): en | fr.
+ * VARSAYILAN en ve o durumda cikti onceki surumle BIREBIR AYNI (test tutuyor).
+ * Taninmayan dil sessizce Ingilizceye DUSMEZ -- cagiran (is akisi) reddeder.
+ * $itemsFixed: "duzeltildi, her kalem ident no. ve renkleriyle" cumlesi. Sablon
+ * bunu OLCEMEZ; cagiran belgenin KENDISINDE her SKU'nun ve her rengin cizildigini
+ * dogrulamadan bu bayragi VERMEZ (is akisi oyle yapiyor). Duzeltme cumlesi ayni
+ * numarayi zaten soyledigi icin $redrafted cumlesini yerine gecirir (iki kez
+ * yazilmaz).
+ */
+function vestra_tpl_order_invoice_pdf(string $buyerName, string $ref, string $invoiceNo, float $total,
+        string $currency = 'EUR', bool $redrafted = false, bool $hasAccount = false, string $signer = '',
+        string $dueDate = '', string $lang = 'en', bool $itemsFixed = false): array {
+    $buyerName = vestra_display_name($buyerName);
+    $lang = strtolower(trim($lang)) === 'fr' ? 'fr' : 'en';
+    $cur = strtoupper(trim($currency)) ?: 'EUR';
+    $dueDate = trim($dueDate);
+
+    if ($lang === 'fr') {
+        if ($buyerName === '') $buyerName = 'Madame, Monsieur';
+        $amt = number_format($total, 2, ',', ' ').' '.($cur === 'EUR' ? '€' : ($cur === 'USD' ? 'US$' : $cur));
+        $subject = $itemsFixed ? "VESTRA — facture corrigée {$invoiceNo} pour la commande {$ref}"
+                               : "VESTRA — facture {$invoiceNo} pour la commande {$ref}";
+        $rows = [['label'=>'Commande', 'value'=>$ref], ['label'=>'Facture', 'value'=>$invoiceNo],
+                 ['label'=>'Montant à régler', 'value'=>$amt, 'strong'=>true]];
+        if ($dueDate !== '') $rows[] = ['label'=>'À régler avant le', 'value'=>$dueDate];
+        $opts = ['badge'=>$itemsFixed ? 'Facture corrigée' : 'Facture jointe', 'rows'=>$rows];
+        if ($hasAccount) $opts['button'] = ['label'=>'Voir ma commande', 'url'=>'https://vestrasales.com/order-confirm?ref='.rawurlencode($ref)];
+        $body =
+            "Bonjour {$buyerName},\n\n"
+          . "Vous trouverez ci-joint votre facture {$invoiceNo} pour la commande {$ref}, au format PDF.\n\n"
+          . ($itemsFixed
+              ? "Nous avons corrigé cette facture : chaque article y figure désormais avec son numéro d'identification (référence) et ses coloris. "
+                ."Elle conserve le même numéro et remplace la version précédente de {$invoiceNo}.\n\n"
+              : '')
+          . "Montant à régler : {$amt}.\n\n"
+          . ($dueDate !== ''
+              ? "Le règlement est attendu au plus tard le {$dueDate}. Les commandes non réglées à cette date sont annulées automatiquement.\n\n"
+              : '')
+          . ($redrafted && !$itemsFixed
+              ? "Cette version conserve le même numéro de facture et remplace toute version précédente de {$invoiceNo}.\n\n"
+              : '')
+          . "Merci de régler par virement bancaire sur le compte indiqué sur la facture, en indiquant la référence {$ref}. "
+          . "Une fois le virement effectué, prévenez-nous : déposez la preuve de paiement sur la page de votre commande, "
+          . "ou répondez simplement à ce courriel.\n\n"
+          . "Cordialement,\n\n"
+          . ($signer !== ''
+              ? $signer."\nVESTRA – vestrasales.com"
+              : "VESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com");
+        return [$subject, $body, $opts];
+    }
+
+    if ($buyerName === '') $buyerName = 'Customer';
+    $amt = $cur.' '.number_format($total, 2, '.', ',');
+    $subject = $itemsFixed ? "VESTRA — corrected invoice {$invoiceNo} for order {$ref}"
+                           : "VESTRA — invoice {$invoiceNo} for order {$ref}";
+
+    $rows = [['label'=>'Order ref', 'value'=>$ref], ['label'=>'Invoice', 'value'=>$invoiceNo],
+             ['label'=>'Total due', 'value'=>$amt, 'strong'=>true]];
+    if ($dueDate !== '') $rows[] = ['label'=>'Payment due by', 'value'=>$dueDate];
+    $opts = ['badge'=>$itemsFixed ? 'Corrected invoice' : 'Invoice attached', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/order-confirm?ref='.rawurlencode($ref)];
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Please find attached your invoice {$invoiceNo} for order {$ref} as a PDF.\n\n"
+      . ($itemsFixed
+          ? "We have corrected this invoice: each item is now listed with its ident no. (style reference) and its colours. "
+            ."It keeps the same number and replaces the earlier version of {$invoiceNo}.\n\n"
+          : '')
+      . "Total due: {$amt}.\n\n"
+      . ($dueDate !== ''
+          ? "Payment is due by {$dueDate}. Orders that are not paid by then are cancelled automatically.\n\n"
+          : '')
+      . ($redrafted && !$itemsFixed
+          ? "This copy keeps the same invoice number and replaces any earlier version of {$invoiceNo}.\n\n"
+          : '')
+      . "Please pay by bank transfer to the account shown on the invoice and quote {$ref} as the reference. "
+      . "Once you have sent the transfer, let us know: upload the payment confirmation on your order page, "
+      . "or simply reply to this e-mail.\n\n"
+      . "Kind regards,\n\n"
+      . ($signer !== ''
+          ? $signer."\nVESTRA – vestrasales.com"
+          : "VESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com");
+    return [$subject, $body, $opts];
+}
+
+/**
+ * SIPARISE BAGLI SERBEST NOT (operator, 28 Eyl 2026, VES-D91DAB0B: "numuneyi
+ * L beden olarak 60 eur yapabilirim gönderim dahil" + "fatura ayni kalsin" +
+ * "email gönder musteriye"). listing_reply serbest metin tasiyor ama bir
+ * ILANDAKI konusmaya bagli; bu musterinin konusmasi baska bir ilanda ve mektup
+ * yanlis urunun adiyla giderdi. Bu mektup SIPARISE bagli.
+ *
+ * METIN OPERATORUN ONAYLADIGI METIN, sablon ekleme yapmaz: hitap + metin +
+ * imza. Tutar/numara metnin icinde ise operator yazdi; sablon rakam uydurmaz.
+ *
+ * DIL VE HITAP (1 Eki 2026, LA ISLA DE MIRABEL SL / O7BA9A: operator Ispanyolca
+ * bir metin verip "bu emaili VESTRA'dan email ile gonder, mesaj ile degil" dedi).
+ * Sarmal -- hitap, kapanis, kutunun basligi ve satir etiketi, dugme, varsayilan
+ * konu -- metinle AYNI dilde olabilir: en | fr | de | es, order_item_changed ile
+ * ayni sozcukler. Dil metinden CIKARILMIYOR, cagiran soyluyor: bir cumlenin dilini
+ * tahmin eden kod, yanlis tahminde musteriye yabanci dilde bir kapanis yazar.
+ * Taninmayan dil 'en'e duser (hata degil: eski cagrilarin hepsi dil vermiyor).
+ * VARSAYILAN 'en' ve o durumda cikti onceki surumle BIREBIR AYNI (test tutuyor):
+ * bu fonksiyonla gonderilmis ve gonderilecek Ingilizce notlar degismedi.
+ *
+ * $greet=false: metin KENDI hitabiyla basliyor ("Hola, gracias ..."), sablon ikinci
+ * bir hitap eklemez. "Dear X, / Hola," cift hitabi, operatorun yazdigi metni bir
+ * sablona yapistirilmis gibi gosterir. Kapanis ve imza yine sablondan.
+ */
+function vestra_tpl_order_note(string $buyerName, string $ref, string $message, string $subject = '',
+        bool $hasAccount = false, string $signer = '', string $lang = 'en', bool $greet = true): array {
+    $buyerName = vestra_display_name($buyerName);
+    $lang = in_array(strtolower($lang), ['de', 'es', 'fr'], true) ? strtolower($lang) : 'en';
+    $L = [
+        'en' => ['hi' => 'Customer', 'badge' => 'Order update', 'ref' => 'Order ref', 'btn' => 'View my order',
+                 'subj' => "VESTRA — update on your order {$ref}", 'bye' => 'Kind regards,'],
+        'fr' => ['hi' => 'Madame, Monsieur', 'badge' => 'Commande', 'ref' => 'Commande', 'btn' => 'Voir ma commande',
+                 'subj' => "VESTRA — des nouvelles de votre commande {$ref}", 'bye' => 'Cordialement,'],
+        'de' => ['hi' => 'Kundin, sehr geehrter Kunde', 'badge' => 'Bestellung', 'ref' => 'Bestellung', 'btn' => 'Bestellung ansehen',
+                 'subj' => "VESTRA — Neuigkeiten zu Ihrer Bestellung {$ref}", 'bye' => 'Mit freundlichen Grüßen,'],
+        'es' => ['hi' => 'cliente', 'badge' => 'Pedido', 'ref' => 'Pedido', 'btn' => 'Ver mi pedido',
+                 'subj' => "VESTRA — novedades de su pedido {$ref}", 'bye' => 'Un cordial saludo,'],
+    ][$lang];
+    if ($buyerName === '') $buyerName = $L['hi'];
+    $subject = trim($subject) !== '' ? trim($subject) : $L['subj'];
+    $opts = ['badge' => $L['badge'], 'rows' => [['label' => $L['ref'], 'value' => $ref]]];
+    if ($hasAccount) $opts['button'] = ['label' => $L['btn'], 'url' => 'https://vestrasales.com/order-confirm?ref='.rawurlencode($ref)];
+    $hello = ['en' => "Dear {$buyerName},", 'fr' => "Bonjour {$buyerName},",
+              'de' => $buyerName === $L['hi'] ? "Sehr geehrte {$buyerName}," : "Guten Tag {$buyerName},",
+              'es' => "Estimado/a {$buyerName},"][$lang];
+    $body =
+        ($greet ? $hello."\n\n" : '')
+      . trim($message)."\n\n"
+      . $L['bye']."\n\n"
+      . ($signer !== ''
+          ? $signer."\nVESTRA – vestrasales.com"
+          : "VESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com");
+    return [$subject, $body, $opts];
+}
+
+/**
+ * Sitede ilan uzerinden yazan aliciya, sitede verilen cevabin E-POSTA hali
+ * (operator, 26 Eyl 2026, Odzież Premium: iki ilanda "Good morning" yazdi,
+ * cevaplar sitede Marca Online / GARAGE LE PARIS adina verildi, sonra
+ * "email ile gönder polonyaliya").
+ *
+ * NEDEN AYRI: vestra_msg_send() her mesajda ICERIKSIZ bir bildirim caliyor
+ * ("yeni mesaj var"); msg_ping de ayni zili yeniden caliyor. Ikisi de cevabin
+ * KENDISINI tasimiyor -- alici yine siteye girmek zorunda. Bu mektup cevabi
+ * kutuya getiriyor.
+ *
+ * MAGAZA ADI YOK (KURAL 8): sitede satici "Seller <ident>" gorunuyor; mektup
+ * da ilani ADIYLA ve ident no. ile aniyor, dukkanin adiyla degil. Imza VESTRA
+ * personasi, Reply-To support@vestrasales.com -- cevap platforma duser.
+ *
+ * $items: [['label'=>, 'ident'=>, 'url'=>], ..] -- CAGIRAN ilan kaydindan
+ * kurar; metne elle yazilmis bir urun adi yok. $replied: her ilanin
+ * konusmasinda bizden bir cevap GERCEKTEN duruyorsa true -- "cevabimiz
+ * kutunuzda da duruyor" cumlesi ancak o zaman dogru.
+ */
+function vestra_tpl_listing_reply(string $salutation, array $items, string $message = '',
+        bool $replied = false, string $signer = ''): array {
+    $salutation = trim($salutation) !== '' ? trim($salutation) : 'Dear Sir or Madam';
+    $message = trim($message) !== '' ? trim($message)
+        : "How can we help you with "
+          .(count($items) > 1 ? "these items" : "this item")
+          ."? Let us know the quantity and colours you are interested in and we will come back to you "
+          ."with availability and pricing.";
+    $n = count($items);
+    $subject = $n === 1
+        ? "VESTRA — your enquiry: ".(string)($items[0]['label'] ?? '')
+        : "VESTRA — your enquiry about {$n} items";
+    $lines = '';
+    foreach ($items as $it) {
+        $lines .= "• ".(string)($it['label'] ?? '')
+                /* Ilan adi ident'i zaten tasiyorsa ("… — BM716G3YBM001") ikinci
+                   kez yazilmaz: ayni numara bir satirda iki kez gozu yorar. */
+                . ((($it['ident'] ?? '') !== '' && stripos((string)($it['label'] ?? ''), (string)$it['ident']) === false)
+                    ? " — ident no. ".$it['ident'] : '')."\n"
+                . (($it['url'] ?? '') !== '' ? "  ".$it['url']."\n" : '');
+    }
+    $body =
+        $salutation.",\n\n"
+      . "Good morning, and thank you for your message".($n > 1 ? 's' : '')." on VESTRA about "
+      . ($n > 1 ? "the following items" : "the following item").":\n\n"
+      . $lines."\n"
+      . $message."\n\n"
+      . "You can simply reply to this e-mail"
+      . ($replied ? ", or answer in your VESTRA message inbox, where our reply is waiting as well." : ".")
+      . "\n\nKind regards,\n\n"
+      . ($signer !== ''
+          ? $signer."\nVESTRA – vestrasales.com"
+          : "VESTRA · vestrasales.com");
+    $opts = ['badge' => 'Your enquiry',
+             'button' => ['label' => 'Open my messages', 'url' => 'https://vestrasales.com/buyer?tab=messages']];
+    return [$subject, $body, $opts];
+}
+
+/**
+ * "Odeme yapacak mi, YA DA NE ZAMAN" (operator, 9 Eyl 2026, Stock&chic /
+ * O7A484: *"zaten satin almisti odeme yapiyormu onu sorucaz"* + *"yada ne
+ * zaman"*). Musteri siparisi verdi, fatura kesildi, para gelmedi ve son
+ * mesajinda "su an devam etmeyecegim" dedi. Istenen tek sey bir CEVAP.
+ *
+ * NE DEGIL: payment_due degil -- o KURAL 7'nin 5 is gunluk saatini GERCEKTEN
+ * baslatir ve iptal uyarisi tasir. payment_notice de degil -- o "havaleyi
+ * yaptiktan sonra haber verin" der, yani odeyecegini VARSAYAR. Bu mektup
+ * varsaymiyor, soruyor; hicbir saat baslatmiyor, hicbir tarih vermiyor.
+ * Uydurma bir son tarih yazmak, sonra tutmadiginda geri alinamaz.
+ *
+ * FRANSIZCA DA VAR: bu musteri Fransizca yaziyor ve konusma Fransizca
+ * gecti. Ingilizce bir "final call" gondermek, hem tonu hem dili kaydirirdi.
+ * Iki metin de AYNI fonksiyonda: ayri yazilsalardi biri duzeltilip digeri
+ * eskirdi (bu depoda ayrisma dersi KURAL 5f'te kayitli).
+ *
+ * RAKAM VE NUMARA PARAMETREDEN: cagiran onlari FATURADAN okuyor. Metne
+ * gomulu bir tutar, belge baska bir birimde kesilince sessizce yalan olur.
+ */
+function vestra_tpl_order_payment_ask(string $buyerName, string $ref, string $invoiceNo = '',
+        float $amount = 0.0, string $currency = 'EUR', bool $hasAccount = false,
+        string $signer = '', string $lang = 'en'): array {
+    $buyerName = vestra_display_name($buyerName);
+    $lang = strtolower($lang) === 'fr' ? 'fr' : 'en';
+    if ($buyerName === '') $buyerName = $lang === 'fr' ? 'Madame, Monsieur' : 'Customer';
+    $sym = strtoupper($currency) === 'USD' ? 'US$' : '€';
+    $amt = $amount > 0
+        ? ($lang === 'fr' ? number_format($amount, 2, ',', ' ').' '.$sym : $sym.number_format($amount, 2))
+        : '';
+
+    $rows = [['label' => $lang === 'fr' ? 'Commande' : 'Order ref', 'value' => $ref]];
+    if ($invoiceNo !== '') $rows[] = ['label' => $lang === 'fr' ? 'Facture' : 'Invoice', 'value' => $invoiceNo];
+    if ($amt !== '')       $rows[] = ['label' => $lang === 'fr' ? 'Montant' : 'Amount', 'value' => $amt];
+    $opts = ['badge' => $lang === 'fr' ? 'Paiement' : 'Payment', 'rows' => $rows];
+    if ($hasAccount) $opts['button'] = [
+        'label' => $lang === 'fr' ? 'Transmettre le justificatif' : 'Upload payment confirmation',
+        'url'   => 'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref),
+    ];
+
+    $tail = $signer !== ''
+        ? $signer."\nVESTRA - vestrasales.com"
+        : "VESTRA - vestrasales.com";
+
+    if ($lang === 'fr') {
+        $subject = "Commande {$ref}".($invoiceNo !== '' ? " — facture {$invoiceNo}" : '')." : où en êtes-vous ?";
+        $body =
+            "Bonjour {$buyerName},\n\n"
+          . "Votre commande {$ref} est bien enregistrée et la facture"
+          . ($invoiceNo !== '' ? " {$invoiceNo}" : '')
+          . ($amt !== '' ? " de {$amt}" : '')." vous a été adressée. "
+          . "À ce jour, le paiement ne nous est pas encore parvenu.\n\n"
+          . "Nous ne souhaitons pas vous presser. Nous avons simplement besoin de savoir si le virement "
+          . "est prévu et, si oui, à quelle date approximative. Si vous préférez reporter, dites-le-nous "
+          . "aussi franchement : les deux réponses nous conviennent et nous évitent de réserver la "
+          . "marchandise sans raison.\n\n"
+          . ($hasAccount
+              ? "Si le virement est déjà parti, merci de nous transmettre le justificatif via le bouton "
+                . "ci-dessus, ou en répondant à cet e-mail. Nous confirmons dès réception.\n\n"
+              : "Si le virement est déjà parti, merci de nous transmettre le justificatif en réponse à "
+                . "cet e-mail. Nous confirmons dès réception.\n\n")
+          . "Bien cordialement,\n\n".$tail;
+        return [$subject, $body, $opts];
+    }
+
+    $subject = "Order {$ref}".($invoiceNo !== '' ? " - invoice {$invoiceNo}" : '').": is the payment on its way?";
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Your order {$ref} is on our books and invoice"
+      . ($invoiceNo !== '' ? " {$invoiceNo}" : '')
+      . ($amt !== '' ? " for {$amt}" : '')." is with you. As of today the payment has not reached us.\n\n"
+      . "We are not chasing you. We only need to know whether the transfer is planned and, if so, "
+      . "roughly when. If you would rather postpone, tell us that just as plainly: either answer is "
+      . "fine, and it saves us holding the goods reserved for no reason.\n\n"
+      . ($hasAccount
+          ? "If the transfer has already gone out, please send us the payment confirmation using the "
+            . "button above, or simply reply to this e-mail. We confirm as soon as it arrives.\n\n"
+          : "If the transfer has already gone out, please reply to this e-mail with the payment "
+            . "confirmation. We confirm as soon as it arrives.\n\n")
+      . "Kind regards,\n\n".$tail;
+    return [$subject, $body, $opts];
+}
+
+/**
+ * HOS GELDIN INDIRIMI duyurusu (operator, 19 Eyl 2026: *"sonra musterilere
+ * indirim ile ilgili bilgi ver"*).
+ *
+ * HICBIR RAKAM METNE GOMULU DEGIL: mal, indirim, yuzde, navlun ve yeni toplam
+ * cagirandan geliyor ve cagiran onlari SIPARIS KAYDINDAN okuyor. Bu deponun
+ * KURAL 6'da kayitli dersi (escrow tavani bes gun metinde 3.000, kodda 3.500
+ * kaldi) ve KURAL 2b'nin dersi: musteriye soylenen ile kaydin dedigi
+ * ayrisirsa, farki ancak musteri gorur.
+ *
+ * DORT DIL TEK FONKSIYONDA. Ayri yazilsalardi biri duzeltilip oteki eskirdi
+ * (KURAL 5o: ayni para blogu dort kez yazilmisti ve dorduncu kopya dolar
+ * tutarlarin ustune "EUR" yazdi). Musterinin dili kendi ulkesinden secilir --
+ * KURAL 1e'nin ayni gerekcesi.
+ *
+ * "ILK SIPARIS" CUMLESI KOSULLU: indirimin sebebi budur ama OLCULMEDEN
+ * yazilmaz. Ikinci bir siparise operator karariyla indirim islenirse metin
+ * yalnizca "hos geldin indirimi" der; "ilk siparisiniz icin" demek, musterinin
+ * kendi kaydiyla celisen bir cumle olurdu (KURAL 3'un mektup hali).
+ *
+ * $fig: goods, discount, pct, shipping, total, currency, invoice
+ */
+function vestra_tpl_order_discount(string $buyerName, string $ref, array $fig,
+        bool $firstOrder = true, bool $hasAccount = false, string $signer = '', string $lang = 'en'): array {
+    $buyerName = vestra_display_name($buyerName);
+    $lang = in_array(strtolower($lang), ['de', 'es', 'fr'], true) ? strtolower($lang) : 'en';
+
+    $cur = strtoupper(trim((string)($fig['currency'] ?? 'EUR'))) ?: 'EUR';
+    $sym = $cur === 'USD' ? 'US$' : '€';
+    /* Bicim dile gore: Almanca/Ispanyolca/Fransizca ondalik VIRGUL kullaniyor ve
+       Ingilizce bicimde basilan bir rakam o kutuda "1.200,00" yerine "1,200.00"
+       diye okunur -- binlik ile ondalik yer degistirince tutar bin kat sapmis
+       GIBI gorunur. */
+    $m = function (float $v) use ($lang, $sym): string {
+        if ($v <= 0) return '';
+        return $lang === 'en' ? $sym.number_format($v, 2)
+                              : number_format($v, 2, ',', $lang === 'de' ? '.' : ' ').' '.$sym;
+    };
+    $goods = (float)($fig['goods'] ?? 0);
+    $disc  = (float)($fig['discount'] ?? 0);
+    $ship  = (float)($fig['shipping'] ?? 0);
+    $total = (float)($fig['total'] ?? 0);
+    $pct   = (float)($fig['pct'] ?? 0);
+    $inv   = trim((string)($fig['invoice'] ?? ''));
+    /* Belge YENIDEN CIZILDI mi? Sablon bunu OLCEMEZ (fatura dosyasi bugun de
+       var, dun de vardi) -- yalnizca cagiran bilir, o yuzden ACIK bayrak. */
+    $invUpd = !empty($fig['invoice_updated']);
+    $pctLbl = rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.').'%';
+
+    $L = [
+        'en' => ['hi' => 'Customer', 'badge' => 'Discount', 'ref' => 'Order ref', 'goods' => 'Goods',
+                 'disc' => 'Welcome discount', 'ship' => 'Shipping', 'tot' => 'New total', 'inv' => 'Invoice',
+                 'btn' => 'View your order',
+                 'subj' => "Order {$ref} — your {$pctLbl} welcome discount",
+                 'open' => "we have applied a {$pctLbl} welcome discount to your order {$ref}"
+                         . ($firstOrder ? ", as a thank-you for your first order with VESTRA" : "")
+                         . ". The figures below replace the ones you had before.",
+                 'invY' => "Your invoice {$inv} carries this amount — no action is needed from you.",
+                 'invU' => "Your invoice {$inv} has been updated to this amount and keeps its number — please use the updated document; any earlier copy is superseded.",
+                 'invN' => "Your invoice will be issued with this amount.",
+                 'end'  => "If anything is unclear, just reply to this e-mail and ask.",
+                 'bye'  => 'Kind regards,'],
+        'de' => ['hi' => 'Kundin, sehr geehrter Kunde', 'badge' => 'Rabatt', 'ref' => 'Bestellung', 'goods' => 'Warenwert',
+                 'disc' => 'Willkommensrabatt', 'ship' => 'Versand', 'tot' => 'Neuer Gesamtbetrag', 'inv' => 'Rechnung',
+                 'btn' => 'Bestellung ansehen',
+                 'subj' => "Bestellung {$ref} — Ihr Willkommensrabatt von {$pctLbl}",
+                 'open' => "wir haben Ihrer Bestellung {$ref} einen Willkommensrabatt von {$pctLbl} gutgeschrieben"
+                         . ($firstOrder ? " — als Dankeschön für Ihre erste Bestellung bei VESTRA" : "")
+                         . ". Die folgenden Beträge ersetzen die bisherigen.",
+                 'invY' => "Ihre Rechnung {$inv} weist diesen Betrag aus — Sie müssen nichts weiter tun.",
+                 'invU' => "Ihre Rechnung {$inv} wurde auf diesen Betrag aktualisiert und behält ihre Nummer — bitte verwenden Sie die aktualisierte Rechnung; eine frühere Fassung ist damit hinfällig.",
+                 'invN' => "Ihre Rechnung wird mit diesem Betrag ausgestellt.",
+                 'end'  => "Bei Fragen antworten Sie einfach auf diese E-Mail.",
+                 'bye'  => 'Mit freundlichen Grüßen,'],
+        'es' => ['hi' => 'cliente', 'badge' => 'Descuento', 'ref' => 'Pedido', 'goods' => 'Mercancía',
+                 'disc' => 'Descuento de bienvenida', 'ship' => 'Envío', 'tot' => 'Nuevo total', 'inv' => 'Factura',
+                 'btn' => 'Ver su pedido',
+                 'subj' => "Pedido {$ref} — su descuento de bienvenida del {$pctLbl}",
+                 'open' => "hemos aplicado un descuento de bienvenida del {$pctLbl} a su pedido {$ref}"
+                         . ($firstOrder ? ", como agradecimiento por su primer pedido en VESTRA" : "")
+                         . ". Los importes siguientes sustituyen a los anteriores.",
+                 'invY' => "Su factura {$inv} recoge este importe; no tiene que hacer nada más.",
+                 'invU' => "Su factura {$inv} se ha actualizado a este importe y conserva su número; utilice el documento actualizado, ya que cualquier copia anterior queda sin efecto.",
+                 'invN' => "Su factura se emitirá por este importe.",
+                 'end'  => "Si algo no queda claro, responda a este correo y se lo explicamos.",
+                 'bye'  => 'Un cordial saludo,'],
+        'fr' => ['hi' => 'Madame, Monsieur', 'badge' => 'Remise', 'ref' => 'Commande', 'goods' => 'Marchandise',
+                 'disc' => 'Remise de bienvenue', 'ship' => 'Livraison', 'tot' => 'Nouveau total', 'inv' => 'Facture',
+                 'btn' => 'Voir votre commande',
+                 'subj' => "Commande {$ref} — votre remise de bienvenue de {$pctLbl}",
+                 'open' => "nous avons appliqué une remise de bienvenue de {$pctLbl} à votre commande {$ref}"
+                         . ($firstOrder ? ", pour vous remercier de votre première commande chez VESTRA" : "")
+                         . ". Les montants ci-dessous remplacent les précédents.",
+                 'invY' => "Votre facture {$inv} indique ce montant : vous n'avez rien à faire.",
+                 'invU' => "Votre facture {$inv} a été mise à jour pour ce montant et conserve son numéro : merci d'utiliser le document mis à jour, toute copie antérieure étant caduque.",
+                 'invN' => "Votre facture sera établie pour ce montant.",
+                 'end'  => "Si quelque chose n'est pas clair, répondez simplement à ce courriel.",
+                 'bye'  => 'Cordialement,'],
+    ][$lang];
+
+    if ($buyerName === '') $buyerName = $L['hi'];
+    $greet = $lang === 'de' ? "Sehr geehrte {$buyerName}," : ($lang === 'en' ? "Dear {$buyerName}," : "Bonjour {$buyerName},");
+    if ($lang === 'es') $greet = "Estimado/a {$buyerName},";
+    if ($lang === 'de' && $buyerName !== $L['hi']) $greet = "Guten Tag {$buyerName},";
+
+    /* Almanca ve Fransizca hitaptan sonra KUCUK harfle devam eder; Ingilizce ve
+       Ispanyolca BUYUK. Tek bir kurala baglamak dillerin ikisinde yanlis olurdu
+       ve bu, musteriye giden ilk cumle. */
+    $open = in_array($lang, ['en', 'es'], true) ? mb_strtoupper(mb_substr($L['open'], 0, 1)).mb_substr($L['open'], 1)
+                                                : $L['open'];
+    /* Fransizcada iki nokta ustusteden ONCE bosluk var. */
+    $co = $lang === 'fr' ? ' : ' : ': ';
+
+    $rows = [['label' => $L['ref'], 'value' => $ref]];
+    if ($goods > 0) $rows[] = ['label' => $L['goods'], 'value' => $m($goods)];
+    if ($disc  > 0) $rows[] = ['label' => $L['disc'].' ('.$pctLbl.')', 'value' => '-'.$m($disc)];
+    if ($ship  > 0) $rows[] = ['label' => $L['ship'], 'value' => $m($ship)];
+    if ($total > 0) $rows[] = ['label' => $L['tot'], 'value' => $m($total)];
+    if ($inv !== '') $rows[] = ['label' => $L['inv'], 'value' => $inv];
+    $opts = ['badge' => $L['badge'], 'rows' => $rows];
+    if ($hasAccount) $opts['button'] = ['label' => $L['btn'],
+        'url' => 'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref)];
+
+    /* Rakamlar GOVDEDE de yaziyor, yalniz rozet kutusunda degil: bu depo
+       e-posta govdelerini nl2br(htmlspecialchars()) ile basiyor ve bazi posta
+       istemcileri kutuyu dar/kirik gosterebiliyor. Parayi konusan bir mektupta
+       tutar, duz metinde de okunabilmeli. */
+    $lines = $L['goods'].$co.$m($goods)."\n"
+           . $L['disc'].' ('.$pctLbl.')'.$co.'-'.$m($disc)."\n"
+           . ($ship > 0 ? $L['ship'].$co.$m($ship)."\n" : '')
+           . $L['tot'].$co.$m($total)."\n";
+
+    $body = $greet."\n\n"
+          . $open."\n\n"
+          . $lines."\n"
+          /* UC HAL, IKI DEGIL. "Guncellendi" ile "bu tutari tasiyor" ayni sey
+             degil: ilki, musterinin elinde ESKI bir kopya olabilecegini de
+             soyler (KURAL 5f'in yeniden cizimi ayni numarayi korur, yani iki
+             PDF ayni numarayi tasir ve hangisinin gecerli oldugunu yalnizca bu
+             cumle soyler). Bayrak ACIK verilmek zorunda: taze kesilmis bir
+             belgeye "guncellendi" demek, olmamis bir islemi anlatirdi
+             (KURAL 3'un mektup hali). */
+          . ($inv !== '' ? ($invUpd ? $L['invU'] : $L['invY']) : $L['invN'])."\n\n"
+          . $L['end']."\n\n"
+          . $L['bye']."\n\n"
+          . ($signer !== '' ? $signer."\nVESTRA - vestrasales.com" : "VESTRA - vestrasales.com");
+
+    return [$L['subj'], $body, $opts];
+}
+
+/**
+ * "Faturaniz hazirlaniyor, ilk is gunu gelecek" (operator metni, 5 Eyl 2026,
+ * VES-6B53D265). Ustune iki sey daha tasiyor, ikisi de operatorle konusulup
+ * eklendi cunku eksikligi sonradan pahaliya patlardi:
+ *
+ *   1. ON SIPARIS TARIHI. Musteri siparisi ilan on siparise donmeden ONCE verdi.
+ *      Faturayi alip 4.680 EUR odedikten sonra malin dort hafta sonra cikacagini
+ *      ogrenmesi, itiraz ve iade talebi doguran durum. Cumle ILANDAN geliyor
+ *      (vestra_preorder_note), mektuba elle yazilmiyor -- ilan degisirse mektup
+ *      da degisir, ayrisamaz.
+ *   2. LATIN HARFLI ADRES. Fatura PDF'i gomulu olmayan Helvetica + CP1252
+ *      kullaniyor; Cince/Japonca harfler "??????" olarak basiliyor. Adres
+ *      Latin harfle gelmezse belge alicinin adresini kaybeder.
+ *
+ * TARIH SABIT YAZILMIYOR: "ilk is gunu" gonderim aninda hesaplaniyor
+ * (vestra_business_days_after). Sablona "Monday 7 September" gomseydik, ayni
+ * mektup gelecek hafta yeniden gonderildiginde gecmis bir gun soylerdi -- bu
+ * depoda L1212'nin "in stock from 5 May" notu tam boyle dort ay bayat kaldi.
+ */
+function vestra_tpl_order_invoice_soon(string $buyerName, string $ref, int $sendTs = 0, string $preorderLine = '', bool $hasAccount = false, string $signer = 'Marco Bellini'): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $sendTs = $sendTs > 0 ? $sendTs : time();
+    /* Sonraki IS gunu, kendi basina hesaplaniyor. Once vestra_business_days_after()
+       varsa ona guveniyordu ve yoksa "+1 gun"e dusuyordu -- Cumartesi gonderimde
+       o dal PAZAR diyordu. Sessizce yanlis bir gun soylemektense hafta sonunu
+       burada atla: bagimliligi olmayan dort satir, her yerde ayni cevap. */
+    $due = $sendTs;
+    do { $due += 86400; } while ((int)date('N', $due) >= 6);
+    $dueTxt = date('l j F', $due);
+
+    $subject = "Your VESTRA order {$ref} — invoice on its way";
+    $rows = [['label'=>'Order ref', 'value'=>$ref]];
+    $opts = ['badge'=>'Invoice being prepared', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders'];
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Thank you for your order {$ref}.\n\n"
+      . "Your invoice is being prepared and will be sent to your VESTRA account and by e-mail "
+      . "on the first business day, {$dueTxt}."
+      . ($preorderLine !== ''
+          ? " The goods are a pre-order for this season: dispatch is scheduled for "
+            . $preorderLine . "."
+          : '')
+      . "\n\n"
+      . "So that the invoice and the shipping documents are correct, please confirm your "
+      . "delivery address in Latin script, and whether it is the same as your billing address.\n\n"
+      . "Kind regards,\n\n"
+      . $signer . "\n"
+      . "VESTRA – vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
+ * Yeni siparis geldi: tesekkur + TESLIMAT ADRESI iste + "fatura adresiyle ayni mi"
+ * + "faturaniz hazirlanip gonderilecek" (operator istegi, 5 Eyl 2026, VES-6B53D265).
+ *
+ * Ref ve tutar PARAMETRE: siparis kaydindan besleniyor, metne gomulmuyor. Bir
+ * mektuba rakam gommek bu depoda iki kez yanlis belgeye yol acti (escrow tavani,
+ * L1212 kademeleri) -- ilan/siparis degisince mektup sessizce yalan oluyor.
+ *
+ * "Fatura hazirlanacak" cumlesi KURAL 5 ile uyumlu: faturayi operator onayi
+ * kesiyor, o yuzden TARIH VERILMIYOR. Isin kendisi, faturasi ZATEN kesilmis
+ * siparise bu mektubu gondermeyi reddediyor -- orada cumle yalan olurdu.
+ *
+ * Latin harfli adres istemesinin sebebi pratik: hava konsimentosu ve gumruk
+ * beyani Latin harf ister; yerel yazim (Cince/Arapca/Yunanca) ise son teslimatta
+ * kuryenin okudugu sey. Ikisini birden istemek musteriye bir sey kaybettirmiyor,
+ * yeniden teslimat denemesini onluyor.
+ */
+function vestra_tpl_order_address_request(string $buyerName, string $ref, float $total = 0.0, string $currency = 'EUR', bool $hasAccount = false, string $signer = 'Marco Bellini'): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $subject = "Your VESTRA order {$ref} — delivery address needed";
+
+    $rows = [['label'=>'Order ref', 'value'=>$ref]];
+    if ($total > 0) {
+        $sym = $currency === 'EUR' ? '€' : ($currency.' ');
+        $rows[] = ['label'=>'Order total', 'value'=>$sym.number_format($total, 2, '.', ',')];
+    }
+    $opts = ['badge'=>'Order received', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders'];
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Thank you for your order, and thank you for choosing VESTRA.\n\n"
+      . "We have received your request {$ref} and it is with us now. Before we can prepare the "
+      . "shipping documents, we need your delivery address in full:\n\n"
+      . "1. The delivery address in Latin script. This is what goes on the air waybill and the "
+      . "customs declaration.\n"
+      . "2. If your address is normally written in another script, please include that version as "
+      . "well — the local courier reads it for the final leg of the delivery.\n"
+      . "3. The consignee name and a telephone number the carrier can reach on the day of delivery.\n\n"
+      . "Is the delivery address the same as your billing address? If it is, just confirm and we "
+      . "will use it for both. If it differs, please send us both addresses.\n\n"
+      . "As soon as we have this, your invoice will be prepared and sent to you.\n\n"
+      . "If anything about the order needs changing before we go ahead, please tell us now.\n\n"
+      . "Kind regards,\n\n"
+      . $signer . "\n"
+      . "VESTRA – vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
+ * To a buyer whose account is ALREADY open: how ordering and payment work, with
+ * the card-escrow ceiling (operator instruction, 2 Sep 2026: "LESSVAT'a yaz",
+ * "escrow 3000'de kalsin").
+ *
+ * Every figure is a parameter fed from the constants the checkout enforces
+ * (VESTRA_ESCROW_MAX, VESTRA_ESCROW_FEE_BUYER) — never typed into the text. The
+ * ceiling had already drifted once: the pages said EUR 3,000 while the cart
+ * accepted 3,500. A letter that carries its own number is the next drift.
+ *
+ * The workflow branch that sends this checks auth_prices_unlocked() first: a
+ * "your account is open" letter to a closed account sends the buyer to a locked
+ * page (KURAL 2b).
+ */
+function vestra_tpl_escrow_info(string $salutation, float $cap, float $feeRate, string $signer = 'Marco Bellini'): array {
+    $capTxt = '€'.number_format($cap, 0, '.', ',');
+    $feeTxt = rtrim(rtrim(number_format($feeRate * 100, 1, '.', ''), '0'), '.').'%';
+    $subject = "VESTRA — your account is open: ordering and payment (card escrow up to {$capTxt})";
+    $body = $salutation . ",\n\n"
+      . "Your VESTRA account is open, and trade prices are visible as soon as you log in:\n"
+      . "https://vestrasales.com/login\n\n"
+      . "How ordering and payment work:\n\n"
+      . "Card escrow — orders up to {$capTxt}. You pay by card at checkout; VESTRA holds the payment and "
+      . "releases it to the seller only after the goods reach you and you confirm they are as described. "
+      . "Buyer protection fee: {$feeTxt} of the order value.\n\n"
+      . "Above {$capTxt}, or whenever you prefer it: we issue an invoice, and the goods are dispatched "
+      . "once the bank transfer arrives.\n\n"
+      . "Escrow is offered at checkout when the seller of the items is set up for card payments; "
+      . "otherwise the invoice route applies.\n\n"
+      . "If you tell me which brands and quantities you are looking at, I will confirm availability "
+      . "and put a first order together with you.\n\n"
+      . "Best regards,\n\n"
+      . $signer . "\n"
+      . "VESTRA – vestrasales.com";
+    $opts = [
+        'badge'  => 'Account open',
+        'rows'   => [
+            ['label'=>'Card escrow',   'value'=>'up to '.$capTxt.' per order', 'strong'=>true],
+            ['label'=>'Protection fee','value'=>$feeTxt.' of the order'],
+            ['label'=>'Above that',    'value'=>'invoice, dispatch on receipt of transfer'],
+        ],
+        'button' => ['label'=>'Log in to see trade prices', 'url'=>'https://vestrasales.com/login'],
+    ];
+    return [$subject, $body, $opts];
+}
+
+/**
+ * The illustrated assortment sheet — a photo of every colour we offer, and, when
+ * the operator asks for it, the price ladder next to it.
+ *
+ * It answers two messages from the same buyer (BRITISHSTYLE on the Fred Perry
+ * listings, 10–11 Sep 2026): "leider haben Sie nicht von allen angebotenen Farben
+ * ein Foto hier", then "bitte senden Sie und das bebilderte Sortimentsblatt".
+ * One letter, because the second request is the first one plus prices; two
+ * letters would have been two wordings of the same fact, and this repo has paid
+ * for that several times over.
+ *
+ * The letter goes out under the LISTING'S SELLER, not a VESTRA persona: the
+ * operator asked for this one to come from the shop. That is a deliberate
+ * exception to KURAL 8, which hides the seller behind an ident inside platform
+ * messaging — this is an e-mail the operator chose to send in the seller's name.
+ *
+ * $blocks is one entry per listing:
+ *   ['p' => <listing>, 'pairs' => [['colour'=>'Black','img'=>'https://…'], …],
+ *    'rungs' => [['min'=>56,'price'=>70.20], …]]
+ *
+ * The CALLER builds all three. `pairs` comes from matching the listing's own
+ * colours against the listing's own images — a letter whose whole subject is
+ * "every colour has a photo" cannot be the place where a colour is attached to
+ * the wrong picture. `rungs` comes from the cart's own vestra_unit_price(), so a
+ * quoted rung is by construction the figure the checkout charges; this file
+ * formats numbers and never derives them (KURAL 6: the page, the letter and the
+ * cart must not be able to disagree).
+ *
+ * No tax claim. Prices on VESTRA are gross (KURAL 5m), but whether VAT is
+ * actually charged on an invoice is a per-invoice decision and, for an intra-EU
+ * trade buyer, usually a reverse charge — so the letter says "per piece, plus
+ * shipping", which is true in every one of those cases, and nothing more.
+ *
+ * $note is printed verbatim as its own paragraph, or not at all when empty. It
+ * exists because the one thing this particular buyer needs to hear — that Fred
+ * Perry runs one body colour with several tippings — is true of these listings
+ * and not of listings in general. A sentence like that belongs to whoever can
+ * vouch for it, so the template does not carry one of its own.
+ */
+/**
+ * Bir ilan blogunu METNE ceviren TEK gövde — hem "bebildertes Sortiment" cevabi
+ * (vestra_tpl_listing_colours) hem kayitli musteriye giden Angebot
+ * (vestra_tpl_listing_offer) bunu cagirir.
+ *
+ * Neden ayri fonksiyon: iki mektup da ayni uc seyi basiyor — model satiri,
+ * kart satirlari, renk etiketli fotograf seridi. Ikinci mektubu yazarken bu
+ * donguyu kopyalamak, bu deponun defalarca odedigi hatanin ta kendisiydi
+ * (desc/sizes, faturanin uc katmani, DORT mektup govdesi). Kopyalansaydi bir
+ * gun MOQ satirinin bicimini duzelten kisi ikisinden yalnizca birini duzeltirdi.
+ *
+ * ETIKETLER DISARIDAN geliyor ($L): govde dil bilmiyor, yalniz duzeni biliyor.
+ * Boylece yeni bir dil eklemek bu fonksiyona dokunmuyor.
+ *
+ * Rakamlarin hicbiri yazilmiyor: moq / min_colors / size_step sepetin GERCEKTEN
+ * uyguladigi uc sayi, kademeler de vestra_price_ladder()'dan. Sepetle celisen
+ * bir mektup, aliciyi kendisini reddedecek bir kasaya yollar.
+ */
+function vestra_listing_block_parts(array $blocks, array $L, bool $withPrices): array {
+    $money = $L['money'];
+    $nCol = 0; $shots = []; $rows = []; $chunks = []; $firstUrl = '';
+    foreach ($blocks as $b) {
+        $p     = (array)($b['p'] ?? []);
+        $pairs = (array)($b['pairs'] ?? []);
+        $rungs = (array)($b['rungs'] ?? []);
+        $name  = trim((string)($p['name'] ?? ''));
+        $url   = 'https://vestrasales.com/product?id=' . rawurlencode((string)($p['id'] ?? ''));
+        if ($firstUrl === '') $firstUrl = $url;
+        $cols  = implode(', ', array_map(fn($x) => (string)$x['colour'], $pairs));
+        $nCol += count($pairs);
+        /* RENKSIZ ILAN (DSQUARED2'nin cogu: kayitta renk alani yok): "Farben (0):"
+           bos satiri ve fotosuz bir blok basilmaz. Cagiran ilanin KAPAK fotografini
+           verdiyse ($b['cover']) o seride SKU etiketiyle gorunur; renk sayisina
+           (nCol) girmez -- "Alle N Farben" yalniz gercek renkleri sayar. */
+        $cover    = trim((string)($b['cover'] ?? ''));
+        $noColour = !$pairs && $cover !== '';
+
+        $moq  = (int)($p['moq'] ?? 0);
+        $minC = (int)($p['min_colors'] ?? 0);
+        $step = (int)($p['size_step'] ?? 0);
+        $min  = '';
+        if ($moq > 0) {
+            $min = $moq . $L['pieces'];
+            if ($minC > 1) $min .= sprintf($L['from_colours'], $minC);
+            if ($step > 1) $min .= sprintf($L['cartons'], $step);
+        }
+
+        $priceLine = '';
+        if ($withPrices && $rungs) {
+            $parts = [];
+            foreach ($rungs as $r) {
+                $parts[] = $L['from'] . (int)$r['min'] . $L['pcs'] . $money((float)$r['price']);
+            }
+            $priceLine = implode(' · ', $parts) . $L['per_piece'];
+        }
+
+        /* KAYITLI (gercek) beden stogu -- yalniz cagiran verdiyse. Cagiran onu
+           inc/stock.php'nin vestra_stock_real()'inden aliyor, yani TURETILMIS
+           bant buraya hic girmiyor: mektupta "stokta" diye basilan her rakam
+           tedarikcinin verdigi rakam. Stok bir fiyat degil, o yuzden fiyat
+           kapisindan bagimsiz basiliyor. */
+        $stockLine = '';
+        $stk = (array)($b['stock']['sizes'] ?? []);
+        $fmtStock = function (array $m) use ($L): string {
+            $bits = [];
+            foreach ($m as $sz => $q) $bits[] = $sz . ' ' . (int)$q;
+            return implode(' · ', $bits) . ' — ' . array_sum(array_map('intval', $m)) . $L['pieces'];
+        };
+        if ($stk) $stockLine = $fmtStock($stk);
+        /* Cok renkli TEK ilan (Burberry pike polo, 8 model): renk basina bir satir,
+           altinda toplam. Renk adi ilanin kendi adi -- model numarasi onun icinde
+           (bkz. vestra_colour_base); ikinci bir etiket uydurulmuyor. */
+        $stockByColour = [];
+        foreach ((array)($b['stock']['by_colour'] ?? []) as $cn => $x) {
+            $stockByColour[(string)$cn] = $fmtStock((array)($x['sizes'] ?? []));
+        }
+
+        $stockChunk = '';
+        if ($stockByColour) {
+            $stockChunk = $L['stock'] . ":\n";
+            foreach ($stockByColour as $cn => $ln) $stockChunk .= '  ' . $cn . ': ' . $ln . "\n";
+            $stockChunk .= '  ' . $L['stock_total'] . ': ' . array_sum(array_map('intval', $stk)) . $L['pieces'] . "\n";
+        } elseif ($stockLine !== '') {
+            $stockChunk = $L['stock'] . ': ' . $stockLine . "\n";
+        }
+
+        $chunks[] = $name . "\n" . $url . "\n"
+               . ($noColour ? '' : $L['colours'] . ' (' . count($pairs) . '): ' . $cols . "\n")
+               . ($min !== '' ? $L['minimum'] . ': ' . $min . "\n" : '')
+               . $stockChunk
+               . ($priceLine !== '' ? $L['price'] . ': ' . $priceLine . "\n" : '');
+
+        $rows[] = ['label' => $name, 'value' => $noColour ? $min : $cols . ($min !== '' ? ' · ' . $min : ''), 'strong' => true];
+        if ($stockByColour) {
+            foreach ($stockByColour as $cn => $ln) $rows[] = ['label' => $L['stock'] . ' · ' . $cn, 'value' => $ln];
+            $rows[] = ['label' => $L['stock_total'], 'value' => array_sum(array_map('intval', $stk)) . $L['pieces']];
+        } elseif ($stockLine !== '') {
+            $rows[] = ['label' => $L['stock'], 'value' => $stockLine];
+        }
+        if ($priceLine !== '') $rows[] = ['label' => $L['price'], 'value' => $priceLine];
+
+        /* Etiket ilanin KENDI kayitli referansi (SKU), basliktan ayiklanmis bir
+           parca degil. Cok ilanli mektupta sart: ayni renk adi iki modelde de
+           geciyor ve etiketsiz bir "Black" hangisi oldugunu soylemiyor. */
+        $tag = count($blocks) > 1 ? trim((string)($b['tag'] ?? '')) : '';
+        foreach ($pairs as $x) {
+            $shots[] = ['img'   => (string)$x['img'],
+                        'label' => ($tag !== '' ? $tag . ' · ' : '') . (string)$x['colour'],
+                        'url'   => $url];
+        }
+        if ($noColour) {
+            $own = trim((string)($b['tag'] ?? ''));
+            $shots[] = ['img' => $cover, 'label' => $own !== '' ? $own : $name, 'url' => $url];
+        }
+    }
+    return ['chunks' => $chunks, 'rows' => $rows, 'shots' => $shots,
+            'firstUrl' => $firstUrl, 'nCol' => $nCol];
+}
+
+/**
+ * Bir ilan blogunun dil etiketleri. Yedek DAIMA 'en' — eksik bir dil sessizce
+ * Ingilizceye duser, yarim cevrilmis bir mektup uretmez.
+ */
+function vestra_listing_block_labels(string $lang): array {
+    $c = fn(float $v): string => number_format($v, 2, ',', '.') . ' €';   // kita yazimi
+    $e = fn(float $v): string => 'EUR ' . number_format($v, 2, '.', ',');
+    $T = [
+      'en' => ['money'=>$e,'colours'=>'Colours','stock'=>'In stock','stock_total'=>'Total in stock','minimum'=>'Minimum','price'=>'Price',
+               'pieces'=>' pieces','from_colours'=>', from %d colours','cartons'=>', in cartons of %d',
+               'from'=>'from ','pcs'=>' pcs ','per_piece'=>'  (per piece, plus shipping)'],
+      'de' => ['money'=>$c,'colours'=>'Farben','stock'=>'Auf Lager','stock_total'=>'Gesamt auf Lager','minimum'=>'Mindestabnahme','price'=>'Preis',
+               'pieces'=>' Stück','from_colours'=>', ab %d Farben','cartons'=>', in Kartons zu %d',
+               'from'=>'ab ','pcs'=>' Stück ','per_piece'=>'  (pro Stück, zzgl. Versand)'],
+      'fr' => ['money'=>$c,'colours'=>'Coloris','stock'=>'En stock','stock_total'=>'Total en stock','minimum'=>'Minimum de commande','price'=>'Prix',
+               'pieces'=>' pièces','from_colours'=>', à partir de %d coloris','cartons'=>', en cartons de %d',
+               'from'=>'à partir de ','pcs'=>' pièces ','per_piece'=>'  (la pièce, hors transport)'],
+      'it' => ['money'=>$c,'colours'=>'Colori','stock'=>'Disponibili','stock_total'=>'Totale disponibile','minimum'=>'Ordine minimo','price'=>'Prezzo',
+               'pieces'=>' pezzi','from_colours'=>', da %d colori','cartons'=>', in cartoni da %d',
+               'from'=>'da ','pcs'=>' pz ','per_piece'=>'  (al pezzo, spedizione esclusa)'],
+      'es' => ['money'=>$c,'colours'=>'Colores','stock'=>'En stock','stock_total'=>'Total en stock','minimum'=>'Pedido mínimo','price'=>'Precio',
+               'pieces'=>' piezas','from_colours'=>', desde %d colores','cartons'=>', en cajas de %d',
+               'from'=>'desde ','pcs'=>' uds ','per_piece'=>'  (por pieza, transporte aparte)'],
+      'pt' => ['money'=>$c,'colours'=>'Cores','stock'=>'Em stock','stock_total'=>'Total em stock','minimum'=>'Encomenda mínima','price'=>'Preço',
+               'pieces'=>' peças','from_colours'=>', a partir de %d cores','cartons'=>', em caixas de %d',
+               'from'=>'a partir de ','pcs'=>' un ','per_piece'=>'  (por peça, transporte à parte)'],
+      'nl' => ['money'=>$c,'colours'=>'Kleuren','stock'=>'Op voorraad','stock_total'=>'Totaal op voorraad','minimum'=>'Minimumafname','price'=>'Prijs',
+               'pieces'=>' stuks','from_colours'=>', vanaf %d kleuren','cartons'=>', in dozen van %d',
+               'from'=>'vanaf ','pcs'=>' st ','per_piece'=>'  (per stuk, excl. verzending)'],
+    ];
+    return $T[$lang] ?? $T['en'];
+}
+
+/**
+ * ANGEBOT — secilmis ilanlar icin, fotograflariyla. Kayitli musteriye (varsayilan)
+ * ya da LEAD'e ($lead = true).
+ *
+ * vestra_tpl_listing_colours'in ikinci kopyasi DEGIL: o mektup bir SIKAYETE
+ * cevap ve acilis cumlesi oyle ("fotograf yoktu, duzeltildi") -- 57 kisiye
+ * giden bir teklifte o cumlenin isi yok. Paylasilan sey paylasiliyor
+ * (vestra_listing_block_parts), ayrilan sey yalnizca acilis ve imza.
+ *
+ * MARKA ILANLARDAN OKUNUR (29 Eyl 2026). Metin "Fred Perry"ye gomuluydu; ayni
+ * mektubu Burberry icin gondermek ya ikinci bir sablon (ayni blok, ayni kart,
+ * ayni foto seridi -- bu depoda defalarca ayrisan kopya) ya da Burberry
+ * teklifinde "Fred Perry" yazan bir konu satiri demekti. Tek marka -> o marka;
+ * iki-uc marka -> "A & B"; hic/cok -> VESTRA. Fred Perry teklifinin ciktisi
+ * birebir ayni kaldi (test bunu tutuyor).
+ *
+ * IMZA VESTRA, dukkanin adi degil: uye platformu bu adla taniyor ve kampanya
+ * takma adi (Les Garage de Paris) soguk listeye ait -- bu karar Winter uye
+ * mektubunda zaten kayitli. LEAD surumu ise o listenin kendi imzasini tasiyor
+ * (wave3 ile ayni altbilgi).
+ *
+ * FIYAT CAGIRANIN KARARI ve alici basina soruluyor ($withPrices): kapisi kapali
+ * bir aliciya rakam yazmak, sayfasinin gostermedigi fiyati mektupta soylemektir
+ * (KURAL 2b'nin birebir tersi). Kapali olana rakam yerine "giris yapinca
+ * fiyatlar sayfada" cumlesi gidiyor -- bos birakmak degil, dogrusunu soylemek.
+ * LEAD'E FIYAT HIC GITMEZ ($withPrices yok sayilir): hesabi yok, fiyat listesi
+ * girissiz acilmiyor (KURAL 19) ve lead mektuplarinin hicbiri rakam tasimiyor.
+ * Yerine "kayit ucretsiz" cumlesi + kayit baglantisi; "size iki kez yazmistik"
+ * gibi bir iddia YOK (secim yalniz ilk mektubu almis olmayi sart kosuyor).
+ */
+function vestra_tpl_listing_offer(string $lang, string $company, array $blocks, bool $withPrices = false, string $moreUrl = '', bool $lead = false): array {
+    $lang = strtolower(substr(trim($lang), 0, 2));
+    if ($lead) $withPrices = false;
+    $L    = vestra_listing_block_labels($lang);
+    $parts = vestra_listing_block_parts($blocks, $L, $withPrices);
+    $co   = trim($company);
+    $nCol = (int)$parts['nCol'];
+    $n    = count($blocks);
+
+    /* Marka KAYITTAN: harf duyarsiz tekillestirilir, ilk gorulen yazim basilir. */
+    $brands = [];
+    foreach ($blocks as $b) {
+        $bn = trim((string)(((array)($b['p'] ?? []))['brand'] ?? ''));
+        if ($bn !== '' && !isset($brands[mb_strtolower($bn)])) $brands[mb_strtolower($bn)] = $bn;
+    }
+    $brand = (count($brands) >= 1 && count($brands) <= 3) ? implode(' & ', array_values($brands)) : 'VESTRA';
+
+    /* Model adlari KAYITTAN, metne gomulu degil: bir ilan yarin yeniden
+       adlandirilirsa (bu depoda oldu) mektup sessizce yanlis ad yazardi. */
+    $names = [];
+    foreach ($blocks as $b) $names[] = trim((string)(((array)($b['p'] ?? []))['name'] ?? ''));
+    $names = implode(' · ', array_filter($names));
+
+    $reg = 'https://vestrasales.com/register?type=buyer';
+    $uns = 'https://vestrasales.com/lead-unsubscribe';
+    $M = [
+      'en' => ['s'=>'VESTRA — {brand} offer: %1$s models, %2$d colours', 's1'=>'VESTRA — {brand} offer: %1$s models', 's0'=>'VESTRA — {brand} offer: %d colours',
+        'g'=>'Hello','o'=>'{brand} is in stock with us and I have put the offer together for you — the models below, with a photo for every colour we can ship.',
+        'ol'=>'At VESTRA, our B2B wholesale marketplace for branded fashion, {brand} is now in stock — the models below, each with its photo.',
+        'p'=>'Your wholesale prices are shown on each product page once you are signed in.',
+        'pl'=>'Trade prices per piece are shown to registered businesses — registration is free and we ask for your trade licence: '.$reg,
+        'c'=>'Reply to this e-mail if you would like a quotation for a particular make-up, or another view of one of the colours.',
+        'u'=>'If you would rather not receive stock offers, just reply and say so — we will stop.',
+        'ul'=>'If this is not relevant to your business, just say so and we will not write again. Unsubscribe: '.$uns,
+        'b'=>'Open the offer','badge'=>'{brand} offer','shots'=>'All %d colours'],
+      'de' => ['s'=>'VESTRA — {brand} Angebot: %1$s Modelle, %2$d Farben', 's1'=>'VESTRA — {brand} Angebot: %1$s Modelle', 's0'=>'VESTRA — {brand} Angebot: %d Farben',
+        'g'=>'Guten Tag','o'=>'{brand} ist bei uns lieferbar, und ich habe Ihnen das Angebot zusammengestellt — die Modelle unten, mit einem Foto zu jeder lieferbaren Farbe.',
+        'ol'=>'Bei VESTRA, unserem B2B-Großhandelsmarktplatz für Markenmode, ist {brand} jetzt ab Lager lieferbar — die Modelle unten, jeweils mit Foto.',
+        'p'=>'Ihre Einkaufspreise stehen auf der jeweiligen Produktseite, sobald Sie angemeldet sind.',
+        'pl'=>'Die Einkaufspreise je Stück sehen registrierte Betriebe — die Registrierung ist kostenlos, wir fragen die Gewerbeanmeldung ab: '.$reg,
+        'c'=>'Antworten Sie kurz auf diese E-Mail, wenn Sie ein Angebot über eine bestimmte Zusammenstellung oder von einer Farbe eine weitere Ansicht brauchen.',
+        'u'=>'Wenn Sie keine Sortimentsangebote wünschen, genügt eine kurze Antwort — dann hören sie auf.',
+        'ul'=>'Falls es für Ihr Geschäft nicht passt, sagen Sie einfach Bescheid — dann schreiben wir nicht wieder. Abmelden: '.$uns,
+        'b'=>'Zum Angebot','badge'=>'{brand} Angebot','shots'=>'Alle %d Farben'],
+      'fr' => ['s'=>'VESTRA — offre {brand} : %1$s modèles, %2$d coloris', 's1'=>'VESTRA — offre {brand} : %1$s modèles', 's0'=>'VESTRA — offre {brand} : %d coloris',
+        'g'=>'Bonjour','o'=>'{brand} est disponible chez nous et je vous ai préparé l’offre — les modèles ci-dessous, avec une photo pour chaque coloris livrable.',
+        'ol'=>'Chez VESTRA, notre place de marché B2B de gros pour la mode de marque, {brand} est désormais disponible du stock — les modèles ci-dessous, chacun avec sa photo.',
+        'p'=>'Vos prix de gros s’affichent sur chaque fiche produit une fois connecté.',
+        'pl'=>'Les prix de gros à la pièce sont réservés aux entreprises enregistrées — l’inscription est gratuite et nous demandons votre extrait Kbis : '.$reg,
+        'c'=>'Répondez à cet e-mail si vous souhaitez un devis pour un assortiment précis, ou une autre vue d’un coloris.',
+        'u'=>'Si vous ne souhaitez plus recevoir d’offres, répondez simplement — nous arrêtons.',
+        'ul'=>'Si cela ne concerne pas votre activité, dites-le nous simplement et nous ne réécrirons pas. Se désabonner : '.$uns,
+        'b'=>'Voir l’offre','badge'=>'Offre {brand}','shots'=>'Les %d coloris'],
+      'it' => ['s'=>'VESTRA — offerta {brand}: %1$s modelli, %2$d colori', 's1'=>'VESTRA — offerta {brand}: %1$s modelli', 's0'=>'VESTRA — offerta {brand}: %d colori',
+        'g'=>'Buongiorno','o'=>'{brand} è disponibile da noi e le ho preparato l’offerta — i modelli qui sotto, con una foto per ogni colore consegnabile.',
+        'ol'=>'Su VESTRA, il nostro marketplace B2B all’ingrosso per la moda di marca, {brand} è ora disponibile da magazzino — i modelli qui sotto, ciascuno con la sua foto.',
+        'p'=>'I suoi prezzi all’ingrosso sono indicati su ciascuna scheda prodotto una volta effettuato l’accesso.',
+        'pl'=>'I prezzi all’ingrosso per pezzo sono riservati alle aziende registrate — l’iscrizione è gratuita e chiediamo la visura camerale: '.$reg,
+        'c'=>'Risponda a questa e-mail se desidera un preventivo per un assortimento specifico o un’altra immagine di un colore.',
+        'u'=>'Se preferisce non ricevere offerte di stock, risponda e ci fermiamo.',
+        'ul'=>'Se non riguarda la Sua attività, basta dircelo e non scriveremo più. Annulla iscrizione: '.$uns,
+        'b'=>'Vedi l’offerta','badge'=>'Offerta {brand}','shots'=>'Tutti i %d colori'],
+      'es' => ['s'=>'VESTRA — oferta {brand}: %1$s modelos, %2$d colores', 's1'=>'VESTRA — oferta {brand}: %1$s modelos', 's0'=>'VESTRA — oferta {brand}: %d colores',
+        'g'=>'Buenos días','o'=>'{brand} está disponible en nuestro stock y le he preparado la oferta — los modelos abajo, con una foto de cada color servible.',
+        'ol'=>'En VESTRA, nuestro marketplace mayorista B2B de moda de marca, {brand} ya está disponible desde stock — los modelos abajo, cada uno con su foto.',
+        'p'=>'Sus precios mayoristas aparecen en cada ficha de producto una vez que inicia sesión.',
+        'pl'=>'Los precios mayoristas por pieza se muestran a empresas registradas — el registro es gratuito y pedimos su licencia comercial: '.$reg,
+        'c'=>'Responda a este correo si desea un presupuesto para un surtido concreto u otra vista de algún color.',
+        'u'=>'Si prefiere no recibir ofertas de stock, respóndanos y dejaremos de enviarlas.',
+        'ul'=>'Si no tiene que ver con su negocio, díganoslo y no volveremos a escribir. Darse de baja: '.$uns,
+        'b'=>'Ver la oferta','badge'=>'Oferta {brand}','shots'=>'Los %d colores'],
+      'pt' => ['s'=>'VESTRA — oferta {brand}: %1$s modelos, %2$d cores', 's1'=>'VESTRA — oferta {brand}: %1$s modelos', 's0'=>'VESTRA — oferta {brand}: %d cores',
+        'g'=>'Bom dia','o'=>'{brand} está disponível connosco e preparei-lhe a oferta — os modelos abaixo, com uma foto de cada cor disponível.',
+        'ol'=>'{brand} está agora disponível do stock na VESTRA, o nosso marketplace grossista B2B de moda de marca — os modelos abaixo, cada um com a sua foto.',
+        'p'=>'Os seus preços grossistas aparecem em cada página de produto depois de iniciar sessão.',
+        'pl'=>'Os preços grossistas por peça são mostrados a empresas registadas — o registo é gratuito e pedimos a certidão permanente: '.$reg,
+        'c'=>'Responda a este e-mail se quiser um orçamento para um sortido específico ou outra vista de alguma cor.',
+        'u'=>'Se preferir não receber ofertas de stock, basta responder — deixamos de enviar.',
+        'ul'=>'Se não tiver a ver com o seu negócio, diga-nos e não voltaremos a escrever. Cancelar subscrição: '.$uns,
+        'b'=>'Ver a oferta','badge'=>'Oferta {brand}','shots'=>'As %d cores'],
+      'nl' => ['s'=>'VESTRA — {brand} aanbod: %1$s modellen, %2$d kleuren', 's1'=>'VESTRA — {brand} aanbod: %1$s modellen', 's0'=>'VESTRA — {brand} aanbod: %d kleuren',
+        'g'=>'Goedendag','o'=>'{brand} is bij ons leverbaar en ik heb het aanbod voor u klaargezet — de modellen hieronder, met een foto van elke leverbare kleur.',
+        'ol'=>'Bij VESTRA, onze B2B-groothandelsmarktplaats voor merkmode, is {brand} nu uit voorraad leverbaar — de modellen hieronder, elk met een foto.',
+        'p'=>'Uw inkoopprijzen staan op elke productpagina zodra u bent ingelogd.',
+        'pl'=>'Inkoopprijzen per stuk zijn zichtbaar voor geregistreerde bedrijven — registratie is gratis en wij vragen uw KvK-uittreksel: '.$reg,
+        'c'=>'Antwoord op deze e-mail als u een offerte voor een bepaalde samenstelling of nog een aanzicht van een kleur wilt.',
+        'u'=>'Wilt u geen voorraadaanbiedingen ontvangen, antwoord dan even — dan stoppen we.',
+        'ul'=>'Past het niet bij uw zaak, laat het dan weten — dan schrijven wij niet opnieuw. Afmelden: '.$uns,
+        'b'=>'Naar het aanbod','badge'=>'{brand} aanbod','shots'=>'Alle %d kleuren'],
+    ];
+    $t = $M[$lang] ?? $M['en'];
+    /* IKI-UC MARKA = cogul ozne: "Burberry & Fred Perry & DSQUARED2 ist ..." her
+       dilde yanlis fiil biciminiydi (1 Eki 2026, ilk cok markali kampanya onizlemesinde
+       okundu). Tek marka metni DEGISMIYOR (anahtar bulunmazsa dokunulmaz); desteklenmeyen
+       dil Ingilizceye dustugu icin ayni yedek burada da. */
+    if (count($brands) >= 2 && count($brands) <= 3) {
+        $PL = [
+          'en' => ['{brand} is in stock'=>'{brand} are in stock', '{brand} is now in stock'=>'{brand} are now in stock'],
+          'de' => ['{brand} ist bei uns lieferbar'=>'{brand} sind bei uns lieferbar', 'ist {brand} jetzt ab Lager'=>'sind {brand} jetzt ab Lager'],
+          'fr' => ['{brand} est disponible chez nous'=>'{brand} sont disponibles chez nous', '{brand} est désormais disponible du stock'=>'{brand} sont désormais disponibles du stock'],
+          'it' => ['{brand} è disponibile da noi'=>'{brand} sono disponibili da noi', '{brand} è ora disponibile da magazzino'=>'{brand} sono ora disponibili da magazzino'],
+          'es' => ['{brand} está disponible en nuestro stock'=>'{brand} están disponibles en nuestro stock', '{brand} ya está disponible desde stock'=>'{brand} ya están disponibles desde stock'],
+          'pt' => ['{brand} está disponível connosco'=>'{brand} estão disponíveis connosco', '{brand} está agora disponível do stock'=>'{brand} estão agora disponíveis do stock'],
+          'nl' => ['{brand} is bij ons leverbaar'=>'{brand} zijn bij ons leverbaar', 'is {brand} nu uit voorraad leverbaar'=>'zijn {brand} nu uit voorraad leverbaar'],
+        ];
+        foreach (($PL[isset($M[$lang]) ? $lang : 'en'] ?? []) as $sg => $pl) {
+            $t['o'] = str_replace($sg, $pl, $t['o']);
+            $t['ol'] = str_replace($sg, $pl, $t['ol']);
+        }
+    }
+    $fill = fn(string $x): string => str_replace('{brand}', $brand, $x);
+
+    /* Her modelde TEK renk varsa (Burberry: her renk ayri model numarasi)
+       "8 modeller, 8 renk" ayni sayiyi iki kez soyler; konu yalniz model sayar. */
+    /* TEK ilan, birden cok renk (Burberry pike polo: 8 model TEK kayitta, 29 Eyl 2026):
+       "1 models, 8 colours" hem yanlis sayida hem yanlis dilbilgisinde -- konu yalniz
+       rengi sayar. Tek ilan tek renk: yalniz marka. */
+    if ($n === 1) {
+        $subject = $fill($nCol > 1 ? sprintf($t['s0'], $nCol) : 'VESTRA — ' . $t['badge']);
+    } else {
+        $subject = $fill(($nCol === $n) ? sprintf($t['s1'], $n) : sprintf($t['s'], $n, $nCol));
+    }
+    $sign = $lead ? "—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com"
+                  : "VESTRA\nvestrasales.com";
+    $body = $t['g'] . ($co !== '' ? ' ' . $co : '') . ",\n\n"
+          . $fill($lead ? $t['ol'] : $t['o']) . "\n\n"
+          . implode("\n", $parts['chunks']) . "\n"
+          . ($moreUrl !== '' ? $moreUrl . "\n" : '')
+          . ($lead ? "\n" . $t['pl'] . "\n" : (!$withPrices ? "\n" . $t['p'] . "\n" : ''))
+          . "\n" . $t['c'] . "\n\n"
+          . ($lead ? $t['ul'] : $t['u']) . "\n\n"
+          . $sign;
+
+    $opts = [
+        'badge'       => $fill($t['badge']),
+        'rows'        => $parts['rows'],
+        'shots'       => $parts['shots'],
+        'shots_title' => sprintf($t['shots'], $nCol),
+        'button'      => ['label' => $t['b'], 'url' => $moreUrl !== '' ? $moreUrl : $parts['firstUrl']],
+    ];
+    return [$subject, $body, $opts];
+}
+
+function vestra_tpl_listing_colours(string $salutation, array $blocks, string $sellerName, string $lang = 'en', string $note = '', bool $withPrices = false, string $moreUrl = '', array $formats = []): array {
+    $de = ($lang === 'de');
+    /* EUR printed as EUR. vestra_money() would convert into the *visitor's*
+       display currency and there is no visitor here — that mistake is already on
+       the record once (KURAL 17, the dropship plan fee). */
+    $eur = fn(float $v): string => $de
+        ? number_format($v, 2, ',', '.') . ' €'
+        : 'EUR ' . number_format($v, 2, '.', ',');
+
+    /* Ek CUMLESI, gercekten iliştirilen bicimlerden yaziliyor -- istekten degil.
+       Olmayan bir dosyayi adiyla anan mektup, musteriyi onu aramaya yollar; ayni
+       kural fiyat listesi mektubunda da var. */
+    $fmt = array_values(array_filter(array_map(
+        fn($f) => ['pdf' => 'PDF', 'xlsx' => 'Excel'][strtolower((string)$f)] ?? '', $formats)));
+    $fmtTxt = $fmt ? ($de ? implode(' und ', $fmt) : implode(' and ', $fmt)) : '';
+
+    /* Blok -> metin TEK gövdeden (vestra_listing_block_parts). Bu dongu eskiden
+       burada yaziliydi; Angebot mektubu ayni seyi basmak zorunda oldugu icin
+       cikarildi. Davranis birebir ayni: etiket tablosu de/en icin eski
+       dizgelerin aynisini tasiyor. */
+    $parts    = vestra_listing_block_parts($blocks, vestra_listing_block_labels($de ? 'de' : 'en'), $withPrices);
+    $chunks   = $parts['chunks'];
+    $rows     = $parts['rows'];
+    $shots    = $parts['shots'];
+    $firstUrl = $parts['firstUrl'];
+    $nCol     = $parts['nCol'];
+
+    $multi = count($blocks) > 1;
+    if ($de) {
+        $subject = ($multi ? $sellerName . ' — bebildertes Sortiment: ' : (trim((string)(($blocks[0]['p'] ?? [])['name'] ?? '')) . ' — '))
+                 . $nCol . ' Farben' . ($withPrices ? ' mit Preisen' : '');
+        $body = $salutation . ",\n\n"
+          . "gern — hier ist das bebilderte Sortimentsblatt. Sie hatten geschrieben, dass nicht zu "
+          . "jeder angebotenen Farbe ein Foto vorhanden war; das stimmte und ist behoben. Jede der "
+          . "{$nCol} angebotenen Farben hat jetzt ihr eigenes Foto: unten in dieser E-Mail und auf "
+          . "der jeweiligen Produktseite"
+          . ($withPrices ? ", die Staffelpreise stehen daneben" : "") . ".\n\n"
+          . implode("\n", $chunks) . "\n"
+          . ($moreUrl !== '' ? "Alle Modelle dieser Marke: " . $moreUrl . "\n" : '')
+          . ($fmtTxt !== '' ? "Die vollständige Preisliste liegt als " . $fmtTxt . " bei.\n" : '')
+          . ($moreUrl !== '' || $fmtTxt !== '' ? "\n" : '')
+          . ($note !== '' ? $note . "\n\n" : '')
+          . "Brauchen Sie von einer Farbe eine weitere Ansicht oder ein Angebot über eine bestimmte "
+          . "Zusammenstellung, schreiben Sie mir kurz.\n\n"
+          . "Mit freundlichen Grüßen\n\n"
+          . $sellerName . "\n"
+          . "über VESTRA – vestrasales.com";
+        $shotsTitle = 'Alle ' . $nCol . ' Farben';
+        $btn   = $moreUrl !== '' ? 'Zum Sortiment' : 'Zur Produktseite';
+        $badge = $withPrices ? 'Sortiment & Preise' : 'Fotos ergänzt';
+    } else {
+        $subject = ($multi ? $sellerName . ' — illustrated assortment: ' : (trim((string)(($blocks[0]['p'] ?? [])['name'] ?? '')) . ' — '))
+                 . $nCol . ' colours' . ($withPrices ? ' with prices' : '');
+        $body = $salutation . ",\n\n"
+          . "Here is the illustrated assortment sheet. You wrote that not every colour we offer had a "
+          . "photo behind it — you were right, and it is fixed: each of the {$nCol} colours now has its "
+          . "own picture, below in this e-mail and on the product page"
+          . ($withPrices ? ", with the price ladder beside it" : "") . ".\n\n"
+          . implode("\n", $chunks) . "\n"
+          . ($moreUrl !== '' ? "All models from this house: " . $moreUrl . "\n" : '')
+          . ($fmtTxt !== '' ? "The full price list is attached as " . $fmtTxt . ".\n" : '')
+          . ($moreUrl !== '' || $fmtTxt !== '' ? "\n" : '')
+          . ($note !== '' ? $note . "\n\n" : '')
+          . "If you need another view of one of them, or a quotation for a particular make-up, write "
+          . "back and I will send it.\n\n"
+          . "Kind regards,\n\n"
+          . $sellerName . "\n"
+          . "via VESTRA – vestrasales.com";
+        $shotsTitle = 'All ' . $nCol . ' colours';
+        $btn   = $moreUrl !== '' ? 'Open the assortment' : 'Open the product page';
+        $badge = $withPrices ? 'Assortment & prices' : 'Photos added';
+    }
+
+    $opts = [
+        'badge'       => $badge,
+        'rows'        => $rows,
+        'shots'       => $shots,
+        'shots_title' => $shotsTitle,
+        /* $moreUrl is a landing page the CALLER has resolved through
+           vestra_seo_resolve() — those pages exist only while stock backs them
+           (KURAL 9), so a URL typed here would 404 the day the last line sells
+           out. With nothing resolved the button falls back to the first listing. */
+        'button'      => ['label' => $btn, 'url' => $moreUrl !== '' ? $moreUrl : $firstUrl],
+    ];
+    return [$subject, $body, $opts];
+}
+
+/**
+ * "Here is our price list" — the whole wholesale catalogue as PDF + Excel, with a
+ * body that counts what is in it and quotes not a single line of it.
+ *
+ * Why it is not vestra_tpl_brand_catalog with an empty brand: that letter prints
+ * every model in the body, which is the right shape for one house and the wrong
+ * shape for eight hundred articles. The two share what actually should be shared
+ * — the attachments come from the site's OWN generators (wholesale-list.php /
+ * wholesale-xlsx.php), so the list a buyer downloads and the list we post are the
+ * same file, and neither can drift from the catalogue.
+ *
+ * Every figure in $facts is COUNTED by the caller from live listings: articles,
+ * brands, the section split, the brand names. Nothing here is typed, because a
+ * price list that overstates the range is the one claim a buyer checks first.
+ *
+ * It signs as VESTRA, not as a shop. A catalogue-wide list spans several sellers'
+ * goods; putting one seller's name on it would credit them with stock that is not
+ * theirs. The per-listing letters (vestra_tpl_listing_colours) go out in the
+ * shop's name precisely because they carry only that shop's listings.
+ *
+ * No price in the body and no total: the prices are per article and they are in
+ * the attachment. A headline figure here would be a second place where prices
+ * live, and this repository has paid for that more than once.
+ */
+function vestra_tpl_price_list(string $salutation, array $facts, array $formats, string $signer = '', string $lang = 'en'): array {
+    $de    = ($lang === 'de');
+    $arts  = (int)($facts['articles'] ?? 0);
+    $brnds = (int)($facts['brands'] ?? 0);
+    $scope = trim((string)($facts['scope'] ?? ''));          // '' = whole catalogue
+    /* Bir MARKANIN listesi "bizim listemiz" degildir (operator, 11 Eyl 2026:
+       *"anbei die Preisliste von F.Perrey nicht unsere — ben satici degilim"*).
+       VESTRA pazar yeri; mali satan taraf degil. Marka kapsamli bir listede
+       cumle markaya atfediliyor, katalogun tamaminda "bizim" dogru kaliyor --
+       o liste gercekten VESTRA'nin kendi katalogu. */
+    $bscope = trim((string)($facts['brand_scope'] ?? ''));
+    $secs  = (array)($facts['sections'] ?? []);              // ['Apparel' => 612, …]
+    $names = (array)($facts['brand_names'] ?? []);
+    $url   = trim((string)($facts['url'] ?? 'https://vestrasales.com/price-list'));
+
+    /* MUSTERIYE OZEL paragraf, sablona GOMULU DEGIL (listing_colours'un note
+       parametresiyle ayni gerekce): "ilk siparisinizde asgari alimi kaldiriyoruz"
+       ya da "Israil'e ortalama iki hafta" bu alici icin dogru, ilanlar icin genel
+       olarak degil. Gomulu olsaydi bir sonraki fiyat listesi mektubu hic
+       verilmemis bir sozu tasirdi.
+       Cumleyi CAGIRAN yaziyor: kapsami da o biliyor. */
+    $note  = trim((string)($facts['note'] ?? ''));
+    /* Hesabi OLMAYAN adaya "listeyi hesabinizda gorursunuz" demek, gidemeyecegi
+       bir yeri gostermektir -- /price-list KURAL 19'dan beri girissiz acilmiyor.
+       Ayni adres kalir ama cumle davet olur. */
+    $hasAcc = !empty($facts['has_account']);
+
+    /* "PDF and Excel" is printed from what was ACTUALLY attached, never from the
+       request: a letter that names a file the buyer cannot find sends them
+       looking for it. Same rule as the brand catalogue letter. */
+    $fmt = array_values(array_filter(array_map(
+        fn($f) => ['pdf' => 'PDF', 'xlsx' => 'Excel'][strtolower((string)$f)] ?? '', $formats)));
+    $fmtTxt = $fmt
+        ? ($de ? implode(' und ', $fmt) : implode(' and ', $fmt))
+        : '';
+
+    /* Bolme satiri, cesidin NEREYE YAYILDIGINI gostermek icin var. Tek bolme
+       kaldiysa ve kapsam zaten konuda yaziliysa hicbir sey gostermiyor
+       ("Sortiment: Apparel 50" canli ilk kosuda tam boyle cikti) -- yazilmiyor. */
+    $secTxt = '';
+    if ($scope !== '' && count($secs) < 2) $secs = [];
+    if ($secs) {
+        $bits = [];
+        foreach ($secs as $label => $n) $bits[] = $label . ' ' . (int)$n;
+        $secTxt = implode(' · ', $bits);
+    }
+    /* Marka satiri, listenin KIMLERI kapsadigini gostermek icin var. Liste zaten
+       tek bir markaninsa acilis cumlesi ve konu satiri onu iki kez soyluyor
+       ("anbei die Preisliste von Fred Perry" … "Marken u. a.: Fred Perry") --
+       ucuncusu gereksiz. Bolme satiriyla ayni sebep. */
+    if ($bscope !== '' && count($names) < 2) $names = [];
+    $nameTxt = $names ? implode(', ', $names) : '';
+
+    if ($de) {
+        $subject = ($scope !== '' ? $scope . ' — Preisliste' : 'VESTRA — Großhandels-Preisliste')
+                 . ' (' . $arts . ' Artikel)';
+        $body = $salutation . ",\n\n"
+          . ($bscope !== ''
+              ? ($fmtTxt !== '' ? "anbei die Preisliste von " . $bscope . " als {$fmtTxt}"
+                                : "hier die Preisliste von " . $bscope)
+              : ($fmtTxt !== '' ? "anbei unsere Preisliste als {$fmtTxt}"
+                                : "hier unsere Preisliste"))
+          . ": " . $arts . " Artikel"
+          . ($scope === '' && $brnds > 1 ? " von " . $brnds . " Marken" : "")
+          . ", mit Staffelpreisen und Mindestabnahme je Artikel.\n\n"
+          . ($secTxt !== '' ? "Sortiment: " . $secTxt . "\n" : '')
+          . ($nameTxt !== '' ? "Marken u. a.: " . $nameTxt . "\n" : '')
+          . "\n"
+          . "Alle Preise verstehen sich pro Stück in EUR, zzgl. Versand. Die Mindestabnahme "
+          . "steht in der Liste bei jedem Artikel; wo es Staffeln gibt, sind sie mit aufgeführt.\n\n"
+          . ($note !== '' ? $note . "\n\n" : '')
+          . ($hasAcc
+              ? "Dieselbe Liste ist in Ihrem Konto jederzeit tagesaktuell:\n" . $url . "\n\n"
+              : "Nach der kostenlosen Anmeldung sehen Sie dieselbe Liste jederzeit tagesaktuell im Konto:\n" . $url . "\n\n")
+          . "Sagen Sie mir, welche Artikel Sie interessieren — dann rechne ich Ihnen eine "
+          . "konkrete Zusammenstellung mit Versand.\n\n"
+          . "Mit freundlichen Grüßen\n\n"
+          . ($signer !== '' ? $signer . "\n" : '')
+          . "VESTRA – vestrasales.com";
+        $btn   = $hasAcc ? 'Preisliste im Konto öffnen' : 'Konto anlegen und Preisliste öffnen';
+        $badge = 'Preisliste';
+        $rows  = [['label' => 'Artikel', 'value' => (string)$arts, 'strong' => true]];
+        if ($scope === '' && $brnds > 1) $rows[] = ['label' => 'Marken', 'value' => (string)$brnds];
+        if ($secTxt !== '') $rows[] = ['label' => 'Sortiment', 'value' => $secTxt];
+        if ($fmtTxt !== '') $rows[] = ['label' => 'Anhang', 'value' => $fmtTxt];
+    } else {
+        $subject = ($scope !== '' ? $scope . ' — price list' : 'VESTRA — wholesale price list')
+                 . ' (' . $arts . ' articles)';
+        $body = $salutation . ",\n\n"
+          . ($bscope !== ''
+              ? ($fmtTxt !== '' ? "the " . $bscope . " price list is attached as {$fmtTxt}"
+                                : "here is the " . $bscope . " price list")
+              : ($fmtTxt !== '' ? "our price list is attached as {$fmtTxt}"
+                                : "here is our price list"))
+          . ": " . $arts . " articles"
+          . ($scope === '' && $brnds > 1 ? " from " . $brnds . " houses" : "")
+          . ", with tier prices and the minimum order quantity for each one.\n\n"
+          . ($secTxt !== '' ? "Range: " . $secTxt . "\n" : '')
+          . ($nameTxt !== '' ? "Houses include: " . $nameTxt . "\n" : '')
+          . "\n"
+          . "All prices are per piece in EUR, plus shipping. The minimum order quantity is "
+          . "shown against every article, and where there are tiers they are listed with it.\n\n"
+          . ($note !== '' ? $note . "\n\n" : '')
+          . ($hasAcc
+              ? "The same list is always current in your account:\n" . $url . "\n\n"
+              : "Register free of charge and the same list is always current in your account:\n" . $url . "\n\n")
+          . "Tell me which articles interest you and I will price a specific make-up for you, "
+          . "shipping included.\n\n"
+          . "Kind regards,\n\n"
+          . ($signer !== '' ? $signer . "\n" : '')
+          . "VESTRA – vestrasales.com";
+        $btn   = $hasAcc ? 'Open the price list in your account' : 'Create an account and open the price list';
+        $badge = 'Price list';
+        $rows  = [['label' => 'Articles', 'value' => (string)$arts, 'strong' => true]];
+        if ($scope === '' && $brnds > 1) $rows[] = ['label' => 'Houses', 'value' => (string)$brnds];
+        if ($secTxt !== '') $rows[] = ['label' => 'Range', 'value' => $secTxt];
+        if ($fmtTxt !== '') $rows[] = ['label' => 'Attached', 'value' => $fmtTxt];
+    }
+
+    return [$subject, $body, [
+        'badge'  => $badge,
+        'rows'   => $rows,
+        'button' => ['label' => $btn, 'url' => $url],
+    ]];
+}
+
+/**
+ * "Your order has shipped" — ONE wording for both places that can mark an order
+ * shipped: the seller panel (seller.php) and the admin panel (admin.php). Until
+ * 2 Sep 2026 only the seller panel mailed the buyer; the admin path saved the
+ * tracking number and told nobody.
+ *
+ * The old seller-panel text asked the buyer to confirm receipt "to release payment
+ * to the seller". That is escrow language; on a bank-transfer order the buyer has
+ * already paid in full and the sentence is simply false. Receipt confirmation is
+ * still asked for, without the reason attached.
+ */
+function vestra_tpl_order_shipped(string $buyerName, string $ref, string $tracking = '', bool $hasAccount = false, array $shipment = []): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    /* Taşıyıcı/servis/bağlantı vestra_order_shipment()'tan gelir — mektup kendi
+       başına ÇÖZMEZ. Çözseydi sipariş sayfası ile mektup iki ayrı şey yazabilirdi
+       (operatör, 9 Eyl 2026: "her pakette gönderici kargo bölümüde olsun").
+       $tracking ayrı parametre olarak duruyor: eski çağıranlar kırılmasın. */
+    $carrier = trim((string)($shipment['carrier_name'] ?? ''));
+    $service = trim((string)($shipment['service'] ?? ''));
+    $trkUrl  = trim((string)($shipment['url'] ?? ''));
+    $rows = [['label'=>'Order ref', 'value'=>$ref]];
+    if ($carrier !== '') $rows[] = ['label'=>'Carrier', 'value'=>$carrier.($service !== '' ? ' · '.$service : '')];
+    elseif ($service !== '') $rows[] = ['label'=>'Service', 'value'=>$service];
+    if ($tracking !== '') $rows[] = ['label'=>'Tracking number', 'value'=>$tracking, 'strong'=>true];
+    $opts = ['badge'=>'🚚 Shipped', 'rows'=>$rows];
+    /* Ana düğme TAKİP sayfasına gider: bu mektubu alan kişinin yapmak istediği
+       tek şey o. Panel bağlantısı ikincil kalır — "tek işlevi olan bir mektubun
+       düğmesi o işlev olmalı" (karşı teklif mektubunun aynı dersi). */
+    if ($trkUrl !== '')      $opts['button'] = ['label'=>'Track this shipment', 'url'=>$trkUrl];
+    elseif ($hasAccount)     $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders'];
+    if ($trkUrl !== '' && $hasAccount) $opts['button_alt'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders'];
+
+    $carrierLine = '';
+    if ($carrier !== '' || $service !== '') {
+        $carrierLine = "Carrier: ".($carrier !== '' ? $carrier : '—').($service !== '' ? " ".$service : '')."\n";
+    }
+    /* Daha once KISMI paket(ler) gittiyse (vestra_tpl_order_part_shipped) bu mektup
+       siparisi TAMAMLAYAN paketi duyuruyor. Alici ilk paketin mektubunu da aldi;
+       ikinci bir "siparisiniz gonderildi" o paketle ayni sey sanilir. Bir cumle,
+       ve onceki numara yeniden yaziliyor ki ikisini eslestirebilsin. */
+    $earlierTrk = [];
+    foreach ((array)($shipment['earlier'] ?? []) as $pe) {
+        $pt = trim((string)($pe['tracking'] ?? ''));
+        if ($pt !== '' && $pt !== $tracking) $earlierTrk[] = $pt;
+    }
+    $subject = "VESTRA — your order {$ref} has shipped";
+    $body =
+        "Hello {$buyerName},\n\n"
+      . "Good news — your order {$ref} has been shipped.\n\n"
+      . ($earlierTrk
+          ? "This shipment completes your order: the first part was sent earlier (tracking number "
+            .implode(', ', $earlierTrk).").\n\n"
+          : '')
+      . $carrierLine
+      . ($tracking !== '' ? "Tracking number: {$tracking}\n" : '')
+      . ($trkUrl !== '' ? "Track it here: {$trkUrl}\n" : '')
+      . ($carrierLine !== '' || $tracking !== '' ? "\n" : '')
+      . ($hasAccount
+          ? "Once the goods arrive and you have inspected them, please confirm receipt in your buyer dashboard:\nhttps://vestrasales.com/buyer?tab=orders\n\n"
+          : "If anything about the delivery needs our attention, simply reply to this e-mail.\n\n")
+      . "—\nVESTRA · vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
+ * "PART of your order has shipped" (operator, 29 Sep 2026: two UPS numbers for
+ * two orders — "siparişlerin bir kısmının çıktığını belirt ve müşterilere email
+ * gönder").
+ *
+ * WHY NOT vestra_tpl_order_shipped(): that letter says "your order has been
+ * shipped" and asks the buyer to confirm receipt. On a partial parcel both are
+ * false — the buyer would open the box, find items "missing" and either report
+ * them as missing or confirm receipt of an order that is only half there.
+ *
+ * WHAT IT DOES NOT SAY, on purpose: WHICH items are in this parcel. The operator
+ * gave the tracking number, not the packing list; naming lines here would be a
+ * guess printed as fact (KURAL 3). "Part of the order" is what we know.
+ *
+ * Written per language like vestra_tpl_order_stage() — the same five languages,
+ * the same formal address — because the caller mails in the BUYER's language, not
+ * the admin's. A language outside the five falls back to English.
+ *
+ * Facts (carrier, service, number, link) come from vestra_order_shipment(), never
+ * resolved here: the order page and the letter must show the same parcel.
+ */
+function vestra_tpl_order_part_shipped(string $lang, string $buyerName, string $ref, array $shipment, bool $hasAccount = false): array {
+    return vestra_tpl_order_parcel_core($lang, $buyerName, $ref, $shipment, $hasAccount, false);
+}
+
+/**
+ * "The REST of your order has shipped" -- the parcel that completes an order whose
+ * first part went earlier (operator, 29 Sep 2026: "trackinglerde ikinci lieferung
+ * icin yer ac"). Same language table as the partial letter: the buyer who got the
+ * first letter in Spanish gets the second in Spanish too, not the English-only
+ * vestra_tpl_order_shipped().
+ *
+ * Earlier parcels are listed by number and link so the two can be matched; the
+ * letter asks for receipt confirmation only now, when the whole order is on its way
+ * (the partial letter must not -- half an order is not a delivery).
+ */
+function vestra_tpl_order_rest_shipped(string $lang, string $buyerName, string $ref, array $shipment, bool $hasAccount = false): array {
+    return vestra_tpl_order_parcel_core($lang, $buyerName, $ref, $shipment, $hasAccount, true);
+}
+
+/**
+ * The ONE place that decides which shipment letter a parcel gets -- the admin slot,
+ * the admin status form, the seller's "shipped" and the workflow all call this, via
+ * vestra_order_parcel_notify() (inc/orders.php):
+ *   partial parcel            -> "part of your order has shipped" (another part, if earlier ones exist)
+ *   final parcel, earlier ones -> "the rest of your order has shipped" (buyer's language)
+ *   single parcel             -> vestra_tpl_order_shipped(), unchanged
+ */
+function vestra_tpl_order_parcel_letter(string $lang, string $buyerName, string $ref, array $shipment, bool $hasAccount = false): array {
+    if (!empty($shipment['partial'])) return vestra_tpl_order_part_shipped($lang, $buyerName, $ref, $shipment, $hasAccount);
+    if (!empty($shipment['earlier'])) return vestra_tpl_order_rest_shipped($lang, $buyerName, $ref, $shipment, $hasAccount);
+    return vestra_tpl_order_shipped($buyerName, $ref, (string)($shipment['tracking'] ?? ''), $hasAccount, $shipment);
+}
+
+/* Govde: kismi ($final=false) ya da siparisi tamamlayan ($final=true) paket.
+   Kalem ALMAZ -- hangi kalemin hangi pakette oldugu tahmin edilmez (KURAL 3). */
+function vestra_tpl_order_parcel_core(string $lang, string $buyerName, string $ref, array $shipment, bool $hasAccount, bool $final): array {
+    $lang = in_array($lang, ['en','fr','es','it','de'], true) ? $lang : 'en';
+    $buyerName = vestra_display_name($buyerName);
+    $carrier = trim((string)($shipment['carrier_name'] ?? ''));
+    $service = trim((string)($shipment['service'] ?? ''));
+    $trk     = trim((string)($shipment['tracking'] ?? ''));
+    $trkUrl  = trim((string)($shipment['url'] ?? ''));
+
+    $L = [
+      'en' => [
+        'subject' => "VESTRA — part of your order {$ref} has shipped",
+        'hi'      => $buyerName !== '' ? "Hello {$buyerName}," : "Hello,",
+        'lead'    => "Part of your order {$ref} has been shipped.",
+        'carrier' => 'Carrier', 'tracking' => 'Tracking number', 'ref' => 'Order ref', 'track' => 'Track it here:',
+        'rest'    => "This parcel contains part of the order. The remaining items have not been forgotten: "
+                   . "they will follow in a separate shipment, and we will send you that tracking number as soon as it leaves.",
+        'acct'    => "Your order and its tracking are also in your VESTRA account:",
+        'noacct'  => "If anything about the delivery needs our attention, simply reply to this e-mail.",
+        'badge'   => '📦 Partly shipped', 'btn' => 'Track this shipment', 'btn2' => 'View my order',
+        'lead2'   => "Another part of your order {$ref} has been shipped.",
+        'subject_rest' => "VESTRA — the rest of your order {$ref} has shipped",
+        'lead_rest'    => "The remaining items of your order {$ref} have been shipped. With this parcel your order is complete.",
+        'earlier' => 'Earlier parcel',
+        'confirm' => "Once all parcels have arrived and you have checked the goods, please confirm receipt in your VESTRA account:",
+        'badge_rest' => '📦 Order complete',
+      ],
+      'fr' => [
+        'subject' => "VESTRA — une partie de votre commande {$ref} a été expédiée",
+        'hi'      => $buyerName !== '' ? "Bonjour {$buyerName}," : "Bonjour,",
+        'lead'    => "Une partie de votre commande {$ref} a été expédiée.",
+        'carrier' => 'Transporteur', 'tracking' => 'Numéro de suivi', 'ref' => 'Référence de commande', 'track' => 'Suivre le colis :',
+        'rest'    => "Ce colis contient une partie de la commande. Les articles restants ne sont pas oubliés : "
+                   . "ils partiront dans un envoi séparé, et nous vous enverrons aussi ce numéro de suivi dès leur départ.",
+        'acct'    => "Votre commande et son suivi figurent aussi dans votre compte VESTRA :",
+        'noacct'  => "Si la livraison demande notre attention, répondez simplement à cet e-mail.",
+        'badge'   => '📦 Expédition partielle', 'btn' => 'Suivre ce colis', 'btn2' => 'Voir ma commande',
+        'lead2'   => "Une autre partie de votre commande {$ref} a été expédiée.",
+        'subject_rest' => "VESTRA — le reste de votre commande {$ref} a été expédié",
+        'lead_rest'    => "Les articles restants de votre commande {$ref} ont été expédiés. Avec ce colis, votre commande est complète.",
+        'earlier' => 'Colis précédent',
+        'confirm' => "Une fois tous les colis arrivés et la marchandise vérifiée, merci de confirmer la réception dans votre compte VESTRA :",
+        'badge_rest' => '📦 Commande complète',
+      ],
+      'es' => [
+        'subject' => "VESTRA — parte de su pedido {$ref} ya ha sido enviada",
+        'hi'      => $buyerName !== '' ? "Hola {$buyerName}:" : "Hola:",
+        'lead'    => "Parte de su pedido {$ref} ha sido enviada.",
+        'carrier' => 'Transportista', 'tracking' => 'Número de seguimiento', 'ref' => 'Referencia del pedido', 'track' => 'Seguir el envío:',
+        'rest'    => "Este paquete contiene una parte del pedido. Los artículos restantes no se han olvidado: "
+                   . "saldrán en un envío aparte y le enviaremos también ese número de seguimiento en cuanto salga.",
+        'acct'    => "Su pedido y su seguimiento también aparecen en su cuenta de VESTRA:",
+        'noacct'  => "Si algo de la entrega requiere nuestra atención, responda simplemente a este correo.",
+        'badge'   => '📦 Envío parcial', 'btn' => 'Seguir este envío', 'btn2' => 'Ver mi pedido',
+        'lead2'   => "Otra parte de su pedido {$ref} ha sido enviada.",
+        'subject_rest' => "VESTRA — el resto de su pedido {$ref} ya ha sido enviado",
+        'lead_rest'    => "Los artículos restantes de su pedido {$ref} han sido enviados. Con este paquete su pedido queda completo.",
+        'earlier' => 'Paquete anterior',
+        'confirm' => "Cuando hayan llegado todos los paquetes y haya revisado la mercancía, confirme por favor la recepción en su cuenta de VESTRA:",
+        'badge_rest' => '📦 Pedido completo',
+      ],
+      'it' => [
+        'subject' => "VESTRA — parte del suo ordine {$ref} è stata spedita",
+        'hi'      => $buyerName !== '' ? "Buongiorno {$buyerName}," : "Buongiorno,",
+        'lead'    => "Parte del suo ordine {$ref} è stata spedita.",
+        'carrier' => 'Corriere', 'tracking' => 'Numero di tracciamento', 'ref' => 'Riferimento ordine', 'track' => 'Segua la spedizione:',
+        'rest'    => "Questo pacco contiene una parte dell’ordine. Gli articoli restanti non sono stati dimenticati: "
+                   . "partiranno con una spedizione separata e le invieremo anche quel numero di tracciamento appena partono.",
+        'acct'    => "Il suo ordine e il tracciamento sono anche nel suo account VESTRA:",
+        'noacct'  => "Se la consegna richiede la nostra attenzione, risponda semplicemente a questa e-mail.",
+        'badge'   => '📦 Spedizione parziale', 'btn' => 'Segui questa spedizione', 'btn2' => 'Vedi il mio ordine',
+        'lead2'   => "Un’altra parte del suo ordine {$ref} è stata spedita.",
+        'subject_rest' => "VESTRA — il resto del suo ordine {$ref} è stato spedito",
+        'lead_rest'    => "Gli articoli rimanenti del suo ordine {$ref} sono stati spediti. Con questo pacco il suo ordine è completo.",
+        'earlier' => 'Pacco precedente',
+        'confirm' => "Quando saranno arrivati tutti i pacchi e avrà controllato la merce, confermi per favore la ricezione nel suo account VESTRA:",
+        'badge_rest' => '📦 Ordine completo',
+      ],
+      'de' => [
+        'subject' => "VESTRA — ein Teil Ihrer Bestellung {$ref} wurde versandt",
+        'hi'      => $buyerName !== '' ? "Guten Tag {$buyerName}," : "Guten Tag,",
+        'lead'    => "Ein Teil Ihrer Bestellung {$ref} wurde versandt.",
+        'carrier' => 'Versanddienstleister', 'tracking' => 'Sendungsnummer', 'ref' => 'Bestellnummer', 'track' => 'Sendung verfolgen:',
+        'rest'    => "Dieses Paket enthält einen Teil der Bestellung. Die übrigen Artikel sind nicht vergessen – "
+                   . "sie folgen in einer separaten Sendung, und wir schicken Ihnen auch diese Sendungsnummer, sobald sie unterwegs ist.",
+        'acct'    => "Ihre Bestellung und die Sendungsverfolgung finden Sie auch in Ihrem VESTRA-Konto:",
+        'noacct'  => "Falls bei der Zustellung etwas unsere Aufmerksamkeit braucht, antworten Sie einfach auf diese E-Mail.",
+        'badge'   => '📦 Teillieferung', 'btn' => 'Sendung verfolgen', 'btn2' => 'Meine Bestellung ansehen',
+        'lead2'   => "Ein weiterer Teil Ihrer Bestellung {$ref} wurde versandt.",
+        'subject_rest' => "VESTRA — der Rest Ihrer Bestellung {$ref} wurde versandt",
+        'lead_rest'    => "Die übrigen Artikel Ihrer Bestellung {$ref} wurden versandt. Mit diesem Paket ist Ihre Bestellung vollständig.",
+        'earlier' => 'Früheres Paket',
+        'confirm' => "Sobald alle Pakete angekommen sind und Sie die Ware geprüft haben, bestätigen Sie bitte den Empfang in Ihrem VESTRA-Konto:",
+        'badge_rest' => '📦 Bestellung vollständig',
+      ],
+    ];
+    $d = $L[$lang];
+    $orderUrl = 'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref);
+    /* Onceki paketler: numara + baglanti, ki alici iki mektubu eslestirebilsin. */
+    $earlierRows = []; $earlierTxt = '';
+    foreach ((array)($shipment['earlier'] ?? []) as $pe) {
+        $pt = trim((string)($pe['tracking'] ?? ''));
+        if ($pt === '' || $pt === $trk) continue;
+        $pc = trim((string)($pe['carrier_name'] ?? ''));
+        $pu = trim((string)($pe['url'] ?? ''));
+        $earlierRows[] = ['label' => $d['earlier'], 'value' => trim($pc.' '.$pt)];
+        $earlierTxt .= $d['earlier'].": ".trim($pc.' '.$pt).($pu !== '' ? " — ".$pu : '')."\n";
+    }
+    $subject = $final ? $d['subject_rest'] : $d['subject'];
+    $lead    = $final ? $d['lead_rest'] : ($earlierRows ? $d['lead2'] : $d['lead']);
+
+    $rows = [['label' => $d['ref'], 'value' => $ref]];
+    if ($carrier !== '') $rows[] = ['label' => $d['carrier'], 'value' => $carrier.($service !== '' ? ' · '.$service : '')];
+    if ($trk !== '')     $rows[] = ['label' => $d['tracking'], 'value' => $trk, 'strong' => true];
+    foreach ($earlierRows as $er) $rows[] = $er;
+    $opts = ['badge' => $final ? $d['badge_rest'] : $d['badge'], 'rows' => $rows];
+    /* Ana dugme TAKIP sayfasi (vestra_tpl_order_shipped ile ayni ders: tek islevi olan
+       mektubun dugmesi o islev). Hesabi olan aliciya siparis sayfasi ikincil. */
+    if ($trkUrl !== '')  $opts['button'] = ['label' => $d['btn'], 'url' => $trkUrl];
+    elseif ($hasAccount) $opts['button'] = ['label' => $d['btn2'], 'url' => $orderUrl];
+    if ($trkUrl !== '' && $hasAccount) $opts['button_alt'] = ['label' => $d['btn2'], 'url' => $orderUrl];
+
+    $facts = '';
+    if ($carrier !== '') $facts .= $d['carrier'].": ".$carrier.($service !== '' ? " · ".$service : '')."\n";
+    if ($trk !== '')     $facts .= $d['tracking'].": ".$trk."\n";
+    if ($trkUrl !== '')  $facts .= $d['track']." ".$trkUrl."\n";
+
+    /* Kismi pakette teslim onayi ISTENMEZ (yarim siparis teslimat degil); siparisi
+       tamamlayan pakette istenir -- durum artik 'shipped' ve dugme sayfada. */
+    $tail = $final
+        ? ($hasAccount ? $d['confirm']."\n".$orderUrl."\n\n" : $d['noacct']."\n\n")
+        : ($hasAccount ? $d['acct']."\n".$orderUrl."\n\n" : $d['noacct']."\n\n");
+    $body = $d['hi']."\n\n"
+          . $lead."\n\n"
+          . ($facts !== '' ? $facts."\n" : '')
+          . ($final ? '' : $d['rest']."\n\n")
+          . ($earlierTxt !== '' ? $earlierTxt."\n" : '')
+          . $tail
+          . "—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
+ * Payment-due reminder for a pending, invoiced (bank-transfer) order: the money has
+ * not arrived, and if it does not within 5 business days the order is cancelled
+ * automatically. Sent by vestra_order_payment_reminder_send() (inc/orders.php), which
+ * is also what actually starts and enforces that clock — this template never runs
+ * without the promise it makes being backed by code (operator decision, 2 Sep 2026,
+ * order INV-2026-1001 / Daymond Proconect).
+ *
+ * $deadlineDate is a concrete date ("3 September 2026"), not just "5 business days" —
+ * a vague deadline is the kind of promise a buyer has to do arithmetic to trust.
+ */
+function vestra_tpl_order_payment_due(string $buyerName, string $ref, string $invoiceNo, float $total, string $currency, string $deadlineDate, bool $hasAccount, string $uploadUrl): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $sym = strtoupper($currency) === 'USD' ? 'US$' : '€';
+    $amt = $sym.number_format($total, 2);
+    $subject = "VESTRA — payment reminder for order {$ref} / invoice {$invoiceNo}";
+
+    $opts = [
+        'badge' => 'Payment reminder',
+        'rows'  => [
+            ['label'=>'Order ref',      'value'=>$ref],
+            ['label'=>'Invoice',        'value'=>$invoiceNo],
+            ['label'=>'Amount due',     'value'=>$amt, 'strong'=>true],
+            ['label'=>'Payment due by', 'value'=>$deadlineDate],
+        ],
+    ];
+    if ($hasAccount) $opts['button'] = ['label'=>'Send my payment receipt', 'url'=>$uploadUrl];
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "This is a reminder that payment for order {$ref} (invoice {$invoiceNo}, {$amt}) has not yet reached us.\n\n"
+      . "If payment is not received within 5 business days — by {$deadlineDate} — the order will be automatically cancelled.\n\n"
+      . "If you have already paid by bank transfer, please attach your payment receipt to the order"
+      . ($hasAccount
+          ? " here:\n{$uploadUrl}\n\nWe check it as soon as it arrives and confirm your order — no need to reply separately."
+          : ", by replying to this e-mail with it attached. We check it as soon as it arrives and confirm your order.")
+      . "\n\n"
+      . "Kind regards,\n\n"
+      . "VESTRA · Acerasoft LLC\n"
+      . "8 The Green, Suite B, Dover, Delaware 19901, USA\n"
+      . "support@vestrasales.com · vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
+ * Son cagri: SATICI siparisi sordu, alicinin cevap vermesi gerekiyor.
+ *
+ * vestra_tpl_order_payment_due() ile ayni sipariş icin ikinci bir mektup, ama ayni
+ * mektup DEGIL: ilki otomatik hatirlatma ("odeme ulasmadi"), bu ise saticinin
+ * sordugunu aktaran ve bir CEVAP isteyen mektup. Ikinci kez ayni metni yollamak
+ * posta listesi gibi okunur; farkli olan ilk mektubun kacirdigi seyi yakalar --
+ * alici odemeyecekse bunu SOYLEMELI ki mal serbest kalsin.
+ *
+ * $deadlineDate MEVCUT son tarihtir, yeni bir sure DEGIL: otomatik iptal saati
+ * ilk hatirlatmayla baslamis durumda ve bu mektup onu ne uzatir ne kisaltir.
+ * Uydurma bir tarih yazmak, sistemin gercekten yapacagi seyle celisirdi.
+ *
+ * $suspend: askiya alma cumlesi. Operator karari (4 Eyl 2026): "TEKRARLANANLARDA
+ * hesabi askiya alma hakkimizi sakli tutuyoruz" -- yani bu mektup askiya almayi
+ * DUYURMAZ, hakki sakli tutar. Bu ayrim onemli:
+ *   - Tek bir odenmemis siparis icin askiya alma orantisiz. Karsi taraf KYB
+ *     onayli, belgesi kabul edilmis bir sirket; gec odeme kotu niyet degildir
+ *     ve siparisin otomatik iptali zaten saticiyi koruyor.
+ *   - Sistem askiya almayi kendiliginden YAPMIYOR (cron_order_payment.php yalnizca
+ *     iptal eder; askiya alma satici belgeleri icin var). "Hesabiniz askiya
+ *     alinacak" yazmak, yerine getirilmeyecek bir tehdit olurdu ve musteriyi
+ *     bir sonraki mektubu ciddiye almamaya egitirdi.
+ *   - Sakli tutulan bir hak ise dogru: TEKRAR eden bir davranista operator
+ *     panelden askiya alabilir ve mektup bunu onceden soylemis olur.
+ */
+function vestra_tpl_order_payment_final(string $buyerName, string $ref, string $invoiceNo,
+        float $total, string $currency, string $deadlineDate, bool $hasAccount,
+        string $uploadUrl, bool $suspend = false): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $sym = strtoupper($currency) === 'USD' ? 'US$' : '€';
+    $amt = $sym.number_format($total, 2);
+    $subject = "VESTRA — order {$ref}: the seller is asking for an answer";
+
+    $opts = [
+        'badge' => 'Response required',
+        'rows'  => [
+            ['label'=>'Order ref',   'value'=>$ref],
+            ['label'=>'Invoice',     'value'=>$invoiceNo],
+            ['label'=>'Amount due',  'value'=>$amt, 'strong'=>true],
+            ['label'=>'Reply by',    'value'=>$deadlineDate],
+        ],
+    ];
+    if ($hasAccount) $opts['button'] = ['label'=>'Send my payment receipt', 'url'=>$uploadUrl];
+
+    $consequence = "the order will be cancelled and the goods will be released for sale to other buyers."
+        . ($suspend
+            ? " Where orders are left unpaid repeatedly, we reserve the right to suspend the account."
+            : "");
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      /* "baska alicilar bekliyor" YAZILMADI: operatorun soyledigi, odenmezse malin
+         baskasina gidecegi -- belirli bir alicinin su anda bekledigi degil. Ikisi ayni
+         sey degil ve dogrulanmamis bir aciliyet iddiasi, cevap gelince geri alinamaz. */
+      . "The seller has come back to us about order {$ref}. They have held this stock aside since the "
+      . "order was placed and are asking whether it is going ahead, because they cannot keep it "
+      . "reserved indefinitely.\n\n"
+      . "Invoice {$invoiceNo} for {$amt} is still unpaid.\n\n"
+      . "Please reply and tell us one of two things: that the payment is on its way — in which case the "
+      . "stock stays reserved for you — or that you no longer want the order, so we can release it without "
+      . "holding the seller any longer. Either answer is fine; silence is the one that costs everyone.\n\n"
+      . "If we have not heard from you by {$deadlineDate}, {$consequence}\n\n"
+      . "If you have already paid by bank transfer, please attach the payment receipt to the order"
+      . ($hasAccount
+          ? " here:\n{$uploadUrl}\n\nWe check it as soon as it arrives and confirm your order — no need to reply separately."
+          : ", by replying to this e-mail with it attached. We check it as soon as it arrives and confirm your order.")
+      . "\n\n"
+      . "Kind regards,\n\n"
+      . "VESTRA · Acerasoft LLC\n"
+      . "8 The Green, Suite B, Dover, Delaware 19901, USA\n"
+      . "support@vestrasales.com · vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
+ * Short follow-up to a prospect who was written to weeks ago and has not replied.
+ *
+ * Deliberately NOT the campaign again. A second copy of the same letter reads as a
+ * mailing list; a short human note asking whether the first one arrived reads as a
+ * person, and it is also the honest thing — we do not know whether it was seen.
+ *
+ * Every version ends with the same offer to stop. A follow-up without one is what
+ * turns a cold approach into a complaint, and a complaint costs the sending domain
+ * far more than the one reply it might have won.
+ *
+ * Languages match the ones the campaign itself sends in (inc/notify.php's country
+ * map); anything else falls back to English rather than being machine-translated
+ * into a language nobody here can check.
+ */
+function vestra_tpl_lead_followup(string $lang, string $company): array {
+    $co = trim($company);
+    $L = [
+      'en' => ["VESTRA — following up on our note",
+        "Hello".($co !== '' ? " ".$co : '').",",
+        "We wrote to you a few weeks ago about VESTRA, a B2B wholesale marketplace for branded fashion where every seller is KYC-verified and every order runs on invoice terms.",
+        "I am writing once more only to ask whether that message reached you, and whether it is of any interest. If it is, I would be glad to send the current catalogue or answer anything specific.",
+        "If it is not relevant to your business, just say so and we will not write again."],
+      'el' => ["VESTRA — υπενθύμιση για το προηγούμενο μήνυμά μας",
+        "Γεια σας".($co !== '' ? " ".$co : '').",",
+        "Σας γράψαμε πριν από μερικές εβδομάδες σχετικά με τη VESTRA, μια αγορά χονδρικής B2B για επώνυμη μόδα, όπου κάθε πωλητής είναι πιστοποιημένος (KYC) και κάθε παραγγελία γίνεται με τιμολόγιο.",
+        "Σας γράφω ξανά μόνο για να ρωτήσω αν έφτασε εκείνο το μήνυμα και αν σας ενδιαφέρει. Αν ναι, ευχαρίστως να σας στείλω τον τρέχοντα κατάλογο ή να απαντήσω σε ό,τι χρειάζεστε.",
+        "Αν δεν αφορά την επιχείρησή σας, πείτε μας το απλώς και δεν θα ξαναγράψουμε."],
+      'ja' => ["VESTRA — 先日のご案内について",
+        ($co !== '' ? $co." " : '')."ご担当者様",
+        "数週間前に、ブランドファッションのB2B卸売マーケットプレイス「VESTRA」についてご案内を差し上げました。出品者はすべてKYC認証済みで、ご注文はインボイス（請求書）条件で進みます。",
+        "本日は、その案内が届いていたかどうか、またご関心をお持ちいただけるかどうかだけ、あらためてお伺いしたくご連絡いたしました。ご希望でしたら最新のカタログをお送りしますし、ご質問にもお答えいたします。",
+        "貴社に関係のない内容でしたら、その旨お知らせください。以後ご連絡はいたしません。"],
+      'ko' => ["VESTRA — 지난 안내에 대한 후속 연락",
+        ($co !== '' ? $co." " : '')."담당자님께",
+        "몇 주 전에 브랜드 패션 B2B 도매 마켓플레이스 VESTRA를 소개해 드린 바 있습니다. 모든 판매자는 KYC 인증을 거치며, 모든 주문은 인보이스 조건으로 진행됩니다.",
+        "그 메일이 잘 도착했는지, 그리고 관심이 있으신지만 여쭙고자 다시 연락드립니다. 원하시면 현재 카탈로그를 보내드리거나 궁금하신 점에 답변드리겠습니다.",
+        "귀사와 관련이 없다면 말씀만 주시면 다시 연락드리지 않겠습니다."],
+      'de' => ["VESTRA — Nachfrage zu unserer Nachricht",
+        "Guten Tag".($co !== '' ? " ".$co : '').",",
+        "Wir haben Ihnen vor einigen Wochen zu VESTRA geschrieben, einem B2B-Großhandelsmarktplatz für Markenmode, auf dem jeder Verkäufer KYC-geprüft ist und jede Bestellung auf Rechnung läuft.",
+        "Ich melde mich nur noch einmal, um zu fragen, ob diese Nachricht bei Ihnen angekommen ist und ob sie für Sie interessant ist. Gerne sende ich Ihnen den aktuellen Katalog oder beantworte konkrete Fragen.",
+        "Falls es für Ihr Geschäft nicht passt, sagen Sie einfach Bescheid — dann schreiben wir nicht wieder."],
+      'fr' => ["VESTRA — suite à notre message",
+        "Bonjour".($co !== '' ? " ".$co : '').",",
+        "Nous vous avons écrit il y a quelques semaines au sujet de VESTRA, une place de marché B2B de gros pour la mode de marque, où chaque vendeur est vérifié (KYC) et chaque commande se règle sur facture.",
+        "Je reviens vers vous uniquement pour savoir si ce message vous est bien parvenu et s'il vous intéresse. Si oui, je vous envoie volontiers le catalogue actuel ou je réponds à vos questions.",
+        "Si cela ne concerne pas votre activité, dites-le nous simplement et nous ne réécrirons pas."],
+      'it' => ["VESTRA — seguito al nostro messaggio",
+        "Buongiorno".($co !== '' ? " ".$co : '').",",
+        "Le avevamo scritto qualche settimana fa a proposito di VESTRA, un marketplace B2B all'ingrosso per la moda di marca, dove ogni venditore è verificato (KYC) e ogni ordine viaggia con fattura.",
+        "Le scrivo solo per sapere se quel messaggio Le è arrivato e se può interessarLe. In tal caso Le invio volentieri il catalogo attuale o rispondo a domande specifiche.",
+        "Se non riguarda la Sua attività, basta dircelo e non scriveremo più."],
+      'es' => ["VESTRA — seguimiento de nuestro mensaje",
+        "Buenos días".($co !== '' ? " ".$co : '').",",
+        "Le escribimos hace unas semanas sobre VESTRA, un marketplace mayorista B2B de moda de marca, donde cada vendedor está verificado (KYC) y cada pedido se tramita con factura.",
+        "Le escribo únicamente para saber si aquel mensaje le llegó y si le resulta de interés. Si es así, le envío con gusto el catálogo actual o resuelvo cualquier duda.",
+        "Si no tiene que ver con su negocio, díganoslo y no volveremos a escribir."],
+      'nl' => ["VESTRA — vervolg op ons bericht",
+        "Goedendag".($co !== '' ? " ".$co : '').",",
+        "Wij schreven u enkele weken geleden over VESTRA, een B2B-groothandelsmarktplaats voor merkmode, waar elke verkoper KYC-geverifieerd is en elke bestelling op factuur loopt.",
+        "Ik schrijf alleen nog even om te vragen of dat bericht u bereikt heeft en of het interessant voor u is. Zo ja, dan stuur ik u graag de actuele catalogus of beantwoord ik uw vragen.",
+        "Past het niet bij uw zaak, laat het dan weten — dan schrijven wij niet opnieuw."],
+      'pt' => ["VESTRA — seguimento da nossa mensagem",
+        "Bom dia".($co !== '' ? " ".$co : '').",",
+        "Escrevemos-lhe há algumas semanas sobre a VESTRA, um marketplace grossista B2B de moda de marca, onde cada vendedor é verificado (KYC) e cada encomenda segue com fatura.",
+        "Escrevo apenas para saber se essa mensagem lhe chegou e se lhe interessa. Se sim, envio com gosto o catálogo atual ou respondo a questões concretas.",
+        "Se não tiver a ver com o seu negócio, diga-nos e não voltaremos a escrever."],
+      'pl' => ["VESTRA — nawiązanie do naszej wiadomości",
+        "Dzień dobry".($co !== '' ? " ".$co : '').",",
+        "Kilka tygodni temu pisaliśmy do Państwa o VESTRA — hurtowej platformie B2B z modą markową, gdzie każdy sprzedawca przechodzi weryfikację KYC, a każde zamówienie realizowane jest na fakturę.",
+        "Piszę wyłącznie z pytaniem, czy tamta wiadomość do Państwa dotarła i czy temat jest interesujący. Jeśli tak, chętnie prześlę aktualny katalog lub odpowiem na konkretne pytania.",
+        "Jeśli to nie dotyczy Państwa działalności, wystarczy dać znać — nie napiszemy ponownie."],
+      'cs' => ["VESTRA — navázání na naši zprávu",
+        "Dobrý den".($co !== '' ? " ".$co : '').",",
+        "Před několika týdny jsme Vám psali o VESTRA — velkoobchodním B2B tržišti se značkovou módou, kde je každý prodejce ověřen (KYC) a každá objednávka probíhá na fakturu.",
+        "Píšu jen s dotazem, zda ta zpráva dorazila a zda je to pro Vás zajímavé. Pokud ano, rád Vám pošlu aktuální katalog nebo odpovím na konkrétní dotazy.",
+        "Pokud se to Vašeho podnikání netýká, stačí napsat a už se ozývat nebudeme."],
+    ];
+
+    $d = $L[$lang] ?? $L['en'];
+    [$subject, $hi, $p1, $p2, $p3] = $d;
+
+    $url  = 'https://vestrasales.com/register?type=buyer';
+    $body = $hi."\n\n".$p1."\n\n".$p2."\n\n".$p3
+          . "\n\n—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com";
+
+    return [$subject, $body, []];
+}
+
+/**
+ * Winter 26/27 — new houses landing at VESTRA.
+ *
+ * Goes to prospects who ALREADY received the campaign. That is the whole point: a
+ * second letter to a cold list is a mailing shot, but a short "here is what is new
+ * since we wrote" to someone who has seen us before is the ordinary rhythm of a
+ * wholesale season, and it carries actual news rather than the same pitch again.
+ *
+ * WHAT IT MAY AND MAY NOT SAY. The three houses are INCOMING, not in stock: the
+ * catalogue has 344 articles and none of them is a Gallery Dept. tee. So the letter
+ * says arriving, and points at the live price list for what can be ordered TODAY.
+ * Writing "now available" would win more clicks and lose the account on the first
+ * order — a wholesale buyer who is told stock exists and finds it does not has been
+ * given a reason never to open the next letter.
+ *
+ * Quantities and the size run come from the suppliers' own line sheets (Fred Perry
+ * M7535 crew sweatshirt and M3600 twin-tipped polo; AMI Paris AMPT01/AMPT02 tees,
+ * AMPH01 hoodie, AMPS01 crew) so nothing here is invented. No prices: wholesale
+ * figures for these three are not set yet, and an estimated price a buyer plans
+ * around is worse than no price at all.
+ *
+ * Ends with the same offer to stop as every other cold letter we send. The unsubscribe
+ * token is appended by the sender, but the sentence has to be in the text — a second
+ * contact without a visible way out is what turns interest into a complaint.
+ */
+/**
+ * UCUNCU PARTI — AYAKKABI, IC GIYIM ve PREMIUM MARKALAR (operator, 10 Eyl 2026:
+ * *"250 email gitsin ayyakkabi , underwear ve premium brands olarak"*).
+ *
+ * Kime: ilk mektubu almis ama IKINCI mektubu almamis leadler (workflow'un
+ * new_collection secimi). Winter 26/27 metni yerine bu metin gider; damga ayni
+ * (last_newcollection_at), cunku bu da o lead'in IKINCI mektubu: iki metin de
+ * ayni sirayi dolduruyor ve ayri damga tutmak ayni firmaya IKINCI mektubun
+ * iki surumunu birden gonderirdi.
+ *
+ * DUZELTME, 18 Eyl 2026. Bu notun eski hali *"iki ayri damga tutmak ayni
+ * firmaya ucuncu bir soguk mektup yolunu acardi"* diyordu, yani ucuncu bir
+ * mektubu ilkesel olarak reddediyor gibi okunuyordu. Reddedilen sey o degildi:
+ * AYNI SIRANIN iki damgaya bolunmesiydi. Operator 18 Eyl 2026'da ucuncu bir
+ * parti istedi (*"herkese bastan 3. email gonder ... yeni urunler ile Galerry
+ * markasi ve F.Perry , Gucci , Dsq2"*) ve o parti KENDI sirasini, dolayisiyla
+ * KENDI damgasini tasiyor (`last_wave3_at` / hesapta `wave3_at`,
+ * vestra_tpl_wave3_brands). Karar kayda geciyor, cunku susup bu notla celisen
+ * bir kod birakmak, sonraki okuyucuya hangisinin gecerli oldugunu okunamaz
+ * yapardi.
+ *
+ * RAKAMLAR PARAMETREDEN, METNE GOMULU DEGIL. Cagiran onlari CANLI ilan
+ * kaydindan sayiyor (KURAL 13'un journal dersi: sunucuda uydurma rakam
+ * uretilmez). Bir sayi sifirsa O CUMLE HIC BASILMAZ -- "0 ayakkabi" yazan bir
+ * duyuru, duyurunun kendisini yalanlar.
+ *
+ * FIYAT LISTESI ARTIK KAPILI (KURAL 19): mektup "listede" demiyor, "kayitli
+ * isletmelere gosteriliyor, kayit ucretsiz" diyor. Aksi halde tiklayan
+ * musteri duvara carpar ve mektup yanlis soz vermis olur.
+ */
+function vestra_tpl_new_collection_shoes(string $lang, string $company, array $f): array {
+    $co     = trim($company);
+    $shoes  = (int)($f['shoes'] ?? 0);
+    $under  = (int)($f['underwear'] ?? 0);
+    $brands = trim((string)($f['brands'] ?? ''));
+
+    $L = [
+      'en' => ["VESTRA — footwear and underwear now open",
+        "Hello".($co !== '' ? " ".$co : '').",",
+        "We wrote to you earlier about VESTRA, our B2B wholesale marketplace for branded fashion. Two sections have opened since:",
+        "%SHOES%%UNDER%",
+        "Premium houses in stock today: %BRANDS%.",
+        "Trade prices per piece are shown to registered businesses — registration is free and we ask for your trade licence. If this is not relevant to your business, just say so and we will not write again.",
+        "%d articles of footwear, full size runs, shipping from stock.",
+        "%d articles of underwear, from stock."],
+      'de' => ["VESTRA — Schuhe und Wäsche jetzt freigeschaltet",
+        "Guten Tag".($co !== '' ? " ".$co : '').",",
+        "Wir hatten Ihnen zu VESTRA geschrieben, unserem B2B-Großhandelsmarktplatz für Markenmode. Seitdem sind zwei Bereiche dazugekommen:",
+        "%SHOES%%UNDER%",
+        "Premium-Häuser heute ab Lager: %BRANDS%.",
+        "Die Einkaufspreise je Stück sehen registrierte Betriebe — die Registrierung ist kostenlos, wir fragen die Gewerbeanmeldung ab. Falls es für Ihr Geschäft nicht passt, sagen Sie einfach Bescheid — dann schreiben wir nicht wieder.",
+        "%d Artikel Schuhe, volle Größenläufe, ab Lager lieferbar.",
+        "%d Artikel Wäsche, ab Lager."],
+      'fr' => ["VESTRA — chaussures et sous-vêtements désormais ouverts",
+        "Bonjour".($co !== '' ? " ".$co : '').",",
+        "Nous vous avions écrit au sujet de VESTRA, notre place de marché B2B de gros pour la mode de marque. Deux rayons se sont ouverts depuis :",
+        "%SHOES%%UNDER%",
+        "Maisons premium disponibles aujourd'hui : %BRANDS%.",
+        "Les prix de gros à la pièce sont réservés aux entreprises enregistrées — l'inscription est gratuite et nous demandons votre extrait Kbis. Si cela ne concerne pas votre activité, dites-le nous simplement et nous ne réécrirons pas.",
+        "%d références de chaussures, séries de tailles complètes, expédiables du stock.",
+        "%d références de sous-vêtements, du stock."],
+      'it' => ["VESTRA — calzature e intimo ora disponibili",
+        "Buongiorno".($co !== '' ? " ".$co : '').",",
+        "Le avevamo scritto a proposito di VESTRA, il nostro marketplace B2B all'ingrosso per la moda di marca. Da allora si sono aperti due reparti:",
+        "%SHOES%%UNDER%",
+        "Maison premium a magazzino oggi: %BRANDS%.",
+        "I prezzi all'ingrosso per pezzo sono riservati alle aziende registrate — l'iscrizione è gratuita e chiediamo la visura camerale. Se non riguarda la Sua attività, basta dircelo e non scriveremo più.",
+        "%d referenze di calzature, serie taglie complete, spedibili da magazzino.",
+        "%d referenze di intimo, da magazzino."],
+      'es' => ["VESTRA — calzado y ropa interior ya disponibles",
+        "Buenos días".($co !== '' ? " ".$co : '').",",
+        "Le escribimos sobre VESTRA, nuestro marketplace mayorista B2B de moda de marca. Desde entonces se han abierto dos secciones:",
+        "%SHOES%%UNDER%",
+        "Casas premium en stock hoy: %BRANDS%.",
+        "Los precios mayoristas por pieza se muestran a empresas registradas — el registro es gratuito y pedimos su licencia comercial. Si no tiene que ver con su negocio, díganoslo y no volveremos a escribir.",
+        "%d referencias de calzado, series de tallas completas, desde stock.",
+        "%d referencias de ropa interior, desde stock."],
+      'nl' => ["VESTRA — schoenen en ondergoed nu open",
+        "Goedendag".($co !== '' ? " ".$co : '').",",
+        "Wij schreven u eerder over VESTRA, onze B2B-groothandelsmarktplaats voor merkmode. Sindsdien zijn er twee afdelingen bijgekomen:",
+        "%SHOES%%UNDER%",
+        "Premiumhuizen vandaag uit voorraad: %BRANDS%.",
+        "Inkoopprijzen per stuk zijn zichtbaar voor geregistreerde bedrijven — registratie is gratis en wij vragen uw KvK-uittreksel. Past het niet bij uw zaak, laat het dan weten — dan schrijven wij niet opnieuw.",
+        "%d artikelen schoenen, volledige maatreeksen, uit voorraad leverbaar.",
+        "%d artikelen ondergoed, uit voorraad."],
+      'pt' => ["VESTRA — calçado e roupa interior agora abertos",
+        "Bom dia".($co !== '' ? " ".$co : '').",",
+        "Escrevemos-lhe sobre a VESTRA, o nosso marketplace grossista B2B de moda de marca. Entretanto abriram duas secções:",
+        "%SHOES%%UNDER%",
+        "Casas premium em stock hoje: %BRANDS%.",
+        "Os preços grossistas por peça são mostrados a empresas registadas — o registo é gratuito e pedimos a certidão permanente. Se não tiver a ver com o seu negócio, diga-nos e não voltaremos a escrever.",
+        "%d referências de calçado, séries de tamanhos completas, do stock.",
+        "%d referências de roupa interior, do stock."],
+      'pl' => ["VESTRA — obuwie i bielizna już dostępne",
+        "Dzień dobry".($co !== '' ? " ".$co : '').",",
+        "Pisaliśmy do Państwa o VESTRA — naszej hurtowej platformie B2B z modą markową. Od tego czasu otworzyły się dwa działy:",
+        "%SHOES%%UNDER%",
+        "Domy premium dostępne dziś z magazynu: %BRANDS%.",
+        "Ceny hurtowe za sztukę widzą zarejestrowane firmy — rejestracja jest bezpłatna, prosimy o wpis do rejestru działalności. Jeśli to nie dotyczy Państwa działalności, wystarczy dać znać — nie napiszemy ponownie.",
+        "%d pozycji obuwia, pełne rozpiętości rozmiarów, wysyłka z magazynu.",
+        "%d pozycji bielizny, z magazynu."],
+      'cs' => ["VESTRA — obuv a spodní prádlo nyní otevřeny",
+        "Dobrý den".($co !== '' ? " ".$co : '').",",
+        "Psali jsme Vám o VESTRA — našem velkoobchodním B2B tržišti se značkovou módou. Mezitím se otevřela dvě oddělení:",
+        "%SHOES%%UNDER%",
+        "Prémiové značky dnes skladem: %BRANDS%.",
+        "Velkoobchodní ceny za kus vidí registrované firmy — registrace je zdarma a žádáme živnostenský list. Pokud se to Vaší činnosti netýká, stačí dát vědět a znovu psát nebudeme.",
+        "%d položek obuvi, plné velikostní řady, skladem.",
+        "%d položek spodního prádla, skladem."],
+      'el' => ["VESTRA — υποδήματα και εσώρουχα τώρα διαθέσιμα",
+        "Καλημέρα".($co !== '' ? " ".$co : '').",",
+        "Σας είχαμε γράψει για τη VESTRA, τη χονδρική B2B πλατφόρμα μας για επώνυμη μόδα. Έκτοτε άνοιξαν δύο τμήματα:",
+        "%SHOES%%UNDER%",
+        "Premium οίκοι σε απόθεμα σήμερα: %BRANDS%.",
+        "Οι τιμές χονδρικής ανά τεμάχιο εμφανίζονται σε εγγεγραμμένες επιχειρήσεις — η εγγραφή είναι δωρεάν και ζητάμε την άδεια λειτουργίας. Αν δεν αφορά τη δραστηριότητά σας, πείτε μας το και δεν θα ξαναγράψουμε.",
+        "%d κωδικοί υποδημάτων, πλήρεις σειρές μεγεθών, από απόθεμα.",
+        "%d κωδικοί εσωρούχων, από απόθεμα."],
+      'ja' => ["VESTRA — フットウェアとインナーの取り扱いを開始",
+        ($co !== '' ? $co." " : '')."ご担当者様",
+        "先般、ブランドファッションのB2B卸売プラットフォーム VESTRA についてご案内いたしました。その後、二つの部門が加わりました。",
+        "%SHOES%%UNDER%",
+        "本日在庫のあるプレミアムブランド： %BRANDS%。",
+        "1点あたりの卸価格は登録企業様に表示されます。登録は無料で、商業登記書類を確認させていただきます。御社の取り扱いに合わない場合はお知らせください。以後ご連絡はいたしません。",
+        "フットウェア %d 型、フルサイズ展開、在庫からの出荷が可能です。",
+        "インナー %d 型、在庫からの出荷が可能です。"],
+      'ko' => ["VESTRA — 신발과 이너웨어 오픈",
+        ($co !== '' ? $co." " : '')."담당자님,",
+        "브랜드 패션 B2B 도매 플랫폼 VESTRA에 대해 앞서 안내드린 바 있습니다. 이후 두 개 부문이 추가되었습니다.",
+        "%SHOES%%UNDER%",
+        "오늘 재고 보유 프리미엄 브랜드: %BRANDS%.",
+        "장당 도매가는 등록된 사업자에게 표시됩니다. 등록은 무료이며 사업자등록증을 확인합니다. 귀사와 관련이 없다면 말씀만 주시면 다시 연락드리지 않겠습니다.",
+        "신발 %d개 품목, 전 사이즈 구성, 재고 출고 가능.",
+        "이너웨어 %d개 품목, 재고 출고 가능."],
+    ];
+
+    $d = $L[$lang] ?? $L['en'];
+    [$subject, $hi, $p1, $p2, $p3, $p4, $lineShoes, $lineUnder] = $d;
+
+    /* Sifir olan bolum HIC yazilmaz. */
+    $bullets = '';
+    if ($shoes > 0) $bullets .= "• ".sprintf($lineShoes, $shoes)."\n";
+    if ($under > 0) $bullets .= "• ".sprintf($lineUnder, $under)."\n";
+    $p2 = trim(str_replace(['%SHOES%%UNDER%'], [rtrim($bullets, "\n")], $p2));
+
+    /* Marka satiri ancak marka varsa. */
+    $p3 = $brands !== '' ? str_replace('%BRANDS%', $brands, $p3) : '';
+
+    $parts = array_values(array_filter([$hi, $p1, $p2, $p3, $p4], fn($x) => trim((string)$x) !== ''));
+    $body  = implode("\n\n", $parts)
+           . "\n\n—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com";
+
+    return [$subject, $body, ['button' => ['label' => 'VESTRA', 'url' => 'https://vestrasales.com/price-list']]];
+}
+
+/**
+ * AYAKKABI DUKKANLARINA ILK TEMAS (operator, 26 Eyl 2026: *"sende tum
+ * avrupadan ayakkabi dukkani bul zincir olmasin gercek email adreslerine
+ * ayakkabi kategorisini ve bir kac diger kategorilerden gonder"*).
+ *
+ * NEDEN AYRI BIR SABLON. Soguk ilk mektup (vestra_campaign_preview_base)
+ * "tasarimci evleri" satiyor ve govdesinde ayakkabi kelimesi HIC gecmiyor;
+ * feature_category yalnizca fotograf seridine iki kare ekliyor. Bir ayakkabi
+ * dukkanina "designer giyim toptancisi" diye yazmak, ilgisini cekecek tek
+ * bolumu bir fotografa indirir. Ikinci mektup (new_collection_shoes) ise
+ * "size daha once yazmistik" diye aciliyor -- ilk temasta kendi acilisini
+ * yalanlar.
+ *
+ * RAKAMLAR PARAMETREDEN, METNE GOMULU DEGIL (KURAL 13'un journal dersi):
+ * model sayisi, turler, kutu buyuklugu, yetiskin/cocuk ayrimi ve giyim
+ * kategorileri cagiranin CANLI katalogdan saydigi degerler. Sifir olan cumle
+ * HIC basilmaz. "Ispanyol uretici" ifadesi yalnizca cagiran bolmedeki markayi
+ * olcup dogrularsa ($f['origin_es']) yazilir -- yarin bolmeye baska bir marka
+ * girerse cumle kendiliginden susar.
+ *
+ * "STOKTAN" DENMIYOR: ayakkabi ilanlarinda ships_from bos (KURAL 3 -- saticiya
+ * soruldu). Ikinci mektubun "from stock" cumlesi bu mektuba tasinmadi;
+ * dogrulayamadigimiz bir soz ilk temasta verilmez. Test bunu 10 dilde tutuyor.
+ *
+ * FIYAT YOK (KURAL 19): toptan fiyat hesap kapisinin arkasinda; mektup
+ * "kayitli isletmelere gosteriliyor, kayit ucretsiz" diyor.
+ *
+ * CIKIS YOLU hem metnin icinde ("ilgilenmiyorsaniz yanitlayin") hem kunyede
+ * (abonelikten cikma linki; cagiran leadin kendi jetonunu ekliyor).
+ */
+function vestra_tpl_footwear_intro_strings(): array {
+    return [
+      'en' => [
+        'subject' => 'VESTRA — %N% %MODELS% for your shop, at trade prices',
+        'models'  => ['footwear model', 'footwear models'],
+        'hi' => 'Hello %CO%,', 'hi0' => 'Hello,',
+        'intro' => 'A short introduction: VESTRA is a verified B2B wholesale marketplace for footwear and branded fashion. We are writing to independent shoe shops because our footwear range may suit your shelves.',
+        'colon' => ': ', 'origin' => ' from a Spanish manufacturer', 'aud' => ', for adults and children', 'and' => 'and',
+        'box_range' => 'Ordered by the box: %MIN% to %MAX% pairs of one model per box.',
+        'box_one'   => 'Ordered by the box: %MIN% pairs of one model per box.',
+        'app'    => 'On the same account you can also order branded apparel:',
+        'prices' => 'Trade prices are shown to registered businesses — registration is free and we ask for your trade licence. If this is not relevant to your shop, simply reply and we will not write again.',
+        'sign'   => "Kind regards,\nVESTRA",
+        'foot'   => "VESTRA (operated by Acerasoft LLC). One-time business message — your shop was identified as a possible trade partner.\nUnsubscribe instantly: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Footwear wholesale', 'title' => 'Footwear for your shelves — at trade terms.',
+        'badge'  => 'Verified B2B marketplace · trade accounts only',
+        'shots'  => 'From the current selection',
+        'dl'     => 'Apparel line-sheets (Excel, with photos)',
+        'btn'    => 'See the footwear range',
+        'types'  => ['Sneakers'=>'sneakers','Flats'=>'flats','Sandals'=>'sandals','Boots'=>'boots','Loafers'=>'loafers','Slippers'=>'slippers','Heels'=>'heels'],
+        'cats'   => ['T-Shirts'=>'T-shirts','Polos'=>'Polo shirts','Hoodies & Sweatshirts'=>'Hoodies & sweatshirts','Jeans'=>'Jeans','Shirts'=>'Shirts',
+                     'Sweaters & Knitwear'=>'Knitwear','Jackets'=>'Jackets','Shorts'=>'Shorts','Jeans Shorts'=>'Denim shorts','Swim Shorts'=>'Swim shorts',
+                     'Tracksuit Sets'=>'Tracksuits','Trousers & Chinos'=>'Trousers',"Women's T-Shirts"=>"Women's T-shirts",'Skirts'=>'Skirts','Coats'=>'Coats'],
+      ],
+      'de' => [
+        'subject' => 'VESTRA — %N% %MODELS% für Ihr Geschäft, zu Händlerpreisen',
+        'models'  => ['Schuhmodell', 'Schuhmodelle'],
+        'hi' => 'Guten Tag %CO%,', 'hi0' => 'Guten Tag,',
+        'intro' => 'Eine kurze Vorstellung: VESTRA ist ein verifizierter B2B-Großhandelsmarktplatz für Schuhe und Markenmode. Wir schreiben unabhängigen Schuhgeschäften, weil unser Schuhsortiment gut zu Ihrem Geschäft passen könnte.',
+        'colon' => ': ', 'origin' => ' eines spanischen Herstellers', 'aud' => ', für Erwachsene und Kinder', 'and' => 'und',
+        'box_range' => 'Bestellt wird kartonweise: %MIN% bis %MAX% Paar eines Modells pro Karton.',
+        'box_one'   => 'Bestellt wird kartonweise: %MIN% Paar eines Modells pro Karton.',
+        'app'    => 'Über dasselbe Konto können Sie auch Markenmode bestellen:',
+        'prices' => 'Die Händlerpreise sehen registrierte Betriebe — die Registrierung ist kostenlos, wir fragen einen Gewerbenachweis ab. Falls es für Ihr Geschäft nicht passt, antworten Sie einfach kurz — dann schreiben wir nicht wieder.',
+        'sign'   => "Mit freundlichen Grüßen\nVESTRA",
+        'foot'   => "VESTRA (betrieben von Acerasoft LLC). Einmalige geschäftliche Nachricht — Ihr Geschäft wurde als möglicher Handelspartner identifiziert.\nSofort abmelden: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Schuhe im Großhandel', 'title' => 'Schuhe für Ihr Regal — zu Händlerkonditionen.',
+        'badge'  => 'Verifizierter B2B-Marktplatz · nur für Gewerbekunden',
+        'shots'  => 'Aus der aktuellen Auswahl',
+        'dl'     => 'Line-Sheets Markenmode (Excel, mit Fotos)',
+        'btn'    => 'Zum Schuhsortiment',
+        'types'  => ['Sneakers'=>'Sneaker','Flats'=>'Ballerinas','Sandals'=>'Sandalen','Boots'=>'Stiefel','Loafers'=>'Loafer','Slippers'=>'Hausschuhe','Heels'=>'High Heels'],
+        'cats'   => ['T-Shirts'=>'T-Shirts','Polos'=>'Poloshirts','Hoodies & Sweatshirts'=>'Hoodies & Sweatshirts','Jeans'=>'Jeans','Shirts'=>'Hemden',
+                     'Sweaters & Knitwear'=>'Strickmode','Jackets'=>'Jacken','Shorts'=>'Shorts','Jeans Shorts'=>'Jeansshorts','Swim Shorts'=>'Badeshorts',
+                     'Tracksuit Sets'=>'Trainingsanzüge','Trousers & Chinos'=>'Hosen',"Women's T-Shirts"=>'Damen-T-Shirts','Skirts'=>'Röcke','Coats'=>'Mäntel'],
+      ],
+      'fr' => [
+        'subject' => 'VESTRA — %N% %MODELS% pour votre boutique, aux prix de gros',
+        'models'  => ['modèle de chaussures', 'modèles de chaussures'],
+        'hi' => 'Bonjour %CO%,', 'hi0' => 'Bonjour,',
+        'intro' => 'Une brève présentation : VESTRA est une place de marché B2B de gros vérifiée, dédiée à la chaussure et à la mode de marque. Nous écrivons aux chausseurs indépendants, car notre gamme de chaussures pourrait trouver sa place dans votre boutique.',
+        'colon' => ' : ', 'origin' => " d'un fabricant espagnol", 'aud' => ', pour adultes et enfants', 'and' => 'et',
+        'box_range' => "Commande au carton : de %MIN% à %MAX% paires d'un même modèle par carton.",
+        'box_one'   => "Commande au carton : %MIN% paires d'un même modèle par carton.",
+        'app'    => 'Sur le même compte, vous pouvez aussi commander de la mode de marque :',
+        'prices' => "Les prix de gros sont affichés aux entreprises enregistrées — l'inscription est gratuite et nous demandons un justificatif d'immatriculation (Kbis ou équivalent). Si cela ne concerne pas votre boutique, répondez-nous simplement et nous ne vous écrirons plus.",
+        'sign'   => "Cordialement,\nVESTRA",
+        'foot'   => "VESTRA (exploité par Acerasoft LLC). Message professionnel unique — votre boutique a été identifiée comme partenaire commercial potentiel.\nSe désinscrire immédiatement : https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Chaussures en gros', 'title' => 'Des chaussures pour vos rayons — aux conditions professionnelles.',
+        'badge'  => 'Place de marché B2B vérifiée · réservée aux professionnels',
+        'shots'  => 'De la sélection actuelle',
+        'dl'     => 'Line-sheets mode de marque (Excel, avec photos)',
+        'btn'    => 'Voir la gamme chaussures',
+        'types'  => ['Sneakers'=>'baskets','Flats'=>'ballerines','Sandals'=>'sandales','Boots'=>'bottes','Loafers'=>'mocassins','Slippers'=>'chaussons','Heels'=>'talons'],
+        'cats'   => ['T-Shirts'=>'T-shirts','Polos'=>'Polos','Hoodies & Sweatshirts'=>'Sweats à capuche & sweats','Jeans'=>'Jeans','Shirts'=>'Chemises',
+                     'Sweaters & Knitwear'=>'Pulls & mailles','Jackets'=>'Vestes','Shorts'=>'Shorts','Jeans Shorts'=>'Shorts en jean','Swim Shorts'=>'Shorts de bain',
+                     'Tracksuit Sets'=>'Ensembles survêtement','Trousers & Chinos'=>'Pantalons',"Women's T-Shirts"=>'T-shirts femme','Skirts'=>'Jupes','Coats'=>'Manteaux'],
+      ],
+      'nl' => [
+        'subject' => 'VESTRA — %N% %MODELS% voor uw winkel, tegen groothandelsprijzen',
+        'models'  => ['schoenmodel', 'schoenmodellen'],
+        'hi' => 'Goedendag %CO%,', 'hi0' => 'Goedendag,',
+        'intro' => 'Een korte kennismaking: VESTRA is een geverifieerde B2B-groothandelsmarktplaats voor schoenen en merkmode. Wij schrijven zelfstandige schoenenwinkels aan, omdat ons schoenenassortiment goed bij uw winkel zou kunnen passen.',
+        'colon' => ': ', 'origin' => ' van een Spaanse fabrikant', 'aud' => ', voor volwassenen en kinderen', 'and' => 'en',
+        'box_range' => 'U bestelt per doos: %MIN% tot %MAX% paar van één model per doos.',
+        'box_one'   => 'U bestelt per doos: %MIN% paar van één model per doos.',
+        'app'    => 'Via hetzelfde account kunt u ook merkkleding bestellen:',
+        'prices' => 'Inkoopprijzen zijn zichtbaar voor geregistreerde bedrijven — registratie is gratis en wij vragen een uittreksel van uw inschrijving (KvK of KBO). Past dit niet bij uw winkel, antwoord dan kort — dan schrijven wij niet opnieuw.',
+        'sign'   => "Met vriendelijke groet,\nVESTRA",
+        'foot'   => "VESTRA (beheerd door Acerasoft LLC). Eenmalig zakelijk bericht — uw winkel is geïdentificeerd als mogelijke handelspartner.\nDirect uitschrijven: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Schoenen in de groothandel', 'title' => 'Schoenen voor uw schappen — tegen handelsvoorwaarden.',
+        'badge'  => 'Geverifieerde B2B-marktplaats · alleen voor zakelijke klanten',
+        'shots'  => 'Uit de actuele selectie',
+        'dl'     => "Line-sheets merkkleding (Excel, met foto's)",
+        'btn'    => 'Bekijk het schoenenassortiment',
+        'types'  => ['Sneakers'=>'sneakers','Flats'=>"ballerina's",'Sandals'=>'sandalen','Boots'=>'laarzen','Loafers'=>'loafers','Slippers'=>'pantoffels','Heels'=>'pumps'],
+        'cats'   => ['T-Shirts'=>'T-shirts','Polos'=>'Poloshirts','Hoodies & Sweatshirts'=>'Hoodies & sweatshirts','Jeans'=>'Jeans','Shirts'=>'Overhemden',
+                     'Sweaters & Knitwear'=>'Truien & breigoed','Jackets'=>'Jassen','Shorts'=>'Shorts','Jeans Shorts'=>'Jeansshorts','Swim Shorts'=>'Zwemshorts',
+                     'Tracksuit Sets'=>'Trainingspakken','Trousers & Chinos'=>'Broeken',"Women's T-Shirts"=>'Dames-T-shirts','Skirts'=>'Rokken','Coats'=>'Mantels'],
+      ],
+      'it' => [
+        'subject' => "VESTRA — %N% %MODELS% per il Suo negozio, a prezzi all'ingrosso",
+        'models'  => ['modello di calzature', 'modelli di calzature'],
+        'hi' => 'Buongiorno %CO%,', 'hi0' => 'Buongiorno,',
+        'intro' => "Una breve presentazione: VESTRA è un marketplace B2B all'ingrosso verificato per calzature e moda di marca. Scriviamo ai negozi di calzature indipendenti perché il nostro assortimento potrebbe adattarsi bene al Suo negozio.",
+        'colon' => ': ', 'origin' => ' di un produttore spagnolo', 'aud' => ', per adulti e bambini', 'and' => 'e',
+        'box_range' => 'Si ordina a cartone: da %MIN% a %MAX% paia dello stesso modello per cartone.',
+        'box_one'   => 'Si ordina a cartone: %MIN% paia dello stesso modello per cartone.',
+        'app'    => 'Con lo stesso account può ordinare anche abbigliamento di marca:',
+        'prices' => "I prezzi all'ingrosso sono visibili alle aziende registrate — l'iscrizione è gratuita e chiediamo la visura camerale. Se non riguarda il Suo negozio, basta risponderci e non scriveremo più.",
+        'sign'   => "Cordiali saluti,\nVESTRA",
+        'foot'   => "VESTRA (gestito da Acerasoft LLC). Messaggio commerciale unico — il Suo negozio è stato individuato come possibile partner commerciale.\nAnnulla subito l'iscrizione: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => "Calzature all'ingrosso", 'title' => 'Calzature per i Suoi scaffali — a condizioni per rivenditori.',
+        'badge'  => 'Marketplace B2B verificato · solo per rivenditori',
+        'shots'  => 'Dalla selezione attuale',
+        'dl'     => 'Line-sheet abbigliamento di marca (Excel, con foto)',
+        'btn'    => 'Vedi le calzature',
+        'types'  => ['Sneakers'=>'sneakers','Flats'=>'ballerine','Sandals'=>'sandali','Boots'=>'stivali','Loafers'=>'mocassini','Slippers'=>'pantofole','Heels'=>'scarpe con tacco'],
+        'cats'   => ['T-Shirts'=>'T-shirt','Polos'=>'Polo','Hoodies & Sweatshirts'=>'Felpe e hoodie','Jeans'=>'Jeans','Shirts'=>'Camicie',
+                     'Sweaters & Knitwear'=>'Maglieria','Jackets'=>'Giacche','Shorts'=>'Shorts','Jeans Shorts'=>'Shorts in jeans','Swim Shorts'=>'Costumi a pantaloncino',
+                     'Tracksuit Sets'=>'Tute','Trousers & Chinos'=>'Pantaloni',"Women's T-Shirts"=>'T-shirt donna','Skirts'=>'Gonne','Coats'=>'Cappotti'],
+      ],
+      'es' => [
+        'subject' => 'VESTRA — %N% %MODELS% para su tienda, a precio mayorista',
+        'models'  => ['modelo de calzado', 'modelos de calzado'],
+        'hi' => 'Buenos días %CO%,', 'hi0' => 'Buenos días,',
+        'intro' => 'Una breve presentación: VESTRA es un marketplace mayorista B2B verificado de calzado y moda de marca. Escribimos a zapaterías independientes porque nuestro surtido de calzado podría encajar en su tienda.',
+        'colon' => ': ', 'origin' => ' de un fabricante español', 'aud' => ', para adultos y niños', 'and' => 'y',
+        'box_range' => 'Se pide por caja: de %MIN% a %MAX% pares de un mismo modelo por caja.',
+        'box_one'   => 'Se pide por caja: %MIN% pares de un mismo modelo por caja.',
+        'app'    => 'Con la misma cuenta también puede pedir moda de marca:',
+        'prices' => 'Los precios mayoristas se muestran a empresas registradas — el registro es gratuito y pedimos un justificante de alta de su actividad. Si no encaja con su tienda, respóndanos simplemente y no volveremos a escribir.',
+        'sign'   => "Saludos cordiales,\nVESTRA",
+        'foot'   => "VESTRA (gestionado por Acerasoft LLC). Mensaje comercial único — su tienda fue identificada como posible socio comercial.\nDarse de baja al instante: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Calzado al por mayor', 'title' => 'Calzado para sus estanterías — en condiciones profesionales.',
+        'badge'  => 'Marketplace B2B verificado · solo para profesionales',
+        'shots'  => 'De la selección actual',
+        'dl'     => 'Line-sheets de moda de marca (Excel, con fotos)',
+        'btn'    => 'Ver el calzado',
+        'types'  => ['Sneakers'=>'deportivas','Flats'=>'bailarinas','Sandals'=>'sandalias','Boots'=>'botas','Loafers'=>'mocasines','Slippers'=>'zapatillas de casa','Heels'=>'zapatos de tacón'],
+        'cats'   => ['T-Shirts'=>'Camisetas','Polos'=>'Polos','Hoodies & Sweatshirts'=>'Sudaderas','Jeans'=>'Vaqueros','Shirts'=>'Camisas',
+                     'Sweaters & Knitwear'=>'Punto','Jackets'=>'Chaquetas','Shorts'=>'Pantalones cortos','Jeans Shorts'=>'Shorts vaqueros','Swim Shorts'=>'Bañadores',
+                     'Tracksuit Sets'=>'Chándales','Trousers & Chinos'=>'Pantalones',"Women's T-Shirts"=>'Camisetas de mujer','Skirts'=>'Faldas','Coats'=>'Abrigos'],
+      ],
+      'pt' => [
+        'subject' => 'VESTRA — %N% %MODELS% para a sua loja, a preços de revenda',
+        'models'  => ['modelo de calçado', 'modelos de calçado'],
+        'hi' => 'Bom dia %CO%,', 'hi0' => 'Bom dia,',
+        'intro' => 'Uma breve apresentação: a VESTRA é um marketplace grossista B2B verificado de calçado e moda de marca. Escrevemos a sapatarias independentes porque a nossa gama de calçado pode encaixar na sua loja.',
+        'colon' => ': ', 'origin' => ' de um fabricante espanhol', 'aud' => ', para adultos e crianças', 'and' => 'e',
+        'box_range' => 'Encomenda por caixa: de %MIN% a %MAX% pares do mesmo modelo por caixa.',
+        'box_one'   => 'Encomenda por caixa: %MIN% pares do mesmo modelo por caixa.',
+        'app'    => 'Na mesma conta pode também encomendar moda de marca:',
+        'prices' => 'Os preços de revenda são mostrados a empresas registadas — o registo é gratuito e pedimos a certidão permanente. Se não se aplicar à sua loja, basta responder e não voltaremos a escrever.',
+        'sign'   => "Com os melhores cumprimentos,\nVESTRA",
+        'foot'   => "VESTRA (gerida pela Acerasoft LLC). Mensagem comercial única — a sua loja foi identificada como possível parceiro comercial.\nCancelar a subscrição de imediato: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Calçado por grosso', 'title' => 'Calçado para as suas prateleiras — em condições de revenda.',
+        'badge'  => 'Marketplace B2B verificado · apenas para empresas',
+        'shots'  => 'Da seleção atual',
+        'dl'     => 'Line-sheets de moda de marca (Excel, com fotos)',
+        'btn'    => 'Ver o calçado',
+        'types'  => ['Sneakers'=>'ténis','Flats'=>'sapatos rasos','Sandals'=>'sandálias','Boots'=>'botas','Loafers'=>'mocassins','Slippers'=>'pantufas','Heels'=>'sapatos de salto'],
+        'cats'   => ['T-Shirts'=>'T-shirts','Polos'=>'Polos','Hoodies & Sweatshirts'=>'Hoodies e sweatshirts','Jeans'=>'Jeans','Shirts'=>'Camisas',
+                     'Sweaters & Knitwear'=>'Malhas','Jackets'=>'Casacos','Shorts'=>'Calções','Jeans Shorts'=>'Calções de ganga','Swim Shorts'=>'Calções de banho',
+                     'Tracksuit Sets'=>'Fatos de treino','Trousers & Chinos'=>'Calças',"Women's T-Shirts"=>'T-shirts de senhora','Skirts'=>'Saias','Coats'=>'Casacos compridos'],
+      ],
+      'pl' => [
+        'subject' => 'VESTRA — %N% %MODELS% dla Państwa sklepu, w cenach hurtowych',
+        /* Trzy formy: 1 model / 2-4 modele (bez 12-14) / pozostale modeli. */
+        'models'  => ['model obuwia', 'modele obuwia', 'modeli obuwia'],
+        'hi' => 'Dzień dobry %CO%,', 'hi0' => 'Dzień dobry,',
+        'intro' => 'Krótko o nas: VESTRA to zweryfikowana hurtowa platforma B2B z obuwiem i odzieżą markową. Piszemy do niezależnych sklepów obuwniczych, ponieważ nasza oferta obuwia może pasować do Państwa sklepu.',
+        'colon' => ': ', 'origin' => ' od hiszpańskiego producenta', 'aud' => ', dla dorosłych i dzieci', 'and' => 'i',
+        'box_range' => 'Zamówienia w kartonach: od %MIN% do %MAX% par jednego modelu w kartonie.',
+        'box_one'   => 'Zamówienia w kartonach: %MIN% par jednego modelu w kartonie.',
+        'app'    => 'Na tym samym koncie można też zamawiać odzież markową:',
+        'prices' => 'Ceny hurtowe widzą zarejestrowane firmy — rejestracja jest bezpłatna, prosimy o dokument rejestracji działalności. Jeśli to nie dotyczy Państwa sklepu, wystarczy krótko odpowiedzieć — nie napiszemy ponownie.',
+        'sign'   => "Z poważaniem\nVESTRA",
+        'foot'   => "VESTRA (prowadzona przez Acerasoft LLC). Jednorazowa wiadomość biznesowa — Państwa sklep został wskazany jako potencjalny partner handlowy.\nNatychmiastowa rezygnacja: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Obuwie w hurcie', 'title' => 'Obuwie na Państwa półki — na warunkach hurtowych.',
+        'badge'  => 'Zweryfikowana platforma B2B · tylko dla firm',
+        'shots'  => 'Z aktualnej oferty',
+        'dl'     => 'Line-sheety odzieży markowej (Excel, ze zdjęciami)',
+        'btn'    => 'Zobacz obuwie',
+        'types'  => ['Sneakers'=>'sneakersy','Flats'=>'baleriny','Sandals'=>'sandały','Boots'=>'botki','Loafers'=>'mokasyny','Slippers'=>'kapcie','Heels'=>'buty na obcasie'],
+        'cats'   => ['T-Shirts'=>'T-shirty','Polos'=>'Koszulki polo','Hoodies & Sweatshirts'=>'Bluzy','Jeans'=>'Jeansy','Shirts'=>'Koszule',
+                     'Sweaters & Knitwear'=>'Swetry','Jackets'=>'Kurtki','Shorts'=>'Szorty','Jeans Shorts'=>'Szorty jeansowe','Swim Shorts'=>'Szorty kąpielowe',
+                     'Tracksuit Sets'=>'Dresy','Trousers & Chinos'=>'Spodnie',"Women's T-Shirts"=>'T-shirty damskie','Skirts'=>'Spódnice','Coats'=>'Płaszcze'],
+      ],
+      'cs' => [
+        'subject' => 'VESTRA — %N% %MODELS% pro Vaši prodejnu, za velkoobchodní ceny',
+        /* Tri tvary: 1 model / 2-4 modely / 5+ modelu. */
+        'models'  => ['model obuvi', 'modely obuvi', 'modelů obuvi'],
+        'hi' => 'Dobrý den %CO%,', 'hi0' => 'Dobrý den,',
+        'intro' => 'Krátké představení: VESTRA je ověřené velkoobchodní B2B tržiště s obuví a značkovou módou. Píšeme nezávislým obchodům s obuví, protože naše nabídka obuvi by se mohla hodit do Vaší prodejny.',
+        'colon' => ': ', 'origin' => ' od španělského výrobce', 'aud' => ', pro dospělé i děti', 'and' => 'a',
+        'box_range' => 'Objednává se po kartonech: od %MIN% do %MAX% párů jednoho modelu v kartonu.',
+        'box_one'   => 'Objednává se po kartonech: %MIN% párů jednoho modelu v kartonu.',
+        'app'    => 'Na stejném účtu můžete objednat i značkové oblečení:',
+        'prices' => 'Velkoobchodní ceny vidí registrované firmy — registrace je zdarma a žádáme doklad o podnikání (živnostenský list nebo výpis z obchodního rejstříku). Pokud se to Vaší prodejny netýká, stačí krátce odpovědět a znovu psát nebudeme.',
+        'sign'   => "S pozdravem\nVESTRA",
+        'foot'   => "VESTRA (provozuje Acerasoft LLC). Jednorázová obchodní zpráva — Vaše prodejna byla vybrána jako možný obchodní partner.\nOkamžité odhlášení: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Obuv ve velkoobchodě', 'title' => 'Obuv do Vašich regálů — za velkoobchodních podmínek.',
+        'badge'  => 'Ověřené B2B tržiště · pouze pro firmy',
+        'shots'  => 'Z aktuální nabídky',
+        'dl'     => 'Line-sheety značkového oblečení (Excel, s fotografiemi)',
+        'btn'    => 'Prohlédnout obuv',
+        'types'  => ['Sneakers'=>'tenisky','Flats'=>'baleríny','Sandals'=>'sandály','Boots'=>'kozačky','Loafers'=>'mokasíny','Slippers'=>'bačkory','Heels'=>'boty na podpatku'],
+        'cats'   => ['T-Shirts'=>'Trička','Polos'=>'Pólo trička','Hoodies & Sweatshirts'=>'Mikiny','Jeans'=>'Džíny','Shirts'=>'Košile',
+                     'Sweaters & Knitwear'=>'Svetry','Jackets'=>'Bundy','Shorts'=>'Kraťasy','Jeans Shorts'=>'Džínové kraťasy','Swim Shorts'=>'Plavkové šortky',
+                     'Tracksuit Sets'=>'Teplákové soupravy','Trousers & Chinos'=>'Kalhoty',"Women's T-Shirts"=>'Dámská trička','Skirts'=>'Sukně','Coats'=>'Kabáty'],
+      ],
+      'el' => [
+        'subject' => 'VESTRA — %N% %MODELS% για το κατάστημά σας, σε τιμές χονδρικής',
+        'models'  => ['μοντέλο υποδημάτων', 'μοντέλα υποδημάτων'],
+        'hi' => 'Καλημέρα %CO%,', 'hi0' => 'Καλημέρα,',
+        'intro' => 'Μια σύντομη γνωριμία: η VESTRA είναι μια επαληθευμένη B2B πλατφόρμα χονδρικής για υποδήματα και επώνυμη μόδα. Γράφουμε σε ανεξάρτητα καταστήματα υποδημάτων, γιατί η γκάμα υποδημάτων μας θα μπορούσε να ταιριάξει στο κατάστημά σας.',
+        'colon' => ': ', 'origin' => ' από Ισπανό κατασκευαστή', 'aud' => ', για ενήλικες και παιδιά', 'and' => 'και',
+        'box_range' => 'Η παραγγελία γίνεται ανά κουτί: από %MIN% έως %MAX% ζευγάρια του ίδιου μοντέλου ανά κουτί.',
+        'box_one'   => 'Η παραγγελία γίνεται ανά κουτί: %MIN% ζευγάρια του ίδιου μοντέλου ανά κουτί.',
+        'app'    => 'Από τον ίδιο λογαριασμό μπορείτε να παραγγείλετε και επώνυμα ρούχα:',
+        'prices' => 'Οι τιμές χονδρικής εμφανίζονται σε εγγεγραμμένες επιχειρήσεις — η εγγραφή είναι δωρεάν και ζητάμε βεβαίωση έναρξης δραστηριότητας. Αν δεν αφορά το κατάστημά σας, απλώς απαντήστε μας και δεν θα ξαναγράψουμε.',
+        'sign'   => "Με εκτίμηση,\nVESTRA",
+        'foot'   => "VESTRA (λειτουργεί από την Acerasoft LLC). Μεμονωμένο επαγγελματικό μήνυμα — το κατάστημά σας εντοπίστηκε ως πιθανός εμπορικός συνεργάτης.\nΆμεση διαγραφή: https://vestrasales.com/lead-unsubscribe",
+        'kicker' => 'Υποδήματα χονδρικής', 'title' => 'Υποδήματα για τα ράφια σας — με όρους χονδρικής.',
+        'badge'  => 'Επαληθευμένη B2B πλατφόρμα · μόνο για επιχειρήσεις',
+        'shots'  => 'Από την τρέχουσα συλλογή',
+        'dl'     => 'Line-sheets επώνυμων ρούχων (Excel, με φωτογραφίες)',
+        'btn'    => 'Δείτε τα υποδήματα',
+        'types'  => ['Sneakers'=>'αθλητικά παπούτσια','Flats'=>'μπαλαρίνες','Sandals'=>'σανδάλια','Boots'=>'μπότες','Loafers'=>'μοκασίνια','Slippers'=>'παντόφλες','Heels'=>'γόβες'],
+        'cats'   => ['T-Shirts'=>'T-shirts','Polos'=>'Πόλο','Hoodies & Sweatshirts'=>'Φούτερ','Jeans'=>'Τζιν','Shirts'=>'Πουκάμισα',
+                     'Sweaters & Knitwear'=>'Πλεκτά','Jackets'=>'Μπουφάν','Shorts'=>'Σορτς','Jeans Shorts'=>'Τζιν σορτς','Swim Shorts'=>'Μαγιό σορτς',
+                     'Tracksuit Sets'=>'Φόρμες','Trousers & Chinos'=>'Παντελόνια',"Women's T-Shirts"=>'Γυναικεία T-shirts','Skirts'=>'Φούστες','Coats'=>'Παλτά'],
+      ],
+    ];
+}
+
+/* Sayiya gore isim bicimi. Iki bicimli dillerde 1 tekil, gerisi cogul.
+ * Lehce: 1 / 2-4 (12-14 haric, son hane) / gerisi. Cekce: 1 / 2-4 / 5+.
+ * "335 modele obuwia" yazan bir mektup, sayiyi uyduran bir mektup kadar
+ * dikkatsiz gorunur; iki dilin kurali farkli oldugu icin ayri dal. */
+function vestra_tpl_count_form(int $n, array $forms, string $lang): string {
+    $forms = array_values($forms);
+    if (!$forms) return '';
+    if ($n === 1 || count($forms) === 1) return (string)$forms[0];
+    if (count($forms) >= 3) {
+        if ($lang === 'pl') {
+            $m10 = $n % 10; $m100 = $n % 100;
+            return (string)(($m10 >= 2 && $m10 <= 4 && ($m100 < 12 || $m100 > 14)) ? $forms[1] : $forms[2]);
+        }
+        return (string)(($n >= 2 && $n <= 4) ? $forms[1] : $forms[2]);
+    }
+    return (string)$forms[1];
+}
+
+/* HITAPTA KULLANILACAK AD. Tarayici firma adini sayfanin <title>/og:site_name
+ * alanindan aliyor ve bazi sayfalar kendini ad yerine baslikla tanitiyor.
+ * 27 Eyl 2026 ayakkabi partisinde taranan adlar: "Willkommen bei Schuhhaus
+ * Zeller", "Startseite", "Willkommen bei Schuh Seidl, 8079...", "Schuhhaus
+ * Tervooren · Seit 1904", "Schuhhaus Zimmermann." -- mektup "Guten Tag
+ * Startseite," diye acilirdi (factoryoutlet.gr / "Αρχική" vakasinin aynisi).
+ *
+ * KAYDA DOKUNMAZ, yalnizca HITABI kurar: lead'in adi oldugu gibi kalir.
+ * DAR tutuldu: bir karsilama oneki, bir slogan/adres kuyrugu, sondaki
+ * noktalama ve SAYFANIN KENDI adi (Startseite, Home, Accueil...). Sayfa adiyla
+ * tam esit olan ad NOTR hitaba duser -- yanlis bir ad, adsiz bir hitaptan
+ * kotudur. Temizlenemeyen bir baslik ("Schuhe in Tettnang am Bodensee")
+ * burada TAHMINLE duzeltilmez; o kayit lead_rename ile elle duzeltilir. */
+function vestra_tpl_greeting_name(string $co): string {
+    $k = trim(html_entity_decode($co, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    if ($k === '') return '';
+    $k = (string)preg_replace('/^(?:herzlich\s+)?(?:willkommen\s+(?:bei|im|in\s+der|in)|welcome\s+to|bienvenue\s+(?:chez|à|a|sur)'
+        .'|benvenut[oi]\s+(?:da|a|in|su)|bienvenid[oa]s?\s+a|welkom\s+bij|velkommen\s+til|välkommen\s+till)\s+/iu', '', $k);
+    /* Slogan ya da adres kuyrugu: " · ", " | ", " – ", " — ", " - " ve ", <rakam>"
+       sonrasi atilir. "Schuh- und Sporthaus" gibi bitisik tire ETKILENMEZ
+       (ayractan once bosluk sart). */
+    $k = (string)(preg_split('/\s+[·|–—-]\s+|,\s*\d/u', $k)[0] ?? '');
+    $k = trim($k, " \t\n\r\0\x0B,;:");
+    /* Sondaki nokta ancak NOKTALI bir kisaltmanin parcasi DEGILSE atilir:
+       "Schuhhaus Zimmermann." -> nokta atilir, "Schuhhaus Zeller e.K." ->
+       KALIR (27 Eyl'de "…Zeller e.K," diye gitti). Ayni sinif: S.L., S.A.,
+       e.U., S.p.A., B.V. -- harf-nokta dizisi en az iki kez. */
+    if (str_ends_with($k, '.') && !preg_match('/(?:^|[\s(])(?:\p{L}{1,2}\.){2,}$/u', $k)) $k = rtrim($k, '.');
+    $k = trim($k);
+    if (preg_match('/^(?:home|homepage|home\s*page|startseite|start|accueil|inicio|welkom|hjem|etusivu|index'
+        .'|strona\s+główna|úvod|αρχική|αρχικη)$/iu', $k)) return '';
+    return $k;
+}
+
+/* "a, b ve c" -- son ogeden once dilin kendi baglaci. */
+function vestra_tpl_join_and(array $words, string $and): string {
+    $w = array_values(array_filter(array_map('strval', $words), fn($x) => trim($x) !== ''));
+    if (count($w) <= 1) return $w[0] ?? '';
+    $last = array_pop($w);
+    return implode(', ', $w).' '.$and.' '.$last;
+}
+
+function vestra_tpl_footwear_intro(string $lang, string $company, array $f): array {
+    $S  = vestra_tpl_footwear_intro_strings();
+    $en = $S['en'];
+    $d  = ($S[$lang] ?? []) + $en;           // eksik anahtar Ingilizceye duser
+    $co = trim($company);
+    /* Taranan ad ciplak bir alan adiysa hitapta kullanilmaz (soguk mektubun
+       ayni karari: "Hello chiarulli.it," makine urunu oldugunu ele verir). */
+    if ($co !== '' && function_exists('vestra_name_is_bare_domain') && vestra_name_is_bare_domain($co)) $co = '';
+    $co = vestra_tpl_greeting_name($co);
+
+    $n      = max(0, (int)($f['shoes'] ?? 0));
+    $models = vestra_tpl_count_form($n, (array)$d['models'], $lang);
+
+    $typeWords = [];
+    foreach ((array)($f['types'] ?? []) as $cat => $cnt) {
+        if ((int)$cnt <= 0) continue;
+        $w = (string)($d['types'][$cat] ?? '');
+        if ($w !== '') $typeWords[] = $w;   // tanimsiz tur BASILMAZ: yarim cevrilmis bir liste yazilmaz
+    }
+    $typesStr = vestra_tpl_join_and($typeWords, (string)$d['and']);
+
+    $fw = $n.' '.$models
+        .(!empty($f['origin_es']) ? $d['origin'] : '')
+        .($typesStr !== '' ? $d['colon'].$typesStr : '')
+        .(!empty($f['kids']) ? $d['aud'] : '')
+        .'.';
+
+    $bmin = (int)($f['box_min'] ?? 0); $bmax = (int)($f['box_max'] ?? 0);
+    $box  = '';
+    if ($bmin > 0) {
+        $box = $bmax > $bmin
+            ? str_replace(['%MIN%', '%MAX%'], [(string)$bmin, (string)$bmax], (string)$d['box_range'])
+            : str_replace('%MIN%', (string)$bmin, (string)$d['box_one']);
+    }
+
+    $appLines = []; $appBrands = [];
+    foreach ((array)($f['apparel'] ?? []) as $a) {
+        $cat    = trim((string)($a['cat'] ?? ''));
+        $brands = array_values(array_filter(array_map(fn($b) => trim((string)$b), (array)($a['brands'] ?? [])), fn($b) => $b !== ''));
+        if ($cat === '' || !$brands) continue;
+        $label  = (string)($d['cats'][$cat] ?? $cat);   // marka ve bilinmeyen kategori adi CEVRILMEZ
+        $appLines[] = '• '.$label.' — '.implode(', ', $brands);
+        foreach ($brands as $b) $appBrands[$b] = true;
+    }
+
+    $parts   = [];
+    $parts[] = $co !== '' ? str_replace('%CO%', $co, (string)$d['hi']) : (string)$d['hi0'];
+    $parts[] = (string)$d['intro'];
+    if ($n > 0) $parts[] = '• '.$fw.($box !== '' ? "\n• ".$box : '');
+    if ($appLines) $parts[] = $d['app']."\n".implode("\n", $appLines);
+    $parts[] = (string)$d['prices'];
+    $parts[] = (string)$d['sign'];
+    $body    = implode("\n\n", $parts)."\n\n—\n".$d['foot'];
+
+    $subject = str_replace(['%N%', '%MODELS%'], [(string)$n, $models], (string)$d['subject']);
+
+    /* Fotograf seridi: cagiran kareleri DISKTE dogrulayip veriyor; burada yalnizca
+       etiket dile cevriliyor (ayakkabi karesinde tur, giyim karesinde marka). */
+    $shots = [];
+    foreach ((array)($f['shots'] ?? []) as $s) {
+        $img = trim((string)($s['img'] ?? '')); if ($img === '') continue;
+        $lab = !empty($s['cat']) ? (string)($d['types'][(string)$s['cat']] ?? (string)$s['cat'])
+                                 : trim((string)($s['brand'] ?? ''));
+        $shots[] = ['img' => $img, 'label' => $lab, 'url' => (string)($s['url'] ?? '')];
+        if (count($shots) >= 9) break;
+    }
+
+    $opts = [
+      'hero'   => ['kicker' => (string)$d['kicker'], 'title' => (string)$d['title']],
+      'badge'  => (string)$d['badge'],
+      'button' => ['label' => (string)$d['btn'], 'url' => 'https://vestrasales.com/shop?section=footwear'],
+    ];
+    if ($shots) { $opts['shots'] = $shots; $opts['shots_title'] = (string)$d['shots']; }
+    if ($appBrands) {
+        $items = [];
+        foreach (array_slice(array_keys($appBrands), 0, 6) as $b) {
+            $items[] = ['label' => $b, 'url' => 'https://vestrasales.com/catalog?brand='.rawurlencode($b)];
+        }
+        $opts['downloads'] = ['title' => (string)$d['dl'], 'items' => $items];
+    }
+    return [$subject, $body, $opts];
+}
+
+/**
+ * DORDUNCU PARTI — UCUNCU MEKTUP: ADIYLA SAYILAN EVLER (operator, 18 Eyl 2026:
+ * *"herkese bastan 3. email gonder ... yeni urunler ile Galerry markasi ve
+ * F.Perry , Gucci , Dsq2"*).
+ *
+ * Kime: BIRINCI ve IKINCI mektubu almis leadler ve kayitli aliciler
+ * (workflow'un wave3 secimi, damga `last_wave3_at` / `wave3_at`).
+ *
+ * UYE SURUMU AYNI GOVDEDE ($member=true): ayni evler, ayni konu, farkli
+ * acilis ve kapanis. Ayri bir sablon yazmak, ev listesini ve konu satirini
+ * ikinci kez yazmak olurdu ve iki metin ilk marka degisikliginde ayrisirdi
+ * (bu depoda dort mektup govdesinin verdigi ders). Ayrimi $L tablosunun
+ * ICINDE tutmak bilincli: bir dili duzelten kisi o dilin ALTI satirini da
+ * yan yana goruyor.
+ *
+ * NEDEN AYRI BIR SABLON. Ikinci mektup (new_collection_shoes) BOLME sayiyor --
+ * "335 ayakkabi, 146 ic giyim" -- ve markalari yalnizca bir kuyruk satirinda
+ * aniyor. Operatorun bu turda adiyla istedigi sey bolme degil DORT EV. Ayni
+ * sablona ucuncu bir kip eklemek, bolme cumlesini bir kosulla susturup marka
+ * cumlesini sismanletmek olurdu; iki mektup da bundan sonra tek govdede
+ * ayrisirdi.
+ *
+ * RAKAMLAR PARAMETREDEN, METNE GOMULU DEGIL -- cagiran onlari CANLI ilan
+ * kaydindan sayiyor. Bir ev SIFIR artikelse O SATIR HIC BASILMAZ ve adi
+ * konuya da girmez: stokta olmayan bir evi duyurmak, ilk siparisde hesabi
+ * kaybettiren cinsten bir yalan (ikinci mektubun kendi notunun yazdigi ders).
+ * Hicbir ev kalmazsa cagiran zaten duruyor.
+ *
+ * MARKA ADLARI CEVRILMEZ ve KATALOGUN KENDI YAZIMIYLA gelir ("Gallery Dept."
+ * noktasiyla): ad bir metin degil kimliktir, ve bu depoda noktasiz yazilan bir
+ * marka adi bir kez hicbir ilana eslesmeden sessizce gecti.
+ *
+ * FIYAT YOK, cunku toptan fiyat hesap kapisinin arkasinda (KURAL 19): mektup
+ * "listede gorursunuz" demiyor, "kayitli isletmelere gosteriliyor, kayit
+ * ucretsiz" diyor. Aksi halde tiklayan musteri duvara carpar.
+ *
+ * Cikis cumlesi HER soguk mektupta oldugu gibi metnin icinde: jetonu gonderen
+ * ekliyor ama cumle sablonda olmak zorunda -- gorunur bir cikis yolu olmayan
+ * ucuncu bir temas, ilgiyi sikayete cevirir.
+ *
+ * DEVAM — SIRA VE EV LISTESI DEGISTI (19 Eyl 2026, operator: *"f.perry polo,
+ * sweatshirts ve lacoste, galerry urunlerini one cikar sonra gucco,
+ * balenciaga yi ekle"*). Ev listesi ve sirasi TEK yerde
+ * (`send-outreach.yml`'deki `$W3_WANT`), burada gomulu degil -- ayni sebep
+ * ki rakamlar da burada gomulu degil: iki yerde yazilan bir sira er gec
+ * ayrisir. Bugunku sira: Fred Perry, Lacoste, Gallery Dept., Gucci,
+ * Balenciaga, DSQUARED2. Konu satirinin ilk uc adi aldigi icin "one cikar"
+ * talimatinin karsiligi bu dizinin BASI; operatorun DSQUARED2'yi bu turda
+ * ADLANDIRMAMASI onu listeden CIKARMAK anlamina gelmiyor (M7535 kararinin
+ * ayni dersi: adlandirilmayana dokunulmaz) -- konuda gorunmez ama govdede
+ * en sonda durur.
+ *
+ * $h['note']: bazi evlerde ADIN yaninda parantezli bir tanimlayici (Fred
+ * Perry icin "M3600, M7535" -- uretici model numaralari). Bu bir CUMLE
+ * degil, ceviri gerektirmiyor; yalnizca madde SATIRINA giriyor, konu
+ * satirina degil (kisa bir baslikta parantezli bir kod ekleneni kalabalik
+ * gosterirdi).
+ */
+function vestra_tpl_wave3_brands(string $lang, string $company, array $f, bool $member = false): array {
+    $co     = trim($company);
+    $houses = [];
+    foreach ((array)($f['houses'] ?? []) as $h) {
+        $hn = trim((string)($h['name'] ?? ''));
+        $hq = (int)($h['n'] ?? 0);
+        $hnote = trim((string)($h['note'] ?? ''));
+        /* Fotograflar CAGIRANDAN geliyor, taze bir cikarim degil -- workflow
+           bunlari zaten diskte var mi / satilmis mi diye elemis olarak
+           veriyor (listing_colours'un ayni ilkesi: bulunamayan/satilmis bir
+           kareyi anmak, musteriyi onu aramaya yollar). Bos gelirse ev
+           yalnizca metinle kalir, uydurma bir foto eklenmez. */
+        $himgs = array_values(array_filter(array_map('strval', (array)($h['imgs'] ?? [])), fn($x) => trim($x) !== ''));
+        if ($hn !== '' && $hq > 0) $houses[] = ['name' => $hn, 'n' => $hq, 'note' => $hnote, 'imgs' => $himgs,
+                                                'preorder' => trim((string)($h['preorder'] ?? ''))];
+    }
+
+    $L = [
+      'en' => ["VESTRA — now in stock: %NAMES%",
+        "Hello".($co !== '' ? " ".$co : '').",",
+        "We have written to you twice about VESTRA, our B2B wholesale marketplace for branded fashion. These houses are now in stock and can be ordered:",
+        "%HOUSES%",
+        "Trade prices per piece are shown to registered businesses — registration is free and we ask for your trade licence. If this is not relevant to your business, just say so and we will not write again.",
+        "%1\$s — %2\$d articles, full size runs, from stock.",
+        "New at VESTRA: these houses are now in stock and can be ordered.",
+        "If any of them are of interest, reply and we will send you the article list for that house. If you would rather not receive stock announcements, just say so — we will stop.",
+        "Now in stock"],
+      'de' => ["VESTRA — jetzt ab Lager: %NAMES%",
+        "Guten Tag".($co !== '' ? " ".$co : '').",",
+        "Wir haben Ihnen zweimal zu VESTRA geschrieben, unserem B2B-Großhandelsmarktplatz für Markenmode. Diese Häuser sind jetzt ab Lager bestellbar:",
+        "%HOUSES%",
+        "Die Einkaufspreise je Stück sehen registrierte Betriebe — die Registrierung ist kostenlos, wir fragen die Gewerbeanmeldung ab. Falls es für Ihr Geschäft nicht passt, sagen Sie einfach Bescheid — dann schreiben wir nicht wieder.",
+        "%1\$s — %2\$d Artikel, volle Größenläufe, ab Lager.",
+        "Neu bei VESTRA: diese Häuser sind jetzt ab Lager bestellbar.",
+        "Wenn eines davon für Sie interessant ist, antworten Sie kurz — wir senden Ihnen die Artikelliste dazu. Wenn Sie keine Sortimentsankündigungen wünschen, genügt eine kurze Antwort — dann hören sie auf.",
+        "Jetzt ab Lager"],
+      'fr' => ["VESTRA — désormais en stock : %NAMES%",
+        "Bonjour".($co !== '' ? " ".$co : '').",",
+        "Nous vous avons écrit deux fois au sujet de VESTRA, notre place de marché B2B de gros pour la mode de marque. Ces maisons sont désormais disponibles du stock :",
+        "%HOUSES%",
+        "Les prix de gros à la pièce sont réservés aux entreprises enregistrées — l'inscription est gratuite et nous demandons votre extrait Kbis. Si cela ne concerne pas votre activité, dites-le nous simplement et nous ne réécrirons pas.",
+        "%1\$s — %2\$d références, séries de tailles complètes, du stock.",
+        "Nouveau chez VESTRA : ces maisons sont désormais disponibles du stock.",
+        "Si l'une d'elles vous intéresse, répondez-nous et nous vous enverrons la liste des références. Si vous préférez ne pas recevoir d'annonces de collection, dites-le simplement — nous arrêterons.",
+        "Désormais en stock"],
+      'it' => ["VESTRA — ora a magazzino: %NAMES%",
+        "Buongiorno".($co !== '' ? " ".$co : '').",",
+        "Le abbiamo scritto due volte a proposito di VESTRA, il nostro marketplace B2B all'ingrosso per la moda di marca. Queste maison sono ora ordinabili da magazzino:",
+        "%HOUSES%",
+        "I prezzi all'ingrosso per pezzo sono riservati alle aziende registrate — l'iscrizione è gratuita e chiediamo la visura camerale. Se non riguarda la Sua attività, basta dircelo e non scriveremo più.",
+        "%1\$s — %2\$d referenze, serie taglie complete, da magazzino.",
+        "Novità su VESTRA: queste maison sono ora ordinabili da magazzino.",
+        "Se una di esse Le interessa, ci risponda e Le invieremo l'elenco delle referenze. Se preferisce non ricevere annunci di collezione, basta dircelo — smetteremo.",
+        "Ora a magazzino"],
+      'es' => ["VESTRA — ya en stock: %NAMES%",
+        "Buenos días".($co !== '' ? " ".$co : '').",",
+        "Le hemos escrito dos veces sobre VESTRA, nuestro marketplace mayorista B2B de moda de marca. Estas casas ya están disponibles desde stock:",
+        "%HOUSES%",
+        "Los precios mayoristas por pieza se muestran a empresas registradas — el registro es gratuito y pedimos su licencia comercial. Si no tiene que ver con su negocio, díganoslo y no volveremos a escribir.",
+        "%1\$s — %2\$d referencias, series de tallas completas, desde stock.",
+        "Novedad en VESTRA: estas casas ya están disponibles desde stock.",
+        "Si alguna le interesa, respóndanos y le enviaremos el listado de referencias. Si prefiere no recibir anuncios de colección, díganoslo — dejaremos de enviarlos.",
+        "Ya en stock"],
+      'nl' => ["VESTRA — nu uit voorraad: %NAMES%",
+        "Goedendag".($co !== '' ? " ".$co : '').",",
+        "Wij schreven u tweemaal over VESTRA, onze B2B-groothandelsmarktplaats voor merkmode. Deze huizen zijn nu uit voorraad te bestellen:",
+        "%HOUSES%",
+        "Inkoopprijzen per stuk zijn zichtbaar voor geregistreerde bedrijven — registratie is gratis en wij vragen uw KvK-uittreksel. Past het niet bij uw zaak, laat het dan weten — dan schrijven wij niet opnieuw.",
+        "%1\$s — %2\$d artikelen, volledige maatreeksen, uit voorraad.",
+        "Nieuw bij VESTRA: deze huizen zijn nu uit voorraad te bestellen.",
+        "Heeft een daarvan uw interesse, antwoord dan even — wij sturen u de artikellijst. Wilt u liever geen collectieaankondigingen ontvangen, laat het weten — dan stoppen wij.",
+        "Nu uit voorraad"],
+      'pt' => ["VESTRA — agora em stock: %NAMES%",
+        "Bom dia".($co !== '' ? " ".$co : '').",",
+        "Escrevemos-lhe duas vezes sobre a VESTRA, o nosso marketplace grossista B2B de moda de marca. Estas casas estão agora disponíveis do stock:",
+        "%HOUSES%",
+        "Os preços grossistas por peça são mostrados a empresas registadas — o registo é gratuito e pedimos a certidão permanente. Se não tiver a ver com o seu negócio, diga-nos e não voltaremos a escrever.",
+        "%1\$s — %2\$d referências, séries de tamanhos completas, do stock.",
+        "Novidade na VESTRA: estas casas estão agora disponíveis do stock.",
+        "Se alguma lhe interessar, responda e enviamos-lhe a lista de referências. Se preferir não receber anúncios de coleção, diga-nos — deixamos de enviar.",
+        "Agora em stock"],
+      'pl' => ["VESTRA — teraz z magazynu: %NAMES%",
+        "Dzień dobry".($co !== '' ? " ".$co : '').",",
+        "Pisaliśmy do Państwa dwukrotnie o VESTRA — naszej hurtowej platformie B2B z modą markową. Te domy mody są już dostępne z magazynu:",
+        "%HOUSES%",
+        "Ceny hurtowe za sztukę widzą zarejestrowane firmy — rejestracja jest bezpłatna, prosimy o wpis do rejestru działalności. Jeśli to nie dotyczy Państwa działalności, wystarczy dać znać — nie napiszemy ponownie.",
+        "%1\$s — %2\$d pozycji, pełne rozpiętości rozmiarów, z magazynu.",
+        "Nowość w VESTRA: te domy mody są już dostępne z magazynu.",
+        "Jeśli któryś z nich Państwa interesuje, prosimy o odpowiedź — prześlemy listę pozycji. Jeśli nie chcą Państwo otrzymywać informacji o nowościach, wystarczy dać znać — przestaniemy.",
+        "Teraz z magazynu"],
+      'cs' => ["VESTRA — nyní skladem: %NAMES%",
+        "Dobrý den".($co !== '' ? " ".$co : '').",",
+        "Psali jsme Vám dvakrát o VESTRA — našem velkoobchodním B2B tržišti se značkovou módou. Tyto značky jsou nyní skladem a lze je objednat:",
+        "%HOUSES%",
+        "Velkoobchodní ceny za kus vidí registrované firmy — registrace je zdarma a žádáme živnostenský list. Pokud se to Vaší činnosti netýká, stačí dát vědět — už nenapíšeme.",
+        "%1\$s — %2\$d položek, kompletní velikostní řady, skladem.",
+        "Novinka na VESTRA: tyto značky jsou nyní skladem a lze je objednat.",
+        "Pokud Vás některá zajímá, odpovězte nám a pošleme Vám seznam položek. Pokud si nepřejete dostávat oznámení o nových kolekcích, stačí dát vědět — přestaneme.",
+        "Nyní skladem"],
+      'el' => ["VESTRA — τώρα σε απόθεμα: %NAMES%",
+        "Καλημέρα".($co !== '' ? " ".$co : '').",",
+        "Σας έχουμε γράψει δύο φορές για τη VESTRA, την B2B χονδρική πλατφόρμα μας για επώνυμη μόδα. Αυτοί οι οίκοι είναι πλέον διαθέσιμοι από απόθεμα:",
+        "%HOUSES%",
+        "Οι τιμές χονδρικής ανά τεμάχιο εμφανίζονται σε εγγεγραμμένες επιχειρήσεις — η εγγραφή είναι δωρεάν και ζητάμε την άδεια λειτουργίας. Αν δεν αφορά την επιχείρησή σας, πείτε μας απλώς και δεν θα ξαναγράψουμε.",
+        "%1\$s — %2\$d κωδικοί, πλήρεις σειρές μεγεθών, από απόθεμα.",
+        "Νέο στη VESTRA: αυτοί οι οίκοι είναι πλέον διαθέσιμοι από απόθεμα.",
+        "Αν σας ενδιαφέρει κάποιος από αυτούς, απαντήστε μας και θα σας στείλουμε τη λίστα κωδικών. Αν δεν επιθυμείτε να λαμβάνετε ανακοινώσεις αποθέματος, πείτε μας απλώς — θα σταματήσουμε.",
+        "Τώρα σε απόθεμα"],
+      'ja' => ["VESTRA — 在庫入荷: %NAMES%",
+        ($co !== '' ? $co." " : '')."ご担当者様",
+        "ブランドファッションのB2B卸売プラットフォーム VESTRA について、これまで二度ご案内いたしました。以下のブランドが在庫から発注可能になりました。",
+        "%HOUSES%",
+        "1枚あたりの卸価格は登録事業者にのみ表示されます。登録は無料で、事業者登録の確認をお願いしております。貴社の事業に該当しない場合はお知らせいただければ、今後ご連絡はいたしません。",
+        "%1\$s — %2\$d型、サイズ展開フルセット、在庫から出荷。",
+        "VESTRA 新着入荷のご案内です。以下のブランドが在庫から発注可能になりました。",
+        "ご関心のあるブランドがございましたら、ご返信いただければ品番リストをお送りいたします。在庫のご案内が不要でしたらお知らせください。以後お送りいたしません。",
+        "在庫入荷"],
+      'ko' => ["VESTRA — 재고 입고: %NAMES%",
+        ($co !== '' ? $co." " : '')."담당자님,",
+        "브랜드 패션 B2B 도매 플랫폼 VESTRA에 대해 두 차례 안내드린 바 있습니다. 아래 브랜드가 재고에서 주문 가능해졌습니다.",
+        "%HOUSES%",
+        "장당 도매가는 등록된 사업자에게 표시됩니다. 등록은 무료이며 사업자등록증을 확인합니다. 귀사와 관련이 없다면 말씀만 주시면 다시 연락드리지 않겠습니다.",
+        "%1\$s — %2\$d개 품목, 전 사이즈 구성, 재고 출고.",
+        "VESTRA 신규 입고 안내입니다. 아래 브랜드가 재고에서 주문 가능해졌습니다.",
+        "관심 있는 브랜드가 있으시면 회신해 주시면 품번 리스트를 보내드리겠습니다. 재고 안내 수신을 원하지 않으시면 말씀해 주십시오. 이후 발송하지 않겠습니다.",
+        "재고 입고"],
+    ];
+
+    $d = $L[$lang] ?? $L['en'];
+    [$subject, $hi, $p1, $p2, $p3, $lineHouse, $p1m, $p3m, $shotsTitle] = $d;
+
+    /* UYE SURUMU. Ayni evler, ayni madde isaretleri, ayni konu -- degisen
+       yalniz acilis ve kapanis. Lead metni uyeye IKI YERDEN birden yanlis:
+       "size iki kez yazmistik" (uye zaten kayit olmus, yani bizimle kendi
+       istegiyle temasta) ve "kayit ucretsiz, ticari kaydinizi istiyoruz"
+       (yaptigi isi tekrar yaptirmak -- KURAL 2b'nin dersi).
+       Kapanis BILEREK fiyatin NEREDE oldugunu soylemiyor: bu kipte hesabin
+       fiyat kapisi KAPALI olabiliyor (workflow o sayiyi gonderimden once
+       basiyor) ve "listenizde gorursunuz" demek, kapali bir hesabi duvara
+       yollamak olurdu. Yerine yalnizca BIZIM yapacagimiz bir sey vaat
+       ediliyor -- istenirse artikel listesini gondermek -- ki o, kapi
+       durumundan bagimsiz olarak dogru. */
+    if ($member) { $p1 = $p1m; $p3 = $p3m; }
+
+    /* Sifir artikelli ev cagiran tarafta zaten elenmis; burada ikinci kez
+       elenmesi savunma amacli -- bos bir madde isareti, duyurunun kendisini
+       yalanlar.
+       NOT yalniz MADDE SATIRINA girer, KONUYA degil: model numarasi (M3600,
+       M7535) parantez icinde adin arkasina ekleniyor ama ceviri gerektiren
+       bir cumle degil, o yuzden sozluge dokunmadan basiliyor. Konu satirinin
+       adi temiz kaliyor -- kisa bir baslikta parantezli bir kod ekleneni
+       kalabalik gosterirdi. */
+    /* ON SIPARISTEKI EV (5 Eki 2026). Ev satiri "full size runs, FROM STOCK"
+       diyor ve konu "now in stock" -- ama Gallery Dept. (31 Eki) ve
+       Casablanca (15 Eki) artik stokta degil, on sipariste. Onlara "stokta"
+       demek KURAL 3'un mektup hali olurdu: musteri teslim suresini bu
+       satirdan okuyor. Cagiran, evin SATILMAMIS ilanlarinin HICBIRI stokta
+       degilse (hepsinin gelecek bir preorder_ship tarihi varsa) 'preorder'
+       alanina EN GEC tarihi koyar -- en erkeni yazmak, gec gelen ilan icin
+       tutulamayacak bir soz olurdu. Ifade sitenin kendi ifadesi
+       (vestra_preorder_ship_phrase): gun <=10 bas, <=20 orta, aksi son --
+       kesin bir gun vaat etmiyor, urun sayfasiyla ayni sey soyleniyor.
+       Tarih gecmisse ya da okunamiyorsa satir STOK satirina doner (sitenin
+       kendisi de gecmis tarihte susuyor). */
+    $PRE = [
+      'en' => ["%1\$s — %2\$d articles, pre-order: dispatch %3\$s.", ['early %M %Y', 'mid %M %Y', 'late %M %Y'],
+               ['January','February','March','April','May','June','July','August','September','October','November','December']],
+      'de' => ["%1\$s — %2\$d Artikel, Vorbestellung: Versand %3\$s.", ['Anfang %M %Y', 'Mitte %M %Y', 'Ende %M %Y'],
+               ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']],
+      'fr' => ["%1\$s — %2\$d références, en précommande : expédition %3\$s.", ['début %M %Y', 'mi-%M %Y', 'fin %M %Y'],
+               ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre']],
+      'it' => ["%1\$s — %2\$d referenze, in preordine: spedizione a %3\$s.", ['inizio %M %Y', 'metà %M %Y', 'fine %M %Y'],
+               ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre']],
+      'es' => ["%1\$s — %2\$d referencias, en preventa: envío %3\$s.", ['a principios de %M de %Y', 'a mediados de %M de %Y', 'a finales de %M de %Y'],
+               ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']],
+      'nl' => ["%1\$s — %2\$d artikelen, voorverkoop: verzending %3\$s.", ['begin %M %Y', 'midden %M %Y', 'eind %M %Y'],
+               ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december']],
+      'pt' => ["%1\$s — %2\$d referências, em pré-venda: envio %3\$s.", ['no início de %M de %Y', 'em meados de %M de %Y', 'no final de %M de %Y'],
+               ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']],
+      'pl' => ["%1\$s — %2\$d pozycji, przedsprzedaż: wysyłka %3\$s.", ['na początku %M %Y', 'w połowie %M %Y', 'pod koniec %M %Y'],
+               ['stycznia','lutego','marca','kwietnia','maja','czerwca','lipca','sierpnia','września','października','listopada','grudnia']],
+      'cs' => ["%1\$s — %2\$d položek, předprodej: odeslání %3\$s.", ['začátkem %M %Y', 'v polovině %M %Y', 'koncem %M %Y'],
+               ['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince']],
+      'el' => ["%1\$s — %2\$d κωδικοί, προπαραγγελία: αποστολή %3\$s.", ['στις αρχές %M %Y', 'στα μέσα %M %Y', 'στα τέλη %M %Y'],
+               ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου']],
+      'ja' => ["%1\$s — %2\$d型、予約受付中：%3\$s発送予定。", ['%Y年%N月上旬', '%Y年%N月中旬', '%Y年%N月下旬'], []],
+      'ko' => ["%1\$s — %2\$d개 품목, 예약 판매: %3\$s 발송 예정.", ['%Y년 %N월 초순', '%Y년 %N월 중순', '%Y년 %N월 하순'], []],
+    ];
+    $pre = $PRE[$lang] ?? $PRE['en'];
+    $prePhrase = function (string $iso) use ($pre): string {
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', trim($iso), $m)) return '';
+        [$y, $mo, $dd] = [(int)$m[1], (int)$m[2], (int)$m[3]];
+        if ($mo < 1 || $mo > 12 || $dd < 1 || $dd > 31) return '';
+        $tpl = $pre[1][$dd <= 10 ? 0 : ($dd <= 20 ? 1 : 2)];
+        return strtr($tpl, ['%M' => (string)($pre[2][$mo - 1] ?? ''), '%N' => (string)$mo, '%Y' => (string)$y]);
+    };
+
+    $bullets = ''; $shots = []; $inStock = [];
+    foreach ($houses as $h) {
+        $hname = $h['name'] . (($h['note'] ?? '') !== '' ? ' ('.$h['note'].')' : '');
+        $ph = $prePhrase((string)($h['preorder'] ?? ''));
+        if ($ph !== '') {
+            $bullets .= "• ".sprintf($pre[0], $hname, $h['n'], $ph)."\n";
+        } else {
+            $bullets .= "• ".sprintf($lineHouse, $hname, $h['n'])."\n";
+            $inStock[] = $h['name'];
+        }
+        /* Fotograf seridi: ev basina asamalanmis kareler, ayni HTML
+           gorseli notify.php'nin listing_colours mektubunda zaten kullandigi
+           mekanizmadan ('shots' -> uzak <img>, cid ekli degil, boyut siniri
+           yok). Etiket ev adi -- musteri hangi urunun oldugunu degil hangi
+           MARKANIN stokta oldugunu okuyor. Baglanti /catalog?brand=... :
+           bu adres girissiz de aciliyor (KURAL 19 yalniz FIYAT listesini
+           kapatiyor), yani mektubu login'i olmayan bir aday da acabilir. */
+        foreach ($h['imgs'] ?? [] as $img) {
+            $shots[] = ['img' => $img, 'label' => $h['name'],
+                        'url' => 'https://vestrasales.com/catalog?brand='.rawurlencode($h['name'])];
+        }
+    }
+    $p2 = trim(str_replace('%HOUSES%', rtrim($bullets, "\n"), $p2));
+
+    /* Konuda EN COK UC ad: dorduncusu cogu istemcide zaten kirpiliyor ve
+       kirpilmis bir konu satiri, adini saydigimiz evi yarim gosterir. Govdede
+       hepsi yaziyor. */
+    /* Konu "now in stock: ..." diyor -- yani konuya yalniz STOKTAKI evler
+       girer; on siparisteki ev govdede kendi satiriyla duruyor. Hicbiri
+       stokta degilse (savunma) eski davranis: butun adlar. */
+    $names = $inStock ?: array_map(fn($h) => $h['name'], $houses);
+    $short = implode(', ', array_slice($names, 0, 3));
+    $subject = str_replace('%NAMES%', $short, $subject);
+
+    $parts = array_values(array_filter([$hi, $p1, $p2, $p3], fn($x) => trim((string)$x) !== ''));
+    $body  = implode("\n\n", $parts)
+           . "\n\n—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com";
+
+    return [$subject, $body, [
+        'button'      => ['label' => 'VESTRA', 'url' => 'https://vestrasales.com/price-list'],
+        'shots'       => $shots,
+        'shots_title' => $shotsTitle,
+    ]];
+}
+
+function vestra_tpl_new_collection(string $lang, string $company): array {
+    $co = trim($company);
+    $L = [
+      'en' => ["VESTRA — Winter 26/27: Gallery Dept., Fred Perry, AMI Paris arriving",
+        "Hello".($co !== '' ? " ".$co : '').",",
+        "We wrote to you earlier about VESTRA, our B2B wholesale marketplace for branded fashion. Since then three houses have been confirmed for Winter 26/27: Gallery Dept. (Los Angeles logo tees), Fred Perry (M7535 crew sweatshirts and M3600 twin-tipped polos, full colour range) and AMI Paris (Ami de Cœur t-shirts, hoodie and crew sweatshirts).",
+        "These are arriving, not yet in stock — full size runs, 200-250 pieces per model. If you would like first refusal when they open for order, reply and we will put you on the list. The 344 articles we can ship today are on the price list.",
+        "If this is not relevant to your business, just say so and we will not write again."],
+      'de' => ["VESTRA — Winter 26/27: Gallery Dept., Fred Perry, AMI Paris kommen",
+        "Guten Tag".($co !== '' ? " ".$co : '').",",
+        "Wir hatten Ihnen zu VESTRA geschrieben, unserem B2B-Großhandelsmarktplatz für Markenmode. Inzwischen sind drei Häuser für Winter 26/27 bestätigt: Gallery Dept. (Logo-Shirts aus Los Angeles), Fred Perry (M7535 Sweatshirts und M3600 Polos mit Doppelstreifen, volle Farbpalette) und AMI Paris (Ami-de-Cœur T-Shirts, Hoodie und Sweatshirts).",
+        "Die Ware ist unterwegs, noch nicht auf Lager — volle Größenläufe, 200-250 Stück je Modell. Wenn Sie beim Verkaufsstart das Vorkaufsrecht möchten, antworten Sie kurz und wir merken Sie vor. Die 344 Artikel, die wir heute liefern können, stehen in der Preisliste.",
+        "Falls es für Ihr Geschäft nicht passt, sagen Sie einfach Bescheid — dann schreiben wir nicht wieder."],
+      'fr' => ["VESTRA — Hiver 26/27 : Gallery Dept., Fred Perry, AMI Paris arrivent",
+        "Bonjour".($co !== '' ? " ".$co : '').",",
+        "Nous vous avions écrit au sujet de VESTRA, notre place de marché B2B de gros pour la mode de marque. Depuis, trois maisons sont confirmées pour l'hiver 26/27 : Gallery Dept. (t-shirts logo de Los Angeles), Fred Perry (sweatshirts M7535 et polos M3600 à double liseré, gamme complète) et AMI Paris (t-shirts Ami de Cœur, hoodie et sweatshirts).",
+        "Ces pièces arrivent, elles ne sont pas encore en stock — séries de tailles complètes, 200 à 250 pièces par modèle. Si vous souhaitez la priorité à l'ouverture des commandes, répondez-nous et nous vous inscrivons. Les 344 articles expédiables aujourd'hui figurent sur la liste de prix.",
+        "Si cela ne concerne pas votre activité, dites-le nous simplement et nous ne réécrirons pas."],
+      'it' => ["VESTRA — Inverno 26/27: arrivano Gallery Dept., Fred Perry, AMI Paris",
+        "Buongiorno".($co !== '' ? " ".$co : '').",",
+        "Le avevamo scritto a proposito di VESTRA, il nostro marketplace B2B all'ingrosso per la moda di marca. Da allora sono confermate tre maison per l'inverno 26/27: Gallery Dept. (t-shirt logo da Los Angeles), Fred Perry (felpe girocollo M7535 e polo M3600 a doppio bordino, gamma colori completa) e AMI Paris (t-shirt Ami de Cœur, felpa con cappuccio e girocollo).",
+        "Sono in arrivo, non ancora a magazzino — serie taglie complete, 200-250 pezzi per modello. Se desidera la precedenza all'apertura degli ordini, ci risponda e La inseriamo in lista. I 344 articoli spedibili oggi sono nel listino.",
+        "Se non riguarda la Sua attività, basta dircelo e non scriveremo più."],
+      'es' => ["VESTRA — Invierno 26/27: llegan Gallery Dept., Fred Perry, AMI Paris",
+        "Buenos días".($co !== '' ? " ".$co : '').",",
+        "Le escribimos sobre VESTRA, nuestro marketplace mayorista B2B de moda de marca. Desde entonces hay tres casas confirmadas para el invierno 26/27: Gallery Dept. (camisetas con logo de Los Ángeles), Fred Perry (sudaderas M7535 y polos M3600 de doble ribete, gama completa de colores) y AMI Paris (camisetas Ami de Cœur, sudadera con capucha y de cuello redondo).",
+        "Están en camino, todavía no en stock — series de tallas completas, 200-250 piezas por modelo. Si desea preferencia cuando se abran los pedidos, respóndanos y le anotamos. Los 344 artículos que podemos enviar hoy están en la lista de precios.",
+        "Si no tiene que ver con su negocio, díganoslo y no volveremos a escribir."],
+      'nl' => ["VESTRA — Winter 26/27: Gallery Dept., Fred Perry, AMI Paris komen eraan",
+        "Goedendag".($co !== '' ? " ".$co : '').",",
+        "Wij schreven u eerder over VESTRA, onze B2B-groothandelsmarktplaats voor merkmode. Inmiddels zijn drie huizen bevestigd voor winter 26/27: Gallery Dept. (logo-shirts uit Los Angeles), Fred Perry (M7535 sweatshirts en M3600 polo's met dubbele bies, volledig kleurenpalet) en AMI Paris (Ami de Cœur t-shirts, hoodie en sweatshirts).",
+        "Deze zijn onderweg, nog niet op voorraad — volledige maatreeksen, 200-250 stuks per model. Wilt u voorrang zodra de verkoop opent, laat het weten en wij zetten u op de lijst. De 344 artikelen die wij vandaag kunnen leveren staan op de prijslijst.",
+        "Past het niet bij uw zaak, laat het dan weten — dan schrijven wij niet opnieuw."],
+      'pt' => ["VESTRA — Inverno 26/27: chegam Gallery Dept., Fred Perry, AMI Paris",
+        "Bom dia".($co !== '' ? " ".$co : '').",",
+        "Escrevemos-lhe sobre a VESTRA, o nosso marketplace grossista B2B de moda de marca. Entretanto ficaram confirmadas três casas para o inverno 26/27: Gallery Dept. (t-shirts com logótipo de Los Angeles), Fred Perry (sweatshirts M7535 e polos M3600 de duplo debrum, gama completa de cores) e AMI Paris (t-shirts Ami de Cœur, hoodie e sweatshirts).",
+        "Estão a caminho, ainda não em stock — séries de tamanhos completas, 200-250 peças por modelo. Se quiser prioridade na abertura das encomendas, responda-nos e anotamos. Os 344 artigos que podemos expedir hoje estão na lista de preços.",
+        "Se não tiver a ver com o seu negócio, diga-nos e não voltaremos a escrever."],
+      'pl' => ["VESTRA — Zima 26/27: Gallery Dept., Fred Perry, AMI Paris w drodze",
+        "Dzień dobry".($co !== '' ? " ".$co : '').",",
+        "Pisaliśmy do Państwa o VESTRA — naszej hurtowej platformie B2B z modą markową. Od tego czasu potwierdzone zostały trzy domy mody na zimę 26/27: Gallery Dept. (koszulki z logo z Los Angeles), Fred Perry (bluzy M7535 i koszulki polo M3600 z podwójną lamówką, pełna paleta kolorów) oraz AMI Paris (koszulki Ami de Cœur, bluza z kapturem i bluzy klasyczne).",
+        "Towar jest w drodze, jeszcze nie na magazynie — pełne rozpiętości rozmiarów, 200-250 sztuk na model. Jeśli chcą Państwo pierwszeństwo w chwili otwarcia zamówień, prosimy o odpowiedź — dopiszemy Państwa do listy. 344 artykuły, które możemy wysłać dziś, są w cenniku.",
+        "Jeśli to nie dotyczy Państwa działalności, wystarczy dać znać — nie napiszemy ponownie."],
+      'cs' => ["VESTRA — Zima 26/27: přicházejí Gallery Dept., Fred Perry, AMI Paris",
+        "Dobrý den".($co !== '' ? " ".$co : '').",",
+        "Psali jsme Vám o VESTRA — našem velkoobchodním B2B tržišti se značkovou módou. Mezitím byly pro zimu 26/27 potvrzeny tři značky: Gallery Dept. (trička s logem z Los Angeles), Fred Perry (mikiny M7535 a polokošile M3600 s dvojitým lemem, plná barevná řada) a AMI Paris (trička Ami de Cœur, mikina s kapucí a klasické mikiny).",
+        "Zboží je na cestě, zatím není skladem — plné velikostní řady, 200-250 kusů na model. Pokud chcete přednost při otevření objednávek, odpovězte nám a zapíšeme Vás. 344 položek, které můžeme odeslat dnes, najdete v ceníku.",
+        "Pokud se to Vašeho podnikání netýká, stačí napsat a už se ozývat nebudeme."],
+      'el' => ["VESTRA — Χειμώνας 26/27: έρχονται Gallery Dept., Fred Perry, AMI Paris",
+        "Γεια σας".($co !== '' ? " ".$co : '').",",
+        "Σας είχαμε γράψει για τη VESTRA, την αγορά χονδρικής B2B για επώνυμη μόδα. Έκτοτε επιβεβαιώθηκαν τρεις οίκοι για τον χειμώνα 26/27: Gallery Dept. (μπλουζάκια με λογότυπο από το Λος Άντζελες), Fred Perry (φούτερ M7535 και πόλο M3600 με διπλή ρίγα, πλήρης χρωματική γκάμα) και AMI Paris (μπλουζάκια Ami de Cœur, hoodie και φούτερ).",
+        "Έρχονται, δεν είναι ακόμη σε απόθεμα — πλήρεις σειρές μεγεθών, 200-250 τεμάχια ανά μοντέλο. Αν θέλετε προτεραιότητα όταν ανοίξουν οι παραγγελίες, απαντήστε μας και σας σημειώνουμε. Τα 344 είδη που μπορούμε να στείλουμε σήμερα είναι στον τιμοκατάλογο.",
+        "Αν δεν αφορά την επιχείρησή σας, πείτε μας το απλώς και δεν θα ξαναγράψουμε."],
+      'ja' => ["VESTRA — 26/27年秋冬：Gallery Dept.、Fred Perry、AMI Paris 入荷予定",
+        ($co !== '' ? $co." " : '')."ご担当者様",
+        "先般、ブランドファッションのB2B卸売マーケットプレイス「VESTRA」についてご案内いたしました。その後、26/27年秋冬向けに三つのブランドが決定しました。Gallery Dept.（ロサンゼルスのロゴTシャツ）、Fred Perry（M7535 クルーネックスウェットと M3600 ツインティップドポロ、全色展開）、AMI Paris（Ami de Cœur のTシャツ、フーディー、クルーネックスウェット）です。",
+        "いずれも入荷予定であり、現時点では在庫はございません。サイズは全展開、1型あたり200〜250枚です。受注開始時の優先案内をご希望でしたら、ご返信いただければリストにお加えします。本日出荷可能な344型は価格表に掲載しております。",
+        "貴社に関係のない内容でしたら、その旨お知らせください。以後ご連絡はいたしません。"],
+      'ko' => ["VESTRA — 26/27 겨울: Gallery Dept., Fred Perry, AMI Paris 입고 예정",
+        ($co !== '' ? $co." " : '')."담당자님께",
+        "앞서 브랜드 패션 B2B 도매 마켓플레이스 VESTRA를 소개해 드린 바 있습니다. 이후 26/27 겨울 시즌으로 세 개 브랜드가 확정되었습니다. Gallery Dept.(로스앤젤레스 로고 티셔츠), Fred Perry(M7535 크루넥 스웨트셔츠와 M3600 트윈 티프드 폴로, 전 컬러), AMI Paris(Ami de Cœur 티셔츠, 후디, 크루넥 스웨트셔츠)입니다.",
+        "모두 입고 예정이며 현재 재고는 없습니다. 사이즈는 풀 구성이고 모델당 200~250장입니다. 주문 개시 시 우선 안내를 원하시면 회신해 주시면 명단에 올려 드리겠습니다. 오늘 출고 가능한 344개 품목은 가격표에 있습니다.",
+        "귀사와 관련이 없다면 말씀만 주시면 다시 연락드리지 않겠습니다."],
+    ];
+
+    $d = $L[$lang] ?? $L['en'];
+    [$subject, $hi, $p1, $p2, $p3] = $d;
+
+    $url  = 'https://vestrasales.com/#coming-soon';
+    $body = $hi."\n\n".$p1."\n\n".$p2."\n\n".$p3
+          . "\n\n—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com";
+
+    return [$subject, $body, ['button' => ['label' => 'Winter 26/27', 'url' => $url]]];
+}
+
+/**
+ * The same Winter 26/27 news, addressed to a REGISTERED member — not a prospect.
+ *
+ * The lead letter opens with "we wrote to you earlier about VESTRA"; sent to a
+ * member that line is false and reads as a mail-merge slip. A member letter opens
+ * from the standing relationship instead, and its call to action is their own
+ * account (the catalogue they already have access to), not a registration link.
+ *
+ * Same honesty rules as the lead version: the three houses are ARRIVING, not in
+ * stock; quantities and size runs come from the suppliers' line sheets; no prices,
+ * because wholesale figures for these three are not set yet.
+ *
+ * No unsubscribe token (that machinery belongs to leads.json); instead a plain
+ * sentence that a reply stops these announcements. A member being told news they
+ * cannot opt out of is how a good relationship sours.
+ */
+function vestra_tpl_new_collection_member(string $lang, string $company): array {
+    $co = trim($company);
+    $L = [
+      'en' => ["VESTRA — Winter 26/27: Gallery Dept., Fred Perry, AMI Paris arriving",
+        "Hello".($co !== '' ? " ".$co : '').",",
+        "Three houses have been confirmed for Winter 26/27 at VESTRA: Gallery Dept. (Los Angeles logo tees), Fred Perry (M7535 crew sweatshirts and M3600 twin-tipped polos, full colour range) and AMI Paris (Ami de Cœur t-shirts, hoodie and crew sweatshirts).",
+        "These are arriving, not yet in stock — full size runs, 200-250 pieces per model. As a registered buyer you get first refusal: reply to this email and we will hold your place when orders open. Everything shippable today is in your price list as usual.",
+        "If you would rather not receive stock announcements, just reply and say so — we will stop."],
+      'de' => ["VESTRA — Winter 26/27: Gallery Dept., Fred Perry, AMI Paris kommen",
+        "Guten Tag".($co !== '' ? " ".$co : '').",",
+        "Für Winter 26/27 sind bei VESTRA drei Häuser bestätigt: Gallery Dept. (Logo-Shirts aus Los Angeles), Fred Perry (M7535 Sweatshirts und M3600 Polos mit Doppelstreifen, volle Farbpalette) und AMI Paris (Ami-de-Cœur T-Shirts, Hoodie und Sweatshirts).",
+        "Die Ware ist unterwegs, noch nicht auf Lager — volle Größenläufe, 200-250 Stück je Modell. Als registrierter Einkäufer haben Sie das Vorkaufsrecht: Antworten Sie kurz auf diese E-Mail und wir merken Sie für den Verkaufsstart vor. Alles heute Lieferbare steht wie gewohnt in Ihrer Preisliste.",
+        "Wenn Sie keine Sortimentsankündigungen wünschen, genügt eine kurze Antwort — dann hören sie auf."],
+      'fr' => ["VESTRA — Hiver 26/27 : Gallery Dept., Fred Perry, AMI Paris arrivent",
+        "Bonjour".($co !== '' ? " ".$co : '').",",
+        "Trois maisons sont confirmées pour l'hiver 26/27 chez VESTRA : Gallery Dept. (t-shirts logo de Los Angeles), Fred Perry (sweatshirts M7535 et polos M3600 à double liseré, gamme complète) et AMI Paris (t-shirts Ami de Cœur, hoodie et sweatshirts).",
+        "Ces pièces arrivent, elles ne sont pas encore en stock — séries de tailles complètes, 200 à 250 pièces par modèle. En tant qu'acheteur enregistré, vous avez la priorité : répondez à cet e-mail et nous vous réservons une place à l'ouverture des commandes. Tout ce qui est expédiable aujourd'hui figure comme toujours dans votre liste de prix.",
+        "Si vous préférez ne pas recevoir d'annonces de collection, dites-le simplement en réponse — nous arrêterons."],
+      'it' => ["VESTRA — Inverno 26/27: arrivano Gallery Dept., Fred Perry, AMI Paris",
+        "Buongiorno".($co !== '' ? " ".$co : '').",",
+        "Per l'inverno 26/27 su VESTRA sono confermate tre maison: Gallery Dept. (t-shirt logo da Los Angeles), Fred Perry (felpe girocollo M7535 e polo M3600 a doppio bordino, gamma colori completa) e AMI Paris (t-shirt Ami de Cœur, felpa con cappuccio e girocollo).",
+        "Sono in arrivo, non ancora a magazzino — serie taglie complete, 200-250 pezzi per modello. Come acquirente registrato ha la precedenza: risponda a questa e-mail e Le riserviamo il posto all'apertura degli ordini. Tutto ciò che è spedibile oggi è come sempre nel Suo listino.",
+        "Se preferisce non ricevere annunci di collezione, basta rispondere e dircelo — smetteremo."],
+      'es' => ["VESTRA — Invierno 26/27: llegan Gallery Dept., Fred Perry, AMI Paris",
+        "Buenos días".($co !== '' ? " ".$co : '').",",
+        "Para el invierno 26/27 hay tres casas confirmadas en VESTRA: Gallery Dept. (camisetas con logo de Los Ángeles), Fred Perry (sudaderas M7535 y polos M3600 de doble ribete, gama completa de colores) y AMI Paris (camisetas Ami de Cœur, sudadera con capucha y de cuello redondo).",
+        "Están en camino, todavía no en stock — series de tallas completas, 200-250 piezas por modelo. Como comprador registrado tiene preferencia: responda a este correo y le reservamos sitio cuando se abran los pedidos. Todo lo que podemos enviar hoy está, como siempre, en su lista de precios.",
+        "Si prefiere no recibir anuncios de colección, respóndanos y díganoslo — dejaremos de enviarlos."],
+      'nl' => ["VESTRA — Winter 26/27: Gallery Dept., Fred Perry, AMI Paris komen eraan",
+        "Goedendag".($co !== '' ? " ".$co : '').",",
+        "Voor winter 26/27 zijn bij VESTRA drie huizen bevestigd: Gallery Dept. (logo-shirts uit Los Angeles), Fred Perry (M7535 sweatshirts en M3600 polo's met dubbele bies, volledig kleurenpalet) en AMI Paris (Ami de Cœur t-shirts, hoodie en sweatshirts).",
+        "Deze zijn onderweg, nog niet op voorraad — volledige maatreeksen, 200-250 stuks per model. Als geregistreerde inkoper heeft u voorrang: beantwoord deze e-mail en wij houden uw plek vast zodra de verkoop opent. Alles wat vandaag leverbaar is staat zoals altijd in uw prijslijst.",
+        "Liever geen collectie-aankondigingen? Laat het per antwoord weten — dan stoppen ze."],
+      'pt' => ["VESTRA — Inverno 26/27: chegam Gallery Dept., Fred Perry, AMI Paris",
+        "Bom dia".($co !== '' ? " ".$co : '').",",
+        "Para o inverno 26/27 estão confirmadas três casas na VESTRA: Gallery Dept. (t-shirts com logótipo de Los Angeles), Fred Perry (sweatshirts M7535 e polos M3600 de duplo debrum, gama completa de cores) e AMI Paris (t-shirts Ami de Cœur, hoodie e sweatshirts).",
+        "Estão a caminho, ainda não em stock — séries de tamanhos completas, 200-250 peças por modelo. Como comprador registado tem prioridade: responda a este e-mail e guardamos o seu lugar na abertura das encomendas. Tudo o que podemos expedir hoje está, como sempre, na sua lista de preços.",
+        "Se preferir não receber anúncios de coleção, basta responder a dizê-lo — deixamos de enviar."],
+      'pl' => ["VESTRA — Zima 26/27: Gallery Dept., Fred Perry, AMI Paris w drodze",
+        "Dzień dobry".($co !== '' ? " ".$co : '').",",
+        "Na zimę 26/27 w VESTRA potwierdzone są trzy domy mody: Gallery Dept. (koszulki z logo z Los Angeles), Fred Perry (bluzy M7535 i koszulki polo M3600 z podwójną lamówką, pełna paleta kolorów) oraz AMI Paris (koszulki Ami de Cœur, bluza z kapturem i bluzy klasyczne).",
+        "Towar jest w drodze, jeszcze nie na magazynie — pełne rozpiętości rozmiarów, 200-250 sztuk na model. Jako zarejestrowany kupiec mają Państwo pierwszeństwo: wystarczy odpowiedzieć na tę wiadomość, a zarezerwujemy miejsce przy otwarciu zamówień. Wszystko, co możemy wysłać dziś, znajduje się jak zwykle w Państwa cenniku.",
+        "Jeśli wolą Państwo nie otrzymywać zapowiedzi kolekcji, wystarczy odpowiedzieć — przestaniemy."],
+      'cs' => ["VESTRA — Zima 26/27: přicházejí Gallery Dept., Fred Perry, AMI Paris",
+        "Dobrý den".($co !== '' ? " ".$co : '').",",
+        "Pro zimu 26/27 jsou na VESTRA potvrzeny tři značky: Gallery Dept. (trička s logem z Los Angeles), Fred Perry (mikiny M7535 a polokošile M3600 s dvojitým lemem, plná barevná řada) a AMI Paris (trička Ami de Cœur, mikina s kapucí a klasické mikiny).",
+        "Zboží je na cestě, zatím není skladem — plné velikostní řady, 200-250 kusů na model. Jako registrovaný nákupčí máte přednost: odpovězte na tento e-mail a podržíme Vám místo při otevření objednávek. Vše, co můžeme odeslat dnes, najdete jako obvykle ve svém ceníku.",
+        "Pokud si oznámení o kolekcích nepřejete, stačí odpovědět — přestaneme je posílat."],
+      'el' => ["VESTRA — Χειμώνας 26/27: έρχονται Gallery Dept., Fred Perry, AMI Paris",
+        "Γεια σας".($co !== '' ? " ".$co : '').",",
+        "Για τον χειμώνα 26/27 στη VESTRA επιβεβαιώθηκαν τρεις οίκοι: Gallery Dept. (μπλουζάκια με λογότυπο από το Λος Άντζελες), Fred Perry (φούτερ M7535 και πόλο M3600 με διπλή ρίγα, πλήρης χρωματική γκάμα) και AMI Paris (μπλουζάκια Ami de Cœur, hoodie και φούτερ).",
+        "Έρχονται, δεν είναι ακόμη σε απόθεμα — πλήρεις σειρές μεγεθών, 200-250 τεμάχια ανά μοντέλο. Ως εγγεγραμμένος αγοραστής έχετε προτεραιότητα: απαντήστε σε αυτό το μήνυμα και κρατάμε τη θέση σας όταν ανοίξουν οι παραγγελίες. Ό,τι μπορούμε να στείλουμε σήμερα βρίσκεται όπως πάντα στον τιμοκατάλογό σας.",
+        "Αν προτιμάτε να μη λαμβάνετε ανακοινώσεις συλλογών, απλώς απαντήστε — θα σταματήσουμε."],
+      'ja' => ["VESTRA — 26/27年秋冬：Gallery Dept.、Fred Perry、AMI Paris 入荷予定",
+        ($co !== '' ? $co." " : '')."ご担当者様",
+        "VESTRAでは26/27年秋冬向けに三つのブランドが決定しました。Gallery Dept.（ロサンゼルスのロゴTシャツ）、Fred Perry（M7535 クルーネックスウェットと M3600 ツインティップドポロ、全色展開）、AMI Paris（Ami de Cœur のTシャツ、フーディー、クルーネックスウェット）です。",
+        "いずれも入荷予定であり、現時点では在庫はございません。サイズは全展開、1型あたり200〜250枚です。ご登録バイヤーの皆様には優先案内をいたします。本メールにご返信いただければ、受注開始時にお席を確保いたします。本日出荷可能な商品は、通常どおり価格表に掲載しております。",
+        "コレクションのご案内が不要でしたら、その旨ご返信ください。以後お送りいたしません。"],
+      'ko' => ["VESTRA — 26/27 겨울: Gallery Dept., Fred Perry, AMI Paris 입고 예정",
+        ($co !== '' ? $co." " : '')."담당자님께",
+        "VESTRA의 26/27 겨울 시즌으로 세 개 브랜드가 확정되었습니다. Gallery Dept.(로스앤젤레스 로고 티셔츠), Fred Perry(M7535 크루넥 스웨트셔츠와 M3600 트윈 티프드 폴로, 전 컬러), AMI Paris(Ami de Cœur 티셔츠, 후디, 크루넥 스웨트셔츠)입니다.",
+        "모두 입고 예정이며 현재 재고는 없습니다. 사이즈는 풀 구성이고 모델당 200~250장입니다. 등록 바이어께는 우선권이 있습니다. 이 메일에 회신해 주시면 주문 개시 시 자리를 확보해 드리겠습니다. 오늘 출고 가능한 상품은 평소와 같이 가격표에서 확인하실 수 있습니다.",
+        "컬렉션 안내를 원치 않으시면 회신으로 말씀해 주세요. 더 이상 보내지 않겠습니다."],
+    ];
+
+    $d = $L[$lang] ?? $L['en'];
+    [$subject, $hi, $p1, $p2, $p3] = $d;
+
+    $url  = 'https://vestrasales.com/#coming-soon';
+    $body = $hi."\n\n".$p1."\n\n".$p2."\n\n".$p3
+          . "\n\n—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com";
+
+    return [$subject, $body, ['button' => ['label' => 'Winter 26/27', 'url' => $url]]];
+}
+
+/* Lacoste L1212 sorularina birebir cevap (Kerim Kuku benzeri alici sorgulari).
+ * METIN OPERATORUN NIHAI SURUMUDUR (31 Agu 2026) — degistirmeden once ona sor.
+ * Kisisel veriler (hitap, VAT) SABLONDA YOK: depo halka acik oldugu icin
+ * cagiran doldurur (hesaptan ya da dispatch spec'inden). VAT bos gelirse
+ * parantezli kisim tamamen dusuyor — "()" gibi bir kalinti birakmiyoruz. */
+function vestra_tpl_l1212_reply(string $salutation, string $vat = '', string $signer = 'Marco Bellini'): array {
+    $subject = 'Re: Lacoste L1212 – your questions answered';
+    $vatBit  = $vat !== '' ? " ({$vat})" : '';
+
+    $body = $salutation . ",\n\n"
+. "Thank you for your enquiry – these are exactly the right questions to ask before a first order, and I will answer them one by one.\n\n"
+. "First, a note on how we work: VESTRA is a B2B marketplace and does not carry every brand, nor does it sell all goods. We work with a selected range of verified suppliers, and Lacoste L1212 is currently part of that range. Please also note that VESTRA operates the platform – the sale itself is concluded with the supplier, who issues the invoice.\n\n"
+. "Supplier\n"
+. "The supplier for this article is a French company, operating from France with warehousing in Germany. It is a verified seller on VESTRA: company registration, VAT ID and bank account are validated through our KYB process before a seller is allowed to trade. You are therefore dealing with an identified, legally registered EU business.\n\n"
+. "Stock, shipping origin and customs\n"
+. "The goods are dispatched from EEA stock. As the shipment moves inside the EU customs union, there are no customs duties and no import formalities for a delivery to Germany. Customs tariff code: 6105.10.00.\n\n"
+. "Please note: delivery takes approximately 15 days from order.\n\n"
+. "Invoicing and VAT\n"
+. "The invoice is issued by the French supplier under its French VAT number. Where your VAT ID{$vatBit} is valid in VIES, the supply is treated as an intra-community supply and you account for the VAT under the reverse charge procedure. The applicable VAT treatment is confirmed on the invoice for each order.\n\n"
+. "Authenticity\n"
+. "The authenticity of all products listed on our platform is attested by the sellers themselves as a condition of listing.\n\n"
+. "Please note that the upstream purchase chain is the supplier's own commercial documentation, which we as the platform do not hold and cannot pass on. If your compliance process requires documentation beyond the EU invoice, please raise this at the ordering stage so it can be addressed directly with the supplier before you commit.\n\n"
+. "Quantities and assortment\n"
+. "– Minimum order: 80 pieces (10 lots)\n"
+. "– Packed in cartons of 8 per colourway (8+8)\n"
+. "– Minimum 4 colourways per order\n"
+. "– Sizes 3–8\n"
+. "– 10 colourways available: Black, White, Beige, Navy, Yellow, Pink, Bordeaux, Green, Blue, Light Blue – each with its own Lacoste article number\n"
+. "– Composition: 100% cotton piqué, approx. 200 gsm, regular fit\n\n"
+. "Pricing and volume\n"
+. "Quantities and price tiers are set by the supplier and are shown directly on the product page, including the volume breaks. Larger quantities are available, and the applicable price at each quantity level is visible there.\n\n"
+. "Buyer verification and access to pricing\n"
+. "Trade pricing and the full line sheet (PDF and Excel, with all article numbers and the size grid) are visible to verified business buyers. During registration you will be asked to upload your trade documentation (Gewerbeanmeldung or commercial register extract) together with your VAT ID. Once your account is verified you will see the live price tiers for this article and can order at the corresponding price.\n\n"
+. "Register here: https://vestrasales.com/register\n\n"
+. "If you tell me your target quantity and preferred colourways, I will confirm availability and send you a binding offer stating the delivery time and the applicable invoicing scenario.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
+
+/* L1212 sorgusunun devami: hesap incelemede, tek eksik Gewerbeanmeldung.
+ * Yol tarifi KODDAN dogrulandi (31 Agu 2026): /buyer?tab=kyc sekmesi, nav
+ * etiketi "Verification"/"Verifizierung", kabul edilen turler PDF/JPG/PNG/WebP
+ * max 10 MB (auth_upload_doc). "Ayni is gunu inceleme" sozu operatorun onayli
+ * vaadi — tutulamayacaksa metni degistirmeden once ona sor. */
+function vestra_tpl_l1212_docs_needed(string $salutation, string $signer = 'Marco Bellini'): array {
+    $subject = 'Re: Your VESTRA account – one document completes the verification';
+
+    $body = $salutation . ",\n\n"
+. "Thank you for your message – I have checked your account personally.\n\n"
+. "Your registration is complete and your company details, including your VAT ID, are already on file. Your account is in the verification queue, and exactly one item is holding it back: your trade licence (Gewerbeanmeldung) has not been uploaded yet.\n\n"
+. "To submit it:\n"
+. "1. Sign in at https://vestrasales.com/login\n"
+. "2. In your buyer dashboard, open the \"Verification\" section (\"Verifizierung\") – direct link: https://vestrasales.com/buyer?tab=kyc\n"
+. "3. Next to the open request for the trade licence / business registration you will find the upload button – PDF, JPG, PNG or WebP, up to 10 MB.\n\n"
+. "As soon as the document is in, it is reviewed the same working day. You will receive an automatic confirmation when the verification is complete, and from that moment the live price tiers, article numbers, size grid and the full line sheet (PDF and Excel) for the Lacoste L1212 – and for the rest of the catalogue – are visible in your account.\n\n"
+. "There is no need to resend your VAT ID or company details; they are already recorded.\n\n"
+. "If anything about the upload gives you trouble, simply reply to this email and I will sort it out with you.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
+
+/* Dogrulama dürtme mektubu: kayit tamam, tek eksik ticari belge — yukle.
+ * HEDEF KITLE DEGIL, TEK MEKTUP: toplu secim/koşullar workflow'ta
+ * (send-campaign-preview.yml buyer_reply, letter=verify_nudge). Yalnizca
+ * belge HIC YUKLENMEMIS hesaplara gider — 'uploaded' olan operatorun
+ * onayini bekliyordur, ona "yukle" demek yanlis olurdu.
+ * Panel etiketleri UI cevirileriyle birebir: Verifizierung / Vérification /
+ * Verifica / Verificación (inc/lang). Yol tarifi koddan: /{buyer|seller}?tab=kyc,
+ * PDF/JPG/PNG/WebP 10MB. "Ayni is gunu inceleme" operatorun onayli vaadi. */
+function vestra_tpl_verify_nudge(string $lang, string $name, bool $isSeller, string $localDoc, string $signer = 'Elena Romano'): array {
+    $tab  = $isSeller ? 'seller' : 'buyer';
+    $link = "https://vestrasales.com/{$tab}?tab=kyc";
+    $doc  = fn(string $base) => $base . ($localDoc !== '' ? " ({$localDoc})" : '');
+
+    $L = [
+      'en' => [
+        $isSeller ? 'Your VESTRA seller account – one document left to complete verification'
+                  : 'Your VESTRA account – one document left to unlock wholesale prices',
+        "Dear {$name},",
+        "Your VESTRA registration is complete and your account is in the verification queue. One item is still missing, and it is the only thing holding the review back: your ".$doc('trade licence / business registration')." has not been uploaded yet.",
+        "To submit it:\n1. Sign in at https://vestrasales.com/login\n2. Open the \"Verification\" section of your dashboard – direct link: {$link}\n3. Upload the document there – PDF, JPG, PNG or WebP, up to 10 MB.",
+        $isSeller ? "Documents are usually reviewed the same working day. As soon as yours is approved you will receive a confirmation and your seller account is fully activated."
+                  : "Documents are usually reviewed the same working day. As soon as yours is approved you will receive a confirmation, and the live wholesale price tiers and the full line sheet (PDF and Excel) open in your account.",
+        "If anything about the upload is unclear, simply reply to this email — we will sort it out with you.",
+        "Best regards,",
+      ],
+      'de' => [
+        $isSeller ? 'Ihr VESTRA-Verkäuferkonto – nur noch ein Dokument bis zur Verifizierung'
+                  : 'Ihr VESTRA-Konto – nur noch ein Dokument bis zu den Großhandelspreisen',
+        "Guten Tag {$name},",
+        "Ihre Registrierung bei VESTRA ist vollständig und Ihr Konto steht in der Prüfungswarteschlange. Es fehlt nur noch eines: Ihr ".$doc('Gewerbenachweis')." wurde noch nicht hochgeladen.",
+        "So reichen Sie ihn ein:\n1. Anmelden unter https://vestrasales.com/login\n2. Öffnen Sie in Ihrem Konto den Bereich „Verifizierung“ – Direktlink: {$link}\n3. Laden Sie das Dokument dort hoch – PDF, JPG, PNG oder WebP, bis 10 MB.",
+        $isSeller ? "Eingereichte Dokumente prüfen wir in der Regel noch am selben Werktag. Sobald Ihres genehmigt ist, erhalten Sie eine Bestätigung und Ihr Verkäuferkonto ist vollständig aktiviert."
+                  : "Eingereichte Dokumente prüfen wir in der Regel noch am selben Werktag. Sobald Ihres genehmigt ist, erhalten Sie eine Bestätigung, und die Großhandels-Preisstaffeln sowie das vollständige Line Sheet (PDF und Excel) werden in Ihrem Konto freigeschaltet.",
+        "Bei Fragen zum Upload antworten Sie einfach auf diese E-Mail – wir kümmern uns darum.",
+        "Mit freundlichen Grüßen",
+      ],
+      'fr' => [
+        $isSeller ? 'Votre compte vendeur VESTRA – plus qu\'un document pour finaliser la vérification'
+                  : 'Votre compte VESTRA – plus qu\'un document pour accéder aux prix de gros',
+        "Bonjour {$name},",
+        "Votre inscription sur VESTRA est complète et votre compte est dans la file de vérification. Il ne manque qu'une seule pièce : votre ".$doc('licence commerciale / immatriculation d\'entreprise')." n'a pas encore été téléversée.",
+        "Pour la transmettre :\n1. Connectez-vous : https://vestrasales.com/login\n2. Ouvrez la section « Vérification » de votre tableau de bord – lien direct : {$link}\n3. Téléversez-y le document – PDF, JPG, PNG ou WebP, jusqu'à 10 Mo.",
+        $isSeller ? "Les documents sont généralement examinés le jour ouvré même. Dès l'approbation, vous recevez une confirmation et votre compte vendeur est entièrement activé."
+                  : "Les documents sont généralement examinés le jour ouvré même. Dès l'approbation, vous recevez une confirmation, et les paliers de prix de gros ainsi que le line sheet complet (PDF et Excel) s'ouvrent dans votre compte.",
+        "Une question sur le téléversement ? Répondez simplement à cet e-mail — nous nous en occupons avec vous.",
+        "Cordialement,",
+      ],
+      'it' => [
+        $isSeller ? 'Il Suo account venditore VESTRA – manca un solo documento per la verifica'
+                  : 'Il Suo account VESTRA – manca un solo documento per i prezzi all\'ingrosso',
+        "Buongiorno {$name},",
+        "La Sua registrazione su VESTRA è completa e il Suo account è in coda di verifica. Manca una sola cosa: la Sua ".$doc('licenza commerciale / registrazione dell\'attività')." non è ancora stata caricata.",
+        "Per inviarla:\n1. Acceda su https://vestrasales.com/login\n2. Apra la sezione \"Verifica\" del Suo pannello – link diretto: {$link}\n3. Carichi lì il documento – PDF, JPG, PNG o WebP, fino a 10 MB.",
+        $isSeller ? "I documenti vengono di norma esaminati lo stesso giorno lavorativo. Appena il Suo è approvato riceverà una conferma e il Suo account venditore sarà completamente attivato."
+                  : "I documenti vengono di norma esaminati lo stesso giorno lavorativo. Appena il Suo è approvato riceverà una conferma e nel Suo account si apriranno gli scaglioni di prezzo all'ingrosso e il line sheet completo (PDF ed Excel).",
+        "Per qualsiasi dubbio sul caricamento risponda pure a questa e-mail — lo risolviamo insieme.",
+        "Cordiali saluti,",
+      ],
+      'es' => [
+        $isSeller ? 'Su cuenta de vendedor VESTRA: falta un solo documento para completar la verificación'
+                  : 'Su cuenta VESTRA: falta un solo documento para acceder a los precios mayoristas',
+        "Estimado/a {$name}:",
+        "Su registro en VESTRA está completo y su cuenta está en la cola de verificación. Solo falta una cosa: su ".$doc('licencia comercial / alta de actividad')." aún no se ha subido.",
+        "Para enviarla:\n1. Inicie sesión en https://vestrasales.com/login\n2. Abra la sección «Verificación» de su panel – enlace directo: {$link}\n3. Suba allí el documento – PDF, JPG, PNG o WebP, hasta 10 MB.",
+        $isSeller ? "Los documentos se revisan normalmente el mismo día laborable. En cuanto el suyo esté aprobado recibirá una confirmación y su cuenta de vendedor quedará totalmente activada."
+                  : "Los documentos se revisan normalmente el mismo día laborable. En cuanto el suyo esté aprobado recibirá una confirmación y en su cuenta se abrirán los tramos de precios mayoristas y el line sheet completo (PDF y Excel).",
+        "Si tiene cualquier duda con la subida, responda a este correo — lo resolvemos juntos.",
+        "Un cordial saludo,",
+      ],
+    ];
+
+    $d = $L[$lang] ?? $L['en'];
+    [$subject, $hi, $p1, $p2, $p3, $p4, $bye] = $d;
+    $body = $hi."\n\n".$p1."\n\n".$p2."\n\n".$p3."\n\n".$p4."\n\n".$bye."\n\n".$signer."\nVESTRA – vestrasales.com";
+    return [$subject, $body, []];
+}
+
+/* Kisa "tek eksik: ticari belge" cevabi — alici hesabinin durumunu sordugunda.
+ * l1212_docs'un kisa kardesi: ayni bilgi, tek paragraf + tek link. Yol tarifi
+ * koddan dogrulandi (/buyer?tab=kyc, PDF/JPG/PNG/WebP 10MB, auth_upload_doc).
+ * Gewerbeanmeldung PARANTEZLI ingilizcesiyle birlikte veriliyor: Almanyali
+ * alici kendi belgesinin adini gorsun, diger ulkeler karsiligini anlasin. */
+function vestra_tpl_docs_short(string $salutation, string $signer = 'Marco Bellini'): array {
+    $subject = 'Re: Your VESTRA account – Gewerbeanmeldung still needed';
+
+    $body = $salutation . ",\n\n"
+. "Thank you — I have checked your account personally.\n\n"
+. "Your company details and VAT ID are on file; nothing further is needed there. Only one document is still missing, and it is the single thing holding up the activation: your Gewerbeanmeldung (trade licence / business registration).\n\n"
+. "Please upload it here: https://vestrasales.com/buyer?tab=kyc\n"
+. "Sign in, open the \"Verification\" section (\"Verifizierung\") and attach the file – PDF, JPG, PNG or WebP, up to 10 MB.\n\n"
+. "Documents are reviewed the same working day. As soon as yours is approved, the L1212 price tiers, article numbers, size grid and colourways – and the full line sheet – are visible in your account.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
+
+/* TVA numarasi + ticari belge talebi (Fransizca alici).
+ * Iki ayri eksik icin TEK mektup: belge yuklenmemis VE vergi alanina numara
+ * yerine baska bir sey yazilmis. Numaranin ICERIGI mektupta TEKRAR EDILMEZ —
+ * elimizdeki teshis "bicim gecersiz"; alintilamak, yanlis okumus olma
+ * ihtimalinde musteriyi saskina cevirir. Panel etiketleri UI cevirileriyle
+ * birebir ('Vérification', 'Mon profil'); yol tarifi koddan dogrulandi
+ * (/buyer?tab=kyc yukleme, /buyer?tab=profile'da vat_id duzenlenebiliyor). */
+function vestra_tpl_vat_doc_fr(string $salutation = 'Bonjour', string $signer = 'Elena Romano'): array {
+    $subject = 'Votre compte VESTRA – justificatif d\'activité et numéro de TVA';
+
+    $body = $salutation . ",\n\n"
+. "Merci pour votre inscription sur VESTRA. J'ai examiné votre dossier : il manque deux éléments pour finaliser la vérification de votre compte.\n\n"
+. "1) Votre justificatif d'activité — extrait Kbis ou avis de situation SIRENE.\n"
+. "À téléverser directement dans votre espace : https://vestrasales.com/buyer?tab=kyc\n"
+. "Connectez-vous, ouvrez la rubrique « Vérification », puis joignez le fichier (PDF, JPG, PNG ou WebP, jusqu'à 10 Mo).\n\n"
+. "2) Votre numéro de TVA intracommunautaire.\n"
+. "Celui enregistré sur votre compte n'est pas au format attendu (FR suivi de 11 caractères). Vous pouvez le corriger vous-même dans « Mon profil » (https://vestrasales.com/buyer?tab=profile), ou simplement nous l'indiquer en réponse à cet e-mail, avec votre numéro SIREN.\n\n"
+. "Ce numéro est indispensable pour la facturation : nos fournisseurs européens facturent en autoliquidation, ce qui suppose un numéro valide dans VIES.\n\n"
+. "Les dossiers sont examinés le jour ouvré même. Dès validation, les tarifs de gros, les références et la liste complète (PDF et Excel) s'affichent dans votre compte.\n\n"
+. "Bien cordialement,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
+
+/* Belge talebi + SORULAN ama katalogda OLMAYAN gruba durust cevap + mevcut
+ * alternatiflerin linkleri + hacim indirimi notu.
+ *
+ * $items CAGIRAN TARAFINDAN, canli katalogdan doldurulur (id/brand/name/moq);
+ * sablon urun adi UYDURMAZ. Bos gelirse ilgili blok hic yazilmaz — "asagidaki
+ * urunler" deyip altina bos liste koymak, yanlis bilgi vermekle ayni sey.
+ *
+ * Indirim cumlesi KASITLI OLARAK BAGLAYICI DEGIL: oran vermez, "anlasmaya
+ * bagli" der. Mektupta rakam verilseydi teklif yerine gecerdi. */
+function vestra_tpl_docs_women(string $salutation, string $missingBrand, array $items,
+                               bool $attached = false, string $signer = 'Marco Bellini'): array {
+    $subject = 'Re: Your VESTRA account – verification, women\'s range and volume terms';
+
+    $body = $salutation . ",\n\n"
+. "Thank you — I have checked your account personally.\n\n"
+. "Your company details and VAT ID are on file. One document is still missing, and it is the only thing holding up the activation: your Gewerbeanmeldung (trade licence / business registration). Please upload it at https://vestrasales.com/buyer?tab=kyc — sign in, open the \"Verification\" section (\"Verifizierung\") and attach the file (PDF, JPG, PNG or WebP, up to 10 MB). Documents are reviewed the same working day.\n\n";
+
+    if ($missingBrand !== '') {
+        $body .= "On your question about {$missingBrand} womenswear: we do not carry that range at the moment, and I would rather tell you that plainly than keep you waiting on it. What we do have in womenswear today is listed below.\n\n";
+    }
+
+    if ($items) {
+        $body .= "Women's range currently available:\n";
+        foreach ($items as $it) {
+            $label = trim((string)($it['label'] ?? ''));
+            $moq   = (int)($it['moq'] ?? 0);
+            $body .= "· ".$label.($moq > 0 ? "  — from ".$moq." pcs" : "")."\n"
+                   . "  https://vestrasales.com/product?id=".rawurlencode((string)($it['id'] ?? ''))."\n";
+        }
+        $body .= "\n";
+    }
+
+    if ($attached) {
+        $body .= "The full women's line sheet is attached to this email as a PDF (article numbers, sizes, stock, minimum quantities and wholesale prices). It is sent as a courtesy so that you can review the range while your verification is being completed; once your document is approved, the same list — plus the Excel version — is available directly in your account at any time.\n\n";
+    }
+
+    $body .= "Volume terms — this is where a B2B account pays off. The listed wholesale prices are our standard ones; on larger orders, and on repeat business, we apply a special discount on top of them. The size of it depends on the articles and the quantities, so it is agreed per order rather than published. Tell me the articles, the quantities and the colourways you have in mind and I will put a firm offer in writing, with your price on it.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
+
+/* KAYITSIZ adaya cevap: sordugu grup katalogda YOKSA once bunu soyler, sonra
+ * gercekten olani listeler. docs_women'in kardesi ama BELGE TALEBI YOK —
+ * henuz hesabi olmayan birine "belgeni yukle" demek, olmayan bir panele
+ * yonlendirmek olurdu; onun yerine kayit daveti var.
+ *
+ * PDF eki burada kural ihlali DEGIL: bu liste zaten hesabi olmayan adaya
+ * cevap verebilmek icin uretildi ve satici/tedarikci adi tasimiyor
+ * (bkz. wholesale-list.php basligi). Fiyat kapisi PANELDEKI listeler icin. */
+function vestra_tpl_prospect_women(string $salutation, string $missingBrand, array $items,
+                                   bool $attached = false, string $signer = 'Marco Bellini'): array {
+    $subject = 'Re: Women\'s range, availability and B2B terms — VESTRA';
+
+    $body = $salutation . ",\n\n"
+. "Thank you for your enquiry, and for setting out your requirements so clearly.\n\n";
+
+    if ($missingBrand !== '') {
+        $body .= "First, the direct answer to your main question: we do not have women's {$missingBrand} available at the moment. The {$missingBrand} stock you saw on the platform is menswear. I would rather tell you that plainly than let you register on the expectation of something we cannot currently supply.\n\n";
+    }
+
+    if ($items) {
+        $body .= "What we do have in womenswear today:\n";
+        foreach ($items as $it) {
+            $label = trim((string)($it['label'] ?? ''));
+            $moq   = (int)($it['moq'] ?? 0);
+            $body .= "· ".$label.($moq > 0 ? "  — from ".$moq." pcs" : "")."\n"
+                   . "  https://vestrasales.com/product?id=".rawurlencode((string)($it['id'] ?? ''))."\n";
+        }
+        $body .= "\n";
+    }
+
+    if ($attached) {
+        $body .= "Attached you will find our complete women's line sheet as a PDF: photographs, article numbers, sizes with stock, minimum quantities and wholesale prices — the document you asked for.\n\n";
+    }
+
+    if ($missingBrand !== '') {
+        $body .= "On the {$missingBrand} womenswear itself: tell me exactly what you are looking for — the categories from your list, the quantities per style and your target season — and I will take it up directly with our suppliers and come back to you with what can actually be sourced, at what price and in what lead time. A concrete request travels much further with a supplier than a general one.\n\n";
+    }
+
+    $body .= "Volume terms — this is where a B2B account pays off. The prices in the attached list are our standard wholesale prices; on larger orders, and on repeat business, we apply a special discount on top of them. How large that discount is depends on the articles and the quantities, which is why it is agreed per order rather than published. Tell me what you would take and in what volume, and you will have a firm written offer with your price on it.\n\n"
+. "When you are ready to order, registration takes a few minutes at https://vestrasales.com/register — you will be asked for your trade documentation and your VAT number (for Szykszok that is your NIP in its EU form). Once the account is verified, the live price tiers and the full line sheet in PDF and Excel are available in your account at any time.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
+
+/* "Hesabiniz acildi" + belge ricasi (kisa). Standart vestra_tpl_kyb_approved'dan
+ * farki: belge artik erisimi ENGELLEMIYOR ama platform kurali olarak isteniyor,
+ * ve mektup bunu boyle soyluyor — "yukleyene kadar goremezsin" demiyor, cunku
+ * artik oyle degil. Gewerbeanmeldung ingilizce karsiligiyla birlikte veriliyor. */
+function vestra_tpl_account_open_doc(string $salutation, string $signer = 'Marco Bellini'): array {
+    $subject = 'Your VESTRA account is open';
+
+    $body = $salutation . ",\n\n"
+. "Your account has been verified and is now open. The wholesale price tiers, article numbers, size grids and the full line sheet (PDF and Excel) are available in your account.\n\n"
+. "One formality remains, and it applies to every trade account as a platform rule: please upload your Gewerbeanmeldung (trade licence / business registration). It takes a minute — https://vestrasales.com/buyer?tab=kyc — sign in, open the \"Verification\" section and attach the file (PDF, JPG, PNG or WebP, up to 10 MB).\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
+
+/**
+ * "Hesabiniz ZATEN acik" + istenen urunun canli verisi + ilk siparis kuponu.
+ *
+ * NEDEN AYRI BIR MEKTUP. Alici "hesabim aktive edilmedi, fiyatlari goremiyorum"
+ * yaziyordu; sunucuda ise operator_onayi=EVET ve auth_prices_unlocked=ACIK.
+ * Ona l1212_docs mektubunu tekrar gondermek ("tek eksik belgeniz") yanlis olurdu:
+ * KURAL 2 -- belge kapiyi acmaz, operator onayi acar; kapi zaten acikken belgeyi
+ * sebep gostermek, musteriyi yapmasi gerekmeyen bir ise gonderir ve platformun
+ * kendi kaydini okumadigini gosterir.
+ *
+ * RAKAMLAR ELLE YAZILMAZ. Kademeler, renkler, artikel numaralari, beden araligi
+ * ve MOQ $p ile gelen CANLI ilan kaydindan basilir. Onceki L1212 mektubunda
+ * sayilar metne gomulmustu; ilan degistiginde mektup sessizce yalan soyler.
+ * Cozulemeyen alan HIC BASILMAZ (bkz. KURAL 3'un mantigi: tahmin etme, yaz).
+ *
+ * $p        : vestra_products() kaydi (tiers/variants/sizes/moq/min_colors)
+ * $vatId    : mektupta teyit edilecek VAT ID ('' = bolum hic basilmaz)
+ * $vatNew   : true = biz YENI yazdik (ozur cumlesi), false = zaten dosyadaydi (teyit)
+ * $docOpen  : ticari belge istegi hala acik mi (auth_trade_doc_status)
+ * $voucher  : ['code'=>..,'label'=>'5%','expiry'=>'31.03.2027'] ('' code = kupon yok)
+ */
+function vestra_tpl_account_open_l1212(string $salutation, array $p, string $vatId,
+                                       bool $vatNew, bool $docOpen, array $voucher,
+                                       string $signer = 'Marco Bellini'): array {
+    $name    = trim((string)($p['name'] ?? 'the article'));
+    $subject = 'Re: Your VESTRA account is open – '.$name.' prices';
+
+    $money = fn(float $v) => 'EUR '.number_format($v, 2, '.', ',');
+
+    $body = $salutation . ",\n\n"
+. "Thank you for your message. I have checked your account personally, and I want to lead with the most important point: your account is verified and approved, and full trade access is already switched on. Nothing is pending on our side.\n\n"
+. "If the trade prices still look hidden, it is because the page is being viewed signed out — tiers are only rendered for a signed-in verified account.\n\n"
+. "1. Sign in at https://vestrasales.com/login\n"
+. "2. Open the article page; the price tiers appear in place of the \"trade price\" notice.\n\n";
+
+    if (trim((string)($p['id'] ?? '')) !== '') {
+        $body .= "Direct link to the article: https://vestrasales.com/product?id=".$p['id']."\n\n";
+    }
+    $body .= "If you are signed in and the tiers are still not showing, reply to this email and I will look into it the same working day.\n\n";
+
+    /* VAT: TEYIT mi OZUR mu, kayda gore. Ikisini karistirmak pahali -- teshis bir
+       kez yanlis alani ('vat', oysa hesapta 'vat_id') okuyup "kayitli degil" dedi
+       ve bu, dosyada DURAN bir numara icin musteriye "onceki mektubumuz hataliydi"
+       diye ozur yazdiracakti: dogru bir cumleyi geri almak, hic yazmamaktan kotu.
+       Bu yuzden ozur yalnizca GERCEKTEN yeni yazildiginda ($vatNew) cikar. */
+    if (trim($vatId) !== '') {
+        $body .= "Your VAT ID\n\n"
+. ($vatNew
+    ? "I have recorded ".trim($vatId)." on your account; it was not on file before."
+    : "Your VAT ID ".trim($vatId)." is already recorded on your account, so there is nothing further you need to send us."
+  )."\n\n";
+    }
+
+    if ($docOpen) {
+        $body .= "Your trade licence\n\n"
+. "There is still an open upload request for your trade licence (Gewerbeanmeldung) in your dashboard: https://vestrasales.com/buyer?tab=kyc — PDF, JPG, PNG or WebP, up to 10 MB. To be clear, it is not holding your prices back; your access is already open. We ask for it to complete your file.\n\n";
+    }
+
+    /* --- Urunun kendi kaydindan --- */
+    $body .= $name."\n\n";
+
+    $tiers = (array)($p['tiers'] ?? []);
+    if ($tiers) {
+        usort($tiers, fn($a, $b) => ((int)($a['min'] ?? 0)) <=> ((int)($b['min'] ?? 0)));
+        $body .= "Price tiers (per piece, excl. VAT):\n";
+        $wide = 0;
+        foreach ($tiers as $t) $wide = max($wide, strlen('from '.(int)($t['min'] ?? 0).' pc'));
+        foreach ($tiers as $t) {
+            $body .= "  ".str_pad('from '.(int)($t['min'] ?? 0).' pc', $wide + 3).$money((float)($t['price'] ?? 0))."\n";
+        }
+        $body .= "\n";
+    }
+
+    $facts = [];
+    if ((int)($p['moq'] ?? 0) > 0)                  $facts[] = "Minimum order: ".(int)$p['moq']." pc";
+    if ((int)($p['min_colors'] ?? 0) > 0)           $facts[] = "Minimum colourways per order: ".(int)$p['min_colors'];
+    if (trim((string)($p['sizes'] ?? '')) !== '')   $facts[] = "Size grid: ".trim((string)$p['sizes']);
+    /* 'Lead time' BILEREK yok. O alan serbest metin ve bayatlayabiliyor: L1212'de
+       1 Eylul 2026'da hala "Pre-order — in stock from 5 May" yaziyordu. Gecmis bir
+       tarihi teslim sozu diye basmak, tahmin etmekten farksiz bir hata. Mektup
+       zaten teslim suresini baglayici teklifte vermeyi soz veriyor. */
+    foreach (['Composition', 'Fabric weight', 'Fit', 'Packaging', 'Customs code (HS)'] as $k) {
+        $v = trim((string)(($p['specs'][$k] ?? '')));
+        if ($v !== '') $facts[] = $k.': '.$v;
+    }
+    if ($facts) { foreach ($facts as $f) $body .= "  \xe2\x80\x93 ".$f."\n"; $body .= "\n"; }
+
+    /* Artikel numaralari renk renk: tam da sordugu sey. Kaydinda yoksa bolum
+       hic basilmaz -- uydurulmus bir artikel numarasi siparisi yanlis mala baglar. */
+    $vars = (array)($p['variants'] ?? []);
+    if ($vars) {
+        $body .= "Colourways and Lacoste article numbers:\n";
+        foreach ($vars as $v) {
+            $c = trim((string)($v['color'] ?? '')); $a = trim((string)($v['art'] ?? ''));
+            $m = trim((string)($v['model'] ?? ''));
+            if ($c === '') continue;
+            $body .= "  ".str_pad($c, 12).($a !== '' ? $a : '')."".($m !== '' ? "   (".$m.")" : '')."\n";
+        }
+        $body .= "\n";
+    } elseif (!empty($p['colors'])) {
+        $body .= "Colourways: ".implode(', ', (array)$p['colors'])."\n\n";
+    }
+
+    $code = trim((string)($voucher['code'] ?? ''));
+    if ($code !== '') {
+        $body .= trim((string)($voucher['label'] ?? '5%'))." on your first order\n\n"
+. "For the delay in getting you started, here is a discount code for your first order:\n\n"
+. "  Code:        ".$code."\n"
+. "  Value:       ".trim((string)($voucher['label'] ?? '5%'))." off the goods value\n"
+. (trim((string)($voucher['expiry'] ?? '')) !== '' ? "  Valid until: ".trim((string)$voucher['expiry'])."\n" : '')
+. "  Single use, issued to your account\n\n"
+. "Enter it in the basket before you confirm the order and the discount is applied to the order total.\n\n";
+    }
+
+    $body .= "Where does your order stand?\n\n"
+. "If you tell me your target quantity and which colourways you want, I will confirm availability with the supplier and send you a binding offer stating the delivery time and the applicable invoicing scenario.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
+
+/**
+ * "Yeni ve AB'de kayitli degilsiniz, sahte mal riskine karsi nasil ilerleyeyim?"
+ * sorusuna cevap: DOGRULANABILIR olani yaz, gerisini numuneye birak.
+ *
+ * NE YAZILMAZ. "Bu saticinin memnun musterileri var, baska platformlarda
+ * sorunsuz satiyorlar" gibi ucuncu kisiler hakkinda ISPATLANAMAYAN guvence.
+ * Tam da orijinallikten suphelenen bir aliciya verilen boyle bir soz, sonradan
+ * bir sorun ciktiginda en pahaliya patlayan cumledir; ustelik platformun kendi
+ * kayitli pozisyonuyla (orijinallik SATICI beyanidir, tedarik zinciri evraki
+ * bizde yoktur) celisir ve ayni aliciya Agustos'ta yazdigimiz L1212 mektubunu
+ * yalanlar.
+ *
+ * NE YAZILIR: satici hakkinda KAYITTAN okunabilen seyler (kayitli ulke, KYB'den
+ * gecmis olmasi, faturayi kendi VAT numarasiyla kendisinin kesmesi) ve asil
+ * cevap olarak NUMUNE -- "bize guven" yerine "kendin dogrula".
+ *
+ * $sellerCountry: hesaptaki kayitli ulke; BOS ise o cumle HIC yazilmaz.
+ * $p            : numune ilaninin canli kaydi (fiyat ve link oradan basilir).
+ * $sellerVat    : saticinin kayitli VAT numarasi; BOS ise cumle yazilmaz.
+ * $escrow       : escrow GERCEKTEN kullanilabilir mi (escrow_seller_ready).
+ *                 false ise escrow paragrafi HIC yazilmaz -- olmayan bir
+ *                 korumayi vaat etmek, hic guvence vermemekten kotu.
+ *
+ * ESCROW METNI KODA UYGUN OLMALI. Operatorun ilk ifadesi "para ancak musteri
+ * teyit edince serbest birakilir" idi; cron_escrow_release.php ise teslimattan
+ * 2 IS GUNU sonra alici susuyorsa parayi otomatik birakiyor. Tatilde olup uc gun
+ * cevap vermeyen alici parasinin gittigini gorurdu -- ve bu mektup zaten bir kez
+ * yanmis birine gidiyor. Metin sureyi acikca yaziyor.
+ */
+function vestra_tpl_authenticity_sample(string $salutation, array $p, string $sellerCountry,
+                                        string $sellerVat = '', bool $escrow = false,
+                                        string $signer = 'Marco Bellini'): array {
+    $subject = 'Re: Ordering with confidence — a sample first';
+
+    $price = 0.0;
+    foreach ((array)($p['tiers'] ?? []) as $t) { $price = (float)($t['price'] ?? 0); break; }
+    if ($price <= 0) $price = (float)($p['list'] ?? 0);
+    $money = 'EUR '.number_format($price, 2, '.', ',');
+    $link  = 'https://vestrasales.com/product?id='.(string)($p['id'] ?? '');
+
+    $body = $salutation . ",\n\n"
+. "Thank you for saying this so plainly — it is a fair question and I would rather answer it\n"
+. "properly than reassure you quickly.\n\n"
+. "How VESTRA works\n\n"
+. "We are a B2B marketplace, not the seller. You buy from the supplier and the supplier\n"
+. "invoices you directly under their own VAT number. That is deliberate: it means the\n"
+. "transaction is between two identified businesses and leaves a paper trail you can check,\n"
+. "rather than running through an intermediary.\n\n"
+. "About this supplier\n\n"
+. "I can only tell you what we actually hold on file.\n\n"
+. ($sellerCountry !== ''
+    ? "The supplier for the Lacoste articles is a company registered in ".$sellerCountry.".\n"
+      .($sellerVat !== '' ? "They trade under VAT number ".$sellerVat.", which you can check yourself in VIES.\n" : '')
+    : '')
+. "Before any seller is allowed to trade on VESTRA they go through our KYB check: company\n"
+. "registration, VAT ID and bank account are validated. So you are dealing with an identified,\n"
+. "legally registered business, and the invoice reaches you from them.\n\n"
+. "What I will not claim: I cannot vouch for the goods on the strength of other buyers'\n"
+. "experience, and I will not pretend otherwise. Authenticity is attested by the seller as a\n"
+. "condition of listing, and the upstream purchase documentation is the supplier's own\n"
+. "commercial paperwork, which we as the platform do not hold and cannot pass on. I told you\n"
+. "the same in my earlier message and I am not going to tell you something better now just\n"
+. "because you asked a harder question.\n\n"
+. "So here is what I would actually suggest\n\n"
+. "Order a single sample piece before you commit to anything. One polo, in the colour and\n"
+. "size you choose, delivered to your address. Put it in your hands, and — this is the part\n"
+. "that matters — take it into any Lacoste store and have them look at it. That answers your\n"
+. "question in a way that no assurance from me can.\n\n"
+. "  Sample: ".$money." including delivery within the EU\n"
+. "  Order it here: ".$link."\n\n"
+. "You order it the normal way: add it to your basket and enter your delivery address at\n"
+. "checkout. Payment is by bank transfer against an invoice, so there is a document behind it\n"
+. "from the first euro you spend.\n\n"
+. ($escrow
+? "And for the order after that\n\n"
+. "If the sample satisfies you, the wholesale order itself can be placed under escrow. Your\n"
+. "payment is held — it does not reach the supplier when you pay. It is released to them only\n"
+. "after the goods have been delivered to you and you have confirmed them.\n\n"
+. "Two things I want to be exact about, because a vague promise here is worth nothing:\n\n"
+. "  – The clock starts on delivery, not on dispatch. Your money is not released while the\n"
+. "    goods are still in transit.\n"
+. "  – If you raise a problem within two working days of delivery, the release stops and we\n"
+. "    decide the case, refund included. If we hear nothing from you in those two working\n"
+. "    days, the payment is released to the supplier automatically. So do open the parcel\n"
+. "    and tell us either way — that window is your protection and it is short.\n\n"
+    : '')
+. "On your other question\n\n"
+. "You asked about a video call with the supplier, or buying in person for cash. I am not\n"
+. "going to promise either on their behalf before I have asked them. If the sample convinces\n"
+. "you and you want to speak to them directly before a larger order, tell me and I will put\n"
+. "the request to them.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
+
+/* Satici kurulum mektubu: gonderim yeri + belgeler + Stripe odeme hesabi.
+ * Uc konu TEK mektupta, cunku uc ayri mektup ayni kisiye ayni gun ucuncusunde
+ * spam olarak isaretlenir; ama yalnizca GERCEKTEN eksik olanlar yaziliyor --
+ * yuklenmis bir belgeyi tekrar istemek, platformun kendi kaydini okumadigini
+ * gosterir. Bolum numaralari da eksik sayisina gore uretiliyor; "3)" ile
+ * baslayan bir mektup, iki bolumun neden atlandigini sordurur.
+ * $missingShips: gonderim yeri girilmemis ilan basliklari.
+ * $missingDocs : hala yuklenmemis belge etiketleri.
+ * $needStripe  : Connect kurulumu bitmemis mi. */
+function vestra_tpl_seller_setup(string $salutation, array $missingShips, array $missingDocs, bool $needStripe, string $signer = 'Marco Bellini'): array {
+    $blocks = [];
+
+    if ($missingShips) {
+        $lines = '';
+        foreach ($missingShips as $t) $lines .= "  \xc2\xb7 " . $t . "\n";
+        $blocks[] = "Where the goods ship from\n\n"
+. "Every listing has to state the country the goods actually leave from. Buyers read that line to work out import duty and delivery time, so it needs to be the dispatch location — not the address the company is registered at, if the two are different.\n\n"
+. "This is missing on:\n\n"
+. $lines . "\n"
+. "You can enter it yourself under https://vestrasales.com/seller?tab=listings — open the listing and fill in \"Ships from\" — or simply reply to this e-mail with the country and we will set it for you. It is a required field on new listings from now on.";
+    }
+
+    if ($missingDocs) {
+        $lines = '';
+        foreach ($missingDocs as $d) $lines .= "  \xc2\xb7 " . $d . "\n";
+        /* Tekil/cogul ve "hepsi bu" cumlesi listeye gore: bir tek belge
+           kalmissa "these two" yazmak, mektubun geri kalanina duyulan
+           guveni de goturur. */
+        $one  = count($missingDocs) === 1;
+        $them = $one ? 'it' : 'them';
+        $all  = $one
+              ? "That is the only document still open on your account."
+              : "Those two are all we ask a seller for.";
+        $blocks[] = "Identity and business documents\n\n"
+. ($one ? "One document is still outstanding on your account:\n\n" : "These are still outstanding on your account:\n\n")
+. $lines . "\n"
+. "Please upload " . $them . " at https://vestrasales.com/seller?tab=kyc — sign in, open the Verification section and attach the file"
+. ($one ? '' : 's') . " (PDF, JPG, PNG or WebP, up to 10 MB each). " . $all . "\n\n"
+. "Buyers on VESTRA order from a seller they have not met, on the platform's word that the business behind the listing is real. That is what these documents are for.";
+    }
+
+    if ($needStripe) {
+        $blocks[] = "Payout account (Stripe)\n\n"
+. "Orders can be paid through escrow: the buyer's money is held by Stripe and released to you once delivery is confirmed — automatically after two business days if no issue is reported. For that you need a connected payout account, and until you have one the escrow option does not appear at checkout on your products at all.\n\n"
+. "Set it up at https://vestrasales.com/seller?tab=profile — \"Set up Stripe payouts\". Stripe verifies your identity and bank details directly; VESTRA never sees them. Bank transfer against an invoice keeps working without it, but escrow does not.";
+    }
+
+    /* Hicbir eksik yoksa mektubun konusu kalmiyor. Cagiran taraf bunu kontrol
+       etmeli; yine de burada bos govde uretmek yerine acikca belli olsun. */
+    if (!$blocks) return ['', '', []];
+
+    $n = 0; $mid = '';
+    foreach ($blocks as $b) { $n++; $mid .= $n . ") " . $b . "\n\n"; }
+
+    $subject = count($blocks) === 1
+        ? 'VESTRA seller account — one thing outstanding'
+        : 'VESTRA seller account — ' . ($n === 2 ? 'two' : 'three') . ' things outstanding';
+
+    $body = $salutation . ",\n\n"
+. "Thank you for listing on VESTRA. Your seller account is open and your products are live. A few things are still outstanding before the account is complete.\n\n"
+. $mid
+. "If anything here is unclear, just reply to this e-mail.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
+
+/* ── Satici belge suresi (operator karari, 2 Eyl 2026) ────────────────────────
+   "Ilk urun eklensin, sonra belgeler icin 3 gun; yuklemezse askiya alinsin."
+   Ingilizce (operator karari: yazismalar yalnizca Ingilizce). E-POSTA YOLU da
+   yaziliyor -- "bu mektuba dosyayi ekleyip yanitlayin": yukleyemeyen kullanici
+   icin ikinci kapi (KURAL 2d). Askida bile giris calisiyor; mektup bunu
+   soyluyor, yoksa satici "hesabim kapandi, nasil yukleyeyim" diye durur. */
+function vestra_tpl_seller_docs_due(string $name, array $docLabels, string $deadline, int $daysLeft, bool $reminder = false): array {
+    $days  = defined('VESTRA_SELLER_DOC_GRACE_DAYS') ? (int)VESTRA_SELLER_DOC_GRACE_DAYS : 3;
+    $lines = '';
+    foreach ($docLabels as $d) $lines .= "  · ".$d."\n";
+    $when = $deadline !== '' ? "by ".$deadline : "within ".$days." days";
+    $subject = $reminder
+        ? "VESTRA — reminder: your seller documents are due ".$when
+        : "VESTRA — your first listing is in; two documents due ".$when;
+    $body = "Hello ".$name.",\n\n"
+      . ($reminder
+          ? "A short reminder: the documents below are still missing on your seller account and are due ".$when.".\n\n"
+          : "Thank you for listing on VESTRA. Every seller gives us two documents; we ask for them ".$when.":\n\n")
+      . $lines . "\n"
+      . "Upload them here: https://vestrasales.com/seller?tab=kyc\n"
+      . "Or simply reply to this e-mail with the files attached (PDF or a photo) and we add them to your account for you.\n\n"
+      . "If they are not on file ".$when.", your listings are paused until they arrive. Nothing is deleted, and the account is switched back on as soon as we have them.\n\n"
+      . "Why we ask: buyers on VESTRA order from sellers they have never met, on the platform's word that the business behind a listing is real. These two documents are that word.\n\n"
+      . "—\nVESTRA · vestrasales.com";
+    return [$subject, $body, ['button'=>['label'=>'Upload documents','url'=>'https://vestrasales.com/seller?tab=kyc']]];
+}
+
+function vestra_tpl_seller_docs_suspended(string $name, array $docLabels): array {
+    $days  = defined('VESTRA_SELLER_DOC_GRACE_DAYS') ? (int)VESTRA_SELLER_DOC_GRACE_DAYS : 3;
+    $lines = '';
+    foreach ($docLabels as $d) $lines .= "  · ".$d."\n";
+    $subject = "VESTRA — your listings are paused: documents missing";
+    $body = "Hello ".$name.",\n\n"
+      . "The documents below did not reach us within ".$days." days of your first listing, so your seller account is paused and your products are hidden from the catalogue for now:\n\n"
+      . $lines . "\n"
+      . "Nothing has been deleted. To switch the account back on:\n\n"
+      . "  1. sign in and upload the files at https://vestrasales.com/seller?tab=kyc — your login still works for this,\n"
+      . "  2. or reply to this e-mail with the files attached (PDF or a photo).\n\n"
+      . "We review them and put the listings back on, usually the same working day.\n\n"
+      . "—\nVESTRA · vestrasales.com";
+    return [$subject, $body, ['button'=>['label'=>'Upload documents','url'=>'https://vestrasales.com/seller?tab=kyc']]];
+}
+
+/* Alici karsi teklifi KABUL ettiginde ona giden onay. vestra_tpl_offer_response'un
+ * 'accept' metni burada KULLANILAMAZ: o "satici teklifinizi kabul etti" diyor,
+ * burada olan tam tersi -- alici saticinin karsi teklifini kabul etti. Yanlis
+ * yonu anlatan bir onay, alicinin neyi kabul ettiginden emin olmasini engeller;
+ * o yuzden anlasilan fiyat ve toplam mektubun icinde acikca yaziyor. */
+function vestra_tpl_offer_counter_accepted(string $lang, string $buyerName, string $product, string $ref, float $unit, int $qty): array {
+  $Lb = vestra_email_labels($lang);
+  $opts = ['badge'=>$Lb['badge_accepted'],'rows'=>[
+      ['label'=>$Lb['product'],'value'=>$product],
+      ['label'=>$Lb['ref'],'value'=>$ref],
+      ['label'=>$Lb['qty'],'value'=>(string)$qty],
+      ['label'=>$Lb['unit_price'],'value'=>'€'.number_format($unit,2)],
+      ['label'=>$Lb['total'],'value'=>'€'.number_format($unit*$qty,2),'strong'=>true],
+    ],
+    'button'=>['label'=>$Lb['btn_buyer_offers'],'url'=>'https://vestrasales.com/buyer?tab=offers']];
+  $T = [
+    'en'=>["VESTRA — agreed: %2\$s", "Hello %1\$s,\n\nThank you — you accepted the counter offer, so the price is agreed and this negotiation is closed. We are preparing your invoice at the agreed price and will send it shortly; the goods are reserved for you in the meantime.\n\nIf anything above is not what you expected, reply to this e-mail before you pay."],
+    'de'=>["VESTRA — vereinbart: %2\$s", "Hallo %1\$s,\n\nvielen Dank — Sie haben das Gegenangebot angenommen, der Preis ist damit vereinbart und die Verhandlung abgeschlossen. Wir bereiten Ihre Rechnung zum vereinbarten Preis vor und senden sie in Kürze; die Ware ist währenddessen für Sie reserviert.\n\nSollte oben etwas nicht Ihren Erwartungen entsprechen, antworten Sie bitte auf diese E-Mail, bevor Sie zahlen."],
+    'fr'=>["VESTRA — accord : %2\$s", "Bonjour %1\$s,\n\nmerci — vous avez accepté la contre-offre, le prix est donc convenu et la négociation est close. Nous préparons votre facture au prix convenu et vous l'enverrons sous peu ; la marchandise vous est réservée entre-temps.\n\nSi quelque chose ci-dessus ne correspond pas à vos attentes, répondez à cet e-mail avant de payer."],
+    'it'=>["VESTRA — accordo: %2\$s", "Ciao %1\$s,\n\ngrazie — hai accettato la controfferta, quindi il prezzo è concordato e la trattativa è chiusa. Stiamo preparando la fattura al prezzo concordato e te la invieremo a breve; nel frattempo la merce è riservata per te.\n\nSe qualcosa qui sopra non corrisponde a quanto ti aspettavi, rispondi a questa e-mail prima di pagare."],
+    'es'=>["VESTRA — acuerdo: %2\$s", "Hola %1\$s,\n\ngracias — has aceptado la contraoferta, así que el precio queda acordado y la negociación se cierra. Estamos preparando tu factura al precio acordado y te la enviaremos en breve; mientras tanto la mercancía queda reservada para ti.\n\nSi algo de lo anterior no es lo que esperabas, responde a este correo antes de pagar."],
+  ];
+  [$subjT,$bodyT] = $T[$lang] ?? $T['en'];
+  $subject = sprintf($subjT, $buyerName, $product);
+  $body = sprintf($bodyT, $buyerName, $product) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/* Alici karsi teklif VERDIGINDE ona giden onay. Ne yaptigini ve simdi ne
+ * bekledigini yaziyor; ayrica KALAN TUR sayisini, cunku pazarligin sonsuz
+ * olmadigini sonradan ogrenmek -- hakki bittiginde -- kotu bir surpriz olur.
+ * Fiyat ve toplam mektubun icinde: alici neyi teklif ettiginden emin olmali. */
+function vestra_tpl_offer_buyer_countered(string $lang, string $buyerName, string $product, string $ref, float $unit, int $qty, int $left, string $productUrl = ''): array {
+  $Lb = vestra_email_labels($lang);
+  $opts = ['badge'=>$Lb['badge_countered'],'rows'=>[
+      ['label'=>$Lb['product'],'value'=>$product],
+      ['label'=>$Lb['ref'],'value'=>$ref],
+      ['label'=>$Lb['qty'],'value'=>(string)$qty],
+      ['label'=>$Lb['unit_price'],'value'=>'€'.number_format($unit,2),'strong'=>true],
+      ['label'=>$Lb['total'],'value'=>'€'.number_format($unit*$qty,2)],
+    ],
+    'button'=>['label'=>$Lb['btn_buyer_offers'],'url'=>'https://vestrasales.com/buyer?tab=offers']];
+  $T = [
+    'en'=>["VESTRA — your counter offer on %2\$s", "Hello %1\$s,\n\nThank you — your counter offer has been sent to the seller and we will come back to you with their answer.",
+           "You have %d more counter offer(s) in this negotiation.", "This was the last counter offer available in this negotiation — from here it can only be accepted or declined."],
+    'de'=>["VESTRA — Ihr Gegenangebot für %2\$s", "Hallo %1\$s,\n\nvielen Dank — Ihr Gegenangebot wurde an den Verkäufer gesendet und wir melden uns mit seiner Antwort.",
+           "Sie haben noch %d Gegenangebot(e) in dieser Verhandlung.", "Das war das letzte mögliche Gegenangebot — ab jetzt kann nur noch angenommen oder abgelehnt werden."],
+    'fr'=>["VESTRA — votre contre-offre sur %2\$s", "Bonjour %1\$s,\n\nmerci — votre contre-offre a été transmise au vendeur et nous reviendrons vers vous avec sa réponse.",
+           "Il vous reste %d contre-offre(s) dans cette négociation.", "C'était la dernière contre-offre possible — désormais, il ne reste qu'à accepter ou refuser."],
+    'it'=>["VESTRA — la tua controfferta su %2\$s", "Ciao %1\$s,\n\ngrazie — la tua controfferta è stata inviata al venditore e ti faremo sapere la sua risposta.",
+           "Ti restano %d controfferta/e in questa trattativa.", "Questa era l'ultima controfferta disponibile — da qui si può solo accettare o rifiutare."],
+    'es'=>["VESTRA — tu contraoferta sobre %2\$s", "Hola %1\$s,\n\ngracias — tu contraoferta se ha enviado al vendedor y te informaremos de su respuesta.",
+           "Te quedan %d contraoferta(s) en esta negociación.", "Esta era la última contraoferta disponible — a partir de ahora solo se puede aceptar o rechazar."],
+  ];
+  $set = $T[$lang] ?? $T['en'];
+  $subject = sprintf($set[0], $buyerName, $product);
+  $body = sprintf($set[1], $buyerName, $product)
+        . "\n\n" . ($left > 0 ? sprintf($set[2], $left) : $set[3]);
+  if ($productUrl !== '') {
+    $pl = ['en'=>"See the product: %s",'de'=>"Zum Produkt: %s",'fr'=>"Voir le produit : %s",'it'=>"Vedi il prodotto: %s",'es'=>"Ver el producto: %s"];
+    $body .= "\n\n" . sprintf($pl[$lang] ?? $pl['en'], $productUrl);
+  }
+  $body .= "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/* MARKA KATALOGU CEVABI. Bir alici "su markanin tam listesini alabilir miyim"
+ * diye yazdiginda giden mektup.
+ *
+ * FIYATLAR GOVDENIN ICINDE, yalnizca ekte degil. Iki sebep: (1) alici cogu
+ * zaman telefonda okuyor ve ek acilmiyor; (2) bir teklif alip alamayacagina
+ * karar vermek icin gereken tek sey iki rakam -- adet ve birim fiyat. Ek,
+ * govdenin yerine degil, YANINA gidiyor.
+ *
+ * SATICI ADI GECMIYOR. wholesale-list.php basligindaki gerekcenin aynisi:
+ * paylasilan sey toptan fiyat, malin kimde durdugu degil.
+ *
+ * $groups: [ ['cat'=>'Polos', 'moq'=>80, 'price'=>26.9, 'tiers'=>'160+ 25.00',
+ *             'items'=>[['name'=>..., 'id'=>...], ...]], ... ]
+ * $shipsFrom: '' ise mektup gonderim yerini HIC yazmaz. Uydurmuyoruz --
+ *   KURAL 3: kayit adresi ile malin ciktigi depo ayni sey degil, ve bu satiri
+ *   alici gumruk/teslim suresi icin okuyor. Bilmiyorsak susup soracagiz. */
+/* $attached: GERCEKTEN eklenen bicimler, ['pdf','xlsx'] gibi. Bool DEGIL --
+   mektup neyin ekli oldugunu tek tek sayiyor ve olmayan bir eki anlatan cumle,
+   hic gonderilmemis ekten daha kotu: musteri dosyayi arar, biz gonderdik
+   saniriz (ayni endise notify.php'nin ek kutuginde de yazili). */
+function vestra_tpl_brand_catalog(string $salutation, string $brand, array $groups,
+                                  string $shipsFrom = '', array $attached = [],
+                                  string $signer = 'Marco Bellini'): array {
+    $subject = $brand.' — wholesale catalogue and prices';
+
+    $total = 0;
+    foreach ($groups as $g) $total += count($g['items'] ?? []);
+
+    /* Kac MODEL, kac renk -- alici icin iki ayri sayi. "14 article" demek,
+       biri 6 renkli tek bir model olabilecekken kac ayri urun oldugunu
+       gizliyor; toptanci once modeli, sonra rengi secer. */
+    $models = count($groups);
+    $what   = trim((string)($groups[0]['scope'] ?? ''));
+    /* "8 articles" YANLISTI: ilanlar model bazinda birlestikten sonra o sayi
+       renk secenegini sayiyor, ayri urunu degil. Model ve renk ayri ayri. */
+    $body = $salutation . ",\n\n"
+. "Thank you for your enquiry. Below is our complete ".$brand
+. ($what !== '' ? " ".$what : "")." range as it stands today — "
+. $models." model".($models === 1 ? "" : "s")
+. " in ".$total." colour".($total === 1 ? "" : "s")
+. ", with the wholesale price and minimum order quantity against each.\n\n";
+
+    foreach ($groups as $g) {
+        $cat   = (string)($g['cat'] ?? '');
+        $model = trim((string)($g['model'] ?? ''));
+        $art   = trim((string)($g['art'] ?? ''));
+        $moq   = (int)($g['moq'] ?? 0);
+        $price = (float)($g['price'] ?? 0);
+        $tiers = trim((string)($g['tiers'] ?? ''));
+        $sizes = trim((string)($g['sizes'] ?? ''));
+        $items = (array)($g['items'] ?? []);
+
+        /* Baslik MODEL adi; kategori yalnizca model adi yoksa. Once kategori
+           yaziliyordu ("POLOS") ve alti alta ayni basligi tasiyan uc blok
+           cikiyordu -- alici hangisinin hangi model oldugunu ayirt edemezdi.
+           Uretici parca numarasi da basliga giriyor: alici kendi line
+           sheet'iyle ancak o numaradan eslestiriyor. */
+        $head = $model !== '' ? $model : $cat;
+        /* Parca numarasi ADIN ICINDE zaten geciyorsa tekrar yazma: ilanlar
+           model bazinda birlestirildikten sonra ad "... (710680785)" oldu ve
+           baslik "710680785 · art. 710680785" diye cikiyordu. */
+        $showArt = $art !== '' && strpos($head, $art) === false;
+        $body .= strtoupper($head) . ($showArt ? "  ·  art. ".$art : "")."\n";
+
+        /* FIYAT KADEMELERI SECENEK OLARAK. Once tek fiyat + altinda "volume
+           price ..." dipnotu vardi; ikinci rakam okunmadan geciliyordu. Toptanci
+           adedi fiyata gore secer, o yuzden iki kademe YAN YANA, ayni bicimde.
+           Stok da burada: 160+ kademesini teklif edip stogun 100 oldugunu
+           soylememek, alicinin ulasamayacagi bir fiyati gostermek olurdu. */
+        $opts = (array)($g['tiers_list'] ?? []);
+        if (!$opts) $opts = [['min' => $moq, 'price' => $price]];
+        if (count($opts) > 1) $body .= "Price options:\n";
+        foreach ($opts as $o) {
+            $mn = (int)($o['min'] ?? 0);
+            $body .= (count($opts) > 1 ? "  " : "")
+                   . "from ".$mn." pcs — EUR ".number_format((float)($o['price'] ?? 0), 2)." per piece\n";
+        }
+        /* vestra_export_tiers_label() "160+ 25.00 · 320+ 23.50" verir -- tabloda
+           dogru, duz metinde okunmuyor ("160+ 25.00 per piece" iki rakami
+           yan yana birakiyor). Mektubun EN COK OKUNAN satiri bu; para birimi
+           ve adet ayri ayri yaziliyor. Cozulemeyen bir bicim gelirse ham etiket
+           basiliyor -- uydurmak yerine. */
+        if ($sizes !== '') $body .= "Size run: ".$sizes."\n";
+        $stock = (int)($g['stock'] ?? 0);
+        if ($stock > 0) $body .= "In stock: ".number_format($stock, 0, '.', ',')." pcs\n";
+        $body .= "\n";
+        /* Renkler AYNI ilanin icindeyse tek satirda toplanip baglanti BIR KEZ
+           yaziliyor. Birlestirmeden sonra dort renk de ayni ilana isaret ediyor
+           ve her satira ayni adresi koymak mektubu dort kat uzatip hicbir sey
+           eklemiyordu. Ayri ilanlar ise eskisi gibi tek tek listeleniyor. */
+        $ids = array_unique(array_map(fn($it) => (string)($it['id'] ?? ''), $items));
+        if (count($ids) === 1 && count($items) > 1) {
+            $cols = [];
+            foreach ($items as $it) {
+                $c = trim((string)($it['colour'] ?? '')) ?: trim((string)($it['name'] ?? ''));
+                if ($c !== '') $cols[] = $c;
+            }
+            if ($cols) $body .= "Colours: ".implode(' · ', $cols)."\n";
+            $body .= "https://vestrasales.com/product?id=".rawurlencode((string)reset($ids))."\n";
+        } else {
+            foreach ($items as $it) {
+                /* Satir basi: TAM parca numarasi + renk. Alici siparisi renk
+                   koduyla veriyor, urun adiyla degil. Numara yoksa ada dusuyor. */
+                $sku   = trim((string)($it['sku'] ?? ''));
+                $label = trim((string)($it['colour'] ?? '')) ?: trim((string)($it['name'] ?? ''));
+                $body .= "· ".($sku !== '' ? $sku."  —  " : "").$label."\n"
+                       . "  https://vestrasales.com/product?id=".rawurlencode((string)($it['id'] ?? ''))."\n";
+            }
+        }
+        $body .= "\n";
+    }
+
+    if ($shipsFrom !== '') {
+        $body .= "All of the above ships from ".$shipsFrom.".\n\n";
+    }
+
+    $hasPdf  = in_array('pdf',  $attached, true);
+    $hasXlsx = in_array('xlsx', $attached, true);
+    if ($hasPdf && $hasXlsx) {
+        $body .= "Attached you will find the same list in two formats: a PDF with the photographs, "
+               . "article numbers, size grids and stock per size, and an Excel file with the same "
+               . "figures in columns, so you can work straight from it.\n\n";
+    } elseif ($hasXlsx) {
+        $body .= "Attached you will find the same list as an Excel file — article numbers, sizes with "
+               . "stock, minimum quantities and wholesale prices in columns, so you can work straight "
+               . "from it.\n\n";
+    } elseif ($hasPdf) {
+        $body .= "Attached you will find the same list as a PDF, with the photographs, article numbers, "
+               . "size grids and stock per size.\n\n";
+    }
+
+    /* Canli surumler: yalnizca EKLENMEYEN bicimin baglantisi one cikmali degil --
+       ikisi de duruyor, cunku ek bir kopya, bunlar her zaman guncel olan. */
+    $q = rawurlencode($brand);
+    $body .= "The live versions are always in your account:\n"
+. "PDF:   https://vestrasales.com/wholesale-list.pdf?brand=".$q."\n"
+. "Excel: https://vestrasales.com/wholesale-list.xlsx?brand=".$q."\n\n"
+. "Prices are ex-works and exclude shipping. On larger quantities and on repeat business we apply "
+. "a further discount on top of these figures; how much depends on the articles and the volume, "
+. "which is why it is agreed per order rather than published. Tell me which articles and what "
+. "quantities interest you and you will have a firm written offer with your price on it.\n\n"
+. "You can also make an offer directly on any product page — the seller answers it in the same "
+. "thread, and both sides can counter until a price is agreed.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
+
+/* ACIK TEKLIF HATIRLATMASI. Alici birden fazla urune teklif vermis, hepsini
+ * cevaplamis ama BIRINI acikta birakmis: satici karsi teklif verdi, sira
+ * alicida ve orada duruyor. Bu mektup o tek kalemi soruyor.
+ *
+ * NEDEN AYRI BIR MEKTUP: kalan kalemler faturaya hazir. Alici cevap vermedigi
+ * surece ya butun siparis bekliyor ya da biz onun adina karar veriyoruz --
+ * ikisi de yanlis. Soru acikca iki secenekli soruluyor: al, ya da reddet ve
+ * digerleri faturalansin.
+ *
+ * FIYAT VE BAGLANTI CAGIRANDAN GELIYOR, burada hesaplanmiyor: teklifin gercek
+ * kaydindan okunmali. Uydurulmus bir fiyat, musterinin hic gormedigi bir
+ * rakami "sizin teklifiniz" diye ona geri okumak olurdu.
+ *
+ * $agreed: zaten uzlasilmis kalemlerin basliklari (bilgi icin).
+ * $acceptUrl: '' ise mektup baglanti YAZMAZ ve panele yonlendirir -- olmayan
+ *   bir dugmeyi tarif etmektense hic tarif etmemek. */
+function vestra_tpl_offer_nudge(array $open, array $agreed, string $salutation,
+                                string $cur = 'EUR', string $signer = 'Marco Bellini'): array {
+    /* $open: her biri ['ref','product','qty','ours','theirs','url','accept'] olan
+       ACIK teklifler -- sira alicida. Tek kalem de coklu da ayni mektup: 4 Eyl 2026'da
+       ayni aliciya ayni saatte ayni Burberry hoodie'nin UC ayri teklifi acik kaldi ve
+       kalem basina bir mektup, tek bir hatirlatmayi uc ayri e-postaya bolerdi. */
+    $n = count($open);
+    if ($n === 0) return ['', '', []];
+    $money = fn(?float $v) => $v === null || $v <= 0 ? '' : $cur.' '.number_format($v, 2);
+
+    $subject = $n === 1
+        ? 'One open item on your order — '.(string)($open[0]['product'] ?? '')
+        : $n.' open items on your order';
+
+    /* Uzlasilmis kalem YOKSA "gerisi hazir" denmez: musteride uzlasilmis bir sey
+       yokken oyle acmak, olmayan bir siparisi varmis gibi gostermek olurdu. */
+    $body = $salutation . ",\n\n"
+        . ($agreed
+            ? "Thank you for your offers — everything else is agreed and ready to be invoiced. "
+              . ($n === 1 ? "One item is still open and it is waiting on you.\n\n"
+                          : "The items below are still open and they are waiting on you.\n\n")
+            : "Thank you for your offers. "
+              . ($n === 1 ? "One item is still open and it is waiting on you.\n\n"
+                          : "The ".$n." items below are still open and they are waiting on you.\n\n"));
+
+    foreach ($open as $it) {
+        $body .= "OPEN — ".trim((string)($it['product'] ?? ''))."\n"
+               . "Reference ".trim((string)($it['ref'] ?? ''))."  ·  ".(int)($it['qty'] ?? 0)." pcs\n";
+        $their = isset($it['theirs']) ? (float)$it['theirs'] : null;
+        $ours  = isset($it['ours'])   ? (float)$it['ours']   : null;
+        if ($their !== null && $their > 0) $body .= "Your offer:  ".$money($their)." per piece\n";
+        if ($ours  !== null && $ours  > 0) $body .= "Our price:   ".$money($ours)." per piece\n";
+        if (trim((string)($it['url'] ?? '')) !== '') $body .= trim((string)$it['url'])."\n";
+        /* Kabul baglantisi KALEM BASINA: token her teklifin kendisine ait, tek bir
+           link uc kalemi birden kapatmaz. */
+        if (trim((string)($it['accept'] ?? '')) !== '') $body .= "Open this item: ".trim((string)$it['accept'])."\n";
+        $body .= "\n";
+    }
+
+    if ($agreed) {
+        $body .= "Already agreed and ready to invoice:\n";
+        foreach ($agreed as $a) $body .= "· ".trim((string)$a)."\n";
+        $body .= "\n";
+    }
+
+    $these = $n === 1 ? 'it' : 'them';
+    /* Uc yol da yaziliyor. Karsi teklif SECENEKTEN sayilmazsa musteri ya bizim
+       fiyatimizi kabul etmek ya da bitirmek arasinda sikisir; oysa pazarlik hakki
+       duruyor (operator, 6 Eyl 2026: "ya kabul ya teklif yada red"). */
+    $body .= "Please let us know either way:\n\n"
+        . "· Accept, and ".($n === 1 ? "it goes" : "they go")." on the same invoice as the rest.\n"
+        . "· Counter, if the price is not right for you — there are rounds left, so send us your number.\n"
+        . "· Decline, and we will invoice the agreed items straight away, without ".$these.". "
+        . "Declining costs you nothing and does not affect the other items.\n\n";
+
+    $body .= "All three are in your account: https://vestrasales.com/buyer?tab=offers\n\n";
+
+    $body .= "If we do not hear from you, we will hold the order rather than decide for you — "
+        . "so a one-line reply is enough.\n\n"
+        . "Best regards,\n\n"
+        . $signer . "\n"
+        . "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
+
+/**
+ * Claim received — sent the moment a buyer opens a claim ("Open dispute").
+ * The FAQ (disputes/1) promises "you will receive a reference number" and a
+ * review "within 2 business days"; this letter is that promise in writing.
+ * English only (operator decision, 1 Sep 2026). Numbers come from constants,
+ * never typed into the text (RULE 6/7 lesson).
+ */
+function vestra_tpl_claim_received(string $buyerName, string $ref, string $claimRef, string $reasonLabel, bool $hasAccount): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $bdays = defined('VESTRA_CLAIM_REVIEW_BDAYS') ? (int)VESTRA_CLAIM_REVIEW_BDAYS : 2;
+    $rows = [['label'=>'Claim reference', 'value'=>$claimRef, 'strong'=>true],
+             ['label'=>'Order ref', 'value'=>$ref],
+             ['label'=>'Reason', 'value'=>$reasonLabel]];
+    $opts = ['badge'=>'⚠️ Claim received', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref)];
+    $subject = "VESTRA — claim {$claimRef} received for order {$ref}";
+    $body =
+        "Hello {$buyerName},\n\n"
+      . "We have received your claim on order {$ref}.\n\n"
+      . "Claim reference: {$claimRef}\n"
+      . "Reason: {$reasonLabel}\n\n"
+      . "We review claims within {$bdays} business days and will tell you the outcome in the order itself"
+      . ($hasAccount ? " (https://vestrasales.com/buyer?tab=orders&view=".rawurlencode($ref).")" : '')
+      . ". If we need further photographs or a sample, we will ask there.\n\n"
+      . "Please do not ship anything back: a claim is not a return, and goods sent without our written "
+      . "authorisation may be refused. Any payment still held for this order stays held until the claim is resolved.\n\n"
+      . "—\nVESTRA · vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
+ * Claim resolved — the written outcome the FAQ promises (returns/6, returns/9,
+ * returns/10). $outcome is the operator's own sentence and is printed verbatim;
+ * this template never invents a refund figure or a return address.
+ */
+function vestra_tpl_claim_resolved(string $buyerName, string $ref, string $claimRef, string $outcome, bool $hasAccount): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $rows = [['label'=>'Claim reference', 'value'=>$claimRef],
+             ['label'=>'Order ref', 'value'=>$ref],
+             ['label'=>'Outcome', 'value'=>$outcome, 'strong'=>true]];
+    $opts = ['badge'=>'✓ Claim resolved', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref)];
+    $subject = "VESTRA — claim {$claimRef} on order {$ref}: outcome";
+    $body =
+        "Hello {$buyerName},\n\n"
+      . "Your claim {$claimRef} on order {$ref} has been reviewed.\n\n"
+      . "Outcome: {$outcome}\n\n"
+      . "If a return has been agreed, ship only the pieces named above, to the address named above, and keep "
+      . "this e-mail as your written authorisation. If you have a question about the outcome, reply to this "
+      . "e-mail quoting the claim reference.\n\n"
+      . "—\nVESTRA · vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
+ * YENİ PAZAR / ŞARTLAR SORUSUNA CEVAP (16 Eyl 2026, Benin'den gelen ilk
+ * kurumsal soru vesilesiyle: ülkem alabiliyor mu, asgari ne, hangi belge,
+ * gönderim, kayıt öncesi bakabilir miyim).
+ *
+ * RAKAMLARIN HİÇBİRİ METNE GÖMÜLÜ DEĞİL. Asgari tutar sabitten, bölgesel
+ * indirim ülkenin KENDİ oranından, belgeler `auth_required_doc_types()`'tan
+ * geliyor. Sebebi bu depoda kayıtlı: escrow tavanı beş gün boyunca metinde
+ * 3.000, kodda 3.500 kaldı; ve bu mektubun ilk taslağı yazıldıktan bir saat
+ * sonra operatör asgariyi 10.000'den 5.000'e çekti — gömülü olsaydı mektup o
+ * anda sessizce yalan söylemeye başlardı.
+ *
+ * $cc  : ISO ülke kodu (indirim ve asgari oradan türer; '' = bilinmiyor)
+ * $ship: operatörün BEYAN ETTİĞİ gönderim cümlesi ('' = hiç yazılmaz).
+ *        KURAL 3'ün mektup hâli: taşıyıcı ve süre bir olgudur, tahmin değil —
+ *        operatör söylemediyse mektup bu konuda SUSAR.
+ */
+function vestra_tpl_terms_reply(string $buyerName, string $cc, string $ship = '', string $signer = ''): array {
+    require_once __DIR__.'/products.php';
+    require_once __DIR__.'/region_discount.php';
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Sir or Madam';
+
+    $user = ['country' => $cc];
+    $pct  = vestra_region_discount_pct($user);
+    $min  = vestra_order_min_usd($user);
+    $minS = 'US$'.number_format($min, 0);
+
+    /* Konuda ÜLKE ADI, ISO kodu değil: müşteri kendi ülkesinin adını yazdı,
+       "for BJ" görmek makine çıktısı gibi okunur.
+       OPERATÖR TAM AD YAZDIYSA ONU KULLANIYORUZ — çevirmeye çalışmak yanlıştı:
+       ilk yazımda ad `vestra_country_of_cc()` üzerinden aranıyordu ve o tablo
+       KISMİ, yani "Benin" de "BJ" de konuya "for BJ" diye düşüyordu. Bu
+       depoda aynı hatanın üçüncü kaydı: kısmi bir tabloyu tam sanmak.
+       Çıplak ISO kodu verildiğinde ad KENDİ tablolarımızın ilk yazımından
+       geliyor — kapsamdaki her kod orada var. */
+    $ccName = '';
+    if ($cc !== '') {
+        if (!preg_match('/^[A-Za-z]{2}$/', $cc)) {
+            $ccName = $cc;                                   // operatörün yazdığı ad
+        } else {
+            $up = strtoupper($cc);
+            foreach ([function_exists('vestra_africa_names') ? vestra_africa_names() : [],
+                      function_exists('vestra_region_discount_names') ? vestra_region_discount_names() : [],
+                      function_exists('vestra_europe_names') ? vestra_europe_names() : [],
+                      /* JP/AU/SG/SA yazımları burada duruyor, ikinci kopya
+                         çıkarılmıyor (KURAL 2h'nin kendi notu). */
+                      function_exists('vestra_auto_open_countries') ? vestra_auto_open_countries() : []] as $tbl) {
+                if (isset($tbl[$up][0])) { $ccName = mb_convert_case((string)$tbl[$up][0], MB_CASE_TITLE, 'UTF-8'); break; }
+            }
+        }
+    }
+    $subject = 'VESTRA — wholesale terms'.($ccName !== '' ? ' for '.$ccName : '');
+
+    $body  = "Dear {$buyerName},\n\n"
+           . "Thank you for your enquiry, and for setting it out so clearly — it makes it easy to "
+           . "answer precisely.\n\n"
+           . "Yes, a business registered in your country can buy through VESTRA. Accounts are opened "
+           . "individually: you register, we review, and we unlock wholesale prices for your account.\n\n";
+
+    /* İndirim cümlesi YALNIZCA gerçekten indirim varsa yazılıyor: kapsam dışı
+       bir ülkeye "bölgeniz için indirimimiz var" demek, sepette karşılığı
+       olmayan bir söz olurdu. */
+    if ($pct > 0) {
+        $p = rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.');
+        $body .= "A standing discount of {$p}% applies to buyers registered in your region, across the "
+               . "whole catalogue. It is applied automatically to every price you see once your account "
+               . "is open; there is no code to enter.\n\n";
+    }
+
+    if ($min > 0) {
+        $body .= "Minimum order. Two figures apply, and I would rather you know both now than at "
+               . "checkout:\n\n"
+               . "  - Outside Europe our minimum order value is {$minS} per order.\n"
+               . "  - Each style also has its own minimum quantity and is sold in fixed pack multiples "
+               . "— typically 10 or 20 pieces per style, occasionally more.\n\n"
+               . "So a first order is a few styles in depth rather than one piece of many models. If "
+               . "your launch assortment sits below that, write to me and we will look at your case "
+               . "individually — I would rather find a workable first order than lose the conversation "
+               . "over a threshold.\n\n";
+    } else {
+        $body .= "Minimum order. There is no order-value minimum for your region. Each style has its own "
+               . "minimum quantity and is sold in fixed pack multiples — typically 10 or 20 pieces per "
+               . "style, occasionally more.\n\n";
+    }
+
+    /* Belgeler tek doğruluk kaynağından (KURAL 2). Elle "ticari kayıt" yazmak,
+       liste bir gün değişince müşteriden olmayan bir belge istetirdi. */
+    $docs = function_exists('auth_required_doc_types') ? (array)auth_required_doc_types('buyer') : ['trade_licence'];
+    $lbl  = ['trade_licence' => 'your business registration / trade licence',
+             'id_document'   => 'a government ID (passport or national ID)'];
+    $list = [];
+    foreach ($docs as $d) $list[] = $lbl[$d] ?? str_replace('_', ' ', (string)$d);
+    $body .= (count($list) === 1 ? "Documents. One document: " : "Documents. ")
+           . implode(', and ', $list) . ". Nothing else — no VAT certificate, no authorisation letter. "
+           . "You can upload it in your account or simply reply to this e-mail with the file attached.\n\n";
+
+    if (trim($ship) !== '') $body .= "Shipping. ".trim($ship)."\n\n";
+
+    $body .= "Browsing before you register. Yes. The catalogue, brands, categories and product detail "
+           . "are open to everyone at vestrasales.com — you can see exactly what we carry today. "
+           . "Wholesale prices are the one thing behind the account: they appear once your account is "
+           . "approved. So you can plan your assortment now and the numbers follow.\n\n"
+           . "If it helps, tell me which brands and categories interest you most and I will send you a "
+           . "price list for that part of the catalogue as soon as your account is open.\n\n"
+           . "Kind regards,\n\n"
+           . ($signer !== '' ? $signer."\nVESTRA – vestrasales.com"
+                             : "VESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com");
+
+    $rows = [];
+    if ($min > 0) $rows[] = ['label' => 'Minimum order', 'value' => $minS];
+    if ($pct > 0) $rows[] = ['label' => 'Your region',   'value' => rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.').'% off the catalogue'];
+    $opts = ['badge' => 'Wholesale terms', 'rows' => $rows,
+             'button' => ['label' => 'Browse the catalogue', 'url' => 'https://vestrasales.com/shop']];
+    return [$subject, $body, $opts];
+}
+
+/**
+ * "GIREMIYORUM" SIKAYETINE CEVAP (16 Eyl 2026, thomaslardey / Thomasl.g).
+ *
+ * Musteri "hesabim dogrulandi ama giris sayfasina geri donuyorum" yazdi.
+ * Kayit bakildi: parola dogru (13 basarili giris, sifir basarisiz), e-posta
+ * dogrulanmis, hesap aktif. Yani mektup ONA "belgenizi yukleyin" ya da
+ * "parolanizi sifirlayin" DEMEZ -- yapmasi gerekmeyen bir ise yollamak,
+ * KURAL 2b'nin kayitli dersi.
+ *
+ * Mektup YALNIZCA kaniti olan seyi soyluyor: hesabinda bir sorun yok,
+ * bizde coklu cihaz girisini bozan bir kusur vardi ve duzeltildi. Sebebin
+ * KESIN olarak bu oldugu iddia EDILMIYOR -- kalanini tarayici tarafi
+ * belirliyor ve onu ancak musteri gorebilir.
+ *
+ * $fixed=false: duzeltme henuz canlida dogrulanmadiysa o cumle hic yazilmaz.
+ * Dogrulanmamis bir "duzelttik", musteri ayni sorunu yasadiginda geri
+ * alinamaz.
+ */
+function vestra_tpl_login_fixed(string $buyerName, bool $fixed = true, string $signer = '', string $lang = 'fr'): array {
+    $buyerName = vestra_display_name($buyerName);
+    $lang = strtolower($lang) === 'fr' ? 'fr' : 'en';
+    if ($buyerName === '') $buyerName = $lang === 'fr' ? 'Madame, Monsieur' : 'Customer';
+    $tail = $signer !== '' ? $signer."\nVESTRA - vestrasales.com" : "VESTRA - vestrasales.com";
+    $opts = ['badge' => $lang === 'fr' ? 'Accès au compte' : 'Account access',
+             'button' => ['label' => $lang === 'fr' ? 'Ouvrir mon espace acheteur' : 'Open my buyer area',
+                          'url'   => 'https://vestrasales.com/login']];
+
+    if ($lang === 'fr') {
+        $subject = "VESTRA — votre accès : ce que nous avons trouvé et corrigé";
+        $body =
+            "Bonjour {$buyerName},\n\n"
+          . "Merci de nous avoir signalé le problème, et pardon pour la gêne.\n\n"
+          . "Nous avons vérifié votre compte en détail. Il n'y a rien à corriger de votre côté : "
+          . "votre compte est actif, votre adresse e-mail est confirmée, l'accès au catalogue est "
+          . "ouvert, et vos identifiants sont corrects — nos journaux montrent que vos connexions "
+          . "aboutissent bien. Vous n'avez donc ni document à fournir ni mot de passe à "
+          . "réinitialiser.\n\n"
+          . ($fixed
+              ? "Nous avons en revanche trouvé un défaut chez nous, et il est corrigé. Notre système "
+                . "ne gardait qu'une seule connexion mémorisée par compte : dès que vous vous "
+                . "connectiez depuis un autre appareil ou un autre navigateur, celle du premier était "
+                . "effacée — et cet appareil-là vous renvoyait à la page de connexion. Chaque appareil "
+                . "conserve désormais sa propre connexion.\n\n"
+              : "")
+          . "Si cela se reproduit, deux choses nous aideraient beaucoup :\n\n"
+          . "  1. Ouvrez vestrasales.com directement dans Safari ou Chrome, en tapant l'adresse, "
+          . "plutôt qu'en passant par le lien contenu dans l'e-mail — les navigateurs intégrés aux "
+          . "applications de messagerie ne conservent pas toujours les cookies de session.\n"
+          . "  2. Dites-nous quel appareil et quel navigateur vous utilisez. Cela nous permettra de "
+          . "reproduire exactement votre situation.\n\n"
+          . "Écrivez-nous simplement en répondant à ce message.\n\n"
+          . "Cordialement,\n\n".$tail;
+        return [$subject, $body, $opts];
+    }
+
+    $subject = "VESTRA — your access: what we found and fixed";
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Thank you for reporting this, and sorry for the trouble.\n\n"
+      . "We have checked your account in detail. There is nothing for you to fix: the account is "
+      . "active, your e-mail address is confirmed, catalogue access is open, and your credentials "
+      . "are correct — our logs show your sign-ins succeeding. So there is no document to send and "
+      . "no password to reset.\n\n"
+      . ($fixed
+          ? "We did find a fault on our side, and it is fixed. Our system kept only one remembered "
+            . "sign-in per account: the moment you signed in from another device or browser, the "
+            . "first one was cleared — and that device sent you back to the login page. Each device "
+            . "now keeps its own.\n\n"
+          : "")
+      . "If it happens again, two things would help us a great deal:\n\n"
+      . "  1. Open vestrasales.com directly in Safari or Chrome by typing the address, rather than "
+      . "through the link in an e-mail — the browsers built into mail apps do not always keep "
+      . "session cookies.\n"
+      . "  2. Tell us which device and browser you are using, so we can reproduce your exact "
+      . "situation.\n\n"
+      . "Just reply to this message.\n\n"
+      . "Kind regards,\n\n".$tail;
+    return [$subject, $body, $opts];
+}

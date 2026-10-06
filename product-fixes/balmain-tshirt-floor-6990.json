@@ -1,0 +1,5 @@
+[
+  { "match": "blm-xf1ee005",     "expect": 1, "price": "69.90" },
+  { "match": "blm-xf1ee005bb",   "expect": 1, "price": "69.90" },
+  { "match": "blm-xf1ee005bb01", "expect": 1, "price": "69.90" }
+]

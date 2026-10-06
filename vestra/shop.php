@@ -1,0 +1,652 @@
+<?php
+require __DIR__.'/inc/products.php';
+$NAV = 'shop';
+/* The catalogue is the page a brand search should land on, so the houses in stock belong
+   in its title and description rather than only in the keyword tag. Both fall back to the
+   plain wording when nothing is stocked, and the brand list comes from live inventory. */
+$_shopBrands = vestra_seo_brands(6);
+$PAGE = $_shopBrands
+    ? sprintf(t('%s wholesale — Catalog'), implode(', ', array_slice($_shopBrands, 0, 4)))
+    : t('Catalog');
+$META = t('Browse VESTRA\'s wholesale catalogue — authentic branded & designer fashion for boutiques. KYC-verified sellers, trade pricing on registration, low minimums, invoice-based B2B ordering across Europe.');
+if ($_shopBrands) {
+    $META = sprintf(t('%s and more, at trade prices for boutiques.'), implode(', ', $_shopBrands)).' '.$META;
+}
+/* The footwear collection gets its own title and description. ?section= stays in the
+   query string (.htaccess leaves it there and head.php keeps it in the canonical), so
+   /shop?section=footwear is a separate address for a search engine -- and until now it
+   carried the apparel title, so "footwear wholesale" had nothing to land on. */
+$_shopSec = strtolower(trim((string)($_GET['section'] ?? '')));
+if ($_shopSec === 'footwear') {
+    $PAGE     = sprintf(t('%s wholesale — Catalog'), t('Footwear'));
+    $META     = t('Spanish-made footwear wholesale — sneakers, boots, sandals, loafers and slippers in full size series for shoe shops and boutiques. Trade prices on registration, ordered by the series, invoice-based B2B ordering across Europe.');
+    $KEYWORDS = vestra_seo_cat_b2b_keywords('Footwear', vlang());
+}
+/* Ic camasiri bolmesi de kendi baslik/aciklamasini tasiyor. Ayakkabi icin 3 Eylul'de
+   yazilan gerekcenin aynisi, ve o zaman bu bolme HENUZ YOKTU: 146 ilanlik bolme
+   /shop?section=underwear adresinde giyim basligiyla duruyordu, yani "wholesale
+   lingerie / bras wholesale" aramasinin inecegi sayfa kendini "Apparel" diye
+   tanitiyordu. Etiket vestra_sections()'tan ("Underwear"), SEO adresi /b2b/intimates
+   -- ikisinin AYRI olmasinin sebebi inc/seo.php'de yazili. */
+elseif ($_shopSec === 'underwear') {
+    $PAGE     = sprintf(t('%s wholesale — Catalog'), t('Underwear'));
+    $META     = t('Wholesale intimates — bras, briefs, sleepwear and socks in full packs for boutiques and lingerie shops. Trade prices on registration, ordered by the pack, invoice-based B2B ordering and worldwide shipping.');
+    $KEYWORDS = vestra_seo_cat_b2b_keywords('Underwear', vlang());
+}
+require __DIR__.'/inc/head.php';
+$products = vestra_products();
+
+/* Vitrin bolmesi. Bos ya da tanimsiz gelen ?section= PREMIUM'a duser -- eski bir
+   baglanti, bir arama motoru sonucu ya da elle yazilmis bir adres, bos bir izgara
+   yerine ana koleksiyonu acsin. */
+$SECTIONS = vestra_sections();
+$SECTION  = strtolower(trim((string)($_GET['section'] ?? '')));
+if (!isset($SECTIONS[$SECTION])) $SECTION = 'premium';
+/* Sayimlar SUZMEDEN once, tum katalog uzerinden: sekmede kac urun oldugunu
+   gostermek icin, ve bir bolme bosaldiginda sekmeyi gizleyebilmek icin. */
+$sectionCounts = [];
+foreach ($SECTIONS as $k => $_l) $sectionCounts[$k] = 0;
+foreach ($products as $p) $sectionCounts[vestra_product_section($p)]++;
+$products = array_values(array_filter($products, fn($p) => vestra_product_section($p) === $SECTION));
+/* Where vestra_products() put each item before any reordering. The "newest" sort
+   uses catalogue position as its proxy for age, so it has to read the original
+   position -- lifting whole houses to the front would otherwise present them as the
+   oldest stock on the page. */
+foreach ($products as $i => $_) $products[$i]['_ord'] = $i;
+
+/* Vitrin sirasi TEK yerde: vestra_shop_order() (inc/products.php). Bolmeler,
+   sirali listeler ve "neden bu sira" gerekcesi orada yazili; burada yalnizca
+   cagriliyor ki sira sayfa govdesine gomulu kalmasin ve sinanabilsin. */
+$products = vestra_shop_order($products);
+$catCounts = []; foreach($products as $p){ $c=$p['cat']??'Other'; $catCounts[$c]=($catCounts[$c]??0)+1; }
+arsort($catCounts);
+/* Per-brand line-sheet downloads (public .xlsx with photos + codes, no pricing). */
+$brandCounts = []; foreach($products as $p){ $b=trim((string)($p['brand']??'')); if($b==='') continue; $brandCounts[$b]=($brandCounts[$b]??0)+1; }
+arsort($brandCounts);
+?>
+<style>
+/* Großhandelskatalog — "premium white" theme, scoped to /shop only. The dark site
+   header stays as top chrome; body + footer are repainted here because this page
+   only ever renders the catalog. Product-image tiles keep their dark gradient. */
+body{background:#f4f2ee}
+/* Bolme secici: iki pil degil, iki KART. Bolme katalogun en ust ayrimi (bir
+   bolmeden digerine gecmek marka filtresi degistirmek degil, baska bir vitrine
+   girmek) -- kucuk bir pil bunu tasimiyordu ve gozden kaciyordu. */
+.secttabs{display:flex;gap:12px;margin:0 0 26px;flex-wrap:wrap}
+/* box-sizing SART: bu sayfada genel bir border-box kurali yok, dolayisiyla
+   flex-basis'e eklenen ic bosluk ve cerceve kartlari kabin DISINA tasiriyordu --
+   telefonda kart ekrani 13px asip alttaki marka rayinin uzerine biniyordu. */
+/* min-width:0 de SART: bir flex ogesinin varsayilan min-width'i 'auto', yani
+   icerigin min-content genisligi. Alt satir tek satira zorlandigi icin
+   (white-space:nowrap) o olcu 342px'lik kabi asiyordu ve ellipsis hic devreye
+   girmiyordu -- kart kabin disina tasiyordu, kucultulmuyordu. */
+.secttab{box-sizing:border-box;min-width:0;flex:1 1 250px;display:flex;align-items:center;gap:13px;padding:13px 16px;
+  border:1px solid #e6e0d5;border-radius:16px;background:#fff;text-decoration:none;
+  transition:border-color .18s,box-shadow .18s,transform .18s}
+.secttab:hover{border-color:#cbbf9f;transform:translateY(-1px);
+  box-shadow:0 12px 26px -18px rgba(60,50,30,.6)}
+.secttab .sectico{flex:none;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
+  background:rgba(169,127,44,.09);color:#a97f2c}
+.secttab .sectico svg{width:23px;height:23px}
+.secttab .secttxt{min-width:0}
+.secttab .sectname{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;
+  color:#211d17;letter-spacing:-.01em}
+.secttab .sectn{font-size:11px;font-weight:700;color:#6f695e;background:#f3efe8;
+  border-radius:999px;padding:2px 8px;letter-spacing:.02em}
+.secttab .sectsub{display:block;font-size:12.5px;color:#6f695e;margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.secttab .sectgo{margin-left:auto;padding-left:8px;color:#cbbf9f;font-size:17px;
+  transition:transform .2s,color .2s}
+.secttab:hover .sectgo{transform:translateX(3px);color:#a97f2c}
+.secttab.on{background:#211d17;border-color:#211d17}
+.secttab.on .sectname{color:#f6f3ec}
+.secttab.on .sectsub{color:#b3aa99}
+.secttab.on .sectn{background:rgba(255,255,255,.13);color:#e9e3d7}
+.secttab.on .sectico{background:rgba(201,168,106,.16);color:#c9a86a}
+.secttab.on .sectgo{color:#c9a86a}
+@media(max-width:640px){
+  .secttabs{gap:9px;margin-bottom:20px}
+  /* Telefonda kartlar alt alta ve tam genislikte: alt satir kesilmek yerine
+     sarabilir, cunku artik yer var (masaustunde tek satirda kaliyor). */
+  .secttab .sectsub{white-space:normal}
+  .secttab{flex:1 1 100%;padding:11px 13px;gap:11px}
+  .secttab .sectico{width:36px;height:36px;border-radius:10px}
+  .secttab .sectico svg{width:20px;height:20px}
+}
+.shopwrap{--bg:#f4f2ee;--bg2:#ffffff;--bg3:#f3efe8;--ink:#211d17;--mut:#6f695e;--acc:#a97f2c;--line:#e6e0d5;--ok:#1f9d63;--bad:#c0392b;color:var(--ink)}
+.shopwrap h1,.shopwrap h2,.shopwrap h3{color:var(--ink)}
+.shopwrap .filterblock,.shopwrap .scard{box-shadow:0 1px 3px rgba(60,50,30,.05)}
+.shopwrap .fcheck:hover,.shopwrap .filter-export:hover{background:rgba(0,0,0,.045)}
+.shopwrap .fcheck.on{background:rgba(169,127,44,.08)}
+.bseo{display:flex;flex-wrap:wrap;gap:7px;margin:-6px 0 22px}
+.bseo a{font-size:12px;color:#6f695e;text-decoration:none;border:1px solid #e6e0d5;
+  background:#fff;border-radius:999px;padding:5px 12px}
+.bseo a:hover{border-color:#a97f2c;color:#a97f2c}
+/* Telefonda gizli: marka rayi zaten ayni markalari listeliyor, pillerin
+   tek isi arama motoru icin /wholesale/<marka> baglantisi -- dar ekranda
+   urunlerin onune ikinci bir marka menusu koyuyordu. */
+@media(max-width:640px){.bseo{display:none}}
+.shopwrap .fcount{background:rgba(0,0,0,.05)}
+.shopwrap .scard:hover{box-shadow:0 12px 30px rgba(60,50,30,.16);border-color:rgba(169,127,44,.4)}
+footer{background:#14110c;border-top:0;color:#b8b2a4;margin-top:0}
+footer a{color:#d8bd86}
+
+/* ── Editorial masthead ──────────────────────────────────────────────────── */
+.sphead{padding:36px 0 20px;border-bottom:1px solid var(--line);margin-bottom:26px}
+.sphead-eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--acc);font-weight:700;margin-bottom:10px}
+.sphead h1{font-size:clamp(30px,5vw,54px);margin:0 0 8px;letter-spacing:-.022em}
+.sphead p{max-width:52ch;text-wrap:pretty}
+
+/* ── Brand rail — the houses in stock, in their own wordmarks ─────────────
+   A dark band under the cream masthead: the wordmarks are drawn white, so they
+   need the near-black ground the rest of the site gives them. Scrolls sideways
+   on its own rather than wrapping, so the row reads as one continuous strip. */
+.brandrail{display:flex;gap:0;overflow-x:auto;overflow-y:hidden;margin:0 0 30px;
+  background:linear-gradient(180deg,#141318,#0e0e11);border:1px solid #262229;border-radius:14px;
+  scrollbar-width:thin;scrollbar-color:rgba(201,168,106,.45) transparent;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 30px -18px rgba(38,30,15,.55);
+  /* .shopwrap repaints --acc to the deeper gold that reads on cream; this band is
+     near-black, so it takes the dark-theme gold back for its own descendants. */
+  --acc:#c9a86a}
+.brandrail::-webkit-scrollbar{height:6px}
+.brandrail::-webkit-scrollbar-thumb{background:rgba(201,168,106,.4);border-radius:3px}
+.brail-cell{flex:0 0 auto;width:154px;height:86px;display:flex;align-items:center;justify-content:center;
+  position:relative;background:transparent;border:0;border-right:1px solid rgba(255,255,255,.07);
+  cursor:pointer;padding:16px 18px;transition:background .35s var(--ease)}
+.brail-cell:last-child{border-right:0}
+.brail-cell:hover{background:rgba(201,168,106,.09)}
+.brail-cell .brand-logo{width:100%;max-width:112px;height:auto;opacity:.68;
+  filter:drop-shadow(0 1px 8px rgba(0,0,0,.55));transition:opacity .35s var(--ease),transform .35s var(--ease)}
+.brail-cell:hover .brand-logo,.brail-cell.on .brand-logo{opacity:1;transform:translateY(-2px)}
+/* Active house is marked by a gold underline that draws in, not by a fill. */
+.brail-cell::after{content:'';position:absolute;left:50%;right:50%;bottom:0;height:2px;background:var(--acc);
+  opacity:0;transition:left .45s var(--ease),right .45s var(--ease),opacity .45s var(--ease)}
+.brail-cell.on::after,.brail-cell:hover::after{left:10%;right:10%;opacity:1}
+.brail-n{position:absolute;top:9px;right:11px;font-size:9px;font-weight:700;letter-spacing:.06em;
+  color:rgba(255,255,255,.42);font-variant-numeric:tabular-nums}
+.brail-all{width:104px}
+.brail-allx{font-family:'Playfair Display',Georgia,serif;font-size:19px;color:#fff;opacity:.82;
+  letter-spacing:.03em}
+.brail-cell.on .brail-allx{opacity:1}
+/* The monogram fallback is drawn for the dark site theme; it needs its own sizing here. */
+.brail-cell .bmono-mark{font-size:23px}
+.brail-cell .bmono-name{font-size:8px;letter-spacing:.22em}
+@media(max-width:640px){
+  .brail-cell{width:126px;height:74px;padding:12px 14px}
+  .brail-cell .brand-logo{max-width:92px}
+  .sphead{padding:26px 0 16px}
+}
+
+/* ── Mosaic shapes ───────────────────────────────────────────────────────
+   Wide tiles get a landscape crop instead of the 3/4 portrait, otherwise a
+   double-width card would tower over its neighbours. */
+/* SATILDI serdi CAPRAZ ve BUYUK (operator, 12 Eyl 2026). Eskiden sol ustte
+   10.5px'lik bir pildi ve iki kusuru vardi: (1) .svbadge de top:10/left:10'da
+   duruyor ve z-index'i daha yuksek, yani DOGRULANMIS bir saticinin satilmis
+   ilaninda yesil rozet SATILDI'nin uzerine biniyordu; (2) fotografin ustunde
+   kucuk kaliyordu. Ortadan gecen bir bant ikisini de cozuyor: kose rozetleriyle
+   hic carpismiyor ve ilk bakista okunuyor.
+   left/right NEGATIF: dondurulen bir kutunun uclari aksi halde karonun
+   icinde kalir ve bant yarim gorunur (.sthumb zaten overflow:hidden).
+   pointer-events:none -- bant kartin kendi baglantisini yutmamali. */
+.shopwrap .ssoldbadge{position:absolute;left:-18%;right:-18%;top:50%;
+  transform:translateY(-50%) rotate(-16deg);transform-origin:center;
+  z-index:5;pointer-events:none;display:flex;align-items:center;justify-content:center;
+  padding:9px 0;background:linear-gradient(180deg,rgba(22,19,17,.92),rgba(22,19,17,.84));
+  border-top:1px solid rgba(255,255,255,.28);border-bottom:1px solid rgba(255,255,255,.28);
+  box-shadow:0 10px 28px rgba(0,0,0,.40);
+  color:#fff;font-size:15px;font-weight:800;letter-spacing:3.2px;text-transform:uppercase;
+  text-shadow:0 1px 2px rgba(0,0,0,.55)}
+/* Genis karo iki sutun kapliyor; ayni punto orada kucuk kalirdi. */
+.shopwrap .scard-wide .ssoldbadge{font-size:18px;letter-spacing:4px}
+/* Arapcada sayfa saga akiyor; bant da okuma yonuyle ayni tarafa egilsin.
+   letter-spacing BIRAKILIYOR: Arap yazisi bitisik ve harf araligi baglari
+   gevsetip kelimeyi dagitir -- Latin'de ferahlik olan sey orada kusur. */
+[dir="rtl"] .shopwrap .ssoldbadge{transform:translateY(-50%) rotate(16deg);
+  letter-spacing:normal}
+/* Fotograf soluyor ama GIZLENMIYOR: urun hala taninmali. */
+.shopwrap .sthumb-sold .sthumbi{opacity:.45;filter:grayscale(.55)}
+.shopwrap .scard-wide{grid-column:span 2}
+.shopwrap .scard-wide .sthumb{aspect-ratio:16/10}
+.shopwrap .scard-wide .stitle{font-size:15px}
+.shopwrap .scard-wide .samt{font-size:20px}
+.shopwrap .scard-tall .sthumb{aspect-ratio:3/4.5}
+@media(max-width:900px){
+  .shopwrap .scard-wide{grid-column:span 1}
+  .shopwrap .scard-wide .sthumb{aspect-ratio:3/4}
+}
+
+/* ── Card craft ──────────────────────────────────────────────────────────
+   A gold hairline draws across the top of the card and the photo settles a
+   touch on hover — the same gesture as the brand rail, so the page has one
+   vocabulary rather than three. */
+.shopwrap .scard{position:relative}
+.shopwrap .scard::before{content:'';position:absolute;top:0;left:50%;right:50%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--acc),transparent);z-index:5;opacity:0;
+  transition:left .5s var(--ease),right .5s var(--ease),opacity .5s var(--ease)}
+.shopwrap .scard:hover::before{left:0;right:0;opacity:1}
+.shopwrap .scard:hover .sbrand{letter-spacing:.19em}
+.shopwrap .sbrand{transition:letter-spacing .45s var(--ease)}
+</style>
+<style>
+  /* Uc baglanti, basligin hemen altinda: izgarayi bolmeden ama gozden kacmadan. */
+  .sphead-links{display:flex;gap:18px;flex-wrap:wrap;margin:14px 0 0;font-size:13.5px}
+  .sphead-links a{color:var(--acc);border-bottom:1px solid rgba(201,168,106,.32);padding-bottom:2px;transition:.18s}
+  .sphead-links a:hover{color:var(--ink);border-bottom-color:var(--ink)}
+</style>
+<div class="wrap wide shopwrap">
+  <div class="phead sphead">
+    <div class="crumbs"><a href="/"><?= t('Home') ?></a> · <?= t('Catalog') ?></div>
+    <div class="sphead-eyebrow"><?= t('Wholesale') ?> · <?= count($brandCounts) ?> <?= t('houses') ?> · <?= count($products) ?> <?= t('references') ?></div>
+    <h1><?= t('Wholesale catalog') ?></h1>
+    <p><?= t('Verified branded & textile fashion — minimum order & bulk pricing per product.') ?></p>
+    <?php /* The grid is for browsing one garment at a time; a buyer pricing a whole order
+             wants every article, price and MOQ on one screen instead. That view exists at
+             /price-list, and without a way in from here nobody finds it -- the address was
+             only ever going out by e-mail. */ ?>
+    <div class="sphead-links">
+      <a href="/price-list"><?= t('Full price list') ?> →</a>
+      <a href="/price-lists"><?= t('By brand') ?> →</a>
+      <a href="/wholesale-list.xlsx"><?= t('Excel') ?> ↓</a>
+    </div>
+  </div>
+
+  <?php /* Bolme secici. BASLIGIN HEMEN ALTINDA, marka rayindan ONCE: ray zaten
+           SECILI bolmenin markalarini listeliyor, yani mantik sirasi once bolme
+           sonra marka. Eskiden rayin ve SEO pillerinin ALTINDA duran iki kucuk
+           pil vardi ve ayakkabi bolmesi pratikte gorunmuyordu (operator: "ayakkabilara
+           gecis kolay olsun"). Bos bir bolmenin sekmesi hala BASILMIYOR: tiklayana
+           bos izgara gostermek, katalogda bir sey yokmus izlenimi birakir. */ ?>
+  <?php if (count(array_filter($sectionCounts)) > 1): ?>
+    <nav class="secttabs" aria-label="<?= htmlspecialchars(t('Collection')) ?>">
+      <?php foreach($SECTIONS as $sk => $sl): if(!$sectionCounts[$sk]) continue;
+            $snote = vestra_section_note($sk); ?>
+        <a class="secttab<?= $sk===$SECTION ? ' on' : '' ?>" href="/shop?section=<?= urlencode($sk) ?>"<?= $sk===$SECTION ? ' aria-current="page"' : '' ?>>
+          <span class="sectico" aria-hidden="true">
+            <?php if ($sk === 'footwear'): ?>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2.6 12.4h3.1l1.7-2 2.6 2.4c1.9 1.7 4.3 2.7 6.9 2.9l3.1.3c.9.1 1.6.9 1.6 1.8v1.1H2.6z"/>
+              <path d="M6.4 12.8l1.8 1.6M9.9 13.3l1.7 1.5"/>
+            </svg>
+            <?php else: ?>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="5.6" r="1.9"/><path d="M12 7.5V9.4"/>
+              <path d="M12 9.4l8.3 5.5c.9.6.5 2.1-.6 2.1H4.3c-1.1 0-1.5-1.5-.6-2.1L12 9.4z"/>
+            </svg>
+            <?php endif; ?>
+          </span>
+          <span class="secttxt">
+            <span class="sectname"><?= htmlspecialchars(t($sl)) ?><span class="sectn"><?= (int)$sectionCounts[$sk] ?></span></span>
+            <?php if ($snote !== ''): ?><span class="sectsub"><?= htmlspecialchars(t($snote)) ?></span><?php endif; ?>
+          </span>
+          <span class="sectgo" aria-hidden="true">→</span>
+        </a>
+      <?php endforeach; ?>
+    </nav>
+  <?php endif; ?>
+
+  <?php if($brandCounts): /* Brand rail — the houses in stock, set in their own wordmarks.
+       Doubles as navigation: a tap filters the grid to that house. Rendered for guests too
+       (the grid is public), so it stays a showpiece rather than a members-only tool. */ ?>
+  <div class="brandrail" role="group" aria-label="<?= htmlspecialchars(t('Filter by brand')) ?>">
+    <button type="button" class="brail-cell brail-all on" data-brand=""><span class="brail-allx"><?= t('All') ?></span></button>
+    <?php foreach($brandCounts as $b=>$cnt): ?>
+      <button type="button" class="brail-cell" data-brand="<?= htmlspecialchars($b) ?>" title="<?= htmlspecialchars($b) ?> · <?= $cnt ?>">
+        <?= vestra_brand_card($b) ?>
+        <span class="brail-n"><?= $cnt ?></span>
+      </button>
+    <?php endforeach; ?>
+  </div>
+  <?php /* The rail above filters this page with JavaScript, so its cells are buttons and a
+           crawler follows none of them -- which left the per-brand landing pages reachable
+           only from the sitemap. These are real links to them: a buyer who wants just one
+           house gets a page about that house, and the pages get found. */ ?>
+  <nav class="bseo" aria-label="<?= htmlspecialchars(t('Wholesale by house')) ?>">
+    <?php foreach(array_keys($brandCounts) as $b): ?>
+      <a href="/wholesale/<?= urlencode(vestra_brand_slug($b)) ?>"><?= htmlspecialchars($b) ?>
+        <?= htmlspecialchars(vestra_seo_wholesale_word(vlang())) ?></a>
+    <?php endforeach; ?>
+  </nav>
+  <?php endif; ?>
+  <?php /* Cevrilmis fiyat gosteriyorsak bunu SOYLE. Sessizce ceviren bir vitrin,
+             alicinin kasada baska bir rakam gormesi demek. */ ?>
+  <?php if(($__cn = vestra_money_note()) !== ''): ?>
+    <p class="curnote">💱 <?= htmlspecialchars($__cn) ?></p>
+  <?php endif; ?>
+  <?php if($PRICE_GATE==='guest'): ?>
+    <div class="banner info" style="margin-bottom:22px">🔒 <?= t('Wholesale prices are visible to <b>verified buyers</b>.') ?>
+      &nbsp;<a href="/login?back=/shop" class="acc btn btn-sm btn-o" style="display:inline-flex;margin-left:6px"><?= t('Sign in') ?></a>
+      <a href="/register" class="acc btn btn-sm btn-o" style="display:inline-flex;margin-left:6px"><?= t('Register free') ?></a></div>
+  <?php elseif($PRICE_GATE==='approval'): ?>
+    <?php /* Giris yapmis ama fiyat kapali: kapiyi ONAY acar (KURAL 2). "Belgenizi
+             yukleyin, yukleyince acilir" demek yanlis: belge uyari, kapi degil.
+             Belgesi bizde olana yukleme baglantisi da gosterilmez. */ ?>
+    <div class="banner info" style="margin-bottom:22px">⏳ <?= t('Your account is being reviewed. Wholesale prices open as soon as we activate it — usually the same day.') ?>
+      <?php if(!in_array(auth_trade_doc_status($AUTH_USER), ['uploaded','approved'], true)): ?>
+      &nbsp;<a href="<?= htmlspecialchars($KYC_URL) ?>" class="acc btn btn-sm btn-o" style="display:inline-flex;margin-left:6px"><?= t('Add document') ?></a>
+      <?php endif; ?></div>
+  <?php endif; ?>
+  <div class="shoplayout">
+
+    <!-- ── Sidebar ───────────────────────────────────────────────────────── -->
+    <aside class="shopside">
+      <?php if(!$MEMBER): ?>
+      <!-- Kayit paneli artik kenar cubugunun YERINE gecmiyor, BASINA ekleniyor.
+           Onceden misafire arama, kategori listesi ve indirmelerin tamami kapaliydi;
+           urunler goruntulense de katalog gezilemiyordu. Operator kurali net:
+           urunler herkese acik, YALNIZCA fiyat gizli. Indirmeler ayri bir konu ve
+           kapali kaliyor -- o dosya bir kayit magneti, urunun gorunurlugu degil. -->
+      <div class="filterblock lockside">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.5"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        <div class="filter-title" style="border:0;padding-left:0"><?= t('Trade access') ?></div>
+        <p class="hint" style="margin:0 0 14px;font-size:12px;line-height:1.6">
+          <?= t('Trade pricing and line-sheet downloads open up once you register. Free, and takes a minute.') ?>
+        </p>
+        <a class="btn btn-p btn-sm" style="width:100%;justify-content:center;margin-bottom:8px" href="/register"><?= t('Register free') ?></a>
+        <a class="btn btn-o btn-sm" style="width:100%;justify-content:center" href="/login?back=/shop"><?= t('Sign in') ?></a>
+      </div>
+      <?php endif; ?>
+      <div class="filterblock">
+        <div class="filter-title"><?= t('Search') ?></div>
+        <div class="filter-searchbox">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+          <?php /* type="search": tarayicinin yerlesik temizleme (x) dugmesi —
+                   uzun bir aramayi geri silmekten daha konforlu. */ ?>
+          <input id="fsearch" type="search" autocomplete="off" placeholder="<?= htmlspecialchars(t('Brand, product, SKU…')) ?>" oninput="applyFilters()">
+        </div>
+      </div>
+
+      <div class="filterblock">
+        <div class="filter-title"><?= t('Category') ?></div>
+        <label class="fcheck on" data-type="cat" data-val="">
+          <span class="fcheck-dot"></span><?= t('All categories') ?><span class="fcount"><?= count($products) ?></span>
+        </label>
+        <?php foreach($catCounts as $cat=>$cnt): ?>
+          <label class="fcheck" data-type="cat" data-val="<?= htmlspecialchars($cat) ?>">
+            <span class="fcheck-dot"></span><?= htmlspecialchars($cat) ?><span class="fcount"><?= $cnt ?></span>
+          </label>
+        <?php endforeach; ?>
+      </div>
+
+      <div class="filterblock">
+        <div class="filter-title"><?= t('Pricing mode') ?></div>
+        <?php foreach([
+          ''       => t('All types'),
+          'fixed'  => t('Fixed price'),
+          'sale'   => t('Sale / Clearance'),
+          'offer'  => t('Make an offer'),
+        ] as $mv => $ml): ?>
+          <label class="fcheck <?= $mv===''?'on':'' ?>" data-type="mode" data-val="<?= $mv ?>">
+            <span class="fcheck-dot"></span><?= $ml ?>
+          </label>
+        <?php endforeach; ?>
+      </div>
+
+      <div class="filterblock">
+        <div class="filter-title"><?= t('Exports') ?></div>
+        <a class="filter-export" href="/catalog-csv">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 21h16"/></svg>
+          <?= t('Download CSV') ?>
+        </a>
+        <a class="filter-export" href="/catalog-pdf" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 13h5M9.5 16h5"/></svg>
+          PDF <?= t('catalog') ?>
+        </a>
+      </div>
+
+      <?php /* Indirmeler UYE'ye ozel kaliyor. Bu dosya urunun gorunurlugu degil, bir
+               kayit magneti: fotograflı ve kodlu tam Excel'i kayitsiz vermek, katalogu
+               tek tiklamada disari kopyalanabilir yapardi. Arama ve kategoriler ise
+               artik herkese acik -- kural "urunler acik, fiyat gizli". */ ?>
+      <?php /* HANGI LINE-SHEET: kapiya gore. Bu blok UYE'ye aciliyordu ama her marka
+               satiri /catalog'a, yani SOGUK aliciya giden fiyatsiz tanitim dosyasina
+               baglaniyordu -- 11 sutunun hicbiri fiyat degil. Onayli uye, kendisi icin
+               uretilen 19 sutunluk gercek listeyi (artikel no, renk, beden serisi, MOQ,
+               LOT, toptan fiyat, kademe, stok, urun linki) sol sutunda HIC gormuyordu:
+               dosyalar vardi, bu ekranda baglantisi yoktu. "Bir ekranda gorunmeyen
+               secenek olmayan secenektir" -- KURAL 2e'nin bu dosyadaki hali.
+               Kapi yeniden tanimlanmadi: $PRICES head.php'den geliyor ve
+               /wholesale-list.* zaten kendi tarafinda auth_prices_unlocked() soruyor,
+               yani baglantiyi gizlemek degil SUNUCU koruyor (KURAL 19). */ ?>
+      <?php if($MEMBER): $lsPriced = $PRICES; ?>
+      <div class="filterblock">
+        <div class="filter-title"><?= t('Line-sheets by brand') ?></div>
+        <?php if($lsPriced): ?>
+          <div class="lsrow">
+            <a class="filter-export lsmain" href="/wholesale-list.pdf" target="_blank">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 13h5M9.5 16h5"/></svg>
+              <?= t('All brands') ?>
+            </a>
+            <a class="lsalt" href="/wholesale-list.xlsx">XLSX</a>
+          </div>
+          <?php foreach($brandCounts as $b=>$cnt): ?>
+            <div class="lsrow">
+              <a class="filter-export lsmain" href="/wholesale-list.pdf?brand=<?= rawurlencode($b) ?>" target="_blank"
+                 title="<?= htmlspecialchars(sprintf(t('%s line-sheet — PDF: photos, article numbers, sizes, lot, MOQ and your wholesale prices'), $b)) ?>">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 13h5M9.5 16h5"/></svg>
+                <?= htmlspecialchars($b) ?><span class="fcount"><?= $cnt ?></span>
+              </a>
+              <a class="lsalt" href="/wholesale-list.xlsx?brand=<?= rawurlencode($b) ?>"
+                 title="<?= htmlspecialchars(sprintf(t('%s line-sheet — Excel: the same list, sortable and ready to paste'), $b)) ?>">XLSX</a>
+            </div>
+          <?php endforeach; ?>
+          <p class="hint" style="margin:8px 6px 0;font-size:11.5px;line-height:1.5"><?= t('Article numbers, colours, size run, lot size, MOQ and your wholesale prices. PDF to print or forward · Excel to sort and paste.') ?></p>
+        <?php else: ?>
+          <a class="filter-export" href="/catalog">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+            <?= t('All brands') ?> · Excel
+          </a>
+          <?php foreach($brandCounts as $b=>$cnt): ?>
+            <a class="filter-export" href="/catalog?brand=<?= rawurlencode($b) ?>" title="<?= htmlspecialchars(sprintf(t('%s line-sheet (Excel, with photos)'), $b)) ?>">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+              <?= htmlspecialchars($b) ?><span class="fcount"><?= $cnt ?></span>
+            </a>
+          <?php endforeach; ?>
+          <p class="hint" style="margin:8px 6px 0;font-size:11.5px;line-height:1.5"><?= t('Excel with product photos &amp; identification codes · no pricing (trade prices unlock after free registration).') ?></p>
+        <?php endif; ?>
+      </div>
+      <?php endif; ?>
+    </aside>
+
+    <!-- ── Main content ──────────────────────────────────────────────────── -->
+    <div class="shopmain">
+      <div class="shopbar">
+        <span class="shopcount" id="shopcount"><?= count($products) ?> <?= t('products') ?></span>
+        <span class="grow"></span>
+        <?php /* Siralama artik misafire de acik: bir katalog aracidir, fiyat degil.
+                 Fiyata gore siralama tek istisna -- fiyati gormeyene fiyata gore
+                 siralama sunmak, gizledigimiz bilgiyi siralamayla geri vermek olur. */ ?>
+        <?php if(true): ?>
+        <select class="sortsel" id="sortsel" onchange="applyFilters()">
+          <option value="def"><?= t('Default order') ?></option>
+          <?php if($PRICES): ?>
+          <option value="price_asc"><?= t('Price: low → high') ?></option>
+          <option value="price_desc"><?= t('Price: high → low') ?></option>
+          <?php endif; ?>
+          <option value="newest"><?= t('Newest first') ?></option>
+          <option value="name"><?= t('Name A–Z') ?></option>
+        </select>
+        <?php endif; ?>
+      </div>
+
+      <div class="shopgrid" id="shopgrid">
+        <?php foreach($products as $idx=>$p):
+          $from = vestra_from_price($p);
+          $dmode = vestra_display_mode($p);   // gercek indirimi olmayan "sale" burada fixed sayilir
+          /* Signed-in members (any status) see the catalogue photo-forward, like the
+             showroom: the first product photo is the card front and the SECOND crossfades
+             in on hover (or while the card is centered in view on touch). Guests get NO
+             photo — only the brand tile stays as the gate. */
+          /* Galeri artik herkese acik: fotograf urunun kendisi, fiyat degil. */
+          $imgs = (!empty($p['images']) && is_array($p['images'])) ? array_values(array_filter($p['images'])) : [];
+          $img0 = $imgs[0] ?? '';   // base photo (members only)
+          $img1 = $imgs[1] ?? '';   // second photo → hover reveal
+          $imgCount = count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : []));
+          /* Rozet ile SIRA ayni tanimdan okuyor (vestra_product_is_new): iki ayri
+             esik olsaydi sayfa "NEW" rozetli ama one alinmamis kart gosterirdi. */
+          $isNew = vestra_product_is_new($p);
+          /* Editorial rhythm: every 7th tile runs wide (landscape crop), every 11th runs
+             tall. A uniform 4-up grid of 343 identical portrait tiles reads as a
+             spreadsheet; breaking it on a fixed cadence reads as a lookbook. Pinned
+             products already take a 2x2 lead tile, so they opt out of the cadence.
+             The grid packs dense, so filtering never leaves a hole behind a big tile. */
+          $shape = '';
+          if (empty($p['pinned'])) {
+            if     ($idx % 7  === 3) $shape = ' scard-wide';
+            elseif ($idx % 11 === 6) $shape = ' scard-tall';
+          }
+          ?>
+          <a class="scard<?= !empty($p['pinned']) ? ' scard-featured' : $shape ?>" href="/product?id=<?= urlencode($p['id']) ?>"
+             data-idx="<?= $idx ?>"
+             data-ord="<?= (int)($p['_ord'] ?? $idx) ?>"
+             data-cat="<?= htmlspecialchars($p['cat']??'') ?>"
+             data-brand="<?= htmlspecialchars($p['brand']??'') ?>"
+             data-mode="<?= htmlspecialchars($dmode) ?>"
+             data-price="<?= !$PRICES ? '' : ($dmode==='offer' ? 999999 : $from) ?>"
+             data-search="<?= htmlspecialchars(strtolower(vestra_product_title($p).' '.($p['sku']??'').' '.($p['cat']??''))) ?>"
+             data-name="<?= htmlspecialchars(vestra_product_name($p)) ?>">
+            <?php /* FOTOGRAFLI KART ile MARKA KARTI ayri zeminler (operator, 10 Eyl
+                     2026: "katalog fotolarini daha estetik yap"). Olculdu: katalog
+                     fotograflarinin %94'u BEYAZ zeminli packshot (35 dosyanin 33'u,
+                     kenar pikselleri > 225). Koyu gradyan + object-fit:cover ikisi de
+                     bu fotograflar icin yanlisti -- kolu/etegi kirpiyor ve beyaz
+                     zemin koyu kartin icinde sert bir kutu gibi duruyordu. Fotograf
+                     varsa acik "studyo" zemini + contain, yoksa eski marka gradyani. */ ?>
+            <div class="sthumb<?= $img0 ? ' sphoto' : '' ?><?= (function_exists('vestra_is_sold_out') && vestra_is_sold_out($p)) ? ' sthumb-sold' : '' ?>"<?= $img0 ? '' : ' style="background:linear-gradient(135deg,'.htmlspecialchars(vestra_accent($p)).',#0e0e11)"' ?>>
+              <?php /* SATILDI serdi: kart katalogda KALIYOR (marka burada satiliyor
+                       bilgisi ve SEO degeri korunsun) ama satilamadigi ilk bakista
+                       belli olsun -- alici urun sayfasina girip anlamasin. */
+                     if (function_exists('vestra_is_sold_out') && vestra_is_sold_out($p)): ?>
+                <span class="ssoldbadge"><?= t('Sold out') ?></span>
+              <?php endif; ?>
+              <?php /* The first photo is the one image search has to work with, so it names the
+                        product; the second is the same garment on hover and stays decorative. */
+                     $_alt = vestra_product_title($p); ?>
+              <?php if($img0): ?><img src="<?= htmlspecialchars($img0) ?>" alt="<?= htmlspecialchars($_alt) ?>" loading="lazy" class="sthumbi"><?php endif; ?>
+              <?php if($img1): ?><img src="<?= htmlspecialchars($img1) ?>" alt="" loading="lazy" class="sthumbi sthumbi-reveal"><?php endif; ?>
+              <?php if(!empty($p['verified'])): ?>
+                <?= vestra_verified_badge() ?>
+              <?php endif; ?>
+              <?php if(!$img0) echo vestra_brand_card($p['brand']); ?>
+              <?php if($dmode==='sale'): ?><span class="smodetag sale">−<?= vestra_discount($p) ?>%</span>
+              <?php elseif($dmode==='offer'): ?><span class="smodetag offer"><?= t('Offers') ?></span><?php endif; ?>
+              <?php if($isNew): ?><span class="snewbadge"><?= t('NEW') ?></span><?php endif; ?>
+              <?php if($imgCount > 1): ?><span class="sphotocount">🖼 <?= $imgCount ?></span><?php endif; ?>
+            </div>
+            <div class="sbody">
+              <span class="sbrand"><?= htmlspecialchars($p['brand']??'') ?></span>
+              <span class="stitle"><?= htmlspecialchars(vestra_product_name($p)) ?></span>
+              <span class="smeta"><?= htmlspecialchars($p['cat']??'') ?> &middot; SKU <?= htmlspecialchars($p['sku']??'') ?></span>
+              <span class="smeta">MOQ <b><?= $p['moq']??'?' ?></b> <?= htmlspecialchars($p['unit']??'pc') ?><?php
+                    /* Gonderim yeri gizli satirda ayirici da dusuyor: kalsaydi kart
+                       "MOQ 6 pc ·" diye yarim bir satirla biterdi. */
+                    if (!vestra_hides_ships_from($p)): ?> &middot; <?= vestra_ships_from_flag($p) ?> <?= htmlspecialchars(vestra_ships_from_label($p)) ?><?php endif; ?></span>
+              <?php if(!empty($p['colors'])): ?><span class="smeta" style="margin-top:2px"><?= vestra_color_dots((array)$p['colors'], 7) ?></span><?php endif; ?>
+              <div class="sprice">
+                <?php if(!$PRICES): ?>
+                  <span class="slock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><?= $PRICE_GATE==='approval' ? t('Awaiting approval') : t('Members only') ?></span>
+                <?php elseif($dmode==='offer'): ?>
+                  <span class="soffer">💬 <?= t('Open to offers') ?></span>
+                <?php elseif($dmode==='sale'): ?>
+                  <span class="swas"><?= vestra_money($p['list']??0) ?></span>
+                  <span class="samt"><?= vestra_money($from) ?></span>
+                  <span class="sfrom">/<?= htmlspecialchars($p['unit']??'pc') ?></span>
+                <?php else: ?>
+                  <span class="sfrom"><?= t('from') ?></span>
+                  <span class="samt"><?= vestra_money($from) ?></span>
+                  <span class="sfrom">/<?= htmlspecialchars($p['unit']??'pc') ?></span>
+                <?php endif; ?>
+              </div>
+            </div>
+          </a>
+        <?php endforeach; ?>
+      </div>
+      <div class="empty" id="noresult" style="display:none"><?= t('No products match your filters.') ?></div>
+    </div>
+  </div>
+</div>
+
+<script>
+var curCat='', curMode='', curBrand='';
+
+document.querySelectorAll('.fcheck').forEach(function(el){
+  el.addEventListener('click', function(){
+    var type=el.dataset.type, val=el.dataset.val;
+    document.querySelectorAll('.fcheck[data-type="'+type+'"]').forEach(function(x){ x.classList.remove('on'); });
+    el.classList.add('on');
+    if(type==='cat') curCat=val;
+    else curMode=val;
+    applyFilters();
+  });
+});
+
+/* Brand rail. Its own filter rather than a shortcut into the search box, so it works
+   on the guest view too -- guests get no search input but the grid is still rendered. */
+document.querySelectorAll('.brail-cell').forEach(function(el){
+  el.addEventListener('click', function(){
+    var b=el.dataset.brand||'';
+    curBrand=(curBrand===b&&b!=='')?'':b;   // tapping the active house clears it
+    document.querySelectorAll('.brail-cell').forEach(function(x){ x.classList.remove('on'); });
+    var active=curBrand===''
+      ? document.querySelector('.brail-cell.brail-all')
+      : document.querySelector('.brail-cell[data-brand="'+curBrand.replace(/"/g,'\\"')+'"]');
+    if(active) active.classList.add('on');
+    applyFilters();
+  });
+});
+
+function applyFilters(){
+  /* The search box and the sort select only exist for registered visitors -- guests get
+     the registration panel instead of the filter sidebar. Read them defensively so this
+     runs (and the product count stays correct) on the guest view too, instead of throwing
+     on a null and leaving the rest of the page's scripts dead. */
+  var qEl=document.getElementById('fsearch'), sortEl=document.getElementById('sortsel');
+  var q=((qEl&&qEl.value)||'').toLowerCase().trim();
+  var sort=(sortEl&&sortEl.value)||'def';
+  var cards=Array.from(document.querySelectorAll('#shopgrid .scard'));
+  var visible=[];
+  cards.forEach(function(c){
+    var show=(curCat===''||c.dataset.cat===curCat)&&(curMode===''||c.dataset.mode===curMode)&&(curBrand===''||c.dataset.brand===curBrand)&&(!q||c.dataset.search.indexOf(q)>=0);
+    c.style.display=show?'flex':'none';
+    if(show) visible.push(c);
+  });
+  if(sort!=='def'){
+    visible.sort(function(a,b){
+      if(sort==='price_asc')  return parseFloat(a.dataset.price)-parseFloat(b.dataset.price);
+      if(sort==='price_desc') return parseFloat(b.dataset.price)-parseFloat(a.dataset.price);
+      /* data-ord, not data-idx: idx is the position on the page, which the pinned and
+         lead-brand promotion has already rearranged. ord is where the catalogue itself
+         put the product, which is what "newest" is a proxy for. */
+      if(sort==='newest')     return parseInt(b.dataset.ord)-parseInt(a.dataset.ord);
+      if(sort==='name')       return a.dataset.name.localeCompare(b.dataset.name);
+      return 0;
+    });
+    var grid=document.getElementById('shopgrid');
+    visible.forEach(function(c){ grid.appendChild(c); });
+  }
+  var cnt=visible.length;
+  document.getElementById('shopcount').textContent=cnt+' '+(cnt===1?'<?= addslashes(t('product')) ?>':'<?= addslashes(t('products')) ?>');
+  document.getElementById('noresult').style.display=cnt?'none':'block';
+}
+applyFilters();
+/* "/" arama kutusuna odaklanir (price-list ile ayni aliskanlik). Misafirde
+   kutu yok; bir form alaninda yazarken de tetiklenmez. */
+document.addEventListener('keydown', function(e){
+  var el=document.getElementById('fsearch');
+  if(el && e.key==='/' && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName||'')){
+    e.preventDefault(); el.focus(); el.select();
+  }
+});
+/* Touch devices have no hover: reveal the product photo while the card is
+   centered in the viewport instead (same crossfade as the desktop hover). */
+if (window.matchMedia && window.matchMedia('(hover: none)').matches && 'IntersectionObserver' in window) {
+  var revIO = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){ en.target.classList.toggle('sreveal', en.intersectionRatio >= .55); });
+  }, {threshold:[.3,.55]});
+  document.querySelectorAll('#shopgrid .scard').forEach(function(c){
+    if (c.querySelector('.sthumbi-reveal')) revIO.observe(c);
+  });
+}
+</script>
+<?php require __DIR__.'/inc/foot.php';

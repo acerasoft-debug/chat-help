@@ -1,0 +1,938 @@
+[
+    {
+        "email": "info@maxfieldla.com",
+        "company": "Maxfield",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "corporate@thewebster.com",
+        "company": "The Webster",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@hlorenzo.com",
+        "company": "H.Lorenzo",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "assistance@hirshleifers.com",
+        "company": "Hirshleifers",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "support@bdgastore.com",
+        "company": "Bodega",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "cncpts@cncpts.com",
+        "company": "Concepts",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@notre-shop.com",
+        "company": "Notre",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "support@rsvpgallery.com",
+        "company": "RSVP Gallery",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@sneakerpolitics.com",
+        "company": "Sneaker Politics",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "support@feature.com",
+        "company": "Feature",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@unknwn.com",
+        "company": "Unknwn",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@socialstatuspgh.com",
+        "company": "Social Status",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@mohawkgeneralstore.com",
+        "company": "Mohawk General Store",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@unionlosangeles.com",
+        "company": "Union Los Angeles",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@blendsus.com",
+        "company": "Blends",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@thedarksideinitiative.com",
+        "company": "Darkside Initiative",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@likelihood.us",
+        "company": "Likelihood",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@xhibition.co",
+        "company": "Xhibition",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@onenessboutique.com",
+        "company": "Oneness",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@machusonline.com",
+        "company": "Machus",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@saintalfred.com",
+        "company": "Saint Alfred",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@apartmentnumber9.com",
+        "company": "Apartment Number 9",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@independence-chicago.com",
+        "company": "Independence Chicago",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@bowlsla.com",
+        "company": "Bowls LA",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@crusoeandcrusoe.com",
+        "company": "Crusoe & Crusoe",
+        "country": "United States",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@capsuletoronto.com",
+        "company": "Capsule Toronto",
+        "country": "Canada",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "support@havenshop.com",
+        "company": "Haven Vancouver",
+        "country": "Canada",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@deadstock.ca",
+        "company": "Livestock",
+        "country": "Canada",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@rodengray.com",
+        "company": "Roden Gray",
+        "country": "Canada",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@shopneighbour.com",
+        "company": "Neighbour",
+        "country": "Canada",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@nomadshop.net",
+        "company": "Nomad Toronto",
+        "country": "Canada",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@shoplostandfound.com",
+        "company": "Lost & Found",
+        "country": "Canada",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@uncleotis.com",
+        "company": "Uncle Otis",
+        "country": "Canada",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "support@goodhoodstore.com",
+        "company": "Goodhood",
+        "country": "United Kingdom",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@machine-a.com",
+        "company": "Machine-A",
+        "country": "United Kingdom",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@ujng.org",
+        "company": "UJNG",
+        "country": "United Kingdom",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "hello@willowandwolf.com",
+        "company": "Willow & Wolf",
+        "country": "United Kingdom",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@kiticymru.com",
+        "company": "Kiti Cymru",
+        "country": "United Kingdom",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@oki-ni.com",
+        "company": "Oki-ni",
+        "country": "United Kingdom",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@present-london.com",
+        "company": "Present London",
+        "country": "United Kingdom",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@hervia.com",
+        "company": "Hervia Bazaar",
+        "country": "United Kingdom",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@peggsandson.com",
+        "company": "Peggs & son",
+        "country": "United Kingdom",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@havanaboutique.ie",
+        "company": "Havana Boutique",
+        "country": "Ireland",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@leclaireur.com",
+        "company": "L'Eclaireur Paris",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "store@thebrokenarm.com",
+        "company": "The Broken Arm",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@starcowparis.com",
+        "company": "Starcow Paris",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@shinzo.paris",
+        "company": "Shinzo Paris",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@opiumparis.com",
+        "company": "Opium Paris",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@thenextdoor.fr",
+        "company": "Le Next Door",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@legrandbazarcannes.com",
+        "company": "Le Grand Bazar",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@mademoisellecannes.fr",
+        "company": "Mademoiselle Cannes",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@anrosa.fr",
+        "company": "Anrosa",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@centrecommercial.cc",
+        "company": "Centre Commercial",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@graduate-store.fr",
+        "company": "Graduate Store",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@summer-store.fr",
+        "company": "Summer Store",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "paris@tomgreyhound.com",
+        "company": "Tom Greyhound Paris",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@elevastor.com",
+        "company": "Elevastor",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@nous.paris",
+        "company": "Nous Paris",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "store@rivieraluxury.fr",
+        "company": "Riviera Luxury",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@graydalbionboutique.com",
+        "company": "Le Gray d'Albion Boutique",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@atmosphere-cannes.com",
+        "company": "Boutique Atmosphere Cannes",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@cannesselection.com",
+        "company": "Cannes Selection Boutique",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "sales@croisetteluxury.com",
+        "company": "Croisette Luxury Concept",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "boutique@villamodecannes.fr",
+        "company": "Villa Mode Cannes",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@ledixneufcannes.fr",
+        "company": "Le Dix-Neuf Cannes",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@croisetteelite.com",
+        "company": "La Croisette Elite Store",
+        "country": "France",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "support@oneblockdown.it",
+        "company": "One Block Down",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@sugar.it",
+        "company": "Sugar Arezzo",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "uomo@antonia.it",
+        "company": "Antonia Milano",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "biffi@biffi.com",
+        "company": "Biffi Boutiques",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "giomoretti@giomoretti.com",
+        "company": "Gio Moretti",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@clanupstairs.com",
+        "company": "Clan Upstairs",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@wokstore.com",
+        "company": "Wok Store",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@genteroma.it",
+        "company": "Gente Roma",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@deglieffetti.com",
+        "company": "Degli Effetti",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@suedestore.com",
+        "company": "Suede Store Roma",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@blackboxshop.com",
+        "company": "Black Box Shop",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@urbanstaroma.com",
+        "company": "Urbanstar Roma",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "boutique@tearose.it",
+        "company": "Tearose Boutique",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@cavallienastri.com",
+        "company": "Cavalli e Nastri",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@spaziorossomilano.it",
+        "company": "Spazio Rosso Milano",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "banner@biffi.com",
+        "company": "Banner Boutique",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@pupisolari.com",
+        "company": "Pupi Solari",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@salvagentemilano.it",
+        "company": "Il Salvagente Milano",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@milanohighend.it",
+        "company": "Milano High End Boutique",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "roma@bernardinimilano.com",
+        "company": "Bernardini Milano",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@coletteroma.it",
+        "company": "Colette Roma",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@loclerkroma.com",
+        "company": "Loclerk Roma",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@boutiquecastiglione.it",
+        "company": "Boutique Castiglione",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@sburoma.com",
+        "company": "SBU Roma",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@divaboutiqueroma.it",
+        "company": "Diva Boutique Roma",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@kolby.it",
+        "company": "Boutique Kolby Roma",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@siragusaluxury.it",
+        "company": "Siragusa Luxury",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@reedroma.com",
+        "company": "RE(ED) Roma",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "dantone@dantone.com",
+        "company": "DAAD Dantone",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@imarika.com",
+        "company": "Imarika",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@mluxuryboutique.it",
+        "company": "M Luxury Boutique",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "showroom@spazio38.com",
+        "company": "Spazio 38",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@boutiquesancarlo.com",
+        "company": "Boutique San Carlo",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "store@gisellaconcept.it",
+        "company": "Gisella Concept Store",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "customercare@ilsetaccioluxury.it",
+        "company": "Il Setaccio Luxury",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "boutique@suite19roma.it",
+        "company": "Suite 19 Roma",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@thestoremilan.com",
+        "company": "The Store Milan",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@nuovostore.com",
+        "company": "Nuovo Store",
+        "country": "Italy",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@santaeulalia.com",
+        "company": "Santa Eulalia",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@24-kilates.com",
+        "company": "24 Kilates",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@lacomercial.info",
+        "company": "La Comercial",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@theboostore.com",
+        "company": "Boo Barcelona",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@limitededitions.org",
+        "company": "Limited Editions BCN",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@wer-haus.com",
+        "company": "Wer-Haus",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@loficinaslowfashion.com",
+        "company": "L'Oficina Barcelona",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@outpostbarcelona.com",
+        "company": "Outpost Barcelona",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@iconicbarcelona.com",
+        "company": "Iconic Barcelona",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@darial.com",
+        "company": "Darial Barcelona",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@coquettebarcelona.com",
+        "company": "Coquette Barcelona",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "hola@sensatmode.cat",
+        "company": "Sensat Mode",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@lagauchedivinebcn.com",
+        "company": "La Gauche Divine",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@heritageboutiquebcn.com",
+        "company": "Heritage Barcelona",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "ekseption@ekseption.com",
+        "company": "Ekseption Madrid",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@minishopmadrid.com",
+        "company": "Mini Madrid",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "yusty@yusty.com",
+        "company": "Yusty Madrid",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@beniroom.com",
+        "company": "Beni Room",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "contact@nittygrittymadrid.com",
+        "company": "Nitty Gritty Madrid",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@boutiqueisolee.com",
+        "company": "Boutique Isolée",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@pezmadrid.com",
+        "company": "Pez Madrid",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@lemarcheauxpuces.es",
+        "company": "Le Marché Aux Puces",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "nac@nac.es",
+        "company": "NAC Madrid",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@cooliquemadrid.com",
+        "company": "Coolique Madrid",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "madrid@felipealberdi.com",
+        "company": "Felipe Alberdi",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@gallerymadrid.es",
+        "company": "Gallery Madrid",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "mott@mottmadrid.es",
+        "company": "Mott Madrid",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@tomatesfritas.com",
+        "company": "Tomates Fritas BCN",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@lacliniquebarcelona.com",
+        "company": "La Clinique Barcelona",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "bcn@lenfantterriblebcn.com",
+        "company": "L'Enfant Terrible BCN",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@nuovum.com",
+        "company": "Nuovum Barcelona",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@dodesign.es",
+        "company": "Do Design",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "sales@thecorner-madrid.com",
+        "company": "The Corner Madrid",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@tintaybariloche.com",
+        "company": "Tinta & Bariloche",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@numbersisgood.com",
+        "company": "Numbers Sneakers",
+        "country": "Spain",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@sotostore.com",
+        "company": "Soto Berlin",
+        "country": "Germany",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@voostore.com",
+        "company": "VooStore Berlin",
+        "country": "Germany",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@firmamentberlin.com",
+        "company": "Firmament Berlin",
+        "country": "Germany",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@civilistberlin.com",
+        "company": "Civilist Berlin",
+        "country": "Germany",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@superconscious.de",
+        "company": "Superconscious",
+        "country": "Germany",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@uebervart.de",
+        "company": "Uebervart",
+        "country": "Germany",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@allikestore.com",
+        "company": "Allike Store",
+        "country": "Germany",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@overkillshop.com",
+        "company": "Overkill Shop",
+        "country": "Germany",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@gate194.berlin",
+        "company": "Gate Berlin",
+        "country": "Germany",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@apropos-store.com",
+        "company": "Apropos Store",
+        "country": "Germany",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@andreasmurkudis.com",
+        "company": "Andreas Murkudis",
+        "country": "Germany",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@thestorex.com",
+        "company": "The Store X Berlin",
+        "country": "Germany",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@olimpia.nl",
+        "company": "Olimpia Amsterdam",
+        "country": "Netherlands",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@tenuedenimes.com",
+        "company": "Tenue de Nîmes",
+        "country": "Netherlands",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@ansh46.com",
+        "company": "Ansh46",
+        "country": "Netherlands",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@concrete-matter.com",
+        "company": "Concrete Matter",
+        "country": "Netherlands",
+        "notes": "global multibrand list, 5 Sep 2026"
+    },
+    {
+        "email": "info@vieramsterdam.com",
+        "company": "Vier Amsterdam",
+        "country": "Netherlands",
+        "notes": "global multibrand list, 5 Sep 2026"
+    }
+]

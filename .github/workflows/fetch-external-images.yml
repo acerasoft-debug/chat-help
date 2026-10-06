@@ -1,45 +1,237 @@
-name: Dış siteden ürün görseli çek + kaydet
+name: Dış siteden ürün görseli/koleksiyon çek
 on:
   workflow_dispatch:
     inputs:
+      collection_url:
+        description: "MOD A: Shopify koleksiyon URL'si (örn: https://site.com/collections/lacoste) -- TUM urunleri JSON API ile listeler, hicbir sey indirmez"
+        required: false
+        default: ""
       urls:
-        description: "Ürün sayfası URL'leri (satır satır veya boşlukla ayrılmış)"
-        required: true
+        description: "MOD B: tek tek ürün sayfası URL'leri (satır satır/boşlukla) -- ilk fotoyu indirir"
+        required: false
+        default: ""
       prefix:
-        description: "Kayıt yolu ön eki (uploads/ altında, örn: lacoste/paris-polo)"
-        required: true
+        description: "MOD B: kayıt yolu ön eki (uploads/ altında, örn: lacoste/paris-polo)"
+        required: false
         default: "lacoste/paris-polo"
       dump_id:
-        description: "Referans için önce bu ürün id'sinin tam kaydını yazdır (opsiyonel)"
+        description: "MOD B: referans için önce bu ürün id'sinin tam kaydını yazdır (opsiyonel)"
         required: false
-        default: "lac-polo-paris"
+        default: ""
+      image_map:
+        description: "MOD C: satır satır 'uploads/altindaki/yol.ext|https://gorsel-url' -- bilinen CDN url'lerini dogrudan indirir"
+        required: false
+        default: ""
+      search_stores:
+        description: "MOD D: aranacak mağaza kök URL'leri (satır satır/virgülle) -- her birinin products.json'unda arar, hicbir sey indirmez"
+        required: false
+        default: ""
+      search_term:
+        description: "MOD D: aranan metin(ler), virgülle ayrık (baslik/handle/SKU icinde aranir, ör: M3600,Twin Tipped)"
+        required: false
+        default: ""
+      dropbox_url:
+        description: "MOD E: Dropbox PAYLAŞIM KLASÖRÜ linki -- klasörü ZIP olarak SUNUCUYA indirir, ~/wt_incoming altına açar ve dosya listesini yazar. public_html/uploads altına HİÇBİR ŞEY kopyalamaz."
+        required: false
+        default: ""
+      dropbox_slug:
+        description: "MOD E: indirilen klasöre verilecek kısa ad (ör: dsq-women). Yalnız a-z 0-9 -; boşsa linkten türetilir"
+        required: false
+        default: ""
 
 permissions:
   contents: read
 
-# Sandbox oturumunun agent-proxy'si bazı dış siteleri (org politikası) engelleyebiliyor,
+# Sandbox oturumunun agent-proxy'si bazi dis siteleri (org politikasi) engelleyebiliyor,
 # ama SUNUCUNUN kendi internet erisimi zaten Brevo/Overpass/Hunter cagirilarinda calisiyor
-# — o yuzden gorsel indirmeyi PRODUCTION SUNUCUDAN yapiyoruz, sandboxtan degil.
-# Her URL icin: sayfa HTML'i cekilir, JSON-LD/og:image/ilk cdn gorseli bulunur, indirilir,
-# uploads/<prefix>-<N>.<ext> olarak KAYDEDILIR (N = URL'nin sonundaki sayi, yoksa sira no).
-# Sadece yeni dosya YAZAR; mevcut hicbir urun/JSON kaydini DEGISTIRMEZ.
+# -- o yuzden her seyi PRODUCTION SUNUCUDAN yapiyoruz, sandboxtan degil.
+#
+# MOD A (collection_url doldurulursa): Shopify'in herkese acik products.json
+# API'sini kullanir (curl {collection_url}/products.json?limit=250&page=N) --
+# HTML regex'e guvenmez, gercek baslik/tip/etiket/TUM varyant gorselleri doner.
+# Salt-okunur, HICBIR SEY YAZMAZ -- sadece rapor basar.
+#
+# MOD B (urls doldurulursa): tek urun sayfalari icin once ayni Shopify JSON
+# API'sini ({url}.json) dener (guvenilir), olmazsa HTML'den JSON-LD/og:image'a
+# duser. Indirilen gorsel gercekten >=200x200 degilse (ikon/placeholder tespiti)
+# KAYDETMEZ. Sadece uploads/ altina yeni dosya YAZAR; JSON kayitlarina dokunmaz.
+#
+# MOD D (search_stores doldurulursa): hangi magazanin aranan modeli tasidigini
+# BULUR. MOD A tek magaza deniyor ve cogu magaza bot korumasi yuzunden 401/403
+# donuyor -- her deneme ayri bir calisma demek. MOD D bir listedeki her magazayi
+# tek calismada tarar ve sadece eslesen urunleri, MOD C'ye dogrudan verilebilecek
+# sayfa URL'siyle birlikte yazar. Salt-okunur.
 jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - name: Çek ve kaydet
+      - name: Dropbox klasörünü indir (MOD E)
+        # AYRI ADIM, bilerek: GitHub bir 'script:' blogunun TAMAMINI tek bir
+        # sablon ifadesi olarak derliyor ve sinir 21000 karakter. MOD E ana
+        # betige eklenince dosya bu siniri asti ve workflow DISPATCH EDILEMEZ
+        # oldu ("Exceeded max expression length"). Her adimin kendi butcesi var;
+        # ayrica MOD E zaten digerleriyle hic ortak kod paylasmiyor.
+        if: ${{ github.event.inputs.dropbox_url != '' }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          command_timeout: 5m
+          # Bir klasorun TAMAMI ZIP olarak cekiliyor; curl'un --max-time'i 540sn
+          # ve adim timeout'u ondan KUCUK kalsaydi oturum curl vazgecmeden
+          # kesilir, cikti "ZIP gelmedi" yerine sessiz bir kopma olurdu.
+          command_timeout: 15m
+          script: |
+            export DBX_URL='${{ github.event.inputs.dropbox_url }}'
+            export DBX_SLUG='${{ github.event.inputs.dropbox_slug }}'
+            # ---- MOD E: Dropbox paylasim klasoru ---------------------------------
+            # Bu ortamdan (sandbox) dropbox.com'a cikis YOK -- olculdu, curl http=000.
+            # Sunucunun kendi agi ayri; wetransfer isinde kaydedilen desenin aynisi.
+            # Indirilen sey public_html DISINA (~/wt_incoming) aciliyor: klasorun
+            # icinde ne oldugunu GORMEDEN hicbir fotografi siteye koymuyoruz
+            # (fotografta yabanci metin / yanlis urun / bos kare olabilir).
+            if [ -n "$DBX_URL" ]; then
+              echo "===== MOD E: DROPBOX KLASORU ====="
+              # Host ALLOWLIST ve BAGLI: 'dropbox.com.evil.tld' gibi bir ad gecmesin.
+              case "$DBX_URL" in
+                https://www.dropbox.com/*|https://dropbox.com/*) : ;;
+                *) echo "HATA: yalnizca https://www.dropbox.com/... kabul ediliyor"; exit 1 ;;
+              esac
+              SLUG=$(printf '%s' "$DBX_SLUG" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9-' '-' | sed 's/-\{2,\}/-/g; s/^-//; s/-$//')
+              [ -z "$SLUG" ] && SLUG="dropbox-$(date +%H%M%S)"
+              DEST="$HOME/wt_incoming/$SLUG"
+              mkdir -p "$DEST/files"
+              echo "hedef: $DEST"
+              # Dropbox'in 'scl/fo' (paylasim klasoru) linklerinde dl=1 TEK BASINA
+              # yetmiyor: alt klasor yolu adresin PATH'inde duruyorsa Dropbox web
+              # arayuzunun HTML'ini donduruyor (olculdu: http=200, 202 KB, ilk
+              # baytlar '<!DOCTYPE html>'). Calisan bicim, alt yolun ?subpath=
+              # parametresine tasindigi bicim. Birkac adayi SIRAYLA deneyip ilk
+              # gercek ZIP'te duruyoruz -- her tahmini ayri bir kosuya bolmek
+              # yerine, cunku her kosu bir tur gecikme demek.
+              BASE=$(printf '%s' "$DBX_URL" | sed 's/?.*//')
+              RLKEY=$(printf '%s' "$DBX_URL" | tr '?&' '\n\n' | sed -n 's/^rlkey=//p' | head -1)
+              # st= : Dropbox'in YENI paylasim jetonu. Operatorun ilk iki linkinde
+              # YOKTU, ucuncusunde VAR -- ve 'No Access' sayfasinin sebebi bu olabilir.
+              # Yeniden kurulan adreslerde de tasinmali: dusurursek, calisabilecek
+              # bir linki kendi elimizle gecersiz kilmis oluruz.
+              ST=$(printf '%s' "$DBX_URL" | tr '?&' '\n\n' | sed -n 's/^st=//p' | head -1)
+              [ -n "$ST" ] && STQ="&st=$ST" || STQ=""
+              echo "st jetonu: $([ -n "$ST" ] && echo VAR || echo yok)"
+              # /scl/fo/<id>/<key> kokten SONRAKI her sey alt klasor yoludur.
+              ROOT=$(printf '%s' "$BASE" | sed -E 's#(https://[^/]+/scl/fo/[^/]+/[^/]+).*#\1#')
+              SUB=$(printf '%s' "$BASE" | sed -E 's#https://[^/]+/scl/fo/[^/]+/[^/]+##')
+              echo "kok: $ROOT"
+              echo "alt yol: ${SUB:-(yok)}"
+              # URL'ler LOGA MASKELI yaziliyor: rlkey bu klasoru acan anahtardir ve
+              # bu kutuk herkese acik. Operator linki girdiye kendi yazdi, ama biz
+              # ayrica cogaltmayalim.
+              try_zip() {
+                _u="$1"; _lbl="$2"
+                _h=$(curl -sS -L --max-time 540 -o "$DEST/folder.zip" -w '%{http_code}' \
+                     -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36' \
+                     "$_u" 2>/dev/null || echo 000)
+                _s=$(wc -c < "$DEST/folder.zip" 2>/dev/null || echo 0)
+                _m=$(head -c 2 "$DEST/folder.zip" 2>/dev/null || true)
+                printf 'dene [%s]: http=%s bayt=%s ilk2=%s\n' "$_lbl" "$_h" "$_s" "$_m"
+                [ "$_h" = "200" ] && [ "$_m" = "PK" ]
+              }
+              OK=0
+              if [ -n "$SUB" ] && [ -n "$RLKEY" ]; then
+                try_zip "${ROOT}?rlkey=${RLKEY}${STQ}&subpath=${SUB}&dl=1" "kok+subpath" && OK=1
+              fi
+              if [ "$OK" = "0" ]; then
+                U=$(printf '%s' "$DBX_URL" | sed 's/[?&]dl=0//; s/&subfolder_nav_tracking=1//')
+                case "$U" in *\?*) U="$U&dl=1" ;; *) U="$U?dl=1" ;; esac
+                try_zip "$U" "verilen link + dl=1" && OK=1
+              fi
+              if [ "$OK" = "0" ] && [ -n "$RLKEY" ]; then
+                try_zip "${ROOT}?rlkey=${RLKEY}${STQ}&dl=1" "kok (tum klasor)" && OK=1
+              fi
+              if [ "$OK" = "0" ]; then
+                echo "*** ZIP GELMEDI ***"
+                # Gelen sey HTML ise NE DEDIGINI oku: 'sifre gerekli', 'cok buyuk',
+                # 'erisim yok' hepsi ayri sorun ve hepsi ayri cozum. Tahmin etmek
+                # yerine sayfanin kendi cumlesini basiyoruz. Tam HTML BASILMIYOR
+                # (202 KB, ve kutuk herkese acik) -- yalnizca baslik ve isaretler.
+                echo "--- gelen sayfadan isaretler ---"
+                head -c 400000 "$DEST/folder.zip" 2>/dev/null \
+                  | tr '<' '\n' | sed -n 's/^title>//p' | head -3
+                for k in password "too large" "too big" "doesn.t exist" "deleted" \
+                         "sign in" "access" "restricted" "quota" "banned"; do
+                  if grep -qi -- "$k" "$DEST/folder.zip" 2>/dev/null; then echo "  ipucu: '$k' gecıyor"; fi
+                done
+                rm -f "$DEST/folder.zip"; exit 1
+              fi
+              rm -rf "$DEST/files"; mkdir -p "$DEST/files"
+              # unzip'in CIKIS KODU burada olcum DEGIL. Dropbox'in ZIP'i kok
+              # girdisini adsiz "/" diye yaziyor; unzip onu haritalayamayip
+              # once uyariyor sonra rc=2 ("zipfile format") donuyor -- oysa
+              # GERCEK dosyalarin hepsi aciliyor. rc'ye bakan ilk surum 47,8
+              # MB'lik saglam bir klasoru cope atti.
+              # Dogru olcum BEKLENEN ile ACILAN: arsivin kendi listesindeki
+              # dosya sayisi (dizinler haric, adsiz kok girdisi haric) ile
+              # diske inen sayi. Esitse is tamamdir, rc ne derse desin; eksik
+              # varsa rc 0 bile olsa DURUR -- yarim bir klasor, tam sanilan
+              # bir klasordan kotudur.
+              EXP=$(unzip -Z1 "$DEST/folder.zip" 2>/dev/null | grep -v '/$' | grep -cv '^/*$' || echo 0)
+              unzip -o -q -d "$DEST/files" "$DEST/folder.zip"; UZ=$?
+              N=$(find "$DEST/files" -type f | wc -l)
+              echo "arsivde dosya: $EXP   acilan: $N   (unzip rc=$UZ)"
+              if [ "$N" -eq 0 ] || [ "$N" -lt "$EXP" ]; then
+                echo "*** HATA: acma eksik (beklenen $EXP, acilan $N) ***"
+                rm -f "$DEST/folder.zip"; exit 1
+              fi
+              [ "$UZ" -ne 0 ] && echo "not: unzip rc=$UZ uyardi ama dosyalarin hepsi acildi (adsiz kok girdisi)"
+              rm -f "$DEST/folder.zip"
+              echo "--- dosyalar (ad | bayt | tur) ---"
+              # Tur 'file' ile olculuyor, UZANTIYLA degil: .jpg adli bir HTML bu
+              # listede HTML gorunsun.
+              find "$DEST/files" -type f | sort | while read -r f; do
+                printf '%s | %s | %s\n' \
+                  "$(printf '%s' "${f#$DEST/files/}")" \
+                  "$(wc -c < "$f")" \
+                  "$(file -b --mime-type "$f" 2>/dev/null || echo '?')"
+              done
+              echo "--- son ---"
+              # OZET EN SONA: get_job_logs yalnizca KUYRUGU gosteriyor, yani uzun
+              # bir dosya listesinde bastaki sayimlar dusiyor. Sayim sonda olsun ki
+              # liste ne kadar uzarsa uzasin okunabilsin.
+              echo "--- ozet ---"
+              echo "acilan dosya: $N"
+              echo "klasor basina:"
+              find "$DEST/files" -type f | sed "s#^$DEST/files/##" | awk -F/ 'NF>1{print $1} NF==1{print "(kok)"}' | sort | uniq -c | sort -rn | head -30
+              echo "tur basina:"
+              find "$DEST/files" -type f -exec file -b --mime-type {} \; | sort | uniq -c | sort -rn | head -15
+              echo "NOT: hicbir dosya public_html/uploads altina KOPYALANMADI."
+              exit 0
+            fi
+      - name: Çek
+        # MOD E verildiyse bu adim ATLANIR: ikisi ayri isler ve MOD E'nin
+        # cikisi bu betigin 'hicbir mod secilmedi' dalina dusup kafa karistirirdi.
+        if: ${{ github.event.inputs.dropbox_url == '' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          # 5m -> 15m: MOD E bir klasorun TAMAMINI ZIP olarak cekiyor ve curl'un
+          # kendi --max-time'i 600sn. Adim timeout'u ondan KUCUK kalsaydi oturum
+          # curl daha vazgecmeden kesilir, ve cikti "ZIP gelmedi" degil sessiz bir
+          # kopma olurdu -- yani yanlis teshis. Diger modlar icin ust sinir,
+          # bekleme degil.
+          command_timeout: 15m
           script: |
             echo "ADIM 1: baglanti tamam"
+            export COLL_URL='${{ github.event.inputs.collection_url }}'
             export URLS='${{ github.event.inputs.urls }}'
             export PREFIX='${{ github.event.inputs.prefix }}'
             export DUMP_ID='${{ github.event.inputs.dump_id }}'
+            export IMAGE_MAP='${{ github.event.inputs.image_map }}'
+            export SEARCH_STORES='${{ github.event.inputs.search_stores }}'
+            export SEARCH_TERM='${{ github.event.inputs.search_term }}'
             cat > /tmp/vestra_fetchimg.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
@@ -51,23 +243,6 @@ jobs:
             $home = getenv("HOME"); $doc = $home."/public_html";
             require $doc."/inc/products.php";
 
-            $dumpId = trim((string)getenv("DUMP_ID"));
-            if ($dumpId !== '') {
-              echo "===== MEVCUT KAYIT: {$dumpId} =====\n";
-              $found = null;
-              foreach (vestra_products() as $p) { if (($p['id']??'')===$dumpId) { $found=$p; break; } }
-              echo $found ? json_encode($found, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n\n" : "  *** bulunamadi ***\n\n";
-            }
-
-            $prefix = trim((string)getenv("PREFIX"));
-            if ($prefix === '' || !preg_match('#^[a-z0-9][a-z0-9/_-]*$#', $prefix)) { fwrite(STDERR, "HATA: gecersiz prefix\n"); exit(1); }
-            $destDir = $doc.'/uploads/'.dirname($prefix);
-            if (!is_dir($destDir) && !@mkdir($destDir, 0755, true)) { fwrite(STDERR, "HATA: klasor olusturulamadi: {$destDir}\n"); exit(1); }
-
-            $raw = (string)getenv("URLS");
-            $urls = array_values(array_filter(array_map('trim', preg_split('/[\s,]+/', $raw))));
-            if (!$urls) { fwrite(STDERR, "HATA: URL yok\n"); exit(1); }
-
             $ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 
             function vestra_fetch(string $url, string $ua, bool $binary = false) {
@@ -75,7 +250,7 @@ jobs:
               curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5,
                 CURLOPT_TIMEOUT => 25, CURLOPT_USERAGENT => $ua,
-                CURLOPT_HTTPHEADER => $binary ? [] : ['Accept: text/html'],
+                CURLOPT_HTTPHEADER => $binary ? [] : ['Accept: application/json,text/html'],
               ]);
               $body = curl_exec($ch);
               $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -85,7 +260,229 @@ jobs:
               return [$code, $body, $ctype, $err];
             }
 
-            function first_image_url(string $html): ?string {
+            /* products.json'da 'tags' bazi magazalarda dizi, bazilarinda virgullu tek
+               string olarak geliyor. Dizi hali dogrudan birlestirilince PHP her urun
+               icin bir "Array to string conversion" uyarisi basiyordu -- 16 magazalik
+               bir taramada bu, sonucu goremeyecek kadar cok satir demek. */
+            function tags_str($t): string { return is_array($t) ? implode(', ', $t) : (string)$t; }
+
+            /* MOD D: bir modeli TASIYAN magazayi bulmak icin. Tek tek koleksiyon URL'si
+               denemek pahali -- cogu magaza bot korumasi yuzunden 401/403 donuyor ve her
+               deneme ayri bir workflow calismasi demek. Burada bir listedeki her magazanin
+               products.json'u taranir ve SADECE arananla eslesen satirlar basilir, boylece
+               tek calismada onlarca magaza elenir. Salt-okunur: hicbir sey indirilmez,
+               bulunan urun sayfasi URL'si dogrudan MOD C'ye verilebilecek bicimde yazilir. */
+            $searchStores = trim((string)getenv("SEARCH_STORES"));
+            $searchTerm   = trim((string)getenv("SEARCH_TERM"));
+            if ($searchStores !== '') {
+              echo "===== MOD D: COKLU MAGAZA ARAMASI =====\n";
+              $terms = array_values(array_filter(array_map('trim', explode(',', $searchTerm))));
+              if (!$terms) { fwrite(STDERR, "HATA: search_term bos\n"); exit(1); }
+              echo "aranan: ".implode(' | ', $terms)."\n\n";
+              $stores = array_values(array_filter(array_map('trim', preg_split('/[\s,]+/', $searchStores))));
+              $hits = 0;
+              foreach ($stores as $store) {
+                if (!preg_match('#^https://#i', $store)) { echo "--- {$store}: ATLANDI (https degil)\n"; continue; }
+                $base = rtrim(preg_replace('#/products\.json.*$#','',$store), '/');
+                $host = preg_replace('#^(https://[^/]+).*$#i', '$1', $base);
+                $found = 0; $scanned = 0;
+                for ($page = 1; $page <= 3; $page++) {
+                  [$code, $body, , $err] = vestra_fetch($base.'/products.json?limit=250&page='.$page, $ua);
+                  if ($code < 200 || $code >= 300 || $body === false) { echo "--- {$base}: kod={$code} {$err}\n"; break; }
+                  $items = json_decode((string)$body, true)['products'] ?? null;
+                  if (!is_array($items) || !$items) { if ($page === 1) echo "--- {$base}: urun donmedi (Shopify degil ya da JSON kapali)\n"; break; }
+                  $scanned += count($items);
+                  foreach ($items as $p) {
+                    $hay = strtolower(($p['title'] ?? '').' '.($p['handle'] ?? '').' '.($p['product_type'] ?? '').' '.tags_str($p['tags'] ?? ''));
+                    foreach (($p['variants'] ?? []) as $v) $hay .= ' '.strtolower((string)($v['sku'] ?? ''));
+                    $match = false;
+                    foreach ($terms as $t) if (strpos($hay, strtolower($t)) !== false) { $match = true; break; }
+                    if (!$match) continue;
+                    $found++; $hits++;
+                    $imgs = array_map(fn($i)=>$i['src']??'', $p['images'] ?? []);
+                    $vcolors = [];
+                    foreach (($p['variants'] ?? []) as $v) {
+                      foreach (['option1','option2','option3'] as $k)
+                        if (!empty($v[$k]) && preg_match('/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ \-\/]{1,24}$/', $v[$k])) $vcolors[$v[$k]] = true;
+                    }
+                    echo "  * ".($p['title'] ?? '?')."\n";
+                    echo "    sayfa   : {$host}/products/".($p['handle'] ?? '')."\n";
+                    echo "    gorsel  : ".count($imgs)." adet | ilk: ".(reset($imgs) ?: '-')."\n";
+                    if ($vcolors) echo "    secenek : ".implode(', ', array_keys($vcolors))."\n";
+                  }
+                  if (count($items) < 250) break;
+                }
+                if ($found) echo "--- {$base}: {$found} eslesme ({$scanned} urun tarandi)\n\n";
+                elseif ($scanned) echo "--- {$base}: eslesme yok ({$scanned} urun tarandi)\n";
+              }
+              echo "\nTOPLAM: {$hits} eslesme\n";
+              exit($hits > 0 ? 0 : 1);
+            }
+
+            $collUrl = trim((string)getenv("COLL_URL"));
+            if ($collUrl !== '') {
+              echo "===== MOD A: KOLEKSIYON KESFI =====\n";
+              $base = rtrim(preg_replace('#/products\.json.*$#','',$collUrl), '/');
+              $all = []; $page = 1;
+              do {
+                $u = $base.'/products.json?limit=250&page='.$page;
+                [$code, $body, , $err] = vestra_fetch($u, $ua);
+                if ($code < 200 || $code >= 300 || $body === false) { echo "  HATA (sayfa {$page}): kod={$code} {$err}\n"; break; }
+                $d = json_decode((string)$body, true);
+                $items = $d['products'] ?? null;
+                if (!is_array($items) || !$items) break;
+                foreach ($items as $it) $all[] = $it;
+                echo "  sayfa {$page}: ".count($items)." urun\n";
+                $page++;
+              } while (count($items) >= 250 && $page <= 5);
+
+              if (!$all) { echo "  *** hic urun bulunamadi -- bu site Shopify JSON API'sini acik tutmuyor olabilir ***\n"; exit(0); }
+              echo "\nTOPLAM: ".count($all)." urun (varyant renkleri dahil degil, her satir 1 Shopify urunu)\n\n";
+              foreach ($all as $p) {
+                $imgs = array_map(fn($i)=>$i['src']??'', $p['images'] ?? []);
+                $vcolors = [];
+                foreach (($p['variants'] ?? []) as $v) {
+                  foreach (['option1','option2','option3'] as $k) if (!empty($v[$k]) && preg_match('/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ \-\/]{1,24}$/', $v[$k])) $vcolors[$v[$k]] = true;
+                }
+                echo "--- ".($p['handle']??'?')." ---\n";
+                echo "  baslik    : ".($p['title']??'?')."\n";
+                echo "  tip/etiket: ".($p['product_type']??'?')." | ".tags_str($p['tags']??'')."\n";
+                echo "  gorsel say: ".count($imgs)." | ilk gorsel: ".(reset($imgs) ?: '-')."\n";
+                if ($vcolors) echo "  varyant secenekleri: ".implode(', ', array_keys($vcolors))."\n";
+              }
+              exit(0);
+            }
+
+            $imageMap = trim((string)getenv("IMAGE_MAP"));
+            if ($imageMap !== '') {
+              echo "===== MOD C: URUN SAYFASI -> DOSYA INDIRME (Shopify JSON, sunucu tarafinda cozulur) =====\n";
+              // Girdi 'hedef|urun_sayfasi_url' -- gercek CDN gorsel URL'si BURADA,
+              // sunucuda cozulur ve indirilir; asla disaridan tasinmaz (uzun sayisal
+              // shop-id path parcalari harici gosterimlerde yanlislikla
+              // maskelenebiliyor -- sayfa handle'lari duz metin oldugu icin guvenli).
+              $ok = 0; $fail = 0;
+              foreach (preg_split('/\r?\n/', $imageMap) as $line) {
+                $line = trim($line);
+                if ($line === '') continue;
+                $parts = explode('|', $line, 2);
+                if (count($parts) !== 2) { echo "  ATLANDI (format 'yol|urun-sayfasi-url' degil): {$line}\n"; $fail++; continue; }
+                [$rel, $pageUrl] = [trim($parts[0]), trim($parts[1])];
+                if (!preg_match('#^[a-z0-9][a-z0-9/_.-]*$#i', $rel) || strpos($rel, '..') !== false) { echo "  RED: gecersiz hedef yol '{$rel}'\n"; $fail++; continue; }
+                if (!preg_match('#^https://#i', $pageUrl)) { echo "  RED: gecersiz sayfa URL '{$pageUrl}'\n"; $fail++; continue; }
+
+                $src = null; $direct = null;
+                $prod = shopify_product_json($pageUrl, $ua);
+                if ($prod) {
+                  $src = $prod['images'][0]['src'] ?? ($prod['image']['src'] ?? null);
+                } else {
+                  [$pcode, $phtml, $pctype] = vestra_fetch($pageUrl, $ua);
+                  if ($pcode >= 200 && $pcode < 300 && $phtml !== false) {
+                    /* URL'nin KENDISI bir gorsel olabilir. Eskiden bu durumda
+                       first_image_url_html() ikili veride <img> etiketi ariyor,
+                       bulamiyor ve "gorsel bulunamadi" diyordu -- yani dogrudan bir
+                       gorsel adresi veren her cagri, dosya gayet indirilebilir
+                       oldugu halde basarisiz oluyordu. Hem content-type hem SIHIRLI
+                       BAYTLAR: sunucular jpeg'e application/octet-stream diyebiliyor,
+                       ve yalniz uzantiya bakmak bir HTML sayfasini .jpg sanmaya acik. */
+                    $ct  = strtolower(trim(explode(';', (string)$pctype)[0]));
+                    $sig = substr($phtml, 0, 12);
+                    $isImg = str_starts_with($ct, 'image/')
+                          || substr($sig,0,3) === "\xFF\xD8\xFF"                       // jpeg
+                          || substr($sig,0,8) === "\x89PNG\r\n\x1a\n"                   // png
+                          || (substr($sig,0,4) === 'RIFF' && substr($phtml,8,4) === 'WEBP')
+                          || strpos(substr($phtml,4,8), 'ftyp') !== false;              // avif/heif
+                    if ($isImg) $direct = $phtml;
+                    else        $src = first_image_url_html($phtml);
+                  }
+                }
+                if ($direct === null && !$src) { echo "  HATA: '{$rel}' icin gorsel bulunamadi ({$pageUrl})\n"; $fail++; continue; }
+                if ($direct !== null) { $src = $pageUrl; }   // asagidaki loglar icin
+                if (strpos($src, '//') === 0) $src = 'https:'.$src;
+                elseif (strpos($src, 'http') !== 0) { echo "  HATA: '{$rel}' gorsel URL'si bagil, atlandi\n"; $fail++; continue; }
+
+                $absDir = $doc.'/uploads/'.dirname($rel);
+                if (!is_dir($absDir) && !@mkdir($absDir, 0755, true)) { echo "  HATA: klasor olusturulamadi {$absDir}\n"; $fail++; continue; }
+                if ($direct !== null) { $icode = 200; $bin = $direct; $ierr = ''; }
+                else { [$icode, $bin, , $ierr] = vestra_fetch($src, $ua, true); }
+                if ($icode < 200 || $icode >= 300 || $bin === false || strlen($bin) < 800) { echo "  HATA: indirilemedi '{$rel}' (kod={$icode} {$ierr})\n"; $fail++; continue; }
+                $abs = $doc.'/uploads/'.$rel;
+                if (@file_put_contents($abs, $bin) === false) { echo "  HATA: yazilamadi {$abs}\n"; $fail++; continue; }
+                $dim = @getimagesize($abs);
+                if ($dim !== false) {
+                  if ($dim[0] < 150 || $dim[1] < 150) {
+                    @unlink($abs);
+                    echo "  RED: gorsel cok kucuk '{$rel}' (".$dim[0]."x".$dim[1].") -- SILINDI\n"; $fail++; continue;
+                  }
+                  echo "  OK -> /uploads/{$rel} (".$dim[0]."x".$dim[1].")\n";
+                } else {
+                  // getimagesize() may not decode AVIF on this PHP/GD build even for a
+                  // genuinely valid file -- sniff the container magic bytes instead of
+                  // rejecting outright, and lean on file size (placeholders run <3KB).
+                  $isAvif = strpos(substr($bin,4,12), 'ftyp') !== false;
+                  $isWebp = substr($bin,0,4) === 'RIFF' && substr($bin,8,4) === 'WEBP';
+                  if (($isAvif || $isWebp) && strlen($bin) >= 4000) {
+                    echo "  OK (boyut dogrulamasi -- ".($isAvif?'avif':'webp').", getimagesize bu formati cozemedi) -> /uploads/{$rel} (".strlen($bin)." bayt)\n";
+                  } else {
+                    @unlink($abs);
+                    echo "  RED: gecersiz gorsel '{$rel}' -- SILINDI\n"; $fail++; continue;
+                  }
+                }
+                $ok++;
+              }
+              echo "\nTOPLAM: {$ok} basarili, {$fail} basarisiz\n";
+              exit($fail > 0 ? 1 : 0);
+            }
+
+            $dumpId = trim((string)getenv("DUMP_ID"));
+            if ($dumpId !== '') {
+              echo "===== MEVCUT KAYIT: {$dumpId} =====\n";
+              $found = null;
+              foreach (vestra_products() as $p) { if (($p['id']??'')===$dumpId) { $found=$p; break; } }
+              echo $found ? json_encode($found, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n\n" : "  *** bulunamadi ***\n\n";
+            }
+
+            $prefix = trim((string)getenv("PREFIX"));
+            $raw = (string)getenv("URLS");
+            $urls = array_values(array_filter(array_map('trim', preg_split('/[\s,]+/', $raw))));
+            if (!$urls) { fwrite(STDERR, "HATA: ne collection_url ne de urls verildi\n"); exit(1); }
+            if ($prefix === '' || !preg_match('#^[a-z0-9][a-z0-9/_-]*$#', $prefix)) { fwrite(STDERR, "HATA: gecersiz prefix\n"); exit(1); }
+            $destDir = $doc.'/uploads/'.dirname($prefix);
+            if (!is_dir($destDir) && !@mkdir($destDir, 0755, true)) { fwrite(STDERR, "HATA: klasor olusturulamadi: {$destDir}\n"); exit(1); }
+
+            // Shopify'in herkese acik {product-url}.json API'si -- HTML/JS render'a
+            // bagli kalmadan gercek baslik + TUM varyant gorsellerini dondurur.
+            function shopify_product_json(string $pageUrl, string $ua): ?array {
+              $clean = preg_replace('#\?.*$#', '', $pageUrl);
+              if (!preg_match('#/products/([a-z0-9-]+)$#i', $clean, $m)) return null;
+              $base = preg_replace('#/products/[a-z0-9-]+$#i', '', $clean);
+              [$code, $body] = vestra_fetch($base.'/products/'.$m[1].'.json', $ua);
+              if ($code < 200 || $code >= 300 || $body === false) return null;
+              $d = json_decode((string)$body, true);
+              return $d['product'] ?? null;
+            }
+
+            /* JSON-LD'de 'image' tek bir string olabilir, string dizisi olabilir, ya da
+             * ImageObject nesnesi/dizisi: [{"@type":"ImageObject","url":"..."}].
+             * Eski kod dogrudan (string)reset($img) yaziyordu; ilk eleman NESNE oldugunda
+             * PHP "Array to string conversion" uyarisi basar ve geriye "Array" dizesi
+             * doner. Canli hata gunlugunde bu uyaridan 236 tane vardi -- ve her biri
+             * gurultu degil, INDIRILEMEYEN bir gorsel: URL yerine "Array" ile istek
+             * yapiliyordu. Ic ice dizilerde de calissin diye ozyinelemeli. */
+            function ld_image_url($img, int $depth = 0): ?string {
+              if ($depth > 4) return null;
+              if (is_string($img)) { $img = trim($img); return $img !== '' ? $img : null; }
+              if (!is_array($img)) return null;
+              foreach (['url','contentUrl','@id'] as $k) {
+                if (isset($img[$k]) && is_string($img[$k]) && trim($img[$k]) !== '') return trim($img[$k]);
+              }
+              foreach ($img as $v) {
+                $u = ld_image_url($v, $depth + 1);
+                if ($u !== null) return $u;
+              }
+              return null;
+            }
+
+            function first_image_url_html(string $html): ?string {
               if (preg_match_all('#<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>#is', $html, $m)) {
                 foreach ($m[1] as $block) {
                   $d = json_decode(trim($block), true);
@@ -93,9 +490,8 @@ jobs:
                   $cands = isset($d['@type']) ? [$d] : $d;
                   foreach ((array)$cands as $node) {
                     if (!is_array($node)) continue;
-                    $img = $node['image'] ?? null;
-                    if (is_array($img) && $img) return (string)reset($img);
-                    if (is_string($img) && $img !== '') return $img;
+                    $img = ld_image_url($node['image'] ?? null);
+                    if ($img !== null) return $img;
                   }
                 }
               }
@@ -104,28 +500,33 @@ jobs:
               return null;
             }
 
-            echo "===== GORSEL CEKME (".count($urls)." URL) =====\n";
-            printf("%-90s %-6s %-40s %s\n", "URL", "KOD", "BASLIK", "SONUC");
+            echo "===== MOD B: GORSEL CEKME (".count($urls)." URL) =====\n";
             $n = 0;
             foreach ($urls as $url) {
               $n++;
-              if (!preg_match('#^https://#i', $url)) { printf("%-90s %-6s %-40s %s\n", $url, '-', '-', "ATLANDI: https degil"); continue; }
-              [$code, $html, , $err] = vestra_fetch($url, $ua);
-              if ($code < 200 || $code >= 300 || $html === false) {
-                printf("%-90s %-6s %-40s %s\n", mb_substr($url,0,90), $code ?: '000', '-', "HATA: sayfa cekilemedi ({$err})");
-                continue;
+              echo "--- ".$url." ---\n";
+              if (!preg_match('#^https://#i', $url)) { echo "  ATLANDI: https degil\n"; continue; }
+
+              $img = null; $title = '';
+              $prod = shopify_product_json($url, $ua);
+              if ($prod) {
+                $title = (string)($prod['title'] ?? '');
+                $img = $prod['images'][0]['src'] ?? ($prod['image']['src'] ?? null);
+                echo "  kaynak: Shopify JSON API | baslik: {$title}\n";
+              } else {
+                [$code, $html, , $err] = vestra_fetch($url, $ua);
+                if ($code < 200 || $code >= 300 || $html === false) { echo "  HATA: sayfa cekilemedi (kod={$code} {$err})\n"; continue; }
+                if (preg_match('#<title[^>]*>(.*?)</title>#is', $html, $tm)) $title = trim(html_entity_decode(strip_tags($tm[1]), ENT_QUOTES));
+                echo "  kaynak: HTML fallback | baslik: {$title}\n";
+                $img = first_image_url_html($html);
               }
-              $title = '';
-              if (preg_match('#<title[^>]*>(.*?)</title>#is', $html, $tm)) $title = trim(html_entity_decode(strip_tags($tm[1]), ENT_QUOTES));
-              $img = first_image_url($html);
-              if (!$img) { printf("%-90s %-6s %-40s %s\n", mb_substr($url,0,90), $code, mb_substr($title,0,40), "HATA: gorsel bulunamadi"); continue; }
+              if (!$img) { echo "  HATA: gorsel bulunamadi\n"; continue; }
               if (strpos($img, '//') === 0) $img = 'https:'.$img;
-              elseif (strpos($img, 'http') !== 0) { printf("%-90s %-6s %-40s %s\n", mb_substr($url,0,90), $code, mb_substr($title,0,40), "HATA: gorsel URL bagil, atlandi ({$img})"); continue; }
+              elseif (strpos($img, 'http') !== 0) { echo "  HATA: gorsel URL bagil, atlandi ({$img})\n"; continue; }
 
               [$icode, $bin, $ictype, $ierr] = vestra_fetch($img, $ua, true);
               if ($icode < 200 || $icode >= 300 || $bin === false || strlen($bin) < 800) {
-                printf("%-90s %-6s %-40s %s\n", mb_substr($url,0,90), $code, mb_substr($title,0,40), "HATA: gorsel indirilemedi ({$icode} {$ierr})");
-                continue;
+                echo "  HATA: gorsel indirilemedi (kod={$icode} {$ierr})\n"; continue;
               }
               $ext = 'jpg';
               if (preg_match('#\.(jpe?g|png|webp)(\?|$)#i', $img, $em)) $ext = strtolower($em[1]);
@@ -137,11 +538,19 @@ jobs:
               $fname = basename($prefix).'-'.$slug.'.'.$ext;
               $rel = '/uploads/'.dirname($prefix).'/'.$fname;
               $abs = $doc.$rel;
-              if (@file_put_contents($abs, $bin) === false) {
-                printf("%-90s %-6s %-40s %s\n", mb_substr($url,0,90), $code, mb_substr($title,0,40), "HATA: yazilamadi {$abs}");
+              if (@file_put_contents($abs, $bin) === false) { echo "  HATA: yazilamadi {$abs}\n"; continue; }
+              $dim = @getimagesize($abs);
+              if ($dim === false) {
+                @unlink($abs);
+                echo "  RED: gecerli bir gorsel degil -- SILINDI, kaydedilmedi\n";
                 continue;
               }
-              printf("%-90s %-6s %-40s %s\n", mb_substr($url,0,90), $code, mb_substr($title,0,40), "OK -> {$rel} (".strlen($bin)." bayt)");
+              if ($dim[0] < 200 || $dim[1] < 200) {
+                @unlink($abs);
+                echo "  RED: gorsel cok kucuk (".$dim[0]."x".$dim[1].") -- ikon/placeholder, SILINDI\n";
+                continue;
+              }
+              echo "  OK -> {$rel} (".$dim[0]."x".$dim[1].", ".strlen($bin)." bayt)\n";
             }
             PHPEOF
             php -l /tmp/vestra_fetchimg.php

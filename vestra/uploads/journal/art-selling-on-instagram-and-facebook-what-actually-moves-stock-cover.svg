@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid slice">
+  <title>Two device frames standing on one shared base bar</title>
+  <desc>Cover: one advertising system behind two shop windows.</desc>
+  <rect width="800" height="520" fill="#3a2016"/>
+  <g stroke="#7a4026" stroke-width="1" opacity=".9">
+    <path d="M0 130h800M0 260h800M0 390h800M200 0v520M400 0v520M600 0v520"/>
+  </g>
+  <g fill="none" stroke="#f0c9a0" stroke-width="3">
+    <rect x="250" y="130" width="118" height="208" rx="18"/>
+    <rect x="416" y="162" width="196" height="144" rx="11"/>
+  </g>
+  <g fill="#f0c9a0" opacity=".22">
+    <rect x="264" y="156" width="90" height="100" rx="6"/>
+    <rect x="264" y="268" width="62" height="8" rx="4"/>
+    <rect x="264" y="288" width="90" height="8" rx="4"/>
+    <rect x="432" y="184" width="78" height="58" rx="5"/>
+    <rect x="518" y="184" width="80" height="58" rx="5"/>
+    <rect x="432" y="256" width="166" height="8" rx="4"/>
+  </g>
+  <path d="M309 338v50M514 306v82" stroke="#f0c9a0" stroke-width="3" opacity=".55"/>
+  <rect x="212" y="388" width="390" height="4" fill="#f0c9a0"/>
+  <circle cx="309" cy="390" r="9" fill="#3a2016" stroke="#f0c9a0" stroke-width="3"/>
+  <circle cx="514" cy="390" r="9" fill="#3a2016" stroke="#f0c9a0" stroke-width="3"/>
+  <path d="M407 392v16" stroke="#f0c9a0" stroke-width="3"/>
+  <rect x="371" y="408" width="72" height="16" rx="6" fill="none" stroke="#f0c9a0" stroke-width="3"/>
+</svg>

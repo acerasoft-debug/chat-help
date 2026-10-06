@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img">
+  <title>Two device frames — a phone and a wider screen — standing on one shared base bar</title>
+  <desc>Two shop windows, one system: the audience, catalogue, tracking and budget sit beneath both.</desc>
+  <rect width="1200" height="675" fill="#3a2016"/>
+  <g stroke="#7a4026" stroke-width="1"><path d="M0 168h1200M0 337h1200M0 506h1200M300 0v675M600 0v675M900 0v675"/></g>
+  <!-- iki vitrin: dikey telefon ve genis ekran, ALTLARINDA tek ortak sistem hatti -->
+  <g fill="none" stroke="#f0c9a0" stroke-width="3">
+    <rect x="352" y="150" width="176" height="310" rx="26"/>
+    <rect x="618" y="196" width="300" height="218" rx="14"/>
+  </g>
+  <g fill="#f0c9a0" opacity=".22">
+    <rect x="372" y="188" width="136" height="150" rx="8"/>
+    <rect x="640" y="228" width="118" height="88" rx="6"/>
+    <rect x="770" y="228" width="126" height="88" rx="6"/>
+    <rect x="640" y="330" width="256" height="10" rx="5"/>
+    <rect x="372" y="356" width="96" height="10" rx="5"/>
+    <rect x="372" y="382" width="136" height="10" rx="5"/>
+  </g>
+  <!-- tek motor: iki vitrini de besleyen ortak taban -->
+  <path d="M440 460v78M768 414v124" stroke="#f0c9a0" stroke-width="3" opacity=".55"/>
+  <rect x="300" y="538" width="600" height="4" fill="#f0c9a0"/>
+  <circle cx="440" cy="540" r="11" fill="#3a2016" stroke="#f0c9a0" stroke-width="3"/>
+  <circle cx="768" cy="540" r="11" fill="#3a2016" stroke="#f0c9a0" stroke-width="3"/>
+  <rect x="556" y="566" width="88" height="46" rx="8" fill="none" stroke="#f0c9a0" stroke-width="3"/>
+  <path d="M600 542v24" stroke="#f0c9a0" stroke-width="3"/>
+</svg>

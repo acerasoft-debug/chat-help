@@ -1,0 +1,10 @@
+[
+  {
+    "match": "lac-pima-tshirt",
+    "expect": 1,
+    "group_min_colors": "4",
+    "_why": "Havuzda en az 4 renk secimi zorunlu olsun. SADECE bu alan yaziliyor.",
+    "_why_not_colors": "Renk listesine DOKUNULMUYOR. Ilk denemede colors alanina 7 renk yazilacakti; kuru calistirma 'colors (8) -> (7)' dedi, yani uruntun zaten 8 rengi vardi ve yazsaydik gercek bir rengi silecektik. 7 rakami /uploads/lacoste/pima-tshirt/ altinda palet adiyla eslesen .avif dosyalarini HTTP ile yoklayarak bulunmustu; 8. rengin gorseli baska bir adlandirmada oldugu icin o taramaya takilmadi. Dosya adlarindan renk cikarmak, renk listesinin kendisini okumanin yerine gecmez.",
+    "_why_min": "7'den fazla renk sunuluyor, 4 zorunlu -- set-product zaten group_min_colors'in sunulan renk sayisini asmadigini dogruluyor, assaydi form hic gonderilemezdi."
+  }
+]

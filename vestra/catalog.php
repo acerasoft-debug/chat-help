@@ -1,0 +1,180 @@
+<?php
+/** VESTRA — PUBLIC brand catalogue export as a real .xlsx WITH EMBEDDED PRODUCT PHOTOS.
+ *
+ *  For cold-outreach / campaign links. Deliberately carries NO trade pricing and NO seller
+ *  identity (a teaser line-sheet that entices boutiques to register for trade access); all
+ *  confidential data stays behind the members-only exports. Unlike the old .xls-as-HTML trick
+ *  (Excel drops <img> tags), this emits a genuine .xlsx with the product photos embedded via
+ *  drawing anchors, so every row shows a picture.
+ *
+ *  One row PER COLOURWAY where a product has variants (so every colour shows its own photo +
+ *  article/model code); products without variants fall back to a single row (primary photo,
+ *  SKU/reference code). Every row carries an identification code — article code → SKU → id —
+ *  so buyers can match items to their own systems.
+ *
+ *    /catalog?brand=lacoste   → .xlsx of that brand's listings (photos + codes, no pricing)
+ *    /catalog                 → the full public selection (all brands)
+ *
+ *  Download file name is intentionally neutral ("VESTRA-Selection-<date>.xlsx").
+ */
+/* Public by design (see header above): a members-only gate was tried here and broke
+   every campaign-email download link, since cold leads have no session to gate against.
+   No trade pricing or seller identity is in this export, so there is nothing the gate
+   was protecting -- back to public. */
+require __DIR__.'/inc/products.php';
+require __DIR__.'/inc/xlsx.php';
+
+/* Accepts one brand ("Lacoste") or several, comma-separated
+   ("Lacoste,Amiri"), so a buyer can pull exactly the brands they care about in a
+   single sheet instead of downloading each one and merging by hand. */
+$brandQ  = trim((string)($_GET['brand'] ?? ''));
+$wanted  = array_values(array_filter(array_map('trim', explode(',', $brandQ)), fn($b) => $b !== ''));
+
+$items = [];
+foreach (vestra_products() as $p) {
+    if ($wanted) {
+        $b = trim((string)($p['brand'] ?? ''));
+        $hit = false;
+        foreach ($wanted as $w) { if (strcasecmp($b, $w) === 0) { $hit = true; break; } }
+        if (!$hit) continue;
+    }
+    $items[] = $p;
+}
+
+
+/* CATEGORY / SIZES / LOT eklendi (18 Eyl 2026). Bu dosya soguk aliciya giden
+   TEK line-sheet ve 8 sutunun altisi kimlik bilgisiydi: alici fotografi ve
+   artikel numarasini goruyor, ama malin NE oldugunu (kategori), hangi bedenlerde
+   geldigini ve kac parcalik karton halinde satildigini hicbir sutunda
+   goremiyordu -- yani "kac alabilirim" sorusunu bu dosya cevaplamiyordu.
+   FIYAT YINE YOK, bilerek: dosyanin var olma sebebi o (bkz. ustteki baslik). */
+$headers = ['#', 'Brand', 'Product', 'Category', 'Colour', 'Article / Code', 'Model / Ref',
+            'Sizes', 'MOQ', 'Lot', 'Photo'];
+$rows = [];
+$i = 0;
+foreach ($items as $p) {
+    $brand = (string)($p['brand'] ?? '');
+    $name  = (string)($p['name'] ?? '');
+    $cat   = (string)($p['cat'] ?? '');
+    $sizes = (string)($p['sizes'] ?? '');
+    $moq   = ((int)($p['moq'] ?? 0)) . ' ' . (string)($p['unit'] ?? 'pc');
+    /* Lot: tek karar noktasi (vestra_pack_size). Alan yoksa 1 ve bu bir varsayim
+       degil -- katalogu yazan taraf alani yalnizca 1'den buyukken kaydediyor. */
+    $lot   = (string)vestra_pack_size($p);
+    $variants = (!empty($p['variants']) && is_array($p['variants'])) ? $p['variants'] : [];
+    if ($variants) {
+        // One row per colourway → each shows its own photo + article/model code.
+        foreach ($variants as $v) {
+            $i++;
+            $rows[] = ['cells' => [
+                (string)$i, $brand, $name, $cat,
+                (string)($v['color'] ?? ''),
+                vestra_export_code($p, $v),
+                (string)($v['model'] ?? ''),
+                $sizes, $moq, $lot, '',
+            ], 'image' => vestra_export_local((string)($v['image'] ?? ''))];
+        }
+    } else {
+        $i++;
+        $colours = implode(', ', array_filter((array)($p['colors'] ?? [])));
+        $rows[] = ['cells' => [
+            (string)$i, $brand, $name, $cat,
+            $colours,
+            vestra_export_code($p),
+            '',
+            $sizes, $moq, $lot, '',
+        ], 'image' => vestra_export_local(vestra_primary_image($p))];
+    }
+}
+if (!$rows) {
+    $rows[] = ['cells' => ['', '', 'This selection is available on request — register free at vestrasales.com', '', '', '', '', '', '', '', ''], 'image' => ''];
+}
+// Footer note (no photo): drives registration; keeps trade pricing gated.
+$rows[] = ['cells' => ['Trade pricing & full line-sheets: register free at vestrasales.com — every seller KYC-verified, goods authenticity-verified on delivery, escrow-protected invoicing.', '', '', '', '', '', '', '', '', '', ''], 'image' => '', 'style' => 'note'];
+/* This file carries no prices by design, so it has to say where they are. A recipient
+   who was sent the catalogue and wants a number should not have to ask for it. */
+$rows[] = ['cells' => ['MOQ is the minimum order for that article and LOT is how many pieces one carton holds -- an order runs in whole cartons. Wholesale prices for every article: https://vestrasales.com/price-list  ·  by brand: https://vestrasales.com/price-lists', '', '', '', '', '', '', '', '', '', ''], 'image' => '', 'style' => 'note'];
+
+$title = count($wanted) === 1 ? $wanted[0] : 'VESTRA Selection';
+
+/* ── Onbellek ────────────────────────────────────────────────────────────────
+   Bu sayfa her istekte 344 fotografi GD ile kucultup zip'liyor: canli olcum
+   8-9 saniye. Ucret kampanya e-postasindaki linke tiklayan soguk aliciya
+   cikiyor -- 9 saniye bekleyen cogu kisi geri donuyor, yani bu dogrudan bir
+   donusum kaybi. Cikti tamamen girdiye bagli oldugu icin guvenle saklanabilir.
+
+   Anahtar, ciktiyi degistirebilecek HER SEYI iceriyor: marka filtresi,
+   listings.json'in son degisim zamani + boyutu, ve uretici kodun (bu dosya +
+   xlsx.php) mtime'i. Boylece bir urun degisince ya da kod deploy edilince
+   anahtar kendiliginden degisiyor -- "onbellegi temizlemeyi unutmak" diye bir
+   durum olusmuyor, bayat katalog gonderme riski yok. Sure siniri YOK, cunku
+   sure degil icerik belirleyici. */
+$cacheDir = vestra_data_dir().'/cache';           // data/ web'den kapali (data/.htaccess)
+$lj       = vestra_data_dir().'/listings.json';
+$key      = sha1(implode('|', [
+    'v2',   /* sutunlar degisti (cat/sizes/lot): eski anahtarla uretilmis dosyalar bayat */
+    strtolower(implode(',', $wanted)),
+    (string)@filemtime($lj), (string)@filesize($lj),
+    (string)@filemtime(__FILE__), (string)@filemtime(__DIR__.'/inc/xlsx.php'),
+]));
+$cacheFile = $cacheDir.'/catalog-'.$key.'.xlsx';
+$fromCache = is_file($cacheFile) && filesize($cacheFile) > 0;
+
+if ($fromCache) {
+    $xlsx = $cacheFile;
+} else {
+    $xlsx = vestra_xlsx_with_photos_file($headers, $rows, $title, [
+        'band'   => 'VESTRA — '.($wanted ? implode(', ', $wanted) : 'Brand Selection').' · '.date('F Y'),
+        'freeze' => true,
+        'filter' => true,
+        'zebra'  => true,
+        'numcols'=> [9 => 'int'],
+        'widths' => [0 => 5, 1 => 15, 2 => 34, 3 => 16, 4 => 16, 5 => 20, 6 => 18,
+                     7 => 30, 8 => 10, 9 => 6, 10 => 16],
+    ]);
+    if ($xlsx === '') { http_response_code(500); header('Content-Type: text/plain'); exit('catalog temporarily unavailable'); }
+    if (!is_dir($cacheDir)) @mkdir($cacheDir, 0775, true);
+    /* Once gecici ada yaz, sonra rename: rename atomik, dolayisiyla ayni anda
+       gelen ikinci bir istek yarim yazilmis bir dosyayi asla gormuyor. */
+    $tmp = $cacheFile.'.'.getmypid().'.part';
+    if (@copy($xlsx, $tmp) && @rename($tmp, $cacheFile)) {
+        @unlink($xlsx);
+        $xlsx = $cacheFile;
+        $fromCache = true;          // artik onbellekteki dosyayi sunuyoruz: silinmemeli
+        /* Eski anahtarlari temizle: her urun degisikligi yeni bir dosya uretir,
+           birikirse disk dolar. Bu marka icin en yeni 3 dosya kalir. */
+        $old = glob($cacheDir.'/catalog-*.xlsx') ?: [];
+        if (count($old) > 6) {
+            usort($old, fn($a, $b) => filemtime($b) <=> filemtime($a));
+            foreach (array_slice($old, 6) as $stale) @unlink($stale);
+        }
+    } else {
+        @unlink($tmp);              // yazamadik: onbelleksiz devam, istek yine de tamamlanir
+    }
+}
+
+/* Delivery. These sheets run 1.7-17.8 MB because every row embeds a photo, and at
+   that size the transfer is what breaks, not the build.
+   1. Any buffered output -- a stray newline or BOM from an include -- would sit in
+      front of the zip header and make Excel reject the file. Discard it.
+   2. zlib.output_compression is commonly on for shared hosting. It would gzip the
+      body while the Content-Length below still advertises the UNCOMPRESSED size, so
+      the client stops reading early and saves a truncated, unopenable file. A .xlsx
+      is a zip and is already compressed, so re-compressing only costs CPU anyway. */
+while (ob_get_level() > 0) ob_end_clean();
+if (function_exists('ini_set')) { @ini_set('zlib.output_compression', 'Off'); }
+@ini_set('max_execution_time', '120');
+
+$fname = 'VESTRA-Selection-'.date('Y-m-d').'.xlsx';
+header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+header('Content-Disposition: attachment; filename="'.$fname.'"');
+header('X-Content-Type-Options: nosniff');
+header('Content-Length: '.filesize($xlsx));  // now truthful: no buffer, no compression
+header('Accept-Ranges: none');
+header('Cache-Control: private, max-age=300');
+/* Streamed, not echoed. Holding the finished workbook in a string was the last of the
+   three catalogue-sized copies that pushed this page past the 128 MB limit; readfile()
+   sends it in chunks, so the response size no longer sets the memory ceiling. */
+readfile($xlsx);
+if (!$fromCache) @unlink($xlsx);   // onbellege alinamamis tek kullanimlik dosya
+flush();

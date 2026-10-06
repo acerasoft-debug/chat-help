@@ -9,6 +9,26 @@ on:
         description: "true = ekledikten sonra hemen gönder | false = sadece ekle ve tara"
         required: false
         default: "true"
+      feature_category:
+        description: "Fotoğraf şeridinde öne çıkarılacak kategori (boş = varsayılan davranış, sadece denim önceliklenir)"
+        required: false
+        default: ""
+      country:
+        description: "Bu partideki adreslerin ülkesi (ör: Italy, Spain, France, Germany). Verilirse tespit yerine bu kullanılır ve KAYITLI leadlerin ülkesi de düzeltilir. Çok ülkeli kurumsal sitelerde tespit güvenilmez."
+        required: false
+        default: ""
+      dns_check:
+        description: "true (varsayılan) = göndermeden önce alan adının MX/A kaydına bak, posta alamayan adresi atla. Sert bounce oranı gönderen alan adının itibarını düşürüyor. false = kontrolsüz gönder."
+        required: false
+        default: "true"
+      same_firm:
+        description: "AYNI FİRMAYA ikinci soğuk mektup: skip (varsayılan) = aynı alan adına daha önce gönderilmişse atla | send = yine de gönder. Serbest posta sağlayıcıları (gmail vb.) muaf tutulur."
+        required: false
+        default: "skip"
+      letter:
+        description: "Hangi İLK mektup: designer (varsayılan — tasarımcı evleri, Les Garage de Paris adına) | footwear (AYAKKABI dükkânlarına: ayakkabı bölmesi + birkaç markalı giyim kategorisi, VESTRA adına; rakamlar canlı katalogdan, kuru koşu mektubu önizler). Tanınmayan değer işi DURDURUR."
+        required: false
+        default: "designer"
 
 permissions:
   contents: read
@@ -38,13 +58,20 @@ jobs:
         env:
           IN_EMAILS: ${{ github.event.inputs.emails }}
           DO_SEND: ${{ github.event.inputs.send }}
+          FEATURE_CAT: ${{ github.event.inputs.feature_category }}
+          IN_COUNTRY: ${{ github.event.inputs.country }}
+          DNS_CHECK: ${{ github.event.inputs.dns_check }}
+          SAME_FIRM: ${{ github.event.inputs.same_firm }}
+          LETTER: ${{ github.event.inputs.letter }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          command_timeout: 20m
-          envs: IN_EMAILS,DO_SEND
+          # 20m -> 45m: her site linki cozulurken ana sayfa + iletisim/kunye
+          # sayfalari cekiliyor; 20 dakikalik tavan ~15 linkte doluyordu.
+          command_timeout: 45m
+          envs: IN_EMAILS,DO_SEND,FEATURE_CAT,IN_COUNTRY,DNS_CHECK,SAME_FIRM,LETTER
           script: |
             cd ~/public_html
             cat > /tmp/vestra_add_send.php <<'PHPEOF'
@@ -60,6 +87,203 @@ jobs:
 
             $DO_SEND = strtolower(trim((string)getenv('DO_SEND'))) !== 'false';
             $raw     = (string)getenv('IN_EMAILS');
+            $FEATCAT = trim((string)getenv('FEATURE_CAT'));
+            /* Operatorun beyan ettigi ulke. Verildiginde tespitin onune gecer -- coklu
+               ulkeli kurumsal sitelerde (McArthurGlen, Value Retail, VIA Outlets) tespit
+               calismiyor: site zaten her ulkeyi listeliyor. Operator outlet'in nerede
+               oldugunu biliyor, site bilmiyor. */
+            $FORCE_COUNTRY = trim((string)getenv('IN_COUNTRY'));
+
+            /* Hangi ILK mektup. Taninmayan deger isi DURDURUR, hicbir leade
+               dokunmadan: sessizce 'designer'a dusmek, operatorun ayakkabi
+               dukkanlarina gonderdigini sandigi sirada onlara tasarimci giyim
+               mektubu gondermek olurdu (send-outreach'in newcoll_letter dersi). */
+            $LETTER = strtolower(trim((string)getenv('LETTER'))) ?: 'designer';
+            if (!in_array($LETTER, ['designer', 'footwear'], true)) {
+              fwrite(STDERR, "letter gecersiz: {$LETTER} (designer|footwear) -- hicbir sey yapilmadi\n"); exit(1);
+            }
+
+            /* Dil haritalari BURADA (eskiden gonderim bolumundeydi): kuru kosu
+               mektubu onizlerken de ayni haritadan dil secebilsin diye. Ikinci
+               bir harita yazilmadi -- onizleme ile gonderim ayni tablodan okuyor. */
+            $LANG_MAP = [
+              'netherlands'=>'nl','the netherlands'=>'nl','nederland'=>'nl','holland'=>'nl',
+              'france'=>'fr',
+              /* Monako: resmi dil Fransizca. 2 Eyl 2026 Riviera listesinde 8 Monako
+                 butigi vardi; eslesme olmayinca .mc/.com uzantisi Ingilizceye dusuyordu. */
+              'monaco'=>'fr','monako'=>'fr','principauté de monaco'=>'fr',
+              /* Luksemburg: is yazismasinin dili Fransizca. Eslesme yokken .lu
+                 uzantisi Ingilizceye dusuyordu (26 Eyl 2026 ayakkabi partisi). */
+              'luxembourg'=>'fr','luxemburg'=>'fr',
+              'italy'=>'it','italia'=>'it',
+              'portugal'=>'pt',
+              'czech republic'=>'cs','czechia'=>'cs','česko'=>'cs','cesko'=>'cs',
+              'poland'=>'pl','polska'=>'pl',
+              'spain'=>'es','españa'=>'es','espana'=>'es',
+              'greece'=>'el','ελλάδα'=>'el','ellada'=>'el',
+              'germany'=>'de','deutschland'=>'de','austria'=>'de','österreich'=>'de','osterreich'=>'de',
+              'russia'=>'ru','russian federation'=>'ru','россия'=>'ru',
+              'japan'=>'ja','日本'=>'ja',
+              'south korea'=>'ko','korea'=>'ko','republic of korea'=>'ko','대한민국'=>'ko',
+              'azerbaijan'=>'az','azərbaycan'=>'az',
+            ];
+            $REGION_LANG = [
+              'belgium' => ['default'=>'nl','match'=>[
+                'fr'=>['bruxelles','brussels','brussel','liège','liege','namur','charleroi','mons','tournai','arlon','wavre','verviers'],
+              ]],
+              /* Isvicre: cogunluk Almanca. Fransizca/Italyanca sehirler yalnizca
+                 KENDINE OZGU adlarla -- 'sion' ya da 'nyon' konsaydi "fashion" ve
+                 "canyon" iceren her Alman-Isvicre butigi Fransizca mektup alirdi
+                 (mango/zara dersinin dil hali). */
+              'switzerland' => ['default'=>'de','match'=>[
+                'fr'=>['genève','geneve','geneva','lausanne','neuchâtel','neuchatel','fribourg','montreux','vevey','yverdon','delémont','delemont','chaux-de-fonds'],
+                'it'=>['lugano','bellinzona','locarno','mendrisio','chiasso'],
+              ]],
+            ];
+            $FLAG = ['nl'=>'NL','fr'=>'FR','de'=>'DE','it'=>'IT','pt'=>'PT','cs'=>'CS','pl'=>'PL','es'=>'ES','el'=>'EL','en'=>'EN','ru'=>'RU','ja'=>'JA','ko'=>'KO','az'=>'AZ'];
+            /* Ulke bos ise e-posta uzantisindan tahmin et: elle verilen adreslerde
+               ulke alani cogu zaman bos kaliyor ve o zaman herkes Ingilizce aliyordu. */
+            $TLD_LANG = ['de'=>'de','at'=>'de','ch'=>'en','nl'=>'nl','be'=>'nl','fr'=>'fr','mc'=>'fr','lu'=>'fr','it'=>'it',
+                         'es'=>'es','pt'=>'pt','gr'=>'el','pl'=>'pl','cz'=>'cs',
+                         'ru'=>'ru','jp'=>'ja','kr'=>'ko','az'=>'az'];
+
+            /* ---- AYAKKABI MEKTUBU: rakamlar CANLI katalogdan ----
+               Hicbir sayi metne gomulu degil (KURAL 13): model sayisi, turler,
+               kutu buyuklugu, yetiskin/cocuk ayrimi ve giyim kategorileri burada
+               sayiliyor ve kuru kosu hepsini basiyor -- gonderilmeden once
+               okunacak tek yer orasi. Leadlere dokunulmadan ONCE hesaplaniyor:
+               bolme bossa is hicbir sey eklemeden durur. */
+            $FW = [];
+            if ($LETTER === 'footwear') {
+              $fwTypes = []; $fwN = 0; $fwKid = 0; $fwAdult = 0; $fwBrand = [];
+              $bMin = 0; $bMax = 0; $pool = []; $poolKid = []; $app = [];
+              /* Cocuk modeli metinden taniniyor (Pili Perez aciklamalari "children's
+                 sneaker", "school shoe" diyor). Yalnizca "yetiskin ve cocuk" cumlesini
+                 acar -- ikisi de sifirdan buyukse; sayi mektuba yazilmaz. */
+              $kidRe = '/\b(child|children|kid|kids|infant|toddler|baby|junior|school)\b/i';
+              foreach (vestra_products() as $p) {
+                if (vestra_is_sold_out($p)) continue;
+                $sec = vestra_product_section($p);
+                $cat = trim((string)($p['cat'] ?? ''));
+                if ($sec === 'footwear') {
+                  $fwN++;
+                  if ($cat !== '') $fwTypes[$cat] = ($fwTypes[$cat] ?? 0) + 1;
+                  $fb = trim((string)($p['brand'] ?? ''));
+                  $fwBrand[$fb === '' ? '(markasiz)' : $fb] = true;
+                  $kid = (bool)preg_match($kidRe, (string)($p['name'] ?? '').' '.(string)($p['desc'] ?? ''));
+                  if ($kid) $fwKid++; else $fwAdult++;
+                  /* Kutu = ilanin MOQ'su, birim cift (Pili Perez notu: moq kutudaki
+                     cift sayisi). Birimi 'pair' olmayan ilan kutu araligina girmez. */
+                  $m = (int)($p['moq'] ?? 0);
+                  if ($m > 0 && strtolower(trim((string)($p['unit'] ?? ''))) === 'pair') {
+                    $bMin = $bMin > 0 ? min($bMin, $m) : $m; $bMax = max($bMax, $m);
+                  }
+                  if ($cat !== '') { if ($kid) $poolKid[$cat][] = $p; else $pool[$cat][] = $p; }
+                } elseif ($sec === 'premium') {
+                  $ab = trim((string)($p['brand'] ?? ''));
+                  if ($cat !== '' && $ab !== '') $app[$cat][$ab][] = $p;
+                }
+              }
+              if ($fwN === 0) { fwrite(STDERR, "ayakkabi bolmesinde satista ilan yok -- bu mektup gonderilmez\n"); exit(1); }
+              arsort($fwTypes);
+              /* Mektuba giren turler: en az 5 modeli olan, en cok 6 tur. 3 modelli
+                 bir turu "sunuyoruz" diye saymak rafi oldugundan buyuk gosterir. */
+              $types = [];
+              foreach ($fwTypes as $c => $k) { if ($k >= 5) $types[$c] = $k; if (count($types) >= 6) break; }
+              $brandsFw = array_keys($fwBrand);
+              /* "Ispanyol uretici" yalnizca bolmede TEK marka varsa ve o Pili Perez
+                 ise: baska bir marka girdiginde cumle kendiliginden susar. */
+              $originEs = count($brandsFw) === 1
+                       && in_array(mb_strtolower($brandsFw[0]), ['pili pérez', 'pili perez'], true);
+              /* Giyim: en kalabalik 3 kategori, her birinde en az 2 marka, kategori
+                 basina en cok 3 marka (ilan sayisina gore). Gizli markalar zaten
+                 vestra_products()'ta yok (KURAL 36). */
+              $catTot = [];
+              foreach ($app as $c => $bs) $catTot[$c] = array_sum(array_map('count', $bs));
+              arsort($catTot);
+              $apparel = [];
+              foreach (array_keys($catTot) as $c) {
+                $bs = $app[$c];
+                uasort($bs, fn($x, $y) => count($y) <=> count($x));
+                if (count($bs) < 2) continue;
+                $apparel[] = ['cat' => $c, 'brands' => array_slice(array_keys($bs), 0, 3), 'n' => $catTot[$c]];
+                if (count($apparel) >= 3) break;
+              }
+              /* Fotograf UYDURULMAZ: DISKTE gercekten duran kare (wave3'un ayni
+                 kurali). Ayakkabida tur basina bir kare, once yetiskin modeli;
+                 giyimde kategori basina bir kare. */
+              $pic = function (array $p) use ($home): string {
+                $im = (string)vestra_primary_image($p);
+                if ($im === '' || preg_match('#^https?://#i', $im)) return '';
+                return is_file($home.'/public_html'.$im) ? 'https://vestrasales.com'.$im : '';
+              };
+              $shots = [];
+              foreach (array_keys($types) as $c) {
+                foreach (array_merge($pool[$c] ?? [], $poolKid[$c] ?? []) as $p) {
+                  $u = $pic($p); if ($u === '') continue;
+                  $shots[] = ['img' => $u, 'cat' => $c, 'url' => 'https://vestrasales.com/product?id='.rawurlencode((string)($p['id'] ?? ''))];
+                  break;
+                }
+              }
+              /* Giyim kareleri AYRI markalardan: etiket markanin adi ve ayni ad iki
+                 kez basilinca serit tekrar gibi okunuyor (27 Eyl kuru kosusu:
+                 "DSQUARED2 | DSQUARED2"). Kategori basina ilk KULLANILMAMIS marka;
+                 kategorinin markalari tukendiyse diger kategorilerin markalarina
+                 bakilir. Bulunamazsa kare eklenmez -- tekrar etmektense eksik. */
+              $usedB = []; $appPairs = [];
+              foreach ($apparel as $a) foreach ($a['brands'] as $ab) $appPairs[] = [$a['cat'], $ab];
+              foreach ($apparel as $a) {
+                $order = array_merge(array_map(fn($ab) => [$a['cat'], $ab], $a['brands']), $appPairs);
+                foreach ($order as [$ac, $ab]) {
+                  if (isset($usedB[$ab])) continue;
+                  $hit = false;
+                  foreach ($app[$ac][$ab] as $p) {
+                    $u = $pic($p); if ($u === '') continue;
+                    $shots[] = ['img' => $u, 'brand' => $ab, 'url' => 'https://vestrasales.com/product?id='.rawurlencode((string)($p['id'] ?? ''))];
+                    $usedB[$ab] = true; $hit = true; break;
+                  }
+                  if ($hit) break;
+                }
+              }
+              $FW = ['shoes' => $fwN, 'types' => $types, 'kids' => ($fwKid > 0 && $fwAdult > 0),
+                     'origin_es' => $originEs, 'box_min' => $bMin, 'box_max' => $bMax,
+                     'apparel' => $apparel, 'shots' => $shots];
+              echo "MEKTUP: footwear (ilk temas, VESTRA adina)\n";
+              echo "AYAKKABI: {$fwN} model satista | turler: "
+                 . implode(', ', array_map(fn($c, $k) => "{$c} {$k}", array_keys($fwTypes), array_values($fwTypes)))."\n";
+              echo "  mektuba giren turler (>=5 model): ".($types ? implode(', ', array_keys($types)) : '(YOK)')."\n";
+              echo "  yetiskin {$fwAdult} / cocuk {$fwKid} -> 'yetiskin ve cocuk' cumlesi: ".($FW['kids'] ? 'VAR' : 'YOK')."\n";
+              echo "  kutu: ".($bMin > 0 ? "{$bMin}-{$bMax} cift" : 'OLCULEMEDI (cumle basilmaz)')."\n";
+              echo "  bolmedeki markalar: ".implode(', ', $brandsFw)." -> 'Ispanyol uretici': ".($originEs ? 'EVET' : 'HAYIR')."\n";
+              foreach ($apparel as $a) echo "GIYIM: {$a['cat']} ({$a['n']} ilan) -- ".implode(', ', $a['brands'])."\n";
+              if (!$apparel) echo "GIYIM: (kategori yok -- giyim paragrafi basilmaz)\n";
+              echo "FOTO: ".count($shots)." kare (diskte dogrulandi): "
+                 . implode(' | ', array_map(fn($s) => (string)($s['cat'] ?? $s['brand'] ?? ''), $shots))."\n";
+              /* Onizleme: partinin ulkesinin dilinde, HITAP BOS -- kutuge firma adi
+                 basilmaz; metin kisiye ait hicbir sey tasimiyor. */
+              $pvKey  = strtolower($FORCE_COUNTRY);
+              $pvLang = $LANG_MAP[$pvKey] ?? ($REGION_LANG[$pvKey]['default'] ?? 'en');
+              [$pvS, $pvB] = vestra_tpl_footwear_intro($pvLang, '', $FW);
+              echo "\n--- ONIZLEME (dil={$pvLang}, hitap bos) ---\nKONU: {$pvS}\n{$pvB}\n--- onizleme sonu ---\n\n";
+              flush();
+            }
+
+            /* Bilinen alan adlari: bir link ZATEN kayitli bir leade aitse site
+               yeniden taranmaz. Iki sebep: (1) kuru kosudan sonraki gonderim
+               kosusu, okunan adresin AYNISINA gider -- yeniden tarama baska bir
+               kutu bulup okunmamis bir adrese mektup gonderebilirdi; (2) tarama
+               link basina dakikalar suruyor. Serbest posta saglayicisinin alan adi
+               firma kimligi degil, o yuzden yalnizca web sitesinden eslenir. */
+            $leadByDom = [];
+            /* Serbest posta saglayicisi: TEK liste, vestra_email_is_shared_provider()
+               (notify.php). Burada yedi el yazmasi liste vardi ve ayrismislardi. */
+            foreach (vestra_leads() as $kl) {
+              $km = strtolower(trim((string)($kl['email'] ?? ''))); if ($km === '') continue;
+              $kw = strtolower(preg_replace('/^www\./', '', (string)vestra_domain_of((string)($kl['website'] ?? ''))));
+              if ($kw !== '' && !vestra_email_is_shared_provider($kw)) $leadByDom[$kw][$km] = true;
+              $kd = strtolower((string)substr((string)strrchr($km, '@'), 1));
+              if ($kd !== '' && !vestra_email_is_shared_provider($kd)) $leadByDom[$kd][$km] = true;
+            }
 
             /* Girdi HEM e-posta HEM site linki olabilir, karisik da olabilir.
                Link verildiginde e-posta sitesinden okunur (iletisim/kunye sayfalari).
@@ -77,6 +301,12 @@ jobs:
               if (!preg_match('#^https?://#i', $cand)) {
                 if (!preg_match('#^[a-z0-9][a-z0-9.\-]*\.[a-z]{2,}#i', $cand)) continue;   // ne mail ne site
                 $cand = 'https://'.$cand;
+              }
+              $candDom = strtolower(preg_replace('/^www\./', '', (string)vestra_domain_of($cand)));
+              if ($candDom !== '' && !empty($leadByDom[$candDom])) {
+                foreach (array_keys($leadByDom[$candDom]) as $km) { $wanted[$km] = true; $fromLink[$km] = $cand; }
+                echo "  ... {$cand}\n      -> zaten kayitli (".count($leadByDom[$candDom])." adres) -- site yeniden taranmadi\n";
+                flush(); continue;
               }
               echo "  ... link cozumleniyor: {$cand}\n"; flush();
               $mail = vestra_find_email($cand);
@@ -154,33 +384,161 @@ jobs:
                 'Finland'=>['suomi','finland'], 'Ireland'=>['ireland','éire'],
                 'United Kingdom'=>['united kingdom','england','scotland'],
                 'United States'=>['united states'],
+                /* Avrupa disi dorduncu grup: gonderim tarafi ru/ja/ko/az sablonlarini
+                   ZATEN tasiyor, ama tespit tarafi bu ulkeleri hic uretemiyordu -- yani
+                   bir Kore butigi icin ulke bos kaliyor, dil de e-posta uzantisina
+                   dusuyordu. Sonuc: kasina.co.kr Korece, boontheshop.com Ingilizce alir.
+                   Ayni magaza grubunun iki adresi iki ayri dil demek. Ulke adlarindan
+                   sonra sehir adlari da bakiliyor cunku Korece sitelerin cogu "Korea"
+                   yazmiyor ama adresinde "Seoul" geciyor. */
+                'South Korea'=>['대한민국','한국','south korea','republic of korea','korea','서울','seoul'],
+                'Japan'=>['日本','japan','東京','tokyo'],
+                'Russia'=>['россия','russia','москва','moscow'],
+                'Azerbaijan'=>['azərbaycan','azerbaijan','bakı','baku'],
               ];
-              $low = mb_strtolower($hay);
-              foreach ($COUNTRY_WORDS as $cn => $words)
-                foreach ($words as $w) if (str_contains($low, $w)) { $out['country'] = $cn; break 2; }
+              /* SIRA: uzanti -> sayfanin yazi sistemi -> sayfada gecen ulke adi.
+                 Onceki surumde ilk bakilan yer ulke adlariydi ve olculen sonuc yanlisti:
+                 Kore'li magazalarin kargo/teslimat sayfasinda "Germany, Italy, France"
+                 yaziyor, ilk eslesme de Almanya cikiyordu. 3 Agustos gonderiminde Seul'deki
+                 dort butik Almanca, biri Italyanca kampanya aldi. Uzanti ve sayfanin yazi
+                 sistemi magazanin KENDISI hakkinda bilgi verir; kargo listesindeki ulke
+                 adlari magazanin nereye gonderdigi hakkindadir -- ayni sey degil. */
+
+              /* 1) Ulke kodu uzantisi. .co.kr / .de gibi uzantilar magazaya aittir. */
+              $TLD = ['de'=>'Germany','at'=>'Austria','ch'=>'Switzerland','nl'=>'Netherlands',
+                      'be'=>'Belgium','fr'=>'France','it'=>'Italy','es'=>'Spain','pt'=>'Portugal',
+                      'gr'=>'Greece','pl'=>'Poland','cz'=>'Czechia','no'=>'Norway','se'=>'Sweden',
+                      'dk'=>'Denmark','fi'=>'Finland','ie'=>'Ireland','uk'=>'United Kingdom',
+                      'kr'=>'South Korea','jp'=>'Japan','ru'=>'Russia','az'=>'Azerbaijan'];
+              $bits = explode('.', $domain);
+              $out['country'] = $TLD[strtolower(end($bits))] ?? '';
+
+              /* 2) Telefonun ulke kodu. Bir firma KENDI numarasini yayinlar; sayfada gecen
+                 ulke adlari ise nereye gonderdigini ya da hangi dilleri sundugunu anlatir --
+                 ayni sey degil. 7 Agustos partisinde olculen: esqui-outlet.com "Italy"
+                 cikti (telefon +34), elisabettafranchi.com "Germany" (telefon +39),
+                 outletcity.com "South Korea" (telefon +49, sitede Korece sayfa var).
+                 Ucunde de telefon dogruydu. Uzun kodlar once, yoksa +49 "+4" ile karisir. */
+              if ($out['country'] === '' && $out['phone'] !== '') {
+                $DIAL = ['994'=>'Azerbaijan','420'=>'Czechia','358'=>'Finland','353'=>'Ireland',
+                         '351'=>'Portugal','49'=>'Germany','43'=>'Austria','41'=>'Switzerland',
+                         '31'=>'Netherlands','32'=>'Belgium','33'=>'France','39'=>'Italy',
+                         '34'=>'Spain','30'=>'Greece','48'=>'Poland','47'=>'Norway',
+                         '46'=>'Sweden','45'=>'Denmark','44'=>'United Kingdom',
+                         '82'=>'South Korea','81'=>'Japan','7'=>'Russia'];
+                $digits = preg_replace('/\D/', '', $out['phone']);
+                foreach ($DIAL as $code => $cn) {
+                  if (str_starts_with($digits, $code)) { $out['country'] = $cn; break; }
+                }
+              }
+
+              /* 3) Uzanti genel (.com/.net) ve telefon da yoksa sayfanin yazi sistemine bak. Sayfasi bastan
+                 asagi Hangul olan bir magaza, kargo tablosunda Almanya yaziyor diye Alman
+                 olmaz. Esik tek bir kelimeyi degil, sayfanin gercekten o dilde yazildigini
+                 arar.
+
+                 MUTLAK SAYI YETMIYOR: 9 Agustos'ta folkster.com (Kilkenny) Rusca,
+                 omdivaboutique.com (Dublin) Korece kampanya aldi. Ikisi de bastan asagi
+                 Ingilizce Irlanda butigi; sayfada dil/para birimi secici ya da ceviri
+                 eklentisi 30 Kiril/Hangul karakteri gecmeye yetmis. Artik ORAN da
+                 araniyor: o yazi sistemi, sayfadaki Latin harflerinin yaninda gorunur
+                 bir agirliga sahip olmali. Gercekten Korece bir sitede oran 1'in
+                 uzerinde; ingilizce bir sitedeki ceviri menusunde binde birkac. */
               if ($out['country'] === '') {
-                $TLD = ['de'=>'Germany','at'=>'Austria','ch'=>'Switzerland','nl'=>'Netherlands',
-                        'be'=>'Belgium','fr'=>'France','it'=>'Italy','es'=>'Spain','pt'=>'Portugal',
-                        'gr'=>'Greece','pl'=>'Poland','cz'=>'Czechia','no'=>'Norway','se'=>'Sweden',
-                        'dk'=>'Denmark','fi'=>'Finland','ie'=>'Ireland','uk'=>'United Kingdom'];
-                $bits = explode('.', $domain);
-                $out['country'] = $TLD[strtolower(end($bits))] ?? '';
+                $SCRIPT = [
+                  'South Korea' => '/[\x{AC00}-\x{D7A3}]/u',              // Hangul
+                  'Japan'       => '/[\x{3040}-\x{309F}\x{30A0}-\x{30FF}]/u', // hiragana + katakana
+                  'Russia'      => '/[\x{0400}-\x{04FF}]/u',              // Kiril
+                ];
+                $latin = preg_match_all('/[A-Za-z]/', $hay);
+                foreach ($SCRIPT as $cn => $re) {
+                  $n = preg_match_all($re, $hay);
+                  if ($n >= 30 && $n >= $latin * 0.08) { $out['country'] = $cn; break; }
+                }
+              }
+
+              /* 4) Son care: sayfada (ve alan adinda) gecen ulke/sehir adi. Alan adi da
+                 haystack'e giriyor cunku "samplestoreseoul.com" gibi isimler sitenin
+                 tamamen Ingilizce oldugu durumda tek ipucu olabiliyor.
+
+                 ILK ESLESME ALINAMAZ: 9 Agustos'ta Carraig Donn, Life Style Sports ve
+                 Guinness Storehouse Almanca, Avoca Italyanca, DublinLeather Fransizca
+                 kampanya aldi -- besi de Irlandali. Sebep: kargo/teslimat tablosunda
+                 "Germany, France, Italy..." yaziyor ve tarama listedeki ilk ulkeyi
+                 magazanin ulkesi sandi. Bir kargo tablosunda ONLARCA ulke gecer; bir
+                 magazanin KENDI ulkesi ise sayfa boyunca tekrar eder (adres, "made in",
+                 iletisim). Onun icin artik gecis SAYILIYOR: tek ulke geciyorsa o, birden
+                 fazlaysa yalnizca acik ara onde olan (en az 3 kez ve ikincinin iki kati)
+                 kabul ediliyor. Beraberlik varsa hic tahmin edilmiyor -- Ingilizce'ye
+                 dusmek, yanlis dilde e-posta gondermekten iyi. */
+              if ($out['country'] === '') {
+                $low = mb_strtolower($hay.' '.$domain);
+                /* "Made in Italy" bir URUNUN nereden geldigini soyler, MAGAZANIN nerede
+                   oldugunu degil -- ve moda sitelerinde her urun aciklamasinda tekrar eder,
+                   yani sayma kuralini da kandirir. 9 Agustos: Cruise Fashion (Glasgow)
+                   Italyanca, Goodhood (Londra) Japonca kampanya aldi; ikisi de Ingiliz
+                   magazasi, ikisinin de katalogu "made in Italy" / "made in Japan" dolu.
+                   Menseyi anlatan kaliplar ulke adiyla birlikte siliniyor. */
+                $low = preg_replace(
+                  '/\b(made|designed|crafted|assembled|woven|knitted|produced|manufactured|imported)\s+(in|from)\s+[\p{L}]+/iu',
+                  ' ', $low);
+                $hits = [];
+                foreach ($COUNTRY_WORDS as $cn => $words) {
+                  $n = 0;
+                  foreach ($words as $w) $n += substr_count($low, $w);
+                  if ($n > 0) $hits[$cn] = $n;
+                }
+                if (count($hits) === 1) {
+                  $out['country'] = array_key_first($hits);
+                } elseif (count($hits) > 1) {
+                  arsort($hits);
+                  $v = array_values($hits);
+                  if ($v[0] >= 3 && $v[0] >= $v[1] * 2) $out['country'] = array_key_first($hits);
+                }
               }
               return $out;
             };
 
-            $added = 0;
+            /* Serbest posta saglayicilari. Bunlarda alan adi firmaya ait DEGIL, o yuzden
+               ondan site uretmek yanlis: shop@gmail.com icin website=https://gmail.com
+               yaziliyor, site taramasi Gmail'in ana sayfasini okuyup firma adini "Gmail"
+               kaydediyor ve marka taramasi Google'i tariyordu. Boyle adreslerde site hic
+               taranmaz; firma adi olarak adresin @ oncesi yazilir -- operatorun verdigi
+               bilgi budur, uydurmak yerine oldugu gibi durur.
+               Liste TEK yerde: vestra_email_is_shared_provider() (notify.php). */
+
+            $added = 0; $fixed = 0;
             foreach (array_keys($wanted) as $mail) {
-              if (isset($byMail[$mail])) { echo "  = zaten var : {$mail}\n"; continue; }
+              if (isset($byMail[$mail])) {
+                /* Kayitli adres. Ulke ELLE verildiyse burada duzeltiyoruz: aksi halde
+                   ilk eklemedeki yanlis tespit kalici oluyor ve yanlis ulke yanlis DIL
+                   demek -- Italyan bir outlet'e Almanca kampanya gider. */
+                $j = $byMail[$mail];
+                $old = (string)($leads[$j]['country'] ?? '');
+                if ($FORCE_COUNTRY !== '' && strcasecmp($old, $FORCE_COUNTRY) !== 0) {
+                  $leads[$j]['country'] = $FORCE_COUNTRY; $fixed++;
+                  echo "  = zaten var : {$mail}  (ulke duzeltildi: ".($old !== '' ? $old : '(bos)')." -> {$FORCE_COUNTRY})\n";
+                } else {
+                  echo "  = zaten var : {$mail}\n";
+                }
+                continue;
+              }
               $domain  = substr(strrchr($mail, '@'), 1);
-              $website = $fromLink[$mail] ?? ('https://'.$domain);
-              $info    = $siteInfo($website);
-              $company = $info['company'] !== '' ? $info['company'] : $domain;
+              $isFree  = vestra_email_is_shared_provider($domain);
+              $website = $fromLink[$mail] ?? ($isFree ? '' : 'https://'.$domain);
+              $info    = $website !== '' ? $siteInfo($website) : ['company'=>'','country'=>'','phone'=>''];
+              $company = $info['company'] !== '' ? $info['company']
+                       : ($isFree ? (string)strstr($mail, '@', true) : $domain);
               $leads[] = [
                 'id'=>'LD'.strtoupper(bin2hex(random_bytes(4))), 'added_at'=>date('c'), 'owner_uid'=>'',
                 'company'=>$company, 'contact_name'=>'', 'email'=>$mail,
-                'country'=>$info['country'], 'phone'=>$info['phone'],
-                'website'=>$website, 'source'=>'manual', 'category'=>'',
+                'country'=>($FORCE_COUNTRY !== '' ? $FORCE_COUNTRY : $info['country']),
+                'phone'=>$info['phone'],
+                'website'=>$website, 'source'=>'manual',
+                /* Ayakkabi mektubuyla eklenen dukkan kategorisini tasir: ikinci
+                   mektup kanali ("shoes") ona "ayakkabi bolumu acildi" diye yazmamali
+                   -- ilk mektubun konusu zaten oydu. */
+                'category'=>($LETTER === 'footwear' ? 'footwear' : ''),
                 'notes'=>'', 'status'=>'new', 'last_contacted_at'=>'',
                 'unsub_token'=>bin2hex(random_bytes(16)),
                 'premium'=>false, 'premium_brands'=>[],
@@ -189,17 +547,24 @@ jobs:
               $added++;
               printf("  + EKLENDI   : %-34s <%s>\n                ulke=%s  tel=%s\n",
                      mb_substr($company,0,32), $mail,
-                     $info['country'] !== '' ? $info['country'] : '(bulunamadi)',
+                     $FORCE_COUNTRY !== '' ? $FORCE_COUNTRY.' (elle)'
+                       : ($info['country'] !== '' ? $info['country'] : '(bulunamadi)'),
                      $info['phone'] !== '' ? $info['phone'] : '-');
               flush();
             }
-            if ($added > 0) vestra_save_leads($leads);
-            echo "\n{$added} eklendi. toplam lead: ".count($leads)."\n\n";
+            if ($added > 0 || $fixed > 0) vestra_save_leads($leads);
+            echo "\n{$added} eklendi".($fixed > 0 ? ", {$fixed} kaydin ulkesi duzeltildi" : "").
+                 ". toplam lead: ".count($leads)."\n\n";
 
-            /* ---- 2) TARA (bilgi amacli -- engellemiyor) ---- */
+            /* ---- 2) TARA (bilgi amacli -- engellemiyor) ----
+               Ayakkabi mektubunda ATLANIR: premium sozlugu tasarimci GIYIM evlerini
+               sayiyor, bir ayakkabi dukkaninda cogunlukla bos donuyor ve bos donen
+               kayit her kosuda yeniden taraniyor -- link basina dakika harcayip
+               hicbir karari etkilemeyen bir olcum. */
             echo "-- marka taramasi --\n";
             $touched = 0;
-            foreach (array_keys($wanted) as $mail) {
+            if ($LETTER === 'footwear') echo "  (ayakkabi mektubu -- premium giyim taramasi atlandi)\n";
+            foreach (($LETTER === 'footwear' ? [] : array_keys($wanted)) as $mail) {
               $i = $byMail[$mail] ?? null; if ($i === null) continue;
               $pb = $leads[$i]['premium_brands'] ?? [];
               if (is_array($pb) && $pb) { printf("  %-34s %s\n", $mail, implode(', ', array_slice($pb,0,6))); continue; }
@@ -219,38 +584,116 @@ jobs:
             /* ---- 3) GONDER ----
                Dil esleme ve gonderim, send-outreach.yml ile AYNI mantik: ulke -> dil,
                cok dilli ulkelerde adres icindeki sehir adina bak, bulunamazsa Ingilizce. */
-            $FROM = 'Les Garage de Paris';
-            $LANG_MAP = [
-              'netherlands'=>'nl','the netherlands'=>'nl','nederland'=>'nl','holland'=>'nl',
-              'france'=>'fr',
-              'italy'=>'it','italia'=>'it',
-              'portugal'=>'pt',
-              'czech republic'=>'cs','czechia'=>'cs','česko'=>'cs','cesko'=>'cs',
-              'poland'=>'pl','polska'=>'pl',
-              'spain'=>'es','españa'=>'es','espana'=>'es',
-              'greece'=>'el','ελλάδα'=>'el','ellada'=>'el',
-              'germany'=>'de','deutschland'=>'de','austria'=>'de','österreich'=>'de','osterreich'=>'de',
-            ];
-            $REGION_LANG = [
-              'belgium' => ['default'=>'nl','match'=>[
-                'fr'=>['bruxelles','brussels','brussel','liège','liege','namur','charleroi','mons','tournai','arlon','wavre','verviers'],
-              ]],
-            ];
-            $FLAG = ['nl'=>'NL','fr'=>'FR','de'=>'DE','it'=>'IT','pt'=>'PT','cs'=>'CS','pl'=>'PL','es'=>'ES','el'=>'EL','en'=>'EN'];
-            /* Ulke bos ise e-posta uzantisindan tahmin et: elle verilen adreslerde
-               ulke alani cogu zaman bos kaliyor ve o zaman herkes Ingilizce aliyordu. */
-            $TLD_LANG = ['de'=>'de','at'=>'de','ch'=>'en','nl'=>'nl','be'=>'nl','fr'=>'fr','it'=>'it',
-                         'es'=>'es','pt'=>'pt','gr'=>'el','pl'=>'pl','cz'=>'cs'];
+            /* Gonderen adi mektuba gore: tasarimci mektubu Les Garage de Paris
+               adina (operatorun yerlesik kimligi), ayakkabi mektubu VESTRA adina --
+               ayakkabilar Les Garage de Paris'in mali degil, platformun bolmesi.
+               Adres her iki durumda support@vestrasales.com (KURAL 23). */
+            $FROM = $LETTER === 'footwear' ? 'VESTRA' : 'Les Garage de Paris';
+            /* Dil haritalari ($LANG_MAP, $REGION_LANG, $FLAG, $TLD_LANG) betigin
+               BASINDA tanimli: onizleme ve gonderim ayni tablodan okuyor. */
 
             echo "-- gonderim --\n";
+            /* Kota kapisi -- send-outreach ile ayni gerekce: kampanya ve sifre
+               sifirlama ayni gunluk havuzu paylasiyor, ve bekleyen insan olan taraf
+               sifirlama tarafi. */
+            $wantN = count($wanted);
+            [$mayGo, $why] = vestra_mail_bulk_allowed($wantN);
+            echo "kota  : {$why}\n";
+            if (!$mayGo) { echo "\nDURDURULDU. Adresler eklendi ve tarandi, hicbir e-posta gonderilmedi.\n"; exit(0); }
             $sent = 0; $fail = 0; $skip = 0;
+            $DNS_CHECK = strtolower(trim((string)getenv('DNS_CHECK'))) !== 'false';
+            $dnsSeen = []; $dnsDead = 0; $dnsTouched = false;
+
+            /* AYNI FIRMAYA IKINCI SOGUK MEKTUP. Tekillestirme ADRESE gore yapiliyor,
+               FIRMAYA gore degil. 1 Eyl 2026'da ikinci APAC listesinde
+               sartorial@marais.com.au vardi; oysa ayni dukkanin online@ adresi
+               31 Agustos'ta mektup almisti. Ayni gonderenden gelen ikinci soguk
+               mektup spam sikayeti uretiyor ve vestrasales.com'da DKIM yok --
+               itibari daha da dusuruyor.
+               Serbest/paylasimli posta saglayicilari MUAF: gmail.com'daki iki adres
+               iki ayri firma demektir, orada alan adi firma kimligi tasimaz.
+               27 Eyl 2026: buradaki el yazmasi liste wanadoo.fr ve hotmail.fr'yi
+               TANIMIYORDU; iki bagimsiz Fransiz ayakkabi dukkani, o saglayicilarda
+               haftalar once yazilmis UC ALAKASIZ dukkan yuzunden "ayni firmaya zaten
+               gitti" diye SESSIZCE atlandi (leads_status ile olculdu: Chalbouy,
+               Falbalas, Patmouille / Miss recup). Liste artik tek fonksiyon. */
+            $SAME_FIRM = strtolower(trim((string)getenv('SAME_FIRM'))) ?: 'skip';
+            $domOf = fn(string $e) => (string)substr((string)strrchr($e, '@'), 1);
+            $firmDone = [];
+            foreach ($leads as $l2) {
+              if (trim((string)($l2['last_contacted_at'] ?? '')) === '') continue;
+              $e2 = strtolower(trim((string)($l2['email'] ?? ''))); if ($e2 === '') continue;
+              $d2 = $domOf($e2);
+              if ($d2 === '' || vestra_email_is_shared_provider($d2) || isset($firmDone[$d2])) continue;
+              $firmDone[$d2] = $e2;
+            }
+            echo "firma : ".count($firmDone)." alan adina daha once gonderilmis"
+               . ($SAME_FIRM === 'send' ? " (same_firm=send -- kontrol KAPALI)\n" : "\n");
+
             foreach (array_keys($wanted) as $mail) {
               $i = $byMail[$mail] ?? null; if ($i === null) continue;
               $l = $leads[$i];
               if (trim((string)($l['last_contacted_at'] ?? '')) !== '') {
                 echo "  - ATLANDI (zaten gonderilmis): {$mail}\n"; $skip++; continue;
               }
+              /* PARK EDILMIS / SATILIK alan adi -> dukkan degil, satis sayfasi.
+                 1 Eyl 2026'da klcollective.com'a mektup gitti; tarama sirket adini
+                 "HugeDomains" diye getirmisti. Isaret elimizdeydi, kimse bakmiyordu.
+                 NS/MX kontrolu bunu yakalayamaz: park saglayicisi alan adini gercekten
+                 kaydeder ve cogu MX de yayinlar, yani alan adi "yasiyor" gorunur. */
+              if (function_exists('vestra_name_is_parked_domain')
+                  && vestra_name_is_parked_domain((string)($l['company'] ?? ''))) {
+                printf("  - ATLANDI (park edilmis/satilik alan adi: \"%s\"): %s\n",
+                       mb_substr((string)($l['company'] ?? ''), 0, 40), $mail);
+                $skip++; continue;
+              }
+              /* COP / YER TUTUCU ADRES -> gonderme. send-outreach bu kontrolu
+                 gonderim yolunda yapiyordu, burasi YAPMIYORDU: 27 Eyl 2026 Almanya
+                 ayakkabi kuru kosusunda bir kunye sayfasindan bir markanin adresi
+                 "…@<marka>.comwww.<marka>-group.comangaben" diye cozuldu ve lead
+                 olarak YAZILDI. Tarama artik o kalibi eliyor; ama daha once kayda
+                 girmis ya da elle yapistirilmis bir adres buradan hala gecerdi --
+                 ayni emniyet agi, iki gonderim yolunda. */
+              if (vestra_email_is_junk($mail)) {
+                echo "  - ATLANDI (cop/yer tutucu adres): {$mail}\n"; $skip++; continue;
+              }
+              if ($SAME_FIRM !== 'send') {
+                $dom = $domOf($mail);
+                if ($dom !== '' && !vestra_email_is_shared_provider($dom) && isset($firmDone[$dom]) && $firmDone[$dom] !== $mail) {
+                  printf("  - ATLANDI (ayni firmaya zaten gitti: %s): %s\n",
+                         preg_replace('/^(.).*@/', '$1***@', $firmDone[$dom]), $mail);
+                  $skip++; continue;
+                }
+              }
               if (!empty($l['unsubscribed'])) { echo "  - ATLANDI (abonelikten cikmis): {$mail}\n"; $skip++; continue; }
+              /* ZINCIR / DISTRIBUTOR / KENDI MARKASINI SATAN -> gonderme.
+                 Operatorun ayakta duran kurali. Bu kontrol send-outreach.yml ve
+                 admin.php'de vardi ama BURADA YOKTU, ve elle verilen listeler tam da
+                 buradan geciyor -- 28 Agustos'ta bir Korfez partisinde Alshaya, Al Tayer,
+                 Apparel Group, BFL, Alyasra, Etoile ve Concept Brands bu bosluktan gecti.
+                 "Adresleri operator sectiyse uygunlugunu degerlendirmistir" varsayimi
+                 marka filtresi icin dogru, bu kural icin degil: kural mutlak ve listeyi
+                 hazirlayan arastirma cogu zaman grubun kendi tanitim metnini kopyaliyor,
+                 yani "distributor" kelimesi adresin YANINDA yaziyor ama kimse bakmiyor. */
+              if (vestra_lead_is_blocked($l)) {
+                echo "  - ATLANDI (zincir/distributor/kendi markasi -- KURAL): {$mail}\n"; $skip++; continue;
+              }
+              /* Alan adi posta alabiliyor mu? MX yoksa A kaydi da yoksa o adrese
+                 gonderilen her sey sert bir bounce olarak geri doner ve bounce orani
+                 gonderen alan adinin itibarini dusurur -- yani olu bir adrese
+                 gondermek bedava degil, CALISAN adreslere ulasma sansini azaltiyor.
+                 Elle verilen listelerde bu ciddi bir pay tutuyor: onceki partide 173
+                 adresin 109'unun alan adi hic yoktu. Sonuc kaydediliyor ki ayni adres
+                 her turda yeniden sorulmasin. */
+              if ($DNS_CHECK) {
+                $dom = strtolower(substr(strrchr($mail, '@'), 1));
+                if (!isset($dnsSeen[$dom])) $dnsSeen[$dom] = (checkdnsrr($dom, 'MX') || checkdnsrr($dom, 'A'));
+                if (!$dnsSeen[$dom]) {
+                  echo "  - ATLANDI (alan adi posta alamiyor): {$mail}\n";
+                  $leads[$i]['notes'] = trim((string)($leads[$i]['notes'] ?? '').' [dns: MX/A yok '.date('Y-m-d').']');
+                  $dnsDead++; $skip++; $dnsTouched = true; continue;
+                }
+              }
 
               $company = (string)($l['company'] ?? '');
               $ckey    = strtolower(trim((string)($l['country'] ?? '')));
@@ -267,7 +710,8 @@ jobs:
                 $lang = $TLD_LANG[$tld] ?? 'en';
               }
 
-              list($subject, $body, $opts) = vestra_campaign_preview($company, $lang);
+              if ($LETTER === 'footwear') list($subject, $body, $opts) = vestra_tpl_footwear_intro($lang, $company, $FW);
+              else                        list($subject, $body, $opts) = vestra_campaign_preview($company, $lang, $FEATCAT);
               $token = (string)($l['unsub_token'] ?? '');
               if ($token !== '') {
                 $body = str_replace(
@@ -280,7 +724,19 @@ jobs:
               if ($ok) {
                 $leads[$i]['last_contacted_at'] = date('c');
                 if (($leads[$i]['status'] ?? 'new') === 'new') $leads[$i]['status'] = 'contacted';
-                $leads[$i]['last_campaign'] = 'les-garage/'.$lang;
+                /* Hangi ilk mektubun gittigi kayitta: send-outreach'in ikinci mektup
+                   kanali 'footwear/' damgali leade "ayakkabi bolumu acildi" yazmaz. */
+                $leads[$i]['last_campaign'] = ($LETTER === 'footwear' ? 'footwear/' : 'les-garage/').$lang;
+                if ($LETTER === 'footwear') {
+                  $fwNote = trim((string)($leads[$i]['notes'] ?? ''));
+                  $leads[$i]['notes'] = trim($fwNote.($fwNote !== '' ? ' · ' : '').'footwear('.$lang.') '.date('Y-m-d'));
+                }
+                /* Firma haritasini ANINDA guncelle. $firmDone dongu oncesi
+                   kuruldugu icin AYNI PARTIDEKI ikinci adres (info@x.com ve
+                   sales@x.com birlikte yapistirilmis) ikisi de "yeni" sayilip
+                   ikisi de mektup alirdi -- kapinin disardan gorunmeyen yarisi. */
+                $dsent = $domOf($mail);
+                if ($dsent !== '' && !vestra_email_is_shared_provider($dsent) && !isset($firmDone[$dsent])) $firmDone[$dsent] = $mail;
                 $sent++;
                 echo "  + GONDERILDI: {$company} <{$mail}> | dil=".($FLAG[$lang] ?? 'EN')."\n";
               } else {
@@ -289,8 +745,11 @@ jobs:
               }
               flush();
             }
-            if ($sent > 0) vestra_save_leads($leads);
-            echo "\nBITTI. gonderildi: {$sent}, atlandi: {$skip}, hata: {$fail}\n";
+            /* $dnsTouched de kaydettiriyor: olu alan adi notu diske yazilmazsa ayni
+               adres her turda yeniden DNS'e sorulur ve hicbir zaman ogrenilmis olmaz. */
+            if ($sent > 0 || $dnsTouched) vestra_save_leads($leads);
+            echo "\nBITTI. gonderildi: {$sent}, atlandi: {$skip}, hata: {$fail}"
+               . ($DNS_CHECK ? ", olu alan adi: {$dnsDead}" : ", DNS kontrolu kapali") . "\n";
             PHPEOF
             cp /tmp/vestra_add_send.php ./vestra_add_send_tmp.php
             php ./vestra_add_send_tmp.php

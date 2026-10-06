@@ -1,7 +1,10 @@
 name: (Günlük) Butik bul + tara + gönder
 on:
+  # OTOMATIK TETIKLEME ACIK (2026-08-12) -- operator gunluk otomasyon istedi.
+  # 2026-08-01'de "calisan her sistemi kapat, cok guc harcadik" denip kapatilmisti;
+  # kapatmak icin asagidaki iki satiri yeniden yorum yapmak yeterli.
   schedule:
-    - cron: '0 7 * * *'      # her gün 07:00 UTC
+    - cron: '0 7 * * *'      # her gun 07:00 UTC
   workflow_dispatch:
     inputs:
       daily_target:

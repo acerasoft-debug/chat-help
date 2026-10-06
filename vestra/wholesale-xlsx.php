@@ -1,0 +1,248 @@
+<?php
+/**
+ * VESTRA — wholesale price list as Excel. NO photographs: see the NO PHOTO COLUMN note
+ * below -- they were removed on purpose and the PDF (wholesale-list.pdf) carries them.
+ *
+ *   /wholesale-list.xlsx                every brand
+ *   /wholesale-list.xlsx?brand=Balmain  one brand
+ *
+ * The companion to wholesale-list.php. Same articles, same prices, same rules about what
+ * is and is not printed; the difference is that a buyer can sort, filter and paste this
+ * one into their own buying sheet, which is what a retailer actually does with a price
+ * list before they order.
+ *
+ * It carries one column the PDF cannot: a real hyperlink per row is not needed, because
+ * the URL is a cell — Excel makes it clickable on its own and it survives a paste into
+ * any other system.
+ *
+ * PRICES AND CODES follow wholesale-list.php exactly:
+ *   - ART. NO is the manufacturer's own article number; VESTRA REF is our internal id.
+ *   - RETAIL is the brand's own 'rrp' where one is stored, and empty where none is. The
+ *     RETAIL SOURCE column marks the ones that are real, so after a sort or a paste into
+ *     another sheet a figure cannot lose the fact that the brand set it.
+ */
+/* require_once, duz require DEGIL -- wholesale-list.php'de ayni satir bir kez
+   duzeltildi, burada duzeltilmemisti. Bu dosya artik baska bir betikten de
+   dahil ediliyor (mektuba ek Excel uretmek icin) ve products.php o zaman ZATEN
+   yuklu oluyor: duz require "Cannot redeclare vestra_ships_from()" ile olumcul
+   hata verirdi. Web tarafinda davranis ayni. */
+/* Canli error_log (1-2 Agu 2026, 7 kez): "Allowed memory size of 134217728
+   bytes exhausted" inc/xlsx.php icinde -- 345 urunun fotografli sayfasi tek bir
+   dizede kuruluyor ve 128M'yi asabiliyor. Sinir yalnizca BU istek icin
+   yukseltiliyor; paylasimli sunucuda 256M kabul ediliyor (php.ini memory_limit
+   128M, .user.ini dokunmuyor). */
+@ini_set('memory_limit', '256M');
+require_once __DIR__.'/inc/products.php';
+require_once __DIR__.'/inc/xlsx.php';
+require_once __DIR__.'/inc/stock.php';
+require_once __DIR__.'/inc/auth.php';
+
+/* FIYAT KAPISI. Bu dosya /price-list ile AYNI rakamlari tasiyor, sadece Excel
+   olarak. HTML sayfasi kilitliyken bu ucun acik kalmasi kurali anlamsiz kilardi:
+   tek bir adres, tum toptan fiyat listesini kayitsiz indirtiyordu.
+
+   403 yerine /price-list'e YONLENDIRIYORUZ. Bu baglanti zaten gonderilmis
+   kampanya e-postalarinin icinde duruyor; tiklayan kisi hata sayfasi degil,
+   ne yapmasi gerektigini soyleyen bir sayfa gormeli -- orada "belgenizi
+   yukleyin, fiyatlar acilir" bandi ve kayit dugmesi var. Marka suzgeci de
+   korunuyor ki adam aradigi markanin sayfasina dussun.
+
+   CLI MUAF -- wholesale-list.php ile ayni gerekce, orada zaten var, burada
+   YOKTU. Sonucu sessiz bir hataydi: operator bir aliciya EK olarak Excel
+   listesi uretmek istedigi anda CLI'da oturum olmadigi icin auth_user() null
+   donuyor, betik header()+exit ile 0 BAYT birakip cikiyordu. Mektup yine
+   gidiyor, eki bos gidiyordu -- musteri listeyi bekler, biz gonderdik
+   sanardik (bkz. notify.php'deki ek kutugu ayni endiseyi yaziyor).
+   Kapi bir sey korumuyor da degil: sunucuda kabuk erisimi olan zaten
+   listings.json'i okuyabilir. Web tarafinda kural aynen duruyor. */
+if (PHP_SAPI !== 'cli' && !auth_prices_unlocked(auth_user())) {
+    $_q = ($brandFilterRaw = trim((string)($_GET['brand'] ?? ''))) !== ''
+        ? '?brand='.rawurlencode($brandFilterRaw) : '';
+    header('Location: /price-list'.$_q, true, 302);
+    exit;
+}
+
+
+$brandFilter = trim((string)($_GET['brand'] ?? ''));
+/* Kategori suzgeci (alt dize) -- wholesale-list.php'de VARDI, burada YOKTU.
+   Ikisi ayni mektuba ek olarak gidiyor: PDF 'yalnizca Polos' derken Excel
+   butun markayi tasiyor, yani ayni zarftaki iki belge birbirini yalanliyordu.
+   Bir aliciya "sadece polo gonderiyorum" deyip ekte tisortleri de yollamak,
+   listenin tamamini gondermekten daha kotu -- alici hangisinin gecerli
+   oldugunu bilemiyor. */
+$catFilter = trim((string)($_GET['cat'] ?? ''));
+
+$byBrand = [];
+foreach (vestra_products() as $p) {
+    $brand = trim((string)($p['brand'] ?? ''));
+    /* Sepetin MOQ'da tahsil ettigi fiyat — 'list' degil. mode=sale'de 'list'
+       ustu cizili eski fiyattir ve liste 33 urunu %28-42 pahali gosteriyordu;
+       L1212'de ise tersi, listede 29,90 gorunen urun sepette 34,00 cikiyordu. */
+    $price = vestra_export_price($p);
+    if ($brand === '' || $price <= 0) continue;
+    /* Virgulle birden fazla marka: tek karar noktasi products.php'de
+       (vestra_brand_filter_match) -- PDF ve Excel ayni zarfa giriyor ve
+       ayri ayri yazilmis iki suzgec er gec ayrisir. */
+    if (!vestra_brand_filter_match($brand, $brandFilter)) continue;
+    if ($catFilter !== '' && stripos((string)($p['cat'] ?? ''), $catFilter) === false) continue;
+    $byBrand[$brand][] = $p;
+}
+ksort($byBrand, SORT_NATURAL | SORT_FLAG_CASE);
+foreach ($byBrand as &$rs) {
+    usort($rs, fn($a, $b) => strnatcasecmp((string)($a['name'] ?? ''), (string)($b['name'] ?? '')));
+}
+unset($rs);
+
+/* NO PHOTO COLUMN. The pictures were embedded in the sheet and a number of them showed
+   as empty boxes in the customer's Excel -- the file carried an image for every row, but
+   not every image rendered: where GD cannot re-encode a source file (a CMYK or progressive
+   JPEG) the original is embedded as-is, and Excel will not draw those. A price list with
+   holes in it looks like a catalogue with holes in it, which is worse than one that never
+   promised pictures. Every row still carries its product link, and the photographs are on
+   the page it opens -- always current, and 5.6 MB lighter as an attachment.
+   The PDF (wholesale-list.pdf) keeps its photographs: its own encoder handles CMYK. */
+/* "Was EUR" ve "Volume prices" yeni: indirimli urunde eski fiyat kendi
+   sutununda (bir siralamadan sonra bile indirim oldugu kaybolmasin), hacim
+   kademeleri de ilk kez listede — toptancinin ilk aradigi sey o. */
+/* 'Colours' sutunu Category ile Sizes arasina eklendi. Listede hic yoktu:
+   ilanlar model bazinda birlestikten sonra bir satir modelin BUTUN renklerini
+   temsil ediyor ve alici siparisi rengin ADIYLA veriyor -- renk adlari hicbir
+   sutunda yazmiyordu. Eklenince sonraki tum sutun indeksleri BIR KAYDI;
+   numcols/linkcols/widths haritalari da buna gore guncellendi (asagida). */
+/* 'Lot' sutunu MOQ ile Unit arasina eklendi. Karton adedi listede HIC yoktu:
+   yalnizca 'Sizes' dizesinin kuyrugunda bir "10/pack" parcasi olarak gorunuyordu,
+   yani siralanamiyor, suzulemiyor, adetle carpilamiyordu -- oysa toptanci once
+   "kac karton alacagim" diye bakiyor. Ayri bir SAYI sutunu olmasinin sebebi bu.
+   Eklenince sonraki tum sutun indeksleri BIR KAYDI (numcols/linkcols/widths). */
+$headers = ['#', 'Brand', 'Art. No', 'VESTRA Ref', 'Product', 'Category', 'Colours', 'Sizes',
+            'MOQ', 'Lot', 'Unit', 'Wholesale EUR', 'Was EUR', 'Volume prices',
+            'Retail EUR', 'Retail source',
+            'Stock total', 'Stock by size', 'Product link'];
+
+$rows = [];
+$n = 0;
+foreach ($byBrand as $brand => $list) {
+    foreach ($list as $p) {
+        $n++;
+        $price = vestra_export_price($p);
+        $was   = vestra_export_was($p);
+        $volsL = vestra_export_tiers_label($p);
+        $rrp   = (float)($p['rrp'] ?? 0);
+        $real  = $rrp > 0;
+
+        $hasStock = vestra_stock_enabled($p);
+        $stock    = $hasStock ? vestra_stock_for($p) : ['sizes' => [], 'total' => 0];
+
+        $id    = (string)($p['id'] ?? '');
+        $ident = trim((string)($p['sku'] ?? ''));
+        if ($ident === '') $ident = strtoupper(preg_replace('/^[a-z]{2,4}-/', '', $id));
+
+        $rows[] = ['cells' => [
+            (string)$n,
+            $brand,
+            $ident,
+            $id,
+            vestra_product_name($p),
+            (string)($p['cat'] ?? ''),
+            implode(' · ', array_values(array_filter(
+                array_map('trim', array_map('strval', (array)($p['colors'] ?? []))),
+                fn($c) => $c !== ''))),
+            (string)($p['sizes'] ?? ''),
+            (string)($p['moq'] ?? ''),
+            /* Lot = bir kartonda kac parca var. Tek karar noktasindan
+               (vestra_pack_size) okunuyor; alan yoksa 1 ve bu bir varsayim
+               degil, katalogun kendi yazimi -- bkz. o fonksiyonun notu. */
+            (string)vestra_pack_size($p),
+            (string)($p['unit'] ?? 'pc'),
+            /* Plain numbers, no currency symbol: the header carries the unit and a bare
+               number is what a buyer can sum, sort and multiply without cleaning first. */
+            number_format($price, 2, '.', ''),
+            $was > 0 ? number_format($was, 2, '.', '') : '',
+            $volsL,
+            $real ? number_format($rrp, 2, '.', '') : '',
+            $real ? 'brand RRP' : '',
+            /* Plain integer, so a buyer can sum and sort it. The by-size string sits in
+               its own column rather than inside the size run: the run is what we sell in,
+               the stock is what is left, and merging them makes both unreadable. */
+            $hasStock ? (string)$stock['total'] : '',
+            $hasStock ? implode(' · ', array_map(fn($k, $v) => $k.' '.$v,
+                        array_keys($stock['sizes']), $stock['sizes'])) : '',
+            $id !== '' ? 'https://vestrasales.com/product?id='.$id : '',
+        ], 'image' => ''];
+    }
+}
+
+/* Alt notlar. Genisligi basliktan aliyor: satirlar elle 15 hucreye doldurulmustu ve
+   bir sutun kaldirilinca hepsi bir hucre tasiyordu. Not metni 5. sutunda basliyor
+   (urun adi sutunu), cunku orasi sayfada en genis olan. */
+$note = function (string $text) use ($headers): array {
+    $cells = array_fill(0, count($headers), '');
+    /* Metin artik ILK hucrede: uretici not satirini tam genislige birlestirip
+       italik/soluk basiyor (style=note) -- 5. sutunda baslayan metin, birlesik
+       hucrede gorunmez kalirdi. */
+    $cells[0] = $text;
+    return ['cells' => $cells, 'image' => '', 'style' => 'note'];
+};
+
+$rows[] = ['cells' => array_fill(0, count($headers), ''), 'image' => ''];
+/* Odeme sarti ULKEYE gore degisiyor ve bu dosya her ulkeye gidiyor: escrow AB ici,
+   AB disi pesin havale. Onceki not tek bir sart yaziyor ve "Yunanistan dahil" diyordu --
+   Petros'a yazilmisti, oysa ayni dosya Japonya'ya da gitti. Sart kisa ve ikisi birden. */
+$rows[] = $note('Payment — inside the EU: escrow-protected up to EUR 3,000 per order (the platform holds the '
+    .'money and releases it to the seller only after you confirm the goods arrived as described); above that, or '
+    .'on request, against invoice.');
+$rows[] = $note('Payment — outside the EU: bank transfer in advance, against invoice. Goods are released for '
+    .'dispatch once the funds have cleared.');
+$rows[] = $note('Delivery within the EU typically 7-14 working days from release; outside the EU about a week by '
+    .'air and 2-4 weeks by sea. Freight quoted per order. MOQ is per article; no seasonal or collection minimum. '
+    .'Import duty and taxes are payable by the buyer as importer.');
+$rows[] = $note('RETAIL EUR is the brand\'s own recommended price, read from the brand\'s own site. '
+    .'Where a brand publishes none for an article the cell is empty: we do not estimate a retail price on a brand\'s behalf.');
+$rows[] = $note('Photographs: the PRODUCT LINK column opens the article\'s page, where every photograph of it is '
+    .'shown at full size. A printable list with photographs in it: https://vestrasales.com/wholesale-list.pdf'
+    .($brandFilter !== '' ? '?brand='.rawurlencode($brandFilter) : ''));
+/* A spreadsheet goes stale the moment stock moves; the page does not. Anyone working from
+   a forwarded copy should be one click from the current list. */
+$rows[] = $note('Always-current version of this list: https://vestrasales.com/price-list'
+    .($brandFilter !== '' ? '?brand='.rawurlencode($brandFilter) : '').'  ·  every brand: https://vestrasales.com/price-lists');
+
+$title = $brandFilter !== '' ? $brandFilter.' wholesale' : 'VESTRA wholesale';
+/* Gorunum: marka bandi + donmus baslik + filtre oklari + zebra + gercek sayi
+   hucreleri. Fiyatlar sayi OLDUGU icin musteri artik temizlemeden toplayip
+   siralayabiliyor; urun linki gercek kopru. Sutun genislikleri iceriğe gore. */
+$file  = vestra_xlsx_with_photos_file($headers, $rows, $title, [
+    'band'    => 'VESTRA — Wholesale Price List'
+               . ($brandFilter !== '' ? ' · '.$brandFilter : '')
+               . ' · '.date('F Y'),
+    'freeze'  => true,
+    'filter'  => true,
+    'zebra'   => true,
+    'numcols' => [8 => 'int', 9 => 'int', 11 => 'num', 12 => 'num', 14 => 'num', 16 => 'int'],
+    'linkcols'=> [18],
+    'widths'  => [0 => 5, 1 => 15, 2 => 18, 3 => 15, 4 => 38, 5 => 15,
+                  6 => 26, 7 => 30, 8 => 7, 9 => 6, 10 => 6, 11 => 14, 12 => 10, 13 => 22,
+                  14 => 12, 15 => 12, 16 => 10, 17 => 24, 18 => 44],
+]);
+if ($file === '' || !is_file($file)) {
+    http_response_code(500);
+    header('Content-Type: text/plain');
+    exit('price list temporarily unavailable');
+}
+
+/* Kategori de dosya adina giriyor: yalnizca polo iceren dosya ile butun
+   markayi iceren dosya ayni adi tasirsa, alicinin indirilenler klasorunde
+   ikincisi birincisinin uzerine yaziyor ve hangisinin ne oldugu kayboluyor. */
+$slug = $brandFilter !== '' ? strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $brandFilter)).'-' : '';
+if ($catFilter !== '') $slug .= strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $catFilter)).'-';
+/* headers_sent(): bu dosya send-campaign-preview.yml tarafindan ob_start()
+   icinde de calistiriliyor (mektuba ek Excel). Orada cikti zaten basladigi icin
+   her header() satiri error_log'a "headers already sent" yaziyordu -- 1 Eylul
+   2026'da tek gunde 40+ satir, hepsi bu. Baslik ancak gonderilebiliyorsa. */
+if (!headers_sent()) {
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment; filename="vestra-'.$slug.'wholesale-'.date('Y-m').'.xlsx"');
+    header('Content-Length: '.filesize($file));
+    header('X-Content-Type-Options: nosniff');
+}
+readfile($file);
+@unlink($file);

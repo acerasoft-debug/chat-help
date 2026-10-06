@@ -1,0 +1,80 @@
+[
+  {
+    "match": "rl-csf-tee-navy",
+    "expect": 1,
+    "name": "Custom Slim Fit T-Shirt (710680785)",
+    "colors": ["Navy", "Black", "White", "Grey"],
+    "images": [
+      "/uploads/rl/csf-tee-navy.jpg",
+      "/uploads/rl/csf-tee-black.jpg",
+      "/uploads/rl/csf-tee-white.jpg",
+      "/uploads/rl/csf-tee-grey.jpg"
+    ],
+    "size_step": 8,
+    "_why": "710680785 modelinin dort rengi TEK ilanda toplaniyor. Renkler yalnizca GOVDE rengi: eski colors alani (Navy,Red) gibi ciftler tasiyordu ve ikincisi PONY rengiydi -- oldugu gibi birlestirmek musteriye secilemeyen bir renk gostermek olurdu.",
+    "_why_name": "Iki tisort modeli de 'Custom Slim Fit T-Shirt' adini tasiyor. Birlestirdikten sonra ikisi de ayni adla listelenirdi ve alici hangisinin hangisi oldugunu ayirt edemezdi. Parca numarasi ada giriyor: alici zaten kendi line sheet'iyle o numaradan esliyor."
+  },
+  {
+    "match": "rl-csf-tee-khaki",
+    "expect": 1,
+    "name": "Custom Slim Fit T-Shirt (710671438)",
+    "colors": ["Khaki", "Red", "L.Blue", "Cream"],
+    "images": [
+      "/uploads/rl/csf-tee-khaki.png",
+      "/uploads/rl/csf-tee-red.jpg",
+      "/uploads/rl/csf-tee-lightblue.jpg",
+      "/uploads/rl/csf-tee-cream.jpg"
+    ],
+    "size_step": 8,
+    "_why": "710671438 modelinin dort rengi. 710680785'ten AYRI ilan: farkli parca numarasi, farkli mal."
+  },
+
+  {
+    "match": "rl-csf-polo-darkgreen",
+    "expect": 1,
+    "name": "Custom Slim Fit Polo Shirt (710536856)",
+    "colors": ["Dark Green", "Yellow", "Orange", "Pink"],
+    "images": [
+      "/uploads/rl/csf-polo-darkgreen.jpg",
+      "/uploads/rl/csf-polo-yellow.jpg",
+      "/uploads/rl/csf-polo-orange.jpg",
+      "/uploads/rl/csf-polo-pink.jpg"
+    ],
+    "size_step": 8,
+    "_why": "710536856 modelinin dort rengi."
+  },
+  {
+    "match": "rl-csf-polo-white",
+    "expect": 1,
+    "name": "Custom Slim Fit Polo Shirt (710548797)",
+    "colors": ["White"],
+    "images": ["/uploads/rl/csf-polo-white.png"],
+    "size_step": 8,
+    "_why": "DUZELTME. Bu ilan su an alti renk (White,Green,Fuchsia,Yellow,Orange,Pink) ve alti gorsel tasiyor, ama sku'su 710548797001 -- yani TEK bir parca numarasi. Green/Yellow/Orange/Pink aslinda 710536856'ya, Fuchsia ise 710782592'ye ait. Ilan, o parca numarasinin var olmayan renklerde bulundugunu soyluyordu; bir alici 710548797'yi fusya siparis edip almadigi mali bekleyebilirdi. Renkler kendi modellerine dagitiliyor, burada yalnizca gercekten bu numaraya ait olan White kaliyor.",
+    "_why_not_deleted": "Kayip yok: alti rengin hepsi baska bir ilanda duruyor (Green/Yellow/Orange/Pink -> 710536856, Fuchsia -> 710782592)."
+  },
+  {
+    "match": "rl-csf-polo-fuchsia",
+    "expect": 1,
+    "name": "Custom Slim Fit Polo Shirt (710782592)",
+    "colors": ["Fuchsia"],
+    "images": ["/uploads/rl/csf-polo-fuchsia.png"],
+    "size_step": 8,
+    "_why": "710782592 tek renk. Tek renkli oldugu icin birlestirilecek bir sey yok, ama adi ve parca numarasi diger iki polo ilanindan ayrilsin diye burada."
+  },
+
+  {
+    "match": "rl-csf-tee-black",
+    "expect": 1,
+    "status": "pending",
+    "_why": "710680785 modelinin rengi olarak rl-csf-tee-navy ilanina tasindi. SILINMIYOR: status=pending ilani vitrinden dusuruyor (vestra_live_listings yalnizca 'approved' gosteriyor) ama kayit duruyor -- karar geri alinmak istenirse tek satirla geri gelir."
+  },
+  { "match": "rl-csf-tee-white",     "expect": 1, "status": "pending", "_why": "710680785 -> rl-csf-tee-navy ilaninda." },
+  { "match": "rl-csf-tee-grey",      "expect": 1, "status": "pending", "_why": "710680785 -> rl-csf-tee-navy ilaninda." },
+  { "match": "rl-csf-tee-red",       "expect": 1, "status": "pending", "_why": "710671438 -> rl-csf-tee-khaki ilaninda." },
+  { "match": "rl-csf-tee-lightblue", "expect": 1, "status": "pending", "_why": "710671438 -> rl-csf-tee-khaki ilaninda." },
+  { "match": "rl-csf-tee-cream",     "expect": 1, "status": "pending", "_why": "710671438 -> rl-csf-tee-khaki ilaninda." },
+  { "match": "rl-csf-polo-yellow",   "expect": 1, "status": "pending", "_why": "710536856 -> rl-csf-polo-darkgreen ilaninda." },
+  { "match": "rl-csf-polo-orange",   "expect": 1, "status": "pending", "_why": "710536856 -> rl-csf-polo-darkgreen ilaninda." },
+  { "match": "rl-csf-polo-pink",     "expect": 1, "status": "pending", "_why": "710536856 -> rl-csf-polo-darkgreen ilaninda." }
+]

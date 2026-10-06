@@ -26,10 +26,11 @@ permissions:
 #
 # SILMEZ. Dizini ~/_golge-shop-<zaman> altina TASIR, icerik korunur.
 #
-# Bu dosya VARSAYILAN dalda: GitHub `schedule` tetikleyicisini yalnizca oradan okur,
-# dolayisiyla 15 dakikalik nobet gercekten calisiyor. Baska bir dala tasinirsa ya da
-# oradan silinirse zamanlama sessizce durur -- hata vermez, sadece bir daha hic
-# calismaz.
+# DIKKAT -- ZAMANLAMA HENUZ CALISMIYOR: GitHub `schedule` tetikleyicisini
+# yalnizca VARSAYILAN daldaki dosyadan okur (burada claude/charming-franklin-1ynmuj).
+# Bu dosya o dala girene kadar 15 dakikalik nobet BASLAMAZ; su an sadece elle
+# (workflow_dispatch) calisir. Birlestirilmeden "koruma var" sanmak, olmayan bir
+# guvenlik agina guvenmek olur.
 #
 # Once HTTP ile bakar; sayfa 200 ise sunucuya HIC baglanmaz. Host, arka arkaya
 # gelen SSH baglantilarini kisitliyor, ve 15 dakikada bir bosuna baglanmanin

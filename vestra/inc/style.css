@@ -1,0 +1,1263 @@
+/* VESTRA — shared design system (shop) */
+:root{
+  --bg:#0e0e11; --bg2:#15151a; --bg3:#1b1b21; --ink:#f4f1ea; --mut:#9a988f;
+  --acc:#c9a86a; --line:rgba(255,255,255,.08); --ok:#7ad6a0; --bad:#ef9a9a;
+  /* One house easing curve. Everything that moves should use this — a slow, weighted
+     settle rather than the browser's default `ease`, which reads springy and cheap. */
+  --ease:cubic-bezier(.16,.66,.25,1);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility}
+a{color:inherit;text-decoration:none}
+/* Tracking as em, not px, so the optical correction scales with the size it's set at.
+   A flat -.5px is ~-.008em on a 62px hero (no correction at all) and ~-.026em on an
+   18px card heading (too tight for a serif) — the same declaration doing two wrong
+   things. Display sizes get their own tighter step below. */
+h1,h2,h3{font-family:'Playfair Display',Georgia,serif;font-weight:700;letter-spacing:-.012em;
+  line-height:1.15;text-wrap:balance}
+h1{letter-spacing:-.022em}
+::selection{background:rgba(201,168,106,.28);color:var(--ink)}
+/* Keyboard focus was falling back to the UA ring everywhere — a blue Chrome halo on
+   the cream catalogue. One gold ring, on every interactive surface. */
+:where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{
+  outline:2px solid var(--acc);outline-offset:2px;border-radius:4px}
+.wrap{max-width:1140px;margin:0 auto;padding:0 24px}
+.wrap.wide{max-width:1500px} /* catalog / shop — roomier grid on wide screens */
+.acc{color:var(--acc)}
+svg{display:block}
+img{max-width:100%}
+
+/* nav */
+header{position:sticky;top:0;z-index:30;background:rgba(14,14,17,.78);
+  backdrop-filter:saturate(140%) blur(12px);border-bottom:1px solid var(--line)}
+/* SADECE ust menu. Cıplak `nav{...}` olarak yazildiginda sayfadaki HER <nav>
+   64px yuksekliginde, space-between bir satira zorlaniyordu -- yani ust menu
+   icin dogru olan olcu, iceriginin yuksekligini kendisi belirlemesi gereken
+   her gezinme blogunu da kesiyordu. Vitrindeki bolme kartlari (.secttabs)
+   70px'ti ve kabina sigmayip alttaki marka rayinin uzerine biniyordu; marka
+   SEO pilleri (.bseo) iki satira sardiginda ayni sekilde kirpilacakti.
+   Alttaki mobil sekme cubugu (.vtabbar) de sessizce bu kurala dayaniyordu:
+   artik kendi yuksekligini kendi yaziyor (inc/tabbar.php). */
+header nav{display:flex;align-items:center;justify-content:space-between;height:64px;gap:18px}
+.logo{display:flex;align-items:center;gap:9px;font-family:'Playfair Display',serif;font-size:21px;font-weight:700;letter-spacing:1.5px;margin-right:clamp(1.5rem,4vw,3.75rem)}
+.logo .mark{width:28px;height:28px}
+/* Subtle "sales" appended to the wordmark — dim gold, light sans, understated */
+.logo-sub{font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:.62em;letter-spacing:1.1px;
+  margin-left:.22em;text-transform:lowercase;font-style:normal;
+  background:linear-gradient(100deg,#e8cf95,var(--acc) 55%,#a8854a);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:var(--acc)}
+.nav-links{display:flex;align-items:center;gap:22px;font-size:14px;font-weight:500}
+.nav-links a{color:var(--mut);transition:.2s;white-space:nowrap} /* "Group buys" iki satira kiriliyordu (girisli basli, 1366px) */
+.nav-links a:hover,.nav-links a.on{color:var(--ink)}
+.cartlink{position:relative}
+.cartlink .badge{position:absolute;top:-8px;right:-12px;background:var(--acc);color:#1a1408;
+  font-size:11px;font-weight:700;min-width:17px;height:17px;border-radius:9px;display:grid;place-items:center;padding:0 4px}
+.memberpill{font-size:12px;color:var(--acc);border:1px solid rgba(201,168,106,.3);padding:5px 11px;border-radius:999px;background:rgba(201,168,106,.07)}
+.nav-actions{display:flex;align-items:center;gap:18px}
+.navtoggle{display:none;background:none;border:0;color:var(--ink);cursor:pointer;padding:6px;margin:-6px -6px -6px 2px;border-radius:9px;align-items:center;justify-content:center}
+.navtoggle:active{background:rgba(255,255,255,.06)}
+.navtoggle .ico-x{display:none}
+.navtoggle.on .ico-bars{display:none}
+.navtoggle.on .ico-x{display:block}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:999px;font-weight:600;
+  font-size:14px;cursor:pointer;border:1px solid var(--acc);transition:.2s;font-family:inherit}
+.btn-p{background:var(--acc);color:#1a1408}
+.btn-p:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.btn-o{background:transparent;color:var(--ink)}
+.btn-o:hover{background:rgba(201,168,106,.1)}
+.btn-sm{padding:9px 15px;font-size:13px}
+/* Tactile press: every button visibly reacts to the tap itself… */
+.btn:active,button:not(:disabled):active{transform:scale(.96)}
+/* …and a submitted form shows a spinner on its button (set by foot.php's
+   double-submit guard) so nobody taps "order" five times waiting. */
+.btn-busy{pointer-events:none;opacity:.65;position:relative}
+.btn-busy::after{content:'';width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;
+  border-radius:50%;display:inline-block;margin-left:8px;flex:none;animation:btnspin .7s linear infinite}
+@keyframes btnspin{to{transform:rotate(360deg)}}
+.btn[disabled]{opacity:.5;cursor:not-allowed;transform:none}
+
+/* page header */
+.phead{padding:40px 0 18px}
+.phead h1{font-size:clamp(26px,4vw,40px);margin:0 0 6px}
+.phead p{color:var(--mut);margin:0}
+.crumbs{font-size:13px;color:var(--mut);margin-bottom:14px}
+.crumbs a:hover{color:var(--ink)}
+/* Geriye donus: kirintilarin basinda, tiklama alani genis (mobilde parmakla
+   isabet etmesi gerekiyor) ve ayrilmis bir cip gorunumu -- ayni satirdaki
+   duz kirinti baglantilariyla karismasin. */
+.crumb-back{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;margin-right:4px;
+  border:1px solid var(--line);border-radius:999px;color:var(--ink);font-weight:600;
+  transition:border-color .2s var(--ease),background .2s var(--ease)}
+.crumb-back:hover{border-color:var(--acc);background:rgba(201,168,106,.08)}
+.crumb-sep{margin-right:4px;opacity:.5}
+
+/* toolbar */
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:18px 0 26px}
+.toolbar .grow{flex:1}
+.chip{font-size:13px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);color:var(--mut);cursor:pointer;background:transparent;font:inherit;transition:.2s}
+.chip:hover{color:var(--ink);border-color:var(--mut)}
+.chip.on{background:var(--acc);color:#1a1408;border-color:var(--acc)}
+input,select,textarea{background:#0c0c0f;border:1px solid var(--line);border-radius:10px;padding:11px 13px;
+  color:var(--ink);font:inherit;font-size:14px}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--acc)}
+.search{min-width:210px}
+
+/* product grid */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.pcard{background:var(--bg2);border:1px solid var(--line);border-radius:18px;overflow:hidden;
+  transition:transform .3s ease,box-shadow .3s ease,border-color .3s;display:flex;flex-direction:column;cursor:pointer}
+.pcard:hover{border-color:rgba(201,168,106,.42);transform:translateY(-7px);
+  box-shadow:0 24px 60px -16px rgba(0,0,0,.6),0 0 0 1px rgba(201,168,106,.1)}
+/* thumb: portrait for fashion feel */
+.thumb{aspect-ratio:3/4;display:grid;place-items:center;position:relative;color:#fff;overflow:hidden}
+/* no-image: subtle diagonal texture */
+.thumb::before{content:'';position:absolute;inset:0;
+  background-image:repeating-linear-gradient(45deg,transparent,transparent 28px,rgba(255,255,255,.025) 28px,rgba(255,255,255,.025) 29px);
+  pointer-events:none;z-index:0}
+/* with-image: dark overlay for legibility */
+.thumb.has-image::after{content:'';position:absolute;bottom:0;left:0;right:0;height:60%;
+  background:linear-gradient(to bottom,transparent 0%,rgba(14,14,17,.92) 100%);pointer-events:none;z-index:1}
+.thumb .bname{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;opacity:.95;
+  text-align:center;padding:0 14px;position:relative;z-index:2;text-shadow:0 2px 12px rgba(0,0,0,.7)}
+.brand-logo{display:block;width:70%;max-width:190px;position:relative;z-index:2;
+  filter:drop-shadow(0 1px 10px rgba(0,0,0,.65));transition:filter .3s}
+.pcard:hover .brand-logo{filter:drop-shadow(0 2px 16px rgba(0,0,0,.75))}
+.thumb .vbadge{position:absolute;top:12px;left:12px;font-size:11px;font-weight:600;
+  background:rgba(14,14,17,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.16);padding:5px 10px;border-radius:999px;
+  display:flex;gap:5px;align-items:center;z-index:3}
+.pcard .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:4px;flex:1}
+.pcard .brand{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--acc);font-weight:600}
+.pcard .title{font-weight:600;font-size:14.5px;line-height:1.32}
+.pcard .meta{font-size:12px;color:var(--mut);line-height:1.45}
+.pcard .price{margin-top:auto;padding-top:10px;font-size:14px;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap}
+.pcard .from{color:var(--mut);font-size:12px}
+.pcard .amt{font-size:20px;font-weight:700}
+.lock{color:var(--mut);font-size:13px;display:flex;align-items:center;gap:6px}
+
+/* product detail */
+.pdetail{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin:14px 0 40px}
+.pdetail .hero-thumb{aspect-ratio:1/1;border-radius:18px;display:grid;place-items:center;color:#fff;border:1px solid var(--line)}
+.pdetail .hero-thumb .bname{font-family:'Playfair Display',serif;font-size:40px;font-weight:700;text-align:center;padding:0 20px}
+.pdetail .hero-thumb .brand-logo{width:62%;max-width:280px}
+.pdetail h1{font-size:30px;margin:6px 0 4px}
+.pdetail .sub{color:var(--mut);margin:0 0 16px}
+.spec{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--mut);margin:14px 0}
+.spec b{color:var(--ink);font-weight:600}
+.tiers{width:100%;border-collapse:collapse;margin:18px 0;font-size:14px}
+.tiers th,.tiers td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left}
+.tiers th{color:var(--mut);font-weight:500;font-size:12.5px}
+.tiers tr.active{background:rgba(201,168,106,.09)}
+.tiers .amt{font-weight:700;color:var(--acc)}
+
+.order-box{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:22px;margin-top:8px}
+.qtyrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stepper button{background:#0c0c0f;border:0;color:var(--ink);width:40px;height:44px;font-size:18px;cursor:pointer}
+.stepper button:hover{background:#15151a}
+.stepper input{border:0;border-radius:0;width:84px;text-align:center;font-size:16px;font-weight:600}
+.calc{margin:16px 0;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px}
+.calc .unit{color:var(--mut);font-size:13px}
+.calc .total{font-size:26px;font-weight:800}
+.calc .total small{font-size:13px;color:var(--mut);font-weight:500}
+.hint{font-size:12.5px;color:var(--mut)}
+.warn{color:var(--bad);font-size:13px}
+
+/* cart */
+.ctable{width:100%;border-collapse:collapse;font-size:14px}
+/* Phones: wide data tables (orders, KYC docs, offers) scroll inside their own
+   container instead of stretching the page — no horizontal page scroll ever. */
+@media(max-width:640px){.ctable{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}}
+.ctable th,.ctable td{padding:14px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.ctable th{color:var(--mut);font-weight:500;font-size:12.5px}
+.ctable .r{text-align:right}
+/* Order "Items" cell — a <td> ignores max-width under auto table layout, so the bound has to
+   live on a block inside it. overflow-wrap lets long unbroken SKUs break instead of widening
+   the column and pushing the rest of the table out of view. */
+.itemscell{overflow-wrap:anywhere;line-height:1.45}
+.itemsline{white-space:normal}
+.itemsline b{color:var(--ink);font-weight:600}
+.itemsmore{color:var(--mut);font-size:.85em;margin-top:2px}
+.ctable .x{color:var(--mut);cursor:pointer}
+.ctable .x:hover{color:var(--bad)}
+.summary{display:flex;justify-content:flex-end;margin:22px 0}
+.summary .box{min-width:280px}
+.summary .line{display:flex;justify-content:space-between;padding:8px 0;color:var(--mut)}
+.summary .line.big{color:var(--ink);font-size:20px;font-weight:800;border-top:1px solid var(--line);margin-top:8px;padding-top:14px}
+/* payment-method selector */
+.paysel{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:680px}
+@media(max-width:560px){.paysel{grid-template-columns:1fr}}
+.payopt{display:flex;gap:11px;align-items:flex-start;padding:14px 15px;border:1px solid var(--line);
+  border-radius:14px;background:var(--bg2);cursor:pointer;transition:.18s}
+.payopt:hover{border-color:rgba(201,168,106,.5)}
+.payopt input{margin-top:3px;flex:none;accent-color:var(--acc)}
+.payopt:has(input:checked){border-color:var(--acc);background:rgba(201,168,106,.07);box-shadow:0 0 0 1px var(--acc) inset}
+.payopt .payopt-b{display:flex;flex-direction:column;gap:3px}
+.payopt .payopt-b b{font-size:14.5px}
+.payopt.disabled{opacity:.5;cursor:not-allowed}
+.payopt.disabled:hover{border-color:var(--line)}
+
+/* banners / notes */
+.banner{padding:13px 16px;border-radius:12px;margin:18px 0;font-size:14px}
+.banner.ok{background:rgba(122,214,160,.1);border:1px solid rgba(122,214,160,.4);color:var(--ok)}
+.banner.info{background:rgba(201,168,106,.08);border:1px solid rgba(201,168,106,.3);color:var(--ink)}
+.gate{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:26px;text-align:center}
+.empty{text-align:center;color:var(--mut);padding:60px 0}
+
+/* footer */
+footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-size:13px;margin-top:40px}
+.foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.foot a:hover{color:var(--ink)}
+
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.pdetail{grid-template-columns:1fr}}
+
+/* ── Mobile nav drawer (shared header) ─────────────────────────────────────── */
+@media(max-width:820px){
+  .navtoggle{display:flex}
+  .nav-links{
+    position:absolute;top:100%;left:0;right:0;
+    flex-direction:column;align-items:stretch;gap:0;
+    background:rgba(18,18,23,.98);backdrop-filter:saturate(140%) blur(14px);
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    padding:6px 0;box-shadow:0 26px 50px -12px rgba(0,0,0,.6);
+    max-height:calc(100vh - 64px);overflow-y:auto;
+    opacity:0;transform:translateY(-8px);pointer-events:none;
+    transition:opacity .18s ease,transform .18s ease;
+  }
+  .nav-links.open{opacity:1;transform:none;pointer-events:auto}
+  .nav-links a{
+    padding:14px 24px;font-size:15px;color:var(--ink);
+    border-bottom:1px solid rgba(255,255,255,.045);
+  }
+  .nav-links a:hover,.nav-links a.on{color:var(--acc);background:rgba(255,255,255,.03)}
+  .nav-links .memberpill{align-self:flex-start;margin:12px 24px}
+  /* Cekmecede menuyu USTE bindirmiyoruz: .nav-links'te overlay-y:auto var, yani
+     absolute bir panel kirpilirdi. Cekmece zaten sayfanin ustunde bir katman
+     oldugu icin burada acilinca yer acmasi dogal duruyor. */
+  .nav-links .cursw,.nav-links .langsw{display:block;padding:0 24px 10px;margin-left:0;border-left:0}
+  .nav-links .cursw>summary,.nav-links .langsw>summary{font-size:13px;padding:8px 10px;
+    display:inline-flex;border:1px solid var(--line);border-radius:8px}
+  .nav-links .cswmenu,.nav-links .lswmenu{position:static;min-width:0;margin-top:6px;
+    display:flex;flex-direction:row;flex-wrap:wrap;gap:6px;background:none;border:0;
+    box-shadow:none;padding:0;backdrop-filter:none}
+  .nav-links .cswmenu .csw{font-size:13px;padding:8px 12px;gap:8px;
+    border:1px solid var(--line);border-radius:8px}
+}
+@media(max-width:620px){
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .thumb{aspect-ratio:2/3}
+}
+/* pricing modes */
+.hero-thumb{position:relative}
+.modetag{position:absolute;top:12px;right:12px;font-size:11px;font-weight:700;padding:5px 11px;border-radius:999px;letter-spacing:.3px}
+.modetag.sale{background:#e0533a;color:#fff}
+.modetag.offer{background:rgba(0,0,0,.5);color:#fff;border:1px solid rgba(255,255,255,.35)}
+.price .was{color:var(--mut);text-decoration:line-through;font-size:13px;margin-right:6px}
+.offerprice{color:var(--acc);font-weight:600;font-size:14px}
+.saleline{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:10px 0 0}
+.saleline .was{color:var(--mut);text-decoration:line-through}
+.saleline .now{font-size:22px;font-weight:800}
+.saleline .badge-sale{background:#e0533a;color:#fff;font-weight:700;font-size:12px;padding:3px 9px;border-radius:999px}
+
+/* sourcing board */
+.reqstats{display:flex;gap:30px;flex-wrap:wrap;margin:6px 0 24px;padding:18px 22px;background:var(--bg2);border:1px solid var(--line);border-radius:14px}
+.reqstats .stat{display:flex;flex-direction:column}
+.reqstats .stat b{font-family:'Playfair Display',serif;font-size:23px;color:var(--acc);line-height:1.1}
+.reqstats .stat span{font-size:12.5px;color:var(--mut)}
+/* "Katalogda yeni" rayi — panonun talep tarafi henuz bosken sayfada duran gercek
+   hareket. Yatay kaydirilir, boylece dar ekranda gövde yana kaymaz. */
+.reqfresh{margin:0 0 26px}
+.reqfresh-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:11px}
+.reqfresh-title{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+.reqfresh-head a{font-size:12.5px;text-decoration:none}
+.reqfresh-rail{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(132px,1fr);gap:12px;
+  overflow-x:auto;padding-bottom:4px;scrollbar-width:thin;scroll-snap-type:x proximity}
+.reqfresh-card{display:flex;flex-direction:column;gap:5px;text-decoration:none;color:inherit;
+  scroll-snap-align:start;transition:transform .35s var(--ease,ease)}
+.reqfresh-card:hover{transform:translateY(-2px)}
+.reqfresh-thumb{position:relative;display:block;aspect-ratio:3/4;border-radius:11px;overflow:hidden;
+  border:1px solid var(--line)}
+.reqfresh-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* The gated tile carries a small explanatory chip at its foot. It exists because a
+   guest cannot tell a WITHHELD photo from a broken one -- six of these in a row read
+   as a rendering failure. The chip is on the thumb, not the card, so the product
+   name below stays clean. */
+.reqfresh-lock{position:absolute;left:8px;right:8px;bottom:8px;text-align:center;
+  font-size:11px;letter-spacing:.04em;color:var(--mut);background:rgba(10,10,13,.55);
+  border:1px solid rgba(201,168,106,.22);border-radius:7px;padding:4px 6px;
+  backdrop-filter:blur(2px)}
+.reqfresh-brand{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--acc)}
+.reqfresh-name{font-size:12.5px;color:var(--mut);line-height:1.35;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.reqlayout{display:grid;grid-template-columns:1.4fr 1fr;gap:26px;align-items:start}
+.blocktitle{font-size:18px;margin:0 0 14px}
+.reqlist{display:flex;flex-direction:column;gap:12px}
+.reqcard{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:15px 18px;transition:.2s}
+.reqcard:hover{border-color:rgba(201,168,106,.3)}
+.reqcard.mine{border-color:rgba(201,168,106,.45);background:rgba(201,168,106,.06)}
+.reqtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.qpos{font-size:12px;color:var(--mut);letter-spacing:.4px}
+.status{font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px}
+.status.open{background:rgba(201,168,106,.13);color:var(--acc)}
+.status.offers{background:rgba(122,214,160,.14);color:var(--ok)}
+.reqtitle{font-weight:600;font-size:15px;margin-bottom:8px}
+.reqmeta{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--mut)}
+.reqmeta b{color:var(--ink)}
+.reqact{margin-top:12px}
+.postbox{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:22px;position:sticky;top:80px}
+.postbox label{display:block;margin-bottom:5px}
+@media(max-width:820px){.reqlayout{grid-template-columns:1fr}.postbox{position:static}}
+
+/* dashboard (seller / buyer panels) */
+.dashtop{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;padding:34px 0 18px}
+.dashtop h1{font-size:clamp(24px,3.5vw,34px);margin:4px 0 0}
+.rolepill{font-size:12.5px;color:var(--acc);border:1px solid rgba(201,168,106,.3);padding:6px 13px;border-radius:999px;background:rgba(201,168,106,.07);white-space:nowrap}
+.dashlayout{display:grid;grid-template-columns:210px 1fr;gap:24px;align-items:start;padding-bottom:30px}
+.dashside{display:flex;flex-direction:column;gap:3px;position:sticky;top:80px}
+.dashside a{padding:10px 14px;border-radius:10px;color:var(--mut);font-size:14px;font-weight:500;transition:.18s}
+.dashside a:hover{color:var(--ink);background:var(--bg2)}
+.dashside a.on{color:var(--ink);background:var(--bg2);border:1px solid var(--line)}
+.dashside .signout{margin-top:10px;color:var(--mut);font-size:13px}
+.dashside .signout:hover{color:var(--bad)}
+.dashmain{min-width:0}
+.statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.statcard{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:18px}
+.statcard .sv{font-family:'Playfair Display',serif;font-size:28px;font-weight:700}
+.statcard .sl{color:var(--mut);font-size:12.5px;margin-top:2px}
+.panelcard{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:16px}
+.pcfhead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.pcfhead h3{margin:0;font-size:17px}
+.quickrow{display:flex;gap:10px;flex-wrap:wrap}
+.modechip{font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;text-transform:capitalize}
+.modechip.fixed{background:rgba(201,168,106,.13);color:var(--acc)}
+.modechip.sale{background:rgba(224,83,58,.16);color:#f0a08c}
+.modechip.offer{background:rgba(122,214,160,.14);color:var(--ok)}
+.addform label{display:block;font-size:13px;color:var(--mut);margin:0 0 5px}
+.addform input,.addform select,.addform textarea{width:100%}
+.addform>label{margin-top:6px}
+.addform input[type=checkbox]{width:auto;flex:none;accent-color:var(--acc)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.frow.four{grid-template-columns:repeat(4,1fr)}
+/* Grid 1fr tracks refuse to shrink below an input's intrinsic min width (~180px),
+   which overflowed narrow phones — let form controls shrink with their track. */
+.frow input,.frow select,.authform input,.authform select{min-width:0;max-width:100%}
+.moderow{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px}
+.moderadio{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:10px 14px;cursor:pointer;font-size:14px;color:var(--ink)}
+.moderadio input{width:auto}
+.tiergrid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:6px 0 14px}
+.tiergrid .hint{display:block;margin-bottom:4px}
+
+/* legal */
+.legallayout{display:grid;grid-template-columns:240px 1fr;gap:30px;align-items:start;padding-bottom:30px}
+.legalnav{display:flex;flex-direction:column;gap:3px;position:sticky;top:80px}
+.legalnav a{padding:9px 13px;border-radius:9px;color:var(--mut);font-size:13.5px;transition:.18s}
+.legalnav a:hover{color:var(--ink);background:var(--bg2)}
+.legalnav a.on{color:var(--ink);background:var(--bg2);border:1px solid var(--line)}
+.legalbody{min-width:0;max-width:760px}
+.legalbody h2{font-size:24px;margin:0 0 4px}
+.legalmeta{color:var(--mut);font-size:12.5px;margin-bottom:18px}
+.legalbody h3{font-size:16px;margin:22px 0 6px}
+.legalbody p,.legalbody li{color:#c9c6bd;font-size:14.5px}
+.legalbody ul,.legalbody ol{padding-left:20px}
+.legalbody .muted{color:var(--mut);font-size:13px}
+.legalbody a{color:var(--acc)}
+
+/* faq accordion */
+.faq-list{display:flex;flex-direction:column;gap:2px}
+.faq-item{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.faq-item summary{list-style:none;cursor:pointer;padding:15px 18px;font-size:14.5px;font-weight:500;color:var(--ink);display:flex;justify-content:space-between;align-items:center;user-select:none}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary::after{content:'+';font-size:20px;font-weight:300;color:var(--mut);flex-shrink:0;margin-left:12px;transition:.2s}
+.faq-item[open] summary::after{content:'−'}
+.faq-item[open]{background:var(--bg2)}
+.faq-item[open] summary{color:var(--acc)}
+.faq-ans{padding:0 18px 16px;font-size:14px;color:#c9c6bd;line-height:1.65}
+
+@media(max-width:820px){
+  .dashlayout{grid-template-columns:1fr}
+  /* Telefonda panel menusu TEK SATIR, yana kayar. Eskiden 7-10 sekme + dil
+     kutusu + cikis 3-4 satira sariyor ve icerikten once butun ilk ekrani
+     dolduruyordu (2 Eyl 2026 ekran goruntusu). Dil secici ayni satirda kucuk. */
+  .dashside{position:static;flex-direction:row;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:6px;
+    padding:2px 24px 8px;margin:0 -24px 6px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;align-items:center;scroll-padding:0 24px;
+    /* Kenarlarda solma: seridin devam ettigini soyler (7 Eyl 2026: "My…" kesik
+       duruyordu ama kaydirilabilir oldugu belli degildi). */
+    -webkit-mask-image:linear-gradient(to right,transparent,#000 22px,#000 calc(100% - 34px),transparent);
+    mask-image:linear-gradient(to right,transparent,#000 22px,#000 calc(100% - 34px),transparent)}
+  .dashside::-webkit-scrollbar{display:none}
+  .dashside a{flex:0 0 auto;white-space:nowrap;padding:10px 14px;min-height:44px;display:inline-flex;align-items:center;
+    font-size:14px;scroll-snap-align:start;border:1px solid transparent}
+  .dashside a.on{border-color:var(--line)}
+  .dashside .signout{margin:0;order:9;font-size:13px}
+  .dashside .dashlang{flex:0 0 auto;order:8;display:flex;align-items:center;gap:6px;margin:0;padding:4px 8px;
+    border-radius:999px}
+  .dashside .dashlang>span{display:none}
+  .dashside .dashlang .dashsw{flex-wrap:nowrap}
+  .dashside .dashlang .dashsw .lsw{padding:6px;font-size:11.5px;min-width:34px;text-align:center}
+  .statgrid{grid-template-columns:repeat(2,1fr)}
+  .frow,.frow.four{grid-template-columns:1fr 1fr}
+  .tiergrid{grid-template-columns:repeat(2,1fr)}
+  .legallayout{grid-template-columns:1fr}
+  .legalnav{position:static;flex-direction:row;flex-wrap:wrap}
+}
+
+/* print (PDF catalog) */
+@media print{
+  header,footer,.noprint{display:none!important}
+  body{background:#fff;color:#000}
+  .pdfdoc{padding:0}
+}
+
+/* seller-uploaded product images (cards + detail hero) */
+.pdetail .hero-thumb{overflow:hidden}
+.thumbimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;transition:transform .5s ease}
+.pcard:hover .thumbimg{transform:scale(1.05)}
+.heroimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.thumb .bname,.pdetail .hero-thumb .bname{position:relative;z-index:2;text-shadow:0 2px 12px rgba(0,0,0,.7)}
+.thumb .vbadge,.thumb .modetag,.hero-thumb .modetag{z-index:3}
+
+/* language switcher (nav) */
+/* Para birimi secici: ACILIR menu.
+   Once dort kod yan yana duruyordu; baslikta yer kapliyordu. Simdi tek dugme,
+   liste ASAGI ve sayfanin USTUNE aciliyor (position:absolute) -- acilirken
+   hicbir seyi itmiyor. Bir menunun acilirken cevresini yerinden oynatmasi,
+   kullanicinin tam tiklayacagi anda hedefi kaydirir. */
+.cursw,.langsw{position:relative;display:inline-block;margin-left:10px;
+  padding-left:10px;border-left:1px solid rgba(255,255,255,.12)}
+.cursw>summary,.langsw>summary{display:flex;align-items:center;gap:4px;cursor:pointer;
+  font-size:11px;font-weight:600;letter-spacing:.3px;color:var(--mut);
+  padding:3px 6px;border-radius:5px;line-height:1;list-style:none;
+  user-select:none;transition:color .2s,background .2s}
+.cursw>summary::-webkit-details-marker,.langsw>summary::-webkit-details-marker{display:none}   /* Safari'nin ucgeni */
+.cursw>summary::marker,.langsw>summary::marker{content:''}
+.cursw>summary:hover,.cursw[open]>summary,.langsw>summary:hover,.langsw[open]>summary{color:var(--ink);background:rgba(255,255,255,.10)}
+.cursw>summary svg,.langsw>summary svg{opacity:.65;transition:transform .18s ease}
+.cursw[open]>summary svg,.langsw[open]>summary svg{transform:rotate(180deg)}
+.cswmenu,.lswmenu{position:absolute;top:calc(100% + 8px);right:0;z-index:60;
+  min-width:118px;padding:5px;display:flex;flex-direction:column;gap:1px;
+  background:rgba(22,22,28,.98);backdrop-filter:saturate(140%) blur(14px);
+  border:1px solid var(--line);border-radius:10px;
+  box-shadow:0 18px 40px -12px rgba(0,0,0,.65)}
+.cswmenu .csw{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  font-size:12px;color:var(--mut);padding:7px 9px;border-radius:6px;
+  line-height:1;text-decoration:none;white-space:nowrap}
+.cswmenu .csw b{font-weight:600;letter-spacing:.3px}
+.cswmenu .csw span{opacity:.6}
+.cswmenu .csw:hover{color:var(--ink);background:rgba(255,255,255,.07)}
+.cswmenu .csw.on{color:var(--ink);background:rgba(255,255,255,.10)}
+/* Dil menusu: sekiz kisa kod alt alta gereksiz uzun bir sutun olurdu (ekranin
+   yarisi kadar). Iki sutunluk grid hem daha az yer kapliyor hem de sekizini
+   tek bakista gosteriyor. */
+.lswmenu{min-width:0;padding:5px;display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.lswmenu .lsw{font-size:12px;font-weight:600;letter-spacing:.3px;color:var(--mut);
+  padding:7px 12px;border-radius:6px;line-height:1;text-decoration:none;
+  text-align:center;white-space:nowrap}
+.lswmenu .lsw:hover{color:var(--ink);background:rgba(255,255,255,.07)}
+.lswmenu .lsw.on{color:var(--ink);background:rgba(255,255,255,.10)}
+/* Cevrim uyarisi: fiyatin yaninda degil, sayfanin ustunde tek satir -- her
+   fiyatin altina yazmak gurultu olurdu, hic yazmamak ise yaniltici. */
+.curnote{font-size:11.5px;color:var(--mut);line-height:1.5;margin:0 0 14px;
+  padding:8px 12px;border:1px solid var(--line);border-radius:8px;
+  background:rgba(201,168,106,.06)}
+
+/* account language picker (dashboard sidebar) */
+.dashlang{margin:12px 0 6px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:12px;color:var(--mut)}
+.dashlang>span{display:block;margin-bottom:6px;letter-spacing:.3px;text-transform:uppercase;font-weight:600}
+.dashlang .dashsw{display:flex;gap:3px;flex-wrap:wrap}
+.dashlang .dashsw .lsw{font-size:12px;font-weight:600;color:var(--mut);padding:4px 8px;border-radius:6px;text-decoration:none;border:1px solid var(--line)}
+.dashlang .dashsw .lsw.on{background:var(--acc);color:#0e0e11;border-color:var(--acc)}
+
+/* make-an-offer toggle on priced products */
+.offerdetails summary{list-style:none;cursor:pointer}
+.offerdetails summary::-webkit-details-marker{display:none}
+.offerdetails[open] summary{margin-bottom:4px}
+
+/* auth pages (login, register) */
+/* Flex centering (not grid place-items): a grid column sizes to the card's
+   max-content (longest unwrapped line ≈ 430px+), blowing past narrow phone
+   viewports — the register-page horizontal-scroll bug. Flex + min-width:0
+   keeps the card at 100% of the available width, capped by max-width. */
+.authwrap{min-height:calc(100vh - 180px);display:flex;align-items:center;justify-content:center;padding:40px 20px}
+.authcard{background:var(--bg2);border:1px solid var(--line);border-radius:20px;padding:36px 40px;width:100%;max-width:480px;min-width:0}
+.authcard-logo{display:flex;align-items:center;gap:10px;font-family:'Playfair Display',serif;font-size:20px;font-weight:700;letter-spacing:1.5px;margin-bottom:22px}
+.authcard-title{font-family:'Playfair Display',serif;font-size:26px;margin:0 0 4px}
+.authcard-sub{color:var(--mut);margin:0 0 22px;font-size:14px}
+.authcard-foot{text-align:center;font-size:14px;color:var(--mut);margin:18px 0 0}
+.authform .authfield{margin-bottom:14px}
+.authform .authfield label{display:block;font-size:13px;color:var(--mut);margin-bottom:5px}
+.authform .authfield input{width:100%}
+
+/* password show/hide toggle — auto-applied to every type=password field, see inc/foot.php */
+.pwwrap{position:relative;display:block}
+.pwwrap input{width:100%;padding-right:42px}
+.pwtoggle{position:absolute;top:50%;right:5px;transform:translateY(-50%);background:none;border:none;
+  padding:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mut);border-radius:6px}
+.pwtoggle:hover{color:var(--ink)}
+.pwtoggle:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.authtype{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.typecard{border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;text-align:center;transition:.2s;display:block;min-width:0}
+.typecard:hover{border-color:rgba(201,168,106,.3);background:rgba(201,168,106,.04)}
+.typecard.on{border-color:var(--acc);background:rgba(201,168,106,.08)}
+.typecard .ticon{font-size:24px;display:block;margin-bottom:4px}
+.typecard .tl{font-weight:600;font-size:14px;display:block}
+.typecard .ts{font-size:12px;color:var(--mut);display:block;margin-top:2px}
+.authsect{font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--mut);margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--line)}
+@media(max-width:520px){
+  .authcard{padding:28px 22px}
+  /* Phones: stack paired form fields and the buyer/seller type cards — two 1fr
+     columns overflow narrow viewports (the register-page horizontal-scroll bug). */
+  .authform .frow{grid-template-columns:1fr}
+  .authtype{grid-template-columns:1fr}
+}
+
+/* ── Buyer/seller messaging ─────────────────────────────────────────────────
+   Tek cizim yolu: inc/messages.php → vestra_msg_panel_html (alici + satici).
+   Masaustu: solda konusma listesi, sagda acik konusma; ikisi de kendi icinde
+   kayar, kabuk ekranin boyuna gore olculur. Telefon (≤820px): liste tam
+   genislik; konusma acilinca panel basligi, sekme seridi ve altbilgi gizlenir
+   ve kabuk ust menu ile alt sekme cubugu ARASINI doldurur — sayfa icinde ikinci
+   bir kaydirma alani yerine tek kaydirma (baloncuklar), yazma kutusu hep altta.
+   7 Eyl 2026 olcumu (390px): baloncuk 194px genisti (uc ic ice dolgu), yazma
+   kutusu alt cubugun ALTINA dusuyordu, alan 14px oldugu icin iOS odakta
+   yakinlastiriyordu, zaman damgasi ham ISO basiyordu. */
+.msgpanel{padding:0;overflow:hidden}
+.msgshell{display:grid;grid-template-columns:300px 1fr;gap:0;background:var(--bg2);
+  --msh:clamp(480px,calc(100vh - 230px),760px)}
+.msgshell .mslist{border-right:1px solid var(--line);height:var(--msh);overflow-y:auto;padding:10px;overscroll-behavior:contain}
+.msgshell .mssearch{padding:2px 2px 8px;position:sticky;top:-10px;background:var(--bg2);z-index:1;margin-top:-10px;padding-top:12px}
+.msgshell .mssearch input{width:100%;font-size:14px;padding:10px 12px;border-radius:10px}
+.msnone{padding:6px 8px}
+.threadlist{display:flex;flex-direction:column;gap:2px}
+.threadrow{display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;align-items:center;padding:10px;border-radius:12px;
+  transition:background .15s;color:var(--ink);cursor:pointer;text-decoration:none;min-height:64px}
+.threadrow:hover{background:var(--bg3)}
+.threadrow.active{background:color-mix(in srgb,var(--acc) 12%,transparent)}
+.threadrow.unread .tr-name{font-weight:700}
+.threadrow.unread .tr-snippet{color:var(--ink)}
+.tr-ava{width:44px;height:44px;border-radius:50%;overflow:hidden;display:grid;place-items:center;flex:none;
+  background:var(--bg3);border:1px solid var(--line);font-weight:700;font-size:16px;color:var(--acc);font-family:'Playfair Display',Georgia,serif}
+.tr-ava img{width:100%;height:100%;object-fit:cover;display:block}
+.tr-ava svg{width:22px;height:22px}
+.tr-body{min-width:0;display:block}
+.tr-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+/* Blok, flex DEGIL: `text-overflow:ellipsis` bir flex kabinde calismaz ve uzun
+   ad zaman damgasinin altina kaydirilmadan kirpiliyordu (7 Eyl 2026 masaustu
+   olcumu: "Seller lac-pique-pol|09:52"). Okunmamis noktasi satir icinde akar. */
+.tr-name{font-weight:600;font-size:14.5px;display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--acc);margin-left:6px;vertical-align:middle}
+.tr-time{color:var(--mut);font-size:11.5px;white-space:nowrap;flex:none;font-variant-numeric:tabular-nums}
+.tr-snippet{display:block;color:var(--mut);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+/* acik konusma */
+.msgshell .msmain{display:flex;flex-direction:column;height:var(--msh);min-width:0}
+.msghead{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);flex:none}
+.msback{display:none;width:40px;height:40px;border-radius:50%;place-items:center;color:var(--ink);flex:none;margin-left:-8px}
+.msback:hover{background:var(--bg3)}
+.msback svg{width:22px;height:22px}
+.msghead-t{min-width:0;flex:1}
+.msghead-n{font-weight:700;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msghead-s{display:block;font-size:12.5px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+a.msghead-s:hover{color:var(--acc)}
+.msgerr{background:color-mix(in srgb,var(--bad) 10%,transparent);border:1px solid color-mix(in srgb,var(--bad) 35%,transparent);color:var(--bad);margin:10px 16px 0}
+.msgthread{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;padding:16px 18px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.msgday{display:flex;justify-content:center;margin:6px 0 4px}
+.msgday span{font-size:11.5px;font-weight:600;letter-spacing:.04em;color:var(--mut);background:var(--bg3);border:1px solid var(--line);border-radius:999px;padding:3px 11px}
+.msgbubblewrap{display:flex}
+.msgbubblewrap.mine{justify-content:flex-end}
+.msgbubble{max-width:72%;padding:9px 13px 7px;border-radius:16px 16px 16px 5px;font-size:14px;line-height:1.5;overflow-wrap:anywhere;
+  background:color-mix(in srgb,var(--ink) 5%,var(--bg2));border:1px solid var(--line)}
+.msgbubble.mine{border-radius:16px 16px 5px 16px;background:color-mix(in srgb,var(--acc) 16%,var(--bg2));border-color:color-mix(in srgb,var(--acc) 40%,transparent)}
+.msgtime{font-size:10.5px;color:var(--mut);margin-top:3px;text-align:right;font-variant-numeric:tabular-nums}
+/* Okundu onayi — yalniz KENDI baloncugumuzda. Gonderildi soluk TEK cengel,
+   okundu vurgulu CIFT cengel: fark rengin YANINDA isaret sayisiyla da veriliyor,
+   cunku yalniz renge dayanan bir gosterge renk korlugunde ve gunes altinda
+   kayboluyor. Cizim, yazi degil: '✓' yazi tipine gore kalinlasip emoji gibi
+   cikabiliyor ve iki cengelin araligi tipten tipe kayiyordu. */
+.msgtickdefs{position:absolute;width:0;height:0;overflow:hidden}
+.msgtick{display:inline-flex;align-items:center;margin-inline-start:6px;
+  vertical-align:-1px;color:var(--mut);opacity:.8;cursor:default}
+.msgtick svg{height:9px;display:block;fill:none;stroke:currentColor;stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.msgtick svg.vt1{width:10px}
+.msgtick svg.vt2{width:14px}
+.msgtick.seen{color:var(--acc);opacity:1}
+/* Okunmamis isaret SABIT genislikte durur: tek cengel cift cengel olunca satir
+   sicramasin (saat saga yasli, yani kayma gozle gorulur). */
+.msgtick{min-width:14px;justify-content:flex-end}
+.msgcompose{display:flex;gap:10px;align-items:flex-end;padding:12px 16px;border-top:1px solid var(--line);flex:none}
+.msgcompose textarea{flex:1;resize:none;min-height:44px;max-height:160px;padding:11px 14px;border-radius:14px;line-height:1.45;font-size:14px}
+.mssend{flex:none;height:44px;padding:0 20px;border-radius:999px}
+.mssend svg{width:20px;height:20px;display:none}
+.mshint{padding:0 16px 12px;margin:0;font-size:12px;flex:none}
+.mskey{display:none}
+@media(hover:hover) and (pointer:fine){.mskey{display:inline}}
+.msempty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--mut);font-size:14px;padding:40px;text-align:center}
+.msempty svg{width:38px;height:38px;opacity:.45}
+/* system offer cards inside a thread */
+.msgoffer{align-self:center;width:min(440px,100%);background:rgba(201,168,106,.09);border:1px solid rgba(201,168,106,.45);border-radius:14px;padding:13px 16px;text-align:center;margin:2px 0}
+.msgoffer.ok{background:rgba(122,214,160,.08);border-color:rgba(122,214,160,.45)}
+.msgoffer.bad{background:rgba(239,154,154,.07);border-color:rgba(239,154,154,.4)}
+.msgoffer.ctr{background:rgba(240,192,96,.08);border-color:rgba(240,192,96,.45)}
+.msgoffer .mo-head{font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap}
+.msgoffer .mo-prod{font-size:13px;color:var(--mut);margin-top:4px;overflow-wrap:anywhere}
+.msgoffer .mo-terms{font-size:14.5px;margin-top:6px}
+.msgoffer .mo-act{display:inline-block;margin-top:9px;font-size:13px;font-weight:600;color:var(--acc);padding:4px 0}
+.msgoffer .atag{font-size:10px;background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-weight:600;letter-spacing:.4px}
+.msgoffer .msgtime{text-align:center}
+/* sidebar unread badge */
+.dashside .navdot{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:10px;background:var(--acc);color:#1a1408;font-size:11px;font-weight:700;margin-left:4px}
+[dir="rtl"] .msback{margin-left:0;margin-right:-8px}
+[dir="rtl"] .msback svg,[dir="rtl"] .mssend svg{transform:scaleX(-1)}
+[dir="rtl"] .msgbubble{border-radius:16px 16px 5px 16px}
+[dir="rtl"] .msgbubble.mine{border-radius:16px 16px 16px 5px}
+[dir="rtl"] .msgtime{text-align:left}
+@media(max-width:820px){
+  .msgpanel{margin:0 -24px;border-radius:0;border-left:0;border-right:0;box-shadow:none}
+  .msgshell{grid-template-columns:1fr;--msh:auto}
+  .msgshell .mslist{border-right:0;height:auto;padding:8px 10px 12px}
+  .msgshell .mssearch{position:static;margin-top:0;padding-top:2px}
+  .msgshell .msmain{display:none}
+  .msgshell.has-thread .mslist{display:none}
+  /* Satir OLCUSU acikca yaziliyor: ortulu satir `auto`dur, yani kabugun boyu
+     sabit olsa bile ic sutun icerige gore buyur ve baloncuklar sayfayi asagi
+     dogru uzatir (7 Eyl 2026 olcumu: kabuk 714px, konusma 1532px, yazma kutusu
+     ekranin 900px altinda kaldi). minmax(0,1fr) satiri kabuga kilitler; msmain
+     min-height:0 olmadan flex cocugu yine kucultulemez. */
+  .msgshell.has-thread{grid-template-rows:minmax(0,1fr)}
+  .msgshell.has-thread .msmain{display:flex;height:100%;min-height:0}
+  /* Konusma acikken uygulama ekrani: sayfa basligi, sekme seridi ve altbilgi
+     gizli; kabuk ust menu (64px) ile alt sekme cubugu (body alt boslugu 66px +
+     guvenli alan) arasini doldurur. :has() zaten .payopt'ta kullaniliyor. */
+  body:has(.msgshell.has-thread) .dashtop,body:has(.msgshell.has-thread) .dashside,body:has(.msgshell.has-thread) footer{display:none}
+  body:has(.msgshell.has-thread) .dashlayout{padding-bottom:0;gap:0}
+  body:has(.msgshell.has-thread) .msgpanel{margin-bottom:0}
+  .msgshell.has-thread{height:calc(100vh - 130px);height:calc(100dvh - 130px - env(safe-area-inset-bottom,0px))}
+  .msback{display:grid}
+  .msghead{padding:8px 12px 8px 10px}
+  .msgthread{padding:12px 12px 10px;gap:7px}
+  .msgbubble{max-width:85%;font-size:15px}
+  .msgcompose{padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px) * 0)}
+  .msgcompose textarea,.msgshell .mssearch input{font-size:16px} /* iOS: 16px alti odakta yakinlastirir */
+  .mssend{width:44px;padding:0;justify-content:center}
+  .mssend .mssend-t{display:none}
+  .mssend svg{display:block}
+  .mshint{display:none}
+  .msgoffer{width:100%}
+  .msgerr{margin:8px 12px 0}
+  /* Parmakla basilan her sey en az ~40px: kart baglantisi ve urun satiri
+     20-29px yuksekligindeydi. */
+  .msgoffer .mo-act{padding:11px 10px 5px}
+  .msghead-s{padding:5px 0}
+}
+
+/* ── Order detail view ─────────────────────────────────────────────────── */
+.odgrid{display:grid;grid-template-columns:1fr 300px;gap:22px;margin-top:16px}
+@media(max-width:800px){.odgrid{grid-template-columns:1fr}}
+.otimeline{display:flex;align-items:center;margin:18px 0 4px}
+.otstep{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:12.5px;flex:1;position:relative}
+.otstep:not(:last-child)::after{content:'';flex:1;height:2px;background:var(--line);margin:0 8px}
+.otstep.done .otdot{background:var(--acc)}
+.otstep.done:not(:last-child)::after{background:var(--acc)}
+.otstep.now .otdot{background:var(--acc);box-shadow:0 0 0 4px rgba(201,168,106,.2)}
+.otstep.now,.otstep.done{color:var(--ink)}
+.otdot{width:11px;height:11px;border-radius:50%;background:var(--line);flex-shrink:0}
+.otlabel{white-space:nowrap}
+/* Five steps do not fit a phone in one row; let the tracker wrap instead of
+   pushing the card sideways. */
+@media(max-width:620px){
+  .otimeline{flex-wrap:wrap;gap:10px 0}
+  .otstep{flex:1 0 45%}
+  .otstep:not(:last-child)::after{display:none}
+}
+/* "In review" notice on the order detail — the answer to the buyer's only question
+   on a fresh order, so it sits directly under the tracker rather than in a footnote. */
+.oreview{display:flex;gap:11px;align-items:flex-start;margin:14px 0 2px;padding:13px 15px;border-radius:12px;
+  font-size:13.5px;line-height:1.55;color:var(--ink);
+  background:color-mix(in srgb,var(--acc) 9%,transparent);
+  border:1px solid color-mix(in srgb,var(--acc) 26%,transparent)}
+.oreview-i{font-size:16px;line-height:1.3;flex-shrink:0}
+.oreview b{display:block;margin-bottom:2px}
+
+/* ── Colour variants ────────────────────────────────────────────────────── */
+.cdots{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;vertical-align:middle}
+.cdots .cdot{width:15px;height:15px;border-radius:50%;flex-shrink:0;display:inline-block}
+.cdots .cname{font-size:12px;color:var(--mut);margin-right:4px}
+.cdots .cmore{font-size:11px;color:var(--mut);font-weight:600}
+.colorpick{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 14px}
+.colorchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:7px 13px 7px 9px;cursor:pointer;font-size:13px;color:var(--mut);transition:.15s;user-select:none}
+.colorchip:hover{color:var(--ink);border-color:var(--mut)}
+.colorchip .cdot{width:15px;height:15px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+.colorchip input{width:auto;accent-color:var(--acc);margin:0}
+/* Beden cipinde renk noktasi yok; .colorchip'in sol dolgusu nokta icin dar
+   birakilmisti, bedende esitleniyor. Rakamlar hizali dursun diye tabular. */
+.sizechip{padding:7px 13px;font-variant-numeric:tabular-nums}
+.colorchip:has(input:checked){color:var(--ink);border-color:var(--acc);background:rgba(201,168,106,.08)}
+.colorqty{display:flex;flex-direction:column;gap:6px;margin:4px 0 10px}
+.cqrow{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:10px;padding:7px 12px}
+.cqrow .cdot{width:15px;height:15px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22);flex-shrink:0}
+.cqrow .cqname{flex:1;font-size:13px;color:var(--ink)}
+.cqrow select{width:76px;padding:5px 6px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font-size:13px;font-family:inherit}
+.cqrow:has(select option:checked:not([value="0"])){border-color:var(--acc);background:rgba(201,168,106,.06)}
+
+/* panel inline-action forms (ship / offer-respond) */
+.respdetails>summary{list-style:none;cursor:pointer}
+.respdetails>summary::-webkit-details-marker{display:none}
+.respform,.shipform{margin-top:10px;padding:12px;background:var(--bg3);border:1px solid var(--line);border-radius:10px}
+.resprow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.shipform input{width:100%;margin-bottom:8px}
+
+/* ── Premium catalog layout ─────────────────────────────────────────────── */
+.shoplayout{display:grid;grid-template-columns:230px 1fr;gap:28px;align-items:start;padding-bottom:40px}
+.shopside{position:sticky;top:80px;display:flex;flex-direction:column;gap:4px}
+.filterblock{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:8px}
+.filter-title{font-size:10.5px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--mut);margin-bottom:10px}
+.filter-searchbox{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.filter-searchbox svg{flex-shrink:0;color:var(--mut)}
+.filter-searchbox input{background:none;border:none;outline:none;color:var(--ink);font:inherit;font-size:13px;width:100%;padding:0}
+.filter-searchbox input::placeholder{color:var(--mut)}
+.fcheck{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:13px;color:var(--mut);transition:.15s;user-select:none;position:relative}
+.fcheck:hover{color:var(--ink);background:rgba(255,255,255,.04)}
+.fcheck.on{color:var(--ink)}
+.fcheck.on .fcheck-dot{background:var(--acc);border-color:var(--acc);box-shadow:0 0 0 3px rgba(201,168,106,.18)}
+.fcheck-dot{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--line);flex-shrink:0;transition:.15s}
+.fcount{margin-left:auto;font-size:11px;color:var(--mut);background:rgba(255,255,255,.06);padding:1px 6px;border-radius:10px}
+.filter-export{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mut);padding:7px 8px;border-radius:7px;transition:.15s;margin-bottom:2px}
+.filter-export:hover{color:var(--ink);background:rgba(255,255,255,.04)}
+/* Line-sheet satiri: ana baglanti (PDF) + kucuk ikinci bicim (XLSX). Iki ayri
+   satir yazmak listeyi ikiye katlardi -- 24 markada 48 satirlik bir kenar
+   sutunu. .lsmain flex:1 ile kalan genisligi aliyor, sayac kendi ucunda
+   kaliyor, XLSX chip'i sabit. */
+.lsrow{display:flex;align-items:center;gap:4px}
+.lsrow .lsmain{flex:1;min-width:0}
+.lsrow .lsmain .fcount{margin-left:auto}
+.lsalt{flex:none;font-size:10px;letter-spacing:.06em;color:var(--mut);border:1px solid var(--line);
+  border-radius:6px;padding:3px 6px;text-decoration:none;transition:.15s;line-height:1}
+.lsalt:hover{color:var(--ink);border-color:rgba(201,168,106,.4)}
+
+/* Shop top bar */
+.shopbar{display:flex;align-items:center;margin-bottom:18px;gap:12px}
+.shopcount{font-size:13px;color:var(--mut)}
+.shopmain .grow{flex:1}
+.sortsel{background:var(--bg2);border:1px solid var(--line);color:var(--ink);font:inherit;font-size:13px;padding:7px 12px;border-radius:8px;cursor:pointer;outline:none}
+.sortsel:focus{border-color:rgba(201,168,106,.4)}
+
+/* Shop product grid */
+/* dense: the catalogue mixes 1x1, 2x1 and 2x2 tiles, and filtering hides cards in
+   place — without dense packing every hidden wide tile would leave a visible hole. */
+.shopgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;grid-auto-flow:dense}
+.scard{background:var(--bg2);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:var(--ink);
+  transition:border-color .35s var(--ease),transform .35s var(--ease),box-shadow .35s var(--ease)}
+/* Pinned product: a 2×2 block instead of 1×1, so the operator's flagship listing
+   reads as a lead tile rather than just sitting first in an otherwise-uniform grid.
+   Sits first in DOM order (shop.php partitions pinned products to the front), so the
+   grid's default sparse auto-placement fills in around it with no gaps at any
+   column count -- no per-breakpoint override needed. */
+.scard-featured{grid-column:span 2;grid-row:span 2}
+.scard-featured .stitle{font-size:16px}
+.scard-featured .samt{font-size:22px}
+.scard:hover{border-color:rgba(201,168,106,.38);transform:translateY(-5px);box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.sthumb{aspect-ratio:3/4;display:grid;place-items:center;position:relative;color:#fff;overflow:hidden}
+/* Legibility scrim under the corner badges. Unconditional on purpose: the tile is
+   either a photo or a dark brand-card gradient, and both need the bottom corners
+   seated so .snewbadge / .sphotocount never sit on a blown-out white packshot.
+   (It used to be gated on a .has-img class that no template ever emitted, so it
+   simply never rendered.) Below the badges (z4), above the photo (z0/z3). */
+.sthumb::after{content:'';position:absolute;bottom:0;left:0;right:0;height:55%;
+  background:linear-gradient(transparent,rgba(0,0,0,.55));pointer-events:none;z-index:3}
+.sthumbi{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;transition:transform .45s ease}
+.scard:hover .sthumbi{transform:scale(1.06)}
+/* FOTOGRAFLI KART. Katalog fotograflarinin %94'u beyaz zeminli packshot
+   (olculdu: 35 dosyanin 33'unde kenar pikselleri > 225), yani:
+     - cover KIRPIYOR: kol, etek, ayakkabinin burnu disarida kaliyordu;
+     - koyu gradyan zemin uzerinde beyaz bir packshot sert bir kutu gibi duruyor;
+     - ve .sthumb::after'in %55'lik siyah perdesi beyaz urunun altini kirletiyordu.
+   Fotografli karta acik studyo zemini, contain ve nefes payi veriliyor; marka
+   karti (fotografsiz) eski koyu gradyanda kaliyor -- iki tile iki ayri is yapiyor. */
+.sthumb.sphoto{background:linear-gradient(178deg,#fbfaf8 0%,#f2efea 78%,#eae6df 100%)}
+.sthumb.sphoto .sthumbi{object-fit:contain;padding:8% 8% 11%}
+.sthumb.sphoto::after{height:30%;background:linear-gradient(transparent,rgba(20,16,10,.20))}
+/* Zoom daha kucuk: contain'de buyuk zoom urunu kirpmaya baslar. */
+.scard:hover .sthumb.sphoto .sthumbi{transform:scale(1.035)}
+.sthumb.sphoto .sbname{color:#2a251c;text-shadow:none}
+/* Photo reveal (approved members only): the brand tile stays the card front; on hover
+   (desktop) or while centered in view (touch, .sreveal via JS) the first product photo
+   fades in with a slow settle-zoom. Sits above the brand name (z2), below badges (z4). */
+.sthumbi-reveal{opacity:0;z-index:3;transform:scale(1.07);
+  transition:opacity .5s ease,transform 1.1s cubic-bezier(.16,.66,.25,1)}
+.scard:hover .sthumbi-reveal,.scard.sreveal .sthumbi-reveal{opacity:1;transform:scale(1)}
+.sbname{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;opacity:.9;z-index:2;position:relative;text-shadow:0 2px 10px rgba(0,0,0,.7)}
+.svbadge{position:absolute;top:10px;left:10px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;display:flex;align-items:center;gap:5px;z-index:4}
+/* ── "Verified seller" rozeti ────────────────────────────────────────────────
+   (operator, 13 Eyl 2026: *"daha okunakli, beyaz ustude durdugundan rengi
+   degissin ve daha estetik olsun"*.)
+
+   Rozet URUN FOTOGRAFININ uzerinde duruyor ve bu katalogun fotograflarinin
+   neredeyse tamami BEYAZ fonlu paket cekimi -- yani pratikte beyaz uzerinde.
+   Eski hali acik yesil zemin + #1f7a4c yazi: olculen kontrast 4.46:1, AA
+   esigi 4.5'in ALTINDA, ustelik 10px kalin yazida. Asil kusur tik isaretiydi:
+   isaretleme stroke="#fff" yaziyordu, yani acik yesil zeminde BEYAZ tik --
+   1.06:1, pratikte gorunmez. Tik artik currentColor.
+
+   Cozum ZEMINI sabitliyor: buzlu beyaz hap + koyu orman yesili yazi. Fotograf
+   ne renk olursa olsun (beyaz paket cekimi, koyu deri, desenli) rozet ayni
+   sekilde okunuyor -- rengi fotografa birakan her cozum bazi fotograflarda
+   dusuyordu. Beyaz uzerinde kontrast 9.4:1.
+
+   TEK KURAL: eskiden fotografli karo icin ayri bir override vardi
+   (.sthumb.sphoto .svbadge) ve ikisi ayri renk tasiyordu; ayni rozetin iki
+   tanimi er gec ayrisir (bu depoda marka sayfasi CSS'i ile ayni ders). */
+.svbadge,.gal-vbadge{
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(10px) saturate(1.15);-webkit-backdrop-filter:blur(10px) saturate(1.15);
+  color:#0f5132;
+  border:1px solid rgba(15,81,50,.2);
+  box-shadow:0 2px 10px rgba(20,16,10,.18),0 0 0 .5px rgba(255,255,255,.5) inset;
+  letter-spacing:.2px;
+}
+.smodetag{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:4px 9px;border-radius:999px;z-index:4;letter-spacing:.3px}
+.smodetag.sale{background:#e0533a;color:#fff}
+.smodetag.offer{background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.3)}
+.snewbadge{position:absolute;bottom:10px;left:10px;font-size:9px;font-weight:800;letter-spacing:1px;background:var(--acc);color:#1a1408;padding:3px 8px;border-radius:999px;z-index:4}
+.sphotocount{position:absolute;bottom:10px;right:10px;font-size:10px;background:rgba(0,0,0,.55);color:#fff;padding:3px 7px;border-radius:999px;z-index:4;border:1px solid rgba(255,255,255,.18)}
+.sbody{padding:13px 15px 15px;display:flex;flex-direction:column;gap:3px;flex:1}
+.sbrand{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--acc);font-weight:700}
+.stitle{font-weight:600;font-size:13.5px;line-height:1.32;margin:1px 0;text-wrap:balance}
+.smeta{font-size:11px;color:var(--mut);font-variant-numeric:tabular-nums}
+/* Price row is the one place digits must line up card-to-card down the grid. */
+.sprice{margin-top:auto;padding-top:9px;font-size:13px;display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;
+  font-variant-numeric:tabular-nums}
+.sfrom{color:var(--mut);font-size:11px}
+.samt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.swas{color:var(--mut);font-size:12px;text-decoration:line-through;text-decoration-thickness:1px;
+  text-underline-offset:2px;opacity:.75}
+.slock{color:var(--mut);font-size:12px;display:flex;align-items:center;gap:5px}
+.soffer{color:var(--acc);font-size:12px}
+
+/* ── Product gallery ────────────────────────────────────────────────────── */
+.pdetail{display:grid;grid-template-columns:1fr 1fr;gap:36px;margin:14px 0 40px;align-items:start}
+.gal-col{display:flex;flex-direction:column;gap:10px;position:sticky;top:80px}
+.gal-main{aspect-ratio:4/5;border-radius:14px;border:1px solid var(--line);overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;background:linear-gradient(165deg,#fdfcfa 0%,#f3eee6 58%,#eae3d7 100%);box-shadow:0 22px 46px -24px rgba(38,30,15,.5),0 2px 8px -3px rgba(38,30,15,.18)}
+/* museum-style inner mat: a delicate framed presentation around the product */
+.gal-main::after{content:'';position:absolute;inset:14px;border:1px solid rgba(120,96,48,.22);border-radius:7px;pointer-events:none;z-index:4}
+/* Fill the framed stage: the photo scales to the mat (aspect preserved) so it sits
+   large and consistent across products. Source photos are pre-upscaled + sharpened,
+   so filling stays crisp rather than browser-stretched. */
+.gal-img{width:calc(100% - 40px);height:calc(100% - 40px);object-fit:contain;display:block}
+.gal-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.gal-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.86);backdrop-filter:blur(10px) saturate(1.1);border:1px solid rgba(70,52,24,.14);color:#2b2318;box-shadow:0 8px 20px -8px rgba(40,30,12,.42),0 1px 0 rgba(255,255,255,.8) inset;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .18s cubic-bezier(.2,.7,.2,1),background .18s,box-shadow .18s,color .18s,opacity .18s;z-index:5;opacity:.9}
+.gal-main:hover .gal-nav{opacity:1}
+.gal-nav svg{width:19px;height:19px;display:block}
+.gal-nav:hover{background:var(--acc);color:#fff;border-color:transparent;box-shadow:0 12px 26px -8px rgba(169,127,44,.6)}
+.gal-nav:active{transform:translateY(-50%) scale(.93)}
+.gal-nav.prev{left:16px}
+.gal-nav.next{right:16px}
+.gal-vbadge{position:absolute;top:14px;left:14px;font-size:10.5px;font-weight:700;
+  letter-spacing:.45px;padding:4px 11px 4px 8px;border-radius:999px;z-index:6;
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.gal-vbadge svg,.svbadge svg{flex:0 0 auto}
+.gal-thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.gal-thumb{width:68px;height:68px;border-radius:9px;border:2px solid var(--line);overflow:hidden;cursor:pointer;transition:.18s;padding:0;background:none;flex-shrink:0}
+.gal-thumb:hover,.gal-thumb.active{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+.gal-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.pinfo{display:flex;flex-direction:column;gap:0}
+.spec-grid{background:var(--bg2);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:16px 0}
+.spec-row{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line);font-size:13px}
+.spec-row:last-child{border-bottom:none}
+.spec-row span{color:var(--mut)}
+.spec-row b{font-weight:600;text-align:right;max-width:60%}
+
+/* ── Photo upload grid (seller add form) ────────────────────────────────── */
+.phgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:6px 0 14px}
+.ph-slot{aspect-ratio:3/4;border:1.5px dashed var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;transition:.2s}
+.ph-slot:hover{border-color:var(--acc);background:rgba(201,168,106,.04)}
+.ph-slot input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.ph-label{font-size:11px;color:var(--mut);text-align:center;pointer-events:none;z-index:1}
+.ph-preview{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2}
+
+/* ── Responsive overrides ───────────────────────────────────────────────── */
+@media(min-width:1360px){.wrap.wide .shopgrid{grid-template-columns:repeat(5,1fr)}} /* 5 per row on wide catalog */
+@media(max-width:1100px){.shopgrid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){
+  .shoplayout{grid-template-columns:1fr}
+  .shopside{position:static;flex-direction:row;flex-wrap:wrap;gap:0}
+  .filterblock{flex:1;min-width:200px}
+  .shopgrid{grid-template-columns:repeat(3,1fr)}
+  .pdetail{grid-template-columns:1fr}
+  .gal-col{position:static}
+  .phgrid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:600px){
+  .shopgrid{grid-template-columns:repeat(2,1fr)}
+  .phgrid{grid-template-columns:repeat(2,1fr)}
+  .gal-thumbs .gal-thumb{width:54px;height:54px}
+}
+
+/* ── Ürün fotoğrafı büyüteci ─────────────────────────────────────────────────
+   Toptancı satın alma kararını dokudan verir: örgü sıklığı, dikiş, baskının
+   çatlayıp çatlamadığı. Kart boyu fotoğraf bunu göstermez, o yüzden orijinal
+   dosyayı 1:1 açıyoruz. Masaüstü: imleç lensi + sağda panel. Dokunmatik: tam
+   ekran, pinch/çift-dokunuş. Katmanlar JS ile açılır; JS yoksa hiç görünmezler,
+   galeri eskisi gibi çalışmaya devam eder. */
+.vzoom-lens{
+  position:absolute; pointer-events:none; opacity:0; z-index:6;
+  border-radius:2px; background:rgba(255,255,255,.10);
+  box-shadow:0 0 0 1px rgba(255,255,255,.55), 0 0 0 3px rgba(0,0,0,.28), 0 10px 26px rgba(0,0,0,.32);
+  backdrop-filter:brightness(1.06);
+  transition:opacity .16s ease;
+  will-change:transform;
+}
+.vzoom-lens.on{ opacity:1 }
+
+.vzoom-panel{
+  position:absolute; top:0; left:calc(100% + 18px);
+  width:min(46vw,540px); aspect-ratio:1/1;
+  opacity:0; visibility:hidden; z-index:40;
+  background:#0e0e11; border:1px solid rgba(255,255,255,.10); border-radius:10px;
+  box-shadow:0 30px 80px rgba(0,0,0,.55); overflow:hidden;
+  transition:opacity .18s ease, visibility .18s;
+}
+.vzoom-panel.on{ opacity:1; visibility:visible }
+.vzoom-surface{
+  position:absolute; inset:0;
+  background-repeat:no-repeat;
+  /* Ölçek JS'te: her zaman görüntünün doğal pikseli, yumuşatma yok. */
+  image-rendering:-webkit-optimize-contrast;
+  will-change:background-position;
+}
+.vzoom-badge{
+  position:absolute; right:10px; bottom:10px; z-index:2;
+  font:600 10.5px/1 ui-sans-serif,system-ui,sans-serif; letter-spacing:.08em;
+  color:#e8e2d6; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.16);
+  padding:5px 8px; border-radius:999px; backdrop-filter:blur(6px);
+}
+/* Panel yan tarafa sığmıyorsa (dar ekran/sağ kenar) hiç açma — lens de kapanır. */
+@media (max-width:1180px){ .vzoom-panel,.vzoom-lens{ display:none } }
+
+/* Tam ekran (dokunmatik ve tıklayınca masaüstü) */
+.vzoom-full{
+  position:fixed; inset:0; z-index:9999; display:none;
+  background:rgba(8,8,10,.97); touch-action:none; overscroll-behavior:contain;
+}
+.vzoom-full.on{ display:block }
+.vzoom-stage{
+  position:absolute; inset:0; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  cursor:grab;
+}
+.vzoom-stage.dragging{ cursor:grabbing }
+.vzoom-stage img{
+  max-width:100%; max-height:100%; user-select:none; -webkit-user-drag:none;
+  transform-origin:0 0; will-change:transform;
+}
+.vzoom-close{
+  position:absolute; top:14px; right:16px; z-index:2;
+  width:42px; height:42px; border-radius:50%;
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18);
+  color:#f2eee6; font-size:26px; line-height:1; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .15s ease;
+}
+.vzoom-close:hover{ background:rgba(255,255,255,.16) }
+.vzoom-bar{
+  position:absolute; left:50%; bottom:18px; transform:translateX(-50%); z-index:2;
+  display:flex; align-items:center; gap:10px; max-width:92vw;
+  padding:8px 14px; border-radius:999px;
+  background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.14);
+  backdrop-filter:blur(8px);
+  font:500 12px/1 ui-sans-serif,system-ui,sans-serif; color:#e8e2d6;
+}
+.vzoom-bar b{ font-weight:700; letter-spacing:.04em; min-width:44px; text-align:center }
+.vzoom-bar i{ font-style:normal; opacity:.72; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+
+/* Büyütecin açılabildiğini belli et — sessiz bir özellik keşfedilmez. */
+.gal-img{ cursor:zoom-in }
+
+/* ── Locked product page (unregistered visitors) ───────────────────────────────
+   The product markup is still rendered — a crawler is an unregistered visitor, and
+   withholding the text server-side would empty every product page out of the search
+   index. Blur is the display treatment; `inert` (plus the pointer/selection rules
+   below) is what actually stops a visitor reading, selecting, tabbing into or
+   clicking anything underneath. */
+.lockwrap{position:relative;margin-top:8px}
+.lockblur{filter:blur(9px) saturate(.72);opacity:.5;pointer-events:none;user-select:none;
+  -webkit-user-select:none;transform:scale(1.012);transform-origin:top center}
+.lockblur *{cursor:default!important}
+.lockveil{position:absolute;inset:0;z-index:5;
+  background:radial-gradient(120% 70% at 50% 32%,rgba(20,17,12,.30) 0%,rgba(20,17,12,.80) 78%)}
+.lockpanel{position:absolute;left:50%;top:120px;transform:translateX(-50%);z-index:6;
+  width:min(440px,calc(100% - 32px));text-align:center;padding:34px 30px 30px;
+  background:rgba(26,22,16,.82);backdrop-filter:blur(22px) saturate(1.3);
+  -webkit-backdrop-filter:blur(22px) saturate(1.3);
+  border:1px solid rgba(169,127,44,.34);border-radius:20px;
+  box-shadow:0 30px 70px -20px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.05) inset}
+.lockpanel svg{margin:0 auto 12px;display:block}
+.lockpanel h3{margin:0 0 8px;font-family:'Playfair Display',serif;font-size:22px;color:#f3ead8}
+.lockpanel p{margin:0 0 20px;color:#c3b9a5;font-size:13.5px;line-height:1.6}
+.lockbtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+@media(max-width:640px){.lockpanel{top:64px;padding:26px 20px 22px}}
+
+/* ── Brand cards ──────────────────────────────────────────────────────────────
+   Every product without a photo falls back to a brand card. Previously only six
+   brands had a wordmark and the rest rendered as raw text on a flat gradient, so
+   most of the catalogue's guest view looked unfinished. Cards now get a consistent
+   treatment: a soft radial lift, a hairline frame and a monogram fallback for any
+   brand with no wordmark of its own. */
+.sthumb,.thumb,.gal-placeholder{position:relative;isolation:isolate}
+/* Radial lift + a whisper of overall darkening. The lift alone was brightening photo
+   tiles rather than seating them (it silently replaced an earlier rgba(0,0,0,.12)
+   wash declared further up this file); layering both keeps the top-centre glow on
+   brand cards while still grounding full-bleed photography. */
+.sthumb::before,.thumb::before,.gal-placeholder::before{content:'';position:absolute;inset:0;z-index:0;
+  background:radial-gradient(96% 70% at 50% 18%,rgba(255,255,255,.13) 0%,transparent 62%),
+             linear-gradient(rgba(0,0,0,.10),rgba(0,0,0,.10))}
+.scard:hover .brand-logo{filter:drop-shadow(0 3px 20px rgba(0,0,0,.8));transform:translateY(-2px)}
+.brand-logo{transition:filter .35s cubic-bezier(.16,.66,.25,1),transform .35s cubic-bezier(.16,.66,.25,1)}
+
+/* Monogram fallback — first letters of the brand, set in the display face with a
+   rule under it, so an unmapped brand still reads as a designed card. */
+.bmono{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:7px;
+  padding:0 16px;text-align:center}
+.bmono .bmono-mark{font-family:'Playfair Display',serif;font-weight:700;line-height:1;
+  color:#fff;letter-spacing:3px;text-shadow:0 2px 16px rgba(0,0,0,.62)}
+.bmono .bmono-name{font-family:'Helvetica Neue',Arial,sans-serif;font-size:9px;font-weight:600;
+  letter-spacing:2.6px;text-transform:uppercase;color:rgba(255,255,255,.66);
+  padding-top:7px;border-top:1px solid rgba(255,255,255,.24);max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scard .bmono .bmono-mark{font-size:30px}
+.pcard .bmono .bmono-mark{font-size:34px}
+.gal-placeholder .bmono .bmono-mark{font-size:52px;letter-spacing:5px}
+.gal-placeholder .bmono .bmono-name{font-size:11px;letter-spacing:4px}
+
+/* Guest sidebar — replaces search / categories / exports with one registration panel. */
+.lockside{text-align:center;padding:24px 18px 20px}
+.lockside svg{margin:0 auto 10px;display:block}
+.lockside .filter-title{justify-content:center;text-align:center;margin-bottom:6px}
+
+/* Sourcing board — example requests. Visibly a demonstration, never a live buyer:
+   no offer button, muted card, and a divider that separates them from real
+   requests, which always render above. */
+.exhead{display:flex;align-items:center;gap:12px;margin:26px 0 10px}
+.exline{flex:1;height:1px;background:var(--line)}
+.exlabel{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--mut);white-space:nowrap}
+.reqcard.isexample{opacity:.9;border-style:dashed}
+.reqcard.isexample .reqtitle{color:var(--mut)}
+.status.example{background:rgba(169,127,44,.14);color:var(--acc);border:1px solid rgba(169,127,44,.34)}
+
+/* ── B2B landing pages: /wholesale/<brand>, /b2b/<category>, /wholesale/<brand>/<category> ──
+   Shared by wholesale.php and b2b.php (used to live inline in wholesale.php; two pages
+   with two copies of the same 40 lines would have drifted apart by the second edit). */
+.wsw{--ink:#211d17;--mut:#6f695e;--acc:#a97f2c;--line:#e6e0d5;background:#f4f2ee;color:var(--ink);padding:0 0 56px}
+.wsw .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.wshero{padding:44px 0 26px;border-bottom:1px solid var(--line)}
+.wsbc{font-size:12px;color:var(--mut);margin-bottom:14px}
+.wsbc a{color:var(--mut);text-decoration:none}.wsbc a:hover{color:var(--acc)}
+.wshero h1{font-family:'Playfair Display',serif;font-size:clamp(28px,4vw,44px);line-height:1.1;margin:0 0 12px;color:var(--ink)}
+.wslede{font-size:15px;line-height:1.65;color:var(--mut);max-width:760px;margin:0 0 18px}
+.wsfacts{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.wsfact{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13px}
+.wsfact b{display:block;font-size:18px;color:var(--ink);font-family:'Playfair Display',serif}
+.wsfact span{color:var(--mut)}
+.wscta{display:inline-block;margin-top:22px;background:var(--acc);color:#fff;text-decoration:none;
+  padding:12px 22px;border-radius:10px;font-weight:600;font-size:14px}
+.wscta:hover{filter:brightness(1.06)}
+.wscta2{display:inline-block;margin:22px 0 0 10px;border:1px solid var(--line);background:#fff;color:var(--ink);
+  text-decoration:none;padding:12px 20px;border-radius:10px;font-size:14px}
+.wssec{padding:34px 0 0}
+.wssec h2{font-family:'Playfair Display',serif;font-size:22px;margin:0 0 14px}
+.wsgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
+.wscard{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column}
+.wscard:hover{box-shadow:0 6px 20px rgba(60,50,30,.10)}
+.wsthumb{aspect-ratio:3/4;background:linear-gradient(178deg,#fbfaf8,#f0ede8);position:relative;overflow:hidden}
+/* Marka/b2b vitrinindeki kartlar da ayni packshot'lari gosteriyor: ayni karar. */
+.wsthumb img{width:100%;height:100%;object-fit:contain;padding:7%;display:block}
+.wsbody{padding:11px 12px 13px;display:flex;flex-direction:column;gap:3px}
+.wsbrand{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--acc);font-weight:700}
+.wsname{font-size:13px;line-height:1.35;color:var(--ink)}
+.wsmeta{font-size:11px;color:var(--mut)}
+.wscopy{max-width:820px;font-size:14.5px;line-height:1.75;color:#3d382f}
+.wscopy h2{margin-top:26px}
+.wscopy ul{padding-left:18px;margin:10px 0}
+.wscopy li{margin:5px 0}
+.wsother{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.wsother a{background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px;
+  font-size:13px;text-decoration:none;color:var(--ink)}
+.wsother a:hover{border-color:var(--acc);color:var(--acc)}
+.wsother .wsn{display:inline-block;margin-left:6px;font-size:11px;color:var(--mut);opacity:.85}
+
+/* Footer link block: every brand and category landing page, on every page. Crawl paths
+   and anchor text for the search engine; a sitemap of what is in stock for the visitor. */
+.footseo{display:grid;gap:14px;padding:0 24px 26px;font-size:12.5px;line-height:1.9;color:var(--mut)}
+.footseo b{display:block;color:var(--ink);font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
+.footseo a{display:inline-block;margin:0 12px 0 0;white-space:nowrap}
+.footseo a:hover{color:var(--ink)}
+
+/* ── Right-to-left (Arabic) ──────────────────────────────────────────────────
+   <html dir="rtl"> is set by inc/head.php and index.php from vlang_dir(). Flex and
+   grid mirror on their own; the rules below cover the few places that hard-code a
+   side. Kept deliberately small: a visual pass (tests/render) is the real check. */
+[dir="rtl"] body{text-align:right}
+[dir="rtl"] input,[dir="rtl"] textarea,[dir="rtl"] select{direction:rtl;text-align:right}
+[dir="rtl"] input[type="email"],[dir="rtl"] input[type="url"],[dir="rtl"] input[type="number"]{direction:ltr;text-align:left}
+[dir="rtl"] .footseo a{margin:0 0 0 12px}
+[dir="rtl"] .wsbc,[dir="rtl"] .wsother{direction:rtl}
+/* Acilir menuler sag kenara sabitlenmis (right:0); RTL'de dugme solda kaldigi
+   icin panel ekranin disina tasardi. */
+[dir="rtl"] .cswmenu,[dir="rtl"] .lswmenu{right:auto;left:0}
+[dir="rtl"] .cursw,[dir="rtl"] .langsw{margin-left:0;margin-right:10px;
+  padding-left:0;padding-right:10px;border-left:0;border-right:1px solid rgba(255,255,255,.12)}
+
+
+/* ── Japonca (5 Eyl 2026) ────────────────────────────────────────────────────
+   Latin yigini Japonca icin kullanilmaz: 'Inter'de kana/kanji yok, tarayici
+   rastgele bir yedege duser ve metin sayfanin geri kalanindan kopuk gorunur.
+   Playfair Display bir SERIF baslik fontu ve Japonca glifi hic tasimiyor;
+   basliklarda da gotik yigina geciliyor -- yanlis bir font, fontsuzdan kotu.
+   Sistem fontlari kullaniliyor, indirilen yok: bir CJK web fontu 5-15 MB'dir
+   ve kimse bunu bir katalog sayfasi icin beklemez. */
+html[lang="ja"] body,
+html[lang="ja"] input, html[lang="ja"] select,
+html[lang="ja"] textarea, html[lang="ja"] button{
+  font-family:'Inter','Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP','Yu Gothic UI','Yu Gothic','Meiryo','MS PGothic',system-ui,sans-serif;
+}
+html[lang="ja"] h1, html[lang="ja"] h2, html[lang="ja"] h3, html[lang="ja"] .logo{
+  font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP','Yu Gothic UI','Yu Gothic','Meiryo','MS PGothic',system-ui,sans-serif;
+}
+/* Japonca satir kirilimi: kelime araligi yok, ogeler arasi kirilma dogal
+   olmali; ayrica satir yuksekligi biraz artiyor (kanji Latin harften uzun). */
+html[lang="ja"] body{ line-height:1.75; word-break:normal; overflow-wrap:anywhere; }
+
+/* ── Sipariş talebi ("I have a problem with this order") — sessiz açılır bileşen.
+   Operatör (6 Eyl 2026): her siparişte olsun ama çok belirgin olmasın. Kapalıyken
+   tek satırlık ipucu rengi bir bağlantı; açılınca sebepler, sonra açıklama+foto. */
+.claimdis{margin-top:10px}
+.claimdis>summary{list-style:none;cursor:pointer;color:var(--mut);font-size:12.5px;display:inline-flex;align-items:center;gap:6px;padding:2px 0}
+.claimdis>summary::-webkit-details-marker{display:none}
+.claimdis>summary::marker{content:''}
+.claimdis>summary::before{content:'?';display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1px solid var(--line);font-size:11px;color:var(--mut)}
+.claimdis>summary:hover,.claimdis[open]>summary{color:var(--ink)}
+.claimdis[open]>summary::before{border-color:var(--acc);color:var(--acc)}
+.claimform{margin-top:10px;padding:12px;border:1px dashed var(--line);border-radius:10px}
+.claimform .hint{margin:0 0 8px}
+.claimreasons{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px}
+.claimreasons label{font-size:13px;display:flex;align-items:center;gap:8px;cursor:pointer}
+.claimstep2 textarea,.claimstep2 input[type=file]{width:100%;margin-bottom:8px;font-size:12.5px}
+.claimstep2 .btn{margin-top:4px}
+.claimline{font-size:13px;margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(240,192,96,.08);border:1px solid rgba(240,192,96,.3)}
+.claimline.ok{background:rgba(120,190,140,.08);border-color:rgba(120,190,140,.3)}
+.claimline .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.claimline .hint{margin-top:4px}
+.claimline .mut{color:var(--mut)}
+.claimlate{margin-top:10px}
+
+/* ── Telefon konforu (7 Eyl 2026 olcumu) ───────────────────────────────────
+   Dosyanin SONUNDA duruyor cunku ezdigi kurallarin cogu sinif secicili
+   (`.cqrow select`, `.sortsel`, `.claimstep2 textarea`): bunlari cıplak
+   `select` ile ezmek imkansiz, siralamayla degil ozgullukle kazanmak gerek.
+
+   1) 16px: iOS Safari, daha kucuk yaziya odaklaninca sayfayi YAKINLASTIRIR ve
+      geri ceviremez. Beden/renk seciciler ve katalog siralamasi 13px'ti — her
+      dokunusta katalog kayiyordu.
+   2) 44px: parmak hedefi. Ayni anda satirlarin dikey ritmi de duzeliyor.
+   Masaustunde hicbir sey degismiyor. */
+@media(max-width:820px){
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),
+  select,textarea,
+  .cqrow select,.sortsel,.search,.claimstep2 textarea,.claimstep2 input[type=file]{font-size:16px}
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),
+  select,.cqrow select,.sortsel{min-height:44px}
+  .cqrow select{width:84px;padding:6px}
+  .sortsel{padding:9px 12px}
+  /* Sayi kutusu kendi kabinde: yuksekligi cerceve veriyor. */
+  .stepper input{min-height:0}
+  textarea{min-height:44px}
+}
+
+/* Teslimat adres defteri (alici paneli, 3 sabit yuva) + kasadaki secici.
+   Kartlar ayni yukseklikte hizali, bos yuva kesik cizgili; numara rozeti kasadaki
+   secicinin de gorsel dili -- musteri "2." diye kaydettigi adresi kasada da "2."
+   olarak gorur. */
+.addrbook{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+.addrcard{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--bg);display:flex;flex-direction:column;gap:12px;min-width:0}
+.addrcard.is-empty{border-style:dashed;background:transparent}
+.addrhead{display:flex;align-items:center;gap:10px;min-width:0}
+.addrnum{flex:none;width:28px;height:28px;border-radius:50%;display:inline-grid;place-items:center;line-height:1;font-weight:700;font-size:13px;background:var(--acc);color:#1a1408;font-variant-numeric:tabular-nums}
+.addrcard.is-empty .addrnum{background:transparent;color:var(--acc);border:1px solid var(--acc)}
+.addrtitle{font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.addrbody{font-size:13.5px;line-height:1.55;overflow-wrap:anywhere}
+.addrrec{font-weight:600}
+.addredit>summary{list-style:none;cursor:pointer;width:max-content}
+.addredit>summary::-webkit-details-marker{display:none}
+.addredit[open]>summary{margin-bottom:10px}
+.addredit .addform input{margin-bottom:8px}
+.addrrow{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:10px}
+.addredit input[aria-invalid="true"]{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
+.addrdel{margin:0}
+.addrdelbtn{background:none;border:0;padding:0;color:var(--mut);font-size:12.5px;cursor:pointer}
+.addrdelbtn:hover{color:var(--bad)}
+@media(max-width:900px){.addrbook{grid-template-columns:1fr}}
+
+.shippick{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;max-width:680px;margin:0 0 12px}
+.shipopt{position:relative;display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;background:var(--bg2);min-width:0}
+.shipopt input{position:absolute;opacity:0;pointer-events:none}
+.shipopt:has(input:checked){border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+.shipopt:has(input:focus-visible){outline:2px solid var(--acc);outline-offset:2px}
+.shipopt .addrnum{width:24px;height:24px;font-size:12px}
+.shipopt .shipico{flex:none;width:24px;text-align:center}
+.shipopt-b{display:flex;flex-direction:column;min-width:0;font-size:13px;line-height:1.45}
+.shipopt-b b{font-size:13.5px}
+.shipopt-b .hint{overflow-wrap:anywhere}
+/* Adres satirlari yonunu ICERIKTEN alir: Arapca sayfada Latin bir adres "Berlin 10115",
+   telefon "1234 30 49+" diye ters okunuyordu (cizdirilerek goruldu). Hiza yine sayfanin
+   yonunde kalir; yalniz satirin ic sirasi duzelir. */
+.addrbody>div,.shipopt-b .hint{unicode-bidi:plaintext}
+[dir="rtl"] .addrbody,[dir="rtl"] .shipopt-b{text-align:right}
+
+/* ── Bildirim karti ve ozet satiri (inc/app_ui.php + inc/app.js) ──────────
+   [hidden] AYRICA zorlaniyor: .btn{display:inline-flex} tarayicinin kendi
+   [hidden]{display:none} kuralini eziyor, yani "gizli" dugmeler gorunurdu.
+   Kenar bosluklari mantiksal (inline-start): Arapca panelde durum rozeti
+   sola gecmeli, sabit margin-left ile saga yapisik kalirdi. */
+.vpush [hidden],.vpush-nudge[hidden],.vpush-nudge [hidden]{display:none!important}
+.vpush-hd{display:flex;gap:14px;align-items:flex-start}
+.vpush-ic{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;
+  background:rgba(169,127,44,.12);color:var(--acc)}
+/* Metin kolonu 180px'lik tabanla BUYUR: tabani max-content kalsaydi uzun ipucu
+   metni mobilde simgeyi kendi satirinda yalniz birakiyordu. */
+.vpush-tx{flex:1 1 180px;min-width:0}
+.vpush-tx h3{margin:0 0 3px;font-size:16px}
+.vpush-tx .hint{margin:0;line-height:1.5}
+/* Rozet SARILABILIR: "iPhone/iPad : ajoutez d'abord a l'ecran d'accueil" gibi uzun
+   durumlar nowrap iken kartin disina 63px tasiyordu (Fransizca iPhone cizimi).
+   Sabit genislik yok — dil dile uzunluk degisiyor; ust sinir ve kucuk yaricap yeter. */
+.vpush-st{margin-inline-start:auto;flex:0 1 auto;max-width:46%;font-size:12px;font-weight:700;line-height:1.35;
+  padding:5px 11px;border-radius:14px;text-align:center;overflow-wrap:anywhere;
+  background:var(--bg3);border:1px solid var(--line);color:var(--mut)}
+.vpush-st[data-state="on"]{color:#17744a;background:rgba(31,157,99,.10);border-color:rgba(31,157,99,.32)}
+.vpush-st[data-state="denied"],.vpush-st[data-state="error"]{color:#a8322a;background:rgba(192,57,43,.07);border-color:rgba(192,57,43,.3)}
+.vpush-st[data-state="ios-install"]{color:#8a6420;background:rgba(169,127,44,.10);border-color:rgba(169,127,44,.32)}
+.vpush-note{margin:12px 0 0;font-size:13px;line-height:1.55;color:var(--ink);background:var(--bg3);
+  border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.vpush-btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.vpush-btns:not(:has(button:not([hidden]))){display:none}
+.vpush-foot{margin:12px 0 0;line-height:1.5}
+.vpush-nudge{display:flex;align-items:center;gap:12px;margin:0 0 16px;padding:10px 12px 10px 16px;
+  background:var(--bg2);border:1px solid var(--line);border-inline-start:3px solid var(--acc);border-radius:12px}
+.vpush-nudge-tx{flex:1;min-width:0;font-size:13.5px;line-height:1.45}
+.vpush-x{flex:none;width:32px;height:32px;border:0;background:none;color:var(--mut);font-size:20px;line-height:1;
+  cursor:pointer;border-radius:8px}
+.vpush-x:hover{background:var(--bg3);color:var(--ink)}
+@media(max-width:560px){
+  .vpush-hd{flex-wrap:wrap}
+  .vpush-st{margin-inline-start:54px;max-width:calc(100% - 54px)}
+  .vpush-btns .btn{flex:1 1 auto;justify-content:center}
+  .vpush-nudge{flex-wrap:wrap}
+  .vpush-nudge-tx{flex-basis:calc(100% - 44px)}
+  /* Kapatma x'i metnin yaninda (ust satir) kalsin; dugme alt satira insin. */
+  .vpush-nudge .btn{order:2}
+}

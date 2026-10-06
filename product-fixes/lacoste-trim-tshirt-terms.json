@@ -1,0 +1,25 @@
+[
+  {
+    "match": "lgp-lacoste-trim-tshirt",
+    "expect": 1,
+    "moq": 48,
+    "tiers": [
+      { "min": 48, "price": 19.00 },
+      { "min": 104, "price": 17.50 }
+    ],
+    "offers": "off",
+    "sample_price": 0,
+
+    "_why": "Operator, 7 Eyl 2026: 'bu urunu en az alim 48 ad. 19,00 eur, 104 ad ten itibaren 17,50 eur yap... angebot vermeyi kaldir, sample i da kaldir.' Onceki hal: moq 20, tek kademe 20+ -> 20.00 EUR, teklif kutusu ACIK (offers=true), numune 50 EUR.",
+
+    "_why_48_104": "Ikisi de paket adiminin (size_step=8) tam kati: 48 = 6 karton, 104 = 13 karton. Uydurma degil, sunucudan olculdu (inspect-products, run 115) -- set_product.php artik bu uyumu kendisi de zorunlu tutuyor, cunku sepet miktari adima yuvarliyor ve oturmayan bir MOQ sayfada 48, kasada 56 demek olurdu. 104 rakami bu urunun kendi gecmisinden geliyor: agustostaki grup alimi havuzunun hedefi de 104 idi (product-fixes/lacoste-trim-tshirt-pool.json), havuz dolmadi ve kapatildi; ayni hacim simdi normal bir kademe olarak veriliyor.",
+
+    "_why_offers_off": "'offers' alanini silmek yetmez: seller.php her kaydetmede o alani saticinin kutucugundan yeniden yaziyor, yani operatorun karari saticinin bir sonraki kaydinda geri gelirdi. 'off' yazmak vestra_offers_open()'in okudugu 'no_offers' anahtarini kuruyor -- hem urun sayfasindaki kutu hem /offer ucu birlikte kapaniyor.",
+
+    "_why_sample_0": "sample_price=0 = numune kutusu yok. Sifir eskiden 'gecersiz fiyat' diye reddediliyordu; numuneyi kaldirmanin hicbir yolu yoktu.",
+
+    "_dokunulmayanlar": "list=29.00 ve mode='sale' oldugu gibi kaliyor -- operator ustu cizili fiyattan soz etmedi. Sonucu: vitrindeki indirim rozeti %31'den ~%40'a cikiyor, cunku 'from' fiyati 20.00'den 17.50'ye iniyor. Kapali havuzun eski ayarlari (group_price=18.50) da siliniyor degil; group=false iken hicbir yerde okunmuyorlar, ama havuz bir gun yeniden acilirsa 18.50 artik 104 kademesinin (17.50) USTUNDE kalir ve sahte bir indirim olur -- o gun once havuz fiyati guncellenmeli.",
+
+    "_gorulen_tutarsizlik": "Ilanin 'sizes' metni 'S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack' diyor (orani 10 parca), ama size_step=8. Bu bu isten ONCE de boyleydi ve burada DUZELTILMIYOR: hangisinin dogru oldugu bize yazili olarak verilmedi, tahmin etmek KURAL 3'un yasakladigi sey. Operatorun bakmasi gereken bir satir."
+  }
+]

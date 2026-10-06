@@ -1,0 +1,20 @@
+[
+ {
+  "match": "lac-polo-paris",
+  "expect": 1,
+  "specs": {
+   "Dropship shipping": "France €7.00 · rest of EU €15.50"
+  },
+  "dropship": {
+   "price": 39.90,
+   "ship_fr": 7.00,
+   "ship_eu": 15.50,
+   "stock": {
+    "Black": {"S": 2, "M": 2, "L": 5, "XL": 3, "XXL": 2},
+    "White": {"S": 2, "M": 2, "L": 5, "XL": 3, "XXL": 2},
+    "Navy":  {"S": 2, "M": 2, "L": 5, "XL": 3, "XXL": 2},
+    "Green": {"S": 2, "M": 2, "L": 5, "XL": 3, "XXL": 2}
+   }
+  }
+ }
+]

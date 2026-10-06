@@ -1,0 +1,14 @@
+[
+  {
+    "match": "fp-m3600-polo",
+    "expect": 1,
+    "size_step": 10,
+    "moq": 50,
+    "tiers": [
+      {"min": 50,  "price": 39.00},
+      {"min": 100, "price": 35.50},
+      {"min": 200, "price": 32.00}
+    ],
+    "sizes": "Cartons of 10 · S×1 · M×3 · L×3 · XL×2 · XXL×1 · min 50 pc (≥2 colours)"
+  }
+]

@@ -1,0 +1,132 @@
+<?php
+/* KDV FIYATIN ICINDE (operatör, 7 Eyl 2026: "yüzde 21 vat ücreti fiyatin icinde
+ * olsun. Faturayi bu sekilde yap").
+ *
+ * Fiyatlar BRUT: odenecek tutar degismiyor. Ama bir KDV faturasi MATRAHI, ORANI
+ * ve KDV TUTARINI ayri ayri gostermek zorunda -- yalnizca brut yazan bir belgeyle
+ * alicinin muhasebesi indirim yapamaz, saticinin beyani da dayanaksiz kalir.
+ *
+ * Tutulanlar:
+ *   - toplam DEGISMIYOR (KDV eklenmiyor, icinden ayrisiyor),
+ *   - matrah + KDV = toplam, KURUSU KURUSUNA (ayri ayri yuvarlamak kaydirir),
+ *   - oran yoksa belgede KDV satiri HIC yok -- mevcut KDV'siz faturalara
+ *     sessizce vergi eklenmiyor,
+ *   - kargo da matraha dahil (brut toplam uzerinden ayrisiyor).
+ */
+require __DIR__.'/../vestra/inc/pdf.php';
+function vestra_product_label(string $b, string $n): string { return trim($b.' '.$n); }
+function vestra_tax_id_hint(string $c): array { return ['label'=>'VAT ID','placeholder'=>'','short'=>'VAT']; }
+$src   = file_get_contents(__DIR__.'/../vestra/inc/invoice.php');
+$strip = fn($s) => preg_replace("#require_once __DIR__\.'/[a-z_]+\.php';#", '', $s);
+preg_match_all('/^function \w+\(.*?^}/ms', $src, $fns);
+foreach ($fns[0] as $f) eval($strip($f));
+
+$ok=0; $fail=0;
+$t = function (string $n, bool $c) use (&$ok,&$fail) {
+    if ($c) { $ok++; echo "  ok   $n\n"; } else { $fail++; echo "  HATA $n\n"; }
+};
+
+$seller = ['id'=>'tyrex','company'=>'TYREX INTERNATIONAL BV.','invoice_name'=>'TYREX INTERNATIONAL BV.',
+           'country'=>'Netherlands','address'=>'Rotterdam','bank_holder'=>'TYREX',
+           'bank_iban'=>'NL02ABNA0123456789','bank_eur_bic'=>'ABNANL2A','vat_id'=>'NL853943576B01'];
+$buyer  = ['company'=>'Stock&chic','name'=>'Marianne HECQUET','email'=>'b@e.fr',
+           'country'=>'France','address'=>'Paris','vat'=>'','reg'=>''];
+/* Uc Burberry hoodie teklifi: 3 x 10 adet x 100 EUR + 20 EUR kargo = 3.020 brut. */
+$items = [];
+foreach (['8045006','80450158045005','80450048045013'] as $sku) {
+    $items[] = ['sku'=>$sku,'brand'=>'Burberry','name'=>'Burberry Hoodie','colors'=>[],
+                'qty'=>10,'unit'=>100.00,'line'=>1000.00];
+}
+$mk = fn(array $extra) => vestra_render_invoice_pdf(
+    array_merge(['ref'=>'O795BA','date'=>'2026-09-07T10:00:00+00:00','buyer'=>$buyer], $extra),
+    $items, $seller, 'INV-2026-1100', false);
+
+echo "== 1. Aritmetik ==\n";
+/* 3.020,00 / 1,21 = 2.495,867... -> 2.495,87 ; KDV = 3.020,00 - 2.495,87 = 524,13 */
+$gross = 3020.00; $net = round($gross / 1.21, 2); $vat = round($gross - $net, 2);
+$t('matrah 2.495,87',        abs($net - 2495.87) < 0.005);
+$t('KDV 524,13',             abs($vat - 524.13) < 0.005);
+$t('matrah + KDV = brut',    abs(($net + $vat) - $gross) < 0.0001);
+
+echo "\n== 2. Belgede ==\n";
+$pdf = $mk(['shipping'=>20.00,'vat_rate'=>21.0,'vat_included'=>true,
+            'vat_note'=>'VAT 21% included — Netherlands domestic supply']);
+$t('PDF uretildi',            str_starts_with($pdf, '%PDF'));
+$t('kargo satiri',            str_contains($pdf, '(Shipping)') || str_contains($pdf, 'Shipping'));
+$t('brut toplam basili',      str_contains($pdf, '3,020.00'));
+$t('matrah basili',           str_contains($pdf, '2,495.87'));
+$t('KDV tutari basili',       str_contains($pdf, '524.13'));
+$t('oran yazili',             str_contains($pdf, 'VAT 21%'));
+$t('"dahil" oldugu yazili',   str_contains($pdf, 'included in the total above'));
+$t('matrah etiketi',          str_contains($pdf, 'Taxable amount'));
+
+echo "\n== 3. Oran yoksa KDV satiri HIC yok ==\n";
+/* Mevcut butun faturalar KDV'siz kesildi; davranis degismemeli. */
+$plain = $mk(['shipping'=>20.00]);
+$t('matrah satiri yok',       !str_contains($plain, 'Taxable amount'));
+$t('"dahil" ibaresi yok',     !str_contains($plain, 'included in the total above'));
+$t('toplam yine 3.020,00',    str_contains($plain, '3,020.00'));
+
+echo "\n== 4. Oran var ama 'dahil' isaretlenmemisse basmaz ==\n";
+/* vat_included, oranin FIYATIN ICINDE oldugunu soyleyen isaret; onsuz oran tek
+   basina belgeye ne matrah ne de tutar yazdirmali. */
+$half = $mk(['shipping'=>20.00,'vat_rate'=>21.0]);
+$t('isaretsiz oran basmaz',   !str_contains($half, 'Taxable amount'));
+
+echo "\n== 5. Kargosuz da ayrisir ==\n";
+$noship = $mk(['vat_rate'=>21.0,'vat_included'=>true]);
+$t('3.000,00 brut',           str_contains($noship, '3,000.00'));
+/* 3.000 / 1,21 = 2.479,3388 -> 2.479,34 ; KDV = 520,66 */
+$t('matrah 2.479,34',         str_contains($noship, '2,479.34'));
+$t('KDV 520,66',              str_contains($noship, '520.66'));
+
+echo "\n== 6. Yuk kurucular orani tasiyor ==\n";
+foreach (['inc/offers.php', 'inc/invoice.php'] as $f) {
+    $c = (string)@file_get_contents(__DIR__.'/../vestra/'.$f);
+    $t("{$f} vat_rate tasiyor", str_contains($c, "'vat_rate'"));
+}
+$adm = (string)@file_get_contents(__DIR__.'/../vestra/admin.php');
+$t('panelde oran alani var',   str_contains($adm, "name=\"vat_rate\""));
+$t('panel oranı kaydediyor',   str_contains($adm, "invoice_vat_rate"));
+/* Yazim hatasiyla girilen "210" belgeyi sacmalatir. */
+$t('oran %100 ile sinirli',    str_contains($adm, 'min(100.0'));
+
+echo "\n== 7. Oran, KARDESLERININ (vat_note/shipping) BULUNDUGU HER YERDE ==\n";
+/* Operator, 7 Eyl 2026: "kdv fiyatin icinde gelmiyor". Alan vardi, kaydediliyordu
+   ve belge onu basabiliyordu -- ama YALNIZCA tek satirlik yolda. Birlesik
+   cubukta kutu YOKTU, birlesik kesim orani kaydetmiyordu ve iki taslak yolu da
+   formda O AN yazan orani tasimiyordu; yani operator "21" yazip Draft'a
+   bastiginda kontrol adiminin kendisi yanlis belgeyi gosteriyordu.
+   Olcu basit: vat_note ile shipping'in gectigi her POST/HTML yerinde vat_rate
+   de gecmeli. Ucu ayni alanin uc yuzu; biri geride kalirsa fark BELGEDE cikar. */
+$ofs = (string)@file_get_contents(__DIR__.'/../vestra/inc/offers.php');
+/* Kutu: satir formunda VE birlesik cubukta (fcomb). */
+$t('oran alani iki kez var (satir + birlesik)', substr_count($adm, 'name="vat_rate"') >= 2);
+$comb = substr($adm, (int)strpos($adm, 'id="fcomb"'));
+$comb = substr($comb, 0, (int)strpos($comb, '</form>'));
+$t('birlesik cubukta oran kutusu',  str_contains($comb, 'name="vat_rate"'));
+$t('birlesik cubukta kargo kutusu', str_contains($comb, 'name="shipping"'));
+$t('birlesik cubukta VAT satiri',   str_contains($comb, 'name="vat_note"'));
+/* POST: her iki taslak yolu ve birlesik kesim orani okuyor. */
+$t('oran POST\'tan 3 yerde okunuyor', substr_count($adm, "array_key_exists('vat_rate',\$_POST)") >= 3);
+/* Kesim artik TEK GOVDEDE (vestra_offers_combined_invoice_issue; panel ve is
+   akisi ayni fonksiyonu cagiriyor), o yuzden kaydi ORADA ariyoruz. Redraft
+   belgeyi kayittan yeniden kurar: oran yazilmasaydi kesilen belge KDV'li,
+   ayni numarayla yeniden cizileni KDV'siz olurdu. */
+$t('birlesik kesim orani KAYDEDIYOR', str_contains($ofs, "\$rs[\$primary]['invoice_vat_rate'] = \$vatRate;"));
+$t('kesim tek govdede', str_contains($ofs, 'function vestra_offers_combined_invoice_issue(')
+                     && str_contains($adm, 'vestra_offers_combined_invoice_issue('));
+/* Kurucular: onizlemenin formdaki orani tasiyabilmesi icin override sart. */
+$t('tek satirlik kurucu override aliyor', str_contains($ofs, 'vestra_offer_invoice_payload(string $ref, string $sellerPickOverride') && str_contains($ofs, '?float $vatRateOverride = null'));
+$t('birlesik kurucu override aliyor',     substr_count($ofs, '?float $vatRateOverride = null') >= 2);
+/* Cagriyi TAM metniyle sabitlemek yerine ORANIN GECTIGI yer araniyor: iddia
+   "oran taslaga tasiniyor mu" demeli, "argumanlar bugun tam olarak sunlar"
+   dememeli. Ilk yazimda kapanis parantezi de iddiadaydi ve kurucuya kardes bir
+   alan (para birimi) eklenince iddia, oran hala geciyorken KIRMIZI dondu --
+   olcugu seyi degil, yazimini koruyan bir iddia. Prefix yine dar: $vr
+   dusurulurse ya da sirasi degisirse duser. */
+$t('taslak yollari orani geciriyor',      str_contains($adm, 'vestra_offer_invoice_payload($ref, $pick, $vn, $sh, $vr')
+                                       && str_contains($adm, 'vestra_offers_combined_invoice_payload($refs, $pick, $vn, $sh, false, $vr'));
+
+echo "\nTOPLAM: {$ok} gecti, {$fail} kaldi\n";
+exit($fail === 0 ? 0 : 1);

@@ -1,0 +1,2829 @@
+<?php
+/**
+ * VESTRA — sample catalog (single source of truth).
+ * Pricing modes:  'fixed' (tiered), 'sale' (discounted vs list), 'offer' (make-an-offer / negotiate).
+ * B2B: MOQ (min order) + tiered pricing (more qty -> lower unit price). Demo data.
+ */
+/* Platform fees — single source of truth (used by order.php + cart.php).
+   Both are 0 while VESTRA runs on the seller-membership model: the buyer pays the
+   seller's invoice directly by bank transfer, so a platform fee on top would never
+   match the invoice total. Cart/emails hide fee lines automatically while 0. */
+if(!defined('VESTRA_FEE_SELLER')) define('VESTRA_FEE_SELLER', 0.0);
+if(!defined('VESTRA_FEE_BUYER'))  define('VESTRA_FEE_BUYER',  0.0);
+/* Escrow (Treuhand) only: a fixed buyer-protection fee added to the buyer's total,
+   collected together with the seller's tiered commission as the Stripe application
+   fee on the direct charge. Bank-transfer orders are unaffected (buyer pays 0). */
+if(!defined('VESTRA_ESCROW_FEE_BUYER')) define('VESTRA_ESCROW_FEE_BUYER', 0.038);
+/* Escrow ile odenebilecek EN YUKSEK SIPARIS tutari (EUR). Olculen sey SIPARIS,
+   yani kupon sonrasi mal bedeli -- karttan cekilen toplam degil. Fark onemli:
+   koruma ucreti dahil olculseydi tam sinirdaki bir siparis sinirin ustune
+   cikip reddedilirdi, oysa kural "en fazla X EUR siparis". Ucret bunun
+   uzerine biniyor ve karttan X + %3,8 cekilebiliyor.
+   Sinir hem sepette hem order.php'de sinaniyor: sepetteki kontrol bir gorunum
+   kolayligi, gecerli olan sunucudaki.
+   3000: operator karari, 2 Eyl 2026 ("escrow 3000'de kalsin"). 28 Agustos'ta
+   3500 yazilmisti; fiyat listesi sayfalari, Excel ve kampanya mektuplari ise
+   hep "EUR 3,000" diyordu -- musteriye soylenen ile sepetin kabul ettigi
+   ayrismisti. Rakami metne gomme: tests/escrow_cap_test.php butun acik
+   metinleri bu sabite karsi tarar. */
+if(!defined('VESTRA_ESCROW_MAX')) define('VESTRA_ESCROW_MAX', 3000.00);
+/* Nereden sevk edildigi. Alicinin sormadan once bilmek istedigi sey bu: gumruk
+   cikar mi, kac gunde gelir, iade nereye gider. Su an TEK bir cevap var (butun
+   sevkiyat AB icinden cikiyor) ama listing basina bir "ship_from" alani YOK --
+   yani bunu her sablona ayri ayri yazmak, ilerde bir satici AB disindan sevk
+   etmeye basladiginda dort ayri yerde yanlis ibare birakmak demekti. Tek
+   fonksiyon: o gun kosul buraya girer, sayfalar oldugu gibi kalir. */
+/* Mal NEREDEN cikiyor.
+   ONCE saticinin hesap ulkesinden turetiyordum; canlida bir ilan "Ships from
+   India" yazdi ve yanlisligi orada gorundu: kayit adresi ile malin CIKTIGI
+   depo ayni sey degil. Alici bu satiri gumruk ve teslim suresi icin okuyor,
+   yani tahmin edilmis bir ulke dogrudan yanlis bilgi demek.
+   Artik yalnizca ilanda ACIKCA yazan 'ships_from' kullaniliyor; yoksa
+   platformun varsayilani 'EU' kaliyor. Deger operator/satici tarafindan
+   girilir (set-product: ships_from), tahmin edilmez. */
+function vestra_ships_from(array $p = []): string {
+    $z = trim((string)($p['ships_from'] ?? ''));
+    if ($z === '') return 'EU';
+    return mb_strlen($z) === 2 ? mb_strtoupper($z) : $z;
+}
+
+/* SATILDI / STOK DISI (operator karari, 5 Eyl 2026: "satildi olarak isaretle
+ * satin alinamasin stok disi" -- Jacquemus).
+ *
+ * NEDEN YENI BIR ALAN: elde iki secenek vardi ve ikisi de bu isi yapmiyordu.
+ * 'unlisted' urunu katalogdan tumden CIKARIYOR, status!=approved da oyle --
+ * ikisi de "gizle" demek. Operatorun istedigi ise urunun GORUNMESI ama
+ * SATIN ALINAMAMASI. Ayri kavram, ayri alan.
+ *
+ * SATILDI ≠ GIZLI, bilerek: sayfa ayakta kaliyor, SEO degeri ve gelen
+ * baglantilar korunuyor, alici markanin burada satildigini gormeye devam
+ * ediyor. Yalnizca satin alma kapaniyor.
+ *
+ * DUGMEYI GIZLEMEK KAPI DEGILDIR. Bu depoda ayni ders dropship'te kayitli:
+ * vestra_dropship_of() en basta bakiyor ve elle acilmis blogu bile eziyor.
+ * Bu yuzden alti satin alma yolunun HEPSI sunucu tarafinda ayri ayri
+ * kontrol ediyor (sepet/siparis, numune, teklif, dropship, grup alimi,
+ * line sheet) -- form gonderen biri kapiyi asamasin. */
+function vestra_is_sold_out(array $p = []): bool {
+    $v = $p['sold_out'] ?? false;
+    if (is_string($v)) { $v = strtolower(trim($v)); return $v === 'true' || $v === '1' || $v === 'yes'; }
+    return (bool)$v;
+}
+
+/* Bu ilan TEKLIF (pazarlik) kabul ediyor mu -- TEK karar noktasi.
+ *
+ * Iki ayri kaynak vardi ve ikisi de yalnizca urun sayfasinin ICINDE, ayri
+ * ayri okunuyordu: mode='offer' (fiyat istek uzerine, tek eylem teklif
+ * vermek) ve 'offers' bayragi (fiyatli ilanda satici pazarliga da acik).
+ * Sunucu tarafinda ise HICBIRI okunmuyordu -- /offer ucu urunun teklif alip
+ * almadigina hic bakmiyor, sadece satildi mi ve fiyat kurallari saglaniyor mu
+ * diye bakiyordu. Yani teklif dugmesi HIC cizilmeyen sabit fiyatli bir ilana
+ * elle POST atan biri teklif birakabiliyor, satici paneline dusuyor ve
+ * kabul edilirse fatura kesiliyordu. Bu dosyanin bir ust yorumu
+ * ("DUGMEYI GIZLEMEK KAPI DEGILDIR") altı satin alma yolunun hepsinin
+ * sunucuda kontrol edildigini soyluyor; teklif yolunda bu dogru degildi.
+ *
+ * 'no_offers' operatorun kapatma anahtari ve ikisini de EZER. Ayri bir alan
+ * olmasinin sebebi saticinin kendi formu: seller.php her kaydetmede
+ * $p['offers'] alanini kutucuktan yeniden yaziyor, yani operatorun 'offers'i
+ * silmesi saticinin bir sonraki kaydinda sessizce geri aliniyordu. Bu alani
+ * satici tarafi hic yazmiyor. ('sample_price' icin boyle bir anahtar YOK ve
+ * gerekmiyor -- numune fiyatini satici formu zaten hic yazmiyor, sifirlamak
+ * kalicidir.) */
+function vestra_offers_open(array $p): bool {
+    if (!empty($p['no_offers'])) return false;
+    return ((string)($p['mode'] ?? '') === 'offer') || !empty($p['offers']);
+}
+
+/* Numune kutusunun rakami, TEK okuma noktasi. 0 / bos / sayi olmayan = numune
+ * yok. Urun sayfasi ile /sample-checkout kosulu ayri ayri yazmisti ve ikisi
+ * ayni uzunlukta olmasina ragmen aynilar diye guvenilemezdi; ucuncu bir yer
+ * (fiyat listesi, mektup) eklendiginde kural dorduncu kez yazilacakti. */
+function vestra_sample_price(array $p): float {
+    $v = $p['sample_price'] ?? null;
+    if (!is_numeric($v)) return 0.0;
+    $v = (float)$v;
+    return $v > 0 ? $v : 0.0;
+}
+
+/* On siparis notu (operator istegi, 5 Eyl 2026: "Rezervasyonlar icin erken
+ * siparis kabul edilmektedir. Urun Ekim basi gonderilecektir").
+ *
+ * NEDEN TARIH ELLE YAZILMIYOR: bu depoda tam olarak bu not curudu. L1212'nin
+ * specs'inde 'Lead time' => 'Pre-order -- in stock from 5 May' SERBEST METIN
+ * olarak duruyordu; 5 Eylul'de hala oradaydi, yani ilan dort aydir gecmis bir
+ * tarihi teslim sozu diye basiyordu. CLAUDE.md bunu KURAL 3'un yasakladigi
+ * tahminle ayni hata diye kaydetmis.
+ *
+ * Cozum: ilan MAKINE OKUR bir tarih tutuyor ('preorder_ship' => 'YYYY-MM-DD'),
+ * cumle ondan uretiliyor ve TARIH GECINCE NOT KENDILIGINDEN KAYBOLUYOR. Bir
+ * pazartesi kimsenin elini surmesi gerekmeden ilan yalan soylemeyi birakiyor.
+ * Gecmis tarihte bos donmek bilincli: "yakinda" demeye devam etmek, hic
+ * dememekten kotu.
+ *
+ * Ayin ilk on gunu "early", 11-20 "mid", sonrasi "late" -- operatorun
+ * "Ekim basi" dedigi sey 1 Ekim icin "early October". */
+/* Yalniz ZAMAN parcasi: "early October 2026". Ayri duruyor cunku iki farkli
+ * yerde farkli cumleye giriyor -- ilan sayfasi "Pre-orders are being accepted ·
+ * dispatch <X>." diyor, alicinin mektubu "dispatch is scheduled for <X>." Tek
+ * kaynak olmasa ikisi ayrisirdi ve hangisinin dogru oldugu belirsizlesirdi. */
+function vestra_preorder_ship_phrase(array $p = [], ?int $now = null): string {
+    $iso = trim((string)($p['preorder_ship'] ?? ''));
+    if ($iso === '') return '';
+    $ts = strtotime($iso.' 23:59:59');
+    if ($ts === false) return '';
+    $now = $now ?? time();
+    if ($ts < $now) return '';           /* tarih gecti -> susar */
+    $d = (int)date('j', $ts);
+    $part = $d <= 10 ? 'early' : ($d <= 20 ? 'mid' : 'late');
+    return $part . ' ' . date('F Y', $ts);
+}
+
+function vestra_preorder_note(array $p = [], ?int $now = null): string {
+    $ph = vestra_preorder_ship_phrase($p, $now);
+    return $ph === '' ? '' : 'Pre-orders are being accepted · dispatch '.$ph.'.';
+}
+
+/* Etiketin onundeki bayrak. Uc sayfada SABIT 🇪🇺 yaziyordu; kaynak satici
+   ulkesine baglanınca o sabit bayrak "🇪🇺 Ships from Japan" gibi kendi
+   metnini yalanlayacakti. Bayrak artik degerden turetiliyor, cozulemezse
+   hic basilmiyor -- yanlis bayrak, bayraksizdan kotu. */
+function vestra_ships_from_flag(array $p = []): string {
+    $z = vestra_ships_from($p);
+    if ($z === 'EU') return "\u{1F1EA}\u{1F1FA}";
+    $cc = mb_strlen($z) === 2 ? mb_strtoupper($z)
+        : (function_exists('vestra_cc_of_country') ? vestra_cc_of_country($z) : '');
+    if (!preg_match('/^[A-Z]{2}$/', (string)$cc)) return '';
+    $f = '';
+    foreach (str_split($cc) as $ch) $f .= mb_chr(0x1F1E6 + (ord($ch) - 65), 'UTF-8');
+    return $f;
+}
+/* t() ile korumali cagriliyor: products.php'yi i18n olmadan yukleyen betikler var
+   (inspect/set-product gibi bakim isleri) ve orada t() tanimli degil. */
+function vestra_ships_from_label(array $p = []): string {
+    $z  = vestra_ships_from($p);
+    $tr = function(string $s){ return function_exists('t') ? t($s) : $s; };
+    return $z === 'EU' ? $tr('Ships from EU') : sprintf($tr('Ships from %s'), $z);
+}
+/* Seller commission — a SEPARATE mechanism from the fees above: a % of each paid order's
+   goods value, charged directly to the seller's card on file via Stripe (inc/commission.php)
+   once the order is marked paid. Never touches the buyer-facing cart/invoice total. ONE
+   flat rate for every seller since 22 Aug 2026 (paid membership tiers were abolished —
+   see vestra_seller_commission_rate() below); every customer-facing sentence about the
+   commission must read it from here via vestra_commission_pct_label(). */
+if(!defined('VESTRA_COMMISSION_RATE')) define('VESTRA_COMMISSION_RATE', 0.035);
+require_once __DIR__.'/i18n.php';
+require_once __DIR__.'/notify.php';
+/* Fiyatin TEK indirim kapisi. products.php'nin fiyat fonksiyonlari bunu
+   cagiriyor, yani dosya yuklenmezse fiyat sessizce indirimsiz kalirdi --
+   o yuzden kosulsuz require, function_exists() korumasi DEGIL. */
+require_once __DIR__.'/region_discount.php';
+if(!defined('VESTRA_TERMS_VERSION')) define('VESTRA_TERMS_VERSION','2026-06-26'); // legal acceptance version
+
+function vestra_demo_products(){
+  $P = [
+    [
+      'id'=>'lac-pique-polo','brand'=>'Lacoste','name'=>'L1212 Classic Piqué Polo','mode'=>'fixed',
+      /* 'list' = the one price the trade list quotes, valid at the 80 pc MOQ. Without it
+         this article had no price of its own, only the tier ladder below -- so the price
+         list left it out entirely, and the lowest number on the ladder (EUR 25.00 at 320 pc)
+         was the only Lacoste figure a reader ever saw. */
+      'cat'=>'Polos','sku'=>'LAC-L1212','moq'=>80,'unit'=>'pc','sample_price'=>50.0,'list'=>29.90,
+      /* "Pre-order -- in stock from 5 May." cumlesi buradan da cikarildi (5 Eyl
+         2026): specs'teki ikiziyle birlikte dort aydir gecmis bir tarihi teslim
+         sozu diye basiyordu. Tarih ilanin metnine GOMULMEZ -- 'preorder_ship'
+         alanina yazilir, cumleyi vestra_preorder_note() uretir. */
+      'desc'=>'Iconic L.12.12 cotton piqué polo, regular fit, short sleeves, 100% cotton. Sold in lots of 8 (8+8 cartons); minimum order 80 pc (10 lots), at least 4 colours.',
+      'seller'=>'GARAGE LE PARIS','seller_uid'=>'7ab30f26afedd840','origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#1b5e3a',
+      'sizes'=>'Lots of 8 · sizes 3–8 · min 80 pc (10 lots)','size_step'=>8,'min_colors'=>4,
+      'colors'=>['Black','White','Beige','Navy','Yellow','Pink','Bordeaux','Green','Blue','Light Blue'],
+      'images'=>['/uploads/lacoste/l1212-black.jpg','/uploads/lacoste/l1212-white.jpg','/uploads/lacoste/l1212-beige.jpg',
+                 '/uploads/lacoste/l1212-navy.jpg','/uploads/lacoste/l1212-yellow.jpg','/uploads/lacoste/l1212-pink.jpg',
+                 '/uploads/lacoste/l1212-bordeaux.jpg','/uploads/lacoste/l1212-green.jpg','/uploads/lacoste/l1212-blue.jpg',
+                 '/uploads/lacoste/l1212-lightblue.png'],
+      'linesheet'=>true,'sheet_file'=>'lacoste-l1212-poloshirt-preorder.pdf',
+      'specs'=>[
+        'Composition'=>'100% cotton piqué',
+        'Fabric weight'=>'≈ 200 gsm',
+        'Fit'=>'Regular fit · ribbed collar & cuffs · 2-button placket',
+        'Care'=>'Machine wash 30°C · do not tumble dry',
+        'Packaging'=>'Cartons of 8 per colourway (8+8)',
+        /* 'Lead time' => 'Pre-order — in stock from 5 May' KALDIRILDI (5 Eyl
+           2026): tarih dort ay once gecmisti ve ilan hala onu teslim sozu diye
+           basiyordu. Yanlis bir tarih, tarihsizden kotu. Gercek tarih
+           ogrenilince 'preorder_ship'=>'YYYY-MM-DD' olarak eklenir; cumleyi
+           vestra_preorder_note() uretir ve suresi dolunca kendiliginden susar. */
+        'Season'=>'SS26 · core carryover',
+        'Made in'=>'France / EU',
+        'Customs code (HS)'=>'6105.10.00',
+      ],
+      'variants'=>[
+        ['art'=>'LCMP103200','model'=>'L.12.12 00 031','color'=>'Black','image'=>'/uploads/lacoste/l1212-black.jpg'],
+        ['art'=>'LCMP103201','model'=>'L.12.12 00 001','color'=>'White','image'=>'/uploads/lacoste/l1212-white.jpg'],
+        ['art'=>'LCMP103202','model'=>'L.12.12 00 025','color'=>'Beige','image'=>'/uploads/lacoste/l1212-beige.jpg'],
+        ['art'=>'LCMP103203','model'=>'L.12.12 00 166','color'=>'Navy','image'=>'/uploads/lacoste/l1212-navy.jpg'],
+        ['art'=>'LCMP103205','model'=>'L.12.12 00 107','color'=>'Yellow','image'=>'/uploads/lacoste/l1212-yellow.jpg'],
+        ['art'=>'LCMP103206','model'=>'L.12.12 00 T03','color'=>'Pink','image'=>'/uploads/lacoste/l1212-pink.jpg'],
+        ['art'=>'LCMP103207','model'=>'L.12.12 00 476','color'=>'Bordeaux','image'=>'/uploads/lacoste/l1212-bordeaux.jpg'],
+        ['art'=>'LCMP103208','model'=>'L.12.12 00 132','color'=>'Green','image'=>'/uploads/lacoste/l1212-green.jpg'],
+        ['art'=>'LCMP103209','model'=>'L.12.12 00 4XA','color'=>'Blue','image'=>'/uploads/lacoste/l1212-blue.jpg'],
+        ['art'=>'LCMP103210','model'=>'L.12.12 00 HBP','color'=>'Light Blue','image'=>'/uploads/lacoste/l1212-lightblue.png'],
+      ],
+      'tiers'=>[['min'=>80,'price'=>34.00],['min'=>160,'price'=>29.50],['min'=>320,'price'=>25.00]],
+    ],
+    /* MUSTERSTUECK — tek adetlik numune, AYRI bir kalem olarak.
+     *
+     * NEDEN AYRI URUN. L1212'nin uzerinde zaten bir 'sample_price' alani var
+     * (50 EUR) ama iki sorunu vardi: (1) o rakam yalnizca KODDA degisiyor,
+     * panelden duzenlenemiyor -- operator 60 EUR dedigi anda mektupla sitenin
+     * rakami ayrisirdi; (2) o akis /sample-checkout uzerinden STRIPE'a gidiyor
+     * ve Stripe kapaliysa dugme hic calismiyor.
+     *
+     * Ayri urun olunca numune normal sepetten gecer: /cart formu sirket, VAT,
+     * ADRES, ulke ve telefonu zaten topluyor (operatorun istedigi adres alani),
+     * odeme banka havalesi, ve arkasinda normal siparis + fatura kaydi olusuyor.
+     *
+     * FIYAT KARGO DAHIL (operator karari): 60 EUR'ya AB ici gonderim dahil,
+     * o yuzden tier tek satir ve MOQ 1.
+     *
+     * 'sample_price' BILEREK YOK: bu urunun kendisi numune; ustune bir de
+     * "numune siparis et" dugmesi koymak numunenin numunesi olurdu.
+     *
+     * KURAL 3 — 'ships_from' GIRILMEDI cunku malin nereden ciktigi bana
+     * yazili olarak verilmedi; tahmin etmek yerine platform varsayilani (EU)
+     * kaliyor. Operator gercek cikis yerini bildirdiginde buraya yazilmali. */
+    [
+      'id'=>'lac-l1212-musterstueck','brand'=>'Lacoste','name'=>'L1212 Classic Piqué Polo — Musterstück','mode'=>'fixed',
+      'cat'=>'Polos','sku'=>'MUSTERSTUECK-L1212','moq'=>1,'unit'=>'pc','list'=>60.00,
+      'desc'=>'Single sample piece of the L.12.12 cotton piqué polo, sent so you can check the goods in your own hands before committing to a wholesale order. One piece, one colour, one size. EU-wide delivery is included in the price. Choose your colour and size in the order note; if the exact size is unavailable we ship the closest match from current sample stock.',
+      'seller'=>'GARAGE LE PARIS','seller_uid'=>'7ab30f26afedd840','verified'=>true,'accent'=>'#1b5e3a',
+      'sizes'=>'1 piece · sizes 3–8 · one colour','size_step'=>1,'min_colors'=>1,
+      'colors'=>['Black','White','Beige','Navy','Yellow','Pink','Bordeaux','Green','Blue','Light Blue'],
+      'images'=>['/uploads/lacoste/l1212-black.jpg','/uploads/lacoste/l1212-white.jpg','/uploads/lacoste/l1212-navy.jpg'],
+      'linesheet'=>false,
+      'specs'=>[
+        'Composition'=>'100% cotton piqué',
+        'Fabric weight'=>'≈ 200 gsm',
+        'Fit'=>'Regular fit · ribbed collar & cuffs · 2-button placket',
+        'Packaging'=>'1 piece, delivery included in the price',
+        'Customs code (HS)'=>'6105.10.00',
+      ],
+      'tiers'=>[['min'=>1,'price'=>60.00]],
+      /* Havuz operator istegiyle kapatildi. group_seed=96 / group_seed_n=5 de birlikte
+         kaldirildi: o iki sayi "5 dogrulanmis butik, 96 adet taahhut etti" diye
+         gorunuyordu ama karsiliginda TEK bir gercek taahhut yoktu -- groups.csv bos.
+         Ziyaretci, kimsenin katilmadigi bir havuzu dolmakta sanip katiliyordu.
+         Kapatirken sayilari birakmak, havuz yeniden acildiginda ayni yanilticiligin
+         sessizce geri gelmesi demekti. */
+      'group'=>false,
+      /* KATALOGDA GORUNMEZ (operator karari, 2 Eyl 2026: "musterstuck katalogta
+         gorunmesin"). Bu bir urun degil, tek bir aliciya mektupla verilen numune
+         yolu: vitrinde 60 EUR'luk "tek parca polo" olarak dursa, toptan katalogun
+         yaninda hem tuhaf durur hem de gercek MOQ'yu gizler. Dogrudan baglanti
+         (/product?id=...), sepet ve siparis yolu calismaya devam eder --
+         vestra_find() ve sepet vestra_products(true) ile okur. */
+      'unlisted'=>true,
+    ],
+    [
+      /* MARKA DUZELTILDI 5 Eyl 2026: 'Amiri' YANLISTI, dogrusu 'AMI Paris'.
+         Amiri (Mike Amiri, Los Angeles) ile AMI Paris (Alexandre Mattiussi)
+         iki ayri ev; notify.php'nin marka listesi ikisini zaten ayri tutuyor.
+         Bu ilanin kendi verisi bastan sona AMI Paris diyordu:
+           - 'Ami de Coeur' + islemeli kalp-A armasi AMI Paris'in imzasi
+           - satici line sheet'inin adi: ami-paris-polo.pdf
+           - SKU: AMI-PL-014  (AMI PoLo)
+           - Made in Portugal -- AMI Paris'in uretim yeri
+         Yalniz gorunen ad degisti. 'id' ve /uploads/amiri/ yollari OLDUGU GIBI
+         kaldi: id canli siparis VES-6B53D265'in ve mevcut baglantilarin
+         tutamagi, gorsel yollari da sunucudaki dosya adlari. Musteri markayi
+         ad + SKU'dan goruyor, iç tutamaktan degil. */
+      'id'=>'amiri-core-polo','brand'=>'AMI Paris','name'=>'Core Logo Polo — Ami de Cœur','mode'=>'fixed',
+      'cat'=>'Polos','sku'=>'AMI-PL-014','moq'=>50,'unit'=>'pc',
+      /* 5 Eyl 2026: stok yok, rezervasyon aciliyor. Tarih MAKINE OKUR -- cumleyi
+         vestra_preorder_note() uretiyor ve 1 Ekim gecince not kendiliginden
+         susuyor (L1212'nin "5 May" notu boyle curumustu). */
+      'preorder_ship'=>'2026-10-01',
+      /* DROPSHIP VE NUMUNE KAPALI (operator karari, 5 Eyl 2026). Ikisi de TEK
+         PARCAYI HEMEN gonderme sozu veriyor; ortada stok yok, urun Ekim basinda
+         gelecek. Elde olmayan mali "hemen" satan bir dugme, mektuptaki yanlis
+         tarihle ayni sinif hata.
+         'sample_price' SILINDI, degeri kaybolmasin diye burada: 65.0 EUR. Stok
+         gelince alan geri konur; o zamana kadar hem ürün sayfasindaki dugme hem
+         sample-checkout.php'nin kendi kontrolu (satir 37) kapali kalir. */
+      'dropship_off'=>true,
+      'desc'=>'Signature Ami de Cœur piqué polo in 100% organic cotton, regular fit, with the tonal embroidered heart-A crest at the chest. Sold in cartons of 10 per colour (mixed sizes S–XXL); minimum order 50 pc, at least 2 colours. Authenticity verified on delivery.',
+      'seller'=>'GARAGE LE PARIS','seller_uid'=>'7ab30f26afedd840','origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#4a1420',
+      'sizes'=>'Cartons of 10 · sizes S–XXL · min 50 pc (≥2 colours)','size_step'=>10,'min_colors'=>2,
+      'colors'=>['Black','White','Navy','Grey'],
+      'images'=>['/uploads/amiri/amiri-core-polo-black.png','/uploads/amiri/amiri-core-polo-white.png',
+                 '/uploads/amiri/amiri-core-polo-navy.png','/uploads/amiri/amiri-core-polo-grey.png'],
+      'linesheet'=>true,'sheet_file'=>'ami-paris-polo.pdf',
+      'specs'=>[
+        'Composition'=>'100% organic cotton piqué',
+        'Fit'=>'Regular fit · ribbed collar & cuffs · 2-button placket',
+        'Signature'=>'Ami de Cœur embroidered heart-A crest',
+        'Care'=>'Machine wash 30°C · wash inside out · do not tumble dry',
+        'Packaging'=>'Cartons of 10 per colour · mixed sizes S·M·L·XL·XXL',
+        'Season'=>'SS26 · Summer',
+        'Made in'=>'Portugal / EU',
+        'Authenticity'=>'Verified on delivery · proof of sourcing on request',
+      ],
+      'variants'=>[
+        ['art'=>'BFUPL001.760.001','model'=>'Ami de Cœur','color'=>'Black','image'=>'/uploads/amiri/amiri-core-polo-black.png'],
+        ['art'=>'BFUPL001.760.100','model'=>'Ami de Cœur','color'=>'White','image'=>'/uploads/amiri/amiri-core-polo-white.png'],
+        ['art'=>'BFUPL001.760.430','model'=>'Ami de Cœur','color'=>'Navy','image'=>'/uploads/amiri/amiri-core-polo-navy.png'],
+        ['art'=>'BFUPL001.760.095','model'=>'Ami de Cœur','color'=>'Grey','image'=>'/uploads/amiri/amiri-core-polo-grey.png'],
+      ],
+      'tiers'=>[['min'=>50,'price'=>42.00],['min'=>150,'price'=>36.00],['min'=>300,'price'=>32.00]],
+    ],
+  ];
+  return vestra_apply_price_overrides($P);
+}
+/* ── Admin price/MOQ overrides for the built-in demo products ──────────────
+   The demo product(s) above are hard-coded, but the admin "Prices" editor lets
+   the owner retune their MOQ, list price and tier pricing without touching code.
+   Those edits live in data/product_overrides.json ({id => {moq,list,tiers}}) and
+   are layered on top here so a redeploy never wipes them. Live seller listings
+   are edited directly in listings.json instead (they are already mutable). */
+function vestra_product_overrides(): array {
+  $f = vestra_data_dir().'/product_overrides.json';
+  if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; }
+  return [];
+}
+function vestra_apply_price_overrides(array $products): array {
+  $ov = vestra_product_overrides();
+  if(!$ov) return $products;
+  foreach($products as &$p){
+    $o = $ov[$p['id']??''] ?? null;
+    if(!is_array($o)) continue;
+    if(isset($o['moq']))  $p['moq']  = (int)$o['moq'];
+    if(isset($o['list'])) $p['list'] = (float)$o['list'];
+    if(isset($o['mode']) && $o['mode']!=='') $p['mode'] = (string)$o['mode'];
+    /* Teklif ve numune de buradan gecmek zorunda: kodda yazili bir demo
+       urunun 'sample_price'ini panelden SILMENIN baska yolu yok -- kaynak
+       satiri her deploy'da geri gelir. Ayni sebeple 'no_offers'. */
+    if(isset($o['no_offers']))    $p['no_offers']    = (bool)$o['no_offers'];
+    if(isset($o['sample_price'])) $p['sample_price'] = (float)$o['sample_price'];
+    /* preorder_ship: vestra_preorder_ship_phrase() ayni bicimi ariyor
+       (YYYY-MM-DD); bozuk bir deger sessizce yanlis/hic basmayan bir
+       tarihe donusmesin diye burada da dogrulaniyor (set_product.php'nin
+       ayni kontrolu). */
+    if(isset($o['preorder_ship']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$o['preorder_ship']))
+      $p['preorder_ship'] = (string)$o['preorder_ship'];
+    if(isset($o['tiers']) && is_array($o['tiers']) && $o['tiers']){
+      $t=[];
+      foreach($o['tiers'] as $row){
+        if(!isset($row['min'],$row['price'])) continue;
+        $t[]=['min'=>(int)$row['min'],'price'=>(float)$row['price']];
+      }
+      if($t){ usort($t, fn($a,$b)=>$a['min']<=>$b['min']); $p['tiers']=$t; }
+    }
+  }
+  unset($p);
+  return $products;
+}
+function vestra_save_product_overrides(array $ov): void {
+  $f = vestra_data_dir().'/product_overrides.json';
+  file_put_contents($f, json_encode($ov, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), LOCK_EX);
+}
+/* Which products are demo (override-backed) vs live listings (listings.json-backed). */
+function vestra_is_demo_product(string $id): bool {
+  /* lac-l1212-musterstueck is here so the admin Prices editor writes its edits to
+     product_overrides.json -- without it the save path would look for the id in
+     listings.json, find nothing and silently drop the change. */
+  foreach(['lac-pique-polo','amiri-core-polo','lac-l1212-musterstueck'] as $d){ if($d===$id) return true; }
+  return false;
+}
+/* ── Brand logo SVGs (inline) ─────────────────────────────────────────── */
+function vestra_brand_logo($brand){
+  $L=[
+    'DSQUARED2'=>
+      '<svg viewBox="0 0 230 72" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="Georgia,\'Times New Roman\',serif" font-size="24" font-weight="900" letter-spacing="2">'.
+      'DSQUARED<tspan dy="-10" font-size="15">2</tspan></text></svg>',
+
+    'Lacoste'=>
+      '<svg viewBox="0 0 200 62" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="\'Helvetica Neue\',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" letter-spacing="6">'.
+      'LACOSTE</text></svg>',
+
+    'Ralph Lauren'=>
+      '<svg viewBox="0 0 220 72" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="36%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="Georgia,\'Times New Roman\',serif" font-size="19" font-weight="400" letter-spacing="4">'.
+      'RALPH LAUREN</text>'.
+      '<line x1="28%" y1="58%" x2="72%" y2="58%" stroke="rgba(255,255,255,.45)" stroke-width="0.8"/>'.
+      '<text x="50%" y="78%" dominant-baseline="middle" text-anchor="middle" fill="rgba(255,255,255,.65)" '.
+      'font-family="Georgia,\'Times New Roman\',serif" font-size="11" letter-spacing="4">POLO</text></svg>',
+
+    /* Iki AYRI ev, iki ayri kelime markasi. 'Amiri' anahtari duruyor cunku
+       gercek bir Amiri ilani eklenirse logosu hazir olsun; katalogda su an
+       Amiri urunu YOK (tek ilan AMI Paris'e duzeltildi, 5 Eyl 2026). */
+    'AMI Paris'=>
+      '<svg viewBox="0 0 200 62" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="\'Helvetica Neue\',Helvetica,Arial,sans-serif" font-size="26" font-weight="600" letter-spacing="5">'.
+      'AMI PARIS</text></svg>',
+
+    'Amiri'=>
+      '<svg viewBox="0 0 180 62" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="Georgia,\'Times New Roman\',serif" font-size="34" font-weight="400" letter-spacing="7">'.
+      'AMIRI</text></svg>',
+
+    'VESTRA Essentials'=>
+      '<svg viewBox="0 0 200 68" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="38%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="\'Helvetica Neue\',Arial,sans-serif" font-size="22" font-weight="700" letter-spacing="5">'.
+      'VESTRA</text>'.
+      '<text x="50%" y="72%" dominant-baseline="middle" text-anchor="middle" fill="rgba(255,255,255,.55)" '.
+      'font-family="\'Helvetica Neue\',Arial,sans-serif" font-size="10" font-weight="300" letter-spacing="5">'.
+      'ESSENTIALS</text></svg>',
+
+    'Dolce & Gabbana'=>
+      '<svg viewBox="0 0 220 72" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="40%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="Georgia,\'Times New Roman\',serif" font-size="26" font-weight="700" letter-spacing="5">'.
+      'D&amp;G</text>'.
+      '<line x1="22%" y1="60%" x2="78%" y2="60%" stroke="rgba(255,255,255,.28)" stroke-width="0.7"/>'.
+      '<text x="50%" y="78%" dominant-baseline="middle" text-anchor="middle" fill="rgba(255,255,255,.52)" '.
+      'font-family="\'Helvetica Neue\',Arial,sans-serif" font-size="8.5" font-weight="400" letter-spacing="4">'.
+      'DOLCE &amp; GABBANA</text></svg>',
+  ];
+  if (isset($L[$brand])) return $L[$brand];
+
+  /* Wordmarks for the brands added from the supplier folders. Each is set in the house
+     that brand actually uses -- a serif with wide tracking for the Paris/Milan houses, a
+     tight grotesque for the streetwear labels -- so a catalogue page of mixed brands reads
+     as designed rather than as a list of fallback text. Type only: these are typographic
+     settings of the name, not reproductions of anyone's logo artwork. */
+  $serif  = "Georgia,'Times New Roman',serif";
+  $sans   = "'Helvetica Neue',Helvetica,Arial,sans-serif";
+  $W = [
+    'BALMAIN'        => [$serif, 22, 400, 8,   'BALMAIN',        'PARIS'],
+    'Balenciaga'     => [$sans,  19, 500, 5.5, 'BALENCIAGA',     null],
+    'Burberry'       => [$serif, 21, 400, 5,   'BURBERRY',       'LONDON'],
+    'Casablanca'     => [$serif, 22, 400, 5,   'CASABLANCA',     'PARIS'],
+    'Fendi'          => [$sans,  27, 700, 7,   'FENDI',          'ROMA'],
+    'Fred Perry'     => [$serif, 20, 400, 4,   'FRED PERRY',     'EST. 1952'],
+    'Givenchy'       => [$serif, 21, 400, 6,   'GIVENCHY',       'PARIS'],
+    'Gucci'          => [$serif, 28, 400, 8,   'GUCCI',          null],
+    'Jacquemus'      => [$sans,  25, 500, 6,   'JACQUEMUS',      null],
+    'Valentino'      => [$serif, 21, 400, 5,   'VALENTINO',      'GARAVANI'],
+    'Versace'        => [$serif, 22, 400, 6,   'VERSACE',        'MILANO'],
+    'Marcelo Burlon' => [$sans,  15, 700, 2.4, 'MARCELO BURLON', 'COUNTY OF MILAN'],
+    'GCDS'           => [$sans,  32, 800, 4,   'GCDS',           null],
+  ];
+  if (isset($W[$brand])) {
+    [$ff, $size, $weight, $track, $main, $sub] = $W[$brand];
+    $e = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
+    $svg = '<svg viewBox="0 0 230 72" xmlns="http://www.w3.org/2000/svg" class="brand-logo">';
+    if ($sub === null) {
+      $svg .= '<text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="white" '
+            . 'font-family="'.$e($ff).'" font-size="'.$size.'" font-weight="'.$weight.'" '
+            . 'letter-spacing="'.$track.'">'.$e($main).'</text>';
+    } else {
+      $svg .= '<text x="50%" y="40%" dominant-baseline="middle" text-anchor="middle" fill="white" '
+            . 'font-family="'.$e($ff).'" font-size="'.$size.'" font-weight="'.$weight.'" '
+            . 'letter-spacing="'.$track.'">'.$e($main).'</text>'
+            . '<line x1="26%" y1="60%" x2="74%" y2="60%" stroke="rgba(255,255,255,.28)" stroke-width="0.7"/>'
+            . '<text x="50%" y="78%" dominant-baseline="middle" text-anchor="middle" '
+            . 'fill="rgba(255,255,255,.55)" font-family="'.$e($sans).'" font-size="8.5" '
+            . 'font-weight="400" letter-spacing="3.4">'.$e($sub).'</text>';
+    }
+    return $svg.'</svg>';
+  }
+  return null;
+}
+
+/* Brand card for a product with no photo. Returns the brand's wordmark when there is one,
+   otherwise a monogram card built from the name -- so a brand nobody has drawn a wordmark
+   for still renders as a designed tile instead of a bare string. Every caller that used to
+   write `$logo ?: '<span>'.$brand.'</span>'` should use this instead. */
+/* Dogrulanmis satici rozeti TEK govdeden. Ayni isaret bu depoda BES yerde elle
+   yazilmisti (product.php x2, showroom.php x2, shop.php) ve besinde de
+   stroke="#fff" GOMULUYDU -- oysa acik "studyo" zeminli kartta pil
+   rgba(28,120,72,.10) zemin + #1f7a4c metin, yani BEYAZ tik gorunmuyordu.
+   Simdi currentColor: renk CSS'te kaliyor ve tema/zemin degisimi kendiliginden
+   isliyor (KURAL 24'un onay isaretinin birebir ayni dersi).
+   Isaret artik bir MUHUR: daire + tik, ikisi de ayni konturdan. */
+function vestra_verified_badge(string $class = 'svbadge', string $style = ''): string {
+    $sz = $class === 'gal-vbadge' ? 12 : 11;
+    return '<span class="'.htmlspecialchars($class).'"'
+         . ($style !== '' ? ' style="'.htmlspecialchars($style).'"' : '').'>'
+         . '<svg width="'.$sz.'" height="'.$sz.'" viewBox="0 0 24 24" fill="none"'
+         . ' stroke="currentColor" stroke-width="2.6" stroke-linecap="round"'
+         . ' stroke-linejoin="round" aria-hidden="true">'
+         . '<circle cx="12" cy="12" r="9.2"/><path d="M8.2 12.4l2.6 2.6 5-5.4"/></svg>'
+         . '<span>'.t('Verified seller').'</span></span>';
+}
+
+function vestra_brand_card($brand): string {
+    $brand = trim((string)$brand);
+    if ($brand === '') return '';
+    $logo = vestra_brand_logo($brand);
+    if ($logo) return $logo;
+
+    /* Initials: first letter of each of the first two words ("Marcelo Burlon" -> MB), or the
+       first two letters when the name is a single word ("Amiri" -> AM). */
+    $words = preg_split('/[\s&]+/u', $brand, -1, PREG_SPLIT_NO_EMPTY) ?: [$brand];
+    if (count($words) >= 2) {
+        $mark = mb_strtoupper(mb_substr($words[0], 0, 1).mb_substr($words[1], 0, 1));
+    } else {
+        $mark = mb_strtoupper(mb_substr($brand, 0, 2));
+    }
+    return '<span class="bmono"><span class="bmono-mark">'.htmlspecialchars($mark).'</span>'
+         . '<span class="bmono-name">'.htmlspecialchars($brand).'</span></span>';
+}
+
+/* Card background colour. Products added through the batch importer carry no 'accent'
+   field -- the seed catalogue set one by hand and nothing else ever did -- so every one of
+   them rendered with an empty gradient AND logged an "Undefined array key" warning on each
+   page view. Rather than patch a default into five call sites, resolve it here: an explicit
+   accent wins, otherwise the brand name picks a stable colour from a small palette, so two
+   products of the same brand always match and a new brand still looks deliberate. */
+function vestra_accent(array $p): string {
+    $a = trim((string)($p['accent'] ?? ''));
+    if ($a !== '') return $a;
+    $pal = ['#2f3140','#3a2f2a','#26323a','#332a38','#2a3a30','#3a3226','#2c2c34','#382a2a'];
+    $brand = strtolower(trim((string)($p['brand'] ?? '')));
+    if ($brand === '') return $pal[0];
+    return $pal[hexdec(substr(md5($brand), 0, 2)) % count($pal)];
+}
+
+/* seller-added listings (saved by the seller panel) merged into the live catalog */
+/* VESTRA_DATA_DIR `defined()` korumali -- VESTRA_ACCOUNTS / VESTRA_MESSAGES ile
+   AYNI karar. Korumasizken bir testin veri dizinini gecici bir klasore
+   yonlendirmesi mumkun degil ve bu depoda bir test bir kez URETIM dosyasina
+   yazdi. Uretimde sabit tanimli degil, yani davranis birebir ayni. */
+function vestra_data_dir(){ return defined('VESTRA_DATA_DIR') ? VESTRA_DATA_DIR : dirname(__DIR__).'/data'; }
+function vestra_listings(){ $f=vestra_data_dir().'/listings.json'; if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; } return []; }
+function vestra_read_csv($name){ $f=vestra_data_dir().'/'.$name; $rows=[]; if(is_readable($f)&&($h=@fopen($f,'r'))){ $head=fgetcsv($h, null, ',', '"', '\\'); while(($r=fgetcsv($h, null, ',', '"', '\\'))!==false){ if($head){ $n=count($head); $r=array_slice(array_pad($r,$n,''),0,$n); $rows[]=array_combine($head,$r);} } fclose($h);} return array_reverse($rows); }
+/* Upgrade a CSV's header row in place when new trailing columns are added to a schema after
+   the file already exists on a live server — data rows are never touched (the reader above
+   already pads short rows with ''), only the first line is rewritten, and only when the
+   existing header is exactly a prefix of the new one (anything unexpected is left alone). */
+function vestra_csv_ensure_header(string $name, array $header): void {
+    $f = vestra_data_dir().'/'.$name;
+    if (!is_file($f)) return;
+    $fh = @fopen($f, 'r'); if (!$fh) return;
+    $firstLine = fgets($fh);
+    if ($firstLine === false) { fclose($fh); return; }
+    $current = str_getcsv(rtrim($firstLine, "\r\n"), ',', '"', '\\');
+    $rest = stream_get_contents($fh);
+    fclose($fh);
+    if ($current === $header || array_slice($header, 0, count($current)) !== $current) return;
+    $tmp = fopen('php://temp', 'r+');
+    fputcsv($tmp, $header, ',', '"', '\\');
+    rewind($tmp); $newHeaderLine = stream_get_contents($tmp); fclose($tmp);
+    file_put_contents($f, $newHeaderLine.$rest, LOCK_EX);
+}
+/* Askiya alinmis SATICILARIN ilanlari katalogdan cekilir (operator karari,
+   2 Eyl 2026: belgesi gelmeyen satici askiya alinir ve "ilanlari durur").
+   Ilanin kendi durumu 'approved' kalir -- aski kalkinca hicbir sey yeniden
+   onaylanmaz, ilanlar kendiliginden geri gelir. auth.php yuklu degilse
+   (CLI test, ayrik betik) suzgec bos: hicbir sey gizlenmez, hata da yok. */
+function vestra_suspended_seller_uids(): array {
+    static $c = null;
+    if ($c === null) {
+        $c = [];
+        if (function_exists('auth_accounts')) {
+            foreach (auth_accounts() as $a) {
+                if (($a['type'] ?? '') === 'seller' && ($a['status'] ?? '') === 'suspended' && !empty($a['id'])) $c[(string)$a['id']] = true;
+            }
+        }
+    }
+    return $c;
+}
+/* ── GIZLI MARKALAR ────────────────────────────────────────────────────────────
+ *
+ * Operator, 25 Eyl 2026: *"Gucci ve Balenciaga urunlerini sitede gorunmez yap
+ * ancak sonra tekrar konulabilecek sekilde...sitede hic gorunmesin"*.
+ *
+ * Yukaridaki satici askisinin MARKA karsiligi ve ayni katmanda duruyor:
+ * gizli markanin ilanlari vestra_live_listings()'ten dusuyor, yani vitrin,
+ * ana sayfa (film + New arrivals + marka duvari), /wholesale ve /b2b sayfalari,
+ * sitemap, fiyat listeleri, katalog dosyalari, API, showroom, arama, kampanya
+ * mektuplarinin marka listeleri VE urun sayfasi (vestra_find) -- hepsi TEK
+ * kapidan. Tek tek sayfaya "bu marka gizli mi" diye sormak, unutulan ilk
+ * sayfada markayi geri getirirdi; bu depoda kapinin ikinci bir kopyasi alti
+ * kez yanlis yere bakti.
+ *
+ * GERI ALINABILIR, cunku HICBIR SEY SILINMIYOR ve ilan kaydina DOKUNULMUYOR:
+ * listings.json aynen duruyor (durum, fiyat, foto, satici), karar ayri bir
+ * dosyada (data/hidden_brands.json). Marka listeden cikinca ilanlar
+ * kendiliginden geri gelir -- askinin kalkmasiyla ayni sekilde, yeniden onay
+ * gerekmeden. Ilanlarin durumunu 'rejected' yapmak da gizlerdi ama iki kusuru
+ * var: (1) geri acarken hangi ilanin ONCEDEN reddedilmis oldugu kaybolur,
+ * (2) yarin gelecek yeni bir Gucci ilani gizlenmez. Marka duzeyinde karar
+ * ikisini de cozuyor.
+ *
+ * Kayitlari cozen yollar ETKILENMEZ: siparis satiri (vestra_product_by_sku ->
+ * ham listings.json yedegi), teklif/fatura (vestra_listing_by_sku), mesaj
+ * etiketleri (vestra_listing_by_id yedegi) ham listeyi okuyor. Kesilmis bir
+ * fatura, acik bir pazarlik ya da gecmis bir siparis marka gizlendi diye
+ * bozulmuyor.
+ *
+ * ESLESME TAM (buyuk/kucuk harf ve bas/son bosluk disinda): "Gucci Kids" gibi
+ * bir ad gizlenmez -- mango/zara dersi; burada bedeli, gizlenmesi istenmeyen
+ * bir markayi sessizce vitrinden silmek olurdu.
+ *
+ * Dosya YOKSA hicbir marka gizli degil (bugunku davranis). Dosya BOZUKSA da
+ * hicbir sey gizlenmez ve error_log'a yazilir: bozuk bir dosyadan hangi
+ * markalarin kastedildigi okunamaz, ve yazici atomik (gecici dosya + rename),
+ * yani bu yol pratikte olusmuyor. */
+function vestra_hidden_brands_file(): string {
+    return vestra_data_dir().'/hidden_brands.json';
+}
+function vestra_brand_key(string $brand): string {
+    return mb_strtoupper(trim($brand));
+}
+/** Gizli markalar: ANAHTAR -> kayitli yazim. Surec-ici onbellekli
+ *  (vestra_live_listings() bir istekte defalarca cagriliyor); $fresh yaziciyi
+ *  geri okurken ve testlerde onbellegi atlar. */
+function vestra_hidden_brands(bool $fresh = false): array {
+    static $c = null;
+    if ($c !== null && !$fresh) return $c;
+    $c = [];
+    $f = vestra_hidden_brands_file();
+    if (!is_file($f)) return $c;
+    $j = json_decode((string)@file_get_contents($f), true);
+    if (!is_array($j) || !is_array($j['brands'] ?? null)) {
+        error_log('[VESTRA hidden-brands] '.basename($f).' okunamadi -- hicbir marka gizlenmiyor');
+        return $c;
+    }
+    foreach ($j['brands'] as $b) {
+        $k = vestra_brand_key((string)$b);
+        if ($k !== '') $c[$k] = trim((string)$b);
+    }
+    return $c;
+}
+/** Dosyanin tamami (panel "ne zamandan beri" basiyor). Yoksa bos dizi. */
+function vestra_hidden_brands_record(): array {
+    $f = vestra_hidden_brands_file();
+    $j = is_file($f) ? json_decode((string)@file_get_contents($f), true) : null;
+    return is_array($j) ? $j : [];
+}
+function vestra_brand_is_hidden(string $brand): bool {
+    $k = vestra_brand_key($brand);
+    return $k !== '' && isset(vestra_hidden_brands()[$k]);
+}
+function vestra_product_brand_hidden(array $p): bool {
+    return vestra_brand_is_hidden((string)($p['brand'] ?? ''));
+}
+/**
+ * Gizli marka listesini YAZAR ve geri okuyarak dogrular. Liste KUMEDIR: ayni
+ * marka iki kez yazilmaz, bos ad dusurulur. Her markanin gizlendigi an
+ * ('since') ve son 30 degisiklik ('history') dosyada kaliyor -- aylar sonra
+ * "bu marka neden/ne zamandan beri gizli" sorusunun cevabi bir yerde durmali
+ * (KURAL 2h'nin kyb_auto dersi: gerekcesiz bir kapi, sessiz bir kapidir).
+ * Atomik: gecici dosyaya yazip rename -- yarim yazilmis bir dosya, okuyucuyu
+ * "bozuk dosya = hicbir sey gizli degil" dalina dusururdu.
+ * Donus: ['ok'=>bool, 'hidden'=>[yazimlar], 'added'=>[], 'removed'=>[]].
+ */
+function vestra_hidden_brands_save(array $brands, string $by = 'operator'): array {
+    $want = [];
+    foreach ($brands as $b) {
+        $b = trim((string)$b); $k = vestra_brand_key($b);
+        if ($k !== '' && !isset($want[$k])) $want[$k] = $b;
+    }
+    $prevRec = vestra_hidden_brands_record();
+    $prev    = vestra_hidden_brands(true);
+    $added   = array_values(array_diff_key($want, $prev));
+    $removed = array_values(array_diff_key($prev, $want));
+    $since   = is_array($prevRec['since'] ?? null) ? $prevRec['since'] : [];
+    $now     = date('c');
+    $newSince = [];
+    foreach ($want as $k => $b) $newSince[$k] = (string)($since[$k] ?? $now);
+    $hist = is_array($prevRec['history'] ?? null) ? $prevRec['history'] : [];
+    if ($added || $removed) {
+        array_unshift($hist, ['at' => $now, 'by' => $by, 'hide' => $added, 'show' => $removed]);
+        $hist = array_slice($hist, 0, 30);
+    }
+    $rec = ['brands' => array_values($want), 'since' => $newSince,
+            'changed_at' => $now, 'changed_by' => $by, 'history' => $hist];
+    $f = vestra_hidden_brands_file();
+    $dir = dirname($f); if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    $tmp = $f.'.tmp'.getmypid();
+    $out = ['ok' => false, 'hidden' => array_values($want), 'added' => $added, 'removed' => $removed];
+    if (@file_put_contents($tmp, json_encode($rec, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE), LOCK_EX) === false) return $out;
+    if (!@rename($tmp, $f)) { @unlink($tmp); return $out; }
+    $back = vestra_hidden_brands(true);
+    $a = array_keys($back); $w = array_keys($want); sort($a); sort($w);
+    $out['ok'] = ($a === $w);
+    return $out;
+}
+function vestra_live_listings(){
+    $sus = vestra_suspended_seller_uids();
+    return array_values(array_filter(vestra_listings(),
+        fn($p) => ($p['status']??'approved')==='approved' && empty($sus[(string)($p['seller_uid'] ?? '')])
+                  && !vestra_product_brand_hidden($p)));
+}
+/* Bundled catalogue drops shipped in code (e.g. the DSQUARED2 model list). They show
+   in the catalogue straight after a deploy — no import click needed — but are hidden
+   for any item already present as a real listing (same id or brand+SKU), so importing
+   them into listings.json never double-lists them. */
+function vestra_seed_catalog(){
+    $f = __DIR__.'/dsquared_seed.json';
+    if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; }
+    return [];
+}
+/**
+ * The catalogue: demo products + approved live listings + bundled seed drops.
+ *
+ * `unlisted` products are LEFT OUT by default. That flag exists for items that are
+ * reachable by direct link only -- the Musterstueck sample piece sent to one buyer in a
+ * letter -- and every public list (shop grid, price lists, catalogue exports, sitemap,
+ * campaigns, API catalogue, related items) goes through this default. Pass
+ * $includeUnlisted=true ONLY where an item the buyer already holds an id/SKU for has to
+ * resolve: vestra_find(), the cart's escrow map, order-line lookup by SKU, and the admin
+ * price editor / quote picker. A public page passing true would put the sample back in
+ * the catalogue, so tests/unlisted_product_test.php scans the public pages for it.
+ */
+function vestra_products(bool $includeUnlisted = false){
+    $live = vestra_live_listings();
+    $seen = [];
+    foreach($live as $l){
+        $seen['id:'.strtolower((string)($l['id']??''))] = true;
+        $seen['bs:'.strtolower(trim(($l['brand']??'').'|'.($l['sku']??'')))] = true;
+    }
+    $seed = [];
+    foreach(vestra_seed_catalog() as $p){
+        $id='id:'.strtolower((string)($p['id']??''));
+        $bs='bs:'.strtolower(trim(($p['brand']??'').'|'.($p['sku']??'')));
+        if(isset($seen[$id]) || isset($seen[$bs])) continue;
+        $seed[] = $p;
+    }
+    $all = array_merge(vestra_demo_products(), $live, $seed);
+    /* Gizli marka (bkz. vestra_hidden_brands): canli ilanlar zaten
+       vestra_live_listings()'te dustu; bu satir kodda gomulu demo urunlerini
+       ve seed katalogunu da ayni karara bagliyor. $includeUnlisted'ten ONCE:
+       o bayrak "dogrudan linkle erisilen numune" icin, gizli marka ise HER
+       yoldan gorunmez olmali -- urun sayfasi (vestra_find) dahil. */
+    $all = array_values(array_filter($all, fn($p) => !vestra_product_brand_hidden($p)));
+    if ($includeUnlisted) return $all;
+    return array_values(array_filter($all, fn($p) => empty($p['unlisted'])));
+}
+/**
+ * Which storefront section a product belongs to.
+ *
+ * The catalogue was one flat list of 344 items — brand and category, no notion of a
+ * collection. That worked while everything in it was curated designer stock. It stops
+ * working the moment a partner's own range arrives: footwear from a Spanish wholesaler
+ * next to Balenciaga on the same grid reads as one assortment, and it flattens both.
+ *
+ * A stored field rather than a rule derived from brand or seller. A rule would be
+ * wrong the first time it is tested — a partner may well carry a premium house, and a
+ * curated line may be footwear — and a mis-shelved product is not a bug anyone reports,
+ * it is a product nobody finds. The operator decides, per item, and the field says so.
+ *
+ * Anything without the field is premium: that is what the existing catalogue is, and a
+ * default that silently empties the main section on deploy would be the worst outcome.
+ */
+/* Anahtar 'premium' KALIYOR, yalnizca etiket degisti (operator karari, 3 Eyl 2026:
+   "premium brands yerine bekleidung desek daha iyi olur"). Iki bolme artik iki URUN
+   TURU: giyim ve ayakkabi -- "Premium Brands" bir kalite iddiasiydi ve karsisinda
+   "Footwear" durunca ikisi ayni sorunun cevabi gibi okunmuyordu. Anahtari degistirmek
+   /shop?section=premium adreslerini (kampanya mektuplari, arama motoru) kirardi.
+   Etiket t()'den geciyor: Almanca sayfada "Bekleidung" basiliyor (inc/lang/de.php). */
+function vestra_sections(): array {
+    return ['premium' => 'Apparel', 'footwear' => 'Footwear', 'underwear' => 'Underwear'];
+}
+function vestra_product_section(array $p): string {
+    $s = strtolower(trim((string)($p['section'] ?? '')));
+    return isset(vestra_sections()[$s]) ? $s : 'premium';
+}
+function vestra_section_label(string $s): string {
+    return vestra_sections()[strtolower(trim($s))] ?? vestra_sections()['premium'];
+}
+/**
+ * Bolmenin bir satirlik tanimi — vitrin sekmesinde ve ana sayfada basilir.
+ *
+ * Etiketin yaninda duruyor cunku ikisi ayni soruyu cevapliyor ("bu bolmede ne
+ * var"); ayri dosyalara dagilsalardi biri degisip digeri eskimis kalirdi. Metin
+ * INGILIZCE ve t()'den geciriliyor: musteriye gorunen her sey oyle.
+ * Bilinmeyen bolme icin bos doner -- uydurma bir aciklama basmaktansa hic basma.
+ */
+function vestra_section_note(string $s): string {
+    return [
+        'premium'   => 'Designer houses, ordered by the carton',
+        'footwear'  => 'Spanish-made shoes, ordered by the series',
+        'underwear' => 'Wholesale intimates, ordered by the pack',
+    ][strtolower(trim($s))] ?? '';
+}
+
+/* ── Marka basina asgari sepet tutari ─────────────────────────────────────────
+ *
+ * (operator, 10 Eyl 2026, uc adimda yerlesti: *"komple marka secildiginde en az
+ * alim 300 eur olacak sekilde"* -> *"en az alimi 500 usd yap"* -> kurun ne
+ * yapacagi anlatilinca *"eur yap"* + *"degismesin"*.)
+ *
+ * VESTRA'da bugune kadar asgari diye bir sey vardi ama TEK ILANIN adediydi
+ * (`moq`). Bu baska bir sey: sepetteki O MARKAYA ait satirlarin TOPLAM TUTARI.
+ * Kapsam uc okumadan secildi -- marka (bu), bolme degil, siparis toplami degil.
+ *
+ * RAKAM TEK SABITTE. KURAL 6 bunun bedelini zaten kaydetti: escrow tavani bes
+ * gun boyunca metne gomulu kaldi ve musteriye soylenen ile sepetin kabul ettigi
+ * ayri rakamlardi. Sayfa, sepet ve uyari metni ayni sabiti okuyor.
+ *
+ * BIRIM EUR ve CEVRILMIYOR. Katalogun her fiyati zaten EUR (TRY maliyet x 1.5),
+ * yani esik ile sepet ayni birimde: karsilastirma duz toplama. Ziyaretci sepeti
+ * baska bir gosterim biriminde gorebiliyor (vestra_money) ama ESIK EUR yazilir
+ * -- gosterim birimine cevrilmis bir esik, operatorun "degismesin" dedigi seyi
+ * tam da ekranda degistirirdi.
+ */
+const VESTRA_BRAND_MIN_ORDER_EUR = 500.0;
+
+/* Marka -> asgari tutar. Yeni marka = BIR SATIR, kapida yeni bir dal degil
+   (KURAL 2h'nin ulke listesiyle ayni sebep: kural bir gunde uc kez buyudu).
+   Anahtar karsilastirmasi kucuk harfe cekilerek yapiliyor, ASAGIDAKI okuyucuda. */
+function vestra_brand_min_orders(): array {
+    return ['nbb' => VESTRA_BRAND_MIN_ORDER_EUR];
+}
+
+/** Bu markanin asgari sepet tutari (EUR); yoksa 0.0 — yani kural o markaya islemez. */
+function vestra_brand_min_order(string $brand): float {
+    return (float)(vestra_brand_min_orders()[mb_strtolower(trim($brand))] ?? 0.0);
+}
+
+/**
+ * AVRUPA DIŞINDAN gelen siparişin asgari tutarı — **BUGÜN KAPALI (0.0)**.
+ *
+ * Operatör, 17 Eyl 2026: *"US$5.000 Avrupa dışı taban, bunu girmene gerek
+ * yok.... avrupa disindan isteyen normal en az alim ile siparis verebilsin"*.
+ * Yani Avrupa dışı alıcı da **normal** asgarilerle sipariş veriyor: ilanın
+ * kendi MOQ'su, paket adımı ve marka asgarisi (KURAL 21, €500) **aynen
+ * duruyor** — kalkan şey yalnızca sipariş TUTARI tabanı.
+ *
+ * MEKANİZMA SİLİNMEDİ, SABİT SIFIRLANDI. Gerekçesi bu depoda kayıtlı
+ * (dropship ödemesi: *"kaldır ancak yeniden başlamak için kurulu olsun"*):
+ * her okuyan zaten `> 0` soruyor, o yüzden tek satır hem sepet uyarısını hem
+ * pazar sayfasının olgu kartını hem `terms_reply` mektubunun paragrafını
+ * birlikte susturuyor. Geri açmak da tek satır. **Rakamın TEK YERDE
+ * durmasının karşılığı tam olarak budur** (KURAL 6).
+ *
+ * **Yan kazanç, ve küçük değil: FX kesintisi artık sipariş durdurmuyor.**
+ * `vestra_order_min_shortfall()` `min <= 0` görünce kur okumadan ÖNCE
+ * dönüyor, yani aşağıdaki "kur yoksa sipariş geçmez" bedeli de bugün
+ * ödenmiyor. Taban bir gün geri açılırsa o bedel geri gelir — bu yüzden
+ * aşağıdaki gerekçe silinmedi.
+ *
+ * MARKA asgarisinden (VESTRA_BRAND_MIN_ORDER_EUR) AYRI bir kapı ve ayrı bir
+ * soru: o, bir markanın sepetteki toplamına bakıyor; bu, siparişin TAMAMINA.
+ * İkisi birlikte işliyor — biri geçip diğerine takılan bir sepet mümkün ve
+ * doğru.
+ *
+ * BİRİM USD, ve bu KURAL 21'de kayıtlı kararın TERSİ: orada operatör, marka
+ * asgarisini USD yapmanın "gerçek minimumun kurla dalgalanması" demek
+ * olduğunu duyunca EUR'yu seçmişti. Burada USD'yi açıkça istedi, o yüzden
+ * bedeli de burada yazılı: katalog EUR, eşik USD, yani karşılaştırma bir
+ * KUR gerektiriyor ve kur bir olgu, tahmin değil. **Kur yoksa sipariş
+ * GEÇMEZ** (KURAL 17'nin dropship tahsilatındaki kararıyla aynı): uydurma
+ * bir kurla eşiği ölçmek, onu sessizce başka bir sayıya çevirmek
+ * olurdu. Bedeli açık: bir FX kesintisinde Avrupa dışı siparişler durur.
+ */
+/* Değer geçmişi (hepsi operatör kararı): 16 Eyl 2026 10.000 → 5.000
+   (*"alımı 5 bin usd yap"*), 17 Eyl 2026 5.000 → **0.0 = kapalı**.
+   Rakam TEK YERDE durduğu için her seferinde tek satır: sepet uyarısı,
+   sunucu kapısı, pazar sayfası, mektup ve testler hepsi buradan okuyor.
+   Escrow tavanının beş gün boyunca metinde 3.000, kodda 3.500 kalmasının
+   (KURAL 6) sebebi tam tersiydi. */
+const VESTRA_NONEU_MIN_ORDER_USD = 0.0;
+
+/**
+ * "Avrupa" — coğrafi Avrupa, AB gümrük alanı DEĞİL.
+ *
+ * Operatörün cümlesi "Avrupa dışına"; AB ile sınırlasaydık Birleşik Krallık,
+ * İsviçre ve Norveç'teki alıcılar bu tabana düşerdi ve bu, onlara
+ * bugüne kadar uygulanmayan bir şart demekti. Liste AÇIK yazılı: bir ülkeyi
+ * eklemek ya da çıkarmak tek satır, ve hangi ülkenin hangi tarafta olduğu
+ * kodun içinden okunabiliyor. Eşleşme TAM.
+ */
+function vestra_europe_codes(): array {
+    return [
+        // AB 27
+        'AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE',
+        'IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE',
+        // EFTA + Birleşik Krallık
+        'CH','NO','IS','LI','GB',
+        // Avrupa'nın geri kalanı (mikro devletler ve Balkanlar dahil)
+        'AL','AD','BA','BY','MD','MC','ME','MK','RS','SM','UA','VA','XK',
+    ];
+}
+
+/**
+ * Avrupa ülkelerinin yazımları. Kayıt formu SERBEST METİN: alan "DE" de
+ * alıyor, "Deutschland" da, "Allemagne" da.
+ *
+ * NEDEN AYRI TABLO — ve bu ÖLÇÜMLE bulundu: ilk yazımda ülkeyi
+ * `vestra_cc_of_country()` çözüyordu, oysa o tablo KÜRATÖRLÜ ve kısmi
+ * (kayıt IP'si ile beyanı karşılaştırmak için yazılmış). Sonuç: **"Benin"
+ * ve "Brazil" AVRUPA çıkıyordu** — yani tabanın var olma sebebi olan iki
+ * ülke tam da kapıda muaf oluyordu. Kısmi bir tabloyu tam sanmak, bu
+ * deponun altı kez kaydettiği "kontrol yanlış yere bakıyor" hatasının ta
+ * kendisi; kaynak okuyarak değil, çalıştırıp çıktıyı okuyarak yakalandı.
+ */
+function vestra_europe_names(): array {
+    static $t = [
+        'AT' => ['austria', 'österreich', 'osterreich', 'autriche', 'austria'],
+        'BE' => ['belgium', 'belgië', 'belgie', 'belgique', 'belgien', 'belgio', 'bélgica'],
+        'BG' => ['bulgaria', 'българия', 'bulgarien', 'bulgarie', 'bulgarija'],
+        'HR' => ['croatia', 'hrvatska', 'kroatien', 'croatie', 'croazia', 'croacia'],
+        'CY' => ['cyprus', 'κύπρος', 'kypros', 'zypern', 'chypre', 'cipro', 'chipre'],
+        'CZ' => ['czechia', 'czech republic', 'the czech republic', 'česko', 'cesko', 'česká republika', 'ceska republika', 'tschechien', 'tchéquie', 'tchequie', 'repubblica ceca', 'chequia'],
+        'DK' => ['denmark', 'danmark', 'dänemark', 'danemark', 'danemark', 'danimarca', 'dinamarca'],
+        'EE' => ['estonia', 'eesti', 'estland', 'estonie', 'estonia'],
+        'FI' => ['finland', 'suomi', 'finnland', 'finlande', 'finlandia'],
+        'FR' => ['france', 'frankreich', 'francia', 'frança', 'franca', 'république française'],
+        'DE' => ['germany', 'deutschland', 'allemagne', 'germania', 'alemania', 'alemanha', 'brd', 'federal republic of germany'],
+        'GR' => ['greece', 'ελλάδα', 'ellada', 'hellas', 'griechenland', 'grèce', 'grece', 'grecia'],
+        'HU' => ['hungary', 'magyarország', 'magyarorszag', 'ungarn', 'hongrie', 'ungheria', 'hungría', 'hungria'],
+        'IE' => ['ireland', 'éire', 'eire', 'irland', 'irlande', 'irlanda'],
+        'IT' => ['italy', 'italia', 'italien', 'italie', 'itália'],
+        'LV' => ['latvia', 'latvija', 'lettland', 'lettonie', 'lettonia'],
+        'LT' => ['lithuania', 'lietuva', 'litauen', 'lituanie', 'lituania'],
+        'LU' => ['luxembourg', 'luxemburg', 'lëtzebuerg', 'letzebuerg', 'lussemburgo', 'luxemburgo'],
+        'MT' => ['malta', 'malte'],
+        'NL' => ['netherlands', 'the netherlands', 'nederland', 'holland', 'niederlande', 'pays bas', 'pays-bas', 'paesi bassi', 'países bajos', 'paises bajos', 'holanda'],
+        'PL' => ['poland', 'polska', 'rzeczpospolita polska', 'polen', 'pologne', 'polonia', 'polônia'],
+        'PT' => ['portugal', 'portugale', 'portogallo'],
+        'RO' => ['romania', 'românia', 'rumänien', 'rumanien', 'roumanie', 'rumania', 'rumanía'],
+        'SK' => ['slovakia', 'slovensko', 'slowakei', 'slovaquie', 'slovacchia', 'eslovaquia'],
+        'SI' => ['slovenia', 'slovenija', 'slowenien', 'slovénie', 'slovenie', 'eslovenia'],
+        'ES' => ['spain', 'españa', 'espana', 'spanien', 'espagne', 'spagna', 'espanha'],
+        'SE' => ['sweden', 'sverige', 'schweden', 'suède', 'suede', 'svezia', 'suecia'],
+        'CH' => ['switzerland', 'schweiz', 'suisse', 'svizzera', 'suiza', 'suíça', 'suica', 'confoederatio helvetica'],
+        'NO' => ['norway', 'norge', 'noreg', 'norwegen', 'norvège', 'norvege', 'norvegia', 'noruega'],
+        'IS' => ['iceland', 'ísland', 'island', 'islande', 'islanda', 'islandia'],
+        'LI' => ['liechtenstein'],
+        'GB' => ['united kingdom', 'uk', 'great britain', 'britain', 'england', 'scotland', 'wales', 'northern ireland', 'vereinigtes königreich', 'grossbritannien', 'großbritannien', 'royaume uni', 'royaume-uni', 'regno unito', 'reino unido', 'angleterre'],
+        'AL' => ['albania', 'shqipëria', 'shqiperia', 'albanien', 'albanie', 'albania'],
+        'AD' => ['andorra', 'andorre'],
+        'BA' => ['bosnia and herzegovina', 'bosnia', 'bosna i hercegovina', 'bosnien und herzegowina', 'bosnie herzégovine', 'bosnie-herzégovine'],
+        'BY' => ['belarus', 'беларусь', 'weißrussland', 'weissrussland', 'biélorussie', 'bielorussie', 'bielorussia'],
+        'MD' => ['moldova', 'republic of moldova', 'moldau', 'moldavie', 'moldavia'],
+        'MC' => ['monaco', 'monako'],
+        'ME' => ['montenegro', 'crna gora', 'monténégro'],
+        'MK' => ['north macedonia', 'macedonia', 'северна македонија', 'nordmazedonien', 'macédoine du nord'],
+        'RS' => ['serbia', 'srbija', 'србија', 'serbien', 'serbie'],
+        'SM' => ['san marino', 'saint marin'],
+        'UA' => ['ukraine', 'україна', 'ukrajina', 'ucraina', 'ucrania', 'ucrânia'],
+        'VA' => ['vatican', 'vatican city', 'holy see', 'città del vaticano', 'vatikan'],
+        'XK' => ['kosovo', 'kosova', 'kosovë'],
+    ];
+    return $t;
+}
+
+/**
+ * Bu hesap Avrupa'da mı?
+ *
+ * ÖLÇÜT POZİTİF: ülke AVRUPA olarak TANINIYORSA muaf, aksi hâlde taban
+ * uygulanır. Ters yön (tanınmayan = Avrupa) denendi ve yanlıştı: dünyanın
+ * kalanını kapsayan bir tablomuz yok, yani "Benin", "Brazil", "United
+ * States" hepsi sessizce muaf olurdu — eksik tahsilat GÖRÜNMEZ, fazla
+ * sorulan soru görünür. Tanınmayan bir Avrupa yazımı, alıcıya "bizimle
+ * iletişime geçin" diyen bir uyarı üretir ve düzeltilebilir; tersi hiç fark
+ * edilmez.
+ */
+function vestra_user_in_europe(?array $user): bool {
+    if (!is_array($user)) return true;          // hesapsız = kapı zaten kapalı
+    $raw = trim((string)($user['country'] ?? ''));
+    if ($raw === '') return true;               // alan hiç yoksa taban işlemez
+    /* Çıplak ISO kodu: kayıt formunun kendi örneği 'DE'. Tam eşleşme —
+       'AT' Avusturya ile 'AU' Avustralya, 'SI' Slovenya ile 'SG' Singapur
+       arasındaki farkı alt dize eşleşmesi kaybederdi. */
+    if (preg_match('/^[A-Za-z]{2}$/', $raw)) return in_array(strtoupper($raw), vestra_europe_codes(), true);
+    $folded = trim(preg_replace('/\s+/u', ' ', strtr(mb_strtolower($raw), ['-' => ' ', '_' => ' '])));
+    if ($folded === '') return true;
+    foreach (vestra_europe_names() as $names) {
+        if (in_array($folded, $names, true)) return true;
+    }
+    return false;
+}
+
+/** Bu hesap için asgari sipariş tutarı (USD); Avrupa içi 0.0 = kural işlemez. */
+function vestra_order_min_usd(?array $user): float {
+    return vestra_user_in_europe($user) ? 0.0 : (float)VESTRA_NONEU_MIN_ORDER_USD;
+}
+
+/**
+ * Sepet EUR toplamı bu hesabın USD tabanını geçiyor mu? Saf: girdi tutar +
+ * hesap, çıktı eksik. Sunucu kapısı ve sepet uyarısı AYNI cevabı okusun diye
+ * tek yer (marka asgarisiyle aynı gerekçe).
+ *
+ * Doner: []                       -> geçer (taban yok ya da tutar yeterli)
+ *        ['error'=>'fx']          -> kur okunamadı, ölçüm YAPILAMADI
+ *        ['min_usd','have_usd','short_usd','rate'] -> eksik
+ *
+ * $subtotalEur, alıcının GERÇEKTEN ödeyeceği mal toplamı olmalı: bölgesel
+ * indirim `vestra_unit_price()` içinde zaten uygulanıyor, yani satır
+ * toplamları indirimli. Tabanı indirimsiz fiyattan ölçmek, %8 indirim alan
+ * bir alıcıdan fiilen 10.870 USD istemek olurdu.
+ */
+function vestra_order_min_shortfall(float $subtotalEur, ?array $user): array {
+    $min = vestra_order_min_usd($user);
+    if ($min <= 0) return [];
+    if (!function_exists('vestra_fx')) require_once __DIR__.'/money.php';
+    $rate = (float)vestra_fx('USD');
+    if ($rate <= 0) return ['error' => 'fx', 'min_usd' => $min];
+    $haveUsd = round($subtotalEur * $rate, 2);
+    /* Tolerans: tam sınırdaki sepet (eşiğin kendisi) kayan nokta yüzünden
+       reddedilmesin -- marka asgarisindeki ile aynı 0,005. */
+    if ($haveUsd >= $min - 0.005) return [];
+    return ['min_usd' => $min, 'have_usd' => $haveUsd,
+            'short_usd' => round($min - $haveUsd, 2), 'rate' => $rate];
+}
+
+/**
+ * Sepet satirlarindan marka basina EKSIK tutari bulur. Saf: girdi satirlar,
+ * cikti eksikler. Sunucu kapisi (order.php) ve sepet uyarisi ayni cevabi
+ * okusun diye tek yer -- bu depoda ikinci bir kapi tanimi alti kez yanlis yere
+ * bakti (KURAL 2h).
+ *
+ * $lines: [['brand'=>string, 'line'=>float], ...]  ('line' = adet x birim)
+ * Doner : ['NBB' => ['min'=>500.0, 'have'=>320.5, 'short'=>179.5], ...]
+ *         YALNIZCA esigin altinda kalan markalar. Bos dizi = sepet gecer.
+ *
+ * Tolerans: kayan nokta yuzunden tam sinirdaki bir sepet (500.00) reddedilmesin.
+ */
+function vestra_brand_min_shortfall(array $lines): array {
+    $have = [];
+    foreach ($lines as $l) {
+        $b = trim((string)($l['brand'] ?? ''));
+        if ($b === '') continue;
+        $have[$b] = ($have[$b] ?? 0.0) + (float)($l['line'] ?? 0);
+    }
+    $out = [];
+    foreach ($have as $brand => $sum) {
+        $min = vestra_brand_min_order($brand);
+        if ($min <= 0 || $sum >= $min - 0.005) continue;
+        $out[$brand] = ['min' => $min, 'have' => round($sum, 2), 'short' => round($min - $sum, 2)];
+    }
+    return $out;
+}
+
+/* By id, INCLUDING unlisted items: the product page, cart, order and offer paths all come
+   here with an id the buyer was given directly, and a link sent in a letter must keep
+   working even though the item is not in the catalogue. */
+function vestra_find($id){ foreach(vestra_products(true) as $p){ if($p['id']===$id) return $p; } return null; }
+/* ── A listing folded into another one keeps its address ───────────────────
+ *
+ * When several listings are merged into one (the eight Burberry polos into a
+ * single eight-colourway listing, 29 Sep 2026), the old ids have already been
+ * mailed: 100 offer letters carried /product?id=bur-8099164 that morning. A
+ * 404 there would send a buyer who clicked a letter nowhere. The old record
+ * stays in listings.json as `status: rejected` (out of every list, not
+ * orderable -- the 17 Sep 2026 decision for a removed listing) with
+ * `redirect_to: <new id>`, and the product page answers 301 to the new one.
+ *
+ * Reads the RAW record on purpose: the old listing is rejected, so vestra_find()
+ * no longer sees it. The target has to be live (vestra_find, so a hidden brand
+ * or a rejected target does not redirect into a 404) and must not itself
+ * redirect (no chains, no loops). Returns the target id or null.
+ */
+function vestra_product_redirect(string $id): ?string {
+  if ($id === '') return null;
+  $raw = vestra_listing_by_id($id);
+  $to = trim((string)($raw['redirect_to'] ?? ''));
+  if ($to === '' || $to === $id) return null;
+  $target = vestra_find($to);
+  if ($target === null || !empty($target['redirect_to'])) return null;
+  return $to;
+}
+function vestra_cats(){ $c=[]; foreach(vestra_products() as $p){ $c[$p['cat']]=1; } return array_keys($c); }
+function vestra_primary_image(array $p): string { if(!empty($p['images'])&&is_array($p['images'])) return $p['images'][0]; return $p['image']??''; }
+
+/* ── Ilanin adi ve aciklamasi, SAYFANIN DILINDE ───────────────────────────────
+ *
+ * (operator, 10 Eyl 2026, NBB ic camasiri katalogu: *"tüm dillere cevrilecek"*,
+ * ve adin da cevrilip cevrilmeyecegi ayrica soruldu -- cevap: evet.)
+ *
+ * Bu depoda ilanin `name`/`desc` alani HICBIR YERDE t()'den gecmiyordu; her
+ * sayfa ham dizgeyi basiyordu. Yani 4 Eylul'deki Kuloglu isinde baslik tek ve
+ * Ingilizce yazildi -- cevrilmedigi icin degil, cevrilmis bir basligin
+ * BASILACAGI YER olmadigi icin (product-batches/kuloglu-vocab.php'nin kendi
+ * olcumu). t() burada dogru arac DEGIL: t() site metinlerinin sozlugu, ilan
+ * adi ise ilanin kendi verisi -- her yeni urun sozluge 9 satir eklemek olurdu.
+ *
+ * Bu yuzden ceviri ILANIN UZERINDE duruyor (`name_i18n`, `desc_i18n`: dil kodu
+ * -> metin) ve okuyan TEK yer bu iki fonksiyon. Alan yoksa ya da o dil yoksa
+ * ilanin kendi `name`/`desc`'i basilir: 671 mevcut ilanin hicbirinde bu alan
+ * yok ve hicbiri degismemeli.
+ *
+ * ALAN EKLEMEK YETMEZ, OKUYAN YOL DA GEREKIR: bu depo "toplanan ama okunmayan
+ * alan"i bir kez yasadi (KURAL 5j -- platformun banka kunyesi panelde
+ * toplaniyordu, cizici o kaydi hic okumuyordu, alanlari doldurmak hicbir seyi
+ * degistirmiyordu). O yuzden cagri yerleri testle sayiliyor.
+ */
+function vestra_i18n_pick(array $map, string $fallback): string {
+    /* vlang() sureç icinde sabitleniyor; burada onu cagirmak dogru cunku her
+       istek tek bir dile ait. CLI'da (cron, toplu is) da 'en' donuyor. */
+    $lang = function_exists('vlang') ? vlang() : 'en';
+    $v = trim((string)($map[$lang] ?? ''));
+    return $v !== '' ? $v : $fallback;
+}
+function vestra_product_name(array $p): string {
+    $base = trim((string)($p['name'] ?? ''));
+    $m = $p['name_i18n'] ?? null;
+    return is_array($m) ? vestra_i18n_pick($m, $base) : $base;
+}
+function vestra_product_desc(array $p): string {
+    $base = trim((string)($p['desc'] ?? ''));
+    $m = $p['desc_i18n'] ?? null;
+    return is_array($m) ? vestra_i18n_pick($m, $base) : $base;
+}
+/* Marka + ad, tek yerde: alt metinlerde, sayfa basliklarinda ve belge
+   satirlarinda ayni sira kullanilsin. */
+/**
+ * GERIYE DONUS (operator, 10 Eyl 2026: *"kataloglarda geriye dogru donus koy"*).
+ *
+ * Urun sayfasindan listeye donerken BIRAKILAN YERE donuyor: sorgu dizesi
+ * korunuyor, yani suzgec, arama ve sayfa numarasi kaybolmuyor. Tarayicinin geri
+ * dugmesi bunu zaten yapiyor -- ama sayfaya bir baglantiyla gelen (kampanya
+ * mektubu, Google, paylasilan link) ziyaretcide gidilecek bir "geri" yok ve
+ * musteri katalogu bastan aramak zorunda kaliyordu.
+ *
+ * REFERRER HAM KULLANILMIYOR. Yalnizca (a) KENDI alan adimiz ve (b) BILINEN bir
+ * GEZINME yolu kabul ediliyor:
+ *   - ham referrer'i href'e basmak acik yonlendirme kapisidir (baska bir siteye
+ *     "geri" diye gonderen bir dugme),
+ *   - "javascript:" / "data:" gibi bir sema XSS'e acilir,
+ *   - ve disaridan gelen icin "geri" zaten dogru yer degil: o zaman katalog.
+ * Sema/host atiliyor, yalnizca yol + sorgu geri veriliyor; boylece cikan adres
+ * her zaman bizim sitemizde kaliyor.
+ *
+ * LISTE NEDEN HALA IZIN LISTESI (operator, 11 Eyl 2026: *"tam kataloga degil bir
+ * geri sayfaya nereden geldiyse oraya goturusun"*). Istenen "her yer" ama bu
+ * sitede GET ile IS YAPAN uclar var -- olculdu: `login?signout` oturumu kapatiyor,
+ * `offer-accept`, `verify`, `lead-unsubscribe` jeton harciyor. "Ayni alan adindaki
+ * her yolu kabul et" deseydik "geri" dugmesi bunlardan birini YENIDEN CAGIRABILIRDI.
+ * Izin listesi bu sinifi YAPISI GEREGI disarida tutuyor: jeton uclari gezinme
+ * sayfasi degil, yani listeye hic girmiyorlar. Liste tahminle degil OLCUMLE
+ * dolduruldu -- `grep 'product?id='` ile urune baglanti veren her sayfa sayildi.
+ */
+function vestra_back_link(string $fallback = '/shop'): array {
+    $out = ['url' => $fallback, 'label' => t('Back to catalog')];
+    $ref = trim((string)($_SERVER['HTTP_REFERER'] ?? ''));
+    if ($ref === '') return $out;
+
+    $u = @parse_url($ref);
+    if (!is_array($u) || !isset($u['path'])) return $out;
+    $scheme = strtolower((string)($u['scheme'] ?? ''));
+    if ($scheme !== '' && $scheme !== 'http' && $scheme !== 'https') return $out;
+
+    /* Ayni alan adi mi: www. onekini iki tarafta da atiyoruz, yoksa
+       www'dan gelen her ziyaretci "yabanci" sayilirdi. */
+    $host = strtolower((string)($u['host'] ?? ''));
+    $self = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+    $strip = fn(string $h): string => preg_replace('/^www\./', '', preg_replace('/:\d+$/', '', $h)) ?? $h;
+    if ($host !== '' && $self !== '' && $strip($host) !== $strip($self)) return $out;
+
+    /* Ters bolu ONCE duzeltiliyor: '/\evil.com' bazi tarayicilarda '//evil.com'
+       diye normallesir ve sema-goreli bir adres olur -- yani site disina cikan bir
+       "geri". ltrim tek basina bunu kapatmiyor. Izin listesi de yakalardi ama
+       guvenlik listeyi hatirlamaya bagli kalmasin. */
+    $path = '/'.ltrim(str_replace('\\', '/', (string)$u['path']), '/');
+
+    /* Urune baglanti VEREN her sayfa (olculdu). Jeton/aksiyon uclari bilerek yok:
+       /login /verify /offer-accept /lead-unsubscribe -- bunlar gezilecek sayfa
+       degil ve "geri" onlari yeniden tetiklerdi. /admin de yok: operator paneli
+       kendi navigasyonunu tasiyor ve ?dl= gibi sorgulari var. */
+    /* Duz str_starts_with YETMEZ: '/shop' oneki '/shopping-cart'i da yakalardi ve
+       "geri" dugmesi sepete goturur. Ya TAM esitlik ya da '/' ile devam eden yol --
+       bu depoda ayni ders blocklist'te mango/zara olarak duruyor. */
+    $ok = ($path === '/');            // ana sayfa: marka duvari ve kategori seridi urune gidiyor
+    if (!$ok) foreach (['/shop', '/b2b', '/wholesale', '/price-list', '/price-lists',
+                        '/groups', '/group', '/journal', '/search', '/showroom',
+                        '/dropship', '/dropshipping', '/requests', '/request',
+                        '/buyer', '/seller', '/product'] as $pre) {
+        if ($path === $pre || str_starts_with($path, $pre.'/')) { $ok = true; break; }
+    }
+    if (!$ok) return $out;
+
+    $q = isset($u['query']) && $u['query'] !== '' ? '?'.$u['query'] : '';
+
+    /* Kendine donen "geri" bozuk bir dugmedir: ayni urun sayfasi (ornegin
+       ?err=sizes ile kendine donmus bir gonderim) ya da birebir ayni adres. */
+    $selfUri = (string)($_SERVER['REQUEST_URI'] ?? '');
+    if ($path.$q === $selfUri) return $out;
+    if ($path === '/product' || str_starts_with($path, '/product/')) {
+        parse_str((string)($u['query'] ?? ''), $rq);
+        parse_str((string)(parse_url($selfUri, PHP_URL_QUERY) ?? ''), $sq);
+        if (($rq['id'] ?? '') !== '' && ($rq['id'] ?? '') === ($sq['id'] ?? '')) return $out;
+    }
+
+    return ['url' => $path.$q,
+            'label' => ($path === '/shop' || str_starts_with($path, '/shop/')) ? t('Back to catalog') : t('Back')];
+}
+
+function vestra_product_title(array $p): string {
+    return trim(trim((string)($p['brand'] ?? '')).' '.vestra_product_name($p));
+}
+
+/* Mask a seller/company name for viewers who are not yet approved (freigeschaltet):
+   "Milano Fashion GmbH" → "M···". Never reveals more than the first letter. */
+function vestra_mask_seller(string $s): string {
+    $s = trim($s);
+    return $s === '' ? '' : mb_strtoupper(mb_substr($s, 0, 1)).'···';
+}
+/* Full Fashion & Accessories taxonomy (grouped) — used by the seller's product form. */
+/* Satici panelindeki kategori acilir listesi buradan geliyor (seller.php: urun ekle
+   ve urun duzenle). Bu yuzden listede OLMAYAN bir kategori sadece "secilemez" degil:
+   duzenleme formu, urunun kategorisi listede yoksa "Other" secenegini SECILI getiriyor
+   (seller.php'deki in_array kontrolu), yani satici o urunu acip kaydettiginde dogru
+   kategori "Other" ile eziliyor. Katalogda kullanilan 6 kategori (Jeans Shorts,
+   Swim Shorts, Tracksuit Sets ve uc kadin kategorisi) burada yoktu ve o kategorilerde
+   34 canli urun duruyor -- hepsi bu tuzagin icindeydi. Taksonomi katalogun gercekten
+   sattigi seyi yansitmali; asagidakiler o yuzden eklendi. */
+function vestra_all_cats(){
+  return [
+    'Tops'               => ['T-Shirts',"Women's T-Shirts",'Polos','Shirts','Blouses','Sweaters & Knitwear','Cardigans','Hoodies & Sweatshirts','Tank Tops'],
+    'Bottoms'            => ['Trousers & Chinos','Jeans',"Women's Jeans",'Shorts','Jeans Shorts','Skirts','Leggings'],
+    'Outerwear'          => ['Jackets','Coats','Blazers','Vests & Gilets'],
+    'Dresses & Suits'    => ['Dresses','Suits','Jumpsuits & Playsuits'],
+    'Activewear & Swim'  => ['Activewear','Sportswear','Tracksuits','Tracksuit Sets','Swimwear','Swim Shorts',"Women's Swimwear"],
+    'Underwear & Socks'  => ['Underwear','Lingerie','Bras','Shapewear','Socks & Hosiery','Sleepwear','Loungewear','Basics'],
+    'Footwear'           => ['Sneakers','Boots','Sandals','Heels','Flats','Loafers','Slippers'],
+    'Bags & Luggage'     => ['Handbags','Backpacks','Tote Bags','Wallets & Purses','Travel & Luggage'],
+    'Accessories'        => ['Belts','Hats & Caps','Scarves & Shawls','Gloves','Sunglasses','Eyewear','Ties','Hair Accessories','Phone Cases'],
+    'Jewelry & Watches'  => ['Jewelry','Watches'],
+    'Kids & Baby'        => ['Kidswear','Babywear'],
+  ];
+}
+/* Curated colour palette for listings (name => swatch hex). Names are t()-translated at render. */
+function vestra_colors(){
+  return [
+    'Black'=>'#17181c','Navy'=>'#1f2a44','Blue'=>'#2b46c4','Light Blue'=>'#8db8d8','White'=>'#f2f1ec',
+    'Grey'=>'#8e9094','Dark Grey'=>'#4a4c52','Red'=>'#b3242c','Bordeaux'=>'#5c1a24','Green'=>'#14532d',
+    'Beige'=>'#d9c9a3','Pink'=>'#e0a3b6','Yellow'=>'#e3c14f','Orange'=>'#d97b29','Brown'=>'#6b4a2f',
+    'Cream'=>'#f1e8d2','Khaki'=>'#6a704c','Fuchsia'=>'#d1256e',
+    /* Kuloğlu underwear import (4 Eyl 2026): 5 renk eklendi, hicbiri var olani
+       degistirmiyor/silmiyor -- yalnizca EKLENIYOR. "Nude" tek basina en
+       yaygin ihtiyac: 638 urunun renk/beden alanlarinda 300'den fazla kez
+       geciyor ve önceki palette hicbir karsiligi yoktu (Beige'e zorlamak
+       yanlis ton olurdu -- ten rengi kumdan farkli). Digerleri de gercek
+       sayimla kararlastirildi (Mink ~40, Plum ~56, Purple ~25, Salmon ~37),
+       daha nadir olanlar (Dusty Rose, Powder Pink, Mustard, Terracotta...)
+       en yakin var olan renge esleniyor -- palette her nadir ton icin
+       simsiz sismesin diye (product-batches/kuloglu-vocab.php'deki eslesme
+       tablosuna bakin). */
+    'Nude'=>'#dfb08c','Mink'=>'#a89485','Purple'=>'#6a3d99','Plum'=>'#5c3a54','Salmon'=>'#e8917a',
+    /* "Other" (operator istegi, 2 Eyl 2026): palette sigmayan renk/desen -- cok
+       renkli baski, metalik, kamuflaj. Listenin SONUNDA durur. Degeri bir CSS
+       arka plani: her tuketici bunu background: olarak basiyor (kart noktasi,
+       urun sayfasi, form cipi), o yuzden cok renkli bir gradyan tek hex'in
+       yerine sorunsuz gecer. Renk TAHMINCISI bu adi kullanmaz (asagida). */
+    'Other'=>'linear-gradient(135deg,#b3242c 0 25%,#e3c14f 25% 50%,#2b46c4 50% 75%,#14532d 75% 100%)',
+  ];
+}
+/* ── Colourway names that carry more than the colour ─────────────────────────
+ *
+ * A colour name in a listing is usually a bare palette key ("Black"). A listing
+ * that holds several MODELS in one record (the Burberry piqué polo, eight
+ * colourways, 29 Sep 2026) needs the model number in the colourway name, because
+ * two of its colourways are "Black" and an order line reading "Black ×20" would not
+ * say which article to pick: "Black (8096425)" / "Black · Check collar (8071620)".
+ *
+ * vestra_colour_base() finds the palette colour such a name STARTS with (longest
+ * key first, whole word, case-insensitive), so the swatch, the dark-ring rule and
+ * the translation all keep working: the dot is black, the label reads
+ * "Schwarz (8096425)" on a German page, and the suffix is carried verbatim. A name
+ * that starts with no palette colour resolves to nothing and is drawn as before
+ * (skipped in the dot row, grey in the pickers). 'Other' is never inferred.
+ */
+function vestra_colour_base(string $name): ?string {
+  $name = trim($name);
+  if ($name === '') return null;
+  $pal = vestra_colors();
+  if (isset($pal[$name])) return $name;
+  $keys = array_values(array_diff(array_keys($pal), ['Other']));
+  usort($keys, fn($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+  foreach ($keys as $k) {
+    if (preg_match('/^' . preg_quote($k, '/') . '(?![A-Za-z])/iu', $name)) return $k;
+  }
+  return null;
+}
+/* CSS background for a colourway name; '#666' when it starts with no palette colour. */
+function vestra_colour_css(string $name): string {
+  $b = vestra_colour_base($name);
+  return $b === null ? '#666' : vestra_colors()[$b];
+}
+/* Translated label: the palette colour goes through t(), the suffix stays as written. */
+function vestra_colour_label(string $name): string {
+  $name = trim($name);
+  $b = vestra_colour_base($name);
+  if ($b === null || strcasecmp($b, $name) === 0) return t($name);
+  return t($b) . substr($name, strlen($b));
+}
+/* Small colour-dot row (shop cards, product page, admin). $withNames adds the label after each dot. */
+function vestra_color_dots(array $colors, int $max=7, bool $withNames=false): string {
+  $pal=vestra_colors(); $out=''; $shown=0;
+  foreach($colors as $c){
+    $c=(string)$c; $base=vestra_colour_base($c);
+    if($base===null) continue;
+    if($shown>=$max){ $out.='<span class="cmore">+'.(count($colors)-$shown).'</span>'; break; }
+    $ring = in_array($base,['Black','Navy','Bordeaux','Brown','Green','Purple','Plum'],true) ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.25)';
+    $out.='<span class="cdot" title="'.htmlspecialchars(vestra_colour_label($c)).'" style="background:'.$pal[$base].';box-shadow:inset 0 0 0 1px '.$ring.'"></span>';
+    if($withNames) $out.='<span class="cname">'.htmlspecialchars(vestra_colour_label($c)).'</span>';
+    $shown++;
+  }
+  return $out ? '<span class="cdots">'.$out.'</span>' : '';
+}
+/* LOT / PACK SIZE — how many pieces one carton of this article holds.
+   Tek karar noktasi. Bu olgu daha once dort yerde AYRI AYRI okunuyordu
+   (linesheet.php, product.php, order.php, offer.php) ve her biri kendi
+   varsayilanini yaziyordu; fiyat listelerinde ise HIC okunmuyordu -- lot
+   yalnizca 'sizes' dizesinin icine gomulu bir "10/pack" parcasi olarak
+   goruluyordu, yani siralanamiyor, suzulemiyor, toplanamiyordu.
+
+   YOKLUK BELIRSIZ DEGIL: admin.php:615 alani yalnizca 1'den buyukken YAZIYOR
+   (`if($step>1) ... else unset(...)`), yani alanin olmamasi "bilinmiyor" degil
+   "tek parca" demek. Bu yuzden 1 donmek bir tahmin degil, kaydin kendi ifadesi
+   -- KURAL 3'un yasakladigi sey bir olguyu UYDURMAK; burada kayit zaten
+   konusuyor. linesheet.php ayni okumayi bastan beri yapiyordu. */
+function vestra_pack_size(array $p): int {
+  $n = (int)($p['size_step'] ?? 0);
+  return $n > 1 ? $n : 1;
+}
+/* True for listings that use the per-colour carton picker (e.g. Lacoste/Ralph Lauren polos:
+   min 4 colours, cartons of 8 or 10 per colour) instead of a plain colour checklist.
+
+   `colorqty` (explicit flag) opens the same picker on a LOT-1 listing: the Burberry piqué
+   polo, eight colourways in one listing sold by the piece (29 Sep 2026). Without the flag a
+   buyer of that listing could only tick colours and give one total, and the seller would not
+   know the split. The flag is opt-in per listing rather than a relaxed step rule, so no
+   existing listing that carries colours + min_colors without a pack step changes behaviour. */
+function vestra_is_colorqty_listing(array $p): bool {
+  return !empty($p['colors']) && !empty($p['min_colors'])
+      && ((int)($p['size_step'] ?? 0) > 1 || !empty($p['colorqty']));
+}
+/* Singular-safe "at least N colour(s)" phrasing — most listings require 4, but some
+   only require 1, where "at least 1 colours" would read wrong. */
+function vestra_colours_phrase(int $n): string {
+  return $n === 1 ? t('at least 1 colour') : sprintf(t('at least %d colours'), $n);
+}
+function vestra_colours_warn(int $n): string {
+  return $n === 1 ? t('Please select at least 1 colour.') : sprintf(t('Please select at least %d colours.'), $n);
+}
+/* Validate + snap posted per-colour quantities ($posted = ['ColourName'=>qty,...], e.g. from
+   $_POST['cq']) against a listing's own colour list and pack step. Only colours the listing
+   actually offers count, and every quantity is snapped down to the nearest step multiple —
+   never trusts the client. Returns null when the listing isn't in per-colour-qty mode.
+   Otherwise returns ['lines'=>['Black ×16','Navy ×8',...], 'qty'=>24] — a lines entry is
+   included only once its snapped quantity is > 0, so it also doubles as "colours selected". */
+function vestra_parse_colorqty(array $p, array $posted): ?array {
+  if (!vestra_is_colorqty_listing($p)) return null;
+  $step = vestra_pack_size($p);                 // 1 on a by-the-piece listing (colorqty flag)
+  $allowed = array_flip((array)$p['colors']);
+  $lines = []; $qty = 0;
+  foreach ($posted as $name => $raw) {
+    $name = (string)$name;
+    if (!isset($allowed[$name])) continue;
+    $n = (int)(round(max(0, (int)$raw) / $step) * $step);
+    if ($n <= 0) continue;
+    $lines[] = $name.' ×'.$n;
+    $qty += $n;
+  }
+  return ['lines' => $lines, 'qty' => $qty];
+}
+/* Same as vestra_parse_colorqty() but for the cart/JS path, which submits the client-built
+   "Black ×16" style tokens (cart.php just displays these verbatim) instead of a raw
+   ['Name'=>qty] map. Re-derives the map from the tokens and re-validates from scratch —
+   the client's numbers are never trusted, only which colour+step they point at. */
+function vestra_parse_colorqty_tokens(array $p, array $tokens): ?array {
+  $map = [];
+  foreach ($tokens as $tok) {
+    if (preg_match('/^(.*?)\s*×\s*(\d+)$/u', trim((string)$tok), $m)) $map[$m[1]] = (int)$m[2];
+  }
+  return vestra_parse_colorqty($p, $map);
+}
+/* $raw=true => KATALOG fiyati, bakanin bolgesel indirimi UYGULANMADAN.
+   Operator paneli, satici paneli ve journal bunu ister: operatore indirimli
+   rakam gostermek, satilan malin fiyatini yanlis bilmesi demek. Alicinin
+   gordugu ve KASANIN aldigi her yol varsayilani kullanir, yani ikisi
+   kendiliginden ayni (bkz. inc/region_discount.php'deki not). */
+function vestra_unit_price($p,$qty,bool $raw=false){
+  if(empty($p['tiers'])) return 0.0;
+  $price=$p['tiers'][0]['price'];
+  foreach($p['tiers'] as $t){ if($qty>=$t['min']) $price=(float)$t['price']; }
+  return $raw ? (float)$price : vestra_price_after_region((float)$price);
+}
+function vestra_from_price($p,bool $raw=false){
+  if(empty($p['tiers'])) return 0.0;
+  $m=null; foreach($p['tiers'] as $t){ $m=($m===null)?$t['price']:min($m,$t['price']); }
+  return $raw ? (float)$m : vestra_price_after_region((float)$m);
+}
+/* Kademe merdiveni, ALICININ GERCEKTEN ODEYECEGI hali: [['min'=>56,'price'=>70.20], ...].
+   Ham `tiers` bunun icin yeterli degildi ve her cagiran ayni duzeltmeleri kendi yapardi:
+   - ILK BASAMAK MOQ'DA BASLAR. Cogu ilanin ilk kademesi `min=1` yaziyor; "ab 1 Stuck"
+     yazan bir mektup ilan edilen minimumu yalanlar ve sepet o adedi zaten kabul etmez.
+     Fiyati yine sepetin kendi fonksiyonu veriyor (vestra_unit_price), yani MOQ'nun
+     altinda kalan bir kademe atlanmiyor -- o adette gecerli olan fiyat basiliyor.
+   - MOQ'nun ALTINDAKI basamaklar dusuyor: alinamayan bir adedin fiyatini yazmak,
+     kasanin uygulamadigi rakami ilan etmektir (KURAL 6).
+   - Fiyati DEGISTIRMEYEN basamak dusuyor; ayni rakami iki kez yazan merdiven okunmuyor.
+     YUKSELEN bir basamak DUSMUYOR: gizlemek, pahali tarafta eksik bilgi vermek olurdu. */
+/**
+ * Bir ilanin RENKLERINI kendi GORSELLERIYLE eslestirir.
+ *
+ * Bu eslestirici `send-campaign-preview.yml`'in icinde yaziliydi ve Angebot
+ * mektubu ayni seyi yapmak zorunda oldugu icin buraya alindi: ikinci bir kopya,
+ * bir gun birinde duzeltilip otekinde kalacak bir kusur demekti (bu depoda
+ * desc/sizes, faturanin uc katmani ve DORT mektup govdesi ayni dersi verdi).
+ *
+ * Eslesme SINIRLI, alt dize degil: ayirac/bas-son sinirina bagli ve UZUN AD
+ * ONCE deneniyor, her dosya bir kez kullaniliyor. Gevsetilip str_contains
+ * yapildiginda yalin bir "Blue", "Light Blue"nun dosyasini elinden aliyor ve
+ * aliciya YANLIS RENGIN fotografi gosteriliyor — olculdu, varsayilmadi
+ * (mango/zara dersinin fotograf hali).
+ *
+ * Donen 'missing' bos degilse cagiran DURMALI: "her renge foto var" iddiasi
+ * yanlissa mektup gonderilmez.
+ */
+function vestra_listing_colour_shots(array $p): array {
+    $slug = fn(string $s): string => trim(preg_replace('/[^a-z0-9]+/', '-', strtolower(trim($s))), '-');
+    $cols = array_values(array_filter(array_map('strval', (array)($p['colors'] ?? []))));
+    $imgs = array_values(array_filter(array_map('strval', (array)($p['images'] ?? []))));
+
+    $byLen = $cols;
+    usort($byLen, fn($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+    $used = []; $hitOf = []; $missing = [];
+    foreach ($byLen as $c) {
+        $sl = $slug($c); $hit = '';
+        foreach ($imgs as $im) {
+            if (isset($used[$im]) || $sl === '') continue;
+            $base = strtolower(basename($im));
+            if (preg_match('/(^|[^a-z0-9])' . preg_quote($sl, '/') . '([^a-z0-9]|$)/', $base)) { $hit = $im; break; }
+        }
+        if ($hit === '') { $missing[] = $c; continue; }
+        $used[$hit] = true; $hitOf[$c] = $hit;
+    }
+    /* TEK RENKLI ILAN: dosya adi rengi tasimasa da foto O RENGIN fotografi.
+       DSQUARED2'nin 64 ilaninin cogu tek renk ve fotograf adi yalniz stil
+       kodu ("dsq-101213.png"); katı eslesme "Black" icin foto bulamayip
+       Burberry/Fred Perry/DSQUARED2 kampanyasini durdurdu (1 Eki 2026). Tek
+       renkte "hangi foto hangi renk" sorusu yok -- ilanin kapagi o rengin
+       fotografi, geri kalan kareler bagsiz kalir. SINIRLI: yalniz renk SAYISI
+       TAM 1 ve ad eslesmesi yoksa; iki renkli ilanda tek bir adsiz foto hala
+       "eksik" (hangisinin hangi renk oldugu bilinemez), yani "her renge foto"
+       iddiasi orada gevsemiyor. */
+    if (count($cols) === 1 && $missing && $imgs) {
+        $hitOf[$cols[0]] = $imgs[0]; $used[$imgs[0]] = true; $missing = [];
+    }
+    /* Sira ILANIN kendi renk sirasi, eslestirmenin sirasi degil: alicinin
+       sayfada gordugu sira budur. */
+    $pairs = [];
+    foreach ($cols as $c) if (isset($hitOf[$c])) $pairs[] = ['colour' => $c, 'img' => $hitOf[$c]];
+    return ['pairs' => $pairs, 'missing' => $missing,
+            'unbound' => array_values(array_diff($imgs, array_keys($used)))];
+}
+
+function vestra_price_ladder(array $p): array {
+  $moq = max(1, (int)($p['moq'] ?? 0));
+  $rows = [['min' => $moq, 'price' => (float)vestra_unit_price($p, $moq)]];
+  foreach ((array)($p['tiers'] ?? []) as $t) {
+    $m = (int)($t['min'] ?? 0);
+    if ($m > $moq) $rows[] = ['min' => $m, 'price' => (float)($t['price'] ?? 0)];
+  }
+  usort($rows, fn($a, $b) => $a['min'] <=> $b['min']);
+  $out = []; $prev = null;
+  foreach ($rows as $r) {
+    if ($r['price'] <= 0) continue;
+    if ($prev !== null && abs($r['price'] - $prev) < 0.005) continue;
+    $out[] = $r; $prev = $r['price'];
+  }
+  return $out;
+}
+function vestra_discount($p){ if(($p['mode']??'')!=='sale'||empty($p['list'])) return 0; return (int)round(100*($p['list']-vestra_from_price($p,true))/$p['list']); }
+/* Bir urun ancak liste fiyati gercekten kademe fiyatinin USTUNDEyse "indirimli"dir.
+   Veri kayiyor: kademe fiyatini guncelleyip 'list' alanina dokunmayinca mode='sale'
+   ama list == fiyat kaliyordu; vitrinde "-%0" rozeti ve ayni sayinin uzeri cizili
+   hali cikiyordu. Musteriye donuk her yer artik ham mode'u degil bunu soruyor. */
+function vestra_on_sale($p){ return ($p['mode'] ?? '') === 'sale' && vestra_discount($p) > 0; }
+/* Vitrinde gecerli mod: gercek indirimi olmayan bir "sale" urunu sadece sabit
+   fiyatli bir urundur — rozeti de, ustu cizili fiyati da, filtresi de oyle davranir. */
+function vestra_display_mode($p){ $m = $p['mode'] ?? 'fixed'; return ($m === 'sale' && !vestra_on_sale($p)) ? 'fixed' : $m; }
+
+/* ── Disa giden listelerin (Excel/PDF/price-list) bastigi fiyat ─────────────
+   'list' alani fiyat listesinin fiyati DEGIL, iki sebeple:
+     - mode=sale'de 'list' bilerek USTU CIZILI eski fiyattir (vestra_discount
+       yuzdeyi ondan hesaplar); listeye basilinca 33 urun sepetin aldigindan
+       %28-42 pahali gorunuyordu.
+     - kademe merdiveniyle elle ayri girildiginde sessizce ayrisabiliyor
+       (L1212: list 29,90, sepet MOQ'da 34,00 aliyordu — alici aleyhine tek vaka).
+   Dogru sayi, SEPETIN MOQ'DA TAHSIL ETTIGI: alicinin verebilecegi en kucuk
+   siparisin birim fiyati. Uc liste de (xlsx, pdf, price-list sayfasi) artik bu
+   fonksiyonu okuyor — tek kaynak, bir daha ayrisamazlar. */
+/* Marka suzgeci: BIR ad ya da VIRGULLE birden fazla ad.
+   Uc yer okuyor -- wholesale-list.php (PDF), wholesale-xlsx.php (Excel) ve
+   send-campaign-preview'in price_list dali. Ucune ayri ayri bir virgul
+   ayristirmasi yazmak, bu deponun defalarca odedigi "ayni olgu birkac yerde
+   yazili" hatasi olurdu: PDF iki marka tasirken Excel'in tek marka tasidigi
+   bir zarf, listenin tamamini gondermekten kotudur (o ders xlsx'in kategori
+   suzgeci eksikken zaten bir kez yasandi).
+   Eslesme AD BASINA TAM, alt dize degil (mango/zara dersi): "Lacoste" istegi
+   yarin gelecek bir "Lacoste Kids"i de listeye almamali. Bos suzgec = hepsi,
+   yani mevcut davranis birebir korunuyor.
+   SINIR, bilerek: ayirici virgul oldugu icin adinda virgul TASIYAN bir marka
+   bu yolla secilemez. Katalogda oyle bir ad yok; cikarsa tek ad olarak
+   verilebilir, ve uydurma bir kacis dizisi eklemek gercek olmayan bir soruna
+   kod yazmak olurdu. */
+function vestra_brand_filter_match(string $brand, string $filter): bool {
+  $filter = trim($filter);
+  if ($filter === '') return true;
+  $brand = trim($brand);
+  foreach (explode(',', $filter) as $want) {
+    $want = trim($want);
+    if ($want !== '' && strcasecmp($brand, $want) === 0) return true;
+  }
+  return false;
+}
+
+function vestra_export_price(array $p): float {
+  if (!empty($p['tiers'])) {
+    $t = (float)vestra_unit_price($p, max(1, (int)($p['moq'] ?? 1)));
+    if ($t > 0) return $t;
+  }
+  return (float)($p['list'] ?? $p['price'] ?? 0);
+}
+/* Gercek bir indirimde ustu cizilecek eski fiyat; indirim yoksa 0. Listede
+   indirimi gorunur kilmak icin: "69,00 yerine 49,90" satis argumaninin ta
+   kendisi ve eski hali onu tersine cevirip pahali gosteriyordu. */
+function vestra_export_was(array $p): float {
+  if (!vestra_on_sale($p)) return 0.0;
+  $list = (float)($p['list'] ?? 0);
+  $now  = vestra_export_price($p);
+  return $list > $now + 0.005 ? $list : 0.0;
+}
+/* MOQ ustundeki kademeler, kisa etiket halinde: "160+ 29.50 · 320+ 25.00".
+   Basliktaki fiyat MOQ kademesi oldugu icin o tekrar edilmiyor. Toptancinin
+   listede ilk aradigi sey hacim fiyatidir ve simdiye dek hic basilmiyordu. */
+function vestra_export_tiers_label(array $p): string {
+  if (empty($p['tiers']) || count($p['tiers']) < 2) return '';
+  $moq = max(1, (int)($p['moq'] ?? 1));
+  $out = [];
+  foreach ($p['tiers'] as $t) {
+    $min = (int)($t['min'] ?? 0);
+    if ($min > $moq) $out[] = $min.'+ '.number_format((float)$t['price'], 2, '.', '');
+  }
+  return implode(' · ', $out);
+}
+/* Kullanicidan gelen PARA metnini sayiya cevirir. (float) TEK BASINA
+ * YETMIYOR ve sessizce para kaybettiriyor:
+ *     (float)"35,50"   -> 35.00   (kurus ucar)
+ *     (float)"1.234,56"-> 1.23    (felaket)
+ * Turkce klavyede ondalik ayirici VIRGUL; operator "35,50" yazdiginda
+ * teklif 35,00'a dusuyordu ve panelde de mektupta da 35,00 gorunuyordu --
+ * yani yanlis oldugunu gosteren hicbir sey yoktu.
+ *
+ * Kural: iki ayirici da varsa SONUNCUSU ondalik ayiricidir (1.234,56 ve
+ * 1,234.56 ikisi de dogru cozulur). Yalnizca virgul varsa ve sondan 1-2
+ * hane ayiriyorsa ondalik, degilse binlik ayiricidir (1,234 = 1234).
+ * Rakam disindaki her sey (bosluk, EUR, €) atilir. */
+function vestra_price_input($v): float {
+    $s = trim((string)$v);
+    if ($s === '') return 0.0;
+    $neg = str_starts_with($s, '-');
+    $s = preg_replace('/[^0-9.,]/', '', $s);
+    if ($s === '') return 0.0;
+    $lastDot = strrpos($s, '.');
+    $lastCom = strrpos($s, ',');
+    if ($lastDot !== false && $lastCom !== false) {
+        $dec = max($lastDot, $lastCom);
+        $s = str_replace([',', '.'], '', substr($s, 0, $dec)) . '.' . preg_replace('/\D/', '', substr($s, $dec + 1));
+    } elseif ($lastCom !== false) {
+        $tail = strlen($s) - $lastCom - 1;
+        $s = ($tail === 1 || $tail === 2)
+            ? str_replace(',', '.', $s)          // 35,5 / 35,50 -> ondalik
+            : str_replace(',', '', $s);          // 1,234        -> binlik
+    } elseif ($lastDot !== false) {
+        $tail = strlen($s) - $lastDot - 1;
+        if ($tail === 3 && substr_count($s, '.') >= 1 && strlen($s) - 4 >= 1 && !str_contains(substr($s, 0, $lastDot), '.')) {
+            /* "1.234" belirsiz; Turkce baglamda binlik okunur. "12.34" ise
+               ondalik -- ayirim sondaki hane sayisi. */
+            $s = str_replace('.', '', $s);
+        }
+    }
+    $f = (float)$s;
+    return $neg ? -$f : $f;
+}
+
+function eur($n){ return '€'.number_format((float)$n,2,'.',','); }
+
+/* ───────────────────────── GROUP ORDERS (collective wholesale) ─────────────────────────
+ * Small buyers pool their quantities on one product until the seller's wholesale MOQ is
+ * reached — then the lowest tier price unlocks for everyone. VESTRA runs the countdown +
+ * escrow; the seller just ticks "open for group buying". A pool is 1:1 with a product id.
+ */
+if(!defined('VESTRA_GROUP_DEFAULT_DAYS')) define('VESTRA_GROUP_DEFAULT_DAYS', 14);
+
+/* Target = qty that unlocks the wholesale price (seller override, else the top tier's min). */
+function vestra_group_target($p){
+  if(!empty($p['group_target'])) return max(1,(int)$p['group_target']);
+  $last=end($p['tiers']); return max(1,(int)($last['min']??$p['moq']));
+}
+/* Per-buyer minimum commitment for a pool. Separate from the product's own moq on
+   purpose: a pool can demand a far larger ticket than the same article's ordinary
+   wholesale minimum (this one asks 104 against a catalogue moq of 20), and writing
+   that into moq would move the minimum everywhere the product is sold. */
+function vestra_group_min_qty($p){
+  if(!empty($p['group_min_qty'])) return max(1,(int)$p['group_min_qty']);
+  return max(1,(int)($p['moq'] ?? 1));
+}
+/* ─── Assortment pools ──────────────────────────────────────────────────────
+   A pool is otherwise 1:1 with one product. An assortment pool still HAS a host
+   listing (so ids, seller, order plumbing all keep working) but covers several
+   catalogue models: the buyer commits a total quantity and spreads it across
+   them. group_models holds the member ids.
+
+   Ids that no longer resolve are dropped silently HERE but rejected at write
+   time by set-product.yml — a pool advertised as "10 models" that quietly
+   renders 8 would shortchange the buyer without anyone noticing. */
+function vestra_group_models($p): array {
+  $ids = $p['group_models'] ?? [];
+  if(!is_array($ids) || !$ids) return [];
+  $out = [];
+  foreach($ids as $id){
+    $m = vestra_find((string)$id);
+    if(!$m) continue;
+    $out[] = ['id'=>$m['id'], 'name'=>(string)($m['name']??''), 'sku'=>(string)($m['sku']??''),
+              'image'=>vestra_primary_image($m)];
+  }
+  return $out;
+}
+function vestra_group_is_assortment($p): bool { return count(vestra_group_models($p)) > 1; }
+/* Minimum number of colours a pool commitment must pick. Falls back to the
+   listing's own min_colors so a pool inherits the carton rule the product
+   already sells under; group_min_colors only exists to let a pool demand a
+   WIDER spread than the ordinary order flow does. 0 = no colour choice. */
+function vestra_group_min_colors($p): int {
+  if(isset($p['group_min_colors'])) return max(0,(int)$p['group_min_colors']);
+  return max(0,(int)($p['min_colors'] ?? 0));
+}
+/* Every photo the catalogue holds for a pool — the pool page shows the whole
+   set, not just the hero. Assortment pools show their members' photos instead
+   (see vestra_group_models). */
+function vestra_group_gallery($p): array {
+  $imgs = $p['images'] ?? [];
+  if(!is_array($imgs)) return [];
+  $out = [];
+  foreach($imgs as $im){ $im=trim((string)$im); if($im!=='') $out[]=$im; }
+  return $out;
+}
+/* Display name for a pool. An assortment is not "one product", so it carries its
+   own title; without one it falls back to the host listing's name. */
+function vestra_group_title($p): string {
+  $t = trim((string)($p['group_title'] ?? ''));
+  return $t !== '' ? $t : (string)($p['name'] ?? '');
+}
+/* Unlocked unit price once the target is met (seller override, else the lowest tier price). */
+function vestra_group_price($p){
+  if(!empty($p['group_price'])) return (float)$p['group_price'];
+  return (float)vestra_from_price($p);
+}
+/* Deadline, honouring the one-time extension. A pool that misses its target is
+   extended once (group_extend_days) before anyone's deposit is refunded, so the
+   effective deadline moves — group_deadline itself is left untouched as the
+   record of what was originally promised. */
+function vestra_group_deadline($p){
+  if(!empty($p['group_extended_to'])) return $p['group_extended_to'];
+  if(!empty($p['group_deadline'])) return $p['group_deadline'];
+  $start=$p['group_started'] ?? date('c');
+  return date('c', strtotime($start.' +'.VESTRA_GROUP_DEFAULT_DAYS.' days'));
+}
+/* Buyer commitments for one pool (newest first).
+   Two sources, deliberately merged rather than migrated: the legacy no-payment
+   rows in data/groups.csv (pools opened before deposits existed — they are real
+   commitments and must keep counting) and the deposit-paid records in
+   data/pool_commits.json. Deposit records are normalised to the CSV row shape so
+   every caller — the pool page, the progress bar, admin — stays unaware of which
+   store a commitment came from. */
+function vestra_group_commits($poolId){
+  $rows=vestra_read_csv('groups.csv');
+  $out=array_values(array_filter($rows, function($r) use ($poolId){ return ($r['pool_id']??'')===$poolId; }));
+
+  require_once __DIR__.'/pools.php';
+  foreach(pool_commits_for($poolId) as $c){
+    $out[]=[
+      'timestamp'=>$c['created']??'', 'pool_id'=>$poolId, 'ref'=>$c['ref']??'',
+      'company'=>$c['company']??'', 'name'=>$c['name']??'', 'email'=>$c['email']??'',
+      'country'=>$c['country']??'', 'qty'=>$c['qty']??0,
+      'unit_price'=>$c['unit_price']??0, 'est_total'=>$c['total']??0,
+      'deposit_paid'=>$c['deposit']??0, 'status'=>$c['status']??'',
+    ];
+  }
+  usort($out, function($a,$b){ return strcmp($b['timestamp']??'', $a['timestamp']??''); });
+  return $out;
+}
+/* Enrich a product with live pool state (committed qty, % progress, days left, status). */
+function vestra_group_enrich($p){
+  $target=vestra_group_target($p);
+  $commits=vestra_group_commits($p['id']);
+  $committed=(int)($p['group_seed']??0);
+  foreach($commits as $c){ $committed+=(int)($c['qty']??0); }
+  $deadline=vestra_group_deadline($p);
+  $secsLeft=strtotime($deadline)-time();
+  $daysLeft=max(0,(int)ceil($secsLeft/86400));
+  $pct=$target>0?max(0,min(100,(int)round(100*$committed/$target))):0;
+  $remaining=max(0,$target-$committed);
+  $status = $committed>=$target ? 'funded' : ($secsLeft<=0 ? 'expired' : 'open');
+  return $p + [
+    '_target'=>$target,'_gprice'=>vestra_group_price($p),'_committed'=>$committed,
+    '_remaining'=>$remaining,'_participants'=>count($commits)+(int)($p['group_seed_n']??0),
+    '_deadline'=>$deadline,'_daysLeft'=>$daysLeft,'_pct'=>$pct,'_status'=>$status,'_commits'=>$commits,
+  ];
+}
+/* All products opened for group buying, enriched + sorted (almost-funded first). */
+function vestra_group_pools(){
+  $pools=[];
+  foreach(vestra_products() as $p){ if(!empty($p['group']) && !vestra_is_sold_out($p)) $pools[]=vestra_group_enrich($p); }
+  usort($pools, function($a,$b){ return $b['_pct']<=>$a['_pct']; });
+  return $pools;
+}
+/* SATILDI olan urun havuz olarak da acilmaz: hem /groups listesinden duser
+   (vestra_group_pools -> vestra_products zaten sold_out'u tasiyor ama havuz
+   ayri bir satis yolu) hem group-checkout burayi cagirdigi icin sunucu
+   tarafinda da kapali olur. Tek yerde kesmek, iki yerde unutmaktan iyi. */
+function vestra_group_pool($id){ $p=vestra_find($id); if(!$p||empty($p['group'])||vestra_is_sold_out($p)) return null; return vestra_group_enrich($p); }
+
+/* ─── Uploads ─── */
+/* Validate + store one uploaded product photo; returns '/uploads/…' or '' on any failure.
+   Shared by seller-add (new listing) and seller edit (replace photos). */
+function vestra_save_upload_photo(array $f): string {
+  $updir = dirname(__DIR__).'/uploads';
+  if(!is_dir($updir)) @mkdir($updir,0755,true);
+  /* Rewritten when the sheet rule is missing, not only when the file is absent: the
+     deny-code rule shipped first, so every existing install already has an .htaccess
+     here and a create-if-missing check would never add the line-sheet rule to it. */
+  $ht = $updir.'/.htaccess';
+  if(!is_file($ht) || strpos((string)@file_get_contents($ht), '^sheet_') === false){
+    @file_put_contents($ht,
+      "Options -Indexes\n<FilesMatch \"(?i)\\.(php\\d*|phtml|phar|pl|py|cgi|sh|asp|aspx|jsp)$\">\n  Require all denied\n</FilesMatch>\n"
+     ."<FilesMatch \"(?i)^sheet_\">\n  Require all denied\n</FilesMatch>\n");
+  }
+  if(($f['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK||($f['size']??0)<=0||$f['size']>5*1024*1024) return '';
+  $info=@getimagesize($f['tmp_name']); if(!$info) return '';
+  $ext=[IMAGETYPE_JPEG=>'jpg',IMAGETYPE_PNG=>'png',IMAGETYPE_WEBP=>'webp',IMAGETYPE_GIF=>'gif'][$info[2]]??'';
+  if($ext==='') return '';
+  $name='img_'.bin2hex(random_bytes(8)).'.'.$ext;
+  return @move_uploaded_file($f['tmp_name'],$updir.'/'.$name)?'/uploads/'.$name:'';
+}
+/* Collect photos[] uploads (up to $max) → list of stored URLs. */
+function vestra_collect_photo_uploads(string $field='photos', int $max=6): array {
+  $out=[];
+  if(isset($_FILES[$field]['name'])&&is_array($_FILES[$field]['name'])){
+    for($i=0;$i<min(count($_FILES[$field]['name']),$max);$i++){
+      $f=['name'=>$_FILES[$field]['name'][$i],'type'=>$_FILES[$field]['type'][$i],
+          'tmp_name'=>$_FILES[$field]['tmp_name'][$i],'error'=>$_FILES[$field]['error'][$i],'size'=>$_FILES[$field]['size'][$i]];
+      if($url=vestra_save_upload_photo($f)) $out[]=$url;
+    }
+  }
+  return $out;
+}
+
+/* ─── Listings & status helpers ─── */
+function vestra_save_listings(array $list): void {
+    $f = vestra_data_dir().'/listings.json';
+    file_put_contents($f, json_encode(array_values($list), JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), LOCK_EX);
+}
+function vestra_listing_by_id(string $id): ?array {
+    foreach (vestra_listings() as $l) if (($l['id']??'') === $id) return $l; return null;
+}
+/* ─── Ownership helpers (multi-seller safety — every seller only ever touches their own data) ─── */
+function vestra_seller_listings(string $uid): array {
+    if ($uid === '') return [];
+    return array_values(array_filter(vestra_listings(), fn($p) => ($p['seller_uid']??'') === $uid));
+}
+function vestra_listing_owner(string $id): ?string {
+    $l = vestra_listing_by_id($id);
+    return $l ? ($l['seller_uid'] ?? '') : null;
+}
+
+/* ─── Monthly listing quota ────────────────────────────────────────────────────
+   Satici tarafi UCRETSIZ: platform yalnizca satistan komisyon aliyor. Kota bir
+   odeme kaldiraciydi (Starter 10/ay, Pro 100/ay -- "daha fazlasi icin yukselt"),
+   odeme kalkinca dayanagi da kalmadi. Herkes icin null = sinirsiz.
+   $tier hala aliniyor: cagiran taraflarin hepsi tier gecirlyor ve imzayi
+   degistirmek bu isle ilgisiz dosyalari da degistirmek olurdu. */
+function vestra_seller_monthly_quota_limit(string $tier): ?int {
+    return null;
+}
+/* ─── Commission rate — artik platformun TEK gelir kalemi ──────────────────────
+   Eskiden kademeye gore degisiyordu (Pro %3,2 · Elite %2,8) ve aylik uyeligin
+   USTUNE biniyordu; dusuk oran, ucret odeyenlere verilen bir oduldu. Uyelik
+   kalkti, dolayisiyla indirimli oranlarin karsiligi da kalmadi: herkes ayni
+   orani odüyor. Tier'i olan eski hesaplar da bu orana geliyor -- birakilsalardi
+   ucret odemeyi biraktiklari halde indirimli oranda kalirlardi.
+   Alici tarafi bundan hic etkilenmiyor (bkz. vestra_charge_order_commission()). */
+function vestra_seller_commission_rate(string $tier): float {
+    return VESTRA_COMMISSION_RATE;
+}
+/* Komisyon YUZDESI, metne basilacak bicimde ("3.5" / "3,5"). 16 Eyl 2026 denetimi
+   BES sayfada UC farkli oran buldu: ana sayfa "from 2.8%, lower on higher plans",
+   davet sayfasi "7 %", yardim "Starter 3.5 / Pro 3.2 / Elite 2.8", uyelik sayfasi
+   "3.5% ... drops as you upgrade" -- hepsi 22 Agu 2026'da kaldirilan kademeli
+   uyelikten kalma ve hicbiri sepetin GERCEKTEN tahsil ettigi oran degil. Oran tek
+   sabitte; musteriye yazilan her rakam da buradan cikar, elle yazilmaz (KURAL 6'nin
+   escrow tavani dersi). Ondalik ayiraci dile gore: de/fr/es/it/pt/ru virgul. */
+function vestra_commission_pct_label(?string $lang = null): string {
+    $lang = $lang ?? (function_exists('vlang') ? vlang() : 'en');
+    $s = number_format(vestra_seller_commission_rate('') * 100, 1, '.', '');
+    if (substr($s, -2) === '.0') $s = substr($s, 0, -2);
+    return in_array($lang, ['de','fr','es','it','pt','ru'], true) ? str_replace('.', ',', $s) : $s;
+}
+/* ─── Urun adi: markayi iki kez yazma ──────────────────────────────────────────
+   Bazi katalog kayitlarinda marka adi urun ADININ icinde de duruyor
+   (brand "Balenciaga" + name "Balenciaga Print T-Shirt"). Duz birlestirme
+   "Balenciaga Balenciaga Print T-Shirt" uretiyor -- musteriye ve gumruge giden
+   belgelerde ucuz duruyor.
+
+   Kural TEK yerde: fatura ve e-posta ayni fonksiyonu cagiriyor. Iki kopya
+   birakilsaydi biri duzeltilip digeri unutulurdu; bu projede bugun birkac kez
+   goruldu (urun ekleme kapisi, teklif yaniti, KYB onayi). */
+function vestra_product_label(string $brand, string $name): string {
+    $brand = trim($brand); $name = trim($name);
+    if ($brand === '') return $name;
+    if ($name === '')  return $brand;
+    return stripos($name, $brand) === 0 ? $name : $brand.' '.$name;
+}
+
+/* ─── Vergi numarasi alani: soruyu ULKEYE gore sor ─────────────────────────────
+   Alan hep "VAT / Tax ID" etiketi ve "DE123456789" ipucu ile cikiyordu. ABD'de
+   KDV YOK; oradaki karsiligi IRS'in verdigi EIN. Amerikali bir kullaniciya Alman
+   KDV numarasi sorunca ya bos birakiyor ya "n/a" yaziyor -- canli kayitta tam
+   olarak bu var (vat_id = "n/a"), ustelik yanina bir "vat_cert" belgesi de
+   onaylanmis durumda. Alan zaten dogru alandi; yanlis olan soruydu.
+   Faturada da ayni etiket kullaniliyor: ABD'li bir firmaya "VAT ID" yazmak,
+   gumruk ve muhasebe tarafinda var olmayan bir numarayi ariyormus gibi durur. */
+function vestra_tax_id_hint(string $country): array {
+    $c = strtoupper(trim($country));
+    // Hem ISO kodu hem tam ad gelebiliyor (kayit formu ad, teshis kodu yaziyor).
+    if ($c === 'US' || $c === 'USA' || $c === 'UNITED STATES') {
+        return ['label' => 'EIN (Federal Tax ID)', 'placeholder' => '12-3456789', 'short' => 'EIN'];
+    }
+    if ($c === 'GB' || $c === 'UK' || $c === 'UNITED KINGDOM') {
+        return ['label' => 'VAT registration number', 'placeholder' => 'GB123456789', 'short' => 'VAT no.'];
+    }
+    if ($c === 'CH' || $c === 'SWITZERLAND' || $c === 'SCHWEIZ') {
+        return ['label' => 'UID / MWST number', 'placeholder' => 'CHE-123.456.789 MWST', 'short' => 'UID'];
+    }
+    if ($c === 'DE' || $c === 'GERMANY' || $c === 'DEUTSCHLAND' || $c === 'AT' || $c === 'AUSTRIA') {
+        return ['label' => 'USt-IdNr.', 'placeholder' => 'DE123456789', 'short' => 'USt-IdNr.'];
+    }
+    if ($c === 'TR' || $c === 'TURKEY' || $c === 'TÜRKIYE' || $c === 'TURKIYE') {
+        return ['label' => 'Vergi kimlik numarası', 'placeholder' => '1234567890', 'short' => 'VKN'];
+    }
+    /* Sevkiyat yaptigimiz AB DISI pazarlar. Bunlar sablon degil, gercek ihtiyac:
+       vestra_dropship_zones() tam olarak bu ulkelere gonderiyor ve outreach de
+       oralara gidiyor, yani bir Japon ya da Koreli satici kayit formuna geliyor.
+       Her ulke KDV'yi ayri adlandiriyor -- Japonya'da 登録番号, Kore'de
+       사업자등록번호, Korfez'de TRN. Ortak "VAT" etiketi bunlarin hicbirine
+       karsilik gelmiyordu ve kullanici aradigi numarayi taniyamiyordu. */
+    static $MAP = [
+        'JP' => ['Invoice registration number (登録番号)', 'T1234567890123', 'Reg. no.'],
+        'KR' => ['사업자등록번호 (Business Registration Number)', '123-45-67890', 'BRN'],
+        'AE' => ['TRN (Tax Registration Number)', '100123456700003', 'TRN'],
+        'SA' => ['VAT registration number', '300123456700003', 'VAT no.'],
+        'QA' => ['Tax Identification Number (TIN)', '1234567890', 'TIN'],
+        'AU' => ['ABN (Australian Business Number)', '12 345 678 901', 'ABN'],
+        'CA' => ['GST/HST number', '123456789RT0001', 'GST/HST'],
+        'SG' => ['UEN / GST registration number', '201812345K', 'UEN'],
+    ];
+    static $NAMES = [
+        'JAPAN'=>'JP', '日本'=>'JP', 'SOUTH KOREA'=>'KR', 'KOREA'=>'KR', 'REPUBLIC OF KOREA'=>'KR',
+        'UNITED ARAB EMIRATES'=>'AE', 'UAE'=>'AE', 'SAUDI ARABIA'=>'SA', 'QATAR'=>'QA',
+        'AUSTRALIA'=>'AU', 'CANADA'=>'CA', 'SINGAPORE'=>'SG',
+    ];
+    $key = $MAP[$c] ?? ($MAP[$NAMES[$c] ?? ''] ?? null);
+    if ($key) return ['label' => $key[0], 'placeholder' => $key[1], 'short' => $key[2]];
+
+    /* Tanimadigimiz ulke: ORNEK VERME. Burada eskiden 'DE123456789' yaziyordu ve
+       bu, Alman olmayan herkese yanlis bicimi gosteriyordu -- ornegi kopyalayip
+       kendi numarasini o kaliba uydurmaya calisan olur. Etiket de artik alanin
+       zorunlu olmadigini soyluyor: bazi ulkelerde boyle bir numara hic verilmiyor,
+       ve olmayan bir numara icin form doldurulamaz. */
+    return ['label' => 'VAT / Tax ID (if your country issues one)', 'placeholder' => '', 'short' => 'VAT ID'];
+}
+/* Nullable on purpose: seller.php reads this straight off $AUTH_USER, which is null when a
+   session has expired between page loads. With an `array` type that was a fatal TypeError —
+   the whole seller dashboard 500'd instead of bouncing the visitor to the login page (the
+   live error log had it five times). No account simply means nothing used yet. */
+function vestra_seller_monthly_quota_used(?array $acc): int {
+    $rec = is_array($acc) ? ($acc['listing_quota'] ?? null) : null;
+    if (!is_array($rec) || ($rec['month'] ?? '') !== date('Y-m')) return 0;
+    return (int)($rec['count'] ?? 0);
+}
+function vestra_seller_monthly_quota_bump(string $uid): void {
+    $acc = null;
+    foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $uid) { $acc = $a; break; } }
+    if (!$acc) return;
+    auth_update($uid, ['listing_quota' => ['month' => date('Y-m'), 'count' => vestra_seller_monthly_quota_used($acc) + 1]]);
+}
+/** True when this seller has hit their monthly quota (always false for uncapped tiers). */
+function vestra_seller_quota_exhausted(array $acc): bool {
+    $limit = vestra_seller_monthly_quota_limit($acc['membership_tier'] ?? '');
+    return $limit !== null && vestra_seller_monthly_quota_used($acc) >= $limit;
+}
+function vestra_listing_by_sku(string $sku): ?array {
+    if ($sku === '') return null;
+    foreach (vestra_listings() as $l) if (($l['sku']??'') === $sku) return $l;
+    return null;
+}
+/* Parse the "12x SKU-123 @19.99 | 5x SKU-456 @9.99" string order.php writes into orders.csv's items column.
+ *
+ * The SKU is matched greedily up to the final "@price" rather than as a single non-space run:
+ * some catalogue codes genuinely contain spaces ("G80A3T FU7EQ W"). With \S+ the whole segment
+ * failed to match and the line was dropped without a trace — the order stayed intact in
+ * orders.csv and in the confirmation mail, but every later read of it (buyer/seller/admin views,
+ * the invoice and its per-seller split, order_has_seller_sku) silently lost those items and the
+ * money attached to them. */
+function vestra_parse_order_items(string $items): array {
+    $out = [];
+    foreach (explode(' | ', $items) as $seg) {
+        if (preg_match('/^(\d+)x\s+(.+)\s+@([\d.]+)$/', trim($seg), $m)) {
+            $out[] = ['qty'=>(int)$m[1], 'sku'=>trim($m[2]), 'unit'=>(float)$m[3]];
+        }
+    }
+    return $out;
+}
+/* Render an order's stored items string for a table cell.
+ *
+ * The stored format is one segment per line item ("80x sku-a @32.00 | 40x sku-b @39.90"), so it
+ * grows without bound as an order gets larger — real B2B carts run to a dozen lines. Printed raw
+ * into a <td> that made the whole table unusable: a table cell in the default (auto) layout
+ * algorithm IGNORES max-width, so the column simply widened to fit the string and squeezed every
+ * other column out of the viewport. A block-level wrapper is not sized by the table algorithm and
+ * does honour max-width, which is why the markup below is a <div> inside the cell rather than
+ * styling on the cell itself.
+ *
+ * Shows the first $show lines and folds the rest into a count; the untruncated string stays
+ * reachable as the title tooltip. Falls back to the raw (but bounded) text for rows whose format
+ * predates the parser. */
+function vestra_order_items_cell(string $items, int $show = 2, int $px = 210): string {
+    $wrap = '<div class="itemscell" style="max-width:'.(int)$px.'px"';
+    $lines = vestra_parse_order_items($items);
+    if (!$lines) {
+        return $items === '' ? '<span class="itemsmore">—</span>'
+                             : $wrap.'>'.htmlspecialchars($items).'</div>';
+    }
+    $out = '';
+    foreach (array_slice($lines, 0, $show) as $l) {
+        $out .= '<div class="itemsline"><b>'.(int)$l['qty'].'×</b> '.htmlspecialchars($l['sku']).'</div>';
+    }
+    if (($rest = count($lines) - $show) > 0) {
+        $out .= '<div class="itemsmore">+'.$rest.' '.htmlspecialchars(t('more')).'</div>';
+    }
+    return $wrap.' title="'.htmlspecialchars($items).'">'.$out.'</div>';
+}
+
+/* An order can bundle SKUs from several sellers (buyer's cart isn't seller-partitioned) — true if
+   at least one line item in this order row belongs to the given seller's SKU list. */
+function vestra_order_has_seller_sku(array $orderRow, array $sellerSkus): bool {
+    if (!$sellerSkus) return false;
+    foreach (vestra_parse_order_items($orderRow['items'] ?? '') as $it) {
+        if (in_array($it['sku'], $sellerSkus, true)) return true;
+    }
+    return false;
+}
+/* ── SEO: the houses actually in stock ───────────────────────────────────────────────
+ *
+ * Buyers do not search "B2B fashion marketplace". They search "Lacoste Großhandel" or
+ * "comprar Gucci al por mayor" — a brand name plus the wholesale word in their own
+ * language. These helpers build that from live inventory, so the tags describe what is
+ * genuinely on the site today rather than a list someone has to remember to update.
+ *
+ * Nominative use only: naming a brand we hold genuine EEA stock of. Nothing here claims
+ * to be an official or authorised dealer, which is why no such word appears.
+ */
+/**
+ * Houses in stock, DEEPEST FIRST — most listings, then alphabetically.
+ *
+ * The order used to be plain alphabetical, and every caller that takes only the first
+ * N inherited that: the homepage keyword tag and Organization.knowsAbout name 12, so
+ * with ~20 houses live the alphabet silently decided which ones the search engine was
+ * told about. Everything from J onwards fell off — including Lacoste (the deepest
+ * apparel house) and Pili Pérez (the entire 335-piece footwear collection). Measured
+ * on the live site 4 Sep 2026: "Valentino wholesale" was absent from all five language
+ * pages, which is what surfaced it (.github/workflows/seo-check.yml).
+ *
+ * Sorting by stock depth makes the cap keep the houses we can actually supply, and the
+ * brand wall on the homepage leads with them too. Callers that take the WHOLE list
+ * (slug lookup, sitemap, footer) are unaffected by order.
+ */
+function vestra_seo_brands(int $max = 14): array {
+    static $all = null;
+    if ($all === null) {
+        $counts = [];
+        foreach (vestra_products() as $p) {
+            $b = trim((string)($p['brand'] ?? ''));
+            if ($b !== '') $counts[$b] = ($counts[$b] ?? 0) + 1;
+        }
+        /* Count descending, name ascending on a tie — a deterministic order, so the
+           tags do not reshuffle between two requests with identical stock. */
+        uksort($counts, function ($a, $b) use ($counts) {
+            return [$counts[$b], $a] <=> [$counts[$a], $b];
+        });
+        $all = array_keys($counts);
+    }
+    return $max > 0 ? array_slice($all, 0, $max) : $all;
+}
+
+/** "wholesale" in the visitor's language — the word that actually appears in the query. */
+function vestra_seo_wholesale_word(string $lang): string {
+    return ['en'=>'wholesale','fr'=>'en gros','it'=>'ingrosso','es'=>'al por mayor','de'=>'Großhandel',
+            'pt'=>'por grosso','ru'=>'оптом','ar'=>'بالجملة',
+            /* 5 Eyl 2026: Japonca. "卸売" toptan satisin kendisi; arama
+               hacminde "卸" tek basina da yaygin ama tek karakter marka
+               adlarinin icinde de geciyor, o yuzden tam sozcuk. */
+            'ja'=>'卸売'][$lang] ?? 'wholesale';
+}
+
+/* Brand <-> URL slug. The landing pages live at /wholesale/<slug>, so the slug has to
+   survive a round trip: "DSQUARED2" -> "dsquared2", "Fred Perry" -> "fred-perry". The
+   reverse lookup goes through live stock rather than un-slugifying, because there is no
+   rule that turns "fred-perry" back into the exact capitalisation the catalogue uses. */
+function vestra_brand_slug(string $brand): string {
+    $s = strtolower(trim($brand));
+    $s = preg_replace('~[^a-z0-9]+~', '-', $s) ?? $s;
+    return trim($s, '-');
+}
+function vestra_brand_from_slug(string $slug): ?string {
+    $slug = vestra_brand_slug($slug);
+    foreach (vestra_seo_brands(0) as $b) if (vestra_brand_slug($b) === $slug) return $b;
+    return null;
+}
+
+/* The words a trade buyer actually types. "Lacoste wholesale" is one query; the buyer who
+   is ready to order searches "Lacoste B2B supplier", "Lacoste bulk", "Lacoste stock lot".
+   Those are the ones worth ranking for -- they carry intent, not curiosity. */
+function vestra_seo_b2b_terms(string $lang): array {
+    return [
+        'en' => ['wholesale', 'B2B supplier', 'bulk', 'stock lot', 'trade prices', 'for boutiques'],
+        'de' => ['Großhandel', 'B2B Lieferant', 'Restposten', 'Posten', 'Händlerpreise', 'für Boutiquen'],
+        'fr' => ['en gros', 'fournisseur B2B', 'grossiste', 'destockage', 'prix professionnels', 'pour boutiques'],
+        'es' => ['al por mayor', 'proveedor B2B', 'mayorista', 'lote de stock', 'precios de mayorista', 'para boutiques'],
+        'it' => ['ingrosso', 'fornitore B2B', 'grossista', 'stock lotto', 'prezzi allingrosso', 'per boutique'],
+        'pt' => ['por grosso', 'fornecedor B2B', 'grossista', 'lote de stock', 'preços de revenda', 'para boutiques'],
+        'ru' => ['оптом', 'B2B поставщик', 'опт', 'сток', 'оптовые цены', 'для бутиков'],
+        'ar' => ['بالجملة', 'مورد B2B', 'جملة', 'ستوك', 'أسعار الجملة', 'للبوتيكات'],
+        'ja' => ['卸売', 'B2Bサプライヤー', '仕入れ', '在庫ロット', '卸価格', 'ブティック向け'],
+    ][$lang] ?? [];
+}
+
+/** "Lacoste wholesale, Gucci wholesale, …" in the visitor's language; '' when nothing is stocked. */
+function vestra_seo_brand_keywords(string $lang, int $max = 12): string {
+    $w = vestra_seo_wholesale_word($lang);
+    return implode(', ', array_map(fn($b) => $b.' '.$w, vestra_seo_brands($max)));
+}
+
+/** One brand crossed with every B2B term: the keyword line for that brand's landing page. */
+function vestra_seo_brand_b2b_keywords(string $brand, string $lang): string {
+    $out = [];
+    foreach (vestra_seo_b2b_terms($lang) as $term) $out[] = $brand.' '.$term;
+    /* English too, on every language: a Greek or Polish buyer sourcing internationally
+       searches in English as often as in their own language, and we have no Greek or
+       Polish page to send them to. */
+    if ($lang !== 'en') foreach (vestra_seo_b2b_terms('en') as $term) $out[] = $brand.' '.$term;
+    return implode(', ', $out);
+}
+
+function vestra_read_json(string $name): array {
+    $f = vestra_data_dir().'/'.$name;
+    if (!is_readable($f)) return [];
+    return json_decode((string)file_get_contents($f), true) ?: [];
+}
+function vestra_write_json(string $name, array $data): void {
+    $f = vestra_data_dir().'/'.$name;
+    file_put_contents($f, json_encode($data, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE), LOCK_EX);
+}
+
+/* Sourcing requests board (buyers post what they need; sellers make offers). Demo seed. */
+function vestra_requests(){
+  return [
+    ['id'=>'r1042','title'=>'Lacoste polos — mixed sizes, EEA stock','cat'=>'Polos','qty'=>'300 pc','target'=>'€24 / pc','country'=>'DE','offers'=>3,'age'=>'2h'],
+    ['id'=>'r1041','title'=>'Ralph Lauren oxford shirts','cat'=>'Shirts','qty'=>'150 pc','target'=>'€28 / pc','country'=>'FR','offers'=>5,'age'=>'5h'],
+    ['id'=>'r1039','title'=>'Blank cotton tees 180gsm, white','cat'=>'Basics','qty'=>'2,000 pc','target'=>'€2.60 / pc','country'=>'IT','offers'=>1,'age'=>'1d'],
+    ['id'=>'r1038','title'=>'Branded socks, bulk clearance','cat'=>'Basics','qty'=>'1,000 pack','target'=>'best offer','country'=>'ES','offers'=>0,'age'=>'1d'],
+  ];
+}
+
+/* The size-mix string is stored as free text on the listing (e.g.
+   "S×1 · M×2 · L×3 · XL×3 · XXL×1 · 10/pack"), so the trailing unit word would
+   otherwise appear in one fixed language on every localised page. Translate just
+   that token at render time and leave the numbers and size codes alone -- they are
+   the same in every market. Accepts the Turkish and English spellings that already
+   exist in the data so old listings localise without a migration. */
+function vestra_sizes_label(string $sizes): string {
+    if ($sizes === '') return '';
+    $out = preg_replace_callback(
+        '~(\d+)\s*/\s*(pack|paket|packs|seri|series|serie)\b~iu',
+        function ($m) {
+            $isSeries = stripos($m[2], 'ser') === 0;
+            return $m[1].'/'.t($isSeries ? 'series' : 'pack');
+        },
+        $sizes
+    ) ?? $sizes;
+    /* Ciplak beden KELIMELERI. Rakamlar (75, 80/85) ve harf merdiveni (S-XL,
+       A/B/C kap) her dilde ayni ve cevrilMEZ -- sozlugun kendi ilkesi bu. Ama
+       "tek beden" bir kelime, ve NBB katalogunda gercekten var: corap
+       satirlarinin bedeni "STANDART" (olculdu, 10 Eyl 2026). Tedarikcinin
+       Turkce yazimi da kabul ediliyor, cunku eski/ithal kayitlarda oyle
+       gecebiliyor ve o zaman goc gerekmesin.
+       Kalip DAR tutuldu: "standart" gunluk bir kelime ve serbest metinli bir
+       beden aciklamasinin ortasinda gecebilir; yalniz TEK BASINA duran deger
+       (ya da nokta/orta-nokta ile ayrilmis bir parca) cevriliyor. Genis bir
+       kalip, bu deponun mango/zara dersini beden alaninda tekrarlardi. */
+    $out = preg_replace_callback(
+        '~(^|[·|,;]\s*)(one\s?size|standart|tek\s?beden|tek\s?ebat)(?=\s*($|[·|,;]))~iu',
+        fn($m) => $m[1] . t('One size'),
+        $out
+    ) ?? $out;
+    return $out;
+}
+
+/* ── Tek parca satisi icin secilebilir beden / renk ────────────────────────
+   'sizes' alani bir liste DEGIL, paket kuralini anlatan bir cumle:
+   "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10", "Cartons of 10 · sizes S–XXL",
+   "Lots of 8 · sizes 3–8 · min 80 pc". Toptan sayfasinda dogru olan bu cumle,
+   dropship'te yanlis: orada ortak kendi musterisi icin TEK parca aliyor, karton
+   dagilimini degil bedeni seciyor -- "S×1 · M×3 · ..." yazan bir alan ona
+   secemeyecegi bir sey gosteriyor.
+   Asagidaki ayristirici o cumleden yalnizca beden ADLARINI cikariyor. Cikaramazsa
+   BOS donuyor ve cagiran taraf serbest metne dusuyor: uydurulmus bir liste,
+   olmayan bedeni varmis gibi gostermek olurdu. */
+
+const VESTRA_SIZE_LADDER = ['XXS','XS','S','M','L','XL','XXL','XXXL','XXXXL'];
+
+/* "2xl" → "XXL", "3XL" → "XXXL", "s" → "S"; sayisal bedenler oldugu gibi kalir. */
+function vestra_size_norm(string $tok): string {
+    $t = strtoupper(trim($tok));
+    if ($t === '') return '';
+    if (preg_match('~^([2-5])X{1,2}L$~', $t, $m)) $t = str_repeat('X', (int)$m[1]).'L';
+    if (in_array($t, VESTRA_SIZE_LADDER, true)) return $t;
+    if (preg_match('~^\d{1,3}([.,]5)?$~', $t)) return str_replace(',', '.', $t);
+    return '';
+}
+
+/* Paket eki. TEK kalip: vestra_sizes_label() de bunu kullaniyor, cunku "hangi
+   parca pakettir" sorusunun iki ayri cevabi olamaz -- bu depo ayni olgunun
+   ikinci kopyasinin ne ettigini yeterince kaydetti. */
+const VESTRA_SIZE_PACK_RE = '~(\d+)\s*(?:pcs|pieces|adet)?\s*/\s*(pack|paket|packs|seri|series|serie)\b~iu';
+
+/* Ilan bir PAKET/SERI mi satiyor? Oyleyse bedenlerin karisimi SABIT ve alici
+   secemez -- sectirmek, ilan edilen paketin icerigiyle celisen bir siparis
+   uretirdi (KURAL 4b'nin MOQ/paket adimi dersinin beden hali). */
+function vestra_sizes_has_pack(string $s): bool {
+    return (bool)preg_match(VESTRA_SIZE_PACK_RE, $s);
+}
+
+/* Ilan ACIK bir dagilim mi yaziyor ("S×1 · M×3 · L×3")? O da sabit bir seri.
+   Kalip yine TEK: asagida ayristirici da bunu kullaniyor. */
+const VESTRA_SIZE_RUN_RE = '~([A-Za-z0-9]{1,5})\s*[×xX*]\s*\d+~u';
+
+function vestra_sizes_has_run(string $s): bool {
+    return (bool)preg_match(VESTRA_SIZE_RUN_RE, $s);
+}
+
+function vestra_size_options(array $p): array {
+    $s = trim((string)($p['sizes'] ?? ''));
+    if ($s === '') return [];
+    /* "os" disindakiler govde eslesmesi: /u kipinde \b harfli ekleri de kelime
+       sayiyor, "Einheitsgröße" sonuna sinir koymak eslesmeyi kacirtiyordu. */
+    if (preg_match('~(one\s?size|einheitsgr|tek\s?beden|taille\s?unique|\bos\b)~iu', $s)) return ['One size'];
+
+    /* Paket ekini bedenlerden AYIR. Canlida "S · L · XL · XXL · 3/pack" vardi
+       ve ayristirici "3"u BEDEN sayiyordu: '/' ayirac sinifinda, yani
+       "3/pack" once "3" + "pack" oluyor, sonra "3" sayisal beden gibi
+       normalize ediliyordu. Alici o ilanda hic olmayan bir "3" bedenini
+       secebilirdi. "2 · 3 · 4 · 5 · 6/pack" ayni sekilde 6'yi beden yapiyordu.
+       Olculdu (10 Eyl 2026, 42 NBB ilani, 22 farkli beden dizgesi). */
+    $s = trim((string)preg_replace(VESTRA_SIZE_PACK_RE, ' ', $s));
+
+    $push = function (array &$out, string $tok): void {
+        $n = vestra_size_norm($tok);
+        if ($n !== '' && !in_array($n, $out, true)) $out[] = $n;
+    };
+
+    /* 1) Acik dagilim -- "S×1 · M×3 · XL×2". Carpimdan ONCEKI ad bedendir; sonraki
+          sayi karton adedi ve tek parca alan ortagi ilgilendirmiyor. */
+    $out = [];
+    if (preg_match_all(VESTRA_SIZE_RUN_RE, $s, $m)) {
+        foreach ($m[1] as $tok) $push($out, $tok);
+        if (count($out) > 1) return $out;
+    }
+
+    /* 2) Aralik -- "sizes S–XXL", "sizes 3–8". Merdiveni iki ucu arasinda ac.
+          Tireli her ikili aday: "T-shirt sizes S-XXL" gibi bir metinde ilk tire
+          bedene ait degil, o yuzden ilk COZULEN ikiliye kadar bakiliyor. */
+    if (preg_match_all('~([A-Za-z]{1,5}|\d{1,3})\s*[-–—]\s*([A-Za-z]{1,5}|\d{1,3})~u', $s, $mm, PREG_SET_ORDER)) {
+        foreach ($mm as $m) {
+            $a = vestra_size_norm($m[1]);
+            $b = vestra_size_norm($m[2]);
+            if ($a === '' || $b === '') continue;
+            $ia = array_search($a, VESTRA_SIZE_LADDER, true);
+            $ib = array_search($b, VESTRA_SIZE_LADDER, true);
+            if ($ia !== false && $ib !== false && $ia <= $ib) {
+                return array_slice(VESTRA_SIZE_LADDER, $ia, $ib - $ia + 1);
+            }
+            /* Sayisal aralik (ayakkabi/cocuk). Ust sinir, "1–100" gibi bir yazim
+               hatasinin acilir listeyi doldurmasini engelliyor. */
+            if (is_numeric($a) && is_numeric($b) && $a <= $b && ($b - $a) <= 23) {
+                $r = [];
+                for ($v = (float)$a; $v <= (float)$b; $v++) $r[] = (string)(int)$v;
+                if (count($r) > 1) return $r;
+            }
+        }
+    }
+
+    /* 3) Duz liste -- "S · M · L · XL" ya da "S, M, L". Paketleme kelimeleri
+          ("Cartons of 10") beden gibi gorunmedigi icin kendiliginden eleniyor. */
+    $out = [];
+    foreach (preg_split('~[·,;/|]+~u', $s) ?: [] as $part) {
+        $part = trim($part);
+        /* Bant + kap TEK bedendir: "75 B" ile "75 C" ayri artikel, ayri stok.
+           Bosluktan bolunce kap harfi merdivende olmadigi icin vestra_size_norm
+           onu SESSIZCE atiyordu ve 8 secenekli bir sutyen 4 secenege iniyordu
+           (canli olcum, 10 Eyl 2026: "75 B · 75 C · 80 B · 80 C · 85 B · 85 C ·
+           90 B · 90 C" -> [75, 80, 85, 90]). Alicinin B ile C arasinda secim
+           yapmasi imkansizdi ve sectigi "75" hangi kap oldugunu soylemiyordu. */
+        if (preg_match('~^(\d{2,3})\s*([A-J])$~iu', $part, $m)) {
+            $n = $m[1].' '.strtoupper($m[2]);
+            if (!in_array($n, $out, true)) $out[] = $n;
+            continue;
+        }
+        foreach (preg_split('~\s+~u', $part) ?: [] as $tok) $push($out, $tok);
+    }
+    /* Tek bir sayi ("Cartons of 10") beden degil, adet. Iki ve uzeri gercek bir liste. */
+    return count($out) > 1 ? $out : [];
+}
+
+/* ── Alicinin SECEBILECEGI bedenler ────────────────────────────────────────
+ *
+ * Bos donmesi "bu ilanin bedeni yok" demek degil, "secilecek bir sey yok"
+ * demek. Uc ayri sebep:
+ *
+ *   1. Ilan bir PAKET/SERI satiyor ("… · 3/pack", "One size · 12/pack") ya da
+ *      ACIK bir dagilim yaziyor ("S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack").
+ *      Ikisinde de karisim SABIT; sectirmek, ilan edilen paketin icerigiyle
+ *      celisen bir siparis uretirdi. Giyim katalogunun neredeyse tamami bu
+ *      sekilde -- yani orada beden secici CIKMAZ ve bu bilincli.
+ *   2. Tek beden ("One size", ya da yalniz "L").
+ *   3. Bolme opt-in DEGIL. Operator bunu NBB/ic camasiri icin istedi
+ *      (10 Eyl 2026); 600'den fazla mevcut giyim ilaninin satin alma akisini
+ *      sessizce degistirmek istenenin disindaydi. Yeni bolme = bir satir.
+ *
+ * TEK karar noktasi: urun sayfasi, sepet ve /order ayni fonksiyonu cagiriyor.
+ * Kutuyu gizlemek kapi degildir -- /offer ucunun dersi (KURAL 4b).
+ */
+function vestra_size_pick_sections(): array { return ['underwear']; }
+
+/* ── RENK secimi ───────────────────────────────────────────────────────────
+ *
+ * Operator, 10 Eyl 2026: *"underwear varyasyonlarinda tek varyasyon
+ * secilebilir, biri secilirken yoksa anlami kalmaz"*.
+ *
+ * OLCULDU (yerel, onayli alici oturumu): 146 ic camasiri ilaninda BEDEN
+ * secici ciziliyor, RENK secici HIC cizilmiyor -- alici renkleri yalnizca
+ * bilgi olarak (spec alanindaki noktalar) goruyor, siparis ederken
+ * secemiyor. Yani iki varyasyondan yalnizca biri secilebiliyordu.
+ *
+ * SEBEP, bir KISIT alaninin ANAHTAR gibi kullanilmasiydi: product.php renk
+ * kutusunu `!empty($p['min_colors'])` ile aciyor, `min_colors` ise "en az kac
+ * renk secilmeli" demek -- bir SINIR, bir varlik bayragi degil. Rengi olan
+ * ama minimumu olmayan ilan (ku_build_rows `min_colors` HIC yazmiyor) bu
+ * yuzden "renk secilemez" muamelesi goruyordu: "minimum yok" ile "secim yok"
+ * ayni sey sanilmisti.
+ *
+ * Cikmadigi haller, bedendeki kurallarin AYNISI:
+ *   1. Tek renk -- secim degil, bilgi. (Bedende de `count($o) < 2` boyle.)
+ *   2. Bolme opt-in DEGIL: operator bunu ic camasiri icin istedi ve 680
+ *      giyim/ayakkabi ilaninin satin alma akisini sessizce degistirmek
+ *      istenenin disinda. Yeni bolme = bir satir.
+ *   3. `min_colors` yazili ilanlar ESKI yolda kaliyor (o kutu zaten
+ *      ciziliyor ve kendi minimumunu dogruluyor) -- burasi yalnizca
+ *      minimumu olmayan ilanlari acmak icin.
+ *
+ * Beden listesiyle AYNI fonksiyonu paylasmiyor, bilerek: ikisi ayri olgu.
+ * Ortak bir liste yarin bir bolmede beden secimini acmayi renk secimini de
+ * sessizce acmaya cevirirdi.
+ *
+ * TEK karar noktasi: urun sayfasi ve /order ayni fonksiyonu cagiriyor --
+ * kutuyu cizmemek kapi degildir (KURAL 4b'nin /offer dersi).
+ */
+function vestra_color_pick_sections(): array { return ['underwear']; }
+
+function vestra_colors_selectable(array $p): array {
+    $c = [];
+    foreach ((array)($p['colors'] ?? []) as $cn) {
+        $cn = trim((string)$cn);
+        if ($cn !== '' && !in_array($cn, $c, true)) $c[] = $cn;
+    }
+    if (!$c) return [];
+    /* Minimum yazili ilan ZATEN seciliyordu: davranisi aynen koruyoruz, tek
+       renkli olsa bile. Bu dal olmasaydi bugun kutusu cikan ilanlarin bir
+       kismindan kutu sessizce kalkardi -- istenen bu degil. */
+    if (!empty($p['min_colors'])) return $c;
+    if (!in_array(vestra_product_section($p), vestra_color_pick_sections(), true)) return [];
+    return count($c) < 2 ? [] : $c;
+}
+
+/* ── Showroom basliginda saticinin KAYITLI ULKESI ──────────────────────────
+ *
+ * Operator karari, 10 Eyl 2026: showroom basligindaki "… · Basics · Turkey ·
+ * Member since 2026" satirindan ULKE cikarilsin, ve YALNIZ Marca Online
+ * hesabinda ("marca online dan bunu cikar", kapsam soruldu ve "yalniz Marca
+ * Online" secildi).
+ *
+ * Bu alan, ilanin `ships_from` alani DEGIL: ikisi ayri olgu ve ayri kararlar.
+ * Burada gizlenen sey saticinin KAYIT ulkesi. (Bir gun sonra, 10 Eyl 2026,
+ * operator gonderim yeri satirini da kaldirtti -- bkz. asagida
+ * vestra_hides_ships_from(). Bu not once "ships_from DURUYOR" diyordu ve
+ * artik oyle degil; guncellendi, cunku birbirini tutmayan iki kayit hangisinin
+ * gecerli oldugunu okunamaz yapar.)
+ *
+ * Olcut hesap ID'si, sirket adi degil: ad bir metin, kimlik degil -- ve bu
+ * depoda ada gore eslesme mango/zara dersini bir kez verdi. UID sunucudan
+ * olculdu (10 Eyl 2026, 42 ilanin 42'si), tahmin edilmedi.
+ *
+ * Hesap bayragi `showroom_hide_country` kodun varsayilanini EZER (KURAL 2f'nin
+ * `doc_grace_exempt` deseni), yani yarin baska bir hesap icin panelden ya da
+ * bir is akisindan yazilabilir; bugun yazan bir yol yok ve olmadigi icin de
+ * kodda tek satirlik varsayilan liste duruyor.
+ */
+function vestra_showroom_hide_country_uids(): array { return ['0cb79eb883f2a0fa']; }
+
+function vestra_showroom_hides_country(array $acc): bool {
+    if (array_key_exists('showroom_hide_country', $acc)) return !empty($acc['showroom_hide_country']);
+    return in_array((string)($acc['id'] ?? ''), vestra_showroom_hide_country_uids(), true);
+}
+
+/* ── Gonderim yeri satiri MUSTERIYE gosterilmiyor ──────────────────────────
+ *
+ * Operator karari, 10 Eyl 2026: "underwear urunlerini turkiyeden gonderiliyor
+ * ibaresini kaldir, marca online saticisi da belli olmasin turkiyeden geldigi".
+ *
+ * Bu, YUKARIDAKI notun bir gun once yazdigi kararin GERI ALINMASI: orada
+ * `ships_from=Turkey` bilerek DURUYORDU ve gizlenen yalnizca saticinin kayit
+ * ulkesiydi. Artik ikisi de gizli. Not oldugu gibi birakilmadi, cunku iki
+ * kayit birbirini tutmazsa hangisinin gecerli oldugu okunamaz.
+ *
+ * ALAN SILINMIYOR, SATIR BASILMIYOR -- ve bu ayrim isin kendisi:
+ * vestra_ships_from() bos alanda platform varsayilani 'EU' donuyor, yani
+ * kayittan 'Turkey'i silmek satiri kaldirmaz, yerine "Ships from EU" YAZAR.
+ * Alicinin gumruk icin okudugu satirda dogru bir ifadeyi yanlis bir ifadeyle
+ * degistirmek, "kaldir" talimatinin yaptigi sey degil. O yuzden kayit
+ * (`ships_from=Turkey`) yerinde duruyor -- operator panelinde gorunur, fatura
+ * ve sevkiyat tarafi okumaya devam eder -- yalnizca vitrin satiri susuyor.
+ *
+ * Olcut hesap ID'si (`showroom_hide_country`'nin ayni deseni): ad bir metin,
+ * kimlik degil. Bolme adina ('underwear') baglanmadi cunku gizlenecek sey
+ * bolme degil, o saticinin cikis ulkesi -- yarin Ispanyol bir ic camasiri
+ * tedarikcisi gelirse onun gercek cikis yerini sessizce silmek, kimsenin
+ * istemedigi bir bilgi kaybi olurdu.
+ */
+function vestra_hide_ships_from_uids(): array { return ['0cb79eb883f2a0fa']; }
+
+function vestra_hides_ships_from(array $p): bool {
+    $uid = trim((string)($p['seller_uid'] ?? ''));
+    if ($uid === '') return false;
+    /* Harita DONGU DISINDA, sureçte bir kez: shop.php tek sayfada yuzlerce kart
+       ciziyor ve kart basina auth_accounts() okumak add-products'ta dogrulamayi
+       dakikalara cikaran hatanin ta kendisiydi. */
+    static $flag = null;
+    if ($flag === null) {
+        $flag = [];
+        if (function_exists('auth_accounts')) {
+            foreach (auth_accounts() as $a) {
+                if (array_key_exists('hide_ships_from', $a)) {
+                    $flag[(string)($a['id'] ?? '')] = !empty($a['hide_ships_from']);
+                }
+            }
+        }
+    }
+    if (array_key_exists($uid, $flag)) return $flag[$uid];   // hesap bayragi kodu ezer
+    return in_array($uid, vestra_hide_ships_from_uids(), true);
+}
+
+function vestra_sizes_selectable(array $p): array {
+    $s = trim((string)($p['sizes'] ?? ''));
+    if ($s === '') return [];
+    if (!in_array(vestra_product_section($p), vestra_size_pick_sections(), true)) return [];
+    if (vestra_sizes_has_pack($s) || vestra_sizes_has_run($s)) return [];
+    $o = vestra_size_options($p);
+    if (count($o) < 2 || $o === ['One size']) return [];
+    return $o;
+}
+
+/* ── Ilanin renkleri ───────────────────────────────────────────────────────
+ *
+ * Dort kaynak, sirayla. Ilki dolu olan kazanir; hepsi birlestirilmez, cunku
+ * 'colors' alanini elle dolduran satici o listeyi BILEREK yazmistir ve ondan
+ * cikardigimiz tahminlerle karistirmak, olmayan bir rengi varmis gibi
+ * gostermek olur.
+ *
+ *   1. colors            — saticinin girdigi liste
+ *   2. variants[].color  — ayni bilgi, renk bazli varyantlarda
+ *   3. urun adi          — "Graphic T-Shirt White" gibi ilanlarda renk adin
+ *                          icinde duruyor; 344 ilanin cogunda colors bos ve
+ *                          "renk seciniz" diye bos bir kutu gostermek, zaten
+ *                          adinda yazan seyi alicidan istemek demekti
+ *   4. gorsel dosya adi  — "l1212-black.jpg". Ad renk vermediginde dosya adi
+ *                          veriyor ve tek renkli ilanlarda genelde tek dosya
+ *                          adi geciyor, yani tek renk cikiyor.
+ *
+ * Tahmin edilen renkler yalnizca PALETTEN secilir (vestra_colors()). Serbest
+ * bir kelime yakalamak "Vintage" ya da "Logo" gibi seyleri renk sanmak olurdu.
+ */
+function vestra_colour_options(array $p): array {
+    $c = [];
+    foreach ((array)($p['colors'] ?? []) as $x) {
+        $x = trim((string)$x);
+        if ($x !== '' && !in_array($x, $c, true)) $c[] = $x;
+    }
+    if ($c) return $c;
+
+    if (!empty($p['variants']) && is_array($p['variants'])) {
+        foreach ($p['variants'] as $v) {
+            $x = trim((string)($v['color'] ?? ''));
+            if ($x !== '' && !in_array($x, $c, true)) $c[] = $x;
+        }
+        if ($c) return $c;
+    }
+
+    /* Palet, UZUN adlar once: "Light Blue" once denenmezse "Blue" onu yer ve
+       urun yanlis renkle listelenir. */
+    /* "Other" tahmin edilmez: "& Other Stories" gibi bir ad ya da aciklamadaki
+       "other colours on request" cumlesi urunu "Other" renkli diye listelerdi. */
+    $pal = array_values(array_diff(array_keys(vestra_colors()), ['Other']));
+    usort($pal, fn($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+
+    $scan = function (string $hay) use ($pal): array {
+        $hay = ' ' . mb_strtolower(str_replace(['-', '_', '.', '/'], ' ', $hay)) . ' ';
+        $found = [];
+        foreach ($pal as $name) {
+            $needle = ' ' . mb_strtolower($name) . ' ';
+            if (mb_strpos($hay, $needle) === false) continue;
+            $found[] = $name;
+            /* Bulunan adi metinden sil: "Light Blue" eslesince geriye kalan
+               metinde "Blue" ikinci kez sayilmasin. */
+            $hay = str_replace($needle, ' ', $hay);
+        }
+        return $found;
+    };
+
+    $c = $scan((string)($p['name'] ?? ''));
+    if ($c) return $c;
+
+    $imgs = (array)($p['images'] ?? []);
+    if (!$imgs && !empty($p['image'])) $imgs = [(string)$p['image']];
+    foreach ($imgs as $im) {
+        foreach ($scan(basename((string)$im)) as $x) {
+            if (!in_array($x, $c, true)) $c[] = $x;
+        }
+    }
+    return $c;
+}
+
+/* ---------------------------------------------------------------------------
+   VITRIN SIRASI. Tek karar noktasi ve SAF: shop.php yalnizca cagiriyor. Sira bir
+   sayfanin govdesinde yaziliyken sinanamiyordu, ve bu depoda "ayni olgu iki yerde
+   yazili" hatasi defalarca kayitli -- ikinci bir kopya er gec ayrisir ve ayrisma
+   dogrudan vitrinde gorunur.
+
+   Bolmeler (siralama anahtari DEGIL), onden arkaya:
+     1. pinned  -- operatorun ise ilistirdigi ilanlar, islendikleri sirada;
+     2. ON MARKALAR -- operator karari, 12 Eyl 2026: "balenciaga ve lacostelar
+        basta kalsin". Liste sirasi = vitrin sirasi (once Balenciaga, sonra
+        Lacoste), operatorun cumlesindeki sira;
+     3. lead satici -- bir marka etikettir, satici mali gercekten gonderen taraf;
+     4. lead markalar, listedeki sirada;
+     5. geri kalan.
+
+   Bolme (partition), siralama anahtari degil: her grubun ICINDE urunler
+   vestra_products()'in dondurdugu sirayi aynen koruyor. Bir markayi one almak
+   diger 300 urunu yeniden dizmemeli.
+
+   ESLESME TAM, alt dize DEGIL. Bu depoda gevsek eslesme bir kez pahaliya
+   ogrenildi (mango -> "Mangobay Boutique"); burada bedeli daha sessiz olurdu:
+   "BALENCIAGA" alt dize arandiginda bir gun gelecek "Balenciaga Kids" gibi bir
+   ad da one cikar ve kimse fark etmez.
+
+   NOT (12 Eyl 2026, kapsamin degismesi): 11 Eyl'e kadar gecerli olan karar
+   "katalog Gucci ile aciliyor, arkasinda Givenchy, sonra Lacoste" idi. Operatorun
+   yeni cumlesi bunu ON TARAFTA degistiriyor; Gucci/Givenchy listeden CIKARILMADI,
+   yalnizca iki markanin arkasina alindi. Bedeli acikca yazili: lead satici
+   (GARAGE LE PARIS) artik on markalarin arkasinda -- yani o hesabin Lacoste
+   DISINDAKI ilanlari Balenciaga+Lacoste kadar geri gidiyor. */
+/* On markalar operatorun sirasi. 12 Eyl 2026'da D&G ve DSQUARED2 eklendi
+   ("dg ve ds2 leri basa al"); Balenciaga ve Lacoste bir onceki talimatla
+   ("basta kalsin") one alinmisti ve o talimat KALDIRILMADI, o yuzden ikisi
+   basta kaliyor ve yeni iki marka arkalarina giriyor -- iki talimat da dogru.
+   DSQUARED2 lead listesinden CIKARILDI: ayni marka iki listede olsaydi on
+   kontrol once calisip lead satirini olu birakirdi (test bunu tutuyor).
+   Yazimlar katalogtaki degerin strtoupper'i; esleme TAM, alt dize degil. */
+function vestra_shop_front_brands(): array {
+    /* Sira operatorun verdigi sira (17 Eyl 2026: "galerry dept. urunleri en basa
+       al" + "F.Perry i de en basa al"); once gelenler listede de once.
+       GALLERY DEPT. noktasiyla yaziliyor: esitlik TAM ve katalogdaki deger
+       "Gallery Dept." -- noktasiz yazilsaydi dokuz ilanin hicbiri one gelmez ve
+       sayfa hata da vermezdi (D&G'nin bosluklu ampersaninin ayni dersi). */
+    return ['GALLERY DEPT.', 'FRED PERRY', 'BALENCIAGA', 'LACOSTE', 'DOLCE & GABBANA', 'DSQUARED2'];
+}
+function vestra_shop_lead_brands(): array { return ['GUCCI', 'GIVENCHY', 'BALMAIN']; }
+/* Hem satici ADI hem HESAP KIMLIGI ile esleniyor, ve ikisi de gerekli: adla
+   eslemek tek basina yetmedi, cunku ilanlarin cogunda 'seller' alani bos ve urun
+   sayfasi orada "via VESTRA" yaziyor -- yalnizca ada bakan bir kural o hesabin
+   iki ilanini kaldirip geri kalanini yerinde birakiyordu. Kimlik tek basina da
+   yetmez: firma ikinci bir hesap acarsa kimlik degisir, ad kalir. Iki yazim
+   birden kabul, cunku ilanlarda ikisi de gecebiliyor. */
+function vestra_shop_lead_sellers(): array { return ['GARAGE LE PARIS', 'LE GARAGE PARIS']; }
+function vestra_shop_lead_seller_uids(): array { return ['7ab30f26afedd840']; }
+
+/* "Yeni" TEK tanim (operator, 13 Eyl 2026: "yeni urunleri basa koy" +
+ * "yeni urunlere yeni urun olarak markieren yap 7 gun boyunca").
+ *
+ * PENCERE ayri bir sayi DEGIL: kartin "NEW" rozeti ile vitrinin en one aldigi
+ * kume ayni sabitten okuyor. Iki ayri esik yazsaydik sayfa "NEW" rozetli ama
+ * one alinmamis kartlar gosterirdi -- bu depoda "ayni olgu iki yerde yazili"
+ * hatasi defalarca kayitli (desc/sizes, faturanin uc katmani, dort mektup
+ * govdesi). Operator "7 gun" derken rozeti soyluyordu; sabit tek oldugu icin
+ * sira da onunla birlikte daraldi ve ikisi ayrisamiyor.
+ *
+ * 30 -> 7 (13 Eyl 2026). Rozet o gune kadar 30 gundu, yani 12 Eyl'in 68 ilanlik
+ * D&G partisi Ekim ortasina kadar "NEW" kalacakti; her seferinde yeni olan bir
+ * rozet, rozet olmaktan cikar.
+ *
+ * TAVAN bir CELISKIYI cozuyor, sus degil: operator 12 Eyl'de "balenciaga ve
+ * lacostelar basta kalsin" dedi. Tavansiz birakilsaydi premium bolmesinde son
+ * gunlerin ~100 ilani (D&G Dropbox partisi + DSQUARED2 kadin partisi)
+ * Balenciaga'yi ~100. siraya iterdi, yani bir gun onceki talimati sessizce geri
+ * alirdi. 24 ile ikisi birden dogru: yeni gelenler ilk siralari aliyor,
+ * Balenciaga hala BIRINCI SAYFADA basliyor. Tavani asan yeni ilanlar
+ * kaybolmuyor -- kendi normal bolmelerine dusuyorlar. Pencere daraldigi icin
+ * tavan artik daha seyrek isliyor ama KALDIRILMADI: tek gunde 68 ilan yazilan
+ * bir depoda 7 gun de tavani asmaya yeter (12 Eyl partisi tam boyleydi).
+ *
+ * 24 = brand_probe'un da olctugu "ilk 24 kart", yani izgaranin bir sayfa basi. */
+const VESTRA_SHOP_NEW_DAYS = 7;
+const VESTRA_SHOP_NEW_MAX  = 24;
+
+/* Bir ilan "yeni" mi? added_at YOKSA yeni DEGIL (journal kurucusunun ve NEW
+   rozetinin kurali). Tek yer, cunku sira ile rozet ayrisirsa musteri rozetli
+   ama arkada duran kart gorur. */
+function vestra_product_is_new(array $p, ?int $now = null, ?int $days = null): bool {
+    $days = $days ?? VESTRA_SHOP_NEW_DAYS;
+    if ($days <= 0 || empty($p['added_at'])) return false;
+    $ts = strtotime((string)$p['added_at']);
+    if ($ts === false) return false;
+    return $ts >= (($now ?? time()) - $days * 86400);
+}
+
+/* ANA SAYFANIN "yeni gelenler" seridi (operator, 16 Eyl 2026: "ana sayfayi
+ * yenile yeni urunler koy F.Perry urunlerini Polo ve Sweatshirt on planda olsun
+ * Lacoste da").
+ *
+ * Neden vitrin siralamasi (vestra_shop_order) KULLANILMIYOR: o fonksiyon butun
+ * katalogu diziyor ve basinda `pinned` + 24'luk YENI bolmesi var; ilk 12'sini
+ * almak, operatorun adiyla istedigi iki markayi seridin disinda birakirdi.
+ * Burada istenen sey bir SIRALAMA degil, bir SECKI.
+ *
+ * ONE ALINAN MARKALAR once, liste sirasinda; ardindan gercekten yeni ilanlar,
+ * EN YENI ONCE. Ikisi ayri kume: bir marka one alindi diye "yeni" sayilmiyor
+ * (Fred Perry'nin iki ilani aylardir katalogda) ve yeni bir ilan one alinmis
+ * markadaysa iki kez cikmiyor -- id ile tekillestiriliyor.
+ *
+ * ESLESME TAM, alt dize DEGIL: yarin gelecek bir "Lacoste Kids" kendiliginden
+ * one cikmamali (mango/zara dersi).
+ *
+ * SAF: fotografi diskte var mi diye bakmiyor. Cagiran sayfa o suzgeci ONCE
+ * uyguluyor, cunku dosya sistemi okuyan bir fonksiyon test edilemezdi ve bu
+ * depoda "govdeye gomulu oldugu surece sinanamiyordu" dersi zaten kayitli.
+ *
+ * @param array      $products  fotografi dogrulanmis aday listesi (katalog sirasi)
+ * @param array|null $featured  one alinacak markalar (varsayilan: asagidaki liste)
+ */
+/* One alinan markalarin serit icindeki tavani. Ayri bir sabit, cunku toplam
+   tavandan (12) bagimsiz bir karar: biri izgaranin boyu, bu ikisinin PAYI. */
+/* "Yakinda" seridinde markasi ZATEN satista olan klasor basilmaz (16 Eyl 2026
+   denetimi: ana sayfa ustte "Coming soon: Fred Perry" derken bir bant altinda
+   "New arrivals: Fred Perry" satiyordu -- klasor 11 Eyl'de marka canliya
+   cikinca silinmemisti). Olcut canli katalog: klasoru silmek hatirlamaya
+   birakilan bir is olurdu. Eslesme marka adi basina TAM, buyuk/kucuk harf
+   duyarsiz (mango/zara dersi): "Lacoste" satista diye "Lacoste Kids" klasoru
+   dusmez. Saf fonksiyon; klasoru okuyan taraf index.php.
+   GIZLI MARKA da basilmaz (25 Eyl 2026, vestra_hidden_brands): yukaridaki
+   olcut "satista olan dusar" diyor, gizli marka ise tam da satista GORUNMEDIGI
+   icin burada "Coming soon: Gucci" diye geri gelirdi -- "sitede hic
+   gorunmesin" talimatinin arka kapisi. $hidden verilmezse kayitli karar
+   okunur; fonksiyon tek basina yuklendiyse (test) bos kume. */
+function vestra_soon_brands_filter(array $soon, array $products, ?array $hidden = null): array {
+    $hidden = $hidden ?? (function_exists('vestra_hidden_brands') ? vestra_hidden_brands() : []);
+    /* Hem vestra_hidden_brands()'in ANAHTAR=>yazim haritasini hem duz bir ad
+       listesini kabul et: ['Gucci'] verilip sessizce hicbir sey gizlenmemesi,
+       tam da bu fonksiyonun kapattigi aciga geri donmek olurdu. */
+    $hk = [];
+    foreach ($hidden as $k => $v) {
+        $nm = mb_strtoupper(trim(is_string($k) ? $k : (string)$v));
+        if ($nm !== '') $hk[$nm] = true;
+    }
+    $live = [];
+    foreach ($products as $p) {
+        $b = mb_strtoupper(trim((string)($p['brand'] ?? '')));
+        if ($b !== '') $live[$b] = true;
+    }
+    return array_values(array_filter($soon, function ($s) use ($live, $hk) {
+        $k = mb_strtoupper(trim((string)($s['name'] ?? '')));
+        return !isset($live[$k]) && !isset($hk[$k]);
+    }));
+}
+/* 25 Eyl 2026, operatorun ayni is uzerinde uc kez daralttigi talimat: "bu
+   urunleri on plana al diger luks markalari azalt" -> "ana sayfadan" ->
+   "resimleri sadece" -> son ve kesin hedef: "ozellikle New arrivals
+   bolumune ic camasiri bolumunu koy". Hedef bu serit -- ilk uc cumlenin
+   "resimleri sadece" belirsizligi dorduncu cumleyle somut, ADIYLA verilen
+   ve zaten var olan bir bolume (New arrivals) daralmis oldu; bu serit zaten
+   kart basiyor (ad+marka), sadece hangi kartlarin bastigi degisiyor.
+   Tavan YARIYA cekildi (6 -> 3): sectionMax + featMax ikisi de tavansiz
+   olsaydi 6+6=12, yani butun izgara -- ayni tuzak asagidaki $nFeat
+   yorumunda zaten bir kez kayitli ("GERCEKTEN YENI hicbir ilan seride
+   giremiyordu"). Simdi 6 (bolme) + 3 (marka) = 9, en az 3 slot GERCEKTEN
+   yeni ilana kaliyor. Rakamlar operatorden gelmedi, tek satirda -- baska bir
+   denge istenirse degistirilecek yer burasi. */
+const VESTRA_HOME_FEATURED_MAX = 3;
+const VESTRA_HOME_SECTION_MAX  = 6;
+
+function vestra_home_featured_brands(): array {
+    /* Tek satirda YAZILMIYOR: bu depodaki testler fonksiyon govdesini
+       `^function ...^}` ile ayikliyor ve tek satirlik bir govde kapanisini
+       satir basinda birakmadigi icin ayiklama BIR SONRAKI fonksiyonu da
+       yutuyor ("Cannot redeclare"). Bicim burada bir okunabilirlik tercihi
+       degil, olcum araciyla uyum. */
+    return ['FRED PERRY', 'LACOSTE'];
+}
+
+/* Bolme (section) bir MARKA degil -- yukaridaki liste $p['brand']'a bakiyor,
+   ic camasiri ise vestra_product_section($p)'nin dondurdugu ayri bir alan
+   (/shop?section=underwear'in kendisi, operatorun kendi yapistirdigi adres).
+   Ic camasiriyi $featured dizisine eklemek onu bir marka adi sanip hicbir
+   urune eslesmeyen olu bir satir birakirdi -- ayri liste, ayri tavan. */
+function vestra_home_featured_sections(): array {
+    return ['underwear'];
+}
+
+function vestra_home_new_picks(array $products, ?array $featured = null,
+                               int $max = 12, ?int $now = null, ?int $newDays = null,
+                               ?int $featMax = null, ?array $sections = null,
+                               ?int $sectionMax = null): array {
+    $featured   = $featured   ?? vestra_home_featured_brands();
+    $featMax    = $featMax    ?? VESTRA_HOME_FEATURED_MAX;
+    $sections   = $sections   ?? vestra_home_featured_sections();
+    $sectionMax = $sectionMax ?? VESTRA_HOME_SECTION_MAX;
+    if ($max <= 0) return [];
+    $up = fn($v) => strtoupper(trim((string)$v));
+
+    $sec = []; $fr = []; $new = [];
+    foreach (array_values($products) as $i => $p) {
+        $id = trim((string)($p['id'] ?? ''));
+        if ($id === '') continue;                       // id'siz urunun urun sayfasi yok
+        /* SATILMIS mal bu seride DURAMAZ: serit "In stock now" rozetiyle
+           aciliyor ve alinamayan bir urunu oraya koymak, rozetin kendisini
+           yalanlar. Olcut vestra_is_sold_out() -- alanin dolu olup olmadigina
+           bakmak bos dizgeyi SATILDI sayardi. */
+        if (vestra_is_sold_out($p)) continue;
+        /* Bolme ONCE sorulur: "on plana al" budur. Ayni urun teorik olarak
+           hem bir bolmeye hem one alinan bir markaya uysa (bugun katalogda
+           hic olmuyor -- ic camasiri ayri bir saticida) bolme kazanir, iki
+           kovaya birden dusmez. */
+        if (in_array(vestra_product_section($p), $sections, true)) { $sec[] = $p; continue; }
+        $j = array_search($up($p['brand'] ?? ''), $featured, true);
+        if ($j !== false) { $fr[$j][] = $p; continue; }
+        if (vestra_product_is_new($p, $now, $newDays)) $new[] = [strtotime((string)$p['added_at']), $i, $p];
+    }
+    /* En yeni once; esitlikte katalog sirasi -- ayni gun yazilan bir partinin
+       icinde sirayi usort'un kararliligina birakmiyoruz, acikca yaziyoruz. */
+    usort($new, fn($a, $b) => ($b[0] <=> $a[0]) ?: ($a[1] <=> $b[1]));
+
+    $out = []; $seen = [];
+    $push = function (array $p) use (&$out, &$seen, $max): bool {
+        $id = trim((string)($p['id'] ?? ''));
+        if ($id === '' || isset($seen[$id])) return true;
+        $seen[$id] = true; $out[] = $p;
+        return count($out) < $max;
+    };
+    /* Bolme ILK cizilir -- "ozellikle New arrivals bolumune ic camasiri
+       bolumunu koy" tam bunu istiyor. Kendi tavani var, feat'inkiyle ayni
+       gerekceyle: tavansiz birakinca dolu bir bolme tek basina butun
+       izgarayi kaplardi. */
+    $nSec = 0;
+    foreach ($sec as $p) {
+        if ($nSec >= $sectionMax) break;
+        if (!$push($p)) return $out;
+        $nSec++;
+    }
+    /* array_keys DEGIL, indis uzerinden: bir marka hic urun vermezse kendinden
+       sonrakiler one kaymamali, liste sirasi korunmali. */
+    $nFeat = 0;
+    for ($i = 0; $i < count($featured); $i++) {
+        foreach ($fr[$i] ?? [] as $p) {
+            /* ONE ALINANLARIN KENDI TAVANI VAR ve bu tavan bir CELISKIYI
+               cozuyor, sus degil. Operatorun cumlesi iki sey birden istiyor:
+               "yeni urunler koy" VE "F.Perry ... Lacoste on planda olsun".
+               Canli olcumde one alinan markalarda 15 aday cikti (Fred Perry 2 +
+               Lacoste 13), yani tavansiz birakinca 12 kartin 12'sini de onlar
+               dolduruyor ve GERCEKTEN YENI hicbir ilan seride giremiyordu --
+               yani talimatin yarisi sessizce uygulanmiyordu. Tavan, iki yarinin
+               da gorunmesini garanti ediyor. 25 Eyl 2026'da bolme bucketi
+               eklenince tavan 6'dan 3'e cekildi -- "diger luks markalari
+               azalt" bunun karsiligi. */
+            if ($nFeat >= $featMax) break 2;
+            if (!$push($p)) return $out;
+            $nFeat++;
+        }
+    }
+    foreach ($new as $n) if (!$push($n[2])) return $out;
+    /* Yeni ilan yoksa bos slotlari once bolmenin, sonra one alinanlarin geri
+       kalani doldurur: yarim dolu bir izgara, dolu bir izgaradan kotu
+       gorunur. $push zaten $seen'den geciyor, yani burada yeniden gecmek
+       cift saymaz. */
+    foreach ($sec as $p) if (!$push($p)) return $out;
+    for ($i = 0; $i < count($featured); $i++) {
+        foreach ($fr[$i] ?? [] as $p) if (!$push($p)) return $out;
+    }
+    return $out;
+}
+
+/* Listeler parametre, cunku test mekanizmayi KENDI tanimladigi degerlerle
+   sinamali; sevk edilen markalar ayrica kaynaktan dogrulaniyor. Ikisi tek iddiada
+   birlesseydi, listeye bir marka eklendigi gun mekanizmanin testi de kirmizi
+   donerdi -- olctugunu degil, yazimini koruyan bir iddia. */
+function vestra_shop_order(array $products, ?array $front = null, ?array $lead = null,
+                           ?array $sellers = null, ?array $sellerUids = null,
+                           ?int $newMax = null, ?int $now = null, ?int $newDays = null): array {
+    $front      = $front      ?? vestra_shop_front_brands();
+    $lead       = $lead       ?? vestra_shop_lead_brands();
+    $sellers    = $sellers    ?? vestra_shop_lead_sellers();
+    $sellerUids = $sellerUids ?? vestra_shop_lead_seller_uids();
+    $newMax     = $newMax     ?? VESTRA_SHOP_NEW_MAX;
+
+    $up = fn($v) => strtoupper(trim((string)$v));
+    /* Indisler 0..n-1 olmali: YENI bolmesi urunleri indisle isaretliyor. */
+    $products = array_values($products);
+
+    /* YENI GELENLER: pencere icindeki en taze $newMax ilan, EN YENI ONCE.
+       pinned atlaniyor -- o bolme her seyin onunde ve bir urun iki kez cikamaz.
+       Esitlikte katalog sirasi ($i) ikinci anahtar: ayni gun yazilan bir partinin
+       icinde sirayi usort'un kararliligina birakmiyoruz, acikca yaziyoruz. */
+    $newRank = [];
+    if ($newMax > 0) {
+        $cand = [];
+        foreach ($products as $i => $p) {
+            if (!empty($p['pinned'])) continue;
+            if (!vestra_product_is_new($p, $now, $newDays)) continue;
+            $cand[] = [strtotime((string)$p['added_at']), $i];
+        }
+        usort($cand, fn($a, $b) => ($b[0] <=> $a[0]) ?: ($a[1] <=> $b[1]));
+        foreach (array_slice($cand, 0, $newMax) as $r => $c) $newRank[$c[1]] = $r;
+    }
+
+    $pinned = []; $new = []; $fr = []; $sel = []; $ld = []; $rest = [];
+    foreach ($products as $i => $p) {
+        if (!empty($p['pinned'])) { $pinned[] = $p; continue; }
+        /* ON MARKALAR, YENI'den de ONCE (operator, 17 Eyl 2026: "galerry dept.
+           urunleri en basa al" + "F.Perry i de en basa al").
+           13 Eyl'de YENI ondeydi; olculdu ve o siralamayla Fred Perry **28.**
+           siraya dusuyordu: 4..27 arasi tamami YENI bolmesiydi (9 Gallery Dept
+           + 15 baska taze ilan) ve on marka bloku ancak 28'de basliyordu.
+           Yani "en basa" talimati YENI bloku onde kaldigi surece
+           uygulanamiyordu. Degisiklik bilincli ve 13 Eyl'i tamamen kaldirmiyor:
+           on markada OLMAYAN taze ilanlar hala satici/lead/geri kalanin
+           onunde; on markanin kendi taze ilanlari ise markanin blokunda.
+           On markalar satici kontrolunden de ONCE: Lacoste ilanlarinin cogu
+           lead saticinin, yani sonra sorulsaydi o bolmeye dusup icinde
+           dagilirlardi ve "basta" olmazlardi. */
+        $j = array_search($up($p['brand'] ?? ''), $front, true);
+        if ($j !== false) { $fr[$j][] = $p; continue; }
+        /* Tavani asan yeni ilan burada yakalanmaz ve asagida kendi bolmesine duser. */
+        if (isset($newRank[$i])) { $new[$newRank[$i]] = $p; continue; }
+        if (in_array($up($p['seller'] ?? ''), $sellers, true)
+            || in_array((string)($p['seller_uid'] ?? ''), $sellerUids, true)) { $sel[] = $p; continue; }
+        $j = array_search($up($p['brand'] ?? ''), $lead, true);
+        if ($j !== false) { $ld[$j][] = $p; continue; }
+        $rest[] = $p;
+    }
+    ksort($new);
+
+    $out = $pinned;
+    /* array_keys DEGIL, indis uzerinden: bir marka o bolmede hic urun vermezse
+       kendinden sonrakiler one kaymamali, liste sirasi korunmali. */
+    for ($i = 0; $i < count($front); $i++) if (!empty($fr[$i])) $out = array_merge($out, $fr[$i]);
+    $out = array_merge($out, array_values($new), $sel);
+    for ($i = 0; $i < count($lead); $i++)  if (!empty($ld[$i])) $out = array_merge($out, $ld[$i]);
+    return array_merge($out, $rest);
+}
+
+/* SEO iniş sayfaları (kategori, koleksiyon, marka × kategori) — inc/seo.php. Burada
+   yükleniyor ki kataloğu yükleyen her sayfa bu yardımcıları da bulsun; head.php ve
+   foot.php function_exists ile soruyor. */
+require_once __DIR__."/seo.php";

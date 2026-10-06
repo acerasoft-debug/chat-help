@@ -3,15 +3,128 @@ on:
   workflow_dispatch:
     inputs:
       brand:
-        description: "Marka filtresi (boş = hepsi)"
+        description: "Marka filtresi — * = HEPSI. Boş bırakma: GitHub boş değeri 'verilmedi' sayıp varsayılanı uygular"
         required: false
-        default: "Lacoste"
+        default: "*"
+      moq_scan:
+        # "Ilk siparisim 30-50 parca olabilir mi?" sorusunun cevabi MOQ'da ve
+        # MOQ ilan BASINA. Hafizadan cevaplamak bu depoda yasak: musteriye
+        # sepetin reddedecegi bir soz vermek olurdu. Fiyat BASILMIYOR -- kar
+        # orani CLAUDE.md'de yazili ve fiyat maliyeti ele verir; sorunun
+        # cevabi zaten adet, tutar degil.
+        description: "true = ASGARI ALIM taramasi: MOQ ve paket adimi dagilimi, N adetle kac marka/kategoriye ulasilir, en dusuk MOQ'lu ilanlar. FIYAT BASMAZ, salt okunur."
+        required: false
+        default: "false"
+      bak_diff:
+        # "Fiyatlari eskiye getir" denince once SORULACAK sey: gercekten ne
+        # degisti? Kor bir geri yukleme, operatorun KENDI istedigi degisiklikleri
+        # (Balmain tabani, Fred Perry asgarileri) de siler. Bu mod salt okunur:
+        # yedekle bugunku dosyayi karsilastirip FARKI bolme bolme yazar.
+        description: "YEDEKLE KARSILASTIR: 'list' = sunucudaki listings.json yedeklerini tarih/boyutla listeler. Bir yedek adi (ya da 20260910-204756 gibi damga) verilirse o yedekle bugünkü dosyanın FİYAT farkını bölme bölme yazar. Salt okunur."
+        required: false
+        default: ""
+      shop_order:
+        # "Urunlerin yerlerini degistir" denince SONRADAN sorulacak sey: vitrinde
+        # gercekten ne siralaniyor? Kaynak okumak olcum degil ve bu ortamdan
+        # canli siteye cikilamiyor -- sira sunucuda, DEPLOY EDILMIS fonksiyonla
+        # hesaplaniyor. Salt okunur.
+        description: "VITRIN SIRASI: bir bölme adı (premium|footwear|underwear) verilirse o bölmenin ilk ürünleri vitrindeki sırayla yazılır. Salt okunur."
+        required: false
+        default: ""
+      cat:
+        description: "Kategori filtresi, tam eşleşme (boş = hepsi)"
+        required: false
+        default: ""
+      name:
+        description: "Ürün adında bu metni ara (alt dize, boş = hepsi) — marka/kategori bilinmeden ürün bulmak için"
+        required: false
+        default: ""
+      img_contains:
+        description: "Görsel yolunda bu metin geçen ürünler (ör: balenciaga-burberry/) — kontak sayfası klasörüyle eşleştirmek için"
+        required: false
+        default: ""
+      compact:
+        description: "true = ürün başına TEK satır: id | cat | görsel-adı (uzun listeler kütük kuyruğuna sığsın)"
+        required: false
+        default: "false"
+      check_images:
+        description: "true = her görselin dosyası sunucuda GERÇEKTEN var mı, kontrol et"
+        required: false
+        default: "false"
+      missing_only:
+        description: "true = sadece görseli eksik/bozuk ürünleri yaz (check_images ile birlikte)"
+        required: false
+        default: "false"
+      orphans:
+        description: "true = uploads/ altında HİÇBİR ürüne bağlı olmayan görselleri listele + kök adı eşleşenleri 2. foto adayı olarak eşleştir"
+        required: false
+        default: "false"
+      dims:
+        description: "true = her ürünün görsellerinin piksel boyutunu ve dosya boyutunu yaz (kalite denetimi)"
+        required: false
+        default: "false"
+      lang_scan:
+        description: "true = ürün adı/kategori/beden/renk alanlarında TÜRKÇE metin ara (toptan liste İngilizce olmalı)"
+        required: false
+        default: "false"
+      price_audit:
+        description: "true = FIYAT TUTARSIZLIK DENETIMI: her urunde ilan edilen fiyat (list) ile sepetin MOQ'da gercekten hesapladigi fiyati (vestra_unit_price) karsilastirir, farkli olanlari yazar. Gonderim/gorsel yok, salt okunur."
+        required: false
+        default: "false"
+      price_list:
+        description: "true = toptan fiyat listesini sekmeyle ayrılmış olarak dök (marka, art.no, ad, kategori, beden, MOQ, toptan, perakende, kaynak)"
+        required: false
+        default: "false"
+      fit_scan:
+        description: "true = KALIP TARAMASI: ad + açıklama + özelliklerde oversize/boxy/relaxed/slim... geçen ürünleri, kanıt cümlesiyle ve mevcut beden serisiyle yaz (KURAL 2h'nin kapsam sorusu)"
+        required: false
+        default: "false"
+      home_picks:
+        # "Ana sayfa ne gosterecek" sorusunun tek durust cevabi, sayfanin
+        # CAGIRDIGI fonksiyonu CANLI katalogla kosturmak. Yerel checkout yalniz
+        # 20 ilanlik demo tohumunu tasiyor, yani orada cizdirmek mekanizmayi
+        # kanitlar, ICERIGI kanitlamaz.
+        description: "true = ana sayfanin 'yeni gelenler' seridi: hangi ilanlar, hangi sirayla (one alinan bolme [ic camasiri] + one alinan markalar + gercekten yeni olanlar). Salt okunur."
+        required: false
+        default: "false"
+      img_list:
+        # "Fotograflari su ilandan bu ilana tasi" denince ilk sorulacak sey
+        # SIRALI TAM LISTE: hangi kare kacinci, kapak hangisi. Mevcut modlarin
+        # hicbiri bunu vermiyordu -- check_images yalnizca SAYI ve ILK kareyi
+        # basiyor, dims butun katalogu gezip yalniz 800px altini listeliyor.
+        # Sirayi tahmin edip yazmak, kapagi sessizce degistirmek demekti.
+        description: "true = marka/kategori suzgecine uyan her ilanin SIRALI tam gorsel listesi (kapak dahil) + diskte var mi. Salt okunur."
+        required: false
+        default: "false"
+      linesheet:
+        # "Line-sheets by brand" (shop.php'nin kenar kutusu -> /catalog?brand=X).
+        # Sikayet "fotograflardan baska bir sey cikmiyor" oldugunda ilk olculmesi
+        # gereken sey KAYNAK DEGIL, URETILEN DOSYADIR: hangi sutun kac satirda
+        # gercekten dolu. Bu mod GERCEK ucu (catalog.php) kosturuyor -- ikinci
+        # bir satir kurma mantigi yazilsaydi rapor, musterinin indirdigi
+        # dosyayi degil kendi kopyasini olcerdi.
+        # NOT: bu tek mod salt-okunur DEGIL -- ziyaretcinin indirmesiyle ayni
+        # export onbellegini (data/cache) doldurabilir. Katalog verisine
+        # dokunmaz.
+        description: "Marka adi (ya da * = hepsi): line-sheet .xlsx'ini SUNUCUDA gercekten uretir ve NE CIKTIGINI olcer — satir, sutun sutun doluluk, gomulu fotograf, ilk satirlar. VARSAYILAN /catalog (herkese acik, FIYATSIZ). Onune 'priced:' yazilirsa (orn. priced:Lacoste) uye-kapili /wholesale-list.xlsx, 'pdf:' yazilirsa /wholesale-list.pdf olculur. Cikti fiyat BASMAZ, yalniz sutunun/alanin dolu olup olmadigini sayar."
+        required: false
+        default: ""
+      raw_scan:
+        description: "true = HAM listings.json: ONAY BEKLEYEN (pending) ilanları da gösterir. Diğer bütün modlar vestra_products() okuyor ve o YALNIZCA approved döndürüyor — yeni yazılmış bir parti orada 0 görünür ve bu 'yazılmadı' diye okunur. Ayrıca dil bazlı ad/açıklamanın (name_i18n/desc_i18n) gerçekten KAYDA indiğini sayar: alan yazılmış ama saklanmamışsa ancak başka dilde gezen biri fark ederdi."
+        required: false
+        default: "false"
 
 permissions:
   contents: read
 
 # Salt-okunur. Katalog ürünlerini (demo + canlı listing) listeler: id, marka, ad, kategori,
 # görsel sayısı/ilk görsel, varyant sayısı, demo mu canlı mı. Hiçbir şeyi DEĞİŞTİRMEZ.
+#
+# brand VARSAYILANI '*' (hepsi) -- eskiden 'Lacoste' idi ve bu sessiz bir tuzaktı:
+# görsel denetimi brand='' ile çalıştırıldığında GitHub boş değeri "verilmedi" sayıp
+# varsayılanı uyguladı, tarama 346 ürün yerine yalnız 12 Lacoste ürününe daraldı ve
+# "TÜM FOTOLAR YERINDE" yazdı. Rapor doğruydu, kapsamı değildi. Denetim aracının
+# varsayılanı dar olmamalı; tek marka isteyen adını yazar.
 jobs:
   inspect:
     runs-on: ubuntu-latest
@@ -20,30 +133,1201 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           INSPECT_BRAND: ${{ github.event.inputs.brand }}
+          INSPECT_CAT: ${{ github.event.inputs.cat }}
+          INSPECT_NAME: ${{ github.event.inputs.name }}
+          INSPECT_IMGCHK: ${{ github.event.inputs.check_images }}
+          INSPECT_IMGIN: ${{ github.event.inputs.img_contains }}
+          INSPECT_COMPACT: ${{ github.event.inputs.compact }}
+          INSPECT_MISSONLY: ${{ github.event.inputs.missing_only }}
+          INSPECT_ORPHANS: ${{ github.event.inputs.orphans }}
+          INSPECT_DIMS: ${{ github.event.inputs.dims }}
+          INSPECT_LANG: ${{ github.event.inputs.lang_scan }}
+          INSPECT_PLIST: ${{ github.event.inputs.price_list }}
+          INSPECT_PAUDIT: ${{ github.event.inputs.price_audit }}
+          INSPECT_BAKDIFF: ${{ github.event.inputs.bak_diff }}
+          INSPECT_FIT: ${{ github.event.inputs.fit_scan }}
+          INSPECT_IMGLIST: ${{ github.event.inputs.img_list }}
+          INSPECT_HOMEPICKS: ${{ github.event.inputs.home_picks }}
+          INSPECT_RAW: ${{ github.event.inputs.raw_scan }}
+          INSPECT_SHOPORD: ${{ github.event.inputs.shop_order }}
+          INSPECT_MOQ: ${{ github.event.inputs.moq_scan }}
+          INSPECT_LS: ${{ github.event.inputs.linesheet }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 3m
-          envs: INSPECT_BRAND
+          # appleboy/ssh-action YALNIZ burada ADI YAZILI degiskenleri sunucuya
+          # gecirir. Yeni bir girdi eklerken bu satir unutulursa uzak tarafta
+          # getenv() bos doner ve mod SESSIZCE calismaz -- sonda, sorulmayan bir
+          # soruya "her sey normal" diye cevap verir.
+          envs: INSPECT_MOQ,INSPECT_SHOPORD,INSPECT_BAKDIFF,INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT,INSPECT_FIT,INSPECT_IMGLIST,INSPECT_HOMEPICKS,INSPECT_RAW,INSPECT_LS
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
             $home = getenv("HOME");
-            require $home."/public_html/inc/products.php";
+            $root = $home."/public_html";
+            require $root."/inc/products.php";
             $bf = strtolower(trim((string)getenv("INSPECT_BRAND")));
+            $cf = trim((string)getenv("INSPECT_CAT"));
+            $nf = strtolower(trim((string)getenv("INSPECT_NAME")));
+            $imgchk   = strtolower(trim((string)getenv("INSPECT_IMGCHK")))   === 'true';
+            $missonly = strtolower(trim((string)getenv("INSPECT_MISSONLY"))) === 'true';
+            /* Kontak sayfalari klasor klasor uretiliyor (ornegin uploads/balenciaga-burberry/),
+               ama urunlerin markasi klasor adiyla ayni degil -- o klasorde dokuz marka var.
+               Sayfayi canli satirlarla eslestirmenin tek dogru yolu GORSEL YOLU. */
+            $imgin    = strtolower(trim((string)getenv("INSPECT_IMGIN")));
+            /* Tek satirlik cikti: 94 urunluk bir klasor normal bicimde 376 satir eder ve
+               Actions API kutugun yalnizca SONUNU verdigi icin bas taraf okunamaz olur. */
+            $compact  = strtolower(trim((string)getenv("INSPECT_COMPACT"))) === 'true';
+            $orphans  = strtolower(trim((string)getenv("INSPECT_ORPHANS"))) === 'true';
+            $dims     = strtolower(trim((string)getenv("INSPECT_DIMS")))    === 'true';
+            $langscan = strtolower(trim((string)getenv("INSPECT_LANG")))    === 'true';
+            $plist    = strtolower(trim((string)getenv("INSPECT_PLIST")))   === 'true';
+            $paudit   = strtolower(trim((string)getenv("INSPECT_PAUDIT")))  === 'true';
+            $fitscan  = strtolower(trim((string)getenv("INSPECT_FIT")))     === 'true';
+            $imglist  = strtolower(trim((string)getenv("INSPECT_IMGLIST"))) === 'true';
+            $homepick = strtolower(trim((string)getenv("INSPECT_HOMEPICKS"))) === 'true';
+            $rawscan  = strtolower(trim((string)getenv("INSPECT_RAW")))     === 'true';
+            $moqscan  = strtolower(trim((string)getenv("INSPECT_MOQ")))     === 'true';
+            $bakdiff  = trim((string)getenv("INSPECT_BAKDIFF"));
+            $shopord  = strtolower(trim((string)getenv("INSPECT_SHOPORD")));
+
+            /* ── VITRIN SIRASI (salt okunur) ───────────────────────────────
+               shop.php'nin cizdigi sirayi SUNUCUDA, deploy edilmis fonksiyonla
+               hesaplar. Kaynak okumak olcum degil; bu ortamdan canli siteye de
+               cikilamiyor (curl 000), yani siranin gercekten indigini gosteren
+               tek yer burasi.
+               ONCE fonksiyonun VAR OLDUGUNU soruyor: dosyanin parse edilmesi
+               yetmez, ESKI bir kopya da parse edilir -- "deploy inmemis" ile
+               "sira yanlis" ayni cikti olmasin.
+               Basilan her sey ZATEN ACIK: ilan id'si, marka ve satici adi
+               vitrinde duruyor. Kisiye ait hicbir alan yok. */
+            if ($shopord !== '') {
+                if (!function_exists('vestra_shop_order')) {
+                    echo "*** vestra_shop_order() YOK -- deploy inmemis ***\n";
+                } else {
+                    $secs = vestra_sections();
+                    if (!isset($secs[$shopord])) {
+                        echo "bilinmeyen bolme '".$shopord."'. Gecerli: ".implode(', ', array_keys($secs))."\n";
+                    } else {
+                        $all  = vestra_products();
+                        $rows = array_values(array_filter($all, fn($p) => vestra_product_section($p) === $shopord));
+                        $ord  = vestra_shop_order($rows);
+                        printf("bolme %s : %d ilan (katalog %d)\n", $shopord, count($rows), count($all));
+                        echo "on markalar : ".implode(', ', vestra_shop_front_brands())."\n";
+                        echo "lead markalar: ".implode(', ', vestra_shop_lead_brands())."\n";
+                        /* NEW ROZETI ayri olculuyor: sira dogru gorunurken rozet
+                           yanlis pencereden okuyor olabilirdi -- ikisi ayni sabiti
+                           okusun diye yazildi, ama "okuyor" iddiasi ancak SAYIM ile
+                           dogrulanir. Deploy inmemisse sabit de eski kalir, o yuzden
+                           pencere degeri BASILIYOR: "sira dogru" ile "esik indi"
+                           ayni cikti olmasin. */
+                        if (function_exists('vestra_product_is_new') && defined('VESTRA_SHOP_NEW_DAYS')) {
+                            $nSec = 0; foreach ($rows as $p) if (vestra_product_is_new($p)) $nSec++;
+                            $nAll = 0; foreach ($all  as $p) if (vestra_product_is_new($p)) $nAll++;
+                            printf("NEW rozeti  : pencere %d gun, tavan %d | bu bolmede %d ilan, katalogda %d\n",
+                                VESTRA_SHOP_NEW_DAYS, VESTRA_SHOP_NEW_MAX, $nSec, $nAll);
+                            /* En taze ekleme gunleri: pencere BOS ciktiginda "esik
+                               inmedi" ile "bu hafta hic ilan girmedi" ayri seyler. */
+                            $days = [];
+                            foreach ($all as $p) if (!empty($p['added_at'])) {
+                                $ts = strtotime((string)$p['added_at']);
+                                if ($ts !== false) { $d = date('Y-m-d', $ts); $days[$d] = ($days[$d] ?? 0) + 1; }
+                            }
+                            krsort($days);
+                            $head = array_slice($days, 0, 4, true); $parts = [];
+                            foreach ($head as $d => $c) $parts[] = $d.' ('.$c.')';
+                            echo "en taze eklemeler: ".(count($parts) ? implode(' · ', $parts) : '(added_at yok)')."\n";
+                        } else {
+                            echo "*** vestra_product_is_new()/VESTRA_SHOP_NEW_DAYS YOK -- deploy inmemis ***\n";
+                        }
+                        echo "\n";
+                        echo "  #  ILAN                            MARKA            SATICI\n";
+                        foreach (array_slice($ord, 0, 24) as $i => $p) {
+                            printf("  %2d %-31s %-16s %s\n", $i + 1,
+                                substr((string)($p['id'] ?? ''), 0, 31),
+                                substr((string)($p['brand'] ?? '(marka yok)'), 0, 16),
+                                substr((string)($p['seller'] ?? '') !== '' ? (string)$p['seller'] : '(satici adi yok)', 0, 24));
+                        }
+                        /* Sayim, "ilk 24"un tesadufen dogru gorunmesini engeller:
+                           bir marka listede 20 ilanla varsa 20'sinin de basta
+                           olmasi gerekir. */
+                        $front = vestra_shop_front_brands();
+                        $pos = [];
+                        foreach ($ord as $i => $p) {
+                            $b = strtoupper(trim((string)($p['brand'] ?? '')));
+                            if (in_array($b, $front, true)) $pos[$b][] = $i + 1;
+                        }
+                        echo "\non marka konumlari (1 = en basta):\n";
+                        foreach ($front as $b) {
+                            /* Gizli marka ayri yaziliyor: "ilan YOK" okunup
+                               ilanlar silindi sanilmasin -- kayitlar duruyor,
+                               yalniz vitrin gostermiyor (vestra_hidden_brands). */
+                            if (empty($pos[$b]) && function_exists('vestra_brand_is_hidden') && vestra_brand_is_hidden($b)) { echo "  ".$b.": GIZLI MARKA (kayitlar duruyor, vitrinde yok)\n"; continue; }
+                            if (empty($pos[$b])) { echo "  ".$b.": bu bolmede ilan YOK\n"; continue; }
+                            printf("  %-12s %d ilan, sira %d..%d\n", $b, count($pos[$b]), min($pos[$b]), max($pos[$b]));
+                        }
+                    }
+                }
+                exit(0);
+            }
+
+            /* ── YEDEKLE FIYAT FARKI (salt okunur) ────────────────────────────
+               Cikti RAKAM DEGIL ORAN yaziyor (x1.20 gibi): Actions gunlugu
+               herkese acik ve ic giyim katalogunun kar orani kayitli, yani
+               satis fiyatini basmak maliyeti de basar (KURAL 22). Oran,
+               "neyin degistigi" sorusunu rakami ele vermeden cevapliyor.
+               HAM dosya okunuyor (vestra_listings), vestra_products() degil:
+               onaydan gecmemis ilanlar da yedekte duruyor ve fark oradaysa
+               gorunmesi gerek. */
+            if ($bakdiff !== '') {
+                $dir = vestra_data_dir();
+                $baks = glob($dir.'/listings.json.bak-*') ?: [];
+                usort($baks, fn($a,$b) => strcmp($b,$a));
+                if (strtolower($bakdiff) === 'list') {
+                    echo "listings.json yedekleri (yeniden eskiye):\n";
+                    foreach (array_slice($baks, 0, 40) as $b) {
+                        $n = @json_decode((string)@file_get_contents($b), true);
+                        echo "  ".basename($b)."  ".number_format((int)@filesize($b))." bayt  "
+                           . (is_array($n) ? count($n)." ilan" : "OKUNAMADI")."\n";
+                    }
+                    echo "toplam yedek: ".count($baks)."\n";
+                    exit(0);
+                }
+                $pick = '';
+                foreach ($baks as $b) { if (str_contains(basename($b), $bakdiff)) { $pick = $b; break; } }
+                if ($pick === '') { fwrite(STDERR, "HATA: yedek bulunamadi: '{$bakdiff}' -- bak_diff=list ile listeleyin\n"); exit(1); }
+                $oldArr = json_decode((string)@file_get_contents($pick), true);
+                if (!is_array($oldArr)) { fwrite(STDERR, "HATA: yedek okunamadi: {$pick}\n"); exit(1); }
+                $nowArr = vestra_listings();
+                echo "yedek : ".basename($pick)."  (".count($oldArr)." ilan)\n";
+                echo "bugun : listings.json          (".count($nowArr)." ilan)\n\n";
+                $byId = [];
+                foreach ($oldArr as $o) { $id = (string)($o['id'] ?? ''); if ($id !== '') $byId[$id] = $o; }
+                $lowest = function (array $p): float {
+                    $m = 0.0;
+                    if (!empty($p['tiers']) && is_array($p['tiers'])) {
+                        foreach ($p['tiers'] as $t) {
+                            if (is_array($t) && (float)($t['price'] ?? 0) > 0) {
+                                $m = ($m === 0.0) ? (float)$t['price'] : min($m, (float)$t['price']);
+                            }
+                        }
+                    }
+                    return $m > 0 ? $m : (float)($p['list'] ?? 0);
+                };
+                $bySec = []; $rows = []; $newOnes = 0; $gone = 0;
+                foreach ($nowArr as $np) {
+                    $id = (string)($np['id'] ?? ''); if ($id === '') continue;
+                    if (!isset($byId[$id])) { $newOnes++; continue; }
+                    $op = $byId[$id];
+                    $a = $lowest($op); $b = $lowest($np);
+                    if ($a <= 0 && $b <= 0) continue;
+                    if (abs($a - $b) < 0.005) continue;
+                    $sec = vestra_product_section($np);
+                    $bySec[$sec] = ($bySec[$sec] ?? 0) + 1;
+                    $rows[] = sprintf("  %-22s | %-9s | %-18s | oran x%s%s",
+                        $id, $sec, substr((string)($np['brand'] ?? '?'), 0, 18),
+                        $a > 0 ? number_format($b / $a, 4) : 'yeni fiyat',
+                        isset($np['markup_at']) ? '  [zam damgali]' : '');
+                }
+                foreach ($byId as $id => $op) {
+                    $still = false;
+                    foreach ($nowArr as $np) { if ((string)($np['id'] ?? '') === $id) { $still = true; break; } }
+                    if (!$still) $gone++;
+                }
+                echo "FIYATI DEGISEN ILAN: ".count($rows)."\n";
+                if ($bySec) { echo "bolme dagilimi:\n"; foreach ($bySec as $k => $v) echo "  {$k}: {$v}\n"; }
+                else echo "  (hicbir bolmede fiyat degisikligi yok)\n";
+                echo "yedekten bu yana EKLENEN ilan: {$newOnes}   SILINEN: {$gone}\n\n";
+                /* Ornek satirlar KISA tutuluyor ve OZET SONA TEKRAR basiliyor:
+                   Actions kutugunun yalnizca sonu okunabiliyor, 400 satirlik bir
+                   liste bastaki ozeti kuyruktan dusuruyor (CLAUDE.md'nin
+                   get_job_logs notu). Sayim karar icin yeterli, liste ornek. */
+                foreach (array_slice($rows, 0, 12) as $r) echo $r."\n";
+                if (count($rows) > 12) echo "  ... (".(count($rows)-12)." satir daha)\n";
+                /* Oran dagilimi: kac ilan hangi carpanla degismis. Tek bir zam mi
+                   yoksa ust uste binmis iki zam mi oldugunu bu satir soyluyor. */
+                $byRatio = [];
+                foreach ($nowArr as $np) {
+                    $id = (string)($np['id'] ?? ''); if ($id === '' || !isset($byId[$id])) continue;
+                    $a = $lowest($byId[$id]); $b = $lowest($np);
+                    if ($a <= 0 || abs($a - $b) < 0.005) continue;
+                    $k = vestra_product_section($np).' x'.number_format($b / $a, 4);
+                    $byRatio[$k] = ($byRatio[$k] ?? 0) + 1;
+                }
+                ksort($byRatio);
+                echo "\n=== OZET (bolme x oran -> kac ilan) ===\n";
+                foreach ($byRatio as $k => $v) echo "  {$k}  ->  {$v} ilan\n";
+                $stamp = [];
+                foreach ($nowArr as $np) {
+                    if (!isset($np['markup_pct'])) continue;
+                    $k = vestra_product_section($np).' damga %'.(float)$np['markup_pct'];
+                    $stamp[$k] = ($stamp[$k] ?? 0) + 1;
+                }
+                ksort($stamp);
+                echo "=== ZAM DAMGALARI (bugun kayitta duran) ===\n";
+                if ($stamp) { foreach ($stamp as $k => $v) echo "  {$k}  ->  {$v} ilan\n"; }
+                else echo "  (damga yok)\n";
+                echo "FIYATI DEGISEN TOPLAM: ".count($rows)."\n";
+                exit(0);
+            }
+
+            /* ASGARI ALIM TARAMASI. Yeni musterinin ilk sorusu hep ayni:
+               "su kadar parca alabilir miyim". Cevap ilan BASINA MOQ'da ve
+               katalogda 800+ ilan var, yani hafizadan verilen her cevap ya
+               fazla ya eksik soz olur -- sepet MOQ'nun altini kabul etmiyor.
+               vestra_products(): musterinin GERCEKTEN gorebildigi liste
+               (approved + unlisted haric) -- ham liste satilamayan ilanlari da
+               sayar ve cevabi iyimser tarafa kaydirirdi.
+               FIYAT YOK: soru adet sorusu, ve kar orani kayitli oldugu icin
+               fiyat basmak maliyeti herkese acik kutuge yazmak demek. */
+            if ($moqscan) {
+              $live = vestra_products();
+              $tot = count($live);
+              $bkt = ['1' => 0, '2-10' => 0, '11-20' => 0, '21-50' => 0, '51+' => 0];
+              $steps = []; $reach = [];
+              $rows = [];
+              foreach ($live as $p) {
+                $moq  = max(1, (int)($p['moq'] ?? 1));
+                $step = max(1, (int)($p['size_step'] ?? 1));
+                if ($moq <= 1)       $bkt['1']++;
+                elseif ($moq <= 10)  $bkt['2-10']++;
+                elseif ($moq <= 20)  $bkt['11-20']++;
+                elseif ($moq <= 50)  $bkt['21-50']++;
+                else                 $bkt['51+']++;
+                $steps[$step] = ($steps[$step] ?? 0) + 1;
+                $br = trim((string)($p['brand'] ?? '?')) ?: '?';
+                $ct = trim((string)($p['cat'] ?? '?')) ?: '?';
+                foreach ([10, 20, 30, 50] as $n) {
+                  if ($moq <= $n) { $reach[$n]['b'][$br] = true; $reach[$n]['c'][$ct] = true; $reach[$n]['n'] = ($reach[$n]['n'] ?? 0) + 1; }
+                }
+                $rows[] = ['moq' => $moq, 'step' => $step, 'brand' => $br, 'cat' => $ct,
+                           'sec' => function_exists('vestra_product_section') ? (string)vestra_product_section($p) : ''];
+              }
+              usort($rows, fn($a, $b) => [$a['moq'], $a['brand']] <=> [$b['moq'], $b['brand']]);
+              echo "== ASGARI ALIM (MOQ) TARAMASI — canli katalog: {$tot} ilan ==\n";
+              foreach ($bkt as $k => $v) printf("  MOQ %-6s %4d ilan\n", $k, $v);
+              ksort($steps);
+              echo "  paket adimi (size_step): ";
+              $sp = []; foreach ($steps as $k => $v) $sp[] = $k.'x'.$v;
+              echo implode(' · ', $sp)."\n";
+              /* "N adetle kac marka" -- musterinin sordugu sey bu: tek kalemde
+                 degil, SEPETTE N parca. Bir ilan ancak MOQ'su N'den kucukse o
+                 sepete tek basina girebilir. */
+              foreach ([10, 20, 30, 50] as $n) {
+                printf("  <=%2d adetle alinabilen: %3d ilan | %2d marka | %2d kategori\n",
+                  $n, (int)($reach[$n]['n'] ?? 0), count($reach[$n]['b'] ?? []), count($reach[$n]['c'] ?? []));
+              }
+              /* En dusuk MOQ'lu ilanlar: "30-50 parca" bir sepette gercekten
+                 nasil kurulur sorusunun somut cevabi. Ad ve fiyat yok. */
+              echo "  en dusuk MOQ'lu 25 ilan (marka · kategori · bolme · MOQ/paket):\n";
+              foreach (array_slice($rows, 0, 25) as $r)
+                printf("    %-22s %-22s %-10s MOQ %3d / paket %d\n",
+                  mb_substr($r['brand'], 0, 22), mb_substr($r['cat'], 0, 22), $r['sec'], $r['moq'], $r['step']);
+              /* Marka asgarisi MOQ'dan AYRI bir kapi (KURAL 21): sepetteki o
+                 markanin TOPLAMI esigin altindaysa siparis gecmiyor. MOQ'yu
+                 saglayip burada takilan bir musteri "neden olmuyor" der. */
+              if (function_exists('vestra_brand_min_orders')) {
+                $bm = vestra_brand_min_orders();
+                echo "  marka asgarisi (sepette o markanin toplami): ".($bm ? '' : 'yok')."\n";
+                foreach ($bm as $k => $v) printf("    %-22s %s EUR\n", $k, number_format((float)$v, 2));
+              }
+              echo "\n";
+            }
+
+            /* HAM KAYIT: vestra_listings(), vestra_products() DEGIL.
+               vestra_live_listings() status==='approved' suzuyor, yani yeni
+               yazilmis ve onay bekleyen bir parti butun diger modlarda "0 urun"
+               gorunur -- ve "0", "yazilmadi" ile "yazildi ama henuz onaysiz"
+               arasinda hicbir ayrim yapmaz. Bu depo alti kez kontrolun yanlis
+               yere baktigini kaydetti; bir yazma adimini dogrulamak icin
+               kullanilan sonda o listenin yedincisi olurdu. */
+            if ($rawscan) {
+              $all = function_exists('vestra_listings') ? vestra_listings() : [];
+              /* Bu dosyanin suzgec degiskenleri $bf/$cf -- ilk yazimda $brand/$cat
+                 yazdim, ikisi de TANIMSIZ, ve PHP'de null !== '' DOGRU oldugu icin
+                 suzgec her satiri "eslesmedi" sayip 0 dondurdu. Cikti "722 kayit,
+                 filtreye uyan 0" idi: yazma basarili, sonda bos. Tam olarak bu
+                 dosyaya eklerken kacinmaya calistigim sey -- kontrolun kendisi
+                 yanlis yere bakiyor. */
+              $sel = array_values(array_filter($all, function ($p) use ($bf, $cf) {
+                if ($bf !== '' && $bf !== '*' && strcasecmp(trim((string)($p['brand'] ?? '')), $bf) !== 0) return false;
+                if ($cf !== '' && strcasecmp(trim((string)($p['cat'] ?? '')), $cf) !== 0) return false;
+                return true;
+              }));
+              printf("HAM listings.json: %d kayit, filtreye uyan %d\n\n", count($all), count($sel));
+              $byStatus = []; $i18nOk = 0; $i18nMissing = []; $noTier = []; $sections = [];
+              foreach ($sel as $p) {
+                $st = (string)($p['status'] ?? 'approved');
+                $byStatus[$st] = ($byStatus[$st] ?? 0) + 1;
+                $sections[(string)($p['section'] ?? '(yok)')] = ($sections[(string)($p['section'] ?? '(yok)')] ?? 0) + 1;
+                $n = is_array($p['name_i18n'] ?? null) ? count($p['name_i18n']) : 0;
+                $d = is_array($p['desc_i18n'] ?? null) ? count($p['desc_i18n']) : 0;
+                if ($n >= 9 && $d >= 9) $i18nOk++; else $i18nMissing[] = sprintf('%s (ad=%d desc=%d)', (string)($p['id'] ?? '?'), $n, $d);
+                if (empty($p['tiers'])) $noTier[] = (string)($p['id'] ?? '?');
+              }
+              echo "durum   : "; foreach ($byStatus as $k => $v) printf("%s=%d  ", $k, $v); echo "\n";
+              echo "bolme   : "; foreach ($sections as $k => $v) printf("%s=%d  ", $k, $v); echo "\n";
+              /* GIZLI MARKALAR (vestra_hidden_brands, 25 Eyl 2026): ham kayit
+                 DURUYOR ama katalog okuyucusunda YOK. Iki sayi yan yana: ham
+                 listede kac ilan (geri acilinca donecek olan) ve vestra_products()
+                 icinde kac tane kaldi (0 olmali -- sizinti). Fonksiyon yoksa
+                 deploy inmemis demektir; "0 gizli" diye okunmamali. */
+              if (!function_exists('vestra_hidden_brands')) echo "gizli marka: *** vestra_hidden_brands() YOK -- deploy inmemis ***\n";
+              else {
+                $hb = vestra_hidden_brands(true);
+                if (!$hb) echo "gizli marka: (hicbiri)\n";
+                else {
+                  $inCat = 0;
+                  foreach (vestra_products(true) as $cp) if (isset($hb[vestra_brand_key((string)($cp['brand'] ?? ''))])) $inCat++;
+                  foreach ($hb as $hk => $hn) {
+                    $rawN = 0; $apN = 0;
+                    foreach ($all as $ap) if (vestra_brand_key((string)($ap['brand'] ?? '')) === $hk) { $rawN++; if (($ap['status'] ?? 'approved') === 'approved') $apN++; }
+                    printf("gizli marka: %-14s ham %d ilan (%d onayli) -- listings.json'da duruyor\n", $hn, $rawN, $apN);
+                  }
+                  printf("gizli marka: katalogda (vestra_products) kalan: %d %s\n", $inCat, $inCat === 0 ? '(dogru)' : '*** SIZINTI ***');
+                }
+              }
+              printf("9 dilde ad+aciklama: %d/%d\n", $i18nOk, count($sel));
+              if ($i18nMissing) { echo "*** EKSIK i18n ***\n"; foreach (array_slice($i18nMissing, 0, 20) as $m) echo "   $m\n"; }
+              /* tiers yoksa vestra_unit_price() 0 doner ve order.php satiri atlar:
+                 ilan vitrinde durur, SATIN ALINAMAZ. */
+              if ($noTier) { echo "*** TIERS YOK (satin alinamaz) ***\n"; foreach (array_slice($noTier, 0, 20) as $m) echo "   $m\n"; }
+              else echo "tiers   : hepsinde var\n";
+              /* Satici uid'i: showroom kurallari HESABA baglaniyor, ilanin
+                 gorunen adina degil ("Wholesale Underwear" bir metin, kimlik
+                 degil). Kisisel veri degil -- e-posta/token degil, hesap
+                 anahtari; CLAUDE.md zaten bir satici uid'ini acikca tasiyor. */
+              $uids = [];
+              foreach ($sel as $p) { $u = (string)($p['seller_uid'] ?? '(yok)'); $uids[$u] = ($uids[$u] ?? 0) + 1; }
+              echo "satici_uid: "; foreach ($uids as $k => $v) printf("%s=%d  ", $k, $v); echo "\n";
+              /* Beden dizgelerinin TAM dagilimi. Beden secici yazarken kaynak
+                 bu olmali: kendi uydurdugum ornek degerlerle calisan bir ayristirici,
+                 canlida bambaska bir dizgeyle karsilasir (bu depoda pack_qty ile
+                 birebir bu yasandi). */
+              $sz = [];
+              foreach ($sel as $p) { $s = trim((string)($p['sizes'] ?? '')); if ($s === '') $s = '(BOS)'; $sz[$s] = ($sz[$s] ?? 0) + 1; }
+              arsort($sz);
+              echo "beden dizgeleri (".count($sz)." farkli):\n";
+              foreach ($sz as $k => $v) printf("   %2d x  %s\n", $v, $k);
+              /* Beden SECICISI canlida kac ilanda cikiyor? Bu satir iki isi
+                 birden yapiyor: deploy'un yeni fonksiyonu gercekten sunucuya
+                 indirdigini kanitliyor, ve "30/42" tahminimi OLCUME ceviriyor. */
+              if (function_exists('vestra_sizes_selectable')) {
+                  $pick = 0; $fixed = 0; $one = 0;
+                  foreach ($sel as $p) {
+                      $s = trim((string)($p['sizes'] ?? ''));
+                      if (vestra_sizes_selectable($p)) { $pick++; }
+                      elseif (vestra_sizes_has_pack($s) || vestra_sizes_has_run($s)) { $fixed++; }
+                      else { $one++; }
+                  }
+                  printf("beden secici: %d ilanda VAR | %d paket/seri (sabit) | %d tek beden\n", $pick, $fixed, $one);
+              } else {
+                  echo "beden secici: *** vestra_sizes_selectable YOK -- deploy inmemis ***\n";
+              }
+              echo "\n-- ornek kayit (FIYAT YOK) --\n";
+              foreach (array_slice($sel, 0, 3) as $p) {
+                printf("  %s  [%s]  durum=%s  bolme=%s  satici=%s  ships=%s\n",
+                  (string)($p['id'] ?? '?'), (string)($p['cat'] ?? '?'), (string)($p['status'] ?? 'approved'),
+                  (string)($p['section'] ?? '-'), (string)($p['seller'] ?? '-'), (string)($p['ships_from'] ?? '-'));
+                printf("     en: %s\n", (string)($p['name'] ?? ''));
+                foreach (['de','ru','ja','ar'] as $lg) printf("     %s: %s\n", $lg, (string)(($p['name_i18n'][$lg] ?? '(yok)')));
+                printf("     beden: %s   renk: %s\n", (string)($p['sizes'] ?? '-'), implode('/', (array)($p['colors'] ?? [])));
+                printf("     desc/de: %s\n", (string)(($p['desc_i18n']['de'] ?? '(yok)')));
+              }
+              /* FOTOGRAF DISKTE MI -- ve neden BURADA. Asagidaki 'check_images'
+                 modu vestra_products() geziyor, yani YALNIZ approved: onay
+                 bekleyen taze bir partiyi YAPISI GEREGI goremiyor. Bir partiyi
+                 onaylamadan once "fotograflari yerinde mi" diye sorulunca o mod
+                 baska bir kumeyi olcup "TUM FOTOLAR YERINDE" diyor -- dogru
+                 cumle, yanlis kume. Kirik gorselle yayina acmanin tek panzehiri
+                 onaydan ONCE olcmek, o yuzden ayni denetim ham listede de var.
+                 Bos dosya da kayip sayilir: 0 baytlik .jpg tarayicida kirik
+                 ikon, ama is_file() true doner. */
+              $iMiss = []; $iOk = 0; $iNone = 0;
+              foreach ($sel as $p) {
+                $imgs = array_values(array_filter(array_map('strval', (array)($p['images'] ?? []))));
+                if (!$imgs && !empty($p['image'])) $imgs = [(string)$p['image']];
+                if (!$imgs) { $iNone++; continue; }
+                foreach ($imgs as $im) {
+                  $f = $root.$im;
+                  if (is_file($f) && @filesize($f) > 0) { $iOk++; continue; }
+                  $iMiss[] = [(string)($p['id'] ?? '?'), $im, is_file($f) ? 'BOSDOSYA' : 'YOK'];
+                }
+              }
+              printf("\n-- HAM GORSEL DENETIMI (pending dahil) --\n");
+              printf("diskte VAR: %d   kayip/bozuk: %d   hic gorseli olmayan ilan: %d\n",
+                     $iOk, count($iMiss), $iNone);
+              foreach (array_slice($iMiss, 0, 25) as $m) printf("  %-26s %-40s %s\n", $m[0], $m[1], $m[2]);
+              if (!$iMiss && !$iNone) echo "SONUC: TUM FOTOLAR DISKTE\n";
+              exit(0);
+            }
+
+            /* Bir urunun gosterdigi TUM gorseller: kapak listesi, tekil 'image' ve her
+               renk varyantinin kendi fotosu. Varyant fotolari da sayilmali -- katalogda
+               renk secen alici tam onlari goruyor, ve /catalog xlsx'i her renk icin ayri
+               satir uretirken yine onlari gomuyor. */
+            $imagesOf = function(array $p): array {
+              $out = [];
+              if (!empty($p['images']) && is_array($p['images'])) foreach ($p['images'] as $i) $out[] = (string)$i;
+              if (!empty($p['image'])) $out[] = (string)$p['image'];
+              if (!empty($p['variants']) && is_array($p['variants'])) {
+                foreach ($p['variants'] as $v) if (!empty($v['image'])) $out[] = (string)$v['image'];
+              }
+              $out = array_values(array_unique(array_filter($out, fn($s) => trim($s) !== '')));
+              return $out;
+            };
+            /* '/uploads/..' web yolu -> diskteki dosya. Bos dosya da kayip sayilir:
+               0 baytlik bir .jpg tarayicida kirik ikon olarak cikar, is_file ise true doner. */
+            $probe = function(string $img) use ($root): string {
+              $img = trim($img);
+              if ($img === '') return 'bos';
+              if (preg_match('#^https?://#i', $img)) return 'disURL';
+              if ($img[0] !== '/') return 'gecersizYol';
+              $f = $root.$img;
+              if (!is_file($f)) return 'YOK';
+              return (@filesize($f) > 0) ? 'ok' : 'BOSDOSYA';
+            };
+
+            $nProd = 0; $nImg = 0; $nBad = 0; $nProdBad = 0; $nProdNoImg = 0; $badList = [];
             foreach (vestra_products() as $p) {
               $brand = (string)($p['brand'] ?? '');
-              if ($bf !== '' && stripos($brand, $bf) === false) continue;
+              if ($bf !== '' && $bf !== '*' && stripos($brand, $bf) === false) continue;
+              if ($cf !== '' && strcasecmp(trim((string)($p['cat'] ?? '')), $cf) !== 0) continue;
+              if ($nf !== '' && stripos((string)($p['name'] ?? ''), $nf) === false) continue;
+              if ($imgin !== '') {
+                $hit = false;
+                foreach ($imagesOf($p) as $im) if (stripos($im, $imgin) !== false) { $hit = true; break; }
+                if (!$hit) continue;
+              }
+              $nProd++;
               $imgs = [];
               if (!empty($p['images']) && is_array($p['images'])) $imgs = $p['images'];
               elseif (!empty($p['image'])) $imgs = [$p['image']];
+
+              $bad = [];
+              if ($imgchk) {
+                $all = $imagesOf($p);
+                $nImg += count($all);
+                if (!count($all)) $nProdNoImg++;
+                foreach ($all as $img) { $r = $probe($img); if ($r !== 'ok') { $bad[] = $r.'  '.$img; $nBad++; } }
+                if ($bad) { $nProdBad++; $badList[] = [(string)($p['id'] ?? '?'), $brand, count($all), count($bad)]; }
+                if ($missonly && !$bad) continue;
+              }
+
+              if ($compact) {
+                printf("%-26s | %-22s | %s\n", (string)($p['id'] ?? '?'), (string)($p['cat'] ?? '?'),
+                       count($imgs) ? basename((string)$imgs[0]) : '(gorsel yok)');
+                foreach ($bad as $b2) echo "   KAYIP GORSEL: {$b2}\n";
+                continue;
+              }
               $demo = function_exists('vestra_is_demo_product') && vestra_is_demo_product((string)($p['id'] ?? '')) ? 'DEMO(kodda)' : 'canli-listing';
               $nv = !empty($p['variants']) && is_array($p['variants']) ? count($p['variants']) : 0;
               echo "id=".($p['id'] ?? '?')." | {$brand} | ".($p['name'] ?? '?')." | cat=".($p['cat'] ?? '?')." | mode=".($p['mode'] ?? '?')." | {$demo}\n";
               echo "   gorsel({$nv} varyant): ".(count($imgs) ? count($imgs)." adet, ilk=".$imgs[0] : "YOK")."\n";
+              echo "   sku=".($p['sku'] ?? '(yok)')." | fiyat(list)=".($p['list'] ?? '?')." EUR | moq=".($p['moq'] ?? '?')." ".($p['unit'] ?? 'pc')."\n";
+              /* added_at = ilanin KAYDA GIRDIGI an. "Ayni urun iki kez var,
+                 SONRADAN gireni kaldir" (operator, 17 Eyl 2026) tam olarak bu
+                 alani soruyor ve baska hicbir kip onu basmiyordu -- `home_picks`
+                 yalnizca kendi seritindeki kartlar icin yaziyor, `raw_scan` ise
+                 gun bazinda TOPLUYOR. Alani hic tasimayan ilan da var (10 Eyl
+                 olcumu: 3 ilan), o yuzden "(yok)" ile bos ayni sey degil:
+                 tarihsiz bir kayitla tarihli bir kaydin hangisinin once
+                 girildigi OLCULEMEZ ve tahmin edilmemeli. */
+              echo "   added_at=".($p['added_at'] ?? '(yok)')." | seller_uid=".($p['seller_uid'] ?? '(yok)')." | status=".($p['status'] ?? '?')."\n";
+              echo "   sizes=".($p['sizes'] ?? '(yok)')."\n";
+              if (!empty($p['tiers']) && is_array($p['tiers'])) {
+                $t = [];
+                foreach ($p['tiers'] as $tier) $t[] = ($tier['min'] ?? '?')."+ -> €".($tier['price'] ?? '?');
+                echo "   tiers: ".implode(' | ', $t)."\n";
+              }
+              /* Siparis kosullari: MOQ tek basina yalan soyleyebiliyor -- sepet
+                 miktari size_step'in KATINA yuvarliyor, yani 10'luk paketli bir
+                 ilanda "min 48" yazip 50 tahsil etmek mumkun. Teklif ve numune
+                 de burada: ikisi de ilanda birer alan ve ikisi de urun
+                 sayfasinda ayri bir kutu ciziyor, ama hicbir teshis onlari
+                 yazmiyordu -- "teklif dugmesini kaldir" denince neye bakilacagi
+                 kaynaktan okunuyordu. */
+              $terms = [];
+              if (!empty($p['size_step']))  $terms[] = "size_step=".(int)$p['size_step'];
+              /* RENK LISTESI ve min_colors KOSULSUZ basiliyor -- ikisi de bu
+                 dokumde HIC yoktu ve `!empty()` `min_colors=0` ile "hic
+                 yazilmamis"i ayni goruyordu. Musteri "1 lot siyah polo"
+                 dediginde cevaplanacak ilk soru ILANIN KENDI renk listesi:
+                 istenen renk orada yoksa siparis ilani yalanlar, ve min_colors
+                 sepetin GERCEKTEN uyguladigi asgari renk sayisi. Gormedigi bir
+                 alan hakkinda yesil veren sonda bu depoda iki kez kayitli
+                 (`check_images` yalniz approved geziyordu; `price_list`
+                 `sold_out` basmiyordu). */
+              $cols = array_values(array_filter(array_map('strval', (array)($p['colors'] ?? [])), fn($c) => trim($c) !== ''));
+              $terms[] = "renk(".count($cols).")=".(count($cols) ? implode(' / ', $cols) : '(yok)');
+              $terms[] = "min_colors=".(array_key_exists('min_colors', $p) ? (int)$p['min_colors'] : '(alan yok)');
+              /* Renk SECICISI, renk LISTESI degil: ikisi ayri olgu ve bu depoda
+                 bir kez karistirildi (146 ilanda renk kayitliydi, hicbiri
+                 secilemiyordu). Sepetin cagirdigi AYNI fonksiyonlar. */
+              $terms[] = "renk secici=".(function_exists('vestra_is_colorqty_listing')
+                         ? (vestra_is_colorqty_listing($p) ? 'ACIK (adet-basina-renk)'
+                            : (function_exists('vestra_colors_selectable') && vestra_colors_selectable($p) ? 'ACIK (bolme opt-in)' : 'YOK'))
+                         : '? (deploy inmemis)');
+              $terms[] = "beden secici=".(function_exists('vestra_sizes_selectable')
+                         ? (vestra_sizes_selectable($p) ? 'ACIK' : 'YOK') : '? (deploy inmemis)');
+              $terms[] = "teklif=".(function_exists('vestra_offers_open')
+                         ? (vestra_offers_open($p) ? 'ACIK' : 'kapali') : '?')
+                       . " (mode=".($p['mode'] ?? '?').", offers=".(!empty($p['offers']) ? 'true' : '-')
+                       . ", no_offers=".(!empty($p['no_offers']) ? 'true' : '-').")";
+              $terms[] = "numune=".(!empty($p['sample_price']) && is_numeric($p['sample_price']) && (float)$p['sample_price'] > 0
+                         ? '€'.$p['sample_price'] : 'yok');
+              echo "   ".implode(' | ', $terms)."\n";
+              foreach ($bad as $b) echo "   KAYIP GORSEL: {$b}\n";
+            }
+
+            /* ── Bagsiz gorseller + 2. foto adaylari ────────────────────────────────
+               Katalogda 346 urune karsilik 429 gorsel var, yani cogu urunde tek kare.
+               Ikinci kareyi UYDURMAK yerine diskte zaten duran dosyalardan bulmak
+               gerekiyor: bu bolum uploads/ altindaki her gorseli tarar, hicbir urune
+               referans verilmemis olanlari ayirir ve kok adi eslesenleri aday olarak
+               yazar.
+
+               Eslesme kurali: dosya adinin sonundaki varyant ekini (-2, _2, -b, -back,
+               -detail, -alt, -side, -flat, -model, " (1)") atinca geriye kalan kok,
+               AYNI KLASORDEKI bir urun gorselinin koku ile birebir tutuyorsa aday sayilir.
+               Ayni klasor sarti onemli: iki ayri markada "polo-white.jpg" bulunabiliyor ve
+               klasor olmadan bunlar birbirine karisir.
+
+               SALT OKUNUR -- hicbir sey yazmaz, sadece raporlar. */
+            if ($orphans) {
+              /* Urunler burada yeniden aliniyor. Ilk yazimda $all kullanilmisti; o ad bu
+                 betikte gercekten var ama BASKA bir sey: goruntu denetimi dongusunun
+                 icinde TEK bir urunun gorsellerini tutuyor, ve yalnizca check_images
+                 acikken. Bu bolum check_images=false ile calistirilinca degisken hic
+                 tanimlanmadi, PHP dongüyü sessizce bos gecti ve rapor "urune bagli: 0 /
+                 olculen kare: 0" diye kendinden emin bir sifir tablosu bastı -- is yine
+                 yesil dondu. Ayni adin iki anlami oldugu icin burada acik ad kullaniliyor. */
+              $prods = vestra_products();
+              $ref = [];                       // normalize edilmis yol => urun id
+              foreach ($prods as $p2) {
+                foreach ((array)($p2['images'] ?? []) as $im) {
+                  $rel = '/'.ltrim(preg_replace('#^https?://[^/]+#', '', (string)$im), '/');
+                  $ref[strtolower($rel)] = (string)($p2['id'] ?? '?');
+                }
+              }
+              $stem = function(string $file): string {
+                $b = strtolower(pathinfo($file, PATHINFO_FILENAME));
+                $b = preg_replace('/\s*\(\d+\)$/', '', $b);
+                /* Ayirici ZORUNLU. Once '[-_ ]?' yazilmisti ve bu, 'b' ile biten her adi
+                   kirpiyordu: club -> clu, tab -> ta. Yanlis kirpilan bir kok baska bir
+                   rengin karesiyle eslesir ve urun sayfasina yanlis giysi koyar -- 346
+                   urun icinde fark edilmesi cok zor bir hata. Ayirici sart olunca
+                   'polo2.jpg' gibi ayiricisiz varyantlar kaciyor; aday kaçirmak yanlis
+                   aday uretmekten iyidir, cunku kaçani insan gozu bulur, yanlisi bulmaz. */
+                /* p1/p2/p3 ve v1/v2 bu katalogun GERCEK duzeni -- ilk envanterde
+                   balenciaga-612966-p1.jpg ve -p2.jpg gibi binlerce dosya "eslesmeyen"
+                   kutusuna dustu, cunku kural bu ekleri tanimiyordu. Urunun kendisi
+                   eksiz adi (balenciaga-612966.jpg) kullaniyor, ikinci karesi -p2 olarak
+                   diskte zaten duruyor. */
+                $b = preg_replace('/[-_ ](2|3|4|5|b|back|rueck|detail|alt|side|flat|model|zoom|close|p[1-9]|v[1-9])$/', '', $b);
+                return $b;
+              };
+              $files = [];
+              $dir = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root.'/uploads', FilesystemIterator::SKIP_DOTS));
+              foreach ($dir as $f) {
+                if (!$f->isFile()) continue;
+                $ext = strtolower($f->getExtension());
+                if (!in_array($ext, ['jpg','jpeg','png','webp','avif','gif'], true)) continue;
+                if (strpos($f->getFilename(), 'sheet_') === 0) continue;   // satici line-sheet'leri urun gorseli degil
+                /* .thumbs/ site'in kendi onbellegi: 3880 dosyanin neredeyse tamami oradan
+                   geliyordu ve hicbiri ikinci kare adayi degil, hepsi zaten var olan bir
+                   karenin kucultulmus kopyasi. Nokta ile baslayan her klasor elenir. */
+                if (strpos($rel0 = str_replace('\\', '/', substr($f->getPathname(), strlen($root))), '/uploads/.') === 0) continue;
+                $rel = '/uploads'.substr($f->getPathname(), strlen($root.'/uploads'));
+                $files[] = str_replace('\\', '/', $rel);
+              }
+              sort($files);
+              /* kok => ayni klasordeki referansli dosyalar */
+              $byStem = [];
+              foreach ($files as $rel) {
+                if (!isset($ref[strtolower($rel)])) continue;
+                $byStem[dirname($rel).'|'.$stem($rel)][] = $rel;
+              }
+              $orphanList = []; $cand = []; $nOrphan = 0;
+              foreach ($files as $rel) {
+                if (isset($ref[strtolower($rel)])) continue;
+                $nOrphan++;
+                $key = dirname($rel).'|'.$stem($rel);
+                if (isset($byStem[$key])) {
+                  $owner = $ref[strtolower($byStem[$key][0])] ?? '?';
+                  $cand[$owner][] = $rel;
+                } else {
+                  $orphanList[] = $rel;
+                }
+              }
+              echo "\n===== GORSEL ENVANTERI =====\n";
+              printf("uploads/ altindaki gorsel: %d   urune bagli: %d   bagsiz: %d\n",
+                     count($files), count($files) - $nOrphan, $nOrphan);
+              printf("2. foto adayi bulunan urun: %d   toplam aday kare: %d\n",
+                     count($cand), array_sum(array_map('count', $cand)));
+              echo "\n-- 2. FOTO ADAYLARI (urun => diskte duran, kok adi eslesen kare) --\n";
+              $shown = 0;
+              foreach ($cand as $pid => $list) {
+                if ($shown++ >= 60) { printf("  ... ve %d urun daha\n", count($cand) - 60); break; }
+                printf("  %-30s %s\n", $pid, implode('  ', array_map('basename', $list)));
+              }
+              echo "\n-- BAGSIZ, ESLESMEYEN (ilk 40) --\n";
+              foreach (array_slice($orphanList, 0, 40) as $o) echo "  {$o}\n";
+              if (count($orphanList) > 40) printf("  ... ve %d dosya daha\n", count($orphanList) - 40);
+            }
+
+            /* ── Gorsel kalitesi ──────────────────────────────────────────────────────
+               "Kaliteyi duzelt" demek once olcmek demek: hangi kare kucuk, hangisi
+               asiri sikistirilmis. Urun sayfasindaki sahne 4:5 ve genis ekranda ~560px
+               gosteriliyor, retina icin 1120px kenar gerekiyor -- 800px altindaki her
+               kare orada yumusak cikar. */
+            if ($dims) {
+              $prods = vestra_products();
+              $small = []; $tot = 0; $sum = 0;
+              foreach ($prods as $p2) {
+                foreach ((array)($p2['images'] ?? []) as $im) {
+                  $rel = '/'.ltrim(preg_replace('#^https?://[^/]+#', '', (string)$im), '/');
+                  $file = $root.$rel;
+                  if (!is_file($file)) continue;
+                  $inf = @getimagesize($file); if (!$inf) continue;
+                  $tot++; $sum += max($inf[0], $inf[1]);
+                  if (max($inf[0], $inf[1]) < 800)
+                    $small[] = [(string)($p2['id'] ?? '?'), basename($rel), $inf[0], $inf[1], filesize($file)];
+                }
+              }
+              echo "\n===== GORSEL KALITESI =====\n";
+              printf("olculen kare: %d   ortalama uzun kenar: %d px\n", $tot, $tot ? (int)round($sum/$tot) : 0);
+              printf("800px altinda (urun sayfasinda yumusak cikar): %d\n", count($small));
+              foreach (array_slice($small, 0, 40) as $s2)
+                printf("  %-28s %-34s %4dx%-4d  %d KB\n", $s2[0], substr($s2[1],0,34), $s2[2], $s2[3], (int)round($s2[4]/1024));
+              if (count($small) > 40) printf("  ... ve %d kare daha\n", count($small) - 40);
+            }
+
+            /* ── Turkce metin taramasi ───────────────────────────────────────────────
+               Toptan fiyat listesi yabanci alicilara gidiyor ve tamamen Ingilizce olmali.
+               Urun verisi elle girildigi icin araya Turkce kelimeler karisabiliyor.
+
+               IKI olcut birden: (1) Turkceye ozgu harfler -- c-cedilla, g-breve, noktasiz i,
+               o/u-umlaut, s-cedilla; (2) bu harfleri TASIMAYAN yaygin kelimeler ("seri",
+               "adet", "beden", "takim"...). Sadece harfe bakmak yetmez, cunku "seri" saf
+               ASCII; sadece kelime listesine bakmak da yetmez, cunku liste asla tam olmaz.
+
+               SALT OKUNUR. Bulduklarini yazar, hicbir seyi degistirmez -- ne yazilacagina
+               insan karar verir, cunku "seri" bir yerde "series" bir yerde "set" demek. */
+            if ($langscan) {
+              $prods = vestra_products();
+              $trChars = '/[\x{00E7}\x{00C7}\x{011F}\x{011E}\x{0131}\x{0130}\x{00F6}\x{00D6}\x{015F}\x{015E}\x{00FC}\x{00DC}]/u';
+              /* Liste ilk turda 'paket'i kacirdi ve kelime 300'den fazla satirda
+                 duruyordu ("10/paket"). Kelime listesiyle calisan bir tarama asla tam
+                 olmaz -- bulunan her yeni ornek buraya eklenmeli, yoksa ayni bosluk
+                 bir dahaki sefere de ayni yerde durur. */
+              $trWords = ['seri','paket','koli','deste','cift','tane','kutu',
+                          'adet','beden','renk','takim','yaka','kol','desen','baski','kumas',
+                          'gomlek','pantolon','ceket','elbise','etek','canta','ayakkabi','kemer',
+                          'mont','kaban','tisort','sort','mayo','erkek','kadin','cocuk','yeni',
+                          'siyah','beyaz','lacivert','kirmizi','mavi','yesil','sari','gri','pembe'];
+              $hits = [];
+              foreach ($prods as $p2) {
+                $fields = [
+                  'name'   => (string)($p2['name'] ?? ''),
+                  'cat'    => (string)($p2['cat'] ?? ''),
+                  'sizes'  => (string)($p2['sizes'] ?? ''),
+                  'desc'   => (string)($p2['desc'] ?? ''),
+                  'colors' => implode(', ', array_filter((array)($p2['colors'] ?? []))),
+                ];
+                foreach ($fields as $fname => $val) {
+                  if ($val === '') continue;
+                  $why = [];
+                  if (preg_match($trChars, $val)) $why[] = 'TR-harf';
+                  /* Kelime sinirlariyla: "sort" kelimesi "shorts" icinde gecmesin,
+                     "kol" da "colour" icinde. */
+                  $plain = mb_strtolower($val);
+                  foreach ($trWords as $w) {
+                    if (preg_match('/(?<![a-z])'.preg_quote($w, '/').'(?![a-z])/u', $plain)) { $why[] = $w; }
+                  }
+                  if ($why) $hits[] = [(string)($p2['id'] ?? '?'), $fname, $val, implode(',', array_unique($why))];
+                }
+              }
+              echo "\n===== TURKCE METIN TARAMASI =====\n";
+              printf("taranan urun: %d   isaretlenen alan: %d\n", count($prods), count($hits));
+              foreach (array_slice($hits, 0, 80) as $h)
+                printf("  %-26s %-7s %-52s [%s]\n", $h[0], $h[1], mb_substr($h[2], 0, 52), $h[3]);
+              if (count($hits) > 80) printf("  ... ve %d alan daha\n", count($hits) - 80);
+              if (!$hits) echo "  Turkce metin bulunamadi.\n";
+            }
+
+            /* KALIP TARAMASI -- "hangi urunler gercekten oversize?" (operator, 9 Eyl 2026).
+               KURAL 2h'nin lot dagilimi kalipa bagli: oversize bir tisortte nominal XS,
+               duz kalipta M gibi duruyor. Kapsami ADA bakarak secmek eksik kaliyor --
+               170 tisortun yalnizca 4'unun adinda "Oversized" geciyor, Balenciaga'nin
+               10 tisortunun adinda kalip hic yazmiyor.
+               Bu tarama ADIN otesine bakiyor: aciklama ve ozellik alanlari da kalibi
+               yaziyor olabilir ve orasi urunun KENDI kaydi -- hatirlamaya ya da disaridan
+               tahmine gore eleme yapmanin alternatifi bu (blocklist tarafindaki
+               'worksout' dersinin ayni sinifi).
+               SALT OKUNUR ve KARAR VERMEZ: bulduklarini kanit cumlesiyle yazar, hangi
+               ilanin seri degistirecegine insan bakar -- "regular fit" yazan bir ilani
+               oversize sanmak, sessizce yanlis beden gondermek olurdu. */
+            /* ── SIRALI GORSEL LISTESI ────────────────────────────────────────────
+               Ham listeden okuyor (vestra_listings), vestra_products() DEGIL: o
+               yalniz 'approved' donduruyor ve onay bekleyen bir parti YAPISI
+               GEREGI gorunmez -- D&G partisinde bu bedel bir kez odendi.
+               Sira onemli: [0] kapaktir. Diskte olup olmadigi da yaziliyor;
+               "tasidim" demeden once tasinan seyin gercekten var oldugunu
+               gormek gerekiyor. */
+            /* ── ANA SAYFA SERIDI ────────────────────────────────────────────────
+               Sayfanin kendi suzgecini BIREBIR tekrarliyor (fotografi diskte
+               olan aday) ve sonra sayfanin cagirdigi fonksiyonu cagiriyor.
+               Ikinci bir secim mantigi YAZILMADI: bu depoda kontrolun kendisi
+               alti kez yanlis yere bakti, ve "sayfa baska, sonda baska" tam o
+               sinif olurdu.
+               Fonksiyon yoksa DEPLOY INMEMIS demektir ve sonda bunu SOYLUYOR --
+               sifir yazip "serit bos" demek iki ayri durumu gizlerdi. */
+            if ($homepick) {
+              echo "===== ANA SAYFA: yeni gelenler seridi =====\n";
+              if (!function_exists('vestra_home_new_picks')) {
+                echo "*** vestra_home_new_picks YOK -- deploy inmemis ***\n"; exit(0);
+              }
+              $cand = []; $noImg = 0;
+              foreach (vestra_products() as $np) {
+                $im = '';
+                foreach ((array)($np['images'] ?? []) as $ni) {
+                  if (!is_string($ni) || $ni === '' || $ni[0] !== '/') continue;
+                  if (!is_file($root.$ni)) continue;
+                  $im = $ni; break;
+                }
+                if ($im === '' || ($np['id'] ?? '') === '') { $noImg++; continue; }
+                $cand[] = $np;
+              }
+              $front = vestra_home_featured_brands();
+              /* Bolme kovasi 25 Eyl 2026'da eklendi. Fonksiyon yoksa sunucudaki kod
+                 eski demektir -- bu satirsiz cikti bolmeyi "aday yok" diye okuturdu. */
+              $fsec = function_exists('vestra_home_featured_sections') ? vestra_home_featured_sections() : null;
+              printf("katalog: %d | fotografi diskte olan aday: %d | fotografsiz/id siz: %d\n",
+                     count(vestra_products()), count($cand), $noImg);
+              if ($fsec === null) echo "*** vestra_home_featured_sections YOK -- bolme kodu deploy edilmemis ***\n";
+              else {
+                printf("one alinan bolmeler: %s | tavan %s\n", implode(', ', $fsec),
+                       defined('VESTRA_HOME_SECTION_MAX') ? VESTRA_HOME_SECTION_MAX : '?');
+                foreach ($fsec as $fs) {
+                  $n = 0; foreach ($cand as $c) if (vestra_product_section($c) === $fs && !vestra_is_sold_out($c)) $n++;
+                  printf("  %-18s %d aday (satista, fotografli)%s\n", $fs, $n, $n === 0 ? '   *** bu bolmede aday YOK ***' : '');
+                }
+              }
+              printf("one alinan markalar: %s | tavan %s\n", implode(', ', $front),
+                     defined('VESTRA_HOME_FEATURED_MAX') ? VESTRA_HOME_FEATURED_MAX : '?');
+              foreach ($front as $fb) {
+                $n = 0; foreach ($cand as $c) if (strtoupper(trim((string)($c['brand'] ?? ''))) === $fb) $n++;
+                printf("  %-18s %d aday%s\n", $fb, $n, $n === 0 ? '   *** bu markada aday YOK ***' : '');
+              }
+              $picks = vestra_home_new_picks($cand);
+              printf("\nseritte %d kart:\n", count($picks));
+              foreach ($picks as $i2 => $pk) {
+                /* Etiket secicinin KENDI sirasiyla: once bolme, sonra marka, sonra yeni.
+                   Bolme kartina "[yeni]" demek 120 gunluk bir ilani taze gosterirdi --
+                   rakam dogru, etiket yalan. */
+                $isS = $fsec !== null && in_array(vestra_product_section($pk), $fsec, true);
+                $isF = !$isS && in_array(strtoupper(trim((string)($pk['brand'] ?? ''))), $front, true);
+                printf("  %2d. %-26s %-20s %s%s\n", $i2 + 1,
+                       (string)($pk['id'] ?? '?'), (string)($pk['brand'] ?? '?'),
+                       substr((string)($pk['added_at'] ?? '(tarih yok)'), 0, 10),
+                       $isS ? '   [bolme: '.vestra_product_section($pk).']' : ($isF ? '   [one alinan]' : '   [yeni]'));
+              }
+              if (!$picks) echo "  (bos -- ne one alinan markada ne de pencerede fotografli ilan var)\n";
+              exit(0);
+            }
+
+            if ($imglist) {
+              $all2 = function_exists('vestra_listings') ? vestra_listings() : vestra_products(true);
+              $n = 0;
+              foreach ($all2 as $p2) {
+                $bn = trim((string)($p2['brand'] ?? ''));
+                if ($bf !== '' && $bf !== '*' && stripos($bn, $bf) === false) continue;
+                if ($cf !== '' && strcasecmp(trim((string)($p2['cat'] ?? '')), $cf) !== 0) continue;
+                $imgs = array_values(array_filter(array_map('strval', (array)($p2['images'] ?? []))));
+                $n++;
+                printf("\n%s | %s | %s | %d gorsel\n",
+                       (string)($p2['id'] ?? '?'), $bn, (string)($p2['status'] ?? '?'), count($imgs));
+                foreach ($imgs as $i2 => $im) {
+                  $f = $root.$im;
+                  $st = (is_file($f) && @filesize($f) > 0) ? 'diskte' : '*** YOK ***';
+                  printf("  [%d]%s %-52s %s\n", $i2, $i2 === 0 ? ' KAPAK' : '      ', $im, $st);
+                }
+                if (!$imgs) echo "  (gorsel yok)\n";
+              }
+              printf("\nesleşen ilan: %d\n", $n);
+              exit(0);
+            }
+
+            if ($fitscan) {
+              $prods = vestra_products();
+              /* Iki kume AYRI raporlanir: oversize'a isaret edenler ve TERSINE isaret
+                 edenler (slim/regular). Yalnizca birini aramak, "hicbir sey bulunamadi"
+                 ile "hepsi duz kalip" arasindaki farki gizlerdi. */
+              $wide   = ['oversize','oversized','boxy','relaxed fit','relaxed','loose fit','loose',
+                         'large fit','wide fit','baggy','dropped shoulder','drop shoulder'];
+              $narrow = ['slim fit','slim','regular fit','classic fit','fitted','tailored fit'];
+              $rows = [];
+              foreach ($prods as $p2) {
+                $bn = trim((string)($p2['brand'] ?? ''));
+                if ($bf !== '' && $bf !== '*' && stripos($bn, $bf) === false) continue;
+                if ($cf !== '' && strcasecmp(trim((string)($p2['cat'] ?? '')), $cf) !== 0) continue;
+                /* specs bir dizi olabiliyor (etiket => deger); duz metne cevrilip
+                   birlikte taraniyor, yoksa kalip oradaysa hic gorunmezdi. */
+                $specTxt = '';
+                if (!empty($p2['specs']) && is_array($p2['specs'])) {
+                  foreach ($p2['specs'] as $k => $v) {
+                    $specTxt .= ' '.(is_string($k) ? $k.': ' : '').(is_scalar($v) ? (string)$v : '');
+                  }
+                }
+                $fields = [
+                  'ad'   => (string)($p2['name'] ?? ''),
+                  'aciklama' => (string)($p2['desc'] ?? ''),
+                  'ozellik'  => trim($specTxt),
+                ];
+                foreach ($fields as $fname => $val) {
+                  if (trim($val) === '') continue;
+                  $plain = mb_strtolower($val);
+                  foreach ([['GENIS', $wide], ['DAR', $narrow]] as [$tag, $words]) {
+                    foreach ($words as $w) {
+                      /* Kelime siniri: "loose" kelimesi "blouse" icinde, "slim" de
+                         "slimline" icinde gecmesin -- bu depoda mango/zara dersi. */
+                      if (!preg_match('/(?<![a-z])'.preg_quote($w, '/').'(?![a-z])/u', $plain, $m, PREG_OFFSET_CAPTURE)) continue;
+                      /* Kanit cumlesi: eslesmenin etrafindan bir parca. Yalnizca
+                         "eslesti" yazan bir rapor, okuyani kaynaga geri gonderir. */
+                      $off = max(0, $m[0][1] - 40);
+                      $ctx = trim(preg_replace('/\s+/u', ' ', mb_strcut($val, $off, 110)));
+                      $rows[] = [(string)($p2['id'] ?? '?'), $bn, (string)($p2['name'] ?? ''),
+                                 $tag, $w, $fname, $ctx, (string)($p2['sizes'] ?? '')];
+                      continue 3;   // urun basina TEK satir yeter
+                    }
+                  }
+                }
+              }
+              echo "\n===== KALIP TARAMASI =====\n";
+              printf("taranan urun: %d   kalip belirten: %d\n", count($prods), count($rows));
+              $g = array_values(array_filter($rows, fn($r) => $r[3] === 'GENIS'));
+              $d = array_values(array_filter($rows, fn($r) => $r[3] === 'DAR'));
+              printf("\n-- GENIS kalip (oversize/boxy/relaxed...) : %d --\n", count($g));
+              foreach ($g as $r) {
+                printf("  %-26s %-16s %-40s [%s@%s]\n      kanit: %s\n      beden: %s\n",
+                       $r[0], $r[1], mb_substr($r[2], 0, 40), $r[4], $r[5], $r[6], $r[7]);
+              }
+              if (!$g) echo "  (yok)\n";
+              printf("\n-- DAR kalip (slim/regular...) : %d --\n", count($d));
+              foreach ($d as $r) {
+                printf("  %-26s %-16s %-40s [%s@%s]\n      beden: %s\n",
+                       $r[0], $r[1], mb_substr($r[2], 0, 40), $r[4], $r[5], $r[7]);
+              }
+              if (!$d) echo "  (yok)\n";
+              echo "\nNOT: kalip belirtmeyen urun kaydinda BILGI YOK demektir, 'duz kalip' demek degil.\n";
+
+              /* BEDEN SERISI IKI YERDE YAZILI: 'sizes' alani ve 'desc' metni.
+                 9 Eyl 2026'da 14 ilanda 'sizes' yeni seriye cekildi ama ACIKLAMA
+                 eski seriyi tasimaya devam etti -- urun sayfasi ayni urun icin iki
+                 farkli beden dagilimi gosteriyordu ve operator once bunu gordu.
+                 Bu depoda tekrar eden ders (KURAL 5f'in uc katmani, KURAL 11'in
+                 SSS/sabit ayrismasi): ayni olgu iki yere yazilirsa er gec ayrisir.
+                 Burada birlestirmek mumkun degil -- desc serbest metin, satici da
+                 yaziyor -- o yuzden en azindan CELISKI GORUNUR olmali. */
+              $runOf = function (string $s): string {
+                $re = '/(?:XXS|XS|S|M|L|XL|XXL|XXXL|XXXXL)\s*[×xX*]\s*\d+(?:\s*[·,\-]\s*(?:XXS|XS|S|M|L|XL|XXL|XXXL|XXXXL)\s*[×xX*]\s*\d+)+/u';
+                return preg_match($re, $s, $m) ? preg_replace('/\s+/u', ' ', trim($m[0])) : '';
+              };
+              $clash = [];
+              foreach ($prods as $p2) {
+                $bn = trim((string)($p2['brand'] ?? ''));
+                if ($bf !== '' && $bf !== '*' && stripos($bn, $bf) === false) continue;
+                if ($cf !== '' && strcasecmp(trim((string)($p2['cat'] ?? '')), $cf) !== 0) continue;
+                $dsc = (string)($p2['desc'] ?? '');
+                $rd  = $runOf($dsc);
+                if ($rd === '') continue;                 // aciklamada seri yok: celiski de yok
+                $rs = $runOf((string)($p2['sizes'] ?? ''));
+                if ($rs !== '' && $rs === $rd) continue;  // ikisi ayni: sorun yok
+                $clash[] = [(string)($p2['id'] ?? '?'), $bn, $rs, $rd, $dsc];
+              }
+              printf("\n-- ACIKLAMA ile BEDEN ALANI CELISIYOR : %d --\n", count($clash));
+              foreach ($clash as $c) {
+                printf("  %-26s %-16s\n      sizes    : %s\n      aciklama : %s\n      desc     : %s\n",
+                       $c[0], $c[1], $c[2] !== '' ? $c[2] : '(seri yok)', $c[3], $c[4]);
+              }
+              if (!$clash) echo "  (yok -- iki alan her urunde ayni seriyi yaziyor)\n";
+            }
+
+            /* Ozet EN SONDA: kutuk cok uzarsa API yalnizca sonunu veriyor, bas taraf
+               ulasilamaz oluyor. Karar verilecek sayi burada dursun. */
+            if ($imgchk) {
+              echo "\n===== GORSEL DENETIMI =====\n";
+              printf("urun: %d   referans verilen gorsel: %d   kayip/bozuk: %d\n", $nProd, $nImg, $nBad);
+              printf("en az bir gorseli kayip urun: %d   hic gorseli olmayan urun: %d\n", $nProdBad, $nProdNoImg);
+              foreach ($badList as $b) printf("  %-26s | %-16s | %d gorselin %d'i kayip\n", $b[0], $b[1], $b[2], $b[3]);
+              echo $nBad ? "SONUC: KIRIK FOTO VAR\n" : "SONUC: TUM FOTOLAR YERINDE\n";
+            }
+
+            /* ── Toptan fiyat listesi dokumu ────────────────────────────────────────
+               /price-list sayfasinin TASIDIGI ayni satirlar, sekmeyle ayrilmis olarak.
+               Amac sayfayi taklit etmek degil, ayni kaynaktan okunan veriyi bir kutuge
+               sigacak bicimde disari vermek: 344 satirlik HTML 359 KB, bu ~35 KB.
+
+               Perakende kurali sayfayla AYNI: urunun kendi 'rrp' alani varsa o, yoksa
+               toptan x VESTRA_RETAIL_MULTIPLE ve satir "guide" diye isaretli. Carpani
+               burada tekrar yazmiyoruz -- products.php'deki sabiti okuyor, yani liste
+               ile sayfanin ayrilmasi mumkun degil. */
+
+            /* ── FIYAT TUTARSIZLIK DENETIMI ──────────────────────────────────
+               Ayni urun icin iki ayri sayi dolasiyor:
+                 'list'               -> fiyat listesi/Excel/PDF'in BASTIGI rakam
+                 vestra_unit_price()  -> sepetin TAHSIL ETTIGI rakam (yalnizca tiers okur)
+               vestra_unit_price() 'list' alanina hic bakmiyor; ikisi elle ayri
+               girildiginde sessizce ayrisiyorlar.
+
+               AMA HER FARK HATA DEGIL. mode='sale' oldugunda 'list' bilerek USTU
+               CIZILI eski fiyattir -- vestra_discount() yuzdeyi tam bundan
+               hesapliyor. Bu ayrimi yapmadan denetim, kasitli her indirimi hata
+               diye bildirir ve raporu kullanilamaz hale getirir.
+               Uc kova:
+                 A) sepet > liste  -> ALICI ALEYHINE. Listede ucuz gorunup kasada
+                    pahali cikiyor; en zararlisi bu.
+                 B) mode!=sale ve sepet < liste -> indirim rozeti YOK ama sepet daha
+                    ucuz: fiyat listesi fazla yuksek yaziyor, para masada kaliyor.
+                 C) mode=sale ve sepet < liste -> kasitli indirim. Sayiliyor ama hata
+                    degil; yalnizca Excel/PDF listesinin ustu cizili rakami tek basina
+                    bastigini hatirlatmak icin toplaniyor. */
+            if ($paudit) {
+              $worse = []; $mismatch = []; $sale = []; $noTier = []; $ok = 0;
+              /* Bu betikte ortak bir $products degiskeni YOK -- her blok
+                 vestra_products()'i kendisi cagiriyor. Ilk surum $products
+                 kullandi ve is PHP fatal'i ile dustu. */
+              $prods = vestra_products();
+              foreach ($prods as $p) {
+                $list = (float)($p['list'] ?? $p['price'] ?? 0);
+                $moq  = max(1, (int)($p['moq'] ?? 1));
+                $mode = (string)($p['mode'] ?? '');
+                if (empty($p['tiers'])) { if ($list > 0) $noTier[] = $p; continue; }
+                $charged = vestra_unit_price($p, $moq);
+                if ($list <= 0 || $charged <= 0) continue;
+                if (abs($charged - $list) < 0.005) { $ok++; continue; }
+                $row = ['id'=>(string)($p['id'] ?? '?'), 'sku'=>(string)($p['sku'] ?? '-'),
+                        'mode'=>$mode, 'list'=>$list, 'charged'=>$charged, 'moq'=>$moq,
+                        'pct'=>($charged/$list-1)*100,
+                        'demo'=>vestra_is_demo_product((string)($p['id'] ?? ''))];
+                if ($charged > $list)      $worse[]    = $row;
+                elseif ($mode !== 'sale')  $mismatch[] = $row;
+                else                       $sale[]     = $row;
+              }
+              $f = fn($r) => sprintf("  %-24s %-13s %-6s liste %8.2f  sepet %8.2f  %+6.1f%%  MOQ %-4d%s",
+                     substr($r['id'],0,24), substr($r['sku'],0,13), $r['mode'],
+                     $r['list'], $r['charged'], $r['pct'], $r['moq'], $r['demo'] ? '  DEMO' : '');
+              printf("FIYAT DENETIMI -- urun: %d | tutarli: %d | ALICI ALEYHINE: %d | listesi yuksek: %d | kasitli indirim: %d | kademesiz: %d\n",
+                     count($prods), $ok, count($worse), count($mismatch), count($sale), count($noTier));
+
+              usort($worse, fn($a,$b) => $b['pct'] <=> $a['pct']);
+              printf("\n[A] ALICI ALEYHINE -- listede ucuz, sepette pahali (%d)\n", count($worse));
+              foreach ($worse as $r) {
+                echo $f($r)."\n";
+                printf("      -> MOQ %d adetlik en kucuk siparistee +%.2f EUR fazla\n",
+                       $r['moq'], ($r['charged']-$r['list'])*$r['moq']);
+              }
+              if (!$worse) echo "  (yok)\n";
+
+              usort($mismatch, fn($a,$b) => $a['pct'] <=> $b['pct']);
+              printf("\n[B] INDIRIM ROZETI YOK ama sepet daha ucuz -- liste fazla yuksek (%d)\n", count($mismatch));
+              foreach (array_slice($mismatch,0,40) as $r) echo $f($r)."\n";
+              if (!$mismatch) echo "  (yok)\n";
+              elseif (count($mismatch) > 40) printf("  ... +%d satir daha\n", count($mismatch)-40);
+
+              printf("\n[C] mode=sale, kasitli indirim (%d) -- hata degil, ama Excel/PDF listesi ustu cizili rakami basiyor\n", count($sale));
+              foreach (array_slice($sale,0,10) as $r) echo $f($r)."\n";
+              if (count($sale) > 10) printf("  ... +%d satir daha\n", count($sale)-10);
+
+              if ($noTier) {
+                printf("\n[D] Kademesiz ama liste fiyati var (%d) -- vestra_unit_price 0.00 dondurur\n", count($noTier));
+                foreach (array_slice($noTier,0,15) as $p)
+                  printf("  %-24s %-13s liste %.2f\n", substr((string)($p['id']??'?'),0,24),
+                         substr((string)($p['sku']??'-'),0,13), (float)($p['list'] ?? 0));
+              }
+            }
+            if ($plist) {
+              $mult = defined('VESTRA_RETAIL_MULTIPLE') ? (float)VESTRA_RETAIL_MULTIPLE : 3.0;
+              echo "\n===== TOPTAN FIYAT LISTESI =====\n";
+              /* SATIS sutunu: bu dokum 16 Eyl 2026'ya kadar sold_out'u HIC
+                 yazmiyordu ve tam bu yuzden iki satilmis Lacoste polosu
+                 fiyatlariyla, hicbir uygunluk isareti olmadan listede
+                 duruyordu -- musteriye gidecek fiyat listesinin aynisi.
+                 Bir sondanin GOREMEDIGI alan hakkinda verdigi yesil, baska
+                 bir seyin yesilidir. */
+              echo "MARKA\tART.NO\tURUN\tKATEGORI\tBEDEN\tMOQ\tLISTE\tKADEME\tPERAKENDE\tKAYNAK\tSATIS\n";
+
+              $rows = [];
+              foreach (vestra_products() as $p2) {
+                $bname = trim((string)($p2['brand'] ?? ''));
+                $price = (float)($p2['list'] ?? $p2['price'] ?? 0);
+                if ($bname === '' || $price <= 0) continue;
+                /* Filtreler $bf / $cf -- bu betikte girdiler bu adlarda tutuluyor.
+                   Ilk denemede $brand ve $cat yazmistim: $brand yukaridaki dongude her
+                   urunle yeniden atanan bir artik, $cat ise hic tanimli degil. Sonuc
+                   sifir satirdi ve "Lacoste'un fiyati yok" gibi okunuyordu -- oysa
+                   filtre kendi kendini eliyordu. */
+                if ($bf !== '' && $bf !== '*' && stripos($bname, $bf) === false) continue;
+                if ($cf !== '' && strcasecmp(trim((string)($p2['cat'] ?? '')), $cf) !== 0) continue;
+                $best = $price;
+                foreach ((array)($p2['tiers'] ?? []) as $t) {
+                  $tp = (float)($t['price'] ?? 0);
+                  if ($tp > 0 && $tp < $best) $best = $tp;
+                }
+                $rrp  = (float)($p2['rrp'] ?? 0);
+                $real = $rrp > 0;
+                if (!$real) $rrp = $best * $mult;
+                $id    = (string)($p2['id'] ?? '');
+                $ident = trim((string)($p2['sku'] ?? ''));
+                if ($ident === '') $ident = strtoupper(preg_replace('/^[a-z]{2,4}-/', '', $id));
+                /* Liste fiyati ve kademe tabani AYRI sutunlar. Sayfa bugun kademe
+                   varsa en dusugunu "from ..." diye gosteriyor; ikisini yan yana
+                   gormeden hangisinin gosterildigini tartismak mumkun degil. */
+                $rows[] = [$bname, $ident, (string)($p2['name'] ?? ''), (string)($p2['cat'] ?? ''),
+                           (string)($p2['sizes'] ?? ''), ((string)($p2['moq'] ?? '')).' '.((string)($p2['unit'] ?? 'pc')),
+                           number_format($price, 2, '.', ''),
+                           $best < $price - 0.001 ? number_format($best, 2, '.', '') : '-',
+                           number_format($rrp, 2, '.', ''),
+                           $real ? 'RRP' : 'guide x'.number_format($mult, 0),
+                           /* Alti satin alma yolunun cagirdigi AYNI fonksiyon --
+                              "sold_out dolu mu" diye sormak ikinci bir kopya
+                              olurdu ve bos dizgeyi SATILDI sayardi. */
+                           vestra_is_sold_out($p2) ? '*** SATILDI ***' : 'satista'];
+              }
+              usort($rows, fn($a, $b) => [strtolower($a[0]), strtolower($a[2])] <=> [strtolower($b[0]), strtolower($b[2])]);
+              foreach ($rows as $r) echo implode("\t", $r)."\n";
+
+              $realN = 0; $tierN = 0;
+              foreach ($rows as $r) { if ($r[9] === 'RRP') $realN++; if ($r[7] !== '-') $tierN++; }
+              printf("\nsatir: %d   gercek RRP: %d   tahmin (guide x%s): %d   kademeli fiyati olan: %d\n",
+                     count($rows), $realN, number_format($mult, 0), count($rows) - $realN, $tierN);
             }
             PHPEOF
-            php /tmp/vestra_inspect.php
+            php -l /tmp/vestra_inspect.php
+            # Cikis kodu ONCE yakalanip sonra donduruluyor. `php ...` ardindan gelen `rm`
+            # onun kodunu eziyordu: bir PHP fatal'i bu adimi YESIL birakirdi ve rapor
+            # "sorun yok" gibi okunurdu. Bu tuzak bugun kupon isinde bir kez isledi.
+            php /tmp/vestra_inspect.php; RC=$?
             rm -f /tmp/vestra_inspect.php
+
+            # ---- LINE-SHEET SONDASI -------------------------------------------------
+            # Gercek ucu kosturup URETILEN dosyayi olcer. Kaynak okumak olcum degil:
+            # bu depoda bir kez fotografsiz bir PDF yillarca "dosya uretildi, boyut
+            # makul" diye gecti.
+            if [ -n "$INSPECT_LS" ]; then
+              echo ""
+              case "$INSPECT_LS" in
+                priced:*) echo "===== LINE-SHEET (/wholesale-list.xlsx — UYE, FIYATLI) =====" ;;
+                pdf:*)    echo "===== LINE-SHEET (/wholesale-list.pdf — UYE, FIYATLI + FOTOGRAFLI) =====" ;;
+                *)        echo "===== LINE-SHEET (/catalog — HERKESE ACIK, FIYATSIZ) =====" ;;
+              esac
+              php -d display_errors=stderr -d error_reporting=-1 -r '
+                $b = (string)getenv("INSPECT_LS");
+                /* Iki ayri uc, ayni olcum: herkese acik tanitim sayfasi ile uye-kapili
+                   fiyatli liste. Ikisini ayri ayri olcmek sart -- sikayet "bos cikiyor"
+                   oldugunda hangi dosyanin bos oldugu once bilinmeli. */
+                $priced = stripos($b, "priced:") === 0;
+                $pdf    = stripos($b, "pdf:") === 0;
+                if ($priced) $b = substr($b, 7);
+                if ($pdf)    $b = substr($b, 4);
+                if ($b === "*") $b = "";
+                $_GET["brand"] = $b;
+                $_SERVER["REQUEST_METHOD"] = "GET";
+                /* CLI, fiyat kapisindan MUAF (wholesale-xlsx.php kendi yorumunda yaziyor):
+                   oturum olmadigi icin auth_user() null doner ve web tarafi price-list
+                   sayfasina yonlendirirdi -- sonda 0 bayt olcup "uretilmedi" derdi.
+                   NOT: bu blok bash TEK TIRNAK icinde; buraya konan bir kesme isareti
+                   dizgeyi erken kapatir ve adim "syntax error near unexpected token"
+                   ile duser. Bir kez oldu; kesme isareti kullanma. */
+                require getenv("HOME")."/public_html/".($pdf ? "wholesale-list.php" : ($priced ? "wholesale-xlsx.php" : "catalog.php"));
+              ' > /tmp/vestra_ls.xlsx 2>/tmp/vestra_ls.err
+              LSRC=$?
+              echo "  uretim cikis kodu: $LSRC   boyut: $(wc -c < /tmp/vestra_ls.xlsx) bayt"
+              head -5 /tmp/vestra_ls.err | sed 's/^/  stderr: /'
+              php -d display_errors=stderr -d error_reporting=-1 -r '
+                $f = "/tmp/vestra_ls.xlsx";
+                if (!is_file($f) || filesize($f) < 100) { echo "  *** dosya uretilmedi\n"; exit; }
+                $raw = (string)file_get_contents($f);
+                /* PDF ayri olculuyor: "dosya uretildi, boyut makul" bu depoda bir kez
+                   fotografsiz bir PDF yillarca gecirdi -- olcut GOMULU FOTOGRAF SAYISI. */
+                if (substr($raw, 0, 4) === "%PDF") {
+                    printf("  PDF | sayfa: %d | gomulu fotograf (DCTDecode): %d\n",
+                           substr_count($raw, "/Type /Page") ?: substr_count($raw, "/Type/Page"),
+                           substr_count($raw, "/DCTDecode"));
+                    /* METIN ARAMASI ANCAK AKISLAR SIKISTIRILMAMISKEN gecerli. inc/pdf.php
+                       bugun sikistirmiyor (olculdu), ama bir gun Flate eklenirse ham baytta
+                       "lots of" bulunamamasi "lot yazmiyor" DEMEK OLMAZ -- o yuzden once
+                       sikistirma sorulyor ve cevabi satirda duruyor. Yanlis bir kirmizi
+                       yerine sebebi soyleyen bir satir. */
+                    if (strpos($raw, "/FlateDecode") !== false) {
+                        echo "  akislar SIKISTIRILMIS -- metin sayimi atlandi (sonuc yok, olcum yok)\n";
+                    } else {
+                        /* KESME ISARETI YOK: bu govde bash TEK TIRNAK icinde ve tek bir
+                           kesme isareti adimi olduruyor -- ayni tuzak bu dosyada zaten bir
+                           kez yasandi (commit d0ba6062) ve burada ikinci kez yasandi. */
+                        printf("  metin sayimi: lots-of=%d | MOQ=%d | Colours=%d | urun-linki=%d\n",
+                               substr_count($raw, "lots of"), substr_count($raw, "MOQ"),
+                               substr_count($raw, "Colours:"), substr_count($raw, "vestrasales.com/product"));
+                    }
+                    exit;
+                }
+                $z = new ZipArchive(); if ($z->open($f) !== true) { echo "  *** zip acilamadi (xlsx degil?)\n"; exit; }
+                $media = 0;
+                for ($i = 0; $i < $z->numFiles; $i++) if (strpos($z->getNameIndex($i), "xl/media/") === 0) $media++;
+                $xml = (string)$z->getFromName("xl/worksheets/sheet1.xml");
+                $z->close();
+                if ($xml === "") { echo "  *** sheet1.xml yok\n"; exit; }
+                preg_match_all("~<row[^>]*>.*?</row>~s", $xml, $m);
+                $rows = [];
+                foreach ($m[0] as $r) {
+                  preg_match_all("~<c r=\"([A-Z]+)\d+\"[^>]*>(.*?)</c>~s", $r, $c, PREG_SET_ORDER);
+                  $cells = [];
+                  foreach ($c as $one) {
+                    if (preg_match("~<t[^>]*>(.*?)</t>~s", $one[2], $t))      $cells[$one[1]] = html_entity_decode($t[1], ENT_QUOTES, "UTF-8");
+                    elseif (preg_match("~<v>(.*?)</v>~s", $one[2], $v))        $cells[$one[1]] = $v[1];
+                  }
+                  $rows[] = $cells;
+                }
+                printf("  satir (band + baslik + veri + not): %d   gomulu fotograf: %d\n", count($rows), $media);
+                if (count($rows) < 3) { echo "  *** veri satiri yok\n"; exit; }
+                $head = $rows[1];
+                echo "  basliklar: ".implode(" | ", array_values($head))."\n";
+                $data = array_slice($rows, 2);
+                /* Son iki satir kayit/fiyat notu -- veri degil, doluluk sayimina girmemeli. */
+                $notes = 0;
+                for ($i = count($data) - 1; $i >= 0 && $notes < 2; $i--) {
+                  $first = (string)(reset($data[$i]) ?: "");
+                  if (stripos($first, "vestrasales.com") !== false) { array_pop($data); $notes++; } else break;
+                }
+                printf("  VERI satiri: %d   (alt not satiri: %d)\n", count($data), $notes);
+                echo "  --- sutun sutun DOLULUK (bos hucre = musterinin gordugu bosluk) ---\n";
+                foreach (array_keys($head) as $col) {
+                  $full = 0;
+                  foreach ($data as $d) if (trim((string)($d[$col] ?? "")) !== "") $full++;
+                  $n = count($data) ?: 1;
+                  printf("  %-3s %-18s %4d/%-4d  %%%d%s\n", $col, mb_substr((string)$head[$col], 0, 18),
+                         $full, count($data), (int)round(100 * $full / $n),
+                         /* Photo sutunu HER ZAMAN bos ve bu kusur DEGIL: gorsel hucreye
+                            METIN olarak yazilmiyor, sayfanin uzerine cizim capasiyla
+                            tutturuluyor (inc/xlsx.php). Yukarida basilan gomulu fotograf
+                            sayisi o sutunun gercek olcusu. Bu not olmadan her kosuda
+                            yanlis bir alarm okunuyordu.
+                            KESME ISARETI YOK: govde bash TEK TIRNAK icinde. */
+                         $full === 0 ? (stripos((string)$head[$col], "photo") !== false
+                                        ? "   (gorsel capa olarak duruyor -- bkz. gomulu fotograf sayisi)"
+                                        : "   *** HIC DOLU DEGIL ***") : "");
+                }
+                echo "  --- ilk 5 veri satiri ---\n";
+                foreach (array_slice($data, 0, 5) as $d) {
+                  $out = [];
+                  foreach (array_keys($head) as $col) $out[] = mb_substr(trim((string)($d[$col] ?? "")), 0, 26);
+                  echo "  ".implode(" | ", $out)."\n";
+                }
+              '
+              rm -f /tmp/vestra_ls.xlsx /tmp/vestra_ls.err
+            fi
+            exit $RC

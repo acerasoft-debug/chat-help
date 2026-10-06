@@ -1,0 +1,1094 @@
+<?php
+require __DIR__.'/inc/products.php';
+require_once __DIR__.'/inc/dropship.php';   // vestra_dropship_enabled()
+require_once __DIR__.'/inc/stock.php';      // vestra_stock_real() -- recorded per-size stock (KURAL 15: own require)
+$p = vestra_find($_GET['id'] ?? '');
+/* Bir baskasina KATLANMIS ilan (bkz. vestra_product_redirect): eski adres mektuplarda
+   duruyor, 404 yerine yeni ilana 301. Kalici yonlendirme, cunku eski kayit bilerek
+   kapatildi ve geri acilmayacak. */
+if (!$p) {
+  $__to = vestra_product_redirect((string)($_GET['id'] ?? ''));
+  if ($__to !== null) { http_response_code(301); header('Location: /product?id='.rawurlencode($__to)); exit; }
+}
+/* SATILDI: sayfanin her yerinde tek karar. Satin alma bloklari bunun
+   uzerinden kapaniyor; sunucu kapilari ayrica order.php/offer.php/
+   sample-checkout.php/dropship-checkout.php icinde duruyor -- dugmeyi
+   gizlemek kapi degildir. */
+$SOLD = $p && function_exists('vestra_is_sold_out') && vestra_is_sold_out($p);
+if(!$p){ http_response_code(404); $PAGE=t('Not found'); $NOINDEX=true; require __DIR__.'/inc/head.php';
+  echo '<div class="wrap"><div class="empty">'.t('Product not found.').' <a class="acc" href="/shop">'.t('Back to catalog').'</a></div></div>';
+  require __DIR__.'/inc/foot.php'; exit; }
+/* Unlisted item (e.g. the Musterstueck sample): the page works by direct link but is not
+   part of the catalogue, so search engines are told not to index it either. */
+if (!empty($p['unlisted'])) $NOINDEX = true;
+
+$PAGE = vestra_product_title($p) ?: (vestra_product_name($p) ?: 'Product');
+/* Photo alt text. Now that robots.txt lets image crawlers into /uploads, alt text is the
+   only description these files carry — an empty one costs the listing image search. */
+$_imgAlt = vestra_product_title($p);
+$_pcat = $p['cat'] ?? 'fashion'; $_pmoq = (int)($p['moq'] ?? 0); $_punit = $p['unit'] ?? 'pc';
+$META = sprintf(t('%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering, shipping worldwide.'),
+        $PAGE, $_pcat, $_pmoq ? "MOQ {$_pmoq} {$_punit}. " : '');
+$_purl = 'https://vestrasales.com/product?id='.rawurlencode($p['id'] ?? '');
+$_pimgs = [];
+foreach ((!empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_primary_image($p)?[vestra_primary_image($p)]:[])) as $im) {
+  if ($im === '') continue;
+  $_pimgs[] = (strncmp($im,'http',4)===0) ? $im : 'https://vestrasales.com'.$im;
+}
+if ($_pimgs) $OG_IMAGE = $_pimgs[0];   // product photo as the social/preview image (not the generic logo)
+$_prod = [
+  '@context'=>'https://schema.org', '@type'=>'Product',
+  'name'=>$PAGE,
+  'brand'=>['@type'=>'Brand','name'=>$p['brand'] ?? 'VESTRA'],
+  'category'=>$_pcat,
+  'sku'=>$p['sku'] ?? ($p['id'] ?? ''),
+  'description'=>$META,
+  'url'=>$_purl,
+];
+if ($_pimgs) $_prod['image'] = $_pimgs;
+$JSONLD = [
+  $_prod,
+  /* Breadcrumb in the page language, with the category level linking its landing page
+     (/b2b/<slug>) when the category has one -- which it does whenever the product is in
+     the public catalogue. Crumb names used to be hard-coded English on every language. */
+  ['@context'=>'https://schema.org','@type'=>'BreadcrumbList','itemListElement'=>(function() use ($p, $PAGE, $_purl) {
+    $c = [['@type'=>'ListItem','position'=>1,'name'=>t('Home'),'item'=>'https://vestrasales.com/'],
+          ['@type'=>'ListItem','position'=>2,'name'=>t('Catalog'),'item'=>'https://vestrasales.com/shop']];
+    $cat = trim((string)($p['cat'] ?? ''));
+    if ($cat !== '' && empty($p['unlisted']) && vestra_seo_resolve($cat) !== null) {
+      $c[] = ['@type'=>'ListItem','position'=>3,'name'=>t($cat),'item'=>'https://vestrasales.com/b2b/'.vestra_seo_cat_slug($cat)];
+    }
+    $c[] = ['@type'=>'ListItem','position'=>count($c)+1,'name'=>$PAGE,'item'=>$_purl];
+    return $c;
+  })()],
+];
+$NAV='shop'; require __DIR__.'/inc/head.php';
+/* $mode = VITRIN modu, ham veri degil: liste fiyati kademe fiyatina esitse urun
+   "sale" olarak kayitli olsa bile sabit fiyatli gosterilir (bkz. vestra_on_sale). */
+$mode=vestra_display_mode($p); $from=vestra_from_price($p); $disc=vestra_discount($p);
+$offered=isset($_GET['offered']);
+$images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_primary_image($p)?[vestra_primary_image($p)]:[]);
+$photosLocked = !$MEMBER && $images;   // photos require being signed in (any status) — not full KYB approval
+if(!$MEMBER) $images = [];
+/* Where the locked-photos CTA sends the viewer: guests sign in; signed-in-but-unverified
+   accounts go straight to their verification tab. */
+$verifyHref = !$AUTH_USER
+    ? '/login?back='.urlencode('/product?id='.$p['id'])
+    : ((($AUTH_USER['type'] ?? '') === 'seller') ? '/seller?tab=kyc' : '/buyer?tab=kyc');
+
+/* Carton/lot listings (e.g. Lacoste & Ralph Lauren polos: min_colors + size_step) get a
+   per-colour quantity picker — 0/8/16/24… per colour — instead of plain checkboxes, so the
+   buyer builds their own colour mix directly (matches how these ship: cartons per colourway).
+   KARAR TEK YERDE (vestra_is_colorqty_listing): bu sayfa ile /order ve /offer ayni
+   fonksiyonu soruyor; eskiden kosul burada iki kez elle yaziliydi. Lot-1 ilanda (colorqty
+   bayragi) secim kutusu yerine sayi alani ciziliyor -- 0..8 secenekli bir liste 20 adetlik
+   bir minimuma hic ulasamazdi. */
+$cqMode = vestra_is_colorqty_listing($p);
+/* Renk basina adet alani: paketli ilanda 0/8/16… secim kutusu, parca ilanda serbest sayi. */
+function vestra_colorqty_field(string $cn, int $step, string $onchange, string $name = ''): string {
+    $attr = ' data-color="'.htmlspecialchars($cn).'"'.($name !== '' ? ' name="'.htmlspecialchars($name).'"' : '');
+    if ($step > 1) {
+        $h = '<select'.$attr.' onchange="'.$onchange.'">';
+        for ($k = 0; $k <= 8; $k++) { $v = $k * $step; $h .= '<option value="'.$v.'">'.$v.'</option>'; }
+        return $h.'</select>';
+    }
+    return '<input type="number" min="0" step="1" value="0" inputmode="numeric" style="width:72px"'.$attr
+         . ' oninput="'.$onchange.'" onchange="'.$onchange.'">';
+}
+function vestra_colorqty_picker(array $p, string $idSuffix): string {
+    $step = vestra_pack_size($p);
+    $h = '<div class="colorqty" id="cq-'.$idSuffix.'">';
+    foreach ((array)$p['colors'] as $cn) {
+        $h .= '<div class="cqrow"><span class="cdot" style="background:'.vestra_colour_css((string)$cn).'"></span>'
+            . '<span class="cqname">'.htmlspecialchars(vestra_colour_label((string)$cn)).'</span>'
+            . vestra_colorqty_field((string)$cn, $step, 'cqSync(\''.$idSuffix.'\')', 'cq['.$cn.']')
+            . '</div>';
+    }
+    return $h.'</div>';
+}
+/* "Quantity per colour — at least N · multiples of S": adim 1 ise ikinci parca basilmiyor. */
+function vestra_colorqty_hint(array $p): string {
+    $step = vestra_pack_size($p);
+    return t('Quantity per colour').' — '.vestra_colours_phrase((int)$p['min_colors'])
+         . ($step > 1 ? ' · '.sprintf(t('multiples of %d'), $step) : '');
+}
+?>
+<div class="wrap">
+  <?php /* GERIYE DONUS (operator, 10 Eyl 2026). Tarayicinin geri dugmesi
+           listeye doner ama kampanya mektubundan / Google'dan / paylasilan
+           linkten gelen ziyaretcide gidilecek bir "geri" yok -- onlarda
+           katalogun kendisine dusuyor. Adres vestra_back_link()'ten:
+           ham referrer basilmiyor, yalnizca kendi sitemizdeki bir liste
+           yolu + sorgu dizesi (suzgec ve sayfa numarasi korunur). */
+        $__back = vestra_back_link(); ?>
+  <div class="crumbs" style="margin-top:24px">
+    <a class="crumb-back" id="crumbBack" href="<?= htmlspecialchars($__back['url']) ?>">← <?= htmlspecialchars($__back['label']) ?></a>
+    <span class="crumb-sep">·</span>
+    <a href="/"><?= t('Home') ?></a> · <a href="/shop"><?= t('Catalog') ?></a> · <?= htmlspecialchars($p['brand']) ?>
+  </div>
+  <?php /* GERCEK "bir sayfa geri" (operator, 11 Eyl 2026). href sunucudan gelen
+           adres -- dogru yere goturuyor ama adresi YENIDEN CEKIYOR, yani 200 urun
+           asagida tikladiysaniz listenin BASINA donuyorsunuz. Tarayicinin kendi
+           gecmisi kaydirma konumunu koruyor, o yuzden gercekten gezinerek gelmis
+           ziyaretcide history.back() tercih ediliyor.
+           href KALIYOR: JS'siz tarayici, orta tik ve "yeni sekmede ac" calissin
+           diye -- ve dogrudan gelende (referrer yok) zaten tek dogru yer o. */ ?>
+  <script>(function(){
+    var a=document.getElementById('crumbBack'); if(!a) return;
+    var r=document.referrer; if(!r) return;
+    try{ if(new URL(r).origin!==location.origin) return; }catch(e){ return; }
+    if(r===location.href) return;              // kendine donen geri, bozuk dugmedir
+    if(history.length<2) return;               // gecmis yoksa href dogru olan
+    a.addEventListener('click',function(e){
+      if(e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey) return; // yeni sekme bozulmasin
+      e.preventDefault(); history.back();
+    });
+  })();</script>
+
+<?php if(!$MEMBER): ?>
+  <!-- Unregistered visitors get the product rendered but unreadable: the whole detail block
+       is blurred behind a lock panel. The markup is deliberately still emitted rather than
+       withheld, because a search-engine crawler arrives as an unregistered visitor too --
+       stripping the text server-side would empty every product page out of the index and
+       undo the SEO work. Blur is a display treatment; the page still carries its content,
+       its structured data and its meta description for crawlers. -->
+  <div class="lockwrap">
+    <div class="lockveil" aria-hidden="true"></div>
+    <div class="lockpanel">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.5"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      <h3><?= t('Verified buyers only') ?></h3>
+      <p><?= t('Register free to see this product, its photos and trade pricing.') ?></p>
+      <div class="lockbtns">
+        <a class="btn btn-p" href="/register"><?= t('Register free') ?></a>
+        <a class="btn btn-o" href="/login?back=<?= urlencode('/product?id='.$p['id']) ?>"><?= t('Sign in') ?></a>
+      </div>
+    </div>
+    <div class="lockblur" inert>
+<?php endif; ?>
+
+  <div class="pdetail">
+    <!-- ── Gallery ────────────────────────────────────────────────────────── -->
+    <div class="gal-col">
+      <div class="gal-main" id="gal-wrap">
+        <!-- Approved viewers open on the product photo; the brand card is the LAST
+             slide. Non-approved viewers have no photos, so the card is all they see. -->
+        <div class="gal-placeholder" id="gal-card" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11);flex-direction:column;gap:14px<?= $images ? ';display:none' : '' ?>">
+          <?php echo vestra_brand_card($p['brand']); ?>
+          <?php if($photosLocked): ?>
+            <a href="<?= htmlspecialchars($verifyHref) ?>" style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#fff;background:rgba(14,14,17,.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.22);padding:7px 14px;border-radius:999px;position:relative;z-index:3">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+              <?= $AUTH_USER ? t('Complete verification to view photos') : t('Sign in to view product photos') ?>
+            </a>
+          <?php endif; ?>
+        </div>
+        <?php if($images): ?>
+          <img class="gal-img" id="gal-main-img" src="<?= htmlspecialchars($images[0]) ?>" alt="<?= htmlspecialchars($_imgAlt) ?>">
+          <button class="gal-nav prev" onclick="galGo(-1)" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <button class="gal-nav next" onclick="galGo(1)" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+        <?php endif; ?>
+        <?php if($mode==='sale'): ?><span class="modetag sale">SALE −<?= $disc ?>%</span>
+        <?php elseif($mode==='offer'): ?><span class="modetag offer"><?= t('Open to offers') ?></span><?php endif; ?>
+        <?php if(!empty($p['verified'])) echo vestra_verified_badge('gal-vbadge'); ?>
+      </div>
+      <?php if($images && $MEMBER): ?>
+      <!-- Premium zoom katmanlari. Bir toptanci kumasin dokusunu, dikisi ve baski
+           kalitesini gormek ister; kucuk bir kart fotografi bunu gostermez. Masaustunde
+           imlecin altindaki bolge sagdaki panelde orijinal cozunurlukte acilir,
+           dokunmatikte tam ekran pinch-zoom. Kaynak HER ZAMAN orijinal dosya.
+           Sadece uyelere: fotograflar zaten freischaltung ile kapali. -->
+      <div class="vzoom-lens" id="vzoomLens" aria-hidden="true"></div>
+      <div class="vzoom-panel" id="vzoomPanel" aria-hidden="true"><div class="vzoom-surface" id="vzoomSurface"></div><span class="vzoom-badge" id="vzoomBadge">1:1</span></div>
+      <div class="vzoom-full" id="vzoomFull" role="dialog" aria-modal="true" aria-label="<?= htmlspecialchars(t('Zoom')) ?>">
+        <button class="vzoom-close" id="vzoomClose" aria-label="<?= htmlspecialchars(t('Close')) ?>">&times;</button>
+        <div class="vzoom-stage" id="vzoomStage"><img id="vzoomFullImg" alt="<?= htmlspecialchars(vestra_product_name($p)) ?>" draggable="false"></div>
+        <div class="vzoom-bar"><b id="vzoomPct">100%</b><i id="vzoomTip"><?= htmlspecialchars(t('Double-tap or pinch to zoom · drag to pan')) ?></i></div>
+      </div>
+      <?php endif; ?>
+      <?php if($images): ?>
+      <div class="gal-thumbs" id="gal-thumbs">
+        <?php foreach($images as $i=>$img): ?>
+          <button class="gal-thumb <?= $i===0?'active':'' ?>" onclick="galSet(<?= $i ?>)">
+            <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($_imgAlt.' — '.sprintf(t('photo %d'), $i + 1)) ?>" loading="lazy">
+          </button>
+        <?php endforeach; ?>
+        <button class="gal-thumb" onclick="galSet(<?= count($images) ?>)" title="<?= htmlspecialchars($p['brand']) ?>">
+          <span style="display:block;width:100%;height:100%;background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11)"></span>
+        </button>
+      </div>
+      <?php endif; ?>
+    </div>
+
+    <!-- ── Product info ───────────────────────────────────────────────────── -->
+    <div class="pinfo">
+      <span class="acc" style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700"><?= htmlspecialchars($p['brand']) ?></span>
+      <h1 style="margin:6px 0 10px"><?= htmlspecialchars(vestra_product_name($p)) ?></h1>
+      <?php if(vestra_product_desc($p) !== ''): ?>
+        <p style="color:var(--mut);margin:0 0 18px;line-height:1.65"><?= htmlspecialchars(vestra_product_desc($p)) ?></p>
+      <?php endif; ?>
+      <?php /* SATILDI: satin alma kutusundan ONCE ve en gorunur yerde. Sayfa
+               ayakta kaliyor (SEO ve gelen baglantilar), yalnizca satis kapali. */
+            if ($SOLD): ?>
+        <p class="sold-note" style="margin:0 0 18px;padding:12px 16px;border-radius:10px;
+             background:color-mix(in srgb, #d66 12%, transparent);
+             border:1px solid color-mix(in srgb, #d66 45%, transparent);
+             color:var(--fg);font-size:15px;font-weight:600;line-height:1.5">
+          <?= t('Sold out') ?> · <?= t('This item is no longer available to order.') ?>
+        </p>
+      <?php endif; ?>
+      <?php /* On siparis notu: alici bunu satin alma kutusundan ONCE gormeli --
+               "ne zaman gelir" sorusu siparisten sonra sorulursa is is'ten
+               gecmis olur. Metin vestra_preorder_note()'tan geliyor ve tarih
+               gecince kendiliginden kayboluyor. */
+            $preNote = function_exists('vestra_preorder_note') ? vestra_preorder_note($p) : '';
+            if ($preNote !== ''): ?>
+        <p class="preorder-note" style="margin:0 0 18px;padding:10px 14px;border-radius:10px;
+             background:color-mix(in srgb,var(--acc) 10%,transparent);
+             border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);
+             color:var(--fg);font-size:14px;line-height:1.55">
+          <b><?= t('Pre-order') ?></b> · <?= htmlspecialchars($preNote) ?>
+        </p>
+      <?php endif; ?>
+
+      <div class="spec-grid">
+        <div class="spec-row"><span><?= t('SKU') ?></span><b><?= htmlspecialchars($p['sku']) ?></b></div>
+        <div class="spec-row"><span><?= t('Category') ?></span><b><?= htmlspecialchars($p['cat']) ?></b></div>
+        <div class="spec-row"><span><?= t('Min. order (MOQ)') ?></span><b><?= $p['moq'] ?> <?= htmlspecialchars($p['unit']) ?></b></div>
+        <?php /* Marka basina asgari SEPET tutari (KURAL 21). MOQ'nun yaninda duruyor
+                 cunku ikisi ayni soruyu cevapliyor ("en az ne alabilirim") ve ikisi
+                 AYRI: MOQ tek ilanin adedi, bu markanin sepetteki toplami. Rakam
+                 sabitten ve EUR -- sepette gecerli olan esik bu, gosterim birimine
+                 cevrilmis hali degil. */
+              $pMinBrand = vestra_brand_min_order((string)($p['brand'] ?? ''));
+              if ($pMinBrand > 0): ?>
+          <div class="spec-row"><span><?= t('Minimum order value') ?></span><b><?= htmlspecialchars(vestra_money($pMinBrand, 'EUR')) ?></b></div>
+        <?php endif; ?>
+        <?php if(!empty($p['sizes'])): ?><div class="spec-row"><span><?= t('Size mix') ?></span><b><?= htmlspecialchars(vestra_sizes_label((string)$p['sizes'])) ?></b></div><?php endif; ?>
+        <?php if(!empty($p['colors'])): ?><div class="spec-row"><span><?= t('Colours') ?></span><b style="display:flex;justify-content:flex-end"><?= vestra_color_dots((array)$p['colors'], 13) ?></b></div><?php endif; ?>
+        <?php if(!empty($p['seller']) && empty($p['hide_seller'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?php
+          // Seller identity is approval-gated: unverified viewers only ever see a masked name.
+          if ($APPROVED) {
+            echo htmlspecialchars($p['seller']);
+            echo !empty($p['verified']) ? ' · '.t('Verified business') : '';
+            echo !empty($p['seller_uid']) ? ' · <a class="acc" href="/showroom?id='.urlencode($p['seller_uid']).'">'.t('Showroom →').'</a>' : '';
+          } else {
+            echo htmlspecialchars(vestra_mask_seller($p['seller'])).' · '.t('Verified business');
+            echo ' <a class="acc" href="'.htmlspecialchars($verifyHref).'" style="font-size:11px">🔒 '.($AUTH_USER ? t('Verify to see the name') : t('Sign in to see the name')).'</a>';
+          }
+        ?></b></div>
+        <?php elseif(!empty($p['verified'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?= t('Verified business') ?> · <?= t('via VESTRA') ?></b></div><?php endif; ?>
+        <?php if(!empty($p['origin'])): ?><div class="spec-row"><span><?= t('Origin / auth.') ?></span><b><?= htmlspecialchars($p['origin']) ?></b></div><?php endif; ?>
+        <?php /* Iade kurali alicinin SATIN ALMA karari verdigi yerde gorunmeli:
+                 "iade yok" bilgisini siparisten SONRA ogrenmek uyusmazlik uretir.
+                 Kural burada TEKRAR YAZILMIYOR -- yalniz kanonik metne baglanti
+                 (bkz. inc/faq.php 'returns').
+
+                 OZET CUMLE KALDIRILDI (operator, 17 Eyl 2026: "Nur falsche,
+                 fehlende oder mangelhafte Ware · kismini rückgabe den cikar").
+                 Satir artik yalnizca baglanti; KURAL 11'in "kural tek yerde"
+                 ilkesiyle de ayni yone bakiyor -- ozet, kanonik metnin yaninda
+                 duran ikinci bir kopyaydi ve ikisi er gec ayrisirdi. */ ?>
+        <div class="spec-row"><span><?= t('Returns') ?></span><b><a class="acc" href="/faq?cat=returns"><?= t('Returns &amp; claims') ?></a></b></div>
+      </div>
+
+      <?php /* KAYITLI beden stogu (inc/stock.php: vestra_stock_real). Yalnizca ilan
+               tedarikci listesinden gelen GERCEK adedi tasiyorsa cizilir; turetilmis
+               bant (fiyat listelerinin yedegi) buraya hic girmez -- sayfada "stokta"
+               diye yazan her rakam tedarikcinin verdigi rakam. Cok renkli tek ilanda
+               (Burberry pike polo, 8 model, 29 Eyl 2026) satir basina bir RENK: alici
+               siparisi renk basina veriyor ve hangi rengin kac parcasi oldugunu tam
+               burada okuyor. Stok bir fiyat degil; fiyat kapisindan bagimsiz. */
+        $__stk = vestra_stock_real($p);
+        if ($__stk !== null):
+          $__rows = vestra_stock_rows($__stk); $__byc = !empty($__stk['by_colour']);
+          $__sz = []; foreach ($__rows as $__r) foreach (array_keys($__r['sizes']) as $__s) $__sz[$__s] = true; $__sz = array_keys($__sz); ?>
+      <div class="stockbox" style="margin:14px 0">
+        <div class="hint"><?= sprintf(t('%d pcs in stock'), (int)$__stk['total']) ?></div>
+        <div class="vscroll"><table class="tiers stocktbl" style="margin:8px 0">
+          <thead><tr><?php if ($__byc): ?><th><?= t('Colours') ?></th><?php endif; ?>
+            <?php foreach ($__sz as $__s): ?><th><?= htmlspecialchars((string)$__s) ?></th><?php endforeach; ?>
+            <th><?= t('Total') ?></th></tr></thead>
+          <tbody>
+          <?php foreach ($__rows as $__r): ?>
+            <tr><?php if ($__byc): ?><td><span class="cdot" style="background:<?= vestra_colour_css($__r['colour']) ?>;display:inline-block;vertical-align:middle"></span> <?= htmlspecialchars(vestra_colour_label($__r['colour'])) ?></td><?php endif; ?>
+              <?php foreach ($__sz as $__s): ?><td class="mono"><?= isset($__r['sizes'][$__s]) ? (int)$__r['sizes'][$__s] : '—' ?></td><?php endforeach; ?>
+              <td class="mono"><b><?= (int)$__r['total'] ?></b></td></tr>
+          <?php endforeach; ?>
+          </tbody></table></div>
+      </div>
+      <?php endif; ?>
+
+      <?php if(!empty($p['linesheet'])): ?>
+        <?php if($APPROVED): ?>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0">
+          <?php if(!empty($p['sheet_file'])): ?>
+          <a class="btn btn-o btn-sm" href="/linesheet?id=<?= urlencode($p['id']) ?>&fmt=pdf" target="_blank" rel="noopener">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 21h16"/></svg>
+            <?= t('Line sheet (PDF)') ?>
+          </a>
+          <?php endif; ?>
+          <a class="btn btn-o btn-sm" href="/linesheet?id=<?= urlencode($p['id']) ?>&fmt=xls">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+            <?= t('Line sheet (Excel)') ?>
+          </a>
+        </div>
+        <?php else: ?>
+        <div class="hint" style="margin:14px 0">🔒 <?= $AUTH_USER ? t('Complete verification to download the line sheet (PDF & Excel).') : t('Sign in to download the line sheet (PDF & Excel).') ?></div>
+        <?php endif; ?>
+      <?php elseif(!empty($p['sheet'])): ?>
+        <?php /* The seller's own price list — same members-only gate as the generated pair.
+                 This used to be a direct /uploads/ link shown to everyone, logged out included. */ ?>
+        <?php if($APPROVED): ?>
+        <a class="btn btn-o btn-sm" style="margin:14px 0" href="/linesheet?id=<?= urlencode($p['id']) ?>&fmt=file">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 21h16"/></svg>
+          <?= t('Line sheet') ?> (<?= strtoupper(htmlspecialchars(pathinfo($p['sheet'],PATHINFO_EXTENSION))) ?>)
+        </a>
+        <?php else: ?>
+        <div class="hint" style="margin:14px 0">🔒 <?= $AUTH_USER ? t('Complete verification to download the line sheet (PDF & Excel).') : t('Sign in to download the line sheet (PDF & Excel).') ?></div>
+        <?php endif; ?>
+      <?php endif; ?>
+
+      <?php if(!$SOLD && !empty($p['group'])): $gp=vestra_group_pool($p['id']); if($gp): ?>
+        <a href="/group?id=<?= urlencode($p['id']) ?>" class="banner info" style="display:block;margin:14px 0;text-decoration:none">
+          🤝 <?= sprintf(t('Group buy: pool with others to unlock %s/%s — %d%% committed. Join →'), vestra_money($gp['_gprice']), htmlspecialchars($p['unit']), $gp['_pct']) ?>
+        </a>
+      <?php endif; endif; ?>
+
+      <?php $isOwnListingTop = $AUTH_USER && !empty($p['seller_uid']) && $AUTH_USER['id']===$p['seller_uid']; ?>
+      <?php /* Bu blok once "uyelikten bagimsiz, herkese acik" idi ve gerekcesi
+               soyleydi: dropship bir B2B ayricaligi degil, ortak API'sinin
+               sundugu misafir odemesinin aynisi. O gerekce artik gecersiz --
+               dropship siparisini ortak KENDI MUSTERISI icin veriyor, tuketici
+               degil, cunku sitenin kullanim sartlari tuketiciye satis yapmadigimizi
+               yaziyor. Dugme de o yuzden fiyat kapisinin arkasinda.
+               Bkz. dropship.php basligi. */ ?>
+      <?php /* Odeme durdurulmusken dugme YOK (operator, 7 Eyl 2026): tikladiginda
+               "su an kapali" diyen bir dugme, dugme degil. Urunun dropship
+               blogu yerinde duruyor; kapali olan yalnizca odeme. */ ?>
+      <?php if(!$SOLD && !$isOwnListingTop && $PRICES && vestra_dropship_payments_enabled() && vestra_dropship_enabled($p)): ?>
+        <a class="btn btn-o" style="width:100%;justify-content:center;margin-top:14px" href="/dropship?id=<?= urlencode($p['id']) ?>">📮 <?= t('Buy a single piece — dropshipping') ?> →</a>
+      <?php endif; ?>
+
+      <?php if(($__cn = vestra_money_note()) !== ''): ?>
+        <p class="curnote" style="margin-top:16px">💱 <?= htmlspecialchars($__cn) ?></p>
+      <?php endif; ?>
+      <?php if(!$PRICES): ?>
+        <div class="gate" style="margin-top:22px">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.6" style="margin:0 auto 8px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          <?php /* Iki ayri sebep, iki ayri cumle: "uye olun" derken zaten uye olana
+                   bunu soylemek, kullaniciya yapacak bir sey birakmiyordu. */ ?>
+          <?php if($PRICE_GATE==='approval'): ?>
+          <?php /* Kapiyi ONAY acar (KURAL 2); belge yalnizca "bu arada" istenir. */ ?>
+          <h3 style="margin:0 0 6px"><?= t('Your account is being reviewed') ?></h3>
+          <p style="color:var(--mut);margin:0 0 16px"><?= t('Wholesale prices and ordering open as soon as we activate your account — usually the same day.') ?></p>
+          <?php if(!in_array(auth_trade_doc_status($AUTH_USER), ['uploaded','approved'], true)): ?>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+            <a class="btn btn-o" href="<?= htmlspecialchars($KYC_URL) ?>"><?= t('Add document') ?></a>
+          </div>
+          <?php endif; ?>
+          <?php else: ?>
+          <h3 style="margin:0 0 6px"><?= t('Verified buyers only') ?></h3>
+          <p style="color:var(--mut);margin:0 0 16px"><?= t('Sign in as a verified business buyer to see pricing') ?><?= $mode==='offer'?' '.t('and make an offer'):' '.t('and order') ?>.</p>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+            <a class="btn btn-p" href="/login?back=/product?id=<?= urlencode($p['id']) ?>"><?= t('Sign in') ?></a>
+            <a class="btn btn-o" href="/register"><?= t('Register free') ?></a>
+          </div>
+          <?php endif; ?>
+        </div>
+
+      <?php elseif($offered): ?>
+        <div class="banner ok" style="margin-top:18px">✓ <?= t('Your offer is in the queue (ref') ?> <b><?= htmlspecialchars(substr($_GET['ref']??'',0,16)) ?></b>). <?= t('The seller will respond — track it under') ?> <a href="/buyer?tab=offers" class="acc"><?= t('My offers') ?></a>.</div>
+        <a class="btn btn-o" href="/shop"><?= t('Continue browsing') ?></a>
+
+      <?php elseif($mode==='offer'): ?>
+        <?php /* mode='offer' urunun SABIT fiyati yok: teklif kapatilirsa geriye
+                 satin alinacak bir sey kalmiyor. Bu yuzden yazma tarafi
+                 (scripts/set_product.php ve panelin fiyat editoru) bu bilesimi
+                 REDDEDIYOR -- burasi yalnizca elle duzenlenmis bir kayda karsi
+                 son savunma, ve o durumda kutu bos degil, sebebi yaziyor. */ ?>
+        <?php if(vestra_offers_open($p)): ?>
+        <div class="banner info" style="margin-top:18px">💬 <?= t('This item is <b>open to offers</b>.') ?> <?= htmlspecialchars($p['guide']??'') ?></div>
+        <?php else: ?>
+        <div class="banner" style="margin-top:18px"><?= t('This item is no longer available to order.') ?></div>
+        <?php endif; ?>
+        <table class="tiers">
+          <thead><tr><th><?= t('Volume') ?></th><th><?= t('Indicative unit') ?></th></tr></thead>
+          <tbody>
+          <?php foreach($p['tiers'] as $i=>$tier): ?>
+            <tr><td><?= $tier['min'] ?><?= isset($p['tiers'][$i+1])?'–'.($p['tiers'][$i+1]['min']-1):'+' ?> <?= htmlspecialchars($p['unit']) ?></td><td class="amt"><?= vestra_money($tier['price']) ?></td></tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+        <?php if(vestra_offers_open($p)): ?>
+        <div class="order-box">
+          <?php if(isset($_GET['colerr'])): ?>
+          <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:10px">
+            <?= vestra_colours_warn((int)($p['min_colors']??1)) ?></div>
+          <?php endif; ?>
+          <?php /* Fiyat kurali reddi: SEBEBIYLE birlikte. Eskiden gecersiz bir
+                   teklif sessizce kaydediliyordu; simdi kaydedilmiyor, ve
+                   neden kaydedilmedigi burada yaziyor. */
+            if(isset($_GET['pricerr'])):
+              if(session_status()===PHP_SESSION_NONE) session_start();
+              $__pe = $_SESSION['offer_price_err'] ?? ''; unset($_SESSION['offer_price_err']); ?>
+          <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:10px">
+            ⚠ <?= htmlspecialchars($__pe !== '' ? $__pe : t('That offer is too low.')) ?></div>
+          <?php endif; ?>
+          <?php /* Taban DENEMEDEN once gorunsun. */
+            require_once __DIR__.'/inc/offers.php';
+            $__rp = vestra_offer_ref_price($p);
+            if($__rp > 0): $__min = round($__rp * VESTRA_OFFER_MIN_BUYER_PCT, 2); ?>
+          <p class="hint" style="margin:0 0 10px">
+            <?= sprintf(t('Offers start at %s per unit.'), '<b>'.vestra_money($__min).'</b>') ?>
+          </p>
+          <?php endif; ?>
+          <form method="post" action="/offer" onsubmit="return <?= $cqMode?'cqOk(this,\'main\')':'vcolOk(this)' ?>">
+            <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
+            <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;inset-inline-start:-9999px">
+            <?php if($cqMode): ?>
+            <div style="margin-bottom:12px">
+              <label class="hint"><?= vestra_colorqty_hint($p) ?></label>
+              <?= vestra_colorqty_picker($p,'main') ?>
+              <div class="warn" id="cqwarn-main" style="display:none;margin-top:8px"></div>
+              <div class="hint" style="margin-top:6px"><?= t('Total quantity') ?>: <b><span id="cqtotal-main">0</span> <?= htmlspecialchars($p['unit']) ?></b></div>
+            </div>
+            <input type="hidden" name="qty" id="qty-main" value="0">
+            <div style="max-width:280px">
+              <div><label class="hint"><?= t('Your offer') ?> (€ / <?= htmlspecialchars($p['unit']) ?>)</label>
+                <input type="number" name="price" step="0.01" min="0" placeholder="<?= htmlspecialchars(t('e.g. 95.00')) ?>" required style="width:100%"></div>
+            </div>
+            <?php else: ?>
+            <?php if(!empty($p['colors']) && !empty($p['min_colors'])): ?>
+            <div style="margin-bottom:12px"><label class="hint"><?= t('Choose your colours') ?> — <?= sprintf(t('at least %d'), (int)$p['min_colors']) ?></label>
+              <div class="colorpick" data-min="<?= (int)$p['min_colors'] ?>">
+                <?php foreach((array)$p['colors'] as $cn): ?>
+                <label class="colorchip"><input type="checkbox" name="colors[]" value="<?= htmlspecialchars($cn) ?>"><span class="cdot" style="background:<?= vestra_colour_css((string)$cn) ?>"></span><?= htmlspecialchars(vestra_colour_label((string)$cn)) ?></label>
+                <?php endforeach; ?>
+              </div>
+              <div class="warn vcolwarn" style="display:none;margin-top:8px"><?= vestra_colours_warn((int)$p['min_colors']) ?></div>
+            </div>
+            <?php endif; ?>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div><label class="hint"><?= t('Quantity') ?> (<?= htmlspecialchars($p['unit']) ?>) — <?= t('min') ?> <?= $p['moq'] ?></label>
+                <input type="number" name="qty" min="<?= $p['moq'] ?>" step="<?= (int)($p['size_step'] ?? 1) ?>" value="<?= $p['moq'] ?>" required style="width:100%"></div>
+              <div><label class="hint"><?= t('Your offer') ?> (€ / <?= htmlspecialchars($p['unit']) ?>)</label>
+                <input type="number" name="price" step="0.01" min="0" placeholder="<?= htmlspecialchars(t('e.g. 95.00')) ?>" required style="width:100%"></div>
+            </div>
+            <?php endif; ?>
+            <div style="margin-top:12px"><label class="hint"><?= t('Message to seller') ?></label>
+              <textarea name="message" rows="2" style="width:100%" placeholder="<?= htmlspecialchars(t('Sizes, delivery, terms…')) ?>"></textarea></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px">
+              <div><label class="hint"><?= t('Company') ?> *</label><input name="company" required style="width:100%" value="<?= htmlspecialchars($AUTH_USER['company'] ?? '') ?>"></div>
+              <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%" value="<?= htmlspecialchars($AUTH_USER['email'] ?? '') ?>"></div>
+            </div>
+            <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:16px"><?= t('Submit offer →') ?></button>
+            <div class="hint" style="margin-top:10px"><?= t("Your offer joins the seller's queue. If accepted, you receive an <b>invoice</b> — payment by bank transfer.") ?></div>
+            <?php if($AUTH_USER && ($AUTH_USER['type']??'')==='buyer' && !empty($p['seller_uid'])): ?>
+            <div class="hint" style="margin-top:6px">💬 <?= t('Your offer will also appear in Messages, linked to this product.') ?></div>
+            <?php endif; ?>
+          </form>
+        </div>
+        <?php endif; ?>
+
+      <?php else: ?>
+        <?php if($mode==='sale'): ?>
+          <div class="saleline">
+            <span class="was"><?= vestra_money($p['list']) ?></span>
+            <span class="now"><?= t('from') ?> <?= vestra_money($from) ?></span>
+            <span class="badge-sale">−<?= $disc ?>%</span>
+            <span class="hint">/ <?= htmlspecialchars($p['unit']) ?> · <?= t('clearance') ?></span>
+          </div>
+        <?php endif; ?>
+        <table class="tiers" id="tiers">
+          <thead><tr><th><?= t('Quantity') ?> (<?= htmlspecialchars($p['unit']) ?>)</th><th><?= $mode==='sale'?t('Sale unit'):t('Unit price') ?></th><th><?= t('Saving') ?></th></tr></thead>
+          <tbody>
+          <?php foreach($p['tiers'] as $i=>$tier):
+            $base=$mode==='sale'?$p['list']:$p['tiers'][0]['price'];
+            $save=(int)round(100*($base-$tier['price'])/$base); ?>
+            <tr data-min="<?= $tier['min'] ?>" data-price="<?= $tier['price'] ?>">
+              <td><?= $tier['min'] ?><?= isset($p['tiers'][$i+1])?'–'.($p['tiers'][$i+1]['min']-1):'+' ?></td>
+              <td class="amt"><?= vestra_money($tier['price']) ?></td>
+              <td><?= $save>0?'−'.$save.'%':'—' ?></td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+        <div class="order-box">
+          <?php /* Beden secimi. Yalnizca karisimi SABIT OLMAYAN ilanda cikiyor
+                   (vestra_sizes_selectable): paket/acik seri satan bir ilanda
+                   sectirmek, ilan edilen paketin icerigiyle celisen bir siparis
+                   uretirdi. Kapi sunucuda da var (/order); burasi yalnizca
+                   kutuyu ciziyor -- "dugmeyi gizlemek kapi degildir". */
+                $pickSizes = vestra_sizes_selectable($p); ?>
+          <?php if($pickSizes): ?>
+          <div style="margin-bottom:14px">
+            <label class="hint"><?= t('Choose your sizes') ?> — <?= t('at least one') ?></label>
+            <div class="colorpick" id="ordSizes">
+              <?php foreach($pickSizes as $sz): ?>
+              <label class="colorchip sizechip"><input type="checkbox" value="<?= htmlspecialchars($sz) ?>" onchange="recalc()"><?= htmlspecialchars(vestra_sizes_label($sz)) ?></label>
+              <?php endforeach; ?>
+            </div>
+            <div class="warn" id="szwarn" style="display:none;margin-top:8px"><?= t('Choose at least one size.') ?></div>
+          </div>
+          <?php endif; ?>
+          <?php $colorQtyMode = $cqMode; /* tek karar noktasi: vestra_is_colorqty_listing */ ?>
+          <?php if($colorQtyMode): $cqStep=vestra_pack_size($p); ?>
+          <div style="margin-bottom:14px">
+            <label class="hint"><?= vestra_colorqty_hint($p) ?></label>
+            <div class="colorqty" id="ordColors">
+              <?php foreach((array)$p['colors'] as $cn): ?>
+              <div class="cqrow">
+                <span class="cdot" style="background:<?= vestra_colour_css((string)$cn) ?>"></span>
+                <span class="cqname"><?= htmlspecialchars(vestra_colour_label((string)$cn)) ?></span>
+                <?= vestra_colorqty_field((string)$cn, $cqStep, 'recalc()') ?>
+              </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
+          <input id="qty" type="hidden" value="0">
+          <div class="qtyrow">
+            <span class="hint"><?= t('Total quantity') ?>: <b><span id="cqtotal">0</span> <?= htmlspecialchars($p['unit']) ?></b></span>
+            <span class="hint"><?= t('Min order') ?> <b><?= $p['moq'] ?> <?= htmlspecialchars($p['unit']) ?></b></span>
+          </div>
+          <?php else: ?>
+          <?php /* Renk secimi. Kosul artik `min_colors`'in DOLU olmasi degil --
+                   o alan bir SINIR ("en az kac renk"), varlik bayragi degil, ve
+                   anahtar gibi kullanildigi icin rengi olup minimumu olmayan 146
+                   ic camasiri ilaninda kutu HIC cizilmiyordu: alici renkleri
+                   goruyor ama secemiyordu. Karar tek yerde
+                   (vestra_colors_selectable) ve /order ayni fonksiyonu cagiriyor. */
+                $pickColors = vestra_colors_selectable($p);
+                $minColors  = (int)($p['min_colors'] ?? 0); ?>
+          <?php if($pickColors): ?>
+          <div style="margin-bottom:14px"><label class="hint"><?= t('Choose your colours') ?> — <?= $minColors > 0 ? sprintf(t('at least %d'), $minColors) : t('at least one') ?></label>
+            <div class="colorpick" id="ordColors">
+              <?php foreach($pickColors as $cn): ?>
+              <label class="colorchip"><input type="checkbox" value="<?= htmlspecialchars($cn) ?>" onchange="recalc()"><span class="cdot" style="background:<?= vestra_colour_css((string)$cn) ?>"></span><?= htmlspecialchars(vestra_colour_label((string)$cn)) ?></label>
+              <?php endforeach; ?>
+            </div>
+            <div class="warn" id="clwarn" style="display:none;margin-top:8px"><?= t('Choose at least one colour.') ?></div>
+          </div>
+          <?php endif; ?>
+          <div class="qtyrow">
+            <div class="stepper">
+              <button type="button" onclick="bump(-step())">−</button>
+              <input id="qty" type="number" min="<?= $p['moq'] ?>" step="<?= (int)($p['size_step'] ?? 1) ?>" value="<?= $p['moq'] ?>" oninput="recalc()">
+              <button type="button" onclick="bump(step())">+</button>
+            </div>
+            <span class="hint"><?= t('Min order') ?> <b><?= $p['moq'] ?> <?= htmlspecialchars($p['unit']) ?></b></span>
+          </div>
+          <?php endif; ?>
+          <div class="calc">
+            <div class="unit"><?= t('Unit:') ?> <span id="uprice"><?= vestra_money($from) ?></span> · <span id="tier"></span></div>
+            <div class="total" id="total"><?= vestra_money($from*$p['moq']) ?> <small><?= t('excl. taxes & shipping') ?></small></div>
+            <?php if (!vestra_hides_ships_from($p)): ?>
+            <div class="hint" style="margin-top:6px"><?= vestra_ships_from_flag($p) ?> <?= htmlspecialchars(vestra_ships_from_label($p)) ?></div>
+            <?php endif; ?>
+          </div>
+          <div id="warn" class="warn" style="display:none"></div>
+          <?php if($SOLD): ?>
+            <button class="btn btn-o" type="button" disabled
+                    style="width:100%;justify-content:center;opacity:.6;cursor:not-allowed"><?= t('Sold out') ?></button>
+            <div class="hint" style="margin-top:10px"><?= t('This item is no longer available to order.') ?></div>
+          <?php else: ?>
+            <button class="btn btn-p" id="addBtn" style="width:100%;justify-content:center" onclick="addToOrder()"><?= t('Add to order') ?></button>
+            <div class="hint" style="margin-top:10px"><?= t('Payment is currently by <b>invoice</b> — you receive a proforma invoice and goods ship after bank-transfer payment.') ?></div>
+          <?php endif; ?>
+        </div>
+        <?php /* Teklif kutusu: karar vestra_offers_open()'da -- /offer ucu de
+                 AYNI fonksiyonu cagiriyor, yani burada cizilmeyen bir kutunun
+                 formu elle gonderilse de sunucu reddediyor. */ ?>
+        <?php if(!$SOLD && vestra_offers_open($p)): ?>
+        <div class="order-box" style="margin-top:14px">
+          <div class="hint" style="margin-bottom:8px">💬 <?= t('This seller also accepts offers.') ?></div>
+          <details class="offerdetails">
+            <summary class="btn btn-o" style="width:100%;justify-content:center"><?= t('Make an offer') ?></summary>
+            <form method="post" action="/offer" style="margin-top:12px" onsubmit="return <?= $cqMode?'cqOk(this,\'sub\')':'vcolOk(this)' ?>">
+              <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
+              <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;inset-inline-start:-9999px">
+              <?php if($cqMode): ?>
+              <div style="margin-bottom:10px">
+                <label class="hint"><?= vestra_colorqty_hint($p) ?></label>
+                <?= vestra_colorqty_picker($p,'sub') ?>
+                <div class="warn" id="cqwarn-sub" style="display:none;margin-top:8px"></div>
+                <div class="hint" style="margin-top:6px"><?= t('Total quantity') ?>: <b><span id="cqtotal-sub">0</span> <?= htmlspecialchars($p['unit']) ?></b></div>
+              </div>
+              <input type="hidden" name="qty" id="qty-sub" value="0">
+              <div style="max-width:280px">
+                <div><label class="hint"><?= t('Your offer') ?> (€/<?= htmlspecialchars($p['unit']) ?>)</label>
+                  <input type="number" name="price" step="0.01" min="0" required style="width:100%"></div>
+              </div>
+              <?php else: ?>
+              <?php if(!empty($p['colors']) && !empty($p['min_colors'])): ?>
+              <div style="margin-bottom:10px"><label class="hint"><?= t('Choose your colours') ?> — <?= sprintf(t('at least %d'), (int)$p['min_colors']) ?></label>
+                <div class="colorpick" data-min="<?= (int)$p['min_colors'] ?>">
+                  <?php foreach((array)$p['colors'] as $cn): ?>
+                  <label class="colorchip"><input type="checkbox" name="colors[]" value="<?= htmlspecialchars($cn) ?>"><span class="cdot" style="background:<?= vestra_colour_css((string)$cn) ?>"></span><?= htmlspecialchars(vestra_colour_label((string)$cn)) ?></label>
+                  <?php endforeach; ?>
+                </div>
+                <div class="warn vcolwarn" style="display:none;margin-top:8px"><?= vestra_colours_warn((int)$p['min_colors']) ?></div>
+              </div>
+              <?php endif; ?>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div><label class="hint"><?= t('Quantity') ?> — <?= t('min') ?> <?= $p['moq'] ?></label>
+                  <input type="number" name="qty" min="<?= $p['moq'] ?>" step="<?= (int)($p['size_step'] ?? 1) ?>" value="<?= $p['moq'] ?>" required style="width:100%"></div>
+                <div><label class="hint"><?= t('Your offer') ?> (€/<?= htmlspecialchars($p['unit']) ?>)</label>
+                  <input type="number" name="price" step="0.01" min="0" required style="width:100%"></div>
+              </div>
+              <?php endif; ?>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
+                <div><label class="hint"><?= t('Company') ?> *</label><input name="company" required style="width:100%" value="<?= htmlspecialchars($AUTH_USER['company'] ?? '') ?>"></div>
+                <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%" value="<?= htmlspecialchars($AUTH_USER['email'] ?? '') ?>"></div>
+              </div>
+              <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:12px"><?= t('Submit offer →') ?></button>
+              <?php if($AUTH_USER && !empty($p['seller_uid']) && $AUTH_USER['id']!==$p['seller_uid']): ?>
+              <div class="hint" style="margin-top:8px">💬 <?= t('Your offer will also appear in Messages, linked to this product.') ?></div>
+              <?php endif; ?>
+            </form>
+          </details>
+        </div>
+        <?php endif; ?>
+        <?php $isOwnListing = $AUTH_USER && !empty($p['seller_uid']) && $AUTH_USER['id']===$p['seller_uid'];
+              $samplePrice = vestra_sample_price($p); ?>
+        <?php if(!$SOLD && !$isOwnListing && $samplePrice > 0): ?>
+        <div class="order-box" style="margin-top:14px">
+          <div class="hint" style="margin-bottom:8px">📦 <?= t('Want to check it in hand first?') ?></div>
+          <details class="offerdetails">
+            <summary class="btn btn-o" style="width:100%;justify-content:center">📦 <?= t('Sample order') ?> — <?= vestra_money($samplePrice) ?></summary>
+            <?php if($AUTH_USER): ?>
+            <form method="post" action="/sample-checkout" style="margin-top:12px">
+              <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
+              <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;inset-inline-start:-9999px">
+              <label class="hint"><?= t('Size or note (optional)') ?></label>
+              <input type="text" name="note" maxlength="200" placeholder="<?= htmlspecialchars(t('e.g. size M, or a note for us')) ?>" style="width:100%">
+              <div class="hint" style="margin-top:8px"><?= t('EU-wide, shipping included.') ?> <?= t('The exact size you request may not always be available — we ship the closest match from current sample stock.') ?></div>
+              <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Order sample') ?> — <?= vestra_money($samplePrice) ?></button>
+            </form>
+            <?php else: ?>
+            <a class="btn btn-p" href="/login?back=<?= urlencode('/product?id='.$p['id']) ?>" style="width:100%;justify-content:center;margin-top:12px"><?= t('Sign in to order a sample') ?></a>
+            <?php endif; ?>
+          </details>
+        </div>
+        <?php endif; ?>
+        <?php if(!$isOwnListing): ?>
+        <div class="order-box" style="margin-top:14px">
+          <?php if($AUTH_USER): ?>
+          <details class="offerdetails">
+            <summary class="btn btn-o" style="width:100%;justify-content:center">💬 <?= t('Message seller') ?></summary>
+            <form method="post" action="/buyer?tab=messages" style="margin-top:12px">
+              <input type="hidden" name="_action" value="send_message">
+              <input type="hidden" name="listing_id" value="<?= htmlspecialchars($p['id']) ?>">
+              <textarea name="body" rows="3" placeholder="<?= htmlspecialchars(t('Ask about MOQ, samples, delivery…')) ?>" required style="width:100%"></textarea>
+              <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Send') ?></button>
+              <div class="hint" style="margin-top:8px"><?= t('Do not share email addresses, phone numbers, or bank details — keep all communication and payment on VESTRA.') ?></div>
+            </form>
+          </details>
+          <?php else: ?>
+          <a class="btn btn-o" href="/login?back=<?= urlencode('/product?id='.$p['id']) ?>" style="width:100%;justify-content:center">💬 <?= t('Sign in to message seller') ?></a>
+          <?php endif; ?>
+        </div>
+        <?php endif; ?>
+        <script>
+        var P=<?= json_encode(['id'=>$p['id'],'brand'=>$p['brand'],'name'=>vestra_product_name($p),'sku'=>$p['sku'],'unitLabel'=>$p['unit'],'moq'=>(int)$p['moq'],'step'=>(int)($p['size_step']??0),'minColors'=>(int)($p['min_colors']??0),'tiers'=>array_map(function($t){return ['min'=>(int)$t['min'],'price'=>(float)$t['price']];},$p['tiers'])]) ?>;
+        function step(){ return P.step||(P.moq>=100?100:(P.moq>=50?50:10)); }
+        function unitPrice(q){ var pr=P.tiers[0].price; P.tiers.forEach(function(t){ if(q>=t.min) pr=t.price; }); return pr; }
+        function tierLabel(q){ var lab='—'; P.tiers.forEach(function(t,i){ if(q>=t.min){ var n=P.tiers[i+1]; lab=t.min+(n?'–'+(n.min-1):'+'); } }); return lab; }
+        /* Canli hesaplayici da ziyaretcinin para biriminde yazsin. Sunucu tarafi
+           cevrilmis fiyat gosterirken bu satirin EUR basmasi, ayni sayfada iki
+           para birimi demek olurdu -- ve kullanici hangisine inanacagini bilemez.
+           Sembol ve kur PHP'den geliyor; kur yoksa 1.0 ve € ile EUR'da kaliyor,
+           yani uydurma bir kurla asla carpmiyor. */
+        var CUR={sym:<?= json_encode(vestra_money_converted() ? vestra_currencies()[vestra_currency()]['sym'] : '€') ?>,
+                 rate:<?= json_encode(vestra_money_converted() ? vestra_fx(vestra_currency()) : 1.0) ?>,
+                 /* 10 kurusa yuvarlama ADIMI, sunucudaki sabitten (17 Eyl 2026).
+                    Burada elle 0.10 yazmak, kademe tablosu US$45,40 derken canli
+                    toplamin US$45,33 demesine yol acardi -- ayni sayfada ayni
+                    urun icin iki rakam. EUR'da adim 0: taban birime dokunulmuyor. */
+                 step:<?= json_encode(vestra_money_converted() ? (float)VESTRA_MONEY_STEP : 0.0) ?>};
+        function fmtMoney(n){ var v=Number(n)*CUR.rate;
+          if(CUR.step>0) v=Math.ceil(Math.round(v/CUR.step*1e6)/1e6)*CUR.step;
+          return CUR.sym+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+        function bump(d){ var el=document.getElementById('qty'); el.value=Math.max(P.moq,(parseInt(el.value)||P.moq)+d); recalc(); }
+        /* Per-colour qty fields (carton listings: selects; by-the-piece listings with the
+           colorqty flag: number inputs) vs plain checkboxes. Both carry data-color. */
+        function cqSelects(){ var el=document.getElementById('ordColors'); if(!el) return null;
+          var s=el.querySelectorAll('[data-color]'); return s.length?s:null; }
+        function ordColors(){ var s=cqSelects();
+          if(s) return Array.prototype.filter.call(s,function(x){return parseInt(x.value)>0;})
+                     .map(function(x){return x.dataset.color+' ×'+parseInt(x.value);});
+          var el=document.getElementById('ordColors'); if(!el) return [];
+          return Array.prototype.map.call(el.querySelectorAll('input:checked'), function(i){return i.value;}); }
+        function cqTotal(){ var s=cqSelects(), t=0; if(!s) return 0;
+          Array.prototype.forEach.call(s,function(x){t+=parseInt(x.value)||0;}); return t; }
+        /* Secilen bedenler. Kutu hic cizilmediyse (paket/tek beden/giyim) bu
+           [] doner ve hicbir kontrol devreye girmez -- yani mevcut ilanlarin
+           satin alma akisi degismiyor. */
+        function ordSizes(){ var el=document.getElementById('ordSizes'); if(!el) return [];
+          return Array.prototype.map.call(el.querySelectorAll('input:checked'), function(i){return i.value;}); }
+        function needSizes(){ return !!document.getElementById('ordSizes'); }
+        /* Renk kutusu cizildiyse en az bir renk SART. min_colors YAZILI ilanda
+           sayiyi asagidaki eski dal dogruluyor; burasi minimumu OLMAYAN (ic
+           camasiri) ilan icin: "minimum yok" ile "secim gerekmiyor" ayni sey
+           degil -- satici hangi rengi gonderecegini bilmek zorunda. cqSelects()
+           varsa kutu adet-secici kipinde, onun kurali zaten min_colors. */
+        function needColors(){ return !cqSelects() && P.minColors<=0
+                                   && !!document.getElementById('ordColors'); }
+        function recalc(){
+          var cq=!!cqSelects(), warn=document.getElementById('warn'), btn=document.getElementById('addBtn');
+          /* SATILDI olan urunde "Add to order" dugmesi hic basilmiyor, yani btn
+             null. Korumasiz btn.disabled recalc()'i daha ilk kosuda oldururdu ve
+             ONUN ALTINDAKI HER SEY sessizce calismazdi: birim fiyat, kademe ve
+             toplam hic yazilmaz, kademe tablosu isaretlenmezdi. Sunucu kapisi
+             kapali oldugu icin satis yine olmazdi ama sayfa bozuk gorunurdu. */
+          var setDisabled=function(v){ if(btn) btn.disabled=v; };
+          if(cq){ var t=cqTotal(); document.getElementById('qty').value=t;
+            var tt=document.getElementById('cqtotal'); if(tt) tt.textContent=t; }
+          var q=parseInt(document.getElementById('qty').value)||0;
+          var szw=document.getElementById('szwarn'), szMissing=needSizes() && ordSizes().length===0;
+          if(szw) szw.style.display = szMissing ? 'block' : 'none';
+          var clw=document.getElementById('clwarn'), clMissing=needColors() && ordColors().length===0;
+          if(clw) clw.style.display = clMissing ? 'block' : 'none';
+          if(szMissing || clMissing){ warn.style.display='none'; setDisabled(true); }
+          else if(P.minColors>0 && ordColors().length<P.minColors){ warn.style.display='block'; warn.textContent=<?= json_encode(vestra_colours_warn((int)($p['min_colors']??0))) ?>; setDisabled(true); }
+          else if(q<P.moq){ warn.style.display='block'; warn.textContent='<?= addslashes(t('Minimum order is')) ?> '+P.moq+' '+P.unitLabel+'.'; setDisabled(true); }
+          else { warn.style.display='none'; setDisabled(false); }
+          var u=unitPrice(q);
+          document.getElementById('uprice').textContent=fmtMoney(u);
+          document.getElementById('tier').textContent=<?= json_encode(t('tier')) ?>+' '+tierLabel(q)+' '+P.unitLabel;
+          document.getElementById('total').innerHTML=fmtMoney(u*q)+' <small>'+<?= json_encode(t('excl. taxes & shipping')) ?>+'</small>';
+          document.querySelectorAll('#tiers tbody tr').forEach(function(tr){ tr.classList.toggle('active', q>=parseInt(tr.dataset.min)&&(!tr.nextElementSibling||q<parseInt(tr.nextElementSibling.dataset.min))); });
+        }
+        function addToOrder(){ var q=parseInt(document.getElementById('qty').value)||0; if(q<P.moq) return; var u=unitPrice(q);
+          var cols=ordColors(); if(P.minColors>0 && cols.length<P.minColors){ recalc(); return; }
+          if(needColors() && cols.length===0){ recalc(); return; }
+          var szs=ordSizes(); if(needSizes() && szs.length===0){ recalc(); return; }
+          VCart.add({id:P.id,brand:P.brand,name:P.name,sku:P.sku,unitLabel:P.unitLabel,qty:q,unit:u,colors:cols,sizes:szs});
+          var b=document.getElementById('addBtn'); b.textContent='✓ '+<?= json_encode(t('Added to order')) ?>; setTimeout(function(){b.textContent=<?= json_encode(t('Add to order')) ?>;},1400); }
+        recalc();
+        </script>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <?php
+  /* ── Full-width detail sections (the "open in more detail" view) ────────────
+     Specifications, the per-colour article/model breakdown, and related items.
+     Specs & article codes are catalogue data → shown to everyone; only the
+     variant thumbnails stay photo-gated (freischaltung), like the gallery. */
+  $specs = (!empty($p['specs']) && is_array($p['specs'])) ? $p['specs'] : [];
+  /* 'Lead time' satiri ilan verisine ELLE yazilmiyor (L1212'de oyleydi ve dort
+     ay bayat kaldi); tarihten uretiliyor ve tarih gecince satir hic basilmiyor. */
+  if (function_exists('vestra_preorder_note')) {
+    $ln = vestra_preorder_note($p);
+    if ($ln !== '') $specs = ['Lead time' => $ln] + $specs;
+  }
+  $variants = (!empty($p['variants']) && is_array($p['variants'])) ? $p['variants'] : [];
+  $related = [];
+  $pid = $p['id'] ?? '';
+  foreach (vestra_products() as $rp) {
+    if (($rp['id'] ?? '') === $pid) continue;
+    $s = (!empty($p['seller_uid']) && ($rp['seller_uid'] ?? '') === $p['seller_uid']) ? 2 : 0;
+    $c = (($rp['cat'] ?? '') !== '' && ($rp['cat'] ?? '') === ($p['cat'] ?? '')) ? 1 : 0;
+    if ($s + $c > 0) $related[] = ['p' => $rp, 's' => $s + $c];
+  }
+  usort($related, fn($a, $b) => $b['s'] <=> $a['s']);
+  $related = array_slice(array_map(fn($x) => $x['p'], $related), 0, 4);
+  ?>
+  <?php if ($specs || $variants || $related): ?>
+  <style>
+    .pmore{margin:40px 0 0;padding-top:30px;border-top:1px solid var(--line)}
+    .pmore>h2{font-size:21px;margin:0 0 16px}
+    .specs2{display:grid;grid-template-columns:1fr 1fr;background:var(--bg2);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+    .specs2 .spec-row{padding:11px 16px}
+    @media(max-width:640px){.specs2{grid-template-columns:1fr}}
+    .vscroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--bg2)}
+    .vartable{width:100%;border-collapse:collapse;font-size:13.5px;min-width:460px}
+    .vartable th,.vartable td{padding:11px 14px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+    .vartable th{color:var(--mut);font-weight:500;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+    .vartable tr:last-child td{border-bottom:none}
+    .vartable .mono{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:12.5px;color:var(--acc)}
+    .vartable .vcol{display:flex;align-items:center;gap:9px}
+    .vartable .varthumb{width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--line);flex:none}
+    .vartable .vdot{width:13px;height:13px;border-radius:50%;border:1px solid rgba(255,255,255,.25);flex:none}
+  </style>
+  <?php endif; ?>
+
+  <?php if ($specs): ?>
+  <section class="pmore">
+    <h2><?= t('Specifications') ?></h2>
+    <div class="specs2">
+      <?php foreach ($specs as $k => $v): ?>
+      <div class="spec-row"><span><?= htmlspecialchars(t($k)) ?></span><b><?= htmlspecialchars((string)$v) ?></b></div>
+      <?php endforeach; ?>
+    </div>
+  </section>
+  <?php endif; ?>
+
+  <?php if ($variants): $pal = vestra_colors(); ?>
+  <section class="pmore">
+    <h2><?= t('Article & colour breakdown') ?> <span style="color:var(--mut);font-weight:400;font-size:14px">· <?= count($variants) ?> <?= t('colourways') ?></span></h2>
+    <div class="vscroll"><table class="vartable">
+      <thead><tr>
+        <th><?= t('Colour') ?></th><th><?= t('Article no.') ?></th><th><?= t('Model') ?></th>
+        <?php if (!empty($p['size_step'])): ?><th><?= t('Carton') ?></th><?php endif; ?>
+      </tr></thead>
+      <tbody>
+        <?php foreach ($variants as $v): $cn = $v['color'] ?? ''; ?>
+        <tr>
+          <td><div class="vcol">
+            <?php if ($MEMBER && !empty($v['image'])): ?><img class="varthumb" src="<?= htmlspecialchars($v['image']) ?>" alt="<?= htmlspecialchars(trim($_imgAlt.' '.t($cn))) ?>" loading="lazy">
+            <?php else: ?><span class="vdot" style="background:<?= htmlspecialchars(vestra_colour_css((string)$cn)) ?>"></span><?php endif; ?>
+            <?= htmlspecialchars(vestra_colour_label((string)$cn)) ?>
+          </div></td>
+          <td class="mono"><?= htmlspecialchars($v['art'] ?? '—') ?></td>
+          <td class="mono"><?= htmlspecialchars($v['model'] ?? '—') ?></td>
+          <?php if (!empty($p['size_step'])): ?><td><?= (int)$p['size_step'] ?> <?= htmlspecialchars($p['unit'] ?? 'pc') ?></td><?php endif; ?>
+        </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table></div>
+  </section>
+  <?php endif; ?>
+
+  <?php if ($related): ?>
+  <section class="pmore">
+    <h2><?= t('You might also like') ?></h2>
+    <div class="shopgrid">
+      <?php foreach ($related as $rp): $rfrom = vestra_from_price($rp);
+        $rimgs = ($MEMBER && !empty($rp['images']) && is_array($rp['images'])) ? array_values(array_filter($rp['images'])) : [];
+        $rimg = $rimgs[0] ?? ''; ?>
+        <a class="scard" href="/product?id=<?= urlencode($rp['id']) ?>">
+          <div class="sthumb" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($rp)) ?>,#0e0e11)">
+            <?php if ($rimg): ?><img src="<?= htmlspecialchars($rimg) ?>" alt="<?= htmlspecialchars(vestra_product_title($rp)) ?>" loading="lazy" class="sthumbi"><?php endif; ?>
+            <?php if (!empty($rp['verified'])) echo vestra_verified_badge(); ?>
+            <?php if (!$rimg) echo vestra_brand_card($rp['brand'] ?? ''); ?>
+            <?php $rmode = vestra_display_mode($rp); ?>
+            <?php if ($rmode === 'sale'): ?><span class="smodetag sale">−<?= vestra_discount($rp) ?>%</span>
+            <?php elseif ($rmode === 'offer'): ?><span class="smodetag offer"><?= t('Offers') ?></span><?php endif; ?>
+          </div>
+          <div class="sbody">
+            <span class="sbrand"><?= htmlspecialchars($rp['brand'] ?? '') ?></span>
+            <span class="stitle"><?= htmlspecialchars(vestra_product_name($rp)) ?></span>
+            <span class="smeta"><?= htmlspecialchars($rp['cat'] ?? '') ?> · MOQ <b><?= $rp['moq'] ?? '?' ?></b> <?= htmlspecialchars($rp['unit'] ?? 'pc') ?></span>
+            <div class="sprice">
+              <?php if (!$PRICES): ?>
+                <span class="slock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><?= $PRICE_GATE==='approval' ? t('Awaiting approval') : t('Members only') ?></span>
+              <?php elseif (($rp['mode'] ?? '') === 'offer'): ?>
+                <span class="soffer">💬 <?= t('Open to offers') ?></span>
+              <?php else: ?>
+                <span class="sfrom"><?= t('from') ?></span><span class="samt"><?= vestra_money($rfrom) ?></span><span class="sfrom">/<?= htmlspecialchars($rp['unit'] ?? 'pc') ?></span>
+              <?php endif; ?>
+            </div>
+          </div>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  </section>
+  <?php endif; ?>
+<?php if(!$MEMBER): ?>
+    </div><!-- /.lockblur -->
+  </div><!-- /.lockwrap -->
+<?php endif; ?>
+</div>
+
+<?php if($images): ?>
+<script>
+/* Slides: 0..n-1 = product photos (opens on the first photo); n = the brand card (last). */
+var galImgs=<?= json_encode($images) ?>, galN=galImgs.length, galIdx=0;
+function galSet(i){
+  galIdx=i;
+  var img=document.getElementById('gal-main-img'), card=document.getElementById('gal-card');
+  if(i>=galN){ if(img) img.style.display='none'; card.style.display='flex'; }
+  else { img.src=galImgs[i]; img.style.display='block'; card.style.display='none'; }
+  document.querySelectorAll('.gal-thumb').forEach(function(t,j){ t.classList.toggle('active', j===i); });
+}
+function galGo(d){
+  var n=galN+1;                           // slides: photos + brand card
+  galSet(((galIdx+d)%n+n)%n);
+}
+document.addEventListener('keydown', function(e){
+  if(e.key==='ArrowLeft') galGo(-1);
+  if(e.key==='ArrowRight') galGo(1);
+});
+
+/* ── Büyüteç ────────────────────────────────────────────────────────────────
+   Masaüstü: imleç lensi + yanda 1:1 panel. Dokunmatik/tık: tam ekran, pinch ve
+   çift-dokunuşla yakınlaştırma, sürükleyerek gezinme.
+   Panel ölçeği görüntünün DOĞAL boyutuna göre hesaplanır; ekrandaki küçültülmüş
+   kopyayı büyütmek bulanık verir, oysa asıl amaç dokuyu göstermek. */
+(function(){
+  var main   = document.getElementById('gal-main-img');
+  var lens   = document.getElementById('vzoomLens');
+  var panel  = document.getElementById('vzoomPanel');
+  var surf   = document.getElementById('vzoomSurface');
+  var badge  = document.getElementById('vzoomBadge');
+  var full   = document.getElementById('vzoomFull');
+  var stage  = document.getElementById('vzoomStage');
+  var fimg   = document.getElementById('vzoomFullImg');
+  var pct    = document.getElementById('vzoomPct');
+  if(!main || !full) return;           // üye değilse katmanlar basılmaz
+
+  var LENS = 150;                       // lens kenarı (px)
+  var nat  = {w:0,h:0};                 // aktif görüntünün doğal boyutu
+
+  function measure(){
+    nat.w = main.naturalWidth || 0;
+    nat.h = main.naturalHeight || 0;
+  }
+  measure();
+  main.addEventListener('load', measure);
+
+  /* Masaüstü lens+panel. Doğal boyut okunamadıysa (henüz yüklenmediyse) hiç
+     açma: yanlış ölçekli bir panel göstermektense hiç göstermemek doğru. */
+  function lensMove(e){
+    if(!nat.w || panel.offsetParent === null) return;
+    var r = main.getBoundingClientRect();
+    var x = e.clientX - r.left, y = e.clientY - r.top;
+    if(x < 0 || y < 0 || x > r.width || y > r.height){ lensOff(); return; }
+
+    var half = LENS/2;
+    var lx = Math.max(0, Math.min(x - half, r.width  - LENS));
+    var ly = Math.max(0, Math.min(y - half, r.height - LENS));
+    lens.style.width = lens.style.height = LENS+'px';
+    lens.style.transform = 'translate('+lx+'px,'+ly+'px)';
+    lens.classList.add('on');
+
+    /* Panelde 1:1: doğal piksel / ekran pikseli. */
+    var scale = nat.w / r.width;
+    var pw = panel.clientWidth, ph = panel.clientHeight;
+    surf.style.backgroundImage = 'url("'+main.src+'")';
+    surf.style.backgroundSize  = (r.width*scale)+'px '+(r.height*scale)+'px';
+    surf.style.backgroundPosition =
+      (-(lx*scale) + (pw - LENS*scale)/2)+'px '+
+      (-(ly*scale) + (ph - LENS*scale)/2)+'px';
+    panel.classList.add('on');
+    if(badge) badge.textContent = scale >= 1 ? '1:1' : Math.round(scale*100)+'%';
+  }
+  function lensOff(){ lens.classList.remove('on'); panel.classList.remove('on'); }
+
+  /* Kaba işaretçide (parmak) lens anlamsız — sadece tam ekran. */
+  if(window.matchMedia && window.matchMedia('(hover:hover) and (pointer:fine)').matches){
+    main.addEventListener('mousemove', lensMove);
+    main.addEventListener('mouseleave', lensOff);
+  }
+
+  /* ── Tam ekran ── */
+  var z=1, tx=0, ty=0, base=1;
+  function apply(){
+    fimg.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+z+')';
+    if(pct) pct.textContent = Math.round(z*base*100)+'%';
+  }
+  function clamp(){
+    /* Görüntüyü sahnenin dışına kaçırma: her eksende taşma kadar izin ver. */
+    var r = fimg.getBoundingClientRect(), s = stage.getBoundingClientRect();
+    var ox = Math.max(0, (r.width  - s.width )/2);
+    var oy = Math.max(0, (r.height - s.height)/2);
+    tx = Math.max(-ox, Math.min(ox, tx));
+    ty = Math.max(-oy, Math.min(oy, ty));
+  }
+  function openFull(){
+    if(galIdx >= galN) return;          // marka kartı, fotoğraf değil
+    fimg.src = galImgs[galIdx];
+    z=1; tx=0; ty=0;
+    full.classList.add('on');
+    document.body.style.overflow='hidden';
+    fimg.onload = function(){
+      var r = fimg.getBoundingClientRect();
+      base = (fimg.naturalWidth && r.width) ? (r.width/fimg.naturalWidth) : 1;
+      apply();
+    };
+    apply();
+  }
+  function closeFull(){
+    full.classList.remove('on');
+    document.body.style.overflow='';
+  }
+  main.addEventListener('click', openFull);
+  document.getElementById('vzoomClose').addEventListener('click', closeFull);
+  full.addEventListener('click', function(e){ if(e.target === full || e.target === stage) closeFull(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape' && full.classList.contains('on')) closeFull(); });
+
+  /* Tekerlek: imlecin altındaki nokta sabit kalacak şekilde yakınlaştır. */
+  stage.addEventListener('wheel', function(e){
+    if(!full.classList.contains('on')) return;
+    e.preventDefault();
+    var prev=z;
+    z = Math.max(1, Math.min(6, z * (e.deltaY < 0 ? 1.12 : 1/1.12)));
+    var s = stage.getBoundingClientRect();
+    var cx = e.clientX - s.left - s.width/2  - tx;
+    var cy = e.clientY - s.top  - s.height/2 - ty;
+    tx -= cx*(z/prev - 1); ty -= cy*(z/prev - 1);
+    clamp(); apply();
+  }, {passive:false});
+
+  /* Sürükle (fare + tek parmak) */
+  var drag=false, sx=0, sy=0;
+  stage.addEventListener('pointerdown', function(e){
+    if(!full.classList.contains('on') || e.pointerType==='touch' && pts.size>1) return;
+    drag=true; sx=e.clientX-tx; sy=e.clientY-ty;
+    stage.classList.add('dragging'); stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener('pointermove', function(e){
+    if(!drag || pts.size>1) return;
+    tx=e.clientX-sx; ty=e.clientY-sy; clamp(); apply();
+  });
+  ['pointerup','pointercancel'].forEach(function(ev){
+    stage.addEventListener(ev, function(){ drag=false; stage.classList.remove('dragging'); });
+  });
+
+  /* Pinch: iki parmak arası mesafe oranı kadar ölçekle. */
+  var pts = new Map(), pd0=0, pz0=1;
+  stage.addEventListener('pointerdown', function(e){ pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); if(pts.size===2){ pd0=dist(); pz0=z; } });
+  stage.addEventListener('pointermove', function(e){
+    if(!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===2 && pd0>0){ z = Math.max(1, Math.min(6, pz0 * (dist()/pd0))); clamp(); apply(); }
+  });
+  ['pointerup','pointercancel'].forEach(function(ev){
+    stage.addEventListener(ev, function(e){ pts.delete(e.pointerId); if(pts.size<2) pd0=0; });
+  });
+  function dist(){
+    var a=Array.from(pts.values()); if(a.length<2) return 0;
+    return Math.hypot(a[0].x-a[1].x, a[0].y-a[1].y);
+  }
+
+  /* Çift dokunuş / çift tık: 1x ↔ 2.5x */
+  var lastTap=0;
+  stage.addEventListener('pointerup', function(e){
+    if(pts.size) return;
+    var now = e.timeStamp;
+    if(now - lastTap < 320){ z = (z>1.05) ? 1 : 2.5; tx=0; ty=0; clamp(); apply(); lastTap=0; }
+    else lastTap = now;
+  });
+})();
+</script>
+<?php endif; ?>
+<script>
+function vcolOk(f){
+  var cp=f.querySelector('.colorpick[data-min]'); if(!cp) return true;
+  var need=parseInt(cp.dataset.min)||0, got=cp.querySelectorAll('input:checked').length;
+  var w=f.querySelector('.vcolwarn'); if(got<need){ if(w) w.style.display='block'; return false; }
+  if(w) w.style.display='none'; return true;
+}
+/* Per-colour qty picker (offer forms) — sums the selects, writes the hidden qty field
+   and the running total display for the given picker instance ('main' | 'sub'). */
+function cqSync(suffix){
+  var wrap=document.getElementById('cq-'+suffix); if(!wrap) return 0;
+  var t=0; wrap.querySelectorAll('[data-color]').forEach(function(s){ t+=parseInt(s.value)||0; });
+  var qtyEl=document.getElementById('qty-'+suffix); if(qtyEl) qtyEl.value=t;
+  var totEl=document.getElementById('cqtotal-'+suffix); if(totEl) totEl.textContent=t;
+  return t;
+}
+function cqOk(f,suffix){
+  var need=<?= (int)($p['min_colors']??0) ?>;
+  var wrap=document.getElementById('cq-'+suffix), warn=document.getElementById('cqwarn-'+suffix);
+  var got=0; if(wrap) wrap.querySelectorAll('[data-color]').forEach(function(s){ if(parseInt(s.value)>0) got++; });
+  var t=cqSync(suffix);
+  if(got<need || t<=0){
+    if(warn){ warn.textContent=<?= json_encode(vestra_colours_warn((int)($p['min_colors']??0))) ?>; warn.style.display='block'; }
+    return false;
+  }
+  if(warn) warn.style.display='none';
+  return true;
+}
+</script>
+<?php require __DIR__.'/inc/foot.php';

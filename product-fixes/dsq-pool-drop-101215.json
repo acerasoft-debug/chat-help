@@ -1,0 +1,21 @@
+[
+  {
+    "match": "dsq-101211",
+    "expect": 1,
+    "group_title": "DSQUARED2 T-Shirt Assortment — 9 Models",
+    "group_models": [
+      "dsq-101211",
+      "dsq-101212",
+      "dsq-101213",
+      "dsq-101214",
+      "dsq-101230",
+      "dsq-101231",
+      "dsq-101232",
+      "dsq-101233",
+      "dsq-101237"
+    ],
+    "_why": "dsq-101215 havuzdan cikariliyor: fotografi (uploads/dsquared/dsq-101215.png) uzun kollu, ribanali kol agzi ve etekli, crew yakali kalin fleece bir SWEATSHIRT gosteriyor. Ti-shirt assortment'inda isi yok.",
+    "_why_title": "Baslik da 10 -> 9 yapiliyor. Model listesini kisaltip basligi '10 Models' birakmak, sayfada olmayan bir modeli vaat etmek olurdu.",
+    "_why_root_cause": "Urun katalogda 'Graphic Print T-Shirt / cat=T-Shirts' olarak duruyor, havuza bu yuzden girdi. Repoda bunu duzelten hazir bir dosya var (product-fixes/dsq-101215-sweatshirt.json: cat=Hoodies & Sweatshirts, name=Graphic Print Sweatshirt) ama hic uygulanmamis. Havuzdan cikarmak semptomu cozuyor, kategori hatasi katalogda duruyor."
+  }
+]

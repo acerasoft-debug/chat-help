@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img">
+  <title>A price bar split along a time axis into a large payment at completion, a held portion released later, and two smaller tranches further out</title>
+  <desc>Price paid over time: completion, a holdback in escrow, then tranches against agreed performance.</desc>
+  <rect width="1200" height="675" fill="#3a2016"/>
+  <g stroke="#7a4026" stroke-width="1"><path d="M0 168h1200M0 337h1200M0 506h1200"/></g>
+  <!-- Tam fiyat: ust seritte butun -->
+  <rect x="96" y="150" width="1008" height="46" rx="10" fill="none" stroke="#f0c9a0" stroke-width="3" opacity=".45"/>
+  <g stroke="#f0c9a0" stroke-width="2" opacity=".45" stroke-dasharray="7 8">
+    <path d="M792 196v66M912 196v66M1008 196v66"/>
+  </g>
+  <!-- Vollzug: kapanista odenen buyuk pay -->
+  <rect x="96" y="262" width="696" height="116" rx="12" fill="#f0c9a0" opacity=".28"/>
+  <rect x="96" y="262" width="696" height="116" rx="12" fill="none" stroke="#f0c9a0" stroke-width="3"/>
+  <!-- Teminatta tutulan pay -->
+  <rect x="792" y="262" width="120" height="116" rx="12" fill="none" stroke="#f0c9a0" stroke-width="3" stroke-dasharray="12 9"/>
+  <g fill="none" stroke="#f0c9a0" stroke-width="3">
+    <path d="M838 316v-12a14 14 0 0 1 28 0v12"/>
+    <rect x="832" y="316" width="40" height="32" rx="7"/>
+  </g>
+  <!-- Sonraki dilimler -->
+  <rect x="912" y="262" width="88" height="116" rx="12" fill="#f0c9a0" opacity=".16"/>
+  <rect x="912" y="262" width="88" height="116" rx="12" fill="none" stroke="#f0c9a0" stroke-width="3"/>
+  <rect x="1008" y="262" width="96" height="116" rx="12" fill="#f0c9a0" opacity=".16"/>
+  <rect x="1008" y="262" width="96" height="116" rx="12" fill="none" stroke="#f0c9a0" stroke-width="3"/>
+  <!-- Zaman ekseni -->
+  <path d="M96 452h1008" stroke="#f0c9a0" stroke-width="3"/>
+  <path d="M1084 440l22 12-22 12z" fill="#f0c9a0"/>
+  <g fill="none" stroke="#f0c9a0" stroke-width="3">
+    <circle cx="96" cy="452" r="10"/>
+    <circle cx="852" cy="452" r="10"/>
+    <circle cx="956" cy="452" r="10"/>
+    <circle cx="1056" cy="452" r="10"/>
+  </g>
+  <g stroke="#f0c9a0" stroke-width="2" opacity=".5">
+    <path d="M96 378v64M852 378v64M956 378v64M1056 378v64"/>
+  </g>
+  <!-- Serbest birakma: tutulan dilim asagi iner, ILERIDE birakilir -->
+  <path d="M852 386v128" stroke="#f0c9a0" stroke-width="2" stroke-dasharray="9 10" opacity=".7"/>
+  <circle cx="852" cy="528" r="10" fill="none" stroke="#f0c9a0" stroke-width="3" opacity=".85"/>
+  <path d="M866 528h146" stroke="#f0c9a0" stroke-width="3" opacity=".85"/>
+  <path d="M1000 516l22 12-22 12z" fill="#f0c9a0" opacity=".85"/>
+</svg>

@@ -1,0 +1,494 @@
+<?php
+/** VESTRA — order request handler (demo). Stores to data/orders.csv (+ optional email). */
+require __DIR__.'/inc/products.php';
+require_once __DIR__.'/inc/auth.php';
+require_once __DIR__.'/inc/escrow.php';
+require_once __DIR__.'/inc/stripe.php';
+require_once __DIR__.'/inc/vouchers.php';
+require_once __DIR__.'/inc/addresses.php';
+/* KURAL 15: navlun (vestra_shipping_auto_schedule) ve `Deliver to` yazicisi bu dosyada.
+   19 Eyl 2026'dan (04990a90) beri kasa onu CAGIRIYOR ama HIC yuklemiyordu -- yerel
+   sinamada her siparis POST'u 167. satirda "Call to undefined function" ile 500 verdi. */
+require_once __DIR__.'/inc/orders.php';
+if(session_status()===PHP_SESSION_NONE) session_start();
+$CONTACT='support@vestrasales.com'; $NOTIFY=false;
+/* Buyer's chosen payment method: 'escrow' (card, held) or 'bank' (invoice/transfer). */
+$payMethod = (($_POST['pay'] ?? 'bank') === 'escrow') ? 'escrow' : 'bank';
+
+if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: /cart'); exit; }
+if(!empty($_POST['website'])){ header('Location: /cart?placed=1&ref=NA'); exit; } // honeypot
+
+/* SIPARIS YETKISI -- sunucuda. Bu kontrol yoktu: siparis verme hakki yalnizca
+   "Add to order" dugmesinin $PRICES ile gizlenmesine dayaniyordu, yani kapi
+   arayuzdeydi. Sepet istemci tarafinda tutuluyor ve /cart girise kapali degil,
+   dolayisiyla dogrudan POST eden biri onaysiz -- hatta oturumsuz -- siparis
+   birakabiliyordu. Fiyat artik Prufung'un arkasinda oldugu icin siparisin de
+   arkasinda olmasi gerekiyor; yoksa fiyati goremeyen bir hesap yine de alabilirdi.
+   Fiyatlar zaten asagida katalogdan yeniden hesaplaniyor -- burada dogrulanan
+   tutar degil, KIM oldugu. */
+if(!auth_prices_unlocked(auth_user())){ header('Location: /cart?err=not_approved'); exit; }
+
+/* One-shot order token (idempotency). A double-tap posts the same token twice; the
+   PHP session lock serialises the two requests: the first consumes the token and
+   records its ref, the second replays the SAME confirmation — never a second order,
+   invoice or email. Posts without a token (stale cached cart) still go through. */
+$orderTok = preg_replace('/[^a-f0-9]/','', (string)($_POST['order_token'] ?? ''));
+if($orderTok !== ''){
+  $doneRef = $_SESSION['order_token_done'][$orderTok] ?? '';
+  if($doneRef !== ''){ header('Location: /order-confirm?ref='.urlencode($doneRef)); exit; }
+  if(empty($_SESSION['order_tokens'][$orderTok])){ header('Location: /cart'); exit; } // unknown/expired
+  unset($_SESSION['order_tokens'][$orderTok]); // consume — single use
+}
+
+$company=trim($_POST['company']??''); $name=trim($_POST['name']??''); $email=trim($_POST['email']??'');
+if($company===''||$name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)){ header('Location: /cart'); exit; }
+if(empty($_POST['consent'])){ header('Location: /cart'); exit; } // Terms acceptance is mandatory
+/* TESLIMAT ADRESI. Kasa artik kayitli adres defterinden (1./2./3.) secim gonderiyor:
+   'billing' | yuva numarasi | 'other'. Yuva secildiyse METIN tarayicidan alinmaz,
+   hesabin kendi kaydindan kurulur (vestra_ship_addr_resolve) -- elle degistirilmis bir
+   form baskasinin adresini ya da dogrulanmamis bir metni siparise yazamasin.
+   ship_pick hic gelmezse (onbellekte kalmis eski sepet sayfasi) eski davranis:
+   serbest metin, bos = fatura adresine. */
+$shipPick=isset($_POST['ship_pick']) ? trim((string)$_POST['ship_pick']) : '';
+$__ship=vestra_ship_addr_resolve(auth_user(), $shipPick, (string)($_POST['ship_address']??''));
+if(isset($__ship['error'])){ header('Location: /cart?err=shipaddr'); exit; }
+$shipAddr=$__ship['address']; // empty means "deliver to the billing address"
+$country=trim($_POST['country']??'');   // tarife bölgesini ve mektupları besleyen tek okuma
+
+/* Remember checkout details on the buyer's account so the next order is prefilled:
+   the delivery address is always kept current; other fields only fill gaps (never
+   overwrite what the user saved in their profile). */
+if(!empty($_SESSION['uid'])){
+  $me=auth_user();
+  if($me){
+    $patch=[];
+    /* Serbest metin yalniz 'baska adres' secildiginde hatirlanir: kayitli bir yuva
+       secildiginde eski serbest metni ezmek, alicinin bir dahaki "baska adres"ini silerdi. */
+    if(($shipPick===''||$shipPick==='other') && $shipAddr!==($me['ship_address']??'')) $patch['ship_address']=$shipAddr;
+    if($shipPick!=='' && $shipPick!==(string)($me['ship_last']??'')) $patch['ship_last']=$shipPick;
+    foreach(['company'=>'company','vat'=>'vat_id','name'=>'name','address'=>'address','country'=>'country','phone'=>'phone'] as $post=>$field){
+      $v=trim($_POST[$post]??'');
+      if($v!=='' && trim($me[$field]??'')===''){ $patch[$field]=$v; }
+    }
+    if($patch) auth_update($me['id'],$patch);
+  }
+}
+
+$cart=json_decode($_POST['cart']??'[]', true); if(!is_array($cart)) $cart=[];
+
+/* Re-price server-side against the real catalog (never trust client prices) */
+$lines=[]; $subtotal=0;
+foreach($cart as $it){
+  $cid = trim((string)($it['id'] ?? ''));
+  $p=vestra_find($cid);
+  /* COZULEMEYEN satir artik SESSIZCE ATLANMIYOR (25 Eyl 2026). Eskiden
+     `if(!$p) continue;` idi: sepette duran ama artik satista olmayan bir urun
+     (gizli marka -- vestra_hidden_brands --, askiya alinmis satici, silinmis
+     ya da reddedilmis ilan) siparisten habersizce dusuyordu, yani alici
+     sepette gordugunden BASKA bir siparis veriyordu. SATILDI icin asagida
+     zaten yazili olan gerekceyle ayni: sessiz atlama, alicinin siparis
+     ozetinde beklemedigi bir eksilme. Sepet sayfasi hangi satir oldugunu
+     yaziyor ve kaldirma dugmesini veriyor. Bos kimlik (bozuk satir) eskisi
+     gibi atlaniyor -- kaldirilacak bir kimligi yok. */
+  if(!$p){
+    if ($cid === '') continue;
+    header('Location: /cart?err=unavailable&id='.rawurlencode($cid)); exit;
+  }
+  /* SATILDI: sepette duruyor olabilir (satis kapatilmadan once eklenmis ya da
+     istek elle gonderilmis). Sessizce atlamak yerine DURDURUYORUZ: sessiz
+     atlama, alicinin siparis ozetinde beklemedigi bir eksilme demek.
+     Kimlik de tasiniyor: sepet sayfasinin bu ret icin bir bandi YOKTU, yani
+     alici "Siparis ver"e basip ayni sayfaya hicbir aciklama olmadan donuyordu. */
+  if (vestra_is_sold_out($p)) { header('Location: /cart?err=soldout&id='.rawurlencode($cid)); exit; }
+  /* Per-colour carton pickers (Lacoste/RL: min colours + pack step) drive qty from the
+     colour breakdown itself, re-derived + re-validated from the client's tokens — the
+     posted "qty" is never trusted for these listings. */
+  $cq = vestra_parse_colorqty_tokens($p, (array)($it['colors']??[]));
+  if($cq !== null){
+    $qty = $cq['qty']; $colors = $cq['lines'];
+    if(count($colors) < (int)$p['min_colors'] || $qty < (int)$p['moq']){ header('Location: /cart?err=colors'); exit; }
+  } else {
+    $qty=max((int)$p['moq'], (int)($it['qty']??0));
+    if(!empty($p['size_step']) && $qty % (int)$p['size_step'] !== 0)
+      $qty = (int)(ceil($qty/(int)$p['size_step']) * (int)$p['size_step']);   // snap to pack/lot size
+    /* Colour selection: only colours the listing actually offers count; enforce the minimum. */
+    $colors = array_values(array_unique(array_intersect(
+        array_map('strval', (array)($it['colors']??[])), (array)($p['colors']??[]) )));
+    if(!empty($p['min_colors']) && count($colors) < (int)$p['min_colors']){ header('Location: /cart?err=colors'); exit; }
+    /* Minimumu OLMAYAN ama renk sectiren ilan (ic camasiri): en az bir renk
+       sart. Kapi SUNUCUDA, bedenin hemen asagidaki kardesiyle ayni gerekce --
+       sepet localStorage'dan geliyor ve kutuyu cizmemek kapi degildir. Ilan
+       renk sectirmiyorsa liste zaten [] ve hicbir sey degismiyor. */
+    if(!$colors && vestra_colors_selectable($p)){ header('Location: /cart?err=colors'); exit; }
+  }
+  /* Beden secimi. Kapi SUNUCUDA: urun sayfasindaki kutuyu gizlemek kapi degil
+     (KURAL 4b'nin /offer dersi), ve sepet localStorage'dan geliyor -- elle
+     duzenlenmis bir sepet ilanda olmayan bir beden tasiyabilir. Ayni
+     fonksiyon her iki tarafta: ilan beden sectirmiyorsa liste zaten [] ve
+     hicbir sey degismiyor. */
+  $pickable = vestra_sizes_selectable($p);
+  $sizes = [];
+  if($pickable){
+    $sizes = array_values(array_intersect($pickable, array_map('strval', (array)($it['sizes']??[]))));
+    if(!$sizes){ header('Location: /cart?err=sizes'); exit; }
+  }
+  $unit=vestra_unit_price($p,$qty); if($unit<=0) continue;
+  $line=$qty*$unit; $subtotal+=$line;
+  $lines[]=['sku'=>$p['sku'],'brand'=>$p['brand'],'name'=>vestra_product_name($p),'qty'=>$qty,'unit'=>$unit,'line'=>$line,'colors'=>$colors,'sizes'=>$sizes,'seller_uid'=>$p['seller_uid']??''];
+}
+if(!$lines){ header('Location: /cart'); exit; }
+
+/* Marka basina asgari sepet tutari (KURAL 21; rakam VESTRA_BRAND_MIN_ORDER_EUR
+   -- buraya yazilmiyor, cunku bir gun degisir ve bu satir eskir). Kapi SUNUCUDA:
+   sepetteki uyari bir gorunum tercihi, dugmeyi gizlemek kapi degildir -- bu
+   depo bunu /offer ucunda bir kez ogrendi (KURAL 4b: sabit fiyatli, hicbir
+   yerinde teklif dugmesi olmayan bir ilana elle POST atan biri gercek bir
+   teklif birakabiliyordu). Olcum ISTEKTEN degil, YENIDEN FIYATLANMIS
+   satirlardan: alici ne gonderirse gondersin toplam katalogdan hesaplaniyor.
+   Sepet uyarisiyla ayni fonksiyon. */
+$brandShort = vestra_brand_min_shortfall($lines);
+if($brandShort){ header('Location: /cart?err=brandmin&b='.urlencode((string)array_key_first($brandShort))); exit; }
+
+/* AVRUPA DISI ASGARI SIPARIS: 10.000 USD (operator, 16 Eyl 2026). Marka
+   asgarisiyle AYNI desen ve AYNI sebeple sunucuda: sepetteki uyari bir
+   gorunum tercihi, kapi burasi. Olcum yine YENIDEN FIYATLANMIS satirlardan
+   ($subtotal), yani alicinin gercekten odeyecegi -- bolgesel indirim
+   vestra_unit_price() icinde zaten uygulanmis durumda.
+   KUR OKUNAMAZSA GECIS YOK: esigi uydurma bir kurla olcmek, 10.000 USD'yi
+   sessizce baska bir sayiya cevirmek olurdu (KURAL 17'nin dropship
+   tahsilatindaki karari). Bedeli acik ve bilerek: bir FX kesintisinde
+   Avrupa disi siparisler durur. */
+/* Hesap BURADA okunuyor: ilk yazimda $user yazdim ve bu dosyada oyle bir
+   degisken YOK -- PHP'de tanimsiz degisken null, yani
+   vestra_order_min_shortfall(null) 'hesapsiz' deyip kapiyi HERKESE
+   acardi. Sessiz gecen bir kapi, hic yazilmamis bir kapidan kotudur;
+   bu dosyanin kendi degisken adi $me (satir 47). */
+$minShort = vestra_order_min_shortfall($subtotal, auth_user());
+if($minShort){
+  header('Location: /cart?err='.(($minShort['error'] ?? '') === 'fx' ? 'ordermin_fx' : 'ordermin')); exit;
+}
+
+/* ── NAVLUN (bölge tarifesi) ───────────────────────────────────────────────────
+   Rakamlar inc/orders.php'deki TEK tablodan (vestra_shipping_tariffs); buraya
+   hiçbir sayı yazılmıyor (KURAL 6'nın escrow tavanı dersi). Ölçüm ISTEKTEN
+   degil, YENIDEN FIYATLANMIS satirlardan: adetler katalogun MOQ/paket adimina
+   gore yukari yuvarlanmis halleriyle sayiliyor, yani alicinin gercekten
+   alacagi adet. Ulke taninmiyorsa (vestra_shipping_region null) tarife
+   UYGULANMIYOR ve navlun 0 kaliyor -- operator elle yaziyor; uydurma bir
+   rakam basmak KURAL 3'un yasakladigi sey. Sepetteki onizleme ayni tabloyu
+   okuyor, yani "sayfada bir, kasada baska rakam" olmuyor.
+
+   KURAL 34 (19 Eyl 2026, operator: "tekrar söylüyorum ... simdilik otomatik
+   yapma pasif olsun ben hesaplarim siparisten sonra"): TARIFE ARTIK BURADA
+   OTOMATIK UYGULANMIYOR -- vestra_shipping_auto_schedule() kapali oldugu
+   surece null donuyor, tipki taninmayan bir ulke gibi. Navlun 0 yaziliyor ve
+   operator siparisi Admin > Orders'taki "🚚 Save shipping" formundan (ya da
+   admin_mode=shipping) ELLE tamamliyor. */
+$shipSched  = vestra_shipping_auto_schedule($lines, $country);
+$shipping   = $shipSched ? (float)$shipSched['amount'] : 0.0;
+$shipLabel  = $shipSched ? (string)$shipSched['label'] : '';
+
+/* ── Voucher ──────────────────────────────────────────────────────────────────
+   Revalidated here from the stored record, never from what the cart posted: the page
+   sends only the code, and the discount is recomputed against the freshly re-priced
+   subtotal. A code that fails validation is DROPPED rather than refused — the buyer's
+   order still goes through at full price and the confirmation says the code was not
+   applied. Rejecting the whole order over a mistyped voucher loses the sale.
+   The redemption itself happens after the order is safely written. */
+$voucherCode = ''; $discount = 0.0; $voucherNote = ''; $voucherFailed = false;
+$voucherIn = voucher_norm((string)($_POST['voucher'] ?? ''));
+if($voucherIn !== ''){
+  $vres = voucher_validate($voucherIn, $email, $subtotal);
+  if(is_array($vres)){
+    $discount    = voucher_discount($vres, $subtotal);
+    $voucherCode = (string)$vres['code'];
+    $voucherNote = 'Voucher '.$voucherCode.' (-'.voucher_label($vres).') = -'.eur($discount).'. ';
+  } else {
+    $voucherNote = 'Voucher '.$voucherIn.' NOT applied ('.$vres.'). ';
+    $voucherFailed = true;
+  }
+}
+
+/* ── OTOMATIK hos geldin indirimi (operator, 19 Eyl 2026) ─────────────────────
+   "bundan sonraki her musterinin ilk siparine de ekle afrika ve yuzde 8 yada 10
+   indirim alanlar haric".
+
+   Kod YAZILMASI GEREKMIYOR artik: kupon kutusu yerinde duruyor (birinin elinde
+   kisisel bir kod olabilir ve o kod %5'ten buyuk olabilir), ama hicbir kod
+   yazilmadiginda ilk siparis indirimi KENDILIGINDEN isliyor. Kararin kendisi
+   burada VERILMIYOR -- vestra_welcome_auto() veriyor ve gecmise donuk yazma yolu
+   (vestra_order_set_discount) ayni fonksiyonu cagiriyor.
+
+   HESAP auth_user() ile okunuyor, $me ile DEGIL: $me yalnizca girisli dalda
+   tanimli ve PHP'de tanimsiz degisken null'dir -- misafir bir siparis
+   "bolgesel indirimi yok" diye okunur ve Afrika'daki bir aliciya %8'in USTUNE
+   %5 daha verilirdi. Ayni dosyada bir kez yasandi (vestra_order_min_shortfall
+   cagrisinin yanindaki not). */
+/* $voucherApplied=false gecmek dogru: bu dala zaten ancak HICBIR indirim
+   uygulanmadiginda giriliyor. "Kod YAZILDI MI" ayri bir soru ve cevabi
+   olmamali -- yanlis yazilmis bir kod yuzunden ilk siparis indirimini
+   kaybetmek, musterinin bir harflik hatasina onlarca euro fatura eder. */
+if ($discount <= 0) {
+  $wauto = vestra_welcome_auto($email, auth_user(), false);
+  if ($wauto['pct'] > 0) {
+    /* Yuvarlama TEK YERDE: elle yazilan bir round() sepet ile faturayi bir
+       kurus ayristirirdi (KURAL 5m'nin KDV dersi). */
+    $discount    = voucher_discount(['type' => 'percent', 'value' => $wauto['pct']], $subtotal);
+    $voucherCode = vestra_welcome_auto_code();
+    /* Not EKLENIYOR, ezilmiyor: basarisiz bir kod denemesi de siparisin kendi
+       kaydinda kalmali, yoksa aylar sonra "kodum neden islemedi" sorusunun
+       cevabi hicbir yerde durmaz. */
+    $voucherNote = trim($voucherNote.' Welcome discount '.$voucherCode.' (-'
+                 . voucher_label(['type' => 'percent', 'value' => $wauto['pct']])
+                 . ') = -'.eur($discount).' (first order).').' ';
+  }
+}
+/* Everything downstream — fees, buyer total, seller payout — prices off the discounted
+   goods value, so the escrow fee is charged on what the buyer actually pays. */
+$subtotalGross = $subtotal;
+$subtotal      = round($subtotal - $discount, 2);
+/* Platform commission. Escrow (Treuhand) orders carry a FIXED buyer-protection fee
+   (VESTRA_ESCROW_FEE_BUYER, 3.8%) plus the seller's tiered membership commission
+   (3.5/3.2/2.8%), collected together as the Stripe application fee on the direct
+   charge. Bank-transfer orders keep the 0% cart fees (seller commission is charged
+   separately to the seller card). Escrow needs a single, known seller. */
+$sellerUids = array_values(array_unique(array_filter(array_map(fn($l)=>$l['seller_uid']??'', $lines))));
+$escrowSeller = null;
+if(count($sellerUids)===1){ foreach(auth_accounts() as $a){ if(($a['id']??'')===$sellerUids[0]){ $escrowSeller=$a; break; } } }
+/* Escrow tavani. Sepetteki kontrol yalnizca gorunum: bu uca dogrudan POST
+   atilabilir, o yuzden tavan burada da sinaniyor -- yoksa sinir sadece formu
+   kullanan alici icin gecerli olurdu, yani hic gecerli olmazdi.
+   Olcu SIPARIS tutari (kupon sonrasi mal bedeli); koruma ucreti bunun uzerine
+   biniyor ve tavana sayilmiyor. */
+if($payMethod==='escrow' && $subtotal > VESTRA_ESCROW_MAX){
+  header('Location: /cart?err=escrow_max'); exit;
+}
+if($payMethod==='escrow' && $escrowSeller){
+  $FEE_BUYER  = VESTRA_ESCROW_FEE_BUYER;                                              // fixed 3.8% buyer
+  $FEE_SELLER = vestra_seller_commission_rate($escrowSeller['membership_tier'] ?? ''); // 3.5/3.2/2.8%
+} else {
+  $FEE_SELLER = VESTRA_FEE_SELLER;
+  $FEE_BUYER  = VESTRA_FEE_BUYER;
+}
+$buyer_fee  = round($subtotal*$FEE_BUYER, 2);
+$seller_fee = round($subtotal*$FEE_SELLER, 2);
+$commission = round($buyer_fee + $seller_fee, 2); // total platform revenue
+/* Navlun alicinin odedigine GIRER, komisyona ve satici odemesine GIRMEZ:
+   komisyon mal bedeli uzerinden, navlun ise bir masraf -- ustunden komisyon
+   almak faturadaki iki rakami birbirine karistirirdi. Escrow tavani da mal
+   bedeli uzerinden olculuyor (yukarida), yani navlun tavani tuketmiyor. */
+$total      = round($subtotal + $buyer_fee + $shipping, 2);   // what the buyer pays
+$payout     = round($subtotal - $seller_fee, 2);  // what the seller receives
+/* Ref must be unique per ORDER, not per buyer+items — the same buyer reordering the
+   same goods must get a fresh ref (commission idempotency and status tracking key on it). */
+$ref='VES-'.strtoupper(substr(md5($email.implode('',array_column($lines,'sku')).microtime(false).bin2hex(random_bytes(4))),0,8));
+
+$dir=__DIR__.'/data'; if(!is_dir($dir)) @mkdir($dir,0775,true);
+$file=$dir.'/orders.csv'; $new=!file_exists($file);
+/* voucher_code/discount are new trailing columns. On a live server orders.csv already
+   exists with the old header, and the reader pads short rows with '' — so the header is
+   rewritten in place (data rows untouched) and historic orders simply read as no voucher. */
+$ORDER_CSV_HEADER=['timestamp','ref','company','vat','name','email','country','phone','items','subtotal','commission','payout','total','notes','consent','terms_version','voucher_code','discount','shipping','shipping_label'];
+if(!$new) vestra_csv_ensure_header('orders.csv', $ORDER_CSV_HEADER);
+if($fh=@fopen($file,'a')){
+  if($new) fputcsv($fh,$ORDER_CSV_HEADER,',','"','\\');
+  $items=implode(' | ', array_map(function($l){return $l['qty'].'x '.$l['sku'].' @'.$l['unit'];}, $lines));
+  $colorNotes=implode(' | ', array_map(fn($l)=>$l['sku'].': '.implode(', ',$l['colors']),
+    array_filter($lines, fn($l)=>!empty($l['colors']))));
+  $sizeNotes=implode(' | ', array_map(fn($l)=>$l['sku'].': '.implode(', ',$l['sizes']),
+    array_filter($lines, fn($l)=>!empty($l['sizes']))));
+  $methodLabel=$payMethod==='escrow'?'Payment: Secure escrow (card). ':'Payment: Bank transfer. ';
+  $shipNote=$shipAddr!==''?vestra_order_delivery_segment($shipAddr).' ':''; // ic ". " korunur: bkz. inc/orders.php
+  /* Kupon notu EN SONDA, alicinin kendi metninden sonra.
+     vestra_order_notes_map() parcayi notlarin neresinde olursa olsun buluyor
+     (eskiden basa bagliydi ve bu yuzden CANLIDA hic eslesmiyordu -- bkz.
+     inc/orders.php). Yine de siralamayi bozma: parca "<Etiket> — …" ile
+     baslayip NOKTA ile bitmeli, icinde nokta gecmemeli. */
+  $notes=trim($methodLabel.$shipNote
+    .($colorNotes!==''?'Colours — '.$colorNotes.'. ':'')
+    .($sizeNotes !==''?'Sizes — '.$sizeNotes.'. ':'')
+    .trim($_POST['notes']??'').($voucherNote!==''?' '.$voucherNote:''));
+  fputcsv($fh,[date('c'),$ref,$company,trim($_POST['vat']??''),$name,$email,$country,
+    trim($_POST['phone']??''),$items,$subtotal,$commission,$payout,$total,$notes,'yes',VESTRA_TERMS_VERSION,
+    $voucherCode,$discount>0?number_format($discount,2,'.',''):'',
+    $shipping>0?number_format($shipping,2,'.',''):'', $shipping>0?$shipLabel:''],',','"','\\');
+  fclose($fh);
+}
+
+/* Siparişin USD karşılığı SİPARİŞ ANINDAKİ kurla damgalanır (operatör, 7 Eyl
+   2026). Vitrin önbelleğindeki günün kuru; ağa çıkmaz. Kur yoksa damga düşmez,
+   admin sekmesi ECB geçmişinden sonra tamamlar — bugünün kuruyla doldurulmaz. */
+require_once __DIR__.'/inc/fx_orders.php';
+vestra_order_fx_stamp($ref, date('c'), true);
+
+/* Spend the code only now — after the row is on disk. Redeeming before the write would burn
+   a single-use voucher on an order that never got recorded. */
+if($voucherCode!=='' && $discount>0) voucher_redeem($voucherCode,$ref,$email,$discount);
+
+/* ── Escrow (direct charge + delayed payout) ─────────────────────────────────
+   Buyer pays by card ON the seller's connected Stripe account (a direct charge);
+   the platform commission is skimmed as an application fee; the seller's share is
+   HELD in their Stripe balance (manual payout) until delivery is confirmed.
+   Only offered for a SINGLE-seller cart whose seller finished Connect onboarding
+   — otherwise bounce back to the cart to pick bank transfer. */
+if($payMethod==='escrow'){
+  $seller=$escrowSeller; // single seller resolved during fee computation above
+  $ready=$seller && stripe_available() && !empty($seller['stripe_account_id']) && escrow_seller_ready($seller);
+  if(!$ready){ header('Location: /cart?err=escrow'); exit; }
+
+  $amountCents=(int)round($total*100);
+  $feeCents=(int)round($commission*100);
+  /* Itemise for the Stripe page; the protection-fee line absorbs rounding so the sum == amount.
+     With a voucher the goods lines must carry the DISCOUNTED value: Stripe has no negative
+     line item, so a discount cannot be shown as its own row. Billing the gross lines and
+     letting the protection line go negative is not an option either — it is dropped by the
+     >0 guard below and the itemisation would then total more than the amount actually
+     charged. So each line is scaled by the same ratio and the last one absorbs the rounding,
+     which makes the goods lines sum to exactly the discounted subtotal. */
+  $li=[]; $acc=0; $last=null;
+  $ratio = $subtotalGross>0 ? ($subtotal/$subtotalGross) : 1.0;
+  foreach($lines as $l){
+    $c=(int)round($l['line']*$ratio*100); if($c<=0) continue;
+    $li[]=['name'=>$l['qty'].'× '.$l['brand'].' '.$l['name'],'amount'=>$c,'qty'=>1];
+    $acc+=$c; $last=count($li)-1;
+  }
+  $goodsCents=(int)round($subtotal*100);
+  if($last!==null && $acc!==$goodsCents){ $li[$last]['amount'] += ($goodsCents-$acc); $acc=$goodsCents; }
+  /* Navlun KENDI SATIRI olmak zorunda: yazilmazsa asagidaki kalan "Buyer
+     protection fee" etiketiyle sisiyor ve alici Stripe sayfasinda gercekte
+     navlun olan bir tutari koruma ucreti diye okuyor -- rakam dogru, etiket
+     yalan (bu depoda kayitli: yanlis rakam sorgulanir, yanlis etikete inanilir). */
+  if($shipping>0){ $sc=(int)round($shipping*100); $li[]=['name'=>($shipLabel!==''?$shipLabel:'Shipping'),'amount'=>$sc,'qty'=>1]; $acc+=$sc; }
+  $protCents=$amountCents-$acc;
+  if($protCents>0) $li[]=['name'=>'Buyer protection fee','amount'=>$protCents,'qty'=>1];
+
+  try {
+    $session=stripe_escrow_checkout($seller['stripe_account_id'],$li,$feeCents,$ref,$email,'eur');
+  } catch(\Throwable $e){
+    error_log('[VESTRA Escrow] checkout create failed: '.$e->getMessage());
+    header('Location: /cart?err=escrow'); exit;
+  }
+  escrow_save([
+    'ref'=>$ref,'seller_uid'=>$seller['id'],'acct_id'=>$seller['stripe_account_id'],
+    'session_id'=>$session->id,'payment_intent'=>'','amount'=>$amountCents,'fee'=>$feeCents,
+    'currency'=>'eur','status'=>'pending','created'=>date('c'),
+    'buyer'=>['company'=>$company,'name'=>$name,'email'=>$email,'vat'=>trim($_POST['vat']??''),'country'=>$country,'address'=>trim($_POST['address']??''),'ship_address'=>$shipAddr],
+    'buyer_id'=>(!empty($_SESSION['uid'])?$_SESSION['uid']:''),
+    'items'=>array_map(fn($l)=>['sku'=>$l['sku'],'brand'=>$l['brand'],'name'=>$l['name'],'qty'=>$l['qty'],'unit'=>$l['unit'],'line'=>$l['line'],'colors'=>$l['colors'],'sizes'=>$l['sizes']],$lines),
+    'subtotal'=>$subtotal,'buyer_fee'=>$buyer_fee,'seller_fee'=>$seller_fee,'commission'=>$commission,'total'=>$total,'payout'=>$payout,
+    'subtotal_gross'=>$subtotalGross,'voucher_code'=>$voucherCode,'discount'=>$discount,
+    'shipping'=>$shipping,'shipping_label'=>$shipLabel,
+  ]);
+  $_SESSION['order_refs'][$ref]=time();
+  if($orderTok !== ''){ $_SESSION['order_token_done'][$orderTok] = $ref; }
+  header('Location: '.$session->url); exit;
+}
+
+$body="New VESTRA order request {$ref}\n\nCompany: {$company}\nContact: {$name} <{$email}>\nCountry: ".$country."   Phone: ".trim($_POST['phone']??'')."\n".($shipAddr!==''?"Deliver to: {$shipAddr}\n":'')."\n";
+foreach($lines as $l){ $body.="  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":"").(!empty($l['sizes'])?" {".implode(", ",$l['sizes'])."}":"")."\n"; }
+if($discount>0) $body.="\nGoods €{$subtotalGross}\nVoucher {$voucherCode} −€{$discount}";
+if($voucherNote!=='' && ($discount<=0 || $voucherFailed)) $body.="\n".trim($voucherNote);
+if($shipping>0) $body.="\n{$shipLabel} €{$shipping}";
+$body.="\nSubtotal €{$subtotal}\nBuyer pays €{$total}\n".($commission>0?"VESTRA commission €{$commission} (seller €{$seller_fee} + buyer €{$buyer_fee}) · Seller payout €{$payout}\n":"No platform fees (membership model) · Seller receives €{$payout}\n")."Notes: ".trim($_POST['notes']??'')."\n";
+vestra_notify("New order {$ref} — {$company}", $body, $email);
+
+$FEE_BUYER_PCT=round($FEE_BUYER*100);
+$feeNote=$FEE_BUYER_PCT>0?" (includes {$FEE_BUYER_PCT}% buyer-protection fee)":"";
+/* The buyer is told either way: that the voucher came off, or that the code they typed
+   did not apply — silently ignoring a code the buyer believes they used is how a
+   "where is my discount?" support mail starts. */
+/* IKISI BIRDEN olabilir artik: yanlis yazilmis bir kod ilk siparis indirimini
+   ARTIK ENGELLEMIYOR, yani alici hem "kodunuz islemedi" hem "indiriminiz
+   dustu" duymali. Tek dala sikistirmak, kodu yazan alicinin sorusunu
+   cevapsiz birakirdi. */
+$voucherLine = ($voucherFailed ? "Note: voucher code {$voucherIn} could not be applied to this order.\n" : '')
+  . ($discount>0 ? "Goods: €{$subtotalGross}\nVoucher {$voucherCode}: −€{$discount}\n" : '');
+/* Navlun ALICIYA yaziliyor: toplami tasiyan bir satir ekranda yoksa alici
+   "neden 20 euro fazla" diye yaziyor ve cevabi hicbir yerde durmuyor. */
+$shipLine = $shipping>0 ? "{$shipLabel}: €".number_format($shipping,2)."\n" : "";
+/* The seller funds the voucher: the discount comes off the goods value, so their payout is
+   lower than the line items add up to. The lines above are listed at full price, so without
+   this the mail simply does not reconcile and the first thing the seller notices is a short
+   payout with no explanation. Name it on the same screen as the number. */
+$voucherSellerLine = $discount>0
+  ? "\nGoods total: €{$subtotalGross}\nBuyer voucher {$voucherCode}: −€{$discount} (deducted from the goods value)\n"
+  : "";
+/* Saticiya da yaziliyor ama ODEMESINE GIRMEDIGI soylenerek: aksi halde alicinin
+   odedigi toplam ile kendi odemesi arasindaki fark aciklamasiz kalirdi. */
+$shipSellerLine = $shipping>0 ? "\n{$shipLabel} (charged to the buyer, not part of your payout): €".number_format($shipping,2)."\n" : "";
+/* Confirmation to buyer — always on */
+vestra_send_mail($email, "VESTRA — order {$ref} received",
+  "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\nWe are confirming stock now. Once confirmed, your PDF invoice (with the seller's bank details) will be emailed to you and added to your account — usually within the day. Payment is then by bank transfer against that invoice; goods ship after the transfer arrives. (Other payment methods are temporarily suspended.)\n\n{$voucherLine}{$shipLine}Buyer pays: €{$total}{$feeNote}\n".($shipAddr!==''?"Delivery address: {$shipAddr}\n":'')."\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":"").(!empty($l['sizes'])?" {".implode(", ",$l['sizes'])."}":""),$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+
+/* Notify the seller(s) who own the ordered listings */
+if(!empty($lines)){
+  require_once __DIR__.'/inc/auth.php';
+  /* Order card in the buyer↔seller conversation: the whole trade lives in one place. */
+  $buyerAcc = !empty($_SESSION['uid']) ? auth_user() : auth_find($email);
+  if($buyerAcc && ($buyerAcc['type']??'')!=='buyer') $buyerAcc = null;
+  $itemsSummary = implode(' · ', array_map(fn($l)=>$l['qty'].'× '.$l['brand'].' '.$l['name'].(!empty($l['colors'])?' ('.implode(', ',$l['colors']).')':''), $lines));
+  $notifiedSellers=[];
+  $allListings=vestra_listings();
+  foreach($lines as $l){
+    foreach($allListings as $listing){
+      if(($listing['sku']??'')!==$l['sku']||empty($listing['seller_uid'])) continue;
+      $sid=$listing['seller_uid'];
+      if(in_array($sid,$notifiedSellers,true)) break;
+      $notifiedSellers[]=$sid;
+      require_once __DIR__.'/inc/push.php';
+      /* Saticiya KENDI satirlari: eskiden siparisin TOPLAMI gidiyordu -- iki
+         saticili bir sepette her biri otekinin mal bedelini de goruyordu. */
+      $__mine = array_filter($lines, fn($x) => ($x['seller_uid'] ?? '') === $sid);
+      vestra_push_notify($sid, 'order_new', ['ref'=>$ref, 'company'=>$company, 'currency'=>'EUR']
+        + ($__mine ? ['qty'=>array_sum(array_map(fn($x)=>(int)$x['qty'], $__mine)),
+                      'amount'=>array_sum(array_map(fn($x)=>(float)$x['line'], $__mine))]
+                   : ['amount'=>(float)$total]));
+      if($buyerAcc){
+        require_once __DIR__.'/inc/messages.php';
+        /* Karti ALICI dogurdu (siparisi o verdi) — kendi rozeti yanmasin. */
+        vestra_msg_post_system($buyerAcc['id'], $sid, '', [
+          'kind'=>'order','status'=>'placed','ref'=>$ref,
+          'items'=>mb_substr($itemsSummary,0,160),'total'=>$total,
+        ], (string)$buyerAcc['id']);
+      }
+      foreach(auth_accounts() as $acc){
+        if(($acc['id']??'')!==$sid||empty($acc['email'])) continue;
+        vestra_send_mail($acc['email'], "VESTRA — new order {$ref} for your listing",
+          "Hello ".($acc['name']?:($acc['company']?:'there')).",\n\nA buyer placed an order for your product on VESTRA:\n\nOrder ref: {$ref}\nBuyer company: {$company}\n".($shipAddr!==''?"Deliver to: {$shipAddr}\n":'')."\n".implode("\n",array_map(fn($x)=>"  {$x['qty']}x {$x['sku']} {$x['brand']} {$x['name']} @ €{$x['unit']}".(!empty($x['colors'])?" [".implode(", ",$x['colors'])."]":"").(!empty($x['sizes'])?" {".implode(", ",$x['sizes'])."}":""),$lines))."\n".$voucherSellerLine.$shipSellerLine."\nSubtotal: €{$subtotal}".($seller_fee>0?"   Your payout (after commission): €{$payout}":"   Your payout: €{$payout} (the ".round(VESTRA_COMMISSION_RATE*100,1)."% platform commission is charged separately to your commission card once you mark this order paid)")."\n\nThe buyer pays your invoice by bank transfer — please confirm availability and watch for the payment, then ship and mark the order as shipped.\n\nView in your seller dashboard:\nhttps://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
+        break;
+      }
+      break;
+    }
+  }
+}
+/* Invoicing is SUSPENDED: no PDF is created at checkout. The operator confirms stock
+   and then issues it from the admin "Invoice approvals" tab (vestra_ensure_invoice is
+   a no-op here unless VESTRA_AUTO_INVOICE is switched back on). Kept so re-enabling is
+   a one-line flip. */
+require_once __DIR__.'/inc/invoice.php';
+$orderMeta = [
+  'ref'=>$ref, 'date'=>date('c'),
+  'buyer'=>['company'=>$company,'vat'=>trim($_POST['vat']??''),'name'=>$name,'email'=>$email,
+            'country'=>$country,'address'=>trim($_POST['address']??'')],
+];
+$bySeller=[];
+foreach($lines as $l){ $bySeller[$l['seller_uid']?:'vestra'][] = $l; }
+foreach($bySeller as $sid=>$sellerItems){
+  $sellerAcc=null;
+  if($sid!=='vestra'){ foreach(auth_accounts() as $a){ if(($a['id']??'')===$sid){ $sellerAcc=$a; break; } } }
+  vestra_ensure_invoice($orderMeta, $sellerItems, $sellerAcc);
+}
+
+/* Let this browser session open the confirmation page + invoices (guest checkout has no
+   account to authorize against). Keep only the last few refs so the session stays small. */
+$_SESSION['order_refs'][$ref] = time();
+if (count($_SESSION['order_refs']) > 10) {
+  asort($_SESSION['order_refs']);
+  $_SESSION['order_refs'] = array_slice($_SESSION['order_refs'], -10, null, true);
+}
+if($orderTok !== ''){
+  $_SESSION['order_token_done'][$orderTok] = $ref;
+  if (count($_SESSION['order_token_done']) > 20) $_SESSION['order_token_done'] = array_slice($_SESSION['order_token_done'], -20, null, true);
+}
+
+header('Location: /order-confirm?ref='.urlencode($ref)); exit;

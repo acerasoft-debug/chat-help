@@ -1,0 +1,12 @@
+[
+ {
+  "match": "lac-polo-paris",
+  "expect": 1,
+  "price": 32.00,
+  "moq": 80,
+  "specs": {
+   "Dropship price (per piece)": "€39.90",
+   "Dropship shipping": "France €8.00 · rest of EU €15.50"
+  }
+ }
+]

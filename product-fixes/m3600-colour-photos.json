@@ -1,0 +1,14 @@
+[
+ {
+  "match": "fp-m3600-polo",
+  "expect": 1,
+  "images": [
+   "/uploads/fredperry/m3600-navy.jpg",
+   "/uploads/fredperry/m3600-snow-white.jpg",
+   "/uploads/fredperry/m3600-green.jpg",
+   "/uploads/fredperry/m3600-black.jpg",
+   "/uploads/fredperry/m3600-bordeaux.jpg",
+   "/uploads/fredperry/m3600-light-blue.jpg"
+  ]
+ }
+]

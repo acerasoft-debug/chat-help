@@ -1,0 +1,19 @@
+[
+ {
+  "match": "rl-csf-polo-white",
+  "expect": 1,
+  "name": "Custom Slim Fit Polo Shirt",
+  "desc": "Original Ralph Lauren, Custom Slim Fit Polo. Made in India/Vietnam, 100% cotton. Mixed-colour, mixed-size carton assortment. EEA stock with full invoice trail.",
+  "size_step": 8,
+  "min_colors": 4,
+  "colors": ["White", "Green", "Fuchsia", "Yellow", "Orange", "Pink"],
+  "images": [
+   "/uploads/rl/csf-polo-white.png",
+   "/uploads/rl/csf-polo-darkgreen.jpg",
+   "/uploads/rl/csf-polo-fuchsia.png",
+   "/uploads/rl/csf-polo-yellow.jpg",
+   "/uploads/rl/csf-polo-orange.jpg",
+   "/uploads/rl/csf-polo-pink.jpg"
+  ]
+ }
+]

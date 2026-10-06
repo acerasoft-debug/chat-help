@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img">
+  <title>A click splitting into a broken dashed route and an unbroken route, meeting at one confirmed ring</title>
+  <desc>The browser signal breaks; the server-side event arrives. A shared event ID counts the purchase once.</desc>
+  <rect width="1200" height="675" fill="#3a2016"/>
+  <g stroke="#7a4026" stroke-width="1"><path d="M0 168h1200M0 337h1200M0 506h1200"/></g>
+  <!-- tiklama -->
+  <circle cx="196" cy="337" r="30" fill="none" stroke="#f0c9a0" stroke-width="3"/>
+  <circle cx="196" cy="337" r="9" fill="#f0c9a0"/>
+  <!-- UST YOL: tarayici pixel'i — kesikli ve YARIDA KOPUYOR -->
+  <path d="M226 320C330 214 430 214 534 214" fill="none" stroke="#f0c9a0" stroke-width="3"
+        stroke-dasharray="14 12" opacity=".55"/>
+  <path d="M534 214h96" fill="none" stroke="#f0c9a0" stroke-width="3" stroke-dasharray="6 16" opacity=".28"/>
+  <g stroke="#f0c9a0" stroke-width="3" opacity=".55">
+    <path d="M652 196l30 36M682 196l-30 36"/>
+  </g>
+  <!-- ALT YOL: sunucu tarafi — kesintisiz -->
+  <path d="M226 354C330 460 430 460 534 460H760" fill="none" stroke="#f0c9a0" stroke-width="4"/>
+  <!-- iki yol tek olayda birlesir: ortak kimlik, TEK sayim -->
+  <path d="M700 214h60c30 0 30 0 30 30v182" fill="none" stroke="#f0c9a0" stroke-width="3" opacity=".45"/>
+  <circle cx="856" cy="426" r="52" fill="none" stroke="#f0c9a0" stroke-width="4"/>
+  <circle cx="856" cy="426" r="30" fill="none" stroke="#f0c9a0" stroke-width="2" opacity=".6"/>
+  <path d="M836 426l14 15 26-31" fill="none" stroke="#f0c9a0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="960" y="404" width="144" height="44" rx="10" fill="none" stroke="#f0c9a0" stroke-width="2" opacity=".5"/>
+  <path d="M908 426h52" stroke="#f0c9a0" stroke-width="3" opacity=".5"/>
+</svg>

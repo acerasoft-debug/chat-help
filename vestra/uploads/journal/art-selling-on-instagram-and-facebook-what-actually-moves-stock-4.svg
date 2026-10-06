@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img">
+  <title>Six short bars below a dotted threshold beside one tall bar crossing it</title>
+  <desc>The same budget split six ways never leaves the learning phase; concentrated, it clears the threshold.</desc>
+  <rect width="1200" height="675" fill="#3a2016"/>
+  <g stroke="#7a4026" stroke-width="1"><path d="M0 168h1200M0 337h1200M0 506h1200"/></g>
+  <!-- ogrenme esigi -->
+  <path d="M90 268h1020" stroke="#f0c9a0" stroke-width="2" stroke-dasharray="10 8" opacity=".65"/>
+  <!-- ac birakilmis kucuk gruplar: hicbiri esigi gecmiyor -->
+  <g fill="#f0c9a0" opacity=".26">
+    <rect x="130" y="404" width="54" height="102" rx="5"/>
+    <rect x="204" y="436" width="54" height="70" rx="5"/>
+    <rect x="278" y="380" width="54" height="126" rx="5"/>
+    <rect x="352" y="446" width="54" height="60" rx="5"/>
+    <rect x="426" y="414" width="54" height="92" rx="5"/>
+    <rect x="500" y="458" width="54" height="48" rx="5"/>
+  </g>
+  <g fill="none" stroke="#f0c9a0" stroke-width="1.5" opacity=".45">
+    <rect x="130" y="404" width="54" height="102" rx="5"/>
+    <rect x="204" y="436" width="54" height="70" rx="5"/>
+    <rect x="278" y="380" width="54" height="126" rx="5"/>
+    <rect x="352" y="446" width="54" height="60" rx="5"/>
+    <rect x="426" y="414" width="54" height="92" rx="5"/>
+    <rect x="500" y="458" width="54" height="48" rx="5"/>
+  </g>
+  <!-- ayni butce TEK yerde: esigi asiyor -->
+  <rect x="720" y="196" width="150" height="310" rx="8" fill="#f0c9a0" opacity=".9"/>
+  <path d="M720 268h150" stroke="#3a2016" stroke-width="2" stroke-dasharray="10 8"/>
+  <path d="M646 506h-46M646 506V196h-46" fill="none" stroke="#f0c9a0" stroke-width="2" opacity=".45"/>
+  <g fill="none" stroke="#f0c9a0" stroke-width="3" opacity=".8">
+    <path d="M940 300l34-34 34 34"/><path d="M974 266v170"/>
+  </g>
+</svg>

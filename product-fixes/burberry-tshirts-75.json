@@ -1,0 +1,30 @@
+[
+  {
+    "_not": "Operator, 22 Eyl 2026: 'katalogtaki en ucuz burberry tshirt fiyatini 75,00 eur yap'. Olcum (inspect-products, brand=Burberry ve brand=Burberry+cat=T-Shirts): katalogdaki 18 T-Shirts + 6 Women's T-Shirts ilaninin HEPSI tam olarak ayni fiyatta (59,90 EUR, moq=20, tek kademe 20+ -> 59,90) -- aralarinda gercek bir 'en ucuz' yok, 24'u de esit. Operatore soruldu (AskUserQuestion): '24 ilan (kadin dahil)' secildi.",
+    "_fiyat": "Hepsi mode='sale' ve tek kademe = list, yani `price` (tekil alan) kullanilarak hem list hem tum kademeler 75'e duzlestiriliyor -- 13 Eyl D&G polo (6 ilan -> 110 EUR) ve 17 Eyl Burberry etek 8049455 (-> 90 EUR) ile ayni teknik. Ayri ayri tiers duzenlemek stale bir 'list' rakami birakirdi.",
+    "match": "bur-4567629", "expect": 1, "price": 75
+  },
+  { "match": "bur-8041699", "expect": 1, "price": 75 },
+  { "match": "bur-8043239", "expect": 1, "price": 75 },
+  { "match": "bur-8045493", "expect": 1, "price": 75 },
+  { "match": "bur-8045494", "expect": 1, "price": 75 },
+  { "match": "bur-8045495", "expect": 1, "price": 75 },
+  { "match": "bur-8045876", "expect": 1, "price": 75 },
+  { "match": "bur-8048289", "expect": 1, "price": 75 },
+  { "match": "bur-8049457", "expect": 1, "price": 75 },
+  { "match": "bur-8050166", "expect": 1, "price": 75 },
+  { "match": "bur-8051239", "expect": 1, "price": 75 },
+  { "match": "bur-8051398", "expect": 1, "price": 75 },
+  { "match": "bur-8051399", "expect": 1, "price": 75 },
+  { "match": "bur-8052065", "expect": 1, "price": 75 },
+  { "match": "bur-8052066", "expect": 1, "price": 75 },
+  { "match": "bur-8052965", "expect": 1, "price": 75 },
+  { "match": "bur-8053424", "expect": 1, "price": 75 },
+  { "match": "bur-8055206", "expect": 1, "price": 75 },
+  { "match": "bur-8041966", "expect": 1, "price": 75 },
+  { "match": "bur-8047728", "expect": 1, "price": 75 },
+  { "match": "bur-8047729", "expect": 1, "price": 75 },
+  { "match": "bur-8047732", "expect": 1, "price": 75 },
+  { "match": "bur-8052119", "expect": 1, "price": 75 },
+  { "match": "bur-80552511", "expect": 1, "price": 75 }
+]

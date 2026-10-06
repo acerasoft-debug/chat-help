@@ -1,0 +1,6 @@
+[
+  {"match": "blm-bkbga0700116", "expect": 1, "moq": 16, "sale_list": 162.50, "_why": "BALMAIN Swimsuit — MOQ 24->16, was-price for a display -20% (tiers[0] stays 130)"},
+  {"match": "blm-bkbu30810",    "expect": 1, "moq": 16, "sale_list": 162.50, "_why": "BALMAIN Swimsuit — MOQ 24->16, was-price for a display -20% (tiers[0] stays 130)"},
+  {"match": "blm-bkbu90650",    "expect": 1, "moq": 16, "sale_list": 162.50, "_why": "BALMAIN Swimsuit — MOQ 24->16, was-price for a display -20% (tiers[0] stays 130)"},
+  {"match": "bur-8039175",      "expect": 1, "moq": 16, "sale_list": 162.50, "_why": "Burberry Check Swimsuit — MOQ 24->16, was-price for a display -20% (tiers[0] stays 130)"}
+]

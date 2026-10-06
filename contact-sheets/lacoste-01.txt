@@ -1,0 +1,24 @@
+ 1  beige.jpg
+ 2  blue.jpg
+ 3  bordeaux.jpg
+ 4  green.jpg
+ 5  light-blue.jpg
+ 6  navy.jpg
+ 7  pink.jpg
+ 8  red.png
+ 9  white.jpg
+10  blue.jpg
+11  bordeaux.jpg
+12  green.jpg
+13  light-blue.jpg
+14  white.jpg
+15  l1212-beige.jpg
+16  l1212-black.jpg
+17  l1212-blue.jpg
+18  l1212-bordeaux.jpg
+19  l1212-green.jpg
+20  l1212-lightblue.png
+21  l1212-navy.jpg
+22  l1212-pink.jpg
+23  l1212-white.jpg
+24  l1212-yellow.jpg

@@ -1,0 +1,16 @@
+[
+ {
+  "match": "fp-m7535-sweat",
+  "expect": 1,
+  "moq": "50",
+  "min_colors": "4",
+  "sizes": "Cartons of 10 · S×1 · M×3 · L×3 · XL×2 · XXL×1 · min 50 pc (≥4 colours)"
+ },
+ {
+  "match": "fp-m3600-polo",
+  "expect": 1,
+  "moq": "56",
+  "min_colors": "2",
+  "sizes": "Cartons of 8 · S×1 · M×2 · L×2 · XL×2 · XXL×1 · min 56 pc (≥2 colours)"
+ }
+]

@@ -1,0 +1,8 @@
+[
+  {
+    "match": "lac-polo-paris",
+    "expect": 1,
+    "pinned": false,
+    "_why": "Operator: katalogun basina Gucci gelsin, Lacoste biraz asagiya. 'pinned' urunler lead marka sirasinin ONUNDE geliyor (shop.php), yani bu bayrak durdukca Lacoste her halukarda birinci kalirdi -- sirayi degistirmek tek basina yetmez. Sabit kalkiyor; Lacoste shop.php'deki leadBrands listesinde ucuncu sirada kaliyor, yani gomulmuyor. Urun CANLI kaliyor: dropship akisi (Stripe checkout, stok, siparis) ve /product?id=lac-polo-paris adresi etkilenmiyor, sadece izgaradaki yeri degisiyor."
+  }
+]

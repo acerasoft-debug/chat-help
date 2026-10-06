@@ -1,0 +1,275 @@
+<?php
+/**
+ * VESTRA — Stripe webhook handler.
+ * POST /stripe/webhook
+ *
+ * Events handled:
+ *   checkout.session.completed    → set membership trialing, save sub ID + tier
+ *   invoice.paid                  → detect onboarding fee, set pending_review, notify admin
+ *   customer.subscription.updated → sync status (trialing→active, past_due, etc.)
+ *   customer.subscription.deleted → cancel membership, deactivate listings
+ *   invoice.payment_failed        → set past_due, email seller
+ *
+ * Storage: updates accounts.json via auth_update() (no MySQL yet).
+ * IMPORTANT: verify signature before ANY processing.
+ */
+require_once __DIR__ . '/../inc/env.php';
+require_once __DIR__ . '/../inc/auth.php';
+require_once __DIR__ . '/../inc/products.php';
+require_once __DIR__ . '/../inc/notify.php';
+require_once __DIR__ . '/../inc/stripe.php';
+require_once __DIR__ . '/../inc/escrow.php';
+require_once __DIR__ . '/../inc/samples.php';
+require_once __DIR__ . '/../inc/dropship.php';
+
+// Must read raw body before any output or other reads
+$payload   = (string) file_get_contents('php://input');
+$sigHeader = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
+$secret    = getenv('STRIPE_WEBHOOK_SECRET') ?: '';
+
+if (!$secret || !$sigHeader || $payload === '') {
+    http_response_code(400); echo 'Bad request'; exit;
+}
+
+$event = stripe_webhook_verify($payload, $sigHeader, $secret);
+if (!$event) {
+    http_response_code(400); echo 'Invalid signature'; exit;
+}
+
+$obj  = $event->data->object;
+$type = $event->type;
+
+switch ($type) {
+
+    // ── checkout.session.completed → trial started ────────────────────────
+    case 'checkout.session.completed':
+        if (($obj->mode ?? '') === 'setup') {
+            // Commission card saved (stripe/setup-card.php) — fetch the resulting payment
+            // method, make it the customer's default, and remember it on the account so
+            // inc/commission.php can charge it off-session later.
+            $customerId = $obj->customer ?? '';
+            $setupIntentId = $obj->setup_intent ?? '';
+            if (!$customerId || !$setupIntentId) break;
+            $account = stripe_find_account($customerId);
+            if (!$account) break;
+            $si = stripe_api('GET', '/v1/setup_intents/' . $setupIntentId);
+            $pm = $si->payment_method ?? '';
+            if (!$pm) break;
+            stripe_api('POST', '/v1/customers/' . $customerId, ['invoice_settings' => ['default_payment_method' => $pm]]);
+            auth_update($account['id'], ['stripe_commission_pm' => $pm]);
+            break;
+        }
+        // mode=payment covers two DIFFERENT things sharing one Checkout mode:
+        // escrow orders (direct charge on a seller's connected account),
+        // sample orders and dropship API orders (both charged the same two
+        // ways sample orders are) share this one mode=payment path.
+        // metadata.kind tells them apart — every checkout path sets it
+        // explicitly, so this never has to guess; unset/unknown kind is
+        // treated as escrow for backward compatibility with sessions
+        // created before sample/dropship orders existed.
+        if (($obj->mode ?? '') === 'payment') {
+            $kind = $obj->metadata->kind ?? 'escrow';
+            $ref  = $obj->client_reference_id ?? ($obj->metadata->order_ref ?? '');
+            $pi   = is_string($obj->payment_intent ?? null) ? $obj->payment_intent : ($obj->payment_intent->id ?? '');
+            if ($ref === '') break;
+            if ($kind === 'sample') {
+                // The address the buyer typed on Stripe's page — kept on the record
+                // so the operator knows where to ship (it used to be dropped).
+                $rec = sample_mark_paid($ref, $pi, sample_ship_from_session($obj));
+                if ($rec) sample_fulfill($rec);
+            } elseif ($kind === 'dropship') {
+                // Checkout collected the buyer's shipping address for us (see
+                // api/dropship.php's shipping_address_collection) — pull it off
+                // the session so the seller has something to actually ship to.
+                $shipTo = null;
+                $sa = $obj->shipping_details->address ?? $obj->shipping->address ?? null;
+                if ($sa) {
+                    $shipTo = [
+                        'name'        => $obj->shipping_details->name ?? ($obj->shipping->name ?? ''),
+                        'line1'       => $sa->line1 ?? '', 'line2' => $sa->line2 ?? '',
+                        'postal_code' => $sa->postal_code ?? '', 'city' => $sa->city ?? '', 'country' => $sa->country ?? '',
+                    ];
+                }
+                $rec = dropship_mark_paid($ref, $pi, $shipTo);
+                if ($rec) dropship_fulfill($rec);
+            } else {
+                $rec = escrow_mark_paid($ref, $pi);
+                if ($rec) escrow_fulfill($rec);
+            }
+            break;
+        }
+        if (($obj->mode ?? '') !== 'subscription') break;
+
+        /* TOPTAN ERISIM ABONELIGI (8 Eyl 2026) satici uyeliginden AYRI alanlara
+           yazilir. Ayirt eden sey musteri kimligi DEGIL `metadata.plan`: ayni
+           Stripe musterisi hem satici tier'i hem bu plani tasiyabilir. */
+        if (($obj->metadata->plan ?? '') === 'dropship_wholesale') {
+            $accId = $obj->metadata->account_id ?? '';
+            $subId = $obj->subscription ?? '';
+            if ($accId !== '' && $subId !== '') {
+                auth_update($accId, [
+                    'dropship_plan_status' => 'active',   // deneme suresi yok
+                    'dropship_plan_sub_id' => $subId,
+                ]);
+            }
+            break;
+        }
+
+        $sellerId = $obj->metadata->seller_id ?? '';
+        $tier     = $obj->metadata->tier      ?? '';
+        $subId    = $obj->subscription        ?? '';
+        if (!$sellerId || !$tier || !$subId) break;
+        auth_update($sellerId, [
+            'stripe_subscription_id' => $subId,
+            'membership_tier'        => $tier,
+            'membership_status'      => 'trialing',
+        ]);
+        break;
+
+    // ── invoice.paid → check for onboarding one-time charge ──────────────
+    case 'invoice.paid':
+        $customerId = $obj->customer ?? '';
+        if (!$customerId) break;
+        $account = stripe_find_account($customerId);
+        if (!$account) break;
+
+        // Detect the onboarding line item by price ID. stripe_price() resolves a
+        // prod_… env value to its real price_… — compare against both so a
+        // product-ID-configured .env still matches (line->price->id is always price_…,
+        // line->price->product is the prod_…).
+        $onbEnv = getenv('PRICE_ONBOARDING') ?: '';
+        $onboardingPriceId = '';
+        try { $onboardingPriceId = $onbEnv ? stripe_price('onboarding') : ''; } catch (\Throwable $e) {}
+        $paidOnboarding = false;
+        foreach (($obj->lines->data ?? []) as $line) {
+            $lpid  = $line->price->id ?? '';
+            $lprod = is_string($line->price->product ?? null) ? $line->price->product : '';
+            if (($onboardingPriceId !== '' && $lpid === $onboardingPriceId)
+             || ($onbEnv !== '' && $lprod !== '' && $lprod === $onbEnv)) {
+                $paidOnboarding = true; break;
+            }
+        }
+
+        if ($paidOnboarding && !($account['onboarding_paid'] ?? false)) {
+            auth_update($account['id'], [
+                'onboarding_paid'     => true,
+                'verification_status' => 'pending_review',
+            ]);
+            vestra_notify(
+                'Seller onboarding paid — badge review: ' . ($account['company'] ?: $account['name']),
+                "Onboarding fee received from {$account['name']} ({$account['email']}).\n\n" .
+                "Verification status: pending review.\n" .
+                "Approve the Verified Seller badge in Admin → Users.\n\n" .
+                "Admin: https://vestrasales.com/admin?tab=users"
+            );
+        }
+
+        // Sync current_period_end for recurring invoices
+        $periodEnd = ($obj->lines->data[0] ?? null)?->period?->end ?? null;
+        if ($periodEnd) {
+            auth_update($account['id'], ['current_period_end' => date('c', $periodEnd)]);
+        }
+        break;
+
+    // ── customer.subscription.updated → status sync ───────────────────────
+    case 'customer.subscription.updated':
+        $customerId = $obj->customer ?? '';
+        if (!$customerId) break;
+        $account = stripe_find_account($customerId);
+        if (!$account) break;
+
+        if (($obj->metadata->plan ?? '') === 'dropship_wholesale') {
+            $u = ['dropship_plan_status' => $obj->status ?? 'none'];
+            if ($obj->current_period_end) $u['dropship_plan_period_end'] = date('c', $obj->current_period_end);
+            auth_update($account['id'], $u);
+            break;
+        }
+
+        $updates = ['membership_status' => $obj->status ?? 'none'];
+        $tier = $obj->metadata->tier ?? '';
+        if ($tier) $updates['membership_tier'] = $tier;
+        if ($obj->trial_end) $updates['trial_ends_at'] = date('c', $obj->trial_end);
+        if ($obj->current_period_end) $updates['current_period_end'] = date('c', $obj->current_period_end);
+        auth_update($account['id'], $updates);
+        break;
+
+    // ── customer.subscription.deleted → cancel + deactivate listings ──────
+    case 'customer.subscription.deleted':
+        $customerId = $obj->customer ?? '';
+        if (!$customerId) break;
+        $account = stripe_find_account($customerId);
+        if (!$account) break;
+
+        /* Toptan erisim aboneligi bitti: fiyat zamli haline doner, BASKA
+           HICBIR SEY olmaz. Asagidaki satici sokumu (ilanlari askiya al +
+           "uyeliginiz bitti" mektubu) buraya UYGULANMAZ -- bu hesabin ilani
+           yok, uyeligi yok; o mektup alakasiz ve yanlis olurdu. */
+        if (($obj->metadata->plan ?? '') === 'dropship_wholesale') {
+            auth_update($account['id'], ['dropship_plan_status' => 'canceled']);
+            break;
+        }
+
+        auth_update($account['id'], [
+            'membership_status' => 'canceled',
+            'verified_badge'    => false,
+        ]);
+
+        // Suspend all approved listings belonging to this seller
+        $all = vestra_listings(); $changed = false;
+        foreach ($all as &$listing) {
+            if (($listing['seller_uid'] ?? '') === $account['id'] && ($listing['status'] ?? '') === 'approved') {
+                $listing['status'] = 'suspended'; $changed = true;
+            }
+        }
+        unset($listing);
+        if ($changed) vestra_save_listings($all);
+
+        vestra_send_mail(
+            $account['email'],
+            'VESTRA — your membership has ended',
+            "Hello {$account['name']},\n\n" .
+            "Your VESTRA seller membership has been cancelled and your listings deactivated.\n\n" .
+            "To reactivate, visit: https://vestrasales.com/membership\n\n" .
+            "— VESTRA · vestrasales.com"
+        );
+        break;
+
+    // ── account.updated → refresh a seller's escrow readiness ─────────────
+    // Fires (as a connected-account event) whenever a seller finishes or changes
+    // Connect onboarding. Cache charges_enabled so the cart can offer escrow
+    // without a live API call per page load.
+    case 'account.updated':
+        $acctId = $obj->id ?? '';
+        if ($acctId === '') break;
+        foreach (auth_accounts() as $acc) {
+            if (($acc['stripe_account_id'] ?? '') === $acctId) {
+                $ready = !empty($obj->charges_enabled);
+                if (($acc['escrow_ready'] ?? null) !== $ready) auth_update($acc['id'], ['escrow_ready' => $ready]);
+                break;
+            }
+        }
+        break;
+
+    // ── invoice.payment_failed → past_due + warn seller ──────────────────
+    case 'invoice.payment_failed':
+        $customerId = $obj->customer ?? '';
+        if (!$customerId) break;
+        $account = stripe_find_account($customerId);
+        if (!$account) break;
+
+        auth_update($account['id'], ['membership_status' => 'past_due']);
+
+        vestra_send_mail(
+            $account['email'],
+            'VESTRA — membership payment failed',
+            "Hello {$account['name']},\n\n" .
+            "We were unable to collect your VESTRA membership payment.\n\n" .
+            "Please update your payment method to keep your listings active:\n" .
+            "https://vestrasales.com/membership\n\n" .
+            "— VESTRA · vestrasales.com"
+        );
+        break;
+}
+
+http_response_code(200);
+echo 'ok';

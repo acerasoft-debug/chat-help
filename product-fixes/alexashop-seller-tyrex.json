@@ -1,0 +1,4 @@
+[
+ {"match":"rl-csf-polo-white", "expect":1, "seller_uid":"d7824e27204c0177"},
+ {"match":"lac-pima-tshirt",   "expect":1, "seller_uid":"d7824e27204c0177"}
+]

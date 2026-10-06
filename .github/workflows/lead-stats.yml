@@ -6,6 +6,22 @@ on:
         description: "Kaç günlük döküm gösterilsin"
         required: false
         default: "14"
+      search:
+        description: "Opsiyonel: firma/email/website/notlarda ara (virgülle birden fazla terim = VEYA, ör. 'ibiza,mallorca,barcelona'), eşleşen HER lead'i gönderim durumuyla listele"
+        required: false
+        default: ""
+      mail_quota:
+        description: "true = Brevo hesabinin plan/kredi durumunu ve bugunku gonderim istatistigini (Brevo tarafi) de goster"
+        required: false
+        default: "false"
+      brevo_events:
+        description: "Bu adres(ler)e Brevo GERCEKTEN e-posta gonderdi mi (virgul/bosluk ile ayrilir). SSH yarida koptugunda kullanilir."
+        required: false
+        default: ""
+      events_since:
+        description: "brevo_events icin baslangic tarihi (YYYY-AA-GG). Bos = bugun."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -29,7 +45,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 4m
-          envs: DAYS
+          envs: DAYS,SEARCH
           script: |
             cd ~/public_html
             # Cok satirli `php -r` cPanel'in ea_php_cli sarmalayicisini kiriyor
@@ -42,11 +58,86 @@ jobs:
             // oldu -- bos ciktiyi "hic gonderim yok" diye okumak cok kolaydi.
             ini_set('display_errors', '1'); error_reporting(E_ALL);
             $days = (int)(getenv('DAYS') ?: 14);
+            // Virgulle birden fazla terim verilebilir (OR): "ibiza,mallorca,barcelona"
+            $searchTerms = array_values(array_filter(array_map(
+              fn($s) => strtolower(trim($s)), explode(',', (string)getenv('SEARCH'))
+            ), fn($s) => $s !== ''));
             // leads.php kendi basligi ile soyluyor: cagiran taraf products.php'yi
             // ONCE yuklemis olmali (vestra_read_json/vestra_write_json oradan gelir).
             require_once __DIR__.'/inc/products.php';
             require_once __DIR__.'/inc/leads.php';
             $leads = vestra_leads();
+
+            if ($searchTerms) {
+              $search = implode(', ', $searchTerms);
+              $hits = [];
+              foreach ($leads as $l) {
+                // 'city' de aranmali: keşif her lead'e sehir yaziyor, ama arama
+                // haystack'inde yoktu -- "Napoli taranmis mi?" sorusu bu yuzden
+                // yanlis "0 eslesme" donduruyordu ve tarandigi halde tarandi
+                // sanilmayan sehirlere bosuna 12 dakikalik kesif harcaniyordu.
+                $hay = strtolower(
+                  ($l['company'] ?? '').' '.($l['email'] ?? '').' '.
+                  ($l['website'] ?? '').' '.($l['notes'] ?? '').' '.($l['country'] ?? '').' '.
+                  ($l['city'] ?? '')
+                );
+                $match = false;
+                foreach ($searchTerms as $t) { if (str_contains($hay, $t)) { $match = true; break; } }
+                if ($match) $hits[] = $l;
+              }
+              echo "==== ARAMA: \"{$search}\" -- ".count($hits)." eslesme ====\n\n";
+              $sentN = 0;
+              foreach ($hits as $l) {
+                $sent = trim((string)($l['last_contacted_at'] ?? '')) !== '';
+                if ($sent) $sentN++;
+                /* Ikinci/ucuncu mektubun damgalari da yazilsin. Bunlar olmadan
+                   "bu adrese kac mektup gitti" sorusunun cevabi bu ciktida YOK --
+                   5 Eyl 2026'da yeni-koleksiyon havuzunun neden 7 kisi oldugu
+                   ancak workflow'a tani eklenerek anlasilabildi. */
+                $nc = substr(trim((string)($l['last_newcollection_at'] ?? '')), 0, 10);
+                $fu = substr(trim((string)($l['last_followup_at'] ?? '')), 0, 10);
+                printf("  %s  %-28s %-30s %-16s eklendi=%s %s%s%s\n",
+                  $sent ? 'GONDERILDI' : 'BEKLIYOR  ',
+                  mb_substr((string)($l['company'] ?? ''), 0, 26),
+                  (string)($l['email'] ?? ''),
+                  mb_substr((string)($l['city'] ?? ''), 0, 14),
+                  substr((string)($l['added_at'] ?? ''), 0, 10),
+                  $sent ? ('-> '.substr((string)($l['last_contacted_at']),0,10).' ('.($l['last_campaign']??'?').')') : '',
+                  $nc !== '' ? ('  winter=' . $nc) : '',
+                  $fu !== '' ? ('  takip=' . $fu) : ''
+                );
+              }
+              // Sehir dokumu: kesif hangi sehirleri tuketmis, nerede hala gonderilmemis
+              // adres kalmis -- tek tek satir okumadan gorunsun. Bu olmadan "Napoli'ye
+              // kesif atmaya deger mi?" sorusu ancak 12 dakikalik bir kesif KOSTURARAK
+              // cevaplanabiliyordu; cevap sistemde zaten duruyordu.
+              if ($hits) {
+                $byCity = [];
+                foreach ($hits as $l) {
+                  $c = trim((string)($l['city'] ?? '')) ?: '(sehir yok)';
+                  if (!isset($byCity[$c])) $byCity[$c] = ['n' => 0, 'sent' => 0];
+                  $byCity[$c]['n']++;
+                  if (trim((string)($l['last_contacted_at'] ?? '')) !== '') $byCity[$c]['sent']++;
+                }
+                uasort($byCity, fn($a, $b) => $b['n'] <=> $a['n']);
+                echo "\nsehir dokumu (lead / gonderilmis / BEKLEYEN):\n";
+                foreach ($byCity as $c => $v) {
+                  printf("  %-24s %4d / %4d / %4d\n", $c, $v['n'], $v['sent'], $v['n'] - $v['sent']);
+                }
+              }
+              echo "\ngonderilen: {$sentN} / ".count($hits)."\n";
+              exit(0);
+            }
+
+            /* Ikinci mektup havuzu. "Onceki adreslere 2. mektubu gonder" istegi
+               ancak bu sayi bilinerek planlanabilir; toplam gonderim sayisindan
+               cikarilamaz. */
+            $ncSent = 0; $ncPool = 0;
+            foreach ($leads as $l) {
+              if (trim((string)($l['last_contacted_at'] ?? '')) === '') continue;
+              if (trim((string)($l['last_newcollection_at'] ?? '')) !== '') { $ncSent++; continue; }
+              $ncPool++;
+            }
             $byDay = []; $everSent = 0;
             foreach ($leads as $l) {
               $t = trim((string)($l['last_contacted_at'] ?? ''));
@@ -59,7 +150,9 @@ jobs:
             $today = date('Y-m-d');
             echo "toplam lead      : ".count($leads)."\n";
             echo "hic email gideni : ".$everSent."\n";
-            echo "BUGUN ($today)   : ".($byDay[$today] ?? 0)."\n\n";
+            echo "BUGUN ($today)   : ".($byDay[$today] ?? 0)."\n";
+            echo "2. mektup (Winter 26/27) gitmis : {$ncSent}\n";
+            echo "2. mektup BEKLEYEN havuz        : {$ncPool}\n\n";
             echo "gune gore dokum (en yeni ustte):\n";
             $n = 0;
             foreach ($byDay as $d => $c) {
@@ -74,3 +167,66 @@ jobs:
             rm -f ./vestra_lead_stats_tmp.php /tmp/vestra_lead_stats.php
         env:
           DAYS: ${{ github.event.inputs.days }}
+          SEARCH: ${{ github.event.inputs.search }}
+
+      - name: Brevo plan/kota durumu (opsiyonel)
+        if: ${{ github.event.inputs.mail_quota == 'true' }}
+        env:
+          MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
+        run: |
+          if [ -z "${MAIL_API_KEY}" ]; then
+            echo "::warning::MAIL_API_KEY secret'ı tanımlı değil, Brevo kontrolü atlandı."
+            exit 0
+          fi
+          echo "== HESAP / PLAN =="
+          curl -sS "https://api.brevo.com/v3/account" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" \
+            -w "\nHTTP_CODE:%{http_code}\n"
+          echo ""
+          TODAY=$(date -u +%Y-%m-%d)
+          echo "== BUGUN (UTC ${TODAY}) - Brevo agregat rapor =="
+          curl -sS "https://api.brevo.com/v3/smtp/statistics/aggregatedReport?startDate=${TODAY}&endDate=${TODAY}" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" \
+            -w "\nHTTP_CODE:%{http_code}\n"
+
+      # Bir SSH oturumu yarida koptugunda "e-posta gitti mi" sorusunun cevabi
+      # leads.json'dan OKUNAMAZ: damgalar dongu bittikten SONRA toplu kaydediliyor,
+      # yani gonderim yapilip kayit yapilmadan olen bir calisma "hic gonderilmemis"
+      # gibi gorunur. Tek guvenilir kaynak gonderen tarafi -- Brevo'nun kendi olay
+      # kaydi. Adres bazinda sorar; bos donen adrese o tarihten beri e-posta
+      # CIKMAMISTIR, dolayisiyla tekrar gondermek guvenlidir.
+      - name: Brevo olay kaydı (adres bazında — gerçekten gitti mi?)
+        if: ${{ github.event.inputs.brevo_events != '' }}
+        env:
+          MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
+          BREVO_EVENTS: ${{ github.event.inputs.brevo_events }}
+          EVENTS_SINCE: ${{ github.event.inputs.events_since }}
+        run: |
+          if [ -z "${MAIL_API_KEY}" ]; then
+            echo "::warning::MAIL_API_KEY tanımlı değil, kontrol atlandı."; exit 0
+          fi
+          FROM_DATE="${EVENTS_SINCE:-$(date -u +%Y-%m-%d)}"
+          TO_DATE=$(date -u +%Y-%m-%d)
+          echo "== BREVO OLAY KAYDI (${FROM_DATE} .. ${TO_DATE}) =="
+          printf '%-38s %s\n' "ADRES" "OLAYLAR"
+          TOTAL=0
+          for E in $(echo "${BREVO_EVENTS}" | tr ',;' '  '); do
+            [ -n "$E" ] || continue
+            RESP=$(curl -sS -G "https://api.brevo.com/v3/smtp/statistics/events" \
+                     --data-urlencode "email=${E}" \
+                     --data-urlencode "startDate=${FROM_DATE}" \
+                     --data-urlencode "endDate=${TO_DATE}" \
+                     --data-urlencode "limit=100" \
+                     -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json")
+            N=$(echo "$RESP" | grep -o '"event"' | wc -l | tr -d ' ')
+            KINDS=$(echo "$RESP" | grep -o '"event":"[a-zA-Z]*"' | sed 's/.*://' | tr -d '"' | sort -u | paste -sd, -)
+            TOTAL=$((TOTAL + N))
+            printf '%-38s %s\n' "$E" "${N} olay ${KINDS:+($KINDS)}"
+          done
+          echo "----"
+          echo "toplam olay: ${TOTAL}"
+          if [ "$TOTAL" -eq 0 ]; then
+            echo "SONUC: bu adreslere ${FROM_DATE} tarihinden beri HIC e-posta cikmamis -- tekrar gondermek guvenli."
+          else
+            echo "SONUC: en az bir adrese e-posta CIKMIS -- korlemesine tekrar gonderme, once yukaridaki dokumu oku."
+          fi

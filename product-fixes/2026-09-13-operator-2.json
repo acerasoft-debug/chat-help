@@ -1,0 +1,12 @@
+[
+  {
+    "_not": "Operator, 13 Eyl 2026: 'Logo Tape Track Jacket & Trousers Set — Black / 220 eur yap teklif te koy'.",
+    "_kapsam": "Bugunun ikinci takimi. Ilk cumlede de tek urun adlandirilmisti (Sweatshirt & Trousers Set -> 220) ve dar okunmustu; operator simdi ikinciyi adiyla yazdi, yani dar okuma dogruydu. Kalan IKI takim (dgx-gwt1az-humlx, dgx-gx630t-jbmj0) 190'da ve teklif KAPALI kaliyor -- adlandirilmadilar.",
+    "_teklif": "'teklif te koy' = teklif kutusu ACIK. set_product.php 'offers':'on' verildiginde offers=true yazip operatorun no_offers ezicisini de siliyor; ilan mode='fixed' oldugu icin sabit fiyat DURUYOR ve yaninda teklif kutusu cikiyor (KURAL 4b: mode='offer' + teklif kapali reddedilir, tersi gecerli bir kombinasyon).",
+    "_eski": "190.00, mode=fixed, teklif kapali, moq 10",
+    "match": "dgx-gvetaz-hu7b7",
+    "expect": 1,
+    "price": 220,
+    "offers": "on"
+  }
+]

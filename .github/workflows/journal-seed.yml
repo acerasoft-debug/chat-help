@@ -1,9 +1,40 @@
 name: Journal — yeni makaleleri yayına al
 on:
   workflow_dispatch:
+    inputs:
+      photos:
+        description: "Sorgu basina indirilecek editoryal foto sayisi (0 = foto indirme, sadece tohumla)"
+        required: false
+        default: "0"
+      photos_dry:
+        description: "true = fotolari SADECE listele, indirme"
+        required: false
+        default: "false"
+      refresh:
+        description: "true = MEVCUT makalelerin metnini de tohum dosyasindan tazele (elle yapilan duzenlemeleri EZER)"
+        required: false
+        default: "false"
+      rebuild_auto:
+        description: "true = YAYIMLANMIS otomatik stok raporunu ayni kurucuyla YENIDEN kur (yerlesim degistiginde)"
+        required: false
+        default: "false"
+      rebuild_slug:
+        description: "Yeniden kurulacak raporun slug'i (bos = en yeni otomatik rapor)"
+        required: false
+        default: ""
+      rebuild_apply:
+        description: "true = yaz. Varsayilan false: once neyin degisecegini gosterir"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
+
+# NOT: foto indirme adimi bu ise BILEREK eklendi. Ayri bir journal-photos.yml
+# yazilmisti ama workflow_dispatch bir isi ancak VARSAYILAN dalda dosyasi varsa
+# gorunur kilar; yeni dosya sadece bu dalda oldugu icin hic tetiklenemedi. Bu is
+# ise varsayilan dalda mevcut, dolayisiyla bu daldan calistirildiginda bu daldaki
+# surumu -- yani asagidaki adimi -- calistirir.
 
 # inc/journal_seed.json'daki makaleleri data/journal.json'a aktarir.
 #
@@ -16,18 +47,241 @@ permissions:
 # vestra_journal_seed_starters() idempotent: ayni baslik varsa tekrar eklemez,
 # sadece eksik dil cevirilerini geri doldurur ve admin'in duzenledigi metne
 # dokunmaz. Iki kez calistirmak zararsizdir.
+#
+# refresh=true bu korumayi BILEREK devre disi birakir: mevcut makalelerin govdesini,
+# ozetini ve TUM cevirilerini tohum dosyasindaki surumle degistirir. Buna ihtiyac var
+# cunku korumanin diger yuzu su: bir makale journal_seed.json'da yeniden yazildiginda
+# baslik hala eslestigi icin kayit atlaniyor ve sitede eski metin kaliyor -- yani
+# metni uzatmak tek basina hicbir sey degistirmiyor. id, slug, published ve created
+# korunur; makalenin adresi ve yayin durumu degismez.
+#
+# refresh=true calistirmadan once admin panelinden elle duzenlenmis makale olmadigina
+# emin ol -- o metin geri getirilemez sekilde ezilir.
 jobs:
   seed:
     runs-on: ubuntu-latest
     steps:
-      - name: Tohumla
+      # photos: "0" indirmez, sadece sunucudaki havuzu listeler -- indirmeyi tekrarlamadan
+      # "ne var elimizde" diye bakabilmek icin.
+      - name: Editoryal fotograflari indir
+        if: ${{ github.event.inputs.photos != '' && github.event.inputs.rebuild_auto != 'true' }}
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          PH_PER: ${{ github.event.inputs.photos }}
+          PH_DRY: ${{ github.event.inputs.photos_dry }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 15m
+          envs: PH_PER,PH_DRY
+          script: |
+            cat > /tmp/vestra_jphotos.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            @set_time_limit(0);
+            $home = getenv("HOME");
+            require $home."/public_html/inc/journal.php";
+            if (!function_exists('vestra_journal_fetch_photos')) { fwrite(STDERR,"HATA: fetch fonksiyonu yok\n"); exit(1); }
+
+            $per = (int)getenv('PH_PER');
+            $dry = strtolower(trim((string)getenv('PH_DRY'))) === 'true';
+
+            if ($per > 0) {
+              echo "sorgu basina: {$per}   ".($dry ? "(KURU -- indirmez)" : "(indirir)")."\n\n";
+              $rep = vestra_journal_fetch_photos([], $per, 1400, $dry);
+              echo "incelenen : ".$rep['examined']."\n";
+              echo "kaydedilen: ".$rep['saved']."\n";
+              if ($rep['skipped']) { echo "atlanan   :\n"; foreach ($rep['skipped'] as $why=>$n) printf("   %-38s %d\n", $why, $n); }
+              /* files[] bir kayit dizisi -- duz echo "Array" yaziyordu. Hangi fotografin
+                 indigini GORMEK sart: makale gorseli editoryal moda fotografi olacak,
+                 katalog urun cekimi ya da alakasiz bir resim olmayacak. */
+              if ($rep['files'])   { echo "\ndosyalar:\n"; foreach ($rep['files'] as $f)
+                printf("   %-58s %5dpx  %-22s %s\n", $f['file'], $f['width'], $f['license'], mb_substr($f['artist'],0,34)); }
+              if ($rep['errors'])  { echo "\nhatalar:\n";  foreach ($rep['errors'] as $e) echo "   ".$e."\n"; }
+            } else {
+              echo "indirme yok -- sadece sunucudaki havuz raporlanacak\n";
+            }
+
+            /* Kredisi olmayan dosya yayinlanamaz (CC-BY fotografciyi anmayi sart kosuyor),
+               o yuzden havuzun gercekten dolduguna bakiyoruz -- "kaydedildi" demek yetmez.
+               fresh=true sart: fetch, indirmeden ONCE credits.json'u okuyup static'e
+               yazdigi icin buradaki sayim indirme oncesi kopyayi gorup hep 0 diyordu. */
+            clearstatcache();
+            $pool = vestra_journal_photo_pool(true);
+            echo "\nkredili havuz: ".count($pool)." foto\n";
+            foreach ($pool as $f) printf("   %-62s %s\n", basename($f), vestra_journal_credit($f));
+            PHPEOF
+            php -l /tmp/vestra_jphotos.php
+            php /tmp/vestra_jphotos.php; RC=$?
+            rm -f /tmp/vestra_jphotos.php
+            exit $RC
+
+      # YAYIMLANMIS otomatik raporu ayni kurucuyla yeniden kurar.
+      #
+      # Neden gerekli: rapor dokuz dilde ve tamami koddan uretiliyor. Yerlesim
+      # degistiginde (10 Eyl 2026: baglantilar en alttan UST'e alindi) yayimlanmis
+      # yazi eski duzende kaliyor ve elle duzeltmek dokuz dilin metnini elde
+      # yeniden yazmak demek -- yani KURAL 3'un yasakladigi "elle yazilan olgu".
+      # Ayni kurucu, ayni pencere, ayni katalog; yalnizca duzen yeni.
+      #
+      # slug/id/created/published/cover KORUNUR: kurucu her cagrilisinda YENI bir
+      # slug uretiyor ve mevcut slug alinmis oldugu icin "-2" ekliyor. Oldugu gibi
+      # yazsaydik makalenin ADRESI degisir, yayimlanmis baglantilar 404 olurdu.
+      # Bu yuzden yalnizca metin alanlari (title/excerpt/body/i18n) tasiniyor.
+      - name: Otomatik raporu yeniden kur
+        if: ${{ github.event.inputs.rebuild_auto == 'true' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          RB_SLUG:  ${{ github.event.inputs.rebuild_slug }}
+          RB_APPLY: ${{ github.event.inputs.rebuild_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 10m
+          envs: RB_SLUG,RB_APPLY
+          script: |
+            cat > /tmp/vestra_jrebuild.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME");
+            require $home."/public_html/inc/products.php";
+            require_once $home."/public_html/inc/journal.php";
+            require_once $home."/public_html/inc/journal_auto.php";
+            foreach (['vestra_journal_auto_build','vestra_journal_save','vestra_journal_all'] as $fn)
+              if (!function_exists($fn)) { fwrite(STDERR,"HATA: {$fn}() yok\n"); exit(1); }
+
+            $wantSlug = trim((string)getenv('RB_SLUG'));
+            $apply    = strtolower(trim((string)getenv('RB_APPLY'))) === 'true';
+
+            /* Hedefi KAYITTAN sec, girdiden degil: slug bos birakilirsa en yeni
+               otomatik rapor. Elle yazilan bir slug yanlis makaleyi ezebilirdi. */
+            $auto = [];
+            foreach (vestra_journal_all() as $a)
+              if (($a['source'] ?? '') === VESTRA_JOURNAL_AUTO_FLAG) $auto[] = $a;
+            if (!$auto) { fwrite(STDERR,"HATA: yayimlanmis otomatik rapor YOK\n"); exit(1); }
+
+            echo "otomatik rapor sayisi: ".count($auto)."\n";
+            foreach ($auto as $a)
+              printf("   %-46s %s  %s\n", (string)($a['slug'] ?? '?'),
+                     substr((string)($a['created'] ?? '?'),0,16),
+                     !empty($a['published']) ? 'yayinda' : 'TASLAK');
+
+            $art = null;
+            foreach ($auto as $a) if ($wantSlug !== '' && ($a['slug'] ?? '') === $wantSlug) $art = $a;
+            if ($wantSlug !== '' && !$art) { fwrite(STDERR,"HATA: slug bulunamadi: {$wantSlug}\n"); exit(1); }
+            if (!$art) $art = $auto[0]; // vestra_journal_all() en yeniden eskiye
+
+            $created = strtotime((string)($art['created'] ?? ''));
+            if (!$created) { fwrite(STDERR,"HATA: makalenin created damgasi okunamadi\n"); exit(1); }
+
+            echo "\nhedef  : ".$art['slug']."\n";
+            echo "kuruldu: ".date('c', $created)."\n";
+            echo "mod    : ".($apply ? "YAZ" : "KURU KOSU -- hicbir sey yazilmayacak")."\n";
+
+            /* ignorePrevious=true SART: pencere "son otomatik rapordan beri" diye
+               kuruluyor ve bu makalenin KENDISI o rapor. Vermezsek pencere sifir
+               genislikte cikar ve kurucu "yeni ilan 0" deyip atlar. */
+            $new = vestra_journal_auto_build($created, VESTRA_JOURNAL_AUTO_DAYS, true);
+            if (isset($new['skip'])) { fwrite(STDERR,"HATA: kurucu atladi -- ".$new['skip']."\n"); exit(1); }
+
+            /* Baglanti blogu govdenin UST yarisinda mi? Olculen sey tam olarak
+               operatorun istedigi sey; "yazdim" demek yerine yerini olc.
+               KARAKTERLE olculuyor, baytla degil: strpos bayt sayar, mb_strlen
+               karakter -- ru/ja gibi cok baytli dillerde ikisini karistirmak
+               dogru bir gövdeyi "altta" gosterir. */
+            $where = function (string $body): string {
+              $pos = mb_strpos($body, 'https://vestrasales.com/');
+              if ($pos === false) return 'baglanti YOK';
+              $len = max(1, mb_strlen($body));
+              return sprintf('%%%d (%s yari)', (int)round($pos * 100 / $len), $pos * 2 < $len ? 'UST' : 'alt');
+            };
+            $firstLinks = function (string $body, int $n = 3): array {
+              $out = [];
+              foreach (explode("\n", $body) as $l)
+                if (strpos($l, 'https://vestrasales.com/') !== false) { $out[] = trim($l); if (count($out) >= $n) break; }
+              return $out;
+            };
+
+            $oldBody = (string)($art['body'] ?? '');
+            $newBody = (string)($new['body'] ?? '');
+            echo "\n--- EN ---\n";
+            printf("  baslik  once : %s\n", (string)($art['title'] ?? '?'));
+            printf("  baslik  sonra: %s\n", (string)($new['title'] ?? '?'));
+            printf("  govde   once : %d karakter, baglanti %s\n", mb_strlen($oldBody), $where($oldBody));
+            printf("  govde   sonra: %d karakter, baglanti %s\n", mb_strlen($newBody), $where($newBody));
+            echo "  yeni baglantilar:\n";
+            foreach ($firstLinks($newBody) as $l) echo "     ".$l."\n";
+
+            echo "\n--- diller ---\n";
+            foreach (array_keys((array)($new['i18n'] ?? [])) as $lg) {
+              $ob = (string)($art['i18n'][$lg]['body'] ?? '');
+              $nb = (string)($new['i18n'][$lg]['body'] ?? '');
+              printf("  %-3s once %-16s sonra %s\n", $lg, $where($ob), $where($nb));
+            }
+
+            if (!$apply) { echo "\nKURU KOSU -- hicbir sey yazilmadi\n"; exit(0); }
+
+            /* Yalniz METIN tasiniyor. slug/id/created/published/cover/category/author
+               makalenin kimligi; kurucunun urettigi kopyalari onlarin yerine gecerse
+               adres degisir ve yayimlanmis baglantilar kirilir. */
+            $save = [
+              'id'      => (string)($art['id'] ?? ''),
+              'title'   => (string)($new['title'] ?? ''),
+              'excerpt' => (string)($new['excerpt'] ?? ''),
+              'body'    => $newBody,
+              'i18n'    => (array)($new['i18n'] ?? []),
+            ];
+            if ($save['id'] === '') { fwrite(STDERR,"HATA: makalenin id'si yok -- yazmiyorum\n"); exit(1); }
+            vestra_journal_save($save);
+
+            /* GERI OKU. Bu depoda "kaydedildi" demek kaydedildigini gostermiyor
+               (KURAL 5c'nin billing_saved dersi). */
+            clearstatcache();
+            $back = vestra_journal_find((string)($art['slug'] ?? ''));
+            if (!$back) { fwrite(STDERR,"\nHATA: geri okuma -- slug kayboldu!\n"); exit(1); }
+            $bad = [];
+            if ((string)($back['body'] ?? '') !== $newBody) $bad[] = 'en govdesi yazilmadi';
+            if (empty($back['published']))                  $bad[] = 'yayin durumu kayboldu';
+            if ((string)($back['created'] ?? '') !== (string)($art['created'] ?? '')) $bad[] = 'created degisti';
+            if ((string)($back['cover'] ?? '')   !== (string)($art['cover'] ?? ''))   $bad[] = 'kapak degisti';
+            foreach (array_keys((array)($new['i18n'] ?? [])) as $lg) {
+              $nb = (string)($new['i18n'][$lg]['body'] ?? '');
+              if ((string)($back['i18n'][$lg]['body'] ?? '') !== $nb) $bad[] = $lg.' govdesi yazilmadi';
+              $p = mb_strpos($nb, 'https://vestrasales.com/');
+              if ($p === false || $p * 2 >= mb_strlen($nb)) $bad[] = $lg.' baglantisi UST yarida degil';
+            }
+            echo "\ngeri okuma:\n";
+            printf("  slug      : %s (degismedi)\n", (string)$back['slug']);
+            printf("  created   : %s\n", (string)($back['created'] ?? '?'));
+            printf("  updated   : %s\n", (string)($back['updated'] ?? '?'));
+            printf("  baglanti  : %s\n", $where((string)($back['body'] ?? '')));
+            if ($bad) { fwrite(STDERR,"\nHATA: ".implode('; ', $bad)."\n"); exit(1); }
+            echo "\nTAMAM -- https://vestrasales.com/journal?slug=".rawurlencode((string)$back['slug'])."\n";
+            PHPEOF
+            php -l /tmp/vestra_jrebuild.php
+            php /tmp/vestra_jrebuild.php; RC=$?
+            rm -f /tmp/vestra_jrebuild.php
+            exit $RC
+
+      # Yeniden kurma kosusunda tohumlama ATLANIR: istenen tek sey raporun
+      # duzeni; ayni kosuda tohum dosyasina da dokunmak, sorulmayan bir
+      # degisikligi de uygulamak olurdu.
+      - name: Tohumla
+        if: ${{ github.event.inputs.rebuild_auto != 'true' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SEED_REFRESH: ${{ github.event.inputs.refresh }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
+          envs: SEED_REFRESH
           script: |
             cat > /tmp/vestra_jseed.php <<'PHPEOF'
             <?php
@@ -37,12 +291,22 @@ jobs:
             foreach (['vestra_journal_seed_starters','vestra_journal_published','vestra_journal_starters'] as $fn)
               if (!function_exists($fn)) { fwrite(STDERR,"HATA: {$fn}() yok\n"); exit(1); }
 
+            $refresh = strtolower(trim((string)getenv('SEED_REFRESH'))) === 'true';
             $before = count(vestra_journal_published());
             $seeds  = vestra_journal_starters();
             echo "tohum dosyasindaki makale: ".count($seeds)."\n";
             echo "yayindaki makale (once) : {$before}\n";
+            echo "mod                     : ".($refresh
+                 ? "TAZELE -- mevcut metinler tohum dosyasiyla DEGISTIRILECEK"
+                 : "normal -- mevcut metinlere dokunulmaz, sadece eksik ceviri eklenir")."\n";
 
-            $n = vestra_journal_seed_starters();
+            /* Tazeleme oncesi govde uzunluklarini not al, sonra karsilastir: "degisen kayit: 21"
+               satiri metnin gercekten uzadigini soylemiyor, sadece kaydin yazildigini soyluyor. */
+            $lenBefore = [];
+            foreach (vestra_journal_published() as $a)
+              $lenBefore[(string)($a['title'] ?? '')] = str_word_count(strip_tags((string)($a['body'] ?? '')));
+
+            $n = vestra_journal_seed_starters($refresh);
             clearstatcache();
             $after = count(vestra_journal_published());
             echo "degisen kayit           : {$n}\n";
@@ -52,10 +316,15 @@ jobs:
                Ingilizce'ye dusuyor, bu yuzden gorunur olmasi lazim. */
             $want = ['de','es','fr','it'];
             foreach (vestra_journal_published() as $a) {
+              $t    = (string)($a['title'] ?? '?');
               $have = array_keys(array_filter((array)($a['i18n'] ?? [])));
               $miss = array_values(array_diff($want, $have));
-              printf("  %-58s %s%s\n", mb_substr((string)($a['title'] ?? '?'),0,58),
-                     'en+'.implode(',', $have), $miss ? '   EKSIK: '.implode(',', $miss) : '');
+              $now  = str_word_count(strip_tags((string)($a['body'] ?? '')));
+              $was  = $lenBefore[$t] ?? null;
+              $d    = ($was !== null && $now !== $was) ? sprintf(' %d->%d kelime', $was, $now)
+                                                       : sprintf(' %d kelime', $now);
+              printf("  %-52s %-14s%s%s\n", mb_substr($t,0,52), 'en+'.implode(',', $have), $d,
+                     $miss ? '  EKSIK: '.implode(',', $miss) : '');
             }
             if ($after < $before) { fwrite(STDERR,"\nHATA: makale sayisi azaldi!\n"); exit(1); }
             echo "\nTAMAM\n";

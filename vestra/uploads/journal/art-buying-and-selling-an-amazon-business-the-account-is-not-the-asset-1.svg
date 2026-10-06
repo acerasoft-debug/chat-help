@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img">
+  <title>A single small contract sheet on one side of a divide, and a cluster of brand, listing, supplier and stock blocks on the other</title>
+  <desc>The account is a contract. What a buyer pays for is everything standing around it.</desc>
+  <rect width="1200" height="675" fill="#3a2016"/>
+  <g stroke="#7a4026" stroke-width="1"><path d="M0 168h1200M0 337h1200M0 506h1200"/></g>
+  <!-- SOL: sozlesme sayfasi = hesap -->
+  <g fill="none" stroke="#f0c9a0" stroke-width="3">
+    <path d="M112 214h158l46 46v202H112z"/>
+    <path d="M270 214v46h46"/>
+  </g>
+  <g fill="#f0c9a0" opacity=".24">
+    <rect x="140" y="296" width="132" height="10" rx="5"/>
+    <rect x="140" y="324" width="108" height="10" rx="5"/>
+    <rect x="140" y="352" width="132" height="10" rx="5"/>
+    <rect x="140" y="380" width="86" height="10" rx="5"/>
+  </g>
+  <!-- Ayirici -->
+  <path d="M394 176v324" stroke="#f0c9a0" stroke-width="2" stroke-dasharray="10 12" opacity=".5"/>
+  <!-- SAG: gercek varliklar -->
+  <g fill="none" stroke="#f0c9a0" stroke-width="3">
+    <!-- marka: tescil muhru (ic ice halka + kurdele) -->
+    <circle cx="546" cy="240" r="46"/>
+    <circle cx="546" cy="240" r="28"/>
+    <path d="M524 282l-14 46 36-18 36 18-14-46"/>
+    <!-- ilan kartlari -->
+    <rect x="672" y="196" width="132" height="112" rx="10"/>
+    <rect x="700" y="216" width="132" height="112" rx="10"/>
+    <!-- tedarikci zinciri -->
+    <path d="M520 430h56M576 430h56M632 430h56"/>
+    <circle cx="520" cy="430" r="14"/><circle cx="632" cy="430" r="14"/><circle cx="744" cy="430" r="14"/>
+    <path d="M688 430h42"/>
+    <!-- stok istifi -->
+    <rect x="880" y="386" width="184" height="40" rx="6"/>
+    <rect x="880" y="434" width="184" height="40" rx="6"/>
+    <rect x="880" y="482" width="184" height="40" rx="6"/>
+  </g>
+  <g fill="#f0c9a0" opacity=".2">
+    <rect x="712" y="234" width="104" height="52" rx="6"/>
+    <rect x="712" y="298" width="66" height="9" rx="4"/>
+    <rect x="898" y="398" width="70" height="16" rx="5"/>
+    <rect x="898" y="446" width="70" height="16" rx="5"/>
+    <rect x="898" y="494" width="70" height="16" rx="5"/>
+  </g>
+  <!-- Odemenin gittigi yon -->
+  <path d="M394 590h560" stroke="#f0c9a0" stroke-width="3" opacity=".8"/>
+  <path d="M940 578l22 12-22 12z" fill="#f0c9a0" opacity=".8"/>
+</svg>

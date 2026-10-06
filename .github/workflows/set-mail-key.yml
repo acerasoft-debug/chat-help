@@ -13,12 +13,51 @@ name: Sunucuda email API key'ini güncelle
 # sabitlenmişti, o geçici çözümdü.
 on:
   workflow_dispatch:
+    inputs:
+      task:
+        description: "Ne yapılsın — mail_key | platform_bank (secret'tan) | platform_bank_from_account (bilgi zaten bir hesaptaysa oradan kopyala) | platform_bank_selftest (panele yazsam tutar mı?) | customer_billing (bir müşterinin fatura adresi) | account_type (hesabın buyer/seller tipini düzelt — src_email + acct_type) | request_trade_docs (ticari belgesi HİÇ istenmemiş hesaplara talep aç + e-posta gönder; önce dry=true ile prova edin) | approve_buyers (MEVCUT tüm alıcıları tam yetkili yap — ticari belgesini onaylı say; önce dry=true)"
+        required: false
+        default: "mail_key"
+      src_email:
+        description: "platform_bank_from_account: banka bilgisinin durduğu hesabın e-postası"
+        required: false
+        default: ""
+      cust_uid:
+        description: "customer_billing: hesap id (ör. e38d3b085a4de4da)"
+        required: false
+        default: ""
+      cust_address:
+        description: "customer_billing: tam adres — sokak, şehir, eyalet, ZIP"
+        required: false
+        default: ""
+      cust_country:
+        description: "customer_billing: ülke (ör. US). Boşsa değişmez."
+        required: false
+        default: ""
+      dry:
+        description: "request_trade_docs için: true (varsayılan) = sadece kimlere gideceğini yazar, hiçbir şey göndermez. false = talebi açar ve e-postayı gönderir."
+        required: false
+        default: "true"
+      acct_type:
+        description: "account_type görevi için: hesabın YENİ tipi (buyer | seller)"
+        required: false
+        default: ""
+      cust_phone:
+        description: "customer_billing: telefon. Boşsa değişmez."
+        required: false
+        default: ""
 
 permissions:
   contents: read
 
 jobs:
   update-mail-key:
+    # Kosul once "!= 'platform_bank'" idi ve YANLISTI: task=customer_billing de bu
+    # kosulu sagliyor, dolayisiyla musteri adresi guncellenirken e-posta ayarlari da
+    # yeniden uygulanip bir test e-postasi gonderiliyordu. Bir gorev, kendisiyle
+    # ilgisiz baska bir gorevi tetiklememeli. Disláma listesi yerine ACIK esitlik:
+    # yeni bir task eklendiginde bu is kendiliginden dahil olmaz.
+    if: github.event.inputs.task == 'mail_key' || github.event.inputs.task == ''
     runs-on: ubuntu-latest
     steps:
       - name: MAIL_API_KEY secret'ı var mı kontrol et
@@ -85,3 +124,587 @@ jobs:
           echo "== acerasoft@gmail.com icin son event'ler (delivered mi, error mi?) =="
           curl -sS "https://api.brevo.com/v3/smtp/statistics/events?limit=5&email=acerasoft%40gmail.com" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # VESTRA'nin KENDI fatura/banka bilgilerini sunucuya yaz.
+  #
+  # Neden secret uzerinden: bu depo herkese ACIK. Degeri koda gomsem depoda,
+  # workflow girdisi yapsam Actions arayuzunde, script icine yazsam log'da
+  # gorunurdu (ssh-action calistirdigi betigi log'a basiyor). ABD'de routing +
+  # hesap numarasi ikilisi ACH borclandirma icin yeterli; kalici ve indekslenen
+  # bir yere yazmak, hesabi acik birakmakla ayni sey.
+  #
+  # Secret degerleri GitHub tarafindan log'da maskelenir. Ayni yol bu depoda
+  # MAIL_API_KEY icin zaten kullaniliyor (yukaridaki is).
+  #
+  # Secret adi : PLATFORM_BANK_JSON
+  # Secret degeri: tek satir JSON, ornegin
+  #   {"bank_holder":"acerasoft LLC","bank_name":"...","bank_routing":"...",
+  #    "bank_account":"...","bank_acct_type":"Checking","bank_address":"..."}
+  #
+  # "Panele yazsam tutar mi?" sorusunu tahminle degil deneyerek cevaplar.
+  #
+  # Operator banka bilgilerini panele girdigini soyledi, sunucuda dosya YOKTU ve
+  # panel de bunu soyleyecek hicbir sey basmiyordu (o iki kusur ayrica duzeltildi).
+  # Geriye tek acik soru kaldi: PHP o dizine gercekten yazabiliyor mu? Yazamiyorsa
+  # form ne kadar duzgun olursa olsun giris her seferinde sessizce dusecek.
+  #
+  # Test GERCEK rakamlarla yapilmaz: yer tutucu bir deger yazilir, geri okunur,
+  # vestra_platform_seller() uzerinden gorunur mu diye bakilir ve SILINIR. Dosyayi
+  # birakmak daha kotu olurdu -- panel "on file" der, fatura da uydurma bir hesap
+  # numarasiyla cikardi.
+  platform-bank-selftest:
+    if: github.event.inputs.task == 'platform_bank_selftest'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Panel kaydı tutar mı — yaz / geri oku / sil
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            cat > /tmp/vestra_platselftest.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/invoice.php";
+
+            $dir = vestra_data_dir();
+            $f   = $dir.'/platform_seller.json';
+
+            echo "veri dizini : {$dir}\n";
+            echo "  var mi    : ".(is_dir($dir) ? 'evet' : 'HAYIR')."\n";
+            echo "  yazilabilir: ".(is_writable($dir) ? 'EVET' : 'HAYIR  <<< giris bu yuzden dusuyor')."\n";
+            if (is_dir($dir)) {
+              echo "  izinler   : ".substr(sprintf('%o', fileperms($dir)), -4)."\n";
+              $o = function_exists('posix_getpwuid') ? posix_getpwuid(fileowner($dir)) : null;
+              echo "  sahibi    : ".($o['name'] ?? fileowner($dir))."\n";
+              echo "  php kim   : ".(function_exists('posix_geteuid')
+                    ? ((posix_getpwuid(posix_geteuid())['name']) ?? posix_geteuid()) : get_current_user())."\n";
+            }
+
+            /* Var olan dosyayi EZMEYELIM. Bu is akisi bir teshis araci; operator
+               bilgileri girdikten SONRA calistirilirsa girdigi seyi silmemeli. */
+            if (is_file($f)) {
+              echo "\nplatform_seller.json ZATEN VAR -- test yazmiyor, dokunmuyor.\n";
+              $j = json_decode((string)file_get_contents($f), true);
+              echo is_array($j) ? "  gecerli JSON, ".count($j)." alan\n" : "  !! JSON okunamiyor\n";
+              exit(0);
+            }
+
+            echo "\n-- yazma denemesi (YER TUTUCU deger, sonra silinecek) --\n";
+            $probe = ['bank_name'=>'SELFTEST-DO-NOT-USE','bank_account'=>'SELFTEST-DO-NOT-USE'];
+            $n = @file_put_contents($f, json_encode($probe, JSON_PRETTY_PRINT), LOCK_EX);
+            if ($n === false) {
+              echo "  YAZILAMADI -- panelden girilen bilgi de ayni sekilde dusuyor.\n";
+              echo "SONUC: dizin PHP tarafindan yazilabilir DEGIL. Once bu duzeltilmeli.\n";
+              exit(1);
+            }
+            echo "  yazildi ({$n} bayt)\n";
+            @chmod($f, 0600);
+
+            $back = json_decode((string)@file_get_contents($f), true);
+            $okRead = is_array($back) && ($back['bank_account'] ?? '') === 'SELFTEST-DO-NOT-USE';
+            echo "  geri okuma: ".($okRead ? 'TAMAM' : 'BASARISIZ')."\n";
+
+            /* Faturanin gercekten kullandigi yol: renderer bu fonksiyonu cagiriyor.
+               Dosyanin diskte olmasi yetmez, buradan GORUNMESI gerekiyor. */
+            $seller  = vestra_platform_seller();
+            $okSeen  = ($seller['bank_account'] ?? '') === 'SELFTEST-DO-NOT-USE';
+            echo "  vestra_platform_seller() goruyor mu: ".($okSeen ? 'EVET' : 'HAYIR')."\n";
+
+            @unlink($f);
+            $okGone = !is_file($f);
+            echo "  yer tutucu silindi: ".($okGone ? 'EVET' : 'HAYIR -- ELLE SILIN: '.$f)."\n";
+
+            $all = $okRead && $okSeen && $okGone;
+            echo "\nSONUC: ".($all
+              ? "yol calisiyor. Panelden girilen banka bilgisi TUTAR ve fatura onu gorur."
+              : "yol BOZUK -- yukaridaki basarisiz adima bakin.")."\n";
+            exit($all ? 0 : 1);
+            PHPEOF
+            cd ~/public_html
+            cp /tmp/vestra_platselftest.php ./vestra_platselftest_tmp.php
+            php ./vestra_platselftest_tmp.php
+            rc=$?
+            rm -f ./vestra_platselftest_tmp.php /tmp/vestra_platselftest.php
+            exit $rc
+
+  # Banka bilgisi sunucuda ZATEN duruyorsa -- operator onu bir HESABIN kendi
+  # banka alanlarina girdiyse -- oradan platform_seller.json'a KOPYALAR.
+  #
+  # Kritik ozellik: rakamlar sunucudan DISARI CIKMAZ. Kopya tamamen sunucunun
+  # icinde olur; GitHub secret'ina, is akisi girdisine ve log'a hicbir deger
+  # yazilmaz (log yalnizca alan adi + karakter sayisi gorur). Operatorun
+  # "panelden girdim, sistemde mevcut" dedigi durumun dogru cozumu bu:
+  # bilgiyi yeniden istemek degil, durdugu kutudan dogru kutuya tasimak.
+  copy-bank-from-account:
+    if: github.event.inputs.task == 'platform_bank_from_account'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hesaptaki banka bilgisini platform dosyasına kopyala
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SRC_EMAIL: ${{ github.event.inputs.src_email }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: SRC_EMAIL
+          script: |
+            cat > /tmp/vestra_bankcopy.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            $src = strtolower(trim((string)getenv('SRC_EMAIL')));
+            if ($src === '') { fwrite(STDERR, "src_email gerekli\n"); exit(1); }
+
+            $accs = json_decode((string)@file_get_contents($doc."/data/accounts.json"), true);
+            if (!is_array($accs)) { fwrite(STDERR, "accounts.json okunamadi\n"); exit(1); }
+            $acc = null;
+            foreach ($accs as $a) if (strtolower((string)($a['email'] ?? '')) === $src) { $acc = $a; break; }
+            if (!$acc) { fwrite(STDERR, "hesap bulunamadi: {$src}\n"); exit(1); }
+            echo "kaynak hesap: ".(string)($acc['company'] ?? ($acc['name'] ?? '?'))." <{$src}>\n";
+
+            $bk = ['bank_holder','bank_name','bank_iban','bank_bic','bank_routing',
+                   'bank_account','bank_acct_type','bank_address'];
+            $take = [];
+            foreach ($bk as $k) {
+              $v = trim((string)($acc[$k] ?? ''));
+              if ($v !== '') $take[$k] = $v;
+              printf("  %-16s %s\n", $k, $v === '' ? '—' : 'DOLU ('.mb_strlen($v).' karakter)');
+            }
+            if (trim((string)($take['bank_account'] ?? '')) === '' && trim((string)($take['bank_iban'] ?? '')) === '') {
+              fwrite(STDERR, "bu hesapta hesap numarasi / IBAN YOK -- kopyalanacak sey yok\n"); exit(1);
+            }
+
+            $f = $doc."/data/platform_seller.json";
+            $cur = is_readable($f) ? json_decode((string)file_get_contents($f), true) : [];
+            if (!is_array($cur)) $cur = [];
+            foreach ($take as $k => $v) $cur[$k] = $v;   // bos alan zaten $take'e girmedi
+            $n = @file_put_contents($f, json_encode($cur, JSON_PRETTY_PRINT), LOCK_EX);
+            @chmod($f, 0600);
+            if ($n === false) { fwrite(STDERR, "platform_seller.json YAZILAMADI\n"); exit(1); }
+
+            /* Geri okuyarak dogrula -- yaz-ve-inan bu projede defalarca yandi. */
+            $back = json_decode((string)@file_get_contents($f), true);
+            $ok = is_array($back);
+            if ($ok) foreach ($take as $k => $v) { if (trim((string)($back[$k] ?? '')) !== $v) { $ok = false; break; } }
+            echo $ok ? "SONUC: kopyalandi ve geri okumayla DOGRULANDI -- odeme kutusu artik basilabilir\n"
+                     : "SONUC: dogrulama TUTMADI -- dosyaya bakilmali\n";
+            exit($ok ? 0 : 1);
+            PHPEOF
+            cd ~/public_html
+            cp /tmp/vestra_bankcopy.php ./vestra_bankcopy_tmp.php
+            php ./vestra_bankcopy_tmp.php
+            rc=$?
+            rm -f ./vestra_bankcopy_tmp.php /tmp/vestra_bankcopy.php
+            exit $rc
+
+  # Sunucudaki dosya: data/platform_seller.json (web'e kapali, .gitignore'da, 0600)
+  # Bos gelen alan mevcut degeri SILMEZ -- kismi guncelleme guvenli.
+  update-platform-bank:
+    if: github.event.inputs.task == 'platform_bank'
+    runs-on: ubuntu-latest
+    steps:
+      - name: PLATFORM_BANK_JSON secret'ı var mı kontrol et
+        run: |
+          if [ -z "${{ secrets.PLATFORM_BANK_JSON }}" ]; then
+            echo "::error::PLATFORM_BANK_JSON secret'ı tanımlı değil. Settings -> Secrets and variables -> Actions -> New repository secret ile ekleyin (tek satır JSON), sonra bu workflow'u task=platform_bank ile tekrar çalıştırın."
+            exit 1
+          fi
+          echo "PLATFORM_BANK_JSON tanımlı, devam ediliyor."
+
+      - name: Sunucuya yaz (data/platform_seller.json)
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          PLATFORM_BANK_JSON: ${{ secrets.PLATFORM_BANK_JSON }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          envs: PLATFORM_BANK_JSON
+          script: |
+            cat > /tmp/vestra_platwrite.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+
+            $raw = (string)getenv('PLATFORM_BANK_JSON');
+            $in  = json_decode($raw, true);
+            if (!is_array($in)) { fwrite(STDERR, "PLATFORM_BANK_JSON gecerli JSON degil\n"); exit(1); }
+
+            $allow = ['company','address','country','email','website',
+                      'bank_name','bank_holder','bank_iban','bank_bic',
+                      'bank_routing','bank_account','bank_acct_type','bank_address',
+                      'vat_id','reg_number'];
+            $f = vestra_data_dir().'/platform_seller.json';
+            $cur = is_readable($f) ? json_decode((string)file_get_contents($f), true) : [];
+            if (!is_array($cur)) $cur = [];
+
+            $set = [];
+            foreach ($allow as $k) {
+              $v = trim((string)($in[$k] ?? ''));
+              if ($v !== '') { $cur[$k] = $v; $set[] = $k; }
+            }
+            /* Bilinmeyen anahtar sessizce yutulmasin: yanlis yazilmis bir alan adi
+               ("routing" vs "bank_routing") kaydedilmis sanilir, oysa dusmustur. */
+            foreach (array_keys($in) as $k) {
+              if (!in_array($k, $allow, true)) echo "  UYARI: bilinmeyen alan atlandi -> {$k}\n";
+            }
+            if (!$set) { fwrite(STDERR, "yazilacak alan yok\n"); exit(1); }
+
+            file_put_contents($f, json_encode($cur, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
+            @chmod($f, 0600);
+
+            /* DEGERLER YAZDIRILMIYOR -- yalnizca hangi alanlarin set edildigi. */
+            echo "  yazildi: ".count($set)." alan -> ".implode(', ', $set)."\n";
+            $payable = trim((string)($cur['bank_iban'] ?? '')) !== '' || trim((string)($cur['bank_account'] ?? '')) !== '';
+            echo $payable ? "  SONUC: odeme kutusu artik basilabilir\n"
+                          : "  SONUC: hesap numarasi hala YOK -- odeme kutusu bos cikar\n";
+            PHPEOF
+            cd ~/public_html
+            cp /tmp/vestra_platwrite.php ./vestra_platwrite_tmp.php
+            php ./vestra_platwrite_tmp.php
+            rc=$?
+            rm -f ./vestra_platwrite_tmp.php /tmp/vestra_platwrite.php
+            exit $rc
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Bir musterinin FATURA ADRESINI yaz. Panelde bunun formu var (Users -> Edit
+  # billing details); bu is akisi ayni isi operator adina yapiyor.
+  #
+  # Neden bu bilgi girdi olarak gecirilebiliyor da banka bilgileri gecirilemiyor:
+  # burada yazilan sey bir ISLETME ADRESI -- zaten faturanin uzerinde, gumruk
+  # beyaninda ve kargo etiketinde gorunuyor, gizli bir veri degil. Banka
+  # routing+hesap ikilisi ise ABD'de ACH borclandirmaya yetiyor; o, acik bir
+  # log'a yazilamaz ve secret uzerinden gider (yukaridaki update-platform-bank).
+  #
+  # EIN bilerek BURADA YOK: zaten girilmis durumda ve gereksiz yere log'a
+  # dusurmenin anlami yok. Bos gelen alan mevcut degeri SILMEZ.
+  update-customer-billing:
+    if: github.event.inputs.task == 'customer_billing'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Müşteri fatura adresini güncelle
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          C_UID: ${{ github.event.inputs.cust_uid }}
+          C_ADDRESS: ${{ github.event.inputs.cust_address }}
+          C_COUNTRY: ${{ github.event.inputs.cust_country }}
+          C_PHONE: ${{ github.event.inputs.cust_phone }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          envs: C_UID,C_ADDRESS,C_COUNTRY,C_PHONE
+          script: |
+            cat > /tmp/vestra_custbill.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+
+            $uid = preg_replace('/[^a-f0-9]/', '', (string)getenv('C_UID'));
+            if ($uid === '') { fwrite(STDERR, "cust_uid yok\n"); exit(1); }
+
+            $acc = null;
+            foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $uid) { $acc = $a; break; } }
+            if (!$acc) { fwrite(STDERR, "hesap bulunamadi: {$uid}\n"); exit(1); }
+
+            $upd = [];
+            foreach (['address'=>'C_ADDRESS','country'=>'C_COUNTRY','phone'=>'C_PHONE'] as $field => $env) {
+              $v = trim((string)getenv($env));
+              if ($v !== '') $upd[$field] = $v;   // bos alan mevcut degeri silmez
+            }
+            if (!$upd) { fwrite(STDERR, "yazilacak alan yok\n"); exit(1); }
+
+            echo "hesap : ".($acc['company'] ?: $acc['name'] ?: $acc['email'])."\n";
+            foreach ($upd as $k => $v) {
+              printf("  %-8s %s  ->  %s\n", $k, trim((string)($acc[$k] ?? '')) ?: '(bos)', $v);
+            }
+            auth_update($uid, $upd);
+
+            /* Yazdiktan sonra GERI OKU. auth_update() sessizce basarisiz olursa
+               (dosya kilidi, izin) is "basarili" biter ve degisiklik yapildi
+               sanilir -- bu projede bugun birkac kez ayni desen cikti. */
+            $after = null;
+            foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $uid) { $after = $a; break; } }
+            $ok = true;
+            foreach ($upd as $k => $v) {
+              if (trim((string)($after[$k] ?? '')) !== $v) { $ok = false; echo "  !! {$k} yazilamadi\n"; }
+            }
+            echo $ok ? "SONUC: kayit dogrulandi\n" : "SONUC: EN AZ BIR ALAN YAZILAMADI\n";
+            exit($ok ? 0 : 1);
+            PHPEOF
+            cd ~/public_html
+            cp /tmp/vestra_custbill.php ./vestra_custbill_tmp.php
+            php ./vestra_custbill_tmp.php
+            rc=$?
+            rm -f ./vestra_custbill_tmp.php /tmp/vestra_custbill.php
+            exit $rc
+
+  account_type:
+    if: github.event.inputs.task == 'account_type'
+    runs-on: ubuntu-latest
+    steps:
+      # "Buyer olarak kayit oldum, seller hesabi kurdu" -- tipi panelden degistirmenin
+      # bir yolu yok ve yeniden kayit e-postayi "email_taken" ile kilitliyor. Bu gorev
+      # tek alani degistirir: type. Baska hicbir alana dokunulmaz; KYB durumu ve
+      # belgeler oldugu gibi kalir. E-posta log'a MASKELI yazilir.
+      - name: Hesap tipini düzelt (buyer/seller)
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          A_EMAIL: ${{ github.event.inputs.src_email }}
+          A_TYPE: ${{ github.event.inputs.acct_type }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          envs: A_EMAIL,A_TYPE
+          script: |
+            cat > /tmp/vestra_acctype.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+
+            $email = strtolower(trim((string)getenv('A_EMAIL')));
+            $type  = strtolower(trim((string)getenv('A_TYPE')));
+            if (!in_array($type, ['buyer','seller'], true)) { fwrite(STDERR, "acct_type buyer ya da seller olmali\n"); exit(1); }
+            if ($email === '') { fwrite(STDERR, "src_email yok\n"); exit(1); }
+
+            $at = strrpos($email, '@');
+            $mask = substr($email, 0, 2).str_repeat('*', max(0, ($at !== false ? $at : strlen($email)) - 2)).($at !== false ? substr($email, $at) : '');
+
+            $accs = auth_accounts(); $hit = false;
+            foreach ($accs as $i => $a) {
+              if (strtolower((string)($a['email'] ?? '')) !== $email) continue;
+              $hit = true;
+              $old = (string)($a['type'] ?? '?');
+              if ($old === $type) { echo "degisiklik yok: {$mask} zaten {$type}\n"; exit(0); }
+              $accs[$i]['type'] = $type;
+              auth_save_accounts($accs);
+              echo "TAMAM: {$mask}  {$old} -> {$type}\n";
+              echo "Not: kullanici bir sonraki giriste dogru panele yonlenir; acik oturumu varsa cikip girmesi yeterli.\n";
+              break;
+            }
+            if (!$hit) { fwrite(STDERR, "hesap bulunamadi: {$mask}\n"); exit(1); }
+            PHPEOF
+            php -l /tmp/vestra_acctype.php 2>&1
+            php /tmp/vestra_acctype.php 2>&1
+            rm -f /tmp/vestra_acctype.php
+
+  approve_buyers:
+    if: github.event.inputs.task == 'approve_buyers'
+    runs-on: ubuntu-latest
+    steps:
+      # Fiyat kapisi artik ONAY bekliyor (inc/auth.php, auth_prices_unlocked).
+      # Kural geriye donuk isletilirse mevcut alicilar bir gecede fiyati kaybederdi:
+      # belgesini yukleyip fiyat gormeye alismis hesaplar, hicbir sey yapmadiklari
+      # halde katalogu kapali bulurdu. Operator karari: gecmisteki tum alicilar tam
+      # yetkili sayilsin. Bu gorev onu yapar -- ILERIDE kaydolanlar etkilenmez,
+      # onlar normal Prufung'dan gecer.
+      #
+      # Dokunulan alanlar, hepsi onayin bilesenleri:
+      #   trade_licence talebi -> approved   (auth_trade_unlocked bunu ariyor)
+      #   kyb_status           -> approved
+      #   status               -> active
+      # SATICILARA DOKUNULMAZ: orada para tasiniyor, KYB elle yapilir.
+      - name: Mevcut alıcıları tam yetkili yap
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          A_DRY: ${{ github.event.inputs.dry }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          envs: A_DRY
+          script: |
+            cat > /tmp/vestra_apprbuy.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+
+            $DRY = strtolower(trim((string)getenv('A_DRY'))) !== 'false';
+            echo $DRY ? "== PROVA (dry=true) -- hicbir sey kaydedilmiyor ==\n"
+                      : "== GERCEK -- hesaplar guncelleniyor ==\n";
+
+            $accs = auth_accounts(); $n = 0; $skip = 0; $ts = date('c');
+            foreach ($accs as $i => $a) {
+              if ((string)($a['type'] ?? '') !== 'buyer') { $skip++; continue; }
+
+              /* E-posta LOG'A MASKELI yazilir: bu depo ve Actions kutugu herkese acik. */
+              $em = strtolower((string)($a['email'] ?? ''));
+              $at = strrpos($em, '@');
+              $mask = $em === '' ? '(adressiz)'
+                    : substr($em,0,2).str_repeat('*', max(0,($at!==false?$at:strlen($em))-2)).($at!==false?substr($em,$at):'');
+
+              $was = (string)($a['kyb_status'] ?? 'pending');
+              $reqs = (array)($a['doc_requests'] ?? []);
+              $hasTrade = false;
+              foreach ($reqs as $k => $r) {
+                if (($r['type'] ?? '') !== 'trade_licence') continue;
+                $hasTrade = true;
+                if (($r['status'] ?? '') !== 'approved') {
+                  $reqs[$k]['status'] = 'approved';
+                  $reqs[$k]['reviewed_at'] = $ts;
+                  $reqs[$k]['admin_note'] = 'Approved in bulk: account predates the approval-gated pricing rule.';
+                }
+              }
+              /* Talebi hic olmayan eski hesap: onaylanmis bir kayit ACILIYOR, cunku
+                 auth_trade_unlocked() bos listede false doner -- kyb_status'u
+                 approved yapmak tek basina kapiyi acmazdi. */
+              if (!$hasTrade) {
+                $reqs[] = ['id'=>bin2hex(random_bytes(4)),'type'=>'trade_licence',
+                           'note'=>'Existing buyer — granted before the approval-gated pricing rule.',
+                           'status'=>'approved','requested_at'=>$ts,'reviewed_at'=>$ts];
+              }
+              $accs[$i]['doc_requests'] = $reqs;
+              $accs[$i]['kyb_status']   = 'approved';
+              $accs[$i]['status']       = 'active';
+              $n++;
+              echo sprintf("  %-28s kyb: %-10s -> approved%s\n", $mask, $was, $hasTrade ? '' : '  (+trade_licence kaydi acildi)');
+            }
+
+            if (!$DRY && $n > 0) auth_save_accounts($accs);
+            echo "\nBITTI. alici: {$n}"
+               . ($DRY ? " (PROVA -- kaydedilmedi)" : " guncellendi")
+               . ", dokunulmayan (satici/admin): {$skip}\n";
+            PHPEOF
+            php -l /tmp/vestra_apprbuy.php 2>&1
+            php /tmp/vestra_apprbuy.php 2>&1
+            rm -f /tmp/vestra_apprbuy.php
+
+  request_trade_docs:
+    if: github.event.inputs.task == 'request_trade_docs'
+    runs-on: ubuntu-latest
+    steps:
+      # Otomatik talep eklenmeden ONCE acilmis hesaplarda hicbir belge kaydi yok:
+      # "onay bekliyor" yaziyor ama onlardan istenen bir sey yok. Bu is o eksigi
+      # kapatir -- talebi acar ve musteriye kendi dilinde haber verir.
+      - name: Ticari belge talebi (geriye dönük)
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DOC_DRY: ${{ github.event.inputs.dry == 'false' && '0' || '1' }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 10m
+          envs: DOC_DRY
+          script: |
+            cat > /tmp/vestra_docbackfill.php <<'PHPEOF'
+            <?php
+            /**
+             * Ticari belge talebi — GERIYE DONUK doldurma.
+             *
+             * Kayit akisi artik her yeni hesaptan trade_licence istiyor, ama otomatik talep
+             * eklenmeden once acilmis hesaplarda hicbir kayit yok: bu insanlar "onay bekliyor"
+             * bandini goruyor, oysa onlardan istenen bir sey yok ve sirada da degiller.
+             * Bekleten sey onlar degil, surecin kendisi.
+             *
+             * Bu gorev SADECE eksigi tamamlar:
+             *   - trade_licence talebi HIC olmayan hesaplara talep acar,
+             *   - musteriye kendi dilinde, kendi ulkesinin belge adiyla e-posta gonderir.
+             * trade_doc_required bayragina DOKUNMAZ: bu hesaplar fiyati gormeye devam eder.
+             * Kural yeni kayitlar icin; eskisini bir gecede kilitlemek, kaydolmus bir
+             * musteriyi cezalandirmak olurdu.
+             */
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/notify.php";
+
+            $DRY = getenv('DOC_DRY') !== '0';
+
+            $mask = function (string $e): string {
+                $at = strrpos($e, '@');
+                return substr($e, 0, 2).str_repeat('*', max(0, ($at !== false ? $at : strlen($e)) - 2)).($at !== false ? substr($e, $at) : '');
+            };
+
+            $accs = auth_accounts();
+            $targets = [];
+            foreach ($accs as $a) {
+                $mail = trim((string)($a['email'] ?? ''));
+                if ($mail === '' || !filter_var($mail, FILTER_VALIDATE_EMAIL)) continue;
+                if (($a['status'] ?? '') === 'suspended') continue;
+            /* ZATEN ONAYLI hesabi atla. Prova bunu yakaladi: 30 hesabin 11'i onaylanmis
+               durumdaydi ve filtre onlari da hedefe koyuyordu. Dogrulamasi bitmis bir
+               musteriye "belgenizi yukleyin" demek geri adim gibi gorunur ve hakli olarak
+               "ben zaten onaylanmistim" sorusunu dogurur. Talep, sirasi gelmemis olana. */
+            if (($a['kyb_status'] ?? '') === 'approved' || ($a['status'] ?? '') === 'active') continue;
+                $has = false;
+                foreach ((array)($a['doc_requests'] ?? []) as $r) {
+                    if (($r['type'] ?? '') === 'trade_licence') { $has = true; break; }
+                }
+                if ($has) continue;                       // zaten istenmis -- ikinci kez isteme
+                $targets[] = $a;
+            }
+
+            printf("===== TICARI BELGE TALEBI %s =====\n", $DRY ? '(PROVA — hicbir sey gonderilmez)' : '(GERCEK)');
+            printf("toplam hesap: %d, trade_licence talebi HIC olmayan: %d\n\n", count($accs), count($targets));
+
+            if (!$targets) { echo "Yapacak bir sey yok.\n"; exit(0); }
+
+            foreach ($targets as $a) {
+                $cc = vestra_visitor_cc($a);
+                printf("  %-30s %-7s %-9s %-3s %s\n",
+                       $mask((string)$a['email']), (string)($a['type'] ?? '?'),
+                       (string)($a['kyb_status'] ?? '?'), $cc ?: '--',
+                       auth_trade_doc_phrase($cc));
+            }
+
+            if ($DRY) { echo "\nPROVA. Gercekten acmak/gondermek icin dry=false ile calistirin.\n"; exit(0); }
+
+            /* Sifre sifirlama ve siparis bildirimleri icin pay ayrilmis olmali: bu is toplu. */
+            [$ok, $note] = vestra_mail_bulk_allowed(count($targets));
+            echo "\nkota  : {$note}\n";
+            if (!$ok) { echo "Gonderim yapilmadi.\n"; exit(1); }
+
+            $opened = 0; $sent = 0; $fail = 0;
+            foreach ($targets as $a) {
+                $uid  = (string)($a['id'] ?? '');
+                $lang = vestra_user_lang($a);
+                $cc   = vestra_visitor_cc($a);
+                $phr  = auth_trade_doc_phrase($cc);
+                $note = 'Please upload your trade licence / business registration'
+                      . ($phr !== '' ? ' ('.$phr.')' : '')
+                      . '. Wholesale prices open as soon as you upload it.';
+
+                auth_request_doc($uid, 'trade_licence', $note);
+                $opened++;
+
+                $url = 'https://vestrasales.com/'.((($a['type'] ?? '') === 'seller') ? 'seller' : 'buyer').'?tab=kyc';
+                [$s, $b, $o] = vestra_tpl_doc_requested($lang, (string)(($a['name'] ?? '') ?: (($a['company'] ?? '') ?: 'there')), $phr, $url);
+                if (vestra_send_mail((string)$a['email'], $s, $b, '', '', null, '', $o)) {
+                    $sent++;
+                    printf("  + %-30s dil=%s\n", $mask((string)$a['email']), strtoupper($lang));
+                } else {
+                    $fail++;
+                    printf("  x %-30s GONDERILEMEDI (talep yine de acildi)\n", $mask((string)$a['email']));
+                }
+            }
+
+            printf("\nBITTI. talep acildi: %d, e-posta gitti: %d, gonderilemedi: %d\n", $opened, $sent, $fail);
+            exit($fail > 0 ? 1 : 0);
+            PHPEOF
+            php -l /tmp/vestra_docbackfill.php 2>&1
+            php /tmp/vestra_docbackfill.php 2>&1
+            rm -f /tmp/vestra_docbackfill.php

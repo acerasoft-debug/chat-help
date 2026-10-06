@@ -1,0 +1,184 @@
+[
+ {
+  "_not": "Operator, 2 Eki 2026 (Gallery Dept.'in hemen ardindan): 'Casablanca urunleri de 15 ekimde stoga geliyor, onu da belirtilenlerde'. Ayni mekanizma: preorder_ship=2026-10-15 -> urun sayfasi 'Pre-orders are being accepted · dispatch mid October 2026.' (15 = ayin ortasi) ve siparis KABUL EDILMEYE devam eder. Tarih gecince not kendiliginden susar.",
+  "_nasil": "Id listesi product-batches/casablanca-tshirt.json'daki 27 ilan; parti dosyasi CANLI kaydin aynasi degil, bu yuzden kuru kosunun 'MARKA KAPSAMI' satiri markanin ham listedeki (her durum) tum ilanlarini sayip dosyada OLMAYANLARI adiyla yazar. Sonraki 9 satir Gallery Dept. (2026-10-31): gallery-dept-preorder.json 2 Eki 08:52'de UYGULANDI, burada BILEREK tekrar ediyor -- kuru kosuda 'zaten istenen durumda' cikmasi sunucudan GERI OKUMA, uygulamada no-op.",
+  "match": "csb-larch-black",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-aiiir-printed-white",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-larch-colore-tee-pink",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-casaway-white",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-aiiiiir-navy",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-sport-logo-white",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-vue-larche-organic-white",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-la-joueuse-jersey-pink",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-joueuse-organic-white",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-gradient-arch-logo-printed-black",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-larche-colore-printed-black",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-le-joueur-printed-white",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-gradient-arch-logo-white",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-le-joueure-printed-black",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-oasis-printed-white",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-men-larche-colore-printed-white",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-la-nights-black",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-la-colonne-black",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-gradient-casa-logo-white",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-larche-de-tennis-green",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-montagne-ondulee-white",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-montagne-ondulee-green",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-tennis-club-icon-lightblue",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-tennis-club-icon-navyblue",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-tennis-club-icon-white",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-way-mountain-black",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "csb-casa-way-mountain-white",
+  "expect": 1,
+  "preorder_ship": "2026-10-15"
+ },
+ {
+  "match": "gd-t01",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ },
+ {
+  "match": "gd-t02",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ },
+ {
+  "match": "gd-t03",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ },
+ {
+  "match": "gd-t04",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ },
+ {
+  "match": "gd-t05",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ },
+ {
+  "match": "gd-t06",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ },
+ {
+  "match": "gd-t07",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ },
+ {
+  "match": "gd-t08",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ },
+ {
+  "match": "gd-h01",
+  "expect": 1,
+  "preorder_ship": "2026-10-31"
+ }
+]

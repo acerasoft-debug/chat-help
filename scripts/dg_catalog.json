@@ -1,0 +1,946 @@
+[
+    {
+        "sku": "101200",
+        "model": "G8PN9ZG7NYEN0000",
+        "name": "DG Crest Embroidered T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101200.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101201",
+        "model": "G8PB8TG7K4Q",
+        "name": "Oversized Striped Technical Print T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101201.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101202",
+        "model": "G8PB8TG7K4",
+        "name": "Oversized Compass & Technical Stripe T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101202.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101203",
+        "model": "G8PL4ZG7NYY",
+        "name": "Tonal Crown Crest Polo Shirt",
+        "cat": "Polos",
+        "colors": [
+            "Black",
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101203.png",
+            "/uploads/dg/101205.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101206",
+        "model": "G8PN9T G7NWT",
+        "name": "Collegiate Milano Logo T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101206.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101207",
+        "model": "G8PN9T G7O4S",
+        "name": "\"Italian Holiday\" Scooter T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101207.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101208",
+        "model": "G8PN9T G7J6B",
+        "name": "Interlock DG Logo Print Black T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101208.png"
+        ],
+        "sizes": "S×15 · M×45 · L×45 · XL×30 · XXL×15 (carton 150)"
+    },
+    {
+        "sku": "101209",
+        "model": "G8PN9TG7M1D",
+        "name": "Oversized Vertical Logo T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101209.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101209",
+        "model": "G8PN9TG7M1D\nG",
+        "name": "Oversized Vertical Logo T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101209.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101210",
+        "model": "G8PN9TG7M3K",
+        "name": "Tonal Alphanumeric Logo T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101210.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101211",
+        "model": "G8PN9TG7M8FW",
+        "name": "\"DLC&GBN\" Abbreviation Logo T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101211.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101212",
+        "model": "G8PN9T G7NTW",
+        "name": "Contrast Plaque Logo T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101212.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101213",
+        "model": "G8PN9TG7NTWN0000",
+        "name": "Tonal Plaque Logo T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101213.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101214",
+        "model": "G8PN9ZG7M2F",
+        "name": "Oversized DG Monogram T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101214.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101215",
+        "model": "G8PN9ZG7M2FW0800",
+        "name": "Oversized DG Monogram T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101215.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101216",
+        "model": "G8PN9ZG7NYEM0464",
+        "name": "DG Crest Embroidered T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Beige"
+        ],
+        "images": [
+            "/uploads/dg/101216.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101217",
+        "model": "G8PN9ZG7NYEW0111",
+        "name": "DG Crest Embroidered T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101217.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101218",
+        "model": "G8RA2Z G7O2G",
+        "name": "DG Crest Pocket T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Beige"
+        ],
+        "images": [
+            "/uploads/dg/101218.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101219",
+        "model": "G8RK6TG7K4Y",
+        "name": "Oversized Technical Stripe Graphic T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101219.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101220",
+        "model": "G8RN8T G7NUC",
+        "name": "\"Italian Sportswear\" Crest T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White",
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101220.png",
+            "/uploads/dg/101226.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101221",
+        "model": "G8RN8TG7M2X",
+        "name": "Compass DG Monogram T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101221.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101222",
+        "model": "G8RN8TG7N4A",
+        "name": "Metallic Plaque Logo T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Red",
+            "Grey",
+            "Black",
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101222.png",
+            "/uploads/dg/101223.png",
+            "/uploads/dg/101224.png",
+            "/uploads/dg/101225.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101227",
+        "model": "G8RN8ZG7M8XW0800",
+        "name": "Oversized DG Logo T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101227.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101228",
+        "model": "G8PV1ZG7Q2NB0665",
+        "name": "Classic Logo Cotton T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101228.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101229",
+        "model": "G8RN8ZG7N4Q",
+        "name": "Tonal DG Script Embroidered T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black",
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101229.png",
+            "/uploads/dg/101230.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101231",
+        "model": "G8RN8ZG7NUB",
+        "name": "Cursive Script Logo T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black",
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101231.png",
+            "/uploads/dg/101232.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101233",
+        "model": "G8SE3TFU7EN",
+        "name": "Metallic Plaque Logo T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101233.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101234",
+        "model": "G8SN1TFU7EN",
+        "name": "Metallic Plaque Piqué Polo Shirt",
+        "cat": "Polos",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101234.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101235",
+        "model": "G8PJ4Z HU7MA",
+        "name": "Leather-Backed Metallic Plaque T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black",
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101235.png",
+            "/uploads/dg/101253.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101236",
+        "model": "G8KBAZ G7D9U",
+        "name": "Laurel Wreath Milano Italia T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White",
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101236.png",
+            "/uploads/dg/101244.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101237",
+        "model": "G8PT1T G7F2I",
+        "name": "Leather-Backed Metallic Plaque T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101237.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101238",
+        "model": "G8PE3ZG7J5Y",
+        "name": "Laurel Wreath DG Milano Embroidered T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101238.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101239",
+        "model": "G8PT1T G7JV9",
+        "name": "Leather-Backed Metallic Plaque T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Red"
+        ],
+        "images": [
+            "/uploads/dg/101239.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101240",
+        "model": "G8KBAZ G7C6R",
+        "name": "Floral Patch & Gold Monogram T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101240.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101241",
+        "model": "G8KBAZG7C6S",
+        "name": "Gradient Textured DG Logo T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White",
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101241.png",
+            "/uploads/dg/101242.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101243",
+        "model": "G8KBAZG7C7G",
+        "name": "\"Paradise of Delight\" Floral Graphic T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101243.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101245",
+        "model": "G8NC5T FUGK4",
+        "name": "Centered Leather-Backed Plaque T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101245.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101246",
+        "model": "G8NC5Z G7C8A",
+        "name": "Deconstructed Rose Motif & Gold DG Logo T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101246.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101247",
+        "model": "G80L0ZFU7EN",
+        "name": "Tipped-Collar DG Logo Polo Shirt",
+        "cat": "Polos",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101247.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101248",
+        "model": "G8OL6ZG7C8G",
+        "name": "Tonal Embroidered DG Logo T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Orange",
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101248.png",
+            "/uploads/dg/101249.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101251",
+        "model": "G8ON5ZFUGK4",
+        "name": "DG Logo Tape Relaxed T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101251.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101252",
+        "model": "G8PD7ZG7G6Q",
+        "name": "Monogram Jacquard Collar T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black",
+            "Red"
+        ],
+        "images": [
+            "/uploads/dg/101252.png",
+            "/uploads/dg/101269.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101254",
+        "model": "G8PL4T G7F2H",
+        "name": "Leather-Backed Metallic Plaque Polo Shirt",
+        "cat": "Polos",
+        "colors": [
+            "Black",
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101254.png",
+            "/uploads/dg/101255.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101256",
+        "model": "G8PL5Z FU7EQ",
+        "name": "Satin Applique DG Monogram T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101256.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101257",
+        "model": "G8PO1TFUGK4",
+        "name": "All-Over Tonal Monogram Relaxed T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101257.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101258",
+        "model": "G8PQ0Z HU7MA",
+        "name": "Tonal Raised Logo Milano T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101258.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101259",
+        "model": "G8PT1T G7G9I",
+        "name": "Tropical Sunset & DG Logo T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101259.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101260",
+        "model": "G8PT1T G7JV9 V0396",
+        "name": "Leather-Backed Metallic Plaque T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Green",
+            "Yellow"
+        ],
+        "images": [
+            "/uploads/dg/101260.png",
+            "/uploads/dg/101261.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101262",
+        "model": "G8PT1TG7F2IBA232",
+        "name": "Leather-Backed Metallic Plaque T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Blue"
+        ],
+        "images": [
+            "/uploads/dg/101262.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101263",
+        "model": "G8PT1TG7F2IS8291",
+        "name": "Leather-Backed Metallic Plaque T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Grey"
+        ],
+        "images": [
+            "/uploads/dg/101263.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101264",
+        "model": "G8PT1Z FU7EQ",
+        "name": "Tropical Hibiscus DG Logo T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101264.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101265",
+        "model": "G8PT2TG7F2I",
+        "name": "Leather-Backed Metallic Plaque V-Neck T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101265.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101266",
+        "model": "G8QI4TFU7EQ",
+        "name": "D&G Logo Re-Edition T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101266.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101267",
+        "model": "G8RA2ZG7J6F",
+        "name": "Embroidered Crest Pocket T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101267.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101268",
+        "model": "G9ABJTG7F2GBA232",
+        "name": "sweatshirt",
+        "cat": "Hoodies & Sweatshirts",
+        "colors": [
+            "Blue"
+        ],
+        "images": [
+            "/uploads/dg/101268.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101270",
+        "model": "G9OW6ZG7C8H",
+        "name": "sweatshirt",
+        "cat": "Hoodies & Sweatshirts",
+        "colors": [
+            "Blue"
+        ],
+        "images": [
+            "/uploads/dg/101270.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101271",
+        "model": "G9XH0Z FU7DU",
+        "name": "\"Secret Paradise\" Logo Hoodie",
+        "cat": "Hoodies & Sweatshirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101271.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101272",
+        "model": "G9XH2Z G7D0E",
+        "name": "Logo Print Crewneck Sweatshirt",
+        "cat": "Hoodies & Sweatshirts",
+        "colors": [
+            "White",
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101272.png",
+            "/uploads/dg/101273.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101274",
+        "model": "G9XI2ZHU7AL",
+        "name": "Embroidered DG Logo Hoodie",
+        "cat": "Hoodies & Sweatshirts",
+        "colors": [
+            "Dark Grey"
+        ],
+        "images": [
+            "/uploads/dg/101274.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101275",
+        "model": "G9YI0ZHI7WK",
+        "name": "Coral Print Hoodie",
+        "cat": "Hoodies & Sweatshirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101275.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101276",
+        "model": "G9ZK9Z FU7DU",
+        "name": "Logo Crewneck Sweatshirt",
+        "cat": "Hoodies & Sweatshirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101276.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101277",
+        "model": "L37956",
+        "name": "Leather-Backed Metallic Plaque T-Shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Red"
+        ],
+        "images": [
+            "/uploads/dg/101277.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101278",
+        "model": "G8OB2TFU7EQ",
+        "name": "Logo Print T-shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101278.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101279",
+        "model": "G8MQ3TFU7EN",
+        "name": "Men's Polo Shirt",
+        "cat": "Polos",
+        "colors": [
+            "Yellow"
+        ],
+        "images": [
+            "/uploads/dg/101279.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101280",
+        "model": "G8NB3ZFU7EQ",
+        "name": "Embossed Logo T-shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Dark Grey"
+        ],
+        "images": [
+            "/uploads/dg/101280.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101281",
+        "model": "G8NC5Z G7B9X",
+        "name": "Logo T-shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White",
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101281.png",
+            "/uploads/dg/101283.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101282",
+        "model": "G8NC5Z G7BYH",
+        "name": "Logo T-shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101282.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101284",
+        "model": "G8OA3TFU7EQ",
+        "name": "Logo T-shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black",
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101284.png",
+            "/uploads/dg/101286.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101285",
+        "model": "G8OF3Z G7B9H",
+        "name": "V-neck Logo T-shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "White"
+        ],
+        "images": [
+            "/uploads/dg/101285.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    },
+    {
+        "sku": "101287",
+        "model": "I8AEAZ G7CY1",
+        "name": "Logo T-shirt",
+        "cat": "T-Shirts",
+        "colors": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg/101287.png"
+        ],
+        "sizes": "S×20 · M×60 · L×60 · XL×40 · XXL×20 (carton 200)"
+    }
+]

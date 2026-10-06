@@ -1,0 +1,12 @@
+[
+ {
+  "match": "lac-logotrim-polo",
+  "expect": 1,
+  "sale_list": 33.22
+ },
+ {
+  "match": "lac-monogram-polo",
+  "expect": 1,
+  "sale_list": 41.18
+ }
+]

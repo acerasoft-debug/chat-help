@@ -1,0 +1,122 @@
+<?php
+/* DIL SECIMI — sira: ?lang= > vlang cerezi > Accept-Language > IP ulkesi > EN.
+   Operator sorusu (4 Eyl 2026): "IP nerenin ise dilde oranin olsun".
+   IP en SONDA duruyor ve bu bilincli: Accept-Language kisinin OKUDUGU dili
+   soyler, IP yalnizca nerede oldugunu. Bu testin isi o sirayi ve tablonun
+   dogrulugunu korumak; ag cagrisi YAPMAZ. */
+$root = __DIR__ . '/../vestra';
+require_once $root . '/inc/i18n.php';
+
+$ok = 0; $fail = 0;
+$t = function (string $n, bool $c) use (&$ok, &$fail) {
+    if ($c) { $ok++; echo "  ok   {$n}\n"; }
+    else    { $fail++; echo "  KALDI {$n}\n"; }
+};
+
+echo "== 1. Ulke -> dil tablosu ==\n";
+foreach ([
+    'DE'=>'de','AT'=>'de','LI'=>'de',
+    'FR'=>'fr','LU'=>'fr','MC'=>'fr',
+    'ES'=>'es','MX'=>'es','IT'=>'it',
+    'PT'=>'pt','BR'=>'pt',
+    'RU'=>'ru','BY'=>'ru','KZ'=>'ru','AZ'=>'ru',
+    'AE'=>'ar','SA'=>'ar','QA'=>'ar','EG'=>'ar','MA'=>'ar',
+] as $cc => $want) {
+    $t("{$cc} -> {$want}", vlang_country_lang($cc) === $want);
+}
+
+echo "\n== 2. Iki tartismali ulke, karar kayitli ==\n";
+/* Turetme yerine elle yazilmasinin sebebi bu ikisi. */
+$t('CH -> de (en buyuk dil grubu)', vlang_country_lang('CH') === 'de');
+$t('BE -> en (Flaman cogunluk; NL sitede yok)', vlang_country_lang('BE') === 'en');
+
+echo "\n== 3. Sitenin dili olmayan ulke Ingilizce'ye dusuyor ==\n";
+/* JP bu listeden 17 Eyl 2026'da CIKARILDI ve bu bilincli bir davranis degisikligi:
+   Japonca 5 Eylul'de siteye eklendi (tam sozluk) ama bu tablo guncellenmemisti,
+   yani tarayicisi dil bildirmeyen Japonyali ziyaretci -- site tamamen Japonca
+   oldugu halde -- Ingilizce goruyordu. Iddia eski ve HATALI davranisi
+   pinliyordu; bu depoda ayni sinif bir kez daha yasandi (satici kendi karsi
+   teklifini kabul edip fatura kesiyordu ve test onu koruyordu). */
+foreach (['TR','KR','CN','US','GB','NL','PL','GR','IN'] as $cc) {
+    $t("{$cc} eslesmiyor (=> en)", vlang_country_lang($cc) === null);
+}
+$t('JP -> ja (dil eklendi, tablo da eklendi)', vlang_country_lang('JP') === 'ja');
+$t('bos kod', vlang_country_lang('') === null);
+$t('cop kod', vlang_country_lang('ZZZ') === null);
+$t('kucuk harf de calisir', vlang_country_lang('de') === 'de');
+
+echo "\n== 4. Tablo yalnizca SERVIS EDILEN dilleri gosterebilir ==\n";
+/* vlang_list()'ten bir dil cikarsa o ulkeler kendiliginden Ingilizce'ye
+   dusmeli -- tabloda oksuz bir dil kodu kalmamali. */
+$langs = vlang_list();
+$bad = [];
+foreach (['DE','FR','ES','IT','PT','RU','AE','BE','CH'] as $cc) {
+    $l = vlang_country_lang($cc);
+    if ($l !== null && !isset($langs[$l])) $bad[] = $cc;
+}
+$t('tabloda servis edilmeyen dil yok', $bad === []);
+
+echo "\n== 5. Sira: IP en SONDA ==\n";
+$src = file_get_contents($root . '/inc/i18n.php');
+$t('?lang= once bakiliyor',      (bool)preg_match('/isset\(\$_GET\[.lang.\]\)/', $src));
+$t('sonra cerez',                (bool)preg_match('/\$_COOKIE\[.vlang.\]/', $src));
+$t('sonra Accept-Language',      (bool)preg_match('/\$d\s*=\s*vlang_detect\(\);/', $src));
+$t('IP yalnizca o bos donunce',  (bool)preg_match('/\$d\s*=\s*vlang_detect\(\);\s*\n\s*if\s*\(\s*\$d\s*===\s*null\s*\)\s*\$d\s*=\s*vlang_from_ip\(\);/', $src));
+
+echo "\n== 6. Maliyet korumalari ==\n";
+/* Bu uc satir olmazsa her bot ziyareti bir cografi API sorgusu olurdu. */
+$fn = (string)strstr($src, 'function vlang_from_ip');
+$t('CLI atlaniyor (cron aga cikmaz)', str_contains($fn, "PHP_SAPI === 'cli'"));
+$t('bot atlaniyor',                   str_contains($fn, 'vestra_is_bot'));
+$t('kisa zaman asimi (1 sn)',         (bool)preg_match('/vestra_ip_intel\(\$ip,\s*1\)/', $fn));
+$t('CLI kontrolu ilk sirada',
+   strpos($fn, "PHP_SAPI === 'cli'") < strpos($fn, 'security.php'));
+
+echo "\n== 7. CLI'da ag cagrisi yok ==\n";
+/* Test zaten CLI: fonksiyon burada her kosulda null donmeli ve HICBIR
+   istek yapmamali. */
+$t('CLI vlang_from_ip() null', vlang_from_ip() === null);
+
+echo "\n== 8. Dil secici: kapaliyken tek kod ==\n";
+/* Sekiz kodu yan yana basmak ust cubukta ~150px yiyordu ve dil eklendikce
+   buyuyordu. Kapali hal artik tek kod + ok; sekizi de menude. Olculdu
+   (Playwright, 4 Eyl 2026): kapali 50x21 px, menu 110x124 px, tasma yok. */
+/* Baglanti kurulurken mevcut sorgu parametreleri KORUNMALI: dil degistiren
+   ziyaretci ayni sayfada kalmali, ?cat=returns'u kaybedip SSS'nin basina
+   dusmemeli. Parametreler $_GET'ten okunuyor, REQUEST_URI'den degil. */
+$_GET = ['cat' => 'returns'];
+$_SERVER['REQUEST_URI'] = '/faq?cat=returns';
+$menu = vlang_switcher();
+$t('menu kipi <details>',        str_starts_with($menu, '<details class="langsw">'));
+$t('kapali hal tek kod tasiyor', (bool)preg_match('/<span class="lswcur">[A-Z]{2}<\/span>/', $menu));
+$t('sekiz dilin sekizi de menude', substr_count($menu, '<a class="lsw') === count(vlang_list()));
+$t('panel kendi kabinda',        str_contains($menu, '<div class="lswmenu">'));
+$t('acilir ok var',              str_contains($menu, '<svg'));
+$t('ekran okuyucu icin ad var',  str_contains($menu, 'aria-label='));
+$t('hreflang korundu',           substr_count($menu, 'hreflang=') === count(vlang_list()));
+$t('sorgu parametresi korunuyor', str_contains($menu, 'cat=returns'));
+
+$flat = vlang_switcher('dashsw', 'flat');
+$t('duz kip <details> DEGIL',    !str_contains($flat, '<details'));
+$t('duz kipte de sekiz dil',     substr_count($flat, '<a class="lsw') === count(vlang_list()));
+
+/* Ayni menu ust cubukta para birimi seciciyle yan yana duruyor; ikisinin ayni
+   CSS ve ayni "disariya tiklayinca kapan" JS'ini paylasmasi bilincli. */
+$css  = file_get_contents($root . '/inc/style.css');
+$head = file_get_contents($root . '/inc/head.php');
+$t('CSS para birimi menusuyle paylasiliyor', str_contains($css, '.cursw,.langsw{'));
+$t('eski duz .langsw kurali kalmadi',        !str_contains($css, '.langsw{display:inline-flex'));
+$t('disariya tiklayinca kapanma JS kapsiyor', str_contains($head, 'details.langsw[open]'));
+$t('RTL panel sola hizalaniyor',             str_contains($css, '[dir="rtl"] .cswmenu,[dir="rtl"] .lswmenu'));
+
+/* Ana sayfa inc/style.css YUKLEMIYOR, kendi kopyasini tasiyor: isaretleme
+   ortak bilesenden gelse de stilin orada da bulunmasi sart. */
+$home = file_get_contents($root . '/index.php');
+$t('ana sayfa ortak bileseni kullaniyor',  str_contains($home, 'vlang_switcher()'));
+$t('ana sayfada elle yazilmis liste yok',  !str_contains($home, '<span class="sep">'));
+$t('ana sayfada menu stili var',           str_contains($home, '.lswmenu{position:absolute'));
+$t('ana sayfada kapanma JS var',           str_contains($home, "details.langsw[open]"));
+
+$n = $ok + $fail;
+echo "\nTOPLAM: {$ok} gecti, {$fail} kaldi\n";
+exit($fail === 0 ? 0 : 1);

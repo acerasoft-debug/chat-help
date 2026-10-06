@@ -6,6 +6,14 @@ on:
         description: "Kontrol edilecek yol"
         required: false
         default: "/"
+      test_ip:
+        description: "IP->DIL kontrolu: bu IP'nin ulkesi cozulup hangi dile dustugu yazilir (bos = atla). Ornek: 8.8.8.8"
+        required: false
+        default: ""
+      cur_probe:
+        description: "PARA BIRIMI sondasi: kur var mi, hangi tarih/kaynak, ulke->birim tablosu, cerez yazilabiliyor mu (true/bos)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -37,7 +45,9 @@ jobs:
           UA_BOT="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
           UA_WEB="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
           PATH_="${P:-/}"
-          for L in en de fr it es; do
+          # ja 17 Eyl 2026'da eklendi: Japonya bir hedef pazar ve sayfalarin
+          # Japoncasi bu adimda HIC olculmuyordu.
+          for L in en de fr it es pt ru ar ja; do
             if [ "$L" = "en" ]; then URL="${BASE}${PATH_}"
             else
               case "$PATH_" in *\?*) URL="${BASE}${PATH_}&lang=$L";; *) URL="${BASE}${PATH_}?lang=$L";; esac
@@ -53,7 +63,14 @@ jobs:
               echo "  Googlebot UA  : normal sayfa ($(wc -c < /tmp/bot.html) bayt)"
             fi
             # Asil olcum normal tarayici kimligiyle: uye olmayan ziyaretcinin gordugu HTML.
-            curl -sS -A "$UA_WEB" --max-time 30 -o /tmp/p.html "$URL" || { echo "  CEKILEMEDI"; continue; }
+            # -L YOK, bilerek: yonlendirme IZLENMEZ, OLCULUR. Durum kodu ve Location
+            # basiliyor (29 Eyl 2026: sekiz Burberry ilani tek ilana katlandi, eski
+            # id'ler 301 ile yenisine gidiyor -- "sayfa 0 bayt" bunu gostermiyordu,
+            # "HTTP 301 -> /product?id=..." gosteriyor).
+            curl -sS -A "$UA_WEB" --max-time 30 -o /tmp/p.html -D /tmp/p.hdr "$URL" || { echo "  CEKILEMEDI"; continue; }
+            CODE=$(sed -n 's/^HTTP\/[0-9.]* \([0-9][0-9][0-9]\).*/\1/p' /tmp/p.hdr | tail -1)
+            LOC=$(grep -i '^location:' /tmp/p.hdr | tail -1 | sed 's/^[Ll]ocation: *//' | tr -d '\r')
+            echo "  HTTP ${CODE:-?}${LOC:+  ->  $LOC}"
             if grep -qiE 'one moment|just a moment|checking your browser|challenge-platform' /tmp/p.html 2>/dev/null; then
               echo "  Tarayici UA   : CHALLENGE ($(wc -c < /tmp/p.html) bayt) — CIDDI: sayfa kimseye acilmiyor"
             else
@@ -68,14 +85,32 @@ jobs:
             grep -oiE '<meta name="keywords" content="[^"]*"' /tmp/p.html | head -1 | fold -w 150 -s | sed 's/^/  /'
             echo "  --- hreflang ---"
             grep -c 'rel="alternate" hreflang' /tmp/p.html | sed 's/^/  adet: /'
+            if [ "$L" = "en" ]; then
+              # Search Console / Bing / Yandex sahiplik etiketleri .env'den gelir
+              # (GOOGLE_SITE_VERIFICATION, BING_SITE_VERIFICATION, YANDEX_SITE_VERIFICATION;
+              # inc/head.php). Etiket yoksa operator adimi henuz yapilmamis demektir.
+              echo "  --- site dogrulama etiketleri (.env) ---"
+              for V in google-site-verification msvalidate.01 yandex-verification; do
+                if grep -qiE "<meta name=\"$V\" content=\"[^\"]+\"" /tmp/p.html; then
+                  echo "  VAR  $V ($(grep -oiE "<meta name=\"$V\" content=\"[^\"]+\"" /tmp/p.html | head -1 | grep -oE 'content="[^"]+"' | cut -c10-17)…)"
+                else
+                  echo "  YOK  $V"
+                fi
+              done
+            fi
             echo "  --- JSON-LD knowsAbout ---"
             grep -oE '"knowsAbout":\[[^]]*\]' /tmp/p.html | head -1 | fold -w 150 -s | sed 's/^/  /'
             echo
             # Marka anahtar kelimesi gercekten var mi? Dile gore "toptan" sozcugu degisiyor.
             case "$L" in
-              de) W="Großhandel";; fr) W="en gros";; it) W="ingrosso";; es) W="al por mayor";; *) W="wholesale";;
+              de) W="Großhandel";; fr) W="en gros";; it) W="ingrosso";; es) W="al por mayor";; pt) W="por grosso";; ru) W="оптом";; ar) W="بالجملة";; ja) W="卸売";; *) W="wholesale";;
             esac
             echo "  --- kontrol ---"
+            # Ana sayfadaki marka anahtar kelimeleri stok derinligine gore ILK 12 marka
+            # ile sinirli (index.php: vestra_seo_brand_keywords($lang, 12)); 13. sira ve
+            # sonrasi ana sayfada YOK cikar ve bu bir hata DEGIL -- o markanin kendi
+            # /wholesale/<marka> sayfasi ve /b2b/<kategori> sayfalari tam listeyi tasir.
+            # 4 Eyl 2026 canli: Valentino ana sayfada YOK, /b2b/sneakers'ta OK; ikisi de dogru.
             for B in Balenciaga Burberry Gucci DSQUARED2 Valentino Fendi; do
               if grep -qiE "$B[^,\"]*$W" /tmp/p.html; then
                 echo "  OK   \"$B $W\" sayfada var"
@@ -104,7 +139,10 @@ jobs:
 
       - name: Sunucunun kendi ürettiği HTML (WAF'ı atlayarak)
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          SEO_PATH: ${{ github.event.inputs.path }}
         with:
+          envs: SEO_PATH
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -116,11 +154,78 @@ jobs:
             # "etiketler uretiliyor mu" sorusu ile "disaridan gorunuyor mu" sorusu
             # birbirinden ayriliyor -- ikisi farkli sorun ve farkli cozum.
             cd ~/public_html
+            # Once ISTENEN YOLU Apache uzerinden cek. Bu adim uzun sure `path` girdisini
+            # yok sayip her zaman index.php'yi render etti: /wholesale/lacoste sorulup
+            # ana sayfa dogrulandi ve rapor "kontrol edildi" dedi. Localhost'a curl,
+            # .htaccess'i ve yeniden yazma kurallarini da gercekten calistirir --
+            # `php -r include` bunlarin hicbirini test etmez.
+            P="${SEO_PATH:-/}"
+            echo "=================== $P (Apache, localhost) ==================="
+            # `curl -H "Host: ..." http://127.0.0.1/` KULLANMA. Bu paylasimli sunucuda
+            # duz HTTP ile localhost'a giden istek bu sitenin vhost'una dusmuyor ve HER
+            # yol icin "File Not Found" donuyor -- calistigini bildigimiz /shop.php dahil.
+            # Bir olcum araci her seye 404 diyorsa olctugu sey kendisidir: bu satir
+            # yuzunden yeni bir sayfanin canlida kirik oldugu rapor edildi, oysa kirik
+            # olan olcumdu. --resolve + https, SNI gonderdigi icin dogru vhost'a duser.
+            H=$(curl -sk --max-time 25 --resolve "vestrasales.com:443:127.0.0.1" \
+                  "https://vestrasales.com${P}" -w '\n__CODE__%{http_code}')
+            # Kontrol: bilinen calisan bir sayfa. Bu 200 degilse asagidaki hicbir sonuc
+            # sayfa hakkinda bir sey soylemez, sadece kanal hakkinda soyler.
+            CTRL=$(curl -sk --max-time 20 --resolve "vestrasales.com:443:127.0.0.1" \
+                  "https://vestrasales.com/shop" -o /dev/null -w '%{http_code}')
+            echo "  [kontrol /shop = $CTRL]"
+            # 4 Eyl 2026: --resolve ile 127.0.0.1:443'e giden istek bu barindirmada
+            # ARTIK bu sitenin vhost'una dusmuyor: "/" icin "Coming Soon" varsayilan
+            # sayfasi, her baska yol icin "File Not Found" donuyor -- /shop dahil.
+            # Ayni dakikada disaridan (WAF uzerinden) cekilen /b2b/sneakers 8 dilde de
+            # 200 ve dogru basliktaydi. Yani kontrol 200 degilse asagidaki kod/baslik
+            # KANAL hakkindadir, sayfa hakkinda degil; olcum olarak ustteki dis adim gecerli.
+            if [ "$CTRL" != "200" ]; then
+              echo "  !! KANAL BOZUK: localhost bu sitenin vhost'una dusmuyor (kontrol /shop = $CTRL)."
+              echo "  !! Asagidaki HTTP kodu ve baslik SAYFAYI degil KANALI olcer. Gecerli olcum: yukaridaki dis (internet) adim."
+            fi
+            echo "  HTTP $(printf '%s' "$H" | sed -n 's/.*__CODE__//p')  |  $(printf '%s' "$H" | wc -c) bayt"
+            for TAG in '<title>[^<]*' 'rel="canonical" href="[^"]*"' '<h1[^>]*>[^<]*'; do
+              printf '%s' "$H" | grep -oiE "$TAG" | head -1 | sed 's/^/  /'
+            done
+            printf '%s' "$H" | grep -c 'application/ld+json' | sed 's/^/  JSON-LD blok: /'
+            printf '%s' "$H" | grep -oE 'hreflang="[a-z-]+"' | sort -u | tr '\n' ' ' | sed 's/^/  hreflang: /'
+            echo
+
+            # 404 iki cok farkli sebepten gelir ve ikisinin cozumu ayridir: ya dosya
+            # sunucuya hic gitmemistir (deploy sorunu), ya da .htaccess'teki yeniden
+            # yazma kurali yoktur/eslesmiyordur (yonlendirme sorunu). Tahmin etmemek
+            # icin ikisini de yaziyoruz.
+            case "$(printf '%s' "$H" | sed -n 's/.*__CODE__//p')" in
+              404|403|500)
+                echo "  -- neden? --"
+                F="$(printf '%s' "$P" | cut -d/ -f2)"
+                ls -l "$HOME/public_html/${F}.php" 2>&1 | sed 's/^/  dosya: /'
+                grep -n "RewriteRule.*${F}" "$HOME/public_html/.htaccess" 2>/dev/null \
+                  | sed 's/^/  kural: /' || echo "  kural: .htaccess'te ${F} icin kural YOK"
+                ls -l "$HOME/public_html/.htaccess" 2>&1 | sed 's/^/  htaccess: /'
+                # Ayni yoldaki bir KLASOR kurali olduruyor mu? Bu barindirmada /shop
+                # tam olarak boyle kirilmisti: public_html/shop/ ikinci bir sitenin
+                # koku ve kendi RewriteEngine'ini tasiyor; Apache alt dizin kendi
+                # rewrite yapilandirmasini tanimlayinca ustunu DEVRALMIYOR, dolayisiyla
+                # ust .htaccess'teki kural o istek icin hic degerlendirilmiyor.
+                ls -ld "$HOME/public_html/${F}" 2>&1 | sed 's/^/  ayni adli klasor: /'
+                ls -l  "$HOME/public_html/${F}/.htaccess" 2>&1 | sed 's/^/  o klasorun htaccess: /'
+                # PHP dosyasina DOGRUDAN istek: calisiyorsa sorun yalnizca yonlendirmede.
+                D=$(curl -sk --max-time 20 --resolve "vestrasales.com:443:127.0.0.1" \
+                      "https://vestrasales.com/${F}.php?brand=$(printf '%s' "$P" | cut -d/ -f3)" \
+                      -w '\n__CODE__%{http_code}')
+                echo "  dogrudan ${F}.php: HTTP $(printf '%s' "$D" | sed -n 's/.*__CODE__//p')  |  $(printf '%s' "$D" | wc -c) bayt"
+                printf '%s' "$D" | grep -oiE '<title>[^<]*' | head -1 | sed 's/^/    /'
+                ;;
+            esac
+            echo
+
             # DIKKAT: `QUERY_STRING=... php index.php` ile $_GET DOLMAZ -- PHP CLI
             # query string'i ayristirmaz. Ilk denemede tam bu yuzden en/de/it ayni
             # Ingilizce ciktiyi verdi ve sanki ceviri bozukmus gibi gorundu. $_GET'i
             # dogrudan kuruyoruz.
-            for L in en de it es fr; do
+            for L in en de it es fr pt ru ar ja; do
               echo "=================== $L ==================="
               OUT=$(php -r '
                 $l = $argv[1];
@@ -142,3 +247,184 @@ jobs:
             echo "  cikti: $(printf '%s' "$SM" | wc -c) bayt, $(printf '%s' "$SM" | grep -c '<loc>') URL"
             printf '%s' "$SM" | grep -iE 'fatal|error|warning' | head -3 | sed 's/^/  HATA: /'
             printf '%s' "$SM" | head -4 | sed 's/^/  /'
+
+      - name: Pazar sayfaları + hreflang kapsamı
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            # Salt-okunur. Uc soruyu ayri ayri cevapliyor, cunku uculunun cozumu ayri:
+            #   (a) yeni kod sunucuya INDI mi -- fonksiyonun varligina degil, gercek
+            #       bir cagriya bakiyoruz; eski bir kopya da parse edilir (KURAL 21b),
+            #   (b) pazar sayfalari gercekten CIZILIYOR mu ve olgulari dogru mu,
+            #   (c) hreflang hangi ULKELERI kapsiyor -- "48 etiket var" demek hangi
+            #       ulkenin kapsandigini SOYLEMIYOR, bu satir yuzunden 13 AB ulkesi
+            #       aylarca etiketsiz kaldi.
+            cd ~/public_html
+            php -r '
+              $_SERVER["HTTP_HOST"]="vestrasales.com"; $_SERVER["REQUEST_METHOD"]="GET";
+              require "inc/products.php";
+              if (!function_exists("vestra_seo_markets")) { echo "  *** DEPLOY INMEMIS: vestra_seo_markets yok\n"; exit; }
+              $m = vestra_seo_markets();
+              echo "  pazar tablosu: ".count($m)." giris\n";
+              foreach ($m as $slug => $mk) {
+                $f = vestra_seo_market_facts($mk);
+                printf("  %-22s birim=%-4s indirim=%4s asgari=%-7s kapi=%-6s dil=%-10s etiket=%d\n",
+                  $slug, $f["currency"] ?: "-",
+                  $f["discount"] > 0 ? rtrim(rtrim(number_format($f["discount"],2,".",""),"0"),".")."%" : "-",
+                  $f["min_order_usd"] > 0 ? "US$".number_format($f["min_order_usd"],0,".",",") : "-",
+                  $f["auto_open"] ? "acik" : "normal",
+                  implode(",", $f["langs"]), count($f["hreflang"]));
+              }
+              $tags = vlang_hreflang_map(); $ccs = [];
+              foreach (array_keys($tags) as $tg) if (strlen($tg) === 5) $ccs[substr($tg,3)] = true;
+              echo "  hreflang: ".count($tags)." etiket, ".count($ccs)." ulke\n";
+              $eu = ["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IE","IT","LV","LT","LU","MT","NL","PL","PT","RO","SK","SI","ES","SE","CH","NO","IS","LI","GB"];
+              $miss = array_values(array_filter($eu, fn($c) => !isset($ccs[$c])));
+              echo "  AB27+EFTA+GB kapsami: ".(count($eu)-count($miss))."/".count($eu).($miss ? "  *** EKSIK: ".implode(",",$miss)." ***" : "  (tam)")."\n";
+              $org = vestra_seo_org_ld();
+              echo "  Organization: knowsAbout ".count($org["knowsAbout"])." (marka ".count(vestra_seo_brands(0))."), areaServed ".count($org["areaServed"])." giris\n";
+            ' 2>&1 | sed 's/^/  /'
+            echo
+            # Sayfalar Apache uzerinden gercekten aciliyor mu? Localhost bu barindirmada
+            # bu sitenin vhost'una dusmuyor (yukarida yazili), o yuzden burada yalnizca
+            # DOSYA ve KURAL kontrolu yapiliyor; gercek HTTP olcumu disaridan.
+            ls -l market.php 2>&1 | sed "s/^/  dosya: /"
+            grep -n "wholesale-to" .htaccess 2>/dev/null | sed "s/^/  kural: /" || echo "  kural: YOK"
+
+      - name: IP → dil seçimi (ziyaretçinin ülkesinden)
+        if: ${{ github.event.inputs.test_ip != '' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SEO_TEST_IP: ${{ github.event.inputs.test_ip }}
+        with:
+          envs: SEO_TEST_IP
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 2m
+          script: |
+            # Salt-okunur. Dil secimi sirasi: ?lang= > cerez > Accept-Language > IP
+            # ulkesi > EN. Bu adim SON halkayi olcer, cunku tek canlida
+            # dogrulanabilen kisim o: cografi API sunucudan erisilebiliyor mu ve
+            # donen ulke kodu hangi dile dusuyor. Tablo tarafi zaten
+            # tests/lang_from_ip_test.php ile korunuyor.
+            cd ~/public_html
+            php -r '
+              require "inc/i18n.php";
+              require "inc/security.php";
+              $ip = getenv("SEO_TEST_IP");
+              echo "== cografi API (sunucudan) ==\n";
+              $t0 = microtime(true);
+              $i  = vestra_ip_intel($ip, 3);
+              $ms = round((microtime(true) - $t0) * 1000);
+              $cc = (string)($i["cc"] ?? "");
+              printf("  %s -> ulke=%s (%s) sehir=%s  [%d ms%s]\n", $ip,
+                     $cc !== "" ? $cc : "COZULEMEDI", (string)($i["country"] ?? "-"),
+                     (string)($i["city"] ?? "-"), $ms, $ms < 5 ? ", onbellekten" : "");
+              if ($cc === "") { echo "  !! ulke cozulemedi: ziyaretci Ingilizce gorur (guvenli varsayilan)\n"; }
+              else {
+                $l = vlang_country_lang($cc);
+                printf("  bu ulkeden gelen ziyaretci -> dil %s\n",
+                       $l ?? "en (tabloda yok, Ingilizce)");
+                /* Ayni cografi cevap iki karar veriyor (dil VE para birimi);
+                   ikisini ayri kosularda olcmek, birinin calisip otekinin
+                   calismadigi hali gizlerdi. */
+                if (is_readable("inc/money.php")) {
+                  require_once "inc/money.php";
+                  printf("  bu ulkeden gelen ziyaretci -> birim %s\n",
+                         vestra_currency_for_cc($cc));
+                }
+              }
+              echo "\n== tablo ornekleri (ag YOK) ==\n";
+              foreach (["DE","CH","BE","FR","ES","IT","PT","BR","RU","KZ","AE","SA","TR","US"] as $c)
+                printf("  %-2s -> %s\n", $c, vlang_country_lang($c) ?? "en");
+            '
+
+      - name: Para birimi (kur durumu + ülke tablosu + çerez)
+        if: ${{ github.event.inputs.cur_probe != '' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 2m
+          script: |
+            # Salt-okunur. UC AYRI SEYI olcuyor, cunku "para birimi degismiyor"
+            # sikayeti bu ucunden herhangi birinden gelebilir ve ayni gorunur:
+            #   1) KUR yoksa vestra_money() sessizce EUR basar -- secim calisir,
+            #      etiket degisir, RAKAM degismez. (Dosyanin kendi kurali: yanlis
+            #      kurla fiyat gostermektense EUR goster.)
+            #   2) CEREZ yazilamiyorsa secim bir sonraki linkte kaybolur.
+            #   3) IP ulkesi cozulemiyorsa ilk ziyaret hep EUR ile acilir.
+            # Basilan her sey acik veri: ECB kuru, ulke->birim tablosu, dosya
+            # zaman damgasi. Kisiye ait alan yok.
+            cd ~/public_html
+            php -r '
+              require "inc/money.php";
+              echo "== KUR DURUMU ==\n";
+              $st  = vestra_fx_state();
+              $r   = (array)($st["rates"] ?? []);
+              $src = (string)($st["source"] ?? "");
+              printf("  kaynak : %s\n", $src !== "" ? $src : "*** YOK — her fiyat EUR basar ***");
+              printf("  tarih  : %s\n", (string)($st["date"] ?? "-"));
+              foreach (array_keys(vestra_currencies()) as $c) {
+                if ($c === "EUR") continue;
+                $v = (float)($r[$c] ?? 0);
+                printf("  1 EUR = %-4s %s\n", $c, $v > 0 ? number_format($v, 4) : "*** KUR YOK ***");
+              }
+              /* 10 KURUSA YUVARLAMA canliya indi mi (17 Eyl 2026). Fonksiyonun
+                 VARLIGINA bakmak yetmez -- eski bir kopya da parse edilir; bu
+                 yuzden gercek bir tutar cevrilip YAZDIRILIYOR. Kur yoksa
+                 vestra_money() zaten EUR basar, o yuzden satir onu da soyluyor. */
+              echo "\n== CEVRILMIS FIYAT: 10 KURUSA YUVARLAMA ==\n";
+              if (!function_exists("vestra_money_round")) {
+                echo "  *** vestra_money_round YOK — deploy inmemis ***\n";
+              } else {
+                printf("  adim: %s\n", number_format(VESTRA_MONEY_STEP, 2));
+                foreach (array_keys(vestra_currencies()) as $c) {
+                  if ($c === "EUR") continue;
+                  $v = (float)($r[$c] ?? 0);
+                  if ($v <= 0) { printf("  %-4s kur yok -> vestra_money() EUR basar\n", $c); continue; }
+                  /* Katalogda gercekten duran bir fiyat (Fred Perry M3600). */
+                  $raw = 39.00 * $v;
+                  printf("  %-4s 39,00 EUR -> ham %s -> ekranda %s  %s\n", $c,
+                         number_format($raw, 4), vestra_money(39.00, $c),
+                         ((int)round(vestra_money_round($raw, $c) * 100) % 10 === 0) ? "[10 kurusun kati]" : "*** DUZ DEGIL ***");
+                }
+                /* Not yalnizca CEVRIM YAPILIYORKEN cikiyor. CLI tarafinda secim
+                   olmadan birim EUR kalir ve not zaten bos doner -- yani hicbir
+                   sey olcmeden "bos" yazardik. Birim burada acikca seciliyor. */
+                $_GET["cur"] = "USD";
+                $n = vestra_money_note();
+                printf("  not: %s\n", $n !== "" ? (str_contains($n, "10 cents") || str_contains($n, "10 ") ? "yuvarlamayi SOYLUYOR" : "*** yuvarlamayi soylemiyor ***") : "(EUR gorende bos — dogru)");
+              }
+
+              $f = __DIR__."/data/fx_rates.json";
+              if (is_readable($f)) {
+                $j = json_decode((string)file_get_contents($f), true) ?: [];
+                printf("  onbellek: ts=%s  fail_ts=%s  anahtarlar=%s\n",
+                  !empty($j["ts"]) ? gmdate("Y-m-d H:i", (int)$j["ts"])."Z" : "-",
+                  !empty($j["fail_ts"]) ? gmdate("Y-m-d H:i", (int)$j["fail_ts"])."Z" : "-",
+                  implode(",", array_keys($j)));
+              }
+
+              echo "\n== ULKE -> PARA BIRIMI (ag YOK) ==\n";
+              foreach (["DE","FR","IT","ES","PL","GB","CH","US","CA","AU","TR","AE","SA","JP","SG","BR"] as $c)
+                printf("  %-2s -> %s\n", $c, vestra_currency_for_cc($c));
+
+              echo "\n== SECIM KALICI MI ==\n";
+              printf("  vestra_currency_remember() : %s\n",
+                function_exists("vestra_currency_remember") ? "VAR (deploy indi)" : "*** YOK — deploy inmemis ***");
+              $src2 = (string)@file_get_contents(__DIR__."/inc/money.php");
+              printf("  money.php yuklenirken cagriliyor : %s\n",
+                (bool)preg_match("/^vestra_currency_remember\(\);/m", $src2) ? "EVET" : "*** HAYIR ***");
+              printf("  vestra_currency() icinde ikinci setcookie : %s\n",
+                substr_count($src2, "setcookie(\x27vcur\x27") === 1 ? "yok (tek yazici)" : "*** VAR — iki kopya ***");
+            '

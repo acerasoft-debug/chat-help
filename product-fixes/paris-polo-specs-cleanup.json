@@ -1,0 +1,12 @@
+[
+ {
+  "match": "lac-polo-paris",
+  "expect": 1,
+  "specs_remove": [
+   "Dropshipping",
+   "Dropship size run (per colour)",
+   "Dropship price (per piece)",
+   "Dropship shipping"
+  ]
+ }
+]

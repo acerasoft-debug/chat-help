@@ -7,6 +7,11 @@ name: Kayıt durumunu kontrol et (salt okunur)
 # ve ayrıca operatörün kendi (acerasoft@gmail.com) test hesabının detayı.
 on:
   workflow_dispatch:
+    inputs:
+      account_probe:
+        description: "TEK HESAP SONDASI: isim/şirket/e-posta parçası (ör. kuku). Boş = normal rapor. Çıktı MASKELİ — tam e-posta/isim asla loga yazılmaz."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -25,6 +30,12 @@ jobs:
           echo ""
           echo "== genel son event'ler (son 20, herhangi bir alici) =="
           curl -sS "https://api.brevo.com/v3/smtp/statistics/events?limit=20" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
+          echo ""
+          echo "== BUGUN Brevo uzerinden gonderilen TOPLAM e-posta (kampanya + islemsel) =="
+          # Brevo'nun kendi sayaci: gunluk 300 limitine sayilan gercek rakam budur.
+          TODAY=$(date -u +%F)
+          curl -sS "https://api.brevo.com/v3/smtp/statistics/aggregatedReport?startDate=${TODAY}&endDate=${TODAY}" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
           echo ""
           echo "== kayitli sender listesi (dogrulanmis mi degil mi) =="
@@ -132,6 +143,291 @@ jobs:
             } else {
               echo "  hic calismamis.\n";
             }
+
+            echo "\n== supheli/garbled email adresleri (skip_emails icin tam byte'lar) ==\n";
+            foreach ($leads as $l) {
+              $e = (string)($l['email'] ?? '');
+              if ($e !== '' && preg_match('/[^\x20-\x7E]|\*/', $e)) {
+                echo "  company=" . json_encode($l['company'] ?? '', JSON_UNESCAPED_SLASHES) .
+                     " email(json)=" . json_encode($e, JSON_UNESCAPED_SLASHES) .
+                     " email(hex)=" . bin2hex($e) . "\n";
+              }
+            }
+
+            echo "\n== henuz gonderilmemis leadler (ilk 40; tam sayi asagidaki OZET'te) ==\n";
+            $pending = array_values(array_filter($leads, fn($l) =>
+              ($l['status'] ?? '') !== 'contacted' && ($l['last_contacted_at'] ?? '') === '' && ($l['email'] ?? '') !== ''
+            ));
+            foreach (array_slice($pending, 0, 40) as $l) {
+              echo "  * " . ($l['company'] ?? '?') . " | ulke=" . ($l['country'] ?? '-') .
+                   " | category=" . (($l['category'] ?? '') !== '' ? $l['category'] : '(bos)') .
+                   " | source=" . ($l['source'] ?? '?') . "\n";
+            }
+            if (count($pending) > 40) echo "  ... (+" . (count($pending) - 40) . " tane daha)\n";
+
+            /* SUMMARY LAST: the pending list above can run to hundreds of lines and was pushing
+               the counts out of the readable tail of the job log — the one number anyone opens
+               this report for. Keep it at the very bottom. */
+            $sent = 0; $notSent = 0; $unsub = 0;
+            foreach ($leads as $l) {
+              if (($l['status'] ?? '') === 'unsubscribed') { $unsub++; continue; }
+              if (($l['last_contacted_at'] ?? '') !== '' || ($l['status'] ?? '') === 'contacted') $sent++; else $notSent++;
+            }
+            /* Kampanya e-postalarinin GUNE gore dagilimi. "Bugun kac gitti?" sorusunun
+               cevabi tek toplam sayidan cikmiyor -- last_contacted_at damgasini gune
+               gore saymak gerekiyor. */
+            $byDay = [];
+            foreach ($leads as $l) {
+              $ts = (string)($l['last_contacted_at'] ?? '');
+              if ($ts === '') continue;
+              $d = substr($ts, 0, 10);
+              if ($d !== '') $byDay[$d] = ($byDay[$d] ?? 0) + 1;
+            }
+            krsort($byDay);
+            echo "\n== kampanya e-postasi gonderimi (gune gore, son 10 gun) ==\n";
+            $today = date('Y-m-d');
+            foreach (array_slice($byDay, 0, 10, true) as $d => $c) {
+              echo "  {$d}: {$c}" . ($d === $today ? "   <-- BUGUN" : "") . "\n";
+            }
+            $todayCount = $byDay[$today] ?? 0;
+
+            /* "Bunlar outlet miydi?" gibi sorulari veriyle cevaplamak icin: SON gonderilen
+               batch'in (son 2 saat) kaynak/kategori dagilimi -- gonderim loglari kaynagi
+               yazmiyor, bu yuzden last_contacted_at zaman damgasindan geriye dogru bakiyoruz. */
+            echo "\n== SON GONDERIM (son 2 saat) -- kaynak/kategori dagilimi ==\n";
+            $cutoff = time() - 2*3600;
+            $recentSrc = []; $recentCat = []; $recentCount = 0;
+            foreach ($leads as $l) {
+              $ts = strtotime((string)($l['last_contacted_at'] ?? ''));
+              if (!$ts || $ts < $cutoff) continue;
+              $recentCount++;
+              $s = $l['source'] ?? '(yok)'; $recentSrc[$s] = ($recentSrc[$s] ?? 0) + 1;
+              $c = trim((string)($l['category'] ?? '')); $recentCat[$c !== '' ? $c : '(kategorisiz)'] = ($recentCat[$c !== '' ? $c : '(kategorisiz)'] ?? 0) + 1;
+            }
+            echo "son 2 saatte gonderilen: {$recentCount}\n";
+            arsort($recentSrc);
+            echo "kaynaga gore:\n"; foreach ($recentSrc as $s => $c) echo "  {$s}: {$c}\n";
+            arsort($recentCat);
+            echo "kategoriye gore:\n"; foreach ($recentCat as $c => $n) echo "  {$c}: {$n}\n";
+
+            echo "\n\n================= OZET =================\n";
+            echo "BUGUN gonderilen kampanya e-postasi: {$todayCount}\n";
+            echo "TOPLAM lead                : " . count($leads) . "\n";
+            echo "E-POSTA GONDERILDI (gercek): {$sent}\n";
+            echo "henuz gonderilmedi         : {$notSent}\n";
+            echo "abonelikten cikti          : {$unsub}\n";
+            echo "========================================\n";
             PHPEOF
             php /tmp/vestra_regcheck.php
             rm -f /tmp/vestra_regcheck.php
+
+      # SON adim olarak duruyor: Brevo cikti'si log'un okunabilir kuyrugunda kalsin.
+      # Bastaki curl adimlarinin cikti'si, aradaki uzun PHP echo'sunun altinda kaliyor.
+      - name: Brevo plan + kota (gunluk limit gercekten var mi?)
+        env:
+          MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
+        run: |
+          TODAY=$(date -u +%F)
+          echo "== hesap plani (ucretsiz mi, odemeli mi -- gunluk 300 limiti buna bagli) =="
+          curl -sS "https://api.brevo.com/v3/account" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
+          echo ""
+          echo "== BUGUN (${TODAY}) Brevo uzerinden giden TOPLAM (kampanya + islemsel) =="
+          curl -sS "https://api.brevo.com/v3/smtp/statistics/aggregatedReport?startDate=${TODAY}&endDate=${TODAY}" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
+          echo ""
+          # Hard bounce = adres kalici olarak yok. Bu oran yukselince saglayici hesabi
+          # askiya alir ve KAMPANYA ile birlikte siparis onayi / e-posta dogrulama da
+          # kesilir. Asagidaki listeyi send-outreach'in mark_bounced girdisine verip
+          # o leadleri olu isaretleyin -- bir daha denenmesinler.
+          START=$(date -u -d '-7 days' +%F)
+          echo "== HARD BOUNCE eden adresler (${START} .. ${TODAY}) — send-outreach > mark_bounced icin =="
+          curl -sS "https://api.brevo.com/v3/smtp/statistics/events?event=hardBounces&startDate=${START}&endDate=${TODAY}&limit=500" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" \
+            | python3 -c 'import sys,json; e=json.load(sys.stdin).get("events") or []; a=sorted({(x.get("email") or "").strip().lower() for x in e if (x.get("email") or "").strip()}); print("tekil adres:",len(a)); print(", ".join(a))'
+
+      # Gutschein sistemi CANLI kodda gercekten calisiyor mu + kayitli hangi musteriye
+      # ne gidecek. Salt-okunur: kod URETMEZ, e-posta GONDERMEZ. Kendi test kodunu
+      # bellekte degil gercek dosyada olusturup sonunda geri siler, cunku "deploy edilen
+      # surum calisiyor mu" sorusunun cevabi ancak sunucudaki dosyalarla alinabilir.
+      - name: Gutschein sistemi kendi kendini test etsin + kampanya önizlemesi (salt-okunur)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_voucher_selftest.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            require_once __DIR__.'/inc/i18n.php';
+            require_once __DIR__.'/inc/vouchers.php';
+
+            $ok=0; $bad=0;
+            $chk=function($label,$got,$want) use (&$ok,&$bad){
+              $g=is_float($got)?number_format($got,2,'.',''):var_export($got,true);
+              $w=is_float($want)?number_format($want,2,'.',''):var_export($want,true);
+              if($g===$w){$ok++; echo "  ok   {$label} = {$g}\n";}
+              else {$bad++; echo "  HATA {$label} = {$g} (beklenen {$w})\n";}
+            };
+
+            echo "== CANLI KOD KENDI KENDINI TEST EDIYOR ==\n";
+            $TEST='VES-SELFTEST-DELETEME';
+            $all=voucher_all(); $had=isset($all[$TEST]);
+            voucher_create(['code'=>$TEST,'type'=>'percent','value'=>5,'email'=>'selftest@vestrasales.invalid',
+                            'first_order_only'=>true,'max_uses'=>1,'expiry'=>date('Y-m-d',strtotime('+1 year')),
+                            'campaign'=>'selftest']);
+
+            $v=voucher_validate($TEST,'selftest@vestrasales.invalid',1000);
+            $chk('gecerli kod kabul edildi', is_array($v), true);
+            $chk('1000 uzerinden %5', is_array($v)?voucher_discount($v,1000):-1.0, 50.00);
+            $chk('kucuk sepette %5 (10 EUR)', is_array($v)?voucher_discount($v,10):-1.0, 0.50);
+            $chk('kurus yuvarlama (33.33 EUR)', is_array($v)?voucher_discount($v,33.33):-1.0, 1.67);
+
+            /* Tavan kuralini YUZDE bir kuponla sinamak anlamsiz -- yuzde zaten sepeti asamaz,
+               ilk surumde tam bu yuzden 0.50 cikip "hata" gibi gorundu. Kural sadece SABIT
+               tutarli kuponda is yapiyor: 25 EUR'luk kupon 10 EUR'luk sepette 10 ile sinirli
+               kalmali, yoksa siparis eksi bakiyeye duser. */
+            $TESTF='VES-SELFTEST-FIXED-DELETEME';
+            voucher_create(['code'=>$TESTF,'type'=>'fixed','value'=>25,'email'=>'',
+                            'first_order_only'=>false,'max_uses'=>0,'expiry'=>date('Y-m-d',strtotime('+1 year')),
+                            'campaign'=>'selftest']);
+            $vf=voucher_find($TESTF);
+            $chk('sabit 25 EUR indirimi', voucher_discount($vf,1000), 25.00);
+            $chk('SABIT kupon sepeti asamaz', voucher_discount($vf,10), 10.00);
+            $chk('baska musteriye kapali', voucher_validate($TEST,'someone@else.com',1000), 'wrong_customer');
+            $chk('bilinmeyen kod', voucher_validate('YOK-YOK-YOK','selftest@vestrasales.invalid',1000), 'not_found');
+            $chk('TEK KULLANIM: ilk redeem', voucher_redeem($TEST,'SELFTEST-REF','selftest@vestrasales.invalid',50.0), true);
+            $chk('TEK KULLANIM: ikinci redeem reddedildi', voucher_redeem($TEST,'SELFTEST-REF2','selftest@vestrasales.invalid',50.0), false);
+            $chk('kullanildiktan sonra dogrulanmiyor', voucher_validate($TEST,'selftest@vestrasales.invalid',1000), 'used');
+
+            /* Test kodlarini birak: canli veride "selftest" diye bir kupon kalmamali. */
+            $all=voucher_all(); unset($all[$TEST], $all[$TESTF]); voucher_save($all);
+            $chk('test kodlari temizlendi', voucher_find($TEST)===null && voucher_find($TESTF)===null, true);
+
+            echo "\nSONUC: {$ok} gecti, {$bad} kaldi\n\n";
+
+            echo "== KAMPANYA ONIZLEMESI (hicbir sey uretilmez/gonderilmez) ==\n";
+            $rep = voucher_welcome_run(['percent'=>5,'months'=>6,'audience'=>'buyers','limit'=>500,'dry'=>true]);
+            echo "hedef musteri : {$rep['targets']}\n";
+            echo "kampanya      : {$rep['campaign']}  ·  gecerlilik {$rep['expiry']}\n";
+            $new=0;$retry=0;$already=0;
+            foreach($rep['rows'] as $r){
+              $s=(string)($r['status']??'');
+              if($s==='new') $new++; elseif($s==='retry') $retry++; elseif($s==='already') $already++;
+            }
+            echo "yeni kod alacak: {$new}  ·  kodu var postasi gitmemis: {$retry}  ·  zaten almis: {$already}\n";
+            /* Gizlilik: bu log public repoda duruyor. Musteri adresleri YAZILMAZ --
+               sadece alan adi ve dil, kimin hedeflendigini gormeye yetiyor. */
+            echo "\nhedefler (adres maskeli):\n";
+            foreach($rep['rows'] as $r){
+              $e=(string)($r['email']??''); if($e==='') continue;
+              $at=strrpos($e,'@'); $dom=$at!==false?substr($e,$at+1):'?';
+              printf("  %-10s %-28s dil=%s\n", (string)($r['status']??''), '***@'.$dom, (string)($r['lang']??'en'));
+            }
+            echo "\nHicbir kod uretilmedi, hicbir e-posta gonderilmedi.\n";
+            exit($bad>0?1:0);
+            PHPEOF
+            cp /tmp/vestra_voucher_selftest.php ./vestra_voucher_selftest_tmp.php
+            php ./vestra_voucher_selftest_tmp.php; RC=$?
+            rm -f ./vestra_voucher_selftest_tmp.php /tmp/vestra_voucher_selftest.php
+            exit $RC
+
+      # TEK HESABIN onay durumu: "musteri neden fiyat goremiyor?" sorusunun cevabi.
+      # EN SONDA duruyor: get_job_logs kuyrugu ~55-78 satir, sonda ciktisi kuyrukta
+      # kalmali. Salt-okunur ve MASKELI: tam e-posta/isim/dosya adi yazilmaz (public
+      # log). reg_ip yazilmaz, yalnizca ulke/VPN bayragi -- KYB karari icin o yetiyor.
+      - name: Hesap sondası (salt-okunur, maskeli)
+        if: github.event.inputs.account_probe != ''
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          PROBE: ${{ github.event.inputs.account_probe }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 2m
+          envs: PROBE
+          script: |
+            cat > /tmp/vestra_acc_probe.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME");
+            $needle = strtolower(trim((string)getenv('PROBE')));
+            if ($needle === '') exit(0);
+            $mask = fn(string $e) => preg_replace('/^(.).*(@.*)$/', '$1***$2', $e);
+            $accs = json_decode((string)@file_get_contents($home.'/public_html/data/accounts.json'), true) ?: [];
+            $hits = array_values(array_filter($accs, fn($a) =>
+              str_contains(strtolower(($a['name'] ?? '').' '.($a['company'] ?? '').' '.($a['email'] ?? '')), $needle)));
+            echo "== HESAP SONDASI ('".$needle."') — ".count($hits)." eslesme ==\n";
+            foreach (array_slice($hits, 0, 3) as $a) {
+              echo "\n- hesap        : ".$mask((string)($a['email'] ?? ''))."  (id ".substr((string)($a['id'] ?? ''), 0, 6)."…)\n";
+              echo "  tip / durum  : ".($a['type'] ?? '?')." / ".($a['status'] ?? '?')."\n";
+              echo "  kyb_status   : ".($a['kyb_status'] ?? '(yok)')."\n";
+              echo "  email dogru  : ".(!empty($a['email_verified']) ? 'evet' : 'HAYIR')."\n";
+              echo "  olusturulma  : ".($a['created'] ?? '?')."\n";
+              echo "  trade_doc_required: ".(!empty($a['trade_doc_required']) ? 'EVET (belge onayi sart)' : 'yok (eski kayit — fiyat acik)')."\n";
+              $vat = trim((string)($a['vat_id'] ?? ''));
+              /* Numaranin KENDISI maskeli kalir ama BICIMI soylenir: KYB'de asil
+                 soru "gecerli bir vergi numarasi mi", ve alana ulke adi / bos
+                 bosluk yazilmis hesaplar bu satir olmadan normal gorunuyordu. */
+              $vatClean = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $vat));
+              $vatShape = $vat === '' ? '— BOS'
+                : (preg_match('/^[A-Z]{2}[A-Z0-9]{6,13}$/', $vatClean) ? 'AB bicimine UYGUN'
+                  : (preg_match('/^[0-9]{8,15}$/', $vatClean) ? 'yalnizca rakam (ulke onegi yok)'
+                    : 'BICIM GECERSIZ — vergi numarasi gibi durmuyor'));
+              echo "  vat_id       : ".($vat !== '' ? substr($vat,0,4).'***'.substr($vat,-2) : '—')."  →  {$vatShape}\n";
+              echo "  ulke/site    : ".($a['country'] ?? '—')." / ".($a['website'] ?? '—')."\n";
+              echo "  sirket/isim  : ".(trim((string)($a['company'] ?? '')) !== '' ? 'var' : 'BOS')." / ".(trim((string)($a['name'] ?? '')) !== '' ? 'var' : 'BOS')."\n";
+              echo "  kayit IP     : ".($a['reg_cc'] ?? '?')." ".($a['reg_city'] ?? '')." — VPN/hosting: ".(!empty($a['reg_vpn']) ? 'EVET (dikkat)' : 'hayir')."\n";
+              echo "  kayit ISP    : ".($a['reg_isp'] ?? '—')."\n";
+              echo "  site (form)  : ".(trim((string)($a['website'] ?? '')) !== '' ? $a['website'] : '— BOS')."\n";
+              echo "  arayuz dili  : ".($a['lang'] ?? '?')."  (?lang= linkinden ya da tarayici dilinden — IP'den DEGIL)\n";
+              echo "  promo kodu   : ".(trim((string)($a['promo_code'] ?? '')) !== '' ? $a['promo_code'] : '— yok')."\n";
+              /* "Bizi nasil buldular?" — ayni alan adi lead listemizde var mi,
+                 kampanya gonderdik mi? Kayit, kendi mektubumuzun cevabi olabilir. */
+              $em  = strtolower(trim((string)($a['email'] ?? '')));
+              $dom = strtolower(substr(strrchr($em, '@') ?: '', 1));
+              /* SERBEST POSTA alan adinda alan-adi eslestirmesi ANLAMSIZ: 'gmail.com'
+                 aramak listedeki her gmail leadini getiriyor (ilk surumde 347 "eslesme"
+                 cikti ve "bizi tanidiklar" gibi okunacakti). Boyle adreslerde yalnizca
+                 TAM e-posta eslesmesi bir sey soyler. */
+              /* Liste TEK yerde: vestra_email_is_shared_provider() (notify.php). */
+              $isFree = vestra_email_is_shared_provider($dom);
+              $lf  = $home.'/public_html/data/leads.json';
+              $lds = is_readable($lf) ? (json_decode((string)file_get_contents($lf), true) ?: []) : [];
+              $hitL = [];
+              foreach ((array)$lds as $l) {
+                $le = strtolower(trim((string)($l['email'] ?? '')));
+                if ($em !== '' && $le === $em) { $hitL[] = $l; continue; }   // tam adres
+                if ($isFree || $dom === '') continue;                        // serbest posta: alan adi bakilmaz
+                $hay = strtolower($le.' '.((string)($l['website'] ?? '')));
+                if (str_contains($hay, $dom)) $hitL[] = $l;
+              }
+              echo "  lead kaydi   : ".(count($hitL) ? count($hitL)." adet" : "YOK — bu adrese".($isFree ? "" : "/alan adina")." biz kampanya GONDERMEDIK")
+                 . ($isFree ? "   (serbest posta alan adi — yalnizca TAM adres arandi)" : "")."\n";
+              foreach (array_slice($hitL, 0, 3) as $l) {
+                echo "     · ".($l['company'] ?? '?')." | ulke=".($l['country'] ?? '-')." | kaynak=".($l['source'] ?? '?')
+                   ." | gonderim=".(($l['last_contacted_at'] ?? '') !== '' ? substr((string)$l['last_contacted_at'],0,10) : 'hic')."\n";
+              }
+              $reqs = (array)($a['doc_requests'] ?? []);
+              echo "  belgeler (".count($reqs)."):\n";
+              foreach ($reqs as $r) {
+                echo "    * ".($r['type'] ?? '?')." → ".strtoupper((string)($r['status'] ?? '?'))
+                   .(!empty($r['uploaded_at']) ? "  (yuklendi ".substr((string)$r['uploaded_at'],0,10).", dosya ".(!empty($r['file']) ? 'VAR' : 'yok').")" : "  (istendi ".substr((string)($r['requested_at'] ?? ''),0,10).", henuz yuklenmedi)")."\n";
+              }
+              /* Fiyat kapisinin CANLI cevabi — tahmin degil, gercek fonksiyon: */
+              require_once $home.'/public_html/inc/products.php';
+              require_once $home.'/public_html/inc/auth.php';
+              echo "  >> auth_prices_unlocked : ".(auth_prices_unlocked($a) ? 'ACIK' : 'KAPALI')."\n";
+              echo "  >> auth_user_approved   : ".(auth_user_approved($a) ? 'evet' : 'hayir')."\n";
+            }
+            if (count($hits) > 3) echo "\n(+".(count($hits)-3)." eslesme daha — sondayi daralt)\n";
+            PHPEOF
+            php /tmp/vestra_acc_probe.php; RC=$?
+            rm -f /tmp/vestra_acc_probe.php
+            exit $RC

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img">
+  <title>Cartons with five arrows fanning out to a tag, a shop, a truck, a heart box and a loop, and one faint path to a struck-out flame</title>
+  <desc>Where unsold stock goes now: markdown, outlet, wholesale to other retailers, donation or remanufacture; destruction only through a documented exception.</desc>
+  <rect width="1200" height="675" fill="#0e2620"/>
+  <g stroke="#1b4a3a" stroke-width="1"><path d="M0 168h1200M0 337h1200M0 506h1200"/></g>
+  <!-- Kaynak: satilmamis sezon stogu -->
+  <g fill="none" stroke="#7fc9a6" stroke-width="3"><rect x="110" y="356" width="130" height="60" rx="6"/><rect x="110" y="290" width="130" height="60" rx="6"/><rect x="140" y="224" width="130" height="60" rx="6"/></g>
+  <g fill="#7fc9a6" opacity=".25"><rect x="128" y="378" width="50" height="10" rx="5"/><rect x="128" y="312" width="50" height="10" rx="5"/><rect x="158" y="246" width="50" height="10" rx="5"/></g>
+  <!-- Bes acik yol -->
+  <g fill="none" stroke="#7fc9a6" stroke-width="3" opacity=".8"><path d="M270 330C490 330 620 118 790 118"/><path d="M270 330C490 330 620 216 790 216"/><path d="M270 330C490 330 620 314 790 314"/><path d="M270 330C490 330 620 412 790 412"/><path d="M270 330C490 330 620 510 790 510"/></g>
+  <path d="M806.0 118.0L788.0 126.0L788.0 110.0z" fill="#7fc9a6" opacity=".8"/>
+  <path d="M806.0 216.0L788.0 224.0L788.0 208.0z" fill="#7fc9a6" opacity=".8"/>
+  <path d="M806.0 314.0L788.0 322.0L788.0 306.0z" fill="#7fc9a6" opacity=".8"/>
+  <path d="M806.0 412.0L788.0 420.0L788.0 404.0z" fill="#7fc9a6" opacity=".8"/>
+  <path d="M806.0 510.0L788.0 518.0L788.0 502.0z" fill="#7fc9a6" opacity=".8"/>
+  <!-- 1 indirimle satis: etiket + asagi ok -->
+  <g fill="none" stroke="#7fc9a6" stroke-width="3"><path d="M846 98h46l24 20l-24 20h-46z"/><circle cx="888" cy="118" r="4"/></g><path d="M942 100v30" stroke="#7fc9a6" stroke-width="3"/><path d="M942.0 140.0L935.0 128.0L949.0 128.0z" fill="#7fc9a6" opacity=".8"/>
+  <!-- 2 outlet: tenteli dukkan -->
+  <g fill="none" stroke="#7fc9a6" stroke-width="3"><path d="M842 202l10 -22h76l10 22z"/><rect x="848" y="202" width="64" height="44"/><rect x="870" y="222" width="20" height="24"/></g>
+  <!-- 3 baska perakendeciye toptan: kamyon -->
+  <g fill="none" stroke="#7fc9a6" stroke-width="3"><rect x="836" y="288" width="56" height="40" rx="3"/><path d="M892 302h20l14 14v12h-34z"/><circle cx="854" cy="336" r="8" fill="#0e2620"/><circle cx="910" cy="336" r="8" fill="#0e2620"/></g>
+  <!-- 4 bagis: kutuda kalp -->
+  <g fill="none" stroke="#7fc9a6" stroke-width="3"><rect x="844" y="388" width="72" height="52" rx="4"/></g><path d="M880 428c-22 -12 -24 -28 -12 -32c6 -2 10 2 12 6c2 -4 6 -8 12 -6c12 4 10 20 -12 32z" fill="#7fc9a6" opacity=".6"/>
+  <!-- 5 yeniden uretim / geri donusum: dongu -->
+  <g fill="none" stroke="#7fc9a6" stroke-width="3"><path d="M853.7 500.4A28 28 0 0 1 906.3 500.4"/><path d="M906.3 519.6A28 28 0 0 1 853.7 519.6"/></g><path d="M907.7 504.2L897.0 495.3L910.2 490.5z" fill="#7fc9a6" opacity=".8"/><path d="M852.3 515.8L863.0 524.7L849.8 529.5z" fill="#7fc9a6" opacity=".8"/>
+  <!-- Imha: yalnizca dar kapidan, belgeyle -->
+  <path d="M175 420V600H500" fill="none" stroke="#e8b98a" stroke-width="2" stroke-dasharray="6 8" opacity=".6"/>
+  <g stroke="#e8b98a" stroke-width="4" opacity=".85"><path d="M512 572v56M530 572v56"/></g>
+  <path d="M542 600H590" stroke="#e8b98a" stroke-width="2" stroke-dasharray="6 8" opacity=".6"/>
+  <path d="M636.4 640.0c-19.8 -13.5 -20.7 -37.8 -3.6 -55.8c0.9 13.5 8.1 18.9 13.5 18.0c-3.6 -18.0 4.5 -34.2 19.8 -44.1c-2.7 19.8 10.8 31.5 14.4 48.6c3.6 17.1 -5.4 28.8 -18.0 33.3" fill="none" stroke="#e8b98a" stroke-width="3" stroke-dasharray="9 9" opacity=".6"/><path d="M611.2 646.3L678.7 544.6" stroke="#e8b98a" stroke-width="4" opacity=".8"/>
+</svg>

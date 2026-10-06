@@ -1,0 +1,91 @@
+VESTRA CJK font (vestra-cjk.ttf)
+================================
+
+This file is a SUBSET of WenQuanYi Zen Hei, redistributed under its own
+licence. It is here for one reason: an invoice must be able to print the
+buyer's own company name and address. A Hong Kong buyer registered on
+5 Sep 2026 and the document printed "??????????" instead of the company
+name, because the built-in PDF font (Helvetica / WinAnsi) carries only
+Western European characters.
+
+Original font : WenQuanYi Zen Hei
+Upstream      : http://wenq.org/  (Qianqian Fang and The WenQuanYi Project)
+Copyright     : 2007-2009 Qianqian Fang and The WenQuanYi Project Board of Trustees
+                1998-2004 Koanughi Un
+                1999-2005 Tsong-Min Wu, Tsong-Huey Wu, Edward G.J. Lee
+                2004      Firefly
+                2002-2008 M+ FONTS PROJECT
+Licence       : GNU GPL v2 with the font embedding exception, and the M+ FONTS
+                licence. Full text below, as shipped by Debian's
+                fonts-wqy-zenhei package.
+
+What was changed
+----------------
+Built from face 0 of wqy-zenhei.ttc with fontTools:
+  * kept  : Latin, Latin-1/Extended-A, punctuation, currency, Greek, Cyrillic,
+            CJK punctuation and fullwidth forms, kana, Hangul (Jamo + syllables),
+            CJK Unified Ideographs incl. Extension A, CJK Compatibility Ideographs
+  * dropped: embedded bitmaps (BDF), GSUB/GPOS/GDEF, vertical metrics, hinting,
+            glyph names
+Nothing in the outlines was altered.
+
+At run time inc/pdf_font.php embeds only the glyphs a given document actually
+uses, so a typical invoice carries a few KB of this font, not 10 MB.
+
+--- Licence text (Debian fonts-wqy-zenhei copyright) ---
+
+t: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: WenQuanYi Zen Hei
+Upstream-Contact: Qianqian Fang <fangq #nmr _mgh _harvard _edu>
+                  The WenQuanYi Project
+Source: http://wenq.org/
+
+Files: *
+Copyright: 2007-2009, Qianqian Fang and The WenQuanYi Project Board of Trustees
+           1998-2004, Koanughi Un
+           1999-2004, Tsong-Min Wu, Tsong-Huey Wu
+           2005, Tsong-Min Wu, Tsong-Huey Wu and Edward G.J. Lee
+           2004, Firefly
+           2002-2008, M+ FONTS PROJECT
+License: GPL-2 with Font embedding exception and M+ FONTS License
+
+Files: debian/*
+Copyright: 2007-2011, Zhengpeng Hou <zhengpeng-hou@ubuntu.com>
+           2009, Anthony Fok <foka@debian.org>
+           2011-2012, Osamu Aoki <osamu@debian.org>
+           2013, Christian Perrier <bubulle@debian.org>
+           2014-2017, Hideki Yamane <henrich@debian.org>
+License: GPL-2 with Font embedding exception
+
+License: GPL-2 with Font embedding exception
+ This package is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License.
+ .
+ This package is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this package; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+ .
+ As a special exception, if you create a document which uses this
+ font, and embed this font or unaltered portions of this font into
+ the document, this font does not by itself cause the resulting
+ document to be covered by the GNU General Public License.  This
+ exception does not however invalidate any other reasons why the
+ document might be covered by the GNU General Public License.  If you
+ modify this font, you may extend this exception to your version of
+ the font, but you are not obligated to do so.  If you do not wish to
+ do so, delete this exception statement from your version.
+ .
+ On Debian systems, the complete text of the GNU General Public License
+ version 2 can be found in `/usr/share/common-licenses/GPL-2'.
+
+License: M+ FONTS License
+ These fonts are free software.
+ Unlimited permission is granted to use, copy, and distribute it, with
+ or without modification, either commercially and noncommercially.
+ THESE FONTS ARE PROVIDED "AS IS" WITHOUT WARRANTY.

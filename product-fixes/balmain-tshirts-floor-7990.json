@@ -1,0 +1,17 @@
+[
+  { "match": "blm-xh1ef000",          "expect": 1, "price": "79.90" },
+  { "match": "blm-xh1ef000bb04",      "expect": 1, "price": "79.90" },
+  { "match": "blm-vh4ef000g077eah",   "expect": 1, "price": "79.90" },
+  { "match": "blm-vh4eh000",          "expect": 1, "price": "79.90" },
+  { "match": "blm-wh1ef001287jgfq",   "expect": 1, "price": "79.90" },
+
+  { "match": "blm-ah0eg000bc27",      "expect": 1, "price": "89.90" },
+  { "match": "blm-xh1eg000bb19",      "expect": 1, "price": "89.90" },
+  { "match": "blm-wh1ef000b138gdv",   "expect": 1, "price": "89.90" },
+  { "match": "blm-wh1ef000b138mai",   "expect": 1, "price": "89.90" },
+  { "match": "blm-wh1ef000b138sdq",   "expect": 1, "price": "89.90" },
+  { "match": "blm-th01601i232",       "expect": 1, "price": "89.90" },
+
+  { "match": "blm-ah1eg010",          "expect": 1, "price": "94.90" },
+  { "match": "blm-ah1eg010bc",        "expect": 1, "price": "94.90" }
+]

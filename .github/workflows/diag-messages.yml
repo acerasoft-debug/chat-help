@@ -1,27 +1,144 @@
 name: (Salt-okunur) Mesaj bildirimlerini teşhis et
 on:
   workflow_dispatch:
+    inputs:
+      who:
+        description: "Hesap ara: şirket/ad/e-posta içinde geçen metin (ör: vipshop). Boş = arama yapma"
+        required: false
+        default: ""
+      login_history:
+        # "Giris yapamiyorum" en sik gelen sikayet ve bugune kadar onu KAYITTAN
+        # okuyan hicbir sonda yoktu: hesabin 'active' gorunmesi girisin
+        # tuttugunu SOYLEMIYOR. security_log.json login_ok/login_fail yaziyor
+        # ve ikisi arasindaki fark teshisin tamami -- fail ise parola, ok ise
+        # oturum. ADLA araniyor, adresle degil: girdi kalici ve herkese acik.
+        description: "Hesabın GİRİŞ GEÇMİŞİ: şirket/ad parçası ver (ör: lardey). login_ok / login_fail / reset olaylarını maskeli yazar — 'giriş yapamıyorum' şikâyetinde buraya bakılır. Salt okunur."
+        required: false
+        default: ""
+      who2:
+        description: "İkinci hesap araması — bir yazışmanın iki tarafını tek koşuda görmek için"
+        required: false
+        default: ""
+      brand:
+        description: "Bu markanın ilanlarını ve HANGİ SATICIYA ait olduğunu yaz (ör: Ralph Lauren). Boş = atla"
+        required: false
+        default: ""
+      ships:
+        description: "true = KURAL 3 denetimi: 'ships from' girilmemiş ilanlar, satıcıya göre sayım"
+        required: false
+        default: "false"
+      threads:
+        description: "true = mesaj thread dökümü (uzun). false = yalnız hesap/marka özeti"
+        required: false
+        default: "false"
+      mailcfg:
+        description: "true = mail ayarları + Brevo'nun KENDİ olay geçmişi (gönderildi ≠ ulaştı)"
+        required: false
+        default: "false"
+      mail_for:
+        description: "mailcfg ile: olay geçmişi sorulacak adres. MÜŞTERİ adresini buraya YAZMAYIN — girdi herkese açık: 'account:<hesap ID ya da isim parçası>' ya da 'offer:<teklif ref>' yazın, adres kayıttan çözülür. Hesap ID'si TAM eşleşir ve kimseyi ele vermez — ada göre aramak kişinin soyadını koşu başlığına yazdırır. Boş = operatör test kutusu"
+        required: false
+        default: ""
+      mail_subject:
+        description: "mailcfg ile: yalnızca konusunda bu metin geçen olaylar (ör: Ralph Lauren). Boş = hepsi"
+        required: false
+        default: ""
+      mail_days:
+        description: "mailcfg ile: Brevo olay penceresi, gün (1-30). Varsayılan 2 — daha eski bir mektubun teslim/açılma kaydı için büyüt"
+        required: false
+        default: "2"
+      sender:
+        description: "true = gönderen alan adı doğrulaması (SPF/DKIM/DMARC) + gönderen adresler + kredi. 'Mektubu görmüyorum' denince buraya bakılır"
+        required: false
+        default: "false"
+      orders_for:
+        description: "Siparişleri göster: alıcı adı/şirket/e-posta içinde geçen metin (ör: daymond). Boş = atla"
+        required: false
+        default: ""
+      billing_for:
+        description: "Faturada görünecek satıcı künyesi + banka ADLARI (ör: garage). IBAN/hesap NUMARASI yazdırılmaz, yalnızca var/yok"
+        required: false
+        default: ""
+      upload_probe:
+        description: "true = belge yükleme sondası: PHP yükleme sınırları (.user.ini/php.ini), data/docs yazılabilir mi, error_log'daki ret sebepleri. 'Yükleyemiyorum' denince buraya bakılır"
+        required: false
+        default: "false"
+      errlog:
+        description: "true = canlı PHP hataları: error_log'daki Fatal/Warning/Notice/Deprecated satırları mesaj+dosya:satır bazında gruplanır (sayı, son görülme). Sitedeki gerçek kırıkları bulmanın en ucuz yolu"
+        required: false
+        default: "false"
+      blocked:
+        description: "true = platform dışı temas nedeniyle ENGELLENEN mesaj denemeleri (son 10): kim, hangi thread, hangi kural, ve metindeki BAĞLANTILAR (sorgu dizesi atılmış). Serbest metin MASKELİ — engellenen metnin içinde zaten telefon/e-posta olabilir, o herkese açık günlüğe yazılmaz."
+        required: false
+        default: "false"
+      receipt_probe:
+        description: "true = OKUNDU onayı sondası: yeni fonksiyonlar sunucuya indi mi, gerçek konuşmalarda işaret kaç baloncukta çiziliyor, ve rozet KENDİ eyleminden yanan konuşma var mı. Mesaj METNİ, ad ve adres BASILMAZ — yalnız sayım."
+        required: false
+        default: "false"
+      cron_probe:
+        description: "true = zamanlanmış işler: crontab'daki VESTRA-SWEEP satırları, süpürücü kütüğünün son hâli ve journal cron'un ne yazdığı. 'Otomasyon çalışmadı' denince buraya bakılır"
+        required: false
+        default: "false"
+      net_probe:
+        description: "true = sunucunun DIŞARI ÇIKIŞI: ad çözümleme + HTTPS, host host. 'Deploy düştü / mektup gitmiyor' denince ilk buraya bakılır — 'sunucu kapalı' ile 'github.com çözülmüyor' aynı şey değil"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
 
-# Salt-okunur. data/messages.json'daki her thread icin: son mesaj, okunma
-# durumu (buyer/seller), karsi taraf hesabinin cozulup cozulemedigi + email'i
-# var mi, ve vestra_msg_send()'in mail gonderme yolunu (mail_enabled/api/smtp)
-# kontrol eder. Ayrica error_log'dan VESTRA Mail/API/SMTP satirlarini gosterir.
-# Hicbir sey DEGISTIRMEZ, mesaj GONDERMEZ.
+# Salt-okunur TEŞHİS. Hiçbir şey DEĞİŞTİRMEZ, mesaj/e-posta GÖNDERMEZ.
+#
+# Ne yapar:
+#   who / who2  -> hesabı bulur: tip, onay durumu, fiyat kapısı, belgeler, Stripe
+#   brand       -> o markanın ilanları + hangi satıcıya ait + fiyat kademeleri
+#   threads     -> mesaj thread'leri (kim kiminle, son mesaj, okunmamış)
+#   mailcfg     -> mail yolu + Brevo olayları + error_log
+#
+# E-POSTALAR MASKELENİR (CLAUDE.md / gizlilik): a***@example.com. Teşhis çıktısı
+# GitHub Actions kütüğüne yazılıyor ve bu depo herkese açık — maskesiz bir adres
+# burada bir kez göründüğünde geri alınamaz.
+#
+# Çıktı KUYRUKTAN okunuyor (get_job_logs ~55-78 satır gösterir): bu yüzden her
+# bölüm kısa tutuldu ve ÖZET en sona basılıyor.
 jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
       - name: Kontrol et
         uses: appleboy/ssh-action@v1.0.3
+        # Girdiler ADIM env'inde, betigin ICINDE degil. Betikte bir tek ${{ }}
+        # bile olsa GitHub butun script bloguni TEK BIR IFADE sayiyor ve 21000
+        # karakter sinirina takiliyor -- teshis buyudukce workflow calismaz
+        # hale geldi ("Exceeded max expression length"). Bu kalip depodaki
+        # diger workflow'larda zaten kullaniliyor (bkz. set-product.yml).
+        env:
+          IN_WHO:       ${{ github.event.inputs.who }}
+          IN_LOGINH:    ${{ github.event.inputs.login_history }}
+          IN_WHO2:      ${{ github.event.inputs.who2 }}
+          IN_BRAND:     ${{ github.event.inputs.brand }}
+          IN_SHIPS:     ${{ github.event.inputs.ships }}
+          IN_THREADS:   ${{ github.event.inputs.threads }}
+          IN_MAILCFG:   ${{ github.event.inputs.mailcfg }}
+          IN_MAIL_FOR:  ${{ github.event.inputs.mail_for }}
+          IN_MAIL_SUBJ: ${{ github.event.inputs.mail_subject }}
+          IN_MAIL_DAYS: ${{ github.event.inputs.mail_days }}
+          IN_SENDER:    ${{ github.event.inputs.sender }}
+          IN_ORDERS:    ${{ github.event.inputs.orders_for }}
+          IN_BILLING:   ${{ github.event.inputs.billing_for }}
+          IN_UPLOAD:    ${{ github.event.inputs.upload_probe }}
+          IN_ERRLOG:    ${{ github.event.inputs.errlog }}
+          IN_CRON:      ${{ github.event.inputs.cron_probe }}
+          IN_BLOCKED:   ${{ github.event.inputs.blocked }}
+          IN_RECEIPT:   ${{ github.event.inputs.receipt_probe }}
+          IN_NET:       ${{ github.event.inputs.net_probe }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
+          envs: IN_LOGINH,IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_MAIL_DAYS,IN_SENDER,IN_ORDERS,IN_BILLING,IN_UPLOAD,IN_ERRLOG,IN_CRON,IN_BLOCKED,IN_RECEIPT,IN_NET
           script: |
             cat > /tmp/diag_msg.php <<'PHPEOF'
             <?php
@@ -36,63 +153,1221 @@ jobs:
             require $doc."/inc/auth.php";
             require $doc."/inc/notify.php";
             require $doc."/inc/messages.php";
+            require $doc."/inc/products.php";
 
-            echo "===== MAIL AYARLARI =====\n";
-            echo "mail_enabled     = ".(vestra_cfg('mail_enabled',false)?'true':'false')."\n";
-            $apiKey = (string)vestra_cfg('mail_api_key','');
-            echo "mail_api_provider= ".vestra_cfg('mail_api_provider','brevo')."\n";
-            echo "mail_api_key     = ".($apiKey!==''?('SET, uzunluk='.strlen($apiKey)):'(bos)')."\n";
-            echo "smtp_host        = ".((string)vestra_cfg('smtp_host','')!==''?vestra_cfg('smtp_host',''):'(bos)')."\n";
-            echo "mail_from        = ".vestra_cfg('mail_from','support@vestrasales.com')."\n";
-            $notifyList = vestra_cfg('notify',[]); if (is_string($notifyList)) $notifyList=[$notifyList];
-            echo "notify (admin)   = ".implode(', ', (array)$notifyList)."\n\n";
+            /* Adresi maskele. Depo ve Actions kutugu herkese acik; teshis ciktisinda
+               musteri adresi tam yazilmaz (CLAUDE.md). Alan adi aciktan birakiliyor,
+               cunku KURAL 1 kontrolu ve gonderilebilirlik hep alan adina bakiyor. */
+            function m($e) {
+              $e = trim((string)$e);
+              if ($e === '') return '*** EMAIL YOK ***';
+              $at = strrpos($e, '@');
+              if ($at === false || $at === 0) return '***';
+              return substr($e,0,1).'***@'.substr($e,$at+1);
+            }
+            function yn($b) { return $b ? 'EVET' : 'hayir'; }
 
             $accounts = auth_accounts();
             $byId = [];
             foreach ($accounts as $a) $byId[(string)($a['id']??'')] = $a;
 
-            $threads = vestra_msg_threads();
-            usort($threads, fn($a,$b) => strtotime($b['last_at']??'1970-01-01') <=> strtotime($a['last_at']??'1970-01-01'));
-            echo "===== THREAD SAYISI: ".count($threads)." =====\n\n";
+            /* Bir hesabin GONDERIM/FIYAT bakimindan durumu. Tek yerde toplandi:
+               "fiyat gorebiliyor mu" sorusu uc ayri bayrakla karistiriliyordu
+               (dogrulanmis e-posta / operator onayi / belge). Kapiyi acan
+               auth_prices_unlocked(); belge yalnizca uyari (bkz. KURAL 2). */
+            function acc_dump(array $a) {
+              $id = (string)($a['id'] ?? '?');
+              echo "  id=".substr($id,0,8)." | tip=".($a['type']??'?')
+                 ." | sirket=\"".($a['company']??'')."\" | kisi=\"".($a['name']??'')."\"\n";
+              echo "    email=".m($a['email']??'')." | ulke=".($a['country']??'-')
+                 /* Hesabin alani 'vat_id' (auth.php:278, register.php). Burasi
+                    'vat' okuyordu ve HER hesap icin "(yok)" basiyordu: 1 Eyl 2026'da
+                    bu, VAT'i dosyada olan bir musteriye "numaraniz kayitli degildi,
+                    onceki mektubumuz hataliydi" diye ozur yazdirmaya rametmisti.
+                    Kontrolun yanlis yere baktigi 6. vaka. 'vat' geriye donuk yedek. */
+                 ." | vat=".((($a['vat_id'] ?? '') ?: ($a['vat'] ?? '')) !== '' ? (($a['vat_id'] ?? '') ?: $a['vat']) : '(yok)')."\n";
+              echo "    email_dogrulandi=".yn(!empty($a['email_verified']))
+                 ." | operator_onayi=".yn(function_exists('auth_user_approved') ? auth_user_approved($a) : !empty($a['approved']))
+                 ." | FIYAT KAPISI ACIK=".yn(auth_prices_unlocked($a))."\n";
+              /* Ham alanlar da yazilir: kapi "status=active VEYA kyb_status=approved"
+                 ile aciliyor; ikisi ayristiginda (active + pending) panel eskiden
+                 "Pending" gosterip dugme cikarmiyordu (2 Eyl 2026, LESSVAT). */
+              echo "    status=".($a['status'] ?? '(yok)')." | kyb_status=".($a['kyb_status'] ?? '(yok)')
+                 ." | suspend_reason=".($a['suspend_reason'] ?? '-')." | kayit=".substr((string)($a['created'] ?? ''), 0, 16)."\n";
+              /* auth_required_doc_types() DUZ LISTE dondurur (['trade_licence','id_document']),
+                 anahtarli harita degil -- array_keys() burada 0,1 basardi. */
+              $need = function_exists('auth_required_doc_types') ? auth_required_doc_types((string)($a['type']??'buyer')) : [];
+              $have = [];
+              foreach ((array)($a['doc_requests'] ?? []) as $d) {
+                $t = (string)($d['type'] ?? '');
+                $st = (string)($d['status'] ?? '');
+                $f  = (string)($d['file'] ?? '');
+                $have[] = $t.':'.($st !== '' ? $st : '?').($f !== '' ? '+dosya' : '');
+              }
+              echo "    gereken belge=".(implode(',', $need) ?: '(yok)')
+                 ." | kayitli=".(implode(' ', $have) ?: '(hic)')."\n";
+              echo "    stripe=".(!empty($a['stripe_account_id']) ? 'bagli' : 'YOK')."\n";
+              /* Ilan sayisi: satici mi gercekten, yoksa yalnizca tipi mi satici. */
+              $n = 0; $titles = [];
+              foreach (vestra_listings() as $l) {
+                if ((string)($l['seller_uid'] ?? '') !== $id) continue;
+                $n++;
+                if (count($titles) < 6) $titles[] = ($l['brand']??'?').' '.mb_substr((string)($l['name']??''),0,34);
+              }
+              echo "    ilan sayisi=".$n.($titles ? " -> ".implode(' / ', $titles) : '')."\n";
+            }
 
-            foreach ($threads as $t) {
-              $bUid = (string)($t['buyer_uid']??''); $sUid = (string)($t['seller_uid']??'');
-              $msgs = $t['messages'] ?? [];
-              $last = end($msgs);
-              $lastFrom = $last ? ($last['from']??'?') : '(yok)';
-              $lastText = $last ? mb_substr((string)($last['text']??($last['meta']['kind']??'')),0,60) : '';
-              $lastAt   = $last['at'] ?? '';
+            function find_accounts(array $accounts, string $q) {
+              $q = mb_strtolower(trim($q));
+              $out = [];
+              if ($q === '') return $out;
+              foreach ($accounts as $a) {
+                $hay = mb_strtolower(($a['company']??'').' '.($a['name']??'').' '.($a['email']??''));
+                if (mb_strpos($hay, $q) !== false) $out[] = $a;
+              }
+              return $out;
+            }
 
-              echo "--- thread ".($t['id']??'?')." | listing=".($t['listing_id']??'')." | son=".($t['last_at']??'')." ---\n";
-              echo "  mesaj sayisi: ".count($msgs)." | son gonderen: {$lastFrom} @ {$lastAt}\n";
-              echo "  son metin: \"{$lastText}\"\n";
+            /* GIRIS GECMISI. "Hesabim aktif ama giremiyorum" sikayetinde
+               hesabin 'active' gorunmesi hicbir sey kanitlamiyor -- kapi ile
+               GIRIS ayri iki sey (KURAL 2b'nin ayni dersi, oturum tarafi).
+               security_log.json login_ok ile login_fail'i ayri ayri yaziyor ve
+               teshis tam o farkta: fail varsa parola, ok varsa oturum.
+               MASKELEME: adres, IP ve tarayici dizgesi BASILMIYOR -- kutuk
+               herkese acik. Ulke/sehir is bilgisi olarak kaliyor (yanlis
+               ulkeden giris denemesi operatorun gormesi gereken sey) ve
+               tarayici yalnizca ailesiyle yaziliyor. */
+            $loginQ = trim((string)getenv('IN_LOGINH'));
+            if ($loginQ !== '') {
+              echo "===== GIRIS GECMISI: \"{$loginQ}\" =====\n";
+              $hits = find_accounts($accounts, mb_strtolower($loginQ));
+              if (!$hits)            { echo "  *** eslesen hesap YOK ***\n"; }
+              elseif (count($hits)>1) { echo "  *** ".count($hits)." hesap esletti, daraltin ***\n";
+                                        foreach ($hits as $h) echo "    ".($h['company'] ?: $h['name'] ?: '?')."\n"; }
+              else {
+                $a = $hits[0];
+                $em = mb_strtolower(trim((string)($a['email'] ?? '')));
+                $uid = (string)($a['id'] ?? '');
+                printf("  hesap : %s  tip=%s  durum=%s  kyb=%s\n",
+                  ($a['company'] ?: $a['name'] ?: '?'), $a['type'] ?? '?', $a['status'] ?? '?', $a['kyb_status'] ?? '?');
+                /* E-posta DOGRULAMASI ayri bir kapi ve login.php onu 'unverified'
+                   diye reddediyor -- hesap 'active' gorunurken bile. Bu satir
+                   olmadan "aktif ama giremiyor" cozulemez. */
+                printf("  e-posta dogrulandi : %s\n", !empty($a['email_verified']) ? 'EVET' : '*** HAYIR ***');
+                /* ALAN ADI KODDAN DOGRULANDI: auth_touch_login() 'last_login'
+                   yaziyor, 'last_login_at' DEGIL. Ilk yazimda ikincisini
+                   okudum ve sonda 13 basarili girisi olan bir hesap icin
+                   "son giris: hic" bastI -- `?? ''` sessizdir, hata vermez.
+                   Bu depoda ayni tuzak `vat` ile `vat_id`'de yasandi ve o
+                   gun neredeyse musteriye yanlis bir ozur yazdiracakti. */
+                printf("  son giris          : %s\n", substr((string)($a['last_login'] ?? ''), 0, 16) ?: 'hic');
+                printf("  son giris yeri     : %s%s\n",
+                  (string)($a['last_country'] ?? '?') ?: '?',
+                  ($a['last_city'] ?? '') !== '' ? '/'.$a['last_city'] : '');
+                /* OTURUM DEPOSU. "Giris tutuyor ama oturum kalmiyor" sikayetinde
+                   sunucu tarafindaki tek somut sebep bu: inc/auth.php oturumlari
+                   data/sessions'a yaziyor (paylasimli /tmp'yi barindirici
+                   dakikalar icinde supuruyor). Dizin yazilamazsa PHP sessizce
+                   /tmp'ye duser ve oturumlar kisa sure sonra yok olur --
+                   kullanici tam da "surekli giris ekranina donuyorum" der. */
+                $sdir = $doc.'/data/sessions';
+                $scnt = is_dir($sdir) ? count(glob($sdir.'/sess_*') ?: []) : 0;
+                printf("  oturum deposu      : %s | yazilabilir=%s | dosya=%d | gc_maxlifetime=%s sn\n",
+                  is_dir($sdir) ? 'VAR' : '*** YOK ***',
+                  (is_dir($sdir) && is_writable($sdir)) ? 'EVET' : '*** HAYIR ***',
+                  $scnt, (string)ini_get('session.gc_maxlifetime'));
+                $secf = $doc.'/data/security_log.json';
+                $log  = is_readable($secf) ? (json_decode((string)file_get_contents($secf), true) ?: []) : [];
+                $mine = [];
+                foreach ($log as $e) {
+                  $le = mb_strtolower(trim((string)($e['email'] ?? '')));
+                  if (($uid !== '' && (string)($e['uid'] ?? '') === $uid) || ($em !== '' && $le === $em)) $mine[] = $e;
+                }
+                echo "  kayitli olay       : ".count($mine)." (son 15 gosteriliyor)\n";
+                $tally = [];
+                foreach ($mine as $e) { $ev = (string)($e['event'] ?? '?'); $tally[$ev] = ($tally[$ev] ?? 0) + 1; }
+                if ($tally) { $tp = []; foreach ($tally as $ev => $n) $tp[] = "{$ev}={$n}"; echo "  dagilim            : ".implode(' | ', $tp)."\n"; }
+                foreach (array_slice(array_reverse($mine), 0, 15) as $e) {
+                  /* Tarayici AILESI yeter: tam UA parmak izidir ve kutuk acik. */
+                  $ua = (string)($e['ua'] ?? '');
+                  $fam = str_contains($ua,'Firefox') ? 'Firefox'
+                       : (str_contains($ua,'Edg') ? 'Edge'
+                       : (str_contains($ua,'Chrome') ? 'Chrome'
+                       : (str_contains($ua,'Safari') ? 'Safari' : ($ua === '' ? '-' : 'diger'))));
+                  $mob = str_contains($ua,'Mobile') || str_contains($ua,'Android') || str_contains($ua,'iPhone') ? ' mobil' : '';
+                  printf("    %s  %-12s %s%s  %s\n",
+                    substr((string)($e['ts'] ?? '?'), 0, 16), (string)($e['event'] ?? '?'),
+                    (string)($e['country'] ?? '?') ?: '?', ($e['city'] ?? '') !== '' ? '/'.$e['city'] : '',
+                    $fam.$mob.(!empty($e['vpn']) ? '  [VPN/hosting]' : ''));
+                }
+                /* Okunmasi gereken cumleyi sonda KENDISI yaziyor: ham olay
+                   listesine bakip "sanirim parola" demek, bu deponun alti kez
+                   kaydettigi tahmin. */
+                $ok = (int)($tally['login_ok'] ?? 0); $fail = (int)($tally['login_fail'] ?? 0);
+                echo "  => ";
+                if ($ok === 0 && $fail === 0)      echo "bu hesapla HIC giris denemesi yok — musteri baska bir adresle deniyor olabilir\n";
+                elseif ($ok === 0 && $fail > 0)    echo "{$fail} basarisiz, HIC basarili yok — PAROLA tutmuyor (sifirlama gerekir), oturum sorunu DEGIL\n";
+                elseif ($ok > 0 && $fail === 0)    echo "{$ok} basarili giris, hic basarisiz yok — parola dogru; sorun oturumun TUTUNMAMASI\n";
+                else                               echo "{$ok} basarili / {$fail} basarisiz — ikisi de var, son olaylarin SIRASINA bak\n";
+              }
+              echo "\n";
+            }
 
-              foreach (['buyer'=>$bUid, 'seller'=>$sUid] as $role => $uid) {
-                if ($uid === '') { echo "  [{$role}] uid bos\n"; continue; }
-                $label = $uid === VESTRA_SUPPORT_UID ? 'VESTRA Support' : null;
-                $acc = $byId[$uid] ?? null;
-                $unread = vestra_msg_unread($t, $uid);
-                $readSeen = $t['read'][$uid] ?? '(hic yok)';
-                if ($label !== null) {
-                  echo "  [{$role}] {$uid} = VESTRA Support (sentetik) | okunmamis={$unread}\n";
-                } elseif ($acc === null) {
-                  echo "  [{$role}] {$uid} = *** HESAP BULUNAMADI (silinmis/gecersiz uid) *** | okunmamis={$unread} | read[uid]=".json_encode($readSeen)."\n";
-                } else {
-                  $em = (string)($acc['email'] ?? '');
-                  $nm = $acc['company'] ?: ($acc['name'] ?: '(isimsiz)');
-                  echo "  [{$role}] {$uid} = \"{$nm}\" | email=".($em!==''?$em:'*** EMAIL YOK ***')." | okunmamis={$unread} | read[uid]=".json_encode($readSeen)."\n";
+            $summary = [];
+            foreach (['who'=>getenv('IN_WHO'), 'who2'=>getenv('IN_WHO2')] as $k => $q) {
+              $q = trim((string)$q);
+              if ($q === '') continue;
+              echo "===== HESAP ARAMASI: \"{$q}\" =====\n";
+              $hits = find_accounts($accounts, $q);
+              if (!$hits) { echo "  *** eslesen hesap YOK ***\n"; $summary[] = "{$q}: hesap yok"; }
+              foreach ($hits as $a) {
+                acc_dump($a);
+                $summary[] = ($a['company'] ?: $a['name'] ?: '?').": tip=".($a['type']??'?')
+                           .", fiyat kapisi=".(auth_prices_unlocked($a) ? 'ACIK' : 'KAPALI');
+              }
+              echo "\n";
+            }
+
+            $brand = trim((string)getenv('IN_BRAND'));
+            if ($brand !== '') {
+              echo "===== MARKA: \"{$brand}\" — ilanlar ve SAHIBI =====\n";
+              $n = 0; $owners = [];
+              foreach (vestra_products() as $p) {
+                if (stripos((string)($p['brand'] ?? ''), $brand) === false) continue;
+                $n++;
+                $su = (string)($p['seller_uid'] ?? '');
+                $own = $su === '' ? '(platform/demo — satici yok)'
+                                  : (($byId[$su]['company'] ?? $byId[$su]['name'] ?? '(hesap bulunamadi)').' ['.substr($su,0,8).']');
+                $owners[$own] = ($owners[$own] ?? 0) + 1;
+                /* Renk ve gorsel de yaziliyor: birlestirilmis bir ilani
+                   birlestirilmemisten ancak bunlar ayirir. Depodaki ice
+                   aktarma dosyasi CANLI durumu gostermez -- uzerine duzeltme
+                   uygulanmis olabilir. */
+                $cols = (array)($p['colors'] ?? []);
+                echo "  ".($p['id']??'?')." | ".mb_substr((string)($p['name']??''),0,40)
+                   ." | ".($p['cat']??'?')." | sku=".($p['sku'] ?? '-')
+                   ." | ".number_format(vestra_export_price($p),2)." EUR | MOQ ".(int)($p['moq']??0)
+                   ." | durum=".($p['status'] ?? 'approved')
+                   ." | renk(".count($cols)."): ".(implode(',', array_map('strval',$cols)) ?: '-')
+                   ." | gorsel=".count((array)($p['images'] ?? []))
+                   ." | ships=".(trim((string)($p['ships_from']??'')) !== '' ? $p['ships_from'] : 'YOK')
+                   ." | ".$own."\n";
+              }
+              echo "  TOPLAM: {$n} urun\n";
+              foreach ($owners as $o => $c) $summary[] = "{$brand}: {$c} urun -> {$o}";
+              echo "\n";
+            }
+
+            /* KURAL 3 denetimi. 'ships from' artik zorunlu alan, ama ZORUNLULUK
+               yalnizca YENI/duzenlenen ilanlara isliyor -- daha once girilmis
+               ilanlar bos kaldi ve bunu ancak sayarak gorursun. Alici bu satiri
+               gumruk ve teslim suresi icin okuyor; ozellikle AB disindan sorana
+               fiyat listesi gonderirken eksikligi dogrudan bir sonraki soruya
+               donusuyor. */
+            if (getenv('IN_SHIPS') === 'true') {
+              echo "===== KURAL 3: 'ships from' girilmemis ilanlar =====\n";
+              $tot = 0; $missing = 0; $perSeller = [];
+              foreach (vestra_listings() as $l) {
+                $tot++;
+                if (trim((string)($l['ships_from'] ?? '')) !== '') continue;
+                $missing++;
+                $su = (string)($l['seller_uid'] ?? '');
+                $own = $su === '' ? '(platform/demo)'
+                                  : (($byId[$su]['company'] ?? $byId[$su]['name'] ?? '(hesap yok)').' ['.substr($su,0,8).']');
+                $perSeller[$own] = ($perSeller[$own] ?? 0) + 1;
+              }
+              arsort($perSeller);
+              foreach ($perSeller as $o => $c) echo "  {$c} ilan  <-  {$o}\n";
+              echo "  TOPLAM: {$missing} / {$tot} ilanda gonderim yeri YOK\n";
+              $summary[] = "KURAL 3: {$missing}/{$tot} ilanda ships_from bos";
+              echo "\n";
+            }
+
+            if (getenv('IN_THREADS') === 'true') {
+              $threads = vestra_msg_threads();
+              usort($threads, fn($a,$b) => strtotime($b['last_at']??'1970-01-01') <=> strtotime($a['last_at']??'1970-01-01'));
+              echo "===== THREAD SAYISI: ".count($threads)." (en yeni 8) =====\n";
+              foreach (array_slice($threads, 0, 8) as $t) {
+                $msgs = $t['messages'] ?? [];
+                $last = end($msgs);
+                echo "--- ".($t['id']??'?')." | ilan=".($t['listing_id']??'-')." | son=".($t['last_at']??'')
+                   ." | mesaj=".count($msgs)."\n";
+                echo "    son: [".($last['from']??'?')."] \"".mb_substr((string)($last['text']??($last['meta']['kind']??'')),0,70)."\"\n";
+                foreach (['alici'=>(string)($t['buyer_uid']??''), 'satici'=>(string)($t['seller_uid']??'')] as $role => $uid) {
+                  if ($uid === '') { echo "    [{$role}] uid bos\n"; continue; }
+                  if (defined('VESTRA_SUPPORT_UID') && $uid === VESTRA_SUPPORT_UID) { echo "    [{$role}] VESTRA Support\n"; continue; }
+                  $acc = $byId[$uid] ?? null;
+                  echo "    [{$role}] ".($acc ? ('"'.($acc['company'] ?: $acc['name'] ?: '(isimsiz)').'" '.m($acc['email']??'')) : '*** HESAP BULUNAMADI ***')
+                     ." | okunmamis=".yn(vestra_msg_unread($t, $uid))
+                     ." | okuma imleci=".(int)($t['read'][$uid] ?? 0)."/".count($msgs)."\n";
+                }
+                /* SON MESAJ ICIN KAPI ZILI. Gonderim aninda thread'e damga
+                   basiliyor ($t['ping'][uid]); "sistem bu mesaji musteriye
+                   e-posta olarak gonderdi mi?" sorusu artik tahminle degil bu
+                   damgayla cevaplaniyor. Damgadan ONCEKI mesajlarda damga yok --
+                   o donem icin kurulamaz oldugu yazilir. */
+                $lastFrom = (string)($last['from'] ?? '');
+                $rcpt = $lastFrom === (string)($t['buyer_uid']??'') ? (string)($t['seller_uid']??'') : (string)($t['buyer_uid']??'');
+                if ($rcpt !== '' && !(defined('VESTRA_SUPPORT_UID') && $rcpt === VESTRA_SUPPORT_UID) && $lastFrom !== 'system') {
+                  $rAcc  = $byId[$rcpt] ?? null;
+                  $ping  = (int)($t['ping'][$rcpt] ?? 0);
+                  $lastT = strtotime((string)($last['at'] ?? ($t['last_at'] ?? ''))) ?: 0;
+                  if (!$rAcc || trim((string)($rAcc['email'] ?? '')) === '') {
+                    echo "    kapi zili (e-posta): GITMEDI — alicinin kayitli adresi yok\n";
+                  } elseif ($ping === 0) {
+                    echo "    kapi zili (e-posta): BILINMIYOR — damga oncesi donem (6 Eyl 2026'dan eski)\n";
+                  } elseif ($lastT && $ping >= $lastT - 5) {
+                    echo "    kapi zili (e-posta): GITTI ".gmdate('Y-m-d H:i', $ping)."Z — icerik YOK, sadece 'yeni mesaj var' bildirimi\n";
+                  } else {
+                    echo "    kapi zili (e-posta): GITMEDI — onceki bildirimden bu yana ".VESTRA_MSG_PING_GAP
+                       ." sn dolmamisti (son zil ".gmdate('Y-m-d H:i', $ping)."Z)\n";
+                  }
                 }
               }
               echo "\n";
             }
+
+            /* mail_for TEK BASINA da bu blogu acmali: Brevo olay gecmisi bu
+               blogun ICINDE ve girdiyi yalnizca mail_for ile veren operatore
+               HICBIR SEY basilmiyordu -- "olay yok" gibi okunan bir sessizlik,
+               oysa sorgu hic yapilmamisti. Adres soruldugunda cevap verilir. */
+            if (getenv('IN_MAILCFG') === 'true' || trim((string)getenv('IN_MAIL_FOR')) !== '') {
+              echo "===== MAIL AYARLARI =====\n";
+              $apiKey = (string)vestra_cfg('mail_api_key','');
+              echo "mail_enabled=".(vestra_cfg('mail_enabled',false)?'true':'false')
+                 ." | provider=".vestra_cfg('mail_api_provider','brevo')
+                 ." | anahtar=".($apiKey !== '' ? 'SET' : '(bos)')
+                 ." | from=".vestra_cfg('mail_from','support@vestrasales.com')."\n\n";
+
+              /* SAGLAYICININ KENDI KAYDI. error_log yalnizca BASARISIZ gonderimi
+                 yaziyor -- 2xx hicbir sey birakmiyor, yani oradaki sessizlik
+                 "ulasti" demek DEGIL. Betigin "GONDERILDI" satiri da yalnizca
+                 "Brevo isteği kabul etti" demek; teslim, bounce, spam ve
+                 "hic ulasmadi" ancak burada ayrisiyor.
+                 Adres: IN_MAIL_FOR, verilmezse operatorun test kutusu.
+
+                 'account:<isim parcasi>' / 'offer:<ref>' — adres KAYITTAN cozulur.
+                 Sebep iki katmanli. (1) Musteri adresi is akisi girdisine
+                 YAZILMAZ: girdi calisma basliginda kalici ve herkese acik
+                 (buyer_reply'in to=account:/to=order: bicimi tam bu yuzden var).
+                 (2) Bos birakildiginda bu blok sessizce OPERATORUN kutusunu
+                 sorguluyor ve basligi "BREVO OLAY GECMISI: a***@gmail.com" diye
+                 basiyor -- musterinin mektubunu arayan biri bunu "musteriye olay
+                 yok" diye okur. Bu depoda "kontrol yanlis yere bakiyordu" hatasi
+                 alti kez yasandi; cozulen adresin NEREDEN geldigi artik yaziliyor. */
+              $who = trim((string)getenv('IN_MAIL_FOR'));
+              $whoSrc = 'girdi';
+              if (stripos($who, 'offer:') === 0) {
+                $oref = trim(substr($who, 6));
+                require_once $doc."/inc/offers.php";
+                $orow = vestra_offer_row($oref);
+                if (!$orow) { fwrite(STDERR, "mail_for=offer:{$oref} -- teklif bulunamadi\n"); exit(1); }
+                $who = trim((string)($orow['email'] ?? '')); $whoSrc = "teklif {$oref}";
+              } elseif (stripos($who, 'account:') === 0) {
+                $needle = strtolower(trim(substr($who, 8)));
+                $hits = [];
+                /* HESAP ID'si TAM esitlikle ONCE: ad parcasi aramak, tek ayirt
+                   edici parca kisinin SOYADI oldugunda onu kalici ve herkese
+                   acik bir kosu basligina yazdirir. order_draft ve
+                   password_setup ayni sirayi tasiyor. */
+                foreach (auth_accounts() as $a) {
+                  if ($needle !== '' && strtolower((string)($a['id'] ?? '')) === $needle) { $hits = [$a]; break; }
+                }
+                if (!$hits) foreach (auth_accounts() as $a) {
+                  $hay = strtolower(($a['company'] ?? '').' '.($a['name'] ?? ''));
+                  if ($needle !== '' && str_contains($hay, $needle)) $hits[] = $a;
+                }
+                /* Tek hesap degilse DUR: yanlis kutunun olaylarina bakip
+                   "mektup gitmemis" demek, gitmis bir mektubu yok saymak olur. */
+                if (count($hits) !== 1) {
+                  fwrite(STDERR, "mail_for=account:{$needle} -> ".count($hits)." hesap\n");
+                  foreach ($hits as $h) fwrite(STDERR, "   ".($h['company'] ?? $h['name'] ?? '?')."\n");
+                  exit(1);
+                }
+                $who = trim((string)($hits[0]['email'] ?? ''));
+                $whoSrc = 'hesap '.trim((string)($hits[0]['company'] ?? $hits[0]['name'] ?? '?'));
+              }
+              if ($who === '') { $who = 'acerasoft@gmail.com'; $whoSrc = 'VARSAYILAN operator test kutusu'; }
+              if ($apiKey === '') { echo "  (anahtar yok -- olay gecmisi sorulamiyor)\n"; }
+              else {
+                /* Pencere artik girdi: sabit 2 gun, alti gun once giden bir
+                   faturanin teslim/acilma kaydini HIC gostermiyordu ve bos cikti
+                   "mektup gitmemis" diye okunurdu (kontrol yanlis yere bakiyor). */
+                $mailDays = (int)(getenv('IN_MAIL_DAYS') ?: 2);
+                $mailDays = max(1, min(30, $mailDays));
+                echo "===== BREVO OLAY GECMISI: ".m($who)."  [kaynak: {$whoSrc}] (son {$mailDays} gun) =====\n";
+                $ch = curl_init('https://api.brevo.com/v3/smtp/statistics/events?'.http_build_query([
+                  'email' => $who,
+                  'startDate' => gmdate('Y-m-d', strtotime('-'.$mailDays.' days')),
+                  'endDate' => gmdate('Y-m-d'),
+                  'limit' => 100,
+                ]));
+                curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>20,
+                  CURLOPT_HTTPHEADER=>['api-key: '.$apiKey, 'Accept: application/json']]);
+                $resp = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+                if ($code >= 200 && $code < 300) {
+                  $events = (array)((json_decode((string)$resp, true) ?: [])['events'] ?? []);
+                  /* Konu suzgeci: 100 olayin hepsini basmak kutuk kuyruguna
+                     sigmiyor ve ilgilendigin mektup en usttekiler arasinda
+                     kaybolyordu -- ilk denemede tam bu oldu. */
+                  $subjQ = trim((string)getenv('IN_MAIL_SUBJ'));
+                  if ($subjQ !== '') {
+                    $events = array_values(array_filter($events,
+                      fn($ev) => stripos((string)($ev['subject'] ?? ''), $subjQ) !== false));
+                    echo "  (konu suzgeci: \"{$subjQ}\")\n";
+                  }
+                  if (!$events) {
+                    echo "  (HIC OLAY YOK".($subjQ !== '' ? " -- bu konuda" : " -- Brevo'ya hic ulasmamis olabilir").")\n";
+                    $summary[] = "Brevo: olay yok".($subjQ !== '' ? " ({$subjQ})" : "");
+                  }
+                  /* ESKIDEN YENIYE bas: Brevo yeniden eskiye donduruyor ve kutuk
+                     KUYRUKTAN okundugu icin en yeni satirlar tam da kirpilan
+                     yerdeydi. Simdi en yeni olay en SONDA, yani her zaman gorunur. */
+                  $events = array_reverse($events);
+                  $tally = [];
+                  foreach ($events as $ev) {
+                    $e = (string)($ev['event'] ?? '?');
+                    $tally[$e] = ($tally[$e] ?? 0) + 1;
+                    echo "  ".($ev['date'] ?? '?')." | ".$e." | ".mb_substr((string)($ev['subject'] ?? ''),0,52)."\n";
+                  }
+                  foreach ($tally as $e => $c) $summary[] = "Brevo {$e}: {$c}";
+                  /* 'requests' var ama 'delivered' yoksa: Brevo istegi kabul etti,
+                     posta kutusuna girmedi. Sessizce gecilecek en pahali durum. */
+                  if (($tally['requests'] ?? 0) > 0 && ($tally['delivered'] ?? 0) === 0) {
+                    $summary[] = "!! requests var, delivered YOK -- kabul edildi ama teslim edilmedi";
+                  }
+                } else {
+                  echo "  HATA: Brevo events HTTP {$code}: ".mb_substr((string)$resp,0,160)."\n";
+                  $summary[] = "Brevo events HTTP {$code}";
+                }
+              }
+              echo "\n";
+            }
+
+            /* GONDEREN ALAN ADI DOGRULAMASI. "delivered" = alici sunucu KABUL
+               ETTI demek; Gmail'in spam klasorune koymasi da delivered sayilir.
+               Kutuya girip girmedigini belirleyen sey SPF/DKIM/DMARC. Operator
+               "mektubu gormuyorum" dediginde once buraya bakilir -- teslim
+               kaydina degil. Anahtar hicbir yerde YAZDIRILMIYOR. */
+            if (getenv('IN_SENDER') === 'true') {
+              $apiKey = (string)vestra_cfg('mail_api_key','');
+              if ($apiKey === '') { echo "===== GONDEREN =====\n  (anahtar yok)\n\n"; }
+              else {
+                $get = function (string $path) use ($apiKey) {
+                  $ch = curl_init('https://api.brevo.com/v3/'.$path);
+                  curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>20,
+                    CURLOPT_HTTPHEADER=>['api-key: '.$apiKey, 'Accept: application/json']]);
+                  $r = curl_exec($ch); $c = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+                  return [$c, json_decode((string)$r, true) ?: []];
+                };
+
+                echo "===== GONDEREN ALAN ADI (SPF / DKIM / DMARC) =====\n";
+                [$c, $d] = $get('senders/domains');
+                if ($c < 200 || $c >= 300) { echo "  HATA: HTTP {$c}\n"; $summary[] = "Brevo domains HTTP {$c}"; }
+                foreach ((array)($d['domains'] ?? []) as $dom) {
+                  $n  = (string)($dom['domain_name'] ?? $dom['domain'] ?? '?');
+                  $au = (array)($dom['authentication'] ?? []);
+                  $ok = fn($k) => !empty($au[$k]) ? 'OK' : '*** YOK ***';
+                  echo "  {$n} | dogrulanmis=".(!empty($dom['verified']) ? 'EVET' : '*** HAYIR ***')
+                     ." | dkim=".$ok('dkim')." | brevo_code=".$ok('brevo_code')." | dmarc=".$ok('dmarc')."\n";
+                  $summary[] = "alan {$n}: dogrulanmis=".(!empty($dom['verified'])?'EVET':'HAYIR')
+                             .", dkim=".(!empty($au['dkim'])?'OK':'YOK').", dmarc=".(!empty($au['dmarc'])?'OK':'YOK');
+                }
+
+                /* DNS KAYITLARININ KENDISI. Denetimin "dkim=YOK" demesi sorunu
+                   gosteriyor ama cozmuyor: operatorun GoDaddy'ye yapistiracagi
+                   satirlar Brevo'nun kendi cevabinda duruyor (dns_records). Bunlari
+                   basmak guvenli -- DKIM ACIK anahtardir, DMARC ve dogrulama kaydi
+                   zaten herkese acik DNS'te yayinlanacak. API ANAHTARI basilmaz. */
+                echo "\n===== DNS'E EKLENECEK KAYITLAR (GoDaddy) =====\n";
+                $printed = 0;
+                /* Dogrulama icin toplaniyor: asagidaki DNS adimi BU listeyi gezer.
+                   Ilk yazimda liste ucunun (bos) dizisini geziyordu ve "0/0" basti --
+                   yani "kayit yok" degil "kontrol edecek sey bulamadim" demekti. */
+                $toVerify = [];
+                foreach ((array)($d['domains'] ?? []) as $dom) {
+                  $n = (string)($dom['domain_name'] ?? $dom['domain'] ?? '?');
+                  $recs = (array)($dom['dns_records'] ?? []);
+                  /* Liste ucu (senders/domains) kayitlari TASIMIYOR -- 4 Eyl 2026'da
+                     olculdu: alan "dogrulanmis=EVET" dondu ama dns_records bostu.
+                     Kayitlar alan-basina ucta duruyor; iki adlandirmayi da deniyoruz
+                     (Brevo API'si /senders/domains/<ad> ile /domains/<ad> arasinda
+                     surum surum degisti) ve ILK dolu cevabi kullaniyoruz. */
+                  if (!$recs) {
+                    foreach (['senders/domains/'.rawurlencode($n), 'domains/'.rawurlencode($n)] as $ep) {
+                      [$dc, $dd] = $get($ep);
+                      echo "  ({$ep} -> HTTP {$dc})\n";
+                      if ($dc >= 200 && $dc < 300) {
+                        $cand = (array)($dd['dns_records'] ?? $dd['domain']['dns_records'] ?? []);
+                        if ($cand) { $recs = $cand; break; }
+                      }
+                    }
+                  }
+                  if (!$recs) { echo "  {$n}: Brevo bu alan icin kayit dondurmedi\n"; continue; }
+                  echo "  --- {$n} ---\n";
+                  foreach ($recs as $key => $r) {
+                    if (!is_array($r)) continue;
+                    $host = (string)($r['host_name'] ?? $r['hostname'] ?? '?');
+                    $type = strtoupper((string)($r['type'] ?? 'TXT'));
+                    $val  = (string)($r['value'] ?? '');
+                    $st   = !empty($r['status']) ? 'DOGRULANDI' : 'BEKLIYOR';
+                    /* Uzun DKIM degeri tek satirda okunmaz; 100 karakterde katliyoruz
+                       ama BIRLESTIRILECEGI acikca yaziyoruz -- yanlis kopyalanan bir
+                       DKIM sessizce calismaz, sadece mektup spam'e duser. */
+                    echo "  [{$key}] durum={$st}\n";
+                    echo "     Type : {$type}\n";
+                    echo "     Name : {$host}\n";
+                    echo "     Value: ".(strlen($val) > 100 ? "(asagidaki parcalari BOSLUKSUZ birlestir)\n            ".implode("\n            ", str_split($val, 100)) : $val)."\n";
+                    $printed++;
+                    $h2 = trim($host, '.');
+                    $toVerify[] = [($h2 === '@' ? $n : (str_ends_with($h2, $n) ? $h2 : $h2.'.'.$n)), $type, $val];
+                  }
+                }
+                if (!$printed) echo "  (kayit yok — alan adi Brevo'ya hic eklenmemis olabilir)\n";
+                /* CELISKIYI DNS COZER. 4 Eyl 2026: liste ucu "dkim=YOK" derken
+                   alan-basina uctaki her kayit "status=DOGRULANDI" dondu. Iki kayit
+                   birbirini tutmuyorsa karar vermeden once celiski cozulur (CLAUDE.md);
+                   burada hakem, kaydin GERCEKTEN yayinda olup olmadigidir. Brevo'nun
+                   bayragi bayat olabilir, DNS olamaz. */
+                echo "\n===== DNS'TE GERCEKTEN VAR MI (canli cozumleme) =====\n";
+                $dnsChk = function (string $host, string $type, string $expect = '') {
+                  $recs = @dns_get_record($host, $type === 'CNAME' ? DNS_CNAME : DNS_TXT);
+                  if (!$recs) { echo "  {$host} ({$type}): *** YAYINDA DEGIL ***\n"; return false; }
+                  $hit = false;
+                  foreach ($recs as $r) {
+                    $val = (string)($r['target'] ?? $r['txt'] ?? '');
+                    $ok  = $expect === '' || stripos($val, $expect) !== false;
+                    if ($ok) $hit = true;
+                    echo "  {$host} ({$type}): ".($ok ? 'VAR' : 'baska deger')." -> ".mb_substr($val, 0, 90)."\n";
+                  }
+                  return $hit;
+                };
+                $dnsOk = 0; $dnsTot = count($toVerify);
+                foreach ($toVerify as [$fq, $ty, $vl]) if ($dnsChk($fq, $ty, $vl)) $dnsOk++;
+                if (!$dnsTot) echo "  (Brevo hic kayit dondurmedi — kontrol edilecek sey yok)\n";
+                echo "  --> DNS'te bulunan: {$dnsOk}/{$dnsTot}\n";
+                $summary[] = "DNS kaydi yayinda: {$dnsOk}/{$dnsTot}"
+                           . ($dnsTot && $dnsOk === $dnsTot ? " (DKIM/DMARC KURULU)" : " (EKSIK VAR)");
+
+                echo "\n  DMARC ayrica elle eklenir (Brevo dondurmezse):\n";
+                echo "     Type : TXT\n";
+                echo "     Name : _dmarc\n";
+                echo "     Value: v=DMARC1; p=none; rua=mailto:support@vestrasales.com\n";
+                echo "  (p=none = once izle, hicbir mektubu reddetme. DKIM oturduktan\n";
+                echo "   sonra p=quarantine'e cekilir.)\n";
+
+                echo "\n===== GONDEREN ADRESLER =====\n";
+                [$c2, $d2] = $get('senders');
+                foreach ((array)($d2['senders'] ?? []) as $sd) {
+                  echo "  ".m((string)($sd['email'] ?? ''))." | \"".($sd['name'] ?? '')."\""
+                     ." | aktif=".(!empty($sd['active']) ? 'EVET' : '*** HAYIR ***')."\n";
+                }
+
+                echo "\n===== HESAP / KREDI =====\n";
+                [$c3, $d3] = $get('account');
+                foreach ((array)($d3['plan'] ?? []) as $pl) {
+                  echo "  ".($pl['type'] ?? '?')." | kredi=".($pl['credits'] ?? '?')
+                     ." | ".($pl['creditsType'] ?? '')."\n";
+                  if (isset($pl['credits'])) $summary[] = "Brevo kredi: ".$pl['credits'];
+                }
+                echo "\n";
+              }
+            }
+
+            /* SIPARIS DOKUMU. Bir siparisin hangi kalemlerden olustugunu ve her
+               kalemin hangi saticiya ait oldugunu gormeden "su urunu cikaralim mi"
+               diye musteriye yazilamaz. Salt okunur. */
+            $oq = trim((string)getenv('IN_ORDERS'));
+            if ($oq !== '') {
+              echo "===== SIPARISLER: \"{$oq}\" =====\n";
+              require_once $doc."/inc/orders.php";
+              $hit = 0;
+              foreach (vestra_read_csv('orders.csv') as $o) {
+                $hay = mb_strtolower(implode(' ', [$o['company'] ?? '', $o['name'] ?? '', $o['email'] ?? '']));
+                if (mb_strpos($hay, mb_strtolower($oq)) === false) continue;
+                $hit++;
+                echo "--- ref=".($o['ref'] ?? '?')." | ".($o['date'] ?? $o['timestamp'] ?? '')
+                   ." | ".($o['company'] ?? $o['name'] ?? '?')." ".m((string)($o['email'] ?? ''))
+                   ." | durum=".($o['status'] ?? '-')."\n";
+                $lines = function_exists('vestra_order_lines') ? vestra_order_lines($o) : [];
+                foreach ($lines as $ln) {
+                  $pid = (string)($ln['id'] ?? $ln['product_id'] ?? '');
+                  $pr  = $pid !== '' ? vestra_listing_by_id($pid) : null;
+                  if (!$pr) foreach (vestra_products() as $cand) if ((string)($cand['id'] ?? '') === $pid) { $pr = $cand; break; }
+                  $su  = (string)($pr['seller_uid'] ?? '');
+                  $own = $su === '' ? '(platform/demo)'
+                       : (($byId[$su]['company'] ?? $byId[$su]['name'] ?? '(hesap yok)'));
+                  echo "    · ".($ln['qty'] ?? '?')." x ".mb_substr((string)($ln['title'] ?? $ln['name'] ?? $pid),0,46)
+                     . " | id=".$pid." | ".($pr ? 'ILAN VAR ('.($pr['status'] ?? 'approved').')' : '*** ILAN YOK ***')
+                     . " | satici: ".$own."\n";
+                }
+                if (!$lines) echo "    (kalem cozulemedi, ham: ".mb_substr((string)($o['items'] ?? ''),0,160).")\n";
+              }
+              if (!$hit) { echo "  (bu alicida orders.csv kaydi yok)\n"; }
+
+              /* TEKLIFLER. Operatorun sordugu sey burada: hangi teklif CEVAPSIZ
+                 kalmis. offer_responses.json cevap verilmis olanlari tutuyor;
+                 kaydi olmayan ya da hala 'counter' durumunda olan teklif aciktir.
+                 SIRA KIMDE bilgisi kritik -- top alicidaysa nudge dogru, satici
+                 tarafindaysa musteriyi bosuna sikistirmis oluruz. */
+              require_once $doc."/inc/offers.php";
+              /* invoice.php AYRICA yuklenmeli. offers.php onu yalnizca fonksiyon
+                 GOVDESINDE require ediyor, yani cagrilmadikca yuklenmiyor ve
+                 asagidaki function_exists('vestra_invoices_for_ref') FALSE
+                 donuyordu -- teshis, KESILMIS bir faturaya "KESILMEDI" diyordu.
+                 Daymond dosyasinda tam bu yasandi: dizinde OCF7F5 PDF+meta
+                 duruyorken satir "onay kuyrugunda" yaziyordu. */
+              require_once $doc."/inc/invoice.php";
+              $rs = function_exists('vestra_read_json') ? (array)vestra_read_json('offer_responses.json') : [];
+              echo "  --- teklifler ---\n";
+              $oc = 0;
+              foreach (vestra_read_csv('offers.csv') as $of) {
+                $hay = mb_strtolower(implode(' ', [$of['company'] ?? '', $of['name'] ?? '', $of['email'] ?? '']));
+                if (mb_strpos($hay, mb_strtolower($oq)) === false) continue;
+                $oc++;
+                $ref  = (string)($of['ref'] ?? '');
+                $resp = $rs[$ref] ?? null;
+                $st   = $resp['status'] ?? '(cevapsiz)';
+                $turn = function_exists('vestra_offer_turn') ? vestra_offer_turn($resp) : '?';
+                $left = function_exists('vestra_offer_counters_left') ? vestra_offer_counters_left($resp) : '?';
+                /* Fiyat sutunu 'offer_unit' -- 'unit_price'/'price' diye okumak
+                   her satirda '?' yazdiriyordu. ANLASILAN birim ise ayri:
+                   karsi teklif verilmisse teklif edilen degil KABUL EDILEN
+                   fiyat gecerli (KURAL 5), o yuzden vestra_offer_agreed_unit()
+                   -- faturaya giren rakam bu. */
+                $ask    = (float)($of['offer_unit'] ?? 0);
+                $agreed = function_exists('vestra_offer_agreed_unit')
+                        ? vestra_offer_agreed_unit($ref, $resp, $of) : 0.0;
+                $qn     = (int)($of['qty'] ?? 0);
+                /* FATURA KESILDI MI. 'accept' bir teklifi faturaya HAZIR yapar,
+                   kesmez -- KURAL 5: belge Admin > Invoice approvals'tan cikar.
+                   Operator "fatura nerede" diye sorunca bakilacak yer burasi:
+                   kesilmisse numarasi, kesilmemisse kuyrukta bekliyor. */
+                $invs = function_exists('vestra_invoices_for_ref') ? vestra_invoices_for_ref($ref) : [];
+                $inv  = $invs ? ('KESILDI: '.implode(', ', array_map(fn($i) => (string)($i['no'] ?? '?'), $invs)))
+                      : (($st === 'accept') ? '*** KESILMEDI - onay kuyrugunda ***' : 'kesilemez (uzlasma yok)');
+                /* SATICI: faturayi kimin kestigini bu belirliyor. Teklif kaydinda
+                   satici yok -- urunun ilanindan cozuluyor (offers.php:
+                   vestra_listing_by_sku -> seller_uid). Bir siparisteki kalemler
+                   FARKLI saticilara ait olabilir ve o zaman sistem tek fatura
+                   kesemez; karari gorunur kilmak icin satici satirda yaziyor. */
+                $lst = function_exists('vestra_listing_by_sku') ? vestra_listing_by_sku((string)($of['sku'] ?? '')) : null;
+                $sid = (string)($lst['seller_uid'] ?? '');
+                $snm = $sid === '' ? '(platform/demo -> VESTRA keser)'
+                     : (($byId[$sid]['company'] ?? $byId[$sid]['name'] ?? '(hesap yok)'));
+                echo "  ".$ref." | ".mb_substr((string)($of['product'] ?? $of['title'] ?? '?'),0,30)
+                   . " | ".$qn." x ".number_format($agreed,2)." = ".number_format($qn*$agreed,2)
+                   . " | ".$st." | SATICI: ".$snm." | FATURA: ".$inv."\n";
+              }
+              if (!$oc) echo "  (teklif yok)\n";
+
+              /* FATURA DOSYALARININ KENDISI. vestra_invoices_for_ref yalnizca
+                 .json meta dosyasina bakiyor; PDF yazilip meta yazilamamis bir
+                 kesim panelde ve yukaridaki satirda "fatura yok" gorunur ama
+                 NUMARA YANMIS, hatta alici mektubu almis olabilir. O durum
+                 ancak dizinin kendisine bakilarak gorulur -- bu depoda "kontrol
+                 yanlis yere bakiyordu" hatasi uc kez yasandi (CLAUDE.md). */
+              echo "  --- data/invoices dizini ---\n";
+              $invDir = $doc."/data/invoices";
+              $fs = is_dir($invDir) ? (glob($invDir."/*.{pdf,json}", GLOB_BRACE) ?: []) : [];
+              if (!$fs) echo "    (dosya yok)\n";
+              $shown = 0;
+              foreach ($fs as $f) {
+                if (++$shown > 40) { echo "    ... (".(count($fs)-40)." dosya daha)\n"; break; }
+                echo "    ".basename($f)."  ".number_format((int)@filesize($f))." bayt\n";
+              }
+              $summary[] = "{$oq}: {$hit} siparis, {$oc} teklif, ".count($fs)." fatura dosyasi";
+              echo "\n";
+            }
+
+            /* FATURA KUNYESI. Faturanin ustundeki isim $sellerAcc['company'],
+               IBAN'in yanindaki isim ise 'bank_holder' -- IKISI AYRI ALAN ve
+               operator ikisinin FARKLI olmasini istiyor.
+
+               NUMARALAR BASILMIYOR. IBAN / hesap / routing yalnizca "var/yok"
+               ve uzunluk olarak yaziliyor. Bu depo ve Actions kutugu HERKESE
+               ACIK (CLAUDE.md): bir IBAN buraya bir kez dustugunde geri
+               alinamaz, ve ABD'de routing+hesap ikilisi ACH borclandirma icin
+               tek basina yeterli. Degerin kendisi panelde okunur. */
+            $bq = trim((string)getenv('IN_BILLING'));
+            /* PLATFORMUN KENDI KUNYESI de buradan okunur ("vestra" / "platform").
+               Sonda uzun sure yalnizca HESAPLARI ariyordu, oysa kurasyonlu bir
+               ilanda (seller_uid bos) faturayi kesen taraf hicbir hesap DEGIL --
+               vestra_platform_seller(), data/platform_seller.json. Yani odeme
+               kutusunun bos cikmasinin en olasi sebebi, sondanin bakamadigi tek
+               kayitti. Ayni maskeleme: numara degil, VAR/YOK + hane sayisi. */
+            if ($bq !== '' && in_array(strtolower($bq), ['vestra','platform'], true)) {
+              require_once $doc.'/inc/invoice.php';
+              $P = vestra_platform_seller();
+              $has = function ($v) { $v = trim((string)$v); return $v === '' ? '*** BOS ***' : 'VAR ('.strlen($v).' hane)'; };
+              echo "===== PLATFORM KUNYESI (vestra_platform_seller) =====\n";
+              echo "  kaynak: data/platform_seller.json ".(is_readable($doc.'/data/platform_seller.json') ? 'VAR' : '*** YOK -- yalnizca koddaki kimlik doner, banka alani hic olmaz ***')."\n";
+              echo "  --- faturanin USTUNDE ---\n";
+              foreach (['company','address','country','vat_id','reg_number'] as $k) {
+                echo "    ".str_pad($k, 11).": ".((trim((string)($P[$k] ?? '')) !== '') ? $P[$k] : '(yok)')."\n";
+              }
+              echo "  --- ODEME KUTUSU (invoice.php: payment_rails) ---\n";
+              echo "    bank_holder: \"".($P['bank_holder'] ?? '')."\"".(trim((string)($P['bank_holder'] ?? '')) === '' ? '  <- BOS' : '')."\n";
+              echo "    bank_name  : \"".($P['bank_name'] ?? '')."\"\n";
+              echo "    bank_bic   : ".((trim((string)($P['bank_bic'] ?? '')) !== '') ? $P['bank_bic'] : '(yok)')."\n";
+              echo "    bank_iban  : ".$has($P['bank_iban'] ?? '')."   [NUMARA YAZDIRILMIYOR - panelden oku]\n";
+              /* EUR rayinin kendi alanlari (17 Eyl 2026): ABD hesabi da varken rails EUR
+                 tarafina bank_name/bank_address'i DEGIL bunlari basar. Bos kalirlarsa
+                 EUR kutusu IBAN'la cikar ama banka adi/adresi olmaz. */
+              echo "    bank_eur_bic/name/address: ".((trim((string)($P['bank_eur_bic'] ?? '')) !== '') ? $P['bank_eur_bic'] : '(yok)')." / \"".($P['bank_eur_name'] ?? '')."\" / ".$has($P['bank_eur_address'] ?? '')."\n";
+              echo "    bank_account/routing: ".$has($P['bank_account'] ?? '')." / ".$has($P['bank_routing'] ?? '')."\n";
+              /* ASIL CEVAP: kutu cikacak mi? Satir SAYISI basiliyor, satirlarin
+                 KENDISI degil -- rails IBAN'i ve hesap numarasini metin olarak
+                 tasiyor ve bu kutuk herkese acik. */
+              foreach (['EUR','USD'] as $c) {
+                $r = vestra_payment_rails($P, $c);
+                echo "    -> ".$c." faturasinda odeme kutusu: ".($r ? 'CIKAR ('.count($r).' satir)' : '*** CIKMAZ (bos) ***')."\n";
+              }
+              /* ADLI BANKA PROFILLERI (2 Eki 2026): siparis basina secilebilen ek
+                 hesaplar. Ayni maske: numara yok, VAR/YOK + hane + satir sayisi. */
+              echo "  --- BANKA PROFILLERI (siparis basina secilebilir) ---\n";
+              if (!function_exists('vestra_platform_banks')) {
+                echo "    *** DEPLOY INMEMIS -- profil kodu yok ***\n";
+              } else {
+                $PB = vestra_platform_banks();
+                if (!$PB) echo "    (profil yok -- her belge duz kunyeyle)\n";
+                foreach ($PB as $bk => $bp) {
+                  $bc  = strtoupper((string)($bp['currency'] ?? 'EUR'));
+                  $ba  = vestra_platform_seller_bank((string)$bk);
+                  $br  = $ba ? vestra_payment_rails($ba, $bc) : [];
+                  $ibn = vestra_iban_normalize((string)($bp['bank_iban'] ?? ''));
+                  printf("    %-10s %-24s %s  lehdar=%s  banka=%s  %s  -> kutu: %s\n", $bk, '"'.(string)($bp['label'] ?? '').'"', $bc,
+                         (string)($bp['bank_holder'] ?? '') ?: '(duz kunyeden)',
+                         (string)($bp['bank_name'] ?? '') ?: '(yok)',
+                         $bc === 'USD' ? 'hesap '.$has($bp['bank_account'] ?? '').' / ABA '.$has($bp['bank_routing'] ?? '')
+                                       : 'IBAN '.($ibn !== '' ? substr($ibn,0,2).' '.strlen($ibn).' hane mod-97 '.(vestra_iban_valid($ibn) ? 'OK' : '*** GECERSIZ') : '*** BOS'),
+                         $br ? 'CIKAR ('.count($br).' satir)' : '*** CIKMAZ ***');
+                }
+              }
+              /* MUHAFAZA SUNUCUYA INDI MI (KURAL 5r). "Dosya parse edildi"
+                 yetmez -- ESKI bir kopya da parse edilir; o yuzden fonksiyonun
+                 VARLIGI degil, gercek bir cagrinin CEVABI olculuyor.
+                 Inmemisse bunu soylemesi sart: inmemis bir muhafaza, operator
+                 "koruma var" sanarken kutusuz belge kesilmesi demek. */
+              echo "    --- kesim muhafazasi (KURAL 5r) ---\n";
+              if (!function_exists('vestra_invoice_payment_gap')) {
+                echo "    *** DEPLOY INMEMIS -- kesim muhafazasi YOK, kutusuz belge kesilebilir ***\n";
+              } else {
+                foreach (['EUR','USD'] as $c) {
+                  $g = vestra_invoice_payment_gap($P, $c, false);
+                  echo "    ".$c." kesimi: ".($g === '' ? 'GECER' : 'DURUR -- '.$g)."\n";
+                }
+                echo "    odenmis (escrow) siparis muaf: ".(vestra_invoice_payment_gap($P,'EUR',true) === '' ? 'EVET' : '*** HAYIR -- kusur ***')."\n";
+              }
+              /* BOLGE VARSAYILANI (KURAL 5s): Avrupa disi alicida belge USD
+                 dogar. Fonksiyonun VARLIGINA degil, gercek bir cevaba bakiyor
+                 -- eski bir kopya da parse edilir. Iki yon birden basiliyor:
+                 tek yon olculseydi "her siparisi USD yapan" bir kusur da
+                 dogru gorunurdu. Kontrol grubu ulkeler bekleyen iki siparisin
+                 ulkeleri (FR/ES) ve yakin-komsu tuzagi (AT/AU). */
+              echo "    --- bolge varsayilani (KURAL 5s) ---\n";
+              if (!function_exists('vestra_invoice_currency_default')) {
+                echo "    *** DEPLOY INMEMIS -- bolge varsayilani YOK, her belge EUR dogar ***\n";
+              } else {
+                foreach (['United States','Japan','France','Spain','AT','AU',''] as $cc) {
+                  $d = vestra_invoice_currency_default(null, $cc, 'EUR');
+                  printf("    %-16s -> %s\n", $cc === '' ? '(ulke bos)' : $cc, $d === '' ? 'EUR (degisiklik yok)' : $d);
+                }
+                echo "    satici kesiminde: ".(vestra_invoice_currency_default(['id'=>'x'],'United States','EUR') === '' ? 'EUR (dogru -- platform disi muaf)' : '*** USD -- kusur ***')."\n";
+              }
+              echo "\n";
+            } elseif ($bq !== '') {
+              require_once $doc.'/inc/invoice.php';
+              echo "===== FATURA KUNYESI: \"{$bq}\" =====\n";
+              foreach (find_accounts($accounts, $bq) as $a) {
+                $has = function ($v) { $v = trim((string)$v); return $v === '' ? '*** BOS ***' : 'VAR ('.strlen($v).' hane)'; };
+                echo "  id=".substr((string)($a['id'] ?? ''),0,8)." | tip=".($a['type'] ?? '?')."\n";
+                echo "  --- faturanin USTUNDE gorunecek (invoice.php: sellerAcc) ---\n";
+                /* BELGEDE BASILAN AD invoice_name > company > name
+                   (vestra_invoice_issuer_name). Sonda uzun sure yalniz company'yi
+                   basiyordu: GARAGE LE PARIS belgede "Agaya Paris" cikarken bu
+                   baslik altinda "GARAGE LE PARIS" yaziyordu (27 Eyl 2026). */
+                echo "    BELGEDE    : \"".(function_exists('vestra_invoice_issuer_name') ? vestra_invoice_issuer_name($a, '?') : '(invoice.php yuklu degil)')."\"\n";
+                echo "    invoice_name: \"".($a['invoice_name'] ?? '')."\"".(trim((string)($a['invoice_name'] ?? '')) === '' ? '  <- BOS ise company kullanilir' : '')."\n";
+                echo "    company    : \"".($a['company'] ?? '')."\"".(trim((string)($a['company'] ?? '')) === '' ? '  <- BOS ise name kullanilir' : '')."\n";
+                echo "    name       : \"".($a['name'] ?? '')."\"\n";
+                echo "    address    : \"".($a['address'] ?? '')."\"\n";
+                echo "    country    : ".($a['country'] ?? '-')."\n";
+                echo "    vat_id     : ".((trim((string)($a['vat_id'] ?? '')) !== '') ? $a['vat_id'] : '(yok)')."\n";
+                echo "    reg_number : ".((trim((string)($a['reg_number'] ?? '')) !== '') ? $a['reg_number'] : '(yok)')."\n";
+                echo "  --- IBAN'in YANINDA gorunecek (invoice.php: payment_rails) ---\n";
+                echo "    bank_holder: \"".($a['bank_holder'] ?? '')."\"".(trim((string)($a['bank_holder'] ?? '')) === '' ? '  <- BOS' : '')."\n";
+                echo "    bank_name  : \"".($a['bank_name'] ?? '')."\"\n";
+                echo "    bank_bic   : ".((trim((string)($a['bank_bic'] ?? '')) !== '') ? $a['bank_bic'] : '(yok)')."\n";
+                echo "    bank_iban  : ".$has($a['bank_iban'] ?? '')."   [NUMARA YAZDIRILMIYOR - panelden oku]\n";
+                echo "    bank_account/routing: ".$has($a['bank_account'] ?? '')." / ".$has($a['bank_routing'] ?? '')."\n";
+                echo "    stripe     : ".(!empty($a['stripe_account_id']) ? 'bagli' : 'YOK')."\n";
+                $summary[] = ($a['company'] ?: $a['name'] ?: '?').": company=\"".($a['company'] ?? '')."\", bank_holder=\"".($a['bank_holder'] ?? '')."\", iban=".(trim((string)($a['bank_iban'] ?? '')) !== '' ? 'VAR' : 'YOK');
+              }
+              echo "\n";
+            }
+
+            /* YUKLEME SONDASI (2 Eyl 2026: bir alici belgesini iki gun yukleyemedi
+               ve e-postayla gonderdi). CLI'nin ini degerleri web SAPI'ninkinden
+               FARKLI olabilir -- o yuzden public_html'deki .user.ini / php.ini de
+               okunuyor; web'in gercek siniri ancak oradan kestirilir.
+               error_log'da iki iz aranir: PHP'nin kendi "POST Content-Length ...
+               exceeds the limit" uyarisi (post_max_size asimi -- form sessizce
+               bos doner) ve "[VESTRA doc]" satirlari (auth_store_doc_file'in
+               yazdigi ret SEBEBI). Adres yok, uid'in ilk 8 hanesi var. */
+            if (getenv('IN_UPLOAD') === 'true') {
+              /* KURAL 2 kapsami: auth_required_doc_types() TEK dogruluk kaynagi,
+                 ama seller.php ve admin.php tabloyu hesabin KAYITLI istek
+                 satirlarindan ciziyor. Istek satiri yoksa satir da yok, satir
+                 yoksa YUKLEME DUGMESI de yok -- yani belge istenmis gorunuyor
+                 (sayfanin ustundeki cumle "iki belge" diyor) ama verilecek yol
+                 kapali. Once kac hesapta oyle oldugunu SAY.
+                 E-posta BASILMIYOR; id kirpik, sirket adi acik (KURAL: kisiye
+                 ait olan maskeli, firma/durum acik). */
+              require_once $doc.'/inc/auth.php';
+              echo "===== BELGE ISTEGI KAPSAMI (KURAL 2) =====\n";
+              $accsD = auth_accounts();
+              $missAll = []; $okN = 0;
+              foreach ($accsD as $a) {
+                $ty   = (string)($a['type'] ?? 'buyer');
+                if ($ty !== 'seller' && $ty !== 'buyer') continue;
+                $need = auth_required_doc_types($ty);
+                $have = [];
+                foreach ((array)($a['doc_requests'] ?? []) as $r) {
+                  $t = (string)($r['type'] ?? '');
+                  if ($t !== '') $have[$t] = (string)($r['status'] ?? 'requested');
+                }
+                $miss = array_values(array_diff($need, array_keys($have)));
+                if (!$miss) { $okN++; continue; }
+                $missAll[] = ['id'=>substr((string)($a['id'] ?? '?'),0,8), 'tip'=>$ty,
+                              'sirket'=>(string)($a['company'] ?? $a['name'] ?? ''),
+                              'eksik'=>$miss, 'var'=>$have];
+              }
+              printf("  hesap: %d   tam: %d   EKSIK: %d\n", count($accsD), $okN, count($missAll));
+              foreach ($missAll as $m) {
+                printf("  - %s [%s] %-28s eksik=[%s]  mevcut=[%s]\n",
+                  $m['id'], $m['tip'], mb_substr($m['sirket'], 0, 28),
+                  implode(', ', $m['eksik']),
+                  implode(', ', array_map(fn($k, $v) => "$k:$v", array_keys($m['var']), $m['var'])));
+              }
+              if (!$missAll) echo "  (her hesapta gereken her istek satiri var)\n";
+              echo "\n";
+              echo "===== YUKLEME SONDASI =====\n";
+              echo "  php=".PHP_VERSION." sapi=".PHP_SAPI." ini=".(php_ini_loaded_file() ?: '(yok)')."\n";
+              foreach (['upload_max_filesize','post_max_size','max_file_uploads','memory_limit','file_uploads','upload_tmp_dir'] as $k) {
+                $v = (string)ini_get($k); echo "  CLI ".$k."=".($v === '' ? '(bos)' : $v)."\n";
+              }
+              foreach (['.user.ini','php.ini'] as $ini) {
+                $p = $doc.'/'.$ini;
+                if (!is_file($p)) { echo "  ".$ini.": yok\n"; continue; }
+                echo "  ".$ini.": VAR (".filesize($p)." bayt)\n";
+                foreach (file($p, FILE_IGNORE_NEW_LINES) ?: [] as $ln) {
+                  if (preg_match('/^\s*(upload_max_filesize|post_max_size|max_file_uploads|memory_limit)\s*=/', $ln)) echo "     ".trim($ln)."\n";
+                }
+              }
+              $tmp = (string)ini_get('upload_tmp_dir') ?: sys_get_temp_dir();
+              echo "  tmp=".$tmp." yazilabilir=".yn(is_writable($tmp))."\n";
+              $dd = $doc.'/data/docs';
+              echo "  data/docs: var=".yn(is_dir($dd))." yazilabilir=".yn(is_dir($dd) && is_writable($dd))
+                 ." perm=".(is_dir($dd) ? substr(sprintf('%o', fileperms($dd)), -4) : '-')."\n";
+              $nDirs = 0; $nFiles = 0; $newest = 0;
+              foreach ((is_dir($dd) ? (glob($dd.'/*', GLOB_ONLYDIR) ?: []) : []) as $ud) {
+                $nDirs++;
+                foreach (glob($ud.'/*') ?: [] as $f) { $nFiles++; $newest = max($newest, (int)@filemtime($f)); }
+              }
+              echo "  hesap dizini=".$nDirs." dosya=".$nFiles." en yeni=".($newest ? gmdate('Y-m-d H:i', $newest).'Z' : '-')."\n";
+              echo "  bos disk=".round((float)@disk_free_space($doc)/1048576)." MB\n";
+              $logs = array_values(array_unique(array_filter(
+                [(string)ini_get('error_log'), $doc.'/error_log', $home.'/error_log', $doc.'/php_errorlog', $home.'/logs/error_log'],
+                fn($p) => $p !== '' && is_file($p))));
+              if (!$logs) echo "  error_log: bulunamadi (ini error_log='".ini_get('error_log')."')\n";
+              foreach ($logs as $lf) {
+                echo "  error_log ".$lf." (".round(filesize($lf)/1024)." KB) -- son 400 KB icinde:\n";
+                $hits = ['exceeds' => [], 'doc' => []];
+                $fh = fopen($lf, 'r');
+                if ($fh) {
+                  fseek($fh, max(0, filesize($lf) - 400000));
+                  while (($ln = fgets($fh)) !== false) {
+                    if (strpos($ln, 'exceeds the limit') !== false) $hits['exceeds'][] = trim($ln);
+                    if (strpos($ln, '[VESTRA doc]') !== false)      $hits['doc'][] = trim($ln);
+                  }
+                  fclose($fh);
+                }
+                echo "    post_max_size asimi (PHP uyarisi): ".count($hits['exceeds'])." satir\n";
+                foreach (array_slice($hits['exceeds'], -6) as $h) echo "       ".mb_substr($h, 0, 150)."\n";
+                echo "    [VESTRA doc] ret kayitlari: ".count($hits['doc'])." satir\n";
+                foreach (array_slice($hits['doc'], -10) as $h) echo "       ".mb_substr($h, 0, 150)."\n";
+                $summary[] = "error_log: post_max asimi=".count($hits['exceeds']).", belge reddi=".count($hits['doc']);
+              }
+              $summary[] = "yukleme: CLI upload_max=".ini_get('upload_max_filesize').", post_max=".ini_get('post_max_size')
+                         .", .user.ini=".(is_file($doc.'/.user.ini') ? 'VAR' : 'yok')
+                         .", data/docs yazilabilir=".yn(is_dir($dd) && is_writable($dd)).", dosya=".$nFiles;
+              echo "\n";
+            }
+
+            /* CANLI PHP HATALARI. error_log'daki "PHP Fatal/Warning/Notice/Deprecated"
+               satirlari mesaj + dosya:satir bazinda gruplanir. Ayni satirin 400 kez
+               tekrari tek bir kirigin belirtisi; 400 satiri okumak yerine 1 kaydi
+               okumak yeter. Yollar ve adresler kisaltilir; e-posta basilmaz.
+               Zaman damgasi Apache bicimi: [02-Sep-2026 13:10:00 UTC]. */
+            if (getenv('IN_ERRLOG') === 'true') {
+              echo "===== CANLI PHP HATALARI (error_log) =====\n";
+              $logs = array_values(array_unique(array_filter(
+                [(string)ini_get('error_log'), $doc.'/error_log', $home.'/error_log', $doc.'/php_errorlog'],
+                fn($p) => $p !== '' && is_file($p))));
+              $groups = []; $total = 0;
+              foreach ($logs as $lf) {
+                $fh = fopen($lf, 'r'); if (!$fh) continue;
+                fseek($fh, max(0, filesize($lf) - 900000));
+                while (($ln = fgets($fh)) !== false) {
+                  if (!preg_match('/^\[([^\]]+)\]\s+PHP\s+(Fatal error|Warning|Notice|Deprecated|Parse error)(?:[^:]*):\s+(.*?)(?:\s+in\s+(\S+?)(?:\s+on line\s+(\d+))?)?\s*$/', trim($ln), $m)) continue;
+                  $total++;
+                  $file = isset($m[4]) ? preg_replace('#^.*/public_html/#', '', $m[4]) : '';
+                  $msg  = preg_replace('/[a-f0-9]{16,}/', '<id>', $m[3]);              // hesap/ilan id'leri
+                  $msg  = preg_replace('/\S+@\S+/', '<email>', $msg);                    // adres yazma
+                  /* "headers already sent by (output started at /.../X.php:N)" gibi
+                     mesajlarda asil bilgi 110. karakterden SONRA geliyor; kisa kesme
+                     sebebi gizliyordu. Yol kisaltiliyor, mesaj 230 karaktere kadar. */
+                  $msg  = preg_replace('#/home/[^/]+/public_html/#', '', $msg);
+                  $key  = $m[2].' | '.mb_substr($msg, 0, 230).' | '.$file.(($m[5] ?? '') !== '' ? ':'.$m[5] : '');
+                  if (!isset($groups[$key])) $groups[$key] = ['n'=>0, 'first'=>$m[1], 'last'=>$m[1]];
+                  $groups[$key]['n']++; $groups[$key]['last'] = $m[1];
+                }
+                fclose($fh);
+              }
+              uasort($groups, fn($a, $b) => $b['n'] <=> $a['n']);
+              echo "  kaynak: ".implode(', ', array_map(fn($p) => basename(dirname($p)).'/'.basename($p), $logs))." | eslesen satir: {$total} | farkli hata: ".count($groups)."\n";
+              /* Gecici /tmp betikleri (workflow'lar) canli site degil: ayri sayilir, listelenmez. */
+              $tmpN = 0; foreach ($groups as $k => $g) if (str_contains($k, '/tmp/')) $tmpN += $g['n'];
+              echo "  (bunlarin {$tmpN} satiri /tmp/ altindaki gecici workflow betiklerinden -- listelenmiyor)\n";
+              /* OTURUM UYARILARI TEK SATIRA (16 Eyl 2026): disk kotasi kesintisi 800+
+                 ayri "session_start(): open(sess_<id>)" grubu uretti -- dosya adi
+                 anahtara giriyor -- ve hem ilk-20'yi hem 45 satirlik son-10-gun
+                 penceresini TEK BASINA doldurdu: ayni gunun GERCEK bir fatal'i
+                 listeye hic giremezdi. Toplam ve en son damga tek satir; oturum
+                 dosyasinin adi kimlik jetonu, basilmamasi da dogru. */
+              $sessN = 0; $sessG = 0; $sessLast = 0;
+              foreach ($groups as $k => $g) {
+                if (!str_contains($k, 'session_start()')) continue;
+                $sessN += $g['n']; $sessG++;
+                $ts = strtotime(str_replace(' UTC', '', $g['last'])) ?: 0; if ($ts > $sessLast) $sessLast = $ts;
+              }
+              if ($sessG) echo "  (oturum uyarilari: {$sessN} satir / {$sessG} grup, son ".gmdate('d-M-Y H:i', $sessLast)." UTC -- tek satir olarak sayildi, listelenmiyor)\n";
+              echo "  -- en sik (ilk 20) --\n";
+              $i = 0;
+              foreach ($groups as $k => $g) {
+                if (str_contains($k, '/tmp/') || str_contains($k, 'session_start()')) continue;
+                if (++$i > 20) break;
+                echo "  ".str_pad((string)$g['n'], 5, ' ', STR_PAD_LEFT)."x  ".$k."\n";
+                echo "         ilk ".$g['first']." | son ".$g['last']."\n";
+              }
+              /* Asil is bu liste: SON 10 GUNDE gorulenler, en yeniden eskiye. Temmuz'da
+                 duzeltilmis bir uyarinin 3000 tekrari, dun baslayan tek bir fatal'den
+                 daha az onemli. */
+              $recent = array_filter($groups, fn($g) => (strtotime(str_replace(' UTC', '', $g['last'])) ?: 0) >= time() - 10*86400);
+              uasort($recent, fn($a, $b) => strcmp($b['last'], $a['last']));
+              $recentSess = count(array_filter($recent, fn($g, $k) => str_contains($k, 'session_start()'), ARRAY_FILTER_USE_BOTH));
+              echo "  -- son 10 gunde gorulen (".(count($recent) - $recentSess).($recentSess ? " + oturum {$recentSess} grup" : '').") --\n";
+              $i = 0;
+              foreach ($recent as $k => $g) {
+                if (str_contains($k, '/tmp/') || str_contains($k, 'session_start()')) continue;
+                if (++$i > 45) { echo "  ... ".(count($recent) - 45)." daha\n"; break; }
+                echo "  ".str_pad((string)$g['n'], 5, ' ', STR_PAD_LEFT)."x  ".mb_substr($k, 0, 150)."  [son ".$g['last']."]\n";
+              }
+              $fatal = 0; foreach ($groups as $k => $g) if (str_starts_with($k, 'Fatal') || str_starts_with($k, 'Parse')) $fatal += $g['n'];
+              $summary[] = "error_log: {$total} hata satiri, ".count($groups)." farkli, FATAL={$fatal}";
+              echo "\n";
+            }
+
+            echo "===== OZET =====\n";
+            foreach ($summary as $s) echo "  · ".$s."\n";
             PHPEOF
             php -l /tmp/diag_msg.php
             php /tmp/diag_msg.php
-            echo; echo "===== SON MAIL LOG SATIRLARI (VESTRA Mail/API/SMTP/message) ====="
-            for L in ~/public_html/error_log ~/error_log ~/logs/error_log; do
-              if [ -f "$L" ]; then
-                echo "-- $L --"
-                grep -iE 'VESTRA (Mail|API|SMTP|Message)|not emailed' "$L" | tail -60
-              fi
-            done
             rm -f /tmp/diag_msg.php
+
+            # ---- SUNUCUNUN DISARI CIKISI: HOST HOST -------------------------
+            # "Deploy dustu" ya da "mektup gitmiyor" TEK bir teshis degil. Bu
+            # ortamda olculdu: ayni dakikalarda api.brevo.com COZULUYOR ama
+            # github.com COZULMUYOR -- yani "sunucunun disari cikisi kapali"
+            # demek YANLIS olurdu ve operatoru barindiriciya yanlis sikayetle
+            # gonderirdi. Dogru cumle host adiyla kurulur.
+            #
+            # IKI KATMAN AYRI OLCULUYOR ve sirasi onemli: once AD COZUMLEME,
+            # sonra HTTPS. Ad cozulmuyorsa HTTPS'in de dusmesi bir sonuctur,
+            # ikinci bir ariza degil -- ikisini tek satirda birlestiren bir
+            # sonda "site erisilemez" der ve sebebi gizler.
+            #
+            # Salt-okunur, kisiye ait veri yok, gizli deger yok.
+            if [ "$IN_NET" = "true" ]; then
+              echo "===== SUNUCUNUN DISARI CIKISI ====="
+              echo "sunucu saati : $(date -u '+%Y-%m-%d %H:%M UTC')  (yerel $(date '+%H:%M %Z'))"
+              echo "resolv.conf  : $(grep -c '^nameserver' /etc/resolv.conf 2>/dev/null || echo '?') nameserver satiri"
+              for H in github.com api.github.com codeload.github.com api.brevo.com google.com; do
+                # getent: sistemin KENDI cozumleyicisi (git ve PHP de onu kullaniyor).
+                # `dig` bu barindirmada olmayabilir, o yuzden ona yaslanilmiyor.
+                IP=$(getent ahostsv4 "$H" 2>/dev/null | awk 'NR==1{print $1}')
+                if [ -n "$IP" ]; then DNS="cozuldu ($IP)"; else DNS="*** COZULMUYOR ***"; fi
+                # `|| echo 000` KULLANILMIYOR: curl cozulemeyen adda zaten "000"
+                # basip sifir-disi donuyor, yani iki cikti birlesip "000000" gibi
+                # okunuyordu -- aracin kendi gurultusu (bu depoda kayitli sinif).
+                CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 "https://$H" 2>/dev/null)
+                [ -n "$CODE" ] || CODE=000
+                printf '  %-24s ad: %-26s https: %s\n' "$H" "$DNS" "$CODE"
+              done
+              echo "  (https 000 = baglanti hic kurulamadi; ad cozulmuyorsa bu bir SONUC, ayri bir ariza degil)"
+              # Deploy'un gercekten takildigi yer: sunucudaki klonun git fetch'i.
+              if [ -d "$HOME/vestra-repo/.git" ]; then
+                echo "sunucudaki klon: $(cd "$HOME/vestra-repo" && git rev-parse --short HEAD)"
+                echo -n "git ls-remote   : "
+                if (cd "$HOME/vestra-repo" && git ls-remote --heads origin >/dev/null 2>&1); then
+                  echo "CALISIYOR (deploy gecebilir)"
+                else
+                  echo "*** DUSUYOR *** -- deploy bu satirda takiliyor, kodla ilgisi yok"
+                fi
+              fi
+            fi
+
+            # ---- ZAMANLANMIS ISLER: KURULU MU, ATESLEDI MI, NE DEDI? ----------
+            # "Otomasyon calismadi" bir cizim ya da kapi sorusu DEGIL (KURAL 15),
+            # bir KAYIT sorusu: crontab satiri duruyor mu, o dakikada kutuge bir
+            # sey dustu mu, ne yazdi. 8 Eyl 2026'ya kadar ~/vestra_sweep.log'u
+            # HICBIR sey okumuyordu -- gunluk isler sessizce hic calismamis
+            # olabilirdi ve bunu gosterecek tek satir yoktu. Salt-okunur.
+            #
+            # KUTUK MASKELENIR: canli kosuda cron_pending_accounts.php buraya
+            # hesap adresi yaziyor; bu depo ve Actions kutugu herkese acik.
+            if [ "$IN_CRON" = "true" ]; then
+              MASK='s/\([A-Za-z0-9._%+-]\{1,2\}\)[A-Za-z0-9._%+-]*@/\1***@/g'
+              echo; echo "===== ZAMANLANMIS ISLER ====="
+              echo "-- kurulu VESTRA-SWEEP satirlari --"
+              # DEGISKENE AL, boruya degil: `grep ... | sed ... || echo` dalinda
+              # cikis kodu SED'in oluyor ve sed hep basarili -- yani "HIC YOK"
+              # satiri hicbir zaman basilamazdi. Yalnizca iyi haber verebilen bir
+              # sonda, sonda degildir (CLAUDE.md, KURAL 5j).
+              CRONL="$(crontab -l 2>/dev/null | grep 'VESTRA-SWEEP' || true)"
+              if [ -n "$CRONL" ]; then printf '%s\n' "$CRONL" | sed 's/^/    /'
+              else echo "    HIC YOK -- gunluk isler ZAMANLANMAMIS"; fi
+              # SAAT DILIMI: crontab satirlari UTC sanilarak yazildi, ama cron
+              # SUNUCUNUN YEREL saatini kullanir. Ikisi ayriysa her gunluk is
+              # yazildigi saatte degil, kaydigi saatte kosar -- ve "calismadi"
+              # gorunen sey aslinda "daha sirasi gelmedi" olur. Bunu ilk gunde
+              # gormenin tek yolu iki saati yan yana basmak.
+              echo "-- sunucu saati --"
+              echo "    yerel : $(date '+%Y-%m-%d %H:%M %Z (%z)')"
+              echo "    UTC   : $(date -u '+%Y-%m-%d %H:%M')"
+              L="$HOME/vestra_sweep.log"
+              echo "-- supurucu kutugu --"
+              if [ -f "$L" ]; then
+                echo "    $(wc -c < "$L") bayt | son yazim: $(date -r "$L" '+%Y-%m-%d %H:%M %Z' 2>/dev/null || echo '?')"
+                echo "    bugun (yerel $(date '+%Y-%m-%d')) tarihli satir: $(grep -c "$(date '+%Y-%m-%d')" "$L" 2>/dev/null || echo 0)"
+                # Kutukteki SON tarihli damgalar: isler hangi saatte kosuyor?
+                # Cadence'i gormek, tek bir "0 satir" sayisindan cok daha fazlasini soyler.
+                echo "    -- kutukteki son 4 zaman damgasi --"
+                grep -o '[0-9]\{4\}-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]' "$L" 2>/dev/null | tail -n 4 | sed 's/^/      /'
+                echo "    -- son 6 satir --"
+                tail -n 6 "$L" 2>/dev/null | sed "$MASK" | cut -c1-150 | sed 's/^/      /'
+              else
+                echo "    KUTUK YOK -- hicbir cron calismis gorunmuyor"
+              fi
+              echo "-- journal cron ne yazdi (son 8) --"
+              if [ -f "$L" ] && grep -q 'journal:' "$L" 2>/dev/null; then
+                grep 'journal:' "$L" | tail -n 8 | sed "$MASK" | cut -c1-150 | sed 's/^/    /'
+              else
+                echo "    journal satiri YOK -- cron_journal.php hic calismamis"
+              fi
+              # Deponun kendisi: kutuk ne derse desin, yayimlanmis yazi var mi?
+              # Iki kayit birbirini tutmuyorsa once celiskiyi coz (CLAUDE.md).
+              cat > /tmp/diag_journal.php <<'PJEOF'
+            <?php
+            $doc = getenv('HOME').'/public_html';
+            require $doc.'/inc/products.php';
+            require_once $doc.'/inc/journal.php';
+            require_once $doc.'/inc/journal_auto.php';
+            $all  = vestra_journal_all();
+            $auto = array_values(array_filter($all, fn($a) => ($a['source'] ?? '') === VESTRA_JOURNAL_AUTO_FLAG));
+            echo "  toplam yazi: ".count($all)." | otomatik uretilen: ".count($auto)."\n";
+            usort($auto, fn($a, $b) => strcmp((string)($b['created'] ?? ''), (string)($a['created'] ?? '')));
+            foreach (array_slice($auto, 0, 5) as $a)
+              echo "    ".substr((string)($a['created'] ?? '?'), 0, 16)."  ".(empty($a['published']) ? 'TASLAK ' : 'yayinda')."  ".($a['slug'] ?? '?')."\n";
+            if (!$auto) echo "    HIC OTOMATIK YAZI YOK\n";
+            $t = vestra_journal_auto_today();
+            echo "  bugunun otomatik yazisi: ".($t ? ($t['slug'] ?? '?') : 'YOK')."\n";
+            $l = vestra_journal_auto_last_ts();
+            echo "  son otomatik rapor: ".($l ? gmdate('Y-m-d H:i', $l).' UTC' : 'hic')."\n";
+            /* Kurucu SAF: diske hicbir sey yazmaz (bkz. journal_auto.php). */
+            $art = vestra_journal_auto_build();
+            echo "  su an kursa: ".(isset($art['skip']) ? 'YAZI YOK -- '.$art['skip'] : 'YAZARDI -- '.$art['title'])."\n";
+
+            /* "YAZI YOK -- yeni ilan 0" DOGRU MU? Bu satiri tek basina okumak
+               iki ayri durumu ayirt ETMIYOR: (a) gercekten yeni urun yok,
+               (b) urunler eklendi ama `added_at` tasimadigi icin dedektor onlari
+               goremiyor (journal_auto.php: "added_at yoksa urun yeni sayilmaz").
+               Ikisi de "0" yaziyor ve operator icin ikisi de "otomasyon
+               calismamis" gibi gorunuyor. Katalogun kendi tarihleri basiliyor:
+               kac ilanda alan var, en yenileri hangi gunden. Kisi verisi yok. */
+            $prods = vestra_products(true);
+            $withTs = []; $noTs = 0;
+            foreach ($prods as $p) {
+              $ts = strtotime((string)($p['added_at'] ?? ''));
+              if ($ts) $withTs[] = $ts; else $noTs++;
+            }
+            rsort($withTs);
+            echo "  katalog: ".count($prods)." ilan | added_at VAR ".count($withTs)." | YOK ".$noTs
+               . ($noTs > 0 ? "  <- bunlar rapora HIC giremez" : '')."\n";
+            $days = [];
+            foreach (array_slice($withTs, 0, 40) as $ts) { $d = gmdate('Y-m-d', $ts); $days[$d] = ($days[$d] ?? 0) + 1; }
+            echo "  en yeni eklemeler: ".($days ? '' : '(added_at tasiyan ilan yok)')."\n";
+            foreach (array_slice($days, 0, 5, true) as $d => $n) echo "    ".$d."  ".$n." ilan\n";
+            /* Pencerenin kendisi: rapor bu andan itibaren neyi sayiyor? */
+            $since = vestra_journal_auto_last_ts();
+            echo "  pencere: ".($since ? gmdate('Y-m-d H:i', $since).' UTC (son rapor)' : 'ilk rapor -- '.VESTRA_JOURNAL_AUTO_DAYS.' gun geriye')
+               . " -> simdi | esik ".VESTRA_JOURNAL_AUTO_MIN."\n";
+            PJEOF
+              echo "-- journal deposu --"
+              php -l /tmp/diag_journal.php >/dev/null 2>&1 && php /tmp/diag_journal.php
+              rm -f /tmp/diag_journal.php
+            fi
+
+            if [ "$IN_RECEIPT" = "true" ]; then
+              cat > /tmp/diag_receipt.php <<'PREOF'
+            <?php
+            /* OKUNDU ONAYI + ROZET SONDASI (11 Eyl 2026, KURAL 24).
+               "Calisiyor mu" sorusunun CANLI cevabi. Salt-okunur.
+
+               NE YAZILMAZ: mesaj metni, hesap adi, e-posta, thread id'sinin
+               tamami. Bu gunluk herkese acik (CLAUDE.md) ve bir konusmanin
+               kim-kiminle'si bile musteri iliskisini ele verir. Yalnizca
+               SAYIM basiliyor. */
+            $doc = getenv('HOME').'/public_html';
+            require $doc.'/inc/products.php';
+            require_once $doc.'/inc/auth.php';
+            require_once $doc.'/inc/messages.php';
+
+            /* 1) DEPLOY GERCEKTEN INDI MI. Dosyanin parse edilmesi yetmez —
+                  eski bir kopya da parse edilir (KURAL 21b'nin "deploy inmemis"
+                  dersi). Fonksiyon var mi diye SORULUYOR. */
+            $need = ['vestra_msg_read_upto', 'vestra_msg_other_uid', 'vestra_msg_poll_state'];
+            $miss = array_values(array_filter($need, fn($f) => !function_exists($f)));
+            echo "  yeni fonksiyonlar : ".($miss ? '*** EKSIK: '.implode(', ', $miss).' — DEPLOY INMEMIS ***'
+                                                 : 'HEPSI VAR ('.count($need).'/'.count($need).')')."\n";
+            $r = new ReflectionFunction('vestra_msg_post_system');
+            echo "  post_system param : ".$r->getNumberOfParameters()." (aktor icin 5 olmali)\n";
+            if ($miss) { echo "  --- sonda durdu: kod sunucuda degil ---\n"; exit(0); }
+
+            $threads = vestra_msg_threads();
+            echo "  konusma           : ".count($threads)."\n";
+
+            $tickTot = $tickSeen = $withTick = $supportSkip = 0;
+            $sysAll = $sysBy = 0; $selfLit = []; $badgeOn = 0;
+            foreach ($threads as $th) {
+                $bu = (string)($th['buyer_uid'] ?? ''); $su = (string)($th['seller_uid'] ?? '');
+                $msgs = (array)($th['messages'] ?? []);
+                foreach ($msgs as $m) {
+                    if (($m['from'] ?? '') !== 'system') continue;
+                    $sysAll++; if (($m['by'] ?? '') !== '') $sysBy++;
+                }
+                /* 2) ISARET GERCEKTEN CIZILIYOR MU — panel HTML'i uretilip
+                      SAYILIYOR, basilmiyor. Kaynakta `if` gormek olcum degil. */
+                if ($bu !== '') {
+                    $html = vestra_msg_panel_html('buyer', $bu, (string)($th['id'] ?? ''), $th, [$th]);
+                    $n  = preg_match_all('~class="msgtick( seen)?"~', $html, $mm);
+                    $sn = count(array_filter($mm[1] ?? [], fn($x) => $x !== ''));
+                    $tickTot += $n; $tickSeen += $sn; if ($n > 0) $withTick++;
+                    if ($su === VESTRA_SUPPORT_UID) $supportSkip++;
+                }
+                /* 3) ROZET: KENDI eyleminden yanan konusma KALDI MI. */
+                foreach ([$bu, $su] as $uid) {
+                    if ($uid === '' || !vestra_msg_unread($th, $uid)) continue;
+                    $badgeOn++;
+                    $seen = $th['read'][$uid] ?? 0; if (!is_int($seen)) $seen = 0;
+                    $onlyOwn = true;
+                    for ($i = max(0, $seen); $i < count($msgs); $i++) {
+                        $mm2 = $msgs[$i];
+                        if (($mm2['from'] ?? '') === $uid) continue;
+                        if (($mm2['by'] ?? '') === $uid) continue;
+                        $onlyOwn = false; break;
+                    }
+                    if ($onlyOwn) $selfLit[] = substr((string)($th['id'] ?? '?'), 0, 6);
+                }
+            }
+            echo "  onay isareti      : {$withTick} konusmada ciziliyor | toplam {$tickTot} baloncuk"
+               . " (okundu {$tickSeen} / gonderildi ".($tickTot - $tickSeen).")\n";
+            echo "  Support ipligi    : {$supportSkip} (isaret bilerek CIZILMIYOR)\n";
+            echo "  sistem karti      : {$sysAll} | aktor ('by') tasiyan {$sysBy}"
+               . " | aktorsuz ".($sysAll - $sysBy)." (kural oncesi eski kayit)\n";
+            echo "  yanan rozet       : {$badgeOn}\n";
+            echo "  KENDI eyleminden yanan: ".(count($selfLit) ? '*** '.count($selfLit).' — '.implode(', ', $selfLit).' ***' : '0  (dogru)')."\n";
+            /* 4) Yoklama ucu 'read' tasiyor mu — uctan uca tek eksik halka. */
+            $probe = $threads ? vestra_msg_poll_state($threads[0], (string)($threads[0]['buyer_uid'] ?? '')) : [];
+            echo "  yoklama anahtari  : ".implode(', ', array_keys($probe))."  ('read' olmali)\n";
+            PREOF
+              echo "-- okundu onayi sondasi --"
+              php -l /tmp/diag_receipt.php >/dev/null 2>&1 && php /tmp/diag_receipt.php
+              RC=$?
+              rm -f /tmp/diag_receipt.php
+              [ $RC -ne 0 ] && echo "  (sonda hata verdi: $RC)"
+            fi
+
+            if [ "$IN_BLOCKED" = "true" ]; then
+              cat > /tmp/diag_blocked.php <<'PBEOF'
+            <?php
+            /* ENGELLENEN MESAJ DENEMELERI (10 Eyl 2026). "Neden gitmedi" sorusu
+               panelde 120 karaktere kirpilmis bir onizlemeyle cevaplanmaya
+               calisiliyordu; gonderilmek istenen BAGLANTI orada bitiyordu.
+               Bu adim baglantiyi tam host+yol olarak yazar.
+
+               NE YAZILMAZ: serbest metnin kendisi. Engellenen metin tam olarak
+               telefon/e-posta/IBAN icerdigi icin engellenmis olabilir ve bu
+               gunluk herkese acik (CLAUDE.md: girdi de cikti da acik). Bu
+               yuzden metin maskeli, yalnizca baglantilar basiliyor -- ve
+               onlarin da SORGU DIZESI atiliyor: takip parametreleri ve
+               numara tasiyabilecek tek yer orasi. */
+            $doc = getenv('HOME').'/public_html';
+            require $doc.'/inc/products.php';
+            require_once $doc.'/inc/auth.php';
+            require_once $doc.'/inc/messages.php';
+
+            $f = $doc.'/data/blocked_messages.json';
+            if (!is_readable($f)) { echo "  blocked_messages.json YOK -- hic engelleme kaydedilmemis\n"; exit(0); }
+            $log = json_decode((string)file_get_contents($f), true);
+            if (!is_array($log) || !$log) { echo "  kayit bos\n"; exit(0); }
+
+            $accById = [];
+            foreach (auth_accounts() as $a) $accById[(string)($a['id'] ?? '')] = $a;
+            $label = function (string $uid) use ($accById): string {
+                if (defined('VESTRA_SUPPORT_UID') && $uid === VESTRA_SUPPORT_UID) return 'VESTRA Support';
+                $a = $accById[$uid] ?? null;
+                return $a ? ((string)($a['company'] ?: ($a['name'] ?: $uid))) : ($uid !== '' ? $uid : '?');
+            };
+            /* Baglantiyi host+yol olarak birak, sorguyu at. */
+            $links = function (string $text): array {
+                if (!preg_match_all('~\bhttps?://\S+|\bwww\.\S+~i', $text, $m)) return [];
+                $out = [];
+                foreach ($m[0] as $u) {
+                    $u = rtrim($u, ".,;:)]}'\"");
+                    $out[] = preg_replace('~[?#].*$~', '', $u);
+                }
+                return array_values(array_unique($out));
+            };
+
+            $rows = array_slice(array_reverse($log), 0, 10);
+            echo "  engellenen deneme: ".count($log)." (son ".count($rows)." gosteriliyor)\n\n";
+            foreach ($rows as $i => $b) {
+                $txt = (string)($b['text'] ?? '');
+                printf("  [%d] %s  %s\n", $i + 1, substr((string)($b['at'] ?? '?'), 0, 16), strtoupper((string)($b['flag'] ?? '?')));
+                printf("      gonderen : %s\n", $label((string)($b['from'] ?? '')));
+                printf("      thread   : %s <-> %s%s\n", $label((string)($b['buyer_uid'] ?? '')), $label((string)($b['seller_uid'] ?? '')),
+                       ($b['listing_id'] ?? '') !== '' ? '  (ilan '.$b['listing_id'].')' : '');
+                printf("      metin    : %d karakter (MASKELI -- basilmiyor)\n", mb_strlen($txt));
+                foreach ($links($txt) as $u) printf("      baglanti : %s\n", $u);
+                /* Ayni metin BUGUNKU suzgecten gecer miydi? Kural degistiyse
+                   (bkz. vestra_msg_mask_link_digits) eski kayit artik temiz
+                   olabilir -- "yeniden gonderilebilir mi" sorusunun cevabi. */
+                printf("      bugun    : %s\n\n", vestra_msg_flag_offplatform($txt) ?? 'GECERDI (artik engellenmezdi)');
+            }
+            PBEOF
+              echo "-- engellenen mesaj denemeleri --"
+              php -l /tmp/diag_blocked.php >/dev/null 2>&1 && php /tmp/diag_blocked.php
+              rm -f /tmp/diag_blocked.php
+            fi

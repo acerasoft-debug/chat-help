@@ -1,0 +1,17 @@
+[
+  { "match": "dgn-g80a3tfu7eqw",  "expect": 1, "price": "59.90" },
+  { "match": "dgn-g8jx7tfi7z0",   "expect": 1, "price": "59.90" },
+  { "match": "dgn-i8aeazg7cy1",   "expect": 1, "price": "59.90" },
+  { "match": "dgn-g8jx7zg7bzw",   "expect": 1, "price": "59.90" },
+  { "match": "dgn-g8nv2zg7bzq",   "expect": 1, "price": "59.90" },
+  { "match": "dgn-g8oa9zg7byp",   "expect": 1, "price": "59.90" },
+  { "match": "dgn-g8nc5zg7byh",   "expect": 1, "price": "59.90" },
+  { "match": "dgn-g8qi4tfu7eqw",  "expect": 1, "price": "59.90" },
+  { "match": "dgn-g8kg0zg7wig",   "expect": 1, "price": "59.90" },
+  { "match": "dgn-g8of3z",        "expect": 1, "price": "59.90" },
+
+  { "match": "dgn-g8jx7zg7wrn1",  "expect": 1, "price": "44.00" },
+  { "match": "dgn-g8kg5tfu7avb",  "expect": 1, "price": "44.00" },
+  { "match": "dgn-g8kg5tfu7avm",  "expect": 1, "price": "44.00" },
+  { "match": "dgn-g8kg5tfu7avw",  "expect": 1, "price": "44.00" }
+]

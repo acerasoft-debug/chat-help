@@ -1,0 +1,4 @@
+[
+  { "match": "YH1JQ005BB04", "expect": 1, "price": "99.90" },
+  { "match": "blc-twj90",    "expect": 1, "price": "189.00" }
+]

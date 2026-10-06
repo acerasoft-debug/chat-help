@@ -1,0 +1,22 @@
+[
+ {
+  "match": "YH1JS047",
+  "expect": 1,
+  "price": 80.0
+ },
+ {
+  "match": "WH1JQ055275JGFQ",
+  "expect": 1,
+  "price": 90.0
+ },
+ {
+  "match": "YH1JQ005BB04",
+  "expect": 1,
+  "price": 90.0
+ },
+ {
+  "match": "YH1JS0470",
+  "expect": 1,
+  "price": 90.0
+ }
+]

@@ -1,0 +1,520 @@
+<?php
+require_once __DIR__.'/inc/auth.php';
+if(session_status()===PHP_SESSION_NONE) session_start();
+require_once __DIR__.'/inc/products.php';
+$PAGE=t('Your order'); $NAV='shop'; require __DIR__.'/inc/head.php';
+$placed=isset($_GET['placed']);
+$u = auth_user(); // logged-in user for pre-filling form
+
+/* Escrow availability: build {productId: sellerUid} but only for products whose
+   seller has finished Connect onboarding (cached escrow_ready flag — no API call).
+   The cart JS offers the 🛡️ escrow option only when every cart item maps to one
+   such seller (a direct charge is per connected account, so escrow is single-seller). */
+require_once __DIR__.'/inc/stripe.php';
+/* Tarife tablosu ve bölge haritası burada: KURAL 15'in dersi — kardeş bir
+   dosyanın require'ına yaslanma, ihtiyacın olan dosyayı kendin yükle. */
+require_once __DIR__.'/inc/orders.php';
+require_once __DIR__.'/inc/addresses.php';
+$escrowMap = [];
+if (stripe_available()) {
+  $readySellers = [];
+  foreach (auth_accounts() as $a) {
+    if (($a['type']??'')==='seller' && !empty($a['escrow_ready']) && !empty($a['stripe_account_id'])) $readySellers[$a['id']] = true;
+  }
+  if ($readySellers) {
+    /* true: unlisted items (the Musterstueck sample) can sit in the cart via a direct
+       link and must still get their seller's escrow option. */
+    foreach (vestra_products(true) as $p) {
+      $sid = $p['seller_uid'] ?? '';
+      if ($sid !== '' && isset($readySellers[$sid])) $escrowMap[$p['id']] = $sid;
+    }
+  }
+}
+?>
+<div class="wrap">
+  <div class="phead">
+    <div class="crumbs"><a href="/"><?= t('Home') ?></a> · <a href="/shop"><?= t('Catalog') ?></a> · <?= t('Order') ?></div>
+    <h1><?= t('Your order') ?></h1>
+  </div>
+
+  <?php if($placed): ?>
+    <div class="banner ok">✓ <?= t("Order request received. We'll confirm seller availability and send your invoice — goods ship after payment.") ?> <?= t('Reference:') ?> <b><?=htmlspecialchars(substr($_GET['ref']??'',0,20))?></b></div>
+    <a class="btn btn-o" href="/shop"><?= t('Continue browsing') ?></a>
+  <?php else: ?>
+
+  <?php if(isset($_GET['err']) && $_GET['err']==='colors'): ?>
+    <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
+      <?= t('Colour selection missing — open the product page, choose at least the required number of colours and add the item again.') ?></div>
+  <?php endif; ?>
+  <?php if(isset($_GET['err']) && $_GET['err']==='sizes'): ?>
+    <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
+      <?= t('Size selection missing — open the product page, choose at least one size and add the item again.') ?></div>
+  <?php endif; ?>
+  <?php /* order.php sepetteki bir satiri artik SESSIZCE dusurmuyor (satilmis,
+           gizli marka, katalogdan cekilmis): durup buraya donuyor. Bu bant
+           YOKTU -- soldout reddi baslangictan beri bandsizdi, yani alici
+           "Siparis ver"e basip ayni sayfaya hicbir aciklama olmadan donuyordu.
+           Metin 8 dilde zaten duran iki anahtardan; hangi satir oldugu
+           tarayicinin kendi sepetinden (VCart) okunup yaziliyor ve ayni
+           kaldirma mekanizmasi (data-remove-id) dugme olarak veriliyor. */
+    if(isset($_GET['err']) && in_array($_GET['err'], ['soldout','unavailable'], true)):
+      $uaId = preg_replace('/[^A-Za-z0-9._-]/', '', (string)($_GET['id'] ?? '')); ?>
+    <div class="banner" id="cartUnavail" data-id="<?= htmlspecialchars($uaId) ?>" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
+      <?php if($_GET['err']==='soldout'): ?><b><?= t('Sold out') ?></b> — <?php endif; ?><span id="cartUnavailItem"></span><?= t('This item is no longer available to order.') ?>
+      <?php if($uaId !== ''): ?> <button type="button" class="btn btn-o btn-sm" data-remove-id="<?= htmlspecialchars($uaId) ?>" style="margin-left:6px">✕ <?= t('Remove') ?></button><?php endif; ?></div>
+  <?php endif; ?>
+  <?php if(isset($_GET['err']) && $_GET['err']==='escrow'): ?>
+    <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
+      <?= t('Secure escrow couldn’t be started for this cart — it’s available only when all items are from a single verified seller. Please choose bank transfer instead.') ?></div>
+  <?php endif; ?>
+  <?php if(isset($_GET['err']) && $_GET['err']==='escrow_max'): ?>
+    <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
+      <?= htmlspecialchars(sprintf(t('Card escrow accepts orders up to %s. This order is above that, so please choose bank transfer — the invoice carries the same buyer protection on delivery.'), '€'.number_format((float)VESTRA_ESCROW_MAX, 2))) ?></div>
+  <?php endif; ?>
+  <?php /* Sunucu marka-asgarisi kapisinin karsiligi (order.php). Sepet dolu
+           kaliyor: eksigi tamamlayip ayni sepetle devam edebilsin. Rakam
+           SABITTEN ve EUR -- gosterim birimine cevirmek, operatorun
+           "degismesin" dedigi esigi ekranda oynatirdi. */ ?>
+  <?php if(isset($_GET['err']) && $_GET['err']==='brandmin'):
+          $bmB = trim((string)($_GET['b'] ?? '')); $bmMin = vestra_brand_min_order($bmB); ?>
+    <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
+      <?= htmlspecialchars(sprintf(t('Minimum order for %1$s is %2$s.'),
+            $bmB !== '' ? $bmB : '—',
+            vestra_money($bmMin > 0 ? $bmMin : VESTRA_BRAND_MIN_ORDER_EUR, 'EUR'))) ?></div>
+  <?php endif; ?>
+  <?php /* Sunucu Avrupa-disi asgari kapisinin karsiligi (order.php).
+           Rakam SABITTEN ve USD: esik USD cinsinden bir operator karari, ve
+           gosterim birimine cevrilmis bir esik ekranda oynardi (marka
+           asgarisindeki ile ayni gerekce). Eksik tutar da yaziliyor --
+           "yetersiz" deyip ne kadar eksik oldugunu soylemeyen bir uyari,
+           alicinin sepeti terk etmesinin en kisa yolu. */ ?>
+  <?php /* TABAN KAPALIYKEN BANT HIC CIZILMIYOR (17 Eyl 2026, sabit 0.0).
+           Kapi zaten susuyor, yani bu adres organik olarak olusmuyor; ama
+           eski bir yer imi ya da elle yazilmis bir /cart?err=ordermin
+           "Avrupa disi siparisler sifir dolardan baslar" derdi -- var olmayan
+           bir kurali, ustelik sacma bir rakamla duyuran bir uyari.
+           (Rakam buraya ORNEK olarak bile yazilamaz: testin taramasi
+           yorumlari da okuyor ve gomulu rakam ariyor -- ilk yazimda yazdim,
+           test yakaladi. Bu deponun kendi dersi, bir kez daha.)
+           Sabit geri acilirsa iki dal da kendiliginde geri geliyor. */ ?>
+  <?php if(VESTRA_NONEU_MIN_ORDER_USD > 0
+           && isset($_GET['err']) && in_array($_GET['err'], ['ordermin','ordermin_fx'], true)):
+          $omMin = number_format(VESTRA_NONEU_MIN_ORDER_USD, 2); ?>
+    <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
+      <?php if($_GET['err']==='ordermin_fx'): ?>
+        <?= htmlspecialchars(sprintf(t('We could not check the minimum order value just now because today\'s exchange rate is unavailable. Please try again shortly, or contact us and we will complete the order by hand.'))) ?>
+      <?php else: ?>
+        <?= htmlspecialchars(sprintf(t('Orders outside Europe start at US$%s. Please add to your basket, or contact us and we will look at your order individually.'), $omMin)) ?>
+      <?php endif; ?></div>
+  <?php endif; ?>
+  <?php /* Sunucu yetki kontrolunun karsiligi (order.php). Sepet dolu kaliyor:
+           onay gelince ayni sepetle devam edebilsin. */ ?>
+  <?php if(isset($_GET['err']) && $_GET['err']==='not_approved'): ?>
+    <div class="banner info" style="margin-bottom:18px">⏳
+      <?php /* Kapiyi ONAY acar (KURAL 2) -- belge durumu cumleyi degistirmez. */ ?>
+      <?= t('Your account is being reviewed. You can place this order as soon as we activate it — your basket is kept.') ?>
+      &nbsp;<a class="acc btn btn-sm btn-o" style="display:inline-flex;margin-left:6px" href="/buyer?tab=kyc"><?= t('Business verification') ?></a></div>
+  <?php endif; ?>
+
+  <div id="empty" class="empty" style="display:none">
+    <?= t('Your order is empty.') ?> <a class="acc" href="/shop"><?= t('Browse the catalog →') ?></a>
+  </div>
+
+  <div id="filled" style="display:none">
+    <table class="ctable">
+      <thead><tr><th><?= t('Product') ?></th><th><?= t('Qty') ?></th><th class="r"><?= t('Unit') ?></th><th class="r"><?= t('Line total') ?></th><th></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+
+    <div class="summary"><div class="box">
+      <div class="line"><span><?= t('Subtotal') ?></span><span id="sub"></span></div>
+      <?php if (VESTRA_FEE_BUYER > 0): ?>
+      <div class="line"><span><?= t('Buyer-protection fee') ?> (<?=round(VESTRA_FEE_BUYER*100)?>%)</span><span id="bfee"></span></div>
+      <?php endif; ?>
+      <div class="line" id="voucherLine" style="display:none;color:var(--acc)"><span>🎟️ <?= t('Voucher') ?> <span id="voucherCodeLbl"></span></span><span id="voucherAmt"></span></div>
+      <div class="line" id="escrowFeeLine" style="display:none"><span>🛡️ <?= t('Buyer protection (escrow)') ?> (<?=round(VESTRA_ESCROW_FEE_BUYER*100,1)?>%)</span><span id="escrowFee"></span></div>
+      <div class="line" id="shipLine" style="display:none"><span>🚚 <span id="shipLbl"></span></span><span id="shipAmt"></span></div>
+      <div class="line big"><span><?= t('Total (you pay)') ?></span><span id="grand"></span></div>
+      <?php if (VESTRA_FEE_BUYER > 0): ?>
+      <div class="hint" style="margin-top:8px"><?= sprintf(t('Includes a <b>%d%% buyer-protection fee</b> (verification + authenticity guarantee). The seller separately pays a %d%% commission.'), round(VESTRA_FEE_BUYER*100), round(VESTRA_FEE_SELLER*100)) ?></div>
+      <?php else: ?>
+      <div class="hint" style="margin-top:8px"><?= t('No platform fees — you pay exactly the goods total on the seller\'s invoice.') ?></div>
+      <?php endif; ?>
+      <div class="hint" style="margin-top:6px"><?= t('Two ways to pay: <b>🛡️ secure card escrow</b> (we hold the funds and release them to the seller only after you confirm delivery) or <b>🏦 bank transfer</b> by invoice. Choose below.') ?></div>
+    </div></div>
+
+    <form id="orderForm" method="post" action="/order">
+      <input type="hidden" name="cart" id="cartField">
+      <?php
+      /* One-shot order token: order.php consumes it on the first POST and replays
+         the SAME confirmation for any duplicate POST (double-tap, refresh-resend) —
+         a multi-tapped "place order" can never create multiple orders/invoices. */
+      $orderTok = bin2hex(random_bytes(12));
+      $_SESSION['order_tokens'][$orderTok] = time();
+      if (count($_SESSION['order_tokens']) > 20) {
+        asort($_SESSION['order_tokens']);
+        $_SESSION['order_tokens'] = array_slice($_SESSION['order_tokens'], -20, null, true);
+      } ?>
+      <input type="hidden" name="order_token" value="<?= $orderTok ?>">
+
+      <h3 style="margin:24px 0 10px"><?= t('Voucher code') ?></h3>
+      <div style="display:flex;gap:10px;align-items:center;max-width:680px;flex-wrap:wrap">
+        <input name="voucher" id="voucherInput" value="<?= htmlspecialchars(strtoupper((string)($_GET['voucher'] ?? ''))) ?>"
+               placeholder="<?= htmlspecialchars(t('e.g. VES-A1B2-C3D4')) ?>" autocomplete="off"
+               style="flex:1;min-width:220px;text-transform:uppercase;letter-spacing:1.2px">
+        <button class="btn" type="button" id="voucherBtn"><?= t('Apply') ?></button>
+      </div>
+      <p class="hint" id="voucherMsg" style="margin:8px 0 0;max-width:680px"></p>
+
+      <h3 style="margin:24px 0 10px"><?= t('Payment method') ?></h3>
+      <div class="paysel">
+        <label class="payopt" id="payEscrowOpt">
+          <input type="radio" name="pay" value="escrow" id="payEscrow">
+          <span class="payopt-b">
+            <b>🛡️ <?= t('Secure escrow (card)') ?> · +<?=round(VESTRA_ESCROW_FEE_BUYER*100,1)?>%</b>
+            <span class="hint"><?= t('Pay now by card. VESTRA holds the funds and releases them to the seller only after you confirm delivery — full refund if anything goes wrong.') ?></span>
+            <span class="hint payopt-lock" id="escrowLock" style="display:none;color:var(--mut)"><?= t('Available when your whole cart is from one verified seller.') ?></span>
+          </span>
+        </label>
+        <label class="payopt">
+          <input type="radio" name="pay" value="bank" id="payBank" checked>
+          <span class="payopt-b">
+            <b>🏦 <?= t('Bank transfer (invoice)') ?></b>
+            <span class="hint"><?= t('We send a PDF invoice with the seller’s bank details. Goods ship after your transfer arrives.') ?></span>
+          </span>
+        </label>
+      </div>
+
+      <h3 style="margin:24px 0 10px"><?= t('Buyer details') ?></h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:680px">
+        <div><label class="hint"><?= t('Company') ?> *</label><input name="company" required style="width:100%" value="<?= htmlspecialchars($u['company']??'') ?>"></div>
+        <div><label class="hint"><?= t('VAT / Tax ID') ?></label><input name="vat" style="width:100%" value="<?= htmlspecialchars($u['vat_id']??'') ?>"></div>
+        <div><label class="hint"><?= t('Contact name') ?> *</label><input name="name" required style="width:100%" value="<?= htmlspecialchars($u['name']??'') ?>"></div>
+        <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%" value="<?= htmlspecialchars($u['email']??'') ?>"></div>
+        <?php /* Fatura adresi ayri posta kodu/sehir alanlarini da tasiyor (profil 24 Eyl
+                 2026'dan beri ikisini ayri aliyor) -- tek biçimlendirici, fatura ile ayni. */ ?>
+        <div><label class="hint"><?= t('Billing address') ?></label><input name="address" style="width:100%" value="<?= htmlspecialchars($u ? vestra_account_billing_line($u) : '') ?>" placeholder="<?= htmlspecialchars(t('Street, postal code, city')) ?>"></div>
+        <div><label class="hint"><?= t('Country') ?></label><input name="country" style="width:100%" value="<?= htmlspecialchars($u['country']??'') ?>"></div>
+        <div><label class="hint"><?= t('Phone') ?></label><input name="phone" style="width:100%" value="<?= htmlspecialchars($u['phone']??'') ?>"></div>
+      </div>
+
+      <?php
+      /* TESLIMAT ADRESI SECICI. Kayitli defter (1./2./3.) varsa kartlar; secim yalniz
+         yuva NUMARASINI gonderir, metni order.php hesabin kendi kaydindan kurar.
+         Varsayilan: son secilen (ship_last), yoksa eski serbest metin doluysa
+         "baska adres", yoksa fatura adresi. JS kapaliyken serbest metin kutusu
+         gorunur kalir; sunucu onu yalniz 'other' secildiginde okur. */
+      $shipBook = $u ? vestra_ship_addresses($u) : [];
+      $shipLast = (string)($u['ship_last'] ?? '');
+      $shipDef  = ($shipLast !== '' && (($shipLast === 'billing' || $shipLast === 'other') || isset($shipBook[(int)$shipLast])))
+                  ? $shipLast : (trim((string)($u['ship_address'] ?? '')) !== '' ? 'other' : 'billing');
+      $billLine = $u ? vestra_account_billing_line($u) : '';
+      ?>
+      <h3 style="margin:22px 0 10px"><?= t('Delivery address') ?></h3>
+      <?php if(isset($_GET['err']) && $_GET['err']==='shipaddr'): ?>
+        <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:12px;max-width:680px">
+          <?= t('The saved address you chose is missing or incomplete. Please choose again or update it in your profile.') ?></div>
+      <?php endif; ?>
+      <div class="shippick" role="radiogroup" aria-label="<?= htmlspecialchars(t('Delivery address')) ?>">
+        <label class="shipopt">
+          <input type="radio" name="ship_pick" value="billing"<?= $shipDef==='billing'?' checked':'' ?>>
+          <span class="shipico">🏢</span>
+          <span class="shipopt-b"><b><?= t('Same as billing address') ?></b><?php if($billLine!==''): ?><span class="hint"><?= htmlspecialchars($billLine) ?></span><?php endif; ?></span>
+        </label>
+        <?php foreach($shipBook as $__s => $__a): ?>
+        <label class="shipopt">
+          <input type="radio" name="ship_pick" value="<?= (int)$__s ?>"<?= $shipDef===(string)$__s?' checked':'' ?>>
+          <span class="addrnum"><?= (int)$__s ?></span>
+          <span class="shipopt-b"><b><?= htmlspecialchars($__a['label']!=='' ? $__a['label'] : sprintf(t('Address %d'), $__s)) ?></b><span class="hint"><?= htmlspecialchars(vestra_ship_addr_line($__a)) ?></span></span>
+        </label>
+        <?php endforeach; ?>
+        <label class="shipopt">
+          <input type="radio" name="ship_pick" value="other"<?= $shipDef==='other'?' checked':'' ?>>
+          <span class="shipico">✎</span>
+          <span class="shipopt-b"><b><?= t('Another address') ?></b><span class="hint"><?= t('Type it below') ?></span></span>
+        </label>
+      </div>
+      <div id="shipOther" style="max-width:680px"><input name="ship_address" style="width:100%" value="<?= htmlspecialchars($u['ship_address']??'') ?>" placeholder="<?= htmlspecialchars(t('Street and number, postcode, city, country')) ?>"></div>
+      <?php if($u): ?><p class="hint" style="margin:8px 0 0"><a class="acc" href="/buyer?tab=profile#addresses"><?= $shipBook ? t('Manage delivery addresses') : t('Save delivery addresses in your profile') ?> →</a></p><?php endif; ?>
+      <script>(function(){var o=document.getElementById('shipOther');if(!o)return;
+        function s(){var c=document.querySelector('input[name=ship_pick]:checked');o.style.display=(c&&c.value==='other')?'':'none';}
+        document.querySelectorAll('input[name=ship_pick]').forEach(function(r){r.addEventListener('change',s)});s();})();</script>
+      <p class="hint" style="margin:8px 0 0"><?= t('Billing details appear on your automatic PDF invoice.') ?></p>
+      <div style="margin-top:10px;max-width:680px"><label class="hint"><?= t('Notes') ?></label><textarea name="notes" rows="2" style="width:100%"></textarea></div>
+      <input type="text" name="website" style="position:absolute;inset-inline-start:-9999px" tabindex="-1" autocomplete="off">
+      <?php /* Iade kurali siparis ANINDA da gorunuyor. Onay kutusunun metnine
+               EKLENMEDI: o cumle sprintf ile 3 yer tutucu tasiyor ve degistirmek
+               7 dilin cevirisini birden Ingilizceye dusururdu. Kural yerine
+               Sozlesme'ye 3a maddesi eklendi, onay zaten Sozlesme'yi kapsiyor. */ ?>
+      <div class="hint" style="max-width:680px;margin:14px 0 0">
+        <?= t('Wholesale orders are closed to returns — wrong, missing or faulty goods only.') ?>
+        <a href="/faq?cat=returns" target="_blank" class="acc"><?= t('Returns &amp; claims') ?></a>
+      </div>
+      <label style="display:flex;gap:9px;align-items:flex-start;margin:8px 0 4px;max-width:680px;font-size:13px;color:var(--mut);cursor:pointer">
+        <input type="checkbox" name="consent" value="1" required style="margin-top:3px;flex:none">
+        <span><?= sprintf(t('I have read and accept the %s, %s and %s, and I confirm I act as a business.'),
+          '<a href="/legal?doc=terms" target="_blank" class="acc">'.t('Terms of Service').'</a>',
+          '<a href="/legal?doc=privacy" target="_blank" class="acc">'.t('Privacy Policy').'</a>',
+          '<a href="/legal?doc=payments" target="_blank" class="acc">'.t('Payments &amp; Escrow').'</a>') ?></span>
+      </label>
+      <?php /* Marka asgarisi -- eksik varsa BURADA yaziyor, dugmenin hemen ustunde.
+               Neyin eksik oldugunu soylemeyen bir engel alicinin sepeti birakmasina
+               yol aciyor; siparisi gonderip /cart'a geri dusmek de ayni sey. */ ?>
+      <div id="brandMinNote" class="banner" style="display:none;background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin:14px 0 0;max-width:680px"></div>
+      <button class="btn btn-p" type="submit" style="margin-top:14px" id="placeBtn"><?= t('Place order request') ?></button>
+      <span class="hint" style="margin-left:12px" id="placeHint"><?= t('No payment now — we confirm availability, then send your invoice.') ?></span>
+    </form>
+  </div>
+
+  <?php endif; ?>
+</div>
+
+<?php if(!$placed): ?>
+<script>
+var ESCROW_MAP = <?= json_encode($escrowMap, JSON_UNESCAPED_UNICODE) ?: '{}' ?>;
+var ESCROW_FEE_RATE = <?= json_encode((float)VESTRA_ESCROW_FEE_BUYER) ?>;
+var ESCROW_MAX = <?= json_encode((float)VESTRA_ESCROW_MAX) ?>;
+/* NAVLUN ONIZLEMESI. Tarife tablosu ve ulke->bolge haritasi SUNUCUDAKI tek
+   kaynaktan basiliyor (vestra_shipping_tariffs / vestra_shipping_region_map),
+   yani buraya hicbir rakam ve hicbir ulke adi elle yazilmiyor. Karar yine
+   SUNUCUDA (order.php, yeniden fiyatlanmis satirlar); bu yalniz alici
+   dugmeye basmadan once toplami gorsun diye -- "sayfada bir, kasada baska
+   rakam" bu depoda defalarca kayitli.
+
+   KURAL 34 (19 Eyl 2026): otomatik tarife su an PASIF. Anahtar KAPALIYKEN
+   tablolar BOS basiliyor, yani onizleme de order.php ile AYNI seyi gosterir
+   (navlun yok) -- kapiyi yalniz order.php'de kapatip burayi unutmak, aliciya
+   sepette bir rakam gosterip kasada baskasini yazan (bu depoda tekrar tekrar
+   kaydedilen) hataya duserdi. */
+var SHIP_TARIFF = <?= json_encode(vestra_shipping_auto_enabled() ? vestra_shipping_tariffs() : [], JSON_UNESCAPED_UNICODE) ?: '{}' ?>;
+var SHIP_REGION = <?= json_encode(vestra_shipping_auto_enabled() ? vestra_shipping_region_map() : [], JSON_UNESCAPED_UNICODE) ?: '{}' ?>;
+var PAY_LBL = {
+  escrowBtn: <?= json_encode(t('Pay securely →')) ?>,
+  escrowHint: <?= json_encode(t('You pay now by card; funds are held in escrow until you confirm delivery.')) ?>,
+  bankBtn: <?= json_encode(t('Place order request')) ?>,
+  bankHint: <?= json_encode(t('No payment now — we confirm availability, then send your invoice.')) ?>,
+  escrowSeller: <?= json_encode(t('Available when your whole cart is from one verified seller.')) ?>,
+  /* Sepetteki butun tutarlar EUR basiliyor (eur() her zaman € yaziyor), sinir da
+     EUR uzerinden sinaniyor -- burada goruntuleme para birimine cevirmek, sinirla
+     ekrandaki rakami farkli birimlere dusururdu. */
+  escrowMax: <?= json_encode(sprintf(t('Card escrow accepts orders up to %s. Larger orders are paid by bank transfer.'), '€'.number_format((float)VESTRA_ESCROW_MAX, 2))) ?>
+};
+/* Marka basina asgari sepet tutari. Tablo SUNUCUDAKI tek kaynaktan basiliyor
+   (vestra_brand_min_orders) -- burada elle bir rakam yazmak, KURAL 6'nin escrow
+   tavaninda bes gun suren "ekranda bir, kasada baska" hatasinin aynisi olurdu.
+   Bu yalnizca ONIZLEME: gercek kapi order.php'de, yeniden fiyatlanmis satirlarda. */
+var BRAND_MIN = <?= json_encode(vestra_brand_min_orders(), JSON_UNESCAPED_UNICODE) ?: '{}' ?>;
+var BRAND_MIN_LBL = {
+  /* Iki cumle de 8 sozlukte; %1$s/%2$s/%3$s yerine JS'te sirayla degistiriliyor. */
+  min:   <?= json_encode(t('Minimum order for %1$s is %2$s.')) ?>,
+  short: <?= json_encode(t('Your cart has %1$s of %2$s — add %3$s to place the order.')) ?>
+};
+function eur(n){ return '€'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
+/* Escrow is offered only when EVERY cart item maps to ONE verified (Connect-ready)
+   seller — a direct charge is per connected account. Otherwise force bank transfer. */
+/* Uygunsuzluk sebebini DONDURUYOR, sadece true/false degil: "tek saticidan
+   olmali" ile "tutar sinirin ustunde" ayni kilidi gosterse de alicinin yapacagi
+   sey farkli, ve tek bir cumle onu "ne yapmaliyim" sorusuyla birakiyordu. */
+function escrowBlockedBy(c, net){
+  if(!c.length) return 'empty';
+  var sid=null;
+  for(var i=0;i<c.length;i++){
+    var s=ESCROW_MAP[c[i].id];
+    if(!s) return 'seller';         // item has no escrow-ready seller
+    if(sid===null) sid=s; else if(sid!==s) return 'seller'; // mixed sellers
+  }
+  /* Olcu SIPARIS tutari (kupon sonrasi mal bedeli), koruma ucreti dahil degil --
+     bkz. VESTRA_ESCROW_MAX. Tam sinirdaki siparis kayan nokta yuzunden
+     dusmesin diye kucuk bir tolerans var. */
+  if(net > ESCROW_MAX + 0.005) return 'max';
+  return '';
+}
+function syncPay(c, net){
+  var opt=document.getElementById('payEscrowOpt'), rEsc=document.getElementById('payEscrow'),
+      rBank=document.getElementById('payBank'), lock=document.getElementById('escrowLock');
+  if(!opt) return;
+  var why=escrowBlockedBy(c, net||0), ok=(why==='');
+  rEsc.disabled=!ok;
+  opt.classList.toggle('disabled',!ok);
+  if(lock){
+    lock.style.display=ok?'none':'block';
+    if(why==='max') lock.textContent=PAY_LBL.escrowMax;
+    else if(why==='seller') lock.textContent=PAY_LBL.escrowSeller;
+  }
+  if(!ok && rEsc.checked){ rBank.checked=true; }
+  var esc=rEsc.checked;
+  var btn=document.getElementById('placeBtn'), hint=document.getElementById('placeHint');
+  if(btn)  btn.textContent = esc?PAY_LBL.escrowBtn:PAY_LBL.bankBtn;
+  if(hint) hint.textContent= esc?PAY_LBL.escrowHint:PAY_LBL.bankHint;
+}
+/* PHP'deki vestra_brand_min_shortfall()'un aynisi: marka basina satir toplami,
+   esigin altinda kalanlar. Ayni tolerans (0.005) -- tam 500.00'lik bir sepet
+   kayan nokta yuzunden reddedilmesin. Karar SUNUCUDA; bu yalnizca alici
+   dugmeye basmadan once neyin eksik oldugunu gorsun diye. */
+function brandMinShort(c){
+  var have={}, out=[];
+  c.forEach(function(x){
+    var b=String(x.brand||'').trim(); if(!b) return;
+    have[b]=(have[b]||0)+Number(x.qty)*Number(x.unit);
+  });
+  Object.keys(have).forEach(function(b){
+    var min=Number(BRAND_MIN[b.toLowerCase()]||0);
+    if(min>0 && have[b] < min-0.005) out.push({brand:b, min:min, have:have[b], short:min-have[b]});
+  });
+  return out;
+}
+/* PHP'nin katlamasinin aynisi (kucuk harf, '-'/'_' bosluk, nokta atiliyor,
+   bosluklar tek). Avrupa adlarinda nokta yok, yani gevseklik fark uretmiyor. */
+function shipFold(v){ return String(v||'').toLowerCase().replace(/[-_]/g,' ').replace(/\./g,'').replace(/\s+/g,' ').trim(); }
+function shipCountry(){ var el=document.querySelector('#orderForm [name=country]'); return el?el.value:''; }
+/* vestra_shipping_schedule()'in birebir aynisi: bulk esiginin ustundeki her SKU
+   kendi basina, kalanlar havuzda. Kalan kurali ABD'de "tam 100'un USTUNDEKI
+   <=50" icin yarim blok -- $full > 0 sarti olmadan 40 adet yarim bloga
+   dusuyordu (probe yakaladi). */
+function shipSchedule(c, country){
+  var region = SHIP_REGION[shipFold(country)];
+  if(!region || !SHIP_TARIFF[region]) return null;
+  var T=SHIP_TARIFF[region], pooled=0, amt=0, total=0;
+  c.forEach(function(x){
+    var q=Number(x.qty)||0; if(q<=0) return;
+    total+=q;
+    if(q>=T.bulk_min){
+      var full=Math.floor(q/T.bulk_per), rem=q%T.bulk_per, a=full*T.bulk;
+      if(rem>0) a += (full>0 && T.half_qty>0 && rem<=T.half_qty) ? T.half : T.bulk;
+      amt+=a;
+    } else pooled+=q;
+  });
+  if(total<=0) return null;
+  if(pooled>0) amt += T.base + Math.ceil(Math.max(0,pooled-T.base_qty)/T.step_qty)*T.step;
+  return {amount:Math.round(amt*100)/100, label:T.label};
+}
+function syncBrandMin(c){
+  var note=document.getElementById('brandMinNote'), btn=document.getElementById('placeBtn');
+  if(!note) return;
+  var miss=brandMinShort(c);
+  if(!miss.length){ note.style.display='none'; note.textContent=''; if(btn) btn.disabled=false; return; }
+  note.style.display='';
+  note.innerHTML = miss.map(function(m){
+    return esc(BRAND_MIN_LBL.min.replace('%1$s', m.brand).replace('%2$s', eur(m.min))) + ' ' +
+           esc(BRAND_MIN_LBL.short.replace('%1$s', eur(m.have)).replace('%2$s', m.brand).replace('%3$s', eur(m.short)));
+  }).join('<br>');
+  if(btn) btn.disabled=true;
+}
+function render(){
+  var c=VCart.all();
+  document.getElementById('empty').style.display = c.length?'none':'block';
+  document.getElementById('filled').style.display = c.length?'block':'none';
+  var rows='', sub=0;
+  c.forEach(function(x){
+    var line=x.qty*x.unit; sub+=line;
+    var cols = (x.colors && x.colors.length) ? ' · '+x.colors.map(esc).join(', ') : '';
+    /* Secilen bedenler burada da gorunmeli: alici sepette gordugu seyi onayliyor
+       ve /order ayni listeyi ilana karsi yeniden dogruluyor. */
+    var szs  = (x.sizes  && x.sizes.length)  ? ' · '+<?= json_encode(t('Sizes')) ?>+': '+x.sizes.map(esc).join(', ') : '';
+    rows+='<tr><td><b>'+esc(x.brand)+'</b> — '+esc(x.name)+'<div class="hint">SKU '+esc(x.sku)+cols+szs+'</div></td>'+
+      '<td>'+Number(x.qty)+' '+esc(x.unitLabel)+'</td><td class="r">'+eur(x.unit)+'</td><td class="r">'+eur(line)+'</td>'+
+      '<td class="x" data-remove-id="'+esc(x.id)+'" title="<?= htmlspecialchars(t('Remove')) ?>">✕</td></tr>';
+  });
+  document.getElementById('rows').innerHTML=rows;
+  /* The voucher comes off the goods value FIRST, so the escrow fee is charged on what the
+     buyer actually pays rather than on the pre-discount figure. order.php applies the same
+     order server-side; this is only the preview. Net is computed BEFORE syncPay because
+     the escrow ceiling is a test on what the card is charged. */
+  var disc = VOUCHER.discount>0 ? Math.min(VOUCHER.discount, sub) : 0;
+  var net  = sub - disc;
+  syncPay(c, net); // enable/disable escrow (may force bank) before pricing the fee
+  var escR=document.getElementById('payEscrow'); var isEsc=escR&&escR.checked;
+  var efee=isEsc?net*ESCROW_FEE_RATE:0;
+  var feeLine=document.getElementById('escrowFeeLine'); if(feeLine) feeLine.style.display=isEsc?'':'none';
+  var efeeEl=document.getElementById('escrowFee'); if(efeeEl) efeeEl.textContent=eur(efee);
+  var vLine=document.getElementById('voucherLine');
+  if(vLine){
+    vLine.style.display = disc>0 ? '' : 'none';
+    document.getElementById('voucherCodeLbl').textContent = disc>0 ? ('('+VOUCHER.code+')') : '';
+    document.getElementById('voucherAmt').textContent = '−'+eur(disc);
+  }
+  /* Navlun alicinin odedigine giriyor, escrow tavanina ve komisyona girmiyor --
+     order.php ile ayni sira (net escrow ucretinden ONCE hesaplandi). */
+  var sched=shipSchedule(c, shipCountry());
+  var shipAmt=sched?sched.amount:0;
+  var sLine=document.getElementById('shipLine');
+  if(sLine){
+    sLine.style.display = shipAmt>0 ? '' : 'none';
+    document.getElementById('shipLbl').textContent = sched?sched.label:'';
+    document.getElementById('shipAmt').textContent = eur(shipAmt);
+  }
+  document.getElementById('sub').textContent=eur(sub);
+  var bfeeEl=document.getElementById('bfee'); if(bfeeEl) bfeeEl.textContent=eur(net*<?=VESTRA_FEE_BUYER?>);
+  document.getElementById('grand').textContent=eur(net+efee+shipAmt);
+  syncBrandMin(c);   // dugmeyi de bu ayarliyor -- sepet her degistiginde yeniden
+  document.getElementById('cartField').value=JSON.stringify(c);
+}
+
+/* Voucher preview. Everything here is cosmetic: order.php revalidates the code against the
+   signed-in account and recomputes the discount, so a tampered VOUCHER object buys nothing. */
+var VOUCHER={code:'',discount:0};
+function cartSubtotal(){ var s=0; VCart.all().forEach(function(x){ s+=x.qty*x.unit; }); return s; }
+function voucherApply(){
+  var inp=document.getElementById('voucherInput'), msg=document.getElementById('voucherMsg');
+  if(!inp) return;
+  var code=(inp.value||'').trim().toUpperCase();
+  inp.value=code;
+  if(!code){ VOUCHER={code:'',discount:0}; msg.textContent=''; msg.style.color=''; render(); return; }
+  msg.style.color=''; msg.textContent='…';
+  var body='code='+encodeURIComponent(code)+'&subtotal='+encodeURIComponent(cartSubtotal());
+  fetch('/voucher-check',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body,credentials:'same-origin'})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d && d.ok){ VOUCHER={code:d.code,discount:Number(d.discount)||0}; msg.style.color='var(--acc)'; }
+      else { VOUCHER={code:'',discount:0}; msg.style.color='#d9534f'; }
+      msg.textContent=(d && d.msg)||'';
+      render();
+    })
+    .catch(function(){ msg.style.color='#d9534f'; msg.textContent=<?= json_encode(t('Could not check the code right now — it will still be applied to your order if valid.')) ?>; });
+}
+document.getElementById('rows').addEventListener('click', function(e){
+  var id = e.target && e.target.dataset ? e.target.dataset.removeId : null;
+  if (id) { VCart.remove(id); render(); }
+});
+/* Ulke degisince navlun da degisir: alan formun icinde ve alici onu duzeltiyor. */
+(function(){ var el=document.querySelector('#orderForm [name=country]');
+  if(el){ el.addEventListener('input', render); el.addEventListener('change', render); } })();
+['payEscrow','payBank'].forEach(function(id){
+  var el=document.getElementById(id); if(el) el.addEventListener('change', function(){ render(); });
+});
+document.getElementById('orderForm') && document.getElementById('orderForm').addEventListener('submit',function(){
+  document.getElementById('cartField').value=JSON.stringify(VCart.all());
+});
+(function(){
+  var b=document.getElementById('voucherBtn'), i=document.getElementById('voucherInput');
+  if(b) b.addEventListener('click', voucherApply);
+  /* Enter inside the code box must check the code, not submit the whole order — an order
+     placed by pressing Enter after typing a voucher would skip the preview entirely. */
+  if(i) i.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); voucherApply(); } });
+})();
+/* VCart is defined in foot.php which loads after this block — use DOMContentLoaded */
+document.addEventListener('DOMContentLoaded', function(){
+  render();
+  /* Satilmis / artik satista olmayan satir bandi: HANGI satir oldugunu
+     tarayicinin kendi sepetinden yaz. Satir sepette yoksa (zaten kaldirilmis)
+     bant da kalkar -- eyleme donusmeyen bir uyari birakmamak icin. */
+  (function(){
+    var b=document.getElementById('cartUnavail'); if(!b) return;
+    var id=b.getAttribute('data-id')||'';
+    if(id==='') return;
+    var it=VCart.all().filter(function(x){ return x.id===id; })[0];
+    if(!it){ b.style.display='none'; return; }
+    var lbl=document.getElementById('cartUnavailItem');
+    if(lbl) lbl.textContent=(it.brand?it.brand+' — ':'')+(it.name||'')+(it.sku?' (SKU '+it.sku+')':'')+': ';
+    b.addEventListener('click', function(e){
+      var rid=e.target && e.target.dataset ? e.target.dataset.removeId : null;
+      if(rid){ VCart.remove(rid); render(); b.style.display='none'; }
+    });
+  })();
+  /* A code arriving as ?voucher=… (the link in the welcome mail) checks itself on load. */
+  var i=document.getElementById('voucherInput'); if(i && i.value.trim()) voucherApply();
+});
+</script>
+<?php endif; ?>
+<?php require __DIR__.'/inc/foot.php';
