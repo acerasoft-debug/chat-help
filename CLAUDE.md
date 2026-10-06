@@ -12228,6 +12228,20 @@ sayfadaki ürünleri değiştir"* → *"avrupanın en estetik B2B sitesi olması
   renk SAYISI basıyor (noktalar tabloda zaten duruyor), test gevşetilmedi. Tam takım: **142 geçti**;
   kalan 4 kırmızı (dropship_plan, msg_read_receipt, msg_thread_label, order_wholesale_sample) bu
   işten ÖNCE de kırmızıydı (ölçüldü: başlangıç 141 geçti / aynı 4).
-- **Canlıya ALINMADI (bu kayıt yazılırken):** deploy `claude/wizardly-planck-7ylnmk`'ye push ile
-  tetikleniyor; bu iş `claude/optimistic-cray-bzu44d` dalında. Canlı ölçüm (ana sayfada 20+ evle
-  The edit'in gerçek görünümü, canlı fotoğraflarla sahne) deploy'dan sonra yapılacak.
+- **CANLI (6 Eki 2026, operatör: *"evet canlıya al"*).** İlk deneme `deploy-vestra.yml` →
+  `workflow_dispatch` ile bu dal üzerinden yapıldı ve **düştü**: sunucudaki `~/deploy.sh`
+  `claude/wizardly-planck-7ylnmk`'yi SABİT KODLA çekiyor (*"== Pulling claude/wizardly-planck-7ylnmk =="*
+  → divergent branches, 128); sync adımı klonu bu dala çevirmiş, deploy.sh başka dalı istemişti.
+  **Ders: deploy yalnız o daldan iner; dispatch'e verilen `ref` deploy.sh'ı ikna etmez.** Operatör
+  izniyle (ayrıca soruldu) iş `wizardly-planck`'a **fast-forward** push edildi (önce o daldaki
+  `a6f7956a` üzerine rebase — başka oturumun fatura düzeltmesi korundu); deploy run `1504` yeşil.
+- **Canlı ölçüm (`diag-live` run 451, deploy'dan 3 dk sonra):** `/`, `/shop`, `/?lang=de`,
+  `/?lang=ar` 200; içerik: `id="the-edit"`, `class="ticker"`, `ed-card lead`, `new-arrivals`,
+  `footwear`, `brands` **bulundu**; The edit'te **Gallery Dept., Fred Perry, Lacoste, DSQUARED2,
+  Dolce & Gabbana, Burberry** birer kez (ev başına bir parça, vitrin sırasında — kural canlıda
+  doğrulandı); `Die Auswahl` (de) ve `التشكيلة` (ar) basılıyor. Oturumlu sınama: giriş tutuyor,
+  10 sayfa 200 / PHP uyarısı 0, `/product?id=dsq-s74gl0064-900` 68 KB, `/buyer?tab=messages`
+  38 KB uyarısız. Hata günlüğünde deploy sonrası yeni satır yok (son kayıtlar 14:05, Overpass 504).
+  *Sondanın kendi gürültüsü:* *"bu yol giriş ekranı dönüyor"* uyarısı yanlış pozitif — her sayfadaki
+  `VESTRA_BOOT` sözlüğünde *"Sign in first to receive notifications."* dizgesi var ve sonda
+  `Sign in` arıyor; `/buyer` aynı koşuda *"panel gövdesi geldi"* dedi.
