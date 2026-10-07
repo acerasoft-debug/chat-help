@@ -480,6 +480,8 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
    metnin kontrastını asıl sağlayan altındaki perde. Böylece bir sonraki kare
    ne kadar parlak olursa olsun taban değişmiyor. */
 .vhero{padding-top:clamp(52px,7vw,92px)}
+/* "Premium Outlet — the / Vault": tek kelimelik yetim satır olmasın. */
+.vhero h1{text-wrap:balance}
 .vhero__art{position:absolute;inset:0;z-index:0;overflow:hidden}
 .vhero__art video,.vhero__art img{
   width:100%;height:100%;object-fit:cover;display:block;opacity:.38;
@@ -749,8 +751,12 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   .filters__toggle{display:flex}
 }
 @media (min-width:901px){
-  /* <details> kapalıyken tarayıcı gövdeyi display:none yapıyor; masaüstünde
-     panel her zaman görünmeli, o yüzden bunu geri alıyoruz. */
+  /* <details> kapalıyken tarayıcı gövdeyi gizliyor; masaüstünde panel her
+     zaman görünmeli. Eski motorlar bunu çocukta display:none ile yapıyordu,
+     yeni Chromium (131+) ::details-content üzerinde content-visibility:hidden
+     ile — ikincisini çocuğun display'i geri alamıyor, sol sütun bomboş
+     kalıyordu. İkisini de geri alıyoruz. */
+  .filters::details-content{content-visibility:visible}
   .filters>.filters__body{display:grid !important}
 }
 .filters h2{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;font-family:var(--sans);color:var(--muted);margin-bottom:10px}

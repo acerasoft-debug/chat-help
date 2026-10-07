@@ -586,4 +586,6 @@ return [
     'contact_reply' => 'Risposta entro un giorno lavorativo, lun–ven.',
     'contact_faq_hint' => 'La maggior parte delle domande — spedizione, resi, Vault, autenticità — trova già risposta lì.',
     'order_lookup_sub' => 'Inserisca il numero d’ordine e l’indirizzo e-mail usato per l’ordine.',
+    'hero_stat_pieces' => 'pezzi disponibili',
+    'checkout_test_mode' => 'Modalità test Stripe: non viene addebitato denaro reale.',
 ];

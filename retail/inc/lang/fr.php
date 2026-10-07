@@ -590,4 +590,6 @@ return [
     'contact_reply' => 'Réponse sous un jour ouvré, du lundi au vendredi.',
     'contact_faq_hint' => 'La plupart des questions — livraison, retours, Vault, authenticité — y trouvent déjà leur réponse.',
     'order_lookup_sub' => 'Indiquez votre numéro de commande et l’adresse e-mail utilisée pour la commande.',
+    'hero_stat_pieces' => 'pièces en stock',
+    'checkout_test_mode' => 'Mode test Stripe : aucun argent réel n’est débité.',
 ];

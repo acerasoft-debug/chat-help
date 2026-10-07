@@ -586,4 +586,6 @@ return [
     'contact_reply' => 'Bir iş günü ərzində cavab, B.e.–C.',
     'contact_faq_hint' => 'Sualların çoxu — çatdırılma, qaytarma, Vault, orijinallıq — orada artıq cavablandırılıb.',
     'order_lookup_sub' => 'Sifariş nömrənizi və sifariş verdiyiniz e-poçt ünvanını daxil edin.',
+    'hero_stat_pieces' => 'məhsul anbarda',
+    'checkout_test_mode' => 'Stripe test rejimi: real pul köçürülmür.',
 ];

@@ -586,4 +586,6 @@ return [
     'contact_reply' => 'Svar inden for én arbejdsdag, man–fre.',
     'contact_faq_hint' => 'De fleste spørgsmål — forsendelse, returnering, Vault, ægthed — er allerede besvaret dér.',
     'order_lookup_sub' => 'Indtast dit ordrenummer og den e-mailadresse, du bestilte med.',
+    'hero_stat_pieces' => 'styk på lager',
+    'checkout_test_mode' => 'Stripe-testtilstand: der flyttes ingen rigtige penge.',
 ];

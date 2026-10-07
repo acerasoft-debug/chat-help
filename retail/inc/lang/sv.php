@@ -586,4 +586,6 @@ return [
     'contact_reply' => 'Svar inom en arbetsdag, mån–fre.',
     'contact_faq_hint' => 'De flesta frågor — frakt, returer, Vault, äkthet — är redan besvarade där.',
     'order_lookup_sub' => 'Ange ditt ordernummer och den e-postadress du beställde med.',
+    'hero_stat_pieces' => 'plagg i lager',
+    'checkout_test_mode' => 'Stripe testläge: inga riktiga pengar dras.',
 ];

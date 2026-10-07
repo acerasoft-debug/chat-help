@@ -186,7 +186,7 @@ vr_layout_start([
   </div>
 
   <div class="stage__meta">
-    <div><b><?= (int)$total ?></b><span><?= te('hero_stat_lots') ?></span></div>
+    <div><b><?= (int)$total ?></b><span><?= te('hero_stat_pieces') ?></span></div>
     <div><b><?= count($facets['brands']) ?></b><span><?= te('hero_stat_brands') ?></span></div>
     <?php if ($nextDrop): ?>
       <div><b><span data-countdown="<?= (int)$nextDrop ?>">—</span></b><span><?= te('hero_stat_drop') ?></span></div>

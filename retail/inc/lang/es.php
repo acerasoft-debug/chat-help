@@ -586,4 +586,6 @@ return [
     'contact_reply' => 'Respuesta en un día laborable, de lunes a viernes.',
     'contact_faq_hint' => 'La mayoría de las preguntas — envío, devoluciones, Vault, autenticidad — ya están respondidas allí.',
     'order_lookup_sub' => 'Introduzca su número de pedido y el correo electrónico con el que realizó el pedido.',
+    'hero_stat_pieces' => 'piezas en stock',
+    'checkout_test_mode' => 'Modo de prueba de Stripe: no se mueve dinero real.',
 ];

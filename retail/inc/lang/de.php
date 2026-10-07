@@ -592,4 +592,6 @@ return [
     'contact_reply' => 'Antwort innerhalb eines Werktags, Mo–Fr.',
     'contact_faq_hint' => 'Die meisten Fragen — Versand, Rückgabe, Vault, Echtheit — stehen dort schon beantwortet.',
     'order_lookup_sub' => 'Geben Sie Ihre Bestellnummer und die E-Mail-Adresse der Bestellung ein.',
+    'hero_stat_pieces' => 'Teile am Lager',
+    'checkout_test_mode' => 'Stripe-Testmodus: Es wird kein echtes Geld bewegt.',
 ];

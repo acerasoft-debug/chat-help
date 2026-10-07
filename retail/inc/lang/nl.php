@@ -592,4 +592,6 @@ return [
     'contact_reply' => 'Antwoord binnen één werkdag, ma–vr.',
     'contact_faq_hint' => 'De meeste vragen — verzending, retouren, Vault, echtheid — zijn daar al beantwoord.',
     'order_lookup_sub' => 'Vul uw bestelnummer en het e-mailadres van de bestelling in.',
+    'hero_stat_pieces' => 'stuks op voorraad',
+    'checkout_test_mode' => 'Stripe-testmodus: er wordt geen echt geld overgemaakt.',
 ];

@@ -140,7 +140,7 @@ vr_layout_start(['title' => t('checkout_title'), 'robots' => 'noindex,nofollow']
           <p style="font-size:12px;color:var(--muted)">
             <?= vr_icon('lock', 13) ?> <?= te('checkout_stripe') ?>
             <?php if (vr_stripe_settings()['mode'] === 'test'): ?>
-              <br><strong>Stripe-Testmodus:</strong> es wird kein echtes Geld bewegt.
+              <br><?= te('checkout_test_mode') ?>
             <?php endif; ?>
           </p>
         </form>
