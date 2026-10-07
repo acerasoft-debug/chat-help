@@ -519,3 +519,21 @@
     });
   }
 })();
+
+/* Hukuki tablolar: dar ekranda her satır etiketli bir blok olarak dizilir
+   (CSS: .doc td::before). Etiketi başlık hücresinden alıyoruz ki 10 dilin
+   içerik dosyalarına tek tek data-label yazmak gerekmesin. */
+(function () {
+  document.querySelectorAll('.doc table').forEach(function (t) {
+    var heads = Array.prototype.map.call(t.querySelectorAll('thead th'), function (th) {
+      return th.textContent.trim();
+    });
+    if (!heads.length) return;
+    t.classList.add('is-labelled');
+    t.querySelectorAll('tbody tr').forEach(function (tr) {
+      Array.prototype.forEach.call(tr.children, function (td, i) {
+        if (heads[i]) td.setAttribute('data-label', heads[i]);
+      });
+    });
+  });
+})();
