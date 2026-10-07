@@ -82,9 +82,10 @@ function vr_doc_start(string $titleKey, string $updated = '2026-08-01', string $
         echo '<p class="doc__binding">' . te('legal_de_note') . '</p>';
     }
 
-    if (!vr_company_complete()) {
-        echo '<div class="notice notice--demo"><strong>' . te('legal_incomplete') . '</strong></div>';
-    }
+    /* Eksik işletmeci verisi ARTIK ziyaretçiye bant olarak basılmıyor: dosya
+       yolu geçen, operatöre yazılmış bir cümleyi müşterinin görmesi için
+       sebep yok. Eksik alan şirket bloğunun içinde yer tutucuyla zaten
+       görünür (vr_company_block), selftest de FAIL veriyor. */
 }
 
 function vr_doc_end(): void

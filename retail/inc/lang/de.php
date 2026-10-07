@@ -587,4 +587,9 @@ return [
     'imp_reg_number' => 'Registernummer',
     'imp_vat_id' => 'Umsatzsteuer-Identifikationsnummer',
     'imp_eu_rep' => 'Vertreter in der EU (Art. 27 DSGVO)',
+    // ---- İletişim sayfası yan sütunu
+    'contact_privacy' => 'Ihre Angaben verwenden wir ausschließlich zur Bearbeitung dieser Anfrage — {privacy}. Kein Newsletter, keine Weitergabe.',
+    'contact_reply' => 'Antwort innerhalb eines Werktags, Mo–Fr.',
+    'contact_faq_hint' => 'Die meisten Fragen — Versand, Rückgabe, Vault, Echtheit — stehen dort schon beantwortet.',
+    'order_lookup_sub' => 'Geben Sie Ihre Bestellnummer und die E-Mail-Adresse der Bestellung ein.',
 ];

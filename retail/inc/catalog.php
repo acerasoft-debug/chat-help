@@ -1057,6 +1057,50 @@ function vr_product_gallery(array $p, int $max = 5): array
         if (str_starts_with($face, '/uploads/') && in_array($face, $real, true)) {
             $real = array_merge([$face], array_values(array_filter($real, fn($x) => $x !== $face)));
         }
+
+        /**
+         * ŞERİDİN KAYNAĞI GALERİYE GİRMEZ.
+         *
+         * Bazı ürünlerde tedarikçi şeridi (iki-üç görünüm yan yana, 1,5+
+         * oranlı) hem kendisi hem de split-strips'in ondan kestiği dikey
+         * kareler (p1, p2 …) birlikte duruyor. Şerit 4:5 yuvaya 'cover' ile
+         * girince ortasından ekran boyu bir dilim kesiliyordu: tanınmaz,
+         * bulanık bir kumaş parçası. Oysa taşıdığı görünümler zaten yanında
+         * ayrı kare olarak var — şerit hiçbir şey eklemiyor, iki kez gösteriyor.
+         *
+         * Tespit geometrik: enlemesine karenin genişliği, dikey karelerden
+         * ikisinin (ya da üçünün) genişlik toplamına, yüksekliği de onlarınkine
+         * %2 payla eşitse o kare şeridin kendisidir ve düşer. Eşleşmeyen
+         * enlemesine kareler (gerçek bir yatay detay, serili çekim) KALIR;
+         * ürün sayfası onları kendi oranında, iki sütunu kaplayarak basıyor.
+         */
+        $shape = vr_photo_shape_index();
+        $dim = static fn(string $src): array => [
+            (int)($shape[$src]['w'] ?? 0), (int)($shape[$src]['h'] ?? 0), (float)($shape[$src]['r'] ?? 0),
+        ];
+        $tall = array_values(array_filter($real, fn($s) => $dim($s)[2] <= 1.25));
+        $near = static fn(int $a, int $b): bool => $b > 0 && abs($a - $b) <= (int)ceil($b * 0.02);
+
+        $real = array_values(array_filter($real, static function (string $src) use ($tall, $dim, $near): bool {
+            [$w, $h, $r] = $dim($src);
+            if ($r <= 1.25 || $w === 0) return true;          // dikey ya da ölçüsüz: kal
+            $n = count($tall);
+            for ($i = 0; $i < $n; $i++) {
+                [$wi, $hi] = $dim($tall[$i]);
+                if (!$near($hi, $h)) continue;
+                for ($j = $i + 1; $j < $n; $j++) {
+                    [$wj, $hj] = $dim($tall[$j]);
+                    if (!$near($hj, $h)) continue;
+                    if ($near($wi + $wj, $w)) return false;   // iki görünümün şeridi
+                    for ($k = $j + 1; $k < $n; $k++) {
+                        [$wk, $hk] = $dim($tall[$k]);
+                        if ($near($hk, $h) && $near($wi + $wj + $wk, $w)) return false;
+                    }
+                }
+            }
+            return true;
+        }));
+
         return array_slice($real, 0, $max);
     }
 

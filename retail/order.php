@@ -100,7 +100,7 @@ if ($order === null) {
 <section class="sec">
   <div class="wrap wrap--narrow">
     <h1 class="sechead__t"><?= te('order_status') ?></h1>
-    <p class="sechead__s" style="margin:12px 0 28px"><?= te('order_mail_sent', ['email' => t('email')]) ?></p>
+    <p class="sechead__s" style="margin:12px 0 28px"><?= te('order_lookup_sub') ?></p>
 
     <?php if ($lookupErr !== ''): ?>
       <div class="flash flash--err" style="margin-bottom:16px"><?= h($lookupErr) ?></div>

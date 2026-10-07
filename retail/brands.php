@@ -44,37 +44,34 @@ vr_layout_start([
     <?php if (!$brands): ?>
       <div class="notice"><strong><?= te('no_results') ?></strong></div>
     <?php else: ?>
-      <div class="grid grid--2">
+      <div class="housegrid">
         <?php
         arsort($brands);
         foreach ($brands as $brand => $n):
             $preview = vr_query(['brand' => $brand, 'per_page' => 3, 'in_stock' => true, 'exclude_vault' => true])['rows'];
             $r = $range[$brand] ?? ['min' => 0, 'max' => 0];
         ?>
-          <article class="doc__box" style="margin:0" data-reveal>
-            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 14px">
-              <h2 style="font-family:var(--serif);font-size:23px;letter-spacing:.04em">
+          <article class="housecard" data-reveal>
+            <header class="housecard__head">
+              <h2 class="housecard__t">
                 <a href="<?= h(vr_url('shop.php', ['brand' => $brand])) ?>"><?= h((string)$brand) ?></a>
               </h2>
-              <span style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">
-                <?= te('results_n', ['n' => (int)$n]) ?>
-              </span>
-            </div>
-
-            <?php if ((int)$r['min'] > 0): ?>
-              <p style="font-size:13px;color:var(--muted);margin-top:6px">
-                <?= h(vr_money((int)$r['min'])) ?><?= (int)$r['max'] > (int)$r['min'] ? ' — ' . h(vr_money((int)$r['max'])) : '' ?>
+              <p class="housecard__meta">
+                <span><?= te('results_n', ['n' => (int)$n]) ?></span>
+                <?php if ((int)$r['min'] > 0): ?>
+                  <span><?= h(vr_money((int)$r['min'])) ?><?= (int)$r['max'] > (int)$r['min'] ? ' — ' . h(vr_money((int)$r['max'])) : '' ?></span>
+                <?php endif; ?>
               </p>
-            <?php endif; ?>
+            </header>
 
             <?php if ($preview): ?>
-              <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px">
+              <div class="housecard__row">
                 <?php foreach ($preview as $p): ?>
-                  <a href="<?= h(vr_product_url($p)) ?>" style="display:block">
+                  <a href="<?= h(vr_product_url($p)) ?>" class="housecard__shot">
                     <span class="thumb45"><?php vr_frame(vr_card_image($p), [
                         'w'      => 300,
                         'widths' => [180, 300, 420],
-                        'sizes'  => '(max-width:940px) 30vw, 180px',
+                        'sizes'  => '(max-width:940px) 30vw, 200px',
                         'alt'    => $p['name'],
                     ]); ?></span>
                   </a>
@@ -82,11 +79,9 @@ vr_layout_start([
               </div>
             <?php endif; ?>
 
-            <p style="margin-top:14px">
-              <a class="sechead__more" href="<?= h(vr_url('shop.php', ['brand' => $brand])) ?>">
-                <?= te('view_all') ?><?= vr_icon('arrow', 15) ?>
-              </a>
-            </p>
+            <a class="sechead__more housecard__more" href="<?= h(vr_url('shop.php', ['brand' => $brand])) ?>">
+              <?= te('view_all') ?><?= vr_icon('arrow', 15) ?>
+            </a>
           </article>
         <?php endforeach; ?>
       </div>

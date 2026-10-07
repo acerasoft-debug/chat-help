@@ -587,4 +587,9 @@ return [
     'imp_reg_number' => 'Registratienummer',
     'imp_vat_id' => 'Btw-nummer',
     'imp_eu_rep' => 'Vertegenwoordiger in de EU (art. 27 AVG)',
+    // ---- İletişim sayfası yan sütunu
+    'contact_privacy' => 'Wij gebruiken uw gegevens uitsluitend voor de afhandeling van deze aanvraag — {privacy}. Geen nieuwsbrief, geen doorgifte.',
+    'contact_reply' => 'Antwoord binnen één werkdag, ma–vr.',
+    'contact_faq_hint' => 'De meeste vragen — verzending, retouren, Vault, echtheid — zijn daar al beantwoord.',
+    'order_lookup_sub' => 'Vul uw bestelnummer en het e-mailadres van de bestelling in.',
 ];

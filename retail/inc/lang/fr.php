@@ -585,4 +585,9 @@ return [
     'imp_reg_number' => 'Numéro d\'enregistrement',
     'imp_vat_id' => 'Numéro de TVA intracommunautaire',
     'imp_eu_rep' => 'Représentant dans l\'UE (art. 27 RGPD)',
+    // ---- İletişim sayfası yan sütunu
+    'contact_privacy' => 'Nous utilisons vos données uniquement pour traiter cette demande — {privacy}. Pas de newsletter, pas de transmission.',
+    'contact_reply' => 'Réponse sous un jour ouvré, du lundi au vendredi.',
+    'contact_faq_hint' => 'La plupart des questions — livraison, retours, Vault, authenticité — y trouvent déjà leur réponse.',
+    'order_lookup_sub' => 'Indiquez votre numéro de commande et l’adresse e-mail utilisée pour la commande.',
 ];

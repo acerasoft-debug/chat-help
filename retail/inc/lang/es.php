@@ -581,4 +581,9 @@ return [
     'imp_reg_number' => 'Número de registro',
     'imp_vat_id' => 'NIF-IVA',
     'imp_eu_rep' => 'Representante en la UE (art. 27 RGPD)',
+    // ---- İletişim sayfası yan sütunu
+    'contact_privacy' => 'Usamos sus datos únicamente para tramitar esta solicitud — {privacy}. Sin boletín, sin cesión a terceros.',
+    'contact_reply' => 'Respuesta en un día laborable, de lunes a viernes.',
+    'contact_faq_hint' => 'La mayoría de las preguntas — envío, devoluciones, Vault, autenticidad — ya están respondidas allí.',
+    'order_lookup_sub' => 'Introduzca su número de pedido y el correo electrónico con el que realizó el pedido.',
 ];

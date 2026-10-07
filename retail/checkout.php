@@ -23,7 +23,8 @@ if (!in_array($country, $allowed, true)) $country = 'DE';
 
 $t = vr_cart_totals($country);
 if (!$t['lines']) {
-    vr_flash(t('cart_empty'), 'info');
+    // Flash YOK: sepet sayfası boş sepeti zaten kendi söylüyor. İkisi birden
+    // aynı cümleyi alt alta iki kez basıyordu.
     vr_redirect('cart.php');
 }
 

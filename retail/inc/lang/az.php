@@ -581,4 +581,9 @@ return [
     'imp_reg_number' => 'Qeydiyyat nömrəsi',
     'imp_vat_id' => 'ƏDV identifikasiya nömrəsi',
     'imp_eu_rep' => 'Aİ-də nümayəndə (GDPR mad. 27)',
+    // ---- İletişim sayfası yan sütunu
+    'contact_privacy' => 'Məlumatlarınızı yalnız bu sorğunun həlli üçün istifadə edirik — {privacy}. Xəbər bülleteni yox, ötürmə yox.',
+    'contact_reply' => 'Bir iş günü ərzində cavab, B.e.–C.',
+    'contact_faq_hint' => 'Sualların çoxu — çatdırılma, qaytarma, Vault, orijinallıq — orada artıq cavablandırılıb.',
+    'order_lookup_sub' => 'Sifariş nömrənizi və sifariş verdiyiniz e-poçt ünvanını daxil edin.',
 ];

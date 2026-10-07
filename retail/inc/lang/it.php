@@ -581,4 +581,9 @@ return [
     'imp_reg_number' => 'Numero di registrazione',
     'imp_vat_id' => 'Partita IVA',
     'imp_eu_rep' => 'Rappresentante nell\'UE (art. 27 GDPR)',
+    // ---- İletişim sayfası yan sütunu
+    'contact_privacy' => 'Usiamo i Suoi dati solo per gestire questa richiesta — {privacy}. Nessuna newsletter, nessuna cessione.',
+    'contact_reply' => 'Risposta entro un giorno lavorativo, lun–ven.',
+    'contact_faq_hint' => 'La maggior parte delle domande — spedizione, resi, Vault, autenticità — trova già risposta lì.',
+    'order_lookup_sub' => 'Inserisca il numero d’ordine e l’indirizzo e-mail usato per l’ordine.',
 ];

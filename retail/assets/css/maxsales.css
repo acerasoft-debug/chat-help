@@ -659,6 +659,8 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 @media (max-width:940px){.pdp{grid-template-columns:1fr}}
 .pdp__media{display:grid;gap:10px;grid-template-columns:1fr}
 .pdp__media--multi{grid-template-columns:repeat(2,1fr)}
+/* Yatay kare iki sütunu kaplar; oranı satır içi stilden gelir. */
+.pdp__media--multi .pdp__shot--wide{grid-column:1/-1}
 .pdp__shot{background:var(--bone-2);aspect-ratio:4/5;overflow:hidden;border-radius:var(--r)}
 /* Tek kare varsa tam genişlik; galeri çoklu ise 2×2 eşit ızgara.
    TEK sayıda kare varsa (3, 5, 7 …) ilk kadraj tam genişlikte kahraman kare
@@ -869,7 +871,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .doc__toc a{display:block;padding:3px 0;font-size:13.5px;border:0;color:var(--muted)}
 .doc__toc a:hover{color:var(--ink)}
 /* Çeviri notu: sessiz, belgeyi kesmeyen tek satır. Fallback'te .notice kullanılır. */
-.doc__binding{font-size:12px;letter-spacing:.04em;color:var(--muted-2);margin:-22px 0 30px}
+.doc__binding{font-size:12px;letter-spacing:.04em;line-height:1.7;color:var(--muted-2);margin:-16px 0 34px}
 .doc__related{font-size:12.5px;color:var(--muted);line-height:2}
 .doc__rule{margin:40px 0 22px}
 .doc__list{font-size:13px;color:var(--muted);line-height:1.9}
@@ -974,6 +976,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 /* Özel müşteri formu: ikili satırlar sığsın diye 520'den geniş, ama gönder
    düğmesi 794 pikselde absürt durduğu için metin sütunundan dar. */
 .form--pc{max-width:620px}
+.form__privacy{font-size:12px;color:var(--muted);margin-top:14px}
 .form__pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:16px}
 
 .pc__three{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:clamp(22px,3vw,44px);margin-top:8px}
@@ -1206,14 +1209,27 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 
 /* ----------------------------------------------------------------- Journal */
 .jgrid{display:grid;gap:clamp(18px,2.4vw,32px);grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
-.jcard{
-  display:flex;flex-direction:column;border:1px solid var(--bone-3);border-radius:var(--r);
-  overflow:hidden;background:var(--bone);transition:border-color .3s var(--ease),transform .3s var(--ease);
-}
-.jcard:hover{border-color:var(--ink);transform:translateY(-3px)}
-.jcard__media{aspect-ratio:16/10;overflow:hidden;background:var(--bone-2)}
-.jcard__media img{width:100%;height:100%;object-fit:cover}
-.jcard__body{padding:20px 22px 24px;display:flex;flex-direction:column;gap:9px;flex:1}
+/* Kutu yok, çerçeve yok: fotoğraf, bir ince boşluk, metin. Kart sınırını
+   beyaz alan çiziyor — editöryal sayfalarda çerçeve dergiyi kataloğa çevirir. */
+.jcard{display:flex;flex-direction:column;background:transparent}
+.jcard__media{aspect-ratio:4/3;overflow:hidden;background:var(--bone-2)}
+.jcard__media img{width:100%;height:100%;object-fit:cover;transition:transform 1.4s var(--ease)}
+.jcard:hover .jcard__media img{transform:scale(1.03)}
+.jcard__body{padding:18px 0 6px;display:flex;flex-direction:column;gap:9px;flex:1}
+.jcard__t a{background-image:linear-gradient(currentColor,currentColor);background-size:0 1px;background-repeat:no-repeat;background-position:0 100%;transition:background-size .5s var(--ease)}
+.jcard:hover .jcard__t a{background-size:100% 1px}
+
+/* ------------------------------------------------------------- Markalar */
+.housegrid{display:grid;gap:clamp(28px,4vw,56px) clamp(24px,4vw,64px);grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+.housecard{display:flex;flex-direction:column;gap:16px;padding-top:18px;border-top:1px solid var(--bone-3)}
+.housecard__head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 18px}
+.housecard__t{font-family:var(--serif);font-size:clamp(22px,2.2vw,28px);letter-spacing:.02em;text-transform:none}
+.housecard__meta{display:flex;gap:14px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2)}
+.housecard__row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.housecard__shot{display:block;overflow:hidden}
+.housecard__shot img{transition:transform 1.4s var(--ease)}
+.housecard__shot:hover img{transform:scale(1.04)}
+.housecard__more{align-self:flex-start}
 .jcard__kicker{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--brass-text)}
 .jcard__body h2,.jcard__body h3{font-size:21px;line-height:1.25;letter-spacing:0;text-transform:none;font-family:var(--serif);color:inherit}
 .jcard__body p{font-size:13.5px;color:var(--muted)}

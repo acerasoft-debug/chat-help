@@ -165,10 +165,10 @@ vr_layout_start([
 
             <button class="btn btn--lg" type="submit"><span><?= te('contact_send') ?></span><?= vr_icon('arrow', 16) ?></button>
 
-            <p style="font-size:12px;color:var(--muted)">
-              Ihre Angaben verwenden wir ausschließlich zur Bearbeitung dieser Anfrage —
-              <a class="link" href="<?= h(vr_url('legal/datenschutz.php')) ?>"><?= te('legal_privacy') ?></a>.
-              Kein Newsletter, keine Weitergabe.
+            <p class="form__privacy">
+              <?= str_replace('{privacy}',
+                    '<a class="link" href="' . h(vr_url('legal/datenschutz.php')) . '">' . te('legal_privacy') . '</a>',
+                    te('contact_privacy')) ?>
             </p>
           </form>
         <?php endif; ?>
@@ -185,14 +185,12 @@ vr_layout_start([
         <?php if (trim((string)($co['phone'] ?? '')) !== ''): ?>
           <p style="font-size:14px"><?= h((string)$co['phone']) ?></p>
         <?php endif; ?>
-        <p class="srow--muted" style="display:block">Antwort innerhalb eines Werktags, Mo–Fr.</p>
+        <p class="srow--muted" style="display:block"><?= te('contact_reply') ?></p>
 
         <hr class="rule" style="margin:8px 0">
 
         <h2><?= te('faq_title') ?></h2>
-        <p style="font-size:13.5px;color:var(--muted)">
-          Die meisten Fragen — Versand, Rückgabe, Vault, Echtheit — stehen dort schon beantwortet.
-        </p>
+        <p style="font-size:13.5px;color:var(--muted)"><?= te('contact_faq_hint') ?></p>
         <a class="btn btn--ghost btn--block btn--sm" href="<?= h(vr_url('faq.php')) ?>"><span><?= te('faq_title') ?></span></a>
 
         <p class="srow--muted" style="display:block">

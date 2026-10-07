@@ -84,16 +84,19 @@ vr_layout_start([
       <div class="pdp__media<?= count($shots) > 1 ? ' pdp__media--multi' : '' ?>" data-gallery>
         <?php foreach ($shots as $i => $src):
             $box = count($shots) > 1 ? 0.8 : 1.0;
+            $r   = (float)(vr_photo_shape_index()[$src]['r'] ?? 0);
             // Tek kareli üründe kutuyu fotoğrafa uyduruyoruz. Enlemesine bir
             // kareyi zorla 1:1'e sokmak, ürünün üstüne ve altına kocaman
             // bulanık şerit koymak demek — ürün sayfasında bunun mazereti yok.
-            if (count($shots) === 1) {
-                $r = (float)(vr_photo_shape_index()[$src]['r'] ?? 0);
-                if ($r > 0) $box = max(0.62, min(1.5, $r));
-            }
+            if (count($shots) === 1 && $r > 0) $box = max(0.62, min(1.5, $r));
+            // Çok kareli galeride gerçek bir yatay kare (serili çekim, etiket
+            // detayı) 4:5 yuvaya kırpılmaz: kendi oranında, iki sütunu kaplar.
+            $wide = count($shots) > 1 && $r > 1.25;
+            if ($wide) $box = min(1.9, $r);
+            $styled = count($shots) === 1 || $wide;
         ?>
-          <a class="pdp__shot" href="<?= h($src) ?>" data-zoom
-             <?= count($shots) === 1 ? 'style="aspect-ratio:' . h((string)round($box, 3)) . '"' : '' ?>
+          <a class="pdp__shot<?= $wide ? ' pdp__shot--wide' : '' ?>" href="<?= h($src) ?>" data-zoom
+             <?= $styled ? 'style="aspect-ratio:' . h((string)round($box, 3)) . '"' : '' ?>
              aria-label="<?= te('zoom') ?>: <?= h($p['brand'] . ' ' . vr_card_name($p)) ?>">
             <?php vr_frame($src, [
                 'box'    => $box,

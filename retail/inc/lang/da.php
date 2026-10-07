@@ -581,4 +581,9 @@ return [
     'imp_reg_number' => 'Registreringsnummer',
     'imp_vat_id' => 'Momsnummer',
     'imp_eu_rep' => 'Repræsentant i EU (art. 27 GDPR)',
+    // ---- İletişim sayfası yan sütunu
+    'contact_privacy' => 'Vi bruger dine oplysninger udelukkende til at behandle denne henvendelse — {privacy}. Intet nyhedsbrev, ingen videregivelse.',
+    'contact_reply' => 'Svar inden for én arbejdsdag, man–fre.',
+    'contact_faq_hint' => 'De fleste spørgsmål — forsendelse, returnering, Vault, ægthed — er allerede besvaret dér.',
+    'order_lookup_sub' => 'Indtast dit ordrenummer og den e-mailadresse, du bestilte med.',
 ];
