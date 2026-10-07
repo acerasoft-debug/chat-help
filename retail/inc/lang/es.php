@@ -571,4 +571,14 @@ return [
     // Renk cesitleri - bkz. vr_variant_index().
     'select_colour' => 'Color · {n} disponibles',
     'n_colours' => '{n} colores',
+    // ---- Hukuki sayfalar: çeviri notu + Impressum etiketleri
+    'legal_de_only' => 'Esta página solo está disponible en alemán por el momento. El texto alemán es la versión jurídicamente vinculante; la traducción está en preparación.',
+    'imp_represented_by' => 'Representada por',
+    'imp_email' => 'Correo electrónico',
+    'imp_phone' => 'Teléfono',
+    'imp_website' => 'Sitio web',
+    'imp_reg_authority' => 'Autoridad de registro',
+    'imp_reg_number' => 'Número de registro',
+    'imp_vat_id' => 'NIF-IVA',
+    'imp_eu_rep' => 'Representante en la UE (art. 27 RGPD)',
 ];

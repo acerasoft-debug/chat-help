@@ -868,6 +868,13 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .doc__toc{border-left:2px solid var(--brass);padding-left:18px;margin:0 0 34px}
 .doc__toc a{display:block;padding:3px 0;font-size:13.5px;border:0;color:var(--muted)}
 .doc__toc a:hover{color:var(--ink)}
+/* Çeviri notu: sessiz, belgeyi kesmeyen tek satır. Fallback'te .notice kullanılır. */
+.doc__binding{font-size:12px;letter-spacing:.04em;color:var(--muted-2);margin:-22px 0 30px}
+.doc__related{font-size:12.5px;color:var(--muted);line-height:2}
+.doc__rule{margin:40px 0 22px}
+.doc__list{font-size:13px;color:var(--muted);line-height:1.9}
+.doc__missing{color:var(--ember-text);font-style:normal}
+.doc[lang="de"] .notice{font-style:normal}
 
 /* ------------------------------------------------------------------- FAQ */
 .faq{max-width:82ch;margin:0 auto}

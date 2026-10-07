@@ -118,3 +118,66 @@ function vr_country_zone(string $cc): string
     if (in_array($cc, (array)vr_config('shipping_countries_ch', []), true)) return 'ch';
     return 'world';
 }
+
+/**
+ * Ülke adı — ziyaretçinin dilinde.
+ * ----------------------------------
+ * Kasada, sepette ve kargo sayfasında "AT · BE · BG" gibi ham ISO kodları
+ * görünüyordu. Lüks bir mağazada ülkenin adı yazılır.
+ *
+ * intl uzantısı varsa ICU'dan okunur (her dilde doğru ad, bakım yok). Yoksa
+ * İngilizce yedek tablo: gönderdiğimiz 45 pazar. Tabloda olmayan bir kod
+ * olduğu gibi döner — yanlış bir ad uydurmaktansa kod görünsün.
+ */
+const VR_COUNTRY_EN = [
+    'AE' => 'United Arab Emirates', 'AT' => 'Austria', 'AU' => 'Australia', 'BE' => 'Belgium',
+    'BG' => 'Bulgaria', 'CA' => 'Canada', 'CH' => 'Switzerland', 'CY' => 'Cyprus', 'CZ' => 'Czechia',
+    'DE' => 'Germany', 'DK' => 'Denmark', 'EE' => 'Estonia', 'ES' => 'Spain', 'FI' => 'Finland',
+    'FR' => 'France', 'GB' => 'United Kingdom', 'GR' => 'Greece', 'HK' => 'Hong Kong', 'HR' => 'Croatia',
+    'HU' => 'Hungary', 'IE' => 'Ireland', 'IL' => 'Israel', 'IT' => 'Italy', 'JP' => 'Japan',
+    'KR' => 'South Korea', 'KW' => 'Kuwait', 'LI' => 'Liechtenstein', 'LT' => 'Lithuania',
+    'LU' => 'Luxembourg', 'LV' => 'Latvia', 'MT' => 'Malta', 'NL' => 'Netherlands', 'NO' => 'Norway',
+    'NZ' => 'New Zealand', 'PL' => 'Poland', 'PT' => 'Portugal', 'QA' => 'Qatar', 'RO' => 'Romania',
+    'SA' => 'Saudi Arabia', 'SE' => 'Sweden', 'SG' => 'Singapore', 'SI' => 'Slovenia', 'SK' => 'Slovakia',
+    'TR' => 'Türkiye', 'US' => 'United States',
+];
+
+function vr_country_name(string $cc): string
+{
+    $cc = strtoupper(trim($cc));
+    if (!preg_match('/^[A-Z]{2}$/', $cc)) return $cc;
+
+    static $cache = [];
+    $key = vr_lang() . '|' . $cc;
+    if (isset($cache[$key])) return $cache[$key];
+
+    $name = '';
+    if (class_exists('Locale')) {
+        $name = (string)\Locale::getDisplayRegion('-' . $cc, vr_locale());
+        // ICU bilmediği kodu olduğu gibi döndürür; o zaman yedeğe düş.
+        if ($name === $cc) $name = '';
+    }
+    if ($name === '') $name = VR_COUNTRY_EN[$cc] ?? $cc;
+
+    return $cache[$key] = $name;
+}
+
+/**
+ * <select> için kod ⇒ ad listesi, ziyaretçinin diline göre alfabetik.
+ * Collator varsa yerel sıralama (Ö, Ü, É doğru yere düşer).
+ */
+function vr_country_options(array $codes): array
+{
+    $out = [];
+    foreach ($codes as $cc) {
+        $cc = strtoupper((string)$cc);
+        if ($cc !== '') $out[$cc] = vr_country_name($cc);
+    }
+    if (class_exists('Collator')) {
+        $col = new \Collator(vr_locale());
+        uasort($out, static fn(string $a, string $b): int => (int)$col->compare($a, $b));
+    } else {
+        uasort($out, 'strcasecmp');
+    }
+    return $out;
+}

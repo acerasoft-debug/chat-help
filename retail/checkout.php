@@ -106,8 +106,8 @@ vr_layout_start(['title' => t('checkout_title'), 'robots' => 'noindex,nofollow']
           <div class="field">
             <label for="country"><?= te('checkout_country') ?></label>
             <select id="country" name="country" data-autosubmit>
-              <?php foreach ($allowed as $c): ?>
-                <option value="<?= h($c) ?>" <?= $country === $c ? 'selected' : '' ?>><?= h($c) ?></option>
+              <?php foreach (vr_country_options($allowed) as $c => $name): ?>
+                <option value="<?= h($c) ?>" <?= $country === $c ? 'selected' : '' ?>><?= h($name) ?></option>
               <?php endforeach; ?>
             </select>
             <small><?= h(vr_zone_label((string)$ship['zone'])) ?> · <?= te('ships_in', ['days' => (string)$ship['days']]) ?></small>

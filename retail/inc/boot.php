@@ -88,15 +88,23 @@ function h(mixed $v): string
     return htmlspecialchars((string)$v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-/** Uygulama içi URL üret; dil parametresini korur. */
+/**
+ * Uygulama içi URL üret; dil parametresini korur.
+ *
+ * Statik varlıklarda (assets/, uploads/) dil parametresi EKLENMEZ: aynı
+ * görsel on dilde on ayrı URL olursa tarayıcı ve CDN önbelleği dil başına
+ * yeniden ısınır — hero videosu ve her ürün fotoğrafı dil değişiminde baştan
+ * iner. Varlığın içeriği dile bağlı değil, URL'si de olmamalı.
+ */
 function vr_url(string $path = '', array $params = []): string
 {
     $base = vr_base_url();
     $path = '/' . ltrim($path, '/');
     if ($path === '/') $path = '/';
 
-    $lang = vr_lang();
-    if ($lang !== vr_config('primary_lang') && !isset($params['lang'])) {
+    $lang   = vr_lang();
+    $static = str_starts_with($path, '/assets/') || str_starts_with($path, '/uploads/');
+    if (!$static && $lang !== vr_config('primary_lang') && !isset($params['lang'])) {
         $params['lang'] = $lang;
     }
     $qs = $params ? '?' . http_build_query($params) : '';

@@ -571,4 +571,14 @@ return [
     // Renk cesitleri - bkz. vr_variant_index().
     'select_colour' => 'Цвет · доступно {n}',
     'n_colours' => '{n} цвета',
+    // ---- Hukuki sayfalar: çeviri notu + Impressum etiketleri
+    'legal_de_only' => 'Эта страница пока доступна только на немецком языке. Юридически обязательной является немецкая версия; перевод готовится.',
+    'imp_represented_by' => 'Представитель',
+    'imp_email' => 'Эл. почта',
+    'imp_phone' => 'Телефон',
+    'imp_website' => 'Сайт',
+    'imp_reg_authority' => 'Регистрирующий орган',
+    'imp_reg_number' => 'Регистрационный номер',
+    'imp_vat_id' => 'Идентификационный номер НДС',
+    'imp_eu_rep' => 'Представитель в ЕС (ст. 27 GDPR)',
 ];

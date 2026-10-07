@@ -60,7 +60,6 @@ vr_layout_start([
         <ul style="font-size:13px;color:var(--muted);margin-top:12px;padding-left:20px">
           <li><?= te('sell_biz_l1') ?></li>
           <li><?= te('sell_biz_l2') ?></li>
-          <li>Stripe Connect: business_type <code>company</code></li>
         </ul>
       </div>
 
@@ -74,7 +73,6 @@ vr_layout_start([
         <ul style="font-size:13px;color:var(--muted);margin-top:12px;padding-left:20px">
           <li><?= te('sell_priv_l1', ['type' => t('seller_private')]) ?></li>
           <li><?= te('sell_priv_l2') ?></li>
-          <li>Stripe Connect: business_type <code>individual</code></li>
         </ul>
         <p style="font-size:12px;color:var(--muted-2);margin-top:12px">
           <?= te('sell_priv_note', ['biz' => t('sell_biz_t')]) ?>

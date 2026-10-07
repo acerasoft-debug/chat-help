@@ -2,9 +2,18 @@
 /**
  * Hukuki sayfaların ortak kabuğu
  * ------------------------------
- * Bağlayıcı dil ALMANCA. Diğer dillerde sayfa yine Almanca metni gösterir ve
- * üstünde bunu söyleyen bir not çıkar — yarı çevrilmiş bir AGB'den daha dürüst
- * ve hukuken daha güvenli.
+ * Bağlayıcı dil ALMANCA. Metinler dile göre legal/content/<dil>/<belge>.php
+ * dosyalarından gelir:
+ *
+ *   • o dilde çeviri varsa  → çeviri gösterilir, altında kısa bir not:
+ *                             "Almanca metin bağlayıcıdır" (legal_de_note)
+ *   • çeviri yoksa          → Almanca metin gösterilir, üstünde belirgin not:
+ *                             "bu sayfa yalnızca Almanca" (legal_de_only);
+ *                             kapsayıcı lang="de" alır ki ekran okuyucu doğru
+ *                             dilde okusun
+ *
+ * Çeviriler okunabilirlik için, hukuki yorum için değil. Yarı çevrilmiş bir
+ * AGB'den daha dürüst olan şey, çevirinin ne olduğunu söylemektir.
  *
  * İşletmeci verileri data/retail-settings.json'dan gelir. Eksikse sayfanın
  * başında bariz bir uyarı basılır: uydurulmuş adres/sicil numarası yazmak
@@ -15,8 +24,37 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../inc/view.php';
 
-/** Sayfa başlangıcı. $titleKey sözlük anahtarı, $updated 'YYYY-MM-DD'. */
-function vr_doc_start(string $titleKey, string $updated = '2026-08-01'): void
+/**
+ * Bir hukuki belgeyi baştan sona basar.
+ *
+ * @param string $doc      content/<dil>/ altındaki dosya adı (uzantısız)
+ * @param string $titleKey sözlük anahtarı
+ * @param string $updated  'YYYY-MM-DD'
+ * @param array  $vars     içerik dosyasına açılacak değişkenler
+ */
+function vr_doc_page(string $doc, string $titleKey, string $updated, array $vars = []): void
+{
+    $doc  = preg_replace('/[^a-z]/', '', $doc);
+    $lang = vr_lang();
+    $base = __DIR__ . '/content/';
+
+    $file = $base . $lang . '/' . $doc . '.php';
+    $mode = 'translated';
+    if ($lang === 'de') {
+        $mode = 'native';
+    } elseif (!is_file($file)) {
+        $mode = 'fallback';
+        $file = $base . 'de/' . $doc . '.php';
+    }
+
+    vr_doc_start($titleKey, $updated, $mode);
+    extract($vars, EXTR_SKIP);
+    include $file;
+    vr_doc_end();
+}
+
+/** Sayfa başlangıcı. $mode: native | translated | fallback (bkz. üst yorum). */
+function vr_doc_start(string $titleKey, string $updated = '2026-08-01', string $mode = 'native'): void
 {
     vr_layout_start([
         'title'  => t($titleKey),
@@ -27,21 +65,25 @@ function vr_doc_start(string $titleKey, string $updated = '2026-08-01'): void
         ])],
     ]);
 
-    echo '<section class="sec sec--tight"><div class="wrap"><div class="doc">';
+    // Fallback'te gövde Almanca: lang="de" ekran okuyucuya ve çevirmen
+    // eklentilerine doğru dili söyler.
+    $langAttr = $mode === 'fallback' ? ' lang="de"' : '';
+
+    echo '<section class="sec sec--tight"><div class="wrap"><div class="doc"' . $langAttr . '>';
     vr_breadcrumbs([t('footer_legal') => null, t($titleKey) => null]);
 
     echo '<h1>' . te($titleKey) . '</h1>';
     echo '<p class="doc__meta">' . te('legal_last_update', ['date' => $updated]) . ' · '
        . h((string)(vr_config('company')['legal_name'] ?? '')) . '</p>';
 
-    if (vr_lang() !== 'de') {
-        echo '<div class="notice"><strong>Rechtlich verbindlich ist die deutsche Fassung.</strong> '
-           . 'This page is kept in German because German consumer law governs these terms.</div>';
+    if ($mode === 'fallback') {
+        echo '<div class="notice" lang="' . h(vr_locale()) . '">' . te('legal_de_only') . '</div>';
+    } elseif ($mode === 'translated') {
+        echo '<p class="doc__binding">' . te('legal_de_note') . '</p>';
     }
 
     if (!vr_company_complete()) {
-        echo '<div class="notice" style="border-left-color:var(--ember)"><strong>'
-           . te('legal_incomplete') . '</strong></div>';
+        echo '<div class="notice notice--demo"><strong>' . te('legal_incomplete') . '</strong></div>';
     }
 }
 
@@ -63,8 +105,8 @@ function vr_doc_end(): void
         'legal/barrierefreiheit.php' => t('legal_accessibility'),
     ];
 
-    echo '<hr class="rule" style="margin:40px 0 22px">';
-    echo '<p style="font-size:12.5px;color:var(--muted);line-height:2">';
+    echo '<hr class="rule doc__rule">';
+    echo '<p class="doc__related">';
     $out = [];
     foreach ($links as $path => $label) {
         $out[] = '<a href="' . h(vr_url($path)) . '">' . h($label) . '</a>';
@@ -76,13 +118,17 @@ function vr_doc_end(): void
     vr_layout_end();
 }
 
-/** İşletmeci bloğu — Impressum ve AGB'de aynı veriden basılır. */
+/**
+ * İşletmeci bloğu — Impressum, AGB ve Datenschutz'ta aynı veriden basılır.
+ * Etiketler sözlükten gelir; değerler her dilde aynıdır (adres adrestir).
+ * Boş alan, operatörün görmesi gereken bir yer tutucuyla işaretlenir.
+ */
 function vr_company_block(): void
 {
     $c = vr_config('company');
     $f = static fn(string $k): string => trim((string)($c[$k] ?? ''));
     $ph = static fn(string $hint): string =>
-        '<em style="color:var(--ember)">[' . h($hint) . ']</em>';
+        '<em class="doc__missing">[' . h($hint) . ']</em>';
 
     echo '<p>';
     echo '<strong>' . h($f('legal_name')) . '</strong>';
@@ -96,25 +142,21 @@ function vr_company_block(): void
     echo '</p>';
 
     echo '<p>';
-    echo 'Vertreten durch: ' . ($f('represented_by') !== '' ? h($f('represented_by')) : $ph('vertretungsberechtigte Person'));
-    echo '<br>E-Mail: ' . ($f('email') !== ''
+    echo te('imp_represented_by') . ': ' . ($f('represented_by') !== '' ? h($f('represented_by')) : $ph('vertretungsberechtigte Person'));
+    echo '<br>' . te('imp_email') . ': ' . ($f('email') !== ''
         ? '<a href="mailto:' . h($f('email')) . '">' . h($f('email')) . '</a>'
         : $ph('E-Mail-Adresse'));
-    if ($f('phone') !== '') echo '<br>Telefon: ' . h($f('phone'));
-    echo '<br>Website: <a href="' . h(vr_origin()) . '">' . h(vr_origin()) . '</a>';
+    if ($f('phone') !== '') echo '<br>' . te('imp_phone') . ': ' . h($f('phone'));
+    echo '<br>' . te('imp_website') . ': <a href="' . h(vr_origin()) . '">' . h(vr_origin()) . '</a>';
     echo '</p>';
 
     echo '<p>';
-    echo 'Registerbehörde: ' . ($f('reg_authority') !== '' ? h($f('reg_authority')) : $ph('Registerbehörde'));
-    echo '<br>Registernummer: ' . ($f('reg_number') !== '' ? h($f('reg_number')) : $ph('Register-/Filing-Nummer'));
-    if ($f('vat_id') !== '') {
-        echo '<br>Umsatzsteuer-Identifikationsnummer: ' . h($f('vat_id'));
-    } else {
-        echo '<br>Umsatzsteuer-Identifikationsnummer: ' . $ph('USt-IdNr., falls vorhanden');
-    }
+    echo te('imp_reg_authority') . ': ' . ($f('reg_authority') !== '' ? h($f('reg_authority')) : $ph('Registerbehörde'));
+    echo '<br>' . te('imp_reg_number') . ': ' . ($f('reg_number') !== '' ? h($f('reg_number')) : $ph('Register-/Filing-Nummer'));
+    echo '<br>' . te('imp_vat_id') . ': ' . ($f('vat_id') !== '' ? h($f('vat_id')) : $ph('USt-IdNr., falls vorhanden'));
     echo '</p>';
 
     if ($f('eu_rep') !== '') {
-        echo '<p>Vertreter in der EU (Art. 27 DSGVO): ' . h($f('eu_rep')) . '</p>';
+        echo '<p>' . te('imp_eu_rep') . ': ' . h($f('eu_rep')) . '</p>';
     }
 }

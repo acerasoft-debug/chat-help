@@ -195,8 +195,8 @@ vr_layout_start(['title' => t('cart_title'), 'robots' => 'noindex,nofollow']);
             <label for="country"><?= te('checkout_country') ?></label>
             <select class="select" id="country" name="country" style="width:100%" data-autosubmit>
               <option value=""><?= te('shipping_at_checkout') ?></option>
-              <?php foreach ($allowed as $c): ?>
-                <option value="<?= h($c) ?>" <?= $country === $c ? 'selected' : '' ?>><?= h($c) ?></option>
+              <?php foreach (vr_country_options($allowed) as $c => $name): ?>
+                <option value="<?= h($c) ?>" <?= $country === $c ? 'selected' : '' ?>><?= h($name) ?></option>
               <?php endforeach; ?>
             </select>
             <noscript><button class="btn btn--ghost btn--sm" type="submit"><span><?= te('apply') ?></span></button></noscript>

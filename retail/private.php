@@ -144,8 +144,8 @@ vr_layout_start([
               <label for="pc-country"><?= te('private_country') ?></label>
               <select id="pc-country" name="country">
                 <option value="">—</option>
-                <?php foreach (vr_shipping_countries() as $cc): ?>
-                  <option value="<?= h($cc) ?>"<?= strtoupper($in['country']) === $cc ? ' selected' : '' ?>><?= h($cc) ?></option>
+                <?php foreach (vr_country_options(vr_shipping_countries()) as $cc => $name): ?>
+                  <option value="<?= h($cc) ?>"<?= strtoupper($in['country']) === $cc ? ' selected' : '' ?>><?= h($name) ?></option>
                 <?php endforeach; ?>
               </select>
             </div>

@@ -577,4 +577,14 @@ return [
     // Renk cesitleri - bkz. vr_variant_index().
     'select_colour' => 'Farbe · {n} verfügbar',
     'n_colours' => '{n} Farben',
+    // ---- Hukuki sayfalar: çeviri notu + Impressum etiketleri
+    'legal_de_only' => 'Diese Seite ist derzeit nur auf Deutsch verfügbar.',
+    'imp_represented_by' => 'Vertreten durch',
+    'imp_email' => 'E-Mail',
+    'imp_phone' => 'Telefon',
+    'imp_website' => 'Website',
+    'imp_reg_authority' => 'Registerbehörde',
+    'imp_reg_number' => 'Registernummer',
+    'imp_vat_id' => 'Umsatzsteuer-Identifikationsnummer',
+    'imp_eu_rep' => 'Vertreter in der EU (Art. 27 DSGVO)',
 ];
