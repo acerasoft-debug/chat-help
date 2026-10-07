@@ -1,0 +1,205 @@
+name: (Müşteri) Ödeme takip e-postası — Monika (Brevo · support@vestrasales.com)
+
+# Bekleyen havale siparişlerine "ödeme gelmedi, devam mı iptal mi, ne zaman"
+# diye kibarca soran kişisel takip e-postası. Gönderim YALNIZCA sunucudaki
+# vestra_send_mail() üzerinden: Brevo, gönderen support@vestrasales.com
+# (operatör kuralı, 11 Eyl 2026 — acerasoft@gmail.com'dan müşteriye mail gitmez).
+# Görünüm Vestra'nın kendi şablonu: rozet + sipariş satırları + imza.
+#
+# REPO HERKESE AÇIK: müşteri adı/e-postası bu dosyada YOK. Alıcı ve hitap,
+# gönderim anında sunucudaki data/orders.csv kaydından sipariş numarasıyla
+# okunur; log'a e-posta maskeli yazılır.
+#
+# Güvenlik: gönderim anında order_statuses.json'daki durum beklenen değil
+# (ör. bu arada "paid" olmuş) ya da kayıtta dekont izi varsa o sipariş ATLANIR.
+#
+# mode=preview (varsayılan, ve bu dala push'ta HER ZAMAN): altı e-postanın
+# hepsi yalnızca acerasoft@gmail.com'a gider, konu satırında asıl alıcı yazar.
+# mode=send: gerçek müşterilere gider.
+on:
+  push:
+    branches: [claude/gifted-volta-2e3icd]
+    paths: ['.github/workflows/send-payment-followup.yml']
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "preview = hepsi SADECE acerasoft@gmail.com'a (müşteriye gitmez) | send = gerçek müşterilere"
+        required: true
+        default: "preview"
+      only:
+        description: "Sadece bu sipariş(ler) (virgül/boşlukla). Boşsa listedeki hepsi."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: send-payment-followup
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gönder (ya da önizle)
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          MODE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode || 'preview' }}
+          ONLY: ${{ github.event.inputs.only }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: MODE,ONLY
+          command_timeout: 5m
+          script: |
+            set -u
+            # Paralel koşular birbirinin geçici dosyasını ezmesin.
+            T=$(mktemp -d)
+            cat > "$T/followup.php" <<'PHPEOF'
+            <?php
+            declare(strict_types=1);
+            $home = (string)getenv('HOME');
+            require $home.'/public_html/inc/notify.php';
+
+            $mode = (($argv[1] ?? '') === 'send') ? 'send' : 'preview';
+            $only = [];
+            foreach (preg_split('/[\s,]+/', strtoupper((string)($argv[2] ?? ''))) ?: [] as $r) {
+                if ($r !== '') $only[$r] = true;
+            }
+            $PREVIEW_TO = 'acerasoft@gmail.com';
+            $DATA = $home.'/public_html/data';
+            $SIGN = "Monika\nVESTRA – vestrasales.com";
+
+            function mask_mail(string $m): string { return (string)preg_replace('/^(.).*(@.*)$/', '$1***$2', $m); }
+
+            /** Siparişin orders.csv satırı (aynı ref birden çok kez varsa sonuncusu). */
+            function order_row(string $csv, string $ref): ?array {
+                $fh = @fopen($csv, 'r');
+                if (!$fh) return null;
+                $hit = null;
+                while (($r = fgetcsv($fh, 0, ',', '"', '\\')) !== false) {
+                    if (isset($r[1]) && strcasecmp(trim((string)$r[1]), $ref) === 0) $hit = $r;
+                }
+                fclose($fh);
+                return $hit;
+            }
+
+            /* Dil başına sabit parçalar. Fransızca noktalamada (? : ; !) önce
+               bölünmez boşluk — tipografi kuralı, e-postada satır başına
+               yalnız bir "?" düşmesin. */
+            $L = [
+                'fr' => ['greet'=>'Bonjour %s,', 'greet0'=>'Bonjour,', 'order'=>'Commande', 'items'=>'Articles',
+                         'pending'=>'Paiement en attente', 'cancelled'=>'Commande annulée', 'status'=>'Statut',
+                         'bye'=>'Bien cordialement,'],
+                'it' => ['greet'=>'Gentile %s,', 'greet0'=>'Buongiorno,', 'order'=>'Ordine', 'items'=>'Articoli',
+                         'pending'=>'Pagamento in attesa', 'bye'=>'Cordiali saluti,'],
+                'en' => ['greet'=>'Dear %s,', 'greet0'=>'Dear Customer,', 'order'=>'Order ref', 'items'=>'Items',
+                         'pending'=>'Payment pending', 'bye'=>'Kind regards,'],
+            ];
+
+            $MSGS = [
+                ['ref'=>'VES-3D2342FC', 'lang'=>'fr', 'expect'=>'pending',
+                 'subject'=>'Votre commande VESTRA VES-3D2342FC',
+                 'items'=>'160 × Ralph Lauren Custom Slim Fit Polo',
+                 'paras'=>[
+                    "J'espère que vous allez bien. Je me permets de revenir vers vous au sujet de votre commande VES-3D2342FC (160 polos Ralph Lauren Custom Slim Fit). Nous n'avons pas encore reçu votre virement.",
+                    "Pourriez-vous nous indiquer si vous souhaitez maintenir la commande ? Si oui, à quelle date pouvons-nous attendre le paiement ? Si vous préférez l'annuler, aucun problème : dites-le-nous simplement et nous nous en occupons.",
+                    "Je reste à votre disposition pour toute question concernant la facture ou le paiement.",
+                 ]],
+                ['ref'=>'O31910', 'lang'=>'fr', 'expect'=>'pending',
+                 'subject'=>'Votre commande VESTRA O31910 — paiement',
+                 'items'=>'70 × Lacoste Fleece Hoodie',
+                 'paras'=>[
+                    "J'espère que vous allez bien. Je reviens vers vous au sujet de votre commande O31910 (70 sweats à capuche Lacoste Fleece). Nous n'avons malheureusement pas encore reçu le paiement.",
+                    "Pourriez-vous nous confirmer si vous allez effectuer le virement, et à quelle date nous pouvons l'attendre ? Si quelque chose bloque, ou si vous avez une question sur la facture, n'hésitez pas à me le dire, je serai ravie de vous aider.",
+                 ]],
+                ['ref'=>'VES-3507BF86', 'lang'=>'fr', 'expect'=>'pending',
+                 'subject'=>'Votre commande VESTRA VES-3507BF86 — paiement',
+                 'items'=>'Assortiment de 71 pièces',
+                 'paras'=>[
+                    "J'espère que vous allez bien. Je reviens vers vous au sujet de votre commande VES-3507BF86 (assortiment de 71 pièces). Nous n'avons pas encore reçu le paiement.",
+                    "Pourriez-vous nous indiquer si vous comptez effectuer le virement, et à quelle date nous pouvons l'attendre ? Si vous préférez annuler la commande, dites-le-nous simplement et nous nous en occupons.",
+                    "Je reste à votre disposition pour toute question.",
+                 ]],
+                ['ref'=>'VES-60594A18', 'lang'=>'fr', 'expect'=>'cancelled',
+                 'subject'=>'Votre commande VESTRA VES-60594A18',
+                 'items'=>'10 × Tennis Club Icon, blanc',
+                 'status_row'=>'Annulée le 30/09/2026',
+                 'paras'=>[
+                    "J'espère que vous allez bien. Votre commande VES-60594A18 (10 pièces Tennis Club Icon, blanc) a été annulée automatiquement le 30/09, car nous n'avions pas reçu le paiement.",
+                    "Êtes-vous toujours intéressé par ces articles ? Si oui, merci de nous indiquer quand vous pourriez effectuer le virement, et nous verrons avec plaisir comment reprendre la commande.",
+                 ]],
+                ['ref'=>'VES-8E46FFA2', 'lang'=>'it', 'expect'=>'pending',
+                 'subject'=>'Il suo ordine VESTRA VES-8E46FFA2 — pagamento',
+                 'items'=>'50 × Lacoste Fleece Crew Neck Sweatshirt',
+                 'paras'=>[
+                    "Spero che stia bene. La contatto in merito al suo ordine VES-8E46FFA2 (50 felpe girocollo Lacoste Fleece). Purtroppo non abbiamo ancora ricevuto il pagamento.",
+                    "Potrebbe gentilmente farci sapere se intende ancora effettuare il bonifico e quando possiamo aspettarlo? Se invece preferisce annullare l'ordine, ce lo dica pure e ce ne occupiamo noi.",
+                    "Se desidera la fattura, ce lo faccia sapere: saremo lieti di inviargliela.",
+                    "Resto a disposizione per qualsiasi domanda.",
+                 ]],
+                ['ref'=>'VES-E29B7A24', 'lang'=>'en', 'expect'=>'pending',
+                 'subject'=>'Your VESTRA order VES-E29B7A24 — payment',
+                 'items'=>'80 × Ralph Lauren Custom Slim Fit Polo',
+                 'paras'=>[
+                    "I hope you are well. I'm following up on your order VES-E29B7A24 (80 × Ralph Lauren Custom Slim Fit Polo Shirts). Unfortunately, we haven't received the payment yet.",
+                    "Could you kindly let us know whether you will still be making the bank transfer, and when we may expect it? If you would prefer to cancel the order, just let us know and we'll take care of it.",
+                    "If you would like an invoice, just let us know and we will be happy to send it to you.",
+                 ]],
+            ];
+
+            $statuses = json_decode((string)@file_get_contents($DATA.'/order_statuses.json'), true);
+            if (!is_array($statuses)) { echo "HATA: order_statuses.json okunamadi\n"; exit(1); }
+
+            echo "mod: {$mode}\n\n";
+            $sent = 0; $skipped = 0; $failed = 0;
+            foreach ($MSGS as $m) {
+                $ref = $m['ref'];
+                if ($only && !isset($only[strtoupper($ref)])) continue;
+                $T = $L[$m['lang']];
+
+                $row = order_row($DATA.'/orders.csv', $ref);
+                $email = trim((string)($row[5] ?? ''));
+                if (!$row || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    echo "  ATLANDI {$ref}: orders.csv'de kayit/e-posta yok\n"; $failed++; continue;
+                }
+
+                $st = $statuses[$ref] ?? null;
+                $status = is_array($st) ? (string)($st['status'] ?? '') : '';
+                if ($status !== $m['expect']) {
+                    echo "  ATLANDI {$ref}: durum '{$status}' (beklenen '{$m['expect']}')\n"; $skipped++; continue;
+                }
+                if (is_array($st) && stripos((string)json_encode($st), 'receipt') !== false) {
+                    echo "  ATLANDI {$ref}: kayitta dekont izi var, once incele\n"; $skipped++; continue;
+                }
+
+                $name = trim((string)($row[4] ?? ''));
+                $name = $name !== '' ? mb_convert_case($name, MB_CASE_TITLE, 'UTF-8') : '';
+                $greet = $name !== '' ? sprintf($T['greet'], $name) : $T['greet0'];
+
+                $body = $greet."\n\n".implode("\n\n", $m['paras'])."\n\n".$T['bye']."\n\n".$SIGN;
+                if ($m['lang'] === 'fr') $body = (string)preg_replace('/ ([?:;!])/u', "\u{00A0}$1", $body);
+
+                $rows = [['label'=>$T['order'], 'value'=>$ref], ['label'=>$T['items'], 'value'=>$m['items']]];
+                if (isset($m['status_row'])) $rows[] = ['label'=>$T['status'], 'value'=>$m['status_row']];
+                $badge = $m['expect'] === 'cancelled' ? $T['cancelled'] : $T['pending'];
+                $opts = ['badge'=>$badge, 'rows'=>$rows];
+
+                if ($mode === 'send') { $to = $email; $subject = $m['subject']; }
+                else                  { $to = $PREVIEW_TO; $subject = "[ÖNİZLEME → {$email}] ".$m['subject']; }
+
+                $ok = vestra_send_mail($to, $subject, $body, '', '', null, '', $opts);
+                $who = $mode === 'send' ? mask_mail($email) : "{$PREVIEW_TO} (asil alici ".mask_mail($email).")";
+                echo ($ok ? "  GONDERILDI" : "  HATA     ")." {$ref} -> {$who}\n";
+                $ok ? $sent++ : $failed++;
+            }
+            echo "\ngonderilen: {$sent} · atlanan: {$skipped} · hata: {$failed}\n";
+            exit($failed > 0 ? 1 : 0);
+            PHPEOF
+            php -l "$T/followup.php" >/dev/null || { echo "sozdizimi hatasi"; rm -rf "$T"; exit 1; }
+            php "$T/followup.php" "$MODE" "$ONLY"; RC=$?
+            rm -rf "$T"
+            exit $RC
