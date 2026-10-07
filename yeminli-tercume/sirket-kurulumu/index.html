@@ -18,6 +18,7 @@
 </head>
 <body>
 
+<a class="skip-link" href="#main" data-i18n="a11y.skip">İçeriğe atla</a>
 <header class="site-header" id="top">
   <div class="frame header-inner">
     <a class="brand" href="../" aria-label="Mühür Tercüme">
@@ -34,6 +35,7 @@
       <a href="#why" data-i18n="corp.nav.why">Neden Biz</a>
       <a href="#faq" data-i18n="nav.faq">SSS</a>
       <a href="../" data-i18n="corp.nav.back">Yeminli Tercüme</a>
+      <a href="../vize-oturum/" data-i18n="nav.visa">Vize &amp; Oturum</a>
       <a class="nav-cta" href="https://wa.me/905320000000" rel="noopener" data-i18n="corp.nav.cta">Ön Görüşme</a>
     </nav>
     <div class="header-tools">
@@ -52,7 +54,7 @@
   </div>
 </header>
 
-<main>
+<main id="main">
 
   <!-- ═══════════ HERO ═══════════ -->
   <section class="hero">
@@ -75,8 +77,8 @@
           <circle cx="150" cy="150" r="140" class="seal-outer"/>
           <circle cx="150" cy="150" r="132" class="seal-outer thin"/>
           <g class="seal-spin">
-            <text class="seal-ringtext">
-              <textPath href="#sealRingCorp" startOffset="0">ŞİRKET KURULUMU · UZAKTAN · DÖRT ÜLKE · MÜHÜR KURUMSAL ·&#160;</textPath>
+            <text class="seal-ringtext" textLength="678" lengthAdjust="spacing">
+              <textPath href="#sealRingCorp" startOffset="0">ŞİRKET KURULUMU · UZAKTAN · DÖRT ÜLKE · MÜHÜR ·&#160;</textPath>
             </text>
           </g>
           <circle cx="150" cy="150" r="86" class="seal-outer thin"/>
@@ -88,10 +90,10 @@
     </div>
     <div class="frame">
       <dl class="stats">
-        <div><dt>4</dt><dd data-i18n="stat.countries">Ülke</dd></div>
+        <div><dt><span data-count="4">4</span></dt><dd data-i18n="stat.countries">Ülke</dd></div>
         <div><dt data-i18n="stat.validNum">%100</dt><dd data-i18n="corp.stat.remote">Uzaktan kurulum</dd></div>
         <div><dt data-i18n="corp.stat.timeNum">1–4 hf</dt><dd data-i18n="corp.stat.time">Kuruluş süresi</dd></div>
-        <div><dt>6</dt><dd data-i18n="stat.langs">Dil</dd></div>
+        <div><dt><span data-count="6">6</span></dt><dd data-i18n="stat.langs">Dil</dd></div>
       </dl>
     </div>
   </section>
@@ -238,18 +240,45 @@
 </main>
 
 <footer class="site-footer">
-  <div class="frame footer-inner">
-    <svg class="brand-seal footer-seal" viewBox="0 0 48 48" aria-hidden="true">
-      <circle cx="24" cy="24" r="22" fill="none" stroke="currentColor" stroke-width="2"/>
-      <circle cx="24" cy="24" r="17" fill="none" stroke="currentColor" stroke-width="1"/>
-      <text x="24" y="31" text-anchor="middle" class="brand-seal-m">M</text>
-    </svg>
-    <p class="footer-brand">MÜHÜR</p>
-    <p class="footer-tag" data-i18n="footer.tag">Türkiye'de ve yurt dışında yaşayanlar için noter onaylı yeminli tercüme.</p>
-    <p class="footer-rights" data-i18n="footer.rights">© 2026 Mühür Tercüme. Tüm hakları saklıdır.</p>
+  <div class="frame">
+    <div class="footer-grid">
+      <div class="footer-brandcol">
+        <svg class="brand-seal footer-seal" viewBox="0 0 48 48" aria-hidden="true">
+          <circle cx="24" cy="24" r="22" fill="none" stroke="currentColor" stroke-width="2"/>
+          <circle cx="24" cy="24" r="17" fill="none" stroke="currentColor" stroke-width="1"/>
+          <text x="24" y="31" text-anchor="middle" class="brand-seal-m">M</text>
+        </svg>
+        <p class="footer-brand">MÜHÜR</p>
+        <p class="footer-tag" data-i18n="footer.tag">Türkiye'de ve yurt dışında yaşayanlar için noter onaylı yeminli tercüme.</p>
+      </div>
+      <div class="footer-col">
+        <h4 data-i18n="footer.services">Hizmet Hatları</h4>
+        <ul>
+          <li><a href="../" data-i18n="corp.nav.back">Yeminli Tercüme</a></li>
+          <li><a href="../sirket-kurulumu/" data-i18n="nav.corp">Şirket Kurulumu</a></li>
+          <li><a href="../vize-oturum/" data-i18n="nav.visa">Vize &amp; Oturum</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4 data-i18n="contact.eyebrow">İletişim</h4>
+        <ul>
+          <li><a href="https://wa.me/905320000000" rel="noopener">WhatsApp · +90 532 000 00 00</a></li>
+          <li><a href="mailto:info@muhurtercume.com">info@muhurtercume.com</a></li>
+          <li><a href="../gizlilik/" data-i18n="footer.legal">Gizlilik &amp; Künye</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span data-i18n="footer.rights">© 2026 Mühür Tercüme. Tüm hakları saklıdır.</span>
+      <span>İstanbul · Berlin · Paris · London</span>
+    </div>
   </div>
 </footer>
 
+<a class="wa-float" href="https://wa.me/905320000000" rel="noopener" aria-label="WhatsApp">
+  <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 1.8a8.2 8.2 0 1 1-4.2 15.3l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 0 1 12 3.8zm-3 4.4c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.2 5 4.4 2.5 1 3 .8 3.5.7.5 0 1.7-.7 2-1.4.2-.7.2-1.3.1-1.4l-.5-.3-2-1c-.3-.1-.5-.1-.7.1l-.9 1.1c-.2.2-.3.2-.6.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4 0-.5.2-.8l.6-.8c.1-.2 0-.4 0-.6L11.3 9c-.2-.5-.4-.5-.6-.5h-.6z"/></svg>
+  <span data-i18n="hero.cta2">WhatsApp'tan Yazın</span>
+</a>
 <script src="../assets/js/i18n.js"></script>
 <script src="../assets/js/main.js"></script>
 </body>

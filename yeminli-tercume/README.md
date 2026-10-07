@@ -21,6 +21,9 @@ noter onaylı yeminli tercüme hizmeti sunan premium tanıtım sitesi.
 ```
 index.html                  Ana sayfa (yeminli tercüme)
 sirket-kurulumu/index.html  Şirket kurulumu sayfası (DE, UK, FR, ABD)
+vize-oturum/index.html      Vize, oturum, vatandaşlık ve şirket işlemleri
+                            (Türkiye'deki yabancılar + Avrupa'daki Türkler)
+gizlilik/index.html         Gizlilik politikası ve künye (KVKK/GDPR)
 404.html                    Bulunamadı sayfası (GitHub Pages otomatik kullanır)
 robots.txt                  Arama motoru izinleri
 assets/css/style.css        Tasarım (renk/tipografi token'ları en üstte)
@@ -30,8 +33,8 @@ assets/favicon.svg          Sekme simgesi (mühür)
 assets/og.png               Sosyal medya paylaşım görseli (1200×630)
 ```
 
-> **Alan adı aldığınızda:** `index.html` ve `sirket-kurulumu/index.html`
-> içindeki `og:image` adreslerini tam URL yapın
+> **Alan adı aldığınızda:** `index.html`, `sirket-kurulumu/index.html` ve
+> `vize-oturum/index.html` içindeki `og:image` adreslerini tam URL yapın
 > (`https://alanadiniz.com/assets/og.png`) — WhatsApp/Facebook paylaşım
 > önizlemeleri ancak tam adresle çalışır.
 
@@ -39,8 +42,9 @@ assets/og.png               Sosyal medya paylaşım görseli (1200×630)
 
 | Yer tutucu | Nerede | Ne yazılmalı |
 |---|---|---|
-| `+90 532 000 00 00` / `wa.me/905320000000` | `index.html` (2 yerde) | Gerçek WhatsApp numaranız |
-| `info@muhurtercume.com` | `index.html` ve `assets/js/main.js` | Gerçek e-posta adresiniz |
+| `+90 532 000 00 00` / `wa.me/905320000000` | tüm sayfalar (`grep -r 905320000000 .`) | Gerçek WhatsApp numaranız |
+| `info@muhurtercume.com` | tüm sayfalar ve `assets/js/main.js` | Gerçek e-posta adresiniz |
+| `[Mühür Tercüme — ticari unvan]`, `[Adres satırı…]`, `[Vergi dairesi / numarası]` | `gizlilik/index.html` | Künye: unvan, adres, vergi bilgisi (yasal zorunluluk) |
 | `MÜHÜR` marka adı | `index.html`, `assets/js/i18n.js` | Kendi marka adınız (isterseniz) |
 | `EST. 2026` | `index.html` (mühür görseli) | Kuruluş yılınız |
 

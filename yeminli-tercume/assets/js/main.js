@@ -48,9 +48,18 @@
     try { localStorage.setItem("muhur-lang", lang); } catch (e) { /* ignore */ }
   }
 
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   document.querySelectorAll(".lang-switch button").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      applyLang(btn.getAttribute("data-lang"));
+      var lang = btn.getAttribute("data-lang");
+      if (reduceMotion) { applyLang(lang); return; }
+      /* soft crossfade: dim, swap strings, lift */
+      document.documentElement.classList.add("lang-fading");
+      setTimeout(function () {
+        applyLang(lang);
+        document.documentElement.classList.remove("lang-fading");
+      }, 160);
     });
   });
 
@@ -218,6 +227,37 @@
         "?subject=" + encodeURIComponent(subject) +
         "&body=" + encodeURIComponent(body);
     });
+  }
+
+  /* header condenses once the page has scrolled */
+  var header = document.querySelector(".site-header");
+  if (header) {
+    var onScroll = function () { header.classList.toggle("is-scrolled", window.scrollY > 8); };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+  }
+
+  /* stat numbers count up the first time they scroll into view */
+  var counters = document.querySelectorAll("[data-count]");
+  if (counters.length && !reduceMotion && "IntersectionObserver" in window) {
+    var cio = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        cio.unobserve(entry.target);
+        var el = entry.target;
+        var target = parseInt(el.getAttribute("data-count"), 10) || 0;
+        var start = null, dur = 1100;
+        var step = function (ts) {
+          if (start === null) start = ts;
+          var t = Math.min(1, (ts - start) / dur);
+          var eased = 1 - Math.pow(1 - t, 3);
+          el.textContent = String(Math.round(target * eased));
+          if (t < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      });
+    }, { threshold: .6 });
+    counters.forEach(function (el) { cio.observe(el); });
   }
 
   applyLang(detectLang());
