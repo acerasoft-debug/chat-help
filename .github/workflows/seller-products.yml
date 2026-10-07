@@ -2278,6 +2278,177 @@ jobs:
             rm -f /tmp/vestra_orddel.php
             exit $rc
 
+      - name: Silinmiş siparişi ve faturasını geri getir (order_restore) — varsayılan KURU KOŞU
+        # Operator, 7 Eki 2026 (Ash Vintage, VES-8D231E8D): "musterinin faturasini
+        # ve siparisini hesabina getir". Siparis panelden silinmisti (faturali
+        # silme force=1: fatura data/invoices/deleted/ altina TASINDI, satir
+        # orders.csv.bak-del-<zaman> yedeginde). Geri getirme yolu YOKTU.
+        # Satir UYDURULMAZ: yalniz yedekte birebir duruyorsa, BUGUNKU basliga
+        # gore yazilir. Fatura dosyalari arsivden ayni adla geri tasinir (numara
+        # degismez). vestra_order_delete() order_statuses[ref]'i YEDEKSIZ
+        # sildigi icin durum yalniz bir yedekte varsa oradan, yoksa payload
+        # spec'iyle yazilir: 'status=paid|paid_at=2026-10-01|invoice_seller_uid=..'.
+        # Musteriye hicbir sey gonderilmez.
+        if: ${{ github.event.inputs.admin_mode == 'order_restore' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          ORS_REF:   ${{ github.event.inputs.issue_ref }}
+          ORS_SPEC:  ${{ github.event.inputs.payload }}
+          ORS_APPLY: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: ORS_REF,ORS_SPEC,ORS_APPLY
+          script: |
+            set -e
+            cat > /tmp/vestra_ordrst.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/invoice.php";
+
+            $ref   = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('ORS_REF'));
+            $spec  = trim((string)getenv('ORS_SPEC'));
+            $apply = strtolower(trim((string)getenv('ORS_APPLY'))) === 'true';
+            if ($ref === '') { fwrite(STDERR, "ref yok (issue_ref)\n"); exit(1); }
+            $dir = vestra_data_dir();
+
+            /* 0. Bugun kayitta mi? Duruyorsa geri getirilecek bir sey yok. */
+            foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) {
+              fwrite(STDERR, "{$ref} orders.csv'de ZATEN VAR -- geri yukleme gerekmiyor.\n"); exit(1);
+            }
+
+            /* 1. Satirin yedegi: en YENI orders.csv.bak-* icinde ref'i tasiyan dosya.
+                  Basligiyla birlikte okunur; satir mevcut dosyanin KENDI basligina gore
+                  kurulur (sutun sirasi yedekten degil). */
+            $baks = glob($dir.'/orders.csv.bak*') ?: [];
+            usort($baks, fn($a,$b) => filemtime($b) <=> filemtime($a));
+            $src = null; $row = null;
+            foreach ($baks as $bf) {
+              $h = @fopen($bf, 'r'); if (!$h) continue;
+              $head = fgetcsv($h, null, ',', '"', '\\');
+              $ri = $head ? array_search('ref', $head, true) : false;
+              if ($ri === false) { fclose($h); continue; }
+              while (($r = fgetcsv($h, null, ',', '"', '\\')) !== false) {
+                if ((string)($r[$ri] ?? '') === $ref) { $row = array_combine($head, array_pad(array_slice($r, 0, count($head)), count($head), '')); break; }
+              }
+              fclose($h);
+              if ($row) { $src = $bf; break; }
+            }
+            printf("yedek dosyalari: %d | satiri tasiyan en yeni: %s\n", count($baks), $src ? basename($src).' ('.date('Y-m-d H:i', filemtime($src)).')' : 'YOK');
+            if (!$row) { fwrite(STDERR, "*** {$ref} hicbir orders.csv yedeginde yok -- satir UYDURULMAZ.\n"); exit(1); }
+            /* Kisiye ait alanlar basilmaz (kutuk herkese acik). */
+            printf("satir   : %s | %s | %s | ulke %s | mal %s + kargo %s = toplam %s\n",
+              $row['ref'] ?? '', substr((string)($row['date'] ?? $row['created'] ?? ''), 0, 16),
+              (string)($row['company'] ?? ''), (string)($row['country'] ?? ''),
+              (string)($row['subtotal'] ?? '?'), (string)($row['shipping'] ?? '0'), (string)($row['total'] ?? '?'));
+            printf("kalemler: %s\n", mb_substr((string)($row['items'] ?? ''), 0, 160));
+
+            /* 2. Arsivlenmis fatura dosyalari: invoices/deleted/<zaman>-<slug>.* (slug ref'le baslar). */
+            $idir = vestra_invoice_dir();
+            $arch = [];
+            foreach (glob($idir.'/deleted/*') ?: [] as $f) {
+              $b = basename($f);
+              if (!preg_match('/^(\d{8}_\d{6})-(.+)$/', $b, $m)) continue;
+              $orig = $m[2];
+              if (!str_starts_with($orig, $ref.'__')) continue;
+              $arch[$m[1]][] = ['from' => $f, 'to' => $idir.'/'.$orig, 'name' => $orig];
+            }
+            krsort($arch);
+            $invMove = $arch ? reset($arch) : [];
+            $invStamp = $arch ? array_key_first($arch) : '';
+            printf("arsivde fatura: %s\n", $invMove ? count($invMove).' dosya (arsiv '.$invStamp.'): '.implode(', ', array_column($invMove, 'name')) : 'YOK');
+            $invNo = '';
+            foreach ($invMove as $mv) if (str_ends_with($mv['name'], '.json')) {
+              $mj = json_decode((string)@file_get_contents($mv['from']), true);
+              if (is_array($mj)) { $invNo = (string)($mj['no'] ?? ''); printf("fatura  : %s | %s %s\n", $invNo, (string)($mj['currency'] ?? ''), (string)($mj['total'] ?? '?')); }
+            }
+            foreach ($invMove as $mv) if (is_file($mv['to'])) { fwrite(STDERR, "*** hedefte zaten dosya var: {$mv['name']} -- ezilmez.\n"); exit(1); }
+            $now = vestra_invoices_for_ref($ref);
+            if ($now) { fwrite(STDERR, "*** ref icin bugun kesilmis fatura var -- geri yukleme durdu.\n"); exit(1); }
+
+            /* 3. Durum kaydi: vestra_order_delete() order_statuses[ref]'i YEDEKSIZ siliyor.
+                  Yedekli bir kopyada varsa oradan; yoksa YALNIZ spec'le verilen alanlar yazilir. */
+            $stBack = null; $stSrc = '';
+            $sbaks = glob($dir.'/order_statuses.json*') ?: [];
+            usort($sbaks, fn($a,$b) => filemtime($b) <=> filemtime($a));
+            foreach ($sbaks as $sf) {
+              if (basename($sf) === 'order_statuses.json') continue;
+              $j = json_decode((string)@file_get_contents($sf), true);
+              if (is_array($j) && isset($j[$ref]) && is_array($j[$ref])) { $stBack = $j[$ref]; $stSrc = basename($sf); break; }
+            }
+            printf("durum yedegi: %s\n", $stBack ? $stSrc.' (status='.(string)($stBack['status'] ?? '?').')' : 'YOK ('.count($sbaks).' order_statuses dosyasi tarandi)');
+            $want = [];
+            foreach (array_filter(array_map('trim', explode('|', $spec))) as $kv) {
+              [$k, $v] = array_pad(explode('=', $kv, 2), 2, '');
+              $k = trim($k); $v = trim($v);
+              if (!in_array($k, ['status', 'paid_at', 'invoice_seller_uid'], true)) { fwrite(STDERR, "taninmayan spec anahtari: {$k}\n"); exit(1); }
+              if ($k === 'status' && !in_array($v, VESTRA_ORDER_STEPS, true)) { fwrite(STDERR, "gecersiz durum: {$v}\n"); exit(1); }
+              if ($k === 'paid_at' && strtotime($v) === false) { fwrite(STDERR, "gecersiz tarih: {$v}\n"); exit(1); }
+              $want[$k] = $v;
+            }
+            $newSt = $stBack ?? [];
+            if ($want) {
+              if (isset($want['status'])) {
+                $newSt['status'] = $want['status'];
+                $at = isset($want['paid_at']) ? date('c', strtotime($want['paid_at'])) : date('c');
+                if ($want['status'] !== 'pending') {
+                  $newSt['history'] = (array)($newSt['history'] ?? []);
+                  $newSt['history'][] = ['at' => $at, 'status' => $want['status'], 'by' => 'admin (restored)'];
+                }
+              }
+              if (isset($want['paid_at'])) $newSt['paid_at'] = date('c', strtotime($want['paid_at']));
+              if (isset($want['invoice_seller_uid'])) $newSt['invoice_seller_uid'] = $want['invoice_seller_uid'];
+            }
+            $newSt['restored_at'] = date('c');
+            $newSt['restored_from'] = $src ? basename($src) : '';
+            printf("yazilacak durum: status=%s%s%s\n", (string)($newSt['status'] ?? '(yok -> pending)'),
+              isset($newSt['paid_at']) ? ' | paid_at='.$newSt['paid_at'] : '',
+              isset($newSt['invoice_seller_uid']) ? ' | kesen='.$newSt['invoice_seller_uid'] : '');
+            if ($invMove && ($newSt['status'] ?? 'pending') === 'pending')
+              echo "UYARI: faturali ve 'pending' -- odeme saati (KURAL 7) isler, cron hatirlatma/iptal gonderebilir.\n";
+
+            if (!$apply) { echo "\nKURU KOSU -- hicbir sey yazilmadi (move_apply=true ile uygulanir).\n"; exit(0); }
+
+            /* UYGULA. Sira: durum -> satir -> fatura. Satir gorunur oldugu an durum zaten yerinde
+               olsun (cron'un 'pending + faturali' diye gormemesi icin). */
+            $file = $dir.'/orders.csv';
+            @copy($file, $file.'.bak-restore-'.date('Ymd_His'));
+            $all = vestra_read_json('order_statuses.json');
+            if (!is_array($all)) $all = [];
+            $all[$ref] = $newSt;
+            vestra_write_json('order_statuses.json', $all);
+
+            $h = fopen($file, 'r'); $head = fgetcsv($h, null, ',', '"', '\\'); fclose($h);
+            if (!$head) { fwrite(STDERR, "orders.csv basligi okunamadi\n"); exit(1); }
+            $line = []; foreach ($head as $c) $line[] = (string)($row[$c] ?? '');
+            $miss = array_diff(array_keys($row), $head);
+            if ($miss) echo "not: yedekte olup bugunku baslikta olmayan sutun(lar) yazilmadi: ".implode(',', $miss)."\n";
+            $out = fopen($file, 'a'); fputcsv($out, $line, ',', '"', '\\'); fclose($out);
+
+            $moved = 0;
+            foreach ($invMove as $mv) if (@rename($mv['from'], $mv['to'])) $moved++;
+
+            /* GERI OKUMA */
+            $back = null; foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $back = $r; break; }
+            $invs = vestra_invoices_for_ref($ref);
+            $stR  = (array)(vestra_read_json('order_statuses.json')[$ref] ?? []);
+            printf("\nsatir   : %s (toplam %s)\n", $back ? 'GERI GELDI' : '*** YOK ***', (string)($back['total'] ?? '?'));
+            printf("fatura  : %d dosya tasindi | gorunen: %s\n", $moved, $invs ? implode(', ', array_map(fn($i) => (string)($i['no'] ?? '?'), $invs)) : '*** YOK ***');
+            printf("durum   : %s\n", (string)($stR['status'] ?? '(yok)'));
+            $ok = $back && (!$invMove || ($invs && $moved === count($invMove)));
+            echo $ok ? "KAYDEDILDI (geri okundu)\n" : "*** EKSIK -- yukariya bakin\n";
+            exit($ok ? 0 : 1);
+            PHPEOF
+            php -d display_errors=stderr -d error_reporting=-1 /tmp/vestra_ordrst.php; rc=$?
+            rm -f /tmp/vestra_ordrst.php
+            exit $rc
+
       - name: Kesilmiş faturayı kaldır (invoice_delete) — varsayılan KURU KOŞU
         # Operator, 25 Eyl 2026 (O748EE / INV-2026-1018): "faturayi henuz yapma
         # yaptiysan sil". Tek bir kesilmis belgeyi kaldirmanin yolu yalniz
