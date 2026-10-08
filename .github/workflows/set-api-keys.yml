@@ -1,0 +1,69 @@
+name: (Ayar) Repodaki Brevo + Claude anahtarlarını sunucuya aktar
+
+# Operatör (8 Eki 2026): "Brevo anahtarını da koy repoda var", "benim Claude API'yi kullandır".
+# secrets.MAIL_API_KEY → email_settings.json mail_api_key (Brevo, kampanya gönderimi)
+# secrets.ANTHROPIC_API_KEY → email_settings.json anthropic_key (Claude, kampanya yazarı)
+#
+# Anahtarlar SSH'ın STDIN'inden JSON olarak gider: komut satırına, loga, dosyaya girmez
+# (sunucudaki chmod 600 email_settings.json hariç). Doğrulama ÜCRETSİZ uç noktalarla:
+# Brevo GET /v3/account, Anthropic GET /v1/models — hiçbir e-posta gitmez, token harcanmaz.
+# Boş secret atlanır (sunucudaki mevcut değer korunur).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  keys:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || 22 }}
+      TERM: dumb
+    steps:
+      - name: SSH ayarı
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf 'Host vestra\n  HostName %s\n  User %s\n  Port %s\n  IdentityFile ~/.ssh/deploy_key\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n  LogLevel ERROR\n' \
+            "$DEPLOY_HOST" "$DEPLOY_USER" "$DEPLOY_PORT" > ~/.ssh/config && chmod 600 ~/.ssh/config
+
+      - name: Anahtarları aktar + doğrula
+        env:
+          MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -o pipefail
+          echo "MAIL_API_KEY repoda: $([ -n "$MAIL_API_KEY" ] && echo VAR || echo YOK) | ANTHROPIC_API_KEY repoda: $([ -n "$ANTHROPIC_API_KEY" ] && echo VAR || echo YOK)"
+          cat > setkeys.php <<'PHPEOF'
+          <?php
+          $in = json_decode((string)stream_get_contents(STDIN), true) ?: [];
+          $f = getenv('HOME').'/public_html/data/email_settings.json';
+          $cur = is_readable($f) ? (json_decode((string)file_get_contents($f), true) ?: []) : [];
+          $get = function (string $url, array $h): array {
+            $ch = curl_init($url); curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_HTTPHEADER => $h]);
+            $raw = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+            return [$code, is_string($raw) ? json_decode($raw, true) : null];
+          };
+          $brevo = trim((string)($in['brevo'] ?? '')); $claude = trim((string)($in['claude'] ?? ''));
+          if ($brevo !== '') {
+            [$c, $d] = $get('https://api.brevo.com/v3/account', ['api-key: '.$brevo, 'Accept: application/json']);
+            if ($c === 200) { $cur['mail_enabled'] = true; $cur['mail_api_provider'] = 'brevo'; $cur['mail_api_key'] = $brevo;
+              echo "Brevo: GECERLI -> kaydedildi (hesap: ".(($d['companyName'] ?? '') ?: '?').")\n"; }
+            else echo "Brevo: anahtar REDDEDILDI (HTTP {$c}) -- sunucudaki mevcut deger korundu\n";
+          } else echo "Brevo: repoda yok -- atlandi (sunucudaki: ".(($cur['mail_api_key'] ?? '') !== '' ? 'VAR' : 'YOK').")\n";
+          if ($claude !== '') {
+            [$c, $d] = $get('https://api.anthropic.com/v1/models', ['x-api-key: '.$claude, 'anthropic-version: 2023-06-01']);
+            if ($c === 200) { $cur['anthropic_key'] = $claude; echo "Claude: GECERLI -> kaydedildi (".count((array)($d['data'] ?? []))." model gorunuyor)\n"; }
+            else echo "Claude: anahtar REDDEDILDI (HTTP {$c}) -- kaydedilmedi\n";
+          } else echo "Claude: repoda yok -- atlandi (sunucudaki: ".(($cur['anthropic_key'] ?? '') !== '' ? 'VAR' : 'YOK').")\n";
+          file_put_contents($f, json_encode($cur, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($f, 0600);
+          PHPEOF
+          ssh vestra 'mkdir -p ~/vestra_tmp && cat > ~/vestra_tmp/setkeys.php' < setkeys.php
+          python3 -c 'import json,os;print(json.dumps({"brevo":os.environ.get("MAIL_API_KEY",""),"claude":os.environ.get("ANTHROPIC_API_KEY","")}))' \
+            | ssh vestra 'php ~/vestra_tmp/setkeys.php; rc=$?; rm -f ~/vestra_tmp/setkeys.php; exit $rc'
