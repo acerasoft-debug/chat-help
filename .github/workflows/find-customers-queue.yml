@@ -9,8 +9,8 @@ name: (Müşteri bul) Panel sırası — 10 dakikada bir
 #
 # Sırada istek yoksa ~15 saniyede biter. Repo herkese açık: Actions dakikası ücretsiz.
 on:
-  schedule:
-    - cron: '*/10 * * * *'
+  # KAPALI (8 Eki 2026, operatör: "bu çok az, workflow'u kapat"): 10 dakikalık sıra kontrolü kaldırıldı.
+  # Yeniden açmak için: schedule: - cron: '*/10 * * * *'
   workflow_dispatch:
 
 permissions:

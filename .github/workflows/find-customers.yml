@@ -3,8 +3,8 @@ name: (Günlük) Müşteri bul — web araması + gerçek e-posta
 # isteğinin durumunu ve linkini bu addan bulur (inc/finder.php).
 run-name: ${{ github.event.inputs.request_id && format('Müşteri bul · {0}', github.event.inputs.request_id) || 'Müşteri bul (günlük)' }}
 on:
-  schedule:
-    - cron: '20 5 * * *'      # her gün 05:20 UTC
+  # KAPALI (8 Eki 2026, operatör: "bu çok az, workflow'u kapat"): günlük zamanlama kaldırıldı.
+  # Yalnızca Actions'tan elle başlatılabilir. Yeniden açmak için: schedule: - cron: '20 5 * * *'
   workflow_dispatch:
     inputs:
       request_id:
