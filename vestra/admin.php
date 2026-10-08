@@ -1845,6 +1845,26 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     file_put_contents($dir.'/email_settings.json',json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($dir.'/email_settings.json',0600);
     header('Location: /admin?tab=prospects&msg='.(!empty($_POST['google_clear'])?'google_cleared':'google_saved')); exit;
   }
+  /* "Web'den müşteri bul" (inc/finder.php): GitHub token aramayı TETİKLER, Brave Search
+     anahtarı aramayı YAPAR. Google anahtarıyla aynı yer, aynı kural: data/email_settings.json,
+     chmod 600, web'e kapalı. Depo herkese açık — bu anahtarlar asla koda, workflow girdisine
+     ya da Actions loguna gitmez; Brave aramasını runner değil sunucu yapar. */
+  if($act==='save_finder_web'){
+    $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
+    $cur=is_readable($dir.'/email_settings.json')?json_decode((string)file_get_contents($dir.'/email_settings.json'),true):[]; if(!is_array($cur))$cur=[];
+    $t=trim($_POST['gh_token']??'');  if($t!=='') $cur['gh_token']=$t;
+    $b=trim($_POST['brave_key']??''); if($b!=='') $cur['brave_key']=$b;
+    if(!empty($_POST['gh_clear']))    unset($cur['gh_token']);
+    if(!empty($_POST['brave_clear'])) unset($cur['brave_key']);
+    file_put_contents($dir.'/email_settings.json',json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($dir.'/email_settings.json',0600);
+    header('Location: /admin?tab=prospects&msg=finder_web_saved#finderweb'); exit;
+  }
+  if($act==='finder_web_start'){
+    require_once __DIR__.'/inc/finder.php';
+    [$fOk,$fMsg]=vestra_finder_start($_POST,'','admin');
+    $_SESSION['finder_flash']=[$fOk,$fMsg];
+    header('Location: /admin?tab=prospects#finderweb'); exit;
+  }
   /* Save the operator's email-finder API key (global, in email_settings.json). */
   if($act==='save_finder'){
     $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
@@ -2782,6 +2802,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'quote_nosender'=>'That seller has no sending email yet — set it up in "Configure sending for" above, then retry.',
     'finder_saved'=>'✓ Email-finder key saved.','finder_ok'=>'✓ Verified email found and added.','finder_none'=>'No email found for that domain — add it manually.',
     'ai_saved'=>'✓ AI personalisation key saved.',
+    'finder_web_saved'=>'✓ Web araması anahtarları kaydedildi (sunucuda, web\'e kapalı).',
     'google_saved'=>'✓ Google anahtarı kaydedildi — "Search with" listesinden Google Maps\'i seçebilirsiniz.',
     'google_cleared'=>'Google anahtarı silindi. Arama yeniden yalnızca OpenStreetMap ile çalışıyor.',
     'replied'=>'✓ Reply sent.','msg_err'=>'⚠ Could not start that conversation — try again.',
@@ -6298,6 +6319,94 @@ elseif($tab==='prospects'):
   anyone who uses it is permanently excluded from future sends. Use the offer template below (or <i>Send a product offer</i>) to pitch them.
 </p>
 
+<?php
+  /* ── 🌐 Web'den müşteri bul (inc/finder.php) ─────────────────────────────────
+     Motor GitHub Actions'ta çalışır; bu kart onu başlatır, durumunu ve sonucunu gösterir. */
+  require_once __DIR__.'/inc/finder.php';
+  vestra_finder_refresh();
+  $fwRuns   = vestra_finder_runs();
+  $fwActive = vestra_finder_active();
+  $fwGh     = vestra_finder_gh_token()!=='';
+  $fwBrave  = vestra_finder_brave_on();
+  $fwReady  = vestra_finder_ready();
+  $fwFlash  = $_SESSION['finder_flash'] ?? null; unset($_SESSION['finder_flash']);
+  $fwNames  = []; foreach($sellerAccts as $sa) $fwNames[(string)($sa['id']??'')]=(string)($sa['company']??$sa['name']??'');
+  $fwLast   = $fwRuns[0]['params'] ?? [];
+?>
+<div class="acard" id="finderweb" style="margin-bottom:20px;border-color:<?= $fwReady?'rgba(31,157,99,.45)':'rgba(169,127,44,.5)' ?>">
+  <div class="acard-hd"><h3>🌐 Web'den müşteri bul — gerçek e-posta
+    <?= $fwReady?'<span style="color:#1f9d63;font-size:12px;font-weight:600">● Hazır</span>':'<span style="color:#a9781a;font-size:12px;font-weight:600">● Anahtar gerekli</span>' ?></h3></div>
+  <div class="acard-body">
+  <p class="ahint" style="margin-bottom:10px">Premium marka <b>çiftleriyle</b> (ör. "Dsquared2" + "Balmain") web'de ve Google Maps'te arar; iki tasarımcı markasını birlikte satan <b>çok markalı butikleri</b> bulur. Her sitenin iletişim/künye sayfasından <b>yayınlanmış gerçek e-postayı</b> alır — tahmin yok, MX kontrolü var. <b>Ayakkabıcı, iç çamaşırı, toptancı/distribütör, zincir ve markanın kendi mağazası elenir</b> (KURAL 1 dahil). Bulunanlar bu listeye eklenir; gönderim yine sizin elinizde.</p>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;font-size:11.5px">
+    <?php foreach([['GitHub (başlatma)',$fwGh,'zorunlu'],['Brave Search (web araması)',$fwBrave,'önerilir'],['Google Places (şehir araması)',$googleOn,'opsiyonel']] as [$kn,$kon,$kreq]): ?>
+      <span style="border:1px solid <?= $kon?'rgba(31,157,99,.45)':'var(--line)' ?>;border-radius:20px;padding:3px 10px;color:<?= $kon?'#1f9d63':'var(--mut)' ?>"><?= $kon?'✓':'○' ?> <?= htmlspecialchars($kn) ?> <span style="opacity:.7">· <?= $kreq ?></span></span>
+    <?php endforeach; ?>
+  </div>
+  <?php if($fwFlash): ?><div class="amsg <?= $fwFlash[0]?'ok':'' ?>" style="<?= $fwFlash[0]?'':'background:#fdf0ee;border:1px solid #f0c4bd;color:#a3321f' ?>"><?= htmlspecialchars((string)$fwFlash[1]) ?></div><?php endif; ?>
+
+  <?php if($fwGh): ?>
+  <form method="post" class="aform" style="margin-bottom:12px">
+    <?= csrfField() ?><input type="hidden" name="_action" value="finder_web_start">
+    <div class="acols2">
+      <div class="afield"><label>Şehirler (Google Places) <span style="font-weight:400;color:var(--mut)">— "Ülke|Şehir", virgülle; boş = havuzdan sırayla 6 şehir</span></label><input name="cities" value="<?= htmlspecialchars((string)($fwLast['cities']??'')) ?>" placeholder="Italy|Milano, France|Paris, Spain|Madrid"></div>
+      <div class="afield"><label>Sadece bu ülkeler <span style="font-weight:400;color:var(--mut)">— ISO kodu, boş = hepsi</span></label><input name="countries" value="<?= htmlspecialchars((string)($fwLast['countries']??'')) ?>" placeholder="IT,FR,ES,NL,BE,CH,AT"></div>
+    </div>
+    <div class="acols2">
+      <div class="afield"><label>Web arama dilleri <span style="font-weight:400;color:var(--mut)">— boş = hepsi (pazar ağırlıklı)</span></label><input name="langs" value="<?= htmlspecialchars((string)($fwLast['langs']??'')) ?>" placeholder="it,fr,es,nl,de,en"></div>
+      <div class="afield"><label>Web sorgusu sayısı</label><input name="queries_per_run" type="number" min="5" max="80" value="<?= (int)($fwLast['queries_per_run']??40) ?: 40 ?>"></div>
+    </div>
+    <details style="margin:0 0 10px"><summary class="ahint" style="cursor:pointer">Gelişmiş: kendi sorguların / elindeki siteler</summary>
+      <div class="afield" style="margin-top:8px"><label>Kendi arama sorguların (noktalı virgülle)</label><input name="extra_queries" placeholder='"Stone Island" "Moncler" boutique Torino; negozio multimarca Dsquared2 Bari'></div>
+      <div class="afield"><label>Doğrudan incelenecek siteler (arama yapmadan) <span style="font-weight:400;color:var(--mut)">— elindeki listeyi gerçek e-postaya çevirir</span></label><textarea name="seed_domains" rows="2" placeholder="boutique-ornek.it, shop-ornek.de"></textarea></div>
+    </details>
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0 0 10px"><input type="checkbox" name="dry_run" value="1"> Deneme — sadece bul ve göster, listeye ekleme</label>
+    <?php if($fwActive): ?>
+      <button class="abtn" type="button" disabled>⏳ Arama çalışıyor (<?= htmlspecialchars((string)$fwActive['id']) ?>) — bitince tekrar başlatabilirsiniz</button>
+    <?php else: ?>
+      <button class="abtn primary" type="submit" onclick="this.disabled=true;this.textContent='Başlatılıyor…';this.form.submit()">🌐 Aramayı başlat</button>
+      <?php if(!$fwBrave && !$googleOn): ?><span class="ahint" style="color:#a9781a;margin-left:8px">Brave ya da Google anahtarı olmadan arama motorları GitHub sunucularını engelliyor — sonuç çok az olur.</span><?php endif; ?>
+    <?php endif; ?>
+    <span class="ahint" style="margin-left:8px">Her gün 05:20'de (UTC) kendiliğinden de çalışır. Süre: 20-40 dk.</span>
+  </form>
+  <?php endif; ?>
+
+  <div style="font-weight:600;font-size:13px;margin:4px 0 8px">Son aramalar</div>
+  <?= vestra_finder_runs_html($fwRuns, true, $fwNames, 6) ?>
+  <?php if($fwActive): ?><script>setTimeout(function(){ if(!document.hidden) location.reload(); }, 45000);</script><?php endif; ?>
+
+  <details style="margin-top:12px"<?= ($fwGh && $fwBrave)?'':' open' ?>>
+    <summary style="cursor:pointer;font-size:12px;color:<?= ($fwGh && $fwBrave)?'var(--mut)':'#a9781a' ?>">🔑 Anahtarlar — nasıl alınır (linkli, adım adım) <?= ($fwGh && $fwBrave)?'· kayıtlı ✓':'' ?></summary>
+    <div style="margin-top:10px;font-size:12px;color:var(--mut);line-height:1.65">
+      <p style="margin:0 0 6px"><b>1) GitHub erişim anahtarı</b> <i>(zorunlu — aramayı bu panelden başlatmak için)</i></p>
+      <ol style="margin:0 0 10px 18px;padding:0">
+        <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:var(--acc)">github.com/settings/personal-access-tokens/new</a> sayfasını açın (GitHub hesabınızla giriş yapın).</li>
+        <li><b>Token name:</b> <code>vestra-finder</code> · <b>Expiration:</b> 1 yıl · <b>Resource owner:</b> <code>acerasoft-debug</code></li>
+        <li><b>Repository access:</b> "Only select repositories" → <code><?= htmlspecialchars(vestra_finder_repo()) ?></code></li>
+        <li><b>Permissions → Repository permissions → Actions:</b> <b>Read and write</b> (başka izin gerekmez).</li>
+        <li><b>Generate token</b> → çıkan <code>github_pat_…</code> anahtarını kopyalayıp aşağıya yapıştırın (bir kez gösterilir).</li>
+      </ol>
+      <p style="margin:0 0 6px"><b>2) Brave Search API anahtarı</b> <i>(önerilir — web araması bununla yapılır)</i></p>
+      <ol style="margin:0 0 10px 18px;padding:0">
+        <li><a href="https://api-dashboard.search.brave.com/" target="_blank" rel="noopener" style="color:var(--acc)">api-dashboard.search.brave.com</a> → <b>Sign up</b> → e-postanızı doğrulayın.</li>
+        <li><b>Plans</b>'tan <b>Search</b> planını seçin. Her ay verilen ücretsiz kredi ≈ 1.000 arama karşılar; kart istenir (kötüye kullanım kontrolü). Günlük çalışma ~40 sorgu → ayda ~1.200 arama; aşım çok küçük tutardır, güncel fiyatı Plans sayfasında görün.</li>
+        <li><b>API Keys → Add API key</b> → anahtarı kopyalayıp aşağıya yapıştırın.</li>
+      </ol>
+      <p style="margin:0 0 6px"><b>3) Google Places</b> <i>(opsiyonel — şehir bazlı butik listesi)</i>: aşağıdaki <b>"🎯 Find customers" → "🔎 Google ile ara"</b> kartındaki anahtar burada da kullanılır, ayrıca girmenize gerek yok.</p>
+      <p style="margin:0 0 10px;color:#8a6d1f">Anahtarlar sunucuda <code>data/email_settings.json</code> içinde tutulur: web'e kapalı, git'e girmez, GitHub'a gönderilmez. Arama sunucu üzerinden yapılır.</p>
+    </div>
+    <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+      <?= csrfField() ?><input type="hidden" name="_action" value="save_finder_web">
+      <div class="afield" style="margin:0;flex:1;min-width:220px"><label>GitHub token <?= $fwGh?'<span class="ahint">· kayıtlı, boş = koru</span>':'' ?></label><input type="password" name="gh_token" placeholder="github_pat_…" autocomplete="new-password"></div>
+      <div class="afield" style="margin:0;flex:1;min-width:220px"><label>Brave Search API key <?= $fwBrave?'<span class="ahint">· kayıtlı, boş = koru</span>':'' ?></label><input type="password" name="brave_key" placeholder="BSA…" autocomplete="new-password"></div>
+      <button class="abtn primary" type="submit">Kaydet</button>
+      <?php if($fwGh): ?><label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#c0392b;margin:0 0 4px"><input type="checkbox" name="gh_clear" value="1"> GitHub token'ı sil</label><?php endif; ?>
+      <?php if($fwBrave): ?><label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#c0392b;margin:0 0 4px"><input type="checkbox" name="brave_clear" value="1"> Brave anahtarını sil</label><?php endif; ?>
+    </form>
+  </details>
+  </div>
+</div>
+
 <div class="acard" style="margin-bottom:20px;border-color:rgba(31,157,99,.4)">
   <div class="acard-hd"><h3>🤖 Automation <span style="color:#1f9d63;font-size:12px;font-weight:600">● Runs daily at 09:00 (server cron)</span></h3></div>
   <div class="acard-body">
@@ -6432,8 +6541,17 @@ elseif($tab==='prospects'):
       <div class="afield"><label>SMTP username</label><input name="smtp_user" value="<?= htmlspecialchars($emCfg['smtp_user']??'') ?>" placeholder="usually your email"></div>
       <div class="afield"><label>SMTP password <?= ($emCfg['smtp_pass']??'')!==''?'<span class="ahint">· saved, blank = keep</span>':'' ?></label><input type="password" name="smtp_pass" placeholder="app password" autocomplete="new-password"></div>
     </div>
-    <details style="margin:2px 0 12px">
-      <summary class="ahint" style="cursor:pointer">Advanced: use a transactional API key instead (best inbox rate)</summary>
+    <details style="margin:2px 0 12px"<?= ($emCfg['mail_api_key']??'')===''?'':' open' ?>>
+      <summary class="ahint" style="cursor:pointer">📮 Brevo API anahtarı ile gönder (en iyi gelen kutusu oranı) — hesap açma + anahtar alma rehberi</summary>
+      <div style="margin-top:8px;font-size:12px;color:var(--mut);line-height:1.65">
+        <ol style="margin:0 0 8px 18px;padding:0">
+          <li><b>Hesap aç:</b> <a href="https://www.brevo.com/" target="_blank" rel="noopener" style="color:var(--acc)">brevo.com</a> → <b>Sign up free</b> → ad, e-posta, şirket, site → e-postanı doğrula. Kart gerekmez; ücretsiz plan günde <b>300 e-posta</b>.</li>
+          <li><b>Gönderen adresi ekle:</b> Brevo → <i>Settings → Senders, Domains &amp; IPs → Senders → Add a sender</i> → "From" adresine gelen 6 haneli kodla doğrula. <a href="https://help.brevo.com/hc/en-us/articles/208836149" target="_blank" rel="noopener" style="color:var(--acc)">Yardım ↗</a></li>
+          <li><b>Alan adını doğrula</b> (spam'e düşmemek için şart): <i>Domains → Add a domain</i> → Brevo'nun verdiği <b>Brevo code, DKIM ve DMARC</b> kayıtlarını alan adının DNS'ine ekle (cPanel → Zone Editor). Yayılması 48 saate kadar sürebilir. <a href="https://help.brevo.com/hc/en-us/articles/12163873383186" target="_blank" rel="noopener" style="color:var(--acc)">Yardım ↗</a></li>
+          <li><b>API anahtarı al:</b> <a href="https://app.brevo.com/settings/keys/api" target="_blank" rel="noopener" style="color:var(--acc)">app.brevo.com/settings/keys/api</a> → <b>Generate a new API key</b> → isim ver (ör. <code>vestra</code>) → <code>xkeysib-…</code> ile başlayan anahtarı kopyala (bir kez gösterilir). <b>SMTP anahtarı değil, API anahtarı.</b> <a href="https://help.brevo.com/hc/en-us/articles/209467485" target="_blank" rel="noopener" style="color:var(--acc)">Yardım ↗</a></li>
+          <li><b>Buraya yapıştır:</b> Provider = Brevo, API key = anahtar, yukarıdaki <b>From email</b> = Brevo'da doğruladığın adres → <b>Save</b> → aşağıdan <b>test gönder</b>.</li>
+        </ol>
+      </div>
       <div class="acols2" style="margin-top:8px">
         <div class="afield"><label>Provider</label><select name="mail_api_provider"><option value="brevo" <?= ($emCfg['mail_api_provider']??'brevo')==='brevo'?'selected':'' ?>>Brevo</option><option value="resend" <?= ($emCfg['mail_api_provider']??'')==='resend'?'selected':'' ?>>Resend</option></select></div>
         <div class="afield"><label>API key <?= ($emCfg['mail_api_key']??'')!==''?'<span class="ahint">· saved, blank = keep</span>':'' ?></label><input type="password" name="mail_api_key" placeholder="xkeysib-… / re_…" autocomplete="new-password"></div>

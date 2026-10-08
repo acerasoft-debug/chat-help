@@ -4674,6 +4674,22 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
 ## Operasyonel notlar
 
 - Deploy `claude/wizardly-planck-7ylnmk` dalına **push ile** tetiklenir.
+- **Web'den müşteri bul (8 Eki 2026, operatör: "gerçek e-postalar bulunacak; ayakkabı,
+  iç çamaşırı, distribütör ve zincir olmayacak", "admine kur, satıcılara da").**
+  Motor GitHub Actions'ta: default daldaki `find-customers.yml` + `scripts/find-boutiques.mjs`
+  (paylaşımlı hosting uzun işi öldürüyor). Panel kartı `inc/finder.php`: Admin ▸
+  Müşteriler ▸ 🌐 ve satıcı ▸ Find ▸ 🌐 (sonuç satıcının `owner_uid` listesine). Arama
+  **resmi API** ile ve **sunucu üzerinden** (`scripts/server/vestra-search.php`): Brave
+  Search (marka çifti sorguları) + mevcut Google Places anahtarı. **Bing/DDG HTML
+  GitHub IP'lerini captcha ile engelliyor** (8 Eki ölçümü: 14 sorgunun 4'ü, 0 lead) —
+  anahtarsız arama işe yaramaz. Anahtarlar (`gh_token`, `brave_key`)
+  `email_settings.json`'da; **repo public, prospect listesi de anahtar da repoya
+  girmez** (tarama durumu `data/finder_state.json`, sonuç `data/finder_runs.json`).
+  E-posta yalnızca sitede **yayınlanmış** adres (KURAL 1b'nin uydurma-adres dersi),
+  sunucuya yazarken `vestra_lead_is_blocked()` + park kontrolü. Aynı anda tek arama
+  (workflow concurrency grubu üçüncü isteği sessizce iptal eder), satıcı 24 saatte bir.
+  Test: `tests/finder_test.php`. **Yerelde `vestra_finder_start()` ÇAĞIRMA:** oturum
+  ortamının vekili GitHub API'ye kimlik ekliyor, çağrı gerçek workflow'u tetikler.
 - **Siparişin USD karşılığı SİPARİŞ TARİHİNDEKİ kurla** (operatör, 7 Eyl 2026:
   *"siparişleri anında sipariş zamanındaki kur ile USD'ye çevirecek bir sistem
   koy admin paneline"*). Tek kaynak `inc/fx_orders.php`; damga

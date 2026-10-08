@@ -494,7 +494,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
 }
 
 /* ── Seller customer outreach: own SMTP + own customer list + one-by-one send ── */
-if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_array(($_POST['_action']??''),['seller_save_smtp','seller_send_test','seller_add_lead','seller_import_leads','seller_send_one','seller_find_email','seller_discover','seller_find_all'],true)) {
+if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_array(($_POST['_action']??''),['seller_save_smtp','seller_send_test','seller_add_lead','seller_import_leads','seller_send_one','seller_find_email','seller_discover','seller_find_all','seller_finder_start'],true)) {
   require_once __DIR__.'/inc/notify.php'; require_once __DIR__.'/inc/leads.php';
   $suid=$_SESSION['uid']??''; $sme=auth_user();
   if($suid==='' || ($sme['type']??'')!=='seller'){ if(($_POST['_action']??'')==='seller_send_one'){ header('Content-Type: application/json'); echo json_encode(['ok'=>false,'error'=>'auth']); } else header('Location: /seller?tab=find'); exit; }
@@ -504,11 +504,36 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
     vestra_seller_mail_save($suid,['mail_enabled'=>true,'mail_from'=>$from,'smtp_from'=>$from,
       'smtp_name'=>trim($_POST['from_name']??'')?:$sName,'smtp_host'=>trim($_POST['smtp_host']??''),
       'smtp_port'=>(int)($_POST['smtp_port']??587)?:587,'smtp_user'=>trim($_POST['smtp_user']??'')?:$from,
-      'smtp_pass'=>$pass!==''?$pass:(string)($cur['smtp_pass']??''),'mail_api_provider'=>'brevo','mail_api_key'=>(string)($cur['mail_api_key']??''),
+      'smtp_pass'=>$pass!==''?$pass:(string)($cur['smtp_pass']??''),'mail_api_provider'=>'brevo',
+      /* Brevo API anahtarı: SMTP yerine kullanılır (vestra_send_mail önce API'ye bakar). Boş = koru,
+         "remove" işareti = sil — sızan bir anahtarı panelden emekliye ayırmanın tek yolu. */
+      'mail_api_key'=>!empty($_POST['brevo_clear'])?'':((($bk=trim($_POST['mail_api_key']??''))!=='')?$bk:(string)($cur['mail_api_key']??'')),
       'finder_provider'=>trim($_POST['finder_provider']??'hunter')?:'hunter',
       'finder_key'=>(($fk=trim($_POST['finder_key']??''))!=='')?$fk:(string)($cur['finder_key']??''),
       'ai_key'=>(($ak=trim($_POST['ai_key']??''))!=='')?$ak:(string)($cur['ai_key']??'')]);
     header('Location: /seller?tab=find&msg=smtp_saved'); exit;
+  }
+  /* Web search for multi-brand boutiques (inc/finder.php). Runs on the platform's search
+     engine (GitHub Actions) with the platform's keys; results land in THIS seller's list
+     (owner_uid). One search per seller per 24h, one search platform-wide at a time. */
+  if($sact==='seller_finder_start'){
+    require_once __DIR__.'/inc/finder.php';
+    $SF_COUNTRIES=['Germany'=>['DE','de'],'Netherlands'=>['NL','nl'],'France'=>['FR','fr'],'Italy'=>['IT','it'],'Spain'=>['ES','es'],
+      'United Kingdom'=>['GB','en'],'Belgium'=>['BE','nl'],'Switzerland'=>['CH','de'],'Austria'=>['AT','de'],'Portugal'=>['PT','pt'],
+      'Poland'=>['PL','pl'],'Greece'=>['GR','el'],'Denmark'=>['DK','da'],'Sweden'=>['SE','sv'],'Norway'=>['NO','nb'],'Ireland'=>['IE','en']];
+    $sfc=(string)($_POST['sf_country']??''); $sfCities=[];
+    if(isset($SF_COUNTRIES[$sfc])){
+      foreach(array_slice(preg_split('/[,;]+/',(string)($_POST['sf_cities']??''),-1,PREG_SPLIT_NO_EMPTY),0,4) as $ci){ $ci=trim($ci); if($ci!=='') $sfCities[]=$sfc.'|'.$ci; }
+      [$fOk,$fMsg]=vestra_finder_start(['countries'=>$SF_COUNTRIES[$sfc][0],'langs'=>$SF_COUNTRIES[$sfc][1].',en','cities'=>implode(',',$sfCities),'queries_per_run'=>20],$suid,'seller');
+    } else { $fOk=false; $fMsg='Choose a country first.'; }
+    /* Panel messages from vestra_finder_start are written for the operator (Turkish, technical).
+       A seller gets a plain English line instead; the operator sees the detail in Admin. */
+    if(!$fOk && !str_starts_with($fMsg,'You can') && $fMsg!=='Choose a country first.')
+      $fMsg = str_contains($fMsg,'zaten çalışıyor') ? 'Another web search is running right now — please try again in about 30 minutes.'
+            : 'Web search is not available right now (the platform has not finished setting it up). Please try again later.';
+    if($fOk) $fMsg='Search started — new boutiques with a real email will appear in your list below in about 20-40 minutes.';
+    $_SESSION['seller_finder_flash']=[$fOk,$fMsg];
+    header('Location: /seller?tab=find#finderweb'); exit;
   }
   if($sact==='seller_find_email'){
     $sc=vestra_seller_mail($suid); $lid=$_POST['lid']??''; $leads=vestra_leads(); $found='';
@@ -1259,7 +1284,7 @@ if($tab==='overview'){
 
   <div style="<?= $card ?>;border-color:<?= $mailReady?'#b9e3c9':'var(--line)' ?>">
     <h3 style="margin:0 0 4px;font-size:15px">📤 Your sending email <?= $mailReady?'<span style="color:#1f9d63;font-size:12px">● Ready</span>':'<span style="color:#a9781a;font-size:12px">● Not set up</span>' ?></h3>
-    <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px">Enter your email + its SMTP login (from your email provider). <b>Gmail:</b> use an App Password. Stored securely — never shared.</p>
+    <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px">Enter your email + its SMTP login (from your email provider), <b>or</b> a Brevo API key (see below). <b>Gmail:</b> use an App Password. Stored securely — never shared.</p>
     <form method="post">
       <input type="hidden" name="_action" value="seller_save_smtp">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
@@ -1269,6 +1294,24 @@ if($tab==='overview'){
         <div><label style="<?= $lbl ?>">SMTP port</label><input name="smtp_port" value="<?= htmlspecialchars((string)($myMail['smtp_port']??'587')) ?>" style="<?= $inp ?>"></div>
         <div><label style="<?= $lbl ?>">SMTP username</label><input name="smtp_user" value="<?= htmlspecialchars($myMail['smtp_user']??'') ?>" placeholder="usually your email" style="<?= $inp ?>"></div>
         <div><label style="<?= $lbl ?>">SMTP password <?= ($myMail['smtp_pass']??'')!==''?'· saved, blank = keep':'' ?></label><input type="password" name="smtp_pass" autocomplete="new-password" style="<?= $inp ?>"></div>
+      </div>
+      <div style="border-top:1px solid var(--line);margin:2px 0 12px;padding-top:12px" id="brevo">
+        <div style="font-size:12.5px;font-weight:600;margin-bottom:2px">📮 Or send through Brevo (recommended — best inbox rate) <?= ($myMail['mail_api_key']??'')!==''?'<span style="color:#1f9d63;font-weight:400">· key saved ✓</span>':'' ?></div>
+        <div style="color:var(--mut);font-size:11.5px;margin-bottom:8px">With a Brevo API key your emails go through Brevo instead of SMTP (the SMTP fields above can stay empty). Free plan: 300 emails/day, no card needed.</div>
+        <details style="margin:0 0 10px"<?= ($myMail['mail_api_key']??'')===''?' open':'' ?>>
+          <summary style="cursor:pointer;font-size:12px;color:var(--acc,#8a6420)">How to create a Brevo account and get your API key (step by step)</summary>
+          <ol style="margin:8px 0 0 18px;padding:0;font-size:12px;color:var(--mut);line-height:1.65">
+            <li><b>Create the account:</b> <a href="https://www.brevo.com/" target="_blank" rel="noopener">brevo.com</a> → <b>Sign up free</b> → name, email, company, website → confirm your email.</li>
+            <li><b>Add your sender address:</b> in Brevo open <i>Settings → Senders, Domains &amp; IPs → Senders → Add a sender</i>, enter the address you will send from and confirm it with the 6-digit code Brevo emails you. <a href="https://help.brevo.com/hc/en-us/articles/208836149" target="_blank" rel="noopener">Help ↗</a></li>
+            <li><b>Authenticate your domain</b> (strongly recommended, keeps you out of spam): <i>Domains → Add a domain</i> → add the Brevo code, DKIM and DMARC records Brevo shows you at your domain/DNS provider. It can take up to 48 h. <a href="https://help.brevo.com/hc/en-us/articles/12163873383186" target="_blank" rel="noopener">Help ↗</a> (Gmail/Yahoo addresses can't be authenticated — use your company domain.)</li>
+            <li><b>Create the API key:</b> open <a href="https://app.brevo.com/settings/keys/api" target="_blank" rel="noopener">app.brevo.com/settings/keys/api</a> → <b>Generate a new API key</b> → give it a name (e.g. <code>vestra</code>) → copy the key that starts with <code>xkeysib-</code>. It is shown only once. Use an <b>API key</b>, not an SMTP key. <a href="https://help.brevo.com/hc/en-us/articles/209467485" target="_blank" rel="noopener">Help ↗</a></li>
+            <li><b>Paste it below</b>, make sure <b>From email</b> above is the sender you verified in Brevo, click <b>Save</b>, then <b>Send test</b>.</li>
+          </ol>
+        </details>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+          <div style="flex:1;min-width:240px"><label style="<?= $lbl ?>">Brevo API key<?= ($myMail['mail_api_key']??'')!==''?' · saved, blank = keep':'' ?></label><input type="password" name="mail_api_key" autocomplete="new-password" placeholder="xkeysib-…" style="<?= $inp ?>"></div>
+          <?php if(($myMail['mail_api_key']??'')!==''): ?><label style="font-size:11.5px;color:#c0392b;display:flex;gap:5px;align-items:center;margin-bottom:8px"><input type="checkbox" name="brevo_clear" value="1"> remove key</label><?php endif; ?>
+        </div>
       </div>
       <div style="border-top:1px solid var(--line);margin:2px 0 12px;padding-top:12px">
         <div style="font-size:12.5px;font-weight:600;margin-bottom:2px">✨ Your own API keys <span style="color:var(--mut);font-weight:400">— optional; blank = use the platform's</span></div>
@@ -1305,6 +1348,37 @@ if($tab==='overview'){
       <button class="btn btn-o btn-sm" type="submit">🔍 Find all missing emails</button>
       <span style="font-size:11px;color:var(--mut);margin-left:6px">Reads each shop's contact/imprint page. Long lists can take a while.</span>
     </form>
+  </div>
+
+  <?php
+    require_once __DIR__.'/inc/finder.php';
+    vestra_finder_refresh();
+    $sfRuns  = vestra_finder_runs($uid);
+    $sfReady = vestra_finder_ready();
+    $sfFlash = $_SESSION['seller_finder_flash'] ?? null; unset($_SESSION['seller_finder_flash']);
+    $sfMine  = array_values(array_filter($sfRuns, 'vestra_finder_is_active'));
+    $sfLastT = $sfRuns ? (int)strtotime((string)($sfRuns[0]['requested_at'] ?? '')) : 0;
+    $sfWait  = $sfLastT && (time() - $sfLastT) < 86400;
+  ?>
+  <div id="finderweb" style="<?= $card ?>;border-color:<?= $sfReady?'#b9e3c9':'var(--line)' ?>">
+    <h3 style="margin:0 0 6px;font-size:15px">🌐 Find multi-brand boutiques on the web <?= $sfReady?'<span style="color:#1f9d63;font-size:12px">● Real emails only</span>':'<span style="color:#a9781a;font-size:12px">● Coming soon</span>' ?></h3>
+    <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px">Searches the web and Google Maps for <b>independent boutiques that sell several designer brands</b> (e.g. Dsquared2 + Balmain), and keeps only those that <b>publish a real email on their own website</b> — no guessed addresses. <b>Shoe shops, lingerie/underwear stores, wholesalers/distributors, chains and brand-owned stores are excluded.</b> New customers land in your list below. One search per day; it takes about 20-40 minutes.</p>
+    <?php if($sfFlash): ?><div style="background:<?= $sfFlash[0]?'#eaf7ef':'#fdf0ee' ?>;border:1px solid <?= $sfFlash[0]?'#b9e3c9':'#f0c4bd' ?>;color:<?= $sfFlash[0]?'#1f7a4d':'#a3321f' ?>;padding:9px 13px;border-radius:10px;margin-bottom:12px;font-size:13px"><?= htmlspecialchars((string)$sfFlash[1]) ?></div><?php endif; ?>
+    <?php if($sfReady): ?>
+    <form method="post" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">
+      <input type="hidden" name="_action" value="seller_finder_start">
+      <div style="min-width:160px"><label style="<?= $lbl ?>">Country</label>
+        <select name="sf_country" required style="<?= $inp ?>"><option value="" disabled selected>— choose —</option>
+          <?php foreach(['Italy','France','Spain','Netherlands','Belgium','Germany','Switzerland','Austria','United Kingdom','Ireland','Portugal','Greece','Poland','Denmark','Sweden','Norway'] as $sfo): ?><option><?= $sfo ?></option><?php endforeach; ?>
+        </select></div>
+      <div style="flex:1;min-width:200px"><label style="<?= $lbl ?>">Cities <span style="font-weight:400">— optional, comma-separated, local spelling (e.g. Milano, Roma)</span></label><input name="sf_cities" placeholder="Milano, Roma, Firenze" style="<?= $inp ?>"></div>
+      <?php if($sfMine): ?><button class="btn btn-o btn-sm" type="button" disabled>⏳ Your search is running…</button>
+      <?php elseif($sfWait): ?><button class="btn btn-o btn-sm" type="button" disabled>Next search possible <?= htmlspecialchars(date('d M H:i', $sfLastT + 86400)) ?></button>
+      <?php else: ?><button class="btn btn-p btn-sm" type="submit" onclick="this.disabled=true;this.textContent='Starting…';this.form.submit()">🌐 Start web search</button><?php endif; ?>
+    </form>
+    <?php endif; ?>
+    <?php if($sfRuns): ?><div style="font-weight:600;font-size:13px;margin:4px 0 8px">Your recent searches</div><?= vestra_finder_runs_html($sfRuns, false, [], 4, true) ?><?php endif; ?>
+    <?php if($sfMine): ?><script>setTimeout(function(){ if(!document.hidden) location.reload(); }, 60000);</script><?php endif; ?>
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
