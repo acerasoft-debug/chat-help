@@ -147,6 +147,28 @@ foreach ([['HugeDomains','info@x.example'],['Coming soon - <p>','a@b.example'],[
   $t('ölü/yanlış lead elenir: '.mb_substr($nm,0,22), vestra_lead_looks_dead(['company'=>$nm,'email'=>$em]));
 foreach ([['Boutique Una','info@una.example'],['One Block Down','info@oneblockdown.com'],['Monaghans Cashmere','info@monaghanscashmere.ie'],['Le Dressing Monaco','ledressing@monaco.mc'],['Sedona Boutique','info@sedonaboutique.example'],['Jordan Store','info@jordan.com'],['Wholesale Fashion Hub','buy@wfh.example']] as [$nm,$em])
   $t('gerçek butik geçer: '.$nm, !vestra_lead_looks_dead(['company'=>$nm,'email'=>$em]));
+/* support@ posta kutusu: panel isteği kuyruğu + günlük tavan (8 Eki 2026). */
+require_once $root.'/inc/mailbox.php';
+@unlink(VESTRA_DATA_DIR.'/mailbox_runs.json'); @unlink(VESTRA_DATA_DIR.'/mailbox.json');
+$mkeys = array_keys(vestra_finder_campaigns());
+$t('posta kutusu: geçersiz kip / kampanya / test adresi reddedilir', !vestra_mailbox_request('blast', 5, 'lesgarage', '', $mkeys)[0]
+   && !vestra_mailbox_request('send', 5, 'yok', '', $mkeys)[0] && !vestra_mailbox_request('send', 5, 'x;rm', '', $mkeys)[0] && !vestra_mailbox_request('test', 1, 'lesgarage', 'nope', $mkeys)[0]);
+[$mOk] = vestra_mailbox_request('send', 500, 'lesgarage', '', $mkeys);
+$mr = vestra_mailbox_runs();
+$t('posta kutusu: istek sıraya girer, sayı günlük tavana kırpılır', $mOk && count($mr) === 1 && $mr[0]['status'] === 'requested' && $mr[0]['limit'] === vestra_mailbox_daily_cap());
+$t('posta kutusu: açık istek varken ikincisi reddedilir', !vestra_mailbox_request('test', 1, 'lesgarage', 'ops@vestra.example', $mkeys)[0]);
+$tk = vestra_mailbox_take();
+$t('posta kutusu: kuyruk alır → running; ikinci take boş', $tk && $tk['id'] === $mr[0]['id'] && vestra_mailbox_runs()[0]['status'] === 'running' && vestra_mailbox_take() === null);
+$t('posta kutusu: finish sonucu yazar, yeni istek açılır', vestra_mailbox_finish($tk['id'], ['sent' => 7, 'bounced' => 1, 'failed' => 0]) && vestra_mailbox_runs()[0]['status'] === 'done'
+   && vestra_mailbox_runs()[0]['sent'] === 7 && !vestra_mailbox_finish($tk['id'], ['error' => 'x']) && vestra_mailbox_runs()[0]['status'] === 'done'
+   && vestra_mailbox_request('test', 1, 'lesgarage', 'ops@vestra.example', $mkeys)[0]);
+$rs = vestra_mailbox_runs(); $rs[1]['requested_at'] = date('c', time() - 3 * 3600); vestra_mailbox_runs_save($rs);
+$t('posta kutusu: 2 saatten eski istek takılmış sayılır, yenisini engellemez', vestra_mailbox_take() === null && vestra_mailbox_runs()[1]['status'] === 'stale' && vestra_mailbox_request('send', 3, 'lesgarage', '', $mkeys)[0]);
+$cap = vestra_mailbox_daily_cap(); $fake = [];
+for ($k = 0; $k < $cap; $k++) $fake[] = ['contact_via' => 'mailbox', 'last_contacted_at' => date('c')];
+$fake[] = ['contact_via' => 'mailbox', 'last_contacted_at' => '2020-01-01T00:00:00+00:00']; $fake[] = ['contact_via' => 'lemlist', 'last_contacted_at' => date('c')];
+$t('posta kutusu: bugün gidenler yalnız posta kutusundan ve bugünden sayılır', vestra_mailbox_sent_today($fake) === $cap && vestra_mailbox_left_today($fake) === 0);
+@unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
 /* lemlist CSV: aynı seçim kuralı; işaretsiz dışa aktarma kayda dokunmaz, işaretli olan damgalar. */
 $lbBefore = (string)file_get_contents(VESTRA_DATA_DIR.'/leads.json');
 $lx = vestra_lemlist_export(100, 'all', false);
@@ -405,6 +427,7 @@ $t('satıcı: müşteri listesinde Gmail/Outlook/uygulama düğmeleri (yalnız e
 $t('admin: web araması aç/kapat düğmesi + gönderimde "Kime" havuz seçimi', str_contains($ha, 'value="finder_toggle"') && str_contains($ha, '▶ Aç') && str_contains($ha, 'name="pool"') && str_contains($ha, 'Tüm yazılmamış müşteriler'));
 $t('admin: Brevo kalan kredi bandı + pay ayarı', str_contains($ha, 'Brevo bugün kalan') && str_contains($ha, 'value="brevo_reserve"'));
 $t('admin: 📤 lemlist CSV formu', str_contains($ha, 'value="lemlist_export"') && str_contains($ha, '📤 lemlist CSV indir') && str_contains($ha, 'name="mark" value="1" checked'));
+$t('admin: 📮 posta kutusu kartı — istek formu, tavan, sunucu durumu', str_contains($ha, 'id="mailboxsend"') && str_contains($ha, 'value="mailbox_request"') && str_contains($ha, 'günlük tavan') && str_contains($ha, 'henüz doğrulanmadı'));
 $t('admin: 🧪 Bana test gönder + test adresi', str_contains($ha, 'name="mode" value="test"') && str_contains($ha, 'name="test_to"'));
 $t('satıcı (kendi anahtarı): PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $hs2));
 

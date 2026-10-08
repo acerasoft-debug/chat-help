@@ -1931,6 +1931,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     foreach($rows as $r) fputcsv($out,array_values($r),',','"','\\');
     fclose($out); exit;
   }
+  /* support@ posta kutusundan kotasız gönderim isteği (8 Eki 2026, operatör: "adminde tetikleyici
+     olsun"). Panel GitHub'ı başlatamaz; istek sıraya yazılır, mailbox-queue.yml 10 dk'da bir alır. */
+  if($act==='mailbox_request'){
+    require_once __DIR__.'/inc/finder.php'; require_once __DIR__.'/inc/mailbox.php';
+    [$ok,$msg]=vestra_mailbox_request((string)($_POST['mode']??''),(int)($_POST['limit']??30),(string)($_POST['campaign']??'lesgarage'),(string)($_POST['test_to']??''),array_keys(vestra_finder_campaigns()));
+    $_SESSION['mailbox_flash']=[$ok,$msg];
+    header('Location: /admin?tab=prospects#mailboxsend'); exit;
+  }
   if($act==='finder_toggle'){
     $dir=vestra_data_dir();
     $cur=is_readable($dir.'/email_settings.json')?json_decode((string)file_get_contents($dir.'/email_settings.json'),true):[]; if(!is_array($cur))$cur=[];
@@ -6506,6 +6514,40 @@ elseif($tab==='prospects'):
         <button class="abtn" type="submit">📤 lemlist CSV indir</button>
       </div>
     </form>
+    <?php
+      require_once __DIR__.'/inc/mailbox.php';
+      $mbCfg=vestra_mailbox_cfg(); $mbCap=vestra_mailbox_daily_cap(); $mbToday=vestra_mailbox_sent_today(); $mbLeft=max(0,$mbCap-$mbToday);
+      $mbRuns=array_reverse(vestra_mailbox_runs()); $mbOpen=null; foreach($mbRuns as $r){ if(vestra_mailbox_is_open($r)){ $mbOpen=$r; break; } }
+      $mbFlash=$_SESSION['mailbox_flash']??null; unset($_SESSION['mailbox_flash']);
+      $mbSt=['requested'=>'⏳ sırada','running'=>'▶ gönderiliyor','done'=>'✓ bitti','failed'=>'✗ hata','stale'=>'— takıldı'];
+    ?>
+    <div id="mailboxsend" style="border:1px solid rgba(31,157,99,.35);background:rgba(31,157,99,.05);border-radius:9px;padding:10px 12px;margin-top:10px">
+      <div style="font-weight:700;font-size:13.5px;margin-bottom:4px">📮 support@ posta kutusundan gönder <span style="color:#1f9d63;font-size:12px">· kotasız, Brevo'ya girmez</span></div>
+      <p class="ahint" style="margin:0 0 6px">E-postalar <b>support@vestrasales.com</b> adresinin kendi sunucusundan (GoDaddy) gider; SPF, DKIM ve DMARC geçer (8 Eki Gmail testi: gelen kutusu). Düğmeye basınca istek sıraya girer, <b>en geç 10 dakika</b> içinde başlar; e-postalar arasında 25–55 sn beklenir. Aynı adrese ikinci kez gitmez; satılık/park alan adları ve abonelikten çıkanlar elenir.</p>
+      <div style="font-size:12.5px;margin:0 0 8px;display:flex;gap:14px;flex-wrap:wrap">
+        <span>Sunucu: <b><?= !empty($mbCfg['smtp_host'])?htmlspecialchars($mbCfg['smtp_host'].':'.($mbCfg['smtp_port']??'')).' ✓':'henüz doğrulanmadı' ?></b><?= !empty($mbCfg['verified_at'])?' <span class="ahint">('.date('d.m H:i',(int)strtotime((string)$mbCfg['verified_at'])).')</span>':'' ?></span>
+        <span>Bugün gönderilen: <b><?= $mbToday ?></b> / günlük tavan <b><?= $mbCap ?></b> · kalan <b><?= $mbLeft ?></b></span>
+        <span>Gönderilmeye hazır: <b><?= count($fsTargetsAll) ?></b></span>
+      </div>
+      <?php if($mbFlash): ?><div class="amsg <?= $mbFlash[0]?'ok':'' ?>"><?= htmlspecialchars((string)$mbFlash[1]) ?></div><?php endif; ?>
+      <?php if($mbOpen): ?><div class="amsg ok"><?= $mbSt[$mbOpen['status']]??'' ?>: <?= $mbOpen['mode']==='test'?'test → '.htmlspecialchars((string)$mbOpen['test_to']):(int)$mbOpen['limit'].' müşteri' ?> · istek <?= date('H:i',(int)strtotime((string)$mbOpen['requested_at'])) ?>. Bitince sonuç burada görünür.</div><?php endif; ?>
+      <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin:0">
+        <?= csrfField() ?><input type="hidden" name="_action" value="mailbox_request">
+        <div class="afield" style="margin:0"><label>Kampanya</label><select name="campaign"><?php foreach($fsCamps as $ck=>[$cl]): ?><option value="<?= htmlspecialchars($ck) ?>"><?= htmlspecialchars(mb_substr($cl,0,48)) ?></option><?php endforeach; ?></select></div>
+        <div class="afield" style="margin:0"><label>Kaç müşteri</label><input name="limit" type="number" min="1" max="<?= max(1,$mbLeft) ?>" value="<?= max(1,min(30,$mbLeft)) ?>" style="width:80px"></div>
+        <div class="afield" style="margin:0"><label>Test adresi</label><input type="email" name="test_to" value="<?= htmlspecialchars((string)vestra_cfg('ops_email','acerasoft@gmail.com')) ?>" style="width:200px"></div>
+        <button class="abtn" type="submit" name="mode" value="test"<?= $mbOpen?' disabled':'' ?>>🧪 Bana test gönder</button>
+        <button class="abtn primary" type="submit" name="mode" value="send" onclick="return confirm('Seçilen kampanya support@ adresinden gönderilsin mi?')"<?= ($mbOpen||$mbLeft<=0||!$fsTargetsAll)?' disabled':'' ?>>📮 Gönder</button>
+      </form>
+      <?php if($mbRuns): ?>
+      <details style="margin-top:8px"><summary class="ahint" style="cursor:pointer">Son gönderimler (<?= count($mbRuns) ?>)</summary>
+        <table style="width:100%;font-size:12px;margin-top:6px;border-collapse:collapse">
+          <?php foreach(array_slice($mbRuns,0,10) as $r): ?>
+          <tr style="border-top:1px solid var(--line)"><td style="padding:4px 6px"><?= date('d.m H:i',(int)strtotime((string)$r['requested_at'])) ?></td><td style="padding:4px 6px"><?= $r['mode']==='test'?'🧪 test':'📮 '.(int)$r['limit'] ?></td><td style="padding:4px 6px"><?= $mbSt[$r['status']]??htmlspecialchars((string)$r['status']) ?></td><td style="padding:4px 6px"><?= isset($r['sent'])?'gönderildi '.(int)$r['sent'].' · geri dönen '.(int)($r['bounced']??0).' · hata '.(int)($r['failed']??0):'' ?> <span class="ahint"><?= htmlspecialchars((string)($r['note']??'')) ?></span></td></tr>
+          <?php endforeach; ?>
+        </table></details>
+      <?php endif; ?>
+    </div>
   </div>
 
   <?php
