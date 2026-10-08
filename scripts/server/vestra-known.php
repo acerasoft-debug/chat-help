@@ -26,9 +26,17 @@ foreach ($leads as $l) {
   }
 }
 $state = vestra_read_json('finder_state.json');
+require_once $home."/public_html/inc/notify.php";
+if (is_readable($home."/public_html/inc/discover_google.php")) require_once $home."/public_html/inc/discover_google.php";
+/* Yalnızca VAR/YOK — anahtarın kendisi sunucudan hiç çıkmaz. */
+$keys = [
+  'brave'  => trim((string)vestra_cfg('brave_key', '')) !== '',
+  'google' => function_exists('vestra_google_key') && vestra_google_key() !== '',
+];
 echo json_encode([
   'emails'  => array_keys($emails),
   'domains' => array_keys($domains),
   'total'   => count($leads),
   'state'   => $state ?: new stdClass(),
+  'keys'    => $keys,
 ], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE), "\n";

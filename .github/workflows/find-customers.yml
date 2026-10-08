@@ -1,4 +1,7 @@
 name: (Günlük) Müşteri bul — web araması + gerçek e-posta
+# Panelden tetiklenen çalışma, panelin verdiği istek no'su ile adlanır: panel kendi
+# isteğinin durumunu ve linkini bu addan bulur (inc/finder.php).
+run-name: ${{ github.event.inputs.request_id && format('Müşteri bul · {0}', github.event.inputs.request_id) || 'Müşteri bul (günlük)' }}
 on:
   schedule:
     - cron: '20 5 * * *'      # her gün 05:20 UTC
@@ -6,43 +9,47 @@ on:
   # bu dal adına push olmadığı için orada hiç tetiklenmez.
   push:
     branches: [claude/wonderful-maxwell-3hdogk]
-    paths: [scripts/find-boutiques.mjs, .github/workflows/find-customers.yml]
+    paths: [scripts/find-boutiques.mjs, scripts/server/**, .github/workflows/find-customers.yml]
   workflow_dispatch:
     inputs:
-      queries_per_run:
-        description: "Kaç arama sorgusu (marka çifti × dil) çalışsın"
+      request_id:
+        description: "Panelin istek no'su (admin/satıcı panelinden tetiklenince dolu gelir; elle boş bırak)"
         required: false
-        default: "40"
-      max_sites:
-        description: "En çok kaç aday site incelensin"
+        default: ""
+      owner_uid:
+        description: "Boş = admin listesi. Satıcı hesap id'si verilirse bulunan leadler O SATICIYA ait olur."
         required: false
-        default: "400"
+        default: ""
+      cities:
+        description: "Google Places şehirleri: 'Ülke|Şehir' virgülle (boş = havuzdan sırayla 6 şehir)"
+        required: false
+        default: ""
       langs:
-        description: "Sorgu dilleri (virgülle: de,it,fr,en,nl,es,pt,pl,el,cs,da,sv,nb,fi) — boş = hepsi, pazar ağırlıklı"
+        description: "Web sorgu dilleri (de,it,fr,en,nl,es,pt,pl,el,cs,da,sv,nb,fi) — boş = hepsi, pazar ağırlıklı"
         required: false
         default: ""
       countries:
         description: "Sadece bu ülkeler (ISO2, virgülle: DE,AT,CH,IT) — boş = hepsi"
         required: false
         default: ""
+      queries_per_run:
+        description: "Kaç web sorgusu (marka çifti × dil)"
+        required: false
+        default: "40"
       extra_queries:
         description: "Kendi arama sorguların (noktalı virgülle ayır) — önce bunlar çalışır"
         required: false
         default: ""
       seed_domains:
-        description: "Arama yapmadan doğrudan incelenecek site(ler) (virgül/boşluk) — elindeki listeyi gerçek e-postaya çevirmek için"
+        description: "Arama yapmadan doğrudan incelenecek site(ler) (virgül/boşluk)"
         required: false
         default: ""
-      engines:
-        description: "Arama motorları (sırayla): bing,ddg,brave"
-        required: false
-        default: "bing,ddg,brave"
       time_budget_min:
         description: "Toplam süre bütçesi (dakika)"
         required: false
         default: "40"
       send:
-        description: "true = bulunanları ekledikten sonra kampanyayı GÖNDER (2+ marka, yazılmamış). Takvimli çalışmada repo değişkeni PROSPECT_AUTO_SEND=true belirler."
+        description: "true = ekledikten sonra kampanyayı GÖNDER (2+ marka, yazılmamış; yalnızca admin listesi). Takvimde repo değişkeni PROSPECT_AUTO_SEND=true belirler."
         required: false
         default: "false"
       send_limit:
@@ -50,13 +57,9 @@ on:
         required: false
         default: "40"
       dry_run:
-        description: "true = sadece bul ve raporla; sunucuya YAZMA, durum dosyasını KAYDETME (ilk deneme için)"
+        description: "true = sadece bul ve raporla; leads.json'a YAZMA"
         required: false
         default: "false"
-      owner_uid:
-        description: "Boş = admin listesi. Satıcı hesap id'si verilirse bulunan leadler O SATICIYA ait olur."
-        required: false
-        default: ""
 
 permissions:
   contents: read      # durum (taranan alan adları) repoda DEĞİL sunucuda: repo public
@@ -67,35 +70,26 @@ concurrency:
   cancel-in-progress: false
 
 # GUNLUK MUSTERI BULMA HATTI (v2). OSM tabanli eski hat (daily-customers / discover-city)
-# kaldirildi: 8 sehir, 27 dakika, 8 lead, 1 gonderim -- dukkanin ne sattigini bilmeyen bir
-# kaynaktan %4 isabetle calisiyordu. Yeni yontem:
+# kaldirildi: 8 sehir, 27 dakika, 8 lead, 1 gonderim.
 #
-#   1) ARAMA    Premium marka CIFTLERI ("Dsquared2" "Balmain" boutique ...) 14 dilde arama
-#               motoruna sorulur. Iki tasarimci markasini birlikte listeleyen site tanimi
-#               geregi COK MARKALI PERAKENDECIDIR -- aradigimiz musteri tam olarak bu.
-#   2) ELEME    Pazar yeri, zincir, buyuk magaza, outlet, markanin kendi sitesi, sosyal,
-#               dizin: siteye girilmeden alan adindan elenir.
-#   3) INCELEME Ana sayfa + iletisim/kunye/yasal/gizlilik/marka sayfalari okunur. Hangi
-#               premium markalari tasidigi sayilir (2+ sart). Ayakkabi / ic camasiri /
-#               toptanci-distributor / zincir siteleri elenir.
-#   4) E-POSTA  SADECE sitede yayinlanmis adres (mailto, Cloudflare gizleme, "(at)" yazimi,
-#               JSON-LD, Shopify politika sayfalari). Tahmin YOK -- uydurulan info@ hard
-#               bounce demek ve Brevo hesabini askiya aldirir. Kunyedeki web ajansi adresi
-#               alinmaz; MX kaydi dogrulanir. Opsiyonel Hunter.io (HUNTER_API_KEY) yalnizca
-#               KAYNAGI olan adresleri verir.
-#   5) KAYIT    Bulunanlar sunucudaki data/leads.json'a eklenir (e-posta + alan adi tekrar
-#               korumasi, KURAL 1 vestra_lead_is_blocked, premium_brands dolu,
-#               _screened=true). Taranan alan adlari ve sorgular sunucuda
-#               data/finder_state.json'da tutulur (repo PUBLIC -- prospect listesi
-#               buraya yazilmaz): ayni site bir daha taranmaz, sorgular 60 gunde doner.
-#
-# Runner'da calismasinin sebebi: sunucu paylasimli hosting (SIGKILL, 25 dk tavan, tek
-# surec); runner 6 saate kadar, paralel, tam internet. Sunucuya yalnizca SSH ile iki kisa
-# PHP betigi gider (scripts/server/).
+#   1) ARAMA    Sunucudaki arama vekili (scripts/server/vestra-search.php); anahtarlar
+#               admin panelinde girilir ve SUNUCUDA kalir (repo public):
+#                 - Brave Search API: premium marka CIFTLERI ("Dsquared2" "Balmain"
+#                   boutique ...) 14 dilde. Iki tasarimci markasini birlikte listeleyen
+#                   site tanimi geregi cok markali perakendecidir.
+#                 - Google Places API (New): sehir bazli butik listesi (mevcut admin
+#                   anahtari). Isletme adi + sitesi gelir.
+#               Bing/DDG HTML yalnizca yedek: GitHub sunucularini captcha ile
+#               engelliyorlar (8 Eki test kosusu: 14 sorgunun 4'u calisti, 0 lead).
+#   2) ELEME    Pazar yeri, zincir, outlet, markanin kendi sitesi: alan adindan.
+#               Ayakkabi / ic camasiri / toptanci-distributor / zincir: site iceriginden.
+#               2+ premium marka sart. Sunucuda ayrica KURAL 1 (vestra_lead_is_blocked).
+#   3) E-POSTA  SADECE sitede yayinlanmis adres; tahmin YOK; MX dogrulanir.
+#   4) KAYIT    data/leads.json (+ owner_uid ile saticiya), data/finder_state.json,
+#               data/finder_runs.json (panelin okudugu sonuc kaydi).
 #
 # Secrets: DEPLOY_HOST / DEPLOY_USER / DEPLOY_SSH_KEY / DEPLOY_PORT (zaten var)
-#          BRAVE_API_KEY  (opsiyonel, onerilir: en guvenilir motor; ucretsiz 2000 sorgu/ay)
-#          HUNTER_API_KEY (opsiyonel: e-posta yayinlamayan uygun siteler icin)
+#          HUNTER_API_KEY (opsiyonel)
 # Variables: PROSPECT_AUTO_SEND=true -> takvimli calisma bulduktan sonra gonderir.
 jobs:
   find:
@@ -108,6 +102,7 @@ jobs:
       TERM: dumb
       DRY_RUN: ${{ github.event_name == 'push' && 'true' || github.event.inputs.dry_run || 'false' }}
       OWNER_UID: ${{ github.event.inputs.owner_uid }}
+      REQ_ID: ${{ github.event.inputs.request_id || format('cron-{0}', github.run_id) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -118,10 +113,12 @@ jobs:
       - name: Birim testleri (ağsız)
         run: node scripts/find-boutiques.mjs --selftest
 
-      - name: SSH ayarı
+      - name: Girdileri doğrula + SSH ayarı
         env:
           KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
+          case "$OWNER_UID" in *[!A-Za-z0-9_-]*) echo "HATA: owner_uid gecersiz"; exit 1 ;; esac
+          case "$REQ_ID"    in *[!A-Za-z0-9_-]*) echo "HATA: request_id gecersiz"; exit 1 ;; esac
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           printf '%s\n' "$KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
@@ -139,15 +136,18 @@ jobs:
           } > ~/.ssh/config
           chmod 600 ~/.ssh/config
 
-      # Sunucudaki mevcut leadler (gonderilmis, bounce, cikmis dahil) tekrar eklenmesin.
-      - name: Sunucudaki mevcut leadleri al
+      # Sunucudaki mevcut leadler (gonderilmis, bounce, cikmis dahil) tekrar eklenmesin;
+      # tarama durumu ve hangi anahtarlarin tanimli oldugu (yalnizca VAR/YOK) da buradan.
+      # scp DEGIL ssh'a boru: paylasimli hostta sftp olmayabilir (deploy-vestra.yml'de kayitli).
+      - name: Sunucudan mevcut leadleri + durumu al, arama vekilini kur
         run: |
           set -o pipefail
           if ssh vestra 'mkdir -p ~/vestra_tmp' \
              && ssh vestra 'cat > ~/vestra_tmp/known.php' < scripts/server/vestra-known.php \
+             && ssh vestra 'cat > ~/vestra_tmp/search.php' < scripts/server/vestra-search.php \
              && ssh vestra 'cd ~/public_html && php ~/vestra_tmp/known.php; rc=$?; rm -f ~/vestra_tmp/known.php; exit $rc' > known.raw \
              && grep '^{' known.raw | tail -n 1 > known.json \
-             && python3 -c 'import json;d=json.load(open("known.json"));print("bilinen:",len(d["emails"]),"e-posta,",len(d["domains"]),"alan adi, toplam lead",d.get("total"));json.dump(d.get("state") or {},open("state.json","w"))'; then
+             && python3 -c 'import json;d=json.load(open("known.json"));print("bilinen:",len(d["emails"]),"e-posta,",len(d["domains"]),"alan adi, toplam lead",d.get("total"),"| anahtarlar:",d.get("keys"));json.dump(d.get("state") or {},open("state.json","w"))'; then
             echo "known_ok=true" >> "$GITHUB_ENV"
           else
             # Liste alinamazsa YAZMA: tekrar korumasi olmadan eklemek ayni butige ikinci
@@ -158,16 +158,18 @@ jobs:
           fi
 
       - name: Butikleri bul + gerçek e-postaları çıkar
+        id: finder
         env:
           QUERIES_PER_RUN: ${{ github.event.inputs.queries_per_run || (github.event_name == 'push' && '14') || '40' }}
-          MAX_SITES: ${{ github.event.inputs.max_sites || '400' }}
+          CITIES: ${{ github.event.inputs.cities }}
+          PLACES_PER_RUN: ${{ github.event_name == 'push' && '2' || '6' }}
           LANGS: ${{ github.event.inputs.langs }}
           COUNTRIES: ${{ github.event.inputs.countries }}
           EXTRA_QUERIES: ${{ github.event.inputs.extra_queries }}
           SEED_DOMAINS: ${{ github.event.inputs.seed_domains }}
-          ENGINES: ${{ github.event.inputs.engines || 'bing,ddg,brave' }}
+          ENGINES: server,bing,ddg
+          SEARCH_CMD: ssh vestra 'cd ~/public_html && php ~/vestra_tmp/search.php'
           TIME_BUDGET_MIN: ${{ github.event.inputs.time_budget_min || (github.event_name == 'push' && '15') || '40' }}
-          BRAVE_API_KEY: ${{ secrets.BRAVE_API_KEY }}
           HUNTER_API_KEY: ${{ secrets.HUNTER_API_KEY }}
           KNOWN_FILE: known.json
           STATE_FILE: state.json
@@ -183,10 +185,9 @@ jobs:
           if [ -f out/report.md ]; then cat out/report.md >> "$GITHUB_STEP_SUMMARY"; else echo "rapor uretilemedi" >> "$GITHUB_STEP_SUMMARY"; fi
 
       - name: Leadleri + durumu sunucuya yaz (data/leads.json, data/finder_state.json)
-        if: ${{ env.DRY_RUN != 'true' && env.known_ok == 'true' }}
+        if: ${{ env.DRY_RUN != 'true' && env.known_ok == 'true' && steps.finder.outcome == 'success' }}
         run: |
           set -o pipefail
-          case "$OWNER_UID" in *[!A-Za-z0-9_-]*) echo "HATA: owner_uid gecersiz"; exit 1 ;; esac
           ssh vestra 'cat > ~/vestra_tmp/found.json' < out/leads.json
           ssh vestra 'cat > ~/vestra_tmp/state.json' < state.json
           ssh vestra 'cat > ~/vestra_tmp/push.php' < scripts/server/vestra-push-leads.php
@@ -194,7 +195,7 @@ jobs:
           { echo ""; echo "### Sunucuya yazım"; echo '```'; tail -n 5 push.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Kampanya gönder (send=true / PROSPECT_AUTO_SEND)
-        if: ${{ env.DRY_RUN != 'true' && env.known_ok == 'true' && env.OWNER_UID == '' && (github.event.inputs.send || vars.PROSPECT_AUTO_SEND || 'false') == 'true' }}
+        if: ${{ env.DRY_RUN != 'true' && env.known_ok == 'true' && env.OWNER_UID == '' && steps.finder.outcome == 'success' && (github.event.inputs.send || vars.PROSPECT_AUTO_SEND || 'false') == 'true' }}
         env:
           SEND_LIMIT: ${{ github.event.inputs.send_limit || '40' }}
         run: |
@@ -203,3 +204,20 @@ jobs:
           ssh vestra 'cat > ~/vestra_tmp/send.php' < scripts/server/vestra-send-new.php
           ssh vestra "cd ~/public_html && SEND_LIMIT=${SEND_LIMIT} php ~/vestra_tmp/send.php; rc=\$?; rm -f ~/vestra_tmp/send.php; exit \$rc" | tee send.log
           { echo ""; echo "### Gönderim"; echo '```'; tail -n 40 send.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      # Panelin "Web'den müşteri bul" kartı sonucu buradan okur (data/finder_runs.json).
+      # Basarisiz kosu da yazilir: panel "calisiyor" diye sonsuza dek beklemesin.
+      - name: Sonucu panele yaz (data/finder_runs.json)
+        if: ${{ always() && env.known_ok == 'true' && github.event_name != 'push' }}
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          [ -f out/summary.json ] && ssh vestra 'cat > ~/vestra_tmp/summary.json' < out/summary.json || true
+          [ -f out/report.md ]    && ssh vestra 'cat > ~/vestra_tmp/report.md' < out/report.md || true
+          ssh vestra 'cat > ~/vestra_tmp/report.php' < scripts/server/vestra-finder-report.php
+          ssh vestra "cd ~/public_html && php ~/vestra_tmp/report.php '${REQ_ID}' ~/vestra_tmp/summary.json ~/vestra_tmp/report.md '${RUN_URL}' '${JOB_STATUS}' '${DRY_RUN}' '${OWNER_UID}'; rm -f ~/vestra_tmp/report.php ~/vestra_tmp/summary.json ~/vestra_tmp/report.md"
+
+      - name: Sunucudaki geçici dosyaları temizle
+        if: ${{ always() && env.known_ok == 'true' }}
+        run: ssh vestra 'rm -f ~/vestra_tmp/search.php ~/vestra_tmp/known.php ~/vestra_tmp/found.json ~/vestra_tmp/state.json ~/vestra_tmp/push.php ~/vestra_tmp/send.php' || true

@@ -23,8 +23,11 @@
  *                data/finder_state.json olarak saklanır — repo PUBLIC, oraya yazılmaz).
  *
  * ENV (hepsi opsiyonel)
+ *   SEARCH_CMD="ssh vestra 'php …/search.php'"  → sunucu vekili: Brave Search API +
+ *                Google Places (anahtarlar admin panelinde, sunucuda; buraya gelmez)
+ *   CITIES="Italy|Milano, Germany|München"  PLACES_PER_RUN=6 (boşsa havuzdan sırayla)
  *   QUERIES_PER_RUN=40  MAX_SITES=400  TIME_BUDGET_SEC=2400  CONCURRENCY=6
- *   LANGS=de,it,fr      COUNTRIES=DE,AT,IT   ENGINES=bing,ddg,brave   BRAVE_API_KEY=…
+ *   LANGS=de,it,fr      COUNTRIES=DE,AT,IT   ENGINES=server,brave,bing,ddg  (brave = runner'da BRAVE_API_KEY ile; normalde sunucu vekili)
  *   EXTRA_QUERIES="…"   SEED_DOMAINS="a.de, b.it"  (arama yapmadan doğrudan incele)
  *   KNOWN_FILE=known.json  ({emails:[…],domains:[…]} — sunucudaki mevcut leadler)
  *   STATE_FILE=out/state.json  OUT_DIR=out  DRY_RUN=1 (durumu yazma)
@@ -34,6 +37,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname } from 'node:path';
 import dns from 'node:dns/promises';
+import { spawnSync } from 'node:child_process';
 
 /* ============================== AYARLAR ============================== */
 const ENV = process.env;
@@ -47,7 +51,10 @@ const CFG = {
   concurrency:   Math.min(num('CONCURRENCY', 6), 12),
   langs:         list('LANGS').map(s => s.toLowerCase()),
   countries:     list('COUNTRIES').map(s => s.toUpperCase()),
-  engines:       (list('ENGINES').length ? list('ENGINES') : ['bing', 'ddg', 'brave']).map(s => s.toLowerCase()),
+  engines:       (list('ENGINES').length ? list('ENGINES') : ['server', 'brave', 'bing', 'ddg']).map(s => s.toLowerCase()),
+  searchCmd:     (ENV.SEARCH_CMD ?? '').trim(),                       // sunucu arama vekili (anahtarlar sunucuda)
+  cities:        (ENV.CITIES ?? '').split(/[,;\n]+/).map(s => s.trim()).filter(s => s.includes('|')),
+  placesPerRun:  num('PLACES_PER_RUN', 6),
   braveKey:      (ENV.BRAVE_API_KEY ?? '').trim(),
   extraQueries:  (ENV.EXTRA_QUERIES ?? '').split(/\r?\n|;/).map(s => s.trim()).filter(Boolean),
   seedDomains:   list('SEED_DOMAINS'),
@@ -592,7 +599,7 @@ async function mailDomainOk(dom) {
   mxCache.set(dom, ok); return ok;
 }
 
-async function analyzeSite(domain, ctx) {
+async function analyzeSite(domain, ctx, hint = {}) {
   const res = { domain, status: 'fail', reason: '', pages: 0 };
   let base = ''; let home = null;
   for (const u of [`https://${domain}/`, `https://www.${domain}/`, `http://${domain}/`]) {
@@ -642,8 +649,10 @@ async function analyzeSite(domain, ctx) {
   const cls = classify(domain, home.text, pagesText, hrefsText);
   res.title = cls.title; res.brands = cls.brands; res.signals = cls.signals;
   res.company = companyName(home.text, domain);
-  res.country = detectCountry(domain, pagesText, htmlLang);
-  res.phone = (pagesText.match(/(?:\+|00)\d{1,3}[\s\d().\-/]{6,16}\d/) || [''])[0].replace(/\s+/g, ' ').trim();
+  /* Google Places işletme adı, sayfa başlığından türetilen addan daha güvenilir. */
+  if (hint.name && hint.name.length >= 2 && hint.name.length <= 70) res.company = hint.name.trim();
+  res.country = detectCountry(domain, pagesText, htmlLang) || hint.countryHint || '';
+  res.phone = hint.phone || (pagesText.match(/(?:\+|00)\d{1,3}[\s\d().\-/]{6,16}\d/) || [''])[0].replace(/\s+/g, ' ').trim();
   if (cls.reason) { res.status = 'excl'; res.reason = cls.reason; return res; }
   if (CFG.countries.length && (!res.country || !CFG.countries.includes(COUNTRY_ISO[res.country] || ''))) { res.status = 'excl'; res.reason = 'excl:country'; return res; }
 
@@ -683,6 +692,30 @@ async function hunterLookup(domain) {
 }
 
 /* ============================== ANA AKIŞ ============================== */
+/* Google Places için şehir havuzu (CITIES boşsa sırayla dönülür). Almanya bilerek az:
+   operatör "alabilirsin ama az" dedi (eski daily-customers havuzundaki kayıt). */
+const CITY_POOL = [
+  'Italy|Milano', 'Italy|Roma', 'Italy|Firenze', 'Italy|Napoli', 'Italy|Torino', 'Italy|Bologna', 'Italy|Verona', 'Italy|Bari', 'Italy|Padova', 'Italy|Palermo',
+  'France|Paris', 'France|Lyon', 'France|Marseille', 'France|Nice', 'France|Bordeaux', 'France|Lille', 'France|Toulouse', 'France|Cannes',
+  'Spain|Madrid', 'Spain|Barcelona', 'Spain|Valencia', 'Spain|Sevilla', 'Spain|Málaga', 'Spain|Bilbao', 'Spain|Marbella',
+  'Netherlands|Amsterdam', 'Netherlands|Rotterdam', 'Netherlands|Utrecht', 'Netherlands|Den Haag', 'Netherlands|Eindhoven',
+  'Belgium|Antwerpen', 'Belgium|Bruxelles', 'Belgium|Gent', 'Switzerland|Zürich', 'Switzerland|Genève', 'Switzerland|Basel', 'Switzerland|Lugano',
+  'Austria|Wien', 'Austria|Salzburg', 'Austria|Graz', 'Germany|München', 'Germany|Düsseldorf', 'Germany|Hamburg',
+  'Portugal|Lisboa', 'Portugal|Porto', 'Greece|Athens', 'Greece|Thessaloniki', 'Poland|Warszawa', 'Poland|Kraków', 'Poland|Wrocław',
+  'United Kingdom|London', 'United Kingdom|Manchester', 'Ireland|Dublin', 'Denmark|København', 'Sweden|Stockholm', 'Norway|Oslo',
+];
+const COUNTRY_LANG = { Italy: 'it', France: 'fr', Spain: 'es', Netherlands: 'nl', Belgium: 'nl', Switzerland: 'de', Austria: 'de', Germany: 'de',
+  Portugal: 'pt', Greece: 'el', Poland: 'pl', 'United Kingdom': 'en', Ireland: 'en', Denmark: 'da', Sweden: 'sv', Norway: 'nb', Czechia: 'cs', Finland: 'fi' };
+
+/* Sunucu vekili: tek SSH çağrısında tüm sorgular. Anahtar runner'a hiç gelmez. */
+export function callServerSearch(cmd, payload, timeoutSec) {
+  const r = spawnSync('bash', ['-c', cmd], { input: JSON.stringify(payload), encoding: 'utf8', timeout: timeoutSec * 1000, maxBuffer: 64 * 1024 * 1024 });
+  if (r.error) return { error: String(r.error.message || r.error) };
+  const line = String(r.stdout || '').split('\n').filter(l => l.startsWith('{')).pop();
+  if (!line) return { error: `bos yanit (rc=${r.status}) ${String(r.stderr || '').split('\n').filter(l => !/tput/.test(l)).join(' ').slice(0, 200)}` };
+  try { return JSON.parse(line); } catch (e) { return { error: 'JSON: ' + e.message }; }
+}
+
 function loadJson(p, d) { try { return existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : d; } catch { return d; } }
 function saveJson(p, o) { mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, JSON.stringify(o, null, 1) + '\n'); }
 
@@ -697,21 +730,58 @@ async function main() {
   /* ---- 1) sorgular ---- */
   const dayIdx = Math.floor(Date.now() / 86400e3);
   const queries = [...CFG.extraQueries.map(q => ({ q, lang: 'en', extra: true })), ...buildQueries(CFG.queriesPerRun, state, CFG.langs, dayIdx * 7919)];
-  const engines = CFG.engines.filter(e => ENGINE[e] && (e !== 'brave' || CFG.braveKey));
+  const engines = CFG.engines.filter(e => ENGINE[e] && (e !== 'brave' || CFG.braveKey));   // 'server' ayrı yürür (1a)
   const engStat = Object.fromEntries(engines.map(e => [e, { ok: 0, empty: 0, blocked: 0, urls: 0, dead: false }]));
   const cands = new Map();                                            // reg domain -> {q, url}
   const seenRun = new Set();
-  const consider = (url, q) => {
+  const consider = (url, q, hint = {}) => {
     let host; try { host = new URL(url).hostname; } catch { return; } if (!host || /^\d+\.\d+\.\d+\.\d+$/.test(host)) return;
     const reg = registrableDomain(host); if (!reg.includes('.') || cands.has(reg) || seenRun.has(reg)) return;
     if (CFG.countries.length) { const c = TLD_COUNTRY[tld(reg)]; if (c && !CFG.countries.includes(COUNTRY_ISO[c] || '')) return; }
-    cands.set(reg, { q, url });
+    cands.set(reg, { q, url, ...hint });
   };
+  const notes = [];
+  const srvStat = { used: false, brave: null, places: null, keys: knownRaw.keys || {} };
+
+  /* ---- 1a) sunucu vekili: Brave (marka çifti sorguları) + Google Places (şehirler) ---- */
+  let webLeft = queries;
+  if (CFG.engines.includes('server') && CFG.searchCmd) {
+    const keys = knownRaw.keys || {};
+    let placeT = [];
+    if (keys.google) {
+      if (CFG.cities.length) placeT = CFG.cities;
+      else { const cur = Number(state.placesCursor || 0) % CITY_POOL.length;
+        for (let k = 0; k < CFG.placesPerRun; k++) placeT.push(CITY_POOL[(cur + k) % CITY_POOL.length]);
+        if (!CFG.dryRun) state.placesCursor = (cur + CFG.placesPerRun) % CITY_POOL.length; }
+      if (CFG.countries.length) placeT = placeT.filter(pc => CFG.countries.includes(COUNTRY_ISO[pc.split('|')[0].trim()] || ''));
+    }
+    const webQ = keys.brave ? queries.map(({ q, lang }) => ({ q, lang, cc: (LOCALE[lang] || {}).cc || '' })) : [];
+    if (webQ.length || placeT.length) {
+      log(`sunucu vekili: ${webQ.length} web sorgusu (Brave) + ${placeT.length} sehir (Google Places)...`);
+      const resp = callServerSearch(CFG.searchCmd, { web: webQ, places: placeT.map(pc => ({ country: pc.split('|')[0].trim(), city: (pc.split('|')[1] || '').trim() })), places_phrases: 4, budget: 420 }, 600);
+      srvStat.used = true;
+      if (resp.error) { notes.push('Sunucu arama vekili hata verdi: ' + resp.error); log('  !! vekil hata: ' + resp.error); }
+      else {
+        srvStat.brave = resp.stats?.brave || null; srvStat.places = resp.stats?.places || null;
+        const done = new Set();
+        for (const [q, urls] of Object.entries(resp.web || {})) { done.add(q); const b = cands.size; for (const u of urls) consider(u, q);
+          if (!CFG.dryRun) state.queries[q] = new Date().toISOString().slice(0, 10); log(`  [brave] ${q} -> ${urls.length} sonuc, +${cands.size - b} yeni aday`); }
+        for (const [pc, rows] of Object.entries(resp.places || {})) { const country = pc.split('|')[0]; const b = cands.size;
+          for (const r of rows) consider(r.url, 'places:' + pc, { name: r.name || '', countryHint: country, phone: r.phone || '' });
+          log(`  [places] ${pc} -> ${rows.length} dukkan (siteli), +${cands.size - b} yeni aday`); }
+        webLeft = queries.filter(x => !done.has(x.q));
+        if (srvStat.brave?.note) notes.push('Brave: ' + srvStat.brave.note);
+        if (srvStat.places?.note) notes.push('Google Places: ' + srvStat.places.note);
+      }
+    }
+    if (!keys.brave) notes.push('Brave Search anahtarı girilmemiş (Admin → Müşteriler → Web\'den müşteri bul). Arama motorları GitHub sunucularını engelliyor; anahtarsız sonuç çok az olur.');
+    if (!keys.google) notes.push('Google Places anahtarı yok — şehir bazlı dükkân araması kapalı (Admin → Müşteriler → "Google ile ara").');
+  }
   for (const d of CFG.seedDomains) { let h = d.replace(/^https?:\/\//i, '').split('/')[0]; if (h) consider('https://' + h + '/', '(seed)'); }
 
   let ei = 0, qDone = 0;
-  if (!engines.length) log('arama motoru yok (ENGINES) -- yalnizca seed_domains incelenecek');
-  for (const { q, lang } of queries) {
+  if (!engines.length && !srvStat.used) log('arama motoru yok (ENGINES) -- yalnizca seed_domains incelenecek');
+  for (const { q, lang } of webLeft) {
     if (!engines.length) break;
     if (cands.size >= CFG.maxSites || elapsed() > CFG.budgetSec * 0.4) { log(`arama durdu: ${cands.size} aday / ${Math.round(elapsed())}s`); break; }
     const live = engines.filter(e => !engStat[e].dead); if (!live.length) { log('!! tum arama motorlari engellendi -- kalan sorgular atlandi'); break; }
@@ -748,7 +818,7 @@ async function main() {
   const results = []; let done = 0;
   await (async () => { let i = 0; await Promise.all(Array.from({ length: CFG.concurrency }, async () => {
     while (i < todo.length) { if (elapsed() > CFG.budgetSec) return; const item = todo[i++];
-      let r; try { r = await analyzeSite(item.reg, ctx); } catch (e) { r = { domain: item.reg, status: 'fail', reason: 'fail:' + String(e.message || e).slice(0, 40) }; }
+      let r; try { r = await analyzeSite(item.reg, ctx, item); } catch (e) { r = { domain: item.reg, status: 'fail', reason: 'fail:' + String(e.message || e).slice(0, 40) }; }
       r.query = item.q; results.push(r); done++;
       const tag = r.status === 'ok' ? `+ ${r.company} <${r.email}> ${r.country || '?'} [${(r.brands || []).slice(0, 4).join(', ')}]` : `- ${r.reason}${r.title ? ' | ' + r.title.slice(0, 50) : ''}`;
       log(`  ${String(done).padStart(3)}/${todo.length} ${r.domain}: ${tag}`);
@@ -775,9 +845,13 @@ async function main() {
   const lines = [];
   lines.push(`## Butik bulucu — ${today}${CFG.dryRun ? ' (DRY-RUN)' : ''}`, '');
   lines.push(`| sorgu | aday alan adı | incelenen | **gerçek e-postalı yeni lead** | süre |`, `|---|---|---|---|---|`,
-    `| ${qDone}/${queries.length} | ${cands.size} | ${results.length} | **${leads.length}** | ${Math.floor(secs / 60)} dk ${secs % 60} sn |`, '');
-  lines.push('**Arama motorları:** ' + engines.map(e => `${e}: ${engStat[e].ok} ok / ${engStat[e].empty} boş / ${engStat[e].blocked} engel${engStat[e].dead ? ' (kapatıldı)' : ''}`).join(' · ') + (engines.length ? '' : ' (hiçbiri aktif değil)'), '');
-  if (!CFG.braveKey) lines.push('> `BRAVE_API_KEY` secret tanımlı değil — Brave Search API en güvenilir motor (ücretsiz plan ayda 2000 sorgu, brave.com/search/api). Bing/DDG engellerse günlük sorgu sayısı düşer.', '');
+    `| ${qDone + (srvStat.brave?.ok || 0)}/${queries.length} | ${cands.size} | ${results.length} | **${leads.length}** | ${Math.floor(secs / 60)} dk ${secs % 60} sn |`, '');
+  const engLine = [];
+  if (srvStat.brave) engLine.push(`brave (sunucu): ${srvStat.brave.ok} ok / ${srvStat.brave.err} hata`);
+  if (srvStat.places) engLine.push(`google places (sunucu): ${srvStat.places.ok} ok / ${srvStat.places.err} hata`);
+  for (const e of engines) if (engStat[e].ok + engStat[e].empty + engStat[e].blocked) engLine.push(`${e}: ${engStat[e].ok} ok / ${engStat[e].empty} boş / ${engStat[e].blocked} engel${engStat[e].dead ? ' (kapatıldı)' : ''}`);
+  lines.push('**Arama:** ' + (engLine.join(' · ') || 'yapılmadı'), '');
+  for (const n of notes) lines.push('> ' + n, '');
   if (hunter.key) lines.push(`**Hunter.io:** ${hunter.used} sorgu, ${hunter.hits} adres bulundu${hunter.dead ? ' (anahtar/kota hatası — kapatıldı)' : ''}`, '');
   else lines.push('> `HUNTER_API_KEY` secret tanımlı değil — uygun ama sitesinde adres yayınlamayan butikler için Hunter.io yayınlanmış adresi kaynağıyla bulur (ücretsiz plan ayda 25 arama).', '');
   lines.push('**Eleme dağılımı:** ' + Object.entries(excl).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}=${v}`).join(', '), '');
@@ -790,6 +864,11 @@ async function main() {
   if (noMail.length) { lines.push(`### Uygun ama sitede e-posta yayınlamayan (${noMail.length}) — form/telefon ile ulaşılabilir`, '');
     for (const r of noMail.slice(0, 40)) lines.push(`- ${r.domain} — ${r.company || ''} ${r.country ? '(' + r.country + ')' : ''} ${r.phone ? '☎ ' + r.phone : ''} [${(r.brands || []).slice(0, 4).join(', ')}]`); lines.push(''); }
   const report = lines.join('\n'); writeFileSync(`${CFG.outDir}/report.md`, report);
+  writeFileSync(`${CFG.outDir}/summary.json`, JSON.stringify({
+    date: today, dry: CFG.dryRun, queries: qDone + (srvStat.brave?.ok || 0), candidates: cands.size, analyzed: results.length,
+    added_count: leads.length, added: leads.map(l => ({ company: l.company, email: l.email, country: l.country, website: l.website, brands: l.premium_brands.slice(0, 6) })),
+    no_email: noMail.slice(0, 60).map(r => ({ domain: r.domain, company: r.company || '', country: r.country || '', phone: r.phone || '', brands: (r.brands || []).slice(0, 5) })),
+    excl, notes, secs }));
   log('\n' + report);
 
   if (!CFG.dryRun) {
