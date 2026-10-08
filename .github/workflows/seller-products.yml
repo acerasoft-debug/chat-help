@@ -5620,7 +5620,10 @@ jobs:
       - name: AI anahtar durumu (ai_keys_status) -- salt okunur
         if: ${{ github.event.inputs.admin_mode == 'ai_keys_status' }}
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          AIK_SPEC: ${{ github.event.inputs.payload }}
         with:
+          envs: AIK_SPEC
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -5640,6 +5643,16 @@ jobs:
             echo "ucretsiz ilk kampanya yazari    : ".($r ? 'ACIK ('.$r['provider'].')' : 'KAPALI (anahtar yok)')."\n";
             echo "satici basina ucretsiz          : ".vestra_ai_camp_limits()['free_total']."\n";
             echo "kendi Claude anahtari olan satici: ".count(vestra_ai_camp_seller_keys())."\n";
+            /* payload=call: platform anahtariyla TEK bir deneme cagrisi — kayit yazmaz, sayaca
+               girmez, kimseye gitmez; yalniz HTTP kodu + konu + metnin basi. */
+            if (getenv('AIK_SPEC') === 'call' && ($r = vestra_ai_camp_route(''))) {
+              $sys = "You write short B2B wholesale emails. Return a JSON object with exactly two string fields: \"subject\" and \"body\".";
+              $usr = "Language: Deutsch\nStyle: short and elegant.\nSender name: VESTRA\nProducts:\n- Lacoste — Classic Pique Polo | minimum order: 20 pcs | link: https://vestrasales.com/wholesale/lacoste";
+              $t0 = microtime(true);
+              [$code, $subj, $body, $in, $out, $why] = $r['provider'] === 'deepseek' ? vestra_ai_camp_call_deepseek($r['key'], $sys, $usr) : vestra_ai_camp_call_claude($r['key'], $sys, $usr);
+              printf("deneme (%s): HTTP %d · %.1fs · token %d/%d · %s\n", $r['provider'], $code, microtime(true) - $t0, $in, $out, $why !== '' ? 'neden: '.mb_substr($why, 0, 120) : 'ok');
+              echo "  konu : ".$subj."\n  metin: ".str_replace("\n", ' | ', mb_substr($body, 0, 400))."\n";
+            }
             echo "(salt okunur; anahtar degeri basilmadi)\n";
             PHPEOF
             php /tmp/vestra_aik.php; rm -f /tmp/vestra_aik.php
