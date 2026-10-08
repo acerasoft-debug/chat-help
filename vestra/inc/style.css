@@ -517,6 +517,75 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
   .authtype{grid-template-columns:1fr}
 }
 
+/* register page (8 Eki 2026, "daha okunakli ve estetik"): numarali adimlar,
+   daha acik etiketler, soluk placeholder (eskiden "DE" gibi ornekler girilmis
+   deger gibi okunuyordu), tam genislikte ipucu notu, hafif sozlesme satiri. */
+.regwrap{padding:36px 20px 56px;align-items:flex-start}
+.regcard{max-width:600px;padding:40px 44px 34px;position:relative;overflow:hidden;
+  box-shadow:0 24px 60px -30px rgba(0,0,0,.7)}
+.regcard::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;
+  background:linear-gradient(90deg,transparent,var(--acc) 30%,#e8cf95 50%,var(--acc) 70%,transparent)}
+.regcard .authcard-title{font-size:30px;line-height:1.2}
+.regcard .authcard-sub{font-size:15px;margin-bottom:16px}
+.regtrust{list-style:none;margin:0 0 26px;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.regtrust li{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink);
+  padding:5px 11px 5px 8px;border-radius:999px;background:rgba(201,168,106,.08);border:1px solid rgba(201,168,106,.22)}
+.regtrust svg{color:var(--acc);flex:none}
+.regerr{background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);
+  border-radius:10px;padding:11px 14px;font-size:14px;margin:0 0 18px}
+.regform .regstep{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600;color:var(--ink);
+  margin:30px 0 16px;padding-top:24px;border-top:1px solid var(--line)}
+.regform .regstep:first-child{margin-top:0;padding-top:0;border-top:0}
+.regnum{flex:none;width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#1a1408;background:var(--acc)}
+.regform .authfield{margin-bottom:16px;min-width:0}
+.regform .authfield label{font-size:14px;font-weight:500;color:#d9d5cb;margin-bottom:7px}
+.regform .req{color:var(--acc);font-weight:700}
+.regform input,.regform select{width:100%;font-size:15px;padding:12px 14px;min-height:48px;border-color:rgba(255,255,255,.12);
+  transition:border-color .15s,box-shadow .15s}
+.regform input:hover,.regform select:hover{border-color:rgba(255,255,255,.22)}
+.regform input:focus,.regform select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(201,168,106,.18)}
+.regform input::placeholder{color:#5c5a54;opacity:1}
+.regform .frow{gap:14px;margin-bottom:0}
+.regform .frow-top{align-items:end}
+.regform .frow-pc{grid-template-columns:2fr 3fr}
+.regform .regcode{text-transform:uppercase;letter-spacing:1.5px}
+.regform .regcode::placeholder{text-transform:none;letter-spacing:.5px}
+.reghint{display:flex;gap:9px;align-items:flex-start;margin:-4px 0 18px;padding:11px 13px;border-radius:10px;
+  background:rgba(255,255,255,.03);border:1px solid var(--line);font-size:13px;line-height:1.5;color:var(--mut)}
+.reghint svg{flex:none;margin-top:2px;color:var(--acc)}
+.reghint-inline{display:block;margin:7px 0 0;padding:0;background:none;border:0;font-size:12.5px}
+/* type cards: line icons + radio dot instead of emoji */
+.regform .authtype{gap:12px;margin-bottom:6px}
+.regform .typecard{position:relative;text-align:left;padding:16px 16px 16px 16px;border-radius:14px;border-color:rgba(255,255,255,.12)}
+.regform .typecard input{position:absolute;opacity:0;width:1px;height:1px;min-height:0;pointer-events:none}
+.regform .typecard:has(input:focus-visible){outline:2px solid var(--acc);outline-offset:2px}
+.regform .typecard .ticon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  margin-bottom:10px;color:var(--acc);background:rgba(201,168,106,.1)}
+.regform .typecard .tl{font-size:15px}
+.regform .typecard .ts{font-size:13px;line-height:1.45;margin-top:3px}
+.regform .typecard .tdot{position:absolute;top:16px;right:16px;width:18px;height:18px;border-radius:50%;
+  border:1.5px solid rgba(255,255,255,.25);transition:.15s}
+.regform .typecard.on .tdot{border-color:var(--acc);background:radial-gradient(circle,var(--acc) 0 4.5px,transparent 5px)}
+.regform .typecard.on .ticon{background:var(--acc);color:#1a1408}
+.regsubmit{width:100%;justify-content:center;margin-top:10px;min-height:52px;font-size:15.5px;font-weight:600}
+.regterms{margin:14px 0 0;font-size:12.5px;line-height:1.55;color:var(--mut);text-align:center}
+.regcard .authcard-foot{margin-top:22px;padding-top:20px;border-top:1px solid var(--line)}
+[dir="rtl"] .regform .typecard{text-align:right}
+[dir="rtl"] .regform .typecard .tdot{right:auto;left:16px}
+@media(max-width:520px){
+  .regwrap{padding:18px 12px 40px}
+  .regcard{padding:28px 18px 26px;border-radius:16px}
+  .regcard .authcard-title{font-size:25px}
+  .regform .authtype{grid-template-columns:1fr 1fr;gap:10px}
+  .regform .typecard{padding:14px 12px}
+  .regform .typecard .ticon{width:34px;height:34px;margin-bottom:8px}
+  .regform .typecard .tdot{top:12px;right:12px}
+  [dir="rtl"] .regform .typecard .tdot{left:12px}
+  .regform .frow-pc{grid-template-columns:1fr}
+}
+@media(max-width:360px){.regform .authtype{grid-template-columns:1fr}}
+
 /* ── Buyer/seller messaging ─────────────────────────────────────────────────
    Tek cizim yolu: inc/messages.php → vestra_msg_panel_html (alici + satici).
    Masaustu: solda konusma listesi, sagda acik konusma; ikisi de kendi icinde

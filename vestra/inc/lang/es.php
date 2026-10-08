@@ -1366,4 +1366,7 @@ return array (
   'VESTRA is a B2B wholesale marketplace for retailers. Wholesale prices open with a free trade account.' => 'VESTRA es un marketplace B2B de venta al por mayor para minoristas. Los precios mayoristas se ven con una cuenta profesional gratuita.',
   'Create a free trade account' => 'Crear una cuenta profesional gratuita',
   'Polo Shirts' => 'Polos',
+  'Free account' => 'Cuenta gratuita',
+  'Verified businesses only' => 'Solo empresas verificadas',
+  'Optional details' => 'Datos opcionales',
 );
