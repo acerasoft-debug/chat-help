@@ -39,7 +39,7 @@ $o .= "> VESTRA (vestrasales.com) is a business-to-business wholesale marketplac
     . "outlets and online shops — buy branded apparel, footwear and accessories in wholesale quantities from verified sellers. "
     . "It is not a consumer shop: accounts are for registered businesses.\n\n";
 $o .= "Live catalogue: ".count($prods)." wholesale listings from ".count($count)." brands"
-    . ($moqMin ? "; minimum order quantities start at {$moqMin} pieces (median {$moqMed}) and are stated on every listing" : '')
+    . ($moqMin ? "; minimum order quantities start at {$moqMin} ".($moqMin === 1 ? 'piece' : 'pieces')." (median {$moqMed}) and are stated on every listing" : '')
     . ". Site languages: {$langs}.\n\n";
 
 $o .= "## How buying works\n\n";
