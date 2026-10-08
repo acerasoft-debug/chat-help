@@ -5615,6 +5615,34 @@ jobs:
       # Varsayilan KURU KOSU; move_apply=true uygular. Once accounts.json yedeklenir,
       # yazma geri okunur. MUSTERIYE HICBIR SEY GITMEZ. payload='skip=<ref|firma parcasi>,...'
       # verilirse o siparisin/firmanin sahibi atlanir.
+      # WEB ARAMASI AÇ/KAPAT (finder_toggle, 8 Eki 2026): admin kartındaki düğmenin aynı yazımı —
+      # email_settings.json finder_enabled. payload=on|off; geri okunur.
+      - name: Web araması aç/kapat (finder_toggle)
+        if: ${{ github.event.inputs.admin_mode == 'finder_toggle' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          FT_SPEC: ${{ github.event.inputs.payload }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: FT_SPEC
+          script: |
+            cat > /tmp/vestra_ft.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html"; require_once $doc."/inc/products.php"; require_once $doc."/inc/notify.php"; require_once $doc."/inc/finder.php";
+            $spec = strtolower(trim((string)getenv('FT_SPEC'))); if (!in_array($spec, ['on', 'off'], true)) { fwrite(STDERR, "payload on|off\n"); exit(1); }
+            $f = vestra_data_dir().'/email_settings.json';
+            $cur = is_readable($f) ? (json_decode((string)file_get_contents($f), true) ?: []) : [];
+            echo "once: ".(vestra_finder_ready() ? 'ACIK' : 'KAPALI')."\n";
+            $cur['finder_enabled'] = $spec === 'on';
+            file_put_contents($f, json_encode($cur, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($f, 0600);
+            $re = json_decode((string)file_get_contents($f), true) ?: [];
+            echo "sonra (geri okundu): ".(!empty($re['finder_enabled']) ? 'ACIK' : 'KAPALI')."\n";
+            PHPEOF
+            php /tmp/vestra_ft.php; rc=$?; rm -f /tmp/vestra_ft.php; exit $rc
+
       # KAMPANYA GÖNDERİM SONDASI (send_probe, 8 Eki 2026, operatör: "kampanyada göndermiyor"):
       # web aramasıyla bulunmuş gönderilebilir hedef sayısı, neden elendikleri, Brevo hesabı ve
       # kalan kredisi (GET /v3/account — ücretsiz, posta gitmez), mail ayarı, son hata satırları.
@@ -5650,7 +5678,7 @@ jobs:
               if (function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) { $why['KURAL 1']++; continue; }
             }
             $tg = vestra_finder_send_targets(1000);
-            echo "lead toplam: ".count($L)." | web-search: {$ws} | GONDERILEBILIR HEDEF: ".count($tg)."\n";
+            echo "lead toplam: ".count($L)." | web-search: {$ws} | GONDERILEBILIR HEDEF (web): ".count($tg)." | (tum yazilmamis): ".(function_exists('vestra_finder_pools') ? count(vestra_finder_send_targets(6000, 'all')) : 'kod eski')."\n";
             foreach ($why as $k => $n) echo "   elenen ({$k}): {$n}\n";
             foreach (array_slice($tg, 0, 3) as $l) echo "   ornek hedef: ".(string)($l['company'] ?? '')." <".$mask((string)$l['email']).">\n";
             $c = 0; foreach ($L as $l) if (str_starts_with((string)($l['last_campaign'] ?? ''), 'finder/')) $c++;
