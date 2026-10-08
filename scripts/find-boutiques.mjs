@@ -226,6 +226,9 @@ const BLOCK_NAMES = [
   'selfridges', 'harrods', 'harvey nichols', 'john lewis', 'house of fraser', 'galeries lafayette', 'printemps', 'le bon marché',
   'el corte inglés', 'el corte ingles', 'la rinascente', 'de bijenkorf', 'nordstrom', "macy's", 'bloomingdale', 'saks fifth',
   'neiman marcus', 'bergdorf', 'tk maxx', 'tj maxx', 'foot locker', 'jd sports', 'snipes', 'bstn', 'outlet', 'outletcity', 'factory store',
+  'comptoir des cotonniers', 'claudie pierlot', 'the kooples', 'zadig & voltaire', 'gerard darel', 'armand thiery', 'naf naf',
+  'cache cache', 'du pareil au meme', 'petit bateau', 'eden park', 'fiorella rubino', 'piazza italia', 'harmont & blaine',
+  'luisa spagnoli', 'max & co', 'penny black', 'weekend max mara', 'nara camicie', 'camicissima', 'brooksfield', 'yamamay',
   'flagship store', 'offizieller online-shop', 'official online store', 'sito ufficiale', 'site officiel', 'tienda oficial', 'officiële',
 ];
 
@@ -248,6 +251,8 @@ const TERMS = {
     'sweatshirts', 't-shirts', 'tshirts', 'shirts', 'hemden', 'dresses', 'kleider', 'abiti', 'robes', 'vestidos', 'jurken', 'hosen',
     'trousers', 'pants', 'coats', 'mantel', 'cappotti', 'manteaux', 'abrigos', 'jassen', 'knitwear', 'strick', 'maglieria', 'pulls',
     'multibrand', 'multi-brand', 'multimarca', 'multimarques', 'concept store', 'conceptstore'],
+  vintage: ['vintage', 'second hand', 'secondhand', 'second-hand', 'friperie', 'fripes', 'thrift', 'consignment', 'pre-owned', 'preowned',
+    'pre-loved', 'usato', 'seconda mano', 'depot-vente', 'depot vente', 'segunda mano', 'tweedehands', 'secondhand-mode', 'gebrauchte', 'retro'],
   wholesale: ['wholesale', 'wholesaler', 'grosshandel', 'grossist', 'grossiste', 'grossista', 'ingrosso', "all'ingrosso", 'mayorista',
     'al por mayor', 'groothandel', 'atacado', 'atacadista', 'hurtownia', 'hurt odziezowy', 'chondriki', 'velkoobchod', 'engros',
     'b2b', 'trade only', 'distributor', 'distributors', 'distributeur', 'distributore', 'distribuidor', 'distribuidora', 'distribuzione',
@@ -268,7 +273,7 @@ otenet.gr hol.gr forthnet.gr mail.ru yandex.ru bk.ru abv.bg mail.bg btinternet.c
 telia.com telenor.dk mail.dk stofanet.dk online.no live.se spray.se comhem.se elisanet.fi luukku.com kolumbus.fi`.split(/\s+/));
 
 /* Bu yerel kısımlar asla satış muhatabı değildir — tamamen reddedilir. */
-const JUNK_LOCAL = /^(no-?reply|do-?not-?reply|donotreply|noreply[\w.-]*|notification[s]?|mailer-daemon|postmaster|abuse|hostmaster|webmaster|privacy|datenschutz|dpo|dsb|gdpr|rgpd|dsgvo|press|presse|pr|media|jobs?|career[s]?|karriere|recruit(ing|ment)?|hr|bewerbung|billing|invoice[s]?|rechnung(en)?|accounting|buchhaltung|fattur[a-z]*|legal|newsletter|unsubscribe|abmelden|sentry|security|spam|test|demo|example|sample|noemail|nomail|affiliate[s]?|partner(s|ship)?program|investor[s]?|ir|whistleblow[a-z]*|compliance|dev|developer[s]?|it|sysadmin|root|www|ftp)$/i;
+const JUNK_LOCAL = /^(redazione|redaction|redaktion|redactie|editor|editors|editorial|news|magazine|do-?not-?reply|donotreply|noreply[\w.-]*|notification[s]?|mailer-daemon|postmaster|abuse|hostmaster|webmaster|privacy|datenschutz|dpo|dsb|gdpr|rgpd|dsgvo|press|presse|pr|media|jobs?|career[s]?|karriere|recruit(ing|ment)?|hr|bewerbung|billing|invoice[s]?|rechnung(en)?|accounting|buchhaltung|fattur[a-z]*|legal|newsletter|unsubscribe|abmelden|sentry|security|spam|test|demo|example|sample|noemail|nomail|affiliate[s]?|partner(s|ship)?program|investor[s]?|ir|whistleblow[a-z]*|compliance|dev|developer[s]?|it|sysadmin|root|www|ftp)$/i;
 /* Sahte / yer tutucu / platform adresleri. */
 const JUNK_DOMAIN = /(^|\.)(example|domain|yourdomain|your-domain|mydomain|email|mail|test|sentry|wixpress|wix|shopify|myshopify|squarespace|godaddy|jimdo|webflow|wordpress|w3|schema|googleusercontent|cloudflare|cookiebot|onetrust|usercentrics|trustpilot|trustedshops|klarna|paypal|stripe|mollie|adyen|facebook|instagram|google|gmail-smtp|mailchimp|klaviyo|brevo|sendinblue|hubspot|zendesk|freshdesk|intercom|typo3|joomla|magento|prestashop|shopware|oxid|plentymarkets|jtl-software|afterbuy|ebay|amazon|apple|microsoft|adobe|fontawesome|github|npmjs|jquery|bootstrap|unpkg|jsdelivr|elementor|yoast|wpengine|siteground|hostinger|ionos|strato|1und1|one|webgo|all-inkl|hetzner|ovh)\.(com|de|net|org|io|co|eu|fr|it|es|nl|me|at|ch|uk|co\.uk)$/i;
 const IMG_EXT = /\.(png|jpe?g|gif|svg|webp|avif|ico|css|js|woff2?|ttf|pdf)$/i;
@@ -378,14 +383,51 @@ export function extractEmails(html) {
   for (const r of dec.matchAll(/[a-z0-9][a-z0-9._%+-]*@[a-z0-9][a-z0-9.-]*\.[a-z]{2,24}/gi)) add(r[0], 'raw');
   return [...found.entries()].map(([email, where]) => ({ email, where: [...where] }));
 }
-export function scoreEmail(email, siteDomain, where = [], page = '') {
+/* OSM'deki dükkân adı ile sitenin kimliği uyuşuyor mu? 8 Eki Milano: "Comptoir des
+   Cotonniers" kaydının sitesi bir cadde portalıydı (corsovercellimilano.it) — portal bir sürü
+   markayı listelediği için 2+ marka testini geçti. Ad belirteçlerinden biri alan adında ya da
+   site başlığında geçmeli. "Baracuta Store" → baracuta.com gibi "<Marka> Store" + markanın
+   alan adı = markanın kendi mağazası. */
+const NAME_STOP = new Set(['boutique', 'store', 'shop', 'moda', 'mode', 'fashion', 'negozio', 'tienda', 'loja', 'the', 'les', 'des', 'del', 'della',
+  'and', 'und', 'per', 'pour', 'abbigliamento', 'vetements', 'concept', 'atelier', 'maison', 'casa', 'milano', 'paris', 'lyon', 'roma', 'madrid']);
+export function osmSiteMatch(name, domain, siteText) {
+  const nN = normText(name); const lab = domainLabel(domain).replace(/[^a-z0-9]/g, '');
+  const toks = nN.split(/[^a-z0-9]+/).filter(w => w.length >= 3 && !NAME_STOP.has(w));
+  const brandStore = nN.match(/^(.+?)\s+(store|flagship|official store|boutique officielle)$/);
+  if (brandStore && brandStore[1].replace(/[^a-z0-9]/g, '') === lab) return 'excl:brand-site';
+  if (!toks.length) return '';
+  const hay = lab + ' ' + normText(siteText).replace(/[^a-z0-9 ]/g, ' ');
+  const hayFlat = hay.replace(/\s+/g, '');
+  const joined = toks.join('');
+  if (joined.length >= 4 && hayFlat.includes(joined)) return '';
+  for (const t of toks) if (t.length >= 4 ? hayFlat.includes(t) : new RegExp('(?<![a-z0-9])' + t + '(?![a-z0-9])').test(hay)) return '';
+  return 'excl:site-mismatch';
+}
+
+export function freeMailRelated(local, siteDomain, shopName = '') {
+  const flat = local.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const toks = new Set();
+  const lab = domainLabel(siteDomain).replace(/[^a-z0-9]/g, '');
+  if (lab.length >= 4) { toks.add(lab); for (let i = 0; i + 4 <= lab.length; i++) toks.add(lab.slice(i, i + 4)); }
+  for (const w of normText(shopName).split(/[^a-z0-9]+/)) if (w.length >= 4 && !/^(boutique|store|shop|moda|mode|fashion|negozio|tienda)$/.test(w)) toks.add(w);
+  for (const t of toks) if (t.length >= 4 && flat.includes(t)) return true;
+  return false;
+}
+export function scoreEmail(email, siteDomain, where = [], page = '', shopName = '') {
   const [local, dom] = email.split('@'); if (!local || !dom) return -999;
   if (IMG_EXT.test(email) || JUNK_DOMAIN.test(dom) || JUNK_LOCAL.test(local) || local.length > 40 || /[0-9a-f]{20,}/i.test(local)) return -999;
   if (/^(u00|x[0-9a-f]{2})/.test(local) || /\.(png|jpg|gif|svg|webp)@/.test(email)) return -999;
   const site = registrableDomain(siteDomain); const edom = registrableDomain(dom);
   let s = 0;
   if (edom === site) s += 50;
-  else if (FREE_MAIL.has(dom)) s += 20;
+  else if (FREE_MAIL.has(dom)) {
+    /* Ücretsiz sağlayıcıdaki adres dükkânın olabilir (rambelli.milano@gmail) ya da sayfada
+       geçen ilgisiz biri (8 Eki: cappelliegrasso.it → guerrillasonora@gmail). Yerel kısım
+       alan adının ya da dükkân adının en az 4 harflik bir parçasını taşımalı. OSM etiketi
+       dükkânın kendi kaydı olduğu için muaf. */
+    if (!where.includes('osm') && !freeMailRelated(local, site, shopName)) return -999;
+    s += 20;
+  }
   else if (domainLabel(edom).length >= 4 && (domainLabel(site).includes(domainLabel(edom)) || domainLabel(edom).includes(domainLabel(site)))) s += 35;  // shop.de ↔ shop-boutique.de
   else return -999;                                            // üçüncü taraf kurumsal alan adı: web ajansı, fotoğrafçı, hosting…
   let ls = 10; for (const [re, v] of LOCAL_SCORE) if (re.test(local)) { ls = v; break; }
@@ -582,7 +624,8 @@ function classify(domain, home, pagesText, hrefsText) {
 
   let reason = '';
   const identNoCloth = clothI === 0;
-  for (const bn of BLOCK_NAMES) if (normText(ident).includes(normText(bn))) { reason = 'excl:chain'; break; }
+  for (const bn of BLOCK_NAMES) if (new RegExp('(?<![a-z0-9])' + esc(normText(bn)) + '(?![a-z0-9])').test(ident)) { reason = 'excl:chain'; break; }
+  if (!reason && TERMS.vintageRe.some(re => re.test(ident))) reason = 'excl:vintage';
   if (!reason && (whI > 0 || whB >= 2)) reason = 'excl:wholesale';
   if (!reason && ((shoeI > 0 && identNoCloth) || shoeN > clothN + 1 || (tot >= 3 && ns / tot >= 0.6))) reason = 'excl:shoes';
   if (!reason && ((underI > 0 && identNoCloth) || underN > clothN + 1 || (tot >= 3 && nu / tot >= 0.6))) reason = 'excl:underwear';
@@ -632,7 +675,8 @@ async function analyzeSite(domain, ctx, hint = {}) {
   /* OSM'deki e-posta etiketi de YAYINLANMIŞ bir adres (dükkânın kendi kaydı); aynı puanlama
      ve alan adı kuralından geçer — sitenin alan adında ya da ücretsiz sağlayıcıda olmalı. */
   if (hint.osmEmail && hint.osmEmail.includes('@')) { const cur = emails.get(hint.osmEmail) || { where: new Set(), pages: new Set() }; cur.where.add('osm'); cur.pages.add('contact'); emails.set(hint.osmEmail, cur); }
-  const bestNow = () => { let b = -999; for (const [e, m] of emails) b = Math.max(b, scoreEmail(e, domain, [...m.where], [...m.pages].join(','))); return b; };
+  const shopName = hint.name || '';
+  const bestNow = () => { let b = -999; for (const [e, m] of emails) b = Math.max(b, scoreEmail(e, domain, [...m.where], [...m.pages].join(','), shopName)); return b; };
   const wantsBrands = [...chosen.values()].includes('brands'); let gotBrands = false;
   for (const [url, kind] of chosen) {
     if (elapsed() > CFG.budgetSec) break;
@@ -658,9 +702,13 @@ async function analyzeSite(domain, ctx, hint = {}) {
   res.country = detectCountry(domain, pagesText, htmlLang) || hint.countryHint || '';
   res.phone = hint.phone || (pagesText.match(/(?:\+|00)\d{1,3}[\s\d().\-/]{6,16}\d/) || [''])[0].replace(/\s+/g, ' ').trim();
   if (cls.reason) { res.status = 'excl'; res.reason = cls.reason; return res; }
+  if (hint.name) {
+    const m = osmSiteMatch(hint.name, domain, [res.title || '', companyName(home.text, domain)].join(' '));
+    if (m) { res.status = 'excl'; res.reason = m; return res; }
+  }
   if (CFG.countries.length && (!res.country || !CFG.countries.includes(COUNTRY_ISO[res.country] || ''))) { res.status = 'excl'; res.reason = 'excl:country'; return res; }
 
-  const scored = [...emails.entries()].map(([e, m]) => ({ email: e, score: scoreEmail(e, domain, [...m.where], [...m.pages].join(',')) })).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
+  const scored = [...emails.entries()].map(([e, m]) => ({ email: e, score: scoreEmail(e, domain, [...m.where], [...m.pages].join(','), shopName || res.company || '') })).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
   const good = [];
   for (const c of scored.slice(0, 4)) { if (await mailDomainOk(c.email.split('@')[1])) good.push(c); }
   if (!good.length) {
@@ -719,6 +767,8 @@ export function osmPick(tags) {
   const nN = normText(name);
   const hasCloth = TERMS.clothRe.some(re => re.test(nN));
   if (TERMS.wholesaleRe.some(re => re.test(nN))) return { excl: 'excl:wholesale' };
+  if (TERMS.vintageRe.some(re => re.test(nN)) || /^(second|seconda|segunda)/.test(String(tags.second_hand || ''))) return { excl: 'excl:vintage' };
+  if (String(tags.second_hand || '') === 'only') return { excl: 'excl:vintage' };
   /* Dükkân adlarında bileşik kelime sık: "Schuhhaus", "Kinderschuhe", "Wäschestube",
      "Calzaturificio". Ad için kelime sınırı yetmez, kök aranır. */
   const SHOE_STEM = /(schuh|scarpe|calzatur|chaussur|zapat|footwear|sneaker|schoenen)/;
@@ -1049,6 +1099,17 @@ function selftest() {
   t('osm: sadece facebook = site yok', osmPick({ name: 'Bella Moda', website: 'https://www.facebook.com/bellamoda' }).excl === 'no_site');
   t('osm: sitesiz ama kurumsal e-posta = alan adı site olur', osmPick({ name: 'Mode Hansen', email: 'info@mode-hansen.dk' }).web === 'https://mode-hansen.dk/');
   t('osm: sitesiz + gmail = site yok', osmPick({ name: 'Moda Lina', email: 'modalina@gmail.com' }).excl === 'no_site');
+  t('mismatch: zincir adı + cadde portalı', osmSiteMatch('Comptoir des Cotonniers', 'corsovercellimilano.it', 'Corso Vercelli Milano - shopping') === 'excl:site-mismatch');
+  t('mismatch yok: Alex → boutiquealex.com', osmSiteMatch('Alex', 'boutiquealex.com', 'Boutique Alex') === '');
+  t('mismatch yok: Le Guillou → sebastienleguillou.com', osmSiteMatch('Le Guillou', 'sebastienleguillou.com', '') === '');
+  t('mismatch yok: Il girotondo', osmSiteMatch('Il girotondo', 'ilgirotondomilano.it', '') === '');
+  t('marka mağazası: Baracuta Store → baracuta.com', osmSiteMatch('Baracuta Store', 'baracuta.com', 'Baracuta') === 'excl:brand-site');
+  t('ilgisiz gmail reddedilir', scoreEmail('guerrillasonora@gmail.com', 'cappelliegrasso.it', ['text'], 'home', 'Cappelli e Grasso') < 0);
+  t('ilgili gmail kabul', scoreEmail('rambelli.milano@gmail.com', 'rambelli.it', ['text'], 'contact', 'Rambelli') > 0);
+  t('OSM etiketi gmail kabul', scoreEmail('xyz123@gmail.com', 'shop.it', ['osm'], 'contact', 'Shop') > 0);
+  t('redazione@ reddedilir', scoreEmail('redazione@corsovercellimilano.it', 'corsovercellimilano.it') < 0);
+  t('osm: vintage adı', osmPick({ name: 'Why not vintage', website: 'whynotvintage.it' }).excl === 'excl:vintage');
+  t('classify: vintage kimlik', classify('elephantvintage.com', '<title>Elephant Vintage - friperie</title><p>Gucci Prada Versace Valentino</p>', 'Gucci Prada Versace Valentino', '').reason === 'excl:vintage');
   const qs = buildQueries(10, { queries: {} }, ['de', 'it'], 42);
   t('buildQueries count', qs.length === 10 && qs.every(x => ['de', 'it'].includes(x.lang) && x.q.includes('"')));
   t('buildQueries deterministic', JSON.stringify(buildQueries(5, { queries: {} }, [], 7)) === JSON.stringify(buildQueries(5, { queries: {} }, [], 7)));
