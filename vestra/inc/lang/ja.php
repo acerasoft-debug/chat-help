@@ -1361,4 +1361,5 @@ return array (
   'VESTRA is a B2B wholesale marketplace for retailers — %d brands in stock. Wholesale prices open with a free trade account.' => 'VESTRAは小売店向けのB2B卸売マーケットプレイスです — 在庫ブランド%d。卸価格は無料の事業者アカウントで表示されます。',
   'VESTRA is a B2B wholesale marketplace for retailers. Wholesale prices open with a free trade account.' => 'VESTRAは小売店向けのB2B卸売マーケットプレイスです。卸価格は無料の事業者アカウントで表示されます。',
   'Create a free trade account' => '無料の事業者アカウントを作成',
+  'Polo Shirts' => 'ポロシャツ',
 );

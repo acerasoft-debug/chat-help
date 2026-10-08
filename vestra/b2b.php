@@ -47,11 +47,14 @@ $_shopUrl   = '/shop'.($_section !== 'premium' ? '?section='.urlencode($_section
 /* Title = the words the query is built from. Brand × category puts the brand first in
    English and German, after the noun in the Romance languages -- the dictionaries carry
    the word order, this file only supplies the three parts. */
+/* Baslik o dilin kendi kalibiyla (inc/seo_brand.php). */
+require_once __DIR__.'/inc/seo_brand.php';
+$_prof = vestra_seo_brand_profile($items);
 if ($brand !== null) {
-    $PAGE = sprintf(t('%1$s %2$s %3$s — B2B supplier'), $brand, $_catName, $_wholesale);
+    $PAGE = vestra_seo_brand_title($brand, $_prof, $_lang, $_catName);
     $_h1  = sprintf(t('%1$s %2$s %3$s'), $brand, $_catName, $_wholesale);
 } else {
-    $PAGE = sprintf(t('%1$s %2$s — B2B supplier'), $_catName, $_wholesale);
+    $PAGE = vestra_seo_brand_title('', $_prof, $_lang, $_catName);
     $_h1  = sprintf(t('%1$s %2$s'), $_catName, $_wholesale);
 }
 $_brandList = implode(', ', array_slice(array_keys($_brands), 0, 5));

@@ -28,8 +28,16 @@ $urls = [
 /* Per-brand B2B landing pages. These are the pages trade searches actually land on
    ("Lacoste wholesale"), so they rank above individual listings here -- and they are
    derived from live stock, so a sold-out house drops out of the sitemap by itself. */
+/* lastmod: markanin en son eklenen/guncellenen ilani -- yeni parti gelince marka
+   sayfasi "degisti" diye isaretlenir, tarama butcesi oraya gider. */
+$_bmod = [];
+foreach (vestra_products() as $p) {
+  $b = trim((string)($p['brand'] ?? '')); if ($b === '') continue;
+  $ts = max((int)strtotime((string)($p['updated_at'] ?? '')), (int)strtotime((string)($p['added_at'] ?? '')));
+  if ($ts > ($_bmod[$b] ?? 0)) $_bmod[$b] = $ts;
+}
 foreach (vestra_seo_brands(0) as $b) {
-  $urls[] = ['/wholesale/'.vestra_brand_slug($b), 'weekly', '0.8'];
+  $urls[] = ['/wholesale/'.vestra_brand_slug($b), 'weekly', '0.8', !empty($_bmod[$b]) ? date('Y-m-d', $_bmod[$b]) : ''];
 }
 /* Category, collection and brand × category landing pages (inc/seo.php). Same rule as
    the brand pages: derived from live stock, so nothing is listed that would render 404. */

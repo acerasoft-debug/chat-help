@@ -23,6 +23,10 @@ if(!$p){ http_response_code(404); $PAGE=t('Not found'); $NOINDEX=true; require _
 if (!empty($p['unlisted'])) $NOINDEX = true;
 
 $PAGE = vestra_product_title($p) ?: (vestra_product_name($p) ?: 'Product');
+/* <title> = urun adi + o dilin TOPTAN kelimesi ("… — ingrosso", "… — en gros"): alici
+   "dsquared2 t-shirt ingrosso" yaziyor ve baslik o kelimeyi tasimiyordu (8 Eki 2026,
+   Search Console). $PAGE degismiyor -- urun semasinda ad, ad olarak kalir. */
+$TITLE = $PAGE.' — '.(function_exists('vestra_seo_wholesale_word') ? vestra_seo_wholesale_word(vlang()) : 'wholesale');
 /* Photo alt text. Now that robots.txt lets image crawlers into /uploads, alt text is the
    only description these files carry — an empty one costs the listing image search. */
 $_imgAlt = vestra_product_title($p);

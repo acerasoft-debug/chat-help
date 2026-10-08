@@ -1085,6 +1085,13 @@ a.msghead-s:hover{color:var(--acc)}
 .wscopy ul{padding-left:18px;margin:10px 0}
 .wscopy li{margin:5px 0}
 .wsother{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+/* Marka sayfasi: "bir bakista" profili + SSS (acik tema, .faq-* koyu tema renklerini ezer) */
+.wsglance{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin:0}
+.wsglance div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:0}
+.wsglance dt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:0 0 3px}
+.wsglance dd{margin:0;font-size:14px;color:var(--ink);line-height:1.5;overflow-wrap:anywhere}
+.wsfaq{margin-top:12px}.wsfaq .faq-item,.wsfaq .faq-item[open]{background:#fff}
+.wsfaq .faq-item summary{color:var(--ink)}.wsfaq .faq-ans{color:#3d382f}
 .wsother a{background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px;
   font-size:13px;text-decoration:none;color:var(--ink)}
 .wsother a:hover{border-color:var(--acc);color:var(--acc)}

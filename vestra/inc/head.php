@@ -58,7 +58,9 @@ $ACC    = '#c9a86a';
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?= htmlspecialchars($PAGE) ?> — <?= $BRAND ?></title>
+<?php /* $TITLE: sayfa <title>'i $PAGE'ten FARKLI isterse (urun sayfasi: ad + o dilin
+         toptan kelimesi; $PAGE yapilandirilmis veride urun adi olarak kalir). */ ?>
+<title><?= htmlspecialchars($TITLE ?? $PAGE) ?> — <?= $BRAND ?></title>
 <?php
 /* Site geneli varsayilan aciklama. "across Europe" TEK BASINA yaziyordu ve bu, bir
    arama motoruna -- ve sonuc sayfasindaki Amerikali/Avustralyali aliciya -- "burasi
@@ -139,7 +141,7 @@ foreach ($_verify as $_vName => $_vTok):
 <?php endforeach; ?>
 <meta property="og:site_name" content="VESTRA">
 <meta property="og:type" content="website">
-<meta property="og:title" content="<?= htmlspecialchars($PAGE) ?> — <?= $BRAND ?>">
+<meta property="og:title" content="<?= htmlspecialchars($TITLE ?? $PAGE) ?> — <?= $BRAND ?>">
 <meta property="og:description" content="<?= htmlspecialchars($META) ?>">
 <meta property="og:url" content="<?= htmlspecialchars($CANONICAL) ?>">
 <meta property="og:image" content="<?= htmlspecialchars($OG_IMAGE) ?>">
@@ -148,7 +150,7 @@ foreach ($_verify as $_vName => $_vTok):
 <meta property="og:locale:alternate" content="<?= $_loc ?>">
 <?php endforeach; ?>
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="<?= htmlspecialchars($PAGE) ?> — <?= $BRAND ?>">
+<meta name="twitter:title" content="<?= htmlspecialchars($TITLE ?? $PAGE) ?> — <?= $BRAND ?>">
 <meta name="twitter:description" content="<?= htmlspecialchars($META) ?>">
 <meta name="twitter:image" content="<?= htmlspecialchars($OG_IMAGE) ?>">
 <meta name="theme-color" content="#0e0e11">

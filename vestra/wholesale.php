@@ -29,9 +29,16 @@ $_wholesale = vestra_seo_wholesale_word($_lang);
 
 /* Title carries the two words the query is built from -- the house and the trade term.
    Everything else in the title is noise competing for the same pixels. */
-$PAGE     = sprintf(t('%1$s %2$s — B2B supplier'), $brand, $_wholesale);
-$META     = sprintf(t('%1$s %2$s at VESTRA: %3$d listings for boutiques and retailers. Trade prices after registration, low minimums, invoice-based B2B ordering and worldwide shipping from KYC-verified sellers.'),
-                    $brand, $_wholesale, count($items));
+/* Baslik, aciklama, profil ve SSS 9 dilde o dilin KENDI kalibiyla ve CANLI veriden
+   (inc/seo_brand.php, 8 Eki 2026) -- 24 marka sayfasinin ayni kalip metni tasimasi
+   arama motorunda "ince icerik" sayiliyordu. */
+require_once __DIR__.'/inc/seo_brand.php';
+$_prof    = vestra_seo_brand_profile($items);
+$PAGE     = vestra_seo_brand_title($brand, $_prof, $_lang);
+$META     = vestra_seo_brand_meta($brand, $_prof, $_lang);
+$_faq     = vestra_seo_brand_faq($brand, $_prof, $_lang);
+$_glance  = vestra_seo_brand_glance($brand, $_prof, $_lang);
+$_SB      = vestra_seo_brand_lang($_lang);
 $KEYWORDS = vestra_seo_brand_b2b_keywords($brand, $_lang);
 
 /* Structured data: the page is a collection of offers for one brand, so it says exactly
@@ -39,10 +46,17 @@ $KEYWORDS = vestra_seo_brand_b2b_keywords($brand, $_lang);
    how deep the range is without crawling every product page. */
 $_ldItems = [];
 foreach (array_slice($items, 0, 30) as $i => $p) {
+    /* Her satir bir Product (marka, SKU, kategori): arama motoru listeyi urun olarak
+       okur. Fiyat BILEREK yok -- fiyat kapisi kapali, sayfada gorunmeyen rakami
+       veriye yazmak gizleme (cloaking) olurdu. */
     $_ldItems[] = [
         '@type' => 'ListItem', 'position' => $i + 1,
-        'name'  => vestra_product_title($p),
-        'url'   => 'https://vestrasales.com/product?id='.rawurlencode((string)($p['id'] ?? '')),
+        'item'  => array_filter([
+            '@type' => 'Product', 'name' => vestra_product_title($p),
+            'url'   => 'https://vestrasales.com/product?id='.rawurlencode((string)($p['id'] ?? '')),
+            'brand' => ['@type' => 'Brand', 'name' => $brand],
+            'sku'   => (string)($p['sku'] ?? ''), 'category' => (string)($p['cat'] ?? ''),
+        ]),
     ];
 }
 $JSONLD = [
@@ -58,6 +72,7 @@ $JSONLD = [
     ]],
 ];
 
+if ($_faq) $JSONLD[] = vestra_seo_brand_faq_ld($_faq);
 $NAV = 'shop';
 require __DIR__.'/inc/head.php';
 
@@ -94,10 +109,21 @@ $moqs = array_filter(array_map(fn($p) => (int)($p['moq'] ?? 0), $items));
     <a class="wscta2" href="/catalog?brand=<?= urlencode($brand) ?>"><?= t('Download line sheet (.xlsx)') ?></a>
   </div>
 
+  <?php if ($_glance): ?>
+  <div class="wssec">
+    <h2><?= htmlspecialchars(strtr($_SB['glance'], ['{B}' => $brand])) ?></h2>
+    <dl class="wsglance">
+      <?php foreach ($_glance as [$__k, $__v]): ?>
+      <div><dt><?= htmlspecialchars($__k) ?></dt><dd><?= htmlspecialchars($__v) ?></dd></div>
+      <?php endforeach; ?>
+    </dl>
+  </div>
+  <?php endif; ?>
+
   <div class="wssec">
     <h2><?= htmlspecialchars(sprintf(t('%s listings'), $brand)) ?></h2>
     <div class="wsgrid">
-      <?php foreach (array_slice($items, 0, 24) as $p):
+      <?php foreach (array_slice($items, 0, 60) as $p):
             $img = $MEMBER ? vestra_primary_image($p) : null; ?>
         <a class="wscard" href="/product?id=<?= urlencode((string)($p['id'] ?? '')) ?>">
           <div class="wsthumb">
@@ -114,7 +140,7 @@ $moqs = array_filter(array_map(fn($p) => (int)($p['moq'] ?? 0), $items));
         </a>
       <?php endforeach; ?>
     </div>
-    <?php if (count($items) > 24): ?>
+    <?php if (count($items) > 60): ?>
       <p style="margin-top:16px"><a href="/shop" style="color:var(--acc)">
         <?= htmlspecialchars(sprintf(t('See all %d listings in the catalogue →'), count($items))) ?></a></p>
     <?php endif; ?>
@@ -138,6 +164,14 @@ $moqs = array_filter(array_map(fn($p) => (int)($p['moq'] ?? 0), $items));
       <div class="wsother">
         <?php foreach ($bcats as $c => $n): ?>
           <a href="/wholesale/<?= urlencode($_slug) ?>/<?= urlencode(vestra_seo_cat_slug($c)) ?>"><?= htmlspecialchars($brand.' '.t($c).' '.$_wholesale) ?> <span class="wsn"><?= (int)$n ?></span></a>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+    <?php if ($_faq): ?>
+      <h2><?= htmlspecialchars(strtr($_SB['faq_h'], ['{B}' => $brand])) ?></h2>
+      <div class="faq-list wsfaq">
+        <?php foreach ($_faq as $__i => [$__q, $__a]): ?>
+        <details class="faq-item"<?= $__i === 0 ? ' open' : '' ?>><summary><?= htmlspecialchars($__q) ?></summary><div class="faq-ans"><?= htmlspecialchars($__a) ?></div></details>
         <?php endforeach; ?>
       </div>
     <?php endif; ?>
