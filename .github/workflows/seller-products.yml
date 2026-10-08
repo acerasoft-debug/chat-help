@@ -5615,6 +5615,55 @@ jobs:
       # Varsayilan KURU KOSU; move_apply=true uygular. Once accounts.json yedeklenir,
       # yazma geri okunur. MUSTERIYE HICBIR SEY GITMEZ. payload='skip=<ref|firma parcasi>,...'
       # verilirse o siparisin/firmanin sahibi atlanir.
+      # SATICI YOLU UÇTAN UCA (seller_path_test, 8 Eki 2026): satıcı gönderimindeki AYNI çağrı
+      # (vestra_send_mail(..., $cfg) → satıcı ayarıyla vestra_api_send) ile operatöre TEK bir
+      # "[TEST]" mektubu; ayar olarak platformun Brevo anahtarı + support@ verilir (hiçbir satıcı
+      # henüz kurmadı). Ardından Brevo olay kaydı okunur (requests/delivered). Alıcı yalnız
+      # ops_email ya da payload'daki adres. Hiçbir kayda yazmaz.
+      - name: Satıcı gönderim yolu uçtan uca (seller_path_test)
+        if: ${{ github.event.inputs.admin_mode == 'seller_path_test' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SPT_TO: ${{ github.event.inputs.payload }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          envs: SPT_TO
+          script: |
+            cat > /tmp/vestra_spt.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html";
+            require_once $doc."/inc/products.php"; require_once $doc."/inc/notify.php"; require_once $doc."/inc/leads.php"; require_once $doc."/inc/seller_send.php";
+            $to = trim((string)getenv('SPT_TO')); if ($to === '') $to = (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
+            $key = (string)vestra_cfg('mail_api_key', '');
+            if ($key === '') { fwrite(STDERR, "platform Brevo anahtari yok\n"); exit(1); }
+            $cfg = ['mail_enabled' => true, 'mail_api_provider' => 'brevo', 'mail_api_key' => $key, 'mail_from' => 'support@vestrasales.com', 'smtp_from' => 'support@vestrasales.com', 'smtp_name' => 'Test Seller GmbH'];
+            echo "satici 'hazir' mi (can_send): ".(vestra_seller_can_send($cfg) ? 'EVET' : 'HAYIR')."\n";
+            [$tpl] = vestra_seller_test_template('no-such-seller');
+            [$s, $b] = vestra_lead_render_email(vestra_test_sample_lead($to), $tpl);
+            $subj = '[TEST] Satici gonderim yolu '.date('H:i:s').' — '.$s;
+            $t0 = microtime(true);
+            $ok = vestra_send_mail($to, $subj, $b, '', 'Test Seller GmbH', $cfg);
+            printf("gonderim (satici yolu): %s · %.1fs · neden: %s\n", $ok ? 'KABUL EDILDI' : 'BASARISIZ', microtime(true) - $t0, vestra_mail_last_reason() ?: '-');
+            if (!$ok) exit(1);
+            $evs = [];
+            for ($k = 0; $k < 6; $k++) {
+              sleep(10);
+              $ch = curl_init('https://api.brevo.com/v3/smtp/statistics/events?limit=20&sort=desc&email='.rawurlencode($to));
+              curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_HTTPHEADER => ['api-key: '.$key, 'Accept: application/json']]);
+              $j = json_decode((string)curl_exec($ch), true); curl_close($ch);
+              $evs = array_values(array_filter((array)($j['events'] ?? []), fn($e) => str_starts_with((string)($e['subject'] ?? ''), '[TEST] Satici gonderim yolu '.substr($subj, 28, 8))));
+              $types = array_unique(array_map(fn($e) => (string)($e['event'] ?? ''), $evs));
+              echo "  +".(($k + 1) * 10)."s brevo olaylari: ".($types ? implode(',', $types) : '(henuz yok)')."\n";
+              if (in_array('delivered', $types, true) || array_intersect($types, ['hardBounces', 'softBounces', 'blocked', 'invalid', 'error'])) break;
+            }
+            foreach ($evs as $e) echo "    ".($e['date'] ?? '')." ".($e['event'] ?? '')." from=".($e['from'] ?? '')." konu=".mb_substr((string)($e['subject'] ?? ''), 0, 60)."\n";
+            PHPEOF
+            php /tmp/vestra_spt.php; rc=$?; rm -f /tmp/vestra_spt.php; exit $rc
+
       # SATICI GÖNDERİM SONDASI (seller_send_probe, 8 Eki 2026, operatör: "satıcı gönderimlerinin
       # gittiğinden emin ol"): her satıcının gönderim ayarı (Brevo / yalnız SMTP / yok), Brevo
       # anahtarı ve gönderen adresi GERÇEKTEN geçerli mi (GET /v3/account + /v3/senders —
