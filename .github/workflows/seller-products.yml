@@ -5615,6 +5615,60 @@ jobs:
       # Varsayilan KURU KOSU; move_apply=true uygular. Once accounts.json yedeklenir,
       # yazma geri okunur. MUSTERIYE HICBIR SEY GITMEZ. payload='skip=<ref|firma parcasi>,...'
       # verilirse o siparisin/firmanin sahibi atlanir.
+      # TRAFIK KAYNAGI (traffic_sources): sunucunun AWStats veri dosyalarindan ay bazinda
+      # arama motoru, yonlendiren site, arama ifadesi ve ulke. SALT OKUNUR; IP basilmaz.
+      - name: Trafik kaynagi (traffic_sources) -- salt okunur
+        if: ${{ github.event.inputs.admin_mode == 'traffic_sources' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            cat > /tmp/vestra_traffic_sources.php <<'PHPEOF'
+            <?php
+            /* SALT OKUNUR: AWStats veri dosyalarindan trafik kaynagi ozeti (ay bazinda).
+               Yalniz alan adi, arama ifadesi, ulke kodu ve sayi basilir. */
+            $home = getenv('HOME');
+            $files = glob("$home/tmp/awstats/ssl/awstats[0-9][0-9][0-9][0-9][0-9][0-9].vestrasales.com.txt") ?: [];
+            sort($files);
+            $sec = function (string $txt, string $name): array {
+              if (!preg_match('/^BEGIN_'.$name.' \d+\n(.*?)^END_'.$name.'$/sm', $txt, $m)) return [];
+              $out = [];
+              foreach (preg_split('/\n/', trim($m[1])) as $ln) if ($ln !== '' && $ln[0] !== '#') $out[] = explode(' ', $ln);
+              return $out;
+            };
+            foreach ($files as $f) {
+              preg_match('/awstats(\d\d)(\d{4})\./', $f, $mm);
+              $txt = (string)file_get_contents($f);
+              echo "\n######## {$mm[2]}-{$mm[1]} ########\n";
+              foreach ($sec($txt, 'GENERAL') as $r) if (in_array($r[0], ['TotalVisits','TotalUnique','MonthHostsKnown','MonthHostsUnknown'], true)) echo "  {$r[0]}: {$r[1]}\n";
+              /* SEREFERRALS: motor sayfa isabet */
+              $se = $sec($txt, 'SEREFERRALS'); usort($se, fn($a, $b) => (int)$b[1] <=> (int)$a[1]);
+              echo "  -- arama motoru (sayfa) --\n"; foreach (array_slice($se, 0, 8) as $r) printf("    %6d  %s\n", (int)$r[1], $r[0]);
+              /* PAGEREFS: url sayfa isabet -> host */
+              $hosts = [];
+              foreach ($sec($txt, 'PAGEREFS') as $r) {
+                $h = strtolower((string)parse_url($r[0], PHP_URL_HOST)); $h = preg_replace('/^(www|m|l|lm)\./', '', $h);
+                if ($h === '' || str_contains($h, 'vestrasales')) continue;
+                if (preg_match('/sendib|brevo|sendinblue/', $h)) $h = 'brevo (e-posta kampanyasi)';
+                $hosts[$h] = ($hosts[$h] ?? 0) + (int)($r[1] ?? 0);
+              }
+              arsort($hosts);
+              echo "  -- yonlendiren site (sayfa) --\n"; foreach (array_slice($hosts, 0, 20, true) as $h => $v) printf("    %6d  %s\n", $v, $h);
+              $kw = $sec($txt, 'SEARCHWORDS'); usort($kw, fn($a, $b) => (int)$b[1] <=> (int)$a[1]);
+              echo "  -- arama ifadesi --\n"; foreach (array_slice($kw, 0, 25) as $r) printf("    %6d  %s\n", (int)$r[1], urldecode(str_replace('+', ' ', $r[0])));
+              $dm = $sec($txt, 'DOMAIN'); usort($dm, fn($a, $b) => (int)$b[1] <=> (int)$a[1]);
+              echo "  -- ulke (sayfa) --\n"; foreach (array_slice($dm, 0, 20) as $r) printf("    %6d  %s\n", (int)$r[1], $r[0]);
+            }
+            PHPEOF
+            php -l /tmp/vestra_traffic_sources.php >/dev/null || { echo "sozdizimi hatasi"; exit 1; }
+            php -d display_errors=stderr -d error_reporting=-1 /tmp/vestra_traffic_sources.php; RC=$?
+            rm -f /tmp/vestra_traffic_sources.php
+            exit $RC
+
       # KAYIT KAYNAGI (reg_referrers): sunucu erisim gunluklerinden /register sayfasini
       # acanlarin yonlendiren alan adi (Google, e-posta, Instagram...) ve utm_source sayimi.
       # SALT OKUNUR; IP, tam URL ve kullanici ajani basilmaz. Kayitta kaynak alani olmadigi
