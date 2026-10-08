@@ -1,0 +1,222 @@
+[
+ {
+  "match": "plv-nerro-dense-tee",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-nerro-standard-tee",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-nerro-essential-tee",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-nerro-zenith-sweatshirt",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-nerro-sable-hoodie",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-mirra-founders-imprint",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-mirra-stellar-medallion",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-mirra-savage-diarchy",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-mirra-phantom-flux",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-mirra-eternal-ramcrest",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-mirra-crimson-sentient",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-mirra-rouge-seraph",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-mirra-etheria-ascendant",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-mirra-ethereal-cord",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-mirra-forbidden-spirit",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-mirra-rosebound-relic",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-mirra-twin-relic",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-mirra-ziggurat-index",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-mirra-signal-i",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-mirra-black-form",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-sleipnir-ascendant",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-qilin-luminary",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-gullinbursti",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-baal-supremacy",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-tanit-lumina",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-melqart-sovereign",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-kyklos-current",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-aegis-guard",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-tyrian-voyage",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-unbroken-vow",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-sator-code",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-ishtar-lumina",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-circadian-unity",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-ginfaxi-triumph",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-lamassu-ward",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-gryphon-aegis",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-abrax-genesis",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-kallos-absolute",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-aion-epoch",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-star-of-inanna",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-arcana-of-pan",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-ascendant-herald",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-sacra-tidal-oracle",
+  "expect": 1,
+  "status": "approved"
+ },
+ {
+  "match": "plv-nerro-column-tee",
+  "expect": 1,
+  "status": "approved"
+ }
+]
