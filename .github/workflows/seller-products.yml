@@ -5640,6 +5640,23 @@ jobs:
             $to = trim((string)getenv('SPT_TO')); if ($to === '') $to = (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
             $key = (string)vestra_cfg('mail_api_key', '');
             if ($key === '') { fwrite(STDERR, "platform Brevo anahtari yok\n"); exit(1); }
+            if (getenv('SPT_TO') === 'check' || str_starts_with((string)getenv('SPT_TO'), 'check:')) {
+              /* Yalnız OKU: Brevo'nun gönderilen e-posta listesi + o mesajların olayları. */
+              $to = substr((string)getenv('SPT_TO'), 6) ?: (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
+              $g = function (string $u) use ($key) { $ch = curl_init($u); curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_HTTPHEADER => ['api-key: '.$key, 'Accept: application/json']]); $r = curl_exec($ch); $c = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch); return [$c, json_decode((string)$r, true)]; };
+              [$c1, $j1] = $g('https://api.brevo.com/v3/smtp/emails?email='.rawurlencode($to).'&limit=8&sort=desc');
+              echo "smtp/emails HTTP {$c1}\n";
+              foreach ((array)($j1['transactionalEmails'] ?? []) as $m) {
+                echo "  ".($m['date'] ?? '')." | ".mb_substr((string)($m['subject'] ?? ''), 0, 70)." | from ".($m['from'] ?? '')."\n";
+                $mid = (string)($m['messageId'] ?? '');
+                if ($mid !== '' && str_contains((string)($m['subject'] ?? ''), 'Satici gonderim yolu')) {
+                  [$c2, $j2] = $g('https://api.brevo.com/v3/smtp/statistics/events?messageId='.rawurlencode($mid).'&limit=20');
+                  foreach ((array)($j2['events'] ?? []) as $e) echo "      olay: ".($e['date'] ?? '')." ".($e['event'] ?? '').(isset($e['reason']) ? ' ('.$e['reason'].')' : '')."\n";
+                  if (!($j2['events'] ?? [])) echo "      olay: (yok, HTTP {$c2})\n";
+                }
+              }
+              exit(0);
+            }
             $cfg = ['mail_enabled' => true, 'mail_api_provider' => 'brevo', 'mail_api_key' => $key, 'mail_from' => 'support@vestrasales.com', 'smtp_from' => 'support@vestrasales.com', 'smtp_name' => 'Test Seller GmbH'];
             echo "satici 'hazir' mi (can_send): ".(vestra_seller_can_send($cfg) ? 'EVET' : 'HAYIR')."\n";
             [$tpl] = vestra_seller_test_template('no-such-seller');
