@@ -3016,7 +3016,13 @@ function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$
   }
   $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
   $GLOBALS['vestra_api_last_error']=['code'=>(int)$code,'body'=>substr((string)$resp,0,400)];
-  if($code>=200 && $code<300){ $GLOBALS['vestra_api_last_rejected']=false; $GLOBALS['vestra_api_last_error']=null; return true; }
+  if($code>=200 && $code<300){
+    $GLOBALS['vestra_api_last_rejected']=false; $GLOBALS['vestra_api_last_error']=null;
+    /* Sağlayıcının mesaj kimliği: "gitti mi?" sorusu tahminle değil bu kimlikle
+       sorgulansın (Brevo /v3/smtp/statistics/events?messageId=…). */
+    $mj=json_decode((string)$resp,true); $GLOBALS['vestra_api_last_message_id']=(string)($mj['messageId']??($mj['id']??''));
+    return true;
+  }
   /* Definitive rejection with an HTTP status: the provider refused it and nothing was
    * sent, so a fallback transport is safe. Quota exhaustion lands here (Brevo answers
    * 402 "not enough credits"), which is exactly the case worth failing over. */
