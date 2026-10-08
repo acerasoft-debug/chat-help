@@ -1280,12 +1280,42 @@ function vestra_is_monobrand(string $company, string $email='', string $website=
   }
   return false;
 }
+/* KAMPANYA DISI HESAP (operator, 8 Eki 2026, odenmemis fatura nedeniyle askiya
+ * alinan alicilar: "bu musterilere email gonderme artik -- kampanyalardan
+ * uzaklastir"). Hesapta no_campaigns isareti olan adres HICBIR kampanya
+ * partisine girmez. Kapi vestra_lead_is_blocked(): uye kampanyasi, lead partisi,
+ * elle verilen liste ve toplu onizleme hepsi oradan geciyor -- yani hangi dal
+ * ya da is akisi kosarsa kossun kontrol sunucuda. Askidaki hesap uye partisinden
+ * zaten dusuyordu; isaret, hesap yeniden ACILSA da kampanya disinda kalsin
+ * diye ayri ve kalici. Kaldirmak operatorun karari.
+ * Islem mektuplari (siparis, fatura, odeme) bu kapidan GECMEZ: bu yalniz
+ * kampanya. Adres karsilastirmasi kucuk harf + bosluksuz, TAM esitlik. */
+function vestra_campaign_optout(string $email): bool {
+  static $set = null;
+  $email = strtolower(trim($email));
+  if ($email === '') return false;
+  if ($set === null) {
+    $set = [];
+    /* auth.php her cagiranda yuklu degil (lead betikleri notify.php'yi tek
+       basina yukluyor) -- hesap dosyasi o zaman dogrudan okunur. */
+    $accs = function_exists('auth_accounts') ? auth_accounts()
+          : (json_decode((string)@file_get_contents(defined('VESTRA_ACCOUNTS') ? VESTRA_ACCOUNTS : dirname(__DIR__).'/data/accounts.json'), true) ?: []);
+    foreach ((array)$accs as $a) {
+      if (empty($a['no_campaigns'])) continue;
+      $e = strtolower(trim((string)($a['email'] ?? '')));
+      if ($e !== '') $set[$e] = true;
+    }
+  }
+  return isset($set[$email]);
+}
+
 /* One gate for the SEND path, whatever added the lead. Checks the scraped company name,
  * the recorded brand, AND the address's own domain -- any one of them matching is enough.
  * Callers should use this rather than vestra_name_is_blocked() directly: the name alone
  * was the hole that let a batch of Gulf retail groups through a hand-curated send. */
 function vestra_lead_is_blocked(array $lead): bool {
   $co=(string)($lead['company'] ?? ''); $em=(string)($lead['email'] ?? ''); $ws=(string)($lead['website'] ?? '');
+  if(vestra_campaign_optout($em)) return true;
   if(vestra_name_is_blocked($co, (string)($lead['brand'] ?? ''))) return true;
   if(vestra_email_is_service_vendor($em)) return true;
   if(vestra_domain_is_blocked($em, $ws)) return true;
