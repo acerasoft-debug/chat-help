@@ -1,0 +1,24 @@
+ 1  sacra-melqart-sovereign-7.jpg
+ 2  sacra-qilin-luminary-1.jpg
+ 3  sacra-qilin-luminary-2.jpg
+ 4  sacra-qilin-luminary-3.jpg
+ 5  sacra-qilin-luminary-4.jpg
+ 6  sacra-qilin-luminary-5.jpg
+ 7  sacra-qilin-luminary-6.jpg
+ 8  sacra-qilin-luminary-7.jpg
+ 9  sacra-sator-code-1.jpg
+10  sacra-sator-code-2.jpg
+11  sacra-sator-code-3.jpg
+12  sacra-sator-code-4.jpg
+13  sacra-sator-code-5.jpg
+14  sacra-sator-code-6.jpg
+15  sacra-sator-code-7.jpg
+16  sacra-sleipnir-ascendant-1.jpg
+17  sacra-sleipnir-ascendant-2.jpg
+18  sacra-sleipnir-ascendant-3.jpg
+19  sacra-sleipnir-ascendant-4.jpg
+20  sacra-sleipnir-ascendant-5.jpg
+21  sacra-sleipnir-ascendant-6.jpg
+22  sacra-sleipnir-ascendant-7.jpg
+23  sacra-star-of-inanna-1.jpg
+24  sacra-star-of-inanna-2.jpg

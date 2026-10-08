@@ -1,0 +1,24 @@
+ 1  sacra-kallos-absolute-7.jpg
+ 2  sacra-kyklos-current-1.jpg
+ 3  sacra-kyklos-current-2.jpg
+ 4  sacra-kyklos-current-3.jpg
+ 5  sacra-kyklos-current-4.jpg
+ 6  sacra-kyklos-current-5.jpg
+ 7  sacra-kyklos-current-6.jpg
+ 8  sacra-kyklos-current-7.jpg
+ 9  sacra-kyklos-current-8.jpg
+10  sacra-kyklos-current-9.jpg
+11  sacra-lamassu-ward-1.jpg
+12  sacra-lamassu-ward-2.jpg
+13  sacra-lamassu-ward-3.jpg
+14  sacra-lamassu-ward-4.jpg
+15  sacra-lamassu-ward-5.jpg
+16  sacra-lamassu-ward-6.jpg
+17  sacra-lamassu-ward-7.jpg
+18  sacra-lamassu-ward-8.jpg
+19  sacra-melqart-sovereign-1.jpg
+20  sacra-melqart-sovereign-2.jpg
+21  sacra-melqart-sovereign-3.jpg
+22  sacra-melqart-sovereign-4.jpg
+23  sacra-melqart-sovereign-5.jpg
+24  sacra-melqart-sovereign-6.jpg
