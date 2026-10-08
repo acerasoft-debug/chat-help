@@ -51,10 +51,11 @@ const CFG = {
   concurrency:   Math.min(num('CONCURRENCY', 6), 12),
   langs:         list('LANGS').map(s => s.toLowerCase()),
   countries:     list('COUNTRIES').map(s => s.toUpperCase()),
-  engines:       (list('ENGINES').length ? list('ENGINES') : ['server', 'brave', 'bing', 'ddg']).map(s => s.toLowerCase()),
+  engines:       (list('ENGINES').length ? list('ENGINES') : ['server', 'osm', 'brave', 'bing', 'ddg']).map(s => s.toLowerCase()),
   searchCmd:     (ENV.SEARCH_CMD ?? '').trim(),                       // sunucu arama vekili (anahtarlar sunucuda)
   cities:        (ENV.CITIES ?? '').split(/[,;\n]+/).map(s => s.trim()).filter(s => s.includes('|')),
-  placesPerRun:  num('PLACES_PER_RUN', 6),
+  placesPerRun:  num('PLACES_PER_RUN', 6),                         // tur başına şehir (OSM + Places)
+  osmPerCity:    num('OSM_PER_CITY', 150),                          // şehir başına en çok yeni OSM adayı
   braveKey:      (ENV.BRAVE_API_KEY ?? '').trim(),
   extraQueries:  (ENV.EXTRA_QUERIES ?? '').split(/\r?\n|;/).map(s => s.trim()).filter(Boolean),
   seedDomains:   list('SEED_DOMAINS'),
@@ -628,6 +629,9 @@ async function analyzeSite(domain, ctx, hint = {}) {
   const pages = [{ kind: 'home', url: base, html: home.text }];
   let emails = new Map(); const addEmails = (html, kind) => { for (const e of extractEmails(html)) { const cur = emails.get(e.email) || { where: new Set(), pages: new Set() }; e.where.forEach(w => cur.where.add(w)); cur.pages.add(kind); emails.set(e.email, cur); } };
   addEmails(home.text, 'home');
+  /* OSM'deki e-posta etiketi de YAYINLANMIŞ bir adres (dükkânın kendi kaydı); aynı puanlama
+     ve alan adı kuralından geçer — sitenin alan adında ya da ücretsiz sağlayıcıda olmalı. */
+  if (hint.osmEmail && hint.osmEmail.includes('@')) { const cur = emails.get(hint.osmEmail) || { where: new Set(), pages: new Set() }; cur.where.add('osm'); cur.pages.add('contact'); emails.set(hint.osmEmail, cur); }
   const bestNow = () => { let b = -999; for (const [e, m] of emails) b = Math.max(b, scoreEmail(e, domain, [...m.where], [...m.pages].join(','))); return b; };
   const wantsBrands = [...chosen.values()].includes('brands'); let gotBrands = false;
   for (const [url, kind] of chosen) {
@@ -692,6 +696,79 @@ async function hunterLookup(domain) {
 }
 
 /* ============================== ANA AKIŞ ============================== */
+/* ============================== OSM KAYNAĞI (anahtarsız) ==============================
+   Nominatim ile şehrin sınır alanı, Overpass ile o alandaki giyim dükkânları (shop=clothes/
+   boutique/fashion). Eski hattın sorunu kaynak değil İŞLEMEydi: ilk 80-120 dükkânda
+   kesiyordu, "Dusseldorf"/"Vancouver" gibi adları çözemiyordu ve dükkânın ne sattığına
+   bakmıyordu (%4 isabet). Burada her aday sitenin kendisinden 2+ premium marka ve
+   yayınlanmış e-posta testinden geçer; zincir/ayakkabı/iç çamaşırı OSM etiketinden
+   daha siteye girmeden elenir. Daha önce bakılan alan adı tekrar taranmaz. */
+const OSM_UA = 'VestraSalesFinder/1.0 (+https://vestrasales.com)';
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+const SOCIAL_HOST = /(^|\.)(facebook|instagram|linktr|linktree|tiktok|twitter|x|youtube|wa|whatsapp|google|goo|business\.site|pinterest|vk|t)\.(com|me|ee|gl|site|ru)$/i;
+
+/** OSM etiketlerinden aday — ya {web, name, email, phone} ya {excl}. */
+export function osmPick(tags) {
+  const name = String(tags.name || '').trim(); if (!name) return { excl: 'no_name' };
+  if (tags['brand:wikidata'] || tags['operator:wikidata']) return { excl: 'excl:chain' };
+  if (tags.brand && normText(tags.brand) !== normText(name)) return { excl: 'excl:chain' };
+  const cl = String(tags.clothes || '').toLowerCase();
+  if (/underwear|lingerie|nightwear|hosiery|socks|corset|swimwear/.test(cl)) return { excl: 'excl:underwear' };
+  if (/shoes|footwear/.test(cl)) return { excl: 'excl:shoes' };
+  const nN = normText(name);
+  const hasCloth = TERMS.clothRe.some(re => re.test(nN));
+  if (TERMS.wholesaleRe.some(re => re.test(nN))) return { excl: 'excl:wholesale' };
+  /* Dükkân adlarında bileşik kelime sık: "Schuhhaus", "Kinderschuhe", "Wäschestube",
+     "Calzaturificio". Ad için kelime sınırı yetmez, kök aranır. */
+  const SHOE_STEM = /(schuh|scarpe|calzatur|chaussur|zapat|footwear|sneaker|schoenen)/;
+  const UNDER_STEM = /(dessous|lingerie|unterwasche|wasche(?!rei)|intimo|lenceria|bielizn|underwear)/;
+  if (!hasCloth && (SHOE_STEM.test(nN) || TERMS.shoeRe.some(re => re.test(nN)))) return { excl: 'excl:shoes' };
+  if (!hasCloth && (UNDER_STEM.test(nN) || TERMS.underRe.some(re => re.test(nN)))) return { excl: 'excl:underwear' };
+  for (const bn of BLOCK_NAMES) if (new RegExp('(?<![a-z0-9])' + esc(normText(bn)) + '(?![a-z0-9])').test(nN)) return { excl: 'excl:chain' };
+  let web = String(tags.website || tags['contact:website'] || tags.url || '').split(';')[0].trim();
+  if (web && !/^https?:\/\//i.test(web)) web = 'https://' + web;
+  try { if (web && SOCIAL_HOST.test(new URL(web).hostname)) web = ''; } catch { web = ''; }
+  const email = String(tags.email || tags['contact:email'] || '').split(';')[0].trim().toLowerCase();
+  const edom = email.includes('@') ? email.split('@')[1] : '';
+  if (!web && edom && !FREE_MAIL.has(edom)) web = 'https://' + edom + '/';
+  if (!web) return { excl: 'no_site' };
+  return { web, name, email, phone: String(tags.phone || tags['contact:phone'] || '').split(';')[0].trim() };
+}
+
+async function osmCity(country, city) {
+  let areaId = 0, bbox = null;
+  try {
+    const u = 'https://nominatim.openstreetmap.org/search?' + new URLSearchParams({ city, country, format: 'jsonv2', limit: '5' });
+    const r = await fetch(u, { headers: { 'user-agent': OSM_UA, 'accept-language': 'en' }, signal: AbortSignal.timeout(25000) });
+    const j = r.ok ? await r.json() : [];
+    const hit = (Array.isArray(j) ? j : []).find(x => x.osm_type === 'relation') || (Array.isArray(j) ? j[0] : null);
+    if (hit) { if (hit.osm_type === 'relation') areaId = 3600000000 + Number(hit.osm_id); if (Array.isArray(hit.boundingbox)) bbox = hit.boundingbox.map(Number); }
+  } catch { /* aşağıda hata döner */ }
+  if (!areaId && !bbox) return { error: 'şehir bulunamadı (Nominatim)', rows: [] };
+  await sleep(1100);                                                   // Nominatim kullanım kuralı: saniyede 1 istek
+  const sel = '["shop"~"^(clothes|boutique|fashion)$"]';
+  const queries = [];
+  if (areaId) queries.push(`[out:json][timeout:150];area(${areaId})->.a;nwr${sel}(area.a);out tags;`);
+  if (bbox) queries.push(`[out:json][timeout:150];nwr${sel}(${bbox[0]},${bbox[2]},${bbox[1]},${bbox[3]});out tags;`);   // Nominatim bbox: [güney, kuzey, batı, doğu]
+  let lastErr = 'Overpass yanıt vermedi';
+  for (const q of queries) {
+    for (const m of OVERPASS) {
+      try {
+        const r = await fetch(m, { method: 'POST', body: 'data=' + encodeURIComponent(q), signal: AbortSignal.timeout(170000),
+          headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': OSM_UA } });
+        if (r.status !== 200) { lastErr = `Overpass HTTP ${r.status}`; continue; }
+        const j = await r.json();
+        if (!Array.isArray(j.elements)) continue;
+        if (!j.elements.length && /runtime error|timed out|out of memory/i.test(String(j.remark || ''))) { lastErr = 'Overpass zaman aşımı'; continue; }
+        if (j.elements.length) return { rows: j.elements.map(e => e.tags || {}), mirror: new URL(m).hostname };
+        break;                                                         // boş ama hatasız: bbox ile tekrar dene
+      } catch (e) { lastErr = 'Overpass: ' + String(e.message || e).slice(0, 60); }
+    }
+  }
+  return { error: lastErr, rows: [] };
+}
+
 /* Google Places için şehir havuzu (CITIES boşsa sırayla dönülür). Almanya bilerek az:
    operatör "alabilirsin ama az" dedi (eski daily-customers havuzundaki kayıt). */
 const CITY_POOL = [
@@ -743,18 +820,20 @@ async function main() {
   const notes = [];
   const srvStat = { used: false, brave: null, places: null, keys: knownRaw.keys || {} };
 
+  /* Bu turun şehirleri: CITIES verilmişse onlar, yoksa havuzdan sırayla (OSM + Places). */
+  let cityT = [];
+  if (CFG.cities.length) cityT = CFG.cities;
+  else { const cur = Number(state.placesCursor || 0) % CITY_POOL.length;
+    for (let k = 0; k < CFG.placesPerRun; k++) cityT.push(CITY_POOL[(cur + k) % CITY_POOL.length]);
+    if (!CFG.dryRun) state.placesCursor = (cur + CFG.placesPerRun) % CITY_POOL.length; }
+  if (CFG.countries.length) cityT = cityT.filter(pc => CFG.countries.includes(COUNTRY_ISO[pc.split('|')[0].trim()] || ''));
+  const osmStat = { cities: 0, shops: 0, picked: 0, errors: [] };
+
   /* ---- 1a) sunucu vekili: Brave (marka çifti sorguları) + Google Places (şehirler) ---- */
   let webLeft = queries;
   if (CFG.engines.includes('server') && CFG.searchCmd) {
     const keys = knownRaw.keys || {};
-    let placeT = [];
-    if (keys.google) {
-      if (CFG.cities.length) placeT = CFG.cities;
-      else { const cur = Number(state.placesCursor || 0) % CITY_POOL.length;
-        for (let k = 0; k < CFG.placesPerRun; k++) placeT.push(CITY_POOL[(cur + k) % CITY_POOL.length]);
-        if (!CFG.dryRun) state.placesCursor = (cur + CFG.placesPerRun) % CITY_POOL.length; }
-      if (CFG.countries.length) placeT = placeT.filter(pc => CFG.countries.includes(COUNTRY_ISO[pc.split('|')[0].trim()] || ''));
-    }
+    const placeT = keys.google ? cityT : [];
     const webQ = keys.brave ? queries.map(({ q, lang }) => ({ q, lang, cc: (LOCALE[lang] || {}).cc || '' })) : [];
     if (webQ.length || placeT.length) {
       log(`sunucu vekili: ${webQ.length} web sorgusu (Brave) + ${placeT.length} sehir (Google Places)...`);
@@ -774,8 +853,33 @@ async function main() {
         if (srvStat.places?.note) notes.push('Google Places: ' + srvStat.places.note);
       }
     }
-    if (!keys.brave) notes.push('Brave Search anahtarı girilmemiş (Admin → Müşteriler → Web\'den müşteri bul). Arama motorları GitHub sunucularını engelliyor; anahtarsız sonuç çok az olur.');
-    if (!keys.google) notes.push('Google Places anahtarı yok — şehir bazlı dükkân araması kapalı (Admin → Müşteriler → "Google ile ara").');
+    if (!keys.brave) notes.push('Brave Search anahtarı yok — web araması yerine OpenStreetMap dükkân listesi kullanıldı. Brave anahtarı eklenirse sonuç artar (isteğe bağlı).');
+  }
+
+  /* ---- 1b) OpenStreetMap (anahtarsız): şehirdeki giyim dükkânları ---- */
+  if (CFG.engines.includes('osm')) {
+    for (const pc of cityT) {
+      if (elapsed() > CFG.budgetSec * 0.35) { osmStat.errors.push('süre bütçesi'); break; }
+      const [country, city] = pc.split('|').map(x => x.trim());
+      const res = await osmCity(country, city || country);
+      osmStat.cities++;
+      if (res.error) { osmStat.errors.push(`${city}: ${res.error}`); log(`  [osm] ${pc} -> HATA: ${res.error}`); continue; }
+      osmStat.shops += res.rows.length;
+      let picked = 0; const ex = {};
+      for (const tags of res.rows) {
+        if (picked >= CFG.osmPerCity) break;
+        const p = osmPick(tags);
+        if (p.excl) { ex[p.excl] = (ex[p.excl] || 0) + 1; continue; }
+        let reg; try { reg = registrableDomain(new URL(p.web).hostname); } catch { continue; }
+        if (known.domains.has(reg) || cands.has(reg)) continue;
+        const st = state.domains[reg]; if (st && !/^(no_email|fail)/.test(String(st.s || ''))) continue;
+        const b = cands.size; consider(p.web, 'osm:' + pc, { name: p.name, countryHint: country, phone: p.phone, osmEmail: p.email });
+        if (cands.size > b) picked++;
+      }
+      osmStat.picked += picked;
+      log(`  [osm] ${pc} -> ${res.rows.length} dukkan, +${picked} yeni aday (${res.mirror}) | etiketten elenen: ${Object.entries(ex).map(([k, v]) => k + '=' + v).join(', ') || '-'}`);
+      await sleep(2000);
+    }
   }
   for (const d of CFG.seedDomains) { let h = d.replace(/^https?:\/\//i, '').split('/')[0]; if (h) consider('https://' + h + '/', '(seed)'); }
 
@@ -849,6 +953,7 @@ async function main() {
   const engLine = [];
   if (srvStat.brave) engLine.push(`brave (sunucu): ${srvStat.brave.ok} ok / ${srvStat.brave.err} hata`);
   if (srvStat.places) engLine.push(`google places (sunucu): ${srvStat.places.ok} ok / ${srvStat.places.err} hata`);
+  if (osmStat.cities) engLine.push(`openstreetmap: ${osmStat.cities} şehir, ${osmStat.shops} dükkân, ${osmStat.picked} yeni aday${osmStat.errors.length ? ' (' + osmStat.errors.slice(0, 3).join('; ') + ')' : ''}`);
   for (const e of engines) if (engStat[e].ok + engStat[e].empty + engStat[e].blocked) engLine.push(`${e}: ${engStat[e].ok} ok / ${engStat[e].empty} boş / ${engStat[e].blocked} engel${engStat[e].dead ? ' (kapatıldı)' : ''}`);
   lines.push('**Arama:** ' + (engLine.join(' · ') || 'yapılmadı'), '');
   for (const n of notes) lines.push('> ' + n, '');
@@ -931,6 +1036,19 @@ function selftest() {
   t('ddg unwrap', unwrapResultUrl('https://duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.de%2Fx&rut=1') === 'https://example.de/x');
   t('parseBing', parseBing('<li class="b_algo"><h2><a href="https://a.de/">A</a></h2></li><li class="b_algo"><div><h2><a href="https://b.it/p">B</a></h2></div></li>').join(',') === 'https://a.de/,https://b.it/p');
   t('parseDdg', parseDdg('<a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fc.fr%2F&amp;rut=abc">C</a>').join(',') === 'https://c.fr/');
+  t('osm: brand:wikidata = zincir', osmPick({ name: 'H&M', 'brand:wikidata': 'Q188326', website: 'hm.com' }).excl === 'excl:chain');
+  t('osm: marka etiketi adla farklı = zincir', osmPick({ name: 'Hugo Boss Store Köln', brand: 'Hugo Boss', website: 'x.de' }).excl === 'excl:chain');
+  t('osm: clothes=underwear', osmPick({ name: 'Wäsche Weber', clothes: 'women;underwear', website: 'w.de' }).excl === 'excl:underwear');
+  t('osm: ayakkabıcı adı', osmPick({ name: 'Schuhhaus Müller', website: 'schuhhaus-mueller.de' }).excl === 'excl:shoes');
+  t('osm: toptancı adı', osmPick({ name: 'Moda Ingrosso Napoli', website: 'mi.it' }).excl === 'excl:wholesale');
+  t('osm: zincir adı (kelime sınırı)', osmPick({ name: 'Zara', website: 'zara.com' }).excl === 'excl:chain');
+  t('osm: "Mangobay Boutique" zincir DEĞİL', !osmPick({ name: 'Mangobay Boutique', website: 'mangobay.it' }).excl);
+  t('osm: butik + site', osmPick({ name: 'Boutique Rossi', website: 'boutiquerossi.it' }).web === 'https://boutiquerossi.it');
+  t('osm: "Mode & Schuhe Becker" giyim de sattığı için GEÇER', !osmPick({ name: 'Mode & Schuhe Becker', website: 'becker-mode.de' }).excl);
+  t('osm: "Wäschestube" iç çamaşırı', osmPick({ name: 'Wäschestube Lenz', website: 'ws-lenz.de' }).excl === 'excl:underwear');
+  t('osm: sadece facebook = site yok', osmPick({ name: 'Bella Moda', website: 'https://www.facebook.com/bellamoda' }).excl === 'no_site');
+  t('osm: sitesiz ama kurumsal e-posta = alan adı site olur', osmPick({ name: 'Mode Hansen', email: 'info@mode-hansen.dk' }).web === 'https://mode-hansen.dk/');
+  t('osm: sitesiz + gmail = site yok', osmPick({ name: 'Moda Lina', email: 'modalina@gmail.com' }).excl === 'no_site');
   const qs = buildQueries(10, { queries: {} }, ['de', 'it'], 42);
   t('buildQueries count', qs.length === 10 && qs.every(x => ['de', 'it'].includes(x.lang) && x.q.includes('"')));
   t('buildQueries deterministic', JSON.stringify(buildQueries(5, { queries: {} }, [], 7)) === JSON.stringify(buildQueries(5, { queries: {} }, [], 7)));

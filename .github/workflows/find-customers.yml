@@ -16,7 +16,7 @@ on:
         required: false
         default: ""
       cities:
-        description: "Google Places şehirleri: 'Ülke|Şehir' virgülle (boş = havuzdan sırayla 6 şehir)"
+        description: "Şehirler (OpenStreetMap + Google Places): 'Ülke|Şehir' virgülle (boş = havuzdan sırayla 6 şehir)"
         required: false
         default: ""
       langs:
@@ -74,8 +74,11 @@ concurrency:
 #                   site tanimi geregi cok markali perakendecidir.
 #                 - Google Places API (New): sehir bazli butik listesi (mevcut admin
 #                   anahtari). Isletme adi + sitesi gelir.
+#                 - OpenStreetMap (ANAHTARSIZ, her zaman): sehirdeki giyim dukkanlari;
+#                   zincir/ayakkabi/ic camasiri etiketten elenir, kalanin sitesi taranir.
 #               Bing/DDG HTML yalnizca yedek: GitHub sunucularini captcha ile
 #               engelliyorlar (8 Eki test kosusu: 14 sorgunun 4'u calisti, 0 lead).
+#               Panel isteklerini find-customers-queue.yml baslatir (GitHub token gerekmez).
 #   2) ELEME    Pazar yeri, zincir, outlet, markanin kendi sitesi: alan adindan.
 #               Ayakkabi / ic camasiri / toptanci-distributor / zincir: site iceriginden.
 #               2+ premium marka sart. Sunucuda ayrica KURAL 1 (vestra_lead_is_blocked).
@@ -162,7 +165,7 @@ jobs:
           COUNTRIES: ${{ github.event.inputs.countries }}
           EXTRA_QUERIES: ${{ github.event.inputs.extra_queries }}
           SEED_DOMAINS: ${{ github.event.inputs.seed_domains }}
-          ENGINES: server,bing,ddg
+          ENGINES: server,osm,bing,ddg
           SEARCH_CMD: ssh vestra 'cd ~/public_html && php ~/vestra_tmp/search.php'
           TIME_BUDGET_MIN: ${{ github.event.inputs.time_budget_min || (github.event_name == 'push' && '15') || '40' }}
           HUNTER_API_KEY: ${{ secrets.HUNTER_API_KEY }}

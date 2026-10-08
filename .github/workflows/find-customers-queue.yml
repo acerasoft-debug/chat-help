@@ -1,0 +1,87 @@
+name: (Müşteri bul) Panel sırası — 10 dakikada bir
+
+# Admin/satıcı panelindeki "Aramayı başlat" düğmesi GitHub token'ı OLMADAN çalışsın diye:
+# panel isteği sunucuda data/finder_runs.json'a "requested" olarak yazar; bu iş 10 dakikada
+# bir sıradakini alır (scripts/server/vestra-queue.php) ve find-customers.yml'yi GitHub'ın
+# kendi yerleşik yetkisiyle (GITHUB_TOKEN, actions: write) başlatır. GitHub,
+# GITHUB_TOKEN'ın tetiklediği olaylardan yalnızca workflow_dispatch ve repository_dispatch
+# için yeni koşu açar — bu tam o istisna.
+#
+# Sırada istek yoksa ~15 saniyede biter. Repo herkese açık: Actions dakikası ücretsiz.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write      # find-customers.yml'yi workflow_dispatch ile başlatmak için
+  contents: read
+
+concurrency:
+  group: finder-queue
+  cancel-in-progress: false
+
+jobs:
+  take:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || 22 }}
+      TERM: dumb
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/server
+
+      - name: SSH ayarı
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          {
+            echo "Host vestra"
+            echo "  HostName ${DEPLOY_HOST}"
+            echo "  User ${DEPLOY_USER}"
+            echo "  Port ${DEPLOY_PORT}"
+            echo "  IdentityFile ~/.ssh/deploy_key"
+            echo "  StrictHostKeyChecking no"
+            echo "  UserKnownHostsFile /dev/null"
+            echo "  LogLevel ERROR"
+            echo "  ConnectTimeout 25"
+          } > ~/.ssh/config
+          chmod 600 ~/.ssh/config
+
+      - name: Sıradaki isteği al ve aramayı başlat
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -o pipefail
+          ssh vestra 'mkdir -p ~/vestra_tmp' && ssh vestra 'cat > ~/vestra_tmp/queue.php' < scripts/server/vestra-queue.php || { echo "sunucuya ulasilamadi -- bir sonraki turda"; exit 0; }
+          ssh vestra 'cd ~/public_html && php ~/vestra_tmp/queue.php take' > take.raw || { echo "sira okunamadi"; exit 0; }
+          grep '^{' take.raw | tail -n 1 > take.json || echo '{}' > take.json
+          ID=$(python3 -c 'import json;print(json.load(open("take.json")).get("id",""))')
+          if [ -z "$ID" ]; then echo "sirada istek yok"; ssh vestra 'rm -f ~/vestra_tmp/queue.php'; exit 0; fi
+          case "$ID" in *[!A-Za-z0-9_-]*) echo "gecersiz id"; exit 1 ;; esac
+
+          # Girdiler panelde beyaz listeden geçti (inc/finder.php); yine de yalnızca bilinen
+          # anahtarlar ve düz metin olarak JSON gövdesine konur — kabuğa hiç girmez.
+          python3 - "$GITHUB_REF_NAME" > body.json <<'PY'
+          import json, sys
+          t = json.load(open("take.json"))
+          p = t.get("params") or {}
+          keys = ["cities", "langs", "countries", "queries_per_run", "extra_queries", "seed_domains", "dry_run"]
+          inputs = {k: str(p.get(k, "")) for k in keys if str(p.get(k, "")) != ""}
+          inputs.update({"request_id": t["id"], "owner_uid": str(t.get("owner", "")), "send": "false"})
+          print(json.dumps({"ref": sys.argv[1], "inputs": inputs}))
+          PY
+          if gh api -X POST "repos/${GITHUB_REPOSITORY}/actions/workflows/find-customers.yml/dispatches" --input body.json; then
+            echo "baslatildi: ${ID}"
+          else
+            echo "BASLATILAMADI: ${ID}"
+            ssh vestra "cd ~/public_html && php ~/vestra_tmp/queue.php fail '${ID}' 'GitHub dispatch reddetti'"
+          fi
+          ssh vestra 'rm -f ~/vestra_tmp/queue.php'
