@@ -5615,6 +5615,91 @@ jobs:
       # Varsayilan KURU KOSU; move_apply=true uygular. Once accounts.json yedeklenir,
       # yazma geri okunur. MUSTERIYE HICBIR SEY GITMEZ. payload='skip=<ref|firma parcasi>,...'
       # verilirse o siparisin/firmanin sahibi atlanir.
+      # KAYIT KAYNAGI (reg_referrers): sunucu erisim gunluklerinden /register sayfasini
+      # acanlarin yonlendiren alan adi (Google, e-posta, Instagram...) ve utm_source sayimi.
+      # SALT OKUNUR; IP, tam URL ve kullanici ajani basilmaz. Kayitta kaynak alani olmadigi
+      # icin 'musteriler nereden geliyor' sorusunun elimizdeki tek olcusu.
+      - name: Kayit kaynagi (reg_referrers) -- salt okunur
+        if: ${{ github.event.inputs.admin_mode == 'reg_referrers' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          script: |
+            cat > /tmp/vestra_reg_referrers.php <<'PHPEOF'
+            <?php
+            /* SALT OKUNUR: kayit sayfasina gelenlerin YONLENDIREN sitesi (Referer) ve
+               utm_source sayimi, sunucu erisim gunluklerinden. IP, tam URL, kullanici
+               ajani BASILMAZ -- yalniz alan adi + sayi. */
+            $home = getenv('HOME');
+            $cands = [];
+            foreach (["$home/access-logs", "$home/logs", "$home/public_html/../logs", "$home/tmp/awstats"] as $d) {
+              if (!is_dir($d)) continue;
+              foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($d, FilesystemIterator::SKIP_DOTS)) as $f) {
+                $p = $f->getPathname();
+                if (preg_match('/vestrasales|ssl_log|access/i', basename($p)) && $f->isFile()) $cands[] = $p;
+              }
+            }
+            $cands = array_values(array_unique($cands));
+            echo "gunluk dosyasi: ".count($cands)."\n";
+            foreach ($cands as $p) echo "  - ".preg_replace('~^'.preg_quote($home, '~').'~', '~', $p)."  ".round(filesize($p)/1048576, 1)." MB  ".date('Y-m-d', filemtime($p))."\n";
+            $re = '/^\S+ \S+ \S+ \[([^\]]+)\] "(GET|POST) ([^ "]+)[^"]*" (\d{3}) \S+ "([^"]*)" "([^"]*)"/';
+            $land = []; $post = []; $days = []; $utm = []; $landPage = []; $first = null; $last = null; $lines = 0; $bots = 0;
+            $hostOf = function (string $ref): string {
+              if ($ref === '' || $ref === '-') return '(dogrudan / e-posta uygulamasi)';
+              $h = strtolower((string)parse_url($ref, PHP_URL_HOST));
+              $h = preg_replace('/^(www|m|l|lm|mobile)\./', '', $h);
+              if ($h === '') return '(okunamadi)';
+              if (preg_match('/(^|\.)vestrasales\.com$/', $h)) return 'vestrasales.com (site ici)';
+              if (preg_match('/google\./', $h)) return 'google';
+              if (preg_match('/bing\.|duckduckgo|yahoo\.|yandex|ecosia|qwant/', $h)) return 'diger arama ('.$h.')';
+              if (preg_match('/instagram|facebook|fb\.|tiktok|linkedin|pinterest|t\.co$|twitter|x\.com/', $h)) return 'sosyal ('.$h.')';
+              if (preg_match('/mail\.|outlook|gmail|webmail|yahoo/', $h)) return 'webmail ('.$h.')';
+              if (preg_match('/chatgpt|openai|perplexity|claude|gemini|copilot/', $h)) return 'yapay zeka ('.$h.')';
+              return $h;
+            };
+            foreach ($cands as $p) {
+              $fh = str_ends_with($p, '.gz') ? @gzopen($p, 'r') : @fopen($p, 'r');
+              if (!$fh) continue;
+              while (($ln = (str_ends_with($p, '.gz') ? gzgets($fh) : fgets($fh))) !== false) {
+                $lines++;
+                if (!preg_match($re, $ln, $m)) continue;
+                [, $ts, $meth, $url, $code, $ref, $ua] = $m;
+                $path = (string)parse_url($url, PHP_URL_PATH);
+                if ($path !== '/register' && $path !== '/register.php') continue;
+                if (preg_match('/bot|crawl|spider|slurp|preview|monitor|curl|python|headless/i', $ua)) { $bots++; continue; }
+                $t = strtotime(str_replace('/', ' ', preg_replace('/:/', ' ', $ts, 1)));
+                if ($t) { $first = $first === null ? $t : min($first, $t); $last = $last === null ? $t : max($last, $t); }
+                parse_str((string)parse_url($url, PHP_URL_QUERY), $q);
+                if ($meth === 'GET' && $code === '200') {
+                  $land[$hostOf($ref)] = ($land[$hostOf($ref)] ?? 0) + 1;
+                  if (!empty($q['utm_source'])) $utm[strtolower(substr((string)$q['utm_source'], 0, 30))] = ($utm[strtolower(substr((string)$q['utm_source'], 0, 30))] ?? 0) + 1;
+                }
+                if ($meth === 'POST' && ($code === '302' || $code === '303')) {
+                  /* POST'un Referer'i kayit sayfasinin kendisi; asil kaynak sayfanin ?back / ?ref
+                     parametresinde olabilir -- yalniz sayilir. */
+                  $k = $t ? date('Y-m-d', $t) : '?'; $days[$k] = ($days[$k] ?? 0) + 1;
+                }
+              }
+              str_ends_with($p, '.gz') ? gzclose($fh) : fclose($fh);
+            }
+            echo "satir: {$lines} | kayit sayfasi bot isabeti (atlandi): {$bots}\n";
+            echo "aralik: ".($first ? date('Y-m-d', $first) : '-')." .. ".($last ? date('Y-m-d', $last) : '-')."\n";
+            arsort($land);
+            echo "\n== /register ACILISI -- yonlendiren (GET 200) ==\n";
+            foreach (array_slice($land, 0, 25, true) as $k => $v) printf("  %5d  %s\n", $v, $k);
+            if ($utm) { arsort($utm); echo "\n== utm_source ==\n"; foreach (array_slice($utm, 0, 15, true) as $k => $v) printf("  %5d  %s\n", $v, $k); }
+            ksort($days);
+            echo "\n== basarili kayit POST'u (gun) ==\n"; foreach ($days as $k => $v) printf("  %s  %d\n", $k, $v);
+            PHPEOF
+            php -l /tmp/vestra_reg_referrers.php >/dev/null || { echo "sozdizimi hatasi"; exit 1; }
+            php -d display_errors=stderr -d error_reporting=-1 -d memory_limit=512M /tmp/vestra_reg_referrers.php; RC=$?
+            rm -f /tmp/vestra_reg_referrers.php
+            exit $RC
+
       # MUSTERI EDINME HUNISI (operator, 8 Eki 2026: "yeni musteri bulmamiz gerekiyor, en kolay
       # ve en iyi yontemi bul"). SALT OKUNUR: kayitli alicilari lead listesiyle (ayni adres ya
       # da ayni is alan adi) eslestirip kanal / lead kaynagi / kategori / ulke / kayit ayi
