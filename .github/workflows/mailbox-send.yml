@@ -30,6 +30,10 @@ on:
         description: "test kipinde mektubun gideceği adres"
         required: false
         default: acerasoft@gmail.com
+      check_domains:
+        description: "check kipinde: bu alan adlarının e-posta sunucusunu doğrula (virgülle)"
+        required: false
+        default: ""
       ids:
         description: "isteğe bağlı: yalnız bu lead ID'leri (virgülle). Boş = sıradaki yazılmamışlar"
         required: false
@@ -84,7 +88,11 @@ jobs:
 
       - name: DNS denetimi (MX / SPF / DMARC / DKIM) — şifresiz
         if: env.MODE == 'check'
-        run: python3 scripts/ci/mailbox_send.py --check
+        env:
+          CHECK_DOMAINS: ${{ github.event.inputs.check_domains }}
+        run: |
+          case "$CHECK_DOMAINS" in *[!A-Za-z0-9.,-]*) echo "check_domains gecersiz"; exit 1 ;; esac
+          python3 scripts/ci/mailbox_send.py --check --check-domains "$CHECK_DOMAINS"
 
       - name: SSH ayarı
         if: env.MODE != 'check'

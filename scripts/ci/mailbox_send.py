@@ -64,14 +64,41 @@ def dns_check() -> None:
 _MX_CACHE = {}
 
 
-def has_mail_server(domain: str) -> bool:
-    """Alan adinin e-posta alacak sunucusu var mi (MX, yoksa A — RFC 5321 5.1)? DNS yoksa
-    mektup GoDaddy'den 'DNSNULL' ile geri doner ve itibari dusurur; bu yuzden hic gonderilmez."""
+def dns_status(domain: str) -> str:
+    """'ok' (MX ya da A var) | 'dead' (alan adi yok / kayit yok) | 'unknown' (sorgu basarisiz).
+    Zaman asimi ya da SERVFAIL 'dead' SAYILMAZ: yanlislikla 'geri dondu' damgasi kalici olurdu."""
     d = domain.lower().strip('.')
-    if d not in _MX_CACHE:
-        mx = [m for m in dig(d, 'MX') if not m.rstrip('.').endswith(' .') and m.strip() not in ('0 .',)]
-        _MX_CACHE[d] = bool(mx) or bool([a for a in dig(d, 'A') if re.match(r'^\d+\.\d+\.\d+\.\d+$', a)])
-    return _MX_CACHE[d]
+    if d in _MX_CACHE:
+        return _MX_CACHE[d]
+
+    def q(rtype):
+        try:
+            out = subprocess.run(['dig', '+time=4', '+tries=2', '+noall', '+comments', '+answer', rtype, d],
+                                 capture_output=True, text=True, timeout=30).stdout
+        except Exception:
+            return 'FAIL', []
+        st = re.search(r'status:\s*([A-Z]+)', out)
+        ans = [l.split() for l in out.splitlines() if l and not l.startswith(';')]
+        return (st.group(1) if st else 'FAIL'), [a for a in ans if len(a) >= 5 and a[3] == rtype]
+
+    st, mx = q('MX')
+    if st == 'NOERROR' and mx and all(a[-1] == '.' for a in mx):
+        res = 'dead'  # null MX (RFC 7505): alan adi bilerek e-posta kabul etmez
+    elif st == 'NOERROR' and any(a[-1] != '.' for a in mx):
+        res = 'ok'
+    elif st == 'NXDOMAIN':
+        res = 'dead'
+    elif st == 'NOERROR':
+        st2, a = q('A')
+        res = 'ok' if (st2 == 'NOERROR' and a) else ('dead' if st2 in ('NOERROR', 'NXDOMAIN') else 'unknown')
+    else:
+        res = 'unknown'
+    _MX_CACHE[d] = res
+    return res
+
+
+def has_mail_server(domain: str) -> bool:
+    return dns_status(domain) != 'dead'
 
 
 _ADDR = re.compile(r'[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}')
@@ -222,6 +249,7 @@ def main() -> int:
     ap.add_argument('--out', default='results.json')
     ap.add_argument('--check', action='store_true')
     ap.add_argument('--test-to', default='')
+    ap.add_argument('--check-domains', default='')
     ap.add_argument('--scan-bounces', action='store_true')
     ap.add_argument('--bounce-days', type=int, default=7)
     ap.add_argument('--min-gap', type=float, default=25.0)
@@ -230,6 +258,8 @@ def main() -> int:
 
     if a.check:
         dns_check()
+        for d in [x.strip() for x in a.check_domains.split(',') if x.strip()]:
+            print(f'  {d:32s} {dns_status(d)}')
         return 0
 
     host = os.environ.get('MAILBOX_SMTP_HOST', '').strip()
@@ -287,7 +317,7 @@ def main() -> int:
         to = it['email']
         msg = build(it, from_name, sender, to)
         r = {'leadId': it.get('leadId', ''), 'email': to, 'lang': it.get('lang', ''), 'messageId': msg['Message-ID']}
-        if not has_mail_server(to.rsplit('@', 1)[-1]):
+        if dns_status(to.rsplit('@', 1)[-1]) == 'dead':
             r.update(status='bounced', reason='alan adinin e-posta sunucusu yok (DNS) — gonderilmedi')
             results.append(r)
             json.dump({'results': results, 'host': host, 'port': port}, open(a.out, 'w'))
