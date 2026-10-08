@@ -2,6 +2,11 @@ name: (Günlük) Müşteri bul — web araması + gerçek e-posta
 on:
   schedule:
     - cron: '20 5 * * *'      # her gün 05:20 UTC
+  # Bu dala push = kısa DRY-RUN test koşusu (sunucuya hiçbir şey yazmaz). Default dalda
+  # bu dal adına push olmadığı için orada hiç tetiklenmez.
+  push:
+    branches: [claude/wonderful-maxwell-3hdogk]
+    paths: [scripts/find-boutiques.mjs, .github/workflows/find-customers.yml]
   workflow_dispatch:
     inputs:
       queries_per_run:
@@ -48,9 +53,13 @@ on:
         description: "true = sadece bul ve raporla; sunucuya YAZMA, durum dosyasını KAYDETME (ilk deneme için)"
         required: false
         default: "false"
+      owner_uid:
+        description: "Boş = admin listesi. Satıcı hesap id'si verilirse bulunan leadler O SATICIYA ait olur."
+        required: false
+        default: ""
 
 permissions:
-  contents: write     # marketing/prospects/seen.json (taranan alan adları + sorgular) commit edilir
+  contents: read      # durum (taranan alan adları) repoda DEĞİL sunucuda: repo public
 
 # Aynı anda iki çalışma leads.json'ı ezmesin (bilinen yarış: oku-değiştir-yaz).
 concurrency:
@@ -75,9 +84,10 @@ concurrency:
 #               alinmaz; MX kaydi dogrulanir. Opsiyonel Hunter.io (HUNTER_API_KEY) yalnizca
 #               KAYNAGI olan adresleri verir.
 #   5) KAYIT    Bulunanlar sunucudaki data/leads.json'a eklenir (e-posta + alan adi tekrar
-#               korumasi, premium_brands dolu, _screened=true). Taranan alan adlari ve
-#               sorgular repo'daki seen.json'a yazilir: ayni site bir daha taranmaz,
-#               sorgular 60 gunde bir doner.
+#               korumasi, KURAL 1 vestra_lead_is_blocked, premium_brands dolu,
+#               _screened=true). Taranan alan adlari ve sorgular sunucuda
+#               data/finder_state.json'da tutulur (repo PUBLIC -- prospect listesi
+#               buraya yazilmaz): ayni site bir daha taranmaz, sorgular 60 gunde doner.
 #
 # Runner'da calismasinin sebebi: sunucu paylasimli hosting (SIGKILL, 25 dk tavan, tek
 # surec); runner 6 saate kadar, paralel, tam internet. Sunucuya yalnizca SSH ile iki kisa
@@ -95,7 +105,9 @@ jobs:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
       DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || 22 }}
-      DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+      TERM: dumb
+      DRY_RUN: ${{ github.event_name == 'push' && 'true' || github.event.inputs.dry_run || 'false' }}
+      OWNER_UID: ${{ github.event.inputs.owner_uid }}
     steps:
       - uses: actions/checkout@v4
 
@@ -132,29 +144,33 @@ jobs:
         run: |
           set -o pipefail
           if ssh vestra 'mkdir -p ~/vestra_tmp' \
-             && scp -q scripts/server/vestra-known.php vestra:vestra_tmp/known.php \
-             && ssh vestra 'cd ~/public_html && php ~/vestra_tmp/known.php; rc=$?; rm -f ~/vestra_tmp/known.php; exit $rc' > known.json \
-             && python3 -c 'import json;d=json.load(open("known.json"));print("bilinen:",len(d["emails"]),"e-posta,",len(d["domains"]),"alan adi, toplam lead",d.get("total"))'; then
-            :
+             && ssh vestra 'cat > ~/vestra_tmp/known.php' < scripts/server/vestra-known.php \
+             && ssh vestra 'cd ~/public_html && php ~/vestra_tmp/known.php; rc=$?; rm -f ~/vestra_tmp/known.php; exit $rc' > known.raw \
+             && grep '^{' known.raw | tail -n 1 > known.json \
+             && python3 -c 'import json;d=json.load(open("known.json"));print("bilinen:",len(d["emails"]),"e-posta,",len(d["domains"]),"alan adi, toplam lead",d.get("total"));json.dump(d.get("state") or {},open("state.json","w"))'; then
+            echo "known_ok=true" >> "$GITHUB_ENV"
           else
-            echo "UYARI: sunucudan liste alinamadi -- tekrar kontrolu sadece repo durum dosyasiyla yapilacak"
-            echo '{"emails":[],"domains":[]}' > known.json
+            # Liste alinamazsa YAZMA: tekrar korumasi olmadan eklemek ayni butige ikinci
+            # mektup demek. Bulma calisir, rapor uretilir, sunucuya hicbir sey gitmez.
+            echo "UYARI: sunucudan liste alinamadi -- bu calisma sunucuya YAZMAYACAK"
+            echo '{"emails":[],"domains":[]}' > known.json; echo '{}' > state.json
+            echo "known_ok=false" >> "$GITHUB_ENV"
           fi
 
       - name: Butikleri bul + gerçek e-postaları çıkar
         env:
-          QUERIES_PER_RUN: ${{ github.event.inputs.queries_per_run || '40' }}
+          QUERIES_PER_RUN: ${{ github.event.inputs.queries_per_run || (github.event_name == 'push' && '14') || '40' }}
           MAX_SITES: ${{ github.event.inputs.max_sites || '400' }}
           LANGS: ${{ github.event.inputs.langs }}
           COUNTRIES: ${{ github.event.inputs.countries }}
           EXTRA_QUERIES: ${{ github.event.inputs.extra_queries }}
           SEED_DOMAINS: ${{ github.event.inputs.seed_domains }}
           ENGINES: ${{ github.event.inputs.engines || 'bing,ddg,brave' }}
-          TIME_BUDGET_MIN: ${{ github.event.inputs.time_budget_min || '40' }}
+          TIME_BUDGET_MIN: ${{ github.event.inputs.time_budget_min || (github.event_name == 'push' && '15') || '40' }}
           BRAVE_API_KEY: ${{ secrets.BRAVE_API_KEY }}
           HUNTER_API_KEY: ${{ secrets.HUNTER_API_KEY }}
           KNOWN_FILE: known.json
-          STATE_FILE: marketing/prospects/seen.json
+          STATE_FILE: state.json
           OUT_DIR: out
         run: |
           case "$TIME_BUDGET_MIN" in ''|*[!0-9]*) TIME_BUDGET_MIN=40 ;; esac
@@ -166,42 +182,24 @@ jobs:
         run: |
           if [ -f out/report.md ]; then cat out/report.md >> "$GITHUB_STEP_SUMMARY"; else echo "rapor uretilemedi" >> "$GITHUB_STEP_SUMMARY"; fi
 
-      - name: Leadleri sunucuya yaz (data/leads.json)
-        if: ${{ env.DRY_RUN != 'true' }}
+      - name: Leadleri + durumu sunucuya yaz (data/leads.json, data/finder_state.json)
+        if: ${{ env.DRY_RUN != 'true' && env.known_ok == 'true' }}
         run: |
           set -o pipefail
-          N=$(python3 -c 'import json;print(len(json.load(open("out/leads.json"))))')
-          if [ "$N" = "0" ]; then echo "yeni lead yok -- sunucuya yazilacak bir sey yok"; exit 0; fi
-          scp -q out/leads.json vestra:vestra_tmp/found.json
-          scp -q scripts/server/vestra-push-leads.php vestra:vestra_tmp/push.php
-          ssh vestra 'cd ~/public_html && php ~/vestra_tmp/push.php ~/vestra_tmp/found.json; rc=$?; rm -f ~/vestra_tmp/found.json ~/vestra_tmp/push.php; exit $rc' | tee push.log
+          case "$OWNER_UID" in *[!A-Za-z0-9_-]*) echo "HATA: owner_uid gecersiz"; exit 1 ;; esac
+          ssh vestra 'cat > ~/vestra_tmp/found.json' < out/leads.json
+          ssh vestra 'cat > ~/vestra_tmp/state.json' < state.json
+          ssh vestra 'cat > ~/vestra_tmp/push.php' < scripts/server/vestra-push-leads.php
+          ssh vestra "cd ~/public_html && php ~/vestra_tmp/push.php ~/vestra_tmp/found.json ~/vestra_tmp/state.json '${OWNER_UID}'; rc=\$?; rm -f ~/vestra_tmp/found.json ~/vestra_tmp/state.json ~/vestra_tmp/push.php; exit \$rc" | tee push.log
           { echo ""; echo "### Sunucuya yazım"; echo '```'; tail -n 5 push.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Kampanya gönder (send=true / PROSPECT_AUTO_SEND)
-        if: ${{ env.DRY_RUN != 'true' && (github.event.inputs.send || vars.PROSPECT_AUTO_SEND || 'false') == 'true' }}
+        if: ${{ env.DRY_RUN != 'true' && env.known_ok == 'true' && env.OWNER_UID == '' && (github.event.inputs.send || vars.PROSPECT_AUTO_SEND || 'false') == 'true' }}
         env:
           SEND_LIMIT: ${{ github.event.inputs.send_limit || '40' }}
         run: |
           set -o pipefail
           case "$SEND_LIMIT" in ''|*[!0-9]*) SEND_LIMIT=40 ;; esac
-          scp -q scripts/server/vestra-send-new.php vestra:vestra_tmp/send.php
+          ssh vestra 'cat > ~/vestra_tmp/send.php' < scripts/server/vestra-send-new.php
           ssh vestra "cd ~/public_html && SEND_LIMIT=${SEND_LIMIT} php ~/vestra_tmp/send.php; rc=\$?; rm -f ~/vestra_tmp/send.php; exit \$rc" | tee send.log
           { echo ""; echo "### Gönderim"; echo '```'; tail -n 40 send.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-
-      # Yalnizca her sey basariliysa: sunucuya yazim basarisiz olduysa durum dosyasi
-      # kaydedilmez ki ayni siteler bir sonraki calismada yeniden denensin (lead kaybolmaz).
-      - name: Durum dosyasını kaydet (seen.json)
-        if: ${{ env.DRY_RUN != 'true' }}
-        run: |
-          git config user.name "chathelp-agent"
-          git config user.email "chathelp-agent@users.noreply.github.com"
-          git add marketing/prospects/seen.json
-          if git diff --cached --quiet; then echo "degisiklik yok"; exit 0; fi
-          ADDED=$(python3 -c 'import json;print(len(json.load(open("out/leads.json"))))' 2>/dev/null || echo 0)
-          git commit -m "prospects: web araması $(date -u +%F) — ${ADDED} yeni lead"
-          for i in 1 2 3 4; do
-            if git push; then exit 0; fi
-            sleep $(( i * 3 ))
-            git pull --rebase || true
-          done
-          echo "push basarisiz"; exit 1

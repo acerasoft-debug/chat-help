@@ -19,15 +19,15 @@
  *                sitenin kendi alan adında ya da bilinen ücretsiz sağlayıcıda olmalı
  *                (künyedeki web ajansı adresi alınmaz). MX kaydı doğrulanır.
  *   5) ÇIKTI   : out/leads.json (sunucuya yazılacak), out/report.md (özet),
- *                marketing/prospects/seen.json (durum: taranan alan adları + sorgular,
- *                repo'ya commit edilir — aynı site iki kez taranmaz, sorgular döner).
+ *                STATE_FILE (taranan alan adları + sorgular; sunucuda
+ *                data/finder_state.json olarak saklanır — repo PUBLIC, oraya yazılmaz).
  *
  * ENV (hepsi opsiyonel)
  *   QUERIES_PER_RUN=40  MAX_SITES=400  TIME_BUDGET_SEC=2400  CONCURRENCY=6
  *   LANGS=de,it,fr      COUNTRIES=DE,AT,IT   ENGINES=bing,ddg,brave   BRAVE_API_KEY=…
  *   EXTRA_QUERIES="…"   SEED_DOMAINS="a.de, b.it"  (arama yapmadan doğrudan incele)
  *   KNOWN_FILE=known.json  ({emails:[…],domains:[…]} — sunucudaki mevcut leadler)
- *   STATE_FILE=marketing/prospects/seen.json  OUT_DIR=out  DRY_RUN=1 (durumu yazma)
+ *   STATE_FILE=out/state.json  OUT_DIR=out  DRY_RUN=1 (durumu yazma)
  *
  *   node scripts/find-boutiques.mjs --selftest   → ağ gerektirmeyen birim testleri
  */
@@ -52,7 +52,7 @@ const CFG = {
   extraQueries:  (ENV.EXTRA_QUERIES ?? '').split(/\r?\n|;/).map(s => s.trim()).filter(Boolean),
   seedDomains:   list('SEED_DOMAINS'),
   knownFile:     ENV.KNOWN_FILE || '',
-  stateFile:     ENV.STATE_FILE || 'marketing/prospects/seen.json',
+  stateFile:     ENV.STATE_FILE || 'out/state.json',
   outDir:        ENV.OUT_DIR || 'out',
   dryRun:        /^(1|true|yes)$/i.test(ENV.DRY_RUN ?? ''),
   minBrands:     num('MIN_BRANDS', 2),
@@ -765,7 +765,7 @@ async function main() {
         premium_brands: r.brands, alt_emails: r.altEmails || [], query: r.query, title: r.title || '', source: 'web-search' }); }
     }
     bump(r.status === 'ok' ? 'added' : r.reason || r.status);
-    if (!CFG.dryRun) state.domains[key] = { s: r.status === 'ok' ? 'added' : (r.reason || r.status), t: today, ...(r.email ? { e: r.email } : {}) };
+    if (!CFG.dryRun) state.domains[key] = { s: r.status === 'ok' ? 'added' : (r.reason || r.status), t: today };
   }
   mkdirSync(CFG.outDir, { recursive: true });
   writeFileSync(`${CFG.outDir}/leads.json`, JSON.stringify(leads, null, 1));
