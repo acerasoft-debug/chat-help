@@ -5,11 +5,6 @@ run-name: ${{ github.event.inputs.request_id && format('Müşteri bul · {0}', g
 on:
   schedule:
     - cron: '20 5 * * *'      # her gün 05:20 UTC
-  # Bu dala push = kısa DRY-RUN test koşusu (sunucuya hiçbir şey yazmaz). Default dalda
-  # bu dal adına push olmadığı için orada hiç tetiklenmez.
-  push:
-    branches: [claude/wonderful-maxwell-3hdogk]
-    paths: [scripts/find-boutiques.mjs, scripts/server/**, .github/workflows/find-customers.yml]
   workflow_dispatch:
     inputs:
       request_id:
