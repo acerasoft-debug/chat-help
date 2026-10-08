@@ -1,6 +1,11 @@
 name: Görsel kontak sayfaları üret (kategori doğrulaması için)
 on:
   workflow_dispatch:
+    inputs:
+      folders:
+        description: "Bos = varsayilan klasor listesi. Dolu = yalniz bu uploads/ klasorleri (boslukla ayrik, or: polvich); yalniz onlarin sayfalari yeniden uretilir, digerlerine dokunulmaz"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -19,7 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: claude/charming-franklin-1ynmuj
+          # Kosunun dispatch edildigi dal: varsayilan dalda eskisiyle ayni,
+          # bir calisma dalinda sayfalar o dala islenir.
+          ref: ${{ github.ref_name }}
 
       # ubuntu-latest imajinda artik ImageMagick gelmiyor (montage da magick de
       # yok -- onceki calisma tam bu yuzden "ImageMagick yok" ile dustu).
@@ -36,11 +43,17 @@ jobs:
           SSH_USER: ${{ secrets.DEPLOY_USER }}
           SSH_PORT: ${{ secrets.DEPLOY_PORT }}
           TERM: dumb
+          ONLY_FOLDERS: ${{ github.event.inputs.folders }}
         run: |
           set -e
           # Klasor listesi tek yerde: yeni bir Dropbox klasoru cekildiginde
           # buraya eklenir, hem indirme hem montaj dongusu ayni listeyi kullanir.
           FOLDERS="balmain balenciaga-burberry shorts-sweats dg-jeans givenchy marcelo-burlon gcds fendi-sweat fendi-tshirt valentino gucci versace dsq-jeans dsq-sweat dsq-tshirt givenchy-sweat swim-shorts gucci2 dsquared2-new dg-tshirt dg-sweat balmain-swim dg-swim dsq-swim givenchy-swim dg-root4 mixed-root-c"
+          if [ -n "$ONLY_FOLDERS" ]; then
+            # Yalniz a-z 0-9 - _ / : klasor adi uzak kabuga da gidiyor.
+            case "$ONLY_FOLDERS" in *[!a-z0-9\ _/-]*) echo "HATA: gecersiz klasor adi"; exit 1 ;; esac
+            FOLDERS="$ONLY_FOLDERS"
+          fi
           echo "klasorler: $FOLDERS"
           PORT="${SSH_PORT:-22}"
           install -m 700 -d ~/.ssh
@@ -66,7 +79,10 @@ jobs:
           elif command -v magick  >/dev/null 2>&1; then MG="magick montage"
           else echo "HATA: ImageMagick yok"; exit 1; fi
           echo "montaj komutu: $MG"
-          rm -rf contact-sheets && mkdir -p contact-sheets
+          # Yalniz bu kosunun klasorlerinin sayfalari silinip yeniden uretilir;
+          # baska klasorlerin sayfalari yerinde kalir.
+          mkdir -p contact-sheets
+          for d in $FOLDERS; do rm -f contact-sheets/"$d"-[0-9][0-9].jpg contact-sheets/"$d"-[0-9][0-9].txt; done
           # Her klasor icin: kucult, numarayla etiketle, 6x4=24'luk sayfalar yap.
           #
           # ONEMLI: onceki surum dosya adini (%f) etiket olarak basiyordu, ama 11
@@ -134,11 +150,11 @@ jobs:
           # so a plain push loses the race and throws away sheets that were already
           # built. Rebase onto whatever arrived and retry.
           for try in 1 2 3 4 5; do
-            if git push origin claude/charming-franklin-1ynmuj; then
+            if git push origin "$GITHUB_REF_NAME"; then
               echo "push tamam (deneme $try)"; exit 0
             fi
             echo "push reddedildi, rebase edip tekrar deniyorum ($try)"
-            git fetch origin claude/charming-franklin-1ynmuj
+            git fetch origin "$GITHUB_REF_NAME"
             git rebase FETCH_HEAD || { echo "HATA: rebase catisti"; exit 1; }
             sleep $((try * 3))
           done
