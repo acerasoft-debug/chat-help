@@ -5627,7 +5627,7 @@ jobs:
             case "$p" in /*) ;; *) echo "gecersiz yol: $p"; continue;; esac
             code=$(curl -sS -A 'Mozilla/5.0 (VESTRA probe)' -o /tmp/hp_body -w '%{http_code} | %{content_type} | %{size_download} bayt' "https://vestrasales.com$p" || echo "baglanti hatasi")
             echo "== $p -> $code"
-            head -c 600 /tmp/hp_body | sed 's/^/   /'; echo
+            head -c 12000 /tmp/hp_body | sed 's/^/   /'; echo
           done
 
       # INDEXNOW TESHISI (indexnow_check): GitHub sunucusundan tek adresle (ana sayfa)
