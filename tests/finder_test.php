@@ -285,6 +285,21 @@ $adm = [];
 $t('admin testi: [TEST] konu, operatör adresine, leads.json DEĞİŞMEDİ', $aOk && $adm[0]['to'] === 'ops@vestra.example' && str_starts_with($adm[0]['subj'], '[TEST] ') && $leadsBefore === (string)file_get_contents(VESTRA_DATA_DIR.'/leads.json'));
 $t('admin testi: geçersiz adres / bilinmeyen kampanya reddedilir', !vestra_finder_send_test('standard', 'nope')[0] && !vestra_finder_send_test('yok', 'a@b.de')[0]);
 
+echo "\n== 9d. gönderim retleri: neden + geçersiz adres işaretleme ==\n";
+$rs = function (int $c, string $b) { $GLOBALS['vestra_api_last_error'] = ['code' => $c, 'body' => $b]; return vestra_mail_last_reason(); };
+$t('ölçülen ret "email is not valid in to" → badaddr', $rs(400, '{"code":"invalid_parameter","message":"email is not valid in to"}') === 'badaddr');
+$t('onaysız gönderen → sender', $rs(400, '{"code":"invalid_parameter","message":"Sender email is not valid / not verified"}') === 'sender');
+$t('kredi → credits, anahtar → key, ağ → transport', $rs(402, '{"message":"not enough credits"}') === 'credits' && $rs(401, 'unauthorized') === 'key' && $rs(0, 'transport') === 'transport');
+$GLOBALS['vestra_api_last_error'] = ['code' => 400, 'body' => 'email is not valid in to'];
+vestra_send_mail('not-an-email', 's', 'b');
+$t('yerel doğrulamada düşen gönderim ÖNCEKİ nedeni taşımaz', vestra_mail_last_reason() === '');
+$t('SMTP-only satıcı "hazır" DEĞİL (sunucuda SMTP kapalı), Brevo anahtarlı hazır', !vestra_seller_can_send(['smtp_host' => 'smtp.gmail.com', 'smtp_pass' => 'x']) && vestra_seller_can_send(['mail_api_key' => 'xkeysib-1']));
+vestra_lead_mark_bad_email('L8');
+$l8 = array_values(array_filter(vestra_leads(), fn($l) => ($l['id'] ?? '') === 'L8'))[0];
+$t('geçersiz adres işaretlenir ve gönderim listesinden düşer', $l8['status'] === 'bounced' && $l8['bounced_at'] !== '' && !isset(vestra_finder_send_targets(100, 'all')[array_search('L8', array_column(vestra_leads(), 'id'))]));
+$fsrc = (string)file_get_contents($root.'/inc/finder.php'); $ssrc = (string)file_get_contents($root.'/seller.php');
+$t('admin ve satıcı gönderimi badaddr\'ı işaretliyor, satıcı nedeni görüyor', str_contains($fsrc, "vestra_mail_last_reason() === 'badaddr'") && str_contains($ssrc, "if(\$why==='badaddr')") && str_contains($ssrc, 'var sendWhy='));
+
 $aic = (string)file_get_contents($root.'/inc/ai_campaign.php');
 $t('istek: yapılandırılmış çıktı + ret/uzunluk durumu ele alınıyor', str_contains($aic, "'json_schema'") && str_contains($aic, "'refusal'") && str_contains($aic, "'max_tokens'"));
 

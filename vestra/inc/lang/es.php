@@ -1545,4 +1545,12 @@ return array (
   'Friendly first contact: introduce my brand, show my best products and invite them to reply.' => 'Primer contacto cercano: presenta mi marca, muestra mis mejores productos e invítalos a responder.',
   'Stock offer: highlight the sizes and the minimum order, and ask if they want the full line sheet.' => 'Oferta de stock: destaca las tallas y el pedido mínimo, y pregunta si quieren el catálogo completo.',
   'For concept stores: focus on the story of the brands and why they sell well in independent shops.' => 'Para concept stores: céntrate en la historia de las marcas y por qué se venden bien en tiendas independientes.',
+  'Your sending address is not confirmed in Brevo yet — see step 2 in “Your sending email” above.' => 'Tu dirección de envío aún no está confirmada en Brevo — mira el paso 2 en «Tu e-mail de envío» arriba.',
+  'Your Brevo account has no sending credits left for today.' => 'Tu cuenta de Brevo no tiene créditos de envío para hoy.',
+  'Brevo did not accept your key. Please create a new key and save it again.' => 'Brevo no ha aceptado tu clave. Crea una clave nueva y guárdala de nuevo.',
+  'This customer’s email address is not valid — it was removed from sending.' => 'La dirección de e-mail de este cliente no es válida — se ha retirado del envío.',
+  'Brevo could not be reached. Please try again in a minute.' => 'No se pudo conectar con Brevo. Inténtalo de nuevo en un minuto.',
+  'Unsubscribed' => 'Dado de baja',
+  'No email' => 'Sin e-mail',
+  'The email could not be sent.' => 'No se pudo enviar el e-mail.',
 );

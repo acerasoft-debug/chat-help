@@ -47,9 +47,14 @@ function vestra_seller_mail_save(string $uid, array $cfg): void {
   file_put_contents($dir.'/seller_mail.json',json_encode($a,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
   @chmod($dir.'/seller_mail.json',0600);
 }
-/* True when a seller has a usable own-transport configured. */
+/* True when a seller has a usable own-transport configured.
+   YALNIZ Brevo API anahtarı (8 Eki 2026, smtp_probe): bu barındırmadan giden SMTP'nin
+   tamamı kapalı (Gmail/Outlook/Yahoo/iCloud/Zoho/Brevo SMTP, 587/465 — zaman aşımı). Yalnız
+   SMTP girmiş bir satıcıyı "hazır" saymak, her gönderimde 20 sn bekleyip düşen ve satıcıya
+   "gitti mi?" dedirten bir yol demekti; o satıcı artık "kurulmadı" görür ve Gmail'de aç /
+   Brevo'ya yönlenir. Sunucu değişip SMTP açılırsa bu tek satır geri alınır. */
 function vestra_seller_can_send(array $cfg): bool {
-  return (($cfg['smtp_host']??'')!=='' && ($cfg['smtp_pass']??'')!=='') || ($cfg['mail_api_key']??'')!=='';
+  return ($cfg['mail_api_key']??'')!=='';
 }
 
 /* Extract a bare host/domain from a URL or host string ('' if it isn't a domain). */
@@ -2822,6 +2827,7 @@ function vestra_send_mail($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,
      the provider -- which is exactly the "email is not valid in to" it keeps
      rejecting. Kaydedilmis adreslerde bosluk sik: CSV/yapistirma artigi. */
   $to = trim((string)$to);
+  $GLOBALS['vestra_api_last_error']=null;   // önceki gönderimin nedeni bu gönderime yapışmasın
   if(!vestra_email_deliverable($to)){
     /* Sessizce false donmek, "neden gitmedi" sorusunu cevapsiz birakiyordu.
        Adres maskeli yaziliyor: gunluk halka acik degil ama musteri adresi
@@ -3005,11 +3011,12 @@ function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$
      * a timeout that arrives after the provider already accepted the message would
      * otherwise send the same recipient two copies. */
     error_log('[VESTRA API] curl error: '.curl_error($ch)); curl_close($ch);
-    $GLOBALS['vestra_api_last_rejected']=false;
+    $GLOBALS['vestra_api_last_rejected']=false; $GLOBALS['vestra_api_last_error']=['code'=>0,'body'=>'transport'];
     return false;
   }
   $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
-  if($code>=200 && $code<300){ $GLOBALS['vestra_api_last_rejected']=false; return true; }
+  $GLOBALS['vestra_api_last_error']=['code'=>(int)$code,'body'=>substr((string)$resp,0,400)];
+  if($code>=200 && $code<300){ $GLOBALS['vestra_api_last_rejected']=false; $GLOBALS['vestra_api_last_error']=null; return true; }
   /* Definitive rejection with an HTTP status: the provider refused it and nothing was
    * sent, so a fallback transport is safe. Quota exhaustion lands here (Brevo answers
    * 402 "not enough credits"), which is exactly the case worth failing over. */
@@ -3023,6 +3030,23 @@ function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$
  * Only then may the caller retry the same message on a different transport. */
 function vestra_api_definitively_rejected(): bool {
   return !empty($GLOBALS['vestra_api_last_rejected']);
+}
+
+/* Son API gönderiminin NEDENİ, kişiye söylenebilir tek kelimeyle (8 Eki 2026, operatör:
+ * "satıcı gönderimlerinin gittiğinden emin ol"): '' (sorun yok / bilinmiyor) | 'badaddr'
+ * (sağlayıcı alıcı adresini geçersiz saydı — tekrar denemek boşuna, hak harcar) | 'sender'
+ * (gönderen adres sağlayıcıda onaylı değil) | 'credits' (kota/kredi bitti) | 'key' (anahtar
+ * geçersiz) | 'transport' (ağ). Brevo'nun gövdesine göre; ölçülen gerçek ret: 8 Eki 19:43–20:07
+ * 6 × HTTP 400 "email is not valid in to". */
+function vestra_mail_last_reason(): string {
+  $e=$GLOBALS['vestra_api_last_error']??null; if(!is_array($e)) return '';
+  $c=(int)($e['code']??0); $b=strtolower((string)($e['body']??''));
+  if($c===0) return 'transport';
+  if($c===401||$c===403) return 'key';
+  if($c===402||str_contains($b,'credit')||str_contains($b,'quota')) return 'credits';
+  if(str_contains($b,'in to')||str_contains($b,'recipient')||(str_contains($b,'email is not valid')&&!str_contains($b,'sender'))) return 'badaddr';
+  if(str_contains($b,'sender')) return 'sender';
+  return '';
 }
 
 /* notify the operator address(es) configured in inc/config.php */

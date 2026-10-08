@@ -686,8 +686,13 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
       if(!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL)){ $res['error']='noemail'; break; }
       $pair=(($_POST['ai']??'')==='1')?vestra_ai_personalize($l,$tpl,$sName,(string)($sc['ai_key']??'')):null;
       [$subject,$body]=$pair!==null?$pair:vestra_lead_render_email($l,$tpl);
-      if(vestra_send_mail($l['email'],$subject,$body,'',$sName,$sc,$heroImg)){ $res['ok']=true; if(($l['status']??'new')==='new') $l['status']='contacted'; $l['last_contacted_at']=date('c'); }
-      else { $res['error']='send'; }
+      if(vestra_send_mail($l['email'],$subject,$body,'',$sName,$sc,$heroImg)){ $res['ok']=true; if(($l['status']??'new')==='new') $l['status']='contacted'; $l['last_contacted_at']=date('c'); $l['contact_via']='brevo'; }
+      else {
+        /* Nedeni satıcıya söyle (operatör: "satıcı gönderimlerinin gittiğinden emin ol"): adres
+           Brevo'da onaylı değil / kredi bitti / anahtar geçersiz / müşterinin adresi geçersiz. */
+        $why=vestra_mail_last_reason(); $res['error']=$why!==''?$why:'send';
+        if($why==='badaddr'){ $l['status']='bounced'; $l['bounce_reason']='provider: invalid recipient'; $l['bounced_at']=date('c'); }
+      }
       break;
     }
     unset($l); vestra_save_leads($leads); echo json_encode($res); exit;
@@ -1741,6 +1746,14 @@ function sellerCompose(leadId, via, cid, btn){
     if(btn && leadId){ btn.closest('tr').style.background='rgba(31,157,99,.06)'; }
   }).catch(function(){ if(btn){ btn.disabled=false; } if(w) w.close(); });
 }
+var sendWhy=<?= json_encode([
+  'sender'=>t('Your sending address is not confirmed in Brevo yet — see step 2 in “Your sending email” above.'),
+  'credits'=>t('Your Brevo account has no sending credits left for today.'),
+  'key'=>t('Brevo did not accept your key. Please create a new key and save it again.'),
+  'badaddr'=>t('This customer’s email address is not valid — it was removed from sending.'),
+  'transport'=>t('Brevo could not be reached. Please try again in a minute.'),
+  'nosender'=>t('Your sending is not set up yet — use “Open test in Gmail” instead.'),
+  'unsub'=>t('Unsubscribed'),'noemail'=>t('No email'),'send'=>t('The email could not be sent.')], JSON_UNESCAPED_UNICODE) ?>;
 function sellerSend(btn){
   var boxes=[].slice.call(document.querySelectorAll('.slc')).filter(function(c){return c.checked && !c.disabled;});
   if(!boxes.length){ alert('Select at least one customer first.'); return; }
@@ -1755,7 +1768,7 @@ function sellerSend(btn){
     fetch('/seller?tab=find',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
       var ln=document.createElement('div'); ln.style.fontSize='12px'; ln.style.padding='2px 0';
       if(d.ok){ ok++; ln.style.color='#1f9d63'; ln.textContent='✓ '+(d.company||d.email||''); }
-      else { fail++; ln.style.color='#c0392b'; ln.textContent='✗ '+(d.company||d.email||'')+' — '+(d.error||'failed'); }
+      else { fail++; ln.style.color='#c0392b'; ln.textContent='✗ '+(d.company||d.email||'')+' — '+(sendWhy[d.error]||d.error||'failed'); }
       log.appendChild(ln); log.scrollTop=log.scrollHeight; i++; setTimeout(next,250);
     }).catch(function(){ fail++; i++; setTimeout(next,250); });
   }

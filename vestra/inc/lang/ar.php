@@ -1541,4 +1541,12 @@ return array (
   'Friendly first contact: introduce my brand, show my best products and invite them to reply.' => 'تواصل أول ودود: عرّف بعلامتي، واعرض أفضل منتجاتي، وادعهم للرد.',
   'Stock offer: highlight the sizes and the minimum order, and ask if they want the full line sheet.' => 'عرض مخزون: أبرز المقاسات والحد الأدنى للطلب، واسأل إن كانوا يريدون القائمة الكاملة.',
   'For concept stores: focus on the story of the brands and why they sell well in independent shops.' => 'لمتاجر المفهوم: ركّز على قصة العلامات ولماذا تُباع جيدًا في المتاجر المستقلة.',
+  'Your sending address is not confirmed in Brevo yet — see step 2 in “Your sending email” above.' => 'عنوان الإرسال الخاص بك غير مؤكَّد في Brevo بعد — راجع الخطوة 2 في «بريد الإرسال الخاص بك» أعلاه.',
+  'Your Brevo account has no sending credits left for today.' => 'لا توجد أرصدة إرسال متبقية اليوم في حسابك على Brevo.',
+  'Brevo did not accept your key. Please create a new key and save it again.' => 'لم تقبل Brevo مفتاحك. يرجى إنشاء مفتاح جديد وحفظه مرة أخرى.',
+  'This customer’s email address is not valid — it was removed from sending.' => 'عنوان البريد الإلكتروني لهذا العميل غير صالح — تمت إزالته من الإرسال.',
+  'Brevo could not be reached. Please try again in a minute.' => 'تعذّر الوصول إلى Brevo. يرجى المحاولة مرة أخرى بعد دقيقة.',
+  'Unsubscribed' => 'ألغى الاشتراك',
+  'No email' => 'لا يوجد بريد',
+  'The email could not be sent.' => 'تعذّر إرسال الرسالة.',
 );

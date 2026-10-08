@@ -18,6 +18,16 @@ function vestra_leads(): array { return vestra_read_json('leads.json'); }
 
 function vestra_save_leads(array $list): void { vestra_write_json('leads.json', array_values($list)); }
 
+/* Sağlayıcının "geçersiz alıcı" dediği adresi işaretle — gönderim listelerinden düşsün, her
+ * gönderimde yeniden denenip hak harcamasın (8 Eki 2026: 6 × "email is not valid in to").
+ * TAZE listeye yazılır (uzun gönderimler sırasında başka işlerin eklediği kayıt kaybolmasın). */
+function vestra_lead_mark_bad_email(string $leadId, string $why = 'provider: invalid recipient'): void {
+  if ($leadId === '') return;
+  $L = vestra_leads(); $hit = false;
+  foreach ($L as $i => $l) if (($l['id'] ?? '') === $leadId) { $L[$i]['status'] = 'bounced'; $L[$i]['bounce_reason'] = $why; $L[$i]['bounced_at'] = date('c'); $hit = true; break; }
+  if ($hit) vestra_save_leads($L);
+}
+
 function vestra_lead_by_token(string $token): ?array {
     if ($token === '') return null;
     foreach (vestra_leads() as $l) {

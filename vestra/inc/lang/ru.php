@@ -1541,4 +1541,12 @@ return array (
   'Friendly first contact: introduce my brand, show my best products and invite them to reply.' => 'Дружелюбный первый контакт: представь мой бренд, покажи лучшие товары и пригласи ответить.',
   'Stock offer: highlight the sizes and the minimum order, and ask if they want the full line sheet.' => 'Складское предложение: выдели размеры и минимальный заказ и спроси, нужен ли полный прайс-лист.',
   'For concept stores: focus on the story of the brands and why they sell well in independent shops.' => 'Для концепт-сторов: расскажи историю брендов и почему они хорошо продаются в независимых магазинах.',
+  'Your sending address is not confirmed in Brevo yet — see step 2 in “Your sending email” above.' => 'Ваш адрес отправки ещё не подтверждён в Brevo — см. шаг 2 в разделе «Ваш адрес отправки» выше.',
+  'Your Brevo account has no sending credits left for today.' => 'На вашем аккаунте Brevo на сегодня закончились кредиты отправки.',
+  'Brevo did not accept your key. Please create a new key and save it again.' => 'Brevo не принял ваш ключ. Создайте новый ключ и сохраните его снова.',
+  'This customer’s email address is not valid — it was removed from sending.' => 'Адрес e-mail этого клиента недействителен — он исключён из рассылки.',
+  'Brevo could not be reached. Please try again in a minute.' => 'Не удалось связаться с Brevo. Попробуйте ещё раз через минуту.',
+  'Unsubscribed' => 'Отписан',
+  'No email' => 'Нет e-mail',
+  'The email could not be sent.' => 'Не удалось отправить письмо.',
 );

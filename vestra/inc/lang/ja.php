@@ -1541,4 +1541,12 @@ return array (
   'Friendly first contact: introduce my brand, show my best products and invite them to reply.' => '親しみやすい最初の連絡：ブランドを紹介し、おすすめ商品を見せ、返信を促す。',
   'Stock offer: highlight the sizes and the minimum order, and ask if they want the full line sheet.' => '在庫オファー：サイズと最小注文数を強調し、全ラインシートが必要か尋ねる。',
   'For concept stores: focus on the story of the brands and why they sell well in independent shops.' => 'コンセプトストア向け：ブランドのストーリーと、独立系ショップでよく売れる理由に焦点を当てる。',
+  'Your sending address is not confirmed in Brevo yet — see step 2 in “Your sending email” above.' => '送信元アドレスがまだ Brevo で確認されていません — 上の「送信用メールアドレス」の手順 2 をご覧ください。',
+  'Your Brevo account has no sending credits left for today.' => 'Brevo アカウントの本日の送信クレジットがなくなりました。',
+  'Brevo did not accept your key. Please create a new key and save it again.' => 'Brevo がキーを受け付けませんでした。新しいキーを作成して、もう一度保存してください。',
+  'This customer’s email address is not valid — it was removed from sending.' => 'このお客様のメールアドレスは無効です — 送信対象から外しました。',
+  'Brevo could not be reached. Please try again in a minute.' => 'Brevo に接続できませんでした。1 分後にもう一度お試しください。',
+  'Unsubscribed' => '配信停止',
+  'No email' => 'メールなし',
+  'The email could not be sent.' => 'メールを送信できませんでした。',
 );

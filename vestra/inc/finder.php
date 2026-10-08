@@ -417,7 +417,11 @@ function vestra_finder_send(string $key, int $limit, bool $dry, string $pool = '
     $who = (string)($l['company'] ?? '').' <'.(string)$l['email'].'> · '.vestra_finder_lead_lang($l);
     if ($dry) { $lines[] = '• '.$who.' — '.$s; continue; }
     if (vestra_send_mail((string)$l['email'], $s, $b, '', $from, null, '', (array)$o)) { $sent++; $stamp[(string)($l['id'] ?? '')] = $key; $lines[] = '✓ '.$who; }
-    else { $fail++; $lines[] = '✗ '.$who; }
+    elseif (function_exists('vestra_mail_last_reason') && vestra_mail_last_reason() === 'badaddr') {
+      /* Brevo adresi geçersiz saydı: işaretle, bir daha listeye girmesin. */
+      $fail++; vestra_lead_mark_bad_email((string)($l['id'] ?? '')); $lines[] = '✗ '.$who.' — adres geçersiz (Brevo), listeden çıkarıldı';
+    }
+    else { $fail++; $lines[] = '✗ '.$who.(function_exists('vestra_mail_last_reason') && vestra_mail_last_reason() !== '' ? ' — '.vestra_mail_last_reason() : ''); }
   }
   if ($stamp) {
     /* Gönderim uzun sürer: damgayı TAZE listeye yaz ki bu arada başka bir işin
