@@ -5615,6 +5615,61 @@ jobs:
       # Varsayilan KURU KOSU; move_apply=true uygular. Once accounts.json yedeklenir,
       # yazma geri okunur. MUSTERIYE HICBIR SEY GITMEZ. payload='skip=<ref|firma parcasi>,...'
       # verilirse o siparisin/firmanin sahibi atlanir.
+      # SATICI GÖNDERİM SONDASI (seller_send_probe, 8 Eki 2026, operatör: "satıcı gönderimlerinin
+      # gittiğinden emin ol"): her satıcının gönderim ayarı (Brevo / yalnız SMTP / yok), Brevo
+      # anahtarı ve gönderen adresi GERÇEKTEN geçerli mi (GET /v3/account + /v3/senders —
+      # ücretsiz, posta gitmez), satıcı müşterilerine son yazımlar ve hata günlüğündeki retler.
+      # SALT OKUNUR; adresler maskeli, anahtar basılmaz.
+      - name: Satıcı gönderim sondası (seller_send_probe) -- salt okunur
+        if: ${{ github.event.inputs.admin_mode == 'seller_send_probe' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          script: |
+            cat > /tmp/vestra_ssp.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html";
+            require_once $doc."/inc/products.php"; require_once $doc."/inc/notify.php"; require_once $doc."/inc/leads.php"; require_once $doc."/inc/auth.php";
+            $mask = fn(string $e) => preg_replace('/^(.).*?@(.).*$/', '$1***@$2***', $e);
+            $acc = []; foreach ((array)(function_exists('auth_accounts') ? auth_accounts() : vestra_read_json('accounts.json')) as $a) $acc[(string)($a['id'] ?? '')] = $a;
+            $all = vestra_seller_mail_all();
+            echo "seller_mail.json kayit: ".count($all)."\n";
+            $get = function (string $url, string $k): array { $ch = curl_init($url); curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_HTTPHEADER => ['api-key: '.$k, 'Accept: application/json']]); $r = curl_exec($ch); $c = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch); return [$c, is_string($r) ? json_decode($r, true) : null]; };
+            foreach ($all as $uid => $c) {
+              $co = (string)(($acc[$uid]['company'] ?? '') ?: ($acc[$uid]['name'] ?? '?'));
+              $api = (string)($c['mail_api_key'] ?? ''); $smtp = ($c['smtp_host'] ?? '') !== '' && ($c['smtp_pass'] ?? '') !== '';
+              $from = strtolower(trim((string)($c['mail_from'] ?? '')));
+              $line = sprintf("- %s (%s) | from=%s | ", mb_substr($co, 0, 28), substr($uid, 0, 6), $from !== '' ? $mask($from) : '-');
+              if ($api !== '') {
+                [$hc, $a] = $get('https://api.brevo.com/v3/account', $api);
+                $cred = ''; foreach ((array)($a['plan'] ?? []) as $p) $cred .= ($p['type'] ?? '?').':'.($p['credits'] ?? '?').' ';
+                [$hs, $sn] = $get('https://api.brevo.com/v3/senders', $api);
+                $ok = []; $pend = []; foreach ((array)($sn['senders'] ?? []) as $x) { $e = strtolower((string)($x['email'] ?? '')); if (!empty($x['active'])) $ok[] = $e; else $pend[] = $e; }
+                $line .= "BREVO anahtar HTTP {$hc} {$cred}| gonderen onayli: ".(in_array($from, $ok, true) ? 'EVET' : (in_array($from, $pend, true) ? 'HAYIR (bekliyor)' : 'HAYIR (Brevo\'da yok)'))." | onayli adres sayisi ".count($ok);
+              } elseif ($smtp) $line .= "YALNIZ SMTP (".(string)($c['smtp_host'] ?? '')."): bu sunucuda SMTP kapali -> GONDEREMEZ";
+              else $line .= "gonderim ayari YOK";
+              $line .= " | son test: ".((string)($c['last_test_ok_at'] ?? '') ?: '-');
+              echo $line."\n";
+            }
+            $by = []; foreach (vestra_leads() as $l) { $o = (string)($l['owner_uid'] ?? ''); if ($o === '') continue; $by[$o]['n'] = ($by[$o]['n'] ?? 0) + 1;
+              if (trim((string)($l['last_contacted_at'] ?? '')) !== '') { $by[$o]['c'] = ($by[$o]['c'] ?? 0) + 1; $t = strtotime((string)$l['last_contacted_at']); if ($t > ($by[$o]['last'] ?? 0)) $by[$o]['last'] = $t; $v = (string)($l['contact_via'] ?? 'kendi-gonderimi'); $by[$o]['via'][$v] = ($by[$o]['via'][$v] ?? 0) + 1; } }
+            echo "satici musteri listeleri: ".count($by)." satici\n";
+            foreach ($by as $o => $x) printf("  %s (%s): musteri %d | yazilan %d | son %s | yol %s\n", mb_substr((string)(($acc[$o]['company'] ?? '') ?: '?'), 0, 28), substr($o, 0, 6), $x['n'], $x['c'] ?? 0, !empty($x['last']) ? date('Y-m-d H:i', $x['last']) : '-', json_encode($x['via'] ?? []));
+            $log = $doc."/error_log"; if (!is_file($log)) $log = ini_get('error_log');
+            if ($log && is_file($log)) {
+              $lines = array_slice(file($log, FILE_IGNORE_NEW_LINES) ?: [], -6000);
+              $hits = array_values(array_filter($lines, fn($x) => str_contains($x, '[VESTRA API]') || str_contains($x, '[VESTRA SMTP]') || str_contains($x, 'gecersiz alici')));
+              echo "hata gunlugu (API/SMTP retleri, son 10 / toplam ".count($hits)."):\n";
+              foreach (array_slice($hits, -10) as $h) echo "   ".preg_replace('/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/', '***@***', mb_substr($h, 0, 240))."\n";
+            }
+            echo "(salt okunur)\n";
+            PHPEOF
+            php /tmp/vestra_ssp.php; rm -f /tmp/vestra_ssp.php
+
       # WEB ARAMASI AÇ/KAPAT (finder_toggle, 8 Eki 2026): admin kartındaki düğmenin aynı yazımı —
       # email_settings.json finder_enabled. payload=on|off; geri okunur.
       - name: Web araması aç/kapat (finder_toggle)
