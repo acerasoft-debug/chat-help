@@ -1549,4 +1549,6 @@ return array (
   'Unsubscribed' => '配信停止',
   'No email' => 'メールなし',
   'The email could not be sent.' => 'メールを送信できませんでした。',
+  'Emails left today: %d' => '本日の残り送信数：%d',
+  'Brevo does not send more today; it renews tomorrow.' => 'Brevo は本日これ以上送信しません。上限は明日リセットされます。',
 );

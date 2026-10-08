@@ -300,6 +300,24 @@ $t('geçersiz adres işaretlenir ve gönderim listesinden düşer', $l8['status'
 $fsrc = (string)file_get_contents($root.'/inc/finder.php'); $ssrc = (string)file_get_contents($root.'/seller.php');
 $t('admin ve satıcı gönderimi badaddr\'ı işaretliyor, satıcı nedeni görüyor', str_contains($fsrc, "vestra_mail_last_reason() === 'badaddr'") && str_contains($ssrc, "if(\$why==='badaddr')") && str_contains($ssrc, 'var sendWhy='));
 
+echo "\n== 9e. Brevo kredisi: bitince 'kabul edip göndermiyor' (8 Eki ölçüldü) ==\n";
+$calls = 0; $credit = 0;
+$GLOBALS['vestra_brevo_credits_fetch'] = function ($k) use (&$calls, &$credit) { $calls++; return ['plan' => [['type' => 'free', 'credits' => $credit, 'creditsType' => 'sendLimit']]]; };
+$kz = 'xkeysib-zero'.str_repeat('0', 40);
+$t('kalan kredi okunur', vestra_brevo_credits($kz, true) === 0 && $calls === 1);
+$t('120 sn önbellek: ikinci okuma ağa çıkmaz', vestra_brevo_credits($kz) === 0 && $calls === 1);
+$cfgZ = ['mail_api_key' => $kz, 'mail_from' => 'info@shop.de', 'mail_api_provider' => 'brevo'];
+$okZ = vestra_send_mail('buyer@shop.example', 'x', 'y', '', 'Shop', $cfgZ);
+$t('kredi 0: gönderilmez, neden "credits" (ağa çıkmadan — "transport" değil)', !$okZ && vestra_mail_last_reason() === 'credits' && vestra_api_definitively_rejected());
+$credit = 5; $kf = 'xkeysib-five'.str_repeat('5', 40); vestra_brevo_credits($kf, true);
+vestra_brevo_credits_spend($kf);
+$t('başarılı gönderimden sonra önbellek krediyi bir azaltır', vestra_brevo_credits($kf) === 4);
+$credit = null; $GLOBALS['vestra_brevo_credits_fetch'] = fn($k) => null;
+$t('kredi bilinmiyorsa (ağ yok) gönderim ENGELLENMEZ', vestra_brevo_credits('xkeysib-unknown'.str_repeat('u', 40), true) === null);
+unset($GLOBALS['vestra_brevo_credits_fetch']);
+$t('sipariş/fatura payı varsayılan 60', vestra_brevo_reserve() === 60);
+$t('kampanya gönderimi payda DURUR (kaynak)', str_contains((string)file_get_contents($root.'/inc/finder.php'), "!(\$cc = vestra_campaign_credit_ok())[0]"));
+
 $aic = (string)file_get_contents($root.'/inc/ai_campaign.php');
 $t('istek: yapılandırılmış çıktı + ret/uzunluk durumu ele alınıyor', str_contains($aic, "'json_schema'") && str_contains($aic, "'refusal'") && str_contains($aic, "'max_tokens'"));
 
@@ -367,6 +385,7 @@ $t('satıcı: ⚡ tek tık hazır kampanya + nasıl çalışır + örnek tarifle
 $t('satıcı: Claude + DeepSeek anahtar formları', str_contains($hs, 'name="anthropic_key"') && str_contains($hs, 'name="deepseek_key"') && str_contains($hs, 'platform.deepseek.com/api_keys'));
 $t('satıcı: müşteri listesinde Gmail/Outlook/uygulama düğmeleri (yalnız e-postalı müşteride)', substr_count($hs, "sellerCompose(&quot;LDsel1&quot;") === 3 && !str_contains($hs, 'LDselNoMail&quot;'));
 $t('admin: web araması aç/kapat düğmesi + gönderimde "Kime" havuz seçimi', str_contains($ha, 'value="finder_toggle"') && str_contains($ha, '▶ Aç') && str_contains($ha, 'name="pool"') && str_contains($ha, 'Tüm yazılmamış müşteriler'));
+$t('admin: Brevo kalan kredi bandı + pay ayarı', str_contains($ha, 'Brevo bugün kalan') && str_contains($ha, 'value="brevo_reserve"'));
 $t('admin: 🧪 Bana test gönder + test adresi', str_contains($ha, 'name="mode" value="test"') && str_contains($ha, 'name="test_to"'));
 $t('satıcı (kendi anahtarı): PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $hs2));
 

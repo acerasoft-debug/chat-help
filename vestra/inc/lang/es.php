@@ -1553,4 +1553,6 @@ return array (
   'Unsubscribed' => 'Dado de baja',
   'No email' => 'Sin e-mail',
   'The email could not be sent.' => 'No se pudo enviar el e-mail.',
+  'Emails left today: %d' => 'E-mails restantes hoy: %d',
+  'Brevo does not send more today; it renews tomorrow.' => 'Brevo no envía más hoy; el cupo se renueva mañana.',
 );

@@ -1912,6 +1912,13 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   /* Web araması aç/kapat (8 Eki 2026: operatör önce "kapat", sonra "tüm bunları aç" dedi —
      kararı koda değil panele koyuyoruz). email_settings.json finder_enabled. GitHub'daki iki
      işin zamanlaması ayrıca varsayılan dalda durur; kapalıyken panel başlatmaz. */
+  if($act==='brevo_reserve'){
+    $dir=vestra_data_dir();
+    $cur=is_readable($dir.'/email_settings.json')?json_decode((string)file_get_contents($dir.'/email_settings.json'),true):[]; if(!is_array($cur))$cur=[];
+    $cur['brevo_reserve']=max(0,min(300,(int)($_POST['brevo_reserve']??60)));
+    file_put_contents($dir.'/email_settings.json',json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($dir.'/email_settings.json',0600);
+    header('Location: /admin?tab=prospects#findersend'); exit;
+  }
   if($act==='finder_toggle'){
     $dir=vestra_data_dir();
     $cur=is_readable($dir.'/email_settings.json')?json_decode((string)file_get_contents($dir.'/email_settings.json'),true):[]; if(!is_array($cur))$cur=[];
@@ -6445,10 +6452,15 @@ elseif($tab==='prospects'):
     $fsTargets=$fsTargetsWeb?:$fsTargetsAll;
     $fsSample=$fsTargets?reset($fsTargets):['company'=>'Boutique Esempio','country'=>'Italy','email'=>'info@example.com','unsub_token'=>'','contact_name'=>''];
     $fsFlash=$_SESSION['finder_send_flash']??null; unset($_SESSION['finder_send_flash']);
+    [$fsCredOk,$fsCred]=function_exists('vestra_campaign_credit_ok')?vestra_campaign_credit_ok():[true,null]; $fsRes=vestra_brevo_reserve();
   ?>
   <div id="findersend" style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
     <div style="font-weight:700;font-size:14px;margin-bottom:4px">📮 Bulunan müşterilere kampanya gönder <span class="ahint">· gönderilmeye hazır: web aramasıyla bulunan <b><?= count($fsTargetsWeb) ?></b> · tüm yazılmamış müşteriler <b><?= count($fsTargetsAll) ?></b> (KURAL 1, abonelikten çıkan, kampanya dışı ve daha önce yazılmış adresler elendi)</span></div>
-    <p class="ahint" style="margin:0 0 8px">Daha önce gönderdiğimiz kampanyalardan birini (ya da Claude ile yazılanı) seçin, önizleyin, <b>🧪 kendinize test gönderin</b> (konu "[TEST]" önekli, gerçek bir müşterinin adı ve diliyle, kimse damgalanmaz), önce listeleyip sonra gönderin. Gönderim Brevo üzerinden <b>support@vestrasales.com</b> ile gider; her mektupta kişiye özel abonelikten çıkma linki var; aynı adrese ikinci kez gitmez.</p>
+    <div style="background:<?= $fsCredOk?'rgba(31,157,99,.07)':'#fdf0ee' ?>;border:1px solid <?= $fsCredOk?'rgba(31,157,99,.35)':'#f0c4bd' ?>;border-radius:9px;padding:8px 11px;font-size:12.5px;margin:0 0 8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span>📊 Brevo bugün kalan: <b><?= $fsCred===null?'?':(int)$fsCred ?></b> · sipariş/fatura payı: <b><?= $fsRes ?></b> · kampanyaya ayrılabilir: <b><?= $fsCred===null?'?':max(0,(int)$fsCred-$fsRes) ?></b><?= $fsCredOk?'':' — <b>bugünlük kampanya hakkı bitti</b>, kalan müşteriler yarın gönderilebilir' ?></span>
+      <form method="post" class="aform" style="display:flex;gap:6px;align-items:center;margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="brevo_reserve"><label class="ahint" style="margin:0">Pay</label><input name="brevo_reserve" type="number" min="0" max="300" value="<?= $fsRes ?>" style="width:70px"><button class="abtn" type="submit">Kaydet</button></form>
+    </div>
+    <p class="ahint" style="margin:0 0 8px">Brevo'nun ücretsiz planı günde 300 mektup verir ve hak bitince mektubu <b>kabul edip göndermez</b> (8 Eki ölçüldü). Bu yüzden gönderim kalan hak sipariş/fatura payına inince kendiliğinden durur. Daha önce gönderdiğimiz kampanyalardan birini (ya da Claude ile yazılanı) seçin, önizleyin, <b>🧪 kendinize test gönderin</b> (konu "[TEST]" önekli, gerçek bir müşterinin adı ve diliyle, kimse damgalanmaz), önce listeleyip sonra gönderin. Gönderim Brevo üzerinden <b>support@vestrasales.com</b> ile gider; her mektupta kişiye özel abonelikten çıkma linki var; aynı adrese ikinci kez gitmez.</p>
     <?php if($fsFlash && !empty($fsFlash['test'])): ?><div class="amsg <?= $fsFlash['test'][0]?'ok':'' ?>">🧪 <?= htmlspecialchars((string)$fsFlash['test'][1]) ?></div>
     <?php elseif($fsFlash): ?><div class="amsg <?= ($fsFlash['dry']||$fsFlash['fail']===0)?'ok':'' ?>"><?= $fsFlash['dry']?'Önizleme (gönderilmedi) — bu kişilere gidecek:':('Gönderildi: '.(int)$fsFlash['sent'].' · hata: '.(int)$fsFlash['fail']) ?>
       <div style="font-size:11.5px;max-height:220px;overflow:auto;margin-top:6px;white-space:pre-wrap"><?= htmlspecialchars(implode("\n",$fsFlash['lines'])?:'(uygun alıcı yok)') ?></div></div><?php endif; ?>

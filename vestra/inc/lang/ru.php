@@ -1549,4 +1549,6 @@ return array (
   'Unsubscribed' => 'Отписан',
   'No email' => 'Нет e-mail',
   'The email could not be sent.' => 'Не удалось отправить письмо.',
+  'Emails left today: %d' => 'Осталось писем на сегодня: %d',
+  'Brevo does not send more today; it renews tomorrow.' => 'Сегодня Brevo больше не отправляет; лимит обновится завтра.',
 );

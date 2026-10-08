@@ -416,6 +416,12 @@ function vestra_finder_send(string $key, int $limit, bool $dry, string $pool = '
     [$s, $b, $o, $from] = $builder($l);
     $who = (string)($l['company'] ?? '').' <'.(string)$l['email'].'> · '.vestra_finder_lead_lang($l);
     if ($dry) { $lines[] = '• '.$who.' — '.$s; continue; }
+    /* Brevo kredisi sipariş/fatura payına indiyse DUR (8 Eki 2026: kredi bitince Brevo
+       "kabul edip göndermiyordu"; kampanya, günün işlem mektuplarını da yemişti). */
+    if (function_exists('vestra_campaign_credit_ok') && !($cc = vestra_campaign_credit_ok())[0]) {
+      $lines[] = '⏸ Brevo günlük kredisi '.(int)$cc[1].' — sipariş/fatura payına ('.vestra_brevo_reserve().') indi, gönderim DURDU. Kalanlar yarın gönderilebilir.';
+      break;
+    }
     if (vestra_send_mail((string)$l['email'], $s, $b, '', $from, null, '', (array)$o)) { $sent++; $stamp[(string)($l['id'] ?? '')] = $key; $lines[] = '✓ '.$who; }
     elseif (function_exists('vestra_mail_last_reason') && vestra_mail_last_reason() === 'badaddr') {
       /* Brevo adresi geçersiz saydı: işaretle, bir daha listeye girmesin. */

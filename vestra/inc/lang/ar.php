@@ -1549,4 +1549,6 @@ return array (
   'Unsubscribed' => 'ألغى الاشتراك',
   'No email' => 'لا يوجد بريد',
   'The email could not be sent.' => 'تعذّر إرسال الرسالة.',
+  'Emails left today: %d' => 'الرسائل المتبقية اليوم: %d',
+  'Brevo does not send more today; it renews tomorrow.' => 'لن ترسل Brevo المزيد اليوم؛ يتجدد الحد غدًا.',
 );

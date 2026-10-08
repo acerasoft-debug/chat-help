@@ -2940,6 +2940,50 @@ function vestra_smtp_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,
  * Config: mail_api_provider ('brevo' default | 'resend'), mail_api_key,
  *         mail_from (verified sender address), smtp_name (display name).
  * Returns true on a 2xx from the provider. */
+/* BREVO KREDİSİ (8 Eki 2026, ölçüldü): ücretsiz plan günlük hakkı bitince Brevo API'si
+ * HTTP 201 + messageId döndürüp mektubu GÖNDERMİYOR — tek iz, olay kaydında bir kez
+ * "Email not sent: Your account has insufficient credits". O akşam 114 kampanya mektubu
+ * "gönderildi" damgası alıp gitmedi (unstamp_lost ile geri alındı). Bu yüzden gönderimden
+ * ÖNCE kalan kredi okunur (GET /v3/account — ücretsiz), 120 sn önbellekli; 0 ise gönderim
+ * yapılmaz ve neden 'credits' olur. Bilinmiyorsa (ağ/biçim) gönderim engellenmez.
+ * Anahtar başına ayrı (satıcıların kendi hesapları da). */
+function vestra_brevo_credits(string $key, bool $fresh=false): ?int {
+  if($key==='') return null;
+  $f=vestra_seller_mail_dir().'/brevo_credits.json'; $h=substr(sha1($key),0,16);
+  $c=is_readable($f)?(json_decode((string)file_get_contents($f),true)?:[]):[];
+  if(!$fresh && isset($c[$h]) && (time()-(int)($c[$h]['at']??0))<120) return $c[$h]['credits']===null?null:(int)$c[$h]['credits'];
+  $fetch=$GLOBALS['vestra_brevo_credits_fetch'] ?? function(string $k){
+    $ch=curl_init('https://api.brevo.com/v3/account');
+    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>8,CURLOPT_CONNECTTIMEOUT=>5,CURLOPT_HTTPHEADER=>['api-key: '.$k,'Accept: application/json']]);
+    $r=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+    return $code===200?json_decode((string)$r,true):null;
+  };
+  $a=$fetch($key); $cr=null;
+  if(is_array($a)) foreach((array)($a['plan']??[]) as $p){
+    if(!isset($p['credits'])) continue;
+    /* Ücretsiz plan: creditsType=sendLimit (günlük). Ücretli: kredi bakiyesi. En küçüğü bağlayıcı. */
+    $v=(int)$p['credits']; $cr=$cr===null?$v:min($cr,$v);
+  }
+  $c[$h]=['credits'=>$cr,'at'=>time()];
+  @file_put_contents($f,json_encode($c),LOCK_EX); @chmod($f,0600);
+  return $cr;
+}
+/* Başarılı gönderimden sonra önbellekteki krediyi bir azalt (120 sn içinde yeniden sormadan). */
+function vestra_brevo_credits_spend(string $key): void {
+  $f=vestra_seller_mail_dir().'/brevo_credits.json'; $h=substr(sha1($key),0,16);
+  $c=is_readable($f)?(json_decode((string)file_get_contents($f),true)?:[]):[];
+  if(isset($c[$h]['credits']) && $c[$h]['credits']!==null){ $c[$h]['credits']=max(0,(int)$c[$h]['credits']-1); @file_put_contents($f,json_encode($c),LOCK_EX); }
+}
+/* Platformun kampanyalara bırakacağı pay: sipariş/fatura/hatırlatma mektupları için günlük
+   kredinin bu kadarı kampanyalara KAPALI (admin ayarı brevo_reserve, varsayılan 60). */
+function vestra_brevo_reserve(): int { return max(0,(int)vestra_cfg('brevo_reserve',60)); }
+/* Platform kampanyası şimdi bir mektup daha gönderebilir mi? [ok, kalan|null] */
+function vestra_campaign_credit_ok(): array {
+  $k=(string)vestra_cfg('mail_api_key',''); if($k===''||strtolower((string)vestra_cfg('mail_api_provider','brevo'))!=='brevo') return [true,null];
+  $cr=vestra_brevo_credits($k);
+  return [$cr===null || $cr>vestra_brevo_reserve(), $cr];
+}
+
 function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$heroImage='',array $opts=[]){
   $g=fn($k,$d)=> $cfg!==null ? ($cfg[$k]??$d) : vestra_cfg($k,$d);
   $provider=strtolower((string)$g('mail_api_provider','brevo'));
@@ -2947,6 +2991,15 @@ function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$
   $from=vestra_mail_from($cfg, (string)$g('mail_from',''));
   $name=$fromName!==''?$fromName:(string)$g('smtp_name','VESTRA');
   if($key===''||$from===''){ error_log('[VESTRA API] mail_api_key or mail_from missing'); return false; }
+  if($provider!=='resend'){
+    $cr=vestra_brevo_credits($key);
+    if($cr!==null && $cr<=0){
+      /* Kredi yok: Brevo kabul edip GÖNDERMEZDİ. Hiç denemeyip açıkça reddedilmiş say. */
+      $GLOBALS['vestra_api_last_rejected']=true; $GLOBALS['vestra_api_last_error']=['code'=>402,'body'=>'insufficient credits (pre-check)'];
+      error_log('[VESTRA API] brevo: kredi 0 — gonderilmedi ('.($cfg!==null?'satici':'platform').')');
+      return false;
+    }
+  }
 
   if($provider==='resend'){
     $url='https://api.resend.com/emails';
@@ -3021,6 +3074,7 @@ function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$
     /* Sağlayıcının mesaj kimliği: "gitti mi?" sorusu tahminle değil bu kimlikle
        sorgulansın (Brevo /v3/smtp/statistics/events?messageId=…). */
     $mj=json_decode((string)$resp,true); $GLOBALS['vestra_api_last_message_id']=(string)($mj['messageId']??($mj['id']??''));
+    if($provider!=='resend') vestra_brevo_credits_spend($key);
     return true;
   }
   /* Definitive rejection with an HTTP status: the provider refused it and nothing was

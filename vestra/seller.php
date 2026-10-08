@@ -1414,7 +1414,8 @@ if($tab==='overview'){
     <div style="background:var(--bg2,#faf8f4);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px">
       <?= $stepRow(!$hasKey?'todo':(($bc&&!$bc['ok'])?'bad':'ok'),'1','Brevo key',
           !$hasKey?$tk('Not added yet — see the 4 steps below.'):(($bc&&!$bc['ok'])?$tk('Brevo did not accept this key. Please create a new key and save it again.')
-          :($bc&&$bc['account']!==''?sprintf($tk('Works — Brevo account: %s'),htmlspecialchars($bc['account'])):$tk('Saved.')))) ?>
+          :(($bc&&$bc['account']!==''?sprintf($tk('Works — Brevo account: %s'),htmlspecialchars($bc['account'])):$tk('Saved.'))
+            .(($myCred=vestra_brevo_credits((string)$myMail['mail_api_key']))!==null?' · '.sprintf($tk('Emails left today: %d'),$myCred).($myCred<=0?' — '.$tk('Brevo does not send more today; it renews tomorrow.'):''):'')))) ?>
       <?= $stepRow(!$hasKey||!$bc||$bc['sender_ok']===null?'todo':($bc['sender_ok']?'ok':'bad'),'2','Your address confirmed in Brevo',
           !$hasKey||!$bc||$bc['sender_ok']===null?$tk('Checked when you save your key.'):($bc['sender_ok']?sprintf($tk('%s is confirmed.'),htmlspecialchars($fromNow))
           :sprintf($tk('%s is not confirmed in Brevo yet: open Brevo → Settings → Senders, add this address and click the link Brevo emails you. Then press “Save” here again.'),htmlspecialchars($fromNow)))) ?>
