@@ -5630,6 +5630,22 @@ jobs:
             head -c 600 /tmp/hp_body | sed 's/^/   /'; echo
           done
 
+      # INDEXNOW TESHISI (indexnow_check): GitHub sunucusundan tek adresle (ana sayfa)
+      # Bing / Yandex / api.indexnow.org uclarina GET atar ve YANIT GOVDESINI basar;
+      # anahtar dosyasini farkli kullanici ajanlariyla ceker (Cloudflare bot engeli mi?).
+      # Ana sayfayi bildirmek zararsiz; baska hicbir sey degismez.
+      - name: IndexNow teshisi (indexnow_check)
+        if: ${{ github.event.inputs.admin_mode == 'indexnow_check' }}
+        run: |
+          K=7922b201eec4b4be125ddd2c35700a42
+          for ua in 'Mozilla/5.0 (VESTRA probe)' 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)' 'Mozilla/5.0 (compatible; YandexBot/3.0; +http://yandex.com/bots)' 'IndexNow'; do
+            echo "== anahtar dosyasi, UA: $ua -> $(curl -sS -A "$ua" -o /tmp/k -w '%{http_code} %{content_type} %{size_download}B' https://vestrasales.com/$K.txt) | $(head -c 40 /tmp/k | tr -d '\n' | cut -c1-12)..."
+          done
+          for ep in https://www.bing.com/indexnow https://yandex.com/indexnow https://api.indexnow.org/indexnow; do
+            code=$(curl -sS -o /tmp/r -w '%{http_code}' "$ep?url=https%3A%2F%2Fvestrasales.com%2F&key=$K" || echo ERR)
+            echo "== $ep -> HTTP $code"; head -c 500 /tmp/r; echo
+          done
+
       # INDEXNOW (indexnow): sunucudaki cron_indexnow.php'yi elle kosturur. payload='all' =
       # sitemap'in TAMAMI (ilk kurulumda bir kez), bos = son kosudan beri degisenler.
       # Varsayilan KURU KOSU (gonderilecek adresleri yazar); move_apply=true gonderir.
