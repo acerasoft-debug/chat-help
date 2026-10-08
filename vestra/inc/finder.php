@@ -352,12 +352,25 @@ function vestra_finder_campaigns(): array {
   return $out;
 }
 
-/** Gönderilebilecek, web aramasıyla bulunmuş admin leadleri (yazılmamış, temiz). */
-function vestra_finder_send_targets(int $limit = 1000): array {
-  $out = []; $seen = [];
-  foreach (array_reverse(vestra_leads(), true) as $i => $l) {                 // en yeni önce
+/** Gönderim havuzları (8 Eki 2026, operatör: "kampanyada göndermiyor"). 'web' yalnız web
+ *  aramasıyla bulunanlar; 'all' elimizdeki BÜTÜN yazılmamış admin leadleri (OpenStreetMap,
+ *  elle eklenen ve listeler). Pazaryeri satıcıları (Amazon/eBay/Otto) ve bastırma kayıtları
+ *  butik kampanyası almaz — onlar alıcı değil. */
+function vestra_finder_pools(): array {
+  return ['web' => 'Web aramasıyla bulunanlar', 'all' => 'Tüm yazılmamış müşteriler (OpenStreetMap, listeler, elle eklenenler)'];
+}
+const VESTRA_FINDER_NOT_BUYER_SOURCES = ['amazon seller', 'ebay seller', 'otto seller', 'suppression'];
+
+/** Gönderilebilecek admin leadleri (yazılmamış, temiz), en yeni önce. $pool: 'web' | 'all'.
+ *  Aynı ADRESE başka bir kayıttan daha önce yazılmışsa o adres de atlanır. */
+function vestra_finder_send_targets(int $limit = 1000, string $pool = 'web'): array {
+  $out = []; $seen = []; $all = vestra_leads();
+  foreach ($all as $l) if (trim((string)($l['last_contacted_at'] ?? '')) !== '' && ($e = strtolower(trim((string)($l['email'] ?? '')))) !== '') $seen[$e] = true;
+  foreach (array_reverse($all, true) as $i => $l) {                 // en yeni önce
     if (count($out) >= $limit) break;
-    if ((string)($l['source'] ?? '') !== 'web-search' || (string)($l['owner_uid'] ?? '') !== '') continue;
+    $src = (string)($l['source'] ?? '');
+    if ($pool === 'web' ? $src !== 'web-search' : in_array(strtolower($src), VESTRA_FINDER_NOT_BUYER_SOURCES, true)) continue;
+    if ((string)($l['owner_uid'] ?? '') !== '') continue;
     if (trim((string)($l['last_contacted_at'] ?? '')) !== '') continue;
     $st = (string)($l['status'] ?? 'new'); if ($st === 'unsubscribed' || $st === 'bounced' || !empty($l['unsubscribed'])) continue;
     $e = strtolower(trim((string)($l['email'] ?? ''))); if (!filter_var($e, FILTER_VALIDATE_EMAIL) || isset($seen[$e])) continue;
@@ -375,13 +388,13 @@ function vestra_finder_send_targets(int $limit = 1000): array {
  * Örnek müşteri: gönderilecek ilk gerçek hedef (dil ve ad onunkiyle), yoksa örnek bir dükkân.
  * [ok, mesaj]   $send: testte sahte gönderici (vestra_send_mail imzası).
  */
-function vestra_finder_send_test(string $key, string $to, ?callable $send = null): array {
+function vestra_finder_send_test(string $key, string $to, ?callable $send = null, string $pool = 'web'): array {
   $send = $send ?? 'vestra_send_mail';
   $camps = vestra_finder_campaigns();
   if (!isset($camps[$key])) return [false, 'Kampanya bulunamadı.'];
   $to = trim($to);
   if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return [false, 'Geçerli bir test adresi yazın.'];
-  $tg = vestra_finder_send_targets(1);
+  $tg = vestra_finder_send_targets(1, $pool) ?: vestra_finder_send_targets(1, 'all');
   $sample = $tg ? reset($tg) : ['company' => 'Boutique Example', 'country' => 'Italy', 'email' => $to, 'contact_name' => ''];
   $sample['unsub_token'] = ''; $sample['email'] = $to;
   [$s, $b, $o, $from] = ($camps[$key][2])($sample);
@@ -391,11 +404,11 @@ function vestra_finder_send_test(string $key, string $to, ?callable $send = null
 }
 
 /** [gönderilen, hata, satırlar] — $dry: gönderme, yalnızca listele. */
-function vestra_finder_send(string $key, int $limit, bool $dry): array {
+function vestra_finder_send(string $key, int $limit, bool $dry, string $pool = 'web'): array {
   $camps = vestra_finder_campaigns();
   if (!isset($camps[$key])) return [0, 0, ['Kampanya bulunamadı.']];
   $limit = max(1, min(100, $limit));
-  $targets = vestra_finder_send_targets($limit);
+  $targets = vestra_finder_send_targets($limit, $pool === 'all' ? 'all' : 'web');
   $builder = $camps[$key][2];
   $sent = 0; $fail = 0; $lines = []; $stamp = [];
   @set_time_limit(0);

@@ -1862,14 +1862,15 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   /* Bulunan müşterilere seçilen kampanyayı gönder (inc/finder.php). dry = yalnızca listele. */
   if($act==='finder_send_campaign'){
     require_once __DIR__.'/inc/finder.php';
+    $fsPool=($_POST['pool']??'web')==='all'?'all':'web';
     if(($_POST['mode']??'')==='test'){
-      [$tOk,$tMsg]=vestra_finder_send_test((string)($_POST['camp']??''),(string)($_POST['test_to']??''));
+      [$tOk,$tMsg]=vestra_finder_send_test((string)($_POST['camp']??''),(string)($_POST['test_to']??''),null,$fsPool);
       $_SESSION['finder_send_flash']=['dry'=>true,'test'=>[$tOk,$tMsg],'sent'=>0,'fail'=>0,'lines'=>[],'camp'=>(string)($_POST['camp']??'')];
       header('Location: /admin?tab=prospects#findersend'); exit;
     }
     $dry=($_POST['mode']??'')!=='send';
-    [$sN,$fN,$lines]=vestra_finder_send((string)($_POST['camp']??''),(int)($_POST['limit']??20),$dry);
-    $_SESSION['finder_send_flash']=['dry'=>$dry,'sent'=>$sN,'fail'=>$fN,'lines'=>array_slice($lines,0,100),'camp'=>(string)($_POST['camp']??'')];
+    [$sN,$fN,$lines]=vestra_finder_send((string)($_POST['camp']??''),(int)($_POST['limit']??20),$dry,$fsPool);
+    $_SESSION['finder_send_flash']=['dry'=>$dry,'sent'=>$sN,'fail'=>$fN,'lines'=>array_slice($lines,0,100),'camp'=>(string)($_POST['camp']??''),'pool'=>$fsPool];
     header('Location: /admin?tab=prospects#findersend'); exit;
   }
   /* Claude kampanya yazarı (inc/ai_campaign.php): anahtar, sınırlar, admin üretimi, düzenleme. */
@@ -1907,6 +1908,17 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $_SESSION['ai_flash']=[$ok,$ok?'✓ Düzenleme kaydedildi.':'Kampanya bulunamadı.'];
     }
     header('Location: /admin?tab=prospects#aicamp'); exit;
+  }
+  /* Web araması aç/kapat (8 Eki 2026: operatör önce "kapat", sonra "tüm bunları aç" dedi —
+     kararı koda değil panele koyuyoruz). email_settings.json finder_enabled. GitHub'daki iki
+     işin zamanlaması ayrıca varsayılan dalda durur; kapalıyken panel başlatmaz. */
+  if($act==='finder_toggle'){
+    $dir=vestra_data_dir();
+    $cur=is_readable($dir.'/email_settings.json')?json_decode((string)file_get_contents($dir.'/email_settings.json'),true):[]; if(!is_array($cur))$cur=[];
+    $cur['finder_enabled']=($_POST['on']??'')==='1';
+    file_put_contents($dir.'/email_settings.json',json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($dir.'/email_settings.json',0600);
+    $_SESSION['finder_flash']=[true,$cur['finder_enabled']?'✓ Web araması AÇILDI.':'Web araması kapatıldı.'];
+    header('Location: /admin?tab=prospects#finderweb'); exit;
   }
   if($act==='finder_web_start'){
     require_once __DIR__.'/inc/finder.php';
@@ -6416,22 +6428,26 @@ elseif($tab==='prospects'):
     <?php else: ?>
       <button class="abtn primary" type="submit" onclick="this.disabled=true;this.textContent='Başlatılıyor…';this.form.submit()">🌐 Aramayı başlat</button>
     <?php endif; ?>
-    <?php if(!$fwReady): ?><span class="ahint" style="margin-left:8px">Kapatıldı (8 Eki): GitHub'daki günlük ve 10 dakikalık arama işleri durduruldu. Bulunan müşteriler ve aşağıdaki kampanya gönderimi çalışmaya devam eder.</span>
+    <?php if(!$fwReady): ?><span class="ahint" style="margin-left:8px">Web araması kapalı — aşağıdaki "Aç" düğmesiyle açın. Bulunan müşteriler ve kampanya gönderimi kapalıyken de çalışır.</span>
     <?php else: ?><span class="ahint" style="margin-left:8px">Her gün 05:20'de (UTC) kendiliğinden de çalışır. <?= $fwGh?'Süre: 20-40 dk.':'Başlaması 10 dk\'ya kadar, süre 20-40 dk.' ?></span><?php endif; ?>
   </form>
 
+  <form method="post" class="aform" style="margin:-4px 0 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><?= csrfField() ?><input type="hidden" name="_action" value="finder_toggle"><input type="hidden" name="on" value="<?= $fwReady?'0':'1' ?>">
+    <span class="ahint">Web araması: <b style="color:<?= $fwReady?'#1f9d63':'#a9781a' ?>"><?= $fwReady?'AÇIK':'KAPALI' ?></b> · her gün 05:20 UTC kendiliğinden çalışır ve yeni bulduklarına kampanyayı gönderir (en çok 40/gün)</span>
+    <button class="abtn<?= $fwReady?'':' primary' ?>" type="submit"<?= $fwReady?' onclick="return confirm(\'Web araması kapatılsın mı?\')"':'' ?>><?= $fwReady?'⏸ Kapat':'▶ Aç' ?></button></form>
   <div style="font-weight:600;font-size:13px;margin:4px 0 8px">Son aramalar</div>
   <?= vestra_finder_runs_html($fwRuns, true, $fwNames, 6) ?>
   <?php if($fwActive): ?><script>setTimeout(function(){ if(!document.hidden) location.reload(); }, 45000);</script><?php endif; ?>
 
   <?php
     /* ── 📮 Bulunanlara kampanya gönder ── */
-    $fsCamps=vestra_finder_campaigns(); $fsTargets=vestra_finder_send_targets(1000);
+    $fsCamps=vestra_finder_campaigns(); $fsTargetsWeb=vestra_finder_send_targets(1000,'web'); $fsTargetsAll=vestra_finder_send_targets(5000,'all');
+    $fsTargets=$fsTargetsWeb?:$fsTargetsAll;
     $fsSample=$fsTargets?reset($fsTargets):['company'=>'Boutique Esempio','country'=>'Italy','email'=>'info@example.com','unsub_token'=>'','contact_name'=>''];
     $fsFlash=$_SESSION['finder_send_flash']??null; unset($_SESSION['finder_send_flash']);
   ?>
   <div id="findersend" style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
-    <div style="font-weight:700;font-size:14px;margin-bottom:4px">📮 Bulunan müşterilere kampanya gönder <span class="ahint">· gönderilmeye hazır: <b><?= count($fsTargets) ?></b> (web aramasıyla bulunmuş, yazılmamış, KURAL 1'den geçmiş)</span></div>
+    <div style="font-weight:700;font-size:14px;margin-bottom:4px">📮 Bulunan müşterilere kampanya gönder <span class="ahint">· gönderilmeye hazır: web aramasıyla bulunan <b><?= count($fsTargetsWeb) ?></b> · tüm yazılmamış müşteriler <b><?= count($fsTargetsAll) ?></b> (KURAL 1, abonelikten çıkan, kampanya dışı ve daha önce yazılmış adresler elendi)</span></div>
     <p class="ahint" style="margin:0 0 8px">Daha önce gönderdiğimiz kampanyalardan birini (ya da Claude ile yazılanı) seçin, önizleyin, <b>🧪 kendinize test gönderin</b> (konu "[TEST]" önekli, gerçek bir müşterinin adı ve diliyle, kimse damgalanmaz), önce listeleyip sonra gönderin. Gönderim Brevo üzerinden <b>support@vestrasales.com</b> ile gider; her mektupta kişiye özel abonelikten çıkma linki var; aynı adrese ikinci kez gitmez.</p>
     <?php if($fsFlash && !empty($fsFlash['test'])): ?><div class="amsg <?= $fsFlash['test'][0]?'ok':'' ?>">🧪 <?= htmlspecialchars((string)$fsFlash['test'][1]) ?></div>
     <?php elseif($fsFlash): ?><div class="amsg <?= ($fsFlash['dry']||$fsFlash['fail']===0)?'ok':'' ?>"><?= $fsFlash['dry']?'Önizleme (gönderilmedi) — bu kişilere gidecek:':('Gönderildi: '.(int)$fsFlash['sent'].' · hata: '.(int)$fsFlash['fail']) ?>
@@ -6447,11 +6463,12 @@ elseif($tab==='prospects'):
         </div>
       <?php $fsFirst=false; endforeach; ?>
       <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:8px">
+        <div class="afield" style="margin:0"><label>Kime</label><select name="pool"><?php foreach(vestra_finder_pools() as $pk=>$pl): ?><option value="<?= $pk ?>"<?= (($fsFlash['pool']??($fsTargetsWeb?'web':'all'))===$pk)?' selected':'' ?>><?= htmlspecialchars($pl) ?> (<?= count($pk==='web'?$fsTargetsWeb:$fsTargetsAll) ?>)</option><?php endforeach; ?></select></div>
         <div class="afield" style="margin:0"><label>Kaç kişiye</label><input name="limit" type="number" min="1" max="100" value="20" style="width:90px"></div>
         <div class="afield" style="margin:0"><label>Test adresi</label><input type="email" name="test_to" value="<?= htmlspecialchars((string)vestra_cfg('ops_email','acerasoft@gmail.com')) ?>" style="width:220px"></div>
         <button class="abtn" type="submit" name="mode" value="test">🧪 Bana test gönder</button>
         <button class="abtn" type="submit" name="mode" value="dry">👁 Önce listele (göndermez)</button>
-        <button class="abtn primary" type="submit" name="mode" value="send" onclick="return confirm('Seçilen kampanya gerçekten gönderilsin mi?')"<?= $fsTargets?'':' disabled' ?>>📮 Gönder</button>
+        <button class="abtn primary" type="submit" name="mode" value="send" onclick="return confirm('Seçilen kampanya gerçekten gönderilsin mi?')"<?= ($fsTargetsWeb||$fsTargetsAll)?'':' disabled' ?>>📮 Gönder</button>
       </div>
     </form>
   </div>

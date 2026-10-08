@@ -124,11 +124,23 @@ vestra_write_json('leads.json', [
   ['id' => 'L5', 'company' => 'Manual Lead', 'email' => 'c@funf.example', 'country' => 'Germany', 'source' => 'Manual', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tok5'],
   ['id' => 'L6', 'company' => 'Kein Email', 'email' => '', 'country' => 'Germany', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tok6'],
   ['id' => 'L7', 'company' => 'Laden Sieben', 'email' => 'INFO@una.example', 'country' => 'Germany', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tok7'],
+  ['id' => 'L8', 'company' => 'OSM Acht', 'email' => 'osm@acht.example', 'country' => 'Italy', 'source' => 'OpenStreetMap', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tok8'],
+  ['id' => 'L9', 'company' => 'Amazon Store', 'email' => 'amz@neun.example', 'country' => 'Germany', 'source' => 'Amazon Seller', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tok9'],
+  ['id' => 'L10', 'company' => 'Suppressed', 'email' => 'sup@zehn.example', 'country' => 'Germany', 'source' => 'suppression', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tok10'],
+  ['id' => 'L11', 'company' => 'Deux Bis', 'email' => 'Contact@Deux.example', 'country' => 'France', 'source' => 'OpenStreetMap', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tok11'],
 ]);
 $tg = vestra_finder_send_targets(100);
 $ids = array_column(array_values($tg), 'id');
 $t('hedef: yalnızca yazılmamış, abonelikten çıkmamış, admin, web-search, e-postalı', (in_array('L1', $ids, true) || in_array('L7', $ids, true)) && !array_intersect(['L2', 'L3', 'L4', 'L5', 'L6'], $ids));
 $t('hedef: aynı e-posta iki kez yok (büyük/küçük harf)', count(array_filter($ids, fn($x) => in_array($x, ['L1', 'L7'], true))) === 1);
+$ia = array_column(array_values(vestra_finder_send_targets(100, 'all')), 'id');
+$t('havuz "all": OSM + elle eklenen + web; pazaryeri satıcısı / bastırma YOK', in_array('L8', $ia, true) && in_array('L5', $ia, true) && (in_array('L1', $ia, true) || in_array('L7', $ia, true))
+   && !in_array('L9', $ia, true) && !in_array('L10', $ia, true));
+$t('havuz "all": başka kayıttan DAHA ÖNCE yazılmış adres atlanır; satıcının/çıkmışın/yazılmışın yok', !in_array('L11', $ia, true) && !array_intersect(['L2', 'L3', 'L4', 'L6'], $ia));
+$t('havuz "web" (varsayılan) OSM almaz', !in_array('L8', $ids, true));
+[, , $linesAll] = vestra_finder_send('standard', 50, true, 'all');
+$t('kuru gönderim "all" havuzuna liste çıkarır', count($linesAll) === count($ia));
+$t('havuz adları', array_keys(vestra_finder_pools()) === ['web', 'all']);
 $camps = vestra_finder_campaigns();
 $t('kampanya listesi: Les Garage + polo + standart', isset($camps['lesgarage'], $camps['polos'], $camps['standard']));
 $lead1 = ['id' => 'L1', 'company' => 'Boutique Una', 'email' => 'info@una.example', 'country' => 'Italy', 'unsub_token' => 'tok1', 'contact_name' => ''];
@@ -339,6 +351,7 @@ $t('satıcı: ⚡ tek tık hazır kampanya + nasıl çalışır + örnek tarifle
    && str_contains($hs, 'Beispielbeschreibungen') && str_contains($hs, 'Freundlicher Erstkontakt') && str_contains($hs, 'id="acCustom"'));
 $t('satıcı: Claude + DeepSeek anahtar formları', str_contains($hs, 'name="anthropic_key"') && str_contains($hs, 'name="deepseek_key"') && str_contains($hs, 'platform.deepseek.com/api_keys'));
 $t('satıcı: müşteri listesinde Gmail/Outlook/uygulama düğmeleri (yalnız e-postalı müşteride)', substr_count($hs, "sellerCompose(&quot;LDsel1&quot;") === 3 && !str_contains($hs, 'LDselNoMail&quot;'));
+$t('admin: web araması aç/kapat düğmesi + gönderimde "Kime" havuz seçimi', str_contains($ha, 'value="finder_toggle"') && str_contains($ha, '▶ Aç') && str_contains($ha, 'name="pool"') && str_contains($ha, 'Tüm yazılmamış müşteriler'));
 $t('admin: 🧪 Bana test gönder + test adresi', str_contains($ha, 'name="mode" value="test"') && str_contains($ha, 'name="test_to"'));
 $t('satıcı (kendi anahtarı): PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $hs2));
 
