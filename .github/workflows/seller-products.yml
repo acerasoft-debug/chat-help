@@ -5663,8 +5663,10 @@ jobs:
             [$s, $b] = vestra_lead_render_email(vestra_test_sample_lead($to), $tpl);
             $subj = '[TEST] Satici gonderim yolu '.date('H:i:s').' — '.$s;
             $t0 = microtime(true);
+            /* Ham yanıtı da göster: kabul edildi deyip listede görünmeyen gönderimi teşhis için. */
             $ok = vestra_send_mail($to, $subj, $b, '', 'Test Seller GmbH', $cfg);
-            printf("gonderim (satici yolu): %s · %.1fs · neden: %s\n", $ok ? 'KABUL EDILDI' : 'BASARISIZ', microtime(true) - $t0, vestra_mail_last_reason() ?: '-');
+            echo "ham son hata: ".json_encode($GLOBALS['vestra_api_last_error'] ?? null)."\n";
+            printf("gonderim (satici yolu): %s · %.1fs · neden: %s · messageId: %s\n", $ok ? 'KABUL EDILDI' : 'BASARISIZ', microtime(true) - $t0, vestra_mail_last_reason() ?: '-', (string)($GLOBALS['vestra_api_last_message_id'] ?? '(kod eski)'));
             if (!$ok) exit(1);
             $evs = [];
             for ($k = 0; $k < 6; $k++) {
@@ -5673,6 +5675,13 @@ jobs:
               curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_HTTPHEADER => ['api-key: '.$key, 'Accept: application/json']]);
               $j = json_decode((string)curl_exec($ch), true); curl_close($ch);
               $evs = array_values(array_filter((array)($j['events'] ?? []), fn($e) => str_starts_with((string)($e['subject'] ?? ''), '[TEST] Satici gonderim yolu '.substr($subj, 28, 8))));
+              $mid = (string)($GLOBALS['vestra_api_last_message_id'] ?? '');
+              if ($mid !== '') {
+                $ch = curl_init('https://api.brevo.com/v3/smtp/statistics/events?limit=20&messageId='.rawurlencode($mid));
+                curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_HTTPHEADER => ['api-key: '.$key, 'Accept: application/json']]);
+                $jm = json_decode((string)curl_exec($ch), true); curl_close($ch);
+                if (!empty($jm['events'])) $evs = $jm['events'];
+              }
               $types = array_unique(array_map(fn($e) => (string)($e['event'] ?? ''), $evs));
               echo "  +".(($k + 1) * 10)."s brevo olaylari: ".($types ? implode(',', $types) : '(henuz yok)')."\n";
               if (in_array('delivered', $types, true) || array_intersect($types, ['hardBounces', 'softBounces', 'blocked', 'invalid', 'error'])) break;
