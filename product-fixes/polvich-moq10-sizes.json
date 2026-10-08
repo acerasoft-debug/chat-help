@@ -1,0 +1,354 @@
+[
+ {
+  "match": "plv-nerro-dense-tee",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL · 4XL",
+  "desc": "Polvich Nerro — Dense Tee is a heavyweight expression of restraint, built for presence rather than display. Designed to carry weight in both form and feel, it holds a deliberate structure that remains composed under movement. The silhouette is calm and resolved, allowing mass and proportion to define its authority without emphasis. 100% combed ring-spun cotton · 330 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL · 3XL · 4XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-nerro-standard-tee",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Nerro — Standard Tee is a disciplined essential reduced to its most reliable form. Positioned as a point of balance within the collection, it retains a familiar silhouette refined through proportion and restraint. Nothing is emphasized, nothing is removed beyond necessity. The form remains stable, composed, and quietly resolved. 100% cotton · 255 g · Made in Honduras. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-nerro-essential-tee",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL",
+  "desc": "Polvich Nerro — Essential Tee is a refined foundation shaped by intention rather than trend. Conceived as the quiet core of the range, it balances weight, proportion, and presence without drawing attention to its construction. The form is resolved and familiar, yet precise — allowing the garment to exist without emphasis. 100% organic ring-spun cotton · 270 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-nerro-zenith-sweatshirt",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Nerro — Zenith Sweatshirt is an exercise in elevated comfort, composed with discipline. It extends the Nerro uniform through restraint rather than embellishment, maintaining clarity in both form and function. The surface remains uninterrupted, allowing structure and proportion to define its presence. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-nerro-sable-hoodie",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL",
+  "desc": "Polvich Nerro — Sable Hoodie is defined by weight, balance, and restraint. Conceived as the outermost expression of the range, it carries a deliberate sense of gravity — substantial without heaviness, composed without rigidity. The form is calm and resolved, designed to hold its presence without visual demand. 100% organic cotton · 525 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-mirra-founders-imprint",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL · 4XL · 5XL",
+  "desc": "Polvich Mirra — Founder’s Imprint carries the rarest mark a brand can offer: the authentic thermal imprint of the founder’s right hand, transformed into a cosmic gradient of energy and intention. Each radiant contour traces living heat — the originating spark from which Polvich emerged — elevated into a vivid, otherworldly spectrum. This luxury designer t-shirt is part of a limited Mirra release. This design will not be restocked once the current run concludes. 100% organic ring-spun cotton · 270 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL · 3XL · 4XL · 5XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-mirra-stellar-medallion",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL · 4XL · 5XL",
+  "desc": "Polvich Mirra — Stellar Medallion is a study in controlled brilliance. At its centre lies a chromatic vortex — an intricate form where colour, motion, and momentum converge into a single, concentrated presence. It captures the moment when creativity resolves into intention, when raw energy is refined into design. This luxury designer t-shirt is part of a limited Mirra release. This design will not be restocked once the current run concludes. 100% organic ring-spun cotton · 270 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL · 3XL · 4XL · 5XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-mirra-savage-diarchy",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL",
+  "desc": "Polvich Mirra — Savage Diarchy represents the unfiltered power of dual identity — a form born of contrast and unified by intent. The emblem portrays two heads moving as one, asserting that strength is not found in simplicity, but in the mastery of complexity. This luxury designer t-shirt is part of a limited Mirra release. This design will not be restocked once the current run concludes. 100% organic ring-spun cotton · 270 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-mirra-phantom-flux",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL",
+  "desc": "Polvich Mirra — Phantom Flux embodies inner freedom and unrestrained potential, capturing movement at its most instinctive and controlled. It reflects the silent precision of motion unbound — where direction exists without resistance and momentum flows without force. This luxury designer t-shirt is part of a limited Mirra release. This design will not be restocked once the current run concludes. 100% organic ring-spun cotton · 270 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-mirra-eternal-ramcrest",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL",
+  "desc": "Polvich Mirra — Eternal Ramcrest captures the enduring power of identity — a symbol drawn from myth and restored with modern intent. It stands as an emblem of continuity, where legacy is not inherited lightly, but carried with awareness and resolve. This luxury designer t-shirt is part of a limited Mirra release. This design will not be restocked once the current run concludes. 100% organic ring-spun cotton · 270 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-mirra-crimson-sentient",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL",
+  "desc": "Polvich Mirra — Crimson Sentient stands as a testament to mastered power — the deliberate force that moves only with purpose. It reflects the deep stillness that exists just before authority is exercised, where control is absolute and intention is clear. This luxury designer t-shirt is part of a limited Mirra release. This design will not be restocked once the current run concludes. 100% organic ring-spun cotton · 270 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-mirra-rouge-seraph",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL · 4XL · 5XL",
+  "desc": "Polvich Mirra — Rouge Seraph is not a symbol to be worn, but a presence to be invoked. A fiery celestial figure rendered in commanding red, it is captured in the moment just before release — where intention sharpens and destiny takes form. The power of Rouge Seraph lies in its ability to shift atmosphere, to draw focus without demand. This luxury designer t-shirt is part of a limited Mirra release. This design will not be restocked once the current run concludes. 100% organic ring-spun cotton · 270 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL · 3XL · 4XL · 5XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-mirra-etheria-ascendant",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL · 4XL · 5XL",
+  "desc": "Polvich Mirra — Etheria Ascendant is born from imagination, conceived for those who perceive the world beyond its visible edges. Etheria marks the moment where colour becomes emotion — when time loosens its hold and something otherworldly steps forward. This luxury designer t-shirt is part of a limited Mirra release. This design will not be restocked once the current run concludes. 100% organic ring-spun cotton · 270 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL · 3XL · 4XL · 5XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-mirra-ethereal-cord",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL · 4XL · 5XL",
+  "desc": "Polvich Mirra — Ethereal Cord emerges from the space between sound and silence, marking the moment where intention resolves into form. The emblem traces a single continuous contour — an unbroken thought shaped with disciplined grace and held in deliberate balance. This luxury designer t-shirt is part of a limited Mirra release. This design will not be restocked once the current run concludes. 100% organic ring-spun cotton · 270 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL · 3XL · 4XL · 5XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-mirra-forbidden-spirit",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL · 4XL · 5XL",
+  "desc": "Polvich Mirra — Forbidden Spirit holds a jade-born presence within a sculpted vessel — a spirit of quiet fortune contained through elegant restraint. Its softened glow recalls ancient associations of prosperity, where opportunity gathers in stillness before revealing itself. This luxury designer t-shirt is part of a limited Mirra release. This design will not be restocked once the current run concludes. 100% organic ring-spun cotton · 270 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL · 3XL · 4XL · 5XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-mirra-rosebound-relic",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Mirra — Rosebound Relic presents a carriage formed in muted rose-gold, guided by a calm and disciplined steed. The composition recalls an era when movement was defined not by haste, but by precision — when progress unfolded through intention rather than urgency. This luxury designer t-shirt is part of a limited Mirra release. This design will not be restocked once the current run concludes. 100% organic ring-spun cotton · 270 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-mirra-twin-relic",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Mirra — Twin Relic draws from ancient lore in which cherries were believed to grow only where fortune had touched the earth — fruits reserved for the favoured, the victorious, and the divinely marked. Their paired form was understood as a seal of rare destiny: two elements bound by fate, carried only by those permitted to rise beyond the ordinary. This luxury designer t-shirt is part of a limited Mirra release. This design will not be restocked once the current run concludes. 100% organic ring-spun cotton · 270 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-mirra-ziggurat-index",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL · 4XL · 5XL",
+  "desc": "Polvich Mirra — Ziggurat Index draws from the ancient ziggurat, a form never created for spectacle, but for ascent. These sacred structures were reserved for those permitted to approach higher order and concealed knowledge. Each tier marked controlled progression — a passage shaped by discipline, memory, and authority. This luxury designer t-shirt is part of a limited Mirra release. This design will not be restocked once the current run concludes. 100% organic ring-spun cotton · 270 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL · 3XL · 4XL · 5XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-mirra-signal-i",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL · 4XL · 5XL",
+  "desc": "Polvich Mirra — Signal I is a singular graphic expression conceived as a moment of clarity and contrast. The composition features a stylised Polvich motif rendered in fantasy blue and softened gold, set against a deep black base to heighten definition and visual focus. The palette is deliberate, allowing the form to stand apart without distraction. This luxury designer t-shirt is part of a limited Mirra release. This design will not be restocked once the current run concludes. 100% organic ring-spun cotton · 270 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL · 3XL · 4XL · 5XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-mirra-black-form",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL · 4XL · 5XL",
+  "desc": "Polvich Mirra — Black Form is an expression of structure shaped by time rather than intention. The composition presents a mineral form rendered in lifted blacks and layered greys, allowing depth, fracture, and density to emerge with quiet precision. Neither symbolic nor illustrative, the image exists as a study of balance—strength held in stillness, complexity resolved through restraint. This luxury designer t-shirt is part of a limited Mirra release. This design will not be restocked once the current run concludes. 100% organic ring-spun cotton · 270 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL · 3XL · 4XL · 5XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-sleipnir-ascendant",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Sleipnir Ascendant draws from Norse cosmology, where Sleipnir represents absolute freedom of movement and command over transition. The eight-legged steed was believed to traverse realms without resistance, symbolizing mastery over momentum, time, and limitation. Set in luminous gold against a deep black field, the emblem reflects elevated motion guided by clarity rather than force. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-qilin-luminary",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Qilin Luminary draws from East Asian tradition, where the Qilin is revered as a symbol of benevolence, prosperity, and moral clarity. Often associated with wise leadership and harmonious order, the creature represents fortune earned through virtue rather than chance. Its presence signifies serenity, protection, and the alignment of action with higher intent. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-gullinbursti",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Gullinbursti draws from Norse tradition, where the golden boar symbolized abundance, resilience, and forward momentum guided by inner strength. Forged in myth as a source of illumination, Gullinbursti represents progress that endures — steady, self-sustaining, and unwavering even in uncertainty. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-baal-supremacy",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Baal Supremacy draws from ancient Near Eastern symbolism, where Baal represented authority over order, renewal, and the forces that govern change. Historically understood as a figure of sovereignty and natural balance, the thunderbolt associated with Baal symbolized decisive power shaped by clarity rather than chaos. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-tanit-lumina",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Tanit Lumina draws from ancient Punic symbolism, where the Tanit Sign represented guidance, protection, and the sustaining force of balance. Long associated with clarity, renewal, and celestial rhythm, the symbol reflects the quiet strength of intuition and the stabilizing presence of inner order. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-melqart-sovereign",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Melqart Sovereign draws from ancient Mediterranean tradition, where Melqart represented guardianship, continuity, and the disciplined authority required to sustain order. Regarded as a symbol of kingship and civic stability, the figure reflects power earned through responsibility rather than force. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-kyklos-current",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Kyklos Current draws from the ancient Minoan wave spiral, a symbol long associated with continuity, renewal, and the rhythm of sustained movement. The form reflects an understanding of growth as cyclical rather than linear — an ongoing return shaped by balance, momentum, and clarity of direction. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-aegis-guard",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Aegis Guard draws from Norse tradition, where the Helm of Awe symbolized protection through inner resolve and mental strength. Historically understood as a mark of composure under pressure, the emblem represents the ability to remain steady, focused, and unshaken in the face of challenge. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-tyrian-voyage",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Tyrian Voyage draws from Phoenician maritime tradition, where mastery of the sea represented foresight, resilience, and the courage to move beyond the known. The ship stands as a symbol of safe passage and deliberate exploration — progress guided by preparation rather than impulse. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-unbroken-vow",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Unbroken Vow draws from Etruscan symbolism, where the interwoven knot represented continuity, unity, and strength sustained through commitment. The form reflects the idea of alignment held over time — forces bound not by constraint, but by shared purpose and clarity of intention. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-sator-code",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Sator Code draws from the ancient Sator Square, a Latin palindrome long regarded as a meditation on balance, order, and linguistic symmetry. Read identically in multiple directions, the square reflects an early philosophical understanding that structure itself can carry meaning— where language, logic, and repetition reveal harmony beneath complexity. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-ishtar-lumina",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Ishtar Lumina draws from ancient Mesopotamian symbolism, where the eight-pointed star represented clarity, sovereignty, and the guiding force of celestial order. Long associated with Venus, the symbol reflected cycles of renewal, perception, and the confidence required to move forward with conviction. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-circadian-unity",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Circadian Unity reflects the principle of return and the continuity of renewal, drawing from ancient philosophical interpretations of the Ouroboros. Long understood as a symbol of wholeness and balance, the circular form represents existence as a unified cycle — where beginnings and endings are not opposites, but extensions of one another. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-ginfaxi-triumph",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Ginfaxi Triumph draws from Norse symbolic tradition, where focused intent and disciplined resolve were understood as the foundations of achievement. The emblem reflects perseverance shaped by clarity — a reminder that victory is earned through steadiness, preparation, and the willingness to advance with purpose. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-lamassu-ward",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Lamassu Ward draws from ancient Mesopotamian symbolism, where the Lamassu represented protection, wisdom, and the safeguarding of thresholds. Combining the strength of the lion with human intellect, the figure embodied stability and vigilance — an assurance that guidance and order endure across time. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-gryphon-aegis",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Gryphon Aegis draws from ancient symbolism where the gryphon stood as a guardian of balance, uniting vision and strength, intellect and instinct. Long regarded as a protector of what is sacred and enduring, the figure represents authority exercised with composure and protection shaped by discernment rather than force. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-abrax-genesis",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Abraxis Genesis draws from ancient philosophical traditions in which creation was understood as the alignment of intention, order, and form. Historically associated with beginnings and continuity, the symbol reflects the idea that structure emerges through clarity rather than force, and that creation is guided by focus and coherence. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-kallos-absolute",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Kallos Absolute draws from ancient Greek philosophy, where kállos described beauty as harmony between form, character, and inner order. Far beyond surface appearance, the term reflected an ideal of balance — where aesthetic refinement and moral clarity existed as one. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-aion-epoch",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Aion Epoch draws from ancient Greek thought, where Aion described time not as measurement, but as continuity — existence understood as whole, unbroken, and enduring. The concept reflected a state beyond cycles and urgency, where being unfolds without beginning or end. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-star-of-inanna",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Star of Inanna draws from ancient Sumerian culture, where Inanna represented vitality, renewal, and the creative force that sustains both order and transformation. Associated with the cycles of nature and the balance between strength and intuition, the symbol reflects a vision of power expressed through harmony rather than domination. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-arcana-of-pan",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Arcana of Pan draws from ancient Greek symbolism, where Pan represented instinct, vitality, and the restorative intelligence of the natural world. Associated with awakening and creative impulse, the figure reflects a return to origin — where clarity emerges through connection rather than force, and energy is renewed through presence. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-ascendant-herald",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Ascendant Herald draws from classical mythology, where Pegasus symbolized elevation, insight, and the pursuit of higher understanding. Long associated with inspiration and clarity of thought, the winged form reflects ascent guided by awareness rather than force — movement shaped by intention and balance. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-sacra-tidal-oracle",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL · 3XL",
+  "desc": "Polvich Sacra — Tidal Oracle reflects the quiet intelligence of intuition shaped by rhythm and depth. Drawing from ancient associations with the sea as a source of knowledge and continuity, the emblem represents insight that emerges gradually — guided by awareness rather than force. This luxury designer sweatshirt is part of the Sacra series — produced in limited quantities and not intended for continuous restock. 65% cotton, 35% polyester · 432 g · Made in Pakistan. Sizes S · M · L · XL · 2XL · 3XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ },
+ {
+  "match": "plv-nerro-column-tee",
+  "expect": 1,
+  "moq": 10,
+  "size_step": 1,
+  "sizes": "S · M · L · XL · 2XL",
+  "desc": "Polvich Nerro — Column Tee is defined by structure over excess. The silhouette is deliberate, upright, and composed — designed to hold its form without reliance on movement or expression. An elevated neckline and measured volume create presence through proportion rather than detail. 100% organic combed ring-spun cotton · 300 g · Made in Bangladesh. Sizes S · M · L · XL · 2XL. Minimum order 10 pieces per design; sizes can be mixed — please state the size split in the order notes."
+ }
+]

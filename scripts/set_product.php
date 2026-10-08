@@ -179,7 +179,10 @@ foreach ($fixes as $n => $fx) {
     }
     $set['images'] = array_values($set['images']);
   }
-  if (isset($set['size_step']) && (!is_numeric($set['size_step']) || (int)$set['size_step'] < 2)) {
+  /* size_step 1 = paket adimi YOK: alan silinir. Panel de boyle yaziyor
+     (admin.php: yalniz 1'den buyukken yazar, degilse unset) ve
+     vestra_pack_size() alanin yoklugunu "tek parca" okur. 0/negatif hala hata. */
+  if (isset($set['size_step']) && (!is_numeric($set['size_step']) || (int)$set['size_step'] < 1)) {
     $errors[] = "{$ctx} ({$m}): gecersiz size_step '{$set['size_step']}'"; continue;
   }
   if (isset($set['min_colors']) && (!is_numeric($set['min_colors']) || (int)$set['min_colors'] < 1)) {
@@ -565,6 +568,11 @@ foreach ($plan as [$i, $set, $m]) {
         $k0 = array_key_first($all[$i]['tiers']);
         if (is_array($all[$i]['tiers'][$k0] ?? null)) $all[$i]['tiers'][$k0]['min'] = $new;
       }
+      $changes++;
+    } elseif ($k === 'size_step' && (int)$v === 1) {
+      if (!isset($p['size_step'])) continue;
+      $line[] = "size_step ".(int)$p['size_step']." -> (yok, tek parca)";
+      unset($all[$i]['size_step']);
       $changes++;
     } elseif ($k === 'size_step' || $k === 'min_colors') {
       $new = (int)$v; $old = (int)($p[$k] ?? 0);
