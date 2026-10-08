@@ -35,8 +35,12 @@ for (const p of PAGES) {
   const main = html.match(/<main id="main">([\s\S]*?)<\/main>/)?.[1] || '';
   const globals = html.match(/<script>(window\.__x=[\s\S]*?)<\/script>/)?.[1] || '';
   const header = html.match(/<header class="header"[\s\S]*?<\/header>/)?.[0] || '';
-  const footer = html.match(/<footer class="footer">[\s\S]*?<\/footer>/)?.[0] || '';
-  const extras = html.match(/<\/footer>([\s\S]*?)<script>window\.__x/)?.[1] || '';
+  // The site footer is the LAST <footer>; testimonial <figure>s carry their own <footer> inside <main>.
+  const fStart = html.lastIndexOf('<footer class="footer">');
+  const fEnd = fStart >= 0 ? html.indexOf('</footer>', fStart) + '</footer>'.length : -1;
+  const footer = fStart >= 0 ? html.slice(fStart, fEnd) : '';
+  const xEnd = html.indexOf('<script>window.__x');
+  const extras = fEnd >= 0 && xEnd > fEnd ? html.slice(fEnd, xEnd) : '';
   const locale = p.split('/')[1];
   pages[p] = { title, main, globals, header, footer, extras, locale };
   if (!chrome) chrome = { header, footer, extras, locale };

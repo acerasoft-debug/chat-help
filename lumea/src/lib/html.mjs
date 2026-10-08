@@ -203,6 +203,7 @@ function footer(locale, services, cities) {
         </ul>
       </div>
     </div>
+    <div class="footer__trust">${L.conv.trust.map((x) => `<span>${esc(x)}</span>`).join('')}</div>
     <div class="footer__bar">
       <span>© ${new Date().getFullYear()} ${esc(site.legalName)}. ${esc(L.footer.rights)}</span>
       <span>DE · AT · CH · ES</span>

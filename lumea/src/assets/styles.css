@@ -390,8 +390,17 @@ a.card:hover .card__arrow { transform: translateX(4px); }
 .results { margin-top: 1.4rem; }
 .spinner { width: 18px; height: 18px; border: 2px solid var(--line); border-top-color: var(--gold); border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.reveal { opacity: 0; transform: translateY(14px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.3,1); }
-.reveal.is-in { opacity: 1; transform: none; }
+/* Content is always legible at rest; the reveal is a gentle settle, never a hide. */
+.reveal { transform: translateY(10px); transition: transform .7s cubic-bezier(.2,.7,.3,1); }
+.reveal.is-in { transform: none; }
+html { scroll-padding-top: 96px; }
+img { -webkit-user-drag: none; }
+.quote__who { display: flex; align-items: center; gap: .7rem; }
+.quote__who .avatar { width: 36px; height: 36px; font-size: .8rem; }
+.quote footer b { display: block; }
+.band .btn--ghost:hover { border-color: var(--gold-2); color: var(--gold-2); }
+.footer__trust { display: flex; flex-wrap: wrap; gap: .5rem 1.4rem; margin-top: 1.4rem; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: #9a9ca3; }
+.footer__trust span::before { content: '✓'; color: var(--gold-2); margin-right: .4em; }
 
 /* ---------- conversion layer ---------- */
 .hero__aside { position: relative; }
@@ -467,3 +476,17 @@ a.card:hover .card__media svg { transform: scale(1.03); }
 .breakdown div { display: flex; justify-content: space-between; gap: 1rem; }
 .breakdown .is-discount { color: var(--forest); }
 .upsell { margin-top: 1rem; padding: 1rem 1.2rem; border-radius: var(--r); background: var(--gold-wash); color: var(--gold); font-size: .9rem; display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+
+/* ---------- responsive fallbacks for inline two-column layouts ---------- */
+@media (max-width: 900px) {
+  .wrap[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+  .panel[style*="position:sticky"], aside[style*="position:sticky"] { position: static !important; }
+  .band .wrap[style*="grid-template-columns"] { gap: 1.4rem !important; }
+}
+@media (max-width: 600px) {
+  .g3, .g4 { grid-template-columns: 1fr; }
+  .hero__cta .btn { width: 100%; }
+  .stepper { gap: .25rem; }
+  .stepper li { font-size: .62rem; padding: .4em .7em; }
+  .price-table td:nth-child(3) { display: none; }
+}

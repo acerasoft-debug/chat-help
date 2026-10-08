@@ -104,7 +104,8 @@ function statsBand(locale) {
 /* -------------------------------------------------------------------- home */
 export function homePage(locale) {
   const L = t[locale];
-  const popular = services.filter((s) => s.popular);
+  // Nine cards fill the 3-column grid exactly; the full menu lists everything.
+  const popular = services.filter((s) => s.popular).slice(0, 9);
   const quotes = testimonials[locale];
 
   const body = `
@@ -192,8 +193,8 @@ ${statsBand(locale)}
     ${sectionHead(null, L.sections.testimonials, null)}
     <div class="grid g3">
       ${quotes
-        .map((q) => `<figure class="quote" style="margin:0"><p>&ldquo;${esc(q.text)}&rdquo;</p>
-        <footer><b>${esc(q.name)}</b> · ${esc(cityBySlug[q.city].name[locale])} · ${esc(serviceBySlug[q.service].i18n[locale].name)}</footer></figure>`)
+        .map((q, i) => `<figure class="quote" style="margin:0"><span class="stars">★★★★★</span><p style="margin-top:.6rem">&ldquo;${esc(q.text)}&rdquo;</p>
+        <footer><div class="quote__who"><span class="avatar" style="background:hsl(${(i * 57 + 20) % 360} 28% 46%)">${esc(q.name.split(' ').map((w) => w[0]).join('').slice(0, 2))}</span><div><b>${esc(q.name)}</b>${esc(cityBySlug[q.city].name[locale])} · ${esc(serviceBySlug[q.service].i18n[locale].name)}</div></div></footer></figure>`)
         .join('')}
     </div>
   </div>
