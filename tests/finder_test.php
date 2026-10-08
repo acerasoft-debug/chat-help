@@ -147,15 +147,20 @@ $t('bilinmeyen kampanya reddedilir', vestra_finder_send('yok', 5, true)[2] === [
 echo "\n== 9. Claude kampanya yazarı: sınırlar + kayıtlar (ağsız) ==\n";
 require_once $root.'/inc/ai_campaign.php';
 $L = vestra_ai_camp_limits();
-$t('varsayılan sınırlar 3/gün, 20/ay, 300/ay platform', $L === ['per_day' => 3, 'per_month' => 20, 'platform_month' => 300]);
-$t('boş kullanımda kota açık', vestra_ai_camp_quota('sellA')['ok'] && vestra_ai_camp_quota('sellA')['day_left'] === 3);
-for ($i = 0; $i < 3; $i++) vestra_ai_camp_count('sellA', 1000, 500);
+$t('varsayılan: satıcı başına 1 ücretsiz kampanya, 300/ay platform', $L === ['free_total' => 1, 'platform_month' => 300]);
+$qa0 = vestra_ai_camp_quota('sellA');
+$t('boş kullanımda: ilk kampanya ücretsiz (1 hak)', $qa0['ok'] && $qa0['free_left'] === 1 && $qa0['own'] === false);
+vestra_ai_camp_free_take('sellA');
 $qa = vestra_ai_camp_quota('sellA');
-$t('3 yazımdan sonra satıcı günlük sınırda', !$qa['ok'] && $qa['why'] === 'day' && $qa['day_left'] === 0 && $qa['month_left'] === 17);
+$t('1 ücretsiz yazımdan sonra satıcı kapalı ("free")', !$qa['ok'] && $qa['why'] === 'free' && $qa['free_left'] === 0);
 $t('başka satıcı etkilenmez', vestra_ai_camp_quota('sellB')['ok']);
+for ($i = 0; $i < 3; $i++) vestra_ai_camp_count('sellA', 1000, 500);
 $t('admin kotası platform sınırından', vestra_ai_camp_quota('')['ok'] && vestra_ai_camp_quota('')['month_left'] === 297);
 $u = vestra_ai_camp_usage()[date('Y-m')];
 $t('token sayacı', $u['in'] === 3000 && $u['out'] === 1500 && $u['calls'] === 3);
+vestra_ai_camp_count('sellA', 800, 400, false, 'deepseek');
+$u = vestra_ai_camp_usage()[date('Y-m')];
+$t('DeepSeek token\'ları ayrı sayaçta (Claude maliyetine girmez)', $u['calls'] === 4 && $u['in'] === 3000 && $u['ds_in'] === 800 && $u['ds_calls'] === 1);
 $u2 = vestra_ai_camp_usage(); $u2[date('Y-m')]['calls'] = 300; vestra_write_json('ai_campaign_usage.json', $u2);
 $t('platform ayı dolunca herkes kapalı', vestra_ai_camp_quota('sellB')['why'] === 'platform' && !vestra_ai_camp_quota('')['ok']);
 if (!vestra_ai_camp_on()) $t('anahtar yoksa ağa çıkmadan "nokey"', vestra_ai_camp_generate('sellB', 'X', [['id' => 'p1']], [])[1] === 'nokey');
@@ -200,6 +205,15 @@ $um = vestra_ai_camp_usage()[date('Y-m')];
 $t('kendi anahtarıyla yazım platform sayacına/maliyetine YAZILMAZ', (int)$um['calls'] === $callsBefore && $um['in'] === 3000 && $um['out'] === 1500);
 $t('satıcının kendi sayacı', $um['owners']['sellC']['own_calls'] === 1 && $um['owners']['sellC']['own_in'] === 1200 && $um['own_calls'] === 1);
 $t('sil → platforma döner', vestra_ai_camp_seller_key_save('sellC', '') && vestra_ai_camp_seller_key('sellC') === '' && !vestra_ai_camp_quota('sellC')['own']);
+$dsk = 'sk-'.str_repeat('d', 32);
+$t('DeepSeek: biçim (sk-ant- Claude anahtarı DeepSeek sayılmaz)', vestra_ai_camp_ds_key_check('sk-ant-api03-'.str_repeat('a', 30), fn() => 200) === [false, 'format']);
+$t('DeepSeek: 200 → ok, 401 → invalid', vestra_ai_camp_ds_key_check($dsk, fn() => 200) === [true, 'ok'] && vestra_ai_camp_ds_key_check($dsk, fn() => 401) === [false, 'invalid']);
+vestra_seller_mail_save('sellD', ['ai_key' => $dsk]);
+$rD = vestra_ai_camp_route('sellD');
+$t('yönlendirme: satıcının kendi DeepSeek anahtarı → deepseek/own, sınırsız', $rD['provider'] === 'deepseek' && $rD['src'] === 'own' && vestra_ai_camp_quota('sellD')['own'] === true);
+vestra_ai_camp_seller_key_save('sellD', $good);
+$t('yönlendirme: iki anahtar da varsa önce Claude', vestra_ai_camp_route('sellD')['provider'] === 'claude');
+vestra_ai_camp_seller_key_save('sellD', '');
 $sp = (string)file_get_contents($root.'/seller.php');
 $t('satıcı paneli: anahtar formu + rehber linkleri + doğrulama', str_contains($sp, "value=\"seller_ai_key\"") && str_contains($sp, 'console.anthropic.com/settings/keys')
    && str_contains($sp, 'console.anthropic.com/settings/billing') && str_contains($sp, 'vestra_ai_camp_key_check('));
@@ -224,22 +238,34 @@ $t('Brevo: doğrulanmamış (active=false) adres "onaylı değil"', vestra_brevo
 $sent = [];
 $spy = function ($to, $subj, $body, $rt, $from, $cfg, $img = '') use (&$sent) { $sent[] = compact('to', 'subj', 'body', 'from', 'cfg'); return true; };
 vestra_write_json('ai_campaigns.json', [['id' => 'ACt1', 'owner' => 'sellT', 'created_at' => date('c'), 'lang' => 'en', 'subject' => 'Spring for {{company}}', 'body' => 'Dear {{company}}, our spring lines.', 'active' => true]]);
-[$ok1, $c1, $to1] = vestra_seller_send_test('sellT', 'T Seller', 'stranger@other.example', 'owner@seller.example', null, $spy);
-$t('kurulum yok: test VESTRA ile YALNIZ hesap adresine (girilen adres yok sayılır)', $ok1 && $c1 === 'platform' && $to1 === 'owner@seller.example' && $sent[0]['to'] === 'owner@seller.example' && $sent[0]['cfg'] === null);
-$t('test = kullanılan kampanya, [TEST] + örnek dükkân adı', $sent[0]['subj'] === '[TEST] Spring for Boutique Example' && str_contains($sent[0]['body'], 'Dear Boutique Example'));
-for ($i = 0; $i < 4; $i++) vestra_seller_send_test('sellT', 'T', '', 'owner@seller.example', null, $spy);
-$t('kurulum yok: günde 5 test, 6.sı "limit"', vestra_seller_send_test('sellT', 'T', '', 'owner@seller.example', null, $spy)[1] === 'limit' && count($sent) === 5);
+[$ok1, $c1] = vestra_seller_send_test('sellT', 'T Seller', 'owner@seller.example', null, $spy);
+$t('kurulum yok: VESTRA HİÇ göndermez ("nosetup") — platform kotasına dokunulmaz', !$ok1 && $c1 === 'nosetup' && $sent === []);
+$cmpT = vestra_seller_compose('sellT', '', 'owner@seller.example');
+$t('kurulum yok: test Gmail\'de açılır — hesap adresine, kullanılan kampanya, [TEST] + örnek dükkân', $cmpT['ok'] && $cmpT['to'] === 'owner@seller.example'
+   && $cmpT['subject'] === '[TEST] Spring for Boutique Example' && str_contains($cmpT['body'], 'Dear Boutique Example') && str_contains($cmpT['body'], 'lead-unsubscribe'));
+$ldBefore = vestra_leads();
+vestra_save_leads(array_merge($ldBefore, [
+  ['id' => 'LDcmp1', 'owner_uid' => 'sellT', 'company' => 'Maison Uno', 'email' => 'shop@uno.example', 'status' => 'new', 'unsub_token' => 'tokU1', 'last_contacted_at' => ''],
+  ['id' => 'LDcmp2', 'owner_uid' => 'sellT', 'company' => 'Gone Shop', 'email' => 'x@gone.example', 'status' => 'unsubscribed', 'unsub_token' => 'tokU2'],
+  ['id' => 'LDcmp3', 'owner_uid' => 'otherSeller', 'company' => 'Not Yours', 'email' => 'y@other.example', 'status' => 'new', 'unsub_token' => 'tokU3']]));
+$cm = vestra_seller_compose('sellT', 'LDcmp1', 'owner@seller.example', null, 'outlook');
+$after = array_values(array_filter(vestra_leads(), fn($l) => ($l['id'] ?? '') === 'LDcmp1'))[0];
+$t('Gmail\'de aç: müşteriye çizilmiş konu/metin + kişisel çıkış linki', $cm['ok'] && $cm['to'] === 'shop@uno.example' && $cm['subject'] === 'Spring for Maison Uno' && str_contains($cm['body'], 'token=tokU1'));
+$t('Gmail\'de aç: müşteri "contacted", yol kaydı (outlook)', $after['status'] === 'contacted' && $after['last_contacted_at'] !== '' && $after['contact_via'] === 'outlook');
+$t('Gmail\'de aç: abonelikten çıkmış müşteri reddedilir', vestra_seller_compose('sellT', 'LDcmp2', 'o@s.example')['error'] === 'unsub');
+$t('Gmail\'de aç: başkasının müşterisi açılamaz', vestra_seller_compose('sellT', 'LDcmp3', 'o@s.example')['error'] === 'notfound');
+$t('Gmail\'de aç: VESTRA hiçbir e-posta göndermedi', $sent === []);
 vestra_seller_mail_save('sellT', ['mail_enabled' => true, 'mail_from' => 'info@shop.de', 'smtp_from' => 'info@shop.de', 'mail_api_key' => $bk, 'mail_api_provider' => 'brevo']);
-[$ok2, $c2, $to2] = vestra_seller_send_test('sellT', 'T Seller', 'me@shop.de', 'owner@seller.example', null, $spy);
+[$ok2, $c2, $to2] = vestra_seller_send_test('sellT', 'T Seller', 'me@shop.de', null, $spy);
 $t('kurulu: kendi Brevo ayarıyla, istenen adrese, sınırsız', $ok2 && $c2 === 'own' && end($sent)['to'] === 'me@shop.de' && (end($sent)['cfg']['mail_api_key'] ?? '') === $bk);
 $t('kurulu: "test gönderildi" işareti kayda yazılır', (vestra_seller_mail('sellT')['last_test_to'] ?? '') === 'me@shop.de' && (vestra_seller_mail('sellT')['last_test_ok_at'] ?? '') !== '');
-$t('kurulu: geçersiz adres reddedilir', vestra_seller_send_test('sellT', 'T', 'not-an-email', 'owner@seller.example', null, $spy)[1] === 'badto');
+$t('kurulu: geçersiz adres reddedilir', vestra_seller_send_test('sellT', 'T', 'not-an-email', null, $spy)[1] === 'badto');
 vestra_write_json('ai_campaigns.json', [['id' => 'ACt1', 'owner' => 'sellT', 'created_at' => date('c'), 'lang' => 'en', 'subject' => 'Spring for {{company}}', 'body' => 'x', 'active' => false],
                                         ['id' => 'ACt2', 'owner' => 'sellT', 'created_at' => date('c'), 'lang' => 'de', 'subject' => 'Herbst {{company}}', 'body' => 'Hallo {{company}}', 'active' => false],
                                         ['id' => 'ACo', 'owner' => 'other', 'created_at' => date('c'), 'lang' => 'de', 'subject' => 'FREMD', 'body' => 'y', 'active' => false]]);
-vestra_seller_send_test('sellT', 'T', 'me@shop.de', 'x@y.de', 'ACt2', $spy);
+vestra_seller_send_test('sellT', 'T', 'me@shop.de', 'ACt2', $spy);
 $t('kampanya testi: seçilen kendi kampanyası', end($sent)['subj'] === '[TEST] Herbst Boutique Example');
-vestra_seller_send_test('sellT', 'T', 'me@shop.de', 'x@y.de', 'ACo', $spy);
+vestra_seller_send_test('sellT', 'T', 'me@shop.de', 'ACo', $spy);
 $t('başkasının kampanyası test edilemez → standart davet', !str_contains(end($sent)['subj'], 'FREMD'));
 $leadsBefore = (string)file_get_contents(VESTRA_DATA_DIR.'/leads.json');
 $adm = [];
@@ -266,7 +292,9 @@ file_put_contents($sb.'/vestra/data/ai_campaigns.json', json_encode([
   ['id' => 'ACsel', 'owner' => 'sell0000probe000', 'created_at' => date('c'), 'lang' => 'de', 'subject' => 'SELLER-CAMP {{company}}', 'body' => 'Hallo {{company}}', 'active' => true],
   ['id' => 'ACadmR', 'owner' => '', 'created_at' => date('c'), 'lang' => 'fr', 'subject' => 'ADMIN-CAMP <i>x</i>', 'body' => 'Bonjour {{company}}', 'active' => false]]));
 file_put_contents($sb.'/vestra/data/leads.json', json_encode([
-  ['id' => 'LDr1', 'company' => 'Render Boutique', 'email' => 'info@render-boutique.example', 'country' => 'France', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tr1']]));
+  ['id' => 'LDr1', 'company' => 'Render Boutique', 'email' => 'info@render-boutique.example', 'country' => 'France', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tr1'],
+  ['id' => 'LDsel1', 'company' => 'Seller Customer', 'email' => 'buyer@sc.example', 'country' => 'Italy', 'source' => 'Seller', 'owner_uid' => 'sell0000probe000', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'ts1'],
+  ['id' => 'LDselNoMail', 'company' => 'No Mail Shop', 'email' => '', 'country' => 'Italy', 'source' => 'Seller', 'owner_uid' => 'sell0000probe000', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'ts2']]));
 /* Anahtar YOK: kart yine başlat formunu göstermeli (sistem anahtarsız çalışır). */
 file_put_contents($sb.'/vestra/data/accounts.json', json_encode([['id' => 'sell0000probe000', 'email' => 's@probe.example', 'type' => 'seller', 'status' => 'active', 'name' => 'Probe', 'company' => 'Probe Seller GmbH']]));
 file_put_contents($sb.'/vestra/data/finder_runs.json', json_encode([
@@ -290,11 +318,11 @@ $t('satıcı (lang=de): anahtar rehberi ve arama kartı ALMANCA', str_contains($
 $t('admin: gönderim kartı — örnek kampanyalar seçilebilir (Les Garage, polo, standart, Claude)', str_contains($ha, 'id="findersend"') && str_contains($ha, 'value="finder_send_campaign"')
    && str_contains($ha, 'value="lesgarage"') && str_contains($ha, 'value="polos"') && str_contains($ha, 'value="standard"') && str_contains($ha, 'value="ai:ACadmR"'));
 $t('admin: Claude başlığı kaçışlı, satıcının kampanyası adminde YOK', str_contains($ha, 'ADMIN-CAMP &lt;i&gt;') && !str_contains($ha, 'SELLER-CAMP'));
-$t('admin: Claude kartı — yaz formu, anahtar linki, sınırlar', str_contains($ha, 'id="aicamp"') && str_contains($ha, 'value="ai_camp_generate"') && str_contains($ha, 'https://console.anthropic.com/settings/keys') && str_contains($ha, 'name="ai_camp_per_day"'));
+$t('admin: Claude kartı — yaz formu, anahtar linki, sınırlar', str_contains($ha, 'id="aicamp"') && str_contains($ha, 'value="ai_camp_generate"') && str_contains($ha, 'https://console.anthropic.com/settings/keys') && str_contains($ha, 'name="ai_camp_free_total"'));
 $t('admin: gönderilecek müşteri sayısı / örnek alıcı görünür', str_contains($ha, 'Render Boutique') || str_contains($ha, '1 müşteri'));
 $t('satıcı: Claude kartı ALMANCA, yaz formu, yalnızca KENDİ ürünü', str_contains($hs, 'id="aicamp"') && str_contains($hs, 'value="seller_ai_generate"') && str_contains($hs, 'Kampagne mit KI schreiben')
    && str_contains($hs, 'Seller Polo') && !str_contains($hs, 'Other Jacket'));
-$t('satıcı: kendi kampanyası "in Verwendung", adminin kampanyası YOK, kota görünür', str_contains($hs, 'in Verwendung') && str_contains($hs, 'SELLER-CAMP') && !str_contains($hs, 'ADMIN-CAMP') && str_contains($hs, 'Heute übrig: 3'));
+$t('satıcı: kendi kampanyası "in Verwendung", adminin kampanyası YOK, kota görünür', str_contains($hs, 'in Verwendung') && str_contains($hs, 'SELLER-CAMP') && !str_contains($hs, 'ADMIN-CAMP') && str_contains($hs, 'Ihre erste Kampagne ist kostenlos'));
 $t('satıcı: Claude anahtarı sayfada YOK', !str_contains($hs, 'sk-ant-probe') && !str_contains($ha, 'sk-ant-probe'));
 $t('satıcı: PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $hs));
 $t('satıcı: kendi-anahtar bölümü + Almanca rehber (anahtar yokken)', str_contains($hs, 'id="aikey"') && str_contains($hs, 'value="seller_ai_key"') && str_contains($hs, 'Ihr eigener Claude-Schlüssel') && str_contains($hs, 'console.anthropic.com/settings/billing'));
@@ -305,8 +333,12 @@ $hs2 = (string)shell_exec('cd '.escapeshellarg($sb).' && php s.php 2>/dev/null')
 $t('satıcı (kendi anahtarı): yeşil durum, kota satırı yok, "Diesen Monat"', str_contains($hs2, '● Ihr eigener Claude-Schlüssel') && !str_contains($hs2, 'Heute übrig') && str_contains($hs2, 'Diesen Monat: 0 Kampagnen'));
 $t('satıcı (kendi anahtarı): anahtar sayfada YOK, yalnız son 4 hane + Kaldır düğmesi', !str_contains($hs2, 'OWNSELLERKEY') && str_contains($hs2, '…Z9q7') && str_contains($hs2, 'name="ai_key_clear"'));
 $t('satıcı: gönderim kartı — 3 adım, SMTP uyarısı, test bölümü ALMANCA', str_contains($hs, 'id="sendsetup"') && str_contains($hs, 'Ihre Absender-E-Mail') && str_contains($hs, 'Brevo-Schlüssel')
-   && str_contains($hs, 'Unser Hosting blockiert ausgehende SMTP-Verbindungen') && str_contains($hs, 'Test an sich selbst senden') && str_contains($hs, 'value="seller_send_test"'));
-$t('satıcı: kampanya başına test düğmesi', str_contains($hs, 'value="seller_camp_test"') && str_contains($hs, 'Test an mich senden'));
+   && str_contains($hs, 'Unser Hosting blockiert ausgehende SMTP-Verbindungen') && str_contains($hs, 'Test an sich selbst senden') && str_contains($hs, 'Test in Gmail öffnen') && !str_contains($hs, 'value="seller_send_test"'));
+$t('satıcı (kurulumsuz): kampanya testi Gmail\'de açılır, VESTRA göndermez', !str_contains($hs, 'value="seller_camp_test"') && str_contains($hs, "sellerCompose('', 'gmail', &quot;ACsel&quot;"));
+$t('satıcı: ⚡ tek tık hazır kampanya + nasıl çalışır + örnek tarifler (Almanca)', str_contains($hs, 'value="seller_ai_ready"') && str_contains($hs, 'Fertige Kampagne — ein Klick')
+   && str_contains($hs, 'Beispielbeschreibungen') && str_contains($hs, 'Freundlicher Erstkontakt') && str_contains($hs, 'id="acCustom"'));
+$t('satıcı: Claude + DeepSeek anahtar formları', str_contains($hs, 'name="anthropic_key"') && str_contains($hs, 'name="deepseek_key"') && str_contains($hs, 'platform.deepseek.com/api_keys'));
+$t('satıcı: müşteri listesinde Gmail/Outlook/uygulama düğmeleri (yalnız e-postalı müşteride)', substr_count($hs, "sellerCompose(&quot;LDsel1&quot;") === 3 && !str_contains($hs, 'LDselNoMail&quot;'));
 $t('admin: 🧪 Bana test gönder + test adresi', str_contains($ha, 'name="mode" value="test"') && str_contains($ha, 'name="test_to"'));
 $t('satıcı (kendi anahtarı): PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $hs2));
 

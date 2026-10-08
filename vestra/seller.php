@@ -494,7 +494,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
 }
 
 /* ── Seller customer outreach: own SMTP + own customer list + one-by-one send ── */
-if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_array(($_POST['_action']??''),['seller_save_smtp','seller_send_test','seller_add_lead','seller_import_leads','seller_send_one','seller_find_email','seller_discover','seller_find_all','seller_finder_start','seller_ai_generate','seller_ai_save','seller_ai_stop','seller_ai_key','seller_camp_test'],true)) {
+if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_array(($_POST['_action']??''),['seller_save_smtp','seller_send_test','seller_add_lead','seller_import_leads','seller_send_one','seller_find_email','seller_discover','seller_find_all','seller_finder_start','seller_ai_generate','seller_ai_save','seller_ai_stop','seller_ai_key','seller_ai_ready','seller_camp_test','seller_compose'],true)) {
   require_once __DIR__.'/inc/notify.php'; require_once __DIR__.'/inc/leads.php';
   $suid=$_SESSION['uid']??''; $sme=auth_user();
   if($suid==='' || ($sme['type']??'')!=='seller'){ if(($_POST['_action']??'')==='seller_send_one'){ header('Content-Type: application/json'); echo json_encode(['ok'=>false,'error'=>'auth']); } else header('Location: /seller?tab=find'); exit; }
@@ -549,33 +549,45 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
      listings + a style + a language; the platform's Claude key writes subject + body. Usage is
      capped per seller per day/month and platform-wide per month (admin sets the limits). The
      active campaign replaces the standard invite in "Send one-by-one". */
-  if(in_array($sact,['seller_ai_generate','seller_ai_save','seller_ai_stop','seller_ai_key'],true)){
+  if(in_array($sact,['seller_ai_generate','seller_ai_save','seller_ai_stop','seller_ai_key','seller_ai_ready'],true)){
     require_once __DIR__.'/inc/ai_campaign.php';
     if($sact==='seller_ai_key'){
       /* Satıcının KENDİ Claude anahtarı (operatör, 8 Eki 2026). Kaydetmeden önce ücretsiz
          /v1/models ile sınanır: geçmeyen anahtar kaydedilmez, satıcı nedenini kendi dilinde görür. */
+      $kProv=($_POST['provider']??'claude')==='deepseek'?'deepseek':'claude';
+      $kName=$kProv==='deepseek'?'DeepSeek':'Claude';
       if(!empty($_POST['ai_key_clear'])){
-        vestra_ai_camp_seller_key_save($suid,'');
-        $_SESSION['seller_ai_flash']=[true,'Your Claude key was removed.'];
+        if($kProv==='deepseek'){ $scK=vestra_seller_mail($suid); $scK['ai_key']=''; vestra_seller_mail_save($suid,$scK); }
+        else vestra_ai_camp_seller_key_save($suid,'');
+        $_SESSION['seller_ai_flash']=[true,sprintf(t('Your %s key was removed.'),$kName)];
       } else {
-        $k=trim((string)($_POST['anthropic_key']??''));
-        [$kOk,$kCode]=vestra_ai_camp_key_check($k);
-        $kMsgs=['ok'=>'Your Claude key works and is saved. Your campaigns now use your own key — no limits from VESTRA.',
-          'format'=>'This does not look like a Claude API key. It starts with sk-ant- — please copy it again.',
-          'invalid'=>'Anthropic did not accept this key. Please create a new key and paste it again.',
-          'forbidden'=>'This key is not allowed to use the API. Please check your Anthropic account.',
-          'unreachable'=>'We could not reach Anthropic to check the key. Please try again in a minute.'];
-        if($kOk && !vestra_ai_camp_seller_key_save($suid,$k)){ $kOk=false; $kCode='unreachable'; }
-        $_SESSION['seller_ai_flash']=[$kOk,$kMsgs[$kCode]??$kMsgs['unreachable']];
+        $k=trim((string)($_POST['anthropic_key']??($_POST['deepseek_key']??'')));
+        [$kOk,$kCode]=$kProv==='deepseek'?vestra_ai_camp_ds_key_check($k):vestra_ai_camp_key_check($k);
+        $kMsgs=['ok'=>'Your %s key works and is saved. Your campaigns now use your own key — no limits from VESTRA.',
+          'format'=>$kProv==='deepseek'?'This does not look like a DeepSeek API key. It starts with sk- — please copy it again.':'This does not look like a Claude API key. It starts with sk-ant- — please copy it again.',
+          'invalid'=>'%s did not accept this key. Please create a new key and paste it again.',
+          'forbidden'=>'This key is not allowed to use the API. Please check your %s account.',
+          'unreachable'=>'We could not reach %s to check the key. Please try again in a minute.'];
+        if($kOk){
+          if($kProv==='deepseek'){ $scK=vestra_seller_mail($suid); $scK['ai_key']=$k; vestra_seller_mail_save($suid,$scK); $kOk=vestra_ai_camp_seller_ds_key($suid)===$k; }
+          else $kOk=vestra_ai_camp_seller_key_save($suid,$k);
+          if(!$kOk) $kCode='unreachable';
+        }
+        $_SESSION['seller_ai_flash']=[$kOk,sprintf(t($kMsgs[$kCode]??$kMsgs['unreachable']),$kCode==='invalid'?($kProv==='deepseek'?'DeepSeek':'Anthropic'):$kName)];
       }
-    } elseif($sact==='seller_ai_generate'){
-      [$aOk,$aCode,$aC]=vestra_ai_camp_generate($suid,$sName,vestra_seller_listings($suid),['style'=>$_POST['style']??'','custom'=>$_POST['custom']??'',
-        'offer'=>$_POST['offer']??'','lang'=>$_POST['lang']??'en','prices'=>!empty($_POST['prices']),'products'=>(array)($_POST['products']??[])]);
-      $aMsgs=['ok'=>'Your campaign is ready — check it below, edit if you like, then press "Use for sending".',
-        'nokey'=>'The campaign writer is not available right now. Please try again later.',
-        'quota_day'=>'You have used today\'s campaign limit. Please try again tomorrow.',
-        'quota_month'=>'You have used this month\'s campaign limit.',
-        'quota_platform'=>'The campaign writer is not available right now. Please try again later.',
+    } elseif($sact==='seller_ai_generate' || $sact==='seller_ai_ready'){
+      /* ⚡ Hazır kampanya: tek tık — satıcının kendi kataloğundan ilk 8 ürün, zarif tarz, panel
+         dili, ilk örnek tarif. Satıcının etkin kampanyası yoksa yazılan kampanya hemen kullanıma alınır. */
+      $aIn=$sact==='seller_ai_ready'
+        ? ['style'=>'luxury','custom'=>t(vestra_ai_camp_examples()[0]),'offer'=>'','lang'=>isset(vestra_ai_camp_langs()[vlang()])?vlang():'en','prices'=>false,'products'=>[]]
+        : ['style'=>$_POST['style']??'','custom'=>$_POST['custom']??'','offer'=>$_POST['offer']??'','lang'=>$_POST['lang']??'en','prices'=>!empty($_POST['prices']),'products'=>(array)($_POST['products']??[])];
+      $aHadActive=vestra_ai_camp_active($suid)!==null;
+      [$aOk,$aCode,$aC]=vestra_ai_camp_generate($suid,$sName,vestra_seller_listings($suid),$aIn);
+      if($aOk && $sact==='seller_ai_ready' && !$aHadActive) vestra_ai_camp_save_edit((string)$aC['id'],$suid,(string)$aC['subject'],(string)$aC['body'],true);
+      $aMsgs=['ok'=>($sact==='seller_ai_ready'&&!$aHadActive)?'Your campaign is ready and in use — check it below and edit if you like.':'Your campaign is ready — check it below, edit if you like, then press "Use for sending".',
+        'nokey'=>'To write a campaign, add your own Claude or DeepSeek key below.',
+        'quota_free'=>'Your free campaign has been used. Add your own Claude or DeepSeek key below to write more — usually a few cents per campaign.',
+        'quota_platform'=>'The free campaign writer is fully used this month. Add your own Claude or DeepSeek key below to write now.',
         'noproducts'=>'Add products to your catalog first — the campaign is written from your own products.',
         'refusal'=>'This request could not be written. Please change your style or offer text and try again.',
         'toolong'=>'Too much at once — please choose fewer products.',
@@ -603,20 +615,28 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
     header('Location: /seller?tab=find&msg='.($found!==''?'found_ok':'found_none')); exit;
   }
   /* Test: satıcının KULLANDIĞI kampanya (etkin Claude kampanyası ya da standart davet), örnek
-     dükkân adıyla, "[TEST]" önekiyle. Kurulum varsa kendi Brevo'suyla istenen adrese; yoksa
-     VESTRA üzerinden yalnız hesap adresine, günde 5 (inc/seller_send.php). */
+     dükkân adıyla, "[TEST]" önekiyle — YALNIZ satıcının kendi Brevo'suyla. Kurulum yoksa VESTRA
+     göndermez (platform kotası); ekran testi Gmail'de açmayı önerir (inc/seller_send.php). */
   if($sact==='seller_send_test' || $sact==='seller_camp_test'){
     require_once __DIR__.'/inc/seller_send.php';
     $cid=$sact==='seller_camp_test'?(string)($_POST['cid']??''):null;
-    [$tOk,$tCode,$tTo]=vestra_seller_send_test($suid,$sName,trim((string)($_POST['test_to']??($sme['email']??''))),(string)($sme['email']??''),$cid);
+    [$tOk,$tCode,$tTo]=vestra_seller_send_test($suid,$sName,trim((string)($_POST['test_to']??'')),$cid);
     if($sact==='seller_camp_test'){
-      $tMsgs=['own'=>'Test sent to %s — check your inbox.','platform'=>'Test sent to %s via VESTRA, because your own sending is not set up yet.',
-        'limit'=>'You have used today\'s 5 test emails via VESTRA. Set up your own sending to test without limits.','badto'=>'Please enter a valid email address.',
-        'fail'=>'The test could not be sent. Please check your sending setup above.'];
+      $tMsgs=['own'=>'Test sent to %s — check your inbox.','nosetup'=>'Your sending is not set up yet — use “Open test in Gmail” instead.',
+        'badto'=>'Please enter a valid email address.','fail'=>'The test could not be sent. Please check your sending setup above.'];
       $_SESSION['seller_ai_flash']=[$tOk,sprintf(t($tMsgs[$tCode]??$tMsgs['fail']),$tTo)];
       header('Location: /seller?tab=find#aicamp'); exit;
     }
     header('Location: /seller?tab=find&msg=test_'.$tCode.'&to='.rawurlencode($tTo).'#sendsetup'); exit;
+  }
+  /* "Gmail'de aç" (operatör, 8 Eki 2026: platform kotasına dokunmadan, satıcının kendi
+     adresinden). Sunucu yalnız çizilmiş konu + metni verir; pencereyi tarayıcı açar.
+     lead_id boş = TEST (hesap adresine, kayda dokunmaz). */
+  if($sact==='seller_compose'){
+    require_once __DIR__.'/inc/seller_send.php';
+    header('Content-Type: application/json');
+    echo json_encode(vestra_seller_compose($suid,(string)($_POST['lead_id']??''),(string)($sme['email']??''),
+      ($c=(string)($_POST['cid']??''))!==''?$c:null,(string)($_POST['via']??'gmail')), JSON_UNESCAPED_UNICODE); exit;
   }
   if($sact==='seller_add_lead'){
     $company=trim($_POST['company']??''); $email=strtolower(trim($_POST['email']??''));
@@ -1347,15 +1367,14 @@ if($tab==='overview'){
   /* Test ve Brevo denetimi sonuçları (inc/seller_send.php) — satıcının dilinde. */
   $fTo=(string)($_GET['to']??'');
   $fmsgs+=['test_own'=>sprintf(t('Test sent to %s — check your inbox.'),$fTo),
-    'test_platform'=>sprintf(t('Test sent to %s via VESTRA, because your own sending is not set up yet.'),$fTo),
-    'test_limit'=>t('You have used today\'s 5 test emails via VESTRA. Set up your own sending to test without limits.'),
+    'test_nosetup'=>t('Your sending is not set up yet — use “Open test in Gmail” instead.'),
     'test_badto'=>t('Please enter a valid email address.'),
     'test_fail'=>t('The test could not be sent. Please check your sending setup above.'),
     'brevo_format'=>t('Saved, but this does not look like a Brevo API key (it starts with xkeysib-). Please copy it again.'),
     'brevo_invalid'=>t('Saved, but Brevo did not accept this key. Please create a new key and save it again.'),
     'brevo_unreachable'=>t('Saved. We could not reach Brevo to check the key — press “Save” again in a minute.')];
   $fmsgs['smtp_saved']=t('Saved. Now send yourself a test below.');
-  $fBad=in_array($fmsg,['test_limit','test_badto','test_fail','brevo_format','brevo_invalid','brevo_unreachable'],true);
+  $fBad=in_array($fmsg,['test_nosetup','test_badto','test_fail','brevo_format','brevo_invalid','brevo_unreachable'],true);
   if($fmsg==='found_bulk') $fmsgs['found_bulk']='✓ Email lookup finished — '.(int)($_GET['n']??0).' email(s) added from the shops’ own websites.';
   $sFinderOn=true;   // finding always works — free site-reading fallback (own/platform key optional)
   $sAiOn=($myMail['ai_key']??'')!=='' || vestra_ai_key()!=='';
@@ -1386,7 +1405,7 @@ if($tab==='overview'){
   ?>
   <div id="sendsetup" style="<?= $card ?>;border-color:<?= $mailReady?'#b9e3c9':'var(--line)' ?>">
     <h3 style="margin:0 0 4px;font-size:15px"><?= $tk('📤 Your sending email') ?> <?= $mailReady?'<span style="color:#1f9d63;font-size:12px">● '.$tk('Ready').'</span>':'<span style="color:#a9781a;font-size:12px">● '.$tk('Not set up').'</span>' ?></h3>
-    <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px"><?= $tk('Send campaigns from your own email address — free with Brevo (300 emails a day). Your customers see your address and reply to you.') ?></p>
+    <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px"><?= $tk('Two free ways to email from your own address: one by one from your own Gmail or Outlook (no setup — use the buttons in your customer list below), or many at once with Brevo (300 emails a day, set up once here). Your customers see your address and reply to you.') ?></p>
     <div style="background:var(--bg2,#faf8f4);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px">
       <?= $stepRow(!$hasKey?'todo':(($bc&&!$bc['ok'])?'bad':'ok'),'1','Brevo key',
           !$hasKey?$tk('Not added yet — see the 4 steps below.'):(($bc&&!$bc['ok'])?$tk('Brevo did not accept this key. Please create a new key and save it again.')
@@ -1453,12 +1472,21 @@ if($tab==='overview'){
     <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
       <div style="font-size:13px;font-weight:700;margin-bottom:4px">✉ <?= $tk('Send yourself a test') ?></div>
       <p style="color:var(--mut);font-size:12px;margin:0 0 8px"><?= sprintf($tk('We send the campaign you use now — “%s” — exactly as your customers get it, with “[TEST]” in the subject and “%s” as the shop name.'),htmlspecialchars(vestra_lead_render_email(vestra_test_sample_lead(''),$tTpl)[0]),VESTRA_TEST_SAMPLE_SHOP) ?>
-        <?php if(!$mailReady): ?><br><span style="color:#a9781a"><?= sprintf($tk('Your sending is not set up yet, so the test comes from VESTRA to your account address %s (up to 5 a day).'),htmlspecialchars((string)($me['email']??''))) ?></span><?php endif; ?></p>
+      </p>
+      <?php if($mailReady): ?>
       <form method="post" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
         <input type="hidden" name="_action" value="seller_send_test">
-        <div style="flex:1;min-width:220px"><label style="<?= $lbl ?>"><?= $tk('Send the test to') ?></label><input type="email" name="test_to" required value="<?= htmlspecialchars($me['email']??'') ?>" style="<?= $inp ?>"<?= $mailReady?'':' readonly' ?>></div>
+        <div style="flex:1;min-width:220px"><label style="<?= $lbl ?>"><?= $tk('Send the test to') ?></label><input type="email" name="test_to" required value="<?= htmlspecialchars((string)($myMail['last_test_to']??'')?:($me['email']??'')) ?>" style="<?= $inp ?>"></div>
         <button class="btn btn-o btn-sm" type="submit" onclick="this.textContent=<?= htmlspecialchars(json_encode(t('Sending…'), JSON_UNESCAPED_UNICODE)) ?>">✉ <?= $tk('Send test') ?></button>
       </form>
+      <?php else: ?>
+      <p style="font-size:12px;color:#a9781a;margin:0 0 8px"><?= sprintf($tk('Your sending is not set up yet. You can still see the test in your own mailbox: it opens ready in Gmail, addressed to %s — just press Send.'),htmlspecialchars((string)($me['email']??''))) ?></p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-o btn-sm" type="button" onclick="sellerCompose('', 'gmail', '', this)">✉ <?= $tk('Open test in Gmail') ?></button>
+        <button class="btn btn-o btn-sm" type="button" onclick="sellerCompose('', 'outlook', '', this)"><?= $tk('Outlook') ?></button>
+        <button class="btn btn-o btn-sm" type="button" onclick="sellerCompose('', 'mailapp', '', this)"><?= $tk('Mail app') ?></button>
+      </div>
+      <?php endif; ?>
     </div>
   </div>
 
@@ -1517,7 +1545,9 @@ if($tab==='overview'){
   <?php
     require_once __DIR__.'/inc/ai_campaign.php';
     $acOwn   = vestra_ai_camp_seller_key($uid);
-    $acOn    = vestra_ai_camp_on_for($uid);
+    $acOwnDs = vestra_ai_camp_seller_ds_key($uid);
+    $acRoute = vestra_ai_camp_route($uid);
+    $acOn    = $acRoute!==null;
     $acQ     = vestra_ai_camp_quota($uid);
     $acOwnU  = (array)(((vestra_ai_camp_usage()[date('Y-m')] ?? [])['owners'] ?? [])[$uid] ?? []);
     $acFlash = $_SESSION['seller_ai_flash'] ?? null; unset($_SESSION['seller_ai_flash']);
@@ -1527,23 +1557,43 @@ if($tab==='overview'){
   ?>
   <div id="aicamp" style="<?= $card ?>;border-color:#d9cdf3">
     <h3 style="margin:0 0 6px;font-size:15px"><?= $tw('✍️ Write a campaign with AI') ?></h3>
-    <p style="color:var(--mut);font-size:12.5px;margin:0 0 6px"><?= $tw('Choose products from your catalog, a style and a language. AI writes the subject and the text from your own products. You can edit it, then use it for sending to your customers below.') ?></p>
-    <p style="color:var(--mut);font-size:12px;margin:0 0 12px"><?php if($acOwn!==''): ?><span style="color:#1f9d63;font-weight:600">● <?= $tw('Your own Claude key') ?></span> · <?= sprintf($tw('This month: %d campaigns'), (int)($acOwnU['own_calls']??0)) ?> · <?php elseif($acOn): ?><?= sprintf($tw('Left today: %d · this month: %d'), (int)$acQ['day_left'], (int)$acQ['month_left']) ?> · <?php endif; ?><?= $tw('Campaign used when sending:') ?> <b><?= $acAct ? htmlspecialchars((string)$acAct['subject']) : $tw('Standard invitation') ?></b></p>
-    <?php if($acFlash): ?><div style="background:<?= $acFlash[0]?'#eaf7ef':'#fdf0ee' ?>;border:1px solid <?= $acFlash[0]?'#b9e3c9':'#f0c4bd' ?>;color:<?= $acFlash[0]?'#1f7a4d':'#a3321f' ?>;padding:9px 13px;border-radius:10px;margin-bottom:12px;font-size:13px"><?= $tw((string)$acFlash[1]) ?></div><?php endif; ?>
-    <?php if(!$acOn): ?><p style="font-size:13px;color:#a9781a;margin:0 0 6px"><?= $tw('To start, add your own Claude key below — it takes about 5 minutes.') ?></p>
-    <?php elseif(!$acCat): ?><p style="font-size:13px;color:#a9781a;margin:0"><?= $tw('Add products to your catalog first — the campaign is written from your own products.') ?></p>
+    <?php /* Nasıl çalışır — 3 adım (operatör: "örnek anlatımı da koy"). */ ?>
+    <ol style="margin:0 0 10px 18px;padding:0;font-size:12.5px;color:var(--mut);line-height:1.6">
+      <li><?= $tw('Press “Ready campaign” — or choose products, a style and a language yourself.') ?></li>
+      <li><?= $tw('AI writes the subject and the text from your own catalog. You can edit every word.') ?></li>
+      <li><?= $tw('Send it to your customers below: one by one from your own Gmail, or with Brevo. Send yourself a test first.') ?></li>
+    </ol>
+    <?php if($acOn && $acRoute['src']==='own'): ?>
+      <div style="font-size:12.5px;margin:0 0 10px"><span style="color:#1f9d63;font-weight:600">● <?= $acRoute['provider']==='deepseek'?$tw('Your own DeepSeek key'):$tw('Your own Claude key') ?></span> · <?= sprintf($tw('This month: %d campaigns'), (int)($acOwnU['own_calls']??0)) ?></div>
+    <?php elseif($acOn && $acQ['ok']): ?>
+      <div style="background:#f3eefe;border:1px solid #d9cdf3;border-radius:10px;padding:9px 12px;font-size:12.5px;margin:0 0 10px">🎁 <?= $tw('Your first campaign is free — VESTRA\'s AI writes it from your catalog. After that, add your own Claude or DeepSeek key below to write more.') ?></div>
     <?php else: ?>
+      <div style="background:#fdf6e9;border:1px solid #f0dcb4;color:#8a5a12;border-radius:10px;padding:9px 12px;font-size:12.5px;margin:0 0 10px"><?= $acQ['why']==='free'?$tw('Your free campaign has been used. Add your own Claude or DeepSeek key below to write more — usually a few cents per campaign.'):$tw('To write a campaign, add your own Claude or DeepSeek key below.') ?></div>
+    <?php endif; ?>
+    <p style="color:var(--mut);font-size:12px;margin:0 0 12px"><?= $tw('Campaign used when sending:') ?> <b><?= $acAct ? htmlspecialchars((string)$acAct['subject']) : $tw('Standard invitation') ?></b></p>
+    <?php if($acFlash): ?><div style="background:<?= $acFlash[0]?'#eaf7ef':'#fdf0ee' ?>;border:1px solid <?= $acFlash[0]?'#b9e3c9':'#f0c4bd' ?>;color:<?= $acFlash[0]?'#1f7a4d':'#a3321f' ?>;padding:9px 13px;border-radius:10px;margin-bottom:12px;font-size:13px"><?= $tw((string)$acFlash[1]) ?></div><?php endif; ?>
+    <?php if(!$acCat): ?><p style="font-size:13px;color:#a9781a;margin:0"><?= $tw('Add products to your catalog first — the campaign is written from your own products.') ?></p>
+    <?php elseif($acOn && $acQ['ok']): ?>
+    <form method="post" style="background:linear-gradient(135deg,#f7f2ff,#fff);border:1px solid #d9cdf3;border-radius:12px;padding:12px 14px;margin:0 0 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <input type="hidden" name="_action" value="seller_ai_ready">
+      <div style="flex:1;min-width:220px"><b style="font-size:13.5px">⚡ <?= $tw('Ready campaign — one click') ?></b><div style="font-size:12px;color:var(--mut)"><?= $tw('AI writes an elegant campaign from your own catalog, in your panel language. You can change everything afterwards.') ?></div></div>
+      <button class="btn btn-p btn-sm" type="submit" onclick="this.textContent=<?= htmlspecialchars(json_encode(t('Writing… (about 20 seconds)'), JSON_UNESCAPED_UNICODE)) ?>">⚡ <?= $tw('Create my campaign') ?></button>
+    </form>
+    <?php endif; ?>
+    <?php if($acCat && $acOn && $acQ['ok']): ?>
     <form method="post" style="margin-bottom:12px">
       <input type="hidden" name="_action" value="seller_ai_generate">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <div><label style="<?= $lbl ?>"><?= $tw('Style') ?></label><select name="style" style="<?= $inp ?>"><?php foreach(vestra_ai_camp_styles() as $sk=>[$sl]): ?><option value="<?= $sk ?>"><?= $tw($sl) ?></option><?php endforeach; ?></select></div>
-        <div><label style="<?= $lbl ?>"><?= $tw('Language') ?></label><select name="lang" style="<?= $inp ?>"><?php foreach(vestra_ai_camp_langs() as $lk=>$ln): ?><option value="<?= $lk ?>"><?= htmlspecialchars($ln) ?></option><?php endforeach; ?></select></div>
+        <div><label style="<?= $lbl ?>"><?= $tw('Language') ?></label><select name="lang" style="<?= $inp ?>"><?php foreach(vestra_ai_camp_langs() as $lk=>$ln): ?><option value="<?= $lk ?>"<?= $lk===vlang()?' selected':'' ?>><?= htmlspecialchars($ln) ?></option><?php endforeach; ?></select></div>
       </div>
       <div style="margin-bottom:8px"><label style="<?= $lbl ?>"><?= $tw('Products (hold Ctrl/Cmd to pick up to 12) — none = first 8') ?></label><select name="products[]" multiple size="5" style="<?= $inp ?>"><?php foreach($acCat as $p): ?><option value="<?= htmlspecialchars((string)($p['id']??'')) ?>"><?= htmlspecialchars(trim(($p['brand']??'').' — '.($p['name']??''))) ?></option><?php endforeach; ?></select></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <div><label style="<?= $lbl ?>"><?= $tw('Your own words (optional)') ?></label><input name="custom" maxlength="300" placeholder="<?= $tw('e.g. short, elegant, for Italian boutiques') ?>" style="<?= $inp ?>"></div>
+        <div><label style="<?= $lbl ?>"><?= $tw('Your own words (optional)') ?></label><input name="custom" id="acCustom" maxlength="300" placeholder="<?= $tw('e.g. short, elegant, for Italian boutiques') ?>" style="<?= $inp ?>"></div>
         <div><label style="<?= $lbl ?>"><?= $tw('Offer or note (optional)') ?></label><input name="offer" maxlength="300" placeholder="<?= $tw('e.g. 10% off the first order') ?>" style="<?= $inp ?>"></div>
       </div>
+      <div style="margin:0 0 8px"><div style="font-size:11.5px;color:var(--mut);margin:0 0 4px"><?= $tw('Example descriptions — click one to use it:') ?></div>
+        <?php foreach(vestra_ai_camp_examples() as $ex): ?><button type="button" onclick="document.getElementById('acCustom').value=this.dataset.t" data-t="<?= htmlspecialchars(t($ex)) ?>" style="border:1px solid #d9cdf3;background:#faf7ff;color:var(--ink);border-radius:999px;padding:4px 10px;font-size:11.5px;margin:0 6px 6px 0;cursor:pointer;text-align:left"><?= htmlspecialchars(t($ex)) ?></button><?php endforeach; ?></div>
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0 0 10px"><input type="checkbox" name="prices" value="1"> <?= $tw('Show prices') ?></label>
       <button class="btn btn-p btn-sm" type="submit"<?= $acQ['ok']?'':' disabled' ?> onclick="this.textContent=<?= htmlspecialchars(json_encode(t('Writing… (about 20 seconds)'), JSON_UNESCAPED_UNICODE)) ?>"><?= $tw('✍️ Write campaign') ?></button>
     </form>
@@ -1556,10 +1606,13 @@ if($tab==='overview'){
           <label style="<?= $lbl ?>"><?= $tw('Text') ?> <span style="font-weight:400;color:var(--mut)">· <?= $tw('{{company}} becomes the customer\'s shop name. The unsubscribe line is added automatically.') ?></span></label><textarea name="body" rows="9" style="<?= $inp ?>;margin-bottom:8px"><?= htmlspecialchars((string)$c['body']) ?></textarea>
           <button class="btn btn-o btn-sm" type="submit"><?= $tw('Save') ?></button>
           <button class="btn btn-p btn-sm" type="submit" name="activate" value="1"><?= $tw('Use for sending') ?></button></form>
-        <form method="post" style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="hidden" name="_action" value="seller_camp_test"><input type="hidden" name="cid" value="<?= htmlspecialchars((string)$c['id']) ?>">
-          <input type="email" name="test_to" value="<?= htmlspecialchars((string)($myMail['last_test_to']??'')?:($me['email']??'')) ?>" style="<?= $inp ?>;width:auto;flex:1;min-width:200px"<?= $mailReady?'':' readonly' ?>>
+        <?php if($mailReady): ?><form method="post" style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="hidden" name="_action" value="seller_camp_test"><input type="hidden" name="cid" value="<?= htmlspecialchars((string)$c['id']) ?>">
+          <input type="email" name="test_to" value="<?= htmlspecialchars((string)($myMail['last_test_to']??'')?:($me['email']??'')) ?>" style="<?= $inp ?>;width:auto;flex:1;min-width:200px">
           <button class="btn btn-o btn-sm" type="submit">✉ <?= $tw('Send me a test') ?></button>
-          <span style="font-size:11px;color:var(--mut)"><?= $tw('Save your edits first — the test uses the saved text.') ?></span></form></details>
+        <?php else: ?><div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-o btn-sm" type="button" onclick="sellerCompose('', 'gmail', <?= htmlspecialchars(json_encode((string)$c['id'])) ?>, this)">✉ <?= $tw('Open test in Gmail') ?></button>
+        <?php endif; ?>
+          <span style="font-size:11px;color:var(--mut)"><?= $tw('Save your edits first — the test uses the saved text.') ?></span><?= $mailReady?'</form>':'</div>' ?></details>
     <?php endforeach; ?>
     <?php if($acAct): ?><form method="post"><input type="hidden" name="_action" value="seller_ai_stop"><button class="btn btn-o btn-sm" type="submit"><?= $tw('Stop using — send the standard invitation') ?></button></form><?php endif; ?>
     <?php endif; ?>
@@ -1570,7 +1623,7 @@ if($tab==='overview'){
     <div id="aikey" style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
       <div style="font-size:13px;font-weight:700;margin-bottom:4px">🔑 <?= $tw('Your own Claude key') ?> <?= $acOwn!==''?'<span style="color:#1f9d63;font-weight:400;font-size:12px">· '.$tw('saved').' (…'.htmlspecialchars(substr($acOwn,-4)).') ✓</span>':'<span style="color:var(--mut);font-weight:400;font-size:12px">· '.$tw('optional').'</span>' ?></div>
       <p style="color:var(--mut);font-size:12px;margin:0 0 8px"><?= $tw('With your own key there are no limits from VESTRA. Anthropic bills your own account — usually a few cents per campaign.') ?></p>
-      <details<?= ($acOwn===''&&!vestra_ai_camp_on())?' open':'' ?> style="margin:0 0 10px">
+      <details<?= ($acOwn===''&&$acOwnDs===''&&!$acQ['ok'])?' open':'' ?> style="margin:0 0 10px">
         <summary style="cursor:pointer;font-size:12px;color:var(--mut)"><?= $tw('How to get your key — about 5 minutes:') ?></summary>
         <ol style="margin:8px 0 6px 18px;padding:0;font-size:13px;line-height:1.7">
           <li><?= sprintf($tw('Open %s and sign up (email or Google).'), $acLnk('https://console.anthropic.com/','console.anthropic.com')) ?></li>
@@ -1587,6 +1640,28 @@ if($tab==='overview'){
         <button class="btn btn-p btn-sm" type="submit" onclick="this.textContent=<?= htmlspecialchars(json_encode(t('Checking…'), JSON_UNESCAPED_UNICODE)) ?>"><?= $tw('Save key') ?></button>
         <?php if($acOwn!==''): ?><button class="btn btn-o btn-sm" type="submit" name="ai_key_clear" value="1" onclick="return confirm(<?= htmlspecialchars(json_encode(t('Remove your Claude key?'), JSON_UNESCAPED_UNICODE)) ?>)"><?= $tw('Remove key') ?></button><?php endif; ?>
       </form>
+
+      <?php /* 🔑 DeepSeek — ikinci seçenek (operatör: "Claude'u da DeepSeek'i de koy"). Anahtar
+               seller_mail.json `ai_key` alanında: kişiselleştirme ile ortak, tek yerde. */ ?>
+      <div style="border-top:1px dashed var(--line);margin-top:14px;padding-top:12px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:4px">🔑 <?= $tw('Your own DeepSeek key') ?> <?= $acOwnDs!==''?'<span style="color:#1f9d63;font-weight:400;font-size:12px">· '.$tw('saved').' (…'.htmlspecialchars(substr($acOwnDs,-4)).') ✓</span>':'<span style="color:var(--mut);font-weight:400;font-size:12px">· '.$tw('optional — a cheaper alternative to Claude').'</span>' ?></div>
+        <details style="margin:0 0 10px">
+          <summary style="cursor:pointer;font-size:12px;color:var(--mut)"><?= $tw('How to get your DeepSeek key — about 5 minutes:') ?></summary>
+          <ol style="margin:8px 0 6px 18px;padding:0;font-size:13px;line-height:1.7">
+            <li><?= sprintf($tw('Open %s and sign up (email or Google).'), $acLnk('https://platform.deepseek.com/','platform.deepseek.com')) ?></li>
+            <li><?= sprintf($tw('Top up a small amount: %s. Without balance the key cannot write.'), $acLnk('https://platform.deepseek.com/top_up','Top up')) ?></li>
+            <li><?= sprintf($tw('Open %s, click “Create new API key”, name it VESTRA and copy it (it starts with sk-).'), $acLnk('https://platform.deepseek.com/api_keys','API keys')) ?></li>
+            <li><?= $tw('Paste the key below and press “Save key”. We check it right away — checking is free.') ?></li>
+          </ol>
+          <div style="font-size:12px;color:var(--mut)"><?= $tw('If you save both keys, Claude is used first.') ?></div>
+        </details>
+        <form method="post" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+          <input type="hidden" name="_action" value="seller_ai_key"><input type="hidden" name="provider" value="deepseek">
+          <div style="flex:1;min-width:240px"><label style="<?= $lbl ?>"><?= $tw('DeepSeek API key') ?><?= $acOwnDs!==''?' · '.$tw('saved').', '.$tw('paste a new one to replace it'):'' ?></label><input type="password" name="deepseek_key" autocomplete="new-password" placeholder="sk-…" style="<?= $inp ?>"></div>
+          <button class="btn btn-p btn-sm" type="submit" onclick="this.textContent=<?= htmlspecialchars(json_encode(t('Checking…'), JSON_UNESCAPED_UNICODE)) ?>"><?= $tw('Save key') ?></button>
+          <?php if($acOwnDs!==''): ?><button class="btn btn-o btn-sm" type="submit" name="ai_key_clear" value="1" onclick="return confirm(<?= htmlspecialchars(json_encode(t('Remove your DeepSeek key?'), JSON_UNESCAPED_UNICODE)) ?>)"><?= $tw('Remove key') ?></button><?php endif; ?>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -1625,16 +1700,22 @@ if($tab==='overview'){
       <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut)" title="<?= $sAiOn?'Rewrite each email for the customer with AI':'Add your DeepSeek key above to enable' ?>"><input type="checkbox" id="sAi" <?= $sAiOn?'':'disabled' ?>> ✨ AI personalize<?= $sAiOn?'':' (add key)' ?></label>
       <span style="font-size:11.5px;color:var(--mut)">Email-less/unsubscribed can't be selected.</span>
     </div>
+    <div style="background:#eef6ff;border:1px solid #cfe3fb;color:#1d4f86;border-radius:10px;padding:9px 12px;font-size:12.5px;margin:0 0 10px">✉ <?= htmlspecialchars(t('Free, no setup: click “Gmail” next to a customer. The email opens ready in your own Gmail (or Outlook / your mail app) — you just press Send. It goes from your own address.')) ?></div>
     <div id="sSob" style="display:none;background:var(--bg2,#f7f7fb);border-radius:10px;padding:10px 12px;margin-bottom:10px"><div id="sSobBar" style="font-weight:600;font-size:13px;margin-bottom:6px"></div><div id="sSobLog" style="max-height:200px;overflow:auto"></div></div>
     <div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
-      <tr style="text-align:left;color:var(--mut);font-size:11.5px"><th style="padding:6px"></th><th style="padding:6px">Company</th><th style="padding:6px">Email</th><th style="padding:6px">Country</th><th style="padding:6px">Status</th></tr>
+      <tr style="text-align:left;color:var(--mut);font-size:11.5px"><th style="padding:6px"></th><th style="padding:6px">Company</th><th style="padding:6px">Email</th><th style="padding:6px">Country</th><th style="padding:6px">Status</th><th style="padding:6px"><?= htmlspecialchars(t('Write from your mailbox')) ?></th></tr>
       <?php foreach($myLeads as $l): $noEmail=!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL); $unsub=($l['status']??'')==='unsubscribed'; ?>
       <tr style="border-top:1px solid var(--line);opacity:<?= ($noEmail||$unsub)?.6:1 ?>">
         <td style="padding:6px"><input class="slc" type="checkbox" value="<?= htmlspecialchars($l['id']??'') ?>" <?= ($noEmail||$unsub)?'disabled':'' ?>></td>
         <td style="padding:6px"><b><?= htmlspecialchars($l['company']??'') ?></b><?php if(!empty($l['website'])): ?><div style="font-size:11px;color:var(--mut)"><?= htmlspecialchars($l['website']) ?></div><?php endif; ?></td>
         <td style="padding:6px;font-size:11.5px"><?php if($noEmail): ?><span style="color:#a9781a">—</span><?php if(!empty($l['website']) && $sFinderOn): ?> <form method="post" style="display:inline"><input type="hidden" name="_action" value="seller_find_email"><input type="hidden" name="lid" value="<?= htmlspecialchars($l['id']??'') ?>"><button class="btn btn-o btn-sm" style="padding:1px 7px;font-size:10.5px" type="submit">🔍 Find</button></form><?php endif; ?><?php else: ?><?= htmlspecialchars($l['email']) ?><?php endif; ?></td>
         <td style="padding:6px"><?= htmlspecialchars($l['country']??'') ?: '—' ?></td>
-        <td style="padding:6px;font-size:11.5px"><?= htmlspecialchars(ucfirst($l['status']??'new')) ?></td>
+        <td style="padding:6px;font-size:11.5px"><?= htmlspecialchars(ucfirst($l['status']??'new')) ?><?php if(($l['contact_via']??'')!==''): ?><div style="color:var(--mut);font-size:10.5px"><?= htmlspecialchars(t('opened in').' '.(['gmail'=>'Gmail','outlook'=>'Outlook','mailapp'=>t('Mail app')][$l['contact_via']] ?? '')) ?></div><?php endif; ?></td>
+        <td style="padding:6px;white-space:nowrap"><?php if(!$noEmail && !$unsub): $lidJ=htmlspecialchars(json_encode((string)($l['id']??''))); ?>
+          <button class="btn btn-o btn-sm" style="padding:2px 8px;font-size:11px" type="button" onclick="sellerCompose(<?= $lidJ ?>,'gmail','',this)">Gmail</button>
+          <button class="btn btn-o btn-sm" style="padding:2px 8px;font-size:11px" type="button" onclick="sellerCompose(<?= $lidJ ?>,'outlook','',this)">Outlook</button>
+          <button class="btn btn-o btn-sm" style="padding:2px 8px;font-size:11px" type="button" title="<?= htmlspecialchars(t('Mail app')) ?>" onclick="sellerCompose(<?= $lidJ ?>,'mailapp','',this)">✉</button>
+        <?php else: ?><span style="color:var(--mut);font-size:11px">—</span><?php endif; ?></td>
       </tr>
       <?php endforeach; ?>
     </table></div>
@@ -1642,6 +1723,24 @@ if($tab==='overview'){
   </div>
 </div>
 <script>
+/* "Gmail'de aç" — VESTRA göndermez; sunucu o müşteriye çizilmiş konu + metni verir, pencere
+   satıcının kendi posta kutusunda açılır. Pencere TIKLAMA ANINDA açılır (yoksa açılır pencere
+   engelleyicisi fetch sonrası açılışı keser), adresi sonra yazılır. */
+function sellerCompose(leadId, via, cid, btn){
+  var w = via==='mailapp' ? null : window.open('about:blank','_blank');
+  var fd=new FormData(); fd.append('_action','seller_compose'); fd.append('lead_id',leadId); fd.append('via',via); fd.append('cid',cid||'');
+  if(btn){ btn.disabled=true; }
+  fetch('/seller?tab=find',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+    if(btn){ btn.disabled=false; }
+    if(!d.ok){ if(w) w.close(); alert(<?= json_encode(t('This customer cannot be written to (no email or unsubscribed).'), JSON_UNESCAPED_UNICODE) ?>); return; }
+    var e=encodeURIComponent, url;
+    if(via==='gmail') url='https://mail.google.com/mail/?view=cm&fs=1&to='+e(d.to)+'&su='+e(d.subject)+'&body='+e(d.body);
+    else if(via==='outlook') url='https://outlook.live.com/mail/0/deeplink/compose?to='+e(d.to)+'&subject='+e(d.subject)+'&body='+e(d.body);
+    else url='mailto:'+e(d.to)+'?subject='+e(d.subject)+'&body='+e(d.body);
+    if(w) w.location.href=url; else window.location.href=url;
+    if(btn && leadId){ btn.closest('tr').style.background='rgba(31,157,99,.06)'; }
+  }).catch(function(){ if(btn){ btn.disabled=false; } if(w) w.close(); });
+}
 function sellerSend(btn){
   var boxes=[].slice.call(document.querySelectorAll('.slc')).filter(function(c){return c.checked && !c.disabled;});
   if(!boxes.length){ alert('Select at least one customer first.'); return; }

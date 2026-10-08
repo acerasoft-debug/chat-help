@@ -13,13 +13,17 @@
  * TEST GÖNDERİMİ: satıcının gerçekten kullandığı kampanya (etkin Claude kampanyası ya da
  * standart davet) örnek bir dükkân adıyla, konu "[TEST]" önekiyle, müşterinin göreceği gibi.
  *  - Gönderim kurulu ise: satıcının KENDİ Brevo'su ile, istediği adrese (kurulumu da sınar).
- *  - Kurulu değilse: platform üzerinden YALNIZ satıcının hesap adresine, günde 5 kez
- *    (platformun kotası başkalarına mektup atmak için kullanılamasın).
+ *  - Kurulu değilse: platform GÖNDERMEZ (operatör, 8 Eki 2026: "sadece Gmail'de aç + satıcının
+ *    kendi Brevo'su", platform kotasına hiç dokunulmasın) — test satıcının kendi Gmail'inde açılır.
+ *
+ * GMAIL'DE AÇ (vestra_seller_compose): kurulumsuz, ücretsiz, gerçekten satıcının adresinden.
+ * Sunucu yalnız o müşteriye çizilmiş konu + metni döndürür (çıkış linki dahil); tarayıcı
+ * satıcının Gmail / Outlook / e-posta uygulamasında yazma penceresini açar, "Gönder"e satıcı basar.
+ * VESTRA'dan hiçbir e-posta çıkmaz.
  */
 require_once __DIR__.'/notify.php';
 require_once __DIR__.'/leads.php';
 
-const VESTRA_TEST_PLATFORM_PER_DAY = 5;
 const VESTRA_TEST_SAMPLE_SHOP = 'Boutique Example';
 
 /**
@@ -72,39 +76,55 @@ function vestra_seller_test_template(string $uid, ?string $campId = null): array
     return $act ? [vestra_ai_camp_template($act), 'ai'] : [vestra_lead_template(), 'standard'];
 }
 
-function vestra_test_usage_take(string $uid, int $max): bool {
-    $u = vestra_read_json('campaign_test_usage.json'); $d = date('Y-m-d');
-    $n = (int)(($u[$d] ?? [])[$uid] ?? 0);
-    if ($n >= $max) return false;
-    $u = [$d => ((array)($u[$d] ?? [])) + [$uid => 0]];          // yalnız bugünü tut
-    $u[$d][$uid] = $n + 1;
-    vestra_write_json('campaign_test_usage.json', $u);
-    return true;
-}
-
 /**
- * Satıcı test gönderimi. [ok, kod, gidenAdres]
- * kod: 'own' (kendi Brevo'su ile) | 'platform' (kurulum yok → hesap adresine VESTRA üzerinden)
- *      | 'badto' | 'limit' | 'fail'
+ * Satıcı test gönderimi — YALNIZ satıcının kendi kurulumuyla. [ok, kod, gidenAdres]
+ * kod: 'own' | 'nosetup' (kurulum yok → testi Gmail'de açsın) | 'badto' | 'fail'
  * $send: testte sahte gönderici (vestra_send_mail imzası).
  */
-function vestra_seller_send_test(string $uid, string $sName, string $to, string $accountEmail, ?string $campId = null, ?callable $send = null): array {
+function vestra_seller_send_test(string $uid, string $sName, string $to, ?string $campId = null, ?callable $send = null): array {
     $send = $send ?? 'vestra_send_mail';
     $sc = vestra_seller_mail($uid);
+    if (!vestra_seller_can_send($sc)) return [false, 'nosetup', ''];
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return [false, 'badto', ''];
     [$tpl] = vestra_seller_test_template($uid, $campId);
-    $own = vestra_seller_can_send($sc);
-    if (!$own) {
-        /* Kurulum yok: platformun gönderimi YALNIZ hesabın kendi adresine. */
-        $to = $accountEmail;
-        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return [false, 'badto', ''];
-        if (!vestra_test_usage_take($uid, VESTRA_TEST_PLATFORM_PER_DAY)) return [false, 'limit', $to];
-    } elseif (!filter_var($to, FILTER_VALIDATE_EMAIL)) return [false, 'badto', ''];
     [$s, $b] = vestra_lead_render_email(vestra_test_sample_lead($to), $tpl);
     $heroImg = ($tpl['img'] ?? '') !== '' ? 'https://vestrasales.com'.$tpl['img'] : '';
-    $ok = (bool)$send($to, '[TEST] '.$s, $b, '', $sName, $own ? $sc : null, $heroImg);
-    if ($ok && $own) {
+    $ok = (bool)$send($to, '[TEST] '.$s, $b, '', $sName, $sc, $heroImg);
+    if ($ok) {
         $sc['last_test_ok_at'] = date('c'); $sc['last_test_to'] = $to;
         vestra_seller_mail_save($uid, $sc);
     }
-    return [$ok, $ok ? ($own ? 'own' : 'platform') : 'fail', $to];
+    return [$ok, $ok ? 'own' : 'fail', $to];
+}
+
+/**
+ * "Gmail'de aç": o müşteriye çizilmiş e-posta. VESTRA hiçbir şey GÖNDERMEZ.
+ * $leadId '' ise TEST: örnek dükkânla, satıcının hesap adresine, "[TEST]" önekli, kayda dokunmaz.
+ * Gerçek müşteride: yalnız satıcının KENDİ müşterisi, e-postası geçerli, abonelikten çıkmamış;
+ * müşteri "yazıldı" işaretlenir (pencere açıldı — gönderildiği bilinmiyor, 'contact_via' bunu söyler).
+ * Döner: ['ok'=>bool, 'error'=>''|'notfound'|'noemail'|'unsub', 'to','subject','body','company']
+ */
+function vestra_seller_compose(string $uid, string $leadId, string $accountEmail, ?string $campId = null, string $via = 'gmail'): array {
+    $out = ['ok' => false, 'error' => 'notfound', 'to' => '', 'subject' => '', 'body' => '', 'company' => ''];
+    [$tpl] = vestra_seller_test_template($uid, $campId);
+    if ($leadId === '') {
+        if (!filter_var($accountEmail, FILTER_VALIDATE_EMAIL)) { $out['error'] = 'noemail'; return $out; }
+        [$s, $b] = vestra_lead_render_email(vestra_test_sample_lead($accountEmail), $tpl);
+        return ['ok' => true, 'error' => '', 'to' => $accountEmail, 'subject' => '[TEST] '.$s, 'body' => $b, 'company' => VESTRA_TEST_SAMPLE_SHOP];
+    }
+    $leads = vestra_leads(); $hit = null;
+    foreach ($leads as $i => $l) {
+        if (($l['id'] ?? '') !== $leadId || (string)($l['owner_uid'] ?? '') !== $uid) continue;
+        $hit = $i; break;
+    }
+    if ($hit === null) return $out;
+    $l = $leads[$hit]; $out['company'] = (string)($l['company'] ?? '');
+    if (($l['status'] ?? '') === 'unsubscribed' || !empty($l['unsubscribed'])) { $out['error'] = 'unsub'; return $out; }
+    if (!filter_var($l['email'] ?? '', FILTER_VALIDATE_EMAIL)) { $out['error'] = 'noemail'; return $out; }
+    [$s, $b] = vestra_lead_render_email($l, $tpl);
+    $leads[$hit]['last_contacted_at'] = date('c');
+    $leads[$hit]['contact_via'] = in_array($via, ['gmail', 'outlook', 'mailapp'], true) ? $via : 'gmail';
+    if (($l['status'] ?? 'new') === 'new') $leads[$hit]['status'] = 'contacted';
+    vestra_save_leads($leads);
+    return ['ok' => true, 'error' => '', 'to' => (string)$l['email'], 'subject' => $s, 'body' => $b, 'company' => $out['company']];
 }

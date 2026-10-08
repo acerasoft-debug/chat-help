@@ -1890,7 +1890,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
           else { $aiWrite=false; $aiMsg=[false,['format'=>'Bu bir Claude API anahtarına benzemiyor (sk-ant- ile başlar) — kaydedilmedi.','invalid'=>'Anthropic bu anahtarı kabul etmedi (401) — kaydedilmedi. Yeni anahtar oluşturup tekrar yapıştırın.','forbidden'=>'Anahtarın API izni yok (403) — kaydedilmedi.','unreachable'=>'Anthropic\'e ulaşılamadı, anahtar sınanamadı — kaydedilmedi. Bir dakika sonra tekrar deneyin.'][$kCode]??'Kaydedilmedi.']; }
         } else { $aiWrite=false; $aiMsg=[false,'Anahtar alanı boş — değişiklik yok.']; }
       }
-      else foreach(['ai_camp_per_day'=>[0,50],'ai_camp_per_month'=>[0,500],'ai_camp_platform_month'=>[0,5000]] as $k=>[$lo,$hi]){ if(isset($_POST[$k])) $cur[$k]=max($lo,min($hi,(int)$_POST[$k])); }
+      else foreach(['ai_camp_free_total'=>[0,50],'ai_camp_platform_month'=>[0,5000]] as $k=>[$lo,$hi]){ if(isset($_POST[$k])) $cur[$k]=max($lo,min($hi,(int)$_POST[$k])); }
       if($aiWrite){ file_put_contents($dir.'/email_settings.json',json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($dir.'/email_settings.json',0600); }
       $_SESSION['ai_flash']=$aiMsg;
     } elseif($act==='ai_camp_generate'){
@@ -6466,8 +6466,8 @@ elseif($tab==='prospects'):
     $acMine=array_slice(vestra_ai_camp_list(''),0,5);
   ?>
   <div id="aicamp" style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
-    <div style="font-weight:700;font-size:14px;margin-bottom:4px">✍️ Claude ile kampanya yaz <?= $acOn?'<span style="color:#1f9d63;font-size:12px">● Hazır</span>':'<span style="color:#a9781a;font-size:12px">● Claude anahtarı gerekli</span>' ?></div>
-    <p class="ahint" style="margin:0 0 8px">Katalogdan ürün + tarz + dil seçin; Claude konu ve metni yazar, yazılan kampanya yukarıdaki gönderim listesine eklenir. Satıcılar da kendi panellerinden kendi kataloglarıyla yazdırabilir. Kullanım sınırlı ve aşağıda ayarlanır. Model: <code><?= VESTRA_AI_CAMP_MODEL ?></code>.</p>
+    <div style="font-weight:700;font-size:14px;margin-bottom:4px">✍️ Claude ile kampanya yaz <?= $acOn?'<span style="color:#1f9d63;font-size:12px">● Hazır</span>':'<span style="color:#a9781a;font-size:12px">● Claude ya da DeepSeek anahtarı gerekli</span>' ?></div>
+    <p class="ahint" style="margin:0 0 8px">Katalogdan ürün + tarz + dil seçin; Claude konu ve metni yazar, yazılan kampanya yukarıdaki gönderim listesine eklenir. Satıcılar da kendi panellerinden kendi kataloglarıyla yazdırabilir: <b>ilk kampanyaları sizin anahtarınızla ücretsiz</b> (⚡ tek tık hazır kampanya dahil), sonrası için kendi Claude ya da DeepSeek anahtarlarını girerler. Platform anahtarı: <?php $acPr=vestra_ai_camp_route(''); echo $acPr?('<b>'.($acPr['provider']==='claude'?'Claude <code>'.VESTRA_AI_CAMP_MODEL.'</code>':'DeepSeek <code>'.VESTRA_AI_CAMP_DS_MODEL.'</code>').'</b>'):'yok'; ?> · Claude <?= vestra_ai_camp_key()!==''?'✓':'—' ?> · DeepSeek <?= vestra_ai_camp_ds_key()!==''?'✓':'— (Müşteriler ▸ DeepSeek API key)' ?>. İkisi de kayıtlıysa önce Claude.</p>
     <?php if($acFlash): ?><div class="amsg <?= $acFlash[0]?'ok':'' ?>"><?= htmlspecialchars((string)$acFlash[1]) ?></div><?php endif; ?>
     <?php if($acOn): ?>
     <form method="post" class="aform" style="margin-bottom:10px">
@@ -6498,7 +6498,7 @@ elseif($tab==='prospects'):
         <p style="margin:0 0 6px"><?= $acOn?'Platform anahtarı kayıtlı.':'Repoda <code>ANTHROPIC_API_KEY</code> secret\'ı tanımlı değil (8 Eki 17:44 UTC kontrolü).' ?> İki yol: <b>(a)</b> anahtarı aşağıya yapıştırın, ya da <b>(b)</b> GitHub → repo → Settings → Secrets → <code>ANTHROPIC_API_KEY</code> ekleyip Actions'tan <b>"(Ayar) Repodaki Brevo + Claude anahtarlarını sunucuya aktar"</b> işini çalıştırın. Anahtar: <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" style="color:var(--acc)">console.anthropic.com/settings/keys</a> → <b>Create Key</b>.</p>
         <?php $acSK=vestra_ai_camp_seller_keys(); ?>
         <p style="margin:0 0 6px">Kendi Claude anahtarını kaydeden satıcı: <b><?= count($acSK) ?></b><?= $acSK?' · bu ay kendi anahtarlarıyla <b>'.(int)($acU['own_calls']??0).'</b> kampanya (platform kotasına ve maliyetine sayılmaz)':'' ?>. Satıcı anahtarını kendi panelinden (Müşteri bul ▸ ✍️ ▸ 🔑) girer; kayıttan önce Anthropic'te sınanır.</p>
-        <p style="margin:0 0 6px">Bu ay: <b><?= (int)($acU['calls']??0) ?></b> kampanya yazıldı · <?= number_format((int)($acU['in']??0)) ?> giriş / <?= number_format((int)($acU['out']??0)) ?> çıkış token · tahmini maliyet <b>≈ $<?= number_format($acCost,2) ?></b> (<?= VESTRA_AI_CAMP_MODEL ?>: $4 / $20 milyon token).</p>
+        <p style="margin:0 0 6px">Bu ay: <b><?= (int)($acU['calls']??0) ?></b> kampanya yazıldı · <?= number_format((int)($acU['in']??0)) ?> giriş / <?= number_format((int)($acU['out']??0)) ?> çıkış token · tahmini Claude maliyeti <b>≈ $<?= number_format($acCost,2) ?></b> (<?= VESTRA_AI_CAMP_MODEL ?>: $4 / $20 milyon token)<?= (int)($acU['ds_calls']??0)?' · DeepSeek ile <b>'.(int)$acU['ds_calls'].'</b> yazım, '.number_format((int)($acU['ds_in']??0)).' / '.number_format((int)($acU['ds_out']??0)).' token':'' ?>.</p>
       </div>
       <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px"><?= csrfField() ?><input type="hidden" name="_action" value="ai_camp_key">
         <div class="afield" style="margin:0;flex:1;min-width:240px"><label>Claude API key <?= $acOn?'<span class="ahint">· kayıtlı, boş = koru</span>':'' ?></label><input type="password" name="anthropic_key" placeholder="sk-ant-…" autocomplete="new-password"></div>
@@ -6506,8 +6506,7 @@ elseif($tab==='prospects'):
         <?php if($acOn): ?><label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#c0392b;margin:0 0 4px"><input type="checkbox" name="ai_clear" value="1"> anahtarı sil</label><?php endif; ?>
       </form>
       <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap"><?= csrfField() ?><input type="hidden" name="_action" value="ai_camp_limits">
-        <div class="afield" style="margin:0"><label>Satıcı başına / gün</label><input name="ai_camp_per_day" type="number" min="0" max="50" value="<?= (int)$acL['per_day'] ?>" style="width:90px"></div>
-        <div class="afield" style="margin:0"><label>Satıcı başına / ay</label><input name="ai_camp_per_month" type="number" min="0" max="500" value="<?= (int)$acL['per_month'] ?>" style="width:90px"></div>
+        <div class="afield" style="margin:0"><label>Ücretsiz kampanya / satıcı (toplam)</label><input name="ai_camp_free_total" type="number" min="0" max="50" value="<?= (int)$acL['free_total'] ?>" style="width:110px"></div>
         <div class="afield" style="margin:0"><label>Platform toplam / ay</label><input name="ai_camp_platform_month" type="number" min="0" max="5000" value="<?= (int)$acL['platform_month'] ?>" style="width:100px"></div>
         <button class="abtn" type="submit">Sınırları kaydet</button>
       </form>
