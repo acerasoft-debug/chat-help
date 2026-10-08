@@ -1339,4 +1339,13 @@ return array (
   'Dismiss' => 'Скрыть',
   'Partial shipment — the remaining items will follow in a separate parcel.' => 'Частичная отправка — остальные товары придут отдельной посылкой.',
   'Delivery %d' => 'Отправка %d',
+  'You have an unpaid invoice.' => 'У вас есть неоплаченный счёт.',
+  'You have %d unpaid invoices.' => 'У вас неоплаченных счетов: %d.',
+  'overdue' => 'просрочен',
+  'due by %s' => 'оплатить до %s',
+  'Please transfer the amount quoting the payment reference printed on the invoice, or send us your bank receipt from the order page. Accounts with unpaid invoices may be suspended.' => 'Пожалуйста, переведите сумму, указав платёжный референс из счёта, или отправьте нам платёжное подтверждение со страницы заказа. Аккаунты с неоплаченными счетами могут быть заблокированы.',
+  'Connect your Stripe payout account by %s.' => 'Подключите платёжный аккаунт Stripe до %s.',
+  'If it is not connected by then, your seller account will be deactivated and your listings taken off the catalog.' => 'Если к этому сроку он не будет подключён, ваш аккаунт продавца будет деактивирован, а объявления сняты с каталога.',
+  'The deadline for your Stripe payout account (%s) has passed.' => 'Срок подключения платёжного аккаунта Stripe (%s) истёк.',
+  'Your seller account is due to be deactivated — connect it now or contact support@vestrasales.com.' => 'Ваш аккаунт продавца будет деактивирован — подключите Stripe сейчас или напишите на support@vestrasales.com.',
 );

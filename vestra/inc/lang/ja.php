@@ -1339,4 +1339,13 @@ return array (
   'Dismiss' => '閉じる',
   'Partial shipment — the remaining items will follow in a separate parcel.' => '一部発送済み — 残りの商品は別の荷物でお届けします。',
   'Delivery %d' => '発送 %d',
+  'You have an unpaid invoice.' => '未払いの請求書があります。',
+  'You have %d unpaid invoices.' => '未払いの請求書が %d 件あります。',
+  'overdue' => '期限超過',
+  'due by %s' => '%s までにお支払いください',
+  'Please transfer the amount quoting the payment reference printed on the invoice, or send us your bank receipt from the order page. Accounts with unpaid invoices may be suspended.' => '請求書に記載の支払参照番号を添えてお振込みいただくか、注文ページから振込明細をお送りください。未払いの請求書があるアカウントは停止されることがあります。',
+  'Connect your Stripe payout account by %s.' => '%s までに Stripe の受取口座を接続してください。',
+  'If it is not connected by then, your seller account will be deactivated and your listings taken off the catalog.' => 'それまでに接続されない場合、販売者アカウントは無効化され、出品はカタログから削除されます。',
+  'The deadline for your Stripe payout account (%s) has passed.' => 'Stripe 受取口座の期限（%s）が過ぎました。',
+  'Your seller account is due to be deactivated — connect it now or contact support@vestrasales.com.' => '販売者アカウントは無効化される予定です — 今すぐ接続するか、support@vestrasales.com までご連絡ください。',
 );

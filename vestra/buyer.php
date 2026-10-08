@@ -328,6 +328,32 @@ dash_open('buyer',$tab,
   $tab==='orders'?t('My orders'):($tab==='requests'?t('My sourcing requests'):($tab==='offers'?t('My offers'):($tab==='messages'?t('Messages'):($tab==='kyc'?t('Verification'):($tab==='profile'?t('My profile'):t('Overview')))))),
   $tab==='overview'?t('Your purchasing activity at a glance'):'');
 
+/* ODENMEMIS FATURA BANDI -- her sekmede (operator, 8 Eki 2026: "faturasini
+   odemeyen alicilarin hesabina uyari koy"). Kim ne borclu: TEK yerden,
+   vestra_buyer_unpaid_invoices() -- askiya alma kosusuyla ayni olcu; dekontu
+   yuklenmis siparis bantta yok. Son tarih yalnizca odeme saati isliyorsa
+   yazilir (KURAL 7); uydurulmus bir tarih yok. */
+$unpaidInvs = vestra_buyer_unpaid_invoices($myEmail);
+if ($unpaidInvs) {
+  /* Sure dolmus bir fatura varsa kirmizi, yoksa sari: bugun kesilmis bir
+     faturayi gecikmis borc gibi gostermek alarmi degersizlestirir. */
+  $__late = (bool)array_filter($unpaidInvs, fn($x) => $x['phase'] === 'overdue');
+  echo '<div class="banner" style="'.($__late
+         ? 'background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)'
+         : 'background:rgba(240,192,96,.1);border:1px solid rgba(240,192,96,.35);color:#a9781a').';margin-bottom:14px">⚠ <b>'
+     . (count($unpaidInvs) === 1 ? t('You have an unpaid invoice.') : sprintf(t('You have %d unpaid invoices.'), count($unpaidInvs))).'</b>';
+  foreach ($unpaidInvs as $__u) {
+    $__cur = $__u['currency'] === 'USD' ? 'US$ ' : ($__u['currency'] === 'EUR' ? '€' : $__u['currency'].' ');
+    echo '<br>'.htmlspecialchars($__u['no'])
+       . ($__u['total'] > 0 ? ' · '.htmlspecialchars($__cur).number_format($__u['total'], 2, '.', ',') : '')
+       . ' · <a class="acc" href="/buyer?tab=orders&amp;view='.urlencode($__u['ref']).'">#'.htmlspecialchars($__u['ref']).'</a>'
+       . ($__u['phase'] === 'overdue' ? ' · <b>'.t('overdue').'</b>'
+          : (!empty($__u['deadline']) ? ' · '.sprintf(t('due by %s'), date('j M Y', (int)$__u['deadline'])) : ''));
+  }
+  echo '<br><span style="font-size:13px">'.t('Please transfer the amount quoting the payment reference printed on the invoice, or send us your bank receipt from the order page. Accounts with unpaid invoices may be suspended.').'</span></div>';
+  unset($__u, $__cur, $__late);
+}
+
 if($tab==='overview'){
   require_once __DIR__.'/inc/app_ui.php'; echo vestra_push_nudge(); // bildirim: hic sorulmamis cihaza tek satir
   $spent=0; foreach($orders as $o){ $spent+=(float)($o['total']??0); }

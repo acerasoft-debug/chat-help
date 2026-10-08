@@ -2869,6 +2869,47 @@ function vestra_order_payment_grace(array $statusEntry, ?int $now = null, string
 }
 
 /**
+ * A buyer's issued-but-unpaid invoices, for the warning band on every buyer tab
+ * (operator, 8 Oct 2026: "faturasini odemeyen alicilarin hesabina uyari koy").
+ *
+ * Same test as seller-products.yml unpaid_suspend, so the band and the suspension
+ * agree on who owes what: an order of this e-mail with an issued invoice, not
+ * settled (vestra_order_payment_grace asks vestra_order_payment_settled), not
+ * cancelled and not a card escrow order. One step further than the suspension
+ * run: an order whose bank receipt is already uploaded is left out -- the buyer
+ * has done their part and the receipt waits on us.
+ *
+ * @return list<array{ref:string,no:string,total:float,currency:string,url:string,phase:string,deadline:?int}>
+ */
+function vestra_buyer_unpaid_invoices(string $email, ?int $now = null): array {
+    $email = strtolower(trim($email));
+    if ($email === '') return [];
+    if (!function_exists('vestra_invoices_for_ref')) require_once __DIR__.'/invoice.php';
+    $now = $now ?? time();
+    $all = vestra_read_json('order_statuses.json');
+    $out = []; $seen = [];
+    foreach (vestra_read_csv('orders.csv') as $row) {
+        if (strtolower(trim((string)($row['email'] ?? ''))) !== $email) continue;
+        $ref = trim((string)($row['ref'] ?? ''));
+        if ($ref === '') continue;
+        $e = (array)($all[$ref] ?? ['status' => 'pending']);
+        if ((string)($e['status'] ?? 'pending') === 'cancelled') continue;
+        if (str_contains((string)($row['notes'] ?? ''), 'Secure escrow')) continue;
+        $g = vestra_order_payment_grace($e, $now, $ref);
+        if ($g['phase'] === 'paid' || $g['phase'] === 'has_receipt') continue;
+        foreach (vestra_invoices_for_ref($ref) as $iv) {
+            $no = (string)($iv['no'] ?? '');
+            if ($no === '' || isset($seen[$no])) continue;   // a combined invoice covers several refs
+            $seen[$no] = true;
+            $out[] = ['ref' => $ref, 'no' => $no, 'total' => (float)($iv['total'] ?? 0),
+                      'currency' => strtoupper((string)($iv['currency'] ?? '')) ?: 'EUR', 'url' => (string)($iv['url'] ?? ''),
+                      'phase' => (string)$g['phase'], 'deadline' => $g['deadline'] ?? null];
+        }
+    }
+    return $out;
+}
+
+/**
  * Sends (or resends) the payment-due reminder for one pending, invoiced order, and
  * starts the auto-cancel clock the FIRST time this runs for that order. Single sender
  * for both the daily cron and the operator's one-off letter — see the note above the

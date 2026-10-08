@@ -1339,4 +1339,13 @@ return array (
   'Dismiss' => 'إخفاء',
   'Partial shipment — the remaining items will follow in a separate parcel.' => 'شحن جزئي — ستصل بقية المنتجات في طرد منفصل.',
   'Delivery %d' => 'الشحنة %d',
+  'You have an unpaid invoice.' => 'لديك فاتورة غير مدفوعة.',
+  'You have %d unpaid invoices.' => 'لديك %d فواتير غير مدفوعة.',
+  'overdue' => 'متأخرة',
+  'due by %s' => 'تستحق في %s',
+  'Please transfer the amount quoting the payment reference printed on the invoice, or send us your bank receipt from the order page. Accounts with unpaid invoices may be suspended.' => 'يرجى تحويل المبلغ مع ذكر مرجع الدفع المطبوع على الفاتورة، أو أرسل إلينا إيصال التحويل من صفحة الطلب. قد يتم تعليق الحسابات التي لديها فواتير غير مدفوعة.',
+  'Connect your Stripe payout account by %s.' => 'اربط حساب مدفوعات Stripe قبل %s.',
+  'If it is not connected by then, your seller account will be deactivated and your listings taken off the catalog.' => 'إذا لم يتم ربطه بحلول ذلك الموعد، سيتم إيقاف حساب البائع الخاص بك وإزالة منتجاتك من الكتالوج.',
+  'The deadline for your Stripe payout account (%s) has passed.' => 'انتهت المهلة المحددة لحساب مدفوعات Stripe (%s).',
+  'Your seller account is due to be deactivated — connect it now or contact support@vestrasales.com.' => 'سيتم إيقاف حساب البائع الخاص بك — اربطه الآن أو تواصل مع support@vestrasales.com.',
 );

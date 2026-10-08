@@ -1261,3 +1261,26 @@ function auth_seller_doc_grace_start(string $uid, bool $force = false): void {
     if (!$force && !empty($acc['doc_grace_start'])) return;
     auth_update($uid, ['doc_grace_start'=>date('c'), 'doc_grace_notice_at'=>'', 'doc_grace_reminder_at'=>'', 'doc_grace_suspended_at'=>'']);
 }
+
+/* STRIPE PAYOUT SURESI (operator karari, 8 Eki 2026, Polvich: "Stripe
+   Connect'e 5 is gunu icinde kaydolsun, hesabinda uyari ver, yoksa inaktif
+   olur"). Saat HESAPTA durur: stripe_deadline (ISO). Kendiliginden BASLAMAZ --
+   Stripe genel kural olarak zorunlu degil (havale faturasi onsuz da isliyor);
+   operator koyar: seller_setup mektubu stripe_days=N ile, mektup GITTIGINDE
+   damgalanir. "Bagli" olcusu seller_setup mektubuyla AYNI: hesap var VE
+   tahsilat acik (escrow_ready). Sure dolunca aski OTOMATIK DEGIL: bant
+   kirmiziya doner, karar operatorde.
+   @return array{phase:string,deadline:?int,days_left:?int}
+           phase: none (saat yok) | ready (bagli) | running | overdue */
+function auth_seller_stripe_deadline(array $acc, ?int $now = null): array {
+    $now = $now ?? time();
+    $out = ['phase' => 'none', 'deadline' => null, 'days_left' => null];
+    if (($acc['type'] ?? '') !== 'seller') return $out;
+    $dl = strtotime((string)($acc['stripe_deadline'] ?? '')) ?: null;
+    if (!$dl) return $out;
+    if (!empty($acc['stripe_account_id']) && !empty($acc['escrow_ready'])) { $out['phase'] = 'ready'; return $out; }
+    $out['deadline']  = $dl;
+    $out['days_left'] = max(0, (int)ceil(($dl - $now) / 86400));
+    $out['phase']     = $now < $dl ? 'running' : 'overdue';
+    return $out;
+}

@@ -1988,6 +1988,15 @@ jobs:
               echo "durum   : {$onSt}\nmetin   : ".mb_strlen($onMsg)." karakter\ndil     : {$onLang}\nhitap   : ".($onGreet ? 'sablondan' : 'YOK (nogreet=1: metin kendi hitabiyla basliyor)')."\n";
               if ($onGreet && $onHasHi) echo "UYARI   : metin zaten bir hitapla basliyor ve sablon da hitap ekleyecek (cift hitap) -- metin kendi hitabini tasiyorsa |nogreet=1\n";
               [$subject, $body, $opts] = vestra_tpl_order_note($buyerName, $onRef, $onMsg, trim($E('subject')), (bool)$acc, $persona, $onLang, $onGreet);
+              /* ASKIDAKI HESAP (8 Eki 2026, odenmemis fatura nedeniyle askiya
+                 alinan 5 alici): "View my order" dugmesi giris ister, auth_login
+                 ise operator askisindaki hesabi geri ceviriyor. Mektup "giris
+                 yapamazsiniz" derken calismayan bir sayfaya goturmesin -- dugme
+                 cizilmez. Belge askisi (suspend_reason=docs) giris yapabildigi
+                 icin dugmesini korur. nobutton=1 ayni seyi elle zorlar. */
+              $onLocked = $acc && (($acc['status'] ?? '') === 'suspended') && !auth_suspended_for_docs($acc);
+              if ($onLocked || trim($E('nobutton')) === '1') unset($opts['button']);
+              echo "dugme   : ".($opts['button']['label'] ?? ('YOK'.(!$acc ? ' (hesap yok)' : ($onLocked ? ' (hesap askida, giris yapamaz)' : ' (nobutton=1)'))))."\n";
               $fromName = $persona.' — VESTRA';
             } elseif ($letter === 'listing_reply') {
               /* SITEDEKI CEVABIN E-POSTA HALI (operator, 26 Eyl 2026, Odzież
@@ -3184,10 +3193,59 @@ jobs:
                    . "  — artik istenmiyor, mektuba GIRMEDI (panelden temizle)\n";
               }
               echo "stripe odeme hesabi      : ".($needStripe ? 'EKSIK' : 'hazir')."\n";
+              /* only=stripe (8 Eki 2026, Polvich): mektup YALNIZ Stripe bolumunu
+                 tasir -- ayni gun ayni saticiya giden ikinci mektup, ilkindeki
+                 44 satirlik gonderim yeri listesini tekrarlamasin; son tarih
+                 yalnizca Stripe icin. Diger eksikler yukarida yine YAZILIR. */
+              $ssOnly = strtolower(trim($E('only')));
+              if ($ssOnly !== '' && $ssOnly !== 'stripe') { fwrite(STDERR, "seller_setup: only={$ssOnly} desteklenmiyor (only=stripe)\n"); exit(1); }
+              if ($ssOnly === 'stripe') {
+                if (!$needStripe) { fwrite(STDERR, "only=stripe: Stripe hesabi ZATEN bagli -- mektup GONDERILMEDI\n"); exit(1); }
+                $missShip = []; $missDocs = [];
+                echo "kapsam                   : only=stripe (gonderim yeri/belge bolumleri mektuba GIRMEDI)\n";
+              }
+              /* stripe_days=N: Stripe SON TARIHI (operator, 8 Eki 2026: "5 is
+                 gunu icinde girsin yoksa inaktiv olur"). Tarih N is gunu sonrasinin
+                 gun sonu; mektup GITTIGINDE hesaba stripe_deadline olarak yazilir
+                 ve satici panelinde bant cikar (auth_seller_stripe_deadline).
+                 Hesapta henuz dolmamis bir tarih varsa O tarih kullanilir --
+                 ikinci mektup sureyi sessizce uzatmasin; yeniden baslatmak icin
+                 restart=1. Aski OTOMATIK DEGIL. */
+              $ssDeadline = '';
+              $ssDays = trim($E('stripe_days'));
+              if ($ssDays !== '') {
+                /* Sunucudaki kod bu surumu tasimiyorsa (deploy oncesi) DUR: eski
+                   sablon son tarih cumlesini sessizce atar, damga geri okunamaz. */
+                if (!function_exists('auth_seller_stripe_deadline')
+                    || (new ReflectionFunction('vestra_tpl_seller_setup'))->getNumberOfParameters() < 6) {
+                  fwrite(STDERR, "stripe_days: sunucudaki kod Stripe son tarihini TASIMIYOR (once deploy) -- mektup GONDERILMEDI\n"); exit(1);
+                }
+                if (!ctype_digit($ssDays) || (int)$ssDays < 1 || (int)$ssDays > 30) { fwrite(STDERR, "stripe_days={$ssDays} gecersiz (1..30 is gunu)\n"); exit(1); }
+                if (!$needStripe) { fwrite(STDERR, "stripe_days: Stripe hesabi ZATEN bagli -- sure konmaz\n"); exit(1); }
+                if (!function_exists('vestra_business_days_after')) require_once $doc."/inc/escrow.php";
+                $ssOld = strtotime((string)($acc['stripe_deadline'] ?? '')) ?: 0;
+                $ssNew = ($ssOld > time() && trim($E('restart')) !== '1') ? 0
+                       : (int)strtotime(date('Y-m-d', vestra_business_days_after(time(), (int)$ssDays)).' 23:59:59');
+                $ssTs  = $ssNew ?: $ssOld;
+                $ssDeadline = date('l j F Y', $ssTs);
+                echo "stripe son tarih         : ".date('Y-m-d H:i T', $ssTs).($ssNew ? " (YENI -- mektup giderse hesaba yazilir)" : " (hesapta ZATEN var, aynen kullanildi)")."\n";
+                if ($ssNew && strtolower($E('send')) === 'true') {
+                  $ssUid = (string)($acc['id'] ?? '');
+                  register_shutdown_function(function () use ($ssUid, $ssNew) {
+                    if (empty($GLOBALS['VESTRA_MAIL_OK'])) { echo "stripe_deadline YAZILMADI (mektup gitmedi)\n"; return; }
+                    auth_update($ssUid, ['stripe_deadline' => date('c', $ssNew), 'stripe_deadline_set_at' => date('c')]);
+                    $chk = null;
+                    foreach (auth_accounts() as $a) if ((string)($a['id'] ?? '') === $ssUid) { $chk = $a; break; }
+                    $g = $chk ? auth_seller_stripe_deadline($chk) : ['phase' => '?'];
+                    echo "stripe_deadline yazildi : ".(string)($chk['stripe_deadline'] ?? '?')." | panel bandi: ".$g['phase']."\n";
+                  });
+                }
+              }
               if (!$missShip && !$missDocs && !$needStripe) {
                 echo "\nEksik yok — yazilacak bir sey olmadigi icin mektup GONDERILMEDI.\n"; exit(0);
               }
-              [$subject, $body, $opts] = vestra_tpl_seller_setup($salutation, $missShip, $missDocs, $needStripe, $signer);
+              [$subject, $body, $opts] = vestra_tpl_seller_setup($salutation, $missShip, $missDocs, $needStripe, $signer, $ssDeadline);
+              if ($ssDeadline !== '') $opts['button'] = ['label' => 'Set up Stripe payouts', 'url' => 'https://vestrasales.com/seller?tab=profile'];
             } elseif ($letter === 'account_open_l1212') {
               /* "Hesabim aktive edilmedi" diyen ama sunucuda ZATEN acik olan
                  aliciya cevap. Once durumu DOGRULA: kapi gercekten acik degilse

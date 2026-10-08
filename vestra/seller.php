@@ -657,6 +657,25 @@ if (in_array($docGrace['phase'], ['running','due_soon','expired','suspended'], t
   unset($__names, $__list, $__red, $__urgent, $__due);
 }
 
+/* STRIPE SURESI BANDI -- her sekmede. Saat yalnizca operator koyduysa var
+   (auth_seller_stripe_deadline); hesap bagliysa bant kendiliginden kalkar.
+   Sure isliyorken sari, dolunca kirmizi. */
+$stripeDue = auth_seller_stripe_deadline($AUTH_USER ?? []);
+if (in_array($stripeDue['phase'], ['running','overdue'], true)) {
+  $__due  = date('j M Y', (int)$stripeDue['deadline']);
+  $__over = $stripeDue['phase'] === 'overdue';
+  echo '<div class="banner" style="'.($__over
+         ? 'background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)'
+         : 'background:rgba(240,192,96,.1);border:1px solid rgba(240,192,96,.35);color:#a9781a').'">💳 <b>'
+     . ($__over
+         ? sprintf(t('The deadline for your Stripe payout account (%s) has passed.'), $__due).'</b> '
+           . t('Your seller account is due to be deactivated — connect it now or contact support@vestrasales.com.')
+         : sprintf(t('Connect your Stripe payout account by %s.'), $__due).'</b> '
+           . t('If it is not connected by then, your seller account will be deactivated and your listings taken off the catalog.'))
+     . ' <a class="acc" href="/seller?tab=profile">'.t('Set up Stripe payouts').' →</a></div>';
+  unset($__due, $__over);
+}
+
 // ── OVERVIEW ──────────────────────────────────────────────────────────────────
 if($tab==='overview'){
   require_once __DIR__.'/inc/app_ui.php'; echo vestra_push_nudge(); // bildirim: hic sorulmamis cihaza tek satir

@@ -1344,4 +1344,13 @@ return array (
   'Dismiss' => 'Ausblenden',
   'Partial shipment — the remaining items will follow in a separate parcel.' => 'Teillieferung — die übrigen Artikel folgen in einem separaten Paket.',
   'Delivery %d' => 'Lieferung %d',
+  'You have an unpaid invoice.' => 'Sie haben eine unbezahlte Rechnung.',
+  'You have %d unpaid invoices.' => 'Sie haben %d unbezahlte Rechnungen.',
+  'overdue' => 'überfällig',
+  'due by %s' => 'fällig bis %s',
+  'Please transfer the amount quoting the payment reference printed on the invoice, or send us your bank receipt from the order page. Accounts with unpaid invoices may be suspended.' => 'Bitte überweisen Sie den Betrag mit der auf der Rechnung angegebenen Zahlungsreferenz oder senden Sie uns Ihren Überweisungsbeleg über die Bestellseite. Konten mit unbezahlten Rechnungen können gesperrt werden.',
+  'Connect your Stripe payout account by %s.' => 'Verbinden Sie Ihr Stripe-Auszahlungskonto bis %s.',
+  'If it is not connected by then, your seller account will be deactivated and your listings taken off the catalog.' => 'Ist es bis dahin nicht verbunden, wird Ihr Verkäuferkonto deaktiviert und Ihre Angebote werden aus dem Katalog genommen.',
+  'The deadline for your Stripe payout account (%s) has passed.' => 'Die Frist für Ihr Stripe-Auszahlungskonto (%s) ist abgelaufen.',
+  'Your seller account is due to be deactivated — connect it now or contact support@vestrasales.com.' => 'Ihr Verkäuferkonto wird deaktiviert — verbinden Sie es jetzt oder schreiben Sie an support@vestrasales.com.',
 );

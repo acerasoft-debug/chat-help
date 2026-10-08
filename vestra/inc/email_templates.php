@@ -4570,7 +4570,11 @@ function vestra_tpl_authenticity_sample(string $salutation, array $p, string $se
  * $missingShips: gonderim yeri girilmemis ilan basliklari.
  * $missingDocs : hala yuklenmemis belge etiketleri.
  * $needStripe  : Connect kurulumu bitmemis mi. */
-function vestra_tpl_seller_setup(string $salutation, array $missingShips, array $missingDocs, bool $needStripe, string $signer = 'Marco Bellini'): array {
+/* $stripeDeadline (8 Eki 2026, Polvich): bos degilse Stripe bolumu SON TARIH
+ * tasir ve "havale onsuz da isliyor" cumlesi yerine sonucu yazar -- operator
+ * kurali: o tarihe kadar bagli degilse hesap inaktif. Tarih CAGIRANDAN gelir
+ * (hesaptaki stripe_deadline damgasi), sablon hesaplamaz. */
+function vestra_tpl_seller_setup(string $salutation, array $missingShips, array $missingDocs, bool $needStripe, string $signer = 'Marco Bellini', string $stripeDeadline = ''): array {
     $blocks = [];
 
     if ($missingShips) {
@@ -4605,7 +4609,10 @@ function vestra_tpl_seller_setup(string $salutation, array $missingShips, array 
     if ($needStripe) {
         $blocks[] = "Payout account (Stripe)\n\n"
 . "Orders can be paid through escrow: the buyer's money is held by Stripe and released to you once delivery is confirmed — automatically after two business days if no issue is reported. For that you need a connected payout account, and until you have one the escrow option does not appear at checkout on your products at all.\n\n"
-. "Set it up at https://vestrasales.com/seller?tab=profile — \"Set up Stripe payouts\". Stripe verifies your identity and bank details directly; VESTRA never sees them. Bank transfer against an invoice keeps working without it, but escrow does not.";
+. "Set it up at https://vestrasales.com/seller?tab=profile — \"Set up Stripe payouts\". Stripe verifies your identity and bank details directly; VESTRA never sees them."
+. ($stripeDeadline !== ''
+    ? "\n\nPlease connect it by " . $stripeDeadline . ". If the payout account is not connected by then, your seller account will be deactivated and your listings taken off the catalog. Until it is done you will also see this reminder at the top of your seller dashboard."
+    : " Bank transfer against an invoice keeps working without it, but escrow does not.");
     }
 
     /* Hicbir eksik yoksa mektubun konusu kalmiyor. Cagiran taraf bunu kontrol
@@ -4615,12 +4622,15 @@ function vestra_tpl_seller_setup(string $salutation, array $missingShips, array 
     $n = 0; $mid = '';
     foreach ($blocks as $b) { $n++; $mid .= $n . ") " . $b . "\n\n"; }
 
-    $subject = count($blocks) === 1
+    $subject = ($stripeDeadline !== '' && $needStripe && count($blocks) === 1)
+        ? 'VESTRA seller account — connect your Stripe payout account by ' . $stripeDeadline
+        : (count($blocks) === 1
         ? 'VESTRA seller account — one thing outstanding'
-        : 'VESTRA seller account — ' . ($n === 2 ? 'two' : 'three') . ' things outstanding';
+        : 'VESTRA seller account — ' . ($n === 2 ? 'two' : 'three') . ' things outstanding');
 
     $body = $salutation . ",\n\n"
-. "Thank you for listing on VESTRA. Your seller account is open and your products are live. A few things are still outstanding before the account is complete.\n\n"
+. "Thank you for listing on VESTRA. Your seller account is open and your products are live. "
+. (count($blocks) === 1 ? "One thing is still outstanding" : "A few things are still outstanding") . " before the account is complete.\n\n"
 . $mid
 . "If anything here is unclear, just reply to this e-mail.\n\n"
 . "Best regards,\n\n"
