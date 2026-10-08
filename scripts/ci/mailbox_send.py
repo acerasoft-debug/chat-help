@@ -109,43 +109,61 @@ def dsn_failed_recipients(msg, own: str) -> list:
     return sorted({a.lower() for a in out if a.lower() != own and not a.lower().startswith(('mailer-daemon@', 'postmaster@'))})
 
 
+DSN_HINT = re.compile(r'(?i)delivery status notification|failed permanently|undeliver|returned to sender|could not be delivered|'
+                      r'delivery (has )?failed|failure notice|mail delivery (system|subsystem)|mailer-daemon|multipart/report|'
+                      r'nicht zustellbar|non remis|non recapitato|no se pudo entregar')
+
+
+def _folders(m) -> list:
+    """INBOX + istenmeyen/spam klasorleri (bildirimler bazen oraya duser)."""
+    out = ['INBOX']
+    typ, data = m.list()
+    for line in data or []:
+        t = line.decode('utf-8', 'replace') if isinstance(line, bytes) else str(line)
+        mm = re.search(r'"([^"]+)"\s*$', t) or re.search(r'\s(\S+)\s*$', t)
+        name = mm.group(1) if mm else ''
+        if name and name != 'INBOX' and re.search(r'(?i)junk|spam|bulk', name):
+            out.append(name)
+    return out
+
+
 def scan_bounces(user: str, pw: str, host: str, days: int, move_to: str) -> list:
-    """support@ gelen kutusundaki kalici teslim hatasi bildirimlerini okur, hatali alicilari
-    dondurur ve islenen bildirimleri move_to klasorune tasir (gelen kutusu temizlenir).
-    Yalniz bildirim mektuplarina dokunur; baska hicbir mektup okunmaz/tasinmaz."""
+    """support@ kutusundaki (gelen + istenmeyen) kalici teslim hatasi bildirimlerini okur, hatali
+    alicilari dondurur ve islenen bildirimleri move_to klasorune tasir. Yalniz bildirimlere dokunur.
+    Depo herkese acik: yalniz sayilar ve maskeli alici basilir."""
     ctx = ssl.create_default_context()
     m = imaplib.IMAP4_SSL(host, 993, ssl_context=ctx, timeout=30)
     m.login(user, pw)
-    m.select('INBOX')
-    since = time.strftime('%d-%b-%Y', time.gmtime(time.time() - days * 86400))
-    typ, data = m.uid('SEARCH', None, f'(SINCE {since})')
-    uids = (data[0] or b'').split()[-400:]
-    found, done = [], []
-    for uid in uids:
-        typ, hd = m.uid('FETCH', uid, '(BODY.PEEK[HEADER.FIELDS (FROM SUBJECT CONTENT-TYPE)])')
-        h = (hd[0][1] if hd and isinstance(hd[0], tuple) else b'').decode('utf-8', 'replace').lower()
-        if not (('mailer-daemon' in h or 'postmaster' in h or 'multipart/report' in h)
-                or re.search(r'delivery status notification|undeliver|delivery (has )?failed|failure notice|returned mail|nicht zustellbar|non remis', h)):
-            continue
-        typ, fd = m.uid('FETCH', uid, '(BODY.PEEK[])')
-        raw = fd[0][1] if fd and isinstance(fd[0], tuple) else b''
-        rcpts = dsn_failed_recipients(email.message_from_bytes(raw), user)
-        if rcpts:
-            found += [{'email': a, 'status': 'bounced', 'reason': 'teslim edilemedi (DSN)'} for a in rcpts]
-            done.append(uid)
-    moved = 0
-    if done and move_to:
-        # YALNIZ bu bildirimler tasinir. Duz EXPUNGE kullanilmaz: kullanicinin "silindi" isaretli baska
-        # mektuplarini da kalici silerdi. MOVE (RFC 6851) ya da UIDPLUS'li UID EXPUNGE; ikisi de yoksa
-        # bildirim yerinde birakilir, yalniz okundu isaretlenir.
-        caps = {c.decode().upper() if isinstance(c, bytes) else str(c).upper() for c in (m.capabilities or ())}
-        folder = ''
+    caps = {c.decode().upper() if isinstance(c, bytes) else str(c).upper() for c in (m.capabilities or ())}
+    folder = ''
+    if move_to:
         for cand in (move_to, 'INBOX.' + move_to):
             m.create(cand)  # varsa NO doner, sorun degil
             if m.select(cand, readonly=True)[0] == 'OK':
                 folder = cand
                 break
-        m.select('INBOX')
+    since = time.strftime('%d-%b-%Y', time.gmtime(time.time() - days * 86400))
+    found, scanned, hinted, moved, marked = [], 0, 0, 0, 0
+    for box in _folders(m):
+        if box == folder or m.select(box)[0] != 'OK':
+            continue
+        typ, data = m.uid('SEARCH', None, f'(SINCE {since})')
+        uids = (data[0] or b'').split()[-400:]
+        done = []
+        for uid in uids:
+            scanned += 1
+            typ, fd = m.uid('FETCH', uid, '(BODY.PEEK[])')
+            raw = fd[0][1] if fd and isinstance(fd[0], tuple) else b''
+            if not DSN_HINT.search(raw[:20000].decode('utf-8', 'replace')):
+                continue
+            hinted += 1
+            rcpts = dsn_failed_recipients(email.message_from_bytes(raw), user)
+            if rcpts:
+                found += [{'email': a, 'status': 'bounced', 'reason': 'teslim edilemedi (DSN)'} for a in rcpts]
+                done.append(uid)
+        # YALNIZ bu bildirimler tasinir. Duz EXPUNGE kullanilmaz: kullanicinin "silindi" isaretli baska
+        # mektuplarini da kalici silerdi. MOVE (RFC 6851) ya da UIDPLUS'li UID EXPUNGE; ikisi de yoksa
+        # bildirim yerinde kalir, yalniz okundu isaretlenir.
         for uid in done:
             if folder and 'MOVE' in caps:
                 ok = m.uid('MOVE', uid, folder)[0] == 'OK'
@@ -156,11 +174,13 @@ def scan_bounces(user: str, pw: str, host: str, days: int, move_to: str) -> list
                 m.uid('STORE', uid, '+FLAGS', '(\\Seen)')
                 ok = False
             moved += 1 if ok else 0
+            marked += 0 if ok else 1
     m.logout()
     uniq = {}
     for f in found:
         uniq[f['email']] = f
-    print(f'bildirim tarandi: {len(uids)} mektup · kalici hata bildirimi {len(done)} · hatali adres {len(uniq)}' + (f' · {moved} bildirim "{move_to}" klasorune tasindi' if moved else (' · bildirimler okundu isaretlendi (sunucu tasimayi desteklemiyor)' if done else '')))
+    print(f'bildirim tarandi: {scanned} mektup · bildirime benzeyen {hinted} · hatali adres {len(uniq)}'
+          + (f' · {moved} bildirim "{folder}" klasorune tasindi' if moved else '') + (f' · {marked} okundu isaretlendi' if marked else ''))
     for a in sorted(uniq):
         print('  x', mask(a))
     return list(uniq.values())
