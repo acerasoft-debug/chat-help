@@ -5657,6 +5657,20 @@ jobs:
             echo "bu karttan daha once gonderilmis lead: {$c}\n";
             echo "finder_enabled: ".(vestra_finder_ready() ? 'ACIK' : 'KAPALI')."\n";
             echo "son aramalar: "; foreach (array_slice(vestra_finder_runs(''), 0, 5) as $r) echo ($r['id'] ?? '?').'='.($r['status'] ?? '?').'/'.(int)($r['added_count'] ?? 0).' '; echo "\n";
+            $byMail = []; foreach ($L as $l) { $e = strtolower(trim((string)($l['email'] ?? ''))); if ($e !== '') $byMail[$e] = $l; }
+            foreach (array_slice(vestra_read_json('finder_runs.json'), -6) as $r) {
+              $ad = (array)($r['added'] ?? []);
+              $in = 0; $srcs = [];
+              foreach ($ad as $a) { $e = strtolower(trim((string)($a['email'] ?? ''))); if (isset($byMail[$e])) { $in++; $s2 = (string)($byMail[$e]['source'] ?? '?'); $srcs[$s2] = ($srcs[$s2] ?? 0) + 1; } }
+              printf("   kosu %s: durum=%s dry=%s owner=%s added_count=%d kayitta_eklenen=%d leads.json'da_bulunan=%d kaynaklari=%s istek=%s bitis=%s\n",
+                (string)($r['id'] ?? '?'), (string)($r['status'] ?? '?'), json_encode($r['dry_run'] ?? null), (string)($r['owner'] ?? ''), (int)($r['added_count'] ?? 0), count($ad), $in, json_encode($srcs),
+                (string)($r['requested_at'] ?? ''), (string)($r['finished_at'] ?? ($r['done_at'] ?? '')));
+            }
+            $srcAll = []; foreach ($L as $l) { $s2 = (string)($l['source'] ?? ''); $srcAll[$s2] = ($srcAll[$s2] ?? 0) + 1; } arsort($srcAll);
+            echo "leads.json kaynak dagilimi: ".json_encode(array_slice($srcAll, 0, 12, true), JSON_UNESCAPED_UNICODE)."\n";
+            $f = $doc.'/data/leads.json'; echo "leads.json son degisiklik: ".date('c', (int)@filemtime($f))." boyut ".(int)@filesize($f)."\n";
+            $baks = glob($doc.'/data/leads.json.bak*') ?: []; usort($baks, fn($a, $b) => filemtime($b) <=> filemtime($a));
+            foreach (array_slice($baks, 0, 6) as $b) { $j = json_decode((string)file_get_contents($b), true) ?: []; $w = 0; foreach ($j as $l) if (($l['source'] ?? '') === 'web-search') $w++; echo "   yedek ".basename($b)." ".date('c', filemtime($b))." lead=".count($j)." web-search=".$w."\n"; }
             $k = (string)vestra_cfg('mail_api_key', '');
             echo "mail_enabled: ".(vestra_cfg('mail_enabled', false) ? 'true' : 'false')." | brevo anahtari: ".($k !== '' ? 'VAR' : 'YOK')." | mail_from: ".(string)vestra_cfg('mail_from', '')."\n";
             if ($k !== '') {
