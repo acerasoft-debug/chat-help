@@ -5644,6 +5644,11 @@ jobs:
               /* Yalnız OKU: Brevo'nun gönderilen e-posta listesi + o mesajların olayları. */
               $to = substr((string)getenv('SPT_TO'), 6) ?: (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
               $g = function (string $u) use ($key) { $ch = curl_init($u); curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_HTTPHEADER => ['api-key: '.$key, 'Accept: application/json']]); $r = curl_exec($ch); $c = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch); return [$c, json_decode((string)$r, true)]; };
+              /* Hesap geneli son olaylar (alıcılar maskeli): mesajlar kuyrukta mı, kampanya teslim mi? */
+              [$c0, $j0] = $g('https://api.brevo.com/v3/smtp/statistics/events?limit=100&sort=desc&days=1');
+              $cnt = []; $last = [];
+              foreach ((array)($j0['events'] ?? []) as $e) { $ev = (string)($e['event'] ?? ''); $cnt[$ev] = ($cnt[$ev] ?? 0) + 1; if (count($last) < 25) $last[] = substr((string)($e['date'] ?? ''), 0, 19).' '.str_pad($ev, 14).' '.preg_replace('/^(.).*?@/', '$1***@', (string)($e['email'] ?? '')).' | '.mb_substr((string)($e['subject'] ?? ''), 0, 50).(isset($e['reason']) ? ' | '.mb_substr((string)$e['reason'], 0, 60) : ''); }
+              echo "hesap geneli son 100 olay (HTTP {$c0}): ".json_encode($cnt)."\n"; foreach ($last as $x) echo "   ".$x."\n";
               [$c1, $j1] = $g('https://api.brevo.com/v3/smtp/emails?email='.rawurlencode($to).'&limit=8&sort=desc');
               echo "smtp/emails HTTP {$c1}\n";
               foreach ((array)($j1['transactionalEmails'] ?? []) as $m) {
