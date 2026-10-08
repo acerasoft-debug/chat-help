@@ -5615,6 +5615,68 @@ jobs:
       # Varsayilan KURU KOSU; move_apply=true uygular. Once accounts.json yedeklenir,
       # yazma geri okunur. MUSTERIYE HICBIR SEY GITMEZ. payload='skip=<ref|firma parcasi>,...'
       # verilirse o siparisin/firmanin sahibi atlanir.
+      # KAMPANYA GÖNDERİM SONDASI (send_probe, 8 Eki 2026, operatör: "kampanyada göndermiyor"):
+      # web aramasıyla bulunmuş gönderilebilir hedef sayısı, neden elendikleri, Brevo hesabı ve
+      # kalan kredisi (GET /v3/account — ücretsiz, posta gitmez), mail ayarı, son hata satırları.
+      # SALT OKUNUR; e-posta adresleri maskeli.
+      - name: Kampanya gönderim sondası (send_probe) -- salt okunur
+        if: ${{ github.event.inputs.admin_mode == 'send_probe' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            cat > /tmp/vestra_sp.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html";
+            require_once $doc."/inc/products.php";
+            require_once $doc."/inc/notify.php";
+            require_once $doc."/inc/leads.php";
+            require_once $doc."/inc/finder.php";
+            $mask = fn(string $e) => preg_replace('/^(.).*?@(.).*$/', '$1***@$2***', $e);
+            $L = vestra_leads(); $ws = 0; $why = ['sahibi var' => 0, 'yazilmis' => 0, 'cikmis/bounce' => 0, 'e-posta yok/gecersiz' => 0, 'cop adres' => 0, 'KURAL 1' => 0, 'tekrar' => 0];
+            $seen = [];
+            foreach ($L as $l) {
+              if ((string)($l['source'] ?? '') !== 'web-search') continue; $ws++;
+              if ((string)($l['owner_uid'] ?? '') !== '') { $why['sahibi var']++; continue; }
+              if (trim((string)($l['last_contacted_at'] ?? '')) !== '') { $why['yazilmis']++; continue; }
+              $st = (string)($l['status'] ?? 'new'); if ($st === 'unsubscribed' || $st === 'bounced' || !empty($l['unsubscribed'])) { $why['cikmis/bounce']++; continue; }
+              $e = strtolower(trim((string)($l['email'] ?? ''))); if (!filter_var($e, FILTER_VALIDATE_EMAIL)) { $why['e-posta yok/gecersiz']++; continue; }
+              if (isset($seen[$e])) { $why['tekrar']++; continue; } $seen[$e] = 1;
+              if (function_exists('vestra_email_is_junk') && vestra_email_is_junk($e)) { $why['cop adres']++; continue; }
+              if (function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) { $why['KURAL 1']++; continue; }
+            }
+            $tg = vestra_finder_send_targets(1000);
+            echo "lead toplam: ".count($L)." | web-search: {$ws} | GONDERILEBILIR HEDEF: ".count($tg)."\n";
+            foreach ($why as $k => $n) echo "   elenen ({$k}): {$n}\n";
+            foreach (array_slice($tg, 0, 3) as $l) echo "   ornek hedef: ".(string)($l['company'] ?? '')." <".$mask((string)$l['email']).">\n";
+            $c = 0; foreach ($L as $l) if (str_starts_with((string)($l['last_campaign'] ?? ''), 'finder/')) $c++;
+            echo "bu karttan daha once gonderilmis lead: {$c}\n";
+            echo "finder_enabled: ".(vestra_finder_ready() ? 'ACIK' : 'KAPALI')."\n";
+            echo "son aramalar: "; foreach (array_slice(vestra_finder_runs(''), 0, 5) as $r) echo ($r['id'] ?? '?').'='.($r['status'] ?? '?').'/'.(int)($r['added_count'] ?? 0).' '; echo "\n";
+            $k = (string)vestra_cfg('mail_api_key', '');
+            echo "mail_enabled: ".(vestra_cfg('mail_enabled', false) ? 'true' : 'false')." | brevo anahtari: ".($k !== '' ? 'VAR' : 'YOK')." | mail_from: ".(string)vestra_cfg('mail_from', '')."\n";
+            if ($k !== '') {
+              $ch = curl_init('https://api.brevo.com/v3/account'); curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_HTTPHEADER => ['api-key: '.$k, 'Accept: application/json']]);
+              $a = json_decode((string)curl_exec($ch), true); $hc = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+              echo "brevo /account: HTTP {$hc}";
+              foreach ((array)($a['plan'] ?? []) as $p) echo " | plan ".($p['type'] ?? '?').": ".($p['credits'] ?? '?')." ".($p['creditsType'] ?? '');
+              echo "\n";
+            }
+            $log = $doc."/error_log"; if (!is_file($log)) $log = ini_get('error_log');
+            if ($log && is_file($log)) {
+              $lines = array_slice(file($log, FILE_IGNORE_NEW_LINES) ?: [], -4000);
+              $hits = array_values(array_filter($lines, fn($x) => stripos($x, 'brevo') !== false || stripos($x, 'VESTRA mail') !== false || stripos($x, 'api_send') !== false || stripos($x, 'finder') !== false));
+              echo "hata gunlugu (mail/brevo/finder, son 8):\n";
+              foreach (array_slice($hits, -8) as $h) echo "   ".preg_replace('/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/', '***@***', mb_substr($h, 0, 220))."\n";
+            } else echo "hata gunlugu bulunamadi\n";
+            echo "(salt okunur: hicbir sey yazilmadi, kimseye gonderilmedi)\n";
+            PHPEOF
+            php /tmp/vestra_sp.php; rm -f /tmp/vestra_sp.php
+
       # AI ANAHTAR DURUMU (ai_keys_status, 8 Eki 2026): kampanya yazarinin platform anahtarlari
       # sunucuda var mi — YALNIZ var/yok ve uzunluk; deger, onek, son hane BASILMAZ.
       - name: AI anahtar durumu (ai_keys_status) -- salt okunur
