@@ -5615,6 +5615,57 @@ jobs:
       # Varsayilan KURU KOSU; move_apply=true uygular. Once accounts.json yedeklenir,
       # yazma geri okunur. MUSTERIYE HICBIR SEY GITMEZ. payload='skip=<ref|firma parcasi>,...'
       # verilirse o siparisin/firmanin sahibi atlanir.
+      # KREDİSİZ "GÖNDERİLDİ" DAMGALARINI GERİ AL (unstamp_lost, 8 Eki 2026): Brevo ücretsiz planı
+      # 19:48:28 UTC'de 0 krediye düştü; sonrasında API 201 + messageId döndürüp mektubu GÖNDERMEDİ
+      # ("Email not sent: Your account has insufficient credits", olay kaydında bir kez). O andan
+      # sonra kampanya damgası (finder/… ya da les-garage/…) alan leadler yazılmamış sayılmalı.
+      # payload: kesim zamanı (ISO, varsayılan 2026-10-08T19:48:28Z). Varsayılan KURU KOŞU;
+      # move_apply=true: yedek alır, last_contacted_at/last_campaign/status geri alınır, geri okunur.
+      - name: Kredisiz gönderim damgalarını geri al (unstamp_lost) — varsayılan KURU KOŞU
+        if: ${{ github.event.inputs.admin_mode == 'unstamp_lost' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          UL_CUT: ${{ github.event.inputs.payload }}
+          UL_APPLY: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: UL_CUT,UL_APPLY
+          script: |
+            cat > /tmp/vestra_ul.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html"; require_once $doc."/inc/products.php"; require_once $doc."/inc/leads.php";
+            $cut = strtotime(trim((string)getenv('UL_CUT')) ?: '2026-10-08T19:48:28Z'); $apply = strtolower((string)getenv('UL_APPLY')) === 'true';
+            if (!$cut) { fwrite(STDERR, "kesim zamani okunamadi\n"); exit(1); }
+            $L = vestra_leads(); $hit = []; $before = 0; $byCamp = [];
+            foreach ($L as $i => $l) {
+              $camp = (string)($l['last_campaign'] ?? ''); $t = strtotime((string)($l['last_contacted_at'] ?? ''));
+              if (!$t || !(str_starts_with($camp, 'finder/') || str_starts_with($camp, 'les-garage/'))) continue;
+              if ($t >= $cut) { $hit[] = $i; $byCamp[$camp] = ($byCamp[$camp] ?? 0) + 1; } else $before++;
+            }
+            echo "kesim: ".gmdate('Y-m-d H:i:s', $cut)." UTC\n";
+            echo "kesimden ONCE damgalanan (gitti sayilir): {$before}\n";
+            echo "kesimden SONRA damgalanan (GITMEDI, geri alinacak): ".count($hit)." ".json_encode($byCamp)."\n";
+            foreach (array_slice($hit, 0, 5) as $i) echo "   ornek: ".(string)($L[$i]['company'] ?? '')." · ".(string)$L[$i]['last_contacted_at']."\n";
+            if (!$apply) { echo "KURU KOSU -- hicbir sey yazilmadi (move_apply=true ile uygula).\n"; exit(0); }
+            $f = vestra_data_dir().'/leads.json'; $bak = $f.'.bak-unstamp-'.gmdate('Ymd-His');
+            if (!copy($f, $bak)) { fwrite(STDERR, "yedek alinamadi, hicbir sey yazilmadi\n"); exit(1); }
+            echo "yedek: ".basename($bak)."\n";
+            $ids = []; foreach ($hit as $i) $ids[(string)($L[$i]['id'] ?? '')] = true;
+            $L2 = vestra_leads(); $n = 0;   // TAZE oku (yaris)
+            foreach ($L2 as $i => $l) if (isset($ids[(string)($l['id'] ?? '')])) {
+              $L2[$i]['last_contacted_at'] = ''; unset($L2[$i]['last_campaign']);
+              if (($l['status'] ?? '') === 'contacted') $L2[$i]['status'] = 'new';
+              $L2[$i]['unstamped_at'] = gmdate('c'); $L2[$i]['unstamp_reason'] = 'brevo kredisi bitmisti — mektup gitmedi'; $n++;
+            }
+            vestra_save_leads($L2);
+            $re = 0; foreach (vestra_leads() as $l) if (isset($ids[(string)($l['id'] ?? '')]) && (string)($l['last_contacted_at'] ?? '') === '') $re++;
+            echo "GERI ALINDI: {$n} | geri okundu (yazilmamis): {$re}\n";
+            PHPEOF
+            php /tmp/vestra_ul.php; rc=$?; rm -f /tmp/vestra_ul.php; exit $rc
+
       # SATICI YOLU UÇTAN UCA (seller_path_test, 8 Eki 2026): satıcı gönderimindeki AYNI çağrı
       # (vestra_send_mail(..., $cfg) → satıcı ayarıyla vestra_api_send) ile operatöre TEK bir
       # "[TEST]" mektubu; ayar olarak platformun Brevo anahtarı + support@ verilir (hiçbir satıcı
