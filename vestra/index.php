@@ -1070,6 +1070,8 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
     <?= vlang_switcher('mlangs','flat') ?>
   </div>
 </header>
+<?php /* ChatGPT vb. yapay zeka asistanindan gelen misafire karsilama seridi (inc/attribution.php). */
+  if (function_exists('vestra_ai_welcome_html')) echo vestra_ai_welcome_html(!empty($LOGGED) ? ['signed_in' => true] : null); ?>
 
 <span id="top"></span>
 <section class="hero<?= ($HERO_FRAMES || $HERO_VIDEO) ? ' hasfilm' : '' ?><?= $HERO_VIDEO ? ' hasvideo' : '' ?>">

@@ -86,6 +86,11 @@ elseif (session_status() === PHP_SESSION_ACTIVE && $_vsess_ok && !headers_sent()
    tespiti $_SESSION'a bakiyor, once cagrilsaydi her istek "yeni ziyaretci"
    sayilirdi. auth.php'de duruyor cunku ip guard ile ayni gerekce -- her sayfa bu
    dosyayi ilk is yukluyor, yani hicbir sayfanin ayrica katilmasi gerekmiyor. */
+/* Kaynak (attribution.php): ziyaretcinin siteye ILK indigi kanal oturuma yazilir,
+   kayit olursa hesaba gecer. Sayactan ONCE: sayac o gunun ziyaretini kanala gore
+   sayarken ayni siniflandirmayi kullaniyor. */
+require_once __DIR__.'/attribution.php';
+if (session_status() === PHP_SESSION_ACTIVE) vestra_attr_capture();
 if (session_status() === PHP_SESSION_ACTIVE) vestra_track_visit();
 
 function auth_accounts(): array {
@@ -391,6 +396,9 @@ function auth_register(array $d): array|string {
         'promo_benefit' => $promo_data['benefit'] ?? '',
         'promo_expiry'  => $promo_data['expiry']  ?? '',
         'created'       => date('c'),
+        /* Nereden geldi (attribution.php): oturumdaki ilk/son dis inis + formdaki
+           'bizi nereden buldunuz' beyani. Yoksa 'unknown' -- uydurulmaz. */
+        'signup_source' => function_exists('vestra_attr_for_signup') ? vestra_attr_for_signup((string)($d['how_found'] ?? '')) : null,
         /* Gewerbe/trade-licence zorunlulugu SADECE bu bayragi tasiyan hesaplara
            uygulanir. Kayit sirasinda trade_licence belgesi ZATEN isteniyordu ve notu
            "An account cannot be activated without it" diyordu -- ama hicbir yerde

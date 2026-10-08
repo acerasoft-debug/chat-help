@@ -555,6 +555,9 @@ function vestra_track_visit(): void {
                 $d['uniq'] = (int)($d['uniq'] ?? 0) + 1;
                 if ($cc !== '')   $d['cc'][$cc] = (int)($d['cc'][$cc] ?? 0) + 1;
                 if ($city !== '') { $k = ($cc !== '' ? $cc.' · ' : '').$city; $d['city'][$k] = (int)($d['city'][$k] ?? 0) + 1; }
+                /* Gunluk tekil ziyaretci KANALA gore (attribution.php): o gunun ilk
+                   sayfasinin dis kaynagi; site ici ya da kaynaksiz acilis 'direct'. */
+                if (function_exists('vestra_attr_request_channel')) { $sk = vestra_attr_request_channel(); $d['src'][$sk] = (int)($d['src'][$sk] ?? 0) + 1; }
             }
             $pk = $path !== '' ? $path : '/';
             $d['pages'][$pk] = (int)($d['pages'][$pk] ?? 0) + 1;
@@ -592,12 +595,12 @@ function vestra_visits_day(string $ymd): array {
     $f = vestra_visits_dir().'/'.$ymd.'.json';
     $d = is_readable($f) ? json_decode((string)file_get_contents($f), true) : null;
     if (!is_array($d)) $d = [];
-    return $d + ['hits' => 0, 'uniq' => 0, 'cc' => [], 'city' => [], 'pages' => []];
+    return $d + ['hits' => 0, 'uniq' => 0, 'cc' => [], 'city' => [], 'pages' => [], 'src' => []];
 }
 
 /** Totals over the last $days days (today included). */
 function vestra_visits_range(int $days): array {
-    $hits = 0; $uniq = 0; $cc = []; $city = []; $pages = []; $series = [];
+    $hits = 0; $uniq = 0; $cc = []; $city = []; $pages = []; $src = []; $series = [];
     for ($i = $days - 1; $i >= 0; $i--) {
         $ymd = date('Y-m-d', strtotime("-{$i} days"));
         $d = vestra_visits_day($ymd);
@@ -606,9 +609,10 @@ function vestra_visits_range(int $days): array {
         foreach ((array)$d['cc']    as $k => $n) $cc[$k]    = ($cc[$k]    ?? 0) + (int)$n;
         foreach ((array)$d['city']  as $k => $n) $city[$k]  = ($city[$k]  ?? 0) + (int)$n;
         foreach ((array)$d['pages'] as $k => $n) $pages[$k] = ($pages[$k] ?? 0) + (int)$n;
+        foreach ((array)($d['src'] ?? []) as $k => $n) $src[$k] = ($src[$k] ?? 0) + (int)$n;
     }
-    arsort($cc); arsort($city); arsort($pages);
-    return ['hits' => $hits, 'uniq' => $uniq, 'cc' => $cc, 'city' => $city, 'pages' => $pages, 'series' => $series];
+    arsort($cc); arsort($city); arsort($pages); arsort($src);
+    return ['hits' => $hits, 'uniq' => $uniq, 'cc' => $cc, 'city' => $city, 'pages' => $pages, 'src' => $src, 'series' => $series];
 }
 
 /** Who is on the site right now (last 5 minutes). */

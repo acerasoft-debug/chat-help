@@ -246,6 +246,8 @@ foreach ($_ld as $_schema) {
     </div>
   </nav></div>
 </header>
+<?php /* ChatGPT vb. yapay zeka asistanindan gelen misafire karsilama seridi (inc/attribution.php). */
+  if (function_exists('vestra_ai_welcome_html')) echo vestra_ai_welcome_html($AUTH_USER ?? null); ?>
 <?php
 /* Bekleyen hesap uyarisi. Giris yapmis ama henuz aktiflestirilmemis kullanici
    fiyatlari ve fotograflari goremiyor -- ve NEDENINI bilmiyor. Belge yukleme

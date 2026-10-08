@@ -3797,6 +3797,12 @@ function sendUserMessage(uid,name){
     <td class="ac" style="font-size:11px;color:var(--mut)">
       <?= htmlspecialchars(substr($a['created']??'',0,10)) ?>
       <?php if(!empty($a['last_login'])): ?><div class="ahint" style="margin-top:2px">Last in: <?= htmlspecialchars(substr($a['last_login'],0,10)) ?></div><?php endif; ?>
+      <?php /* Nereden geldi (inc/attribution.php): ilk inis kanali + kendi beyani.
+               8 Eki 2026'dan onceki hesaplarda alan yok -- bos birakilir, uydurulmaz. */
+            $__ss = (array)($a['signup_source'] ?? []);
+            if (!empty($__ss['channel'])): $__how = (string)($__ss['how'] ?? ''); ?>
+        <div class="ahint" style="margin-top:2px" title="<?= htmlspecialchars('ilk inis: '.(($__ss['first']['ref'] ?? '') ?: '—').' · '.(($__ss['first']['land'] ?? '') ?: '')) ?>">🧭 <?= htmlspecialchars(vestra_attr_label((string)$__ss['channel'])) ?><?= $__how !== '' ? ' · "'.htmlspecialchars(vestra_attr_how_options()[$__how] ?? $__how).'"' : '' ?></div>
+      <?php endif; unset($__ss, $__how); ?>
     </td>
     <td class="ac"><div style="display:flex;gap:4px;flex-wrap:wrap">
       <a class="abtn" href="/admin?tab=documents&uid=<?= urlencode($a['id']??'') ?>">Docs</a>
@@ -7663,6 +7669,60 @@ elseif($tab==='traffic'):
     <?php endif; ?>
   </div>
 </div>
+
+<?php
+  /* KAYNAKLAR (inc/attribution.php, 8 Eki 2026): ziyaret kanala gore (sayac) ve kayit
+     kanala gore (hesabin signup_source'u) YAN YANA -- hangi kanalin musteri getirdigini
+     gormek icin ikisi birlikte okunur. Kayit tarafi yalniz bu alan eklendikten SONRA
+     kaydolan hesaplari sayar; eski hesaplar "bilinmiyor" diye sisirilmez, disarida kalir. */
+  $__srcReg = []; $__srcCut = strtotime('-30 days');
+  $__ordE = [];
+  foreach (vestra_read_csv('orders.csv') as $__o) { $__e = strtolower(trim((string)($__o['email'] ?? ''))); if ($__e !== '') $__ordE[$__e][] = (string)($__o['ref'] ?? ''); }
+  $__st = vestra_read_json('order_statuses.json');
+  foreach ($accounts as $__a) {
+    $__ss = (array)($__a['signup_source'] ?? []);
+    if (empty($__ss['channel']) || ($__a['type'] ?? '') !== 'buyer') continue;
+    if ((strtotime((string)($__a['created'] ?? '')) ?: 0) < $__srcCut) continue;
+    $__k = (string)$__ss['channel'];
+    $__srcReg[$__k] ??= ['reg' => 0, 'ord' => 0, 'paid' => 0, 'how' => []];
+    $__srcReg[$__k]['reg']++;
+    $__refs = $__ordE[strtolower(trim((string)($__a['email'] ?? '')))] ?? [];
+    $__live = array_filter($__refs, fn($r) => (string)(($__st[$r] ?? [])['status'] ?? 'pending') !== 'cancelled');
+    if ($__live) $__srcReg[$__k]['ord']++;
+    foreach ($__live as $__r) { if (vestra_order_payment_settled($__r, (array)($__st[$__r] ?? ['status' => 'pending']))['settled']) { $__srcReg[$__k]['paid']++; break; } }
+    if (($__ss['how'] ?? '') !== '') $__srcReg[$__k]['how'][$__ss['how']] = ($__srcReg[$__k]['how'][$__ss['how']] ?? 0) + 1;
+  }
+  uasort($__srcReg, fn($x, $y) => $y['reg'] <=> $x['reg']);
+  $__srcVis = (array)($v30['src'] ?? []);
+?>
+<div class="acols2" style="align-items:start;margin-bottom:16px">
+  <div class="acard">
+    <div class="acard-hd"><h3>🧭 Ziyaretçi kaynakları <span class="ahint">(30 gün, günlük tekil)</span></h3></div>
+    <div class="acard-body">
+      <?php if(!$__srcVis): ?><div class="aempty">Henüz veri yok — kaynak sayımı 8 Ekim 2026'da başladı.</div>
+      <?php else: ?><div class="atscroll"><table class="atable">
+        <?= arow(['Kanal','Ziyaretçi'],true) ?>
+        <?php foreach(array_slice($__srcVis,0,15,true) as $__k => $__n): ?>
+        <?= arow(['<b>'.htmlspecialchars(vestra_attr_label((string)$__k)).'</b>'.(str_starts_with((string)$__k,'ai:')?' <span class="ahint">yapay zekâ</span>':''), (string)(int)$__n]) ?>
+        <?php endforeach; ?>
+      </table></div><?php endif; ?>
+    </div>
+  </div>
+  <div class="acard">
+    <div class="acard-hd"><h3>🧾 Kayıt kaynakları <span class="ahint">(son 30 gün kaydolan alıcılar)</span></h3></div>
+    <div class="acard-body">
+      <?php if(!$__srcReg): ?><div class="aempty">Henüz veri yok — kayıtlarda kaynak 8 Ekim 2026'dan itibaren tutuluyor.</div>
+      <?php else: ?><div class="atscroll"><table class="atable">
+        <?= arow(['İlk geliş kanalı','Kayıt','Sipariş','Ödeyen','Kendi beyanı'],true) ?>
+        <?php foreach($__srcReg as $__k => $__r): arsort($__r['how']); ?>
+        <?= arow(['<b>'.htmlspecialchars(vestra_attr_label((string)$__k)).'</b>', (string)$__r['reg'], (string)$__r['ord'], (string)$__r['paid'],
+                  htmlspecialchars(implode(', ', array_map(fn($h, $n) => (vestra_attr_how_options()[$h] ?? $h).' ×'.$n, array_keys($__r['how']), $__r['how'])) ?: '—')]) ?>
+        <?php endforeach; ?>
+      </table></div><?php endif; ?>
+    </div>
+  </div>
+</div>
+<?php unset($__srcReg, $__srcCut, $__ordE, $__st, $__a, $__ss, $__k, $__refs, $__live, $__r, $__srcVis, $__n, $__e, $__o); ?>
 
 <div class="acols3" style="align-items:start">
   <div class="acard">

@@ -12,7 +12,7 @@ if (preg_match('#^wholesale-to/([A-Za-z0-9][A-Za-z0-9-]*)/?$#', $try, $m)) { $_G
 if (preg_match('#^wholesale/([A-Za-z0-9][A-Za-z0-9-]*)/([A-Za-z0-9][A-Za-z0-9-]*)/?$#', $try, $m)) { $_GET['brand'] = $m[1]; $_GET['cat'] = $m[2]; require __DIR__ . '/b2b.php'; return true; }
 if (preg_match('#^b2b/([A-Za-z0-9][A-Za-z0-9-]*)/?$#', $try, $m)) { $_GET['cat'] = $m[1]; require __DIR__ . '/b2b.php'; return true; }
 if (preg_match('#^wholesale/([A-Za-z0-9][A-Za-z0-9-]*)/?$#', $try, $m)) { $_GET['brand'] = $m[1]; $_REQUEST['brand'] = $m[1]; require __DIR__ . '/wholesale.php'; return true; }
-$map = ['sitemap.xml' => 'sitemap.php', 'wholesale-list.pdf' => 'wholesale-list.php', 'wholesale-list.xlsx' => 'wholesale-xlsx.php',
+$map = ['sitemap.xml' => 'sitemap.php', 'llms.txt' => 'llms.php', 'wholesale-list.pdf' => 'wholesale-list.php', 'wholesale-list.xlsx' => 'wholesale-xlsx.php',
         'membership' => 'membership.php', 'shop' => 'shop.php', 'price-lists' => 'price-lists.php', 'price-list' => 'price-list.php'];
 $k = rtrim($try, '/');
 if (isset($map[$k])) { require __DIR__ . '/' . $map[$k]; return true; }

@@ -50,6 +50,9 @@
   # /sitemap.xml → dinamik sitemap.php
   RewriteRule ^sitemap\.xml$ sitemap.php [L]
 
+  # /llms.txt → yapay zeka asistanlari icin canli katalogdan uretilen site ozeti (llms.php)
+  RewriteRule ^llms\.txt$ llms.php [L]
+
   # /wholesale-list.pdf → toptan fiyat listesi (gerçek PDF üretir).
   # Uzantılı adres BİLEREK: bu dosyanın adresi hesabı olmayan bir müşteriye
   # e-postayla gönderiliyor ve ".pdf" ile biten bir bağlantı, tıklanmadan önce

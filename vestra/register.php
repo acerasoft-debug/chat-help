@@ -185,6 +185,20 @@ $PAGE = t('Create account'); $NAV = ''; require __DIR__.'/inc/head.php';
         <input name="website" type="url" placeholder="https://company.com" value="<?= htmlspecialchars($d['website']??'') ?>">
       </div>
 
+      <?php /* Nereden geldi -- kendi beyani (attribution.php). Otomatik kaynak
+               e-posta uygulamalarinda ve kopyalanan baglantilarda kayboluyor
+               ("dogrudan" gorunuyor); bu soru o boslugu dolduruyor. Opsiyonel ve
+               ON-SECILI DEGIL: hazir bir cevap, durust cevabi bozar. */ ?>
+      <div class="authfield">
+        <label><?= t('How did you find VESTRA?') ?> <span class="hint" style="font-size:11px">(<?= t('optional') ?>)</span></label>
+        <select name="how_found">
+          <option value=""><?= t('Please choose') ?></option>
+          <?php foreach (vestra_attr_how_options() as $hk => $hl): ?>
+            <option value="<?= htmlspecialchars($hk) ?>"<?= ($d['how_found'] ?? '') === $hk ? ' selected' : '' ?>><?= htmlspecialchars(t($hl)) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
       <!-- Invite / promo code (optional) -->
       <div class="authsect"><?= t('Invite code') ?> <span class="hint" style="text-transform:none;font-size:11px;letter-spacing:0"><?= t('(optional — unlocks instant verification)') ?></span></div>
       <div class="authfield">
