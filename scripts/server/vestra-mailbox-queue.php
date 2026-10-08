@@ -57,10 +57,11 @@ if ($cmd === 'list') {
   } else {
     $targets = vestra_finder_send_targets($limit, 'all');
   }
-  $items = []; $fromName = 'VESTRA';
+  $items = []; $fromName = 'VESTRA'; $seenAddr = [];
   foreach ($targets as $l) {
-    $email = strtolower(trim((string)($l['email'] ?? '')));
-    if ($email === '') continue;
+    $email = function_exists('vestra_email_clean') ? vestra_email_clean((string)($l['email'] ?? '')) : strtolower(trim((string)($l['email'] ?? '')));
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || isset($seenAddr[$email])) continue;
+    $seenAddr[$email] = true;
     [$subject, $body, $opts, $from] = $builder($l);
     if ($from !== '') $fromName = $from;
     $token = (string)($l['unsub_token'] ?? '');
@@ -130,6 +131,29 @@ if ($cmd === 'stamp') {
   exit(0);
 }
 
+if ($cmd === 'fixemails') {
+  /* Bozuk kayıtlı adresleri onarır (8 Eki: "%20elodie@eloab.fr"). Bozuk adrese posta kutusundan ya da
+     lemlist damgasıyla "gönderilmiş" görünen lead aslında hiç ulaşılmamıştır → yeniden sıraya girer.
+     Brevo'dan gönderilmiş (contact_via boş) olana dokunulmaz; temiz adres başka bir lead'deyse onarılmaz. */
+  if (!function_exists('vestra_email_clean')) { echo json_encode(['ok'=>false,'error'=>'eski sunucu kodu']); exit(0); }
+  $leads = vestra_leads(); $have = []; $fixed = 0; $requeued = 0;
+  foreach ($leads as $l) $have[strtolower(trim((string)($l['email'] ?? '')))] = true;
+  foreach ($leads as &$l) {
+    $old = (string)($l['email'] ?? ''); $new = vestra_email_clean($old);
+    if ($old === '' || $new === strtolower(trim($old)) || !filter_var($new, FILTER_VALIDATE_EMAIL) || isset($have[$new])) continue;
+    $l['email'] = $new; $have[$new] = true; $fixed++;
+    $via = (string)($l['contact_via'] ?? '');
+    if (($via === 'mailbox' || $via === 'lemlist') && ($l['status'] ?? '') !== 'unsubscribed') {
+      $l['last_contacted_at'] = ''; $l['contact_via'] = ''; $l['status'] = 'new'; $requeued++;
+      $note = trim((string)($l['notes'] ?? '')); $l['notes'] = trim($note.($note !== '' ? ' · ' : '').'adres duzeltildi '.date('Y-m-d'));
+    }
+  }
+  unset($l);
+  if ($fixed) vestra_save_leads($leads);
+  echo json_encode(['ok'=>true, 'fixed'=>$fixed, 'requeued'=>$requeued]);
+  exit(0);
+}
+
 if ($cmd === 'take') {
   /* Panel isteği (inc/mailbox.php): en eskisini "running" yapıp basar; yoksa {}. */
   $r = function_exists('vestra_mailbox_take') ? vestra_mailbox_take() : null;
@@ -164,5 +188,5 @@ if ($cmd === 'sethost') {
   exit(0);
 }
 
-fwrite(STDERR, "kullanim: php vestra-mailbox-queue.php list <N> <campaign> [ids] | sample <campaign> <to> | stamp | take | finish <id> | sethost <host> <port>\n");
+fwrite(STDERR, "kullanim: php vestra-mailbox-queue.php list <N> <campaign> [ids] | sample <campaign> <to> | stamp | take | finish <id> | fixemails | sethost <host> <port>\n");
 exit(1);

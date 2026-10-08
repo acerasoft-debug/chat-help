@@ -13,11 +13,12 @@ Kipler:
 Sifre yalniz TEK bir sunucuda kullanilir: MAILBOX_SMTP_HOST (tahmin YOK). Bos ise durur.
 Depo herkese acik: kayitta alici adresleri maskelenir, sifre hic basilmaz.
 """
-import argparse, json, os, random, smtplib, ssl, subprocess, sys, time
+import argparse, email, imaplib, json, os, random, re, smtplib, ssl, subprocess, sys, time
 from email.message import EmailMessage
 from email.utils import formataddr, formatdate, make_msgid
 
 DOMAIN = 'vestrasales.com'
+PER_SESSION = 20  # bir SMTP oturumunda en cok bu kadar mektup
 
 
 def mask(addr: str) -> str:
@@ -60,6 +61,111 @@ def dns_check() -> None:
     print('Saglayicinin belgeli SMTP sunucusu (MX\'ten):', guess or '(MX bilinen bir saglayici degil — sunucu adini lemlist Sending settings\'ten alin)')
 
 
+_MX_CACHE = {}
+
+
+def has_mail_server(domain: str) -> bool:
+    """Alan adinin e-posta alacak sunucusu var mi (MX, yoksa A — RFC 5321 5.1)? DNS yoksa
+    mektup GoDaddy'den 'DNSNULL' ile geri doner ve itibari dusurur; bu yuzden hic gonderilmez."""
+    d = domain.lower().strip('.')
+    if d not in _MX_CACHE:
+        mx = [m for m in dig(d, 'MX') if not m.rstrip('.').endswith(' .') and m.strip() not in ('0 .',)]
+        _MX_CACHE[d] = bool(mx) or bool([a for a in dig(d, 'A') if re.match(r'^\d+\.\d+\.\d+\.\d+$', a)])
+    return _MX_CACHE[d]
+
+
+_ADDR = re.compile(r'[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}')
+
+
+def dsn_failed_recipients(msg, own: str) -> list:
+    """Kalici teslim hatasi bildirimindeki (DSN) alicilar. Standart multipart/report
+    (Final-Recipient + Action: failed / Status 5.x.x) ya da GoDaddy'nin duz metni
+    ("failed permanently: * adres"). Gecici (4.x.x) hatalar ALINMAZ."""
+    out = []
+    for part in msg.walk():
+        if part.get_content_type() == 'message/delivery-status':
+            payload = part.get_payload()
+            blocks = payload if isinstance(payload, list) else [part]
+            for b in blocks:
+                txt = b.as_string() if hasattr(b, 'as_string') else str(b)
+                rcpt = re.search(r'(?im)^Final-Recipient:\s*[^;]*;\s*(\S+)', txt) or re.search(r'(?im)^Original-Recipient:\s*[^;]*;\s*(\S+)', txt)
+                act = re.search(r'(?im)^Action:\s*(\S+)', txt)
+                st = re.search(r'(?im)^Status:\s*(\d)\.', txt)
+                if rcpt and ((act and act.group(1).lower() == 'failed') or (st and st.group(1) == '5')):
+                    out.append(rcpt.group(1).strip('<>'))
+    if not out:
+        body = ''
+        for part in msg.walk():
+            if part.get_content_type() == 'text/plain':
+                try:
+                    body += part.get_payload(decode=True).decode(part.get_content_charset() or 'utf-8', 'replace')
+                except Exception:
+                    pass
+        if re.search(r'(?i)failed permanently|permanent(ly)? (error|failure)|could not be delivered|user unknown|does not exist|DNSNULL|5\.\d\.\d', body):
+            m = re.search(r'(?is)(?:recipients?|address(?:es)?)[^:\n]*:\s*(.{0,400})', body)
+            zone = m.group(1) if m else body[:600]
+            out = _ADDR.findall(zone)
+    own = own.lower()
+    return sorted({a.lower() for a in out if a.lower() != own and not a.lower().startswith(('mailer-daemon@', 'postmaster@'))})
+
+
+def scan_bounces(user: str, pw: str, host: str, days: int, move_to: str) -> list:
+    """support@ gelen kutusundaki kalici teslim hatasi bildirimlerini okur, hatali alicilari
+    dondurur ve islenen bildirimleri move_to klasorune tasir (gelen kutusu temizlenir).
+    Yalniz bildirim mektuplarina dokunur; baska hicbir mektup okunmaz/tasinmaz."""
+    ctx = ssl.create_default_context()
+    m = imaplib.IMAP4_SSL(host, 993, ssl_context=ctx, timeout=30)
+    m.login(user, pw)
+    m.select('INBOX')
+    since = time.strftime('%d-%b-%Y', time.gmtime(time.time() - days * 86400))
+    typ, data = m.uid('SEARCH', None, f'(SINCE {since})')
+    uids = (data[0] or b'').split()[-400:]
+    found, done = [], []
+    for uid in uids:
+        typ, hd = m.uid('FETCH', uid, '(BODY.PEEK[HEADER.FIELDS (FROM SUBJECT CONTENT-TYPE)])')
+        h = (hd[0][1] if hd and isinstance(hd[0], tuple) else b'').decode('utf-8', 'replace').lower()
+        if not (('mailer-daemon' in h or 'postmaster' in h or 'multipart/report' in h)
+                or re.search(r'delivery status notification|undeliver|delivery (has )?failed|failure notice|returned mail|nicht zustellbar|non remis', h)):
+            continue
+        typ, fd = m.uid('FETCH', uid, '(BODY.PEEK[])')
+        raw = fd[0][1] if fd and isinstance(fd[0], tuple) else b''
+        rcpts = dsn_failed_recipients(email.message_from_bytes(raw), user)
+        if rcpts:
+            found += [{'email': a, 'status': 'bounced', 'reason': 'teslim edilemedi (DSN)'} for a in rcpts]
+            done.append(uid)
+    moved = 0
+    if done and move_to:
+        # YALNIZ bu bildirimler tasinir. Duz EXPUNGE kullanilmaz: kullanicinin "silindi" isaretli baska
+        # mektuplarini da kalici silerdi. MOVE (RFC 6851) ya da UIDPLUS'li UID EXPUNGE; ikisi de yoksa
+        # bildirim yerinde birakilir, yalniz okundu isaretlenir.
+        caps = {c.decode().upper() if isinstance(c, bytes) else str(c).upper() for c in (m.capabilities or ())}
+        folder = ''
+        for cand in (move_to, 'INBOX.' + move_to):
+            m.create(cand)  # varsa NO doner, sorun degil
+            if m.select(cand, readonly=True)[0] == 'OK':
+                folder = cand
+                break
+        m.select('INBOX')
+        for uid in done:
+            if folder and 'MOVE' in caps:
+                ok = m.uid('MOVE', uid, folder)[0] == 'OK'
+            elif folder and 'UIDPLUS' in caps and m.uid('COPY', uid, folder)[0] == 'OK':
+                m.uid('STORE', uid, '+FLAGS', '(\\Deleted)')
+                ok = m.uid('EXPUNGE', uid)[0] == 'OK'
+            else:
+                m.uid('STORE', uid, '+FLAGS', '(\\Seen)')
+                ok = False
+            moved += 1 if ok else 0
+    m.logout()
+    uniq = {}
+    for f in found:
+        uniq[f['email']] = f
+    print(f'bildirim tarandi: {len(uids)} mektup · kalici hata bildirimi {len(done)} · hatali adres {len(uniq)}' + (f' · {moved} bildirim "{move_to}" klasorune tasindi' if moved else (' · bildirimler okundu isaretlendi (sunucu tasimayi desteklemiyor)' if done else '')))
+    for a in sorted(uniq):
+        print('  x', mask(a))
+    return list(uniq.values())
+
+
 def connect(host: str, port: int, user: str, pw: str):
     ctx = ssl.create_default_context()
     if port == 465:
@@ -96,6 +202,8 @@ def main() -> int:
     ap.add_argument('--out', default='results.json')
     ap.add_argument('--check', action='store_true')
     ap.add_argument('--test-to', default='')
+    ap.add_argument('--scan-bounces', action='store_true')
+    ap.add_argument('--bounce-days', type=int, default=7)
     ap.add_argument('--min-gap', type=float, default=25.0)
     ap.add_argument('--max-gap', type=float, default=55.0)
     a = ap.parse_args()
@@ -114,6 +222,16 @@ def main() -> int:
     if not pw:
         print('DUR: MAILBOX_PASS secret\'i yok.')
         return 2
+
+    if a.scan_bounces:
+        imap_host = os.environ.get('MAILBOX_IMAP_HOST', '').strip() or 'imap.secureserver.net'
+        try:
+            res = scan_bounces(user, pw, imap_host, a.bounce_days, 'VESTRA-Bounces')
+        except Exception as e:
+            print(f'bildirim taranamadi ({imap_host}): {type(e).__name__}: {str(e)[:120]}')
+            res = []
+        json.dump({'results': res}, open(a.out, 'w'))
+        return 0
 
     batch = json.load(open(a.batch, encoding='utf-8'))
     items = batch.get('items') or []
@@ -144,13 +262,41 @@ def main() -> int:
         json.dump({'results': [], 'test': True, 'host': host, 'port': port}, open(a.out, 'w'))
         return 0
 
-    results, consecutive_fail = [], 0
+    results, consecutive_fail, since_login = [], 0, 0
     for n, it in enumerate(items, 1):
         to = it['email']
         msg = build(it, from_name, sender, to)
         r = {'leadId': it.get('leadId', ''), 'email': to, 'lang': it.get('lang', ''), 'messageId': msg['Message-ID']}
+        if not has_mail_server(to.rsplit('@', 1)[-1]):
+            r.update(status='bounced', reason='alan adinin e-posta sunucusu yok (DNS) — gonderilmedi')
+            results.append(r)
+            json.dump({'results': results, 'host': host, 'port': port}, open(a.out, 'w'))
+            print(f'  - [{n}/{len(items)}] {mask(to)} atlandi: alan adinin e-posta sunucusu yok')
+            continue
+        if since_login >= PER_SESSION:
+            # GoDaddy tek oturumda ~25 mektuptan sonra 452 "too many messages in a single session" verir
+            try:
+                s.quit()
+            except Exception:
+                pass
+            s = connect(host, port, user, pw)
+            since_login = 0
         try:
-            refused = s.send_message(msg)
+            try:
+                refused = s.send_message(msg)
+            except smtplib.SMTPResponseException as e:
+                if not (400 <= e.smtp_code < 500):
+                    raise
+                # gecici red: oturumu yenile, bir kez daha dene
+                try:
+                    s.quit()
+                except Exception:
+                    pass
+                time.sleep(20)
+                s = connect(host, port, user, pw)
+                since_login = 0
+                refused = s.send_message(msg)
+            since_login += 1
             if refused:
                 r.update(status='bounced', reason=str(refused)[:120])
             else:

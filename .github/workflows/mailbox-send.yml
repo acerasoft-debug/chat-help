@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "check | test | send"
+        description: "check | test | send | bounces (yalnız geri dönen bildirimlerini tara)"
         required: true
         default: check
       limit:
@@ -78,11 +78,12 @@ jobs:
         run: |
           case "$REQ_ID" in *[!A-Za-z0-9]*) echo "req_id gecersiz"; exit 1 ;; esac
           case "$IDS" in *[!A-Za-z0-9,]*) echo "ids yalniz harf/rakam/virgul"; exit 1 ;; esac
-          case "$MODE" in check|test|send) ;; *) echo "mode check|test|send olmali"; exit 1 ;; esac
+          case "$MODE" in check|test|send|bounces) ;; *) echo "mode check|test|send|bounces olmali"; exit 1 ;; esac
           case "$LIMIT" in ''|*[!0-9]*) echo "limit sayi olmali"; exit 1 ;; esac
           case "$CAMPAIGN" in *[!A-Za-z0-9:_-]*) echo "gecersiz kampanya"; exit 1 ;; esac
 
       - name: DNS denetimi (MX / SPF / DMARC / DKIM) — şifresiz
+        if: env.MODE == 'check'
         run: python3 scripts/ci/mailbox_send.py --check
 
       - name: SSH ayarı
@@ -105,7 +106,7 @@ jobs:
           } > ~/.ssh/config && chmod 600 ~/.ssh/config
 
       - name: Sunucudan gönderim listesini al
-        if: env.MODE != 'check'
+        if: env.MODE == 'test' || env.MODE == 'send'
         env:
           LIMIT: ${{ github.event.inputs.limit }}
           CAMPAIGN: ${{ github.event.inputs.campaign }}
@@ -118,13 +119,15 @@ jobs:
             case "$TEST_TO" in *[!A-Za-z0-9@._+-]*|'') echo "test_to gecersiz"; exit 1 ;; esac
             ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php sample $CAMPAIGN $TEST_TO" > batch.raw
           else
+            # bozuk kayitli adresleri once onar (8 Eki: "%20adres")
+            ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php fixemails" | grep '^{' || true
             ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php list $LIMIT $CAMPAIGN $IDS" > batch.raw
           fi
           grep '^{' batch.raw | tail -n 1 > batch.json
           python3 -c 'import json;b=json.load(open("batch.json"));print("liste:",b.get("count"),"musteri · kampanya",b.get("campaign"),"· gonderen",b.get("from"))'
 
       - name: Gönder (support@ posta kutusu)
-        if: env.MODE != 'check'
+        if: env.MODE == 'test' || env.MODE == 'send'
         env:
           MAILBOX_PASS: ${{ secrets.MAILBOX_PASS }}
           MAILBOX_SMTP_HOST: ${{ github.event.inputs.smtp_host || vars.MAILBOX_SMTP_HOST || 'smtpout.secureserver.net' }}
@@ -138,7 +141,7 @@ jobs:
           fi
 
       - name: Sonuçları sunucuda damgala + sunucu adını kaydet
-        if: env.MODE != 'check' && always()
+        if: (env.MODE == 'test' || env.MODE == 'send') && always()
         env:
           REQ_ID: ${{ github.event.inputs.req_id }}
         run: |
@@ -154,4 +157,20 @@ jobs:
           if [ "$MODE" = send ]; then
             ssh vestra 'cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php stamp' < results.json
           fi
+          ssh vestra 'rm -f ~/vestra_tmp/mailbox-queue.php'
+
+      - name: Geri dönen bildirimlerini tara (support@ gelen kutusu) ve işaretle
+        if: (env.MODE == 'send' || env.MODE == 'bounces') && always()
+        env:
+          MAILBOX_PASS: ${{ secrets.MAILBOX_PASS }}
+          MAILBOX_SMTP_HOST: ${{ github.event.inputs.smtp_host || vars.MAILBOX_SMTP_HOST || 'smtpout.secureserver.net' }}
+          MAILBOX_IMAP_HOST: ${{ vars.MAILBOX_IMAP_HOST || 'imap.secureserver.net' }}
+        run: |
+          # Kalici teslim hatasi bildirimleri: hatali alicilar 'bounced' isaretlenir (bir daha hicbir
+          # yoldan yazilmaz), bildirimler gelen kutusundan "VESTRA-Bounces" klasorune tasinir.
+          python3 scripts/ci/mailbox_send.py --scan-bounces --out bounces.json
+          N=$(python3 -c 'import json;print(len(json.load(open("bounces.json")).get("results",[])))')
+          [ "$N" -gt 0 ] || { echo "isaretlenecek geri donen adres yok"; exit 0; }
+          ssh vestra 'mkdir -p ~/vestra_tmp' && ssh vestra 'cat > ~/vestra_tmp/mailbox-queue.php' < scripts/server/vestra-mailbox-queue.php
+          ssh vestra 'cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php stamp' < bounces.json
           ssh vestra 'rm -f ~/vestra_tmp/mailbox-queue.php'
