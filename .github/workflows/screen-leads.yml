@@ -23,7 +23,7 @@ permissions:
 #
 # "rapor" modu hicbir sey yazmaz, sadece mevcut veriyle sayar. "tara" modu
 # premium_brands verisi OLMAYAN leadlerin sitesini gezip markalari tespit eder ve
-# leade yazar -- kesif (discover-city) marka taramasi yapmadigi icin OSM'den gelen
+# leade yazar -- eski OSM kesfi marka taramasi yapmadigi icin oradan gelen
 # leadlerin bu alani bos geliyor, dolayisiyla min_brands filtresi onlari eliyor.
 jobs:
   screen:

@@ -11,6 +11,7 @@ sunucularında çalışır, gizli anahtarlar **GitHub Secrets**'ta şifreli duru
 | `daily-shopify.yml` | Mondimart stok senkronu (`shopify-stock-all.mjs`) | her gün 05:00 |
 | `daily-content.yml` | Claude ile günlük "Rechtstipp" üretir, `content/generated/`'a commit'ler | her gün 04:00 |
 | `weekly-maintenance.yml` | `npm audit` + kodda secret sızıntısı taraması, bulgu varsa issue | Pazartesi 03:00 |
+| `find-customers.yml` | **Müşteri bulma (v2):** marka çiftleriyle web araması → çok markalı butik siteleri → sitede **yayınlanmış gerçek e-posta** (tahmin yok) → sunucudaki `leads.json`'a ekler; ayakkabı / iç çamaşırı / toptancı / zincir elenir. `send=true` ya da repo değişkeni `PROSPECT_AUTO_SEND=true` ile gönderir. Eski OSM hattı (`daily-customers`, `discover-city`) kaldırıldı. | her gün 05:20 |
 
 Hepsini **Actions** sekmesinden elle de tetikleyebilirsin (**Run workflow**).
 
@@ -38,6 +39,9 @@ Repo → **Settings → Secrets and variables → Actions → New repository sec
 | `SMTP_PASS` | daily-monitor (mail) | Opsiyonel |
 | `REPORT_TO` | daily-monitor (mail) | Opsiyonel — raporu alacak e-posta |
 | `REPORT_FROM` | daily-monitor (mail) | Opsiyonel — gönderen (varsayılan SMTP_USER) |
+| `DEPLOY_HOST` / `DEPLOY_USER` / `DEPLOY_SSH_KEY` / `DEPLOY_PORT` | find-customers (+ diğer lead işleri) | Sunucuya SSH — zaten tanımlı |
+| `BRAVE_API_KEY` | find-customers | Opsiyonel ama önerilir — Brave Search API (brave.com/search/api, ücretsiz 2000 sorgu/ay); Bing/DDG engellerse tek güvenilir motor |
+| `HUNTER_API_KEY` | find-customers | Opsiyonel — sitesinde adres yayınlamayan uygun butikler için Hunter.io'nun **kaynaklı** (yayınlanmış) adresleri (hunter.io, ücretsiz 25 arama/ay) |
 
 > Mail secret'larını eklemezsen monitor yine çalışır; rapor sadece Actions
 > "Summary" sekmesinde görünür ve sorun olursa GitHub seni otomatik uyarır + issue açılır.
