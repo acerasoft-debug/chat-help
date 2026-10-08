@@ -5615,6 +5615,45 @@ jobs:
       # Varsayilan KURU KOSU; move_apply=true uygular. Once accounts.json yedeklenir,
       # yazma geri okunur. MUSTERIYE HICBIR SEY GITMEZ. payload='skip=<ref|firma parcasi>,...'
       # verilirse o siparisin/firmanin sahibi atlanir.
+      # SMTP SONDASI (smtp_probe, 8 Eki 2026): satici "kendi e-postasindan ucretsiz" gonderebilsin
+      # diye Gmail/Yahoo/iCloud/Zoho/Brevo SMTP'si SUNUCUDAN aciliyor mu? Paylasimli barindirma
+      # 25/465/587'yi cogu zaman kapatir; kapaliysa tek ucretsiz yol HTTPS uzerinden API'dir.
+      # Yalniz TCP + karsilama satiri (+587'de EHLO/STARTTLS teklifi). Kimlik bilgisi YOK, posta YOK.
+      - name: SMTP sondasi (smtp_probe) -- salt okunur
+        if: ${{ github.event.inputs.admin_mode == 'smtp_probe' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            cat > /tmp/vestra_smtp_probe.php <<'PHPEOF'
+            <?php
+            $targets = [['smtp.gmail.com',587],['smtp.gmail.com',465],['smtp.mail.yahoo.com',465],['smtp.mail.yahoo.com',587],
+                        ['smtp.mail.me.com',587],['smtp.zoho.eu',587],['smtp.zoho.com',465],['smtp-relay.brevo.com',587],['smtp.office365.com',587]];
+            foreach ($targets as [$h, $p]) {
+              $t0 = microtime(true);
+              $url = ($p === 465 ? 'ssl://' : 'tcp://').$h.':'.$p;
+              $ctx = stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true, 'peer_name' => $h]]);
+              $fp = @stream_socket_client($url, $en, $es, 8, STREAM_CLIENT_CONNECT, $ctx);
+              if (!$fp) { printf("%-24s %-4d KAPALI  (%s %s, %.1fs)\n", $h, $p, $en, $es, microtime(true) - $t0); continue; }
+              stream_set_timeout($fp, 8);
+              $banner = trim((string)fgets($fp, 512));
+              $tls = '';
+              if ($p === 587 && str_starts_with($banner, '220')) {
+                fwrite($fp, "EHLO vestrasales.com\r\n"); $ehlo = '';
+                while (($ln = fgets($fp, 512)) !== false) { $ehlo .= $ln; if (preg_match('/^\d{3} /', $ln)) break; }
+                $tls = stripos($ehlo, 'STARTTLS') !== false ? ' STARTTLS=var' : ' STARTTLS=YOK';
+              }
+              fwrite($fp, "QUIT\r\n"); fclose($fp);
+              printf("%-24s %-4d ACIK    %s%s (%.1fs)\n", $h, $p, substr($banner, 0, 3), $tls, microtime(true) - $t0);
+            }
+            echo "(salt okunur: oturum acilmadi, posta gonderilmedi)\n";
+            PHPEOF
+            php /tmp/vestra_smtp_probe.php; rm -f /tmp/vestra_smtp_probe.php
+
       # DIS ERISIM SONDASI (http_probe): GitHub sunucusundan, Cloudflare uzerinden canli
       # siteye GET atar ve kod / icerik turu / boyut / ilk satirlari basar. payload=
       # virgulle yollar (or. /llms.txt,/robots.txt). SALT OKUNUR.
