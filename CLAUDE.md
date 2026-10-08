@@ -4674,7 +4674,9 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
 ## Operasyonel notlar
 
 - Deploy `claude/wizardly-planck-7ylnmk` dalına **push ile** tetiklenir.
-- **Web'den müşteri bul (8 Eki 2026, operatör: "gerçek e-postalar bulunacak; ayakkabı,
+- **[KAPALI — 8 Eki 2026 akşam, operatör: "bu çok az, workflow'u kapat": iki workflow'un
+  zamanlaması kaldırıldı, panel başlatmaz (`vestra_finder_ready()` → `finder_enabled`).
+  Kampanya gönderimi ve Claude yazarı açık.]** Web'den müşteri bul (8 Eki 2026, operatör: "gerçek e-postalar bulunacak; ayakkabı,
   iç çamaşırı, distribütör ve zincir olmayacak", "admine kur, satıcılara da").**
   Motor GitHub Actions'ta: default daldaki `find-customers.yml` + `scripts/find-boutiques.mjs`
   (paylaşımlı hosting uzun işi öldürüyor). Panel kartı `inc/finder.php`: Admin ▸

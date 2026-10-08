@@ -1435,7 +1435,8 @@ if($tab==='overview'){
           <?php foreach(['Italy','France','Spain','Netherlands','Belgium','Germany','Switzerland','Austria','United Kingdom','Ireland','Portugal','Greece','Poland','Denmark','Sweden','Norway'] as $sfo): ?><option value="<?= $sfo ?>"><?= htmlspecialchars(t($sfo)) ?></option><?php endforeach; ?>
         </select></div>
       <div style="flex:1;min-width:200px"><label style="<?= $lbl ?>"><?= $tw('Cities (optional, comma-separated)') ?></label><input name="sf_cities" placeholder="Milano, Roma, Firenze" style="<?= $inp ?>"></div>
-      <?php if($sfMine): ?><button class="btn btn-o btn-sm" type="button" disabled>⏳ <?= $tw('Your search is running…') ?></button>
+      <?php if(!$sfReady): ?><button class="btn btn-o btn-sm" type="button" disabled><?= $tw('Web search is not available right now. Please try again later.') ?></button>
+      <?php elseif($sfMine): ?><button class="btn btn-o btn-sm" type="button" disabled>⏳ <?= $tw('Your search is running…') ?></button>
       <?php elseif($sfWait): ?><button class="btn btn-o btn-sm" type="button" disabled><?= sprintf($tw('Next search possible: %s'), htmlspecialchars(date('d.m H:i', $sfLastT + 86400))) ?></button>
       <?php else: ?><button class="btn btn-p btn-sm" type="submit" onclick="this.disabled=true;this.textContent=<?= htmlspecialchars(json_encode(t('Starting…'), JSON_UNESCAPED_UNICODE)) ?>;this.form.submit()"><?= $tw('🌐 Start web search') ?></button><?php endif; ?>
     </form>

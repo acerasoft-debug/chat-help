@@ -23,6 +23,7 @@ $root = dirname(__DIR__).'/vestra';
 $sand = sys_get_temp_dir().'/vestra_finder_'.bin2hex(random_bytes(4));
 @mkdir($sand.'/data', 0775, true);
 define('VESTRA_DATA_DIR', $sand.'/data');
+define('VESTRA_FINDER_ON', true);   // web araması 8 Eki'de kapatıldı; kapı mantığı yine de sınanır
 require $root.'/inc/products.php';
 require_once $root.'/inc/finder.php';
 
@@ -235,13 +236,13 @@ file_put_contents($sb.'/s.php', $hdr."\$_SESSION['member']=true; \$_SESSION['uid
 $ha = (string)shell_exec('cd '.escapeshellarg($sb).' && php a.php 2>/dev/null');
 $hs = (string)shell_exec('cd '.escapeshellarg($sb).' && php s.php 2>/dev/null');
 $t('admin: sayfa çizildi, panel (giriş formu değil)', strlen($ha) > 20000 && !str_contains($ha, 'name="pass"'));
-$t('admin: anahtar YOKKEN de kart + başlat formu + (isteğe bağlı) anahtar formu', str_contains($ha, 'id="finderweb"') && str_contains($ha, 'value="finder_web_start"') && str_contains($ha, 'value="save_finder_web"') && str_contains($ha, '● Hazır'));
+$t('admin: arama KAPALI — kart duruyor, başlat düğmesi kapalı', str_contains($ha, 'id="finderweb"') && str_contains($ha, '● Kapalı') && str_contains($ha, '⏸ Web araması kapalı') && !str_contains($ha, 'Aramayı başlat</button>'));
 $t('admin: sonuç kaçışlı ve notu görünür', str_contains($ha, 'Maison &lt;b&gt;Probe') && str_contains($ha, 'OPERATOR-NOTU'));
 $t('admin: PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $ha));
 $t('satıcı: sayfa çizildi', strlen($hs) > 10000 && str_contains($hs, 'id="finderweb"'));
-$t('satıcı: başlat düğmesi (son arama 24 saatten eski) + Brevo alanı', str_contains($hs, 'value="seller_finder_start"') && str_contains($hs, 'name="mail_api_key"'));
+$t('satıcı: arama KAPALI — başlat düğmesi yok, Brevo alanı var', !str_contains($hs, 'Websuche starten</button>') && str_contains($hs, 'name="mail_api_key"'));
 $t('satıcı: yalnızca KENDİ araması, operatör notu YOK', str_contains($hs, 'Ihre letzten Suchen') && !str_contains($hs, 'OPERATOR-NOTU') && !str_contains($hs, 'Maison'));
-$t('satıcı (lang=de): anahtar rehberi ve arama kartı ALMANCA', str_contains($hs, 'Ihr Schlüssel – so bekommen Sie ihn') && str_contains($hs, 'Websuche starten') && str_contains($hs, 'Fehlgeschlagen'));
+$t('satıcı (lang=de): anahtar rehberi ve arama kartı ALMANCA', str_contains($hs, 'Ihr Schlüssel – so bekommen Sie ihn') && str_contains($hs, 'Ihre letzten Suchen') && str_contains($hs, 'Fehlgeschlagen'));
 $t('admin: gönderim kartı — örnek kampanyalar seçilebilir (Les Garage, polo, standart, Claude)', str_contains($ha, 'id="findersend"') && str_contains($ha, 'value="finder_send_campaign"')
    && str_contains($ha, 'value="lesgarage"') && str_contains($ha, 'value="polos"') && str_contains($ha, 'value="standard"') && str_contains($ha, 'value="ai:ACadmR"'));
 $t('admin: Claude başlığı kaçışlı, satıcının kampanyası adminde YOK', str_contains($ha, 'ADMIN-CAMP &lt;i&gt;') && !str_contains($ha, 'SELLER-CAMP'));

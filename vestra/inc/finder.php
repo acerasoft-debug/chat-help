@@ -45,7 +45,13 @@ function vestra_finder_google_on(): bool {
  *  hale getir"): GitHub token yoksa istek sıraya girer ve find-customers-queue.yml 10 dk
  *  içinde GitHub'ın kendi yetkisiyle başlatır; Brave/Google yoksa aday kaynağı
  *  OpenStreetMap'tir. Anahtarlar yalnızca hızlandırır (token) ve sonucu artırır (Brave). */
-function vestra_finder_ready(): bool { return true; }
+/* KAPALI (8 Eki 2026, operatör: "bu çok az, workflow'u kapat"): chat-help'teki find-customers.yml
+   ve find-customers-queue.yml'nin zamanlaması kaldırıldı; panel yeni arama başlatmaz (sıraya
+   yazılan istek hiç başlamazdı). Yeniden açmak: iki workflow'a schedule'ı geri koy +
+   email_settings.json'da "finder_enabled": true. Testler VESTRA_FINDER_ON ile açar. */
+function vestra_finder_ready(): bool {
+  return defined('VESTRA_FINDER_ON') ? (bool)VESTRA_FINDER_ON : (bool)vestra_cfg('finder_enabled', false);
+}
 
 /** Tek GitHub REST çağrısı. [http_code, decoded_body|null, curl_error] */
 function vestra_finder_gh(string $method, string $path, ?array $body = null): array {
@@ -133,6 +139,7 @@ function vestra_finder_clean_input(array $in): array {
 /** [ok(bool), mesaj(string), id(string)] — mesaj her durumda operatöre gösterilecek cümle. */
 function vestra_finder_start(array $in, string $owner = '', string $by = 'admin'): array {
   $owner = preg_replace('/[^A-Za-z0-9_-]/', '', $owner);
+  if (!vestra_finder_ready()) return [false, 'Web araması kapalı (operatör kapattı).', ''];
   if ($a = vestra_finder_active())
     return [false, 'Bir arama zaten çalışıyor ('.(string)($a['id'] ?? '').', '.date('H:i', (int)strtotime((string)($a['requested_at'] ?? 'now'))).' başladı). Bitince tekrar başlatın — genelde 20-40 dakika.', ''];
   if ($owner !== '') {

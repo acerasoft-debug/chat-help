@@ -6379,7 +6379,7 @@ elseif($tab==='prospects'):
 ?>
 <div class="acard" id="finderweb" style="margin-bottom:20px;border-color:<?= $fwReady?'rgba(31,157,99,.45)':'rgba(169,127,44,.5)' ?>">
   <div class="acard-hd"><h3>🌐 Web'den müşteri bul — gerçek e-posta
-    <?= $fwReady?'<span style="color:#1f9d63;font-size:12px;font-weight:600">● Hazır</span>':'<span style="color:#a9781a;font-size:12px;font-weight:600">● Anahtar gerekli</span>' ?></h3></div>
+    <?= $fwReady?'<span style="color:#1f9d63;font-size:12px;font-weight:600">● Hazır</span>':'<span style="color:#a9781a;font-size:12px;font-weight:600">● Kapalı</span>' ?></h3></div>
   <div class="acard-body">
   <p class="ahint" style="margin-bottom:10px">Seçilen şehirlerdeki giyim dükkânlarını (OpenStreetMap — <b>anahtar gerekmez</b>) ve isteğe bağlı olarak web'de premium marka çiftlerini (ör. "Dsquared2" + "Balmain") tarar; sitesinde <b>en az iki tasarımcı markası</b> satan <b>çok markalı butikleri</b> bulur. Her sitenin iletişim/künye sayfasından <b>yayınlanmış gerçek e-postayı</b> alır — tahmin yok, MX kontrolü var. <b>Ayakkabıcı, iç çamaşırı, toptancı/distribütör, zincir ve markanın kendi mağazası elenir</b> (KURAL 1 dahil). Bulunanlar bu listeye eklenir; gönderim yine sizin elinizde.</p>
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;font-size:11.5px">
@@ -6404,12 +6404,15 @@ elseif($tab==='prospects'):
       <div class="afield"><label>Doğrudan incelenecek siteler (arama yapmadan) <span style="font-weight:400;color:var(--mut)">— elindeki listeyi gerçek e-postaya çevirir</span></label><textarea name="seed_domains" rows="2" placeholder="boutique-ornek.it, shop-ornek.de"></textarea></div>
     </details>
     <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0 0 10px"><input type="checkbox" name="dry_run" value="1"> Deneme — sadece bul ve göster, listeye ekleme</label>
-    <?php if($fwActive): ?>
+    <?php if(!$fwReady): ?>
+      <button class="abtn" type="button" disabled>⏸ Web araması kapalı</button>
+    <?php elseif($fwActive): ?>
       <button class="abtn" type="button" disabled>⏳ Arama çalışıyor (<?= htmlspecialchars((string)$fwActive['id']) ?>) — bitince tekrar başlatabilirsiniz</button>
     <?php else: ?>
       <button class="abtn primary" type="submit" onclick="this.disabled=true;this.textContent='Başlatılıyor…';this.form.submit()">🌐 Aramayı başlat</button>
     <?php endif; ?>
-    <span class="ahint" style="margin-left:8px">Her gün 05:20'de (UTC) kendiliğinden de çalışır. <?= $fwGh?'Süre: 20-40 dk.':'Başlaması 10 dk\'ya kadar, süre 20-40 dk.' ?></span>
+    <?php if(!$fwReady): ?><span class="ahint" style="margin-left:8px">Kapatıldı (8 Eki): GitHub'daki günlük ve 10 dakikalık arama işleri durduruldu. Bulunan müşteriler ve aşağıdaki kampanya gönderimi çalışmaya devam eder.</span>
+    <?php else: ?><span class="ahint" style="margin-left:8px">Her gün 05:20'de (UTC) kendiliğinden de çalışır. <?= $fwGh?'Süre: 20-40 dk.':'Başlaması 10 dk\'ya kadar, süre 20-40 dk.' ?></span><?php endif; ?>
   </form>
 
   <div style="font-weight:600;font-size:13px;margin:4px 0 8px">Son aramalar</div>
