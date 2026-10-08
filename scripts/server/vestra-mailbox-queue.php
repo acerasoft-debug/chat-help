@@ -30,7 +30,26 @@ if ($cmd === 'list') {
   $camps = vestra_finder_campaigns();
   if (!isset($camps[$campKey])) { fwrite(STDERR, "bilinmeyen kampanya: {$campKey}\n"); echo json_encode(['ok'=>false,'error'=>'campaign']); exit(1); }
   $builder = $camps[$campKey][2];
-  $targets = vestra_finder_send_targets($limit, 'all');
+  $ids = array_values(array_filter(array_map('trim', explode(',', (string)($argv[4] ?? '')))));
+  if ($ids) {
+    /* Elle verilen lead ID'leri (8 Eki: lemlist CSV'si 116 kişiyi "lemlist'e verildi" damgaladı ama
+       lemlist'e HİÇ yüklenmedi — kimseye gitmedi). Yalnız damgası 'lemlist' ya da boş olanlar alınır;
+       gerçekten yazılmış, çıkmış, geri dönmüş ya da ölü lead ALINMAZ. */
+    $want = array_flip($ids); $targets = []; $seen = [];
+    foreach (vestra_leads() as $i => $l) {
+      if (!isset($want[(string)($l['id'] ?? '')]) || count($targets) >= $limit) continue;
+      $st = (string)($l['status'] ?? 'new');
+      if ($st === 'unsubscribed' || $st === 'bounced' || !empty($l['unsubscribed'])) continue;
+      if (trim((string)($l['last_contacted_at'] ?? '')) !== '' && (string)($l['contact_via'] ?? '') !== 'lemlist') continue;
+      $e = strtolower(trim((string)($l['email'] ?? '')));
+      if (!filter_var($e, FILTER_VALIDATE_EMAIL) || isset($seen[$e])) continue;
+      if (function_exists('vestra_email_is_junk') && vestra_email_is_junk($e)) continue;
+      if (function_exists('vestra_lead_looks_dead') && vestra_lead_looks_dead($l)) continue;
+      $seen[$e] = true; $targets[$i] = $l;
+    }
+  } else {
+    $targets = vestra_finder_send_targets($limit, 'all');
+  }
   $items = []; $fromName = 'VESTRA';
   foreach ($targets as $l) {
     $email = strtolower(trim((string)($l['email'] ?? '')));
@@ -54,6 +73,19 @@ if ($cmd === 'list') {
   exit(0);
 }
 
+if ($cmd === 'sample') {
+  /* Test için örnek dükkân: gerçek bir müşteri gerekmez, kayda dokunmaz. */
+  $campKey = (string)($argv[2] ?? 'lesgarage'); $to = strtolower(trim((string)($argv[3] ?? '')));
+  $camps = vestra_finder_campaigns();
+  if (!isset($camps[$campKey]) || !filter_var($to, FILTER_VALIDATE_EMAIL)) { echo json_encode(['ok'=>false]); exit(1); }
+  $lead = ['id'=>'TEST', 'company'=>'Boutique Example', 'country'=>'France', 'email'=>$to, 'contact_name'=>'', 'unsub_token'=>''];
+  [$subject, $body, $opts, $from] = ($camps[$campKey][2])($lead);
+  echo json_encode(['ok'=>true, 'from'=>$from !== '' ? $from : 'VESTRA', 'sender_email'=>vestra_mail_house_address(), 'campaign'=>$campKey, 'count'=>1,
+    'items'=>[['leadId'=>'TEST', 'email'=>$to, 'company'=>'Boutique Example', 'lang'=>vestra_finder_lead_lang($lead), 'subject'=>$subject,
+      'html'=>vestra_html_email($body, '', (array)$opts), 'text'=>vestra_mail_text_part($body, (array)$opts), 'listUnsub'=>'https://vestrasales.com/lead-unsubscribe']]], JSON_UNESCAPED_UNICODE);
+  exit(0);
+}
+
 if ($cmd === 'stamp') {
   $raw = stream_get_contents(STDIN);
   $in = json_decode((string)$raw, true);
@@ -70,7 +102,7 @@ if ($cmd === 'stamp') {
     if (!$r) continue;
     $st = (string)($r['status'] ?? '');
     if ($st === 'sent') {
-      if (trim((string)($l['last_contacted_at'] ?? '')) !== '') continue; // iki kez damgalama
+      if (trim((string)($l['last_contacted_at'] ?? '')) !== '' && (string)($l['contact_via'] ?? '') !== 'lemlist') continue; // iki kez damgalama
       $l['last_contacted_at'] = date('c');
       $l['contact_via'] = 'mailbox';
       if (($l['status'] ?? 'new') === 'new') $l['status'] = 'contacted';
@@ -105,5 +137,5 @@ if ($cmd === 'sethost') {
   exit(0);
 }
 
-fwrite(STDERR, "kullanim: php vestra-mailbox-queue.php list <N> <campaign> | stamp | sethost <host> <port>\n");
+fwrite(STDERR, "kullanim: php vestra-mailbox-queue.php list <N> <campaign> [ids] | sample <campaign> <to> | stamp | sethost <host> <port>\n");
 exit(1);

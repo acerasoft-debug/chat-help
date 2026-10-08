@@ -30,6 +30,10 @@ on:
         description: "test kipinde mektubun gideceği adres"
         required: false
         default: acerasoft@gmail.com
+      ids:
+        description: "isteğe bağlı: yalnız bu lead ID'leri (virgülle). Boş = sıradaki yazılmamışlar"
+        required: false
+        default: ""
       smtp_host:
         description: "SMTP sunucusu (boş = vars.MAILBOX_SMTP_HOST)"
         required: false
@@ -65,7 +69,9 @@ jobs:
         env:
           LIMIT: ${{ github.event.inputs.limit }}
           CAMPAIGN: ${{ github.event.inputs.campaign }}
+          IDS: ${{ github.event.inputs.ids }}
         run: |
+          case "$IDS" in *[!A-Za-z0-9,]*) echo "ids yalniz harf/rakam/virgul"; exit 1 ;; esac
           case "$MODE" in check|test|send) ;; *) echo "mode check|test|send olmali"; exit 1 ;; esac
           case "$LIMIT" in ''|*[!0-9]*) echo "limit sayi olmali"; exit 1 ;; esac
           case "$CAMPAIGN" in *[!A-Za-z0-9:_-]*) echo "gecersiz kampanya"; exit 1 ;; esac
@@ -97,11 +103,17 @@ jobs:
         env:
           LIMIT: ${{ github.event.inputs.limit }}
           CAMPAIGN: ${{ github.event.inputs.campaign }}
+          IDS: ${{ github.event.inputs.ids }}
+          TEST_TO: ${{ github.event.inputs.test_to }}
         run: |
           set -o pipefail
-          N="$LIMIT"; [ "$MODE" = test ] && N=1
           ssh vestra 'mkdir -p ~/vestra_tmp' && ssh vestra 'cat > ~/vestra_tmp/mailbox-queue.php' < scripts/server/vestra-mailbox-queue.php
-          ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php list $N $CAMPAIGN" > batch.raw
+          if [ "$MODE" = test ]; then
+            case "$TEST_TO" in *[!A-Za-z0-9@._+-]*|'') echo "test_to gecersiz"; exit 1 ;; esac
+            ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php sample $CAMPAIGN $TEST_TO" > batch.raw
+          else
+            ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php list $LIMIT $CAMPAIGN $IDS" > batch.raw
+          fi
           grep '^{' batch.raw | tail -n 1 > batch.json
           python3 -c 'import json;b=json.load(open("batch.json"));print("liste:",b.get("count"),"musteri · kampanya",b.get("campaign"),"· gonderen",b.get("from"))'
 
