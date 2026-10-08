@@ -141,6 +141,12 @@ $t('havuz "web" (varsayılan) OSM almaz', !in_array('L8', $ids, true));
 [, , $linesAll] = vestra_finder_send('standard', 50, true, 'all');
 $t('kuru gönderim "all" havuzuna liste çıkarır', count($linesAll) === count($ia));
 $t('havuz adları', array_keys(vestra_finder_pools()) === ['web', 'all']);
+/* Satılık/park alan adları ve dükkân olmayan kutular HİÇBİR gönderim yoluna girmez (8 Eki: lemlist dışa aktarımında 29/116). */
+foreach ([['HugeDomains','info@x.example'],['Coming soon - <p>','a@b.example'],['capriboutique.com registrato con mvmnet.com','s@c.example'],['Sfera.net Park Page','i@v.example'],
+          ['Mi.na','dpo-google@google.com'],['Rains','press.us@rains.com'],['Domain im Kundenauftrag registriert','c@v.example'],['Agence immobilière l\'Adresse','i@l.example']] as [$nm,$em])
+  $t('ölü/yanlış lead elenir: '.mb_substr($nm,0,22), vestra_lead_looks_dead(['company'=>$nm,'email'=>$em]));
+foreach ([['Boutique Una','info@una.example'],['One Block Down','info@oneblockdown.com'],['Monaghans Cashmere','info@monaghanscashmere.ie'],['Le Dressing Monaco','ledressing@monaco.mc'],['Sedona Boutique','info@sedonaboutique.example'],['Jordan Store','info@jordan.com'],['Wholesale Fashion Hub','buy@wfh.example']] as [$nm,$em])
+  $t('gerçek butik geçer: '.$nm, !vestra_lead_looks_dead(['company'=>$nm,'email'=>$em]));
 /* lemlist CSV: aynı seçim kuralı; işaretsiz dışa aktarma kayda dokunmaz, işaretli olan damgalar. */
 $lbBefore = (string)file_get_contents(VESTRA_DATA_DIR.'/leads.json');
 $lx = vestra_lemlist_export(100, 'all', false);

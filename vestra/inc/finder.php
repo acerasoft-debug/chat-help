@@ -361,6 +361,32 @@ function vestra_finder_pools(): array {
 }
 const VESTRA_FINDER_NOT_BUYER_SOURCES = ['amazon seller', 'ebay seller', 'otto seller', 'suppression'];
 
+/** Lead'in firma adı "satılık / park edilmiş / yapım aşamasında" bir alan adı mı, ya da
+ *  adresi butik alıcısı OLMAYAN bir kurumsal/otomatik kutu mu? 8 Eki 2026: lemlist dışa
+ *  aktarımında 29/116 satır böyleydi (HugeDomains, "Coming soon", "registrato con",
+ *  "Sfera.net Park Page", "Agence immobilière", dpo-google@google.com, press.us@rains.com).
+ *  Bunlara mektup gitmesi support@ adresinin itibarına zarar verir — hiçbir gönderim yolu
+ *  (lemlist dışa aktarımı, Brevo, GitHub posta kutusu) bunları almasın diye TEK yerde elenir. */
+function vestra_lead_looks_dead(array $l): bool {
+  $name = strtolower(trim((string)($l['company'] ?? '')));
+  $email = strtolower(trim((string)($l['email'] ?? '')));
+  if ($name !== '') {
+    foreach ([
+      'hugedomains', 'buy this domain', 'domain for sale', 'is for sale', 'for sale',
+      'coming soon', 'coming-soon', 'under construction', 'park page', 'parked',
+      'registrato con', 'im kundenauftrag', 'domain im kundenauftrag', 'topdomainer',
+      'sfera.net', 'sedo parking', 'sedo.com', 'afternic', 'undeveloped',
+      'situs game', 'agence immobili', 'telecom', 'search engine',
+    ] as $bad) if (str_contains($name, $bad)) return true;
+  }
+  /* Dükkânın sipariş kutusu değil: platform/kurum/otomatik adresler. */
+  foreach (['dpo@', 'dpo-', 'privacy@', 'abuse@', 'postmaster@', 'noreply@', 'no-reply@', 'press@', 'press.', 'media@', 'legal@'] as $bad)
+    if (str_starts_with($email, $bad)) return true;
+  foreach (['@google.com', '@facebook.com', '@instagram.com', '@shopify.com', '@wix.com', '@squarespace.com', '@godaddy.com', '@sedo.com'] as $bad)
+    if (str_ends_with($email, $bad)) return true;
+  return false;
+}
+
 /** Gönderilebilecek admin leadleri (yazılmamış, temiz), en yeni önce. $pool: 'web' | 'all'.
  *  Aynı ADRESE başka bir kayıttan daha önce yazılmışsa o adres de atlanır. */
 function vestra_finder_send_targets(int $limit = 1000, string $pool = 'web'): array {
@@ -376,6 +402,7 @@ function vestra_finder_send_targets(int $limit = 1000, string $pool = 'web'): ar
     $e = strtolower(trim((string)($l['email'] ?? ''))); if (!filter_var($e, FILTER_VALIDATE_EMAIL) || isset($seen[$e])) continue;
     if (function_exists('vestra_email_is_junk') && vestra_email_is_junk($e)) continue;
     if (function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) continue;
+    if (vestra_lead_looks_dead($l)) continue;
     $seen[$e] = true; $out[$i] = $l;
   }
   return $out;
