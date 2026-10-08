@@ -1862,6 +1862,11 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   /* Bulunan müşterilere seçilen kampanyayı gönder (inc/finder.php). dry = yalnızca listele. */
   if($act==='finder_send_campaign'){
     require_once __DIR__.'/inc/finder.php';
+    if(($_POST['mode']??'')==='test'){
+      [$tOk,$tMsg]=vestra_finder_send_test((string)($_POST['camp']??''),(string)($_POST['test_to']??''));
+      $_SESSION['finder_send_flash']=['dry'=>true,'test'=>[$tOk,$tMsg],'sent'=>0,'fail'=>0,'lines'=>[],'camp'=>(string)($_POST['camp']??'')];
+      header('Location: /admin?tab=prospects#findersend'); exit;
+    }
     $dry=($_POST['mode']??'')!=='send';
     [$sN,$fN,$lines]=vestra_finder_send((string)($_POST['camp']??''),(int)($_POST['limit']??20),$dry);
     $_SESSION['finder_send_flash']=['dry'=>$dry,'sent'=>$sN,'fail'=>$fN,'lines'=>array_slice($lines,0,100),'camp'=>(string)($_POST['camp']??'')];
@@ -6427,8 +6432,9 @@ elseif($tab==='prospects'):
   ?>
   <div id="findersend" style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
     <div style="font-weight:700;font-size:14px;margin-bottom:4px">📮 Bulunan müşterilere kampanya gönder <span class="ahint">· gönderilmeye hazır: <b><?= count($fsTargets) ?></b> (web aramasıyla bulunmuş, yazılmamış, KURAL 1'den geçmiş)</span></div>
-    <p class="ahint" style="margin:0 0 8px">Daha önce gönderdiğimiz kampanyalardan birini (ya da Claude ile yazılanı) seçin, önizleyin, önce listeleyip sonra gönderin. Gönderim Brevo üzerinden <b>support@vestrasales.com</b> ile gider; her mektupta kişiye özel abonelikten çıkma linki var; aynı adrese ikinci kez gitmez.</p>
-    <?php if($fsFlash): ?><div class="amsg <?= ($fsFlash['dry']||$fsFlash['fail']===0)?'ok':'' ?>"><?= $fsFlash['dry']?'Önizleme (gönderilmedi) — bu kişilere gidecek:':('Gönderildi: '.(int)$fsFlash['sent'].' · hata: '.(int)$fsFlash['fail']) ?>
+    <p class="ahint" style="margin:0 0 8px">Daha önce gönderdiğimiz kampanyalardan birini (ya da Claude ile yazılanı) seçin, önizleyin, <b>🧪 kendinize test gönderin</b> (konu "[TEST]" önekli, gerçek bir müşterinin adı ve diliyle, kimse damgalanmaz), önce listeleyip sonra gönderin. Gönderim Brevo üzerinden <b>support@vestrasales.com</b> ile gider; her mektupta kişiye özel abonelikten çıkma linki var; aynı adrese ikinci kez gitmez.</p>
+    <?php if($fsFlash && !empty($fsFlash['test'])): ?><div class="amsg <?= $fsFlash['test'][0]?'ok':'' ?>">🧪 <?= htmlspecialchars((string)$fsFlash['test'][1]) ?></div>
+    <?php elseif($fsFlash): ?><div class="amsg <?= ($fsFlash['dry']||$fsFlash['fail']===0)?'ok':'' ?>"><?= $fsFlash['dry']?'Önizleme (gönderilmedi) — bu kişilere gidecek:':('Gönderildi: '.(int)$fsFlash['sent'].' · hata: '.(int)$fsFlash['fail']) ?>
       <div style="font-size:11.5px;max-height:220px;overflow:auto;margin-top:6px;white-space:pre-wrap"><?= htmlspecialchars(implode("\n",$fsFlash['lines'])?:'(uygun alıcı yok)') ?></div></div><?php endif; ?>
     <form method="post" class="aform">
       <?= csrfField() ?><input type="hidden" name="_action" value="finder_send_campaign">
@@ -6442,6 +6448,8 @@ elseif($tab==='prospects'):
       <?php $fsFirst=false; endforeach; ?>
       <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:8px">
         <div class="afield" style="margin:0"><label>Kaç kişiye</label><input name="limit" type="number" min="1" max="100" value="20" style="width:90px"></div>
+        <div class="afield" style="margin:0"><label>Test adresi</label><input type="email" name="test_to" value="<?= htmlspecialchars((string)vestra_cfg('ops_email','acerasoft@gmail.com')) ?>" style="width:220px"></div>
+        <button class="abtn" type="submit" name="mode" value="test">🧪 Bana test gönder</button>
         <button class="abtn" type="submit" name="mode" value="dry">👁 Önce listele (göndermez)</button>
         <button class="abtn primary" type="submit" name="mode" value="send" onclick="return confirm('Seçilen kampanya gerçekten gönderilsin mi?')"<?= $fsTargets?'':' disabled' ?>>📮 Gönder</button>
       </div>

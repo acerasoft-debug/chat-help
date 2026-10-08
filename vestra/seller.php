@@ -494,24 +494,33 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
 }
 
 /* ── Seller customer outreach: own SMTP + own customer list + one-by-one send ── */
-if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_array(($_POST['_action']??''),['seller_save_smtp','seller_send_test','seller_add_lead','seller_import_leads','seller_send_one','seller_find_email','seller_discover','seller_find_all','seller_finder_start','seller_ai_generate','seller_ai_save','seller_ai_stop'],true)) {
+if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_array(($_POST['_action']??''),['seller_save_smtp','seller_send_test','seller_add_lead','seller_import_leads','seller_send_one','seller_find_email','seller_discover','seller_find_all','seller_finder_start','seller_ai_generate','seller_ai_save','seller_ai_stop','seller_ai_key','seller_camp_test'],true)) {
   require_once __DIR__.'/inc/notify.php'; require_once __DIR__.'/inc/leads.php';
   $suid=$_SESSION['uid']??''; $sme=auth_user();
   if($suid==='' || ($sme['type']??'')!=='seller'){ if(($_POST['_action']??'')==='seller_send_one'){ header('Content-Type: application/json'); echo json_encode(['ok'=>false,'error'=>'auth']); } else header('Location: /seller?tab=find'); exit; }
   $sact=$_POST['_action']; $sName=$sme['company']?:($sme['name']?:'Seller');
   if($sact==='seller_save_smtp'){
     $cur=vestra_seller_mail($suid); $from=trim($_POST['from_email']??''); $pass=(string)($_POST['smtp_pass']??'');
-    vestra_seller_mail_save($suid,['mail_enabled'=>true,'mail_from'=>$from,'smtp_from'=>$from,
+    $newBrevo=!empty($_POST['brevo_clear'])?'':((($bk=trim($_POST['mail_api_key']??''))!=='')?$bk:(string)($cur['mail_api_key']??''));
+    /* Brevo anahtarı ve gönderen adres kayıtta sınanır (inc/seller_send.php: iki ücretsiz okuma,
+       e-posta gitmez). Sonuç kartta 3 adımlık durum olarak görünür. Adres ya da anahtar
+       değişirse eski "test gönderildi" işareti düşer — o test artık bu kurulumu kanıtlamıyor. */
+    require_once __DIR__.'/inc/seller_send.php';
+    $bChk=$newBrevo!==''?vestra_brevo_check($newBrevo,$from):null;
+    $sameSetup=$newBrevo===(string)($cur['mail_api_key']??'') && strcasecmp($from,(string)($cur['mail_from']??''))===0;
+    vestra_seller_mail_save($suid,['brevo_check'=>$bChk,
+      'last_test_ok_at'=>$sameSetup?(string)($cur['last_test_ok_at']??''):'','last_test_to'=>$sameSetup?(string)($cur['last_test_to']??''):'',
+      'mail_enabled'=>true,'mail_from'=>$from,'smtp_from'=>$from,
       'smtp_name'=>trim($_POST['from_name']??'')?:$sName,'smtp_host'=>trim($_POST['smtp_host']??''),
       'smtp_port'=>(int)($_POST['smtp_port']??587)?:587,'smtp_user'=>trim($_POST['smtp_user']??'')?:$from,
       'smtp_pass'=>$pass!==''?$pass:(string)($cur['smtp_pass']??''),'mail_api_provider'=>'brevo',
       /* Brevo API anahtarı: SMTP yerine kullanılır (vestra_send_mail önce API'ye bakar). Boş = koru,
          "remove" işareti = sil — sızan bir anahtarı panelden emekliye ayırmanın tek yolu. */
-      'mail_api_key'=>!empty($_POST['brevo_clear'])?'':((($bk=trim($_POST['mail_api_key']??''))!=='')?$bk:(string)($cur['mail_api_key']??'')),
+      'mail_api_key'=>$newBrevo,
       'finder_provider'=>trim($_POST['finder_provider']??'hunter')?:'hunter',
       'finder_key'=>(($fk=trim($_POST['finder_key']??''))!=='')?$fk:(string)($cur['finder_key']??''),
       'ai_key'=>(($ak=trim($_POST['ai_key']??''))!=='')?$ak:(string)($cur['ai_key']??'')]);
-    header('Location: /seller?tab=find&msg=smtp_saved'); exit;
+    header('Location: /seller?tab=find&msg='.($bChk&&!$bChk['ok']?'brevo_'.$bChk['code']:'smtp_saved').'#sendsetup'); exit;
   }
   /* Web search for multi-brand boutiques (inc/finder.php). Runs on the platform's search
      engine (GitHub Actions) with the platform's keys; results land in THIS seller's list
@@ -593,10 +602,21 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
     unset($l); vestra_save_leads($leads);
     header('Location: /seller?tab=find&msg='.($found!==''?'found_ok':'found_none')); exit;
   }
-  if($sact==='seller_send_test'){
-    $to=trim($_POST['test_to']??''); $sc=vestra_seller_mail($suid);
-    $ok=filter_var($to,FILTER_VALIDATE_EMAIL) && vestra_send_mail($to,'VESTRA — test email',"Test from your VESTRA sending setup. If you received this, it works. \xE2\x9C\x93\n\n— ".$sName,'',(string)($sc['smtp_name']??''),$sc);
-    header('Location: /seller?tab=find&msg='.($ok?'test_ok':'test_fail')); exit;
+  /* Test: satıcının KULLANDIĞI kampanya (etkin Claude kampanyası ya da standart davet), örnek
+     dükkân adıyla, "[TEST]" önekiyle. Kurulum varsa kendi Brevo'suyla istenen adrese; yoksa
+     VESTRA üzerinden yalnız hesap adresine, günde 5 (inc/seller_send.php). */
+  if($sact==='seller_send_test' || $sact==='seller_camp_test'){
+    require_once __DIR__.'/inc/seller_send.php';
+    $cid=$sact==='seller_camp_test'?(string)($_POST['cid']??''):null;
+    [$tOk,$tCode,$tTo]=vestra_seller_send_test($suid,$sName,trim((string)($_POST['test_to']??($sme['email']??''))),(string)($sme['email']??''),$cid);
+    if($sact==='seller_camp_test'){
+      $tMsgs=['own'=>'Test sent to %s — check your inbox.','platform'=>'Test sent to %s via VESTRA, because your own sending is not set up yet.',
+        'limit'=>'You have used today\'s 5 test emails via VESTRA. Set up your own sending to test without limits.','badto'=>'Please enter a valid email address.',
+        'fail'=>'The test could not be sent. Please check your sending setup above.'];
+      $_SESSION['seller_ai_flash']=[$tOk,sprintf(t($tMsgs[$tCode]??$tMsgs['fail']),$tTo)];
+      header('Location: /seller?tab=find#aicamp'); exit;
+    }
+    header('Location: /seller?tab=find&msg=test_'.$tCode.'&to='.rawurlencode($tTo).'#sendsetup'); exit;
   }
   if($sact==='seller_add_lead'){
     $company=trim($_POST['company']??''); $email=strtolower(trim($_POST['email']??''));
@@ -1324,6 +1344,18 @@ if($tab==='overview'){
     $fmsgs['discover']=$osmFail?'⚠ OpenStreetMap could not be reached (all mirrors failed) — this is a temporary outage, not "no shops". Please try again in a minute.'
       :($df===0?'No shops found in that city — try the local spelling (e.g. “Milano”, “Köln”) or a bigger nearby city.'
       :('✓ '.$df.' retailer(s) found, '.$dn.' new added'.($dn===0?' (all were already on your list)':'').'. Now run “🔍 Find all missing emails”.')); }
+  /* Test ve Brevo denetimi sonuçları (inc/seller_send.php) — satıcının dilinde. */
+  $fTo=(string)($_GET['to']??'');
+  $fmsgs+=['test_own'=>sprintf(t('Test sent to %s — check your inbox.'),$fTo),
+    'test_platform'=>sprintf(t('Test sent to %s via VESTRA, because your own sending is not set up yet.'),$fTo),
+    'test_limit'=>t('You have used today\'s 5 test emails via VESTRA. Set up your own sending to test without limits.'),
+    'test_badto'=>t('Please enter a valid email address.'),
+    'test_fail'=>t('The test could not be sent. Please check your sending setup above.'),
+    'brevo_format'=>t('Saved, but this does not look like a Brevo API key (it starts with xkeysib-). Please copy it again.'),
+    'brevo_invalid'=>t('Saved, but Brevo did not accept this key. Please create a new key and save it again.'),
+    'brevo_unreachable'=>t('Saved. We could not reach Brevo to check the key — press “Save” again in a minute.')];
+  $fmsgs['smtp_saved']=t('Saved. Now send yourself a test below.');
+  $fBad=in_array($fmsg,['test_limit','test_badto','test_fail','brevo_format','brevo_invalid','brevo_unreachable'],true);
   if($fmsg==='found_bulk') $fmsgs['found_bulk']='✓ Email lookup finished — '.(int)($_GET['n']??0).' email(s) added from the shops’ own websites.';
   $sFinderOn=true;   // finding always works — free site-reading fallback (own/platform key optional)
   $sAiOn=($myMail['ai_key']??'')!=='' || vestra_ai_key()!=='';
@@ -1332,21 +1364,44 @@ if($tab==='overview'){
   $card='border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;background:var(--card,#fff)';
 ?>
 <div style="max-width:920px">
-  <?php if(isset($fmsgs[$fmsg])): ?><div style="background:#eaf7ef;border:1px solid #b9e3c9;color:#1f7a4d;padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:13.5px"><?= htmlspecialchars($fmsgs[$fmsg]) ?></div><?php endif; ?>
+  <?php if(isset($fmsgs[$fmsg])): ?><div style="background:<?= $fBad?'#fdf0ee':'#eaf7ef' ?>;border:1px solid <?= $fBad?'#f0c4bd':'#b9e3c9' ?>;color:<?= $fBad?'#a3321f':'#1f7a4d' ?>;padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:13.5px"><?= htmlspecialchars($fmsgs[$fmsg]) ?></div><?php endif; ?>
   <p style="color:var(--mut);font-size:13.5px;margin:0 0 18px">Find your own customers and email them a wholesale offer <b>from your own address</b>. Add or import a list, then send one by one. Every email carries a one-click unsubscribe.</p>
 
-  <div style="<?= $card ?>;border-color:<?= $mailReady?'#b9e3c9':'var(--line)' ?>">
-    <h3 style="margin:0 0 4px;font-size:15px">📤 Your sending email <?= $mailReady?'<span style="color:#1f9d63;font-size:12px">● Ready</span>':'<span style="color:#a9781a;font-size:12px">● Not set up</span>' ?></h3>
-    <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px">Enter your email + its SMTP login (from your email provider), <b>or</b> a Brevo API key (see below). <b>Gmail:</b> use an App Password. Stored securely — never shared.</p>
+  <?php
+    /* 📤 Gönderim kurulumu (8 Eki 2026). Ölçüm: bu sunucudan SMTP'nin tamamı kapalı (Gmail,
+       Outlook, Yahoo… — smtp_probe), yani tek ücretsiz ve çalışan yol Brevo'nun HTTPS API'si.
+       Kart 3 adımı canlı durumla gösterir: anahtar çalışıyor mu, adres Brevo'da doğrulanmış mı,
+       test gitti mi. Durumlar kayıtta yapılan ücretsiz denetimden (inc/seller_send.php). */
+    require_once __DIR__.'/inc/seller_send.php';
+    $tk = fn(string $x): string => htmlspecialchars(t($x));
+    $bc=is_array($myMail['brevo_check']??null)?$myMail['brevo_check']:null;
+    $hasKey=($myMail['mail_api_key']??'')!=='';
+    $fromNow=(string)($myMail['mail_from']??'');
+    [$tTpl,$tKind]=vestra_seller_test_template($uid);
+    $stepRow=function(string $state,string $num,string $title,string $detail) use ($tk){
+      $col=['ok'=>'#1f9d63','bad'=>'#c0392b','todo'=>'var(--mut)'][$state];
+      $ico=['ok'=>'✓','bad'=>'!','todo'=>$num][$state];
+      return '<div style="display:flex;gap:10px;align-items:flex-start;margin:0 0 8px"><span style="flex:none;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;background:'.$col.'">'.$ico.'</span><div style="font-size:13px;line-height:1.45"><b>'.$tk($title).'</b><br><span style="color:var(--mut);font-size:12px">'.$detail.'</span></div></div>';
+    };
+  ?>
+  <div id="sendsetup" style="<?= $card ?>;border-color:<?= $mailReady?'#b9e3c9':'var(--line)' ?>">
+    <h3 style="margin:0 0 4px;font-size:15px"><?= $tk('📤 Your sending email') ?> <?= $mailReady?'<span style="color:#1f9d63;font-size:12px">● '.$tk('Ready').'</span>':'<span style="color:#a9781a;font-size:12px">● '.$tk('Not set up').'</span>' ?></h3>
+    <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px"><?= $tk('Send campaigns from your own email address — free with Brevo (300 emails a day). Your customers see your address and reply to you.') ?></p>
+    <div style="background:var(--bg2,#faf8f4);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px">
+      <?= $stepRow(!$hasKey?'todo':(($bc&&!$bc['ok'])?'bad':'ok'),'1','Brevo key',
+          !$hasKey?$tk('Not added yet — see the 4 steps below.'):(($bc&&!$bc['ok'])?$tk('Brevo did not accept this key. Please create a new key and save it again.')
+          :($bc&&$bc['account']!==''?sprintf($tk('Works — Brevo account: %s'),htmlspecialchars($bc['account'])):$tk('Saved.')))) ?>
+      <?= $stepRow(!$hasKey||!$bc||$bc['sender_ok']===null?'todo':($bc['sender_ok']?'ok':'bad'),'2','Your address confirmed in Brevo',
+          !$hasKey||!$bc||$bc['sender_ok']===null?$tk('Checked when you save your key.'):($bc['sender_ok']?sprintf($tk('%s is confirmed.'),htmlspecialchars($fromNow))
+          :sprintf($tk('%s is not confirmed in Brevo yet: open Brevo → Settings → Senders, add this address and click the link Brevo emails you. Then press “Save” here again.'),htmlspecialchars($fromNow)))) ?>
+      <?= $stepRow(($myMail['last_test_ok_at']??'')!==''?'ok':'todo','3','Test email',
+          ($myMail['last_test_ok_at']??'')!==''?sprintf($tk('Sent to %s on %s.'),htmlspecialchars((string)($myMail['last_test_to']??'')),date('d.m.Y H:i',(int)strtotime((string)$myMail['last_test_ok_at']))):$tk('Send yourself a test below — you see exactly what your customers will get.')) ?>
+    </div>
     <form method="post">
       <input type="hidden" name="_action" value="seller_save_smtp">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-        <div><label style="<?= $lbl ?>">From email *</label><input type="email" name="from_email" required value="<?= htmlspecialchars($myMail['mail_from']??($me['email']??'')) ?>" style="<?= $inp ?>"></div>
-        <div><label style="<?= $lbl ?>">From name</label><input name="from_name" value="<?= htmlspecialchars($myMail['smtp_name']??($me['company']??'')) ?>" style="<?= $inp ?>"></div>
-        <div><label style="<?= $lbl ?>">SMTP host</label><input name="smtp_host" value="<?= htmlspecialchars($myMail['smtp_host']??'') ?>" placeholder="smtp.gmail.com" style="<?= $inp ?>"></div>
-        <div><label style="<?= $lbl ?>">SMTP port</label><input name="smtp_port" value="<?= htmlspecialchars((string)($myMail['smtp_port']??'587')) ?>" style="<?= $inp ?>"></div>
-        <div><label style="<?= $lbl ?>">SMTP username</label><input name="smtp_user" value="<?= htmlspecialchars($myMail['smtp_user']??'') ?>" placeholder="usually your email" style="<?= $inp ?>"></div>
-        <div><label style="<?= $lbl ?>">SMTP password <?= ($myMail['smtp_pass']??'')!==''?'· saved, blank = keep':'' ?></label><input type="password" name="smtp_pass" autocomplete="new-password" style="<?= $inp ?>"></div>
+        <div><label style="<?= $lbl ?>"><?= $tk('From email') ?> *</label><input type="email" name="from_email" required value="<?= htmlspecialchars($myMail['mail_from']??($me['email']??'')) ?>" style="<?= $inp ?>"></div>
+        <div><label style="<?= $lbl ?>"><?= $tk('From name') ?></label><input name="from_name" value="<?= htmlspecialchars($myMail['smtp_name']??($me['company']??'')) ?>" style="<?= $inp ?>"></div>
       </div>
       <?php
         /* 🔑 Satıcının TEK anahtarı: Brevo (kendi adresinden göndermek için). Arama için anahtar
@@ -1383,13 +1438,28 @@ if($tab==='overview'){
           <div><label style="<?= $lbl ?>">AI key — DeepSeek<?= ($myMail['ai_key']??'')!==''?' · saved':'' ?></label><input type="password" name="ai_key" autocomplete="new-password" placeholder="personalise each email" style="<?= $inp ?>"></div>
         </div>
       </div>
-      <button class="btn btn-p btn-sm" type="submit">Save sending email &amp; keys</button>
+      <details style="margin:0 0 12px">
+        <summary style="cursor:pointer;font-size:12px;color:var(--mut)"><?= $tk('Advanced: SMTP login (Gmail, Outlook…)') ?></summary>
+        <div style="background:#fdf6e9;border:1px solid #f0dcb4;color:#8a5a12;border-radius:10px;padding:9px 12px;font-size:12px;margin:8px 0">⚠ <?= $tk('Our hosting blocks outgoing SMTP connections, so a Gmail or Outlook password (or app password) cannot send from here. Please use Brevo above — it is free and sends from your own address.') ?></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label style="<?= $lbl ?>">SMTP host</label><input name="smtp_host" value="<?= htmlspecialchars($myMail['smtp_host']??'') ?>" placeholder="smtp.gmail.com" style="<?= $inp ?>"></div>
+        <div><label style="<?= $lbl ?>">SMTP port</label><input name="smtp_port" value="<?= htmlspecialchars((string)($myMail['smtp_port']??'587')) ?>" style="<?= $inp ?>"></div>
+        <div><label style="<?= $lbl ?>">SMTP username</label><input name="smtp_user" value="<?= htmlspecialchars($myMail['smtp_user']??'') ?>" placeholder="usually your email" style="<?= $inp ?>"></div>
+        <div><label style="<?= $lbl ?>">SMTP password <?= ($myMail['smtp_pass']??'')!==''?'· saved, blank = keep':'' ?></label><input type="password" name="smtp_pass" autocomplete="new-password" style="<?= $inp ?>"></div>
+        </div>
+      </details>
+      <button class="btn btn-p btn-sm" type="submit"><?= $tk('Save') ?></button>
     </form>
-    <form method="post" style="margin-top:10px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-      <input type="hidden" name="_action" value="seller_send_test">
-      <div style="flex:1;min-width:220px"><label style="<?= $lbl ?>">Send a test to</label><input type="email" name="test_to" required value="<?= htmlspecialchars($me['email']??'') ?>" style="<?= $inp ?>"></div>
-      <button class="btn btn-o btn-sm" type="submit">✉ Send test</button>
-    </form>
+    <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:4px">✉ <?= $tk('Send yourself a test') ?></div>
+      <p style="color:var(--mut);font-size:12px;margin:0 0 8px"><?= sprintf($tk('We send the campaign you use now — “%s” — exactly as your customers get it, with “[TEST]” in the subject and “%s” as the shop name.'),htmlspecialchars(vestra_lead_render_email(vestra_test_sample_lead(''),$tTpl)[0]),VESTRA_TEST_SAMPLE_SHOP) ?>
+        <?php if(!$mailReady): ?><br><span style="color:#a9781a"><?= sprintf($tk('Your sending is not set up yet, so the test comes from VESTRA to your account address %s (up to 5 a day).'),htmlspecialchars((string)($me['email']??''))) ?></span><?php endif; ?></p>
+      <form method="post" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <input type="hidden" name="_action" value="seller_send_test">
+        <div style="flex:1;min-width:220px"><label style="<?= $lbl ?>"><?= $tk('Send the test to') ?></label><input type="email" name="test_to" required value="<?= htmlspecialchars($me['email']??'') ?>" style="<?= $inp ?>"<?= $mailReady?'':' readonly' ?>></div>
+        <button class="btn btn-o btn-sm" type="submit" onclick="this.textContent=<?= htmlspecialchars(json_encode(t('Sending…'), JSON_UNESCAPED_UNICODE)) ?>">✉ <?= $tk('Send test') ?></button>
+      </form>
+    </div>
   </div>
 
   <div style="<?= $card ?>;border-color:#b9e3c9">
@@ -1485,7 +1555,11 @@ if($tab==='overview'){
           <label style="<?= $lbl ?>"><?= $tw('Subject') ?></label><input name="subject" value="<?= htmlspecialchars((string)$c['subject']) ?>" style="<?= $inp ?>;margin-bottom:8px">
           <label style="<?= $lbl ?>"><?= $tw('Text') ?> <span style="font-weight:400;color:var(--mut)">· <?= $tw('{{company}} becomes the customer\'s shop name. The unsubscribe line is added automatically.') ?></span></label><textarea name="body" rows="9" style="<?= $inp ?>;margin-bottom:8px"><?= htmlspecialchars((string)$c['body']) ?></textarea>
           <button class="btn btn-o btn-sm" type="submit"><?= $tw('Save') ?></button>
-          <button class="btn btn-p btn-sm" type="submit" name="activate" value="1"><?= $tw('Use for sending') ?></button></form></details>
+          <button class="btn btn-p btn-sm" type="submit" name="activate" value="1"><?= $tw('Use for sending') ?></button></form>
+        <form method="post" style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="hidden" name="_action" value="seller_camp_test"><input type="hidden" name="cid" value="<?= htmlspecialchars((string)$c['id']) ?>">
+          <input type="email" name="test_to" value="<?= htmlspecialchars((string)($myMail['last_test_to']??'')?:($me['email']??'')) ?>" style="<?= $inp ?>;width:auto;flex:1;min-width:200px"<?= $mailReady?'':' readonly' ?>>
+          <button class="btn btn-o btn-sm" type="submit">✉ <?= $tw('Send me a test') ?></button>
+          <span style="font-size:11px;color:var(--mut)"><?= $tw('Save your edits first — the test uses the saved text.') ?></span></form></details>
     <?php endforeach; ?>
     <?php if($acAct): ?><form method="post"><input type="hidden" name="_action" value="seller_ai_stop"><button class="btn btn-o btn-sm" type="submit"><?= $tw('Stop using — send the standard invitation') ?></button></form><?php endif; ?>
     <?php endif; ?>

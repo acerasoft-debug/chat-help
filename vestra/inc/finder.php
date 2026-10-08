@@ -368,6 +368,28 @@ function vestra_finder_send_targets(int $limit = 1000): array {
   return $out;
 }
 
+/**
+ * Seçilen kampanyayı operatöre TEST olarak gönderir (8 Eki 2026, operatör: "test email
+ * gönderimi de koy … bana"). Gerçek gönderimle AYNI kurucu ve AYNI gönderici (Brevo,
+ * support@), ama: konu "[TEST]" önekli, hiçbir lead damgalanmaz, çıkış linki jetonsuz.
+ * Örnek müşteri: gönderilecek ilk gerçek hedef (dil ve ad onunkiyle), yoksa örnek bir dükkân.
+ * [ok, mesaj]   $send: testte sahte gönderici (vestra_send_mail imzası).
+ */
+function vestra_finder_send_test(string $key, string $to, ?callable $send = null): array {
+  $send = $send ?? 'vestra_send_mail';
+  $camps = vestra_finder_campaigns();
+  if (!isset($camps[$key])) return [false, 'Kampanya bulunamadı.'];
+  $to = trim($to);
+  if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return [false, 'Geçerli bir test adresi yazın.'];
+  $tg = vestra_finder_send_targets(1);
+  $sample = $tg ? reset($tg) : ['company' => 'Boutique Example', 'country' => 'Italy', 'email' => $to, 'contact_name' => ''];
+  $sample['unsub_token'] = ''; $sample['email'] = $to;
+  [$s, $b, $o, $from] = ($camps[$key][2])($sample);
+  $ok = (bool)$send($to, '[TEST] '.$s, $b, '', $from, null, '', (array)$o);
+  return [$ok, $ok ? 'Test gönderildi → '.$to.' ('.(string)($sample['company'] ?? '').' örneğiyle, '.vestra_finder_lead_lang($sample).'). Gelen kutusunu ve spam klasörünü kontrol edin.'
+                   : 'Test gönderilemedi — Brevo anahtarı / kota kontrol edilmeli (hata günlüğü).'];
+}
+
 /** [gönderilen, hata, satırlar] — $dry: gönderme, yalnızca listele. */
 function vestra_finder_send(string $key, int $limit, bool $dry): array {
   $camps = vestra_finder_campaigns();

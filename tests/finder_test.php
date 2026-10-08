@@ -91,8 +91,15 @@ $t('admin.php finder.php\'yi kendisi yüklüyor', substr_count($adm, "require_on
 $t('seller.php finder.php\'yi kendisi yüklüyor', substr_count($sel, "require_once __DIR__.'/inc/finder.php'") >= 2);
 $t('admin: başlat + anahtar formları CSRF\'li', (bool)preg_match("~csrfField\(\) \?><input type=\"hidden\" name=\"_action\" value=\"finder_web_start\"~", $adm)
                                             && (bool)preg_match("~csrfField\(\) \?><input type=\"hidden\" name=\"_action\" value=\"save_finder_web\"~", $adm));
-$t('satıcı eylemi izinli eylem listesinde', str_contains($sel, "'seller_find_all','seller_finder_start','seller_ai_generate','seller_ai_save','seller_ai_stop']"));
-$t('satıcı Brevo anahtarını kaydedebiliyor (boş = koru, işaret = sil)', str_contains($sel, "'mail_api_key'=>!empty(\$_POST['brevo_clear'])?''"));
+/* İzin listesi ile işleyiciler AYNI kümeyi söylemeli: listede olmayan bir eylem sessizce
+   hiç işlenmez (8 Eki 2026: seller_ai_key böyle canlıya çıktı — form vardı, kayıt yoktu). */
+preg_match('/in_array\(\(\$_POST\[\'_action\'\]\?\?\'\'\),\[([^\]]+)\],true\)\) \{\n  require_once __DIR__\.\'\/inc\/notify\.php\'/', $sel, $am);
+$allow = isset($am[1]) ? array_map(fn($x) => trim($x, " '"), explode(',', $am[1])) : [];
+preg_match_all('/\$sact===\'(seller_[a-z_]+)\'/', $sel, $hm); preg_match_all('/\'(seller_ai_[a-z]+)\'/', $sel, $hm2);
+$handled = array_unique(array_merge($hm[1], array_filter($hm2[1], fn($x) => in_array($x, ['seller_ai_generate', 'seller_ai_save', 'seller_ai_stop', 'seller_ai_key'], true))));
+$t('satıcı: işlenen HER eylem izin listesinde ('.count($handled).' eylem)', $allow && count($handled) >= 10 && !array_diff($handled, $allow));
+$t('satıcı: formlardaki her seller_* eylemi izin listesinde', (function () use ($sel, $allow) { preg_match_all('/name="_action" value="(seller_[a-z_]+)"/', $sel, $fm); return $fm[1] && !array_diff(array_unique($fm[1]), $allow); })());
+$t('satıcı Brevo anahtarını kaydedebiliyor (boş = koru, işaret = sil)', str_contains($sel, "\$newBrevo=!empty(\$_POST['brevo_clear'])?''") && str_contains($sel, "'mail_api_key'=>\$newBrevo"));
 foreach (['https://app.brevo.com/settings/keys/api', 'https://help.brevo.com/hc/en-us/articles/209467485', 'https://help.brevo.com/hc/en-us/articles/208836149', 'https://help.brevo.com/hc/en-us/articles/12163873383186'] as $u)
   $t('Brevo rehber linki adminde: '.basename($u), str_contains($adm, $u));
 foreach (['https://www.brevo.com/', 'https://app.brevo.com/settings/keys/api', 'https://help.brevo.com/hc/en-us/articles/209467485'] as $u)
@@ -203,6 +210,43 @@ foreach ($langs as $lg) { $L2 = require $root.'/inc/lang/'.$lg.'.php'; foreach (
 $t('yeni satıcı metinleri 8 dilde', !$miss);
 $t('%s yer tutucusu çeviride korunuyor', !array_filter($langs, function ($lg) use ($root) { $L2 = require $root.'/inc/lang/'.$lg.'.php'; return substr_count($L2['Open %s and sign up (email or Google).'], '%s') !== 1 || substr_count($L2['This month: %d campaigns'], '%d') !== 1; }));
 
+echo "\n== 9c. gönderim kurulumu + test gönderimi (ağsız, sahte gönderici) ==\n";
+require_once $root.'/inc/seller_send.php';
+$bk = 'xkeysib-'.str_repeat('a', 64).'-'.str_repeat('B', 16);
+$t('Brevo: biçim dışı anahtar ağa çıkmadan reddedilir', vestra_brevo_check('sk-ant-xxx', 'a@b.de', function () { throw new Exception('ag'); })['code'] === 'format');
+$t('Brevo: 401 → invalid', vestra_brevo_check($bk, 'a@b.de', fn($u) => [401, null])['code'] === 'invalid');
+$t('Brevo: ağ yok → unreachable', vestra_brevo_check($bk, 'a@b.de', fn($u) => [0, null])['code'] === 'unreachable');
+$fake = fn($u) => str_ends_with($u, '/account') ? [200, ['companyName' => 'Shop GmbH']]
+                 : [200, ['senders' => [['email' => 'Info@Shop.de', 'active' => true], ['email' => 'sales@shop.de', 'active' => false]]]];
+$bcA = vestra_brevo_check($bk, 'info@shop.de', $fake);
+$t('Brevo: hesap adı + doğrulanmış gönderen (büyük/küçük harf duyarsız)', $bcA['ok'] && $bcA['account'] === 'Shop GmbH' && $bcA['sender_ok'] === true);
+$t('Brevo: doğrulanmamış (active=false) adres "onaylı değil"', vestra_brevo_check($bk, 'sales@shop.de', $fake)['sender_ok'] === false);
+$sent = [];
+$spy = function ($to, $subj, $body, $rt, $from, $cfg, $img = '') use (&$sent) { $sent[] = compact('to', 'subj', 'body', 'from', 'cfg'); return true; };
+vestra_write_json('ai_campaigns.json', [['id' => 'ACt1', 'owner' => 'sellT', 'created_at' => date('c'), 'lang' => 'en', 'subject' => 'Spring for {{company}}', 'body' => 'Dear {{company}}, our spring lines.', 'active' => true]]);
+[$ok1, $c1, $to1] = vestra_seller_send_test('sellT', 'T Seller', 'stranger@other.example', 'owner@seller.example', null, $spy);
+$t('kurulum yok: test VESTRA ile YALNIZ hesap adresine (girilen adres yok sayılır)', $ok1 && $c1 === 'platform' && $to1 === 'owner@seller.example' && $sent[0]['to'] === 'owner@seller.example' && $sent[0]['cfg'] === null);
+$t('test = kullanılan kampanya, [TEST] + örnek dükkân adı', $sent[0]['subj'] === '[TEST] Spring for Boutique Example' && str_contains($sent[0]['body'], 'Dear Boutique Example'));
+for ($i = 0; $i < 4; $i++) vestra_seller_send_test('sellT', 'T', '', 'owner@seller.example', null, $spy);
+$t('kurulum yok: günde 5 test, 6.sı "limit"', vestra_seller_send_test('sellT', 'T', '', 'owner@seller.example', null, $spy)[1] === 'limit' && count($sent) === 5);
+vestra_seller_mail_save('sellT', ['mail_enabled' => true, 'mail_from' => 'info@shop.de', 'smtp_from' => 'info@shop.de', 'mail_api_key' => $bk, 'mail_api_provider' => 'brevo']);
+[$ok2, $c2, $to2] = vestra_seller_send_test('sellT', 'T Seller', 'me@shop.de', 'owner@seller.example', null, $spy);
+$t('kurulu: kendi Brevo ayarıyla, istenen adrese, sınırsız', $ok2 && $c2 === 'own' && end($sent)['to'] === 'me@shop.de' && (end($sent)['cfg']['mail_api_key'] ?? '') === $bk);
+$t('kurulu: "test gönderildi" işareti kayda yazılır', (vestra_seller_mail('sellT')['last_test_to'] ?? '') === 'me@shop.de' && (vestra_seller_mail('sellT')['last_test_ok_at'] ?? '') !== '');
+$t('kurulu: geçersiz adres reddedilir', vestra_seller_send_test('sellT', 'T', 'not-an-email', 'owner@seller.example', null, $spy)[1] === 'badto');
+vestra_write_json('ai_campaigns.json', [['id' => 'ACt1', 'owner' => 'sellT', 'created_at' => date('c'), 'lang' => 'en', 'subject' => 'Spring for {{company}}', 'body' => 'x', 'active' => false],
+                                        ['id' => 'ACt2', 'owner' => 'sellT', 'created_at' => date('c'), 'lang' => 'de', 'subject' => 'Herbst {{company}}', 'body' => 'Hallo {{company}}', 'active' => false],
+                                        ['id' => 'ACo', 'owner' => 'other', 'created_at' => date('c'), 'lang' => 'de', 'subject' => 'FREMD', 'body' => 'y', 'active' => false]]);
+vestra_seller_send_test('sellT', 'T', 'me@shop.de', 'x@y.de', 'ACt2', $spy);
+$t('kampanya testi: seçilen kendi kampanyası', end($sent)['subj'] === '[TEST] Herbst Boutique Example');
+vestra_seller_send_test('sellT', 'T', 'me@shop.de', 'x@y.de', 'ACo', $spy);
+$t('başkasının kampanyası test edilemez → standart davet', !str_contains(end($sent)['subj'], 'FREMD'));
+$leadsBefore = (string)file_get_contents(VESTRA_DATA_DIR.'/leads.json');
+$adm = [];
+[$aOk, $aMsg] = vestra_finder_send_test('standard', 'ops@vestra.example', function ($to, $subj, $body, $rt, $from, $cfg, $img, $o) use (&$adm) { $adm[] = compact('to', 'subj'); return true; });
+$t('admin testi: [TEST] konu, operatör adresine, leads.json DEĞİŞMEDİ', $aOk && $adm[0]['to'] === 'ops@vestra.example' && str_starts_with($adm[0]['subj'], '[TEST] ') && $leadsBefore === (string)file_get_contents(VESTRA_DATA_DIR.'/leads.json'));
+$t('admin testi: geçersiz adres / bilinmeyen kampanya reddedilir', !vestra_finder_send_test('standard', 'nope')[0] && !vestra_finder_send_test('yok', 'a@b.de')[0]);
+
 $aic = (string)file_get_contents($root.'/inc/ai_campaign.php');
 $t('istek: yapılandırılmış çıktı + ret/uzunluk durumu ele alınıyor', str_contains($aic, "'json_schema'") && str_contains($aic, "'refusal'") && str_contains($aic, "'max_tokens'"));
 
@@ -260,6 +304,10 @@ file_put_contents($sb.'/vestra/data/seller_ai_keys.json', json_encode(['sell0000
 $hs2 = (string)shell_exec('cd '.escapeshellarg($sb).' && php s.php 2>/dev/null');
 $t('satıcı (kendi anahtarı): yeşil durum, kota satırı yok, "Diesen Monat"', str_contains($hs2, '● Ihr eigener Claude-Schlüssel') && !str_contains($hs2, 'Heute übrig') && str_contains($hs2, 'Diesen Monat: 0 Kampagnen'));
 $t('satıcı (kendi anahtarı): anahtar sayfada YOK, yalnız son 4 hane + Kaldır düğmesi', !str_contains($hs2, 'OWNSELLERKEY') && str_contains($hs2, '…Z9q7') && str_contains($hs2, 'name="ai_key_clear"'));
+$t('satıcı: gönderim kartı — 3 adım, SMTP uyarısı, test bölümü ALMANCA', str_contains($hs, 'id="sendsetup"') && str_contains($hs, 'Ihre Absender-E-Mail') && str_contains($hs, 'Brevo-Schlüssel')
+   && str_contains($hs, 'Unser Hosting blockiert ausgehende SMTP-Verbindungen') && str_contains($hs, 'Test an sich selbst senden') && str_contains($hs, 'value="seller_send_test"'));
+$t('satıcı: kampanya başına test düğmesi', str_contains($hs, 'value="seller_camp_test"') && str_contains($hs, 'Test an mich senden'));
+$t('admin: 🧪 Bana test gönder + test adresi', str_contains($ha, 'name="mode" value="test"') && str_contains($ha, 'name="test_to"'));
 $t('satıcı (kendi anahtarı): PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $hs2));
 
 exec('rm -rf '.escapeshellarg($sand));

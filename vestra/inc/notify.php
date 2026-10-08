@@ -30,8 +30,11 @@ function vestra_cfg($k,$def=null){
  * go out truly "from" the seller — best deliverability (their provider signs SPF/DKIM).
  * Stored web-denied + gitignored under data/, keyed by seller account id; same key shape
  * as the global settings (smtp_host, smtp_port, smtp_user, smtp_pass, mail_from, smtp_name). */
+/* Veri dizini: varsa vestra_data_dir() (VESTRA_DATA_DIR'e uyar). Sabit yol, testlerin kum
+   havuzunda bile GERÇEK data/seller_mail.json'a yazmasına yol açıyordu (8 Eki 2026). */
+function vestra_seller_mail_dir(): string { return function_exists('vestra_data_dir') ? vestra_data_dir() : dirname(__DIR__).'/data'; }
 function vestra_seller_mail_all(): array {
-  $f=dirname(__DIR__).'/data/seller_mail.json';
+  $f=vestra_seller_mail_dir().'/seller_mail.json';
   if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; }
   return [];
 }
@@ -39,7 +42,7 @@ function vestra_seller_mail(string $uid): array {
   $a=vestra_seller_mail_all(); return (isset($a[$uid])&&is_array($a[$uid]))?$a[$uid]:[];
 }
 function vestra_seller_mail_save(string $uid, array $cfg): void {
-  $dir=dirname(__DIR__).'/data'; if(!is_dir($dir)) @mkdir($dir,0775,true);
+  $dir=vestra_seller_mail_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
   $a=vestra_seller_mail_all(); $a[$uid]=$cfg;
   file_put_contents($dir.'/seller_mail.json',json_encode($a,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
   @chmod($dir.'/seller_mail.json',0600);
