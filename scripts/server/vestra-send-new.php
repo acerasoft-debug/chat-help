@@ -74,6 +74,12 @@ if (!$picked) { echo "Kriterleri gecen gonderilmemis lead yok -- gonderim yapilm
 
 $sent = 0; $fail = 0; $langCounts = [];
 foreach ($picked as $i => $l) {
+  /* Brevo kredisi sipariş/fatura payına indiyse DUR (8 Eki 2026: ücretsiz planın hakkı bitince
+     Brevo mektubu kabul edip GÖNDERMİYORDU; o akşam 114 kampanya "gitti" sanıldı). */
+  if (function_exists('vestra_campaign_credit_ok') && !($cc = vestra_campaign_credit_ok())[0]) {
+    echo "  || DURDU: Brevo gunluk kredisi ".(int)$cc[1]." — siparis/fatura payina (".vestra_brevo_reserve().") indi. Kalanlar yarin.\n";
+    break;
+  }
   $company = (string)($l['company'] ?? '');
   $mail    = strtolower(trim((string)($l['email'] ?? '')));
   $ckey    = strtolower(trim((string)($l['country'] ?? '')));
