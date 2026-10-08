@@ -5615,6 +5615,163 @@ jobs:
       # Varsayilan KURU KOSU; move_apply=true uygular. Once accounts.json yedeklenir,
       # yazma geri okunur. MUSTERIYE HICBIR SEY GITMEZ. payload='skip=<ref|firma parcasi>,...'
       # verilirse o siparisin/firmanin sahibi atlanir.
+      # MUSTERI EDINME HUNISI (operator, 8 Eki 2026: "yeni musteri bulmamiz gerekiyor, en kolay
+      # ve en iyi yontemi bul"). SALT OKUNUR: kayitli alicilari lead listesiyle (ayni adres ya
+      # da ayni is alan adi) eslestirip kanal / lead kaynagi / kategori / ulke / kayit ayi
+      # bazinda kayit, onay, siparis, odeme ve odenen ciroyu sayar; lead tarafinda mektup
+      # alan -> kayit olan oranini verir. Isim ve adres BASILMAZ, yalniz toplamlar.
+      - name: Musteri edinme hunisi (acq_funnel) -- salt okunur
+        if: ${{ github.event.inputs.admin_mode == 'acq_funnel' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          script: |
+            cat > /tmp/vestra_acq_funnel.php <<'PHPEOF'
+            <?php
+            /* SALT OKUNUR musteri edinme hunisi. Isim/adres BASILMAZ -- yalniz toplamlar,
+               ulke ve kanal. Kayitta kaynak alani yok; kaynak kayitli alicinin adresi
+               (ya da is alan adi) lead listesiyle eslesiyor mu diye TURETILIR. */
+            ini_set('display_errors', 'stderr'); error_reporting(E_ALL);
+            $doc = getenv('HOME').'/public_html';
+            require_once $doc.'/inc/products.php';
+            require_once $doc.'/inc/auth.php';
+            require_once $doc.'/inc/leads.php';
+            require_once $doc.'/inc/orders.php';
+            require_once $doc.'/inc/security.php';
+            $now = time();
+            $cc = function (string $c): string {
+              $c = trim($c); if ($c === '') return '??';
+              if (preg_match('/^[A-Za-z]{2}$/', $c)) return strtoupper($c);
+              $x = vestra_cc_of_country(mb_strtolower($c));
+              return $x !== '' ? $x : mb_convert_case(mb_substr($c, 0, 14), MB_CASE_TITLE);
+            };
+            $free = '/@(gmail|googlemail|hotmail|outlook|live|msn|yahoo|ymail|icloud|me|mac|aol|gmx|web|t-online|orange|free|sfr|wanadoo|laposte|libero|virgilio|alice|tiscali|yandex|mail|protonmail|proton|bk|inbox|list|rambler|qq|163|126|seznam|wp|o2|onet|interia)\./i';
+            $dom = function (string $e) use ($free): string {
+              $e = strtolower(trim($e)); $at = strrpos($e, '@'); if ($at === false) return '';
+              return preg_match($free, $e) ? '' : substr($e, $at + 1);
+            };
+            $host = function (string $u): string {
+              $h = strtolower((string)parse_url(preg_match('~^https?://~i', $u) ? $u : 'http://'.$u, PHP_URL_HOST));
+              return preg_replace('/^www\./', '', $h);
+            };
+            $isTest = function (array $a): bool {
+              $e = strtolower((string)($a['email'] ?? '')); $c = strtolower((string)($a['company'] ?? ''));
+              return (bool)preg_match('/acerasoft|pentest|@example\.|\+test|^test|verify|probe/', $e) || (bool)preg_match('/\btest\b|pentest/', $c);
+            };
+
+            /* --- lead indeksleri --- */
+            $leads = vestra_leads();
+            $leadByEmail = []; $leadByDom = [];
+            $stampKeys = function (array $l): array {
+              $t = [];
+              foreach ($l as $k => $v) if (is_string($v) && $v !== '' && (str_starts_with($k, 'last_') || preg_match('/^offer_.*_at$/', $k)) && str_ends_with($k, '_at')) { $ts = strtotime($v); if ($ts) $t[] = $ts; }
+              return $t;
+            };
+            foreach ($leads as $l) {
+              $e = strtolower(trim((string)($l['email'] ?? '')));
+              if ($e !== '') $leadByEmail[$e] = $l;
+              foreach ([$dom($e), $host((string)($l['website'] ?? ''))] as $d) if ($d !== '' && !isset($leadByDom[$d])) $leadByDom[$d] = $l;
+            }
+
+            /* --- siparisler --- */
+            $st = vestra_read_json('order_statuses.json');
+            $ordBy = [];
+            foreach (vestra_read_csv('orders.csv') as $o) {
+              $e = strtolower(trim((string)($o['email'] ?? ''))); $ref = (string)($o['ref'] ?? '');
+              if ($e === '' || $ref === '') continue;
+              $s = (string)(($st[$ref] ?? [])['status'] ?? 'pending');
+              $paid = vestra_order_payment_settled($ref, (array)($st[$ref] ?? ['status' => 'pending']))['settled'];
+              $cur = strtoupper(trim((string)($o['currency'] ?? ''))) ?: 'EUR';
+              $ordBy[$e][] = ['cancel' => $s === 'cancelled', 'paid' => $paid, 'total' => (float)($o['total'] ?? 0), 'cur' => $cur, 'ts' => strtotime((string)($o['timestamp'] ?? '')) ?: 0];
+            }
+            $offBy = [];
+            foreach (vestra_read_csv('offers.csv') as $o) { $e = strtolower(trim((string)($o['email'] ?? ''))); if ($e !== '') $offBy[$e] = ($offBy[$e] ?? 0) + 1; }
+
+            /* --- alicilar --- */
+            $rows = []; $tests = 0;
+            foreach (auth_accounts() as $a) {
+              if (($a['type'] ?? '') !== 'buyer') continue;
+              if ($isTest($a)) { $tests++; continue; }
+              $e = strtolower(trim((string)($a['email'] ?? '')));
+              $created = strtotime((string)($a['created'] ?? '')) ?: 0;
+              $ch = 'organik/bilinmiyor'; $lead = null;
+              if (isset($leadByEmail[$e])) { $ch = 'lead (ayni adres)'; $lead = $leadByEmail[$e]; }
+              else {
+                $d = $dom($e); $w = $host((string)($a['website'] ?? ''));
+                foreach ([$d, $w] as $k) if ($k !== '' && isset($leadByDom[$k])) { $ch = 'lead (ayni alan adi)'; $lead = $leadByDom[$k]; break; }
+              }
+              $contactedBefore = null;
+              if ($lead) { $ts = $stampKeys($lead); $first = $ts ? min($ts) : 0; $contactedBefore = $first && $created && $first <= $created; }
+              $ords = array_values(array_filter($ordBy[$e] ?? [], fn($x) => !$x['cancel']));
+              $paid = array_values(array_filter($ords, fn($x) => $x['paid']));
+              $rows[] = ['ch' => $ch, 'lead' => $lead, 'before' => $contactedBefore, 'cc' => $cc((string)($a['country'] ?? '')),
+                         'created' => $created, 'status' => (string)($a['status'] ?? '?'), 'kyb' => (string)($a['kyb_status'] ?? '?'),
+                         'ord' => count($ords), 'paidn' => count($paid), 'paid' => $paid, 'off' => $offBy[$e] ?? 0,
+                         'promo' => (string)($a['promo_code'] ?? ''), 'auto' => (string)($a['kyb_auto'] ?? '')];
+            }
+            $pct = fn($a, $b) => $b ? sprintf('%4.1f%%', 100 * $a / $b) : '   -';
+            $money = function (array $rs): string {
+              $s = []; foreach ($rs as $r) foreach ($r['paid'] as $p) $s[$p['cur']] = ($s[$p['cur']] ?? 0) + $p['total'];
+              ksort($s); return $s ? implode(' + ', array_map(fn($k, $v) => $k.' '.number_format($v, 0, '.', ','), array_keys($s), $s)) : '-';
+            };
+            $table = function (string $title, array $groups, int $limit = 20) use ($pct, $money) {
+              echo "\n== {$title} ==\n";
+              printf("  %-26s %5s %8s %8s %8s %7s  %s\n", '', 'kayit', 'onayli', 'siparis', 'odeyen', 'teklif', 'odenen ciro');
+              uasort($groups, fn($x, $y) => count($y) <=> count($x));
+              foreach (array_slice($groups, 0, $limit, true) as $k => $rs) {
+                $n = count($rs);
+                $ok = count(array_filter($rs, fn($r) => $r['kyb'] === 'approved' || $r['status'] === 'active'));
+                $o  = count(array_filter($rs, fn($r) => $r['ord'] > 0));
+                $p  = count(array_filter($rs, fn($r) => $r['paidn'] > 0));
+                $of = count(array_filter($rs, fn($r) => $r['off'] > 0));
+                printf("  %-26s %5d %8s %4d %3s %4d %3s %7d  %s\n", mb_substr((string)$k, 0, 26), $n, $pct($ok, $n), $o, $pct($o, $n), $p, $pct($p, $n), $of, $money($rs));
+              }
+            };
+            echo "=== MUSTERI EDINME HUNISI (salt okunur, ".date('Y-m-d H:i')." UTC) ===\n";
+            echo "alici hesabi: ".count($rows)." (test/operator hesabi haric tutulan: {$tests})\n";
+            $g = []; foreach ($rows as $r) $g[$r['ch']][] = $r; $table('KANAL', $g);
+            $g = []; foreach ($rows as $r) if ($r['lead']) $g[$r['before'] === true ? 'mektup kayittan ONCE' : ($r['before'] === false ? 'mektup kayittan SONRA' : 'mektup hic yok')][] = $r; $table('LEAD ESLESMESI: kampanya once mi?', $g);
+            $g = []; foreach ($rows as $r) if ($r['lead']) $g[(string)($r['lead']['source'] ?? '') ?: '(kaynak yok)'][] = $r; $table('LEAD KAYNAGI (eslesenler)', $g);
+            $g = []; foreach ($rows as $r) if ($r['lead']) $g[(string)($r['lead']['category'] ?? '') ?: '(kategori yok)'][] = $r; $table('LEAD KATEGORISI (eslesenler)', $g, 12);
+            $g = []; foreach ($rows as $r) $g[$r['cc']][] = $r; $table('ULKE (tum alicilar)', $g, 25);
+            $g = []; foreach ($rows as $r) $g[$r['created'] ? date('Y-m', $r['created']) : '????'][] = $r; ksort($g); echo "\n== KAYIT AYI ==\n"; foreach ($g as $k => $rs) { $o = count(array_filter($rs, fn($r) => $r['ord'] > 0)); $p = count(array_filter($rs, fn($r) => $r['paidn'] > 0)); $l = count(array_filter($rs, fn($r) => $r['lead'])); printf("  %s  kayit %4d | lead eslesen %4d | siparis %3d | odeyen %3d\n", $k, count($rs), $l, $o, $p); }
+            $g = []; foreach ($rows as $r) $g[$r['promo'] !== '' ? 'kupon '.$r['promo'] : ($r['auto'] !== '' ? 'oto-onay '.$r['auto'] : '(yok)')][] = $r; $table('KAYIT KUPONU / OTO-ONAY', $g, 12);
+
+            /* --- lead hunisi --- */
+            $regE = []; foreach (auth_accounts() as $a) { $e = strtolower(trim((string)($a['email'] ?? ''))); if ($e !== '') $regE[$e] = true; }
+            $regD = []; foreach (auth_accounts() as $a) { foreach ([$dom((string)($a['email'] ?? '')), $host((string)($a['website'] ?? ''))] as $d) if ($d !== '') $regD[$d] = true; }
+            $lg = []; $lgc = []; $tot = ['n' => 0, 'mail' => 0, 'c' => 0, 'r' => 0, 'u' => 0];
+            foreach ($leads as $l) {
+              $e = strtolower(trim((string)($l['email'] ?? '')));
+              $c = $stampKeys($l) ? 1 : 0;
+              $reg = ($e !== '' && isset($regE[$e])) || (($d = $dom($e)) !== '' && isset($regD[$d])) || (($h = $host((string)($l['website'] ?? ''))) !== '' && isset($regD[$h]));
+              $u = ($l['status'] ?? '') === 'unsubscribed';
+              $tot['n']++; $tot['mail'] += $e !== '' ? 1 : 0; $tot['c'] += $c; $tot['r'] += $reg ? 1 : 0; $tot['u'] += $u ? 1 : 0;
+              foreach ([[&$lg, $cc((string)($l['country'] ?? ''))], [&$lgc, (string)($l['category'] ?? '') ?: '(yok)']] as $pair) {
+                $k = $pair[1]; $pair[0][$k] ??= ['n' => 0, 'c' => 0, 'r' => 0, 'rc' => 0, 'u' => 0];
+                $pair[0][$k]['n']++; $pair[0][$k]['c'] += $c; $pair[0][$k]['r'] += $reg ? 1 : 0; $pair[0][$k]['rc'] += ($reg && $c) ? 1 : 0; $pair[0][$k]['u'] += $u ? 1 : 0;
+              }
+            }
+            echo "\n== LEAD HUNISI ==\n";
+            printf("  lead %d | adresli %d | mektup almis %d | kayitli hesapla eslesen %d | abonelikten cikan %d\n", $tot['n'], $tot['mail'], $tot['c'], $tot['r'], $tot['u']);
+            foreach (['ULKE' => $lg, 'KATEGORI' => $lgc] as $t => $grp) {
+              uasort($grp, fn($x, $y) => $y['c'] <=> $x['c']);
+              echo "  -- {$t} (mektup alana gore) --\n";
+              printf("    %-24s %6s %8s %10s %8s %6s\n", '', 'lead', 'mektup', 'kayit(mkt)', 'oran', 'unsub');
+              foreach (array_slice($grp, 0, 15, true) as $k => $v) printf("    %-24s %6d %8d %10d %8s %6d\n", mb_substr((string)$k, 0, 24), $v['n'], $v['c'], $v['rc'], $pct($v['rc'], $v['c']), $v['u']);
+            }
+            $req = vestra_read_csv('requests.csv');
+            echo "\nsourcing talebi (requests.csv): ".count($req)."\n";
+            PHPEOF
+            php -l /tmp/vestra_acq_funnel.php >/dev/null || { echo "sozdizimi hatasi"; exit 1; }
+            php -d display_errors=stderr -d error_reporting=-1 /tmp/vestra_acq_funnel.php; RC=$?
+            rm -f /tmp/vestra_acq_funnel.php
+            exit $RC
+
       # KAMPANYA DISI (operator, 8 Eki 2026: odenmemis fatura nedeniyle askiya alinan
       # alicilar -- "bu musterilere email gonderme artik / kampanyalardan uzaklastir").
       # payload='uids=<hesap ID>,<hesap ID>' hesaba no_campaigns=true yazar ve AYNI
