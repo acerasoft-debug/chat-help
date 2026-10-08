@@ -5615,6 +5615,35 @@ jobs:
       # Varsayilan KURU KOSU; move_apply=true uygular. Once accounts.json yedeklenir,
       # yazma geri okunur. MUSTERIYE HICBIR SEY GITMEZ. payload='skip=<ref|firma parcasi>,...'
       # verilirse o siparisin/firmanin sahibi atlanir.
+      # AI ANAHTAR DURUMU (ai_keys_status, 8 Eki 2026): kampanya yazarinin platform anahtarlari
+      # sunucuda var mi — YALNIZ var/yok ve uzunluk; deger, onek, son hane BASILMAZ.
+      - name: AI anahtar durumu (ai_keys_status) -- salt okunur
+        if: ${{ github.event.inputs.admin_mode == 'ai_keys_status' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 2m
+          script: |
+            cat > /tmp/vestra_aik.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html";
+            require_once $doc."/inc/products.php";
+            require_once $doc."/inc/notify.php";
+            require_once $doc."/inc/ai_campaign.php";
+            $yn = fn(string $v) => $v !== '' ? 'VAR' : 'YOK';
+            echo "platform Claude (anthropic_key) : ".$yn(vestra_ai_camp_key())."\n";
+            echo "platform DeepSeek (ai_key/DEEPSEEK_KEY): ".$yn(vestra_ai_camp_ds_key())."\n";
+            $r = vestra_ai_camp_route('');
+            echo "ucretsiz ilk kampanya yazari    : ".($r ? 'ACIK ('.$r['provider'].')' : 'KAPALI (anahtar yok)')."\n";
+            echo "satici basina ucretsiz          : ".vestra_ai_camp_limits()['free_total']."\n";
+            echo "kendi Claude anahtari olan satici: ".count(vestra_ai_camp_seller_keys())."\n";
+            echo "(salt okunur; anahtar degeri basilmadi)\n";
+            PHPEOF
+            php /tmp/vestra_aik.php; rm -f /tmp/vestra_aik.php
+
       # SMTP SONDASI (smtp_probe, 8 Eki 2026): satici "kendi e-postasindan ucretsiz" gonderebilsin
       # diye Gmail/Yahoo/iCloud/Zoho/Brevo SMTP'si SUNUCUDAN aciliyor mu? Paylasimli barindirma
       # 25/465/587'yi cogu zaman kapatir; kapaliysa tek ucretsiz yol HTTPS uzerinden API'dir.
