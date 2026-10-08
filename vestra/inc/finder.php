@@ -24,6 +24,7 @@
  */
 
 require_once __DIR__.'/notify.php';   // vestra_cfg
+require_once __DIR__.'/leads.php';    // vestra_leads, vestra_lead_template (kampanya gönderimi)
 
 const VESTRA_FINDER_REPO     = 'acerasoft-debug/chat-help';
 const VESTRA_FINDER_WORKFLOW = 'find-customers.yml';
@@ -300,4 +301,92 @@ function vestra_finder_runs_html(array $runs, bool $showOwner = false, array $ow
     $out .= '</div>';
   }
   return $out;
+}
+
+/* ── bulunan müşterilere kampanya gönder (admin) ─────────────────────────────
+   Operatör (8 Eki): "gönderdiğimiz kampanyalardan örnekler koy, seçim yapabilelim".
+   Seçenekler: daha önce gerçekten gönderilmiş kampanyalar + Claude ile yazılanlar. */
+
+/** Ülkeden kampanya dili — send-outreach.yml ile aynı eşleme (Belçika şehre göre). */
+function vestra_finder_lead_lang(array $l): string {
+  $map = ['netherlands'=>'nl','the netherlands'=>'nl','nederland'=>'nl','holland'=>'nl','france'=>'fr','monaco'=>'fr','italy'=>'it','italia'=>'it',
+          'portugal'=>'pt','czech republic'=>'cs','czechia'=>'cs','poland'=>'pl','polska'=>'pl','spain'=>'es','españa'=>'es','espana'=>'es',
+          'greece'=>'el','germany'=>'de','deutschland'=>'de','austria'=>'de','österreich'=>'de','osterreich'=>'de'];
+  $c = strtolower(trim((string)($l['country'] ?? '')));
+  if ($c === 'belgium') {
+    $hay = strtolower(($l['company'] ?? '').' '.($l['notes'] ?? '').' '.($l['website'] ?? ''));
+    foreach (['bruxelles','brussels','brussel','liège','liege','namur','charleroi','mons','tournai','arlon','wavre','verviers'] as $n) if (str_contains($hay, $n)) return 'fr';
+    return 'nl';
+  }
+  return $map[$c] ?? 'en';
+}
+
+/** key => [etiket, açıklama, kurucu fn(lead): [konu, metin, opts, gönderen adı]] */
+function vestra_finder_campaigns(): array {
+  $tok = static function (string $body, array $l): string {
+    $t = (string)($l['unsub_token'] ?? '');
+    return $t === '' ? $body : str_replace('https://vestrasales.com/lead-unsubscribe', 'https://vestrasales.com/lead-unsubscribe?token='.rawurlencode($t), $body);
+  };
+  $out = [
+    'lesgarage' => ['Les Garage de Paris — logo duvarlı premium kampanya', 'Günlük gönderimde kullanılan kampanya. Dil müşterinin ülkesine göre otomatik (9+ dil).',
+      function (array $l) use ($tok) { [$s, $b, $o] = vestra_campaign_preview((string)($l['company'] ?? ''), vestra_finder_lead_lang($l)); return [$s, $tok($b, $l), $o, 'Les Garage de Paris']; }],
+    'polos' => ['Lacoste polo — %10/%15 indirim promosyonu', 'Kısa promosyon mektubu (İngilizce).',
+      function (array $l) use ($tok) { [$s, $b, $o] = vestra_campaign_promo_polos((string)($l['company'] ?? '')); return [$s, $tok($b, $l), $o, 'Les Garage de Paris']; }],
+    'standard' => ['VESTRA standart toptan teklif', 'Müşteriler sekmesindeki düzenlenebilir şablon (İngilizce).',
+      function (array $l) { $tpl = vestra_lead_template(); [$s, $b] = vestra_lead_render_email($l, $tpl); return [$s, $b, [], '']; }],
+  ];
+  if (is_readable(__DIR__.'/ai_campaign.php')) {
+    require_once __DIR__.'/ai_campaign.php';
+    foreach (array_slice(vestra_ai_camp_list(''), 0, 8) as $c) {
+      $out['ai:'.$c['id']] = ['✍️ Claude: '.mb_substr((string)$c['subject'], 0, 70), 'Claude ile yazıldı · '.date('d.m H:i', (int)strtotime((string)$c['created_at'])).' · '.strtoupper((string)$c['lang']),
+        function (array $l) use ($c) { [$s, $b] = vestra_lead_render_email($l, vestra_ai_camp_template($c)); return [$s, $b, [], '']; }];
+    }
+  }
+  return $out;
+}
+
+/** Gönderilebilecek, web aramasıyla bulunmuş admin leadleri (yazılmamış, temiz). */
+function vestra_finder_send_targets(int $limit = 1000): array {
+  $out = []; $seen = [];
+  foreach (array_reverse(vestra_leads(), true) as $i => $l) {                 // en yeni önce
+    if (count($out) >= $limit) break;
+    if ((string)($l['source'] ?? '') !== 'web-search' || (string)($l['owner_uid'] ?? '') !== '') continue;
+    if (trim((string)($l['last_contacted_at'] ?? '')) !== '') continue;
+    $st = (string)($l['status'] ?? 'new'); if ($st === 'unsubscribed' || $st === 'bounced' || !empty($l['unsubscribed'])) continue;
+    $e = strtolower(trim((string)($l['email'] ?? ''))); if (!filter_var($e, FILTER_VALIDATE_EMAIL) || isset($seen[$e])) continue;
+    if (function_exists('vestra_email_is_junk') && vestra_email_is_junk($e)) continue;
+    if (function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) continue;
+    $seen[$e] = true; $out[$i] = $l;
+  }
+  return $out;
+}
+
+/** [gönderilen, hata, satırlar] — $dry: gönderme, yalnızca listele. */
+function vestra_finder_send(string $key, int $limit, bool $dry): array {
+  $camps = vestra_finder_campaigns();
+  if (!isset($camps[$key])) return [0, 0, ['Kampanya bulunamadı.']];
+  $limit = max(1, min(100, $limit));
+  $targets = vestra_finder_send_targets($limit);
+  $builder = $camps[$key][2];
+  $sent = 0; $fail = 0; $lines = []; $stamp = [];
+  @set_time_limit(0);
+  foreach ($targets as $i => $l) {
+    [$s, $b, $o, $from] = $builder($l);
+    $who = (string)($l['company'] ?? '').' <'.(string)$l['email'].'> · '.vestra_finder_lead_lang($l);
+    if ($dry) { $lines[] = '• '.$who.' — '.$s; continue; }
+    if (vestra_send_mail((string)$l['email'], $s, $b, '', $from, null, '', (array)$o)) { $sent++; $stamp[(string)($l['id'] ?? '')] = $key; $lines[] = '✓ '.$who; }
+    else { $fail++; $lines[] = '✗ '.$who; }
+  }
+  if ($stamp) {
+    /* Gönderim uzun sürer: damgayı TAZE listeye yaz ki bu arada başka bir işin
+       eklediği kayıt kaybolmasın (bilinen leads.json yarışı). */
+    $leads = vestra_leads();
+    foreach ($leads as $i => $lx) if (($k = $stamp[(string)($lx['id'] ?? '')] ?? null) !== null) {
+      $leads[$i]['last_contacted_at'] = date('c');
+      if (($leads[$i]['status'] ?? 'new') === 'new') $leads[$i]['status'] = 'contacted';
+      $leads[$i]['last_campaign'] = 'finder/'.$k;
+    }
+    vestra_save_leads($leads);
+  }
+  return [$sent, $fail, $lines];
 }

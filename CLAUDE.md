@@ -4694,6 +4694,22 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   (workflow concurrency grubu üçüncü isteği sessizce iptal eder), satıcı 24 saatte bir.
   Test: `tests/finder_test.php`. **Yerelde `vestra_finder_start()` ÇAĞIRMA:** oturum
   ortamının vekili GitHub API'ye kimlik ekliyor, çağrı gerçek workflow'u tetikler.
+- **Bulunan müşterilere kampanya + Claude kampanya yazarı (8 Eki 2026, operatör: "gönderdiğimiz
+  kampanyalardan örnekler koy seçim yapabileyim", "istediği tarza kendi kataloglarından kampanya
+  hazırlat, benim Claude API'mi kullandır ama limitli").** Admin ▸ Müşteriler ▸ 🌐 ▸ 📨: örnek
+  kampanyalar (`vestra_finder_campaigns()`: Les Garage logo duvarı — dil ülkeden, polo promosyonu,
+  standart şablon, admin'in Claude kampanyaları) + önizleme + "önce listele" (kuru) + gönder;
+  hedef = web-search ile bulunmuş, yazılmamış admin leadleri; damga TAZE leads.json'a
+  (`last_campaign = finder/<anahtar>`). ✍️ Claude: `inc/ai_campaign.php`, model
+  `claude-opus-5-5`, ham HTTP (projede composer yok), `output_config.effort=low` + json_schema,
+  `refusal`/`max_tokens` ele alınır. Yalnızca verilen ürün bilgileri; `{{company}}` yer tutucu;
+  çıkış/yasal alt bilgiyi model değil `vestra_lead_render_email` ekler. Anahtar `anthropic_key`
+  (`email_settings.json`; repo secret `ANTHROPIC_API_KEY` + `set-api-keys.yml` ya da admin
+  yapıştırma). **Sınır:** satıcı 3/gün, 20/ay, platform 300/ay (admin ayarlar,
+  `data/ai_campaign_usage.json`). Satıcı kendi ilanlarından yazdırır, "Use for sending" ile
+  etkinleştirir → `seller_send_one` standart davet yerine onu gönderir (kendi Brevo/SMTP'siyle).
+  Satıcının kampanyası admin listesine, adminin satıcıya görünmez. Brevo anahtarı repo
+  secret'ından sunucuya aktarıldı (8 Eki, hesap Acerasoft LLC).
 - **Siparişin USD karşılığı SİPARİŞ TARİHİNDEKİ kurla** (operatör, 7 Eyl 2026:
   *"siparişleri anında sipariş zamanındaki kur ile USD'ye çevirecek bir sistem
   koy admin paneline"*). Tek kaynak `inc/fx_orders.php`; damga

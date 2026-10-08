@@ -494,7 +494,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
 }
 
 /* ── Seller customer outreach: own SMTP + own customer list + one-by-one send ── */
-if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_array(($_POST['_action']??''),['seller_save_smtp','seller_send_test','seller_add_lead','seller_import_leads','seller_send_one','seller_find_email','seller_discover','seller_find_all','seller_finder_start'],true)) {
+if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_array(($_POST['_action']??''),['seller_save_smtp','seller_send_test','seller_add_lead','seller_import_leads','seller_send_one','seller_find_email','seller_discover','seller_find_all','seller_finder_start','seller_ai_generate','seller_ai_save','seller_ai_stop'],true)) {
   require_once __DIR__.'/inc/notify.php'; require_once __DIR__.'/inc/leads.php';
   $suid=$_SESSION['uid']??''; $sme=auth_user();
   if($suid==='' || ($sme['type']??'')!=='seller'){ if(($_POST['_action']??'')==='seller_send_one'){ header('Content-Type: application/json'); echo json_encode(['ok'=>false,'error'=>'auth']); } else header('Location: /seller?tab=find'); exit; }
@@ -535,6 +535,35 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
             : 'Web search is not available right now. Please try again later.';
     $_SESSION['seller_finder_flash']=[$fOk,$fMsg];
     header('Location: /seller?tab=find#finderweb'); exit;
+  }
+  /* Claude campaign writer (inc/ai_campaign.php): the seller picks products from THEIR OWN
+     listings + a style + a language; the platform's Claude key writes subject + body. Usage is
+     capped per seller per day/month and platform-wide per month (admin sets the limits). The
+     active campaign replaces the standard invite in "Send one-by-one". */
+  if(in_array($sact,['seller_ai_generate','seller_ai_save','seller_ai_stop'],true)){
+    require_once __DIR__.'/inc/ai_campaign.php';
+    if($sact==='seller_ai_generate'){
+      [$aOk,$aCode,$aC]=vestra_ai_camp_generate($suid,$sName,vestra_seller_listings($suid),['style'=>$_POST['style']??'','custom'=>$_POST['custom']??'',
+        'offer'=>$_POST['offer']??'','lang'=>$_POST['lang']??'en','prices'=>!empty($_POST['prices']),'products'=>(array)($_POST['products']??[])]);
+      $aMsgs=['ok'=>'Your campaign is ready — check it below, edit if you like, then press "Use for sending".',
+        'nokey'=>'The campaign writer is not available right now. Please try again later.',
+        'quota_day'=>'You have used today\'s campaign limit. Please try again tomorrow.',
+        'quota_month'=>'You have used this month\'s campaign limit.',
+        'quota_platform'=>'The campaign writer is not available right now. Please try again later.',
+        'noproducts'=>'Add products to your catalog first — the campaign is written from your own products.',
+        'refusal'=>'This request could not be written. Please change your style or offer text and try again.',
+        'toolong'=>'Too much at once — please choose fewer products.',
+        'api'=>'The campaign writer is not available right now. Please try again later.',
+        'parse'=>'Something went wrong — please try again.'];
+      $_SESSION['seller_ai_flash']=[$aOk,$aMsgs[$aCode]??$aMsgs['parse']];
+    } elseif($sact==='seller_ai_save'){
+      $aOk=vestra_ai_camp_save_edit((string)($_POST['cid']??''),$suid,(string)($_POST['subject']??''),(string)($_POST['body']??''),!empty($_POST['activate']));
+      $_SESSION['seller_ai_flash']=[$aOk,$aOk?(!empty($_POST['activate'])?'This campaign will be used when you send.':'Saved.'):'Something went wrong — please try again.'];
+    } else {
+      vestra_ai_camp_deactivate($suid);
+      $_SESSION['seller_ai_flash']=[true,'The standard invitation will be used when you send.'];
+    }
+    header('Location: /seller?tab=find#aicamp'); exit;
   }
   if($sact==='seller_find_email'){
     $sc=vestra_seller_mail($suid); $lid=$_POST['lid']??''; $leads=vestra_leads(); $found='';
@@ -585,7 +614,10 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
     header('Content-Type: application/json');
     $sc=vestra_seller_mail($suid);
     if(!vestra_seller_can_send($sc)){ echo json_encode(['ok'=>false,'error'=>'nosender']); exit; }
-    $lid=$_POST['lead_id']??''; $tpl=vestra_lead_template(); $leads=vestra_leads(); $res=['ok'=>false,'company'=>'','email'=>'','error'=>'notfound'];
+    require_once __DIR__.'/inc/ai_campaign.php';
+    /* The seller's active Claude campaign (if any) replaces the standard invite. */
+    $aiActive=vestra_ai_camp_active($suid);
+    $lid=$_POST['lead_id']??''; $tpl=$aiActive?vestra_ai_camp_template($aiActive):vestra_lead_template(); $leads=vestra_leads(); $res=['ok'=>false,'company'=>'','email'=>'','error'=>'notfound'];
     $heroImg=($tpl['img']??'')!==''?'https://vestrasales.com'.$tpl['img']:'';
     foreach($leads as &$l){
       if(($l['id']??'')!==$lid || (string)($l['owner_uid']??'')!==$suid) continue;
@@ -1389,6 +1421,51 @@ if($tab==='overview'){
     </form>
     <?php if($sfRuns): ?><div style="font-weight:600;font-size:13px;margin:4px 0 8px"><?= $tw('Your recent searches') ?></div><?= vestra_finder_runs_html($sfRuns, false, [], 4, true) ?><?php endif; ?>
     <?php if($sfMine): ?><script>setTimeout(function(){ if(!document.hidden) location.reload(); }, 60000);</script><?php endif; ?>
+  </div>
+
+  <?php
+    require_once __DIR__.'/inc/ai_campaign.php';
+    $acOn    = vestra_ai_camp_on();
+    $acQ     = vestra_ai_camp_quota($uid);
+    $acFlash = $_SESSION['seller_ai_flash'] ?? null; unset($_SESSION['seller_ai_flash']);
+    $acMine  = array_slice(vestra_ai_camp_list($uid), 0, 6);
+    $acAct   = vestra_ai_camp_active($uid);
+    $acCat   = array_slice($listings, 0, 80);
+  ?>
+  <div id="aicamp" style="<?= $card ?>;border-color:#d9cdf3">
+    <h3 style="margin:0 0 6px;font-size:15px"><?= $tw('✍️ Write a campaign with AI') ?></h3>
+    <p style="color:var(--mut);font-size:12.5px;margin:0 0 6px"><?= $tw('Choose products from your catalog, a style and a language. AI writes the subject and the text from your own products. You can edit it, then use it for sending to your customers below.') ?></p>
+    <p style="color:var(--mut);font-size:12px;margin:0 0 12px"><?= sprintf($tw('Left today: %d · this month: %d'), (int)$acQ['day_left'], (int)$acQ['month_left']) ?> · <?= $tw('Campaign used when sending:') ?> <b><?= $acAct ? htmlspecialchars((string)$acAct['subject']) : $tw('Standard invitation') ?></b></p>
+    <?php if($acFlash): ?><div style="background:<?= $acFlash[0]?'#eaf7ef':'#fdf0ee' ?>;border:1px solid <?= $acFlash[0]?'#b9e3c9':'#f0c4bd' ?>;color:<?= $acFlash[0]?'#1f7a4d':'#a3321f' ?>;padding:9px 13px;border-radius:10px;margin-bottom:12px;font-size:13px"><?= $tw((string)$acFlash[1]) ?></div><?php endif; ?>
+    <?php if(!$acOn): ?><p style="font-size:13px;color:#a9781a;margin:0"><?= $tw('The campaign writer is not available right now. Please try again later.') ?></p>
+    <?php elseif(!$acCat): ?><p style="font-size:13px;color:#a9781a;margin:0"><?= $tw('Add products to your catalog first — the campaign is written from your own products.') ?></p>
+    <?php else: ?>
+    <form method="post" style="margin-bottom:12px">
+      <input type="hidden" name="_action" value="seller_ai_generate">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div><label style="<?= $lbl ?>"><?= $tw('Style') ?></label><select name="style" style="<?= $inp ?>"><?php foreach(vestra_ai_camp_styles() as $sk=>[$sl]): ?><option value="<?= $sk ?>"><?= $tw($sl) ?></option><?php endforeach; ?></select></div>
+        <div><label style="<?= $lbl ?>"><?= $tw('Language') ?></label><select name="lang" style="<?= $inp ?>"><?php foreach(vestra_ai_camp_langs() as $lk=>$ln): ?><option value="<?= $lk ?>"><?= htmlspecialchars($ln) ?></option><?php endforeach; ?></select></div>
+      </div>
+      <div style="margin-bottom:8px"><label style="<?= $lbl ?>"><?= $tw('Products (hold Ctrl/Cmd to pick up to 12) — none = first 8') ?></label><select name="products[]" multiple size="5" style="<?= $inp ?>"><?php foreach($acCat as $p): ?><option value="<?= htmlspecialchars((string)($p['id']??'')) ?>"><?= htmlspecialchars(trim(($p['brand']??'').' — '.($p['name']??''))) ?></option><?php endforeach; ?></select></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div><label style="<?= $lbl ?>"><?= $tw('Your own words (optional)') ?></label><input name="custom" maxlength="300" placeholder="<?= $tw('e.g. short, elegant, for Italian boutiques') ?>" style="<?= $inp ?>"></div>
+        <div><label style="<?= $lbl ?>"><?= $tw('Offer or note (optional)') ?></label><input name="offer" maxlength="300" placeholder="<?= $tw('e.g. 10% off the first order') ?>" style="<?= $inp ?>"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0 0 10px"><input type="checkbox" name="prices" value="1"> <?= $tw('Show prices') ?></label>
+      <button class="btn btn-p btn-sm" type="submit"<?= $acQ['ok']?'':' disabled' ?> onclick="this.textContent=<?= htmlspecialchars(json_encode(t('Writing… (about 20 seconds)'), JSON_UNESCAPED_UNICODE)) ?>"><?= $tw('✍️ Write campaign') ?></button>
+    </form>
+    <?php endif; ?>
+    <?php if($acMine): ?><div style="font-weight:600;font-size:13px;margin:4px 0 8px"><?= $tw('Your campaigns') ?></div>
+    <?php foreach($acMine as $c): $isAct=!empty($c['active']); ?>
+      <details style="border:1px solid <?= $isAct?'#b9e3c9':'var(--line)' ?>;border-radius:9px;padding:8px 11px;margin-bottom:6px"<?= $isAct?' open':'' ?>><summary style="cursor:pointer;font-size:12.5px"><?= $isAct?'<span style="color:#1f9d63">● '.$tw('in use').'</span> ':'' ?><?= htmlspecialchars((string)$c['subject']) ?> <span style="color:var(--mut)">· <?= strtoupper(htmlspecialchars((string)$c['lang'])) ?> · <?= date('d.m H:i',(int)strtotime((string)$c['created_at'])) ?></span></summary>
+        <form method="post" style="margin-top:8px"><input type="hidden" name="_action" value="seller_ai_save"><input type="hidden" name="cid" value="<?= htmlspecialchars((string)$c['id']) ?>">
+          <label style="<?= $lbl ?>"><?= $tw('Subject') ?></label><input name="subject" value="<?= htmlspecialchars((string)$c['subject']) ?>" style="<?= $inp ?>;margin-bottom:8px">
+          <label style="<?= $lbl ?>"><?= $tw('Text') ?> <span style="font-weight:400;color:var(--mut)">· <?= $tw('{{company}} becomes the customer\'s shop name. The unsubscribe line is added automatically.') ?></span></label><textarea name="body" rows="9" style="<?= $inp ?>;margin-bottom:8px"><?= htmlspecialchars((string)$c['body']) ?></textarea>
+          <button class="btn btn-o btn-sm" type="submit"><?= $tw('Save') ?></button>
+          <button class="btn btn-p btn-sm" type="submit" name="activate" value="1"><?= $tw('Use for sending') ?></button></form></details>
+    <?php endforeach; ?>
+    <?php if($acAct): ?><form method="post"><input type="hidden" name="_action" value="seller_ai_stop"><button class="btn btn-o btn-sm" type="submit"><?= $tw('Stop using — send the standard invitation') ?></button></form><?php endif; ?>
+    <?php endif; ?>
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">

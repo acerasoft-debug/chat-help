@@ -116,7 +116,7 @@ function vestra_save_lead_template(array $t): void {
 function vestra_lead_render_email(array $lead, array $tpl): array {
     $map = [
         '{{company}}'      => $lead['company'] ?? '',
-        '{{contact_name}}' => $lead['contact_name'] ?: 'there',
+        '{{contact_name}}' => ($lead['contact_name'] ?? '') ?: 'there',
         '{{country}}'      => $lead['country'] ?? '',
     ];
     $subject = strtr($tpl['subject'] ?? '', $map);

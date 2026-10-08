@@ -1859,6 +1859,39 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     file_put_contents($dir.'/email_settings.json',json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($dir.'/email_settings.json',0600);
     header('Location: /admin?tab=prospects&msg=finder_web_saved#finderweb'); exit;
   }
+  /* Bulunan müşterilere seçilen kampanyayı gönder (inc/finder.php). dry = yalnızca listele. */
+  if($act==='finder_send_campaign'){
+    require_once __DIR__.'/inc/finder.php';
+    $dry=($_POST['mode']??'')!=='send';
+    [$sN,$fN,$lines]=vestra_finder_send((string)($_POST['camp']??''),(int)($_POST['limit']??20),$dry);
+    $_SESSION['finder_send_flash']=['dry'=>$dry,'sent'=>$sN,'fail'=>$fN,'lines'=>array_slice($lines,0,100),'camp'=>(string)($_POST['camp']??'')];
+    header('Location: /admin?tab=prospects#findersend'); exit;
+  }
+  /* Claude kampanya yazarı (inc/ai_campaign.php): anahtar, sınırlar, admin üretimi, düzenleme. */
+  if(in_array($act,['ai_camp_key','ai_camp_limits','ai_camp_generate','ai_camp_edit'],true)){
+    require_once __DIR__.'/inc/ai_campaign.php';
+    $dir=vestra_data_dir();
+    if($act==='ai_camp_key' || $act==='ai_camp_limits'){
+      $cur=is_readable($dir.'/email_settings.json')?json_decode((string)file_get_contents($dir.'/email_settings.json'),true):[]; if(!is_array($cur))$cur=[];
+      if($act==='ai_camp_key'){ $k=trim($_POST['anthropic_key']??''); if($k!=='') $cur['anthropic_key']=$k; if(!empty($_POST['ai_clear'])) unset($cur['anthropic_key']); }
+      else foreach(['ai_camp_per_day'=>[0,50],'ai_camp_per_month'=>[0,500],'ai_camp_platform_month'=>[0,5000]] as $k=>[$lo,$hi]){ if(isset($_POST[$k])) $cur[$k]=max($lo,min($hi,(int)$_POST[$k])); }
+      file_put_contents($dir.'/email_settings.json',json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($dir.'/email_settings.json',0600);
+      $_SESSION['ai_flash']=[true,'✓ Kaydedildi.'];
+    } elseif($act==='ai_camp_generate'){
+      $cat=array_values(array_filter(vestra_listings(),fn($p)=>($p['status']??'approved')==='approved'));
+      [$ok,$code,$c]=vestra_ai_camp_generate('', 'VESTRA', $cat, ['style'=>$_POST['style']??'','custom'=>$_POST['custom']??'','offer'=>$_POST['offer']??'',
+        'lang'=>$_POST['lang']??'en','prices'=>!empty($_POST['prices']),'products'=>(array)($_POST['products']??[])]);
+      $msgs=['ok'=>'✓ Kampanya yazıldı — aşağıda düzenleyebilir, gönderim listesinden seçebilirsiniz.','nokey'=>'Claude anahtarı yok — önce kaydedin.',
+        'quota_platform'=>'Bu ayın platform sınırı doldu (ayar aşağıda).','quota_month'=>'Aylık sınır doldu.','quota_day'=>'Günlük sınır doldu.',
+        'noproducts'=>'Katalogda ürün yok.','refusal'=>'Claude bu isteği reddetti — tarif/teklif metnini değiştirip tekrar deneyin.',
+        'toolong'=>'Yanıt sınırı aşıldı — daha az ürün seçin.','api'=>'Claude API hatası — anahtar ya da bakiye kontrol edilmeli (hata günlüğüne yazıldı).','parse'=>'Yanıt okunamadı — tekrar deneyin.'];
+      $_SESSION['ai_flash']=[$ok,$msgs[$code]??$code];
+    } else {
+      $ok=vestra_ai_camp_save_edit((string)($_POST['cid']??''),'',(string)($_POST['subject']??''),(string)($_POST['body']??''),false);
+      $_SESSION['ai_flash']=[$ok,$ok?'✓ Düzenleme kaydedildi.':'Kampanya bulunamadı.'];
+    }
+    header('Location: /admin?tab=prospects#aicamp'); exit;
+  }
   if($act==='finder_web_start'){
     require_once __DIR__.'/inc/finder.php';
     [$fOk,$fMsg]=vestra_finder_start($_POST,'','admin');
@@ -6371,6 +6404,91 @@ elseif($tab==='prospects'):
   <div style="font-weight:600;font-size:13px;margin:4px 0 8px">Son aramalar</div>
   <?= vestra_finder_runs_html($fwRuns, true, $fwNames, 6) ?>
   <?php if($fwActive): ?><script>setTimeout(function(){ if(!document.hidden) location.reload(); }, 45000);</script><?php endif; ?>
+
+  <?php
+    /* ── 📮 Bulunanlara kampanya gönder ── */
+    $fsCamps=vestra_finder_campaigns(); $fsTargets=vestra_finder_send_targets(1000);
+    $fsSample=$fsTargets?reset($fsTargets):['company'=>'Boutique Esempio','country'=>'Italy','email'=>'info@example.com','unsub_token'=>'','contact_name'=>''];
+    $fsFlash=$_SESSION['finder_send_flash']??null; unset($_SESSION['finder_send_flash']);
+  ?>
+  <div id="findersend" style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
+    <div style="font-weight:700;font-size:14px;margin-bottom:4px">📮 Bulunan müşterilere kampanya gönder <span class="ahint">· gönderilmeye hazır: <b><?= count($fsTargets) ?></b> (web aramasıyla bulunmuş, yazılmamış, KURAL 1'den geçmiş)</span></div>
+    <p class="ahint" style="margin:0 0 8px">Daha önce gönderdiğimiz kampanyalardan birini (ya da Claude ile yazılanı) seçin, önizleyin, önce listeleyip sonra gönderin. Gönderim Brevo üzerinden <b>support@vestrasales.com</b> ile gider; her mektupta kişiye özel abonelikten çıkma linki var; aynı adrese ikinci kez gitmez.</p>
+    <?php if($fsFlash): ?><div class="amsg <?= ($fsFlash['dry']||$fsFlash['fail']===0)?'ok':'' ?>"><?= $fsFlash['dry']?'Önizleme (gönderilmedi) — bu kişilere gidecek:':('Gönderildi: '.(int)$fsFlash['sent'].' · hata: '.(int)$fsFlash['fail']) ?>
+      <div style="font-size:11.5px;max-height:220px;overflow:auto;margin-top:6px;white-space:pre-wrap"><?= htmlspecialchars(implode("\n",$fsFlash['lines'])?:'(uygun alıcı yok)') ?></div></div><?php endif; ?>
+    <form method="post" class="aform">
+      <?= csrfField() ?><input type="hidden" name="_action" value="finder_send_campaign">
+      <?php $fsFirst=true; foreach($fsCamps as $ck=>[$cl,$cd,$cb]): [$ps,$pb]=$cb($fsSample); ?>
+        <div style="border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-bottom:6px">
+          <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;cursor:pointer"><input type="radio" name="camp" value="<?= htmlspecialchars($ck) ?>"<?= ($fsFlash['camp']??'')===$ck||($fsFirst&&empty($fsFlash['camp']))?' checked':'' ?>> <span><b><?= htmlspecialchars($cl) ?></b><br><span class="ahint"><?= htmlspecialchars($cd) ?></span></span></label>
+          <details style="margin:4px 0 0 24px"><summary class="ahint" style="cursor:pointer">Örneği gör (<?= htmlspecialchars((string)($fsSample['company']??'')) ?> için)</summary>
+            <div style="font-size:12px;margin-top:6px"><b>Konu:</b> <?= htmlspecialchars($ps) ?></div>
+            <div style="font-size:12px;white-space:pre-wrap;background:var(--bg2);border-radius:8px;padding:8px 10px;margin-top:4px;max-height:260px;overflow:auto"><?= htmlspecialchars(mb_substr($pb,0,2500)) ?></div></details>
+        </div>
+      <?php $fsFirst=false; endforeach; ?>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:8px">
+        <div class="afield" style="margin:0"><label>Kaç kişiye</label><input name="limit" type="number" min="1" max="100" value="20" style="width:90px"></div>
+        <button class="abtn" type="submit" name="mode" value="dry">👁 Önce listele (göndermez)</button>
+        <button class="abtn primary" type="submit" name="mode" value="send" onclick="return confirm('Seçilen kampanya gerçekten gönderilsin mi?')"<?= $fsTargets?'':' disabled' ?>>📮 Gönder</button>
+      </div>
+    </form>
+  </div>
+
+  <?php
+    /* ── ✍️ Claude ile kampanya yaz (inc/ai_campaign.php) ── */
+    require_once __DIR__.'/inc/ai_campaign.php';
+    $acOn=vestra_ai_camp_on(); $acL=vestra_ai_camp_limits(); $acQ=vestra_ai_camp_quota(''); $acU=(array)(vestra_ai_camp_usage()[date('Y-m')]??[]);
+    $acCost=((int)($acU['in']??0))*4/1e6+((int)($acU['out']??0))*20/1e6;
+    $acFlash=$_SESSION['ai_flash']??null; unset($_SESSION['ai_flash']);
+    $acCat=array_slice(array_values(array_filter(vestra_listings(),fn($p)=>($p['status']??'approved')==='approved')),0,80);
+    $acMine=array_slice(vestra_ai_camp_list(''),0,5);
+  ?>
+  <div id="aicamp" style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
+    <div style="font-weight:700;font-size:14px;margin-bottom:4px">✍️ Claude ile kampanya yaz <?= $acOn?'<span style="color:#1f9d63;font-size:12px">● Hazır</span>':'<span style="color:#a9781a;font-size:12px">● Claude anahtarı gerekli</span>' ?></div>
+    <p class="ahint" style="margin:0 0 8px">Katalogdan ürün + tarz + dil seçin; Claude konu ve metni yazar, yazılan kampanya yukarıdaki gönderim listesine eklenir. Satıcılar da kendi panellerinden kendi kataloglarıyla yazdırabilir. Kullanım sınırlı ve aşağıda ayarlanır. Model: <code><?= VESTRA_AI_CAMP_MODEL ?></code>.</p>
+    <?php if($acFlash): ?><div class="amsg <?= $acFlash[0]?'ok':'' ?>"><?= htmlspecialchars((string)$acFlash[1]) ?></div><?php endif; ?>
+    <?php if($acOn): ?>
+    <form method="post" class="aform" style="margin-bottom:10px">
+      <?= csrfField() ?><input type="hidden" name="_action" value="ai_camp_generate">
+      <div class="acols2">
+        <div class="afield"><label>Tarz</label><select name="style"><?php foreach(vestra_ai_camp_styles() as $sk=>[$sl]): ?><option value="<?= $sk ?>"><?= htmlspecialchars($sl) ?></option><?php endforeach; ?></select></div>
+        <div class="afield"><label>Dil</label><select name="lang"><?php foreach(vestra_ai_camp_langs() as $lk=>$ln): ?><option value="<?= $lk ?>"><?= htmlspecialchars($ln) ?></option><?php endforeach; ?></select></div>
+      </div>
+      <div class="afield"><label>Ürünler (Ctrl/Cmd ile en çok 12) — boş = ilk 8</label><select name="products[]" multiple size="6"><?php foreach($acCat as $p): ?><option value="<?= htmlspecialchars((string)$p['id']) ?>"><?= htmlspecialchars(trim(($p['brand']??'').' — '.($p['name']??''))) ?></option><?php endforeach; ?></select></div>
+      <div class="acols2">
+        <div class="afield"><label>Tarif (isteğe bağlı)</label><input name="custom" maxlength="300" placeholder="ör. Fransız butiklerine, sade ve şık"></div>
+        <div class="afield"><label>Teklif / not (isteğe bağlı)</label><input name="offer" maxlength="300" placeholder="ör. ilk siparişte %10 indirim"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0 0 8px"><input type="checkbox" name="prices" value="1"> Fiyatları göster</label>
+      <button class="abtn primary" type="submit"<?= $acQ['ok']?'':' disabled' ?> onclick="this.textContent='Claude yazıyor… (≈20 sn)'">✍️ Kampanya yaz</button>
+      <span class="ahint" style="margin-left:8px">Bu ay kalan (platform): <?= (int)$acQ['month_left'] ?></span>
+    </form>
+    <?php foreach($acMine as $c): ?>
+      <details style="border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-bottom:6px"><summary style="cursor:pointer;font-size:12.5px">✍️ <?= htmlspecialchars((string)$c['subject']) ?> <span class="ahint">· <?= strtoupper(htmlspecialchars((string)$c['lang'])) ?> · <?= date('d.m H:i',(int)strtotime((string)$c['created_at'])) ?></span></summary>
+        <form method="post" class="aform" style="margin-top:8px"><?= csrfField() ?><input type="hidden" name="_action" value="ai_camp_edit"><input type="hidden" name="cid" value="<?= htmlspecialchars((string)$c['id']) ?>">
+          <div class="afield"><label>Konu</label><input name="subject" value="<?= htmlspecialchars((string)$c['subject']) ?>"></div>
+          <div class="afield"><label>Metin <span class="ahint">· {{company}} müşterinin adıyla değişir; alt bilgi otomatik eklenir</span></label><textarea name="body" rows="9"><?= htmlspecialchars((string)$c['body']) ?></textarea></div>
+          <button class="abtn" type="submit">Kaydet</button></form></details>
+    <?php endforeach; ?>
+    <?php endif; ?>
+    <details style="margin-top:8px"<?= $acOn?'':' open' ?>><summary class="ahint" style="cursor:pointer">🔑 Claude anahtarı ve kullanım sınırları<?= $acOn?' · anahtar kayıtlı ✓':'' ?></summary>
+      <div style="font-size:12px;color:var(--mut);line-height:1.65;margin-top:8px">
+        <p style="margin:0 0 6px">Repoda <code>ANTHROPIC_API_KEY</code> secret'ı tanımlı değil (8 Eki kontrolü). İki yol: <b>(a)</b> anahtarı aşağıya yapıştırın, ya da <b>(b)</b> GitHub → repo → Settings → Secrets → <code>ANTHROPIC_API_KEY</code> ekleyip Actions'tan <b>"(Ayar) Repodaki Brevo + Claude anahtarlarını sunucuya aktar"</b> işini çalıştırın. Anahtar: <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" style="color:var(--acc)">console.anthropic.com/settings/keys</a> → <b>Create Key</b>.</p>
+        <p style="margin:0 0 6px">Bu ay: <b><?= (int)($acU['calls']??0) ?></b> kampanya yazıldı · <?= number_format((int)($acU['in']??0)) ?> giriş / <?= number_format((int)($acU['out']??0)) ?> çıkış token · tahmini maliyet <b>≈ $<?= number_format($acCost,2) ?></b> (<?= VESTRA_AI_CAMP_MODEL ?>: $4 / $20 milyon token).</p>
+      </div>
+      <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px"><?= csrfField() ?><input type="hidden" name="_action" value="ai_camp_key">
+        <div class="afield" style="margin:0;flex:1;min-width:240px"><label>Claude API key <?= $acOn?'<span class="ahint">· kayıtlı, boş = koru</span>':'' ?></label><input type="password" name="anthropic_key" placeholder="sk-ant-…" autocomplete="new-password"></div>
+        <button class="abtn primary" type="submit">Kaydet</button>
+        <?php if($acOn): ?><label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#c0392b;margin:0 0 4px"><input type="checkbox" name="ai_clear" value="1"> anahtarı sil</label><?php endif; ?>
+      </form>
+      <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap"><?= csrfField() ?><input type="hidden" name="_action" value="ai_camp_limits">
+        <div class="afield" style="margin:0"><label>Satıcı başına / gün</label><input name="ai_camp_per_day" type="number" min="0" max="50" value="<?= (int)$acL['per_day'] ?>" style="width:90px"></div>
+        <div class="afield" style="margin:0"><label>Satıcı başına / ay</label><input name="ai_camp_per_month" type="number" min="0" max="500" value="<?= (int)$acL['per_month'] ?>" style="width:90px"></div>
+        <div class="afield" style="margin:0"><label>Platform toplam / ay</label><input name="ai_camp_platform_month" type="number" min="0" max="5000" value="<?= (int)$acL['platform_month'] ?>" style="width:100px"></div>
+        <button class="abtn" type="submit">Sınırları kaydet</button>
+      </form>
+    </details>
+  </div>
 
   <details style="margin-top:12px">
     <summary style="cursor:pointer;font-size:12px;color:var(--mut)">🔑 İsteğe bağlı anahtarlar — daha hızlı başlatma ve daha çok sonuç (linkli, adım adım) <?= ($fwGh && $fwBrave)?'· kayıtlı ✓':'' ?></summary>
