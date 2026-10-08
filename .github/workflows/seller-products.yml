@@ -5692,15 +5692,23 @@ jobs:
             if (!@copy(VESTRA_ACCOUNTS, $bak)) { fwrite(STDERR, "YEDEK ALINAMADI -- hicbir sey yazilmadi\n"); exit(1); }
             echo "yedek: ".basename($bak)."\n";
             foreach ($targets as $uid => $refs) {
+              /* kyb_status da 'suspended': fiyat/siparis kapisi (auth_user_approved)
+                 "status active YA DA kyb approved" diye bakiyor ve oturumlar 90 gun
+                 suruyor -- yalniz status yazilsaydi ACIK oturumu olan alici fiyat
+                 gormeye ve siparis vermeye devam ederdi. Eski deger saklanir. */
+              $prevKyb = '';
+              foreach (auth_accounts() as $a0) if ((string)($a0['id'] ?? '') === $uid) { $prevKyb = (string)($a0['kyb_status'] ?? ''); break; }
               auth_update($uid, ['status' => 'suspended', 'suspend_reason' => 'operator',
+                                 'kyb_status' => 'suspended', 'kyb_status_before_suspend' => $prevKyb,
                                  'suspended_at' => date('c'), 'suspend_note' => 'unpaid invoice: '.implode(', ', $refs)]);
             }
             $bad = 0;
             foreach (auth_accounts() as $a) {
               $uid = (string)($a['id'] ?? ''); if (!isset($targets[$uid])) continue;
-              $ok = ($a['status'] ?? '') === 'suspended' && ($a['suspend_reason'] ?? '') === 'operator';
+              $ok = ($a['status'] ?? '') === 'suspended' && ($a['suspend_reason'] ?? '') === 'operator'
+                    && !auth_prices_unlocked($a);
               if (!$ok) $bad++;
-              echo "  geri okuma ".$m((string)($a['email'] ?? ''))." : ".($ok ? 'INAKTIF (dogrulandi)' : '*** YAZILAMADI ***')."\n";
+              echo "  geri okuma ".$m((string)($a['email'] ?? ''))." : ".($ok ? 'INAKTIF, fiyat/siparis kapisi KAPALI (dogrulandi)' : '*** YAZILAMADI ***')."\n";
             }
             echo $bad ? "HATA: $bad hesap yazilamadi\n" : "KAYDEDILDI -- ".count($targets)." hesap inaktif; musteriye hicbir sey gonderilmedi\n";
             exit($bad ? 1 : 0);
