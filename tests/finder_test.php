@@ -141,6 +141,18 @@ $t('havuz "web" (varsayılan) OSM almaz', !in_array('L8', $ids, true));
 [, , $linesAll] = vestra_finder_send('standard', 50, true, 'all');
 $t('kuru gönderim "all" havuzuna liste çıkarır', count($linesAll) === count($ia));
 $t('havuz adları', array_keys(vestra_finder_pools()) === ['web', 'all']);
+/* lemlist CSV: aynı seçim kuralı; işaretsiz dışa aktarma kayda dokunmaz, işaretli olan damgalar. */
+$lbBefore = (string)file_get_contents(VESTRA_DATA_DIR.'/leads.json');
+$lx = vestra_lemlist_export(100, 'all', false);
+$t('lemlist: satırlar Brevo hedefleriyle aynı kişiler, lemlist sütunları', array_column($lx, 'vestraLeadId') === $ia && $lx && array_keys($lx[0]) === ['email', 'companyName', 'firstName', 'country', 'website', 'vestraLeadId']);
+$t('lemlist: işaretsiz dışa aktarma leads.json\'a DOKUNMAZ', $lbBefore === (string)file_get_contents(VESTRA_DATA_DIR.'/leads.json'));
+$t('lemlist: e-posta küçük harf, ad yoksa firstName boş', (function () use ($lx) { foreach ($lx as $r) if ($r['email'] !== strtolower($r['email']) || $r['firstName'] !== '') return false; return true; })());
+$lm = vestra_lemlist_export(2, 'all', true);
+$stamped = array_values(array_filter(vestra_leads(), fn($l) => ($l['contact_via'] ?? '') === 'lemlist'));
+$t('lemlist: işaretli dışa aktarma yalnız inenleri damgalar (contacted, contact_via=lemlist)', count($lm) === 2 && count($stamped) === 2
+   && array_column($stamped, 'id') == array_values(array_intersect(array_column(vestra_leads(), 'id'), array_column($lm, 'vestraLeadId'))) && $stamped[0]['status'] === 'contacted' && $stamped[0]['last_contacted_at'] !== '');
+$t('lemlist: damgalananlar Brevo hedeflerinden düşer', !array_intersect(array_column($lm, 'vestraLeadId'), array_column(array_values(vestra_finder_send_targets(100, 'all')), 'id')));
+file_put_contents(VESTRA_DATA_DIR.'/leads.json', $lbBefore);
 $camps = vestra_finder_campaigns();
 $t('kampanya listesi: Les Garage + polo + standart', isset($camps['lesgarage'], $camps['polos'], $camps['standard']));
 $lead1 = ['id' => 'L1', 'company' => 'Boutique Una', 'email' => 'info@una.example', 'country' => 'Italy', 'unsub_token' => 'tok1', 'contact_name' => ''];
@@ -386,6 +398,7 @@ $t('satıcı: Claude + DeepSeek anahtar formları', str_contains($hs, 'name="ant
 $t('satıcı: müşteri listesinde Gmail/Outlook/uygulama düğmeleri (yalnız e-postalı müşteride)', substr_count($hs, "sellerCompose(&quot;LDsel1&quot;") === 3 && !str_contains($hs, 'LDselNoMail&quot;'));
 $t('admin: web araması aç/kapat düğmesi + gönderimde "Kime" havuz seçimi', str_contains($ha, 'value="finder_toggle"') && str_contains($ha, '▶ Aç') && str_contains($ha, 'name="pool"') && str_contains($ha, 'Tüm yazılmamış müşteriler'));
 $t('admin: Brevo kalan kredi bandı + pay ayarı', str_contains($ha, 'Brevo bugün kalan') && str_contains($ha, 'value="brevo_reserve"'));
+$t('admin: 📤 lemlist CSV formu', str_contains($ha, 'value="lemlist_export"') && str_contains($ha, '📤 lemlist CSV indir') && str_contains($ha, 'name="mark" value="1" checked'));
 $t('admin: 🧪 Bana test gönder + test adresi', str_contains($ha, 'name="mode" value="test"') && str_contains($ha, 'name="test_to"'));
 $t('satıcı (kendi anahtarı): PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $hs2));
 

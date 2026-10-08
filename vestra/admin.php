@@ -1919,6 +1919,18 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     file_put_contents($dir.'/email_settings.json',json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($dir.'/email_settings.json',0600);
     header('Location: /admin?tab=prospects#findersend'); exit;
   }
+  /* lemlist CSV (8 Eki 2026): gönderime hazır müşteriler lemlist içe aktarma biçiminde.
+     "lemlist'e verildi" işareti seçiliyse indirilenler damgalanır, Brevo onlara yazmaz. */
+  if($act==='lemlist_export'){
+    require_once __DIR__.'/inc/finder.php';
+    $rows=vestra_lemlist_export((int)($_POST['limit']??200),(string)($_POST['pool']??'all'),($_POST['mark']??'')==='1');
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="vestra-lemlist-'.date('Ymd-Hi').'.csv"');
+    $out=fopen('php://output','w');
+    fputcsv($out,['email','companyName','firstName','country','website','vestraLeadId'],',','"','\\');
+    foreach($rows as $r) fputcsv($out,array_values($r),',','"','\\');
+    fclose($out); exit;
+  }
   if($act==='finder_toggle'){
     $dir=vestra_data_dir();
     $cur=is_readable($dir.'/email_settings.json')?json_decode((string)file_get_contents($dir.'/email_settings.json'),true):[]; if(!is_array($cur))$cur=[];
@@ -6481,6 +6493,17 @@ elseif($tab==='prospects'):
         <button class="abtn" type="submit" name="mode" value="test">🧪 Bana test gönder</button>
         <button class="abtn" type="submit" name="mode" value="dry">👁 Önce listele (göndermez)</button>
         <button class="abtn primary" type="submit" name="mode" value="send" onclick="return confirm('Seçilen kampanya gerçekten gönderilsin mi?')"<?= ($fsTargetsWeb||$fsTargetsAll)?'':' disabled' ?>>📮 Gönder</button>
+      </div>
+    </form>
+    <form method="post" class="aform" style="border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-top:10px">
+      <?= csrfField() ?><input type="hidden" name="_action" value="lemlist_export">
+      <div style="font-weight:600;font-size:13px;margin-bottom:4px">📤 lemlist ile gönder (Brevo kotasına girmez)</div>
+      <p class="ahint" style="margin:0 0 6px">Aynı müşteriler, lemlist'in içe aktarma biçiminde CSV olarak iner: <code>email, companyName, firstName, country, website</code>. lemlist ▸ kampanya <b>VESTRA – Toptan davet</b> ▸ <b>Add leads ▸ Import CSV</b>. Gönderim lemlist'e bağlı <b>support@vestrasales.com</b> posta kutusundan gider. Kutu işaretliyse indirilenler "lemlist'e verildi" olarak kaydedilir, buradaki Brevo gönderimi onlara ikinci kez yazmaz.</p>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <div class="afield" style="margin:0"><label>Kime</label><select name="pool"><?php foreach(vestra_finder_pools() as $pk=>$pl): ?><option value="<?= $pk ?>"<?= $pk==='all'?' selected':'' ?>><?= htmlspecialchars($pl) ?> (<?= count($pk==='web'?$fsTargetsWeb:$fsTargetsAll) ?>)</option><?php endforeach; ?></select></div>
+        <div class="afield" style="margin:0"><label>Kaç kişi</label><input name="limit" type="number" min="1" max="1000" value="200" style="width:90px"></div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0 0 6px"><input type="checkbox" name="mark" value="1" checked> İndirilenleri "lemlist'e verildi" işaretle</label>
+        <button class="abtn" type="submit">📤 lemlist CSV indir</button>
       </div>
     </form>
   </div>

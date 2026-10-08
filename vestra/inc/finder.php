@@ -382,6 +382,40 @@ function vestra_finder_send_targets(int $limit = 1000, string $pool = 'web'): ar
 }
 
 /**
+ * lemlist'e verilecek müşteriler (8 Eki 2026, operatör: "lemlist'ten devam edebilir miyiz",
+ * support@vestrasales.com lemlist'e SMTP ile bağlandı). Brevo'nun günde 300'lük ücretsiz
+ * kotasına girmeden, lemlist kampanyasıyla support@ posta kutusundan gönderilsin diye.
+ * Seçim Brevo gönderimiyle AYNI kural (vestra_finder_send_targets): yazılmamış, abonelikten
+ * çıkmamış, geçersiz adresi olmayan, aynı adrese ikinci kez değil.
+ * Satırlar lemlist'in içe aktarma sütunlarıyla: email, companyName, firstName, country,
+ * website, vestraLeadId. $mark: indirilenler "lemlist'e verildi" damgalanır
+ * (last_contacted_at + contact_via=lemlist) — Brevo kampanyası onlara ikinci kez yazmaz.
+ */
+function vestra_lemlist_export(int $limit, string $pool, bool $mark): array {
+  $targets = vestra_finder_send_targets(max(1, min(1000, $limit)), $pool === 'all' ? 'all' : 'web');
+  $rows = []; $ids = [];
+  foreach ($targets as $l) {
+    $first = trim((string)($l['contact_name'] ?? ''));
+    $first = $first !== '' && strtolower($first) !== 'there' ? (string)preg_split('/\s+/u', $first)[0] : '';
+    $rows[] = ['email' => strtolower(trim((string)$l['email'])), 'companyName' => trim((string)($l['company'] ?? '')),
+               'firstName' => $first, 'country' => trim((string)($l['country'] ?? '')),
+               'website' => trim((string)($l['website'] ?? '')), 'vestraLeadId' => (string)($l['id'] ?? '')];
+    $ids[(string)($l['id'] ?? '')] = true;
+  }
+  if ($mark && $ids) {
+    $leads = vestra_leads(); $now = date('c');
+    foreach ($leads as &$l) {
+      if (!isset($ids[(string)($l['id'] ?? '')])) continue;
+      $l['last_contacted_at'] = $now; $l['contact_via'] = 'lemlist';
+      if (($l['status'] ?? 'new') === 'new') $l['status'] = 'contacted';
+    }
+    unset($l);
+    vestra_save_leads($leads);
+  }
+  return $rows;
+}
+
+/**
  * Seçilen kampanyayı operatöre TEST olarak gönderir (8 Eki 2026, operatör: "test email
  * gönderimi de koy … bana"). Gerçek gönderimle AYNI kurucu ve AYNI gönderici (Brevo,
  * support@), ama: konu "[TEST]" önekli, hiçbir lead damgalanmaz, çıkış linki jetonsuz.
