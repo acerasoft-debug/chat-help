@@ -5622,12 +5622,14 @@ jobs:
         if: ${{ github.event.inputs.admin_mode == 'http_probe' }}
         env:
           HP_PATHS: ${{ github.event.inputs.payload }}
+          # payload'da '|' sonrasi: HTML'de sayilacak bosluksuz kelimeler (or. /register|regstep,regtrust)
         run: |
+          HP_GREP=$(echo "$HP_PATHS" | cut -s -d'|' -f2 | tr ',' ' '); HP_PATHS=${HP_PATHS%%|*}
           for p in $(echo "$HP_PATHS" | tr ',' ' '); do
             case "$p" in /*) ;; *) echo "gecersiz yol: $p"; continue;; esac
             code=$(curl -sS -A 'Mozilla/5.0 (VESTRA probe)' -o /tmp/hp_body -w '%{http_code} | %{content_type} | %{size_download} bayt' "https://vestrasales.com$p" || echo "baglanti hatasi")
             echo "== $p -> $code"
-            python3 -c "import re,sys,html; s=open('/tmp/hp_body',encoding='utf-8',errors='replace').read(); t=re.search(r'<title>(.*?)</title>',s,re.S); d=re.search(r'<meta name=\"description\" content=\"([^\"]*)\"',s); print('TITLE:',html.unescape(t.group(1)) if t else '-'); print('DESC:',html.unescape(d.group(1)) if d else '-'); print('FAQ:',s.count('\"FAQPage\"'),'GLANCE:',s.count('<dt>')) if t else print(s[:12000])" | sed 's/^/   /'; echo
+            python3 -c "import re,sys,html; s=open('/tmp/hp_body',encoding='utf-8',errors='replace').read(); t=re.search(r'<title>(.*?)</title>',s,re.S); d=re.search(r'<meta name=\"description\" content=\"([^\"]*)\"',s); print('TITLE:',html.unescape(t.group(1)) if t else '-'); print('DESC:',html.unescape(d.group(1)) if d else '-'); print('FAQ:',s.count('\"FAQPage\"'),'GLANCE:',s.count('<dt>')); [print('ICERIK:',k,s.count(k)) for k in sys.argv[1:]] if t else print(s[:12000])" $HP_GREP | sed 's/^/   /'; echo
           done
 
       # INDEXNOW TESHISI (indexnow_check): GitHub sunucusundan tek adresle (ana sayfa)
