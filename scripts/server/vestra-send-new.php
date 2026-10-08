@@ -99,9 +99,17 @@ foreach ($picked as $i => $l) {
     $leads[$i]['notes'] = trim($note.($note !== '' ? ' · ' : '').'campaign('.$lang.') '.date('Y-m-d'));
     $sent++; $langCounts[$lang] = ($langCounts[$lang] ?? 0) + 1;
     echo "  + {$company} <{$mail}> [{$lang}] ".implode(', ', array_slice(array_values(array_filter($l['premium_brands'])), 0, 3))."\n";
-  } else { $fail++; echo "  x HATA: {$mail}\n"; }
+  } else {
+    $fail++;
+    /* Brevo adresi geçersiz saydıysa (8 Eki 2026: 6 × "email is not valid in to") işaretle —
+       yoksa her gün yeniden denenip ücretsiz planın günlük hakkını yer. */
+    if (function_exists('vestra_mail_last_reason') && vestra_mail_last_reason() === 'badaddr') {
+      $leads[$i]['status'] = 'bounced'; $leads[$i]['bounce_reason'] = 'provider: invalid recipient'; $leads[$i]['bounced_at'] = date('c'); $badMarked = ($badMarked ?? 0) + 1;
+      echo "  x GECERSIZ ADRES (Brevo), isaretlendi: {$mail}\n";
+    } else echo "  x HATA: {$mail}".(function_exists('vestra_mail_last_reason') && vestra_mail_last_reason() !== '' ? ' ('.vestra_mail_last_reason().')' : '')."\n";
+  }
   flush();
 }
-if ($sent > 0) vestra_save_leads($leads);
+if ($sent > 0 || !empty($badMarked)) vestra_save_leads($leads);
 echo "\n----\ndil dagilimi: "; foreach ($langCounts as $k => $v) echo "{$k}={$v}  ";
 echo "\nGONDERIM BITTI. gonderildi: {$sent}, hata: {$fail}, toplam lead: ".count($leads)."\n";
