@@ -6337,15 +6337,14 @@ elseif($tab==='prospects'):
   <div class="acard-hd"><h3>🌐 Web'den müşteri bul — gerçek e-posta
     <?= $fwReady?'<span style="color:#1f9d63;font-size:12px;font-weight:600">● Hazır</span>':'<span style="color:#a9781a;font-size:12px;font-weight:600">● Anahtar gerekli</span>' ?></h3></div>
   <div class="acard-body">
-  <p class="ahint" style="margin-bottom:10px">Premium marka <b>çiftleriyle</b> (ör. "Dsquared2" + "Balmain") web'de ve Google Maps'te arar; iki tasarımcı markasını birlikte satan <b>çok markalı butikleri</b> bulur. Her sitenin iletişim/künye sayfasından <b>yayınlanmış gerçek e-postayı</b> alır — tahmin yok, MX kontrolü var. <b>Ayakkabıcı, iç çamaşırı, toptancı/distribütör, zincir ve markanın kendi mağazası elenir</b> (KURAL 1 dahil). Bulunanlar bu listeye eklenir; gönderim yine sizin elinizde.</p>
+  <p class="ahint" style="margin-bottom:10px">Seçilen şehirlerdeki giyim dükkânlarını (OpenStreetMap — <b>anahtar gerekmez</b>) ve isteğe bağlı olarak web'de premium marka çiftlerini (ör. "Dsquared2" + "Balmain") tarar; sitesinde <b>en az iki tasarımcı markası</b> satan <b>çok markalı butikleri</b> bulur. Her sitenin iletişim/künye sayfasından <b>yayınlanmış gerçek e-postayı</b> alır — tahmin yok, MX kontrolü var. <b>Ayakkabıcı, iç çamaşırı, toptancı/distribütör, zincir ve markanın kendi mağazası elenir</b> (KURAL 1 dahil). Bulunanlar bu listeye eklenir; gönderim yine sizin elinizde.</p>
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;font-size:11.5px">
-    <?php foreach([['GitHub (başlatma)',$fwGh,'zorunlu'],['Brave Search (web araması)',$fwBrave,'önerilir'],['Google Places (şehir araması)',$googleOn,'opsiyonel']] as [$kn,$kon,$kreq]): ?>
+    <?php foreach([['OpenStreetMap + site taraması',true,'anahtarsız, her zaman'],['GitHub token',$fwGh,$fwGh?'anında başlatır':'yok → 10 dk içinde sıradan başlar'],['Brave Search',$fwBrave,'isteğe bağlı · daha çok sonuç'],['Google Places',$googleOn,'isteğe bağlı']] as [$kn,$kon,$kreq]): ?>
       <span style="border:1px solid <?= $kon?'rgba(31,157,99,.45)':'var(--line)' ?>;border-radius:20px;padding:3px 10px;color:<?= $kon?'#1f9d63':'var(--mut)' ?>"><?= $kon?'✓':'○' ?> <?= htmlspecialchars($kn) ?> <span style="opacity:.7">· <?= $kreq ?></span></span>
     <?php endforeach; ?>
   </div>
   <?php if($fwFlash): ?><div class="amsg <?= $fwFlash[0]?'ok':'' ?>" style="<?= $fwFlash[0]?'':'background:#fdf0ee;border:1px solid #f0c4bd;color:#a3321f' ?>"><?= htmlspecialchars((string)$fwFlash[1]) ?></div><?php endif; ?>
 
-  <?php if($fwGh): ?>
   <form method="post" class="aform" style="margin-bottom:12px">
     <?= csrfField() ?><input type="hidden" name="_action" value="finder_web_start">
     <div class="acols2">
@@ -6365,20 +6364,19 @@ elseif($tab==='prospects'):
       <button class="abtn" type="button" disabled>⏳ Arama çalışıyor (<?= htmlspecialchars((string)$fwActive['id']) ?>) — bitince tekrar başlatabilirsiniz</button>
     <?php else: ?>
       <button class="abtn primary" type="submit" onclick="this.disabled=true;this.textContent='Başlatılıyor…';this.form.submit()">🌐 Aramayı başlat</button>
-      <?php if(!$fwBrave && !$googleOn): ?><span class="ahint" style="color:#a9781a;margin-left:8px">Brave ya da Google anahtarı olmadan arama motorları GitHub sunucularını engelliyor — sonuç çok az olur.</span><?php endif; ?>
     <?php endif; ?>
-    <span class="ahint" style="margin-left:8px">Her gün 05:20'de (UTC) kendiliğinden de çalışır. Süre: 20-40 dk.</span>
+    <span class="ahint" style="margin-left:8px">Her gün 05:20'de (UTC) kendiliğinden de çalışır. <?= $fwGh?'Süre: 20-40 dk.':'Başlaması 10 dk\'ya kadar, süre 20-40 dk.' ?></span>
   </form>
-  <?php endif; ?>
 
   <div style="font-weight:600;font-size:13px;margin:4px 0 8px">Son aramalar</div>
   <?= vestra_finder_runs_html($fwRuns, true, $fwNames, 6) ?>
   <?php if($fwActive): ?><script>setTimeout(function(){ if(!document.hidden) location.reload(); }, 45000);</script><?php endif; ?>
 
-  <details style="margin-top:12px"<?= ($fwGh && $fwBrave)?'':' open' ?>>
-    <summary style="cursor:pointer;font-size:12px;color:<?= ($fwGh && $fwBrave)?'var(--mut)':'#a9781a' ?>">🔑 Anahtarlar — nasıl alınır (linkli, adım adım) <?= ($fwGh && $fwBrave)?'· kayıtlı ✓':'' ?></summary>
+  <details style="margin-top:12px">
+    <summary style="cursor:pointer;font-size:12px;color:var(--mut)">🔑 İsteğe bağlı anahtarlar — daha hızlı başlatma ve daha çok sonuç (linkli, adım adım) <?= ($fwGh && $fwBrave)?'· kayıtlı ✓':'' ?></summary>
     <div style="margin-top:10px;font-size:12px;color:var(--mut);line-height:1.65">
-      <p style="margin:0 0 6px"><b>1) GitHub erişim anahtarı</b> <i>(zorunlu — aramayı bu panelden başlatmak için)</i></p>
+      <p style="margin:0 0 6px"><b>Hiçbiri şart değil</b> — arama anahtarsız çalışıyor. Bunlar yalnızca hızlandırır ve sonucu artırır.</p>
+      <p style="margin:0 0 6px"><b>1) GitHub erişim anahtarı</b> <i>(isteğe bağlı — aramayı anında başlatır; yoksa istek 10 dakika içinde sıradan başlar)</i></p>
       <ol style="margin:0 0 10px 18px;padding:0">
         <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:var(--acc)">github.com/settings/personal-access-tokens/new</a> sayfasını açın (GitHub hesabınızla giriş yapın).</li>
         <li><b>Token name:</b> <code>vestra-finder</code> · <b>Expiration:</b> 1 yıl · <b>Resource owner:</b> <code>acerasoft-debug</code></li>
@@ -6386,7 +6384,7 @@ elseif($tab==='prospects'):
         <li><b>Permissions → Repository permissions → Actions:</b> <b>Read and write</b> (başka izin gerekmez).</li>
         <li><b>Generate token</b> → çıkan <code>github_pat_…</code> anahtarını kopyalayıp aşağıya yapıştırın (bir kez gösterilir).</li>
       </ol>
-      <p style="margin:0 0 6px"><b>2) Brave Search API anahtarı</b> <i>(önerilir — web araması bununla yapılır)</i></p>
+      <p style="margin:0 0 6px"><b>2) Brave Search API anahtarı</b> <i>(isteğe bağlı — web'de marka çiftleriyle arar, OpenStreetMap'te olmayan butikleri de bulur)</i></p>
       <ol style="margin:0 0 10px 18px;padding:0">
         <li><a href="https://api-dashboard.search.brave.com/" target="_blank" rel="noopener" style="color:var(--acc)">api-dashboard.search.brave.com</a> → <b>Sign up</b> → e-postanızı doğrulayın.</li>
         <li><b>Plans</b>'tan <b>Search</b> planını seçin. Her ay verilen ücretsiz kredi ≈ 1.000 arama karşılar; kart istenir (kötüye kullanım kontrolü). Günlük çalışma ~40 sorgu → ayda ~1.200 arama; aşım çok küçük tutardır, güncel fiyatı Plans sayfasında görün.</li>

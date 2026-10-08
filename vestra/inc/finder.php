@@ -40,11 +40,11 @@ function vestra_finder_google_on(): bool {
   if (!function_exists('vestra_google_key') && is_readable(__DIR__.'/discover_google.php')) require_once __DIR__.'/discover_google.php';
   return function_exists('vestra_google_key') && vestra_google_key() !== '';
 }
-/** Başlatılabilir mi: GitHub token + en az bir arama anahtarı. Anahtarsız arama motorları
- *  GitHub sunucularını captcha ile engelliyor (8 Eki ölçümü), sonuç ~0 olur. */
-function vestra_finder_ready(): bool {
-  return vestra_finder_gh_token() !== '' && (vestra_finder_brave_on() || vestra_finder_google_on());
-}
+/** Başlatılabilir mi: HER ZAMAN. Hiçbir anahtar şart değil (operatör, 8 Eki: "sistemi hazır
+ *  hale getir"): GitHub token yoksa istek sıraya girer ve find-customers-queue.yml 10 dk
+ *  içinde GitHub'ın kendi yetkisiyle başlatır; Brave/Google yoksa aday kaynağı
+ *  OpenStreetMap'tir. Anahtarlar yalnızca hızlandırır (token) ve sonucu artırır (Brave). */
+function vestra_finder_ready(): bool { return true; }
 
 /** Tek GitHub REST çağrısı. [http_code, decoded_body|null, curl_error] */
 function vestra_finder_gh(string $method, string $path, ?array $body = null): array {
@@ -78,9 +78,12 @@ function vestra_finder_save_runs(array $runs): void {
 function vestra_finder_is_active(array $r): bool {
   $st = (string)($r['status'] ?? '');
   if ($st !== 'requested' && $st !== 'running') return false;
-  /* 95 dk: workflow'un kendi tavanı 80 dk. Bundan eskisi bir yerde takıldı demektir
-     ve yeni aramayı sonsuza dek kilitlememeli. */
-  return (time() - (int)strtotime((string)($r['requested_at'] ?? ''))) < 95 * 60;
+  /* Çalışan: 95 dk (workflow'un tavanı 80 dk). Sırada bekleyen (henüz başlatılmamış):
+     6 saat — GitHub'ın zamanlanmış işleri yoğun saatlerde gecikebiliyor. Bundan eskisi bir
+     yerde takıldı demektir ve yeni aramayı sonsuza dek kilitlememeli. */
+  $d = (string)($r['dispatched_at'] ?? '');
+  if ($d === '') return (time() - (int)strtotime((string)($r['requested_at'] ?? ''))) < 6 * 3600;
+  return (time() - (int)strtotime($d)) < 95 * 60;
 }
 /** Şu an çalışan (ya da kuyruktaki) arama — herkes için tek: workflow'un concurrency
  *  grubu üçüncü bir isteği sessizce iptal ediyor, iki kişi aynı anda başlatmasın. */
@@ -129,8 +132,6 @@ function vestra_finder_clean_input(array $in): array {
 /** [ok(bool), mesaj(string), id(string)] — mesaj her durumda operatöre gösterilecek cümle. */
 function vestra_finder_start(array $in, string $owner = '', string $by = 'admin'): array {
   $owner = preg_replace('/[^A-Za-z0-9_-]/', '', $owner);
-  if (vestra_finder_gh_token() === '')
-    return [false, 'GitHub erişim anahtarı kaydedilmemiş — Admin → Müşteriler → "Web\'den müşteri bul" kartından ekleyin.', ''];
   if ($a = vestra_finder_active())
     return [false, 'Bir arama zaten çalışıyor ('.(string)($a['id'] ?? '').', '.date('H:i', (int)strtotime((string)($a['requested_at'] ?? 'now'))).' başladı). Bitince tekrar başlatın — genelde 20-40 dakika.', ''];
   if ($owner !== '') {
@@ -141,6 +142,16 @@ function vestra_finder_start(array $in, string $owner = '', string $by = 'admin'
   }
   $p = vestra_finder_clean_input($in);
   $repo = vestra_finder_repo();
+  $id = 'FR'.date('ymdHi').strtoupper(bin2hex(random_bytes(2)));
+
+  /* TOKEN YOK → sıra. find-customers-queue.yml 10 dakikada bir sıradakini alıp başlatır. */
+  if (vestra_finder_gh_token() === '') {
+    $runs = vestra_finder_runs();
+    array_unshift($runs, ['id' => $id, 'owner' => $owner, 'by' => $by, 'requested_at' => date('c'),
+                          'status' => 'requested', 'params' => $p]);
+    vestra_finder_save_runs($runs);
+    return [true, 'Arama sıraya alındı ('.$id.'). 10 dakika içinde başlar, 20-40 dakikada biter; sonuç bu kartta görünecek.', $id];
+  }
 
   /* Workflow default daldan dispatch edilir; dalın adını sabit yazmak yerine GitHub'a sor. */
   [$c0, $repoInfo] = vestra_finder_gh('GET', '/repos/'.$repo);
@@ -149,7 +160,6 @@ function vestra_finder_start(array $in, string $owner = '', string $by = 'admin'
   if ($c0 !== 200) return [false, 'GitHub\'a ulaşılamadı (HTTP '.$c0.'). Birkaç dakika sonra tekrar deneyin.', ''];
   $ref = (string)($repoInfo['default_branch'] ?? 'main');
 
-  $id = 'FR'.date('ymdHi').strtoupper(bin2hex(random_bytes(2)));
   $inputs = ['request_id' => $id, 'owner_uid' => $owner] + $p + ['send' => 'false'];
   [$code, $resp] = vestra_finder_gh('POST', '/repos/'.$repo.'/actions/workflows/'.VESTRA_FINDER_WORKFLOW.'/dispatches', ['ref' => $ref, 'inputs' => $inputs]);
   if ($code !== 204 && $code !== 200) {
@@ -166,7 +176,7 @@ function vestra_finder_start(array $in, string $owner = '', string $by = 'admin'
 
   $runs = vestra_finder_runs();
   array_unshift($runs, ['id' => $id, 'owner' => $owner, 'by' => $by, 'requested_at' => date('c'),
-                        'status' => 'requested', 'params' => $p]);
+                        'status' => 'requested', 'dispatched_at' => date('c'), 'via' => 'token', 'params' => $p]);
   vestra_finder_save_runs($runs);
   return [true, 'Arama başlatıldı ('.$id.'). Sonuç bu kartta görünecek — genelde 20-40 dakika sürer.', $id];
 }
@@ -179,7 +189,20 @@ function vestra_finder_start(array $in, string $owner = '', string $by = 'admin'
 function vestra_finder_refresh(): void {
   $runs = vestra_finder_runs();
   $pending = array_filter($runs, fn($r) => in_array((string)($r['status'] ?? ''), ['requested', 'running'], true));
-  if (!$pending || vestra_finder_gh_token() === '') return;
+  if (!$pending) return;
+  /* Token yoksa GitHub'a soramayız: yalnızca zaman aşımını uygula (sonucu workflow yazar). */
+  if (vestra_finder_gh_token() === '') {
+    $changed = false;
+    foreach ($runs as &$r) {
+      $st = (string)($r['status'] ?? ''); $d = (string)($r['dispatched_at'] ?? '');
+      if (($st === 'running' || $st === 'requested') && $d !== '' && time() - (int)strtotime($d) > 95 * 60) {
+        $r['status'] = 'failed'; $r['finished_at'] = date('c'); $r['notes'] = ['Zaman aşımı (95 dk) — sonuç sunucuya yazılmadı.']; $changed = true;
+      }
+    }
+    unset($r);
+    if ($changed) vestra_finder_save_runs($runs);
+    return;
+  }
   $stamp = vestra_data_dir().'/finder_check.ts';
   if (is_readable($stamp) && time() - (int)@file_get_contents($stamp) < 20) return;
   @file_put_contents($stamp, (string)time());
@@ -189,7 +212,8 @@ function vestra_finder_refresh(): void {
   $changed = false;
   foreach ($runs as &$r) {
     if (!in_array((string)($r['status'] ?? ''), ['requested', 'running'], true)) continue;
-    $id = (string)($r['id'] ?? ''); $age = time() - (int)strtotime((string)($r['requested_at'] ?? ''));
+    if (empty($r['dispatched_at'])) continue;                 // sırada, henüz başlatılmadı (queue işi alacak)
+    $id = (string)($r['id'] ?? ''); $age = time() - (int)strtotime((string)$r['dispatched_at']);
     $match = null;
     foreach ($gh as $g) if ($id !== '' && str_contains((string)($g['display_title'] ?? $g['name'] ?? ''), $id)) { $match = $g; break; }
     if ($match) {
@@ -222,11 +246,15 @@ function vestra_finder_refresh(): void {
 /** Admin ve satıcı panelinin ortak sonuç listesi. Yalnızca satır içi stil kullanır ki
  *  iki panelin farklı CSS'inde aynı görünsün. $showOwner: admin tüm kayıtları görür. */
 function vestra_finder_runs_html(array $runs, bool $showOwner = false, array $ownerNames = [], int $limit = 6, bool $en = false): string {
+  /* Satıcı tarafı (İngilizce anahtar) t() ile satıcının diline çevrilir — inc/lang/*.php. */
+  $tt = static fn(string $x): string => function_exists('t') ? (string)t($x) : $x;
   $T = $en
-    ? ['none'=>'No searches yet.','done'=>'✓ Finished','failed'=>'✗ Failed','running'=>'⏳ Running','queued'=>'⏳ Queued','dry'=>' · trial (not saved)',
-       'stats'=>'%d queries · %d candidate sites · %d checked → <b>%d new customers with a real email</b>','added'=>'Added','noemail'=>'Good fit but no email published on their site (%d) — reach them by phone/form','more'=>'Details on GitHub ↗']
+    ? ['none'=>$tt('No searches yet.'),'done'=>$tt('✓ Finished'),'failed'=>$tt('✗ Failed'),'running'=>$tt('⏳ Running'),'queued'=>$tt('⏳ Queued'),'dry'=>$tt(' · trial (not saved)'),
+       'stats'=>'<b>'.htmlspecialchars($tt('%d queries · %d sites found · %d checked → %d new customers with a real email'), ENT_QUOTES, 'UTF-8').'</b>','added'=>htmlspecialchars($tt('Added'), ENT_QUOTES, 'UTF-8'),
+       'noemail'=>htmlspecialchars($tt('Good fit but no email published (%d) — reach them by phone or contact form'), ENT_QUOTES, 'UTF-8'),'more'=>'GitHub ↗']
     : ['none'=>'Henüz arama yapılmadı.','done'=>'✓ Bitti','failed'=>'✗ Başarısız','running'=>'⏳ Çalışıyor','queued'=>'⏳ Sırada','dry'=>' · deneme (kaydedilmedi)',
        'stats'=>'%d sorgu · %d aday site · %d incelendi → <b>%d gerçek e-postalı yeni müşteri</b>','added'=>'Eklenenler','noemail'=>'Uygun ama sitesinde e-posta yayınlamayan (%d) — telefon/form ile ulaşılabilir','more'=>'GitHub\'da ayrıntı ↗'];
+  if ($en) foreach (['none', 'done', 'failed', 'running', 'queued', 'dry'] as $k) $T[$k] = htmlspecialchars($T[$k], ENT_QUOTES, 'UTF-8');
   if (!$runs) return '<div style="background:var(--bg2,#f6f6f4);border-radius:8px;padding:10px 14px;font-size:12.5px;color:var(--mut,#777)">'.$T['none'].'</div>';
   $h = static fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
   $out = '';

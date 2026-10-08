@@ -4680,9 +4680,13 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   (paylaşımlı hosting uzun işi öldürüyor). Panel kartı `inc/finder.php`: Admin ▸
   Müşteriler ▸ 🌐 ve satıcı ▸ Find ▸ 🌐 (sonuç satıcının `owner_uid` listesine). Arama
   **resmi API** ile ve **sunucu üzerinden** (`scripts/server/vestra-search.php`): Brave
-  Search (marka çifti sorguları) + mevcut Google Places anahtarı. **Bing/DDG HTML
-  GitHub IP'lerini captcha ile engelliyor** (8 Eki ölçümü: 14 sorgunun 4'ü, 0 lead) —
-  anahtarsız arama işe yaramaz. Anahtarlar (`gh_token`, `brave_key`)
+  Search (marka çifti sorguları) + mevcut Google Places anahtarı; **anahtarsız kaynak
+  OpenStreetMap** (runner'dan Nominatim + Overpass, şehir başına 150 yeni aday, sıkı site
+  taraması). **Bing/DDG HTML GitHub IP'lerini captcha ile engelliyor** (8 Eki ölçümü:
+  14 sorgunun 4'ü, 0 lead). **Hiçbir anahtar şart değil** (operatör: "sistemi hazır
+  hale getir"): GitHub token yoksa panel isteği sıraya yazar, `find-customers-queue.yml`
+  10 dk'da bir alıp GITHUB_TOKEN ile başlatır. Satıcı paneli bu kartı ve Brevo anahtar
+  rehberini **satıcının dilinde** gösterir (inc/lang, 9 dil). Anahtarlar (`gh_token`, `brave_key`)
   `email_settings.json`'da; **repo public, prospect listesi de anahtar da repoya
   girmez** (tarama durumu `data/finder_state.json`, sonuç `data/finder_runs.json`).
   E-posta yalnızca sitede **yayınlanmış** adres (KURAL 1b'nin uydurma-adres dersi),
