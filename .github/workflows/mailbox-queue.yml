@@ -1,0 +1,85 @@
+name: (E-posta) Panel sırası — 10 dakikada bir
+
+# Admin ▸ Müşteriler ▸ "📮 support@ posta kutusundan gönder" düğmesi GitHub token'ı OLMADAN
+# çalışsın diye: panel isteği sunucuda data/mailbox_runs.json'a "requested" yazar
+# (inc/mailbox.php); bu iş 10 dakikada bir sıradakini alır ve mailbox-send.yml'yi GitHub'ın
+# kendi yerleşik yetkisiyle (GITHUB_TOKEN, actions: write) başlatır. Sonucu mailbox-send.yml
+# panele geri yazar. Sırada istek yoksa ~15 saniyede biter.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: mailbox-queue
+  cancel-in-progress: false
+
+jobs:
+  take:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || 22 }}
+      TERM: dumb
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/server
+
+      - name: SSH ayarı
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          {
+            echo "Host vestra"
+            echo "  HostName ${DEPLOY_HOST}"
+            echo "  User ${DEPLOY_USER}"
+            echo "  Port ${DEPLOY_PORT}"
+            echo "  IdentityFile ~/.ssh/deploy_key"
+            echo "  StrictHostKeyChecking no"
+            echo "  UserKnownHostsFile /dev/null"
+            echo "  LogLevel ERROR"
+            echo "  ConnectTimeout 25"
+          } > ~/.ssh/config && chmod 600 ~/.ssh/config
+
+      - name: Sıradaki isteği al ve gönderimi başlat
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -o pipefail
+          ssh vestra 'mkdir -p ~/vestra_tmp' && ssh vestra 'cat > ~/vestra_tmp/mailbox-queue.php' < scripts/server/vestra-mailbox-queue.php || { echo "sunucuya ulasilamadi -- bir sonraki turda"; exit 0; }
+          ssh vestra 'cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php take' > take.raw || { echo "sira okunamadi"; exit 0; }
+          grep '^{' take.raw | tail -n 1 > take.json || echo '{}' > take.json
+          ssh vestra 'rm -f ~/vestra_tmp/mailbox-queue.php' || true
+          python3 - > args.txt <<'PY'
+          import json, re
+          t = json.load(open("take.json"))
+          if not t.get("id"):
+              raise SystemExit(0)
+          # panel girdileri zaten dogrulandi (inc/mailbox.php); yine de yalniz bilinen anahtarlar, beyaz liste karakterleri
+          ok = lambda v, pat: v if re.fullmatch(pat, v) else ""
+          vals = {
+              "req_id": ok(str(t.get("id", "")), r"[A-Za-z0-9]{6,24}"),
+              "mode": ok(str(t.get("mode", "")), r"test|send"),
+              "limit": ok(str(t.get("limit", "")), r"[0-9]{1,3}"),
+              "campaign": ok(str(t.get("campaign", "")), r"[A-Za-z0-9:_-]{1,40}"),
+              "test_to": ok(str(t.get("test_to", "")), r"[A-Za-z0-9@._+-]{0,120}"),
+          }
+          if not (vals["req_id"] and vals["mode"] and vals["limit"] and vals["campaign"]):
+              raise SystemExit(0)
+          for k, v in vals.items():
+              print(f"{k}={v}")
+          PY
+          if [ ! -s args.txt ]; then echo "sirada istek yok"; exit 0; fi
+          cat args.txt | sed 's/test_to=.*@/test_to=***@/'
+          ARGS=(); while IFS= read -r line; do ARGS+=(-f "$line"); done < args.txt
+          gh workflow run mailbox-send.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" "${ARGS[@]}"
+          echo "mailbox-send.yml baslatildi"

@@ -21,6 +21,7 @@ require       $home.'/public_html/inc/products.php';
 require_once  $home.'/public_html/inc/leads.php';
 require_once  $home.'/public_html/inc/notify.php';
 require_once  $home.'/public_html/inc/finder.php';
+if (is_readable($home.'/public_html/inc/mailbox.php')) require_once $home.'/public_html/inc/mailbox.php';
 
 $cmd = $argv[1] ?? '';
 
@@ -30,6 +31,12 @@ if ($cmd === 'list') {
   $camps = vestra_finder_campaigns();
   if (!isset($camps[$campKey])) { fwrite(STDERR, "bilinmeyen kampanya: {$campKey}\n"); echo json_encode(['ok'=>false,'error'=>'campaign']); exit(1); }
   $builder = $camps[$campKey][2];
+  /* Günlük tavan (inc/mailbox.php, varsayılan 50): elle, panelden ya da kuyruktan — hepsi sayılır. */
+  if (function_exists('vestra_mailbox_left_today')) {
+    $left = vestra_mailbox_left_today();
+    if ($left <= 0) { echo json_encode(['ok'=>true, 'from'=>'VESTRA', 'sender_email'=>vestra_mail_house_address(), 'campaign'=>$campKey, 'count'=>0, 'items'=>[], 'note'=>'gunluk tavan doldu ('.vestra_mailbox_daily_cap().')']); exit(0); }
+    $limit = min($limit, $left);
+  }
   $ids = array_values(array_filter(array_map('trim', explode(',', (string)($argv[4] ?? '')))));
   if ($ids) {
     /* Elle verilen lead ID'leri (8 Eki: lemlist CSV'si 116 kişiyi "lemlist'e verildi" damgaladı ama
@@ -123,6 +130,26 @@ if ($cmd === 'stamp') {
   exit(0);
 }
 
+if ($cmd === 'take') {
+  /* Panel isteği (inc/mailbox.php): en eskisini "running" yapıp basar; yoksa {}. */
+  $r = function_exists('vestra_mailbox_take') ? vestra_mailbox_take() : null;
+  echo json_encode($r ?: new stdClass, JSON_UNESCAPED_UNICODE);
+  exit(0);
+}
+
+if ($cmd === 'finish') {
+  $id = (string)($argv[2] ?? '');
+  if (!preg_match('/^MB[0-9a-f]{12,20}$/i', $id) || !function_exists('vestra_mailbox_finish')) { fwrite(STDERR, "gecersiz istek\n"); exit(1); }
+  $in = json_decode((string)stream_get_contents(STDIN), true);
+  if (!is_array($in) || !isset($in['results'])) { vestra_mailbox_finish($id, ['error' => 'gonderim tamamlanmadi (giris ya da baglanti hatasi — GitHub kaydina bakin)']); echo json_encode(['ok'=>true,'status'=>'failed']); exit(0); }
+  $c = ['sent'=>0, 'bounced'=>0, 'failed'=>0];
+  foreach ((array)$in['results'] as $r) { $st = (string)($r['status'] ?? ''); if (isset($c[$st])) $c[$st]++; }
+  if (!empty($in['test'])) $c['note'] = 'test gonderildi';
+  vestra_mailbox_finish($id, $c);
+  echo json_encode(['ok'=>true] + $c);
+  exit(0);
+}
+
 if ($cmd === 'sethost') {
   $host = trim((string)($argv[2] ?? '')); $port = (int)($argv[3] ?? 587);
   if ($host === '') { fwrite(STDERR, "host bos\n"); exit(1); }
@@ -137,5 +164,5 @@ if ($cmd === 'sethost') {
   exit(0);
 }
 
-fwrite(STDERR, "kullanim: php vestra-mailbox-queue.php list <N> <campaign> [ids] | sample <campaign> <to> | stamp | sethost <host> <port>\n");
+fwrite(STDERR, "kullanim: php vestra-mailbox-queue.php list <N> <campaign> [ids] | sample <campaign> <to> | stamp | take | finish <id> | sethost <host> <port>\n");
 exit(1);

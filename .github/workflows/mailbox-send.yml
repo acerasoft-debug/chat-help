@@ -39,9 +39,13 @@ on:
         required: false
         default: ""
       smtp_port:
-        description: "587 (STARTTLS) ya da 465 (SSL)"
+        description: "465 (SSL) ya da 587 (STARTTLS)"
         required: false
-        default: "587"
+        default: "465"
+      req_id:
+        description: "(otomatik) admin panelindeki isteğin kimliği — mailbox-queue.yml doldurur"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -70,7 +74,9 @@ jobs:
           LIMIT: ${{ github.event.inputs.limit }}
           CAMPAIGN: ${{ github.event.inputs.campaign }}
           IDS: ${{ github.event.inputs.ids }}
+          REQ_ID: ${{ github.event.inputs.req_id }}
         run: |
+          case "$REQ_ID" in *[!A-Za-z0-9]*) echo "req_id gecersiz"; exit 1 ;; esac
           case "$IDS" in *[!A-Za-z0-9,]*) echo "ids yalniz harf/rakam/virgul"; exit 1 ;; esac
           case "$MODE" in check|test|send) ;; *) echo "mode check|test|send olmali"; exit 1 ;; esac
           case "$LIMIT" in ''|*[!0-9]*) echo "limit sayi olmali"; exit 1 ;; esac
@@ -121,8 +127,8 @@ jobs:
         if: env.MODE != 'check'
         env:
           MAILBOX_PASS: ${{ secrets.MAILBOX_PASS }}
-          MAILBOX_SMTP_HOST: ${{ github.event.inputs.smtp_host || vars.MAILBOX_SMTP_HOST }}
-          MAILBOX_SMTP_PORT: ${{ github.event.inputs.smtp_port }}
+          MAILBOX_SMTP_HOST: ${{ github.event.inputs.smtp_host || vars.MAILBOX_SMTP_HOST || 'smtpout.secureserver.net' }}
+          MAILBOX_SMTP_PORT: ${{ github.event.inputs.smtp_port || '465' }}
           TEST_TO: ${{ github.event.inputs.test_to }}
         run: |
           if [ "$MODE" = test ]; then
@@ -133,7 +139,14 @@ jobs:
 
       - name: Sonuçları sunucuda damgala + sunucu adını kaydet
         if: env.MODE != 'check' && always()
+        env:
+          REQ_ID: ${{ github.event.inputs.req_id }}
         run: |
+          if [ -n "$REQ_ID" ]; then
+            # admin panelindeki istegi kapat (sonuc yoksa "hata" olarak)
+            if [ -s results.json ]; then ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php finish $REQ_ID" < results.json || true
+            else echo '' | ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php finish $REQ_ID" || true; fi
+          fi
           [ -s results.json ] || { echo "sonuc dosyasi yok — damgalanacak bir sey yok"; exit 0; }
           HOST=$(python3 -c 'import json;print(json.load(open("results.json")).get("host",""))')
           PORT=$(python3 -c 'import json;print(json.load(open("results.json")).get("port",""))')
