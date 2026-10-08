@@ -1,0 +1,132 @@
+name: (E-posta) support@ posta kutusundan gönder — kotasız
+
+# Brevo kotasına girmeden, support@vestrasales.com'un KENDİ posta sunucusundan gönderir
+# (sağlayıcı DKIM ile imzalar → itibarlı). Sunucumuz giden SMTP'yi kapattığı için mektubu
+# bu GitHub makinesi gönderir; seçim, metin ve damgalama sunucuda
+# (scripts/server/vestra-mailbox-queue.php) — aynı adrese asla ikinci kez gitmez.
+#
+# Kipler:
+#   check  = yalnız herkese açık DNS (MX/SPF/DMARC/DKIM). Şifre KULLANILMAZ, mektup gitmez.
+#   test   = gerçek kampanyadan TEK örnek, "[TEST]" önekiyle yalnız test_to adresine.
+#   send   = 'limit' kadar müşteriye gönderir, sonuçları sunucuda damgalar.
+# Şifre: secrets.MAILBOX_PASS. Sunucu adı: smtp_host girdisi ya da vars.MAILBOX_SMTP_HOST
+# (tahmin YOK — tek sunucu). Depo herkese açık: kayıtta alıcı adresleri maskelidir.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "check | test | send"
+        required: true
+        default: check
+      limit:
+        description: "send kipinde bu koşuda en çok kaç müşteri (ilk haftalar 20-30)"
+        required: false
+        default: "25"
+      campaign:
+        description: "lesgarage | polos | standard | ai:<id>"
+        required: false
+        default: lesgarage
+      test_to:
+        description: "test kipinde mektubun gideceği adres"
+        required: false
+        default: acerasoft@gmail.com
+      smtp_host:
+        description: "SMTP sunucusu (boş = vars.MAILBOX_SMTP_HOST)"
+        required: false
+        default: ""
+      smtp_port:
+        description: "587 (STARTTLS) ya da 465 (SSL)"
+        required: false
+        default: "587"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mailbox-send
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || 22 }}
+      MODE: ${{ github.event.inputs.mode }}
+      TERM: dumb
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+
+      - name: Girdileri doğrula
+        env:
+          LIMIT: ${{ github.event.inputs.limit }}
+          CAMPAIGN: ${{ github.event.inputs.campaign }}
+        run: |
+          case "$MODE" in check|test|send) ;; *) echo "mode check|test|send olmali"; exit 1 ;; esac
+          case "$LIMIT" in ''|*[!0-9]*) echo "limit sayi olmali"; exit 1 ;; esac
+          case "$CAMPAIGN" in *[!A-Za-z0-9:_-]*) echo "gecersiz kampanya"; exit 1 ;; esac
+
+      - name: DNS denetimi (MX / SPF / DMARC / DKIM) — şifresiz
+        run: python3 scripts/ci/mailbox_send.py --check
+
+      - name: SSH ayarı
+        if: env.MODE != 'check'
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          {
+            echo "Host vestra"
+            echo "  HostName ${DEPLOY_HOST}"
+            echo "  User ${DEPLOY_USER}"
+            echo "  Port ${DEPLOY_PORT}"
+            echo "  IdentityFile ~/.ssh/deploy_key"
+            echo "  StrictHostKeyChecking no"
+            echo "  UserKnownHostsFile /dev/null"
+            echo "  LogLevel ERROR"
+            echo "  ConnectTimeout 25"
+          } > ~/.ssh/config && chmod 600 ~/.ssh/config
+
+      - name: Sunucudan gönderim listesini al
+        if: env.MODE != 'check'
+        env:
+          LIMIT: ${{ github.event.inputs.limit }}
+          CAMPAIGN: ${{ github.event.inputs.campaign }}
+        run: |
+          set -o pipefail
+          N="$LIMIT"; [ "$MODE" = test ] && N=1
+          ssh vestra 'mkdir -p ~/vestra_tmp' && ssh vestra 'cat > ~/vestra_tmp/mailbox-queue.php' < scripts/server/vestra-mailbox-queue.php
+          ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php list $N $CAMPAIGN" > batch.raw
+          grep '^{' batch.raw | tail -n 1 > batch.json
+          python3 -c 'import json;b=json.load(open("batch.json"));print("liste:",b.get("count"),"musteri · kampanya",b.get("campaign"),"· gonderen",b.get("from"))'
+
+      - name: Gönder (support@ posta kutusu)
+        if: env.MODE != 'check'
+        env:
+          MAILBOX_PASS: ${{ secrets.MAILBOX_PASS }}
+          MAILBOX_SMTP_HOST: ${{ github.event.inputs.smtp_host || vars.MAILBOX_SMTP_HOST }}
+          MAILBOX_SMTP_PORT: ${{ github.event.inputs.smtp_port }}
+          TEST_TO: ${{ github.event.inputs.test_to }}
+        run: |
+          if [ "$MODE" = test ]; then
+            python3 scripts/ci/mailbox_send.py --batch batch.json --out results.json --test-to "$TEST_TO"
+          else
+            python3 scripts/ci/mailbox_send.py --batch batch.json --out results.json
+          fi
+
+      - name: Sonuçları sunucuda damgala + sunucu adını kaydet
+        if: env.MODE != 'check' && always()
+        run: |
+          [ -s results.json ] || { echo "sonuc dosyasi yok — damgalanacak bir sey yok"; exit 0; }
+          HOST=$(python3 -c 'import json;print(json.load(open("results.json")).get("host",""))')
+          PORT=$(python3 -c 'import json;print(json.load(open("results.json")).get("port",""))')
+          case "$HOST" in ''|*[!A-Za-z0-9.-]*) ;; *) ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php sethost $HOST $PORT" ;; esac
+          if [ "$MODE" = send ]; then
+            ssh vestra 'cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php stamp' < results.json
+          fi
+          ssh vestra 'rm -f ~/vestra_tmp/mailbox-queue.php'
