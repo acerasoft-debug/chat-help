@@ -147,6 +147,20 @@ foreach ([['HugeDomains','info@x.example'],['Coming soon - <p>','a@b.example'],[
   $t('ölü/yanlış lead elenir: '.mb_substr($nm,0,22), vestra_lead_looks_dead(['company'=>$nm,'email'=>$em]));
 foreach ([['Boutique Una','info@una.example'],['One Block Down','info@oneblockdown.com'],['Monaghans Cashmere','info@monaghanscashmere.ie'],['Le Dressing Monaco','ledressing@monaco.mc'],['Sedona Boutique','info@sedonaboutique.example'],['Jordan Store','info@jordan.com'],['Wholesale Fashion Hub','buy@wfh.example']] as [$nm,$em])
   $t('gerçek butik geçer: '.$nm, !vestra_lead_looks_dead(['company'=>$nm,'email'=>$em]));
+/* Toplanan adres: baştaki URL-kodlu boşluk (8 Eki: "%20elodie@eloab.fr" yanlış adrese gitti). */
+$t('adres temizliği: %20 önek, boşluk, büyük harf, sondaki nokta', vestra_email_clean('%20elodie@eloab.fr') === 'elodie@eloab.fr' && vestra_email_clean(' Info@Shop.DE ') === 'info@shop.de' && vestra_email_clean('info@shop.de.') === 'info@shop.de');
+$hv = []; vestra_harvest_emails('<a href="mailto:%20elodie@eloab.fr">x</a> text %20my@tyidentity.cz', $hv);
+$t('toplayıcı %20 önekli adres kaydetmez', isset($hv['elodie@eloab.fr'], $hv['my@tyidentity.cz']) && !preg_grep('/%/', array_keys($hv)));
+$keepLeads = (string)file_get_contents(VESTRA_DATA_DIR.'/leads.json');
+vestra_write_json('leads.json', [
+  ['id'=>'P1','company'=>'Dirty','email'=>'%20dup@shop.example','country'=>'Italy','source'=>'web-search','owner_uid'=>'','status'=>'new','last_contacted_at'=>'','unsub_token'=>'p1'],
+  ['id'=>'P2','company'=>'Clean','email'=>'dup@shop.example','country'=>'Italy','source'=>'web-search','owner_uid'=>'','status'=>'new','last_contacted_at'=>'','unsub_token'=>'p2'],
+  ['id'=>'P3','company'=>'Sent','email'=>'%20was@sent.example','country'=>'Italy','source'=>'web-search','owner_uid'=>'','status'=>'contacted','last_contacted_at'=>date('c'),'unsub_token'=>'p3'],
+  ['id'=>'P4','company'=>'Same as sent','email'=>'was@sent.example','country'=>'Italy','source'=>'web-search','owner_uid'=>'','status'=>'new','last_contacted_at'=>'','unsub_token'=>'p4'],
+]);
+$pt = array_column(array_values(vestra_finder_send_targets(100, 'all')), 'id');
+$t('seçim: %20 önekli kopya ayrı adres sayılmaz (tek mektup); yazılmışın temiz kopyası atlanır', count($pt) === 1 && in_array($pt[0], ['P1','P2'], true));
+file_put_contents(VESTRA_DATA_DIR.'/leads.json', $keepLeads);
 /* support@ posta kutusu: panel isteği kuyruğu + günlük tavan (8 Eki 2026). */
 require_once $root.'/inc/mailbox.php';
 @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json'); @unlink(VESTRA_DATA_DIR.'/mailbox.json');

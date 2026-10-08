@@ -195,7 +195,7 @@ function vestra_leads_add(array $rows, string $owner=''): array {
   foreach($rows as $r){
     if((count($addedRows)+$skipped)>=$max) break;
     $company=trim((string)($r['company']??'')); if($company===''){ $skipped++; continue; }
-    $email=strtolower(trim((string)($r['email']??''))); $ev=$email!=='' && filter_var($email,FILTER_VALIDATE_EMAIL);
+    $email=function_exists('vestra_email_clean') ? vestra_email_clean((string)($r['email']??'')) : strtolower(trim((string)($r['email']??''))); $ev=$email!=='' && filter_var($email,FILTER_VALIDATE_EMAIL);
     if(($ev && isset($seenEmail[$email])) || (!$ev && isset($seenCompany[strtolower($company)]))){ $skipped++; continue; }
     if($ev) $seenEmail[$email]=true; $seenCompany[strtolower($company)]=true;
     $notes=trim((string)($r['address']??''));

@@ -78,15 +78,24 @@ function vestra_http_get(string $url, int $timeout=12): string {
   return substr((string)$r,0,600000);
 }
 
+/* Toplanan adresi temizler (8 Eki 2026): sayfa metnindeki "mailto:%20elodie@eloab.fr" düz-metin
+ * deseninden "%20elodie@eloab.fr" olarak giriyordu — filter_var() bunu geçerli sayar (% yerel kısımda
+ * yasal), mektup yanlış adrese gider. Baştaki URL-kodlu karakterler ve boşluk atılır. */
+function vestra_email_clean(string $e): string {
+  $e = strtolower(trim($e));
+  $e = (string)preg_replace('/^(?:%[0-9a-f]{2}|\s)+/i', '', $e);
+  return trim($e, " \t\n\r\0\x0B.;,:<>\"'");
+}
+
 /* Pull email addresses out of one HTML page into a score map (mailto: links weigh most,
  * plain text least; simple " at "/" dot " de-obfuscation). Mutates $scores. */
 function vestra_harvest_emails(string $html, array &$scores): void {
   if(preg_match_all('#mailto:([^"\'>?\s]+)#i',$html,$m)) foreach($m[1] as $e){
-    $e=strtolower(rawurldecode($e)); if(filter_var($e,FILTER_VALIDATE_EMAIL)) $scores[$e]=($scores[$e]??0)+6; }
+    $e=vestra_email_clean(rawurldecode($e)); if(filter_var($e,FILTER_VALIDATE_EMAIL)) $scores[$e]=($scores[$e]??0)+6; }
   $flat=str_ireplace([' at ','(at)','[at]',' [at] ','&#64;'],'@',$html);
   $flat=str_ireplace([' dot ','(dot)','[dot]'],'.',$flat);
   if(preg_match_all('#[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,24}#i',$flat,$m2)) foreach($m2[0] as $e){
-    $e=strtolower($e); if(filter_var($e,FILTER_VALIDATE_EMAIL)) $scores[$e]=($scores[$e]??0)+1; }
+    $e=vestra_email_clean($e); if(filter_var($e,FILTER_VALIDATE_EMAIL)) $scores[$e]=($scores[$e]??0)+1; }
 }
 
 /* Is this a scraped artefact / placeholder / unreachable role mailbox rather than a real

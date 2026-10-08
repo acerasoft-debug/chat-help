@@ -391,7 +391,8 @@ function vestra_lead_looks_dead(array $l): bool {
  *  Aynı ADRESE başka bir kayıttan daha önce yazılmışsa o adres de atlanır. */
 function vestra_finder_send_targets(int $limit = 1000, string $pool = 'web'): array {
   $out = []; $seen = []; $all = vestra_leads();
-  foreach ($all as $l) if (trim((string)($l['last_contacted_at'] ?? '')) !== '' && ($e = strtolower(trim((string)($l['email'] ?? '')))) !== '') $seen[$e] = true;
+  $clean = static fn($v) => function_exists('vestra_email_clean') ? vestra_email_clean((string)$v) : strtolower(trim((string)$v));
+  foreach ($all as $l) if (trim((string)($l['last_contacted_at'] ?? '')) !== '' && ($e = $clean($l['email'] ?? '')) !== '') $seen[$e] = true;
   foreach (array_reverse($all, true) as $i => $l) {                 // en yeni önce
     if (count($out) >= $limit) break;
     $src = (string)($l['source'] ?? '');
@@ -399,7 +400,7 @@ function vestra_finder_send_targets(int $limit = 1000, string $pool = 'web'): ar
     if ((string)($l['owner_uid'] ?? '') !== '') continue;
     if (trim((string)($l['last_contacted_at'] ?? '')) !== '') continue;
     $st = (string)($l['status'] ?? 'new'); if ($st === 'unsubscribed' || $st === 'bounced' || !empty($l['unsubscribed'])) continue;
-    $e = strtolower(trim((string)($l['email'] ?? ''))); if (!filter_var($e, FILTER_VALIDATE_EMAIL) || isset($seen[$e])) continue;
+    $e = $clean($l['email'] ?? ''); if (!filter_var($e, FILTER_VALIDATE_EMAIL) || isset($seen[$e])) continue;
     if (function_exists('vestra_email_is_junk') && vestra_email_is_junk($e)) continue;
     if (function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) continue;
     if (vestra_lead_looks_dead($l)) continue;
