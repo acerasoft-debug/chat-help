@@ -10,6 +10,10 @@
  *
  * ANAHTAR: operatörün Claude anahtarı, data/email_settings.json `anthropic_key`
  * (set-api-keys.yml repodaki ANTHROPIC_API_KEY'den aktarır; chmod 600, web'e kapalı).
+ * SATICININ KENDİ ANAHTARI (operatör, 8 Eki 2026: "saticilar kendi Claude API lerini
+ * koysunlar"): data/seller_ai_keys.json (chmod 600). Varsa ÖNCE o kullanılır; o
+ * çağrılar platform sınırına tabi DEĞİL ve platform maliyetine yazılmaz (ayrı
+ * `own_*` sayaçları). Kayıttan önce ücretsiz GET /v1/models ile doğrulanır.
  * SINIR: satıcı başına günlük + aylık, ve platform geneli aylık tavan
  * (ai_camp_per_day / ai_camp_per_month / ai_camp_platform_month — admin panelinden).
  * Her çağrı (HTTP 200 dönen) sayılır ve token kullanımı kaydedilir; admin maliyeti görür.
@@ -24,6 +28,61 @@ const VESTRA_AI_CAMP_MODEL = 'claude-opus-5-5';
 function vestra_ai_camp_key(): string { return trim((string)vestra_cfg('anthropic_key', '')); }
 function vestra_ai_camp_on(): bool    { return vestra_ai_camp_key() !== ''; }
 
+/* ── satıcının kendi anahtarı ────────────────────────────────────────────── */
+
+function vestra_ai_camp_seller_keys(): array {
+  $f = vestra_data_dir().'/seller_ai_keys.json';
+  $a = is_readable($f) ? json_decode((string)file_get_contents($f), true) : [];
+  return is_array($a) ? $a : [];
+}
+function vestra_ai_camp_seller_key(string $uid): string {
+  if ($uid === '') return '';
+  return trim((string)((vestra_ai_camp_seller_keys()[$uid] ?? [])['key'] ?? ''));
+}
+/** '' = sil. Anahtar ham olarak saklanır (Brevo anahtarlarıyla aynı: chmod 600, data/ web'e kapalı). */
+function vestra_ai_camp_seller_key_save(string $uid, string $key): bool {
+  if ($uid === '') return false;
+  $a = vestra_ai_camp_seller_keys();
+  if ($key === '') unset($a[$uid]);
+  else $a[$uid] = ['key' => $key, 'saved_at' => date('c'), 'tail' => substr($key, -4)];
+  $f = vestra_data_dir().'/seller_ai_keys.json';
+  $ok = file_put_contents($f, json_encode($a, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES), LOCK_EX) !== false;
+  @chmod($f, 0600);
+  return $ok && vestra_ai_camp_seller_key($uid) === $key;
+}
+
+/** Bu kişi için kullanılacak anahtar: [anahtar, 'own'|'platform'|'']. Satıcının kendisi önce. */
+function vestra_ai_camp_key_for(string $owner): array {
+  $own = vestra_ai_camp_seller_key($owner);
+  if ($own !== '') return [$own, 'own'];
+  $pk = vestra_ai_camp_key();
+  return $pk !== '' ? [$pk, 'platform'] : ['', ''];
+}
+function vestra_ai_camp_on_for(string $owner): bool { return vestra_ai_camp_key_for($owner)[0] !== ''; }
+
+/**
+ * Anahtarı kaydetmeden önce sınar — GET /v1/models: ücretsiz, token harcamaz.
+ * [ok, kod]  kod: 'ok' | 'format' | 'invalid' (401) | 'forbidden' (403) | 'unreachable'
+ * Not: bakiyesi olmayan anahtar da burada geçer (modeller listelenir); bakiye eksikliği
+ * ilk yazımda 'own_credit' olarak söylenir.
+ */
+function vestra_ai_camp_key_check(string $key, ?callable $http = null): array {
+  $key = trim($key);
+  if (!preg_match('/^sk-ant-[A-Za-z0-9_\-]{20,}$/', $key)) return [false, 'format'];
+  $http = $http ?? function (string $k): int {
+    $ch = curl_init('https://api.anthropic.com/v1/models?limit=1');
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_CONNECTTIMEOUT => 10,
+      CURLOPT_HTTPHEADER => ['x-api-key: '.$k, 'anthropic-version: 2023-06-01']]);
+    curl_exec($ch); $c = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    return $c;
+  };
+  $code = (int)$http($key);
+  if ($code === 200) return [true, 'ok'];
+  if ($code === 401) return [false, 'invalid'];
+  if ($code === 403) return [false, 'forbidden'];
+  return [false, 'unreachable'];
+}
+
 function vestra_ai_camp_limits(): array {
   $g = fn($k, $d) => max(0, (int)(vestra_cfg($k, $d) ?? $d));
   return ['per_day' => $g('ai_camp_per_day', 3), 'per_month' => $g('ai_camp_per_month', 20), 'platform_month' => $g('ai_camp_platform_month', 300)];
@@ -35,6 +94,8 @@ function vestra_ai_camp_usage(): array { return vestra_read_json('ai_campaign_us
 
 /** owner '' = admin (platform). Admin günlük/aylık sınıra tabi değil, platform tavanına tabi. */
 function vestra_ai_camp_quota(string $owner): array {
+  /* Kendi anahtarıyla yazan satıcı platformun parasını harcamıyor: sınır yok. */
+  if ($owner !== '' && vestra_ai_camp_seller_key($owner) !== '') return ['ok' => true, 'day_left' => null, 'month_left' => null, 'why' => '', 'own' => true];
   $L = vestra_ai_camp_limits(); $u = vestra_ai_camp_usage();
   $m = date('Y-m'); $d = date('Y-m-d');
   $mon = (array)($u[$m] ?? []);
@@ -43,12 +104,24 @@ function vestra_ai_camp_quota(string $owner): array {
   $dayLeft = $owner === '' ? $platLeft : max(0, $L['per_day'] - (int)(($o['days'] ?? [])[$d] ?? 0));
   $monLeft = $owner === '' ? $platLeft : max(0, $L['per_month'] - (int)($o['calls'] ?? 0));
   $why = $platLeft <= 0 ? 'platform' : ($monLeft <= 0 ? 'month' : ($dayLeft <= 0 ? 'day' : ''));
-  return ['ok' => $why === '', 'day_left' => min($dayLeft, $monLeft, $platLeft), 'month_left' => min($monLeft, $platLeft), 'why' => $why];
+  return ['ok' => $why === '', 'day_left' => min($dayLeft, $monLeft, $platLeft), 'month_left' => min($monLeft, $platLeft), 'why' => $why, 'own' => false];
 }
 
-function vestra_ai_camp_count(string $owner, int $in, int $out): void {
+function vestra_ai_camp_count(string $owner, int $in, int $out, bool $own = false): void {
   $u = vestra_ai_camp_usage(); $m = date('Y-m'); $d = date('Y-m-d'); $k = $owner === '' ? '_admin' : $owner;
   $mon = (array)($u[$m] ?? []);
+  if ($own) {
+    /* Satıcının kendi anahtarı: platform sayaçlarına (calls/in/out → kota ve maliyet)
+       DOKUNMAZ; yalnız satıcıya "bu ay kaç kampanya, kaç token" göstermek için. */
+    $o = (array)(($mon['owners'] ?? [])[$k] ?? []);
+    $o['own_calls'] = (int)($o['own_calls'] ?? 0) + 1;
+    $o['own_in'] = (int)($o['own_in'] ?? 0) + $in; $o['own_out'] = (int)($o['own_out'] ?? 0) + $out;
+    $mon['owners'][$k] = $o;
+    $mon['own_calls'] = (int)($mon['own_calls'] ?? 0) + 1;
+    $u[$m] = $mon; ksort($u); $u = array_slice($u, -6, null, true);
+    vestra_write_json('ai_campaign_usage.json', $u);
+    return;
+  }
   $mon['calls'] = (int)($mon['calls'] ?? 0) + 1;
   $mon['in'] = (int)($mon['in'] ?? 0) + $in; $mon['out'] = (int)($mon['out'] ?? 0) + $out;
   $o = (array)(($mon['owners'] ?? [])[$k] ?? []);
@@ -138,10 +211,13 @@ function vestra_ai_camp_product_line(array $p, bool $prices): string {
 /**
  * [ok, kod, kampanya|null]  — kod: 'ok' | 'nokey' | 'quota_day' | 'quota_month' | 'quota_platform'
  *   | 'noproducts' | 'refusal' | 'toolong' | 'api' | 'parse'
+ *   | 'own_key' | 'own_credit' | 'own_rate'  (yalnız satıcının kendi anahtarında)
  * $catalog: seçilebilecek ürünler (satıcıda kendi ilanları, adminde onaylı katalog).
  */
 function vestra_ai_camp_generate(string $owner, string $senderName, array $catalog, array $in): array {
-  if (!vestra_ai_camp_on()) return [false, 'nokey', null];
+  [$key, $src] = vestra_ai_camp_key_for($owner);
+  if ($key === '') return [false, 'nokey', null];
+  $own = $src === 'own';
   $q = vestra_ai_camp_quota($owner);
   if (!$q['ok']) return [false, 'quota_'.$q['why'], null];
 
@@ -187,17 +263,23 @@ function vestra_ai_camp_generate(string $owner, string $senderName, array $catal
   $ch = curl_init('https://api.anthropic.com/v1/messages');
   curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_TIMEOUT => 120, CURLOPT_CONNECTTIMEOUT => 15,
-    CURLOPT_HTTPHEADER => ['content-type: application/json', 'x-api-key: '.vestra_ai_camp_key(),
+    CURLOPT_HTTPHEADER => ['content-type: application/json', 'x-api-key: '.$key,
                            'anthropic-version: 2023-06-01', 'anthropic-beta: server-side-fallback-2026-07-01'],
     CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
   ]);
   $raw = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
   $d = is_string($raw) ? json_decode($raw, true) : null;
   if ($code !== 200 || !is_array($d)) {
-    error_log('[VESTRA ai_campaign] HTTP '.$code.' '.mb_substr((string)($d['error']['message'] ?? $raw), 0, 200));
+    $msg = (string)($d['error']['message'] ?? (is_string($raw) ? $raw : ''));
+    error_log('[VESTRA ai_campaign] '.($own ? 'own key ' : '').'HTTP '.$code.' '.mb_substr($msg, 0, 200));
+    /* Satıcının kendi anahtarındaki sorun SATICININ düzeltebileceği bir şey: ona söylenir.
+       Platform anahtarındaki sorun satıcıya "şu an kullanılamıyor" olarak kalır. */
+    if ($own && ($code === 401 || $code === 403)) return [false, 'own_key', null];
+    if ($own && stripos($msg, 'credit balance') !== false) return [false, 'own_credit', null];
+    if ($own && $code === 429) return [false, 'own_rate', null];
     return [false, 'api', null];
   }
-  vestra_ai_camp_count($owner, (int)($d['usage']['input_tokens'] ?? 0), (int)($d['usage']['output_tokens'] ?? 0));
+  vestra_ai_camp_count($owner, (int)($d['usage']['input_tokens'] ?? 0), (int)($d['usage']['output_tokens'] ?? 0), $own);
   $stop = (string)($d['stop_reason'] ?? '');
   if ($stop === 'refusal') return [false, 'refusal', null];
   if ($stop === 'max_tokens') return [false, 'toolong', null];
@@ -209,7 +291,7 @@ function vestra_ai_camp_generate(string $owner, string $senderName, array $catal
 
   $camp = ['id' => 'AC'.strtoupper(bin2hex(random_bytes(4))), 'owner' => $owner, 'created_at' => date('c'),
            'style' => $style, 'lang' => $lang, 'subject' => mb_substr($subject, 0, 200), 'body' => mb_substr($body, 0, 6000),
-           'products' => array_map(fn($p) => (string)($p['id'] ?? ''), $sel), 'active' => false];
+           'products' => array_map(fn($p) => (string)($p['id'] ?? ''), $sel), 'active' => false, 'key' => $src];
   $all = vestra_ai_camp_all();
   array_unshift($all, $camp);
   /* Kişi başına son 20 kampanya. */

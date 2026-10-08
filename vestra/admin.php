@@ -1873,10 +1873,21 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $dir=vestra_data_dir();
     if($act==='ai_camp_key' || $act==='ai_camp_limits'){
       $cur=is_readable($dir.'/email_settings.json')?json_decode((string)file_get_contents($dir.'/email_settings.json'),true):[]; if(!is_array($cur))$cur=[];
-      if($act==='ai_camp_key'){ $k=trim($_POST['anthropic_key']??''); if($k!=='') $cur['anthropic_key']=$k; if(!empty($_POST['ai_clear'])) unset($cur['anthropic_key']); }
+      $aiMsg=[true,'✓ Kaydedildi.']; $aiWrite=true;
+      if($act==='ai_camp_key'){
+        $k=trim($_POST['anthropic_key']??'');
+        if(!empty($_POST['ai_clear'])){ unset($cur['anthropic_key']); $aiMsg=[true,'✓ Claude anahtarı silindi.']; }
+        elseif($k!==''){
+          /* Kaydetmeden önce ücretsiz /v1/models ile sına — yanlış yapıştırılmış bir anahtar
+             "● Hazır" gösterip ilk yazımda "API hatası" vermesin. */
+          [$kOk,$kCode]=vestra_ai_camp_key_check($k);
+          if($kOk){ $cur['anthropic_key']=$k; $aiMsg=[true,'✓ Anahtar Anthropic tarafından doğrulandı ve kaydedildi. (Bakiye yoksa ilk yazımda söylenir: Console → Billing.)']; }
+          else { $aiWrite=false; $aiMsg=[false,['format'=>'Bu bir Claude API anahtarına benzemiyor (sk-ant- ile başlar) — kaydedilmedi.','invalid'=>'Anthropic bu anahtarı kabul etmedi (401) — kaydedilmedi. Yeni anahtar oluşturup tekrar yapıştırın.','forbidden'=>'Anahtarın API izni yok (403) — kaydedilmedi.','unreachable'=>'Anthropic\'e ulaşılamadı, anahtar sınanamadı — kaydedilmedi. Bir dakika sonra tekrar deneyin.'][$kCode]??'Kaydedilmedi.']; }
+        } else { $aiWrite=false; $aiMsg=[false,'Anahtar alanı boş — değişiklik yok.']; }
+      }
       else foreach(['ai_camp_per_day'=>[0,50],'ai_camp_per_month'=>[0,500],'ai_camp_platform_month'=>[0,5000]] as $k=>[$lo,$hi]){ if(isset($_POST[$k])) $cur[$k]=max($lo,min($hi,(int)$_POST[$k])); }
-      file_put_contents($dir.'/email_settings.json',json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($dir.'/email_settings.json',0600);
-      $_SESSION['ai_flash']=[true,'✓ Kaydedildi.'];
+      if($aiWrite){ file_put_contents($dir.'/email_settings.json',json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($dir.'/email_settings.json',0600); }
+      $_SESSION['ai_flash']=$aiMsg;
     } elseif($act==='ai_camp_generate'){
       $cat=array_values(array_filter(vestra_listings(),fn($p)=>($p['status']??'approved')==='approved'));
       [$ok,$code,$c]=vestra_ai_camp_generate('', 'VESTRA', $cat, ['style'=>$_POST['style']??'','custom'=>$_POST['custom']??'','offer'=>$_POST['offer']??'',
@@ -6473,7 +6484,9 @@ elseif($tab==='prospects'):
     <?php endif; ?>
     <details style="margin-top:8px"<?= $acOn?'':' open' ?>><summary class="ahint" style="cursor:pointer">🔑 Claude anahtarı ve kullanım sınırları<?= $acOn?' · anahtar kayıtlı ✓':'' ?></summary>
       <div style="font-size:12px;color:var(--mut);line-height:1.65;margin-top:8px">
-        <p style="margin:0 0 6px">Repoda <code>ANTHROPIC_API_KEY</code> secret'ı tanımlı değil (8 Eki kontrolü). İki yol: <b>(a)</b> anahtarı aşağıya yapıştırın, ya da <b>(b)</b> GitHub → repo → Settings → Secrets → <code>ANTHROPIC_API_KEY</code> ekleyip Actions'tan <b>"(Ayar) Repodaki Brevo + Claude anahtarlarını sunucuya aktar"</b> işini çalıştırın. Anahtar: <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" style="color:var(--acc)">console.anthropic.com/settings/keys</a> → <b>Create Key</b>.</p>
+        <p style="margin:0 0 6px"><?= $acOn?'Platform anahtarı kayıtlı.':'Repoda <code>ANTHROPIC_API_KEY</code> secret\'ı tanımlı değil (8 Eki 17:44 UTC kontrolü).' ?> İki yol: <b>(a)</b> anahtarı aşağıya yapıştırın, ya da <b>(b)</b> GitHub → repo → Settings → Secrets → <code>ANTHROPIC_API_KEY</code> ekleyip Actions'tan <b>"(Ayar) Repodaki Brevo + Claude anahtarlarını sunucuya aktar"</b> işini çalıştırın. Anahtar: <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" style="color:var(--acc)">console.anthropic.com/settings/keys</a> → <b>Create Key</b>.</p>
+        <?php $acSK=vestra_ai_camp_seller_keys(); ?>
+        <p style="margin:0 0 6px">Kendi Claude anahtarını kaydeden satıcı: <b><?= count($acSK) ?></b><?= $acSK?' · bu ay kendi anahtarlarıyla <b>'.(int)($acU['own_calls']??0).'</b> kampanya (platform kotasına ve maliyetine sayılmaz)':'' ?>. Satıcı anahtarını kendi panelinden (Müşteri bul ▸ ✍️ ▸ 🔑) girer; kayıttan önce Anthropic'te sınanır.</p>
         <p style="margin:0 0 6px">Bu ay: <b><?= (int)($acU['calls']??0) ?></b> kampanya yazıldı · <?= number_format((int)($acU['in']??0)) ?> giriş / <?= number_format((int)($acU['out']??0)) ?> çıkış token · tahmini maliyet <b>≈ $<?= number_format($acCost,2) ?></b> (<?= VESTRA_AI_CAMP_MODEL ?>: $4 / $20 milyon token).</p>
       </div>
       <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px"><?= csrfField() ?><input type="hidden" name="_action" value="ai_camp_key">

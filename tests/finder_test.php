@@ -170,6 +170,38 @@ $pl = vestra_ai_camp_product_line(['id' => 'P 1', 'brand' => 'Kenzo', 'name' => 
 $t('ürün satırı: yalnızca kayıttaki bilgiler + kodlanmış link', str_contains($pl, 'Kenzo — Tee') && str_contains($pl, 'minimum order: 10 pcs') && str_contains($pl, '12.50 EUR') && str_contains($pl, 'id=P%201'));
 $t('fiyat istenmezse fiyat yok', !str_contains(vestra_ai_camp_product_line(['id' => 'x', 'list' => 9], false), 'EUR'));
 $t('model sabiti', VESTRA_AI_CAMP_MODEL === 'claude-opus-5-5');
+
+echo "\n== 9b. satıcının KENDİ Claude anahtarı (ağsız) ==\n";
+$good = 'sk-ant-api03-'.str_repeat('A', 40);
+$t('biçim: sk-ant- olmayan reddedilir, ağa çıkmadan', vestra_ai_camp_key_check('xkeysib-123', function () { throw new Exception('ag'); }) === [false, 'format']);
+$t('doğrulama 200 → ok', vestra_ai_camp_key_check($good, fn() => 200) === [true, 'ok']);
+$t('doğrulama 401 → invalid', vestra_ai_camp_key_check($good, fn() => 401) === [false, 'invalid']);
+$t('doğrulama 403 → forbidden', vestra_ai_camp_key_check($good, fn() => 403) === [false, 'forbidden']);
+$t('doğrulama 0/500 → unreachable', vestra_ai_camp_key_check($good, fn() => 0) === [false, 'unreachable'] && vestra_ai_camp_key_check($good, fn() => 500)[1] === 'unreachable');
+$t('anahtar yokken key_for platformdan (ya da boş)', vestra_ai_camp_key_for('sellC')[1] === (vestra_ai_camp_on() ? 'platform' : ''));
+$t('kaydet + geri oku', vestra_ai_camp_seller_key_save('sellC', $good) && vestra_ai_camp_seller_key('sellC') === $good);
+$t('dosya 0600', (fileperms(VESTRA_DATA_DIR.'/seller_ai_keys.json') & 0777) === 0600);
+$t('key_for: satıcının kendisi önce', vestra_ai_camp_key_for('sellC') === [$good, 'own'] && vestra_ai_camp_on_for('sellC'));
+$t('başka satıcı onun anahtarını almaz', vestra_ai_camp_key_for('sellB')[1] !== 'own');
+$t('admin ("") satıcı anahtarı kullanmaz', vestra_ai_camp_key_for('')[1] !== 'own');
+$qc = vestra_ai_camp_quota('sellC');
+$t('kendi anahtarı: platform ayı dolu olsa da kota açık', $qc['ok'] && $qc['own'] === true && $qc['day_left'] === null);
+$callsBefore = (int)vestra_ai_camp_usage()[date('Y-m')]['calls'];
+vestra_ai_camp_count('sellC', 1200, 700, true);
+$um = vestra_ai_camp_usage()[date('Y-m')];
+$t('kendi anahtarıyla yazım platform sayacına/maliyetine YAZILMAZ', (int)$um['calls'] === $callsBefore && $um['in'] === 3000 && $um['out'] === 1500);
+$t('satıcının kendi sayacı', $um['owners']['sellC']['own_calls'] === 1 && $um['owners']['sellC']['own_in'] === 1200 && $um['own_calls'] === 1);
+$t('sil → platforma döner', vestra_ai_camp_seller_key_save('sellC', '') && vestra_ai_camp_seller_key('sellC') === '' && !vestra_ai_camp_quota('sellC')['own']);
+$sp = (string)file_get_contents($root.'/seller.php');
+$t('satıcı paneli: anahtar formu + rehber linkleri + doğrulama', str_contains($sp, "value=\"seller_ai_key\"") && str_contains($sp, 'console.anthropic.com/settings/keys')
+   && str_contains($sp, 'console.anthropic.com/settings/billing') && str_contains($sp, 'vestra_ai_camp_key_check('));
+$ap = (string)file_get_contents($root.'/admin.php');
+$t('admin: anahtar kaydetmeden önce sınanıyor', str_contains($ap, 'vestra_ai_camp_key_check($k)'));
+$langs = ['de', 'fr', 'it', 'es', 'pt', 'ru', 'ar', 'ja']; $miss = [];
+foreach ($langs as $lg) { $L2 = require $root.'/inc/lang/'.$lg.'.php'; foreach (['Your own Claude key', 'Save key', 'Open %s and sign up (email or Google).', 'Your Anthropic account has no credit left. Add credit in the Anthropic console (Billing), then try again.'] as $k) if (!isset($L2[$k])) $miss[] = $lg.':'.$k; }
+$t('yeni satıcı metinleri 8 dilde', !$miss);
+$t('%s yer tutucusu çeviride korunuyor', !array_filter($langs, function ($lg) use ($root) { $L2 = require $root.'/inc/lang/'.$lg.'.php'; return substr_count($L2['Open %s and sign up (email or Google).'], '%s') !== 1 || substr_count($L2['This month: %d campaigns'], '%d') !== 1; }));
+
 $aic = (string)file_get_contents($root.'/inc/ai_campaign.php');
 $t('istek: yapılandırılmış çıktı + ret/uzunluk durumu ele alınıyor', str_contains($aic, "'json_schema'") && str_contains($aic, "'refusal'") && str_contains($aic, "'max_tokens'"));
 
@@ -220,6 +252,14 @@ $t('satıcı: Claude kartı ALMANCA, yaz formu, yalnızca KENDİ ürünü', str_
 $t('satıcı: kendi kampanyası "in Verwendung", adminin kampanyası YOK, kota görünür', str_contains($hs, 'in Verwendung') && str_contains($hs, 'SELLER-CAMP') && !str_contains($hs, 'ADMIN-CAMP') && str_contains($hs, 'Heute übrig: 3'));
 $t('satıcı: Claude anahtarı sayfada YOK', !str_contains($hs, 'sk-ant-probe') && !str_contains($ha, 'sk-ant-probe'));
 $t('satıcı: PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $hs));
+$t('satıcı: kendi-anahtar bölümü + Almanca rehber (anahtar yokken)', str_contains($hs, 'id="aikey"') && str_contains($hs, 'value="seller_ai_key"') && str_contains($hs, 'Ihr eigener Claude-Schlüssel') && str_contains($hs, 'console.anthropic.com/settings/billing'));
+/* Satıcı kendi anahtarını kaydetmiş: durum "kendi anahtarı", kota satırı YOK, anahtarın kendisi sayfada YOK (yalnız son 4 hane). */
+$ownKey = 'sk-ant-api03-OWNSELLERKEY'.str_repeat('x', 30).'Z9q7';
+file_put_contents($sb.'/vestra/data/seller_ai_keys.json', json_encode(['sell0000probe000' => ['key' => $ownKey, 'saved_at' => date('c'), 'tail' => 'Z9q7']]));
+$hs2 = (string)shell_exec('cd '.escapeshellarg($sb).' && php s.php 2>/dev/null');
+$t('satıcı (kendi anahtarı): yeşil durum, kota satırı yok, "Diesen Monat"', str_contains($hs2, '● Ihr eigener Claude-Schlüssel') && !str_contains($hs2, 'Heute übrig') && str_contains($hs2, 'Diesen Monat: 0 Kampagnen'));
+$t('satıcı (kendi anahtarı): anahtar sayfada YOK, yalnız son 4 hane + Kaldır düğmesi', !str_contains($hs2, 'OWNSELLERKEY') && str_contains($hs2, '…Z9q7') && str_contains($hs2, 'name="ai_key_clear"'));
+$t('satıcı (kendi anahtarı): PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $hs2));
 
 exec('rm -rf '.escapeshellarg($sand));
 echo "\nTOPLAM: {$ok} gecti, {$bad} kaldi\n";

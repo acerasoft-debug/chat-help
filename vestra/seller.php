@@ -540,9 +540,26 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
      listings + a style + a language; the platform's Claude key writes subject + body. Usage is
      capped per seller per day/month and platform-wide per month (admin sets the limits). The
      active campaign replaces the standard invite in "Send one-by-one". */
-  if(in_array($sact,['seller_ai_generate','seller_ai_save','seller_ai_stop'],true)){
+  if(in_array($sact,['seller_ai_generate','seller_ai_save','seller_ai_stop','seller_ai_key'],true)){
     require_once __DIR__.'/inc/ai_campaign.php';
-    if($sact==='seller_ai_generate'){
+    if($sact==='seller_ai_key'){
+      /* Satıcının KENDİ Claude anahtarı (operatör, 8 Eki 2026). Kaydetmeden önce ücretsiz
+         /v1/models ile sınanır: geçmeyen anahtar kaydedilmez, satıcı nedenini kendi dilinde görür. */
+      if(!empty($_POST['ai_key_clear'])){
+        vestra_ai_camp_seller_key_save($suid,'');
+        $_SESSION['seller_ai_flash']=[true,'Your Claude key was removed.'];
+      } else {
+        $k=trim((string)($_POST['anthropic_key']??''));
+        [$kOk,$kCode]=vestra_ai_camp_key_check($k);
+        $kMsgs=['ok'=>'Your Claude key works and is saved. Your campaigns now use your own key — no limits from VESTRA.',
+          'format'=>'This does not look like a Claude API key. It starts with sk-ant- — please copy it again.',
+          'invalid'=>'Anthropic did not accept this key. Please create a new key and paste it again.',
+          'forbidden'=>'This key is not allowed to use the API. Please check your Anthropic account.',
+          'unreachable'=>'We could not reach Anthropic to check the key. Please try again in a minute.'];
+        if($kOk && !vestra_ai_camp_seller_key_save($suid,$k)){ $kOk=false; $kCode='unreachable'; }
+        $_SESSION['seller_ai_flash']=[$kOk,$kMsgs[$kCode]??$kMsgs['unreachable']];
+      }
+    } elseif($sact==='seller_ai_generate'){
       [$aOk,$aCode,$aC]=vestra_ai_camp_generate($suid,$sName,vestra_seller_listings($suid),['style'=>$_POST['style']??'','custom'=>$_POST['custom']??'',
         'offer'=>$_POST['offer']??'','lang'=>$_POST['lang']??'en','prices'=>!empty($_POST['prices']),'products'=>(array)($_POST['products']??[])]);
       $aMsgs=['ok'=>'Your campaign is ready — check it below, edit if you like, then press "Use for sending".',
@@ -554,7 +571,10 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
         'refusal'=>'This request could not be written. Please change your style or offer text and try again.',
         'toolong'=>'Too much at once — please choose fewer products.',
         'api'=>'The campaign writer is not available right now. Please try again later.',
-        'parse'=>'Something went wrong — please try again.'];
+        'parse'=>'Something went wrong — please try again.',
+        'own_key'=>'Anthropic did not accept your Claude key. Please create a new key and save it again.',
+        'own_credit'=>'Your Anthropic account has no credit left. Add credit in the Anthropic console (Billing), then try again.',
+        'own_rate'=>'Your Anthropic account is busy right now. Please wait a minute and try again.'];
       $_SESSION['seller_ai_flash']=[$aOk,$aMsgs[$aCode]??$aMsgs['parse']];
     } elseif($sact==='seller_ai_save'){
       $aOk=vestra_ai_camp_save_edit((string)($_POST['cid']??''),$suid,(string)($_POST['subject']??''),(string)($_POST['body']??''),!empty($_POST['activate']));
@@ -1425,8 +1445,10 @@ if($tab==='overview'){
 
   <?php
     require_once __DIR__.'/inc/ai_campaign.php';
-    $acOn    = vestra_ai_camp_on();
+    $acOwn   = vestra_ai_camp_seller_key($uid);
+    $acOn    = vestra_ai_camp_on_for($uid);
     $acQ     = vestra_ai_camp_quota($uid);
+    $acOwnU  = (array)(((vestra_ai_camp_usage()[date('Y-m')] ?? [])['owners'] ?? [])[$uid] ?? []);
     $acFlash = $_SESSION['seller_ai_flash'] ?? null; unset($_SESSION['seller_ai_flash']);
     $acMine  = array_slice(vestra_ai_camp_list($uid), 0, 6);
     $acAct   = vestra_ai_camp_active($uid);
@@ -1435,9 +1457,9 @@ if($tab==='overview'){
   <div id="aicamp" style="<?= $card ?>;border-color:#d9cdf3">
     <h3 style="margin:0 0 6px;font-size:15px"><?= $tw('✍️ Write a campaign with AI') ?></h3>
     <p style="color:var(--mut);font-size:12.5px;margin:0 0 6px"><?= $tw('Choose products from your catalog, a style and a language. AI writes the subject and the text from your own products. You can edit it, then use it for sending to your customers below.') ?></p>
-    <p style="color:var(--mut);font-size:12px;margin:0 0 12px"><?= sprintf($tw('Left today: %d · this month: %d'), (int)$acQ['day_left'], (int)$acQ['month_left']) ?> · <?= $tw('Campaign used when sending:') ?> <b><?= $acAct ? htmlspecialchars((string)$acAct['subject']) : $tw('Standard invitation') ?></b></p>
+    <p style="color:var(--mut);font-size:12px;margin:0 0 12px"><?php if($acOwn!==''): ?><span style="color:#1f9d63;font-weight:600">● <?= $tw('Your own Claude key') ?></span> · <?= sprintf($tw('This month: %d campaigns'), (int)($acOwnU['own_calls']??0)) ?> · <?php elseif($acOn): ?><?= sprintf($tw('Left today: %d · this month: %d'), (int)$acQ['day_left'], (int)$acQ['month_left']) ?> · <?php endif; ?><?= $tw('Campaign used when sending:') ?> <b><?= $acAct ? htmlspecialchars((string)$acAct['subject']) : $tw('Standard invitation') ?></b></p>
     <?php if($acFlash): ?><div style="background:<?= $acFlash[0]?'#eaf7ef':'#fdf0ee' ?>;border:1px solid <?= $acFlash[0]?'#b9e3c9':'#f0c4bd' ?>;color:<?= $acFlash[0]?'#1f7a4d':'#a3321f' ?>;padding:9px 13px;border-radius:10px;margin-bottom:12px;font-size:13px"><?= $tw((string)$acFlash[1]) ?></div><?php endif; ?>
-    <?php if(!$acOn): ?><p style="font-size:13px;color:#a9781a;margin:0"><?= $tw('The campaign writer is not available right now. Please try again later.') ?></p>
+    <?php if(!$acOn): ?><p style="font-size:13px;color:#a9781a;margin:0 0 6px"><?= $tw('To start, add your own Claude key below — it takes about 5 minutes.') ?></p>
     <?php elseif(!$acCat): ?><p style="font-size:13px;color:#a9781a;margin:0"><?= $tw('Add products to your catalog first — the campaign is written from your own products.') ?></p>
     <?php else: ?>
     <form method="post" style="margin-bottom:12px">
@@ -1466,6 +1488,31 @@ if($tab==='overview'){
     <?php endforeach; ?>
     <?php if($acAct): ?><form method="post"><input type="hidden" name="_action" value="seller_ai_stop"><button class="btn btn-o btn-sm" type="submit"><?= $tw('Stop using — send the standard invitation') ?></button></form><?php endif; ?>
     <?php endif; ?>
+
+    <?php /* 🔑 Satıcının KENDİ Claude anahtarı — adım adım, satıcının dilinde. Anahtar yoksa ve
+             platform anahtarı da yoksa açık gelir (yazar onsuz çalışmaz). */
+      $acLnk = fn(string $u, string $txt): string => '<a href="'.htmlspecialchars($u).'" target="_blank" rel="noopener" style="color:var(--acc,#8a6420);font-weight:600">'.htmlspecialchars($txt).'</a>'; ?>
+    <div id="aikey" style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:4px">🔑 <?= $tw('Your own Claude key') ?> <?= $acOwn!==''?'<span style="color:#1f9d63;font-weight:400;font-size:12px">· '.$tw('saved').' (…'.htmlspecialchars(substr($acOwn,-4)).') ✓</span>':'<span style="color:var(--mut);font-weight:400;font-size:12px">· '.$tw('optional').'</span>' ?></div>
+      <p style="color:var(--mut);font-size:12px;margin:0 0 8px"><?= $tw('With your own key there are no limits from VESTRA. Anthropic bills your own account — usually a few cents per campaign.') ?></p>
+      <details<?= ($acOwn===''&&!vestra_ai_camp_on())?' open':'' ?> style="margin:0 0 10px">
+        <summary style="cursor:pointer;font-size:12px;color:var(--mut)"><?= $tw('How to get your key — about 5 minutes:') ?></summary>
+        <ol style="margin:8px 0 6px 18px;padding:0;font-size:13px;line-height:1.7">
+          <li><?= sprintf($tw('Open %s and sign up (email or Google).'), $acLnk('https://console.anthropic.com/','console.anthropic.com')) ?></li>
+          <li><?= sprintf($tw('Add a small amount of credit: %s → “Buy credits”. Without credit the key cannot write.'), $acLnk('https://console.anthropic.com/settings/billing','Settings → Billing')) ?></li>
+          <li><?= sprintf($tw('Open %s, click “Create Key”, name it VESTRA and copy it (it starts with sk-ant-).'), $acLnk('https://console.anthropic.com/settings/keys','Settings → API keys')) ?></li>
+          <li><?= $tw('Paste the key below and press “Save key”. We check it with Anthropic right away — checking is free.') ?></li>
+        </ol>
+        <div style="font-size:12px;color:var(--mut);margin:0 0 4px">💡 <?= sprintf($tw('Tip: set a monthly spend limit in %s so you never pay more than you plan.'), $acLnk('https://console.anthropic.com/settings/limits','Settings → Limits')) ?></div>
+        <div style="font-size:12px;color:var(--mut)">🔒 <?= $tw('Your key is stored on our server only for your campaigns. Other sellers and buyers never see it. You can remove it at any time.') ?></div>
+      </details>
+      <form method="post" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+        <input type="hidden" name="_action" value="seller_ai_key">
+        <div style="flex:1;min-width:240px"><label style="<?= $lbl ?>"><?= $tw('Claude API key') ?><?= $acOwn!==''?' · '.$tw('saved').', '.$tw('paste a new one to replace it'):'' ?></label><input type="password" name="anthropic_key" autocomplete="new-password" placeholder="sk-ant-…" style="<?= $inp ?>"></div>
+        <button class="btn btn-p btn-sm" type="submit" onclick="this.textContent=<?= htmlspecialchars(json_encode(t('Checking…'), JSON_UNESCAPED_UNICODE)) ?>"><?= $tw('Save key') ?></button>
+        <?php if($acOwn!==''): ?><button class="btn btn-o btn-sm" type="submit" name="ai_key_clear" value="1" onclick="return confirm(<?= htmlspecialchars(json_encode(t('Remove your Claude key?'), JSON_UNESCAPED_UNICODE)) ?>)"><?= $tw('Remove key') ?></button><?php endif; ?>
+      </form>
+    </div>
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
