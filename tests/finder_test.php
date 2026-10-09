@@ -256,6 +256,17 @@ $t('DKIM: imzalı mektupta DKIM-Signature ilk başlık, d=vestrasales.com s=vest
 $t('DKIM: DNS kaydı yokken (test ortamı) imza ATILMAZ', !str_contains((string)($cap0 = (function () use ($fm, &$cap) { $cap = []; vestra_mailbox_send_local(['email' => 'a@b.example', 'subject' => 'Hi', 'text' => 't', 'html' => 'h', 'listUnsub' => ''], 'VESTRA', $fm); return $cap[0]['hdr'] ?? ''; })()), 'DKIM-Signature'));
 $t('günlük tavan ayarlanır ve GoDaddy sınırının altında kırpılır', vestra_mailbox_set_cap(120) === 120 && vestra_mailbox_daily_cap() === 120 && vestra_mailbox_set_cap(9999) === VESTRA_MAILBOX_MAX_CAP && vestra_mailbox_set_cap(50) === 50);
 @unlink(VESTRA_DATA_DIR.'/mailbox.json');
+/* Müşteri listesinden (platform adına) gönderim de kendi sunucumuzdan (9 Eki 2026). */
+$cap = [];
+[$lok, $lmid] = vestra_mailbox_send_lead(['email' => '%20Info@Shop.example', 'unsub_token' => 'tokL'], 'Konu', "Merhaba\n\n—\nalt bilgi", 'VESTRA', '', [], $fm, fn($d) => 'ok');
+$t('liste gönderimi: temiz adrese, kişiye özel çıkış başlığıyla, support@ zarfıyla', $lok && str_starts_with($lmid, '<') && ($cap[0]['to'] ?? '') === 'info@shop.example'
+   && str_contains($cap[0]['hdr'], 'token=tokL') && $cap[0]['params'] === '-f support@vestrasales.com');
+$t('liste gönderimi: kapalı alan adına gönderilmez', vestra_mailbox_send_lead(['email' => 'a@dead.example'], 'K', 'B', 'VESTRA', '', [], $fm, fn($d) => 'dead') === [false, 'deaddomain']);
+vestra_mailbox_set_cap(1); vestra_write_json('leads.json', [['id' => 'C1', 'email' => 'x@y.example', 'contact_via' => 'mailbox', 'last_contacted_at' => date('c')]]);
+$t('liste gönderimi: günlük tavan doluysa gönderilmez', vestra_mailbox_send_lead(['email' => 'a@b.example'], 'K', 'B', 'VESTRA', '', [], $fm, fn($d) => 'ok') === [false, 'cap']);
+vestra_mailbox_set_cap(50);
+$asrc = (string)file_get_contents($root.'/admin.php');
+$t('admin: platform adına liste gönderimi sunucudan, satıcı adına Brevo (değişmedi)', substr_count($asrc, 'vestra_mailbox_send_lead($l,$subject,$body') === 2 && substr_count($asrc, "if(\$sc===null){") >= 2);
 $cron = (string)file_get_contents($root.'/cron_mailbox.php');
 $t('cron_mailbox: yalnız CLI, kilitli, istek alır ve sonucu yazar', str_contains($cron, "PHP_SAPI !== 'cli'") && str_contains($cron, 'LOCK_EX | LOCK_NB') && str_contains($cron, 'vestra_mailbox_take()') && str_contains($cron, 'vestra_mailbox_finish('));
 file_put_contents(VESTRA_DATA_DIR.'/leads.json', $keepLeads2);

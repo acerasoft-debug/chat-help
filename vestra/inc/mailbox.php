@@ -460,3 +460,23 @@ function vestra_dkim_sign(array $headerLines, string $to, string $subject, strin
   if (!$key || !openssl_sign($canon, $raw, $key, OPENSSL_ALGO_SHA256)) return '';
   return 'DKIM-Signature: '.$sig.chunk_split(base64_encode($raw), 72, "\r\n\t");
 }
+
+/**
+ * Müşteri listesindeki "Seçilenlere gönder" / "Tek tek gönder" (platform adına) için tek mektup: kendi sunucumuzun
+ * posta servisiyle (operatör, 9 Eki 2026: "sipariş, fatura vs Brevo'dan gitmeye devam etsin, kampanyalar kendi
+ * sunucumuzdan olsun"). Günlük tavan, kapalı alan adı kontrolü ve DKIM burada da geçerli.
+ * [ok, Message-ID | neden]  neden: 'cap' | 'noemail' | 'deaddomain' | posta servisi mesajı.
+ */
+function vestra_mailbox_send_lead(array $l, string $subject, string $body, string $fromName = 'VESTRA', string $heroImg = '', array $opts = [], ?callable $mail = null, ?callable $dns = null): array {
+  if (vestra_mailbox_left_today() <= 0) return [false, 'cap'];
+  $email = vestra_email_clean((string)($l['email'] ?? ''));
+  if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return [false, 'noemail'];
+  $dns = $dns ?? 'vestra_mailbox_dns_status';
+  if ($dns(substr((string)strrchr($email, '@'), 1)) === 'dead') return [false, 'deaddomain'];
+  $tok = (string)($l['unsub_token'] ?? '');
+  $item = ['email' => $email, 'subject' => $subject,
+           'html' => vestra_html_email($body, $heroImg, $opts), 'text' => vestra_mail_text_part($body, $opts),
+           'listUnsub' => $tok !== '' ? 'https://vestrasales.com/lead-unsubscribe?token='.rawurlencode($tok) : 'https://vestrasales.com/lead-unsubscribe'];
+  [$ok, $mid, $why] = vestra_mailbox_send_local($item, $fromName !== '' ? $fromName : 'VESTRA', $mail);
+  return [$ok, $ok ? $mid : $why];
+}

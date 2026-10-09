@@ -2127,6 +2127,16 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       if(vestra_name_is_blocked((string)($l['company']??''),(string)($l['brand']??''))) continue; // buyuk magaza/tek-marka -- teklif gonderme
       if(($l['last_contacted_at']??'')!=='') continue; // already emailed once — no auto-resend
       [$subject,$body]=vestra_lead_render_email($l,$tpl);
+      /* Platform adına: kendi sunucumuzun posta servisi (9 Eki 2026 — kampanyalar Brevo kotasına girmez,
+         sipariş/fatura Brevo'da kalır). Satıcı adına: satıcının kendi Brevo'su (değişmedi). */
+      if($sc===null){
+        require_once __DIR__.'/inc/mailbox.php';
+        [$mok,$mres]=vestra_mailbox_send_lead($l,$subject,$body,'VESTRA',$heroImg);
+        if($mres==='deaddomain'){ $l['status']='bounced'; $l['bounce_reason']='alan adinin e-posta sunucusu yok (gonderilmedi)'; $l['bounced_at']=date('c'); continue; }
+        if($mres==='cap') break;
+        if($mok){ $sent++; if(($l['status']??'new')==='new') $l['status']='contacted'; $l['last_contacted_at']=date('c'); $l['contact_via']='mailbox'; $l['last_message_id']=$mres; }
+        continue;
+      }
       if(vestra_send_mail($l['email'],$subject,$body,'',$senderName,$sc,$heroImg)){
         $sent++;
         if(($l['status']??'new')==='new') $l['status']='contacted';
@@ -2166,6 +2176,16 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       if(($l['last_contacted_at']??'')!==''){ $res['error']='already_sent'; break; }
       $pair=$ai?vestra_ai_personalize($l,$tpl,$senderName):null;
       [$subject,$body]=$pair!==null?$pair:vestra_lead_render_email($l,$tpl);
+      if($sc===null){
+        /* Platform adına: kendi sunucumuzun posta servisi (9 Eki 2026). */
+        require_once __DIR__.'/inc/mailbox.php';
+        [$mok,$mres]=vestra_mailbox_send_lead($l,$subject,$body,'VESTRA',$heroImg);
+        if($mok){ $res['ok']=true; $res['ai']=($pair!==null); if(($l['status']??'new')==='new') $l['status']='contacted'; $l['last_contacted_at']=date('c'); $l['contact_via']='mailbox'; $l['last_message_id']=$mres; }
+        elseif($mres==='deaddomain'){ $res['error']='deaddomain'; $l['status']='bounced'; $l['bounce_reason']='alan adinin e-posta sunucusu yok (gonderilmedi)'; $l['bounced_at']=date('c'); }
+        elseif($mres==='cap'){ $res['error']='cap'; }
+        else { $res['error']='send'; }
+        break;
+      }
       if(vestra_send_mail($l['email'],$subject,$body,'',$senderName,$sc,$heroImg)){ $res['ok']=true; $res['ai']=($pair!==null); if(($l['status']??'new')==='new') $l['status']='contacted'; $l['last_contacted_at']=date('c'); }
       else { $res['error']='send'; }
       break;
@@ -2617,6 +2637,9 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 .abtn.primary:hover{filter:brightness(1.07);background:var(--acc);color:#fff}
 /* forms */
 .aform{display:flex;flex-direction:column;gap:12px}
+/* 9 Eki 2026: alanları YAN YANA dizmek için yazılmış formlar (style="display:flex") sınıftan column
+   alıp alt alta, sağa yaslı görünüyordu (📮 kart, Claude/Brave anahtar formları). */
+.aform[style*="display:flex"],.aform[style*="display:inline-flex"]{flex-direction:row;flex-wrap:wrap}
 .afield label{display:block;font-size:11px;color:var(--mut);margin-bottom:4px}
 .afield input,.afield select,.afield textarea{width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:13px;font-family:inherit}
 .afield textarea{resize:vertical;min-height:60px}
@@ -6388,6 +6411,7 @@ elseif($tab==='prospects'):
   require_once __DIR__.'/inc/discover_google.php';
   $googleOn = vestra_google_key()!=='';
 ?>
+<?php ob_start(); /* eski adım şeridi + İngilizce giriş — sadeleştirmede yerini özet aldı (9 Eki 2026) */ ?>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
   <?php
     $csteps=[
@@ -6412,6 +6436,7 @@ elseif($tab==='prospects'):
   real addresses, never mass-scraped private data. Every outreach email carries a working one-click unsubscribe link;
   anyone who uses it is permanently excluded from future sends. Use the offer template below (or <i>Send a product offer</i>) to pitch them.
 </p>
+<?php ob_end_clean(); ?>
 
 <?php
   /* ── 🌐 Web'den müşteri bul (inc/finder.php) ─────────────────────────────────
@@ -6427,6 +6452,7 @@ elseif($tab==='prospects'):
   $fwNames  = []; foreach($sellerAccts as $sa) $fwNames[(string)($sa['id']??'')]=(string)($sa['company']??$sa['name']??'');
   $fwLast   = $fwRuns[0]['params'] ?? [];
 ?>
+<?php $__pb=[]; ob_start(); ?>
 <div class="acard" id="finderweb" style="margin-bottom:20px;border-color:<?= $fwReady?'rgba(31,157,99,.45)':'rgba(169,127,44,.5)' ?>">
   <div class="acard-hd"><h3>🌐 Web'den müşteri bul — gerçek e-posta
     <?= $fwReady?'<span style="color:#1f9d63;font-size:12px;font-weight:600">● Hazır</span>':'<span style="color:#a9781a;font-size:12px;font-weight:600">● Kapalı</span>' ?></h3></div>
@@ -6471,6 +6497,7 @@ elseif($tab==='prospects'):
   <div style="font-weight:600;font-size:13px;margin:4px 0 8px">Son aramalar</div>
   <?= vestra_finder_runs_html($fwRuns, true, $fwNames, 6) ?>
   <?php if($fwActive): ?><script>setTimeout(function(){ if(!document.hidden) location.reload(); }, 45000);</script><?php endif; ?>
+<?php $__pb['A']=ob_get_clean(); ob_start(); ?>
 
   <?php
     /* ── 📮 Bulunanlara kampanya gönder ── */
@@ -6481,7 +6508,7 @@ elseif($tab==='prospects'):
     [$fsCredOk,$fsCred]=function_exists('vestra_campaign_credit_ok')?vestra_campaign_credit_ok():[true,null]; $fsRes=vestra_brevo_reserve();
   ?>
   <div id="findersend" style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
-    <div style="font-weight:700;font-size:14px;margin-bottom:4px">📮 Bulunan müşterilere kampanya gönder <span class="ahint">· gönderilmeye hazır: web aramasıyla bulunan <b><?= count($fsTargetsWeb) ?></b> · tüm yazılmamış müşteriler <b><?= count($fsTargetsAll) ?></b> (KURAL 1, abonelikten çıkan, kampanya dışı ve daha önce yazılmış adresler elendi)</span></div>
+    <div style="font-weight:700;font-size:14px;margin-bottom:4px">📨 Brevo ile gönder <span style="color:#a9781a;font-size:12px">· eski yol — sipariş/fatura e-postalarıyla aynı günlük kotayı kullanır; kampanyalar için yukarıdaki 📮 kartı önerilir</span> <span class="ahint">· gönderilmeye hazır: web aramasıyla bulunan <b><?= count($fsTargetsWeb) ?></b> · tüm yazılmamış müşteriler <b><?= count($fsTargetsAll) ?></b> (KURAL 1, abonelikten çıkan, kampanya dışı ve daha önce yazılmış adresler elendi)</span></div>
     <div style="background:<?= $fsCredOk?'rgba(31,157,99,.07)':'#fdf0ee' ?>;border:1px solid <?= $fsCredOk?'rgba(31,157,99,.35)':'#f0c4bd' ?>;border-radius:9px;padding:8px 11px;font-size:12.5px;margin:0 0 8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <span>📊 Brevo bugün kalan: <b><?= $fsCred===null?'?':(int)$fsCred ?></b> · sipariş/fatura payı: <b><?= $fsRes ?></b> · kampanyaya ayrılabilir: <b><?= $fsCred===null?'?':max(0,(int)$fsCred-$fsRes) ?></b><?= $fsCredOk?'':' — <b>bugünlük kampanya hakkı bitti</b>, kalan müşteriler yarın gönderilebilir' ?></span>
       <form method="post" class="aform" style="display:flex;gap:6px;align-items:center;margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="brevo_reserve"><label class="ahint" style="margin:0">Pay</label><input name="brevo_reserve" type="number" min="0" max="300" value="<?= $fsRes ?>" style="width:70px"><button class="abtn" type="submit">Kaydet</button></form>
@@ -6509,6 +6536,7 @@ elseif($tab==='prospects'):
         <button class="abtn primary" type="submit" name="mode" value="send" onclick="return confirm('Seçilen kampanya gerçekten gönderilsin mi?')"<?= ($fsTargetsWeb||$fsTargetsAll)?'':' disabled' ?>>📮 Gönder</button>
       </div>
     </form>
+<?php $__pb['B']=ob_get_clean(); ob_start(); ?>
     <form method="post" class="aform" style="border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-top:10px">
       <?= csrfField() ?><input type="hidden" name="_action" value="lemlist_export">
       <div style="font-weight:600;font-size:13px;margin-bottom:4px">📤 lemlist ile gönder (Brevo kotasına girmez)</div>
@@ -6520,6 +6548,7 @@ elseif($tab==='prospects'):
         <button class="abtn" type="submit">📤 lemlist CSV indir</button>
       </div>
     </form>
+<?php $__pb['C']=ob_get_clean(); ob_start(); ?>
     <?php
       require_once __DIR__.'/inc/mailbox.php';
       $mbCfg=vestra_mailbox_cfg(); $mbCap=vestra_mailbox_daily_cap(); $mbToday=vestra_mailbox_sent_today(); $mbLeft=max(0,$mbCap-$mbToday);
@@ -6527,8 +6556,9 @@ elseif($tab==='prospects'):
       $mbFlash=$_SESSION['mailbox_flash']??null; unset($_SESSION['mailbox_flash']);
       $mbSt=['requested'=>'⏳ sırada','running'=>'▶ gönderiliyor','done'=>'✓ bitti','failed'=>'✗ hata','stale'=>'— takıldı'];
     ?>
-    <div id="mailboxsend" style="border:1px solid rgba(31,157,99,.35);background:rgba(31,157,99,.05);border-radius:9px;padding:10px 12px;margin-top:10px">
-      <div style="font-weight:700;font-size:13.5px;margin-bottom:4px">📮 support@ posta kutusundan gönder <span style="color:#1f9d63;font-size:12px">· kotasız, Brevo'ya girmez</span></div>
+    <div class="acard" id="mailboxsend" style="margin-bottom:20px;border-color:rgba(31,157,99,.45)">
+      <div class="acard-hd"><h3>📮 Kampanya gönder <span style="color:#1f9d63;font-size:12px;font-weight:600">● support@vestrasales.com · kendi sunucumuz · Brevo kotasına girmez</span></h3></div>
+      <div class="acard-body">
       <p class="ahint" style="margin:0 0 6px">E-postalar <b>support@vestrasales.com</b> adresinden, <b>kendi sunucumuzun posta servisiyle</b> gider (GoDaddy barındırma aktarıcısı; 9 Eki Gmail testi: gelen kutusu, SPF ve DMARC geçti). Şifre, Brevo kotası ya da GitHub gerekmez. GoDaddy sınırı: support@ adresinden <b>günde 500</b> e-posta (hesap geneli saatte 500); itibar için ilk haftalar günde 50, sonra haftada +50 önerilir. Düğmeye basınca istek sıraya girer, sunucu <b>en geç 10 dakika</b> içinde başlar; e-postalar arasında 25–55 sn beklenir. Aynı adrese ikinci kez gitmez; e-posta sunucusu olmayan (kapalı) alan adlarına, satılık/park alan adlarına ve abonelikten çıkanlara hiç gönderilmez.</p>
       <div style="font-size:12.5px;margin:0 0 8px;display:flex;gap:14px;flex-wrap:wrap">
         <span>Gönderen: <b>support@vestrasales.com</b> · sunucunun posta servisi<?= function_exists('mail')?' ✓':' — <b style="color:#c0392b">mail() kapalı</b>' ?></span>
@@ -6555,6 +6585,7 @@ elseif($tab==='prospects'):
         <div class="afield" style="margin:0"><label>Kaç müşteri</label><input name="limit" type="number" min="1" max="<?= max(1,$mbLeft) ?>" value="<?= max(1,min(30,$mbLeft)) ?>" style="width:80px"></div>
         <div class="afield" style="margin:0"><label>Test adresi</label><input type="email" name="test_to" value="<?= htmlspecialchars((string)vestra_cfg('ops_email','acerasoft@gmail.com')) ?>" style="width:200px"></div>
         <button class="abtn" type="submit" name="mode" value="test"<?= $mbOpen?' disabled':'' ?>>🧪 Bana test gönder</button>
+        <a class="ahint" href="#aicamp" style="margin:0 0 8px 4px">✍️ Yeni kampanya yaz (Claude)</a>
         <button class="abtn primary" type="submit" name="mode" value="send" onclick="return confirm('Seçilen kampanya support@ adresinden gönderilsin mi?')"<?= ($mbOpen||$mbLeft<=0||!$fsTargetsAll)?' disabled':'' ?>>📮 Gönder</button>
       </form>
       <?php if($mbRuns): ?>
@@ -6565,9 +6596,12 @@ elseif($tab==='prospects'):
           <?php endforeach; ?>
         </table></details>
       <?php endif; ?>
+      </div>
     </div>
+<?php $__pb['D']=ob_get_clean(); ob_start(); ?>
   </div>
 
+<?php $__pb['E']=ob_get_clean(); ob_start(); ?>
   <?php
     /* ── ✍️ Claude ile kampanya yaz (inc/ai_campaign.php) ── */
     require_once __DIR__.'/inc/ai_campaign.php';
@@ -6624,6 +6658,7 @@ elseif($tab==='prospects'):
       </form>
     </details>
   </div>
+<?php $__pb['F']=ob_get_clean(); ob_start(); ?>
 
   <details style="margin-top:12px">
     <summary style="cursor:pointer;font-size:12px;color:var(--mut)">🔑 İsteğe bağlı anahtarlar — daha hızlı başlatma ve daha çok sonuç (linkli, adım adım) <?= ($fwGh && $fwBrave)?'· kayıtlı ✓':'' ?></summary>
@@ -6655,11 +6690,13 @@ elseif($tab==='prospects'):
       <?php if($fwBrave): ?><label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#c0392b;margin:0 0 4px"><input type="checkbox" name="brave_clear" value="1"> Brave anahtarını sil</label><?php endif; ?>
     </form>
   </details>
+<?php $__pb['G']=ob_get_clean(); ob_start(); ?>
   </div>
 </div>
+<?php $__pb['H']=ob_get_clean(); ob_start(); ?>
 
 <div class="acard" style="margin-bottom:20px;border-color:rgba(31,157,99,.4)">
-  <div class="acard-hd"><h3>🤖 Automation <span style="color:#1f9d63;font-size:12px;font-weight:600">● Runs daily at 09:00 (server cron)</span></h3></div>
+  <div class="acard-hd"><h3>🤖 Otomatik arama <span style="color:#1f9d63;font-size:12px;font-weight:600">● her gün 09:00 (sunucu)</span></h3></div>
   <div class="acard-body">
   <p class="ahint" style="margin-bottom:12px">This is the same search as <i>Find customers</i> below, just triggered automatically every morning instead of by hand — one country per day (today: <b><?= htmlspecialchars($cronTodayCountry) ?></b>), rotating so the same one isn't hit twice in a row. It only finds &amp; adds — sending always stays a separate, manual step.</p>
   <?php if($cronStatus): $ago=time()-strtotime($cronStatus['last_run']??'now');
@@ -6677,8 +6714,9 @@ elseif($tab==='prospects'):
   </div>
 </div>
 
+<?php $__pb['AUTO']=ob_get_clean(); ob_start(); ?>
 <div class="acard" style="margin-bottom:20px;border-color:rgba(31,157,99,.4)">
-  <div class="acard-hd"><h3>🎯 Find customers <span style="color:#1f9d63;font-size:12px;font-weight:600">● Free · no key needed</span></h3></div>
+  <div class="acard-hd"><h3>🎯 OpenStreetMap ile müşteri bul <span style="color:#1f9d63;font-size:12px;font-weight:600">● ücretsiz · anahtar gerekmez</span></h3></div>
   <div class="acard-body">
   <p class="ahint" style="margin-bottom:12px">One button: finds <b>real small &amp; medium clothing / textile shops</b> across a whole country (independent boutiques &amp; multi-brand stores, not big chains or the brands' own flagship stores), adds them, then checks each new one for a real email — live, one row at a time, so you see exactly what worked and what didn't.</p>
   <div class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
@@ -6740,8 +6778,9 @@ elseif($tab==='prospects'):
   </div>
 </div>
 
+<?php $__pb['OSM']=ob_get_clean(); ob_start(); ?>
 <div class="acard" style="margin-bottom:20px">
-  <div class="acard-hd"><h3>✨ AI personalisation (DeepSeek)
+  <div class="acard-hd"><h3>✨ AI kişiselleştirme (DeepSeek)
     <?= $aiOn?'<span style="color:#1f9d63;font-size:12px;font-weight:600">● Connected</span>':'<span style="color:#a9781a;font-size:12px;font-weight:600">● Add key</span>' ?></h3></div>
   <div class="acard-body">
   <p class="ahint" style="margin-bottom:10px">Tick <b>✨ AI personalize each</b> before a one-by-one send and every customer gets a tailored email (written from their company / country / segment). If your server already defines <code>DEEPSEEK_KEY</code> (shared with ChatHelp) it's used automatically — otherwise paste your DeepSeek key here. Stored web-blocked, never in git.</p>
@@ -6754,8 +6793,9 @@ elseif($tab==='prospects'):
   </div>
 </div>
 
+<?php $__pb['AIP']=ob_get_clean(); ob_start(); ?>
 <div class="acard" style="margin-bottom:20px;border-color:<?= $emReady?'rgba(31,157,99,.45)':'rgba(169,127,44,.5)' ?>">
-  <div class="acard-hd"><h3>📤 Sending email — <?= htmlspecialchars($mailTargetName) ?>
+  <div class="acard-hd"><h3>📤 Gönderim ayarı (SMTP / Brevo) — <?= htmlspecialchars($mailTargetName) ?>
     <?= $emReady?'<span style="color:#1f9d63;font-size:12px;font-weight:600">● Ready</span>':'<span style="color:#a9781a;font-size:12px;font-weight:600">● Not set up</span>' ?></h3></div>
   <div class="acard-body">
   <div class="afield" style="margin-bottom:14px"><label>Configure sending for</label>
@@ -6828,17 +6868,19 @@ function smtpPreset(v){
 }
 </script>
 
+<?php $__pb['SMTP']=ob_get_clean(); ob_start(); ?>
 <div class="asgrid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px">
-  <div class="ascard"><div class="sv"><?= $ldNew ?></div><div class="sl">New</div></div>
-  <div class="ascard"><div class="sv" style="color:#3366cc"><?= $ldContacted ?></div><div class="sl">Contacted</div></div>
-  <div class="ascard"><div class="sv" style="color:#a9781a"><?= $ldReplied ?></div><div class="sl">Replied</div></div>
-  <div class="ascard"><div class="sv" style="color:#1f9d63"><?= $ldConverted ?></div><div class="sl">Converted</div></div>
-  <div class="ascard"><div class="sv" style="color:#555"><?= $ldUnsub ?></div><div class="sl">Unsubscribed</div></div>
+  <div class="ascard"><div class="sv"><?= $ldNew ?></div><div class="sl">Yeni (yazılmadı)</div></div>
+  <div class="ascard"><div class="sv" style="color:#3366cc"><?= $ldContacted ?></div><div class="sl">Yazıldı</div></div>
+  <div class="ascard"><div class="sv" style="color:#a9781a"><?= $ldReplied ?></div><div class="sl">Yanıt verdi</div></div>
+  <div class="ascard"><div class="sv" style="color:#1f9d63"><?= $ldConverted ?></div><div class="sl">Müşteri oldu</div></div>
+  <div class="ascard"><div class="sv" style="color:#555"><?= $ldUnsub ?></div><div class="sl">Abonelikten çıktı</div></div>
 </div>
 
+<?php $__pb['STATS']=ob_get_clean(); ob_start(); ?>
 <div class="acols2">
 <div class="acard">
-  <div class="acard-hd"><h3>Add a prospect</h3></div>
+  <div class="acard-hd"><h3>Müşteri ekle</h3></div>
   <div class="acard-body">
   <form method="post" class="aform">
     <?= csrfField() ?>
@@ -6866,7 +6908,7 @@ function smtpPreset(v){
 </div>
 
 <div class="acard">
-  <div class="acard-hd"><h3>Import CSV</h3></div>
+  <div class="acard-hd"><h3>CSV içe aktar</h3></div>
   <div class="acard-body">
   <p class="ahint" style="margin-bottom:12px">Header row required. Only <code>company</code> is mandatory — <code>email,contact_name,country,website,source,category,notes</code> are optional. A web-research list with no emails still imports (rows load as "＋ Add email" so you can enrich and then send). Dupes are skipped by email, or by company when there's no email.</p>
   <form method="post" enctype="multipart/form-data" class="aform">
@@ -6880,8 +6922,9 @@ function smtpPreset(v){
 </div>
 </div>
 
+<?php $__pb['ADDIMP']=ob_get_clean(); ob_start(); ?>
 <div class="acard">
-  <div class="acard-hd"><h3>Outreach email template</h3></div>
+  <div class="acard-hd"><h3>Standart davet şablonu</h3></div>
   <div class="acard-body">
   <p class="ahint" style="margin-bottom:12px">Placeholders: <code>{{company}}</code> <code>{{contact_name}}</code> <code>{{country}}</code>. A sender-identification + unsubscribe footer is appended automatically to every send and can't be removed. Every email goes out as a branded HTML card (with a plain-text fallback) — add an image any time to make it feel more premium; leave it out any time too.</p>
   <form method="post" class="aform" enctype="multipart/form-data">
@@ -6904,8 +6947,9 @@ function smtpPreset(v){
   </div>
 </div>
 
+<?php $__pb['TPL']=ob_get_clean(); ob_start(); ?>
 <div class="acard">
-  <div class="acard-hd"><h3>👁 Email preview — exactly what each customer receives</h3></div>
+  <div class="acard-hd"><h3>👁 Şablon önizleme — müşterinin göreceği</h3></div>
   <div class="acard-body">
   <p class="ahint" style="margin-bottom:10px">Live render of your saved outreach (sample customer “Bodega”). Placeholders are filled per-recipient and the required sender + one-click unsubscribe footer is added automatically. One personalised email is sent per customer.</p>
   <?php
@@ -6922,8 +6966,9 @@ function smtpPreset(v){
   </div>
 </div>
 
+<?php $__pb['PREV']=ob_get_clean(); ob_start(); ?>
 <div class="acard">
-  <div class="acard-hd"><h3>Send a product offer</h3></div>
+  <div class="acard-hd"><h3>Ürün teklifi gönder</h3></div>
   <div class="acard-body">
   <p class="ahint" style="margin-bottom:12px">Email a tailored wholesale offer — selected products + live prices — straight to a customer. Logged to <code>quotes.csv</code>. If the email matches a saved prospect their unsubscribe link is used, and opt-outs are never emailed.</p>
   <form method="post" class="aform" onsubmit="return confirm('Send this product offer to the customer?')">
@@ -6971,6 +7016,7 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
+<?php $__pb['OFFER']=ob_get_clean(); ob_start(); ?>
 <form method="post" id="leadRowForm" style="display:none">
   <?= csrfField() ?>
   <input type="hidden" name="_action" id="lrf_action">
@@ -7130,25 +7176,26 @@ function runAutomationNow(btn){
 }
 </script>
 
+<?php $__pb['HIDDEN']=ob_get_clean(); ob_start(); ?>
 <div class="acard">
-  <div class="acard-hd"><h3>Prospects (<?= count($leads) ?>)</h3></div>
-  <?php if(!$leads): ?><div class="aempty">No prospects yet — add one or import a CSV above.</div>
+  <div class="acard-hd"><h3>👥 Müşteri listesi (<?= count($leads) ?>)</h3></div>
+  <?php if(!$leads): ?><div class="aempty">Henüz müşteri yok — yukarıdan web araması başlatın ya da aşağıdan ekleyin / CSV içe aktarın.</div>
   <?php else: ?>
-  <form method="post" onsubmit="return confirm('Send the outreach email to the selected prospect(s)?')">
+  <form method="post" onsubmit="return confirm('Seçilen müşterilere davet e-postası gönderilsin mi?')">
     <?= csrfField() ?>
     <input type="hidden" name="_action" value="send_lead_email">
     <div style="padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <button class="abtn primary" type="submit">✉ Send invite to selected</button>
-      <button type="button" class="abtn" onclick="sendOneByOne(this)">▶ Send one-by-one (live)</button>
-      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut)" title="Personalise each email with AI (DeepSeek)"><input type="checkbox" id="aiPersonalize" <?= $aiOn?'':'disabled' ?>> ✨ AI personalize<?= $aiOn?'':' (add key ↑)' ?></label>
+      <button class="abtn primary" type="submit">✉ Seçilenlere gönder</button>
+      <button type="button" class="abtn" onclick="sendOneByOne(this)">▶ Tek tek gönder (canlı)</button>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut)" title="Her e-postayı AI (DeepSeek) ile kişiselleştir"><input type="checkbox" id="aiPersonalize" <?= $aiOn?'':'disabled' ?>> ✨ AI ile kişiselleştir<?= $aiOn?'':' (önce anahtar)' ?></label>
       <select name="l_seller_uid" style="background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12px">
-        <option value="">From: Platform (VESTRA)</option>
+        <option value="">Gönderen: support@vestrasales.com</option>
         <?php foreach($sellerAccts as $s): $sid=$s['id']??''; $ok=vestra_seller_can_send(vestra_seller_mail($sid)); ?>
-        <option value="<?= htmlspecialchars($sid) ?>" <?= $ok?'':'disabled' ?>>From: <?= htmlspecialchars($s['company']??$s['name']??'Seller') ?><?= $ok?'':' (set up first)' ?></option>
+        <option value="<?= htmlspecialchars($sid) ?>" <?= $ok?'':'disabled' ?>>Gönderen: <?= htmlspecialchars($s['company']??$s['name']??'Seller') ?><?= $ok?'':' (önce kurulum)' ?></option>
         <?php endforeach; ?>
       </select>
-      <button type="button" class="abtn" style="color:var(--bad);border-color:rgba(239,154,154,.3)" onclick="leadBulkDelete(this.form)">🗑 Delete selected</button>
-      <span class="ahint">Send: max 50 · unsubscribed/email-less/already-emailed are safely skipped (no auto-resend to the same prospect) · pick a seller to send from their address. Delete: any selected row, no limit.</span>
+      <button type="button" class="abtn" style="color:var(--bad);border-color:rgba(239,154,154,.3)" onclick="leadBulkDelete(this.form)">🗑 Seçilenleri sil</button>
+      <span class="ahint">Gönderim: en çok 50 · abonelikten çıkan, e-postası olmayan ve daha önce yazılmış olanlar kendiliğinden atlanır (aynı kişiye ikinci kez gitmez) · satıcı seçilirse onun adresinden gider. Silme: seçilen her satır.</span>
     </div>
     <div id="sobWrap" style="display:none;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--bg2)">
       <div id="sobBar" style="font-weight:600;font-size:13px;margin-bottom:8px"></div>
@@ -7175,23 +7222,26 @@ function runAutomationNow(btn){
       wrap.style.display='block'; log.innerHTML=''; btn.disabled=true;
       var i=0, ok=0, fail=0, skip=0;
       function next(){
-        if(i>=ids.length){ bar.textContent='✓ Done — '+ok+' sent, '+skip+' already emailed (skipped), '+fail+' failed of '+ids.length+'. Refresh to see updated statuses.'; btn.disabled=false; return; }
-        bar.textContent='Sending '+(i+1)+' / '+ids.length+'…';
+        if(i>=ids.length){ bar.textContent='✓ Bitti — '+ok+' gönderildi, '+skip+' atlandı, '+fail+' gönderilemedi (toplam '+ids.length+'). Durumları görmek için sayfayı yenileyin.'; btn.disabled=false; return; }
+        bar.textContent='Gönderiliyor '+(i+1)+' / '+ids.length+'…';
         var fd=new FormData(); fd.append('_action','send_lead_one'); fd.append('_csrf',VADMIN_CSRF); fd.append('lead_id',ids[i]); fd.append('l_seller_uid',seller); fd.append('ai',ai);
         fetch('/admin',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
           var line=document.createElement('div'); line.style.fontSize='12px'; line.style.padding='2px 0';
           if(d.ok){ ok++; line.style.color='#1f9d63'; line.innerHTML='✓ '+(d.company||d.email||'')+' <span style="color:var(--mut)">'+(d.email||'')+'</span>'; }
-          else if(d.error==='already_sent'){ skip++; line.style.color='var(--mut)'; line.innerHTML='– '+(d.company||d.email||'')+' <span style="color:var(--mut)">already emailed, skipped</span>'; }
-          else if(d.error==='blocked'){ skip++; line.style.color='var(--mut)'; line.innerHTML='– '+(d.company||d.email||'')+' <span style="color:var(--mut)">big chain / brand store, skipped</span>'; }
-          else { fail++; line.style.color='#c0392b'; line.innerHTML='✗ '+(d.company||d.email||'')+' — '+(d.error||'failed'); }
-          log.appendChild(line); log.scrollTop=log.scrollHeight; i++; setTimeout(next,250);
+          else if(d.error==='already_sent'){ skip++; line.style.color='var(--mut)'; line.innerHTML='– '+(d.company||d.email||'')+' <span style="color:var(--mut)">daha önce yazılmış, atlandı</span>'; }
+          else if(d.error==='deaddomain'){ skip++; line.style.color='var(--mut)'; line.innerHTML='– '+(d.company||d.email||'')+' <span style="color:var(--mut)">alan adının e-posta sunucusu yok — gönderilmedi, geçersiz işaretlendi</span>'; }
+          else if(d.error==='cap'){ fail++; line.style.color='#a9781a'; line.innerHTML='‖ Günlük tavan doldu — kalanlar yarın (Admin ▸ 📮 kartından tavanı değiştirebilirsiniz)'; log.appendChild(line); i=ids.length; setTimeout(next,0); return; }
+          else if(d.error==='blocked'){ skip++; line.style.color='var(--mut)'; line.innerHTML='– '+(d.company||d.email||'')+' <span style="color:var(--mut)">zincir / marka mağazası, atlandı</span>'; }
+          else { fail++; line.style.color='#c0392b'; line.innerHTML='✗ '+(d.company||d.email||'')+' — '+({unsub:'abonelikten çıkmış',noemail:'e-posta yok',send:'gönderilemedi',notfound:'bulunamadı',nosender:'satıcının gönderimi kurulu değil'}[d.error]||d.error||'gönderilemedi'); }
+          /* Kendi sunucumuzdan giden mektuplar arasında 8 sn: soğuk e-postada art arda yağmur itibarı düşürür. */
+          log.appendChild(line); log.scrollTop=log.scrollHeight; i++; setTimeout(next,(d.ok&&!seller)?8000:250);
         }).catch(function(){ fail++; i++; setTimeout(next,250); });
       }
       next();
     }
     </script>
     <div class="atscroll"><table class="atable">
-      <tr><th class="ac"><input type="checkbox" onclick="leadToggleAll(this)"></th><th class="ac">Company</th><th class="ac">Contact</th><th class="ac">Email</th><th class="ac">Country</th><th class="ac">Source</th><th class="ac">Category</th><th class="ac">Status</th><th class="ac">Last contacted</th><th class="ac"></th></tr>
+      <tr><th class="ac"><input type="checkbox" onclick="leadToggleAll(this)"></th><th class="ac">Firma</th><th class="ac">Kişi</th><th class="ac">E-posta</th><th class="ac">Ülke</th><th class="ac">Kaynak</th><th class="ac">Kategori</th><th class="ac">Durum</th><th class="ac">Son yazılma</th><th class="ac"></th></tr>
       <?php
         // Premium-brand-selling boutiques float to the top (they're the best VESTRA targets);
         // newest-first order is preserved within each group. `premium` is set by the site-scan.
@@ -7260,6 +7310,7 @@ function runAutomationNow(btn){
     </details>
   <?php endif; ?>
 </div>
+<?php $__pb['TABLE']=ob_get_clean(); require __DIR__.'/inc/admin_prospects_layout.php'; ?>
 
 
 <?php // ══════════════════════════════════════════════════════ GROUP BUYS
