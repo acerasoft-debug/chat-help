@@ -239,6 +239,23 @@ $fr = vestra_mailbox_run(['mode' => 'send', 'limit' => 10, 'campaign' => 'lesgar
 $t('koşu: posta servisi reddederse hata sayılır, lead damgalanmaz (sonra yeniden denenir)', $fr['failed'] === 1 && array_column(vestra_leads(), null, 'id')['M4']['contact_via'] === 'lemlist');
 $t('lemlist damgası geri alınır, gerçekten gönderilene dokunulmaz', vestra_mailbox_release_lemlist(['M4', 'M5', 'M1']) === 1 && array_column(vestra_leads(), null, 'id')['M4']['status'] === 'new'
    && array_column(vestra_leads(), null, 'id')['M5']['contact_via'] === 'mailbox');
+/* DKIM (9 Eki 2026): anahtar üretimi, DNS durumu, imza yalnız DNS kaydı eşleşince. */
+$dk = vestra_dkim_keys(true);
+$t('DKIM: 2048 bit anahtar üretilir, özel anahtar 0600, kayıt adı/değeri doğru', $dk && strlen(base64_decode($dk['public_b64'])) > 250
+   && (fileperms(vestra_dkim_dir().'/vestra.private.pem') & 0777) === 0600 && vestra_dkim_dns_record()[0] === 'vestra._domainkey.vestrasales.com'
+   && str_starts_with(vestra_dkim_dns_record()[1], 'v=DKIM1; k=rsa; p='.$dk['public_b64']));
+$t('DKIM: DNS durumu — eşleşen=ok, kayıt yok=missing, başka anahtar=mismatch, sorgu hatası=unknown',
+   vestra_dkim_dns_status(fn($n) => ['v=DKIM1; k=rsa; p='.$dk['public_b64']]) === 'ok' && vestra_dkim_dns_status(fn($n) => []) === 'missing'
+   && vestra_dkim_dns_status(fn($n) => ['v=DKIM1; k=rsa; p=AAAA']) === 'mismatch' && vestra_dkim_dns_status(fn($n) => null) === 'unknown');
+$cap = [];
+vestra_mailbox_send_local(['email' => 'a@b.example', 'subject' => 'Hi', 'text' => 't', 'html' => '<p>h</p>', 'listUnsub' => ''], 'VESTRA', $fm, ['dkim_key' => $dk['private']]);
+$sigH = $cap[0]['hdr'] ?? '';
+preg_match('/b=([A-Za-z0-9+\/=\s]+)$/', explode("\r\nFrom:", $sigH)[0], $bm);
+$t('DKIM: imzalı mektupta DKIM-Signature ilk başlık, d=vestrasales.com s=vestra, bh ve b dolu', str_starts_with($sigH, 'DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=vestrasales.com; s=vestra;')
+   && str_contains($sigH, 'h=from:to:subject:date:message-id') && !empty($bm[1]));
+$t('DKIM: DNS kaydı yokken (test ortamı) imza ATILMAZ', !str_contains((string)($cap0 = (function () use ($fm, &$cap) { $cap = []; vestra_mailbox_send_local(['email' => 'a@b.example', 'subject' => 'Hi', 'text' => 't', 'html' => 'h', 'listUnsub' => ''], 'VESTRA', $fm); return $cap[0]['hdr'] ?? ''; })()), 'DKIM-Signature'));
+$t('günlük tavan ayarlanır ve GoDaddy sınırının altında kırpılır', vestra_mailbox_set_cap(120) === 120 && vestra_mailbox_daily_cap() === 120 && vestra_mailbox_set_cap(9999) === VESTRA_MAILBOX_MAX_CAP && vestra_mailbox_set_cap(50) === 50);
+@unlink(VESTRA_DATA_DIR.'/mailbox.json');
 $cron = (string)file_get_contents($root.'/cron_mailbox.php');
 $t('cron_mailbox: yalnız CLI, kilitli, istek alır ve sonucu yazar', str_contains($cron, "PHP_SAPI !== 'cli'") && str_contains($cron, 'LOCK_EX | LOCK_NB') && str_contains($cron, 'vestra_mailbox_take()') && str_contains($cron, 'vestra_mailbox_finish('));
 file_put_contents(VESTRA_DATA_DIR.'/leads.json', $keepLeads2);
@@ -501,7 +518,7 @@ $t('satıcı: müşteri listesinde Gmail/Outlook/uygulama düğmeleri (yalnız e
 $t('admin: web araması aç/kapat düğmesi + gönderimde "Kime" havuz seçimi', str_contains($ha, 'value="finder_toggle"') && str_contains($ha, '▶ Aç') && str_contains($ha, 'name="pool"') && str_contains($ha, 'Tüm yazılmamış müşteriler'));
 $t('admin: Brevo kalan kredi bandı + pay ayarı', str_contains($ha, 'Brevo bugün kalan') && str_contains($ha, 'value="brevo_reserve"'));
 $t('admin: 📤 lemlist CSV formu', str_contains($ha, 'value="lemlist_export"') && str_contains($ha, '📤 lemlist CSV indir') && str_contains($ha, 'name="mark" value="1" checked'));
-$t('admin: 📮 posta kutusu kartı — istek formu, tavan, sunucu durumu', str_contains($ha, 'id="mailboxsend"') && str_contains($ha, 'value="mailbox_request"') && str_contains($ha, 'günlük tavan') && str_contains($ha, 'sunucunun posta servisi'));
+$t('admin: 📮 posta kutusu kartı — istek formu, tavan, sunucu durumu', str_contains($ha, 'id="mailboxsend"') && str_contains($ha, 'value="mailbox_request"') && str_contains($ha, 'günlük tavan') && str_contains($ha, 'sunucunun posta servisi') && str_contains($ha, 'value="mailbox_cap"') && str_contains($ha, 'vestra._domainkey'));
 $t('admin: 🧪 Bana test gönder + test adresi', str_contains($ha, 'name="mode" value="test"') && str_contains($ha, 'name="test_to"'));
 $t('satıcı (kendi anahtarı): PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $hs2));
 

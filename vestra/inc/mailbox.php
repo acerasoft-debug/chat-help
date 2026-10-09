@@ -28,7 +28,19 @@ function vestra_mailbox_cfg(): array {
 
 function vestra_mailbox_daily_cap(): int {
   $c = (int)(vestra_mailbox_cfg()['daily_cap'] ?? VESTRA_MAILBOX_DEFAULT_CAP);
-  return max(1, min(200, $c ?: VESTRA_MAILBOX_DEFAULT_CAP));
+  return max(1, min(VESTRA_MAILBOX_MAX_CAP, $c ?: VESTRA_MAILBOX_DEFAULT_CAP));
+}
+
+/** GoDaddy cPanel barındırma aktarıcısı: e-posta hesabı başına GÜNDE 500 (ve hesap geneli saatte 500).
+ *  Tavan bunun altında tutulur; kalan pay elle yazılan / yanıt mektuplarına kalsın. */
+const VESTRA_MAILBOX_MAX_CAP = 400;
+
+function vestra_mailbox_set_cap(int $cap): int {
+  $cap = max(1, min(VESTRA_MAILBOX_MAX_CAP, $cap));
+  $f = vestra_mailbox_file('mailbox.json');
+  $cur = vestra_mailbox_cfg(); $cur['daily_cap'] = $cap;
+  file_put_contents($f, json_encode($cur, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES), LOCK_EX); @chmod($f, 0600);
+  return $cap;
 }
 
 /** Bugün (sunucu günü) posta kutusundan gönderilmiş lead sayısı. */
@@ -268,7 +280,7 @@ function vestra_mailbox_dns_status(string $domain, ?callable $dig = null): strin
 
 /** Tek mektubu sunucunun posta servisiyle (mail() → Exim → GoDaddy aktarıcısı) support@'tan gönderir.
  *  [ok, Message-ID, neden]. $mail: testte sahte mail(). */
-function vestra_mailbox_send_local(array $it, string $fromName, ?callable $mail = null): array {
+function vestra_mailbox_send_local(array $it, string $fromName, ?callable $mail = null, array $o = []): array {
   $mail = $mail ?? 'mail';
   $from = vestra_mail_house_address();
   $to = strtolower(trim((string)($it['email'] ?? '')));
@@ -278,15 +290,21 @@ function vestra_mailbox_send_local(array $it, string $fromName, ?callable $mail 
   $unsub = (string)($it['listUnsub'] ?? '') ?: 'https://vestrasales.com/lead-unsubscribe';
   if (preg_match('/[\r\n<>]/', $unsub)) $unsub = 'https://vestrasales.com/lead-unsubscribe';
   $name = mb_encode_mimeheader(str_replace(["\r", "\n", '"'], '', $fromName ?: 'VESTRA'), 'UTF-8', 'Q');
-  $headers = implode("\r\n", [
+  $lines = [
     "From: {$name} <{$from}>", "Reply-To: {$from}", "Message-ID: {$mid}", 'Date: '.date('r'),
     "List-Unsubscribe: <{$unsub}>, <mailto:{$from}?subject=unsubscribe>", 'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
     'MIME-Version: 1.0', "Content-Type: multipart/alternative; boundary=\"{$bnd}\"",
-  ]);
+  ];
   $body = "--{$bnd}\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n".chunk_split(base64_encode((string)($it['text'] ?? '')))
         ."--{$bnd}\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n".chunk_split(base64_encode((string)($it['html'] ?? '')))
         ."--{$bnd}--\r\n";
   $subject = mb_encode_mimeheader(str_replace(["\r", "\n"], ' ', (string)($it['subject'] ?? '')), 'UTF-8', 'B', "\r\n");
+  /* DKIM: anahtar varsa imzala (DNS kaydı henüz yoksa alıcı imzayı "doğrulanamadı" sayar, mektup yine gider). */
+  static $dkimLive = null;   // DNS kaydı yayımlanıp anahtarla eşleşmeden imza atılmaz (alıcı "anahtar yok" görmesin)
+  if (!isset($o['dkim_key']) && $dkimLive === null) $dkimLive = vestra_dkim_dns_status() === 'ok';
+  $dkim = (isset($o['dkim_key']) || $dkimLive) ? vestra_dkim_sign($lines, $to, $subject, $body, $o['dkim_key'] ?? null) : '';
+  if ($dkim !== '') array_unshift($lines, $dkim);
+  $headers = implode("\r\n", $lines);
   $ok = (bool)$mail($to, $subject, $body, $headers, '-f '.$from);
   return [$ok, $mid, $ok ? '' : 'posta servisi kabul etmedi'];
 }
@@ -358,4 +376,87 @@ function vestra_mailbox_release_lemlist(array $ids): int {
   unset($l);
   if ($n) vestra_save_leads($leads);
   return $n;
+}
+
+/* ───────────────────────── DKIM imzası (9 Eki 2026) ─────────────────────────
+ * Bu GoDaddy planında cPanel'in DKIM özelliği kapalı ("emailauth" yok); sunucunun posta servisi
+ * mektubu imzalamıyor (9 Eki Gmail testi: SPF=pass, DMARC=pass, DKIM yok). Gmail/Yahoo için
+ * SPF+DKIM birlikte en iyi sonuç. Bu yüzden anahtar çiftini sunucu kendisi üretir (data/dkim/,
+ * 0600, web'den erişilemez), mektubu PHP imzalar (RFC 6376, rsa-sha256, relaxed/relaxed),
+ * operatör yalnız TEK bir DNS TXT kaydı ekler: <seçici>._domainkey.vestrasales.com. */
+
+const VESTRA_DKIM_SELECTOR = 'vestra';
+const VESTRA_DKIM_DOMAIN   = 'vestrasales.com';
+
+function vestra_dkim_dir(): string { return vestra_data_dir().'/dkim'; }
+
+/** Anahtar çifti: yoksa üretir (2048 bit). ['private'=>PEM,'public_b64'=>...]; üretilemezse null. */
+function vestra_dkim_keys(bool $create = true): ?array {
+  $dir = vestra_dkim_dir(); $pf = $dir.'/'.VESTRA_DKIM_SELECTOR.'.private.pem'; $pub = $dir.'/'.VESTRA_DKIM_SELECTOR.'.public.txt';
+  if (is_readable($pf) && is_readable($pub)) return ['private' => (string)file_get_contents($pf), 'public_b64' => trim((string)file_get_contents($pub))];
+  if (!$create || !function_exists('openssl_pkey_new')) return null;
+  if (!is_dir($dir)) { @mkdir($dir, 0700, true); @file_put_contents($dir.'/.htaccess', "Require all denied\nDeny from all\n"); }
+  $k = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+  if (!$k || !openssl_pkey_export($k, $pem)) return null;
+  $det = openssl_pkey_get_details($k);
+  $pubPem = (string)($det['key'] ?? '');
+  $b64 = preg_replace('/-----[^-]+-----|\s+/', '', $pubPem);
+  if ($b64 === '' || file_put_contents($pf, $pem, LOCK_EX) === false) return null;
+  @chmod($pf, 0600); file_put_contents($pub, $b64, LOCK_EX); @chmod($pub, 0600);
+  return ['private' => $pem, 'public_b64' => $b64];
+}
+
+/** DNS'e eklenecek kayıt: [ad, değer]. */
+function vestra_dkim_dns_record(): ?array {
+  $k = vestra_dkim_keys(true); if (!$k) return null;
+  return [VESTRA_DKIM_SELECTOR.'._domainkey.'.VESTRA_DKIM_DOMAIN, 'v=DKIM1; k=rsa; p='.$k['public_b64']];
+}
+
+/** DNS'te kayıt yayımlanmış ve bizim anahtarla eşleşiyor mu? 'ok' | 'missing' | 'mismatch' | 'unknown'. */
+function vestra_dkim_dns_status(?callable $lookup = null): string {
+  $k = vestra_dkim_keys(false); if (!$k) return 'missing';
+  $name = VESTRA_DKIM_SELECTOR.'._domainkey.'.VESTRA_DKIM_DOMAIN;
+  $lookup = $lookup ?? static function (string $n): ?array { $r = @dns_get_record($n, DNS_TXT); return $r === false ? null : array_map(fn($x) => (string)($x['txt'] ?? ''), $r); };
+  $txts = $lookup($name);
+  if ($txts === null) return 'unknown';
+  foreach ($txts as $t) {
+    if (!str_contains($t, 'v=DKIM1')) continue;
+    return preg_match('/p=([A-Za-z0-9+\/=]+)/', str_replace([' ', '"'], '', $t), $m) && $m[1] === $k['public_b64'] ? 'ok' : 'mismatch';
+  }
+  return 'missing';
+}
+
+/** Kanonik (relaxed) başlık ve gövde — RFC 6376 §3.4. */
+function vestra_dkim_canon_header(string $name, string $value): string {
+  $v = preg_replace('/\r?\n[ \t]+/', ' ', $value);          // unfold
+  $v = preg_replace('/[ \t]+/', ' ', (string)$v);
+  return strtolower(trim($name)).':'.trim((string)$v);
+}
+function vestra_dkim_canon_body(string $body): string {
+  $b = str_replace("\r\n", "\n", $body);
+  $b = preg_replace('/[ \t]+/', ' ', $b);
+  $b = preg_replace('/ \n/', "\n", (string)$b);
+  $b = rtrim((string)$b, "\n");
+  return str_replace("\n", "\r\n", $b)."\r\n";
+}
+
+/**
+ * DKIM-Signature başlığını üretir (imzalanacak başlıklar: from, to, subject, date, message-id,
+ * reply-to, list-unsubscribe, mime-version, content-type). $headers: "Ad: değer" satırları (CRLF).
+ * Anahtar yoksa '' döner — mektup yine gider, imzasız. */
+function vestra_dkim_sign(array $headerLines, string $to, string $subject, string $body, ?string $privatePem = null): string {
+  $pem = $privatePem ?? (vestra_dkim_keys(true)['private'] ?? '');
+  if ($pem === '' || !function_exists('openssl_sign')) return '';
+  $all = [];
+  foreach ($headerLines as $ln) { if (preg_match('/^([^:]+):\s*(.*)$/s', $ln, $m)) $all[strtolower(trim($m[1]))] = [$m[1], $m[2]]; }
+  $all['to'] = ['To', $to]; $all['subject'] = ['Subject', $subject];
+  $order = ['from', 'to', 'subject', 'date', 'message-id', 'reply-to', 'list-unsubscribe', 'list-unsubscribe-post', 'mime-version', 'content-type'];
+  $h = []; $canon = '';
+  foreach ($order as $n) { if (!isset($all[$n])) continue; $h[] = $n; $canon .= vestra_dkim_canon_header($n, $all[$n][1])."\r\n"; }
+  $bh = base64_encode(hash('sha256', vestra_dkim_canon_body($body), true));
+  $sig = 'v=1; a=rsa-sha256; c=relaxed/relaxed; d='.VESTRA_DKIM_DOMAIN.'; s='.VESTRA_DKIM_SELECTOR.'; t='.time().'; h='.implode(':', $h).'; bh='.$bh.'; b=';
+  $canon .= vestra_dkim_canon_header('DKIM-Signature', $sig);   // b= boş, satır sonu YOK
+  $key = openssl_pkey_get_private($pem);
+  if (!$key || !openssl_sign($canon, $raw, $key, OPENSSL_ALGO_SHA256)) return '';
+  return 'DKIM-Signature: '.$sig.chunk_split(base64_encode($raw), 72, "\r\n\t");
 }

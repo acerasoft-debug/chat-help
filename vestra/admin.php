@@ -1933,6 +1933,12 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   }
   /* support@ posta kutusundan kotasız gönderim isteği (8 Eki 2026, operatör: "adminde tetikleyici
      olsun"). Panel GitHub'ı başlatamaz; istek sıraya yazılır, mailbox-queue.yml 10 dk'da bir alır. */
+  if($act==='mailbox_cap'){
+    require_once __DIR__.'/inc/mailbox.php';
+    $c=vestra_mailbox_set_cap((int)($_POST['daily_cap']??50));
+    $_SESSION['mailbox_flash']=[true,'✓ Günlük tavan: '.$c.' e-posta.'];
+    header('Location: /admin?tab=prospects#mailboxsend'); exit;
+  }
   if($act==='mailbox_request'){
     require_once __DIR__.'/inc/finder.php'; require_once __DIR__.'/inc/mailbox.php';
     [$ok,$msg]=vestra_mailbox_request((string)($_POST['mode']??''),(int)($_POST['limit']??30),(string)($_POST['campaign']??'lesgarage'),(string)($_POST['test_to']??''),array_keys(vestra_finder_campaigns()));
@@ -6523,12 +6529,24 @@ elseif($tab==='prospects'):
     ?>
     <div id="mailboxsend" style="border:1px solid rgba(31,157,99,.35);background:rgba(31,157,99,.05);border-radius:9px;padding:10px 12px;margin-top:10px">
       <div style="font-weight:700;font-size:13.5px;margin-bottom:4px">📮 support@ posta kutusundan gönder <span style="color:#1f9d63;font-size:12px">· kotasız, Brevo'ya girmez</span></div>
-      <p class="ahint" style="margin:0 0 6px">E-postalar <b>support@vestrasales.com</b> adresinden, <b>kendi sunucumuzun posta servisiyle</b> gider (GoDaddy barındırma aktarıcısı; 9 Eki Gmail testi: gelen kutusu, SPF ve DMARC geçti). Şifre, Brevo kotası ya da GitHub gerekmez. Düğmeye basınca istek sıraya girer, sunucu <b>en geç 10 dakika</b> içinde başlar; e-postalar arasında 25–55 sn beklenir. Aynı adrese ikinci kez gitmez; e-posta sunucusu olmayan (kapalı) alan adlarına, satılık/park alan adlarına ve abonelikten çıkanlara hiç gönderilmez.</p>
+      <p class="ahint" style="margin:0 0 6px">E-postalar <b>support@vestrasales.com</b> adresinden, <b>kendi sunucumuzun posta servisiyle</b> gider (GoDaddy barındırma aktarıcısı; 9 Eki Gmail testi: gelen kutusu, SPF ve DMARC geçti). Şifre, Brevo kotası ya da GitHub gerekmez. GoDaddy sınırı: support@ adresinden <b>günde 500</b> e-posta (hesap geneli saatte 500); itibar için ilk haftalar günde 50, sonra haftada +50 önerilir. Düğmeye basınca istek sıraya girer, sunucu <b>en geç 10 dakika</b> içinde başlar; e-postalar arasında 25–55 sn beklenir. Aynı adrese ikinci kez gitmez; e-posta sunucusu olmayan (kapalı) alan adlarına, satılık/park alan adlarına ve abonelikten çıkanlara hiç gönderilmez.</p>
       <div style="font-size:12.5px;margin:0 0 8px;display:flex;gap:14px;flex-wrap:wrap">
         <span>Gönderen: <b>support@vestrasales.com</b> · sunucunun posta servisi<?= function_exists('mail')?' ✓':' — <b style="color:#c0392b">mail() kapalı</b>' ?></span>
-        <span>Bugün gönderilen: <b><?= $mbToday ?></b> / günlük tavan <b><?= $mbCap ?></b> · kalan <b><?= $mbLeft ?></b></span>
+        <?php $mbDk=vestra_dkim_dns_status(); ?>
+        <span>DKIM imzası: <?= $mbDk==='ok'?'<b style="color:#1f9d63">✓ etkin</b>':($mbDk==='mismatch'?'<b style="color:#c0392b">DNS kaydı eşleşmiyor</b>':'<b style="color:#a9781a">DNS kaydı bekleniyor</b>') ?> · SPF ✓ · DMARC ✓</span>
+        <span>Bugün gönderilen: <b><?= $mbToday ?></b> / günlük tavan <b><?= $mbCap ?></b> · kalan <b><?= $mbLeft ?></b>
+          <form method="post" class="aform" style="display:inline-flex;gap:4px;align-items:center;margin:0 0 0 6px"><?= csrfField() ?><input type="hidden" name="_action" value="mailbox_cap"><input name="daily_cap" type="number" min="1" max="<?= VESTRA_MAILBOX_MAX_CAP ?>" value="<?= $mbCap ?>" style="width:70px;padding:2px 6px"><button class="abtn" type="submit" style="padding:2px 8px">Tavanı kaydet</button></form></span>
         <span>Gönderilmeye hazır: <b><?= count($fsTargetsAll) ?></b></span>
       </div>
+      <?php if($mbDk!=='ok' && ($mbRec=vestra_dkim_dns_record())): ?>
+      <details style="margin:0 0 8px"<?= $mbDk==='mismatch'?' open':'' ?>><summary style="cursor:pointer;font-size:12.5px;color:#a9781a">🔐 Spam riskini en aza indirmek için tek bir DNS kaydı ekleyin (DKIM) — 2 dakika</summary>
+        <div style="font-size:12px;line-height:1.6;margin-top:6px">
+          GoDaddy ▸ <b>Alan Adlarım</b> ▸ vestrasales.com ▸ <b>DNS</b> ▸ <b>Yeni Kayıt Ekle</b> ▸ Tür: <b>TXT</b><br>
+          Ad: <code style="user-select:all"><?= htmlspecialchars(VESTRA_DKIM_SELECTOR.'._domainkey') ?></code> · TTL: 1 saat<br>
+          Değer: <textarea readonly rows="3" style="width:100%;font-family:monospace;font-size:11px" onclick="this.select()"><?= htmlspecialchars($mbRec[1]) ?></textarea>
+          Kayıt yayımlanınca (genelde 5–30 dk) bu kart kendiliğinden <b>✓ etkin</b> gösterir ve bütün kampanya e-postaları <b>vestrasales.com</b> adına imzalanır. Bu bir <b>açık</b> anahtar; paylaşmak güvenlidir.
+        </div></details>
+      <?php endif; ?>
       <?php if($mbFlash): ?><div class="amsg <?= $mbFlash[0]?'ok':'' ?>"><?= htmlspecialchars((string)$mbFlash[1]) ?></div><?php endif; ?>
       <?php if($mbOpen): ?><div class="amsg ok"><?= $mbSt[$mbOpen['status']]??'' ?>: <?= $mbOpen['mode']==='test'?'test → '.htmlspecialchars((string)$mbOpen['test_to']):(int)$mbOpen['limit'].' müşteri' ?> · istek <?= date('H:i',(int)strtotime((string)$mbOpen['requested_at'])) ?>. Bitince sonuç burada görünür.</div><?php endif; ?>
       <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin:0">
