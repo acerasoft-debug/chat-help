@@ -202,8 +202,13 @@ jobs:
         run: |
           set -o pipefail
           case "$SEND_LIMIT" in ''|*[!0-9]*) SEND_LIMIT=40 ;; esac
-          ssh vestra 'cat > ~/vestra_tmp/send.php' < scripts/server/vestra-send-new.php
-          ssh vestra "cd ~/public_html && SEND_LIMIT=${SEND_LIMIT} php ~/vestra_tmp/send.php; rc=\$?; rm -f ~/vestra_tmp/send.php; exit \$rc" | tee send.log
+          # 9 Eki 2026 (operatör: "sipariş, fatura vs Brevo'dan gitmeye devam etsin, kampanyalar kendi
+          # sunucumuzdan olsun"): bulunanlar artık Brevo ile DEĞİL, sunucunun kendi posta servisiyle gider.
+          # Burada yalnız istek yazılır; vestra/cron_mailbox.php 10 dk içinde alır, support@vestrasales.com'dan
+          # 25-55 sn arayla gönderir (günlük tavan, kapalı alan adı kontrolü, DKIM). Açık bir istek varsa
+          # (panelden verilmiş) bu istek reddedilir — o zaten aynı sırayı gönderiyor.
+          ssh vestra 'cat > ~/vestra_tmp/mailbox-queue.php' < scripts/server/vestra-mailbox-queue.php
+          ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php request send ${SEND_LIMIT} lesgarage; rm -f ~/vestra_tmp/mailbox-queue.php" | tee send.log || true
           { echo ""; echo "### Gönderim"; echo '```'; tail -n 40 send.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       # Panelin "Web'den müşteri bul" kartı sonucu buradan okur (data/finder_runs.json).

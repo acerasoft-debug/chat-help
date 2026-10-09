@@ -75,7 +75,10 @@ jobs:
           p = t.get("params") or {}
           keys = ["cities", "langs", "countries", "queries_per_run", "extra_queries", "seed_domains", "dry_run"]
           inputs = {k: str(p.get(k, "")) for k in keys if str(p.get(k, "")) != ""}
-          inputs.update({"request_id": t["id"], "owner_uid": str(t.get("owner", "")), "send": "false"})
+          # Bul + gönder (9 Eki 2026): yalnız admin araması (owner boş) ve panel işaretlediyse; gönderim
+          # find-customers.yml'den sunucunun posta kutusu kuyruğuna istek olarak gider (Brevo değil).
+          send = "true" if (str(p.get("send", "")) == "true" and not str(t.get("owner", ""))) else "false"
+          inputs.update({"request_id": t["id"], "owner_uid": str(t.get("owner", "")), "send": send})
           print(json.dumps({"ref": sys.argv[1], "inputs": inputs}))
           PY
           if gh api -X POST "repos/${GITHUB_REPOSITORY}/actions/workflows/find-customers.yml/dispatches" --input body.json; then

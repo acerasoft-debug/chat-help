@@ -18,6 +18,9 @@ $home = getenv("HOME");
 require       $home."/public_html/inc/products.php";
 require_once  $home."/public_html/inc/leads.php";
 require_once  $home."/public_html/inc/notify.php";
+/* 9 Eki 2026: e-posta sunucusu olmayan (kapalı) alan adları listeye hiç girmez — 8 Eki'de 12'lik partide 7'si
+   böyleydi ve gönderilseydi her biri "DNSNULL" ile geri dönüp support@'un itibarını düşürecekti. */
+if (is_readable($home."/public_html/inc/mailbox.php")) require_once $home."/public_html/inc/mailbox.php";
 
 $file  = (string)($argv[1] ?? '');
 $sfile = (string)($argv[2] ?? '');
@@ -40,12 +43,15 @@ foreach ($leads as $l) {
   $d = vws_domain(trim((string)($l['website'] ?? ''))); if ($d !== '') $byDom[$d] = true;
 }
 
-$added = 0; $dup = 0; $bad = 0; $junk = 0; $blocked = 0;
+$added = 0; $dup = 0; $bad = 0; $junk = 0; $blocked = 0; $dead = 0;
 foreach ($in as $r) {
   if (!is_array($r)) continue;
-  $email = strtolower(trim((string)($r['email'] ?? '')));
+  $email = function_exists('vestra_email_clean') ? vestra_email_clean((string)($r['email'] ?? '')) : strtolower(trim((string)($r['email'] ?? '')));
   if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { $bad++; continue; }
   if (function_exists('vestra_email_is_junk') && vestra_email_is_junk($email)) { $junk++; echo "  ~ junk adres atlandi: {$email}\n"; continue; }
+  if (function_exists('vestra_mailbox_dns_status') && vestra_mailbox_dns_status(substr((string)strrchr($email, '@'), 1)) === 'dead') {
+    $dead++; echo "  - e-posta sunucusu yok (kapali alan adi), eklenmedi: ".substr((string)strrchr($email, '@'), 1)."\n"; continue;
+  }
   $company = trim((string)($r['company'] ?? ''));
   $website = trim((string)($r['website'] ?? ''));
   $d = vws_domain($website);
@@ -91,4 +97,4 @@ if ($sfile !== '' && is_readable($sfile)) {
     echo "UYARI: durum dosyasi gecersiz -- kaydedilmedi\n";
   }
 }
-echo "\nEKLENDI: {$added} | zaten vardi: {$dup} | gecersiz: {$bad} | junk: {$junk} | KURAL 1/park: {$blocked} | toplam lead: ".count($leads).($owner !== '' ? " | sahip: {$owner}" : '')."\n";
+echo "\nEKLENDI: {$added} | zaten vardi: {$dup} | gecersiz: {$bad} | junk: {$junk} | kapali alan adi: {$dead} | KURAL 1/park: {$blocked} | toplam lead: ".count($leads).($owner !== '' ? " | sahip: {$owner}" : '')."\n";
