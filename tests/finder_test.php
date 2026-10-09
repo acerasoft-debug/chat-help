@@ -183,6 +183,66 @@ for ($k = 0; $k < $cap; $k++) $fake[] = ['contact_via' => 'mailbox', 'last_conta
 $fake[] = ['contact_via' => 'mailbox', 'last_contacted_at' => '2020-01-01T00:00:00+00:00']; $fake[] = ['contact_via' => 'lemlist', 'last_contacted_at' => date('c')];
 $t('posta kutusu: bugün gidenler yalnız posta kutusundan ve bugünden sayılır', vestra_mailbox_sent_today($fake) === $cap && vestra_mailbox_left_today($fake) === 0);
 @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
+
+/* Sunucunun kendi posta servisinden gönderim (9 Eki 2026): seçim, MX, başlıklar, uçtan uca koşu. */
+$keepLeads2 = (string)file_get_contents(VESTRA_DATA_DIR.'/leads.json');
+vestra_write_json('leads.json', [
+  ['id'=>'M1','company'=>'Boutique Una','email'=>'info@una.example','country'=>'Italy','source'=>'web-search','owner_uid'=>'','status'=>'new','last_contacted_at'=>'','unsub_token'=>'tm1'],
+  ['id'=>'M2','company'=>'Dead Shop','email'=>'info@dead.example','country'=>'France','source'=>'web-search','owner_uid'=>'','status'=>'new','last_contacted_at'=>'','unsub_token'=>'tm2'],
+  ['id'=>'M3','company'=>'Maison Trois','email'=>'%20contact@trois.example','country'=>'France','source'=>'web-search','owner_uid'=>'','status'=>'new','last_contacted_at'=>'','unsub_token'=>'tm3'],
+  ['id'=>'M4','company'=>'Lemlist Only','email'=>'hi@lem.example','country'=>'Germany','source'=>'web-search','owner_uid'=>'','status'=>'contacted','contact_via'=>'lemlist','last_contacted_at'=>date('c'),'unsub_token'=>'tm4'],
+  ['id'=>'M5','company'=>'Really Sent','email'=>'x@sent.example','country'=>'Germany','source'=>'web-search','owner_uid'=>'','status'=>'contacted','contact_via'=>'mailbox','last_contacted_at'=>date('c', time()-86400*3),'unsub_token'=>'tm5'],
+]);
+$bt = vestra_mailbox_batch(10, 'lesgarage');
+$t('sunucu gönderimi: liste temiz adres + kişiye özel çıkış linki, lemlist/gönderilmiş yok', array_column($bt['items'], 'leadId') == ['M3','M2','M1'] || count(array_intersect(array_column($bt['items'], 'leadId'), ['M1','M2','M3'])) === 3
+   && !array_intersect(array_column($bt['items'], 'leadId'), ['M4','M5']));
+$t('sunucu gönderimi: %20 önek temizlenmiş, unsub token gömülü', in_array('contact@trois.example', array_column($bt['items'], 'email'), true) && str_contains(json_encode($bt['items']), 'token=tm1'));
+$t('sunucu gönderimi: ids yolu lemlist damgalıyı alır, gerçekten gönderileni almaz', array_column(vestra_mailbox_batch(10, 'lesgarage', ['M4','M5'])['items'], 'leadId') === ['M4']);
+$t('sunucu gönderimi: bilinmeyen kampanya reddedilir', !vestra_mailbox_batch(5, 'yok')['ok']);
+/* MX: sahte dig çıktılarıyla */
+$fd = function (array $map) { return function (string $type, string $dom) use ($map) { return $map[$type.' '.$dom] ?? null; }; };
+$H = ";; ->>HEADER<<- opcode: QUERY, status: ";
+$dg = $fd(['MX ok.example' => $H."NOERROR, id: 1\nok.example. 300 IN MX 10 mx.ok.example.\n",
+           'MX nx.example' => $H."NXDOMAIN, id: 1\n",
+           'MX empty.example' => $H."NOERROR, id: 1\n", 'A empty.example' => $H."NOERROR, id: 1\n",
+           'MX aonly.example' => $H."NOERROR, id: 1\n", 'A aonly.example' => $H."NOERROR, id: 1\naonly.example. 300 IN A 1.2.3.4\n",
+           'MX nullmx.example' => $H."NOERROR, id: 1\nnullmx.example. 300 IN MX 0 .\n",
+           'MX sf.example' => $H."SERVFAIL, id: 1\n"]);
+$t('MX: var=ok, NXDOMAIN=ölü, kayıtsız=ölü, yalnız A=ok, null MX=ölü, SERVFAIL=bilinmiyor',
+   vestra_mailbox_dns_status('ok.example', $dg) === 'ok' && vestra_mailbox_dns_status('nx.example', $dg) === 'dead' && vestra_mailbox_dns_status('empty.example', $dg) === 'dead'
+   && vestra_mailbox_dns_status('aonly.example', $dg) === 'ok' && vestra_mailbox_dns_status('nullmx.example', $dg) === 'dead' && vestra_mailbox_dns_status('sf.example', $dg) === 'unknown');
+/* Tek mektup: başlıklar + başlık enjeksiyonu */
+$cap = [];
+$fm = function ($to, $subj, $body, $hdr, $params) use (&$cap) { $cap[] = compact('to', 'subj', 'body', 'hdr', 'params'); return true; };
+[$sOk, $sMid] = vestra_mailbox_send_local($bt['items'][0], 'Les Garage de Paris', $fm);
+$c0 = $cap[0] ?? [];
+$t('tek mektup: support@ gönderen, -f zarf, Message-ID, Reply-To, tek tık çıkış başlıkları, metin+HTML', $sOk && str_contains($c0['hdr'], '<support@vestrasales.com>')
+   && $c0['params'] === '-f support@vestrasales.com' && str_contains($c0['hdr'], 'Message-ID: '.$sMid) && str_contains($c0['hdr'], 'Reply-To: support@vestrasales.com')
+   && str_contains($c0['hdr'], 'List-Unsubscribe: <https://vestrasales.com/lead-unsubscribe?token=') && str_contains($c0['hdr'], 'List-Unsubscribe-Post: List-Unsubscribe=One-Click')
+   && str_contains($c0['body'], 'Content-Type: text/plain') && str_contains($c0['body'], 'Content-Type: text/html') && iconv_mime_decode($c0['subj'], 0, 'UTF-8') === $bt['items'][0]['subject']);
+$t('tek mektup: satır sonu içeren adres / konu başlık enjekte edemez', !vestra_mailbox_send_local(['email' => "a@b.example\r\nBcc: x@y.example"] + $bt['items'][0], 'X', $fm)[0]
+   && !str_contains((string)(vestra_mailbox_send_local(['subject' => "Hi\r\nBcc: x@y.example"] + $bt['items'][0], "Evil\r\nBcc: z@y.example", $fm)[0] ? end($cap)['hdr'] : ''), "\nBcc:"));
+/* Uçtan uca koşu */
+$cap = []; $slept = []; $logs = [];
+$run = vestra_mailbox_run(['mode' => 'send', 'limit' => 10, 'campaign' => 'lesgarage'], ['mail' => $fm, 'sleep' => function ($s) use (&$slept) { $slept[] = $s; },
+  'dns' => fn($d) => $d === 'dead.example' ? 'dead' : 'ok', 'log' => function ($m) use (&$logs) { $logs[] = $m; }]);
+$ld = array_column(vestra_leads(), null, 'id');
+$t('koşu: 2 gönderildi, kapalı alan adı gönderilmedi ve geri döndü damgalandı', $run['sent'] === 2 && $run['bounced'] === 1 && count($cap) === 2
+   && $ld['M1']['contact_via'] === 'mailbox' && $ld['M3']['contact_via'] === 'mailbox' && $ld['M2']['status'] === 'bounced' && !in_array('info@dead.example', array_column($cap, 'to'), true));
+$t('koşu: mektuplar arası 25–55 sn bekleme (ilk mektuptan önce yok), kütükte adres maskeli', count($slept) === 1 && $slept[0] >= 25 && $slept[0] <= 55 && !preg_grep('/info@una/', $logs));
+$t('koşu: ikinci koşu aynı kişilere göndermez', vestra_mailbox_run(['mode' => 'send', 'limit' => 10, 'campaign' => 'lesgarage'], ['mail' => $fm, 'sleep' => fn($s) => null, 'dns' => fn($d) => 'ok', 'log' => fn($m) => null])['sent'] === 0);
+$cap = [];
+$tr = vestra_mailbox_run(['mode' => 'test', 'campaign' => 'lesgarage', 'test_to' => 'ops@vestra.example'], ['mail' => $fm, 'log' => fn($m) => null]);
+$t('koşu (test): örnek dükkânla tek mektup, [TEST] konu, kayda dokunmaz', $tr['sent'] === 1 && count($cap) === 1 && $cap[0]['to'] === 'ops@vestra.example' && str_starts_with(iconv_mime_decode($cap[0]['subj'], 0, 'UTF-8'), '[TEST] '));
+$failMail = fn() => false;
+$fr = vestra_mailbox_run(['mode' => 'send', 'limit' => 10, 'campaign' => 'lesgarage', 'ids' => 'M4'], ['mail' => $failMail, 'sleep' => fn($s) => null, 'dns' => fn($d) => 'ok', 'log' => fn($m) => null]);
+$t('koşu: posta servisi reddederse hata sayılır, lead damgalanmaz (sonra yeniden denenir)', $fr['failed'] === 1 && array_column(vestra_leads(), null, 'id')['M4']['contact_via'] === 'lemlist');
+$t('lemlist damgası geri alınır, gerçekten gönderilene dokunulmaz', vestra_mailbox_release_lemlist(['M4', 'M5', 'M1']) === 1 && array_column(vestra_leads(), null, 'id')['M4']['status'] === 'new'
+   && array_column(vestra_leads(), null, 'id')['M5']['contact_via'] === 'mailbox');
+$cron = (string)file_get_contents($root.'/cron_mailbox.php');
+$t('cron_mailbox: yalnız CLI, kilitli, istek alır ve sonucu yazar', str_contains($cron, "PHP_SAPI !== 'cli'") && str_contains($cron, 'LOCK_EX | LOCK_NB') && str_contains($cron, 'vestra_mailbox_take()') && str_contains($cron, 'vestra_mailbox_finish('));
+file_put_contents(VESTRA_DATA_DIR.'/leads.json', $keepLeads2);
+@unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
 /* lemlist CSV: aynı seçim kuralı; işaretsiz dışa aktarma kayda dokunmaz, işaretli olan damgalar. */
 $lbBefore = (string)file_get_contents(VESTRA_DATA_DIR.'/leads.json');
 $lx = vestra_lemlist_export(100, 'all', false);
@@ -441,7 +501,7 @@ $t('satıcı: müşteri listesinde Gmail/Outlook/uygulama düğmeleri (yalnız e
 $t('admin: web araması aç/kapat düğmesi + gönderimde "Kime" havuz seçimi', str_contains($ha, 'value="finder_toggle"') && str_contains($ha, '▶ Aç') && str_contains($ha, 'name="pool"') && str_contains($ha, 'Tüm yazılmamış müşteriler'));
 $t('admin: Brevo kalan kredi bandı + pay ayarı', str_contains($ha, 'Brevo bugün kalan') && str_contains($ha, 'value="brevo_reserve"'));
 $t('admin: 📤 lemlist CSV formu', str_contains($ha, 'value="lemlist_export"') && str_contains($ha, '📤 lemlist CSV indir') && str_contains($ha, 'name="mark" value="1" checked'));
-$t('admin: 📮 posta kutusu kartı — istek formu, tavan, sunucu durumu', str_contains($ha, 'id="mailboxsend"') && str_contains($ha, 'value="mailbox_request"') && str_contains($ha, 'günlük tavan') && str_contains($ha, 'henüz doğrulanmadı'));
+$t('admin: 📮 posta kutusu kartı — istek formu, tavan, sunucu durumu', str_contains($ha, 'id="mailboxsend"') && str_contains($ha, 'value="mailbox_request"') && str_contains($ha, 'günlük tavan') && str_contains($ha, 'sunucunun posta servisi'));
 $t('admin: 🧪 Bana test gönder + test adresi', str_contains($ha, 'name="mode" value="test"') && str_contains($ha, 'name="test_to"'));
 $t('satıcı (kendi anahtarı): PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $hs2));
 

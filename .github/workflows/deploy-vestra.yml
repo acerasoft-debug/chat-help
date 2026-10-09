@@ -335,6 +335,11 @@ jobs:
               # yazisindan SONRA: ayni gun yayimlanan yazi da ayni bildirime girsin.
               # Degisen yoksa hicbir sey gondermez (cron_indexnow.php).
               echo '35 7 * * * cd $HOME/public_html && '"$PHPBIN"' cron_indexnow.php >> $HOME/vestra_sweep.log 2>&1 # VESTRA-SWEEP indexnow'
+              # Kampanya gonderimi SUNUCUNUN KENDI posta servisinden (operator, 9 Eki 2026: "kendi
+              # serverimizdan", "support@vestrasales.com'dan gidecek"). Admin ▸ Musteriler ▸ 📮
+              # kartindaki istegi 10 dakikada bir alir; istek yoksa hicbir sey yapmaz. Kilitli:
+              # suren gonderim varken ikincisi baslamaz (cron_mailbox.php).
+              echo '*/10 * * * * cd $HOME/public_html && '"$PHPBIN"' cron_mailbox.php >> $HOME/vestra_sweep.log 2>&1 # VESTRA-SWEEP posta-kutusu'
             ) | crontab -
             echo "-- kurulu VESTRA-SWEEP satirlari:"
             crontab -l | grep 'VESTRA-SWEEP'
@@ -386,6 +391,11 @@ jobs:
             # kosuda yalnizca ne yapacagini yazar. Fatal olursa deploy kirmizi.
             echo "=== satici belge suresi (kuru) ==="
             php cron_seller_docs.php --dry-run
+            echo ""
+            # Kampanya gonderimi (sunucunun posta servisi): kuru kosu hicbir sey gondermez,
+            # yalnizca ayaga kalkiyor mu ve kac istek bekliyor sorusunu yanitlar.
+            echo "=== posta kutusu gonderimi (kuru) ==="
+            php cron_mailbox.php --dry-run
             echo ""
             # Bu betik canli kosuda SIPARIS IPTAL EDER ve mektup gonderir; kuru
             # kosuda yalnizca ne yapacagini yazar. Fatal olursa deploy kirmizi.

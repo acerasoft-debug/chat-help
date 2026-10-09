@@ -6523,9 +6523,9 @@ elseif($tab==='prospects'):
     ?>
     <div id="mailboxsend" style="border:1px solid rgba(31,157,99,.35);background:rgba(31,157,99,.05);border-radius:9px;padding:10px 12px;margin-top:10px">
       <div style="font-weight:700;font-size:13.5px;margin-bottom:4px">📮 support@ posta kutusundan gönder <span style="color:#1f9d63;font-size:12px">· kotasız, Brevo'ya girmez</span></div>
-      <p class="ahint" style="margin:0 0 6px">E-postalar <b>support@vestrasales.com</b> adresinin kendi sunucusundan (GoDaddy) gider; SPF, DKIM ve DMARC geçer (8 Eki Gmail testi: gelen kutusu). Düğmeye basınca istek sıraya girer, <b>en geç 10 dakika</b> içinde başlar; e-postalar arasında 25–55 sn beklenir. Aynı adrese ikinci kez gitmez; satılık/park alan adları ve abonelikten çıkanlar elenir.</p>
+      <p class="ahint" style="margin:0 0 6px">E-postalar <b>support@vestrasales.com</b> adresinden, <b>kendi sunucumuzun posta servisiyle</b> gider (GoDaddy barındırma aktarıcısı; 9 Eki Gmail testi: gelen kutusu, SPF ve DMARC geçti). Şifre, Brevo kotası ya da GitHub gerekmez. Düğmeye basınca istek sıraya girer, sunucu <b>en geç 10 dakika</b> içinde başlar; e-postalar arasında 25–55 sn beklenir. Aynı adrese ikinci kez gitmez; e-posta sunucusu olmayan (kapalı) alan adlarına, satılık/park alan adlarına ve abonelikten çıkanlara hiç gönderilmez.</p>
       <div style="font-size:12.5px;margin:0 0 8px;display:flex;gap:14px;flex-wrap:wrap">
-        <span>Sunucu: <b><?= !empty($mbCfg['smtp_host'])?htmlspecialchars($mbCfg['smtp_host'].':'.($mbCfg['smtp_port']??'')).' ✓':'henüz doğrulanmadı' ?></b><?= !empty($mbCfg['verified_at'])?' <span class="ahint">('.date('d.m H:i',(int)strtotime((string)$mbCfg['verified_at'])).')</span>':'' ?></span>
+        <span>Gönderen: <b>support@vestrasales.com</b> · sunucunun posta servisi<?= function_exists('mail')?' ✓':' — <b style="color:#c0392b">mail() kapalı</b>' ?></span>
         <span>Bugün gönderilen: <b><?= $mbToday ?></b> / günlük tavan <b><?= $mbCap ?></b> · kalan <b><?= $mbLeft ?></b></span>
         <span>Gönderilmeye hazır: <b><?= count($fsTargetsAll) ?></b></span>
       </div>
