@@ -5964,6 +5964,27 @@ jobs:
             PHPEOF
             php /tmp/vestra_aik.php; rm -f /tmp/vestra_aik.php
 
+      # DKIM DURUMU (dkim_status, 9 Eki 2026): cPanel'in alan adi icin DKIM anahtari var mi, DNS'teki
+      # kayit dogru mu? Yalniz HERKESE ACIK (public) kayit ve dogrulama sonucu basilir; ozel anahtar
+      # HICBIR ZAMAN okunmaz (fetch_dkim_private_keys cagrilmaz). Salt okunur.
+      - name: DKIM / SPF durumu (dkim_status) -- salt okunur
+        if: ${{ github.event.inputs.admin_mode == 'dkim_status' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 2m
+          script: |
+            echo "=== cPanel DKIM dogrulamasi (vestrasales.com) ==="
+            uapi --output=jsonpretty EmailAuth validate_current_dkims domain=vestrasales.com 2>&1 | grep -vE '"(private|key_?priv)' | head -80
+            echo "=== cPanel SPF dogrulamasi ==="
+            uapi --output=jsonpretty EmailAuth validate_current_spfs domain=vestrasales.com 2>&1 | head -60
+            echo "=== DNS'te default._domainkey var mi (herkese acik) ==="
+            dig +short TXT default._domainkey.vestrasales.com 2>/dev/null || echo "(dig yok)"
+            echo "(salt okunur; ozel anahtar basilmadi)"
+
       # YEREL POSTA SONDASI (local_mail_probe, 9 Eki 2026): sunucunun KENDI posta servisi
       # (localhost:25 acik, sendmail var) uzerinden support@ adresinden TEK bir test mektubu
       # payload'daki adrese gider. Amac: Gmail'in Authentication-Results basliginda SPF/DKIM/DMARC
