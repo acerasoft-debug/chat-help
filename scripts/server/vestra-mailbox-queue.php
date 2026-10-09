@@ -154,6 +154,30 @@ if ($cmd === 'fixemails') {
   exit(0);
 }
 
+if ($cmd === 'release') {
+  /* lemlist CSV'sinin "verildi" damgasını (lemlist'e hiç yüklenmedi) verilen ID'lerde geri alır. */
+  if (!function_exists('vestra_mailbox_release_lemlist')) { echo json_encode(['ok'=>false,'error'=>'eski sunucu kodu']); exit(1); }
+  $ids = array_filter(explode(',', (string)($argv[2] ?? '')), fn($x) => preg_match('/^[A-Za-z0-9]{2,40}$/', $x));
+  echo json_encode(['ok'=>true, 'released'=>vestra_mailbox_release_lemlist($ids)]);
+  exit(0);
+}
+
+if ($cmd === 'request') {
+  /* Sunucunun kendi posta servisi için istek (cron_mailbox.php 10 dk içinde alır) — paneldeki düğmeyle aynı yol. */
+  if (!function_exists('vestra_mailbox_request')) { echo json_encode(['ok'=>false,'error'=>'eski sunucu kodu']); exit(1); }
+  [$ok, $msg] = vestra_mailbox_request((string)($argv[2] ?? ''), (int)($argv[3] ?? 25), (string)($argv[4] ?? 'lesgarage'), (string)($argv[5] ?? ''), array_keys(vestra_finder_campaigns()));
+  echo json_encode(['ok'=>$ok, 'msg'=>$msg], JSON_UNESCAPED_UNICODE);
+  exit($ok ? 0 : 1);
+}
+
+if ($cmd === 'status') {
+  if (!function_exists('vestra_mailbox_runs')) { echo json_encode(['ok'=>false]); exit(1); }
+  $runs = array_slice(array_reverse(vestra_mailbox_runs()), 0, 5);
+  foreach ($runs as &$r) unset($r['test_to']);
+  echo json_encode(['ok'=>true, 'today'=>vestra_mailbox_sent_today(), 'cap'=>vestra_mailbox_daily_cap(), 'runs'=>$runs], JSON_UNESCAPED_UNICODE);
+  exit(0);
+}
+
 if ($cmd === 'take') {
   /* Panel isteği (inc/mailbox.php): en eskisini "running" yapıp basar; yoksa {}. */
   $r = function_exists('vestra_mailbox_take') ? vestra_mailbox_take() : null;
@@ -188,5 +212,5 @@ if ($cmd === 'sethost') {
   exit(0);
 }
 
-fwrite(STDERR, "kullanim: php vestra-mailbox-queue.php list <N> <campaign> [ids] | sample <campaign> <to> | stamp | take | finish <id> | fixemails | sethost <host> <port>\n");
+fwrite(STDERR, "kullanim: php vestra-mailbox-queue.php list <N> <campaign> [ids] | sample <campaign> <to> | stamp | take | finish <id> | fixemails | release <ids> | request <mode> <limit> <campaign> [to] | status | sethost <host> <port>\n");
 exit(1);

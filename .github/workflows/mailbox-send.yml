@@ -15,9 +15,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "check | test | send | bounces (yalnız geri dönen bildirimlerini tara)"
+        description: "server (önerilen: sunucunun kendi posta servisi gönderir) | release (ids'deki lemlist damgasını geri al) | status | check | test | send (yedek: GitHub'dan GoDaddy SMTP) | bounces"
         required: true
-        default: check
+        default: server
       limit:
         description: "send kipinde bu koşuda en çok kaç müşteri (ilk haftalar 20-30)"
         required: false
@@ -82,7 +82,7 @@ jobs:
         run: |
           case "$REQ_ID" in *[!A-Za-z0-9]*) echo "req_id gecersiz"; exit 1 ;; esac
           case "$IDS" in *[!A-Za-z0-9,]*) echo "ids yalniz harf/rakam/virgul"; exit 1 ;; esac
-          case "$MODE" in check|test|send|bounces) ;; *) echo "mode check|test|send|bounces olmali"; exit 1 ;; esac
+          case "$MODE" in server|release|status|check|test|send|bounces) ;; *) echo "gecersiz mode"; exit 1 ;; esac
           case "$LIMIT" in ''|*[!0-9]*) echo "limit sayi olmali"; exit 1 ;; esac
           case "$CAMPAIGN" in *[!A-Za-z0-9:_-]*) echo "gecersiz kampanya"; exit 1 ;; esac
 
@@ -112,6 +112,22 @@ jobs:
             echo "  LogLevel ERROR"
             echo "  ConnectTimeout 25"
           } > ~/.ssh/config && chmod 600 ~/.ssh/config
+
+      - name: Sunucu yolu — istek / damga geri alma / durum (sunucunun kendi posta servisi)
+        if: env.MODE == 'server' || env.MODE == 'release' || env.MODE == 'status'
+        env:
+          LIMIT: ${{ github.event.inputs.limit }}
+          CAMPAIGN: ${{ github.event.inputs.campaign }}
+          IDS: ${{ github.event.inputs.ids }}
+        run: |
+          set -o pipefail
+          ssh vestra 'mkdir -p ~/vestra_tmp' && ssh vestra 'cat > ~/vestra_tmp/mailbox-queue.php' < scripts/server/vestra-mailbox-queue.php
+          Q='cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php'
+          if [ -n "$IDS" ] && [ "$MODE" != status ]; then ssh vestra "$Q release $IDS" | grep '^{' ; fi
+          if [ "$MODE" = server ]; then ssh vestra "$Q request send $LIMIT $CAMPAIGN" | grep '^{' || true; fi
+          ssh vestra "$Q status" | grep '^{' | python3 -c 'import json,sys; d=json.load(sys.stdin); print("bugun gonderilen", d.get("today"), "/ tavan", d.get("cap")); [print(" ", r.get("id"), r.get("mode"), r.get("limit"), r.get("status"), "gonderildi", r.get("sent","-"), "geri donen", r.get("bounced","-"), "hata", r.get("failed","-"), r.get("note","")) for r in d.get("runs",[])]'
+          ssh vestra 'rm -f ~/vestra_tmp/mailbox-queue.php'
+          [ "$MODE" = server ] && echo "istek sunucuya yazildi — cron_mailbox.php en gec 10 dk icinde gonderir; sonuc admin panelinde ve 'status' kipinde" || true
 
       - name: Sunucudan gönderim listesini al
         if: env.MODE == 'test' || env.MODE == 'send'

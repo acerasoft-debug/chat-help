@@ -5,9 +5,10 @@ name: (E-posta) Panel sırası — 10 dakikada bir
 # (inc/mailbox.php); bu iş 10 dakikada bir sıradakini alır ve mailbox-send.yml'yi GitHub'ın
 # kendi yerleşik yetkisiyle (GITHUB_TOKEN, actions: write) başlatır. Sonucu mailbox-send.yml
 # panele geri yazar. Sırada istek yoksa ~15 saniyede biter.
+# 9 Eki 2026: panel isteklerini artık SUNUCUNUN kendi cron'u alır ve gönderir (vestra/cron_mailbox.php,
+# sunucunun posta servisi). Bu iş YEDEK olarak yalnız elle çalışır; zamanlaması kapatıldı ki aynı
+# isteği iki yol birden almasın.
 on:
-  schedule:
-    - cron: '*/10 * * * *'
   workflow_dispatch:
 
 permissions:
