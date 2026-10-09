@@ -5971,7 +5971,10 @@ jobs:
       - name: SMTP sondasi (smtp_probe) -- salt okunur
         if: ${{ github.event.inputs.admin_mode == 'smtp_probe' }}
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          SP_SPEC: ${{ github.event.inputs.payload }}
         with:
+          envs: SP_SPEC
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -5982,16 +5985,25 @@ jobs:
             <?php
             $targets = [['smtp.gmail.com',587],['smtp.gmail.com',465],['smtp.mail.yahoo.com',465],['smtp.mail.yahoo.com',587],
                         ['smtp.mail.me.com',587],['smtp.zoho.eu',587],['smtp.zoho.com',465],['smtp-relay.brevo.com',587],['smtp.office365.com',587]];
+            /* payload: "host:port,host:port" verilirse YALNIZ onlar (8 Eki: alan adinin kendi saglayicisi
+               smtpout.secureserver.net ve GoDaddy barindirma relay'i hic olculmemisti). */
+            $spec = trim((string)getenv('SP_SPEC'));
+            if ($spec !== '' && preg_match('/^[A-Za-z0-9.\-]+:\d+(,[A-Za-z0-9.\-]+:\d+)*$/', $spec)) {
+              $targets = [];
+              foreach (explode(',', $spec) as $hp) { [$h, $p] = explode(':', $hp); $targets[] = [$h, (int)$p]; }
+            }
+            echo "sunucu: ".php_uname('n')." · PHP ".PHP_VERSION." · mail(): ".(function_exists('mail') ? 'var' : 'yok')." · sendmail_path: ".(ini_get('sendmail_path') ?: '(bos)')."\n";
             foreach ($targets as [$h, $p]) {
               $t0 = microtime(true);
               $url = ($p === 465 ? 'ssl://' : 'tcp://').$h.':'.$p;
+              if ($p === 25 || $p === 2525) { $url = 'tcp://'.$h.':'.$p; }
               $ctx = stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true, 'peer_name' => $h]]);
               $fp = @stream_socket_client($url, $en, $es, 8, STREAM_CLIENT_CONNECT, $ctx);
               if (!$fp) { printf("%-24s %-4d KAPALI  (%s %s, %.1fs)\n", $h, $p, $en, $es, microtime(true) - $t0); continue; }
               stream_set_timeout($fp, 8);
               $banner = trim((string)fgets($fp, 512));
               $tls = '';
-              if ($p === 587 && str_starts_with($banner, '220')) {
+              if (($p === 587 || $p === 25 || $p === 2525) && str_starts_with($banner, '220')) {
                 fwrite($fp, "EHLO vestrasales.com\r\n"); $ehlo = '';
                 while (($ln = fgets($fp, 512)) !== false) { $ehlo .= $ln; if (preg_match('/^\d{3} /', $ln)) break; }
                 $tls = stripos($ehlo, 'STARTTLS') !== false ? ' STARTTLS=var' : ' STARTTLS=YOK';
