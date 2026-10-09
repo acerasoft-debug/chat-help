@@ -149,6 +149,10 @@ function vestra_finder_start(array $in, string $owner = '', string $by = 'admin'
     }
   }
   $p = vestra_finder_clean_input($in);
+  /* Bulunca gönder (9 Eki 2026, operatör: "hızlı bulsun ve göndersin"): yalnız admin araması; satıcının
+     araması kendi listesine düşer, gönderimi satıcı kendisi yapar. Gönderim find-customers.yml'den sunucunun
+     posta kutusu kuyruğuna istek olarak gider (cron_mailbox.php, günlük tavan, MX kontrolü). Deneme koşusu göndermez. */
+  $p['send'] = ($owner === '' && !empty($in['send_after']) && ($p['dry_run'] ?? 'false') !== 'true') ? 'true' : 'false';
   $repo = vestra_finder_repo();
   $id = 'FR'.date('ymdHi').strtoupper(bin2hex(random_bytes(2)));
 

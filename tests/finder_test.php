@@ -73,6 +73,22 @@ vestra_finder_save_runs(array_map(fn($r) => ($r['id'] === $idQ ? ['status' => 'd
 $t('satıcı 24 saatte bir', !$okS && str_starts_with($mS, 'You can start'));
 $t('satıcı kaydı sahibine göre süzülür', count(vestra_finder_runs('S1')) === 1 && count(vestra_finder_runs('S2')) === 0);
 $t('her zaman başlatılabilir (anahtar şart değil)', vestra_finder_ready());
+/* Bul + gönder (9 Eki 2026): yalnız admin araması, deneme değilse; satıcının araması göndermez. */
+$keepRuns = vestra_finder_runs();
+vestra_finder_save_runs([]);
+vestra_finder_start(['cities' => 'Italy|Milano', 'send_after' => '1'], '', 'admin');
+$sa1 = vestra_finder_runs()[0]['params']['send'] ?? '';
+vestra_finder_save_runs([]);
+vestra_finder_start(['cities' => 'Italy|Milano', 'send_after' => '1', 'dry_run' => '1'], '', 'admin');
+$sa2 = vestra_finder_runs()[0]['params']['send'] ?? '';
+vestra_finder_save_runs([]);
+vestra_finder_start(['cities' => 'Italy|Milano'], '', 'admin');
+$sa3 = vestra_finder_runs()[0]['params']['send'] ?? '';
+vestra_finder_save_runs([]);
+vestra_finder_start(['cities' => 'Italy|Milano', 'send_after' => '1'], 'S9', 'seller');
+$sa4 = vestra_finder_runs('S9')[0]['params']['send'] ?? '';
+$t('bul+gönder: admin işaretlediyse send=true; deneme, işaretsiz ve satıcı araması false', $sa1 === 'true' && $sa2 === 'false' && $sa3 === 'false' && $sa4 === 'false');
+vestra_finder_save_runs($keepRuns);
 
 echo "\n== 5. sonuç HTML'i ==\n";
 $evil = [['id' => 'FRx', 'owner' => 'S1', 'requested_at' => $now, 'status' => 'done', 'queries' => 3, 'candidates' => 9, 'analyzed' => 5, 'added_count' => 1,
@@ -529,6 +545,7 @@ $t('satıcı: müşteri listesinde Gmail/Outlook/uygulama düğmeleri (yalnız e
 $t('admin: web araması aç/kapat düğmesi + gönderimde "Kime" havuz seçimi', str_contains($ha, 'value="finder_toggle"') && str_contains($ha, '▶ Aç') && str_contains($ha, 'name="pool"') && str_contains($ha, 'Tüm yazılmamış müşteriler'));
 $t('admin: Brevo kalan kredi bandı + pay ayarı', str_contains($ha, 'Brevo bugün kalan') && str_contains($ha, 'value="brevo_reserve"'));
 $t('admin: 📤 lemlist CSV formu', str_contains($ha, 'value="lemlist_export"') && str_contains($ha, '📤 lemlist CSV indir') && str_contains($ha, 'name="mark" value="1" checked'));
+$t('admin: bul+gönder kutusu varsayılan işaretli', str_contains($ha, 'name="send_after" value="1" checked'));
 $t('admin: 📮 posta kutusu kartı — istek formu, tavan, sunucu durumu', str_contains($ha, 'id="mailboxsend"') && str_contains($ha, 'value="mailbox_request"') && str_contains($ha, 'günlük tavan') && str_contains($ha, 'sunucunun posta servisi') && str_contains($ha, 'value="mailbox_cap"') && str_contains($ha, 'vestra._domainkey'));
 $t('admin: 🧪 Bana test gönder + test adresi', str_contains($ha, 'name="mode" value="test"') && str_contains($ha, 'name="test_to"'));
 $t('satıcı (kendi anahtarı): PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $hs2));
