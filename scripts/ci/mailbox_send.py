@@ -44,7 +44,7 @@ def dns_check() -> None:
     dmarc = dig('_dmarc.' + DOMAIN, 'TXT')
     print('DMARC :', ' | '.join(dmarc) or '(YOK — eklenmeli)')
     found = []
-    for sel in ['default', 'mail', 'dkim', 'titan1', 'k1', 's1', 's2', 'google', 'selector1', 'selector2', 'zoho', 'mx', 'smtp', 'hostinger', 'brevo', 'mail1']:
+    for sel in ['vestra', 'default', 'mail', 'dkim', 'titan1', 'k1', 's1', 's2', 'google', 'selector1', 'selector2', 'zoho', 'mx', 'smtp', 'hostinger', 'brevo', 'mail1']:
         rec = dig(f'{sel}._domainkey.{DOMAIN}', 'TXT')
         if rec:
             found.append(sel)
