@@ -5964,6 +5964,37 @@ jobs:
             PHPEOF
             php /tmp/vestra_aik.php; rm -f /tmp/vestra_aik.php
 
+      # YEREL POSTA SONDASI (local_mail_probe, 9 Eki 2026): sunucunun KENDI posta servisi
+      # (localhost:25 acik, sendmail var) uzerinden support@ adresinden TEK bir test mektubu
+      # payload'daki adrese gider. Amac: Gmail'in Authentication-Results basliginda SPF/DKIM/DMARC
+      # gecip gecmedigini olcmek. Kimseye kampanya gitmez; sifre kullanilmaz.
+      - name: Yerel posta sondasi (local_mail_probe) -- tek test mektubu
+        if: ${{ github.event.inputs.admin_mode == 'local_mail_probe' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          LM_TO: ${{ github.event.inputs.payload }}
+        with:
+          envs: LM_TO
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 2m
+          script: |
+            cat > /tmp/vestra_lm.php <<'PHPEOF'
+            <?php
+            $to = strtolower(trim((string)getenv('LM_TO')));
+            if (!filter_var($to, FILTER_VALIDATE_EMAIL) || !preg_match('/^[a-z0-9@._+-]+$/', $to)) { echo "gecersiz adres\n"; exit(1); }
+            $from = 'support@vestrasales.com';
+            $tag = 'LMP-'.date('His').'-'.substr(bin2hex(random_bytes(3)), 0, 6);
+            $mid = '<'.$tag.'@vestrasales.com>';
+            $hdr = "From: VESTRA <{$from}>\r\nReply-To: {$from}\r\nMessage-ID: {$mid}\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nX-VESTRA-Probe: {$tag}";
+            $ok = mail($to, "[TEST {$tag}] VESTRA sunucu yerel posta sondasi", "Bu mektup VESTRA sunucusunun kendi posta servisinden (localhost:25) gonderildi.\nEtiket: {$tag}\n", $hdr, '-f '.$from);
+            echo "mail(): ".($ok ? 'kabul edildi' : 'REDDEDILDI')." · etiket {$tag} · Message-ID {$mid}\n";
+            echo "exim kuyrugu: "; passthru('exim -bpc 2>/dev/null || echo "(exim yok)"');
+            PHPEOF
+            php /tmp/vestra_lm.php; rm -f /tmp/vestra_lm.php
+
       # SMTP SONDASI (smtp_probe, 8 Eki 2026): satici "kendi e-postasindan ucretsiz" gonderebilsin
       # diye Gmail/Yahoo/iCloud/Zoho/Brevo SMTP'si SUNUCUDAN aciliyor mu? Paylasimli barindirma
       # 25/465/587'yi cogu zaman kapatir; kapaliysa tek ucretsiz yol HTTPS uzerinden API'dir.
