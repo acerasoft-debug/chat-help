@@ -1551,4 +1551,11 @@ return array (
   'The email could not be sent.' => 'Не удалось отправить письмо.',
   'Emails left today: %d' => 'Осталось писем на сегодня: %d',
   'Brevo does not send more today; it renews tomorrow.' => 'Сегодня Brevo больше не отправляет; лимит обновится завтра.',
+  'Your own mail server (SMTP — Gmail, Outlook, your own domain)' => 'Ваш собственный почтовый сервер (SMTP — Gmail, Outlook, ваш домен)',
+  'Emails go out from your own mail server and your own address. Our sending machine connects to it every 10 minutes, so each email leaves within about 10 minutes. For Gmail use an app password (Google Account → Security → App passwords) with smtp.gmail.com, port 465.' => 'Письма уходят с вашего собственного почтового сервера и с вашего адреса. Наша система отправки подключается к нему каждые 10 минут, поэтому каждое письмо уходит примерно в течение 10 минут. Для Gmail используйте пароль приложения (Аккаунт Google → Безопасность → Пароли приложений) с smtp.gmail.com, порт 465.',
+  'Your mail server refused the login: %s — check the SMTP username and password (for Gmail: an app password).' => 'Ваш почтовый сервер отклонил вход: %s — проверьте имя пользователя и пароль SMTP (для Gmail: пароль приложения).',
+  '%d waiting · %d sent today · %d failed' => '%d в очереди · %d отправлено сегодня · %d с ошибкой',
+  'Test queued to %s — it leaves from your own mail server within about 10 minutes. Check your inbox then.' => 'Тест для %s поставлен в очередь — он уйдёт с вашего почтового сервера примерно через 10 минут. Затем проверьте входящие.',
+  'Queued — it leaves from your own mail server within about 10 minutes.' => 'В очереди — уйдёт с вашего почтового сервера примерно через 10 минут.',
+  'You reached today’s sending limit for your mail server. The rest can be sent tomorrow.' => 'Вы достигли сегодняшнего лимита отправки вашего почтового сервера. Остальное можно отправить завтра.',
 );

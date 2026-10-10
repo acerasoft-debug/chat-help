@@ -4724,6 +4724,16 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   `vestra_lead_off_target()` ayakkabı/iç çamaşırı/toptancıyı her havuzda eler. Geri dönenler 3 saatte bir
   taranır (mailbox-send.yml takvimi, yalnız 'bounces' kipi). Arama günde iki tur (05:20, 15:20 UTC), tur
   başına 40 şehre kadar (OSM_TARGET 900 aday), şehir havuzu 160; 10 Eki denemesi 20 dk'da 36 lead (önce 4).
+- **Satıcı kendi adresi + kendi posta sunucusu (SMTP) ile gönderir (10 Eki 2026, operatör: "satıcılarda kendi
+  email adresleri ile gönderebilsin, kendi sunucuları ile").** Barındırmadan giden SMTP KAPALI (8 Eki smtp_probe) —
+  sunucu bağlanamaz; bu yüzden `inc/seller_outbox.php` kuyruğu (`data/seller_outbox.json`, şifresiz) +
+  chat-help `seller-outbox.yml` (10 dk'da bir): `vestra-seller-outbox.php take` mektupları ve satıcı SMTP
+  girişlerini YALNIZ SSH borusuyla `scripts/ci/seller_outbox_send.py`'ye verir (loga/dosyaya yazılmaz), koşucu
+  satıcının sunucusundan gönderir, `stamp` geri yazar: sent → contacted (contact_via=seller_smtp), 5xx alıcı
+  reddi → bounced, giriş reddi → satıcı kartında `smtp_error`, geçici hata → kuyruğa (en çok 3 deneme).
+  Brevo anahtarı olan satıcı eskisi gibi anında Brevo'dan. Satıcı başına günde 300. Panelde "Ready" =
+  Brevo ya da SMTP. Kampanya tavanı (support@, kendi sunucumuz) 500/gün (`VESTRA_MAILBOX_*_CAP`; eski
+  kayıtlı 50 yok sayılır), adminde müşteri seçerek gönderim (`vestra_finder_pick_table`).
 - **Siparişin USD karşılığı SİPARİŞ TARİHİNDEKİ kurla** (operatör, 7 Eyl 2026:
   *"siparişleri anında sipariş zamanındaki kur ile USD'ye çevirecek bir sistem
   koy admin paneline"*). Tek kaynak `inc/fx_orders.php`; damga

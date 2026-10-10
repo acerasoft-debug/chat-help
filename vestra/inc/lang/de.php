@@ -1556,4 +1556,11 @@ return array (
   'The email could not be sent.' => 'Die E-Mail konnte nicht gesendet werden.',
   'Emails left today: %d' => 'Heute noch E-Mails: %d',
   'Brevo does not send more today; it renews tomorrow.' => 'Brevo sendet heute nichts mehr; das Kontingent erneuert sich morgen.',
+  'Your own mail server (SMTP — Gmail, Outlook, your own domain)' => 'Ihr eigener Mailserver (SMTP — Gmail, Outlook, Ihre eigene Domain)',
+  'Emails go out from your own mail server and your own address. Our sending machine connects to it every 10 minutes, so each email leaves within about 10 minutes. For Gmail use an app password (Google Account → Security → App passwords) with smtp.gmail.com, port 465.' => 'E-Mails gehen von Ihrem eigenen Mailserver und Ihrer eigenen Adresse aus. Unser Versandsystem verbindet sich alle 10 Minuten damit, jede E-Mail geht also innerhalb von etwa 10 Minuten raus. Für Gmail verwenden Sie ein App-Passwort (Google-Konto → Sicherheit → App-Passwörter) mit smtp.gmail.com, Port 465.',
+  'Your mail server refused the login: %s — check the SMTP username and password (for Gmail: an app password).' => 'Ihr Mailserver hat die Anmeldung abgelehnt: %s — prüfen Sie SMTP-Benutzername und Passwort (bei Gmail: ein App-Passwort).',
+  '%d waiting · %d sent today · %d failed' => '%d wartend · %d heute gesendet · %d fehlgeschlagen',
+  'Test queued to %s — it leaves from your own mail server within about 10 minutes. Check your inbox then.' => 'Test an %s eingereiht — er geht innerhalb von etwa 10 Minuten von Ihrem eigenen Mailserver raus. Prüfen Sie dann Ihren Posteingang.',
+  'Queued — it leaves from your own mail server within about 10 minutes.' => 'Eingereiht — geht innerhalb von etwa 10 Minuten von Ihrem eigenen Mailserver raus.',
+  'You reached today’s sending limit for your mail server. The rest can be sent tomorrow.' => 'Sie haben das heutige Versandlimit Ihres Mailservers erreicht. Der Rest kann morgen gesendet werden.',
 );

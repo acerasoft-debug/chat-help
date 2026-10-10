@@ -1551,4 +1551,11 @@ return array (
   'The email could not be sent.' => 'تعذّر إرسال الرسالة.',
   'Emails left today: %d' => 'الرسائل المتبقية اليوم: %d',
   'Brevo does not send more today; it renews tomorrow.' => 'لن ترسل Brevo المزيد اليوم؛ يتجدد الحد غدًا.',
+  'Your own mail server (SMTP — Gmail, Outlook, your own domain)' => 'خادم البريد الخاص بك (SMTP — Gmail أو Outlook أو نطاقك الخاص)',
+  'Emails go out from your own mail server and your own address. Our sending machine connects to it every 10 minutes, so each email leaves within about 10 minutes. For Gmail use an app password (Google Account → Security → App passwords) with smtp.gmail.com, port 465.' => 'تُرسل الرسائل من خادم بريدك الخاص ومن عنوانك أنت. يتصل نظام الإرسال لدينا به كل 10 دقائق، لذا تخرج كل رسالة خلال 10 دقائق تقريبًا. في Gmail استخدم كلمة مرور التطبيقات (حساب Google ← الأمان ← كلمات مرور التطبيقات) مع smtp.gmail.com والمنفذ 465.',
+  'Your mail server refused the login: %s — check the SMTP username and password (for Gmail: an app password).' => 'رفض خادم بريدك تسجيل الدخول: %s — تحقق من اسم مستخدم SMTP وكلمة المرور (في Gmail: كلمة مرور التطبيقات).',
+  '%d waiting · %d sent today · %d failed' => '%d في الانتظار · %d أُرسلت اليوم · %d فشلت',
+  'Test queued to %s — it leaves from your own mail server within about 10 minutes. Check your inbox then.' => 'تمت جدولة رسالة الاختبار إلى %s — ستخرج من خادم بريدك خلال 10 دقائق تقريبًا. ثم تحقّق من صندوق الوارد.',
+  'Queued — it leaves from your own mail server within about 10 minutes.' => 'في الانتظار — ستخرج من خادم بريدك خلال 10 دقائق تقريبًا.',
+  'You reached today’s sending limit for your mail server. The rest can be sent tomorrow.' => 'بلغت حد الإرسال اليومي لخادم بريدك. يمكن إرسال الباقي غدًا.',
 );

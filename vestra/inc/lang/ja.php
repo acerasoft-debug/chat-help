@@ -1551,4 +1551,11 @@ return array (
   'The email could not be sent.' => 'メールを送信できませんでした。',
   'Emails left today: %d' => '本日の残り送信数：%d',
   'Brevo does not send more today; it renews tomorrow.' => 'Brevo は本日これ以上送信しません。上限は明日リセットされます。',
+  'Your own mail server (SMTP — Gmail, Outlook, your own domain)' => 'ご自身のメールサーバー（SMTP — Gmail、Outlook、独自ドメイン）',
+  'Emails go out from your own mail server and your own address. Our sending machine connects to it every 10 minutes, so each email leaves within about 10 minutes. For Gmail use an app password (Google Account → Security → App passwords) with smtp.gmail.com, port 465.' => 'メールはご自身のメールサーバーとご自身のアドレスから送信されます。当社の送信システムが10分ごとに接続するため、各メールは約10分以内に送信されます。Gmailではアプリパスワード（Googleアカウント → セキュリティ → アプリパスワード）を使い、smtp.gmail.com、ポート465を指定してください。',
+  'Your mail server refused the login: %s — check the SMTP username and password (for Gmail: an app password).' => 'メールサーバーがログインを拒否しました: %s — SMTPのユーザー名とパスワードを確認してください（Gmailはアプリパスワード）。',
+  '%d waiting · %d sent today · %d failed' => '待機中 %d · 本日送信 %d · 失敗 %d',
+  'Test queued to %s — it leaves from your own mail server within about 10 minutes. Check your inbox then.' => '%s へのテストを送信待ちに追加しました — 約10分以内にご自身のメールサーバーから送信されます。その後受信箱をご確認ください。',
+  'Queued — it leaves from your own mail server within about 10 minutes.' => '送信待ち — 約10分以内にご自身のメールサーバーから送信されます。',
+  'You reached today’s sending limit for your mail server. The rest can be sent tomorrow.' => '本日のメールサーバー送信上限に達しました。残りは明日送信できます。',
 );

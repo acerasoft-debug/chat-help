@@ -495,7 +495,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
 
 /* ── Seller customer outreach: own SMTP + own customer list + one-by-one send ── */
 if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_array(($_POST['_action']??''),['seller_save_smtp','seller_send_test','seller_add_lead','seller_import_leads','seller_send_one','seller_find_email','seller_discover','seller_find_all','seller_finder_start','seller_ai_generate','seller_ai_save','seller_ai_stop','seller_ai_key','seller_ai_ready','seller_camp_test','seller_compose'],true)) {
-  require_once __DIR__.'/inc/notify.php'; require_once __DIR__.'/inc/leads.php';
+  require_once __DIR__.'/inc/notify.php'; require_once __DIR__.'/inc/leads.php'; require_once __DIR__.'/inc/seller_outbox.php';
   $suid=$_SESSION['uid']??''; $sme=auth_user();
   if($suid==='' || ($sme['type']??'')!=='seller'){ if(($_POST['_action']??'')==='seller_send_one'){ header('Content-Type: application/json'); echo json_encode(['ok'=>false,'error'=>'auth']); } else header('Location: /seller?tab=find'); exit; }
   $sact=$_POST['_action']; $sName=$sme['company']?:($sme['name']?:'Seller');
@@ -622,7 +622,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
     $cid=$sact==='seller_camp_test'?(string)($_POST['cid']??''):null;
     [$tOk,$tCode,$tTo]=vestra_seller_send_test($suid,$sName,trim((string)($_POST['test_to']??'')),$cid);
     if($sact==='seller_camp_test'){
-      $tMsgs=['own'=>'Test sent to %s — check your inbox.','nosetup'=>'Your sending is not set up yet — use “Open test in Gmail” instead.',
+      $tMsgs=['own'=>'Test sent to %s — check your inbox.','queued'=>'Test queued to %s — it leaves from your own mail server within about 10 minutes. Check your inbox then.','nosetup'=>'Your sending is not set up yet — use “Open test in Gmail” instead.',
         'badto'=>'Please enter a valid email address.','fail'=>'The test could not be sent. Please check your sending setup above.'];
       $_SESSION['seller_ai_flash']=[$tOk,sprintf(t($tMsgs[$tCode]??$tMsgs['fail']),$tTo)];
       header('Location: /seller?tab=find#aicamp'); exit;
@@ -673,7 +673,10 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
   if($sact==='seller_send_one'){
     header('Content-Type: application/json');
     $sc=vestra_seller_mail($suid);
-    if(!vestra_seller_can_send($sc)){ echo json_encode(['ok'=>false,'error'=>'nosender']); exit; }
+    /* Brevo anahtarı varsa anında Brevo'dan; yoksa satıcının KENDİ posta sunucusu (SMTP) kuyruğu —
+       inc/seller_outbox.php, 10 dakika içinde kendi adresinden gider (10 Eki 2026). */
+    $viaSmtp=!vestra_seller_can_send($sc) && vestra_seller_smtp_ready($sc);
+    if(!vestra_seller_can_send($sc) && !$viaSmtp){ echo json_encode(['ok'=>false,'error'=>'nosender']); exit; }
     require_once __DIR__.'/inc/ai_campaign.php';
     /* The seller's active Claude campaign (if any) replaces the standard invite. */
     $aiActive=vestra_ai_camp_active($suid);
@@ -686,6 +689,12 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
       if(!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL)){ $res['error']='noemail'; break; }
       $pair=(($_POST['ai']??'')==='1')?vestra_ai_personalize($l,$tpl,$sName,(string)($sc['ai_key']??'')):null;
       [$subject,$body]=$pair!==null?$pair:vestra_lead_render_email($l,$tpl);
+      if($viaSmtp){
+        [$qOk,$qCode]=vestra_seller_outbox_add($suid,(string)$l['id'],(string)$l['email'],$subject,$body,(string)($sc['smtp_name']??'')?:$sName,$heroImg,
+          ($l['unsub_token']??'')!==''?'https://vestrasales.com/lead-unsubscribe?token='.rawurlencode((string)$l['unsub_token']):'');
+        $res['ok']=$qOk||$qCode==='dup'; $res['queued']=true; if(!$res['ok']) $res['error']=$qCode;
+        break;
+      }
       if(vestra_send_mail($l['email'],$subject,$body,'',$sName,$sc,$heroImg)){ $res['ok']=true; if(($l['status']??'new')==='new') $l['status']='contacted'; $l['last_contacted_at']=date('c'); $l['contact_via']='brevo'; }
       else {
         /* Nedeni satıcıya söyle (operatör: "satıcı gönderimlerinin gittiğinden emin ol"): adres
@@ -1361,7 +1370,9 @@ if($tab==='overview'){
 } elseif($tab==='find'){
   require_once __DIR__.'/inc/notify.php'; require_once __DIR__.'/inc/leads.php';
   $me=$AUTH_USER ?? auth_user();
-  $myMail=vestra_seller_mail($uid); $mailReady=vestra_seller_can_send($myMail);
+  require_once __DIR__.'/inc/seller_outbox.php';
+  $myMail=vestra_seller_mail($uid); $smtpReady=vestra_seller_smtp_ready($myMail); $mailReady=vestra_seller_can_send($myMail) || $smtpReady;
+  $obSt=$smtpReady?vestra_seller_outbox_status($uid):null;
   $myLeads=array_reverse(vestra_leads_by_owner($uid));
   $fmsg=$_GET['msg']??'';
   $fmsgs=['smtp_saved'=>'✓ Your sending email & keys are saved — send a test to confirm.','test_ok'=>'✓ Test sent — check your inbox.','test_fail'=>'Test failed — check your SMTP host / username / password.','lead_added'=>'✓ Customer added.','lead_import'=>'✓ Customers imported.','found_ok'=>'✓ Real email found and added.','found_none'=>'No email found on that website — add it manually.'];
@@ -1374,6 +1385,7 @@ if($tab==='overview'){
   $fmsgs+=['test_own'=>sprintf(t('Test sent to %s — check your inbox.'),$fTo),
     'test_nosetup'=>t('Your sending is not set up yet — use “Open test in Gmail” instead.'),
     'test_badto'=>t('Please enter a valid email address.'),
+    'test_queued'=>sprintf(t('Test queued to %s — it leaves from your own mail server within about 10 minutes. Check your inbox then.'),$fTo),
     'test_fail'=>t('The test could not be sent. Please check your sending setup above.'),
     'brevo_format'=>t('Saved, but this does not look like a Brevo API key (it starts with xkeysib-). Please copy it again.'),
     'brevo_invalid'=>t('Saved, but Brevo did not accept this key. Please create a new key and save it again.'),
@@ -1463,9 +1475,11 @@ if($tab==='overview'){
           <div><label style="<?= $lbl ?>">AI key — DeepSeek<?= ($myMail['ai_key']??'')!==''?' · saved':'' ?></label><input type="password" name="ai_key" autocomplete="new-password" placeholder="personalise each email" style="<?= $inp ?>"></div>
         </div>
       </div>
-      <details style="margin:0 0 12px">
-        <summary style="cursor:pointer;font-size:12px;color:var(--mut)"><?= $tk('Advanced: SMTP login (Gmail, Outlook…)') ?></summary>
-        <div style="background:#fdf6e9;border:1px solid #f0dcb4;color:#8a5a12;border-radius:10px;padding:9px 12px;font-size:12px;margin:8px 0">⚠ <?= $tk('Our hosting blocks outgoing SMTP connections, so a Gmail or Outlook password (or app password) cannot send from here. Please use Brevo above — it is free and sends from your own address.') ?></div>
+      <details style="margin:0 0 12px"<?= ($smtpReady||($myMail['smtp_host']??'')!=='')?' open':'' ?>>
+        <summary style="cursor:pointer;font-size:12.5px;font-weight:600"><?= $tk('Your own mail server (SMTP — Gmail, Outlook, your own domain)') ?><?= $smtpReady?' <span style="color:#1f9d63;font-weight:400">● '.$tk('Ready').'</span>':'' ?></summary>
+        <div style="background:#eef7f1;border:1px solid #b9e3c9;color:#1f5f3d;border-radius:10px;padding:9px 12px;font-size:12px;margin:8px 0;line-height:1.55"><?= $tk('Emails go out from your own mail server and your own address. Our sending machine connects to it every 10 minutes, so each email leaves within about 10 minutes. For Gmail use an app password (Google Account → Security → App passwords) with smtp.gmail.com, port 465.') ?></div>
+        <?php if(($myMail['smtp_error']??'')!==''): ?><div style="background:#fdf0ee;border:1px solid #f0c4bd;color:#a3321f;border-radius:10px;padding:8px 12px;font-size:12px;margin:0 0 8px"><?= sprintf($tk('Your mail server refused the login: %s — check the SMTP username and password (for Gmail: an app password).'),htmlspecialchars((string)$myMail['smtp_error'])) ?></div><?php endif; ?>
+        <?php if($obSt): ?><div style="font-size:12px;margin:0 0 8px">📤 <?= sprintf($tk('%d waiting · %d sent today · %d failed'),$obSt['queued'],$obSt['sent_today'],$obSt['failed_today']) ?></div><?php endif; ?>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div><label style="<?= $lbl ?>">SMTP host</label><input name="smtp_host" value="<?= htmlspecialchars($myMail['smtp_host']??'') ?>" placeholder="smtp.gmail.com" style="<?= $inp ?>"></div>
         <div><label style="<?= $lbl ?>">SMTP port</label><input name="smtp_port" value="<?= htmlspecialchars((string)($myMail['smtp_port']??'587')) ?>" style="<?= $inp ?>"></div>
@@ -1754,6 +1768,7 @@ var sendWhy=<?= json_encode([
   'badaddr'=>t('This customer’s email address is not valid — it was removed from sending.'),
   'transport'=>t('Brevo could not be reached. Please try again in a minute.'),
   'nosender'=>t('Your sending is not set up yet — use “Open test in Gmail” instead.'),
+  'cap'=>t('You reached today’s sending limit for your mail server. The rest can be sent tomorrow.'),
   'unsub'=>t('Unsubscribed'),'noemail'=>t('No email'),'send'=>t('The email could not be sent.')], JSON_UNESCAPED_UNICODE) ?>;
 function sellerSend(btn){
   var boxes=[].slice.call(document.querySelectorAll('.slc')).filter(function(c){return c.checked && !c.disabled;});
@@ -1768,7 +1783,7 @@ function sellerSend(btn){
     var fd=new FormData(); fd.append('_action','seller_send_one'); fd.append('lead_id',ids[i]); fd.append('ai',ai);
     fetch('/seller?tab=find',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
       var ln=document.createElement('div'); ln.style.fontSize='12px'; ln.style.padding='2px 0';
-      if(d.ok){ ok++; ln.style.color='#1f9d63'; ln.textContent='✓ '+(d.company||d.email||''); }
+      if(d.ok){ ok++; ln.style.color='#1f9d63'; ln.textContent=(d.queued?'⏳ ':'✓ ')+(d.company||d.email||'')+(d.queued?' — '+<?= json_encode(t('Queued — it leaves from your own mail server within about 10 minutes.'), JSON_UNESCAPED_UNICODE) ?>:''); }
       else { fail++; ln.style.color='#c0392b'; ln.textContent='✗ '+(d.company||d.email||'')+' — '+(sendWhy[d.error]||d.error||'failed'); }
       log.appendChild(ln); log.scrollTop=log.scrollHeight; i++; setTimeout(next,250);
     }).catch(function(){ fail++; i++; setTimeout(next,250); });
