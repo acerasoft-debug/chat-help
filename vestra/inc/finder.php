@@ -391,6 +391,9 @@ function vestra_finder_campaigns(): array {
     return $t === '' ? $body : str_replace('https://vestrasales.com/lead-unsubscribe', 'https://vestrasales.com/lead-unsubscribe?token='.rawurlencode($t), $body);
   };
   $out = [
+    /* 10 Eki 2026 (operatör: "daha iyi ve estetik kampanya, Gallery Dept, Casablanca, siteye ve kayda link"). */
+    'edit' => ['✨ VESTRA Edit — Gallery Dept, Casablanca öne çıkan, görselli, kayıt düğmeli', 'Yeni estetik kampanya: koyu başlık bandı, öne çıkan iki marka, 6 ürünlük seçki, "Koleksiyonu gör" + "Ücretsiz kayıt ol" düğmeleri. Dil müşterinin ülkesine göre (7 dil).',
+      function (array $l) use ($tok) { require_once __DIR__.'/campaign_edit.php'; [$s, $b, $o] = vestra_campaign_edit((string)($l['company'] ?? ''), vestra_finder_lead_lang($l)); return [$s, $tok($b, $l), $o, 'VESTRA']; }],
     'lesgarage' => ['Les Garage de Paris — logo duvarlı premium kampanya', 'Günlük gönderimde kullanılan kampanya. Dil müşterinin ülkesine göre otomatik (9+ dil).',
       function (array $l) use ($tok) { [$s, $b, $o] = vestra_campaign_preview((string)($l['company'] ?? ''), vestra_finder_lead_lang($l)); return [$s, $tok($b, $l), $o, 'Les Garage de Paris']; }],
     'polos' => ['Lacoste polo — %10/%15 indirim promosyonu', 'Kısa promosyon mektubu (İngilizce).',

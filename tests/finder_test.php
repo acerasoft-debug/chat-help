@@ -499,7 +499,7 @@ echo "\n== 8c. gönderim modu (otomatik / manuel) + alıcı havuzu — kendi sun
 require_once $root.'/inc/mailbox.php';
 @unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
 $am = vestra_mailbox_auto();
-$t('varsayılan: otomatik açık, lesgarage, 100, yeni bulunanlar', $am === ['auto_send' => true, 'auto_campaign' => 'lesgarage', 'auto_limit' => 100, 'auto_pool' => 'web']);
+$t('varsayılan: otomatik açık, VESTRA Edit, 100, yeni bulunanlar', $am === ['auto_send' => true, 'auto_campaign' => 'edit', 'auto_limit' => 100, 'auto_pool' => 'web']);
 vestra_write_json('leads.json', [
   ['id' => 'W1', 'company' => 'Boutique Una', 'email' => 'info@una.example', 'country' => 'Italy', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'a'],
   ['id' => 'O1', 'company' => 'Mode Alt', 'email' => 'info@alt.example', 'country' => 'Germany', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'b']]);
@@ -588,6 +588,26 @@ $t('kuyruk dosyasında SMTP şifresi yok', !str_contains($raw, 'app-pass'));
 $selSrc = (string)file_get_contents($root.'/seller.php');
 $t('seller_send_one: Brevo yoksa SMTP kuyruğu', str_contains($selSrc, '$viaSmtp=!vestra_seller_can_send($sc) && vestra_seller_smtp_ready($sc);') && str_contains($selSrc, 'vestra_seller_outbox_add($suid,(string)$l[\'id\']'));
 @unlink(VESTRA_DATA_DIR.'/seller_outbox.json');
+
+echo "\n== 8f. VESTRA Edit kampanyası (Gallery Dept, Casablanca, site + kayıt bağlantısı) ==\n";
+$ce = vestra_finder_campaigns();
+$t('kampanya listesinde ilk sırada "edit"', array_key_first($ce) === 'edit');
+vestra_write_json('listings.json', [
+  ['id' => 'gd1', 'brand' => 'Gallery Dept', 'name' => 'Flare Jeans', 'status' => 'approved', 'seller_uid' => 's1', 'images' => ['/uploads/a/gd1.jpg']],
+  ['id' => 'cb1', 'brand' => 'CASABLANCA', 'name' => 'Silk Shirt', 'status' => 'approved', 'seller_uid' => 's1', 'images' => ['/uploads/a/cb1.jpg']],
+  ['id' => 'dq1', 'brand' => 'DSQUARED2', 'name' => 'Jeans', 'status' => 'approved', 'seller_uid' => 's1', 'images' => ['/uploads/a/dq1.jpg']],
+  ['id' => 'hid', 'brand' => 'Hidden', 'name' => 'Pending', 'status' => 'pending', 'seller_uid' => 's1', 'images' => ['/uploads/a/h.jpg']]]);
+[$es, $eb, $eo] = ($ce['edit'][2])(['company' => 'Boutique Una', 'country' => 'Italy', 'email' => 'a@b.example', 'unsub_token' => 'TKE']);
+$eh = vestra_html_email($eb, '', (array)$eo);
+$t('İtalyanca konu + Gallery Dept + Casablanca', str_contains($es, 'Gallery Dept, Casablanca') && str_contains($es, 'ingrosso'));
+$t('öne çıkan iki markanın ürün görseli ve ürün bağlantısı', str_contains($eh, 'https://vestrasales.com/uploads/a/gd1.jpg') && str_contains($eh, 'product?id=cb1&amp;utm_source=email'));
+$t('siteye ve kayda giden düğmeler (alıcı kaydı)', str_contains($eh, 'https://vestrasales.com/catalog?utm_source=email') && str_contains($eh, 'https://vestrasales.com/register?type=buyer&amp;utm_source=email') && str_contains($eh, 'Crea un account trade gratuito'));
+$t('onaysız ilan gösterilmez, fiyat yok', !str_contains($eh, 'Pending') && !preg_match('/€\s?\d/', $eh));
+$t('künyede bu müşterinin abonelikten çıkma bağlantısı', str_contains($eb, 'lead-unsubscribe?token=TKE') && str_contains($eh, 'token=TKE'));
+$t('düz metinde de kayıt bağlantısı (HTML açmayan istemci)', str_contains($eb, 'register?type=buyer'));
+vestra_write_json('listings.json', []);
+[, , $eo0] = ($ce['edit'][2])(['company' => '', 'country' => 'Germany', 'email' => 'a@b.example', 'unsub_token' => '']);
+$t('katalogda yoksa marka kutusu (Almanca)', str_contains((string)$eo0['html'], 'catalog?brand=Gallery%20Dept') && str_contains((string)$eo0['html'], 'Kostenloses Händlerkonto'));
 
 echo "\n== 7. çizim — admin ve satıcı sayfası kum havuzunda GERÇEKTEN koşuyor ==\n";
 /* php -l tanımsız fonksiyonu / değişkeni yakalamaz; bu depoda lint'ten geçen iki

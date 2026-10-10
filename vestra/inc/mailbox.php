@@ -55,7 +55,7 @@ function vestra_mailbox_set_cap(int $cap): int {
    manual= arama yalnız listeye ekler; gönderimi panelden siz başlatırsınız.
    Alıcı havuzu varsayılan 'web': web aramasıyla bulunmuş, sitesinde adres yayınlayan, e-posta sunucusu
    doğrulanmış butikler — eski listeden (OSM/içe aktarma) gönderim 9 Eki'de ölü alan adlarına çarptı. */
-const VESTRA_MAILBOX_AUTO_DEFAULTS = ['auto_send' => true, 'auto_campaign' => 'lesgarage', 'auto_limit' => 100, 'auto_pool' => 'web'];
+const VESTRA_MAILBOX_AUTO_DEFAULTS = ['auto_send' => true, 'auto_campaign' => 'edit', 'auto_limit' => 100, 'auto_pool' => 'web'];
 
 function vestra_mailbox_auto(): array {
   $c = vestra_mailbox_cfg(); $d = VESTRA_MAILBOX_AUTO_DEFAULTS;
