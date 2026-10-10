@@ -260,8 +260,8 @@ if ($single !== null) {
         <div class="panel panel--seller" style="border-color:rgba(245,242,236,.16)">
           <?= vr_icon($seller['type'] === 'private' ? 'user' : 'shield', 22) ?>
           <div>
+            <p class="seller__type"><?= te('sold_by') ?><?= $seller['type'] !== 'own' ? ' · ' . te('seller_' . $seller['type']) : '' ?></p>
             <p class="seller__name" style="color:var(--bone)"><?= h($seller['name']) ?></p>
-            <p class="seller__type"><?= te('sold_by') ?> · <?= te('seller_' . $seller['type']) ?></p>
             <p class="seller__note"><?= te('seller_' . $seller['type'] . '_note', ['days' => (int)vr_config('return_days', 30)]) ?></p>
           </div>
         </div>

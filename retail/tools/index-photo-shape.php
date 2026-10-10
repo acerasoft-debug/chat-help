@@ -4,6 +4,7 @@
  * ============================
  *   php tools/index-photo-shape.php            (yalnız yeni kareler)
  *   php tools/index-photo-shape.php --all      (hepsini yeniden ölç)
+ *   php tools/index-photo-shape.php --side     (yan kenar rengi eksik olanlar)
  *
  * NEDEN
  * -----
@@ -38,7 +39,10 @@ if (PHP_SAPI !== 'cli') {
 require_once __DIR__ . '/../inc/view.php';
 require_once __DIR__ . '/../inc/uploads.php';
 
-$all = in_array('--all', $argv, true);
+$all  = in_array('--all', $argv, true);
+// --side: yalnızca yan kenar rengi ('side') eksik olanları yeniden ölç;
+// diğer alanlar korunur (dosyası bu makinede olmayan kayıtlar da kalır).
+$side = in_array('--side', $argv, true);
 
 $out = $all ? [] : (array)vr_store_read('photo-shape.json', []);
 $root = vr_doc_root();
@@ -91,7 +95,7 @@ $done = $skip = $fail = 0;
 $flat = 0;
 
 foreach ($list as $rel) {
-    if (!$all && isset($out[$rel])) { $skip++; continue; }
+    if (!$all && isset($out[$rel]) && !($side && !isset($out[$rel]['side']))) { $skip++; continue; }
 
     $abs = $root . $rel;
     if (!is_file($abs)) { $fail++; continue; }
@@ -129,6 +133,18 @@ foreach ($list as $rel) {
         // kırpmak yerine kutuya sığdırıp arkasını bu renkle dolduruyoruz, ek
         // olan şerit karenin kendi kenarıyla aynı tonda olsun diye.
         $entry['bg'] = sprintf('#%02x%02x%02x', (int)round($ar), (int)round($ag), (int)round($ab));
+
+        // Yan kenarların MEDYANI: dar kare kutuya sığdırılınca dolgu sağına ve
+        // soluna geliyor, yani komşu renk bu. Ortalama yanıltıyordu — mankenin
+        // koyu pantolonu alt kenara değince "zemin" koyu griye kayıyor ve
+        // açık stüdyo fotoğrafının iki yanında belirgin bir dikiş oluşuyordu.
+        $side = [];
+        for ($y = 0; $y < $h; $y++) { $side[] = imagecolorat($im, 0, $y); $side[] = imagecolorat($im, $w - 1, $y); }
+        $med = static function (array $v): int { sort($v); return $v[intdiv(count($v), 2)]; };
+        $entry['side'] = sprintf('#%02x%02x%02x',
+            $med(array_map(fn($c) => ($c >> 16) & 255, $side)),
+            $med(array_map(fn($c) => ($c >> 8) & 255, $side)),
+            $med(array_map(fn($c) => $c & 255, $side)));
 
         // 16'nın altı: göz "düz zemin" olarak görüyor — paket çekimi, arkası
         // düz renkle doldurulunca dikiş yeri görünmüyor. Üstü sokak çekimi ya
@@ -236,7 +252,7 @@ foreach ($list as $rel) {
         imagedestroy($im);
     }
 
-    $out[$rel] = $entry;
+    $out[$rel] = $side && isset($out[$rel]) ? array_merge($out[$rel], ['side' => $entry['side'] ?? null]) : $entry;
     $done++;
     if ($done % 100 === 0) { printf("  … %d\n", $done); }
 }

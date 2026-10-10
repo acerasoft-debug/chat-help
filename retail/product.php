@@ -299,10 +299,14 @@ vr_layout_start([
         <div class="panel panel--seller">
           <?= vr_icon($seller['type'] === 'private' ? 'user' : 'shield', 22) ?>
           <div>
-            <p class="seller__name"><?= h($seller['name']) ?></p>
-            <p class="seller__type"><?= te('sold_by') ?> · <?= te('seller_' . $seller['type']) ?><?php
+            <?php /* Önce "Satan", sonra ad. Mağazanın kendi stoğunda tür satırı
+                     adı tekrar ediyordu ("SARVESTO · SARVESTO stoğu"); orada
+                     yalnızca "Satan" kalıyor. */ ?>
+            <p class="seller__type"><?= te('sold_by') ?><?php
+                if ($seller['type'] !== 'own') echo ' · ' . te('seller_' . $seller['type']);
                 if ($seller['country'] !== '') echo ' · ' . h($seller['country']);
             ?></p>
+            <p class="seller__name"><?= h($seller['name']) ?></p>
             <p class="seller__note"><?= te('seller_' . $seller['type'] . '_note', ['days' => $days]) ?></p>
           </div>
         </div>

@@ -668,6 +668,11 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 @media (max-width:940px){.pdp{grid-template-columns:1fr}}
 .pdp__media{display:grid;gap:10px;grid-template-columns:1fr}
 .pdp__media--multi{grid-template-columns:repeat(2,1fr)}
+/* Ürün sayfasında dar kare: bulanık zemin yerine karenin kendi kenar rengi.
+   Koyu giysinin bulanık büyütmesi açık stüdyo fotoğrafının iki yanında is
+   lekesi gibi duruyordu; düz renk paspartu gibi okunuyor. Karoda bulanık
+   zemin kalıyor — orada kare küçük ve dolgu dar. */
+.pdp__media .fr--pad::before{display:none}
 /* Yatay kare iki sütunu kaplar; oranı satır içi stilden gelir. */
 .pdp__media--multi .pdp__shot--wide{grid-column:1/-1}
 .pdp__shot{background:var(--bone-2);aspect-ratio:4/5;overflow:hidden;border-radius:var(--r)}
@@ -730,8 +735,8 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .panel p,.panel li{font-size:13.5px;color:var(--text)}
 .panel--seller{display:flex;gap:14px;align-items:flex-start;border:1px solid var(--bone-3);padding:16px;border-top-width:1px}
 .panel--seller .ico{color:var(--brass-text);flex:0 0 auto;margin-top:2px}
-.seller__name{font-size:15px;font-family:var(--serif)}
-.seller__type{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.seller__type{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.seller__name{font-size:19px;font-family:var(--serif);margin-top:3px;line-height:1.2}
 .seller__note{font-size:12px;color:var(--muted);margin-top:7px}
 .dl{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;font-size:13px}
 .dl dt{color:var(--muted)}

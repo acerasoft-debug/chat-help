@@ -916,9 +916,11 @@ function vr_img_fit(string $rel, float $box = 0.8, bool $allowPad = true, bool $
     if (!empty($s['flat'])) {
         return ['mode' => 'tint', 'style' => '--tint:' . $bg];
     }
+    // Dolgu sağa-sola geliyor: yan kenarların medyan rengi (yoksa ortalama).
+    $side = preg_match('/^#[0-9a-f]{6}$/i', (string)($s['side'] ?? '')) ? $s['side'] : $bg;
     return [
         'mode'  => 'pad',
-        'style' => '--tint:' . $bg . ';--blur:url(' . vr_img($rel, 180) . ')',
+        'style' => '--tint:' . $side . ';--blur:url(' . vr_img($rel, 180) . ')',
     ];
 }
 
