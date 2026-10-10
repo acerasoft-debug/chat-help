@@ -12,6 +12,11 @@ name: (E-posta) support@ posta kutusundan gönder — kotasız
 # Şifre: secrets.MAILBOX_PASS. Sunucu adı: smtp_host girdisi ya da vars.MAILBOX_SMTP_HOST
 # (tahmin YOK — tek sunucu). Depo herkese açık: kayıtta alıcı adresleri maskelidir.
 on:
+  # 10 Eki 2026 (operatör: "e-postama gönderdikten sonra hatalar geliyor"): geri dönen bildirimleri
+  # 3 saatte bir kendiliğinden taranır — hatalı adres 'bounced' işaretlenir (bir daha yazılmaz),
+  # bildirim gelen kutusundan VESTRA-Bounces klasörüne taşınır. Takvimli koşu YALNIZ 'bounces' kipidir.
+  schedule:
+    - cron: '35 */3 * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -66,7 +71,7 @@ jobs:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
       DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || 22 }}
-      MODE: ${{ github.event.inputs.mode }}
+      MODE: ${{ github.event.inputs.mode || 'bounces' }}
       TERM: dumb
     steps:
       - uses: actions/checkout@v4
@@ -75,7 +80,7 @@ jobs:
 
       - name: Girdileri doğrula
         env:
-          LIMIT: ${{ github.event.inputs.limit }}
+          LIMIT: ${{ github.event.inputs.limit || '25' }}
           CAMPAIGN: ${{ github.event.inputs.campaign }}
           IDS: ${{ github.event.inputs.ids }}
           REQ_ID: ${{ github.event.inputs.req_id }}
@@ -116,7 +121,7 @@ jobs:
       - name: Sunucu yolu — istek / damga geri alma / durum (sunucunun kendi posta servisi)
         if: env.MODE == 'server' || env.MODE == 'servertest' || env.MODE == 'release' || env.MODE == 'status'
         env:
-          LIMIT: ${{ github.event.inputs.limit }}
+          LIMIT: ${{ github.event.inputs.limit || '25' }}
           CAMPAIGN: ${{ github.event.inputs.campaign }}
           IDS: ${{ github.event.inputs.ids }}
           TEST_TO: ${{ github.event.inputs.test_to }}
@@ -134,7 +139,7 @@ jobs:
       - name: Sunucudan gönderim listesini al
         if: env.MODE == 'test' || env.MODE == 'send'
         env:
-          LIMIT: ${{ github.event.inputs.limit }}
+          LIMIT: ${{ github.event.inputs.limit || '25' }}
           CAMPAIGN: ${{ github.event.inputs.campaign }}
           IDS: ${{ github.event.inputs.ids }}
           TEST_TO: ${{ github.event.inputs.test_to }}
