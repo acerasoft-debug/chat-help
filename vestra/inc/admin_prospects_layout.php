@@ -40,6 +40,40 @@ $__openAdd  = in_array((string)($_GET['msg'] ?? ''), ['lead_added', 'lead_dupe',
   .pxinner .acard{box-shadow:none}
 </style>
 
+<?php /* 10 Eki 2026 (operatör: "şu anda gönderiyor mu, arıyor mu bilmiyorum, görünmüyor"): canlı durum şeridi. */
+  require_once __DIR__.'/mailbox.php'; $__live = vestra_live_status();
+  $__lc = ['running' => ['#1f9d63', 'rgba(31,157,99,.08)', 'rgba(31,157,99,.45)'], 'queued' => ['#a9781a', 'rgba(169,127,44,.08)', 'rgba(169,127,44,.45)'], 'idle' => ['var(--mut)', 'var(--bg2)', 'var(--line)']]; ?>
+<style>
+  .pxlive{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 12px}
+  @media(max-width:760px){.pxlive{grid-template-columns:1fr}}
+  .pxlive .it{border:1.5px solid;border-radius:12px;padding:10px 14px;font-size:13px;line-height:1.45}
+  .pxlive .it b{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:3px}
+  .pxlive .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle;background:currentColor}
+  .pxlive .running .dot{animation:pxpulse 1.2s infinite}
+  @keyframes pxpulse{0%{opacity:1}50%{opacity:.25}100%{opacity:1}}
+  .pxlive .bar{height:5px;border-radius:5px;background:rgba(31,157,99,.18);margin-top:7px;overflow:hidden}
+  .pxlive .bar i{display:block;height:100%;background:#1f9d63}
+</style>
+<div class="pxlive" id="pxlive">
+  <?php foreach (['search' => '🔎 Müşteri arama', 'send' => '📮 E-posta gönderimi'] as $__k => $__t): $__s = $__live[$__k]; [$__c, $__bg, $__bd] = $__lc[$__s['state']] ?? $__lc['idle']; ?>
+  <div class="it <?= $__s['state'] ?>" data-k="<?= $__k ?>" style="color:<?= $__c ?>;background:<?= $__bg ?>;border-color:<?= $__bd ?>">
+    <b><span class="dot"></span><?= $__t ?></b><span class="tx" style="color:var(--ink)"><?= htmlspecialchars($__s['text']) ?></span>
+    <div class="bar"<?= ($__k === 'send' && $__s['state'] === 'running' && !empty($__s['total'])) ? '' : ' style="display:none"' ?>><i style="width:<?= !empty($__s['total']) ? (int)round(100 * $__s['done'] / max(1, $__s['total'])) : 0 ?>%"></i></div>
+  </div>
+  <?php endforeach; ?>
+</div>
+<script>
+/* Şerit 30 sn'de bir kendini yeniler (sayfa yenilenmez; formlar bozulmaz). */
+(function(){ var C=<?= json_encode($__lc) ?>;
+  function upd(){ if(document.hidden) return; fetch('/admin?live=1',{credentials:'same-origin',cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
+    ['search','send'].forEach(function(k){ var s=d[k], el=document.querySelector('#pxlive [data-k="'+k+'"]'); if(!s||!el) return; var c=C[s.state]||C.idle;
+      el.className='it '+s.state; el.style.color=c[0]; el.style.background=c[1]; el.style.borderColor=c[2]; el.querySelector('.tx').textContent=s.text;
+      var bar=el.querySelector('.bar'); if(bar){ var on=(k==='send'&&s.state==='running'&&s.total); bar.style.display=on?'':'none'; if(on) bar.firstElementChild.style.width=Math.round(100*s.done/Math.max(1,s.total))+'%'; } });
+  }).catch(function(){}); }
+  setInterval(upd, 30000);
+})();
+</script>
+
 <div class="pxhead">
   <div class="pxchip"><b><?= count($__ld) ?></b><span>müşteri kaydı</span></div>
   <div class="pxchip<?= $__ready ? ' ok' : '' ?>"><b><?= $__ready ?></b><span>gönderilmeye hazır (yeni bulunan, doğrulanmış)</span></div>

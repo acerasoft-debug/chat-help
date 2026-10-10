@@ -643,6 +643,24 @@ vestra_write_json('listings.json', []);
 $t('öne çıkanlarda Lacoste, Fred Perry, Valentino da var (katalogda yoksa marka kutusu)', str_contains((string)$eo0['html'], 'catalog?brand=Lacoste') && str_contains((string)$eo0['html'], 'catalog?brand=Fred%20Perry') && str_contains((string)$eo0['html'], 'catalog?brand=Valentino'));
 $t('katalogda yoksa marka kutusu (Almanca)', str_contains((string)$eo0['html'], 'catalog?brand=Gallery%20Dept') && str_contains((string)$eo0['html'], 'Kostenloses Händlerkonto'));
 
+echo "\n== 8g. canlı durum şeridi (arama / gönderim) ==\n";
+require_once $root.'/inc/mailbox.php';
+@unlink(VESTRA_DATA_DIR.'/mailbox_runs.json'); vestra_finder_save_runs([]);
+$ls = vestra_live_status();
+$t('boşta: arama yok + sonraki otomatik arama, gönderim yok + bugün', $ls['search']['state'] === 'idle' && str_contains($ls['search']['text'], 'sonraki otomatik arama') && $ls['send']['state'] === 'idle' && str_contains($ls['send']['text'], 'Şu an gönderim yok'));
+vestra_finder_save_runs([['id' => 'FRlive', 'owner' => '', 'requested_at' => date('c'), 'dispatched_at' => date('c'), 'status' => 'running']]);
+$t('arama çalışıyor', vestra_live_status()['search']['state'] === 'running');
+vestra_write_json('leads.json', [
+  ['id' => 'M1', 'email' => 'a@a.example', 'contact_via' => 'mailbox', 'last_contacted_at' => date('c'), 'status' => 'contacted'],
+  ['id' => 'M2', 'email' => 'b@b.example', 'contact_via' => 'mailbox', 'last_contacted_at' => date('c'), 'status' => 'contacted'],
+  ['id' => 'M3', 'email' => 'c@c.example', 'contact_via' => '', 'last_contacted_at' => '', 'status' => 'new']]);
+vestra_mailbox_runs_save([['id' => 'MBlive', 'mode' => 'send', 'limit' => 5, 'campaign' => 'edit', 'status' => 'running', 'requested_at' => date('c', time() - 120), 'started_at' => date('c', time() - 60)]]);
+$ls2 = vestra_live_status()['send'];
+$t('gönderiliyor: 2 / 5 gitti + ilerleme', $ls2['state'] === 'running' && $ls2['done'] === 2 && $ls2['total'] === 5 && str_contains($ls2['text'], '2 / 5'));
+vestra_mailbox_runs_save([['id' => 'MBq', 'mode' => 'send', 'limit' => 9, 'campaign' => 'edit', 'status' => 'requested', 'requested_at' => date('c')]]);
+$t('gönderim sırada', vestra_live_status()['send']['state'] === 'queued');
+@unlink(VESTRA_DATA_DIR.'/mailbox_runs.json'); vestra_finder_save_runs([]);
+
 echo "\n== 7. çizim — admin ve satıcı sayfası kum havuzunda GERÇEKTEN koşuyor ==\n";
 /* php -l tanımsız fonksiyonu / değişkeni yakalamaz; bu depoda lint'ten geçen iki
    çağrı-zamanı hatası yaşandı. İki sayfa da tohumlu verilerle çiziliyor. */
@@ -714,6 +732,7 @@ $t('admin: arama kartında kampanya seçimi (+ "gönderme, sadece bul")', !str_c
 $t('admin: 📮 kart — 3 adım (kampanya kartları + önizleme, kime, test/gönder), ayarlar katlı', str_contains($ha, 'id="mailboxsend"') && str_contains($ha, 'value="campaign_send"') && str_contains($ha, 'class="mbcamp"') && str_contains($ha, 'id="mbp-edit"')
    && str_contains($ha, 'name="target" value="web" checked') && str_contains($ha, 'name="mode" value="send"') && str_contains($ha, 'id="mbsettings"') && str_contains($ha, 'value="mailbox_cap"') && str_contains($ha, 'vestra._domainkey') && str_contains($ha, 'Günlük tavan'));
 $t('admin: önizleme gerçek e-posta HTML\'i (kaçışlı, iframe\'e yüklenir)', str_contains($ha, '&lt;!doctype html&gt;') && str_contains($ha, 'id="mbmodalf"'));
+$t('admin: canlı durum şeridi en üstte (arama + gönderim, 30 sn yenileme)', str_contains($ha, 'id="pxlive"') && str_contains($ha, '🔎 Müşteri arama') && str_contains($ha, '📮 E-posta gönderimi') && str_contains($ha, "fetch('/admin?live=1'") && strpos($ha, 'id="pxlive"') < strpos($ha, 'id="mailboxsend"'));
 $t('admin: müşteri listesi katlı (varsayılan kapalı)', str_contains($ha, '<details class="acard pxmore" id="leadlist">') && str_contains($ha, '👥 Müşteri listesi ('));
 $t('admin: 📊 Raporlar ayrı katlı alan — gönderim geçmişi ve aramalar orada', (bool)preg_match('~<details class="acard pxmore" id="reports">.*Son aramalar ve eklenen müşteriler.*</details>~s', $ha) && strpos($ha, 'id="reports"') > strpos($ha, 'id="mailboxsend"'));
 $t('admin: 🧪 Bana test gönder + test adresi', str_contains($ha, 'name="mode" value="test"') && str_contains($ha, 'name="test_to"'));

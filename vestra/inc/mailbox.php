@@ -537,3 +537,47 @@ function vestra_mailbox_send_lead(array $l, string $subject, string $body, strin
   [$ok, $mid, $why] = vestra_mailbox_send_local($item, $fromName !== '' ? $fromName : 'VESTRA', $mail);
   return [$ok, $ok ? $mid : $why];
 }
+
+/* ── Canlı durum (10 Eki 2026, operatör: "şu anda gönderiyor mu bilmiyorum, arıyor mu onu da bilmiyorum,
+   görünmüyor"). Admin ▸ Müşteriler'in en üstündeki şerit bunu basar ve /admin?live=1 ile 30 sn'de bir yeniler.
+   ['search'=>['state'=>'running|queued|idle','text'=>…], 'send'=>['state'=>'running|queued|idle','text'=>…,'done'=>n,'total'=>n]] */
+function vestra_live_status(): array {
+  require_once __DIR__.'/finder.php';
+  $hm = static fn($t) => date('H:i', is_int($t) ? $t : ((int)strtotime((string)$t)));
+  /* Arama */
+  if (function_exists('vestra_finder_refresh')) @vestra_finder_refresh();
+  $runs = function_exists('vestra_finder_runs') ? vestra_finder_runs() : [];
+  $act = function_exists('vestra_finder_active') ? vestra_finder_active() : null;
+  $now = time();
+  $next = null; foreach ([[5, 20], [15, 20]] as [$H, $M]) { $t = gmmktime($H, $M, 0, (int)gmdate('n'), (int)gmdate('j'), (int)gmdate('Y')); if ($t <= $now) $t += 86400; $next = $next === null ? $t : min($next, $t); }
+  if ($act) {
+    $started = !empty($act['dispatched_at']);
+    $search = ['state' => $started ? 'running' : 'queued',
+               'text' => $started ? 'Arama ÇALIŞIYOR — '.$hm($act['dispatched_at']).'\'de başladı, genelde 20-40 dk sürer.'
+                                  : 'Arama SIRADA — '.$hm($act['requested_at'] ?? '').'\'de istendi, 10 dk içinde başlar.'];
+  } else {
+    $last = null; foreach ($runs as $r) if (($r['owner'] ?? '') === '' && in_array($r['status'] ?? '', ['done', 'failed'], true)) { $last = $r; break; }
+    $search = ['state' => 'idle', 'text' => 'Şu an arama yok'
+      .($last ? ' · son arama '.date('d.m H:i', (int)strtotime((string)($last['finished_at'] ?? $last['requested_at'] ?? ''))).(($last['status'] ?? '') === 'done' ? ' → '.(int)($last['added_count'] ?? 0).' yeni müşteri' : ' → başarısız') : '')
+      .' · sonraki otomatik arama '.date('d.m H:i', $next).(function_exists('vestra_finder_ready') && !vestra_finder_ready() ? ' (web araması KAPALI)' : '')];
+  }
+  /* Gönderim */
+  $open = null; foreach (array_reverse(vestra_mailbox_runs()) as $r) if (vestra_mailbox_is_open($r)) { $open = $r; break; }
+  $today = vestra_mailbox_sent_today();
+  if ($open && ($open['status'] ?? '') === 'running') {
+    $since = (int)strtotime((string)($open['started_at'] ?? $open['requested_at'] ?? '')); $done = 0; $lastAt = 0;
+    foreach (vestra_leads() as $l) { if (($l['contact_via'] ?? '') !== 'mailbox') continue; $c = (int)strtotime((string)($l['last_contacted_at'] ?? ''));
+      if ($c >= $since) { $done++; $lastAt = max($lastAt, $c); } }
+    $total = ($open['mode'] ?? '') === 'test' ? 1 : (int)($open['limit'] ?? 0);
+    $send = ['state' => 'running', 'done' => min($done, $total), 'total' => $total,
+             'text' => ($open['mode'] ?? '') === 'test' ? 'Test e-postası GÖNDERİLİYOR.'
+               : 'GÖNDERİLİYOR — '.min($done, $total).' / '.$total.' gitti'.($lastAt ? ' · son e-posta '.$hm($lastAt) : '').' · e-postalar arası 25-55 sn'];
+  } elseif ($open) {
+    $send = ['state' => 'queued', 'text' => 'Gönderim SIRADA — '.(($open['mode'] ?? '') === 'test' ? 'test e-postası' : (int)$open['limit'].' müşteri').', '.$hm($open['requested_at'] ?? '').'\'de istendi, 10 dk içinde başlar.'];
+  } else {
+    $lastR = null; foreach (array_reverse(vestra_mailbox_runs()) as $r) if (($r['mode'] ?? '') === 'send' && ($r['status'] ?? '') === 'done') { $lastR = $r; break; }
+    $send = ['state' => 'idle', 'text' => 'Şu an gönderim yok · bugün '.$today.' e-posta gitti, kalan hak '.vestra_mailbox_left_today()
+      .($lastR ? ' · son gönderim '.date('d.m H:i', (int)strtotime((string)($lastR['finished_at'] ?? $lastR['requested_at'] ?? ''))).' → '.(int)($lastR['sent'] ?? 0).' gitti' : '')];
+  }
+  return ['search' => $search, 'send' => $send, 'at' => date('H:i:s')];
+}

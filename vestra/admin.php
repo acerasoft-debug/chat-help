@@ -54,6 +54,13 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['pass'])){
 $authed=!empty($_SESSION['vadmin']);
 if($authed && empty($_SESSION['vadmin_csrf'])) $_SESSION['vadmin_csrf']=bin2hex(random_bytes(16));
 
+/* Canlı durum (Müşteriler sekmesinin üst şeridi 30 sn'de bir yeniler): yalnız oturum açmış admin, salt-okunur. */
+if($authed && ($_GET['live']??'')==='1'){
+  require_once __DIR__.'/inc/mailbox.php';
+  header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
+  echo json_encode(vestra_live_status(), JSON_UNESCAPED_UNICODE); exit;
+}
+
 /* Hidden CSRF field — include in EVERY admin POST form. */
 function csrfField(): string {
   return '<input type="hidden" name="_csrf" value="'.htmlspecialchars($_SESSION['vadmin_csrf']??'').'">';
