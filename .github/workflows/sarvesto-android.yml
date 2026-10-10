@@ -60,7 +60,17 @@ jobs:
         run: |
           set -e
           K="$RUNNER_TEMP/sv"; mkdir -p "$K"; chmod 700 "$K"
-          if [ "$(ssh $SSHOPT "$SRV" 'test -f ~/.sarvesto-signing/release.jks && test -f ~/.sarvesto-signing/pass && echo yes || echo no')" = "yes" ]; then
+          # Bağlantı hatası "anahtar yok" sayılmaz: yalnızca sunucu açıkça
+          # "no" derse yeni anahtar üretilir. Yoksa geçici bir kopukluk mevcut
+          # anahtarın üzerine yazılmasına ve telefondaki uygulamanın güncelleme
+          # alamamasına yol açardı.
+          for t in 1 2 3; do
+            HAVE=$(ssh -o ConnectTimeout=25 $SSHOPT "$SRV" 'test -f ~/.sarvesto-signing/release.jks && test -f ~/.sarvesto-signing/pass && echo yes || echo no' || true)
+            [ "$HAVE" = "yes" ] || [ "$HAVE" = "no" ] && break
+            echo "Sunucuya ulaşılamadı, yeniden deneniyor ($t)…"; sleep $((t * 20))
+          done
+          [ "$HAVE" = "yes" ] || [ "$HAVE" = "no" ] || { echo "::error::Sunucuya ulaşılamadı — imza anahtarı alınamadı"; exit 1; }
+          if [ "$HAVE" = "yes" ]; then
             scp $SCPOPT "$SRV:.sarvesto-signing/release.jks" "$K/release.jks"
             PASS=$(ssh $SSHOPT "$SRV" 'cat ~/.sarvesto-signing/pass')
             echo "::add-mask::$PASS"
@@ -72,8 +82,11 @@ jobs:
               -keyalg RSA -keysize 4096 -validity 12000 -storepass "$PASS" -keypass "$PASS" \
               -dname "CN=SARVESTO, O=acerasoft LLC, L=Dover, ST=Delaware, C=US" >/dev/null 2>&1
             ssh $SSHOPT "$SRV" 'mkdir -p ~/.sarvesto-signing && chmod 700 ~/.sarvesto-signing'
-            scp $SCPOPT "$K/release.jks" "$SRV:.sarvesto-signing/release.jks"
-            printf '%s' "$PASS" | ssh $SSHOPT "$SRV" 'umask 077; cat > ~/.sarvesto-signing/pass; chmod 600 ~/.sarvesto-signing/release.jks ~/.sarvesto-signing/pass'
+            scp $SCPOPT "$K/release.jks" "$SRV:.sarvesto-signing/release.jks.new"
+            # Var olan anahtarın ÜZERİNE ASLA yazılmaz (mv -n); yarışta ikinci
+            # gelen derleme durur.
+            printf '%s' "$PASS" | ssh $SSHOPT "$SRV" 'umask 077; cd ~/.sarvesto-signing && test ! -f release.jks && cat > pass && mv -n release.jks.new release.jks && chmod 600 release.jks pass' \
+              || { echo "::error::Sunucuda zaten bir anahtar var ya da yazılamadı — derleme durduruldu"; exit 1; }
             echo "Yeni anahtar üretildi ve sunucuya kondu (~/.sarvesto-signing, web dışı)."
           fi
           echo "SV_PASS=$PASS" >> "$GITHUB_ENV"
