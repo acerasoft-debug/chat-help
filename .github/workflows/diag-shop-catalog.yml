@@ -1,0 +1,15 @@
+name: (Salt-okunur) Mağaza kataloğunu dök
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# SALT OKUNUR. Mağazanın (~/maxsales_de) gördüğü kataloğu, mağazanın kendi
+# koduyla okur ve sıkıştırılmış JSON olarak loga basar. Hiçbir dosyaya yazmaz.
+# Asıl betik geliştirme dalındaki kopyada; dispatch ref'i o dalı gösterir.
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Bu iş akışını ref=claude/vestra-premium-retail-site-rxj4va ile çalıştırın."
