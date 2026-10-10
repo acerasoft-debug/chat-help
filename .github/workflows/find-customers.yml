@@ -5,6 +5,7 @@ run-name: ${{ github.event.inputs.request_id && format('Müşteri bul · {0}', g
 on:
   schedule:
     - cron: '20 5 * * *'      # her gün 05:20 UTC
+    - cron: '20 15 * * *'     # 10 Eki 2026 (operatör: "çok az email bulunmuş"): günde ikinci tur, 15:20 UTC
   workflow_dispatch:
     inputs:
       request_id:
@@ -42,7 +43,7 @@ on:
       time_budget_min:
         description: "Toplam süre bütçesi (dakika)"
         required: false
-        default: "40"
+        default: "55"
       send:
         description: "true = ekledikten sonra kampanyayı GÖNDER (2+ marka, yazılmamış; yalnızca admin listesi). Takvimde repo değişkeni PROSPECT_AUTO_SEND=true belirler."
         required: false
@@ -164,19 +165,22 @@ jobs:
           QUERIES_PER_RUN: ${{ github.event.inputs.queries_per_run || (github.event_name == 'push' && '14') || '40' }}
           CITIES: ${{ github.event.inputs.cities }}
           PLACES_PER_RUN: ${{ github.event_name == 'push' && '2' || '6' }}
+          # Şehir verilmemişse OSM, OSM_TARGET yeni adaya ya da bütçenin %35'ine kadar havuzdan şehir alır.
+          MAX_CITIES: ${{ github.event_name == 'push' && '2' || '40' }}
+          OSM_TARGET: ${{ github.event_name == 'push' && '60' || '900' }}
           LANGS: ${{ github.event.inputs.langs }}
           COUNTRIES: ${{ github.event.inputs.countries }}
           EXTRA_QUERIES: ${{ github.event.inputs.extra_queries }}
           SEED_DOMAINS: ${{ github.event.inputs.seed_domains }}
           ENGINES: server,osm,bing,ddg
           SEARCH_CMD: ssh vestra 'cd ~/public_html && php ~/vestra_tmp/search.php'
-          TIME_BUDGET_MIN: ${{ github.event.inputs.time_budget_min || (github.event_name == 'push' && '15') || '40' }}
+          TIME_BUDGET_MIN: ${{ github.event.inputs.time_budget_min || (github.event_name == 'push' && '15') || '55' }}
           HUNTER_API_KEY: ${{ secrets.HUNTER_API_KEY }}
           KNOWN_FILE: known.json
           STATE_FILE: state.json
           OUT_DIR: out
         run: |
-          case "$TIME_BUDGET_MIN" in ''|*[!0-9]*) TIME_BUDGET_MIN=40 ;; esac
+          case "$TIME_BUDGET_MIN" in ''|*[!0-9]*) TIME_BUDGET_MIN=55 ;; esac
           export TIME_BUDGET_SEC=$(( TIME_BUDGET_MIN * 60 ))
           node scripts/find-boutiques.mjs
 

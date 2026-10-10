@@ -1,0 +1,79 @@
+name: (Salt-okunur) Sunucudan giden kampanyaların hata bildirimleri
+# 10 Eki 2026 (operatör: "e-postama gönderdikten sonra hatalar geliyor"). Kampanyalar sunucunun kendi
+# posta servisiyle (cron_mailbox.php → mail(), zarf adresi support@vestrasales.com) gidiyor. Geri dönen
+# bildirimleri (Mail delivery failed / Undelivered …) GoDaddy kutusunda bulunmadı (mailbox-send.yml
+# bounces kipi: 48 mektup, 0 bildirim) — sunucunun YEREL posta klasörlerine düşüyor olabilir.
+#
+# SALT-OKUNUR: hiçbir dosyaya yazmaz, hiçbir mektubu taşımaz/silmez. Depo herkese açık: alıcı
+# adresleri maskeli (ilk harf + alan adı) yazılır, mektup gövdesi yazılmaz — yalnız hata satırı.
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Kaç günlük bildirim"
+        required: false
+        default: "4"
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Oku
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DAYS: ${{ github.event.inputs.days }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: DAYS
+          command_timeout: 8m
+          script: |
+            set -u
+            case "${DAYS:-4}" in ''|*[!0-9]*) DAYS=4 ;; esac
+            echo "== gonderim kaydi (vestra_sweep.log, posta kutusu satirlari) =="
+            grep -a -E '^\[mailbox|^  [+x-] \[' "$HOME/vestra_sweep.log" 2>/dev/null | tail -n 80 \
+              | sed -E 's/([A-Za-z0-9])[A-Za-z0-9._%+-]*\*\*\*@/\1***@/g'
+            echo
+            echo "== sunucudaki posta klasorleri (son ${DAYS} gun) =="
+            ls -d "$HOME"/mail/*/* 2>/dev/null | head -20
+            cat > /tmp/vestra_bounce_scan.php <<'PHPEOF'
+            <?php
+            $days = max(1, (int)($argv[1] ?? 4)); $since = time() - $days * 86400;
+            $mask = static function (string $e): string { $e = strtolower($e); [$u, $d] = array_pad(explode('@', $e, 2), 2, ''); return ($u !== '' ? $u[0] : '').'***@'.$d; };
+            $boxes = array_merge(glob(getenv('HOME').'/mail/*/*', GLOB_ONLYDIR) ?: [], [getenv('HOME').'/mail']);
+            $tot = 0; $reasons = []; $perBox = []; $examples = [];
+            foreach ($boxes as $box) {
+              foreach (['new', 'cur', '.Junk/new', '.Junk/cur', '.spam/new', '.spam/cur'] as $sub) {
+                foreach (glob($box.'/'.$sub.'/*') ?: [] as $f) {
+                  if (@filemtime($f) < $since) continue;
+                  $raw = (string)@file_get_contents($f, false, null, 0, 60000);
+                  $head = substr($raw, 0, (int)(strpos($raw, "\n\n") ?: 4000));
+                  $from = preg_match('/^From:\s*(.+)$/mi', $head, $m) ? trim($m[1]) : '';
+                  $subj = preg_match('/^Subject:\s*(.+)$/mi', $head, $m) ? trim($m[1]) : '';
+                  if (!preg_match('/mailer-daemon|postmaster|mail delivery|undeliver|delivery status|failure notice|returned mail|non remis|unzustellbar|delivery has failed/i', $from.' '.$subj)) continue;
+                  $tot++; $perBox[basename(dirname($box)).'/'.basename($box)] = ($perBox[basename(dirname($box)).'/'.basename($box)] ?? 0) + 1;
+                  $rcpt = preg_match('/^(?:Final-Recipient|Original-Recipient):\s*rfc822;\s*(\S+)/mi', $raw, $m) ? $m[1]
+                        : (preg_match('/^\s+(\S+@\S+)\s*$/m', $raw, $m) ? trim($m[1], '<>') : '?');
+                  $why = '';
+                  foreach (['/^Diagnostic-Code:\s*(.+)$/mi', '/(SMTP error from remote mail server[^\n]*\n[^\n]*)/i', '/(\b5\d\d[ -][^\n]{5,160})/', '/(host [^\n]+ said:[^\n]*)/i', '/(retry time not reached[^\n]*|all hosts? for [^\n]+ have been failing[^\n]*|Unrouteable address|domain [^\n]* has no MX[^\n]*)/i'] as $re)
+                    if (preg_match($re, $raw, $m)) { $why = trim(preg_replace('/\s+/', ' ', $m[1])); break; }
+                  $why = preg_replace('/[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+)/', '***@$1', mb_substr($why, 0, 170));
+                  $key = preg_replace('/\d{3,}/', '#', mb_substr($why, 0, 70));
+                  $reasons[$key] = ($reasons[$key] ?? 0) + 1;
+                  if (count($examples) < 40) $examples[] = date('m-d H:i', (int)filemtime($f)).'  '.$mask((string)$rcpt).'  '.$why;
+                }
+              }
+            }
+            echo "hata bildirimi: {$tot}\n";
+            foreach ($perBox as $b => $n) echo "  kutu {$b}: {$n}\n";
+            arsort($reasons); echo "\nneden dagilimi:\n"; foreach (array_slice($reasons, 0, 15, true) as $k => $n) echo "  {$n}x  {$k}\n";
+            echo "\nornekler:\n"; foreach ($examples as $e) echo "  {$e}\n";
+            PHPEOF
+            php /tmp/vestra_bounce_scan.php "$DAYS"
+            rm -f /tmp/vestra_bounce_scan.php

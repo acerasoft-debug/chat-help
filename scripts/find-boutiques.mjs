@@ -54,7 +54,12 @@ const CFG = {
   engines:       (list('ENGINES').length ? list('ENGINES') : ['server', 'osm', 'brave', 'bing', 'ddg']).map(s => s.toLowerCase()),
   searchCmd:     (ENV.SEARCH_CMD ?? '').trim(),                       // sunucu arama vekili (anahtarlar sunucuda)
   cities:        (ENV.CITIES ?? '').split(/[,;\n]+/).map(s => s.trim()).filter(s => s.includes('|')),
-  placesPerRun:  num('PLACES_PER_RUN', 6),                         // tur başına şehir (OSM + Places)
+  placesPerRun:  num('PLACES_PER_RUN', 6),                         // tur başına şehir (Google Places)
+  /* 10 Eki 2026 (operatör: "çok az email bulunmuş"): 9 Eki koşusu 6 şehirle 207 aday, 4 lead, 5 dk —
+     40 dk'lık bütçenin %13'ü. Şehir listesi verilmemişse OSM artık hedef aday sayısına ya da süre
+     bütçesinin %35'ine kadar havuzdan şehir almaya devam eder. */
+  maxCities:     num('MAX_CITIES', 40),                            // otomatik turda en çok şehir (OSM)
+  osmTarget:     num('OSM_TARGET', 900),                           // otomatik turda hedef yeni OSM adayı
   osmPerCity:    num('OSM_PER_CITY', 150),                          // şehir başına en çok yeni OSM adayı
   braveKey:      (ENV.BRAVE_API_KEY ?? '').trim(),
   extraQueries:  (ENV.EXTRA_QUERIES ?? '').split(/\r?\n|;/).map(s => s.trim()).filter(Boolean),
@@ -830,6 +835,24 @@ const CITY_POOL = [
   'Austria|Wien', 'Austria|Salzburg', 'Austria|Graz', 'Germany|München', 'Germany|Düsseldorf', 'Germany|Hamburg',
   'Portugal|Lisboa', 'Portugal|Porto', 'Greece|Athens', 'Greece|Thessaloniki', 'Poland|Warszawa', 'Poland|Kraków', 'Poland|Wrocław',
   'United Kingdom|London', 'United Kingdom|Manchester', 'Ireland|Dublin', 'Denmark|København', 'Sweden|Stockholm', 'Norway|Oslo',
+  /* 10 Eki 2026: havuz genişletildi (56 → 160) — her tur daha çok şehir tarıyor, aynı şehre daha geç dönülür. */
+  'Germany|Berlin', 'Germany|Köln', 'Germany|Frankfurt am Main', 'Germany|Stuttgart', 'Germany|Hannover', 'Germany|Nürnberg',
+  'Germany|Leipzig', 'Germany|Dresden', 'Germany|Bremen', 'Germany|Essen', 'Germany|Dortmund', 'Germany|Münster', 'Germany|Mannheim',
+  'Germany|Wiesbaden', 'Germany|Augsburg', 'Germany|Freiburg im Breisgau', 'Germany|Karlsruhe', 'Germany|Bonn', 'Germany|Heidelberg',
+  'Italy|Genova', 'Italy|Brescia', 'Italy|Bergamo', 'Italy|Modena', 'Italy|Parma', 'Italy|Lecce', 'Italy|Catania', 'Italy|Cagliari',
+  'Italy|Treviso', 'Italy|Vicenza', 'Italy|Como', 'Italy|Pescara', 'Italy|Perugia', 'Italy|Rimini', 'Italy|Reggio Emilia', 'Italy|Salerno',
+  'France|Nantes', 'France|Strasbourg', 'France|Montpellier', 'France|Rennes', 'France|Grenoble', 'France|Aix-en-Provence',
+  'France|Reims', 'France|Biarritz', 'France|Annecy', 'France|Dijon', 'France|Tours', 'France|Metz', 'France|Saint-Tropez',
+  'Spain|Zaragoza', 'Spain|Palma', 'Spain|Alicante', 'Spain|Donostia / San Sebastián', 'Spain|Murcia', 'Spain|Valladolid',
+  'Spain|Granada', 'Spain|A Coruña', 'Spain|Vigo', 'Spain|Santander', 'Spain|Oviedo', 'Spain|Pamplona',
+  'Netherlands|Groningen', 'Netherlands|Maastricht', 'Netherlands|Haarlem', 'Netherlands|Arnhem', 'Netherlands|Breda',
+  'Netherlands|Nijmegen', "Netherlands|'s-Hertogenbosch", 'Netherlands|Leiden', 'Netherlands|Tilburg',
+  'Belgium|Brugge', 'Belgium|Liège', 'Belgium|Leuven', 'Belgium|Namur', 'Belgium|Hasselt', 'Belgium|Knokke-Heist', 'Belgium|Mechelen',
+  'Switzerland|Bern', 'Switzerland|Luzern', 'Switzerland|St. Gallen', 'Switzerland|Lausanne', 'Austria|Innsbruck', 'Austria|Linz',
+  'United Kingdom|Birmingham', 'United Kingdom|Leeds', 'United Kingdom|Glasgow', 'United Kingdom|Edinburgh', 'United Kingdom|Liverpool',
+  'United Kingdom|Bristol', 'Ireland|Cork', 'Portugal|Braga', 'Portugal|Coimbra', 'Portugal|Faro',
+  'Denmark|Aarhus', 'Sweden|Göteborg', 'Sweden|Malmö', 'Norway|Bergen', 'Finland|Helsinki',
+  'Poland|Poznań', 'Poland|Gdańsk', 'Poland|Łódź', 'Czechia|Praha', 'Czechia|Brno', 'Luxembourg|Luxembourg', 'Greece|Patra',
 ];
 const COUNTRY_LANG = { Italy: 'it', France: 'fr', Spain: 'es', Netherlands: 'nl', Belgium: 'nl', Switzerland: 'de', Austria: 'de', Germany: 'de',
   Portugal: 'pt', Greece: 'el', Poland: 'pl', 'United Kingdom': 'en', Ireland: 'en', Denmark: 'da', Sweden: 'sv', Norway: 'nb', Czechia: 'cs', Finland: 'fi' };
@@ -871,11 +894,11 @@ async function main() {
   const srvStat = { used: false, brave: null, places: null, keys: knownRaw.keys || {} };
 
   /* Bu turun şehirleri: CITIES verilmişse onlar, yoksa havuzdan sırayla (OSM + Places). */
-  let cityT = [];
-  if (CFG.cities.length) cityT = CFG.cities;
+  let cityT = []; const autoCities = !CFG.cities.length;
+  if (!autoCities) cityT = CFG.cities;
   else { const cur = Number(state.placesCursor || 0) % CITY_POOL.length;
-    for (let k = 0; k < CFG.placesPerRun; k++) cityT.push(CITY_POOL[(cur + k) % CITY_POOL.length]);
-    if (!CFG.dryRun) state.placesCursor = (cur + CFG.placesPerRun) % CITY_POOL.length; }
+    const n = Math.min(CITY_POOL.length, Math.max(CFG.placesPerRun, CFG.maxCities));
+    for (let k = 0; k < n; k++) cityT.push(CITY_POOL[(cur + k) % CITY_POOL.length]); }
   if (CFG.countries.length) cityT = cityT.filter(pc => CFG.countries.includes(COUNTRY_ISO[pc.split('|')[0].trim()] || ''));
   const osmStat = { cities: 0, shops: 0, picked: 0, errors: [] };
 
@@ -883,7 +906,7 @@ async function main() {
   let webLeft = queries;
   if (CFG.engines.includes('server') && CFG.searchCmd) {
     const keys = knownRaw.keys || {};
-    const placeT = keys.google ? cityT : [];
+    const placeT = keys.google ? (autoCities ? cityT.slice(0, CFG.placesPerRun) : cityT) : [];
     const webQ = keys.brave ? queries.map(({ q, lang }) => ({ q, lang, cc: (LOCALE[lang] || {}).cc || '' })) : [];
     if (webQ.length || placeT.length) {
       log(`sunucu vekili: ${webQ.length} web sorgusu (Brave) + ${placeT.length} sehir (Google Places)...`);
@@ -908,8 +931,11 @@ async function main() {
 
   /* ---- 1b) OpenStreetMap (anahtarsız): şehirdeki giyim dükkânları ---- */
   if (CFG.engines.includes('osm')) {
+    let lastPoolIdx = -1;
     for (const pc of cityT) {
       if (elapsed() > CFG.budgetSec * 0.35) { osmStat.errors.push('süre bütçesi'); break; }
+      if (autoCities && osmStat.picked >= CFG.osmTarget) break;
+      if (autoCities) lastPoolIdx = CITY_POOL.indexOf(pc);
       const [country, city] = pc.split('|').map(x => x.trim());
       const res = await osmCity(country, city || country);
       osmStat.cities++;
@@ -930,6 +956,8 @@ async function main() {
       log(`  [osm] ${pc} -> ${res.rows.length} dukkan, +${picked} yeni aday (${res.mirror}) | etiketten elenen: ${Object.entries(ex).map(([k, v]) => k + '=' + v).join(', ') || '-'}`);
       await sleep(2000);
     }
+    /* Havuz imleci: bir sonraki tur, bu turda bakılan son şehirden sonra başlar. */
+    if (autoCities && !CFG.dryRun && lastPoolIdx >= 0) state.placesCursor = (lastPoolIdx + 1) % CITY_POOL.length;
   }
   for (const d of CFG.seedDomains) { let h = d.replace(/^https?:\/\//i, '').split('/')[0]; if (h) consider('https://' + h + '/', '(seed)'); }
 
