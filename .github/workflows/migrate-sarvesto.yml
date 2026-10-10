@@ -1,0 +1,227 @@
+name: SARVESTO — Host Europe cPanel'e taşı / senkronla
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "first = ilk taşıma (kod + tüm veri, yeni sunucuda olanın ÜZERİNE YAZMADAN) · sync = kod + katalog + fotoğraflar"
+        required: true
+        default: "first"
+      docroot:
+        description: "sarvesto.com'un belge kökü, yeni sunucuda ev dizinine göre (cPanel ana alan adı için genelde public_html)"
+        required: true
+        default: "public_html"
+      proto:
+        description: "Bağlantı: ssh (rsync, önerilen) ya da ftp (cPanel'de SSH kapalıysa)"
+        required: true
+        default: "ssh"
+      dry_run:
+        description: "true = yalnızca bağlantıyı ve ne gideceğini göster, KOPYALAMA"
+        required: true
+        default: "true"
+
+permissions:
+  contents: read
+
+# NEDEN BU İŞ AKIŞI
+# -----------------
+# Mağaza bugüne kadar Vestra ile AYNI sunucuda duruyordu ve oradan dört şey
+# alıyordu: canlı B2B kataloğu (data/listings.json), ürün fotoğrafları
+# (uploads/), e-posta gönderim ayarı (data/email_settings.json) ve Vestra
+# yönetici şifresi. Host Europe'taki ayrı bir cPanel hesabında bunların hiçbiri
+# yok; bu iş akışı eski sunucudan çekip yenisine koyuyor.
+#
+# GÜVENLİK KURALLARI
+#   • Eski sunucuya HİÇBİR ŞEY yazılmaz; oradan yalnızca okunur.
+#   • "first" modunda bile yeni sunucuda VAR OLAN veri dosyalarının üzerine
+#     yazılmaz (--ignore-existing / --only-missing). Mağaza yeni sunucuda
+#     sipariş almaya başladıktan sonra yanlışlıkla tekrar çalıştırılırsa
+#     siparişler, müşteriler ve satıcılar silinmez.
+#   • "sync" modu veriye yalnızca beyaz listedeki katalog dosyalarıyla dokunur.
+#   • Vestra şifresinin düz hali yeni sunucuya GİTMEZ: eski sunucuda
+#     password_hash ile özetlenir, yalnızca özet data/admin-vestra.json'a yazılır.
+#   • Hiçbir anahtar ya da şifre loga basılmaz.
+#
+# GEREKEN GITHUB SECRETS (Settings → Secrets and variables → Actions):
+#   SARVESTO_HOST      Host Europe sunucu adı ya da IP (cPanel'deki "Server/Host")
+#   SARVESTO_USER      cPanel kullanıcı adı
+#   SARVESTO_PASSWORD  cPanel/FTP şifresi (SSH anahtarı yoksa SSH için de kullanılır)
+#   SARVESTO_SSH_KEY   (isteğe bağlı) SSH özel anahtarı — varsa şifreye tercih edilir
+#   SARVESTO_PORT      (isteğe bağlı) SSH portu, varsayılan 22
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      MODE: ${{ github.event.inputs.mode }}
+      DOCROOT: ${{ github.event.inputs.docroot }}
+      PROTO: ${{ github.event.inputs.proto }}
+      DRY: ${{ github.event.inputs.dry_run }}
+      N_HOST: ${{ secrets.SARVESTO_HOST }}
+      N_USER: ${{ secrets.SARVESTO_USER }}
+      N_PASS: ${{ secrets.SARVESTO_PASSWORD }}
+      N_KEY: ${{ secrets.SARVESTO_SSH_KEY }}
+      N_PORT: ${{ secrets.SARVESTO_PORT }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Girdileri ve secrets'ı doğrula
+        run: |
+          set -e
+          case "$MODE" in first|sync) ;; *) echo "::error::mode first ya da sync olmalı"; exit 1 ;; esac
+          case "$PROTO" in ssh|ftp) ;; *) echo "::error::proto ssh ya da ftp olmalı"; exit 1 ;; esac
+          case "$DOCROOT" in /*|*..*|"") echo "::error::docroot ev dizinine göre göreli olmalı (örn public_html)"; exit 1 ;; esac
+          miss=""
+          [ -n "$N_HOST" ] || miss="$miss SARVESTO_HOST"
+          [ -n "$N_USER" ] || miss="$miss SARVESTO_USER"
+          if [ "$PROTO" = "ftp" ]; then [ -n "$N_PASS" ] || miss="$miss SARVESTO_PASSWORD"
+          else [ -n "$N_KEY$N_PASS" ] || miss="$miss SARVESTO_SSH_KEY/SARVESTO_PASSWORD"; fi
+          if [ -n "$miss" ]; then
+            echo "::error::Eksik GitHub secret:$miss — Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+          echo "mod=$MODE  proto=$PROTO  docroot=~/$DOCROOT  dry_run=$DRY"
+
+      - name: PHP sözdizimi ve akış testleri
+        run: |
+          set -e
+          fail=0
+          while IFS= read -r f; do php -l "$f" >/dev/null 2>&1 || { php -l "$f"; fail=1; }; done < <(find retail -name '*.php')
+          [ "$fail" -eq 0 ] || { echo "::error::PHP sözdizimi hatası"; exit 1; }
+          cd retail && php tools/test-flow.php
+
+      - name: Eski sunucudan oku (salt-okunur)
+        run: |
+          set -e
+          mkdir -p ~/.ssh "$RUNNER_TEMP/old/data" "$RUNNER_TEMP/old/uploads"
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_old && chmod 600 ~/.ssh/id_old
+          OLD="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+          SSHO="ssh -i ~/.ssh/id_old -o StrictHostKeyChecking=no -p ${{ secrets.DEPLOY_PORT || 22 }}"
+
+          # Eski kurulum: kod ~/maxsales_de, veri ~/data, fotoğraflar ~/maxsales_de/uploads.
+          # -L: listings.json bir bağlantıysa İÇERİĞİ alınsın.
+          if [ "$MODE" = "first" ]; then
+            echo "-- veri klasörünün tamamı"
+            rsync -azL --exclude '*.lock' --exclude 'cache/' --exclude '*.backup.*' -e "$SSHO" "$OLD:data/" "$RUNNER_TEMP/old/data/"
+          else
+            echo "-- yalnızca canlı B2B kataloğu"
+            rsync -azL -e "$SSHO" "$OLD:data/listings.json" "$RUNNER_TEMP/old/data/listings.json"
+          fi
+          echo "-- fotoğraflar"
+          rsync -azL --exclude '.thumbs/' -e "$SSHO" "$OLD:maxsales_de/uploads/" "$RUNNER_TEMP/old/uploads/"
+
+          echo "-- Vestra yönetici şifresinin özeti (düz şifre sunucudan çıkmaz)"
+          H=$($SSHO "$OLD" 'cd ~/maxsales_de && php' <<'PHP'
+          <?php
+          require 'inc/admin.php';
+          $p = vr_vestra_admin_pass();
+          echo $p !== '' ? password_hash($p, PASSWORD_DEFAULT) : '';
+          PHP
+          )
+          if [ -n "$H" ]; then
+            echo "::add-mask::$H"
+            php -r 'file_put_contents($argv[1], json_encode(["pw_hash" => $argv[2], "source" => "vestra", "updated_at" => time()]));' \
+              "$RUNNER_TEMP/old/data/admin-vestra.json" "$H"
+            echo "   özet alındı"
+          else
+            echo "::warning::Vestra yönetici şifresi okunamadı — panel yeni sunucuda kapalı kalır"
+          fi
+
+          echo "boyutlar:"; du -sh "$RUNNER_TEMP/old/data" "$RUNNER_TEMP/old/uploads"
+          echo "veri dosyası sayısı: $(find "$RUNNER_TEMP/old/data" -type f | wc -l) · fotoğraf: $(find "$RUNNER_TEMP/old/uploads" -type f | wc -l)"
+
+      - name: Yeni sunucuya bağlan (SSH)
+        if: ${{ github.event.inputs.proto == 'ssh' }}
+        run: |
+          set -e
+          if [ -z "$N_KEY" ]; then sudo apt-get update -qq >/dev/null && sudo apt-get install -y -qq sshpass >/dev/null; fi
+          P="${N_PORT:-22}"
+          if [ -n "$N_KEY" ]; then
+            echo "$N_KEY" > ~/.ssh/id_new && chmod 600 ~/.ssh/id_new
+            echo "ssh -i $HOME/.ssh/id_new -o StrictHostKeyChecking=no -o BatchMode=yes -p $P" > "$RUNNER_TEMP/ssh_new"
+            echo "" > "$RUNNER_TEMP/ssh_pre"
+          else
+            echo "ssh -o StrictHostKeyChecking=no -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no -p $P" > "$RUNNER_TEMP/ssh_new"
+            echo "sshpass -e" > "$RUNNER_TEMP/ssh_pre"
+          fi
+          export SSHPASS="$N_PASS"
+          $(cat "$RUNNER_TEMP/ssh_pre") $(cat "$RUNNER_TEMP/ssh_new") "$N_USER@$N_HOST" \
+            'echo "bağlandı: $(hostname)"; php -v | head -1; php -m | grep -iE "^(intl|gd|curl|mbstring|json)$" | tr "\n" " "; echo; ls -d ~/'"$DOCROOT"' 2>/dev/null || echo "belge kökü yok: ~/'"$DOCROOT"'"'
+
+      - name: Kopyala (SSH)
+        if: ${{ github.event.inputs.proto == 'ssh' && github.event.inputs.dry_run != 'true' }}
+        run: |
+          set -e
+          export SSHPASS="$N_PASS"
+          PRE=$(cat "$RUNNER_TEMP/ssh_pre"); SSHN=$(cat "$RUNNER_TEMP/ssh_new")
+          DST="$N_USER@$N_HOST"
+          $PRE $SSHN "$DST" "mkdir -p ~/$DOCROOT/uploads ~/data && chmod 750 ~/data"
+
+          echo "-- kod (data/ ve uploads/ hariç, fazlalık silinir)"
+          $PRE rsync -az --delete --exclude 'data/' --exclude 'uploads/' --exclude '.git*' -e "$SSHN" retail/ "$DST:$DOCROOT/"
+
+          echo "-- fotoğraflar (silmeden, var olanın üzerine yazmadan)"
+          $PRE rsync -az --ignore-existing -e "$SSHN" "$RUNNER_TEMP/old/uploads/" "$DST:$DOCROOT/uploads/"
+          $PRE rsync -az --ignore-existing --exclude '.thumbs/' -e "$SSHN" retail/uploads/ "$DST:$DOCROOT/uploads/" 2>/dev/null || true
+
+          if [ "$MODE" = "first" ]; then
+            echo "-- veri (yalnızca yeni sunucuda OLMAYAN dosyalar)"
+            $PRE rsync -az --ignore-existing -e "$SSHN" "$RUNNER_TEMP/old/data/" "$DST:data/"
+          fi
+          echo "-- canlı B2B kataloğu + yönetici şifresi özeti (her seferinde tazelenir)"
+          for f in listings.json admin-vestra.json; do
+            [ -f "$RUNNER_TEMP/old/data/$f" ] && $PRE rsync -az -e "$SSHN" "$RUNNER_TEMP/old/data/$f" "$DST:data/$f" && echo "   $f"
+          done
+          echo "-- katalog dosyaları (depodaki beyaz liste)"
+          for f in retail-imported.json photo-quality.json photo-shape.json photo-exclude.json category-fix.json \
+                   official-prices.json product-review.json face-crops.json fx-rates.json hero-frames.json; do
+            [ -f "retail/data/$f" ] && $PRE rsync -az -e "$SSHN" "retail/data/$f" "$DST:data/$f" && echo "   $f"
+          done
+          $PRE $SSHN "$DST" "chmod 600 ~/data/*settings*.json ~/data/admin*.json 2>/dev/null; true"
+
+          echo "-- yeni sunucuda kurulum kontrolü"
+          $PRE $SSHN "$DST" "cd ~/$DOCROOT && php tools/selftest.php" || true
+
+      - name: Kopyala (FTP)
+        if: ${{ github.event.inputs.proto == 'ftp' }}
+        run: |
+          set -e
+          sudo apt-get update -qq >/dev/null && sudo apt-get install -y -qq lftp >/dev/null
+          # Host Europe FTPS destekliyor; sertifika çoğu zaman sunucu adına
+          # verildiği için (müşterinin girdiği adla eşleşmeyebilir) doğrulama
+          # kapalı — aktarım yine de şifreli.
+          SET="set ftp:ssl-allow yes; set ftp:ssl-force yes; set ssl:verify-certificate no; set net:max-retries 3; set net:timeout 30;"
+          if [ "$DRY" = "true" ]; then
+            lftp -u "$N_USER","$N_PASS" -e "$SET ls; ls $DOCROOT | head -20; bye" "$N_HOST"
+            exit 0
+          fi
+          OPS="mkdir -p $DOCROOT/uploads; mkdir -p data;"
+          OPS="$OPS mirror -R --delete --parallel=4 --exclude-glob data/ --exclude-glob uploads/ --exclude-glob .git* retail/ $DOCROOT/;"
+          OPS="$OPS mirror -R --only-missing --parallel=4 $RUNNER_TEMP/old/uploads/ $DOCROOT/uploads/;"
+          [ "$MODE" = "first" ] && OPS="$OPS mirror -R --only-missing $RUNNER_TEMP/old/data/ data/;"
+          for f in listings.json admin-vestra.json; do
+            [ -f "$RUNNER_TEMP/old/data/$f" ] && OPS="$OPS put -O data/ $RUNNER_TEMP/old/data/$f;"
+          done
+          for f in retail-imported.json photo-quality.json photo-shape.json photo-exclude.json category-fix.json \
+                   official-prices.json product-review.json face-crops.json fx-rates.json hero-frames.json; do
+            [ -f "retail/data/$f" ] && OPS="$OPS put -O data/ retail/data/$f;"
+          done
+          OPS="$OPS chmod 750 data; chmod 600 data/email_settings.json; chmod 600 data/stripe_settings.json; chmod 600 data/admin-vestra.json;"
+          lftp -u "$N_USER","$N_PASS" -e "$SET $OPS bye" "$N_HOST" || { echo "::error::FTP aktarımı başarısız"; exit 1; }
+          echo "FTP AKTARIMI TAMAM"
+
+      - name: Dışarıdan doğrula
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          IP=$(getent hosts "$N_HOST" | awk '{print $1}' | head -1)
+          [ -n "$IP" ] || IP="$N_HOST"
+          echo "sarvesto.com DNS'i şu an: $(getent hosts sarvesto.com | awk '{print $1}' | head -1 || echo '-')"
+          echo "yeni sunucu: $IP"
+          for u in / /shop.php /outlet.php /legal/impressum.php /admin/login.php; do
+            for sch in https http; do
+              port=443; [ "$sch" = http ] && port=80
+              : > /tmp/b
+              code=$(curl -sk -o /tmp/b -w '%{http_code}' --max-time 25 --resolve "sarvesto.com:$port:$IP" "$sch://sarvesto.com$u")
+              brand=$(grep -c SARVESTO /tmp/b 2>/dev/null); brand=${brand:-0}
+              echo "  $sch $u -> $code  (SARVESTO geçiyor: $brand)"
+              [ "$code" != "000" ] && break
+            done
+          done
