@@ -306,6 +306,15 @@ foreach (['lesgarage', 'polos', 'standard'] as $ck) {
   [$cs, $cb] = ($camps[$ck][2])($lead1);
   $t("örnek '{$ck}': konu + metin dolu, çıkış linki bu müşterinin", $cs !== '' && $cb !== '' && str_contains($cb, 'tok1'));
 }
+$t('yalnız 7 başlıca dil; Polonya/Çekya/Yunanistan/İngiltere → İngilizce', vestra_finder_lead_lang(['country' => 'Poland']) === 'en' && vestra_finder_lead_lang(['country' => 'Czechia']) === 'en'
+  && vestra_finder_lead_lang(['country' => 'Greece']) === 'en' && vestra_finder_lead_lang(['country' => 'United Kingdom']) === 'en');
+$t('İsviçre şehre göre (Cenevre fr, Lugano it, Zürih de), ISO kodu, Brezilya, uzantı', vestra_finder_lead_lang(['country' => 'Switzerland', 'company' => 'Boutique Genève']) === 'fr'
+  && vestra_finder_lead_lang(['country' => 'Schweiz', 'company' => 'Moda Lugano']) === 'it' && vestra_finder_lead_lang(['country' => 'Switzerland', 'website' => 'https://zuri.ch']) === 'de'
+  && vestra_finder_lead_lang(['country' => 'FR']) === 'fr' && vestra_finder_lead_lang(['country' => 'Brazil']) === 'pt' && vestra_finder_lead_lang(['country' => '', 'email' => 'a@shop.de']) === 'de');
+foreach (vestra_finder_campaigns() as $ck => $cv) if (in_array($ck, ['edit', 'lesgarage'], true)) {
+  $subs = []; foreach (['Germany', 'France', 'Italy', 'Spain', 'Netherlands', 'Portugal', 'United Kingdom'] as $co) $subs[] = ($cv[2])(['company' => 'X', 'country' => $co, 'email' => 'a@b.example', 'unsub_token' => 't', 'contact_name' => ''])[0];
+  $t("kampanya '{$ck}': 7 dilde 7 farklı konu", count(array_unique($subs)) === 7);
+}
 $t('dil ülkeden: İtalya→it, Brüksel→fr, Gent→nl, bilinmeyen→en', vestra_finder_lead_lang(['country' => 'Italy']) === 'it'
   && vestra_finder_lead_lang(['country' => 'Belgium', 'company' => 'Shop Bruxelles']) === 'fr' && vestra_finder_lead_lang(['country' => 'Belgium', 'company' => 'Gent']) === 'nl'
   && vestra_finder_lead_lang(['country' => 'Narnia']) === 'en');

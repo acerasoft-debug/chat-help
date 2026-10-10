@@ -379,17 +379,40 @@ function vestra_finder_runs_html(array $runs, bool $showOwner = false, array $ow
    Seçenekler: daha önce gerçekten gönderilmiş kampanyalar + Claude ile yazılanlar. */
 
 /** Ülkeden kampanya dili — send-outreach.yml ile aynı eşleme (Belçika şehre göre). */
+/* Kampanya dili (10 Eki 2026, operatör: "e-mailler gönderilen ülkenin dilinde gitsin; her dile gerek yok,
+   başlıca diller, yoksa İngilizce"). Yalnız bu yedi dil; başka her ülke → İngilizce. */
+const VESTRA_CAMPAIGN_LANGS = ['en', 'de', 'fr', 'it', 'es', 'nl', 'pt'];
+
 function vestra_finder_lead_lang(array $l): string {
-  $map = ['netherlands'=>'nl','the netherlands'=>'nl','nederland'=>'nl','holland'=>'nl','france'=>'fr','monaco'=>'fr','italy'=>'it','italia'=>'it',
-          'portugal'=>'pt','czech republic'=>'cs','czechia'=>'cs','poland'=>'pl','polska'=>'pl','spain'=>'es','españa'=>'es','espana'=>'es',
-          'greece'=>'el','germany'=>'de','deutschland'=>'de','austria'=>'de','österreich'=>'de','osterreich'=>'de'];
-  $c = strtolower(trim((string)($l['country'] ?? '')));
-  if ($c === 'belgium') {
-    $hay = strtolower(($l['company'] ?? '').' '.($l['notes'] ?? '').' '.($l['website'] ?? ''));
-    foreach (['bruxelles','brussels','brussel','liège','liege','namur','charleroi','mons','tournai','arlon','wavre','verviers'] as $n) if (str_contains($hay, $n)) return 'fr';
-    return 'nl';
+  $c = mb_strtolower(trim((string)($l['country'] ?? '')), 'UTF-8');
+  $hay = mb_strtolower(implode(' ', [(string)($l['company'] ?? ''), (string)($l['notes'] ?? ''), (string)($l['website'] ?? ''), (string)($l['city'] ?? '')]), 'UTF-8');
+  $has = static function (array $needles) use ($hay): bool { foreach ($needles as $n) if (str_contains($hay, $n)) return true; return false; };
+  $map = [
+    'de' => ['germany', 'deutschland', 'de', 'austria', 'österreich', 'osterreich', 'at', 'liechtenstein', 'li'],
+    'fr' => ['france', 'fr', 'monaco', 'mc', 'luxembourg', 'luxemburg', 'lu'],
+    'it' => ['italy', 'italia', 'it', 'san marino', 'sm'],
+    'es' => ['spain', 'españa', 'espana', 'es', 'mexico', 'méxico', 'mx', 'argentina', 'ar', 'chile', 'cl', 'colombia', 'co', 'peru', 'perú', 'pe', 'uruguay', 'uy', 'andorra', 'ad'],
+    'nl' => ['netherlands', 'the netherlands', 'nederland', 'holland', 'nl'],
+    'pt' => ['portugal', 'pt', 'brazil', 'brasil', 'br'],
+  ];
+  /* Çok dilli ülkeler: şehir / site ipucuna göre. */
+  if (in_array($c, ['belgium', 'belgique', 'belgië', 'belgie', 'be'], true))
+    return $has(['bruxelles', 'brussels', 'brussel', 'liège', 'liege', 'namur', 'charleroi', 'mons', 'tournai', 'arlon', 'wavre', 'verviers', 'waterloo']) ? 'fr' : 'nl';
+  if (in_array($c, ['switzerland', 'schweiz', 'suisse', 'svizzera', 'ch'], true))
+    return $has(['genève', 'geneve', 'geneva', 'lausanne', 'neuchâtel', 'neuchatel', 'fribourg', 'sion', 'montreux', 'vevey', 'nyon', 'yverdon']) ? 'fr'
+         : ($has(['lugano', 'locarno', 'bellinzona', 'ticino', 'mendrisio', 'ascona']) ? 'it' : 'de');
+  if (in_array($c, ['canada', 'ca'], true)) return $has(['québec', 'quebec', 'montréal', 'montreal']) ? 'fr' : 'en';
+  foreach ($map as $lang => $names) if (in_array($c, $names, true)) return $lang;
+  /* Ülke yazılmamışsa: sitenin / adresin uzantısı. */
+  if ($c === '') {
+    $dom = strtolower((string)($l['website'] ?? '')) ?: strtolower((string)strrchr((string)($l['email'] ?? ''), '@'));
+    if (preg_match('/\.([a-z]{2})(?:[\/:?#]|$)/', $dom, $m)) {
+      $tld = ['de' => 'de', 'at' => 'de', 'fr' => 'fr', 'mc' => 'fr', 'lu' => 'fr', 'it' => 'it', 'es' => 'es', 'mx' => 'es', 'ar' => 'es',
+              'nl' => 'nl', 'pt' => 'pt', 'br' => 'pt', 'ch' => 'de', 'be' => 'nl'][$m[1]] ?? '';
+      if ($tld !== '') return $tld;
+    }
   }
-  return $map[$c] ?? 'en';
+  return 'en';
 }
 
 /** key => [etiket, açıklama, kurucu fn(lead): [konu, metin, opts, gönderen adı]] */
@@ -400,9 +423,9 @@ function vestra_finder_campaigns(): array {
   };
   $out = [
     /* 10 Eki 2026 (operatör: "daha iyi ve estetik kampanya, Gallery Dept, Casablanca, siteye ve kayda link"). */
-    'edit' => ['✨ VESTRA Edit — Gallery Dept, Casablanca öne çıkan, görselli, kayıt düğmeli', 'Yeni estetik kampanya: koyu başlık bandı, öne çıkan iki marka, 6 ürünlük seçki, "Koleksiyonu gör" + "Ücretsiz kayıt ol" düğmeleri. Dil müşterinin ülkesine göre (7 dil).',
+    'edit' => ['✨ VESTRA Edit — Gallery Dept, Casablanca öne çıkan, görselli, kayıt düğmeli', 'Yeni estetik kampanya: koyu başlık bandı, öne çıkan iki marka, 6 ürünlük seçki, "Koleksiyonu gör" + "Ücretsiz kayıt ol" düğmeleri. Dil müşterinin ülkesine göre: EN, DE, FR, IT, ES, NL, PT — diğer ülkelere İngilizce.',
       function (array $l) use ($tok) { require_once __DIR__.'/campaign_edit.php'; [$s, $b, $o] = vestra_campaign_edit((string)($l['company'] ?? ''), vestra_finder_lead_lang($l)); return [$s, $tok($b, $l), $o, 'VESTRA']; }],
-    'lesgarage' => ['Les Garage de Paris — logo duvarlı premium kampanya', 'Günlük gönderimde kullanılan kampanya. Dil müşterinin ülkesine göre otomatik (9+ dil).',
+    'lesgarage' => ['Les Garage de Paris — logo duvarlı premium kampanya', 'Günlük gönderimde kullanılan kampanya. Dil müşterinin ülkesine göre: EN, DE, FR, IT, ES, NL, PT — diğer ülkelere İngilizce.',
       function (array $l) use ($tok) { [$s, $b, $o] = vestra_campaign_preview((string)($l['company'] ?? ''), vestra_finder_lead_lang($l)); return [$s, $tok($b, $l), $o, 'Les Garage de Paris']; }],
     'polos' => ['Lacoste polo — %10/%15 indirim promosyonu', 'Kısa promosyon mektubu (İngilizce).',
       function (array $l) use ($tok) { [$s, $b, $o] = vestra_campaign_promo_polos((string)($l['company'] ?? '')); return [$s, $tok($b, $l), $o, 'Les Garage de Paris']; }],
