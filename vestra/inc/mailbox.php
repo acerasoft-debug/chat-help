@@ -98,11 +98,109 @@ function vestra_mailbox_sent_today(?array $leads = null): int {
   $today = date('Y-m-d'); $n = 0;
   foreach ($leads ?? vestra_leads() as $l)
     if ((string)($l['contact_via'] ?? '') === 'mailbox' && str_starts_with((string)($l['last_contacted_at'] ?? ''), $today)) $n++;
+  /* Satıcıların sunucu yolu da support@ hesabından gider; GoDaddy'nin günlük 500'ü hesap başına (10 Eki 2026). */
+  if ($leads === null) $n += vestra_mailbox_seller_server_today();
   return $n;
 }
 
+/** Bugün satıcılar adına VESTRA sunucusundan giden mektup (data/seller_outbox.json, via=server, sent). */
+function vestra_mailbox_seller_server_today(): int {
+  $f = vestra_mailbox_file('seller_outbox.json');
+  $d = is_readable($f) ? json_decode((string)file_get_contents($f), true) : [];
+  $today = date('Y-m-d'); $n = 0;
+  foreach ((array)$d as $it)
+    if (is_array($it) && ($it['via'] ?? '') === 'server' && ($it['status'] ?? '') === 'sent' && str_starts_with((string)($it['done_at'] ?? ''), $today)) $n++;
+  return $n;
+}
+
+/* ── Spam önlemleri (10 Eki 2026, operatör: "spama düşmemesi için önlem al") ─────────────────────────────
+   1) ISINMA: yeni bir gönderen alan adı ilk günden 500 soğuk e-posta atarsa Gmail/Outlook onu toplu gönderici
+      sayıp spama atar ve itibar haftalarca düzelmez. Günlük sayı ilk gönderim gününden itibaren kademeli artar,
+      11. günden sonra tam tavan. Panelden kapatılabilir (önerilmez).
+   2) GERİ DÖNME FRENİ: son 14 günde gönderilenlerin %8'inden fazlası geri döndüyse gönderim durur — yüksek
+      geri dönme oranı spam klasörünün bir numaralı sebebi; liste temizlenmeden devam edilmez.
+   3) Aynı dükkânın iki adresine aynı partide yazılmaz; partide aynı alan adına arka arkaya gönderilmez.
+   4) Her mektupta şirketin posta adresi (CAN-SPAM / AB) — kampanya metninde yoksa eklenir. */
+const VESTRA_MAILBOX_WARMUP = [1 => 50, 2 => 75, 3 => 100, 4 => 150, 5 => 200, 6 => 250, 7 => 300, 8 => 350, 9 => 400, 10 => 450];
+const VESTRA_MAILBOX_BOUNCE_MAX = 0.08;
+const VESTRA_MAILBOX_BOUNCE_MIN_SENT = 30;
+const VESTRA_MAIL_POSTAL = 'Acerasoft LLC · 8 The Green, Suite B, Dover, DE 19901, USA';
+
+/** Isınma durumu: ['on','day','limit','start','full_on']. Başlangıç = ilk gerçek kampanya gönderimi günü. */
+function vestra_mailbox_warmup(?array $leads = null): array {
+  $cfg = vestra_mailbox_cfg();
+  $on = !array_key_exists('warmup', $cfg) || !empty($cfg['warmup']);
+  $start = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($cfg['warmup_start'] ?? '')) ? (string)$cfg['warmup_start'] : '';
+  if ($start === '') {
+    foreach (vestra_mailbox_runs() as $r)
+      if (($r['mode'] ?? '') === 'send' && (int)($r['sent'] ?? 0) > 0 && ($d = substr((string)($r['requested_at'] ?? ''), 0, 10)) !== '' && ($start === '' || $d < $start)) $start = $d;
+    foreach ($leads ?? vestra_leads() as $l)
+      if ((string)($l['contact_via'] ?? '') === 'mailbox' && ($d = substr((string)($l['last_contacted_at'] ?? ''), 0, 10)) !== '' && ($start === '' || $d < $start)) $start = $d;
+  }
+  $today = date('Y-m-d'); if ($start === '' || $start > $today) $start = $today;
+  $day = (int)floor((strtotime($today) - strtotime($start)) / 86400) + 1;
+  $limit = VESTRA_MAILBOX_WARMUP[$day] ?? VESTRA_MAILBOX_MAX_CAP;
+  return ['on' => $on, 'day' => $day, 'limit' => $limit, 'start' => $start,
+          'full_on' => date('Y-m-d', strtotime($start) + count(VESTRA_MAILBOX_WARMUP) * 86400)];
+}
+
+/** İlk gerçek gönderimde başlangıcı sabitle (eski kayıtlardan çıkarılan tarih de yazılır). */
+function vestra_mailbox_warmup_mark(): void {
+  $cfg = vestra_mailbox_cfg();
+  if (preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($cfg['warmup_start'] ?? ''))) return;
+  $cfg['warmup_start'] = vestra_mailbox_warmup()['start'];
+  $f = vestra_mailbox_file('mailbox.json');
+  file_put_contents($f, json_encode($cfg, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES), LOCK_EX); @chmod($f, 0600);
+}
+
+function vestra_mailbox_warmup_set(bool $on): void {
+  $cfg = vestra_mailbox_cfg(); $cfg['warmup'] = $on;
+  $f = vestra_mailbox_file('mailbox.json');
+  file_put_contents($f, json_encode($cfg, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES), LOCK_EX); @chmod($f, 0600);
+}
+
+/** Bugün geçerli tavan: panel tavanı, ısınma açıksa ısınma sınırıyla. */
+function vestra_mailbox_cap_today(?array $leads = null): int {
+  $w = vestra_mailbox_warmup($leads);
+  return $w['on'] ? min(vestra_mailbox_daily_cap(), $w['limit']) : vestra_mailbox_daily_cap();
+}
+
+/** Son 14 gün: ['sent','bounced','rate','stop']. Gönderilmeden atlanan ölü alan adları sayılmaz (zaten gitmedi). */
+function vestra_mailbox_bounce_stats(?array $leads = null): array {
+  $since = time() - 14 * 86400; $s = 0; $b = 0;
+  foreach ($leads ?? vestra_leads() as $l) {
+    if (!in_array((string)($l['contact_via'] ?? ''), ['mailbox', 'seller_server'], true)) continue;
+    if ((int)strtotime((string)($l['last_contacted_at'] ?? '')) < $since) continue;
+    $s++;
+    if (($l['status'] ?? '') === 'bounced' && !str_contains((string)($l['bounce_reason'] ?? ''), 'gonderilmedi')) $b++;
+  }
+  $rate = $s ? $b / $s : 0.0;
+  return ['sent' => $s, 'bounced' => $b, 'rate' => $rate, 'stop' => $s >= VESTRA_MAILBOX_BOUNCE_MIN_SENT && $rate > VESTRA_MAILBOX_BOUNCE_MAX];
+}
+
+/** Partide aynı alan adı arka arkaya gelmesin (Gmail/Outlook aynı gönderenden ardışık yağmuru sever değil). */
+function vestra_mailbox_interleave(array $items): array {
+  $by = [];
+  foreach ($items as $it) $by[strtolower(substr((string)strrchr((string)($it['email'] ?? ''), '@'), 1))][] = $it;
+  /* Her adımda en çok kalanı olan ve bir önceki mektuptan FARKLI alan adını seç (açgözlü; kaçınılmazsa yan yana). */
+  $out = []; $last = null;
+  while ($by) {
+    $pick = null;
+    foreach ($by as $k => $list) if ($k !== $last && ($pick === null || count($list) > count($by[$pick]))) $pick = $k;
+    if ($pick === null) $pick = (string)array_key_first($by);
+    $out[] = array_shift($by[$pick]); $last = $pick;
+    if (!$by[$pick]) unset($by[$pick]);
+  }
+  return $out;
+}
+
+/** Ücretsiz posta sağlayıcıları: aynı alan adı = aynı dükkân DEĞİL. */
+function vestra_mailbox_free_domain(string $d): bool {
+  return (bool)preg_match('/^(gmail|googlemail|hotmail|outlook|live|msn|yahoo|ymail|icloud|me|mac|aol|gmx|web|t-online|orange|wanadoo|free|laposte|sfr|libero|virgilio|alice|tiscali|hotmail\.\w+|yahoo\.\w+|outlook\.\w+|mail|yandex|protonmail|proton|seznam|wp|o2|onet|interia|telenet|skynet|ziggo|kpnmail|bluewin|freenet|arcor)\.[a-z.]+$/i', $d);
+}
+
 function vestra_mailbox_left_today(?array $leads = null): int {
-  return max(0, vestra_mailbox_daily_cap() - vestra_mailbox_sent_today($leads));
+  return max(0, vestra_mailbox_cap_today($leads) - vestra_mailbox_sent_today($leads));
 }
 
 function vestra_mailbox_runs(): array {
@@ -138,7 +236,8 @@ function vestra_mailbox_request(string $mode, int $limit, string $campaign, stri
   foreach ($runs as $r) if (vestra_mailbox_is_open($r)) return [false, 'Sırada ya da gönderilmekte olan bir istek var — bitince yenisini verin.'];
   if ($mode === 'send') {
     $left = vestra_mailbox_left_today();
-    if ($left <= 0) return [false, 'Bugünkü tavan ('.vestra_mailbox_daily_cap().') doldu — kalanlar yarın.'];
+    if ($left <= 0) return [false, 'Bugünkü tavan ('.vestra_mailbox_cap_today().(vestra_mailbox_warmup()['on'] && vestra_mailbox_cap_today() < vestra_mailbox_daily_cap() ? ', ısınma' : '').') doldu — kalanlar yarın.'];
+    if (($bs = vestra_mailbox_bounce_stats())['stop']) return [false, sprintf('Gönderim durduruldu: son 14 günde gönderilenlerin %%%d\'i geri döndü (%d/%d). Spam klasörüne düşmemek için önce listeyi temizleyin.', (int)round($bs['rate'] * 100), $bs['bounced'], $bs['sent'])];
     $limit = max(1, min($limit, $left));
   } else $limit = 1;
   $id = 'MB'.date('ymdHis').substr(bin2hex(random_bytes(2)), 0, 4);
@@ -199,7 +298,9 @@ function vestra_mailbox_batch(int $limit, string $campKey, array $ids = [], stri
   $builder = $camps[$campKey][2];
   $limit = max(1, min(VESTRA_MAILBOX_MAX_CAP, $limit));   // 10 Eki: UI 500'e kadar izin verir; 200'lük kırpma istekle çelişiyordu
   $left = vestra_mailbox_left_today();
-  if ($left <= 0) return ['ok' => true, 'from' => 'VESTRA', 'campaign' => $campKey, 'items' => [], 'note' => 'gunluk tavan doldu ('.vestra_mailbox_daily_cap().')'];
+  if ($left <= 0) return ['ok' => true, 'from' => 'VESTRA', 'campaign' => $campKey, 'items' => [], 'note' => 'gunluk tavan doldu ('.vestra_mailbox_cap_today().')'];
+  if (($bs = vestra_mailbox_bounce_stats())['stop']) return ['ok' => true, 'from' => 'VESTRA', 'campaign' => $campKey, 'items' => [],
+    'note' => sprintf('durduruldu: son 14 gunde geri donme %%%d (%d/%d) — liste temizlenmeli', (int)round($bs['rate'] * 100), $bs['bounced'], $bs['sent'])];
   $limit = min($limit, $left);
   $ids = array_values(array_filter(array_map('trim', $ids)));
   if ($ids) {
@@ -217,12 +318,15 @@ function vestra_mailbox_batch(int $limit, string $campKey, array $ids = [], stri
   } else {
     $targets = vestra_finder_send_targets($limit, $pool === 'all' ? 'all' : 'web');
   }
-  $items = []; $fromName = 'VESTRA'; $seenAddr = [];
+  $items = []; $fromName = 'VESTRA'; $seenAddr = []; $seenShop = [];
   foreach ($targets as $l) {
     $email = vestra_email_clean((string)($l['email'] ?? ''));
     if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || isset($seenAddr[$email])) continue;
     $seenAddr[$email] = true;
+    $dom = substr((string)strrchr($email, '@'), 1);
+    if (!vestra_mailbox_free_domain($dom)) { if (isset($seenShop[$dom])) continue; $seenShop[$dom] = true; }   // aynı dükkâna bir mektup
     [$subject, $body, $opts, $from] = $builder($l);
+    $body = vestra_mailbox_with_postal((string)$body);
     if ($from !== '') $fromName = $from;
     $token = (string)($l['unsub_token'] ?? '');
     $items[] = [
@@ -232,7 +336,12 @@ function vestra_mailbox_batch(int $limit, string $campKey, array $ids = [], stri
       'listUnsub' => $token !== '' ? 'https://vestrasales.com/lead-unsubscribe?token='.rawurlencode($token) : 'https://vestrasales.com/lead-unsubscribe',
     ];
   }
-  return ['ok' => true, 'from' => $fromName, 'campaign' => $campKey, 'items' => $items];
+  return ['ok' => true, 'from' => $fromName, 'campaign' => $campKey, 'items' => vestra_mailbox_interleave($items)];
+}
+
+/** Kampanya metninde şirketin posta adresi yoksa sona ekler (CAN-SPAM / AB ticari ileti kuralı). */
+function vestra_mailbox_with_postal(string $body): string {
+  return str_contains($body, '8 The Green') ? $body : rtrim($body)."\n".VESTRA_MAIL_POSTAL;
 }
 
 /** Test: örnek dükkânla tek mektup, kayda dokunmaz. */
@@ -242,6 +351,7 @@ function vestra_mailbox_sample(string $campKey, string $to): array {
   if (!isset($camps[$campKey]) || !filter_var($to, FILTER_VALIDATE_EMAIL)) return ['ok' => false, 'items' => []];
   $lead = ['id' => 'TEST', 'company' => 'Boutique Example', 'country' => 'France', 'email' => $to, 'contact_name' => '', 'unsub_token' => ''];
   [$subject, $body, $opts, $from] = ($camps[$campKey][2])($lead);
+  $body = vestra_mailbox_with_postal((string)$body);
   return ['ok' => true, 'from' => $from !== '' ? $from : 'VESTRA', 'campaign' => $campKey, 'items' => [[
     'leadId' => 'TEST', 'email' => $to, 'company' => 'Boutique Example', 'lang' => vestra_finder_lead_lang($lead), 'subject' => '[TEST] '.$subject,
     'html' => vestra_html_email($body, '', (array)$opts), 'text' => vestra_mail_text_part($body, (array)$opts), 'listUnsub' => 'https://vestrasales.com/lead-unsubscribe']]];
@@ -414,6 +524,7 @@ function vestra_mailbox_run(array $req, array $o = []): array {
     [$ok, $mid, $why] = vestra_mailbox_send_local($it, (string)$b['from'], $mail);
     if ($ok) {
       vestra_mailbox_stamp([['leadId' => $it['leadId'], 'email' => $it['email'], 'status' => 'sent', 'lang' => $it['lang'], 'messageId' => $mid]]);
+      if (!$sentAny) vestra_mailbox_warmup_mark();
       $sum['sent']++; $failRow = 0; $sentAny = true;
       $log(sprintf('+ [%d/%d] %s [%s]', $k + 1, $n, vestra_mailbox_mask($it['email']), $it['lang']));
     } else {

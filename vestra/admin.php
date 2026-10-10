@@ -1936,7 +1936,9 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   if($act==='mailbox_cap'){
     require_once __DIR__.'/inc/mailbox.php';
     $c=vestra_mailbox_set_cap((int)($_POST['daily_cap']??VESTRA_MAILBOX_DEFAULT_CAP));
-    $_SESSION['mailbox_flash']=[true,'✓ Günlük tavan: '.$c.' e-posta.'];
+    vestra_mailbox_warmup_set(!empty($_POST['warmup']));
+    $w=vestra_mailbox_warmup();
+    $_SESSION['mailbox_flash']=[true,'✓ Günlük tavan: '.$c.' e-posta'.($w['on']?' · ısınma AÇIK (bugün en çok '.min($c,$w['limit']).')':' · ısınma KAPALI — yeni alan adında spam riski yüksek').'.'];
     header('Location: /admin?tab=prospects#mailboxsend'); exit;
   }
   if($act==='mailbox_request'){
@@ -6545,7 +6547,7 @@ elseif($tab==='prospects'):
          raporlar çok yer tutuyor, başka bir alana topla"). Üç adım: ① kampanya (kart + gerçek önizleme) ② kime
          ③ test / gönder. Ayarlar katlı; geçmiş ve raporlar $__pb['REPORTS']'a (sayfanın altında "📊 Raporlar"). */
       require_once __DIR__.'/inc/mailbox.php';
-      $mbCap=vestra_mailbox_daily_cap(); $mbToday=vestra_mailbox_sent_today(); $mbLeft=max(0,$mbCap-$mbToday);
+      $mbCap=vestra_mailbox_daily_cap(); $mbToday=vestra_mailbox_sent_today(); $mbLeft=vestra_mailbox_left_today(); $mbWarm=vestra_mailbox_warmup(); $mbBs=vestra_mailbox_bounce_stats();
       $mbRuns=array_reverse(vestra_mailbox_runs()); $mbOpen=null; foreach($mbRuns as $r){ if(vestra_mailbox_is_open($r)){ $mbOpen=$r; break; } }
       $mbFlash=$_SESSION['mailbox_flash']??null; unset($_SESSION['mailbox_flash']);
       $mbSt=['requested'=>'⏳ sırada','running'=>'▶ gönderiliyor','done'=>'✓ bitti','failed'=>'✗ hata','stale'=>'— takıldı'];
@@ -6643,8 +6645,22 @@ elseif($tab==='prospects'):
           </div>
         </form>
         <form method="post" class="aform" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px"><?= csrfField() ?><input type="hidden" name="_action" value="mailbox_cap">
-          <span style="font-size:12.5px">Günlük tavan</span><input name="daily_cap" type="number" min="1" max="<?= VESTRA_MAILBOX_MAX_CAP ?>" value="<?= $mbCap ?>" style="width:80px"><button class="abtn" type="submit">Kaydet</button>
-          <span class="ahint">GoDaddy sınırı: support@ için günde 500 (elle yazdıklarınız da sayılır).</span></form>
+          <span style="font-size:12.5px">Günlük tavan</span><input name="daily_cap" type="number" min="1" max="<?= VESTRA_MAILBOX_MAX_CAP ?>" value="<?= $mbCap ?>" style="width:80px">
+          <label style="display:flex;gap:5px;align-items:center;font-size:12.5px;cursor:pointer"><input type="checkbox" name="warmup" value="1"<?= $mbWarm['on']?' checked':'' ?>> Isınma (önerilir)</label>
+          <button class="abtn" type="submit">Kaydet</button>
+          <span class="ahint">GoDaddy sınırı: support@ için günde 500 (elle yazdıklarınız ve satıcıların VESTRA sunucusundan gidenleri de sayılır).</span></form>
+        <div id="spamguard" style="font-size:12px;line-height:1.7;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:0 0 10px;background:var(--bg2)">
+          <b>🛡 Spam koruması</b><br>
+          <?php if($mbWarm['on'] && $mbWarm['limit']<VESTRA_MAILBOX_MAX_CAP): ?>
+            Isınma: <b>gün <?= (int)$mbWarm['day'] ?>/<?= count(VESTRA_MAILBOX_WARMUP) ?></b> — bugün en çok <b><?= min($mbCap,(int)$mbWarm['limit']) ?></b> e-posta; <b><?= date('d.m',strtotime($mbWarm['full_on'])) ?></b>'den itibaren <?= $mbCap ?>. Yeni alan adı ilk günden yüzlerce soğuk e-posta atarsa Gmail/Outlook spama atar; sayı her gün kademeli artar.<br>
+          <?php elseif($mbWarm['on']): ?>
+            Isınma tamamlandı — günlük tavan <?= $mbCap ?>.<br>
+          <?php else: ?>
+            <span style="color:#c0392b">Isınma KAPALI — yeni alan adında ilk günlerde yüksek hacim spam riskini artırır.</span><br>
+          <?php endif; ?>
+          Geri dönme (son 14 gün): <b style="color:<?= $mbBs['stop']?'#c0392b':($mbBs['rate']>0.04?'#a9781a':'#1f9d63') ?>">%<?= number_format($mbBs['rate']*100,1) ?></b> (<?= (int)$mbBs['bounced'] ?>/<?= (int)$mbBs['sent'] ?>) · %<?= (int)(VESTRA_MAILBOX_BOUNCE_MAX*100) ?>'i aşarsa gönderim kendiliğinden durur<?= $mbBs['stop']?' — <b style="color:#c0392b">ŞU AN DURDU</b>: geri dönen adresler listeden ayıklanmadan yeni gönderim yapılmaz':'' ?>.<br>
+          Her mektupta: tek tıkla abonelikten çıkma (List-Unsubscribe), düz metin + HTML, şirket posta adresi; aynı dükkânın tek adresine, aynı alan adına arka arkaya değil, mektuplar arası <?= VESTRA_MAILBOX_PAUSE_MIN ?>–<?= VESTRA_MAILBOX_PAUSE_MAX ?> sn.
+        </div>
         <div style="font-size:12px;line-height:1.6;color:var(--mut)">
           Gönderen <b>support@vestrasales.com</b>, kendi sunucumuzun posta servisi (SPF ✓ · DMARC ✓ · DKIM <?= $mbDk==='ok'?'<b style="color:#1f9d63">✓</b>':($mbDk==='mismatch'?'<b style="color:#c0392b">eşleşmiyor</b>':'<b style="color:#a9781a">bekleniyor</b>') ?>).
           Hata olmasın diye yalnız sitesinde e-postasını yayınlayan, e-posta sunucusu doğrulanmış butiklere; ayakkabı, iç çamaşırı, toptancı ve zincirlere asla; aynı adrese bir kez. Geri dönen adresler 3 saatte bir taranır, bir daha yazılmaz.

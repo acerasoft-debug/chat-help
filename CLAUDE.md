@@ -4738,6 +4738,17 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   ve `vestra-mailbox-queue.php` varsayılanları 500; mektuplar arası bekleme 25–55 sn → **8–11 sn**
   (`VESTRA_MAILBOX_PAUSE_MIN/MAX`; 500 mektup ~80 dk, cPanel'in saatlik 500 sınırının altında — satıcı sunucu
   yolu turda 40 eklense de aşılmaz). Günlük tavan hâlâ 500: ikinci istek aynı gün kalan hakla kırpılır.
+- **Spam koruması (10 Eki 2026, operatör: "spama düşmemesi için önlem al") — `inc/mailbox.php`.** (1) **Isınma**:
+  bugünkü tavan = min(panel tavanı, `VESTRA_MAILBOX_WARMUP[gün]`) — 50, 75, 100, 150 … 450, 11. günden 500;
+  gün 1 = ilk gerçek gönderim (`mailbox.json` `warmup_start`, yoksa eski kayıtlardan çıkarılır); panelde kapatılabilir
+  (`warmup`). Kullanılan her yer `vestra_mailbox_cap_today()` / `left_today()` — `daily_cap()` yalnız panel ayarı.
+  (2) **Geri dönme freni**: son 14 günde ≥30 gönderimde geri dönme >%8 → istek reddedilir, parti boş, satıcı sunucu
+  yolu da bekler (`vestra_mailbox_bounce_stats`; gönderilmeden atlanan ölü alan adları sayılmaz). (3) Partide aynı
+  dükkân alan adına tek mektup (gmail vb. ortak sağlayıcılar hariç) ve aynı alan adı arka arkaya gelmez
+  (`vestra_mailbox_interleave`). (4) Her kampanya metnine şirket posta adresi (`VESTRA_MAIL_POSTAL`). (5) Günlük
+  sayaç satıcıların VESTRA sunucusundan gidenlerini de sayar (GoDaddy: support@ hesabına günde 500 + hesap geneli
+  saatte 500; `diag-mail-limits.yml` sınırları ve cPanel SPF/DKIM doğrulamasını okur). Panel: 📮 kartında "🛡 Spam
+  koruması" kutusu. Test: finder_test 8i.
 - **Üçüncü satıcı yolu 'server' — kurulumsuz, VESTRA'nın posta servisinden kendi adıyla (10 Eki 2026,
   operatör: "herkes kendi emailinden server'dan göndersin").** `vestra_seller_route($cfg,$email)` →
   `brevo | smtp | server | ''`: Brevo anahtarı ve SMTP yoksa mektup `seller_outbox` kuyruğuna `via=server`

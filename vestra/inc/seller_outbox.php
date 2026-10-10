@@ -204,13 +204,17 @@ function vestra_seller_outbox_run_server(array $o = []): array {
   $sleep = $o['sleep'] ?? static function (int $s): void { sleep($s); };
   $log = $o['log'] ?? static function (string $m): void { echo $m, "\n"; };
   $sum = ['sent' => 0, 'failed' => 0, 'skipped' => 0];
-  $items = vestra_seller_outbox_locked(static function (): array {
+  /* support@ hesabının günlük payı (ısınma dahil) ve geri dönme freni satıcı mektuplarına da geçerli (10 Eki 2026):
+     pay dolunca mektuplar kuyrukta bekler, ertesi gün gider. */
+  $max = min(VESTRA_SELLER_SERVER_PER_TICK, isset($o['left']) ? (int)$o['left'] : vestra_mailbox_left_today());
+  if ($max <= 0 || (!isset($o['left']) && vestra_mailbox_bounce_stats()['stop'])) return $sum;
+  $items = vestra_seller_outbox_locked(static function () use ($max): array {
     $all = vestra_seller_outbox_all(); $out = []; $changed = false; $stale = time() - 1800;
     foreach ($all as $i => $it) {
       if (($it['via'] ?? 'smtp') !== 'server') continue;
       $st = (string)($it['status'] ?? '');
       if (!($st === 'queued' || ($st === 'sending' && (int)strtotime((string)($it['taken_at'] ?? '')) < $stale))) continue;
-      if (count($out) >= VESTRA_SELLER_SERVER_PER_TICK) break;
+      if (count($out) >= $max) break;
       $all[$i]['status'] = 'sending'; $all[$i]['taken_at'] = date('c'); $changed = true; $out[] = $all[$i];
     }
     if ($changed) vestra_seller_outbox_save($all);

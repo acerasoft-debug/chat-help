@@ -185,7 +185,7 @@ $t('posta kutusu: geçersiz kip / kampanya / test adresi reddedilir', !vestra_ma
    && !vestra_mailbox_request('send', 5, 'yok', '', $mkeys)[0] && !vestra_mailbox_request('send', 5, 'x;rm', '', $mkeys)[0] && !vestra_mailbox_request('test', 1, 'lesgarage', 'nope', $mkeys)[0]);
 [$mOk] = vestra_mailbox_request('send', 500, 'lesgarage', '', $mkeys);
 $mr = vestra_mailbox_runs();
-$t('posta kutusu: istek sıraya girer, sayı günlük tavana kırpılır', $mOk && count($mr) === 1 && $mr[0]['status'] === 'requested' && $mr[0]['limit'] === vestra_mailbox_daily_cap());
+$t('posta kutusu: istek sıraya girer, sayı bugünkü tavana (ısınma dahil) kırpılır', $mOk && count($mr) === 1 && $mr[0]['status'] === 'requested' && $mr[0]['limit'] === vestra_mailbox_cap_today());
 $t('posta kutusu: açık istek varken ikincisi reddedilir', !vestra_mailbox_request('test', 1, 'lesgarage', 'ops@vestra.example', $mkeys)[0]);
 $tk = vestra_mailbox_take();
 $t('posta kutusu: kuyruk alır → running; ikinci take boş', $tk && $tk['id'] === $mr[0]['id'] && vestra_mailbox_runs()[0]['status'] === 'running' && vestra_mailbox_take() === null);
@@ -684,6 +684,55 @@ $t('sunucu yolu günlük 100 sınırı', VESTRA_SELLER_SERVER_DAILY === 100);
 [$sb, $sbc] = vestra_seller_outbox_add('sellS', 'S1', 'buyer@s.example', 'Hi', 'b', 'Shop S', '', '', 'server', 'not-an-email');
 $t('Reply-To geçersizse kuyruğa girmez', !$sb && $sbc === 'nosetup');
 @unlink(VESTRA_DATA_DIR.'/seller_outbox.json');
+
+echo "\n== 8i. spam koruması: ısınma, geri dönme freni, dükkân başına tek adres, sıralama, posta adresi ==\n";
+@unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json'); vestra_write_json('leads.json', []);
+$w = vestra_mailbox_warmup();
+$t('ısınma: hiç gönderim yoksa 1. gün, en çok 50; varsayılan AÇIK', $w['on'] && $w['day'] === 1 && $w['limit'] === 50 && vestra_mailbox_cap_today() === 50 && vestra_mailbox_left_today() === 50);
+vestra_write_json('mailbox.json', ['warmup_start' => date('Y-m-d', time() - 3 * 86400)]);
+$t('ısınma: 4. gün 150', vestra_mailbox_warmup()['day'] === 4 && vestra_mailbox_cap_today() === 150);
+vestra_write_json('mailbox.json', ['warmup_start' => date('Y-m-d', time() - 12 * 86400)]);
+$t('ısınma: 11. günden sonra tam tavan (500)', vestra_mailbox_cap_today() === 500);
+vestra_write_json('mailbox.json', ['warmup_start' => date('Y-m-d')]); vestra_mailbox_warmup_set(false);
+$t('ısınma kapatılınca panel tavanı', !vestra_mailbox_warmup()['on'] && vestra_mailbox_cap_today() === vestra_mailbox_daily_cap());
+vestra_mailbox_warmup_set(true);
+@unlink(VESTRA_DATA_DIR.'/mailbox.json');
+vestra_write_json('leads.json', [['id' => 'W0', 'email' => 'x@w.example', 'contact_via' => 'mailbox', 'last_contacted_at' => date('c', time() - 5 * 86400), 'status' => 'contacted']]);
+$t('ısınma: başlangıç eski gönderimden çıkarılır (5 gün önce → 6. gün, 250)', vestra_mailbox_warmup()['day'] === 6 && vestra_mailbox_cap_today() === 250);
+$bl = [];
+for ($k = 0; $k < 40; $k++) $bl[] = ['id' => 'B'.$k, 'email' => "b$k@b$k.example", 'contact_via' => 'mailbox', 'last_contacted_at' => date('c', time() - 86400), 'status' => $k < 4 ? 'bounced' : 'contacted', 'bounce_reason' => $k < 4 ? 'mailbox: 550 no such user' : ''];
+$bl[] = ['id' => 'Bdead', 'email' => 'z@dead.example', 'contact_via' => 'mailbox', 'last_contacted_at' => date('c', time() - 86400), 'status' => 'bounced', 'bounce_reason' => 'mailbox: alan adinin e-posta sunucusu yok (gonderilmedi)'];
+$bs = vestra_mailbox_bounce_stats($bl);
+$t('geri dönme: %10 > %8 → durur; gönderilmeden atlanan ölü alan adı sayılmaz', $bs['sent'] === 41 && $bs['bounced'] === 4 && $bs['stop']);
+$t('geri dönme: az gönderimde (30 altı) fren devreye girmez', !vestra_mailbox_bounce_stats(array_slice($bl, 0, 20))['stop']);
+vestra_write_json('leads.json', $bl);
+$mkeys2 = array_keys(vestra_finder_campaigns());
+[$bOk, $bMsg] = vestra_mailbox_request('send', 10, 'edit', '', $mkeys2);
+$t('geri dönme yüksekken panel isteği reddedilir ve nedenini söyler', !$bOk && str_contains($bMsg, 'geri döndü'));
+$t('geri dönme yüksekken parti boş, not var', vestra_mailbox_batch(10, 'edit')['items'] === [] && str_contains((string)vestra_mailbox_batch(10, 'edit')['note'], 'geri donme'));
+$t('geri dönme yüksekken satıcıların sunucu yolu da bekler', vestra_seller_outbox_run_server(['mail' => fn() => true, 'sleep' => fn($s) => null, 'log' => fn($m) => null])['sent'] === 0);
+@unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
+vestra_write_json('leads.json', [
+  ['id' => 'D1', 'company' => 'Shop One', 'email' => 'info@shopone.example', 'country' => 'France', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'd1'],
+  ['id' => 'D2', 'company' => 'Shop One', 'email' => 'sales@shopone.example', 'country' => 'France', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'd2'],
+  ['id' => 'D3', 'company' => 'Gm A', 'email' => 'a.boutique@gmail.com', 'country' => 'Italy', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'd3'],
+  ['id' => 'D4', 'company' => 'Gm B', 'email' => 'b.boutique@gmail.com', 'country' => 'Italy', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'd4'],
+  ['id' => 'D5', 'company' => 'Gm C', 'email' => 'c.boutique@gmail.com', 'country' => 'Italy', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'd5'],
+  ['id' => 'D6', 'company' => 'Other', 'email' => 'hello@other.example', 'country' => 'Spain', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'd6'],
+  ['id' => 'D7', 'company' => 'Third', 'email' => 'hi@third.example', 'country' => 'Spain', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'd7']]);
+$bt = vestra_mailbox_batch(50, 'edit', ['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7']);
+$bEm = array_column($bt['items'], 'email');
+$t('aynı dükkânın iki adresinden yalnız biri; gmail gibi ortak sağlayıcıda herkes ayrı', count($bEm) === 6 && in_array('info@shopone.example', $bEm, true) && !in_array('sales@shopone.example', $bEm, true)
+  && count(preg_grep('/@gmail\.com$/', $bEm)) === 3);
+$adj = 0; for ($k = 1; $k < count($bEm); $k++) if (substr(strrchr($bEm[$k], '@'), 1) === substr(strrchr($bEm[$k - 1], '@'), 1)) $adj++;
+$t('aynı alan adına arka arkaya gönderilmez (mümkün olduğunca)', $adj === 0);
+$t('her mektupta şirket posta adresi (düz metin ve HTML)', $bt['items'] && str_contains($bt['items'][0]['text'], '8 The Green') && str_contains($bt['items'][0]['html'], '8 The Green')
+  && str_contains(vestra_mailbox_sample('edit', 'ops@vestra.example')['items'][0]['text'] ?? '', 'Dover'));
+vestra_write_json('seller_outbox.json', [['id' => 'OBs', 'via' => 'server', 'status' => 'sent', 'done_at' => date('c')], ['id' => 'OBs2', 'via' => 'smtp', 'status' => 'sent', 'done_at' => date('c')]]);
+$t('satıcıların VESTRA sunucusundan gidenleri günlük paya sayılır (SMTP yolu sayılmaz)', vestra_mailbox_seller_server_today() === 1 && vestra_mailbox_sent_today() === 1);
+vestra_write_json('seller_outbox.json', [['id' => 'OBq', 'uid' => 'sellS', 'via' => 'server', 'status' => 'queued', 'to' => 'q@q.example', 'subject' => 's', 'text' => 't', 'html' => 'h', 'from_name' => 'S', 'reply_to' => 'o@s.example', 'queued_at' => date('c')]]);
+$t('günlük pay dolunca satıcı mektubu kuyrukta bekler', vestra_seller_outbox_run_server(['left' => 0, 'mail' => fn() => true, 'sleep' => fn($s) => null, 'log' => fn($m) => null])['sent'] === 0 && vestra_seller_outbox_all()[0]['status'] === 'queued');
+@unlink(VESTRA_DATA_DIR.'/seller_outbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox.json'); vestra_write_json('leads.json', []);
 
 echo "\n== 7. çizim — admin ve satıcı sayfası kum havuzunda GERÇEKTEN koşuyor ==\n";
 /* php -l tanımsız fonksiyonu / değişkeni yakalamaz; bu depoda lint'ten geçen iki
