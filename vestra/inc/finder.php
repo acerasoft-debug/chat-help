@@ -142,6 +142,7 @@ function vestra_finder_start(array $in, string $owner = '', string $by = 'admin'
     return [false, 'Bir arama zaten çalışıyor ('.(string)($a['id'] ?? '').', '.date('H:i', (int)strtotime((string)($a['requested_at'] ?? 'now'))).' başladı). Bitince tekrar başlatın — genelde 20-40 dakika.', ''];
   if ($owner !== '') {
     foreach (vestra_finder_runs($owner) as $r) {
+      if (($r['status'] ?? '') === 'failed') continue;   // başlatılamayan arama satıcının gününü yakmasın
       if ((time() - (int)strtotime((string)($r['requested_at'] ?? ''))) < 24 * 3600)
         return [false, 'You can start one web search per 24 hours. Your last one: '.date('d M H:i', (int)strtotime((string)$r['requested_at'])).'.', ''];
     }
@@ -402,6 +403,7 @@ function vestra_finder_runs_html(array $runs, bool $showOwner = false, array $ow
         $out .= '</ul></details>';
       }
     }
+    if ($en && $st === 'failed') $out .= '<div style="color:var(--mut,#777);margin-top:4px">'.$h($tt('The search could not run — it does not count against your daily search.')).'</div>';
     /* Notlar ve GitHub linki operatör içindir (Türkçe, teknik); satıcı görmez. */
     if (!$en) foreach ((array)($r['notes'] ?? []) as $n) $out .= '<div style="color:#a9781a;margin-top:4px">⚠ '.$h($n).'</div>';
     if (!$en && !empty($r['run_url'])) $out .= '<div style="margin-top:4px"><a href="'.$h($r['run_url']).'" target="_blank" rel="noopener" style="color:var(--acc,#8a6420)">'.$T['more'].'</a></div>';

@@ -494,11 +494,11 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
 }
 
 /* ── Seller customer outreach: own SMTP + own customer list + one-by-one send ── */
-if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_array(($_POST['_action']??''),['seller_save_smtp','seller_send_test','seller_add_lead','seller_import_leads','seller_send_one','seller_find_email','seller_discover','seller_find_all','seller_finder_start','seller_ai_generate','seller_ai_save','seller_ai_stop','seller_ai_key','seller_ai_ready','seller_camp_test','seller_compose'],true)) {
+if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_array(($_POST['_action']??''),['seller_save_smtp','seller_send_test','seller_add_lead','seller_import_leads','seller_send_one','seller_find_email','seller_find_all','seller_finder_start','seller_ai_generate','seller_ai_save','seller_ai_stop','seller_ai_key','seller_ai_ready','seller_camp_test','seller_compose'],true)) {
   require_once __DIR__.'/inc/notify.php'; require_once __DIR__.'/inc/leads.php'; require_once __DIR__.'/inc/seller_outbox.php';
   $suid=$_SESSION['uid']??''; $sme=auth_user();
   if($suid==='' || ($sme['type']??'')!=='seller'){ if(($_POST['_action']??'')==='seller_send_one'){ header('Content-Type: application/json'); echo json_encode(['ok'=>false,'error'=>'auth']); } else header('Location: /seller?tab=find'); exit; }
-  $sact=$_POST['_action']; $sName=$sme['company']?:($sme['name']?:'Seller');
+  $sact=$_POST['_action']; $sName=(($sme['company']??'')?:($sme['name']??''))?:'Seller';
   if($sact==='seller_save_smtp'){
     $cur=vestra_seller_mail($suid); $from=trim($_POST['from_email']??''); $pass=(string)($_POST['smtp_pass']??'');
     $newBrevo=!empty($_POST['brevo_clear'])?'':((($bk=trim($_POST['mail_api_key']??''))!=='')?$bk:(string)($cur['mail_api_key']??''));
@@ -507,8 +507,11 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
        değişirse eski "test gönderildi" işareti düşer — o test artık bu kurulumu kanıtlamıyor. */
     require_once __DIR__.'/inc/seller_send.php';
     $bChk=$newBrevo!==''?vestra_brevo_check($newBrevo,$from):null;
-    $sameSetup=$newBrevo===(string)($cur['mail_api_key']??'') && strcasecmp($from,(string)($cur['mail_from']??''))===0;
-    vestra_seller_mail_save($suid,['brevo_check'=>$bChk,
+    $smtpChanged=$pass!=='' || trim($_POST['smtp_host']??'')!==(string)($cur['smtp_host']??'') || (trim($_POST['smtp_user']??'')?:$from)!==(string)($cur['smtp_user']??'');
+    $sameSetup=$newBrevo===(string)($cur['mail_api_key']??'') && strcasecmp($from,(string)($cur['mail_from']??''))===0 && !$smtpChanged;
+    /* array_merge: kayıtta olup formda olmayan alanlar (smtp_error, brevo kredisi önbelleği…) kaybolmasın. */
+    vestra_seller_mail_save($suid,array_merge($cur,['brevo_check'=>$bChk,
+      'smtp_error'=>$smtpChanged?'':(string)($cur['smtp_error']??''),'smtp_error_at'=>$smtpChanged?'':(string)($cur['smtp_error_at']??''),
       'last_test_ok_at'=>$sameSetup?(string)($cur['last_test_ok_at']??''):'','last_test_to'=>$sameSetup?(string)($cur['last_test_to']??''):'',
       'mail_enabled'=>true,'mail_from'=>$from,'smtp_from'=>$from,
       'smtp_name'=>trim($_POST['from_name']??'')?:$sName,'smtp_host'=>trim($_POST['smtp_host']??''),
@@ -519,7 +522,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
       'mail_api_key'=>$newBrevo,
       'finder_provider'=>trim($_POST['finder_provider']??'hunter')?:'hunter',
       'finder_key'=>(($fk=trim($_POST['finder_key']??''))!=='')?$fk:(string)($cur['finder_key']??''),
-      'ai_key'=>(($ak=trim($_POST['ai_key']??''))!=='')?$ak:(string)($cur['ai_key']??'')]);
+      'ai_key'=>(string)($cur['ai_key']??'')]));
     header('Location: /seller?tab=find&msg='.($bChk&&!$bChk['ok']?'brevo_'.$bChk['code']:'smtp_saved').'#sendsetup'); exit;
   }
   /* Web search for multi-brand boutiques (inc/finder.php). Runs on the platform's search
@@ -652,14 +655,6 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
     $added=0;$skipped=0;
     if(!empty($_FILES['csv']['tmp_name']) && is_uploaded_file($_FILES['csv']['tmp_name'])) [$added,$skipped]=vestra_lead_import_csv($_FILES['csv']['tmp_name'],$suid);
     header('Location: /seller?tab=find&msg=lead_import&added='.$added); exit;
-  }
-  if($sact==='seller_discover'){
-    @set_time_limit(0);
-    $country=trim($_POST['disc_country']??''); $city=trim($_POST['disc_city']??'');
-    $rows=$country!==''?vestra_discover_osm($country,$city,60):[];
-    $osmOk=$country!==''?vestra_osm_ok():true;
-    [$addedRows]=$rows?vestra_leads_add($rows,$suid):[[],0];
-    header('Location: /seller?tab=find&msg=discover&n='.count($addedRows).'&found='.count($rows).($osmOk?'':'&osmfail=1')); exit;
   }
   if($sact==='seller_find_all'){
     @set_time_limit(0); $sc=vestra_seller_mail($suid); $leads=vestra_leads(); $n=0;
@@ -1380,11 +1375,7 @@ if($tab==='overview'){
   $obSt=in_array($myRoute,['smtp','server'],true)?vestra_seller_outbox_status($uid):null;
   $myLeads=array_reverse(vestra_leads_by_owner($uid));
   $fmsg=$_GET['msg']??'';
-  $fmsgs=['smtp_saved'=>'✓ Your sending email & keys are saved — send a test to confirm.','test_ok'=>'✓ Test sent — check your inbox.','test_fail'=>'Test failed — check your SMTP host / username / password.','lead_added'=>'✓ Customer added.','lead_import'=>'✓ Customers imported.','found_ok'=>'✓ Real email found and added.','found_none'=>'No email found on that website — add it manually.'];
-  if($fmsg==='discover'){ $df=(int)($_GET['found']??0); $dn=(int)($_GET['n']??0); $osmFail=($_GET['osmfail']??'')==='1';
-    $fmsgs['discover']=$osmFail?'⚠ OpenStreetMap could not be reached (all mirrors failed) — this is a temporary outage, not "no shops". Please try again in a minute.'
-      :($df===0?'No shops found in that city — try the local spelling (e.g. “Milano”, “Köln”) or a bigger nearby city.'
-      :('✓ '.$df.' retailer(s) found, '.$dn.' new added'.($dn===0?' (all were already on your list)':'').'. Now run “🔍 Find all missing emails”.')); }
+  $fmsgs=['lead_added'=>t('✓ Customer added.'),'lead_import'=>sprintf(t('✓ %d customers imported.'),(int)($_GET['added']??0)),'found_ok'=>t('✓ Real email found and added.'),'found_none'=>t('No email found on that website — add it manually.')];
   /* Test ve Brevo denetimi sonuçları (inc/seller_send.php) — satıcının dilinde. */
   $fTo=(string)($_GET['to']??'');
   $fmsgs+=['test_own'=>sprintf(t('Test sent to %s — check your inbox.'),$fTo),
@@ -1398,7 +1389,7 @@ if($tab==='overview'){
     'brevo_unreachable'=>t('Saved. We could not reach Brevo to check the key — press “Save” again in a minute.')];
   $fmsgs['smtp_saved']=t('Saved. Now send yourself a test below.');
   $fBad=in_array($fmsg,['test_nosetup','test_badto','test_fail','brevo_format','brevo_invalid','brevo_unreachable'],true);
-  if($fmsg==='found_bulk') $fmsgs['found_bulk']='✓ Email lookup finished — '.(int)($_GET['n']??0).' email(s) added from the shops’ own websites.';
+  if($fmsg==='found_bulk') $fmsgs['found_bulk']=sprintf(t('✓ Email lookup finished — %d email(s) added from the shops’ own websites.'),(int)($_GET['n']??0));
   $sFinderOn=true;   // finding always works — free site-reading fallback (own/platform key optional)
   $sAiOn=($myMail['ai_key']??'')!=='' || vestra_ai_key()!=='';
   $inp='width:100%;padding:8px 11px;border:1px solid var(--line);border-radius:9px;background:var(--bg,#fff);color:var(--ink);font-size:13px;box-sizing:border-box';
@@ -1407,7 +1398,7 @@ if($tab==='overview'){
 ?>
 <div style="max-width:920px">
   <?php if(isset($fmsgs[$fmsg])): ?><div style="background:<?= $fBad?'#fdf0ee':'#eaf7ef' ?>;border:1px solid <?= $fBad?'#f0c4bd':'#b9e3c9' ?>;color:<?= $fBad?'#a3321f':'#1f7a4d' ?>;padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:13.5px"><?= htmlspecialchars($fmsgs[$fmsg]) ?></div><?php endif; ?>
-  <p style="color:var(--mut);font-size:13.5px;margin:0 0 18px">Find your own customers and email them a wholesale offer <b>from your own address</b>. Add or import a list, then send one by one. Every email carries a one-click unsubscribe.</p>
+  <p style="color:var(--mut);font-size:13.5px;margin:0 0 18px"><?= htmlspecialchars(t('Find your own customers and email them a wholesale offer from your own address. Add or import a list, then send one by one. Every email carries a one-click unsubscribe.')) ?></p>
 
   <?php
     /* 📤 Gönderim kurulumu (8 Eki 2026). Ölçüm: bu sunucudan SMTP'nin tamamı kapalı (Gmail,
@@ -1430,13 +1421,14 @@ if($tab==='overview'){
     <h3 style="margin:0 0 4px;font-size:15px"><?= $tk('📤 Your sending email') ?> <?= $mailReady?'<span style="color:#1f9d63;font-size:12px">● '.$tk('Ready').'</span>':'<span style="color:#a9781a;font-size:12px">● '.$tk('Not set up').'</span>' ?></h3>
     <?php if($myRoute==='server'): ?>
     <div style="background:#eef7f1;border:1px solid #b9e3c9;border-radius:12px;padding:11px 14px;margin:0 0 12px;font-size:12.5px;line-height:1.55">
-      <b>✓ <?= $tk('Ready — no setup needed.') ?></b> <?= sprintf($tk('Your emails are sent by the VESTRA mail server. Customers see “%s via VESTRA” as the sender, and when they reply, the reply goes straight to %s. Up to 100 emails a day; each one leaves within about 10 minutes.'),htmlspecialchars($me['company']?:($me['name']??'')),'<b>'.htmlspecialchars($myReplyTo).'</b>') ?>
+      <b>✓ <?= $tk('Ready — no setup needed.') ?></b> <?= sprintf($tk('Your emails are sent by the VESTRA mail server. Customers see “%s via VESTRA” as the sender, and when they reply, the reply goes straight to %s. Up to 100 emails a day; each one leaves within about 10 minutes.'),htmlspecialchars(($me['company']??'')?:($me['name']??'')),'<b>'.htmlspecialchars($myReplyTo).'</b>') ?>
       <?php if($obSt): ?><div style="margin-top:6px">📤 <?= sprintf($tk('%d waiting · %d sent today · %d failed'),$obSt['queued'],$obSt['sent_today'],$obSt['failed_today']) ?></div><?php endif; ?>
     </div>
     <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px"><?= $tk('Want the emails to come from your own address instead? Add your Brevo key or your own mail server (SMTP) below — both optional.') ?></p>
     <?php else: ?>
     <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px"><?= $tk('Your emails go out from your own address. Without any setup they are sent by the VESTRA mail server in your name; with a Brevo key or your own mail server (SMTP) they leave directly from your address.') ?></p>
     <?php endif; ?>
+    <?php if($myRoute==='brevo'): ?>
     <div style="background:var(--bg2,#faf8f4);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px">
       <?= $stepRow(!$hasKey?'todo':(($bc&&!$bc['ok'])?'bad':'ok'),'1','Brevo key',
           !$hasKey?$tk('Not added yet — see the 4 steps below.'):(($bc&&!$bc['ok'])?$tk('Brevo did not accept this key. Please create a new key and save it again.')
@@ -1448,6 +1440,13 @@ if($tab==='overview'){
       <?= $stepRow(($myMail['last_test_ok_at']??'')!==''?'ok':'todo','3','Test email',
           ($myMail['last_test_ok_at']??'')!==''?sprintf($tk('Sent to %s on %s.'),htmlspecialchars((string)($myMail['last_test_to']??'')),date('d.m.Y H:i',(int)strtotime((string)$myMail['last_test_ok_at']))):$tk('Send yourself a test below — you see exactly what your customers will get.')) ?>
     </div>
+    <?php else: ?>
+    <div style="background:var(--bg2,#faf8f4);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px">
+      <?= $stepRow('ok','1',$tk('Sending route'),$myRoute==='smtp'?$tk('Your own mail server (SMTP) — emails leave from your address within about 10 minutes.'):sprintf($tk('VESTRA mail server — sender “%s via VESTRA”, replies to %s.'),htmlspecialchars(($me['company']??'')?:($me['name']??'')),htmlspecialchars($myReplyTo))) ?>
+      <?= $stepRow(($myMail['last_test_ok_at']??'')!==''?'ok':'todo','2',$tk('Test email'),
+          ($myMail['last_test_ok_at']??'')!==''?sprintf($tk('Sent to %s on %s.'),htmlspecialchars((string)($myMail['last_test_to']??'')),date('d.m.Y H:i',(int)strtotime((string)$myMail['last_test_ok_at']))):$tk('Send yourself a test below.')) ?>
+    </div>
+    <?php endif; ?>
     <form method="post">
       <input type="hidden" name="_action" value="seller_save_smtp">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
@@ -1465,7 +1464,7 @@ if($tab==='overview'){
       <div style="border-top:1px solid var(--line);margin:2px 0 12px;padding-top:12px" id="brevo">
         <div style="font-size:13px;font-weight:700;margin-bottom:4px"><?= $tk('🔑 Your key — how to get it') ?> <?= $hasBrevo?'<span style="color:#1f9d63;font-weight:400;font-size:12px">· '.$tk('Brevo API key').' '.$tk('saved').' ✓</span>':'' ?></div>
         <details<?= $hasBrevo?'':' open' ?> style="margin:0 0 10px">
-          <summary style="cursor:pointer;font-size:12px;color:var(--mut)"><?= $tk('To send emails from your own address you need one free key from Brevo. It takes about 5 minutes:') ?></summary>
+          <summary style="cursor:pointer;font-size:12px;color:var(--mut)"><?= $tk('Optional — your own Brevo key (emails then leave directly from your address). It takes about 5 minutes:') ?></summary>
           <ol style="margin:8px 0 6px 18px;padding:0;font-size:13px;line-height:1.7">
             <li><?= sprintf($tk('Open %s and click “Sign up free”. It is free (300 emails per day).'), $lnk('https://www.brevo.com/','brevo.com')) ?></li>
             <li><?= $tk('In Brevo add the address you send from: Settings → Senders → Add a sender. Enter the code Brevo emails you.') ?></li>
@@ -1482,23 +1481,22 @@ if($tab==='overview'){
         </div>
       </div>
       <div style="border-top:1px solid var(--line);margin:2px 0 12px;padding-top:12px">
-        <div style="font-size:12.5px;font-weight:600;margin-bottom:2px">✨ Your own API keys <span style="color:var(--mut);font-weight:400">— optional; blank = use the platform's</span></div>
-        <div style="color:var(--mut);font-size:11.5px;margin-bottom:8px">Use your own so your finder/AI usage is billed to you, not the platform.</div>
+        <div style="font-size:12.5px;font-weight:600;margin-bottom:2px">✨ <?= $tk('Your own API keys') ?> <span style="color:var(--mut);font-weight:400">— <?= $tk('optional; blank = use the platform’s') ?></span></div>
+        <div style="color:var(--mut);font-size:11.5px;margin-bottom:8px"><?= $tk('Use your own so your finder usage is billed to you, not the platform.') ?></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div><label style="<?= $lbl ?>">Email-finder key — Hunter.io<?= ($myMail['finder_key']??'')!==''?' · saved':'' ?></label><input type="password" name="finder_key" autocomplete="new-password" placeholder="real emails from a website" style="<?= $inp ?>"></div>
-          <div><label style="<?= $lbl ?>">AI key — DeepSeek<?= ($myMail['ai_key']??'')!==''?' · saved':'' ?></label><input type="password" name="ai_key" autocomplete="new-password" placeholder="personalise each email" style="<?= $inp ?>"></div>
+          <div><label style="<?= $lbl ?>"><?= $tk('Email-finder key — Hunter.io') ?><?= ($myMail['finder_key']??'')!==''?' · '.$tk('saved'):'' ?></label><input type="password" name="finder_key" autocomplete="new-password" placeholder="<?= $tk('real emails from a website') ?>" style="<?= $inp ?>"></div>
         </div>
       </div>
       <details style="margin:0 0 12px"<?= ($smtpReady||($myMail['smtp_host']??'')!=='')?' open':'' ?>>
         <summary style="cursor:pointer;font-size:12.5px;font-weight:600"><?= $tk('Your own mail server (SMTP — Gmail, Outlook, your own domain)') ?><?= $smtpReady?' <span style="color:#1f9d63;font-weight:400">● '.$tk('Ready').'</span>':'' ?></summary>
         <div style="background:#eef7f1;border:1px solid #b9e3c9;color:#1f5f3d;border-radius:10px;padding:9px 12px;font-size:12px;margin:8px 0;line-height:1.55"><?= $tk('Emails go out from your own mail server and your own address. Our sending machine connects to it every 10 minutes, so each email leaves within about 10 minutes. For Gmail use an app password (Google Account → Security → App passwords) with smtp.gmail.com, port 465.') ?></div>
         <?php if(($myMail['smtp_error']??'')!==''): ?><div style="background:#fdf0ee;border:1px solid #f0c4bd;color:#a3321f;border-radius:10px;padding:8px 12px;font-size:12px;margin:0 0 8px"><?= sprintf($tk('Your mail server refused the login: %s — check the SMTP username and password (for Gmail: an app password).'),htmlspecialchars((string)$myMail['smtp_error'])) ?></div><?php endif; ?>
-        <?php if($obSt): ?><div style="font-size:12px;margin:0 0 8px">📤 <?= sprintf($tk('%d waiting · %d sent today · %d failed'),$obSt['queued'],$obSt['sent_today'],$obSt['failed_today']) ?></div><?php endif; ?>
+        <?php if($obSt && $myRoute==='smtp'): ?><div style="font-size:12px;margin:0 0 8px">📤 <?= sprintf($tk('%d waiting · %d sent today · %d failed'),$obSt['queued'],$obSt['sent_today'],$obSt['failed_today']) ?></div><?php endif; ?>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div><label style="<?= $lbl ?>">SMTP host</label><input name="smtp_host" value="<?= htmlspecialchars($myMail['smtp_host']??'') ?>" placeholder="smtp.gmail.com" style="<?= $inp ?>"></div>
-        <div><label style="<?= $lbl ?>">SMTP port</label><input name="smtp_port" value="<?= htmlspecialchars((string)($myMail['smtp_port']??'587')) ?>" style="<?= $inp ?>"></div>
-        <div><label style="<?= $lbl ?>">SMTP username</label><input name="smtp_user" value="<?= htmlspecialchars($myMail['smtp_user']??'') ?>" placeholder="usually your email" style="<?= $inp ?>"></div>
-        <div><label style="<?= $lbl ?>">SMTP password <?= ($myMail['smtp_pass']??'')!==''?'· saved, blank = keep':'' ?></label><input type="password" name="smtp_pass" autocomplete="new-password" style="<?= $inp ?>"></div>
+        <div><label style="<?= $lbl ?>">SMTP port</label><input name="smtp_port" value="<?= htmlspecialchars((string)($myMail['smtp_port']??'465')) ?>" style="<?= $inp ?>"></div>
+        <div><label style="<?= $lbl ?>">SMTP username</label><input name="smtp_user" value="<?= htmlspecialchars($myMail['smtp_user']??'') ?>" placeholder="<?= $tk('usually your email') ?>" style="<?= $inp ?>"></div>
+        <div><label style="<?= $lbl ?>"><?= $tk('SMTP password') ?> <?= ($myMail['smtp_pass']??'')!==''?'· '.$tk('saved').', '.$tk('blank = keep'):'' ?></label><input type="password" name="smtp_pass" autocomplete="new-password" style="<?= $inp ?>"></div>
         </div>
       </details>
       <button class="btn btn-p btn-sm" type="submit"><?= $tk('Save') ?></button>
@@ -1508,6 +1506,7 @@ if($tab==='overview'){
       <p style="color:var(--mut);font-size:12px;margin:0 0 8px"><?= sprintf($tk('We send the campaign you use now — “%s” — exactly as your customers get it, with “[TEST]” in the subject and “%s” as the shop name.'),htmlspecialchars(vestra_lead_render_email(vestra_test_sample_lead(''),$tTpl)[0]),VESTRA_TEST_SAMPLE_SHOP) ?>
       </p>
       <?php if($mailReady): ?>
+      <p style="color:var(--mut);font-size:12px;margin:0 0 8px"><?= sprintf($tk('It goes out via %s.'),['brevo'=>'Brevo','smtp'=>$tk('your own mail server'),'server'=>$tk('the VESTRA mail server')][$myRoute]??'') ?></p>
       <form method="post" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
         <input type="hidden" name="_action" value="seller_send_test">
         <div style="flex:1;min-width:220px"><label style="<?= $lbl ?>"><?= $tk('Send the test to') ?></label><input type="email" name="test_to" required value="<?= htmlspecialchars((string)($myMail['last_test_to']??'')?:($me['email']??'')) ?>" style="<?= $inp ?>"></div>
@@ -1524,26 +1523,6 @@ if($tab==='overview'){
     </div>
   </div>
 
-  <div style="<?= $card ?>;border-color:#b9e3c9">
-    <h3 style="margin:0 0 6px;font-size:15px">🧭 Auto-discover customers <span style="color:#1f9d63;font-size:12px">● Free — no key needed</span></h3>
-    <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px">Pull <b>real small &amp; medium clothing shops</b> (independent &amp; multi-brand boutiques — not big chains) from OpenStreetMap straight into your list — searches a whole country at once. Then click <b>🔍 Find all missing emails</b> to fill their addresses from their own websites.</p>
-    <form method="post" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap" onsubmit="var b=this.querySelector('button');b.disabled=true;b.textContent='Searching… (whole-country can take up to a minute)';">
-      <input type="hidden" name="_action" value="seller_discover">
-      <div style="min-width:150px"><label style="<?= $lbl ?>">Country</label>
-        <select name="disc_country" required style="<?= $inp ?>"><option value="" disabled selected>— choose —</option>
-          <option>Germany</option><option>Netherlands</option><option>France</option><option>Italy</option>
-          <option>Spain</option><option>United Kingdom</option><option>United States</option><option>Australia</option><option>UAE</option><option>Turkey</option></select>
-      </div>
-      <div style="flex:1;min-width:190px"><label style="<?= $lbl ?>">City <span style="font-weight:400">— optional, narrows the search</span></label><input name="disc_city" placeholder="leave blank for the whole country" style="<?= $inp ?>"></div>
-      <button class="btn btn-p btn-sm" type="submit">🧭 Discover &amp; add</button>
-    </form>
-    <form method="post" style="margin-top:10px" onsubmit="var b=this.querySelector('button');b.disabled=true;b.textContent='Looking up emails…';">
-      <input type="hidden" name="_action" value="seller_find_all">
-      <button class="btn btn-o btn-sm" type="submit">🔍 Find all missing emails</button>
-      <span style="font-size:11px;color:var(--mut);margin-left:6px">Reads each shop's contact/imprint page. Long lists can take a while.</span>
-    </form>
-  </div>
-
   <?php
     require_once __DIR__.'/inc/finder.php';
     vestra_finder_refresh();
@@ -1551,14 +1530,14 @@ if($tab==='overview'){
     $sfReady = vestra_finder_ready();
     $sfFlash = $_SESSION['seller_finder_flash'] ?? null; unset($_SESSION['seller_finder_flash']);
     $sfMine  = array_values(array_filter($sfRuns, 'vestra_finder_is_active'));
-    $sfLastT = $sfRuns ? (int)strtotime((string)($sfRuns[0]['requested_at'] ?? '')) : 0;
+    $sfLastT = 0; foreach ($sfRuns as $sr) if (($sr['status'] ?? '') !== 'failed') { $sfLastT = (int)strtotime((string)($sr['requested_at'] ?? '')); break; }
     $sfWait  = $sfLastT && (time() - $sfLastT) < 86400;
   ?>
   <?php $tw = fn(string $x): string => htmlspecialchars(t($x)); ?>
   <div id="finderweb" style="<?= $card ?>;border-color:#b9e3c9">
     <h3 style="margin:0 0 6px;font-size:15px"><?= $tw('🌐 Find multi-brand boutiques on the web') ?> <span style="color:#1f9d63;font-size:12px">● <?= $tw('Real emails only') ?></span></h3>
     <p style="color:var(--mut);font-size:12.5px;margin:0 0 6px"><?= $tw('We look for independent boutiques that sell several designer brands and keep only those that publish a real email on their own website. Shoe shops, underwear stores, wholesalers, chains and brand stores are left out. New customers appear in your list below.') ?></p>
-    <p style="color:var(--mut);font-size:12px;margin:0 0 12px"><?= $tw('One search per day. It starts within 10 minutes and takes about 20-40 minutes.') ?></p>
+    <?php if($sfReady): ?><p style="color:var(--mut);font-size:12px;margin:0 0 12px"><?= $tw('One search per day. It starts within 10 minutes and takes about 20-40 minutes.') ?></p><?php endif; ?>
     <?php if($sfFlash): ?><div style="background:<?= $sfFlash[0]?'#eaf7ef':'#fdf0ee' ?>;border:1px solid <?= $sfFlash[0]?'#b9e3c9':'#f0c4bd' ?>;color:<?= $sfFlash[0]?'#1f7a4d':'#a3321f' ?>;padding:9px 13px;border-radius:10px;margin-bottom:12px;font-size:13px"><?= $tw((string)$sfFlash[1]) ?></div><?php endif; ?>
     <form method="post" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">
       <input type="hidden" name="_action" value="seller_finder_start">
@@ -1595,7 +1574,7 @@ if($tab==='overview'){
     <ol style="margin:0 0 10px 18px;padding:0;font-size:12.5px;color:var(--mut);line-height:1.6">
       <li><?= $tw('Press “Ready campaign” — or choose products, a style and a language yourself.') ?></li>
       <li><?= $tw('AI writes the subject and the text from your own catalog. You can edit every word.') ?></li>
-      <li><?= $tw('Send it to your customers below: one by one from your own Gmail, or with Brevo. Send yourself a test first.') ?></li>
+      <li><?= $tw('Send it to your customers below with “Send one-by-one”. Send yourself a test first.') ?></li>
     </ol>
     <?php if($acOn && $acRoute['src']==='own'): ?>
       <div style="font-size:12.5px;margin:0 0 10px"><span style="color:#1f9d63;font-weight:600">● <?= $acRoute['provider']==='deepseek'?$tw('Your own DeepSeek key'):$tw('Your own Claude key') ?></span> · <?= sprintf($tw('This month: %d campaigns'), (int)($acOwnU['own_calls']??0)) ?></div>
@@ -1701,50 +1680,57 @@ if($tab==='overview'){
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
     <div style="<?= $card ?>;margin:0">
-      <h3 style="margin:0 0 10px;font-size:15px">＋ Add a customer</h3>
+      <h3 style="margin:0 0 10px;font-size:15px">＋ <?= $tk('Add a customer') ?></h3>
       <form method="post">
         <input type="hidden" name="_action" value="seller_add_lead">
         <div style="display:grid;gap:8px;margin-bottom:10px">
-          <input name="company" required placeholder="Company *" style="<?= $inp ?>">
-          <input type="email" name="email" placeholder="Email (optional)" style="<?= $inp ?>">
-          <input name="country" placeholder="Country" style="<?= $inp ?>">
-          <input name="website" placeholder="Website" style="<?= $inp ?>">
+          <input name="company" required placeholder="<?= $tk('Company') ?> *" style="<?= $inp ?>">
+          <input type="email" name="email" placeholder="<?= $tk('Email (optional)') ?>" style="<?= $inp ?>">
+          <input name="country" placeholder="<?= $tk('Country') ?>" style="<?= $inp ?>">
+          <input name="website" placeholder="<?= $tk('Website') ?>" style="<?= $inp ?>">
         </div>
-        <button class="btn btn-p btn-sm" type="submit">＋ Add</button>
+        <button class="btn btn-p btn-sm" type="submit">＋ <?= $tk('Add') ?></button>
       </form>
     </div>
     <div style="<?= $card ?>;margin:0">
-      <h3 style="margin:0 0 10px;font-size:15px">⬆ Import CSV</h3>
-      <p style="color:var(--mut);font-size:12px;margin:0 0 10px">Columns: <code>company</code> required; <code>email,contact_name,country,website</code> optional. Email-less rows still import.</p>
+      <h3 style="margin:0 0 10px;font-size:15px">⬆ <?= $tk('Import CSV') ?></h3>
+      <p style="color:var(--mut);font-size:12px;margin:0 0 10px"><?= $tk('Columns:') ?> <code>company</code> (<?= $tk('required') ?>); <code>email,contact_name,country,website</code> (<?= $tk('optional') ?>). <?= $tk('Rows without an email still import.') ?></p>
       <form method="post" enctype="multipart/form-data">
         <input type="hidden" name="_action" value="seller_import_leads">
         <input type="file" name="csv" accept=".csv,text/csv" required style="<?= $inp ?>;margin-bottom:10px">
-        <button class="btn btn-p btn-sm" type="submit">⬆ Import</button>
+        <button class="btn btn-p btn-sm" type="submit">⬆ <?= $tk('Import') ?></button>
       </form>
     </div>
   </div>
 
   <div style="<?= $card ?>">
-    <h3 style="margin:0 0 10px;font-size:15px">My customers (<?= count($myLeads) ?>)</h3>
-    <?php if(!$myLeads): ?><p style="color:var(--mut);font-size:13px;margin:0">No customers yet — add one or import a CSV above.</p>
+    <h3 style="margin:0 0 10px;font-size:15px"><?= $tk('My customers') ?> (<?= count($myLeads) ?>)</h3>
+    <?php if(!$myLeads): ?><p style="color:var(--mut);font-size:13px;margin:0"><?= $tk('No customers yet — add one or import a CSV above.') ?></p>
     <?php else: ?>
+    <?php /* Kuyruk durumu (kendi SMTP'si / VESTRA sunucusu): müşteri başına son kayıt. */
+      $obByLead=[]; foreach(vestra_seller_outbox_all() as $it){ if(($it['uid']??'')!==$uid || ($it['lead_id']??'')==='') continue; $obByLead[(string)$it['lead_id']]=$it; } ?>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-      <button class="btn btn-p btn-sm" type="button" onclick="sellerSend(this)" <?= $mailReady?'':'disabled title="Set up your sending email first"' ?>>▶ Send one-by-one (live)</button>
-      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut)"><input type="checkbox" id="sAll" onclick="document.querySelectorAll('.slc').forEach(c=>{if(!c.disabled)c.checked=this.checked})"> select all</label>
-      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut)" title="<?= $sAiOn?'Rewrite each email for the customer with AI':'Add your DeepSeek key above to enable' ?>"><input type="checkbox" id="sAi" <?= $sAiOn?'':'disabled' ?>> ✨ AI personalize<?= $sAiOn?'':' (add key)' ?></label>
-      <span style="font-size:11.5px;color:var(--mut)">Email-less/unsubscribed can't be selected.</span>
+      <button class="btn btn-p btn-sm" type="button" onclick="sellerSend(this)" <?= $mailReady?'':'disabled title="'.$tk('Set up your sending email first').'"' ?>>▶ <?= $tk($myRoute==='brevo'?'Send one-by-one (live)':'Send one-by-one (queued, ~10 min)') ?></button>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut)"><input type="checkbox" id="sAll" onclick="document.querySelectorAll('.slc').forEach(c=>{if(!c.disabled)c.checked=this.checked})"> <?= $tk('select all') ?></label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut)" title="<?= $sAiOn?$tk('Rewrite each email for the customer with AI'):$tk('Add your DeepSeek key above to enable') ?>"><input type="checkbox" id="sAi" <?= $sAiOn?'':'disabled' ?>> ✨ <?= $tk('AI personalize') ?><?= $sAiOn?'':' ('.$tk('add key').')' ?></label>
+      <span style="font-size:11.5px;color:var(--mut)"><?= $tk('Customers without an email, unsubscribed or bounced cannot be selected.') ?></span>
+      <?php if($sFinderOn): ?><form method="post" style="margin:0 0 0 auto" onsubmit="var b=this.querySelector('button');b.disabled=true;b.textContent=<?= htmlspecialchars(json_encode(t('Looking up emails…'),JSON_UNESCAPED_UNICODE)) ?>"><input type="hidden" name="_action" value="seller_find_all"><button class="btn btn-o btn-sm" type="submit" style="font-size:11px">🔍 <?= $tk('Find all missing emails') ?></button></form><?php endif; ?>
     </div>
     <div style="background:#eef6ff;border:1px solid #cfe3fb;color:#1d4f86;border-radius:10px;padding:9px 12px;font-size:12.5px;margin:0 0 10px">✉ <?= htmlspecialchars(t('Free, no setup: click “Gmail” next to a customer. The email opens ready in your own Gmail (or Outlook / your mail app) — you just press Send. It goes from your own address.')) ?></div>
     <div id="sSob" style="display:none;background:var(--bg2,#f7f7fb);border-radius:10px;padding:10px 12px;margin-bottom:10px"><div id="sSobBar" style="font-weight:600;font-size:13px;margin-bottom:6px"></div><div id="sSobLog" style="max-height:200px;overflow:auto"></div></div>
     <div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
-      <tr style="text-align:left;color:var(--mut);font-size:11.5px"><th style="padding:6px"></th><th style="padding:6px">Company</th><th style="padding:6px">Email</th><th style="padding:6px">Country</th><th style="padding:6px">Status</th><th style="padding:6px"><?= htmlspecialchars(t('Write from your mailbox')) ?></th></tr>
-      <?php foreach($myLeads as $l): $noEmail=!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL); $unsub=($l['status']??'')==='unsubscribed'; ?>
+      <tr style="text-align:left;color:var(--mut);font-size:11.5px"><th style="padding:6px"></th><th style="padding:6px"><?= $tk('Company') ?></th><th style="padding:6px"><?= $tk('Email') ?></th><th style="padding:6px"><?= $tk('Country') ?></th><th style="padding:6px"><?= $tk('Status') ?></th><th style="padding:6px"><?= htmlspecialchars(t('Write from your mailbox')) ?></th></tr>
+      <?php foreach($myLeads as $l): $noEmail=!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL); $unsub=in_array($l['status']??'',['unsubscribed','bounced'],true);
+        $ob=$obByLead[(string)($l['id']??'')]??null; $obOpen=$ob && in_array($ob['status']??'',['queued','sending'],true); ?>
       <tr style="border-top:1px solid var(--line);opacity:<?= ($noEmail||$unsub)?.6:1 ?>">
-        <td style="padding:6px"><input class="slc" type="checkbox" value="<?= htmlspecialchars($l['id']??'') ?>" <?= ($noEmail||$unsub)?'disabled':'' ?>></td>
+        <td style="padding:6px"><input class="slc" type="checkbox" value="<?= htmlspecialchars($l['id']??'') ?>" <?= ($noEmail||$unsub||$obOpen)?'disabled':'' ?>></td>
         <td style="padding:6px"><b><?= htmlspecialchars($l['company']??'') ?></b><?php if(!empty($l['website'])): ?><div style="font-size:11px;color:var(--mut)"><?= htmlspecialchars($l['website']) ?></div><?php endif; ?></td>
         <td style="padding:6px;font-size:11.5px"><?php if($noEmail): ?><span style="color:#a9781a">—</span><?php if(!empty($l['website']) && $sFinderOn): ?> <form method="post" style="display:inline"><input type="hidden" name="_action" value="seller_find_email"><input type="hidden" name="lid" value="<?= htmlspecialchars($l['id']??'') ?>"><button class="btn btn-o btn-sm" style="padding:1px 7px;font-size:10.5px" type="submit">🔍 Find</button></form><?php endif; ?><?php else: ?><?= htmlspecialchars($l['email']) ?><?php endif; ?></td>
         <td style="padding:6px"><?= htmlspecialchars($l['country']??'') ?: '—' ?></td>
-        <td style="padding:6px;font-size:11.5px"><?= htmlspecialchars(ucfirst($l['status']??'new')) ?><?php if(($l['contact_via']??'')!==''): ?><div style="color:var(--mut);font-size:10.5px"><?= htmlspecialchars(t('opened in').' '.(['gmail'=>'Gmail','outlook'=>'Outlook','mailapp'=>t('Mail app')][$l['contact_via']] ?? '')) ?></div><?php endif; ?></td>
+        <td style="padding:6px;font-size:11.5px"><?= htmlspecialchars(t(['new'=>'New','contacted'=>'Contacted','replied'=>'Replied','converted'=>'Customer','declined'=>'Declined','unsubscribed'=>'Unsubscribed','bounced'=>'Bounced'][$l['status']??'new'] ?? ucfirst((string)($l['status']??'new')))) ?>
+          <?php if($obOpen): ?><div style="color:#a9781a;font-size:10.5px">⏳ <?= $tk('queued — leaves within about 10 minutes') ?></div>
+          <?php elseif($ob && ($ob['status']??'')==='failed'): ?><div style="color:#c0392b;font-size:10.5px">✗ <?= $tk('could not be sent') ?><?= ($ob['reason']??'')!==''?': '.htmlspecialchars(mb_substr((string)$ob['reason'],0,60)):'' ?></div>
+          <?php elseif(($l['contact_via']??'')!==''): $cv=(string)$l['contact_via']; ?><div style="color:var(--mut);font-size:10.5px"><?= htmlspecialchars(isset(['gmail'=>1,'outlook'=>1,'mailapp'=>1][$cv])?t('opened in').' '.(['gmail'=>'Gmail','outlook'=>'Outlook','mailapp'=>t('Mail app')][$cv]):(['brevo'=>t('sent via Brevo'),'seller_smtp'=>t('sent from your mail server'),'seller_server'=>t('sent by the VESTRA mail server')][$cv]??'')) ?></div><?php endif; ?></td>
         <td style="padding:6px;white-space:nowrap"><?php if(!$noEmail && !$unsub): $lidJ=htmlspecialchars(json_encode((string)($l['id']??''))); ?>
           <button class="btn btn-o btn-sm" style="padding:2px 8px;font-size:11px" type="button" onclick="sellerCompose(<?= $lidJ ?>,'gmail','',this)">Gmail</button>
           <button class="btn btn-o btn-sm" style="padding:2px 8px;font-size:11px" type="button" onclick="sellerCompose(<?= $lidJ ?>,'outlook','',this)">Outlook</button>
@@ -1781,24 +1767,27 @@ var sendWhy=<?= json_encode([
   'key'=>t('Brevo did not accept your key. Please create a new key and save it again.'),
   'badaddr'=>t('This customer’s email address is not valid — it was removed from sending.'),
   'transport'=>t('Brevo could not be reached. Please try again in a minute.'),
-  'nosender'=>t('Your sending is not set up yet — use “Open test in Gmail” instead.'),
+  'nosender'=>t('Your sending is not set up yet — use the Gmail / Outlook buttons next to each customer, or add a Brevo key or your mail server above.'),
+  'nosetup'=>t('Your sending is not set up yet — use the Gmail / Outlook buttons next to each customer, or add a Brevo key or your mail server above.'),
+  'badto'=>t('This customer’s email address is not valid — it was removed from sending.'),
   'cap'=>t('You reached today’s sending limit for your mail server. The rest can be sent tomorrow.'),
   'unsub'=>t('Unsubscribed'),'noemail'=>t('No email'),'send'=>t('The email could not be sent.')], JSON_UNESCAPED_UNICODE) ?>;
 function sellerSend(btn){
   var boxes=[].slice.call(document.querySelectorAll('.slc')).filter(function(c){return c.checked && !c.disabled;});
-  if(!boxes.length){ alert('Select at least one customer first.'); return; }
+  if(!boxes.length){ alert(<?= json_encode(t('Select at least one customer first.'),JSON_UNESCAPED_UNICODE) ?>); return; }
   var ids=boxes.map(function(c){return c.value;});
   var wrap=document.getElementById('sSob'),bar=document.getElementById('sSobBar'),log=document.getElementById('sSobLog');
   var aiEl=document.getElementById('sAi'); var ai=(aiEl&&aiEl.checked&&!aiEl.disabled)?'1':'';
-  wrap.style.display='block'; log.innerHTML=''; btn.disabled=true; var i=0,ok=0,fail=0;
+  wrap.style.display='block'; log.innerHTML=''; btn.disabled=true; var i=0,ok=0,fail=0,q=0;
+  var T={done:<?= json_encode(t('✓ Done — %1 sent, %2 queued, %3 failed of %4. Refresh for statuses.'),JSON_UNESCAPED_UNICODE) ?>,sending:<?= json_encode(t('Sending %1 / %2…'),JSON_UNESCAPED_UNICODE) ?>,failed:<?= json_encode(t('failed'),JSON_UNESCAPED_UNICODE) ?>};
   function next(){
-    if(i>=ids.length){ bar.textContent='✓ Done — '+ok+' sent, '+fail+' failed of '+ids.length+'. Refresh for statuses.'; btn.disabled=false; return; }
-    bar.textContent='Sending '+(i+1)+' / '+ids.length+(ai?' ✨':'')+'…';
+    if(i>=ids.length){ bar.textContent=T.done.replace('%1',ok).replace('%2',q).replace('%3',fail).replace('%4',ids.length); btn.disabled=false; return; }
+    bar.textContent=T.sending.replace('%1',i+1).replace('%2',ids.length)+(ai?' ✨':'');
     var fd=new FormData(); fd.append('_action','seller_send_one'); fd.append('lead_id',ids[i]); fd.append('ai',ai);
     fetch('/seller?tab=find',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
       var ln=document.createElement('div'); ln.style.fontSize='12px'; ln.style.padding='2px 0';
-      if(d.ok){ ok++; ln.style.color='#1f9d63'; ln.textContent=(d.queued?'⏳ ':'✓ ')+(d.company||d.email||'')+(d.queued?' — '+<?= json_encode(t('Queued — it leaves from your own mail server within about 10 minutes.'), JSON_UNESCAPED_UNICODE) ?>:''); }
-      else { fail++; ln.style.color='#c0392b'; ln.textContent='✗ '+(d.company||d.email||'')+' — '+(sendWhy[d.error]||d.error||'failed'); }
+      if(d.ok){ if(d.queued) q++; else ok++; ln.style.color='#1f9d63'; ln.textContent=(d.queued?'⏳ ':'✓ ')+(d.company||d.email||'')+(d.queued?' — '+<?= json_encode(t($myRoute==='server'?'Queued — the VESTRA mail server sends it within about 10 minutes.':'Queued — it leaves from your own mail server within about 10 minutes.'), JSON_UNESCAPED_UNICODE) ?>:''); }
+      else { fail++; ln.style.color='#c0392b'; ln.textContent='✗ '+(d.company||d.email||'')+' — '+(sendWhy[d.error]||d.error||T.failed); }
       log.appendChild(ln); log.scrollTop=log.scrollHeight; i++; setTimeout(next,250);
     }).catch(function(){ fail++; i++; setTimeout(next,250); });
   }
