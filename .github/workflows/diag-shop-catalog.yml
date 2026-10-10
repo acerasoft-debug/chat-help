@@ -5,63 +5,95 @@ on:
 permissions:
   contents: read
 
-# SALT OKUNUR. Mağazanın (~/maxsales_de) gördüğü kataloğu, mağazanın kendi
-# koduyla okur ve sıkıştırılmış JSON olarak loga basar: marka, kategori,
-# satıcı, fotoğraflar (diskte var mı), renk, beden/stok. Ayrıca B2B
-# listings.json satırlarının ham alan adlarını ve satıcı/marka dağılımını
-# verir. Hiçbir dosyaya yazmaz.
+# SALT OKUNUR. Mağazanın (~/maxsales_de) gördüğü kataloğu mağazanın kendi
+# koduyla okur ve ÖZET basar:
+#   1) B2B listings.json'da satıcı × marka dağılımı
+#   2) vitrindeki ürünlerin marka / kategori / kaynak dağılımı
+#   3) iç çamaşırı gibi görünen satırlar
+#   4) fotoğrafı olmayan ya da dosyası diskte bulunmayan ürünler
+#   5) renk: addan okunan renk + ilk düz zeminli karenin baskın rengi
+# Hiçbir dosyaya yazmaz.
 jobs:
   dump:
     runs-on: ubuntu-latest
     steps:
-      - name: Dök
+      - name: Özetle
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          command_timeout: 10m
+          command_timeout: 20m
           script: |
             cd ~/maxsales_de
-            php <<'PHP'
+            php -d memory_limit=1024M <<'PHP'
             <?php
             require 'inc/catalog.php';
             require_once 'inc/uploads.php';
+            require_once 'tools/lib-photo-colour.php';
             $cat = vr_catalog();
-            $raw = vr_store_read('listings.json', []);
+            $raw = (array)vr_store_read('listings.json', []);
             $rawById = [];
-            foreach ((array)$raw as $r) if (is_array($r) && isset($r['id'])) $rawById[(string)$r['id']] = $r;
-            $imp = vr_store_read('retail-imported.json', []);
-            $impIds = [];
-            foreach ((array)$imp as $r) if (isset($r['id'])) $impIds[(string)$r['id']] = true;
+            foreach ($raw as $r) if (is_array($r) && isset($r['id'])) $rawById[(string)$r['id']] = $r;
 
-            $out = [];
+            echo "== 1) B2B listings.json: satici | marka (toplam " . count($raw) . ") ==\n";
+            $sel = [];
+            foreach ($raw as $r) if (is_array($r)) {
+              $k = sprintf('%-30s | %-22s | st=%s', mb_substr((string)($r['seller'] ?? '?'),0,30), mb_substr((string)($r['brand'] ?? '?'),0,22), (string)($r['status'] ?? ''));
+              $sel[$k] = ($sel[$k] ?? 0) + 1;
+            }
+            arsort($sel); foreach ($sel as $k => $n) printf("  %4d  %s\n", $n, $k);
+            $keys = []; foreach ($raw as $r) if (is_array($r)) foreach (array_keys($r) as $k) $keys[$k] = ($keys[$k] ?? 0) + 1;
+            arsort($keys); echo "  alanlar: "; foreach ($keys as $k => $n) echo "$k:$n "; echo "\n\n";
+
+            echo "== 2) vitrin: " . count($cat) . " urun — marka (kaynak) ==\n";
+            $b = [];
+            foreach ($cat as $id => $p) { $src = isset($rawById[$id]) ? 'b2b' : 'imp'; $k = $p['brand']; $b[$k][$src] = ($b[$k][$src] ?? 0) + 1; $b[$k]['t'] = ($b[$k]['t'] ?? 0) + 1; }
+            uasort($b, fn($x, $y) => $y['t'] <=> $x['t']);
+            foreach ($b as $k => $v) printf("  %4d  %-26s b2b=%d imp=%d\n", $v['t'], $k, $v['b2b'] ?? 0, $v['imp'] ?? 0);
+            $c = []; foreach ($cat as $p) $c[$p['cat']] = ($c[$p['cat']] ?? 0) + 1; arsort($c);
+            echo "  kategoriler: "; foreach ($c as $k => $n) echo "$k:$n | "; echo "\n\n";
+
+            echo "== 3) ic camasiri / corap / mayo gibi gorunenler ==\n";
+            $uw = '/underwear|boxer|brief|trunk|\bslip|unterw|unterhose|bra\b|bralette|sock|socken|lingerie|undershirt|tank top|vest\b|pyjama|pajama|nightwear|bodysuit|\bnbb\b/i';
+            $nu = 0;
+            foreach ($cat as $id => $p) {
+              $hay = $p['brand'] . ' ' . $p['name'] . ' ' . $p['cat'] . ' ' . ($rawById[$id]['category'] ?? '') . ' ' . ($rawById[$id]['seller'] ?? '');
+              if (preg_match($uw, $hay)) { $nu++; if ($nu <= 80) printf("  %-22s %-16s %-24s %s\n", $id, mb_substr($p['brand'],0,16), mb_substr($p['cat'],0,24), mb_substr($p['name'],0,60)); }
+            }
+            echo "  toplam: $nu\n\n";
+
+            echo "== 4) fotografi eksik ==\n";
+            $none = []; $broken = []; $one = 0;
             foreach ($cat as $id => $p) {
               $imgs = array_values(array_filter((array)($p['images'] ?? []), 'strlen'));
-              $exists = 0;
-              foreach ($imgs as $i) if (vr_upload_exists($i) || str_starts_with($i, 'http')) $exists++;
-              $r = $rawById[$id] ?? [];
-              $out[] = [
-                'id' => $id, 'b' => $p['brand'] ?? '', 'n' => $p['name'] ?? '', 'c' => $p['cat'] ?? '',
-                'sku' => $p['sku'] ?? '', 'st' => $p['seller_type'] ?? '', 'su' => $p['seller_uid'] ?? '',
-                'src' => isset($impIds[$id]) ? (isset($rawById[$id]) ? 'both' : 'imp') : 'b2b',
-                'ni' => count($imgs), 'ne' => $exists, 'im' => array_slice($imgs, 0, 4),
-                'col' => function_exists('vr_variant_colour') ? vr_variant_colour($p) : '',
-                'sz' => implode(' ', array_map(fn($s) => $s['label'] . 'x' . $s['qty'], (array)$p['sizes'])),
-                'stk' => (int)$p['stock'], 'pr' => (int)($p['price'] ?? $p['price_cents'] ?? 0),
-                'rs' => (string)($r['seller'] ?? ''), 'rc' => (string)($r['category'] ?? $r['cat'] ?? ''),
-                'colors' => $r['colors'] ?? ($r['colours'] ?? ($r['color'] ?? null)),
-              ];
+              $ok = 0; foreach ($imgs as $i) if (vr_upload_exists($i) || str_starts_with($i, 'http')) $ok++;
+              if (!$imgs) $none[] = $id; elseif ($ok === 0) $broken[] = $id; elseif ($ok === 1) $one++;
             }
-            $keys = [];
-            foreach ((array)$raw as $r) if (is_array($r)) foreach (array_keys($r) as $k) $keys[$k] = ($keys[$k] ?? 0) + 1;
-            arsort($keys);
-            $sel = [];
-            foreach ((array)$raw as $r) if (is_array($r)) { $k = ($r['seller'] ?? '?') . ' | ' . ($r['brand'] ?? '?'); $sel[$k] = ($sel[$k] ?? 0) + 1; }
-            arsort($sel);
-            $payload = json_encode(['products' => $out, 'raw_keys' => $keys, 'raw_seller_brand' => $sel,
-                                    'raw_count' => count((array)$raw)], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            echo "products=" . count($out) . " raw=" . count((array)$raw) . " bytes=" . strlen($payload) . "\n";
-            echo "-----BEGIN DUMP-----\n" . chunk_split(base64_encode(gzencode($payload, 9)), 100, "\n") . "-----END DUMP-----\n";
+            printf("  hic yok: %d · dosyasi kayip: %d · tek kare: %d\n", count($none), count($broken), $one);
+            foreach (array_merge($none, $broken) as $id) { $p = $cat[$id]; printf("  %-22s %-16s %-20s sku=%-16s %s\n", $id, mb_substr($p['brand'],0,16), mb_substr($p['cat'],0,20), $p['sku'], mb_substr($p['name'],0,50)); }
+            echo "\n";
+
+            echo "== 5) renk ==\n";
+            $words = 'black|white|navy|blue|grey|gray|beige|cream|ivory|red|burgundy|bordeaux|green|khaki|olive|brown|camel|pink|yellow|orange|purple|lilac|multicolou?r|silver|gold|ecru|sand|stone|charcoal|anthracite|light blue|sky|turquoise|mint|coral|schwarz|weiss|weiß|blau|grau|rot|gruen|grün|braun|nero|bianco';
+            $byName = 0; $grp = 0; $samples = [];
+            $vix = vr_variant_index(); foreach ($vix as $ids) $grp++;
+            $photoCols = [];
+            foreach ($cat as $id => $p) {
+              $nm = vr_variant_colour($p) ?: (preg_match('/\b(' . $words . ')\b/i', $p['name'] . ' ' . ($p['desc'] ?? ''), $m) ? $m[1] : '');
+              if ($nm !== '') $byName++;
+              $img = function_exists('vr_swatch_image') ? vr_swatch_image($p) : (($p['images'][0] ?? ''));
+              $dom = null;
+              if ($img !== '' && str_starts_with($img, '/uploads/')) {
+                $abs = vr_doc_root() . $img;
+                $r = cac_pixels($abs);
+                if ($r && $r[1] >= 0.08) $dom = cac_dominant($r[0]);
+              }
+              $hex = $dom ? sprintf('#%02x%02x%02x', ...$dom) : '-';
+              $photoCols[$hex === '-' ? 'olculemedi' : 'olculdu'] = ($photoCols[$hex === '-' ? 'olculemedi' : 'olculdu'] ?? 0) + 1;
+              if (count($samples) < 60 && crc32($id) % 19 === 0) $samples[] = sprintf("  %-22s %-14s ad=%-12s foto=%s  %s", $id, mb_substr($p['brand'],0,14), $nm ?: '-', $hex, mb_substr($p['name'],0,46));
+            }
+            printf("  adinda renk gecen: %d / %d · renk grubu (ayni model birden cok renk): %d\n", $byName, count($cat), $grp);
+            echo "  foto rengi: "; foreach ($photoCols as $k => $n) echo "$k=$n "; echo "\n  ornekler:\n" . implode("\n", $samples) . "\n";
             PHP
