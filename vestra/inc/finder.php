@@ -257,6 +257,45 @@ function vestra_finder_refresh(): void {
 
 /** Admin ve satıcı panelinin ortak sonuç listesi. Yalnızca satır içi stil kullanır ki
  *  iki panelin farklı CSS'inde aynı görünsün. $showOwner: admin tüm kayıtları görür. */
+/**
+ * Admin: müşteri tablosu + bekleyenlerin yanında seçim kutusu + "📮 Seçilenlere gönder" (10 Eki 2026, operatör:
+ * "yeni müşterileri seçebileceğim buton koy"). $rows: ['company','email','country','brands'|'premium_brands',
+ * 'lead'=>leads.json kaydı|null]. Gönderim finder_run_send → sunucunun posta kuyruğu (support@, kendi sunucumuz).
+ * Döner: [html, gönderilmiş sayısı, bekleyen sayısı].
+ */
+function vestra_finder_pick_table(array $rows, string $fid): array {
+  $h = static fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+  $fid = preg_replace('/[^A-Za-z0-9_]/', '', $fid) ?: 'fp';
+  $canSend = function_exists('csrfField');
+  $sent = 0; $wait = 0; $body = '';
+  foreach ($rows as $a) {
+    $l = $a['lead'] ?? null; $st = (string)($l['status'] ?? ''); $at = trim((string)($l['last_contacted_at'] ?? ''));
+    $box = '';
+    if ($l === null)                 $cell = '<span style="color:var(--mut,#777)">—</span>';
+    elseif ($st === 'bounced')       $cell = '<span style="color:#c0392b">✗ geri döndü</span>';
+    elseif ($st === 'unsubscribed')  $cell = '<span style="color:var(--mut,#777)">abonelikten çıktı</span>';
+    elseif ($at !== '')              { $sent++; $cell = '<span style="color:#1f9d63">✓ gönderildi '.$h(date('d.m H:i', (int)strtotime($at))).'</span>'; }
+    else { $wait++; $cell = '<span style="color:#a9781a">⏳ henüz gönderilmedi</span>';
+      if ($canSend && ($l['id'] ?? '') !== '') $box = '<input type="checkbox" name="ids[]" value="'.$h($l['id']).'" checked onchange="vPick(this.form)">'; }
+    $brands = (array)($a['brands'] ?? $a['premium_brands'] ?? ($l['premium_brands'] ?? []));
+    $body .= '<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:3px 4px 3px 0;width:18px">'.$box.'</td><td style="padding:3px 6px 3px 0">'.$h($a['company'] ?? '').'</td>'
+           . '<td style="padding:3px 6px">'.$h($a['email'] ?? '').'</td><td style="padding:3px 6px">'.$h($a['country'] ?? '').'</td>'
+           . '<td style="padding:3px 0;color:var(--mut,#777)">'.$h(implode(', ', array_slice($brands, 0, 4))).'</td>'
+           . '<td style="padding:3px 0 3px 6px;white-space:nowrap">'.$cell.'</td></tr>';
+  }
+  $tbl = '<table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:12px">'.$body.'</table>';
+  if (!$canSend || !$wait) return [$tbl, $sent, $wait];
+  $opts = ''; foreach (vestra_finder_campaigns() as $ck => [$cl]) $opts .= '<option value="'.$h($ck).'">'.$h(mb_substr($cl, 0, 48)).'</option>';
+  $html = '<form method="post" id="'.$fid.'">'.csrfField().'<input type="hidden" name="_action" value="finder_run_send">'
+        . '<label style="display:inline-flex;gap:5px;align-items:center;font-size:12px;margin:6px 0 0"><input type="checkbox" checked onchange="this.form.querySelectorAll(\'input[name=&quot;ids[]&quot;]\').forEach(function(c){c.checked=this.checked},this);vPick(this.form)"> Hepsini seç / kaldır</label>'
+        . $tbl
+        . '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px"><select name="campaign" style="font-size:12px;padding:3px 6px">'.$opts.'</select>'
+        . '<button class="abtn primary" type="submit" style="padding:4px 12px" data-pick-btn onclick="var n=this.form.querySelectorAll(\'input[name=&quot;ids[]&quot;]:checked\').length;if(!n){alert(\'Önce müşteri seçin.\');return false;}return confirm(n+\' müşteriye support@vestrasales.com adresinden gönderilsin mi?\')">📮 Seçilenlere gönder (<span data-pick-n>'.$wait.'</span>)</button>'
+        . '<span style="color:var(--mut,#777);font-size:11.5px">kendi sunucumuz · 10 dk içinde başlar · günlük tavan içinde</span></div></form>'
+        . '<script>window.vPick=window.vPick||function(f){var n=f.querySelectorAll(\'input[name="ids[]"]:checked\').length,s=f.querySelector(\'[data-pick-n]\');if(s)s.textContent=n;};</script>';
+  return [$html, $sent, $wait];
+}
+
 function vestra_finder_runs_html(array $runs, bool $showOwner = false, array $ownerNames = [], int $limit = 6, bool $en = false): string {
   /* Satıcı tarafı (İngilizce anahtar) t() ile satıcının diline çevrilir — inc/lang/*.php. */
   $tt = static fn(string $x): string => function_exists('t') ? (string)t($x) : $x;
@@ -291,43 +330,25 @@ function vestra_finder_runs_html(array $runs, bool $showOwner = false, array $ow
       $out .= '<div style="margin-top:4px">'.sprintf($T['stats'], (int)($r['queries'] ?? 0), (int)($r['candidates'] ?? 0), (int)($r['analyzed'] ?? 0), (int)($r['added_count'] ?? 0)).'</div>';
       $added = (array)($r['added'] ?? []);
       if ($added) {
-        /* 10 Eki 2026 (operatör: "bunlara email gitti mi?"): adminde her eklenen müşterinin gönderim durumu
-           leads.json'dan okunur — "Eklenenler" listesi tek başına gönderildiği anlamına gelmez. */
-        $sent = 0; $stCell = [];
+        /* 10 Eki 2026 (operatör: "bunlara email gitti mi?", "yeni müşterileri seçebileceğim buton koy"): adminde
+           her eklenen müşterinin gönderim durumu leads.json'dan okunur; bekleyenlerin yanında seçim kutusu ve
+           "📮 Seçilenlere gönder" (vestra_finder_pick_table). Satıcı görünümü düz tablo. */
+        $rows = array_slice($added, 0, 100);
         if (!$en) {
           if ($leadIdx === null) { $leadIdx = [];
             foreach (vestra_leads() as $l) { $e = strtolower(trim((string)($l['email'] ?? ''))); if ($e !== '') $leadIdx[$e] = $l; } }
-          foreach (array_slice($added, 0, 100) as $k => $a) {
-            $l = $leadIdx[strtolower(trim((string)($a['email'] ?? '')))] ?? null; $st = (string)($l['status'] ?? '');
-            $at = trim((string)($l['last_contacted_at'] ?? ''));
-            if ($l === null)                 $stCell[$k] = '<span style="color:var(--mut,#777)">—</span>';
-            elseif ($st === 'bounced')       $stCell[$k] = '<span style="color:#c0392b">✗ geri döndü</span>';
-            elseif ($st === 'unsubscribed')  $stCell[$k] = '<span style="color:var(--mut,#777)">abonelikten çıktı</span>';
-            elseif ($at !== '')              { $sent++; $stCell[$k] = '<span style="color:#1f9d63">✓ gönderildi '.$h(date('d.m H:i', (int)strtotime($at))).'</span>'; }
-            else                             $stCell[$k] = '<span style="color:#a9781a">⏳ henüz gönderilmedi</span>';
-          }
-        }
-        $sumTxt = $en ? '' : ' · <span style="color:#1f9d63">'.$sent.' gönderildi</span> · <span style="color:#a9781a">'.(count(array_slice($added, 0, 100)) - $sent).' bekliyor/gönderilmedi</span>';
-        $out .= '<details style="margin-top:6px"'.(count($added) <= 8 ? ' open' : '').'><summary style="cursor:pointer">'.$T['added'].' ('.count($added).')'.$sumTxt.'</summary>'
-              . '<table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:12px">';
-        foreach (array_slice($added, 0, 100) as $k => $a) {
-          $out .= '<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:3px 6px 3px 0">'.$h($a['company'] ?? '').'</td>'
-                . '<td style="padding:3px 6px">'.$h($a['email'] ?? '').'</td><td style="padding:3px 6px">'.$h($a['country'] ?? '').'</td>'
-                . '<td style="padding:3px 0;color:var(--mut,#777)">'.$h(implode(', ', array_slice((array)($a['brands'] ?? []), 0, 4))).'</td>'
-                . ($en ? '' : '<td style="padding:3px 0 3px 6px;white-space:nowrap">'.($stCell[$k] ?? '').'</td>').'</tr>';
-        }
-        $out .= '</table></details>';
-        /* Bu aramada bulunup henüz yazılmamış olanlara tek tıkla gönderim (kendi sunucumuz, support@). */
-        $waitIds = [];
-        if (!$en && $leadIdx) foreach ($added as $a) { $l = $leadIdx[strtolower(trim((string)($a['email'] ?? '')))] ?? null;
-          if ($l && trim((string)($l['last_contacted_at'] ?? '')) === '' && !in_array((string)($l['status'] ?? ''), ['bounced', 'unsubscribed'], true) && ($l['id'] ?? '') !== '') $waitIds[] = (string)$l['id']; }
-        if ($waitIds && function_exists('csrfField')) {
-          $out .= '<form method="post" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px">'.csrfField()
-                . '<input type="hidden" name="_action" value="finder_run_send"><input type="hidden" name="ids" value="'.$h(implode(',', $waitIds)).'">'
-                . '<select name="campaign" style="font-size:12px;padding:3px 6px">';
-          foreach (vestra_finder_campaigns() as $ck => [$cl]) $out .= '<option value="'.$h($ck).'">'.$h(mb_substr($cl, 0, 48)).'</option>';
-          $out .= '</select><button class="abtn primary" type="submit" style="padding:4px 12px" onclick="return confirm(\'Bu aramada bulunan '.count($waitIds).' müşteriye support@vestrasales.com\\\'dan gönderilsin mi?\')">📮 Bunlara şimdi gönder ('.count($waitIds).')</button>'
-                . '<span style="color:var(--mut,#777);font-size:11.5px">support@vestrasales.com · kendi sunucumuz · 10 dk içinde başlar</span></form>';
+          foreach ($rows as $k => $a) $rows[$k]['lead'] = $leadIdx[strtolower(trim((string)($a['email'] ?? '')))] ?? null;
+          [$tbl, $sent, $wait] = vestra_finder_pick_table($rows, 'fr'.preg_replace('/[^A-Za-z0-9]/', '', (string)($r['id'] ?? '')));
+          $sumTxt = ' · <span style="color:#1f9d63">'.$sent.' gönderildi</span> · <span style="color:#a9781a">'.$wait.' bekliyor</span>';
+          $out .= '<details style="margin-top:6px"'.(count($added) <= 8 || $wait ? ' open' : '').'><summary style="cursor:pointer">'.$T['added'].' ('.count($added).')'.$sumTxt.'</summary>'.$tbl.'</details>';
+        } else {
+          $out .= '<details style="margin-top:6px"'.(count($added) <= 8 ? ' open' : '').'><summary style="cursor:pointer">'.$T['added'].' ('.count($added).')</summary>'
+                . '<table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:12px">';
+          foreach ($rows as $a)
+            $out .= '<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:3px 6px 3px 0">'.$h($a['company'] ?? '').'</td>'
+                  . '<td style="padding:3px 6px">'.$h($a['email'] ?? '').'</td><td style="padding:3px 6px">'.$h($a['country'] ?? '').'</td>'
+                  . '<td style="padding:3px 0;color:var(--mut,#777)">'.$h(implode(', ', array_slice((array)($a['brands'] ?? []), 0, 4))).'</td></tr>';
+          $out .= '</table></details>';
         }
       }
       $nm = (array)($r['no_email'] ?? []);

@@ -499,7 +499,7 @@ echo "\n== 8c. gönderim modu (otomatik / manuel) + alıcı havuzu — kendi sun
 require_once $root.'/inc/mailbox.php';
 @unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
 $am = vestra_mailbox_auto();
-$t('varsayılan: otomatik açık, lesgarage, 40, yeni bulunanlar', $am === ['auto_send' => true, 'auto_campaign' => 'lesgarage', 'auto_limit' => 40, 'auto_pool' => 'web']);
+$t('varsayılan: otomatik açık, lesgarage, 100, yeni bulunanlar', $am === ['auto_send' => true, 'auto_campaign' => 'lesgarage', 'auto_limit' => 100, 'auto_pool' => 'web']);
 vestra_write_json('leads.json', [
   ['id' => 'W1', 'company' => 'Boutique Una', 'email' => 'info@una.example', 'country' => 'Italy', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'a'],
   ['id' => 'O1', 'company' => 'Mode Alt', 'email' => 'info@alt.example', 'country' => 'Germany', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'b']]);
@@ -534,10 +534,10 @@ vestra_write_json('leads.json', [
 $stRun = [['id' => 'FRst', 'owner' => '', 'requested_at' => date('c'), 'status' => 'done', 'added_count' => 3,
   'added' => [['company' => 'Sent Shop', 'email' => 'a@sent.example'], ['company' => 'Wait Shop', 'email' => 'b@wait.example'], ['company' => 'Bounce Shop', 'email' => 'C@bounce.example']]]];
 $hSt = vestra_finder_runs_html($stRun, true, [], 6);
-$t('admin: gönderildi / bekliyor / geri döndü + özet', str_contains($hSt, '✓ gönderildi 10.10') && str_contains($hSt, '⏳ henüz gönderilmedi') && str_contains($hSt, '✗ geri döndü') && str_contains($hSt, '1 gönderildi') && str_contains($hSt, '2 bekliyor'));
+$t('admin: gönderildi / bekliyor / geri döndü + özet', str_contains($hSt, '✓ gönderildi 10.10') && str_contains($hSt, '⏳ henüz gönderilmedi') && str_contains($hSt, '✗ geri döndü') && str_contains($hSt, '1 gönderildi') && str_contains($hSt, '1 bekliyor'));
 if (!function_exists('csrfField')) { function csrfField() { return '<input type="hidden" name="_csrf" value="x">'; } }
 $hBtn = vestra_finder_runs_html($stRun, true, [], 6);
-$t('adminde "📮 Bunlara şimdi gönder" — yalnız bekleyen müşteri (S2)', str_contains($hBtn, 'value="finder_run_send"') && str_contains($hBtn, 'name="ids" value="S2"') && str_contains($hBtn, 'Bunlara şimdi gönder (1)'));
+$t('adminde seçim kutusu yalnız bekleyen müşteride (S2) + "📮 Seçilenlere gönder"', str_contains($hBtn, 'value="finder_run_send"') && str_contains($hBtn, 'name="ids[]" value="S2" checked') && substr_count($hBtn, 'name="ids[]" value=') === 1 && str_contains($hBtn, 'Seçilenlere gönder (<span data-pick-n>1</span>)'));
 require_once $root.'/inc/mailbox.php'; @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
 [$okIds] = vestra_mailbox_request('send', 1, 'standard', '', array_keys(vestra_finder_campaigns()), 'web', ['S2', 'bad id!']);
 $rIds = vestra_mailbox_runs()[0] ?? [];

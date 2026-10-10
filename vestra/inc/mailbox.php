@@ -15,7 +15,10 @@
 require_once __DIR__.'/leads.php';
 require_once __DIR__.'/notify.php';
 
-const VESTRA_MAILBOX_DEFAULT_CAP = 50;
+/* 10 Eki 2026 (operatör: "tavan 50 kişiyi kaldır, tavan 500 kişi kendi sunucum ile"). GoDaddy cPanel barındırma
+   aktarıcısının sınırı e-posta hesabı başına günde ~500'dür; tavan tam bu sınıra ayarlı — sipariş/fatura Brevo'dan
+   gittiği için o paya dokunmaz, ama support@'tan elle yazılan mektuplar da aynı sınıra sayılır. */
+const VESTRA_MAILBOX_DEFAULT_CAP = 500;
 
 function vestra_mailbox_file(string $name): string { return vestra_data_dir().'/'.$name; }
 
@@ -27,18 +30,20 @@ function vestra_mailbox_cfg(): array {
 }
 
 function vestra_mailbox_daily_cap(): int {
-  $c = (int)(vestra_mailbox_cfg()['daily_cap'] ?? VESTRA_MAILBOX_DEFAULT_CAP);
+  $cfg = vestra_mailbox_cfg();
+  /* 10 Eki öncesi kaydedilmiş tavan (eski 50 varsayılanı döneminden, 'daily_cap_set_at' yok) yok sayılır. */
+  $c = (int)(isset($cfg['daily_cap_set_at']) ? ($cfg['daily_cap'] ?? VESTRA_MAILBOX_DEFAULT_CAP) : VESTRA_MAILBOX_DEFAULT_CAP);
   return max(1, min(VESTRA_MAILBOX_MAX_CAP, $c ?: VESTRA_MAILBOX_DEFAULT_CAP));
 }
 
 /** GoDaddy cPanel barındırma aktarıcısı: e-posta hesabı başına GÜNDE 500 (ve hesap geneli saatte 500).
  *  Tavan bunun altında tutulur; kalan pay elle yazılan / yanıt mektuplarına kalsın. */
-const VESTRA_MAILBOX_MAX_CAP = 400;
+const VESTRA_MAILBOX_MAX_CAP = 500;
 
 function vestra_mailbox_set_cap(int $cap): int {
   $cap = max(1, min(VESTRA_MAILBOX_MAX_CAP, $cap));
   $f = vestra_mailbox_file('mailbox.json');
-  $cur = vestra_mailbox_cfg(); $cur['daily_cap'] = $cap;
+  $cur = vestra_mailbox_cfg(); $cur['daily_cap'] = $cap; $cur['daily_cap_set_at'] = date('c');
   file_put_contents($f, json_encode($cur, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES), LOCK_EX); @chmod($f, 0600);
   return $cap;
 }
@@ -50,7 +55,7 @@ function vestra_mailbox_set_cap(int $cap): int {
    manual= arama yalnız listeye ekler; gönderimi panelden siz başlatırsınız.
    Alıcı havuzu varsayılan 'web': web aramasıyla bulunmuş, sitesinde adres yayınlayan, e-posta sunucusu
    doğrulanmış butikler — eski listeden (OSM/içe aktarma) gönderim 9 Eki'de ölü alan adlarına çarptı. */
-const VESTRA_MAILBOX_AUTO_DEFAULTS = ['auto_send' => true, 'auto_campaign' => 'lesgarage', 'auto_limit' => 40, 'auto_pool' => 'web'];
+const VESTRA_MAILBOX_AUTO_DEFAULTS = ['auto_send' => true, 'auto_campaign' => 'lesgarage', 'auto_limit' => 100, 'auto_pool' => 'web'];
 
 function vestra_mailbox_auto(): array {
   $c = vestra_mailbox_cfg(); $d = VESTRA_MAILBOX_AUTO_DEFAULTS;

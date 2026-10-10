@@ -1951,7 +1951,8 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   /* Bir aramanın sonuç listesinden "📮 Bunlara şimdi gönder" (10 Eki 2026, operatör: "gönderen buton yok"). */
   if($act==='finder_run_send'){
     require_once __DIR__.'/inc/finder.php'; require_once __DIR__.'/inc/mailbox.php';
-    $ids=array_slice(array_filter(explode(',',(string)($_POST['ids']??''))),0,200);
+    $ids=array_slice(array_values(array_filter(is_array($_POST['ids']??null)?array_map('strval',$_POST['ids']):explode(',',(string)($_POST['ids']??'')))),0,200);
+    if(!$ids){ $_SESSION['mailbox_flash']=[false,'Önce müşteri seçin.']; header('Location: /admin?tab=prospects#mailboxsend'); exit; }
     [$ok,$msg]=vestra_mailbox_request('send',max(1,count($ids)),(string)($_POST['campaign']??'lesgarage'),'',array_keys(vestra_finder_campaigns()),'web',$ids);
     $_SESSION['mailbox_flash']=[$ok,$msg];
     header('Location: /admin?tab=prospects#mailboxsend'); exit;
@@ -6624,6 +6625,12 @@ elseif($tab==='prospects'):
         <a class="ahint" href="#aicamp" style="margin:0 0 8px 4px">✍️ Yeni kampanya yaz (Claude)</a>
         <button class="abtn primary" type="submit" name="mode" value="send" onclick="return confirm('Seçilen kampanya support@ adresinden gönderilsin mi?')"<?= ($mbOpen||$mbLeft<=0||!$fsTargetsAll)?' disabled':'' ?>>📮 Gönder</button>
       </form>
+      <?php $mbPick=[]; foreach(array_slice($fsTargetsWeb,0,200) as $l) $mbPick[]=['company'=>$l['company']??'','email'=>$l['email']??'','country'=>$l['country']??'','premium_brands'=>(array)($l['premium_brands']??[]),'lead'=>$l];
+        if($mbPick): [$mbPickHtml]=vestra_finder_pick_table($mbPick,'mbpick'); ?>
+      <details style="margin-top:8px;border:1px solid rgba(31,157,99,.45);border-radius:9px;padding:8px 11px" open><summary style="cursor:pointer;font-weight:700;font-size:13px">✅ Yeni müşterileri seçerek gönder (<?= count($mbPick) ?>) <span class="ahint" style="font-weight:400">· kutuyu kaldırdığınıza gitmez</span></summary>
+        <?= $mbPickHtml ?>
+      </details>
+      <?php endif; ?>
       <details style="margin-top:8px"><summary class="ahint" style="cursor:pointer">👁 Kampanyaları önizle (<?= count($fsCamps) ?>) — <?= htmlspecialchars((string)($fsSample['company']??'')) ?> için örnek</summary>
         <?php foreach($fsCamps as $ck=>[$cl,$cd,$cb]): [$ps,$pb]=$cb($fsSample); ?>
           <div style="border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-top:6px"><div style="font-size:12.5px"><b><?= htmlspecialchars($cl) ?></b> <span class="ahint">· <?= htmlspecialchars($cd) ?></span></div>
