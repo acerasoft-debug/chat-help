@@ -125,4 +125,15 @@ jobs:
             arsort($nwBrand); foreach ($nwBrand as $k => $n) printf("     %4d  %s\n", $n, $k);
             printf("  uploads boyutu: magaza %s · vestra %s\n", trim((string)shell_exec('du -sh ~/maxsales_de/uploads 2>/dev/null | cut -f1')), trim((string)shell_exec('du -sh ~/public_html/uploads 2>/dev/null | cut -f1')));
             printf("  disk: %s\n", trim((string)shell_exec('df -h ~ | tail -1')));
+
+            echo "\n== 9) rengi bilinmeyen vitrin urunleri ==\n";
+            $nc = 0; $ncb = [];
+            foreach ($cat as $id => $p) {
+              if (vr_product_colours($p)) continue;
+              $nc++; $ncb[$p['brand']] = ($ncb[$p['brand']] ?? 0) + 1;
+              printf("  %-26s %-14s %-38s %s\n", mb_substr($id,0,26), mb_substr($p['brand'],0,14), mb_substr(vr_card_name($p),0,38), vr_swatch_image($p));
+            }
+            echo "  toplam: $nc · "; foreach ($ncb as $k => $n) echo "$k:$n "; echo "\n";
+            $multi = 0; foreach ($cat as $p) if (count(vr_product_colours($p)) > 1) $multi++;
+            echo "  birden cok rengi olan urun: $multi\n";
             PHP
