@@ -529,6 +529,9 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .vault .btn--ghost{color:var(--bone);border-color:rgba(255,255,255,.4)}
 .vault .btn--ghost::before{background:var(--bone)}
 .vault .btn--ghost:hover{color:var(--ink)}
+.vault .btn--brass{background:var(--bone);border-color:var(--bone);color:var(--ink)}
+.vault .btn--brass::before{background:var(--ink)}
+.vault .btn--brass:hover{color:var(--bone)}
 .vault .crumbs{color:var(--muted-2)}
 .vault .crumbs li+li::before{color:rgba(255,255,255,.25)}
 .vault .sizetabs a{background:var(--ink-2);color:var(--muted)}

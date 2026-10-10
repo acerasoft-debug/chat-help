@@ -1090,7 +1090,40 @@ function vr_card_name(array $p): string
         if ($label !== '') return $label;
     }
 
-    return $n !== '' ? $n : (string)($p['sku'] ?? '');
+    if ($n === '') return (string)($p['sku'] ?? '');
+    return vr_name_localise($n);
+}
+
+/**
+ * Tedarikçi adlarındaki Almanca sözcükler (yarısı Almanca, yarısı İngilizce
+ * geliyor: "Zip Hoodie Jacke"). Almanca vitrinde olduğu gibi kalır; diğer
+ * dillerde moda dünyasının ortak dili İngilizceye çevrilir — Fransızca ya da
+ * İtalyanca vitrinde "Trainingsanzug" yazması hiç kimseye bir şey söylemiyor.
+ * Yalnızca TAM sözcük eşleşmesi; yazım hatası ("Strech") her dilde düzelir.
+ */
+function vr_name_localise(string $n): string
+{
+    $n = (string)preg_replace('/\bStrech\b/u', 'Stretch', $n);
+    if (vr_lang() === 'de') return $n;
+    static $de = [
+        'Trainingsanzug' => 'Tracksuit', 'Jogginganzug' => 'Tracksuit', 'Jogginghose' => 'Sweatpants',
+        'Jeansshorts' => 'Denim Shorts', 'Jeansjacke' => 'Denim Jacket', 'Lederjacke' => 'Leather Jacket',
+        'Daunenjacke' => 'Down Jacket', 'Steppjacke' => 'Quilted Jacket', 'Sweatjacke' => 'Zip Sweatshirt',
+        'Strickjacke' => 'Cardigan', 'Kapuzenpullover' => 'Hoodie', 'Pullover' => 'Jumper', 'Jacke' => 'Jacket',
+        'Weste' => 'Gilet', 'Mantel' => 'Coat', 'Hose' => 'Trousers', 'Hemd' => 'Shirt', 'Poloshirt' => 'Polo Shirt',
+        'Badeshorts' => 'Swim Shorts', 'Badehose' => 'Swim Shorts', 'Bademode' => 'Swimwear', 'Kleid' => 'Dress',
+        'Mütze' => 'Beanie', 'Kappe' => 'Cap', 'Gürtel' => 'Belt', 'Tasche' => 'Bag', 'Schuhe' => 'Shoes',
+        'Turnschuhe' => 'Sneakers', 'Schal' => 'Scarf', 'Herren' => "Men's", 'Damen' => "Women's",
+        'Schwarz' => 'Black', 'Weiß' => 'White', 'Weiss' => 'White', 'Blau' => 'Blue', 'Rot' => 'Red',
+        'Grün' => 'Green', 'Grau' => 'Grey', 'Braun' => 'Brown', 'mit' => 'with', 'und' => 'and',
+    ];
+    static $re = null;
+    if ($re === null) {
+        $keys = array_keys($de);
+        usort($keys, fn($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+        $re = '/(?<![\p{L}])(' . implode('|', array_map(fn($k) => preg_quote($k, '/'), $keys)) . ')(?![\p{L}])/u';
+    }
+    return (string)preg_replace_callback($re, fn($m) => $de[$m[1]], $n);
 }
 
 /**
