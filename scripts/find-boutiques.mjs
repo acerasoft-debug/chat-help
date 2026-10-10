@@ -631,6 +631,8 @@ function classify(domain, home, pagesText, hrefsText) {
   const identNoCloth = clothI === 0;
   for (const bn of BLOCK_NAMES) if (new RegExp('(?<![a-z0-9])' + esc(normText(bn)) + '(?![a-z0-9])').test(ident)) { reason = 'excl:chain'; break; }
   if (!reason && TERMS.vintageRe.some(re => re.test(ident))) reason = 'excl:vintage';
+  /* 10 Eki 2026: dükkân olmayan moda yayınları (Glamcult "Independent Style Paper" lead olarak eklendi). */
+  if (!reason && /(?<![a-z0-9])(magazine|rivista|revista|webzine|zeitschrift|style paper|fashion blog|modeblog|editorial|independent (?:style|fashion) (?:paper|magazine))(?![a-z0-9])/.test(ident)) reason = 'excl:media';
   if (!reason && (whI > 0 || whB >= 2)) reason = 'excl:wholesale';
   if (!reason && ((shoeI > 0 && identNoCloth) || shoeN > clothN + 1 || (tot >= 3 && ns / tot >= 0.6))) reason = 'excl:shoes';
   if (!reason && ((underI > 0 && identNoCloth) || underN > clothN + 1 || (tot >= 3 && nu / tot >= 0.6))) reason = 'excl:underwear';
@@ -1137,6 +1139,8 @@ function selftest() {
   t('OSM etiketi gmail kabul', scoreEmail('xyz123@gmail.com', 'shop.it', ['osm'], 'contact', 'Shop') > 0);
   t('redazione@ reddedilir', scoreEmail('redazione@corsovercellimilano.it', 'corsovercellimilano.it') < 0);
   t('osm: vintage adı', osmPick({ name: 'Why not vintage', website: 'whynotvintage.it' }).excl === 'excl:vintage');
+  t('classify: moda dergisi dükkân değil', classify('glamcultstudio.com', '<title>Glamcult - Independent Style Paper</title><p>Gucci Prada Bottega Veneta Jil Sander</p>', 'Gucci Prada Bottega Veneta Jil Sander', '').reason === 'excl:media');
+  t('classify: dergi kelimesi olmayan butik etkilenmez', classify('boutique-mueller.de', '<title>Boutique Müller – Mode</title><p>Gucci Prada</p>', 'Gucci Prada', '').reason !== 'excl:media');
   t('classify: vintage kimlik', classify('elephantvintage.com', '<title>Elephant Vintage - friperie</title><p>Gucci Prada Versace Valentino</p>', 'Gucci Prada Versace Valentino', '').reason === 'excl:vintage');
   const qs = buildQueries(10, { queries: {} }, ['de', 'it'], 42);
   t('buildQueries count', qs.length === 10 && qs.every(x => ['de', 'it'].includes(x.lang) && x.q.includes('"')));

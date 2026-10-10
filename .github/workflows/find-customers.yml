@@ -45,7 +45,7 @@ on:
         required: false
         default: "55"
       send:
-        description: "true = ekledikten sonra kampanyayı GÖNDER (2+ marka, yazılmamış; yalnızca admin listesi). Takvimde repo değişkeni PROSPECT_AUTO_SEND=true belirler."
+        description: "true = bu koşuda bulunanlara kampanyayı ZORLA gönder. Boş/false = paneldeki Gönderim modu (otomatik/manuel) karar verir."
         required: false
         default: "false"
       send_limit:
@@ -89,10 +89,9 @@ concurrency:
 #
 # Secrets: DEPLOY_HOST / DEPLOY_USER / DEPLOY_SSH_KEY / DEPLOY_PORT (zaten var)
 #          HUNTER_API_KEY (opsiyonel)
-# Variables: PROSPECT_AUTO_SEND -> takvimli calisma bulduktan sonra gonderir mi. 8 Eki 2026
-#   (operator: "kampanyada gondermiyor … tum bunlari ac"): degisken TANIMSIZSA takvimli
-#   calisma GONDERIR (SEND_LIMIT 40/gun — Brevo ucretsiz plani 300/gun, siparis/fatura
-#   mektuplarina yer kalir). Durdurmak icin repo degiskeni PROSPECT_AUTO_SEND=false.
+# Gonderim: 10 Eki 2026'dan beri PROSPECT_AUTO_SEND degiskeni KULLANILMAZ. Bulunanlara gonderip
+#   gondermemeyi Admin > Musteriler > 📮 > "Gonderim modu" (otomatik / manuel) belirler (sunucuda,
+#   data/mailbox.json). Gonderim sunucunun kendi posta servisinden, support@vestrasales.com'dan.
 jobs:
   find:
     runs-on: ubuntu-latest
@@ -199,20 +198,27 @@ jobs:
           ssh vestra "cd ~/public_html && php ~/vestra_tmp/push.php ~/vestra_tmp/found.json ~/vestra_tmp/state.json '${OWNER_UID}'; rc=\$?; rm -f ~/vestra_tmp/found.json ~/vestra_tmp/state.json ~/vestra_tmp/push.php; exit \$rc" | tee push.log
           { echo ""; echo "### Sunucuya yazım"; echo '```'; tail -n 5 push.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Kampanya gönder (send=true / PROSPECT_AUTO_SEND)
-        if: ${{ env.DRY_RUN != 'true' && env.known_ok == 'true' && env.OWNER_UID == '' && steps.finder.outcome == 'success' && (github.event.inputs.send || vars.PROSPECT_AUTO_SEND || (github.event_name == 'schedule' && 'true') || 'false') == 'true' }}
+      - name: Kampanya gönder (paneldeki Gönderim modu — otomatik / manuel)
+        if: ${{ env.DRY_RUN != 'true' && env.known_ok == 'true' && env.OWNER_UID == '' && steps.finder.outcome == 'success' }}
         env:
           SEND_LIMIT: ${{ github.event.inputs.send_limit || '40' }}
+          FORCE_SEND: ${{ github.event.inputs.send }}
         run: |
           set -o pipefail
           case "$SEND_LIMIT" in ''|*[!0-9]*) SEND_LIMIT=40 ;; esac
-          # 9 Eki 2026 (operatör: "sipariş, fatura vs Brevo'dan gitmeye devam etsin, kampanyalar kendi
-          # sunucumuzdan olsun"): bulunanlar artık Brevo ile DEĞİL, sunucunun kendi posta servisiyle gider.
-          # Burada yalnız istek yazılır; vestra/cron_mailbox.php 10 dk içinde alır, support@vestrasales.com'dan
-          # 25-55 sn arayla gönderir (günlük tavan, kapalı alan adı kontrolü, DKIM). Açık bir istek varsa
-          # (panelden verilmiş) bu istek reddedilir — o zaten aynı sırayı gönderiyor.
+          # Kampanyalar sunucunun KENDİ posta servisinden, support@vestrasales.com'dan gider (cron_mailbox.php
+          # 10 dk içinde alır; 25-55 sn ara, günlük tavan, kapalı alan adı kontrolü, DKIM). Sipariş/fatura
+          # e-postaları Brevo'da kalır.
+          # 10 Eki 2026 (operatör: "istersem otomatik bulunur bulunmaz gönderim, istersem manuel"): karar
+          # SUNUCUDA, Admin ▸ Müşteriler ▸ 📮 ▸ Gönderim modu. 'auto' alt komutu MANUEL modda hiçbir şey
+          # göndermez. Elle başlatılan GitHub koşusunda send=true yalnız o koşu için zorlar.
           ssh vestra 'cat > ~/vestra_tmp/mailbox-queue.php' < scripts/server/vestra-mailbox-queue.php
-          ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php request send ${SEND_LIMIT} lesgarage; rm -f ~/vestra_tmp/mailbox-queue.php" | tee send.log || true
+          if [ "$FORCE_SEND" = "true" ]; then
+            ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php request send ${SEND_LIMIT} lesgarage '' web" | tee send.log || true
+          else
+            ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php auto" | tee send.log || true
+          fi
+          ssh vestra 'rm -f ~/vestra_tmp/mailbox-queue.php' || true
           { echo ""; echo "### Gönderim"; echo '```'; tail -n 40 send.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       # Panelin "Web'den müşteri bul" kartı sonucu buradan okur (data/finder_runs.json).

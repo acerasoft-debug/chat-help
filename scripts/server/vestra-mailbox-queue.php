@@ -163,11 +163,21 @@ if ($cmd === 'release') {
 }
 
 if ($cmd === 'request') {
-  /* Sunucunun kendi posta servisi için istek (cron_mailbox.php 10 dk içinde alır) — paneldeki düğmeyle aynı yol. */
+  /* Sunucunun kendi posta servisi için istek (cron_mailbox.php 10 dk içinde alır) — paneldeki düğmeyle aynı yol.
+     request <mode> <limit> <campaign> [test_to] [pool: web|all] */
   if (!function_exists('vestra_mailbox_request')) { echo json_encode(['ok'=>false,'error'=>'eski sunucu kodu']); exit(1); }
-  [$ok, $msg] = vestra_mailbox_request((string)($argv[2] ?? ''), (int)($argv[3] ?? 25), (string)($argv[4] ?? 'lesgarage'), (string)($argv[5] ?? ''), array_keys(vestra_finder_campaigns()));
+  [$ok, $msg] = vestra_mailbox_request((string)($argv[2] ?? ''), (int)($argv[3] ?? 25), (string)($argv[4] ?? 'lesgarage'), (string)($argv[5] ?? ''), array_keys(vestra_finder_campaigns()), (string)($argv[6] ?? 'web'));
   echo json_encode(['ok'=>$ok, 'msg'=>$msg], JSON_UNESCAPED_UNICODE);
   exit($ok ? 0 : 1);
+}
+
+if ($cmd === 'auto') {
+  /* 10 Eki 2026: arama bitince çağrılır. Paneldeki "Gönderim modu" OTOMATİK ise ayarlı kampanya/sayı/havuzla
+     istek yazar; MANUEL ise hiçbir şey göndermez (bulunanlar listede bekler). */
+  if (!function_exists('vestra_mailbox_auto_request')) { echo json_encode(['ok'=>false,'msg'=>'eski sunucu kodu — otomatik gönderim yok']); exit(0); }
+  [$ok, $msg] = vestra_mailbox_auto_request(array_keys(vestra_finder_campaigns()));
+  echo json_encode(['ok'=>$ok, 'msg'=>$msg], JSON_UNESCAPED_UNICODE);
+  exit(0);
 }
 
 if ($cmd === 'status') {
