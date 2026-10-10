@@ -28,9 +28,9 @@ on:
         required: false
         default: "25"
       campaign:
-        description: "lesgarage | polos | standard | ai:<id>"
+        description: "edit | lesgarage | polos | standard | ai:<id>"
         required: false
-        default: lesgarage
+        default: edit
       test_to:
         description: "test kipinde mektubun gideceği adres"
         required: false

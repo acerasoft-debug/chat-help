@@ -27,7 +27,7 @@ $cmd = $argv[1] ?? '';
 
 if ($cmd === 'list') {
   $limit = max(1, min(200, (int)($argv[2] ?? 30)));
-  $campKey = (string)($argv[3] ?? 'lesgarage');
+  $campKey = (string)($argv[3] ?? 'edit');
   $camps = vestra_finder_campaigns();
   if (!isset($camps[$campKey])) { fwrite(STDERR, "bilinmeyen kampanya: {$campKey}\n"); echo json_encode(['ok'=>false,'error'=>'campaign']); exit(1); }
   $builder = $camps[$campKey][2];
@@ -83,7 +83,7 @@ if ($cmd === 'list') {
 
 if ($cmd === 'sample') {
   /* Test için örnek dükkân: gerçek bir müşteri gerekmez, kayda dokunmaz. */
-  $campKey = (string)($argv[2] ?? 'lesgarage'); $to = strtolower(trim((string)($argv[3] ?? '')));
+  $campKey = (string)($argv[2] ?? 'edit'); $to = strtolower(trim((string)($argv[3] ?? '')));
   $camps = vestra_finder_campaigns();
   if (!isset($camps[$campKey]) || !filter_var($to, FILTER_VALIDATE_EMAIL)) { echo json_encode(['ok'=>false]); exit(1); }
   $lead = ['id'=>'TEST', 'company'=>'Boutique Example', 'country'=>'France', 'email'=>$to, 'contact_name'=>'', 'unsub_token'=>''];
@@ -166,7 +166,7 @@ if ($cmd === 'request') {
   /* Sunucunun kendi posta servisi için istek (cron_mailbox.php 10 dk içinde alır) — paneldeki düğmeyle aynı yol.
      request <mode> <limit> <campaign> [test_to] [pool: web|all] */
   if (!function_exists('vestra_mailbox_request')) { echo json_encode(['ok'=>false,'error'=>'eski sunucu kodu']); exit(1); }
-  [$ok, $msg] = vestra_mailbox_request((string)($argv[2] ?? ''), (int)($argv[3] ?? 25), (string)($argv[4] ?? 'lesgarage'), (string)($argv[5] ?? ''), array_keys(vestra_finder_campaigns()), (string)($argv[6] ?? 'web'));
+  [$ok, $msg] = vestra_mailbox_request((string)($argv[2] ?? ''), (int)($argv[3] ?? 25), (string)($argv[4] ?? 'edit'), (string)($argv[5] ?? ''), array_keys(vestra_finder_campaigns()), (string)($argv[6] ?? 'web'));
   echo json_encode(['ok'=>$ok, 'msg'=>$msg], JSON_UNESCAPED_UNICODE);
   exit($ok ? 0 : 1);
 }
