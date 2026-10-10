@@ -617,12 +617,15 @@ vestra_write_json('listings.json', [
   ['id' => 'gd1', 'brand' => 'Gallery Dept', 'name' => 'Flare Jeans', 'status' => 'approved', 'seller_uid' => 's1', 'images' => ['/uploads/a/gd1.jpg']],
   ['id' => 'cb1', 'brand' => 'CASABLANCA', 'name' => 'Silk Shirt', 'status' => 'approved', 'seller_uid' => 's1', 'images' => ['/uploads/a/cb1.jpg']],
   ['id' => 'dq1', 'brand' => 'DSQUARED2', 'name' => 'Jeans', 'status' => 'approved', 'seller_uid' => 's1', 'images' => ['/uploads/a/dq1.jpg']],
-  ['id' => 'hid', 'brand' => 'Hidden', 'name' => 'Pending', 'status' => 'pending', 'seller_uid' => 's1', 'images' => ['/uploads/a/h.jpg']]]);
+  ['id' => 'hid', 'brand' => 'Hidden', 'name' => 'Pending', 'status' => 'pending', 'seller_uid' => 's1', 'images' => ['/uploads/a/h.jpg']],
+  ['id' => 'vs1', 'brand' => 'Visatin', 'name' => 'Nightdress', 'status' => 'approved', 'seller_uid' => 's1', 'images' => ['/uploads/a/vs1.jpg']],
+  ['id' => 'vs2', 'brand' => 'Visatin', 'name' => 'Nightdress 2', 'status' => 'approved', 'seller_uid' => 's1', 'images' => ['/uploads/a/vs2.jpg']]]);
 [$es, $eb, $eo] = ($ce['edit'][2])(['company' => 'Boutique Una', 'country' => 'Italy', 'email' => 'a@b.example', 'unsub_token' => 'TKE']);
 $eh = vestra_html_email($eb, '', (array)$eo);
 $t('İtalyanca konu + Gallery Dept + Casablanca', str_contains($es, 'Gallery Dept, Casablanca') && str_contains($es, 'ingrosso'));
 $t('öne çıkan iki markanın ürün görseli ve ürün bağlantısı', str_contains($eh, 'https://vestrasales.com/uploads/a/gd1.jpg') && str_contains($eh, 'product?id=cb1&amp;utm_source=email'));
 $t('siteye ve kayda giden düğmeler (alıcı kaydı)', str_contains($eh, 'https://vestrasales.com/catalog?utm_source=email') && str_contains($eh, 'https://vestrasales.com/register?type=buyer&amp;utm_source=email') && str_contains($eh, 'Crea un account trade gratuito'));
+$t('premium olmayan marka (Visatin) seçkiye ve marka satırına girmez', !str_contains($eh, 'Visatin') && str_contains($eh, 'DSQUARED2'));
 $t('onaysız ilan gösterilmez, fiyat yok', !str_contains($eh, 'Pending') && !preg_match('/€\s?\d/', $eh));
 $t('künyede bu müşterinin abonelikten çıkma bağlantısı', str_contains($eb, 'lead-unsubscribe?token=TKE') && str_contains($eh, 'token=TKE'));
 $t('düz metinde de kayıt bağlantısı (HTML açmayan istemci)', str_contains($eb, 'register?type=buyer'));

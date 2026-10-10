@@ -17,6 +17,10 @@
 /* 10 Eki 2026: operatör Lacoste, Fred Perry ve Valentino'yu da istedi. İlk ikisi büyük, kalan üçü ikinci sırada. */
 const VESTRA_EDIT_SPOTLIGHT = ['Gallery Dept' => '/gallery\s*dept/i', 'Casablanca' => '/casablanca/i',
   'Lacoste' => '/lacoste/i', 'Fred Perry' => '/fred\s*perry/i', 'Valentino' => '/valentino/i'];
+/* Seçki ve marka satırı YALNIZ tasarımcı / premium markalardan (10 Eki test mektubunda ürün sayısına göre seçim
+   Pili Pérez, Visatin saten gecelik, Polvich, NBB, Q-EN getirdi — premium kampanyada yeri yok). Katalogda olmayan
+   marka zaten seçilmez. */
+const VESTRA_EDIT_PREMIUM = '/^(dsquared2?|balmain|burberry|givenchy|fendi|gucci|dolce\s*&\s*gabbana|d&g|marcelo\s*burlon|amiri|palm\s*angels|off-?white|stone\s*island|moncler|versace|prada|miu\s*miu|moschino|balenciaga|saint\s*laurent|ysl|kenzo|hugo\s*boss|boss|ralph\s*lauren|polo\s*ralph\s*lauren|tommy\s*hilfiger|calvin\s*klein|diesel|jacob\s*cohen|dior|loewe|jacquemus|alexander\s*mcqueen|bottega\s*veneta|valentino|lacoste|fred\s*perry|casablanca|gallery\s*dept\.?|rhude|represent|ami(\s*paris)?|maison\s*margiela|mm6|acne\s*studios|ganni|isabel\s*marant|zadig\s*&\s*voltaire|max\s*mara|herno|parajumpers|c\.?p\.?\s*company|philipp\s*plein|karl\s*lagerfeld|armani|emporio\s*armani|ea7|michael\s*kors|guess)$/i';
 const VESTRA_EDIT_UTM = 'utm_source=email&utm_medium=campaign&utm_campaign=vestra_edit';
 
 function vestra_edit_texts(string $lang): array {
@@ -124,7 +128,7 @@ function vestra_edit_pick(int $gridN = 3): array {   // 10 Eki: öne çıkan 5 m
   }
   /* Izgara: en çok ürünü olan markalardan marka başına 1 görsel. */
   $count = [];
-  foreach ($all as $p) { $b = trim((string)($p['brand'] ?? '')); if ($b !== '') $count[$b] = ($count[$b] ?? 0) + 1; }
+  foreach ($all as $p) { $b = trim((string)($p['brand'] ?? '')); if ($b !== '' && preg_match(VESTRA_EDIT_PREMIUM, $b)) $count[$b] = ($count[$b] ?? 0) + 1; }
   arsort($count);
   $grid = [];
   foreach (array_keys($count) as $b) {
