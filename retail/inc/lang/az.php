@@ -580,6 +580,7 @@ return [
     'imp_reg_authority' => 'Qeydiyyat orqanı',
     'imp_reg_number' => 'Qeydiyyat nömrəsi',
     'imp_vat_id' => 'ƏDV identifikasiya nömrəsi',
+    'imp_tax_id' => 'ABŞ vergi nömrəsi (EIN)',
     'imp_eu_rep' => 'Aİ-də nümayəndə (GDPR mad. 27)',
     // ---- İletişim sayfası yan sütunu
     'contact_privacy' => 'Məlumatlarınızı yalnız bu sorğunun həlli üçün istifadə edirik — {privacy}. Xəbər bülleteni yox, ötürmə yox.',

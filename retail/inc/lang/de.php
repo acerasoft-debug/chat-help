@@ -586,6 +586,7 @@ return [
     'imp_reg_authority' => 'Registerbehörde',
     'imp_reg_number' => 'Registernummer',
     'imp_vat_id' => 'Umsatzsteuer-Identifikationsnummer',
+    'imp_tax_id' => 'Steuernummer (USA, Employer Identification Number)',
     'imp_eu_rep' => 'Vertreter in der EU (Art. 27 DSGVO)',
     // ---- İletişim sayfası yan sütunu
     'contact_privacy' => 'Ihre Angaben verwenden wir ausschließlich zur Bearbeitung dieser Anfrage — {privacy}. Kein Newsletter, keine Weitergabe.',

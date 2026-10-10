@@ -580,6 +580,7 @@ return [
     'imp_reg_authority' => 'Autoridad de registro',
     'imp_reg_number' => 'Número de registro',
     'imp_vat_id' => 'NIF-IVA',
+    'imp_tax_id' => 'Número de identificación fiscal de EE. UU. (EIN)',
     'imp_eu_rep' => 'Representante en la UE (art. 27 RGPD)',
     // ---- İletişim sayfası yan sütunu
     'contact_privacy' => 'Usamos sus datos únicamente para tramitar esta solicitud — {privacy}. Sin boletín, sin cesión a terceros.',

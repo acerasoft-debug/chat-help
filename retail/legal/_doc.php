@@ -136,9 +136,14 @@ function vr_company_block(): void
     if ($f('form') !== '') echo '<br>' . h($f('form'));
 
     echo '<br>' . ($f('street') !== '' ? h($f('street')) : $ph('Straße und Hausnummer'));
-    $cityLine = trim($f('zip') . ' ' . $f('city'));
+    // ABD adresi kendi düzeninde yazılır ("Dover, Delaware 19901"); posta
+    // ve gümrük belgeleriyle aynı görünsün diye.
+    $us = in_array(strtoupper($f('country')), ['USA', 'US', 'UNITED STATES'], true);
+    $cityLine = $us
+        ? trim($f('city') . ($f('state') !== '' ? ', ' . $f('state') : '') . ' ' . $f('zip'))
+        : trim($f('zip') . ' ' . $f('city'));
     echo '<br>' . ($cityLine !== '' ? h($cityLine) : $ph('PLZ und Ort'));
-    if ($f('state') !== '') echo '<br>' . h($f('state'));
+    if (!$us && $f('state') !== '') echo '<br>' . h($f('state'));
     echo '<br>' . ($f('country') !== '' ? h($f('country')) : $ph('Land'));
     echo '</p>';
 
@@ -151,11 +156,16 @@ function vr_company_block(): void
     echo '<br>' . te('imp_website') . ': <a href="' . h(vr_origin()) . '">' . h(vr_origin()) . '</a>';
     echo '</p>';
 
-    echo '<p>';
-    echo te('imp_reg_authority') . ': ' . ($f('reg_authority') !== '' ? h($f('reg_authority')) : $ph('Registerbehörde'));
-    echo '<br>' . te('imp_reg_number') . ': ' . ($f('reg_number') !== '' ? h($f('reg_number')) : $ph('Register-/Filing-Nummer'));
-    echo '<br>' . te('imp_vat_id') . ': ' . ($f('vat_id') !== '' ? h($f('vat_id')) : $ph('USt-IdNr., falls vorhanden'));
-    echo '</p>';
+    // Kayıt ve vergi satırları: yalnızca GERÇEKTEN bilinen değerler basılır.
+    // Delaware dosya numarası henüz yok — müşteriye köşeli parantezli bir yer
+    // tutucu göstermek yerine satır atlanıyor; eksik olduğu selftest'te FAIL
+    // olarak görünmeye devam ediyor. AB USt-IdNr. şirketin yok (ABD LLC).
+    $lines = [];
+    $lines[] = te('imp_reg_authority') . ': ' . ($f('reg_authority') !== '' ? h($f('reg_authority')) : $ph('Registerbehörde'));
+    if ($f('reg_number') !== '') $lines[] = te('imp_reg_number') . ': ' . h($f('reg_number'));
+    if ($f('tax_id') !== '')     $lines[] = te('imp_tax_id') . ': ' . h($f('tax_id'));
+    if ($f('vat_id') !== '')     $lines[] = te('imp_vat_id') . ': ' . h($f('vat_id'));
+    echo '<p>' . implode('<br>', $lines) . '</p>';
 
     if ($f('eu_rep') !== '') {
         echo '<p>' . te('imp_eu_rep') . ': ' . h($f('eu_rep')) . '</p>';

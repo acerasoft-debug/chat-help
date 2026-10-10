@@ -580,6 +580,7 @@ return [
     'imp_reg_authority' => 'Registreringsmyndighed',
     'imp_reg_number' => 'Registreringsnummer',
     'imp_vat_id' => 'Momsnummer',
+    'imp_tax_id' => 'Amerikansk skattenummer (EIN)',
     'imp_eu_rep' => 'Repræsentant i EU (art. 27 GDPR)',
     // ---- İletişim sayfası yan sütunu
     'contact_privacy' => 'Vi bruger dine oplysninger udelukkende til at behandle denne henvendelse — {privacy}. Intet nyhedsbrev, ingen videregivelse.',

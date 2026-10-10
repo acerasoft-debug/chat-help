@@ -186,7 +186,11 @@ function vr_config(?string $key = null, mixed $default = null): mixed
                 'country'      => 'USA',
                 'reg_authority' => 'Delaware Division of Corporations',
                 'reg_number'   => '',      // Delaware File Number — eksik
-                'vat_id'       => '',      // USt-IdNr. varsa
+                'vat_id'       => '',      // AB USt-IdNr. — şirketin yok; boşken satır hiç basılmıyor
+                // ABD vergi kimliği. Vestra faturalarında da aynısı basılıyor
+                // (inc/invoice.php vestra_platform_seller, işletmecinin açık
+                // talimatıyla). Ödeme bilgisi değil, kimlik bilgisidir.
+                'tax_id'       => '61-2070643',
                 'represented_by' => 'Management',
                 'email'        => 'support@vestrasales.com',
                 'phone'        => '',

@@ -1,0 +1,42 @@
+name: (Salt-okunur) sarvesto.com e-posta durumu
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# SALT OKUNUR. Künyede vestrasales.com adresi yerine sarvesto.com adresi
+# yazabilmek için: sarvesto.com'un MX/SPF kaydı nereyi gösteriyor, cPanel'de
+# bu alan adı için posta kutusu/yönlendirme var mı. Hiçbir şey oluşturmaz.
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: DNS (runner'dan)
+        run: |
+          sudo apt-get install -y -qq dnsutils > /dev/null 2>&1 || true
+          for d in sarvesto.com vestrasales.com; do
+            echo "== $d =="
+            echo "MX:";  dig +short MX  "$d"
+            echo "TXT:"; dig +short TXT "$d" | grep -iE 'spf|brevo|google|v=' || true
+            echo "A:";   dig +short A   "$d"
+          done
+          echo "== brevo._domainkey / mail._domainkey sarvesto.com =="
+          dig +short TXT mail._domainkey.sarvesto.com | cut -c1-60
+          dig +short CNAME brevo1._domainkey.sarvesto.com
+      - name: cPanel posta (salt okunur)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            echo "== posta kutuları (yalnız adresler) =="
+            uapi --output=json Email list_pops 2>/dev/null | php -r '$j=json_decode(stream_get_contents(STDIN),true); foreach(($j["result"]["data"]??[]) as $r) echo "  ",$r["email"]??"","\n";'
+            echo "== sarvesto.com yönlendirmeleri =="
+            uapi --output=json Email list_forwarders domain=sarvesto.com 2>/dev/null | php -r '$j=json_decode(stream_get_contents(STDIN),true); foreach(($j["result"]["data"]??[]) as $r) echo "  ",$r["dest"]??"", " -> ", $r["forward"]??"","\n";'
+            echo "== sarvesto.com MX yönlendirme ayarı (yerel/uzak) =="
+            uapi --output=json Email list_mxs domain=sarvesto.com 2>/dev/null | php -r '$j=json_decode(stream_get_contents(STDIN),true); foreach(($j["result"]["data"]??[]) as $r) { echo "  routing: ",$r["mxcheck"]??"", " detected: ",$r["detected"]??"","\n"; foreach(($r["entries"]??[]) as $e) echo "    ",$e["priority"]??""," ",$e["mx"]??"","\n"; }'
+            echo "== sunucu adı =="; hostname

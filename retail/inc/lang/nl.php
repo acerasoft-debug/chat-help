@@ -586,6 +586,7 @@ return [
     'imp_reg_authority' => 'Registerinstantie',
     'imp_reg_number' => 'Registratienummer',
     'imp_vat_id' => 'Btw-nummer',
+    'imp_tax_id' => 'Amerikaans fiscaal nummer (EIN)',
     'imp_eu_rep' => 'Vertegenwoordiger in de EU (art. 27 AVG)',
     // ---- İletişim sayfası yan sütunu
     'contact_privacy' => 'Wij gebruiken uw gegevens uitsluitend voor de afhandeling van deze aanvraag — {privacy}. Geen nieuwsbrief, geen doorgifte.',

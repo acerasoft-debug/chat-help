@@ -584,6 +584,7 @@ return [
     'imp_reg_authority' => 'Autorité d\'enregistrement',
     'imp_reg_number' => 'Numéro d\'enregistrement',
     'imp_vat_id' => 'Numéro de TVA intracommunautaire',
+    'imp_tax_id' => 'Numéro fiscal américain (EIN)',
     'imp_eu_rep' => 'Représentant dans l\'UE (art. 27 RGPD)',
     // ---- İletişim sayfası yan sütunu
     'contact_privacy' => 'Nous utilisons vos données uniquement pour traiter cette demande — {privacy}. Pas de newsletter, pas de transmission.',

@@ -597,6 +597,7 @@ return [
     'imp_reg_authority' => 'Registering authority',
     'imp_reg_number' => 'Registration number',
     'imp_vat_id' => 'VAT ID',
+    'imp_tax_id' => 'US tax ID (Employer Identification Number)',
     'imp_eu_rep' => 'Representative in the EU (Art. 27 GDPR)',
     // ---- İletişim sayfası yan sütunu
     'contact_privacy' => 'We use your details only to handle this request — {privacy}. No newsletter, no sharing.',
