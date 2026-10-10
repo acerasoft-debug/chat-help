@@ -101,6 +101,9 @@ function vr_origin(): string
     $https = (($_SERVER['HTTPS'] ?? '') !== '' && ($_SERVER['HTTPS'] ?? '') !== 'off')
           || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
           || ((int)($_SERVER['SERVER_PORT'] ?? 80) === 443);
+    // Komut satırında (zamanlanmış e-postalar, selftest) istek yok: asıl
+    // adres her zaman https — e-postadaki bağlantılar http'ye düşmesin.
+    if (!isset($_SERVER['HTTP_HOST'])) $https = true;
     $host = (string)($_SERVER['HTTP_HOST'] ?? 'sarvesto.com');
     // Host başlığı istemciden gelir: yalnızca izin verilen karakterleri geçiriyoruz.
     if (!preg_match('/^[A-Za-z0-9.\-]+(:\d+)?$/', $host)) $host = 'sarvesto.com';
