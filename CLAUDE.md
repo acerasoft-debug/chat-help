@@ -4733,7 +4733,11 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   reddi → bounced, giriş reddi → satıcı kartında `smtp_error`, geçici hata → kuyruğa (en çok 3 deneme).
   Brevo anahtarı olan satıcı eskisi gibi anında Brevo'dan. Satıcı başına günde 300 (SMTP). Kampanya tavanı
   (support@, kendi sunucumuz) 500/gün (`VESTRA_MAILBOX_*_CAP`; eski kayıtlı 50 yok sayılır), adminde müşteri
-  seçerek gönderim (`vestra_finder_pick_table`).
+  seçerek gönderim (`vestra_finder_pick_table`). **Tek istekte 500 (10 Eki, operatör: "bir seferde 500 kişiye
+  gidecek şekilde ayarla")**: 📮 kartı, önizleme, arama başına otomatik (`auto_limit`), chat-help iş girdileri
+  ve `vestra-mailbox-queue.php` varsayılanları 500; mektuplar arası bekleme 25–55 sn → **8–11 sn**
+  (`VESTRA_MAILBOX_PAUSE_MIN/MAX`; 500 mektup ~80 dk, cPanel'in saatlik 500 sınırının altında — satıcı sunucu
+  yolu turda 40 eklense de aşılmaz). Günlük tavan hâlâ 500: ikinci istek aynı gün kalan hakla kırpılır.
 - **Üçüncü satıcı yolu 'server' — kurulumsuz, VESTRA'nın posta servisinden kendi adıyla (10 Eki 2026,
   operatör: "herkes kendi emailinden server'dan göndersin").** `vestra_seller_route($cfg,$email)` →
   `brevo | smtp | server | ''`: Brevo anahtarı ve SMTP yoksa mektup `seller_outbox` kuyruğuna `via=server`

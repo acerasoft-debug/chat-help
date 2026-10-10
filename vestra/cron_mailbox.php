@@ -9,7 +9,7 @@
  *
  * Her 10 dakikada bir (sunucu crontab'ı, deploy-vestra.yml VESTRA-SWEEP satırı): Admin ▸ Müşteriler ▸ 📮
  * kartından verilen isteği alır (inc/mailbox.php), gönderir, sonucu panele yazar. İstek yoksa hiçbir şey
- * yapmaz. Kilit dosyası: önceki gönderim sürerken ikincisi başlamaz (25–55 sn arayla 50 mektup ~35 dk).
+ * yapmaz. Kilit dosyası: önceki gönderim sürerken ikincisi başlamaz (8–11 sn arayla 500 mektup ~80 dk).
  *
  * Usage:  php cron_mailbox.php [--dry-run]
  */

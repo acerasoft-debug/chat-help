@@ -50,7 +50,7 @@ function vestra_mailbox_set_cap(int $cap): int {
    manual= arama yalnız listeye ekler; gönderimi panelden siz başlatırsınız.
    Alıcı havuzu varsayılan 'web': web aramasıyla bulunmuş, sitesinde adres yayınlayan, e-posta sunucusu
    doğrulanmış butikler — eski listeden (OSM/içe aktarma) gönderim 9 Eki'de ölü alan adlarına çarptı. */
-const VESTRA_MAILBOX_AUTO_DEFAULTS = ['auto_send' => true, 'auto_campaign' => 'edit', 'auto_limit' => 100, 'auto_pool' => 'web'];
+const VESTRA_MAILBOX_AUTO_DEFAULTS = ['auto_send' => true, 'auto_campaign' => 'edit', 'auto_limit' => 500, 'auto_pool' => 'web'];   // 10 Eki: "bir seferde 500 kişi"
 
 function vestra_mailbox_auto(): array {
   $c = vestra_mailbox_cfg(); $d = VESTRA_MAILBOX_AUTO_DEFAULTS;
@@ -371,9 +371,16 @@ function vestra_mailbox_mask(string $e): string {
   return ($u !== '' ? mb_substr($u, 0, 1).'***' : '***').'@'.$d;
 }
 
+/* Mektuplar arası bekleme (sn). 10 Eki 2026 (operatör: "bir seferde 500 kişiye gidecek şekilde ayarla"):
+   eski 25–55 sn ile 500 mektup ~5,5 saat sürüyordu. cPanel hesabın saatlik sınırı 500 (diag-mail-limits);
+   8–11 sn (ort. 9,5) ≈ saatte 380 → 500 mektup ~80 dk'da biter, sınırın altında kalır; satıcıların sunucu
+   yolu (seller_outbox, turda 40) aynı hesaptan gittiğinde bile 500/saat aşılmaz. */
+const VESTRA_MAILBOX_PAUSE_MIN = 8;
+const VESTRA_MAILBOX_PAUSE_MAX = 11;
+
 /**
  * Bir isteği (panel / elle) sunucuda baştan sona çalıştırır: liste → MX kontrolü → gönder → HER mektuptan
- * hemen sonra damgala (iş yarıda kesilse de ikinci kez gitmez) → 25–55 sn ara. 3 ardışık hatada durur.
+ * hemen sonra damgala (iş yarıda kesilse de ikinci kez gitmez) → 8–11 sn ara. 3 ardışık hatada durur.
  * $o: 'mail' (sahte mail()), 'sleep', 'dns' (domain → durum), 'log'. Döner: ['sent','bounced','failed','note'].
  */
 function vestra_mailbox_run(array $req, array $o = []): array {
@@ -403,7 +410,7 @@ function vestra_mailbox_run(array $req, array $o = []): array {
       $sum['bounced']++; $log(sprintf('- [%d/%d] %s atlandi: alan adinin e-posta sunucusu yok', $k + 1, $n, vestra_mailbox_mask($it['email'])));
       continue;
     }
-    if ($sentAny) $sleep(random_int(25, 55));
+    if ($sentAny) $sleep(random_int(VESTRA_MAILBOX_PAUSE_MIN, VESTRA_MAILBOX_PAUSE_MAX));
     [$ok, $mid, $why] = vestra_mailbox_send_local($it, (string)$b['from'], $mail);
     if ($ok) {
       vestra_mailbox_stamp([['leadId' => $it['leadId'], 'email' => $it['email'], 'status' => 'sent', 'lang' => $it['lang'], 'messageId' => $mid]]);
@@ -575,7 +582,7 @@ function vestra_live_status(): array {
     $total = ($open['mode'] ?? '') === 'test' ? 1 : (int)($open['limit'] ?? 0);
     $send = ['state' => 'running', 'done' => min($done, $total), 'total' => $total,
              'text' => ($open['mode'] ?? '') === 'test' ? 'Test e-postası GÖNDERİLİYOR.'
-               : 'GÖNDERİLİYOR — '.min($done, $total).' / '.$total.' gitti'.($lastAt ? ' · son e-posta '.$hm($lastAt) : '').' · e-postalar arası 25-55 sn'];
+               : 'GÖNDERİLİYOR — '.min($done, $total).' / '.$total.' gitti'.($lastAt ? ' · son e-posta '.$hm($lastAt) : '').' · e-postalar arası '.VESTRA_MAILBOX_PAUSE_MIN.'-'.VESTRA_MAILBOX_PAUSE_MAX.' sn'];
   } elseif ($open) {
     $send = ['state' => 'queued', 'text' => 'Gönderim SIRADA — '.(($open['mode'] ?? '') === 'test' ? 'test e-postası' : (int)$open['limit'].' müşteri').', '.$hm($open['requested_at'] ?? '').'\'de istendi, 10 dk içinde başlar.'];
   } else {

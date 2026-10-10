@@ -245,7 +245,7 @@ $run = vestra_mailbox_run(['mode' => 'send', 'limit' => 10, 'campaign' => 'lesga
 $ld = array_column(vestra_leads(), null, 'id');
 $t('koşu: 2 gönderildi, kapalı alan adı gönderilmedi ve geri döndü damgalandı', $run['sent'] === 2 && $run['bounced'] === 1 && count($cap) === 2
    && $ld['M1']['contact_via'] === 'mailbox' && $ld['M3']['contact_via'] === 'mailbox' && $ld['M2']['status'] === 'bounced' && !in_array('info@dead.example', array_column($cap, 'to'), true));
-$t('koşu: mektuplar arası 25–55 sn bekleme (ilk mektuptan önce yok), kütükte adres maskeli', count($slept) === 1 && $slept[0] >= 25 && $slept[0] <= 55 && !preg_grep('/info@una/', $logs));
+$t('koşu: mektuplar arası 8–11 sn bekleme (500 mektup ~80 dk, saatlik 500 sınırının altında; ilk mektuptan önce yok), kütükte adres maskeli', count($slept) === 1 && $slept[0] >= 8 && $slept[0] <= 11 && VESTRA_MAILBOX_PAUSE_MAX * 500 / 60 < 100 && !preg_grep('/info@una/', $logs));
 $t('koşu: ikinci koşu aynı kişilere göndermez', vestra_mailbox_run(['mode' => 'send', 'limit' => 10, 'campaign' => 'lesgarage'], ['mail' => $fm, 'sleep' => fn($s) => null, 'dns' => fn($d) => 'ok', 'log' => fn($m) => null])['sent'] === 0);
 $cap = [];
 $tr = vestra_mailbox_run(['mode' => 'test', 'campaign' => 'lesgarage', 'test_to' => 'ops@vestra.example'], ['mail' => $fm, 'log' => fn($m) => null]);
@@ -508,7 +508,7 @@ echo "\n== 8c. gönderim modu (otomatik / manuel) + alıcı havuzu — kendi sun
 require_once $root.'/inc/mailbox.php';
 @unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
 $am = vestra_mailbox_auto();
-$t('varsayılan: otomatik açık, VESTRA Edit, 100, yeni bulunanlar', $am === ['auto_send' => true, 'auto_campaign' => 'edit', 'auto_limit' => 100, 'auto_pool' => 'web']);
+$t('varsayılan: otomatik açık, VESTRA Edit, 500, yeni bulunanlar', $am === ['auto_send' => true, 'auto_campaign' => 'edit', 'auto_limit' => 500, 'auto_pool' => 'web']);
 vestra_write_json('leads.json', [
   ['id' => 'W1', 'company' => 'Boutique Una', 'email' => 'info@una.example', 'country' => 'Italy', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'a'],
   ['id' => 'O1', 'company' => 'Mode Alt', 'email' => 'info@alt.example', 'country' => 'Germany', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'b']]);

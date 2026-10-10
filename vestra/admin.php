@@ -1879,7 +1879,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       header('Location: /admin?tab=prospects#mailboxsend'); exit;
     }
     $dry=($_POST['mode']??'')!=='send';
-    [$sN,$fN,$lines]=vestra_finder_send((string)($_POST['camp']??''),max(1,min(VESTRA_MAILBOX_MAX_CAP,(int)($_POST['limit']??50))),true,$fsPool);   // yalnız liste; göndermez
+    [$sN,$fN,$lines]=vestra_finder_send((string)($_POST['camp']??''),max(1,min(VESTRA_MAILBOX_MAX_CAP,(int)($_POST['limit']??VESTRA_MAILBOX_MAX_CAP))),true,$fsPool);   // yalnız liste; göndermez
     $_SESSION['finder_send_flash']=['dry'=>$dry,'sent'=>$sN,'fail'=>$fN,'lines'=>array_slice($lines,0,100),'camp'=>(string)($_POST['camp']??''),'pool'=>$fsPool];
     header('Location: /admin?tab=prospects#findersend'); exit;
   }
@@ -1972,7 +1972,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   if($act==='mailbox_auto_save'){
     require_once __DIR__.'/inc/finder.php'; require_once __DIR__.'/inc/mailbox.php';
     $camp=(string)($_POST['auto_campaign']??'edit'); if(!isset(vestra_finder_campaigns()[$camp])) $camp='edit';
-    $a=vestra_mailbox_auto_save(($_POST['auto_send']??'')==='1',$camp,(int)($_POST['auto_limit']??100),(string)($_POST['auto_pool']??'web'));
+    $a=vestra_mailbox_auto_save(($_POST['auto_send']??'')==='1',$camp,(int)($_POST['auto_limit']??VESTRA_MAILBOX_MAX_CAP),(string)($_POST['auto_pool']??'web'));
     $_SESSION['mailbox_flash']=[true,$a['auto_send']?'✓ OTOMATİK: her arama bitince yeni bulunanlara en çok '.$a['auto_limit'].' e-posta gider (günlük tavan içinde).':'✓ MANUEL: arama yalnız listeye ekler; göndermeyi buradan siz başlatırsınız.'];
     header('Location: /admin?tab=prospects#mailboxsend'); exit;
   }
@@ -6535,7 +6535,7 @@ elseif($tab==='prospects'):
       <?= csrfField() ?><input type="hidden" name="_action" value="finder_send_campaign"><input type="hidden" name="mode" value="dry">
       <div class="afield" style="margin:0"><label>Kampanya</label><select name="camp"><?php foreach($fsCamps as $ck=>[$cl]): ?><option value="<?= htmlspecialchars($ck) ?>"><?= htmlspecialchars(explode(' — ',$cl)[0]) ?></option><?php endforeach; ?></select></div>
       <div class="afield" style="margin:0"><label>Kime</label><select name="pool"><?php foreach(vestra_finder_pools() as $pk=>$pl): ?><option value="<?= $pk ?>"><?= htmlspecialchars($pl) ?> (<?= count($pk==='web'?$fsTargetsWeb:$fsTargetsAll) ?>)</option><?php endforeach; ?></select></div>
-      <div class="afield" style="margin:0"><label>Kaç kişi</label><input name="limit" type="number" min="1" max="<?= VESTRA_MAILBOX_MAX_CAP ?>" value="50" style="width:90px"></div>
+      <div class="afield" style="margin:0"><label>Kaç kişi</label><input name="limit" type="number" min="1" max="<?= VESTRA_MAILBOX_MAX_CAP ?>" value="<?= VESTRA_MAILBOX_MAX_CAP ?>" style="width:90px"></div>
       <button class="abtn" type="submit">👁 Listele (göndermez)</button>
     </form>
 <?php $__pb['B']=ob_get_clean(); ob_start(); ?>
@@ -6613,7 +6613,7 @@ elseif($tab==='prospects'):
             <?php if($mbPick): ?><label class="r"><input type="radio" name="target" value="selected" onchange="mbTo(this)"> Kendim seçeyim <span class="ahint">— listeden işaretleyin</span></label>
             <div id="mbpickbox" style="display:none;max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:6px 10px;margin:0 0 8px"><?= $mbPickHtml ?></div><?php endif; ?>
             <?php if($mbPools['all']>$mbPools['web']): ?><label class="r"><input type="radio" name="target" value="all" onchange="mbTo(this)"> Eski liste dahil <b>(<?= $mbPools['all'] ?>)</b></label><?php endif; ?>
-            <div id="mblimit" style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin-top:4px">En çok <input name="limit" type="number" min="1" max="<?= max(1,$mbLeft) ?>" value="<?= max(1,min(100,$mbLeft)) ?>" style="width:80px"> kişi <span class="ahint">· bugün kalan hak <?= $mbLeft ?></span></div>
+            <div id="mblimit" style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin-top:4px">En çok <input name="limit" type="number" min="1" max="<?= max(1,$mbLeft) ?>" value="<?= max(1,$mbLeft) ?>" style="width:80px"> kişi <span class="ahint">· bugün kalan hak <?= $mbLeft ?></span></div>
           </div>
 
           <div class="mbstep"><h4><b>3</b>Gönder</h4>
