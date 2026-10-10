@@ -1,0 +1,33 @@
+name: Az fotoğraflı ürünlere internetten aday kare bul
+
+# Yalnızca kayıt: GitHub elle başlatılan iş akışını varsayılan dalda görmek
+# istiyor. Asıl adımlar claude/vestra-premium-retail-site-rxj4va dalındaki
+# aynı adlı dosyada; başlatırken o dal seçilir.
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Çalışılacak dal"
+        required: true
+        default: "claude/vestra-premium-retail-site-rxj4va"
+      max_images:
+        description: "Bu sayıda ya da daha az karesi olan ürünler"
+        required: true
+        default: "1"
+      brands:
+        description: "Yalnızca bu markalar (virgülle, boş = hepsi)"
+        required: false
+        default: ""
+      limit:
+        description: "En fazla kaç ürün (0 = sınırsız)"
+        required: false
+        default: "0"
+
+permissions:
+  contents: read
+
+jobs:
+  stub:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Bu dosya yalnızca kayıt. claude/vestra-premium-retail-site-rxj4va dalından başlatın."
