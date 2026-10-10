@@ -299,7 +299,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
             $res = ['ok'=>false, 'error'=>'empty'];
         }
     }
-    if (!$res['ok']) { header('Location: /buyer?tab=messages&thread='.urlencode($tid).'&msgerr='.($res['error']==='flagged'?$res['flag']:'empty')); exit; }
+    if (!$res['ok']) { header('Location: /buyer?tab=messages&thread='.urlencode($tid).'&msgerr='.($res['error']==='flagged'?$res['flag']:($res['error']==='restricted'?'restricted':'empty'))); exit; }
     header('Location: /buyer?tab=messages&thread='.urlencode($tid)); exit;
 }
 
@@ -333,6 +333,14 @@ dash_open('buyer',$tab,
    vestra_buyer_unpaid_invoices() -- askiya alma kosusuyla ayni olcu; dekontu
    yuklenmis siparis bantta yok. Son tarih yalnizca odeme saati isliyorsa
    yazilir (KURAL 7); uydurulmus bir tarih yok. */
+/* KISITLAMA BANDI -- her sekmede (operator, 10 Eki 2026: "hesaplarinda
+   gorunsun"). Mektup YOK, yalniz bu bant. Bitis tarihi kayittan. */
+if ($__ru = auth_restricted_until($AUTH_USER)) {
+  echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:14px">⛔ <b>'
+     . sprintf(t('Your account is restricted for 30 days (until %s): you cannot send messages and cannot receive payment invoices.'), date('j M Y', $__ru))
+     . '</b><br>'.t('If this happens again, your account will be closed permanently.').'</div>';
+}
+unset($__ru);
 $unpaidInvs = vestra_buyer_unpaid_invoices($myEmail);
 if ($unpaidInvs) {
   /* Sure dolmus bir fatura varsa kirmizi, yoksa sari: bugun kesilmis bir

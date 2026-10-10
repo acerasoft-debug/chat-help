@@ -1558,4 +1558,8 @@ return array (
   'Test queued to %s — it leaves from your own mail server within about 10 minutes. Check your inbox then.' => 'Teste em fila para %s — sai do seu próprio servidor de e-mail em cerca de 10 minutos. Depois verifique a sua caixa de entrada.',
   'Queued — it leaves from your own mail server within about 10 minutes.' => 'Em fila — sai do seu próprio servidor de e-mail em cerca de 10 minutos.',
   'You reached today’s sending limit for your mail server. The rest can be sent tomorrow.' => 'Atingiu o limite de envio de hoje do seu servidor de e-mail. O resto pode ser enviado amanhã.',
+  'Your account is restricted for 30 days (until %s): you cannot send messages and cannot receive payment invoices.' => 'A sua conta está restrita durante 30 dias (até %s): não pode enviar mensagens nem receber faturas de pagamento.',
+  'If this happens again, your account will be closed permanently.' => 'Se voltar a acontecer, a sua conta será encerrada definitivamente.',
+  'Your account is restricted: you cannot send messages until %s.' => 'A sua conta está restrita: não pode enviar mensagens até %s.',
+  'Your message was not sent.' => 'A sua mensagem não foi enviada.',
 );

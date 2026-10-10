@@ -1558,4 +1558,8 @@ return array (
   'Test queued to %s — it leaves from your own mail server within about 10 minutes. Check your inbox then.' => 'Тест для %s поставлен в очередь — он уйдёт с вашего почтового сервера примерно через 10 минут. Затем проверьте входящие.',
   'Queued — it leaves from your own mail server within about 10 minutes.' => 'В очереди — уйдёт с вашего почтового сервера примерно через 10 минут.',
   'You reached today’s sending limit for your mail server. The rest can be sent tomorrow.' => 'Вы достигли сегодняшнего лимита отправки вашего почтового сервера. Остальное можно отправить завтра.',
+  'Your account is restricted for 30 days (until %s): you cannot send messages and cannot receive payment invoices.' => 'Ваш аккаунт ограничен на 30 дней (до %s): вы не можете отправлять сообщения и получать счета на оплату.',
+  'If this happens again, your account will be closed permanently.' => 'При повторении ваш аккаунт будет закрыт навсегда.',
+  'Your account is restricted: you cannot send messages until %s.' => 'Ваш аккаунт ограничен: вы не можете отправлять сообщения до %s.',
+  'Your message was not sent.' => 'Ваше сообщение не отправлено.',
 );

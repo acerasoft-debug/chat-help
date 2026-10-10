@@ -113,6 +113,23 @@ function auth_find(string $email): ?array {
     return null;
 }
 
+/* 30 GUNLUK KISITLAMA (operator, 10 Eki 2026: "30 gun boyunca mesaj atamazsiniz
+   ve odeme faturasi alamazsiniz ... tekrar edilirse kalici olarak kapatilacak").
+   Askiya almadan HAFIF: hesap acik kalir, yalniz iki kapi kapanir -- mesaj
+   gonderme (vestra_msg_send) ve YENI fatura kesimi (vestra_ensure_invoice +
+   iki toplu kesim yolunun erken kapisi). Alan: 'restricted_until' (ISO tarih);
+   gecince kendiliginden kalkar, cron yok. 0 = kisitli degil, yoksa bitis ani. */
+function auth_restricted_until(?array $acc, ?int $now = null): int {
+    if (!$acc) return 0;
+    $u = strtotime((string)($acc['restricted_until'] ?? '')) ?: 0;
+    return $u > ($now ?? time()) ? $u : 0;
+}
+function auth_restricted_uid(string $uid, ?int $now = null): int {
+    if ($uid === '') return 0;
+    foreach (auth_accounts() as $a) if ((string)($a['id'] ?? '') === $uid) return auth_restricted_until($a, $now);
+    return 0;
+}
+
 function auth_user(): ?array {
     if (empty($_SESSION['uid'])) return null;
     foreach (auth_accounts() as $a)

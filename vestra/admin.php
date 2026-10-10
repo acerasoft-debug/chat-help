@@ -298,7 +298,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
          "para birimi cevrilemedi" bandiyla gostermek, bu deponun kayitli
          "rakam dogru, etiket yalan" hatasi olurdu: yanlis rakam sorgulanir,
          yanlis etikete inanilir ve operator kuru damgalamaya calisir. */
-      $__ik = ['nopay'=>'invoice_nopay','prereq'=>'invoice_prereq'][(string)($r['error_code']??'')] ?? 'invoice_cur_err';
+      $__ik = ['nopay'=>'invoice_nopay','prereq'=>'invoice_prereq','restricted'=>'invoice_restricted'][(string)($r['error_code']??'')] ?? 'invoice_cur_err';
       header('Location: /admin?tab='.$back.'&msg='.$__ik.'&err='.urlencode(substr((string)$r['error'],0,240))); exit;
     }
     header('Location: /admin?tab='.$back.'&msg=invoice_issued'); exit;
@@ -675,7 +675,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $iv=vestra_offer_issue_invoice($ref, true);
     /* Kur damgasi yoksa HICBIR NUMARA YANMADAN duruyor; sebep ekranda. */
     if(is_array($iv) && !empty($iv['error'])){
-      $__ik = (($iv['error_code']??'')==='nopay') ? 'invoice_nopay' : 'invoice_cur_err';
+      $__ik = ['nopay'=>'invoice_nopay','restricted'=>'invoice_restricted'][(string)($iv['error_code']??'')] ?? 'invoice_cur_err';
       header('Location: /admin?tab=invoices&msg='.$__ik.'&err='.urlencode(substr((string)$iv['error'],0,200))); exit;
     }
     $issued = $iv && ($iv['no'] ?? '') !== '';
@@ -3125,6 +3125,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ <b>Ödeme yolu DEĞİŞTİRİLMEDİ</b> — <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?></div>
 <?php elseif($msg==='invoice_prereq'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ <b>FATURA KESİLMEDİ — önce iki karar:</b> <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?><br>Siparişin satırında <b>🚚 kargo</b> kutusuna navlunu yazıp kaydedin (ücretsizse <b>0</b>) ve <b>banka hesabını</b> seçip kaydedin. <b>Hiçbir numara yakılmadı, hiçbir belge yazılmadı, alıcıya hiçbir şey gitmedi.</b></div>
+<?php elseif($msg==='invoice_restricted'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ <b>FATURA KESİLMEDİ</b> — <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?> Hiçbir numara yakılmadı.</div>
 <?php elseif($msg==='invoice_cur_err'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ <b>FATURA KESİLMEDİ</b> — para birimi çevrilemedi: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>. Hiçbir numara yakılmadı, hiçbir belge yazılmadı. Sipariş tarihinin kuru damgalı değilse <b>Admin ▸ Orders ▸ ⟳ Fetch missing rates</b> ile damgalayın, sonra tekrar deneyin. (Bugünün kuruyla doldurmuyoruz: sipariş tarihinde geçerli olan kur neyse fatura odur.)</div>
 <?php elseif($msg==='offer_del_invoiced'): ?>
@@ -3583,6 +3585,9 @@ elseif($tab==='documents'):
         <div style="margin-top:5px"><?= fBtn($gEx?'▶ Apply doc deadline':'⏸ Exempt from doc deadline','doc_grace_exempt',['uid'=>$selUser['id']??'','on'=>$gEx?'0':'1','back'=>'documents'],'font-size:11px',
           $gEx ? 'Apply the '.VESTRA_SELLER_DOC_GRACE_DAYS.'-day document rule to this seller again?' : 'Exempt this seller from the '.VESTRA_SELLER_DOC_GRACE_DAYS.'-day document rule? No deadline letters and no automatic pause.') ?></div>
       </div>
+    <?php endif; ?>
+    <?php if($__ru=auth_restricted_until($selUser)): ?>
+      <div style="margin:6px 0 10px"><?= abadge('⛔ kısıtlı · '.date('j M Y',$__ru).' tarihine kadar','#a33') ?> <span class="ahint">mesaj gönderemez, yeni fatura kesilmez; tekrarında kalıcı kapatma</span></div>
     <?php endif; ?>
     <?php if(($selUser['status']??'active')==='suspended'): ?>
       <?= fBtn('Activate account','activate_account',['uid'=>$selUser['id']??'']) ?>

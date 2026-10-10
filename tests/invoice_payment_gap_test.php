@@ -176,7 +176,7 @@ $t('bant NUMARA YAKILMADIGINI yaziyor', str_contains($a, 'Hiçbir numara yakılm
    ve 'nopay' kutu bandina gidiyor. */
 $t('siparis yolu error_code ile bant seciyor',
    preg_match("/\\\$act==='issue_invoice'.*?'nopay'=>'invoice_nopay'.*?\\\$r\\['error_code'\\]/s", $a) === 1
-   && substr_count($a, "(\$iv['error_code']??'')==='nopay'") === 1);
+   && substr_count($a, "['nopay'=>'invoice_nopay','restricted'=>'invoice_restricted'][(string)(\$iv['error_code']??'')]") === 1);
 $t('siparis kesimi error_code\'u YUKARI tasiyor (panel bandi icin)',
    preg_match("/function vestra_order_invoice_issue\\(.*?'error_code' => \\(string\\)\\(\\\$issued\\['error_code'\\]/s", (string)file_get_contents($root.'/inc/invoice.php')) === 1);
 $t('onay satirinda TIKLAMADAN ONCE uyari cipi var',

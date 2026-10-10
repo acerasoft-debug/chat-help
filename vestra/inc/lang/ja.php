@@ -1558,4 +1558,8 @@ return array (
   'Test queued to %s — it leaves from your own mail server within about 10 minutes. Check your inbox then.' => '%s へのテストを送信待ちに追加しました — 約10分以内にご自身のメールサーバーから送信されます。その後受信箱をご確認ください。',
   'Queued — it leaves from your own mail server within about 10 minutes.' => '送信待ち — 約10分以内にご自身のメールサーバーから送信されます。',
   'You reached today’s sending limit for your mail server. The rest can be sent tomorrow.' => '本日のメールサーバー送信上限に達しました。残りは明日送信できます。',
+  'Your account is restricted for 30 days (until %s): you cannot send messages and cannot receive payment invoices.' => 'お客様のアカウントは30日間（%sまで）制限されています：メッセージの送信および支払い請求書の受け取りはできません。',
+  'If this happens again, your account will be closed permanently.' => '再発した場合、アカウントは永久に閉鎖されます。',
+  'Your account is restricted: you cannot send messages until %s.' => 'お客様のアカウントは制限されています：%sまでメッセージを送信できません。',
+  'Your message was not sent.' => 'メッセージは送信されませんでした。',
 );

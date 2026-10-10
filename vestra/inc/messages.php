@@ -268,6 +268,13 @@ function vestra_msg_delete(string $threadId, string $key): array {
 function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, string $text, string $listingId=''): array {
     $text = trim(preg_replace('/[ \t]+/', ' ', (string)$text));
     if ($text === '' || $buyerUid === '' || $sellerUid === '') return ['ok'=>false, 'error'=>'empty'];
+    /* Kisitli hesap (auth_restricted_until) mesaj GONDEREMEZ; ona yazilabilir --
+       operator ve satici cevabi kapanmasin. Kapi burada: uc gonderim yolu da
+       (alici, satici, admin) bu fonksiyondan geciyor. */
+    if ($fromUid !== VESTRA_SUPPORT_UID) {
+        require_once __DIR__.'/auth.php';
+        if ($until = auth_restricted_uid($fromUid)) return ['ok'=>false, 'error'=>'restricted', 'until'=>$until];
+    }
     if ($flag = vestra_msg_flag_offplatform($text)) {
         vestra_msg_log_blocked($fromUid, $buyerUid, $sellerUid, $listingId, $flag, $text);
         return ['ok'=>false, 'error'=>'flagged', 'flag'=>$flag];
@@ -757,6 +764,11 @@ function vestra_msg_panel_html(string $role, string $uid, string $tid, ?array $t
             $main .= '<a class="msghead-s" href="/product?id='.urlencode($lid).'">'.$h(trim(($tl['brand'] ?? '').' — '.($tl['name'] ?? ''), ' —')).'</a>';
         }
         $main .= '</div></div>';
+        if ($msgerr === 'restricted') {
+            require_once __DIR__.'/auth.php';
+            $__ru = auth_restricted_uid($uid);
+            $main .= '<div class="banner msgerr">⚠ '.sprintf(t('Your account is restricted: you cannot send messages until %s.'), $__ru ? date('j M Y', $__ru) : '—').' '.t('Your message was not sent.').'</div>';
+        }
         if (in_array($msgerr, ['email', 'iban', 'phone'], true)) {
             $main .= '<div class="banner msgerr">⚠ '.t('For your safety, sharing email addresses, phone numbers, or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so buyer protection still applies. Your message was not sent.').'</div>';
         }

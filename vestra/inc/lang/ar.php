@@ -1558,4 +1558,8 @@ return array (
   'Test queued to %s — it leaves from your own mail server within about 10 minutes. Check your inbox then.' => 'تمت جدولة رسالة الاختبار إلى %s — ستخرج من خادم بريدك خلال 10 دقائق تقريبًا. ثم تحقّق من صندوق الوارد.',
   'Queued — it leaves from your own mail server within about 10 minutes.' => 'في الانتظار — ستخرج من خادم بريدك خلال 10 دقائق تقريبًا.',
   'You reached today’s sending limit for your mail server. The rest can be sent tomorrow.' => 'بلغت حد الإرسال اليومي لخادم بريدك. يمكن إرسال الباقي غدًا.',
+  'Your account is restricted for 30 days (until %s): you cannot send messages and cannot receive payment invoices.' => 'حسابك مقيّد لمدة 30 يومًا (حتى %s): لا يمكنك إرسال الرسائل ولا استلام فواتير الدفع.',
+  'If this happens again, your account will be closed permanently.' => 'في حال تكرار ذلك، سيتم إغلاق حسابك نهائيًا.',
+  'Your account is restricted: you cannot send messages until %s.' => 'حسابك مقيّد: لا يمكنك إرسال الرسائل حتى %s.',
+  'Your message was not sent.' => 'لم يتم إرسال رسالتك.',
 );

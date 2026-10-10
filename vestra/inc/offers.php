@@ -951,6 +951,9 @@ function vestra_offers_combined_invoice_issue(array $refs, string $sellerPick = 
 
     $p = vestra_offers_combined_invoice_payload($refs, $pick, $vatNote, $shipping, false, $vatRate, (string)($currency ?? ''));
     if (!empty($p['error'])) return ['error' => $p['error']];
+    /* Kisitli alici: grup kaydi YAZILMADAN durur (asagidaki sira gerekcesiyle). */
+    if (function_exists('vestra_invoice_buyer_restriction')
+        && ($why = vestra_invoice_buyer_restriction((array)($p['meta'] ?? []))) !== '') return ['error' => $why, 'error_code' => 'restricted'];
     /* CEVRILEMEYEN BELGE KESILMEZ -- ve bu KAYITTAN ONCE duruyor. Sirasi
        onemli: asagisi once kaydi yaziyor (uyeleri baglayarak), sonra belgeyi
        kesiyor. Cevrim burada reddedilmeseydi teklifler bir gruba baglanmis

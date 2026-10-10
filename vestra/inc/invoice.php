@@ -1543,6 +1543,16 @@ function vestra_auto_invoice_enabled(): bool {
    happens by default and never what happens automatically: once an invoice has
    gone to the buyer, the number is theirs and a correction is a credit note plus
    a new invoice, not a quiet rewrite of the file behind it. */
+/* Alici kisitliysa (auth_restricted_until) YENI fatura kesilmez: bos dizi
+   degil, nedeni yazan bir hata doner. Redraft (var olan belge) kapsam disi. */
+function vestra_invoice_buyer_restriction(array $order): string {
+    $em = trim((string)($order['buyer']['email'] ?? ($order['email'] ?? '')));
+    if ($em === '') return '';
+    require_once __DIR__.'/auth.php';
+    $until = auth_restricted_until(auth_find($em));
+    return $until ? 'Alıcı hesabı '.date('Y-m-d', $until).' tarihine kadar kısıtlı — yeni fatura kesilmez.' : '';
+}
+
 function vestra_ensure_invoice(array $order, array $items, ?array $sellerAcc, bool $force = false, bool $redraft = false): array {
     $sellerKey = vestra_invoice_seller_key($sellerAcc);
     $pdfPath  = vestra_invoice_file($order['ref'], $sellerKey);
@@ -1574,6 +1584,9 @@ function vestra_ensure_invoice(array $order, array $items, ?array $sellerAcc, bo
     /* Suspended: no invoice is created until stock is confirmed and it is issued by hand. */
     if (!$force && !vestra_auto_invoice_enabled()) {
         return ['no' => '', 'path' => '', 'seller_key' => $sellerKey, 'pending' => true];
+    }
+    if (($why = vestra_invoice_buyer_restriction($order)) !== '') {
+        return ['no' => '', 'path' => '', 'seller_key' => $sellerKey, 'error' => $why, 'error_code' => 'restricted'];
     }
     $no = vestra_next_invoice_no($sellerKey);
     $bytes = vestra_render_invoice_pdf($order, $items, $sellerAcc, $no);
@@ -2263,6 +2276,7 @@ function vestra_issue_order_invoices(string $ref, bool $redraft = false): array 
     $issued = [];
     foreach ($payloads as $p) {
         $iv = vestra_ensure_invoice($p['meta'], $p['items'], $p['seller'], true, $redraft);
+        if (!empty($iv['error'])) return ['error' => (string)$iv['error'], 'error_code' => (string)($iv['error_code'] ?? '')];
         if (!empty($iv['no'])) $issued[] = $iv;
     }
     return $issued;
