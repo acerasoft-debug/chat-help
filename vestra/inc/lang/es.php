@@ -1667,4 +1667,7 @@ return array (
   'Account type' => 'Tipo de cuenta',
   '— not specified —' => '— sin especificar —',
   'Bank address' => 'Dirección del banco',
+  'DeepSeek did not accept your DeepSeek key. Please create a new key and save it again.' => 'DeepSeek no aceptó tu clave DeepSeek. Crea una clave nueva y guárdala de nuevo.',
+  'Your DeepSeek account has no balance left. Top up at platform.deepseek.com, then try again.' => 'Tu cuenta DeepSeek no tiene saldo. Recárgala en platform.deepseek.com e inténtalo de nuevo.',
+  'DeepSeek is busy right now. Please wait a minute and try again.' => 'DeepSeek está saturado ahora mismo. Espera un minuto e inténtalo de nuevo.',
 );

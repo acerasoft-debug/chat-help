@@ -1663,4 +1663,7 @@ return array (
   'Account type' => 'نوع الحساب',
   '— not specified —' => '— غير محدد —',
   'Bank address' => 'عنوان البنك',
+  'DeepSeek did not accept your DeepSeek key. Please create a new key and save it again.' => 'لم يقبل DeepSeek مفتاح DeepSeek الخاص بك. أنشئ مفتاحًا جديدًا واحفظه مجددًا.',
+  'Your DeepSeek account has no balance left. Top up at platform.deepseek.com, then try again.' => 'لم يتبقَّ رصيد في حساب DeepSeek الخاص بك. اشحنه عبر platform.deepseek.com ثم حاول مجددًا.',
+  'DeepSeek is busy right now. Please wait a minute and try again.' => 'DeepSeek مشغول حاليًا. انتظر دقيقة وحاول مجددًا.',
 );

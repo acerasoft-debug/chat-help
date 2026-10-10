@@ -599,6 +599,11 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
         'own_key'=>'Anthropic did not accept your Claude key. Please create a new key and save it again.',
         'own_credit'=>'Your Anthropic account has no credit left. Add credit in the Anthropic console (Billing), then try again.',
         'own_rate'=>'Your Anthropic account is busy right now. Please wait a minute and try again.'];
+      /* own_* kodları satıcının KENDİ anahtarında döner; DeepSeek anahtarıyla yazıyorsa Anthropic metni yanıltır. */
+      if(in_array($aCode,['own_key','own_credit','own_rate'],true) && (vestra_ai_camp_route($suid)['provider']??'')==='deepseek')
+        $aMsgs=['own_key'=>'DeepSeek did not accept your DeepSeek key. Please create a new key and save it again.',
+          'own_credit'=>'Your DeepSeek account has no balance left. Top up at platform.deepseek.com, then try again.',
+          'own_rate'=>'DeepSeek is busy right now. Please wait a minute and try again.']+$aMsgs;
       $_SESSION['seller_ai_flash']=[$aOk,$aMsgs[$aCode]??$aMsgs['parse']];
     } elseif($sact==='seller_ai_save'){
       $aOk=vestra_ai_camp_save_edit((string)($_POST['cid']??''),$suid,(string)($_POST['subject']??''),(string)($_POST['body']??''),!empty($_POST['activate']));

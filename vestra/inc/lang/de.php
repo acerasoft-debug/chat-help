@@ -1668,4 +1668,7 @@ return array (
   'Account type' => 'Kontoart',
   '— not specified —' => '— nicht angegeben —',
   'Bank address' => 'Bankadresse',
+  'DeepSeek did not accept your DeepSeek key. Please create a new key and save it again.' => 'DeepSeek hat Ihren DeepSeek-Schlüssel nicht akzeptiert. Bitte erstellen Sie einen neuen Schlüssel und speichern Sie ihn erneut.',
+  'Your DeepSeek account has no balance left. Top up at platform.deepseek.com, then try again.' => 'Ihr DeepSeek-Konto hat kein Guthaben mehr. Laden Sie es auf platform.deepseek.com auf und versuchen Sie es erneut.',
+  'DeepSeek is busy right now. Please wait a minute and try again.' => 'DeepSeek ist gerade ausgelastet. Bitte warten Sie eine Minute und versuchen Sie es erneut.',
 );
