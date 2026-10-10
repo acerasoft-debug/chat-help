@@ -30,13 +30,13 @@
       "splashImmersive": false
     },
     "StatusBar": {
-      "style": "LIGHT",
-      "backgroundColor": "#ffffff",
+      "style": "DARK",
+      "backgroundColor": "#000000",
       "overlaysWebView": false
     }
   },
   "ios": {
-    "contentInset": "always",
+    "contentInset": "never",
     "backgroundColor": "#ffffff",
     "allowsLinkPreview": false,
     "scrollEnabled": true,

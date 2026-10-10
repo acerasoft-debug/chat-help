@@ -94,9 +94,8 @@ $1`);
   console.log('✓ build.gradle: sürüm + release imzası');
 }
 
-/* Sistem çubukları beyaz, simgeler koyu: uygulama açılır açılmaz mağazanın
-   beyaz başlığıyla tek parça görünsün (varsayılan şablonda siyah gezinti
-   çubuğu ve renkli durum çubuğu var). */
+/* Durum çubuğu siyah (sayfanın en üstündeki duyuru şeridiyle tek parça,
+   beyaz saat); gezinti çubuğu beyaz, koyu simgeler (sayfa gövdesiyle). */
 function patchStyles() {
   const f = path.join(ROOT, 'app', 'src', 'main', 'res', 'values', 'styles.xml');
   if (!fs.existsSync(f)) { console.log('styles.xml yok.'); return; }
@@ -104,8 +103,8 @@ function patchStyles() {
   if (s.includes('SARVESTO_BARS')) { console.log('styles.xml zaten yamalı.'); return; }
   const items = `
         <!-- SARVESTO_BARS -->
-        <item name="android:statusBarColor">#FFFFFF</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#000000</item>
+        <item name="android:windowLightStatusBar">false</item>
         <item name="android:navigationBarColor">#FFFFFF</item>
         <item name="android:windowLightNavigationBar">true</item>
         <item name="android:windowBackground">@android:color/white</item>`;

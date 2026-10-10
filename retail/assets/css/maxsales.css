@@ -1929,6 +1929,15 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
    Ana ekrandan açılınca (standalone) çentikli telefonlarda yan ve alt kenar
    güvenli alanı; tarayıcı içinde env() sıfır döner, hiçbir şey değişmez. */
 body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+/* Üst: çentik/Dynamic Island altında siyah bir şerit — duyuru şeridiyle tek
+   parça, saat ve pil beyaz (yerel ayar). Tarayıcıda env() sıfır: şerit yok.
+   Sabit başlık bu şeridin ALTINA yapışır; ölçüldü: top:0 ile saatin altına
+   giriyordu. */
+body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top);background:var(--ink);z-index:95;pointer-events:none}
+.ticker{padding-top:env(safe-area-inset-top)}
+.site{top:env(safe-area-inset-top)}
+.drawer__panel{padding-top:calc(74px + env(safe-area-inset-top))}
+.lightbox__x{top:calc(18px + env(safe-area-inset-top))}
 .foot{padding-bottom:calc(30px + env(safe-area-inset-bottom))}
 .drawer__panel{padding-bottom:env(safe-area-inset-bottom)}
 /* Uygulama içinde metin seçimi ve uzun basış menüsü ürün kartlarında
