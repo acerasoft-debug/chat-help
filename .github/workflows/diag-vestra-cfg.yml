@@ -1,0 +1,52 @@
+name: (Salt-okunur) Vestra ayar deposu nerede
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# SALT-OKUNUR. MAXSALES yönetim paneli Vestra'daki yönetici şifresini kabul
+# edebilsin diye, vestra_cfg()'nin ayarı NEREDEN okuduğunu öğreniyoruz.
+# Fonksiyonun kaynağını ve dosya yolunu basar; admin_pass'in KENDİSİNİ ASLA
+# basmaz — yalnızca dolu olup olmadığını ve uzunluğunu.
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Oku
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          script: |
+            cd ~/public_html
+            cat > ./vestra_diag_cfg_tmp.php <<'PHPEOF'
+            <?php
+            error_reporting(E_ALL); ini_set('display_errors','1');
+            ob_start();
+            require __DIR__.'/inc/products.php';
+            ob_end_clean();
+            if (!function_exists('vestra_cfg')) { echo "vestra_cfg YOK\n"; exit; }
+            $rf = new ReflectionFunction('vestra_cfg');
+            $f  = $rf->getFileName(); $a = $rf->getStartLine(); $b = $rf->getEndLine();
+            echo "dosya : ".str_replace(getenv('HOME'), '~', $f)."  satir {$a}-{$b}\n\n";
+            $src = file($f);
+            for ($i = $a - 1; $i < $b; $i++) echo str_pad((string)($i+1), 5, ' ', STR_PAD_LEFT)."  ".$src[$i];
+            // vestra_cfg'nin cagirdigi yardimcilar (dosya yolu burada olabilir)
+            echo "\n-- ayni dosyada data_dir / cfg ile ilgili satirlar --\n";
+            foreach ($src as $n => $line) {
+              if (preg_match('/function\s+vestra_(data_dir|cfg\w*|config\w*|settings\w*)\s*\(/', $line)) {
+                echo str_pad((string)($n+1), 5, ' ', STR_PAD_LEFT)."  ".$line;
+              }
+            }
+            if (function_exists('vestra_data_dir')) echo "\nvestra_data_dir(): ".str_replace(getenv('HOME'), '~', vestra_data_dir())."\n";
+            $p = (string)vestra_cfg('admin_pass', '');
+            echo "\nadmin_pass dolu mu : ".($p !== '' ? 'EVET' : 'HAYIR')."\n";
+            echo "admin_pass uzunluk : ".strlen($p)."\n";
+            echo "hash gibi mi ($2y$): ".(str_starts_with($p, '$2y$') ? 'EVET' : 'HAYIR')."\n";
+            PHPEOF
+            php ./vestra_diag_cfg_tmp.php
+            rm -f ./vestra_diag_cfg_tmp.php
