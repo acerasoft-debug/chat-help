@@ -153,6 +153,11 @@ function vestra_finder_start(array $in, string $owner = '', string $by = 'admin'
      araması kendi listesine düşer, gönderimi satıcı kendisi yapar. Gönderim find-customers.yml'den sunucunun
      posta kutusu kuyruğuna istek olarak gider (cron_mailbox.php, günlük tavan, MX kontrolü). Deneme koşusu göndermez. */
   $p['send'] = ($owner === '' && !empty($in['send_after']) && ($p['dry_run'] ?? 'false') !== 'true') ? 'true' : 'false';
+  /* Arama başına kampanya (10 Eki 2026, operatör: "aramayı başlat bul ve gönder var ama kampanya seçilemiyor"):
+     yalnız admin araması; 'none' = gönderme, '' = ⚙️ Ayarlar'daki otomatik/manuel mod. Workflow girdisine
+     KONMAZ (find-customers.yml'de yok) — kayıtta durur, arama bitince vestra_mailbox_auto_request() okur. */
+  $sc = $owner === '' ? (string)($in['send_campaign'] ?? '') : 'none';
+  $sendCamp = ($sc === 'none' || preg_match('/^[A-Za-z0-9:_-]{1,40}$/', $sc)) ? $sc : '';
   $repo = vestra_finder_repo();
   $id = 'FR'.date('ymdHi').strtoupper(bin2hex(random_bytes(2)));
 
@@ -160,7 +165,7 @@ function vestra_finder_start(array $in, string $owner = '', string $by = 'admin'
   if (vestra_finder_gh_token() === '') {
     $runs = vestra_finder_runs();
     array_unshift($runs, ['id' => $id, 'owner' => $owner, 'by' => $by, 'requested_at' => date('c'),
-                          'status' => 'requested', 'params' => $p]);
+                          'status' => 'requested', 'params' => $p, 'send_campaign' => $sendCamp]);
     vestra_finder_save_runs($runs);
     return [true, 'Arama sıraya alındı ('.$id.'). 10 dakika içinde başlar, 20-40 dakikada biter; sonuç bu kartta görünecek.', $id];
   }
@@ -188,7 +193,7 @@ function vestra_finder_start(array $in, string $owner = '', string $by = 'admin'
 
   $runs = vestra_finder_runs();
   array_unshift($runs, ['id' => $id, 'owner' => $owner, 'by' => $by, 'requested_at' => date('c'),
-                        'status' => 'requested', 'dispatched_at' => date('c'), 'via' => 'token', 'params' => $p]);
+                        'status' => 'requested', 'dispatched_at' => date('c'), 'via' => 'token', 'params' => $p, 'send_campaign' => $sendCamp]);
   vestra_finder_save_runs($runs);
   return [true, 'Arama başlatıldı ('.$id.'). Sonuç bu kartta görünecek — genelde 20-40 dakika sürer.', $id];
 }

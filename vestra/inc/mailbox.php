@@ -77,10 +77,24 @@ function vestra_mailbox_auto_save(bool $on, string $campaign, int $limit, string
 
 /** Arama bitince çağrılır: otomatik moddaysa gönderim isteği yazar. [ok, mesaj]. Kampanya silinmişse
  *  standart davete düşer (Claude kampanyası listeden çıkmış olabilir). */
-function vestra_mailbox_auto_request(?array $campaignKeys = null): array {
+function vestra_mailbox_auto_request(?array $campaignKeys = null, string $finderReqId = ''): array {
   $a = vestra_mailbox_auto();
+  /* Panelden başlatılan aramada seçilen kampanya (kayıtta 'send_campaign') genel moddan önce gelir:
+     'none' = gönderme; geçerli bir kampanya = o kampanyayla gönder (manuel modda bile); boş = genel mod. */
+  if ($finderReqId !== '' && function_exists('vestra_finder_runs')) {
+    foreach (vestra_finder_runs() as $r) {
+      if ((string)($r['id'] ?? '') !== $finderReqId) continue;
+      $sc = (string)($r['send_campaign'] ?? '');
+      if ($sc === 'none') return [false, 'Bu arama "gönderme, sadece bul" ile başlatıldı — bulunanlar listede bekliyor.'];
+      if ($sc !== '') {
+        $camp = ($campaignKeys !== null && !in_array($sc, $campaignKeys, true)) ? 'edit' : $sc;
+        return vestra_mailbox_request('send', $a['auto_limit'], $camp, '', $campaignKeys, 'web');
+      }
+      break;
+    }
+  }
   if (!$a['auto_send']) return [false, 'Otomatik gönderim KAPALI (manuel mod) — bulunanlar listede bekliyor, panelden gönderin.'];
-  $camp = ($campaignKeys !== null && !in_array($a['auto_campaign'], $campaignKeys, true)) ? 'lesgarage' : $a['auto_campaign'];
+  $camp = ($campaignKeys !== null && !in_array($a['auto_campaign'], $campaignKeys, true)) ? 'edit' : $a['auto_campaign'];
   return vestra_mailbox_request('send', $a['auto_limit'], $camp, '', $campaignKeys, $a['auto_pool']);
 }
 

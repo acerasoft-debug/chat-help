@@ -517,7 +517,28 @@ $t('açık istek varken ikincisi yazılmaz (aynı adrese iki kez yok)', !$okB &&
 @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
 vestra_mailbox_auto_save(true, 'ai:silinmis', 5, 'web');
 [$okC] = vestra_mailbox_auto_request($keys);
-$t('silinmiş kampanya standart Les Garage\'a düşer', $okC && (vestra_mailbox_runs()[0]['campaign'] ?? '') === 'lesgarage');
+$t('silinmiş kampanya VESTRA Edit\'e düşer', $okC && (vestra_mailbox_runs()[0]['campaign'] ?? '') === 'edit');
+/* Arama başına kampanya (panelden başlatılan arama): genel moddan önce gelir. */
+@unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
+vestra_mailbox_auto_save(false, 'edit', 7, 'web');
+vestra_finder_save_runs([['id' => 'FRpc1', 'owner' => '', 'status' => 'done', 'requested_at' => date('c'), 'send_campaign' => 'polos'],
+                         ['id' => 'FRpc2', 'owner' => '', 'status' => 'done', 'requested_at' => date('c'), 'send_campaign' => 'none'],
+                         ['id' => 'FRpc3', 'owner' => '', 'status' => 'done', 'requested_at' => date('c')]]);
+[$okP] = vestra_mailbox_auto_request($keys, 'FRpc1');
+$t('aramada seçilen kampanya MANUEL modda bile gider', $okP && (vestra_mailbox_runs()[0]['campaign'] ?? '') === 'polos' && (int)(vestra_mailbox_runs()[0]['limit'] ?? 0) <= 7);
+@unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
+[$okN, $msgN] = vestra_mailbox_auto_request($keys, 'FRpc2');
+$t('"gönderme, sadece bul" seçildiyse gitmez', !$okN && str_contains($msgN, 'sadece bul') && vestra_mailbox_runs() === []);
+[$okG] = vestra_mailbox_auto_request($keys, 'FRpc3');
+$t('seçim yoksa genel mod (MANUEL → gitmez)', !$okG && vestra_mailbox_runs() === []);
+@unlink(VESTRA_DATA_DIR.'/mailbox_runs.json'); vestra_finder_save_runs([]);
+[$okS1, , $idS1] = vestra_finder_start(['cities' => 'Italy|Milano', 'send_campaign' => 'polos'], '', 'admin');
+$rS1 = vestra_finder_runs()[0] ?? [];
+$t('panel araması seçilen kampanyayı kayda yazar (workflow girdisine değil)', $okS1 && ($rS1['send_campaign'] ?? '') === 'polos' && !isset($rS1['params']['send_campaign']));
+vestra_finder_save_runs([]);
+vestra_finder_start(['cities' => 'Italy|Roma', 'send_campaign' => 'polos'], 'sellerX', 'seller');
+$t('satıcı araması kampanya göndermez', (vestra_finder_runs()[0]['send_campaign'] ?? '') === 'none');
+vestra_finder_save_runs([]);
 $bw = vestra_mailbox_batch(10, 'standard', [], 'web'); $ba = vestra_mailbox_batch(10, 'standard', [], 'all');
 $t('havuz web: yalnız web aramasıyla bulunan', array_column($bw['items'], 'leadId') === ['W1']);
 $t('havuz all: eski liste de', count($ba['items']) === 2);
@@ -677,7 +698,7 @@ $t('satıcı: müşteri listesinde Gmail/Outlook/uygulama düğmeleri (yalnız e
 $t('admin: web araması aç/kapat düğmesi + gönderimde "Kime" havuz seçimi', str_contains($ha, 'value="finder_toggle"') && str_contains($ha, '▶ Aç') && str_contains($ha, 'name="pool"') && str_contains($ha, 'Tüm yazılmamış müşteriler'));
 $t('admin: Brevo kalan kredi bandı + pay ayarı', str_contains($ha, 'Brevo bugün kalan') && str_contains($ha, 'value="brevo_reserve"'));
 $t('admin: 📤 lemlist CSV formu', str_contains($ha, 'value="lemlist_export"') && str_contains($ha, '📤 lemlist CSV indir') && str_contains($ha, 'name="mark" value="1" checked'));
-$t('admin: arama kartı gönderim modunu gösterir (arama başına kutu yerine tek ayar)', !str_contains($ha, 'name="send_after"') && str_contains($ha, 'Gönderim modu:') && str_contains($ha, 'OTOMATİK — bulunanlara'));
+$t('admin: arama kartında kampanya seçimi (+ "gönderme, sadece bul")', !str_contains($ha, 'name="send_after"') && str_contains($ha, 'name="send_campaign"') && str_contains($ha, '<option value="edit" selected>') && str_contains($ha, '<option value="none">— Gönderme, sadece bul'));
 $t('admin: 📮 kart — 3 adım (kampanya kartları + önizleme, kime, test/gönder), ayarlar katlı', str_contains($ha, 'id="mailboxsend"') && str_contains($ha, 'value="campaign_send"') && str_contains($ha, 'class="mbcamp"') && str_contains($ha, 'id="mbp-edit"')
    && str_contains($ha, 'name="target" value="web" checked') && str_contains($ha, 'name="mode" value="send"') && str_contains($ha, 'id="mbsettings"') && str_contains($ha, 'value="mailbox_cap"') && str_contains($ha, 'vestra._domainkey') && str_contains($ha, 'Günlük tavan'));
 $t('admin: önizleme gerçek e-posta HTML\'i (kaçışlı, iframe\'e yüklenir)', str_contains($ha, '&lt;!doctype html&gt;') && str_contains($ha, 'id="mbmodalf"'));

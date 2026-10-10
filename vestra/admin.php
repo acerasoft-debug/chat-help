@@ -6518,15 +6518,20 @@ elseif($tab==='prospects'):
       <div class="afield" style="margin-top:8px"><label>Kendi arama sorguların (noktalı virgülle)</label><input name="extra_queries" placeholder='"Stone Island" "Moncler" boutique Torino; negozio multimarca Dsquared2 Bari'></div>
       <div class="afield"><label>Doğrudan incelenecek siteler (arama yapmadan) <span style="font-weight:400;color:var(--mut)">— elindeki listeyi gerçek e-postaya çevirir</span></label><textarea name="seed_domains" rows="2" placeholder="boutique-ornek.it, shop-ornek.de"></textarea></div>
     </details>
-    <?php require_once __DIR__.'/inc/mailbox.php'; $fwAuto=vestra_mailbox_auto(); ?>
-    <p class="ahint" style="margin:0 0 6px">Gönderim modu: <b style="color:<?= $fwAuto['auto_send']?'#1f9d63':'#a9781a' ?>"><?= $fwAuto['auto_send']?'OTOMATİK — bulunanlara arama biter bitmez support@vestrasales.com\'dan gider':'MANUEL — bulunanlar listeye eklenir, göndermeyi siz başlatırsınız' ?></b> · <a href="#mailboxsend" style="color:var(--acc)">değiştir</a></p>
+    <?php require_once __DIR__.'/inc/mailbox.php'; $fwAuto=vestra_mailbox_auto(); $fwCamps=vestra_finder_campaigns();
+      $fwDefC=$fwAuto['auto_send']?(isset($fwCamps[$fwAuto['auto_campaign']])?$fwAuto['auto_campaign']:'edit'):'none'; ?>
+    <div class="afield" style="margin:0 0 8px;max-width:520px"><label>Bulunca hangi kampanya gitsin? <span style="font-weight:400;color:var(--mut)">— support@vestrasales.com'dan, kendi sunucumuzla · <a href="#mailboxsend" style="color:var(--acc)">kampanyaları önizle</a></span></label>
+      <select name="send_campaign" onchange="var b=document.getElementById('fwstartbtn'); if(b) b.textContent=this.value==='none'?'🌐 Aramayı başlat (sadece bul)':'🌐 Aramayı başlat (bul + gönder)';">
+        <?php foreach($fwCamps as $ck=>[$cl]): ?><option value="<?= htmlspecialchars($ck) ?>"<?= $ck===$fwDefC?' selected':'' ?>>📮 <?= htmlspecialchars(explode(' — ',$cl)[0]) ?></option><?php endforeach; ?>
+        <option value="none"<?= $fwDefC==='none'?' selected':'' ?>>— Gönderme, sadece bul (sonra ben gönderirim)</option>
+      </select></div>
     <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0 0 10px"><input type="checkbox" name="dry_run" value="1"> Deneme — sadece bul ve göster, listeye ekleme</label>
     <?php if(!$fwReady): ?>
       <button class="abtn" type="button" disabled>⏸ Web araması kapalı</button>
     <?php elseif($fwActive): ?>
       <button class="abtn" type="button" disabled>⏳ Arama çalışıyor (<?= htmlspecialchars((string)$fwActive['id']) ?>) — bitince tekrar başlatabilirsiniz</button>
     <?php else: ?>
-      <button class="abtn primary" type="submit" onclick="this.disabled=true;this.textContent='Başlatılıyor…';this.form.submit()">🌐 Aramayı başlat<?= vestra_mailbox_auto()['auto_send']?' (bul + gönder)':'' ?></button>
+      <button class="abtn primary" id="fwstartbtn" type="submit" onclick="this.disabled=true;this.textContent='Başlatılıyor…';this.form.submit()"><?= $fwDefC==='none'?'🌐 Aramayı başlat (sadece bul)':'🌐 Aramayı başlat (bul + gönder)' ?></button>
     <?php endif; ?>
     <?php if(!$fwReady): ?><span class="ahint" style="margin-left:8px">Web araması kapalı — aşağıdaki "Aç" düğmesiyle açın. Bulunan müşteriler ve kampanya gönderimi kapalıyken de çalışır.</span>
     <?php else: ?><span class="ahint" style="margin-left:8px">Her gün 05:20 ve 15:20'de (UTC) kendiliğinden de çalışır. <?= $fwGh?'Süre: 20-40 dk.':'Başlaması 10 dk\'ya kadar, süre 20-40 dk.' ?></span><?php endif; ?>
