@@ -81,9 +81,10 @@ jobs:
             ls -d "$HOME"/public_html/_golge-* 2>/dev/null | sed 's/^/  raf: /' | head -5
             echo
 
-            if [ "$(readlink -f "${CUR:-/nonexistent}")" = "$(readlink -f "$NEW")" ]; then
+            if [ "${CUR:-}" = "$NEW" ] || { [ -n "${CUR:-}" ] && [ ! -L "$CUR" ] && [ "$(readlink -f "$CUR")" = "$(readlink -f "$NEW")" ]; }; then
               echo "== ZATEN BAĞLI: $D -> $NEW =="; exit 0
             fi
+            [ -L "${CUR:-/x}" ] && echo "  not: kök şu an public_html içindeki bir bağ üzerinden mağazaya gidiyor — gerçek kök değişikliği deneniyor
 
             echo "== 4) belge kökünü değiştir =="
             OK=0
@@ -91,9 +92,19 @@ jobs:
               if [ "$DRY" = "true" ]; then
                 echo "  [kuru] uapi SubDomain changedocroot subdomain=$SUB dir=$R"
               else
-                uapi --output=jsonpretty SubDomain changedocroot subdomain="$SUB" dir="$R" > /tmp/ch.json 2>&1
-                head -30 /tmp/ch.json | sed 's/^/  /'
-                grep -q '"errors" *: *null' /tmp/ch.json && OK=1
+                # Sürüme göre parametre adı değişiyor: önce tam ad (domain=),
+                # sonra ad + kök. İlk başarılı olan kalır.
+                SHORT="${SUB%%.*}"; ROOTD="${SUB#*.}"
+                for args in "domain=$SUB" "domain=$SHORT rootdomain=$ROOTD" "subdomain=$SHORT rootdomain=$ROOTD"; do
+                  eval "uapi --output=jsonpretty SubDomain changedocroot $args dir=\"$R\"" > /tmp/ch.json 2>&1
+                  echo "  deneme: $args"; grep -E '"(status|errors)"' -A2 /tmp/ch.json | head -6 | sed 's/^/    /'
+                  if grep -q '"status" *: *1' /tmp/ch.json; then OK=1; break; fi
+                done
+                # Kök gerçekten değiştiyse önceki denemenin bıraktığı bağ gereksiz:
+                # public_html'de mağazaya ait hiçbir şey kalmasın.
+                if [ "$OK" = "1" ] && [ -L "$CUR" ] && [ "$(readlink -f "$CUR")" = "$(readlink -f "$NEW")" ]; then
+                  rm -f "$CUR" && echo "  public_html'deki eski bağ kaldırıldı: $CUR"
+                fi
               fi
             else
               echo "  alt alan bulunamadı — changedocroot denenmiyor"
@@ -107,7 +118,11 @@ jobs:
                 fi
                 mv "$CUR" "$CUR.bos-$(date +%Y%m%d-%H%M%S)"
               fi
-              ln -s "$NEW" "$CUR" && OK=1 && echo "  bağ kuruldu: $CUR -> $NEW"
+              if [ -L "$CUR" ] && [ "$(readlink -f "$CUR")" = "$(readlink -f "$NEW")" ]; then
+                OK=1; echo "  bağ zaten var, olduğu gibi kalıyor: $CUR -> $NEW"
+              else
+                ln -s "$NEW" "$CUR" && OK=1 && echo "  bağ kuruldu: $CUR -> $NEW"
+              fi
             fi
             [ "$DRY" = "true" ] && { echo "  [kuru] olmazsa: mv $CUR kenara; ln -s $NEW $CUR"; exit 0; }
             echo
