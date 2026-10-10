@@ -4731,9 +4731,25 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   girişlerini YALNIZ SSH borusuyla `scripts/ci/seller_outbox_send.py`'ye verir (loga/dosyaya yazılmaz), koşucu
   satıcının sunucusundan gönderir, `stamp` geri yazar: sent → contacted (contact_via=seller_smtp), 5xx alıcı
   reddi → bounced, giriş reddi → satıcı kartında `smtp_error`, geçici hata → kuyruğa (en çok 3 deneme).
-  Brevo anahtarı olan satıcı eskisi gibi anında Brevo'dan. Satıcı başına günde 300. Panelde "Ready" =
-  Brevo ya da SMTP. Kampanya tavanı (support@, kendi sunucumuz) 500/gün (`VESTRA_MAILBOX_*_CAP`; eski
-  kayıtlı 50 yok sayılır), adminde müşteri seçerek gönderim (`vestra_finder_pick_table`).
+  Brevo anahtarı olan satıcı eskisi gibi anında Brevo'dan. Satıcı başına günde 300 (SMTP). Kampanya tavanı
+  (support@, kendi sunucumuz) 500/gün (`VESTRA_MAILBOX_*_CAP`; eski kayıtlı 50 yok sayılır), adminde müşteri
+  seçerek gönderim (`vestra_finder_pick_table`).
+- **Üçüncü satıcı yolu 'server' — kurulumsuz, VESTRA'nın posta servisinden kendi adıyla (10 Eki 2026,
+  operatör: "herkes kendi emailinden server'dan göndersin").** `vestra_seller_route($cfg,$email)` →
+  `brevo | smtp | server | ''`: Brevo anahtarı ve SMTP yoksa mektup `seller_outbox` kuyruğuna `via=server`
+  düşer ve `cron_mailbox.php` (10 dk'da bir, KENDİ kilidi `seller_outbox_cron.lock`, admin kampanyasıyla
+  çakışmaz) `vestra_seller_outbox_run_server()` ile PHP mail()'den gönderir: **From support@** (Gmail/Outlook
+  DMARC'ı başka sunucudan "From: satıcı@gmail.com"a izin vermez), görünen ad "Firma via VESTRA", **Reply-To
+  satıcının adresi**; satıcı başına günde `VESTRA_SELLER_SERVER_DAILY`=100, turda 40, 8–15 sn ara, ölü alan
+  adı atlanır; contact_via=`seller_server`. GitHub `seller-outbox.yml` yalnız `via=smtp` kayıtlarını alır.
+  Satıcı paneli (10 Eki denetimi): test + toplu gönderim seçilen yola göre (`vestra_seller_send_test` kodları
+  own/queued/server/nosetup/badto/fail); müşteri satırında kuyruk/gönderildi/hata durumu (`$obByLead`),
+  bounced + e-postasız seçilemez; SMTP kaydı `array_merge` ile mevcut ayarı ezmez, port varsayılanı 465;
+  eski "otomatik keşif" kartı ve gönderim formundaki `ai_key` kaldırıldı; başarısız arama günlük haktan
+  düşmez (`$sfLastT`). Satıcı metinleri 8 dilde tam — eksik anahtarı bulmak için `t('…')` anahtarlarını
+  `inc/lang/*.php` ile karşılaştır (10 Eki'de 96 çevrilmemiş metin bulundu, `scratchpad/seller2_i18n.py`
+  deseniyle eklendi). Yapılmayanlar: `vestra_finder_start` dönüşünü alt dize yerine kodla ayırmak,
+  own_key/own_credit metinlerinde sağlayıcı adı (Anthropic/DeepSeek), `vestra_brevo_credits` çizimde canlı HTTP.
 - **Siparişin USD karşılığı SİPARİŞ TARİHİNDEKİ kurla** (operatör, 7 Eyl 2026:
   *"siparişleri anında sipariş zamanındaki kur ile USD'ye çevirecek bir sistem
   koy admin paneline"*). Tek kaynak `inc/fx_orders.php`; damga
