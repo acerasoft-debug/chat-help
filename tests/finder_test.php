@@ -535,6 +535,16 @@ $stRun = [['id' => 'FRst', 'owner' => '', 'requested_at' => date('c'), 'status' 
   'added' => [['company' => 'Sent Shop', 'email' => 'a@sent.example'], ['company' => 'Wait Shop', 'email' => 'b@wait.example'], ['company' => 'Bounce Shop', 'email' => 'C@bounce.example']]]];
 $hSt = vestra_finder_runs_html($stRun, true, [], 6);
 $t('admin: gönderildi / bekliyor / geri döndü + özet', str_contains($hSt, '✓ gönderildi 10.10') && str_contains($hSt, '⏳ henüz gönderilmedi') && str_contains($hSt, '✗ geri döndü') && str_contains($hSt, '1 gönderildi') && str_contains($hSt, '2 bekliyor'));
+if (!function_exists('csrfField')) { function csrfField() { return '<input type="hidden" name="_csrf" value="x">'; } }
+$hBtn = vestra_finder_runs_html($stRun, true, [], 6);
+$t('adminde "📮 Bunlara şimdi gönder" — yalnız bekleyen müşteri (S2)', str_contains($hBtn, 'value="finder_run_send"') && str_contains($hBtn, 'name="ids" value="S2"') && str_contains($hBtn, 'Bunlara şimdi gönder (1)'));
+require_once $root.'/inc/mailbox.php'; @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
+[$okIds] = vestra_mailbox_request('send', 1, 'standard', '', array_keys(vestra_finder_campaigns()), 'web', ['S2', 'bad id!']);
+$rIds = vestra_mailbox_runs()[0] ?? [];
+$t('istek yalnız bu müşterileri taşır (temizlenmiş id)', $okIds && ($rIds['ids'] ?? null) === ['S2', 'badid']);
+$bIds = vestra_mailbox_batch(5, 'standard', $rIds['ids'], 'web');
+$t('gönderim listesi yalnız S2 (gönderilmiş/geri dönen alınmaz)', array_column($bIds['items'], 'leadId') === ['S2']);
+@unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
 $t('satıcı görünümünde durum sütunu yok', !str_contains(vestra_finder_runs_html($stRun, false, [], 6, true), 'gönderildi'));
 
 echo "\n== 7. çizim — admin ve satıcı sayfası kum havuzunda GERÇEKTEN koşuyor ==\n";

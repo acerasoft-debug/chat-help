@@ -1948,6 +1948,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $_SESSION['mailbox_flash']=[$ok,$msg];
     header('Location: /admin?tab=prospects#mailboxsend'); exit;
   }
+  /* Bir aramanın sonuç listesinden "📮 Bunlara şimdi gönder" (10 Eki 2026, operatör: "gönderen buton yok"). */
+  if($act==='finder_run_send'){
+    require_once __DIR__.'/inc/finder.php'; require_once __DIR__.'/inc/mailbox.php';
+    $ids=array_slice(array_filter(explode(',',(string)($_POST['ids']??''))),0,200);
+    [$ok,$msg]=vestra_mailbox_request('send',max(1,count($ids)),(string)($_POST['campaign']??'lesgarage'),'',array_keys(vestra_finder_campaigns()),'web',$ids);
+    $_SESSION['mailbox_flash']=[$ok,$msg];
+    header('Location: /admin?tab=prospects#mailboxsend'); exit;
+  }
   /* Gönderim modu (10 Eki 2026): otomatik = her arama bitince yeni bulunanlara gönder; manuel = panelden. */
   if($act==='mailbox_auto_save'){
     require_once __DIR__.'/inc/finder.php'; require_once __DIR__.'/inc/mailbox.php';

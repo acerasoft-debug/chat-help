@@ -317,6 +317,18 @@ function vestra_finder_runs_html(array $runs, bool $showOwner = false, array $ow
                 . ($en ? '' : '<td style="padding:3px 0 3px 6px;white-space:nowrap">'.($stCell[$k] ?? '').'</td>').'</tr>';
         }
         $out .= '</table></details>';
+        /* Bu aramada bulunup henüz yazılmamış olanlara tek tıkla gönderim (kendi sunucumuz, support@). */
+        $waitIds = [];
+        if (!$en && $leadIdx) foreach ($added as $a) { $l = $leadIdx[strtolower(trim((string)($a['email'] ?? '')))] ?? null;
+          if ($l && trim((string)($l['last_contacted_at'] ?? '')) === '' && !in_array((string)($l['status'] ?? ''), ['bounced', 'unsubscribed'], true) && ($l['id'] ?? '') !== '') $waitIds[] = (string)$l['id']; }
+        if ($waitIds && function_exists('csrfField')) {
+          $out .= '<form method="post" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px">'.csrfField()
+                . '<input type="hidden" name="_action" value="finder_run_send"><input type="hidden" name="ids" value="'.$h(implode(',', $waitIds)).'">'
+                . '<select name="campaign" style="font-size:12px;padding:3px 6px">';
+          foreach (vestra_finder_campaigns() as $ck => [$cl]) $out .= '<option value="'.$h($ck).'">'.$h(mb_substr($cl, 0, 48)).'</option>';
+          $out .= '</select><button class="abtn primary" type="submit" style="padding:4px 12px" onclick="return confirm(\'Bu aramada bulunan '.count($waitIds).' müşteriye support@vestrasales.com\\\'dan gönderilsin mi?\')">📮 Bunlara şimdi gönder ('.count($waitIds).')</button>'
+                . '<span style="color:var(--mut,#777);font-size:11.5px">support@vestrasales.com · kendi sunucumuz · 10 dk içinde başlar</span></form>';
+        }
       }
       $nm = (array)($r['no_email'] ?? []);
       if ($nm) {

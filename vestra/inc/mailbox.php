@@ -115,7 +115,7 @@ function vestra_mailbox_is_open(array $r): bool {
  * Panel isteği. [ok, mesaj]. Aynı anda tek istek; gönderim tavanı bugünkü kalanla sınırlı.
  * $mode: 'test' (tek örnek, $testTo'ya) | 'send'.
  */
-function vestra_mailbox_request(string $mode, int $limit, string $campaign, string $testTo, ?array $campaignKeys = null, string $pool = 'web'): array {
+function vestra_mailbox_request(string $mode, int $limit, string $campaign, string $testTo, ?array $campaignKeys = null, string $pool = 'web', array $ids = []): array {
   if (!in_array($mode, ['test', 'send'], true)) return [false, 'Geçersiz kip.'];
   if (!preg_match('/^[A-Za-z0-9:_-]{1,40}$/', $campaign) || ($campaignKeys !== null && !in_array($campaign, $campaignKeys, true))) return [false, 'Kampanya bulunamadı.'];
   $testTo = strtolower(trim($testTo));
@@ -128,7 +128,9 @@ function vestra_mailbox_request(string $mode, int $limit, string $campaign, stri
     $limit = max(1, min($limit, $left));
   } else $limit = 1;
   $id = 'MB'.date('ymdHis').substr(bin2hex(random_bytes(2)), 0, 4);
-  $runs[] = ['id' => $id, 'mode' => $mode, 'limit' => $limit, 'campaign' => $campaign, 'pool' => $pool === 'all' ? 'all' : 'web', 'test_to' => $mode === 'test' ? $testTo : '',
+  /* Belirli müşteriler (ör. bir aramada bulunanlar — "📮 Bunlara şimdi gönder"): yalnız onlar seçilir. */
+  $ids = array_values(array_unique(array_filter(array_map(static fn($x) => preg_replace('/[^A-Za-z0-9_-]/', '', (string)$x), $ids))));
+  $runs[] = ['id' => $id, 'mode' => $mode, 'limit' => $limit, 'campaign' => $campaign, 'pool' => $pool === 'all' ? 'all' : 'web', 'ids' => $mode === 'send' ? array_slice($ids, 0, 200) : [], 'test_to' => $mode === 'test' ? $testTo : '',
              'status' => 'requested', 'requested_at' => date('c')];
   vestra_mailbox_runs_save($runs);
   return [true, $mode === 'test'
