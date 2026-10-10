@@ -84,10 +84,23 @@ function vr_vestra_admin_pass(): string
     return $pass = (string)($c['admin_pass'] ?? '');
 }
 
+/**
+ * Vestra şifresinin ÖZETİ — mağaza Vestra'dan ayrı bir sunucuya taşındığında.
+ * Taşıma iş akışı (migrate-sarvesto.yml) eski sunucuda şifreyi password_hash
+ * ile özetleyip yalnızca özeti data/admin-vestra.json'a yazıyor; düz şifre
+ * yeni sunucuya hiç gitmiyor. Her senkronda tazelendiği için Vestra'da şifre
+ * değişince burada da değişir.
+ */
+function vr_vestra_admin_hash(): string
+{
+    $d = vr_store_read('admin-vestra.json', []);
+    return is_array($d) ? trim((string)($d['pw_hash'] ?? '')) : '';
+}
+
 /** Panel hiç kurulmamışsa true. Giriş ekranı bunu açıkça yazıyor. */
 function vr_admin_unconfigured(): bool
 {
-    return vr_admin_config() === null && vr_vestra_admin_pass() === '';
+    return vr_admin_config() === null && vr_vestra_admin_pass() === '' && vr_vestra_admin_hash() === '';
 }
 
 /**
@@ -129,7 +142,12 @@ function vr_admin_login(string $email, string $pw): array
     } else {
         // Vestra yönetici şifresi: e-posta istenmez, Vestra'da da yok.
         $vp = vr_vestra_admin_pass();
-        if ($vp !== '' && hash_equals($vp, $pw)) $who = 'Vestra-Admin';
+        if ($vp !== '') {
+            if (hash_equals($vp, $pw)) $who = 'Vestra-Admin';
+        } else {
+            $vh = vr_vestra_admin_hash();
+            if ($vh !== '' && $pw !== '' && password_verify($pw, $vh)) $who = 'Vestra-Admin';
+        }
     }
     if ($who === null) return [false, 'login_failed'];
 

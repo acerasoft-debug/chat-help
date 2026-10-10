@@ -172,7 +172,7 @@ if (vr_admin_unconfigured()) {
     line('WARN', 'Panel', 'kein Administrator — php tools/admin-user.php set <E-Mail> <Passwort>');
 } else {
     $src = vr_admin_config() === null
-        ? 'Vestra-Adminpasswort'
+        ? (vr_vestra_admin_pass() !== '' ? 'Vestra-Adminpasswort' : 'Vestra-Adminpasswort (Hash, data/admin-vestra.json)')
         : (getenv('VR_ADMIN_USER') ? 'Umgebungsvariable' : 'data/admin.json');
     line('OK', 'Panel', 'eingerichtet (' . $src . ')');
 }

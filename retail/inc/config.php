@@ -152,7 +152,7 @@ function vr_config(?string $key = null, mixed $default = null): mixed
              * ve hangisini sıralayacağına kendisi karar verir.
              * Liste boş bırakılırsa denetim kapanır (yerel geliştirme).
              */
-            'canonical_hosts'  => ['maxsales.de', 'www.maxsales.de'],
+            'canonical_hosts'  => ['sarvesto.com', 'www.sarvesto.com'],
             'primary_lang'     => 'en',
             // Canlı B2B sitesinin 5 dili + ayrıca istenen 5 pazar:
             // ru (Rusça), az (Azerbaycanca), da (Danca), sv (İsveççe),
