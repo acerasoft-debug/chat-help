@@ -1,0 +1,67 @@
+name: (Salt-okunur) Mağaza kataloğunu dök
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# SALT OKUNUR. Mağazanın (~/maxsales_de) gördüğü kataloğu, mağazanın kendi
+# koduyla okur ve sıkıştırılmış JSON olarak loga basar: marka, kategori,
+# satıcı, fotoğraflar (diskte var mı), renk, beden/stok. Ayrıca B2B
+# listings.json satırlarının ham alan adlarını ve satıcı/marka dağılımını
+# verir. Hiçbir dosyaya yazmaz.
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dök
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 10m
+          script: |
+            cd ~/maxsales_de
+            php <<'PHP'
+            <?php
+            require 'inc/catalog.php';
+            require_once 'inc/uploads.php';
+            $cat = vr_catalog();
+            $raw = vr_store_read('listings.json', []);
+            $rawById = [];
+            foreach ((array)$raw as $r) if (is_array($r) && isset($r['id'])) $rawById[(string)$r['id']] = $r;
+            $imp = vr_store_read('retail-imported.json', []);
+            $impIds = [];
+            foreach ((array)$imp as $r) if (isset($r['id'])) $impIds[(string)$r['id']] = true;
+
+            $out = [];
+            foreach ($cat as $id => $p) {
+              $imgs = array_values(array_filter((array)($p['images'] ?? []), 'strlen'));
+              $exists = 0;
+              foreach ($imgs as $i) if (vr_upload_exists($i) || str_starts_with($i, 'http')) $exists++;
+              $r = $rawById[$id] ?? [];
+              $out[] = [
+                'id' => $id, 'b' => $p['brand'] ?? '', 'n' => $p['name'] ?? '', 'c' => $p['cat'] ?? '',
+                'sku' => $p['sku'] ?? '', 'st' => $p['seller_type'] ?? '', 'su' => $p['seller_uid'] ?? '',
+                'src' => isset($impIds[$id]) ? (isset($rawById[$id]) ? 'both' : 'imp') : 'b2b',
+                'ni' => count($imgs), 'ne' => $exists, 'im' => array_slice($imgs, 0, 4),
+                'col' => function_exists('vr_variant_colour') ? vr_variant_colour($p) : '',
+                'sz' => implode(' ', array_map(fn($s) => $s['label'] . 'x' . $s['qty'], (array)$p['sizes'])),
+                'stk' => (int)$p['stock'], 'pr' => (int)($p['price'] ?? $p['price_cents'] ?? 0),
+                'rs' => (string)($r['seller'] ?? ''), 'rc' => (string)($r['category'] ?? $r['cat'] ?? ''),
+                'colors' => $r['colors'] ?? ($r['colours'] ?? ($r['color'] ?? null)),
+              ];
+            }
+            $keys = [];
+            foreach ((array)$raw as $r) if (is_array($r)) foreach (array_keys($r) as $k) $keys[$k] = ($keys[$k] ?? 0) + 1;
+            arsort($keys);
+            $sel = [];
+            foreach ((array)$raw as $r) if (is_array($r)) { $k = ($r['seller'] ?? '?') . ' | ' . ($r['brand'] ?? '?'); $sel[$k] = ($sel[$k] ?? 0) + 1; }
+            arsort($sel);
+            $payload = json_encode(['products' => $out, 'raw_keys' => $keys, 'raw_seller_brand' => $sel,
+                                    'raw_count' => count((array)$raw)], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            echo "products=" . count($out) . " raw=" . count((array)$raw) . " bytes=" . strlen($payload) . "\n";
+            echo "-----BEGIN DUMP-----\n" . chunk_split(base64_encode(gzencode($payload, 9)), 100, "\n") . "-----END DUMP-----\n";
+            PHP
