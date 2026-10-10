@@ -1,4 +1,4 @@
-# MAXSALES — Premium Retail
+# SARVESTO — Premium Retail
 
 Perakende (B2C) mağaza katmanı: vitrin, ürün sayfası, **Premium Outlet (Vault)**,
 sepet, Stripe ödeme, satıcı kaydı (Anmeldung) ve Stripe **Connect** ile satıcı

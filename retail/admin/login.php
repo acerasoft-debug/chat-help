@@ -52,7 +52,7 @@ vr_layout_start(['title' => 'Verwaltung', 'robots' => 'noindex,nofollow']);
         <?= vr_csrf_field() ?>
         <?php if ($ownAdmin): ?>
           <div class="field">
-            <label for="email">E-Mail <small>(nur für den eigenen MAXSALES-Zugang)</small></label>
+            <label for="email">E-Mail <small>(nur für den eigenen <?= h((string)vr_config('brand')) ?>-Zugang)</small></label>
             <input id="email" name="email" type="email" autocomplete="username">
           </div>
         <?php endif; ?>

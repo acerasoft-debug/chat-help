@@ -141,7 +141,7 @@ function vr_config(?string $key = null, mixed $default = null): mixed
     if ($cfg === null) {
         $cfg = [
             // ---- marka
-            'brand'            => 'MAXSALES',
+            'brand'            => 'SARVESTO',
             'brand_tagline_key' => 'tagline',
             /**
              * Mağazanın asıl alan adı. Site birden fazla adresten cevap

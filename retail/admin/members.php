@@ -18,7 +18,7 @@ $confirmed = array_values(array_filter($rows, fn($r) => !empty($r['confirmed_at'
 // Adresse darf nicht angeschrieben werden.
 if (($_GET['export'] ?? '') === 'csv') {
     header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="maxsales-newsletter.csv"');
+    header('Content-Disposition: attachment; filename="' . strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', (string)vr_config('brand'))) . '-newsletter.csv"');
     $out = fopen('php://output', 'w');
     fputcsv($out, ['email', 'lang', 'confirmed_at']);
     foreach ($confirmed as $r) {

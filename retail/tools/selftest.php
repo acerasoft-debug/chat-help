@@ -209,6 +209,7 @@ foreach ($pages as $f) {
     if (!is_readable(VR_ROOT . '/' . $f)) $missing[] = $f;
 }
 line($missing ? 'FAIL' : 'OK', 'Storefront-Seiten', $missing ? 'fehlt: ' . implode(', ', $missing) : count($pages) . ' Dateien');
+line('OK', 'Markenname', (string)vr_config('brand') . ' · Hauptdomain: ' . implode(', ', (array)vr_config('canonical_hosts', [])));
 
 $legal = ['impressum', 'agb', 'widerruf', 'rueckgabe', 'versand', 'zahlung', 'datenschutz',
           'cookies', 'verkaeufer', 'streitbeilegung', 'barrierefreiheit'];

@@ -69,7 +69,7 @@ function vr_layout_start(array $o = []): void
 <meta property="og:title" content="<?= h($full) ?>">
 <meta property="og:description" content="<?= h(mb_substr($desc, 0, 200)) ?>">
 <meta property="og:url" content="<?= h($canon) ?>">
-<meta property="og:image" content="<?= h(!empty($o['og_image']) ? (str_starts_with((string)$o['og_image'], 'http') ? (string)$o['og_image'] : vr_origin() . $o['og_image']) : vr_abs('assets/art.php', ['s' => 'maxsales', 'w' => 1200, 'h' => 630])) ?>">
+<meta property="og:image" content="<?= h(!empty($o['og_image']) ? (str_starts_with((string)$o['og_image'], 'http') ? (string)$o['og_image'] : vr_origin() . $o['og_image']) : vr_abs('assets/art.php', ['s' => strtolower((string)vr_config('brand')), 'w' => 1200, 'h' => 630])) ?>">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#0a0a0e">
 

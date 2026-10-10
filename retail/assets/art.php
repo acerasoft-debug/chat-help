@@ -19,7 +19,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../inc/config.php';
 $brandName = htmlspecialchars((string)vr_config('brand'), ENT_QUOTES | ENT_XML1, 'UTF-8');
 
-$seed = preg_replace('/[^A-Za-z0-9._-]/', '', (string)($_GET['s'] ?? 'maxsales')) ?: 'maxsales';
+$seed = preg_replace('/[^A-Za-z0-9._-]/', '', (string)($_GET['s'] ?? 'sarvesto')) ?: 'sarvesto';
 $cat  = mb_substr((string)($_GET['c'] ?? ''), 0, 40);
 $w    = max(120, min(1600, (int)($_GET['w'] ?? 800)));
 $h    = max(120, min(1600, (int)($_GET['h'] ?? 1000)));
