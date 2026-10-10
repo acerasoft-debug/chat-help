@@ -1,0 +1,11 @@
+name: (Salt-okunur) sarvesto.com e-posta durumu
+# Yalnızca kayıt; asıl adımlar claude/vestra-premium-retail-site-rxj4va dalında.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  stub:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "claude/vestra-premium-retail-site-rxj4va dalından başlatın."
