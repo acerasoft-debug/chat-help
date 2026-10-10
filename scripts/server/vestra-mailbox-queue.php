@@ -175,7 +175,9 @@ if ($cmd === 'auto') {
   /* 10 Eki 2026: arama bitince çağrılır. Paneldeki "Gönderim modu" OTOMATİK ise ayarlı kampanya/sayı/havuzla
      istek yazar; MANUEL ise hiçbir şey göndermez (bulunanlar listede bekler). */
   if (!function_exists('vestra_mailbox_auto_request')) { echo json_encode(['ok'=>false,'msg'=>'eski sunucu kodu — otomatik gönderim yok']); exit(0); }
-  [$ok, $msg] = vestra_mailbox_auto_request(array_keys(vestra_finder_campaigns()));
+  /* auto [arama-no]: panelden başlatılan aramada seçilen kampanya (kayıttaki send_campaign) genel moddan önce gelir. */
+  $req = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($argv[2] ?? ''));
+  [$ok, $msg] = vestra_mailbox_auto_request(array_keys(vestra_finder_campaigns()), $req);
   echo json_encode(['ok'=>$ok, 'msg'=>$msg], JSON_UNESCAPED_UNICODE);
   exit(0);
 }

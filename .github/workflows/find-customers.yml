@@ -214,9 +214,10 @@ jobs:
           # göndermez. Elle başlatılan GitHub koşusunda send=true yalnız o koşu için zorlar.
           ssh vestra 'cat > ~/vestra_tmp/mailbox-queue.php' < scripts/server/vestra-mailbox-queue.php
           if [ "$FORCE_SEND" = "true" ]; then
-            ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php request send ${SEND_LIMIT} lesgarage '' web" | tee send.log || true
+            ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php request send ${SEND_LIMIT} edit '' web" | tee send.log || true
           else
-            ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php auto" | tee send.log || true
+            # Panelden başlatılan aramada seçilen kampanya arama kaydında durur (REQ_ID ile bulunur).
+            ssh vestra "cd ~/public_html && php ~/vestra_tmp/mailbox-queue.php auto '${REQ_ID}'" | tee send.log || true
           fi
           ssh vestra 'rm -f ~/vestra_tmp/mailbox-queue.php' || true
           { echo ""; echo "### Gönderim"; echo '```'; tail -n 40 send.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
