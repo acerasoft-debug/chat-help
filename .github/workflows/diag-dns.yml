@@ -1,0 +1,37 @@
+name: (Salt-okunur) vestrasales.com DNS — kimin yönettiği ve DKIM
+# 10 Eki 2026 (operatör: DKIM kaydını "sen aç"). SALT-OKUNUR: alan adının ad sunucularını, DKIM/SPF/DMARC
+# kayıtlarını ve cPanel'in DNS bölgesini yönetip yönetemediğini basar. Hiçbir kayıt eklemez, değiştirmez.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dışarıdan (koşucu) DNS
+        run: |
+          for q in "NS vestrasales.com" "TXT vestrasales.com" "TXT _dmarc.vestrasales.com" "TXT vestra._domainkey.vestrasales.com" "TXT default._domainkey.vestrasales.com" "CNAME brevo1._domainkey.vestrasales.com" "MX vestrasales.com"; do
+            set -- $q; echo "== $1 $2"; dig +short "$2" "$1" @1.1.1.1 | cut -c1-160
+          done
+      - name: Sunucudan — cPanel DNS bölgesi
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            set -u
+            command -v uapi >/dev/null 2>&1 || { echo "uapi yok"; exit 0; }
+            echo "== cPanel DNS::parse_zone (yalnız kayıt sayısı ve NS/SOA) =="
+            uapi --output=json DNS parse_zone zone=vestrasales.com 2>/dev/null | php -r '
+              $d = json_decode(stream_get_contents(STDIN), true);
+              if (!($d["result"]["status"] ?? 0)) { echo "  erişim yok: ".implode(" ", (array)($d["result"]["errors"] ?? []))."\n"; exit; }
+              $rows = (array)($d["result"]["data"] ?? []); echo "  kayıt: ".count($rows)."\n";
+              foreach ($rows as $r) { $t = $r["record_type"] ?? ""; if (in_array($t, ["NS","SOA"], true) || str_contains(base64_decode((string)($r["dname_b64"] ?? "")), "_domainkey"))
+                echo "  ".$t." ".base64_decode((string)($r["dname_b64"] ?? ""))." → ".substr(implode(" ", array_map("base64_decode", (array)($r["data_b64"] ?? []))), 0, 80)."\n"; }'
