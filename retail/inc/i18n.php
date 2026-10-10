@@ -101,6 +101,12 @@ function t(string $key, array $vars = []): string
     foreach ($vars as $k => $v) {
         $s = str_replace('{' . $k . '}', (string)$v, $s);
     }
+    // Mağaza adı sözlükte sabit yazılmıyor, {brand} olarak duruyor: ad
+    // değişirse yalnızca vr_config('brand') (ya da data/retail-settings.json)
+    // değişsin, on dilde altmış cümle değil.
+    if (str_contains($s, '{brand}')) {
+        $s = str_replace('{brand}', (string)vr_config('brand'), $s);
+    }
     return $s;
 }
 

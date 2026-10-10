@@ -332,7 +332,7 @@ function vr_stripe_connect_create(array $seller): array
             'transfers'     => ['requested' => true],
         ],
         'business_profile' => [
-            'product_description' => 'Resale of apparel and accessories via the MAXSALES marketplace',
+            'product_description' => 'Resale of apparel and accessories via the ' . vr_config('brand') . ' marketplace',
             'mcc'                 => '5651',   // Family Clothing Stores
             'url'                 => vr_origin(),
         ],

@@ -346,7 +346,7 @@ function vr_config(?string $key = null, mixed $default = null): mixed
 
             // ---- e-posta
             'mail_from'          => 'support@vestrasales.com',
-            'mail_from_name'     => 'MAXSALES',
+            'mail_from_name'     => '',   // boş = marka adı (aşağıda vr_mail_settings)
             'mail_bcc_ops'       => '',    // sipariş kopyası
 
             // ---- işletme
@@ -429,7 +429,7 @@ function vr_mail_settings(): array
         'provider' => (string)($j['mail_api_provider'] ?? 'brevo'),
         'api_key'  => $key,
         'from'     => (string)($j['mail_from'] ?? vr_config('mail_from')),
-        'name'     => (string)($j['smtp_name'] ?? vr_config('mail_from_name')),
+        'name'     => (string)($j['smtp_name'] ?? (vr_config('mail_from_name') ?: vr_config('brand'))),
     ];
     return $m;
 }

@@ -30,7 +30,7 @@ return [
     'footer_rights'      => 'All rights reserved.',
     'footer_operator'    => 'Operated by {company}',
     'footer_vat_note'    => 'All prices include VAT plus shipping.',
-    'footer_marketplace' => 'MAXSALES is a marketplace: alongside our own stock, vetted boutiques and private sellers offer their pieces here. The seller is named on every product page.',
+    'footer_marketplace' => '{brand} is a marketplace: alongside our own stock, vetted boutiques and private sellers offer their pieces here. The seller is named on every product page.',
 
     // ------------------------------------------------------------------ home
     'hero_eyebrow'       => 'Season 2026 — Vault open',
@@ -80,7 +80,7 @@ return [
     'sec_vault'          => 'The Vault',
     'sec_vault_sub'      => 'One price per piece, and it falls on a schedule you can see. Wait longer, pay less — if someone else does not take it first.',
     'sec_brands'         => 'Houses in stock',
-    'sec_editorial'      => 'Why MAXSALES',
+    'sec_editorial'      => 'Why {brand}',
     'home_manifesto'      => 'We do not invent scarcity. We publish it.',
     'home_manifesto_note' => 'Every lot\'s price schedule is fixed and public before the first drop',
     'stage_pause'         => 'Pause the background film',
@@ -150,7 +150,7 @@ return [
     'sold_by'            => 'Sold by',
     'seller_business'    => 'Trader',
     'seller_private'     => 'Private seller',
-    'seller_vestra'      => 'MAXSALES stock',
+    'seller_vestra'      => '{brand} stock',
     'seller_business_note' => 'A commercial seller. Statutory warranty and the 14-day right of withdrawal apply.',
     'seller_private_note' => 'A private individual, not a business. There is no statutory right of withdrawal and warranty may be excluded — the terms of this listing are shown at checkout.',
     'seller_vestra_note' => 'Shipped and invoiced by us. Full statutory rights plus our voluntary {days}-day return window.',
@@ -250,7 +250,7 @@ return [
 
     // ---------------------------------------------------------------- seller
     'sell_hero_t'        => 'Your pieces, in front of buyers who came for exactly them.',
-    'sell_hero_b'        => 'Boutique, wholesaler or private wardrobe — list on MAXSALES, get paid through Stripe, keep control of your prices.',
+    'sell_hero_b'        => 'Boutique, wholesaler or private wardrobe — list on {brand}, get paid through Stripe, keep control of your prices.',
     'sell_cta'           => 'Register as a seller',
     'sell_login'         => 'Seller login',
     'sell_who_t'         => 'Two ways to sell',
@@ -303,7 +303,7 @@ return [
     'login_failed'       => 'Email or password is wrong.',
     'login_throttled'    => 'Too many attempts. Please wait a minute.',
     'must_accept'        => 'Please accept the Seller Terms.',
-    'welcome_seller'     => 'Welcome to MAXSALES. One step left: connect payouts.',
+    'welcome_seller'     => 'Welcome to {brand}. One step left: connect payouts.',
 
     'dashboard'          => 'Dashboard',
     'my_listings'        => 'My listings',
@@ -352,7 +352,7 @@ return [
 
     // -------------------------------------------------------------- help/faq
     'faq_title'          => 'Help & FAQ',
-    'faq_sub'            => 'Everything about ordering, delivery, returns, the Vault and selling on MAXSALES.',
+    'faq_sub'            => 'Everything about ordering, delivery, returns, the Vault and selling on {brand}.',
     'faq_contact_t'      => 'Still stuck?',
     'faq_contact_b'      => 'Write to {email} — we answer within one working day.',
     'faq_cat_order'      => 'Ordering & payment',
@@ -360,7 +360,7 @@ return [
     'faq_cat_return'     => 'Returns & withdrawal',
     'faq_cat_vault'      => 'The Vault',
     'faq_cat_auth'       => 'Authenticity',
-    'faq_cat_sell'       => 'Selling on MAXSALES',
+    'faq_cat_sell'       => 'Selling on {brand}',
 
     // ----------------------------------------------------------------- legal
     'legal_imprint'      => 'Imprint',
@@ -535,10 +535,10 @@ return [
     'faq_cat_account' => 'Account & data',
     'faq_cat_voucher' => 'Vouchers & discounts',
     'faq_cat_service' => 'Service, languages & accessibility',
-    'about_title'     => 'About MAXSALES',
+    'about_title'     => 'About {brand}',
     'about_sub'       => 'A marketplace for European luxury stock — run in the open, priced without theatre.',
     'about_s1_t'      => 'What we do',
-    'about_s1_b'      => 'MAXSALES sells current and past-season pieces from European houses: our own stock alongside listings from vetted boutiques and private sellers. Every product page names the seller before you buy, because who you are contracting with decides which rights you have.',
+    'about_s1_b'      => '{brand} sells current and past-season pieces from European houses: our own stock alongside listings from vetted boutiques and private sellers. Every product page names the seller before you buy, because who you are contracting with decides which rights you have.',
     'about_s2_t'      => 'Where the goods come from',
     'about_s2_b'      => 'We buy from stock already placed on the market inside the European Economic Area and keep the purchase documents for every lot. Third-party sellers must show the same proof before a listing goes live. If a piece turns out not to be genuine, you get the full price back including shipping and the seller leaves the platform.',
     'about_s3_t'      => 'How we price',
@@ -546,7 +546,7 @@ return [
     'about_s4_t'      => 'What we do not do',
     'about_s4_b'      => 'No tracking, no advertising pixels, no profiling and no cookie banner — because there is nothing to consent to. Fonts, styles and images are served from our own machine, so opening a page contacts nobody else. Card details are handled by Stripe and never touch our servers.',
     'about_s5_t'      => 'Who is behind it',
-    'about_s5_b'      => 'MAXSALES is operated by {company}. Full operator details, register entry and contact address are in the imprint. We are not an authorised dealer of the brands listed here; resale is lawful because the goods were first placed on the market inside the EEA.',
+    'about_s5_b'      => '{brand} is operated by {company}. Full operator details, register entry and contact address are in the imprint. We are not an authorised dealer of the brands listed here; resale is lawful because the goods were first placed on the market inside the EEA.',
     'about_facts'     => 'By the numbers',
     'about_cta_t'     => 'Anything we have not answered here',
     'about_cta_b'     => 'Help & FAQ covers ordering, delivery, returns, vouchers and accounts in detail. For everything else write to {email}.',

@@ -15,6 +15,10 @@
 
 declare(strict_types=1);
 
+// Yalnızca marka adı için: SVG'deki filigran ve aria-label sabit yazılmasın.
+require_once __DIR__ . '/../inc/config.php';
+$brandName = htmlspecialchars((string)vr_config('brand'), ENT_QUOTES | ENT_XML1, 'UTF-8');
+
 $seed = preg_replace('/[^A-Za-z0-9._-]/', '', (string)($_GET['s'] ?? 'maxsales')) ?: 'maxsales';
 $cat  = mb_substr((string)($_GET['c'] ?? ''), 0, 40);
 $w    = max(120, min(1600, (int)($_GET['w'] ?? 800)));
@@ -233,7 +237,7 @@ if ($campaign) {
 }
 
 $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' . $w . '" height="' . $h . '"'
-    . ' viewBox="0 0 ' . $w . ' ' . $h . '" role="img" aria-label="MAXSALES">'
+    . ' viewBox="0 0 ' . $w . ' ' . $h . '" role="img" aria-label="' . $brandName . '">'
     . '<defs>'
     . '<linearGradient id="bg" x1="0" y1="0" x2="0.55" y2="1">'
     . '<stop offset="0" stop-color="' . $c2 . '"/><stop offset="1" stop-color="' . $c1 . '"/></linearGradient>'
@@ -276,7 +280,7 @@ $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' . $w . '" height="' . $
       . '<text x="50%" y="' . round($h - $h * 0.05, 1) . '" text-anchor="middle" fill="' . $ink . '"'
       . ' fill-opacity="0.40" font-family="Georgia,serif"'
       . ' font-size="' . max(9, (int)round(min($w, $h) * 0.030)) . '"'
-      . ' letter-spacing="' . max(2, (int)round(min($w, $h) * 0.011)) . '">MAXSALES</text>')
+      . ' letter-spacing="' . max(2, (int)round(min($w, $h) * 0.011)) . '">' . $brandName . '</text>')
     . '</svg>';
 
 header('Content-Type: image/svg+xml; charset=utf-8');
