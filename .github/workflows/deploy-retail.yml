@@ -361,6 +361,12 @@ jobs:
             echo "== Urun fotograflari (Vestra uploads -> magaza, ustune yazmadan) =="
             php tools/sync-vestra-photos.php || true
             echo
+            # Vestra'dan gelen yeni karelerin biçim ölçüsü (oran, zemin, yan
+            # kenar rengi). Ölçüsüz kare kartta ve galeride kırpılıyor. Yalnız
+            # eksikler ölçülür; depodaki ölçüler olduğu gibi kalır.
+            echo "== Fotograf bicim olcusu (yalniz yeniler) =="
+            timeout 200 php -d memory_limit=1024M tools/index-photo-shape.php 2>&1 | tail -4 || true
+            echo
             echo "== Kurulum kontrolu =="
             # selftest FAIL donerse (ornegin Stripe anahtari yok) bunu gormek
             # istiyoruz ama deploy'u dusurmuyoruz -- kod zaten yuklendi.
