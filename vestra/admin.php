@@ -1780,17 +1780,17 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     if(!$hit || !filter_var($hit['email']??'',FILTER_VALIDATE_EMAIL)){
       header('Location: /admin?tab=prospects&msg=letter_nolead'); exit;
     }
-    /* Gunluk kotadan gec: sifre sifirlama ve siparis bildirimleri icin ayrilan
-       pay tek bir mektup ugruna harcanmasin. */
-    [$qok,$qnote] = vestra_mail_bulk_allowed(1);
-    if(!$qok){ header('Location: /admin?tab=prospects&msg=letter_quota'); exit; }
-    $ok = vestra_send_mail($hit['email'], $subj, $body, '', '', null, '', []);
+    /* 10 Eki 2026: kampanyalarla aynı yol — sunucunun posta servisi, support@ (Brevo yalnız sipariş/fatura). */
+    require_once __DIR__.'/inc/mailbox.php';
+    [$ok,$why] = vestra_mailbox_send_lead($hit, $subj, $body, 'VESTRA');
+    if(!$ok && $why==='cap'){ header('Location: /admin?tab=prospects&msg=letter_quota'); exit; }
+    if(!$ok && $why==='deaddomain'){ header('Location: /admin?tab=prospects&msg=letter_dead'); exit; }
     if($ok){
       $stamp = date('c');
       foreach($leads as &$l){
         if(($l['id']??'')!==$lid) continue;
         $l['status'] = 'contacted';
-        $l['last_contacted_at'] = $stamp;
+        $l['last_contacted_at'] = $stamp; $l['contact_via'] = 'mailbox';
         $note = trim((string)($l['notes'] ?? ''));
         $l['notes'] = ($note!==''?$note."\n":'').substr($stamp,0,10).' — elden mektup: '.mb_substr($subj,0,80);
         break;
@@ -1879,7 +1879,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       header('Location: /admin?tab=prospects#mailboxsend'); exit;
     }
     $dry=($_POST['mode']??'')!=='send';
-    [$sN,$fN,$lines]=vestra_finder_send((string)($_POST['camp']??''),(int)($_POST['limit']??20),$dry,$fsPool);
+    [$sN,$fN,$lines]=vestra_finder_send((string)($_POST['camp']??''),max(1,min(VESTRA_MAILBOX_MAX_CAP,(int)($_POST['limit']??50))),true,$fsPool);   // yalnız liste; göndermez
     $_SESSION['finder_send_flash']=['dry'=>$dry,'sent'=>$sN,'fail'=>$fN,'lines'=>array_slice($lines,0,100),'camp'=>(string)($_POST['camp']??''),'pool'=>$fsPool];
     header('Location: /admin?tab=prospects#findersend'); exit;
   }
@@ -1931,27 +1931,17 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   }
   /* lemlist CSV (8 Eki 2026): gönderime hazır müşteriler lemlist içe aktarma biçiminde.
      "lemlist'e verildi" işareti seçiliyse indirilenler damgalanır, Brevo onlara yazmaz. */
-  if($act==='lemlist_export'){
-    require_once __DIR__.'/inc/finder.php';
-    $rows=vestra_lemlist_export((int)($_POST['limit']??200),(string)($_POST['pool']??'all'),($_POST['mark']??'')==='1');
-    header('Content-Type: text/csv; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="vestra-lemlist-'.date('Ymd-Hi').'.csv"');
-    $out=fopen('php://output','w');
-    fputcsv($out,['email','companyName','firstName','country','website','vestraLeadId'],',','"','\\');
-    foreach($rows as $r) fputcsv($out,array_values($r),',','"','\\');
-    fclose($out); exit;
-  }
   /* support@ posta kutusundan kotasız gönderim isteği (8 Eki 2026, operatör: "adminde tetikleyici
      olsun"). Panel GitHub'ı başlatamaz; istek sıraya yazılır, mailbox-queue.yml 10 dk'da bir alır. */
   if($act==='mailbox_cap'){
     require_once __DIR__.'/inc/mailbox.php';
-    $c=vestra_mailbox_set_cap((int)($_POST['daily_cap']??50));
+    $c=vestra_mailbox_set_cap((int)($_POST['daily_cap']??VESTRA_MAILBOX_DEFAULT_CAP));
     $_SESSION['mailbox_flash']=[true,'✓ Günlük tavan: '.$c.' e-posta.'];
     header('Location: /admin?tab=prospects#mailboxsend'); exit;
   }
   if($act==='mailbox_request'){
     require_once __DIR__.'/inc/finder.php'; require_once __DIR__.'/inc/mailbox.php';
-    [$ok,$msg]=vestra_mailbox_request((string)($_POST['mode']??''),(int)($_POST['limit']??30),(string)($_POST['campaign']??'lesgarage'),(string)($_POST['test_to']??''),array_keys(vestra_finder_campaigns()),(string)($_POST['pool']??'web'));
+    [$ok,$msg]=vestra_mailbox_request((string)($_POST['mode']??''),(int)($_POST['limit']??30),(string)($_POST['campaign']??'edit'),(string)($_POST['test_to']??''),array_keys(vestra_finder_campaigns()),(string)($_POST['pool']??'web'));
     $_SESSION['mailbox_flash']=[$ok,$msg];
     header('Location: /admin?tab=prospects#mailboxsend'); exit;
   }
@@ -1974,15 +1964,15 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     require_once __DIR__.'/inc/finder.php'; require_once __DIR__.'/inc/mailbox.php';
     $ids=array_slice(array_values(array_filter(is_array($_POST['ids']??null)?array_map('strval',$_POST['ids']):explode(',',(string)($_POST['ids']??'')))),0,200);
     if(!$ids){ $_SESSION['mailbox_flash']=[false,'Önce müşteri seçin.']; header('Location: /admin?tab=prospects#mailboxsend'); exit; }
-    [$ok,$msg]=vestra_mailbox_request('send',max(1,count($ids)),(string)($_POST['campaign']??'lesgarage'),'',array_keys(vestra_finder_campaigns()),'web',$ids);
+    [$ok,$msg]=vestra_mailbox_request('send',max(1,count($ids)),(string)($_POST['campaign']??'edit'),'',array_keys(vestra_finder_campaigns()),'web',$ids);
     $_SESSION['mailbox_flash']=[$ok,$msg];
-    header('Location: /admin?tab=prospects#mailboxsend'); exit;
+    header('Location: /admin?tab=prospects#mailboxsend'); exit;   // sonuç/ilerleme 📮 kartında ve canlı şeritte
   }
   /* Gönderim modu (10 Eki 2026): otomatik = her arama bitince yeni bulunanlara gönder; manuel = panelden. */
   if($act==='mailbox_auto_save'){
     require_once __DIR__.'/inc/finder.php'; require_once __DIR__.'/inc/mailbox.php';
-    $camp=(string)($_POST['auto_campaign']??'lesgarage'); if(!isset(vestra_finder_campaigns()[$camp])) $camp='lesgarage';
-    $a=vestra_mailbox_auto_save(($_POST['auto_send']??'')==='1',$camp,(int)($_POST['auto_limit']??40),(string)($_POST['auto_pool']??'web'));
+    $camp=(string)($_POST['auto_campaign']??'edit'); if(!isset(vestra_finder_campaigns()[$camp])) $camp='edit';
+    $a=vestra_mailbox_auto_save(($_POST['auto_send']??'')==='1',$camp,(int)($_POST['auto_limit']??100),(string)($_POST['auto_pool']??'web'));
     $_SESSION['mailbox_flash']=[true,$a['auto_send']?'✓ OTOMATİK: her arama bitince yeni bulunanlara en çok '.$a['auto_limit'].' e-posta gider (günlük tavan içinde).':'✓ MANUEL: arama yalnız listeye ekler; göndermeyi buradan siz başlatırsınız.'];
     header('Location: /admin?tab=prospects#mailboxsend'); exit;
   }
@@ -2949,7 +2939,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'letter_failed'=>'✗ Mektup GÖNDERİLEMEDİ. Brevo reddetti ya da ulaşılamadı — hata günlüğüne bakın. Müşteri kaydına dokunulmadı.',
     'letter_empty'=>'Konu ve metin boş olamaz.',
     'letter_nolead'=>'Müşteri bulunamadı ya da geçerli e-posta adresi yok.',
-    'letter_quota'=>'Günlük gönderim kotası dolu. Şifre sıfırlama ve sipariş bildirimleri için ayrılan pay korunuyor — yarın deneyin.',
+    'letter_quota'=>'Bugünkü gönderim tavanı doldu (📮 Ayarlar) — yarın deneyin.',
+    'letter_dead'=>'Bu alan adının e-posta sunucusu yok — mektup gönderilmedi.',
     'lead_invalid'=>'Company and a valid email are required.','lead_status_ok'=>'Prospect status updated.',
     'lead_deleted'=>'Prospect deleted.','lead_tpl_ok'=>'✓ Outreach template saved.','lead_email_ok'=>'✓ Email added — prospect can now be emailed.',
     'lead_renamed'=>'✓ Company name saved — the campaign letter greets them by it. Contact stamps untouched.',
@@ -6457,32 +6448,6 @@ elseif($tab==='prospects'):
   require_once __DIR__.'/inc/discover_google.php';
   $googleOn = vestra_google_key()!=='';
 ?>
-<?php ob_start(); /* eski adım şeridi + İngilizce giriş — sadeleştirmede yerini özet aldı (9 Eki 2026) */ ?>
-<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
-  <?php
-    $csteps=[
-      ['1','Find buyers','🧭','Auto-discover + Scout',true],
-      ['2','Get real emails','🔍',$finderApi?'API + reads sites':'Reads sites — no key',true],
-      ['3','Your sender','📤',$emReady?'Sending ready':'Set up SMTP',$emReady],
-      ['4','AI (optional)','✨',$aiOn?'AI connected':'Optional',$aiOn],
-      ['5','Send one-by-one','▶','Live, personalised',false],
-    ];
-    foreach($csteps as $cs){ $cd=$cs[4];
-      echo '<div style="flex:1;min-width:150px;border:1px solid '.($cd?'rgba(31,157,99,.45)':'var(--line)').';border-radius:11px;padding:10px 13px;background:var(--bg2)">'
-        .'<div style="font-size:10.5px;color:'.($cd?'#1f9d63':'var(--mut)').';font-weight:600;letter-spacing:.03em">STEP '.$cs[0].($cd?' ✓':'').'</div>'
-        .'<div style="font-weight:700;font-size:13px;margin-top:2px">'.$cs[2].' '.htmlspecialchars($cs[1]).'</div>'
-        .'<div class="ahint" style="font-size:11px;margin-top:1px">'.htmlspecialchars($cs[3]).'</div></div>';
-    }
-  ?>
-</div>
-<p class="ahint" style="margin-bottom:16px;max-width:760px">
-  Your <b>customer</b> list — the retailers, stores and buyers you want to sell to. Build it by
-  <b>Auto-discover</b> (real shops from OpenStreetMap), your own research (Scout links, trade shows, directories),
-  or a CSV you import. Emails come only from a company's <b>own public contact/imprint page</b> or a finder API —
-  real addresses, never mass-scraped private data. Every outreach email carries a working one-click unsubscribe link;
-  anyone who uses it is permanently excluded from future sends. Use the offer template below (or <i>Send a product offer</i>) to pitch them.
-</p>
-<?php ob_end_clean(); ?>
 
 <?php
   /* ── 🌐 Web'den müşteri bul (inc/finder.php) ─────────────────────────────────
@@ -6503,9 +6468,9 @@ elseif($tab==='prospects'):
   <div class="acard-hd"><h3>🌐 Web'den müşteri bul — gerçek e-posta
     <?= $fwReady?'<span style="color:#1f9d63;font-size:12px;font-weight:600">● Hazır</span>':'<span style="color:#a9781a;font-size:12px;font-weight:600">● Kapalı</span>' ?></h3></div>
   <div class="acard-body">
-  <p class="ahint" style="margin-bottom:10px">Seçilen şehirlerdeki giyim dükkânlarını (OpenStreetMap — <b>anahtar gerekmez</b>) ve isteğe bağlı olarak web'de premium marka çiftlerini (ör. "Dsquared2" + "Balmain") tarar; sitesinde <b>en az iki tasarımcı markası</b> satan <b>çok markalı butikleri</b> bulur. Her sitenin iletişim/künye sayfasından <b>yayınlanmış gerçek e-postayı</b> alır — tahmin yok, MX kontrolü var. <b>Ayakkabıcı, iç çamaşırı, toptancı/distribütör, zincir ve markanın kendi mağazası elenir</b> (KURAL 1 dahil). Bulunanlar bu listeye eklenir; gönderim yine sizin elinizde.</p>
+  <p class="ahint" style="margin-bottom:10px">Seçilen şehirlerdeki giyim dükkânlarını (OpenStreetMap — <b>anahtar gerekmez</b>) ve isteğe bağlı olarak web'de premium marka çiftlerini (ör. "Dsquared2" + "Balmain") tarar; sitesinde <b>en az iki tasarımcı markası</b> satan <b>çok markalı butikleri</b> bulur. Her sitenin iletişim/künye sayfasından <b>yayınlanmış gerçek e-postayı</b> alır — tahmin yok, MX kontrolü var. <b>Ayakkabıcı, iç çamaşırı, toptancı/distribütör, zincir ve markanın kendi mağazası elenir</b> (KURAL 1 dahil). Bulunanlar bu listeye eklenir; aşağıda seçtiğiniz kampanya bulunur bulunmaz gider ya da "sadece bul" ile listede bekler.</p>
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;font-size:11.5px">
-    <?php foreach([['OpenStreetMap + site taraması',true,'anahtarsız, her zaman'],['GitHub token',$fwGh,$fwGh?'anında başlatır':'yok → 10 dk içinde sıradan başlar'],['Brave Search',$fwBrave,'isteğe bağlı · daha çok sonuç'],['Google Places',$googleOn,'isteğe bağlı']] as [$kn,$kon,$kreq]): ?>
+    <?php foreach([['OpenStreetMap + site taraması',true,'anahtarsız, her zaman'],['GitHub token',$fwGh,$fwGh?'sunucu zamanında başlatır':'yok → GitHub sırası (10 dk – saatler)'],['Brave Search',$fwBrave,'isteğe bağlı · daha çok sonuç'],['Google Places',$googleOn,'isteğe bağlı']] as [$kn,$kon,$kreq]): ?>
       <span style="border:1px solid <?= $kon?'rgba(31,157,99,.45)':'var(--line)' ?>;border-radius:20px;padding:3px 10px;color:<?= $kon?'#1f9d63':'var(--mut)' ?>"><?= $kon?'✓':'○' ?> <?= htmlspecialchars($kn) ?> <span style="opacity:.7">· <?= $kreq ?></span></span>
     <?php endforeach; ?>
   </div>
@@ -6514,7 +6479,7 @@ elseif($tab==='prospects'):
   <form method="post" class="aform" style="margin-bottom:12px">
     <?= csrfField() ?><input type="hidden" name="_action" value="finder_web_start">
     <div class="acols2">
-      <div class="afield"><label>Şehirler (Google Places) <span style="font-weight:400;color:var(--mut)">— "Ülke|Şehir", virgülle; boş = havuzdan sırayla 6 şehir</span></label><input name="cities" value="<?= htmlspecialchars((string)($fwLast['cities']??'')) ?>" placeholder="Italy|Milano, France|Paris, Spain|Madrid"></div>
+      <div class="afield"><label>Şehirler <span style="font-weight:400;color:var(--mut)">— "Ülke|Şehir", virgülle; boş = havuzdan sırayla 6 şehir</span></label><input name="cities" value="<?= htmlspecialchars((string)($fwLast['cities']??'')) ?>" placeholder="Italy|Milano, France|Paris, Spain|Madrid"></div>
       <div class="afield"><label>Sadece bu ülkeler <span style="font-weight:400;color:var(--mut)">— ISO kodu, boş = hepsi</span></label><input name="countries" value="<?= htmlspecialchars((string)($fwLast['countries']??'')) ?>" placeholder="IT,FR,ES,NL,BE,CH,AT"></div>
     </div>
     <div class="acols2">
@@ -6541,7 +6506,7 @@ elseif($tab==='prospects'):
       <button class="abtn primary" id="fwstartbtn" type="submit" onclick="this.disabled=true;this.textContent='Başlatılıyor…';this.form.submit()"><?= $fwDefC==='none'?'🌐 Aramayı başlat (sadece bul)':'🌐 Aramayı başlat (bul + gönder)' ?></button>
     <?php endif; ?>
     <?php if(!$fwReady): ?><span class="ahint" style="margin-left:8px">Web araması kapalı — aşağıdaki "Aç" düğmesiyle açın. Bulunan müşteriler ve kampanya gönderimi kapalıyken de çalışır.</span>
-    <?php else: ?><span class="ahint" style="margin-left:8px">Her gün 05:20 ve 15:20'de (UTC) kendiliğinden de çalışır. <?= $fwGh?'Süre: 20-40 dk.':'Başlaması 10 dk\'ya kadar, süre 20-40 dk.' ?></span><?php endif; ?>
+    <?php else: ?><span class="ahint" style="margin-left:8px">Her gün 05:20 ve 15:20'de (UTC) kendiliğinden de çalışır. <?= $fwGh?'Süre: 20-40 dk.':'Anahtarsız başlama GitHub sırasına bağlı (10 dk – saatler); süre 20-40 dk.' ?></span><?php endif; ?>
   </form>
 
   <form method="post" class="aform" style="margin:-4px 0 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><?= csrfField() ?><input type="hidden" name="_action" value="finder_toggle"><input type="hidden" name="on" value="<?= $fwReady?'0':'1' ?>">
@@ -6555,54 +6520,25 @@ elseif($tab==='prospects'):
 <?php $__pb['A']=ob_get_clean(); ob_start(); ?>
 
   <?php
-    /* ── 📮 Bulunanlara kampanya gönder ── */
+    /* ── Gönderim listesi önizleme (10 Eki 2026: eski "📨 Brevo ile gönder" bloğu — kampanya gönderimi artık yalnız
+       sunucunun posta kuyruğundan (📮 kartı); burada yalnız "kime gider" listesi (göndermez). ── */
     $fsCamps=vestra_finder_campaigns(); $fsTargetsWeb=vestra_finder_send_targets(1000,'web'); $fsTargetsAll=vestra_finder_send_targets(5000,'all');
     $fsTargets=$fsTargetsWeb?:$fsTargetsAll;
     $fsSample=$fsTargets?reset($fsTargets):['company'=>'Boutique Esempio','country'=>'Italy','email'=>'info@example.com','unsub_token'=>'','contact_name'=>''];
     $fsFlash=$_SESSION['finder_send_flash']??null; unset($_SESSION['finder_send_flash']);
-    [$fsCredOk,$fsCred]=function_exists('vestra_campaign_credit_ok')?vestra_campaign_credit_ok():[true,null]; $fsRes=vestra_brevo_reserve();
   ?>
   <div id="findersend" style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
-    <div style="font-weight:700;font-size:14px;margin-bottom:4px">📨 Kampanya listesi ve önizleme <span style="color:#1f9d63;font-size:12px">· "Bana test gönder" ve "Gönder" artık support@vestrasales.com'dan, kendi sunucumuzdan gider (📮 kartının kuyruğu)</span> <span class="ahint">· gönderilmeye hazır: web aramasıyla bulunan <b><?= count($fsTargetsWeb) ?></b> · tüm yazılmamış müşteriler <b><?= count($fsTargetsAll) ?></b> (KURAL 1, abonelikten çıkan, kampanya dışı ve daha önce yazılmış adresler elendi)</span></div>
-    <div style="background:<?= $fsCredOk?'rgba(31,157,99,.07)':'#fdf0ee' ?>;border:1px solid <?= $fsCredOk?'rgba(31,157,99,.35)':'#f0c4bd' ?>;border-radius:9px;padding:8px 11px;font-size:12.5px;margin:0 0 8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <span>📊 Brevo bugün kalan: <b><?= $fsCred===null?'?':(int)$fsCred ?></b> · sipariş/fatura payı: <b><?= $fsRes ?></b> · kampanyaya ayrılabilir: <b><?= $fsCred===null?'?':max(0,(int)$fsCred-$fsRes) ?></b><?= $fsCredOk?'':' — <b>bugünlük kampanya hakkı bitti</b>, kalan müşteriler yarın gönderilebilir' ?></span>
-      <form method="post" class="aform" style="display:flex;gap:6px;align-items:center;margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="brevo_reserve"><label class="ahint" style="margin:0">Pay</label><input name="brevo_reserve" type="number" min="0" max="300" value="<?= $fsRes ?>" style="width:70px"><button class="abtn" type="submit">Kaydet</button></form>
-    </div>
-    <p class="ahint" style="margin:0 0 8px">Brevo'nun ücretsiz planı günde 300 mektup verir ve hak bitince mektubu <b>kabul edip göndermez</b> (8 Eki ölçüldü). Bu yüzden gönderim kalan hak sipariş/fatura payına inince kendiliğinden durur. Daha önce gönderdiğimiz kampanyalardan birini (ya da Claude ile yazılanı) seçin, önizleyin, <b>🧪 kendinize test gönderin</b> (konu "[TEST]" önekli, gerçek bir müşterinin adı ve diliyle, kimse damgalanmaz), önce listeleyip sonra gönderin. Gönderim Brevo üzerinden <b>support@vestrasales.com</b> ile gider; her mektupta kişiye özel abonelikten çıkma linki var; aynı adrese ikinci kez gitmez.</p>
-    <?php if($fsFlash && !empty($fsFlash['test'])): ?><div class="amsg <?= $fsFlash['test'][0]?'ok':'' ?>">🧪 <?= htmlspecialchars((string)$fsFlash['test'][1]) ?></div>
-    <?php elseif($fsFlash): ?><div class="amsg <?= ($fsFlash['dry']||$fsFlash['fail']===0)?'ok':'' ?>"><?= $fsFlash['dry']?'Önizleme (gönderilmedi) — bu kişilere gidecek:':('Gönderildi: '.(int)$fsFlash['sent'].' · hata: '.(int)$fsFlash['fail']) ?>
-      <div style="font-size:11.5px;max-height:220px;overflow:auto;margin-top:6px;white-space:pre-wrap"><?= htmlspecialchars(implode("\n",$fsFlash['lines'])?:'(uygun alıcı yok)') ?></div></div><?php endif; ?>
-    <form method="post" class="aform">
-      <?= csrfField() ?><input type="hidden" name="_action" value="finder_send_campaign">
-      <?php $fsFirst=true; foreach($fsCamps as $ck=>[$cl,$cd,$cb]): [$ps,$pb]=$cb($fsSample); ?>
-        <div style="border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-bottom:6px">
-          <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;cursor:pointer"><input type="radio" name="camp" value="<?= htmlspecialchars($ck) ?>"<?= ($fsFlash['camp']??'')===$ck||($fsFirst&&empty($fsFlash['camp']))?' checked':'' ?>> <span><b><?= htmlspecialchars($cl) ?></b><br><span class="ahint"><?= htmlspecialchars($cd) ?></span></span></label>
-          <details style="margin:4px 0 0 24px"><summary class="ahint" style="cursor:pointer">Örneği gör (<?= htmlspecialchars((string)($fsSample['company']??'')) ?> için)</summary>
-            <div style="font-size:12px;margin-top:6px"><b>Konu:</b> <?= htmlspecialchars($ps) ?></div>
-            <div style="font-size:12px;white-space:pre-wrap;background:var(--bg2);border-radius:8px;padding:8px 10px;margin-top:4px;max-height:260px;overflow:auto"><?= htmlspecialchars(mb_substr($pb,0,2500)) ?></div></details>
-        </div>
-      <?php $fsFirst=false; endforeach; ?>
-      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:8px">
-        <div class="afield" style="margin:0"><label>Kime</label><select name="pool"><?php foreach(vestra_finder_pools() as $pk=>$pl): ?><option value="<?= $pk ?>"<?= (($fsFlash['pool']??($fsTargetsWeb?'web':'all'))===$pk)?' selected':'' ?>><?= htmlspecialchars($pl) ?> (<?= count($pk==='web'?$fsTargetsWeb:$fsTargetsAll) ?>)</option><?php endforeach; ?></select></div>
-        <div class="afield" style="margin:0"><label>Kaç kişiye</label><input name="limit" type="number" min="1" max="100" value="20" style="width:90px"></div>
-        <div class="afield" style="margin:0"><label>Test adresi</label><input type="email" name="test_to" value="<?= htmlspecialchars((string)vestra_cfg('ops_email','acerasoft@gmail.com')) ?>" style="width:220px"></div>
-        <button class="abtn" type="submit" name="mode" value="test">🧪 Bana test gönder</button>
-        <button class="abtn" type="submit" name="mode" value="dry">👁 Önce listele (göndermez)</button>
-        <button class="abtn primary" type="submit" name="mode" value="send" onclick="return confirm('Seçilen kampanya gerçekten gönderilsin mi?')"<?= ($fsTargetsWeb||$fsTargetsAll)?'':' disabled' ?>>📮 Gönder</button>
-      </div>
+    <div style="font-weight:700;font-size:14px;margin-bottom:4px">📋 Gönderim listesini önizle <span class="ahint">· göndermez — hangi müşteriye hangi dilde gideceğini listeler; göndermek için yukarıdaki 📮 kartı</span></div>
+    <?php if($fsFlash): ?><div class="amsg ok">Önizleme (gönderilmedi) — bu kişilere gidecek:
+      <div style="font-size:11.5px;max-height:220px;overflow:auto;margin-top:6px;white-space:pre-wrap"><?= htmlspecialchars(implode("\n",(array)($fsFlash['lines']??[]))?:'(uygun alıcı yok)') ?></div></div><?php endif; ?>
+    <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+      <?= csrfField() ?><input type="hidden" name="_action" value="finder_send_campaign"><input type="hidden" name="mode" value="dry">
+      <div class="afield" style="margin:0"><label>Kampanya</label><select name="camp"><?php foreach($fsCamps as $ck=>[$cl]): ?><option value="<?= htmlspecialchars($ck) ?>"><?= htmlspecialchars(explode(' — ',$cl)[0]) ?></option><?php endforeach; ?></select></div>
+      <div class="afield" style="margin:0"><label>Kime</label><select name="pool"><?php foreach(vestra_finder_pools() as $pk=>$pl): ?><option value="<?= $pk ?>"><?= htmlspecialchars($pl) ?> (<?= count($pk==='web'?$fsTargetsWeb:$fsTargetsAll) ?>)</option><?php endforeach; ?></select></div>
+      <div class="afield" style="margin:0"><label>Kaç kişi</label><input name="limit" type="number" min="1" max="<?= VESTRA_MAILBOX_MAX_CAP ?>" value="50" style="width:90px"></div>
+      <button class="abtn" type="submit">👁 Listele (göndermez)</button>
     </form>
 <?php $__pb['B']=ob_get_clean(); ob_start(); ?>
-    <form method="post" class="aform" style="border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-top:10px">
-      <?= csrfField() ?><input type="hidden" name="_action" value="lemlist_export">
-      <div style="font-weight:600;font-size:13px;margin-bottom:4px">📤 lemlist ile gönder (Brevo kotasına girmez)</div>
-      <p class="ahint" style="margin:0 0 6px">Aynı müşteriler, lemlist'in içe aktarma biçiminde CSV olarak iner: <code>email, companyName, firstName, country, website</code>. lemlist ▸ kampanya <b>VESTRA – Toptan davet</b> ▸ <b>Add leads ▸ Import CSV</b>. Gönderim lemlist'e bağlı <b>support@vestrasales.com</b> posta kutusundan gider. Kutu işaretliyse indirilenler "lemlist'e verildi" olarak kaydedilir, buradaki Brevo gönderimi onlara ikinci kez yazmaz.</p>
-      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-        <div class="afield" style="margin:0"><label>Kime</label><select name="pool"><?php foreach(vestra_finder_pools() as $pk=>$pl): ?><option value="<?= $pk ?>"<?= $pk==='all'?' selected':'' ?>><?= htmlspecialchars($pl) ?> (<?= count($pk==='web'?$fsTargetsWeb:$fsTargetsAll) ?>)</option><?php endforeach; ?></select></div>
-        <div class="afield" style="margin:0"><label>Kaç kişi</label><input name="limit" type="number" min="1" max="1000" value="200" style="width:90px"></div>
-        <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0 0 6px"><input type="checkbox" name="mark" value="1" checked> İndirilenleri "lemlist'e verildi" işaretle</label>
-        <button class="abtn" type="submit">📤 lemlist CSV indir</button>
-      </div>
-    </form>
 <?php $__pb['C']=ob_get_clean(); ob_start(); ?>
     <?php
       /* ── 📮 Kampanya gönder (10 Eki 2026, operatör: "daha konforlu ve basit yap, kampanyalar görünsün, gönderilen
@@ -6669,7 +6605,7 @@ elseif($tab==='prospects'):
               </label>
             <?php endforeach; ?>
             </div>
-            <div class="ahint" style="margin-top:8px">Önizleme <b><?= htmlspecialchars((string)($fsSample['company']??'')) ?></b> için örnektir; dil müşterinin ülkesine göre seçilir. <a href="#aicamp" style="color:var(--acc)">✍️ Claude ile yeni kampanya yaz</a></div>
+            <div class="ahint" style="margin-top:8px">Önizleme <b><?= htmlspecialchars((string)($fsSample['company']??'')) ?></b> için örnektir. VESTRA Edit ve Les Garage müşterinin ülkesinin dilinde gider (EN/DE/FR/IT/ES/NL/PT, diğerleri İngilizce); diğer kampanyalar tek dilde. <a href="#aicamp" style="color:var(--acc)">✍️ Claude ile yeni kampanya yaz</a></div>
           </div>
 
           <div class="mbstep mbto"><h4><b>2</b>Kime</h4>
@@ -6739,7 +6675,7 @@ elseif($tab==='prospects'):
       return confirm('"'+ct+'" kampanyası '+n+' müşteriye support@vestrasales.com adresinden gönderilsin mi?'); }
     </script>
 <?php
-  /* Gönderim geçmişi 📊 Raporlar'a (sayfanın altı). */
+  /* Gönderim geçmişi 📊 Raporlar'a ($__pb['REPORTS_MB'], sayfanın altı). */
   ob_start(); ?>
       <?php if($mbRuns): ?>
       <div style="font-weight:700;font-size:13px;margin:0 0 6px">📮 Son gönderimler</div>
@@ -6772,7 +6708,7 @@ elseif($tab==='prospects'):
       <?= csrfField() ?><input type="hidden" name="_action" value="ai_camp_generate">
       <div class="acols2">
         <div class="afield"><label>Tarz</label><select name="style"><?php foreach(vestra_ai_camp_styles() as $sk=>[$sl]): ?><option value="<?= $sk ?>"><?= htmlspecialchars($sl) ?></option><?php endforeach; ?></select></div>
-        <div class="afield"><label>Dil</label><select name="lang"><?php foreach(vestra_ai_camp_langs() as $lk=>$ln): ?><option value="<?= $lk ?>"><?= htmlspecialchars($ln) ?></option><?php endforeach; ?></select></div>
+        <div class="afield"><label>Dil <span class="ahint">· kampanya tek dilde gider</span></label><select name="lang"><?php foreach(vestra_ai_camp_langs() as $lk=>$ln): if(!in_array($lk,VESTRA_CAMPAIGN_LANGS,true)) continue; ?><option value="<?= $lk ?>"><?= htmlspecialchars($ln) ?></option><?php endforeach; ?></select></div>
       </div>
       <div class="afield"><label>Ürünler (Ctrl/Cmd ile en çok 12) — boş = ilk 8</label><select name="products[]" multiple size="6"><?php foreach($acCat as $p): ?><option value="<?= htmlspecialchars((string)$p['id']) ?>"><?= htmlspecialchars(trim(($p['brand']??'').' — '.($p['name']??''))) ?></option><?php endforeach; ?></select></div>
       <div class="acols2">
@@ -6830,7 +6766,7 @@ elseif($tab==='prospects'):
         <li><b>Plans</b>'tan <b>Search</b> planını seçin. Her ay verilen ücretsiz kredi ≈ 1.000 arama karşılar; kart istenir (kötüye kullanım kontrolü). Günlük çalışma ~40 sorgu → ayda ~1.200 arama; aşım çok küçük tutardır, güncel fiyatı Plans sayfasında görün.</li>
         <li><b>API Keys → Add API key</b> → anahtarı kopyalayıp aşağıya yapıştırın.</li>
       </ol>
-      <p style="margin:0 0 6px"><b>3) Google Places</b> <i>(opsiyonel — şehir bazlı butik listesi)</i>: aşağıdaki <b>"🎯 Find customers" → "🔎 Google ile ara"</b> kartındaki anahtar burada da kullanılır, ayrıca girmenize gerek yok.</p>
+      <p style="margin:0 0 6px"><b>3) Google Places</b> <i>(isteğe bağlı — şehir bazlı butik listesi)</i>: ⚙️ Diğer araçlar ▸ <b>🔎 Arama anahtarları</b> kartındaki anahtar burada kullanılır.</p>
       <p style="margin:0 0 10px;color:#8a6d1f">Anahtarlar sunucuda <code>data/email_settings.json</code> içinde tutulur: web'e kapalı, git'e girmez, GitHub'a gönderilmez. Arama sunucu üzerinden yapılır.</p>
     </div>
     <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
@@ -6846,68 +6782,13 @@ elseif($tab==='prospects'):
   </div>
 </div>
 <?php $__pb['H']=ob_get_clean(); ob_start(); ?>
-
-<div class="acard" style="margin-bottom:20px;border-color:rgba(31,157,99,.4)">
-  <div class="acard-hd"><h3>🤖 Otomatik arama <span style="color:#1f9d63;font-size:12px;font-weight:600">● her gün 09:00 (sunucu)</span></h3></div>
-  <div class="acard-body">
-  <p class="ahint" style="margin-bottom:12px">This is the same search as <i>Find customers</i> below, just triggered automatically every morning instead of by hand — one country per day (today: <b><?= htmlspecialchars($cronTodayCountry) ?></b>), rotating so the same one isn't hit twice in a row. It only finds &amp; adds — sending always stays a separate, manual step.</p>
-  <?php if($cronStatus): $ago=time()-strtotime($cronStatus['last_run']??'now');
-    $agoTxt = $ago<120?'just now':($ago<3600?intdiv($ago,60).' min ago':($ago<86400?intdiv($ago,3600).' hr ago':intdiv($ago,86400).' day(s) ago')); ?>
-  <div style="background:var(--bg2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px">
-    <b>Last run:</b> <?= $agoTxt ?> (<?= htmlspecialchars(date('Y-m-d H:i',strtotime($cronStatus['last_run']))) ?>) — <?= ($cronStatus['trigger']??'cron')==='manual'?'started by you':'automatic' ?><br>
-    Searched <b><?= htmlspecialchars($cronStatus['country']??'—') ?></b> — found <?= (int)($cronStatus['found']??0) ?>, added <?= (int)($cronStatus['added']??0) ?> new, resolved <?= (int)($cronStatus['emails_found']??0) ?>/<?= (int)($cronStatus['emails_checked']??0) ?> emails.
-    <?php if(!empty($cronStatus['note'])): ?><div style="color:#c0392b;margin-top:4px">⚠ <?= htmlspecialchars($cronStatus['note']) ?></div>
-    <?php elseif(($cronStatus['found']??0)===0): ?><div style="color:#c0392b;margin-top:4px">0 found — that country genuinely has little OSM shop data for the categories we search. Try "Run now" and watch the live log below.</div><?php endif; ?>
-  </div>
-  <?php else: ?>
-  <div style="background:var(--bg2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--mut)">Never run yet — click "Run now" to try it immediately, or wait for tonight's 09:00 automatic run.</div>
-  <?php endif; ?>
-  <button class="abtn primary" type="button" onclick="runAutomationNow(this)">▶ Run now (<?= htmlspecialchars($cronTodayCountry) ?>)</button>
-  </div>
-</div>
-
 <?php $__pb['AUTO']=ob_get_clean(); ob_start(); ?>
-<div class="acard" style="margin-bottom:20px;border-color:rgba(31,157,99,.4)">
-  <div class="acard-hd"><h3>🎯 OpenStreetMap ile müşteri bul <span style="color:#1f9d63;font-size:12px;font-weight:600">● ücretsiz · anahtar gerekmez</span></h3></div>
+<?php /* 10 Eki 2026: eski "🎯 OpenStreetMap ile müşteri bul" kartı kaldırıldı (🌐 kartının kopyasıydı, İngilizceydi ve
+   eski havuzu dolduruyordu). Yalnız anahtar formları kaldı: Google Places (🌐 araması sunucu vekilinde kullanır) + Hunter. */ ?>
+<div class="acard" style="margin-bottom:20px">
+  <div class="acard-hd"><h3>🔎 Arama anahtarları — Google Places · Hunter <span class="ahint" style="font-weight:400">· isteğe bağlı; 🌐 Web'den müşteri bul bunları kullanır</span></h3></div>
   <div class="acard-body">
-  <p class="ahint" style="margin-bottom:12px">One button: finds <b>real small &amp; medium clothing / textile shops</b> across a whole country (independent boutiques &amp; multi-brand stores, not big chains or the brands' own flagship stores), adds them, then checks each new one for a real email — live, one row at a time, so you see exactly what worked and what didn't.</p>
-  <div class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-    <div class="afield" style="margin:0"><label>Country</label>
-      <select id="discCountry">
-        <option value="" disabled selected>— choose —</option>
-        <option>Germany</option><option>Netherlands</option><option>Poland</option><option>France</option><option>Italy</option>
-        <option>Spain</option><option>United Kingdom</option><option>United States</option><option>Australia</option><option>UAE</option><option>Turkey</option>
-      </select>
-    </div>
-    <div class="afield" style="margin:0;flex:1;min-width:200px"><label>City <span style="font-weight:400;color:var(--mut)">— optional, narrows the search</span></label><input id="discCity" placeholder="leave blank to search the whole country"></div>
-    <?php /* The source belongs next to the country because it changes what a run costs,
-             not just what it returns. OSM is free; Google is a billed API call. */ ?>
-    <div class="afield" style="margin:0"><label>Search with</label>
-      <select id="discSource">
-        <option value="osm">OpenStreetMap — free</option>
-        <option value="google"<?= $googleOn?'':' disabled' ?>>Google Maps<?= $googleOn?' — richer, billed':' (add a key first)' ?></option>
-        <option value="both"<?= $googleOn?'':' disabled' ?>>Both — OSM first, Google fills the gaps</option>
-      </select>
-    </div>
-    <button class="abtn primary" type="button" onclick="findCustomersLive(this)">🎯 Find customers</button>
-  </div>
-  <p class="ahint" style="margin-top:8px;font-size:11px">Whole-country searches take longer (up to ~60s) and may return nothing for very large countries — narrow to a city (local spelling, e.g. Milano not Milan) if that happens. Already have customers without an email (e.g. from a CSV import)? <a href="#" onclick="findMissingEmailsLive(this);return false" style="color:var(--acc)">🔍 Find their emails too</a>.</p>
-  <div id="fcWrap" style="display:none;margin-top:10px;padding:10px 12px;background:var(--bg2);border-radius:8px">
-    <div id="fcBar" style="font-weight:600;font-size:13px;margin-bottom:6px"></div>
-    <div id="fcLog" style="max-height:260px;overflow:auto"></div>
-  </div>
-  <details style="margin-top:12px"<?= $googleOn?'':' open' ?>>
-    <summary style="cursor:pointer;font-size:12px;color:<?= $googleOn?'var(--mut)':'#a9781a' ?>">🔎 Google ile ara — <?= $googleOn?'anahtar kayıtlı ✓':'daha iyi adres ve e-posta bulur, anahtar gerekiyor' ?></summary>
-    <div style="margin-top:10px;font-size:12px;color:var(--mut);line-height:1.6">
-      <p style="margin:0 0 8px">Google Maps'te bağımsız butiklerin neredeyse hepsi adresi, telefonu ve sitesiyle kayıtlı — OpenStreetMap'te çoğu yok. İki API kullanılıyor:</p>
-      <ol style="margin:0 0 10px 18px;padding:0">
-        <li><b>Places API (New)</b> — dükkânı, adresini, telefonunu ve sitesini bulur. <i>Zorunlu.</i></li>
-        <li><b>Custom Search JSON API</b> — sitenin kendi iletişim sayfası e-postayı vermediğinde Google'ın dizinine sorar. <i>İsteğe bağlı.</i></li>
-      </ol>
-      <p style="margin:0 0 8px"><b>Nasıl alınır:</b> Google Cloud Console → yeni proje → <i>APIs &amp; Services → Enable APIs</i>'ten <b>Places API (New)</b>'i etkinleştirin → <i>Credentials → Create API key</i>. Faturalandırma açık olmalı; Google'ın aylık ücretsiz kotası var, üstü ücretli — güncel rakam Cloud Console'daki fiyatlandırma sayfasında. Anahtarı <i>Application restrictions</i> ile <b>IP</b>'ye kısıtlamanız önerilir (sunucunun IP'si).</p>
-      <p style="margin:0 0 10px">E-posta yedeği için ayrıca <a href="https://programmablesearchengine.google.com/" target="_blank" rel="noopener" style="color:var(--acc)">Programmable Search Engine</a>'den bir arama motoru oluşturup <b>"Search the entire web"</b> seçeneğini <b>açın</b> (kapalıyken <code>site:</code> sorguları hiçbir şey döndürmez) ve <b>Search engine ID</b>'yi aşağıya yapıştırın.</p>
-      <p style="margin:0 0 10px;color:#8a6d1f">Anahtar sunucuda <code>data/email_settings.json</code> içinde tutuluyor: web'e kapalı, git'e girmiyor. Bu depo herkese açık olduğu için anahtar hiçbir zaman koda ya da Actions girdisine yazılmaz.</p>
-    </div>
+    <p class="ahint" style="margin:0 0 8px">Google Places: şehir bazlı butik listesi (Google Cloud Console → <b>Places API (New)</b> → Credentials → API key). Hunter.io: sitesinde adres yayınlamayan butikler için yayınlanmış adresi kaynağıyla bulur.</p>
     <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
       <?= csrfField() ?><input type="hidden" name="_action" value="save_google">
       <div class="afield" style="margin:0;flex:1;min-width:240px"><label>Google API key <?= $googleOn?'<span class="ahint">· kayıtlı, boş bırakırsanız korunur</span>':'' ?></label><input type="password" name="google_key" placeholder="AIza…" autocomplete="new-password"></div>
@@ -6917,19 +6798,15 @@ elseif($tab==='prospects'):
       <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#c0392b;margin:0 0 4px"><input type="checkbox" name="google_clear" value="1"> anahtarı sil</label>
       <?php endif; ?>
     </form>
-  </details>
-  <details style="margin-top:12px">
-    <summary style="cursor:pointer;font-size:12px;color:var(--mut)">Optional: use your own Hunter.io / Anymailfinder key (raises the hit-rate; not required)</summary>
+    <div style="height:10px"></div>
     <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:10px">
       <?= csrfField() ?><input type="hidden" name="_action" value="save_finder">
       <div class="afield" style="margin:0"><label>Provider</label><select name="finder_provider"><option value="hunter" <?= (vestra_cfg('finder_provider','hunter')==='hunter')?'selected':'' ?>>Hunter.io</option><option value="anymailfinder" <?= (vestra_cfg('finder_provider','')==='anymailfinder')?'selected':'' ?>>Anymailfinder</option></select></div>
       <div class="afield" style="margin:0;flex:1;min-width:240px"><label>API key <?= $finderApi?'<span class="ahint">· saved, blank = keep</span>':'' ?></label><input type="password" name="finder_key" placeholder="key…" autocomplete="new-password"></div>
       <button class="abtn" type="submit">Save key</button>
     </form>
-  </details>
   </div>
 </div>
-
 <?php $__pb['OSM']=ob_get_clean(); ob_start(); ?>
 <div class="acard" style="margin-bottom:20px">
   <div class="acard-hd"><h3>✨ AI kişiselleştirme (DeepSeek)
@@ -6947,7 +6824,7 @@ elseif($tab==='prospects'):
 
 <?php $__pb['AIP']=ob_get_clean(); ob_start(); ?>
 <div class="acard" style="margin-bottom:20px;border-color:<?= $emReady?'rgba(31,157,99,.45)':'rgba(169,127,44,.5)' ?>">
-  <div class="acard-hd"><h3>📤 Gönderim ayarı (SMTP / Brevo) — <?= htmlspecialchars($mailTargetName) ?>
+  <div class="acard-hd"><h3>📤 Sipariş / fatura e-postası ayarı (Brevo / SMTP) — <?= htmlspecialchars($mailTargetName) ?> <span class="ahint" style="font-weight:400">· kampanyalar buradan gitmez</span>
     <?= $emReady?'<span style="color:#1f9d63;font-size:12px;font-weight:600">● Ready</span>':'<span style="color:#a9781a;font-size:12px;font-weight:600">● Not set up</span>' ?></h3></div>
   <div class="acard-body">
   <div class="afield" style="margin-bottom:14px"><label>Configure sending for</label>
@@ -7169,6 +7046,7 @@ document.addEventListener('DOMContentLoaded',function(){
 </script>
 
 <?php $__pb['OFFER']=ob_get_clean(); ob_start(); ?>
+<script>var VADMIN_CSRF=<?= json_encode($_SESSION['vadmin_csrf']??'') ?>;</script>
 <form method="post" id="leadRowForm" style="display:none">
   <?= csrfField() ?>
   <input type="hidden" name="_action" id="lrf_action">
@@ -7413,6 +7291,7 @@ function runAutomationNow(btn){
         <td class="ac" style="font-size:11px"><?= htmlspecialchars($l['category']??'') ?: '—' ?></td>
         <td class="ac">
           <?php if($unsub): ?><?= abadge('Unsubscribed','#555') ?>
+          <?php elseif(($l['status']??'')==='bounced'): ?><?= abadge('Geri döndü','#c0392b') ?>
           <?php else: ?>
           <select onchange="leadSetStatus('<?= htmlspecialchars($l['id']??'') ?>',this.value)" style="background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:11px">
             <?php foreach(VESTRA_LEAD_STATUSES as $s): ?><option value="<?= $s ?>" <?= ($l['status']??'new')===$s?'selected':'' ?>><?= vestra_lead_status_label($s) ?></option><?php endforeach; ?>
@@ -7455,7 +7334,7 @@ function runAutomationNow(btn){
         </div>
         <div class="afield"><label>Konu</label><input name="subject" required maxlength="200" style="max-width:520px" placeholder="VESTRA — following up on your enquiry"></div>
         <div class="afield"><label>Mektup</label><textarea name="body" required rows="16" style="width:100%;font-family:inherit;line-height:1.6" placeholder="Dear …"></textarea>
-          <p class="ahint" style="margin:4px 0 0">Düz metin yazın; satır sonları korunur. <b>support@vestrasales.com</b> adresinden, kampanyalarla aynı yoldan (Brevo) gider.</p>
+          <p class="ahint" style="margin:4px 0 0">Düz metin yazın; satır sonları korunur. <b>support@vestrasales.com</b> adresinden, kampanyalarla aynı yoldan (kendi sunucumuz) gider.</p>
         </div>
         <button class="abtn primary" type="submit">Gönder</button>
       </form>

@@ -1,16 +1,11 @@
 <?php
 /**
- * VESTRA — support@vestrasales.com posta kutusundan kotasız gönderim: panel isteği kuyruğu
- * ve günlük tavan (operatör, 8 Eki 2026: "adminde tetikleyici olsun").
+ * VESTRA — support@vestrasales.com'dan kampanya gönderimi: panel isteği kuyruğu + günlük tavan.
  *
- * Mektubu sunucu GÖNDEREMEZ (giden SMTP kapalı); GitHub koşucusu gönderir
- * (.github/workflows/mailbox-send.yml, scripts/server/vestra-mailbox-queue.php). Panelde
- * GitHub anahtarı yok; bu yüzden "Müşteri bul" düğmesinin yolu izlenir: panel isteği
- * data/mailbox_runs.json'a "requested" yazar, mailbox-queue.yml 10 dakikada bir alır ve
- * gönderimi başlatır, gönderim bitince sonucu buraya yazar.
- *
- * Günlük tavan (varsayılan 50): itibar için. Panel de, kuyruk da, elle başlatılan gönderim de
- * bugün posta kutusundan gidenleri sayar; tavan dolunca kimseye gitmez.
+ * 10 Eki 2026'dan beri gönderimi SUNUCUNUN KENDİ posta servisi yapar (cron_mailbox.php, 10 dk'da bir panel
+ * isteğini alır; GitHub koşucusu yalnız yedek). Panel isteği data/mailbox_runs.json'a "requested" yazar;
+ * gönderim bitince sonucu buraya yazar. Günlük tavan varsayılan 500 (GoDaddy hesap sınırı); panel de, cron da
+ * bugün gidenleri sayar; tavan dolunca kimseye gitmez. Satıcıların sunucu yolu inc/seller_outbox.php'de.
  */
 require_once __DIR__.'/leads.php';
 require_once __DIR__.'/notify.php';
@@ -202,7 +197,7 @@ function vestra_mailbox_batch(int $limit, string $campKey, array $ids = [], stri
   $camps = vestra_finder_campaigns();
   if (!isset($camps[$campKey])) return ['ok' => false, 'error' => 'campaign', 'items' => []];
   $builder = $camps[$campKey][2];
-  $limit = max(1, min(200, $limit));
+  $limit = max(1, min(VESTRA_MAILBOX_MAX_CAP, $limit));   // 10 Eki: UI 500'e kadar izin verir; 200'lük kırpma istekle çelişiyordu
   $left = vestra_mailbox_left_today();
   if ($left <= 0) return ['ok' => true, 'from' => 'VESTRA', 'campaign' => $campKey, 'items' => [], 'note' => 'gunluk tavan doldu ('.vestra_mailbox_daily_cap().')'];
   $limit = min($limit, $left);
@@ -389,7 +384,7 @@ function vestra_mailbox_run(array $req, array $o = []): array {
   $mode = (string)($req['mode'] ?? '');
   $sum = ['sent' => 0, 'bounced' => 0, 'failed' => 0, 'note' => ''];
   if ($mode === 'test') {
-    $b = vestra_mailbox_sample((string)($req['campaign'] ?? 'lesgarage'), (string)($req['test_to'] ?? ''));
+    $b = vestra_mailbox_sample((string)($req['campaign'] ?? 'edit'), (string)($req['test_to'] ?? ''));
     if (!$b['items']) { $sum['note'] = 'test adresi ya da kampanya gecersiz'; $sum['error'] = $sum['note']; return $sum; }
     [$ok, $mid, $why] = vestra_mailbox_send_local($b['items'][0], (string)$b['from'], $mail);
     $sum[$ok ? 'sent' : 'failed'] = 1; $sum['note'] = $ok ? 'test gonderildi' : 'test gonderilemedi: '.$why;
@@ -397,7 +392,7 @@ function vestra_mailbox_run(array $req, array $o = []): array {
     return $sum;
   }
   $ids = is_array($req['ids'] ?? null) ? $req['ids'] : array_filter(explode(',', (string)($req['ids'] ?? '')));
-  $b = vestra_mailbox_batch((int)($req['limit'] ?? 25), (string)($req['campaign'] ?? 'lesgarage'), $ids, (string)($req['pool'] ?? 'web'));
+  $b = vestra_mailbox_batch((int)($req['limit'] ?? 25), (string)($req['campaign'] ?? 'edit'), $ids, (string)($req['pool'] ?? 'web'));
   if (!$b['ok']) { $sum['note'] = 'kampanya bulunamadi'; $sum['error'] = $sum['note']; return $sum; }
   if (!$b['items']) { $sum['note'] = (string)($b['note'] ?? 'gonderilecek uygun musteri yok'); return $sum; }
   $n = count($b['items']); $failRow = 0; $sentAny = false;

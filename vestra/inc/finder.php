@@ -45,10 +45,8 @@ function vestra_finder_google_on(): bool {
  *  hale getir"): GitHub token yoksa istek sıraya girer ve find-customers-queue.yml 10 dk
  *  içinde GitHub'ın kendi yetkisiyle başlatır; Brave/Google yoksa aday kaynağı
  *  OpenStreetMap'tir. Anahtarlar yalnızca hızlandırır (token) ve sonucu artırır (Brave). */
-/* KAPALI (8 Eki 2026, operatör: "bu çok az, workflow'u kapat"): chat-help'teki find-customers.yml
-   ve find-customers-queue.yml'nin zamanlaması kaldırıldı; panel yeni arama başlatmaz (sıraya
-   yazılan istek hiç başlamazdı). Yeniden açmak: iki workflow'a schedule'ı geri koy +
-   email_settings.json'da "finder_enabled": true. Testler VESTRA_FINDER_ON ile açar. */
+/* Web araması açık mı: email_settings.json 'finder_enabled' (Admin ▸ 🌐 ▸ Aç/Kapat). Açıkken panel isteği sıraya
+   yazılır; GitHub anahtarı varsa sunucu (vestra_finder_server_tick) hemen, yoksa GitHub'ın sıra işi başlatır. */
 function vestra_finder_ready(): bool {
   return defined('VESTRA_FINDER_ON') ? (bool)VESTRA_FINDER_ON : (bool)vestra_cfg('finder_enabled', false);
 }
@@ -463,7 +461,7 @@ function vestra_finder_campaigns(): array {
     /* 10 Eki 2026 (operatör: "daha iyi ve estetik kampanya, Gallery Dept, Casablanca, siteye ve kayda link"). */
     'edit' => ['✨ VESTRA Edit — Gallery Dept, Casablanca öne çıkan, görselli, kayıt düğmeli', 'Yeni estetik kampanya: koyu başlık bandı, öne çıkan iki marka, 6 ürünlük seçki, "Koleksiyonu gör" + "Ücretsiz kayıt ol" düğmeleri. Dil müşterinin ülkesine göre: EN, DE, FR, IT, ES, NL, PT — diğer ülkelere İngilizce.',
       function (array $l) use ($tok) { require_once __DIR__.'/campaign_edit.php'; [$s, $b, $o] = vestra_campaign_edit((string)($l['company'] ?? ''), vestra_finder_lead_lang($l)); return [$s, $tok($b, $l), $o, 'VESTRA']; }],
-    'lesgarage' => ['Les Garage de Paris — logo duvarlı premium kampanya', 'Günlük gönderimde kullanılan kampanya. Dil müşterinin ülkesine göre: EN, DE, FR, IT, ES, NL, PT — diğer ülkelere İngilizce.',
+    'lesgarage' => ['Les Garage de Paris — logo duvarlı premium kampanya', 'Önceki (9 Eki) günlük kampanya. Dil müşterinin ülkesine göre: EN, DE, FR, IT, ES, NL, PT — diğer ülkelere İngilizce.',
       function (array $l) use ($tok) { [$s, $b, $o] = vestra_campaign_preview((string)($l['company'] ?? ''), vestra_finder_lead_lang($l)); return [$s, $tok($b, $l), $o, 'Les Garage de Paris']; }],
     'polos' => ['Lacoste polo — %10/%15 indirim promosyonu', 'Kısa promosyon mektubu (İngilizce).',
       function (array $l) use ($tok) { [$s, $b, $o] = vestra_campaign_promo_polos((string)($l['company'] ?? '')); return [$s, $tok($b, $l), $o, 'Les Garage de Paris']; }],

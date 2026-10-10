@@ -19,7 +19,7 @@ $__ready   = isset($fsTargetsWeb) ? count($fsTargetsWeb) : (isset($fsTargetsAll)
    bölüme döner ve kapalı bir kutunun içinde kaybolmaz. */
 $__openMore = !empty($fsFlash) || !empty($acFlash) || (($_GET['mailfor'] ?? '') !== '')
            || in_array((string)($_GET['msg'] ?? ''), ['lead_tpl_ok', 'quote_sent', 'quote_failed', 'quote_invalid', 'quote_unsub', 'email_saved', 'test_ok', 'test_fail', 'test_invalid',
-              'ai_saved', 'finder_saved', 'finder_ok', 'finder_none', 'google_saved', 'google_cleared'], true);
+              'ai_saved', 'finder_saved', 'google_saved', 'google_cleared'], true);
 $__openAdd  = in_array((string)($_GET['msg'] ?? ''), ['lead_added', 'lead_dupe', 'lead_invalid', 'lead_import'], true);
 ?>
 <style>
@@ -89,7 +89,7 @@ $__openAdd  = in_array((string)($_GET['msg'] ?? ''), ['lead_added', 'lead_dupe',
 <?php /* 10 Eki 2026 (operatör: "müşteriler çok uzun, onları kapat"): müşteri listesi katlı; bir liste eylemi
          (sil, yeniden adlandır, durum, tek gönderim…) sonrasında ya da #leadlist bağlantısıyla açık gelir. */
   $__openList = in_array((string)($_GET['msg'] ?? ''), ['lead_bulk_deleted', 'lead_deleted', 'lead_email_ok', 'lead_name_empty', 'lead_notfound',
-    'lead_renamed', 'lead_sent', 'lead_status_ok', 'letter_empty', 'letter_nolead', 'letter_quota'], true); ?>
+    'lead_renamed', 'lead_sent', 'lead_status_ok', 'letter_empty', 'letter_nolead', 'letter_quota', 'letter_dead', 'letter_sent', 'letter_failed', 'finder_ok', 'finder_none'], true); ?>
 <details class="acard pxmore" id="leadlist"<?= $__openList ? ' open' : '' ?>>
   <summary>👥 Müşteri listesi (<?= count($__ld) ?>) <span class="ahint">· tıklayınca açılır — arama, durum, tek tek gönderim, silme</span></summary>
   <div class="acard-body pxinner"><?= $__pb['TABLE'] ?? '' ?></div>
@@ -97,7 +97,7 @@ $__openAdd  = in_array((string)($_GET['msg'] ?? ''), ['lead_added', 'lead_dupe',
 
 <?php /* 10 Eki 2026 (operatör: "gönderilen raporlar çok yer tutuyor, başka bir alana topla"): gönderim geçmişi,
          aramaların sonuçları (eklenenler + seçerek gönder) ve durum sayıları tek, katlı bir alanda. */ ?>
-<details class="acard pxmore" id="reports"<?= in_array((string)($_GET['msg'] ?? ''), ['reports'], true) ? ' open' : '' ?>>
+<details class="acard pxmore" id="reports">
   <summary>📊 Raporlar <span class="ahint">· son gönderimler · aramaların sonuçları ve eklenen müşteriler · durum sayıları</span></summary>
   <div class="acard-body pxinner">
     <?= $__pb['STATS'] ?? '' ?>
@@ -111,7 +111,7 @@ $__openAdd  = in_array((string)($_GET['msg'] ?? ''), ['lead_added', 'lead_dupe',
 </details>
 
 <details class="acard pxmore" id="moretools"<?= $__openMore ? ' open' : '' ?>>
-  <summary>⚙️ Diğer araçlar <span class="ahint">· Claude ile kampanya yaz · Brevo / lemlist ile gönder (eski yollar) · otomatik ve OpenStreetMap araması · AI kişiselleştirme · gönderim ayarı · şablon ve önizleme · ürün teklifi</span></summary>
+  <summary>⚙️ Diğer araçlar <span class="ahint">· Claude ile kampanya yaz · gönderim listesi önizleme · arama anahtarları (Google, Hunter) · AI kişiselleştirme · sipariş/fatura e-posta ayarı · şablon ve önizleme · ürün teklifi</span></summary>
   <div class="acard-body pxinner">
     <div class="pxsec"><?= $__pb['F'] ?? '' ?></div>
     <div class="pxsec"><?= ($__pb['B'] ?? '').($__pb['C'] ?? '').($__pb['E'] ?? '') ?></div>
