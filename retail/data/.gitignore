@@ -28,3 +28,8 @@
 # runner listeyi goremez ve indirdiginin kaydi kaybolur.
 !image-sources.json
 !photo-candidates.json
+# İnternet fotoğraf hattı: runner raporu, elle yazılan onay listesi ve
+# bağlanan karelerin kaynak defteri (hangi kare hangi sayfadan geldi).
+!photo-web-report.json
+!photo-web-approve.json
+!photo-web-attached.json

@@ -1,0 +1,44 @@
+name: Onaylanan internet karelerini ürünlere bağla
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Çalışılacak dal"
+        required: true
+        default: "claude/vestra-premium-retail-site-rxj4va"
+
+permissions:
+  contents: write
+
+# data/photo-web-approve.json'da gözle onaylanan kareleri indirir, 1600 px'e
+# küçültür, uploads/licensed/web/ altına koyar ve data/product-images-extra.json
+# ile ürüne bağlar. Sonuç dala işlenir; sunucuya deploy (sync_media=true) götürür.
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: PHP + GD
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq php-cli php-gd php-curl > /dev/null
+
+      - name: İndir ve bağla
+        working-directory: retail
+        run: php tools/attach-web-photos.php
+
+      - name: Dala işle
+        run: |
+          git config user.name  "Claude"
+          git config user.email "noreply@anthropic.com"
+          git add -f retail/uploads/licensed/web retail/data/product-images-extra.json retail/data/photo-web-attached.json 2>/dev/null || true
+          if git diff --cached --quiet; then echo "Değişiklik yok."; exit 0; fi
+          git commit -q -m "İnternetten onaylanan kareler ürünlere bağlandı"
+          for i in 1 2 3 4; do
+            git pull -q --rebase origin "${{ github.event.inputs.branch }}" && git push -q origin "HEAD:${{ github.event.inputs.branch }}" && break
+            sleep $((i * 3))
+          done
