@@ -133,7 +133,12 @@ function vr_header(): void
    çıktı: ikisi de reklam cümlesi, üstelik ikisi de sayfanın kendisinde zaten
    görünüyor. Kalanlar güven bilgisi ve hepsi doğrulanabilir. */
 ?>
-<div class="ticker" aria-hidden="true"><span class="ticker__item"><?= te('topbar', ['days' => $days]) ?></span></div>
+<?php // Geniş ekranda tek satır; telefonda üç bölüm sırayla (tek satır, iki satıra taşmıyor). ?>
+<div class="ticker" aria-hidden="true"><span class="ticker__item"><?php
+    foreach (array_values(array_filter(array_map('trim', explode('·', t('topbar', ['days' => $days]))))) as $i => $part) {
+        echo ($i ? '<i class="ticker__sep"> · </i>' : '') . '<span class="ticker__part">' . h($part) . '</span>';
+    }
+?></span></div>
 
 <header class="site" data-header>
   <div class="site__inner">

@@ -82,6 +82,22 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
      Sabit şeritte nowrap yatay taşma demek olurdu. */
   line-height:1.7;
 }
+.ticker__sep{font-style:normal}
+/* Telefon: üç bölüm aynı yerde sırayla beliriyor — şerit tek satır kalıyor.
+   Hareket azaltma tercihinde yalnızca ilk bölüm duruyor. */
+@media (max-width:720px){
+  .ticker__item{display:grid;width:100%;white-space:nowrap}
+  .ticker__sep{display:none}
+  .ticker__part{grid-area:1/1;opacity:0;animation:tick 10.5s infinite;overflow:hidden;text-overflow:ellipsis;letter-spacing:.2em}
+  .ticker__part:nth-child(1){animation-delay:0s}
+  .ticker__part:nth-child(3){animation-delay:3.5s}
+  .ticker__part:nth-child(5){animation-delay:7s}
+  @media (prefers-reduced-motion:reduce){
+    .ticker__part{animation:none}
+    .ticker__part:first-child{opacity:1}
+  }
+}
+@keyframes tick{0%{opacity:0}4%{opacity:1}30%{opacity:1}34%{opacity:0}100%{opacity:0}}
 
 /* ---------------------------------------------------------------- başlık */
 .site{
