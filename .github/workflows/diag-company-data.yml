@@ -63,3 +63,7 @@ jobs:
               }
             }
             PHP
+            echo; echo "== inc/invoice.php: platform kunyesi (satir 25-60) =="
+            sed -n '25,60p' inc/invoice.php | grep -viE 'key|pass|secret|token|iban|bic|account|routing|swift' || true
+            echo; echo "== kunye/telefon gecen yerler (inc/legal, inc/config) =="
+            grep -rnhiE "(\+1[ -]?\(?[0-9]{3}|phone|telefon|file (no|number)|registration number|Handelsregister)" inc/legal inc/config.php 2>/dev/null | grep -viE 'key|pass|secret|token' | cut -c1-200 | head -20 || true
