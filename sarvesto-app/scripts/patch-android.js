@@ -64,8 +64,10 @@ function patchGradle() {
   if (s.includes('SARVESTO_SIGNING_PATCH')) { console.log('build.gradle zaten yamalı.'); return; }
 
   // Sürüm: ortamdan (CI çalışma numarası), yoksa şablondaki değer kalır.
-  s = s.replace(/versionCode\s+\d+/, 'versionCode (System.getenv("VERSION_CODE") ?: "1").toInteger()');
-  s = s.replace(/versionName\s+"[^"]*"/, 'versionName (System.getenv("VERSION_NAME") ?: "1.0")');
+  // Atama biçimi şart: "versionCode (x).toInteger()" Groovy'de versionCode(x)
+  // çağrısının DÖNÜŞÜ üzerinde toInteger() olarak okunuyor ("Value is null").
+  s = s.replace(/versionCode\s+\d+/, 'versionCode = Integer.parseInt(System.getenv("VERSION_CODE") ?: "1")');
+  s = s.replace(/versionName\s+"[^"]*"/, 'versionName = (System.getenv("VERSION_NAME") ?: "1.0")');
 
   const anchor = /(\n[ \t]*buildTypes[ \t]*\{)/;
   if (!anchor.test(s)) { console.log('✗ buildTypes bulunamadı — imza yaması atlandı.'); fs.writeFileSync(GRADLE, s); return; }
