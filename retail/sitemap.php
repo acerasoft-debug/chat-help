@@ -55,6 +55,7 @@ $emit('journal.php', [], 'monthly', '0.7');
 $emit('size-guide.php', [], 'yearly', '0.6');
 $emit('contact.php', [], 'yearly', '0.5');
 $emit('about.php', [], 'yearly', '0.6');
+$emit('app.php', [], 'monthly', '0.5');
 
 // Journal yazıları
 require_once __DIR__ . '/inc/journal-content.php';

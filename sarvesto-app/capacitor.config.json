@@ -1,0 +1,38 @@
+{
+  "appId": "com.sarvesto.app",
+  "appName": "SARVESTO",
+  "webDir": "www",
+  "backgroundColor": "#ffffff",
+  "appendUserAgent": "SarvestoApp/1.0",
+  "server": {
+    "url": "https://sarvesto.com/?source=app",
+    "androidScheme": "https",
+    "errorPath": "index.html",
+    "allowNavigation": [
+      "sarvesto.com",
+      "www.sarvesto.com",
+      "checkout.stripe.com",
+      "*.stripe.com"
+    ]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 900,
+      "launchAutoHide": true,
+      "backgroundColor": "#ffffff",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP",
+      "splashFullScreen": true,
+      "splashImmersive": false
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#ffffff",
+      "overlaysWebView": false
+    }
+  }
+}

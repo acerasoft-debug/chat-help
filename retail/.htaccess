@@ -13,6 +13,9 @@ DirectoryIndex index.php index.html
 
   # robots.txt ve sitemap.xml dinamik uretiliyor
   RewriteRule ^robots\.txt$   robots.php   [L]
+  # uygulama manifesti dinamik (marka adı ve dil config'den)
+  RewriteRule ^manifest\.webmanifest$  manifest.php  [L,QSA]
+  RewriteRule ^app/?$  app.php  [L,QSA]
   RewriteRule ^sitemap\.xml$  sitemap.php  [L]
 
   # /outlet/<lot> ve /product/<id> okunabilir yollar
@@ -61,4 +64,20 @@ Options -Indexes
 # ---- yedek/gecici dosyalar servis edilmesin
 <FilesMatch "\.(json|log|bak|bak-[0-9-]+|tmp-[a-f0-9]+|lock|key)$">
   Require all denied
+</FilesMatch>
+
+# ---- uygulama: Android paketi ve servis çalışanı
+AddType application/vnd.android.package-archive .apk
+AddType application/manifest+json .webmanifest
+<Files "sw.js">
+  <IfModule mod_headers.c>
+    # Tarayıcı yeni sürümü hemen görsün (1 yıllık JS önbelleği buna uygulanmaz)
+    Header set Cache-Control "no-cache"
+  </IfModule>
+</Files>
+<FilesMatch "\.apk$">
+  <IfModule mod_headers.c>
+    Header set Content-Disposition "attachment"
+    Header set Cache-Control "no-cache"
+  </IfModule>
 </FilesMatch>

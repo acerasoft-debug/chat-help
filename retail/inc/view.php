@@ -71,9 +71,17 @@ function vr_layout_start(array $o = []): void
 <meta property="og:url" content="<?= h($canon) ?>">
 <meta property="og:image" content="<?= h(!empty($o['og_image']) ? (str_starts_with((string)$o['og_image'], 'http') ? (string)$o['og_image'] : vr_origin() . $o['og_image']) : vr_abs('assets/art.php', ['s' => strtolower((string)vr_config('brand')), 'w' => 1200, 'h' => 630])) ?>">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#0a0a0e">
+<meta name="theme-color" content="#000000">
 
 <link rel="icon" href="<?= h(vr_url('assets/mark.php')) ?>" type="image/svg+xml">
+<?php // Uygulama: Android "Yükle", iPhone "Ana Ekrana Ekle" — bkz. app.php ?>
+<link rel="manifest" href="<?= h(vr_url('manifest.php')) ?>">
+<link rel="apple-touch-icon" href="<?= h(vr_url('assets/app/apple-touch-icon.png')) ?>">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="<?= h($brand) ?>">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
 <link rel="stylesheet" href="<?= h(vr_url('assets/css/maxsales.css', ['v' => vr_asset_v()])) ?>">
 <?php // JS kapalıyken beliriş efekti hiç uygulanmasın (scripting:enabled'i
       // desteklemeyen eski tarayıcılar için ikinci emniyet). ?>
@@ -209,6 +217,7 @@ function vr_header(): void
     <a href="<?= h(vr_url('brands.php')) ?>"><?= te('nav_brands') ?></a>
     <a href="<?= h(vr_url('sell.php')) ?>"><?= te('nav_sell') ?></a>
     <a href="<?= h(vr_url('journal.php')) ?>"><?= te('nav_journal') ?></a>
+    <a href="<?= h(vr_url('app.php')) ?>"><?= te('app_nav') ?></a>
     <a href="<?= h(vr_url('faq.php')) ?>"><?= te('nav_faq') ?></a>
     <a href="<?= h(vr_url('wishlist.php')) ?>"><?= te('nav_wish') ?></a>
     <a href="<?= h(vr_url('private.php')) ?>"><?= te('nav_private') ?></a>
@@ -287,6 +296,7 @@ function vr_footer(): void
         [vr_url('journal.php'),      t('nav_journal')],
         [vr_url('sell.php'),         t('nav_sell')],
         [vr_url('seller/login.php'), t('sell_login')],
+        [vr_url('app.php'),          t('app_nav')],
         [vr_url('newsletter.php'),   t('news_title')],
     ]);
     vr_foot_col(t('footer_legal'), [

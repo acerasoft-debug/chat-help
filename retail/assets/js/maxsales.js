@@ -548,3 +548,45 @@
     });
   });
 })();
+
+/* Uygulama: servis çalışanı, "Yükle" düğmesi, cihaza göre kurulum yolu.
+   Uygulama sayfası (app.php) JS'siz de eksiksiz: iki platformun adımları
+   her zaman yazılı. Buradaki her şey yalnızca o cihazı öne çıkarıyor. */
+(function () {
+  var root = document.documentElement;
+  var ua = navigator.userAgent || '';
+  var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+                   window.navigator.standalone === true || /SarvestoApp\//.test(ua);
+  var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isAndroid = /Android/i.test(ua);
+  root.setAttribute('data-platform', standalone ? 'app' : isIOS ? 'ios' : isAndroid ? 'android' : 'desktop');
+
+  // Servis çalışanı: manifestin bulunduğu klasörde (alt klasör kurulumunda da doğru kapsam).
+  var man = document.querySelector('link[rel="manifest"]');
+  if ('serviceWorker' in navigator && man && window.isSecureContext) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register(new URL('sw.js', man.href).pathname).catch(function () {});
+    });
+  }
+
+  // Android/Chrome: tarayıcının kendi kurulum penceresi.
+  var deferred = null;
+  var buttons = document.querySelectorAll('[data-app-install]');
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferred = e;
+    buttons.forEach(function (b) { b.hidden = false; });
+    root.classList.add('can-install');
+  });
+  buttons.forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (!deferred) return;
+      deferred.prompt();
+      deferred.userChoice.finally(function () { deferred = null; });
+    });
+  });
+  window.addEventListener('appinstalled', function () {
+    buttons.forEach(function (b) { b.hidden = true; });
+    root.setAttribute('data-platform', 'app');
+  });
+})();

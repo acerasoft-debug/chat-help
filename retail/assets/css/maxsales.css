@@ -1908,3 +1908,64 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   content:"";position:absolute;left:50%;top:50%;width:16px;height:1px;
   transform:translate(-50%,-50%);background:var(--muted-2);opacity:.7;
 }
+
+/* ---------------------------------------------------------------- uygulama
+   Ana ekrandan açılınca (standalone) çentikli telefonlarda yan ve alt kenar
+   güvenli alanı; tarayıcı içinde env() sıfır döner, hiçbir şey değişmez. */
+body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+.foot{padding-bottom:calc(30px + env(safe-area-inset-bottom))}
+.drawer__panel{padding-bottom:env(safe-area-inset-bottom)}
+/* Uygulama içinde metin seçimi ve uzun basış menüsü ürün kartlarında
+   rahatsız ediyor; bağlantıya uzun basınca önizleme açılmasın. */
+@media (display-mode: standalone){
+  .card__media,.housecard__shot,.btn{-webkit-touch-callout:none}
+}
+
+/* ---------------------------------------------------------------- app.php */
+.apphero{padding:clamp(56px,8vw,112px) 0}
+.apphero__grid{display:grid;gap:clamp(40px,6vw,88px);align-items:center;grid-template-columns:1fr}
+@media (min-width:900px){.apphero__grid{grid-template-columns:1.1fr .9fr}}
+.apphero__t{font-size:clamp(34px,5.2vw,68px);line-height:1.04;max-width:14ch;margin:14px 0 20px}
+.apphero__cta{margin-top:32px;display:flex;flex-wrap:wrap;gap:12px}
+.apphero__in{display:none;margin-top:22px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--bone);align-items:center;gap:8px}
+[data-platform="app"] .apphero__in{display:inline-flex}
+[data-platform="app"] .apphero__cta,[data-platform="app"] .appways{display:none}
+[data-platform="android"] .apphero__ios{display:none}
+
+/* Telefon çerçevesi — saf CSS, içinde canlı ürünler */
+.phone{justify-self:center;width:min(300px,78vw);aspect-ratio:9/19;border-radius:44px;padding:11px;
+  background:linear-gradient(145deg,#2a2a2a,#0b0b0b);box-shadow:0 40px 80px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.08)}
+.phone__screen{height:100%;border-radius:34px;overflow:hidden;background:#fff;color:#0a0a0a;display:flex;flex-direction:column}
+.phone__bar{padding:34px 0 12px;text-align:center;border-bottom:1px solid #eee}
+.phone__logo{font-family:var(--serif);font-size:15px;letter-spacing:.32em;padding-left:.32em}
+.phone__grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 8px;padding:10px;overflow:hidden;flex:1;align-content:start}
+.phone__card{margin:0}
+.phone__card img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;background:var(--bone-2)}
+.phone__card figcaption{display:flex;flex-direction:column;gap:1px;padding:6px 1px 2px;font-size:8.5px;line-height:1.35}
+.phone__card b{font-weight:500;letter-spacing:.14em;text-transform:uppercase;font-size:7.5px;color:#666}
+
+/* Kurulum kartları — kullanılan cihaz öne geliyor */
+.appways{display:grid;gap:clamp(16px,2vw,28px);grid-template-columns:1fr}
+@media (min-width:800px){.appways{grid-template-columns:1fr 1fr}}
+.appway{border:1px solid var(--bone-3);padding:clamp(22px,3vw,36px);display:flex;flex-direction:column;gap:16px;scroll-margin-top:110px}
+[data-platform="ios"] .appway--ios,[data-platform="android"] .appway--android{border-color:var(--ink);order:-1}
+.appway__h{display:flex;align-items:center;gap:16px}
+.appway__h img{border-radius:12px}
+.appway__h h2{font-family:var(--serif);font-size:24px;margin:0;font-weight:400}
+.appway__note{font-size:12.5px;color:var(--muted);margin:0;line-height:1.6}
+.appsteps{margin:0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:14px}
+.appsteps li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;align-items:center;column-gap:16px;font-size:14.5px;line-height:1.5}
+.appsteps li::before{content:counter(s,decimal-leading-zero);font-size:10.5px;letter-spacing:.16em;color:var(--muted);
+  width:34px;height:34px;border:1px solid var(--bone-3);display:inline-flex;align-items:center;justify-content:center;align-self:start}
+.appsteps__ico{color:var(--ink);vertical-align:-4px;margin-left:4px}
+/* Tarayıcı izin vermeden "Yükle" düğmesi görünmesin (.btn display'i hidden'ı eziyordu) */
+[data-app-install][hidden]{display:none!important}
+
+.appfeats{display:grid;gap:clamp(22px,3vw,44px);grid-template-columns:1fr;margin-top:clamp(48px,6vw,84px);
+  padding-top:clamp(32px,4vw,52px);border-top:1px solid var(--bone-3)}
+@media (min-width:800px){.appfeats{grid-template-columns:repeat(3,1fr)}}
+.appfeat h3{font-family:var(--serif);font-weight:400;font-size:20px;margin:14px 0 8px}
+.appfeat p{font-size:13.5px;line-height:1.65;color:var(--muted);margin:0}
+.appfeat .ico{color:var(--brass-text)}
+.appdesk{display:none;margin-top:44px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center}
+[data-platform="desktop"] .appdesk{display:block}
