@@ -7,7 +7,8 @@
  * GİRDİ
  *   data/photo-web-report.json   runner'ın bulduğu adaylar (id → images[])
  *   data/photo-web-approve.json  ELLE yazılır: id → [1, 3, …] (kolajdaki
- *                                numaralar) ya da id → [] (hiçbiri)
+ *                                numaralar), id → [] (hiçbiri) ya da
+ *                                id → {"from": "<başka id>", "n": [..]}
  *
  * ÇIKTI
  *   uploads/licensed/web/<marka>/<id>-wN.jpg  (en uzun kenar 1600 px)
@@ -72,8 +73,12 @@ $done = 0; $files = 0;
 foreach ($approve as $id => $nums) {
     $id = (string)$id;
     if (!preg_match('/^[a-z0-9-]+$/i', $id)) { echo "  geçersiz id: $id\n"; continue; }
-    $r = $report[$id] ?? null;
-    if (!$r) { echo "  raporda yok: $id\n"; continue; }
+    // Başka bir ürünün aramasında çıkan doğru kareler: {"from": "<id>", "n": [..]}
+    // (ör. iki benzer tişörtün adayları yer değiştirmiş gelebiliyor).
+    $from = $id;
+    if (is_array($nums) && isset($nums['from'])) { $from = (string)$nums['from']; $nums = (array)($nums['n'] ?? []); }
+    $r = $report[$from] ?? null;
+    if (!$r) { echo "  raporda yok: $from\n"; continue; }
     $brand = preg_replace('/[^a-z0-9]+/', '-', strtolower((string)($r['brand'] ?? 'x'))) ?: 'x';
     $paths = [];
     foreach ((array)$nums as $n) {

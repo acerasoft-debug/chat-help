@@ -178,6 +178,27 @@ function fpw_page_images(string $url): array
     return array_values(array_unique(array_filter($out, fn($u) => preg_match('#^https?://#', $u))));
 }
 
+/** Sayfa gerçekten bu ürünü mü gösteriyor? Kod varsa sayfada geçmeli; yoksa
+ *  ad sözcüklerinin çoğu sayfa başlığında olmalı. İlk turda ansiklopedi ve
+ *  gözlük sayfaları "iki görseli var" diye aday sayılmıştı. */
+function fpw_page_matches(string $url, string $sku, array $want): bool
+{
+    static $cache = [];
+    $html = $cache[$url] ??= (string)fpw_get($url);
+    if ($html === '') return false;
+    $flat = strtolower(preg_replace('/[^a-z0-9]/i', '', $html) ?? '');
+    if ($sku !== '') {
+        $k = strtolower(preg_replace('/[^a-z0-9]/i', '', $sku) ?? '');
+        return strlen($k) >= 6 && str_contains($flat, $k);
+    }
+    if (!$want) return false;
+    $title = '';
+    if (preg_match('#<title[^>]*>(.*?)</title>#is', $html, $m)) $title .= ' ' . $m[1];
+    if (preg_match('#<h1[^>]*>(.*?)</h1>#is', $html, $m)) $title .= ' ' . strip_tags($m[1]);
+    $have = explode(' ', fpw_norm(html_entity_decode($title)));
+    return count(array_intersect($want, $have)) / count($want) >= 0.6;
+}
+
 function fpw_search(string $q): array
 {
     usleep(1800000); // arama motoruna nazik ol
@@ -188,7 +209,12 @@ function fpw_search(string $q): array
         foreach ($m[1] as $h) {
             $h = html_entity_decode($h);
             if (preg_match('#uddg=([^&]+)#', $h, $mm)) $h = urldecode($mm[1]);
-            if (preg_match('#^https?://#', $h)) $urls[] = $h;
+            if (!preg_match('#^https?://#', $h)) continue;
+            // Reklam yönlendirmesi, ansiklopedi, sosyal ağ, ikinci el ve
+            // "resmi" taklidi alan adları (…-officiels, …-outlet) aday olamaz.
+            $host = strtolower((string)parse_url($h, PHP_URL_HOST));
+            if ($host === '' || preg_match('/duckduckgo|bing\.com|wikipedia|glassesusa|pinterest|youtube|instagram|facebook|reddit|ebay|vinted|depop|grailed|poshmark|officiel|outlet|replica|cheap/', $host)) continue;
+            $urls[] = $h;
         }
     }
     // İyi bilinen mağazalar öne.
@@ -217,8 +243,12 @@ function fpw_thumb(string $bytes, int $w, int $h)
 
 $sheetDir = $root . '/uploads/candidates/_web';
 @mkdir($sheetDir, 0755, true);
-$report = [];
+// Önceki turun raporu korunur; onaylanmış ürünler yeniden aranmaz.
+$report  = json_decode((string)@file_get_contents($root . '/data/photo-web-report.json'), true) ?: [];
+$skipIds = json_decode((string)@file_get_contents($root . '/data/photo-web-approve.json'), true) ?: [];
+foreach (glob($sheetDir . '/*.jpg') ?: [] as $old) @unlink($old);
 foreach ($targets as $n => $t) {
+    if (isset($skipIds[(string)$t['id']])) continue;
     $id = (string)$t['id']; $brand = (string)$t['brand']; $name = (string)$t['name']; $colour = (string)($t['colour'] ?? '');
     $bk = preg_replace('/[^a-z]/', '', mb_strtolower($brand)) ?? '';
     $want = fpw_tokens($name, $brand, $colour);
@@ -229,13 +259,16 @@ foreach ($targets as $n => $t) {
     if (isset(FPW_SHOPIFY[$bk])) {
         $best = null; $bestS = 0.0;
         foreach (fpw_shopify($bk) as $p) {
+            // Vitrin erkek giyimi: çocuk ve kadın modelleri (Casablanca'da
+            // k-/w- önekli) aynı adla geliyor ama baskı ve renk farklı.
+            if (preg_match('/^(k|w)[-_]|^wpf\d|^wf\d|child|kid|women/i', (string)$p['handle'])) continue;
             $have = fpw_tokens((string)$p['title'], $brand, '');
             if (!$have || !$want) continue;
             $s = count(array_intersect($want, $have)) / max(count($want), 1);
             $s -= 0.08 * max(0, count($have) - count($want));
             $col = fpw_norm($colour);
             $hay = fpw_norm((string)$p['title'] . ' ' . json_encode($p['variants'] ?? []));
-            if ($col !== '' && str_contains($hay, $col)) $s += 0.25;
+            if ($col !== '') { if (!str_contains($hay, $col)) continue; $s += 0.25; }
             if ($s > $bestS) { $bestS = $s; $best = $p; }
         }
         if ($best && $bestS >= 0.6) {
@@ -250,18 +283,20 @@ foreach ($targets as $n => $t) {
         $real = $sku !== '' && !preg_match('/^VS-|^[A-Z]+(-[A-Z0-9]+){2,}/', $sku);
         $byName = trim($brand . ' ' . preg_replace('/\s+—.*$/u', '', $name) . ' ' . $colour);
         // Gerçek model kodu varsa önce yalnızca onunla ara (ad çoğu zaman "T-Shirt" kadar kısa).
-        $urls = [];
-        $q = $real ? $brand . ' ' . $sku : $byName;
-        $urls = fpw_search($q);
-        if (!$urls && $real) $urls = fpw_search($q = $byName . ' ' . $sku);
-        foreach ($urls as $u) {
-            $imgs = fpw_page_images($u);
-            if (count($imgs) >= 2) {
-                $found = ['source' => $u, 'title' => $q, 'images' => array_slice($imgs, 0, 6),
-                          'codes' => array_values(array_unique($GLOBALS['fpw_codes']))];
-                break;
+        $queries = $real ? [$brand . ' ' . $sku, $sku . ' ' . $colour, $byName] : [$byName, $byName . ' men'];
+        foreach ($queries as $q) {
+            foreach (fpw_search($q) as $u) {
+                // Kodla aranıyorsa sayfada kod geçmeli; adla aranıyorsa başlık tutmalı.
+                $bySku = $real && $q !== $byName;
+                if (!fpw_page_matches($u, $bySku ? $sku : '', $want)) continue;
+                $GLOBALS['fpw_codes'] = [];
+                $imgs = fpw_page_images($u);
+                if (count($imgs) >= 2) {
+                    $found = ['source' => $u, 'title' => $q, 'images' => array_slice($imgs, 0, 6),
+                              'codes' => array_values(array_unique($GLOBALS['fpw_codes']))];
+                    break 2;
+                }
             }
-            $GLOBALS['fpw_codes'] = [];
         }
     }
 

@@ -1,0 +1,64 @@
+{
+    "csb-aiiiiir-navy": [
+        1,
+        3,
+        4,
+        2
+    ],
+    "csb-aiiir-printed-white": [
+        2,
+        3
+    ],
+    "csb-la-colonne-black": [
+        2,
+        4,
+        3,
+        5
+    ],
+    "csb-montagne-ondulee-green": [
+        5,
+        4,
+        6
+    ],
+    "csb-montagne-ondulee-white": [
+        2
+    ],
+    "csb-vue-larche-organic-white": [
+        2,
+        4,
+        5
+    ],
+    "dsq-101213": [
+        3,
+        2,
+        4
+    ],
+    "dsq-101216": [
+        3,
+        2
+    ],
+    "dgx-g8pt1t-g7f2i-ba232": [
+        1
+    ],
+    "dgx-g8pt1t-g7f2i-s8291": [
+        1
+    ],
+    "dgn-g8pn9tg7j6b": [
+        1
+    ],
+    "gd-t06": [
+        2
+    ],
+    "gd-t08": {
+        "from": "gd-t03",
+        "n": [
+            1,
+            3,
+            4
+        ]
+    },
+    "jcq-gros-grain-white": [
+        2,
+        3
+    ]
+}
