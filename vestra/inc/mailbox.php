@@ -347,8 +347,12 @@ function vestra_mailbox_send_local(array $it, string $fromName, ?callable $mail 
   $unsub = (string)($it['listUnsub'] ?? '') ?: 'https://vestrasales.com/lead-unsubscribe';
   if (preg_match('/[\r\n<>]/', $unsub)) $unsub = 'https://vestrasales.com/lead-unsubscribe';
   $name = mb_encode_mimeheader(str_replace(["\r", "\n", '"'], '', $fromName ?: 'VESTRA'), 'UTF-8', 'Q');
+  /* Satıcı adına gönderim (10 Eki 2026): From yine support@ (SPF/DKIM/DMARC geçsin), görünen ad satıcı,
+     Reply-To satıcının kendi adresi — yanıt doğrudan satıcıya gider. */
+  $replyTo = strtolower(trim((string)($o['reply_to'] ?? '')));
+  if (!filter_var($replyTo, FILTER_VALIDATE_EMAIL) || preg_match('/[\r\n,;<>]/', $replyTo)) $replyTo = $from;
   $lines = [
-    "From: {$name} <{$from}>", "Reply-To: {$from}", "Message-ID: {$mid}", 'Date: '.date('r'),
+    "From: {$name} <{$from}>", "Reply-To: {$replyTo}", "Message-ID: {$mid}", 'Date: '.date('r'),
     "List-Unsubscribe: <{$unsub}>, <mailto:{$from}?subject=unsubscribe>", 'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
     'MIME-Version: 1.0', "Content-Type: multipart/alternative; boundary=\"{$bnd}\"",
   ];

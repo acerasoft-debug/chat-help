@@ -1562,4 +1562,9 @@ return array (
   'If this happens again, your account will be closed permanently.' => '再発した場合、アカウントは永久に閉鎖されます。',
   'Your account is restricted: you cannot send messages until %s.' => 'お客様のアカウントは制限されています：%sまでメッセージを送信できません。',
   'Your message was not sent.' => 'メッセージは送信されませんでした。',
+  'Ready — no setup needed.' => '準備完了 — 設定は不要です。',
+  'Your emails are sent by the VESTRA mail server. Customers see “%s via VESTRA” as the sender, and when they reply, the reply goes straight to %s. Up to 100 emails a day; each one leaves within about 10 minutes.' => 'メールはVESTRAのメールサーバーから送信されます。お客様には送信者として「%s via VESTRA」と表示され、返信は %s に直接届きます。1日最大100通、各メールは約10分以内に送信されます。',
+  'Want the emails to come from your own address instead? Add your Brevo key or your own mail server (SMTP) below — both optional.' => 'ご自身のアドレスから送信したい場合は、下でBrevoキーまたはご自身のメールサーバー（SMTP）を追加してください（どちらも任意）。',
+  'Your emails go out from your own address. Without any setup they are sent by the VESTRA mail server in your name; with a Brevo key or your own mail server (SMTP) they leave directly from your address.' => 'メールはご自身のアドレスから送信されます。設定なしの場合はVESTRAのメールサーバーがあなたの名前で送信し、BrevoキーまたはSMTPを設定するとご自身のアドレスから直接送信されます。',
+  'Test queued to %s — the VESTRA mail server sends it within about 10 minutes. Check your inbox then.' => '%s へのテストを送信待ちに追加しました — VESTRAのメールサーバーが約10分以内に送信します。その後受信箱をご確認ください。',
 );

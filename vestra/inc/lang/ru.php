@@ -1562,4 +1562,9 @@ return array (
   'If this happens again, your account will be closed permanently.' => 'При повторении ваш аккаунт будет закрыт навсегда.',
   'Your account is restricted: you cannot send messages until %s.' => 'Ваш аккаунт ограничен: вы не можете отправлять сообщения до %s.',
   'Your message was not sent.' => 'Ваше сообщение не отправлено.',
+  'Ready — no setup needed.' => 'Готово — настройка не нужна.',
+  'Your emails are sent by the VESTRA mail server. Customers see “%s via VESTRA” as the sender, and when they reply, the reply goes straight to %s. Up to 100 emails a day; each one leaves within about 10 minutes.' => 'Ваши письма отправляет почтовый сервер VESTRA. Клиенты видят отправителя «%s via VESTRA», а их ответ приходит прямо на %s. До 100 писем в день; каждое уходит примерно в течение 10 минут.',
+  'Want the emails to come from your own address instead? Add your Brevo key or your own mail server (SMTP) below — both optional.' => 'Хотите, чтобы письма уходили с вашего собственного адреса? Добавьте ниже ключ Brevo или свой почтовый сервер (SMTP) — и то и другое необязательно.',
+  'Your emails go out from your own address. Without any setup they are sent by the VESTRA mail server in your name; with a Brevo key or your own mail server (SMTP) they leave directly from your address.' => 'Письма уходят с вашего адреса. Без настройки их отправляет почтовый сервер VESTRA от вашего имени; с ключом Brevo или вашим почтовым сервером (SMTP) они уходят прямо с вашего адреса.',
+  'Test queued to %s — the VESTRA mail server sends it within about 10 minutes. Check your inbox then.' => 'Тест для %s поставлен в очередь — почтовый сервер VESTRA отправит его примерно через 10 минут. Затем проверьте входящие.',
 );

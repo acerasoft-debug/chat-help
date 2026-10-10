@@ -17,6 +17,26 @@ require_once __DIR__.'/leads.php';
 require_once __DIR__.'/notify.php';
 
 const VESTRA_SELLER_OUTBOX_DAILY = 300;   // satıcı başına günde (Gmail kişisel hesap sınırı ~500)
+/* 10 Eki 2026 (operatör: "herkes kendi e-mailinden server'dan göndersin"): kurulumsuz varsayılan yol = VESTRA'nın
+   kendi posta servisi. From yine support@vestrasales.com (Gmail/Outlook alan adlarının DMARC'ı başka sunucudan
+   "From: seller@gmail.com" yazılmasına izin vermez — geri döner), görünen ad satıcı ("Firma via VESTRA"), Reply-To
+   satıcının kendi adresi: müşteri "yanıtla" deyince satıcıya yazar. cron_mailbox.php 10 dk'da bir gönderir. */
+const VESTRA_SELLER_SERVER_DAILY = 100;   // satıcı başına günde, sunucu yolunda (cPanel saatte 500, support@ ile paylaşılır)
+const VESTRA_SELLER_SERVER_PER_TICK = 40; // bir cron turunda en çok (10 dk, 8-15 sn ara)
+
+/** Satıcının gönderim yolu: 'brevo' (kendi anahtarı, anında) | 'smtp' (kendi sunucusu) | 'server' (VESTRA sunucusu) | '' (adres yok). */
+function vestra_seller_route(array $c, string $accountEmail): string {
+  if (vestra_seller_can_send($c)) return 'brevo';
+  if (vestra_seller_smtp_ready($c)) return 'smtp';
+  return vestra_seller_reply_to($c, $accountEmail) !== '' ? 'server' : '';
+}
+/** Yanıtların gideceği adres: satıcının kaydettiği gönderen adres, yoksa hesap e-postası. */
+function vestra_seller_reply_to(array $c, string $accountEmail): string {
+  foreach ([(string)($c['mail_from'] ?? ''), (string)($c['smtp_from'] ?? ''), $accountEmail] as $e) {
+    $e = strtolower(trim($e)); if (filter_var($e, FILTER_VALIDATE_EMAIL)) return $e;
+  }
+  return '';
+}
 
 function vestra_seller_smtp_from(array $c): string {
   $f = strtolower(trim((string)($c['smtp_from'] ?? $c['mail_from'] ?? '')));
@@ -53,20 +73,24 @@ function vestra_seller_outbox_locked(callable $fn) {
  * Kuyruğa ekler. [ok, kod]: 'queued' | 'dup' (bu müşteri zaten kuyrukta) | 'cap' (günlük sınır) | 'nosetup' | 'badto'.
  * $leadId '' = TEST (kayda dokunmaz).
  */
-function vestra_seller_outbox_add(string $uid, string $leadId, string $to, string $subject, string $body, string $fromName, string $heroImg = '', string $unsubUrl = ''): array {
+function vestra_seller_outbox_add(string $uid, string $leadId, string $to, string $subject, string $body, string $fromName, string $heroImg = '', string $unsubUrl = '', string $via = 'smtp', string $replyTo = ''): array {
   $c = vestra_seller_mail($uid);
-  if (!vestra_seller_smtp_ready($c)) return [false, 'nosetup'];
+  $via = $via === 'server' ? 'server' : 'smtp';
+  if ($via === 'smtp' && !vestra_seller_smtp_ready($c)) return [false, 'nosetup'];
+  $replyTo = strtolower(trim($replyTo));
+  if ($via === 'server' && !filter_var($replyTo, FILTER_VALIDATE_EMAIL)) return [false, 'nosetup'];
   $to = strtolower(trim($to));
   if (!filter_var($to, FILTER_VALIDATE_EMAIL) || preg_match('/[\r\n,;]/', $to)) return [false, 'badto'];
-  return vestra_seller_outbox_locked(static function () use ($uid, $leadId, $to, $subject, $body, $fromName, $heroImg, $unsubUrl): array {
-    $all = vestra_seller_outbox_all(); $today = date('Y-m-d'); $n = 0;
+  return vestra_seller_outbox_locked(static function () use ($uid, $leadId, $to, $subject, $body, $fromName, $heroImg, $unsubUrl, $via, $replyTo): array {
+    $all = vestra_seller_outbox_all(); $today = date('Y-m-d'); $n = 0; $nSrv = 0;
     foreach ($all as $it) {
       if (($it['uid'] ?? '') !== $uid) continue;
       if ($leadId !== '' && ($it['lead_id'] ?? '') === $leadId && in_array($it['status'] ?? '', ['queued', 'sending'], true)) return [false, 'dup'];
-      if (str_starts_with((string)($it['queued_at'] ?? ''), $today)) $n++;
+      if (str_starts_with((string)($it['queued_at'] ?? ''), $today)) { $n++; if (($it['via'] ?? 'smtp') === 'server') $nSrv++; }
     }
-    if ($n >= VESTRA_SELLER_OUTBOX_DAILY) return [false, 'cap'];
-    $all[] = ['id' => 'OB'.date('ymdHis').bin2hex(random_bytes(3)), 'uid' => $uid, 'lead_id' => $leadId, 'to' => $to,
+    if ($n >= VESTRA_SELLER_OUTBOX_DAILY || ($via === 'server' && $nSrv >= VESTRA_SELLER_SERVER_DAILY)) return [false, 'cap'];
+    $all[] = ['id' => 'OB'.date('ymdHis').bin2hex(random_bytes(3)), 'uid' => $uid, 'lead_id' => $leadId, 'to' => $to, 'via' => $via,
+              'reply_to' => $via === 'server' ? $replyTo : '',
               'subject' => mb_substr(str_replace(["\r", "\n"], ' ', $subject), 0, 250),
               'html' => vestra_html_email($body, $heroImg, []), 'text' => vestra_mail_text_part($body, []),
               'from_name' => mb_substr(str_replace(["\r", "\n", '"'], '', $fromName), 0, 80),
@@ -86,6 +110,7 @@ function vestra_seller_outbox_take(int $max): array {
     $all = vestra_seller_outbox_all(); $items = []; $creds = []; $changed = false; $stale = time() - 1800;
     foreach ($all as $i => $it) {
       $st = (string)($it['status'] ?? '');
+      if (($it['via'] ?? 'smtp') !== 'smtp') continue;                     // sunucu yolu cron_mailbox.php'de
       if (!($st === 'queued' || ($st === 'sending' && (int)strtotime((string)($it['taken_at'] ?? '')) < $stale))) continue;
       if (count($items) >= $max) break;
       $uid = (string)($it['uid'] ?? '');
@@ -129,7 +154,7 @@ function vestra_seller_outbox_stamp(array $results): array {
       $all[$i]['done_at'] = date('c');
       if (($r['message_id'] ?? '') !== '') $all[$i]['message_id'] = mb_substr((string)$r['message_id'], 0, 120);
       unset($all[$i]['html'], $all[$i]['text']);           // gönderildi/düştü: gövde artık gerekmez
-      if (($it['lead_id'] ?? '') !== '') $leadSt[(string)$it['lead_id']] = [$st, (string)$it['uid'], $all[$i]['reason']];
+      if (($it['lead_id'] ?? '') !== '') $leadSt[(string)$it['lead_id']] = [$st, (string)$it['uid'], $all[$i]['reason'], ($it['via'] ?? 'smtp') === 'server' ? 'seller_server' : 'seller_smtp'];
       elseif ($st === 'sent') $testUids[(string)$it['uid']] = (string)$it['to'];
       if ($st === 'auth') $authUids[(string)$it['uid']] = $all[$i]['reason'];
     }
@@ -141,7 +166,7 @@ function vestra_seller_outbox_stamp(array $results): array {
     foreach ($leads as &$l) {
       $x = $leadSt[(string)($l['id'] ?? '')] ?? null;
       if (!$x || (string)($l['owner_uid'] ?? '') !== $x[1]) continue;
-      if ($x[0] === 'sent') { if (($l['status'] ?? 'new') === 'new') $l['status'] = 'contacted'; $l['last_contacted_at'] = date('c'); $l['contact_via'] = 'seller_smtp'; $ch = true; }
+      if ($x[0] === 'sent') { if (($l['status'] ?? 'new') === 'new') $l['status'] = 'contacted'; $l['last_contacted_at'] = date('c'); $l['contact_via'] = $x[3] ?? 'seller_smtp'; $ch = true; }
       elseif ($x[0] === 'bounced') { $l['status'] = 'bounced'; $l['bounce_reason'] = 'seller smtp: '.$x[2]; $l['bounced_at'] = date('c'); $ch = true; }
     }
     unset($l);
@@ -168,3 +193,45 @@ function vestra_seller_outbox_status(string $uid): array {
   }
   return ['queued' => $q, 'sent_today' => $s, 'failed_today' => $f, 'last' => array_slice(array_reverse($last), 0, 8)];
 }
+
+/**
+ * Sunucu yolu (via=server): cron_mailbox.php her 10 dk'da çağırır. Satıcının mektuplarını VESTRA'nın posta
+ * servisinden, görünen ad satıcı + Reply-To satıcının adresiyle gönderir; her mektuptan hemen sonra damgalar.
+ * $o: 'mail' (sahte mail()), 'sleep', 'log'. Döner ['sent','failed','skipped'].
+ */
+function vestra_seller_outbox_run_server(array $o = []): array {
+  require_once __DIR__.'/mailbox.php';
+  $sleep = $o['sleep'] ?? static function (int $s): void { sleep($s); };
+  $log = $o['log'] ?? static function (string $m): void { echo $m, "\n"; };
+  $sum = ['sent' => 0, 'failed' => 0, 'skipped' => 0];
+  $items = vestra_seller_outbox_locked(static function (): array {
+    $all = vestra_seller_outbox_all(); $out = []; $changed = false; $stale = time() - 1800;
+    foreach ($all as $i => $it) {
+      if (($it['via'] ?? 'smtp') !== 'server') continue;
+      $st = (string)($it['status'] ?? '');
+      if (!($st === 'queued' || ($st === 'sending' && (int)strtotime((string)($it['taken_at'] ?? '')) < $stale))) continue;
+      if (count($out) >= VESTRA_SELLER_SERVER_PER_TICK) break;
+      $all[$i]['status'] = 'sending'; $all[$i]['taken_at'] = date('c'); $changed = true; $out[] = $all[$i];
+    }
+    if ($changed) vestra_seller_outbox_save($all);
+    return $out;
+  });
+  if (!$items) return $sum;
+  $dns = $o['dns'] ?? 'vestra_mailbox_dns_status'; $any = false;
+  foreach ($items as $it) {
+    $dom = substr((string)strrchr((string)$it['to'], '@'), 1);
+    if ($dns($dom) === 'dead') {
+      vestra_seller_outbox_stamp([['id' => $it['id'], 'status' => 'bounced', 'reason' => 'alan adinin e-posta sunucusu yok']]);
+      $sum['skipped']++; $log('  - '.vestra_mailbox_mask((string)$it['to']).' atlandi: alan adinin e-posta sunucusu yok'); continue;
+    }
+    if ($any) $sleep(random_int(8, 15));
+    [$ok, $mid, $why] = vestra_mailbox_send_local(['email' => $it['to'], 'subject' => $it['subject'], 'html' => $it['html'] ?? '', 'text' => $it['text'] ?? '', 'listUnsub' => (string)($it['unsub'] ?? '')],
+                                                  (string)($it['from_name'] ?? 'VESTRA'), $o['mail'] ?? null, ['reply_to' => (string)($it['reply_to'] ?? '')]);
+    $any = true;
+    vestra_seller_outbox_stamp([['id' => $it['id'], 'status' => $ok ? 'sent' : 'failed', 'reason' => $ok ? '' : $why, 'message_id' => $mid]]);
+    $sum[$ok ? 'sent' : 'failed']++;
+    $log(($ok ? '  + ' : '  x ').vestra_seller_outbox_mask_uid((string)$it['uid']).' → '.vestra_mailbox_mask((string)$it['to']).($ok ? '' : ' — '.$why));
+  }
+  return $sum;
+}
+function vestra_seller_outbox_mask_uid(string $uid): string { return mb_substr($uid, 0, 6).'…'; }

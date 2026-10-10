@@ -616,7 +616,7 @@ $t('giriş reddi satıcının kartına yazılır', str_contains((string)(vestra_
 $raw = (string)file_get_contents(VESTRA_DATA_DIR.'/seller_outbox.json');
 $t('kuyruk dosyasında SMTP şifresi yok', !str_contains($raw, 'app-pass'));
 $selSrc = (string)file_get_contents($root.'/seller.php');
-$t('seller_send_one: Brevo yoksa SMTP kuyruğu', str_contains($selSrc, '$viaSmtp=!vestra_seller_can_send($sc) && vestra_seller_smtp_ready($sc);') && str_contains($selSrc, 'vestra_seller_outbox_add($suid,(string)$l[\'id\']'));
+$t('seller_send_one: yol = Brevo / kendi SMTP / VESTRA sunucusu (kurulumsuz varsayılan)', str_contains($selSrc, "\$route=vestra_seller_route(\$sc,(string)(\$sme['email']??''));") && str_contains($selSrc, 'vestra_seller_outbox_add($suid,(string)$l[\'id\']') && str_contains($selSrc, "\$viaServer?'server':'smtp'"));
 @unlink(VESTRA_DATA_DIR.'/seller_outbox.json');
 
 echo "\n== 8f. VESTRA Edit kampanyası (Gallery Dept, Casablanca, site + kayıt bağlantısı) ==\n";
@@ -663,6 +663,27 @@ $t('gönderiliyor: 2 / 5 gitti + ilerleme', $ls2['state'] === 'running' && $ls2[
 vestra_mailbox_runs_save([['id' => 'MBq', 'mode' => 'send', 'limit' => 9, 'campaign' => 'edit', 'status' => 'requested', 'requested_at' => date('c')]]);
 $t('gönderim sırada', vestra_live_status()['send']['state'] === 'queued');
 @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json'); vestra_finder_save_runs([]);
+
+echo "\n== 8h. satıcı: kurulumsuz, VESTRA sunucusundan kendi adıyla (Reply-To kendi adresi) ==\n";
+@unlink(VESTRA_DATA_DIR.'/seller_outbox.json');
+vestra_seller_mail_save('sellS', []);
+$t('yol: anahtar/SMTP yoksa sunucu; hesap adresi yoksa yok', vestra_seller_route([], 'owner@shop.example') === 'server' && vestra_seller_route([], '') === ''
+  && vestra_seller_route(['mail_api_key' => 'xkeysib-1'], 'o@s.example') === 'brevo' && vestra_seller_route(vestra_seller_mail('sellQ'), 'o@s.example') === 'smtp');
+vestra_write_json('leads.json', [['id' => 'S1', 'owner_uid' => 'sellS', 'company' => 'Boutique S', 'email' => 'buyer@s.example', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'ts']]);
+[$sa, $sac] = vestra_seller_outbox_add('sellS', 'S1', 'buyer@s.example', 'Hi', 'Dear Boutique S', 'Shop S via VESTRA', '', '', 'server', 'owner@shop.example');
+$t('sunucu yoluna kuyruk: Reply-To satıcı', $sa && $sac === 'queued' && (vestra_seller_outbox_all()[0]['reply_to'] ?? '') === 'owner@shop.example');
+$t('GitHub kuyruğu (take) sunucu yolunu ALMAZ', vestra_seller_outbox_take(10)['items'] === []);
+$sentHdr = [];
+$fakeMail = static function ($to, $subject, $body, $headers, $params) use (&$sentHdr): bool { $sentHdr[] = [$to, $headers]; return true; };
+$sr = vestra_seller_outbox_run_server(['mail' => $fakeMail, 'sleep' => static fn(int $s) => null, 'log' => static fn(string $m) => null, 'dns' => static fn(string $d) => 'ok']);
+$t('cron: gönderir, From support@ + görünen ad satıcı, Reply-To satıcı', $sr['sent'] === 1 && count($sentHdr) === 1 && $sentHdr[0][0] === 'buyer@s.example'
+  && str_contains($sentHdr[0][1], '<support@vestrasales.com>') && str_contains($sentHdr[0][1], 'Reply-To: owner@shop.example') && str_contains($sentHdr[0][1], 'via_VESTRA') === false);
+$lS = array_column(vestra_leads(), null, 'id');
+$t('müşteri contacted (contact_via=seller_server), kuyruk sent', ($lS['S1']['contact_via'] ?? '') === 'seller_server' && ($lS['S1']['status'] ?? '') === 'contacted' && (vestra_seller_outbox_all()[0]['status'] ?? '') === 'sent');
+$t('sunucu yolu günlük 100 sınırı', VESTRA_SELLER_SERVER_DAILY === 100);
+[$sb, $sbc] = vestra_seller_outbox_add('sellS', 'S1', 'buyer@s.example', 'Hi', 'b', 'Shop S', '', '', 'server', 'not-an-email');
+$t('Reply-To geçersizse kuyruğa girmez', !$sb && $sbc === 'nosetup');
+@unlink(VESTRA_DATA_DIR.'/seller_outbox.json');
 
 echo "\n== 7. çizim — admin ve satıcı sayfası kum havuzunda GERÇEKTEN koşuyor ==\n";
 /* php -l tanımsız fonksiyonu / değişkeni yakalamaz; bu depoda lint'ten geçen iki
@@ -721,9 +742,9 @@ file_put_contents($sb.'/vestra/data/seller_ai_keys.json', json_encode(['sell0000
 $hs2 = (string)shell_exec('cd '.escapeshellarg($sb).' && php s.php 2>/dev/null');
 $t('satıcı (kendi anahtarı): yeşil durum, kota satırı yok, "Diesen Monat"', str_contains($hs2, '● Ihr eigener Claude-Schlüssel') && !str_contains($hs2, 'Heute übrig') && str_contains($hs2, 'Diesen Monat: 0 Kampagnen'));
 $t('satıcı (kendi anahtarı): anahtar sayfada YOK, yalnız son 4 hane + Kaldır düğmesi', !str_contains($hs2, 'OWNSELLERKEY') && str_contains($hs2, '…Z9q7') && str_contains($hs2, 'name="ai_key_clear"'));
-$t('satıcı: gönderim kartı — 3 adım, kendi posta sunucusu (SMTP) bölümü, test bölümü ALMANCA', str_contains($hs, 'id="sendsetup"') && str_contains($hs, 'Ihre Absender-E-Mail') && str_contains($hs, 'Brevo-Schlüssel')
-   && str_contains($hs, 'Ihr eigener Mailserver (SMTP') && str_contains($hs, 'Unser Versandsystem verbindet sich alle 10 Minuten') && str_contains($hs, 'Test an sich selbst senden') && str_contains($hs, 'Test in Gmail öffnen') && !str_contains($hs, 'value="seller_send_test"'));
-$t('satıcı (kurulumsuz): kampanya testi Gmail\'de açılır, VESTRA göndermez', !str_contains($hs, 'value="seller_camp_test"') && str_contains($hs, "sellerCompose('', 'gmail', &quot;ACsel&quot;"));
+$t('satıcı: gönderim kartı — kurulumsuz HAZIR (VESTRA sunucusu, Reply-To kendi adresi), SMTP bölümü, test formu ALMANCA', str_contains($hs, 'id="sendsetup"') && str_contains($hs, 'Bereit — keine Einrichtung nötig') && str_contains($hs, 'Probe Seller GmbH via VESTRA') && str_contains($hs, 's@probe.example')
+   && str_contains($hs, 'Ihr eigener Mailserver (SMTP') && str_contains($hs, 'Test an sich selbst senden') && str_contains($hs, 'value="seller_send_test"'));
+$t('satıcı (kurulumsuz): kampanya testi VESTRA sunucusundan gönderilir (form var)', str_contains($hs, 'value="seller_camp_test"'));
 $t('satıcı: ⚡ tek tık hazır kampanya + nasıl çalışır + örnek tarifler (Almanca)', str_contains($hs, 'value="seller_ai_ready"') && str_contains($hs, 'Fertige Kampagne — ein Klick')
    && str_contains($hs, 'Beispielbeschreibungen') && str_contains($hs, 'Freundlicher Erstkontakt') && str_contains($hs, 'id="acCustom"'));
 $t('satıcı: Claude + DeepSeek anahtar formları', str_contains($hs, 'name="anthropic_key"') && str_contains($hs, 'name="deepseek_key"') && str_contains($hs, 'platform.deepseek.com/api_keys'));
@@ -741,6 +762,7 @@ $t('admin: 📊 Raporlar ayrı katlı alan — gönderim geçmişi ve aramalar o
 $t('admin: 🧪 Bana test gönder + test adresi', str_contains($ha, 'name="mode" value="test"') && str_contains($ha, 'name="test_to"'));
 $t('satıcı (kendi anahtarı): PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $hs2));
 
+if (getenv('FINDER_TEST_DUMP')) file_put_contents(getenv('FINDER_TEST_DUMP'), $hs);
 exec('rm -rf '.escapeshellarg($sand));
 echo "\nTOPLAM: {$ok} gecti, {$bad} kaldi\n";
 exit($bad === 0 ? 0 : 1);

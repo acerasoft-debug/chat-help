@@ -26,6 +26,18 @@ $dry = in_array('--dry-run', $argv, true);
    Gönderim kilidinden ÖNCE — uzun bir gönderim sürerken de arama zamanında başlasın. */
 if (!$dry && ($tick = vestra_finder_server_tick()) !== '') echo '[finder '.date('Y-m-d H:i').'] '.$tick."\n";
 
+/* Satıcıların sunucu yolu (inc/seller_outbox.php, via=server): kendi kilidi — admin kampanyası saatlerce sürse de
+   satıcı mektupları her 10 dk'da gider (tur başına en çok 40, 8-15 sn ara). */
+require_once __DIR__.'/inc/seller_outbox.php';
+if (!$dry) {
+  $slk = @fopen(vestra_data_dir().'/seller_outbox_cron.lock', 'c');
+  if ($slk && flock($slk, LOCK_EX | LOCK_NB)) {
+    $ss = vestra_seller_outbox_run_server(['log' => static function (string $m): void { echo $m, "\n"; }]);
+    if ($ss['sent'] || $ss['failed'] || $ss['skipped']) echo '[seller-outbox '.date('Y-m-d H:i').'] gonderildi '.$ss['sent'].' · hata '.$ss['failed'].' · atlandi '.$ss['skipped']."\n";
+    flock($slk, LOCK_UN); fclose($slk);
+  }
+}
+
 $lock = @fopen(vestra_data_dir().'/mailbox_cron.lock', 'c');
 if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) { exit(0); }   // önceki gönderim sürüyor
 

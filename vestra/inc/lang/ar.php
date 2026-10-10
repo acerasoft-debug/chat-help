@@ -1562,4 +1562,9 @@ return array (
   'If this happens again, your account will be closed permanently.' => 'في حال تكرار ذلك، سيتم إغلاق حسابك نهائيًا.',
   'Your account is restricted: you cannot send messages until %s.' => 'حسابك مقيّد: لا يمكنك إرسال الرسائل حتى %s.',
   'Your message was not sent.' => 'لم يتم إرسال رسالتك.',
+  'Ready — no setup needed.' => 'جاهز — لا حاجة لأي إعداد.',
+  'Your emails are sent by the VESTRA mail server. Customers see “%s via VESTRA” as the sender, and when they reply, the reply goes straight to %s. Up to 100 emails a day; each one leaves within about 10 minutes.' => 'تُرسل رسائلك عبر خادم بريد VESTRA. يرى العملاء «%s via VESTRA» كمُرسل، وعندما يردّون يصل الرد مباشرة إلى %s. حتى 100 رسالة يوميًا؛ تخرج كل رسالة خلال 10 دقائق تقريبًا.',
+  'Want the emails to come from your own address instead? Add your Brevo key or your own mail server (SMTP) below — both optional.' => 'تفضّل أن تخرج الرسائل من عنوانك الخاص؟ أضف أدناه مفتاح Brevo أو خادم بريدك الخاص (SMTP) — كلاهما اختياري.',
+  'Your emails go out from your own address. Without any setup they are sent by the VESTRA mail server in your name; with a Brevo key or your own mail server (SMTP) they leave directly from your address.' => 'تخرج رسائلك من عنوانك الخاص. بدون أي إعداد يرسلها خادم بريد VESTRA باسمك؛ ومع مفتاح Brevo أو خادم بريدك الخاص (SMTP) تخرج مباشرة من عنوانك.',
+  'Test queued to %s — the VESTRA mail server sends it within about 10 minutes. Check your inbox then.' => 'تمت جدولة رسالة الاختبار إلى %s — يرسلها خادم بريد VESTRA خلال 10 دقائق تقريبًا. ثم تحقّق من صندوق الوارد.',
 );

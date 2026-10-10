@@ -1567,4 +1567,9 @@ return array (
   'If this happens again, your account will be closed permanently.' => 'Im Wiederholungsfall wird Ihr Konto dauerhaft geschlossen.',
   'Your account is restricted: you cannot send messages until %s.' => 'Ihr Konto ist eingeschränkt: Sie können bis %s keine Nachrichten senden.',
   'Your message was not sent.' => 'Ihre Nachricht wurde nicht gesendet.',
+  'Ready — no setup needed.' => 'Bereit — keine Einrichtung nötig.',
+  'Your emails are sent by the VESTRA mail server. Customers see “%s via VESTRA” as the sender, and when they reply, the reply goes straight to %s. Up to 100 emails a day; each one leaves within about 10 minutes.' => 'Ihre E-Mails werden vom VESTRA-Mailserver versendet. Kunden sehen „%s via VESTRA“ als Absender, und wenn sie antworten, geht die Antwort direkt an %s. Bis zu 100 E-Mails pro Tag; jede geht innerhalb von etwa 10 Minuten raus.',
+  'Want the emails to come from your own address instead? Add your Brevo key or your own mail server (SMTP) below — both optional.' => 'Sollen die E-Mails stattdessen von Ihrer eigenen Adresse kommen? Fügen Sie unten Ihren Brevo-Schlüssel oder Ihren eigenen Mailserver (SMTP) hinzu — beides optional.',
+  'Your emails go out from your own address. Without any setup they are sent by the VESTRA mail server in your name; with a Brevo key or your own mail server (SMTP) they leave directly from your address.' => 'Ihre E-Mails gehen von Ihrer eigenen Adresse aus. Ohne Einrichtung versendet sie der VESTRA-Mailserver in Ihrem Namen; mit einem Brevo-Schlüssel oder Ihrem eigenen Mailserver (SMTP) gehen sie direkt von Ihrer Adresse raus.',
+  'Test queued to %s — the VESTRA mail server sends it within about 10 minutes. Check your inbox then.' => 'Test an %s eingereiht — der VESTRA-Mailserver sendet ihn innerhalb von etwa 10 Minuten. Prüfen Sie dann Ihren Posteingang.',
 );

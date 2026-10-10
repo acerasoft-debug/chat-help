@@ -85,16 +85,18 @@ function vestra_seller_send_test(string $uid, string $sName, string $to, ?string
     $send = $send ?? 'vestra_send_mail';
     $sc = vestra_seller_mail($uid);
     require_once __DIR__.'/seller_outbox.php';
-    $viaSmtp = !vestra_seller_can_send($sc) && vestra_seller_smtp_ready($sc);
-    if (!vestra_seller_can_send($sc) && !$viaSmtp) return [false, 'nosetup', ''];
+    $acct = function_exists('auth_user') ? (string)((auth_user()['email'] ?? '')) : '';
+    $route = vestra_seller_route($sc, $acct); $viaSmtp = $route === 'smtp'; $viaServer = $route === 'server';
+    if ($route === '') return [false, 'nosetup', ''];
     if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return [false, 'badto', ''];
     [$tpl] = vestra_seller_test_template($uid, $campId);
     [$s, $b] = vestra_lead_render_email(vestra_test_sample_lead($to), $tpl);
     $heroImg = ($tpl['img'] ?? '') !== '' ? 'https://vestrasales.com'.$tpl['img'] : '';
     /* Kendi posta sunucusu (SMTP): test de kuyruktan, 10 dk içinde satıcının adresinden gider (inc/seller_outbox.php). */
-    if ($viaSmtp) {
-        [$qOk, $qCode] = vestra_seller_outbox_add($uid, '', $to, '[TEST] '.$s, $b, (string)($sc['smtp_name'] ?? '') ?: $sName, $heroImg);
-        return [$qOk, $qOk ? 'queued' : ($qCode === 'badto' ? 'badto' : 'fail'), $to];
+    if ($viaSmtp || $viaServer) {
+        [$qOk, $qCode] = vestra_seller_outbox_add($uid, '', $to, '[TEST] '.$s, $b, $viaServer ? $sName.' via VESTRA' : ((string)($sc['smtp_name'] ?? '') ?: $sName), $heroImg, '',
+                                                  $viaServer ? 'server' : 'smtp', $viaServer ? vestra_seller_reply_to($sc, $acct) : '');
+        return [$qOk, $qOk ? ($viaServer ? 'server' : 'queued') : ($qCode === 'badto' ? 'badto' : 'fail'), $to];
     }
     $ok = (bool)$send($to, '[TEST] '.$s, $b, '', $sName, $sc, $heroImg);
     if ($ok) {

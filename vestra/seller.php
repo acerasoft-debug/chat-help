@@ -622,7 +622,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
     $cid=$sact==='seller_camp_test'?(string)($_POST['cid']??''):null;
     [$tOk,$tCode,$tTo]=vestra_seller_send_test($suid,$sName,trim((string)($_POST['test_to']??'')),$cid);
     if($sact==='seller_camp_test'){
-      $tMsgs=['own'=>'Test sent to %s — check your inbox.','queued'=>'Test queued to %s — it leaves from your own mail server within about 10 minutes. Check your inbox then.','nosetup'=>'Your sending is not set up yet — use “Open test in Gmail” instead.',
+      $tMsgs=['own'=>'Test sent to %s — check your inbox.','queued'=>'Test queued to %s — it leaves from your own mail server within about 10 minutes. Check your inbox then.','server'=>'Test queued to %s — the VESTRA mail server sends it within about 10 minutes. Check your inbox then.','nosetup'=>'Your sending is not set up yet — use “Open test in Gmail” instead.',
         'badto'=>'Please enter a valid email address.','fail'=>'The test could not be sent. Please check your sending setup above.'];
       $_SESSION['seller_ai_flash']=[$tOk,sprintf(t($tMsgs[$tCode]??$tMsgs['fail']),$tTo)];
       header('Location: /seller?tab=find#aicamp'); exit;
@@ -675,8 +675,10 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
     $sc=vestra_seller_mail($suid);
     /* Brevo anahtarı varsa anında Brevo'dan; yoksa satıcının KENDİ posta sunucusu (SMTP) kuyruğu —
        inc/seller_outbox.php, 10 dakika içinde kendi adresinden gider (10 Eki 2026). */
-    $viaSmtp=!vestra_seller_can_send($sc) && vestra_seller_smtp_ready($sc);
-    if(!vestra_seller_can_send($sc) && !$viaSmtp){ echo json_encode(['ok'=>false,'error'=>'nosender']); exit; }
+    /* Yol (10 Eki 2026, operatör: "herkes kendi e-mailinden server'dan göndersin"): Brevo anahtarı → anında;
+       kendi SMTP'si → GitHub kuyruğu; hiçbiri yoksa VESTRA sunucusu — görünen ad satıcı, Reply-To satıcının adresi. */
+    $route=vestra_seller_route($sc,(string)($sme['email']??'')); $viaSmtp=$route==='smtp'; $viaServer=$route==='server';
+    if($route===''){ echo json_encode(['ok'=>false,'error'=>'nosender']); exit; }
     require_once __DIR__.'/inc/ai_campaign.php';
     /* The seller's active Claude campaign (if any) replaces the standard invite. */
     $aiActive=vestra_ai_camp_active($suid);
@@ -689,9 +691,10 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
       if(!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL)){ $res['error']='noemail'; break; }
       $pair=(($_POST['ai']??'')==='1')?vestra_ai_personalize($l,$tpl,$sName,(string)($sc['ai_key']??'')):null;
       [$subject,$body]=$pair!==null?$pair:vestra_lead_render_email($l,$tpl);
-      if($viaSmtp){
-        [$qOk,$qCode]=vestra_seller_outbox_add($suid,(string)$l['id'],(string)$l['email'],$subject,$body,(string)($sc['smtp_name']??'')?:$sName,$heroImg,
-          ($l['unsub_token']??'')!==''?'https://vestrasales.com/lead-unsubscribe?token='.rawurlencode((string)$l['unsub_token']):'');
+      if($viaSmtp||$viaServer){
+        [$qOk,$qCode]=vestra_seller_outbox_add($suid,(string)$l['id'],(string)$l['email'],$subject,$body,$viaServer?$sName.' via VESTRA':((string)($sc['smtp_name']??'')?:$sName),$heroImg,
+          ($l['unsub_token']??'')!==''?'https://vestrasales.com/lead-unsubscribe?token='.rawurlencode((string)$l['unsub_token']):'',
+          $viaServer?'server':'smtp',$viaServer?vestra_seller_reply_to($sc,(string)($sme['email']??'')):'');
         $res['ok']=$qOk||$qCode==='dup'; $res['queued']=true; if(!$res['ok']) $res['error']=$qCode;
         break;
       }
@@ -1371,8 +1374,10 @@ if($tab==='overview'){
   require_once __DIR__.'/inc/notify.php'; require_once __DIR__.'/inc/leads.php';
   $me=$AUTH_USER ?? auth_user();
   require_once __DIR__.'/inc/seller_outbox.php';
-  $myMail=vestra_seller_mail($uid); $smtpReady=vestra_seller_smtp_ready($myMail); $mailReady=vestra_seller_can_send($myMail) || $smtpReady;
-  $obSt=$smtpReady?vestra_seller_outbox_status($uid):null;
+  $myMail=vestra_seller_mail($uid); $smtpReady=vestra_seller_smtp_ready($myMail);
+  $myRoute=vestra_seller_route($myMail,(string)($me['email']??'')); $mailReady=$myRoute!=='';
+  $myReplyTo=vestra_seller_reply_to($myMail,(string)($me['email']??''));
+  $obSt=in_array($myRoute,['smtp','server'],true)?vestra_seller_outbox_status($uid):null;
   $myLeads=array_reverse(vestra_leads_by_owner($uid));
   $fmsg=$_GET['msg']??'';
   $fmsgs=['smtp_saved'=>'✓ Your sending email & keys are saved — send a test to confirm.','test_ok'=>'✓ Test sent — check your inbox.','test_fail'=>'Test failed — check your SMTP host / username / password.','lead_added'=>'✓ Customer added.','lead_import'=>'✓ Customers imported.','found_ok'=>'✓ Real email found and added.','found_none'=>'No email found on that website — add it manually.'];
@@ -1386,6 +1391,7 @@ if($tab==='overview'){
     'test_nosetup'=>t('Your sending is not set up yet — use “Open test in Gmail” instead.'),
     'test_badto'=>t('Please enter a valid email address.'),
     'test_queued'=>sprintf(t('Test queued to %s — it leaves from your own mail server within about 10 minutes. Check your inbox then.'),$fTo),
+    'test_server'=>sprintf(t('Test queued to %s — the VESTRA mail server sends it within about 10 minutes. Check your inbox then.'),$fTo),
     'test_fail'=>t('The test could not be sent. Please check your sending setup above.'),
     'brevo_format'=>t('Saved, but this does not look like a Brevo API key (it starts with xkeysib-). Please copy it again.'),
     'brevo_invalid'=>t('Saved, but Brevo did not accept this key. Please create a new key and save it again.'),
@@ -1422,7 +1428,15 @@ if($tab==='overview'){
   ?>
   <div id="sendsetup" style="<?= $card ?>;border-color:<?= $mailReady?'#b9e3c9':'var(--line)' ?>">
     <h3 style="margin:0 0 4px;font-size:15px"><?= $tk('📤 Your sending email') ?> <?= $mailReady?'<span style="color:#1f9d63;font-size:12px">● '.$tk('Ready').'</span>':'<span style="color:#a9781a;font-size:12px">● '.$tk('Not set up').'</span>' ?></h3>
-    <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px"><?= $tk('Two free ways to email from your own address: one by one from your own Gmail or Outlook (no setup — use the buttons in your customer list below), or many at once with Brevo (300 emails a day, set up once here). Your customers see your address and reply to you.') ?></p>
+    <?php if($myRoute==='server'): ?>
+    <div style="background:#eef7f1;border:1px solid #b9e3c9;border-radius:12px;padding:11px 14px;margin:0 0 12px;font-size:12.5px;line-height:1.55">
+      <b>✓ <?= $tk('Ready — no setup needed.') ?></b> <?= sprintf($tk('Your emails are sent by the VESTRA mail server. Customers see “%s via VESTRA” as the sender, and when they reply, the reply goes straight to %s. Up to 100 emails a day; each one leaves within about 10 minutes.'),htmlspecialchars($me['company']?:($me['name']??'')),'<b>'.htmlspecialchars($myReplyTo).'</b>') ?>
+      <?php if($obSt): ?><div style="margin-top:6px">📤 <?= sprintf($tk('%d waiting · %d sent today · %d failed'),$obSt['queued'],$obSt['sent_today'],$obSt['failed_today']) ?></div><?php endif; ?>
+    </div>
+    <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px"><?= $tk('Want the emails to come from your own address instead? Add your Brevo key or your own mail server (SMTP) below — both optional.') ?></p>
+    <?php else: ?>
+    <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px"><?= $tk('Your emails go out from your own address. Without any setup they are sent by the VESTRA mail server in your name; with a Brevo key or your own mail server (SMTP) they leave directly from your address.') ?></p>
+    <?php endif; ?>
     <div style="background:var(--bg2,#faf8f4);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px">
       <?= $stepRow(!$hasKey?'todo':(($bc&&!$bc['ok'])?'bad':'ok'),'1','Brevo key',
           !$hasKey?$tk('Not added yet — see the 4 steps below.'):(($bc&&!$bc['ok'])?$tk('Brevo did not accept this key. Please create a new key and save it again.')
