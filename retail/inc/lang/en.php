@@ -605,4 +605,6 @@ return [
     'order_lookup_sub' => 'Enter your order number and the e-mail address you ordered with.',
     'hero_stat_pieces' => 'pieces in stock',
     'checkout_test_mode' => 'Stripe test mode: no real money is moved.',
+    'colour' => 'Colour',
+    'choose_colour_err' => 'Please choose a colour.',
 ];

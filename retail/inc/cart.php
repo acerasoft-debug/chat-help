@@ -14,9 +14,25 @@ require_once __DIR__ . '/catalog.php';
 require_once __DIR__ . '/vault.php';
 require_once __DIR__ . '/accounts.php';
 
-function vr_cart_key(string $pid, string $size, string $lot = ''): string
+function vr_cart_key(string $pid, string $size, string $lot = '', string $colour = ''): string
 {
-    return $pid . '|' . strtoupper($size) . '|' . $lot;
+    // Renk yalnızca seçilebilir renklerde anahtara giriyor: aynı ürünün iki
+    // rengi sepette iki ayrı satır. Eski (renksiz) anahtarlar aynen geçerli.
+    return $pid . '|' . strtoupper($size) . '|' . $lot . ($colour !== '' ? '|' . mb_strtolower($colour) : '');
+}
+
+/**
+ * Sepete girecek renk. Ürünün tek rengi varsa o; birden çok rengi varsa
+ * müşterinin seçtiği ve listede olan; renk bilinmiyorsa boş.
+ * Dönüş: [renk, hata_anahtari|null]
+ */
+function vr_cart_colour(array $p, string $chosen): array
+{
+    $cols = vr_product_colours($p);
+    if (!$cols) return ['', null];
+    if (count($cols) === 1) return [$cols[0], null];
+    foreach ($cols as $c) if (strcasecmp($c, trim($chosen)) === 0) return [$c, null];
+    return ['', 'choose_colour_err'];
 }
 
 function vr_cart_raw(): array
@@ -44,10 +60,13 @@ function vr_cart_count(): int
  * Sepete ekle. Dönüş: [ok, mesaj_anahtari]
  * $lot boş değilse Vault losu — eklerken rezerve edilir ve fiyat sabitlenir.
  */
-function vr_cart_add(string $pid, string $size, int $qty = 1, string $lot = ''): array
+function vr_cart_add(string $pid, string $size, int $qty = 1, string $lot = '', string $colour = ''): array
 {
     $p = vr_product($pid);
     if ($p === null) return [false, 'cart_gone'];
+
+    [$colour, $cerr] = vr_cart_colour($p, $colour);
+    if ($cerr !== null) return [false, $cerr];
 
     /* Beden dökümü doğrulanmamış satır sepete GİRMEZ.
        Ürün sayfasında beden seçici zaten gösterilmiyor, ama tek savunma orası
@@ -75,13 +94,13 @@ function vr_cart_add(string $pid, string $size, int $qty = 1, string $lot = ''):
     }
 
     $c   = vr_cart_raw();
-    $key = vr_cart_key($pid, $size, $lot);
+    $key = vr_cart_key($pid, $size, $lot, count(vr_product_colours($p)) > 1 ? $colour : '');
 
     if (isset($c[$key])) {
         $newQty = (int)$c[$key]['qty'] + $qty;
         $c[$key]['qty'] = $lot !== '' ? 1 : min($newQty, max(1, vr_size_qty($p, $size)));
     } else {
-        $c[$key] = ['pid' => $pid, 'size' => $size, 'qty' => $qty, 'lot' => $lot, 'added_at' => time()];
+        $c[$key] = ['pid' => $pid, 'size' => $size, 'qty' => $qty, 'lot' => $lot, 'colour' => $colour, 'added_at' => time()];
     }
 
     vr_cart_save($c);
@@ -182,6 +201,8 @@ function vr_cart_lines(): array
             'lot'         => $lot,
             'vault'       => $lot !== '',
             'size'        => $size,
+            // Kayıtlı renk; eski satırlarda yoksa ürünün tek rengi.
+            'colour'      => (string)($it['colour'] ?? '') !== '' ? (string)$it['colour'] : (count(vr_product_colours($p)) === 1 ? vr_product_colours($p)[0] : ''),
             'qty'         => $qty,
             'unit_cents'  => (int)$unit,
             'total_cents' => (int)$unit * $qty,

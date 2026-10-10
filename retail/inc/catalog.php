@@ -22,6 +22,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/boot.php';
+require_once __DIR__ . '/colours.php';
 
 const VR_SELLABLE_STATUS = ['', 'approved', 'live', 'active', 'published'];
 const VR_STOCK_FILE      = 'retail-stock.json';
@@ -156,6 +157,37 @@ function vr_tier_price(string $brand, string $cat): ?int
 }
 
 /** Ham katalog satırını tek biçimli perakende ürününe çevir. */
+/** Marka adını karşılaştırma için sadeleştir: "LACOSTE" = "Lacoste", "Gallery Dept" = "Gallery Dept.". */
+function vr_brand_key(string $b): string
+{
+    $b = mb_strtolower(trim($b));
+    $b = strtr($b, ['è' => 'e', 'é' => 'e', 'ö' => 'o', 'ü' => 'u', '&' => 'and', '+' => 'and']);
+    return preg_replace('/[^a-z0-9]+/', '', $b) ?? '';
+}
+
+/**
+ * Vestra satırı perakende vitrine uygun mu: premium ev + iç çamaşırı değil.
+ * Kurallar config'de (premium_brands, excluded_categories, excluded_name_regex).
+ */
+function vr_is_premium_row(array $p): bool
+{
+    static $allow = null;
+    if ($allow === null) {
+        $allow = [];
+        foreach ((array)vr_config('premium_brands', []) as $b) $allow[vr_brand_key((string)$b)] = true;
+    }
+    if ($allow && !isset($allow[vr_brand_key((string)($p['brand'] ?? ''))])) return false;
+    if (in_array((string)($p['id'] ?? ''), (array)vr_config('excluded_ids', []), true)) return false;
+
+    $cat = mb_strtolower(trim((string)($p['cat'] ?? '')));
+    foreach ((array)vr_config('excluded_categories', []) as $c) {
+        if ($cat === mb_strtolower((string)$c)) return false;
+    }
+    $rx = (string)vr_config('excluded_name_regex', '');
+    if ($rx !== '' && @preg_match($rx, (string)($p['name'] ?? '')) === 1) return false;
+    return true;
+}
+
 function vr_normalize_product(array $p, string $source): ?array
 {
     $id = trim((string)($p['id'] ?? ''));
@@ -179,6 +211,10 @@ function vr_normalize_product(array $p, string $source): ?array
         if (($cf[$id]['cat'] ?? '') !== '')  $p['cat']  = (string)$cf[$id]['cat'];
         if (($cf[$id]['name'] ?? '') !== '') $p['name'] = (string)$cf[$id]['name'];
     }
+
+    // Vestra kataloğundan yalnızca premium evler; iç çamaşırı/gecelik hiç.
+    // Düzeltilmiş kategori ve adla karar veriliyor (yukarıdaki adım).
+    if ($source === 'b2b' && !vr_is_premium_row($p)) return null;
 
     // ---- fiyat
     // Sabit outlet fiyatı her şeyin önünde: eşleşen kural varsa çarpan da
@@ -312,6 +348,8 @@ function vr_normalize_product(array $p, string $source): ?array
         'audience'    => (string)(vr_product_review()[$id]['audience'] ?? ''),
         'sizes_unconfirmed' => !empty(vr_product_review()[$id]['sizes_unconfirmed']),
         'slug'        => vr_slug(($p['brand'] ?? '') . '-' . $name),
+        // Vestra satırındaki renk listesi (["White"] ya da "Black, Navy").
+        'colours'     => vr_colour_list($p['colors'] ?? ($p['colours'] ?? ($p['color'] ?? []))),
     ];
 }
 
@@ -1211,4 +1249,63 @@ function vr_photo_grid_index(): array
         $ix  = is_array($raw) ? $raw : [];
     }
     return $ix;
+}
+
+// ---------------------------------------------------------------- renkler
+/** "Black, Navy" / ["Black","Navy"] → ['Black','Navy'] (tekrarsız, baş harf büyük). */
+function vr_colour_list(mixed $v): array
+{
+    if (is_string($v)) $v = preg_split('/\s*[,;|\/]\s*/', $v) ?: [];
+    if (!is_array($v)) return [];
+    $out = [];
+    foreach ($v as $c) {
+        if (is_array($c)) $c = $c['name'] ?? ($c['label'] ?? '');
+        $c = trim((string)$c);
+        if ($c === '' || mb_strlen($c) > 32 || preg_match('/^\d+$/', $c)) continue;
+        $c = mb_convert_case($c, MB_CASE_TITLE, 'UTF-8');
+        $out[mb_strtolower($c)] = $c;
+    }
+    return array_values($out);
+}
+
+/**
+ * Gözle doğrulanmış renkler: data/product-colours.json (id → {"colours": [...]}).
+ * tools/detect-colours.php fotoğraftan ölçüyor, kolaja bakılıp düzeltilen
+ * sonuç buraya yazılıyor. Vitrin ölçümün kendisini değil, bu dosyayı okur.
+ */
+function vr_reviewed_colours(): array
+{
+    static $m = null;
+    if ($m !== null) return $m;
+    $d = vr_store_read('product-colours.json', []);
+    return $m = is_array($d) ? $d : [];
+}
+
+/** Addaki renk: "… — Navy" ya da "…, Black". Bilinen bir renk adı değilse boş. */
+function vr_name_colour(array $p): string
+{
+    $c = vr_variant_colour($p);
+    if ($c === '' && preg_match('/,\s*([A-Za-z][A-Za-z \/-]{2,24})\s*(?:—.*)?$/u', (string)($p['name'] ?? ''), $m)) $c = trim($m[1]);
+    if ($c === '') return '';
+    // Ad ekinin gerçekten renk olduğunu doğrula: "— 3212" ya da "— S74LB0764" gibi
+    // model kodları renk değil.
+    $words = 'black|white|navy|blue|grey|gray|beige|cream|ivory|red|burgundy|bordeaux|green|khaki|olive|brown|camel|pink|yellow|orange|purple|lilac|silver|gold|ecru|sand|stone|charcoal|anthracite|graphite|teal|turquoise|mint|coral|fuchsia|multicolou?r|indigo|denim|light|dark|off';
+    return preg_match('/\b(' . $words . ')\b/i', $c) ? $c : '';
+}
+
+/**
+ * Ürünün renkleri — kaynak sırası: gözle doğrulanmış dosya, Vestra'nın
+ * colors alanı, ürün adı. Boş dizi = renk bilinmiyor (sayfada gösterilmez).
+ */
+function vr_product_colours(array $p, bool $withReviewed = true): array
+{
+    $id = (string)($p['id'] ?? '');
+    if ($withReviewed && isset(vr_reviewed_colours()[$id]['colours'])) {
+        $r = vr_colour_list(vr_reviewed_colours()[$id]['colours']);
+        if ($r) return $r;
+    }
+    if (!empty($p['colours'])) return vr_colour_list($p['colours']);
+    $n = vr_name_colour($p);
+    // Dizi olarak veriliyor ki "Navy/Red" gibi iki tonlu tek renk bölünmesin.
+    return $n !== '' ? vr_colour_list([$n]) : [];
 }

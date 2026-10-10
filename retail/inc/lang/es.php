@@ -588,4 +588,6 @@ return [
     'order_lookup_sub' => 'Introduzca su número de pedido y el correo electrónico con el que realizó el pedido.',
     'hero_stat_pieces' => 'piezas en stock',
     'checkout_test_mode' => 'Modo de prueba de Stripe: no se mueve dinero real.',
+    'colour' => 'Color',
+    'choose_colour_err' => 'Elija un color, por favor.',
 ];

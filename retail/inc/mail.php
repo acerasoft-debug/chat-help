@@ -10,6 +10,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/boot.php';
+require_once __DIR__ . '/colours.php';
 
 /**
  * Tek gönderim noktası. Dönüş: [ok, hata].
@@ -150,6 +151,7 @@ function vr_mail_lines_table(array $order): string
     $rows = '';
     foreach ((array)$order['lines'] as $ln) {
         $sz = ($ln['size'] ?? 'ONE') !== 'ONE' ? ' · ' . t('size') . ' ' . $ln['size'] : '';
+        if (($ln['colour'] ?? '') !== '') $sz = ' · ' . t('colour') . ' ' . vr_colour_label((string)$ln['colour']) . $sz;
         $rows .= '<tr>'
             . '<td style="padding:9px 0;border-bottom:1px solid #eee8dc">'
             . '<strong>' . h($ln['brand']) . '</strong> ' . h($ln['name'])
@@ -236,6 +238,7 @@ function vr_mail_order_sellers(array $order): void
         $rows = '';
         foreach ($mine as $ln) {
             $sz = ($ln['size'] ?? 'ONE') !== 'ONE' ? ' · ' . t('size') . ' ' . $ln['size'] : '';
+            if (($ln['colour'] ?? '') !== '') $sz = ' · ' . t('colour') . ' ' . vr_colour_label((string)$ln['colour']) . $sz;
             $rows .= '<tr><td style="padding:8px 0;border-bottom:1px solid #eee8dc">'
                 . '<strong>' . h($ln['brand']) . '</strong> ' . h($ln['name'])
                 . '<div style="font-size:12px;color:#8a8578">' . h(($ln['sku'] ?? '') . $sz) . '</div></td>'

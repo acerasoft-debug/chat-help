@@ -33,7 +33,9 @@ jobs:
           script: |
             # Perakende katmanının kurulu olduğu yeri bul: alt klasör mü, kök mü?
             DIR=""
-            for c in ~/public_html/shop ~/public_html/retail ~/public_html; do
+            # Mağaza kendi kökünde (~/maxsales_de) duruyor; eski alt klasör
+            # yerleri geriye dönük uyumluluk için listede.
+            for c in ~/maxsales_de ~/public_html/shop ~/public_html/retail ~/public_html; do
               if [ -f "$c/tools/vault-alerts.php" ]; then DIR="$c"; break; fi
             done
             if [ -z "$DIR" ]; then
@@ -54,3 +56,8 @@ jobs:
             echo
             echo "== kalan alarmlar =="
             php tools/vault-alerts.php list || true
+
+            # Yeni katalog ürünlerinin fotoğrafları en geç bir saatte vitrine gelsin.
+            echo
+            echo "== urun fotograflari =="
+            php tools/sync-vestra-photos.php || true

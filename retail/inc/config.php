@@ -344,6 +344,36 @@ function vr_config(?string $key = null, mixed $default = null): mixed
             'per_page'           => 24,
             'demo_catalog'       => true,  // listings.json yoksa vitrin boş kalmasın
 
+            /**
+             * Vestra kataloğundan YALNIZCA premium evler vitrine çıkar.
+             * Vestra toptan kataloğu iç çamaşırı, gecelik, çocuk ayakkabısı
+             * gibi kalemler de taşıyor; perakende vitrin bunları göstermez.
+             * Liste büyük/küçük harf ve noktalama duyarsız eşleşir
+             * ("LACOSTE" = "Lacoste"). Yalnızca Vestra'dan gelen satırlara
+             * uygulanır — satıcıların kendi ilanları moderasyondan geçiyor.
+             * Bir evi eklemek/çıkarmak için bu satır yeter.
+             */
+            'premium_brands'     => [
+                'Dolce & Gabbana', 'Gucci', 'Prada', 'Versace', 'Valentino', 'Fendi', 'Balenciaga',
+                'Givenchy', 'Balmain', 'Burberry', 'Saint Laurent', 'Bottega Veneta', 'Loewe',
+                'Celine', 'Dior', 'Louis Vuitton', 'Hermès', 'Alexander McQueen', 'Moncler',
+                'Off-White', 'Palm Angels', 'Amiri', 'Casablanca', 'Jacquemus', 'Gallery Dept.',
+                'DSQUARED2', 'Moschino', 'Kenzo', 'Marcelo Burlon', 'GCDS', 'Stone Island',
+                'Tom Ford', 'Zegna', 'Brunello Cucinelli', 'Loro Piana', 'Philipp Plein',
+                'Ralph Lauren', 'Lacoste', 'Fred Perry', 'Hugo Boss', 'Emporio Armani', 'Giorgio Armani',
+            ],
+            /**
+             * Premium evden gelse de vitrine çıkmayan türler: iç çamaşırı,
+             * çorap, gecelik, ev giyimi. Kategori adı ya da ürün adı yeter.
+             */
+            'excluded_categories' => ['Underwear', 'Bras', 'Lingerie', 'Shapewear', 'Socks & Hosiery',
+                                      'Sleepwear', 'Loungewear', 'Nightwear'],
+            // "Bademode" olarak girilmiş ama aslında iç çamaşırı olan satırlar
+            // (D&G jarse boxer/slip kodları M…J, Balenciaga logo slip) — gözle
+            // seçildi, renk kolajlarında görüldü.
+            'excluded_ids'       => ['dgn-m4d90jfueb0', 'dgn-m4e19jfueb0', 'dgn-m4e67j', 'dgn-m9c03j', 'blc-4a8b8'],
+            'excluded_name_regex' => '/(?<![\w-])(boxers?|boxer briefs?|briefs?|trunks?|bras?|bralette|thongs?|slip|underwear|ribbed tank tops?|undershirts?|socks?|pyjamas?|pajamas?|nightdress|nightgown|lingerie|camisole)(?![\w-])/iu',
+
             // ---- e-posta
             'mail_from'          => 'support@vestrasales.com',
             'mail_from_name'     => '',   // boş = marka adı (aşağıda vr_mail_settings)

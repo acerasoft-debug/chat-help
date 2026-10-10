@@ -588,4 +588,6 @@ return [
     'order_lookup_sub' => 'Sifariş nömrənizi və sifariş verdiyiniz e-poçt ünvanını daxil edin.',
     'hero_stat_pieces' => 'məhsul anbarda',
     'checkout_test_mode' => 'Stripe test rejimi: real pul köçürülmür.',
+    'colour' => 'Rəng',
+    'choose_colour_err' => 'Zəhmət olmasa rəng seçin.',
 ];

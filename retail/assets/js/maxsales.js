@@ -132,6 +132,17 @@
   document.addEventListener('submit', function (e) {
     var form = e.target.closest('[data-needs-size]');
     if (!form) return;
+    /* Birden çok rengi olan üründe renk de seçilmeli — sunucu da reddediyor
+       (vr_cart_colour), burada yalnızca sayfa yenilenmeden söylüyoruz. */
+    if (form.querySelector('input[name="colour"][type="radio"]') &&
+        !form.querySelector('input[name="colour"]:checked')) {
+      e.preventDefault();
+      var cbox = form.querySelector('[data-colour-error]');
+      if (cbox) { cbox.hidden = false; cbox.setAttribute('role', 'alert'); }
+      var cfirst = form.querySelector('.cchips input');
+      if (cfirst) cfirst.focus();
+      return;
+    }
     /* Tek bedenli üründe beden GİZLİ input olarak geliyor (value="ONE") ve
        gizli input asla :checked olmaz. Bu yüzden aşağıdaki kontrol tek bedenli
        her üründe formu blokluyordu — JS açıkken çanta, kemer ve tek parça

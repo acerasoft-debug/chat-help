@@ -171,6 +171,7 @@ vr_layout_start(['title' => $order['number'], 'robots' => 'noindex,nofollow']);
               <p class="citem__brand"><?= h((string)$ln['brand']) ?></p>
               <p class="citem__name"><?= h((string)$ln['name']) ?></p>
               <p class="citem__meta">
+                <?php if (($ln['colour'] ?? '') !== ''): ?><?= te('colour') ?> <?= h(vr_colour_label((string)$ln['colour'])) ?> · <?php endif; ?>
                 <?php if (($ln['size'] ?? 'ONE') !== 'ONE'): ?><?= te('size') ?> <?= h((string)$ln['size']) ?> · <?php endif; ?>
                 <?= te('sold_by') ?> <?= h((string)$ln['seller_name']) ?>
                 <?php if (!empty($ln['vault'])): ?><span class="pill pill--brass" style="margin-left:6px">VAULT</span><?php endif; ?>

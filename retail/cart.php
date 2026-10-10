@@ -57,14 +57,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $size = (string)($_POST['size'] ?? '');
             $lot  = (string)($_POST['lot'] ?? '');
             $qty  = (int)($_POST['qty'] ?? 1);
+            $col  = (string)($_POST['colour'] ?? '');
 
             if ($size === '' && $lot === '') {
                 // JS kapalıysa beden hatası sunucuda yakalanır.
                 vr_redirect('product.php', ['id' => $pid, 'nosize' => 1]);
             }
 
-            [$ok, $msg] = vr_cart_add($pid, $size, $qty, $lot);
+            [$ok, $msg] = vr_cart_add($pid, $size, $qty, $lot, $col);
             vr_flash(t($msg), $ok ? 'ok' : 'err');
+            // Renk seçilmeden gelmişse ürün sayfasına dön: seçim orada.
+            if (!$ok && $msg === 'choose_colour_err') vr_redirect('product.php', ['id' => $pid]);
 
             // Sepete eklendikten sonra kullanıcıyı sepette bırakıyoruz: çok
             // adımlı akışta "eklendi mi?" belirsizliği en sık kaybedilen yer.
@@ -140,6 +143,7 @@ vr_layout_start(['title' => t('cart_title'), 'robots' => 'noindex,nofollow']);
                 <p class="citem__brand"><?= h($ln['brand']) ?></p>
                 <p class="citem__name"><a href="<?= h($ln['url']) ?>"><?= h($ln['name']) ?></a></p>
                 <p class="citem__meta">
+                  <?php if (($ln['colour'] ?? '') !== ''): ?><?= te('colour') ?> <?= h(vr_colour_label((string)$ln['colour'])) ?> · <?php endif; ?>
                   <?php if ($ln['size'] !== 'ONE'): ?><?= te('size') ?> <?= h($ln['size']) ?> · <?php endif; ?>
                   <?php if ($ln['sku'] !== ''): ?><?= h($ln['sku']) ?> · <?php endif; ?>
                   <?= te('sold_by') ?> <?= h($ln['seller_name']) ?>

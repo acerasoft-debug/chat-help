@@ -154,7 +154,11 @@ vr_layout_start(['title' => t('checkout_title'), 'robots' => 'noindex,nofollow']
           <div class="srow">
             <span style="max-width:64%">
               <?= h($ln['brand']) ?> <?= h($ln['name']) ?>
-              <?php if ($ln['size'] !== 'ONE'): ?><br><small style="color:var(--muted)"><?= te('size') ?> <?= h($ln['size']) ?></small><?php endif; ?>
+              <?php
+              $meta = [];
+              if (($ln['colour'] ?? '') !== '') $meta[] = te('colour') . ' ' . h(vr_colour_label((string)$ln['colour']));
+              if ($ln['size'] !== 'ONE')        $meta[] = te('size') . ' ' . h($ln['size']);
+              if ($meta): ?><br><small style="color:var(--muted)"><?= implode(' · ', $meta) ?></small><?php endif; ?>
               <?php if ((int)$ln['qty'] > 1): ?><small style="color:var(--muted)"> × <?= (int)$ln['qty'] ?></small><?php endif; ?>
             </span>
             <span><?= h(vr_money((int)$ln['total_cents'])) ?></span>

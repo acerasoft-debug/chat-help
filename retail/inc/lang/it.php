@@ -588,4 +588,6 @@ return [
     'order_lookup_sub' => 'Inserisca il numero d’ordine e l’indirizzo e-mail usato per l’ordine.',
     'hero_stat_pieces' => 'pezzi disponibili',
     'checkout_test_mode' => 'Modalità test Stripe: non viene addebitato denaro reale.',
+    'colour' => 'Colore',
+    'choose_colour_err' => 'Scelga un colore.',
 ];

@@ -183,7 +183,8 @@ jobs:
           # ile tam olarak bu yaşandı.
           for f in retail-imported.json photo-quality.json photo-shape.json \
                    photo-exclude.json category-fix.json official-prices.json \
-                   product-review.json face-crops.json fx-rates.json hero-frames.json; do
+                   product-review.json face-crops.json fx-rates.json hero-frames.json \
+                   product-colours.json; do
             [ -f "retail/data/$f" ] || { echo "   $f — depoda yok, atlandı"; continue; }
             rsync -az -e "ssh $SSHOPT" "retail/data/$f" "${SRV}:${DATA}/$f"
             echo "   $f gönderildi"
@@ -357,6 +358,9 @@ jobs:
             chmod 750 "$DIR/../data"
 
             cd "$DIR"
+            echo "== Urun fotograflari (Vestra uploads -> magaza, ustune yazmadan) =="
+            php tools/sync-vestra-photos.php || true
+            echo
             echo "== Kurulum kontrolu =="
             # selftest FAIL donerse (ornegin Stripe anahtari yok) bunu gormek
             # istiyoruz ama deploy'u dusurmuyoruz -- kod zaten yuklendi.

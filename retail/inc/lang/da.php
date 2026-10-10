@@ -588,4 +588,6 @@ return [
     'order_lookup_sub' => 'Indtast dit ordrenummer og den e-mailadresse, du bestilte med.',
     'hero_stat_pieces' => 'styk på lager',
     'checkout_test_mode' => 'Stripe-testtilstand: der flyttes ingen rigtige penge.',
+    'colour' => 'Farve',
+    'choose_colour_err' => 'Vælg venligst en farve.',
 ];

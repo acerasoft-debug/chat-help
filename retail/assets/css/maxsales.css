@@ -1827,6 +1827,8 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
    fotoğrafın 180 px'lik hâli, tarayıcı için ek indirme değil. */
 .swatches{margin:0 0 18px}
 .swatches .panel__h{margin-bottom:10px}
+/* Şerit başlığı da diğer bölüm etiketleriyle aynı dilde: küçük, aralıklı büyük harf. */
+.swatches h2{font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-family:var(--sans);color:var(--muted)}
 .swatches__row{display:flex;flex-wrap:wrap;gap:9px}
 .swatch{
   display:block;width:62px;text-decoration:none;color:var(--muted);
@@ -1845,6 +1847,32 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .swatch.is-on .swatch__l{color:var(--ink)}
+
+/* Seçili rengin adı, şerit başlığının sağında — hangi karede olduğun yazıyla da belli. */
+.swatches__now{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink)}
+
+/* Renk noktası: kumaşın tonu, beyazda da görünsün diye kıl çizgili. */
+.cdot{
+  display:inline-block;flex:0 0 auto;width:14px;height:14px;border-radius:50%;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);vertical-align:-2px;
+}
+/* Tek renkli ürün: seçim yok, yalnızca bilgi — çip değil sakin bir satır. */
+.colourline{display:flex;align-items:center;gap:10px;margin:0 0 18px;font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+.colourline__k{color:var(--muted)}
+.colourline__v{color:var(--ink)}
+/* Aynı ürünün birden çok rengi: beden çipleriyle aynı dil, başta renk noktası. */
+.cchips{display:flex;flex-wrap:wrap;gap:8px}
+.cchip{
+  position:relative;display:inline-flex;align-items:center;gap:9px;
+  border:1px solid var(--bone-3);padding:10px 14px;cursor:pointer;border-radius:var(--r);
+  font-size:12px;letter-spacing:.08em;transition:border-color .2s;
+}
+.cchip input{position:absolute;opacity:0;inset:0;cursor:pointer;margin:0}
+.cchip:hover{border-color:var(--muted)}
+.cchip:has(input:checked){border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.cchip:has(input:focus-visible){outline:2px solid var(--brass);outline-offset:2px}
+.vault .cchip{border-color:rgba(255,255,255,.26);color:var(--bone)}
+.vault .cchip:has(input:checked){border-color:var(--bone);box-shadow:inset 0 0 0 1px var(--bone)}
 
 .card__sizes--col{color:var(--ink);opacity:.72}
 /* Fotoğrafı olmayan çeşit: boş bir kare değil, çapraz taralı bir yer tutucu.

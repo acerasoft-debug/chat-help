@@ -174,14 +174,19 @@ vr_layout_start([
              modelin tek karosu duruyor (bkz. vr_variant_index). Diğer renklere
              giden tek kapı burası — şerit olmazsa o satırlar erişilemez kalır. */
           $siblings = vr_variant_siblings($p);
+          $pCols    = vr_product_colours($p);
           if (count($siblings) > 1): ?>
             <div class="swatches">
-              <h2 class="panel__h"><span><?= te('select_colour', ['n' => count($siblings)]) ?></span></h2>
+              <h2 class="panel__h">
+                <span><?= te('select_colour', ['n' => count($siblings)]) ?></span>
+                <?php if ($pCols): ?><span class="swatches__now"><?= h(vr_colour_label($pCols[0])) ?></span><?php endif; ?>
+              </h2>
               <div class="swatches__row">
                 <?php foreach ($siblings as $sv):
                     $on  = $sv['id'] === $p['id'];
-                    $col = vr_variant_colour($sv);
-                    $lbl = $col !== '' ? $col : vr_card_name($sv);
+                    $svCols = vr_product_colours($sv);
+                    $col = $svCols ? $svCols[0] : vr_variant_colour($sv);
+                    $lbl = $col !== '' ? vr_colour_label($col) : vr_card_name($sv);
                     /* Fotoğrafı olmayan çeşit — beslemede bir satırın kareleri
                        hiç gelmemiş. Üretilmiş grafik burada koyu bir kare olarak
                        çıkıyor ve "Light Blue" yazan yerde haki bir kutu duruyor:
@@ -202,6 +207,12 @@ vr_layout_start([
                 <?php endforeach; ?>
               </div>
             </div>
+          <?php elseif (count($pCols) === 1): ?>
+            <p class="colourline">
+              <span class="cdot" style="background:<?= h(vr_colour_css($pCols[0])) ?>" aria-hidden="true"></span>
+              <span class="colourline__k"><?= te('colour') ?></span>
+              <span class="colourline__v"><?= h(vr_colour_label($pCols[0])) ?></span>
+            </p>
           <?php endif; ?>
 
           <?php if (!empty($p['sizes_unconfirmed'])): ?>
@@ -224,6 +235,22 @@ vr_layout_start([
               <?= vr_csrf_field() ?>
               <input type="hidden" name="action" value="add">
               <input type="hidden" name="pid" value="<?= h($p['id']) ?>">
+
+              <?php if (count($siblings) <= 1 && count($pCols) > 1): ?>
+                <div class="panel" style="border:0;padding-top:0;margin-bottom:20px">
+                  <h2 class="panel__h"><span><?= te('select_colour', ['n' => count($pCols)]) ?></span></h2>
+                  <div class="cchips">
+                    <?php foreach ($pCols as $c): ?>
+                      <label class="cchip">
+                        <input type="radio" name="colour" value="<?= h($c) ?>">
+                        <span class="cdot" style="background:<?= h(vr_colour_css($c)) ?>" aria-hidden="true"></span>
+                        <span><?= h(vr_colour_label($c)) ?></span>
+                      </label>
+                    <?php endforeach; ?>
+                  </div>
+                  <p class="field__err" data-colour-error hidden><?= te('choose_colour_err') ?></p>
+                </div>
+              <?php endif; ?>
 
               <?php
               $single = count($p['sizes']) === 1 && ($p['sizes'][0]['label'] ?? '') === 'ONE';

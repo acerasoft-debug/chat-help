@@ -588,4 +588,6 @@ return [
     'order_lookup_sub' => 'Ange ditt ordernummer och den e-postadress du beställde med.',
     'hero_stat_pieces' => 'plagg i lager',
     'checkout_test_mode' => 'Stripe testläge: inga riktiga pengar dras.',
+    'colour' => 'Färg',
+    'choose_colour_err' => 'Välj en färg.',
 ];

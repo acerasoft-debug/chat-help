@@ -63,6 +63,7 @@ vr_admin_head('Bestellung ' . (string)$o['number']);
       <?php foreach ((array)$o['lines'] as $l): ?>
         <tr>
           <td><?= h((string)($l['name'] ?? '')) ?>
+            <?php if (($l['colour'] ?? '') !== ''): ?><span style="color:var(--muted)"> · <?= h((string)$l['colour']) ?></span><?php endif; ?>
             <?php if (($l['size'] ?? '') !== ''): ?><span style="color:var(--muted)"> · <?= h((string)$l['size']) ?></span><?php endif; ?>
             <?php if (($l['seller_type'] ?? '') === 'private'): ?>
               <span class="pill" style="margin-left:6px">Privatverkauf</span><?php endif; ?>

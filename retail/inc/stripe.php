@@ -25,6 +25,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/boot.php';
+require_once __DIR__ . '/colours.php';
 
 const VR_STRIPE_API      = 'https://api.stripe.com/v1/';
 const VR_STRIPE_VERSION  = '2024-06-20';   // sabit sürüm: Stripe güncellemesi akışı bozmasın
@@ -187,6 +188,7 @@ function vr_stripe_create_checkout(array $order): array
     foreach ($order['lines'] as $ln) {
         $name = mb_substr(trim(($ln['brand'] ?? '') . ' ' . ($ln['name'] ?? '')), 0, 250);
         $descParts = [];
+        if (!empty($ln['colour'])) $descParts[] = t('colour') . ' ' . vr_colour_label((string)$ln['colour']);
         if (!empty($ln['size']) && $ln['size'] !== 'ONE') $descParts[] = t('size') . ' ' . $ln['size'];
         if (!empty($ln['sku']))  $descParts[] = (string)$ln['sku'];
         if (!empty($ln['vault'])) $descParts[] = 'VAULT';

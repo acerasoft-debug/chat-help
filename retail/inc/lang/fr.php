@@ -592,4 +592,6 @@ return [
     'order_lookup_sub' => 'Indiquez votre numéro de commande et l’adresse e-mail utilisée pour la commande.',
     'hero_stat_pieces' => 'pièces en stock',
     'checkout_test_mode' => 'Mode test Stripe : aucun argent réel n’est débité.',
+    'colour' => 'Couleur',
+    'choose_colour_err' => 'Veuillez choisir une couleur.',
 ];
