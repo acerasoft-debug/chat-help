@@ -1,0 +1,42 @@
+name: (Salt-okunur) Barındırma paketi — alan adı sınırları
+# 10 Eki 2026 (operatör: "cPanel Web Hosting Deluxe paketine kaç domain ekleyebilirim? Domain ekleme yeri yok").
+# SALT-OKUNUR: cPanel'in kendi sayaçlarını (ek alan adı, takma alan adı, alt alan adı — kullanılan / en çok)
+# ve hesaba bağlı alan adlarını basar. Hiçbir şey eklemez, değiştirmez.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Oku
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          script: |
+            set -u
+            command -v uapi >/dev/null 2>&1 || { echo "uapi yok"; exit 0; }
+            echo "== Alan adı sayaçları (kullanılan / en çok) =="
+            uapi --output=json StatsBar get_stats display='addondomains|parkeddomains|aliases|subdomains|ftpaccounts|sqldatabases|emailaccounts|bandwidthusage|diskusage' 2>/dev/null | php -r '
+              $d = json_decode(stream_get_contents(STDIN), true);
+              foreach (($d["result"]["data"] ?? []) as $r) echo "  ".str_pad((string)($r["name"] ?? "?"), 16)." ".($r["count"] ?? "?")." / ".($r["max"] ?? "?").(isset($r["units"]) ? " ".$r["units"] : "")."\n";'
+            echo
+            echo "== Hesaba bağlı alan adları =="
+            uapi --output=json DomainInfo list_domains 2>/dev/null | php -r '
+              $d = json_decode(stream_get_contents(STDIN), true)["result"]["data"] ?? [];
+              echo "  ana alan adı: ".($d["main_domain"] ?? "?")."\n";
+              foreach (["addon_domains" => "ek (addon)", "parked_domains" => "takma (alias/parked)", "sub_domains" => "alt alan adı"] as $k => $lab)
+                echo "  $lab: ".(count($d[$k] ?? []) ? implode(", ", $d[$k]) : "—")."\n";'
+            echo
+            echo "== Paket özellikleri (cPanel) =="
+            uapi --output=json Variables get_user_information 2>/dev/null | php -r '
+              $x = json_decode(stream_get_contents(STDIN), true)["result"]["data"] ?? [];
+              foreach ($x as $k => $v) if (preg_match("/domain|addon|park|alias|sub|plan|package|feature/i", $k)) echo "  $k = ".(is_scalar($v) ? var_export($v, true) : json_encode($v))."\n";'
