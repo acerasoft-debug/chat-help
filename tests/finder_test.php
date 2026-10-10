@@ -650,6 +650,9 @@ $ls = vestra_live_status();
 $t('boşta: arama yok + sonraki otomatik arama, gönderim yok + bugün', $ls['search']['state'] === 'idle' && str_contains($ls['search']['text'], 'sonraki otomatik arama') && $ls['send']['state'] === 'idle' && str_contains($ls['send']['text'], 'Şu an gönderim yok'));
 vestra_finder_save_runs([['id' => 'FRlive', 'owner' => '', 'requested_at' => date('c'), 'dispatched_at' => date('c'), 'status' => 'running']]);
 $t('arama çalışıyor', vestra_live_status()['search']['state'] === 'running');
+vestra_finder_save_runs([['id' => 'FRold', 'owner' => '', 'requested_at' => date('c', time() - 3600), 'status' => 'requested']]);
+$t('sırada 15 dk\'dan uzun + anahtar yok → GitHub anahtarı önerisi', str_contains(vestra_live_status()['search']['text'], 'GitHub anahtarını ekleyin'));
+$t('anahtar yoksa sunucu zamanlayıcısı hiçbir şey yapmaz', vestra_finder_server_tick() === '' && (vestra_finder_runs()[0]['dispatched_at'] ?? '') === '');
 vestra_write_json('leads.json', [
   ['id' => 'M1', 'email' => 'a@a.example', 'contact_via' => 'mailbox', 'last_contacted_at' => date('c'), 'status' => 'contacted'],
   ['id' => 'M2', 'email' => 'b@b.example', 'contact_via' => 'mailbox', 'last_contacted_at' => date('c'), 'status' => 'contacted'],

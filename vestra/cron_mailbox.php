@@ -22,6 +22,10 @@ require_once __DIR__.'/inc/finder.php';
 require_once __DIR__.'/inc/mailbox.php';
 
 $dry = in_array('--dry-run', $argv, true);
+/* Müşteri aramasını da sunucu başlatır (GitHub anahtarı kayıtlıysa): GitHub'ın kendi zamanlaması saatlerce gecikiyor.
+   Gönderim kilidinden ÖNCE — uzun bir gönderim sürerken de arama zamanında başlasın. */
+if (!$dry && ($tick = vestra_finder_server_tick()) !== '') echo '[finder '.date('Y-m-d H:i').'] '.$tick."\n";
+
 $lock = @fopen(vestra_data_dir().'/mailbox_cron.lock', 'c');
 if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) { exit(0); }   // önceki gönderim sürüyor
 

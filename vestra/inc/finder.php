@@ -170,32 +170,70 @@ function vestra_finder_start(array $in, string $owner = '', string $by = 'admin'
     return [true, 'Arama sıraya alındı ('.$id.'). 10 dakika içinde başlar, 20-40 dakikada biter; sonuç bu kartta görünecek.', $id];
   }
 
-  /* Workflow default daldan dispatch edilir; dalın adını sabit yazmak yerine GitHub'a sor. */
-  [$c0, $repoInfo] = vestra_finder_gh('GET', '/repos/'.$repo);
-  if ($c0 === 401) return [false, 'GitHub anahtarı geçersiz ya da süresi dolmuş (HTTP 401). Yeni bir token oluşturup kaydedin.', ''];
-  if ($c0 === 404 || $c0 === 403) return [false, 'GitHub anahtarının '.$repo.' deposuna erişimi yok (HTTP '.$c0.'). Token oluştururken "Repository access" kısmında bu depoyu seçin.', ''];
-  if ($c0 !== 200) return [false, 'GitHub\'a ulaşılamadı (HTTP '.$c0.'). Birkaç dakika sonra tekrar deneyin.', ''];
-  $ref = (string)($repoInfo['default_branch'] ?? 'main');
-
-  $inputs = ['request_id' => $id, 'owner_uid' => $owner] + $p + ['send' => 'false'];
-  [$code, $resp] = vestra_finder_gh('POST', '/repos/'.$repo.'/actions/workflows/'.VESTRA_FINDER_WORKFLOW.'/dispatches', ['ref' => $ref, 'inputs' => $inputs]);
-  if ($code !== 204 && $code !== 200) {
-    $m = (string)($resp['message'] ?? '');
-    $why = match (true) {
-      $code === 403 => 'Token\'ın "Actions: Read and write" izni yok.',
-      $code === 404 => 'find-customers.yml depoda varsayılan dalda ('.$ref.') bulunamadı — workflow henüz o dala alınmamış.',
-      $code === 422 => 'Workflow girdileri uyuşmuyor — varsayılan daldaki find-customers.yml eski sürüm olabilir.',
-      default       => 'GitHub HTTP '.$code.'.',
-    };
-    error_log('[VESTRA finder] dispatch HTTP '.$code.' '.mb_substr($m, 0, 200));
-    return [false, 'Arama başlatılamadı: '.$why.($m !== '' ? ' ('.mb_substr($m, 0, 120).')' : ''), ''];
-  }
+  [$dOk, $dWhy] = vestra_finder_dispatch($id, $owner, $p);
+  if (!$dOk) return [false, $dWhy, ''];
 
   $runs = vestra_finder_runs();
   array_unshift($runs, ['id' => $id, 'owner' => $owner, 'by' => $by, 'requested_at' => date('c'),
                         'status' => 'requested', 'dispatched_at' => date('c'), 'via' => 'token', 'params' => $p, 'send_campaign' => $sendCamp]);
   vestra_finder_save_runs($runs);
   return [true, 'Arama başlatıldı ('.$id.'). Sonuç bu kartta görünecek — genelde 20-40 dakika sürer.', $id];
+}
+
+/** GitHub'da find-customers.yml'yi başlatır (workflow_dispatch). [ok, neden]. Token yoksa [false, …]. */
+function vestra_finder_dispatch(string $id, string $owner, array $p): array {
+  $repo = vestra_finder_repo();
+  /* Workflow default daldan dispatch edilir; dalın adını sabit yazmak yerine GitHub'a sor. */
+  [$c0, $repoInfo] = vestra_finder_gh('GET', '/repos/'.$repo);
+  if ($c0 === 0) return [false, 'GitHub anahtarı kayıtlı değil.'];
+  if ($c0 === 401) return [false, 'GitHub anahtarı geçersiz ya da süresi dolmuş (HTTP 401). Yeni bir token oluşturup kaydedin.'];
+  if ($c0 === 404 || $c0 === 403) return [false, 'GitHub anahtarının '.$repo.' deposuna erişimi yok (HTTP '.$c0.'). Token oluştururken "Repository access" kısmında bu depoyu seçin.'];
+  if ($c0 !== 200) return [false, 'GitHub\'a ulaşılamadı (HTTP '.$c0.'). Birkaç dakika sonra tekrar deneyin.'];
+  $ref = (string)($repoInfo['default_branch'] ?? 'main');
+  $inputs = ['request_id' => $id, 'owner_uid' => $owner] + $p + ['send' => 'false'];
+  [$code, $resp] = vestra_finder_gh('POST', '/repos/'.$repo.'/actions/workflows/'.VESTRA_FINDER_WORKFLOW.'/dispatches', ['ref' => $ref, 'inputs' => $inputs]);
+  if ($code === 204 || $code === 200) return [true, ''];
+  $m = (string)($resp['message'] ?? '');
+  $why = match (true) {
+    $code === 403 => 'Token\'ın "Actions: Read and write" izni yok.',
+    $code === 404 => 'find-customers.yml depoda varsayılan dalda ('.$ref.') bulunamadı — workflow henüz o dala alınmamış.',
+    $code === 422 => 'Workflow girdileri uyuşmuyor — varsayılan daldaki find-customers.yml eski sürüm olabilir.',
+    default       => 'GitHub HTTP '.$code.'.',
+  };
+  error_log('[VESTRA finder] dispatch HTTP '.$code.' '.mb_substr($m, 0, 200));
+  return [false, 'Arama başlatılamadı: '.$why.($m !== '' ? ' ('.mb_substr($m, 0, 120).')' : '')];
+}
+
+/**
+ * Sunucunun zamanlayıcısından (cron_mailbox.php, 10 dakikada bir) — 10 Eki 2026, operatör: "arıyor mu bilmiyorum".
+ * GitHub'ın kendi zamanlaması güvenilmez: o gün 05:20 turu hiç çalışmadı, "10 dk'da bir" sıra işi günde 3 kez
+ * çalıştı (panelden istenen arama saatlerce sırada kaldı). GitHub anahtarı kayıtlıysa sunucu: (1) sırada bekleyen
+ * (henüz başlatılmamış) isteği hemen başlatır, (2) 05:20 ve 15:20 UTC turlarını kendisi başlatır (3 saat içinde,
+ * o turda admin araması yoksa). Anahtar yoksa hiçbir şey yapmaz. Döner: kayda yazılacak tek satır ya da ''.
+ */
+function vestra_finder_server_tick(?int $now = null): string {
+  if (!vestra_finder_ready() || vestra_finder_gh_token() === '') return '';
+  $now = $now ?? time();
+  foreach (vestra_finder_runs() as $r) {
+    if (($r['status'] ?? '') !== 'requested' || !empty($r['dispatched_at'])) continue;
+    [$ok, $why] = vestra_finder_dispatch((string)$r['id'], (string)($r['owner'] ?? ''), (array)($r['params'] ?? []));
+    $runs = vestra_finder_runs();
+    foreach ($runs as $j => $x) if (($x['id'] ?? '') === ($r['id'] ?? null)) {
+      if ($ok) { $runs[$j]['dispatched_at'] = date('c'); $runs[$j]['via'] = 'server-cron'; }
+      else { $runs[$j]['notes'] = array_merge((array)($x['notes'] ?? []), ['Sunucudan başlatılamadı: '.$why]); }
+    }
+    vestra_finder_save_runs($runs);
+    return $ok ? 'sıradaki arama başlatıldı: '.$r['id'] : 'sıradaki arama başlatılamadı: '.$why;
+  }
+  if (vestra_finder_active()) return '';
+  foreach ([[5, 20], [15, 20]] as [$H, $M]) {
+    $slot = gmmktime($H, $M, 0, (int)gmdate('n', $now), (int)gmdate('j', $now), (int)gmdate('Y', $now));
+    if ($now < $slot || $now > $slot + 3 * 3600) continue;
+    foreach (vestra_finder_runs() as $r) if (($r['owner'] ?? '') === '' && (int)strtotime((string)($r['requested_at'] ?? '')) >= $slot - 900) continue 2;
+    [$ok, $msg] = vestra_finder_start([], '', 'cron');
+    return ($ok ? 'otomatik tur başlatıldı: ' : 'otomatik tur başlatılamadı: ').$msg;
+  }
+  return '';
 }
 
 /* ── durum ────────────────────────────────────────────────────────────────── */

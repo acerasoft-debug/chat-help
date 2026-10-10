@@ -6816,7 +6816,7 @@ elseif($tab==='prospects'):
     <summary style="cursor:pointer;font-size:12px;color:var(--mut)">🔑 İsteğe bağlı anahtarlar — daha hızlı başlatma ve daha çok sonuç (linkli, adım adım) <?= ($fwGh && $fwBrave)?'· kayıtlı ✓':'' ?></summary>
     <div style="margin-top:10px;font-size:12px;color:var(--mut);line-height:1.65">
       <p style="margin:0 0 6px"><b>Hiçbiri şart değil</b> — arama anahtarsız çalışıyor. Bunlar yalnızca hızlandırır ve sonucu artırır.</p>
-      <p style="margin:0 0 6px"><b>1) GitHub erişim anahtarı</b> <i>(isteğe bağlı — aramayı anında başlatır; yoksa istek 10 dakika içinde sıradan başlar)</i></p>
+      <p style="margin:0 0 6px"><b>1) GitHub erişim anahtarı</b> <i style="color:#a9781a">(ÖNERİLEN — aramaları zamanında başlatır. Anahtar yoksa aramayı GitHub'ın kendi zamanlayıcısı başlatır ve bu saatlerce gecikebilir: 10 Eki'de 05:20 turu hiç çalışmadı, panelden istenen arama saatlerce sırada kaldı. Anahtarla sunucu panelden istenen aramayı hemen, günlük turları 05:20 ve 15:20 UTC'de kendisi başlatır.)</i></p>
       <ol style="margin:0 0 10px 18px;padding:0">
         <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:var(--acc)">github.com/settings/personal-access-tokens/new</a> sayfasını açın (GitHub hesabınızla giriş yapın).</li>
         <li><b>Token name:</b> <code>vestra-finder</code> · <b>Expiration:</b> 1 yıl · <b>Resource owner:</b> <code>acerasoft-debug</code></li>

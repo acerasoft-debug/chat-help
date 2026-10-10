@@ -554,7 +554,12 @@ function vestra_live_status(): array {
     $started = !empty($act['dispatched_at']);
     $search = ['state' => $started ? 'running' : 'queued',
                'text' => $started ? 'Arama ÇALIŞIYOR — '.$hm($act['dispatched_at']).'\'de başladı, genelde 20-40 dk sürer.'
-                                  : 'Arama SIRADA — '.$hm($act['requested_at'] ?? '').'\'de istendi, 10 dk içinde başlar.'];
+                                  : 'Arama SIRADA — '.$hm($act['requested_at'] ?? '').'\'de istendi.'
+                                    .((function_exists('vestra_finder_gh_token') && vestra_finder_gh_token() === '')
+                                      ? ((time() - (int)strtotime((string)($act['requested_at'] ?? ''))) > 900
+                                          ? ' GitHub\'ın sıra işi gecikiyor (saatler sürebilir) — anında başlaması için 🌐 kartındaki 🔑 GitHub anahtarını ekleyin.'
+                                          : ' GitHub\'ın sıra işi alınca başlar (genelde 10-60 dk).')
+                                      : ' Sunucu en geç 10 dk içinde başlatır.')];
   } else {
     $last = null; foreach ($runs as $r) if (($r['owner'] ?? '') === '' && in_array($r['status'] ?? '', ['done', 'failed'], true)) { $last = $r; break; }
     $search = ['state' => 'idle', 'text' => 'Şu an arama yok'
