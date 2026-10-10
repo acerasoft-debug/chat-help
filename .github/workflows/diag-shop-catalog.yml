@@ -85,7 +85,7 @@ jobs:
             foreach ($cat as $id => $p) {
               $nm = vr_variant_colour($p) ?: (preg_match('/\b(' . $words . ')\b/i', $p['name'] . ' ' . ($p['desc'] ?? ''), $m) ? $m[1] : '');
               if ($nm !== '') $byName++;
-              $img = function_exists('vr_swatch_image') ? vr_swatch_image($p) : (($p['images'][0] ?? ''));
+              $img = '';
               $dom = null;
               if ($img !== '' && str_starts_with($img, '/uploads/')) {
                 $abs = vr_doc_root() . $img;
@@ -136,4 +136,29 @@ jobs:
             echo "  toplam: $nc · "; foreach ($ncb as $k => $n) echo "$k:$n "; echo "\n";
             $multi = 0; foreach ($cat as $p) if (count(vr_product_colours($p)) > 1) $multi++;
             echo "  birden cok rengi olan urun: $multi\n";
+
+            echo "\n== 10) dis adresli / kirik fotograflar ==\n";
+            $ext = 0; $extB = []; $bad = [];
+            foreach ($cat as $id => $p) {
+              $imgs = array_values(array_filter((array)($p['images'] ?? []), 'strlen'));
+              $first = $imgs[0] ?? '';
+              if ($first === '' || str_starts_with($first, '/uploads/')) continue;
+              $ext++; $extB[$p['brand']] = ($extB[$p['brand']] ?? 0) + 1;
+              $code = trim((string)shell_exec('curl -s -o /dev/null -w "%{http_code}" --max-time 12 -A "Mozilla/5.0" ' . escapeshellarg($first)));
+              if ($code !== '200') $bad[] = sprintf("  %-26s %-12s HTTP %s  %s", mb_substr($id,0,26), mb_substr($p['brand'],0,12), $code, mb_substr($first,0,90));
+            }
+            echo "  dis adresli urun: $ext · "; foreach ($extB as $k => $n) echo "$k:$n "; echo "\n  cevap vermeyen: " . count($bad) . "\n" . implode("\n", array_slice($bad, 0, 40)) . "\n";
+
+            echo "\n== 11) fotograf sayisi (marka: 0/1/2/3+) ==\n";
+            $pc = [];
+            foreach ($cat as $id => $p) {
+              $imgs = array_values(array_filter((array)($p['images'] ?? []), 'strlen'));
+              $n = count($imgs); $k = $p['brand']; $pc[$k][$n >= 3 ? 3 : $n] = ($pc[$k][$n >= 3 ? 3 : $n] ?? 0) + 1;
+            }
+            foreach ($pc as $k => $v) printf("  %-18s 0:%d 1:%d 2:%d 3+:%d\n", $k, $v[0] ?? 0, $v[1] ?? 0, $v[2] ?? 0, $v[3] ?? 0);
+            echo "\n== 12) tek fotografli urunler (marka · id · sku · ad) ==\n";
+            foreach ($cat as $id => $p) {
+              $imgs = array_values(array_filter((array)($p['images'] ?? []), 'strlen'));
+              if (count($imgs) <= 1) printf("  %-14s %-26s %-22s %s\n", mb_substr($p['brand'],0,14), mb_substr($id,0,26), mb_substr($p['sku'],0,22), mb_substr(vr_card_name($p),0,44));
+            }
             PHP
