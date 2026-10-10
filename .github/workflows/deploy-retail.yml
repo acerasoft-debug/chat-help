@@ -94,6 +94,8 @@ jobs:
           rsync -az --delete \
             --exclude 'data/' \
             --exclude 'uploads/' \
+            --exclude '.well-known/' \
+            --exclude 'cgi-bin/' \
             --exclude '.git*' \
             -e "ssh $SSHOPT" \
             retail/ "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEST}/"
