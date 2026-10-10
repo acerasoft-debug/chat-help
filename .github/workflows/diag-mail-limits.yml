@@ -50,7 +50,7 @@ jobs:
               if ($c > $t - 3600) $hour++; if (date('Y-m-d', $c) === date('Y-m-d')) $today++; }
             echo "  günlük tavan (panel): ".vestra_mailbox_daily_cap()." · üst sınır: ".VESTRA_MAILBOX_MAX_CAP."\n";
             echo "  bugün gönderilen: {$today} · son 1 saatte: {$hour}\n";
-            echo "  tek istekte en çok (vestra_mailbox_batch): 200 · mektuplar arası 25-55 sn (≈ saatte 65-145)\n";
+            echo "  tek istekte en çok (vestra_mailbox_batch): ".VESTRA_MAILBOX_MAX_CAP." · mektuplar arası ".VESTRA_MAILBOX_PAUSE_MIN."-".VESTRA_MAILBOX_PAUSE_MAX." sn (≈ saatte ".(int)(3600/VESTRA_MAILBOX_PAUSE_MAX)."-".(int)(3600/VESTRA_MAILBOX_PAUSE_MIN).")\n";
             $open = array_values(array_filter(vestra_mailbox_runs(), 'vestra_mailbox_is_open'));
             echo "  şu an açık istek: ".count($open).($open ? ' ('.$open[0]['id'].' · '.$open[0]['mode'].' · '.$open[0]['limit'].' · '.$open[0]['status'].')' : '')."\n";
             PHPEOF

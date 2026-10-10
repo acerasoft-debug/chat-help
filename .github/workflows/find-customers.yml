@@ -49,9 +49,9 @@ on:
         required: false
         default: "false"
       send_limit:
-        description: "Gönderim tavanı (send=true iken)"
+        description: "Gönderim tavanı (send=true iken; günlük tavan 500)"
         required: false
-        default: "40"
+        default: "500"
       dry_run:
         description: "true = sadece bul ve raporla; leads.json'a YAZMA"
         required: false
@@ -201,13 +201,13 @@ jobs:
       - name: Kampanya gönder (paneldeki Gönderim modu — otomatik / manuel)
         if: ${{ env.DRY_RUN != 'true' && env.known_ok == 'true' && env.OWNER_UID == '' && steps.finder.outcome == 'success' }}
         env:
-          SEND_LIMIT: ${{ github.event.inputs.send_limit || '40' }}
+          SEND_LIMIT: ${{ github.event.inputs.send_limit || '500' }}
           FORCE_SEND: ${{ github.event.inputs.send }}
         run: |
           set -o pipefail
-          case "$SEND_LIMIT" in ''|*[!0-9]*) SEND_LIMIT=40 ;; esac
+          case "$SEND_LIMIT" in ''|*[!0-9]*) SEND_LIMIT=500 ;; esac
           # Kampanyalar sunucunun KENDİ posta servisinden, support@vestrasales.com'dan gider (cron_mailbox.php
-          # 10 dk içinde alır; 25-55 sn ara, günlük tavan, kapalı alan adı kontrolü, DKIM). Sipariş/fatura
+          # 10 dk içinde alır; 8-11 sn ara, günlük tavan, kapalı alan adı kontrolü, DKIM). Sipariş/fatura
           # e-postaları Brevo'da kalır.
           # 10 Eki 2026 (operatör: "istersem otomatik bulunur bulunmaz gönderim, istersem manuel"): karar
           # SUNUCUDA, Admin ▸ Müşteriler ▸ 📮 ▸ Gönderim modu. 'auto' alt komutu MANUEL modda hiçbir şey

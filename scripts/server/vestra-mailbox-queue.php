@@ -26,7 +26,7 @@ if (is_readable($home.'/public_html/inc/mailbox.php')) require_once $home.'/publ
 $cmd = $argv[1] ?? '';
 
 if ($cmd === 'list') {
-  $limit = max(1, min(200, (int)($argv[2] ?? 30)));
+  $limit = max(1, min(500, (int)($argv[2] ?? 500)));   // 10 Eki: tek istekte 500'e kadar
   $campKey = (string)($argv[3] ?? 'edit');
   $camps = vestra_finder_campaigns();
   if (!isset($camps[$campKey])) { fwrite(STDERR, "bilinmeyen kampanya: {$campKey}\n"); echo json_encode(['ok'=>false,'error'=>'campaign']); exit(1); }
@@ -166,7 +166,7 @@ if ($cmd === 'request') {
   /* Sunucunun kendi posta servisi için istek (cron_mailbox.php 10 dk içinde alır) — paneldeki düğmeyle aynı yol.
      request <mode> <limit> <campaign> [test_to] [pool: web|all] */
   if (!function_exists('vestra_mailbox_request')) { echo json_encode(['ok'=>false,'error'=>'eski sunucu kodu']); exit(1); }
-  [$ok, $msg] = vestra_mailbox_request((string)($argv[2] ?? ''), (int)($argv[3] ?? 25), (string)($argv[4] ?? 'edit'), (string)($argv[5] ?? ''), array_keys(vestra_finder_campaigns()), (string)($argv[6] ?? 'web'));
+  [$ok, $msg] = vestra_mailbox_request((string)($argv[2] ?? ''), (int)($argv[3] ?? 500), (string)($argv[4] ?? 'edit'), (string)($argv[5] ?? ''), array_keys(vestra_finder_campaigns()), (string)($argv[6] ?? 'web'));
   echo json_encode(['ok'=>$ok, 'msg'=>$msg], JSON_UNESCAPED_UNICODE);
   exit($ok ? 0 : 1);
 }

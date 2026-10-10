@@ -24,9 +24,9 @@ on:
         required: true
         default: server
       limit:
-        description: "send kipinde bu koşuda en çok kaç müşteri (ilk haftalar 20-30)"
+        description: "send kipinde bu koşuda en çok kaç müşteri (günlük tavan 500)"
         required: false
-        default: "25"
+        default: "500"
       campaign:
         description: "edit | lesgarage | polos | standard | ai:<id>"
         required: false
@@ -80,7 +80,7 @@ jobs:
 
       - name: Girdileri doğrula
         env:
-          LIMIT: ${{ github.event.inputs.limit || '25' }}
+          LIMIT: ${{ github.event.inputs.limit || '500' }}
           CAMPAIGN: ${{ github.event.inputs.campaign }}
           IDS: ${{ github.event.inputs.ids }}
           REQ_ID: ${{ github.event.inputs.req_id }}
@@ -121,7 +121,7 @@ jobs:
       - name: Sunucu yolu — istek / damga geri alma / durum (sunucunun kendi posta servisi)
         if: env.MODE == 'server' || env.MODE == 'servertest' || env.MODE == 'release' || env.MODE == 'status'
         env:
-          LIMIT: ${{ github.event.inputs.limit || '25' }}
+          LIMIT: ${{ github.event.inputs.limit || '500' }}
           CAMPAIGN: ${{ github.event.inputs.campaign }}
           IDS: ${{ github.event.inputs.ids }}
           TEST_TO: ${{ github.event.inputs.test_to }}
@@ -139,7 +139,7 @@ jobs:
       - name: Sunucudan gönderim listesini al
         if: env.MODE == 'test' || env.MODE == 'send'
         env:
-          LIMIT: ${{ github.event.inputs.limit || '25' }}
+          LIMIT: ${{ github.event.inputs.limit || '500' }}
           CAMPAIGN: ${{ github.event.inputs.campaign }}
           IDS: ${{ github.event.inputs.ids }}
           TEST_TO: ${{ github.event.inputs.test_to }}
