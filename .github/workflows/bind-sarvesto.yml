@@ -96,7 +96,7 @@ jobs:
                 # sonra ad + kök. İlk başarılı olan kalır.
                 SHORT="${SUB%%.*}"; ROOTD="${SUB#*.}"
                 for args in "domain=$SUB" "domain=$SHORT rootdomain=$ROOTD" "subdomain=$SHORT rootdomain=$ROOTD"; do
-                  eval "uapi --output=jsonpretty SubDomain changedocroot $args dir=\"$R\"" > /tmp/ch.json 2>&1
+                  eval "uapi --output=jsonpretty SubDomain changedocroot $args dir=\"$R\" docroot=\"$R\"" > /tmp/ch.json 2>&1
                   echo "  deneme: $args"; grep -E '"(status|errors)"' -A2 /tmp/ch.json | head -6 | sed 's/^/    /'
                   if grep -q '"status" *: *1' /tmp/ch.json; then OK=1; break; fi
                 done
