@@ -473,7 +473,15 @@ function vr_catalog(): array
         }
     }
 
-    // 6) hiç veri yoksa vitrin boş kalmasın — demo katalog (bariz etiketli)
+    // 6) Gerçek fotoğrafı olmayan parça vitrine çıkmaz: yer tutucu grafikli
+    //    bir kart premium vitrinde "eksik" diye okunuyor. Fotoğraf geldiği
+    //    an (Vestra senkronu ya da onaylı internet karesi) kendiliğinden döner.
+    //    Satıcı ilanları ve demo katalog bu kuralın dışında.
+    foreach ($cat as $cid => $cp) {
+        if (($cp['source'] ?? '') === 'b2b' && !array_filter((array)($cp['images'] ?? []), 'strlen')) unset($cat[$cid]);
+    }
+
+    // 7) hiç veri yoksa vitrin boş kalmasın — demo katalog (bariz etiketli)
     if (!$cat && vr_config('demo_catalog')) {
         $demo = json_decode((string)@file_get_contents(VR_ROOT . '/data/seed/demo-catalog.json'), true);
         if (is_array($demo)) {

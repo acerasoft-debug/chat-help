@@ -277,16 +277,18 @@ jobs:
           # shop.php) 200 ve dolu bir gövdeyle cevap veriyor, üstelik /shop/
           # altındaki her şeyi kendi köküne yönlendiriyor. Kod + boyut bakan
           # bir kontrol ikisini ayırt edemez.
-          # Onun için artık sayfada MAXSALES imzası aranıyor. İmza yoksa
+          # Onun için artık sayfada mağazanın stil dosyası aranıyor. İmza yoksa
           # cevabı başka bir uygulama veriyordur; deploy başarılı sayılmaz.
           for u in "/index.php" "/shop.php" "/outlet.php" "/legal/impressum.php"; do
             code=$(curl -sS $CURLX -o /tmp/pg.html -w '%{http_code}' -L --max-time 25 "${BASE}${u}" || echo 000)
             size=$(wc -c < /tmp/pg.html 2>/dev/null || echo 0)
-            sig=$(grep -c 'MAXSALES' /tmp/pg.html 2>/dev/null || echo 0)
+            # İmza: mağazanın kendi stil dosyası (marka adından bağımsız —
+            # MAXSALES→SARVESTO değişince eski kontrol sessizce atlanıyordu).
+            sig=$(grep -c 'assets/css/maxsales.css' /tmp/pg.html 2>/dev/null); sig=${sig:-0}
             printf '%-28s %s  %s bayt  imza:%s\n' "${u:-/}" "$code" "$size" "$sig"
             [ "$code" = "200" ] && [ "$size" -gt 3000 ] || fail=1
             if [ "$sig" -eq 0 ]; then
-              echo "::error::${BASE}${u} MAXSALES imzası taşımıyor — bu cevap perakende sitesinden gelmiyor"
+              echo "::error::${BASE}${u} mağaza imzası taşımıyor — bu cevap perakende sitesinden gelmiyor"
               fail=1
             fi
           done
