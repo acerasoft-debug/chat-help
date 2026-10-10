@@ -43,7 +43,7 @@ jobs:
               $k = sprintf('%-30s | %-22s | st=%s', mb_substr((string)($r['seller'] ?? '?'),0,30), mb_substr((string)($r['brand'] ?? '?'),0,22), (string)($r['status'] ?? ''));
               $sel[$k] = ($sel[$k] ?? 0) + 1;
             }
-            arsort($sel); foreach ($sel as $k => $n) printf("  %4d  %s\n", $n, $k);
+            arsort($sel); foreach (array_slice($sel, 0, 45, true) as $k => $n) printf("  %4d  %s\n", $n, $k);
             $keys = []; foreach ($raw as $r) if (is_array($r)) foreach (array_keys($r) as $k) $keys[$k] = ($keys[$k] ?? 0) + 1;
             arsort($keys); echo "  alanlar: "; foreach ($keys as $k => $n) echo "$k:$n "; echo "\n\n";
 
@@ -57,11 +57,12 @@ jobs:
 
             echo "== 3) ic camasiri / corap / mayo gibi gorunenler ==\n";
             $uw = '/underwear|boxer|brief|trunk|\bslip|unterw|unterhose|bra\b|bralette|sock|socken|lingerie|undershirt|tank top|vest\b|pyjama|pajama|nightwear|bodysuit|\bnbb\b/i';
-            $nu = 0;
+            $nu = 0; $ub = [];
             foreach ($cat as $id => $p) {
               $hay = $p['brand'] . ' ' . $p['name'] . ' ' . $p['cat'] . ' ' . ($rawById[$id]['category'] ?? '') . ' ' . ($rawById[$id]['seller'] ?? '');
-              if (preg_match($uw, $hay)) { $nu++; if ($nu <= 80) printf("  %-22s %-16s %-24s %s\n", $id, mb_substr($p['brand'],0,16), mb_substr($p['cat'],0,24), mb_substr($p['name'],0,60)); }
+              if (preg_match($uw, $hay)) { $nu++; $ub[$p['brand'] . ' / ' . $p['cat']] = ($ub[$p['brand'] . ' / ' . $p['cat']] ?? 0) + 1; }
             }
+            arsort($ub); foreach ($ub as $k => $n) printf("  %4d  %s\n", $n, $k);
             echo "  toplam: $nu\n\n";
 
             echo "== 4) fotografi eksik ==\n";
@@ -72,7 +73,8 @@ jobs:
               if (!$imgs) $none[] = $id; elseif ($ok === 0) $broken[] = $id; elseif ($ok === 1) $one++;
             }
             printf("  hic yok: %d · dosyasi kayip: %d · tek kare: %d\n", count($none), count($broken), $one);
-            foreach (array_merge($none, $broken) as $id) { $p = $cat[$id]; printf("  %-22s %-16s %-20s sku=%-16s %s\n", $id, mb_substr($p['brand'],0,16), mb_substr($p['cat'],0,20), $p['sku'], mb_substr($p['name'],0,50)); }
+            $mb = []; foreach (array_merge($none, $broken) as $id) { $k = $cat[$id]['brand']; $mb[$k] = ($mb[$k] ?? 0) + 1; }
+            arsort($mb); foreach ($mb as $k => $n) printf("  %4d  %s\n", $n, $k);
             echo "\n";
 
             echo "== 5) renk ==\n";
@@ -92,7 +94,7 @@ jobs:
               }
               $hex = $dom ? sprintf('#%02x%02x%02x', ...$dom) : '-';
               $photoCols[$hex === '-' ? 'olculemedi' : 'olculdu'] = ($photoCols[$hex === '-' ? 'olculemedi' : 'olculdu'] ?? 0) + 1;
-              if (count($samples) < 60 && crc32($id) % 19 === 0) $samples[] = sprintf("  %-22s %-14s ad=%-12s foto=%s  %s", $id, mb_substr($p['brand'],0,14), $nm ?: '-', $hex, mb_substr($p['name'],0,46));
+              if (false) $samples[] = sprintf("  %-22s %-14s ad=%-12s foto=%s  %s", $id, mb_substr($p['brand'],0,14), $nm ?: '-', $hex, mb_substr($p['name'],0,46));
             }
             printf("  adinda renk gecen: %d / %d · renk grubu (ayni model birden cok renk): %d\n", $byName, count($cat), $grp);
             echo "  foto rengi: "; foreach ($photoCols as $k => $n) echo "$k=$n "; echo "\n  ornekler:\n" . implode("\n", $samples) . "\n";
