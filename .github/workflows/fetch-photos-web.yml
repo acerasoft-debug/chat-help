@@ -1,0 +1,118 @@
+name: Az fotoğraflı ürünlere internetten aday kare bul
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Çalışılacak dal"
+        required: true
+        default: "claude/vestra-premium-retail-site-rxj4va"
+      max_images:
+        description: "Bu sayıda ya da daha az karesi olan ürünler (1 = tek fotoğraflılar, 2 = üçüncüsü olmayanlar da)"
+        required: true
+        default: "1"
+      brands:
+        description: "Yalnızca bu markalar (virgülle, boş = hepsi). Örn: Casablanca,Gallery Dept"
+        required: false
+        default: ""
+      limit:
+        description: "En fazla kaç ürün (0 = sınırsız)"
+        required: false
+        default: "0"
+
+permissions:
+  contents: write
+
+# NE YAPAR
+# --------
+# 1) Sunucuda MAĞAZANIN KENDİ kodu (~/maxsales_de) vitrindeki ürünleri sayar ve
+#    karesi az olanların listesini çıkarır (id, marka, ad, renk, kod, eldeki
+#    kare). Eldeki kareler kolaj için runner'a alınır. Sunucuya HİÇBİR ŞEY
+#    yazılmaz.
+# 2) Runner'ın açık internetinde tools/fetch-photos-web.php markanın kendi
+#    mağazasını / büyük perakendecileri arar ve her ürün için bir kontrol
+#    kolajı üretir (solda ELDE, sağda numaralı adaylar).
+# 3) Kolajlar ve data/photo-web-report.json dala işlenir. Tam boy kareler
+#    depoya girmez; onaydan sonra tools/attach-web-photos.php indirir.
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: PHP + GD
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq php-cli php-gd php-mbstring php-curl > /dev/null
+          php -m | grep -i '^gd$'
+
+      - name: Hedef listesi (sunucuda, salt okunur)
+        env:
+          MAXI: ${{ github.event.inputs.max_images }}
+          BRANDS: ${{ github.event.inputs.brands }}
+        run: |
+          set -e
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          SSHOPT="-i ~/.ssh/id_deploy -o StrictHostKeyChecking=no -p ${{ secrets.DEPLOY_PORT || 22 }}"
+          SRV="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+          MAXI=$(printf '%s' "$MAXI" | tr -cd '0-9'); [ -n "$MAXI" ] || MAXI=1
+          B64=$(printf '%s' "$BRANDS" | base64 -w0)
+
+          ssh $SSHOPT "$SRV" "cd ~/maxsales_de && MAXI=$MAXI BRANDS_B64=$B64 php -d memory_limit=1024M" > targets.json <<'PHP'
+          <?php
+          require 'inc/catalog.php';
+          $max = (int)getenv('MAXI');
+          $want = array_filter(array_map(fn($b) => vr_brand_key(trim($b)), explode(',', (string)base64_decode((string)getenv('BRANDS_B64')))));
+          $out = [];
+          foreach (vr_catalog() as $id => $p) {
+              if ($want && !in_array(vr_brand_key((string)$p['brand']), $want, true)) continue;
+              $imgs = array_values(array_filter((array)($p['images'] ?? []), 'strlen'));
+              if (count($imgs) > $max) continue;
+              $cols = vr_product_colours($p);
+              $out[] = ['id' => (string)$id, 'brand' => (string)$p['brand'], 'name' => vr_card_name($p),
+                        'colour' => (string)($cols[0] ?? ''), 'sku' => vr_model_code($p) ?: (string)$p['sku'],
+                        'count' => count($imgs), 'current' => (string)($imgs[0] ?? '')];
+          }
+          usort($out, fn($a, $b) => [$a['count'], $a['brand'], $a['name']] <=> [$b['count'], $b['brand'], $b['name']]);
+          echo json_encode($out, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+          PHP
+
+          php -r '$t=json_decode(file_get_contents("targets.json"),true); if(!is_array($t)){fwrite(STDERR,"hedef listesi okunamadı\n");exit(1);}
+            printf("hedef: %d ürün\n",count($t)); $c=[]; foreach($t as $r) $c[$r["brand"]]=($c[$r["brand"]]??0)+1; arsort($c);
+            foreach($c as $b=>$n) printf("  %-22s %d\n",$b,$n);'
+
+          # Eldeki kareler (kolajın sol hücresi). Yalnızca güvenli /uploads/ yolları.
+          php -r 'foreach(json_decode(file_get_contents("targets.json"),true) as $r){$c=$r["current"]; if(preg_match("#^/uploads/[A-Za-z0-9._/-]+$#",$c) && !str_contains($c,"..")) echo substr($c,1),"\n";}' | sort -u > cur.txt
+          echo "eldeki kare: $(wc -l < cur.txt)"
+          if [ -s cur.txt ]; then
+            ssh $SSHOPT "$SRV" "cd ~/maxsales_de && tar -cf - -T - 2>/dev/null" < cur.txt | tar -xf - -C retail || true
+          fi
+
+      - name: Ara ve kolaj üret
+        working-directory: retail
+        env:
+          LIMIT: ${{ github.event.inputs.limit }}
+        run: |
+          L=$(printf '%s' "$LIMIT" | tr -cd '0-9'); [ -n "$L" ] || L=0
+          php tools/fetch-photos-web.php ../targets.json --limit=$L
+          echo "--- özet ---"
+          php -r '$r=json_decode(file_get_contents("data/photo-web-report.json"),true); $h=0;$n=0;$c=0;
+            foreach($r as $x){$n++; if($x["images"]) $h++; if(!empty($x["codes"])) $c++;}
+            printf("%d ürün · aday bulunan %d · kod bulunan %d\n",$n,$h,$c);'
+
+      - name: Dala işle
+        run: |
+          git config user.name  "Claude"
+          git config user.email "noreply@anthropic.com"
+          git add -f retail/uploads/candidates/_web retail/data/photo-web-report.json
+          if git diff --cached --quiet; then echo "Değişiklik yok."; exit 0; fi
+          git commit -q -m "İnternet fotoğraf adayları: kontrol kolajları + kaynak raporu"
+          for i in 1 2 3 4; do
+            git pull -q --rebase origin "${{ github.event.inputs.branch }}" && git push -q origin "HEAD:${{ github.event.inputs.branch }}" && break
+            sleep $((i * 3))
+          done

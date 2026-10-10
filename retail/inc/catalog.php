@@ -413,7 +413,42 @@ function vr_catalog(): array
         }
     }
 
-    // 4) hiç veri yoksa vitrin boş kalmasın — demo katalog (bariz etiketli)
+    // 4) Gözle onaylanmış ek kareler (data/product-images-extra.json: id → [yol]).
+    //    Vestra satırları salt okunur; dışarıdan bulunup onaylanan fotoğraflar
+    //    onlara buradan ekleniyor. Mevcut karelerin ARKASINA eklenir.
+    $extra = vr_store_read('product-images-extra.json', []);
+    if (is_array($extra)) {
+        foreach ($extra as $xid => $paths) {
+            if (!isset($cat[$xid]) || !is_array($paths)) continue;
+            $ok = array_values(array_filter($paths, fn($x) => is_string($x) && preg_match('#^/uploads/[A-Za-z0-9._/-]+$#', $x)));
+            $cat[$xid]['images'] = array_values(array_unique(array_merge(array_filter((array)$cat[$xid]['images'], 'strlen'), $ok)));
+        }
+    }
+
+    // 5) Aynı ev + aynı TAM model kodu = aynı parça. Toptan beslemede aynı
+    //    ürün iki kez açılmış olabiliyor (biri tek kareyle, ikizi beş kareyle);
+    //    az kareli olan ikizinin karelerini de gösteriyor. İç referanslar
+    //    (VS-…, addan türetilmiş) eşleşmeye girmiyor — onlar model kodu değil.
+    $bySku = [];
+    foreach ($cat as $cid => $cp) {
+        if (vr_sku_is_internal($cp)) continue;
+        $k = strtolower(preg_replace('/[^a-z0-9]/i', '', (string)$cp['sku']) ?? '');
+        if (strlen($k) < 5) continue;
+        $bySku[vr_brand_key((string)$cp['brand']) . '|' . $k][] = $cid;
+    }
+    foreach ($bySku as $ids) {
+        if (count($ids) < 2) continue;
+        $pool = [];
+        foreach ($ids as $cid) foreach ((array)$cat[$cid]['images'] as $im) if (is_string($im) && $im !== '') $pool[] = $im;
+        $pool = array_values(array_unique($pool));
+        foreach ($ids as $cid) {
+            $own = array_values(array_filter((array)$cat[$cid]['images'], 'strlen'));
+            if (count($own) >= count($pool)) continue;
+            $cat[$cid]['images'] = array_values(array_unique(array_merge($own, $pool)));
+        }
+    }
+
+    // 6) hiç veri yoksa vitrin boş kalmasın — demo katalog (bariz etiketli)
     if (!$cat && vr_config('demo_catalog')) {
         $demo = json_decode((string)@file_get_contents(VR_ROOT . '/data/seed/demo-catalog.json'), true);
         if (is_array($demo)) {
