@@ -199,6 +199,10 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   padding:15px 30px;border:1px solid var(--ink);background:var(--ink);color:var(--bone);
   font-family:var(--sans);font-size:11.5px;letter-spacing:.19em;text-transform:uppercase;
   cursor:pointer;border-radius:var(--r);position:relative;overflow:hidden;
+  /* Kendi yığın bağlamı: ::before'un z-index:-1'i düğmenin ARKASINA değil,
+     zemini ile yazısı arasına düşsün. Yoksa üzerine gelince dolgu görünmez,
+     yazı zeminle aynı renge döner ve kaybolur. */
+  isolation:isolate;
   transition:color .3s var(--ease),border-color .3s var(--ease),transform .18s var(--ease);
 }
 .btn::before{

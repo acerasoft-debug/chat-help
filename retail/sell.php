@@ -39,7 +39,7 @@ vr_layout_start([
         <a class="btn btn--brass btn--lg" href="<?= h(vr_url('seller/index.php')) ?>"><span><?= te('dashboard') ?></span><?= vr_icon('arrow', 16) ?></a>
       <?php else: ?>
         <a class="btn btn--brass btn--lg" href="<?= h(vr_url('seller/register.php')) ?>"><span><?= te('sell_cta') ?></span><?= vr_icon('arrow', 16) ?></a>
-        <a class="btn btn--ghost btn--lg" style="color:var(--bone);border-color:rgba(245,242,236,.4)" href="<?= h(vr_url('seller/login.php')) ?>"><span><?= te('sell_login') ?></span></a>
+        <a class="btn btn--ghost btn--lg" href="<?= h(vr_url('seller/login.php')) ?>"><span><?= te('sell_login') ?></span></a>
       <?php endif; ?>
     </div>
   </div>
