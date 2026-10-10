@@ -9,7 +9,7 @@ on:
         default: "claude/vestra-premium-retail-site-rxj4va"
 
 permissions:
-  contents: read
+  contents: write
 
 # iPhone/iPad uygulaması (sarvesto-app/, Capacitor) GitHub'ın Mac sunucusunda
 # derleniyor.
@@ -71,6 +71,30 @@ jobs:
           cd "$RUNNER_TEMP/sim/Build/Products/Release-iphonesimulator"
           ditto -c -k --keepParent App.app "$GITHUB_WORKSPACE/SARVESTO-simulator.zip"
 
+      # Sanal iPhone'da aç, ekran görüntüsü al: hem görsel kontrol hem App
+      # Store sayfası için (6,9" iPhone boyutu). Dala işlenir.
+      - name: Sanal iPhone'da ekran görüntüleri
+        continue-on-error: true
+        run: |
+          set -e
+          DEV=$(xcrun simctl list devices available | grep -E "iPhone (17|16) Pro Max" | head -1 | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
+          [ -n "$DEV" ] || DEV=$(xcrun simctl list devices available | grep -E "iPhone" | tail -1 | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
+          echo "cihaz: $DEV"
+          xcrun simctl boot "$DEV" || true
+          xcrun simctl bootstatus "$DEV" -b
+          xcrun simctl status_bar "$DEV" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4 || true
+          xcrun simctl install "$DEV" "$RUNNER_TEMP/sim/Build/Products/Release-iphonesimulator/App.app"
+          OUT="$GITHUB_WORKSPACE/sarvesto-app/screenshots"; mkdir -p "$OUT"
+          shot() {   # $1 = dosya adı öneki
+            xcrun simctl launch "$DEV" com.sarvesto.app; sleep 1.2
+            xcrun simctl io "$DEV" screenshot "$OUT/$1-splash.png"; sleep 18
+            xcrun simctl io "$DEV" screenshot "$OUT/$1-home.png"
+            xcrun simctl terminate "$DEV" com.sarvesto.app || true; sleep 2
+          }
+          xcrun simctl ui "$DEV" appearance light || true; shot ios-light
+          xcrun simctl ui "$DEV" appearance dark  || true; shot ios-dark
+          ls -la "$OUT"
+
       - name: İmzasız cihaz paketi (.ipa)
         working-directory: sarvesto-app/ios/App
         run: |
@@ -92,6 +116,16 @@ jobs:
             SARVESTO-simulator.zip
             SARVESTO-unsigned.ipa
           if-no-files-found: error
+
+      - name: Ekran görüntülerini dala işle
+        continue-on-error: true
+        run: |
+          [ -n "$(ls sarvesto-app/screenshots 2>/dev/null)" ] || exit 0
+          git config user.name "Claude"; git config user.email "noreply@anthropic.com"
+          git add sarvesto-app/screenshots
+          git diff --cached --quiet && exit 0
+          git commit -q -m "iOS ekran görüntüleri (sanal iPhone, sürüm $MARKETING_VERSION)"
+          for i in 1 2 3; do git pull -q --rebase origin "${{ github.event.inputs.branch }}" && git push -q origin "HEAD:${{ github.event.inputs.branch }}" && break; sleep 5; done
 
       - name: İmzala ve App Store Connect'e yükle (TestFlight)
         if: env.HAS_ASC == 'true'
