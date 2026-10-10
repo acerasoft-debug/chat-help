@@ -1,0 +1,13 @@
+name: (Salt-okunur) Şirket künye bilgileri nerede
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# SALT OKUNUR. Asıl betik geliştirme dalında; dispatch ref'i o dalı gösterir.
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Bu iş akışını ref=claude/vestra-premium-retail-site-rxj4va ile çalıştırın."
