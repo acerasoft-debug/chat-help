@@ -10,6 +10,8 @@ if (vr_current_admin() !== null) vr_redirect('admin/index.php');
 
 $err = '';
 $unconfigured = vr_admin_unconfigured();
+// Ayrı bir MAXSALES yöneticisi kurulmadıysa giriş Vestra'daki gibi: yalnızca şifre.
+$ownAdmin = vr_admin_config() !== null;
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !$unconfigured) {
     vr_csrf_check();
@@ -31,13 +33,16 @@ vr_layout_start(['title' => 'Verwaltung', 'robots' => 'noindex,nofollow']);
     <?php if ($unconfigured): ?>
       <div class="notice" style="border-left-color:var(--ember);margin-top:22px">
         <strong>Noch kein Administrator eingerichtet.</strong>
+        Weder ein Vestra-Adminpasswort noch ein eigener Zugang wurde gefunden.
         Das Panel bleibt geschlossen, bis auf dem Server einmal
         <code>php tools/admin-user.php set &lt;E-Mail&gt; &lt;Passwort&gt;</code> gelaufen ist.
         Alternativ die Umgebungsvariablen <code>VR_ADMIN_USER</code> und
         <code>VR_ADMIN_PW_HASH</code> setzen.
       </div>
     <?php else: ?>
-      <p class="sechead__s" style="margin:12px 0 28px">Nur für den Betreiber.</p>
+      <p class="sechead__s" style="margin:12px 0 28px">
+        Nur für den Betreiber. Es gilt dasselbe Passwort wie im Vestra-Adminbereich.
+      </p>
 
       <?php if ($err !== ''): ?>
         <div class="flash flash--err" style="margin-bottom:16px"><?= h($err) ?></div>
@@ -45,13 +50,15 @@ vr_layout_start(['title' => 'Verwaltung', 'robots' => 'noindex,nofollow']);
 
       <form class="form" method="post" action="<?= h(vr_url('admin/login.php')) ?>">
         <?= vr_csrf_field() ?>
-        <div class="field">
-          <label for="email">E-Mail</label>
-          <input id="email" name="email" type="email" required autocomplete="username">
-        </div>
+        <?php if ($ownAdmin): ?>
+          <div class="field">
+            <label for="email">E-Mail <small>(nur für den eigenen MAXSALES-Zugang)</small></label>
+            <input id="email" name="email" type="email" autocomplete="username">
+          </div>
+        <?php endif; ?>
         <div class="field">
           <label for="password">Passwort</label>
-          <input id="password" name="password" type="password" required autocomplete="current-password">
+          <input id="password" name="password" type="password" required autofocus autocomplete="current-password">
         </div>
         <div class="field">
           <button class="btn btn--brass" type="submit"><span>Anmelden</span></button>

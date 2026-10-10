@@ -17,6 +17,8 @@
  *   • İsteğe bağlı IP kısıtı: VR_ADMIN_IPS="1.2.3.4,5.6.7.8".
  *
  * Şifreyi kurmak için:  php tools/admin-user.php set <e-posta> <şifre>
+ * Kurulmasa da olur: Vestra'nın yönetici şifresi aynı sunucudan okunup
+ * kabul ediliyor (vr_vestra_admin_pass) — tek şifre, iki panel.
  */
 
 declare(strict_types=1);
@@ -45,10 +47,47 @@ function vr_admin_config(): ?array
     return ['email' => $email, 'pw_hash' => $hash];
 }
 
+/**
+ * Vestra'nın yönetici şifresi — aynı sunucuda, aynı kullanıcıyla duran B2B
+ * uygulamasından. İşletmeci tek bir şifreyle iki paneli de yönetsin, MAXSALES
+ * için ayrıca kurulum yapmak zorunda kalmasın diye.
+ *
+ * Vestra şifreyi ~/public_html/inc/config.php'nin döndürdüğü dizide
+ * 'admin_pass' olarak tutuyor; data/email_settings.json'daki dolu değerler
+ * onu ezebiliyor (vestra_cfg() ile birebir aynı sıra). Biz yalnızca OKUYORUZ.
+ * Kök farklıysa VR_VESTRA_ROOT ile verilir; dosya yoksa '' döner ve bu yol
+ * sessizce kapanır.
+ */
+function vr_vestra_admin_pass(): string
+{
+    static $pass = null;
+    if ($pass !== null) return $pass;
+
+    $root = trim((string)getenv('VR_VESTRA_ROOT'));
+    if ($root === '') $root = dirname(realpath(VR_ROOT) ?: VR_ROOT) . '/public_html';
+
+    $cfgFile = $root . '/inc/config.php';
+    $c = [];
+    if (is_readable($cfgFile)) {
+        // Ayrı kapsamda: config.php yalnızca dizisini döndürsün, bizim
+        // değişkenlerimize dokunmasın.
+        $c = (static function (string $f) { return @include $f; })($cfgFile);
+        if (!is_array($c)) $c = [];
+    }
+    $mf = $root . '/data/email_settings.json';
+    if (is_readable($mf)) {
+        $m = json_decode((string)file_get_contents($mf), true);
+        if (is_array($m) && ($m['admin_pass'] ?? '') !== '' && $m['admin_pass'] !== null) {
+            $c['admin_pass'] = $m['admin_pass'];
+        }
+    }
+    return $pass = (string)($c['admin_pass'] ?? '');
+}
+
 /** Panel hiç kurulmamışsa true. Giriş ekranı bunu açıkça yazıyor. */
 function vr_admin_unconfigured(): bool
 {
-    return vr_admin_config() === null;
+    return vr_admin_config() === null && vr_vestra_admin_pass() === '';
 }
 
 /**
@@ -84,12 +123,19 @@ function vr_admin_login(string $email, string $pw): array
     $hash = $cfg['pw_hash'] ?? '$2y$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidin';
     $okPw = password_verify($pw, $hash);
 
-    if ($cfg === null || !$okPw) return [false, 'login_failed'];
-    if (strtolower(trim($email)) !== $cfg['email']) return [false, 'login_failed'];
+    $who = null;
+    if ($cfg !== null && $okPw && strtolower(trim($email)) === $cfg['email']) {
+        $who = $cfg['email'];
+    } else {
+        // Vestra yönetici şifresi: e-posta istenmez, Vestra'da da yok.
+        $vp = vr_vestra_admin_pass();
+        if ($vp !== '' && hash_equals($vp, $pw)) $who = 'Vestra-Admin';
+    }
+    if ($who === null) return [false, 'login_failed'];
 
     vr_session_start();
     vr_session_reid();
-    $_SESSION['vr_admin'] = $cfg['email'];
+    $_SESSION['vr_admin'] = $who;
     $_SESSION['vr_admin_at'] = time();
     return [true, ''];
 }

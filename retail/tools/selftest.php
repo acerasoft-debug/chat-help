@@ -171,7 +171,9 @@ require_once __DIR__ . '/../inc/admin.php';
 if (vr_admin_unconfigured()) {
     line('WARN', 'Panel', 'kein Administrator — php tools/admin-user.php set <E-Mail> <Passwort>');
 } else {
-    $src = getenv('VR_ADMIN_USER') ? 'Umgebungsvariable' : 'data/admin.json';
+    $src = vr_admin_config() === null
+        ? 'Vestra-Adminpasswort'
+        : (getenv('VR_ADMIN_USER') ? 'Umgebungsvariable' : 'data/admin.json');
     line('OK', 'Panel', 'eingerichtet (' . $src . ')');
 }
 $ips = trim((string)getenv('VR_ADMIN_IPS'));
