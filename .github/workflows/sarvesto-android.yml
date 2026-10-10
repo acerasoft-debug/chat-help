@@ -1,0 +1,16 @@
+name: SARVESTO Android uygulaması — derle, imzala, sitede yayınla
+# Yalnızca kayıt; asıl adımlar claude/vestra-premium-retail-site-rxj4va dalında.
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Çalışılacak dal"
+        required: true
+        default: "claude/vestra-premium-retail-site-rxj4va"
+permissions:
+  contents: read
+jobs:
+  stub:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "claude/vestra-premium-retail-site-rxj4va dalından başlatın."
