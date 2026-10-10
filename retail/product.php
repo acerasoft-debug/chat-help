@@ -283,7 +283,6 @@ vr_layout_start([
                         <input type="radio" name="size" value="<?= h($s['label']) ?>">
                         <?= h($s['label']) ?>
                         <?php if ($eq !== ''): ?><i class="size__eq"><?= h($eq) ?></i><?php endif; ?>
-                        <?php if ((int)$s['qty'] <= 2): ?><i><?= (int)$s['qty'] ?>×</i><?php endif; ?>
                       </label>
                     <?php endforeach; ?>
                   </div>

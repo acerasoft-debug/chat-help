@@ -1309,3 +1309,28 @@ function vr_product_colours(array $p, bool $withReviewed = true): array
     // Dizi olarak veriliyor ki "Navy/Red" gibi iki tonlu tek renk bölünmesin.
     return $n !== '' ? vr_colour_list([$n]) : [];
 }
+
+/**
+ * Evin gerçek model kodu. SKU bir iç referanssa (VS-…, addan türetilmiş slug)
+ * metinde geçen gerçek kodu arar; bulamazsa boş döner — uydurulmuş bir kod
+ * "Modellcode" diye gösterilmez.
+ *
+ * Lacoste: model (2 harf + 4 rakam) + renk kodu (3 karakter), arada "00".
+ * Metinde bitişik yazılmış olabiliyor ("TH6709001", "SH192700HD9");
+ * evin kendi yazımıyla döndürülür: "TH6709 00 001".
+ */
+function vr_model_code(array $p): string
+{
+    $sku = rtrim(trim((string)($p['sku'] ?? '')), '-');
+    if ($sku !== '' && !vr_sku_is_internal($p)) return $sku;
+
+    $txt = (string)($p['copy'] ?? '') . ' ' . (string)($p['name'] ?? '') . ' ' . (string)($p['desc'] ?? '');
+    if (vr_brand_key((string)($p['brand'] ?? '')) === 'lacoste'
+        && preg_match('/\b([A-Z]{2}\d{4})\s*(?:0{1,2}\s*)?([A-Z0-9]{3})(?:[A-Z]{1,2})?\b/', $txt, $m)) {
+        return $m[1] . ' 00 ' . $m[2];
+    }
+    // Gözle doğrulanmış kod (data/product-codes.json: id → "kod").
+    $known = vr_store_read('product-codes.json', []);
+    if (is_array($known) && isset($known[(string)($p['id'] ?? '')])) return (string)$known[(string)$p['id']];
+    return '';
+}

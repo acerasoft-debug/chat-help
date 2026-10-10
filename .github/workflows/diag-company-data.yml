@@ -1,0 +1,65 @@
+name: (Salt-okunur) Şirket künye bilgileri nerede
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# SALT OKUNUR. Impressum'u tam yazabilmek için acerasoft LLC'nin Vestra'da
+# kayıtlı şirket bilgilerini arar: vestra_cfg() anahtarları, fatura ayarları
+# ve fatura kodundaki şirket alanları. YALNIZCA şirket bilgisi gibi görünen
+# anahtarlar basılır; içinde key/pass/secret/token/smtp/api geçen hiçbir
+# anahtar basılmaz.
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Oku
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          script: |
+            cd ~/public_html
+            php <<'PHP'
+            <?php
+            $want = '/company|firma|legal|ein\b|ein_|tax|vat|ust|steuer|reg|file|incorp|address|street|city|zip|state|country|phone|tel|director|owner|manager|ceo|represent|iban|bic|bank/i';
+            $deny = '/key|pass|secret|token|smtp|api|hash|salt|webhook|dkim|private/i';
+            $show = function (string $where, array $a) use ($want, $deny) {
+              $it = new RecursiveIteratorIterator(new RecursiveArrayIterator($a), RecursiveIteratorIterator::SELF_FIRST);
+              foreach ($it as $k => $v) {
+                $path = [];
+                for ($d = 0; $d <= $it->getDepth(); $d++) $path[] = (string)$it->getSubIterator($d)->key();
+                $p = implode('.', $path);
+                if (preg_match($deny, $p)) continue;
+                if (!is_scalar($v) || !preg_match($want, $p)) continue;
+                $s = (string)$v;
+                if ($s === '') continue;
+                // IBAN tam basılmaz
+                if (preg_match('/iban/i', $p)) $s = substr($s, 0, 4) . '…' . substr($s, -4);
+                printf("  %-12s %-40s %s\n", $where, mb_substr($p, 0, 40), mb_substr($s, 0, 120));
+              }
+            };
+            $f = __DIR__ . '/inc/config.php';
+            $c = is_readable($f) ? (include $f) : [];
+            echo "== inc/config.php ==\n"; if (is_array($c)) $show('config', $c);
+            foreach (glob(__DIR__ . '/data/*.json') as $j) {
+              $b = basename($j);
+              if (!preg_match('/invoice|company|settings|seller_info|business|legal|billing/i', $b)) continue;
+              $d = json_decode((string)file_get_contents($j), true);
+              if (!is_array($d)) continue;
+              echo "== data/$b ==\n"; $show($b, $d);
+            }
+            echo "\n== fatura kodundaki sirket alanlari ==\n";
+            foreach (['inc/invoice.php', 'inc/invoice_pdf.php'] as $src) {
+              if (!is_file($src)) continue;
+              foreach (file($src) as $n => $line) {
+                if (preg_match('/(EIN|File\s*No|Registration|Delaware|Tax\s*ID|VAT\s*ID|USt|Steuernummer|vestra_cfg\(\'(company|invoice|seller|legal)[a-z_]*\')/i', $line) && !preg_match($deny, $line)) {
+                  printf("  %s:%d  %s\n", $src, $n + 1, mb_substr(trim($line), 0, 160));
+                }
+              }
+            }
+            PHP

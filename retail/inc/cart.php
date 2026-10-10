@@ -214,7 +214,7 @@ function vr_cart_lines(): array
                kesildikleri için sonlarında sallanan bir tire var — satırda
                bozuk görünüyorlardı. Sipariş kaydı sku'yu ayrı alanda
                tutmaya devam ediyor, yani destek için izlenebilirlik aynı. */
-            'sku'         => vr_sku_is_internal($p) ? '' : rtrim((string)$p['sku'], '-'),
+            'sku'         => vr_model_code($p),
             'image'       => vr_product_image($p),
             'url'         => vr_product_url($p),
             'seller_uid'  => $seller['id'],

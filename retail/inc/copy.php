@@ -367,15 +367,22 @@ function vr_product_facts(array $p): array
     // slug kodlar ("LACOSTE-MEN-COTTON-PIMA-") bu testi geçemiyor ve 95 satırın
     // 59'u yanlışlıkla "Modellcode" diye gösteriliyordu. Artık gerçek ayrım
     // yapılıyor — bkz. vr_sku_is_internal().
-    if ($sku !== '') {
-        $facts[vr_sku_is_internal($p) ? t('sku_internal') : t('sku')] = rtrim($sku, '-');
+    $code = vr_model_code($p);
+    if ($code !== '') {
+        $facts[t('sku')] = $code;
+    } elseif ($sku !== '' && !preg_match('/^[A-Z]+(-[A-Z0-9]+){2,}-?$/', $sku)) {
+        // İç referans yalnızca okunur bir kodsa gösteriliyor; addan türetilmiş
+        // slug ("LACOSTE-MEN-FLEECE-HOODI") müşteriye bir şey söylemiyor.
+        $facts[t('sku_internal')] = rtrim($sku, '-');
     }
     $facts[t('house')]     = strtoupper(trim((string)($p['brand'] ?? '')));
     $facts[t('category')]  = vr_cat_label($cat);
     $facts[t('condition')] = $used ? t('condition_used') : t('condition_new');
     if ($sizes) {
         $facts[t('size_run')] = implode(' · ', array_map(
-            fn($s) => ($s['label'] === 'ONE' ? t('one_of_one') : $s['label'] . '×' . (int)$s['qty']),
+            // Yalnızca bedenler — adet ("M×3") müşteriye gösterilmiyor; stok
+            // bilgisi bir iç kayıt, vitrinde gürültü.
+            fn($s) => ($s['label'] === 'ONE' ? t('one_of_one') : $s['label']),
             $sizes
         ));
     }
