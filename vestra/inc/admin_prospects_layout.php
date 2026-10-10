@@ -52,7 +52,14 @@ $__openAdd  = in_array((string)($_GET['msg'] ?? ''), ['lead_added', 'lead_dupe',
 
 <?= ($__pb['A'] ?? '').($__pb['G'] ?? '').($__pb['H'] ?? '') ?>
 
-<?= $__pb['TABLE'] ?? '' ?>
+<?php /* 10 Eki 2026 (operatör: "müşteriler çok uzun, onları kapat"): müşteri listesi katlı; bir liste eylemi
+         (sil, yeniden adlandır, durum, tek gönderim…) sonrasında ya da #leadlist bağlantısıyla açık gelir. */
+  $__openList = in_array((string)($_GET['msg'] ?? ''), ['lead_bulk_deleted', 'lead_deleted', 'lead_email_ok', 'lead_name_empty', 'lead_notfound',
+    'lead_renamed', 'lead_sent', 'lead_status_ok', 'letter_empty', 'letter_nolead', 'letter_quota'], true); ?>
+<details class="acard pxmore" id="leadlist"<?= $__openList ? ' open' : '' ?>>
+  <summary>👥 Müşteri listesi (<?= count($__ld) ?>) <span class="ahint">· tıklayınca açılır — arama, durum, tek tek gönderim, silme</span></summary>
+  <div class="acard-body pxinner"><?= $__pb['TABLE'] ?? '' ?></div>
+</details>
 
 <?php /* 10 Eki 2026 (operatör: "gönderilen raporlar çok yer tutuyor, başka bir alana topla"): gönderim geçmişi,
          aramaların sonuçları (eklenenler + seçerek gönder) ve durum sayıları tek, katlı bir alanda. */ ?>

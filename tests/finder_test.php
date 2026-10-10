@@ -607,6 +607,7 @@ $t('künyede bu müşterinin abonelikten çıkma bağlantısı', str_contains($e
 $t('düz metinde de kayıt bağlantısı (HTML açmayan istemci)', str_contains($eb, 'register?type=buyer'));
 vestra_write_json('listings.json', []);
 [, , $eo0] = ($ce['edit'][2])(['company' => '', 'country' => 'Germany', 'email' => 'a@b.example', 'unsub_token' => '']);
+$t('öne çıkanlarda Lacoste, Fred Perry, Valentino da var (katalogda yoksa marka kutusu)', str_contains((string)$eo0['html'], 'catalog?brand=Lacoste') && str_contains((string)$eo0['html'], 'catalog?brand=Fred%20Perry') && str_contains((string)$eo0['html'], 'catalog?brand=Valentino'));
 $t('katalogda yoksa marka kutusu (Almanca)', str_contains((string)$eo0['html'], 'catalog?brand=Gallery%20Dept') && str_contains((string)$eo0['html'], 'Kostenloses Händlerkonto'));
 
 echo "\n== 7. çizim — admin ve satıcı sayfası kum havuzunda GERÇEKTEN koşuyor ==\n";
@@ -680,6 +681,7 @@ $t('admin: arama kartı gönderim modunu gösterir (arama başına kutu yerine t
 $t('admin: 📮 kart — 3 adım (kampanya kartları + önizleme, kime, test/gönder), ayarlar katlı', str_contains($ha, 'id="mailboxsend"') && str_contains($ha, 'value="campaign_send"') && str_contains($ha, 'class="mbcamp"') && str_contains($ha, 'id="mbp-edit"')
    && str_contains($ha, 'name="target" value="web" checked') && str_contains($ha, 'name="mode" value="send"') && str_contains($ha, 'id="mbsettings"') && str_contains($ha, 'value="mailbox_cap"') && str_contains($ha, 'vestra._domainkey') && str_contains($ha, 'Günlük tavan'));
 $t('admin: önizleme gerçek e-posta HTML\'i (kaçışlı, iframe\'e yüklenir)', str_contains($ha, '&lt;!doctype html&gt;') && str_contains($ha, 'id="mbmodalf"'));
+$t('admin: müşteri listesi katlı (varsayılan kapalı)', str_contains($ha, '<details class="acard pxmore" id="leadlist">') && str_contains($ha, '👥 Müşteri listesi ('));
 $t('admin: 📊 Raporlar ayrı katlı alan — gönderim geçmişi ve aramalar orada', (bool)preg_match('~<details class="acard pxmore" id="reports">.*Son aramalar ve eklenen müşteriler.*</details>~s', $ha) && strpos($ha, 'id="reports"') > strpos($ha, 'id="mailboxsend"'));
 $t('admin: 🧪 Bana test gönder + test adresi', str_contains($ha, 'name="mode" value="test"') && str_contains($ha, 'name="test_to"'));
 $t('satıcı (kendi anahtarı): PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $hs2));
