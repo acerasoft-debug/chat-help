@@ -1863,10 +1863,13 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   if($act==='finder_send_campaign'){
     require_once __DIR__.'/inc/finder.php';
     $fsPool=($_POST['pool']??'web')==='all'?'all':'web';
-    if(($_POST['mode']??'')==='test'){
-      [$tOk,$tMsg]=vestra_finder_send_test((string)($_POST['camp']??''),(string)($_POST['test_to']??''),null,$fsPool);
-      $_SESSION['finder_send_flash']=['dry'=>true,'test'=>[$tOk,$tMsg],'sent'=>0,'fail'=>0,'lines'=>[],'camp'=>(string)($_POST['camp']??'')];
-      header('Location: /admin?tab=prospects#findersend'); exit;
+    /* 10 Eki 2026 (operatör: "kendi sunucumdan gönderilsin, support@vestrasales.com"): test ve gönderim artık
+       Brevo'dan DEĞİL, sunucunun kendi posta servisinden (inc/mailbox.php kuyruğu, cron_mailbox.php) gider. */
+    if(in_array(($_POST['mode']??''),['test','send'],true)){
+      require_once __DIR__.'/inc/mailbox.php';
+      [$ok,$msg]=vestra_mailbox_request((string)$_POST['mode'],(int)($_POST['limit']??20),(string)($_POST['camp']??''),(string)($_POST['test_to']??''),array_keys(vestra_finder_campaigns()),$fsPool);
+      $_SESSION['mailbox_flash']=[$ok,$msg];
+      header('Location: /admin?tab=prospects#mailboxsend'); exit;
     }
     $dry=($_POST['mode']??'')!=='send';
     [$sN,$fN,$lines]=vestra_finder_send((string)($_POST['camp']??''),(int)($_POST['limit']??20),$dry,$fsPool);
@@ -1941,8 +1944,16 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   }
   if($act==='mailbox_request'){
     require_once __DIR__.'/inc/finder.php'; require_once __DIR__.'/inc/mailbox.php';
-    [$ok,$msg]=vestra_mailbox_request((string)($_POST['mode']??''),(int)($_POST['limit']??30),(string)($_POST['campaign']??'lesgarage'),(string)($_POST['test_to']??''),array_keys(vestra_finder_campaigns()));
+    [$ok,$msg]=vestra_mailbox_request((string)($_POST['mode']??''),(int)($_POST['limit']??30),(string)($_POST['campaign']??'lesgarage'),(string)($_POST['test_to']??''),array_keys(vestra_finder_campaigns()),(string)($_POST['pool']??'web'));
     $_SESSION['mailbox_flash']=[$ok,$msg];
+    header('Location: /admin?tab=prospects#mailboxsend'); exit;
+  }
+  /* Gönderim modu (10 Eki 2026): otomatik = her arama bitince yeni bulunanlara gönder; manuel = panelden. */
+  if($act==='mailbox_auto_save'){
+    require_once __DIR__.'/inc/finder.php'; require_once __DIR__.'/inc/mailbox.php';
+    $camp=(string)($_POST['auto_campaign']??'lesgarage'); if(!isset(vestra_finder_campaigns()[$camp])) $camp='lesgarage';
+    $a=vestra_mailbox_auto_save(($_POST['auto_send']??'')==='1',$camp,(int)($_POST['auto_limit']??40),(string)($_POST['auto_pool']??'web'));
+    $_SESSION['mailbox_flash']=[true,$a['auto_send']?'✓ OTOMATİK: her arama bitince yeni bulunanlara en çok '.$a['auto_limit'].' e-posta gider (günlük tavan içinde).':'✓ MANUEL: arama yalnız listeye ekler; göndermeyi buradan siz başlatırsınız.'];
     header('Location: /admin?tab=prospects#mailboxsend'); exit;
   }
   if($act==='finder_toggle'){
@@ -6479,21 +6490,22 @@ elseif($tab==='prospects'):
       <div class="afield" style="margin-top:8px"><label>Kendi arama sorguların (noktalı virgülle)</label><input name="extra_queries" placeholder='"Stone Island" "Moncler" boutique Torino; negozio multimarca Dsquared2 Bari'></div>
       <div class="afield"><label>Doğrudan incelenecek siteler (arama yapmadan) <span style="font-weight:400;color:var(--mut)">— elindeki listeyi gerçek e-postaya çevirir</span></label><textarea name="seed_domains" rows="2" placeholder="boutique-ornek.it, shop-ornek.de"></textarea></div>
     </details>
-    <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;margin:0 0 6px;font-weight:600"><input type="checkbox" name="send_after" value="1" checked> Bulunca hemen gönder — support@vestrasales.com'dan, kendi sunucumuzla (günlük tavana kadar; e-posta sunucusu olmayan alan adları eklenmez)</label>
+    <?php require_once __DIR__.'/inc/mailbox.php'; $fwAuto=vestra_mailbox_auto(); ?>
+    <p class="ahint" style="margin:0 0 6px">Gönderim modu: <b style="color:<?= $fwAuto['auto_send']?'#1f9d63':'#a9781a' ?>"><?= $fwAuto['auto_send']?'OTOMATİK — bulunanlara arama biter bitmez support@vestrasales.com\'dan gider':'MANUEL — bulunanlar listeye eklenir, göndermeyi siz başlatırsınız' ?></b> · <a href="#mailboxsend" style="color:var(--acc)">değiştir</a></p>
     <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0 0 10px"><input type="checkbox" name="dry_run" value="1"> Deneme — sadece bul ve göster, listeye ekleme</label>
     <?php if(!$fwReady): ?>
       <button class="abtn" type="button" disabled>⏸ Web araması kapalı</button>
     <?php elseif($fwActive): ?>
       <button class="abtn" type="button" disabled>⏳ Arama çalışıyor (<?= htmlspecialchars((string)$fwActive['id']) ?>) — bitince tekrar başlatabilirsiniz</button>
     <?php else: ?>
-      <button class="abtn primary" type="submit" onclick="this.disabled=true;this.textContent='Başlatılıyor…';this.form.submit()">🌐 Aramayı başlat (bul + gönder)</button>
+      <button class="abtn primary" type="submit" onclick="this.disabled=true;this.textContent='Başlatılıyor…';this.form.submit()">🌐 Aramayı başlat<?= vestra_mailbox_auto()['auto_send']?' (bul + gönder)':'' ?></button>
     <?php endif; ?>
     <?php if(!$fwReady): ?><span class="ahint" style="margin-left:8px">Web araması kapalı — aşağıdaki "Aç" düğmesiyle açın. Bulunan müşteriler ve kampanya gönderimi kapalıyken de çalışır.</span>
-    <?php else: ?><span class="ahint" style="margin-left:8px">Her gün 05:20'de (UTC) kendiliğinden de çalışır. <?= $fwGh?'Süre: 20-40 dk.':'Başlaması 10 dk\'ya kadar, süre 20-40 dk.' ?></span><?php endif; ?>
+    <?php else: ?><span class="ahint" style="margin-left:8px">Her gün 05:20 ve 15:20'de (UTC) kendiliğinden de çalışır. <?= $fwGh?'Süre: 20-40 dk.':'Başlaması 10 dk\'ya kadar, süre 20-40 dk.' ?></span><?php endif; ?>
   </form>
 
   <form method="post" class="aform" style="margin:-4px 0 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><?= csrfField() ?><input type="hidden" name="_action" value="finder_toggle"><input type="hidden" name="on" value="<?= $fwReady?'0':'1' ?>">
-    <span class="ahint">Web araması: <b style="color:<?= $fwReady?'#1f9d63':'#a9781a' ?>"><?= $fwReady?'AÇIK':'KAPALI' ?></b> · her gün 05:20 UTC kendiliğinden çalışır ve yeni bulduklarına kampanyayı gönderir (en çok 40/gün)</span>
+    <span class="ahint">Web araması: <b style="color:<?= $fwReady?'#1f9d63':'#a9781a' ?>"><?= $fwReady?'AÇIK':'KAPALI' ?></b> · günde iki kez (05:20 ve 15:20 UTC) kendiliğinden çalışır<?= vestra_mailbox_auto()['auto_send']?' ve yeni bulduklarına kampanyayı gönderir (en çok '.(int)vestra_mailbox_auto()['auto_limit'].' / arama)':' — manuel mod: yalnız listeye ekler' ?></span>
     <button class="abtn<?= $fwReady?'':' primary' ?>" type="submit"<?= $fwReady?' onclick="return confirm(\'Web araması kapatılsın mı?\')"':'' ?>><?= $fwReady?'⏸ Kapat':'▶ Aç' ?></button></form>
   <div style="font-weight:600;font-size:13px;margin:4px 0 8px">Son aramalar</div>
   <?= vestra_finder_runs_html($fwRuns, true, $fwNames, 6) ?>
@@ -6509,7 +6521,7 @@ elseif($tab==='prospects'):
     [$fsCredOk,$fsCred]=function_exists('vestra_campaign_credit_ok')?vestra_campaign_credit_ok():[true,null]; $fsRes=vestra_brevo_reserve();
   ?>
   <div id="findersend" style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
-    <div style="font-weight:700;font-size:14px;margin-bottom:4px">📨 Brevo ile gönder <span style="color:#a9781a;font-size:12px">· eski yol — sipariş/fatura e-postalarıyla aynı günlük kotayı kullanır; kampanyalar için yukarıdaki 📮 kartı önerilir</span> <span class="ahint">· gönderilmeye hazır: web aramasıyla bulunan <b><?= count($fsTargetsWeb) ?></b> · tüm yazılmamış müşteriler <b><?= count($fsTargetsAll) ?></b> (KURAL 1, abonelikten çıkan, kampanya dışı ve daha önce yazılmış adresler elendi)</span></div>
+    <div style="font-weight:700;font-size:14px;margin-bottom:4px">📨 Kampanya listesi ve önizleme <span style="color:#1f9d63;font-size:12px">· "Bana test gönder" ve "Gönder" artık support@vestrasales.com'dan, kendi sunucumuzdan gider (📮 kartının kuyruğu)</span> <span class="ahint">· gönderilmeye hazır: web aramasıyla bulunan <b><?= count($fsTargetsWeb) ?></b> · tüm yazılmamış müşteriler <b><?= count($fsTargetsAll) ?></b> (KURAL 1, abonelikten çıkan, kampanya dışı ve daha önce yazılmış adresler elendi)</span></div>
     <div style="background:<?= $fsCredOk?'rgba(31,157,99,.07)':'#fdf0ee' ?>;border:1px solid <?= $fsCredOk?'rgba(31,157,99,.35)':'#f0c4bd' ?>;border-radius:9px;padding:8px 11px;font-size:12.5px;margin:0 0 8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <span>📊 Brevo bugün kalan: <b><?= $fsCred===null?'?':(int)$fsCred ?></b> · sipariş/fatura payı: <b><?= $fsRes ?></b> · kampanyaya ayrılabilir: <b><?= $fsCred===null?'?':max(0,(int)$fsCred-$fsRes) ?></b><?= $fsCredOk?'':' — <b>bugünlük kampanya hakkı bitti</b>, kalan müşteriler yarın gönderilebilir' ?></span>
       <form method="post" class="aform" style="display:flex;gap:6px;align-items:center;margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="brevo_reserve"><label class="ahint" style="margin:0">Pay</label><input name="brevo_reserve" type="number" min="0" max="300" value="<?= $fsRes ?>" style="width:70px"><button class="abtn" type="submit">Kaydet</button></form>
@@ -6556,6 +6568,7 @@ elseif($tab==='prospects'):
       $mbRuns=array_reverse(vestra_mailbox_runs()); $mbOpen=null; foreach($mbRuns as $r){ if(vestra_mailbox_is_open($r)){ $mbOpen=$r; break; } }
       $mbFlash=$_SESSION['mailbox_flash']??null; unset($_SESSION['mailbox_flash']);
       $mbSt=['requested'=>'⏳ sırada','running'=>'▶ gönderiliyor','done'=>'✓ bitti','failed'=>'✗ hata','stale'=>'— takıldı'];
+      $mbAuto=vestra_mailbox_auto(); $mbPools=['web'=>count($fsTargetsWeb),'all'=>count($fsTargetsAll)];
     ?>
     <div class="acard" id="mailboxsend" style="margin-bottom:20px;border-color:rgba(31,157,99,.45)">
       <div class="acard-hd"><h3>📮 Kampanya gönder <span style="color:#1f9d63;font-size:12px;font-weight:600">● support@vestrasales.com · kendi sunucumuz · Brevo kotasına girmez</span></h3></div>
@@ -6567,8 +6580,21 @@ elseif($tab==='prospects'):
         <span>DKIM imzası: <?= $mbDk==='ok'?'<b style="color:#1f9d63">✓ etkin</b>':($mbDk==='mismatch'?'<b style="color:#c0392b">DNS kaydı eşleşmiyor</b>':'<b style="color:#a9781a">DNS kaydı bekleniyor</b>') ?> · SPF ✓ · DMARC ✓</span>
         <span>Bugün gönderilen: <b><?= $mbToday ?></b> / günlük tavan <b><?= $mbCap ?></b> · kalan <b><?= $mbLeft ?></b>
           <form method="post" class="aform" style="display:inline-flex;gap:4px;align-items:center;margin:0 0 0 6px"><?= csrfField() ?><input type="hidden" name="_action" value="mailbox_cap"><input name="daily_cap" type="number" min="1" max="<?= VESTRA_MAILBOX_MAX_CAP ?>" value="<?= $mbCap ?>" style="width:70px;padding:2px 6px"><button class="abtn" type="submit" style="padding:2px 8px">Tavanı kaydet</button></form></span>
-        <span>Gönderilmeye hazır: <b><?= count($fsTargetsAll) ?></b></span>
+        <span>Gönderilmeye hazır: <b><?= $mbPools['web'] ?></b> yeni bulunan (doğrulanmış)<?= $mbPools['all']>$mbPools['web']?' · eski listeyle birlikte '.$mbPools['all']:'' ?></span>
       </div>
+      <form method="post" class="aform" style="border:1px solid <?= $mbAuto['auto_send']?'rgba(31,157,99,.45)':'var(--line)' ?>;background:<?= $mbAuto['auto_send']?'rgba(31,157,99,.06)':'var(--bg2)' ?>;border-radius:10px;padding:10px 12px;margin:0 0 10px">
+        <?= csrfField() ?><input type="hidden" name="_action" value="mailbox_auto_save">
+        <div style="font-weight:700;font-size:13px;margin-bottom:6px">⚙️ Gönderim modu: <span style="color:<?= $mbAuto['auto_send']?'#1f9d63':'#a9781a' ?>"><?= $mbAuto['auto_send']?'OTOMATİK':'MANUEL' ?></span></div>
+        <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;margin:0 0 4px;cursor:pointer"><input type="radio" name="auto_send" value="1"<?= $mbAuto['auto_send']?' checked':'' ?>> <span><b>Otomatik</b> — müşteri bulunur bulunmaz gönder: her arama bitince (günde iki tur + panelden başlattığınız aramalar) yeni bulunanlara aşağıdaki kampanya gider.</span></label>
+        <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;margin:0 0 8px;cursor:pointer"><input type="radio" name="auto_send" value="0"<?= $mbAuto['auto_send']?'':' checked' ?>> <span><b>Manuel</b> — arama yalnız listeye ekler; göndermeyi aşağıdaki <b>📮 Gönder</b> düğmesiyle siz başlatırsınız.</span></label>
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+          <div class="afield" style="margin:0"><label>Otomatik kampanya</label><select name="auto_campaign"><?php foreach($fsCamps as $ck=>[$cl]): ?><option value="<?= htmlspecialchars($ck) ?>"<?= $ck===$mbAuto['auto_campaign']?' selected':'' ?>><?= htmlspecialchars(mb_substr($cl,0,48)) ?></option><?php endforeach; ?></select></div>
+          <div class="afield" style="margin:0"><label>Arama başına en çok</label><input name="auto_limit" type="number" min="1" max="<?= VESTRA_MAILBOX_MAX_CAP ?>" value="<?= (int)$mbAuto['auto_limit'] ?>" style="width:80px"></div>
+          <div class="afield" style="margin:0"><label>Kime</label><select name="auto_pool"><option value="web"<?= $mbAuto['auto_pool']==='web'?' selected':'' ?>>Yeni bulunanlar (doğrulanmış) — önerilen</option><option value="all"<?= $mbAuto['auto_pool']==='all'?' selected':'' ?>>Eski liste dahil</option></select></div>
+          <button class="abtn primary" type="submit">Kaydet</button>
+        </div>
+        <p class="ahint" style="margin:6px 0 0">Hata olmasın diye: yalnızca sitesinde e-postasını yayınlayan, e-posta sunucusu doğrulanmış butiklere; ayakkabı, iç çamaşırı, toptancı ve zincirlere asla; aynı adrese bir kez. Geri dönen adresler 3 saatte bir taranır ve bir daha yazılmaz. Günlük tavan dolunca kalanlar ertesi güne kalır.</p>
+      </form>
       <?php if($mbDk!=='ok' && ($mbRec=vestra_dkim_dns_record())): ?>
       <details style="margin:0 0 8px"<?= $mbDk==='mismatch'?' open':'' ?>><summary style="cursor:pointer;font-size:12.5px;color:#a9781a">🔐 Spam riskini en aza indirmek için tek bir DNS kaydı ekleyin (DKIM) — 2 dakika</summary>
         <div style="font-size:12px;line-height:1.6;margin-top:6px">
@@ -6583,12 +6609,20 @@ elseif($tab==='prospects'):
       <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin:0">
         <?= csrfField() ?><input type="hidden" name="_action" value="mailbox_request">
         <div class="afield" style="margin:0"><label>Kampanya</label><select name="campaign"><?php foreach($fsCamps as $ck=>[$cl]): ?><option value="<?= htmlspecialchars($ck) ?>"><?= htmlspecialchars(mb_substr($cl,0,48)) ?></option><?php endforeach; ?></select></div>
+        <div class="afield" style="margin:0"><label>Kime</label><select name="pool"><option value="web">Yeni bulunanlar (<?= $mbPools['web'] ?>)</option><option value="all">Eski liste dahil (<?= $mbPools['all'] ?>)</option></select></div>
         <div class="afield" style="margin:0"><label>Kaç müşteri</label><input name="limit" type="number" min="1" max="<?= max(1,$mbLeft) ?>" value="<?= max(1,min(30,$mbLeft)) ?>" style="width:80px"></div>
         <div class="afield" style="margin:0"><label>Test adresi</label><input type="email" name="test_to" value="<?= htmlspecialchars((string)vestra_cfg('ops_email','acerasoft@gmail.com')) ?>" style="width:200px"></div>
         <button class="abtn" type="submit" name="mode" value="test"<?= $mbOpen?' disabled':'' ?>>🧪 Bana test gönder</button>
         <a class="ahint" href="#aicamp" style="margin:0 0 8px 4px">✍️ Yeni kampanya yaz (Claude)</a>
         <button class="abtn primary" type="submit" name="mode" value="send" onclick="return confirm('Seçilen kampanya support@ adresinden gönderilsin mi?')"<?= ($mbOpen||$mbLeft<=0||!$fsTargetsAll)?' disabled':'' ?>>📮 Gönder</button>
       </form>
+      <details style="margin-top:8px"><summary class="ahint" style="cursor:pointer">👁 Kampanyaları önizle (<?= count($fsCamps) ?>) — <?= htmlspecialchars((string)($fsSample['company']??'')) ?> için örnek</summary>
+        <?php foreach($fsCamps as $ck=>[$cl,$cd,$cb]): [$ps,$pb]=$cb($fsSample); ?>
+          <div style="border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-top:6px"><div style="font-size:12.5px"><b><?= htmlspecialchars($cl) ?></b> <span class="ahint">· <?= htmlspecialchars($cd) ?></span></div>
+            <div style="font-size:12px;margin-top:4px"><b>Konu:</b> <?= htmlspecialchars($ps) ?></div>
+            <div style="font-size:12px;white-space:pre-wrap;background:var(--bg2);border-radius:8px;padding:8px 10px;margin-top:4px;max-height:220px;overflow:auto"><?= htmlspecialchars(mb_substr(trim(strip_tags($pb)),0,1800)) ?></div></div>
+        <?php endforeach; ?>
+      </details>
       <?php if($mbRuns): ?>
       <details style="margin-top:8px"><summary class="ahint" style="cursor:pointer">Son gönderimler (<?= count($mbRuns) ?>)</summary>
         <table style="width:100%;font-size:12px;margin-top:6px;border-collapse:collapse">

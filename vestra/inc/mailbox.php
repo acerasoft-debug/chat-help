@@ -43,6 +43,42 @@ function vestra_mailbox_set_cap(int $cap): int {
   return $cap;
 }
 
+/* ── Gönderim modu (10 Eki 2026, operatör: "istersem otomatik bulunur bulunmaz gönderim, istersem manuel
+   olarak ayarlayabileyim; hata istemiyorum, kendi sunucumdan support@vestrasales.com"). ─────────────────
+   auto  = her arama bitince (günde iki tur + panelden başlatılan) yeni bulunanlara kampanya sunucunun
+           kendi posta servisinden gider (find-customers.yml → vestra-mailbox-queue.php auto).
+   manual= arama yalnız listeye ekler; gönderimi panelden siz başlatırsınız.
+   Alıcı havuzu varsayılan 'web': web aramasıyla bulunmuş, sitesinde adres yayınlayan, e-posta sunucusu
+   doğrulanmış butikler — eski listeden (OSM/içe aktarma) gönderim 9 Eki'de ölü alan adlarına çarptı. */
+const VESTRA_MAILBOX_AUTO_DEFAULTS = ['auto_send' => true, 'auto_campaign' => 'lesgarage', 'auto_limit' => 40, 'auto_pool' => 'web'];
+
+function vestra_mailbox_auto(): array {
+  $c = vestra_mailbox_cfg(); $d = VESTRA_MAILBOX_AUTO_DEFAULTS;
+  return ['auto_send' => array_key_exists('auto_send', $c) ? (bool)$c['auto_send'] : $d['auto_send'],
+          'auto_campaign' => preg_match('/^[A-Za-z0-9:_-]{1,40}$/', (string)($c['auto_campaign'] ?? '')) ? (string)$c['auto_campaign'] : $d['auto_campaign'],
+          'auto_limit' => max(1, min(VESTRA_MAILBOX_MAX_CAP, (int)($c['auto_limit'] ?? $d['auto_limit']))),
+          'auto_pool' => in_array($c['auto_pool'] ?? '', ['web', 'all'], true) ? (string)$c['auto_pool'] : $d['auto_pool']];
+}
+
+function vestra_mailbox_auto_save(bool $on, string $campaign, int $limit, string $pool): array {
+  $f = vestra_mailbox_file('mailbox.json'); $cur = vestra_mailbox_cfg();
+  $cur['auto_send'] = $on;
+  if (preg_match('/^[A-Za-z0-9:_-]{1,40}$/', $campaign)) $cur['auto_campaign'] = $campaign;
+  $cur['auto_limit'] = max(1, min(VESTRA_MAILBOX_MAX_CAP, $limit));
+  $cur['auto_pool'] = $pool === 'all' ? 'all' : 'web';
+  file_put_contents($f, json_encode($cur, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES), LOCK_EX); @chmod($f, 0600);
+  return vestra_mailbox_auto();
+}
+
+/** Arama bitince çağrılır: otomatik moddaysa gönderim isteği yazar. [ok, mesaj]. Kampanya silinmişse
+ *  standart davete düşer (Claude kampanyası listeden çıkmış olabilir). */
+function vestra_mailbox_auto_request(?array $campaignKeys = null): array {
+  $a = vestra_mailbox_auto();
+  if (!$a['auto_send']) return [false, 'Otomatik gönderim KAPALI (manuel mod) — bulunanlar listede bekliyor, panelden gönderin.'];
+  $camp = ($campaignKeys !== null && !in_array($a['auto_campaign'], $campaignKeys, true)) ? 'lesgarage' : $a['auto_campaign'];
+  return vestra_mailbox_request('send', $a['auto_limit'], $camp, '', $campaignKeys, $a['auto_pool']);
+}
+
 /** Bugün (sunucu günü) posta kutusundan gönderilmiş lead sayısı. */
 function vestra_mailbox_sent_today(?array $leads = null): int {
   $today = date('Y-m-d'); $n = 0;
@@ -79,7 +115,7 @@ function vestra_mailbox_is_open(array $r): bool {
  * Panel isteği. [ok, mesaj]. Aynı anda tek istek; gönderim tavanı bugünkü kalanla sınırlı.
  * $mode: 'test' (tek örnek, $testTo'ya) | 'send'.
  */
-function vestra_mailbox_request(string $mode, int $limit, string $campaign, string $testTo, ?array $campaignKeys = null): array {
+function vestra_mailbox_request(string $mode, int $limit, string $campaign, string $testTo, ?array $campaignKeys = null, string $pool = 'web'): array {
   if (!in_array($mode, ['test', 'send'], true)) return [false, 'Geçersiz kip.'];
   if (!preg_match('/^[A-Za-z0-9:_-]{1,40}$/', $campaign) || ($campaignKeys !== null && !in_array($campaign, $campaignKeys, true))) return [false, 'Kampanya bulunamadı.'];
   $testTo = strtolower(trim($testTo));
@@ -92,7 +128,7 @@ function vestra_mailbox_request(string $mode, int $limit, string $campaign, stri
     $limit = max(1, min($limit, $left));
   } else $limit = 1;
   $id = 'MB'.date('ymdHis').substr(bin2hex(random_bytes(2)), 0, 4);
-  $runs[] = ['id' => $id, 'mode' => $mode, 'limit' => $limit, 'campaign' => $campaign, 'test_to' => $mode === 'test' ? $testTo : '',
+  $runs[] = ['id' => $id, 'mode' => $mode, 'limit' => $limit, 'campaign' => $campaign, 'pool' => $pool === 'all' ? 'all' : 'web', 'test_to' => $mode === 'test' ? $testTo : '',
              'status' => 'requested', 'requested_at' => date('c')];
   vestra_mailbox_runs_save($runs);
   return [true, $mode === 'test'
@@ -140,7 +176,7 @@ function vestra_mailbox_finish(string $id, array $s): bool {
 
 /** Gönderim listesi: ['ok','from','campaign','items'=>[...],'note']. $ids verilirse yalnız onlar
  *  (damgası boş ya da yalnız 'lemlist' olanlar — lemlist'e hiç yüklenmeyen 8 Eki dışa aktarımı). Günlük tavan uygulanır. */
-function vestra_mailbox_batch(int $limit, string $campKey, array $ids = []): array {
+function vestra_mailbox_batch(int $limit, string $campKey, array $ids = [], string $pool = 'web'): array {
   require_once __DIR__.'/finder.php';
   $camps = vestra_finder_campaigns();
   if (!isset($camps[$campKey])) return ['ok' => false, 'error' => 'campaign', 'items' => []];
@@ -163,7 +199,7 @@ function vestra_mailbox_batch(int $limit, string $campKey, array $ids = []): arr
       $seen[$e] = true; $targets[$i] = $l;
     }
   } else {
-    $targets = vestra_finder_send_targets($limit, 'all');
+    $targets = vestra_finder_send_targets($limit, $pool === 'all' ? 'all' : 'web');
   }
   $items = []; $fromName = 'VESTRA'; $seenAddr = [];
   foreach ($targets as $l) {
@@ -336,7 +372,7 @@ function vestra_mailbox_run(array $req, array $o = []): array {
     return $sum;
   }
   $ids = is_array($req['ids'] ?? null) ? $req['ids'] : array_filter(explode(',', (string)($req['ids'] ?? '')));
-  $b = vestra_mailbox_batch((int)($req['limit'] ?? 25), (string)($req['campaign'] ?? 'lesgarage'), $ids);
+  $b = vestra_mailbox_batch((int)($req['limit'] ?? 25), (string)($req['campaign'] ?? 'lesgarage'), $ids, (string)($req['pool'] ?? 'web'));
   if (!$b['ok']) { $sum['note'] = 'kampanya bulunamadi'; $sum['error'] = $sum['note']; return $sum; }
   if (!$b['items']) { $sum['note'] = (string)($b['note'] ?? 'gonderilecek uygun musteri yok'); return $sum; }
   $n = count($b['items']); $failRow = 0; $sentAny = false;

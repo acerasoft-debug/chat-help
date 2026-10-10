@@ -495,6 +495,37 @@ vestra_write_json('leads.json', [
 $otIds = array_column(array_values(vestra_finder_send_targets(50, 'all')), 'id');
 $t('gönderim listesi (tüm havuz): ayakkabı dükkânı yok, butik var', !in_array('OT1', $otIds, true) && in_array('OT2', $otIds, true));
 
+echo "\n== 8c. gönderim modu (otomatik / manuel) + alıcı havuzu — kendi sunucumuz ==\n";
+require_once $root.'/inc/mailbox.php';
+@unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
+$am = vestra_mailbox_auto();
+$t('varsayılan: otomatik açık, lesgarage, 40, yeni bulunanlar', $am === ['auto_send' => true, 'auto_campaign' => 'lesgarage', 'auto_limit' => 40, 'auto_pool' => 'web']);
+vestra_write_json('leads.json', [
+  ['id' => 'W1', 'company' => 'Boutique Una', 'email' => 'info@una.example', 'country' => 'Italy', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'a'],
+  ['id' => 'O1', 'company' => 'Mode Alt', 'email' => 'info@alt.example', 'country' => 'Germany', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'b']]);
+$keys = array_keys(vestra_finder_campaigns());
+vestra_mailbox_auto_save(false, 'polos', 12, 'web');
+[$okM, $msgM] = vestra_mailbox_auto_request($keys);
+$t('MANUEL: arama sonrası istek yazılmaz', !$okM && str_contains($msgM, 'KAPALI') && vestra_mailbox_runs() === []);
+$a2 = vestra_mailbox_auto_save(true, 'polos', 12, 'web');
+$t('kayıt: otomatik, polos, 12', $a2['auto_send'] && $a2['auto_campaign'] === 'polos' && $a2['auto_limit'] === 12);
+[$okA] = vestra_mailbox_auto_request($keys);
+$r0 = vestra_mailbox_runs()[0] ?? [];
+$t('OTOMATİK: istek ayarlı kampanya/sayı/havuzla yazılır', $okA && ($r0['campaign'] ?? '') === 'polos' && ($r0['pool'] ?? '') === 'web' && (int)($r0['limit'] ?? 0) <= 12);
+[$okB] = vestra_mailbox_auto_request($keys);
+$t('açık istek varken ikincisi yazılmaz (aynı adrese iki kez yok)', !$okB && count(vestra_mailbox_runs()) === 1);
+@unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
+vestra_mailbox_auto_save(true, 'ai:silinmis', 5, 'web');
+[$okC] = vestra_mailbox_auto_request($keys);
+$t('silinmiş kampanya standart Les Garage\'a düşer', $okC && (vestra_mailbox_runs()[0]['campaign'] ?? '') === 'lesgarage');
+$bw = vestra_mailbox_batch(10, 'standard', [], 'web'); $ba = vestra_mailbox_batch(10, 'standard', [], 'all');
+$t('havuz web: yalnız web aramasıyla bulunan', array_column($bw['items'], 'leadId') === ['W1']);
+$t('havuz all: eski liste de', count($ba['items']) === 2);
+$t('gönderen support@ (kendi alan adımız)', str_contains(vestra_mail_house_address(), '@vestrasales.com'));
+$adm2 = (string)file_get_contents($root.'/admin.php');
+$t('admin: Brevo ile kampanya test/gönder yolu kapalı — kuyruğa (kendi sunucu) gider', str_contains($adm2, "if(in_array((\$_POST['mode']??''),['test','send'],true)){") && !str_contains($adm2, 'vestra_finder_send_test((string)'));
+@unlink(VESTRA_DATA_DIR.'/mailbox_runs.json'); @unlink(VESTRA_DATA_DIR.'/mailbox.json');
+
 echo "\n== 7. çizim — admin ve satıcı sayfası kum havuzunda GERÇEKTEN koşuyor ==\n";
 /* php -l tanımsız fonksiyonu / değişkeni yakalamaz; bu depoda lint'ten geçen iki
    çağrı-zamanı hatası yaşandı. İki sayfa da tohumlu verilerle çiziliyor. */
@@ -543,6 +574,7 @@ $t('satıcı: Claude kartı ALMANCA, yaz formu, yalnızca KENDİ ürünü', str_
    && str_contains($hs, 'Seller Polo') && !str_contains($hs, 'Other Jacket'));
 $t('satıcı: kendi kampanyası "in Verwendung", adminin kampanyası YOK, kota görünür', str_contains($hs, 'in Verwendung') && str_contains($hs, 'SELLER-CAMP') && !str_contains($hs, 'ADMIN-CAMP') && str_contains($hs, 'Ihre erste Kampagne ist kostenlos'));
 $t('satıcı: Claude anahtarı sayfada YOK', !str_contains($hs, 'sk-ant-probe') && !str_contains($ha, 'sk-ant-probe'));
+$t('admin: Gönderim modu formu (otomatik/manuel) + havuz seçimi', str_contains($ha, 'value="mailbox_auto_save"') && str_contains($ha, 'name="auto_send" value="0"') && str_contains($ha, 'name="pool"') && str_contains($ha, 'OTOMATİK'));
 $t('satıcı: PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $hs));
 $t('satıcı: kendi-anahtar bölümü + Almanca rehber (anahtar yokken)', str_contains($hs, 'id="aikey"') && str_contains($hs, 'value="seller_ai_key"') && str_contains($hs, 'Ihr eigener Claude-Schlüssel') && str_contains($hs, 'console.anthropic.com/settings/billing'));
 /* Satıcı kendi anahtarını kaydetmiş: durum "kendi anahtarı", kota satırı YOK, anahtarın kendisi sayfada YOK (yalnız son 4 hane). */
@@ -561,7 +593,7 @@ $t('satıcı: müşteri listesinde Gmail/Outlook/uygulama düğmeleri (yalnız e
 $t('admin: web araması aç/kapat düğmesi + gönderimde "Kime" havuz seçimi', str_contains($ha, 'value="finder_toggle"') && str_contains($ha, '▶ Aç') && str_contains($ha, 'name="pool"') && str_contains($ha, 'Tüm yazılmamış müşteriler'));
 $t('admin: Brevo kalan kredi bandı + pay ayarı', str_contains($ha, 'Brevo bugün kalan') && str_contains($ha, 'value="brevo_reserve"'));
 $t('admin: 📤 lemlist CSV formu', str_contains($ha, 'value="lemlist_export"') && str_contains($ha, '📤 lemlist CSV indir') && str_contains($ha, 'name="mark" value="1" checked'));
-$t('admin: bul+gönder kutusu varsayılan işaretli', str_contains($ha, 'name="send_after" value="1" checked'));
+$t('admin: arama kartı gönderim modunu gösterir (arama başına kutu yerine tek ayar)', !str_contains($ha, 'name="send_after"') && str_contains($ha, 'Gönderim modu:') && str_contains($ha, 'OTOMATİK — bulunanlara'));
 $t('admin: 📮 posta kutusu kartı — istek formu, tavan, sunucu durumu', str_contains($ha, 'id="mailboxsend"') && str_contains($ha, 'value="mailbox_request"') && str_contains($ha, 'günlük tavan') && str_contains($ha, 'sunucunun posta servisi') && str_contains($ha, 'value="mailbox_cap"') && str_contains($ha, 'vestra._domainkey'));
 $t('admin: 🧪 Bana test gönder + test adresi', str_contains($ha, 'name="mode" value="test"') && str_contains($ha, 'name="test_to"'));
 $t('satıcı (kendi anahtarı): PHP uyarısı yok', !preg_match('/\b(Warning|Fatal error|Deprecated|Notice)\b:/', $hs2));

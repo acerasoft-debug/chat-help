@@ -14,7 +14,7 @@
 if (!isset($__pb) || !is_array($__pb)) return;
 $__ld      = is_array($leads ?? null) ? $leads : [];
 $__bounced = count(array_filter($__ld, fn($l) => ($l['status'] ?? '') === 'bounced'));
-$__ready   = isset($fsTargetsAll) ? count($fsTargetsAll) : 0;
+$__ready   = isset($fsTargetsWeb) ? count($fsTargetsWeb) : (isset($fsTargetsAll) ? count($fsTargetsAll) : 0);   // yeni bulunan, doğrulanmış
 /* Bir eylemden sonra (Brevo / Claude / lemlist / SMTP / şablon / teklif) "Diğer araçlar" açık gelsin: sayfa o
    bölüme döner ve kapalı bir kutunun içinde kaybolmaz. */
 $__openMore = !empty($fsFlash) || !empty($acFlash) || (($_GET['mailfor'] ?? '') !== '')
@@ -42,7 +42,7 @@ $__openAdd  = in_array((string)($_GET['msg'] ?? ''), ['lead_added', 'lead_dupe',
 
 <div class="pxhead">
   <div class="pxchip"><b><?= count($__ld) ?></b><span>müşteri kaydı</span></div>
-  <div class="pxchip<?= $__ready ? ' ok' : '' ?>"><b><?= $__ready ?></b><span>gönderilmeye hazır (yazılmamış, temiz)</span></div>
+  <div class="pxchip<?= $__ready ? ' ok' : '' ?>"><b><?= $__ready ?></b><span>gönderilmeye hazır (yeni bulunan, doğrulanmış)</span></div>
   <div class="pxchip"><b><?= (int)($mbToday ?? 0) ?> / <?= (int)($mbCap ?? 0) ?></b><span>bugün gönderilen / günlük tavan</span></div>
   <div class="pxchip<?= $__bounced ? ' warn' : '' ?>"><b><?= $__bounced ?></b><span>adresi geçersiz (bir daha yazılmaz)</span></div>
 </div>

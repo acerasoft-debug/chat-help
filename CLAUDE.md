@@ -4712,6 +4712,18 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   etkinleştirir → `seller_send_one` standart davet yerine onu gönderir (kendi Brevo/SMTP'siyle).
   Satıcının kampanyası admin listesine, adminin satıcıya görünmez. Brevo anahtarı repo
   secret'ından sunucuya aktarıldı (8 Eki, hesap Acerasoft LLC).
+- **Kampanya gönderim modu: otomatik / manuel (10 Eki 2026, operatör: "istersem otomatik bulunur bulunmaz
+  gönderim, istersem manuel; hata istemiyorum, kendi sunucumdan support@vestrasales.com").** Tek ayar
+  Admin ▸ Müşteriler ▸ 📮 ▸ Gönderim modu → `data/mailbox.json` (`auto_send`, `auto_campaign`, `auto_limit`,
+  `auto_pool`; `vestra_mailbox_auto()`). find-customers.yml her admin aramasından sonra
+  `vestra-mailbox-queue.php auto` çağırır: MANUEL'de hiçbir şey gitmez; `PROSPECT_AUTO_SEND` artık kullanılmaz,
+  arama başına "bul+gönder" kutusu kaldırıldı. **Bütün kampanya gönderimi (test dahil) sunucunun posta
+  servisinden** (`cron_mailbox.php`, support@); admin'deki eski Brevo kampanya düğmeleri kuyruğa yönlendirildi.
+  Brevo yalnız sipariş/fatura. Alıcı havuzu varsayılan **'web'** (web aramasıyla bulunmuş, adres sitede yayınlı,
+  MX doğrulanmış) — 9 Eki'de eski listeden ('all') gönderim 11 ölü alan adına ve ayakkabı dükkânlarına çarptı;
+  `vestra_lead_off_target()` ayakkabı/iç çamaşırı/toptancıyı her havuzda eler. Geri dönenler 3 saatte bir
+  taranır (mailbox-send.yml takvimi, yalnız 'bounces' kipi). Arama günde iki tur (05:20, 15:20 UTC), tur
+  başına 40 şehre kadar (OSM_TARGET 900 aday), şehir havuzu 160; 10 Eki denemesi 20 dk'da 36 lead (önce 4).
 - **Siparişin USD karşılığı SİPARİŞ TARİHİNDEKİ kurla** (operatör, 7 Eyl 2026:
   *"siparişleri anında sipariş zamanındaki kur ile USD'ye çevirecek bir sistem
   koy admin paneline"*). Tek kaynak `inc/fx_orders.php`; damga
