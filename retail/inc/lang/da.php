@@ -217,7 +217,7 @@ return [
     'checkout_terms_l'   => 'salgsbetingelserne',
     'checkout_wd_l'      => 'fortrydelsesretten',
     'checkout_private_ack' => 'Denne ordre indeholder varer fra en privat sælger: ingen fortrydelsesret, og reklamationsret kan være fraskrevet.',
-    'pay_unavailable'    => 'Kortbetaling er endnu ikke sat op.',
+    'pay_unavailable'    => 'Online-kassen åbner snart.',
     'order_thanks'       => 'Tak — din ordre er registreret.',
     'order_number'       => 'Ordrenummer',
     'order_mail_sent'    => 'En bekræftelse er på vej til {email}.',
@@ -312,7 +312,7 @@ return [
     // ---- satıcı paneli, hesap akışı, FAQ ve hukuki sayfa adları
     'more' => 'Mere',
     'notify_me' => 'Giv besked',
-    'pay_unavailable_b' => 'Butikken kører, men betalingsnøglerne mangler, så ingen ordre kan modtages. Som operatør: se retail/README.md → Stripe-opsætning.',
+    'pay_unavailable_b' => 'Din kurv bliver gemt. Vil du reservere et stykke allerede i dag, så skriv til os med varenummeret — vi bekræfter tilgængelighed, størrelse og betaling på e-mail inden for én hverdag.',
     'sell_login' => 'Sælger-login',
     'sell_who_t' => 'To måder at sælge på',
     'sell_biz_t' => 'Erhvervsdrivende',
@@ -618,4 +618,5 @@ return [
     'app_desk_3' => '{brand} åbner derefter i sit eget vindue med sit eget ikon i Dock eller proceslinjen.',
     'app_store_btn' => 'Hent i App Store',
     'play_store_btn' => 'Hent den på Google Play',
+    'pay_reserve_btn' => 'Reservér via e-mail',
 ];

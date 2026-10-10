@@ -88,12 +88,6 @@ vr_layout_start(['title' => t('checkout_title'), 'robots' => 'noindex,nofollow']
     <?php vr_breadcrumbs([t('cart_title') => vr_url('cart.php'), t('checkout_title') => null]); ?>
     <h1 class="sechead__t" style="margin-bottom:26px"><?= te('checkout_title') ?></h1>
 
-    <?php if (!vr_stripe_ready()): ?>
-      <div class="notice" style="border-left-color:var(--ember)">
-        <strong><?= te('pay_unavailable') ?></strong><br><?= te('pay_unavailable_b') ?>
-      </div>
-    <?php endif; ?>
-
     <?php foreach ($errors as $e): ?>
       <div class="flash flash--err" style="margin-bottom:12px"><?= h($e) ?></div>
     <?php endforeach; ?>
@@ -101,6 +95,31 @@ vr_layout_start(['title' => t('checkout_title'), 'robots' => 'noindex,nofollow']
     <div class="cart">
       <!-- ------------------------------------------------------- onay formu -->
       <div>
+        <?php if (!vr_stripe_ready()): ?>
+      <?php
+        // Ödeme anahtarı yokken müşteriye işletme dili değil, hizmet dili:
+        // sepet saklanıyor, parça e-postayla ayırtılabiliyor. Konu satırı ve
+        // gövde sepetteki parçaların artikel numaralarıyla hazır geliyor.
+        $resv = [];
+        foreach (vr_cart_lines()['lines'] as $ln) {
+            $rp = vr_product((string)($ln['pid'] ?? ''));
+            if (!$rp) continue;
+            $resv[] = '• ' . vr_brand_label((string)$rp['brand']) . ' ' . vr_card_name($rp) . ' — ' . vr_article_no($rp)
+                . (($ln['size'] ?? '') !== '' && $ln['size'] !== 'ONE' ? ' — ' . $ln['size'] : '')
+                . (($ln['colour'] ?? '') !== '' ? ' — ' . vr_colour_label((string)$ln['colour']) : '');
+        }
+        $mail = (string)(vr_config('company')['email'] ?? '');
+        $href = 'mailto:' . $mail . '?subject=' . rawurlencode(t('pay_reserve_btn') . ' · ' . vr_config('brand'))
+              . '&body=' . rawurlencode(implode("\n", $resv) . "\n\n");
+      ?>
+      <div class="notice notice--soon">
+        <strong><?= te('pay_unavailable') ?></strong>
+        <p><?= te('pay_unavailable_b') ?></p>
+        <?php if ($mail !== ''): ?>
+          <a class="btn btn--ghost" href="<?= h($href) ?>"><span><?= te('pay_reserve_btn') ?></span><?= vr_icon('arrow', 16) ?></a>
+        <?php endif; ?>
+      </div>
+        <?php else: ?>
         <form class="form form--wide" method="post" action="<?= h(vr_url('checkout.php')) ?>">
           <?= vr_csrf_field() ?>
 
@@ -144,6 +163,7 @@ vr_layout_start(['title' => t('checkout_title'), 'robots' => 'noindex,nofollow']
             <?php endif; ?>
           </p>
         </form>
+        <?php endif; ?>
       </div>
 
       <!-- ------------------------------------------------------------ özet -->

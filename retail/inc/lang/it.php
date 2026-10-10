@@ -217,7 +217,7 @@ return [
     'checkout_terms_l'   => 'condizioni di vendita',
     'checkout_wd_l'      => 'diritto di recesso',
     'checkout_private_ack' => 'Questo ordine contiene pezzi di un privato: nessun diritto di recesso, garanzia possibilmente esclusa.',
-    'pay_unavailable'    => 'Il pagamento con carta non è ancora configurato.',
+    'pay_unavailable'    => 'Il pagamento online apre a breve.',
     'order_thanks'       => 'Grazie — il tuo ordine è registrato.',
     'order_number'       => 'Numero ordine',
     'order_mail_sent'    => 'La conferma sta arrivando a {email}.',
@@ -311,7 +311,7 @@ return [
     // ---- satıcı paneli, hesap akışı, FAQ ve hukuki sayfa adları
     'more' => 'Altro',
     'notify_me' => 'Avvisami',
-    'pay_unavailable_b' => 'Il negozio è attivo ma mancano le chiavi di pagamento: nessun ordine può essere accettato. Gestore: vedi retail/README.md → configurazione Stripe.',
+    'pay_unavailable_b' => 'Il carrello resta salvato. Per riservare un capo già oggi, scrivici con il codice articolo: confermiamo disponibilità, taglia e pagamento via e-mail entro un giorno lavorativo.',
     'order_status' => 'Traccia ordine',
     'sell_login' => 'Accesso venditore',
     'sell_who_t' => 'Due modi di vendere',
@@ -618,4 +618,5 @@ return [
     'app_desk_3' => '{brand} si apre in una finestra propria, con la sua icona nel Dock o nella barra delle applicazioni.',
     'app_store_btn' => 'Scarica su App Store',
     'play_store_btn' => 'Disponibile su Google Play',
+    'pay_reserve_btn' => 'Riserva via e-mail',
 ];

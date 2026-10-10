@@ -217,7 +217,7 @@ return [
     'checkout_terms_l'   => 'satış şərtləri',
     'checkout_wd_l'      => 'imtina hüququ',
     'checkout_private_ack' => 'Bu sifarişdə şəxsi satıcıdan parça var: imtina hüququ yoxdur, zəmanət istisna edilə bilər.',
-    'pay_unavailable'    => 'Kartla ödəniş hələ qurulmayıb.',
+    'pay_unavailable'    => 'Onlayn ödəniş tezliklə açılır.',
     'order_thanks'       => 'Təşəkkür — sifarişiniz alındı.',
     'order_number'       => 'Sifariş nömrəsi',
     'order_mail_sent'    => 'Təsdiq {email} ünvanına göndərilir.',
@@ -312,7 +312,7 @@ return [
     // ---- satıcı paneli, hesap akışı, FAQ ve hukuki sayfa adları
     'more' => 'Daha çox',
     'notify_me' => 'Xəbər ver',
-    'pay_unavailable_b' => 'Mağaza işləyir, amma ödəniş açarları yoxdur — sifariş qəbul edilə bilməz. Operator üçün: retail/README.md → Stripe quraşdırması.',
+    'pay_unavailable_b' => 'Səbətiniz saxlanılır. Bu gün bir məhsulu rezerv etmək üçün məhsul nömrəsi ilə bizə yazın — mövcudluğu, ölçünü və ödənişi bir iş günü ərzində e-poçtla təsdiqləyirik.',
     'sell_login' => 'Satıcı girişi',
     'sell_who_t' => 'İki satış yolu',
     'sell_biz_t' => 'Tacir',
@@ -618,4 +618,5 @@ return [
     'app_desk_3' => '{brand} sonra öz pəncərəsində, Dock və ya tapşırıq panelində öz ikonu ilə açılır.',
     'app_store_btn' => 'App Store-dan yükləyin',
     'play_store_btn' => 'Google Play-də əldə edin',
+    'pay_reserve_btn' => 'E-poçtla rezerv edin',
 ];

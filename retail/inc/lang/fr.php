@@ -221,7 +221,7 @@ return [
     'checkout_terms_l'   => 'conditions de vente',
     'checkout_wd_l'      => 'droit de rétractation',
     'checkout_private_ack' => 'Cette commande contient des pièces d’un particulier : pas de droit de rétractation, garantie possiblement exclue.',
-    'pay_unavailable'    => 'Le paiement par carte n’est pas encore configuré.',
+    'pay_unavailable'    => 'Le paiement en ligne ouvre très bientôt.',
     'order_thanks'       => 'Merci — votre commande est enregistrée.',
     'order_number'       => 'Numéro de commande',
     'order_mail_sent'    => 'Une confirmation part vers {email}.',
@@ -315,7 +315,7 @@ return [
     // ---- satıcı paneli, hesap akışı, FAQ ve hukuki sayfa adları
     'more' => 'Plus',
     'notify_me' => 'Me prévenir',
-    'pay_unavailable_b' => 'La boutique fonctionne, mais les clés de paiement manquent : aucune commande ne peut être prise. Exploitant : voir retail/README.md → configuration Stripe.',
+    'pay_unavailable_b' => 'Votre panier est conservé. Pour réserver une pièce dès aujourd’hui, écrivez-nous avec le numéro d’article — nous confirmons disponibilité, taille et paiement par e-mail sous un jour ouvré.',
     'order_status' => 'Suivre la commande',
     'sell_login' => 'Espace vendeur',
     'sell_who_t' => 'Deux façons de vendre',
@@ -622,4 +622,5 @@ return [
     'app_desk_3' => '{brand} s’ouvre alors dans sa propre fenêtre, avec son icône dans le Dock ou la barre des tâches.',
     'app_store_btn' => 'Télécharger dans l’App Store',
     'play_store_btn' => 'Disponible sur Google Play',
+    'pay_reserve_btn' => 'Réserver par e-mail',
 ];

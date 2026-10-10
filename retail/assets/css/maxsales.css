@@ -875,6 +875,10 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   padding:15px 18px;font-size:13px;color:var(--muted);margin-bottom:24px;
 }
 .notice--demo{border-left-color:var(--ember)}
+/* Ödeme anahtarı yokken: uyarı değil, davet — sakin, siyah çizgi */
+.notice--soon{border-left-color:var(--ink);background:var(--bone);padding:22px 24px}
+.notice--soon strong{font-family:var(--serif);font-weight:400;font-size:20px;display:block}
+.notice--soon p{margin:8px 0 16px;line-height:1.6;font-size:13.5px;max-width:62ch}
 .notice strong{color:var(--text)}
 .vault .notice{background:var(--ink-2);border-color:rgba(255,255,255,.14);color:var(--muted-2)}
 

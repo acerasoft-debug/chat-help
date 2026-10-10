@@ -217,7 +217,7 @@ return [
     'checkout_terms_l'   => 'köpvillkoren',
     'checkout_wd_l'      => 'ångerrätten',
     'checkout_private_ack' => 'Ordern innehåller plagg från en privat säljare: ingen ångerrätt, och reklamationsrätt kan vara utesluten.',
-    'pay_unavailable'    => 'Kortbetalning är inte konfigurerad ännu.',
+    'pay_unavailable'    => 'Onlinekassan öppnar inom kort.',
     'order_thanks'       => 'Tack — din order är registrerad.',
     'order_number'       => 'Ordernummer',
     'order_mail_sent'    => 'En bekräftelse är på väg till {email}.',
@@ -312,7 +312,7 @@ return [
     // ---- satıcı paneli, hesap akışı, FAQ ve hukuki sayfa adları
     'more' => 'Mer',
     'notify_me' => 'Meddela mig',
-    'pay_unavailable_b' => 'Butiken är igång men betalnycklarna saknas, så ingen order kan tas emot. Som operatör: se retail/README.md → Stripe-inställning.',
+    'pay_unavailable_b' => 'Din kasse sparas. Vill du reservera ett plagg redan i dag, skriv till oss med artikelnumret — vi bekräftar tillgänglighet, storlek och betalning per e-post inom en arbetsdag.',
     'sell_login' => 'Säljarinloggning',
     'sell_who_t' => 'Två sätt att sälja',
     'sell_biz_t' => 'Näringsidkare',
@@ -618,4 +618,5 @@ return [
     'app_desk_3' => '{brand} öppnas sedan i ett eget fönster, med egen ikon i Dock eller aktivitetsfältet.',
     'app_store_btn' => 'Hämta i App Store',
     'play_store_btn' => 'Ladda ned på Google Play',
+    'pay_reserve_btn' => 'Reservera via e-post',
 ];

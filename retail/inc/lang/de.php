@@ -223,8 +223,8 @@ return [
     'checkout_terms_l'   => 'AGB',
     'checkout_wd_l'      => 'Widerrufsbelehrung',
     'checkout_private_ack' => 'Diese Bestellung enthält Teile von einem Privatverkäufer. Dafür besteht kein Widerrufsrecht, und die Gewährleistung kann ausgeschlossen sein.',
-    'pay_unavailable'    => 'Die Kartenzahlung ist auf dieser Installation noch nicht eingerichtet.',
-    'pay_unavailable_b'  => 'Der Shop läuft, aber die Zahlungsschlüssel fehlen — es kann keine Bestellung angenommen werden. Als Betreiber: siehe retail/README.md → Stripe-Einrichtung.',
+    'pay_unavailable'    => 'Die Online-Kasse öffnet in Kürze.',
+    'pay_unavailable_b'  => 'Ihr Warenkorb bleibt gespeichert. Um ein Stück schon heute zu reservieren, schreiben Sie uns mit der Artikelnummer — wir bestätigen Verfügbarkeit, Größe und Zahlung innerhalb eines Werktags per E-Mail.',
     'order_thanks'       => 'Danke — Ihre Bestellung ist da.',
     'order_number'       => 'Bestellnummer',
     'order_mail_sent'    => 'Eine Bestätigung ist auf dem Weg an {email}.',
@@ -624,4 +624,5 @@ return [
     'app_desk_3' => '{brand} öffnet sich dann in einem eigenen Fenster, mit eigenem Symbol im Dock oder in der Taskleiste.',
     'app_store_btn' => 'Im App Store laden',
     'play_store_btn' => 'Jetzt bei Google Play',
+    'pay_reserve_btn' => 'Per E-Mail reservieren',
 ];

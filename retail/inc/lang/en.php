@@ -231,8 +231,8 @@ return [
     'checkout_terms_l'   => 'Terms of Sale',
     'checkout_wd_l'      => 'Right of Withdrawal',
     'checkout_private_ack' => 'This order contains items from a private seller. For those items there is no right of withdrawal and warranty may be excluded.',
-    'pay_unavailable'    => 'Card payment is not configured on this installation yet.',
-    'pay_unavailable_b'  => 'The shop is live but the payment keys are missing, so no order can be taken. If you are the operator, see retail/README.md → Stripe setup.',
+    'pay_unavailable'    => 'Online checkout opens shortly.',
+    'pay_unavailable_b'  => 'Your bag is kept. To reserve a piece today, write to us with the article number — we confirm availability, size and payment by e-mail within one working day.',
     'order_thanks'       => 'Thank you — your order is in.',
     'order_number'       => 'Order number',
     'order_mail_sent'    => 'A confirmation is on its way to {email}.',
@@ -635,4 +635,5 @@ return [
     'app_desk_3' => '{brand} then opens in its own window, with its own icon in the Dock or taskbar.',
     'app_store_btn' => 'Download on the App Store',
     'play_store_btn' => 'Get it on Google Play',
+    'pay_reserve_btn' => 'Reserve by e-mail',
 ];

@@ -223,7 +223,7 @@ return [
     'checkout_terms_l'   => 'verkoopvoorwaarden',
     'checkout_wd_l'      => 'herroepingsrecht',
     'checkout_private_ack' => 'Deze bestelling bevat stukken van een particuliere verkoper: geen herroepingsrecht en de garantie kan uitgesloten zijn.',
-    'pay_unavailable'    => 'Kaartbetaling is nog niet ingesteld.',
+    'pay_unavailable'    => 'Online afrekenen opent binnenkort.',
     'order_thanks'       => 'Bedankt — je bestelling is binnen.',
     'order_number'       => 'Bestelnummer',
     'order_mail_sent'    => 'Een bevestiging is op weg naar {email}.',
@@ -318,7 +318,7 @@ return [
     // ---- satıcı paneli, hesap akışı, FAQ ve hukuki sayfa adları
     'more' => 'Meer',
     'notify_me' => 'Waarschuw me',
-    'pay_unavailable_b' => 'De shop draait, maar de betaalsleutels ontbreken: er kan geen bestelling worden aangenomen. Beheerder: zie retail/README.md → Stripe-instelling.',
+    'pay_unavailable_b' => 'Je tas blijft bewaard. Wil je een stuk vandaag al reserveren, mail ons dan het artikelnummer — we bevestigen beschikbaarheid, maat en betaling binnen één werkdag per e-mail.',
     'sell_login' => 'Verkoperslogin',
     'sell_who_t' => 'Twee manieren om te verkopen',
     'sell_biz_t' => 'Handelaar',
@@ -624,4 +624,5 @@ return [
     'app_desk_3' => '{brand} opent dan in een eigen venster, met een eigen icoon in het Dock of de taakbalk.',
     'app_store_btn' => 'Download in de App Store',
     'play_store_btn' => 'Ontdek het op Google Play',
+    'pay_reserve_btn' => 'Reserveren per e-mail',
 ];

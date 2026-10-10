@@ -217,7 +217,7 @@ return [
     'checkout_terms_l'   => 'condiciones de venta',
     'checkout_wd_l'      => 'derecho de desistimiento',
     'checkout_private_ack' => 'Este pedido contiene piezas de un particular: sin derecho de desistimiento y con garantía posiblemente excluida.',
-    'pay_unavailable'    => 'El pago con tarjeta aún no está configurado.',
+    'pay_unavailable'    => 'El pago en línea abre muy pronto.',
     'order_thanks'       => 'Gracias — tu pedido está registrado.',
     'order_number'       => 'Número de pedido',
     'order_mail_sent'    => 'La confirmación va camino a {email}.',
@@ -311,7 +311,7 @@ return [
     // ---- satıcı paneli, hesap akışı, FAQ ve hukuki sayfa adları
     'more' => 'Más',
     'notify_me' => 'Avisarme',
-    'pay_unavailable_b' => 'La tienda funciona pero faltan las claves de pago: no se puede aceptar ningún pedido. Operador: ver retail/README.md → configuración de Stripe.',
+    'pay_unavailable_b' => 'Tu cesta se conserva. Para reservar una prenda hoy, escríbenos con el número de artículo: confirmamos disponibilidad, talla y pago por e-mail en un día laborable.',
     'order_status' => 'Seguir pedido',
     'sell_login' => 'Acceso de vendedor',
     'sell_who_t' => 'Dos formas de vender',
@@ -618,4 +618,5 @@ return [
     'app_desk_3' => '{brand} se abre entonces en su propia ventana, con su icono en el Dock o la barra de tareas.',
     'app_store_btn' => 'Descargar en App Store',
     'play_store_btn' => 'Disponible en Google Play',
+    'pay_reserve_btn' => 'Reservar por e-mail',
 ];
