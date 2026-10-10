@@ -37,7 +37,13 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v3
+      # Runner'da Android SDK hazır kurulu (setup-android'in sdkmanager'ı
+      # 10.10.2026'da hata verdi). Lisanslar kabul, eksik platformu Gradle indirir.
+      - name: Android SDK (runner'daki)
+        run: |
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          ls "$ANDROID_HOME/build-tools" | tail -3
 
       - name: SSH
         run: |
