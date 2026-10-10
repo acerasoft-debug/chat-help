@@ -84,7 +84,7 @@ jobs:
             if [ "${CUR:-}" = "$NEW" ] || { [ -n "${CUR:-}" ] && [ ! -L "$CUR" ] && [ "$(readlink -f "$CUR")" = "$(readlink -f "$NEW")" ]; }; then
               echo "== ZATEN BAĞLI: $D -> $NEW =="; exit 0
             fi
-            [ -L "${CUR:-/x}" ] && echo "  not: kök şu an public_html içindeki bir bağ üzerinden mağazaya gidiyor — gerçek kök değişikliği deneniyor
+            [ -L "${CUR:-/x}" ] && echo "  not: kök şu an public_html içindeki bir bağ üzerinden mağazaya gidiyor — gerçek kök değişikliği deneniyor"
 
             echo "== 4) belge kökünü değiştir =="
             OK=0
