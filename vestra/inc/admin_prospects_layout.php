@@ -52,8 +52,18 @@ $__openAdd  = in_array((string)($_GET['msg'] ?? ''), ['lead_added', 'lead_dupe',
 
 <?= ($__pb['A'] ?? '').($__pb['G'] ?? '').($__pb['H'] ?? '') ?>
 
-<?= $__pb['STATS'] ?? '' ?>
 <?= $__pb['TABLE'] ?? '' ?>
+
+<?php /* 10 Eki 2026 (operatör: "gönderilen raporlar çok yer tutuyor, başka bir alana topla"): gönderim geçmişi,
+         aramaların sonuçları (eklenenler + seçerek gönder) ve durum sayıları tek, katlı bir alanda. */ ?>
+<details class="acard pxmore" id="reports"<?= in_array((string)($_GET['msg'] ?? ''), ['reports'], true) ? ' open' : '' ?>>
+  <summary>📊 Raporlar <span class="ahint">· son gönderimler · aramaların sonuçları ve eklenen müşteriler · durum sayıları</span></summary>
+  <div class="acard-body pxinner">
+    <?= $__pb['STATS'] ?? '' ?>
+    <?= $__pb['REPORTS_MB'] ?? '' ?>
+    <?php if (($__pb['REPORTS_FR'] ?? '') !== ''): ?><div style="font-weight:700;font-size:13px;margin:0 0 6px">🌐 Son aramalar ve eklenen müşteriler</div><?= $__pb['REPORTS_FR'] ?><?php endif; ?>
+  </div>
+</details>
 <details class="acard pxmore" id="addprospect"<?= $__openAdd ? ' open' : '' ?>>
   <summary>➕ Müşteri ekle / CSV içe aktar <span class="ahint">· elle tek müşteri ya da liste</span></summary>
   <div class="acard-body pxinner"><?= $__pb['ADDIMP'] ?? '' ?></div>

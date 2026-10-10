@@ -263,7 +263,7 @@ function vestra_finder_refresh(): void {
  * 'lead'=>leads.json kaydı|null]. Gönderim finder_run_send → sunucunun posta kuyruğu (support@, kendi sunucumuz).
  * Döner: [html, gönderilmiş sayısı, bekleyen sayısı].
  */
-function vestra_finder_pick_table(array $rows, string $fid): array {
+function vestra_finder_pick_table(array $rows, string $fid, bool $standalone = true): array {
   $h = static fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
   $fid = preg_replace('/[^A-Za-z0-9_]/', '', $fid) ?: 'fp';
   $canSend = function_exists('csrfField');
@@ -285,6 +285,9 @@ function vestra_finder_pick_table(array $rows, string $fid): array {
   }
   $tbl = '<table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:12px">'.$body.'</table>';
   if (!$canSend || !$wait) return [$tbl, $sent, $wait];
+  $vpick = '<script>window.vPick=window.vPick||function(f){var n=f.querySelectorAll(\'input[name="ids[]"]:checked\').length;f.querySelectorAll(\'[data-pick-n]\').forEach(function(s){s.textContent=n;});};</script>';
+  /* Gömülü kip: başka bir formun (📮 Kampanya gönder) içinde yalnız seçim kutuları — form/düğme yok. */
+  if (!$standalone) return ['<label style="display:inline-flex;gap:5px;align-items:center;font-size:12px;margin:2px 0 0"><input type="checkbox" checked onchange="this.form.querySelectorAll(\'input[name=&quot;ids[]&quot;]\').forEach(function(c){c.checked=this.checked},this);vPick(this.form)"> Hepsini seç / kaldır</label>'.$tbl.$vpick, $sent, $wait];
   $opts = ''; foreach (vestra_finder_campaigns() as $ck => [$cl]) $opts .= '<option value="'.$h($ck).'">'.$h(mb_substr($cl, 0, 48)).'</option>';
   $html = '<form method="post" id="'.$fid.'">'.csrfField().'<input type="hidden" name="_action" value="finder_run_send">'
         . '<label style="display:inline-flex;gap:5px;align-items:center;font-size:12px;margin:6px 0 0"><input type="checkbox" checked onchange="this.form.querySelectorAll(\'input[name=&quot;ids[]&quot;]\').forEach(function(c){c.checked=this.checked},this);vPick(this.form)"> Hepsini seç / kaldır</label>'
@@ -292,7 +295,7 @@ function vestra_finder_pick_table(array $rows, string $fid): array {
         . '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px"><select name="campaign" style="font-size:12px;padding:3px 6px">'.$opts.'</select>'
         . '<button class="abtn primary" type="submit" style="padding:4px 12px" data-pick-btn onclick="var n=this.form.querySelectorAll(\'input[name=&quot;ids[]&quot;]:checked\').length;if(!n){alert(\'Önce müşteri seçin.\');return false;}return confirm(n+\' müşteriye support@vestrasales.com adresinden gönderilsin mi?\')">📮 Seçilenlere gönder (<span data-pick-n>'.$wait.'</span>)</button>'
         . '<span style="color:var(--mut,#777);font-size:11.5px">kendi sunucumuz · 10 dk içinde başlar · günlük tavan içinde</span></div></form>'
-        . '<script>window.vPick=window.vPick||function(f){var n=f.querySelectorAll(\'input[name="ids[]"]:checked\').length,s=f.querySelector(\'[data-pick-n]\');if(s)s.textContent=n;};</script>';
+        . $vpick;
   return [$html, $sent, $wait];
 }
 
@@ -391,6 +394,9 @@ function vestra_finder_campaigns(): array {
     return $t === '' ? $body : str_replace('https://vestrasales.com/lead-unsubscribe', 'https://vestrasales.com/lead-unsubscribe?token='.rawurlencode($t), $body);
   };
   $out = [
+    /* 10 Eki 2026 (operatör: "daha iyi ve estetik kampanya, Gallery Dept, Casablanca, siteye ve kayda link"). */
+    'edit' => ['✨ VESTRA Edit — Gallery Dept, Casablanca öne çıkan, görselli, kayıt düğmeli', 'Yeni estetik kampanya: koyu başlık bandı, öne çıkan iki marka, 6 ürünlük seçki, "Koleksiyonu gör" + "Ücretsiz kayıt ol" düğmeleri. Dil müşterinin ülkesine göre (7 dil).',
+      function (array $l) use ($tok) { require_once __DIR__.'/campaign_edit.php'; [$s, $b, $o] = vestra_campaign_edit((string)($l['company'] ?? ''), vestra_finder_lead_lang($l)); return [$s, $tok($b, $l), $o, 'VESTRA']; }],
     'lesgarage' => ['Les Garage de Paris — logo duvarlı premium kampanya', 'Günlük gönderimde kullanılan kampanya. Dil müşterinin ülkesine göre otomatik (9+ dil).',
       function (array $l) use ($tok) { [$s, $b, $o] = vestra_campaign_preview((string)($l['company'] ?? ''), vestra_finder_lead_lang($l)); return [$s, $tok($b, $l), $o, 'Les Garage de Paris']; }],
     'polos' => ['Lacoste polo — %10/%15 indirim promosyonu', 'Kısa promosyon mektubu (İngilizce).',
