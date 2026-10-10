@@ -43,7 +43,7 @@ jobs:
               $k = sprintf('%-30s | %-22s | st=%s', mb_substr((string)($r['seller'] ?? '?'),0,30), mb_substr((string)($r['brand'] ?? '?'),0,22), (string)($r['status'] ?? ''));
               $sel[$k] = ($sel[$k] ?? 0) + 1;
             }
-            arsort($sel); foreach (array_slice($sel, 0, 45, true) as $k => $n) printf("  %4d  %s\n", $n, $k);
+            arsort($sel);
             $keys = []; foreach ($raw as $r) if (is_array($r)) foreach (array_keys($r) as $k) $keys[$k] = ($keys[$k] ?? 0) + 1;
             arsort($keys); echo "  alanlar: "; foreach ($keys as $k => $n) echo "$k:$n "; echo "\n\n";
 
@@ -98,4 +98,31 @@ jobs:
             }
             printf("  adinda renk gecen: %d / %d · renk grubu (ayni model birden cok renk): %d\n", $byName, count($cat), $grp);
             echo "  foto rengi: "; foreach ($photoCols as $k => $n) echo "$k=$n "; echo "\n  ornekler:\n" . implode("\n", $samples) . "\n";
+
+            echo "\n== 6) colors alani ornekleri ==\n";
+            $shown = 0;
+            foreach ($raw as $r) {
+              if (!is_array($r) || empty($r['colors'])) continue;
+              if ($shown++ >= 14) break;
+              printf("  %-20s %-14s %s\n     colors=%s\n", mb_substr((string)$r['id'],0,20), mb_substr((string)$r['brand'],0,14), mb_substr((string)$r['name'],0,50), mb_substr(json_encode($r['colors'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),0,260));
+            }
+            $cb = []; foreach ($raw as $r) if (is_array($r) && !empty($r['colors'])) $cb[(string)$r['brand']] = ($cb[(string)$r['brand']] ?? 0) + 1;
+            arsort($cb); echo "  colors olan markalar: "; foreach ($cb as $k => $n) echo "$k:$n "; echo "\n";
+
+            echo "\n== 7) D&G Tank Tops / Basics adlari ==\n";
+            foreach ($cat as $id => $p) if (in_array($p['cat'], ['Tank Tops', 'Westen', 'Activewear'], true)) printf("  %-22s %-14s %-12s %s\n", $id, mb_substr($p['brand'],0,14), $p['cat'], mb_substr($p['name'],0,60));
+
+            echo "\n== 8) kayip dosyalar Vestra klasorunde var mi ==\n";
+            $vroot = getenv('HOME') . '/public_html';
+            $inV = 0; $nowhere = 0; $nwBrand = [];
+            foreach ($cat as $id => $p) {
+              $imgs = array_values(array_filter((array)($p['images'] ?? []), 'strlen'));
+              $okShop = 0; $okV = 0;
+              foreach ($imgs as $i) { if (vr_upload_exists($i)) $okShop++; elseif (is_file($vroot . $i)) $okV++; }
+              if ($okShop === 0 && $imgs) { if ($okV > 0) $inV++; else { $nowhere++; $nwBrand[$p['brand']] = ($nwBrand[$p['brand']] ?? 0) + 1; } }
+            }
+            printf("  magazada yok ama Vestra'da var: %d · hicbir yerde yok: %d\n", $inV, $nowhere);
+            arsort($nwBrand); foreach ($nwBrand as $k => $n) printf("     %4d  %s\n", $n, $k);
+            printf("  uploads boyutu: magaza %s · vestra %s\n", trim((string)shell_exec('du -sh ~/maxsales_de/uploads 2>/dev/null | cut -f1')), trim((string)shell_exec('du -sh ~/public_html/uploads 2>/dev/null | cut -f1')));
+            printf("  disk: %s\n", trim((string)shell_exec('df -h ~ | tail -1')));
             PHP
