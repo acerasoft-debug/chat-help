@@ -371,6 +371,16 @@ const VESTRA_FINDER_NOT_BUYER_SOURCES = ['amazon seller', 'ebay seller', 'otto s
  *  "Sfera.net Park Page", "Agence immobilière", dpo-google@google.com, press.us@rains.com).
  *  Bunlara mektup gitmesi support@ adresinin itibarına zarar verir — hiçbir gönderim yolu
  *  (lemlist dışa aktarımı, Brevo, GitHub posta kutusu) bunları almasın diye TEK yerde elenir. */
+/** Operatörün ilk kuralı (8 Eki 2026: "ayakkabı, iç çamaşırı, distribütör ve zincir olmayacak"): bu
+ *  dükkânlara kampanya GİTMEZ. Web araması bunları zaten eliyor; eski listeden (OSM / içe aktarma) gelenlerde
+ *  süzgeç yoktu — 9 Eki gönderiminde …-schuhe.de, schuhkonzept.de, aktiv-schuh.de gibi dükkânlara gitti.
+ *  Firma adı, site, e-posta alan adı ve kategoriye bakar. Zincirler vestra_lead_is_blocked()'ta. */
+function vestra_lead_off_target(array $l): bool {
+  $em = strtolower((string)($l['email'] ?? '')); $dom = ($p = strrpos($em, '@')) !== false ? substr($em, $p + 1) : '';
+  $hay = mb_strtolower(implode(' ', [(string)($l['company'] ?? ''), (string)($l['website'] ?? ''), $dom, (string)($l['category'] ?? '')]));
+  return (bool)preg_match('/schuh|shoe|sneaker|footwear|scarp[ae]|calzatur|chaussur|zapat|cal[cç]ad|sapat|obuv|lingerie|dessous|unterw(?:ä|ae)sche|w(?:ä|ae)schestube|intimo|intimate|underwear|bademode|swimwear|gro(?:ß|ss)handel|wholesale|grossiste|ingrosso|mayorista|distribu|lederhandel|lederladen|lederwaren/u', $hay);
+}
+
 function vestra_lead_looks_dead(array $l): bool {
   $name = strtolower(trim((string)($l['company'] ?? '')));
   $email = strtolower(trim((string)($l['email'] ?? '')));
@@ -407,7 +417,7 @@ function vestra_finder_send_targets(int $limit = 1000, string $pool = 'web'): ar
     $e = $clean($l['email'] ?? ''); if (!filter_var($e, FILTER_VALIDATE_EMAIL) || isset($seen[$e])) continue;
     if (function_exists('vestra_email_is_junk') && vestra_email_is_junk($e)) continue;
     if (function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) continue;
-    if (vestra_lead_looks_dead($l)) continue;
+    if (vestra_lead_looks_dead($l) || vestra_lead_off_target($l)) continue;
     $seen[$e] = true; $out[$i] = $l;
   }
   return $out;

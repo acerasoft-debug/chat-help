@@ -479,6 +479,22 @@ $t('kampanya gönderimi payda DURUR (kaynak)', str_contains((string)file_get_con
 $aic = (string)file_get_contents($root.'/inc/ai_campaign.php');
 $t('istek: yapılandırılmış çıktı + ret/uzunluk durumu ele alınıyor', str_contains($aic, "'json_schema'") && str_contains($aic, "'refusal'") && str_contains($aic, "'max_tokens'"));
 
+echo "\n== 8b. hedef dışı dükkân (ayakkabı / iç çamaşırı / toptancı) kampanya almaz ==\n";
+foreach ([['company' => 'Schuhhaus Wittstock', 'email' => 'info@schuhhauswittstock.de'], ['company' => 'CKK', 'email' => 'info@ckk-schuhe.de'],
+          ['company' => 'Lederladen Berlin', 'email' => 'info@lederladen-berlin.de'], ['company' => 'Calzature Rossi', 'email' => 'a@rossi.it'],
+          ['company' => 'Maison Lingerie', 'email' => 'a@b.fr'], ['company' => 'Moda Ingrosso Srl', 'email' => 'a@b.it'],
+          ['company' => 'X', 'email' => 'a@sneakerworld.com'], ['company' => 'Wäschestube Mayer', 'email' => 'a@b.at']] as $x)
+  $t('hedef dışı: '.$x['company'], vestra_lead_off_target($x));
+foreach ([['company' => 'BLS Fashion', 'email' => 'contact@blsfashion.com', 'website' => 'https://blsfashion.com'],
+          ['company' => 'Minimil', 'email' => 'info@minimil.es'], ['company' => 'The Broken Arm', 'email' => 'e@the-broken-arm.com'],
+          ['company' => 'Boutique Una', 'email' => 'info@una.example', 'category' => 'Boutique (multi-brand)']] as $x)
+  $t('hedef: '.$x['company'], !vestra_lead_off_target($x));
+vestra_write_json('leads.json', [
+  ['id' => 'OT1', 'company' => 'Schuhkonzept', 'email' => 'n@schuhkonzept.de', 'country' => 'Germany', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 't'],
+  ['id' => 'OT2', 'company' => 'Boutique Una', 'email' => 'info@una.example', 'country' => 'Italy', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 't2']]);
+$otIds = array_column(array_values(vestra_finder_send_targets(50, 'all')), 'id');
+$t('gönderim listesi (tüm havuz): ayakkabı dükkânı yok, butik var', !in_array('OT1', $otIds, true) && in_array('OT2', $otIds, true));
+
 echo "\n== 7. çizim — admin ve satıcı sayfası kum havuzunda GERÇEKTEN koşuyor ==\n";
 /* php -l tanımsız fonksiyonu / değişkeni yakalamaz; bu depoda lint'ten geçen iki
    çağrı-zamanı hatası yaşandı. İki sayfa da tohumlu verilerle çiziliyor. */

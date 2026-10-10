@@ -159,7 +159,7 @@ function vestra_mailbox_batch(int $limit, string $campKey, array $ids = []): arr
       if (trim((string)($l['last_contacted_at'] ?? '')) !== '' && (string)($l['contact_via'] ?? '') !== 'lemlist') continue;
       $e = vestra_email_clean((string)($l['email'] ?? ''));
       if (!filter_var($e, FILTER_VALIDATE_EMAIL) || isset($seen[$e])) continue;
-      if (vestra_email_is_junk($e) || vestra_lead_looks_dead($l)) continue;
+      if (vestra_email_is_junk($e) || vestra_lead_looks_dead($l) || vestra_lead_off_target($l)) continue;
       $seen[$e] = true; $targets[$i] = $l;
     }
   } else {
