@@ -100,8 +100,12 @@ jobs:
           ./gradlew assembleRelease --no-daemon -q
           APK=app/build/outputs/apk/release/app-release.apk
           test -f "$APK" || { echo "::error::İmzalı APK çıkmadı"; ls -R app/build/outputs/apk; exit 1; }
-          AS=$(ls -d "$ANDROID_SDK_ROOT"/build-tools/*/ | sort -V | tail -1)apksigner
-          "$AS" verify --print-certs "$APK" | grep -E "Signer #1 certificate (DN|SHA-256)"
+          AS=$(ls "$ANDROID_SDK_ROOT"/build-tools/*/apksigner | sort -V | tail -1)
+          echo "apksigner: $AS"
+          if ! "$AS" verify --print-certs "$APK" > "$RUNNER_TEMP/sig.txt" 2>&1; then
+            cat "$RUNNER_TEMP/sig.txt"; echo "::error::APK imzası doğrulanamadı"; exit 1
+          fi
+          grep -E "certificate (DN|SHA-256)" "$RUNNER_TEMP/sig.txt" || cat "$RUNNER_TEMP/sig.txt"
           cp "$APK" "$GITHUB_WORKSPACE/SARVESTO.apk"
           rm -f key.properties
           ls -la "$GITHUB_WORKSPACE/SARVESTO.apk"
