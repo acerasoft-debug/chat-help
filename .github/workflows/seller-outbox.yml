@@ -1,0 +1,60 @@
+name: (E-posta) Satıcıların kendi posta sunucusundan gönderim
+# 10 Eki 2026 (operatör: "satıcılarda kendi email adresleri ile gönderebilsin, kendi sunucuları ile").
+# Barındırmamızdan giden SMTP kapalı (8 Eki smtp_probe) — sunucu satıcının posta sunucusuna bağlanamaz.
+# Bu iş 10 dakikada bir sunucudaki kuyruğu (vestra/inc/seller_outbox.php) alır ve her mektubu
+# SATICININ KENDİ SMTP sunucusundan, KENDİ adresiyle gönderir; sonucu sunucuya geri yazar.
+#
+# Depo herkese açık: satıcı SMTP girişleri yalnız SSH borusundan Python sürecinin belleğine gider —
+# dosyaya, loga, artefakta yazılmaz. Kayıtta alıcı ve gönderen adresleri maskelidir.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seller-outbox
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || 22 }}
+      TERM: dumb
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+
+      - name: SSH ayarı
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf 'Host vestra\n  HostName %s\n  User %s\n  Port %s\n  IdentityFile ~/.ssh/deploy_key\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n  LogLevel ERROR\n' \
+            "$DEPLOY_HOST" "$DEPLOY_USER" "$DEPLOY_PORT" > ~/.ssh/config && chmod 600 ~/.ssh/config
+
+      - name: Kuyruğu al, satıcının sunucusundan gönder, sonucu yaz
+        run: |
+          set -o pipefail
+          ssh vestra 'mkdir -p ~/vestra_tmp && cat > ~/vestra_tmp/seller-outbox.php' < scripts/server/vestra-seller-outbox.php
+          # take çıktısı (mektuplar + SMTP girişleri) yalnız borudan geçer; ekrana basılmaz.
+          ssh vestra 'cd ~/public_html && php ~/vestra_tmp/seller-outbox.php take 60' \
+            | python3 scripts/ci/seller_outbox_send.py > results.json
+          N=$(python3 -c 'import json;print(len(json.load(open("results.json")).get("results",[])))')
+          if [ "$N" -gt 0 ]; then
+            # Damga kaybolursa 30 dk sonra aynı mektuplar yeniden alınır (çift gönderim) — 3 kez dene.
+            for i in 1 2 3; do
+              ssh vestra 'cd ~/public_html && php ~/vestra_tmp/seller-outbox.php stamp' < results.json && break
+              sleep $((i * 10))
+            done
+          fi
+          ssh vestra 'rm -f ~/vestra_tmp/seller-outbox.php' || true
+          rm -f results.json
