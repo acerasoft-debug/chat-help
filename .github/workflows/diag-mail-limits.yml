@@ -36,6 +36,13 @@ jobs:
             else
               echo "  uapi yok"
             fi
+              echo "== cPanel e-posta doğrulama (SPF / DKIM / PTR) — vestrasales.com =="
+              for fn in validate_current_spfs validate_current_dkims validate_current_ptrs; do
+                uapi --output=json EmailAuth $fn domain=vestrasales.com 2>/dev/null | php -r '
+                  $d = json_decode(stream_get_contents(STDIN), true); $fn = $argv[1];
+                  foreach ((array)($d["result"]["data"] ?? []) as $r) echo "  $fn: ".($r["state"] ?? "?").(isset($r["expected"]) ? " · beklenen: ".substr((string)$r["expected"], 0, 90) : "").(isset($r["record"]) ? " · kayıt: ".substr((string)$r["record"], 0, 90) : "")."\n";
+                  if (!($d["result"]["data"] ?? null)) echo "  $fn: (veri yok) ".implode(" ", (array)($d["result"]["errors"] ?? []))."\n";' "$fn"
+              done
             echo
             echo "== PHP CLI ve posta servisi =="
             php -r 'echo "  mail(): ".(function_exists("mail")?"var":"YOK")."\n  sendmail_path: ".ini_get("sendmail_path")."\n  max_execution_time (CLI): ".ini_get("max_execution_time")."\n";'
@@ -51,6 +58,12 @@ jobs:
             echo "  günlük tavan (panel): ".vestra_mailbox_daily_cap()." · üst sınır: ".VESTRA_MAILBOX_MAX_CAP."\n";
             echo "  bugün gönderilen: {$today} · son 1 saatte: {$hour}\n";
             echo "  tek istekte en çok (vestra_mailbox_batch): ".VESTRA_MAILBOX_MAX_CAP." · mektuplar arası ".VESTRA_MAILBOX_PAUSE_MIN."-".VESTRA_MAILBOX_PAUSE_MAX." sn (≈ saatte ".(int)(3600/VESTRA_MAILBOX_PAUSE_MAX)."-".(int)(3600/VESTRA_MAILBOX_PAUSE_MIN).")\n";
+            if (function_exists('vestra_mailbox_warmup')) {
+              $w = vestra_mailbox_warmup(); $bs = vestra_mailbox_bounce_stats();
+              echo "  ısınma: ".($w['on'] ? 'AÇIK' : 'kapalı')." · gün {$w['day']} · bugün en çok ".vestra_mailbox_cap_today()." · tam tavan {$w['full_on']}\n";
+              echo "  geri dönme (14 gün): ".round($bs['rate'] * 100, 1)."% ({$bs['bounced']}/{$bs['sent']})".($bs['stop'] ? ' · GÖNDERİM DURDU' : '')."\n";
+              echo "  bizim DKIM (vestra._domainkey): ".vestra_dkim_dns_status()."\n";
+            }
             $open = array_values(array_filter(vestra_mailbox_runs(), 'vestra_mailbox_is_open'));
             echo "  şu an açık istek: ".count($open).($open ? ' ('.$open[0]['id'].' · '.$open[0]['mode'].' · '.$open[0]['limit'].' · '.$open[0]['status'].')' : '')."\n";
             PHPEOF
