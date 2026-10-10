@@ -526,6 +526,17 @@ $adm2 = (string)file_get_contents($root.'/admin.php');
 $t('admin: Brevo ile kampanya test/gönder yolu kapalı — kuyruğa (kendi sunucu) gider', str_contains($adm2, "if(in_array((\$_POST['mode']??''),['test','send'],true)){") && !str_contains($adm2, 'vestra_finder_send_test((string)'));
 @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json'); @unlink(VESTRA_DATA_DIR.'/mailbox.json');
 
+echo "\n== 8d. bulunanların gönderim durumu (admin) ==\n";
+vestra_write_json('leads.json', [
+  ['id' => 'S1', 'company' => 'Sent Shop', 'email' => 'a@sent.example', 'source' => 'web-search', 'status' => 'contacted', 'last_contacted_at' => '2026-10-10T09:00:00+00:00'],
+  ['id' => 'S2', 'company' => 'Wait Shop', 'email' => 'b@wait.example', 'source' => 'web-search', 'status' => 'new', 'last_contacted_at' => ''],
+  ['id' => 'S3', 'company' => 'Bounce Shop', 'email' => 'c@bounce.example', 'source' => 'web-search', 'status' => 'bounced', 'last_contacted_at' => '']]);
+$stRun = [['id' => 'FRst', 'owner' => '', 'requested_at' => date('c'), 'status' => 'done', 'added_count' => 3,
+  'added' => [['company' => 'Sent Shop', 'email' => 'a@sent.example'], ['company' => 'Wait Shop', 'email' => 'b@wait.example'], ['company' => 'Bounce Shop', 'email' => 'C@bounce.example']]]];
+$hSt = vestra_finder_runs_html($stRun, true, [], 6);
+$t('admin: gönderildi / bekliyor / geri döndü + özet', str_contains($hSt, '✓ gönderildi 10.10') && str_contains($hSt, '⏳ henüz gönderilmedi') && str_contains($hSt, '✗ geri döndü') && str_contains($hSt, '1 gönderildi') && str_contains($hSt, '2 bekliyor'));
+$t('satıcı görünümünde durum sütunu yok', !str_contains(vestra_finder_runs_html($stRun, false, [], 6, true), 'gönderildi'));
+
 echo "\n== 7. çizim — admin ve satıcı sayfası kum havuzunda GERÇEKTEN koşuyor ==\n";
 /* php -l tanımsız fonksiyonu / değişkeni yakalamaz; bu depoda lint'ten geçen iki
    çağrı-zamanı hatası yaşandı. İki sayfa da tohumlu verilerle çiziliyor. */

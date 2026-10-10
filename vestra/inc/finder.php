@@ -260,6 +260,7 @@ function vestra_finder_refresh(): void {
 function vestra_finder_runs_html(array $runs, bool $showOwner = false, array $ownerNames = [], int $limit = 6, bool $en = false): string {
   /* Satıcı tarafı (İngilizce anahtar) t() ile satıcının diline çevrilir — inc/lang/*.php. */
   $tt = static fn(string $x): string => function_exists('t') ? (string)t($x) : $x;
+  $leadIdx = null;   // e-posta → lead (gönderim durumu için, yalnız adminde ve gerekirse bir kez okunur)
   $T = $en
     ? ['none'=>$tt('No searches yet.'),'done'=>$tt('✓ Finished'),'failed'=>$tt('✗ Failed'),'running'=>$tt('⏳ Running'),'queued'=>$tt('⏳ Queued'),'dry'=>$tt(' · trial (not saved)'),
        'stats'=>'<b>'.htmlspecialchars($tt('%d queries · %d sites found · %d checked → %d new customers with a real email'), ENT_QUOTES, 'UTF-8').'</b>','added'=>htmlspecialchars($tt('Added'), ENT_QUOTES, 'UTF-8'),
@@ -290,12 +291,30 @@ function vestra_finder_runs_html(array $runs, bool $showOwner = false, array $ow
       $out .= '<div style="margin-top:4px">'.sprintf($T['stats'], (int)($r['queries'] ?? 0), (int)($r['candidates'] ?? 0), (int)($r['analyzed'] ?? 0), (int)($r['added_count'] ?? 0)).'</div>';
       $added = (array)($r['added'] ?? []);
       if ($added) {
-        $out .= '<details style="margin-top:6px"'.(count($added) <= 8 ? ' open' : '').'><summary style="cursor:pointer">'.$T['added'].' ('.count($added).')</summary>'
+        /* 10 Eki 2026 (operatör: "bunlara email gitti mi?"): adminde her eklenen müşterinin gönderim durumu
+           leads.json'dan okunur — "Eklenenler" listesi tek başına gönderildiği anlamına gelmez. */
+        $sent = 0; $stCell = [];
+        if (!$en) {
+          if ($leadIdx === null) { $leadIdx = [];
+            foreach (vestra_leads() as $l) { $e = strtolower(trim((string)($l['email'] ?? ''))); if ($e !== '') $leadIdx[$e] = $l; } }
+          foreach (array_slice($added, 0, 100) as $k => $a) {
+            $l = $leadIdx[strtolower(trim((string)($a['email'] ?? '')))] ?? null; $st = (string)($l['status'] ?? '');
+            $at = trim((string)($l['last_contacted_at'] ?? ''));
+            if ($l === null)                 $stCell[$k] = '<span style="color:var(--mut,#777)">—</span>';
+            elseif ($st === 'bounced')       $stCell[$k] = '<span style="color:#c0392b">✗ geri döndü</span>';
+            elseif ($st === 'unsubscribed')  $stCell[$k] = '<span style="color:var(--mut,#777)">abonelikten çıktı</span>';
+            elseif ($at !== '')              { $sent++; $stCell[$k] = '<span style="color:#1f9d63">✓ gönderildi '.$h(date('d.m H:i', (int)strtotime($at))).'</span>'; }
+            else                             $stCell[$k] = '<span style="color:#a9781a">⏳ henüz gönderilmedi</span>';
+          }
+        }
+        $sumTxt = $en ? '' : ' · <span style="color:#1f9d63">'.$sent.' gönderildi</span> · <span style="color:#a9781a">'.(count(array_slice($added, 0, 100)) - $sent).' bekliyor/gönderilmedi</span>';
+        $out .= '<details style="margin-top:6px"'.(count($added) <= 8 ? ' open' : '').'><summary style="cursor:pointer">'.$T['added'].' ('.count($added).')'.$sumTxt.'</summary>'
               . '<table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:12px">';
-        foreach (array_slice($added, 0, 100) as $a) {
+        foreach (array_slice($added, 0, 100) as $k => $a) {
           $out .= '<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:3px 6px 3px 0">'.$h($a['company'] ?? '').'</td>'
                 . '<td style="padding:3px 6px">'.$h($a['email'] ?? '').'</td><td style="padding:3px 6px">'.$h($a['country'] ?? '').'</td>'
-                . '<td style="padding:3px 0;color:var(--mut,#777)">'.$h(implode(', ', array_slice((array)($a['brands'] ?? []), 0, 4))).'</td></tr>';
+                . '<td style="padding:3px 0;color:var(--mut,#777)">'.$h(implode(', ', array_slice((array)($a['brands'] ?? []), 0, 4))).'</td>'
+                . ($en ? '' : '<td style="padding:3px 0 3px 6px;white-space:nowrap">'.($stCell[$k] ?? '').'</td>').'</tr>';
         }
         $out .= '</table></details>';
       }
