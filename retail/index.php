@@ -415,7 +415,7 @@ sort($houseNames, SORT_NATURAL | SORT_FLAG_CASE);
             ]); ?>
           </span>
           <span class="house__in">
-            <b><?= h($brand) ?></b>
+            <b><?= h(vr_brand_label((string)$brand)) ?></b>
             <i><?= te('results_n', ['n' => (int)$n]) ?></i>
           </span>
         </a>

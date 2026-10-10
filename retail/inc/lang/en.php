@@ -162,7 +162,7 @@ return [
     'details'            => 'Details',
     'description'        => 'Description',
     'sku'                => 'Model code',
-    'sku_internal'      => 'Our reference',
+    'sku_internal'      => 'Article no.',
     'house'              => 'House',
     'category'           => 'Category',
     'returns_title'      => 'Returns & delivery',

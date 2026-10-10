@@ -180,7 +180,7 @@ vr_layout_start([
           </a>
           <?php foreach ($facets['brands'] as $b => $n): ?>
             <a class="<?= strcasecmp($b, $brand) === 0 ? 'is-on' : '' ?>" href="<?= h($link(['brand' => $b, 'page' => ''])) ?>">
-              <span><?= h($b) ?></span><i><?= (int)$n ?></i>
+              <span><?= h(vr_brand_label((string)$b)) ?></span><i><?= (int)$n ?></i>
             </a>
           <?php endforeach; ?>
         </div>

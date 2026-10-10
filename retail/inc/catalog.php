@@ -166,6 +166,31 @@ function vr_brand_key(string $b): string
 }
 
 /**
+ * Markanın vitrinde görünen yazımı. Toptan veride aynı ev bir satırda
+ * "BALMAIN", diğerinde "Balmain" geliyor; süzgeç listesi ve başlıklar karışık
+ * duruyordu. Evin kendi yazdığı biçim esas: DSQUARED2 ve GCDS büyük harf,
+ * diğerleri özel ad. Veri alanı DEĞİŞMİYOR (fiyat kuralları ve metinler o
+ * alanla eşleşiyor) — yalnızca gösterim.
+ */
+function vr_brand_label(string $b): string
+{
+    static $map = [
+        'dsquared2' => 'DSQUARED2', 'dsquared' => 'DSQUARED2', 'gcds' => 'GCDS', 'msgm' => 'MSGM',
+        'dolceandgabbana' => 'Dolce & Gabbana', 'dolcegabbana' => 'Dolce & Gabbana',
+        'gallerydept' => 'Gallery Dept.', 'offwhite' => 'Off-White', 'boss' => 'BOSS',
+        'polralphlauren' => 'Polo Ralph Lauren', 'poloralphlauren' => 'Polo Ralph Lauren',
+    ];
+    $k = vr_brand_key($b);
+    if (isset($map[$k])) return $map[$k];
+    $t = trim($b);
+    // Tamamı büyük harfle gelen ev adı → özel ad ("LACOSTE" → "Lacoste").
+    if ($t !== '' && mb_strtoupper($t) === $t && preg_match('/\p{L}{4,}/u', $t)) {
+        return mb_convert_case(mb_strtolower($t), MB_CASE_TITLE);
+    }
+    return $t;
+}
+
+/**
  * Vestra satırı perakende vitrine uygun mu: premium ev + iç çamaşırı değil.
  * Kurallar config'de (premium_brands, excluded_categories, excluded_name_regex).
  */
@@ -535,7 +560,8 @@ function vr_query(array $o = []): array
         $q     = mb_strtolower(trim((string)$o['q']));
         $terms = array_filter(preg_split('/\s+/', $q) ?: []);
         $rows  = array_values(array_filter($rows, function ($p) use ($terms) {
-            $hay = mb_strtolower($p['brand'] . ' ' . $p['name'] . ' ' . $p['sku'] . ' ' . $p['cat'] . ' ' . $p['desc']);
+            $hay = mb_strtolower($p['brand'] . ' ' . $p['name'] . ' ' . $p['sku'] . ' ' . vr_model_code($p) . ' '
+                . vr_article_no($p) . ' ' . $p['cat'] . ' ' . $p['desc']);
             foreach ($terms as $t) {
                 if (mb_strpos($hay, $t) === false) return false;   // TÜM kelimeler geçmeli
             }
@@ -1091,6 +1117,9 @@ function vr_card_name(array $p): string
     }
 
     if ($n === '') return (string)($p['sku'] ?? '');
+    // Baştaki cinsiyet sözcüğü ("Men Fleece Hoodie") vitrinde gürültü: bölüm
+    // zaten erkek giyimi, kadın modelleri adında ayrıca söylüyor.
+    $n = (string)preg_replace("/^(?:Men'?s?|Mens|Herren)\s+(?=\p{L})/u", '', $n);
     return vr_name_localise($n);
 }
 
@@ -1387,6 +1416,17 @@ function vr_product_colours(array $p, bool $withReviewed = true): array
  * Metinde bitişik yazılmış olabiliyor ("TH6709001", "SH192700HD9");
  * evin kendi yazımıyla döndürülür: "TH6709 00 001".
  */
+/**
+ * Mağazanın kendi artikel numarası: "SV-" + ürün kimliğinden türetilmiş yedi
+ * karakter. Kimlik değişmedikçe numara da değişmez; 638 üründe çakışma
+ * olasılığı ihmal edilebilir (36^7 ≈ 78 milyar).
+ */
+function vr_article_no(array $p): string
+{
+    $h = base_convert(substr(md5('sv|' . (string)($p['id'] ?? '')), 0, 12), 16, 36);
+    return 'SV-' . strtoupper(substr(str_pad($h, 7, '0', STR_PAD_LEFT), 0, 7));
+}
+
 function vr_model_code(array $p): string
 {
     $sku = rtrim(trim((string)($p['sku'] ?? '')), '-');

@@ -157,7 +157,7 @@ return [
     'details'            => 'Details',
     'description'        => 'Beschreibung',
     'sku'                => 'Modellcode',
-    'sku_internal'      => 'Unsere Referenz',
+    'sku_internal'      => 'Artikelnummer',
     'house'              => 'Haus',
     'category'           => 'Kategorie',
     'returns_title'      => 'Rückgabe & Lieferung',

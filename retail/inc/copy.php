@@ -368,13 +368,11 @@ function vr_product_facts(array $p): array
     // 59'u yanlışlıkla "Modellcode" diye gösteriliyordu. Artık gerçek ayrım
     // yapılıyor — bkz. vr_sku_is_internal().
     $code = vr_model_code($p);
-    if ($code !== '') {
-        $facts[t('sku')] = $code;
-    } elseif ($sku !== '' && !preg_match('/^[A-Z]+(-[A-Z0-9]+){2,}-?$/', $sku)) {
-        // İç referans yalnızca okunur bir kodsa gösteriliyor; addan türetilmiş
-        // slug ("LACOSTE-MEN-FLEECE-HOODI") müşteriye bir şey söylemiyor.
-        $facts[t('sku_internal')] = rtrim($sku, '-');
-    }
+    if ($code !== '') $facts[t('sku')] = $code;
+    // Her parçanın kendi artikel numarası: müşteri hizmetinde, aramada ve
+    // iadede parçayı tek başına tanıtıyor (evin model kodu aynı modelin bütün
+    // renk ve bedenlerinde ortak).
+    $facts[t('sku_internal')] = vr_article_no($p);
     $facts[t('house')]     = strtoupper(trim((string)($p['brand'] ?? '')));
     $facts[t('category')]  = vr_cat_label($cat);
     $facts[t('condition')] = $used ? t('condition_used') : t('condition_new');

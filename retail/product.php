@@ -116,7 +116,7 @@ vr_layout_start([
         <div class="pdp__head">
           <div>
             <p class="pdp__brand">
-              <a href="<?= h(vr_url('shop.php', ['brand' => $p['brand']])) ?>"><?= h($p['brand']) ?></a>
+              <a href="<?= h(vr_url('shop.php', ['brand' => $p['brand']])) ?>"><?= h(vr_brand_label((string)$p['brand'])) ?></a>
               <?php /* Katalog neredeyse tamamen erkek giyim. Kadın parçalar
                  aralarında hiçbir işaret olmadan duruyordu — kadın bir kot
                  pantolon, yanındaki on erkek kotla aynı görünüyordu. Yalnızca

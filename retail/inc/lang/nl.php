@@ -158,7 +158,7 @@ return [
     'details'            => 'Details',
     'description'        => 'Beschrijving',
     'sku'                => 'Modelcode',
-    'sku_internal'      => 'Onze referentie',
+    'sku_internal'      => 'Artikelnummer',
     'house'              => 'Huis',
     'category'           => 'Categorie',
     'returns_title'      => 'Retour en levering',

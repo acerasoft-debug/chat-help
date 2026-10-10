@@ -152,7 +152,7 @@ return [
     'details'            => 'Dettagli',
     'description'        => 'Descrizione',
     'sku'                => 'Codice modello',
-    'sku_internal'      => 'Nostro riferimento',
+    'sku_internal'      => 'Codice articolo',
     'house'              => 'Maison',
     'category'           => 'Categoria',
     'returns_title'      => 'Reso e consegna',

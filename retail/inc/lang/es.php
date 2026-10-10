@@ -152,7 +152,7 @@ return [
     'details'            => 'Detalles',
     'description'        => 'Descripción',
     'sku'                => 'Código de modelo',
-    'sku_internal'      => 'Nuestra referencia',
+    'sku_internal'      => 'N.º de artículo',
     'house'              => 'Casa',
     'category'           => 'Categoría',
     'returns_title'      => 'Devolución y entrega',

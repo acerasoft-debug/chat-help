@@ -54,7 +54,7 @@ vr_layout_start([
           <article class="housecard" data-reveal>
             <header class="housecard__head">
               <h2 class="housecard__t">
-                <a href="<?= h(vr_url('shop.php', ['brand' => $brand])) ?>"><?= h((string)$brand) ?></a>
+                <a href="<?= h(vr_url('shop.php', ['brand' => $brand])) ?>"><?= h(vr_brand_label((string)$brand)) ?></a>
               </h2>
               <p class="housecard__meta">
                 <span><?= te('results_n', ['n' => (int)$n]) ?></span>
