@@ -1,0 +1,130 @@
+name: sarvesto.com'u mağazanın köküne bağla
+on:
+  workflow_dispatch:
+    inputs:
+      docroot:
+        description: "Mağazanın belge kökü (ev dizinine göre)"
+        required: true
+        default: "maxsales_de"
+      dry_run:
+        description: "true = yalnızca mevcut durumu göster ve ne yapılacağını yaz"
+        required: true
+        default: "true"
+
+permissions:
+  contents: read
+
+# NİYE
+# ====
+# sarvesto.com cPanel'de ek alan olarak açılmış ama belge kökü
+# ~/public_html/sarvesto.com — boş bir klasör. Mağaza ~/maxsales_de'de
+# çalışıyor (veri ~/data, fotoğraflar ~/maxsales_de/uploads). Kodu boş
+# klasöre kopyalamak yerine alan adının kökünü mağazaya çeviriyoruz:
+#   • tek kurulum, tek veri klasörü, tek fotoğraf arşivi;
+#   • public_html içindeki düzen betiği (tanımadığı klasörü _golge-* diye
+#     rafa kaldıran) mağazaya hiç dokunamaz.
+#
+# NASIL
+# =====
+# cPanel'de ek alan = bir alt alan + ona park edilmiş alan. Belge kökü alt
+# alanındır; SubDomain::changedocroot ile değiştirilir (bu sunucuda
+# SubDomain modülü var, Domains/AddonDomain yok — ölçüldü). Alt alanın adı
+# DomainInfo::single_domain_data'dan okunur, tahmin edilmez.
+# O da olmazsa yedek yol: ~/public_html/sarvesto.com boşsa kenara alınıp
+# yerine ~/<docroot>'a sembolik bağ konur.
+#
+# SALT OKUNUR KISIM: dry_run=true hiçbir şeyi değiştirmez.
+jobs:
+  bind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bağla
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          R: ${{ github.event.inputs.docroot }}
+          DRY: ${{ github.event.inputs.dry_run }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 10m
+          envs: R,DRY
+          script: |
+            set -u
+            D=sarvesto.com
+            case "$R" in ""|/*|*..*|*/*|public_html) echo "HATA: docroot tek bir klasör adı olmalı, public_html olamaz"; exit 1 ;; esac
+            NEW="$HOME/$R"
+            [ -f "$NEW/index.php" ] || { echo "HATA: $NEW içinde mağaza kodu yok (index.php)"; exit 1; }
+            run() { if [ "$DRY" = "true" ]; then echo "  [kuru] $*"; else eval "$@"; fi; }
+
+            echo "== 1) sarvesto.com şu an nasıl tanımlı =="
+            uapi --output=jsonpretty DomainInfo single_domain_data domain="$D" > /tmp/sd.json 2>&1
+            grep -E '"(domain|documentroot|type|subdomain|rootdomain|servername)"' /tmp/sd.json | sed 's/^/  /'
+            CUR=$(grep -oE '"documentroot" *: *"[^"]+"' /tmp/sd.json | head -1 | sed 's/.*: *"//; s/"$//')
+            echo "  mevcut kök: ${CUR:-?}"
+            if [ -n "$CUR" ] && [ -d "$CUR" ]; then
+              echo "  içerik ($(find "$CUR" -mindepth 1 | wc -l) öğe):"; ls -la "$CUR" | sed 's/^/     /' | head -15
+            fi
+            echo
+
+            echo "== 2) ek alanın altındaki alt alan =="
+            uapi --output=jsonpretty SubDomain list_subdomains > /tmp/subs.json 2>&1
+            grep -E '"(domain|subdomain|rootdomain|dir|basedir)"' /tmp/subs.json | sed 's/^/  /' | head -40
+            SUB=$(grep -oE '"(servername|subdomain)" *: *"[^"]+"' /tmp/sd.json | head -1 | sed 's/.*: *"//; s/"$//')
+            [ -n "$SUB" ] || SUB=$(grep -oE '"domain" *: *"sarvesto\.[a-z0-9.-]+"' /tmp/subs.json | head -1 | sed 's/.*: *"//; s/"$//')
+            echo "  bulunan alt alan: ${SUB:-YOK}"
+            echo
+
+            echo "== 3) public_html düzen betiği var mı (bilgi) =="
+            crontab -l 2>/dev/null | grep -nE 'public_html|golge|_golge' | sed 's/^/  cron: /' || echo "  crontab'da yok"
+            ls -d "$HOME"/public_html/_golge-* 2>/dev/null | sed 's/^/  raf: /' | head -5
+            echo
+
+            if [ "$(readlink -f "${CUR:-/nonexistent}")" = "$(readlink -f "$NEW")" ]; then
+              echo "== ZATEN BAĞLI: $D -> $NEW =="; exit 0
+            fi
+
+            echo "== 4) belge kökünü değiştir =="
+            OK=0
+            if [ -n "$SUB" ]; then
+              if [ "$DRY" = "true" ]; then
+                echo "  [kuru] uapi SubDomain changedocroot subdomain=$SUB dir=$R"
+              else
+                uapi --output=jsonpretty SubDomain changedocroot subdomain="$SUB" dir="$R" > /tmp/ch.json 2>&1
+                head -30 /tmp/ch.json | sed 's/^/  /'
+                grep -q '"errors" *: *null' /tmp/ch.json && OK=1
+              fi
+            else
+              echo "  alt alan bulunamadı — changedocroot denenmiyor"
+            fi
+
+            if [ "$OK" = "0" ] && [ "$DRY" != "true" ]; then
+              echo "  -- yedek yol: sembolik bağ"
+              if [ -n "$CUR" ] && [ -e "$CUR" ] && [ ! -L "$CUR" ]; then
+                if [ "$(find "$CUR" -mindepth 1 -not -name '.well-known' -not -path '*/.well-known/*' -not -name 'cgi-bin' -not -name '.htaccess' | wc -l)" -gt 0 ]; then
+                  echo "  $CUR boş değil — dokunulmadı. İçeriği gözden geçirin."; exit 1
+                fi
+                mv "$CUR" "$CUR.bos-$(date +%Y%m%d-%H%M%S)"
+              fi
+              ln -s "$NEW" "$CUR" && OK=1 && echo "  bağ kuruldu: $CUR -> $NEW"
+            fi
+            [ "$DRY" = "true" ] && { echo "  [kuru] olmazsa: mv $CUR kenara; ln -s $NEW $CUR"; exit 0; }
+            echo
+
+            echo "== 5) sonuç =="
+            uapi --output=jsonpretty DomainInfo domains_data 2>&1 | grep -E '"(domain|documentroot)"' | sed 's/^/  /'
+            [ "$OK" = "1" ] || { echo "HATA: kök değiştirilemedi"; exit 1; }
+
+      - name: Dışarıdan doğrula (DNS'i atlayarak)
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          IP=$(dig +short A vestrasales.com | head -1)
+          echo "sunucu: $IP · sarvesto.com DNS: $(dig +short A sarvesto.com | head -1 || true)"
+          for p in / /shop.php /outlet.php /legal/impressum.php /admin/login.php; do
+            : > /tmp/b
+            code=$(curl -s -o /tmp/b -w '%{http_code}' --max-time 25 --resolve "sarvesto.com:80:$IP" "http://sarvesto.com$p")
+            n=$(grep -c SARVESTO /tmp/b); n=${n:-0}
+            printf '   %-24s %s  SARVESTO:%s\n' "$p" "$code" "$n"
+          done
+          echo "SARVESTO>0 ise alan adı mağazaya bağlı; geriye GoDaddy'deki A kaydı kalıyor."
