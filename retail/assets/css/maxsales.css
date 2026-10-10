@@ -1244,6 +1244,14 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 /* Kutu yok, çerçeve yok: fotoğraf, bir ince boşluk, metin. Kart sınırını
    beyaz alan çiziyor — editöryal sayfalarda çerçeve dergiyi kataloğa çevirir. */
 .jcard{display:flex;flex-direction:column;background:transparent}
+/* Beş yazı üç sütunda bir boşluk bırakıyordu (3+2). Geniş ekranda ilk yazı
+   iki sütun kaplıyor: 2+1 / 1+1+1 — ızgara tam kapanıyor, ilk yazı da öne çıkıyor. */
+@media (min-width:1000px){
+  .jgrid{grid-template-columns:repeat(3,1fr)}
+  .jgrid>.jcard:first-child:nth-last-child(5),.jgrid>.jcard:first-child:nth-last-child(8){grid-column:span 2}
+  /* iki sütun + oluk genişliğinde, yanındaki 4:3 karelerle AYNI yükseklik */
+  .jgrid>.jcard:first-child:nth-last-child(5) .jcard__media,.jgrid>.jcard:first-child:nth-last-child(8) .jcard__media{aspect-ratio:8.32/3}
+}
 .jcard__media{aspect-ratio:4/3;overflow:hidden;background:var(--bone-2)}
 .jcard__media img{width:100%;height:100%;object-fit:cover;transition:transform 1.4s var(--ease)}
 .jcard:hover .jcard__media img{transform:scale(1.03)}
