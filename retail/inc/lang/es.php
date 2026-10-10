@@ -612,4 +612,10 @@ return [
     'app_f3_t' => 'Nada de más',
     'app_f3_b' => 'Sin rastreo, sin identificadores publicitarios, sin avalancha de notificaciones. La app es la tienda misma, solo más rápida y a pantalla completa.',
     'app_desktop' => '¿En el ordenador? Abre {url} en tu móvil.',
+    'app_desk_t' => 'Ordenador',
+    'app_desk_1' => 'Chrome o Edge: haz clic en el icono de instalación a la derecha de la barra de direcciones, o en el botón de arriba.',
+    'app_desk_2' => 'Safari en Mac: Archivo → «Añadir al Dock».',
+    'app_desk_3' => '{brand} se abre entonces en su propia ventana, con su icono en el Dock o la barra de tareas.',
+    'app_store_btn' => 'Descargar en App Store',
+    'play_store_btn' => 'Disponible en Google Play',
 ];

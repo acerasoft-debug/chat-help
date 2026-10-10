@@ -616,4 +616,10 @@ return [
     'app_f3_t' => 'Rien de superflu',
     'app_f3_b' => 'Aucun pistage, aucun identifiant publicitaire, aucune avalanche de notifications. L’app, c’est la boutique — plus rapide et en plein écran.',
     'app_desktop' => 'Sur ordinateur ? Ouvrez {url} sur votre téléphone.',
+    'app_desk_t' => 'Ordinateur',
+    'app_desk_1' => 'Chrome ou Edge : cliquez sur l’icône d’installation à droite de la barre d’adresse — ou sur le bouton ci-dessus.',
+    'app_desk_2' => 'Safari sur Mac : Fichier → « Ajouter au Dock ».',
+    'app_desk_3' => '{brand} s’ouvre alors dans sa propre fenêtre, avec son icône dans le Dock ou la barre des tâches.',
+    'app_store_btn' => 'Télécharger dans l’App Store',
+    'play_store_btn' => 'Disponible sur Google Play',
 ];

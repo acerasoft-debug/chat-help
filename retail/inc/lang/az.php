@@ -612,4 +612,10 @@ return [
     'app_f3_t' => 'Artıq heç nə',
     'app_f3_b' => 'İzləmə yoxdur, reklam identifikatoru yoxdur, bildiriş axını yoxdur. Tətbiq mağazanın özüdür — sadəcə daha sürətli və tam ekranda.',
     'app_desktop' => 'Kompüterdəsiniz? {url} ünvanını telefonunuzda açın.',
+    'app_desk_t' => 'Kompüter',
+    'app_desk_1' => 'Chrome və ya Edge: ünvan sətrinin sağındakı quraşdırma ikonuna — ya da yuxarıdakı düyməyə klikləyin.',
+    'app_desk_2' => 'Mac-də Safari: Fayl → “Dock-a əlavə et”.',
+    'app_desk_3' => '{brand} sonra öz pəncərəsində, Dock və ya tapşırıq panelində öz ikonu ilə açılır.',
+    'app_store_btn' => 'App Store-dan yükləyin',
+    'play_store_btn' => 'Google Play-də əldə edin',
 ];

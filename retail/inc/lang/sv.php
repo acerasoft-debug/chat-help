@@ -612,4 +612,10 @@ return [
     'app_f3_t' => 'Inget extra',
     'app_f3_b' => 'Ingen spårning, inga annons-id:n, ingen pushspam. Appen är butiken själv — bara snabbare och i helskärm.',
     'app_desktop' => 'Vid en dator? Öppna {url} i telefonen.',
+    'app_desk_t' => 'Dator',
+    'app_desk_1' => 'Chrome eller Edge: klicka på installationsikonen till höger i adressfältet — eller på knappen ovan.',
+    'app_desk_2' => 'Safari på Mac: Arkiv → ”Lägg till i Dock”.',
+    'app_desk_3' => '{brand} öppnas sedan i ett eget fönster, med egen ikon i Dock eller aktivitetsfältet.',
+    'app_store_btn' => 'Hämta i App Store',
+    'play_store_btn' => 'Ladda ned på Google Play',
 ];

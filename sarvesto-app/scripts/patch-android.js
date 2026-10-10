@@ -9,6 +9,7 @@
  *      Anahtar depoda DEĞİL (depo herkese açık): iş akışı onu sunucudan alır
  *      ve key.properties'i derleme sırasında yazar. Dosya yoksa release
  *      imzasız kalır, derleme bozulmaz.
+ *   4) styles.xml — beyaz durum ve gezinti çubuğu, koyu simgeler.
  *   3) Sürüm numarası: VERSION_CODE / VERSION_NAME ortam değişkenlerinden;
  *      her derleme bir öncekinin üzerine güncelleme olarak kurulabilsin.
  */
@@ -93,5 +94,28 @@ $1`);
   console.log('✓ build.gradle: sürüm + release imzası');
 }
 
+/* Sistem çubukları beyaz, simgeler koyu: uygulama açılır açılmaz mağazanın
+   beyaz başlığıyla tek parça görünsün (varsayılan şablonda siyah gezinti
+   çubuğu ve renkli durum çubuğu var). */
+function patchStyles() {
+  const f = path.join(ROOT, 'app', 'src', 'main', 'res', 'values', 'styles.xml');
+  if (!fs.existsSync(f)) { console.log('styles.xml yok.'); return; }
+  let s = fs.readFileSync(f, 'utf8');
+  if (s.includes('SARVESTO_BARS')) { console.log('styles.xml zaten yamalı.'); return; }
+  const items = `
+        <!-- SARVESTO_BARS -->
+        <item name="android:statusBarColor">#FFFFFF</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowBackground">@android:color/white</item>`;
+  const re = /(<style name="AppTheme\.NoActionBar"[^>]*>)/;
+  if (!re.test(s)) { console.log('✗ AppTheme.NoActionBar yok — çubuk yaması atlandı.'); return; }
+  s = s.replace(re, `$1${items}`);
+  fs.writeFileSync(f, s);
+  console.log('✓ styles.xml: beyaz durum/gezinti çubuğu');
+}
+
 patchMainActivity();
 patchGradle();
+patchStyles();

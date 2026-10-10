@@ -24,6 +24,16 @@ $apkAbs = vr_doc_root() . $apkRel;
 $apk    = is_file($apkAbs) ? ['url' => vr_url(ltrim($apkRel, '/'), ['v' => filemtime($apkAbs)]),
                                'size' => number_format(filesize($apkAbs) / 1048576, 1, ',', '.') . ' MB'] : null;
 
+$ios  = trim((string)vr_config('app_store_url'));
+$play = trim((string)vr_config('play_store_url'));
+// Mağaza düğmesi: resmi rozet görseli yerine evin kendi düğme dili — Apple ve
+// Google'ın marka kuralları rozetin değiştirilmesine izin vermiyor, siyah-beyaz
+// vitrinde renkli rozet de yabancı duruyordu.
+$storeBtn = static function (string $url, string $label, string $cls = '') : string {
+    return '<a class="btn btn--brass btn--lg ' . h($cls) . '" href="' . h($url) . '" rel="noopener"><span>'
+        . h($label) . '</span>' . vr_icon('arrow', 16) . '</a>';
+};
+
 $shots = vr_query(['per_page' => 6, 'in_stock' => true, 'exclude_vault' => true])['rows'];
 
 vr_layout_start([
@@ -41,6 +51,8 @@ vr_layout_start([
       <p class="apphero__in" data-app-only><?= vr_icon('check', 16) ?> <?= te('app_installed') ?></p>
 
       <div class="hero__cta apphero__cta">
+        <?php if ($ios !== ''): ?><?= $storeBtn($ios, t('app_store_btn'), 'apphero__store apphero__store--ios') ?><?php endif; ?>
+        <?php if ($play !== ''): ?><?= $storeBtn($play, t('play_store_btn'), 'apphero__store apphero__store--play') ?><?php endif; ?>
         <button class="btn btn--brass btn--lg" type="button" data-app-install hidden>
           <span><?= te('app_install_btn') ?></span><?= vr_icon('arrow', 16) ?>
         </button>
@@ -78,6 +90,9 @@ vr_layout_start([
           <img src="<?= h(vr_url('assets/app/apple-touch-icon.png')) ?>" alt="" width="52" height="52">
           <h2><?= te('app_iphone') ?></h2>
         </header>
+        <?php if ($ios !== ''): ?>
+          <?= $storeBtn($ios, t('app_store_btn'), 'btn--block') ?>
+        <?php endif; ?>
         <ol class="appsteps">
           <li><?= te('app_ios_1', ['host' => $host]) ?></li>
           <li><span>
@@ -93,6 +108,9 @@ vr_layout_start([
           <img src="<?= h(vr_url('assets/app/icon-192.png')) ?>" alt="" width="52" height="52">
           <h2><?= te('app_android') ?></h2>
         </header>
+        <?php if ($play !== ''): ?>
+          <?= $storeBtn($play, t('play_store_btn'), 'btn--block') ?>
+        <?php endif; ?>
         <button class="btn btn--block" type="button" data-app-install hidden>
           <span><?= te('app_install_btn') ?></span><?= vr_icon('arrow', 16) ?>
         </button>
@@ -101,6 +119,18 @@ vr_layout_start([
           <p class="appway__note"><?= te('app_apk_note', ['size' => $apk['size']]) ?></p>
         <?php endif; ?>
         <p class="appway__note"><?= te('app_android_alt') ?></p>
+      </article>
+
+      <article class="appway appway--desktop" id="desktop">
+        <header class="appway__h">
+          <span class="appway__screen" aria-hidden="true"><img src="<?= h(vr_url('assets/app/icon-192.png')) ?>" alt="" width="26" height="26"></span>
+          <h2><?= te('app_desk_t') ?></h2>
+        </header>
+        <ol class="appsteps">
+          <li><?= te('app_desk_1') ?></li>
+          <li><?= te('app_desk_2') ?></li>
+        </ol>
+        <p class="appway__note"><?= te('app_desk_3', ['brand' => $brand]) ?></p>
       </article>
     </div>
 

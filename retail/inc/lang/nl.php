@@ -618,4 +618,10 @@ return [
     'app_f3_t' => 'Niets extra',
     'app_f3_b' => 'Geen tracking, geen advertentie-ID’s, geen pushspam. De app is de winkel zelf — alleen sneller en schermvullend.',
     'app_desktop' => 'Op een computer? Open {url} op je telefoon.',
+    'app_desk_t' => 'Computer',
+    'app_desk_1' => 'Chrome of Edge: klik op het installatie-icoon rechts in de adresbalk — of op de knop hierboven.',
+    'app_desk_2' => 'Safari op de Mac: Archief → „Voeg toe aan Dock”.',
+    'app_desk_3' => '{brand} opent dan in een eigen venster, met een eigen icoon in het Dock of de taakbalk.',
+    'app_store_btn' => 'Download in de App Store',
+    'play_store_btn' => 'Ontdek het op Google Play',
 ];

@@ -612,4 +612,10 @@ return [
     'app_f3_t' => 'Intet ekstra',
     'app_f3_b' => 'Ingen sporing, ingen annonce-id’er, ingen push-spam. Appen er butikken selv — bare hurtigere og i fuld skærm.',
     'app_desktop' => 'Ved en computer? Åbn {url} på din telefon.',
+    'app_desk_t' => 'Computer',
+    'app_desk_1' => 'Chrome eller Edge: klik på installationsikonet til højre i adresselinjen — eller på knappen ovenfor.',
+    'app_desk_2' => 'Safari på Mac: Arkiv → “Føj til Dock”.',
+    'app_desk_3' => '{brand} åbner derefter i sit eget vindue med sit eget ikon i Dock eller proceslinjen.',
+    'app_store_btn' => 'Hent i App Store',
+    'play_store_btn' => 'Hent den på Google Play',
 ];

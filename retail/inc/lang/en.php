@@ -629,4 +629,10 @@ return [
     'app_f3_t' => 'Nothing extra',
     'app_f3_b' => 'No tracking, no advertising IDs, no push spam. The app is the shop itself — just faster and full-screen.',
     'app_desktop' => 'On a computer? Open {url} on your phone.',
+    'app_desk_t' => 'Computer',
+    'app_desk_1' => 'Chrome or Edge: click the install icon at the right of the address bar — or the button above.',
+    'app_desk_2' => 'Safari on Mac: File → “Add to Dock”.',
+    'app_desk_3' => '{brand} then opens in its own window, with its own icon in the Dock or taskbar.',
+    'app_store_btn' => 'Download on the App Store',
+    'play_store_btn' => 'Get it on Google Play',
 ];

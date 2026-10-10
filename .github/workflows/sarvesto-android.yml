@@ -23,6 +23,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      HAS_PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -107,14 +109,34 @@ jobs:
           fi
           grep -E "certificate (DN|SHA-256)" "$RUNNER_TEMP/sig.txt" || cat "$RUNNER_TEMP/sig.txt"
           cp "$APK" "$GITHUB_WORKSPACE/SARVESTO.apk"
+          # Google Play paketi (aynı anahtarla imzalı; Play'de "upload key")
+          ./gradlew bundleRelease --no-daemon -q
+          cp app/build/outputs/bundle/release/app-release.aab "$GITHUB_WORKSPACE/SARVESTO.aab"
           rm -f key.properties
           ls -la "$GITHUB_WORKSPACE/SARVESTO.apk"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: SARVESTO-android
-          path: SARVESTO.apk
+          name: SARVESTO-android-${{ github.run_number }}
+          path: |
+            SARVESTO.apk
+            SARVESTO.aab
           if-no-files-found: error
+
+      # Google Play: depo sırrı PLAY_SERVICE_ACCOUNT_JSON (Play Console →
+      # Kurulum → API erişimi → hizmet hesabı, "Sürüm yöneticisi" yetkisi)
+      # eklenince her derleme Dahili test kanalına yüklenir. Uygulama kaydı
+      # (com.sarvesto.app) Play Console'da bir kez elle açılmış olmalı ve ilk
+      # AAB bir kez elle yüklenmiş olmalı — Google'ın kuralı.
+      - name: Google Play — Dahili test
+        if: env.HAS_PLAY == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.sarvesto.app
+          releaseFiles: SARVESTO.aab
+          track: internal
+          status: completed
 
       - name: Sitede yayınla (uploads/app/SARVESTO.apk)
         run: |

@@ -179,6 +179,15 @@ function vr_config(?string $key = null, mixed $default = null): mixed
              * Numara gelene kadar selftest bu satırda FAIL veriyor — istenen
              * davranış bu.
              */
+            /**
+             * ---- mağaza bağlantıları (uygulama sayfası)
+             * App Store / Google Play'de yayına girince bağlantı buraya
+             * yazılır; /app sayfası resmi mağaza düğmesini kendiliğinden
+             * gösterir. Boşken ana ekran kurulumu ve APK anlatılır.
+             */
+            'app_store_url'  => '',
+            'play_store_url' => '',
+
             'company' => [
                 'legal_name'   => 'acerasoft LLC',
                 'form'         => 'US Limited Liability Company (State of Delaware)',

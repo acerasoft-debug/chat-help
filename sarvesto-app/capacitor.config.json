@@ -34,5 +34,13 @@
       "backgroundColor": "#ffffff",
       "overlaysWebView": false
     }
+  },
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#ffffff",
+    "allowsLinkPreview": false,
+    "scrollEnabled": true,
+    "preferredContentMode": "mobile",
+    "scheme": "SARVESTO"
   }
 }

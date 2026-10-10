@@ -618,4 +618,10 @@ return [
     'app_f3_t' => 'Nichts darüber hinaus',
     'app_f3_b' => 'Kein Tracking, keine Werbe-IDs, keine Push-Flut. Die App ist der Shop selbst — nur schneller und im Vollbild.',
     'app_desktop' => 'Am Computer? Öffnen Sie {url} auf Ihrem Telefon.',
+    'app_desk_t' => 'Computer',
+    'app_desk_1' => 'Chrome oder Edge: auf das Installationssymbol rechts in der Adressleiste klicken — oder die Schaltfläche oben.',
+    'app_desk_2' => 'Safari auf dem Mac: Ablage → „Zum Dock hinzufügen“.',
+    'app_desk_3' => '{brand} öffnet sich dann in einem eigenen Fenster, mit eigenem Symbol im Dock oder in der Taskleiste.',
+    'app_store_btn' => 'Im App Store laden',
+    'play_store_btn' => 'Jetzt bei Google Play',
 ];

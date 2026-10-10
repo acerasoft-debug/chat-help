@@ -1936,6 +1936,8 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 @media (display-mode: standalone){
   .card__media,.housecard__shot,.btn{-webkit-touch-callout:none}
 }
+[data-platform="app"] .card__media,[data-platform="app"] .housecard__shot,[data-platform="app"] .btn{-webkit-touch-callout:none}
+[data-platform="app"] body{-webkit-tap-highlight-color:transparent}
 
 /* ---------------------------------------------------------------- app.php */
 .apphero{padding:clamp(56px,8vw,112px) 0}
@@ -1963,6 +1965,13 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 /* Kurulum kartları — kullanılan cihaz öne geliyor */
 .appways{display:grid;gap:clamp(16px,2vw,28px);grid-template-columns:1fr}
 @media (min-width:800px){.appways{grid-template-columns:1fr 1fr}}
+@media (min-width:1100px){.appways{grid-template-columns:repeat(3,1fr)}}
+[data-platform="desktop"] .appway--desktop{border-color:var(--ink);order:-1}
+/* Bilgisayar kartının simgesi: ekran çerçevesi içinde uygulama ikonu */
+.appway__screen{width:62px;height:44px;margin-bottom:8px;border:1.5px solid var(--ink);border-radius:5px;display:inline-flex;align-items:center;justify-content:center;position:relative}
+.appway__screen::after{content:"";position:absolute;bottom:-7px;left:50%;width:22px;height:2px;margin-left:-11px;background:var(--ink)}
+.appway__screen img{border-radius:6px}
+[data-platform="ios"] .apphero__store--play,[data-platform="android"] .apphero__store--ios{display:none}
 .appway{border:1px solid var(--bone-3);padding:clamp(22px,3vw,36px);display:flex;flex-direction:column;gap:16px;scroll-margin-top:110px}
 [data-platform="ios"] .appway--ios,[data-platform="android"] .appway--android{border-color:var(--ink);order:-1}
 .appway__h{display:flex;align-items:center;gap:16px}
