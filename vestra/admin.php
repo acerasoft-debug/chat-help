@@ -1939,6 +1939,12 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
      "lemlist'e verildi" işareti seçiliyse indirilenler damgalanır, Brevo onlara yazmaz. */
   /* support@ posta kutusundan kotasız gönderim isteği (8 Eki 2026, operatör: "adminde tetikleyici
      olsun"). Panel GitHub'ı başlatamaz; istek sıraya yazılır, mailbox-queue.yml 10 dk'da bir alır. */
+  if($act==='mailbox_bounce_reset'){
+    require_once __DIR__.'/inc/mailbox.php';
+    vestra_mailbox_bounce_reset();
+    $_SESSION['mailbox_flash']=[true,'✓ Geri dönme sayacı sıfırlandı — geri dönen adresler listeden zaten çıkarıldı; gönderim devam ediyor. Yeni gönderimlerde oran %'.(int)(VESTRA_MAILBOX_BOUNCE_MAX*100).'\'i aşarsa fren yeniden devreye girer.'];
+    header('Location: /admin?tab=prospects#mailboxsend'); exit;
+  }
   if($act==='mailbox_cap'){
     require_once __DIR__.'/inc/mailbox.php';
     $c=vestra_mailbox_set_cap((int)($_POST['daily_cap']??VESTRA_MAILBOX_DEFAULT_CAP));
@@ -6670,7 +6676,8 @@ elseif($tab==='prospects'):
           <?php else: ?>
             <span style="color:#c0392b">Isınma KAPALI — yeni alan adında ilk günlerde yüksek hacim spam riskini artırır.</span><br>
           <?php endif; ?>
-          Geri dönme (son <?= VESTRA_MAILBOX_BOUNCE_DAYS ?> gün): <b style="color:<?= $mbBs['stop']?'#c0392b':($mbBs['rate']>0.04?'#a9781a':'#1f9d63') ?>">%<?= number_format($mbBs['rate']*100,1) ?></b> (<?= (int)$mbBs['bounced'] ?>/<?= (int)$mbBs['sent'] ?>) · %<?= (int)(VESTRA_MAILBOX_BOUNCE_MAX*100) ?>'i aşarsa gönderim kendiliğinden durur<?= $mbBs['stop']?' — <b style="color:#c0392b">ŞU AN DURDU</b>: geri dönen adresler listeden ayıklanmadan yeni gönderim yapılmaz':'' ?>.<br>
+          Geri dönme (son <?= VESTRA_MAILBOX_BOUNCE_DAYS ?> gün): <b style="color:<?= $mbBs['stop']?'#c0392b':($mbBs['rate']>0.04?'#a9781a':'#1f9d63') ?>">%<?= number_format($mbBs['rate']*100,1) ?></b> (<?= (int)$mbBs['bounced'] ?>/<?= (int)$mbBs['sent'] ?>) · %<?= (int)(VESTRA_MAILBOX_BOUNCE_MAX*100) ?>'i aşarsa gönderim kendiliğinden durur<?= $mbBs['stop']?' — <b style="color:#c0392b">ŞU AN DURDU</b>. Geri dönen adresler listeden otomatik çıkarıldı (bir daha gönderilmez).':'' ?>.
+          <?php if($mbBs['stop']): ?><form method="post" style="display:inline;margin-left:6px" onsubmit="return confirm('Geri dönen adresler listeden çıkarıldı. Sayaç sıfırlansın ve gönderim devam etsin mi?')"><?= csrfField() ?><input type="hidden" name="_action" value="mailbox_bounce_reset"><button class="abtn" type="submit">✓ Liste temizlendi — gönderime devam et</button></form><?php endif; ?><br>
           Her mektupta: tek tıkla abonelikten çıkma (List-Unsubscribe), düz metin + HTML, şirket posta adresi; aynı dükkânın tek adresine, aynı alan adına arka arkaya değil, mektuplar arası <?= VESTRA_MAILBOX_PAUSE_MIN ?>–<?= VESTRA_MAILBOX_PAUSE_MAX ?> sn.
         </div>
         <div style="font-size:12px;line-height:1.6;color:var(--mut)">

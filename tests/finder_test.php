@@ -724,6 +724,9 @@ $mkeys2 = array_keys(vestra_finder_campaigns());
 $t('geri dönme yüksekken panel isteği reddedilir ve nedenini söyler', !$bOk && str_contains($bMsg, 'geri döndü'));
 $t('geri dönme yüksekken parti boş, not var', vestra_mailbox_batch(10, 'edit')['items'] === [] && str_contains((string)vestra_mailbox_batch(10, 'edit')['note'], 'geri donme'));
 $t('geri dönme yüksekken satıcıların sunucu yolu da bekler', vestra_seller_outbox_run_server(['mail' => fn() => true, 'sleep' => fn($s) => null, 'log' => fn($m) => null])['sent'] === 0);
+vestra_mailbox_bounce_reset();
+$t('"liste temizlendi" sonrası eski gönderimler sayılmaz, fren açılır', !vestra_mailbox_bounce_stats()['stop'] && vestra_mailbox_bounce_stats()['sent'] === 0);
+@unlink(VESTRA_DATA_DIR.'/mailbox.json');
 @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
 vestra_write_json('leads.json', [
   ['id' => 'D1', 'company' => 'Shop One', 'email' => 'info@shopone.example', 'country' => 'France', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'd1'],

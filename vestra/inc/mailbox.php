@@ -170,7 +170,10 @@ function vestra_mailbox_cap_today(?array $leads = null): int {
 
 /** Son VESTRA_MAILBOX_BOUNCE_DAYS gün: ['sent','bounced','rate','stop']. Gönderilmeden atlanan ölü alan adları sayılmaz. */
 function vestra_mailbox_bounce_stats(?array $leads = null): array {
-  $since = time() - VESTRA_MAILBOX_BOUNCE_DAYS * 86400; $s = 0; $b = 0;
+  /* "Liste temizlendi, devam et" (operatör onayı): o andan ÖNCEKİ gönderimler sayılmaz — geri dönenler zaten listeden
+     düştü; fren bundan sonraki gönderimlerin oranına bakar. 11 Eki 2026: tarayıcı Çöp kutusundaki 42 eski bildirimi
+     (8–10 Eki gönderimleri) bir kerede işaretleyince oran %15'e çıktı ve fren temizlenmiş liste yüzünden 3 gün kilitlendi. */
+  $since = max(time() - VESTRA_MAILBOX_BOUNCE_DAYS * 86400, (int)strtotime((string)(vestra_mailbox_cfg()['bounce_reset_at'] ?? ''))); $s = 0; $b = 0;
   foreach ($leads ?? vestra_leads() as $l) {
     if (!in_array((string)($l['contact_via'] ?? ''), ['mailbox', 'seller_server'], true)) continue;
     if ((int)strtotime((string)($l['last_contacted_at'] ?? '')) < $since) continue;
@@ -179,6 +182,13 @@ function vestra_mailbox_bounce_stats(?array $leads = null): array {
   }
   $rate = $s ? $b / $s : 0.0;
   return ['sent' => $s, 'bounced' => $b, 'rate' => $rate, 'stop' => $s >= VESTRA_MAILBOX_BOUNCE_MIN_SENT && $rate > VESTRA_MAILBOX_BOUNCE_MAX];
+}
+
+/** Operatör: geri dönenler listeden düştü, frenin sayacını sıfırla. */
+function vestra_mailbox_bounce_reset(): void {
+  $cfg = vestra_mailbox_cfg(); $cfg['bounce_reset_at'] = date('c');
+  $f = vestra_mailbox_file('mailbox.json');
+  file_put_contents($f, json_encode($cfg, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES), LOCK_EX); @chmod($f, 0600);
 }
 
 /** Partide aynı alan adı arka arkaya gelmesin (Gmail/Outlook aynı gönderenden ardışık yağmuru sever değil). */
