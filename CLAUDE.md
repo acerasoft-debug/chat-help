@@ -4729,6 +4729,14 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   Türkiye bilerek yok (ülke engeli). 10 Eki ölçümü: tur başına 16–45 yeni butik, gün toplamı 135. GitHub zamanlaması
   4–6 saat gecikiyor (05:20 turu 11:12'de, 15:20 turu 19:18'de başladı) — GitHub anahtarı kayıtlıysa sunucu
   zamanında başlatır. Gönderim anındaki distribütör/toptancı süzgeci aramayla aynı terimlerde (8 dil).
+  **11 Eki (2):** operatör "otomatik arama yap, günde 500'e kadar butik bulsun ve göndersin" → turlar 3 saatte bir
+  (cron `20 1-22/3 * * *`, `VESTRA_FINDER_SLOTS` 8 tur), tur başına 60 şehir, havuz ~370 şehir / 96 ülke (Türkiye ve
+  yaptırımlı ülkeler yok); gün içinde (UTC) `VESTRA_FINDER_DAILY_TARGET`=500 yeni butiğe ulaşılınca ZAMANLI turlar
+  aramayı atlar (vestra-known.php `found_today`; sunucu zamanlayıcısı da). Gönderim: `vestra_mailbox_auto_catchup()`
+  cron'da her 10 dk — OTOMATİK modda açık istek yoksa, bugünkü hak (ısınma) varsa, bekleyen yeni butik varsa ve son
+  istek 20 dk'dan eskiyse istek açar (turun kendi isteği bir önceki gönderimle çakışınca düşüyordu). Kampanya dili:
+  yalnız sitenin de konuştuğu diller (en, de, fr, it, es, pt — `VESTRA_CAMPAIGN_LANGS`); Hollandaca sitede yok →
+  İngilizce. VESTRA Edit bağlantıları `&lang=` ile mektubun dilinde açılır.
 - **Satıcı kendi adresi + kendi posta sunucusu (SMTP) ile gönderir (10 Eki 2026, operatör: "satıcılarda kendi
   email adresleri ile gönderebilsin, kendi sunucuları ile").** Barındırmadan giden SMTP KAPALI (8 Eki smtp_probe) —
   sunucu bağlanamaz; bu yüzden `inc/seller_outbox.php` kuyruğu (`data/seller_outbox.json`, şifresiz) +

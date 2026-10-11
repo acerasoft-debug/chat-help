@@ -199,6 +199,29 @@ function vestra_mailbox_free_domain(string $d): bool {
   return (bool)preg_match('/^(gmail|googlemail|hotmail|outlook|live|msn|yahoo|ymail|icloud|me|mac|aol|gmx|web|t-online|orange|wanadoo|free|laposte|sfr|libero|virgilio|alice|tiscali|hotmail\.\w+|yahoo\.\w+|outlook\.\w+|mail|yandex|protonmail|proton|seznam|wp|o2|onet|interia|telenet|skynet|ziggo|kpnmail|bluewin|freenet|arcor)\.[a-z.]+$/i', $d);
 }
 
+/**
+ * Otomatik modda bulunanlar KESİNTİSİZ gitsin (11 Eki 2026, operatör: "günde 500'e kadar butik bulsun ve göndersin").
+ * Arama turunun kendi gönderim isteği, bir önceki gönderim sürerken "sırada istek var" diye düşüyordu; cron her 10 dk'da
+ * buna bakar: mod OTOMATİK, açık istek yok, bugünkü hak (ısınma dahil) var, gönderilmemiş yeni butik var ve son istek
+ * 20 dk'dan eski ise ayarlı kampanyayla istek açar. Manuel modda hiçbir şey yapmaz. Döner: açılan isteğin mesajı | ''.
+ */
+function vestra_mailbox_auto_catchup(?int $now = null): string {
+  $a = vestra_mailbox_auto();
+  if (!$a['auto_send']) return '';
+  $now = $now ?? time(); $last = 0;
+  foreach (vestra_mailbox_runs() as $r) {
+    if (vestra_mailbox_is_open($r)) return '';
+    $last = max($last, (int)strtotime((string)($r['requested_at'] ?? '')));
+  }
+  if ($now - $last < 20 * 60) return '';
+  $left = vestra_mailbox_left_today();
+  if ($left <= 0 || vestra_mailbox_bounce_stats()['stop']) return '';
+  require_once __DIR__.'/finder.php';
+  if (!vestra_finder_send_targets(1, $a['auto_pool'] === 'all' ? 'all' : 'web')) return '';
+  [$ok, $msg] = vestra_mailbox_request('send', min($a['auto_limit'], $left), $a['auto_campaign'], '', array_keys(vestra_finder_campaigns()), $a['auto_pool']);
+  return $ok ? $msg : '';
+}
+
 function vestra_mailbox_left_today(?array $leads = null): int {
   return max(0, vestra_mailbox_cap_today($leads) - vestra_mailbox_sent_today($leads));
 }
@@ -666,7 +689,7 @@ function vestra_live_status(): array {
   $runs = function_exists('vestra_finder_runs') ? vestra_finder_runs() : [];
   $act = function_exists('vestra_finder_active') ? vestra_finder_active() : null;
   $now = time();
-  $next = null; foreach ((defined('VESTRA_FINDER_SLOTS') ? VESTRA_FINDER_SLOTS : [[5, 20], [15, 20], [22, 20]]) as [$H, $M]) { $t = gmmktime($H, $M, 0, (int)gmdate('n'), (int)gmdate('j'), (int)gmdate('Y')); if ($t <= $now) $t += 86400; $next = $next === null ? $t : min($next, $t); }
+  $next = null; foreach ((defined('VESTRA_FINDER_SLOTS') ? VESTRA_FINDER_SLOTS : [[1, 20], [4, 20], [7, 20], [10, 20], [13, 20], [16, 20], [19, 20], [22, 20]]) as [$H, $M]) { $t = gmmktime($H, $M, 0, (int)gmdate('n'), (int)gmdate('j'), (int)gmdate('Y')); if ($t <= $now) $t += 86400; $next = $next === null ? $t : min($next, $t); }
   if ($act) {
     $started = !empty($act['dispatched_at']);
     $search = ['state' => $started ? 'running' : 'queued',

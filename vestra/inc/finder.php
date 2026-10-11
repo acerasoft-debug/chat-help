@@ -203,14 +203,25 @@ function vestra_finder_dispatch(string $id, string $owner, array $p): array {
   return [false, 'Arama başlatılamadı: '.$why.($m !== '' ? ' ('.mb_substr($m, 0, 120).')' : '')];
 }
 
-/* Otomatik arama turları (UTC) — find-customers.yml takvimiyle AYNI. 11 Eki 2026: üçüncü tur 22:20 (Amerika günü). */
-const VESTRA_FINDER_SLOTS = [[5, 20], [15, 20], [22, 20]];
+/* Otomatik arama turları (UTC) — find-customers.yml takvimiyle AYNI ('20 1-22/3 * * *'). 11 Eki 2026 (operatör:
+   "otomatik arama yap, günde 500'e kadar butik bulsun ve göndersin"): 3 saatte bir, günde 8 tur; gün içinde (UTC)
+   VESTRA_FINDER_DAILY_TARGET yeni butiğe ulaşılınca kalan zamanlı turlar atlanır (elle başlatılan arama her zaman koşar). */
+const VESTRA_FINDER_SLOTS = [[1, 20], [4, 20], [7, 20], [10, 20], [13, 20], [16, 20], [19, 20], [22, 20]];
+const VESTRA_FINDER_DAILY_TARGET = 500;
+
+/** Bugün (UTC) web aramasıyla eklenen admin leadleri — scripts/server/vestra-known.php found_today ile aynı sayım. */
+function vestra_finder_found_today(?array $leads = null): int {
+  $n = 0; $today = gmdate('Y-m-d');
+  foreach ($leads ?? vestra_leads() as $l)
+    if (($l['source'] ?? '') === 'web-search' && ($l['owner_uid'] ?? '') === '' && gmdate('Y-m-d', (int)strtotime((string)($l['added_at'] ?? ''))) === $today) $n++;
+  return $n;
+}
 
 /**
  * Sunucunun zamanlayıcısından (cron_mailbox.php, 10 dakikada bir) — 10 Eki 2026, operatör: "arıyor mu bilmiyorum".
  * GitHub'ın kendi zamanlaması güvenilmez: o gün 05:20 turu hiç çalışmadı, "10 dk'da bir" sıra işi günde 3 kez
  * çalıştı (panelden istenen arama saatlerce sırada kaldı). GitHub anahtarı kayıtlıysa sunucu: (1) sırada bekleyen
- * (henüz başlatılmamış) isteği hemen başlatır, (2) VESTRA_FINDER_SLOTS turlarını (05:20, 15:20, 22:20 UTC) kendisi başlatır (3 saat içinde,
+ * (henüz başlatılmamış) isteği hemen başlatır, (2) VESTRA_FINDER_SLOTS turlarını (3 saatte bir, UTC) kendisi başlatır (3 saat içinde,
  * o turda admin araması yoksa). Anahtar yoksa hiçbir şey yapmaz. Döner: kayda yazılacak tek satır ya da ''.
  */
 function vestra_finder_server_tick(?int $now = null): string {
@@ -228,6 +239,7 @@ function vestra_finder_server_tick(?int $now = null): string {
     return $ok ? 'sıradaki arama başlatıldı: '.$r['id'] : 'sıradaki arama başlatılamadı: '.$why;
   }
   if (vestra_finder_active()) return '';
+  if (vestra_finder_found_today() >= VESTRA_FINDER_DAILY_TARGET) return '';   // bugünkü 500 doldu
   foreach (VESTRA_FINDER_SLOTS as [$H, $M]) {
     $slot = gmmktime($H, $M, 0, (int)gmdate('n', $now), (int)gmdate('j', $now), (int)gmdate('Y', $now));
     if ($now < $slot || $now > $slot + 3 * 3600) continue;
@@ -421,10 +433,17 @@ function vestra_finder_runs_html(array $runs, bool $showOwner = false, array $ow
 
 /** Ülkeden kampanya dili — send-outreach.yml ile aynı eşleme (Belçika şehre göre). */
 /* Kampanya dili (10 Eki 2026, operatör: "e-mailler gönderilen ülkenin dilinde gitsin; her dile gerek yok,
-   başlıca diller, yoksa İngilizce"). Yalnız bu yedi dil; başka her ülke → İngilizce. */
-const VESTRA_CAMPAIGN_LANGS = ['en', 'de', 'fr', 'it', 'es', 'nl', 'pt'];
+   başlıca diller, yoksa İngilizce"). 11 Eki 2026 (operatör: "genel olarak İngilizce yap, sitedeki diller
+   desteklemiyorsa"): yalnız SİTENİN de konuştuğu diller — mektuptaki bağlantı aynı dilde açılsın. Hollandaca sitede
+   yok → Hollanda/Flaman Belçika İngilizce alır. Başka her ülke → İngilizce. */
+const VESTRA_CAMPAIGN_LANGS = ['en', 'de', 'fr', 'it', 'es', 'pt'];
 
 function vestra_finder_lead_lang(array $l): string {
+  $lang = vestra_finder_lead_lang_raw($l);
+  return in_array($lang, VESTRA_CAMPAIGN_LANGS, true) ? $lang : 'en';
+}
+
+function vestra_finder_lead_lang_raw(array $l): string {
   $c = mb_strtolower(trim((string)($l['country'] ?? '')), 'UTF-8');
   $hay = mb_strtolower(implode(' ', [(string)($l['company'] ?? ''), (string)($l['notes'] ?? ''), (string)($l['website'] ?? ''), (string)($l['city'] ?? '')]), 'UTF-8');
   $has = static function (array $needles) use ($hay): bool { foreach ($needles as $n) if (str_contains($hay, $n)) return true; return false; };
@@ -505,7 +524,7 @@ const VESTRA_FINDER_NOT_BUYER_SOURCES = ['amazon seller', 'ebay seller', 'otto s
 function vestra_lead_off_target(array $l): bool {
   $em = strtolower((string)($l['email'] ?? '')); $dom = ($p = strrpos($em, '@')) !== false ? substr($em, $p + 1) : '';
   $hay = mb_strtolower(implode(' ', [(string)($l['company'] ?? ''), (string)($l['website'] ?? ''), $dom, (string)($l['category'] ?? '')]));
-  return (bool)preg_match('/schuh|shoe|sneaker|footwear|scarp[ae]|calzatur|chaussur|zapat|cal[cç]ad|sapat|obuv|lingerie|dessous|unterw(?:ä|ae)sche|w(?:ä|ae)schestube|intimo|intimate|underwear|bademode|swimwear|gro(?:ß|ss)handel|wholesale|grossist|ingrosso|mayorista|al por mayor|groothandel|atacad|hurtown|engros|velkoobchod|distribu|importer|importat|import-export|stocklot|handelsvertretung|modeagentur|fashion agency|showroom agency|lederhandel|lederladen|lederwaren/u', $hay);
+  return (bool)preg_match('/schuh|shoe|sneaker|footwear|scarp[ae]|calzatur|chaussur|zapat|cal[cç]ad|sapat|obuv|lingerie|dessous|unterw(?:ä|ae)sche|w(?:ä|ae)schestube|intimo|intimate|underwear|bademode|swimwear|gro(?:ß|ss)handel|wholesale|grossist|ingrosso|mayorista|al por mayor|groothandel|atacad|hurtown|engros|velkoobchod|distribu|importer|importat|import-export|stocklot|handelsvertretung|modeagentur|fashion agency|showroom agency|lederhandel|lederladen|lederwaren|靴|シューズ|スニーカー|下着|ランジェリー|卸|問屋|鞋|批发|内衣/u', $hay);
 }
 
 function vestra_lead_looks_dead(array $l): bool {

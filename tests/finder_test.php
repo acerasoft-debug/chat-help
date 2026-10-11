@@ -313,10 +313,11 @@ $t('İsviçre şehre göre (Cenevre fr, Lugano it, Zürih de), ISO kodu, Brezily
   && vestra_finder_lead_lang(['country' => 'FR']) === 'fr' && vestra_finder_lead_lang(['country' => 'Brazil']) === 'pt' && vestra_finder_lead_lang(['country' => '', 'email' => 'a@shop.de']) === 'de');
 foreach (vestra_finder_campaigns() as $ck => $cv) if (in_array($ck, ['edit', 'lesgarage'], true)) {
   $subs = []; foreach (['Germany', 'France', 'Italy', 'Spain', 'Netherlands', 'Portugal', 'United Kingdom'] as $co) $subs[] = ($cv[2])(['company' => 'X', 'country' => $co, 'email' => 'a@b.example', 'unsub_token' => 't', 'contact_name' => ''])[0];
-  $t("kampanya '{$ck}': 7 dilde 7 farklı konu", count(array_unique($subs)) === 7);
+  $t("kampanya '{$ck}': sitenin 6 dilinde 6 farklı konu; Hollanda İngilizce (sitede Hollandaca yok)", count(array_unique($subs)) === 6 && $subs[4] === $subs[6]);
 }
-$t('dil ülkeden: İtalya→it, Brüksel→fr, Gent→nl, bilinmeyen→en', vestra_finder_lead_lang(['country' => 'Italy']) === 'it'
-  && vestra_finder_lead_lang(['country' => 'Belgium', 'company' => 'Shop Bruxelles']) === 'fr' && vestra_finder_lead_lang(['country' => 'Belgium', 'company' => 'Gent']) === 'nl'
+$t('dil ülkeden: İtalya→it, Brüksel→fr, Gent/Hollanda/Japonya→en (sitede yok), bilinmeyen→en', vestra_finder_lead_lang(['country' => 'Italy']) === 'it'
+  && vestra_finder_lead_lang(['country' => 'Belgium', 'company' => 'Shop Bruxelles']) === 'fr' && vestra_finder_lead_lang(['country' => 'Belgium', 'company' => 'Gent']) === 'en'
+  && vestra_finder_lead_lang(['country' => 'Netherlands']) === 'en' && vestra_finder_lead_lang(['country' => 'Japan']) === 'en'
   && vestra_finder_lead_lang(['country' => 'Narnia']) === 'en');
 $before = (string)file_get_contents(VESTRA_DATA_DIR.'/leads.json');
 [$sN, $fN, $lines] = vestra_finder_send('standard', 10, true);
@@ -504,10 +505,11 @@ foreach ([['company' => 'Fashion Distribution GmbH', 'email' => 'a@b.de'], ['com
           ['company' => 'Hurtownia Odzieży', 'email' => 'a@b.pl'], ['company' => 'Nordic Engros ApS', 'email' => 'a@b.dk'],
           ['company' => 'Importatore Moda', 'email' => 'a@b.it'], ['company' => 'Brand Stocklots Ltd', 'email' => 'a@b.co.uk'],
           ['company' => 'Modeagentur Weber', 'email' => 'a@b.de'], ['company' => 'Rossi Import-Export', 'email' => 'a@b.it'],
-          ['company' => 'Grossiste Paris', 'email' => 'a@b.fr'], ['company' => 'Moda al por mayor', 'email' => 'a@b.es']] as $x)
+          ['company' => 'Grossiste Paris', 'email' => 'a@b.fr'], ['company' => 'Moda al por mayor', 'email' => 'a@b.es'],
+          ['company' => '東京シューズ', 'email' => 'a@b.jp'], ['company' => 'ファッション卸 大阪', 'email' => 'a@b.jp']] as $x)
   $t('distribütör/toptancı ayrılır: '.$x['company'], vestra_lead_off_target($x));
 foreach ([['company' => 'Showroom Boutique Milano', 'email' => 'info@showroom-boutique.it'], ['company' => 'Maison Importante', 'email' => 'a@maison.fr'],
-          ['company' => 'Henry Concept Store', 'email' => 'hello@henry.example']] as $x)
+          ['company' => 'Henry Concept Store', 'email' => 'hello@henry.example'], ['company' => 'セレクトショップ 東京', 'email' => 'info@select.jp']] as $x)
   $t('butik yanlışlıkla ayrılmaz: '.$x['company'], !vestra_lead_off_target($x));
 vestra_write_json('leads.json', [
   ['id' => 'OT1', 'company' => 'Schuhkonzept', 'email' => 'n@schuhkonzept.de', 'country' => 'Germany', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 't'],
@@ -744,6 +746,32 @@ $t('satıcıların VESTRA sunucusundan gidenleri günlük paya sayılır (SMTP y
 vestra_write_json('seller_outbox.json', [['id' => 'OBq', 'uid' => 'sellS', 'via' => 'server', 'status' => 'queued', 'to' => 'q@q.example', 'subject' => 's', 'text' => 't', 'html' => 'h', 'from_name' => 'S', 'reply_to' => 'o@s.example', 'queued_at' => date('c')]]);
 $t('günlük pay dolunca satıcı mektubu kuyrukta bekler', vestra_seller_outbox_run_server(['left' => 0, 'mail' => fn() => true, 'sleep' => fn($s) => null, 'log' => fn($m) => null])['sent'] === 0 && vestra_seller_outbox_all()[0]['status'] === 'queued');
 @unlink(VESTRA_DATA_DIR.'/seller_outbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox.json'); vestra_write_json('leads.json', []);
+
+[$es, $eb, $eo] = vestra_campaign_edit('Boutique X', 'de');
+$t('kampanya bağlantıları mektubun dilinde açılır (lang=de)', str_contains((string)$eo['html'], 'utm_campaign=vestra_edit&amp;lang=de') && str_contains($eb, 'utm_campaign=vestra_edit&lang=de')
+  && !preg_match('/utm_campaign=vestra_edit(?!&(?:amp;)?lang=)/', (string)$eo['html']));
+echo "\n== 8j. otomatik: günde 500'e kadar bul + kesintisiz gönder ==\n";
+$t('turlar 3 saatte bir (8 tur), find-customers.yml ile aynı', count(VESTRA_FINDER_SLOTS) === 8 && VESTRA_FINDER_SLOTS[0] === [1, 20] && VESTRA_FINDER_SLOTS[7] === [22, 20] && VESTRA_FINDER_DAILY_TARGET === 500);
+$fl = [];
+for ($k = 0; $k < 3; $k++) $fl[] = ['source' => 'web-search', 'owner_uid' => '', 'added_at' => date('c')];
+$fl[] = ['source' => 'web-search', 'owner_uid' => 'sellX', 'added_at' => date('c')]; $fl[] = ['source' => 'OSM', 'owner_uid' => '', 'added_at' => date('c')];
+$fl[] = ['source' => 'web-search', 'owner_uid' => '', 'added_at' => date('c', time() - 3 * 86400)];
+$t('bugün bulunan: yalnız bugünkü admin web araması sayılır', vestra_finder_found_today($fl) === 3);
+@unlink(VESTRA_DATA_DIR.'/mailbox_runs.json'); @unlink(VESTRA_DATA_DIR.'/mailbox.json');
+vestra_write_json('leads.json', [['id' => 'AC1', 'company' => 'Auto Boutique', 'email' => 'info@autoboutique.example', 'country' => 'Italy', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'ac1', 'added_at' => date('c')]]);
+$cu = vestra_mailbox_auto_catchup();
+$t('otomatik modda bekleyen yeni butiğe kendiliğinden istek açılır', $cu !== '' && count(vestra_mailbox_runs()) === 1 && vestra_mailbox_runs()[0]['status'] === 'requested');
+$t('açık istek varken ikinci istek açılmaz', vestra_mailbox_auto_catchup() === '' && count(vestra_mailbox_runs()) === 1);
+$rs = vestra_mailbox_runs(); $rs[0]['status'] = 'done'; vestra_mailbox_runs_save($rs);
+$t('son istekten 20 dk geçmeden yenisi açılmaz', vestra_mailbox_auto_catchup() === '');
+$t('20 dk sonra yeniden açılır', vestra_mailbox_auto_catchup(time() + 21 * 60) !== '');
+@unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
+vestra_mailbox_auto_save(false, 'edit', 500, 'web');
+$t('manuel modda hiçbir şey açılmaz', vestra_mailbox_auto_catchup() === '' && vestra_mailbox_runs() === []);
+@unlink(VESTRA_DATA_DIR.'/mailbox.json'); vestra_write_json('leads.json', []);
+$t('gönderilecek kimse yoksa istek açılmaz', vestra_mailbox_auto_catchup() === '' && vestra_mailbox_runs() === []);
+$cm = (string)file_get_contents($root.'/cron_mailbox.php');
+$t('cron gönderim isteğini almadan önce otomatik istek açar', strpos($cm, 'vestra_mailbox_auto_catchup()') !== false && strpos($cm, 'vestra_mailbox_auto_catchup()') < strpos($cm, '$req = vestra_mailbox_take();'));
 
 echo "\n== 7. çizim — admin ve satıcı sayfası kum havuzunda GERÇEKTEN koşuyor ==\n";
 /* php -l tanımsız fonksiyonu / değişkeni yakalamaz; bu depoda lint'ten geçen iki

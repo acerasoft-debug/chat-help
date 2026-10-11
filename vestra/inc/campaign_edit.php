@@ -213,5 +213,9 @@ function vestra_campaign_edit(string $company = '', string $lang = 'en'): array 
   $lines = array_merge($lines, ['', implode(' · ', $t['trust']), '', $t['cta1'].': '.$cat, $t['cta2'].': '.$reg, $t['note'], '', $t['bye']]);
   $body = implode("\n", $lines)."\n\n—\n".sprintf($t['legal'], $company !== '' ? $company : $t['shop']);
 
+  /* Bağlantılar mektubun dilinde açılsın (11 Eki 2026): site ?lang= ile o dili seçer ve hatırlar. */
+  $lg = preg_match('/^[a-z]{2}$/', $lang) ? $lang : 'en';
+  $html = str_replace('utm_campaign=vestra_edit', 'utm_campaign=vestra_edit&amp;lang='.$lg, $html);
+  $body = str_replace('utm_campaign=vestra_edit', 'utm_campaign=vestra_edit&lang='.$lg, $body);
   return [$t['subject'], $body, ['html' => $html, 'hero' => ['kicker' => $t['kicker'], 'title' => $t['title']]]];
 }

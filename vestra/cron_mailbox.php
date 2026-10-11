@@ -48,6 +48,8 @@ if ($dry) {
   exit(0);
 }
 
+/* Otomatik modda bekleyen yeni butiklere kendiliğinden istek aç (açık istek yokken, bugünkü hak varken). */
+if (($cu = vestra_mailbox_auto_catchup()) !== '') echo '[mailbox '.date('Y-m-d H:i').'] otomatik: '.$cu."\n";
 $req = vestra_mailbox_take();
 if (!$req) exit(0);
 $stamp = date('Y-m-d H:i');
