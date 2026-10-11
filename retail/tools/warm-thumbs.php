@@ -21,19 +21,32 @@ if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once __DIR__ . '/../inc/catalog.php';
 require_once __DIR__ . '/../inc/thumbs.php';
 
-$budget = 600;
-foreach ($argv as $a) if (preg_match('/^--budget=(\d+)$/', $a, $m)) $budget = (int)$m[1];
+$budget = 600; $shard = 0; $shards = 1;
+foreach ($argv as $a) {
+    if (preg_match('/^--budget=(\d+)$/', $a, $m)) $budget = (int)$m[1];
+    if (preg_match('#^--shard=(\d+)/(\d+)$#', $a, $m) && (int)$m[2] > 0) { $shard = (int)$m[1]; $shards = (int)$m[2]; }
+}
 $t0 = microtime(true);
 
 $want = [];
 foreach (VR_IMG_WIDTHS as $w) $want[] = [$w, 'webp'];
 foreach ([600, 1400] as $w) $want[] = [$w, 'jpg'];
 
-$rels = [];
-foreach (vr_catalog() as $p) foreach ((array)($p['images'] ?? []) as $r) if (is_string($r) && str_starts_with($r, '/uploads/')) $rels[$r] = 1;
-$rels = array_keys($rels);
+// Önce vitrin kartlarının kareleri (her ürünün ilk iki karesi — ızgarada
+// görünen ve üzerine gelince değişen), sonra galerinin geri kalanı.
+// --shard=i/n: aynı anda n süreç, her biri listenin kendi payını üretir.
+$first = $rest = [];
+foreach (vr_catalog() as $p) {
+    foreach (array_values((array)($p['images'] ?? [])) as $i => $r) {
+        if (!is_string($r) || !str_starts_with($r, '/uploads/')) continue;
+        if ($shards > 1 && crc32($r) % $shards !== $shard) continue;
+        if ($i < 2) $first[$r] = 1; else $rest[$r] = 1;
+    }
+}
+$rels = array_keys($first + $rest);
 
 $root = realpath(vr_doc_root() . '/uploads');
+vr_thumb_dir_ready();
 $st = ['images' => count($rels), 'ready' => 0, 'made' => 0, 'files' => 0, 'failed' => 0, 'missing' => 0, 'big' => 0];
 $fail = [];
 foreach ($rels as $n => $rel) {
@@ -43,7 +56,7 @@ foreach ($rels as $n => $rel) {
     $todo = [];
     foreach ($want as [$w, $ext]) {
         $dest = vr_thumb_path($rel, $src, $w, $ext);
-        if (!is_file($dest) || filesize($dest) === 0) $todo[] = [$w, $ext, $dest];
+        if (!vr_thumb_fresh($dest, $src)) $todo[] = [$w, $ext, $dest];
     }
     if (!$todo) { $st['ready']++; continue; }
     $im = vr_thumb_open($src);

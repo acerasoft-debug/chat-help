@@ -20,11 +20,65 @@ require_once __DIR__ . '/uploads.php';
 /** İzin verilen genişlikler. Serbest sayı = sınırsız önbellek = kaynak tüketimi. */
 const VR_IMG_WIDTHS = [180, 300, 420, 600, 900, 1400];
 
-/** Önbellekteki kopyanın mutlak yolu ($src: kaynağın mutlak yolu). */
+/** Kopyaların web kökündeki klasörü. */
+const VR_THUMB_DIR = '/uploads/_t';
+
+/**
+ * Kopyanın web yolu: /uploads/_t/<genişlik>/<kaynak yolu, noktalar "-">.<uzantı>
+ *   /uploads/lacoste/paris-polo/navy.avif, 600, webp
+ *     → /uploads/_t/600/lacoste/paris-polo/navy-avif.webp
+ *
+ * Yol BELİRLİ (özet değil): sayfa basılırken kopyanın hazır olup olmadığı
+ * tek bir stat ile anlaşılıyor ve hazırsa tarayıcıya doğrudan bu düz dosya
+ * veriliyor — PHP hiç çalışmıyor. Paylaşımlı sunucunun eşzamanlı PHP süreci
+ * sınırı (508 Resource Limit Reached) böylece görsellerle dolmuyor.
+ * Noktaların tireye dönmesi çift uzantıyı ("x.php.jpg") imkânsız kılıyor.
+ */
+function vr_thumb_rel(string $rel, int $w, string $ext): string
+{
+    return VR_THUMB_DIR . '/' . $w . '/' . str_replace('.', '-', substr($rel, strlen('/uploads/'))) . '.' . $ext;
+}
+
+/** Kopyanın mutlak dosya yolu ($src kullanılmıyor; imza geriye uyum için). */
 function vr_thumb_path(string $rel, string $src, int $w, string $ext): string
 {
-    $key = sha1($rel . '|' . filemtime($src) . '|' . $w . '|' . $ext);
-    return vr_doc_root() . '/uploads/.thumbs/' . substr($key, 0, 2) . '/' . $key . '.' . $ext;
+    return vr_doc_root() . vr_thumb_rel($rel, $w, $ext);
+}
+
+/** Kopya var ve kaynaktan yeni mi? */
+function vr_thumb_fresh(string $thumbAbs, string $srcAbs): bool
+{
+    $t = @filemtime($thumbAbs);
+    $s = @filemtime($srcAbs);
+    return $t !== false && $s !== false && $t >= $s && @filesize($thumbAbs) > 0;
+}
+
+/**
+ * Hazır webp kopyasının adresi (?v= değişiklik zamanı — önbellek tazeleme)
+ * ya da null. Yol img.php'nin kabul ettiği desene uymuyorsa da null.
+ */
+function vr_thumb_static(string $rel, int $w): ?string
+{
+    if (!in_array($w, VR_IMG_WIDTHS, true)) return null;
+    if (!preg_match('#^/uploads/[A-Za-z0-9._/\-]+\.(jpe?g|png|webp|avif)$#i', $rel) || str_contains($rel, '..')) return null;
+    $root = vr_doc_root();
+    $th   = vr_thumb_rel($rel, $w, 'webp');
+    if (!vr_thumb_fresh($root . $th, $root . $rel)) return null;
+    return vr_url(ltrim($th, '/'), ['v' => (string)filemtime($root . $th)]);
+}
+
+/** Kopya klasörü: PHP kapalı, uzun önbellek (adres ?v= ile tazeleniyor). */
+function vr_thumb_dir_ready(): void
+{
+    $dir = vr_doc_root() . VR_THUMB_DIR;
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    $ht = $dir . '/.htaccess';
+    if (!is_file($ht)) {
+        @file_put_contents($ht, "# Küçültülmüş kopyalar — yalnız görsel, PHP yok, uzun önbellek\n"
+            . "<FilesMatch \"\\.(php|phtml|phar|pl|py|cgi|sh)$\">\n  Require all denied\n</FilesMatch>\n"
+            . "RemoveHandler .php .phtml .phar\n"
+            . "<IfModule mod_headers.c>\n  Header set Cache-Control \"public, max-age=31536000, immutable\"\n</IfModule>\n");
+    }
 }
 
 /**

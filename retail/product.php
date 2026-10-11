@@ -54,7 +54,7 @@ $sizeErr  = !empty($_GET['nosize']);
 vr_layout_start([
     'title'    => $p['brand'] . ' ' . vr_card_name($p),
     'desc'     => $p['brand'] . ' ' . vr_card_name($p) . ' — ' . vr_product_teaser($p),
-    'og_image' => vr_img(vr_product_image($p), 1400),
+    'og_image' => vr_img_dynamic(vr_product_image($p), 1400),
     'jsonld'   => [
         vr_jsonld_product($p, $vaultLot ? (int)$vaultLot['state']['cents'] : null),
         vr_jsonld_breadcrumbs([

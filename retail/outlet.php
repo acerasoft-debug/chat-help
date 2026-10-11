@@ -64,7 +64,7 @@ if ($single !== null) {
     vr_layout_start([
         'title'  => $p['brand'] . ' ' . vr_card_name($p) . ' — ' . t('vault_title'),
         'desc'   => $p['brand'] . ' ' . vr_card_name($p) . ' — ' . vr_product_teaser($p),
-        'og_image' => vr_img(vr_product_image($p), 1400),
+        'og_image' => vr_img_dynamic(vr_product_image($p), 1400),
         'body_class' => 'is-vault',
         'jsonld' => [
             vr_jsonld_product($p, (int)$st['cents']),
@@ -344,7 +344,7 @@ $vheroMedia = vr_hero_media('band-vault');
           <source src="<?= h($vheroMedia['src']) ?>" type="<?= h($vheroMedia['type']) ?>">
         </video>
       <?php else: ?>
-        <img src="<?= h(vr_img($vheroMedia['src'], 1600)) ?>" alt="" decoding="async">
+        <img src="<?= h(vr_img($vheroMedia['src'], 1400)) ?>" alt="" decoding="async">
       <?php endif; ?>
     </div>
   <?php endif; ?>

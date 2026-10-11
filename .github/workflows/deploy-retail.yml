@@ -373,8 +373,12 @@ jobs:
             # sunucu yirmi görseli birden üretmeye kalkıp süreç sınırına
             # takılmasın (telefonda boş kalan kareler). Artımlı; hazırlara
             # dokunmaz. Uzun sürebileceği için arka planda, kaydı data/'da.
-            echo "== Fotograf kopyalari arka planda uretiliyor (data/warm-thumbs.log) =="
-            setsid nohup nice -n 10 php -d memory_limit=1024M tools/warm-thumbs.php --budget=3000 > "$DIR/../data/warm-thumbs.log" 2>&1 < /dev/null &
+            echo "== Fotograf kopyalari arka planda uretiliyor (data/warm-thumbs-*.log) =="
+            # İki pay paralel (--shard): ilk yayında ~2700 kare × 8 kopya.
+            for s in 0 1; do
+              setsid nohup nice -n 10 php -d memory_limit=512M tools/warm-thumbs.php --budget=3300 --shard=$s/2 \
+                > "$DIR/../data/warm-thumbs-$s.log" 2>&1 < /dev/null &
+            done
             echo
             echo "== Kurulum kontrolu =="
             # selftest FAIL donerse (ornegin Stripe anahtari yok) bunu gormek

@@ -700,3 +700,20 @@
     if (go && p === 'android' && install && !install.hidden) { e.preventDefault(); install.click(); }
   });
 })();
+
+/* Görsel yüklenemezse iki kez daha dene (kısa, rastgele aralıkla).
+   Paylaşımlı sunucu yoğunken küçük kopyayı üreten istek 503/508 dönebiliyor;
+   bir saniye sonra aynı istek genellikle geçiyor. Kopyalar hazır olduğunda
+   (düz dosya) bu yol neredeyse hiç kullanılmaz. */
+document.addEventListener('error', function (e) {
+  var img = e.target;
+  if (!img || img.tagName !== 'IMG') return;
+  var n = +(img.getAttribute('data-retry') || 0);
+  var src = img.currentSrc || img.src;
+  if (n >= 2 || !src || src.indexOf('/uploads/') < 0 && src.indexOf('img.php') < 0) return;
+  img.setAttribute('data-retry', String(n + 1));
+  setTimeout(function () {
+    img.removeAttribute('srcset');
+    img.src = src.replace(/([?&])r=\d+&?/, '$1').replace(/[?&]$/, '') + (src.indexOf('?') < 0 ? '?' : '&') + 'r=' + (n + 1);
+  }, 900 + Math.random() * 1600 * (n + 1));
+}, true);

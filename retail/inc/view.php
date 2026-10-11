@@ -24,6 +24,7 @@ require_once __DIR__ . '/lists.php';    // Merkliste + son bakılanlar
 require_once __DIR__ . '/sizing.php';   // beden tabloları — ürün sayfası ve rehber ortak
 require_once __DIR__ . '/fx.php';       // gösterge para birimi (dünya alıcısı için)
 require_once __DIR__ . '/customers.php'; // alıcı hesapları (başlıktaki kişi ikonu)
+require_once __DIR__ . '/thumbs.php';    // hazır küçük kopyalar düz dosya olarak (PHP'siz)
 
 /** Sürüm etiketi — CSS/JS önbelleğini deploy'da tazelemek için. */
 function vr_asset_v(): string
@@ -848,7 +849,7 @@ function vr_jsonld_product(array $p, ?int $overridePrice = null): array
         'sku'         => $p['sku'] ?: $p['id'],
         'category'    => $p['cat'],
         'description' => mb_substr($p['desc'] !== '' ? $p['desc'] : ($p['brand'] . ' ' . $p['name']), 0, 400),
-        'image'       => vr_origin() . vr_img(vr_product_image($p), 1400),
+        'image'       => vr_origin() . vr_img_dynamic(vr_product_image($p), 1400),
         'offers'      => [
             '@type'         => 'Offer',
             'url'           => vr_origin() . vr_product_url($p),
@@ -934,6 +935,15 @@ function vr_empty_suggestions(int $n = 4): void
  * gibi geçiyor — onların zaten istenen boyutu var.
  */
 function vr_img(string $rel, int $w = 600): string
+{
+    if ($rel === '' || !str_starts_with($rel, '/uploads/')) return $rel;
+    // Kopya hazırsa düz dosya: sunucuda PHP çalışmıyor (bkz. inc/thumbs.php).
+    // Hazır değilse img.php üretir; bir sonraki sayfa düz dosyayı alır.
+    return vr_thumb_static($rel, $w) ?? vr_img_dynamic($rel, $w);
+}
+
+/** Her zaman img.php — tarayıcıya göre webp ya da jpeg (paylaşım önizlemeleri, tarayıcı dışı istemciler). */
+function vr_img_dynamic(string $rel, int $w = 600): string
 {
     if ($rel === '' || !str_starts_with($rel, '/uploads/')) return $rel;
     return vr_url('assets/img.php', ['p' => $rel, 'w' => (string)$w]);
