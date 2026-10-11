@@ -2098,7 +2098,7 @@ html.has-appbar body{padding-bottom:calc(70px + env(safe-area-inset-bottom))}
 .cpics{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:10px}
 .cpic{position:relative;cursor:pointer;display:flex;flex-direction:column;gap:6px}
 .cpic input{position:absolute;opacity:0;pointer-events:none}
-.cpic .fr{display:block;aspect-ratio:4/5;border:1px solid var(--bone-3);background:var(--bone-2);transition:border-color .2s}
+.cpic .fr{position:relative;inset:auto;display:block;width:100%;aspect-ratio:4/5;border:1px solid var(--bone-3);background:var(--bone-2);transition:border-color .2s}
 .cpic:hover .fr{border-color:var(--muted)}
 .cpic input:checked + .fr{border:1.5px solid var(--ink);box-shadow:0 0 0 2px var(--bone),0 0 0 3px var(--ink)}
 .cpic input:focus-visible + .fr{outline:2px solid var(--ink);outline-offset:3px}
