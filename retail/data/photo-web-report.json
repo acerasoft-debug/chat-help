@@ -114,10 +114,19 @@
         "colour": "White"
     },
     "csb-casa-way-mountain-white": {
-        "source": "",
-        "title": "",
-        "images": [],
-        "codes": [],
+        "source": "https://www.lyst.com/clothing/casablanca-casa-way-mountain-printed-t-shirt/",
+        "title": "Casablanca Casa Way Mountain T-Shirt White site:lyst.com",
+        "images": [
+            "https://cdna.lystit.com/1040/1300/n/photos/lordandtaylor/23b33df4/900x1200/casablanca-designer-Multicolour-Regular-Fit-T-Shirt.jpeg",
+            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/23b33df4/casablanca-designer--Regular-Fit-T-Shirt.jpeg",
+            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/b28235b6/casablanca-designer--Multicolour-Organic-Cotton-T-Shirts.jpeg",
+            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/b28235b6/900x1200/casablanca-designer--Multicolour-Organic-Cotton-T-Shirts.jpeg",
+            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/9b59df40/900x1200/casablanca-designer--Multicolour-Organic-Cotton-T-Shirts.jpeg",
+            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/23b33df4/900x1200/casablanca-designer--Multicolour-Organic-Cotton-T-Shirts.jpeg"
+        ],
+        "codes": [
+            "1130235855"
+        ],
         "brand": "Casablanca",
         "name": "Casa Way Mountain T-Shirt — White",
         "colour": "White"
@@ -453,6 +462,7 @@
         "source": "https://www.lyst.com/clothing/casablanca-tennis-club-icon-printed-t-shirt-56/",
         "title": "Casablanca Tennis Club Icon T-Shirt Light Blue",
         "images": [
+            "https://cdna.lystit.com/1040/1300/n/photos/thahab/8c0e00c1/1244x1800/casablanca-designer-White-Tennis-Club-Icon-Printed-TShirt.jpeg",
             "https://cdna.lystit.com/1040/1300/n/photos/thahab/2b15ce1d/1244x1800/casablanca-designer-White-Tennis-Club-Icon-Printed-TShirt.jpeg",
             "https://cdna.lystit.com/1200/630/tr/photos/thahab/8c0e00c1/1244x1800/casablanca-designer-White-Tennis-Club-Icon-Printed-TShirt.jpeg"
         ],
@@ -549,49 +559,28 @@
         "colour": "Black"
     },
     "dsq-s74lb0663": {
-        "source": "https://shop.simon.com/products/light-blue-wide-leg-distressed-denim-jeans",
-        "title": "DSQUARED2 Distressed Jeans Light Blue",
-        "images": [
-            "https://cdn.shopify.com/s/files/1/0291/4536/6588/files/7ff7bf00cb444c9e8a12b9979fae54cc.jpg?v=1779298483",
-            "https://cdn.shopify.com/s/files/1/0291/4536/6588/files/fffa32e2dc6c48c4b6a05c81c6cbd552.jpg?v=1779298483"
-        ],
-        "codes": [
-            "ae013919-ec00-4cdd-9fc9-88641ccb3cd0",
-            "a32489d1-bfc5-4d91-b0d7-6f2a5b070c76"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "DSQUARED2",
         "name": "Distressed Jeans",
         "colour": "Light Blue"
     },
     "dsq-101215": {
-        "source": "https://www.lyst.com/clothing/dsquared2-graphic-print-sweatshirt-54/",
-        "title": "DSQUARED2 Graphic Print Sweatshirt Black",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/6782042a/dsquared-black-Felpa-Con-Stampa-Grafica.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/6b43ea71/1000x1335/dsquared-black-Graphic-Stamp-Sweatshirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/c5cf696c/1000x1335/dsquared-noir-Sweat-A-Imprime-Graphique.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/dccd9399/dsquared-black-Felpa-Con-Stampa-Grafica.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/4d29e454/dsquared-black-Sweater-Met-Grafische-Print.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/coutr/1f11bc49/dsquared-Black-Graphic-Cotton-Sweatshirt-With-Contrast-Stitching-And-Elasticated-Hem.jpeg"
-        ],
-        "codes": [
-            "1119163151"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "DSQUARED2",
         "name": "Graphic Print Sweatshirt",
         "colour": "Black"
     },
     "dsq-101225": {
-        "source": "https://www.lyst.com/clothing/dsquared2-graphic-print-t-shirt-374/",
-        "title": "DSQUARED2 Graphic Print T-Shirt Black",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/c133fdcf/dsquared-black-Graphic-Print-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/1c077732/dsquared-black-Graphic-Print-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1200/630/tr/photos/farfetch/c133fdcf/dsquared-black-Graphic-Print-T-Shirt.jpeg"
-        ],
-        "codes": [
-            "1156111418"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "DSQUARED2",
         "name": "Graphic Print T-Shirt",
         "colour": "Black"
@@ -612,37 +601,19 @@
         "colour": "White"
     },
     "dsq-101212": {
-        "source": "https://www.zapclothing.com/products/s74gd1394-d20020-900-dsquared2-cool-fit-t-shirt-black",
-        "title": "DSQUARED2 S74GD1394",
-        "images": [
-            "https://cdn.shopify.com/s/files/1/0566/1225/7882/files/DSQCoolFitLogoB1.jpg?v=1732192468",
-            "https://cdn.shopify.com/s/files/1/0566/1225/7882/files/DSQCoolFitLogoB2.jpg?v=1732192468",
-            "https://cdn.shopify.com/s/files/1/0566/1225/7882/files/DSQCoolFitLogoB3.jpg?v=1732192468"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Graphic T-Shirt",
         "colour": "White"
     },
     "dsq-101214": {
-        "source": "https://thedesignerboxuk.com/products/dsquared2-s74gd1400-d20020-728-regular-fit-rubber-logo-t-shirt-military",
-        "title": "DSQUARED2 S74GD1400",
-        "images": [
-            "https://cdn.shopify.com/s/files/1/0501/0790/8254/files/S74GD1400-D20020-728__1.jpg?v=1784908652",
-            "https://cdn.shopify.com/s/files/1/0501/0790/8254/files/S74GD1400-D20020-728__2.jpg?v=1784908676",
-            "https://cdn.shopify.com/s/files/1/0501/0790/8254/files/S74GD1400-D20020-728__3.jpg?v=1784908716",
-            "https://cdn.shopify.com/s/files/1/0501/0790/8254/files/S74GD1400-D20020-728__4.jpg?v=1784908735",
-            "https://cdn.shopify.com/s/files/1/0501/0790/8254/files/S74GD1400-D20020-728__5.jpg?v=1784908786"
-        ],
-        "codes": [
-            "S74GD1400-D20020-728_XS",
-            "S74GD1400-D20020-728_S",
-            "S74GD1400-D20020-728_M",
-            "S74GD1400-D20020-728_L",
-            "S74GD1400-D20020-728_XL",
-            "S74GD1400-D20020-728_XXL",
-            "S74GD1400-D20020-728_XXXL"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "DSQUARED2",
         "name": "Graphic T-Shirt",
         "colour": "White"
@@ -697,19 +668,10 @@
         "colour": "White"
     },
     "dsq-101233": {
-        "source": "https://www.lyst.com/clothing/dsquared2-icon-sunset-palm-t-shirt-dress-1/",
-        "title": "DSQUARED2 ICON Sunset Palm Tree T-Shirt White",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/9ab337f6/dsquared--Icon-Sunset-Palm-T.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/baaad7d2/dsquared-white-Icon-Sunset-Palm-T-Shirt-Dress.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/9c7b7d6f/dsquared-white-Icon-Sunset-Palm-T-Shirt-Dress.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/1ed37dd3/dsquared--Icon-Sunset-Palm-T.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/381d4284/dsquared--Icon-Sunset-Palm-T.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/italist/91669047/dsquared-BIANCO-Sunset-Icon-Dress.jpeg"
-        ],
-        "codes": [
-            "921655545"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "DSQUARED2",
         "name": "ICON Sunset Palm Tree T-Shirt",
         "colour": "White"
@@ -720,28 +682,16 @@
         "images": [],
         "codes": [],
         "brand": "DSQUARED2",
-        "name": "Men's Crewneck Sweatshirt",
+        "name": "Crewneck Sweatshirt",
         "colour": "Black"
     },
     "dsq-101221": {
-        "source": "https://www.4444glad.com/products/detail/10916",
-        "title": "DSQUARED2 S71GU0554",
-        "images": [
-            "https://www.4444glad.com/img/RAddYAsQMB9s.jpg",
-            "https://www.4444glad.com/img/qRe69kMRgkkv.jpg",
-            "https://www.4444glad.com/img/PcYvdfNGS4Zs.jpg",
-            "https://www.4444glad.com/img/sKEUb5FK8s9G.jpg",
-            "https://image.salesnauts.com/4444glad/img/RAddYAsQMB9s.jpg"
-        ],
-        "codes": [
-            "10916-799775",
-            "DSQUARED2  S71GU0554",
-            "10916-799774",
-            "10916-799773",
-            "10916-799772"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "DSQUARED2",
-        "name": "Men's Graphic Crewneck Sweatshirt",
+        "name": "Graphic Crewneck Sweatshirt",
         "colour": "White"
     },
     "dsq-101216": {
@@ -760,31 +710,21 @@
         "colour": "Black"
     },
     "dsq-101217": {
-        "source": "https://doboutique.com/it/products/hoodie-with-red-and-black-logo-s74gu0815-s25516-900",
-        "title": "DSQUARED2 S74GU0815",
-        "images": [
-            "https://cdn.shopify.com/s/files/1/0657/6206/6654/files/212062-1.jpg?v=1728091101",
-            "https://cdn.shopify.com/s/files/1/0657/6206/6654/files/212062-2.jpg?v=1728091101",
-            "https://cdn.shopify.com/s/files/1/0657/6206/6654/files/212062-3.jpg?v=1728091101"
-        ],
-        "codes": [
-            "S74GU0815 S25516 900"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "DSQUARED2",
-        "name": "Men's Sweatshirt",
+        "name": "Sweatshirt",
         "colour": "Black"
     },
     "dsq-101218": {
-        "source": "https://thecorner.com/us-en/cotton-hoodie-s74gu0826s25516_900-p",
-        "title": "DSQUARED2 S74GU0826",
-        "images": [
-            "https://cdn.shopify.com/s/files/1/0614/1929/0798/files/S74GU0826S25516_900-1_34fa8b5a-1582-4f8c-bc93-097ddd54bfd5.jpg?v=1787150104"
-        ],
-        "codes": [
-            "S74GU0826S25516_900-4XL"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "DSQUARED2",
-        "name": "Men's Sweatshirt",
+        "name": "Sweatshirt",
         "colour": "Black"
     },
     "dsq-101220": {
@@ -793,7 +733,7 @@
         "images": [],
         "codes": [],
         "brand": "DSQUARED2",
-        "name": "Men's Sweatshirt",
+        "name": "Sweatshirt",
         "colour": "Black"
     },
     "dsq-101239": {
@@ -842,19 +782,10 @@
         "colour": "White"
     },
     "dgn-g8lj1zfu7en": {
-        "source": "https://www.lyst.com/clothing/dolce-gabbana-embrodiered-logo-polo-top-1/",
-        "title": "Dolce & Gabbana Contrast-Trim Polo Black",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/senser/db707174/dolce-gabbana-N0000-Embrodiered-Logo-Polo-Top.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/senser/eab0767c/1500x2000/dolce-gabbana-N0000-Contrast-Trim-Logo-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/senser/983a7c58/dolce-gabbana-N0000-Embrodiered-Logo-Polo-Top.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/senser/b1d0d14f/dolce-gabbana-N0000-Embrodiered-Logo-Polo-Top.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/senser/ef4c59cb/1650x1983/dolce-gabbana-N0000-Contrast-Trim-Logo-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/senser/df2b16b7/1535x1846/dolce-gabbana-N0000-Contrast-Trim-Logo-Polo-Shirt.jpeg"
-        ],
-        "codes": [
-            "1197077065"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "Contrast-Trim Polo — Black",
         "colour": "Black"
@@ -869,37 +800,19 @@
         "colour": "Blue"
     },
     "dgn-g8pl4tg7f2h0": {
-        "source": "https://www.lyst.com/clothing/dolce-gabbana-dg-logo-polo-shirt-23/",
-        "title": "Dolce & Gabbana DG Logo Polo Shirt Black",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/59a9c83c/1000x1334/dolce-gabbana-black-Poloshirt-Mit-Dg.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/a1653c56/1000x1334/dolce-gabbana-black-Dg-Logo-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/5855d16a/1000x1334/dolce-gabbana-black-Dg-Logo-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/3a7b9daa/1000x1334/dolce-gabbana-black-Poloshirt-Mit-Dg.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/a3136732/1000x1334/dolce-gabbana-black-Polo-A-Logo-Dg.jpeg",
-            "https://cdna.lystit.com/1200/630/tr/photos/farfetch/59a9c83c/1000x1334/dolce-gabbana-black-Poloshirt-Mit-Dg.jpeg"
-        ],
-        "codes": [
-            "1234127677"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "DG Logo Polo Shirt — Black",
         "colour": "Black"
     },
     "dgx-g8ol0z-fu7en": {
-        "source": "https://www.lyst.com/clothing/dolce-gabbana-dg-logo-polo-shirt-23/",
-        "title": "Dolce & Gabbana DG Logo Polo Shirt Black",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/59a9c83c/1000x1334/dolce-gabbana-black-Poloshirt-Mit-Dg.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/a1653c56/1000x1334/dolce-gabbana-black-Dg-Logo-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/5855d16a/1000x1334/dolce-gabbana-black-Dg-Logo-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/3a7b9daa/1000x1334/dolce-gabbana-black-Poloshirt-Mit-Dg.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/a3136732/1000x1334/dolce-gabbana-black-Polo-A-Logo-Dg.jpeg",
-            "https://cdna.lystit.com/1200/630/tr/photos/farfetch/59a9c83c/1000x1334/dolce-gabbana-black-Poloshirt-Mit-Dg.jpeg"
-        ],
-        "codes": [
-            "1234127677"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "DG Logo Polo Shirt — Black",
         "colour": "Black"
@@ -914,19 +827,10 @@
         "colour": "Black"
     },
     "dgn-i8aeazg7cy1": {
-        "source": "https://www.lyst.com/clothing/dolce-gabbana-dg-patch-t-shirt-33/",
-        "title": "Dolce & Gabbana DG Patch T-Shirt Black",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/lordandtaylor/2377f689/1600x2136/dolce-gabbana-Black-Dg-Patch-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/25cf592e/1600x2136/dolce-gabbana--Dg-Patch-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/07b4e69d/1600x2136/dolce-gabbana--Dg-Patch-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/d08b0c54/1600x2136/dolce-gabbana--Dg-Patch-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/436d4b42/1600x2136/dolce-gabbana--Dg-Patch-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/b6acd00c/1199x1600/dolce-gabbana-Black-Dolce-Gabbana-Dg-Patch-T-Shirt.jpeg"
-        ],
-        "codes": [
-            "1192450331"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "DG Patch T-Shirt — Black",
         "colour": "Black"
@@ -968,55 +872,28 @@
         "colour": "Black"
     },
     "dgn-g8nv2zg7bzq": {
-        "source": "https://www.lyst.com/clothing/dolce-gabbana-designer-logo-patch-t-shirt/",
-        "title": "Dolce & Gabbana Logo Patch T-Shirt White",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/lordandtaylor/58996bdc/900x1200/dolce-gabbana-WHITE-T-Shirt-With-Logo-Patch.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/lordandtaylor/e51fb99e/900x1200/dolce-gabbana-White-T-Shirt-With-Logo-Patch.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/coutr/e51fb99e/dolce-gabbana-White-Logo-Patch-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/coutr/e51fb99e/900x1200/coutrcom-White-Dolce-Gabbana-Jersey-T-Shirt-With-Dg-Logo-Patch.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/coutr/e51fb99e/900x1200/dolce-gabbana-White-Jersey-T-Shirt-With-Dg-Logo-Patch.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/coutr/58996bdc/900x1200/dolce-gabbana-White-Jersey-T-Shirt-With-Dg-Logo-Patch.jpeg"
-        ],
-        "codes": [
-            "1106321123"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "Logo Patch T-Shirt — White",
         "colour": "White"
     },
     "dgn-g8oa9zg7byp": {
-        "source": "https://www.lyst.com/clothing/dolce-gabbana-designer-logo-patch-t-shirt/",
-        "title": "Dolce & Gabbana Logo Patch T-Shirt White",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/lordandtaylor/58996bdc/900x1200/dolce-gabbana-WHITE-T-Shirt-With-Logo-Patch.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/lordandtaylor/e51fb99e/900x1200/dolce-gabbana-White-T-Shirt-With-Logo-Patch.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/coutr/e51fb99e/dolce-gabbana-White-Logo-Patch-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/coutr/e51fb99e/900x1200/coutrcom-White-Dolce-Gabbana-Jersey-T-Shirt-With-Dg-Logo-Patch.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/coutr/e51fb99e/900x1200/dolce-gabbana-White-Jersey-T-Shirt-With-Dg-Logo-Patch.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/coutr/58996bdc/900x1200/dolce-gabbana-White-Jersey-T-Shirt-With-Dg-Logo-Patch.jpeg"
-        ],
-        "codes": [
-            "1106321123"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "Logo Patch T-Shirt — White",
         "colour": "White"
     },
     "dgx-g9abjt-g7f2g-r2254": {
-        "source": "https://www.lyst.com/clothing/dolce-gabbana-logo-plaque-t-shirt-181/",
-        "title": "Dolce & Gabbana Logo Plaque Sweatshirt Red",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/d98cad5a/dolce-gabbana-red-Logo-Plaque-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/158a8652/dolce-gabbana-red-Logo-Plaque-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/73357f88/dolce-gabbana-red-Logo-Plaque-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/b3c5fd8a/dolce-gabbana-red-Logo-Plaque-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/52ef363f/dolce-gabbana-Red-Logo-Plaque-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1200/630/tr/photos/farfetch/d98cad5a/dolce-gabbana-red-Logo-Plaque-T-Shirt.jpeg"
-        ],
-        "codes": [
-            "1080464782"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "Logo Plaque Sweatshirt — Red",
         "colour": "Red"
@@ -1048,57 +925,28 @@
         "colour": "Grey"
     },
     "dgn-g8mq3tfu7": {
-        "source": "https://www.lyst.com/clothing/dolce-gabbana-dg-polo-shirt-embroidered-logo-1/",
-        "title": "Dolce & Gabbana Logo Polo Shirt Yellow",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/luxlair/9f23c242/dolce-gabbana-Yellow-Cotton-Logo-Collared-Polo-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/luxlair/1079ae94/2008x2560/dolce-gabbana-Yellow-Cotton-Logo-Collared-Polo-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/luxlair/e047e41c/dolce-gabbana-Yellow-Cotton-Logo-Collared-Polo-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/luxlair/d4bc0b01/2008x2560/dolce-gabbana-Yellow-Cotton-Logo-Collared-Polo-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/luxlair/2d843472/2008x2560/dolce-gabbana-Yellow-Cotton-Logo-Collared-Polo-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/luxlair/f4356947/2560x1707/dolce-gabbana-Yellow-Cotton-Logo-Collared-Polo-T-Shirt.jpeg"
-        ],
-        "codes": [
-            "1175811131"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "Logo Polo Shirt — Pale Yellow",
         "colour": "Yellow"
     },
     "dgn-g8nb3zfu7eq": {
-        "source": "https://www.luxlair.com/products/dolce-gabbana-navy-blue-dg-logo-cotton-crew-neck-mens-t-shirt",
-        "title": "Dolce & Gabbana G8NB3 ZFU7EQ",
-        "images": [
-            "https://cdn.shopify.com/s/files/1/1018/4971/files/6356606.jpg?v=1787261364",
-            "https://cdn.shopify.com/s/files/1/1018/4971/files/6356607.jpg?v=1787261364",
-            "https://cdn.shopify.com/s/files/1/1018/4971/files/6356608.jpg?v=1787261364",
-            "https://cdn.shopify.com/s/files/1/1018/4971/files/6356609.jpg?v=1787261364",
-            "https://cdn.shopify.com/s/files/1/1018/4971/files/6356610.jpg?v=1787261364"
-        ],
-        "codes": [
-            "TSH90052-44",
-            "TSH90052-46",
-            "TSH90052-48",
-            "TSH90052-54"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "Logo T-Shirt — Red",
         "colour": "Red"
     },
     "dgn-g7jv91": {
-        "source": "https://www.lyst.com/clothing/dolce-gabbana-t-shirt-with-logo-588/",
-        "title": "Dolce & Gabbana Logo T-Shirt Red",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/vitkac/de3c668e/1333x2000/dolce-gabbana-BLACK-T-Shirt-With-Logo.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/vitkac/a054f29d/1333x2000/dolce-gabbana-BLACK-T-Shirt-With-Logo.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/vitkac/62a769cd/1333x2000/dolce-gabbana-BLACK-T-Shirt-With-Logo.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/vitkac/ac957521/1333x2000/dolce-gabbana-BLACK-T-Shirt-With-Logo.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/vitkac/5a70b686/1333x2000/dolce-gabbana-BLACK-T-Shirt-With-Logo.jpeg",
-            "https://cdna.lystit.com/1200/630/tr/photos/vitkac/de3c668e/1333x2000/dolce-gabbana-BLACK-T-Shirt-With-Logo.jpeg"
-        ],
-        "codes": [
-            "1097546501"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "Logo T-Shirt — Red",
         "colour": "Red"
@@ -1131,19 +979,10 @@
         "colour": "Black"
     },
     "dgn-g8nc5zg7byh": {
-        "source": "https://www.lyst.com/clothing/dolce-gabbana-oversized-t-shirt-15/",
-        "title": "Dolce & Gabbana Oversized T-Shirt Black",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/thedesignerbox/ff2c9ed6/dolce-gabbana-Black-Interlock-Dg-Logo-Print-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/thedesignerbox/1817243d/dolce-gabbana-Black-Interlock-Dg-Logo-Print-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/thedesignerbox/af72b1da/dolce-gabbana-Black-Interlock-Dg-Logo-Print-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/thedesignerbox/f04d4419/dolce-gabbana-Black-Interlock-Dg-Logo-Print-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/thedesignerbox/96d30c8f/2048x2732/dolce-gabbana-Black-Dolce-Gabbana-Interlock-Dg-Logo-Print-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1200/630/tr/photos/thedesignerbox/ff2c9ed6/dolce-gabbana-Black-Interlock-Dg-Logo-Print-T-Shirt.jpeg"
-        ],
-        "codes": [
-            "1105231236"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "Oversized T-Shirt — Black",
         "colour": "Black"
@@ -1180,19 +1019,10 @@
         "colour": "White"
     },
     "dgn-g8kg0zg7wig": {
-        "source": "https://www.lyst.com/clothing/dolce-gabbana-v-neck-t-shirt-192/",
-        "title": "Dolce & Gabbana V-Neck T-Shirt Navy",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/coutr/23045844/1200x1600/dolce-gabbana-Blue-Stretch-Jersey-Polo.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/coutr/d96ba2bf/1200x1600/dolce-gabbana-Blue-Stretch-Jersey-Polo.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/sugar/19182bf4/1200x1600/dolce-gabbana-Blue-Logo-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/vitkac/3d6f0c0b/1333x2000/dolce-gabbana-NAVY-BLUE-V-Neck-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/vitkac/fbb70822/1333x2000/dolce-gabbana-NAVY-BLUE-V-Neck-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/vitkac/c4beb3d9/1333x2000/dolce-gabbana-NAVY-BLUE-V-Neck-T-Shirt.jpeg"
-        ],
-        "codes": [
-            "1162851498"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "V-Neck T-Shirt — Navy",
         "colour": "Navy"
@@ -1207,18 +1037,10 @@
         "colour": "White"
     },
     "fnd-t12": {
-        "source": "https://theluxurycloset.com/us-en/men/fendi-black-bag-bugs-applique-jersey-crewneck-t-shirt-xxl-p1420193",
-        "title": "Fendi Bag Bugs T-Shirt, Black Black",
-        "images": [
-            "https://cdn.theluxurycloset.com/uploads/opt/products/full/luxury-men-fendi-used-clothes-p1420193-005.jpg",
-            "https://cdn.theluxurycloset.com/uploads/opt/products/full/luxury-men-fendi-used-clothes-p1420193-002.jpg",
-            "https://cdn.theluxurycloset.com/uploads/opt/products/full/luxury-men-fendi-used-clothes-p1420193-001.jpg",
-            "https://cdn.theluxurycloset.com/uploads/opt/products/full/luxury-men-fendi-used-clothes-p1420193-003.jpg",
-            "https://cdn.theluxurycloset.com/uploads/opt/products/full/luxury-men-fendi-used-clothes-p1420193-004.jpg"
-        ],
-        "codes": [
-            "1420193"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Fendi",
         "name": "Bag Bugs T-Shirt, Black",
         "colour": "Black"
@@ -1238,7 +1060,7 @@
         "images": [],
         "codes": [],
         "brand": "Fendi",
-        "name": "FF Monogram Patterned Trainingsanzug",
+        "name": "FF Monogram Patterned Tracksuit",
         "colour": "Brown"
     },
     "fnd-t11": {
@@ -1278,36 +1100,19 @@
         "colour": "Navy"
     },
     "fnd-p02": {
-        "source": "https://shop.rebag.com/products/apparel-fendi-mens-fendi-monster-eyes-polo-shirt-in-navy-blue-cotton-14462584",
-        "title": "Fendi Monster Eye Poloshirt, Navy Navy",
-        "images": [
-            "https://cdn.shopify.com/s/files/1/0384/0161/files/edt-644836_1.jpg?v=1774536061",
-            "https://cdn.shopify.com/s/files/1/0384/0161/files/edt-644836_0.jpg?v=1774536062",
-            "https://cdn.shopify.com/s/files/1/0384/0161/files/edt-644836_2.jpg?v=1774536061",
-            "https://cdn.shopify.com/s/files/1/0384/0161/files/edt-644836_3.jpg?v=1774536061",
-            "https://cdn.shopify.com/s/files/1/0384/0161/files/edt-644836_4.jpg?v=1774536061",
-            "https://cdn.shopify.com/s/files/1/0384/0161/files/edt-644836_5.jpg?v=1774536061"
-        ],
-        "codes": [
-            "14462584"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Fendi",
-        "name": "Monster Eye Poloshirt, Navy",
+        "name": "Monster Eye Polo Shirt, Navy",
         "colour": "Navy"
     },
     "fnd-s02": {
-        "source": "https://www.lyst.com/clothing/fendi-black-monster-eyes-hoodie/",
-        "title": "Fendi Monster Eyes Sweatshirt, Black Black",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/ssense/162693M202002-black-5cfc336a-.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/ssense/162693M202002-black-583b9e57-.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/ssense/162693M202002-black-dfbe2ee7-.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/ssense/162693M202002-black-d5b1ad36-.jpeg",
-            "https://cdna.lystit.com/1200/630/tr/photos/ssense/162693M202002-black-5cfc336a-.jpeg"
-        ],
-        "codes": [
-            "91464940"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Fendi",
         "name": "Monster Eyes Sweatshirt, Black",
         "colour": "Black"
@@ -1390,29 +1195,18 @@
         "colour": "Navy"
     },
     "gd-t03": {
-        "source": "https://www.lyst.com/clothing/gallery-dept-t-shirt-307/",
-        "title": "Gallery Dept. Logo Chest Print T-Shirt White",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/giglio/ec343475/1125x1500/gallery-dept-white-Baumwoll-T-Shirt-Von-Mit-Kontrastierendem-Logo-Print-Auf-Brust-Und-Rucken.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/giglio/0672db6c/1125x1500/gallery-dept-white-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/giglio/6a091a10/1125x1500/gallery-dept-white-Baumwoll-T-Shirt-Von-Mit-Kontrastierendem-Logo-Print-Auf-Brust-Und-Rucken.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/giglio/bdcf5b4d/1125x1500/gallery-dept-white-Baumwoll-T-Shirt-Von-Mit-Kontrastierendem-Logo-Print-Auf-Brust-Und-Rucken.jpeg",
-            "https://cdna.lystit.com/1200/630/tr/photos/giglio/ec343475/1125x1500/gallery-dept-white-Baumwoll-T-Shirt-Von-Mit-Kontrastierendem-Logo-Print-Auf-Brust-Und-Rucken.jpeg"
-        ],
-        "codes": [
-            "1204712683"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Gallery Dept.",
         "name": "Logo Chest Print T-Shirt — White",
         "colour": "White"
     },
     "gd-h01": {
-        "source": "https://gallerydeptshirts.com/gallery-dept-zip-up-hoodie/",
-        "title": "Gallery Dept. Logo Zip-Up Hoodie Teal",
-        "images": [
-            "https://gallerydeptshirts.com/wp-content/uploads/2026/02/Gallery-Dept-Zip-up-Hoodie.webp",
-            "https://gallerydeptshirts.com/wp-content/uploads/2026/02/Gallery-Dept-Zip-up-Hoodie2.webp"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
         "codes": [],
         "brand": "Gallery Dept.",
         "name": "Logo Zip-Up Hoodie — Teal",
@@ -1444,38 +1238,19 @@
         "colour": "White"
     },
     "gvy-vs06": {
-        "source": "https://www.lyst.com/clothing/givenchy-logo-patch-sweatshirt-27/",
-        "title": "Givenchy Logo Patch Sweatshirt, Black Black",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/thedesignerbox/dd46b509/2048x2730/givenchy-Black-Logo-Patch-Sweatshirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/1e6cf608/givenchy-black-Sweat-A-Plaque-Logo.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/9523b31f/givenchy-black-Logo-Plaque-Sweatshirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/00b1cf85/givenchy-black-Logo-Plaque-Sweatshirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/1f888445/givenchy-black-Logo-Plaque-Sweatshirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/c88afa85/givenchy-black-Logo-Plaque-Sweatshirt.jpeg"
-        ],
-        "codes": [
-            "1176753536"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Givenchy",
         "name": "Logo Patch Sweatshirt, Black",
         "colour": "Black"
     },
     "gvy-bm716r3ya": {
-        "source": "https://feature.com/products/givenchy-t-shirt-white",
-        "title": "Givenchy BM716R3YA",
-        "images": [
-            "https://cdn.shopify.com/s/files/1/0408/9909/files/Givenchy-T-Shirt---White-BM716R3YA8100---12-25-22---Feature--DV-JM-GRAYBG_a5eed040-2be3-43d6-8103-86b011606540.jpg?v=1788241629",
-            "https://cdn.shopify.com/s/files/1/0408/9909/files/Givenchy-T-Shirt---White-BM716R3YA8100---12-25-22---Feature--DV-4-GRAYBG_19074ecf-ed1f-4e14-9f49-85f915efee54.jpg?v=1788241630",
-            "https://cdn.shopify.com/s/files/1/0408/9909/products/Givenchy-T-Shirt---White-BM716R3YA8100---12-25-22---Feature--DV-3.jpg?v=1672160324"
-        ],
-        "codes": [
-            "BM716R3YA8100-S",
-            "BM716R3YA8100-M",
-            "BM716R3YA8100-L",
-            "BM716R3YA8100-XL",
-            "BM716R3YA8100-XXL"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Givenchy",
         "name": "Logo T-Shirt",
         "colour": "Blue"
@@ -1508,15 +1283,10 @@
         "colour": "Black"
     },
     "gvy-vs05": {
-        "source": "https://www.lyst.com/clothing/givenchy-zipped-track-jacket-2/",
-        "title": "Givenchy Tape Track Jacket, Blue Blue",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/coutr/a7b06a7c/1000x1500/givenchy-NAVYWHITE-Zipped-Track-Jacket.jpeg",
-            "https://cdna.lystit.com/1200/630/tr/photos/coutr/a7b06a7c/1000x1500/givenchy-NAVYWHITE-Zipped-Track-Jacket.jpeg"
-        ],
-        "codes": [
-            "1220846315"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Givenchy",
         "name": "Tape Track Jacket, Blue",
         "colour": "Blue"
@@ -1527,7 +1297,7 @@
         "images": [],
         "codes": [],
         "brand": "Givenchy",
-        "name": "Tape Trainingsanzug, Blue",
+        "name": "Tape Tracksuit, Blue",
         "colour": "Blue"
     },
     "guc-p03": {
@@ -1536,7 +1306,7 @@
         "images": [],
         "codes": [],
         "brand": "Gucci",
-        "name": "Anchor Print Poloshirt, Cream",
+        "name": "Anchor Print Polo Shirt, Cream",
         "colour": "Cream"
     },
     "guc-p02": {
@@ -1545,7 +1315,7 @@
         "images": [],
         "codes": [],
         "brand": "Gucci",
-        "name": "Anchor Print Poloshirt, Navy",
+        "name": "Anchor Print Polo Shirt, Navy",
         "colour": "Navy"
     },
     "guc-t07": {
@@ -1630,20 +1400,10 @@
         "colour": "Black"
     },
     "mb-vs001": {
-        "source": "https://www.zoofashions.com/products/black-eagle-flags-print-hoodie",
-        "title": "Marcelo Burlon Eagle Print Sweatshirt Black",
-        "images": [
-            "https://cdn.shopify.com/s/files/1/0332/9533/files/marcelo-burlon-black-eagle-flags-print-hoodie-30058812375089.webp?v=1731183228",
-            "https://cdn.shopify.com/s/files/1/0332/9533/files/marcelo-burlon-black-eagle-flags-print-hoodie-30058812407857.webp?v=1731183237"
-        ],
-        "codes": [
-            "MBSS18014XS",
-            "MBSS18014SM",
-            "MBSS18014ME",
-            "MBSS18014LG",
-            "MBSS18014XL",
-            "MBSS180142X"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Marcelo Burlon",
         "name": "Eagle Print Sweatshirt",
         "colour": "Black"
@@ -1658,41 +1418,28 @@
         "colour": "Black"
     },
     "blm-xh16b005": {
-        "source": "https://www.lyst.com/shop/mens-balmain-polo-shirts/",
-        "title": "BALMAIN Polo Shirt White",
-        "images": [
-            "https://cdna.lystit.com/photos/senser/75a4e44f/1087x1306/balmain-SDQ-Logo-Short-Sleeve-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/photos/senser/6cedead0/1066x1600/balmain-SDQ-Logo-Short-Sleeve-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/photos/senser/f0583f22/1107x1329/balmain-EAB-Logo-Short-Sleeve-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/photos/senser/7f3f0de6/1066x1600/balmain-EAB-Logo-Short-Sleeve-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/photos/senser/d4a16fee/417x419/balmain-black-Logo-Short-Sleeve-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/photos/shoppremiumoutlets/221ba383/2000x2000/balmain-white-Striped-Polo-Shirt.jpeg"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
         "codes": [],
         "brand": "BALMAIN",
         "name": "Polo Shirt",
         "colour": "White"
     },
     "blm-xh1gb005": {
-        "source": "https://thecorner.com/ww-en/logo-print-cotton-polo-shirt-xh1gb005bb23_eab-p",
-        "title": "BALMAIN XH1GB005",
-        "images": [
-            "https://cdn.shopify.com/s/files/1/0614/1929/0798/products/XH1GB005BB23_EAB-1.jpg?v=1665061754"
-        ],
-        "codes": [
-            "XH1GB005BB23_EAB-5XL"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "BALMAIN",
         "name": "Polo Shirt",
         "colour": "Black"
     },
     "blm-xh1gb005bb04": {
-        "source": "http://www.wantrobe.com/store/men/tops-men/balmain-logo-printed-short-sleeved-polo-shirt/",
-        "title": "XH1GB005BB04 Pink",
+        "source": "",
+        "title": "",
         "images": [],
-        "codes": [
-            "916589303"
-        ],
+        "codes": [],
         "brand": "BALMAIN",
         "name": "Polo Shirt",
         "colour": "Pink"
@@ -1796,22 +1543,10 @@
         "colour": "White"
     },
     "blm-xh1ef000": {
-        "source": "https://thedesignerboxuk.com/en-us/products/copy-of-balmain-paris-print-logo-white-t-shirt",
-        "title": "BALMAIN XH1EF000",
-        "images": [
-            "https://cdn.shopify.com/s/files/1/0501/0790/8254/products/17239173_36954712_1000_53ddb138-8436-49b1-b038-3bf6ebfa3517.jpg?v=1674835405",
-            "https://cdn.shopify.com/s/files/1/0501/0790/8254/products/17239173_36954711_1000_060460ea-7270-442c-9d68-7b05fb808de2.jpg?v=1674835405",
-            "https://cdn.shopify.com/s/files/1/0501/0790/8254/products/17239173_36954713_1000_a2e98031-3dee-445e-827b-c08e8ae7927b.jpg?v=1674835405",
-            "https://cdn.shopify.com/s/files/1/0501/0790/8254/products/17239173_36955323_1000_5f5b5f7b-2ba4-4214-8dcf-1274b53ff42b.jpg?v=1674835406"
-        ],
-        "codes": [
-            "01604",
-            "00902",
-            "00903",
-            "00904",
-            "00905",
-            "00906"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "BALMAIN",
         "name": "T-Shirt",
         "colour": "White"
@@ -1875,11 +1610,9 @@
         "colour": "Black"
     },
     "blc-681314tlvh4": {
-        "source": "https://item.fril.jp/3c890e534f15c12b06575a5fae81498b",
-        "title": "Balenciaga 681314TLVH4",
-        "images": [
-            "https://img.fril.jp/img/831660623/l/2863359828.JPG?1778917134"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
         "codes": [],
         "brand": "Balenciaga",
         "name": "T-Shirt",
@@ -1903,17 +1636,10 @@
         "colour": "Grey"
     },
     "bur-8052068": {
-        "source": "https://www.lyst.com/clothing/burberry-cotton-polo-shirt-705/",
-        "title": "Burberry Polo Shirt Yellow",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/1cfb5434/burberry-jaune-Cotton-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/fe35462c/burberry-jaune-Cotton-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/c20f66e7/1000x1334/burberry-yellow-Cotton-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1200/630/tr/photos/farfetch/1cfb5434/burberry-jaune-Cotton-Polo-Shirt.jpeg"
-        ],
-        "codes": [
-            "1185844353"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Burberry",
         "name": "Polo Shirt",
         "colour": "Yellow"
@@ -1987,16 +1713,10 @@
         "colour": "Black"
     },
     "bur-80552511": {
-        "source": "https://sasom.co.th/en/apparel/80552511/burberry-logo-print-cotton-t-shirt-black",
-        "title": "80552511 Black",
-        "images": [
-            "https://d2cva83hdk3bwc.cloudfront.net/burberry-logo-print-cotton-t-shirt-black-1.jpg",
-            "https://img.sasom.co.th/burberry-logo-print-cotton-t-shirt-black-1-sq.jpg",
-            "https://img.sasom.co.th/burberry-logo-print-cotton-t-shirt-black-1.jpg"
-        ],
-        "codes": [
-            "80552511"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Burberry",
         "name": "T-Shirt",
         "colour": "Black"
@@ -2018,17 +1738,10 @@
         "colour": "Black"
     },
     "bur-80553091": {
-        "source": "https://luxury29.io/BURBERRY/T-Shirts%20&%20Vests/burberry-logo-cotton-t-shirt-white-80553091",
-        "title": "80553091 White",
-        "images": [
-            "https://s.luxury29.io/images/products/images/c_21412978_33555_1729589400.png",
-            "https://s.luxury29.io/images/products/images/c_21412978_33557_1729589400.png",
-            "https://s.luxury29.io/images/products/images/c_21412978_33556_1729589400.png",
-            "https://secure.zortout.com/Home/DisplayProductImage?pid=21412978&m=122096"
-        ],
-        "codes": [
-            "0311000500-80553091-15-0035"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Burberry",
         "name": "T-Shirt",
         "colour": "White"
@@ -2094,20 +1807,10 @@
         "colour": "Grey"
     },
     "dsq-s74lb0869": {
-        "source": "https://designer-drip-9915.myshopify.com/products/dsquared2-skater-jean-large-print-jeans",
-        "title": "DSQUARED2 S74LB0869",
-        "images": [
-            "https://cdn.shopify.com/s/files/1/0723/6747/2925/files/s74lb0869__1_8825024a-adf3-4a01-b3fa-12ee97ff8d98.jpg?v=1787994812",
-            "https://cdn.shopify.com/s/files/1/0723/6747/2925/files/s74lb0869__2_9df13256-cd9b-4c6b-a84f-17d8932f6202.jpg?v=1787994817",
-            "https://cdn.shopify.com/s/files/1/0723/6747/2925/files/s74lb0869__3_7dd56f06-bc4a-4ff6-a697-b31f8d158027.jpg?v=1787994821"
-        ],
-        "codes": [
-            "S74LB0869_44",
-            "S74LB0869_46",
-            "S74LB0869_48",
-            "S74LB0869_50",
-            "S74LB0869_52"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "DSQUARED2",
         "name": "Clean Wash Jeans",
         "colour": "Blue"
@@ -2156,31 +1859,18 @@
         "colour": "Blue"
     },
     "dsq-s74l0851": {
-        "source": "https://shop.simon.com/products/light-blue-wide-leg-distressed-denim-jeans",
-        "title": "DSQUARED2 Distressed Jeans Light Blue",
-        "images": [
-            "https://cdn.shopify.com/s/files/1/0291/4536/6588/files/7ff7bf00cb444c9e8a12b9979fae54cc.jpg?v=1779298483",
-            "https://cdn.shopify.com/s/files/1/0291/4536/6588/files/fffa32e2dc6c48c4b6a05c81c6cbd552.jpg?v=1779298483"
-        ],
-        "codes": [
-            "ae013919-ec00-4cdd-9fc9-88641ccb3cd0",
-            "a32489d1-bfc5-4d91-b0d7-6f2a5b070c76"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "DSQUARED2",
         "name": "Distressed Jeans",
         "colour": "Light Blue"
     },
     "dsq-s74lb0791": {
-        "source": "https://vector-park.jp/item/098-902607190194/",
-        "title": "DSQUARED2 S74LB0791",
-        "images": [
-            "https://image.vector-park.jp/images/item/original2/098/9026/07/19/098-902607190194_1.jpg?t=1784767795",
-            "https://image.vector-park.jp/images/item/original2/098/9026/07/19/098-902607190194_2.jpg?t=1784767795",
-            "https://image.vector-park.jp/images/item/original2/098/9026/07/19/098-902607190194_3.jpg?t=1784767795",
-            "https://image.vector-park.jp/images/item/original2/098/9026/07/19/098-902607190194_4.jpg?t=1784767795",
-            "https://image.vector-park.jp/images/item/original2/098/9026/07/19/098-902607190194_5.jpg?t=1784767796",
-            "https://image.vector-park.jp/images/item/original2/098/9026/07/19/098-902607190194_6.jpg?t=1784767796"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Distressed Jeans",
@@ -2200,16 +1890,10 @@
         "colour": "Blue"
     },
     "dsq-s74lb0930": {
-        "source": "https://www.lyst.com/clothing/dsquared2-distressed-jeans-168/",
-        "title": "DSQUARED2 Distressed Jeans Blue",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/3e541f9e/dsquared-blue-Distressed-Jeans.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/7784b837/dsquared-blue-Distressed-Jeans.jpeg",
-            "https://cdna.lystit.com/1200/630/tr/photos/farfetch/3e541f9e/dsquared-blue-Distressed-Jeans.jpeg"
-        ],
-        "codes": [
-            "1177036294"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "DSQUARED2",
         "name": "Distressed Jeans",
         "colour": "Blue"
@@ -2240,31 +1924,19 @@
         "colour": "Blue"
     },
     "dsq-s74lb0978": {
-        "source": "https://shop.simon.com/products/light-blue-wide-leg-distressed-denim-jeans",
-        "title": "DSQUARED2 Distressed Jeans Light Blue",
-        "images": [
-            "https://cdn.shopify.com/s/files/1/0291/4536/6588/files/7ff7bf00cb444c9e8a12b9979fae54cc.jpg?v=1779298483",
-            "https://cdn.shopify.com/s/files/1/0291/4536/6588/files/fffa32e2dc6c48c4b6a05c81c6cbd552.jpg?v=1779298483"
-        ],
-        "codes": [
-            "ae013919-ec00-4cdd-9fc9-88641ccb3cd0",
-            "a32489d1-bfc5-4d91-b0d7-6f2a5b070c76"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "DSQUARED2",
         "name": "Distressed Jeans",
         "colour": "Light Blue"
     },
     "dsq-s79la0021": {
-        "source": "https://www.lyst.com/clothing/dsquared2-distressed-jeans-168/",
-        "title": "DSQUARED2 Distressed Jeans Blue",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/3e541f9e/dsquared-blue-Distressed-Jeans.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/7784b837/dsquared-blue-Distressed-Jeans.jpeg",
-            "https://cdna.lystit.com/1200/630/tr/photos/farfetch/3e541f9e/dsquared-blue-Distressed-Jeans.jpeg"
-        ],
-        "codes": [
-            "1177036294"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "DSQUARED2",
         "name": "Distressed Jeans",
         "colour": "Blue"
@@ -2310,15 +1982,10 @@
         "colour": "Black"
     },
     "dsq-s74gu0496": {
-        "source": "https://www.debenhams.us/product/dsquared2-multi-logo-maple-leaf-black-sweater_p-b4ec00db-87fc-4056-8326-0a7e1c2a7d40",
-        "title": "DSQUARED2 S74GU0496",
-        "images": [
-            "https://mediahub.debenhams.us/m8058049083579_black_xl.jpeg",
-            "https://mediahub.debenhams.us/m8058049083579_black_xl_1.jpeg"
-        ],
-        "codes": [
-            "M8058049083579"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "DSQUARED2",
         "name": "Sweatshirt",
         "colour": "White"
@@ -2347,7 +2014,7 @@
         "images": [],
         "codes": [],
         "brand": "DSQUARED2",
-        "name": "Tipped Poloshirt",
+        "name": "Tipped Polo Shirt",
         "colour": "Black"
     },
     "dsq-s79gl0001": {
@@ -2356,7 +2023,7 @@
         "images": [],
         "codes": [],
         "brand": "DSQUARED2",
-        "name": "Tipped Poloshirt",
+        "name": "Tipped Polo Shirt",
         "colour": "Red"
     },
     "dsq-s74gl0064": {
@@ -2365,7 +2032,7 @@
         "images": [],
         "codes": [],
         "brand": "DSQUARED2",
-        "name": "Tipped Poloshirt",
+        "name": "Tipped Polo Shirt",
         "colour": "Pink"
     },
     "dsq-s74gl0064-100": {
@@ -2374,7 +2041,7 @@
         "images": [],
         "codes": [],
         "brand": "DSQUARED2",
-        "name": "Tipped Poloshirt",
+        "name": "Tipped Polo Shirt",
         "colour": "White"
     },
     "dsq-s79gl0001s-m": {
@@ -2383,7 +2050,7 @@
         "images": [],
         "codes": [],
         "brand": "DSQUARED2",
-        "name": "Tipped Poloshirt",
+        "name": "Tipped Polo Shirt",
         "colour": "White"
     },
     "dsq-s79gl0001s": {
@@ -2401,59 +2068,32 @@
         "images": [],
         "codes": [],
         "brand": "Dolce & Gabbana",
-        "name": "5-Pocket Jeansshorts — Light Wash",
+        "name": "5-Pocket Denim Shorts — Light Wash",
         "colour": "Light Wash"
     },
     "dgn-g8fe8": {
-        "source": "https://www.lyst.com/clothing/dolce-gabbana-denim-shorts-808/",
-        "title": "Dolce & Gabbana Denim Shorts Blue",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/vitkac/2e9c5690/1333x2000/dolce-gabbana-BLUE-Denim-Shorts.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/vitkac/c94e2983/1333x2000/dolce-gabbana-BLUE-Denim-Shorts.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/vitkac/e2c60af6/1333x2000/dolce-gabbana-BLUE-Denim-Shorts.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/vitkac/31f59276/1333x2000/dolce-gabbana-BLUE-Denim-Shorts.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/vitkac/b6e7283a/1333x2000/dolce-gabbana-BLUE-Denim-Shorts.jpeg",
-            "https://cdna.lystit.com/1200/630/tr/photos/vitkac/2e9c5690/1333x2000/dolce-gabbana-BLUE-Denim-Shorts.jpeg"
-        ],
-        "codes": [
-            "1187252238"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "Denim Shorts",
         "colour": "Blue"
     },
     "dgn-g8qg3tfu7ep": {
-        "source": "https://www.lyst.com/clothing/dolce-gabbana-polo-shirt-998/",
-        "title": "Dolce & Gabbana Polo Shirt White",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/coutr/6a04378e/2048x2730/dolce-gabbana-BIANCONATU-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/1f20f274/1200x1600/dolce-gabbana-Bianconatu-Dolce-Gabbana-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/e25d5439/1200x1600/dolce-gabbana-Bianconatu-Dolce-Gabbana-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/282d78c3/1200x1600/dolce-gabbana-Bianconatu-Dolce-Gabbana-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/2b7f1480/1200x1598/dolce-gabbana-Bianconatu-Dolce-Gabbana-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/b1fdfb6b/1000x1334/dolce-gabbana-white-Polo-Shirt.jpeg"
-        ],
-        "codes": [
-            "1220846033"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "Polo Shirt",
         "colour": "White"
     },
     "dgn-g8sn1tfu7en": {
-        "source": "https://www.lyst.com/clothing/dolce-gabbana-polo-shirt-998/",
-        "title": "Dolce & Gabbana Polo Shirt White",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/coutr/6a04378e/2048x2730/dolce-gabbana-BIANCONATU-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/1f20f274/1200x1600/dolce-gabbana-Bianconatu-Dolce-Gabbana-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/e25d5439/1200x1600/dolce-gabbana-Bianconatu-Dolce-Gabbana-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/282d78c3/1200x1600/dolce-gabbana-Bianconatu-Dolce-Gabbana-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/fashdes/2b7f1480/1200x1598/dolce-gabbana-Bianconatu-Dolce-Gabbana-Polo-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/farfetch/b1fdfb6b/1000x1334/dolce-gabbana-white-Polo-Shirt.jpeg"
-        ],
-        "codes": [
-            "1220846033"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "Polo Shirt",
         "colour": "White"
@@ -2614,13 +2254,13 @@
         "colour": "Black"
     },
     "dgn-g8se3tfu7en": {
-        "source": "https://thecorner.com/us-en/cotton-crew-neck-t-shirt-g8se3tfu7en_w0800-p",
-        "title": "Dolce & Gabbana G8SE3TFU7EN",
+        "source": "https://thecorner.com/eu-en/cotton-crew-neck-t-shirt-g8se3tfu7en_a4567-p",
+        "title": "site:thecorner.com G8SE3TFU7EN",
         "images": [
-            "https://cdn.shopify.com/s/files/1/0614/1929/0798/files/G8SE3TFU7EN_W0800-1_3c7b6733-b7ac-4cce-beef-c00ab1163ed9.jpg?v=1744746710"
+            "https://cdn.shopify.com/s/files/1/0620/1442/3226/files/G8SE3TFU7EN_A4567-1_ac0f346b-551b-4fab-a639-96757e0b5a17.jpg?v=1739920363"
         ],
         "codes": [
-            "G8SE3TFU7EN_W0800-34"
+            "G8SE3TFU7EN_A4567-52"
         ],
         "brand": "Dolce & Gabbana",
         "name": "T-Shirt",
@@ -2680,19 +2320,10 @@
         "colour": "Black"
     },
     "gvy-bm716g3y99": {
-        "source": "https://www.lyst.com/clothing/givenchy-logo-t-shirt-724/",
-        "title": "Givenchy Logo T-Shirt White",
-        "images": [
-            "https://cdna.lystit.com/1040/1300/n/photos/lordandtaylor/99bf3607/1000x1334/givenchy-WHITE-Logo-Print-Crew-Neck-Tee.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/lordandtaylor/c583df9a/1000x1344/givenchy-White-T-Shirt-With-Embroidered-Logo.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/lordandtaylor/d96493c1/1000x1334/givenchy-100-WHITE-Logo-Print-Regular-Fit-Cotton-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/lordandtaylor/99bf3607/1000x1334/givenchy-499-DARK-NAVY-Logo-Print-Regular-Fit-Cotton-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/thedesignerbox/5c9de11f/2048x2730/givenchy-White-Shadow-Print-T-Shirt.jpeg",
-            "https://cdna.lystit.com/1040/1300/n/photos/thedesignerbox/a92e2590/2048x2730/givenchy-White-Stamp-Print-T-Shirt.jpeg"
-        ],
-        "codes": [
-            "1141805086"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Givenchy",
         "name": "Logo T-Shirt",
         "colour": "White"
@@ -2748,30 +2379,18 @@
         "colour": "Black"
     },
     "guc-t03": {
-        "source": "https://novelship.com/gucci-x-the-north-face-black-loose-fit-logo-t-shirt-for-men-616036-xjdcl-1131",
-        "title": "Gucci 616036-XJDC-L",
-        "images": [
-            "https://images.novelship.com/main/novelship-logo.jpg",
-            "https://images.novelship.com/product/gucci_x_the_north_face_black_loose_fit_logo_t-shir_0_56483.jpeg?fit=fill&bg=FFFFFF&trim=color&q=75&w=1200&h=1200&pad=80&fm=webp&auto=compress"
-        ],
-        "codes": [
-            "616036-XJDCL-1131"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
+        "codes": [],
         "brand": "Gucci",
         "name": "The North Face x Gucci T-Shirt, Cream — 616036 XJDC",
         "colour": "Cream"
     },
     "guc-t09": {
-        "source": "https://global.trenbe.com/products/gucci-tiger-print-oversized-t-shirt-orange-s100-155416721",
-        "title": "Gucci Tiger T-Shirt, Orange Orange",
-        "images": [
-            "https://cdn.shopify.com/s/files/1/0711/8110/7414/files/1777160287980-c3ad63db-1fc5-49ff-b208-63a1c3ae1aec.jpg?v=1789542472",
-            "https://cdn.shopify.com/s/files/1/0711/8110/7414/files/1777160288072-760c2c42-7ac2-4b6d-ad11-c73fbe6efcb5.jpg?v=1789542472",
-            "https://cdn.shopify.com/s/files/1/0711/8110/7414/files/1777160288104-921290fc-1cbf-41d6-af4f-8ce2c7295c06.jpg?v=1789542472",
-            "https://cdn.shopify.com/s/files/1/0711/8110/7414/files/1777160288134-203a85e9-03c1-4b55-a5d0-ddf01969c854.jpg?v=1789542472",
-            "https://cdn.shopify.com/s/files/1/0711/8110/7414/files/1777160288164-a688ce62-8602-461a-961b-91b844abb023.jpg?v=1789542472",
-            "https://cdn.shopify.com/s/files/1/0711/8110/7414/files/1777160288195-8a4b6450-794d-4c2f-96f7-8bbfd59d381f.jpg?v=1789542472"
-        ],
+        "source": "",
+        "title": "",
+        "images": [],
         "codes": [],
         "brand": "Gucci",
         "name": "Tiger T-Shirt, Orange",
@@ -2802,7 +2421,7 @@
         "images": [],
         "codes": [],
         "brand": "LACOSTE",
-        "name": "Men Zip Up Fleece Hoodie — Beige",
+        "name": "Zip Up Fleece Hoodie — Beige",
         "colour": "Beige"
     },
     "fashionb-lacoste-men-zip-up-fleece-hoodie-5": {
@@ -2811,7 +2430,7 @@
         "images": [],
         "codes": [],
         "brand": "LACOSTE",
-        "name": "Men Zip Up Fleece Hoodie — Bordeaux",
+        "name": "Zip Up Fleece Hoodie — Bordeaux",
         "colour": "Bordeaux"
     },
     "lac-monogram-polo": {
