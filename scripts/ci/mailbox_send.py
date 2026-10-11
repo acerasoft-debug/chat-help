@@ -104,10 +104,33 @@ def has_mail_server(domain: str) -> bool:
 _ADDR = re.compile(r'[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}')
 
 
+# Adres sorunu DEGIL, gondericinin kimlik dogrulamasi / alici politikasi (11 Eki 2026 olculdu: Microsoft 365
+# "550 5.7.509 ... does not pass DMARC verification", Orange "DMARC check failed", grup "5.7.133 ... allowed senders").
+# Bunlar musteriyi "geri dondu" diye kalici olarak listeden dusurmemeli — adres gercek, sorun DKIM eksikligi.
+POLICY_REJECT = re.compile(r'(?i)dmarc|5\.7\.509|5\.7\.133|5\.7\.1\b.*(spf|dkim|policy)|not (be )?authenticated|spf (check )?fail|'
+                           r'allowed senders|only accepts messages from|sender (address )?rejected|blocked using|spamhaus|blacklist|blocklist')
+
+
+def dsn_policy_reject(msg) -> bool:
+    for part in msg.walk():
+        if part.get_content_maintype() in ('text', 'message'):
+            try:
+                t = part.get_payload(decode=True)
+                t = t.decode(part.get_content_charset() or 'utf-8', 'replace') if t else str(part.get_payload())
+            except Exception:
+                t = str(part.get_payload())
+            if POLICY_REJECT.search(t[:20000]):
+                return True
+    return False
+
+
 def dsn_failed_recipients(msg, own: str) -> list:
     """Kalici teslim hatasi bildirimindeki (DSN) alicilar. Standart multipart/report
     (Final-Recipient + Action: failed / Status 5.x.x) ya da GoDaddy'nin duz metni
-    ("failed permanently: * adres"). Gecici (4.x.x) hatalar ALINMAZ."""
+    ("failed permanently: * adres"). Gecici (4.x.x) hatalar ve gonderici kimlik dogrulamasi /
+    politika retleri (DMARC, izinli gonderen listesi) ALINMAZ."""
+    if dsn_policy_reject(msg):
+        return []
     out = []
     for part in msg.walk():
         if part.get_content_type() == 'message/delivery-status':
@@ -142,14 +165,15 @@ DSN_HINT = re.compile(r'(?i)delivery status notification|failed permanently|unde
 
 
 def _folders(m) -> list:
-    """INBOX + istenmeyen/spam klasorleri (bildirimler bazen oraya duser)."""
+    """INBOX + istenmeyen/spam + Cop/Arsiv klasorleri. 11 Eki 2026: 7 gunluk 50 bildirimin 44'u Cop (Trash)
+    klasorundeydi (webmail'de okunup silinmis) — tarayici yalniz INBOX'a baktigi icin hicbiri isaretlenmemisti."""
     out = ['INBOX']
     typ, data = m.list()
     for line in data or []:
         t = line.decode('utf-8', 'replace') if isinstance(line, bytes) else str(line)
         mm = re.search(r'"([^"]+)"\s*$', t) or re.search(r'\s(\S+)\s*$', t)
         name = mm.group(1) if mm else ''
-        if name and name != 'INBOX' and re.search(r'(?i)junk|spam|bulk', name):
+        if name and name != 'INBOX' and re.search(r'(?i)junk|spam|bulk|trash|deleted|papierkorb|corbeille|cestino|papelera|archive', name):
             out.append(name)
     return out
 
