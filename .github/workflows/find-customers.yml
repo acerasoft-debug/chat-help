@@ -6,6 +6,7 @@ on:
   schedule:
     - cron: '20 5 * * *'      # her gün 05:20 UTC
     - cron: '20 15 * * *'     # 10 Eki 2026 (operatör: "çok az email bulunmuş"): günde ikinci tur, 15:20 UTC
+    - cron: '20 22 * * *'     # 11 Eki 2026 (operatör: "tüm ülkelerden rahatça bulunabilir"): üçüncü tur, 22:20 UTC (Amerika günü)
   workflow_dispatch:
     inputs:
       request_id:

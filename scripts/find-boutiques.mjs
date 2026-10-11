@@ -451,7 +451,11 @@ const TLD_COUNTRY = { de: 'Germany', at: 'Austria', ch: 'Switzerland', it: 'Ital
   bg: 'Bulgaria', hr: 'Croatia', si: 'Slovenia', sk: 'Slovakia', ee: 'Estonia', lv: 'Latvia', lt: 'Lithuania', mt: 'Malta',
   cy: 'Cyprus', is: 'Iceland', ca: 'Canada', us: 'United States', au: 'Australia', 'com.au': 'Australia', nz: 'New Zealand',
   'co.nz': 'New Zealand', jp: 'Japan', 'co.jp': 'Japan', tr: 'Turkey', 'com.tr': 'Turkey', ae: 'United Arab Emirates', 'com.pl': 'Poland',
-  'com.gr': 'Greece', 'com.pt': 'Portugal', 'com.cy': 'Cyprus', 'com.mt': 'Malta', 'com.es': 'Spain', rs: 'Serbia', ua: 'Ukraine' };
+  'com.gr': 'Greece', 'com.pt': 'Portugal', 'com.cy': 'Cyprus', 'com.mt': 'Malta', 'com.es': 'Spain', rs: 'Serbia', ua: 'Ukraine',
+  sa: 'Saudi Arabia', 'com.sa': 'Saudi Arabia', qa: 'Qatar', 'com.qa': 'Qatar', kw: 'Kuwait', 'com.kw': 'Kuwait', bh: 'Bahrain',
+  'com.bh': 'Bahrain', lb: 'Lebanon', 'com.lb': 'Lebanon', il: 'Israel', 'co.il': 'Israel', kr: 'South Korea', 'co.kr': 'South Korea',
+  hk: 'Hong Kong', 'com.hk': 'Hong Kong', sg: 'Singapore', 'com.sg': 'Singapore', mx: 'Mexico', 'com.mx': 'Mexico',
+  br: 'Brazil', 'com.br': 'Brazil', ar: 'Argentina', 'com.ar': 'Argentina', cl: 'Chile', mc: 'Monaco' };
 const PHONE_COUNTRY = [['351', 'Portugal'], ['353', 'Ireland'], ['354', 'Iceland'], ['356', 'Malta'], ['357', 'Cyprus'], ['358', 'Finland'],
   ['359', 'Bulgaria'], ['370', 'Lithuania'], ['371', 'Latvia'], ['372', 'Estonia'], ['381', 'Serbia'], ['385', 'Croatia'], ['386', 'Slovenia'],
   ['420', 'Czechia'], ['421', 'Slovakia'], ['352', 'Luxembourg'], ['377', 'Monaco'], ['971', 'United Arab Emirates'],
@@ -855,6 +859,19 @@ const CITY_POOL = [
   'United Kingdom|Bristol', 'Ireland|Cork', 'Portugal|Braga', 'Portugal|Coimbra', 'Portugal|Faro',
   'Denmark|Aarhus', 'Sweden|Göteborg', 'Sweden|Malmö', 'Norway|Bergen', 'Finland|Helsinki',
   'Poland|Poznań', 'Poland|Gdańsk', 'Poland|Łódź', 'Czechia|Praha', 'Czechia|Brno', 'Luxembourg|Luxembourg', 'Greece|Patra',
+  /* 11 Eki 2026 (operatör: "tüm ülkelerden rahatça bulunabilir"): Avrupa dışı ve kalan AB ülkeleri. OSM dünya geneli
+     çalışır; e-posta dili ülkeden (7 başlıca dil, diğerleri İngilizce). Türkiye bilerek YOK (ülke engeli). */
+  'United States|New York', 'United States|Los Angeles', 'United States|Miami', 'United States|Chicago', 'United States|San Francisco',
+  'United States|Houston', 'United States|Dallas', 'United States|Atlanta', 'United States|Boston', 'United States|Las Vegas',
+  'United States|Washington', 'United States|Seattle', 'Canada|Toronto', 'Canada|Montréal', 'Canada|Vancouver',
+  'United Arab Emirates|Dubai', 'United Arab Emirates|Abu Dhabi', 'Saudi Arabia|Riyadh', 'Saudi Arabia|Jeddah', 'Qatar|Doha',
+  'Kuwait|Kuwait City', 'Bahrain|Manama', 'Lebanon|Beirut', 'Israel|Tel Aviv-Yafo',
+  'Japan|Tokyo', 'Japan|Osaka', 'South Korea|Seoul', 'Hong Kong|Hong Kong', 'Singapore|Singapore',
+  'Australia|Sydney', 'Australia|Melbourne', 'New Zealand|Auckland',
+  'Mexico|Ciudad de México', 'Brazil|São Paulo', 'Argentina|Buenos Aires', 'Chile|Santiago',
+  'Hungary|Budapest', 'Romania|Bucureşti', 'Romania|Cluj-Napoca', 'Bulgaria|Sofia', 'Croatia|Zagreb', 'Croatia|Split',
+  'Slovenia|Ljubljana', 'Slovakia|Bratislava', 'Lithuania|Vilnius', 'Latvia|Rīga', 'Estonia|Tallinn',
+  'Cyprus|Limassol', 'Cyprus|Nicosia', 'Malta|Sliema', 'Monaco|Monaco', 'Iceland|Reykjavík', 'Serbia|Belgrade',
 ];
 const COUNTRY_LANG = { Italy: 'it', France: 'fr', Spain: 'es', Netherlands: 'nl', Belgium: 'nl', Switzerland: 'de', Austria: 'de', Germany: 'de',
   Portugal: 'pt', Greece: 'el', Poland: 'pl', 'United Kingdom': 'en', Ireland: 'en', Denmark: 'da', Sweden: 'sv', Norway: 'nb', Czechia: 'cs', Finland: 'fi' };
@@ -1146,6 +1163,9 @@ function selftest() {
   t('buildQueries count', qs.length === 10 && qs.every(x => ['de', 'it'].includes(x.lang) && x.q.includes('"')));
   t('buildQueries deterministic', JSON.stringify(buildQueries(5, { queries: {} }, [], 7)) === JSON.stringify(buildQueries(5, { queries: {} }, [], 7)));
   t('buildQueries skips recent', buildQueries(3, { queries: Object.fromEntries(buildQueries(3, { queries: {} }, [], 7).map(x => [x.q, new Date().toISOString()])) }, [], 7).every(x => !buildQueries(3, { queries: {} }, [], 7).some(y => y.q === x.q)));
+  t('havuz: Türkiye yok (ülke engeli)', !CITY_POOL.some(c => /^Turkey\|/i.test(c)));
+  t('havuz: dünya geneli (35+ ülke)', new Set(CITY_POOL.map(c => c.split('|')[0])).size >= 35);
+  t('ülke: alan adından (Suudi, Hong Kong, Meksika)', detectCountry('shop.com.sa', '', '') === 'Saudi Arabia' && detectCountry('x.com.hk', '', '') === 'Hong Kong' && detectCountry('m.com.mx', '', '') === 'Mexico');
   log(fails ? `\n${fails} TEST BASARISIZ` : '\nTUM TESTLER GECTI'); process.exit(fails ? 1 : 0);
 }
 
