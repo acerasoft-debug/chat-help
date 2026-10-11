@@ -1509,8 +1509,14 @@ function vr_colour_sets(array $p): array
                 $mine[] = $im;
             }
         }
-        if ($code !== '') foreach ((array)($extra[$p['id'] . '@' . $code] ?? []) as $x) {
-            if (is_string($x) && preg_match('#^/uploads/[A-Za-z0-9._/-]+$#', $x)) $mine[] = $x;
+        // Markanın resmî, yüksek çözünürlüklü kareleri (onaylı ek kareler)
+        // öne: toptancının küçük karesi galeride bulanık açılıyordu.
+        if ($code !== '') {
+            $hi = [];
+            foreach ((array)($extra[$p['id'] . '@' . $code] ?? []) as $x) {
+                if (is_string($x) && preg_match('#^/uploads/[A-Za-z0-9._/-]+$#', $x)) $hi[] = $x;
+            }
+            $mine = array_merge($hi, $mine);
         }
         $mine = array_values(array_unique($mine));
         if ($mine) $hit++;
