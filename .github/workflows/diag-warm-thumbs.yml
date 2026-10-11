@@ -7,6 +7,10 @@ on:
         description: "Bitmemişse ve çalışan yoksa üretimi yeniden başlat (true/false)"
         required: false
         default: "false"
+      purge_old:
+        description: "Kullanılmayan eski önbellek uploads/.thumbs silinsin mi (true/false) — yalnız yeni kopyalar tamamsa"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
