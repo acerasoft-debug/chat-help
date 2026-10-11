@@ -4737,6 +4737,15 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   istek 20 dk'dan eskiyse istek açar (turun kendi isteği bir önceki gönderimle çakışınca düşüyordu). Kampanya dili:
   yalnız sitenin de konuştuğu diller (en, de, fr, it, es, pt — `VESTRA_CAMPAIGN_LANGS`); Hollandaca sitede yok →
   İngilizce. VESTRA Edit bağlantıları `&lang=` ile mektubun dilinde açılır.
+  **11 Eki (3), operatör "çok az butik bulunuyor":** 10 Eki akşam turunun kaydı: 40 şehir → 673 aday (12 dk) → 655 site
+  incelendi (9 dk) → 45 lead; bütçenin 21/55 dk'sı kullanıldı; eleme no-brands %50 (OSM shop=clothes'un çoğu
+  gerçekten çok markalı butik değil — doğru eleme), unreachable %25. OSM adayları maxSites'ı (400) doldurunca
+  bing/ddg HİÇ çalışmıyordu. Düzeltme (chat-help e069d8c5): MAX_CITIES 120, OSM_TARGET 2200, OSM süre payı %55,
+  CONCURRENCY 8, web araması OSM'den önce kendi tavanıyla, zaman aşımında 25 sn'lik ikinci deneme. **Zamanlayıcı:**
+  GitHub cron'u turları atlıyor (11 Eki 13:20 ve 16:20 hiç başlamadı), sunucuda Node YOK (diag-node.yml), PAT yok →
+  `pacemaker.yml` kendini zincirler: sonraki :20 slotuna kadar uyur, `find-customers.yml`'i `auto=true` ile
+  workflow_dispatch eder (GITHUB_TOKEN bu olayı tetikleyebilir), kendini yeniden başlatır; saatlik cron yalnız kopan
+  zinciri yeniden kurar. Zincir koparsa: Actions ▸ pacemaker ▸ Run workflow.
 - **Satıcı kendi adresi + kendi posta sunucusu (SMTP) ile gönderir (10 Eki 2026, operatör: "satıcılarda kendi
   email adresleri ile gönderebilsin, kendi sunucuları ile").** Barındırmadan giden SMTP KAPALI (8 Eki smtp_probe) —
   sunucu bağlanamaz; bu yüzden `inc/seller_outbox.php` kuyruğu (`data/seller_outbox.json`, şifresiz) +
