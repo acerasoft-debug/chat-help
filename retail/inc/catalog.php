@@ -485,6 +485,21 @@ function vr_catalog(): array
         }
     }
 
+    // 5c) Aynı fotoğraf bir galeride iki kez görünmesin: toptancı aynı kareyi
+    //     farklı adla veriyor, ikiz satırların birleşmesi de (adım 5) aynı
+    //     kareyi iki addan getiriyor. tools/index-photo-hash.php görsel parmak
+    //     iziyle ölçüp data/photo-dupes.json'a (ürün → düşecek kareler)
+    //     yazıyor; burada yalnız uygulanıyor. İlk görünen kare kalır.
+    if (!defined('VR_NO_PHOTO_DEDUPE')) {
+        foreach ((array)vr_store_read('photo-dupes.json', []) as $did => $gone) {
+            if (!isset($cat[$did]) || !is_array($gone) || !$gone) continue;
+            $gone = array_flip(array_filter($gone, 'is_string'));
+            $imgs = array_values(array_filter((array)$cat[$did]['images'], 'strlen'));
+            $keep = array_values(array_filter($imgs, fn($x) => !isset($gone[$x])));
+            if ($keep) $cat[$did]['images'] = $keep;
+        }
+    }
+
     // 6) Gerçek fotoğrafı olmayan parça vitrine çıkmaz: yer tutucu grafikli
     //    bir kart premium vitrinde "eksik" diye okunuyor. Fotoğraf geldiği
     //    an (Vestra senkronu ya da onaylı internet karesi) kendiliğinden döner.
