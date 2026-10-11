@@ -72,7 +72,8 @@ function awp_save(string $bytes, string $dst, int $max = 1600): bool
 $done = 0; $files = 0;
 foreach ($approve as $id => $nums) {
     $id = (string)$id;
-    if (!preg_match('/^[a-z0-9-]+$/i', $id)) { echo "  geçersiz id: $id\n"; continue; }
+    // "<ürün>@<renk kodu>": çok renkli ürünün bir renginin ek kareleri (bkz. vr_colour_sets).
+    if (!preg_match('/^[a-z0-9-]+(@\w{5,})?$/i', $id)) { echo "  geçersiz id: $id\n"; continue; }
     // Başka bir ürünün aramasında çıkan doğru kareler: {"from": "<id>", "n": [..]}
     // (ör. iki benzer tişörtün adayları yer değiştirmiş gelebiliyor).
     $from = $id;
