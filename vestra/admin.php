@@ -6660,6 +6660,9 @@ elseif($tab==='prospects'):
           <span class="ahint">GoDaddy sınırı: support@ için günde 500 (elle yazdıklarınız ve satıcıların VESTRA sunucusundan gidenleri de sayılır).</span></form>
         <div id="spamguard" style="font-size:12px;line-height:1.7;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:0 0 10px;background:var(--bg2)">
           <b>🛡 Spam koruması</b><br>
+          <?php if($mbDk!=='ok'): ?>
+            <span style="color:#c0392b"><b>DKIM kaydı yok</b> — Microsoft 365 / Outlook / Orange alıcıları e-postayı "DMARC doğrulanamadı" diye <b>reddediyor</b> (550 5.7.509). Bu alıcılar DKIM eklenene kadar <b>bekletiliyor</b>; diğerlerine gönderim sürüyor. Aşağıdaki 🔐 kaydı GoDaddy DNS'e ekleyin — eklenince bekleyenler kendiliğinden gider.</span><br>
+          <?php endif; ?>
           <?php if($mbWarm['on'] && $mbWarm['limit']<VESTRA_MAILBOX_MAX_CAP): ?>
             Isınma: <b>gün <?= (int)$mbWarm['day'] ?>/<?= count(VESTRA_MAILBOX_WARMUP) ?></b> — bugün en çok <b><?= min($mbCap,(int)$mbWarm['limit']) ?></b> e-posta; <b><?= date('d.m',strtotime($mbWarm['full_on'])) ?></b>'den itibaren <?= $mbCap ?>. Yeni alan adı ilk günden yüzlerce soğuk e-posta atarsa Gmail/Outlook spama atar; sayı her gün kademeli artar.<br>
           <?php elseif($mbWarm['on']): ?>
@@ -6667,11 +6670,11 @@ elseif($tab==='prospects'):
           <?php else: ?>
             <span style="color:#c0392b">Isınma KAPALI — yeni alan adında ilk günlerde yüksek hacim spam riskini artırır.</span><br>
           <?php endif; ?>
-          Geri dönme (son 14 gün): <b style="color:<?= $mbBs['stop']?'#c0392b':($mbBs['rate']>0.04?'#a9781a':'#1f9d63') ?>">%<?= number_format($mbBs['rate']*100,1) ?></b> (<?= (int)$mbBs['bounced'] ?>/<?= (int)$mbBs['sent'] ?>) · %<?= (int)(VESTRA_MAILBOX_BOUNCE_MAX*100) ?>'i aşarsa gönderim kendiliğinden durur<?= $mbBs['stop']?' — <b style="color:#c0392b">ŞU AN DURDU</b>: geri dönen adresler listeden ayıklanmadan yeni gönderim yapılmaz':'' ?>.<br>
+          Geri dönme (son <?= VESTRA_MAILBOX_BOUNCE_DAYS ?> gün): <b style="color:<?= $mbBs['stop']?'#c0392b':($mbBs['rate']>0.04?'#a9781a':'#1f9d63') ?>">%<?= number_format($mbBs['rate']*100,1) ?></b> (<?= (int)$mbBs['bounced'] ?>/<?= (int)$mbBs['sent'] ?>) · %<?= (int)(VESTRA_MAILBOX_BOUNCE_MAX*100) ?>'i aşarsa gönderim kendiliğinden durur<?= $mbBs['stop']?' — <b style="color:#c0392b">ŞU AN DURDU</b>: geri dönen adresler listeden ayıklanmadan yeni gönderim yapılmaz':'' ?>.<br>
           Her mektupta: tek tıkla abonelikten çıkma (List-Unsubscribe), düz metin + HTML, şirket posta adresi; aynı dükkânın tek adresine, aynı alan adına arka arkaya değil, mektuplar arası <?= VESTRA_MAILBOX_PAUSE_MIN ?>–<?= VESTRA_MAILBOX_PAUSE_MAX ?> sn.
         </div>
         <div style="font-size:12px;line-height:1.6;color:var(--mut)">
-          Gönderen <b>support@vestrasales.com</b>, kendi sunucumuzun posta servisi (SPF ✓ · DMARC ✓ · DKIM <?= $mbDk==='ok'?'<b style="color:#1f9d63">✓</b>':($mbDk==='mismatch'?'<b style="color:#c0392b">eşleşmiyor</b>':'<b style="color:#a9781a">bekleniyor</b>') ?>).
+          Gönderen <b>support@vestrasales.com</b>, kendi sunucumuzun posta servisi (SPF <?= $mbDk==='ok'?'✓':'çoğunlukla ✓ — GoDaddy aktarıcısı bazen SPF dışı bir IP\'den çıkıyor' ?> · DMARC <?= $mbDk==='ok'?'✓':'DKIM olmadan o turlarda ✗' ?> · DKIM <?= $mbDk==='ok'?'<b style="color:#1f9d63">✓</b>':($mbDk==='mismatch'?'<b style="color:#c0392b">eşleşmiyor</b>':'<b style="color:#a9781a">bekleniyor</b>') ?>).
           Hata olmasın diye yalnız sitesinde e-postasını yayınlayan, e-posta sunucusu doğrulanmış butiklere; ayakkabı, iç çamaşırı, toptancı ve zincirlere asla; aynı adrese bir kez. Geri dönen adresler 3 saatte bir taranır, bir daha yazılmaz.
         </div>
         <?php if($mbDk!=='ok' && ($mbRec=vestra_dkim_dns_record())): ?>

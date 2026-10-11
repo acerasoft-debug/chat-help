@@ -4746,6 +4746,16 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   `pacemaker.yml` kendini zincirler: sonraki :20 slotuna kadar uyur, `find-customers.yml`'i `auto=true` ile
   workflow_dispatch eder (GITHUB_TOKEN bu olayı tetikleyebilir), kendini yeniden başlatır; saatlik cron yalnız kopan
   zinciri yeniden kurar. Zincir koparsa: Actions ▸ pacemaker ▸ Run workflow.
+  **11 Eki (4), operatör "neden böyle hata e-mailleri geliyor":** support@ kutusu okundu (diag-bounce-format.yml,
+  maskeli): 7 günde ~50 teslim hatası, **44'ü Çöp (Trash) klasöründe** — tarayıcı yalnız INBOX'a baktığı için hiçbiri
+  işaretlenmemişti (geri dönme oranı panelde %0 görünüyordu). Asıl bulgu: **Microsoft 365 / Outlook ve Orange
+  "550 5.7.509 … does not pass DMARC verification" ile reddediyor** — GoDaddy aktarıcısı bazı turlarda SPF dışı bir
+  IP'den çıkıyor (93.188.3.35 spf=fail; 92.204.71.189 pass), DKIM imzası yok (`vestra._domainkey` DNS'te YOK; Brevo'nun
+  brevo1/brevo2 kayıtları ayrı ve yalnız Brevo'yu imzalar), DMARC p=reject. Düzeltme: DKIM ✓ olana dek
+  `vestra_mailbox_strict_receiver()` (hotmail/outlook/live/orange/wanadoo + MX'i *.protection.outlook.com) alıcıları
+  partiye alınmaz, bekler; tarayıcı Trash/Archive'i de okur ve DMARC/politika retlerini (5.7.509, 5.7.133) "geri döndü"
+  saymaz (adres gerçek). Geri dönme freni penceresi 14 → 3 gün. **Kalıcı çözüm operatörde:** GoDaddy DNS'e
+  `vestra._domainkey` TXT kaydı (değer Admin ▸ 📮 ▸ 🔐).
 - **Satıcı kendi adresi + kendi posta sunucusu (SMTP) ile gönderir (10 Eki 2026, operatör: "satıcılarda kendi
   email adresleri ile gönderebilsin, kendi sunucuları ile").** Barındırmadan giden SMTP KAPALI (8 Eki smtp_probe) —
   sunucu bağlanamaz; bu yüzden `inc/seller_outbox.php` kuyruğu (`data/seller_outbox.json`, şifresiz) +

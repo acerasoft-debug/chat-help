@@ -750,6 +750,24 @@ $t('günlük pay dolunca satıcı mektubu kuyrukta bekler', vestra_seller_outbox
 [$es, $eb, $eo] = vestra_campaign_edit('Boutique X', 'de');
 $t('kampanya bağlantıları mektubun dilinde açılır (lang=de)', str_contains((string)$eo['html'], 'utm_campaign=vestra_edit&amp;lang=de') && str_contains($eb, 'utm_campaign=vestra_edit&lang=de')
   && !preg_match('/utm_campaign=vestra_edit(?!&(?:amp;)?lang=)/', (string)$eo['html']));
+echo "\n== 8k. DKIM yokken Microsoft 365 / Outlook / Orange alıcıları bekletilir (DMARC p=reject reddi) ==\n";
+$mxFake = static fn(string $d): array => ['o365shop.example' => ['o365shop-example.mail.protection.outlook.com'], 'normal.example' => ['mx1.normal.example']][$d] ?? [];
+$t('katı alıcı: hotmail/outlook/live/orange, MX\'i Microsoft 365 olan dükkân', vestra_mailbox_strict_receiver('a@hotmail.fr', $mxFake) && vestra_mailbox_strict_receiver('b@orange.fr', $mxFake)
+  && vestra_mailbox_strict_receiver('c@o365shop.example', $mxFake) && !vestra_mailbox_strict_receiver('d@normal.example', $mxFake) && !vestra_mailbox_strict_receiver('e@gmail.com', $mxFake));
+vestra_write_json('leads.json', [
+  ['id' => 'K1', 'company' => 'O365 Shop', 'email' => 'info@o365shop.example', 'country' => 'France', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'k1', 'added_at' => date('c')],
+  ['id' => 'K2', 'company' => 'Normal Shop', 'email' => 'info@normal.example', 'country' => 'France', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'k2', 'added_at' => date('c')]]);
+@unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
+$bk = array_column(vestra_mailbox_batch(10, 'edit', [], 'web', ['dkim_ok' => false, 'mx' => $mxFake])['items'], 'email');
+$t('DKIM yokken parti Microsoft 365 dükkânını atlar, diğerini alır', $bk === ['info@normal.example']);
+$bk2 = array_column(vestra_mailbox_batch(10, 'edit', [], 'web', ['dkim_ok' => true, 'mx' => $mxFake])['items'], 'email');
+$t('DKIM varken ikisi de gider', count($bk2) === 2);
+$capK = []; $fmK = function ($to, $s, $b, $h, $p) use (&$capK) { $capK[] = $to; return true; };
+$rk = vestra_mailbox_run(['mode' => 'send', 'limit' => 10, 'campaign' => 'edit', 'ids' => 'K1,K2'], ['mail' => $fmK, 'sleep' => fn($x) => null, 'dns' => fn($d) => 'ok', 'log' => fn($m) => null, 'dkim_ok' => false, 'mx' => $mxFake]);
+$lk = array_column(vestra_leads(), null, 'id');
+$t('seçili listede de: katı alıcı bekletilir (gönderilmez, damgalanmaz), diğeri gider', $rk['sent'] === 1 && ($rk['deferred'] ?? 0) === 1 && $capK === ['info@normal.example']
+  && ($lk['K1']['last_contacted_at'] ?? '') === '' && ($lk['K1']['status'] ?? '') === 'new');
+vestra_write_json('leads.json', []); @unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
 echo "\n== 8j. otomatik: günde 500'e kadar bul + kesintisiz gönder ==\n";
 $t('turlar 3 saatte bir (8 tur), find-customers.yml ile aynı', count(VESTRA_FINDER_SLOTS) === 8 && VESTRA_FINDER_SLOTS[0] === [1, 20] && VESTRA_FINDER_SLOTS[7] === [22, 20] && VESTRA_FINDER_DAILY_TARGET === 500);
 $fl = [];

@@ -117,12 +117,15 @@ function vestra_mailbox_seller_server_today(): int {
    1) ISINMA: yeni bir gönderen alan adı ilk günden 500 soğuk e-posta atarsa Gmail/Outlook onu toplu gönderici
       sayıp spama atar ve itibar haftalarca düzelmez. Günlük sayı ilk gönderim gününden itibaren kademeli artar,
       11. günden sonra tam tavan. Panelden kapatılabilir (önerilmez).
-   2) GERİ DÖNME FRENİ: son 14 günde gönderilenlerin %8'inden fazlası geri döndüyse gönderim durur — yüksek
+   2) GERİ DÖNME FRENİ: son 3 günde gönderilenlerin %8'inden fazlası geri döndüyse gönderim durur — yüksek
       geri dönme oranı spam klasörünün bir numaralı sebebi; liste temizlenmeden devam edilmez.
    3) Aynı dükkânın iki adresine aynı partide yazılmaz; partide aynı alan adına arka arkaya gönderilmez.
    4) Her mektupta şirketin posta adresi (CAN-SPAM / AB) — kampanya metninde yoksa eklenir. */
 const VESTRA_MAILBOX_WARMUP = [1 => 50, 2 => 75, 3 => 100, 4 => 150, 5 => 200, 6 => 250, 7 => 300, 8 => 350, 9 => 400, 10 => 450];
 const VESTRA_MAILBOX_BOUNCE_MAX = 0.08;
+/* 11 Eki 2026: pencere 14 → 3 gün. Geri dönen adresler listeden zaten düşüyor; 14 günlük pencerede eski bir partinin
+   (8 Eki, eski OSM listesi) geri dönmeleri freni iki hafta kilitliyordu — gönderim olmadan oran hiç düşmezdi. */
+const VESTRA_MAILBOX_BOUNCE_DAYS = 3;
 const VESTRA_MAILBOX_BOUNCE_MIN_SENT = 30;
 const VESTRA_MAIL_POSTAL = 'Acerasoft LLC · 8 The Green, Suite B, Dover, DE 19901, USA';
 
@@ -165,9 +168,9 @@ function vestra_mailbox_cap_today(?array $leads = null): int {
   return $w['on'] ? min(vestra_mailbox_daily_cap(), $w['limit']) : vestra_mailbox_daily_cap();
 }
 
-/** Son 14 gün: ['sent','bounced','rate','stop']. Gönderilmeden atlanan ölü alan adları sayılmaz (zaten gitmedi). */
+/** Son VESTRA_MAILBOX_BOUNCE_DAYS gün: ['sent','bounced','rate','stop']. Gönderilmeden atlanan ölü alan adları sayılmaz. */
 function vestra_mailbox_bounce_stats(?array $leads = null): array {
-  $since = time() - 14 * 86400; $s = 0; $b = 0;
+  $since = time() - VESTRA_MAILBOX_BOUNCE_DAYS * 86400; $s = 0; $b = 0;
   foreach ($leads ?? vestra_leads() as $l) {
     if (!in_array((string)($l['contact_via'] ?? ''), ['mailbox', 'seller_server'], true)) continue;
     if ((int)strtotime((string)($l['last_contacted_at'] ?? '')) < $since) continue;
@@ -260,7 +263,7 @@ function vestra_mailbox_request(string $mode, int $limit, string $campaign, stri
   if ($mode === 'send') {
     $left = vestra_mailbox_left_today();
     if ($left <= 0) return [false, 'Bugünkü tavan ('.vestra_mailbox_cap_today().(vestra_mailbox_warmup()['on'] && vestra_mailbox_cap_today() < vestra_mailbox_daily_cap() ? ', ısınma' : '').') doldu — kalanlar yarın.'];
-    if (($bs = vestra_mailbox_bounce_stats())['stop']) return [false, sprintf('Gönderim durduruldu: son 14 günde gönderilenlerin %%%d\'i geri döndü (%d/%d). Spam klasörüne düşmemek için önce listeyi temizleyin.', (int)round($bs['rate'] * 100), $bs['bounced'], $bs['sent'])];
+    if (($bs = vestra_mailbox_bounce_stats())['stop']) return [false, sprintf('Gönderim durduruldu: son '.VESTRA_MAILBOX_BOUNCE_DAYS.' günde gönderilenlerin %%%d\'i geri döndü (%d/%d). Spam klasörüne düşmemek için önce listeyi temizleyin.', (int)round($bs['rate'] * 100), $bs['bounced'], $bs['sent'])];
     $limit = max(1, min($limit, $left));
   } else $limit = 1;
   $id = 'MB'.date('ymdHis').substr(bin2hex(random_bytes(2)), 0, 4);
@@ -296,7 +299,7 @@ function vestra_mailbox_finish(string $id, array $s): bool {
     if (in_array((string)($r['status'] ?? ''), ['done', 'failed'], true)) return false; // ilk sonuç korunur
     $runs[$i]['status'] = !empty($s['error']) ? 'failed' : 'done';
     $runs[$i]['finished_at'] = date('c');
-    foreach (['sent', 'bounced', 'failed'] as $k) $runs[$i][$k] = (int)($s[$k] ?? 0);
+    foreach (['sent', 'bounced', 'failed', 'deferred'] as $k) $runs[$i][$k] = (int)($s[$k] ?? 0);
     $runs[$i]['note'] = mb_substr((string)($s['note'] ?? $s['error'] ?? ''), 0, 200);
     $hit = true;
   }
@@ -314,7 +317,7 @@ function vestra_mailbox_finish(string $id, array $s): bool {
 
 /** Gönderim listesi: ['ok','from','campaign','items'=>[...],'note']. $ids verilirse yalnız onlar
  *  (damgası boş ya da yalnız 'lemlist' olanlar — lemlist'e hiç yüklenmeyen 8 Eki dışa aktarımı). Günlük tavan uygulanır. */
-function vestra_mailbox_batch(int $limit, string $campKey, array $ids = [], string $pool = 'web'): array {
+function vestra_mailbox_batch(int $limit, string $campKey, array $ids = [], string $pool = 'web', array $o = []): array {
   require_once __DIR__.'/finder.php';
   $camps = vestra_finder_campaigns();
   if (!isset($camps[$campKey])) return ['ok' => false, 'error' => 'campaign', 'items' => []];
@@ -323,7 +326,7 @@ function vestra_mailbox_batch(int $limit, string $campKey, array $ids = [], stri
   $left = vestra_mailbox_left_today();
   if ($left <= 0) return ['ok' => true, 'from' => 'VESTRA', 'campaign' => $campKey, 'items' => [], 'note' => 'gunluk tavan doldu ('.vestra_mailbox_cap_today().')'];
   if (($bs = vestra_mailbox_bounce_stats())['stop']) return ['ok' => true, 'from' => 'VESTRA', 'campaign' => $campKey, 'items' => [],
-    'note' => sprintf('durduruldu: son 14 gunde geri donme %%%d (%d/%d) — liste temizlenmeli', (int)round($bs['rate'] * 100), $bs['bounced'], $bs['sent'])];
+    'note' => sprintf('durduruldu: son 3 gunde geri donme %%%d (%d/%d) — liste temizlenmeli', (int)round($bs['rate'] * 100), $bs['bounced'], $bs['sent'])];
   $limit = min($limit, $left);
   $ids = array_values(array_filter(array_map('trim', $ids)));
   if ($ids) {
@@ -339,7 +342,19 @@ function vestra_mailbox_batch(int $limit, string $campKey, array $ids = [], stri
       $seen[$e] = true; $targets[$i] = $l;
     }
   } else {
-    $targets = vestra_finder_send_targets($limit, $pool === 'all' ? 'all' : 'web');
+    /* DKIM yokken DMARC'ı katı uygulayan alıcılar (Microsoft 365 / Outlook / Orange) atlanır ve yerlerine başkaları
+       alınır — yoksa her parti aynı bekletilen adreslerle dolardı. DKIM ✓ olunca sıradaki ilk partide giderler. */
+    $strictSkip = !($o['dkim_ok'] ?? (vestra_dkim_dns_status() === 'ok'));
+    $targets = vestra_finder_send_targets($strictSkip ? min(5000, $limit * 3 + 50) : $limit, $pool === 'all' ? 'all' : 'web');
+    if ($strictSkip) {
+      $keep = [];
+      foreach ($targets as $i => $l) {
+        if (count($keep) >= $limit) break;
+        if (vestra_mailbox_strict_receiver(vestra_email_clean((string)($l['email'] ?? '')), $o['mx'] ?? null)) continue;
+        $keep[$i] = $l;
+      }
+      $targets = $keep;
+    }
   }
   $items = []; $fromName = 'VESTRA'; $seenAddr = []; $seenShop = [];
   foreach ($targets as $l) {
@@ -422,6 +437,27 @@ function vestra_mailbox_stamp(array $results): array {
  * "DNSNULL" ile geri döndü; 12'lik partide 7 alan adı böyleydi). unknown = sorgu başarısız/zaman aşımı → GÖNDERİLİR:
  * geçici bir DNS aksaklığı müşteriyi kalıcı "geri döndü" damgalamasın. $dig(type, domain): dig çıktısı | null.
  */
+/**
+ * DKIM yokken DMARC'ı katı uygulayan alıcı mı? (11 Eki 2026 — support@ kutusundaki geri dönmeler ölçüldü:
+ * Microsoft 365 / Outlook ve Orange "550 5.7.509 … does not pass DMARC verification and has a DMARC policy of reject"
+ * ile reddetti. GoDaddy'nin giden aktarıcısı bazı turlarda SPF'te olmayan bir IP'den çıkıyor (93.188.3.35 spf=fail,
+ * 92.204.71.189 spf=pass) ve DKIM imzası yokken DMARC p=reject mektubu öldürüyor.) DKIM DNS'te yayımlanana dek bu
+ * alıcılara GÖNDERİLMEZ — sırada bekler, DKIM ✓ olunca kendiliğinden gider. $mxLookup testte sahte.
+ */
+function vestra_mailbox_strict_receiver(string $email, ?callable $mxLookup = null): bool {
+  static $cache = [];
+  $dom = strtolower(substr((string)strrchr($email, '@'), 1));
+  if ($dom === '') return false;
+  if (preg_match('/^(hotmail|outlook|live|msn|windowslive|passport)\.[a-z.]+$|^(orange|wanadoo)\.fr$/', $dom)) return true;
+  if ($mxLookup === null && isset($cache[$dom])) return $cache[$dom];
+  $mxLookup = $mxLookup ?? static function (string $d): array {
+    $r = @dns_get_record($d, DNS_MX); return is_array($r) ? array_map(fn($x) => strtolower((string)($x['target'] ?? '')), $r) : [];
+  };
+  $hit = false;
+  foreach ($mxLookup($dom) as $h) if (preg_match('/(\.|^)(mail\.protection\.outlook\.com|olc\.protection\.outlook\.com|outlook\.com|orange\.fr|wanadoo\.fr)$/', rtrim($h, '.'))) { $hit = true; break; }
+  return $cache[$dom] = $hit;
+}
+
 function vestra_mailbox_dns_status(string $domain, ?callable $dig = null): string {
   static $cache = [];
   $d = strtolower(trim($domain, ". \t"));
@@ -532,15 +568,21 @@ function vestra_mailbox_run(array $req, array $o = []): array {
     return $sum;
   }
   $ids = is_array($req['ids'] ?? null) ? $req['ids'] : array_filter(explode(',', (string)($req['ids'] ?? '')));
-  $b = vestra_mailbox_batch((int)($req['limit'] ?? 25), (string)($req['campaign'] ?? 'edit'), $ids, (string)($req['pool'] ?? 'web'));
+  $b = vestra_mailbox_batch((int)($req['limit'] ?? 25), (string)($req['campaign'] ?? 'edit'), $ids, (string)($req['pool'] ?? 'web'), array_intersect_key($o, ['dkim_ok' => 1, 'mx' => 1]));
   if (!$b['ok']) { $sum['note'] = 'kampanya bulunamadi'; $sum['error'] = $sum['note']; return $sum; }
   if (!$b['items']) { $sum['note'] = (string)($b['note'] ?? 'gonderilecek uygun musteri yok'); return $sum; }
   $n = count($b['items']); $failRow = 0; $sentAny = false;
+  $dkimOk = isset($o['dkim_ok']) ? (bool)$o['dkim_ok'] : vestra_dkim_dns_status() === 'ok';
   foreach ($b['items'] as $k => $it) {
     $dom = substr((string)strrchr((string)$it['email'], '@'), 1);
     if ($dns($dom) === 'dead') {
       vestra_mailbox_stamp([['leadId' => $it['leadId'], 'email' => $it['email'], 'status' => 'bounced', 'reason' => 'alan adinin e-posta sunucusu yok (gonderilmedi)']]);
       $sum['bounced']++; $log(sprintf('- [%d/%d] %s atlandi: alan adinin e-posta sunucusu yok', $k + 1, $n, vestra_mailbox_mask($it['email'])));
+      continue;
+    }
+    if (!$dkimOk && vestra_mailbox_strict_receiver((string)$it['email'], $o['mx'] ?? null)) {
+      $sum['deferred'] = ($sum['deferred'] ?? 0) + 1;
+      $log(sprintf('~ [%d/%d] %s bekletildi: DKIM yok, alici DMARC reddediyor (Microsoft/Orange)', $k + 1, $n, vestra_mailbox_mask($it['email'])));
       continue;
     }
     if ($sentAny) $sleep(random_int(VESTRA_MAILBOX_PAUSE_MIN, VESTRA_MAILBOX_PAUSE_MAX));
