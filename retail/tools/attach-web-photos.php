@@ -85,7 +85,8 @@ foreach ($approve as $id => $nums) {
         $n = (int)$n;
         $url = (string)($r['images'][$n - 1] ?? '');
         if ($url === '') { echo "  $id: #$n yok\n"; continue; }
-        $rel = "/uploads/licensed/web/$brand/$id-w$n.jpg";
+        // "<ürün>@<renk kodu>" (çok renkli ürünün bir rengi): dosya adında @ olmasın.
+        $rel = "/uploads/licensed/web/$brand/" . preg_replace('/[^A-Za-z0-9._-]/', '-', $id) . "-w$n.jpg";
         if ($dry) { $paths[] = $rel; continue; }
         $b = awp_get($url);
         if ($b === null || !awp_save($b, $root . $rel)) { echo "  $id: #$n indirilemedi ($url)\n"; continue; }
