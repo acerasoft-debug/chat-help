@@ -1,0 +1,40 @@
+name: (Salt-okunur) Sunucuda Node.js var mı
+# 11 Eki 2026 (operatör: "çok az butik bulunuyor, daha verimli çalışması lazım"). GitHub'ın zamanlayıcısı turları
+# saatlerce geciktiriyor / atlıyor. Butik bulucu (Node.js betiği) sunucunun kendi crontab'ından koşabilirse GitHub'a
+# bağımlılık kalkar. SALT-OKUNUR: yalnız node/npm sürümünü, CPU/bellek sınırlarını ve dış ağ erişimini basar.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Oku
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            set -u
+            echo "== node / npm =="
+            for n in node nodejs /opt/cpanel/ea-nodejs22/bin/node /opt/cpanel/ea-nodejs20/bin/node /opt/cpanel/ea-nodejs18/bin/node /opt/cpanel/ea-nodejs16/bin/node /usr/local/bin/node; do
+              if command -v "$n" >/dev/null 2>&1 || [ -x "$n" ]; then echo "  $n → $("$n" -v 2>&1)"; fi
+            done
+            ls -d /opt/cpanel/ea-nodejs* 2>/dev/null | sed 's/^/  dizin: /'
+            ls -d ~/nodevenv 2>/dev/null | sed 's/^/  nodevenv: /'
+            command -v uapi >/dev/null 2>&1 && uapi --output=json NodeJS list_versions 2>/dev/null | head -c 600; echo
+            echo "== kaynak sınırları =="
+            echo "  nproc: $(nproc 2>/dev/null) · ulimit -u: $(ulimit -u) · ulimit -v: $(ulimit -v)"
+            command -v uapi >/dev/null 2>&1 && uapi --output=json ResourceUsage get_usages 2>/dev/null | php -r '$d=json_decode(stream_get_contents(STDIN),true); foreach((array)($d["result"]["data"]??[]) as $r) echo "  ".($r["id"]??"?").": ".($r["usage"]??"?")." / ".($r["maximum"]??"?")."\n";'
+            echo "== dış ağ (HTTPS) =="
+            for u in https://overpass-api.de/api/status https://nominatim.openstreetmap.org/status https://html.duckduckgo.com/ https://www.bing.com/ https://api.brave.com/; do
+              printf "  %s → " "$u"; curl -sS -o /dev/null -m 12 -w "%{http_code} %{time_total}s\n" "$u" 2>&1 | tail -1
+            done
+            echo "== crontab (yalnız satır sayısı) =="; crontab -l 2>/dev/null | grep -c . || echo "  0"
