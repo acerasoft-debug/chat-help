@@ -34,6 +34,12 @@
       <td>180 Tage</td>
     </tr>
     <tr>
+      <td><code>vr_cur</code></td>
+      <td>funktional</td>
+      <td>Merkt die gewählte Anzeigewährung für den Richtwert neben dem Euro-Preis. Inhalt: ein Währungskürzel wie <code>USD</code>.</td>
+      <td>180 Tage</td>
+    </tr>
+    <tr>
       <td><code>vr_member</code></td>
       <td>funktional</td>
       <td>Wird nur gesetzt, wenn Sie die Vault-Mitgliedschaft per E-Mail bestätigt haben, und

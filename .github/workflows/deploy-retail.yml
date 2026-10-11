@@ -379,6 +379,13 @@ jobs:
             # dokunmaz. Uzun sürebileceği için arka planda, kaydı data/'da.
             # Aynı fotoğraf bir galeride iki kez görünmesin: görsel parmak izi
             # (artımlı) + ürün başına düşecek kareler -> data/photo-dupes.json
+            # Ziyaretçinin ülkesi (dil + para birimi): yerel IP→ülke tablosu,
+            # ayda bir tazelenir; IP hiçbir dış servise gitmez (inc/geo.php).
+            echo "== IP -> ulke tablosu (DB-IP Lite, aylik) =="
+            timeout 300 php tools/geoip-update.php 2>&1 | tail -3 || true
+            echo "== Doviz kurlari (ECB) =="
+            php -r 'require "inc/boot.php"; require_once "inc/fx.php"; echo vr_fx_refresh(true) ? "kurlar guncellendi\n" : "kur guncellenemedi (eski tablo kalir)\n"; $t=vr_fx_table(); echo ($t["as_of"]??"-")," · ",count($t["rates"]??[])," para birimi\n";' || true
+            echo
             echo "== Ayni fotograf iki kez (parmak izi) =="
             timeout 900 php -d memory_limit=1024M tools/index-photo-hash.php 2>&1 | tail -3 || true
             echo

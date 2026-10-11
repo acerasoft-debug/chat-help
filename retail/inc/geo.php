@@ -1,26 +1,22 @@
 <?php
 /**
- * Ülke tanıma ve ülkeden dil seçimi
- * =================================
- * Ziyaretçinin ülkesini SUNUCUNUN/CDN'İN zaten hesapladığı başlıktan okuyoruz.
- * Kendimiz IP araması YAPMIYORUZ — ne dış servise ne yerel veritabanına.
+ * Ülke tanıma ve ülkeden dil / para birimi seçimi
+ * ===============================================
+ * Ülke iki kaynaktan, bu sırayla:
+ *  1. Önümüzdeki katmanın başlığı (Cloudflare CF-IPCountry, mod_maxminddb
+ *     GEOIP_COUNTRY_CODE, X-Geo-Country …) — varsa.
+ *  2. YEREL IP→ülke tablosu (data/geoip-v4.bin / -v6.bin, DB-IP Lite, aylık;
+ *     tools/geoip-update.php her yayında tazeler). Arama tamamen bu
+ *     sunucuda, dosyada ikili arama: IP hiçbir dış servise gitmez, hiçbir
+ *     yere yazılmaz, günlüğe geçmez — yalnızca bu isteğin belleğinde ülke
+ *     koduna çevrilir. (Dış GeoIP servisi IP'yi üçüncü tarafa aktarmak
+ *     olurdu: AB Adalet Divanı C-582/14 Breyer — bilerek yapılmıyor.)
+ *  Hiçbiri sonuç vermezse ülke bilinmiyor sayılır; hiçbir şey bozulmaz.
  *
- * Neden böyle:
- *  • Dış GeoIP servisi çağırmak ziyaretçinin IP'sini üçüncü tarafa aktarmak
- *    demek. IP kişisel veridir (AB Adalet Divanı C-582/14, Breyer); aktarım
- *    rıza gerektirir ve bu sitenin tamamı bilerek rıza bandı OLMADAN uyumlu
- *    kalacak şekilde kuruldu. Tek bir GeoIP çağrısı bunu bozardı.
- *  • Ülke bilgisi zaten önümüzdeki katmanda var: Cloudflare CF-IPCountry
- *    gönderiyor, Apache mod_maxminddb/mod_geoip GEOIP_COUNTRY_CODE koyuyor,
- *    çoğu yük dengeleyici X-Geo-Country ekliyor. Bedava ve yerelde.
- *  • Hiçbiri yoksa ülke bilinmiyor sayılır ve hiçbir şey bozulmaz.
- *
- * IP'nin kendisi burada ne okunur ne yazılır ne günlüğe geçer.
- *
- * Ülke iki yerde işe yarıyor:
- *  1. Tarayıcı dili hiçbir dilimizle eşleşmediğinde dil seçimi
- *     (örn. Türkçe tarayıcıyla Almanya'dan gelen ziyaretçi → Almanca).
- *  2. Kasada kargo bölgesi ve ülke alanının önerilen değeri.
+ * Ülke şunları belirler (ziyaretçi açıkça seçmediyse — seçimi her zaman önde):
+ *  • Dil: ülkenin dili sitede varsa o, yoksa İngilizce (inc/i18n.php).
+ *  • Gösterge para birimi (inc/fx.php). Bağlayıcı fiyat EUR kalır.
+ *  • Kasada kargo bölgesi ve ülke alanının önerilen değeri.
  */
 
 declare(strict_types=1);
@@ -58,7 +54,43 @@ function vr_geo_country(): string
     $env = strtoupper(trim((string)getenv('VR_GEO_COUNTRY')));
     if (preg_match('/^[A-Z]{2}$/', $env)) return $cc = $env;
 
-    return $cc = '';
+    // Yerel tablo. Yalnız REMOTE_ADDR: X-Forwarded-For istemcinin yazdığı
+    // bir başlık; ona güvenmenin tek sonucu kendi ülkesini "yanıltmak" olur
+    // ama yine de doğrudan bağlantının adresi esas.
+    $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+    return $cc = $ip !== '' ? vr_geoip_lookup($ip) : '';
+}
+
+/**
+ * IP → ülke kodu, yerel tablodan (bkz. tools/geoip-update.php). Ağ yok.
+ * Kayıtlar başlangıca göre sıralı; ikili arama ~20 küçük okuma.
+ * Tablo yoksa, adres özel/ayrılmış aralıktaysa ya da bulunamazsa ''.
+ */
+function vr_geoip_lookup(string $ip): string
+{
+    $bin = @inet_pton($ip);
+    if ($bin === false) return '';
+    // IPv4-eşlemeli IPv6 (::ffff:a.b.c.d) → IPv4
+    if (strlen($bin) === 16 && str_starts_with($bin, str_repeat("\0", 10) . "\xff\xff")) $bin = substr($bin, 12);
+    $kl   = strlen($bin);
+    $file = vr_data_dir() . ($kl === 4 ? '/geoip-v4.bin' : '/geoip-v6.bin');
+    $rec  = 2 * $kl + 2;
+    $size = @filesize($file);
+    if (!$size || $size % $rec !== 0) return '';
+    $h = @fopen($file, 'rb');
+    if (!$h) return '';
+    $lo = 0; $hi = intdiv($size, $rec) - 1; $out = '';
+    while ($lo <= $hi) {
+        $mid = ($lo + $hi) >> 1;
+        fseek($h, $mid * $rec);
+        $r = (string)fread($h, $rec);
+        if (strlen($r) !== $rec) break;
+        if (strcmp($bin, substr($r, 0, $kl)) < 0)        $hi = $mid - 1;
+        elseif (strcmp($bin, substr($r, $kl, $kl)) > 0)  $lo = $mid + 1;
+        else { $out = substr($r, 2 * $kl, 2); break; }
+    }
+    fclose($h);
+    return preg_match('/^[A-Z]{2}$/', $out) ? $out : '';
 }
 
 /**

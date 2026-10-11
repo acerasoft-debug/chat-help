@@ -33,6 +33,12 @@
       <td>180 días</td>
     </tr>
     <tr>
+      <td><code>vr_cur</code></td>
+      <td>funcional</td>
+      <td>Recuerda la moneda de visualización elegida para el precio orientativo junto al precio en euros. Contenido: un código de moneda como <code>USD</code>.</td>
+      <td>180 días</td>
+    </tr>
+    <tr>
       <td><code>vr_member</code></td>
       <td>funcional</td>
       <td>Solo se instala cuando ha confirmado por correo la membresía del Vault, y desbloquea el

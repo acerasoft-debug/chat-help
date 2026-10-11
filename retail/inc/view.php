@@ -467,7 +467,7 @@ function vr_lang_switch(): string
     $out = '<div class="langs" role="group" aria-label="' . h(t('language')) . '">';
     foreach ((array)vr_config('languages', ['en']) as $lg) {
         $on = $lg === vr_lang();
-        $out .= '<a class="lang' . ($on ? ' is-on' : '') . '" href="' . h(vr_lang_url($lg)) . '"'
+        $out .= '<a class="lang' . ($on ? ' is-on' : '') . '" href="' . h(vr_lang_url($lg, true)) . '"'
              . ($on ? ' aria-current="true"' : '') . '>' . h(strtoupper($lg)) . '</a>';
     }
     return $out . '</div>';

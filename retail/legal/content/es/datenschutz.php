@@ -38,6 +38,14 @@
   <li><strong>Base jurídica:</strong> art. 6.1 f) RGPD (interés legítimo)</li>
   <li><strong>Plazo de conservación:</strong> por lo general 7–30 días, después borrado automático</li>
 </ul>
+<p>
+  <strong>País para el idioma y la moneda.</strong> Para que veas el sitio directamente en tu idioma, con
+  un precio orientativo en tu moneda, determinamos el país a partir de tu dirección IP <em>en nuestro
+  propio servidor</em> (tabla «IP to Country Lite» de <a href="https://db-ip.com" rel="noopener">DB-IP</a>,
+  CC BY 4.0). La dirección IP no se guarda con este fin ni se transmite a terceros; no se crea ningún
+  perfil. Tu propia elección de idioma o moneda siempre prevalece. Base jurídica: art. 6.1.f) RGPD
+  (interés legítimo en una presentación comprensible).
+</p>
 
 <h2>4. Cookies y almacenamiento local</h2>
 <p>
@@ -51,6 +59,7 @@
     <tr><td><code><?= h((string)vr_config('session_name', 'maxsales_retail')) ?></code></td>
         <td>sesión: bolsa, acceso de vendedor, protección CSRF</td><td>fin de la sesión</td></tr>
     <tr><td><code>vr_lang</code></td><td>idioma elegido</td><td>180 días</td></tr>
+    <tr><td><code>vr_cur</code></td><td>moneda de visualización elegida (precio orientativo)</td><td>180 días</td></tr>
     <tr><td><code>vr_member</code></td>
         <td>acceso anticipado al Vault tras suscripción confirmada al boletín (valor firmado, sin
             correo en claro)</td><td>1 año</td></tr>

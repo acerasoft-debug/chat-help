@@ -33,6 +33,12 @@
       <td>180 dagen</td>
     </tr>
     <tr>
+      <td><code>vr_cur</code></td>
+      <td>functioneel</td>
+      <td>Onthoudt de gekozen weergavevaluta voor de richtprijs naast de europrijs. Inhoud: een valutacode zoals <code>USD</code>.</td>
+      <td>180 dagen</td>
+    </tr>
+    <tr>
       <td><code>vr_member</code></td>
       <td>functioneel</td>
       <td>Wordt alleen geplaatst wanneer u het Vault-lidmaatschap per e-mail hebt bevestigd en geeft

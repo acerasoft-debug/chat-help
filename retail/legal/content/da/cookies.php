@@ -33,6 +33,12 @@
       <td>180 dage</td>
     </tr>
     <tr>
+      <td><code>vr_cur</code></td>
+      <td>funktionel</td>
+      <td>Husker den valgte visningsvaluta for den vejledende pris ved siden af europrisen. Indhold: en valutakode som <code>USD</code>.</td>
+      <td>180 dage</td>
+    </tr>
+    <tr>
       <td><code>vr_member</code></td>
       <td>funktionel</td>
       <td>Sættes kun, når du har bekræftet Vault-medlemskabet pr. e-mail, og giver tidlig adgang til

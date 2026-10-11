@@ -33,6 +33,12 @@
       <td>180 gün</td>
     </tr>
     <tr>
+      <td><code>vr_cur</code></td>
+      <td>funksional</td>
+      <td>Avro qiymətinin yanındakı təxmini qiymət üçün seçilmiş göstərmə valyutasını yadda saxlayır. Məzmun: <code>USD</code> kimi valyuta kodu.</td>
+      <td>180 gün</td>
+    </tr>
+    <tr>
       <td><code>vr_member</code></td>
       <td>funksional</td>
       <td>Yalnız Vault üzvlüyünü e-poçtla təsdiqlədikdən sonra quraşdırılır və yeni lotlara erkən

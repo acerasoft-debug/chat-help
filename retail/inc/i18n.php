@@ -37,24 +37,25 @@ function vr_lang_init(): void
     }
 
     if ($lang === null) {
-        // Tarayıcı tercihi: Accept-Language'in ilk eşleşen dili.
-        // Bu, IP'den ÖNCE gelir ve bilerek öyle: ziyaretçinin tarayıcısında
-        // yazdığı dil açık bir tercihtir, bulunduğu ülke ise sadece tahmin.
-        // Fransa'daki Alman "de" istiyorsa "de" alır.
+        // Ziyaretçinin ülkesi (inc/geo.php — CDN başlığı ya da yerel IP
+        // tablosu). Ülke biliniyorsa dil oradan: o ülkenin dili sitede varsa
+        // o, yoksa İngilizce. Açık seçim (?lang, çerez) her zaman önde ve
+        // dil şeridinden tek tıkla değişiyor.
+        require_once __DIR__ . '/geo.php';
+        $cc = vr_geo_country();
+        if ($cc !== '') {
+            $byGeo = vr_country_lang($cc);
+            $lang  = $byGeo !== '' ? $byGeo : (in_array('en', $langs, true) ? 'en' : null);
+        }
+    }
+
+    if ($lang === null) {
+        // Ülke bilinmiyorsa (yerel ağ, tablo yok): tarayıcının dili.
         $al = strtolower((string)($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? ''));
         foreach (explode(',', $al) as $part) {
             $code = substr(trim(explode(';', $part)[0]), 0, 2);
             if ($code !== '' && in_array($code, $langs, true)) { $lang = $code; break; }
         }
-    }
-
-    if ($lang === null) {
-        // Tarayıcı dili hiçbir dilimizle eşleşmedi (örn. Türkçe tarayıcı).
-        // Son tahmin: önümüzdeki katmanın bildirdiği ülke. Kendi IP aramamız
-        // yok, dış servise çağrı yok — ayrıntı inc/geo.php'de.
-        require_once __DIR__ . '/geo.php';
-        $byGeo = vr_country_lang(vr_geo_country());
-        if ($byGeo !== '') $lang = $byGeo;
     }
 
     $GLOBALS['vr_lang'] = $lang ?? (string)vr_config('primary_lang', 'en');
@@ -116,15 +117,20 @@ function te(string $key, array $vars = []): string
     return htmlspecialchars(t($key, $vars), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-/** Mevcut sayfanın başka dildeki URL'si (hreflang ve dil seçici için). */
-function vr_lang_url(string $lang): string
+/**
+ * Mevcut sayfanın başka dildeki URL'si (hreflang ve dil seçici için).
+ * $explicit: dil seçicide birincil dil (en) de ?lang=en taşır — yoksa
+ * çerezde ya da ülkeden gelen dil geri gelir ve İngilizceye geçilemezdi.
+ * hreflang'de birincil dilin adresi yalın kalır (x-default ile aynı).
+ */
+function vr_lang_url(string $lang, bool $explicit = false): string
 {
     $path  = (string)($_SERVER['REQUEST_URI'] ?? '/');
     $parts = parse_url($path);
     $q     = [];
     if (!empty($parts['query'])) parse_str($parts['query'], $q);
     unset($q['lang']);
-    if ($lang !== vr_config('primary_lang')) $q['lang'] = $lang;
+    if ($explicit || $lang !== vr_config('primary_lang')) $q['lang'] = $lang;
 
     return ($parts['path'] ?? '/') . ($q ? '?' . http_build_query($q) : '');
 }

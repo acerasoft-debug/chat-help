@@ -33,6 +33,12 @@
       <td>180 jours</td>
     </tr>
     <tr>
+      <td><code>vr_cur</code></td>
+      <td>fonctionnel</td>
+      <td>Mémorise la devise d’affichage choisie pour le prix indicatif à côté du prix en euros. Contenu : un code de devise comme <code>USD</code>.</td>
+      <td>180 jours</td>
+    </tr>
+    <tr>
       <td><code>vr_member</code></td>
       <td>fonctionnel</td>
       <td>Déposé uniquement après confirmation par e-mail de votre adhésion au Vault ; il débloque

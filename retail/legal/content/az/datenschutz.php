@@ -37,6 +37,14 @@
   <li><strong>Hüquqi əsas:</strong> GDPR mad. 6 bənd 1 (f) (qanuni maraq)</li>
   <li><strong>Saxlama müddəti:</strong> adətən 7–30 gün, sonra avtomatik silinmə</li>
 </ul>
+<p>
+  <strong>Dil və valyuta üçün ölkə.</strong> Saytı dərhal öz dilinizdə və öz valyutanızda təxmini qiymətlə
+  görməyiniz üçün ölkəni IP ünvanınızdan <em>öz serverimizdə</em> müəyyən edirik
+  (<a href="https://db-ip.com" rel="noopener">DB-IP</a>-in «IP to Country Lite» cədvəli, CC BY 4.0).
+  IP ünvanı bunun üçün nə saxlanılır, nə də üçüncü tərəflərə ötürülür; heç bir profil yaradılmır. Dil və ya
+  valyuta üzrə öz seçiminiz həmişə üstündür. Hüquqi əsas: GDPR mad. 6 (1) (f) (anlaşıqlı təqdimata
+  legitim maraq).
+</p>
 
 <h2>4. Kukilər və lokal saxlama</h2>
 <p>
@@ -49,6 +57,7 @@
     <tr><td><code><?= h((string)vr_config('session_name', 'maxsales_retail')) ?></code></td>
         <td>sessiya: səbət, satıcı girişi, CSRF qoruması</td><td>sessiyanın sonu</td></tr>
     <tr><td><code>vr_lang</code></td><td>seçilmiş dil</td><td>180 gün</td></tr>
+    <tr><td><code>vr_cur</code></td><td>seçilmiş göstərmə valyutası (təxmini qiymət)</td><td>180 gün</td></tr>
     <tr><td><code>vr_member</code></td>
         <td>təsdiqlənmiş xəbər bülleteni qeydiyyatından sonra Vault-a erkən giriş (imzalanmış dəyər,
             açıq mətndə e-poçt yoxdur)</td><td>1 il</td></tr>

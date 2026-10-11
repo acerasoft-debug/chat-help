@@ -182,10 +182,18 @@ line('OK', 'IP-Freigabe', $ips !== '' ? $ips : 'keine (nur Passwortschutz)');
 // ------------------------------------------------------------------- Sprache
 head('Sprache nach Land');
 require_once __DIR__ . '/../inc/geo.php';
-$cc = vr_geo_country();
-line('OK', 'Land laut Vorschaltebene', $cc !== ''
-    ? $cc . ' → ' . (vr_country_lang($cc) ?: 'keine Zuordnung, Standard greift')
-    : 'nicht gemeldet (CF-IPCountry o. ä. fehlt — Accept-Language entscheidet)');
+$gm = json_decode((string)@file_get_contents(vr_data_dir() . '/geoip-meta.json'), true) ?: [];
+$probe = ['DE' => '5.1.0.1', 'US' => '8.8.8.8', 'TR' => '88.255.0.1', 'AZ' => '85.132.0.1'];
+$hits = [];
+foreach ($probe as $want => $ip) $hits[] = $want . '=' . (vr_geoip_lookup($ip) ?: '?');
+line(!empty($gm['month']) ? 'OK' : 'WARN', 'IP→Land-Tabelle (lokal)', !empty($gm['month'])
+    ? sprintf('%s · %d IPv4 + %d IPv6 Bereiche · Probe %s', $gm['month'], $gm['v4'] ?? 0, $gm['v6'] ?? 0, implode(' ', $hits))
+    : 'fehlt — tools/geoip-update.php (läuft bei jedem Deploy); bis dahin entscheidet Accept-Language');
+require_once __DIR__ . '/../inc/fx.php';
+$fxT = vr_fx_table();
+line($fxT ? 'OK' : 'WARN', 'Wechselkurse (EZB)', $fxT
+    ? $fxT['as_of'] . ' · ' . count($fxT['rates']) . ' Währungen'
+    : 'keine aktuellen Kurse — Richtwert in Landeswährung wird nicht angezeigt');
 
 // ------------------------------------------------------------- sayfa bütünlüğü
 head('Seiten');

@@ -37,6 +37,14 @@
   <li><strong>Base giuridica:</strong> art. 6 par. 1 lett. f GDPR (legittimo interesse)</li>
   <li><strong>Conservazione:</strong> di norma 7–30 giorni, poi cancellazione automatica</li>
 </ul>
+<p>
+  <strong>Paese per lingua e valuta.</strong> Perché tu veda subito il sito nella tua lingua, con un
+  prezzo indicativo nella tua valuta, determiniamo il paese dal tuo indirizzo IP <em>sul nostro
+  server</em> (tabella “IP to Country Lite” di <a href="https://db-ip.com" rel="noopener">DB-IP</a>,
+  CC BY 4.0). L’indirizzo IP non viene né conservato a tale scopo né trasmesso a terzi; non si crea alcun
+  profilo. La tua scelta di lingua o valuta ha sempre la precedenza. Base giuridica: art. 6, par. 1,
+  lett. f) GDPR (legittimo interesse a una presentazione comprensibile).
+</p>
 
 <h2>4. Cookie e archiviazione locale</h2>
 <p>
@@ -49,6 +57,7 @@
     <tr><td><code><?= h((string)vr_config('session_name', 'maxsales_retail')) ?></code></td>
         <td>sessione: borsa, login venditore, protezione CSRF</td><td>fine sessione</td></tr>
     <tr><td><code>vr_lang</code></td><td>lingua scelta</td><td>180 giorni</td></tr>
+    <tr><td><code>vr_cur</code></td><td>valuta di visualizzazione scelta (prezzo indicativo)</td><td>180 giorni</td></tr>
     <tr><td><code>vr_member</code></td>
         <td>accesso anticipato al Vault dopo iscrizione confermata alla newsletter (valore firmato,
             nessuna e-mail in chiaro)</td><td>1 anno</td></tr>

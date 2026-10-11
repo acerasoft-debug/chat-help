@@ -33,6 +33,12 @@
       <td>180 days</td>
     </tr>
     <tr>
+      <td><code>vr_cur</code></td>
+      <td>functional</td>
+      <td>Remembers the chosen display currency for the guide price next to the euro price. Content: a currency code such as <code>USD</code>.</td>
+      <td>180 days</td>
+    </tr>
+    <tr>
       <td><code>vr_member</code></td>
       <td>functional</td>
       <td>Set only once you have confirmed Vault membership by e-mail, and unlocks early access to

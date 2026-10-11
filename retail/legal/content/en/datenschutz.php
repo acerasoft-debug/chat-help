@@ -36,6 +36,14 @@
   <li><strong>Legal basis:</strong> Art. 6 (1) (f) GDPR (legitimate interest)</li>
   <li><strong>Retention:</strong> usually 7–30 days, then automatic deletion</li>
 </ul>
+<p>
+  <strong>Country for language and currency.</strong> So that you see the site in your language right
+  away, with a guide price in your currency, we determine the country from your IP address <em>on our
+  own server</em> (“IP to Country Lite” table by <a href="https://db-ip.com" rel="noopener">DB-IP</a>,
+  CC BY 4.0). The IP address is neither stored for this nor passed to third parties; no profile is
+  created. Your own choice of language or currency always takes precedence. Legal basis:
+  Art. 6 (1) (f) GDPR (legitimate interest in an understandable presentation).
+</p>
 
 <h2>4. Cookies and local storage</h2>
 <p>
@@ -48,6 +56,7 @@
     <tr><td><code><?= h((string)vr_config('session_name', 'maxsales_retail')) ?></code></td>
         <td>session: bag, seller login, CSRF protection</td><td>end of session</td></tr>
     <tr><td><code>vr_lang</code></td><td>chosen language</td><td>180 days</td></tr>
+    <tr><td><code>vr_cur</code></td><td>chosen display currency (guide price)</td><td>180 days</td></tr>
     <tr><td><code>vr_member</code></td>
         <td>Vault early access after confirmed newsletter sign-up (signed value, no plain-text
             e-mail)</td><td>1 year</td></tr>

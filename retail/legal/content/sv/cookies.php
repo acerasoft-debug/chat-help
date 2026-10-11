@@ -33,6 +33,12 @@
       <td>180 dagar</td>
     </tr>
     <tr>
+      <td><code>vr_cur</code></td>
+      <td>funktionell</td>
+      <td>Kommer ihåg vald visningsvaluta för riktpriset bredvid europriset. Innehåll: en valutakod som <code>USD</code>.</td>
+      <td>180 dagar</td>
+    </tr>
+    <tr>
       <td><code>vr_member</code></td>
       <td>funktionell</td>
       <td>Sätts bara när du bekräftat Vault-medlemskapet via e-post och låser upp förhandstillgång

@@ -37,6 +37,14 @@
   <li><strong>Retsgrundlag:</strong> art. 6, stk. 1, litra f, GDPR (legitim interesse)</li>
   <li><strong>Opbevaring:</strong> normalt 7–30 dage, derefter automatisk sletning</li>
 </ul>
+<p>
+  <strong>Land til sprog og valuta.</strong> For at du straks ser siden på dit sprog med en vejledende pris
+  i din valuta, bestemmer vi landet ud fra din IP-adresse <em>på vores egen server</em> (tabellen „IP to
+  Country Lite“ fra <a href="https://db-ip.com" rel="noopener">DB-IP</a>, CC BY 4.0). IP-adressen hverken
+  gemmes til dette formål eller videregives til tredjeparter; der oprettes ingen profil. Dit eget valg af
+  sprog eller valuta har altid forrang. Retsgrundlag: art. 6, stk. 1, litra f, GDPR (legitim interesse i
+  en forståelig præsentation).
+</p>
 
 <h2>4. Cookies og lokal lagring</h2>
 <p>
@@ -49,6 +57,7 @@
     <tr><td><code><?= h((string)vr_config('session_name', 'maxsales_retail')) ?></code></td>
         <td>session: taske, sælgerlogin, CSRF-beskyttelse</td><td>sessionens afslutning</td></tr>
     <tr><td><code>vr_lang</code></td><td>valgt sprog</td><td>180 dage</td></tr>
+    <tr><td><code>vr_cur</code></td><td>valgt visningsvaluta (vejledende pris)</td><td>180 dage</td></tr>
     <tr><td><code>vr_member</code></td>
         <td>tidlig Vault-adgang efter bekræftet nyhedsbrevstilmelding (signeret værdi, ingen e-mail
             i klartekst)</td><td>1 år</td></tr>

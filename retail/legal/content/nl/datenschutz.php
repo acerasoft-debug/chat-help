@@ -37,6 +37,14 @@
   <li><strong>Rechtsgrond:</strong> art. 6 lid 1 sub f AVG (gerechtvaardigd belang)</li>
   <li><strong>Bewaartermijn:</strong> doorgaans 7–30 dagen, daarna automatische verwijdering</li>
 </ul>
+<p>
+  <strong>Land voor taal en valuta.</strong> Zodat u de site meteen in uw taal ziet, met een richtprijs in
+  uw valuta, bepalen wij het land uit uw IP-adres <em>op onze eigen server</em> (tabel „IP to Country
+  Lite” van <a href="https://db-ip.com" rel="noopener">DB-IP</a>, CC BY 4.0). Het IP-adres wordt hiervoor
+  niet opgeslagen en niet aan derden doorgegeven; er ontstaat geen profiel. Uw eigen keuze van taal of
+  valuta gaat altijd voor. Rechtsgrond: art. 6 lid 1 sub f AVG (gerechtvaardigd belang bij een
+  begrijpelijke weergave).
+</p>
 
 <h2>4. Cookies en lokale opslag</h2>
 <p>
@@ -49,6 +57,7 @@
     <tr><td><code><?= h((string)vr_config('session_name', 'maxsales_retail')) ?></code></td>
         <td>sessie: tas, verkoperslogin, CSRF-bescherming</td><td>einde sessie</td></tr>
     <tr><td><code>vr_lang</code></td><td>gekozen taal</td><td>180 dagen</td></tr>
+    <tr><td><code>vr_cur</code></td><td>gekozen weergavevaluta (richtprijs)</td><td>180 dagen</td></tr>
     <tr><td><code>vr_member</code></td>
         <td>vroegtijdige Vault-toegang na bevestigde nieuwsbriefaanmelding (ondertekende waarde,
             geen e-mail in leesbare tekst)</td><td>1 jaar</td></tr>

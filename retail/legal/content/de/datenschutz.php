@@ -37,6 +37,14 @@
   <li><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse)</li>
   <li><strong>Speicherdauer:</strong> in der Regel 7–30 Tage, danach automatische Löschung</li>
 </ul>
+<p>
+  <strong>Land für Sprache und Währung.</strong> Damit Sie die Seite gleich in Ihrer Sprache und mit
+  einem Richtwert in Ihrer Währung sehen, ermitteln wir aus Ihrer IP-Adresse <em>auf unserem eigenen
+  Server</em> das Land (Tabelle „IP to Country Lite“ von <a href="https://db-ip.com" rel="noopener">DB-IP</a>,
+  CC BY 4.0). Die IP-Adresse wird dafür weder gespeichert noch an Dritte übermittelt; es entsteht
+  kein Profil. Ihre eigene Wahl von Sprache oder Währung hat immer Vorrang. Rechtsgrundlage:
+  Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer verständlichen Darstellung).
+</p>
 
 <h2>4. Cookies und lokale Speicherung</h2>
 <p>
@@ -49,6 +57,7 @@
     <tr><td><code><?= h((string)vr_config('session_name', 'maxsales_retail')) ?></code></td>
         <td>Sitzung: Warenkorb, Verkäufer-Login, CSRF-Schutz</td><td>Sitzungsende</td></tr>
     <tr><td><code>vr_lang</code></td><td>gewählte Sprache</td><td>180 Tage</td></tr>
+    <tr><td><code>vr_cur</code></td><td>gewählte Anzeigewährung (Richtwert)</td><td>180 Tage</td></tr>
     <tr><td><code>vr_member</code></td>
         <td>Vault-Erstzugang nach bestätigter Newsletter-Anmeldung (signierter Wert, keine
             Klartext-E-Mail)</td><td>1 Jahr</td></tr>

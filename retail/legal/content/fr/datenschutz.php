@@ -41,6 +41,15 @@
   <li><strong>Durée de conservation :</strong> en règle générale 7 à 30 jours, puis suppression
       automatique</li>
 </ul>
+<p>
+  <strong>Pays pour la langue et la devise.</strong> Pour que vous voyiez le site directement dans votre
+  langue, avec un prix indicatif dans votre devise, nous déterminons le pays à partir de votre adresse IP
+  <em>sur notre propre serveur</em> (table « IP to Country Lite » de
+  <a href="https://db-ip.com" rel="noopener">DB-IP</a>, CC BY 4.0). L’adresse IP n’est ni conservée à cette
+  fin ni transmise à des tiers ; aucun profil n’est créé. Votre propre choix de langue ou de devise prime
+  toujours. Base juridique : art. 6, par. 1, point f) du RGPD (intérêt légitime à une présentation
+  compréhensible).
+</p>
 
 <h2>4. Cookies et stockage local</h2>
 <p>
@@ -54,6 +63,7 @@
     <tr><td><code><?= h((string)vr_config('session_name', 'maxsales_retail')) ?></code></td>
         <td>session : panier, connexion vendeur, protection CSRF</td><td>fin de session</td></tr>
     <tr><td><code>vr_lang</code></td><td>langue choisie</td><td>180 jours</td></tr>
+    <tr><td><code>vr_cur</code></td><td>devise d’affichage choisie (prix indicatif)</td><td>180 jours</td></tr>
     <tr><td><code>vr_member</code></td>
         <td>accès anticipé au Vault après inscription confirmée à la newsletter (valeur signée, pas
             d'e-mail en clair)</td><td>1 an</td></tr>
