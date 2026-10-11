@@ -1,0 +1,78 @@
+name: (Salt-okunur) Ürün verisi ve fotoğraf kolajı
+
+on:
+  workflow_dispatch:
+    inputs:
+      q:
+        description: "Ürün adında / id'de aranacak metin (virgülle birden çok)"
+        required: true
+        default: "Piqué Polo"
+
+permissions:
+  contents: write
+
+# Sunucudaki vitrin katalogundan eşleşen ürünlerin ham verisini (ad, renkler,
+# kareler, kaynak) ve karelerinin numaralı kolajını çıkarır; diag/product/
+# altına dala işler. Sunucuya ve siteye hiçbir şey yazmaz.
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP + GD
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq php-cli php-gd > /dev/null
+      - name: Sunucudan oku
+        env:
+          Q: ${{ github.event.inputs.q }}
+        run: |
+          set -e
+          mkdir -p ~/.ssh diag/product
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy; chmod 600 ~/.ssh/id_deploy
+          SSHOPT="-i ~/.ssh/id_deploy -o StrictHostKeyChecking=no -p ${{ secrets.DEPLOY_PORT || 22 }}"
+          SRV="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+          B64=$(printf '%s' "$Q" | base64 -w0)
+          ssh $SSHOPT "$SRV" "cd ~/maxsales_de && Q64=$B64 php -d memory_limit=1024M" > diag/product/products.json <<'PHP'
+          <?php
+          require 'inc/catalog.php';
+          $qs = array_filter(array_map('trim', explode(',', base64_decode((string)getenv('Q64')))));
+          $raw = [];
+          foreach ((array)vr_store_read('listings.json', []) as $r) $raw[(string)($r['id'] ?? '')] = $r;
+          $out = [];
+          foreach (vr_catalog() as $id => $p) {
+            $hay = mb_strtolower($id . ' ' . $p['name'] . ' ' . $p['brand']);
+            $hit = false; foreach ($qs as $q) if (str_contains($hay, mb_strtolower($q))) $hit = true;
+            if (!$hit) continue;
+            $out[$id] = ['name' => $p['name'], 'brand' => $p['brand'], 'sku' => $p['sku'] ?? '', 'source' => $p['source'] ?? '',
+                         'colours' => vr_product_colours($p), 'images' => array_values($p['images']),
+                         'siblings' => array_map(fn($s) => $s['id'], vr_variant_siblings($p)),
+                         'raw' => array_intersect_key((array)($raw[$id] ?? []), array_flip(['title','name','colors','colours','color','images','image','sku','variants','options','description']))];
+          }
+          echo json_encode($out, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+          PHP
+          php -r '$p=json_decode(file_get_contents("diag/product/products.json"),true); foreach($p as $id=>$x){printf("%s | %s | %d kare | renkler: %s\n",$id,$x["name"],count($x["images"]),implode(", ",$x["colours"]));}'
+          php -r 'foreach(json_decode(file_get_contents("diag/product/products.json"),true) as $x) foreach($x["images"] as $r) if(preg_match("#^/uploads/[A-Za-z0-9._/-]+$#",$r)) echo substr($r,1),"\n";' | sort -u > list.txt
+          mkdir -p srv && ssh $SSHOPT "$SRV" "cd ~/maxsales_de && tar -cf - -T - 2>/dev/null" < list.txt | tar -xf - -C srv || true
+      - name: Kolaj
+        run: |
+          php -r '
+          foreach (json_decode(file_get_contents("diag/product/products.json"), true) as $id => $x) {
+            $imgs = $x["images"]; $n = count($imgs); if (!$n) continue;
+            $cw = 220; $ch = 275; $cols = min(6, $n); $rows = (int)ceil($n / $cols);
+            $s = imagecreatetruecolor($cols * ($cw + 8), $rows * ($ch + 22) + 24);
+            imagefill($s, 0, 0, imagecolorallocate($s, 255, 255, 255)); $ink = imagecolorallocate($s, 0, 0, 0);
+            imagestring($s, 3, 4, 4, substr($id . " | " . $x["name"] . " | " . implode(",", $x["colours"]), 0, 160), $ink);
+            foreach ($imgs as $i => $r) {
+              $im = @imagecreatefromstring((string)@file_get_contents("srv" . $r)); $x0 = ($i % $cols) * ($cw + 8); $y0 = 24 + intdiv($i, $cols) * ($ch + 22);
+              if ($im) { $sc = min($cw / imagesx($im), $ch / imagesy($im)); imagecopyresampled($s, $im, $x0, $y0, 0, 0, (int)(imagesx($im)*$sc), (int)(imagesy($im)*$sc), imagesx($im), imagesy($im)); }
+              imagestring($s, 2, $x0, $y0 + $ch + 4, ($i + 1) . " " . basename($r), $ink);
+            }
+            imagejpeg($s, "diag/product/" . preg_replace("/[^a-z0-9_-]/i", "_", $id) . ".jpg", 80);
+          }'
+          ls diag/product
+      - name: Dala işle
+        run: |
+          git config user.name "Claude"; git config user.email "noreply@anthropic.com"
+          git add -f diag/product
+          git diff --cached --quiet && exit 0
+          git commit -q -m "Teşhis: ürün verisi ve kare kolajı"
+          for i in 1 2 3 4; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((i*3)); done
