@@ -56,7 +56,7 @@ function bb_links(string $html): array
 
 // 1) Listeler
 $want = array_flip(array_map(fn($t) => (string)$t['sku'], $targets));
-$map  = [];
+$map  = []; $allPaths = []; $byColour = [];   // aynı modelin diğer renkleri (kod farklı, sezon)
 $lists = ['/l/mens-clothing/polos-t-shirts/', '/l/mens-clothing/polo-shirts/', '/l/mens-clothing/t-shirts/',
           '/l/mens-clothing/sweatshirts-hoodies/', '/l/mens-clothing/', '/l/sale/mens/'];
 foreach ($lists as $l) {
@@ -65,6 +65,7 @@ foreach ($lists as $l) {
         if ($html === null) break;
         $found = bb_links($html);
         if (!$found) break;
+        if (preg_match_all('#href="(/[a-z0-9-]+-p\d{8})/?"#', $html, $am)) foreach ($am[1] as $ap) $allPaths[$ap . '/'] = 1;
         $new = array_diff_key($found, $map);
         $map += $found;
         if (!array_diff_key($want, $map)) break 2;   // hepsi bulundu
@@ -91,6 +92,27 @@ foreach (array_keys(array_diff_key($want, $map)) as $code) {
     }
 }
 
+// 2b) Aynı model, başka sezon kodu: renk sayfaları. Bulunan sayfanın adı
+//     (cotton-polo-shirt) ya da yakalı model (check…polo) — sayfadaki renk
+//     adıyla eşleşir. Kod farklı olduğu için bu kayıtlar "model" olarak
+//     işaretlenir; onay yine gözle (kolajda renk tonu ve ayrıntı).
+$modelSlugs = [];
+foreach (array_intersect_key($map, $want) as $pth) $modelSlugs[] = preg_replace('#^/([a-z0-9-]+)-p\d{8}/$#', '$1', $pth);
+foreach (array_keys($allPaths) as $pth) {
+    $slug = preg_replace('#^/([a-z0-9-]+)-p\d{8}/$#', '$1', $pth);
+    $isModel = in_array($slug, $modelSlugs, true) || (str_contains($slug, 'check') && str_contains($slug, 'polo') && !str_contains($slug, 'knit'));
+    if (!$isModel) continue;
+    $html = bb_get(BB_HOST . $pth, 20);
+    if ($html === null) continue;
+    $col = '';
+    if (preg_match('/"colou?r(?:Name)?"\s*:\s*"([A-Za-z \/-]{3,30})"/', $html, $cm)) $col = $cm[1];
+    elseif (preg_match('#<title>[^<]*?in ([A-Za-z /-]{3,30})\s*[-|<]#', $html, $cm)) $col = $cm[1];
+    $byColour[] = ['path' => $pth, 'slug' => $slug, 'colour' => strtolower(trim($col)), 'check' => str_contains($slug, 'check')];
+    usleep(300000);
+}
+printf("Aynı modelin renk sayfaları: %d\n", count($byColour));
+foreach ($byColour as $b) printf("  %-50s %s\n", $b['path'], $b['colour']);
+
 // 3) Bing (listede olmayanlar — eski sezon)
 foreach (array_keys(array_diff_key($want, $map)) as $code) {
     $html = bb_get('https://www.bing.com/search?q=' . rawurlencode("site:burberry.com $code"));
@@ -106,6 +128,14 @@ $sheetDir = "$root/uploads/candidates/_web";
 foreach ($targets as $n => $t) {
     $code = (string)$t['sku']; $id = (string)$t['id'];
     $path = $map[$code] ?? '';
+    if ($path === '') {
+        $tc = strtolower(trim((string)($t['colour'] ?? '')));
+        $wantCheck = stripos((string)$t['name'], 'check') !== false;
+        foreach ($byColour as $b) {
+            if ($b['check'] !== $wantCheck || $tc === '' || !str_contains($b['colour'], $tc)) continue;
+            $path = $b['path']; break;
+        }
+    }
     $imgs = [];
     if ($path !== '') {
         $html = bb_get(BB_HOST . $path) ?? '';
