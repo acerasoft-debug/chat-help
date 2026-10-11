@@ -4,9 +4,10 @@ name: (Günlük) Müşteri bul — web araması + gerçek e-posta
 run-name: ${{ github.event.inputs.request_id && format('Müşteri bul · {0}', github.event.inputs.request_id) || 'Müşteri bul (günlük)' }}
 on:
   schedule:
-    - cron: '20 5 * * *'      # her gün 05:20 UTC
-    - cron: '20 15 * * *'     # 10 Eki 2026 (operatör: "çok az email bulunmuş"): günde ikinci tur, 15:20 UTC
-    - cron: '20 22 * * *'     # 11 Eki 2026 (operatör: "tüm ülkelerden rahatça bulunabilir"): üçüncü tur, 22:20 UTC (Amerika günü)
+    # 11 Eki 2026 (operatör: "otomatik arama yap, günde 500'e kadar butik bulsun ve göndersin"): 3 saatte bir
+    # (günde 8 tur: 01:20, 04:20 … 22:20 UTC). Gün içinde (UTC) 500 yeni butiğe ulaşılınca kalan zamanlı turlar
+    # aramayı atlar (vestra-known.php found_today). Sunucu zamanlayıcısı aynı saatleri bilir (VESTRA_FINDER_SLOTS).
+    - cron: '20 1-22/3 * * *'
   workflow_dispatch:
     inputs:
       request_id:
@@ -149,8 +150,14 @@ jobs:
              && ssh vestra 'cat > ~/vestra_tmp/search.php' < scripts/server/vestra-search.php \
              && ssh vestra 'cd ~/public_html && php ~/vestra_tmp/known.php; rc=$?; rm -f ~/vestra_tmp/known.php; exit $rc' > known.raw \
              && grep '^{' known.raw | tail -n 1 > known.json \
-             && python3 -c 'import json;d=json.load(open("known.json"));print("bilinen:",len(d["emails"]),"e-posta,",len(d["domains"]),"alan adi, toplam lead",d.get("total"),"| anahtarlar:",d.get("keys"));json.dump(d.get("state") or {},open("state.json","w"))'; then
+             && python3 -c 'import json;d=json.load(open("known.json"));print("bilinen:",len(d["emails"]),"e-posta,",len(d["domains"]),"alan adi, toplam lead",d.get("total"),"| bugun bulunan:",d.get("found_today"),"| anahtarlar:",d.get("keys"));json.dump(d.get("state") or {},open("state.json","w"))'; then
             echo "known_ok=true" >> "$GITHUB_ENV"
+            # Günlük bulma tavanı: yalnız ZAMANLI turlarda (elle başlatılan arama her zaman çalışır).
+            FT=$(python3 -c 'import json;print(int(json.load(open("known.json")).get("found_today") or 0))')
+            if [ "${{ github.event_name }}" = "schedule" ] && [ "$FT" -ge 500 ]; then
+              echo "Bugün zaten $FT yeni butik bulundu (tavan 500) — bu tur aramayı atlıyor."
+              echo "daily_full=true" >> "$GITHUB_ENV"
+            fi
           else
             # Liste alinamazsa YAZMA: tekrar korumasi olmadan eklemek ayni butige ikinci
             # mektup demek. Bulma calisir, rapor uretilir, sunucuya hicbir sey gitmez.
@@ -161,12 +168,13 @@ jobs:
 
       - name: Butikleri bul + gerçek e-postaları çıkar
         id: finder
+        if: ${{ env.daily_full != 'true' }}
         env:
           QUERIES_PER_RUN: ${{ github.event.inputs.queries_per_run || (github.event_name == 'push' && '14') || '40' }}
           CITIES: ${{ github.event.inputs.cities }}
           PLACES_PER_RUN: ${{ github.event_name == 'push' && '2' || '6' }}
           # Şehir verilmemişse OSM, OSM_TARGET yeni adaya ya da bütçenin %35'ine kadar havuzdan şehir alır.
-          MAX_CITIES: ${{ github.event_name == 'push' && '2' || '40' }}
+          MAX_CITIES: ${{ github.event_name == 'push' && '2' || '60' }}   # 11 Eki: havuz ~370 şehir / 96 ülke → tur başına 60
           OSM_TARGET: ${{ github.event_name == 'push' && '60' || '900' }}
           LANGS: ${{ github.event.inputs.langs }}
           COUNTRIES: ${{ github.event.inputs.countries }}

@@ -33,7 +33,12 @@ $keys = [
   'brave'  => trim((string)vestra_cfg('brave_key', '')) !== '',
   'google' => function_exists('vestra_google_key') && vestra_google_key() !== '',
 ];
+/* 11 Eki 2026 (operatör: "günde 500'e kadar butik bulsun"): bugün (UTC) web aramasıyla eklenen admin leadleri. */
+$foundToday = 0; $todayUtc = gmdate('Y-m-d');
+foreach ($leads as $l) if (($l['source'] ?? '') === 'web-search' && ($l['owner_uid'] ?? '') === ''
+  && gmdate('Y-m-d', (int)strtotime((string)($l['added_at'] ?? ''))) === $todayUtc) $foundToday++;
 echo json_encode([
+  'found_today' => $foundToday,
   'emails'  => array_keys($emails),
   'domains' => array_keys($domains),
   'total'   => count($leads),

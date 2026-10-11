@@ -455,7 +455,17 @@ const TLD_COUNTRY = { de: 'Germany', at: 'Austria', ch: 'Switzerland', it: 'Ital
   sa: 'Saudi Arabia', 'com.sa': 'Saudi Arabia', qa: 'Qatar', 'com.qa': 'Qatar', kw: 'Kuwait', 'com.kw': 'Kuwait', bh: 'Bahrain',
   'com.bh': 'Bahrain', lb: 'Lebanon', 'com.lb': 'Lebanon', il: 'Israel', 'co.il': 'Israel', kr: 'South Korea', 'co.kr': 'South Korea',
   hk: 'Hong Kong', 'com.hk': 'Hong Kong', sg: 'Singapore', 'com.sg': 'Singapore', mx: 'Mexico', 'com.mx': 'Mexico',
-  br: 'Brazil', 'com.br': 'Brazil', ar: 'Argentina', 'com.ar': 'Argentina', cl: 'Chile', mc: 'Monaco' };
+  br: 'Brazil', 'com.br': 'Brazil', ar: 'Argentina', 'com.ar': 'Argentina', cl: 'Chile', mc: 'Monaco',
+  'com.co': 'Colombia', pe: 'Peru', 'com.pe': 'Peru', uy: 'Uruguay', 'com.uy': 'Uruguay', pa: 'Panama', cr: 'Costa Rica',
+  'co.cr': 'Costa Rica', 'com.do': 'Dominican Republic', ec: 'Ecuador', 'com.ec': 'Ecuador', pr: 'Puerto Rico',
+  om: 'Oman', 'com.om': 'Oman', jo: 'Jordan', eg: 'Egypt', 'com.eg': 'Egypt', ma: 'Morocco', tn: 'Tunisia',
+  za: 'South Africa', 'co.za': 'South Africa', ng: 'Nigeria', 'com.ng': 'Nigeria', ke: 'Kenya', 'co.ke': 'Kenya',
+  gh: 'Ghana', 'com.gh': 'Ghana', mu: 'Mauritius', in: 'India', 'co.in': 'India', pk: 'Pakistan', 'com.pk': 'Pakistan',
+  lk: 'Sri Lanka', bd: 'Bangladesh', 'com.bd': 'Bangladesh', tw: 'Taiwan', 'com.tw': 'Taiwan', th: 'Thailand', 'co.th': 'Thailand',
+  my: 'Malaysia', 'com.my': 'Malaysia', id: 'Indonesia', 'co.id': 'Indonesia', ph: 'Philippines', 'com.ph': 'Philippines',
+  vn: 'Vietnam', 'com.vn': 'Vietnam', cn: 'China', 'com.cn': 'China', mo: 'Macau', kz: 'Kazakhstan', ge: 'Georgia', am: 'Armenia',
+  az: 'Azerbaijan', md: 'Moldova', ba: 'Bosnia and Herzegovina', mk: 'North Macedonia', al: 'Albania', ad: 'Andorra',
+  li: 'Liechtenstein', sm: 'San Marino', 'com.au': 'Australia' };
 const PHONE_COUNTRY = [['351', 'Portugal'], ['353', 'Ireland'], ['354', 'Iceland'], ['356', 'Malta'], ['357', 'Cyprus'], ['358', 'Finland'],
   ['359', 'Bulgaria'], ['370', 'Lithuania'], ['371', 'Latvia'], ['372', 'Estonia'], ['381', 'Serbia'], ['385', 'Croatia'], ['386', 'Slovenia'],
   ['420', 'Czechia'], ['421', 'Slovakia'], ['352', 'Luxembourg'], ['377', 'Monaco'], ['971', 'United Arab Emirates'],
@@ -872,6 +882,37 @@ const CITY_POOL = [
   'Hungary|Budapest', 'Romania|Bucureşti', 'Romania|Cluj-Napoca', 'Bulgaria|Sofia', 'Croatia|Zagreb', 'Croatia|Split',
   'Slovenia|Ljubljana', 'Slovakia|Bratislava', 'Lithuania|Vilnius', 'Latvia|Rīga', 'Estonia|Tallinn',
   'Cyprus|Limassol', 'Cyprus|Nicosia', 'Malta|Sliema', 'Monaco|Monaco', 'Iceland|Reykjavík', 'Serbia|Belgrade',
+  /* 11 Eki 2026 (operatör: "tüm dünyadan genişlet, Avustralya, Kanada vs. hepsini al"). Yaptırımlı ülkeler (Rusya,
+     Belarus, İran, Suriye, K. Kore, Küba) ve Türkiye (ülke engeli) bilerek YOK. */
+  'Australia|Brisbane', 'Australia|Perth', 'Australia|Adelaide', 'Australia|Gold Coast', 'Australia|Canberra', 'Australia|Hobart',
+  'Australia|Newcastle', 'Australia|Darwin', 'New Zealand|Wellington', 'New Zealand|Christchurch', 'New Zealand|Queenstown',
+  'Canada|Calgary', 'Canada|Edmonton', 'Canada|Ottawa', 'Canada|Québec', 'Canada|Winnipeg', 'Canada|Halifax', 'Canada|Victoria',
+  'Canada|Mississauga', 'Canada|Oakville', 'Canada|Kelowna',
+  'United States|Philadelphia', 'United States|Phoenix', 'United States|San Diego', 'United States|Denver', 'United States|Austin',
+  'United States|Nashville', 'United States|New Orleans', 'United States|Charlotte', 'United States|Minneapolis', 'United States|Detroit',
+  'United States|Portland', 'United States|Scottsdale', 'United States|Palm Beach', 'United States|Fort Lauderdale', 'United States|Orlando',
+  'United States|Tampa', 'United States|Honolulu', 'United States|Beverly Hills', 'United States|Brooklyn', 'United States|San Jose',
+  'United States|Salt Lake City', 'United States|St. Louis', 'United States|Kansas City', 'United States|Columbus', 'United States|Indianapolis',
+  'United States|Charleston', 'United States|Savannah', 'United States|Pittsburgh', 'United States|Baltimore', 'United States|Raleigh',
+  'United States|Greenwich', 'United States|Aspen', 'United States|The Hamptons', 'Puerto Rico|San Juan',
+  'Mexico|Guadalajara', 'Mexico|Monterrey', 'Mexico|Cancún', 'Mexico|Puebla', 'Mexico|Tijuana', 'Colombia|Bogotá', 'Colombia|Medellín',
+  'Peru|Lima', 'Uruguay|Montevideo', 'Panama|Panamá', 'Costa Rica|San José', 'Dominican Republic|Santo Domingo', 'Ecuador|Quito',
+  'Brazil|Rio de Janeiro', 'Brazil|Belo Horizonte', 'Brazil|Curitiba', 'Brazil|Porto Alegre', 'Brazil|Brasília', 'Argentina|Córdoba',
+  'Argentina|Rosario', 'Chile|Viña del Mar',
+  'United Arab Emirates|Sharjah', 'Saudi Arabia|Dammam', 'Saudi Arabia|Khobar', 'Oman|Muscat', 'Jordan|Amman', 'Egypt|Cairo',
+  'Egypt|Alexandria', 'Morocco|Casablanca', 'Morocco|Marrakech', 'Morocco|Rabat', 'Tunisia|Tunis', 'Israel|Jerusalem', 'Israel|Haifa',
+  'South Africa|Johannesburg', 'South Africa|Cape Town', 'South Africa|Durban', 'South Africa|Pretoria', 'Nigeria|Lagos', 'Nigeria|Abuja',
+  'Kenya|Nairobi', 'Ghana|Accra', 'Mauritius|Port Louis',
+  'India|Mumbai', 'India|New Delhi', 'India|Bengaluru', 'India|Hyderabad', 'India|Chennai', 'India|Kolkata', 'India|Pune', 'India|Ahmedabad',
+  'Pakistan|Lahore', 'Pakistan|Karachi', 'Sri Lanka|Colombo', 'Bangladesh|Dhaka',
+  'Japan|Kyoto', 'Japan|Yokohama', 'Japan|Nagoya', 'Japan|Fukuoka', 'Japan|Sapporo', 'Japan|Kobe', 'Japan|Sendai', 'Japan|Hiroshima',
+  'Japan|Kanazawa', 'Japan|Okayama', 'Japan|Shizuoka', 'Japan|Kumamoto', 'Japan|Naha', 'South Korea|Busan', 'South Korea|Incheon', 'South Korea|Daegu',
+  'Taiwan|Taipei', 'Taiwan|Kaohsiung', 'Thailand|Bangkok', 'Thailand|Phuket', 'Thailand|Chiang Mai', 'Malaysia|Kuala Lumpur',
+  'Malaysia|Penang', 'Indonesia|Jakarta', 'Indonesia|Bali', 'Indonesia|Surabaya', 'Philippines|Manila', 'Philippines|Cebu City',
+  'Vietnam|Ho Chi Minh City', 'Vietnam|Hanoi', 'China|Shanghai', 'China|Beijing', 'China|Shenzhen', 'China|Guangzhou', 'Macau|Macau',
+  'Kazakhstan|Almaty', 'Georgia|Tbilisi', 'Armenia|Yerevan', 'Azerbaijan|Baku', 'Ukraine|Kyiv', 'Moldova|Chișinău',
+  'Bosnia and Herzegovina|Sarajevo', 'North Macedonia|Skopje', 'Albania|Tirana', 'Montenegro|Budva', 'Andorra|Andorra la Vella',
+  'Liechtenstein|Vaduz', 'San Marino|San Marino',
 ];
 const COUNTRY_LANG = { Italy: 'it', France: 'fr', Spain: 'es', Netherlands: 'nl', Belgium: 'nl', Switzerland: 'de', Austria: 'de', Germany: 'de',
   Portugal: 'pt', Greece: 'el', Poland: 'pl', 'United Kingdom': 'en', Ireland: 'en', Denmark: 'da', Sweden: 'sv', Norway: 'nb', Czechia: 'cs', Finland: 'fi' };
@@ -1164,7 +1205,9 @@ function selftest() {
   t('buildQueries deterministic', JSON.stringify(buildQueries(5, { queries: {} }, [], 7)) === JSON.stringify(buildQueries(5, { queries: {} }, [], 7)));
   t('buildQueries skips recent', buildQueries(3, { queries: Object.fromEntries(buildQueries(3, { queries: {} }, [], 7).map(x => [x.q, new Date().toISOString()])) }, [], 7).every(x => !buildQueries(3, { queries: {} }, [], 7).some(y => y.q === x.q)));
   t('havuz: Türkiye yok (ülke engeli)', !CITY_POOL.some(c => /^Turkey\|/i.test(c)));
-  t('havuz: dünya geneli (35+ ülke)', new Set(CITY_POOL.map(c => c.split('|')[0])).size >= 35);
+  t('havuz: dünya geneli (90+ ülke)', new Set(CITY_POOL.map(c => c.split('|')[0])).size >= 90);
+  t('havuz: yaptırımlı ülke yok', !CITY_POOL.some(c => /^(Russia|Belarus|Iran|Syria|North Korea|Cuba)\|/i.test(c)));
+  t('havuz: şehir tekrarı yok', new Set(CITY_POOL).size === CITY_POOL.length);
   t('ülke: alan adından (Suudi, Hong Kong, Meksika)', detectCountry('shop.com.sa', '', '') === 'Saudi Arabia' && detectCountry('x.com.hk', '', '') === 'Hong Kong' && detectCountry('m.com.mx', '', '') === 'Mexico');
   log(fails ? `\n${fails} TEST BASARISIZ` : '\nTUM TESTLER GECTI'); process.exit(fails ? 1 : 0);
 }
