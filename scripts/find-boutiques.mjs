@@ -823,13 +823,13 @@ async function osmCity(country, city) {
   await sleep(1100);                                                   // Nominatim kullanım kuralı: saniyede 1 istek
   const sel = '["shop"~"^(clothes|boutique|fashion)$"]';
   const queries = [];
-  if (areaId) queries.push(`[out:json][timeout:150];area(${areaId})->.a;nwr${sel}(area.a);out tags;`);
-  if (bbox) queries.push(`[out:json][timeout:150];nwr${sel}(${bbox[0]},${bbox[2]},${bbox[1]},${bbox[3]});out tags;`);   // Nominatim bbox: [güney, kuzey, batı, doğu]
+  if (areaId) queries.push(`[out:json][timeout:80];area(${areaId})->.a;nwr${sel}(area.a);out tags;`);   // 11 Eki: 150 → 80 sn — 504 veren büyük şehirler turu 10+ dk bekletiyordu
+  if (bbox) queries.push(`[out:json][timeout:80];nwr${sel}(${bbox[0]},${bbox[2]},${bbox[1]},${bbox[3]});out tags;`);   // Nominatim bbox: [güney, kuzey, batı, doğu]
   let lastErr = 'Overpass yanıt vermedi';
   for (const q of queries) {
     for (const m of OVERPASS) {
       try {
-        const r = await fetch(m, { method: 'POST', body: 'data=' + encodeURIComponent(q), signal: AbortSignal.timeout(170000),
+        const r = await fetch(m, { method: 'POST', body: 'data=' + encodeURIComponent(q), signal: AbortSignal.timeout(95000),
           headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': OSM_UA } });
         if (r.status !== 200) { lastErr = `Overpass HTTP ${r.status}`; continue; }
         const j = await r.json();
