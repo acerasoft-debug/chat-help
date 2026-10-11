@@ -7,6 +7,10 @@ on:
         description: "Hızlı kontrol: birkaç sayfa, doğal bekleme, hepsinin ekran görüntüsü (true/false)"
         required: false
         default: "false"
+      colour_path:
+        description: "Doluysa yalnız bu ürün sayfasında renk → galeri denemesi"
+        required: false
+        default: ""
 
 permissions:
   contents: read
