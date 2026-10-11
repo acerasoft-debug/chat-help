@@ -43,6 +43,11 @@ jobs:
               $nv = !empty($p['variants']) && is_array($p['variants']) ? count($p['variants']) : 0;
               echo "id=".($p['id'] ?? '?')." | {$brand} | ".($p['name'] ?? '?')." | cat=".($p['cat'] ?? '?')." | mode=".($p['mode'] ?? '?')." | {$demo}\n";
               echo "   gorsel({$nv} varyant): ".(count($imgs) ? count($imgs)." adet, ilk=".$imgs[0] : "YOK")."\n";
+              /* Fiyat satiri (11 Eki 2026, Polvich katalog karsilastirmasi): ham kademe
+                 fiyatlari (bolgesel indirim UYGULANMADAN), list, MOQ, durum. Salt okunur. */
+              echo "   fiyat: list=".(isset($p['list']) ? number_format((float)$p['list'], 2, '.', '') : '-')
+                 ." tiers=".json_encode($p['tiers'] ?? null)." moq=".($p['moq'] ?? '-')." status=".($p['status'] ?? '-')
+                 ." sku=".($p['sku'] ?? '-')."\n";
             }
             PHPEOF
             php /tmp/vestra_inspect.php
