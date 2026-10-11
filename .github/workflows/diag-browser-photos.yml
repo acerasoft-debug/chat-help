@@ -1,0 +1,38 @@
+name: (Salt-okunur) Fotoğraflar gerçek tarayıcıda görünüyor mu
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# SALT OKUNUR (siteye karşı). Chromium + WebKit (iPhone) ile vitrindeki her
+# ürün sayfasını açar; görünmeyen fotoğrafları ve sebebini (HTTP kodu, tür,
+# çözülemeyen dosya) listeler. Rapor ve ekran görüntüleri dala işlenir
+# (diag/browser/), siteye ve sunucuya hiçbir şey yazılmaz.
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Playwright
+        run: |
+          mkdir -p /tmp/pw && cd /tmp/pw && npm init -y >/dev/null && npm i -s playwright@1.56.1
+          npx playwright install --with-deps chromium webkit > /dev/null
+      - name: Tara
+        run: |
+          cp retail/tools/browser-photo-check.js /tmp/pw/
+          cd /tmp/pw && node browser-photo-check.js https://sarvesto.com "$GITHUB_WORKSPACE/diag/browser"
+      - name: Dala işle
+        if: always()
+        run: |
+          git config user.name  "Claude"
+          git config user.email "noreply@anthropic.com"
+          git add -f diag/browser || exit 0
+          git diff --cached --quiet && exit 0
+          git commit -q -m "Teşhis: tarayıcıda görünmeyen fotoğraflar (rapor + ekran görüntüleri)"
+          for i in 1 2 3 4; do
+            git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && break
+            sleep $((i * 3))
+          done
