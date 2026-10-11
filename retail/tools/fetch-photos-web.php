@@ -283,7 +283,13 @@ foreach ($targets as $n => $t) {
         $real = $sku !== '' && !preg_match('/^VS-|^[A-Z]+(-[A-Z0-9]+){2,}/', $sku);
         $byName = trim($brand . ' ' . preg_replace('/\s+—.*$/u', '', $name) . ' ' . $colour);
         // Gerçek model kodu varsa önce yalnızca onunla ara (ad çoğu zaman "T-Shirt" kadar kısa).
-        $queries = $real ? [$brand . ' ' . $sku, $sku . ' ' . $colour, $byName] : [$byName, $byName . ' men'];
+        // Önce kodla doğrudan büyük butiklerde: ürün sayfaları kodu URL'de ve
+        // metinde taşıyor (ikinci turda D&G eşleşmelerinin hepsi thecorner'dan
+        // geldi). Sonra genel arama, en son adla.
+        $sites = ['thecorner.com', 'italist.com', 'giglio.com', 'antonioli.eu', 'leam.com', 'modesens.com'];
+        $queries = $real
+            ? array_merge(array_map(fn($h) => 'site:' . $h . ' ' . $sku, $sites), [$brand . ' ' . $sku, $sku . ' ' . $colour, $byName])
+            : [$byName, $byName . ' site:lyst.com', $byName . ' site:farfetch.com', $byName . ' men'];
         foreach ($queries as $q) {
             foreach (fpw_search($q) as $u) {
                 // Kodla aranıyorsa sayfada kod geçmeli; adla aranıyorsa başlık tutmalı.
