@@ -667,9 +667,12 @@ async function mailDomainOk(dom) {
 async function analyzeSite(domain, ctx, hint = {}) {
   const res = { domain, status: 'fail', reason: '', pages: 0 };
   let base = ''; let home = null;
-  for (const u of [`https://${domain}/`, `https://www.${domain}/`, `http://${domain}/`]) {
-    try { const r = await httpGet(u, { timeout: 12000 }); if (r.status >= 200 && r.status < 400 && /html|xml/i.test(r.ct || 'html') && r.text.length > 300) { home = r; base = r.url; break; } }
-    catch { /* sıradaki şema */ }
+  /* 11 Eki 2026: 655 sitenin 165'i "ulaşılamadı" idi — zaman aşımında aynı adres bir kez daha, daha uzun süreyle denenir. */
+  outer: for (const u of [`https://${domain}/`, `https://www.${domain}/`, `http://${domain}/`]) {
+    for (const timeout of [12000, 25000]) {
+      try { const r = await httpGet(u, { timeout }); if (r.status >= 200 && r.status < 400 && /html|xml/i.test(r.ct || 'html') && r.text.length > 300) { home = r; base = r.url; break outer; } break; }
+      catch (e) { if (!/abort|timeout/i.test(String(e?.name || '') + String(e?.message || ''))) break; }
+    }
   }
   if (!home) { res.reason = 'fail:unreachable'; return res; }
   const finalHost = new URL(base).hostname; const finalReg = registrableDomain(finalHost);
@@ -989,11 +992,34 @@ async function main() {
     if (!keys.brave) notes.push('Brave Search anahtarı yok — web araması yerine OpenStreetMap dükkân listesi kullanıldı. Brave anahtarı eklenirse sonuç artar (isteğe bağlı).');
   }
 
-  /* ---- 1b) OpenStreetMap (anahtarsız): şehirdeki giyim dükkânları ---- */
+  /* ---- 1b) web arama motorları (ucuz: ~40 sorgu × 3 sn) — OSM'den ÖNCE, kendi tavanıyla ---- */
+  const webBase = cands.size;
+  let ei = 0, qDone = 0;
+  if (!engines.length && !srvStat.used) log('arama motoru yok (ENGINES) -- yalnizca seed_domains incelenecek');
+  for (const { q, lang } of webLeft) {
+    if (!engines.length) break;
+    /* 11 Eki 2026: tavan yalnız WEB adaylarına — OSM'nin 600+ adayı eskiden maxSites'ı doldurup bing/ddg'yi hiç çalıştırmıyordu. */
+    if (cands.size - webBase >= CFG.maxSites || elapsed() > CFG.budgetSec * 0.25) { log(`web arama durdu: ${cands.size - webBase} web adayi / ${Math.round(elapsed())}s`); break; }
+    const live = engines.filter(e => !engStat[e].dead); if (!live.length) { log('!! tum arama motorlari engellendi -- kalan sorgular atlandi'); break; }
+    qDone++;
+    let got = null, used = '';
+    for (let k = 0; k < live.length && got === null; k++) {
+      const e = live[(ei + k) % live.length]; used = e;
+      try { const urls = await ENGINE[e].search(q, lang); engStat[e].urls += urls.length; if (urls.length) { engStat[e].ok++; got = urls; } else engStat[e].empty++; }
+      catch (err) { const msg = String(err.message || err); if (/^blocked/.test(msg)) { engStat[e].blocked++; if (engStat[e].blocked >= 3) { engStat[e].dead = true; log(`  !! ${e}: 3x engellendi, bu calismada kapatildi`); } } else engStat[e].empty++; log(`  ${e} hata (${q}): ${msg.slice(0, 80)}`); }
+      await sleep(jitter(...ENGINE[e].pause));
+    }
+    ei++;
+    const before = cands.size; for (const u of got || []) consider(u, q);
+    if (!CFG.dryRun) state.queries[q] = new Date().toISOString().slice(0, 10);
+    log(`  [${used}] ${q}  -> ${(got || []).length} sonuc, +${cands.size - before} yeni aday`);
+  }
+
+  /* ---- 1c) OpenStreetMap (anahtarsız): şehirdeki giyim dükkânları ---- */
   if (CFG.engines.includes('osm')) {
     let lastPoolIdx = -1;
     for (const pc of cityT) {
-      if (elapsed() > CFG.budgetSec * 0.35) { osmStat.errors.push('süre bütçesi'); break; }
+      if (elapsed() > CFG.budgetSec * 0.55) { osmStat.errors.push('süre bütçesi'); break; }   // 11 Eki: 0.35 → 0.55 (inceleme ~0.8 sn/site)
       if (autoCities && osmStat.picked >= CFG.osmTarget) break;
       if (autoCities) lastPoolIdx = CITY_POOL.indexOf(pc);
       const [country, city] = pc.split('|').map(x => x.trim());
@@ -1020,26 +1046,6 @@ async function main() {
     if (autoCities && !CFG.dryRun && lastPoolIdx >= 0) state.placesCursor = (lastPoolIdx + 1) % CITY_POOL.length;
   }
   for (const d of CFG.seedDomains) { let h = d.replace(/^https?:\/\//i, '').split('/')[0]; if (h) consider('https://' + h + '/', '(seed)'); }
-
-  let ei = 0, qDone = 0;
-  if (!engines.length && !srvStat.used) log('arama motoru yok (ENGINES) -- yalnizca seed_domains incelenecek');
-  for (const { q, lang } of webLeft) {
-    if (!engines.length) break;
-    if (cands.size >= CFG.maxSites || elapsed() > CFG.budgetSec * 0.4) { log(`arama durdu: ${cands.size} aday / ${Math.round(elapsed())}s`); break; }
-    const live = engines.filter(e => !engStat[e].dead); if (!live.length) { log('!! tum arama motorlari engellendi -- kalan sorgular atlandi'); break; }
-    qDone++;
-    let got = null, used = '';
-    for (let k = 0; k < live.length && got === null; k++) {
-      const e = live[(ei + k) % live.length]; used = e;
-      try { const urls = await ENGINE[e].search(q, lang); engStat[e].urls += urls.length; if (urls.length) { engStat[e].ok++; got = urls; } else engStat[e].empty++; }
-      catch (err) { const msg = String(err.message || err); if (/^blocked/.test(msg)) { engStat[e].blocked++; if (engStat[e].blocked >= 3) { engStat[e].dead = true; log(`  !! ${e}: 3x engellendi, bu calismada kapatildi`); } } else engStat[e].empty++; log(`  ${e} hata (${q}): ${msg.slice(0, 80)}`); }
-      await sleep(jitter(...ENGINE[e].pause));
-    }
-    ei++;
-    const before = cands.size; for (const u of got || []) consider(u, q);
-    if (!CFG.dryRun) state.queries[q] = new Date().toISOString().slice(0, 10);
-    log(`  [${used}] ${q}  -> ${(got || []).length} sonuc, +${cands.size - before} yeni aday`);
-  }
 
   /* ---- 2) ön eleme ---- */
   const todo = []; const excl = {}; const bump = (k) => { excl[k] = (excl[k] || 0) + 1; };

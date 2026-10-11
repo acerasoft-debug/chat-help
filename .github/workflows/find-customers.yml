@@ -1,12 +1,14 @@
 name: (Günlük) Müşteri bul — web araması + gerçek e-posta
 # Panelden tetiklenen çalışma, panelin verdiği istek no'su ile adlanır: panel kendi
 # isteğinin durumunu ve linkini bu addan bulur (inc/finder.php).
-run-name: ${{ github.event.inputs.request_id && format('Müşteri bul · {0}', github.event.inputs.request_id) || 'Müşteri bul (günlük)' }}
+run-name: ${{ github.event.inputs.request_id && format('Müşteri bul · {0}', github.event.inputs.request_id) || (github.event.inputs.auto == 'true' && 'Müşteri bul (otomatik tur)') || 'Müşteri bul (günlük)' }}
 on:
   schedule:
     # 11 Eki 2026 (operatör: "otomatik arama yap, günde 500'e kadar butik bulsun ve göndersin"): 3 saatte bir
     # (günde 8 tur: 01:20, 04:20 … 22:20 UTC). Gün içinde (UTC) 500 yeni butiğe ulaşılınca kalan zamanlı turlar
     # aramayı atlar (vestra-known.php found_today). Sunucu zamanlayıcısı aynı saatleri bilir (VESTRA_FINDER_SLOTS).
+    # GitHub'ın zamanlayıcısı turları saatlerce geciktiriyor / atlıyor (11 Eki: 13:20 ve 16:20 hiç başlamadı) —
+    # asıl tetikleyici pacemaker.yml (auto=true ile workflow_dispatch); bu takvim yalnız yedek.
     - cron: '20 1-22/3 * * *'
   workflow_dispatch:
     inputs:
@@ -14,6 +16,10 @@ on:
         description: "Panelin istek no'su (admin/satıcı panelinden tetiklenince dolu gelir; elle boş bırak)"
         required: false
         default: ""
+      auto:
+        description: "true = zamanlı tur (pacemaker.yml başlatır): günlük 500 bulma tavanına uyar"
+        required: false
+        default: "false"
       owner_uid:
         description: "Boş = admin listesi. Satıcı hesap id'si verilirse bulunan leadler O SATICIYA ait olur."
         required: false
@@ -154,7 +160,7 @@ jobs:
             echo "known_ok=true" >> "$GITHUB_ENV"
             # Günlük bulma tavanı: yalnız ZAMANLI turlarda (elle başlatılan arama her zaman çalışır).
             FT=$(python3 -c 'import json;print(int(json.load(open("known.json")).get("found_today") or 0))')
-            if [ "${{ github.event_name }}" = "schedule" ] && [ "$FT" -ge 500 ]; then
+            if { [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.auto }}" = "true" ]; } && [ "$FT" -ge 500 ]; then
               echo "Bugün zaten $FT yeni butik bulundu (tavan 500) — bu tur aramayı atlıyor."
               echo "daily_full=true" >> "$GITHUB_ENV"
             fi
@@ -174,8 +180,11 @@ jobs:
           CITIES: ${{ github.event.inputs.cities }}
           PLACES_PER_RUN: ${{ github.event_name == 'push' && '2' || '6' }}
           # Şehir verilmemişse OSM, OSM_TARGET yeni adaya ya da bütçenin %35'ine kadar havuzdan şehir alır.
-          MAX_CITIES: ${{ github.event_name == 'push' && '2' || '60' }}   # 11 Eki: havuz ~370 şehir / 96 ülke → tur başına 60
-          OSM_TARGET: ${{ github.event_name == 'push' && '60' || '900' }}
+          # 11 Eki 2026 (operatör: "çok az butik bulunuyor"): 10 Eki akşam turu 40 şehirde 673 adayı 12 dk'da topladı, 655 siteyi
+          # 9 dk'da inceledi ve 55 dk'lık bütçenin 21 dk'sını kullandı. Şehir ve aday hedefi 3 katına çıkarıldı; bütçeye sığıyor.
+          MAX_CITIES: ${{ github.event_name == 'push' && '2' || '120' }}
+          OSM_TARGET: ${{ github.event_name == 'push' && '60' || '2200' }}
+          CONCURRENCY: 8
           LANGS: ${{ github.event.inputs.langs }}
           COUNTRIES: ${{ github.event.inputs.countries }}
           EXTRA_QUERIES: ${{ github.event.inputs.extra_queries }}
