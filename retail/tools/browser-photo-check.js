@@ -20,6 +20,7 @@ const fs = require('fs');
 const BASE = (process.argv[2] || 'https://sarvesto.com').replace(/\/$/, '');
 const OUT = process.argv[3] || 'out';
 const CONC = 4;
+const QUICK = process.argv[4] === 'quick';   // birkaç sayfa, doğal bekleme, hepsinin ekran görüntüsü
 fs.mkdirSync(OUT + '/shots', { recursive: true });
 
 async function productIds() {
@@ -46,6 +47,11 @@ async function checkPage(ctx, url, label) {
   try {
     const resp = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
     status = resp ? resp.status() : 0;
+    if (QUICK) {
+      // Gerçek kullanıcı gibi: açılışta kaydırmadan 4 sn bekle, ilk ekranı çek.
+      await page.waitForTimeout(4000);
+      await page.screenshot({ path: `${OUT}/shots/quick_${label.replace(/[^a-z0-9-]/gi, '_').slice(0, 80)}_a.png` }).catch(() => {});
+    }
     // Kaydır: tembel görseller yüklensin
     await page.evaluate(async () => {
       const step = Math.max(300, innerHeight * 0.8);
@@ -53,6 +59,11 @@ async function checkPage(ctx, url, label) {
       scrollTo(0, 0);
     });
     await page.waitForLoadState('networkidle', { timeout: 12000 }).catch(() => {});
+    // Tembel yükleme bazı motorlarda (WebKit) yalnız kaydırma olayında
+    // tetikleniyor: başa dönüşten sonra küçük bir dürtme ve kısa bekleme.
+    await page.evaluate(() => { scrollBy(0, 2); scrollBy(0, -2); });
+    await page.waitForTimeout(QUICK ? 2500 : 1200);
+    await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
     var imgs = await page.evaluate(() => Array.from(document.images).map(i => ({
       src: i.currentSrc || i.src, ok: i.complete && i.naturalWidth > 0, done: i.complete,
       gallery: !!i.closest('.pdp__shot, .lot__media, .card'),
@@ -64,7 +75,7 @@ async function checkPage(ctx, url, label) {
               gallery: imgs.filter(i => i.gallery).length,
               broken: broken.map(i => i.src), pending: pending.map(i => i.src), net };
   r.bad = !!(err || status >= 400 || broken.length || net.length || pending.length);
-  if (r.bad && shotCount < 30) {
+  if ((r.bad || QUICK) && shotCount < 30) {
     shotCount++;
     await page.screenshot({ path: `${OUT}/shots/${label.replace(/[^a-z0-9-]/gi, '_').slice(0, 80)}.png`, fullPage: false }).catch(() => {});
   }
@@ -76,8 +87,8 @@ let shotCount = 0;
 (async () => {
   const ids = await productIds();
   const pages = [['home', '/'], ['outlet', '/outlet.php'], ['brands', '/brands.php']];
-  for (let n = 1; n <= 40; n++) pages.push(['shop-' + n, '/shop.php?page=' + n]);
-  for (const id of ids) pages.push(['p-' + id, '/product.php?id=' + encodeURIComponent(id)]);
+  for (let n = 1; n <= (QUICK ? 2 : 40); n++) pages.push(['shop-' + n, '/shop.php?page=' + n]);
+  for (const id of (QUICK ? ids.slice(0, 6) : ids)) pages.push(['p-' + id, '/product.php?id=' + encodeURIComponent(id)]);
   console.log(`ürün: ${ids.length} · sayfa: ${pages.length}`);
 
   const engines = [
