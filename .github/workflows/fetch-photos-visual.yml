@@ -1,0 +1,56 @@
+name: Fotoğrafı olmayan açılar — görsel eşleştirme (butik katalogları)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "probe = hangi kataloglar açık · run = eşleştir ve kolaj üret"
+        required: true
+        default: "probe"
+      max_images:
+        description: "Bu sayıda ya da daha az karesi olan ürünler"
+        required: false
+        default: "2"
+
+permissions:
+  contents: write
+
+# Model kodu olmayan ("T-Shirt", "Sweatshirt") ürünler metin aramasıyla
+# bulunamıyor. Burada butiklerin kendi ürün katalogları (Shopify
+# products.json) marka marka taranır, eldeki fotoğrafa görsel olarak en
+# yakın ürünler bulunur ve kontrol kolajı üretilir (solda ELDE, sağda aday
+# ürünlerin kareleri). Hiçbir kare gözle onaylanmadan ürüne bağlanmaz —
+# onay data/photo-web-approve.json, bağlama attach-web-photos.yml.
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Kataloglar açık mı (probe)
+        if: github.event.inputs.mode == 'probe'
+        run: |
+          UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          for h in www.cettire.com www.baltini.com www.julian-fashion.com www.nugnes1920.com www.lungolivigno.com \
+                   www.gebnegozionline.com www.eleonorabonucci.com www.biffi.com www.tessabit.com www.suitnegozi.com \
+                   www.spinnakerboutique.com www.michelefranzesestore.com www.slamjam.com www.sevenstore.com \
+                   www.thedoublef.com www.dantonestore.com www.papinistore.com www.antonia.it www.genesi.store \
+                   www.ilduomo.com www.vinatis.com www.boutiquemall.com www.amrstore.com www.sugar.it \
+                   www.base-blu.com www.bernardelli.com www.coltortiboutique.com www.leam.com www.giglio.com \
+                   www.modesens.com www.italist.com www.farfetch.com www.ssense.com www.mytheresa.com; do
+            for b in dsquared2 dolce-gabbana balmain; do
+              out=$(curl -s -m 20 -A "$UA" -w ' %{http_code}' "https://$h/collections/$b/products.json?limit=250")
+              code=${out##* }; body=${out% *}
+              n=$(printf '%s' "$body" | python3 -c 'import sys,json
+          try: print(len(json.load(sys.stdin)["products"]))
+          except Exception: print("-")' 2>/dev/null)
+              printf '%-30s %-14s %s %s\n' "$h" "$b" "$code" "$n"
+            done
+            out=$(curl -s -m 20 -A "$UA" -w ' %{http_code}' "https://$h/search/suggest.json?q=dsquared2+t-shirt&resources%5Btype%5D=product&resources%5Blimit%5D=10")
+            code=${out##* }; body=${out% *}
+            n=$(printf '%s' "$body" | python3 -c 'import sys,json
+          try: print(len(json.load(sys.stdin)["resources"]["results"]["products"]))
+          except Exception: print("-")' 2>/dev/null)
+            printf '%-30s %-14s %s %s\n' "$h" "suggest" "$code" "$n"
+          done
