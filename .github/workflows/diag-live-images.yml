@@ -86,3 +86,18 @@ jobs:
           print(f"\netkilenen ürün: {len(ids)}")
           print(' '.join(ids[:200]))
           PY
+
+      - name: Uygulama ve bildirimler canlıda mı
+        run: |
+          base=https://sarvesto.com
+          home=$(curl -s "$base/?lang=en")
+          for k in 'id="app"' 'data-appbar' 'data-push-prompt' 'data-push ' 'appband__ios'; do
+            printf '%-22s %s\n' "$k" "$(grep -c -- "$k" <<<"$home")"
+          done
+          echo "api/push GET → $(curl -s -o /dev/null -w '%{http_code}' $base/api/push.php) (405 beklenir)"
+          echo "sw.js push işleyici: $(curl -s $base/sw.js | grep -c "addEventListener('push'")"
+          echo "rozet: $(curl -s -o /dev/null -w '%{http_code} %{content_type}' $base/assets/app/badge-96.png)"
+          echo "app.php bildirim kutusu: $(curl -s $base/app.php | grep -c 'id="notifications"')"
+          echo "VAPID açık anahtar uzunluğu: $(grep -o 'data-key="[^"]*"' <<<"$home" | head -1 | wc -c)"
+          echo "avif örnek: $(curl -s -o /dev/null -w '%{http_code} %{content_type}' $base/uploads/lacoste/paris-polo/navy.avif)"
+          echo "büyütme örnek: $(curl -s -o /dev/null -w '%{http_code} %{content_type} %{size_download}' "$base/assets/img.php?p=/uploads/lacoste/paris-polo/navy.avif&w=1400")"
