@@ -71,6 +71,8 @@ function vr_img_send(string $file, string $mime): void
 {
     $etag = '"' . substr(sha1($file . filemtime($file)), 0, 20) . '"';
     header('Content-Type: ' . $mime);
+    // Aynı adres webp ya da jpeg dönebiliyor: aradaki önbellek karıştırmasın.
+    header('Vary: Accept');
     header('Cache-Control: public, max-age=31536000, immutable');
     header('ETag: ' . $etag);
     // Dosya adı içeriğin özetini taşıdığı için içerik hiç değişmiyor;

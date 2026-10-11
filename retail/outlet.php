@@ -64,7 +64,7 @@ if ($single !== null) {
     vr_layout_start([
         'title'  => $p['brand'] . ' ' . vr_card_name($p) . ' — ' . t('vault_title'),
         'desc'   => $p['brand'] . ' ' . vr_card_name($p) . ' — ' . vr_product_teaser($p),
-        'og_image' => vr_product_image($p),
+        'og_image' => vr_img(vr_product_image($p), 1400),
         'body_class' => 'is-vault',
         'jsonld' => [
             vr_jsonld_product($p, (int)$st['cents']),
@@ -88,7 +88,7 @@ if ($single !== null) {
       <?php $shots = vr_product_gallery($p, 5); ?>
       <div class="pdp__media<?= count($shots) > 1 ? ' pdp__media--multi' : '' ?>" data-gallery>
         <?php foreach ($shots as $i => $src): ?>
-          <a class="pdp__shot" href="<?= h($src) ?>" data-zoom
+          <a class="pdp__shot" href="<?= h(vr_img($src, 1400)) ?>" data-zoom
              aria-label="<?= te('zoom') ?>: <?= h($p['brand'] . ' ' . vr_card_name($p)) ?>">
             <img src="<?= h(vr_img($src, 900)) ?>"
                  srcset="<?= h(vr_img_srcset($src, [420, 600, 900, 1400])) ?>"

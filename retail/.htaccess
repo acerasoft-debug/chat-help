@@ -66,6 +66,11 @@ Options -Indexes
   Require all denied
 </FilesMatch>
 
+# ---- görsel türleri: bazı sunucular .avif/.webp'yi tanımıyor; tür başlığı
+#      olmayan dosyayı tarayıcı "nosniff" yüzünden hiç göstermiyordu
+AddType image/avif .avif
+AddType image/webp .webp
+
 # ---- uygulama: Android paketi ve servis çalışanı
 AddType application/vnd.android.package-archive .apk
 AddType application/manifest+json .webmanifest

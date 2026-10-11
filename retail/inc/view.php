@@ -848,7 +848,7 @@ function vr_jsonld_product(array $p, ?int $overridePrice = null): array
         'sku'         => $p['sku'] ?: $p['id'],
         'category'    => $p['cat'],
         'description' => mb_substr($p['desc'] !== '' ? $p['desc'] : ($p['brand'] . ' ' . $p['name']), 0, 400),
-        'image'       => vr_origin() . vr_product_image($p),
+        'image'       => vr_origin() . vr_img(vr_product_image($p), 1400),
         'offers'      => [
             '@type'         => 'Offer',
             'url'           => vr_origin() . vr_product_url($p),

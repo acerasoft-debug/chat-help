@@ -54,7 +54,7 @@ $sizeErr  = !empty($_GET['nosize']);
 vr_layout_start([
     'title'    => $p['brand'] . ' ' . vr_card_name($p),
     'desc'     => $p['brand'] . ' ' . vr_card_name($p) . ' — ' . vr_product_teaser($p),
-    'og_image' => vr_product_image($p),
+    'og_image' => vr_img(vr_product_image($p), 1400),
     'jsonld'   => [
         vr_jsonld_product($p, $vaultLot ? (int)$vaultLot['state']['cents'] : null),
         vr_jsonld_breadcrumbs([
@@ -95,7 +95,7 @@ vr_layout_start([
             if ($wide) $box = min(1.9, $r);
             $styled = count($shots) === 1 || $wide;
         ?>
-          <a class="pdp__shot<?= $wide ? ' pdp__shot--wide' : '' ?>" href="<?= h($src) ?>" data-zoom
+          <a class="pdp__shot<?= $wide ? ' pdp__shot--wide' : '' ?>" href="<?= h(vr_img($src, 1400)) ?>" data-zoom
              <?= $styled ? 'style="aspect-ratio:' . h((string)round($box, 3)) . '"' : '' ?>
              aria-label="<?= te('zoom') ?>: <?= h($p['brand'] . ' ' . vr_card_name($p)) ?>">
             <?php vr_frame($src, [
