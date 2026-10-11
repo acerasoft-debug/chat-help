@@ -1,0 +1,34 @@
+name: (Salt-okunur) Dış adres denemesi
+
+on:
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: "Boşlukla ayrılmış adresler"
+        required: true
+        default: ""
+      grep:
+        description: "Gövdede aranacak düzenli ifade (eşleşmelerin ilk 15'i)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+# Runner'dan verilen adresleri açar: kod, tür, boyut, son adres ve gövdede
+# aranan kalıbın eşleşmeleri. Hiçbir şey yazmaz.
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dene
+        env:
+          URLS: ${{ github.event.inputs.urls }}
+          GREP: ${{ github.event.inputs.grep }}
+        run: |
+          UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          for u in $URLS; do
+            curl -s -L -m 30 -A "$UA" -H 'Accept-Language: en-GB,en;q=0.9' -o /tmp/b -w "%{http_code} %{content_type} %{size_download} %{url_effective}\n" "$u" || echo "000 $u"
+            if [ -n "$GREP" ]; then grep -oE "$GREP" /tmp/b | sort -u | head -15; fi
+            echo "---"
+          done
