@@ -6624,14 +6624,16 @@ jobs:
                  gormeye ve siparis vermeye devam ederdi. Eski deger saklanir. */
               $prevKyb = '';
               foreach (auth_accounts() as $a0) if ((string)($a0['id'] ?? '') === $uid) { $prevKyb = (string)($a0['kyb_status'] ?? ''); break; }
-              auth_update($uid, ['status' => 'suspended', 'suspend_reason' => 'operator',
+              /* suspend_reason='unpaid': alici GIRER ve inc/unpaid_hold.php kartini gorur
+                 (en az bir faturayi odeyince hesap kendiliginden acilir). */
+              auth_update($uid, ['status' => 'suspended', 'suspend_reason' => 'unpaid',
                                  'kyb_status' => 'suspended', 'kyb_status_before_suspend' => $prevKyb,
                                  'suspended_at' => date('c'), 'suspend_note' => 'unpaid invoice: '.implode(', ', $refs)]);
             }
             $bad = 0;
             foreach (auth_accounts() as $a) {
               $uid = (string)($a['id'] ?? ''); if (!isset($targets[$uid])) continue;
-              $ok = ($a['status'] ?? '') === 'suspended' && ($a['suspend_reason'] ?? '') === 'operator'
+              $ok = ($a['status'] ?? '') === 'suspended' && ($a['suspend_reason'] ?? '') === 'unpaid'
                     && !auth_prices_unlocked($a);
               if (!$ok) $bad++;
               echo "  geri okuma ".$m((string)($a['email'] ?? ''))." : ".($ok ? 'INAKTIF, fiyat/siparis kapisi KAPALI (dogrulandi)' : '*** YAZILAMADI ***')."\n";
@@ -6704,7 +6706,8 @@ jobs:
               $co = trim((string)($acc['company'] ?? '')) ?: $b['co'];
               $nBuyers++;
               printf("\n%s  %s  hesap=%s %s\n", $co ?: '?', $m($b['email']),
-                $acc ? (string)$acc['id'] : '(yok)', $acc ? '['.(string)($acc['type'] ?? '?').'/'.(string)($acc['status'] ?? '?').']' : '');
+                $acc ? (string)$acc['id'] : '(yok)', $acc ? '['.(string)($acc['type'] ?? '?').'/'.(string)($acc['status'] ?? '?')
+                  .(function_exists('auth_suspended_for_unpaid') && auth_suspended_for_unpaid($acc) ? ' -> girer, odeme karti' : '').']' : '');
               foreach ($b['orders'] as $o) {
                 $nOrders++; if ($o['inv'] !== '') $nInv++;
                 printf("   %-14s %s  %-10s EUR %10s  %s%s\n", $o['ref'], $o['date'] ?: '----------', $o['status'], $o['total'],
