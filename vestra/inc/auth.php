@@ -122,7 +122,32 @@ function auth_find(string $email): ?array {
 function auth_restricted_until(?array $acc, ?int $now = null): int {
     if (!$acc) return 0;
     $u = strtotime((string)($acc['restricted_until'] ?? '')) ?: 0;
-    return $u > ($now ?? time()) ? $u : 0;
+    if ($u <= ($now ?? time())) return 0;
+    /* ODEME GELINCE KALKAR (operator, 11 Eki 2026: "odeme yapildiktan sonra
+       kisitlama listesinden cikartilsin"). 'restricted_lift_refs' = kisitlamayla
+       birlikte BIRAKILAN odenmemis siparisler; biri odendi sayilinca
+       (vestra_order_payment_settled -- panelin ve hatirlatma saatinin AYNI
+       olcusu) kisitlama o an kalkar ve kayda yazilir. Cron yok: alan yalniz
+       kisitli hesaplarda var, yani bu okuma sadece onlar icin yapiliyor. */
+    $lift = array_values(array_filter(array_map('strval', (array)($acc['restricted_lift_refs'] ?? []))));
+    if ($lift) {
+        if (!function_exists('vestra_order_payment_settled')) {
+            require_once __DIR__.'/products.php';
+            require_once __DIR__.'/orders.php';
+        }
+        foreach ($lift as $ref) {
+            if (!empty(vestra_order_payment_settled($ref)['settled'])) {
+                if (($acc['id'] ?? '') !== '') auth_update((string)$acc['id'], ['restricted_until' => '', 'restricted_lift_refs' => [],
+                    'restricted_lifted_at' => date('c'), 'restricted_lifted_by' => 'payment '.$ref]);
+                return 0;
+            }
+        }
+    }
+    return $u;
+}
+/* Kisitlama odemeyle mi kalkacak? Bant ve admin rozeti icin. */
+function auth_restriction_lift_refs(?array $acc): array {
+    return array_values(array_filter(array_map('strval', (array)($acc['restricted_lift_refs'] ?? []))));
 }
 function auth_restricted_uid(string $uid, ?int $now = null): int {
     if ($uid === '') return 0;
@@ -263,7 +288,7 @@ function auth_remember_restore(): void {
         }
         if (!$match) return;
         // never auto-restore a suspended account -- except a docs-suspended seller, who may sign in to upload
-        if (($a['status'] ?? '') === 'suspended' && !auth_suspended_for_docs($a)) return;
+        if (($a['status'] ?? '') === 'suspended' && !auth_suspended_for_docs($a) && !auth_suspended_for_unpaid($a)) return;
         $_SESSION['uid']    = $a['id'];
         $_SESSION['member'] = true;
         $_SESSION['utype']  = $a['type'] ?? '';
@@ -647,8 +672,21 @@ function auth_login(string $email, string $password): array|string {
     /* BELGE askisi giris engeli DEGIL: belge yuzunden askiya alinan satici
        panele girip tam da o belgeyi yukleyebilmeli (seller.php onu KYC
        sekmesine kilitler). Operatorun elle askiya aldigi hesap ise girmez. */
-    if (($acc['status'] ?? '') === 'suspended' && !auth_suspended_for_docs($acc)) return 'suspended';
+    if (($acc['status'] ?? '') === 'suspended' && !auth_suspended_for_docs($acc) && !auth_suspended_for_unpaid($acc)) return 'suspended';
     return $acc;
+}
+
+/* ODENMEMIS FATURA askisi (operator, 11 Eki 2026: "hesabi suspend olan
+   musteriler en az 1 faturasini odeyip hesabini acabilirler ... digerlerini
+   iptal edebilirler"). Giris ENGELI DEGIL: alici girer, buyer.php onu
+   inc/unpaid_hold.php'nin kartina kilitler (odenmemis siparisleri, ode /
+   iptal et). Isaret: unpaid_suspend kosusunun yazdigi suspend_note
+   ('unpaid invoice: ...') ya da yeni kayitlarda suspend_reason='unpaid'.
+   Operatorun elle askiya aldigi hesap bu degil -- o girmez. */
+function auth_suspended_for_unpaid(?array $acc): bool {
+    if ($acc === null || ($acc['status'] ?? '') !== 'suspended' || ($acc['type'] ?? '') !== 'buyer') return false;
+    return ($acc['suspend_reason'] ?? '') === 'unpaid'
+        || str_starts_with(strtolower(trim((string)($acc['suspend_note'] ?? ''))), 'unpaid invoice');
 }
 
 /* Askinin sebebi belge mi? cron_seller_docs.php suspend_reason='docs' yazar;

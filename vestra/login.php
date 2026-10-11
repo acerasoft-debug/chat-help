@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['resend'] ?? '') === '1') {
             auth_touch_login($acc['id']);
             vestra_sec_log('login_ok', $email_val, (string)($acc['id'] ?? ''));
             $back = $__safeBack((string)($_GET['back'] ?? ''));
-            if ($back === '') $back = ($acc['type']==='seller' ? '/seller' : '/buyer');
+            if ($back === '' || auth_suspended_for_unpaid($acc)) $back = ($acc['type']==='seller' ? '/seller' : '/buyer');
             header('Location: '.$back); exit;
         }
         if ($acc === 'invalid') { auth_throttle_hit($tkey); vestra_sec_log('login_fail', $email_val); usleep(300000); }

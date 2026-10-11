@@ -257,7 +257,10 @@ foreach ($_ld as $_schema) {
    yonlendirmiyorsa acik olmasinin bir anlami yok: kullanici bos bir katalog
    gorup gidiyor.
    Yonetici bu uyariyi gormez ($IS_ADMIN zaten APPROVED). */
-if ($AUTH_USER && !$APPROVED):
+/* Odenmemis fatura askisindaki alici BU bandi gormez: "hesabiniz inceleniyor,
+   belgenizi yukleyin" ona yanlis bir yol gosterirdi -- ne yapacagi buyer.php'deki
+   karti soyluyor (inc/unpaid_hold.php). */
+if ($AUTH_USER && !$APPROVED && !auth_suspended_for_unpaid($AUTH_USER)):
   $kycUrl = (($AUTH_USER['type'] ?? '') === 'seller') ? '/seller?tab=kyc' : '/buyer?tab=kyc';
 ?>
 <div class="vpending">

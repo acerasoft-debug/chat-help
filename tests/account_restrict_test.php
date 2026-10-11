@@ -91,6 +91,26 @@ foreach (['fr','it','de','es','pt','ru','ja','ar'] as $l) {
 }
 $t('bant yolunda mektup YOK', !preg_match('/auth_restricted_until\(\$AUTH_USER\).{0,600}(vestra_send|brevo|mail\()/s', $bsrc));
 
+echo "\n== 5. odeme gelince kalkar ==\n";
+$accs = json_decode(file_get_contents(VESTRA_ACCOUNTS), true);
+$accs[] = ['id' => 'l1', 'type' => 'buyer', 'status' => 'active', 'company' => 'Lift Co', 'email' => 'l@example.com',
+           'restricted_until' => $future, 'restricted_lift_refs' => ['VES-LIFT']];
+file_put_contents(VESTRA_ACCOUNTS, json_encode($accs));
+file_put_contents($sand.'/data/order_statuses.json', json_encode(['VES-LIFT' => ['status' => 'pending']]));
+$t('odenmemis -> hala kisitli', auth_restricted_uid('l1') === strtotime($future));
+$t('odenmemis -> bayrak duruyor', auth_restriction_lift_refs(auth_find('l@example.com')) === ['VES-LIFT']);
+$t('kisitli GONDEREMEZ (odeme oncesi)', (vestra_msg_send('l1', 's1', 'l1', 'hi', 'p1')['error'] ?? '') === 'restricted');
+file_put_contents($sand.'/data/order_statuses.json', json_encode(['VES-LIFT' => ['status' => 'paid', 'paid_at' => date('c')]]));
+$t('odendi -> kisitlama KALKTI', auth_restricted_uid('l1') === 0);
+$la = auth_find('l@example.com');
+$t('kayda yazildi (tarih bos, kim/ne zaman)', ($la['restricted_until'] ?? 'x') === '' && str_contains((string)($la['restricted_lifted_by'] ?? ''), 'VES-LIFT') && auth_restriction_lift_refs($la) === []);
+$t('baska hesaba dokunulmadi', auth_restricted_uid('r1') === strtotime($future));
+$t('bant: odeme cumlesi yalniz bayrakliysa', str_contains($bsrc, "auth_restriction_lift_refs(\$AUTH_USER) ? '<br>'.t('The restriction is lifted as soon as your payment is received.')"));
+foreach (['fr','it','de','es','pt','ru','ja','ar'] as $l) {
+    $d = include $root.'/inc/lang/'.$l.'.php';
+    $t("ceviri $l: odeme cumlesi", isset($d['The restriction is lifted as soon as your payment is received.']));
+}
+
 exec('rm -rf '.escapeshellarg($sand));
 echo "\n$ok ok, $fail hata\n";
 exit($fail ? 1 : 0);

@@ -536,6 +536,9 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       if(!empty($rs[$ref]['invoice_paid_at'])) unset($rs[$ref]['invoice_paid_at']);
       else $rs[$ref]['invoice_paid_at']=date('c');
       vestra_write_json('offer_responses.json',$rs);
+      /* Odendi isareti konduysa: alicinin hesabi odenmemis-fatura askisindaysa
+         ACILIR (inc/unpaid_hold.php -- "en az 1 faturasini odeyip hesabini acar"). */
+      if(!empty($rs[$ref]['invoice_paid_at'])){ require_once __DIR__.'/inc/unpaid_hold.php'; vestra_unpaid_hold_reopen_for_ref($ref); }
     }
     header('Location: /admin?tab=invoices&msg=invoice_paid_toggled'); exit;
   }
@@ -1583,6 +1586,9 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
         vestra_order_parcel_notify($ref, vestra_order_shipment($all[$ref]??null), '', true);
       }
     }
+    /* Siparis odendi (ya da otesi) yapildiysa alicinin askisi kalkar -- ayni olcu,
+       vestra_order_payment_settled; alici girmeden de hesap acik gorunsun. */
+    if($ref){ require_once __DIR__.'/inc/unpaid_hold.php'; vestra_unpaid_hold_reopen_for_ref((string)$ref); }
     header('Location: /admin?tab=orders&msg=status_ok'); exit;
   }
   /* Delete an order outright. Cancelling is the everyday action and leaves the record
@@ -3600,8 +3606,11 @@ elseif($tab==='documents'):
           $gEx ? 'Apply the '.VESTRA_SELLER_DOC_GRACE_DAYS.'-day document rule to this seller again?' : 'Exempt this seller from the '.VESTRA_SELLER_DOC_GRACE_DAYS.'-day document rule? No deadline letters and no automatic pause.') ?></div>
       </div>
     <?php endif; ?>
+    <?php if(auth_suspended_for_unpaid($selUser)): ?>
+      <div style="margin:6px 0 10px"><?= abadge('🔓 ödenmemiş fatura askısı','#8a5a14') ?> <span class="ahint">alıcı girip ödenmemiş siparişlerini görür; en az birini ödeyince hesap kendiliğinden açılır, diğerlerini kendisi iptal edebilir</span></div>
+    <?php endif; ?>
     <?php if($__ru=auth_restricted_until($selUser)): ?>
-      <div style="margin:6px 0 10px"><?= abadge('⛔ kısıtlı · '.date('j M Y',$__ru).' tarihine kadar','#a33') ?> <span class="ahint">mesaj gönderemez, yeni fatura kesilmez; tekrarında kalıcı kapatma</span></div>
+      <div style="margin:6px 0 10px"><?= abadge('⛔ kısıtlı · '.date('j M Y',$__ru).' tarihine kadar','#a33') ?> <span class="ahint">mesaj gönderemez, yeni fatura kesilmez; tekrarında kalıcı kapatma<?= ($__lr=auth_restriction_lift_refs($selUser)) ? ' · ödeme gelince kalkar ('.htmlspecialchars(implode(', ',$__lr)).')' : '' ?></span></div>
     <?php endif; ?>
     <?php if(($selUser['status']??'active')==='suspended'): ?>
       <?= fBtn('Activate account','activate_account',['uid'=>$selUser['id']??'']) ?>
