@@ -80,8 +80,17 @@ vr_layout_start([
            Her görsel kendi dosyasına giden bir bağlantı: JavaScript kapalıyken
            tıklayınca tam boy açılıyor. JS varsa aynı bağlantıyı yakalayıp
            büyüteç katmanında gösteriyoruz (assets/js). -->
-      <?php $shots = vr_product_gallery($p, 5); ?>
-      <div class="pdp__media<?= count($shots) > 1 ? ' pdp__media--multi' : '' ?>" data-gallery>
+      <?php
+      /* Tek üründe çok renk (toptancının "8 colourways" satırı): her rengin
+         kendi galerisi; renk seçilince o rengin galerisi görünür
+         (bkz. vr_colour_sets, assets/js "renk → galeri"). JS yoksa ilk rengin
+         galerisi görünür, diğer renklerin kareleri renk düğmesinin içinde. */
+      $siblingsTop = vr_variant_siblings($p);
+      $csets = count($siblingsTop) <= 1 ? vr_colour_sets($p) : [];
+      $galleries = $csets ? array_map(fn($cs) => $cs['images'], $csets) : [vr_product_gallery($p, 5)];
+      foreach ($galleries as $gi => $shots): ?>
+      <div class="pdp__media<?= count($shots) > 1 ? ' pdp__media--multi' : '' ?>" data-gallery
+           <?= $csets ? 'data-cset="' . $gi . '"' . ($gi > 0 ? ' hidden' : '') : '' ?>>
         <?php foreach ($shots as $i => $src):
             $box = count($shots) > 1 ? 0.8 : 1.0;
             $r   = (float)(vr_photo_shape_index()[$src]['r'] ?? 0);
@@ -94,6 +103,7 @@ vr_layout_start([
             $wide = count($shots) > 1 && $r > 1.25;
             if ($wide) $box = min(1.9, $r);
             $styled = count($shots) === 1 || $wide;
+            $alt = $p['brand'] . ' ' . $p['name'] . ($csets ? ' — ' . $csets[$gi]['label'] : '') . ($i > 0 ? ' — ' . ($i + 1) : '');
         ?>
           <a class="pdp__shot<?= $wide ? ' pdp__shot--wide' : '' ?>" href="<?= h(vr_img($src, 1400)) ?>" data-zoom
              <?= $styled ? 'style="aspect-ratio:' . h((string)round($box, 3)) . '"' : '' ?>
@@ -103,13 +113,14 @@ vr_layout_start([
                 'w'      => 900,
                 'widths' => [420, 600, 900, 1400],
                 'sizes'  => '(max-width:940px) 96vw, 640px',
-                'alt'    => $p['brand'] . ' ' . $p['name'] . ($i > 0 ? ' — ' . ($i + 1) : ''),
-                'eager'  => $i === 0,
+                'alt'    => $alt,
+                'eager'  => $i === 0 && $gi === 0,
             ]); ?>
             <span class="pdp__zoom" aria-hidden="true"><?= vr_icon('search', 16) ?></span>
           </a>
         <?php endforeach; ?>
       </div>
+      <?php endforeach; ?>
 
       <!-- ------------------------------------------------------- satın alma -->
       <div class="pdp__side">
@@ -236,7 +247,25 @@ vr_layout_start([
               <input type="hidden" name="action" value="add">
               <input type="hidden" name="pid" value="<?= h($p['id']) ?>">
 
-              <?php if (count($siblings) <= 1 && count($pCols) > 1): ?>
+              <?php if ($csets): ?>
+                <div class="panel" style="border:0;padding-top:0;margin-bottom:20px">
+                  <h2 class="panel__h">
+                    <span><?= te('select_colour', ['n' => count($csets)]) ?></span>
+                    <span class="swatches__now" data-cset-now><?= h(vr_colour_label($csets[0]['label'])) ?></span>
+                  </h2>
+                  <div class="cpics" role="radiogroup" aria-label="<?= te('colour') ?>">
+                    <?php foreach ($csets as $ci => $cs): ?>
+                      <label class="cpic" title="<?= h(vr_colour_label($cs['label']) . ($cs['code'] !== '' ? ' · ' . $cs['code'] : '')) ?>">
+                        <input type="radio" name="colour" value="<?= h($cs['name']) ?>" data-cset="<?= $ci ?>"
+                               data-cset-label="<?= h(vr_colour_label($cs['label'])) ?>"<?= $ci === 0 ? ' checked' : '' ?>>
+                        <?php vr_frame($cs['images'][0], ['w' => 180, 'widths' => [180, 300], 'sizes' => '64px', 'box' => 0.8]); ?>
+                        <span class="cpic__l"><?= h(vr_colour_label($cs['label'])) ?></span>
+                      </label>
+                    <?php endforeach; ?>
+                  </div>
+                  <p class="field__err" data-colour-error hidden><?= te('choose_colour_err') ?></p>
+                </div>
+              <?php elseif (count($siblings) <= 1 && count($pCols) > 1): ?>
                 <div class="panel" style="border:0;padding-top:0;margin-bottom:20px">
                   <h2 class="panel__h"><span><?= te('select_colour', ['n' => count($pCols)]) ?></span></h2>
                   <div class="cchips">

@@ -1477,3 +1477,54 @@ function vr_model_code(array $p): string
     if (is_array($known) && isset($known[(string)($p['id'] ?? '')])) return (string)$known[(string)$p['id']];
     return '';
 }
+
+/**
+ * Tek üründe birden çok renk varsa (toptancı "8 colourways" gibi tek satır
+ * açmış): her rengin kendi kareleri.
+ *   renk adı "Green (8099164)" → kod 8099164 → adında o kodu taşıyan kareler
+ *   + data/product-images-extra.json'da "<ürün>@<kod>" anahtarıyla internetten
+ *     onaylanmış ek kareler (önü/arkası/detay).
+ * Kodsuz renklerde dosya adında rengin kendisi aranır ("…-navy-…").
+ * Ürün sayfası renk seçilince galeriyi o rengin karelerine çeviriyor.
+ * En az iki renk kendi karesini bulamazsa [] — galeri olduğu gibi kalır.
+ *
+ * @return list<array{name:string,label:string,code:string,images:list<string>}>
+ */
+function vr_colour_sets(array $p): array
+{
+    $cols = vr_product_colours($p);
+    if (count($cols) < 2) return [];
+    static $extra = null;
+    $extra ??= (array)vr_store_read('product-images-extra.json', []);
+    $imgs = array_values(array_filter((array)($p['images'] ?? []), 'strlen'));
+    $sets = []; $hit = 0; $used = [];
+    foreach ($cols as $c) {
+        $code = preg_match('/\((\w{5,})\)\s*$/u', $c, $m) ? $m[1] : '';
+        $label = trim(preg_replace('/\s*\(\w{5,}\)\s*$/u', '', $c));
+        $mine = [];
+        foreach ($imgs as $im) {
+            $b = strtolower(basename($im));
+            if ($code !== '' ? str_contains($b, strtolower($code))
+                             : preg_match('/(^|[-_])' . preg_quote(strtolower(str_replace(' ', '-', $label)), '/') . '([-_.]|$)/', $b)) {
+                $mine[] = $im;
+            }
+        }
+        if ($code !== '') foreach ((array)($extra[$p['id'] . '@' . $code] ?? []) as $x) {
+            if (is_string($x) && preg_match('#^/uploads/[A-Za-z0-9._/-]+$#', $x)) $mine[] = $x;
+        }
+        $mine = array_values(array_unique($mine));
+        if ($mine) $hit++;
+        foreach ($mine as $im) $used[$im] = 1;
+        $sets[] = ['name' => $c, 'label' => $label, 'code' => $code, 'images' => $mine];
+    }
+    if ($hit < 2) return [];
+    // Hiçbir renge ait olmayan kareler (ör. kumaş detayı) her rengin sonuna.
+    $common = array_values(array_filter($imgs, fn($im) => !isset($used[$im])));
+    foreach ($sets as &$s) {
+        // Karesi olmayan renk yine seçilebilir kalır; galeri genel kareleri gösterir.
+        $s['images'] = $s['images'] ? array_slice(array_merge($s['images'], $common), 0, 6)
+                                    : array_slice($common ?: $imgs, 0, 6);
+    }
+    unset($s);
+    return $sets;
+}

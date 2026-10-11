@@ -246,7 +246,8 @@
      Her görsel zaten kendi dosyasına giden bir bağlantı; JS kapalıyken
      tarayıcı görseli tam boy açar. Burada o bağlantıyı yakalayıp katmanda
      gösteriyoruz — klavyeyle (Esc, ←, →) de gezilebiliyor. */
-  var zoomLinks = Array.prototype.slice.call(document.querySelectorAll('[data-zoom]'));
+  var allZoom = Array.prototype.slice.call(document.querySelectorAll('[data-zoom]'));
+  var zoomLinks = allZoom;
   if (zoomLinks.length) {
     var box = null, idx = 0, opener = null;
 
@@ -340,13 +341,15 @@
       im.addEventListener('pointerup', function () { drag = null; });
     };
 
-    zoomLinks.forEach(function (link, i) {
+    allZoom.forEach(function (link) {
       link.addEventListener('click', function (e) {
         // Yeni sekmede açmak isteyeni engellemeyelim.
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
         e.preventDefault();
         if (!box) build();
-        idx = i; opener = link;
+        // Yalnız görünen galeri (çok renkli üründe seçili rengin kareleri).
+        zoomLinks = allZoom.filter(function (l) { return !l.closest('[hidden]'); });
+        idx = Math.max(0, zoomLinks.indexOf(link)); opener = link;
         render();
         box.hidden = false;
         document.body.style.overflow = 'hidden';
@@ -717,3 +720,29 @@ document.addEventListener('error', function (e) {
     img.src = src.replace(/([?&])r=\d+&?/, '$1').replace(/[?&]$/, '') + (src.indexOf('?') < 0 ? '?' : '&') + 'r=' + (n + 1);
   }, 900 + Math.random() * 1600 * (n + 1));
 }, true);
+
+/* Renk → galeri: tek üründe çok renk varsa (product.php, vr_colour_sets)
+   seçilen rengin galerisi görünür, diğerleri gizlenir. Sepete giden değer
+   radyo düğmesinin kendisi; burada yalnızca görüntü. */
+(function () {
+  var radios = document.querySelectorAll('input[name="colour"][data-cset]');
+  if (!radios.length) return;
+  var galleries = document.querySelectorAll('[data-gallery][data-cset]');
+  var now = document.querySelector('[data-cset-now]');
+  function show(i) {
+    galleries.forEach(function (g) { g.hidden = g.getAttribute('data-cset') !== String(i); });
+    var r = document.querySelector('input[name="colour"][data-cset="' + i + '"]');
+    if (now && r) now.textContent = r.getAttribute('data-cset-label') || '';
+    // Telefonda galeri üstte: yeni rengin ilk karesi görünsün.
+    var g = document.querySelector('[data-gallery][data-cset="' + i + '"]');
+    if (g && window.matchMedia && window.matchMedia('(max-width: 940px)').matches) {
+      var top = g.getBoundingClientRect().top;
+      if (top < 0) window.scrollBy({ top: top - 80, behavior: 'smooth' });
+    }
+  }
+  radios.forEach(function (r) {
+    r.addEventListener('change', function () { if (r.checked) show(r.getAttribute('data-cset')); });
+  });
+  var on = document.querySelector('input[name="colour"][data-cset]:checked');
+  if (on) show(on.getAttribute('data-cset'));
+})();
