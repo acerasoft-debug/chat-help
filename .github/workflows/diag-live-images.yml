@@ -1,0 +1,88 @@
+name: (Salt-okunur) Canlı sitede açılmayan fotoğraflar
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# SALT OKUNUR. Vitrindeki HER ürünün HER karesini iki yoldan dener:
+#   1) sunucuda dosya: var mı, okunuyor mu, ölçüsü, adı güvenlik süzgecinden
+#      geçiyor mu (img.php yalnız [A-Za-z0-9._/-] kabul ediyor)
+#   2) dışarıdan: küçültülmüş kopya (img.php?w=600 — kart ve galeri) ve
+#      orijinal dosya (/uploads/… — büyütme penceresi) gerçekten açılıyor mu
+# Hiçbir şey yazmaz, hiçbir şeyi düzeltmez; yalnızca liste çıkarır.
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sunucuda kare listesi ve dosya kontrolü
+        run: |
+          set -e
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          SSHOPT="-i $HOME/.ssh/id_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=30 -p ${{ secrets.DEPLOY_PORT || 22 }}"
+          SRV="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+          ssh $SSHOPT "$SRV" "cd ~/maxsales_de && php -d memory_limit=1024M" > imgs.tsv <<'PHP'
+          <?php
+          require 'inc/catalog.php';
+          require 'inc/uploads.php';
+          $root = vr_doc_root();
+          $ml = ini_get('memory_limit');
+          fwrite(STDERR, "sunucu memory_limit (web için ayrı olabilir): $ml\n");
+          $seen = [];
+          foreach (vr_catalog() as $id => $p) {
+            foreach (array_values(array_filter((array)$p['images'], 'strlen')) as $i => $rel) {
+              $k = $id . '|' . $rel;
+              if (isset($seen[$k])) continue; $seen[$k] = 1;
+              $okName = preg_match('#^/uploads/[A-Za-z0-9._/\-]+\.(jpe?g|png|webp|avif)$#i', $rel) && !str_contains($rel, '..') ? 1 : 0;
+              $abs = $root . $rel; $ex = is_file($abs) ? 1 : 0;
+              $sz = $ex ? filesize($abs) : 0; $wh = $ex ? @getimagesize($abs) : false;
+              $w = $wh ? $wh[0] : 0; $h = $wh ? $wh[1] : 0; $t = $wh ? image_type_to_extension($wh[2], false) : '-';
+              echo implode("\t", [$id, $i + 1, $rel, $okName, $ex, $sz, $w, $h, $t]), "\n";
+            }
+          }
+          PHP
+          echo "kare sayısı: $(wc -l < imgs.tsv)"
+          echo "== adı süzgeçten geçmeyen =="; awk -F'\t' '$4==0' imgs.tsv | head -40
+          echo "== dosyası olmayan =="; awk -F'\t' '$5==0' imgs.tsv | head -40
+          echo "== okunamayan (ölçü yok) =="; awk -F'\t' '$5==1 && $7==0' imgs.tsv | head -40
+          echo "== çok büyük (>20 MP — küçültürken bellek) =="; awk -F'\t' '$7*$8>20000000 {print $1, $3, $7"x"$8, $6}' imgs.tsv | head -40
+          echo "== tür dağılımı =="; cut -f9 imgs.tsv | sort | uniq -c
+
+      - name: Dışarıdan dene (kart kopyası ve orijinal)
+        run: |
+          python3 - <<'PY'
+          import csv, urllib.parse, subprocess, concurrent.futures as cf
+          rows = [r for r in csv.reader(open('imgs.tsv'), delimiter='\t') if len(r) >= 9]
+          base = 'https://sarvesto.com'
+          def probe(url):
+              out = subprocess.run(['curl', '-s', '-o', '/dev/null', '-H', 'Accept: image/webp,image/*', '--max-time', '40',
+                                    '-w', '%{http_code} %{content_type} %{size_download}', url], capture_output=True, text=True).stdout
+              p = (out.split() + ['', '', ''])[:3]
+              return p
+          jobs = []
+          for r in rows:
+              rel = r[2]
+              jobs.append(('kart', r, base + '/assets/img.php?' + urllib.parse.urlencode({'p': rel, 'w': '600'})))
+              jobs.append(('orijinal', r, base + urllib.parse.quote(rel)))
+          bad = []
+          with cf.ThreadPoolExecutor(8) as ex:
+              for (kind, r, url), (code, ctype, size) in zip(jobs, ex.map(lambda j: probe(j[2]), jobs)):
+                  okimg = code == '200' and ctype.startswith('image/') and int(float(size or 0)) > 500
+                  if not okimg: bad.append((kind, r[0], r[1], r[2], code, ctype, size, r[6] + 'x' + r[7], r[5]))
+          print(f"denenen: {len(jobs)} istek, {len(rows)} kare · hatalı: {len(bad)}")
+          by = {}
+          for b in bad: by.setdefault((b[0], b[4]), []).append(b)
+          for (kind, code), lst in sorted(by.items()):
+              print(f"\n== {kind} · HTTP {code} · {len(lst)} kare ==")
+              for b in lst[:60]:
+                  print(f"  {b[1]:<38} #{b[2]}  {b[3]}  {b[5]}  {b[7]}  {b[8]} bayt")
+          ids = sorted({b[1] for b in bad})
+          print(f"\netkilenen ürün: {len(ids)}")
+          print(' '.join(ids[:200]))
+          PY
