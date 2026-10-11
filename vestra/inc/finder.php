@@ -203,11 +203,14 @@ function vestra_finder_dispatch(string $id, string $owner, array $p): array {
   return [false, 'Arama başlatılamadı: '.$why.($m !== '' ? ' ('.mb_substr($m, 0, 120).')' : '')];
 }
 
+/* Otomatik arama turları (UTC) — find-customers.yml takvimiyle AYNI. 11 Eki 2026: üçüncü tur 22:20 (Amerika günü). */
+const VESTRA_FINDER_SLOTS = [[5, 20], [15, 20], [22, 20]];
+
 /**
  * Sunucunun zamanlayıcısından (cron_mailbox.php, 10 dakikada bir) — 10 Eki 2026, operatör: "arıyor mu bilmiyorum".
  * GitHub'ın kendi zamanlaması güvenilmez: o gün 05:20 turu hiç çalışmadı, "10 dk'da bir" sıra işi günde 3 kez
  * çalıştı (panelden istenen arama saatlerce sırada kaldı). GitHub anahtarı kayıtlıysa sunucu: (1) sırada bekleyen
- * (henüz başlatılmamış) isteği hemen başlatır, (2) 05:20 ve 15:20 UTC turlarını kendisi başlatır (3 saat içinde,
+ * (henüz başlatılmamış) isteği hemen başlatır, (2) VESTRA_FINDER_SLOTS turlarını (05:20, 15:20, 22:20 UTC) kendisi başlatır (3 saat içinde,
  * o turda admin araması yoksa). Anahtar yoksa hiçbir şey yapmaz. Döner: kayda yazılacak tek satır ya da ''.
  */
 function vestra_finder_server_tick(?int $now = null): string {
@@ -225,7 +228,7 @@ function vestra_finder_server_tick(?int $now = null): string {
     return $ok ? 'sıradaki arama başlatıldı: '.$r['id'] : 'sıradaki arama başlatılamadı: '.$why;
   }
   if (vestra_finder_active()) return '';
-  foreach ([[5, 20], [15, 20]] as [$H, $M]) {
+  foreach (VESTRA_FINDER_SLOTS as [$H, $M]) {
     $slot = gmmktime($H, $M, 0, (int)gmdate('n', $now), (int)gmdate('j', $now), (int)gmdate('Y', $now));
     if ($now < $slot || $now > $slot + 3 * 3600) continue;
     foreach (vestra_finder_runs() as $r) if (($r['owner'] ?? '') === '' && (int)strtotime((string)($r['requested_at'] ?? '')) >= $slot - 900) continue 2;

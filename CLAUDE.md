@@ -4724,6 +4724,11 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   `vestra_lead_off_target()` ayakkabı/iç çamaşırı/toptancıyı her havuzda eler. Geri dönenler 3 saatte bir
   taranır (mailbox-send.yml takvimi, yalnız 'bounces' kipi). Arama günde iki tur (05:20, 15:20 UTC), tur
   başına 40 şehre kadar (OSM_TARGET 900 aday), şehir havuzu 160; 10 Eki denemesi 20 dk'da 36 lead (önce 4).
+  **11 Eki:** günde ÜÇ tur (05:20, 15:20, 22:20 UTC — `VESTRA_FINDER_SLOTS`, find-customers.yml ile aynı tutulmalı);
+  havuz ~210 şehir / 40 ülke (ABD, Kanada, Körfez, Japonya, Kore, HK, Singapur, Avustralya, Latin Amerika, kalan AB) —
+  Türkiye bilerek yok (ülke engeli). 10 Eki ölçümü: tur başına 16–45 yeni butik, gün toplamı 135. GitHub zamanlaması
+  4–6 saat gecikiyor (05:20 turu 11:12'de, 15:20 turu 19:18'de başladı) — GitHub anahtarı kayıtlıysa sunucu
+  zamanında başlatır. Gönderim anındaki distribütör/toptancı süzgeci aramayla aynı terimlerde (8 dil).
 - **Satıcı kendi adresi + kendi posta sunucusu (SMTP) ile gönderir (10 Eki 2026, operatör: "satıcılarda kendi
   email adresleri ile gönderebilsin, kendi sunucuları ile").** Barındırmadan giden SMTP KAPALI (8 Eki smtp_probe) —
   sunucu bağlanamaz; bu yüzden `inc/seller_outbox.php` kuyruğu (`data/seller_outbox.json`, şifresiz) +

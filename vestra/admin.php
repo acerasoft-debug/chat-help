@@ -6508,11 +6508,11 @@ elseif($tab==='prospects'):
       <button class="abtn primary" id="fwstartbtn" type="submit" onclick="this.disabled=true;this.textContent='Başlatılıyor…';this.form.submit()"><?= $fwDefC==='none'?'🌐 Aramayı başlat (sadece bul)':'🌐 Aramayı başlat (bul + gönder)' ?></button>
     <?php endif; ?>
     <?php if(!$fwReady): ?><span class="ahint" style="margin-left:8px">Web araması kapalı — aşağıdaki "Aç" düğmesiyle açın. Bulunan müşteriler ve kampanya gönderimi kapalıyken de çalışır.</span>
-    <?php else: ?><span class="ahint" style="margin-left:8px">Her gün 05:20 ve 15:20'de (UTC) kendiliğinden de çalışır. <?= $fwGh?'Süre: 20-40 dk.':'Anahtarsız başlama GitHub sırasına bağlı (10 dk – saatler); süre 20-40 dk.' ?></span><?php endif; ?>
+    <?php else: ?><span class="ahint" style="margin-left:8px">Her gün 05:20, 15:20 ve 22:20'de (UTC; Türkiye saatiyle 08:20, 18:20, 01:20) kendiliğinden de çalışır. <?= $fwGh?'Süre: 20-40 dk.':'Anahtarsız başlama GitHub sırasına bağlı (10 dk – saatler); süre 20-40 dk.' ?></span><?php endif; ?>
   </form>
 
   <form method="post" class="aform" style="margin:-4px 0 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><?= csrfField() ?><input type="hidden" name="_action" value="finder_toggle"><input type="hidden" name="on" value="<?= $fwReady?'0':'1' ?>">
-    <span class="ahint">Web araması: <b style="color:<?= $fwReady?'#1f9d63':'#a9781a' ?>"><?= $fwReady?'AÇIK':'KAPALI' ?></b> · günde iki kez (05:20 ve 15:20 UTC) kendiliğinden çalışır<?= vestra_mailbox_auto()['auto_send']?' ve yeni bulduklarına kampanyayı gönderir (en çok '.(int)vestra_mailbox_auto()['auto_limit'].' / arama)':' — manuel mod: yalnız listeye ekler' ?></span>
+    <span class="ahint">Web araması: <b style="color:<?= $fwReady?'#1f9d63':'#a9781a' ?>"><?= $fwReady?'AÇIK':'KAPALI' ?></b> · günde üç kez (05:20, 15:20, 22:20 UTC) kendiliğinden çalışır<?= vestra_mailbox_auto()['auto_send']?' ve yeni bulduklarına kampanyayı gönderir (en çok '.(int)vestra_mailbox_auto()['auto_limit'].' / arama)':' — manuel mod: yalnız listeye ekler' ?></span>
     <button class="abtn<?= $fwReady?'':' primary' ?>" type="submit"<?= $fwReady?' onclick="return confirm(\'Web araması kapatılsın mı?\')"':'' ?>><?= $fwReady?'⏸ Kapat':'▶ Aç' ?></button></form>
   <?php /* 10 Eki 2026: aramaların ayrıntılı listesi (eklenenler, seçerek gönder) 📊 Raporlar'da — burada tek satır. */
     $__pb['REPORTS_FR']=vestra_finder_runs_html($fwRuns, true, $fwNames, 6);
@@ -6625,7 +6625,7 @@ elseif($tab==='prospects'):
               <span style="flex:1"></span>
               <button class="abtn primary" type="submit" name="mode" value="send" style="padding:9px 22px;font-size:14px" onclick="return mbConfirm(this.form)"<?= ($mbOpen||$mbLeft<=0||!$fsTargetsAll)?' disabled':'' ?>>📮 Gönder</button>
             </div>
-            <div class="ahint" style="margin-top:6px">support@vestrasales.com'dan, kendi sunucumuzla; 10 dakika içinde başlar, e-postalar arasında 25–55 sn beklenir. Sonuç 📊 Raporlar'da.</div>
+            <div class="ahint" style="margin-top:6px">support@vestrasales.com'dan, kendi sunucumuzla; 10 dakika içinde başlar, e-postalar arasında <?= VESTRA_MAILBOX_PAUSE_MIN ?>–<?= VESTRA_MAILBOX_PAUSE_MAX ?> sn beklenir. Sonuç 📊 Raporlar'da.</div>
           </div>
         </div>
       </form>
@@ -6768,7 +6768,7 @@ elseif($tab==='prospects'):
     <summary style="cursor:pointer;font-size:12px;color:var(--mut)">🔑 İsteğe bağlı anahtarlar — daha hızlı başlatma ve daha çok sonuç (linkli, adım adım) <?= ($fwGh && $fwBrave)?'· kayıtlı ✓':'' ?></summary>
     <div style="margin-top:10px;font-size:12px;color:var(--mut);line-height:1.65">
       <p style="margin:0 0 6px"><b>Hiçbiri şart değil</b> — arama anahtarsız çalışıyor. Bunlar yalnızca hızlandırır ve sonucu artırır.</p>
-      <p style="margin:0 0 6px"><b>1) GitHub erişim anahtarı</b> <i style="color:#a9781a">(ÖNERİLEN — aramaları zamanında başlatır. Anahtar yoksa aramayı GitHub'ın kendi zamanlayıcısı başlatır ve bu saatlerce gecikebilir: 10 Eki'de 05:20 turu hiç çalışmadı, panelden istenen arama saatlerce sırada kaldı. Anahtarla sunucu panelden istenen aramayı hemen, günlük turları 05:20 ve 15:20 UTC'de kendisi başlatır.)</i></p>
+      <p style="margin:0 0 6px"><b>1) GitHub erişim anahtarı</b> <i style="color:#a9781a">(ÖNERİLEN — aramaları zamanında başlatır. Anahtar yoksa aramayı GitHub'ın kendi zamanlayıcısı başlatır ve bu saatlerce gecikebilir: 10 Eki'de 05:20 turu hiç çalışmadı, panelden istenen arama saatlerce sırada kaldı. Anahtarla sunucu panelden istenen aramayı hemen, günlük turları 05:20, 15:20 ve 22:20 UTC'de kendisi başlatır.)</i></p>
       <ol style="margin:0 0 10px 18px;padding:0">
         <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:var(--acc)">github.com/settings/personal-access-tokens/new</a> sayfasını açın (GitHub hesabınızla giriş yapın).</li>
         <li><b>Token name:</b> <code>vestra-finder</code> · <b>Expiration:</b> 1 yıl · <b>Resource owner:</b> <code>acerasoft-debug</code></li>

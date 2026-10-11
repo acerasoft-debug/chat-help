@@ -248,7 +248,7 @@ function vestra_mailbox_request(string $mode, int $limit, string $campaign, stri
   vestra_mailbox_runs_save($runs);
   return [true, $mode === 'test'
     ? '✓ Test isteği sıraya alındı → '.$testTo.'. En geç 10 dakika içinde gider.'
-    : '✓ Gönderim isteği sıraya alındı: '.$limit.' müşteri. En geç 10 dakika içinde başlar; e-postalar arasında 25–55 sn beklenir.'];
+    : '✓ Gönderim isteği sıraya alındı: '.$limit.' müşteri. En geç 10 dakika içinde başlar; e-postalar arasında '.VESTRA_MAILBOX_PAUSE_MIN.'–'.VESTRA_MAILBOX_PAUSE_MAX.' sn beklenir.'];
 }
 
 /** Kuyruk (GitHub): en eski bekleyen isteği alır ve "running" yapar. Yoksa null. */
@@ -666,7 +666,7 @@ function vestra_live_status(): array {
   $runs = function_exists('vestra_finder_runs') ? vestra_finder_runs() : [];
   $act = function_exists('vestra_finder_active') ? vestra_finder_active() : null;
   $now = time();
-  $next = null; foreach ([[5, 20], [15, 20]] as [$H, $M]) { $t = gmmktime($H, $M, 0, (int)gmdate('n'), (int)gmdate('j'), (int)gmdate('Y')); if ($t <= $now) $t += 86400; $next = $next === null ? $t : min($next, $t); }
+  $next = null; foreach ((defined('VESTRA_FINDER_SLOTS') ? VESTRA_FINDER_SLOTS : [[5, 20], [15, 20], [22, 20]]) as [$H, $M]) { $t = gmmktime($H, $M, 0, (int)gmdate('n'), (int)gmdate('j'), (int)gmdate('Y')); if ($t <= $now) $t += 86400; $next = $next === null ? $t : min($next, $t); }
   if ($act) {
     $started = !empty($act['dispatched_at']);
     $search = ['state' => $started ? 'running' : 'queued',
