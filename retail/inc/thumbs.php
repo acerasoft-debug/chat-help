@@ -63,8 +63,13 @@ function vr_thumb_static(string $rel, int $w): ?string
     if (!preg_match('#^/uploads/[A-Za-z0-9._/\-]+\.(jpe?g|png|webp|avif)$#i', $rel) || str_contains($rel, '..')) return null;
     $root = vr_doc_root();
     $th   = vr_thumb_rel($rel, $w, 'webp');
-    if (!vr_thumb_fresh($root . $th, $root . $rel)) return null;
-    return vr_url(ltrim($th, '/'), ['v' => (string)filemtime($root . $th)]);
+    // Kaynak sonradan değiştiyse bile var olan kopya verilir: biraz eski bir
+    // kare, sunucu yoğunken boş kalan bir kareden iyidir. Tazelemeyi
+    // tools/warm-thumbs.php yapar (tarih karşılaştırır); ?v= yeni kopyanın
+    // tarihini taşıdığı için tarayıcı önbelleği de kendiliğinden yenilenir.
+    $tm = @filemtime($root . $th);
+    if ($tm === false || @filesize($root . $th) === 0 || !is_file($root . $rel)) return null;
+    return vr_url(ltrim($th, '/'), ['v' => (string)$tm]);
 }
 
 /** Kopya klasörü: PHP kapalı, uzun önbellek (adres ?v= ile tazeleniyor). */

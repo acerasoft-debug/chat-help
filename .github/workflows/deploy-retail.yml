@@ -155,7 +155,11 @@ jobs:
           echo "fotoğraf klasörü: $UPL"
 
           echo "-- fotoğraflar (silmeden)"
-          rsync -az --exclude '.thumbs/' -e "ssh $SSHOPT" \
+          # --checksum + saat KORUNMADAN (-a yerine -rlz): içeriği aynı olan
+          # dosyaya hiç dokunulmuyor. -a, git checkout'un yeni tarihlerini
+          # sunucudaki her fotoğrafa basıyordu; hazır küçük kopyalar o an
+          # "eski" sayılıp yeniden üretime düşüyor, ziyaretçi 503 görüyordu.
+          rsync -rlz --checksum --exclude '.thumbs/' --exclude '_t/' -e "ssh $SSHOPT" \
             retail/uploads/ "${SRV}:${UPL}/"
 
           # HANGİ data/ KLASÖRÜ?
