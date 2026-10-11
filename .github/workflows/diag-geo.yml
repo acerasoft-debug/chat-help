@@ -1,0 +1,29 @@
+name: (Salt-okunur) Ülkeye göre dil ve para birimi
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Runner'ın kendi IP'siyle (genelde ABD) canlı siteyi açar: dil ve gösterge
+# para birimi ülkeden mi geliyor; açık seçim (?lang=de, ?cur=EUR) ülkeyi
+# eziyor mu; dil şeridindeki EN bağlantısı ?lang=en taşıyor mu.
+jobs:
+  geo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dene
+        run: |
+          B=https://sarvesto.com
+          echo "runner ülkesi (bilgi): $(curl -s -m 10 https://ipinfo.io/country || echo ?)"
+          show() { h=$(curl -s -m 30 "$@"); \
+            printf '  lang=%s  bölge=%s  karşılık=%s\n' \
+              "$(grep -o '<html lang="[^"]*"' <<<"$h" | head -1 | cut -d'"' -f2)" \
+              "$(grep -A2 '<summary aria-label' <<<"$h" | tr -d '\n' | sed 's/<[^>]*>/ /g;s/  */ /g' | head -c 40)" \
+              "$(grep -o '≈[^<]\{1,16\}' <<<"$h" | head -1)"; }
+          echo "1) çerezsiz, tarayıcı dili Almanca:"; show -H 'Accept-Language: de-DE,de' "$B/shop.php"
+          echo "2) ?lang=de:";                     show -c /tmp/ck "$B/shop.php?lang=de"
+          echo "3) aynı çerezle ?lang yok:";      show -b /tmp/ck "$B/shop.php"
+          echo "4) ?cur=EUR:";                     show "$B/shop.php?cur=EUR"
+          echo "5) dil şeridinde EN bağlantısı:"; curl -s -m 30 -b /tmp/ck "$B/shop.php" | grep -o 'href="[^"]*lang=en[^"]*"' | head -1
