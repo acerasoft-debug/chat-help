@@ -498,6 +498,17 @@ foreach ([['company' => 'BLS Fashion', 'email' => 'contact@blsfashion.com', 'web
           ['company' => 'Minimil', 'email' => 'info@minimil.es'], ['company' => 'The Broken Arm', 'email' => 'e@the-broken-arm.com'],
           ['company' => 'Boutique Una', 'email' => 'info@una.example', 'category' => 'Boutique (multi-brand)']] as $x)
   $t('hedef: '.$x['company'], !vestra_lead_off_target($x));
+/* Distribütör / toptancı / ithalatçı / ajans — 8 dilde (operatör 11 Eki: "distribütörler ayrılıyor mu?"). */
+foreach ([['company' => 'Fashion Distribution GmbH', 'email' => 'a@b.de'], ['company' => 'Distribuidora Moda SL', 'email' => 'a@b.es'],
+          ['company' => 'X', 'email' => 'info@groothandel-mode.nl'], ['company' => 'Atacado Fashion', 'email' => 'a@b.pt'],
+          ['company' => 'Hurtownia Odzieży', 'email' => 'a@b.pl'], ['company' => 'Nordic Engros ApS', 'email' => 'a@b.dk'],
+          ['company' => 'Importatore Moda', 'email' => 'a@b.it'], ['company' => 'Brand Stocklots Ltd', 'email' => 'a@b.co.uk'],
+          ['company' => 'Modeagentur Weber', 'email' => 'a@b.de'], ['company' => 'Rossi Import-Export', 'email' => 'a@b.it'],
+          ['company' => 'Grossiste Paris', 'email' => 'a@b.fr'], ['company' => 'Moda al por mayor', 'email' => 'a@b.es']] as $x)
+  $t('distribütör/toptancı ayrılır: '.$x['company'], vestra_lead_off_target($x));
+foreach ([['company' => 'Showroom Boutique Milano', 'email' => 'info@showroom-boutique.it'], ['company' => 'Maison Importante', 'email' => 'a@maison.fr'],
+          ['company' => 'Henry Concept Store', 'email' => 'hello@henry.example']] as $x)
+  $t('butik yanlışlıkla ayrılmaz: '.$x['company'], !vestra_lead_off_target($x));
 vestra_write_json('leads.json', [
   ['id' => 'OT1', 'company' => 'Schuhkonzept', 'email' => 'n@schuhkonzept.de', 'country' => 'Germany', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 't'],
   ['id' => 'OT2', 'company' => 'Boutique Una', 'email' => 'info@una.example', 'country' => 'Italy', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 't2']]);

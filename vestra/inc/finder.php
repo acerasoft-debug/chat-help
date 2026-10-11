@@ -502,7 +502,7 @@ const VESTRA_FINDER_NOT_BUYER_SOURCES = ['amazon seller', 'ebay seller', 'otto s
 function vestra_lead_off_target(array $l): bool {
   $em = strtolower((string)($l['email'] ?? '')); $dom = ($p = strrpos($em, '@')) !== false ? substr($em, $p + 1) : '';
   $hay = mb_strtolower(implode(' ', [(string)($l['company'] ?? ''), (string)($l['website'] ?? ''), $dom, (string)($l['category'] ?? '')]));
-  return (bool)preg_match('/schuh|shoe|sneaker|footwear|scarp[ae]|calzatur|chaussur|zapat|cal[cç]ad|sapat|obuv|lingerie|dessous|unterw(?:ä|ae)sche|w(?:ä|ae)schestube|intimo|intimate|underwear|bademode|swimwear|gro(?:ß|ss)handel|wholesale|grossiste|ingrosso|mayorista|distribu|lederhandel|lederladen|lederwaren/u', $hay);
+  return (bool)preg_match('/schuh|shoe|sneaker|footwear|scarp[ae]|calzatur|chaussur|zapat|cal[cç]ad|sapat|obuv|lingerie|dessous|unterw(?:ä|ae)sche|w(?:ä|ae)schestube|intimo|intimate|underwear|bademode|swimwear|gro(?:ß|ss)handel|wholesale|grossist|ingrosso|mayorista|al por mayor|groothandel|atacad|hurtown|engros|velkoobchod|distribu|importer|importat|import-export|stocklot|handelsvertretung|modeagentur|fashion agency|showroom agency|lederhandel|lederladen|lederwaren/u', $hay);
 }
 
 function vestra_lead_looks_dead(array $l): bool {
