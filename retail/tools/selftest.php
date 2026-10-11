@@ -183,7 +183,7 @@ line('OK', 'IP-Freigabe', $ips !== '' ? $ips : 'keine (nur Passwortschutz)');
 head('Sprache nach Land');
 require_once __DIR__ . '/../inc/geo.php';
 $gm = json_decode((string)@file_get_contents(vr_data_dir() . '/geoip-meta.json'), true) ?: [];
-$probe = ['DE' => '5.1.0.1', 'US' => '8.8.8.8', 'TR' => '88.255.0.1', 'AZ' => '85.132.0.1'];
+$probe = ['DE' => '80.128.0.1', 'US' => '8.8.8.8', 'TR' => '88.255.0.1', 'AZ' => '85.132.0.1'];
 $hits = [];
 foreach ($probe as $want => $ip) $hits[] = $want . '=' . (vr_geoip_lookup($ip) ?: '?');
 line(!empty($gm['month']) ? 'OK' : 'WARN', 'IP→Land-Tabelle (lokal)', !empty($gm['month'])
