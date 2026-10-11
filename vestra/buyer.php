@@ -4,6 +4,32 @@ require_once __DIR__.'/inc/docs.php';
 require_once __DIR__.'/inc/addresses.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
+/* ODENMEMIS FATURA ASKISI (inc/unpaid_hold.php; operator, 11 Eki 2026). Askidaki
+   alici girer ama YALNIZ odenmemis siparislerini gorur ve odeyip / iptal edip
+   hesabini kendisi acar. Seller.php'deki belge askisi kapisinin aynasi: izinli
+   sekmeler ve eylemler disindaki her istek karta doner. Odeme gelmisse once
+   hesap acilir -- alici "odedim ama hala kapali" ekrani gormesin. */
+$__me = !empty($_SESSION['uid']) ? auth_user() : null;
+if ($__me && auth_suspended_for_unpaid($__me)) {
+    require_once __DIR__.'/inc/unpaid_hold.php';
+    if (vestra_unpaid_hold_try_reopen($__me)) { header('Location: /buyer?hold=reopened'); exit; }
+    $__ok = ($_SERVER['REQUEST_METHOD'] === 'POST')
+          ? in_array((string)($_POST['_action'] ?? ''), ['upload_receipt', 'hold_cancel_order', 'change_password', 'profile'], true)
+          : in_array((string)($_GET['tab'] ?? 'overview'), ['overview', 'orders', 'profile'], true);
+    if (!$__ok) { header('Location: /buyer#unpaid-hold'); exit; }
+}
+unset($__me, $__ok);
+
+/* Alicinin kendi iptali -- kural vestra_unpaid_hold_cancel_block()'ta (en az biri
+   odenmek uzere kalir; tek siparisli alicida iptal yok). Musteriye mektup yok. */
+if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='hold_cancel_order') {
+    require_once __DIR__.'/inc/unpaid_hold.php';
+    $hcRef = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($_POST['ref'] ?? ''));
+    $hcMe  = auth_user();
+    $hcRes = $hcMe ? vestra_unpaid_hold_cancel($hcMe, $hcRef) : ['ok' => false, 'error' => 'notfound'];
+    header('Location: /buyer?hold='.($hcRes['ok'] ? 'cancelled' : rawurlencode((string)$hcRes['error'])).'&ref='.urlencode($hcRef).'#unpaid-hold'); exit;
+}
+
 /* post_max_size asimi: PHP govdeyi tumden atar, $_POST bos kalir ve asagidaki
    hicbir dal calismaz -- kullanici "hicbir sey olmuyor" gorur (2 Eyl 2026'da
    bir alici belgesini iki gun boyle yukleyemedi). Bu sayfaya dosya yalnizca
@@ -74,7 +100,7 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
     header('Location: /buyer?tab=profile&pw=1'); exit;
 }
 
-require __DIR__.'/inc/products.php';
+require_once __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/invoice.php';
 require_once __DIR__.'/inc/orders.php';
 
@@ -333,6 +359,23 @@ dash_open('buyer',$tab,
    vestra_buyer_unpaid_invoices() -- askiya alma kosusuyla ayni olcu; dekontu
    yuklenmis siparis bantta yok. Son tarih yalnizca odeme saati isliyorsa
    yazilir (KURAL 7); uydurulmus bir tarih yok. */
+/* ODENMEMIS SIPARISLER KARTI -- askidaki alicida HER izinli sekmenin EN USTUNDE
+   (operator: "hesaplarinda ilk olarak odenmeyen siparislerini gorsunler");
+   acik hesapta yalniz iptal edilebilir bir siparis varsa genel bakista. */
+$__hold = auth_suspended_for_unpaid($AUTH_USER);
+if (isset($_GET['hold']) || $__hold) require_once __DIR__.'/inc/unpaid_hold.php';
+if (isset($_GET['hold'])) echo vestra_unpaid_hold_flash((string)$_GET['hold'], preg_replace('/[^A-Za-z0-9_-]/', '', (string)($_GET['ref'] ?? '')));
+if ($__hold) {
+  $__hs = vestra_unpaid_hold_state($AUTH_USER);
+  echo vestra_unpaid_hold_card($AUTH_USER, $__hs, true);
+  if ($tab === 'overview') { dash_close(); require __DIR__.'/inc/foot.php'; exit; }
+} elseif ($tab === 'overview' && $AUTH_USER) {
+  require_once __DIR__.'/inc/unpaid_hold.php';
+  $__hs = vestra_unpaid_hold_state($AUTH_USER);
+  $__can = array_filter(array_keys($__hs['open']), fn($r) => vestra_unpaid_hold_cancel_block($__hs, $r) === '');
+  if ($__can) echo vestra_unpaid_hold_card($AUTH_USER, $__hs, false);
+}
+
 /* KISITLAMA BANDI -- her sekmede (operator, 10 Eki 2026: "hesaplarinda
    gorunsun"). Mektup YOK, yalniz bu bant. Bitis tarihi kayittan. */
 if ($__ru = auth_restricted_until($AUTH_USER)) {
@@ -342,7 +385,7 @@ if ($__ru = auth_restricted_until($AUTH_USER)) {
      . '<br>'.t('If this happens again, your account will be closed permanently.').'</div>';
 }
 unset($__ru);
-$unpaidInvs = vestra_buyer_unpaid_invoices($myEmail);
+$unpaidInvs = $__hold ? [] : vestra_buyer_unpaid_invoices($myEmail);   // askida: kart zaten gosteriyor
 if ($unpaidInvs) {
   /* Sure dolmus bir fatura varsa kirmizi, yoksa sari: bugun kesilmis bir
      faturayi gecikmis borc gibi gostermek alarmi degersizlestirir. */

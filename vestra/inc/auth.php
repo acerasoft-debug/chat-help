@@ -288,7 +288,7 @@ function auth_remember_restore(): void {
         }
         if (!$match) return;
         // never auto-restore a suspended account -- except a docs-suspended seller, who may sign in to upload
-        if (($a['status'] ?? '') === 'suspended' && !auth_suspended_for_docs($a)) return;
+        if (($a['status'] ?? '') === 'suspended' && !auth_suspended_for_docs($a) && !auth_suspended_for_unpaid($a)) return;
         $_SESSION['uid']    = $a['id'];
         $_SESSION['member'] = true;
         $_SESSION['utype']  = $a['type'] ?? '';
@@ -672,8 +672,21 @@ function auth_login(string $email, string $password): array|string {
     /* BELGE askisi giris engeli DEGIL: belge yuzunden askiya alinan satici
        panele girip tam da o belgeyi yukleyebilmeli (seller.php onu KYC
        sekmesine kilitler). Operatorun elle askiya aldigi hesap ise girmez. */
-    if (($acc['status'] ?? '') === 'suspended' && !auth_suspended_for_docs($acc)) return 'suspended';
+    if (($acc['status'] ?? '') === 'suspended' && !auth_suspended_for_docs($acc) && !auth_suspended_for_unpaid($acc)) return 'suspended';
     return $acc;
+}
+
+/* ODENMEMIS FATURA askisi (operator, 11 Eki 2026: "hesabi suspend olan
+   musteriler en az 1 faturasini odeyip hesabini acabilirler ... digerlerini
+   iptal edebilirler"). Giris ENGELI DEGIL: alici girer, buyer.php onu
+   inc/unpaid_hold.php'nin kartina kilitler (odenmemis siparisleri, ode /
+   iptal et). Isaret: unpaid_suspend kosusunun yazdigi suspend_note
+   ('unpaid invoice: ...') ya da yeni kayitlarda suspend_reason='unpaid'.
+   Operatorun elle askiya aldigi hesap bu degil -- o girmez. */
+function auth_suspended_for_unpaid(?array $acc): bool {
+    if ($acc === null || ($acc['status'] ?? '') !== 'suspended' || ($acc['type'] ?? '') !== 'buyer') return false;
+    return ($acc['suspend_reason'] ?? '') === 'unpaid'
+        || str_starts_with(strtolower(trim((string)($acc['suspend_note'] ?? ''))), 'unpaid invoice');
 }
 
 /* Askinin sebebi belge mi? cron_seller_docs.php suspend_reason='docs' yazar;
