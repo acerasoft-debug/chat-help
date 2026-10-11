@@ -6766,7 +6766,7 @@ jobs:
             }
             if (!$spec['delete'] && !$spec['restrict'] && !$spec['activate']) { fwrite(STDERR, "payload bos: delete=REF,..|restrict=UID,..|activate=UID\n"); exit(1); }
             if (array_intersect($spec['restrict'], $spec['activate'])) { fwrite(STDERR, "ayni hesap hem restrict hem activate\n"); exit(1); }
-            if ($spec['restrict'] && !function_exists('auth_restricted_until')) { fwrite(STDERR, "sunucuda kisitlama kodu YOK (auth_restricted_until) -- once deploy\n"); exit(1); }
+            if ($spec['restrict'] && !function_exists('auth_restriction_lift_refs')) { fwrite(STDERR, "sunucuda kisitlama kodu YOK (auth_restriction_lift_refs) -- once deploy\n"); exit(1); }
             $until = date('c', strtotime('+30 days'));
             $m = function (string $e): string {
               $at = strrpos($e, '@'); return $at === false ? '***' : mb_substr($e, 0, 1).'***'.substr($e, $at);
@@ -6801,6 +6801,20 @@ jobs:
                 $inv ? implode(', ', array_map(fn($i) => $i['no'].' '.$i['currency'].' '.number_format((float)$i['total'], 2, '.', ''), $inv)) : '(yok)');
             }
             $accs = []; foreach (auth_accounts() as $a) $accs[(string)($a['id'] ?? '')] = $a;
+            /* ODEME GELINCE KALKAR: kisitlanan alicinin SILINMEYEN, odenmemis,
+               iptal edilmemis siparisleri restricted_lift_refs'e yazilir;
+               biri odenince auth_restricted_until kisitlamayi kendisi kaldirir. */
+            $liftRefs = [];
+            foreach ($spec['restrict'] as $uid) {
+              $em = strtolower(trim((string)($accs[$uid]['email'] ?? '')));
+              foreach ($byEmail[$em] ?? [] as $r2) {
+                $r2ref = (string)($r2['ref'] ?? '');
+                if ($r2ref === '' || in_array($r2ref, $spec['delete'], true)) continue;
+                $e2 = (array)($all[$r2ref] ?? []);
+                if ((string)($e2['status'] ?? 'pending') === 'cancelled' || !empty(vestra_order_payment_settled($r2ref, $e2)['settled'])) continue;
+                $liftRefs[$uid][] = $r2ref;
+              }
+            }
             foreach (['restrict', 'activate'] as $k) foreach ($spec[$k] as $uid) {
               $a = $accs[$uid] ?? null;
               if (!$a) { $err[] = "$uid: hesap yok"; continue; }
@@ -6808,7 +6822,8 @@ jobs:
               printf("%s %-22s %s (%s)  simdi: status=%s kyb=%s%s\n", $k === 'restrict' ? 'KISITLA' : 'AC     ',
                 mb_substr((string)($a['company'] ?? '?'), 0, 22), $m((string)($a['email'] ?? '')), $uid,
                 (string)($a['status'] ?? '?'), (string)($a['kyb_status'] ?? '-'),
-                $k === 'restrict' ? '  -> status=active, 30 gun kisitli ('.substr($until, 0, 10).')' : '');
+                $k === 'restrict' ? '  -> status=active, 30 gun kisitli ('.substr($until, 0, 10).')'
+                  .(!empty($liftRefs[$uid]) ? ', ODEME GELINCE KALKAR: '.implode(',', $liftRefs[$uid]) : '') : '');
             }
             if ($err) { fwrite(STDERR, "\n*** KAPI GECILMEDI -- HICBIR SEY YAZILMADI:\n  ".implode("\n  ", array_unique($err))."\n"); exit(1); }
             if (!$apply) { echo "\nKURU KOSU -- kapi gecti. move_apply=true ile uygulanir. Musteriye hicbir sey gitmez.\n"; exit(0); }
@@ -6836,6 +6851,7 @@ jobs:
             };
             foreach ($spec['restrict'] as $uid) {
               auth_update($uid, $unsusp($accs[$uid]) + ['restricted_until' => $until, 'restricted_at' => date('c'),
+                                 'restricted_lift_refs' => $liftRefs[$uid] ?? [],
                                  'restricted_note' => 'never paid; unpaid orders deleted; repeat = permanent closure']);
             }
             foreach ($spec['activate'] as $uid) auth_update($uid, $unsusp($accs[$uid]));
@@ -6853,9 +6869,10 @@ jobs:
             $now = []; foreach (auth_accounts() as $a) $now[(string)($a['id'] ?? '')] = $a;
             foreach ($spec['restrict'] as $uid) {
               $ru = auth_restricted_until($now[$uid] ?? null);
-              $ok = ($now[$uid]['status'] ?? '') === 'active' && $ru > time() + 29 * 86400;
+              $lr = auth_restriction_lift_refs($now[$uid] ?? null);
+              $ok = ($now[$uid]['status'] ?? '') === 'active' && $ru > time() + 29 * 86400 && $lr === ($liftRefs[$uid] ?? []);
               if (!$ok) $bad++;
-              printf("  %-22s %s\n", mb_substr((string)($now[$uid]['company'] ?? $uid), 0, 22), $ok ? 'KISITLI '.date('Y-m-d', $ru)."'e kadar (mesaj + yeni fatura kapali, panelde bant; dogrulandi)" : '*** YAZILAMADI ***');
+              printf("  %-22s %s\n", mb_substr((string)($now[$uid]['company'] ?? $uid), 0, 22), $ok ? 'KISITLI '.date('Y-m-d', $ru)."'e kadar (mesaj + yeni fatura kapali, panelde bant".($lr ? '; odeme gelince kalkar: '.implode(',', $lr) : '')."; dogrulandi)" : '*** YAZILAMADI ***');
             }
             foreach ($spec['activate'] as $uid) {
               $ok = ($now[$uid]['status'] ?? '') === 'active' && auth_prices_unlocked($now[$uid]);
