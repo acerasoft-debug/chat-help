@@ -7,6 +7,10 @@ on:
         description: "Hızlı kontrol: birkaç sayfa, doğal bekleme, hepsinin ekran görüntüsü (true/false)"
         required: false
         default: "false"
+      colour_path:
+        description: "Doluysa yalnız bu ürün sayfasında renk → galeri denemesi (ör. /product.php?id=bur-pique-polo-2909)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -25,7 +29,13 @@ jobs:
         run: |
           mkdir -p /tmp/pw && cd /tmp/pw && npm init -y >/dev/null && npm i -s playwright@1.56.1
           npx playwright install --with-deps chromium webkit > /dev/null
+      - name: Renk → galeri
+        if: github.event.inputs.colour_path != ''
+        run: |
+          cp retail/tools/colour-check.js /tmp/pw/
+          rm -rf "$GITHUB_WORKSPACE/diag/colour" && cd /tmp/pw && node colour-check.js https://sarvesto.com "${{ github.event.inputs.colour_path }}" "$GITHUB_WORKSPACE/diag/colour"
       - name: Tara
+        if: github.event.inputs.colour_path == ''
         run: |
           cp retail/tools/browser-photo-check.js /tmp/pw/
           rm -rf "$GITHUB_WORKSPACE/diag/browser/shots"
@@ -36,7 +46,7 @@ jobs:
         run: |
           git config user.name  "Claude"
           git config user.email "noreply@anthropic.com"
-          git add -f diag/browser || exit 0
+          git add -f diag/browser diag/colour 2>/dev/null; true
           git diff --cached --quiet && exit 0
           git commit -q -m "Teşhis: tarayıcıda görünmeyen fotoğraflar (rapor + ekran görüntüleri)"
           for i in 1 2 3 4; do
