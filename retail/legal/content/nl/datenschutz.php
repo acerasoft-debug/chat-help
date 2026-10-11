@@ -177,7 +177,28 @@
   de rechtmatigheid van de tot dan verrichte verwerking onverlet.
 </p>
 
-<h2>12. Verkopersaccounts</h2>
+<h2>12. Pushmeldingen</h2>
+<p>
+  U ontvangt alleen meldingen als u ze zelf aanzet: met de knop „Meldingen aanzetten” <em>en</em>
+  de vraag die uw browser of telefoon daarna toont. Uw browser maakt dan een willekeurig
+  bezorgadres aan bij de pushdienst van de maker (Apple, Google, Mozilla of Microsoft). Wij bewaren
+  alleen dat adres, twee technische versleutelingssleutels, de gekozen taal en de datum — geen naam,
+  geen e-mailadres, geen locatie, geen apparaat- of advertentie-ID.
+</p>
+<ul>
+  <li><strong>Doel:</strong> af en toe een bericht over Vault-prijsstappen, zeldzame binnenkomers en uw bestelling</li>
+  <li><strong>Rechtsgrond:</strong> art. 6 lid 1 sub a AVG en § 25 lid 1 TDDDG (toestemming)</li>
+  <li><strong>Ontvangers:</strong> de inhoud wordt end-to-end versleuteld (RFC 8291) en aan de
+      pushdienst van de browsermaker overgedragen, die de tekst niet kan lezen.</li>
+  <li><strong>Bewaartermijn:</strong> tot u de meldingen uitzet; meldt de pushdienst het adres als
+      verlopen, dan wissen wij het automatisch.</li>
+</ul>
+<p>
+  Intrekken kan altijd: in de app of op de pagina „App” via „Uitzetten”, of in de instellingen van
+  uw browser of telefoon. Intrekking doet niets af aan de rechtmatigheid van de verwerking daarvoor.
+</p>
+
+<h2>13. Verkopersaccounts</h2>
 <p>
   Voor een verkopersaccount verwerken wij: naam, eventueel bedrijfsnaam, e-mailadres, land,
   eventueel btw-nummer, verkoperstype (zakelijk/particulier), wachtwoord (alleen als
@@ -192,7 +213,7 @@
       „<?= te('seller_private') ?>” getoond, geen volledige naam.</li>
 </ul>
 
-<h2>13. Beveiligingsmaatregelen en logboeken</h2>
+<h2>14. Beveiligingsmaatregelen en logboeken</h2>
 <p>
   Wij houden technische logboeken bij van mislukte inlogpogingen, betaalfouten en
   webhook-gebeurtenissen. Ze bevatten tijdstip, soort gebeurtenis en technische kenmerken;
@@ -204,7 +225,7 @@
   eenrichtings-hashmethode.
 </p>
 
-<h2>14. Uw rechten</h2>
+<h2>15. Uw rechten</h2>
 <p>U heeft te allen tijde recht op:</p>
 <ul>
   <li>inzage in de over u opgeslagen gegevens (art. 15 AVG)</li>
@@ -222,7 +243,7 @@
   voor gegevensbescherming, bijvoorbeeld die van uw gewone verblijfplaats.
 </p>
 
-<h2>15. Wijzigingen</h2>
+<h2>16. Wijzigingen</h2>
 <p>
   Wij passen deze verklaring aan wanneer de feitelijke verwerking verandert — bijvoorbeeld bij
   inzet van een nieuwe dienstverlener. De op deze pagina gepubliceerde versie is van toepassing.

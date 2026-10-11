@@ -66,12 +66,18 @@
   Aucun script Stripe n'est intégré sur nos propres pages.
 </p>
 
-<h2>Pas de stockage local, pas d'empreinte numérique</h2>
+<h2>Stockage local pour deux rappels seulement, pas d'empreinte numérique</h2>
 <p>
-  Nous n'utilisons ni <code>localStorage</code> ni <code>sessionStorage</code>, aucun pixel, aucune
-  technique de fingerprinting ni de reconnaissance entre appareils. Toutes les polices, styles,
-  scripts et images sont hébergés sur notre propre serveur ; aucune connexion à des tiers n'est
-  établie lors du chargement d'une page.
+  Dans le <code>localStorage</code> de votre navigateur, nous conservons au plus deux entrées sans
+  aucun identifiant, chacune contenant seulement un horodatage : que vous avez fermé la note sur
+  l’app en bas de l’écran (<code>sv-appbar</code>, plus affichée pendant 30 jours) et que vous avez
+  reporté la question des notifications avec « Plus tard » (<code>sv-push-later</code>, 14 jours).
+  Les deux sont nécessaires à la fonction que vous avez choisie (§ 25, al. 2, n° 2 TDDDG). L’app
+  installée garde aussi les fichiers de style et de script ainsi qu’une page hors ligne dans le cache
+  du navigateur. Nous n’utilisons ni <code>sessionStorage</code>, ni pixels, ni techniques
+  d’empreinte numérique, ni reconnaissance multi-appareils. Toutes les polices, styles, scripts et
+  images sont hébergés sur notre propre serveur ; aucune connexion à des tiers n’est établie au
+  chargement d’une page.
 </p>
 
 <h2>Supprimer ou bloquer les cookies</h2>

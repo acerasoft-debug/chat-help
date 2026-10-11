@@ -65,12 +65,17 @@
   En nuestras propias páginas no se integra ningún script de Stripe.
 </p>
 
-<h2>Sin almacenamiento local, sin huellas digitales</h2>
+<h2>Almacenamiento local solo para dos avisos, sin huellas digitales</h2>
 <p>
-  No utilizamos ni <code>localStorage</code> ni <code>sessionStorage</code>, ni píxeles, ni técnicas
-  de fingerprinting, ni reconocimiento entre dispositivos. Todas las fuentes, estilos, scripts e
-  imágenes están en nuestro propio servidor; al cargar la página no se establece ninguna conexión con
-  terceros.
+  En el <code>localStorage</code> de tu navegador guardamos como máximo dos entradas sin ningún
+  identificador, cada una con solo una marca de tiempo: que cerraste el aviso de la app en la parte
+  inferior de la pantalla (<code>sv-appbar</code>, no se vuelve a mostrar en 30 días) y que
+  aplazaste la pregunta de las notificaciones con «Ahora no» (<code>sv-push-later</code>, 14 días).
+  Ambas son necesarias para la función que elegiste (§ 25.2.2 TDDDG). La app instalada guarda además
+  archivos de estilo y script y una página sin conexión en la caché del navegador. No usamos
+  <code>sessionStorage</code>, píxeles, técnicas de huella digital ni reconocimiento entre
+  dispositivos. Todas las fuentes, estilos, scripts e imágenes están en nuestro propio servidor; al
+  cargar una página no se establece ninguna conexión con terceros.
 </p>
 
 <h2>Borrar o bloquear cookies</h2>

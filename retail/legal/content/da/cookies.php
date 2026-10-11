@@ -64,12 +64,16 @@
   sider indlejres intet Stripe-script.
 </p>
 
-<h2>Ingen local storage, ingen fingeraftryk</h2>
+<h2>Local storage kun til to påmindelser, ingen fingeraftryk</h2>
 <p>
-  Vi anvender hverken <code>localStorage</code> eller <code>sessionStorage</code>, ingen pixels,
-  ingen fingerprinting-teknikker og ingen genkendelse på tværs af enheder. Alle skrifttyper, stilarter,
-  scripts og billeder ligger på vores egen server; ved sidevisning oprettes ingen forbindelse til
-  tredjeparter.
+  I din browsers <code>localStorage</code> gemmer vi højst to poster uden nogen form for id, hver
+  kun med et tidsstempel: at du har lukket app-beskeden nederst på skærmen (<code>sv-appbar</code>,
+  vises ikke igen i 30 dage), og at du har udskudt spørgsmålet om notifikationer med „Ikke nu“
+  (<code>sv-push-later</code>, 14 dage). Begge er nødvendige for den funktion, du har valgt (§ 25,
+  stk. 2, nr. 2, TDDDG). Den installerede app gemmer desuden stil- og scriptfiler og en offlineside i
+  browserens cache. Vi bruger ikke <code>sessionStorage</code>, pixels, fingeraftryksteknikker eller
+  genkendelse på tværs af enheder. Alle skrifttyper, stilarter, scripts og billeder ligger på vores
+  egen server; der oprettes ingen forbindelse til tredjeparter, når en side indlæses.
 </p>
 
 <h2>Slet eller blokér cookies</h2>

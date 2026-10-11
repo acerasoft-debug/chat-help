@@ -2007,3 +2007,88 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 .appfeat .ico{color:var(--brass-text)}
 .appdesk{display:none;margin-top:44px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center}
 [data-platform="desktop"] .appdesk{display:block}
+
+/* ===================================================== UYGULAMA ŞERİDİ (ana sayfa)
+   Açık zemin, iki sütun: solda indirme, sağda bildirim kutusu. Cihaza göre
+   doğru düğme öne geçer; uygulamanın içinde yalnız bildirim kalır. */
+.appband{background:var(--bone-2);border-top:1px solid var(--bone-3);padding:clamp(52px,7vw,104px) 0;scroll-margin-top:90px}
+.appband__in{display:grid;gap:clamp(34px,5vw,80px);grid-template-columns:1fr;align-items:center}
+@media (min-width:900px){.appband__in{grid-template-columns:1.15fr .85fr}}
+.appband__t{font-size:clamp(30px,4vw,52px);line-height:1.06;margin:12px 0 16px;max-width:15ch}
+.appband__b{font-size:15px;line-height:1.7;color:var(--muted);max-width:52ch;margin:0}
+.appband__cta{display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px;margin-top:30px}
+.appband__cta .btn{gap:10px}
+.appband__more{margin-left:6px}
+.appband__done{display:none;margin-top:22px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;align-items:center;gap:8px}
+[data-platform="app"] .appband__cta{display:none}
+[data-platform="app"] .appband__done{display:inline-flex}
+[data-platform="android"] .appband__ios{order:2;background:none;color:var(--ink)}
+[data-platform="android"] .appband__and{order:1;background:var(--ink);color:var(--bone)}
+.appband__side{display:flex;flex-direction:column;align-items:flex-start;gap:22px}
+.appband__icon{border-radius:20px;box-shadow:0 18px 40px -18px rgba(0,0,0,.45)}
+
+/* ================================================================ BİLDİRİM KUTUSU */
+.pushbox{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:start}
+.pushbox[data-state="init"],.pushbox[data-state="unsupported"]{display:none}
+.pushbox__ico{grid-row:1/3;width:44px;height:44px;border:1px solid var(--ink);display:inline-flex;align-items:center;justify-content:center}
+.pushbox__txt h3{font-family:var(--serif);font-weight:400;font-size:20px;margin:0 0 6px}
+.pushbox__txt p{font-size:13.5px;line-height:1.65;color:var(--muted);margin:0;max-width:46ch}
+.pushbox__act{grid-column:2;margin-top:12px;min-height:44px}
+.pushbox--card{background:var(--bone);border:1px solid var(--bone-3);padding:clamp(22px,3vw,32px);width:100%}
+.pushbox--wide{border:1px solid var(--ink);padding:clamp(22px,3vw,36px)}
+@media (min-width:800px){
+  .pushbox--wide{grid-template-columns:auto 1fr auto;align-items:center}
+  .pushbox--wide .pushbox__ico{grid-row:auto}
+  .pushbox--wide .pushbox__act{grid-column:auto;margin-top:0;text-align:right}
+}
+.apppush{margin-top:clamp(28px,4vw,48px)}
+[data-push] [data-show]{display:none}
+[data-push][data-state="off"] [data-show="off"]{display:inline-flex}
+[data-push][data-state="on"] [data-show="on"],
+[data-push][data-state="denied"] [data-show="denied"],
+[data-push][data-state="ios"] [data-show="ios"]{display:block}
+[data-push][data-state="busy"] [data-show="busy"]{display:inline-block}
+.pushbox .btn{gap:10px}
+.pushbox__ok{margin:0;font-size:12px;letter-spacing:.14em;text-transform:uppercase;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+[data-push][data-state="on"] .pushbox__ok{display:flex}
+.pushbox__off{background:none;border:0;padding:0 0 1px;margin-left:8px;font:inherit;font-size:11px;letter-spacing:.14em;color:var(--muted);border-bottom:1px solid currentColor;cursor:pointer}
+.pushbox__off:hover{color:var(--ink)}
+.pushbox__note{margin:0;font-size:13px;line-height:1.6;color:var(--muted)}
+.pushbox__note a{color:var(--ink);border-bottom:1px solid currentColor}
+.pushbox__busy{width:22px;height:22px;border:1.5px solid var(--bone-3);border-top-color:var(--ink);border-radius:50%;animation:pushspin .8s linear infinite}
+@keyframes pushspin{to{transform:rotate(360deg)}}
+.pushbox__msg{margin:8px 0 0;font-size:12.5px;color:var(--ember-text,#a33)}
+.pushbox__msg:empty{display:none}
+
+/* Kurulu uygulamada bir kez: alttan kart */
+.pushprompt{position:fixed;z-index:110;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));
+  max-width:520px;margin:0 auto;background:var(--ink);color:var(--bone);padding:16px 16px 16px 18px;
+  display:grid;grid-template-columns:auto 1fr;gap:10px 14px;align-items:center;
+  box-shadow:0 22px 50px -20px rgba(0,0,0,.6);animation:promptin .45s var(--ease)}
+.pushprompt[hidden]{display:none}
+.pushprompt__ico{width:38px;height:38px;border:1px solid rgba(255,255,255,.4);display:inline-flex;align-items:center;justify-content:center}
+.pushprompt__txt b{display:block;font-family:var(--serif);font-weight:400;font-size:17px}
+.pushprompt__txt span{display:block;font-size:12.5px;line-height:1.5;color:#b0b0b0;margin-top:2px}
+.pushprompt__act{grid-column:1/-1;display:flex;gap:16px;align-items:center;justify-content:flex-end}
+.pushprompt .btn--brass{background:var(--bone);border-color:var(--bone);color:var(--ink)}
+.pushprompt .btn--brass::before{background:#2a2a2a}
+.pushprompt .btn--brass:hover{color:var(--bone)}
+.pushprompt__later{background:none;border:0;color:#b0b0b0;font:inherit;font-size:11px;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;padding:8px 4px}
+.pushprompt .pushbox__msg{grid-column:1/-1;color:#e08a72}
+@keyframes promptin{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+
+/* ============================================ TELEFON: alttan uygulama şeridi */
+.appbar{position:fixed;z-index:105;left:0;right:0;bottom:0;background:var(--bone);border-top:1px solid var(--bone-3);
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom)) 8px;display:flex;align-items:center;gap:10px;
+  box-shadow:0 -10px 30px -18px rgba(0,0,0,.35);animation:promptin .45s var(--ease)}
+.appbar[hidden]{display:none}
+.appbar__x{background:none;border:0;font-size:22px;line-height:1;color:var(--muted);padding:6px 6px;cursor:pointer}
+.appbar__icon{border-radius:11px;flex:none}
+.appbar__txt{flex:1;min-width:0;line-height:1.3}
+.appbar__txt b{display:block;font-family:var(--serif);font-weight:400;font-size:15px;letter-spacing:.18em}
+.appbar__txt span{display:block;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appbar__go{flex:none;background:var(--ink);color:var(--bone);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;padding:11px 16px}
+html.has-appbar body{padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+@media (min-width:900px){.appbar{display:none !important}html.has-appbar body{padding-bottom:0}}
+@media (prefers-reduced-motion:reduce){.appbar,.pushprompt{animation:none}.pushbox__busy{animation-duration:2.4s}}
+@media (max-width:899px){.appband__icon{display:none}}

@@ -19,6 +19,7 @@ function vr_admin_head(string $title): void
         'sellers.php'   => 'Verkäufer',
         'customers.php' => 'Kunden',
         'members.php'   => 'Newsletter',
+        'push.php'      => 'Benachrichtigungen',
         'system.php'    => 'System',
     ];
     $cur = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));

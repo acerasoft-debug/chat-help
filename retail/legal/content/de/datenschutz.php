@@ -179,7 +179,30 @@
   berührt nicht die Rechtmäßigkeit der bis dahin erfolgten Verarbeitung.
 </p>
 
-<h2>12. Verkäuferkonten</h2>
+<h2>12. Push-Benachrichtigungen</h2>
+<p>
+  Benachrichtigungen erhalten Sie nur, wenn Sie sie selbst einschalten: über die Schaltfläche
+  „Benachrichtigungen aktivieren“ <em>und</em> die anschließende Abfrage Ihres Browsers oder
+  Telefons. Ihr Browser erzeugt dann eine zufällige Zustelladresse beim Push-Dienst seines
+  Herstellers (Apple, Google, Mozilla oder Microsoft). Wir speichern nur diese Adresse, zwei
+  technische Schlüssel zur Verschlüsselung, die gewählte Sprache und das Datum — keinen Namen,
+  keine E-Mail-Adresse, keinen Standort, keine Geräte- oder Werbekennung.
+</p>
+<ul>
+  <li><strong>Zweck:</strong> seltene Hinweise auf Preisstufen im Vault, seltene Neuzugänge und Ihre Bestellung</li>
+  <li><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO und § 25 Abs. 1 TDDDG (Einwilligung)</li>
+  <li><strong>Empfänger:</strong> Der Inhalt wird Ende-zu-Ende verschlüsselt (RFC 8291) an den
+      Push-Dienst des Browser-Herstellers übergeben; dieser kann den Text nicht lesen.</li>
+  <li><strong>Speicherdauer:</strong> bis Sie die Benachrichtigungen ausschalten; meldet der
+      Push-Dienst die Adresse als erloschen, löschen wir sie automatisch.</li>
+</ul>
+<p>
+  Widerruf jederzeit: in der App bzw. auf der Seite „App“ über „Ausschalten“ oder in den
+  Einstellungen Ihres Browsers oder Telefons. Der Widerruf berührt die Rechtmäßigkeit der bis
+  dahin erfolgten Verarbeitung nicht.
+</p>
+
+<h2>13. Verkäuferkonten</h2>
 <p>
   Für ein Verkäuferkonto verarbeiten wir: Name, ggf. Firmenname, E-Mail-Adresse, Land, ggf.
   USt-IdNr., Verkäufertyp (gewerblich/privat), Passwort (nur als kryptografischer Hash, niemals im
@@ -194,7 +217,7 @@
       lediglich der Status „<?= te('seller_private') ?>“ angezeigt, kein vollständiger Name.</li>
 </ul>
 
-<h2>13. Sicherheitsmaßnahmen und Protokolle</h2>
+<h2>14. Sicherheitsmaßnahmen und Protokolle</h2>
 <p>
   Wir führen technische Protokolle über fehlgeschlagene Anmeldeversuche, Zahlungsfehler und
   Webhook-Ereignisse. Sie enthalten Zeitpunkt, Ereignisart und technische Kennungen; E-Mail-Adressen
@@ -206,7 +229,7 @@
   Einweg-Hashverfahren gespeichert.
 </p>
 
-<h2>14. Ihre Rechte</h2>
+<h2>15. Ihre Rechte</h2>
 <p>Sie haben jederzeit das Recht auf:</p>
 <ul>
   <li>Auskunft über die zu Ihrer Person gespeicherten Daten (Art. 15 DSGVO)</li>
@@ -224,7 +247,7 @@
   der Behörde Ihres gewöhnlichen Aufenthaltsorts.
 </p>
 
-<h2>15. Änderungen</h2>
+<h2>16. Änderungen</h2>
 <p>
   Wir passen diese Erklärung an, wenn sich die tatsächliche Verarbeitung ändert — etwa bei Einsatz
   eines neuen Dienstleisters. Es gilt die jeweils auf dieser Seite veröffentlichte Fassung.

@@ -19,10 +19,7 @@ require_once __DIR__ . '/inc/uploads.php';
 
 $brand = (string)vr_config('brand');
 $host  = (string)(parse_url(vr_origin(), PHP_URL_HOST) ?: 'sarvesto.com');
-$apkRel = '/uploads/app/' . preg_replace('/[^A-Za-z0-9]/', '', $brand) . '.apk';
-$apkAbs = vr_doc_root() . $apkRel;
-$apk    = is_file($apkAbs) ? ['url' => vr_url(ltrim($apkRel, '/'), ['v' => filemtime($apkAbs)]),
-                               'size' => number_format(filesize($apkAbs) / 1048576, 1, ',', '.') . ' MB'] : null;
+$apk   = vr_app_apk();
 
 $ios  = trim((string)vr_config('app_store_url'));
 $play = trim((string)vr_config('play_store_url'));
@@ -132,6 +129,11 @@ vr_layout_start([
         </ol>
         <p class="appway__note"><?= te('app_desk_3', ['brand' => $brand]) ?></p>
       </article>
+    </div>
+
+    <?php // Bildirimler: kurulu uygulamada da görünür (appways orada gizli). ?>
+    <div class="apppush" id="notifications">
+      <?php vr_push_box('pushbox--wide'); ?>
     </div>
 
     <div class="appfeats">

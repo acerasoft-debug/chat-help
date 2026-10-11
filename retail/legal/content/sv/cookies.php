@@ -64,11 +64,16 @@
   sidor bäddas inget Stripe-skript in.
 </p>
 
-<h2>Ingen lokal lagring, inga fingeravtryck</h2>
+<h2>Lokal lagring bara för två påminnelser, inga fingeravtryck</h2>
 <p>
-  Vi använder varken <code>localStorage</code> eller <code>sessionStorage</code>, inga pixlar, inga
-  fingerprinting-tekniker och ingen igenkänning över enheter. Alla typsnitt, stilar, skript och
-  bilder ligger på vår egen server; vid sidinläsning upprättas ingen anslutning till tredje part.
+  I webbläsarens <code>localStorage</code> sparar vi högst två poster utan någon identifierare, var
+  och en bara med en tidsstämpel: att du har stängt app-meddelandet längst ned på skärmen
+  (<code>sv-appbar</code>, visas inte igen på 30 dagar) och att du har skjutit upp frågan om notiser
+  med ”Inte nu” (<code>sv-push-later</code>, 14 dagar). Båda behövs för den funktion du valt (§ 25.2
+  nr 2 TDDDG). Den installerade appen sparar även stil- och skriptfiler och en offlinesida i
+  webbläsarens cache. Vi använder ingen <code>sessionStorage</code>, inga pixlar, inga
+  fingeravtryckstekniker och ingen igenkänning mellan enheter. Alla typsnitt, stilar, skript och
+  bilder ligger på vår egen server; ingen anslutning till tredje part görs när en sida laddas.
 </p>
 
 <h2>Radera eller blockera cookies</h2>

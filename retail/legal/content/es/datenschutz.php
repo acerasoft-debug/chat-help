@@ -179,7 +179,29 @@
   escribiéndonos. La revocación no afecta a la licitud del tratamiento realizado hasta entonces.
 </p>
 
-<h2>12. Cuentas de vendedor</h2>
+<h2>12. Notificaciones push</h2>
+<p>
+  Solo recibes notificaciones si las activas tú: con el botón «Activar notificaciones» <em>y</em> la
+  solicitud que muestra después tu navegador o teléfono. Tu navegador crea entonces una dirección de
+  entrega aleatoria en el servicio push de su fabricante (Apple, Google, Mozilla o Microsoft).
+  Guardamos solo esa dirección, dos claves técnicas de cifrado, el idioma elegido y la fecha — sin
+  nombre, sin dirección de e-mail, sin ubicación, sin identificador de dispositivo ni publicitario.
+</p>
+<ul>
+  <li><strong>Finalidad:</strong> avisos ocasionales sobre bajadas de precio del Vault, llegadas excepcionales y tu pedido</li>
+  <li><strong>Base jurídica:</strong> art. 6.1.a) RGPD y § 25.1 TDDDG (consentimiento)</li>
+  <li><strong>Destinatarios:</strong> el contenido se cifra de extremo a extremo (RFC 8291) y se entrega
+      al servicio push del fabricante del navegador, que no puede leer el texto.</li>
+  <li><strong>Conservación:</strong> hasta que desactives las notificaciones; si el servicio push
+      indica que la dirección ha caducado, la borramos automáticamente.</li>
+</ul>
+<p>
+  Puedes retirar el consentimiento en cualquier momento: en la app o en la página «App» con
+  «Desactivar», o en los ajustes del navegador o del teléfono. La retirada no afecta a la licitud
+  del tratamiento anterior.
+</p>
+
+<h2>13. Cuentas de vendedor</h2>
 <p>
   Para una cuenta de vendedor tratamos: nombre, en su caso razón social, correo electrónico, país,
   en su caso NIF-IVA, tipo de vendedor (profesional/particular), contraseña (solo como hash
@@ -194,7 +216,7 @@
       el estado «<?= te('seller_private') ?>», no el nombre completo.</li>
 </ul>
 
-<h2>13. Medidas de seguridad y registros</h2>
+<h2>14. Medidas de seguridad y registros</h2>
 <p>
   Llevamos registros técnicos de intentos de acceso fallidos, errores de pago y eventos de webhook.
   Contienen momento, tipo de evento e identificadores técnicos; las direcciones de correo se
@@ -206,7 +228,7 @@
   unidireccional.
 </p>
 
-<h2>14. Sus derechos</h2>
+<h2>15. Sus derechos</h2>
 <p>Tiene en todo momento derecho a:</p>
 <ul>
   <li>acceso a los datos guardados sobre su persona (art. 15 RGPD)</li>
@@ -224,7 +246,7 @@
   datos, por ejemplo la de su residencia habitual.
 </p>
 
-<h2>15. Cambios</h2>
+<h2>16. Cambios</h2>
 <p>
   Adaptamos esta declaración cuando cambia el tratamiento real — por ejemplo, al recurrir a un nuevo
   proveedor. Rige la versión publicada en esta página.

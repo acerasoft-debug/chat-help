@@ -590,3 +590,113 @@
     root.setAttribute('data-platform', 'app');
   });
 })();
+
+/* Bildirimler (Web Push). Kutu [data-push] sunucuda basılıyor (vr_push_box);
+   burada cihazın durumuna göre doğru hâli gösteriyoruz:
+     off       → "Bildirimleri aç"          on      → "Açık ✓ · kapat"
+     denied    → tarayıcı ayarı ipucu        ios     → önce ana ekrana ekle
+     unsupported → kutu gizli (ör. Android APK'nın WebView'ı)
+   İzin penceresi YALNIZCA düğmeye basınca açılır — sayfa açılışında asla. */
+(function () {
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('[data-push]'));
+  var prompt = document.querySelector('[data-push-prompt]');
+  if (!boxes.length) return;
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  var supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && window.isSecureContext;
+  var cfg = boxes[0].dataset;
+
+  function set(s) {
+    boxes.forEach(function (b) { b.setAttribute('data-state', s); });
+    document.documentElement.setAttribute('data-push', s);
+    if (prompt) {
+      var later = 0;
+      try { later = +localStorage.getItem('sv-push-later') || 0; } catch (e) {}
+      prompt.hidden = !(s === 'off' && standalone && Date.now() - later > 14 * 864e5);
+    }
+  }
+  function msg(t) { boxes.forEach(function (b) { var m = b.querySelector('[data-push-msg]'); if (m) m.textContent = t || ''; }); }
+  function key(b64) {
+    var s = (b64 + '===='.slice((b64.length + 3) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+    var raw = atob(s), out = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
+  function post(data) {
+    var f = new FormData();
+    f.append('_csrf', cfg.csrf);
+    Object.keys(data).forEach(function (k) { f.append(k, data[k]); });
+    return fetch(cfg.endpoint, { method: 'POST', body: f, credentials: 'same-origin' })
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
+  }
+
+  // Mağaza uygulamasının içindeki web görünümü (SarvestoApp) push desteklemiyor:
+  // orada kutu hiç görünmez; "ana ekrana ekle" ipucu yalnız Safari'deki iPhone'a.
+  if (!supported) { set(isIOS && !standalone && !/SarvestoApp\//.test(ua) ? 'ios' : 'unsupported'); return; }
+  if (Notification.permission === 'denied') { set('denied'); }
+
+  navigator.serviceWorker.ready.then(function (reg) {
+    return reg.pushManager.getSubscription().then(function (sub) {
+      if (sub) {
+        set('on');
+        // Dil ve "görüldü" bilgisini tazele (sessiz; hata önemsiz).
+        post({ action: 'subscribe', sub: JSON.stringify(sub) }).catch(function () {});
+      } else if (Notification.permission !== 'denied') {
+        set('off');
+      }
+
+      document.addEventListener('click', function (e) {
+        var on = e.target.closest('[data-push-on]'), off = e.target.closest('[data-push-off]'),
+            later = e.target.closest('[data-push-later]');
+        if (later) {
+          try { localStorage.setItem('sv-push-later', String(Date.now())); } catch (x) {}
+          if (prompt) prompt.hidden = true;
+          return;
+        }
+        if (on) {
+          e.preventDefault(); msg(''); set('busy');
+          Notification.requestPermission().then(function (p) {
+            if (p !== 'granted') { set(p === 'denied' ? 'denied' : 'off'); return; }
+            return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key(cfg.key) })
+              .then(function (s) { return post({ action: 'subscribe', sub: JSON.stringify(s) }); })
+              .then(function () { set('on'); });
+          }).catch(function () { set('off'); msg(cfg.err); });
+        }
+        if (off) {
+          e.preventDefault(); set('busy');
+          reg.pushManager.getSubscription().then(function (s) {
+            if (!s) return;
+            var ep = s.endpoint;
+            return s.unsubscribe().then(function () { return post({ action: 'unsubscribe', endpoint: ep }); });
+          }).then(function () { set('off'); }).catch(function () { set('on'); msg(cfg.err); });
+        }
+      });
+    });
+  }).catch(function () { set('unsupported'); });
+})();
+
+/* Telefonda uygulama şeridi: tarayıcıdan gelen ziyaretçiye bir kez, altta,
+   kapatılabilir. Uygulamanın içinde, uygulama sayfasında ve kasada yok. */
+(function () {
+  var bar = document.querySelector('[data-appbar]');
+  if (!bar) return;
+  var p = document.documentElement.getAttribute('data-platform');
+  if (p !== 'ios' && p !== 'android') return;
+  var shut = 0;
+  try { shut = +localStorage.getItem('sv-appbar') || 0; } catch (e) {}
+  if (Date.now() - shut < 30 * 864e5) return;
+  bar.querySelector('[data-appbar-go]').setAttribute('href', bar.dataset.href + (p === 'ios' ? '#ios' : '#android'));
+  bar.hidden = false;
+  document.documentElement.classList.add('has-appbar');
+  bar.addEventListener('click', function (e) {
+    if (e.target.closest('[data-appbar-x]')) {
+      try { localStorage.setItem('sv-appbar', String(Date.now())); } catch (x) {}
+      bar.hidden = true; document.documentElement.classList.remove('has-appbar');
+    }
+    // Android Chrome: tarayıcının kendi "yükle" penceresi varsa doğrudan onu aç
+    var go = e.target.closest('[data-appbar-go]');
+    var install = document.querySelector('[data-app-install]');
+    if (go && p === 'android' && install && !install.hidden) { e.preventDefault(); install.click(); }
+  });
+})();

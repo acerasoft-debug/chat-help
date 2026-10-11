@@ -108,10 +108,101 @@ function vr_layout_end(): void
 {
     echo '</main>';
     vr_footer();
+    $page = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
+    if ($page !== 'checkout.php') vr_push_prompt();
+    if (!in_array($page, ['app.php', 'checkout.php'], true)) vr_appbar();
     ?>
 <script src="<?= h(vr_url('assets/js/maxsales.js', ['v' => vr_asset_v()])) ?>" defer></script>
 </body>
 </html>
+<?php
+}
+
+// ------------------------------------------------------- uygulama + bildirim
+/**
+ * Bildirim kutusu. Durum (açık/kapalı/izin reddedildi/önce ana ekrana ekle)
+ * cihazda belli olduğu için hepsi basılır, CSS yalnız data-state'e uyanı
+ * gösterir (bkz. maxsales.js "Bildirimler"). JS yoksa kutu hiç görünmez —
+ * bildirim zaten JS'siz olmuyor.
+ * $variant: 'card' (uygulama sayfası, ana sayfa şeridi) | 'prompt' (alt kart)
+ */
+function vr_push_attrs(): string
+{
+    require_once __DIR__ . '/push.php';
+    return ' data-push data-state="init"'
+        . ' data-key="' . h(vr_push_public_key()) . '"'
+        . ' data-csrf="' . h(vr_csrf_token()) . '"'
+        . ' data-endpoint="' . h(vr_url('api/push.php')) . '"'
+        . ' data-err="' . h(t('push_err')) . '"';
+}
+
+function vr_push_box(string $cls = ''): void
+{
+    ?>
+<div class="pushbox <?= h($cls) ?>"<?= vr_push_attrs() ?>>
+  <span class="pushbox__ico"><?= vr_icon('bell', 22) ?></span>
+  <div class="pushbox__txt">
+    <h3><?= te('push_t') ?></h3>
+    <p><?= te('push_b') ?></p>
+  </div>
+  <div class="pushbox__act" aria-live="polite">
+    <button class="btn btn--brass" type="button" data-push-on data-show="off"><span><?= te('push_on_btn') ?></span><?= vr_icon('bell', 15) ?></button>
+    <p class="pushbox__ok" data-show="on"><?= vr_icon('check', 16) ?> <?= te('push_active') ?>
+      <button class="pushbox__off" type="button" data-push-off><?= te('push_off_btn') ?></button></p>
+    <p class="pushbox__note" data-show="denied"><?= te('push_denied') ?></p>
+    <p class="pushbox__note" data-show="ios"><?= te('push_ios_hint', ['brand' => (string)vr_config('brand')]) ?>
+      <a href="<?= h(vr_url('app.php')) ?>#ios"><?= te('push_ios_link') ?></a></p>
+    <span class="pushbox__busy" data-show="busy" aria-hidden="true"></span>
+    <p class="pushbox__msg" data-push-msg></p>
+  </div>
+</div>
+<?php
+}
+
+/** Kurulu uygulamada bir kez sorulan alt kart ("Şimdi değil" → 14 gün sessiz). */
+function vr_push_prompt(): void
+{
+    ?>
+<aside class="pushprompt" data-push-prompt hidden<?= vr_push_attrs() ?> aria-label="<?= te('push_t') ?>">
+  <span class="pushprompt__ico"><?= vr_icon('bell', 20) ?></span>
+  <div class="pushprompt__txt">
+    <b><?= te('push_prompt_t') ?></b>
+    <span><?= te('push_prompt_b') ?></span>
+  </div>
+  <div class="pushprompt__act">
+    <button class="btn btn--brass btn--sm" type="button" data-push-on><span><?= te('push_on_short') ?></span></button>
+    <button class="pushprompt__later" type="button" data-push-later><?= te('push_later') ?></button>
+  </div>
+  <p class="pushbox__msg" data-push-msg></p>
+</aside>
+<?php
+}
+
+/** Sunucudaki Android paketi (uploads/app/<MARKA>.apk) — yoksa null. */
+function vr_app_apk(): ?array
+{
+    require_once __DIR__ . '/uploads.php';
+    $rel = '/uploads/app/' . preg_replace('/[^A-Za-z0-9]/', '', (string)vr_config('brand')) . '.apk';
+    $abs = vr_doc_root() . $rel;
+    if (!is_file($abs)) return null;
+    return ['url'  => vr_url(ltrim($rel, '/'), ['v' => filemtime($abs)]),
+            'size' => number_format(filesize($abs) / 1048576, 1, ',', '.') . ' MB'];
+}
+
+/** Telefondan tarayıcıyla gelen ziyaretçiye alttan uygulama şeridi (JS açar). */
+function vr_appbar(): void
+{
+    $brand = (string)vr_config('brand');
+    ?>
+<div class="appbar" data-appbar data-href="<?= h(vr_url('app.php')) ?>" hidden>
+  <button class="appbar__x" type="button" data-appbar-x aria-label="<?= te('close') ?>">&times;</button>
+  <img class="appbar__icon" src="<?= h(vr_url('assets/app/icon-192.png')) ?>" alt="" width="44" height="44">
+  <div class="appbar__txt">
+    <b><?= h($brand) ?></b>
+    <span><?= te('appbar_b') ?></span>
+  </div>
+  <a class="appbar__go" data-appbar-go href="<?= h(vr_url('app.php')) ?>"><?= te('appbar_btn') ?></a>
+</div>
 <?php
 }
 
@@ -401,6 +492,8 @@ function vr_icon(string $name, int $size = 20): string
         'ruler'  => '<rect x="2.5" y="8.5" width="19" height="7" rx="1"/><path d="M7 8.5v3M11 8.5v4M15 8.5v3M19 8.5v4"/>',
         'mail'   => '<rect x="3" y="5.5" width="18" height="13" rx="1.5"/><path d="M3.5 7l8.5 6 8.5-6"/>',
         'star'   => '<path d="M12 4l2.4 5 5.6.8-4 3.9 1 5.5-5-2.6-5 2.6 1-5.5-4-3.9 5.6-.8z"/>',
+        'bell'   => '<path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/>',
+        'phone'  => '<rect x="7" y="2.8" width="10" height="18.4" rx="2.2"/><path d="M10.8 18.2h2.4"/>',
     ];
     $d = $paths[$name] ?? '';
     return '<svg class="ico" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none"'

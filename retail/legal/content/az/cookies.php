@@ -65,11 +65,16 @@
   səhifələrimizdə Stripe skripti daxil edilmir.
 </p>
 
-<h2>Lokal saxlama yox, barmaq izi yox</h2>
+<h2>Lokal saxlama yalnız iki qeyd üçün, barmaq izi yox</h2>
 <p>
-  Nə <code>localStorage</code>, nə <code>sessionStorage</code>, nə piksel, nə fingerprinting
-  texnikaları, nə də cihazlararası tanıma istifadə edirik. Bütün şriftlər, stillər, skriptlər və
-  şəkillər öz serverimizdədir; səhifə açılanda üçüncü tərəflərlə əlaqə qurulmur.
+  Brauzerinizin <code>localStorage</code>-ında heç bir identifikator olmadan ən çoxu iki qeyd
+  saxlayırıq, hər biri yalnız vaxt nişanı ilə: ekranın altındakı tətbiq qeydini bağladığınız
+  (<code>sv-appbar</code>, 30 gün yenidən göstərilmir) və bildiriş sualını «İndi yox» ilə təxirə
+  saldığınız (<code>sv-push-later</code>, 14 gün). Hər ikisi seçdiyiniz funksiya üçün zəruridir
+  (TDDDG § 25 (2) № 2). Quraşdırılmış tətbiq həmçinin üslub və skript fayllarını və oflayn səhifəni
+  brauzer keşində saxlayır. <code>sessionStorage</code>, piksel, barmaq izi texnikaları və cihazlar
+  arası tanıma istifadə etmirik. Bütün şriftlər, üslublar, skriptlər və şəkillər öz serverimizdədir;
+  səhifə yüklənəndə üçüncü tərəflərlə heç bir əlaqə qurulmur.
 </p>
 
 <h2>Kukiləri silmək və ya bloklamaq</h2>

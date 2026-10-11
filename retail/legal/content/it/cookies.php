@@ -65,12 +65,17 @@
   Sulle nostre pagine non è integrato alcuno script Stripe.
 </p>
 
-<h2>Nessun local storage, nessun fingerprint</h2>
+<h2>Local storage solo per due promemoria, nessun fingerprint</h2>
 <p>
-  Non utilizziamo né <code>localStorage</code> né <code>sessionStorage</code>, né pixel, né tecniche di
-  fingerprinting, né riconoscimento tra dispositivi. Tutti i caratteri, stili, script e immagini
-  risiedono sul nostro server; all'apertura della pagina non viene stabilita alcuna connessione con
-  terzi.
+  Nel <code>localStorage</code> del browser conserviamo al massimo due voci senza alcun
+  identificativo, ciascuna con solo un orario: che hai chiuso l’avviso dell’app in fondo allo
+  schermo (<code>sv-appbar</code>, non più mostrato per 30 giorni) e che hai rimandato la domanda
+  sulle notifiche con «Non ora» (<code>sv-push-later</code>, 14 giorni). Entrambe sono necessarie
+  per la funzione che hai scelto (§ 25, c. 2, n. 2 TDDDG). L’app installata conserva inoltre file di
+  stile e script e una pagina offline nella cache del browser. Non usiamo
+  <code>sessionStorage</code>, pixel, tecniche di fingerprinting né riconoscimento tra dispositivi.
+  Tutti i caratteri, gli stili, gli script e le immagini sono sul nostro server; al caricamento della
+  pagina non viene stabilita alcuna connessione a terzi.
 </p>
 
 <h2>Cancellare o bloccare i cookie</h2>

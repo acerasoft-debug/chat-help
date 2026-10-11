@@ -9,7 +9,7 @@
  */
 'use strict';
 
-const VERSION = 'sv-2026-10-10';
+const VERSION = 'sv-2026-10-11';
 const SHELL   = 'shell-' + VERSION;
 const SCOPE   = new URL(self.registration.scope).pathname;          // "/" ya da "/shop/"
 const OFFLINE = SCOPE + 'offline.html';
@@ -51,4 +51,36 @@ self.addEventListener('fetch', (e) => {
       }))
     );
   }
+});
+
+/* ---------------------------------------------------------------- bildirim
+   Sunucu (inc/push.php) şifreli yük gönderir: {title, body, url, tag}.
+   Yalnızca bu sitenin içine yönlendirir; dışarı giden adres yok sayılır. */
+self.addEventListener('push', (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : '' }; }
+  const url = (typeof d.url === 'string' && d.url.startsWith('/')) ? d.url : '/';
+  e.waitUntil(self.registration.showNotification(d.title || 'SARVESTO', {
+    body: d.body || '',
+    icon: SCOPE + 'assets/app/icon-192.png',
+    badge: SCOPE + 'assets/app/badge-96.png',
+    tag: d.tag || 'sarvesto',
+    data: { url: SCOPE.replace(/\/$/, '') + url },
+  }));
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const target = new URL(e.notification.data && e.notification.data.url || SCOPE, self.location.origin).href;
+  e.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const w of wins) {
+      if (new URL(w.url).origin === self.location.origin && 'focus' in w) {
+        await w.focus();
+        if ('navigate' in w) return w.navigate(target);
+        return;
+      }
+    }
+    return self.clients.openWindow(target);
+  })());
 });

@@ -176,7 +176,29 @@
   vaxta qədər aparılmış emalın qanuniliyinə toxunmur.
 </p>
 
-<h2>12. Satıcı hesabları</h2>
+<h2>12. Push bildirişləri</h2>
+<p>
+  Bildirişləri yalnız özünüz aktiv etdikdə alırsınız: «Bildirişləri aktiv edin» düyməsi <em>və</em>
+  ardınca brauzerinizin və ya telefonunuzun göstərdiyi sorğu ilə. Bundan sonra brauzer istehsalçının
+  push xidmətində (Apple, Google, Mozilla və ya Microsoft) təsadüfi çatdırılma ünvanı yaradır. Biz
+  yalnız bu ünvanı, iki texniki şifrələmə açarını, seçdiyiniz dili və tarixi saxlayırıq — ad, e-poçt
+  ünvanı, məkan, cihaz və ya reklam identifikatoru yoxdur.
+</p>
+<ul>
+  <li><strong>Məqsəd:</strong> Vault qiymət pillələri, nadir yeniliklər və sifarişiniz barədə ara-sıra xəbərlər</li>
+  <li><strong>Hüquqi əsas:</strong> GDPR mad. 6 (1) (a) və TDDDG § 25 (1) (razılıq)</li>
+  <li><strong>Alıcılar:</strong> məzmun uçdan-uca şifrələnir (RFC 8291) və brauzer istehsalçısının
+      push xidmətinə verilir; xidmət mətni oxuya bilmir.</li>
+  <li><strong>Saxlama müddəti:</strong> bildirişləri söndürənədək; push xidməti ünvanın etibarsız
+      olduğunu bildirsə, onu avtomatik silirik.</li>
+</ul>
+<p>
+  Razılığı istənilən vaxt geri götürə bilərsiniz: tətbiqdə və ya «Tətbiq» səhifəsində «Söndür» ilə,
+  yaxud brauzer və ya telefon ayarlarında. Geri götürmə ondan əvvəlki emalın qanuniliyinə təsir
+  etmir.
+</p>
+
+<h2>13. Satıcı hesabları</h2>
 <p>
   Satıcı hesabı üçün emal etdiklərimiz: ad, varsa şirkət adı, e-poçt ünvanı, ölkə, varsa ƏDV
   nömrəsi, satıcı növü (kommersiya/fərdi), parol (yalnız kriptoqrafik heş kimi, heç vaxt açıq
@@ -191,7 +213,7 @@
       statusu göstərilir, tam ad yox.</li>
 </ul>
 
-<h2>13. Təhlükəsizlik tədbirləri və jurnallar</h2>
+<h2>14. Təhlükəsizlik tədbirləri və jurnallar</h2>
 <p>
   Uğursuz giriş cəhdləri, ödəniş xətaları və webhook hadisələri barədə texniki jurnallar aparırıq.
   Onlar vaxt, hadisə növü və texniki identifikatorları ehtiva edir; e-poçt ünvanları qısaldılır.
@@ -202,7 +224,7 @@
   Ötürmə şifrələnib (TLS). Parollar müasir birtərəfli heş üsulu ilə saxlanılır.
 </p>
 
-<h2>14. Hüquqlarınız</h2>
+<h2>15. Hüquqlarınız</h2>
 <p>İstənilən vaxt aşağıdakı hüquqlarınız var:</p>
 <ul>
   <li>haqqınızda saxlanılan məlumatlara çıxış (GDPR mad. 15)</li>
@@ -219,7 +241,7 @@
   adi yaşayış yerinizin orqanına şikayət etmək hüququnuz var.
 </p>
 
-<h2>15. Dəyişikliklər</h2>
+<h2>16. Dəyişikliklər</h2>
 <p>
   Faktiki emal dəyişdikdə — məsələn yeni xidmət təminatçısı cəlb edildikdə — bu bəyanatı
   uyğunlaşdırırıq. Bu səhifədə dərc edilmiş versiya qüvvədədir.

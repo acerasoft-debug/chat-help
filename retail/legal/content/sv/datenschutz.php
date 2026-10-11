@@ -175,7 +175,29 @@
   påverkar inte lagligheten av den behandling som skett dessförinnan.
 </p>
 
-<h2>12. Säljarkonton</h2>
+<h2>12. Push-notiser</h2>
+<p>
+  Du får bara notiser om du själv slår på dem: med knappen ”Slå på notiser” <em>och</em> frågan som
+  din webbläsare eller telefon visar därefter. Webbläsaren skapar då en slumpmässig leveransadress
+  hos tillverkarens push-tjänst (Apple, Google, Mozilla eller Microsoft). Vi sparar bara den
+  adressen, två tekniska krypteringsnycklar, valt språk och datum — inget namn, ingen e-postadress,
+  ingen plats, inget enhets- eller annons-id.
+</p>
+<ul>
+  <li><strong>Ändamål:</strong> enstaka meddelanden om Vault-prissteg, sällsynta nyheter och din order</li>
+  <li><strong>Rättslig grund:</strong> art. 6.1 a GDPR och § 25.1 TDDDG (samtycke)</li>
+  <li><strong>Mottagare:</strong> innehållet krypteras från ände till ände (RFC 8291) och lämnas till
+      webbläsartillverkarens push-tjänst, som inte kan läsa texten.</li>
+  <li><strong>Lagringstid:</strong> tills du stänger av notiserna; om push-tjänsten anger att adressen
+      har upphört raderar vi den automatiskt.</li>
+</ul>
+<p>
+  Du kan återkalla när som helst: i appen eller på sidan ”App” via ”Stäng av”, eller i
+  inställningarna i din webbläsare eller telefon. Återkallelsen påverkar inte lagligheten i den
+  behandling som skett dessförinnan.
+</p>
+
+<h2>13. Säljarkonton</h2>
 <p>
   För ett säljarkonto behandlar vi: namn, ev. företagsnamn, e-postadress, land, ev.
   momsregistreringsnummer, säljartyp (näringsidkare/privat), lösenord (endast som kryptografisk
@@ -190,7 +212,7 @@
       „<?= te('seller_private') ?>“, inte fullständigt namn.</li>
 </ul>
 
-<h2>13. Säkerhetsåtgärder och loggar</h2>
+<h2>14. Säkerhetsåtgärder och loggar</h2>
 <p>
   Vi för tekniska loggar över misslyckade inloggningsförsök, betalningsfel och webhook-händelser. De
   innehåller tidpunkt, händelsetyp och tekniska identifierare; e-postadresser förkortas. Ändamålet
@@ -200,7 +222,7 @@
   Överföringen är krypterad (TLS). Lösenord lagras med en modern envägs-hashmetod.
 </p>
 
-<h2>14. Dina rättigheter</h2>
+<h2>15. Dina rättigheter</h2>
 <p>Du har när som helst rätt till:</p>
 <ul>
   <li>tillgång till de uppgifter som lagras om dig (art. 15 GDPR)</li>
@@ -218,7 +240,7 @@
   myndigheten där du har din hemvist.
 </p>
 
-<h2>15. Ändringar</h2>
+<h2>16. Ändringar</h2>
 <p>
   Vi anpassar denna policy när den faktiska behandlingen ändras — t.ex. vid anlitande av en ny
   leverantör. Den version som publiceras på denna sida gäller.

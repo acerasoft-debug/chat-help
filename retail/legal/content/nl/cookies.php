@@ -64,12 +64,17 @@
   onze eigen pagina's wordt geen Stripe-script ingebonden.
 </p>
 
-<h2>Geen local storage, geen fingerprints</h2>
+<h2>Local storage alleen voor twee herinneringen, geen fingerprints</h2>
 <p>
-  Wij gebruiken noch <code>localStorage</code> noch <code>sessionStorage</code>, geen pixels, geen
-  fingerprintingtechnieken en geen herkenning over apparaten heen. Alle lettertypen, stijlen,
-  scripts en afbeeldingen staan op onze eigen server; bij het laden van een pagina wordt geen
-  verbinding met derden gemaakt.
+  In de <code>localStorage</code> van uw browser bewaren wij hooguit twee items zonder enige
+  identificatie, elk met alleen een tijdstempel: dat u de app-melding onderaan het scherm hebt
+  gesloten (<code>sv-appbar</code>, 30 dagen niet meer tonen) en dat u de vraag over meldingen met
+  „Niet nu” hebt uitgesteld (<code>sv-push-later</code>, 14 dagen). Beide zijn nodig voor de functie
+  die u koos (§ 25 lid 2 nr. 2 TDDDG). De geïnstalleerde app bewaart daarnaast stijl- en
+  scriptbestanden en een offlinepagina in de browsercache. Wij gebruiken geen
+  <code>sessionStorage</code>, geen pixels, geen fingerprinting en geen herkenning over apparaten
+  heen. Alle lettertypen, stijlen, scripts en afbeeldingen staan op onze eigen server; bij het laden
+  van een pagina wordt geen verbinding met derden gemaakt.
 </p>
 
 <h2>Cookies verwijderen of blokkeren</h2>

@@ -179,7 +179,30 @@
   revoca non pregiudica la liceità del trattamento effettuato fino a quel momento.
 </p>
 
-<h2>12. Account venditore</h2>
+<h2>12. Notifiche push</h2>
+<p>
+  Ricevi notifiche solo se le attivi tu: con il pulsante «Attiva le notifiche» <em>e</em> la
+  richiesta che il browser o il telefono mostra subito dopo. Il browser crea allora un indirizzo di
+  recapito casuale presso il servizio push del suo produttore (Apple, Google, Mozilla o Microsoft).
+  Conserviamo solo questo indirizzo, due chiavi tecniche di cifratura, la lingua scelta e la data —
+  nessun nome, nessun indirizzo e-mail, nessuna posizione, nessun identificativo del dispositivo o
+  pubblicitario.
+</p>
+<ul>
+  <li><strong>Finalità:</strong> avvisi occasionali su ribassi del Vault, arrivi rari e il tuo ordine</li>
+  <li><strong>Base giuridica:</strong> art. 6, par. 1, lett. a) GDPR e § 25, c. 1 TDDDG (consenso)</li>
+  <li><strong>Destinatari:</strong> il contenuto è cifrato end-to-end (RFC 8291) e consegnato al
+      servizio push del produttore del browser, che non può leggerne il testo.</li>
+  <li><strong>Conservazione:</strong> finché non disattivi le notifiche; se il servizio push segnala
+      l’indirizzo come scaduto, lo cancelliamo automaticamente.</li>
+</ul>
+<p>
+  Revoca in qualsiasi momento: nell’app o nella pagina «App» con «Disattiva», oppure nelle
+  impostazioni del browser o del telefono. La revoca non pregiudica la liceità del trattamento
+  effettuato prima.
+</p>
+
+<h2>13. Account venditore</h2>
 <p>
   Per un account venditore trattiamo: nome, eventuale ragione sociale, indirizzo e-mail, Paese,
   eventuale partita IVA, tipo di venditore (professionale/privato), password (solo come hash
@@ -194,7 +217,7 @@
       solo lo stato «<?= te('seller_private') ?>», non il nome completo.</li>
 </ul>
 
-<h2>13. Misure di sicurezza e log</h2>
+<h2>14. Misure di sicurezza e log</h2>
 <p>
   Teniamo log tecnici dei tentativi di accesso falliti, degli errori di pagamento e degli eventi
   webhook. Contengono momento, tipo di evento e identificativi tecnici; gli indirizzi e-mail sono
@@ -206,7 +229,7 @@
   unidirezionale.
 </p>
 
-<h2>14. I Suoi diritti</h2>
+<h2>15. I Suoi diritti</h2>
 <p>Ha in qualsiasi momento il diritto di:</p>
 <ul>
   <li>accesso ai dati che La riguardano (art. 15 GDPR)</li>
@@ -224,7 +247,7 @@
   ad esempio quella del Suo luogo di residenza abituale.
 </p>
 
-<h2>15. Modifiche</h2>
+<h2>16. Modifiche</h2>
 <p>
   Adeguiamo questa informativa quando cambia il trattamento effettivo — ad esempio in caso di
   ricorso a un nuovo fornitore. Fa fede la versione pubblicata su questa pagina.

@@ -621,6 +621,38 @@ $mark($fresh);
 </section>
 <?php endif; ?>
 
+<!-- ------------------------------------------------------------ uygulama
+     Telefona indirme ve bildirimler. Cihaza göre doğru düğme öne çıkar
+     (data-platform, bkz. maxsales.js); uygulamanın içindeyken yalnız
+     bildirim kutusu kalır. -->
+<?php $apk = vr_app_apk(); ?>
+<section class="appband" id="app">
+  <div class="wrap appband__in">
+    <div class="appband__txt" data-reveal>
+      <p class="eyebrow"><?= te('app_eyebrow', ['brand' => (string)vr_config('brand')]) ?></p>
+      <h2 class="appband__t"><?= te('app_title') ?></h2>
+      <p class="appband__b"><?= te('appband_b', ['brand' => (string)vr_config('brand')]) ?></p>
+      <div class="appband__cta">
+        <a class="btn btn--brass appband__ios" href="<?= h(vr_url('app.php')) ?>#ios">
+          <?= vr_icon('phone', 16) ?><span><?= te('appband_ios') ?></span></a>
+        <?php if ($apk): ?>
+          <a class="btn btn--ghost appband__and" href="<?= h($apk['url']) ?>" download>
+            <?= vr_icon('phone', 16) ?><span><?= te('appband_android') ?></span></a>
+        <?php else: ?>
+          <a class="btn btn--ghost appband__and" href="<?= h(vr_url('app.php')) ?>#android">
+            <?= vr_icon('phone', 16) ?><span><?= te('appband_android') ?></span></a>
+        <?php endif; ?>
+        <a class="sechead__more appband__more" href="<?= h(vr_url('app.php')) ?>"><?= te('appband_more') ?><?= vr_icon('arrow', 14) ?></a>
+      </div>
+      <p class="appband__done"><?= vr_icon('check', 15) ?> <?= te('app_installed') ?></p>
+    </div>
+    <div class="appband__side" data-reveal>
+      <img class="appband__icon" src="<?= h(vr_url('assets/app/icon-192.png')) ?>" alt="" width="84" height="84" loading="lazy">
+      <?php vr_push_box('pushbox--card'); ?>
+    </div>
+  </div>
+</section>
+
 <!-- ---------------------------------------------------------------- üyelik -->
 <section class="sec sec--tight" id="member">
   <div class="wrap">

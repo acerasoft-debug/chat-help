@@ -188,7 +188,29 @@
   nous écrivant. Le retrait n'affecte pas la licéité du traitement effectué jusque-là.
 </p>
 
-<h2>12. Comptes vendeurs</h2>
+<h2>12. Notifications push</h2>
+<p>
+  Vous ne recevez des notifications que si vous les activez vous-même : avec le bouton « Activer les
+  notifications » <em>et</em> la demande que votre navigateur ou téléphone affiche ensuite. Votre
+  navigateur crée alors une adresse de distribution aléatoire auprès du service push de son
+  fabricant (Apple, Google, Mozilla ou Microsoft). Nous ne conservons que cette adresse, deux clés
+  techniques de chiffrement, la langue choisie et la date — ni nom, ni adresse e-mail, ni
+  localisation, ni identifiant d’appareil ou publicitaire.
+</p>
+<ul>
+  <li><strong>Finalité :</strong> des informations ponctuelles sur les paliers de prix du Vault, les arrivées rares et votre commande</li>
+  <li><strong>Base juridique :</strong> art. 6, par. 1, point a) du RGPD et § 25, al. 1 TDDDG (consentement)</li>
+  <li><strong>Destinataires :</strong> le contenu est chiffré de bout en bout (RFC 8291) et remis au
+      service push du fabricant du navigateur, qui ne peut pas lire le texte.</li>
+  <li><strong>Durée de conservation :</strong> jusqu’à ce que vous désactiviez les notifications ; si
+      le service push signale l’adresse comme expirée, nous la supprimons automatiquement.</li>
+</ul>
+<p>
+  Retrait à tout moment : dans l’app ou sur la page « App » via « Désactiver », ou dans les réglages
+  de votre navigateur ou téléphone. Le retrait n’affecte pas la licéité du traitement effectué avant.
+</p>
+
+<h2>13. Comptes vendeurs</h2>
 <p>
   Pour un compte vendeur, nous traitons : nom, le cas échéant raison sociale, adresse e-mail, pays,
   le cas échéant numéro de TVA, type de vendeur (professionnel/particulier), mot de passe
@@ -204,7 +226,7 @@
       particuliers, seul le statut « <?= te('seller_private') ?> » est affiché, pas le nom complet.</li>
 </ul>
 
-<h2>13. Mesures de sécurité et journaux</h2>
+<h2>14. Mesures de sécurité et journaux</h2>
 <p>
   Nous tenons des journaux techniques des tentatives de connexion échouées, des erreurs de paiement
   et des événements webhook. Ils contiennent l'horodatage, le type d'événement et des identifiants
@@ -216,7 +238,7 @@
   sens unique moderne.
 </p>
 
-<h2>14. Vos droits</h2>
+<h2>15. Vos droits</h2>
 <p>Vous disposez à tout moment des droits suivants :</p>
 <ul>
   <li>accès aux données vous concernant (art. 15 RGPD)</li>
@@ -234,7 +256,7 @@
   de la protection des données, par exemple celle de votre résidence habituelle.
 </p>
 
-<h2>15. Modifications</h2>
+<h2>16. Modifications</h2>
 <p>
   Nous adaptons cette déclaration lorsque le traitement effectif change — par exemple en cas de
   recours à un nouveau prestataire. La version publiée sur cette page fait foi.

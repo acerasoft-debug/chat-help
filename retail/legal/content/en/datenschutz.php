@@ -173,7 +173,28 @@
   the lawfulness of processing carried out before it.
 </p>
 
-<h2>12. Seller accounts</h2>
+<h2>12. Push notifications</h2>
+<p>
+  You receive notifications only if you switch them on yourself: with the “Turn on notifications”
+  button <em>and</em> the prompt your browser or phone shows next. Your browser then creates a
+  random delivery address at its maker’s push service (Apple, Google, Mozilla or Microsoft). We
+  store only that address, two technical encryption keys, the language you chose and the date —
+  no name, no e-mail address, no location, no device or advertising identifier.
+</p>
+<ul>
+  <li><strong>Purpose:</strong> occasional notes on Vault price steps, rare arrivals and your order</li>
+  <li><strong>Legal basis:</strong> Art. 6 (1) (a) GDPR and § 25 (1) TDDDG (consent)</li>
+  <li><strong>Recipients:</strong> the content is end-to-end encrypted (RFC 8291) and handed to the
+      browser maker’s push service, which cannot read the text.</li>
+  <li><strong>Retention:</strong> until you switch notifications off; if the push service reports
+      the address as expired, we delete it automatically.</li>
+</ul>
+<p>
+  You can withdraw at any time: in the app or on the “App” page via “Turn off”, or in your browser
+  or phone settings. Withdrawal does not affect the lawfulness of processing carried out before it.
+</p>
+
+<h2>13. Seller accounts</h2>
 <p>
   For a seller account we process: name, company name if applicable, e-mail address, country, VAT ID
   if applicable, seller type (commercial/private), password (only as a cryptographic hash, never in
@@ -188,7 +209,7 @@
       "<?= te('seller_private') ?>" is shown, not the full name.</li>
 </ul>
 
-<h2>13. Security measures and logs</h2>
+<h2>14. Security measures and logs</h2>
 <p>
   We keep technical logs of failed login attempts, payment errors and webhook events. They contain
   time, event type and technical identifiers; e-mail addresses are truncated. The purpose is the
@@ -198,7 +219,7 @@
   Transmission is encrypted (TLS). Passwords are stored using a modern one-way hashing method.
 </p>
 
-<h2>14. Your rights</h2>
+<h2>15. Your rights</h2>
 <p>You have the right at any time to:</p>
 <ul>
   <li>access to the data stored about you (Art. 15 GDPR)</li>
@@ -216,7 +237,7 @@
   authority, for instance the authority of your habitual residence.
 </p>
 
-<h2>15. Changes</h2>
+<h2>16. Changes</h2>
 <p>
   We update this policy when the actual processing changes — for example when a new service
   provider is used. The version published on this page applies.

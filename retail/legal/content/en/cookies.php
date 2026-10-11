@@ -65,9 +65,14 @@
   Stripe script is embedded on our own pages.
 </p>
 
-<h2>No local storage, no fingerprints</h2>
+<h2>Local storage only for two reminders, no fingerprints</h2>
 <p>
-  We use neither <code>localStorage</code> nor <code>sessionStorage</code>, no pixels, no
+  In your browser’s <code>localStorage</code> we keep at most two entries with no identifier, each
+  holding only a timestamp: that you closed the app note at the bottom of the screen
+  (<code>sv-appbar</code>, not shown again for 30 days) and that you postponed the notification
+  question with “Not now” (<code>sv-push-later</code>, 14 days). Both are required for the function
+  you chose (§ 25 (2) no. 2 TDDDG). The installed app also keeps style and script files and an
+  offline page in the browser cache. We use no <code>sessionStorage</code>, no pixels, no
   fingerprinting techniques and no cross-device recognition. All fonts, styles, scripts and images
   are hosted on our own server; no connection to third parties is made when a page loads.
 </p>

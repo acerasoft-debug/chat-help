@@ -178,7 +178,29 @@
   berører ikke lovligheden af den behandling, der er sket indtil da.
 </p>
 
-<h2>12. Sælgerkonti</h2>
+<h2>12. Push-notifikationer</h2>
+<p>
+  Du får kun notifikationer, hvis du selv slår dem til: med knappen „Slå notifikationer til“
+  <em>og</em> den forespørgsel, din browser eller telefon viser bagefter. Din browser opretter så
+  en tilfældig leveringsadresse hos producentens push-tjeneste (Apple, Google, Mozilla eller
+  Microsoft). Vi gemmer kun denne adresse, to tekniske krypteringsnøgler, det valgte sprog og
+  datoen — intet navn, ingen e-mailadresse, ingen placering, intet enheds- eller annonce-id.
+</p>
+<ul>
+  <li><strong>Formål:</strong> lejlighedsvise beskeder om Vault-pristrin, sjældne nyheder og din ordre</li>
+  <li><strong>Retsgrundlag:</strong> art. 6, stk. 1, litra a, GDPR og § 25, stk. 1, TDDDG (samtykke)</li>
+  <li><strong>Modtagere:</strong> indholdet krypteres end-to-end (RFC 8291) og overgives til
+      browserproducentens push-tjeneste, som ikke kan læse teksten.</li>
+  <li><strong>Opbevaring:</strong> indtil du slår notifikationerne fra; melder push-tjenesten
+      adressen som udløbet, sletter vi den automatisk.</li>
+</ul>
+<p>
+  Du kan til enhver tid trække samtykket tilbage: i appen eller på siden „App“ via „Slå fra“ eller i
+  indstillingerne i din browser eller telefon. Tilbagetrækningen berører ikke lovligheden af den
+  behandling, der er sket forinden.
+</p>
+
+<h2>13. Sælgerkonti</h2>
 <p>
   Til en sælgerkonto behandler vi: navn, evt. firmanavn, e-mailadresse, land, evt. momsnummer,
   sælgertype (erhvervsdrivende/privat), adgangskode (kun som kryptografisk hash, aldrig i klartekst),
@@ -193,7 +215,7 @@
       „<?= te('seller_private') ?>“, ikke fuldt navn.</li>
 </ul>
 
-<h2>13. Sikkerhedsforanstaltninger og logfiler</h2>
+<h2>14. Sikkerhedsforanstaltninger og logfiler</h2>
 <p>
   Vi fører tekniske logfiler over mislykkede loginforsøg, betalingsfejl og webhook-hændelser. De
   indeholder tidspunkt, hændelsestype og tekniske kendetegn; e-mailadresser afkortes. Formålet er
@@ -203,7 +225,7 @@
   Overførslen er krypteret (TLS). Adgangskoder gemmes med en moderne envejs-hashmetode.
 </p>
 
-<h2>14. Dine rettigheder</h2>
+<h2>15. Dine rettigheder</h2>
 <p>Du har til enhver tid ret til:</p>
 <ul>
   <li>indsigt i de oplysninger, der er gemt om dig (art. 15 GDPR)</li>
@@ -221,7 +243,7 @@
   myndigheden i det land, hvor du sædvanligvis opholder dig.
 </p>
 
-<h2>15. Ændringer</h2>
+<h2>16. Ændringer</h2>
 <p>
   Vi tilpasser denne erklæring, når den faktiske behandling ændrer sig — f.eks. ved brug af en ny
   tjenesteudbyder. Den version, der er offentliggjort på denne side, er gældende.
