@@ -2,6 +2,11 @@ name: (Salt-okunur) Fotoğraflar gerçek tarayıcıda görünüyor mu
 
 on:
   workflow_dispatch:
+    inputs:
+      quick:
+        description: "Hızlı kontrol: birkaç sayfa, doğal bekleme, hepsinin ekran görüntüsü (true/false)"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
