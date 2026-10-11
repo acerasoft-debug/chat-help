@@ -22,6 +22,10 @@ on:
         description: "En fazla kaç ürün (0 = sınırsız)"
         required: false
         default: "0"
+      colourways:
+        description: "Tek üründe çok renk: bu ürün id'lerinin her rengi kendi koduyla ayrı aranır (virgülle)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
