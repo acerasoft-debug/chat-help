@@ -130,6 +130,10 @@ jobs:
             foreach($r as $x){$n++; if($x["images"]) $h++; if(!empty($x["codes"])) $c++;}
             printf("%d ürün · aday bulunan %d · kod bulunan %d\n",$n,$h,$c);'
 
+      - name: Burberry resmî kareleri (ürün koduyla)
+        working-directory: retail
+        run: php -d memory_limit=1024M tools/fetch-burberry.php ../targets.json || true
+
       - name: Dala işle
         run: |
           git config user.name  "Claude"
