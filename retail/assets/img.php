@@ -31,11 +31,7 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../inc/boot.php';
-require_once __DIR__ . '/../inc/uploads.php';
-
-/** İzin verilen genişlikler. Serbest sayı = sınırsız önbellek = kaynak tüketimi. */
-const VR_IMG_WIDTHS = [180, 300, 420, 600, 900, 1400];
+require_once __DIR__ . '/../inc/thumbs.php';   // VR_IMG_WIDTHS, önbellek yolu, üretim
 
 $rel = (string)($_GET['p'] ?? '');
 $w   = (int)($_GET['w'] ?? 600);
@@ -61,10 +57,8 @@ $wantWebp = function_exists('imagewebp')
 $ext  = $wantWebp ? 'webp' : 'jpg';
 $mime = $wantWebp ? 'image/webp' : 'image/jpeg';
 
-// ---- önbellek yolu: kaynak yolu + değişiklik zamanı özeti
-$key   = sha1($rel . '|' . filemtime($src) . '|' . $w . '|' . $ext);
-$dir   = vr_doc_root() . '/uploads/.thumbs/' . substr($key, 0, 2);
-$cache = $dir . '/' . $key . '.' . $ext;
+// ---- önbellek yolu: kaynak yolu + değişiklik zamanı özeti (bkz. inc/thumbs.php)
+$cache = vr_thumb_path($rel, $src, $w, $ext);
 
 /** Hazır dosyayı gönder. */
 function vr_img_send(string $file, string $mime): void
@@ -88,47 +82,24 @@ function vr_img_send(string $file, string $mime): void
 
 if (is_file($cache) && filesize($cache) > 0) vr_img_send($cache, $mime);
 
-// ---- üret
-$im = @imagecreatefromstring((string)file_get_contents($src));
-if (!$im instanceof \GdImage) {
-    // Okunamayan dosya: orijinali olduğu gibi ver, kart boş kalmasın.
-    header('Content-Type: ' . (mime_content_type($src) ?: 'image/jpeg'));
-    header('Cache-Control: public, max-age=86400');
+// ---- üret (önbellekte yoksa — normalde tools/warm-thumbs.php önceden üretir)
+$im = vr_thumb_open($src);
+if ($im === null) {
+    // Okunamayan ya da çok büyük dosya: orijinali olduğu gibi ver, kart boş kalmasın.
+    vr_img_original($src);
+}
+$ok = vr_thumb_write($im, $w, $ext, $cache);
+imagedestroy($im);
+if ($ok && is_file($cache)) vr_img_send($cache, $mime);
+vr_img_original($src);
+
+/** Orijinali tür başlığıyla gönder (son çare). */
+function vr_img_original(string $src): never
+{
+    $t = @getimagesize($src);
+    header('Content-Type: ' . ($t['mime'] ?? (mime_content_type($src) ?: 'image/jpeg')));
+    header('Cache-Control: public, max-age=3600');
+    header('Content-Length: ' . filesize($src));
     readfile($src);
     exit;
 }
-
-$sw = imagesx($im);
-$sh = imagesy($im);
-// Büyütme yok: 400 pikselli bir kaynağı 900'e çıkarmak dosyayı büyütüp
-// görüntüyü bozar, sadece bulanıklığı kalınlaştırır.
-$scale = min(1.0, $w / max(1, $sw));
-$nw = max(1, (int)round($sw * $scale));
-$nh = max(1, (int)round($sh * $scale));
-
-$out = imagecreatetruecolor($nw, $nh);
-// Şeffaf PNG'ler ürün fotoğrafı olarak beyaz zemine oturur; kartların zemini
-// zaten açık, siyah bir dörtgen çıkmasın.
-imagefill($out, 0, 0, imagecolorallocate($out, 255, 255, 255));
-imagecopyresampled($out, $im, 0, 0, 0, 0, $nw, $nh, $sw, $sh);
-imagedestroy($im);
-
-if (!is_dir($dir)) @mkdir($dir, 0755, true);
-
-// Önce geçici dosyaya, sonra yerine taşı: yarım yazılmış bir dosya
-// önbellekte kalmasın (aynı anda iki istek gelebilir).
-$tmp = $cache . '.' . getmypid() . '.tmp';
-$ok  = $wantWebp ? @imagewebp($out, $tmp, 82) : @imagejpeg($out, $tmp, 84);
-imagedestroy($out);
-
-if ($ok && is_file($tmp)) {
-    @chmod($tmp, 0644);
-    @rename($tmp, $cache);
-    if (is_file($cache)) vr_img_send($cache, $mime);
-    // Taşınamadıysa (izin sorunu) geçici dosyayı yine de gönder.
-    vr_img_send($tmp, $mime);
-}
-
-@unlink($tmp);
-header('Content-Type: ' . (mime_content_type($src) ?: 'image/jpeg'));
-readfile($src);
