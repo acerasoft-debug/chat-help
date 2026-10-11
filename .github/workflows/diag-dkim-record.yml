@@ -1,0 +1,31 @@
+name: (Salt-okunur) DKIM DNS kaydının değeri (açık anahtar)
+# 11 Eki 2026 (operatör: "kaydı yapalım"). GoDaddy DNS'e eklenecek TXT kaydının adını ve değerini basar. Değer AÇIK
+# anahtardır (DNS'te herkese görünür) — günlüğe basmak güvenli. Özel anahtar sunucudan hiç çıkmaz. Anahtar yoksa
+# panelin yaptığı gibi bir kez üretilir (vestra_dkim_dns_record); başka hiçbir şeyi değiştirmez.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Oku
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 2m
+          script: |
+            cd ~/public_html && php -r '
+              require "inc/products.php"; require_once "inc/leads.php"; require_once "inc/notify.php"; require_once "inc/mailbox.php";
+              $r = vestra_dkim_dns_record();
+              if (!$r) { echo "anahtar yok/uretilemedi\n"; exit; }
+              echo "TUR: TXT\nAD (GoDaddy Name alani): ".VESTRA_DKIM_SELECTOR."._domainkey\nTAM AD: {$r[0]}\nDEGER uzunluk: ".strlen($r[1])."\n";
+              echo "DEGER:\n".$r[1]."\n";
+              echo "DNS durumu simdi: ".vestra_dkim_dns_status()."\n";'
