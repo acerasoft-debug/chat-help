@@ -287,6 +287,11 @@ foreach ($targets as $n => $t) {
         // metinde taşıyor (ikinci turda D&G eşleşmelerinin hepsi thecorner'dan
         // geldi). Sonra genel arama, en son adla.
         $sites = ['thecorner.com', 'italist.com', 'giglio.com', 'antonioli.eu', 'leam.com', 'modesens.com'];
+        // Markanın kendi mağazası en iyi kaynak (resmî kareler, her açı).
+        $own = ['burberry' => 'burberry.com', 'gucci' => 'gucci.com', 'fendi' => 'fendi.com', 'balmain' => 'balmain.com',
+                'givenchy' => 'givenchy.com', 'dolcegabbana' => 'dolcegabbana.com', 'valentino' => 'valentino.com',
+                'balenciaga' => 'balenciaga.com', 'dsquared' => 'dsquared2.com', 'lacoste' => 'lacoste.com'][$bk] ?? '';
+        if ($own !== '') array_unshift($sites, $own);
         $queries = $real
             ? array_merge(array_map(fn($h) => 'site:' . $h . ' ' . $sku, $sites), [$brand . ' ' . $sku, $sku . ' ' . $colour, $byName])
             : [$byName, $byName . ' site:lyst.com', $byName . ' site:farfetch.com', $byName . ' men'];

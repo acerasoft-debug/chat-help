@@ -19,6 +19,10 @@ on:
         description: "En fazla kaç ürün (0 = sınırsız)"
         required: false
         default: "0"
+      colourways:
+        description: "Tek üründe çok renk: bu ürün id'lerinin HER RENGİ kendi ürün koduyla ayrı aranır (virgülle). Doluysa diğer süzgeçler yok sayılır."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -63,9 +67,30 @@ jobs:
           MAXI=$(printf '%s' "$MAXI" | tr -cd '0-9'); [ -n "$MAXI" ] || MAXI=1
           B64=$(printf '%s' "$BRANDS" | base64 -w0)
 
-          ssh $SSHOPT "$SRV" "cd ~/maxsales_de && MAXI=$MAXI BRANDS_B64=$B64 php -d memory_limit=1024M" > targets.json <<'PHP'
+          CW64=$(printf '%s' "${{ github.event.inputs.colourways }}" | base64 -w0)
+          ssh $SSHOPT "$SRV" "cd ~/maxsales_de && MAXI=$MAXI BRANDS_B64=$B64 CW64=$CW64 php -d memory_limit=1024M" > targets.json <<'PHP'
           <?php
           require 'inc/catalog.php';
+          // Çok renkli tek ürün: her renk "Green (8099164)" gibi kendi kodunu
+          // taşıyor. Her renk ayrı hedef: id "<ürün>@<kod>", eldeki kare o
+          // kodu adında taşıyan dosya.
+          $cw = array_filter(array_map('trim', explode(',', (string)base64_decode((string)getenv('CW64')))));
+          if ($cw) {
+              $cat = vr_catalog(); $out = [];
+              foreach ($cw as $pid) {
+                  $p = $cat[$pid] ?? null; if (!$p) continue;
+                  $base = trim(preg_replace('/\s+—.*$/u', '', preg_replace('/^' . preg_quote((string)$p['brand'], '/') . '\s+/i', '', (string)$p['name'])));
+                  foreach (vr_product_colours($p) as $c) {
+                      if (!preg_match('/^(.*?)\s*\((\w{5,})\)\s*$/u', $c, $m)) continue;
+                      $cur = '';
+                      foreach ((array)$p['images'] as $im) if (str_contains(basename((string)$im), $m[2])) { $cur = (string)$im; break; }
+                      $out[] = ['id' => $pid . '@' . $m[2], 'brand' => (string)$p['brand'], 'name' => $base . ' — ' . $m[1],
+                                'colour' => trim(explode('·', $m[1])[0]), 'sku' => $m[2], 'count' => 1, 'current' => $cur];
+                  }
+              }
+              echo json_encode($out, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+              exit;
+          }
           $max = (int)getenv('MAXI');
           $want = array_filter(array_map(fn($b) => vr_brand_key(trim($b)), explode(',', (string)base64_decode((string)getenv('BRANDS_B64')))));
           $out = [];
