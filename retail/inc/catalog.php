@@ -473,6 +473,18 @@ function vr_catalog(): array
         }
     }
 
+    // 5b) Gözle "boş" bulunan kareler (data/photo-exclude.json: yol listesi)
+    //     galeriden tamamen düşer — ör. bölünmüş bir kolajdan geriye kalan
+    //     neredeyse beyaz bir köşe. Ürünün tek karesiyse dokunulmaz.
+    $drop = array_flip(array_filter((array)vr_store_read('photo-exclude.json', []), 'is_string'));
+    if ($drop) {
+        foreach ($cat as $cid => $cp) {
+            $imgs = array_values(array_filter((array)($cp['images'] ?? []), 'strlen'));
+            $keep = array_values(array_filter($imgs, fn($x) => !isset($drop[$x])));
+            if ($keep && count($keep) < count($imgs)) $cat[$cid]['images'] = $keep;
+        }
+    }
+
     // 6) Gerçek fotoğrafı olmayan parça vitrine çıkmaz: yer tutucu grafikli
     //    bir kart premium vitrinde "eksik" diye okunuyor. Fotoğraf geldiği
     //    an (Vestra senkronu ya da onaylı internet karesi) kendiliğinden döner.
