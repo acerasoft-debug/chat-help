@@ -72,7 +72,26 @@ foreach ($lists as $l) {
         usleep(500000);
     }
 }
-// 2) Bing (listede olmayanlar — eski sezon)
+// 2) Adres tahmini: Burberry sayfayı "<ad>-p<kod><hane>" ile açıyor ve aynı
+//    modelin renkleri aynı adı taşıyor (siyah: cotton-polo-shirt-p80964251).
+//    Bulunan kodların adları + yaygın adlar, son hane 1–4. Sayfa kodu
+//    gerçekten taşıyorsa kabul.
+$slugs = [];
+foreach (array_intersect_key($map, $want) as $pth) $slugs[] = preg_replace('#^/([a-z0-9-]+)-p\d{8}/$#', '$1', $pth);
+$slugs = array_values(array_unique(array_merge($slugs, ['cotton-polo-shirt', 'check-collar-cotton-polo-shirt',
+          'cotton-pique-polo-shirt', 'check-collar-cotton-pique-polo-shirt', 'polo-shirt'])));
+foreach (array_keys(array_diff_key($want, $map)) as $code) {
+    foreach ($slugs as $sl) {
+        foreach ([1, 2, 3, 4] as $d) {
+            $pth = "/$sl-p$code$d/";
+            $html = bb_get(BB_HOST . $pth, 20);
+            if ($html !== null && str_contains($html, "p$code$d") && str_contains($html, 'assets.burberry.com')) { $map[$code] = $pth; continue 3; }
+            usleep(250000);
+        }
+    }
+}
+
+// 3) Bing (listede olmayanlar — eski sezon)
 foreach (array_keys(array_diff_key($want, $map)) as $code) {
     $html = bb_get('https://www.bing.com/search?q=' . rawurlencode("site:burberry.com $code"));
     if ($html && preg_match('#https?://[a-z]{2}\.burberry\.com(/[a-z0-9-]+-p' . $code . '\d)/?#', $html, $m)) $map[$code] = $m[1] . '/';
@@ -80,7 +99,7 @@ foreach (array_keys(array_diff_key($want, $map)) as $code) {
 }
 printf("Burberry ürün sayfası bulunan kod: %d / %d\n", count(array_intersect_key($map, $want)), count($want));
 
-// 3) Ürün sayfası → galeri kareleri
+// 4) Ürün sayfası → galeri kareleri
 $report = json_decode((string)@file_get_contents("$root/data/photo-web-report.json"), true) ?: [];
 $sheetDir = "$root/uploads/candidates/_web";
 @mkdir($sheetDir, 0755, true);
