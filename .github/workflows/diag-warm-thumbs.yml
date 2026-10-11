@@ -7,6 +7,10 @@ on:
         description: "Bitmemişse ve çalışan yoksa üretimi yeniden başlat (true/false)"
         required: false
         default: "false"
+      purge_old:
+        description: "Kullanılmayan eski önbellek uploads/.thumbs silinsin mi (true/false) — yalnız yeni kopyalar tamamsa"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -25,7 +29,7 @@ jobs:
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
           SSHOPT="-i $HOME/.ssh/id_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=30 -p ${{ secrets.DEPLOY_PORT || 22 }}"
-          ssh $SSHOPT "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" START="${{ github.event.inputs.start }}" 'bash -s' <<'SH'
+          ssh $SSHOPT "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" START="${{ github.event.inputs.start }}" PURGE="${{ github.event.inputs.purge_old }}" 'bash -s' <<'SH'
           cd ~/maxsales_de || exit 1
           echo "== hazır kopya (webp) genişliğe göre =="
           for w in 180 300 420 600 900 1400; do printf '  %5s: %s\n' "$w" "$(find uploads/_t/$w -name '*.webp' 2>/dev/null | wc -l)"; done
@@ -40,5 +44,15 @@ jobs:
                 > ../data/warm-thumbs-$s.log 2>&1 < /dev/null &
             done
             echo "== yeniden başlatıldı"
+          fi
+          # Eski özet adlı önbellek (img.php artık okumuyor). Yalnız üretici
+          # çalışmıyorsa ve yeni kopyalar 600 genişlikte en az 2000 kareyse.
+          if [ "$PURGE" = "true" ]; then
+            ready=$(find uploads/_t/600 -name '*.webp' 2>/dev/null | wc -l)
+            if [ "${n:-0}" = "0" ] && [ "$ready" -ge 2000 ] && [ -d uploads/.thumbs ]; then
+              rm -rf -- uploads/.thumbs && echo "== eski önbellek silindi (yeni: $ready kare)"
+            else
+              echo "== eski önbellek SİLİNMEDİ (çalışan: $n, hazır: $ready)"
+            fi
           fi
           SH

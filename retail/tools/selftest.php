@@ -66,12 +66,12 @@ line(is_dir($docRoot . '/uploads') ? 'OK' : 'WARN', 'uploads/ vorhanden',
    Yazılamıyorsa site çökmez ama her istek fotoğrafı yeniden hesaplar ve
    sayfa yavaşlar — sessiz bir performans arızası, o yüzden burada
    görünür olması gerekiyor. */
-$thumbs = $docRoot . '/uploads/.thumbs';
+$thumbs = $docRoot . '/uploads/_t';   // bkz. inc/thumbs.php (VR_THUMB_DIR)
 if (!is_dir($thumbs)) @mkdir($thumbs, 0755, true);
 $thumbOk = is_dir($thumbs) && is_writable($thumbs);
 line($thumbOk ? 'OK' : 'WARN', 'Bildcache beschreibbar',
      $thumbOk
-        ? 'ja · ' . count(glob($thumbs . '/*/*') ?: []) . ' Datei(en)'
+        ? 'ja · ' . count(glob($thumbs . '/600/*/*') ?: []) . ' Karten-Kopien (600 px, oberste Ebene)'
         : 'NEIN — jede Seite skaliert die Fotos neu (langsam)');
 
 // ------------------------------------------------------------- yazma testi
