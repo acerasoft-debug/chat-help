@@ -338,7 +338,8 @@ dash_open('buyer',$tab,
 if ($__ru = auth_restricted_until($AUTH_USER)) {
   echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:14px">⛔ <b>'
      . sprintf(t('Your account is restricted for 30 days (until %s): you cannot send messages and cannot receive payment invoices.'), date('j M Y', $__ru))
-     . '</b><br>'.t('If this happens again, your account will be closed permanently.').'</div>';
+     . '</b>'.(auth_restriction_lift_refs($AUTH_USER) ? '<br>'.t('The restriction is lifted as soon as your payment is received.') : '')
+     . '<br>'.t('If this happens again, your account will be closed permanently.').'</div>';
 }
 unset($__ru);
 $unpaidInvs = vestra_buyer_unpaid_invoices($myEmail);

@@ -122,7 +122,32 @@ function auth_find(string $email): ?array {
 function auth_restricted_until(?array $acc, ?int $now = null): int {
     if (!$acc) return 0;
     $u = strtotime((string)($acc['restricted_until'] ?? '')) ?: 0;
-    return $u > ($now ?? time()) ? $u : 0;
+    if ($u <= ($now ?? time())) return 0;
+    /* ODEME GELINCE KALKAR (operator, 11 Eki 2026: "odeme yapildiktan sonra
+       kisitlama listesinden cikartilsin"). 'restricted_lift_refs' = kisitlamayla
+       birlikte BIRAKILAN odenmemis siparisler; biri odendi sayilinca
+       (vestra_order_payment_settled -- panelin ve hatirlatma saatinin AYNI
+       olcusu) kisitlama o an kalkar ve kayda yazilir. Cron yok: alan yalniz
+       kisitli hesaplarda var, yani bu okuma sadece onlar icin yapiliyor. */
+    $lift = array_values(array_filter(array_map('strval', (array)($acc['restricted_lift_refs'] ?? []))));
+    if ($lift) {
+        if (!function_exists('vestra_order_payment_settled')) {
+            require_once __DIR__.'/products.php';
+            require_once __DIR__.'/orders.php';
+        }
+        foreach ($lift as $ref) {
+            if (!empty(vestra_order_payment_settled($ref)['settled'])) {
+                if (($acc['id'] ?? '') !== '') auth_update((string)$acc['id'], ['restricted_until' => '', 'restricted_lift_refs' => [],
+                    'restricted_lifted_at' => date('c'), 'restricted_lifted_by' => 'payment '.$ref]);
+                return 0;
+            }
+        }
+    }
+    return $u;
+}
+/* Kisitlama odemeyle mi kalkacak? Bant ve admin rozeti icin. */
+function auth_restriction_lift_refs(?array $acc): array {
+    return array_values(array_filter(array_map('strval', (array)($acc['restricted_lift_refs'] ?? []))));
 }
 function auth_restricted_uid(string $uid, ?int $now = null): int {
     if ($uid === '') return 0;

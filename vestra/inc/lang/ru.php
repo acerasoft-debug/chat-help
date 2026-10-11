@@ -1666,4 +1666,5 @@ return array (
   'DeepSeek did not accept your DeepSeek key. Please create a new key and save it again.' => 'DeepSeek не принял ваш ключ DeepSeek. Создайте новый ключ и сохраните его снова.',
   'Your DeepSeek account has no balance left. Top up at platform.deepseek.com, then try again.' => 'На вашем аккаунте DeepSeek закончился баланс. Пополните его на platform.deepseek.com и попробуйте снова.',
   'DeepSeek is busy right now. Please wait a minute and try again.' => 'DeepSeek сейчас перегружен. Подождите минуту и попробуйте снова.',
+  'The restriction is lifted as soon as your payment is received.' => 'Ограничение будет снято сразу после поступления вашей оплаты.',
 );

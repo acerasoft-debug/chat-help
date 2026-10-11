@@ -3601,7 +3601,7 @@ elseif($tab==='documents'):
       </div>
     <?php endif; ?>
     <?php if($__ru=auth_restricted_until($selUser)): ?>
-      <div style="margin:6px 0 10px"><?= abadge('⛔ kısıtlı · '.date('j M Y',$__ru).' tarihine kadar','#a33') ?> <span class="ahint">mesaj gönderemez, yeni fatura kesilmez; tekrarında kalıcı kapatma</span></div>
+      <div style="margin:6px 0 10px"><?= abadge('⛔ kısıtlı · '.date('j M Y',$__ru).' tarihine kadar','#a33') ?> <span class="ahint">mesaj gönderemez, yeni fatura kesilmez; tekrarında kalıcı kapatma<?= ($__lr=auth_restriction_lift_refs($selUser)) ? ' · ödeme gelince kalkar ('.htmlspecialchars(implode(', ',$__lr)).')' : '' ?></span></div>
     <?php endif; ?>
     <?php if(($selUser['status']??'active')==='suspended'): ?>
       <?= fBtn('Activate account','activate_account',['uid'=>$selUser['id']??'']) ?>

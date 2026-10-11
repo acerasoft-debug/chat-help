@@ -1666,4 +1666,5 @@ return array (
   'DeepSeek did not accept your DeepSeek key. Please create a new key and save it again.' => 'DeepSeek が DeepSeek キーを受け付けませんでした。新しいキーを作成して保存し直してください。',
   'Your DeepSeek account has no balance left. Top up at platform.deepseek.com, then try again.' => 'DeepSeek アカウントの残高がありません。platform.deepseek.com でチャージしてから再試行してください。',
   'DeepSeek is busy right now. Please wait a minute and try again.' => 'DeepSeek が混み合っています。1分ほど待ってから再試行してください。',
+  'The restriction is lifted as soon as your payment is received.' => 'お支払いを確認次第、制限は解除されます。',
 );
