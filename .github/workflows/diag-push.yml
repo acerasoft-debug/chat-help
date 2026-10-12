@@ -1,0 +1,61 @@
+name: (Salt-okunur) Uygulama bildirimleri — canlı sonda
+# 12 Eki 2026 (operatör: "App'i düzelt, Benachrichtigung'lar çalışsın"). SALT-OKUNUR: hiçbir cihaza bildirim
+# GÖNDERMEZ (KURAL 18), hiçbir dosyaya yazmaz. Sunucuda: PHP/OpenSSL/cURL yeteneği, VAPID anahtarı VAR/YOK, cihaz
+# tablosu (hesap ve uç nokta MASKELİ: yalnız tarayıcı etiketi, push servisi host'u, son teslim kodu, hata sayısı),
+# kuyruk boyları, VAPID JWT'nin yerel doğrulaması ve şifreleme gidiş-dönüşü. Koşucudan: sw.js / manifest / push
+# uçlarının HTTP başlıkları.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Dışarıdan — uygulama dosyaları (HTTP başlıkları)
+        run: |
+          for p in /sw.js /site.webmanifest /offline.html /icon-192.png /icon-badge-96.png /inc/app.js "/push?a=vapid"; do
+            printf "== %s\n" "$p"; curl -sS -o /tmp/body -m 20 -D - "https://vestrasales.com$p" | grep -i -E "^HTTP/|content-type|cache-control|content-length|service-worker" | tr -d '\r' | sed 's/^/   /'
+            case "$p" in /push*) echo "   govde: $(head -c 120 /tmp/body | sed 's/"publicKey":"\(.\{12\}\)[^"]*"/"publicKey":"\1…"/')";; /sw.js) echo "   CACHE: $(grep -o "const CACHE = '[^']*'" /tmp/body)";; esac
+          done
+      - name: Sunucudan — anahtar, cihazlar, son teslimler, kripto öz-sınaması
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          script: |
+            cd ~/public_html && php -r '
+              error_reporting(E_ALL); ini_set("display_errors","1");
+              require "inc/products.php"; require_once "inc/leads.php"; require_once "inc/auth.php"; require_once "inc/push.php"; require_once "inc/push_texts.php";
+              echo "PHP ".PHP_VERSION." · openssl_pkey_derive: ".(function_exists("openssl_pkey_derive")?"var":"YOK")." · hash_hkdf: ".(function_exists("hash_hkdf")?"var":"YOK")." · curl: ".(function_exists("curl_init")?"var":"YOK")."\n";
+              $k = vestra_vapid_keys(); echo "VAPID: ".($k?"VAR (acik anahtar ".strlen($k["publicKey"])." kr)":"YOK")."\n";
+              $jwt = vestra_vapid_jwt("https://fcm.googleapis.com"); $p = explode(".", $jwt);
+              $ok = false; if (count($p)===3 && $k) { $sig = vestra_b64url_dec($p[2]); $r = substr($sig,0,32); $s = substr($sig,32,32);
+                $der = "\x30".chr(4+2+strlen(ltrim($r,"\0"))+(ord(ltrim($r,"\0")[0])>=128?1:0)+strlen(ltrim($s,"\0"))+(ord(ltrim($s,"\0")[0])>=128?1:0));
+                $enc = function($i){ $i=ltrim($i,"\0"); if($i===""||ord($i[0])>=128) $i="\0".$i; return "\x02".chr(strlen($i)).$i; };
+                $der = "\x30".chr(strlen($enc($r).$enc($s))).$enc($r).$enc($s);
+                $pub = openssl_pkey_get_public(openssl_pkey_get_details(openssl_pkey_get_private($k["privatePem"]))["key"]);
+                $ok = openssl_verify($p[0].".".$p[1], $der, $pub, OPENSSL_ALGO_SHA256) === 1; }
+              echo "VAPID JWT: ".($jwt!==""?"uretildi":"URETILEMEDI")." · imza yerel dogrulama: ".($ok?"GECTI":"GECMEDI")." · yuk: ".substr(base64_decode(strtr($p[1]??"", "-_", "+/")),0,80)."\n";
+              /* sifreleme gidis-donusu: tarayici gibi bir P-256 cift uretilip sunucu sifreler, biz cozeriz */
+              $bk = openssl_pkey_new(["curve_name"=>"prime256v1","private_key_type"=>OPENSSL_KEYTYPE_EC]); $bd = openssl_pkey_get_details($bk);
+              $p256 = vestra_b64url(vestra_push_raw_point($bd)); $auth = random_bytes(16);
+              $body = vestra_push_encrypt("{\"title\":\"Probe\"}", $p256, vestra_b64url($auth));
+              echo "sifreleme: ".($body!==""?"uretildi (".strlen($body)." bayt)":"URETILEMEDI")."\n";
+              $subs = vestra_push_subs(); $acc = []; foreach (auth_accounts() as $a) $acc[(string)($a["id"]??"")] = $a;
+              $n=0; foreach ($subs as $uid=>$devs) $n += count((array)$devs);
+              echo "\nCIHAZLAR: ".count($subs)." hesap / {$n} cihaz\n";
+              foreach ($subs as $uid=>$devs) { $a = $acc[$uid] ?? []; $who = (($a["type"]??"?")).":".substr(sha1($uid),0,6)." lang=".($a["lang"]??"-")." mail=".(isset($a["email"])?substr((string)$a["email"],0,1)."***@".substr(strrchr((string)$a["email"],"@"),1):"-");
+                foreach ((array)$devs as $h=>$d) { $host = parse_url((string)($d["endpoint"]??""), PHP_URL_HOST) ?: "?";
+                  echo "  $who | ".($d["label"]??"?")." | host=$host izinli=".(vestra_push_endpoint_ok((string)($d["endpoint"]??""))?"evet":"HAYIR")." | anahtar=".((!empty($d["keys"]["p256dh"])&&!empty($d["keys"]["auth"]))?"tam":"EKSIK")." | eklendi=".substr((string)($d["added"]??""),0,16)." | son=".substr((string)($d["last_at"]??"-"),0,16)." kod=".($d["last_code"]??"-")." basarili=".substr((string)($d["last_ok"]??"-"),0,16)." hata=".($d["fails"]??0)."\n"; } }
+              $q = vestra_push_store_read("push_queue.json"); $pe = vestra_push_store_read("push_pending.json"); $pk = vestra_push_store_read("push_parked.json");
+              echo "\nkuyruk(cihaz): ".array_sum(array_map("count",(array)$q))." · eski hesap kuyrugu: ".array_sum(array_map("count",(array)$pe))." · park edilmis cihaz: ".count((array)$pk)."\n";
+              $log = vestra_push_log_all(); echo "yayin gunlugu: ".count($log)." kayit"; foreach (array_slice($log,0,5) as $e) echo "\n  ".substr((string)($e["at"]??""),0,16)." ".json_encode(array_intersect_key($e, ["users"=>1,"ok"=>1,"failed"=>1,"kind"=>1]));
+              echo "\n\nSON HATA GUNLUGU (error_log, Push satirlari):\n"; foreach (["error_log","../error_log","logs/error_log"] as $f) if (is_readable($f)) { $t = shell_exec("grep -a \"VESTRA Push\" ".escapeshellarg($f)." | tail -n 8"); if ($t) echo $t; }
+            '
