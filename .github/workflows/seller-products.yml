@@ -6940,9 +6940,9 @@ jobs:
             echo "toplam: ", count($orders), "  ", json_encode($by), "\n";
             usort($orders, fn($a, $b) => strcmp((string)($b['created'] ?? ''), (string)($a['created'] ?? '')));
             echo "\n== Stripe (salt okunur GET) ==\n";
-            $ht = (string)@file_get_contents($doc.'/.htaccess');
-            echo "STRIPE_WEBHOOK_SECRET: htaccess'te ", preg_match('/^\s*SetEnv\s+STRIPE_WEBHOOK_SECRET\s+\S+/mi', $ht) ? 'TANIMLI' : '*** YOK ***',
-                 " | config.php'de ", str_contains((string)@file_get_contents($doc.'/inc/config.php'), 'STRIPE_WEBHOOK_SECRET') ? 'geciyor' : 'yok', "\n";
+            $whs = (string)(getenv('STRIPE_WEBHOOK_SECRET') ?: '');
+            echo "STRIPE_WEBHOOK_SECRET: ", $whs !== '' ? 'TANIMLI (' . (str_starts_with($whs, 'whsec_') ? 'whsec_' : 'bicim?') . ')' : '*** YOK ***',
+                 " | anahtar modu: ", str_starts_with((string)getenv('STRIPE_SECRET_KEY'), 'sk_live_') ? 'LIVE' : 'test/diger', "\n";
             try {
               $we = stripe_api('GET', '/v1/webhook_endpoints', ['limit' => 10]);
               foreach (($we->data ?? []) as $w) {
@@ -6961,8 +6961,10 @@ jobs:
                 $k = ((string)($cs->status ?? '') === 'complete' && (string)($cs->payment_status ?? '') === 'paid') ? 'complete/paid'
                    : (in_array((string)($cs->status ?? ''), ['expired', 'open'], true) ? (string)$cs->status : 'diger');
                 $cnt[$k]++;
+                if ($k === 'diger') echo "  diger: ", (string)($o['ref'] ?? ''), " | ", substr((string)($o['created'] ?? ''), 0, 10), " | oturum ", substr($sid, 0, 8),
+                     " | status=", (string)($cs->status ?? '-'), " pay=", (string)($cs->payment_status ?? '-'), " | ", mb_substr((string)($cs->error->message ?? ''), 0, 110), "\n";
                 if ($k === 'complete/paid') echo "  *** ODENMIS AMA KAYITTA PENDING: ", (string)($o['ref'] ?? ''), " (", substr((string)($o['created'] ?? ''), 0, 10), ")\n";
-              } catch (Throwable $e) { $cnt['diger']++; }
+              } catch (Throwable $e) { $cnt['diger']++; echo "  diger: ", (string)($o['ref'] ?? ''), " | oturum ", substr($sid, 0, 8), " | hata: ", mb_substr($e->getMessage(), 0, 110), "\n"; }
             }
             echo "  oturum durumlari: ", json_encode($cnt), "\n";
             foreach (array_slice($orders, 0, 6) as $o)
