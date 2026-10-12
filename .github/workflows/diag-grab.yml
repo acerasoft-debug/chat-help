@@ -38,7 +38,7 @@ jobs:
             r=$(curl -s -L -m 40 --compressed -A "$UA" -H 'Accept-Language: en-GB,en;q=0.9' -o "$D/$f.bin" -w "%{http_code} %{content_type} %{size_download} %{url_effective}" "$u" || echo "000 - 0 $u")
             echo "$f $r" | tee -a "$D/index.txt"
             echo "$f.src $u" >> "$D/index.txt"
-            gzip -9 -f "$D/$f.bin"
+            [ -f "$D/$f.bin" ] && gzip -9 -f "$D/$f.bin" || true
             sleep 1
           done
       - name: Dala işle
