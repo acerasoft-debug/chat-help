@@ -489,7 +489,7 @@ function vr_catalog(): array
     //     farklı adla veriyor, ikiz satırların birleşmesi de (adım 5) aynı
     //     kareyi iki addan getiriyor. tools/index-photo-hash.php görsel parmak
     //     iziyle ölçüp data/photo-dupes.json'a (ürün → düşecek kareler)
-    //     yazıyor; burada yalnız uygulanıyor. İlk görünen kare kalır.
+    //     yazıyor; burada yalnız uygulanıyor. İki kopyadan büyük olan kalır.
     if (!defined('VR_NO_PHOTO_DEDUPE')) {
         foreach ((array)vr_store_read('photo-dupes.json', []) as $did => $gone) {
             if (!isset($cat[$did]) || !is_array($gone) || !$gone) continue;

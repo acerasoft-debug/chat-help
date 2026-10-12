@@ -142,8 +142,14 @@ $idx = array_intersect_key($idx, $all);
 vr_store_write($file, $idx);
 printf("Parmak izi: %d kare · yeni %d · okunamayan %d · %.0f sn\n", count($idx), $new, $miss, microtime(true) - $t0);
 
-// ---- ürün başına düşecek kareler (ilk görünen kalır)
-$grid = (array)vr_store_read('photo-quality.json', []);
+// ---- ürün başına düşecek kareler
+// Aynı çekimin iki kopyasından BÜYÜK olan kalır, yeri ilk görünenin yeri.
+// Eskiden ilk görünen kalıyordu; toptancının 380 px'lik karesi listede önce
+// geldiği için internetten bulunan 1000+ px'lik aynı kare atılıyordu ve
+// "daha iyi fotoğraf" hiç görünmüyordu (12 Eki 2026, Fendi FF Band).
+$grid  = (array)vr_store_read('photo-quality.json', []);
+$shape = (array)vr_store_read('photo-shape.json', []);
+$area  = static fn(string $r): int => (int)($shape[$r]['w'] ?? 0) * (int)($shape[$r]['h'] ?? 0);
 $drop = []; $why = ['hash' => 0, 'collage' => 0];
 foreach ($cat as $pid => $imgs) {
     // Bölünmüş kolaj: X.ext kolaj + aynı üründe X-pN.* varsa X düşer
@@ -158,14 +164,18 @@ foreach ($cat as $pid => $imgs) {
     $keep = [];
     foreach ($imgs as $r) {
         if (!isset($set[$r])) continue;
-        $dup = false;
-        if (isset($idx[$r])) foreach ($keep as $k) {
+        $dupOf = null;
+        if (isset($idx[$r])) foreach ($keep as $ki => $k) {
             if (!isset($idx[$k])) continue;
-            if ($idx[$r]['m'] === $idx[$k]['m']) { $dup = true; break; }
+            if ($idx[$r]['m'] === $idx[$k]['m']) { $dupOf = $ki; break; }
             [$d, $cd] = ph_dist($idx[$r], $idx[$k]);
-            if ($d <= $maxBits || ($d <= $softBits && $cd <= $softCol)) { $dup = true; break; }
+            if ($d <= $maxBits || ($d <= $softBits && $cd <= $softCol)) { $dupOf = $ki; break; }
         }
-        if ($dup) { $drop[$pid][] = $r; $why['hash']++; } else $keep[] = $r;
+        if ($dupOf === null) { $keep[] = $r; continue; }
+        $why['hash']++;
+        // Yeni gelen belirgin biçimde büyükse (%30+) eskinin yerine o geçer.
+        if ($area($r) > 1.3 * $area($keep[$dupOf])) { $drop[$pid][] = $keep[$dupOf]; $keep[$dupOf] = $r; }
+        else $drop[$pid][] = $r;
     }
     // Hiçbir ürün karesiz kalmasın (emniyet)
     if (!$keep && isset($drop[$pid])) unset($drop[$pid]);
