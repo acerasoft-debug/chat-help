@@ -1,0 +1,5519 @@
+{
+    "count": 119,
+    "products": [
+        {
+            "id": "dsq-101212",
+            "brand": "DSQUARED2",
+            "name": "Graphic T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/dsquared/dsq-101212.png",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dsquared/dsq-101212.png",
+                    "c": "#ebebef",
+                    "m": 0.236,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-101212-w8.jpg",
+                    "c": "#d6d5d8",
+                    "m": 0.042,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-101212-w9.jpg",
+                    "c": "#2d2c30",
+                    "m": 0.321,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "lgp-lacoste-trim-tshirt",
+            "brand": "Lacoste",
+            "name": "Trim Cotton Jersey T-Shirt",
+            "colours": [
+                "Bordeaux",
+                "Navy",
+                "Black",
+                "White"
+            ],
+            "card": "/uploads/lac-tee/lacoste-trim-tshirt-2.png",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/lac-tee/lacoste-trim-tshirt-1.png",
+                    "c": "#841a26",
+                    "m": 0.609,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lac-tee/lacoste-trim-tshirt-2.png",
+                    "c": "#1b1e2e",
+                    "m": 0.579,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lac-tee/lacoste-trim-tshirt-3.png",
+                    "c": "#181818",
+                    "m": 0.589,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lac-tee/lacoste-trim-tshirt-4.png",
+                    "c": "#e4e4e5",
+                    "m": 0.157,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "blm-ah0eg000bc27",
+            "brand": "BALMAIN",
+            "name": "T-Shirt",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/licensed/web/balmain/blm-ah0eg000bc27-w1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/balmain-ah0eg000-bc27-p1.jpg",
+                    "c": "#151519",
+                    "m": 0.772,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/balmain/blm-ah0eg000bc27-w1.jpg",
+                    "c": "#1d1c21",
+                    "m": 0.71,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/balmain/blm-ah0eg000bc27-w2.jpg",
+                    "c": "#141317",
+                    "m": 0.639,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/balmain/blm-ah0eg000bc27-w4.jpg",
+                    "c": "#d9d9d5",
+                    "m": 0.496,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/balmain/blm-ah0eg000bc27-w3.jpg",
+                    "c": "#141317",
+                    "m": 0.864,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "blm-bkbu90650",
+            "brand": "BALMAIN",
+            "name": "Swimwear",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/shorts-sweats/balmain-bkbu90650-b-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bkbu90650-b-p1.jpg",
+                    "c": "#19181b",
+                    "m": 0.607,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bkbu90650-b-p2.jpg",
+                    "c": "#272628",
+                    "m": 0.788,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bkbu90650-p1.jpg",
+                    "c": "#fd08b6",
+                    "m": 0.664,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bkbu90650-p2.jpg",
+                    "c": "#fd06b5",
+                    "m": 0.595,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bkbu90650.jpg",
+                    "c": "#fd08b5",
+                    "m": 0.574,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "blm-bwb210330",
+            "brand": "BALMAIN",
+            "name": "Swimwear",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/shorts-sweats/balmain-bwb210330-b-p2-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb210330-b-p1.jpg",
+                    "c": "#2b2b2f",
+                    "m": 0.73,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb210330-b-p2-p1.jpg",
+                    "c": "#2c2d31",
+                    "m": 0.827,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb210330-b-p3.jpg",
+                    "c": "#141417",
+                    "m": 0.832,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb210330-p1.jpg",
+                    "c": "#2f4cae",
+                    "m": 0.756,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb210330-p2-p1.jpg",
+                    "c": "#2f4baf",
+                    "m": 0.843,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb210330-p3.jpg",
+                    "c": "#063caa",
+                    "m": 0.978,
+                    "light": 0,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "blm-bwb210400",
+            "brand": "BALMAIN",
+            "name": "Swimwear",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/shorts-sweats/balmain-bwb210400-black-p2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb210400-black-p1.jpg",
+                    "c": "#24272b",
+                    "m": 0.751,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb210400-black-p2.jpg",
+                    "c": "#25282c",
+                    "m": 0.768,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb210400-p1.jpg",
+                    "c": "#ec314b",
+                    "m": 0.677,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb210400-p2.jpg",
+                    "c": "#f4445b",
+                    "m": 0.582,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb210400-black-v1.jpg",
+                    "c": "#1d2225",
+                    "m": 0.587,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb210400-black-v2.jpg",
+                    "c": "#25282c",
+                    "m": 0.535,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "blm-bwb410400",
+            "brand": "BALMAIN",
+            "name": "Swimwear",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/shorts-sweats/balmain-bwb410400-black-v2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb410400-black-p1.jpg",
+                    "c": "#26292e",
+                    "m": 0.866,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb410400-black-p2.jpg",
+                    "c": "#191d22",
+                    "m": 0.8,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb410400-red-p1.jpg",
+                    "c": "#f13550",
+                    "m": 0.688,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb410400-red-p2.jpg",
+                    "c": "#f13851",
+                    "m": 0.653,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb410400-white-p1.jpg",
+                    "c": "#2a3450",
+                    "m": 0.714,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb410400-white-p2.jpg",
+                    "c": "#2d3550",
+                    "m": 0.701,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb410400-black-v1.jpg",
+                    "c": "#26292e",
+                    "m": 0.67,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb410400-black-v2.jpg",
+                    "c": "#191d21",
+                    "m": 0.583,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb410400-white-v1.jpg",
+                    "c": "#2a3450",
+                    "m": 0.557,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb410400-white-v2.jpg",
+                    "c": "#2d3650",
+                    "m": 0.517,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "blm-bwb550350",
+            "brand": "BALMAIN",
+            "name": "Swimwear",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/licensed/web/balmain/blm-bwb550350-w2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb550350-black-p1.jpg",
+                    "c": "#2a292b",
+                    "m": 0.777,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb550350-black-p2.jpg",
+                    "c": "#2c2b2d",
+                    "m": 0.66,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb550350-p1.jpg",
+                    "c": "#ebe9ec",
+                    "m": 0.615,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb550350-p2.jpg",
+                    "c": "#ebe9ec",
+                    "m": 0.628,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb550350-black-v1.jpg",
+                    "c": "#2a292b",
+                    "m": 0.766,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/balmain-bwb550350.jpg",
+                    "c": "#d0cfd1",
+                    "m": 0.643,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/balmain/blm-bwb550350-w2.jpg",
+                    "c": "#1a1a19",
+                    "m": 0.427,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "blm-wh1ef001287jgfq",
+            "brand": "BALMAIN",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/balmain/balmain-wh1ef001287jgfq-p2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balmain/balmain-wh1ef001287jgfq-p2.jpg",
+                    "c": "#e5e4e8",
+                    "m": 0.286,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balmain/balmain-wh1ef001287jgfq-p3.jpg",
+                    "c": "#d8a790",
+                    "m": 0.235,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balmain/balmain-wh1ef001287jgfq-p1.jpg",
+                    "c": "#d6a894",
+                    "m": 0.394,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "blm-wh1jq055275jgfq",
+            "brand": "BALMAIN",
+            "name": "Sweatshirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/balmain/balmain-wh1jq055275jgfq-p3.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balmain/balmain-wh1jq055275jgfq-p1.jpg",
+                    "c": "#4e6d92",
+                    "m": 0.428,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balmain/balmain-wh1jq055275jgfq-p2.jpg",
+                    "c": "#e5e5e8",
+                    "m": 0.337,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balmain/balmain-wh1jq055275jgfq-p3.jpg",
+                    "c": "#4f6c90",
+                    "m": 0.465,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "blm-xf1ee005bb",
+            "brand": "BALMAIN",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/balenciaga-burberry/balmain-xf1ee005bb-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/balmain-xf1ee005bb-p1.jpg",
+                    "c": "#d5a990",
+                    "m": 0.332,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/balmain-xf1ee005bb.jpg",
+                    "c": "#efebed",
+                    "m": 0.667,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "blm-xf1ee005bb01",
+            "brand": "BALMAIN",
+            "name": "T-Shirt",
+            "colours": [
+                "Navy"
+            ],
+            "card": "/uploads/balenciaga-burberry/balmain-xf1ee005bb01-v1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/balmain-xf1ee005bb01-p2.jpg",
+                    "c": "#161417",
+                    "m": 0.789,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/balmain-xf1ee005-bb01-p1.jpg",
+                    "c": "#d5a27c",
+                    "m": 0.693,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/balmain-xf1ee005-bb01-p2.jpg",
+                    "c": "#ca9876",
+                    "m": 0.616,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/balmain-xf1ee005-bb01-v1.jpg",
+                    "c": "#d5a27c",
+                    "m": 0.662,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/balmain-xf1ee005bb01-v1.jpg",
+                    "c": "#25263b",
+                    "m": 0.479,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/balmain-xf1ee005bb01-p1.jpg",
+                    "c": "#25263b",
+                    "m": 0.516,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/balmain-xf1ee005-bb01.jpg",
+                    "c": "#d5a27c",
+                    "m": 0.764,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "blc-612966",
+            "brand": "Balenciaga",
+            "name": "T-Shirt",
+            "colours": [
+                "Teal"
+            ],
+            "card": "/uploads/balenciaga-burberry/balenciaga-612966-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/balenciaga-612966-p1.jpg",
+                    "c": "#12596e",
+                    "m": 0.636,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/balenciaga-612966-p2.jpg",
+                    "c": "#171517",
+                    "m": 0.705,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "blc-612966tlvf1",
+            "brand": "Balenciaga",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/balenciaga-burberry/balenciaga-612966tlvf1-p2-p2.jpg",
+            "clusters": 3,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/balenciag-612966tlvf1.jpg",
+                    "c": "#ebe9ea",
+                    "m": 0.15,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/balenciaga-612966tlvf1-p1.jpg",
+                    "c": "#111111",
+                    "m": 0.558,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/balenciaga-612966tlvf1-p2-p1.jpg",
+                    "c": "#171618",
+                    "m": 0.683,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/balenciaga-612966tlvf1-p2-p2.jpg",
+                    "c": "#ece9e9",
+                    "m": 0.236,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/balenciaga-612966tlvf1-v1.jpg",
+                    "c": "#121213",
+                    "m": 0.571,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/balenciaga-612966tlvf1-v2.jpg",
+                    "c": "#ebe9e9",
+                    "m": 0.226,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/blcg-612966tlvf1-packshot.jpg",
+                    "c": "#aaabb0",
+                    "m": 0.799,
+                    "light": 0,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/blcg-612966tlvf1-hangtag.jpg",
+                    "c": "#93938e",
+                    "m": 0.93,
+                    "light": 0,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/blcg-612966tlvf1-label.jpg",
+                    "c": "#aeb1b3",
+                    "m": 0.889,
+                    "light": 0,
+                    "k": 2
+                }
+            ]
+        },
+        {
+            "id": "blc-662853tjw90",
+            "brand": "Balenciaga",
+            "name": "Jacket",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/licensed/web/balenciaga/blc-662853tjw90-w2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/balncaga-662853tjw90-p1-p1.jpg",
+                    "c": "#8c98a7",
+                    "m": 0.768,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/balncaga-662853tjw90-p1-p2.jpg",
+                    "c": "#d6d7d9",
+                    "m": 0.871,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/balncaga-662853tjw90-p1-p3.jpg",
+                    "c": "#ebebeb",
+                    "m": 0.677,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/balenciaga/blc-662853tjw90-w2.jpg",
+                    "c": "#93acc4",
+                    "m": 0.356,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/balenciaga/blc-662853tjw90-w3.jpg",
+                    "c": "#a8b8c8",
+                    "m": 0.323,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/balenciaga/blc-662853tjw90-w1.jpg",
+                    "c": "#889097",
+                    "m": 0.365,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/balenciaga/blc-662853tjw90-w4.jpg",
+                    "c": "#536f8b",
+                    "m": 0.332,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/balenciaga/blc-662853tjw90-w6.jpg",
+                    "c": "#516f8c",
+                    "m": 0.326,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "bur-8039175",
+            "brand": "Burberry",
+            "name": "Swimwear",
+            "colours": [
+                "Beige"
+            ],
+            "card": "/uploads/shorts-sweats/burberry-8039175-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/burberry-8039175-p1.jpg",
+                    "c": "#d2b094",
+                    "m": 0.593,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/burberry-8039175-p2.jpg",
+                    "c": "#ecebef",
+                    "m": 0.594,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "bur-8047729",
+            "brand": "Burberry",
+            "name": "T-Shirt",
+            "colours": [
+                "Light Blue"
+            ],
+            "card": "/uploads/balenciaga-burberry/burberry-8047729-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/burberry-8047729-p1.jpg",
+                    "c": "#d7e4ec",
+                    "m": 0.591,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/burberry-8047729-p2.jpg",
+                    "c": "#2b292d",
+                    "m": 0.625,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/burberry-8047729-p3.jpg",
+                    "c": "#c8d9e2",
+                    "m": 0.783,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "bur-8052119",
+            "brand": "Burberry",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/balenciaga-burberry/burberry-8052119-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/burberry-8052119-p1.jpg",
+                    "c": "#d7d4d3",
+                    "m": 0.539,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/burberry-8052119-p2.jpg",
+                    "c": "#29262b",
+                    "m": 0.464,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgj-gy07cd-g8et4",
+            "brand": "Dolce & Gabbana",
+            "name": "5-Pocket Jeans — Stone Wash",
+            "colours": [
+                "Stone Wash"
+            ],
+            "card": "/uploads/dg-jeans/d-g-gy07cd-g8et4-v2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dg-jeans/d-g-gy07cd-g8et4-p1-p3.jpg",
+                    "c": "#6c748b",
+                    "m": 0.776,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dg-jeans/d-g-gy07cd-g8et4-v1-v1.jpg",
+                    "c": "#d7d6d3",
+                    "m": 0.708,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/dg-jeans/d-g-gy07cd-g8et4-v2.jpg",
+                    "c": "#6c748b",
+                    "m": 0.741,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dg-jeans/d-g-gy07cd-g8et4-v1-v2.jpg",
+                    "c": "#68728c",
+                    "m": 0.688,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dg-jeans/d-g-gy07cd-g8et4-p1-p2.jpg",
+                    "c": "#68728c",
+                    "m": 0.719,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgj-gy07cd-g8eu0",
+            "brand": "Dolce & Gabbana",
+            "name": "5-Pocket Jeans — Mid Blue",
+            "colours": [
+                "Mid Blue"
+            ],
+            "card": "/uploads/dg-jeans/d-g-gy07cd-g8eu0-v1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dg-jeans/d-g-gy07cd-g8eu0-p1-p3.jpg",
+                    "c": "#526c89",
+                    "m": 0.963,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dg-jeans/d-g-gy07cd-g8eu0-v1.jpg",
+                    "c": "#536d89",
+                    "m": 0.741,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dg-jeans/d-g-gy07cd-g8eu0-v2.jpg",
+                    "c": "#f0eff1",
+                    "m": 0.945,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/dg-jeans/d-g-gy07cd-g8eu0-p1-p1.jpg",
+                    "c": "#d6d3d0",
+                    "m": 0.714,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/dg-jeans/d-g-gy07cd-g8eu0-p1-p2-p1.jpg",
+                    "c": "#526d89",
+                    "m": 0.785,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgj-gy07ld-g8dm8",
+            "brand": "Dolce & Gabbana",
+            "name": "Slim Fit Jeans — Dark Rinse",
+            "colours": [
+                "Dark Rinse"
+            ],
+            "card": "/uploads/dg-jeans/d-g-gy07ld-g8dm8-p1-v2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dg-jeans/d-g-gy07ld-g8dm8-p1-v2.jpg",
+                    "c": "#d4d2cf",
+                    "m": 0.706,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dg-jeans/d-g-gy07ld-g8dm8-p1-v1.jpg",
+                    "c": "#0e1318",
+                    "m": 0.65,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/dg-jeans/d-g-gy07ld-g8dm8-p1.jpg",
+                    "c": "#101418",
+                    "m": 0.768,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "gvy-bm716g3ybc",
+            "brand": "Givenchy",
+            "name": "Logo T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/givenchy/givenchy-bm716g3ybc-v2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/givenchy/givenchy-bm716g3ybc-v2.jpg",
+                    "c": "#e4e4e6",
+                    "m": 0.296,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/givenchy/givenchy-bm716g3ybc-p1-p1.jpg",
+                    "c": "#2a2927",
+                    "m": 0.387,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/givenchy/givenchy-bm716g3ybc-p1-p2.jpg",
+                    "c": "#282726",
+                    "m": 0.321,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "gvy-bm716g3yge",
+            "brand": "Givenchy",
+            "name": "Logo T-Shirt",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/givenchy/givenchy-bm716g3yge-b-p1-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/givenchy/givenchy-bm716g3yge-b-p1-p1.jpg",
+                    "c": "#1e1e20",
+                    "m": 0.607,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/givenchy/givenchy-bm716g3yge-b-p1-p2.jpg",
+                    "c": "#1c1c1e",
+                    "m": 0.606,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/givenchy/givenchy-bm716g3yge-b-p1-p3.jpg",
+                    "c": "#1b1b1c",
+                    "m": 0.961,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/givenchy/givenchy-bm716g3yge-p1.jpg",
+                    "c": "#e6e4e9",
+                    "m": 0.436,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/givenchy/givenchy-bm716g3yge.jpg",
+                    "c": "#e8e7ec",
+                    "m": 0.759,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "gvy-bm71ct3y6b",
+            "brand": "Givenchy",
+            "name": "Logo T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/givenchy/givenchy-bm71ct3y6b-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/givenchy/givenchy-bm71ct3y6b.jpg",
+                    "c": "#eeeeee",
+                    "m": 0.549,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/givenchy/givenchy-bm71ct3y6b-p1.jpg",
+                    "c": "#d5ab92",
+                    "m": 0.363,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/givenchy/givenchy-bm71ct3y6b-p2.jpg",
+                    "c": "#e6e6e6",
+                    "m": 0.231,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dsq-s71lb0872",
+            "brand": "DSQUARED2",
+            "name": "Distressed Jeans",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/dsq-jeans/dsq-s71lb0872-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dsq-jeans/dsq-s71lb0872-p1.jpg",
+                    "c": "#cfcfcd",
+                    "m": 0.692,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s71lb0872-w1.jpg",
+                    "c": "#26374f",
+                    "m": 0.573,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s71lb0872-w2.jpg",
+                    "c": "#192d4b",
+                    "m": 0.553,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dsq-s74lb0770",
+            "brand": "DSQUARED2",
+            "name": "Distressed Jeans",
+            "colours": [
+                "Dark Blue"
+            ],
+            "card": "/uploads/dsq-jeans/dsq-s74lb0770-p1-p2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dsq-jeans/dsq-s74lb0770-p1-p2.jpg",
+                    "c": "#28364b",
+                    "m": 0.99,
+                    "light": 0,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dsq-jeans/dsq-s74lb0770-p1-p1.jpg",
+                    "c": "#d2cfcb",
+                    "m": 0.736,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dsq-s74lb0798",
+            "brand": "DSQUARED2",
+            "name": "Distressed Jeans",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/dsq-jeans/dsq-s74lb0798-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dsq-jeans/dsq-s74lb0798-p1.jpg",
+                    "c": "#988d7a",
+                    "m": 0.791,
+                    "light": 0,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0798-w1.jpg",
+                    "c": "#314972",
+                    "m": 0.578,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0798-w2.jpg",
+                    "c": "#334a73",
+                    "m": 0.542,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0798-w3.jpg",
+                    "c": "#182c4e",
+                    "m": 0.356,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dsq-s74lb0869",
+            "brand": "DSQUARED2",
+            "name": "Clean Wash Jeans",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/dsq-jeans/dsq-s74lb0869-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dsq-jeans/dsq-s74lb0869-p1.jpg",
+                    "c": "#adadad",
+                    "m": 0.518,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0869-w4.jpg",
+                    "c": "#28364a",
+                    "m": 0.638,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0869-w5.jpg",
+                    "c": "#28354b",
+                    "m": 0.588,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0869-w6.jpg",
+                    "c": "#28374d",
+                    "m": 0.394,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dsq-s74lb0907",
+            "brand": "DSQUARED2",
+            "name": "Clean Wash Jeans",
+            "colours": [
+                "Light Blue"
+            ],
+            "card": "/uploads/dsq-jeans/dsq-s74lb0907-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dsq-jeans/dsq-s74lb0907-p1.jpg",
+                    "c": "#cacaca",
+                    "m": 0.66,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0907-w1.jpg",
+                    "c": "#728ba6",
+                    "m": 0.314,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0907-w2.jpg",
+                    "c": "#718da9",
+                    "m": 0.279,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0907-w3.jpg",
+                    "c": "#7488a5",
+                    "m": 0.789,
+                    "light": 0,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dsq-s74lb0930",
+            "brand": "DSQUARED2",
+            "name": "Distressed Jeans",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/dsq-jeans/dsq-s74lb0930-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dsq-jeans/dsq-s74lb0930-p1.jpg",
+                    "c": "#a99885",
+                    "m": 0.923,
+                    "light": 0,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0930-w2.jpg",
+                    "c": "#475771",
+                    "m": 0.293,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dsq-s74lb0953",
+            "brand": "DSQUARED2",
+            "name": "Distressed Jeans",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/licensed/web/dsquared2/dsq-s74lb0953-w1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dsq-jeans/dsq-s74lb0953-p1.jpg",
+                    "c": "#0a0a0c",
+                    "m": 0.967,
+                    "light": 0,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0953-w1.jpg",
+                    "c": "#29344c",
+                    "m": 0.291,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0953-w2.jpg",
+                    "c": "#2b364e",
+                    "m": 0.269,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0953-w3.jpg",
+                    "c": "#566c88",
+                    "m": 0.676,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dsq-s74lb0978",
+            "brand": "DSQUARED2",
+            "name": "Distressed Jeans",
+            "colours": [
+                "Light Blue"
+            ],
+            "card": "/uploads/licensed/web/dsquared2/dsq-s74lb0978-w2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dsq-jeans/dsq-s74lb0978-p1.jpg",
+                    "c": "#f2f0f0",
+                    "m": 0.771,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0978-w2.jpg",
+                    "c": "#6f92ae",
+                    "m": 0.383,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0978-w3.jpg",
+                    "c": "#6e90ad",
+                    "m": 0.377,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dsq-s74lb707",
+            "brand": "DSQUARED2",
+            "name": "Clean Wash Jeans",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/dsq-jeans/dsqs74lb707-p1-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dsq-jeans/dsqs74lb707-p1-p1.jpg",
+                    "c": "#cdab94",
+                    "m": 0.643,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dsq-jeans/dsqs74lb707-p1-p2.jpg",
+                    "c": "#fdfdfd",
+                    "m": 0.975,
+                    "light": 0,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dsq-s74lb0658",
+            "brand": "DSQUARED2",
+            "name": "Clean Wash Jeans",
+            "colours": [
+                "Light Blue"
+            ],
+            "card": "/uploads/licensed/web/dsquared2/dsq-s74lb0658-w2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dsq-jeans/s74lb0658-p1-p1.jpg",
+                    "c": "#d0d0d2",
+                    "m": 0.687,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dsq-jeans/s74lb0658-p1-p2.jpg",
+                    "c": "#cfcfd2",
+                    "m": 0.647,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dsq-jeans/s74lb0658-p1-p3.jpg",
+                    "c": "#d2d2d4",
+                    "m": 0.749,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dsq-jeans/s74lb0658-p2.jpg",
+                    "c": "#93a6b9",
+                    "m": 0.594,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0658-w1.jpg",
+                    "c": "#6e91b4",
+                    "m": 0.269,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74lb0658-w2.jpg",
+                    "c": "#91abc9",
+                    "m": 0.257,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dsq-s74gd0969",
+            "brand": "DSQUARED2",
+            "name": "Logo T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/dsq-tshirt/dsq-s74gd0969-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dsq-tshirt/dsq-s74gd0969-p1.jpg",
+                    "c": "#704838",
+                    "m": 0.372,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dsq-tshirt/dsq-s74gd0969.jpg",
+                    "c": "#eae9ed",
+                    "m": 0.958,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/dsquared2/dsq-s74gd0969-w1.jpg",
+                    "c": "#ececf1",
+                    "m": 0.325,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "gcds-cc94m021004",
+            "brand": "GCDS",
+            "name": "Band Logo T-Shirt, White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/gcds/gcds-cc94m021004-p1-p2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/gcds/gcds-cc94m021004-p1-p2.jpg",
+                    "c": "#fefefe",
+                    "m": 0.605,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/gcds/gcds-cc94m021004-p1-p1.jpg",
+                    "c": "#e7012b",
+                    "m": 0.288,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/gcds/gcds-cc94m021004.jpg",
+                    "c": "#eeebed",
+                    "m": 0.323,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "gcds-cc94m021004-blk",
+            "brand": "GCDS",
+            "name": "Logo T-Shirt, Black — CC94M021004",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/gcds/gcds-cc94m021004-p1-p2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/gcds/gcds-cc94m021004-p1-p2.jpg",
+                    "c": "#fefefe",
+                    "m": 0.605,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/gcds/gcds-cc94m021004-p1-p1.jpg",
+                    "c": "#e7012b",
+                    "m": 0.288,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "vltn-wv0mg10w7ss0ni",
+            "brand": "Valentino",
+            "name": "Logo T-Shirt, Black",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/licensed/web/valentino/vltn-wv0mg10w7ss0ni-w4.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/valentino/vltn-wv0mg10w7ss0ni-p1.jpg",
+                    "c": "#191818",
+                    "m": 0.55,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/valentino/vltn-wv0mg10w7ss0ni.jpg",
+                    "c": "#f0ede8",
+                    "m": 0.967,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/valentino/vltn-wv0mg10w7ss0ni-w2.jpg",
+                    "c": "#181819",
+                    "m": 0.592,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/valentino/vltn-wv0mg10w7ss0ni-w4.jpg",
+                    "c": "#161514",
+                    "m": 0.174,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/valentino/vltn-wv0mg10w7ss0ni-w5.jpg",
+                    "c": "#191919",
+                    "m": 0.313,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "vltn-wv3mg10v7llu23",
+            "brand": "Valentino",
+            "name": "Print T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/valentino/vltn-wv3mg10v7llu23-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/valentino/vltn-wv3mg10v7llu23-p1.jpg",
+                    "c": "#d1d0d0",
+                    "m": 0.43,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/valentino/vltn-wv3mg10v7llu23-v2.jpg",
+                    "c": "#594366",
+                    "m": 0.378,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/valentino/vltn-wv3mg10v7llu23-p2.jpg",
+                    "c": "#d5ac93",
+                    "m": 0.485,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/valentino/vltn-wv3mg10v7llu23-v1.jpg",
+                    "c": "#d1cfcf",
+                    "m": 0.506,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/valentino/vltn-wv3mg10v7llu23.jpg",
+                    "c": "#eeecea",
+                    "m": 0.908,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "vrs-a78932a224554",
+            "brand": "Versace",
+            "name": "Baroque Sleeve Polo Shirt — A78932",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/versace/versace-a78932a224554-p1-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/versace/versace-a78932a224554-p1-p1.jpg",
+                    "c": "#191816",
+                    "m": 0.71,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/versace/versace-a78932a224554-p1-p2.jpg",
+                    "c": "#948b32",
+                    "m": 0.715,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/versace/versace-a78932a224554-p1-p3.jpg",
+                    "c": "#191816",
+                    "m": 0.814,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "fnd-t06",
+            "brand": "Fendi",
+            "name": "FF Band T-Shirt, White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/licensed/web/fendi/fnd-t06-w1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/fendi-tshirt/fendi-fy0936aiu8f0ze0-p1-p2.jpg",
+                    "c": "#e9e5da",
+                    "m": 0.393,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/fendi-tshirt/fendi-fy0936aiu8f0ze0-p2.jpg",
+                    "c": "#485075",
+                    "m": 0.143,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/fendi-tshirt/fendi-fy0936aiu8f0ze0-v2.jpg",
+                    "c": "#eae6db",
+                    "m": 0.387,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/fendi/fnd-t06-w1.jpg",
+                    "c": "#ebeaec",
+                    "m": 0.576,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "fnd-p01",
+            "brand": "Fendi",
+            "name": "Pique T-Shirt, White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/fendi-tshirt/img_0045-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/fendi-tshirt/img_0045-p1.jpg",
+                    "c": "#d1cecc",
+                    "m": 0.462,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/fendi-tshirt/img_0045-p2.jpg",
+                    "c": "#121211",
+                    "m": 0.511,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "gvy-bmj05k30af",
+            "brand": "Givenchy",
+            "name": "Zip Tracksuit, Black — BMJ05K30AF",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/givenchy-sweat/bmj05k30af009-02-01-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/givenchy-sweat/bmj05k30af009-02-01-p1.jpg",
+                    "c": "#222127",
+                    "m": 0.823,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/givenchy-sweat/bmj05k30af009-02-01-p3.jpg",
+                    "c": "#222127",
+                    "m": 0.807,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/givenchy-sweat/bmj05k30af009-02-01-p5.jpg",
+                    "c": "#2e2a29",
+                    "m": 0.537,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/givenchy-sweat/bmj05k30af009-02-01-p2.jpg",
+                    "c": "#737471",
+                    "m": 0.686,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/givenchy-sweat/bmj05k30af009-02-01-p4.jpg",
+                    "c": "#2c2826",
+                    "m": 0.589,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "gvy-vst02",
+            "brand": "Givenchy",
+            "name": "Track Jacket Tracksuit, Black",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/givenchy-sweat/photo-19.10.2020-14-44-51-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/givenchy-sweat/photo-19.10.2020-14-44-51-p1.jpg",
+                    "c": "#272725",
+                    "m": 0.805,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/givenchy-sweat/photo-19.10.2020-14-44-51-p2-p1.jpg",
+                    "c": "#2f2e2e",
+                    "m": 0.809,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/givenchy-sweat/photo-19.10.2020-14-44-51-p2-p2.jpg",
+                    "c": "#151514",
+                    "m": 0.826,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/givenchy-sweat/photo-19.10.2020-14-44-51-p3.jpg",
+                    "c": "#d4d2cf",
+                    "m": 0.667,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/givenchy-sweat/photo-19.10.2020-14-44-51-p4.jpg",
+                    "c": "#151614",
+                    "m": 0.884,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "guc-t02",
+            "brand": "Gucci",
+            "name": "Rainbow Logo T-Shirt, White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/gucci/gucci-616036-xjdv9-p2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/gucci/gucci-616036-xjdv9-p1.jpg",
+                    "c": "#d4d3d1",
+                    "m": 0.719,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/gucci/gucci-616036-xjdv9-p2.jpg",
+                    "c": "#d3d2d1",
+                    "m": 0.706,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/gucci/gucci-616036-xjdv9-b-p1.jpg",
+                    "c": "#082a74",
+                    "m": 0.707,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/gucci/gucci-616036-xjdv9-b-p2.jpg",
+                    "c": "#082a72",
+                    "m": 0.7,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgn-i8aeazg7cy1",
+            "brand": "Dolce & Gabbana",
+            "name": "DG Patch T-Shirt — Black",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/licensed/web/dolce-gabbana/dgn-i8aeazg7cy1-w1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dg-tshirt/d-g-i8aeazg7cy1.jpg",
+                    "c": "#25201d",
+                    "m": 0.732,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dolce-gabbana/dgn-i8aeazg7cy1-w1.jpg",
+                    "c": "#29211e",
+                    "m": 0.676,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dolce-gabbana/dgn-i8aeazg7cy1-w2.jpg",
+                    "c": "#261c1a",
+                    "m": 0.912,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dolce-gabbana/dgn-i8aeazg7cy1-w3.jpg",
+                    "c": "#29211e",
+                    "m": 0.566,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dolce-gabbana/dgn-i8aeazg7cy1-w4.jpg",
+                    "c": "#dad9d5",
+                    "m": 0.444,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "lac-polo-paris",
+            "brand": "Lacoste",
+            "name": "Paris Regular Fit Polo Shirt",
+            "colours": [
+                "Light Blue",
+                "Navy",
+                "Bordeaux",
+                "Green",
+                "Blue",
+                "Beige",
+                "Red",
+                "White",
+                "Black"
+            ],
+            "card": "/uploads/lacoste/paris-polo/light-blue.avif",
+            "clusters": 5,
+            "rows": [
+                {
+                    "img": "/uploads/lacoste/paris-polo/light-blue.avif",
+                    "c": "#cbe1f9",
+                    "m": 0.353,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lacoste/paris-polo/navy.avif",
+                    "c": "#121b2f",
+                    "m": 0.365,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/lacoste/paris-polo/bordeaux.jpg",
+                    "c": "#68061d",
+                    "m": 0.294,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/lacoste/paris-polo/green.avif",
+                    "c": "#264d38",
+                    "m": 0.373,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/lacoste/paris-polo/blue.avif",
+                    "c": "#054790",
+                    "m": 0.357,
+                    "light": 1,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/lacoste/paris-polo/beige.avif",
+                    "c": "#ceae89",
+                    "m": 0.379,
+                    "light": 1,
+                    "k": 3
+                },
+                {
+                    "img": "/uploads/lacoste/paris-polo/red.avif",
+                    "c": "#d10021",
+                    "m": 0.358,
+                    "light": 1,
+                    "k": 4
+                },
+                {
+                    "img": "/uploads/lacoste/paris-polo/white.avif",
+                    "c": "#e4e3e7",
+                    "m": 0.016,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/lacoste/paris-polo/black.avif",
+                    "c": "#1b1b1d",
+                    "m": 0.371,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "lac-pima-tshirt",
+            "brand": "Lacoste",
+            "name": "Basic Crew Neck T-Shirt",
+            "colours": [
+                "White",
+                "Navy",
+                "Black",
+                "Green",
+                "Blue",
+                "Beige",
+                "Pink",
+                "Red"
+            ],
+            "card": "/uploads/lacoste/pima-tshirt/navy.avif",
+            "clusters": 5,
+            "rows": [
+                {
+                    "img": "/uploads/lacoste/pima-tshirt/white.avif",
+                    "c": "#e5e4e8",
+                    "m": 0.006,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/lacoste/pima-tshirt/navy.avif",
+                    "c": "#182136",
+                    "m": 0.368,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lacoste/pima-tshirt/black.avif",
+                    "c": "#19191b",
+                    "m": 0.397,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lacoste/pima-tshirt/green.avif",
+                    "c": "#183721",
+                    "m": 0.368,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lacoste/pima-tshirt/blue.jpg",
+                    "c": "#017ac9",
+                    "m": 0.482,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/lacoste/pima-tshirt/beige.avif",
+                    "c": "#cba883",
+                    "m": 0.353,
+                    "light": 1,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/lacoste/pima-tshirt/pink.avif",
+                    "c": "#f6e1e0",
+                    "m": 0.323,
+                    "light": 1,
+                    "k": 3
+                },
+                {
+                    "img": "/uploads/lacoste/pima-tshirt/red.avif",
+                    "c": "#d80024",
+                    "m": 0.372,
+                    "light": 1,
+                    "k": 4
+                }
+            ]
+        },
+        {
+            "id": "lac-fleece-hoodie",
+            "brand": "Lacoste",
+            "name": "Fleece Hoodie",
+            "colours": [
+                "Beige",
+                "Navy",
+                "Black",
+                "Light Blue",
+                "Green",
+                "Bordeaux",
+                "White",
+                "Blue"
+            ],
+            "card": "/uploads/lacoste/fleece-hoodie/beige.webp",
+            "clusters": 4,
+            "rows": [
+                {
+                    "img": "/uploads/lacoste/fleece-hoodie/beige.webp",
+                    "c": "#c5a885",
+                    "m": 0.345,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lacoste/fleece-hoodie/navy.avif",
+                    "c": "#161423",
+                    "m": 0.512,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/lacoste/fleece-hoodie/black.webp",
+                    "c": "#121110",
+                    "m": 0.49,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/lacoste/fleece-hoodie/light-blue.jpg",
+                    "c": "#dbe4ed",
+                    "m": 0.582,
+                    "light": 1,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/lacoste/fleece-hoodie/green.jpg",
+                    "c": "#224330",
+                    "m": 0.605,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/lacoste/fleece-hoodie/bordeaux.jpg",
+                    "c": "#38171b",
+                    "m": 0.651,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/lacoste/fleece-hoodie/white.jpg",
+                    "c": "#e7e4e4",
+                    "m": 0.041,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/lacoste/fleece-hoodie/blue.jpg",
+                    "c": "#0a95cf",
+                    "m": 0.595,
+                    "light": 1,
+                    "k": 3
+                }
+            ]
+        },
+        {
+            "id": "lac-slim-sweatpants",
+            "brand": "Lacoste",
+            "name": "Slim Fit Sweatpants",
+            "colours": [
+                "Blue",
+                "Beige",
+                "Green",
+                "Black",
+                "Navy"
+            ],
+            "card": "/uploads/lacoste/slim-sweatpants/blue.jpg",
+            "clusters": 3,
+            "rows": [
+                {
+                    "img": "/uploads/lacoste/slim-sweatpants/blue.jpg",
+                    "c": "#26a6d9",
+                    "m": 0.255,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lacoste/slim-sweatpants/beige.avif",
+                    "c": "#c3a584",
+                    "m": 0.319,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/lacoste/slim-sweatpants/green.avif",
+                    "c": "#21472c",
+                    "m": 0.323,
+                    "light": 1,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/lacoste/slim-sweatpants/black.avif",
+                    "c": "#131112",
+                    "m": 0.326,
+                    "light": 1,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/lacoste/slim-sweatpants/navy.avif",
+                    "c": "#1b182a",
+                    "m": 0.325,
+                    "light": 1,
+                    "k": 2
+                }
+            ]
+        },
+        {
+            "id": "lac-highneck-sweatshirt",
+            "brand": "Lacoste",
+            "name": "Zip-Up High Neck Interlock Sweatshirt",
+            "colours": [
+                "White",
+                "Blue",
+                "Beige",
+                "Navy",
+                "Black"
+            ],
+            "card": "/uploads/lacoste/highneck-sweatshirt/blue.avif",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/lacoste/highneck-sweatshirt/white.avif",
+                    "c": "#e9e6e3",
+                    "m": 0.065,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/lacoste/highneck-sweatshirt/blue.avif",
+                    "c": "#6e99ac",
+                    "m": 0.41,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lacoste/highneck-sweatshirt/beige.avif",
+                    "c": "#c9ae8a",
+                    "m": 0.419,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lacoste/highneck-sweatshirt/navy.avif",
+                    "c": "#172236",
+                    "m": 0.409,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/lacoste/highneck-sweatshirt/black.avif",
+                    "c": "#17181a",
+                    "m": 0.404,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "lac-monogram-polo",
+            "brand": "Lacoste",
+            "name": "Classic Fit Monogram Jacquard Polo Shirt",
+            "colours": [
+                "Black",
+                "Blue"
+            ],
+            "card": "/uploads/lacoste/monogram-polo/black.avif",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/lacoste/monogram-polo/black.avif",
+                    "c": "#373437",
+                    "m": 0.397,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lacoste/monogram-polo/blue.webp",
+                    "c": "#747786",
+                    "m": 0.601,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/lacoste/lac-monogram-polo-w1.jpg",
+                    "c": "#151414",
+                    "m": 0.363,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/lacoste/lac-monogram-polo-w3.jpg",
+                    "c": "#343231",
+                    "m": 0.4,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/lacoste/lac-monogram-polo-w5.jpg",
+                    "c": "#323031",
+                    "m": 0.864,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "lac-zip-hoodie",
+            "brand": "Lacoste",
+            "name": "Zip Up Fleece Hoodie",
+            "colours": [
+                "Blue",
+                "Bordeaux",
+                "Beige",
+                "White",
+                "Green",
+                "Black",
+                "Navy"
+            ],
+            "card": "/uploads/lacoste/zip-hoodie/blue.jpg",
+            "clusters": 3,
+            "rows": [
+                {
+                    "img": "/uploads/lacoste/zip-hoodie/blue.jpg",
+                    "c": "#2eaadb",
+                    "m": 0.386,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lacoste/zip-hoodie/bordeaux.webp",
+                    "c": "#321116",
+                    "m": 0.31,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/lacoste/zip-hoodie/beige.avif",
+                    "c": "#c6a988",
+                    "m": 0.44,
+                    "light": 1,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/lacoste/zip-hoodie/white.avif",
+                    "c": "#e5e4e6",
+                    "m": 0.061,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/lacoste/zip-hoodie/green.avif",
+                    "c": "#183924",
+                    "m": 0.511,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/lacoste/zip-hoodie/black.avif",
+                    "c": "#121010",
+                    "m": 0.506,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/lacoste/zip-hoodie/navy.avif",
+                    "c": "#0b0f18",
+                    "m": 0.439,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "lac-crew-sweatshirt",
+            "brand": "Lacoste",
+            "name": "Fleece Crew Neck Sweatshirt",
+            "colours": [
+                "Navy",
+                "Black",
+                "Bordeaux",
+                "Light Blue",
+                "Red",
+                "Green",
+                "Blue",
+                "White",
+                "Beige",
+                "Pink"
+            ],
+            "card": "/uploads/lacoste/crew-sweatshirt/black.avif",
+            "clusters": 5,
+            "rows": [
+                {
+                    "img": "/uploads/lacoste/crew-sweatshirt/navy.jpg",
+                    "c": "#121425",
+                    "m": 0.606,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lacoste/crew-sweatshirt/black.avif",
+                    "c": "#1a1819",
+                    "m": 0.487,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lacoste/crew-sweatshirt/bordeaux.jpg",
+                    "c": "#4d2127",
+                    "m": 0.636,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lacoste/crew-sweatshirt/light-blue.jpg",
+                    "c": "#d1e2ec",
+                    "m": 0.552,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/lacoste/crew-sweatshirt/red.png",
+                    "c": "#b60014",
+                    "m": 0.6,
+                    "light": 1,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/lacoste/crew-sweatshirt/green.jpg",
+                    "c": "#1c4529",
+                    "m": 0.622,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/lacoste/crew-sweatshirt/blue.jpg",
+                    "c": "#38a8e4",
+                    "m": 0.561,
+                    "light": 1,
+                    "k": 3
+                },
+                {
+                    "img": "/uploads/lacoste/crew-sweatshirt/white.jpg",
+                    "c": "#d5cfd2",
+                    "m": 0.047,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/lacoste/crew-sweatshirt/beige.jpg",
+                    "c": "#c6a785",
+                    "m": 0.642,
+                    "light": 1,
+                    "k": 4
+                },
+                {
+                    "img": "/uploads/lacoste/crew-sweatshirt/pink.jpg",
+                    "c": "#fbe3e1",
+                    "m": 0.661,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "csb-larche-colore-printed-black",
+            "brand": "Casablanca",
+            "name": "L'arche Colore Printed T-Shirt — Black",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/casablanca/larche-colore-printed-black.webp",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/casablanca/larche-colore-printed-black.webp",
+                    "c": "#151414",
+                    "m": 0.325,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/casablanca/csb-larche-colore-printed-black-w1.jpg",
+                    "c": "#191919",
+                    "m": 0.422,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/casablanca/csb-larche-colore-printed-black-w2.jpg",
+                    "c": "#121212",
+                    "m": 0.694,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/casablanca/csb-larche-colore-printed-black-w3.jpg",
+                    "c": "#f5d1cc",
+                    "m": 0.898,
+                    "light": 0,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "csb-gradient-arch-logo-white",
+            "brand": "Casablanca",
+            "name": "Gradient Arch Logo T-Shirt — White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/casablanca/gradient-arch-logo-white.webp",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/casablanca/gradient-arch-logo-white.webp",
+                    "c": "#e7e8eb",
+                    "m": 0.529,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/casablanca/csb-gradient-arch-logo-white-w2.jpg",
+                    "c": "#edeced",
+                    "m": 0.146,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/casablanca/csb-gradient-arch-logo-white-w3.jpg",
+                    "c": "#fccf06",
+                    "m": 0.234,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "csb-larche-de-tennis-green",
+            "brand": "Casablanca",
+            "name": "L'Arche De Tennis T-Shirt — Green",
+            "colours": [
+                "Green"
+            ],
+            "card": "/uploads/casablanca/larche-de-tennis-green.png",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/casablanca/larche-de-tennis-green.png",
+                    "c": "#036958",
+                    "m": 0.512,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/casablanca/csb-larche-de-tennis-green-w2.jpg",
+                    "c": "#151211",
+                    "m": 0.183,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/casablanca/csb-larche-de-tennis-green-w3.jpg",
+                    "c": "#181514",
+                    "m": 0.201,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/casablanca/csb-larche-de-tennis-green-w4.jpg",
+                    "c": "#035549",
+                    "m": 0.484,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/casablanca/csb-larche-de-tennis-green-w5.jpg",
+                    "c": "#087565",
+                    "m": 0.714,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "csb-montagne-ondulee-green",
+            "brand": "Casablanca",
+            "name": "Montagne Ondulee T-Shirt — Green",
+            "colours": [
+                "Green"
+            ],
+            "card": "/uploads/casablanca/montagne-ondulee-green.png",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/casablanca/montagne-ondulee-green.png",
+                    "c": "#005541",
+                    "m": 0.568,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/casablanca/csb-montagne-ondulee-green-w5.jpg",
+                    "c": "#027964",
+                    "m": 0.57,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/casablanca/csb-montagne-ondulee-green-w4.jpg",
+                    "c": "#eeeeee",
+                    "m": 0.391,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/casablanca/csb-montagne-ondulee-green-w6.jpg",
+                    "c": "#076e5b",
+                    "m": 0.741,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "rl-csf-tee-navy",
+            "brand": "Ralph Lauren",
+            "name": "Custom Slim Fit Crew Neck T-Shirt",
+            "colours": [
+                "Navy",
+                "Black",
+                "White",
+                "Grey",
+                "Khaki",
+                "Red",
+                "L.blue",
+                "Cream"
+            ],
+            "card": "/uploads/rl/csf-tee-black.jpg",
+            "clusters": 3,
+            "rows": [
+                {
+                    "img": "/uploads/rl/csf-tee-navy.jpg",
+                    "c": "#262433",
+                    "m": 0.681,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/rl/csf-tee-black.jpg",
+                    "c": "#232424",
+                    "m": 0.663,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/rl/csf-tee-white.jpg",
+                    "c": "#e9e9ec",
+                    "m": 0.184,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/rl/csf-tee-grey.jpg",
+                    "c": "#b8b8b8",
+                    "m": 0.672,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/rl/csf-tee-khaki.png",
+                    "c": "#656b43",
+                    "m": 0.649,
+                    "light": 1,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/rl/csf-tee-red.jpg",
+                    "c": "#b63c39",
+                    "m": 0.68,
+                    "light": 1,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/rl/csf-tee-lightblue.jpg",
+                    "c": "#a4b9ce",
+                    "m": 0.661,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/rl/csf-tee-cream.jpg",
+                    "c": "#f1eee9",
+                    "m": 0.124,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "rl-csf-polo-white",
+            "brand": "Ralph Lauren",
+            "name": "Custom Slim Fit Polo Shirt",
+            "colours": [
+                "White",
+                "Dark Green",
+                "Fuchsia",
+                "Yellow",
+                "Orange",
+                "Pink",
+                "Black",
+                "Navy"
+            ],
+            "card": "/uploads/rl/csf-polo-white.png",
+            "clusters": 6,
+            "rows": [
+                {
+                    "img": "/uploads/rl/csf-polo-white.png",
+                    "c": "#fcfdfe",
+                    "m": 0.181,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/rl/csf-polo-darkgreen.jpg",
+                    "c": "#0ec490",
+                    "m": 0.684,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/rl/csf-polo-fuchsia.png",
+                    "c": "#fe346c",
+                    "m": 0.632,
+                    "light": 1,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/rl/csf-polo-yellow.jpg",
+                    "c": "#f9e57a",
+                    "m": 0.665,
+                    "light": 1,
+                    "k": 3
+                },
+                {
+                    "img": "/uploads/rl/csf-polo-orange.jpg",
+                    "c": "#fb8549",
+                    "m": 0.689,
+                    "light": 1,
+                    "k": 4
+                },
+                {
+                    "img": "/uploads/rl/csf-polo-pink.jpg",
+                    "c": "#eab8c5",
+                    "m": 0.643,
+                    "light": 1,
+                    "k": 3
+                },
+                {
+                    "img": "/uploads/rl/csf-polo-black-c3870.jpg",
+                    "c": "#161616",
+                    "m": 0.465,
+                    "light": 1,
+                    "k": 5
+                },
+                {
+                    "img": "/uploads/rl/csf-polo-navy-c3870.jpg",
+                    "c": "#23284e",
+                    "m": 0.454,
+                    "light": 1,
+                    "k": 5
+                }
+            ]
+        },
+        {
+            "id": "fp-m3600-polo",
+            "brand": "Fred Perry",
+            "name": "The Fred Perry Shirt — Twin Tipped",
+            "colours": [
+                "Black",
+                "White",
+                "Navy",
+                "Bordeaux",
+                "Green",
+                "Light Blue"
+            ],
+            "card": "/uploads/fredperry/m3600-black.jpg",
+            "clusters": 3,
+            "rows": [
+                {
+                    "img": "/uploads/fredperry/m3600-navy.jpg",
+                    "c": "#0e141c",
+                    "m": 0.604,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/fredperry/m3600-snow-white.jpg",
+                    "c": "#ebeae5",
+                    "m": 0.588,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/fredperry/m3600-green.jpg",
+                    "c": "#757964",
+                    "m": 0.59,
+                    "light": 1,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/fredperry/m3600-black.jpg",
+                    "c": "#242224",
+                    "m": 0.653,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/fredperry/m3600-bordeaux.jpg",
+                    "c": "#4f1e21",
+                    "m": 0.615,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/fredperry/m3600-light-blue.jpg",
+                    "c": "#d5dce4",
+                    "m": 0.636,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "fp-m7535-sweat",
+            "brand": "Fred Perry",
+            "name": "Crew Neck Sweatshirt",
+            "colours": [
+                "Bordeaux",
+                "White",
+                "Navy",
+                "Green",
+                "Black"
+            ],
+            "card": "/uploads/fred-perry/fp-m7535-bordeaux.jpg",
+            "clusters": 3,
+            "rows": [
+                {
+                    "img": "/uploads/fred-perry/fp-m7535-bordeaux.jpg",
+                    "c": "#5b2a32",
+                    "m": 0.709,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/fred-perry/fp-m7535-white.jpg",
+                    "c": "#e8e4dc",
+                    "m": 0.665,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/fred-perry/fp-m7535-navy.jpg",
+                    "c": "#2a2c54",
+                    "m": 0.743,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/fred-perry/fp-m7535-green.jpg",
+                    "c": "#6d6c54",
+                    "m": 0.763,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/fred-perry/fp-m7535-black.jpg",
+                    "c": "#201d23",
+                    "m": 0.769,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/fred-perry/fp-m7535-detail-front.jpg",
+                    "c": "#515945",
+                    "m": 0.706,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/fred-perry/fp-m7535-detail-laurel.jpg",
+                    "c": "#8b9378",
+                    "m": 0.716,
+                    "light": 0,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/fred-perry/fp-m7535-detail-neck-label.jpg",
+                    "c": "#6a6957",
+                    "m": 0.768,
+                    "light": 0,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/fred-perry/fp-m7535-detail-style-label.jpg",
+                    "c": "#70734d",
+                    "m": 0.693,
+                    "light": 0,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/fred-perry/fp-m7535-detail-hangtags.jpg",
+                    "c": "#929867",
+                    "m": 0.787,
+                    "light": 0,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/fred-perry/fp-m7535-detail-community-tag.jpg",
+                    "c": "#717651",
+                    "m": 0.731,
+                    "light": 0,
+                    "k": 2
+                }
+            ]
+        },
+        {
+            "id": "dgx-g8kbaz-g7c6",
+            "brand": "Dolce & Gabbana",
+            "name": "DG Logo T-Shirt — White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/dg-dropbox/d-g-g8kbazg7c6.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8kbazg7c6.jpg",
+                    "c": "#ededec",
+                    "m": 0.321,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8kbazg7c6-p1-v2.jpg",
+                    "c": "#e5b195",
+                    "m": 0.283,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8kbazg7c6-p1-v1.jpg",
+                    "c": "#efeeed",
+                    "m": 0.084,
+                    "light": 1,
+                    "k": null
+                }
+            ]
+        },
+        {
+            "id": "dgx-g8nc5t-hs7kg",
+            "brand": "Dolce & Gabbana",
+            "name": "Monogram T-Shirt",
+            "colours": [
+                "Black/White"
+            ],
+            "card": "/uploads/dg-dropbox/d-g-g8nc5t-hs7kg.jpg",
+            "clusters": 3,
+            "rows": [
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8nc5t-hs7kg.jpg",
+                    "c": "#f8f8f8",
+                    "m": 0.873,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p1.jpg",
+                    "c": "#2f2d2c",
+                    "m": 0.722,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p3.jpg",
+                    "c": "#b6b2ac",
+                    "m": 0.787,
+                    "light": 1,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p2.jpg",
+                    "c": "#323130",
+                    "m": 0.464,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p2-p1.jpg",
+                    "c": "#31302f",
+                    "m": 0.459,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgx-g8ol6z-g7c8g",
+            "brand": "Dolce & Gabbana",
+            "name": "Tonal Logo T-Shirt",
+            "colours": [
+                "White",
+                "Red",
+                "Black",
+                "Orange"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p1.jpg",
+            "clusters": 3,
+            "rows": [
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g.jpg",
+                    "c": "#e9ecee",
+                    "m": 0.52,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8ol6zg7c8g.jpg",
+                    "c": "#d32636",
+                    "m": 0.848,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8ol6zg7c8g1.jpg",
+                    "c": "#181717",
+                    "m": 0.846,
+                    "light": 1,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g-1.jpg",
+                    "c": "#ce4902",
+                    "m": 0.598,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p1.jpg",
+                    "c": "#cc4701",
+                    "m": 0.665,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p2.jpg",
+                    "c": "#cf4a02",
+                    "m": 0.683,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p2.jpg",
+                    "c": "#cfd4d7",
+                    "m": 0.08,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g-p1.jpg",
+                    "c": "#d52634",
+                    "m": 0.671,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g-p2-p1.jpg",
+                    "c": "#d0253a",
+                    "m": 0.749,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g-p2-p2.jpg",
+                    "c": "#efefef",
+                    "m": 0.986,
+                    "light": 0,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p1.jpg",
+                    "c": "#e8ebed",
+                    "m": 0.353,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p1-p1.jpg",
+                    "c": "#e9eced",
+                    "m": 0.297,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p1-p2.jpg",
+                    "c": "#e7eaed",
+                    "m": 0.841,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v1-v1.jpg",
+                    "c": "#e8ebed",
+                    "m": 0.318,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v1-v2.jpg",
+                    "c": "#ebedef",
+                    "m": 0.63,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v2.jpg",
+                    "c": "#d0d5d8",
+                    "m": 0.165,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgx-g8pb9t-hu7ma",
+            "brand": "Dolce & Gabbana",
+            "name": "Logo Plaque T-Shirt — White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/dg-dropbox/d-g-g8pb9thu7ma.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8pb9thu7ma.jpg",
+                    "c": "#ecebf0",
+                    "m": 0.367,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pb9thu7ma-p1.jpg",
+                    "c": "#13110d",
+                    "m": 0.147,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgx-g8pe3t-g7j6h",
+            "brand": "Dolce & Gabbana",
+            "name": "Crest Print T-Shirt — White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-g8pe3tg7j6h-p1-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8pe3tg7j6h.jpg",
+                    "c": "#ecebea",
+                    "m": 0.59,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pe3tg7j6h-p1-p1.jpg",
+                    "c": "#ebeaea",
+                    "m": 0.692,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pe3tg7j6h-p1-p2.jpg",
+                    "c": "#231b13",
+                    "m": 0.591,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pe3tg7j6h-p1-p3.jpg",
+                    "c": "#2e241b",
+                    "m": 0.525,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pe3tg7j6h-v1.jpg",
+                    "c": "#ecebea",
+                    "m": 0.65,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pe3tg7j6h-v2.jpg",
+                    "c": "#2d241b",
+                    "m": 0.572,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgx-g8pl1t-fu7eq",
+            "brand": "Dolce & Gabbana",
+            "name": "Logo Print T-Shirt — White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/dg-dropbox/d-g-g8pl1t-fu7eq.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8pl1t-fu7eq.jpg",
+                    "c": "#e9e8ed",
+                    "m": 0.853,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pl1t-fu7eq-p1.jpg",
+                    "c": "#d2ab94",
+                    "m": 0.371,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgx-g8pl4t-g7f2h",
+            "brand": "Dolce & Gabbana",
+            "name": "Logo Plaque Polo Shirt — White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/dg-dropbox/d-g-g8pl4t-g7f2h.jpg",
+            "clusters": 3,
+            "rows": [
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8pl4t-g7f2h.jpg",
+                    "c": "#ecebef",
+                    "m": 0.5,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pl4t-g7f2h-0-p1.jpg",
+                    "c": "#191717",
+                    "m": 0.77,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pl4t-g7f2h-0-p2.jpg",
+                    "c": "#1c1b1b",
+                    "m": 0.816,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pl4t-g7f2h-0-p3.jpg",
+                    "c": "#171516",
+                    "m": 0.075,
+                    "light": 0,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pl4t-g7f2h-p1.jpg",
+                    "c": "#d2a98f",
+                    "m": 0.215,
+                    "light": 1,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/licensed/web/dolce-gabbana/dgn-g8pl4tg7f2h-w1.jpg",
+                    "c": "#131416",
+                    "m": 0.445,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgx-g8pt2t-g7f2i",
+            "brand": "Dolce & Gabbana",
+            "name": "Logo Plaque V-Neck T-Shirt — Black",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-g8pt2tg7f2i-p1-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8pt2tg7f2i.jpg",
+                    "c": "#161616",
+                    "m": 0.766,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pt2tg7f2i-p1-p1.jpg",
+                    "c": "#131413",
+                    "m": 0.693,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pt2tg7f2i-p1-p2.jpg",
+                    "c": "#181918",
+                    "m": 0.99,
+                    "light": 0,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pt2tg7f2i-p1-p3.jpg",
+                    "c": "#d1cfcd",
+                    "m": 0.712,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgx-g8ql1t-g7i3e",
+            "brand": "Dolce & Gabbana",
+            "name": "Photo Print T-Shirt — White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/dg-dropbox/d-g-g8ql1t-g7i3e.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8ql1t-g7i3e.jpg",
+                    "c": "#e8e7e7",
+                    "m": 0.863,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ql1t-g7i3e-p1-p2.jpg",
+                    "c": "#6f6f6a",
+                    "m": 0.583,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ql1t-g7i3e-p1-p1.jpg",
+                    "c": "#cdcbc9",
+                    "m": 0.444,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgx-g9xh2z-g7d0e",
+            "brand": "Dolce & Gabbana",
+            "name": "Crest Sweatshirt — White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/dg-dropbox/d-g-g9xh2z-g7d0e.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g9xh2z-g7d0e.jpg",
+                    "c": "#ebebeb",
+                    "m": 0.507,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g9xh2z-g7d0e-v1.jpg",
+                    "c": "#131114",
+                    "m": 0.291,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g9xh2z-g7d0e-v2.jpg",
+                    "c": "#131113",
+                    "m": 0.264,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g9xh2z-g7d0e-p1.jpg",
+                    "c": "#131113",
+                    "m": 0.268,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgx-g9zk9z-fu7du",
+            "brand": "Dolce & Gabbana",
+            "name": "DG Logo Sweatshirt — White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-g9zk9z-fu7du-v1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g9zk9z-fu7du.jpg",
+                    "c": "#ebebee",
+                    "m": 0.525,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g9zk9z-fu7du-v1.jpg",
+                    "c": "#cfced3",
+                    "m": 0.176,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g9zk9z-fu7du-v2.jpg",
+                    "c": "#aeacab",
+                    "m": 0.143,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g9zk9z-fu7du-p1.jpg",
+                    "c": "#cfced4",
+                    "m": 0.19,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgx-gvetaz-hu7b7",
+            "brand": "Dolce & Gabbana",
+            "name": "Logo Tape Track Jacket & Trousers Set — Black",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/dg-dropbox/d-g-gvetazhu7b7.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dg-dropbox/d-g-gvetazhu7b7.jpg",
+                    "c": "#2b2a29",
+                    "m": 0.592,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gvetazhu7b7-p1-p4.jpg",
+                    "c": "#d8d7d3",
+                    "m": 0.92,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gvetazhu7b7-p1-p2-p2.jpg",
+                    "c": "#2c2c2c",
+                    "m": 0.812,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gvetazhu7b7-p1-p1-p1.jpg",
+                    "c": "#2d2925",
+                    "m": 0.685,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gvetazhu7b7-p1-p1-p2.jpg",
+                    "c": "#2a2a2a",
+                    "m": 0.803,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gvetazhu7b7-p1-p2-p1.jpg",
+                    "c": "#151515",
+                    "m": 0.81,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gvetazhu7b7-p1-p3.jpg",
+                    "c": "#1a1915",
+                    "m": 0.718,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgx-gwnxad-g8et4",
+            "brand": "Dolce & Gabbana",
+            "name": "Denim Shorts",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/dg-dropbox/d-g-gwnxadg8et4.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dg-dropbox/d-g-gwnxadg8et4.jpg",
+                    "c": "#546e8b",
+                    "m": 0.578,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gwnxadg8et4-p1.jpg",
+                    "c": "#536e8c",
+                    "m": 0.589,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gwnxadg8et4-p2-p1.jpg",
+                    "c": "#e8b7a6",
+                    "m": 0.595,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgx-gy07cd-g8ha9",
+            "brand": "Dolce & Gabbana",
+            "name": "5-Pocket Jeans",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/dg-dropbox/d-g-gy07cdg8ha9.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dg-dropbox/d-g-gy07cdg8ha9.jpg",
+                    "c": "#eae9e8",
+                    "m": 0.835,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gy07cdg8ha9-p2-p1.jpg",
+                    "c": "#edeceb",
+                    "m": 0.987,
+                    "light": 0,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gy07cdg8ha9-p1.jpg",
+                    "c": "#546f89",
+                    "m": 0.762,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgx-gy07ld-g8hb3",
+            "brand": "Dolce & Gabbana",
+            "name": "Slim Fit Jeans",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-gy07ldg8hb3-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/dg-dropbox/d-g-gy07ldg8hb3.jpg",
+                    "c": "#546676",
+                    "m": 0.858,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gy07ldg8hb3-p1.jpg",
+                    "c": "#354655",
+                    "m": 0.725,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gy07ldg8hb3-p2-p1.jpg",
+                    "c": "#d4d2d1",
+                    "m": 0.658,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gy07ldg8hb3-p2-p2.jpg",
+                    "c": "#526677",
+                    "m": 0.99,
+                    "light": 0,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "bur-pique-polo-2909",
+            "brand": "Burberry",
+            "name": "Cotton Piqué Polo — 8 colourways",
+            "colours": [
+                "Green (8099164)",
+                "Black (8096425)",
+                "Navy (8099165)",
+                "White (8099166)",
+                "Beige (8099167)",
+                "Black · Check Collar (8071620)",
+                "Navy · Check Collar (8072661)",
+                "White · Check Collar (8071621)"
+            ],
+            "card": "/uploads/burberry-polo/burberry-green-8099164.jpg",
+            "clusters": 3,
+            "rows": [
+                {
+                    "img": "/uploads/burberry-polo/burberry-green-8099164.jpg",
+                    "c": "#545128",
+                    "m": 0.596,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/burberry-polo/burberry-black-8096425.jpg",
+                    "c": "#171717",
+                    "m": 0.652,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/burberry-polo/burberry-navy-8099165.jpg",
+                    "c": "#1a1a23",
+                    "m": 0.588,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/burberry-polo/burberry-white-8099166.jpg",
+                    "c": "#e4e3e8",
+                    "m": 0.24,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/burberry-polo/burberry-beige-8099167.jpg",
+                    "c": "#c5a88b",
+                    "m": 0.594,
+                    "light": 1,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/burberry-polo/burberry-black-check-collar-8071620.jpg",
+                    "c": "#181816",
+                    "m": 0.542,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/burberry-polo/burberry-navy-check-collar-8072661.jpg",
+                    "c": "#191c29",
+                    "m": 0.549,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/burberry-polo/burberry-white-check-collar-8071621.jpg",
+                    "c": "#e4e3e7",
+                    "m": 0.132,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "bur-80553091",
+            "brand": "Burberry",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/balenciaga-burberry/burberry-80553091-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/burberry-80553091-p1.jpg",
+                    "c": "#b28b73",
+                    "m": 0.237,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/burberry/bur-80553091-w2.jpg",
+                    "c": "#e9e9e9",
+                    "m": 0.395,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "bur-8056724",
+            "brand": "Burberry",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/licensed/web/burberry/bur-8056724-w1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/burberry-8056724-p1.jpg",
+                    "c": "#e5e4e5",
+                    "m": 0.633,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/burberry-8056724-p2.jpg",
+                    "c": "#e3e2e3",
+                    "m": 0.74,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/burberry/bur-8056724-w1.jpg",
+                    "c": "#edecee",
+                    "m": 0.189,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/burberry/bur-8056724-w3.jpg",
+                    "c": "#ececee",
+                    "m": 0.142,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/burberry/bur-8056724-w4.jpg",
+                    "c": "#27272f",
+                    "m": 0.138,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "bur-8069612",
+            "brand": "Burberry",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/balenciaga-burberry/burberry-8069612-p1.jpg",
+            "clusters": 3,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/burberry-8069612-p1.jpg",
+                    "c": "#e7e7e9",
+                    "m": 0.475,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/burberry-8069612-p2-p1.jpg",
+                    "c": "#251c18",
+                    "m": 0.328,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/burberry-8069612-p2-p2.jpg",
+                    "c": "#375574",
+                    "m": 0.421,
+                    "light": 1,
+                    "k": 2
+                }
+            ]
+        },
+        {
+            "id": "bur-8118964",
+            "brand": "Burberry",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/balenciaga-burberry/burberry-8118964-v2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/burberry-8118964-v2.jpg",
+                    "c": "#cdcfad",
+                    "m": 0.191,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/burberry-8118964-p1.jpg",
+                    "c": "#315273",
+                    "m": 0.339,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/burberry-8118964-v1.jpg",
+                    "c": "#305273",
+                    "m": 0.421,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgn-4a06t",
+            "brand": "Dolce & Gabbana",
+            "name": "Swimwear",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/shorts-sweats/d-g-4a06t-fhmci-v2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/d-g-4a06t-fhmci-p1.jpg",
+                    "c": "#facfab",
+                    "m": 0.796,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-4a06t-fhmci-p2.jpg",
+                    "c": "#edb68e",
+                    "m": 0.778,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-4a06t-fhmci-p3.jpg",
+                    "c": "#91afcf",
+                    "m": 0.702,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-4a06t-fhmci-v2.jpg",
+                    "c": "#ecb68e",
+                    "m": 0.709,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-4a06t-fhmci-v3.jpg",
+                    "c": "#91afcf",
+                    "m": 0.668,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8gw9",
+            "brand": "Dolce & Gabbana",
+            "name": "Denim Shorts",
+            "colours": [
+                "Grey"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-gwnxad-g8gw9-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gwnxad-g8gw9-p1.jpg",
+                    "c": "#888d94",
+                    "m": 0.859,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gwnxad-g8gw9-p2.jpg",
+                    "c": "#484f58",
+                    "m": 0.826,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gwnxad-g8gw9-p3.jpg",
+                    "c": "#686e76",
+                    "m": 0.698,
+                    "light": 0,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8kbazg7c6",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-g8kbazg7c6-p1-v2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8kbazg7c6-p1-v2.jpg",
+                    "c": "#e5b195",
+                    "m": 0.283,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8kbazg7c6-p1-v1.jpg",
+                    "c": "#efeeed",
+                    "m": 0.084,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8kbazg7c6-p1.jpg",
+                    "c": "#ededec",
+                    "m": 0.334,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8nc5ths7kg",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "Black/White"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p2.jpg",
+            "clusters": 3,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p1.jpg",
+                    "c": "#2f2d2c",
+                    "m": 0.722,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p3.jpg",
+                    "c": "#b6b2ac",
+                    "m": 0.787,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p2.jpg",
+                    "c": "#323130",
+                    "m": 0.464,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p2-p1.jpg",
+                    "c": "#31302f",
+                    "m": 0.459,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8nc5t-hs7kg.jpg",
+                    "c": "#f8f8f8",
+                    "m": 0.873,
+                    "light": 1,
+                    "k": 2
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8ol6zg7c8g",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "Orange"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p1.jpg",
+            "clusters": 3,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p1.jpg",
+                    "c": "#cc4701",
+                    "m": 0.665,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p2.jpg",
+                    "c": "#cf4a02",
+                    "m": 0.683,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p2.jpg",
+                    "c": "#cfd4d7",
+                    "m": 0.08,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g-p1.jpg",
+                    "c": "#d52634",
+                    "m": 0.671,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g-p2-p1.jpg",
+                    "c": "#d0253a",
+                    "m": 0.749,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g-p2-p2.jpg",
+                    "c": "#efefef",
+                    "m": 0.986,
+                    "light": 0,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p1.jpg",
+                    "c": "#e8ebed",
+                    "m": 0.353,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p1-p1.jpg",
+                    "c": "#e9eced",
+                    "m": 0.297,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p1-p2.jpg",
+                    "c": "#e7eaed",
+                    "m": 0.841,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v1-v1.jpg",
+                    "c": "#e8ebed",
+                    "m": 0.318,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v1-v2.jpg",
+                    "c": "#ebedef",
+                    "m": 0.63,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v2.jpg",
+                    "c": "#d0d5d8",
+                    "m": 0.165,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g.jpg",
+                    "c": "#e9ecee",
+                    "m": 0.52,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8ol6zg7c8g.jpg",
+                    "c": "#d32636",
+                    "m": 0.848,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8ol6zg7c8g1.jpg",
+                    "c": "#181717",
+                    "m": 0.846,
+                    "light": 1,
+                    "k": 2
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g-1.jpg",
+                    "c": "#ce4902",
+                    "m": 0.598,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8pb8tg7k4q",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/licensed/web/dolce-gabbana/dgn-g8pb8tg7k4q-w1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pb8tg7k4q-p1-p1.jpg",
+                    "c": "#e8ebf4",
+                    "m": 0.291,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pb8tg7k4q-p1-p2.jpg",
+                    "c": "#d2cfd2",
+                    "m": 0.318,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dolce-gabbana/dgn-g8pb8tg7k4q-w1.jpg",
+                    "c": "#d8d5d3",
+                    "m": 0.454,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dolce-gabbana/dgn-g8pb8tg7k4q-w2.jpg",
+                    "c": "#d4d1cf",
+                    "m": 0.468,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dolce-gabbana/dgn-g8pb8tg7k4q-w3.jpg",
+                    "c": "#d8d5d5",
+                    "m": 0.796,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dolce-gabbana/dgn-g8pb8tg7k4q-w4.jpg",
+                    "c": "#333a4a",
+                    "m": 0.474,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8pb9thu7ma",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-g8pb9thu7ma-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pb9thu7ma-p1.jpg",
+                    "c": "#13110d",
+                    "m": 0.147,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8pb9thu7ma.jpg",
+                    "c": "#ecebf0",
+                    "m": 0.367,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8pe3tg7j6h",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-g8pe3tg7j6h-p1-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pe3tg7j6h-p1-p1.jpg",
+                    "c": "#ebeaea",
+                    "m": 0.692,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pe3tg7j6h-p1-p2.jpg",
+                    "c": "#231b13",
+                    "m": 0.591,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pe3tg7j6h-p1-p3.jpg",
+                    "c": "#2e241b",
+                    "m": 0.525,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pe3tg7j6h-v1.jpg",
+                    "c": "#ecebea",
+                    "m": 0.65,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pe3tg7j6h-v2.jpg",
+                    "c": "#2d241b",
+                    "m": 0.572,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8pe3tg7j6h.jpg",
+                    "c": "#ecebea",
+                    "m": 0.59,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8pl1tfu7eq",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-g8pl1t-fu7eq-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pl1t-fu7eq-p1.jpg",
+                    "c": "#d2ab94",
+                    "m": 0.371,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8pl1t-fu7eq.jpg",
+                    "c": "#e9e8ed",
+                    "m": 0.853,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8pl4tg7f2h",
+            "brand": "Dolce & Gabbana",
+            "name": "Polo Shirt",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/licensed/web/dolce-gabbana/dgn-g8pl4tg7f2h-w1.jpg",
+            "clusters": 3,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pl4t-g7f2h-0-p1.jpg",
+                    "c": "#191717",
+                    "m": 0.77,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pl4t-g7f2h-0-p2.jpg",
+                    "c": "#1c1b1b",
+                    "m": 0.816,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pl4t-g7f2h-0-p3.jpg",
+                    "c": "#171516",
+                    "m": 0.075,
+                    "light": 0,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pl4t-g7f2h-p1.jpg",
+                    "c": "#d2a98f",
+                    "m": 0.215,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/dolce-gabbana/dgn-g8pl4tg7f2h-w1.jpg",
+                    "c": "#131416",
+                    "m": 0.445,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8pl4t-g7f2h.jpg",
+                    "c": "#ecebef",
+                    "m": 0.5,
+                    "light": 1,
+                    "k": 2
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8pl4zg7nyy",
+            "brand": "Dolce & Gabbana",
+            "name": "Polo Shirt",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/shorts-sweats/d-g-g8pl4zg7nyy_n-v3.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pl4zg7nyy_n-v3.jpg",
+                    "c": "#121212",
+                    "m": 0.651,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pl4zg7nyy-p1.jpg",
+                    "c": "#d0cfcf",
+                    "m": 0.262,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pl4zg7nyy_n-p1.jpg",
+                    "c": "#131213",
+                    "m": 0.666,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pl4zg7nyy_n-v1.jpg",
+                    "c": "#161517",
+                    "m": 0.676,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pl4zg7nyy_n-v2.jpg",
+                    "c": "#131215",
+                    "m": 0.655,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8pn9zg7nye",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/shorts-sweats/d-g-g8pn9zg7nye_-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pn9zg7nye-p1-p1.jpg",
+                    "c": "#d2ab92",
+                    "m": 0.305,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pn9zg7nye-p1-p2.jpg",
+                    "c": "#cececd",
+                    "m": 0.383,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pn9zg7nye-p2.jpg",
+                    "c": "#52514e",
+                    "m": 0.174,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pn9zg7nye_-p1.jpg",
+                    "c": "#c7ab8d",
+                    "m": 0.582,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pn9zg7nye_-p2.jpg",
+                    "c": "#c5ad93",
+                    "m": 0.608,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pn9zg7nye_-p3.jpg",
+                    "c": "#c4aa8c",
+                    "m": 0.917,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pn9zg7nye-p1.jpg",
+                    "c": "#d0cfcf",
+                    "m": 0.329,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pn9zg7nye-v2.jpg",
+                    "c": "#cecece",
+                    "m": 0.462,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pn9zg7nye-v3.jpg",
+                    "c": "#53524e",
+                    "m": 0.284,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8pn9zg7nye_-v1.jpg",
+                    "c": "#c7ab8f",
+                    "m": 0.578,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8pt1tg7f2i",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "Grey"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-g8pt1tg7f2i-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pt1tg7f2i-p1.jpg",
+                    "c": "#948b87",
+                    "m": 0.617,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pt1tg7f2i-p2.jpg",
+                    "c": "#958d8a",
+                    "m": 0.631,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pt1tg7f2i_-p1.jpg",
+                    "c": "#3d4a92",
+                    "m": 0.618,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pt1tg7f2i_-p2.jpg",
+                    "c": "#3d4e93",
+                    "m": 0.618,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pt1tg7f2i_-v2.jpg",
+                    "c": "#3d4e93",
+                    "m": 0.574,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8pt2tg7f2i",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-g8pt2tg7f2i-p1-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pt2tg7f2i-p1-p1.jpg",
+                    "c": "#131413",
+                    "m": 0.693,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pt2tg7f2i-p1-p2.jpg",
+                    "c": "#181918",
+                    "m": 0.99,
+                    "light": 0,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8pt2tg7f2i-p1-p3.jpg",
+                    "c": "#d1cfcd",
+                    "m": 0.712,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8pt2tg7f2i.jpg",
+                    "c": "#161616",
+                    "m": 0.766,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8ql1tg7i3e",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-g8ql1t-g7i3e-p1-p2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ql1t-g7i3e-p1-p2.jpg",
+                    "c": "#6f6f6a",
+                    "m": 0.583,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g8ql1t-g7i3e-p1-p1.jpg",
+                    "c": "#cdcbc9",
+                    "m": 0.444,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g8ql1t-g7i3e.jpg",
+                    "c": "#e8e7e7",
+                    "m": 0.863,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8rg6tg7k3p",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "Black/White"
+            ],
+            "card": "/uploads/licensed/web/dolce-gabbana/dgn-g8rg6tg7k3p-w1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rg6t-g7k3p-p1.jpg",
+                    "c": "#979288",
+                    "m": 0.967,
+                    "light": 0,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dolce-gabbana/dgn-g8rg6tg7k3p-w1.jpg",
+                    "c": "#d5d4d3",
+                    "m": 0.507,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/dolce-gabbana/dgn-g8rg6tg7k3p-w2.jpg",
+                    "c": "#d4d4d4",
+                    "m": 0.43,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/dolce-gabbana/dgn-g8rg6tg7k3p-w3.jpg",
+                    "c": "#d4d4d4",
+                    "m": 0.423,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/licensed/web/dolce-gabbana/dgn-g8rg6tg7k3p-w4.jpg",
+                    "c": "#d4d4d4",
+                    "m": 0.462,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8rn8tg7n7a",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "Burgundy"
+            ],
+            "card": "/uploads/shorts-sweats/d-g-g8rn8tg7n7a-f0-v1.jpg",
+            "clusters": 3,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8tg7n7a-f0-v1.jpg",
+                    "c": "#51222b",
+                    "m": 0.553,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8tg7n7a-f0-v2.jpg",
+                    "c": "#4e232a",
+                    "m": 0.97,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8tg7n7a-f0-v3.jpg",
+                    "c": "#53262e",
+                    "m": 0.684,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8tg7n7a-f0-p1.jpg",
+                    "c": "#50232b",
+                    "m": 0.702,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8tg7n7a-g-p1.jpg",
+                    "c": "#8f8889",
+                    "m": 0.608,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8tg7n7a-n0-p1.jpg",
+                    "c": "#171515",
+                    "m": 0.563,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8tg7n7a-p1.jpg",
+                    "c": "#f1f1f1",
+                    "m": 0.434,
+                    "light": 1,
+                    "k": 2
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8rn8tg7nuc",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/shorts-sweats/d-g-g8rn8tg7nuc-v1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8tg7nuc-v1.jpg",
+                    "c": "#181818",
+                    "m": 0.795,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8tg7nuc-v2.jpg",
+                    "c": "#161717",
+                    "m": 0.811,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8t-g7nuc-p1.jpg",
+                    "c": "#e3e2ea",
+                    "m": 0.476,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8tg7nuc-p1.jpg",
+                    "c": "#171717",
+                    "m": 0.787,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8rn8zg7m8x",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/shorts-sweats/d-g-g8rn8z-g7m8x-1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8z-g7m8x-1.jpg",
+                    "c": "#ecebeb",
+                    "m": 0.35,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8z-g7m8x-2.jpg",
+                    "c": "#2c2a34",
+                    "m": 0.619,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8rn8zg7n4q",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/shorts-sweats/d-g-g8rn8z-g7n4q-v1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8z-g7n4q-p1-p1.jpg",
+                    "c": "#1c1c1c",
+                    "m": 0.701,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8z-g7n4q-p1-p2.jpg",
+                    "c": "#1a1a18",
+                    "m": 0.749,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8z-g7n4q-v1.jpg",
+                    "c": "#1c1c1c",
+                    "m": 0.638,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8z-g7n4q-v2.jpg",
+                    "c": "#1a1a18",
+                    "m": 0.678,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8z-g7n4q-p1-p3.jpg",
+                    "c": "#262625",
+                    "m": 0.616,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8zg7n4q-p1.jpg",
+                    "c": "#ebeaf0",
+                    "m": 0.392,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgn-g8rn8zg7nub",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/shorts-sweats/d-g-g8rn8zg7nub-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/d-g-g8rn8zg7nub-p1.jpg",
+                    "c": "#171411",
+                    "m": 0.31,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/licensed/web/dolce-gabbana/dgn-g8rn8zg7nub-w1.jpg",
+                    "c": "#ebebea",
+                    "m": 0.405,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgn-g9xh2zg7d0e",
+            "brand": "Dolce & Gabbana",
+            "name": "Sweatshirt",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-g9xh2z-g7d0e-v2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g9xh2z-g7d0e-v1.jpg",
+                    "c": "#131114",
+                    "m": 0.291,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g9xh2z-g7d0e-v2.jpg",
+                    "c": "#131113",
+                    "m": 0.264,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-g9xh2z-g7d0e-p1.jpg",
+                    "c": "#131113",
+                    "m": 0.268,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-g9xh2z-g7d0e.jpg",
+                    "c": "#ebebeb",
+                    "m": 0.507,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgn-gvetazhu7b7",
+            "brand": "Dolce & Gabbana",
+            "name": "Tracksuit",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-gvetazhu7b7-p1-p4.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gvetazhu7b7-p1-p4.jpg",
+                    "c": "#d8d7d3",
+                    "m": 0.92,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gvetazhu7b7-p1-p2-p2.jpg",
+                    "c": "#2c2c2c",
+                    "m": 0.812,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gvetazhu7b7-p1-p1-p1.jpg",
+                    "c": "#2d2925",
+                    "m": 0.685,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gvetazhu7b7-p1-p1-p2.jpg",
+                    "c": "#2a2a2a",
+                    "m": 0.803,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gvetazhu7b7-p1-p2-p1.jpg",
+                    "c": "#151515",
+                    "m": 0.81,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gvetazhu7b7-p1-p3.jpg",
+                    "c": "#1a1915",
+                    "m": 0.718,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-gvetazhu7b7.jpg",
+                    "c": "#2b2a29",
+                    "m": 0.592,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgn-gwnxadg8et4",
+            "brand": "Dolce & Gabbana",
+            "name": "Denim Shorts",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/dg-dropbox/d-g-gwnxadg8et4.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gwnxadg8et4-p1.jpg",
+                    "c": "#536e8c",
+                    "m": 0.589,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gwnxadg8et4-p2-p1.jpg",
+                    "c": "#e8b7a6",
+                    "m": 0.595,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-gwnxadg8et4.jpg",
+                    "c": "#546e8b",
+                    "m": 0.578,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgn-gy07cdg8ha9",
+            "brand": "Dolce & Gabbana",
+            "name": "Jeans",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/dg-dropbox/d-g-gy07cdg8ha9.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gy07cdg8ha9-p2-p1.jpg",
+                    "c": "#edeceb",
+                    "m": 0.987,
+                    "light": 0,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gy07cdg8ha9-p1.jpg",
+                    "c": "#546f89",
+                    "m": 0.762,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-gy07cdg8ha9.jpg",
+                    "c": "#eae9e8",
+                    "m": 0.835,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgn-gy07ldg8hb3",
+            "brand": "Dolce & Gabbana",
+            "name": "Jeans",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/balenciaga-burberry/d-g-gy07ldg8hb3-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gy07ldg8hb3-p1.jpg",
+                    "c": "#354655",
+                    "m": 0.725,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gy07ldg8hb3-p2-p1.jpg",
+                    "c": "#d4d2d1",
+                    "m": 0.658,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/balenciaga-burberry/d-g-gy07ldg8hb3-p2-p2.jpg",
+                    "c": "#526677",
+                    "m": 0.99,
+                    "light": 0,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/dg-dropbox/d-g-gy07ldg8hb3.jpg",
+                    "c": "#546676",
+                    "m": 0.858,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgn-m4a06t",
+            "brand": "Dolce & Gabbana",
+            "name": "Swimwear",
+            "colours": [
+                "Multicolour"
+            ],
+            "card": "/uploads/shorts-sweats/d-g-m4a06t-fhmrd-p3.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/d-g-m4a06t-fhmrd-p1.jpg",
+                    "c": "#322c26",
+                    "m": 0.898,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-m4a06t-fhmrd-p2.jpg",
+                    "c": "#d5a98e",
+                    "m": 0.831,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-m4a06t-fhmrd-p3.jpg",
+                    "c": "#35322e",
+                    "m": 0.701,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "dgn-m4b85t",
+            "brand": "Dolce & Gabbana",
+            "name": "Swimwear",
+            "colours": [
+                "Black"
+            ],
+            "card": "/uploads/shorts-sweats/d-g-m4b85t-fumtp-p2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/d-g-m4b85t-fumtp-p2.jpg",
+                    "c": "#dad9d5",
+                    "m": 0.695,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-m4b85t-fumtp-p3.jpg",
+                    "c": "#463a33",
+                    "m": 0.8,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-m4b85t-fumtp-v2.jpg",
+                    "c": "#463a33",
+                    "m": 0.782,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-m4b85t-fumtp-p1.jpg",
+                    "c": "#50433b",
+                    "m": 0.824,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-m4b85t-fumtp-v1.jpg",
+                    "c": "#4f433b",
+                    "m": 0.762,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "dgn-m4e26t",
+            "brand": "Dolce & Gabbana",
+            "name": "Swimwear",
+            "colours": [
+                "Red"
+            ],
+            "card": "/uploads/shorts-sweats/d-g-m4e26t-fusfw-p2-p1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/shorts-sweats/d-g-m4e26t-fusfw-p2-p1.jpg",
+                    "c": "#c51a1b",
+                    "m": 0.692,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/shorts-sweats/d-g-m4e26t-fusfw-p1.jpg",
+                    "c": "#523526",
+                    "m": 0.794,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "fashionb-lacoste-regular-fit-logo-trim-l-12-12-polo-shirt",
+            "brand": "LACOSTE",
+            "name": "Regular Fit Logo Trim L.12.12 Polo Shirt — White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/imported/fashionb-lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-3.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-1.jpg",
+                    "c": "#e4e4e4",
+                    "m": 0.02,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-2.jpg",
+                    "c": "#e6e5e5",
+                    "m": 0.047,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-3.jpg",
+                    "c": "#d0af92",
+                    "m": 0.287,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-4-p1.jpg",
+                    "c": "#372c24",
+                    "m": 0.543,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-4-p2.jpg",
+                    "c": "#181717",
+                    "m": 0.357,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "fashionb-lacoste-men-slim-fit-sweatpants-3",
+            "brand": "LACOSTE",
+            "name": "Slim Fit Sweatpants — Blue",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/imported/fashionb-lacoste-men-slim-fit-sweatpants-3-7-v1.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-slim-fit-sweatpants-3-2.jpg",
+                    "c": "#29a5da",
+                    "m": 0.891,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-slim-fit-sweatpants-3-4.jpg",
+                    "c": "#4b95cc",
+                    "m": 0.662,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-slim-fit-sweatpants-3-5.jpg",
+                    "c": "#8fc6eb",
+                    "m": 0.124,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-slim-fit-sweatpants-3-7-v1.jpg",
+                    "c": "#72b5e3",
+                    "m": 0.241,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-slim-fit-sweatpants-3-6-v1.jpg",
+                    "c": "#73b5e3",
+                    "m": 0.312,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-slim-fit-sweatpants-3-6-v2.jpg",
+                    "c": null,
+                    "m": 0,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-slim-fit-sweatpants-3-1.jpg",
+                    "c": "#26a6d9",
+                    "m": 0.255,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-slim-fit-sweatpants-3-3.jpg",
+                    "c": "#2ea5da",
+                    "m": 0.711,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "fashionb-lacoste-men-cotton-pima-t-shirt-3",
+            "brand": "LACOSTE",
+            "name": "Cotton Pima T-Shirt — Blue",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/imported/fashionb-lacoste-men-cotton-pima-t-shirt-3-4.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-cotton-pima-t-shirt-3-3.jpg",
+                    "c": "#fefefe",
+                    "m": 1,
+                    "light": 0,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-cotton-pima-t-shirt-3-4.jpg",
+                    "c": "#cecdcd",
+                    "m": 0.545,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-cotton-pima-t-shirt-3-1.jpg",
+                    "c": "#017ac9",
+                    "m": 0.482,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-cotton-pima-t-shirt-3-2.jpg",
+                    "c": "#0178c7",
+                    "m": 0.451,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "fashionb-lacoste-men-cotton-pima-t-shirt-1",
+            "brand": "LACOSTE",
+            "name": "Cotton Pima T-Shirt — Beige",
+            "colours": [
+                "Beige"
+            ],
+            "card": "/uploads/imported/fashionb-lacoste-men-cotton-pima-t-shirt-1-1.avif",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-cotton-pima-t-shirt-1-1.avif",
+                    "c": "#cba883",
+                    "m": 0.353,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-cotton-pima-t-shirt-1-2.avif",
+                    "c": "#cba781",
+                    "m": 0.869,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-cotton-pima-t-shirt-1-3.avif",
+                    "c": "#cdaa89",
+                    "m": 0.58,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-cotton-pima-t-shirt-1-4.avif",
+                    "c": "#131315",
+                    "m": 0.391,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-cotton-pima-t-shirt-1-5.avif",
+                    "c": "#111012",
+                    "m": 0.409,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "fashionb-lacoste-men-fleece-hoodie-copy-1",
+            "brand": "LACOSTE",
+            "name": "Fleece Hoodie — White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/imported/fashionb-lacoste-men-fleece-hoodie-copy-1-3-p2.jpg",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-fleece-hoodie-copy-1-2.jpg",
+                    "c": "#e5e3e6",
+                    "m": 0.143,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-fleece-hoodie-copy-1-3-p2.jpg",
+                    "c": "#e5e2e7",
+                    "m": 0.356,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-fleece-hoodie-copy-1-1.jpg",
+                    "c": "#e6e4e4",
+                    "m": 0.043,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-fleece-hoodie-copy-1-3-p1.jpg",
+                    "c": "#e8e3e8",
+                    "m": 0.036,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-fleece-hoodie-copy-1-4.jpg",
+                    "c": "#151729",
+                    "m": 0.162,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-fleece-hoodie-copy-1-5.jpg",
+                    "c": "#15172a",
+                    "m": 0.141,
+                    "light": 1,
+                    "k": 1
+                }
+            ]
+        },
+        {
+            "id": "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt",
+            "brand": "LACOSTE",
+            "name": "Classic Fit Monogram Jacquard Polo Shirt — Blue",
+            "colours": [
+                "Blue"
+            ],
+            "card": "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1.webp",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1.webp",
+                    "c": "#747786",
+                    "m": 0.601,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2.jpg",
+                    "c": "#4c516c",
+                    "m": 0.63,
+                    "light": 0,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-3.webp",
+                    "c": "#242d51",
+                    "m": 0.853,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-4.webp",
+                    "c": "#6d748c",
+                    "m": 0.749,
+                    "light": 1,
+                    "k": 0
+                }
+            ]
+        },
+        {
+            "id": "fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy-1",
+            "brand": "LACOSTE",
+            "name": "Fleece Crew Neck Sweatshirt — White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/imported/fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy-1-3.jpg",
+            "clusters": 3,
+            "rows": [
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy-1-2.jpg",
+                    "c": "#eae2e5",
+                    "m": 0.264,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy-1-3.jpg",
+                    "c": "#e8e3e5",
+                    "m": 0.081,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy-1-4-p2.jpg",
+                    "c": "#d0b18e",
+                    "m": 0.357,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy-1-4.jpg",
+                    "c": "#d0b18e",
+                    "m": 0.247,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy-1-1.jpg",
+                    "c": "#d5cfd2",
+                    "m": 0.048,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy-1-4-p1.jpg",
+                    "c": "#312b28",
+                    "m": 0.529,
+                    "light": 1,
+                    "k": 2
+                }
+            ]
+        },
+        {
+            "id": "fashionb-lacoste-men-poloshirt-6",
+            "brand": "LACOSTE",
+            "name": "Classic Fit L.12.12  Polo Shirt — White",
+            "colours": [
+                "White"
+            ],
+            "card": "/uploads/imported/fashionb-lacoste-men-poloshirt-6-2.webp",
+            "clusters": 2,
+            "rows": [
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-poloshirt-6-1.avif",
+                    "c": "#e4e5e7",
+                    "m": 0.018,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-poloshirt-6-2.webp",
+                    "c": "#e4e5e5",
+                    "m": 0.045,
+                    "light": 1,
+                    "k": null
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-poloshirt-6-3.avif",
+                    "c": "#e4e5e7",
+                    "m": 0.398,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-poloshirt-6-4-p1.jpg",
+                    "c": "#141111",
+                    "m": 0.563,
+                    "light": 1,
+                    "k": 1
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-poloshirt-6-4-p2.jpg",
+                    "c": "#ebe7d7",
+                    "m": 0.405,
+                    "light": 1,
+                    "k": 0
+                },
+                {
+                    "img": "/uploads/imported/fashionb-lacoste-men-poloshirt-6-5.avif",
+                    "c": "#e3e4e5",
+                    "m": 0.013,
+                    "light": 1,
+                    "k": null
+                }
+            ]
+        }
+    ]
+}
