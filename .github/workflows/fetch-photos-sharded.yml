@@ -1,0 +1,130 @@
+name: Zayıf fotoğraflı ürünlere internetten aday (çok parçalı)
+
+on:
+  workflow_dispatch:
+    inputs:
+      min_score:
+        description: "diag/photoq/audit.json'da en az bu zayıflık puanı"
+        required: true
+        default: "30"
+      shards:
+        description: "Parça sayısı (her parça ayrı IP; arama motoru IP başına birkaç sorgudan sonra engelliyor)"
+        required: true
+        default: "40"
+      only:
+        description: "Yalnız bu ürün id'leri (virgülle, boş = puana göre hepsi)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+# 1) diag/photoq/audit.json (canlı denetim, depoda) → zayıf ürünler, gerçek
+#    model koduyla. Onaylanmış olanlar atlanır.
+# 2) Her parça tools/find-photos-ddg.php ile kodla arar, aday sayfaların
+#    karelerini toplar. Hiçbir şey indirilmez, siteye yazılmaz.
+# 3) Birleştirme: eldeki kareler sunucudan SALT OKUNUR alınır, gözden geçirme
+#    sayfaları (tools/review-sheets.php) ve kaynak raporu dala işlenir.
+#    Onay elle (data/photo-web-approve.json), indirme attach-web-photos ile.
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        env:
+          MIN: ${{ github.event.inputs.min_score }}
+          N: ${{ github.event.inputs.shards }}
+          ONLY: ${{ github.event.inputs.only }}
+        run: |
+          php -r '
+            $a = json_decode(file_get_contents("diag/photoq/audit.json"), true);
+            $ok = json_decode(@file_get_contents("retail/data/photo-web-approve.json"), true) ?: [];
+            $only = array_filter(array_map("trim", explode(",", getenv("ONLY"))));
+            $min = (int)getenv("MIN"); $n = max(1, min(60, (int)getenv("N")));
+            $t = [];
+            foreach ($a["products"] as $p) {
+              if ($only ? !in_array($p["id"], $only, true) : ($p["score"] < $min || isset($ok[$p["id"]]))) continue;
+              $sku = trim($p["sku"]);
+              if (!$only && (strlen(preg_replace("/[^A-Za-z0-9]/", "", $sku)) < 5 || preg_match("/^VS-/", $sku))) continue;
+              $t[] = ["id" => $p["id"], "brand" => $p["brand"], "name" => $p["name"], "colour" => $p["colour"], "sku" => $sku, "current" => $p["images"][0] ?? ""];
+            }
+            @mkdir("shards");
+            $n = min($n, max(1, count($t)));
+            $sh = array_fill(0, $n, []);
+            foreach ($t as $i => $x) $sh[$i % $n][] = $x;
+            foreach ($sh as $i => $x) file_put_contents("shards/$i.json", json_encode($x));
+            fwrite(STDERR, count($t) . " hedef, $n parça\n");
+            echo "matrix=" . json_encode(["shard" => range(0, $n - 1)]) . "\n";
+          ' >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shards
+          path: shards/
+
+  search:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: shards
+          path: shards/
+      - name: Ara
+        run: |
+          sleep $(( ${{ matrix.shard }} % 7 ))
+          php retail/tools/find-photos-ddg.php "shards/${{ matrix.shard }}.json" "found-${{ matrix.shard }}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: found-${{ matrix.shard }}
+          path: found-${{ matrix.shard }}.json
+
+  merge:
+    needs: search
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP + GD
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq php-cli php-gd php-curl > /dev/null
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: found-*
+          path: found/
+          merge-multiple: true
+      - name: Birleştir
+        run: |
+          mkdir -p diag/auto
+          php -r '$o=[]; foreach(glob("found/*.json") as $f) $o += (array)json_decode(file_get_contents($f), true);
+            ksort($o); file_put_contents("diag/auto/candidates.json", json_encode($o, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
+            $b=0;$h=0; foreach($o as $x){ if(!empty($x["blocked"])) $b++; elseif(!empty($x["sources"])) $h++; }
+            printf("%d ürün · adayı olan %d · engellenen %d\n", count($o), $h, $b);'
+      - name: Eldeki kareler (salt okunur)
+        run: |
+          mkdir -p ~/.ssh cur
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy; chmod 600 ~/.ssh/id_deploy
+          SSHOPT="-i ~/.ssh/id_deploy -o StrictHostKeyChecking=no -p ${{ secrets.DEPLOY_PORT || 22 }}"
+          SRV="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+          php -r 'foreach(json_decode(file_get_contents("diag/auto/candidates.json"),true) as $x){$c=(string)($x["current"]??""); if(preg_match("#^/uploads/[A-Za-z0-9._/-]+$#",$c)) echo substr($c,1),"\n";}' | sort -u > cur.txt
+          ssh $SSHOPT "$SRV" "cd ~/maxsales_de && tar -cf - -T - 2>/dev/null" < cur.txt | tar -xf - -C cur || true
+      - name: Gözden geçirme sayfaları
+        working-directory: retail
+        run: |
+          rm -rf uploads/candidates/_auto
+          php tools/review-sheets.php ../diag/auto/candidates.json ../cur uploads/candidates/_auto
+      - name: Dala işle
+        run: |
+          git config user.name "Claude"; git config user.email "noreply@anthropic.com"
+          git add -f diag/auto retail/uploads/candidates/_auto retail/data/photo-web-report.json
+          git diff --cached --quiet && exit 0
+          git commit -q -m "İnternet kare adayları (çok parçalı arama): gözden geçirme sayfaları + rapor"
+          for i in 1 2 3 4; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((i*3)); done
