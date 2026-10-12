@@ -56,6 +56,9 @@ jobs:
             $rl = vr_store_read('retail-ratelimit.json', []);
             $n = 0; foreach ((array)$rl as $k => $v) if (str_starts_with((string)$k, 'push-')) $n++;
             echo "hiz siniri     : push kovasi ", $n, " IP\n";
+            $fails = vr_store_read('push-failures.json', []);
+            echo "basarisiz deneme: ", count((array)$fails), " (son 10)\n";
+            foreach (array_slice((array)$fails, -10) as $f) echo "   - ", $f['at'] ?? '', " | ", $f['browser'] ?? '', " | asama ", $f['stage'] ?? '', " | ", $f['err'] ?? '', ($f['host'] ?? '') !== '' ? " | servis " . $f['host'] : '', "\n";
             PHPEOF
             php /tmp/sv_pushdiag.php "$D"; rm -f /tmp/sv_pushdiag.php
             echo "== hata kaydi: push / CSRF satirlari (son 15) =="

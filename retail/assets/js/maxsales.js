@@ -659,12 +659,29 @@
         }
         if (on) {
           e.preventDefault(); msg(''); set('busy');
+          // Hangi adimin dustugu sunucuya yazilir (asama + hata adi; kisisel veri yok).
+          var stage = 'permission', host = '';
           Notification.requestPermission().then(function (p) {
             if (p !== 'granted') { set(p === 'denied' ? 'denied' : 'off'); return; }
-            return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key(cfg.key) })
-              .then(function (s) { return post({ action: 'subscribe', sub: JSON.stringify(s) }); })
-              .then(function () { set('on'); });
-          }).catch(function () { set('off'); msg(cfg.err); });
+            stage = 'subscribe';
+            return reg.pushManager.getSubscription().then(function (old) {
+              // Eski (baska anahtarla acilmis) abonelik varsa once kapat: aksi halde
+              // subscribe() "InvalidStateError" verir.
+              return old ? old.unsubscribe().catch(function () {}) : null;
+            }).then(function () {
+              return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key(cfg.key) });
+            }).then(function (s) {
+              stage = 'save';
+              try { host = new URL(s.endpoint).hostname; } catch (x) {}
+              return post({ action: 'subscribe', sub: JSON.stringify(s) });
+            }).then(function () { set('on'); });
+          }).catch(function (err) {
+            set('off'); msg(cfg.err);
+            var f = new FormData();
+            f.append('action', 'fail'); f.append('stage', stage); f.append('host', host);
+            f.append('err', String((err && (err.name + ': ' + err.message)) || err).slice(0, 90));
+            fetch(cfg.endpoint, { method: 'POST', body: f, credentials: 'same-origin' }).catch(function () {});
+          });
         }
         if (off) {
           e.preventDefault(); set('busy');

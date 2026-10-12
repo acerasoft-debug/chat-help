@@ -186,6 +186,23 @@ function vr_push_subscribe(array $sub, string $lang): ?string
     return $key;
 }
 
+/** Basarisiz bir acma denemesinin NEDENI (son 50). Kisisel veri yazilmaz:
+ *  asama, hata adi, tarayici ailesi, push servisinin ALAN ADI. */
+function vr_push_note_failure(string $stage, string $err, string $host = ''): void
+{
+    $clean = static fn(string $v, int $n): string => mb_substr(preg_replace('/[^\w .:\/\-()]/u', '', $v) ?? '', 0, $n);
+    $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+    $fam = str_contains($ua, 'SamsungBrowser') ? 'samsung' : (str_contains($ua, 'EdgA') || str_contains($ua, 'Edg/') ? 'edge'
+         : (str_contains($ua, 'Firefox') ? 'firefox' : (str_contains($ua, 'OPR') ? 'opera' : (str_contains($ua, 'Chrome') ? 'chrome' : (str_contains($ua, 'Safari') ? 'safari' : 'other')))));
+    $os = str_contains($ua, 'Android') ? 'android' : (preg_match('/iPhone|iPad/', $ua) ? 'ios' : 'desktop');
+    $row = ['at' => gmdate('c'), 'stage' => $clean($stage, 20), 'err' => $clean($err, 90), 'browser' => $fam . '/' . $os, 'host' => $clean(strtolower($host), 60)];
+    vr_store_mutate('push-failures.json', static function ($all) use ($row) {
+        $all = is_array($all) ? $all : [];
+        $all[] = $row;
+        return array_slice($all, -50);
+    }, []);
+}
+
 function vr_push_unsubscribe(string $endpoint): void
 {
     $key = substr(hash('sha256', $endpoint), 0, 24);

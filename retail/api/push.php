@@ -24,7 +24,23 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
     echo json_encode(['ok' => false]);
     exit;
 }
-vr_csrf_check();
+/* AYNI SITE KONTROLU, oturum jetonu DEGIL (12 Eki 2026). Kurulu uygulama saatlerce
+   acik kalabiliyor; paylasimli sunucuda oturum dosyalari 24 dk bosta kalinca
+   siliniyor ve jeton tutmayinca "Das hat nicht geklappt" cikiyordu -- canlida tek
+   bir abonelik bile kaydedilmemisti. Tarayici bu istege Sec-Fetch-Site / Origin
+   basliklarini kendisi koyar ve sayfa bunlari degistiremez; baska bir siteden
+   gelen istek yine reddedilir. Baslik gondermeyen eski istemcide jeton yolu duruyor. */
+$sfs    = strtolower((string)($_SERVER['HTTP_SEC_FETCH_SITE'] ?? ''));
+$origin = (string)($_SERVER['HTTP_ORIGIN'] ?? '');
+$host   = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+$sameOrigin = $sfs === 'same-origin'
+    || ($sfs === '' && $origin !== '' && strtolower((string)parse_url($origin, PHP_URL_HOST)) === preg_replace('/:\d+$/', '', $host));
+if (in_array($sfs, ['cross-site', 'same-site'], true) || ($origin !== '' && !$sameOrigin)) {
+    http_response_code(403);
+    echo json_encode(['ok' => false]);
+    exit;
+}
+if (!$sameOrigin) vr_csrf_check();
 if (!vr_rate_ok('push', 30, 600)) {
     http_response_code(429);
     echo json_encode(['ok' => false]);
@@ -37,7 +53,10 @@ if ($action === 'subscribe') {
     $ep  = is_array($sub) ? (string)($sub['endpoint'] ?? '') : '';
     $new = $ep !== '' && !isset(vr_push_subs()[substr(hash('sha256', $ep), 0, 24)]);
     $key = is_array($sub) ? vr_push_subscribe($sub, vr_lang()) : null;
-    if ($key === null) { http_response_code(422); echo json_encode(['ok' => false]); exit; }
+    if ($key === null) {
+        vr_push_note_failure('server-reject', 'endpoint/keys', (string)parse_url($ep, PHP_URL_HOST));
+        http_response_code(422); echo json_encode(['ok' => false]); exit;
+    }
     // İlk kez açan cihaza tek bir karşılama bildirimi: hem "oldu" onayı hem de
     // yolun uçtan uca çalıştığının kanıtı. Sessiz tazelemelerde gönderilmez.
     if ($new) {
@@ -51,6 +70,13 @@ if ($action === 'subscribe') {
         } catch (Throwable) { /* karşılama gitmese de abonelik geçerli */ }
     }
     echo json_encode(['ok' => true, 'new' => $new]);
+    exit;
+}
+/* Telefonda bir adim duserse NEDENI buraya yazilir (asama + hata adi + tarayici
+   ailesi; kisisel veri yok). Teshis: diag-push.yml. */
+if ($action === 'fail') {
+    vr_push_note_failure((string)($_POST['stage'] ?? ''), (string)($_POST['err'] ?? ''), (string)($_POST['host'] ?? ''));
+    echo json_encode(['ok' => true]);
     exit;
 }
 if ($action === 'unsubscribe') {

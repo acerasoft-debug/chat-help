@@ -31,8 +31,14 @@ function vr_asset_v(): string
 {
     static $v = null;
     if ($v !== null) return $v;
-    $f = VR_ROOT . '/assets/css/maxsales.css';
-    return $v = is_readable($f) ? (string)filemtime($f) : '1';
+    /* Stil VE betik: yalniz CSS'e bakilinca sadece JS degisen bir yayinda surum ayni
+       kaliyordu ve kurulu uygulamanin service worker'i eski betigi onbellekten
+       vermeye devam ediyordu (12 Eki 2026, bildirim duzeltmesi). */
+    $m = 0;
+    foreach (['/assets/css/maxsales.css', '/assets/js/maxsales.js'] as $f) {
+        if (is_readable(VR_ROOT . $f)) $m = max($m, (int)filemtime(VR_ROOT . $f));
+    }
+    return $v = $m ? (string)$m : '1';
 }
 
 /**
@@ -306,19 +312,32 @@ function vr_header(): void
 </header>
 
 <div class="drawer" data-drawer hidden>
-  <div class="drawer__panel">
-    <button class="drawer__x" type="button" data-drawer-close aria-label="<?= te('close') ?>">&times;</button>
-    <a href="<?= h(vr_url('shop.php', ['sort' => 'new'])) ?>"><?= te('nav_new') ?></a>
-    <a href="<?= h(vr_url('shop.php')) ?>"><?= te('nav_shop') ?></a>
-    <a href="<?= h(vr_url('outlet.php')) ?>"><?= te('nav_outlet') ?></a>
-    <a href="<?= h(vr_url('brands.php')) ?>"><?= te('nav_brands') ?></a>
-    <a href="<?= h(vr_url('sell.php')) ?>"><?= te('nav_sell') ?></a>
-    <a href="<?= h(vr_url('journal.php')) ?>"><?= te('nav_journal') ?></a>
-    <a href="<?= h(vr_url('app.php')) ?>"><?= te('app_nav') ?></a>
-    <a href="<?= h(vr_url('faq.php')) ?>"><?= te('nav_faq') ?></a>
-    <a href="<?= h(vr_url('wishlist.php')) ?>"><?= te('nav_wish') ?></a>
-    <a href="<?= h(vr_url('private.php')) ?>"><?= te('nav_private') ?></a>
-    <a href="<?= h(vr_url($acctUrl)) ?>"><?= te('nav_account') ?></a>
+  <div class="drawer__panel" role="dialog" aria-modal="true" aria-label="<?= te('menu') ?>">
+    <?php /* Çekmece 12 Eki 2026'da yeniden düzenlendi: on bir aynı ağırlıkta satır
+       ve "EN DE FR…" dil kutularının da 24 px serif menü satırı gibi basılması
+       (genel `.drawer__panel a` kuralı onlara da uyuyordu) yerine üç katman:
+       ana dört yol büyük, ikincil yollar küçük, hesap ve satış altta. */ ?>
+    <div class="drawer__top">
+      <a class="wordmark drawer__mark" href="<?= h(vr_url('/')) ?>"><?= h((string)vr_config('brand')) ?><i class="wordmark__dot"></i></a>
+      <button class="drawer__x" type="button" data-drawer-close aria-label="<?= te('close') ?>">&times;</button>
+    </div>
+    <nav class="drawer__main" aria-label="<?= te('menu') ?>">
+      <a href="<?= h(vr_url('shop.php', ['sort' => 'new'])) ?>"><span><?= te('nav_new') ?></span><?= vr_icon('arrow', 16) ?></a>
+      <a href="<?= h(vr_url('shop.php')) ?>"><span><?= te('nav_shop') ?></span><?= vr_icon('arrow', 16) ?></a>
+      <a class="drawer__vault" href="<?= h(vr_url('outlet.php')) ?>"><span><?= te('nav_outlet') ?><i class="pulse"></i></span><?= vr_icon('arrow', 16) ?></a>
+      <a href="<?= h(vr_url('brands.php')) ?>"><span><?= te('nav_brands') ?></span><?= vr_icon('arrow', 16) ?></a>
+    </nav>
+    <nav class="drawer__sub">
+      <a href="<?= h(vr_url('journal.php')) ?>"><?= te('nav_journal') ?></a>
+      <a href="<?= h(vr_url('private.php')) ?>"><?= te('nav_private') ?></a>
+      <a href="<?= h(vr_url('wishlist.php')) ?>"><?= te('nav_wish') ?></a>
+      <a href="<?= h(vr_url('app.php')) ?>"><?= te('app_nav') ?></a>
+      <a href="<?= h(vr_url('faq.php')) ?>"><?= te('nav_faq') ?></a>
+    </nav>
+    <div class="drawer__acct">
+      <a class="btn btn--ghost" href="<?= h(vr_url($acctUrl)) ?>"><span><?= te('nav_account') ?></span><?= vr_icon('user', 15) ?></a>
+      <a class="drawer__sell" href="<?= h(vr_url('sell.php')) ?>"><?= te('nav_sell') ?><?= vr_icon('arrow', 13) ?></a>
+    </div>
     <div class="drawer__langs"><?= vr_lang_switch() ?></div>
     <?php /* Para birimi telefonda da seçilebilmeli: başlıktaki bölge paneli
        900 pikselin altında gizli, yani bu olmadan dünya alıcısının telefonda
