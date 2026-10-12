@@ -32,8 +32,7 @@
         "images": [
             "/uploads/shorts-sweats/balmain-bwb210330-b-p1.jpg",
             "/uploads/shorts-sweats/balmain-bwb210330-b-p2-p1.jpg",
-            "/uploads/shorts-sweats/balmain-bwb210330-b-p3.jpg",
-            "/uploads/shorts-sweats/balmain-bwb210330.jpg"
+            "/uploads/shorts-sweats/balmain-bwb210330-b-p3.jpg"
         ],
         "siblings": [],
         "raw": {
@@ -151,7 +150,6 @@
         ],
         "images": [
             "/uploads/balenciaga-burberry/balenciag-612966tlvf1.jpg",
-            "/uploads/balenciaga-burberry/balenciaga-612966tlvf1.jpg",
             "/uploads/balenciaga-burberry/blcg-612966tlvf1-packshot.jpg"
         ],
         "siblings": [],
@@ -339,7 +337,6 @@
         "images": [
             "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p1.jpg",
             "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p2.jpg",
-            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g.jpg",
             "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g-1.jpg"
         ],
         "siblings": [
@@ -498,48 +495,6 @@
             "/uploads/shorts-sweats/d-g-g8rn8z-g7n4q-p1-p3.jpg"
         ],
         "siblings": [],
-        "raw": []
-    },
-    "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1": {
-        "name": "Lacoste Men Classic Fit Monogram Jacquard Polo Shirt — Black",
-        "brand": "LACOSTE",
-        "sku": "LACOSTE-MEN-CLASSIC-FIT-",
-        "source": "b2b",
-        "colours": [
-            "Black"
-        ],
-        "images": [
-            "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1-1.avif",
-            "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1-2.avif",
-            "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1-3.avif",
-            "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1-4.webp",
-            "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1-5.avif",
-            "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1-6.avif"
-        ],
-        "siblings": [
-            "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1",
-            "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt"
-        ],
-        "raw": []
-    },
-    "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt": {
-        "name": "Lacoste Men Classic Fit Monogram Jacquard Polo Shirt — Blue",
-        "brand": "LACOSTE",
-        "sku": "LACOSTE-MEN-CLASSIC-FIT-",
-        "source": "b2b",
-        "colours": [
-            "Blue"
-        ],
-        "images": [
-            "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1.webp",
-            "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2.jpg",
-            "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-3.webp",
-            "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-4.webp"
-        ],
-        "siblings": [
-            "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1",
-            "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt"
-        ],
         "raw": []
     }
 }
