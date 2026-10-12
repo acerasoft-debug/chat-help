@@ -1,4 +1,5 @@
 <?php
+header('X-Robots-Tag: noindex, follow');   // robots.txt bu sayfayi artik engellemiyor: Google okuyup noindex'i gorsun ve dizinden cikarsin (Search Console 'robots.txt engelli olsa da dizine eklendi', 12 Eki 2026)
 /** VESTRA — PUBLIC brand catalogue export as a real .xlsx WITH EMBEDDED PRODUCT PHOTOS.
  *
  *  For cold-outreach / campaign links. Deliberately carries NO trade pricing and NO seller

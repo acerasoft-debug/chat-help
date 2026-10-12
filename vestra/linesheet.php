@@ -1,4 +1,5 @@
 <?php
+header('X-Robots-Tag: noindex, follow');   // robots.txt bu sayfayi artik engellemiyor: Google okuyup noindex'i gorsun ve dizinden cikarsin (Search Console 'robots.txt engelli olsa da dizine eklendi', 12 Eki 2026)
 /**
  * VESTRA — members-only line-sheet downloads for flagged listings.
  *   /linesheet?id=<product>&fmt=pdf  → streams the supplier PDF from sheets/ (never web-exposed directly)

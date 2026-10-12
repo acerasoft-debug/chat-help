@@ -91,6 +91,9 @@ $OG_LOCALES = [];
 foreach (array_keys(vlang_list()) as $_l) $OG_LOCALES[$_l] = vlang_og_locale($_l);
 $OG_LOCALE  = vlang_og_locale(vlang());
 $NOINDEX   = $NOINDEX ?? false;
+/* Sayfa X-Robots-Tag: noindex gonderdiyse (hesap/sepet/giris sayfalari) meta da ayni
+   seyi soylesin -- iki isaret celismesin. */
+if (!$NOINDEX) foreach (headers_list() as $__h) { if (stripos($__h, 'X-Robots-Tag:') === 0 && stripos($__h, 'noindex') !== false) { $NOINDEX = true; break; } }
 ?>
 <meta name="description" content="<?= htmlspecialchars($META) ?>">
 <?php
