@@ -1,0 +1,16 @@
+01 200 text/html; charset=UTF-8 7521 https://html.duckduckgo.com/html/?q=Burberry+8099164
+01.src https://html.duckduckgo.com/html/?q=Burberry+8099164
+02 200 text/html; charset=UTF-8 6899 https://html.duckduckgo.com/html/?q=Burberry+8099167
+02.src https://html.duckduckgo.com/html/?q=Burberry+8099167
+03 200 text/html; charset=UTF-8 5178 https://html.duckduckgo.com/html/?q=Burberry+8071620
+03.src https://html.duckduckgo.com/html/?q=Burberry+8071620
+04 200 text/html; charset=UTF-8 7405 https://html.duckduckgo.com/html/?q=Burberry+8072661
+04.src https://html.duckduckgo.com/html/?q=Burberry+8072661
+05 202 text/html; charset=UTF-8 14155 https://html.duckduckgo.com/html/?q=Burberry+8071621
+05.src https://html.duckduckgo.com/html/?q=Burberry+8071621
+06 202 text/html; charset=UTF-8 14161 https://html.duckduckgo.com/html/?q=Burberry+8099166
+06.src https://html.duckduckgo.com/html/?q=Burberry+8099166
+07 202 text/html; charset=UTF-8 14195 https://html.duckduckgo.com/html/?q=Burberry+polo+8099165+thebs
+07.src https://html.duckduckgo.com/html/?q=Burberry+polo+8099165+thebs
+08 202 text/html; charset=UTF-8 14239 https://html.duckduckgo.com/html/?q=Burberry+check+collar+polo+8071620+thebs
+08.src https://html.duckduckgo.com/html/?q=Burberry+check+collar+polo+8071620+thebs
