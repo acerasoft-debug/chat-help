@@ -45,3 +45,16 @@ usort($runs, fn($a, $b) => strcmp((string)($b['requested_at'] ?? ''), (string)($
 $runs = array_slice($runs, 0, 60);
 vestra_write_json('finder_runs.json', $runs);
 echo "rapor kaydedildi: {$id} | durum={$rec['status']} | eklenen={$rec['added_count']}".($rec['dry'] ? ' (DRY-RUN)' : '')."\n";
+
+/* Operatörün telefonuna özet (12 Eki 2026): gerçek (kuru koşu değil), tamamlanmış, genel havuz araması.
+   Satıcının kendi aramasında satıcıya zaten panel kartı var; operatör için yalnız ortak havuz ilginç. */
+if ($ok && !$rec['dry'] && $owner === '' && is_readable($home."/public_html/inc/push.php")) {
+    try {
+        require_once $home."/public_html/inc/push.php";
+        require_once $home."/public_html/inc/leads.php";
+        if (is_readable($home."/public_html/inc/finder.php")) require_once $home."/public_html/inc/finder.php";
+        $today = function_exists('vestra_finder_found_today') ? vestra_finder_found_today() : 0;
+        $pr = vestra_push_admin('admin_finder', ['added' => $rec['added_count'], 'analyzed' => $rec['analyzed'], 'today' => $today]);
+        echo "operatör bildirimi: cihaz {$pr['devices']} · teslim {$pr['ok']}\n";
+    } catch (\Throwable $e) { fwrite(STDERR, "bildirim atlandı: ".$e->getMessage()."\n"); }
+}
