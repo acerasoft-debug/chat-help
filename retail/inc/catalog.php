@@ -233,6 +233,10 @@ function vr_normalize_product(array $p, string $source): ?array
     // ikisi de ürün adına bakıyor, yanlış adla yanlış karar verirlerdi.
     $cf = vr_category_fix();
     if (isset($cf[$id])) {
+        // Operatörün vitrinden çektiği satır (ör. satılmayacak bir renk —
+        // 12 Eki 2026, Monogram Jacquard Polo'nun bejı). Kaynak (toptan ya da
+        // içe aktarılmış) olduğu gibi durur; yalnız vitrine gelmez.
+        if (!empty($cf[$id]['hidden'])) return null;
         if (($cf[$id]['cat'] ?? '') !== '')  $p['cat']  = (string)$cf[$id]['cat'];
         if (($cf[$id]['name'] ?? '') !== '') $p['name'] = (string)$cf[$id]['name'];
     }
@@ -483,6 +487,17 @@ function vr_catalog(): array
             $keep = array_values(array_filter($imgs, fn($x) => !isset($drop[$x])));
             if ($keep && count($keep) < count($imgs)) $cat[$cid]['images'] = $keep;
         }
+    }
+    //     Ürüne ait olmayan kareler (data/photo-exclude-product.json: ürün →
+    //     yollar). Toptancı bazı satırlara modelin başka renginin karelerini
+    //     koymuş; siyah/beyaz ikiz satırlar aynı yolları paylaştığı için
+    //     genel listeye değil ürüne göre yazılır.
+    foreach ((array)vr_store_read('photo-exclude-product.json', []) as $pid => $gone) {
+        if (!isset($cat[$pid]) || !is_array($gone) || !$gone) continue;
+        $gone = array_flip(array_filter($gone, 'is_string'));
+        $imgs = array_values(array_filter((array)$cat[$pid]['images'], 'strlen'));
+        $keep = array_values(array_filter($imgs, fn($x) => !isset($gone[$x])));
+        if ($keep) $cat[$pid]['images'] = $keep;
     }
 
     // 5c) Aynı fotoğraf bir galeride iki kez görünmesin: toptancı aynı kareyi

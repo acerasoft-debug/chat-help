@@ -689,7 +689,8 @@
     },
     "dgn-m4a06t": {
         "cat": "Bademode",
-        "name": "Dolce & Gabbana Bademode M4A06T"
+        "name": "Dolce & Gabbana Bademode M4A06T",
+        "face": "/uploads/shorts-sweats/d-g-m4a06t-fhmrd-p1.jpg"
     },
     "dgn-m4a06thsm7o": {
         "cat": "Bademode",
@@ -705,7 +706,8 @@
     },
     "dgn-m4b11tfusfw": {
         "cat": "Bademode",
-        "name": "Dolce & Gabbana Bademode M4B11TFUSFW"
+        "name": "Dolce & Gabbana Bademode M4B11TFUSFW",
+        "face": "/uploads/shorts-sweats/d-g-m4b11tfusfw-p1.jpg"
     },
     "dgn-m4b85t": {
         "cat": "Bademode",
@@ -713,7 +715,8 @@
     },
     "dgn-m4b86t": {
         "cat": "Bademode",
-        "name": "Dolce & Gabbana Bademode M4B86T"
+        "name": "Dolce & Gabbana Bademode M4B86T",
+        "face": "/uploads/shorts-sweats/d-g-m4b86t-fumtp-p1.jpg"
     },
     "dgn-m4c32t": {
         "cat": "Bademode",
@@ -729,11 +732,13 @@
     },
     "dgn-m4e26t": {
         "cat": "Bademode",
-        "name": "Dolce & Gabbana Bademode M4E26T"
+        "name": "Dolce & Gabbana Bademode M4E26T",
+        "face": "/uploads/shorts-sweats/d-g-m4e26t-fusfw-p1.jpg"
     },
     "dgn-m4e27t": {
         "cat": "Bademode",
-        "name": "Dolce & Gabbana Bademode M4E27T"
+        "name": "Dolce & Gabbana Bademode M4E27T",
+        "face": "/uploads/shorts-sweats/d-g-m4e27t-fusfw-p1.jpg"
     },
     "dgn-m4e48tfusfw": {
         "cat": "Bademode",
@@ -1069,5 +1074,8 @@
     },
     "gvy-bm71ct3y6b": {
         "face": "/uploads/givenchy/givenchy-bm71ct3y6b-p1.jpg"
+    },
+    "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2": {
+        "hidden": true
     }
 }
