@@ -1,10 +1,10 @@
 {
     "summary": {
         "visible": 519,
-        "weak": 191,
-        "single": 136,
-        "small": 61,
-        "grid": 106
+        "weak": 177,
+        "single": 124,
+        "small": 58,
+        "grid": 99
     },
     "products": [
         {
@@ -637,31 +637,6 @@
             ]
         },
         {
-            "id": "dsq-s74lb0988",
-            "brand": "DSQUARED2",
-            "name": "Clean Wash Jeans",
-            "sku": "S74LB0988",
-            "colour": "Grey",
-            "n": 2,
-            "card": "/uploads/dsq-jeans/dsq-s74lb0988-p1.jpg",
-            "w": 291,
-            "h": 626,
-            "grid": true,
-            "fill": 0.9537,
-            "web": 0,
-            "score": 80,
-            "why": [
-                "iki kare",
-                "küçük (291 px)",
-                "kart karesi kolaj"
-            ],
-            "stock": 10,
-            "images": [
-                "/uploads/dsq-jeans/dsq-s74lb0988-p1.jpg",
-                "/uploads/dsq-jeans/dsq-s74lb0988-p2.jpg"
-            ]
-        },
-        {
             "id": "dgn-f8o59z",
             "brand": "Dolce & Gabbana",
             "name": "T-Shirt",
@@ -1067,29 +1042,6 @@
             ]
         },
         {
-            "id": "dsq-s74lb0978",
-            "brand": "DSQUARED2",
-            "name": "Distressed Jeans",
-            "sku": "S74LB0978",
-            "colour": "Light Blue",
-            "n": 1,
-            "card": "/uploads/dsq-jeans/dsq-s74lb0978-p1.jpg",
-            "w": 1192,
-            "h": 858,
-            "grid": true,
-            "fill": 0.8848,
-            "web": 0,
-            "score": 75,
-            "why": [
-                "tek kare",
-                "kart karesi kolaj"
-            ],
-            "stock": 10,
-            "images": [
-                "/uploads/dsq-jeans/dsq-s74lb0978-p1.jpg"
-            ]
-        },
-        {
             "id": "dsq-s79la0021",
             "brand": "DSQUARED2",
             "name": "Distressed Jeans",
@@ -1202,52 +1154,6 @@
             "stock": 10,
             "images": [
                 "/uploads/balenciaga-burberry/d-g-g8qg3t-fu7ep-p1.jpg"
-            ]
-        },
-        {
-            "id": "dgn-g8rg6tg7k3p",
-            "brand": "Dolce & Gabbana",
-            "name": "T-Shirt",
-            "sku": "G8RG6TG7K3P",
-            "colour": "Black/White",
-            "n": 1,
-            "card": "/uploads/shorts-sweats/d-g-g8rg6t-g7k3p-p1.jpg",
-            "w": 3912,
-            "h": 1772,
-            "grid": true,
-            "fill": 0.8781,
-            "web": 0,
-            "score": 75,
-            "why": [
-                "tek kare",
-                "kart karesi kolaj"
-            ],
-            "stock": 10,
-            "images": [
-                "/uploads/shorts-sweats/d-g-g8rg6t-g7k3p-p1.jpg"
-            ]
-        },
-        {
-            "id": "dgn-g8rn8zg7nubn",
-            "brand": "Dolce & Gabbana",
-            "name": "T-Shirt",
-            "sku": "G8RN8ZG7NUBN",
-            "colour": "Black",
-            "n": 1,
-            "card": "/uploads/shorts-sweats/d-g-g8rn8zg7nubn-p1.jpg",
-            "w": 3480,
-            "h": 2472,
-            "grid": true,
-            "fill": 0.9938,
-            "web": 0,
-            "score": 75,
-            "why": [
-                "tek kare",
-                "kart karesi kolaj"
-            ],
-            "stock": 10,
-            "images": [
-                "/uploads/shorts-sweats/d-g-g8rn8zg7nubn-p1.jpg"
             ]
         },
         {
@@ -1366,29 +1272,6 @@
             ]
         },
         {
-            "id": "gvy-bm716g3y99",
-            "brand": "Givenchy",
-            "name": "Logo T-Shirt",
-            "sku": "BM716G3Y99",
-            "colour": "White",
-            "n": 1,
-            "card": "/uploads/givenchy/givenchy-bm716g3y99-p1.jpg",
-            "w": 2304,
-            "h": 1204,
-            "grid": true,
-            "fill": 0.9783,
-            "web": 0,
-            "score": 75,
-            "why": [
-                "tek kare",
-                "kart karesi kolaj"
-            ],
-            "stock": 10,
-            "images": [
-                "/uploads/givenchy/givenchy-bm716g3y99-p1.jpg"
-            ]
-        },
-        {
             "id": "gvy-bm716g3yacw",
             "brand": "Givenchy",
             "name": "Logo T-Shirt",
@@ -1435,29 +1318,6 @@
             ]
         },
         {
-            "id": "gvy-bmj0hc3y7m",
-            "brand": "Givenchy",
-            "name": "Logo Sweatshirt",
-            "sku": "BMJ0HC3Y7M",
-            "colour": "Black",
-            "n": 1,
-            "card": "/uploads/givenchy/givecnhy-bmj0hc3y7m-p1.jpg",
-            "w": 838,
-            "h": 790,
-            "grid": true,
-            "fill": 0.9954,
-            "web": 0,
-            "score": 75,
-            "why": [
-                "tek kare",
-                "kart karesi kolaj"
-            ],
-            "stock": 10,
-            "images": [
-                "/uploads/givenchy/givecnhy-bmj0hc3y7m-p1.jpg"
-            ]
-        },
-        {
             "id": "vltn-xv3mg08y843",
             "brand": "Valentino",
             "name": "Logo T-Shirt, White",
@@ -1478,29 +1338,6 @@
             "stock": 10,
             "images": [
                 "/uploads/valentino/vltn-xv3mg08y843-p1.jpg"
-            ]
-        },
-        {
-            "id": "dsq-101214",
-            "brand": "DSQUARED2",
-            "name": "Graphic T-Shirt",
-            "sku": "S74GD1400",
-            "colour": "White",
-            "n": 1,
-            "card": "/uploads/dsquared/dsq-101214.png",
-            "w": 360,
-            "h": 555,
-            "grid": false,
-            "fill": 0.4386,
-            "web": 0,
-            "score": 70,
-            "why": [
-                "tek kare",
-                "küçük (360 px)"
-            ],
-            "stock": 10,
-            "images": [
-                "/uploads/dsquared/dsq-101214.png"
             ]
         },
         {
@@ -1923,32 +1760,6 @@
             ]
         },
         {
-            "id": "dsq-s74lb0658",
-            "brand": "DSQUARED2",
-            "name": "Clean Wash Jeans",
-            "sku": "S74LB0658",
-            "colour": "Light Blue",
-            "n": 4,
-            "card": "/uploads/dsq-jeans/s74lb0658-p1-p1.jpg",
-            "w": 424,
-            "h": 832,
-            "grid": true,
-            "fill": 0.8549,
-            "web": 0,
-            "score": 65,
-            "why": [
-                "küçük (424 px)",
-                "kart karesi kolaj"
-            ],
-            "stock": 10,
-            "images": [
-                "/uploads/dsq-jeans/s74lb0658-p1-p1.jpg",
-                "/uploads/dsq-jeans/s74lb0658-p1-p2.jpg",
-                "/uploads/dsq-jeans/s74lb0658-p1-p3.jpg",
-                "/uploads/dsq-jeans/s74lb0658-p2.jpg"
-            ]
-        },
-        {
             "id": "dsq-s74lb0673",
             "brand": "DSQUARED2",
             "name": "Distressed Jeans",
@@ -2059,13 +1870,13 @@
             "name": "Polo Shirt",
             "sku": "G8PL4TG7F2H",
             "colour": "Black",
-            "n": 5,
+            "n": 6,
             "card": "/uploads/balenciaga-burberry/d-g-g8pl4t-g7f2h-0-p3.jpg",
             "w": 408,
             "h": 533,
             "grid": true,
             "fill": 0.9996,
-            "web": 0,
+            "web": 1,
             "score": 65,
             "why": [
                 "küçük (408 px)",
@@ -2077,6 +1888,7 @@
                 "/uploads/balenciaga-burberry/d-g-g8pl4t-g7f2h-0-p2.jpg",
                 "/uploads/balenciaga-burberry/d-g-g8pl4t-g7f2h-0-p3.jpg",
                 "/uploads/balenciaga-burberry/d-g-g8pl4t-g7f2h-p1.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-g8pl4tg7f2h-w1.jpg",
                 "/uploads/dg-dropbox/d-g-g8pl4t-g7f2h.jpg"
             ]
         },
@@ -2811,29 +2623,6 @@
             ]
         },
         {
-            "id": "dgn-g8nc5zg7byh",
-            "brand": "Dolce & Gabbana",
-            "name": "Oversized T-Shirt — Black",
-            "sku": "G8NC5Z G7BYH",
-            "colour": "Black",
-            "n": 1,
-            "card": "/uploads/dg-tshirt/d-g-g8nc5z-g7byh.jpg",
-            "w": 592,
-            "h": 856,
-            "grid": false,
-            "fill": 0.7084,
-            "web": 0,
-            "score": 52,
-            "why": [
-                "tek kare",
-                "orta (592 px)"
-            ],
-            "stock": 10,
-            "images": [
-                "/uploads/dg-tshirt/d-g-g8nc5z-g7byh.jpg"
-            ]
-        },
-        {
             "id": "dgn-g8nv2zg7bzq",
             "brand": "Dolce & Gabbana",
             "name": "Logo Patch T-Shirt — White",
@@ -2923,29 +2712,6 @@
             "stock": 10,
             "images": [
                 "/uploads/dg-root4/d-g-g8pl4t-g7f2h-0.jpg"
-            ]
-        },
-        {
-            "id": "dgn-i8aeazg7cy1",
-            "brand": "Dolce & Gabbana",
-            "name": "DG Patch T-Shirt — Black",
-            "sku": "I8AEAZG7CY1",
-            "colour": "Black",
-            "n": 1,
-            "card": "/uploads/dg-tshirt/d-g-i8aeazg7cy1.jpg",
-            "w": 652,
-            "h": 600,
-            "grid": false,
-            "fill": 0.8114,
-            "web": 0,
-            "score": 52,
-            "why": [
-                "tek kare",
-                "orta (600 px)"
-            ],
-            "stock": 10,
-            "images": [
-                "/uploads/dg-tshirt/d-g-i8aeazg7cy1.jpg"
             ]
         },
         {
@@ -3347,28 +3113,6 @@
             "stock": 10,
             "images": [
                 "/uploads/shorts-sweats/burberry-8052068-p1.jpg"
-            ]
-        },
-        {
-            "id": "bur-80552511",
-            "brand": "Burberry",
-            "name": "T-Shirt",
-            "sku": "80552511",
-            "colour": "Black",
-            "n": 1,
-            "card": "/uploads/balenciaga-burberry/burberry-80552511-p1.jpg",
-            "w": 1156,
-            "h": 1200,
-            "grid": false,
-            "fill": 0.9922,
-            "web": 0,
-            "score": 40,
-            "why": [
-                "tek kare"
-            ],
-            "stock": 10,
-            "images": [
-                "/uploads/balenciaga-burberry/burberry-80552511-p1.jpg"
             ]
         },
         {
@@ -3812,28 +3556,6 @@
             ]
         },
         {
-            "id": "dgn-g8jx7tfi7z0",
-            "brand": "Dolce & Gabbana",
-            "name": "Colorblock T-Shirt — White/Navy",
-            "sku": "G8JX7TFI7Z0",
-            "colour": "White/Navy",
-            "n": 1,
-            "card": "/uploads/dg-tshirt/d-g-g8jx7tfi7z0.jpg",
-            "w": 998,
-            "h": 928,
-            "grid": false,
-            "fill": 0.7051,
-            "web": 0,
-            "score": 40,
-            "why": [
-                "tek kare"
-            ],
-            "stock": 10,
-            "images": [
-                "/uploads/dg-tshirt/d-g-g8jx7tfi7z0.jpg"
-            ]
-        },
-        {
             "id": "dgn-g8kb8zfi7yo",
             "brand": "Dolce & Gabbana",
             "name": "Striped Polo Shirt",
@@ -3941,28 +3663,6 @@
             "stock": 10,
             "images": [
                 "/uploads/dg-tshirt/d-g-g8oa9zg7byp.jpg"
-            ]
-        },
-        {
-            "id": "dgn-g8of3z",
-            "brand": "Dolce & Gabbana",
-            "name": "V-Neck T-Shirt — White",
-            "sku": "G8OF3Z",
-            "colour": "White",
-            "n": 1,
-            "card": "/uploads/dg-tshirt/d-g-g8of3z.jpg",
-            "w": 876,
-            "h": 1212,
-            "grid": false,
-            "fill": 0.6246,
-            "web": 0,
-            "score": 40,
-            "why": [
-                "tek kare"
-            ],
-            "stock": 10,
-            "images": [
-                "/uploads/dg-tshirt/d-g-g8of3z.jpg"
             ]
         },
         {
@@ -4406,28 +4106,6 @@
             ]
         },
         {
-            "id": "guc-t07",
-            "brand": "Gucci",
-            "name": "GG Print T-Shirt, White",
-            "sku": "XJDEZ",
-            "colour": "White",
-            "n": 1,
-            "card": "/uploads/gucci/gucci-xjdez.jpg",
-            "w": 824,
-            "h": 1656,
-            "grid": false,
-            "fill": 0.9213,
-            "web": 0,
-            "score": 40,
-            "why": [
-                "tek kare"
-            ],
-            "stock": 10,
-            "images": [
-                "/uploads/gucci/gucci-xjdez.jpg"
-            ]
-        },
-        {
             "id": "guc-t12",
             "brand": "Gucci",
             "name": "Original Gucci Label T-Shirt, Black",
@@ -4755,6 +4433,30 @@
             "images": [
                 "/uploads/dsq-jeans/dsq-s74mu0682-p1.jpg",
                 "/uploads/dsq-jeans/dsq-s74mu0682-p2.jpg"
+            ]
+        },
+        {
+            "id": "dgn-g8nc5zg7byh",
+            "brand": "Dolce & Gabbana",
+            "name": "Oversized T-Shirt — Black",
+            "sku": "G8NC5Z G7BYH",
+            "colour": "Black",
+            "n": 2,
+            "card": "/uploads/licensed/web/dolce-gabbana/dgn-g8nc5zg7byh-w1.jpg",
+            "w": 700,
+            "h": 700,
+            "grid": false,
+            "fill": 0.9908,
+            "web": 1,
+            "score": 27,
+            "why": [
+                "iki kare",
+                "orta (700 px)"
+            ],
+            "stock": 10,
+            "images": [
+                "/uploads/dg-tshirt/d-g-g8nc5z-g7byh.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-g8nc5zg7byh-w1.jpg"
             ]
         },
         {
@@ -5130,6 +4832,29 @@
             ]
         },
         {
+            "id": "bur-80552511",
+            "brand": "Burberry",
+            "name": "T-Shirt",
+            "sku": "80552511",
+            "colour": "Black",
+            "n": 2,
+            "card": "/uploads/balenciaga-burberry/burberry-80552511-p1.jpg",
+            "w": 1156,
+            "h": 1200,
+            "grid": false,
+            "fill": 0.9922,
+            "web": 1,
+            "score": 15,
+            "why": [
+                "iki kare"
+            ],
+            "stock": 10,
+            "images": [
+                "/uploads/balenciaga-burberry/burberry-80552511-p1.jpg",
+                "/uploads/licensed/web/burberry/bur-80552511-w1.jpg"
+            ]
+        },
+        {
             "id": "bur-80570881",
             "brand": "Burberry",
             "name": "Polo Shirt",
@@ -5266,6 +4991,29 @@
                 "/uploads/dsquared/dsq-101211.png",
                 "/uploads/licensed/web/dsquared2/dsq-101211-w2.jpg",
                 "/uploads/licensed/web/dsquared2/dsq-101211-w3.jpg"
+            ]
+        },
+        {
+            "id": "dsq-101214",
+            "brand": "DSQUARED2",
+            "name": "Graphic T-Shirt",
+            "sku": "S74GD1400",
+            "colour": "White",
+            "n": 2,
+            "card": "/uploads/licensed/web/dsquared2/dsq-101214-w6.jpg",
+            "w": 900,
+            "h": 1200,
+            "grid": false,
+            "fill": 0.9824,
+            "web": 1,
+            "score": 15,
+            "why": [
+                "iki kare"
+            ],
+            "stock": 10,
+            "images": [
+                "/uploads/dsquared/dsq-101214.png",
+                "/uploads/licensed/web/dsquared2/dsq-101214-w6.jpg"
             ]
         },
         {
@@ -5634,6 +5382,29 @@
             "images": [
                 "/uploads/balenciaga-burberry/d-g-g8nc5z-g7c8a-p1.jpg",
                 "/uploads/balenciaga-burberry/d-g-g8nc5z-g7c8a.jpg"
+            ]
+        },
+        {
+            "id": "dgn-g8of3z",
+            "brand": "Dolce & Gabbana",
+            "name": "V-Neck T-Shirt — White",
+            "sku": "G8OF3Z",
+            "colour": "White",
+            "n": 2,
+            "card": "/uploads/dg-tshirt/d-g-g8of3z.jpg",
+            "w": 876,
+            "h": 1212,
+            "grid": false,
+            "fill": 0.6246,
+            "web": 1,
+            "score": 15,
+            "why": [
+                "iki kare"
+            ],
+            "stock": 10,
+            "images": [
+                "/uploads/dg-tshirt/d-g-g8of3z.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-g8of3z-w1.jpg"
             ]
         },
         {
@@ -6372,6 +6143,29 @@
             "images": [
                 "/uploads/gallery-dept/gd-french-logo-front-black.jpg",
                 "/uploads/licensed/web/gallery-dept-/gd-t06-w2.jpg"
+            ]
+        },
+        {
+            "id": "guc-t07",
+            "brand": "Gucci",
+            "name": "GG Print T-Shirt, White",
+            "sku": "XJDEZ",
+            "colour": "White",
+            "n": 2,
+            "card": "/uploads/gucci/gucci-xjdez.jpg",
+            "w": 824,
+            "h": 1656,
+            "grid": false,
+            "fill": 0.9213,
+            "web": 1,
+            "score": 15,
+            "why": [
+                "iki kare"
+            ],
+            "stock": 10,
+            "images": [
+                "/uploads/gucci/gucci-xjdez.jpg",
+                "/uploads/licensed/web/gucci/guc-t07-w1.jpg"
             ]
         },
         {
@@ -7254,6 +7048,30 @@
             ]
         },
         {
+            "id": "dgn-g8rn8zg7nubn",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "sku": "G8RN8ZG7NUBN",
+            "colour": "Black",
+            "n": 3,
+            "card": "/uploads/licensed/web/dolce-gabbana/dgn-g8rn8zg7nubn-w1.jpg",
+            "w": 600,
+            "h": 800,
+            "grid": false,
+            "fill": 0.5434,
+            "web": 2,
+            "score": 12,
+            "why": [
+                "orta (600 px)"
+            ],
+            "stock": 10,
+            "images": [
+                "/uploads/shorts-sweats/d-g-g8rn8zg7nubn-p1.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-g8rn8zg7nubn-w1.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-g8rn8zg7nubn-w2.jpg"
+            ]
+        },
+        {
             "id": "dgn-g9ow6z",
             "brand": "Dolce & Gabbana",
             "name": "Tracksuit",
@@ -7381,6 +7199,32 @@
                 "/uploads/balenciaga-burberry/d-g-gy07ld-g8eu4-p1-p2.jpg",
                 "/uploads/balenciaga-burberry/d-g-gy07ld-g8eu4-p1-p3.jpg",
                 "/uploads/dg-dropbox/d-g-gy07ld-g8eu4-.jpg"
+            ]
+        },
+        {
+            "id": "dgn-i8aeazg7cy1",
+            "brand": "Dolce & Gabbana",
+            "name": "DG Patch T-Shirt — Black",
+            "sku": "I8AEAZG7CY1",
+            "colour": "Black",
+            "n": 5,
+            "card": "/uploads/licensed/web/dolce-gabbana/dgn-i8aeazg7cy1-w1.jpg",
+            "w": 600,
+            "h": 801,
+            "grid": false,
+            "fill": 0.6757,
+            "web": 4,
+            "score": 12,
+            "why": [
+                "orta (600 px)"
+            ],
+            "stock": 10,
+            "images": [
+                "/uploads/dg-tshirt/d-g-i8aeazg7cy1.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-i8aeazg7cy1-w1.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-i8aeazg7cy1-w2.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-i8aeazg7cy1-w3.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-i8aeazg7cy1-w4.jpg"
             ]
         },
         {
@@ -8997,6 +8841,31 @@
             ]
         },
         {
+            "id": "dsq-s74lb0658",
+            "brand": "DSQUARED2",
+            "name": "Clean Wash Jeans",
+            "sku": "S74LB0658",
+            "colour": "Light Blue",
+            "n": 6,
+            "card": "/uploads/licensed/web/dsquared2/dsq-s74lb0658-w1.jpg",
+            "w": 1080,
+            "h": 1080,
+            "grid": false,
+            "fill": 0.2698,
+            "web": 2,
+            "score": 0,
+            "why": [],
+            "stock": 10,
+            "images": [
+                "/uploads/dsq-jeans/s74lb0658-p1-p1.jpg",
+                "/uploads/dsq-jeans/s74lb0658-p1-p2.jpg",
+                "/uploads/dsq-jeans/s74lb0658-p1-p3.jpg",
+                "/uploads/dsq-jeans/s74lb0658-p2.jpg",
+                "/uploads/licensed/web/dsquared2/dsq-s74lb0658-w1.jpg",
+                "/uploads/licensed/web/dsquared2/dsq-s74lb0658-w2.jpg"
+            ]
+        },
+        {
             "id": "dsq-s74lb0764",
             "brand": "DSQUARED2",
             "name": "Distressed Jeans",
@@ -9084,6 +8953,52 @@
                 "/uploads/dsq-jeans/dsq-s74lb0975-p1.jpg",
                 "/uploads/dsq-jeans/dsq-s74lb0975-p1-p1.jpg",
                 "/uploads/dsq-jeans/dsq-s74lb0975-p1-p2.jpg"
+            ]
+        },
+        {
+            "id": "dsq-s74lb0978",
+            "brand": "DSQUARED2",
+            "name": "Distressed Jeans",
+            "sku": "S74LB0978",
+            "colour": "Light Blue",
+            "n": 4,
+            "card": "/uploads/licensed/web/dsquared2/dsq-s74lb0978-w2.jpg",
+            "w": 1067,
+            "h": 1600,
+            "grid": false,
+            "fill": 0.6561,
+            "web": 3,
+            "score": 0,
+            "why": [],
+            "stock": 10,
+            "images": [
+                "/uploads/dsq-jeans/dsq-s74lb0978-p1.jpg",
+                "/uploads/licensed/web/dsquared2/dsq-s74lb0978-w2.jpg",
+                "/uploads/licensed/web/dsquared2/dsq-s74lb0978-w1.jpg",
+                "/uploads/licensed/web/dsquared2/dsq-s74lb0978-w3.jpg"
+            ]
+        },
+        {
+            "id": "dsq-s74lb0988",
+            "brand": "DSQUARED2",
+            "name": "Clean Wash Jeans",
+            "sku": "S74LB0988",
+            "colour": "Grey",
+            "n": 4,
+            "card": "/uploads/licensed/web/dsquared2/dsq-s74lb0988-w1.jpg",
+            "w": 939,
+            "h": 1600,
+            "grid": false,
+            "fill": 0.49,
+            "web": 2,
+            "score": 0,
+            "why": [],
+            "stock": 10,
+            "images": [
+                "/uploads/dsq-jeans/dsq-s74lb0988-p1.jpg",
+                "/uploads/dsq-jeans/dsq-s74lb0988-p2.jpg",
+                "/uploads/licensed/web/dsquared2/dsq-s74lb0988-w1.jpg",
+                "/uploads/licensed/web/dsquared2/dsq-s74lb0988-w2.jpg"
             ]
         },
         {
@@ -9405,6 +9320,30 @@
                 "/uploads/balenciaga-burberry/d-g-g7ded-p2.jpg",
                 "/uploads/balenciaga-burberry/d-g-g7ded-v2.jpg",
                 "/uploads/dg-dropbox/d-g-g7ded.jpg"
+            ]
+        },
+        {
+            "id": "dgn-g8jx7tfi7z0",
+            "brand": "Dolce & Gabbana",
+            "name": "Colorblock T-Shirt — White/Navy",
+            "sku": "G8JX7TFI7Z0",
+            "colour": "White/Navy",
+            "n": 5,
+            "card": "/uploads/dg-tshirt/d-g-g8jx7tfi7z0.jpg",
+            "w": 998,
+            "h": 928,
+            "grid": false,
+            "fill": 0.7051,
+            "web": 4,
+            "score": 0,
+            "why": [],
+            "stock": 10,
+            "images": [
+                "/uploads/dg-tshirt/d-g-g8jx7tfi7z0.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-g8jx7tfi7z0-w1.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-g8jx7tfi7z0-w4.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-g8jx7tfi7z0-w3.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-g8jx7tfi7z0-w2.jpg"
             ]
         },
         {
@@ -10025,6 +9964,30 @@
                 "/uploads/balenciaga-burberry/d-g-g8ra2zg7j6f-v2.jpg",
                 "/uploads/balenciaga-burberry/d-g-g8ra2zg7j6f-v1.jpg",
                 "/uploads/dg-dropbox/d-g-g8ra2zg7j6f.jpg"
+            ]
+        },
+        {
+            "id": "dgn-g8rg6tg7k3p",
+            "brand": "Dolce & Gabbana",
+            "name": "T-Shirt",
+            "sku": "G8RG6TG7K3P",
+            "colour": "Black/White",
+            "n": 5,
+            "card": "/uploads/licensed/web/dolce-gabbana/dgn-g8rg6tg7k3p-w1.jpg",
+            "w": 1200,
+            "h": 1600,
+            "grid": false,
+            "fill": 0.4719,
+            "web": 4,
+            "score": 0,
+            "why": [],
+            "stock": 10,
+            "images": [
+                "/uploads/shorts-sweats/d-g-g8rg6t-g7k3p-p1.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-g8rg6tg7k3p-w1.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-g8rg6tg7k3p-w2.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-g8rg6tg7k3p-w3.jpg",
+                "/uploads/licensed/web/dolce-gabbana/dgn-g8rg6tg7k3p-w4.jpg"
             ]
         },
         {
@@ -11007,6 +10970,29 @@
             ]
         },
         {
+            "id": "gvy-bm716g3y99",
+            "brand": "Givenchy",
+            "name": "Logo T-Shirt",
+            "sku": "BM716G3Y99",
+            "colour": "White",
+            "n": 4,
+            "card": "/uploads/licensed/web/givenchy/gvy-bm716g3y99-w3.jpg",
+            "w": 1584,
+            "h": 1584,
+            "grid": false,
+            "fill": 0.7164,
+            "web": 3,
+            "score": 0,
+            "why": [],
+            "stock": 10,
+            "images": [
+                "/uploads/givenchy/givenchy-bm716g3y99-p1.jpg",
+                "/uploads/licensed/web/givenchy/gvy-bm716g3y99-w1.jpg",
+                "/uploads/licensed/web/givenchy/gvy-bm716g3y99-w2.jpg",
+                "/uploads/licensed/web/givenchy/gvy-bm716g3y99-w3.jpg"
+            ]
+        },
+        {
             "id": "gvy-bm716g3yas",
             "brand": "Givenchy",
             "name": "Logo T-Shirt",
@@ -11191,6 +11177,29 @@
                 "/uploads/givenchy-sweat/gvcn-bmj0cq3y6v-v2-v1.jpg",
                 "/uploads/givenchy-sweat/gvcn-bmj0cq3y6v-v2-v2.jpg",
                 "/uploads/givenchy-sweat/gvcn-bmj0cq3y6v-v2.jpg"
+            ]
+        },
+        {
+            "id": "gvy-bmj0hc3y7m",
+            "brand": "Givenchy",
+            "name": "Logo Sweatshirt",
+            "sku": "BMJ0HC3Y7M",
+            "colour": "Black",
+            "n": 4,
+            "card": "/uploads/licensed/web/givenchy/gvy-bmj0hc3y7m-w1.jpg",
+            "w": 1600,
+            "h": 1600,
+            "grid": false,
+            "fill": 0.5447,
+            "web": 3,
+            "score": 0,
+            "why": [],
+            "stock": 10,
+            "images": [
+                "/uploads/givenchy/givecnhy-bmj0hc3y7m-p1.jpg",
+                "/uploads/licensed/web/givenchy/gvy-bmj0hc3y7m-w1.jpg",
+                "/uploads/licensed/web/givenchy/gvy-bmj0hc3y7m-w2.jpg",
+                "/uploads/licensed/web/givenchy/gvy-bmj0hc3y7m-w4.jpg"
             ]
         },
         {
