@@ -1,0 +1,19 @@
+name: Elle seçilmiş internet kareleri için kontrol kolajı
+
+on:
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: "Aday listesi (retail/data/web-candidates/ altındaki dosya adı)"
+        required: true
+        default: "x.json"
+
+permissions:
+  contents: read
+
+# Yer tutucu: asıl iş akışı claude/vestra-premium-retail-site-rxj4va dalında.
+jobs:
+  stub:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Bu iş akışını çalışma dalından başlatın."
