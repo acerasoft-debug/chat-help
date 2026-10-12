@@ -17,6 +17,11 @@ jobs:
           for q in "NS vestrasales.com" "TXT vestrasales.com" "TXT _dmarc.vestrasales.com" "TXT vestra._domainkey.vestrasales.com" "TXT default._domainkey.vestrasales.com" "CNAME brevo1._domainkey.vestrasales.com" "MX vestrasales.com"; do
             set -- $q; echo "== $1 $2"; dig +short "$2" "$1" @1.1.1.1 | cut -c1-160
           done
+          # Yetkili sunucudan doğrudan (önbelleği beklemeden): kayıt eklendi mi?
+          for ns in ns71.domaincontrol.com ns72.domaincontrol.com; do
+            echo "== TXT vestra._domainkey @$ns (yetkili)"; dig +short TXT vestra._domainkey.vestrasales.com @$ns | cut -c1-120
+          done
+          echo "== TXT vestra._domainkey @8.8.8.8"; dig +short TXT vestra._domainkey.vestrasales.com @8.8.8.8 | cut -c1-120
       - name: Sunucudan — cPanel DNS bölgesi
         uses: appleboy/ssh-action@v1.0.3
         with:
