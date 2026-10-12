@@ -43,6 +43,6 @@ Yayına girince bağlantılar `retail/inc/config.php` → `app_store_url`,
 ## Dosyalar
 - `capacitor.config.json` — adres, izinli alan adları (Stripe ödeme dahil), iOS güvenli alan
 - `www/index.html` — bağlantı yokken gösterilen sayfa
-- `assets/` — ikon (serif "S." monogramı) ve açılış ekranları (açık/koyu)
+- `assets/` — ikon (Bodoni Moda serif "S" monogramı, noktasız) ve açılış ekranları (açık/koyu); üretimi `retail/tools/build-app-icons.php`
 - `scripts/patch-android.js` — geri tuşu, sürüm, imza, beyaz sistem çubukları
 - `scripts/patch-ios.sh` — ad, yönler, durum çubuğu, şifreleme beyanı

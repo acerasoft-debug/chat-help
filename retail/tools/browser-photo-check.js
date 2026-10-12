@@ -86,7 +86,7 @@ let shotCount = 0;
 
 (async () => {
   const ids = await productIds();
-  const pages = [['home', '/'], ['outlet', '/outlet.php'], ['brands', '/brands.php']];
+  const pages = [['home', '/'], ['outlet', '/outlet.php'], ['brands', '/brands.php'], ['app', '/app.php']];
   for (let n = 1; n <= (QUICK ? 2 : 40); n++) pages.push(['shop-' + n, '/shop.php?page=' + n]);
   for (const id of (QUICK ? ids.slice(0, 6) : ids)) pages.push(['p-' + id, '/product.php?id=' + encodeURIComponent(id)]);
   console.log(`ürün: ${ids.length} · sayfa: ${pages.length}`);

@@ -2000,17 +2000,64 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 [data-platform="app"] .apphero__cta,[data-platform="app"] .appways{display:none}
 [data-platform="android"] .apphero__ios{display:none}
 
-/* Telefon çerçevesi — saf CSS, içinde canlı ürünler */
-.phone{justify-self:center;width:min(300px,78vw);aspect-ratio:9/19;border-radius:44px;padding:11px;
-  background:linear-gradient(145deg,#2a2a2a,#0b0b0b);box-shadow:0 40px 80px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.08)}
-.phone__screen{height:100%;border-radius:34px;overflow:hidden;background:#fff;color:#0a0a0a;display:flex;flex-direction:column}
-.phone__bar{padding:34px 0 12px;text-align:center;border-bottom:1px solid #eee}
-.phone__logo{font-family:var(--serif);font-size:15px;letter-spacing:.32em;padding-left:.32em}
-.phone__grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 8px;padding:10px;overflow:hidden;flex:1;align-content:start}
+/* Telefon çerçevesi — saf CSS, içinde canlı ürünler.
+   İki telefon: önde ana sayfa, arkada hafif dönük bir ürün sayfası; telefonda
+   yalnız öndeki. Çerçeve: koyu titanyum kenar, ince parlak iç halka, adacık,
+   durum çubuğu ve alt çizgi — ekran görüntüsü değil, canlı HTML. */
+.apphero__brand{display:flex;align-items:center;gap:16px;margin-bottom:6px}
+.apphero__icon{width:60px;height:60px;border-radius:14px;box-shadow:0 10px 30px -8px rgba(0,0,0,.8),inset 0 0 0 1px rgba(255,255,255,.12)}
+.apphero__brand .eyebrow{margin:0}
+.apphero__meta{margin:6px 0 0;font-size:12px;letter-spacing:.08em;color:var(--muted)}
+.phones{position:relative;justify-self:center;width:min(300px,78vw);aspect-ratio:9/19.5}
+@media (min-width:900px){.phones{width:min(560px,100%);aspect-ratio:auto;height:700px}}
+.phone{width:min(300px,78vw);aspect-ratio:9/19.5;border-radius:46px;padding:10px;
+  background:linear-gradient(160deg,#3a3a3a 0%,#121212 35%,#0a0a0a 70%,#262626 100%);
+  box-shadow:0 50px 90px -20px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.06),inset 0 0 0 1.5px rgba(255,255,255,.10)}
+.phone--front{position:relative;z-index:2}
+.phone--back{display:none}
+@media (min-width:900px){
+  .phone--front{position:absolute;right:0;top:0}
+  .phone--back{display:block;position:absolute;left:0;top:26px;transform:rotate(-7deg) scale(.92);transform-origin:50% 60%;opacity:.96;z-index:1;
+    box-shadow:0 40px 70px -24px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.05),inset 0 0 0 1.5px rgba(255,255,255,.08)}
+}
+.phone__screen{position:relative;height:100%;border-radius:37px;overflow:hidden;background:#fff;color:#0a0a0a;display:flex;flex-direction:column}
+.phone__status{display:flex;justify-content:space-between;align-items:center;padding:14px 26px 0 30px;font-size:11px;font-weight:600;letter-spacing:.02em;height:36px;flex:none}
+.phone__sig{display:inline-flex;align-items:center;gap:5px}
+.phone__sig i{display:inline-block;background:#0a0a0a}
+.phone__bars{width:14px;height:9px;-webkit-mask:linear-gradient(90deg,#000 0 2.5px,transparent 2.5px 3.75px,#000 3.75px 6.25px,transparent 6.25px 7.5px,#000 7.5px 10px,transparent 10px 11.25px,#000 11.25px) ;mask:linear-gradient(90deg,#000 0 2.5px,transparent 2.5px 3.75px,#000 3.75px 6.25px,transparent 6.25px 7.5px,#000 7.5px 10px,transparent 10px 11.25px,#000 11.25px);
+  clip-path:polygon(0 60%,25% 60%,25% 40%,50% 40%,50% 20%,75% 20%,75% 0,100% 0,100% 100%,0 100%)}
+.phone__wifi{width:12px;height:9px;border-radius:50% 50% 0 0;clip-path:polygon(0 0,100% 0,50% 100%)}
+.phone__batt{width:22px;height:10px;border:1.5px solid #0a0a0a;border-radius:3px;background:transparent !important;position:relative}
+.phone__batt::after{content:"";position:absolute;inset:1.5px;background:#0a0a0a;border-radius:1px}
+.phone__island{position:absolute;top:11px;left:50%;width:84px;height:24px;margin-left:-42px;background:#000;border-radius:14px;z-index:3}
+.phone__home{position:absolute;bottom:7px;left:50%;width:96px;height:4px;margin-left:-48px;background:#0a0a0a;border-radius:2px;opacity:.85;z-index:3}
+.phone__bar{padding:6px 0 10px;text-align:center;flex:none}
+.phone__logo{font-family:var(--serif);font-size:14px;letter-spacing:.3em;padding-left:.3em;font-weight:600}
+/* Ön telefon: kapak + kartlar */
+.phone__cover{position:relative;aspect-ratio:1/1.1;overflow:hidden;flex:none;background:#0a0a0a}
+.phone__cover .fr{position:absolute;inset:0}
+.phone__cover .fr img{width:100%;height:100%;object-fit:cover;filter:brightness(.82)}
+.phone__coverttl{position:absolute;left:0;right:0;bottom:0;padding:34px 14px 14px;color:#fff;background:linear-gradient(180deg,transparent,rgba(0,0,0,.65))}
+.phone__coverttl small{display:block;font-size:7.5px;letter-spacing:.24em;text-transform:uppercase;opacity:.85;margin-bottom:3px}
+.phone__coverttl span{display:block;font-family:var(--serif);font-size:17px;line-height:1.1}
+.phone__grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 8px;padding:12px 10px 0;overflow:hidden;flex:1;align-content:start}
 .phone__card{margin:0}
-.phone__card img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;background:var(--bone-2)}
+.phone__card .fr{position:relative;display:block;aspect-ratio:4/5;background:var(--bone-2);overflow:hidden}
 .phone__card figcaption{display:flex;flex-direction:column;gap:1px;padding:6px 1px 2px;font-size:8.5px;line-height:1.35}
 .phone__card b{font-weight:500;letter-spacing:.14em;text-transform:uppercase;font-size:7.5px;color:#666}
+/* Arka telefon: ürün sayfası */
+.phone__pdp{position:relative;aspect-ratio:4/5;background:var(--bone-2);overflow:hidden;flex:none;margin:0 10px}
+.phone__pdp .fr{position:absolute;inset:0}
+.phone__info{padding:12px 14px 0;display:flex;flex-direction:column;gap:3px}
+.phone__info b{font-weight:500;letter-spacing:.16em;text-transform:uppercase;font-size:7.5px;color:#666}
+.phone__info span{font-family:var(--serif);font-size:13px;line-height:1.25}
+.phone__info strong{font-weight:500;font-size:12px;margin-top:2px}
+.phone__sizes{display:flex;gap:5px;margin-top:8px}
+.phone__sizes i{font-style:normal;font-size:8px;letter-spacing:.08em;width:30px;height:24px;border:1px solid #ddd;display:inline-flex;align-items:center;justify-content:center}
+.phone__sizes i.is-on{border-color:#0a0a0a;background:#0a0a0a;color:#fff}
+.phone__btn{margin-top:10px;background:#0a0a0a;color:#fff;font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;text-align:center;padding:11px 0}
+/* Ekran görüntüsü kolajı hissi: kapak içinde beliriş yok */
+.phone [data-reveal]{opacity:1;transform:none}
 
 /* Kurulum kartları — kullanılan cihaz öne geliyor */
 .appways{display:grid;gap:clamp(16px,2vw,28px);grid-template-columns:1fr}
