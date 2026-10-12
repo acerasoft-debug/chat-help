@@ -11,6 +11,10 @@ on:
         description: "Doluysa yalnız bu ürün sayfasında renk → galeri denemesi (ör. /product.php?id=bur-pique-polo-2909)"
         required: false
         default: ""
+      live_shots:
+        description: "true = yalnız telefon görünümünde canlı ekran görüntüleri (ana sayfa üstü, açık menü, outlet, masaüstü ana sayfa) -> diag/live/"
+        required: false
+        default: "false"
 
 permissions:
   contents: write
@@ -29,13 +33,38 @@ jobs:
         run: |
           mkdir -p /tmp/pw && cd /tmp/pw && npm init -y >/dev/null && npm i -s playwright@1.56.1
           npx playwright install --with-deps chromium webkit > /dev/null
+      - name: Canlı ekran görüntüleri
+        if: github.event.inputs.live_shots == 'true'
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/diag/live" && cd /tmp/pw && cat > live.js <<'JSEOF'
+          const { chromium } = require('playwright');
+          (async () => {
+            const out = process.argv[2], base = 'https://sarvesto.com';
+            const b = await chromium.launch();
+            const m = await (await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: 'de-DE', isMobile: true, hasTouch: true })).newPage();
+            const kill = () => m.evaluate(() => document.querySelectorAll('[class*=cookie],[data-push-prompt]').forEach(e => e.remove())).catch(() => {});
+            await m.goto(base + '/', { waitUntil: 'networkidle' }); await m.waitForTimeout(1500); await kill();
+            await m.screenshot({ path: out + '/m-home.png' });
+            await m.click('[data-drawer-open]'); await m.waitForTimeout(700);
+            await m.screenshot({ path: out + '/m-menu.png' });
+            await m.goto(base + '/outlet.php', { waitUntil: 'networkidle' }); await m.waitForTimeout(1000); await kill();
+            await m.screenshot({ path: out + '/m-outlet.png' });
+            const css = await m.evaluate(() => [...document.querySelectorAll('link[rel=stylesheet]')].map(l => l.href).join(' '));
+            const d = await (await b.newContext({ viewport: { width: 1440, height: 900 }, locale: 'de-DE' })).newPage();
+            await d.goto(base + '/', { waitUntil: 'networkidle' }); await d.waitForTimeout(1500);
+            await d.screenshot({ path: out + '/d-home.png' });
+            console.log('css', css);
+            await b.close();
+          })();
+          JSEOF
+          node live.js "$GITHUB_WORKSPACE/diag/live"
       - name: Renk → galeri
-        if: github.event.inputs.colour_path != ''
+        if: github.event.inputs.colour_path != '' && github.event.inputs.live_shots != 'true'
         run: |
           cp retail/tools/colour-check.js /tmp/pw/
           rm -rf "$GITHUB_WORKSPACE/diag/colour" && cd /tmp/pw && node colour-check.js https://sarvesto.com "${{ github.event.inputs.colour_path }}" "$GITHUB_WORKSPACE/diag/colour"
       - name: Tara
-        if: github.event.inputs.colour_path == ''
+        if: github.event.inputs.colour_path == '' && github.event.inputs.live_shots != 'true'
         run: |
           cp retail/tools/browser-photo-check.js /tmp/pw/
           rm -rf "$GITHUB_WORKSPACE/diag/browser/shots"
@@ -46,7 +75,7 @@ jobs:
         run: |
           git config user.name  "Claude"
           git config user.email "noreply@anthropic.com"
-          git add -f diag/browser diag/colour 2>/dev/null; true
+          git add -f diag/browser diag/colour diag/live 2>/dev/null; true
           git diff --cached --quiet && exit 0
           git commit -q -m "Teşhis: tarayıcıda görünmeyen fotoğraflar (rapor + ekran görüntüleri)"
           for i in 1 2 3 4; do
