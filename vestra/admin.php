@@ -2652,7 +2652,7 @@ function arow(array $cells, bool $head=false): string {
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="VESTRA Admin">
 <link rel="apple-touch-icon" href="/icon-192.png">
-<link rel="manifest" href="/manifest.php?app=admin">
+<link rel="manifest" href="/manifest?app=admin">
 <link rel="stylesheet" href="/inc/style.css">
 <style>
 :root{--sb:220px;
