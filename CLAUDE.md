@@ -11599,7 +11599,8 @@ yalnız `vestra_notify()` e-postası gidiyordu. Yapılan:
   listesi** (etiket, eklendi, son teslim; `vestra_push_devices()`, uç nokta
   basılmaz); Dashboard'da bir kerelik Türkçe özet satırı; `?logout` cihazı
   ayırıp park eder; sayfa sonunda `vestra_app_boot()` (Türkçe sözlük
-  `VESTRA_APP_STRINGS`); `<link rel=manifest href=/manifest.php?app=admin>` →
+  `VESTRA_APP_STRINGS`); `<link rel=manifest href=/manifest?app=admin>` (sunucu `.php`
+  uzantısını 301 ile `/manifest`e çeviriyor — bağlantılar doğrudan uzantısız) →
   ayrı **"VESTRA Admin"** uygulaması (id `/admin`, /admin'de açılır, kısayollar
   Siparişler/Onaylar/Mesajlar/Müşteriler).
 - **Estetik / işlev:** `sw.js` v4 — bildirimde **görsel** (yalnız aynı siteden)

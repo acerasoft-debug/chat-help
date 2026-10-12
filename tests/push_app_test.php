@@ -447,7 +447,7 @@ if ($up) {
        && str_contains($g['body'], 'window.VESTRA_BOOT=') && str_contains($g['body'], '/inc/app.js?v='));
     $t('kayitli cihaz listede (Android · Chrome, teslim edildi)', str_contains($g['body'], 'vpush-devs') && str_contains($g['body'], 'Android · Chrome') && str_contains($g['body'], 'teslim edildi'));
     $t('kartta ham Ingilizce kalmadi', !str_contains($g['body'], 'Each device is set up separately'));
-    $t('admin sayfasi kendi manifestini tasir', str_contains($g['body'], '/manifest.php?app=admin'));
+    $t('admin sayfasi kendi manifestini tasir', str_contains($g['body'], 'href="/manifest?app=admin"'));
     $g = $req('GET', '/admin?tab=overview', $jarM);
     $t('ozet sekmesinde Turkce bildirim satiri', str_contains($g['body'], 'data-vpush-nudge') && str_contains($g['body'], 'bu cihazda alın'));
     $m = $req('GET', '/manifest.php?app=admin', null);
@@ -534,7 +534,7 @@ $offHd = ['Sie sind offline', 'Vous êtes hors ligne', 'Sei offline', 'Estás si
 $t('cevrimdisi sayfa 8 dil daha tasiyor', count(array_filter($offHd, fn($h) => str_contains($off, $h))) === 8 && str_contains($off, 'vlang='));
 $sw = (string)file_get_contents($root.'/vestra/sw.js');
 $t('SW onbellegi v3 (offline.html degisti)', str_contains($sw, "const CACHE = 'vestra-v3'"));
-$t('head.php dile gore manifest', str_contains((string)file_get_contents($root.'/vestra/inc/head.php'), '/manifest.php?lang=<?= vlang() ?>'));
+$t('head.php dile gore manifest', str_contains((string)file_get_contents($root.'/vestra/inc/head.php'), '/manifest?lang=<?= vlang() ?>'));
 $css = (string)file_get_contents($root.'/vestra/inc/style.css');
 $t('CSS: gizli dugme gercekten gizli ([hidden] zorlaniyor)', str_contains($css, '.vpush [hidden]') && str_contains($css, 'display:none!important'));
 /* Durum rozeti SARILABILMELI: nowrap iken Fransizca iPhone durumu kartin 63px disina
