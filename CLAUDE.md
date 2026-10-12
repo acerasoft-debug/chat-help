@@ -4756,6 +4756,12 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   partiye alınmaz, bekler; tarayıcı Trash/Archive'i de okur ve DMARC/politika retlerini (5.7.509, 5.7.133) "geri döndü"
   saymaz (adres gerçek). Geri dönme freni penceresi 14 → 3 gün. **Kalıcı çözüm operatörde:** GoDaddy DNS'e
   `vestra._domainkey` TXT kaydı (değer Admin ▸ 📮 ▸ 🔐).
+  **12 Eki 2026 — ÇÖZÜLDÜ:** kayıt operatörün **Host Europe KIS** panelinden eklendi (alan adı Host Europe'ta;
+  Host Europe GoDaddy'nin, DNS'i ns71/72.domaincontrol.com sunuyor — sunucudaki cPanel bölgesi yalnız iç ağda,
+  dışarı yansımaz). Yetkili sunucular + 1.1.1.1 + 8.8.8.8'de değer doğru, sunucu `vestra_dkim_dns_status()` = ok.
+  İmza bağımsız doğrulayıcıyla (dkimpy 1.1.8, uzun katlanmış UTF-8 konu dahil) **geçti**. İlk imzalı parti 16:00 UTC:
+  bekletilen 22 Outlook/Orange alıcısına gitti, hata 0. OpenDKIM/VPS/SPF'e IP ekleme önerileri bu kuruluma UYMAZ
+  (paylaşımlı cPanel, imzayı PHP atıyor; DKIM hizalı geçince DMARC SPF'ten bağımsız geçer).
 - **Satıcı kendi adresi + kendi posta sunucusu (SMTP) ile gönderir (10 Eki 2026, operatör: "satıcılarda kendi
   email adresleri ile gönderebilsin, kendi sunucuları ile").** Barındırmadan giden SMTP KAPALI (8 Eki smtp_probe) —
   sunucu bağlanamaz; bu yüzden `inc/seller_outbox.php` kuyruğu (`data/seller_outbox.json`, şifresiz) +
