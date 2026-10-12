@@ -641,6 +641,8 @@ return [
     'push_welcome' => 'Meldingen staan aan. U hoort van ons als een prijs zakt of er iets zeldzaams binnenkomt.',
     'appbar_b' => 'De app — sneller, schermvullend, gratis',
     'appbar_btn' => 'Downloaden',
+    'tab_home' => 'Home',
+    'tab_outlet' => 'Outlet',
     'appband_b' => 'Zet {brand} in enkele seconden op uw telefoon — zonder store, zonder account. Schermvullend, sneller, tas en favorieten altijd bij de hand, en een melding als een Vault-prijs zakt.',
     'appband_ios' => 'iPhone',
     'appband_android' => 'Android',

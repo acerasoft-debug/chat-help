@@ -2227,3 +2227,122 @@ html.has-appbar body{padding-bottom:calc(70px + env(safe-area-inset-bottom))}
   }
   .catfilm::after{display:none}
 }
+
+/* =====================================================================
+   HAREKET — uygulama hissi (12 Eki 2026, operatör: "App daha estetik
+   olmalı, daha animasyonlu")
+   Hepsi prefers-reduced-motion'a uyuyor; JS kapalıyken hiçbiri gerekmiyor.
+   ===================================================================== */
+
+/* 1) Sayfalar arası geçiş (View Transitions, Chrome/Edge 126+, Safari 18.2+).
+   Eski sayfa hafifçe silinir, yenisi aşağıdan süzülür. Başlık ve sekme
+   çubuğu geçişin DIŞINDA: sabit dururlar, yalnız içerik değişir. Bir ürün
+   kartına dokununca kartın fotoğrafı ürün sayfasının ilk karesine
+   dönüşüyor ("hero"; adı maxsales.js tıklanan karta veriyor). */
+@media (prefers-reduced-motion:no-preference){
+  @view-transition{navigation:auto}
+  ::view-transition-old(root){animation:vt-out .22s var(--ease) both}
+  ::view-transition-new(root){animation:vt-in .42s cubic-bezier(.2,.8,.2,1) both}
+  .site{view-transition-name:site-head}
+  .tabbar{view-transition-name:tabbar}
+  ::view-transition-old(site-head),::view-transition-old(tabbar){display:none}
+  ::view-transition-new(site-head),::view-transition-new(tabbar){animation:none}
+  html:not(.vt-card) .pdp__media:not([hidden]) > .pdp__shot:first-child{view-transition-name:hero}
+  ::view-transition-group(hero){animation-duration:.5s;animation-timing-function:cubic-bezier(.2,.8,.2,1);z-index:5}
+  ::view-transition-old(hero),::view-transition-new(hero){height:100%;object-fit:cover;overflow:hidden}
+}
+@keyframes vt-out{to{opacity:0;transform:translateY(-6px)}}
+@keyframes vt-in{from{opacity:0;transform:translateY(16px)}}
+
+/* 2) Fotoğraf yüklenirken ışıltı: boş gri kutu yerine üstünden geçen ince
+   bir ışık. Sınıfı maxsales.js koyup kaldırıyor (yüklenince ya da hata). */
+.fr.is-loading::after{
+  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.65) 50%,transparent 70%) 0 0/250% 100% no-repeat;
+  animation:shimmer 1.25s linear infinite;
+}
+@keyframes shimmer{from{background-position:130% 0}to{background-position:-130% 0}}
+
+/* 3) Dokunma geri bildirimi: dokunmatik ekranda basılan şey hafifçe içe
+   çöker — uygulamalardaki "basıldı" hissi. Fareli cihazda yok. */
+@media (hover:none){
+  .card__media,.swatch,.cpic .fr,.cchip,.sizes label,.tabbar__ico,.tool,.housecard__shot{transition:transform .2s var(--ease)}
+  .card__media:active,.housecard__shot:active{transform:scale(.975)}
+  .swatch:active,.cpic:active .fr,.cchip:active,.sizes label:active{transform:scale(.94)}
+  .btn:active{transform:scale(.975)}
+  .tool:active{transform:scale(.88)}
+}
+
+/* 4) Renk değişince yeni galeri yumuşakça belirir; seçili renk halkası
+   yerine oturur, başlıktaki renk adı süzülerek değişir. */
+.pdp__media.is-swap{animation:galleryin .5s cubic-bezier(.2,.8,.2,1) both}
+.pdp__media.is-swap > .pdp__shot{animation:shotin .55s cubic-bezier(.2,.8,.2,1) both}
+.pdp__media.is-swap > .pdp__shot:nth-child(2){animation-delay:.05s}
+.pdp__media.is-swap > .pdp__shot:nth-child(3){animation-delay:.1s}
+.pdp__media.is-swap > .pdp__shot:nth-child(n+4){animation-delay:.15s}
+@keyframes galleryin{from{opacity:.4}}
+@keyframes shotin{from{opacity:0;transform:translateY(10px) scale(.985)}}
+.cpic .fr{transition:border-color .2s,box-shadow .35s cubic-bezier(.2,.8,.2,1),transform .2s var(--ease)}
+[data-cset-now].is-swap{animation:nowin .4s var(--ease) both}
+@keyframes nowin{from{opacity:0;transform:translateY(4px)}}
+
+/* 5) Uygulama açılışı (assets/js/boot.js, oturumdaki ilk sayfa): açılış
+   ekranındaki SARVESTO yazısı harf aralığını açarak dağılır, perde yukarı
+   çekilir. Tıklamayı hiçbir an engellemez; animasyon bitince görünmez. */
+html.sv-intro::before{
+  content:"";position:fixed;inset:0;z-index:2147483646;background:var(--bone);pointer-events:none;
+  animation:svcurtain 1.6s cubic-bezier(.76,0,.24,1) forwards;
+}
+html.sv-intro::after{
+  content:"SARVESTO";position:fixed;left:0;right:0;top:50%;z-index:2147483647;pointer-events:none;
+  text-align:center;white-space:nowrap;overflow:hidden;
+  font-family:var(--serif);font-weight:600;font-size:clamp(22px,6.2vw,34px);letter-spacing:.34em;padding-left:.34em;color:var(--ink);
+  animation:svword 1.6s cubic-bezier(.6,0,.2,1) forwards;
+}
+@keyframes svword{
+  0%{opacity:0;transform:translateY(-50%);letter-spacing:.22em}
+  22%{opacity:1;transform:translateY(-50%);letter-spacing:.34em}
+  58%{opacity:1;transform:translateY(-50%);letter-spacing:.38em}
+  100%{opacity:0;transform:translateY(-140%);letter-spacing:.62em}
+}
+@keyframes svcurtain{0%,55%{transform:none}100%{transform:translateY(-100%)}}
+
+/* 6) Uygulamada alt sekme çubuğu (inc/view.php vr_tabbar). Tarayıcıda yok:
+   orada başlık ve çekmece var. Etkin sekmenin üstündeki çizgi bir önceki
+   sekmeden kayarak gelir. */
+.tabbar{display:none}
+@media (max-width:899px){
+  [data-platform="app"] .tabbar{
+    position:fixed;z-index:100;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(var(--n),1fr);
+    padding:0 4px env(safe-area-inset-bottom);
+    background:color-mix(in oklab,var(--bone) 96%,transparent);backdrop-filter:saturate(1.5) blur(18px);-webkit-backdrop-filter:saturate(1.5) blur(18px);
+    border-top:1px solid var(--bone-3);
+    animation:tabin .5s cubic-bezier(.2,.8,.2,1) both;
+  }
+  [data-platform="app"] body{padding-bottom:calc(62px + env(safe-area-inset-bottom))}
+  [data-platform="app"] .pushprompt{bottom:calc(74px + env(safe-area-inset-bottom))}
+  [data-platform="app"] .site{transition:transform .38s cubic-bezier(.2,.8,.2,1),border-color .3s var(--ease),background .3s var(--ease)}
+  [data-platform="app"] .site.is-tucked{transform:translateY(calc(-100% - 2px))}
+}
+html.sv-intro .tabbar{animation-delay:.9s}
+.tabbar__t{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:58px;color:var(--muted-2);-webkit-tap-highlight-color:transparent}
+.tabbar__t.is-on{color:var(--ink)}
+.tabbar__ico{position:relative;display:inline-flex}
+.tabbar__t.is-on .ico{stroke-width:1.8}
+.tabbar__t.is-on .tabbar__ico{animation:tabpop .45s cubic-bezier(.3,1.6,.5,1)}
+.tabbar__l{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;line-height:1;white-space:nowrap}
+.tabbar__n{position:absolute;top:-5px;right:-9px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--ink);color:var(--bone);
+  font-style:normal;font-size:9.5px;line-height:16px;text-align:center;font-weight:600}
+.tabbar__ind{position:absolute;top:-1px;left:4px;width:calc((100% - 8px) / var(--n));height:2px;pointer-events:none;
+  transform:translateX(calc(var(--i) * 100%));transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+.tabbar__ind::after{content:"";position:absolute;left:50%;top:0;width:26px;height:2px;margin-left:-13px;background:var(--ink)}
+.tabbar[data-none] .tabbar__ind{opacity:0}
+@keyframes tabin{from{transform:translateY(100%)}}
+@keyframes tabpop{0%{transform:scale(.8)}100%{transform:none}}
+
+@media (prefers-reduced-motion:reduce){
+  .fr.is-loading::after,.pdp__media.is-swap,.pdp__media.is-swap > .pdp__shot,[data-cset-now].is-swap,
+  .tabbar,.tabbar__t.is-on .tabbar__ico{animation:none}
+  .tabbar__ind,[data-platform="app"] .site{transition:none}
+  html.sv-intro::before,html.sv-intro::after{display:none}
+}

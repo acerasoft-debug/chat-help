@@ -2092,5 +2092,79 @@
             "Black"
         ],
         "src": "photo+eye"
+    },
+    "lgp-lacoste-trim-tshirt": {
+        "colours": [
+            "Bordeaux",
+            "Navy",
+            "Black",
+            "White"
+        ],
+        "src": "eye",
+        "images": {
+            "Bordeaux": [
+                "/uploads/lac-tee/lacoste-trim-tshirt-1.png"
+            ],
+            "Navy": [
+                "/uploads/lac-tee/lacoste-trim-tshirt-2.png"
+            ],
+            "Black": [
+                "/uploads/lac-tee/lacoste-trim-tshirt-3.png"
+            ],
+            "White": [
+                "/uploads/lac-tee/lacoste-trim-tshirt-4.png"
+            ]
+        }
+    },
+    "dgx-g7ded": {
+        "colours": [
+            "Black"
+        ],
+        "src": "eye"
+    },
+    "dgx-g8nc5t-hs7kg": {
+        "colours": [
+            "Black/White"
+        ],
+        "src": "eye"
+    },
+    "dgx-g8pj4z-hu7ma": {
+        "colours": [
+            "White"
+        ],
+        "src": "eye"
+    },
+    "dgx-g8ol6z-g7c8g": {
+        "colours": [
+            "White",
+            "Red",
+            "Black",
+            "Orange"
+        ],
+        "src": "eye",
+        "images": {
+            "White": [
+                "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p1.jpg",
+                "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p1-p1.jpg",
+                "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v2.jpg",
+                "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p2.jpg",
+                "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v1-v1.jpg"
+            ],
+            "Red": [
+                "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g-p1.jpg",
+                "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g-p2-p1.jpg",
+                "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g-p2-p2.jpg"
+            ],
+            "Black": [
+                "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g1-p1-p1-v1.jpg",
+                "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g1-p1-p1-v2.jpg",
+                "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g1-p1-p1.jpg"
+            ],
+            "Orange": [
+                "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p1.jpg",
+                "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p2.jpg",
+                "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g-1.jpg"
+            ]
+        }
     }
 }

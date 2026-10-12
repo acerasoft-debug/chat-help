@@ -639,6 +639,8 @@ return [
     'push_welcome' => 'Notifications activées. Nous vous écrirons quand un prix baisse ou qu’une pièce rare arrive.',
     'appbar_b' => 'L’app — plus rapide, plein écran, gratuite',
     'appbar_btn' => 'Obtenir',
+    'tab_home' => 'Accueil',
+    'tab_outlet' => 'Outlet',
     'appband_b' => 'Installez {brand} sur votre téléphone en quelques secondes — sans store, sans compte. Plein écran, plus rapide, panier et favoris toujours à portée, et une notification quand un prix du Vault baisse.',
     'appband_ios' => 'iPhone',
     'appband_android' => 'Android',

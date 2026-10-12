@@ -78,19 +78,24 @@ foreach ($cat as $id => $p) {
             ];
             if ($first !== '') $firsts[$first][] = $gid;
         }
+        // Sorun = müşterinin gördüğü şeritte: aynı rengin kopyası olan satırlar
+        // şeritte gizleniyor (vr_variant_siblings), onlar yalnız bilgi.
         $issues = [];
-        if (count($shown) < count($group)) $issues[] = 'hidden:' . (count($group) - count($shown));
-        if (count($shown) <= 1) $issues[] = 'no-strip';
+        $info = count($shown) < count($group) ? 'hidden:' . (count($group) - count($shown)) : '';
         $labels = [];
         foreach ($rows as $r) {
+            if (!$r['shown']) continue;
             $l = mb_strtolower($r['colours'][0] ?? $r['variant_colour']);
             if ($l === '') $issues[] = 'no-label:' . $r['id'];
             else $labels[$l][] = $r['id'];
             if (!$r['real']) $issues[] = 'no-photo:' . $r['id'];
         }
         foreach ($labels as $l => $ids) if (count($ids) > 1) $issues[] = "same-label:$l";
-        foreach ($firsts as $f => $ids) if (count($ids) > 1) $issues[] = 'same-photo:' . implode('+', $ids);
-        $out['groups'][] = ['key' => $key, 'brand' => $p['brand'], 'issues' => $issues, 'rows' => $rows];
+        foreach ($firsts as $f => $ids) {
+            $vis = array_values(array_intersect($ids, $shown));
+            if (count($vis) > 1) $issues[] = 'same-photo:' . implode('+', $vis);
+        }
+        $out['groups'][] = ['key' => $key, 'brand' => $p['brand'], 'strip' => count($shown), 'info' => $info, 'issues' => $issues, 'rows' => $rows];
         $out['summary']['siblings_groups']++;
         continue;
     }

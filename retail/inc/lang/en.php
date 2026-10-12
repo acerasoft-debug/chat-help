@@ -652,6 +652,8 @@ return [
     'push_welcome' => 'Notifications are on. You will hear from us when a price falls or something rare arrives.',
     'appbar_b' => 'The app — faster, full-screen, free',
     'appbar_btn' => 'Get',
+    'tab_home' => 'Home',
+    'tab_outlet' => 'Outlet',
     'appband_b' => 'Install {brand} on your phone in seconds — no store, no account needed. Full-screen, faster, with your bag and saved pieces always at hand, and notifications when a Vault price falls.',
     'appband_ios' => 'iPhone',
     'appband_android' => 'Android',

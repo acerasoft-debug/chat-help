@@ -9,7 +9,7 @@
  */
 'use strict';
 
-const VERSION = 'sv-2026-10-12';
+const VERSION = 'sv-2026-10-12b';
 const SHELL   = 'shell-' + VERSION;
 const SCOPE   = new URL(self.registration.scope).pathname;          // "/" ya da "/shop/"
 const OFFLINE = SCOPE + 'offline.html';

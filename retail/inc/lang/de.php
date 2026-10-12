@@ -641,6 +641,8 @@ return [
     'push_welcome' => 'Benachrichtigungen sind aktiv. Wir melden uns, wenn ein Preis fällt oder etwas Seltenes eintrifft.',
     'appbar_b' => 'Die App — schneller, Vollbild, kostenlos',
     'appbar_btn' => 'Laden',
+    'tab_home' => 'Start',
+    'tab_outlet' => 'Outlet',
     'appband_b' => '{brand} in Sekunden aufs Telefon — ohne Store, ohne Konto. Vollbild, schneller, Warenkorb und Merkliste immer dabei, und eine Nachricht, wenn ein Vault-Preis fällt.',
     'appband_ios' => 'iPhone',
     'appband_android' => 'Android',

@@ -35,7 +35,7 @@ function vr_asset_v(): string
        kaliyordu ve kurulu uygulamanin service worker'i eski betigi onbellekten
        vermeye devam ediyordu (12 Eki 2026, bildirim duzeltmesi). */
     $m = 0;
-    foreach (['/assets/css/maxsales.css', '/assets/js/maxsales.js'] as $f) {
+    foreach (['/assets/css/maxsales.css', '/assets/js/maxsales.js', '/assets/js/boot.js'] as $f) {
         if (is_readable(VR_ROOT . $f)) $m = max($m, (int)filemtime(VR_ROOT . $f));
     }
     return $v = $m ? (string)$m : '1';
@@ -90,6 +90,8 @@ function vr_layout_start(array $o = []): void
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="format-detection" content="telephone=no">
 <link rel="stylesheet" href="<?= h(vr_url('assets/css/maxsales.css', ['v' => vr_asset_v()])) ?>">
+<?php // Eşzamanlı ve küçük: cihaz türü ilk boyamadan önce belli olsun (bkz. assets/js/boot.js). ?>
+<script src="<?= h(vr_url('assets/js/boot.js', ['v' => vr_asset_v()])) ?>"></script>
 <?php // JS kapalıyken beliriş efekti hiç uygulanmasın (scripting:enabled'i
       // desteklemeyen eski tarayıcılar için ikinci emniyet). ?>
 <noscript><style>[data-reveal]{opacity:1 !important;transform:none !important}</style></noscript>
@@ -118,6 +120,7 @@ function vr_layout_end(): void
     $page = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
     if ($page !== 'checkout.php') vr_push_prompt();
     if (!in_array($page, ['app.php', 'checkout.php'], true)) vr_appbar();
+    if ($page !== 'checkout.php') vr_tabbar($page);
     ?>
 <script src="<?= h(vr_url('assets/js/maxsales.js', ['v' => vr_asset_v()])) ?>" defer></script>
 </body>
@@ -210,6 +213,39 @@ function vr_appbar(): void
   </div>
   <a class="appbar__go" data-appbar-go href="<?= h(vr_url('app.php')) ?>"><?= te('appbar_btn') ?></a>
 </div>
+<?php
+}
+
+/**
+ * Uygulamanın alt sekme çubuğu. Her sayfada basılıyor ama yalnız kurulu
+ * uygulamada (data-platform="app", bkz. assets/js/boot.js) görünüyor:
+ * tarayıcıda zaten başlık ve çekmece var. Saf bağlantılar — JS gerekmez.
+ * Etkin sekmenin altındaki çizgi bir önceki sekmeden kayarak geliyor
+ * (maxsales.js "sekme çubuğu").
+ */
+function vr_tabbar(string $page): void
+{
+    $tabs = [
+        ['index.php',    vr_url('/'),            'home',  t('tab_home')],
+        ['shop.php',     vr_url('shop.php'),     'grid',  t('nav_shop')],
+        ['outlet.php',   vr_url('outlet.php'),   'tag',   t('tab_outlet')],
+        ['wishlist.php', vr_url('wishlist.php'), 'heart', t('nav_wish')],
+        ['cart.php',     vr_url('cart.php'),     'bag',   t('nav_cart')],
+    ];
+    $on = -1;
+    foreach ($tabs as $i => $tb) if ($tb[0] === $page) $on = $i;
+    if ($on < 0 && in_array($page, ['product.php', 'brands.php', 'brand.php'], true)) $on = 1;
+    $counts = [3 => vr_wish_count(), 4 => vr_cart_count()];
+    ?>
+<nav class="tabbar" data-tabbar aria-label="<?= te('menu') ?>" style="--n:<?= count($tabs) ?>;--i:<?= max(0, $on) ?>"<?= $on < 0 ? ' data-none' : '' ?>>
+  <?php foreach ($tabs as $i => [$file, $href, $ico, $label]): ?>
+    <a class="tabbar__t<?= $i === $on ? ' is-on' : '' ?>" href="<?= h($href) ?>"<?= $i === $on ? ' aria-current="page"' : '' ?> data-tab="<?= $i ?>">
+      <span class="tabbar__ico"><?= vr_icon($ico, 22) ?><?php if (!empty($counts[$i])): ?><i class="tabbar__n"><?= (int)$counts[$i] ?></i><?php endif; ?></span>
+      <span class="tabbar__l"><?= h($label) ?></span>
+    </a>
+  <?php endforeach; ?>
+  <i class="tabbar__ind" aria-hidden="true"></i>
+</nav>
 <?php
 }
 
@@ -514,6 +550,8 @@ function vr_icon(string $name, int $size = 20): string
         'star'   => '<path d="M12 4l2.4 5 5.6.8-4 3.9 1 5.5-5-2.6-5 2.6 1-5.5-4-3.9 5.6-.8z"/>',
         'bell'   => '<path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/>',
         'phone'  => '<rect x="7" y="2.8" width="10" height="18.4" rx="2.2"/><path d="M10.8 18.2h2.4"/>',
+        'home'   => '<path d="M4 10.5L12 4l8 6.5"/><path d="M6 9v11h12V9"/><path d="M10 20v-5.5h4V20"/>',
+        'grid'   => '<rect x="4" y="4" width="6.5" height="6.5"/><rect x="13.5" y="4" width="6.5" height="6.5"/><rect x="4" y="13.5" width="6.5" height="6.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5"/>',
     ];
     $d = $paths[$name] ?? '';
     return '<svg class="ico" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none"'

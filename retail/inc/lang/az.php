@@ -635,6 +635,8 @@ return [
     'push_welcome' => 'Bildirişlər aktivdir. Qiymət endikdə və ya nadir bir şey gəldikdə sizə xəbər verəcəyik.',
     'appbar_b' => 'Tətbiq — daha sürətli, tam ekran, pulsuz',
     'appbar_btn' => 'Yüklə',
+    'tab_home' => 'Ana səhifə',
+    'tab_outlet' => 'Outlet',
     'appband_b' => '{brand}-u bir neçə saniyəyə telefonunuza quraşdırın — mağazasız, hesabsız. Tam ekran, daha sürətli, səbət və seçilmişlər həmişə əlinizdə, Vault qiyməti endikdə isə bildiriş.',
     'appband_ios' => 'iPhone',
     'appband_android' => 'Android',

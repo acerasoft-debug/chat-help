@@ -86,7 +86,9 @@ vr_layout_start([
          (bkz. vr_colour_sets, assets/js "renk → galeri"). JS yoksa ilk rengin
          galerisi görünür, diğer renklerin kareleri renk düğmesinin içinde. */
       $siblingsTop = vr_variant_siblings($p);
-      $csets = count($siblingsTop) <= 1 ? vr_colour_sets($p) : [];
+      /* Ürünün kendi renk galerileri varsa şerit yerine onlar: renk
+         seçimi sayfada kalır, galeri değişir. */
+      $csets = vr_colour_sets($p);
       $galleries = $csets ? array_map(fn($cs) => $cs['images'], $csets) : [vr_product_gallery($p, 5)];
       foreach ($galleries as $gi => $shots): ?>
       <div class="pdp__media<?= count($shots) > 1 ? ' pdp__media--multi' : '' ?>" data-gallery
@@ -184,7 +186,7 @@ vr_layout_start([
              Toptancı beslemesi her rengi ayrı ürün olarak açtığı için vitrinde
              modelin tek karosu duruyor (bkz. vr_variant_index). Diğer renklere
              giden tek kapı burası — şerit olmazsa o satırlar erişilemez kalır. */
-          $siblings = vr_variant_siblings($p);
+          $siblings = $csets ? [] : vr_variant_siblings($p);
           $pCols    = vr_product_colours($p);
           if (count($siblings) > 1): ?>
             <div class="swatches">
@@ -265,7 +267,11 @@ vr_layout_start([
                   </div>
                   <p class="field__err" data-colour-error hidden><?= te('choose_colour_err') ?></p>
                 </div>
-              <?php elseif (count($siblings) <= 1 && count($pCols) > 1): ?>
+              <?php elseif (count($pCols) > 1):
+                /* Satırın kendisi birden çok renk taşıyorsa seçim ŞART: sepet
+                   renksiz eklemeyi reddediyor (vr_cart_colour). Eskiden şerit
+                   varken bu kutu hiç basılmıyordu; müşteri renk seçemiyor,
+                   sepete de ekleyemiyordu (12 Eki 2026). */ ?>
                 <div class="panel" style="border:0;padding-top:0;margin-bottom:20px">
                   <h2 class="panel__h"><span><?= te('select_colour', ['n' => count($pCols)]) ?></span></h2>
                   <div class="cchips">

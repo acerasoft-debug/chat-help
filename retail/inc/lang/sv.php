@@ -635,6 +635,8 @@ return [
     'push_welcome' => 'Notiser är på. Du hör av oss när ett pris sjunker eller något sällsynt kommer in.',
     'appbar_b' => 'Appen — snabbare, helskärm, gratis',
     'appbar_btn' => 'Hämta',
+    'tab_home' => 'Hem',
+    'tab_outlet' => 'Outlet',
     'appband_b' => 'Installera {brand} i telefonen på några sekunder — ingen appbutik, inget konto. Helskärm, snabbare, kassen och favoriterna alltid nära, och en notis när ett Vault-pris sjunker.',
     'appband_ios' => 'iPhone',
     'appband_android' => 'Android',

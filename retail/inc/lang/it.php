@@ -635,6 +635,8 @@ return [
     'push_welcome' => 'Notifiche attive. Ti scriveremo quando un prezzo scende o arriva qualcosa di raro.',
     'appbar_b' => 'L’app — più veloce, a schermo intero, gratuita',
     'appbar_btn' => 'Scarica',
+    'tab_home' => 'Home',
+    'tab_outlet' => 'Outlet',
     'appband_b' => 'Installa {brand} sul telefono in pochi secondi — senza store, senza account. Schermo intero, più veloce, borsa e preferiti sempre con te, e una notifica quando un prezzo del Vault scende.',
     'appband_ios' => 'iPhone',
     'appband_android' => 'Android',

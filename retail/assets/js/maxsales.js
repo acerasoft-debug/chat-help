@@ -231,15 +231,20 @@
   /* ---------------------------------------- ürün görselleri: ilk açılış efekti
      .card__alt hariç: onun görünürlüğünü CSS hover'ı yönetiyor, buradaki satır
      içi opacity:1 o kuralı ezip ikinci kareyi kalıcı olarak açıyordu. */
-  document.querySelectorAll('.pdp__shot img, .card__media img:not(.card__alt)').forEach(function (img) {
+  /* Yüklenene kadar çerçevede ince bir ışıltı (CSS .fr.is-loading). */
+  document.querySelectorAll('.pdp__shot img, .card__media img:not(.card__alt), .cpic img, .swatch img').forEach(function (img) {
     if (img.complete) return;
+    var fr = img.closest('.fr');
+    if (fr && !reduced) fr.classList.add('is-loading');
     img.style.opacity = '0';
-    img.addEventListener('load', function () {
-      img.style.transition = 'opacity .6s ease';
+    var done = function () {
+      if (fr) fr.classList.remove('is-loading');
+      img.style.transition = 'opacity .6s ease, transform 1s cubic-bezier(.22,.61,.36,1)';
       img.style.opacity = '1';
-    }, { once: true });
+    };
+    img.addEventListener('load', done, { once: true });
     // Yükleme hata verirse görsel gizli kalmasın.
-    img.addEventListener('error', function () { img.style.opacity = '1'; }, { once: true });
+    img.addEventListener('error', done, { once: true });
   });
 
   /* ------------------------------------------------------ galeri büyüteci
@@ -746,10 +751,20 @@ document.addEventListener('error', function (e) {
   if (!radios.length) return;
   var galleries = document.querySelectorAll('[data-gallery][data-cset]');
   var now = document.querySelector('[data-cset-now]');
-  function show(i) {
-    galleries.forEach(function (g) { g.hidden = g.getAttribute('data-cset') !== String(i); });
+  var reducedC = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function show(i, animate) {
+    galleries.forEach(function (g) {
+      var on = g.getAttribute('data-cset') === String(i);
+      g.hidden = !on;
+      g.classList.remove('is-swap');
+      if (on && animate && !reducedC) { void g.offsetWidth; g.classList.add('is-swap'); }
+    });
     var r = document.querySelector('input[name="colour"][data-cset="' + i + '"]');
-    if (now && r) now.textContent = r.getAttribute('data-cset-label') || '';
+    if (now && r) {
+      now.textContent = r.getAttribute('data-cset-label') || '';
+      now.classList.remove('is-swap');
+      if (animate && !reducedC) { void now.offsetWidth; now.classList.add('is-swap'); }
+    }
     // Telefonda galeri üstte: yeni rengin ilk karesi görünsün.
     var g = document.querySelector('[data-gallery][data-cset="' + i + '"]');
     if (g && window.matchMedia && window.matchMedia('(max-width: 940px)').matches) {
@@ -758,8 +773,73 @@ document.addEventListener('error', function (e) {
     }
   }
   radios.forEach(function (r) {
-    r.addEventListener('change', function () { if (r.checked) show(r.getAttribute('data-cset')); });
+    r.addEventListener('change', function () { if (r.checked) show(r.getAttribute('data-cset'), true); });
   });
   var on = document.querySelector('input[name="colour"][data-cset]:checked');
   if (on) show(on.getAttribute('data-cset'));
+})();
+
+/* Ürün kartı → ürün sayfası: kartın fotoğrafı yeni sayfanın ilk karesine
+   dönüşür (CSS "hero", sayfalar arası View Transitions). Ad yalnız tıklanan
+   karta verilir; sayfada aynı addan iki tane olursa tarayıcı geçişi tümden
+   atlıyor, onun için önce hepsi temizleniyor. Ürün sayfasının kendi ilk
+   karesi html.vt-card varken adını bırakıyor (sayfanın altındaki "bunlar da
+   hoşunuza gidebilir" kartına dokunulduğunda). */
+(function () {
+  if (!('onpageswap' in window) && !document.startViewTransition) return;
+  var root = document.documentElement, hero = null;
+  function clear() {
+    if (hero) hero.style.viewTransitionName = '';
+    hero = null; root.classList.remove('vt-card');
+  }
+  document.addEventListener('click', function (e) {
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    var a = e.target.closest('a.card__media, .card a, .housecard a');
+    clear();
+    if (!a) return;
+    var card = a.closest('.card, .housecard');
+    var media = card && card.querySelector('.card__media, .housecard__shot');
+    if (!media) return;
+    media.style.viewTransitionName = 'hero';
+    hero = media; root.classList.add('vt-card');
+  }, true);
+  window.addEventListener('pageswap', function (e) {
+    if (!hero || !e.viewTransition) return;
+    var to = e.activation && e.activation.entry && e.activation.entry.url;
+    var href = (hero.closest('a') || hero.querySelector('a') || {}).href || (hero.closest('.card, .housecard').querySelector('a') || {}).href;
+    if (!to || !href || to.split('#')[0] !== href.split('#')[0]) clear();
+  });
+})();
+
+/* Uygulamada alt sekme çubuğu: etkin çizgi bir önceki sekmeden kayar;
+   aşağı kaydırınca başlık yukarı çekilir, yukarı kaydırınca geri gelir. */
+(function () {
+  var root = document.documentElement;
+  var bar = document.querySelector('[data-tabbar]');
+  if (!bar || root.getAttribute('data-platform') !== 'app') return;
+  var cur = bar.hasAttribute('data-none') ? -1 : +getComputedStyle(bar).getPropertyValue('--i') || 0;
+  var prev = -1;
+  try { prev = +(sessionStorage.getItem('sv-tab') || -1); sessionStorage.setItem('sv-tab', String(cur)); } catch (e) {}
+  if (cur >= 0 && prev >= 0 && prev !== cur) {
+    var ind = bar.querySelector('.tabbar__ind');
+    ind.style.transition = 'none';
+    bar.style.setProperty('--i', String(prev));
+    void ind.offsetWidth;
+    ind.style.transition = '';
+    requestAnimationFrame(function () { bar.style.setProperty('--i', String(cur)); });
+  }
+  var head = document.querySelector('.site');
+  if (!head) return;
+  var last = window.scrollY, ticking = false;
+  window.addEventListener('scroll', function () {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function () {
+      ticking = false;
+      var y = window.scrollY, d = y - last;
+      if (Math.abs(d) < 6) return;
+      head.classList.toggle('is-tucked', d > 0 && y > 140 && !document.querySelector('[data-drawer]:not([hidden])'));
+      last = y;
+    });
+  }, { passive: true });
 })();

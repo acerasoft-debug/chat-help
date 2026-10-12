@@ -635,6 +635,8 @@ return [
     'push_welcome' => 'Notifikationer er slået til. Du hører fra os, når en pris falder, eller noget sjældent ankommer.',
     'appbar_b' => 'Appen — hurtigere, fuld skærm, gratis',
     'appbar_btn' => 'Hent',
+    'tab_home' => 'Hjem',
+    'tab_outlet' => 'Outlet',
     'appband_b' => 'Installer {brand} på din telefon på få sekunder — uden butik, uden konto. Fuld skærm, hurtigere, kurv og favoritter altid ved hånden, og en besked, når en Vault-pris falder.',
     'appband_ios' => 'iPhone',
     'appband_android' => 'Android',

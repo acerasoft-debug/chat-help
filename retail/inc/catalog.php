@@ -882,14 +882,27 @@ function vr_variant_siblings(array $p): array
     if (!$ids) return [];
     $cat = vr_catalog();
 
+    /* Aynı renk şeritte bir kez. Renk adı yalnız ad ekinden değil, ürünün
+       gerçek renginden (vr_product_colours) okunuyor: D&G'nin 64 modeli iki
+       kaynaktan iki kez gelmiş, birinin adında renk eki yok ("T-Shirt"),
+       diğerinde var ("Logo Print T-Shirt — White"). Ad ekine bakan eski
+       kural ikisini farklı sanıyordu; şeritte yan yana iki "White" çıkıyor,
+       ikincisine dokunan aynı tişörtü görüyor ve "renk seçince ürün
+       gelmiyor" diyordu (12 Eki 2026). Bulunduğunuz sayfa her zaman kalır:
+       kopyası daha önce geldiyse onun yerine geçer. */
     $out = [];
     $seen = [];
+    $self = (string)$p['id'];
     foreach ($ids as $id) {
         if (!isset($cat[$id])) continue;
         $row = $cat[$id];
-        $col = mb_strtolower(vr_variant_colour($row));
-        if ($col !== '' && isset($seen[$col]) && $id !== (string)$p['id']) continue;
-        $seen[$col] = true;
+        $cols = vr_product_colours($row);
+        $col = mb_strtolower($cols[0] ?? vr_variant_colour($row));
+        if ($col !== '' && isset($seen[$col])) {
+            if ((string)$id === $self) $out[$seen[$col]] = $row;
+            continue;
+        }
+        if ($col !== '') $seen[$col] = count($out);
         $out[] = $row;
     }
     return $out;
@@ -1436,7 +1449,21 @@ function vr_product_colours(array $p, bool $withReviewed = true): array
         $r = vr_colour_list(vr_reviewed_colours()[$id]['colours']);
         if ($r) return $r;
     }
-    if (!empty($p['colours'])) return vr_colour_list($p['colours']);
+    if (!empty($p['colours'])) {
+        $list = vr_colour_list($p['colours']);
+        /* İki tonlu tek renk: "Colorblock T-Shirt — White/Grey". Besleme bunu
+           ["White","Grey"] diye bölmüş; sayfada "Beyaz" ya da "Gri" diye iki
+           ayrı seçenek çıkıyordu, oysa tişört tek: beyaz-gri. Ad ekindeki iki
+           tonlu ad, liste tam olarak onun parçalarıysa tek renk sayılır. */
+        $suffix = vr_variant_colour($p);
+        if (count($list) > 1 && str_contains($suffix, '/')) {
+            $parts = vr_colour_list(preg_split('/\s*\/\s*/', $suffix) ?: []);
+            $norm = static fn(array $a) => implode('|', array_map('mb_strtolower', $a));
+            $sa = $parts; $sb = $list; sort($sa); sort($sb);
+            if ($norm($sa) === $norm($sb)) return [implode('/', $parts)];
+        }
+        return $list;
+    }
     $n = vr_name_colour($p);
     // Dizi olarak veriliyor ki "Navy/Red" gibi iki tonlu tek renk bölünmesin.
     return $n !== '' ? vr_colour_list([$n]) : [];
@@ -1497,12 +1524,21 @@ function vr_colour_sets(array $p): array
     static $extra = null;
     $extra ??= (array)vr_store_read('product-images-extra.json', []);
     $imgs = array_values(array_filter((array)($p['images'] ?? []), 'strlen'));
+    // Gözle eşleştirilmiş kareler (data/product-colours.json → "images":
+    // {"Navy": ["/uploads/…"]}). Dosya adında ne kod ne renk adı olan
+    // ürünlerde tek kaynak bu; renk → kare eşleşmesi kolajda doğrulanıyor.
+    $eye = (array)(vr_reviewed_colours()[(string)($p['id'] ?? '')]['images'] ?? []);
     $sets = []; $hit = 0; $used = [];
     foreach ($cols as $c) {
         $code = preg_match('/\((\w{5,})\)\s*$/u', $c, $m) ? $m[1] : '';
         $label = trim(preg_replace('/\s*\(\w{5,}\)\s*$/u', '', $c));
         $mine = [];
-        foreach ($imgs as $im) {
+        // Gözle eşleştirilen kare aynı modelin başka bir satırından da
+        // gelebilir (D&G Tonal Logo'nun siyahı ayrı satırda duruyor).
+        if (isset($eye[$c]) && is_array($eye[$c])) {
+            foreach ($eye[$c] as $x) if (is_string($x) && preg_match('#^/uploads/[A-Za-z0-9._/-]+$#', $x)) $mine[] = $x;
+        }
+        if (!$mine) foreach ($imgs as $im) {
             $b = strtolower(basename($im));
             if ($code !== '' ? str_contains($b, strtolower($code))
                              : preg_match('/(^|[-_])' . preg_quote(strtolower(str_replace(' ', '-', $label)), '/') . '([-_.]|$)/', $b)) {
@@ -1525,7 +1561,9 @@ function vr_colour_sets(array $p): array
     }
     if ($hit < 2) return [];
     // Hiçbir renge ait olmayan kareler (ör. kumaş detayı) her rengin sonuna.
-    $common = array_values(array_filter($imgs, fn($im) => !isset($used[$im])));
+    // Gözle eşleştirilmiş üründe her rengin karesini gözden geçiren seçti:
+    // geri kalanlar (ör. dört rengin yan yana durduğu kolaj) eklenmez.
+    $common = $eye ? [] : array_values(array_filter($imgs, fn($im) => !isset($used[$im])));
     foreach ($sets as &$s) {
         // Karesi olmayan renk yine seçilebilir kalır; galeri genel kareleri gösterir.
         $s['images'] = $s['images'] ? array_slice(array_merge($s['images'], $common), 0, 6)
