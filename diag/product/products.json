@@ -1,55 +1,119 @@
 {
-    "lac-monogram-polo": {
-        "name": "Classic Fit Monogram Jacquard Polo Shirt",
-        "brand": "Lacoste",
-        "sku": "DH1417",
+    "blm-bwb410400": {
+        "name": "BALMAIN Bademode BWB410400",
+        "brand": "BALMAIN",
+        "sku": "BWB410400",
         "source": "b2b",
         "colours": [
-            "Black",
-            "Blue"
+            "Black"
         ],
         "images": [
-            "/uploads/lacoste/monogram-polo/black.avif",
-            "/uploads/lacoste/monogram-polo/blue.webp",
-            "/uploads/licensed/web/lacoste/lac-monogram-polo-w1.jpg",
-            "/uploads/licensed/web/lacoste/lac-monogram-polo-w3.jpg",
-            "/uploads/licensed/web/lacoste/lac-monogram-polo-w5.jpg"
+            "/uploads/shorts-sweats/balmain-bwb410400-black-p1.jpg",
+            "/uploads/shorts-sweats/balmain-bwb410400-black-p2.jpg",
+            "/uploads/shorts-sweats/balmain-bwb410400-black-v1.jpg",
+            "/uploads/shorts-sweats/balmain-bwb410400-black-v2.jpg",
+            "/uploads/shorts-sweats/balmain-bwb410400-red.jpg",
+            "/uploads/shorts-sweats/balmain-bwb410400-white.jpg"
         ],
         "siblings": [],
         "raw": {
-            "name": "Classic Fit Monogram Jacquard Polo Shirt",
-            "sku": "DH1417",
+            "name": "BALMAIN Boxer Trunks — BWB410400",
+            "sku": "BWB410400",
             "images": [
-                "/uploads/lacoste/monogram-polo/black.avif",
-                "/uploads/lacoste/monogram-polo/blue.webp"
-            ],
-            "colors": [
-                "Black",
-                "Blue"
+                "/uploads/shorts-sweats/balmain-bwb410400-black.jpg",
+                "/uploads/shorts-sweats/balmain-bwb410400-red.jpg",
+                "/uploads/shorts-sweats/balmain-bwb410400-white.jpg"
             ]
         }
     },
-    "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2": {
-        "name": "Lacoste Men Classic Fit Monogram Jacquard Polo Shirt — Beige",
-        "brand": "LACOSTE",
-        "sku": "LACOSTE-MEN-CLASSIC-FIT-",
+    "dgn-g8ol6zg7c8g": {
+        "name": "Dolce & Gabbana T-Shirt G8OL6ZG7C8G",
+        "brand": "Dolce & Gabbana",
+        "sku": "G8OL6ZG7C8G",
         "source": "b2b",
         "colours": [
-            "Beige"
+            "Orange"
         ],
         "images": [
-            "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2-1.avif",
-            "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2-2.avif",
-            "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2-3.avif",
-            "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2-6.avif",
-            "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2-4.avif",
-            "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2-5.avif"
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v1-v2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g-p2.jpg",
+            "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g.jpg",
+            "/uploads/dg-dropbox/d-g-g8ol6zg7c8g.jpg",
+            "/uploads/dg-dropbox/d-g-g8ol6zg7c8g1.jpg",
+            "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g-1.jpg"
         ],
         "siblings": [
-            "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1",
-            "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2",
-            "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt"
+            "dgx-g8ol6z-g7c8g",
+            "dgn-g8ol6zg7c8g"
         ],
+        "raw": []
+    },
+    "dgn-g8ol6zg7c8g1": {
+        "name": "Dolce & Gabbana T-Shirt G8OL6ZG7C8G1",
+        "brand": "Dolce & Gabbana",
+        "sku": "G8OL6ZG7C8G1",
+        "source": "b2b",
+        "colours": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g1-p1-p1-v1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g1-p1-p1-v2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g1-p1-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g1-p1-p1.jpg"
+        ],
+        "siblings": [],
+        "raw": []
+    },
+    "dgn-m4a06t": {
+        "name": "Dolce & Gabbana Bademode M4A06T",
+        "brand": "Dolce & Gabbana",
+        "sku": "M4A06T",
+        "source": "b2b",
+        "colours": [
+            "Multicolour"
+        ],
+        "images": [
+            "/uploads/shorts-sweats/d-g-m4a06t-fhmrd-p1.jpg",
+            "/uploads/shorts-sweats/d-g-m4a06t-fhmrd-p2.jpg",
+            "/uploads/shorts-sweats/d-g-m4a06t-fhmrd-p3.jpg"
+        ],
+        "siblings": [],
+        "raw": []
+    },
+    "dgn-m4a06thsm7o": {
+        "name": "Dolce & Gabbana Bademode M4A06THSM7O",
+        "brand": "Dolce & Gabbana",
+        "sku": "M4A06THSM7O",
+        "source": "b2b",
+        "colours": [
+            "Khaki"
+        ],
+        "images": [
+            "/uploads/shorts-sweats/d-g-m4a06t-hsm7o-p2.jpg",
+            "/uploads/licensed/web/dolce-gabbana/dgn-m4a06thsm7o-w1.jpg"
+        ],
+        "siblings": [],
+        "raw": []
+    },
+    "dgn-m4b11tfusfw": {
+        "name": "Dolce & Gabbana Bademode M4B11TFUSFW",
+        "brand": "Dolce & Gabbana",
+        "sku": "M4B11TFUSFW",
+        "source": "b2b",
+        "colours": [
+            "Navy"
+        ],
+        "images": [
+            "/uploads/shorts-sweats/d-g-m4b11tfusfw-p3.jpg",
+            "/uploads/shorts-sweats/d-g-m4b11tfusfw-p2.jpg",
+            "/uploads/shorts-sweats/d-g-m4b11tfusfw-p1.jpg",
+            "/uploads/shorts-sweats/d-g-m4b11tfusfw-v2.jpg"
+        ],
+        "siblings": [],
         "raw": []
     },
     "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1": {
@@ -70,7 +134,6 @@
         ],
         "siblings": [
             "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1",
-            "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2",
             "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt"
         ],
         "raw": []
@@ -91,7 +154,6 @@
         ],
         "siblings": [
             "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1",
-            "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2",
             "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt"
         ],
         "raw": []
