@@ -30,18 +30,40 @@
         "colour": "Pink"
     },
     "blm-vh4ef000g077eah": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://secure.mdg.com/productdetail.aspx?itemid=20883&categoryid=162",
+        "title": "BALMAIN VH4EF000G077EAH — T-Shirt Black",
+        "images": [
+            "https://secure.mdg.com/img/sysbig_webp/en/XXL/20883_1.webp"
+        ],
+        "pages": [
+            "https://secure.mdg.com/productdetail.aspx?itemid=20883&categoryid=162"
+        ],
+        "sizes": [
+            "HATA"
+        ],
         "codes": [],
         "brand": "BALMAIN",
         "name": "T-Shirt",
         "colour": "Black"
     },
     "blm-wh1ef000b138mai": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://feature.com/products/balmain-printed-t-shirt-rouge-blanc",
+        "title": "BALMAIN WH1EF000B138MAI — T-Shirt Red",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0408/9909/products/Balmain-Printed-T-Shirt---Rouge-Blanc-WH1EF000B138-MAI---06-23-2021---01.jpg?v=1624468712",
+            "https://cdn.shopify.com/s/files/1/0408/9909/products/Balmain-Printed-T-Shirt---Rouge-Blanc-WH1EF000B138-MAI---06-23-2021---01-3.jpg?v=1624468712",
+            "https://cdn.shopify.com/s/files/1/0408/9909/products/Balmain-Printed-T-Shirt---Rouge-Blanc-WH1EF000B138-MAI---06-23-2021---01-2.jpg?v=1624468712"
+        ],
+        "pages": [
+            "https://feature.com/products/balmain-printed-t-shirt-rouge-blanc",
+            "https://feature.com/products/balmain-printed-t-shirt-rouge-blanc",
+            "https://feature.com/products/balmain-printed-t-shirt-rouge-blanc"
+        ],
+        "sizes": [
+            "1024x1024",
+            "1024x1024",
+            "1024x1024"
+        ],
         "codes": [],
         "brand": "BALMAIN",
         "name": "T-Shirt",
@@ -132,26 +154,42 @@
         "colour": "White"
     },
     "csb-casaway-white": {
-        "source": "https://casablancaparis.com/products/m-jts-001-79-ex-ce-white-casaway-short-sleeve-t-shirt",
-        "title": "White Casaway Short Sleeve T-Shirt",
+        "source": "https://worldclassfashion.com/products/m-pf26-jts-001-05white-jersey-casaway",
+        "title": "Casablanca CASAWAY-WHITE — Casaway T-Shirt — White White",
         "images": [
-            "https://cdn.shopify.com/s/files/1/0076/1341/5506/files/M-JTS-001-79-EX-CE_01.webp?v=1782475641",
-            "https://cdn.shopify.com/s/files/1/0076/1341/5506/files/M-JTS-001-79-EX-CE_06.webp?v=1787760244",
-            "https://cdn.shopify.com/s/files/1/0076/1341/5506/files/M-JTS-001-79-EX-CE_07.webp?v=1787760252",
-            "https://cdn.shopify.com/s/files/1/0076/1341/5506/files/M-JTS-001-79-EX-CE_08.webp?v=1787760256",
-            "https://cdn.shopify.com/s/files/1/0076/1341/5506/files/M-JTS-001-79-EX-CE_09.webp?v=1787760259",
-            "https://cdn.shopify.com/s/files/1/0076/1341/5506/files/M-JTS-001-79-EX-CE_02.webp?v=1782475619"
+            "https://cdn.shopify.com/s/files/1/0879/8679/8898/files/7700096167498_2_1779958638459.jpg?v=1783191542",
+            "https://cdn.shopify.com/s/files/1/0879/8679/8898/files/7700096167498_4_1779958640057.jpg?v=1783191542",
+            "https://cdn.shopify.com/s/files/1/0879/8679/8898/files/7700096167498_6_1779958642850.jpg?v=1783191542",
+            "https://cdn.shopify.com/s/files/1/0291/4536/6588/files/56a48ba507914a11b8348a9031b751f5.jpg?v=1784085632",
+            "https://cdn.shopify.com/s/files/1/0291/4536/6588/files/8417ae76fc8e4e8ba410add88dd50f4e.jpg?v=1784085632",
+            "https://cdn.shopify.com/s/files/1/0291/4536/6588/files/ac3d6852d25b43d59a9dfdffc12b7215.jpg?v=1784085631",
+            "https://images.cdn.inspogroup.net/Sdx1FceRXc28y277ROQW_MUrcWE41GT8qwUR4oaxf8k/czM6L/y9zdH/lsaWdodC1pbWctcHJvY2Vzc2luZy9waG90b2JveC81YmNhMTVkMzEyYTNkZjM3YjRiMTVmYzhhY2EyM2NkYS5qcGc",
+            "https://images.cdn.inspogroup.net/-51TERYjYbWFGumDmzVR9lbLx6TWw_V0Mj3Oii-DIhI/czM6L/y9zdH/lsaWdodC1pbWctcHJvY2Vzc2luZy9waG90b2JveC8xYzg1YjI0ZWRlMmE2Y2MxZWExZWFjMmM3NmUwZWE1Ni5qcGc",
+            "https://images.cdn.inspogroup.net/rM0VIk584WZu5RHKGstbG_SPxXogsGu64WQh3mJNhrA/czM6L/y9zdH/lsaWdodC1pbWctcHJvY2Vzc2luZy9waG90b2JveC9mYzY4YWE3ODVlNzE2YTA0OGFhOTJmYTYyOGJiNTc3Yi5qcGc"
         ],
-        "score": 1.17,
-        "codes": [
-            "5063820036944",
-            "5063820036951",
-            "5063820036968",
-            "5063820036975",
-            "5063820036982",
-            "5063820036999",
-            "5063820037002"
+        "pages": [
+            "https://worldclassfashion.com/products/m-pf26-jts-001-05white-jersey-casaway",
+            "https://worldclassfashion.com/products/m-pf26-jts-001-05white-jersey-casaway",
+            "https://worldclassfashion.com/products/m-pf26-jts-001-05white-jersey-casaway",
+            "https://shop.simon.com/products/casaway-white-cotton-t-shirt",
+            "https://shop.simon.com/products/casaway-white-cotton-t-shirt",
+            "https://shop.simon.com/products/casaway-white-cotton-t-shirt",
+            "https://www.stylight.com/Item/Casablanca/Casaway-White-Cotton-T-Shirt-Silver--e0751d2a-0796-5dde-b520-ace89dd84b1d/",
+            "https://www.stylight.com/Item/Casablanca/Casaway-White-Cotton-T-Shirt-Silver--e0751d2a-0796-5dde-b520-ace89dd84b1d/",
+            "https://www.stylight.com/Item/Casablanca/Casaway-White-Cotton-T-Shirt-Silver--e0751d2a-0796-5dde-b520-ace89dd84b1d/"
         ],
+        "sizes": [
+            "1200x1600",
+            "1200x1600",
+            "1200x1600",
+            "1200x1600",
+            "1200x1600",
+            "1200x1600",
+            "1200x1600",
+            "2014x2014",
+            "750x750"
+        ],
+        "codes": [],
         "brand": "Casablanca",
         "name": "Casaway T-Shirt — White",
         "colour": "White"
@@ -568,9 +606,38 @@
         "colour": "Light Blue"
     },
     "dsq-101215": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://gomez.pl/en/product/dsquared2-cool-fit-crewneck-s74gu0811-s25516",
+        "title": "DSQUARED2 S74GU0811 — Graphic Print Sweatshirt Black",
+        "images": [
+            "https://gomez.pl/assets/photo/upload/product/222/dq244m000069900000m-4-scale-398-207.jpg.webp",
+            "https://item-shopping.c.yimg.jp/i/n/s-musee_360611305_i_20241216095110",
+            "https://shopping.c.yimg.jp/lib/s-musee/360611305_360611305-1.jpg?size=n",
+            "https://item-shopping.c.yimg.jp/i/n/s-musee_360611305_1_d_20240820165326",
+            "https://item-shopping.c.yimg.jp/i/n/s-musee_360611305_2_d_20240820165307",
+            "https://item-shopping.c.yimg.jp/i/n/s-musee_360611305_3_d_20240820165321",
+            "https://item-shopping.c.yimg.jp/i/n/s-musee_360611305_4_d_20240820165339",
+            "https://gomez.fr/assets/photo/upload/product/222/dq244m000069900000m-4-scale-398-207.jpg.webp"
+        ],
+        "pages": [
+            "https://gomez.pl/en/product/dsquared2-cool-fit-crewneck-s74gu0811-s25516",
+            "https://store.shopping.yahoo.co.jp/s-musee/360611305.html",
+            "https://store.shopping.yahoo.co.jp/s-musee/360611305.html",
+            "https://store.shopping.yahoo.co.jp/s-musee/360611305.html",
+            "https://store.shopping.yahoo.co.jp/s-musee/360611305.html",
+            "https://store.shopping.yahoo.co.jp/s-musee/360611305.html",
+            "https://store.shopping.yahoo.co.jp/s-musee/360611305.html",
+            "https://gomez.fr/fr/product/dsquared2-cool-fit-crewneck-s74gu0811-s25516"
+        ],
+        "sizes": [
+            "398x207",
+            "600x600",
+            "900x900",
+            "900x900",
+            "900x900",
+            "900x900",
+            "900x900",
+            "398x207"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Graphic Print Sweatshirt",
@@ -601,18 +668,82 @@
         "colour": "White"
     },
     "dsq-101212": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://www.zapclothing.com/products/s74gd1394-d20020-900-dsquared2-cool-fit-t-shirt-black",
+        "title": "DSQUARED2 S74GD1394 — Graphic T-Shirt White",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0566/1225/7882/files/DSQCoolFitLogoB1.jpg?v=1732192468",
+            "https://cdn.shopify.com/s/files/1/0566/1225/7882/files/DSQCoolFitLogoB2.jpg?v=1732192468",
+            "https://cdn.shopify.com/s/files/1/0566/1225/7882/files/DSQCoolFitLogoB3.jpg?v=1732192468",
+            "https://cdn.shopify.com/s/files/1/0780/7814/8934/files/S74GD1394D20020900G1.png?v=1789739255",
+            "https://cdn.shopify.com/s/files/1/0780/7814/8934/files/S74GD1394D20020900G2.png?v=1789739256",
+            "https://cdn.shopify.com/s/files/1/0780/7814/8934/files/S74GD1394D20020900M.png?v=1789739256",
+            "https://cdn.shopify.com/s/files/1/0780/7814/8934/files/S74GD1394D20020900B.png?v=1789739255",
+            "https://cdn.shopify.com/s/files/1/0762/2944/3808/files/S74GD1394D20020100G1.jpg?v=1764562173",
+            "https://cdn.shopify.com/s/files/1/0762/2944/3808/files/S74GD1394D20020100M.jpg?v=1764562173"
+        ],
+        "pages": [
+            "https://www.zapclothing.com/products/s74gd1394-d20020-900-dsquared2-cool-fit-t-shirt-black",
+            "https://www.zapclothing.com/products/s74gd1394-d20020-900-dsquared2-cool-fit-t-shirt-black",
+            "https://www.zapclothing.com/products/s74gd1394-d20020-900-dsquared2-cool-fit-t-shirt-black",
+            "https://suppliedfashion.com/products/cool-velvet-logo-t-shirt-black",
+            "https://suppliedfashion.com/products/cool-velvet-logo-t-shirt-black",
+            "https://suppliedfashion.com/products/cool-velvet-logo-t-shirt-black",
+            "https://suppliedfashion.com/products/cool-velvet-logo-t-shirt-black",
+            "https://pavoraselect.com/en/products/s74gd1394-d20020-100",
+            "https://pavoraselect.com/en/products/s74gd1394-d20020-100"
+        ],
+        "sizes": [
+            "2500x2500",
+            "2500x2500",
+            "1666x1666",
+            "1512x1512",
+            "1512x1512",
+            "1512x1512",
+            "1512x1512",
+            "800x1200",
+            "800x1200"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Graphic T-Shirt",
         "colour": "White"
     },
     "dsq-101214": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://thedesignerboxuk.com/products/dsquared2-s74gd1400-d20020-728-regular-fit-rubber-logo-t-shirt-military",
+        "title": "DSQUARED2 S74GD1400 — Graphic T-Shirt White",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0501/0790/8254/files/S74GD1400-D20020-728__1.jpg?v=1784908652",
+            "https://cdn.shopify.com/s/files/1/0501/0790/8254/files/S74GD1400-D20020-728__2.jpg?v=1784908676",
+            "https://cdn.shopify.com/s/files/1/0501/0790/8254/files/S74GD1400-D20020-728__3.jpg?v=1784908716",
+            "https://cdn.shopify.com/s/files/1/0501/0790/8254/files/S74GD1400-D20020-728__4.jpg?v=1784908735",
+            "https://cdn.shopify.com/s/files/1/0501/0790/8254/files/S74GD1400-D20020-728__5.jpg?v=1784908786",
+            "https://cdn.shopify.com/s/files/1/0975/8395/6303/files/S74GD1400-D20020-728__1.jpg?v=1771424534",
+            "https://cdn.shopify.com/s/files/1/0975/8395/6303/files/S74GD1400-D20020-728__2.jpg?v=1771424539",
+            "https://cdn.shopify.com/s/files/1/0975/8395/6303/files/S74GD1400-D20020-728__3.jpg?v=1771424543",
+            "https://cdn.shopify.com/s/files/1/0975/8395/6303/files/S74GD1400-D20020-728__4.jpg?v=1771424547"
+        ],
+        "pages": [
+            "https://thedesignerboxuk.com/products/dsquared2-s74gd1400-d20020-728-regular-fit-rubber-logo-t-shirt-military",
+            "https://thedesignerboxuk.com/products/dsquared2-s74gd1400-d20020-728-regular-fit-rubber-logo-t-shirt-military",
+            "https://thedesignerboxuk.com/products/dsquared2-s74gd1400-d20020-728-regular-fit-rubber-logo-t-shirt-military",
+            "https://thedesignerboxuk.com/products/dsquared2-s74gd1400-d20020-728-regular-fit-rubber-logo-t-shirt-military",
+            "https://thedesignerboxuk.com/products/dsquared2-s74gd1400-d20020-728-regular-fit-rubber-logo-t-shirt-military",
+            "https://thataveragejoe.co.uk/products/dsquared2-s74gd1400-d20020-728-regular-fit-rubber-logo-t-shirt-military",
+            "https://thataveragejoe.co.uk/products/dsquared2-s74gd1400-d20020-728-regular-fit-rubber-logo-t-shirt-military",
+            "https://thataveragejoe.co.uk/products/dsquared2-s74gd1400-d20020-728-regular-fit-rubber-logo-t-shirt-military",
+            "https://thataveragejoe.co.uk/products/dsquared2-s74gd1400-d20020-728-regular-fit-rubber-logo-t-shirt-military"
+        ],
+        "sizes": [
+            "1000x1334",
+            "1000x1334",
+            "1000x1334",
+            "1000x1334",
+            "1000x1334",
+            "1080x1080",
+            "1080x1080",
+            "1080x1080",
+            "1080x1080"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Graphic T-Shirt",
@@ -677,18 +808,82 @@
         "colour": "White"
     },
     "dsq-101219": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://worldclub-1989.com/products/s74gu0836-s25516-900",
+        "title": "DSQUARED2 S74GU0836 — Crewneck Sweatshirt Black",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0863/2850/8708/files/top-s74gu0836-s25516-900.jpg?v=1729649003",
+            "https://cdn.shopify.com/s/files/1/0863/2850/8708/files/s74gu0836-s25516-900-1.jpg?v=1729649009",
+            "https://cdn.shopify.com/s/files/1/0863/2850/8708/files/s74gu0836-s25516-900-2.jpg?v=1729649009",
+            "https://cdn.shopify.com/s/files/1/0863/2850/8708/files/s74gu0836-s25516-900-3.jpg?v=1729649009",
+            "https://cdn.shopify.com/s/files/1/0863/2850/8708/files/s74gu0836-s25516-900-4.jpg?v=1729649009",
+            "https://cdn.shopify.com/s/files/1/0863/2850/8708/files/s74gu0836-s25516-900-5.jpg?v=1729649009",
+            "https://item-shopping.c.yimg.jp/i/n/worldclub_s74gu0836-s25516-900_i_20241111102114",
+            "https://item-shopping.c.yimg.jp/i/n/worldclub_s74gu0836-s25516-900_1_d_20240912132412",
+            "https://item-shopping.c.yimg.jp/i/n/worldclub_s74gu0836-s25516-900_2_d_20240912132413"
+        ],
+        "pages": [
+            "https://worldclub-1989.com/products/s74gu0836-s25516-900",
+            "https://worldclub-1989.com/products/s74gu0836-s25516-900",
+            "https://worldclub-1989.com/products/s74gu0836-s25516-900",
+            "https://worldclub-1989.com/products/s74gu0836-s25516-900",
+            "https://worldclub-1989.com/products/s74gu0836-s25516-900",
+            "https://worldclub-1989.com/products/s74gu0836-s25516-900",
+            "https://store.shopping.yahoo.co.jp/worldclub/s74gu0836-s25516-900.html",
+            "https://store.shopping.yahoo.co.jp/worldclub/s74gu0836-s25516-900.html",
+            "https://store.shopping.yahoo.co.jp/worldclub/s74gu0836-s25516-900.html"
+        ],
+        "sizes": [
+            "760x760",
+            "760x760",
+            "760x760",
+            "760x760",
+            "760x760",
+            "760x760",
+            "760x760",
+            "760x760",
+            "760x760"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Crewneck Sweatshirt",
         "colour": "Black"
     },
     "dsq-101221": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://shop.kind.co.jp/products/8080000738808",
+        "title": "DSQUARED2 S71GU0554 — Graphic Crewneck Sweatshirt White",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0585/3010/3347/files/8080000738808_1.jpg?v=1785840822",
+            "https://cdn.shopify.com/s/files/1/0585/3010/3347/files/8080000738808_2.jpg?v=1785840823",
+            "https://cdn.shopify.com/s/files/1/0585/3010/3347/files/8080000738808_3.jpg?v=1785840823",
+            "https://cdn.shopify.com/s/files/1/0585/3010/3347/files/8080000738808_4.jpg?v=1785840823",
+            "https://cdn.shopify.com/s/files/1/0585/3010/3347/files/8080000738808_5.jpg?v=1785840823",
+            "https://cdn.shopify.com/s/files/1/0585/3010/3347/files/8080000738808_6.jpg?v=1785840823",
+            "https://assets.mercari-shops-static.com/-/large/plain/2JNTdy5nQRTy8SsHJ9u9L4.jpg@jpg",
+            "https://www.4444glad.com/img/RAddYAsQMB9s.jpg",
+            "https://www.4444glad.com/img/qRe69kMRgkkv.jpg"
+        ],
+        "pages": [
+            "https://shop.kind.co.jp/products/8080000738808",
+            "https://shop.kind.co.jp/products/8080000738808",
+            "https://shop.kind.co.jp/products/8080000738808",
+            "https://shop.kind.co.jp/products/8080000738808",
+            "https://shop.kind.co.jp/products/8080000738808",
+            "https://shop.kind.co.jp/products/8080000738808",
+            "https://jp.mercari.com/shops/product/2JNTdy6vFd4ZSBoQ2LWMga",
+            "https://www.4444glad.com/products/detail/10916",
+            "https://www.4444glad.com/products/detail/10916"
+        ],
+        "sizes": [
+            "1200x1200",
+            "1200x1200",
+            "1200x1200",
+            "1200x1200",
+            "1200x1200",
+            "1200x1200",
+            "1600x1600",
+            "1000x1333",
+            "1000x1333"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Graphic Crewneck Sweatshirt",
@@ -710,27 +905,66 @@
         "colour": "Black"
     },
     "dsq-101217": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://doboutique.com/it/products/hoodie-with-red-and-black-logo-s74gu0815-s25516-900",
+        "title": "DSQUARED2 S74GU0815 — Sweatshirt Black",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0657/6206/6654/files/212062-1.jpg?v=1728091101",
+            "https://cdn.shopify.com/s/files/1/0657/6206/6654/files/212062-2.jpg?v=1728091101",
+            "https://cdn.shopify.com/s/files/1/0657/6206/6654/files/212062-3.jpg?v=1728091101"
+        ],
+        "pages": [
+            "https://doboutique.com/it/products/hoodie-with-red-and-black-logo-s74gu0815-s25516-900",
+            "https://doboutique.com/it/products/hoodie-with-red-and-black-logo-s74gu0815-s25516-900",
+            "https://doboutique.com/it/products/hoodie-with-red-and-black-logo-s74gu0815-s25516-900"
+        ],
+        "sizes": [
+            "1500x2000",
+            "1500x2000",
+            "1500x2000"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Sweatshirt",
         "colour": "Black"
     },
     "dsq-101218": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://thecorner.com/us-en/cotton-hoodie-s74gu0826s25516_900-p",
+        "title": "DSQUARED2 S74GU0826 — Sweatshirt Black",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0614/1929/0798/files/S74GU0826S25516_900-1_34fa8b5a-1582-4f8c-bc93-097ddd54bfd5.jpg?v=1787150104",
+            "https://img.the-fashion-square.com/df402563fbb09ca23028c60d30c4dd8c_1200.webp",
+            "https://img.the-fashion-square.com/46c783007ea50c0125f48b2444d68512_1200.webp",
+            "https://img.the-fashion-square.com/look/c8/c833922b790ff36ab848f045d81c409f_1200.webp"
+        ],
+        "pages": [
+            "https://thecorner.com/us-en/cotton-hoodie-s74gu0826s25516_900-p",
+            "https://the-fashion-square.com/us/en/men/clothing/p/5vkm78zb/dsquared2-cotton-hoodie",
+            "https://the-fashion-square.com/us/en/men/clothing/p/5vkm78zb/dsquared2-cotton-hoodie",
+            "https://the-fashion-square.com/us/en/men/clothing/p/5vkm78zb/dsquared2-cotton-hoodie"
+        ],
+        "sizes": [
+            "1920x2880",
+            "1247x1662",
+            "1247x1662",
+            "900x1200"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Sweatshirt",
         "colour": "Black"
     },
     "dsq-101220": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://www.murbes.com/en/men/clothing/hoodies-sweats/dsquared2-s71gu0546-315-hoo-1.html",
+        "title": "DSQUARED2 S71GU0546 — Sweatshirt Black",
+        "images": [
+            "https://www.murbes.com/media/catalog/product/cache/6517c62f5899ad6aa0ba23ceb3eeff97/1/0/1047.1_1_1.jpg"
+        ],
+        "pages": [
+            "https://www.murbes.com/en/men/clothing/hoodies-sweats/dsquared2-s71gu0546-315-hoo-1.html"
+        ],
+        "sizes": [
+            "265x265"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Sweatshirt",
@@ -809,9 +1043,17 @@
         "colour": "Black"
     },
     "dgx-g8ol0z-fu7en": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://gomez.pl/en/product/dolce-gabbana-polo-g8ol0z-fu7en-2",
+        "title": "Dolce & Gabbana G8OL0Z FU7EN — DG Logo Polo Shirt — Black Black",
+        "images": [
+            "https://gomez.pl/assets/photo/upload/product/158/23-08-202202186-scale-398-207.jpg.webp"
+        ],
+        "pages": [
+            "https://gomez.pl/en/product/dolce-gabbana-polo-g8ol0z-fu7en-2"
+        ],
+        "sizes": [
+            "398x207"
+        ],
         "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "DG Logo Polo Shirt — Black",
@@ -836,9 +1078,17 @@
         "colour": "Black"
     },
     "dgn-gwnxadg8gw9": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://gomez.pl/en/product/dolce-gabbana-denim-shorts-gwnxad-g8gw9",
+        "title": "Dolce & Gabbana GWNXAD-G8GW9 — Denim Shorts Blue",
+        "images": [
+            "https://gomez.pl/assets/photo/upload/product/374/1-03-202302981-1-scale-398-207.jpg.webp"
+        ],
+        "pages": [
+            "https://gomez.pl/en/product/dolce-gabbana-denim-shorts-gwnxad-g8gw9"
+        ],
+        "sizes": [
+            "398x207"
+        ],
         "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "Denim Shorts",
@@ -934,9 +1184,29 @@
         "colour": "Yellow"
     },
     "dgn-g8nb3zfu7eq": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://www.luxlair.com/products/dolce-gabbana-navy-blue-dg-logo-cotton-crew-neck-mens-t-shirt",
+        "title": "Dolce & Gabbana G8NB3 ZFU7EQ — Logo T-Shirt — Red Red",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/1018/4971/files/6356606.jpg?v=1787261364",
+            "https://cdn.shopify.com/s/files/1/1018/4971/files/6356607.jpg?v=1787261364",
+            "https://cdn.shopify.com/s/files/1/1018/4971/files/6356608.jpg?v=1787261364",
+            "https://cdn.shopify.com/s/files/1/1018/4971/files/6356609.jpg?v=1787261364",
+            "https://cdn.shopify.com/s/files/1/1018/4971/files/6356610.jpg?v=1787261364"
+        ],
+        "pages": [
+            "https://www.luxlair.com/products/dolce-gabbana-navy-blue-dg-logo-cotton-crew-neck-mens-t-shirt",
+            "https://www.luxlair.com/products/dolce-gabbana-navy-blue-dg-logo-cotton-crew-neck-mens-t-shirt",
+            "https://www.luxlair.com/products/dolce-gabbana-navy-blue-dg-logo-cotton-crew-neck-mens-t-shirt",
+            "https://www.luxlair.com/products/dolce-gabbana-navy-blue-dg-logo-cotton-crew-neck-mens-t-shirt",
+            "https://www.luxlair.com/products/dolce-gabbana-navy-blue-dg-logo-cotton-crew-neck-mens-t-shirt"
+        ],
+        "sizes": [
+            "2008x2560",
+            "2008x2560",
+            "2008x2560",
+            "960x640",
+            "960x640"
+        ],
         "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "Logo T-Shirt — Red",
@@ -952,9 +1222,41 @@
         "colour": "Red"
     },
     "dgn-g8nc5zg7b9x": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://muskostore.com/product/t-shirt-dolce-gabbana-2/",
+        "title": "Dolce & Gabbana G8NC5Z G7B9X — Milano Logo T-Shirt — White White",
+        "images": [
+            "https://muskostore.com/wp-content/uploads/2023/04/FOTO-1-REF-G8NC5Z-G7B9X-N0000-1200x1800.jpg",
+            "https://muskostore.com/wp-content/uploads/2023/04/FOTO-1-REF-G8NC5Z-G7B9X-N0000-1200x900.jpg",
+            "https://muskostore.com/wp-content/uploads/2023/04/FOTO-1-REF-G8NC5Z-G7B9X-N0000-1200x675.jpg",
+            "https://muskostore.com/wp-content/uploads/2023/04/FOTO-1-REF-G8NC5Z-G7B9X-N0000-1000x1000.jpg",
+            "https://muskostore.com/wp-content/uploads/2023/04/FOTO-1-REF-G8NC5Z-G7B9X-N0000.jpg",
+            "https://images.thebestshops.com/product_images/large/SL10819-086_01-7aaa36.jpg",
+            "https://images.thebestshops.com/product_images/large/SL10819-086_02-7aaa36.jpg",
+            "https://images.thebestshops.com/product_images/large/SL10819-086_03-7aaa36.jpg",
+            "https://images.thebestshops.com/product_images/large/SL10819-086_04-7aaa36.jpg"
+        ],
+        "pages": [
+            "https://muskostore.com/product/t-shirt-dolce-gabbana-2/",
+            "https://muskostore.com/product/t-shirt-dolce-gabbana-2/",
+            "https://muskostore.com/product/t-shirt-dolce-gabbana-2/",
+            "https://muskostore.com/product/t-shirt-dolce-gabbana-2/",
+            "https://muskostore.com/product/t-shirt-dolce-gabbana-2/",
+            "https://www.thebs.com/us/logo-t-shirt-dolce-gabbana-356867",
+            "https://www.thebs.com/us/logo-t-shirt-dolce-gabbana-356867",
+            "https://www.thebs.com/us/logo-t-shirt-dolce-gabbana-356867",
+            "https://www.thebs.com/us/logo-t-shirt-dolce-gabbana-356867"
+        ],
+        "sizes": [
+            "1200x1800",
+            "1200x900",
+            "1200x675",
+            "1000x1000",
+            "1000x1500",
+            "600x800",
+            "600x800",
+            "600x800",
+            "600x800"
+        ],
         "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "Milano Logo T-Shirt — White",
@@ -1436,9 +1738,17 @@
         "colour": "Black"
     },
     "blm-xh1gb005bb04": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "http://www.wantrobe.com/store/men/tops-men/balmain-logo-printed-short-sleeved-polo-shirt/",
+        "title": "BALMAIN XH1GB005BB04 — Polo Shirt Pink",
+        "images": [
+            "http://www.wantrobe.com/#mainImage"
+        ],
+        "pages": [
+            "http://www.wantrobe.com/store/men/tops-men/balmain-logo-printed-short-sleeved-polo-shirt/"
+        ],
+        "sizes": [
+            "HATA"
+        ],
         "codes": [],
         "brand": "BALMAIN",
         "name": "Polo Shirt",
@@ -1484,9 +1794,26 @@
         "colour": "Black"
     },
     "blm-ah1eg010": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://www.luosophy.com/products/balmain-t-shirt-ah1eg010bb99ead",
+        "title": "BALMAIN AH1EG010 — T-Shirt Black",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0596/5660/1737/files/t-shirt-balmain-logo-texture-oversize-man-gold.jpg?v=1791505846",
+            "https://cdn.shopify.com/s/files/1/0596/5660/1737/files/t-shirt-balmain-logo-texture-oversize-man-gold_51282082-0fb5-4740-befb-ad80b0e491d7.jpg?v=1791505846",
+            "https://media.endclothing.com/media/catalog/product/2/3/23-12-22_BI_AH1EG010JB21-GFE_1_1.jpg",
+            "https://cdn.shopify.com/s/files/1/0910/3845/0041/files/SX5UukOsPR17Lu9a25EDD8EF8F5B.jpg?v=1783091169"
+        ],
+        "pages": [
+            "https://www.luosophy.com/products/balmain-t-shirt-ah1eg010bb99ead",
+            "https://www.luosophy.com/products/balmain-t-shirt-ah1eg010bb99ead",
+            "https://www.endclothing.com/us/balmain-monogram-oversized-t-shirt-ah1eg010jb21-gfe.html",
+            "https://livingfashionboutique.it/products/ah1eg010-balmain"
+        ],
+        "sizes": [
+            "585x876",
+            "585x876",
+            "1000x1000",
+            "1320x1732"
+        ],
         "codes": [],
         "brand": "BALMAIN",
         "name": "T-Shirt",
@@ -1502,9 +1829,20 @@
         "colour": "Khaki"
     },
     "blm-vh4eh000": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://gamashop.it/product/balmain-vh4eh000-g076-giallo/",
+        "title": "BALMAIN VH4EH000 — T-Shirt Black",
+        "images": [
+            "https://gamashop.it/product/balmain-vh4eh000-g076-giallo/#primaryimage",
+            "https://gamashop.it/wp-content/uploads/product-15799-2111008192.png"
+        ],
+        "pages": [
+            "https://gamashop.it/product/balmain-vh4eh000-g076-giallo/",
+            "https://gamashop.it/product/balmain-vh4eh000-g076-giallo/"
+        ],
+        "sizes": [
+            "HATA",
+            "HATA"
+        ],
         "codes": [],
         "brand": "BALMAIN",
         "name": "T-Shirt",
@@ -1525,9 +1863,20 @@
         "colour": "White"
     },
     "blm-xf1ee005": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://gomez.pl/en/product/balmain-cropped-t-shirt-loose-fit-xf1ee005-bb01-1",
+        "title": "BALMAIN XF1EE005 — T-Shirt Black",
+        "images": [
+            "https://gomez.pl/assets/photo/upload/product/617/22-1205141-scale-398-207.jpg.webp",
+            "https://gomez.com.de/assets/photo/upload/product/617/22-1205141-scale-398-207.jpg.webp"
+        ],
+        "pages": [
+            "https://gomez.pl/en/product/balmain-cropped-t-shirt-loose-fit-xf1ee005-bb01-1",
+            "https://gomez.com.de/de/product/balmain-cropped-t-shirt-loose-fit-xf1ee005-bb01-1"
+        ],
+        "sizes": [
+            "398x207",
+            "398x207"
+        ],
         "codes": [],
         "brand": "BALMAIN",
         "name": "T-Shirt",
@@ -1610,9 +1959,17 @@
         "colour": "Black"
     },
     "blc-681314tlvh4": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://jentestore.com/goods/view?no=426674",
+        "title": "Balenciaga 681314TLVH4 — T-Shirt Purple",
+        "images": [
+            "https://cdn.jentestore.io/resource/products/426674/426674_1.jpg"
+        ],
+        "pages": [
+            "https://jentestore.com/goods/view?no=426674"
+        ],
+        "sizes": [
+            "600x800"
+        ],
         "codes": [],
         "brand": "Balenciaga",
         "name": "T-Shirt",
@@ -1636,9 +1993,17 @@
         "colour": "Grey"
     },
     "bur-8052068": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://hmpsupply.com/tn-40203-feather-key-ku-for-tennant/",
+        "title": "Burberry 8052068 — Polo Shirt Yellow",
+        "images": [
+            "https://cdn11.bigcommerce.com/s-t9lywx77rb/stencil/191a2360-6fae-013d-cfb5-6e3ef077b7cf/img/ProductDefault.gif"
+        ],
+        "pages": [
+            "https://hmpsupply.com/tn-40203-feather-key-ku-for-tennant/"
+        ],
+        "sizes": [
+            "428x428"
+        ],
         "codes": [],
         "brand": "Burberry",
         "name": "Polo Shirt",
@@ -1665,18 +2030,34 @@
         "colour": "Beige"
     },
     "bur-4567629": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://www.endclothing.com/us/burberry-shark-print-tee-4567629-a1464.html",
+        "title": "Burberry 4567629 — T-Shirt White",
+        "images": [
+            "https://media.endclothing.com/media/catalog/product/2/5/25-02-2021_AJ_4567629-A1464_2_1.jpg"
+        ],
+        "pages": [
+            "https://www.endclothing.com/us/burberry-shark-print-tee-4567629-a1464.html"
+        ],
+        "sizes": [
+            "1000x1000"
+        ],
         "codes": [],
         "brand": "Burberry",
         "name": "T-Shirt",
         "colour": "White"
     },
     "bur-8041966": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://www.kolonmall.com/Product/K1706603860689077NO01",
+        "title": "Burberry 8041966 — T-Shirt White",
+        "images": [
+            "https://images.kolonmall.com/Prod_Img/10003434/2024/LS1/K1706603860689077NO01_LS1.jpg"
+        ],
+        "pages": [
+            "https://www.kolonmall.com/Product/K1706603860689077NO01"
+        ],
+        "sizes": [
+            "300x450"
+        ],
         "codes": [],
         "brand": "Burberry",
         "name": "T-Shirt",
@@ -1738,9 +2119,20 @@
         "colour": "Black"
     },
     "bur-80553091": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://kickstrace23.com/Burberry-SS22-T-Shirt-Loose-Fit-Men-s-White-80553091/b85ad0ec6c7d5835a64168a57b55a9ba",
+        "title": "Burberry 80553091 — T-Shirt White",
+        "images": [
+            "https://nbg1.your-objectstorage.com/mxc-h1-shopware-public/media/f0/ae/c9/1777561689/20250217-109bb7a13a63877a-w1000h1000.jpg?ts=1777561689",
+            "https://cdn.shopify.com/s/files/1/0672/2106/1933/files/Burberry-Logo-Print-Cotton-Oversized-T-shirt-White-Black.webp?v=1739013323"
+        ],
+        "pages": [
+            "https://kickstrace23.com/Burberry-SS22-T-Shirt-Loose-Fit-Men-s-White-80553091/b85ad0ec6c7d5835a64168a57b55a9ba",
+            "https://sidekicks.co.uk/products/burberry-logo-print-cotton-oversized-t-shirt-white-black"
+        ],
+        "sizes": [
+            "1000x1000",
+            "1400x1000"
+        ],
         "codes": [],
         "brand": "Burberry",
         "name": "T-Shirt",
@@ -1756,18 +2148,49 @@
         "colour": "Navy"
     },
     "bur-8057109": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://www.shinsegaev.com/goods/initDetailGoods.siv?goods_no=2303705171",
+        "title": "Burberry 8057109 — T-Shirt White",
+        "images": [
+            "https://image.shinsegaev.com/upload/C00001/goods/org/097/230313004464097.jpg?RS=750&SP=1",
+            "https://image.shinsegaev.com/upload/C00001/goods/org/098/230313004464098.jpg?RS=750&SP=1",
+            "https://image.shinsegaev.com/upload/C00001/goods/org/099/230313004464099.jpg?RS=750&SP=1",
+            "https://image.shinsegaev.com/upload/C00001/goods/org/097/230313004464097.jpg?RS=500&SP=1"
+        ],
+        "pages": [
+            "https://www.shinsegaev.com/goods/initDetailGoods.siv?goods_no=2303705171",
+            "https://www.shinsegaev.com/goods/initDetailGoods.siv?goods_no=2303705171",
+            "https://www.shinsegaev.com/goods/initDetailGoods.siv?goods_no=2303705171",
+            "https://www.shinsegaev.com/goods/initDetailGoods.siv?goods_no=2303705171"
+        ],
+        "sizes": [
+            "750x750",
+            "750x1017",
+            "750x1500",
+            "500x500"
+        ],
         "codes": [],
         "brand": "Burberry",
         "name": "T-Shirt",
         "colour": "White"
     },
     "bur-8057370": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://doboutique.com/ja/products/the-burberry-cotton-t-shirt-is-the-perfect-compromise-between-luxury-and-basic-wear-8057370",
+        "title": "Burberry 8057370 — T-Shirt Pink",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0657/6206/6654/products/181145-1_641ef0a2-a4bc-4cae-a771-6af01c5569fd.jpg?v=1667467519",
+            "https://cdn.shopify.com/s/files/1/0657/6206/6654/products/181145-2_f2a643bc-989a-4213-a12c-d2256d2fc7e5.jpg?v=1667467519",
+            "https://cdn.shopify.com/s/files/1/0657/6206/6654/products/181145-3_97958fc8-b7b2-47e5-b2ba-efebf7931798.jpg?v=1667467519"
+        ],
+        "pages": [
+            "https://doboutique.com/ja/products/the-burberry-cotton-t-shirt-is-the-perfect-compromise-between-luxury-and-basic-wear-8057370",
+            "https://doboutique.com/ja/products/the-burberry-cotton-t-shirt-is-the-perfect-compromise-between-luxury-and-basic-wear-8057370",
+            "https://doboutique.com/ja/products/the-burberry-cotton-t-shirt-is-the-perfect-compromise-between-luxury-and-basic-wear-8057370"
+        ],
+        "sizes": [
+            "1500x2000",
+            "1500x2000",
+            "1500x2000"
+        ],
         "codes": [],
         "brand": "Burberry",
         "name": "T-Shirt",
@@ -1798,18 +2221,58 @@
         "colour": "Black"
     },
     "dsq-s74lb0786": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://www.reggelloitalia.com/used-denim-with-tears-6784",
+        "title": "DSQUARED2 S74LB0786 — Clean Wash Jeans Grey",
+        "images": [
+            "https://static.ticimax.cloud/cdn-cgi/image/width=-,quality=99/62019/uploads/urunresimleri/buyuk/used-denim-with-tears-s74lb078646-339-93.png"
+        ],
+        "pages": [
+            "https://www.reggelloitalia.com/used-denim-with-tears-6784"
+        ],
+        "sizes": [
+            "750x1000"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Clean Wash Jeans",
         "colour": "Grey"
     },
     "dsq-s74lb0869": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://designer-drip-9915.myshopify.com/products/dsquared2-skater-jean-large-print-jeans",
+        "title": "DSQUARED2 S74LB0869 — Clean Wash Jeans Blue",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0723/6747/2925/files/s74lb0869__1_8825024a-adf3-4a01-b3fa-12ee97ff8d98.jpg?v=1787994812",
+            "https://cdn.shopify.com/s/files/1/0723/6747/2925/files/s74lb0869__2_9df13256-cd9b-4c6b-a84f-17d8932f6202.jpg?v=1787994817",
+            "https://cdn.shopify.com/s/files/1/0723/6747/2925/files/s74lb0869__3_7dd56f06-bc4a-4ff6-a697-b31f8d158027.jpg?v=1787994821",
+            "https://cdn.shopify.com/s/files/1/0977/2604/files/IMG_8406.jpg?v=1742939717",
+            "https://cdn.shopify.com/s/files/1/0977/2604/files/IMG_8407.jpg?v=1742939717",
+            "https://cdn.shopify.com/s/files/1/0977/2604/files/IMG_8405.jpg?v=1742939717",
+            "https://mediahub.debenhams.com/m8056185839524_blue_xl.jpeg",
+            "https://mediahub.debenhams.com/m8056185839524_blue_xl_1.jpeg",
+            "https://mediahub.debenhams.com/m8056185839524_blue_xl_2.jpeg"
+        ],
+        "pages": [
+            "https://designer-drip-9915.myshopify.com/products/dsquared2-skater-jean-large-print-jeans",
+            "https://designer-drip-9915.myshopify.com/products/dsquared2-skater-jean-large-print-jeans",
+            "https://designer-drip-9915.myshopify.com/products/dsquared2-skater-jean-large-print-jeans",
+            "https://www.pureatlanta.com/products/dark-4-wash-skater-jean",
+            "https://www.pureatlanta.com/products/dark-4-wash-skater-jean",
+            "https://www.pureatlanta.com/products/dark-4-wash-skater-jean",
+            "https://www.debenhams.com/product/dsquared2-skater-jean-large-print-jeans_p-8f463e63-7664-4663-a228-7dbf654b9f28",
+            "https://www.debenhams.com/product/dsquared2-skater-jean-large-print-jeans_p-8f463e63-7664-4663-a228-7dbf654b9f28",
+            "https://www.debenhams.com/product/dsquared2-skater-jean-large-print-jeans_p-8f463e63-7664-4663-a228-7dbf654b9f28"
+        ],
+        "sizes": [
+            "1080x1080",
+            "1080x1080",
+            "1080x1080",
+            "1685x3749",
+            "1828x4067",
+            "2139x4758",
+            "1080x1080",
+            "1080x1080",
+            "1080x1080"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Clean Wash Jeans",
@@ -1868,9 +2331,32 @@
         "colour": "Light Blue"
     },
     "dsq-s74lb0791": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://vector-park.jp/item/098-902607190194/",
+        "title": "DSQUARED2 S74LB0791 — Distressed Jeans Blue",
+        "images": [
+            "https://image.vector-park.jp/images/item/original2/098/9026/07/19/098-902607190194_1.jpg?t=1784767795",
+            "https://image.vector-park.jp/images/item/original2/098/9026/07/19/098-902607190194_2.jpg?t=1784767795",
+            "https://image.vector-park.jp/images/item/original2/098/9026/07/19/098-902607190194_3.jpg?t=1784767795",
+            "https://image.vector-park.jp/images/item/original2/098/9026/07/19/098-902607190194_4.jpg?t=1784767795",
+            "https://image.vector-park.jp/images/item/original2/098/9026/07/19/098-902607190194_5.jpg?t=1784767796",
+            "https://image.vector-park.jp/images/item/original2/098/9026/07/19/098-902607190194_6.jpg?t=1784767796"
+        ],
+        "pages": [
+            "https://vector-park.jp/item/098-902607190194/",
+            "https://vector-park.jp/item/098-902607190194/",
+            "https://vector-park.jp/item/098-902607190194/",
+            "https://vector-park.jp/item/098-902607190194/",
+            "https://vector-park.jp/item/098-902607190194/",
+            "https://vector-park.jp/item/098-902607190194/"
+        ],
+        "sizes": [
+            "1024x1024",
+            "1024x1024",
+            "1024x1024",
+            "1024x1024",
+            "1024x1024",
+            "1024x1024"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Distressed Jeans",
@@ -1890,9 +2376,20 @@
         "colour": "Blue"
     },
     "dsq-s74lb0930": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://gomez.pl/en/product/dsquared2-pants-5-pockets-s74lb0930-s30342",
+        "title": "DSQUARED2 S74LB0930 — Distressed Jeans Blue",
+        "images": [
+            "https://gomez.pl/assets/photo/orbitvu/370/DQ211M000065470/dq211m0000654700050/images2d/dq211m0000654700050-scale-398-207.jpg.webp",
+            "https://www.luxuryfashionstores.sk/_CMS/repository/Normal/89-S74LB0930-S30342-470-BLUE-DSQUARED-JEANS-1.jpg"
+        ],
+        "pages": [
+            "https://gomez.pl/en/product/dsquared2-pants-5-pockets-s74lb0930-s30342",
+            "https://www.luxuryfashionstores.sk/en/71961/dsquared2-s74lb0930-s30342-cool-guy-jeans_p"
+        ],
+        "sizes": [
+            "398x207",
+            "950x1140"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Distressed Jeans",
@@ -1915,9 +2412,17 @@
         "colour": "Blue"
     },
     "dsq-s74lb0956": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://gomez.pl/en/product/dsquared2-pants-5-pockets-s74lb0956-s30342-4",
+        "title": "DSQUARED2 S74LB0956 — Distressed Jeans Blue",
+        "images": [
+            "https://gomez.pl/assets/photo/orbitvu/125/DQ214M000023470/dq214m0000234700048/images2d/IMG_1099-scale-398-207.jpg.webp"
+        ],
+        "pages": [
+            "https://gomez.pl/en/product/dsquared2-pants-5-pockets-s74lb0956-s30342-4"
+        ],
+        "sizes": [
+            "398x207"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Distressed Jeans",
@@ -1973,36 +2478,104 @@
         "colour": "Black"
     },
     "dsq-s71gu0480": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://www.shopplatinum.com/product-page/dsquared2-logo-print-sweatshirt",
+        "title": "DSQUARED2 S71GU0480 — Sweatshirt Black",
+        "images": [
+            "https://static.wixstatic.com/media/304e4a_7ddd4fdbaed24ce5a3ceea899bac2485~mv2.jpg/v1/fit/w_500,h_500,q_90/file.jpg",
+            "https://www.luxuryfashionstores.sk/_CMS/repository/Normal/76-S71GU0480-S25042-187-ORANGE-DSQUARED-FELPE-1.jpg"
+        ],
+        "pages": [
+            "https://www.shopplatinum.com/product-page/dsquared2-logo-print-sweatshirt",
+            "https://www.luxuryfashionstores.sk/en/107078/dsquared2-s71gu0480-s25042-sweatshirt_p"
+        ],
+        "sizes": [
+            "500x500",
+            "950x1140"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Sweatshirt",
         "colour": "Black"
     },
     "dsq-s74gu0496": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://www.debenhams.us/product/dsquared2-multi-logo-maple-leaf-black-sweater_p-b4ec00db-87fc-4056-8326-0a7e1c2a7d40",
+        "title": "DSQUARED2 S74GU0496 — Sweatshirt White",
+        "images": [
+            "https://mediahub.debenhams.us/m8058049083579_black_xl.jpeg",
+            "https://mediahub.debenhams.us/m8058049083579_black_xl_1.jpeg",
+            "https://mediahub.boohooman.com/m8056185849417_white_xl.jpeg",
+            "https://mediahub.boohooman.com/m8056185849417_white_xl_1.jpeg"
+        ],
+        "pages": [
+            "https://www.debenhams.us/product/dsquared2-multi-logo-maple-leaf-black-sweater_p-b4ec00db-87fc-4056-8326-0a7e1c2a7d40",
+            "https://www.debenhams.us/product/dsquared2-multi-logo-maple-leaf-black-sweater_p-b4ec00db-87fc-4056-8326-0a7e1c2a7d40",
+            "https://www.boohooman.com/product/dsquared2-multi-logo-maple-leaf-white-sweater_p-8916f025-781c-4964-9d64-872a5caebcea",
+            "https://www.boohooman.com/product/dsquared2-multi-logo-maple-leaf-white-sweater_p-8916f025-781c-4964-9d64-872a5caebcea"
+        ],
+        "sizes": [
+            "1080x1080",
+            "1014x1167",
+            "1080x1080",
+            "1080x1080"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Sweatshirt",
         "colour": "White"
     },
     "dsq-s74gu0521": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://gomez.pl/en/product/dsquared2-sweatshirt-s74gu0521-s25042-1",
+        "title": "DSQUARED2 S74GU0521 — Sweatshirt Black",
+        "images": [
+            "https://gomez.pl/assets/photo/orbitvu/91/DQ214M000016900/dq214m000016900000m/images2d/IMG_7772-2-scale-398-207.jpg.webp",
+            "https://baseec-img-mng.akamaized.net/images/item/origin/a77356ea934821af348953cba8528370.jpg?imformat=generic&q=90&im=Resize,width=640,height=640,aspect=fill,type=downsize;Crop,width=640,height=640,gravity=Center",
+            "https://baseec-img-mng.akamaized.net/images/item/origin/c28b2909a561fd4d2e981a41545c25f4.jpg?imformat=generic&q=90&im=Resize,width=640,height=640,aspect=fill,type=downsize;Crop,width=640,height=640,gravity=Center",
+            "https://baseec-img-mng.akamaized.net/images/item/origin/75981496a011013a4885f8524728d369.jpg?imformat=generic&q=90&im=Resize,width=640,height=640,aspect=fill,type=downsize;Crop,width=640,height=640,gravity=Center",
+            "https://baseec-img-mng.akamaized.net/images/item/origin/295ded56c0bea303f57d73a59f598021.jpg?imformat=generic&q=90&im=Resize,width=640,height=640,aspect=fill,type=downsize;Crop,width=640,height=640,gravity=Center",
+            "https://baseec-img-mng.akamaized.net/images/item/origin/b326c7034529a59f0ff783d5d2f9fe71.jpg?imformat=generic&q=90&im=Resize,width=640,height=640,aspect=fill,type=downsize;Crop,width=640,height=640,gravity=Center",
+            "https://baseec-img-mng.akamaized.net/images/item/origin/7e6ee623339e6664033c7d12d85462a3.jpg?imformat=generic&q=90&im=Resize,width=640,height=640,aspect=fill,type=downsize;Crop,width=640,height=640,gravity=Center"
+        ],
+        "pages": [
+            "https://gomez.pl/en/product/dsquared2-sweatshirt-s74gu0521-s25042-1",
+            "https://pochi709.thebase.in/items/114464660",
+            "https://pochi709.thebase.in/items/114464660",
+            "https://pochi709.thebase.in/items/114464660",
+            "https://pochi709.thebase.in/items/114464660",
+            "https://pochi709.thebase.in/items/114464660",
+            "https://pochi709.thebase.in/items/114464660"
+        ],
+        "sizes": [
+            "398x207",
+            "640x640",
+            "640x640",
+            "640x640",
+            "640x640",
+            "640x640",
+            "640x640"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Sweatshirt",
         "colour": "Black"
     },
     "dsq-s74gu0546": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://golden-outlet.de/en/product/d2-milano-hooded-sweatshirt/",
+        "title": "DSQUARED2 S74GU0546 — Sweatshirt Black",
+        "images": [
+            "https://golden-outlet.de/product/d2-milano-hooded-sweatshirt/#primaryimage",
+            "https://golden-outlet.de/wp-content/uploads/2023/08/S74GU0546_1-623x800.png",
+            "https://gomez.pl/assets/photo/orbitvu/107/DQ214M000019900/dq214m000019900000m/images2d/IMG_6800-2-scale-398-207.jpg.webp"
+        ],
+        "pages": [
+            "https://golden-outlet.de/en/product/d2-milano-hooded-sweatshirt/",
+            "https://golden-outlet.de/en/product/d2-milano-hooded-sweatshirt/",
+            "https://gomez.pl/en/product/dsquared2-sweatshirt-s74gu0546-s25305-2"
+        ],
+        "sizes": [
+            "HATA",
+            "623x800",
+            "398x207"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Sweatshirt",
@@ -2027,9 +2600,17 @@
         "colour": "Red"
     },
     "dsq-s74gl0064": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://gomez.pl/en/product/dsquared2-mini-dsq2-tns-polo-s74gl0064-s22743-3",
+        "title": "DSQUARED2 S74GL0064 — Tipped Polo Shirt Pink",
+        "images": [
+            "https://gomez.pl/assets/photo/upload/product/208/21-04-202200387-1-scale-398-207.jpg.webp"
+        ],
+        "pages": [
+            "https://gomez.pl/en/product/dsquared2-mini-dsq2-tns-polo-s74gl0064-s22743-3"
+        ],
+        "sizes": [
+            "398x207"
+        ],
         "codes": [],
         "brand": "DSQUARED2",
         "name": "Tipped Polo Shirt",
@@ -2108,9 +2689,41 @@
         "colour": "Red"
     },
     "dgn-hu7h9": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://www.luxlair.com/products/dolce-gabbana-black-logo-cotton-jogger-sweatmens-mens-pants-pre-owned",
+        "title": "Dolce & Gabbana HU7H9 — Sweatshirt White",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/1018/4971/files/6571197.jpg?v=1787256841",
+            "https://cdn.shopify.com/s/files/1/1018/4971/files/6571202.jpg?v=1787256841",
+            "https://cdn.shopify.com/s/files/1/1018/4971/files/6571207.jpg?v=1787256842",
+            "https://cdn.shopify.com/s/files/1/1018/4971/files/6571212.jpg?v=1787256841",
+            "https://cdn.shopify.com/s/files/1/1018/4971/files/6571223.jpg?v=1787256841",
+            "https://gomez.pl/assets/photo/upload/product/43/10-02-202200039-2-scale-398-207.jpg.webp",
+            "https://cdn-images.buyma.com/imgdata/item/260807/0135805806/814856666/org.jpg",
+            "https://cdn-images.buyma.com/imgdata/item/260807/0135805806/814856667/org.jpg",
+            "https://cdn-images.buyma.com/imgdata/item/260807/0135805806/814856666/428.jpg"
+        ],
+        "pages": [
+            "https://www.luxlair.com/products/dolce-gabbana-black-logo-cotton-jogger-sweatmens-mens-pants-pre-owned",
+            "https://www.luxlair.com/products/dolce-gabbana-black-logo-cotton-jogger-sweatmens-mens-pants-pre-owned",
+            "https://www.luxlair.com/products/dolce-gabbana-black-logo-cotton-jogger-sweatmens-mens-pants-pre-owned",
+            "https://www.luxlair.com/products/dolce-gabbana-black-logo-cotton-jogger-sweatmens-mens-pants-pre-owned",
+            "https://www.luxlair.com/products/dolce-gabbana-black-logo-cotton-jogger-sweatmens-mens-pants-pre-owned",
+            "https://gomez.pl/en/product/dolce-gabbana-hooded-sweatshirt-made-in-italy-g9vc8z-hu7h9",
+            "https://www.buyma.com/item/135805806/",
+            "https://www.buyma.com/item/135805806/",
+            "https://www.buyma.com/item/135805806/"
+        ],
+        "sizes": [
+            "2008x2560",
+            "2008x2560",
+            "2008x2560",
+            "2008x2560",
+            "1707x2560",
+            "398x207",
+            "550x733",
+            "550x733",
+            "321x428"
+        ],
         "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "Sweatshirt",
@@ -2118,11 +2731,30 @@
     },
     "dgn-m4a13t": {
         "source": "https://www.zapclothing.com/en-us/products/m4a13t-fjdsf-b0309-dolce-gabbana-all-over-logo-swimwear",
-        "title": "Dolce & Gabbana M4A13T",
+        "title": "Dolce & Gabbana M4A13T — Swimwear Black",
         "images": [
             "https://cdn.shopify.com/s/files/1/0566/1225/7882/files/DolceLogoSwimsNavy1.jpg?v=1787579618",
             "https://cdn.shopify.com/s/files/1/0566/1225/7882/files/DolceLogoSwimsNavy2.jpg?v=1787579618",
-            "https://cdn.shopify.com/s/files/1/0566/1225/7882/files/DolceLogoSwimsNavy3.jpg?v=1787579618"
+            "https://cdn.shopify.com/s/files/1/0566/1225/7882/files/DolceLogoSwimsNavy3.jpg?v=1787579618",
+            "https://cdn.shopify.com/s/files/1/0879/8679/8898/files/25a-dolce-gabbana-m4a13tfim6jhy5dq_0373f1c2-12b4-40a0-9a1a-c6a977e9cf51.jpg?v=1770756915",
+            "https://cdn.shopify.com/s/files/1/0879/8679/8898/files/25a-dolce-gabbana-m4a13tfim6jhy5dq22p_150aaa58-b6cf-4ec7-93f3-282f714c9f33.jpg?v=1770756915",
+            "https://cdn.shopify.com/s/files/1/0879/8679/8898/files/25a-dolce-gabbana-m4a13tfim6jhy5dq32p_f1d45317-5e02-4f59-8911-8cd304ef54ec.jpg?v=1770756915"
+        ],
+        "pages": [
+            "https://www.zapclothing.com/en-us/products/m4a13t-fjdsf-b0309-dolce-gabbana-all-over-logo-swimwear",
+            "https://www.zapclothing.com/en-us/products/m4a13t-fjdsf-b0309-dolce-gabbana-all-over-logo-swimwear",
+            "https://www.zapclothing.com/en-us/products/m4a13t-fjdsf-b0309-dolce-gabbana-all-over-logo-swimwear",
+            "https://worldclassfashion.com/products/dolce-gabbana-m4a13t-fim6jhy5dq",
+            "https://worldclassfashion.com/products/dolce-gabbana-m4a13t-fim6jhy5dq",
+            "https://worldclassfashion.com/products/dolce-gabbana-m4a13t-fim6jhy5dq"
+        ],
+        "sizes": [
+            "2500x2500",
+            "2500x2500",
+            "1450x1450",
+            "1500x2000",
+            "1500x2000",
+            "1499x2000"
         ],
         "codes": [],
         "brand": "Dolce & Gabbana",
@@ -2254,14 +2886,18 @@
         "colour": "Black"
     },
     "dgn-g8se3tfu7en": {
-        "source": "https://thecorner.com/eu-en/cotton-crew-neck-t-shirt-g8se3tfu7en_a4567-p",
-        "title": "site:thecorner.com G8SE3TFU7EN",
+        "source": "https://thecorner.com/us-en/cotton-crew-neck-t-shirt-g8se3tfu7en_w0800-p",
+        "title": "Dolce & Gabbana G8SE3TFU7EN — T-Shirt Black",
         "images": [
-            "https://cdn.shopify.com/s/files/1/0620/1442/3226/files/G8SE3TFU7EN_A4567-1_ac0f346b-551b-4fab-a639-96757e0b5a17.jpg?v=1739920363"
+            "https://cdn.shopify.com/s/files/1/0614/1929/0798/files/G8SE3TFU7EN_W0800-1_3c7b6733-b7ac-4cce-beef-c00ab1163ed9.jpg?v=1744746710"
         ],
-        "codes": [
-            "G8SE3TFU7EN_A4567-52"
+        "pages": [
+            "https://thecorner.com/us-en/cotton-crew-neck-t-shirt-g8se3tfu7en_w0800-p"
         ],
+        "sizes": [
+            "1920x2880"
+        ],
+        "codes": [],
         "brand": "Dolce & Gabbana",
         "name": "T-Shirt",
         "colour": "Black"
@@ -2479,9 +3115,17 @@
         "colour": "Black"
     },
     "vltn-xv3mg08y843": {
-        "source": "",
-        "title": "",
-        "images": [],
+        "source": "https://www.valentino.com/en-us/product-t-shirt-with-valentino-embossed-VMG08Y843_0NO",
+        "title": "Valentino XV3MG08Y843 — Logo T-Shirt, White White",
+        "images": [
+            "https://valentino-cdn.thron.com/delivery/public/image/valentino/1985ef67-3a8e-4f3b-b80d-c995d927dcc9/ihqstx/std/500x0/T-SHIRT-WITH-VALENTINO-EMBOSSED?quality=80&size=35&format=auto"
+        ],
+        "pages": [
+            "https://www.valentino.com/en-us/product-t-shirt-with-valentino-embossed-VMG08Y843_0NO"
+        ],
+        "sizes": [
+            "500x633"
+        ],
         "codes": [],
         "brand": "Valentino",
         "name": "Logo T-Shirt, White",
@@ -10667,5 +11311,510 @@
         "brand": "Burberry",
         "name": "Cotton Piqué Polo",
         "colour": "White"
+    },
+    "blc-620973tkv72": {
+        "source": "https://maisondefashion.com/en-au/products/balenciaga-unisex-logo-crest-embroidered-hoodie-black",
+        "title": "Balenciaga 620973TKV72 — Sweatshirt Beige",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/2704/7160/products/1_33921751-2293-415f-a5d2-8fd7c82cc3f3.jpg?v=1632883998",
+            "https://cdn.shopify.com/s/files/1/2704/7160/products/2_322a591b-d386-44d1-bdca-e8ebc51302b4.jpg?v=1632883998",
+            "https://cdn.shopify.com/s/files/1/2704/7160/products/3_41ab7e88-6087-4e81-a2c1-6b19d550f44e.jpg?v=1632883999",
+            "https://cdn.shopify.com/s/files/1/2704/7160/products/4_132f420e-02fe-42ae-be3d-a5b741ad6252.jpg?v=1632884000"
+        ],
+        "pages": [
+            "https://maisondefashion.com/en-au/products/balenciaga-unisex-logo-crest-embroidered-hoodie-black",
+            "https://maisondefashion.com/en-au/products/balenciaga-unisex-logo-crest-embroidered-hoodie-black",
+            "https://maisondefashion.com/en-au/products/balenciaga-unisex-logo-crest-embroidered-hoodie-black",
+            "https://maisondefashion.com/en-au/products/balenciaga-unisex-logo-crest-embroidered-hoodie-black"
+        ],
+        "sizes": [
+            "1000x1334",
+            "1000x1334",
+            "1000x1334",
+            "1000x1334"
+        ],
+        "codes": [],
+        "brand": "Balenciaga",
+        "name": "Sweatshirt",
+        "colour": "Beige"
+    },
+    "blc-662853tjw90": {
+        "source": "https://thecorner.com/us-en/bleach-wash-denim-jacket-662853tjw90_4200-p",
+        "title": "Balenciaga 662853TJW90 — Jacket Blue",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0614/1929/0798/files/662853TJW90_4200-4.jpg?v=1725376679",
+            "https://cdn.shopify.com/s/files/1/0014/5260/5495/products/662853-TJW90-4200_AA.jpg?v=1651539179",
+            "https://cdn.shopify.com/s/files/1/0014/5260/5495/products/662853-TJW90-4200_A.jpg?v=1651539179",
+            "https://cdn.shopify.com/s/files/1/0014/5260/5495/products/662853-TJW90-4200_AAA.jpg?v=1651539139",
+            "https://cdn.shopify.com/s/files/1/0014/5260/5495/products/662853-TJW90-4200_AAAA.jpg?v=1651539139",
+            "https://cdn.shopify.com/s/files/1/0014/5260/5495/products/662853-TJW90-4200_AAAAA.jpg?v=1651539139"
+        ],
+        "pages": [
+            "https://thecorner.com/us-en/bleach-wash-denim-jacket-662853tjw90_4200-p",
+            "https://leisure-center.com/products/662853-tjw90-4200-light-blue-allover-logo-denim-jacket",
+            "https://leisure-center.com/products/662853-tjw90-4200-light-blue-allover-logo-denim-jacket",
+            "https://leisure-center.com/products/662853-tjw90-4200-light-blue-allover-logo-denim-jacket",
+            "https://leisure-center.com/products/662853-tjw90-4200-light-blue-allover-logo-denim-jacket",
+            "https://leisure-center.com/products/662853-tjw90-4200-light-blue-allover-logo-denim-jacket"
+        ],
+        "sizes": [
+            "1920x2880",
+            "1000x1400",
+            "1000x1400",
+            "1000x1400",
+            "1000x1400",
+            "1000x1400"
+        ],
+        "codes": [],
+        "brand": "Balenciaga",
+        "name": "Jacket",
+        "colour": "Blue"
+    },
+    "blm-bwb550350": {
+        "source": "https://www.tsum.ru/product/5638293-plavki-shorty-balmain-chernyi/",
+        "title": "BALMAIN BWB550350 — Swimwear Black",
+        "images": [
+            "https://st-cdn.tsum.com/sig/7eae0f0d1692012601a2a3d539379801/width/400/i/5f/c5/31/82/5fc53182-0457-3a91-bf07-a56d4c05c2e9.jpg",
+            "https://st-cdn.tsum.com/sig/7f62ed8353a70fc3a0d2eb65abb42d8c/width/763/i/5f/c5/31/82/5fc53182-0457-3a91-bf07-a56d4c05c2e9.jpg"
+        ],
+        "pages": [
+            "https://www.tsum.ru/product/5638293-plavki-shorty-balmain-chernyi/",
+            "https://www.tsum.ru/product/5638293-plavki-shorty-balmain-chernyi/"
+        ],
+        "sizes": [
+            "400x617",
+            "763x1176"
+        ],
+        "codes": [],
+        "brand": "BALMAIN",
+        "name": "Swimwear",
+        "colour": "Black"
+    },
+    "blm-bwb64041001": {
+        "source": "https://www.pureatlanta.com/products/balmain-logo-boxer-w-black-white-print",
+        "title": "BALMAIN BWB64041001 — Swimwear Black",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0977/2604/products/Balmainswimlogofront.jpg?v=1650991992",
+            "https://cdn.shopify.com/s/files/1/0977/2604/products/balmainswimlogoback.jpg?v=1650992446"
+        ],
+        "pages": [
+            "https://www.pureatlanta.com/products/balmain-logo-boxer-w-black-white-print",
+            "https://www.pureatlanta.com/products/balmain-logo-boxer-w-black-white-print"
+        ],
+        "sizes": [
+            "979x1235",
+            "556x699"
+        ],
+        "codes": [],
+        "brand": "BALMAIN",
+        "name": "Swimwear",
+        "colour": "Black"
+    },
+    "bur-8056724": {
+        "source": "https://www.thebs.com/us/logo-t-shirt-burberry-278934",
+        "title": "Burberry 8056724 — T-Shirt White",
+        "images": [
+            "https://images.thebestshops.com/product_images/large/SL09724-061_01-c9e74b.jpg",
+            "https://images.thebestshops.com/product_images/large/SL09724-061_02-c9e74b.jpg",
+            "https://images.thebestshops.com/product_images/large/SL09724-061_03-c9e74b.jpg",
+            "https://images.thebestshops.com/product_images/large/SL09724-061_04-c9e74b.jpg",
+            "https://images.thebestshops.com/product_images/large/SL09724-061_05-c9e74b.jpg"
+        ],
+        "pages": [
+            "https://www.thebs.com/us/logo-t-shirt-burberry-278934",
+            "https://www.thebs.com/us/logo-t-shirt-burberry-278934",
+            "https://www.thebs.com/us/logo-t-shirt-burberry-278934",
+            "https://www.thebs.com/us/logo-t-shirt-burberry-278934",
+            "https://www.thebs.com/us/logo-t-shirt-burberry-278934"
+        ],
+        "sizes": [
+            "600x800",
+            "600x800",
+            "600x800",
+            "600x800",
+            "600x800"
+        ],
+        "codes": [],
+        "brand": "Burberry",
+        "name": "T-Shirt",
+        "colour": "White"
+    },
+    "bur-8057089": {
+        "source": "https://www.mycompanero.com/en/products/t-shirt-parker-bordeaux-a-logo-8057089-a3761-garnet",
+        "title": "Burberry 8057089 — T-Shirt Burgundy",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0684/6067/5385/products/t-shirt-bordeaux-parker.jpg?v=1681729164",
+            "https://cdn.shopify.com/s/files/1/0684/6067/5385/products/t-shirt-bordeaux-parker_4200d70d-a488-42cf-aaa3-d203305aee42.jpg?v=1681729166",
+            "https://cdn.shopify.com/s/files/1/0684/6067/5385/products/t-shirt-bordeaux-parker_13fa0d58-2651-4b33-811c-7ff0ee76f846.jpg?v=1681729169"
+        ],
+        "pages": [
+            "https://www.mycompanero.com/en/products/t-shirt-parker-bordeaux-a-logo-8057089-a3761-garnet",
+            "https://www.mycompanero.com/en/products/t-shirt-parker-bordeaux-a-logo-8057089-a3761-garnet",
+            "https://www.mycompanero.com/en/products/t-shirt-parker-bordeaux-a-logo-8057089-a3761-garnet"
+        ],
+        "sizes": [
+            "819x1024",
+            "819x1024",
+            "1024x1024"
+        ],
+        "codes": [],
+        "brand": "Burberry",
+        "name": "T-Shirt",
+        "colour": "Burgundy"
+    },
+    "bur-81048891": {
+        "source": "https://boutique.heathrow.com/en/check-label-cotton-t-shirt/burberry_81048891.html",
+        "title": "Burberry 81048891 — T-Shirt Black",
+        "images": [
+            "https://boutique.heathrow.com/dw/image/v2/BDNX_PRD/on/demandware.static/Sites-Boutique-Site/-/default/dwe8ac73ff/images/noimagelarge.png?sw=442&sh=403&sm=fit",
+            "https://boutique.heathrow.com/on/demandware.static/-/Sites-boutique-master-catalog/default/dw8f177ee9/images/hi-res/burberry/81048891detailImage01.jpg"
+        ],
+        "pages": [
+            "https://boutique.heathrow.com/en/check-label-cotton-t-shirt/burberry_81048891.html",
+            "https://boutique.heathrow.com/en/check-label-cotton-t-shirt/burberry_81048891.html"
+        ],
+        "sizes": [
+            "403x403",
+            "1500x2100"
+        ],
+        "codes": [],
+        "brand": "Burberry",
+        "name": "T-Shirt",
+        "colour": "Black"
+    },
+    "dgn-g7d9u": {
+        "source": "https://www.buyma.com/item/129126316/",
+        "title": "Dolce & Gabbana G7D9U — T-Shirt White",
+        "images": [
+            "https://cdn-images.buyma.com/imgdata/item/260311/0129126316/767719221/org.jpg",
+            "https://cdn-images.buyma.com/imgdata/item/260311/0129126316/767719222/org.jpg",
+            "https://cdn-images.buyma.com/imgdata/item/260311/0129126316/767719221/428.jpg"
+        ],
+        "pages": [
+            "https://www.buyma.com/item/129126316/",
+            "https://www.buyma.com/item/129126316/",
+            "https://www.buyma.com/item/129126316/"
+        ],
+        "sizes": [
+            "550x733",
+            "550x733",
+            "321x428"
+        ],
+        "codes": [],
+        "brand": "Dolce & Gabbana",
+        "name": "T-Shirt",
+        "colour": "White"
+    },
+    "dgn-g8pb8tg7k4q": {
+        "source": "https://www.bluefly.com/products/10087_jul-g8pb8tg7k4qw0800-parent",
+        "title": "Dolce & Gabbana G8PB8TG7K4Q — T-Shirt White",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0248/3473/6191/files/G8PB8TG7K4QW0800_01_M_2024-01-26T09-43-42.539Z.jpg?v=1791679420",
+            "https://cdn.shopify.com/s/files/1/0248/3473/6191/files/G8PB8TG7K4QW0800_04_M_2024-01-26T09-43-43.031Z.jpg?v=1791679420",
+            "https://cdn.shopify.com/s/files/1/0248/3473/6191/files/G8PB8TG7K4QW0800_07_M_2024-01-26T09-43-43.384Z.jpg?v=1791679420",
+            "https://cdn.shopify.com/s/files/1/0248/3473/6191/files/G8PB8TG7K4QW0800_08_M_2024-01-26T09-43-43.841Z.jpg?v=1791679419",
+            "https://productimages.footy.com/6672ca720e5945ca889521bf/0/1080.webp",
+            "https://productimages.footy.com/6672ca720e5945ca889521bf/1/1080.webp",
+            "https://productimages.footy.com/6672ca720e5945ca889521bf/2/1080.webp",
+            "https://productimages.footy.com/6672ca720e5945ca889521bf/3/1080.webp",
+            "https://productimages.footy.com/6672ca720e5945ca889521bf/4/1080.webp"
+        ],
+        "pages": [
+            "https://www.bluefly.com/products/10087_jul-g8pb8tg7k4qw0800-parent",
+            "https://www.bluefly.com/products/10087_jul-g8pb8tg7k4qw0800-parent",
+            "https://www.bluefly.com/products/10087_jul-g8pb8tg7k4qw0800-parent",
+            "https://www.bluefly.com/products/10087_jul-g8pb8tg7k4qw0800-parent",
+            "https://www.footy.com/p/dolce-gabbana-mens-marina-stripe-t-shirt-white/6672ca720e5945ca889521bf/",
+            "https://www.footy.com/p/dolce-gabbana-mens-marina-stripe-t-shirt-white/6672ca720e5945ca889521bf/",
+            "https://www.footy.com/p/dolce-gabbana-mens-marina-stripe-t-shirt-white/6672ca720e5945ca889521bf/",
+            "https://www.footy.com/p/dolce-gabbana-mens-marina-stripe-t-shirt-white/6672ca720e5945ca889521bf/",
+            "https://www.footy.com/p/dolce-gabbana-mens-marina-stripe-t-shirt-white/6672ca720e5945ca889521bf/"
+        ],
+        "sizes": [
+            "1600x2136",
+            "1600x2136",
+            "1600x2136",
+            "1600x2136",
+            "1080x1080",
+            "1080x1080",
+            "1080x1080",
+            "1080x1080",
+            "1080x1080"
+        ],
+        "codes": [],
+        "brand": "Dolce & Gabbana",
+        "name": "T-Shirt",
+        "colour": "White"
+    },
+    "dgn-g8pl4tg7f2h": {
+        "source": "https://thecorner.com/us-en/cotton-pique-polo-shirt-g8pl4tg7f2h_w0800-p",
+        "title": "Dolce & Gabbana G8PL4TG7F2H — Polo Shirt Black",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0614/1929/0798/files/G8PL4TG7F2H_W0800-4_e761bead-6838-46c8-bce1-2d65ec094556.jpg?v=1779356522"
+        ],
+        "pages": [
+            "https://thecorner.com/us-en/cotton-pique-polo-shirt-g8pl4tg7f2h_w0800-p"
+        ],
+        "sizes": [
+            "1920x2880"
+        ],
+        "codes": [],
+        "brand": "Dolce & Gabbana",
+        "name": "Polo Shirt",
+        "colour": "Black"
+    },
+    "dgn-g8pn9zg7m2f": {
+        "source": "https://www.thebs.com/en/cotton-t-shirt-dolce-gabbana-433356",
+        "title": "Dolce & Gabbana G8PN9ZG7M2F — T-Shirt Black",
+        "images": [
+            "https://images.thebestshops.com/product_images/large/SL12074-054_01-296b3c.jpg",
+            "https://images.thebestshops.com/product_images/large/SL12074-054_02-296b3c.jpg",
+            "https://images.thebestshops.com/product_images/large/SL12074-054_03-296b3c.jpg"
+        ],
+        "pages": [
+            "https://www.thebs.com/en/cotton-t-shirt-dolce-gabbana-433356",
+            "https://www.thebs.com/en/cotton-t-shirt-dolce-gabbana-433356",
+            "https://www.thebs.com/en/cotton-t-shirt-dolce-gabbana-433356"
+        ],
+        "sizes": [
+            "600x800",
+            "600x800",
+            "600x800"
+        ],
+        "codes": [],
+        "brand": "Dolce & Gabbana",
+        "name": "T-Shirt",
+        "colour": "Black"
+    },
+    "dgn-g8rn8tg7nuc": {
+        "source": "https://gebnegozionline.com/en-us/products/white-cotton-t-shirt-g8rn8tg7nuc-w0800",
+        "title": "Dolce & Gabbana G8RN8TG7NUC — T-Shirt Black",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0847/6554/0680/files/2000014025912_1.jpg?v=1740749667",
+            "https://cdn.shopify.com/s/files/1/0847/6554/0680/files/2000014025912_2.jpg?v=1740749667",
+            "https://cdn.shopify.com/s/files/1/0847/6554/0680/files/2000014025912_5.jpg?v=1740749668"
+        ],
+        "pages": [
+            "https://gebnegozionline.com/en-us/products/white-cotton-t-shirt-g8rn8tg7nuc-w0800",
+            "https://gebnegozionline.com/en-us/products/white-cotton-t-shirt-g8rn8tg7nuc-w0800",
+            "https://gebnegozionline.com/en-us/products/white-cotton-t-shirt-g8rn8tg7nuc-w0800"
+        ],
+        "sizes": [
+            "1200x1800",
+            "1200x1800",
+            "1200x1800"
+        ],
+        "codes": [],
+        "brand": "Dolce & Gabbana",
+        "name": "T-Shirt",
+        "colour": "Black"
+    },
+    "dgn-m4a06thsm7o": {
+        "source": "https://thecorner.com/us-en/printed-swim-shorts-m4a06thsm7o_hk3jk-p",
+        "title": "Dolce & Gabbana M4A06THSM7O — Swimwear Khaki",
+        "images": [
+            "https://cdn.shopify.com/s/files/1/0614/1929/0798/files/M4A06THSM7O_HK3JK-1.jpg?v=1725525619"
+        ],
+        "pages": [
+            "https://thecorner.com/us-en/printed-swim-shorts-m4a06thsm7o_hk3jk-p"
+        ],
+        "sizes": [
+            "950x1140"
+        ],
+        "codes": [],
+        "brand": "Dolce & Gabbana",
+        "name": "Swimwear",
+        "colour": "Khaki"
+    },
+    "dsq-s74lb1063": {
+        "source": "https://www.buyma.com/item/127134903/",
+        "title": "DSQUARED2 S74LB1063 — Distressed Jeans Light Blue",
+        "images": [
+            "https://cdn-images.buyma.com/imgdata/item/260125/0127134903/776761196/org.jpg",
+            "https://cdn-images.buyma.com/imgdata/item/260125/0127134903/752694967/org.jpg",
+            "https://cdn-images.buyma.com/imgdata/item/260125/0127134903/752694968/org.jpg",
+            "https://cdn-images.buyma.com/imgdata/item/260125/0127134903/752694969/org.jpg",
+            "https://cdn-images.buyma.com/imgdata/item/260125/0127134903/752694970/org.jpg",
+            "https://cdn-images.buyma.com/imgdata/item/260125/0127134903/752694971/org.jpg",
+            "https://www.4444glad.com/img/XNvWdEgcTXzp.jpg",
+            "https://www.4444glad.com/img/NdoNc99NTacQ.jpg",
+            "https://www.4444glad.com/img/Yf2cF1z3DxLc.jpg"
+        ],
+        "pages": [
+            "https://www.buyma.com/item/127134903/",
+            "https://www.buyma.com/item/127134903/",
+            "https://www.buyma.com/item/127134903/",
+            "https://www.buyma.com/item/127134903/",
+            "https://www.buyma.com/item/127134903/",
+            "https://www.buyma.com/item/127134903/",
+            "https://www.4444glad.com/products/detail/10109",
+            "https://www.4444glad.com/products/detail/10109",
+            "https://www.4444glad.com/products/detail/10109"
+        ],
+        "sizes": [
+            "1024x1024",
+            "600x600",
+            "1200x1200",
+            "1200x1200",
+            "1200x1200",
+            "1200x1200",
+            "1000x1333",
+            "1000x1333",
+            "1000x1333"
+        ],
+        "codes": [],
+        "brand": "DSQUARED2",
+        "name": "Distressed Jeans",
+        "colour": "Light Blue"
+    },
+    "fnd-t06": {
+        "source": "https://demanduk.com/collections/fendi/products/fendi-kalligraphy-t-shirt",
+        "title": "Fendi FY0936AIU8F0ZE0 — FF Band T-Shirt, White White",
+        "images": [
+            "https://demanduk.com/cdn/shop/products/FY0936AIU8F0ZE0_01_1_-PhotoRoom.png?v=1664541690&width=1920",
+            "http://demanduk.com/cdn/shop/products/FY0936AIU8F0ZE0_01_1_-PhotoRoom.png?v=1664541690",
+            "https://demanduk.com/cdn/shop/products/FY0936AIU8F0ZE0_01_1_-PhotoRoom.png?v=1664541690"
+        ],
+        "pages": [
+            "https://demanduk.com/collections/fendi/products/fendi-kalligraphy-t-shirt",
+            "https://demanduk.com/collections/fendi/products/fendi-kalligraphy-t-shirt",
+            "https://demanduk.com/collections/fendi/products/fendi-kalligraphy-t-shirt"
+        ],
+        "sizes": [
+            "1000x1334",
+            "1000x1334",
+            "1000x1334"
+        ],
+        "codes": [],
+        "brand": "Fendi",
+        "name": "FF Band T-Shirt, White",
+        "colour": "White"
+    },
+    "gvy-bm716g3yac": {
+        "source": "https://sold.supply/p/BM716G3YAC-305",
+        "title": "Givenchy BM716G3YAC — Logo Shorts Red",
+        "images": [
+            "https://sold.supply/img?sku=BM716G3YAC-305&i=0",
+            "https://sold.supply/img?sku=BM716G3YAC-305&i=1",
+            "https://cdn.shopify.com/s/files/1/0408/9909/products/Givenchy-Archetype-Slim-Fit-T-Shirt---Lilac-BM716G3YAC-540---02-24-23---Feature--KN.jpg?v=1677442648",
+            "https://cdn.shopify.com/s/files/1/0408/9909/products/Givenchy-Archetype-Slim-Fit-T-Shirt---Lilac-BM716G3YAC-540---02-24-23---Feature--KN-5.jpg?v=1677442648",
+            "https://cdn.shopify.com/s/files/1/0408/9909/products/Givenchy-Archetype-Slim-Fit-T-Shirt---Lilac-BM716G3YAC-540---02-24-23---Feature--KN-6.jpg?v=1677442648",
+            "https://cdn.shopify.com/s/files/1/0408/9909/products/Givenchy-Archetype-Slim-Fit-T-Shirt---Lilac-BM716G3YAC-540---02-24-23---Feature--KN-7.jpg?v=1677442648",
+            "https://cdn.shopify.com/s/files/1/0408/9909/products/Givenchy-Archetype-Slim-Fit-T-Shirt---Lilac-BM716G3YAC-540---02-24-23---Feature--KN-8.jpg?v=1677442648"
+        ],
+        "pages": [
+            "https://sold.supply/p/BM716G3YAC-305",
+            "https://sold.supply/p/BM716G3YAC-305",
+            "https://feature.com/products/givenchy-archetype-slim-fit-t-shirt-lilac",
+            "https://feature.com/products/givenchy-archetype-slim-fit-t-shirt-lilac",
+            "https://feature.com/products/givenchy-archetype-slim-fit-t-shirt-lilac",
+            "https://feature.com/products/givenchy-archetype-slim-fit-t-shirt-lilac",
+            "https://feature.com/products/givenchy-archetype-slim-fit-t-shirt-lilac"
+        ],
+        "sizes": [
+            "750x750",
+            "750x750",
+            "1024x1024",
+            "1024x1024",
+            "3391x3391",
+            "3523x3523",
+            "3191x3191"
+        ],
+        "codes": [],
+        "brand": "Givenchy",
+        "name": "Logo Shorts",
+        "colour": "Red"
+    },
+    "gvy-bm716g3ybc": {
+        "source": "https://kickstrace23.com/Givenchy-Lock-T-Shirt-BM716G3YBC-001/6a74d17f9a595fedbc04e5a3fc2c19b7",
+        "title": "Givenchy BM716G3YBC — Logo T-Shirt White",
+        "images": [
+            "https://nbg1.your-objectstorage.com/mxc-h1-shopware-public/media/69/e2/f1/1778174054/20250901-cc2c16a98d22f8aa-w1000h1000.png?ts=1778174054"
+        ],
+        "pages": [
+            "https://kickstrace23.com/Givenchy-Lock-T-Shirt-BM716G3YBC-001/6a74d17f9a595fedbc04e5a3fc2c19b7"
+        ],
+        "sizes": [
+            "1000x1000"
+        ],
+        "codes": [],
+        "brand": "Givenchy",
+        "name": "Logo T-Shirt",
+        "colour": "White"
+    },
+    "gvy-bm71ct3y6b": {
+        "source": "https://www.luxuryfashionstores.ch/en/120502/givenchy-bm71ct3y6b-4g-sun-print-t-shirt_p",
+        "title": "Givenchy BM71CT3Y6B — Logo T-Shirt White",
+        "images": [
+            "https://www.luxuryfashionstores.ch/_CMS/repository/Normal/55-BM71CT3Y6B-001-BLACK-GIVENCHY-T-SHIRT-1.jpg"
+        ],
+        "pages": [
+            "https://www.luxuryfashionstores.ch/en/120502/givenchy-bm71ct3y6b-4g-sun-print-t-shirt_p"
+        ],
+        "sizes": [
+            "950x1140"
+        ],
+        "codes": [],
+        "brand": "Givenchy",
+        "name": "Logo T-Shirt",
+        "colour": "White"
+    },
+    "mb-cmbb007e20fle0010143": {
+        "source": "https://www.thebs.com/fr/sweat-shirts-wings-marcelo-burlon-county-of-milan-161607",
+        "title": "Marcelo Burlon CMBB007E20FLE0010143 — Wings Sweatshirt White",
+        "images": [
+            "https://images.thebestshops.com/product_images/large/marcelo-burlon-county-of-milan-sweatshirts--sweaters-wings-hoodie-00000204065f00s061.jpg",
+            "https://images.thebestshops.com/product_images/large/marcelo-burlon-county-of-milan-online-sweatshirts--sweaters-wings-hoodie-00000204065f00s062.jpg",
+            "https://images.thebestshops.com/product_images/large/iKRIX-marcelo-burlon-county-of-milan-sweatshirts--sweaters-wings-hoodie-00000204065f00s063.jpg",
+            "https://images.thebestshops.com/product_images/large/wings-hoodie-shop-online-marcelo-burlon-county-of-milan-00000204065f00s064.jpg"
+        ],
+        "pages": [
+            "https://www.thebs.com/fr/sweat-shirts-wings-marcelo-burlon-county-of-milan-161607",
+            "https://www.thebs.com/fr/sweat-shirts-wings-marcelo-burlon-county-of-milan-161607",
+            "https://www.thebs.com/fr/sweat-shirts-wings-marcelo-burlon-county-of-milan-161607",
+            "https://www.thebs.com/fr/sweat-shirts-wings-marcelo-burlon-county-of-milan-161607"
+        ],
+        "sizes": [
+            "600x800",
+            "600x800",
+            "600x800",
+            "600x800"
+        ],
+        "codes": [],
+        "brand": "Marcelo Burlon",
+        "name": "Wings Sweatshirt",
+        "colour": "White"
+    },
+    "vrs-a78932a224554": {
+        "source": "https://auctions.yahoo.co.jp/jp/auction/h1245156737",
+        "title": "Versace A78932-A224554 — Baroque Sleeve Polo Shirt — A78932 Black",
+        "images": [
+            "https://auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0209/user/3641761cb5965ae1c25e46fef128dc48024c74d917fbbba78300a82a1ccb4cff/i-img900x1200-17897911278450bd2lfz460.jpg",
+            "https://auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0209/user/3641761cb5965ae1c25e46fef128dc48024c74d917fbbba78300a82a1ccb4cff/i-img900x1200-17897911278718hfc1qf460.jpg",
+            "https://auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0209/user/3641761cb5965ae1c25e46fef128dc48024c74d917fbbba78300a82a1ccb4cff/i-img900x1200-17897911278936oe8zpt460.jpg",
+            "https://auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0209/user/3641761cb5965ae1c25e46fef128dc48024c74d917fbbba78300a82a1ccb4cff/i-img900x1200-17897911279144a1y7kq460.jpg",
+            "https://auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0209/user/3641761cb5965ae1c25e46fef128dc48024c74d917fbbba78300a82a1ccb4cff/i-img900x1200-178979112793704etuht460.jpg",
+            "https://auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0209/user/3641761cb5965ae1c25e46fef128dc48024c74d917fbbba78300a82a1ccb4cff/i-img900x1200-17897911279589wncdd0460.jpg"
+        ],
+        "pages": [
+            "https://auctions.yahoo.co.jp/jp/auction/h1245156737",
+            "https://auctions.yahoo.co.jp/jp/auction/h1245156737",
+            "https://auctions.yahoo.co.jp/jp/auction/h1245156737",
+            "https://auctions.yahoo.co.jp/jp/auction/h1245156737",
+            "https://auctions.yahoo.co.jp/jp/auction/h1245156737",
+            "https://auctions.yahoo.co.jp/jp/auction/h1245156737"
+        ],
+        "sizes": [
+            "900x1200",
+            "900x1200",
+            "900x1200",
+            "900x1200",
+            "900x1200",
+            "900x1200"
+        ],
+        "codes": [],
+        "brand": "Versace",
+        "name": "Baroque Sleeve Polo Shirt — A78932",
+        "colour": "Black"
     }
 }
