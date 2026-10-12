@@ -1,0 +1,47 @@
+name: (Salt-okunur) Gerçek tarayıcıyla web araması
+
+on:
+  workflow_dispatch:
+    inputs:
+      jobs:
+        description: 'JSON: [{"q":"…"},{"url":"…"}] (en fazla 60)'
+        required: true
+        default: "[]"
+      tag:
+        description: "Çıktı adı (diag/search/<tag>.json)"
+        required: true
+        default: "x"
+
+permissions:
+  contents: write
+
+# tools/web-search.js: Bing'de arama ve ürün sayfalarından kare adresleri.
+# Hiçbir kare indirilmez ve siteye/sunucuya hiçbir şey yazılmaz; sonuç
+# diag/search/ altına dala işlenir, adaylar orada gözle seçilir.
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Playwright
+        run: |
+          mkdir -p /tmp/pw && cd /tmp/pw && npm init -y >/dev/null && npm i -s playwright@1.56.1
+          npx playwright install --with-deps chromium > /dev/null
+      - name: Ara
+        env:
+          JOBS: ${{ github.event.inputs.jobs }}
+          TAG: ${{ github.event.inputs.tag }}
+        run: |
+          T=$(printf '%s' "$TAG" | tr -cd 'A-Za-z0-9_-'); [ -n "$T" ] || T=x
+          mkdir -p diag/search
+          printf '%s' "$JOBS" > /tmp/pw/jobs.json
+          cp retail/tools/web-search.js /tmp/pw/
+          cd /tmp/pw && node web-search.js jobs.json "$GITHUB_WORKSPACE/diag/search/$T.json"
+      - name: Dala işle
+        run: |
+          git config user.name "Claude"; git config user.email "noreply@anthropic.com"
+          git add -f diag/search
+          git diff --cached --quiet && exit 0
+          git commit -q -m "Teşhis: web araması sonuçları"
+          for i in 1 2 3 4; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((i*3)); done
