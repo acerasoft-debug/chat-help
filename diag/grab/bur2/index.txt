@@ -1,0 +1,38 @@
+01 200 text/html 1410 https://www.giglio.com/en-us/clothing-men_t-shirt-burberry-8099164.html
+01.src https://www.giglio.com/en-us/clothing-men_t-shirt-burberry-8099164.html
+02 200 text/html 1413 https://www.giglio.com/en-us/clothing-men_t-shirt-burberry-8099165.html
+02.src https://www.giglio.com/en-us/clothing-men_t-shirt-burberry-8099165.html
+03 200 text/html 1411 https://www.giglio.com/en-us/clothing-men_t-shirt-burberry-8099167.html
+03.src https://www.giglio.com/en-us/clothing-men_t-shirt-burberry-8099167.html
+04 200 text/html 1414 https://www.giglio.com/en-us/clothing-men_t-shirt-burberry-8071620.html
+04.src https://www.giglio.com/en-us/clothing-men_t-shirt-burberry-8071620.html
+05 200 text/html 1414 https://www.giglio.com/en-us/clothing-men_t-shirt-burberry-8072661.html
+05.src https://www.giglio.com/en-us/clothing-men_t-shirt-burberry-8072661.html
+06 200 text/html 1414 https://www.giglio.com/en-us/clothing-men_t-shirt-burberry-8071621.html
+06.src https://www.giglio.com/en-us/clothing-men_t-shirt-burberry-8071621.html
+07 200 text/html; charset=utf-8 192970 https://uk.burberry.com/cotton-polo-shirt-p81269321
+07.src https://uk.burberry.com/cotton-polo-shirt-p81269321/
+08 200 text/html; charset=utf-8 192589 https://uk.burberry.com/cotton-polo-shirt-p81269281
+08.src https://uk.burberry.com/cotton-polo-shirt-p81269281/
+09 200 text/html; charset=utf-8 192924 https://uk.burberry.com/cotton-polo-shirt-p81269301
+09.src https://uk.burberry.com/cotton-polo-shirt-p81269301/
+10 200 text/html; charset=utf-8 192959 https://uk.burberry.com/cotton-polo-shirt-p81269191
+10.src https://uk.burberry.com/cotton-polo-shirt-p81269191/
+11 200 text/html; charset=utf-8 193164 https://uk.burberry.com/cotton-polo-shirt-p81269231
+11.src https://uk.burberry.com/cotton-polo-shirt-p81269231/
+12 200 text/html; charset=utf-8 193012 https://uk.burberry.com/cotton-polo-shirt-p81269361
+12.src https://uk.burberry.com/cotton-polo-shirt-p81269361/
+13 200 text/html; charset=utf-8 192970 https://uk.burberry.com/cotton-polo-shirt-p81269211
+13.src https://uk.burberry.com/cotton-polo-shirt-p81269211/
+14 404 text/html; charset=utf-8 185046 https://uk.burberry.com/l/mens-clothing/polo-shirts/
+14.src https://uk.burberry.com/l/mens-clothing/polo-shirts/
+15 200 text/html; charset=utf-8 218387 https://uk.burberry.com/l/mens-clothing/polos-t-shirts/
+15.src https://uk.burberry.com/l/mens-clothing/polos-t-shirts/
+16 200 text/html; charset=UTF-8 14875 https://www.thebs.com/us/eddie-green-cotton-polo-shirt-burberry-554690
+16.src https://www.thebs.com/us/eddie-green-cotton-polo-shirt-burberry-554690
+17 200 text/html; charset=utf-8 40595 https://www.bing.com/search?q=Burberry+Eddie+polo+8099165
+17.src https://www.bing.com/search?q=Burberry+Eddie+polo+8099165
+18 200 text/html; charset=utf-8 41588 https://www.bing.com/search?q=Burberry+polo+8071620
+18.src https://www.bing.com/search?q=Burberry+polo+8071620
+19 200 text/html; charset=utf-8 40670 https://www.bing.com/search?q=giglio+burberry+8072661
+19.src https://www.bing.com/search?q=giglio+burberry+8072661
