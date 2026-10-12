@@ -1,4 +1,5 @@
 <?php
+header('X-Robots-Tag: noindex, follow');   // robots.txt bu sayfayi artik engellemiyor: Google okuyup noindex'i gorsun ve dizinden cikarsin (Search Console 'robots.txt engelli olsa da dizine eklendi', 12 Eki 2026)
 /** VESTRA — request a password-reset link. Always answers the same way (no account enumeration). */
 require_once __DIR__.'/inc/i18n.php';
 require_once __DIR__.'/inc/auth.php';

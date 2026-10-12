@@ -1,4 +1,5 @@
 <?php
+header('X-Robots-Tag: noindex, follow');   // robots.txt bu sayfayi artik engellemiyor: Google okuyup noindex'i gorsun ve dizinden cikarsin (Search Console 'robots.txt engelli olsa da dizine eklendi', 12 Eki 2026)
 require_once __DIR__.'/inc/auth.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 require_once __DIR__.'/inc/products.php';

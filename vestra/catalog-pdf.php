@@ -1,4 +1,5 @@
 <?php
+header('X-Robots-Tag: noindex, follow');   // robots.txt bu sayfayi artik engellemiyor: Google okuyup noindex'i gorsun ve dizinden cikarsin (Search Console 'robots.txt engelli olsa da dizine eklendi', 12 Eki 2026)
 /** VESTRA — print-ready catalog (use the browser's "Save as PDF"). Auto-opens print dialog.
  *  Approved members only: the catalog carries seller names and full trade pricing. */
 require __DIR__.'/inc/products.php';

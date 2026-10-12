@@ -1,25 +1,12 @@
 User-agent: *
 Allow: /
 
-# Account, cart and session pages. Nothing here ranks, and a crawler that walks
-# them just spends budget that the catalogue needs.
-Disallow: /admin
-Disallow: /login
-Disallow: /register
-Disallow: /forgot
-Disallow: /reset
-Disallow: /buyer
-Disallow: /seller
-Disallow: /cart
-
-# These rules are prefix matches, so "/seller" also swallowed the public seller
-# landing page. A longer Allow beats a shorter Disallow, which puts it back.
-Allow: /seller-invite
-
-# Generated downloads: every request builds an xlsx or a PDF from scratch, and
-# there is nothing in them to index.
-Disallow: /linesheet
-Disallow: /catalog
+# Account, cart, session pages and generated downloads are NOT blocked here any more
+# (Search Console, 12 Oct 2026: "Indexed, though blocked by robots.txt"). Hundreds of
+# public pages link to /login?back=... and /cart, so Google indexed those URLs without
+# being allowed to read them -- and a page it cannot read cannot tell it "noindex".
+# Each of them now answers with `X-Robots-Tag: noindex` (and a matching meta tag), which
+# drops them from the index for good. /admin stays noindex,nofollow the same way.
 
 Disallow: /data/
 Disallow: /vendor/

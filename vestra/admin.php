@@ -1,4 +1,5 @@
 <?php
+header('X-Robots-Tag: noindex, nofollow');   // robots.txt bu sayfayi artik engellemiyor: Google okuyup noindex'i gorsun ve dizinden cikarsin (Search Console 'robots.txt engelli olsa da dizine eklendi', 12 Eki 2026)
 /** VESTRA — Admin Panel */
 require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/promos.php';
