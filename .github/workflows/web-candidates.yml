@@ -1,0 +1,39 @@
+name: Elle seçilmiş internet kareleri için kontrol kolajı
+
+on:
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: "Aday listesi (retail/data/web-candidates/ altındaki dosya adı)"
+        required: true
+        default: "x.json"
+
+permissions:
+  contents: write
+
+# tools/candidate-sheet.php: listedeki her aday kareyi indirir, numaralı
+# kolaj (retail/uploads/candidates/_web/c-*.jpg) ve kaynak raporu
+# (data/photo-web-report.json) üretir. Siteye ve sunucuya hiçbir şey
+# yazılmaz; onaydan sonra attach-web-photos iş akışı indirir.
+jobs:
+  sheet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP + GD
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq php-cli php-gd php-curl > /dev/null
+      - name: Kolaj
+        working-directory: retail
+        env:
+          SPEC: ${{ github.event.inputs.spec }}
+        run: |
+          F=$(printf '%s' "$SPEC" | tr -cd 'A-Za-z0-9_.-')
+          php tools/candidate-sheet.php "data/web-candidates/$F"
+      - name: Dala işle
+        run: |
+          git config user.name "Claude"; git config user.email "noreply@anthropic.com"
+          git add -f retail/uploads/candidates/_web retail/data/photo-web-report.json
+          git diff --cached --quiet && exit 0
+          git commit -q -m "İnternet kare adayları: kontrol kolajı + kaynak raporu"
+          for i in 1 2 3 4; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((i*3)); done
