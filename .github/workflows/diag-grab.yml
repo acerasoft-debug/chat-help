@@ -1,0 +1,50 @@
+name: (Salt-okunur) Dış sayfaları kaydet
+
+on:
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: "Boşlukla ayrılmış adresler (en fazla 40)"
+        required: true
+        default: ""
+      tag:
+        description: "Klasör adı (diag/grab/<tag>/)"
+        required: true
+        default: "x"
+
+permissions:
+  contents: write
+
+# Runner'ın açık internetinden verilen sayfaları indirir ve sıkıştırılmış
+# hâlde diag/grab/<tag>/ altına dala işler (index.txt: sıra, kod, tür, boyut,
+# son adres). Siteye ve sunucuya hiçbir şey yazmaz; inceleme depoda yapılır.
+jobs:
+  grab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: İndir
+        env:
+          URLS: ${{ github.event.inputs.urls }}
+          TAG: ${{ github.event.inputs.tag }}
+        run: |
+          T=$(printf '%s' "$TAG" | tr -cd 'A-Za-z0-9_-'); [ -n "$T" ] || T=x
+          D="diag/grab/$T"; rm -rf "$D"; mkdir -p "$D"
+          UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          n=0
+          for u in $URLS; do
+            n=$((n+1)); [ $n -gt 40 ] && break
+            f=$(printf '%02d' $n)
+            r=$(curl -s -L -m 40 --compressed -A "$UA" -H 'Accept-Language: en-GB,en;q=0.9' -o "$D/$f.bin" -w "%{http_code} %{content_type} %{size_download} %{url_effective}" "$u" || echo "000 - 0 $u")
+            echo "$f $r" | tee -a "$D/index.txt"
+            echo "$f.src $u" >> "$D/index.txt"
+            gzip -9 -f "$D/$f.bin"
+            sleep 1
+          done
+      - name: Dala işle
+        run: |
+          git config user.name "Claude"; git config user.email "noreply@anthropic.com"
+          git add -f diag/grab
+          git diff --cached --quiet && exit 0
+          git commit -q -m "Teşhis: dış sayfalar kaydedildi"
+          for i in 1 2 3 4; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((i*3)); done
