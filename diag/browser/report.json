@@ -1,15 +1,44 @@
 {
  "iphone-webkit": {
-  "pages": 11,
-  "bad": 1,
+  "pages": 12,
+  "bad": 3,
   "results": [
+   {
+    "label": "iphone-webkit_app",
+    "url": "https://sarvesto.com/app.php",
+    "status": 200,
+    "err": "",
+    "images": 10,
+    "gallery": 0,
+    "broken": [],
+    "pending": [
+     "https://sarvesto.com/uploads/_t/600/lacoste/fleece-hoodie/navy-avif.webp?v=1791718932"
+    ],
+    "net": [],
+    "bad": true
+   },
+   {
+    "label": "iphone-webkit_outlet",
+    "url": "https://sarvesto.com/outlet.php",
+    "status": 200,
+    "err": "",
+    "images": 14,
+    "gallery": 13,
+    "broken": [],
+    "pending": [
+     "https://sarvesto.com/uploads/_t/900/gcds/gcds-cc94m021012-p1-jpg.webp?v=1791720940",
+     "https://sarvesto.com/uploads/_t/900/balmain/balmain-wh1jq055275jgfq-p3-jpg.webp?v=1791721728"
+    ],
+    "net": [],
+    "bad": true
+   },
    {
     "label": "iphone-webkit_home",
     "url": "https://sarvesto.com/",
     "status": 200,
     "err": "",
-    "images": 75,
-    "gallery": 65,
+    "images": 74,
+    "gallery": 64,
     "broken": [],
     "pending": [
      "https://sarvesto.com/uploads/_t/900/gcds/gcds-cc94m021012-p1-jpg.webp?v=1791720940",
@@ -22,7 +51,7 @@
   ]
  },
  "desktop-chromium": {
-  "pages": 11,
+  "pages": 12,
   "bad": 0,
   "results": []
  }
