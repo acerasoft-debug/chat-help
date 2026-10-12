@@ -1690,4 +1690,7 @@ return array (
   'This is your last unpaid order: it must be paid to reopen your account, so it cannot be cancelled.' => 'Esta é a sua última encomenda por pagar: tem de ser paga para reativar a conta, por isso não pode ser cancelada.',
   'A bank receipt is already on file for this order, so it cannot be cancelled here. Please contact us.' => 'Já existe um comprovativo de transferência para esta encomenda, por isso não pode ser cancelada aqui. Contacte-nos, por favor.',
   'This order cannot be cancelled.' => 'Esta encomenda não pode ser cancelada.',
+'B2B Fashion Wholesale' => 'Atacado de moda B2B',
+  'Verified B2B fashion wholesale marketplace — live prices, orders and messages.' => 'Marketplace B2B de moda verificado — preços ao vivo, encomendas e mensagens.',
+
 );

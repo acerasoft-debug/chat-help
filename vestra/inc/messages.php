@@ -366,6 +366,11 @@ function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, s
     }
     // Admin visibility — every message, so the operator has proof the messaging system is
     // actually delivering, not just posting silently into a thread nobody happens to check.
+    /* Destek'e yazılan mesaj operatörün telefonunda gönderenin adıyla ve metniyle çalar; dokununca o konuşma açılır. */
+    if ($recipient === VESTRA_SUPPORT_UID) {
+        require_once __DIR__.'/push.php';
+        try { vestra_push_admin('admin_message', ['from' => $fromLabel, 'text' => $text, 'thread' => $id]); } catch (\Throwable $e) {}
+    }
     vestra_notify("💬 VESTRA message — {$fromLabel}",
       "{$fromLabel} sent a message on VESTRA".($listingId !== '' ? " (listing {$listingId})" : '').":\n\n".
       mb_substr($text, 0, 400)."\n\n".

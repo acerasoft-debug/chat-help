@@ -110,6 +110,8 @@ if(!empty($_SESSION['uid'])) vestra_seller_docs_kickoff((string)$_SESSION['uid']
 
 /* Notify admin about new pending listing */
 $sellerName = $item['seller'] ?: ($item['seller_uid'] ? 'uid:'.$item['seller_uid'] : 'unknown');
+require_once __DIR__.'/inc/push.php';
+try { vestra_push_admin('admin_listing', ['company' => $sellerName, 'product' => trim($brand.' '.$name)]); } catch (\Throwable $e) {}
 vestra_notify(
   "New listing pending approval: {$brand} {$name} [{$sku}]",
   "A seller submitted a new listing for review.\n\nBrand: {$brand}\nProduct: {$name}\nSKU: {$sku}\nCategory: {$item['cat']}\nMode: {$mode}\nOrigin: {$origin}\nShips from: {$shipsFrom}\nSeller: {$sellerName}\n\nReview and approve: https://vestrasales.com/admin?tab=approvals"

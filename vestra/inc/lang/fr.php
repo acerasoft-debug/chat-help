@@ -1694,4 +1694,7 @@ return array (
   'This is your last unpaid order: it must be paid to reopen your account, so it cannot be cancelled.' => 'C\'est votre dernière commande impayée : elle doit être réglée pour réactiver votre compte, elle ne peut donc pas être annulée.',
   'A bank receipt is already on file for this order, so it cannot be cancelled here. Please contact us.' => 'Un justificatif de virement est déjà enregistré pour cette commande, elle ne peut donc pas être annulée ici. Merci de nous contacter.',
   'This order cannot be cancelled.' => 'Cette commande ne peut pas être annulée.',
+'B2B Fashion Wholesale' => 'Grossiste mode B2B',
+  'Verified B2B fashion wholesale marketplace — live prices, orders and messages.' => 'Place de marché B2B de mode vérifiée — prix en direct, commandes et messages.',
+
 );

@@ -3122,6 +3122,10 @@ function vestra_mail_last_reason(): string {
 function vestra_notify($subject,$body,$replyTo=''){
   $list=vestra_cfg('notify',[]); if(is_string($list)) $list=[$list];
   $ok=false; foreach((array)$list as $to){ if(vestra_send_mail($to,$subject,$body,$replyTo)) $ok=true; }
+  /* 12 Eki 2026: operatöre giden her e-postanın bir de push'u var (admin cihazı bağlıysa). Özel türü olan
+     olaylar (kayıt, sipariş, dekont, talep…) kendi metnini önce gönderir; bu genel satır o zaman atlanır. */
+  require_once __DIR__.'/push.php';
+  try { vestra_push_admin_generic((string)$subject, (string)$body); } catch (Throwable $e) { error_log('[VESTRA Push] admin generic: '.$e->getMessage()); }
   return $ok;
 }
 

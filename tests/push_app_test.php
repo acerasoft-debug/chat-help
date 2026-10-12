@@ -241,6 +241,31 @@ $t('baslikta "VESTRA —" oneki ve emoji yok', !preg_match('/VESTRA —|[\x{1F30
 $pl = vestra_push_payload(['title' => 't', 'body' => 'b', 'url' => '//evil.example']);
 $t('yuk: site disi URL "/"ye doner', $pl['url'] === '/');
 
+echo "\n== 5b. Yonetici katalogu (Turkce, 12 Eki 2026) ==\n";
+$AT = vestra_push_admin_texts();
+$rawA = 0; foreach (array_keys($AT) as $k) { $n = vestra_push_admin_compose($k, []); if (!$n || str_contains($n['title'].$n['body'], '{')) $rawA++; }
+$t('her yonetici turu bilgisiz de ham "{…}" basmaz', $rawA === 0);
+$t('bilinmeyen yonetici turu null', vestra_push_admin_compose('nope') === null);
+$o = vestra_push_admin_compose('admin_order', ['ref' => 'O9FBF5', 'company' => 'Boutique X', 'amount' => 1234.5]);
+$t('siparis: Turkce baslik, firma + tutar, siparisin kendisi acilir', $o['title'] === 'Yeni sipariş O9FBF5' && $o['body'] === "Boutique X · 1.234,50\u{00A0}€"
+   && $o['url'] === '/admin?tab=orders&view=O9FBF5' && $o['lang'] === 'tr' && $o['urgency'] === 'high');
+$rg = vestra_push_admin_compose('admin_register', ['role' => 'alıcı', 'company' => 'Lina GmbH', 'country' => 'Almanya', 'kyb' => 'KYB onayı bekliyor']);
+$t('kayit: rol + firma baslikta, ulke + KYB govdede', $rg['title'] === 'Yeni alıcı kaydı: Lina GmbH' && $rg['body'] === 'Almanya · KYB onayı bekliyor' && $rg['url'] === '/admin?tab=users');
+$mg = vestra_push_admin_compose('admin_message', ['from' => 'Co aaaa1111', 'text' => str_repeat('uzun ', 60), 'thread' => 'th1']);
+$t('destek mesaji: gonderen baslik, metin kirpilir, konusma acilir', $mg['title'] === 'Co aaaa1111' && mb_strlen($mg['body']) <= 180 && $mg['url'] === '/admin?tab=messages&thread=th1' && $mg['tag'] === 'adm-msg-th1');
+$fd = vestra_push_admin_compose('admin_finder', ['added' => 37, 'analyzed' => 412, 'today' => 120]);
+$t('arama ozeti sayilarla', $fd['title'] === 'Arama bitti: 37 yeni butik' && $fd['body'] === '412 site incelendi · bugün 120/500');
+$st = vestra_push_admin_compose('admin_stop', ['days' => 3, 'rate' => 15, 'bounced' => 42, 'sent' => 278]);
+$t('fren bildirimi gonderim kartini acar', str_contains($st['body'], '%15 (42/278)') && $st['url'] === '/admin?tab=prospects#mailboxsend');
+$t('deneme bildirimi Bildirimler sekmesindeki karti acar', vestra_push_admin_compose('admin_test')['url'] === '/admin?tab=notify#notifications');
+$t('yonetici metinlerinde emoji / "VESTRA —" yok', !preg_match('/VESTRA —|[\x{1F300}-\x{1FAFF}]/u', json_encode(array_map(fn($k) => vestra_push_admin_compose($k, ['ref' => 'R'])['title'], array_keys($AT)), JSON_UNESCAPED_UNICODE)));
+$im = vestra_push_admin_compose('admin_listing', ['company' => 'S', 'product' => 'P', 'image' => '/uploads/p1.jpg']);
+$t('ilan bildirimi ayni siteden resim tasir; dis resim atilir', ($im['image'] ?? '') === '/uploads/p1.jpg' && !isset(vestra_push_admin_compose('admin_listing', ['image' => 'https://x.example/a.jpg'])['image']));
+$pl2 = vestra_push_payload(['title' => 't', 'body' => 'b', 'url' => '/admin', 'image' => '//evil.example/a.png',
+    'actions' => [['action' => 'open', 'title' => 'Aç', 'url' => '/admin?tab=orders'], ['action' => 'x', 'title' => 'X', 'url' => '//evil.example'], ['action' => 'y', 'title' => 'Y', 'url' => '/y']]]);
+$t('yuk: dis resim atilir, en cok 2 dugme, dis dugme baglantisi ana baglantiya doner', !isset($pl2['image']) && count($pl2['actions']) === 2 && $pl2['actions'][0]['url'] === '/admin?tab=orders' && $pl2['actions'][1]['url'] === '/admin');
+$t('yuk: ayni siteden resim gecer', (vestra_push_payload(['title' => 't', 'url' => '/', 'image' => '/uploads/p1.jpg'])['image'] ?? '') === '/uploads/p1.jpg');
+
 echo "\n== 6. Servis calisani (gercek sw.js, Node) ==\n";
 if (trim((string)shell_exec('command -v node')) === '') { $t('node bulunamadi — sw_check atlandi', false); }
 else {
@@ -392,6 +417,52 @@ if ($up) {
 }
 if (is_resource($proc)) { proc_terminate($proc); proc_close($proc); }
 
+echo "\n== 7c. Yonetici cihazi uctan uca (admin oturumu, kum havuzu) ==\n";
+/* Operatorun telefonu ESKIDEN bir alici hesabina bagliydi; admin olaylari hic push olmuyordu. Olculen:
+   admin girisi + abone ol → cihaz 'admin' sahte hesabinda; deneme bildirimi Turkce; Bildirimler sekmesinde
+   kart + cihaz listesi; cikis cihazi ayirir; oturumsuz /push?a=subscribe 'admin'e baglanamaz. */
+file_put_contents($site.'/inc/config.php', '<?php return ["admin_pass" => "adm-test-123", "notify" => []];');
+file_put_contents($site.'/data/mailbox.json', '{}');
+$proc2 = proc_open(['php', '-d', 'display_errors=0', '-d', 'log_errors=1', '-d', 'error_log='.$log, '-S', "127.0.0.1:$port", '-t', $site, $site.'/_test_router.php'],
+                   [1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']], $pp2);
+$up = false;
+for ($i = 0; $i < 60 && !$up; $i++) { usleep(100000); $s = @fsockopen('127.0.0.1', $port); if ($s) { $up = true; fclose($s); } }
+if ($up) {
+    $jarM = $sb.'/adm.jar'; @unlink($jarM);
+    $AD = t_browser('https://fcm.googleapis.com/fcm/send/adminDev');
+    $hAD = vestra_push_ep_hash($AD['sub']['endpoint']);
+    $r = $api('subscribe', $jarM, $AD['sub']);
+    $t('oturumsuz abone olma reddedilir', ($r['json']['error'] ?? '') !== '' || $r['code'] >= 400);
+    $r = $req('POST', '/admin', $jarM, ['pass' => 'adm-test-123']);
+    $t('admin girisi', $r['code'] === 302 || $r['code'] === 200);
+    $r = $api('subscribe', $jarM, $AD['sub']);
+    $t('admin cihazi "admin" sahte hesabina baglandi', ($r['json']['state'] ?? '') === 'on' && $ownerOf($hAD) === 'admin');
+    @unlink($sentLog);
+    $r = $api('test', $jarM, ['endpoint' => $AD['sub']['endpoint']]);
+    $sent = array_map(fn($l) => json_decode($l, true), file($sentLog, FILE_IGNORE_NEW_LINES) ?: []);
+    $jt = $sent ? (json_decode((string)t_decrypt(base64_decode($sent[0]['b']), $AD['priv'], $AD['pub'], $AD['auth']), true) ?: []) : [];
+    $t('deneme bildirimi Turkce ve Bildirimler sekmesine gider', ($jt['title'] ?? '') === 'Yönetici bildirimleri açık' && ($jt['url'] ?? '') === '/admin?tab=notify#notifications');
+    $g = $req('GET', '/admin?tab=notify', $jarM);
+    $t('Bildirimler sekmesinde kart + Turkce metin + uygulama istemcisi', str_contains($g['body'], 'data-vpush-card') && str_contains($g['body'], '>Bildirimler<')
+       && str_contains($g['body'], 'window.VESTRA_BOOT=') && str_contains($g['body'], '/inc/app.js?v='));
+    $t('kayitli cihaz listede (Android · Chrome, teslim edildi)', str_contains($g['body'], 'vpush-devs') && str_contains($g['body'], 'Android · Chrome') && str_contains($g['body'], 'teslim edildi'));
+    $t('kartta ham Ingilizce kalmadi', !str_contains($g['body'], 'Each device is set up separately'));
+    $t('admin sayfasi kendi manifestini tasir', str_contains($g['body'], '/manifest.php?app=admin'));
+    $g = $req('GET', '/admin?tab=overview', $jarM);
+    $t('ozet sekmesinde Turkce bildirim satiri', str_contains($g['body'], 'data-vpush-nudge') && str_contains($g['body'], 'bu cihazda alın'));
+    $m = $req('GET', '/manifest.php?app=admin', null);
+    $t('admin manifesti: ayri kimlik, /admin\'de acilir', ($m['json']['id'] ?? '') === '/admin' && ($m['json']['start_url'] ?? '') === '/admin?src=pwa' && ($m['json']['name'] ?? '') === 'VESTRA Admin');
+    $m = $req('GET', '/manifest.php?lang=fr', null);
+    $t('musteri manifesti Fransizca', str_contains((string)($m['json']['description'] ?? ''), 'vérifiée') && ($m['json']['lang'] ?? '') === 'fr');
+    $r = $req('GET', '/admin?logout=1', $jarM);
+    $t('admin cikisi cihazi ayirir ve park eder', $ownerOf($hAD) === null && (json_decode((string)@file_get_contents($site.'/data/push_parked.json'), true)[$hAD]['uid'] ?? '') === 'admin');
+    $errs = (string)@file_get_contents($log);
+    $t('admin turu boyunca PHP Fatal / Warning yok', !preg_match('/Fatal|Warning|Deprecated/', $errs));
+    if (preg_match('/Fatal|Warning|Deprecated/', $errs)) echo substr($errs, 0, 1200), "\n";
+} else $t('php -S (admin turu) ayaga kalkti', false);
+if (is_resource($proc2)) { proc_terminate($proc2); proc_close($proc2); }
+@unlink($site.'/inc/config.php');
+
 echo "\n== 7b. Mesaj bildirimi uctan uca (gercek vestra_msg_send, kum havuzu) ==\n";
 /* En sik bildirim mesaj. Olculen: baslik GONDEREN (aliciya satici URUN KIMLIGIYLE,
    magaza adi degil — KURAL 8), govde mesajin kendisi, dokununca O konusma, rozet =
@@ -442,6 +513,15 @@ foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root.'/ve
 $t('hicbir sayfa eski Ingilizce vestra_push_send cagirmiyor ('.implode(',', $left).')', $left === []);
 $auth = (string)file_get_contents($root.'/vestra/inc/auth.php');
 $t('auth_logout cihazi ayiriyor', (bool)preg_match('/function auth_logout\(\).*?vestra_push_signout/s', $auth));
+$hooks = ['inc/auth.php' => 'admin_register', 'order.php' => 'admin_order', 'buyer.php' => 'admin_receipt', 'inc/claims.php' => 'admin_claim',
+          'seller-add.php' => 'admin_listing', 'inc/messages.php' => 'admin_message', 'cron_mailbox.php' => 'admin_mailbox', 'inc/notify.php' => 'vestra_push_admin_generic'];
+$missH = []; foreach ($hooks as $f => $k) if (!str_contains((string)file_get_contents($root.'/vestra/'.$f), $k)) $missH[] = $f;
+$t('yonetici bildirimi her olay yerinde bagli ('.implode(',', $missH).')', $missH === []);
+$adm = (string)file_get_contents($root.'/vestra/admin.php');
+$t('admin.php: cikista cihaz ayrilir, kart + ozet satiri + istemci', str_contains($adm, "vestra_push_signout(VESTRA_PUSH_ADMIN_UID)") && str_contains($adm, 'vestra_push_card($pushTx, VESTRA_PUSH_ADMIN_UID)')
+   && str_contains($adm, 'vestra_push_nudge($pushTx)') && str_contains($adm, 'echo vestra_app_boot();'));
+$fr = (string)file_get_contents($root.'/../chat-help/scripts/server/vestra-finder-report.php');
+$t('arama raporu operatore push gonderiyor (chat-help betigi)', $fr === '' || str_contains($fr, 'admin_finder'));
 $foot = (string)file_get_contents($root.'/vestra/inc/foot.php');
 $t('foot.php kendi SW kaydini/opt-in kopyasini tasimiyor', !str_contains($foot, 'serviceWorker.register') && !str_contains($foot, 'pushManager'));
 $tab = (string)file_get_contents($root.'/vestra/inc/tabbar.php');
@@ -454,6 +534,7 @@ $offHd = ['Sie sind offline', 'Vous êtes hors ligne', 'Sei offline', 'Estás si
 $t('cevrimdisi sayfa 8 dil daha tasiyor', count(array_filter($offHd, fn($h) => str_contains($off, $h))) === 8 && str_contains($off, 'vlang='));
 $sw = (string)file_get_contents($root.'/vestra/sw.js');
 $t('SW onbellegi v3 (offline.html degisti)', str_contains($sw, "const CACHE = 'vestra-v3'"));
+$t('head.php dile gore manifest', str_contains((string)file_get_contents($root.'/vestra/inc/head.php'), '/manifest.php?lang=<?= vlang() ?>'));
 $css = (string)file_get_contents($root.'/vestra/inc/style.css');
 $t('CSS: gizli dugme gercekten gizli ([hidden] zorlaniyor)', str_contains($css, '.vpush [hidden]') && str_contains($css, 'display:none!important'));
 /* Durum rozeti SARILABILMELI: nowrap iken Fransizca iPhone durumu kartin 63px disina

@@ -127,9 +127,24 @@ async function show(n) {
     badge: BADGE,
     timestamp: n.ts || Date.now(),
     dir: n.dir === 'rtl' ? 'rtl' : (n.dir === 'ltr' ? 'ltr' : 'auto'),
-    data: { url: safeUrl(n.url), kind: n.kind || '' },
+    data: { url: safeUrl(n.url), kind: n.kind || '', actions: {} },
   };
   if (n.lang) opts.lang = n.lang;
+  /* v4 (12 Oct 2026): a same-origin picture (the product of a new listing) and
+     up to two buttons ("Open order", "Messages") — each a link of THIS site. */
+  if (typeof n.image === 'string' && safeUrl(n.image) !== '/' && n.image.indexOf('?') === -1) {
+    opts.image = self.location.origin + safeUrl(n.image);
+  }
+  if (Array.isArray(n.actions)) {
+    const acts = [];
+    for (const a of n.actions.slice(0, 2)) {
+      if (!a || typeof a !== 'object' || !a.action || !a.title) continue;
+      const id = String(a.action).slice(0, 32);
+      acts.push({ action: id, title: String(a.title).slice(0, 40) });
+      opts.data.actions[id] = safeUrl(a.url);
+    }
+    if (acts.length) opts.actions = acts;
+  }
   /* One notification per conversation / order: a new message in the same thread
      replaces the last one (and still rings — renotify), instead of stacking. */
   if (n.tag) { opts.tag = n.tag; opts.renotify = true; }
@@ -155,7 +170,10 @@ self.addEventListener('push', (e) => {
 
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
-  const target = new URL(safeUrl(e.notification.data && e.notification.data.url), self.location.origin).href;
+  const d = (e.notification.data && typeof e.notification.data === 'object') ? e.notification.data : {};
+  /* A button tap opens that button's link; a tap on the body opens the main one. */
+  const want = (e.action && d.actions && typeof d.actions[e.action] === 'string') ? d.actions[e.action] : d.url;
+  const target = new URL(safeUrl(want), self.location.origin).href;
   e.waitUntil((async () => {
     const wins = await clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const w of wins) if (w.url === target && 'focus' in w) return w.focus();

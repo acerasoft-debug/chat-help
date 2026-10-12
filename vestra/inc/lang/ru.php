@@ -1690,4 +1690,7 @@ return array (
   'This is your last unpaid order: it must be paid to reopen your account, so it cannot be cancelled.' => 'Это ваш последний неоплаченный заказ: его нужно оплатить, чтобы восстановить аккаунт, поэтому отменить его нельзя.',
   'A bank receipt is already on file for this order, so it cannot be cancelled here. Please contact us.' => 'Для этого заказа уже загружена банковская квитанция, поэтому отменить его здесь нельзя. Пожалуйста, свяжитесь с нами.',
   'This order cannot be cancelled.' => 'Этот заказ нельзя отменить.',
+'B2B Fashion Wholesale' => 'Оптовая мода B2B',
+  'Verified B2B fashion wholesale marketplace — live prices, orders and messages.' => 'Проверенная B2B-площадка оптовой моды — актуальные цены, заказы и сообщения.',
+
 );

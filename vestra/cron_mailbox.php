@@ -56,4 +56,21 @@ $stamp = date('Y-m-d H:i');
 echo "[mailbox {$stamp}] istek {$req['id']} · {$req['mode']} · ".($req['mode'] === 'test' ? vestra_mailbox_mask((string)$req['test_to']) : (int)$req['limit'].' musteri')."\n";
 $sum = vestra_mailbox_run($req, ['log' => static function (string $m): void { echo '  ', $m, "\n"; }]);
 vestra_mailbox_finish((string)$req['id'], $sum);
+/* Operatörün telefonuna özet (12 Eki 2026): deneme gönderimi değilse ve bir şey olduysa. Fren devredeyse bir kez "durduruldu". */
+require_once __DIR__.'/inc/push.php';
+try {
+  if ($req['mode'] !== 'test' && ((int)$sum['sent'] + (int)$sum['bounced'] + (int)$sum['failed'] + (int)($sum['deferred'] ?? 0)) > 0) {
+    vestra_push_admin('admin_mailbox', ['sent' => (int)$sum['sent'], 'bounced' => (int)$sum['bounced'], 'failed' => (int)$sum['failed'], 'deferred' => (int)($sum['deferred'] ?? 0)]);
+  }
+  $bs = vestra_mailbox_bounce_stats();
+  $cfg = vestra_mailbox_cfg();
+  $pushedAt = (string)($cfg['stop_pushed_at'] ?? ''); $resetAt = (string)($cfg['bounce_reset_at'] ?? '');
+  if ($bs['stop'] && ($pushedAt === '' || $pushedAt < $resetAt)) {   // her fren için bir kez; "devam et"ten sonra yeniden
+    $GLOBALS['vestra_admin_push_done'] = false;
+    vestra_push_admin('admin_stop', ['days' => VESTRA_MAILBOX_BOUNCE_DAYS, 'rate' => (int)round($bs['rate'] * 100), 'bounced' => $bs['bounced'], 'sent' => $bs['sent']]);
+    $cfg['stop_pushed_at'] = date('c');
+    $f = vestra_mailbox_file('mailbox.json');
+    file_put_contents($f, json_encode($cfg, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES), LOCK_EX); @chmod($f, 0600);
+  }
+} catch (\Throwable $e) { echo '[mailbox] bildirim: '.$e->getMessage()."\n"; }
 echo "[mailbox] bitti · gonderildi {$sum['sent']} · gonderilmedi (olu alan adi) {$sum['bounced']} · hata {$sum['failed']}".($sum['note'] !== '' ? ' · '.$sum['note'] : '')."\n";

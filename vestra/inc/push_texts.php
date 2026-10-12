@@ -434,3 +434,66 @@ function vestra_push_compose(string $kind, array $f, string $lang): ?array {
     if (isset($f['unread']) && is_numeric($f['unread'])) $n['unread'] = (int)$f['unread'];
     return $n;
 }
+
+
+/* ── Yönetici (operatör) bildirimleri — TÜRKÇE (12 Eki 2026, operatör: "App'i düzelt, Benachrichtigung'lar
+   çalışsın"). Canlı sonda: 8 cihazın hepsi 201 alıyordu, yani push ÇALIŞIYORDU — ama operatörün kendi cihazı bir
+   ALICI hesabına bağlıydı ve kayıt / sipariş / dekont / talep / destek mesajı gibi işletme olayları yalnız e-posta
+   ile geliyordu. Bu katalog admin oturumuna (sahte hesap 'admin', vestra_push_admin) gider. Admin paneli Türkçe
+   olduğu için metinler de Türkçe; 9 dilli tablonun parçası değil. Para biçimi Türkçe (1.234,50 €). */
+function vestra_push_admin_texts(): array {
+    return [
+        'admin_test'     => ['t' => 'Yönetici bildirimleri açık', 'b' => 'Bu cihaz artık yeni kayıt, sipariş, ödeme dekontu, talep, destek mesajı ve arama sonuçlarını alır.'],
+        'admin_register' => ['t' => 'Yeni {role} kaydı: {company}', 'b' => '{country} · {kyb}', 'b0' => 'KYB kuyruğunda bekliyor.'],
+        'admin_order'    => ['t' => 'Yeni sipariş {ref}', 'b' => '{company} · {amount}', 'b0' => 'Sipariş alındı.'],
+        'admin_receipt'  => ['t' => 'Ödeme dekontu yüklendi · {ref}', 'b' => '{company} — kontrol edip onaylayın.', 'b0' => 'Kontrol edip onaylayın.'],
+        'admin_claim'    => ['t' => 'Talep açıldı · {claim}', 'b' => '{company} · sipariş {ref} · {reason}', 'b0' => 'Bir alıcı talep açtı.'],
+        'admin_listing'  => ['t' => 'Onay bekleyen ilan', 'b' => '{company} · {product}', 'b0' => 'Yeni bir ilan onayınızı bekliyor.'],
+        'admin_docs'     => ['t' => 'Belge yüklendi · {company}', 'b' => '{doc} — incelemeniz gerekiyor.', 'b0' => 'Satıcı belge yükledi, incelemeniz gerekiyor.'],
+        'admin_message'  => ['t' => '{from}', 'b' => '{text}', 'b0' => 'Yeni destek mesajı.'],
+        'admin_finder'   => ['t' => 'Arama bitti: {added} yeni butik', 'b' => '{analyzed} site incelendi · bugün {today}/500', 'b0' => 'Rapor hazır.'],
+        'admin_mailbox'  => ['t' => 'Gönderim bitti: {sent} e-posta gitti', 'b' => 'geri dönen {bounced} · hata {failed} · bekletilen {deferred}', 'b0' => 'Rapor hazır.'],
+        'admin_stop'     => ['t' => 'Gönderim durduruldu', 'b' => 'Son {days} günde geri dönme %{rate} ({bounced}/{sent}). Liste temizlendi — devam etmek için düğmeye basın.', 'b0' => 'Geri dönme oranı sınırı aştı.'],
+        'admin_generic'  => ['t' => '{title}', 'b' => '{text}', 'b0' => ''],
+    ];
+}
+
+/** Yönetici bildirimi: [title, body, url, tag, kind, lang=tr, urgency]. Bilinmeyen tür → null. */
+function vestra_push_admin_compose(string $kind, array $f = []): ?array {
+    $T = vestra_push_admin_texts();
+    if (!isset($T[$kind])) return null;
+    $vars = [];
+    foreach (['role', 'company', 'country', 'kyb', 'ref', 'claim', 'reason', 'product', 'doc', 'from', 'text', 'title'] as $k) {
+        $v = trim(preg_replace('/\s+/u', ' ', (string)($f[$k] ?? '')));
+        if ($v !== '') $vars['{'.$k.'}'] = mb_substr($v, 0, in_array($k, ['text', 'title'], true) ? 180 : 70);
+    }
+    foreach (['added', 'analyzed', 'today', 'sent', 'bounced', 'failed', 'deferred', 'days', 'rate'] as $k) if (isset($f[$k]) && (string)$f[$k] !== '') $vars['{'.$k.'}'] = (string)(int)$f[$k];
+    if (isset($f['amount']) && is_numeric($f['amount'])) $vars['{amount}'] = vestra_push_money((float)$f['amount'], 'de', (string)($f['currency'] ?? 'EUR'));
+    $fill = function (string $tpl) use ($vars): ?string {
+        if (preg_match_all('/\{[a-z_]+\}/', $tpl, $m)) foreach ($m[0] as $ph) if (!isset($vars[$ph])) return null;
+        return strtr($tpl, $vars);
+    };
+    $row = $T[$kind];
+    $title = $fill($row['t']) ?? trim(preg_replace('/\s*(·|—|:)?\s*\{[a-z_]+\}/u', '', $row['t']));
+    $body = $fill($row['b']) ?? ($row['b0'] ?? '');
+    if ($title === '') $title = 'VESTRA Admin';
+    $ref = rawurlencode((string)($f['ref'] ?? ''));
+    [$url, $tag] = match ($kind) {
+        'admin_register' => ['/admin?tab=users', 'adm-reg-'.($f['company'] ?? '')],
+        'admin_order'    => ['/admin?tab=orders'.($ref !== '' ? '&view='.$ref : ''), 'adm-order-'.($f['ref'] ?? '')],
+        'admin_receipt'  => ['/admin?tab=orders'.($ref !== '' ? '&view='.$ref : ''), 'adm-receipt-'.($f['ref'] ?? '')],
+        'admin_claim'    => ['/admin?tab=orders'.($ref !== '' ? '&view='.$ref : ''), 'adm-claim-'.($f['claim'] ?? '')],
+        'admin_listing'  => ['/admin?tab=approvals', 'adm-listing'],
+        'admin_docs'     => ['/admin?tab=documents'.(!empty($f['uid']) ? '&uid='.rawurlencode((string)$f['uid']) : ''), 'adm-docs-'.($f['uid'] ?? '')],
+        'admin_message'  => ['/admin?tab=messages'.(!empty($f['thread']) ? '&thread='.rawurlencode((string)$f['thread']) : ''), 'adm-msg-'.($f['thread'] ?? '')],
+        'admin_finder'   => ['/admin?tab=prospects#reports', 'adm-finder'],
+        'admin_mailbox', 'admin_stop' => ['/admin?tab=prospects#mailboxsend', 'adm-mailbox'],
+        'admin_test'     => ['/admin?tab=notify#notifications', 'adm-test'],
+        default          => [(string)($f['url'] ?? '/admin'), 'adm-'.substr(sha1($title), 0, 10)],
+    };
+    if (!empty($f['url']) && is_string($f['url']) && $f['url'][0] === '/' && !str_starts_with($f['url'], '//')) $url = $f['url'];
+    $n = ['title' => $title, 'body' => $body, 'url' => $url, 'tag' => mb_substr($tag, 0, 64), 'kind' => $kind, 'lang' => 'tr', 'dir' => 'ltr',
+          'urgency' => in_array($kind, ['admin_order', 'admin_receipt', 'admin_message', 'admin_claim'], true) ? 'high' : 'normal'];
+    if (!empty($f['image']) && is_string($f['image']) && preg_match('#^/[^\s"<>]{1,200}$#', $f['image']) && !str_starts_with($f['image'], '//')) $n['image'] = $f['image'];
+    return $n;
+}

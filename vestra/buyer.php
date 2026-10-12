@@ -128,6 +128,8 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
     $rRes = vestra_receipt_store($rRef, $_FILES['receipt_file'] ?? null, 'buyer');
     if ($rRes['ok']) {
         require_once __DIR__.'/inc/notify.php';
+        require_once __DIR__.'/inc/push.php';
+        try { vestra_push_admin('admin_receipt', ['ref' => $rRef, 'company' => (string)($rOrder['company'] ?? '')]); } catch (\Throwable $e) {}
         $opsTo = (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
         vestra_send_mail($opsTo, 'VESTRA — payment receipt uploaded for order '.$rRef,
             "A buyer uploaded a bank-transfer receipt for order {$rRef}.\n\n"

@@ -35,6 +35,9 @@ $raw = $post ? (string)file_get_contents('php://input', false, null, 0, 8192) : 
 $in = $raw !== '' ? json_decode($raw, true) : null;
 $in = is_array($in) ? $in : [];
 $uid = (string)($_SESSION['uid'] ?? '');
+/* Admin oturumu (vadmin) bir hesap değil; cihazı sahte 'admin' hesabına bağlanır (12 Eki 2026). */
+$isAdmin = $uid === '' && !empty($_SESSION['vadmin']);
+if ($isAdmin) $uid = VESTRA_PUSH_ADMIN_UID;
 
 /* Service-worker endpoints first: they may run without a session (the device's
    own auth secret stands in for it — only that browser and this server know it). */
@@ -100,7 +103,7 @@ switch ($a) {
         require_once __DIR__.'/inc/push_texts.php';
         $acc = auth_user();
         $panel = (($acc['type'] ?? '') === 'seller') ? '/seller' : '/buyer';
-        $n = vestra_push_compose('test', ['url' => $panel.'?tab=profile#notifications'], vestra_push_lang($acc));
+        $n = $isAdmin ? vestra_push_admin_compose('admin_test') : vestra_push_compose('test', ['url' => $panel.'?tab=profile#notifications'], vestra_push_lang($acc));
         $r = $n ? vestra_push_deliver($uid, $n, $h) : ['ok' => 0];
         $out(['ok' => $r['ok'] > 0, 'error' => $r['ok'] > 0 ? '' : 'push_service']);
 }

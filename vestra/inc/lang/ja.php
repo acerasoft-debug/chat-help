@@ -1690,4 +1690,7 @@ return array (
   'This is your last unpaid order: it must be paid to reopen your account, so it cannot be cancelled.' => 'これは最後の未払い注文です。アカウント再開にはお支払いが必要なため、キャンセルできません。',
   'A bank receipt is already on file for this order, so it cannot be cancelled here. Please contact us.' => 'この注文には振込明細がすでに登録されているため、ここではキャンセルできません。お問い合わせください。',
   'This order cannot be cancelled.' => 'この注文はキャンセルできません。',
+'B2B Fashion Wholesale' => 'B2Bファッション卸',
+  'Verified B2B fashion wholesale marketplace — live prices, orders and messages.' => '認証済みB2Bファッション卸売マーケットプレイス — リアルタイム価格、注文、メッセージ。',
+
 );

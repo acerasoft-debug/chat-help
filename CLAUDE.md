@@ -11573,6 +11573,48 @@ eksiklikleri düzelt"*).
 (gerçek `sw.js` Node VM'de olay gönderilerek koşuyor). Kapsam: kripto (RFC
 vektörü), SSRF listesi, kayıt, teslim ve yarış, 9 dilde katalog, kum havuzunda
 `php -S` üzerinden uçtan uca HTTP, gerçek `vestra_msg_send` push'u, kablolama.
+
+**12 Eki 2026 — OPERATÖRÜN KENDİ BİLDİRİMLERİ (operatör: *"App i düzelt
+Benachrichtigung lar çalışsın daha estetik olsun"*, VESTRA seçildi).**
+Önce ölçüldü (diag-push-vestra.yml, maskeli): altyapı sağlam — VAPID ✓, JWT ✓,
+7 hesap / 8 cihaz hepsi `last_code 201`. Asıl kusur: **operatörün telefonu bir
+ALICI hesabına bağlıydı**; admin oturumu (`$_SESSION['vadmin']`) bir hesap değil,
+dolayısıyla yeni sipariş / kayıt / mesaj gibi işletme olayları hiç push olmuyor,
+yalnız `vestra_notify()` e-postası gidiyordu. Yapılan:
+- **Sahte hesap `admin`** (`VESTRA_PUSH_ADMIN_UID`): `/push` uç noktası vadmin
+  oturumunu buna bağlar; `vestra_push_admin($kind,$facts)` → Türkçe katalog
+  `vestra_push_admin_compose()` (push_texts.php: admin_register/order/receipt/
+  claim/listing/docs/message/finder/mailbox/stop/test). Her bildirim ilgili admin
+  sekmesini açar (`/admin?tab=orders&view=REF`, `…&thread=ID`). Çağrı yerleri:
+  auth.php kayıt, order.php, buyer.php dekont, claims.php, seller-add.php,
+  messages.php (Destek'e yazılan), cron_mailbox.php (parti özeti; fren devreye
+  girince BİR kez `admin_stop`, `mailbox.json.stop_pushed_at`; "devam et"ten
+  sonra yeniden), chat-help `vestra-finder-report.php` (ortak havuz, kuru koşu
+  değil). **`vestra_notify()` artık genel yedek:** özel tür gitmediyse konu
+  satırını (emoji ve "VESTRA —" soyulur) + gövdedeki ilk satırı + gövdedeki
+  `/admin…` bağlantısını push'lar — `$GLOBALS['vestra_admin_push_done']` aynı
+  istekte çift bildirimi önler.
+- **Admin paneli:** Bildirimler sekmesinde (🔔) operatörün kendi kartı
+  (`vestra_push_card($pushTx, 'admin')`) — Türkçe metinler, **kayıtlı cihaz
+  listesi** (etiket, eklendi, son teslim; `vestra_push_devices()`, uç nokta
+  basılmaz); Dashboard'da bir kerelik Türkçe özet satırı; `?logout` cihazı
+  ayırıp park eder; sayfa sonunda `vestra_app_boot()` (Türkçe sözlük
+  `VESTRA_APP_STRINGS`); `<link rel=manifest href=/manifest.php?app=admin>` →
+  ayrı **"VESTRA Admin"** uygulaması (id `/admin`, /admin'de açılır, kısayollar
+  Siparişler/Onaylar/Mesajlar/Müşteriler).
+- **Estetik / işlev:** `sw.js` v4 — bildirimde **görsel** (yalnız aynı siteden)
+  ve **en çok iki düğme**; düğmeye dokunma o düğmenin bağlantısını açar
+  (`data.actions`), gövde ana bağlantıyı. `vestra_push_payload()` `image` +
+  `actions` geçirir (site dışı atılır). **`manifest.php`:** site.webmanifest'in
+  dile göre sürümü (ad, açıklama, kısayollar `t()` ile; `head.php` `?lang=` ile
+  sayfanın dilini geçirir — tarayıcı manifesti çerezsiz çeker); 8 sözlüğe
+  `'B2B Fashion Wholesale'` ve açıklama anahtarı eklendi.
+- **Ölçüm:** push_app_test **192** (5b Türkçe katalog + yük; 7c admin oturumu
+  uçtan uca: abone ol → `admin`, deneme Türkçe, kart + cihaz listesi, manifest,
+  çıkış parkı, PHP uyarısı 0), sw_check **28** (görsel/düğme/düğme tıklaması).
+  `run_all.sh`'ta kalan 5 test (dropship_plan, msg_read_receipt,
+  msg_thread_label, order_audit, order_wholesale_sample) **bu değişiklikten
+  önce de kalıyordu** (stash ile doğrulandı).
 Düşebildiği doğrulandı — her sabotaj uygulandığı sayılarak, `cp` yedeğinden geri
 alınarak:
 

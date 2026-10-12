@@ -526,6 +526,12 @@ function auth_register(array $d): array|string {
        ad er gec ayrisir ve bildirim, hesabin gercekten tasidigi koddan baska bir
        ulke soyler. Cozulemezse kod basilir -- uydurmaktansa 'SA' yazmak yeg. */
     $autoName = $autoApprove ? vestra_country_of_cc($autoCc) : '';
+    /* Operatörün telefonuna (12 Eki 2026): başlıkta rol + firma, gövdede ülke ve KYB durumu. */
+    require_once __DIR__.'/push.php';
+    try { vestra_push_admin('admin_register', ['role' => $type === 'seller' ? 'satıcı' : 'alıcı',
+        'company' => $acc['company'] ?: ($acc['name'] ?: $acc['email']),
+        'country' => $autoName !== '' ? $autoName : vestra_country_of_cc((string)($acc['country'] ?? $acc['reg_cc'] ?? '')),
+        'kyb' => $autoApprove ? 'hesap AÇIK (otomatik onay)' : 'KYB onayı bekliyor']); } catch (\Throwable $e) {}
     vestra_notify(
         "🆕 New {$roleLabel} registered: ".($acc['name']?:'—').' — '.($acc['company']?:'—')
           .($autoApprove ? '  [account OPEN — '.$autoName.']' : ''),

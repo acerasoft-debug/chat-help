@@ -80,6 +80,35 @@ function vestra_b64url_dec(string $s): string {
 /* ── VAPID keypair (auto-generated once, under a lock) ─────────────────────
    Two first requests racing used to generate two different keys; subscriptions
    made against the losing one would have been refused (403) forever after. */
+/* Operatörün sahte hesabı: admin oturumu (vadmin) bir hesap değildir, ama cihazı bir sahibe bağlanmalı.
+   Kayıt/çıkış/teslim aynı kodla; metinler vestra_push_admin_compose (Türkçe). */
+const VESTRA_PUSH_ADMIN_UID = 'admin';
+
+/**
+ * Operatöre bildirim (12 Eki 2026). Cihaz yoksa iş yok. $facts → vestra_push_admin_compose.
+ * Aynı istekte bir kez: vestra_notify()'ın genel bildirimi, özel bir tür gönderildiyse atlanır (çift bildirim olmasın).
+ */
+function vestra_push_admin(string $kind, array $facts = []): array {
+    $zero = ['devices' => 0, 'ok' => 0, 'failed' => 0, 'pruned' => 0];
+    if (empty(vestra_push_subs()[VESTRA_PUSH_ADMIN_UID])) return $zero;
+    require_once __DIR__.'/push_texts.php';
+    $n = vestra_push_admin_compose($kind, $facts);
+    if (!$n) return $zero;
+    $GLOBALS['vestra_admin_push_done'] = true;
+    return vestra_push_deliver(VESTRA_PUSH_ADMIN_UID, $n);
+}
+
+/** vestra_notify()'dan: operatör e-postasının konusu + ilk satırı, özel tür yoksa. Bağlantı gövdedeki admin linkinden. */
+function vestra_push_admin_generic(string $subject, string $body): array {
+    if (!empty($GLOBALS['vestra_admin_push_done'])) return ['devices' => 0, 'ok' => 0, 'failed' => 0, 'pruned' => 0];
+    $title = trim(preg_replace('/^[\p{So}\p{Sk}\s]+|^VESTRA\s*[—-]\s*/u', '', $subject));
+    $lines = array_values(array_filter(array_map('trim', preg_split('/\R/', $body)), fn($l) => $l !== '' && !preg_match('/^[—-]+/', $l)));
+    $text = $lines[0] ?? '';
+    $url = '/admin';
+    if (preg_match('#https://vestrasales\.com(/admin[^\s"<>]*)#', $body, $m)) $url = $m[1];
+    return vestra_push_admin('admin_generic', ['title' => $title, 'text' => $text, 'url' => $url]);
+}
+
 function vestra_vapid_keys(): array {
     $ok = fn($k) => is_array($k) && !empty($k['publicKey']) && !empty($k['privatePem']);
     $k = vestra_push_store_read('vapid.json');
@@ -190,6 +219,20 @@ function vestra_push_endpoint_ok(string $endpoint): bool {
         if (str_ends_with($host, $suffix)) return true;
     }
     return false;
+}
+
+/** One account's devices for the card's list: label, added (d M), last_ok (ISO|''), fails. Never endpoints or keys. */
+function vestra_push_devices(string $uid): array {
+    $out = [];
+    foreach ((array)(vestra_push_subs()[$uid] ?? []) as $d) {
+        if (!is_array($d)) continue;
+        $out[] = ['label'   => (string)($d['label'] ?? ''),
+                  'added'   => ($ts = (int)strtotime((string)($d['added'] ?? ''))) > 0 ? date('j M', $ts) : '—',
+                  'last_ok' => (string)($d['last_ok'] ?? ''),
+                  'fails'   => (int)($d['fails'] ?? 0)];
+    }
+    usort($out, fn($a, $b) => strcmp($b['last_ok'], $a['last_ok']));
+    return $out;
 }
 
 /** Coarse device label for the operator's device list ("Android · Chrome"). Never the raw UA. */
@@ -467,6 +510,19 @@ function vestra_push_payload(array $n): array {
         if (isset($n[$f]) && (string)$n[$f] !== '') $out[$f] = mb_substr((string)$n[$f], 0, 64);
     }
     if (isset($n['unread']) && is_int($n['unread'])) $out['unread'] = max(0, $n['unread']);
+    /* 12 Eki 2026: büyük görsel (ürün fotoğrafı) ve en çok iki düğme — yalnız bu sitenin yolları. */
+    $same = fn($u) => is_string($u) && $u !== '' && $u[0] === '/' && !str_starts_with($u, '//') && !str_starts_with($u, '/\\') && strlen($u) <= 200;
+    if (!empty($n['image']) && $same($n['image'])) $out['image'] = $n['image'];
+    if (!empty($n['actions']) && is_array($n['actions'])) {
+        $acts = [];
+        foreach ($n['actions'] as $a) {
+            if (!is_array($a) || trim((string)($a['title'] ?? '')) === '') continue;
+            $acts[] = ['action' => mb_substr(preg_replace('/[^a-z0-9_-]/i', '', (string)($a['action'] ?? 'open')) ?: 'open', 0, 24),
+                       'title' => mb_substr(trim((string)$a['title']), 0, 24), 'url' => $same($a['url'] ?? '') ? $a['url'] : $url];
+            if (count($acts) === 2) break;
+        }
+        if ($acts) $out['actions'] = $acts;
+    }
     return $out;
 }
 

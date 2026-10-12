@@ -319,6 +319,8 @@ function vestra_claim_notify(string $event, string $ref, array $orderRow, array 
     }
 
     if ($event === 'opened') {
+        require_once __DIR__.'/push.php';
+        try { vestra_push_admin('admin_claim', ['claim' => $claimRef, 'ref' => $ref, 'company' => (string)($orderRow['company'] ?? ''), 'reason' => $reasonLbl]); } catch (\Throwable $e) {}
         $opsTo = (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
         $out['ops_mail'] = (bool)vestra_send_mail($opsTo, 'VESTRA — claim '.$claimRef.' opened on order '.$ref,
             "A buyer opened a claim.\n\n"

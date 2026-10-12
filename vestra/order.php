@@ -390,6 +390,8 @@ if($discount>0) $body.="\nGoods €{$subtotalGross}\nVoucher {$voucherCode} −�
 if($voucherNote!=='' && ($discount<=0 || $voucherFailed)) $body.="\n".trim($voucherNote);
 if($shipping>0) $body.="\n{$shipLabel} €{$shipping}";
 $body.="\nSubtotal €{$subtotal}\nBuyer pays €{$total}\n".($commission>0?"VESTRA commission €{$commission} (seller €{$seller_fee} + buyer €{$buyer_fee}) · Seller payout €{$payout}\n":"No platform fees (membership model) · Seller receives €{$payout}\n")."Notes: ".trim($_POST['notes']??'')."\n";
+require_once __DIR__.'/inc/push.php';
+try { vestra_push_admin('admin_order', ['ref' => $ref, 'company' => $company, 'amount' => $total]); } catch (\Throwable $e) {}
 vestra_notify("New order {$ref} — {$company}", $body, $email);
 
 $FEE_BUYER_PCT=round($FEE_BUYER*100);

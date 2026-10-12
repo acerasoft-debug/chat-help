@@ -1695,4 +1695,7 @@ return array (
   'This is your last unpaid order: it must be paid to reopen your account, so it cannot be cancelled.' => 'Dies ist Ihre letzte unbezahlte Bestellung: Sie muss bezahlt werden, um Ihr Konto freizuschalten, und kann daher nicht storniert werden.',
   'A bank receipt is already on file for this order, so it cannot be cancelled here. Please contact us.' => 'Für diese Bestellung liegt bereits ein Überweisungsbeleg vor, daher kann sie hier nicht storniert werden. Bitte kontaktieren Sie uns.',
   'This order cannot be cancelled.' => 'Diese Bestellung kann nicht storniert werden.',
+'B2B Fashion Wholesale' => 'B2B-Modegroßhandel',
+  'Verified B2B fashion wholesale marketplace — live prices, orders and messages.' => 'Verifizierter B2B-Modegroßhandelsmarktplatz — Live-Preise, Bestellungen und Nachrichten.',
+
 );

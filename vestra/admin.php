@@ -10,6 +10,8 @@ require_once __DIR__.'/inc/account_delete.php';
 require_once __DIR__.'/inc/addresses.php';
 require_once __DIR__.'/inc/leads.php';
 require_once __DIR__.'/inc/notify.php';
+require_once __DIR__.'/inc/push.php';
+require_once __DIR__.'/inc/app_ui.php';
 require_once __DIR__.'/inc/stripe.php';
 require_once __DIR__.'/inc/commission.php';
 require_once __DIR__.'/inc/escrow.php';
@@ -29,7 +31,33 @@ if(session_status()===PHP_SESSION_NONE) session_start();
 $PASS   = (string)vestra_cfg('admin_pass','');
 $locked = ($PASS==='');
 
-if(isset($_GET['logout'])){ unset($_SESSION['vadmin'],$_SESSION['vadmin_csrf']); header('Location: /admin'); exit; }
+/* Çıkışta bu cihazın bildirim bağı da kopar (müşteri panelindeki auth_logout ile aynı): operatör
+   ortak bir bilgisayardan çıkınca sipariş bildirimleri o makinede çalmaya devam etmesin. */
+if(isset($_GET['logout'])){ vestra_push_signout(VESTRA_PUSH_ADMIN_UID); unset($_SESSION['vadmin'],$_SESSION['vadmin_csrf']); header('Location: /admin'); exit; }
+/* Bildirim kartı / uygulama metinleri — panel Türkçe, t() yok (12 Eki 2026). */
+$pushTx = [
+  'Notifications' => 'Bildirimler',
+  'Orders, offers and messages the moment they happen — on this phone or computer.' => 'Yeni sipariş, kayıt, mesaj, şikâyet ve günlük butik/e-posta özeti — anında bu telefona veya bilgisayara.',
+  'Turn on' => 'Aç', 'Send a test' => 'Deneme gönder', 'Turn off' => 'Kapat', 'Install the app' => 'Uygulamayı yükle',
+  'Each device is set up separately. Signing out turns notifications off on that device.' => 'Her cihaz ayrı ayrı açılır. Çıkış yapınca o cihazda bildirimler kapanır.',
+  'This browser cannot show notifications.' => 'Bu tarayıcı bildirim gösteremiyor.',
+  'Get order, offer and message alerts on this device.' => 'Yeni sipariş, kayıt ve mesaj bildirimlerini bu cihazda alın.',
+  'Dismiss' => 'Kapat', 'Device' => 'Cihaz', 'added' => 'eklendi', 'not delivered' => 'teslim edilemedi', 'no delivery yet' => 'henüz bildirim gitmedi',
+  'delivered just now' => 'az önce teslim edildi', 'delivered %d min ago' => '%d dk önce teslim edildi',
+  'delivered %d h ago' => '%d sa önce teslim edildi', 'delivered %d days ago' => '%d gün önce teslim edildi',
+];
+$GLOBALS['VESTRA_APP_STRINGS'] = [
+  'on' => 'Bu cihazda açık', 'off' => 'Bu cihazda kapalı', 'denied' => 'Tarayıcı ayarlarında engelli',
+  'denied_hint' => 'Yeniden izin vermek için tarayıcıda site ayarlarını açın (adres çubuğunun yanındaki simge) ve Bildirimler\'i "İzin ver" yapın.',
+  'unsupported' => 'Bu tarayıcı bildirim gösteremiyor.',
+  'ios_title' => 'iPhone / iPad: önce Ana Ekran\'a ekleyin',
+  'ios' => 'iPhone ve iPad\'de bildirimler VESTRA Ana Ekran\'a eklenince çalışır: Paylaş → Ana Ekrana Ekle, VESTRA\'yı oradan açın, sonra bildirimleri açın.',
+  'signin' => 'Bildirim almak için önce giriş yapın.',
+  'sent' => 'Deneme gönderildi — birkaç saniye içinde gelmeli.',
+  'wait' => 'Yeni bir deneme için biraz bekleyin.',
+  'error' => 'Bir sorun oldu — lütfen yeniden deneyin.',
+  'on_hint' => 'Tamam — yeni sipariş, kayıt ve mesajlar bu cihaza bildirilecek.',
+];
 $err=false;
 if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['pass'])){
   $tkey='admin|'.($_SERVER['REMOTE_ADDR']??'');
@@ -2618,6 +2646,12 @@ function arow(array $cells, bool $head=false): string {
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>VESTRA Admin</title>
+<meta name="theme-color" content="#211d17">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="VESTRA Admin">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="manifest" href="/manifest.php?app=admin">
 <link rel="stylesheet" href="/inc/style.css">
 <style>
 :root{--sb:220px;
@@ -3305,7 +3339,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 
 <?php // ══════════════════════════════════════════════════════ OVERVIEW
 if($tab==='overview'): ?>
-
+<?= vestra_push_nudge($pushTx) ?>
 <style>
 .attn-grid{display:grid;gap:8px}
 .attn-row{display:flex;align-items:center;gap:14px;padding:11px 14px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--bg);transition:.15s}
@@ -7572,6 +7606,11 @@ elseif($tab==='notify'):
   <p class="ahint" style="margin-top:4px">Send push notifications straight to your users' phones &amp; desktops — product drops, offer news, anything. Automatic pushes (orders, offers, messages, escrow) are always on; this panel is for manual announcements.</p></div>
 </div>
 
+<?php /* Operatörün KENDİ cihazı (12 Eki 2026): yeni sipariş, kayıt, mesaj, şikâyet, günlük butik ve e-posta özeti
+         buraya kayıtlı telefona düşer. Eskiden operatörün telefonu bir ALICI hesabına bağlıydı; admin olayları
+         yalnızca e-posta ile gidiyordu. */ ?>
+<?= vestra_push_card($pushTx, VESTRA_PUSH_ADMIN_UID) ?>
+
 <div class="asgrid" style="margin-bottom:18px">
   <div class="ascard"><div class="sv" style="color:#9a7320"><?= (int)$pstats['users'] ?></div><div class="sl">Subscribed users (<?= $subscribedPct ?>%)</div></div>
   <div class="ascard"><div class="sv"><?= (int)$pstats['devices'] ?></div><div class="sl">Devices registered</div></div>
@@ -8349,5 +8388,11 @@ elseif($tab==='waitlist'): ?>
 </main>
 </div><!-- alayout -->
 
+<?php
+  /* Uygulama istemcisi (inc/app.js): SW kaydı, bildirim kartı/özet satırı, admin oturumu 'admin' sahte hesabına bağlanır. */
+  $GLOBALS['AUTH_USER'] = ['id' => VESTRA_PUSH_ADMIN_UID, 'type' => 'admin'];
+  $GLOBALS['MSG_UNREAD'] = 0;
+  echo vestra_app_boot();
+?>
 <?php endif; // end authed ?>
 </body></html>

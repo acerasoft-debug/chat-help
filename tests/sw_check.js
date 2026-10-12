@@ -112,6 +112,26 @@ const out = (ok, claim) => console.log((ok ? 'ok   ' : 'FAIL ') + claim);
   await fire(w, 'notificationclick', { notification: { close() {}, data: { url: '//evil.example' } } });
   out(w.opened[0] === 'https://vestrasales.com/', 'click: foreign URL opens the home page');
 
+  // 8) image + action buttons (v4): same-origin image kept, foreign dropped, ≤2 buttons, button tap opens its own link
+  w = world();
+  await fire(w, 'push', { data: { json: () => ({ title: 'Onay bekleyen ilan', body: 'S · P', url: '/admin?tab=approvals', image: '/uploads/p1.jpg',
+    actions: [{ action: 'open', title: 'Aç', url: '/admin?tab=orders' }, { action: 'msg', title: 'Mesaj', url: '//evil.example' }, { action: 'z', title: 'Z', url: '/z' }] }) } });
+  const n8 = w.shown[0] || {};
+  out(n8.image === 'https://vestrasales.com/uploads/p1.jpg', 'image: same-origin picture attached as absolute URL');
+  out(Array.isArray(n8.actions) && n8.actions.length === 2 && n8.actions[0].action === 'open' && n8.actions[0].title === 'Aç', 'actions: at most two buttons, in order');
+  w = world();
+  await fire(w, 'push', { data: { json: () => ({ title: 't', body: 'b', url: '/', image: 'https://evil.example/a.png' }) } });
+  out(!(w.shown[0] || {}).image, 'image: foreign picture dropped');
+  w = world();
+  await fire(w, 'notificationclick', { action: 'open', notification: { close() {}, data: { url: '/admin', actions: { open: '/admin?tab=orders', msg: '/' } } } });
+  out(w.opened[0] === 'https://vestrasales.com/admin?tab=orders', "click on a button opens that button's link");
+  w = world();
+  await fire(w, 'notificationclick', { action: '', notification: { close() {}, data: { url: '/admin', actions: { open: '/admin?tab=orders' } } } });
+  out(w.opened[0] === 'https://vestrasales.com/admin', 'click on the body opens the main link');
+  w = world();
+  await fire(w, 'notificationclick', { action: 'nope', notification: { close() {}, data: { url: '/admin', actions: {} } } });
+  out(w.opened[0] === 'https://vestrasales.com/admin', 'unknown button falls back to the main link');
+
   // 7) subscription rotated → renew with old endpoint + old auth
   const newSub = { toJSON: () => ({ endpoint: 'https://fcm.googleapis.com/fcm/send/dev2', keys: { p256dh: 'P', auth: 'A' } }) };
   const oldSub = { endpoint: 'https://fcm.googleapis.com/fcm/send/dev1', getKey: () => new Uint8Array(16).buffer };

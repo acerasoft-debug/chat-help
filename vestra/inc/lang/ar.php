@@ -1690,4 +1690,7 @@ return array (
   'This is your last unpaid order: it must be paid to reopen your account, so it cannot be cancelled.' => 'هذا آخر طلب غير مدفوع لديك: يجب دفعه لإعادة تفعيل حسابك، لذلك لا يمكن إلغاؤه.',
   'A bank receipt is already on file for this order, so it cannot be cancelled here. Please contact us.' => 'يوجد بالفعل إيصال تحويل لهذا الطلب، لذلك لا يمكن إلغاؤه من هنا. يرجى التواصل معنا.',
   'This order cannot be cancelled.' => 'لا يمكن إلغاء هذا الطلب.',
+'B2B Fashion Wholesale' => 'جملة أزياء B2B',
+  'Verified B2B fashion wholesale marketplace — live prices, orders and messages.' => 'سوق جملة أزياء B2B موثّق — أسعار مباشرة وطلبات ورسائل.',
+
 );

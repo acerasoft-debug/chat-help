@@ -62,11 +62,33 @@ function vestra_app_boot(): string {
  * The Notifications card. Everything that depends on THIS device (supported?
  * permission? linked?) is painted by app.js; the server only knows the account.
  * Without JavaScript the card says so instead of showing dead buttons.
+ *
+ * $tx: text overrides keyed by the English source string (the admin panel is
+ * Turkish and has no t()). $uid: when given, the account's registered devices
+ * are listed under the buttons — "Android · Chrome · added 12 Oct · delivered
+ * 2 min ago" — so the operator SEES which phone will ring, instead of guessing.
  */
-function vestra_push_card(): string {
-    $tt = function (string $s): string { return htmlspecialchars(function_exists('t') ? t($s) : $s); };
+function vestra_push_card(array $tx = [], string $uid = ''): string {
+    $tt = function (string $s) use ($tx): string {
+        return htmlspecialchars($tx[$s] ?? (function_exists('t') ? t($s) : $s));
+    };
     $bell = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
           . '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
+    $devs = '';
+    if ($uid !== '') {
+        $list = vestra_push_devices($uid);
+        if ($list) {
+            $devs = '<ul class="vpush-devs">';
+            foreach ($list as $d) {
+                $st = $d['fails'] > 0 ? 'bad' : ($d['last_ok'] !== '' ? 'ok' : 'new');
+                $when = $d['last_ok'] !== '' ? vestra_push_ago($d['last_ok'], $tx) : ($d['fails'] > 0 ? $tt('not delivered') : $tt('no delivery yet'));
+                $devs .= '<li data-state="'.$st.'"><span class="vpush-dot" aria-hidden="true"></span>'
+                       . '<span class="vpush-dev-nm">'.htmlspecialchars($d['label'] !== '' ? $d['label'] : $tt('Device')).'</span>'
+                       . '<span class="vpush-dev-at">'.$tt('added').' '.htmlspecialchars($d['added']).' · '.htmlspecialchars($when).'</span></li>';
+            }
+            $devs .= '</ul>';
+        }
+    }
     return '<div class="panelcard vpush" id="notifications" data-vpush-card>'
         . '<div class="vpush-hd"><span class="vpush-ic" aria-hidden="true">'.$bell.'</span>'
         . '<div class="vpush-tx"><h3>'.$tt('Notifications').'</h3>'
@@ -79,9 +101,20 @@ function vestra_push_card(): string {
         . '<button type="button" class="btn btn-o btn-sm" data-vpush="off" hidden>'.$tt('Turn off').'</button>'
         . '<button type="button" class="btn btn-o btn-sm" data-vapp="install" hidden>'.$tt('Install the app').'</button>'
         . '</div>'
+        . $devs
         . '<p class="hint vpush-foot">'.$tt('Each device is set up separately. Signing out turns notifications off on that device.').'</p>'
         . '<noscript><p class="hint">'.$tt('This browser cannot show notifications.').'</p></noscript>'
         . '</div>';
+}
+
+/** "2 min ago" for the device list; overridable like the card texts. */
+function vestra_push_ago(string $iso, array $tx = []): string {
+    $tt = fn(string $s) => $tx[$s] ?? (function_exists('t') ? t($s) : $s);
+    $d = time() - (int)strtotime($iso);
+    if ($d < 90) return $tt('delivered just now');
+    if ($d < 5400) return str_replace('%d', (string)max(1, intdiv($d, 60)), $tt('delivered %d min ago'));
+    if ($d < 129600) return str_replace('%d', (string)max(1, intdiv($d, 3600)), $tt('delivered %d h ago'));
+    return str_replace('%d', (string)intdiv($d, 86400), $tt('delivered %d days ago'));
 }
 
 /**
@@ -90,8 +123,8 @@ function vestra_push_card(): string {
  * app.js ONLY when this browser can do push, has not been asked yet and the
  * line was not dismissed — a nudge that also appears after "no" is nagging.
  */
-function vestra_push_nudge(): string {
-    $tt = function (string $s): string { return htmlspecialchars(function_exists('t') ? t($s) : $s); };
+function vestra_push_nudge(array $tx = []): string {
+    $tt = function (string $s) use ($tx): string { return htmlspecialchars($tx[$s] ?? (function_exists('t') ? t($s) : $s)); };
     return '<div class="vpush-nudge" data-vpush-nudge hidden>'
         . '<span class="vpush-nudge-tx">'.$tt('Get order, offer and message alerts on this device.').'</span>'
         . '<button type="button" class="btn btn-p btn-sm" data-vpush="on">'.$tt('Turn on').'</button>'
