@@ -68,9 +68,16 @@ jobs:
             echo "  ısınma ".($w['on'] ? 'AÇIK' : 'kapalı')." · gün {$w['day']} · sınır {$w['limit']}\n";
             echo "  geri dönme freni: %".round($bs['rate'] * 100, 1)." ({$bs['bounced']}/{$bs['sent']})".($bs['stop'] ? ' · DURDURDU' : ' · serbest')."\n";
             echo "  DKIM: ".vestra_dkim_dns_status()."\n";
-            if (function_exists('vestra_finder_send_targets')) echo "  gönderime hazır alıcı (web havuzu): ".count(vestra_finder_send_targets(5000, 'web'))." · tüm havuz: ".count(vestra_finder_send_targets(5000, 'all'))."\n";
+            /* GitHub, port sırrı (22) yüzünden "22"yi her yerde *** yapıyor: sayılar rakam rakam basılır. */
+            $sp = fn(int $n) => implode(' ', str_split((string)$n));
+            if (function_exists('vestra_finder_send_targets')) {
+              $all = vestra_finder_send_targets(5000, 'all'); $strict = 0;
+              foreach ($all as $l) if (function_exists('vestra_mailbox_strict_receiver') && vestra_mailbox_strict_receiver((string)($l['email'] ?? ''))) $strict++;
+              echo "  gönderime hazır alıcı (web havuzu): ".$sp(count(vestra_finder_send_targets(5000, 'web')))." · tüm havuz: ".$sp(count($all))." · bunlardan Outlook/Orange: ".$sp($strict)."\n";
+            }
             echo "\n== Posta kutusu istekleri (son 15) ==\n";
-            foreach (array_slice(vestra_mailbox_runs(), 0, 15) as $r)
+            $runs = vestra_mailbox_runs(); usort($runs, fn($a, $b) => strcmp((string)($b['requested_at'] ?? ''), (string)($a['requested_at'] ?? '')));
+            foreach (array_slice($runs, 0, 15) as $r)
               printf("  %-19s %-8s %-6s lim %-4s gönd %-4s dön %-3s hata %-3s bekl %-4s %s\n", substr((string)($r['requested_at'] ?? ''), 0, 19), (string)($r['status'] ?? ''), (string)($r['mode'] ?? ''),
                 (string)($r['limit'] ?? ''), (string)($r['sent'] ?? ''), (string)($r['bounced'] ?? ''), (string)($r['failed'] ?? ''), (string)($r['deferred'] ?? ''), mb_substr((string)($r['note'] ?? ''), 0, 90));
             if (function_exists('vestra_read_json')) {
