@@ -1,0 +1,48 @@
+name: (Salt-okunur) Renk seçimi denetimi
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Canlı katalogdaki çok renkli her ürünü sınıflandırır (tools/audit-colours.php):
+# renk başına ayrı satır, kendi galerisi olan renkler, fotoğrafa bağlanmamış
+# renkler. Araç sunucuda geçici bir klasörden (~/.sarvesto-audit) çalışır ve
+# silinir; siteye ve data/ klasörüne hiçbir şey yazılmaz. Rapor + kolajlar
+# diag/colours/ altına dala işlenir.
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP + GD
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq php-cli php-gd > /dev/null
+      - name: Sunucuda denetle
+        run: |
+          set -e
+          mkdir -p ~/.ssh diag/colours
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy; chmod 600 ~/.ssh/id_deploy
+          SSHOPT="-i ~/.ssh/id_deploy -o StrictHostKeyChecking=no -p ${{ secrets.DEPLOY_PORT || 22 }}"
+          SRV="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+          tar -cf - -C retail/tools audit-colours.php lib-photo-colour.php | ssh $SSHOPT "$SRV" "rm -rf ~/.sarvesto-audit && mkdir -p ~/.sarvesto-audit && tar -xf - -C ~/.sarvesto-audit"
+          ssh $SSHOPT "$SRV" "php -d memory_limit=1536M ~/.sarvesto-audit/audit-colours.php --root=\$HOME/maxsales_de; rm -rf ~/.sarvesto-audit" > diag/colours/audit.json
+          php -r '$a=json_decode(file_get_contents("diag/colours/audit.json"),true); print_r($a["summary"]);
+            foreach($a["groups"] as $g) if($g["issues"]) echo "GRUP ",$g["key"]," | ",implode(" ",$g["issues"]),"\n";
+            foreach($a["chips"] as $p) echo "ESLESMEYEN ",$p["id"]," | ",implode(", ",$p["colours"])," | ",count($p["images"])," kare\n";
+            foreach($a["sets"] as $p) echo "GALERI ",$p["id"]," | ",count($p["sets"])," renk\n";'
+          php -r '$a=json_decode(file_get_contents("diag/colours/audit.json"),true);
+            foreach($a["chips"] as $p) foreach($p["images"] as $m) echo $m["img"],"\n";
+            foreach($a["groups"] as $g) foreach($g["rows"] as $r) if($r["real"]) echo $r["swatch"],"\n";' \
+            | grep -E '^/uploads/[A-Za-z0-9._/-]+$' | sed 's#^/##' | sort -u > list.txt
+          mkdir -p srv && ssh $SSHOPT "$SRV" "cd ~/maxsales_de && tar -cf - -T - 2>/dev/null" < list.txt | tar -xf - -C srv || true
+      - name: Kolajlar
+        run: php retail/tools/audit-colours-sheets.php diag/colours/audit.json srv diag/colours
+      - name: Dala işle
+        run: |
+          git config user.name "Claude"; git config user.email "noreply@anthropic.com"
+          git add -f diag/colours
+          git diff --cached --quiet && exit 0
+          git commit -q -m "Teşhis: renk seçimi denetimi (rapor + kolajlar)"
+          for i in 1 2 3 4; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((i*3)); done
