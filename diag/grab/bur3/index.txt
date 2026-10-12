@@ -1,0 +1,20 @@
+01 200 image/jpeg 19233 https://assets.burberry.com/is/image/Burberryltd/9E66CC06-89DD-458C-9048-0233524AFF18?$BBY_V3_SL_1$&wid=600&hei=600
+01.src https://assets.burberry.com/is/image/Burberryltd/9E66CC06-89DD-458C-9048-0233524AFF18?$BBY_V3_SL_1$&wid=600&hei=600
+02 200 image/jpeg 19279 https://assets.burberry.com/is/image/Burberryltd/1ACFA1D0-A7A5-40E3-A270-D779AEADD411?$BBY_V3_SL_1$&wid=600&hei=600
+02.src https://assets.burberry.com/is/image/Burberryltd/1ACFA1D0-A7A5-40E3-A270-D779AEADD411?$BBY_V3_SL_1$&wid=600&hei=600
+03 200 image/jpeg 19524 https://assets.burberry.com/is/image/Burberryltd/BEDF00E9-28A0-4527-83BC-F5543C10038C?$BBY_V3_SL_1$&wid=600&hei=600
+03.src https://assets.burberry.com/is/image/Burberryltd/BEDF00E9-28A0-4527-83BC-F5543C10038C?$BBY_V3_SL_1$&wid=600&hei=600
+04 200 image/jpeg 17091 https://assets.burberry.com/is/image/Burberryltd/62E65EA6-3965-4230-8FB0-7D6C19C24990?$BBY_V3_SL_1$&wid=600&hei=600
+04.src https://assets.burberry.com/is/image/Burberryltd/62E65EA6-3965-4230-8FB0-7D6C19C24990?$BBY_V3_SL_1$&wid=600&hei=600
+05 200 image/jpeg 17065 https://assets.burberry.com/is/image/Burberryltd/69428EAC-9623-4872-A781-3C5DC32493E7?$BBY_V3_SL_1$&wid=600&hei=600
+05.src https://assets.burberry.com/is/image/Burberryltd/69428EAC-9623-4872-A781-3C5DC32493E7?$BBY_V3_SL_1$&wid=600&hei=600
+06 200 image/jpeg 17539 https://assets.burberry.com/is/image/Burberryltd/EB90AF8A-0E51-4E00-8C7D-26757A2CD408?$BBY_V3_SL_1$&wid=600&hei=600
+06.src https://assets.burberry.com/is/image/Burberryltd/EB90AF8A-0E51-4E00-8C7D-26757A2CD408?$BBY_V3_SL_1$&wid=600&hei=600
+07 200 image/jpeg 16739 https://assets.burberry.com/is/image/Burberryltd/7CC88531-CD80-4305-BD2E-B6B70E26AB13?$BBY_V3_SL_1$&wid=600&hei=600
+07.src https://assets.burberry.com/is/image/Burberryltd/7CC88531-CD80-4305-BD2E-B6B70E26AB13?$BBY_V3_SL_1$&wid=600&hei=600
+08 200 image/jpeg 55052 https://images.thebestshops.com/product_images/large/SL13900-004_01-4fa6b9.jpg
+08.src https://images.thebestshops.com/product_images/large/SL13900-004_01-4fa6b9.jpg
+09 200 image/jpeg 45316 https://images.thebestshops.com/product_images/large/SL13900-004_02-4fa6b9.jpg
+09.src https://images.thebestshops.com/product_images/large/SL13900-004_02-4fa6b9.jpg
+10 200 image/jpeg 47797 https://images.thebestshops.com/product_images/large/SL13900-004_03-4fa6b9.jpg
+10.src https://images.thebestshops.com/product_images/large/SL13900-004_03-4fa6b9.jpg
