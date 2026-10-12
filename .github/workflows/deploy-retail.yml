@@ -372,6 +372,10 @@ jobs:
             # eksikler ölçülür; depodaki ölçüler olduğu gibi kalır.
             echo "== Fotograf bicim olcusu (yalniz yeniler) =="
             timeout 200 php -d memory_limit=1024M tools/index-photo-shape.php 2>&1 | tail -4 || true
+            # Tam ürün mü, yakın çekim mi (+ ürün rengi): karonun ve galerinin
+            # ilk karesi hep ürünün tamamını göstersin. Yalnız yeni kareler.
+            echo "== Tam urun / yakin cekim olcusu (yalniz yeniler) =="
+            timeout 400 php -d memory_limit=1024M tools/index-photo-detail.php 2>&1 | tail -2 || true
             echo
             # Küçültülmüş kopyaları önceden üret: ziyaretçi sayfayı açtığında
             # sunucu yirmi görseli birden üretmeye kalkıp süreç sınırına

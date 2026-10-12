@@ -930,6 +930,66 @@ function vr_product_image(array $p, int $index = 0): string
  * kadar yakın, dosya sırası (eşitlikte ilk gelen kazanıyor — mevcut davranış
  * hiç bozulmasın diye).
  */
+/**
+ * Kare ürünün TAMAMINI mı gösteriyor? (tools/index-photo-detail.php ölçüyor)
+ *
+ * Operatör, 12 Eki 2026: "ilk görünen hep tam ürünü gösteren olmalı".
+ * Kapüşonun, cebin, kumaşın yakın çekimi karoda ya da galerinin başında
+ * çıkınca ürün ilk bakışta tanınmıyor. Ceza, ürünün kadraj kenarından ne
+ * kadar taştığına göre: üstten taşan (kapüşon/yaka kesilmiş) en ağır,
+ * iki yandan taşan (kollar kesilmiş) sonra, alttan taşan en hafif
+ * (mankenin bacakları kesilebilir, ürün yine tam). Zemin açık stüdyo
+ * zemini değilse köşelerde kumaş var demek; o da yakın çekim.
+ * Ölçüsü olmayan kare cezasız (eski davranış).
+ */
+function vr_photo_detail_index(): array
+{
+    static $ix = null;
+    if ($ix === null) { $ix = vr_store_read('photo-detail.json', []); $ix = is_array($ix) ? $ix : []; }
+    return $ix;
+}
+
+function vr_full_penalty(string $img): float
+{
+    $m = vr_photo_detail_index()[$img] ?? null;
+    if (!is_array($m) || !isset($m['e'])) return 0.0;
+    [$t, $r, $b, $l] = array_map('floatval', (array)$m['e']) + [0, 0, 0, 0];
+    // Üst kenar ancak ürün yanlardan da taşıyorsa kesik sayılır: serili bir
+    // kotun beli de üste değiyor ama kot tamdır; kapüşonun yakın çekiminde
+    // kumaş hem üstten hem yanlardan taşar.
+    $pen = 60 * $t * min(1.0, $l + $r + 0.2) + 30 * ($l + $r) + 8 * $b;
+    if (empty($m['light'])) $pen += 45;
+    if ((float)($m['m'] ?? 0) > 0.85) $pen += 40;
+    $ratio = function_exists('vr_photo_shape_index') ? (float)(vr_photo_shape_index()[$img]['r'] ?? 0.8) : 0.8;
+    if ($ratio > 0 && $ratio < 0.5) $pen += 30;            // ince şerit / dilim
+    return $pen;
+}
+
+/**
+ * İki karenin ürün rengi belirgin biçimde farklı mı? Toptancı bazı satırlara
+ * modelin BAŞKA renklerinin karelerini de koymuş (D&G Tonal Logo'nun turuncu
+ * satırında beyaz ve kırmızı kareler). Tam kare aranırken başka bir rengin
+ * tam karesi karoya çıkmasın diye; ölçü yoksa "farklı değil".
+ */
+function vr_photo_colour_far(string $a, string $b): bool
+{
+    $ix = vr_photo_detail_index();
+    $ca = (string)($ix[$a]['c'] ?? ''); $cb = (string)($ix[$b]['c'] ?? '');
+    if ($ca === '' || $cb === '' || (float)($ix[$a]['m'] ?? 0) < 0.12 || (float)($ix[$b]['m'] ?? 0) < 0.12) return false;
+    [$r1, $g1, $b1] = sscanf($ca, '#%02x%02x%02x'); [$r2, $g2, $b2] = sscanf($cb, '#%02x%02x%02x');
+    return sqrt(2 * ($r1 - $r2) ** 2 + 4 * ($g1 - $g2) ** 2 + 3 * ($b1 - $b2) ** 2) > 160;
+}
+
+/** Kareleri "tam ürün" sırasına diz; eşitlikte dosya sırası korunur. */
+function vr_order_full_first(array $imgs): array
+{
+    $imgs = array_values($imgs);
+    $k = [];
+    foreach ($imgs as $i => $img) $k[$i] = vr_full_penalty((string)$img) + $i * 0.5;
+    asort($k);
+    return array_map(fn($i) => $imgs[$i], array_keys($k));
+}
+
 function vr_card_frames(array $p): array
 {
     $imgs = array_values(array_filter((array)($p['images'] ?? []), 'strlen'));
@@ -984,6 +1044,11 @@ function vr_card_frames(array $p): array
         // bir detay çekimi çıktı ve elimizdeki manken çekimi ikinci sıraya
         // düştü. Ceza küçük — ürünün kendi karesi kötüyse yine öne geçiyor.
         if (str_starts_with($img, '/uploads/licensed/')) $s += 4;
+        // Yakın çekim / kesik kadraj karonun yüzü olmasın (vr_full_penalty);
+        // ama ürünün asıl karesinden (dosya sırasında ilk) başka renkte bir
+        // kare de olmasın — o zaman yakın çekim yine daha doğru.
+        $s += vr_full_penalty($img);
+        if ($i > 0 && vr_photo_colour_far($imgs[0], $img)) $s += 200;
         $score[$i] = $s;
     }
     asort($score);
@@ -1554,7 +1619,8 @@ function vr_colour_sets(array $p): array
             }
             $mine = array_merge($hi, $mine);
         }
-        $mine = array_values(array_unique($mine));
+        // Rengin ilk karesi (renk düğmesi + galerinin başı) tam ürün olsun.
+        $mine = vr_order_full_first(array_values(array_unique($mine)));
         if ($mine) $hit++;
         foreach ($mine as $im) $used[$im] = 1;
         $sets[] = ['name' => $c, 'label' => $label, 'code' => $code, 'images' => $mine];
