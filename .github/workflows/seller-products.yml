@@ -6939,6 +6939,32 @@ jobs:
             foreach ($orders as $o) { $s = (string)($o['status'] ?? '?'); $by[$s] = ($by[$s] ?? 0) + 1; }
             echo "toplam: ", count($orders), "  ", json_encode($by), "\n";
             usort($orders, fn($a, $b) => strcmp((string)($b['created'] ?? ''), (string)($a['created'] ?? '')));
+            echo "\n== Stripe (salt okunur GET) ==\n";
+            $ht = (string)@file_get_contents($doc.'/.htaccess');
+            echo "STRIPE_WEBHOOK_SECRET: htaccess'te ", preg_match('/^\s*SetEnv\s+STRIPE_WEBHOOK_SECRET\s+\S+/mi', $ht) ? 'TANIMLI' : '*** YOK ***',
+                 " | config.php'de ", str_contains((string)@file_get_contents($doc.'/inc/config.php'), 'STRIPE_WEBHOOK_SECRET') ? 'geciyor' : 'yok', "\n";
+            try {
+              $we = stripe_api('GET', '/v1/webhook_endpoints', ['limit' => 10]);
+              foreach (($we->data ?? []) as $w) {
+                $ev = (array)($w->enabled_events ?? []);
+                echo "  webhook: ", (string)($w->url ?? ''), " | ", (string)($w->status ?? ''), " | checkout.session.completed: ",
+                     (in_array('checkout.session.completed', $ev, true) || in_array('*', $ev, true)) ? 'VAR' : '*** YOK ***', "\n";
+              }
+              if (empty($we->data)) echo "  webhook: *** HIC TANIMLI DEGIL ***\n";
+            } catch (Throwable $e) { echo "  webhook listesi okunamadi: ", $e->getMessage(), "\n"; }
+            $cnt = ['complete/paid' => 0, 'expired' => 0, 'open' => 0, 'diger' => 0, 'oturumsuz' => 0];
+            foreach ($orders as $o) {
+              $sid = (string)($o['session_id'] ?? '');
+              if ($sid === '') { $cnt['oturumsuz']++; continue; }
+              try {
+                $cs = stripe_api('GET', '/v1/checkout/sessions/' . rawurlencode($sid));
+                $k = ((string)($cs->status ?? '') === 'complete' && (string)($cs->payment_status ?? '') === 'paid') ? 'complete/paid'
+                   : (in_array((string)($cs->status ?? ''), ['expired', 'open'], true) ? (string)$cs->status : 'diger');
+                $cnt[$k]++;
+                if ($k === 'complete/paid') echo "  *** ODENMIS AMA KAYITTA PENDING: ", (string)($o['ref'] ?? ''), " (", substr((string)($o['created'] ?? ''), 0, 10), ")\n";
+              } catch (Throwable $e) { $cnt['diger']++; }
+            }
+            echo "  oturum durumlari: ", json_encode($cnt), "\n";
             foreach (array_slice($orders, 0, 6) as $o)
               printf("  %s | %-10s | %s | %s | USD %s (EUR %s)\n", substr((string)($o['created'] ?? ''), 0, 16), (string)($o['status'] ?? '?'),
                 (string)($o['ref'] ?? ''), mb_substr((string)($o['brand'] ?? '').' '.($o['name'] ?? ''), 0, 30), (string)($o['charge_amount'] ?? '-'), (string)($o['amount'] ?? '-'));
@@ -6956,7 +6982,7 @@ jobs:
           echo "dropship sayfasinda urun karti: $(grep -c 'dropship?id=' /tmp/p.html 2>/dev/null || echo 0) (son istek)"
           curl -s -o /tmp/d.html "https://vestrasales.com/dropship"; echo "katalog sayfasinda urun baglantisi: $(grep -o 'dropship?id=[^"&]*' /tmp/d.html | sort -u | wc -l)"
           ID=$(grep -o 'dropship?id=[^"&]*' /tmp/d.html | head -1 | cut -d= -f2)
-          [ -n "$ID" ] && { curl -s -o /tmp/one.html -w "urun sayfasi /dropship?id=$ID -> %{http_code}\n" "https://vestrasales.com/dropship?id=$ID"; echo "  satin al formu: $(grep -c 'action=\"/dropship-checkout\"' /tmp/one.html)  | giris istiyor mu: $(grep -c 'login?back' /tmp/one.html)"; }
+          [ -z "$ID" ] && echo "(katalog yalniz onayli uyeye urun gosteriyor -- tasarim geregi)"; [ -n "$ID" ] && { curl -s -o /tmp/one.html -w "urun sayfasi /dropship?id=$ID -> %{http_code}\n" "https://vestrasales.com/dropship?id=$ID"; echo "  satin al formu: $(grep -c 'action=\"/dropship-checkout\"' /tmp/one.html)  | giris istiyor mu: $(grep -c 'login?back' /tmp/one.html)"; }; true
 
       - name: Siparis denetimi (fatura e-postasi + odeme) -- salt okunur
         if: ${{ github.event.inputs.admin_mode == 'order_audit' }}
