@@ -1,332 +1,353 @@
 {
-    "fnd-p01": {
-        "name": "Pique T-Shirt, White",
-        "brand": "Fendi",
-        "sku": "VS-FD-P01",
+    "dgx-g7ded": {
+        "name": "Bandana Print T-Shirt",
+        "brand": "Dolce & Gabbana",
+        "sku": "G7DED",
         "source": "b2b",
         "colours": [
+            "Black",
             "White"
         ],
         "images": [
-            "/uploads/fendi-tshirt/img_0045-p1.jpg",
-            "/uploads/fendi-tshirt/img_0045-p2.jpg"
+            "/uploads/dg-dropbox/d-g-g7ded.jpg",
+            "/uploads/balenciaga-burberry/d-g-g7ded-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g7ded-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g7ded-v2.jpg"
         ],
-        "siblings": [],
+        "siblings": [
+            "dgn-g7ded",
+            "dgx-g7ded"
+        ],
         "raw": {
-            "name": "Pique Polo, White",
-            "sku": "VS-FD-P01",
+            "name": "Bandana Print T-Shirt",
+            "sku": "G7DED",
             "images": [
-                "/uploads/fendi-tshirt/img_0045.jpg"
-            ]
-        }
-    },
-    "bur-pique-polo-2909": {
-        "name": "Burberry Cotton Piqué Polo — 8 colourways",
-        "brand": "Burberry",
-        "sku": "BUR-PIQUE-POLO",
-        "source": "b2b",
-        "colours": [
-            "Green (8099164)",
-            "Black (8096425)",
-            "Navy (8099165)",
-            "White (8099166)",
-            "Beige (8099167)",
-            "Black · Check Collar (8071620)",
-            "Navy · Check Collar (8072661)",
-            "White · Check Collar (8071621)"
-        ],
-        "images": [
-            "/uploads/burberry-polo/burberry-green-8099164.jpg",
-            "/uploads/burberry-polo/burberry-black-8096425.jpg",
-            "/uploads/burberry-polo/burberry-navy-8099165.jpg",
-            "/uploads/burberry-polo/burberry-white-8099166.jpg",
-            "/uploads/burberry-polo/burberry-beige-8099167.jpg",
-            "/uploads/burberry-polo/burberry-black-check-collar-8071620.jpg",
-            "/uploads/burberry-polo/burberry-navy-check-collar-8072661.jpg",
-            "/uploads/burberry-polo/burberry-white-check-collar-8071621.jpg"
-        ],
-        "siblings": [],
-        "raw": {
-            "name": "Burberry Cotton Piqué Polo — 8 colourways",
-            "sku": "BUR-PIQUE-POLO",
-            "images": [
-                "/uploads/burberry-polo/burberry-green-8099164.jpg",
-                "/uploads/burberry-polo/burberry-black-8096425.jpg",
-                "/uploads/burberry-polo/burberry-navy-8099165.jpg",
-                "/uploads/burberry-polo/burberry-white-8099166.jpg",
-                "/uploads/burberry-polo/burberry-beige-8099167.jpg",
-                "/uploads/burberry-polo/burberry-black-check-collar-8071620.jpg",
-                "/uploads/burberry-polo/burberry-navy-check-collar-8072661.jpg",
-                "/uploads/burberry-polo/burberry-white-check-collar-8071621.jpg"
+                "/uploads/dg-dropbox/d-g-g7ded.jpg"
             ],
             "colors": [
-                "Green (8099164)",
-                "Black (8096425)",
-                "Navy (8099165)",
-                "White (8099166)",
-                "Beige (8099167)",
-                "Black · Check collar (8071620)",
-                "Navy · Check collar (8072661)",
-                "White · Check collar (8071621)"
+                "Black",
+                "White"
             ]
         }
     },
-    "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8": {
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — Light Blue",
-        "brand": "LACOSTE",
-        "sku": "LACOSTE-MEN-REGULAR-FIT-",
-        "source": "b2b",
-        "colours": [
-            "Light Blue"
-        ],
-        "images": [
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8-1.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8-2.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8-3.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8-6.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8-4.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8-5.avif"
-        ],
-        "siblings": [
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6"
-        ],
-        "raw": []
-    },
-    "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7": {
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — Navy Blue",
-        "brand": "LACOSTE",
-        "sku": "LACOSTE-MEN-REGULAR-FIT-",
-        "source": "b2b",
-        "colours": [
-            "Navy Blue"
-        ],
-        "images": [
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7-1.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7-2.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7-3.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7-6.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7-4.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7-5.avif"
-        ],
-        "siblings": [
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6"
-        ],
-        "raw": []
-    },
-    "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6": {
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — Bordeaux",
-        "brand": "LACOSTE",
-        "sku": "LACOSTE-MEN-REGULAR-FIT-",
-        "source": "b2b",
-        "colours": [
-            "Bordeaux"
-        ],
-        "images": [
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6-2.jpg",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6-1.jpg",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6-3.jpg",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6-4.jpg"
-        ],
-        "siblings": [
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6"
-        ],
-        "raw": []
-    },
-    "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5": {
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — Green",
-        "brand": "LACOSTE",
-        "sku": "LACOSTE-MEN-REGULAR-FIT-",
-        "source": "b2b",
-        "colours": [
-            "Green"
-        ],
-        "images": [
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5-1.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5-2.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5-3.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5-6.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5-4.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5-5.avif"
-        ],
-        "siblings": [
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6"
-        ],
-        "raw": []
-    },
-    "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4": {
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — Saphire Blue",
-        "brand": "LACOSTE",
-        "sku": "LACOSTE-MEN-REGULAR-FIT-",
-        "source": "b2b",
-        "colours": [
-            "Saphire Blue"
-        ],
-        "images": [
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4-1.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4-2.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4-3.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4-6.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4-4.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4-5.avif"
-        ],
-        "siblings": [
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6"
-        ],
-        "raw": []
-    },
-    "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3": {
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — Beige",
-        "brand": "LACOSTE",
-        "sku": "LACOSTE-MEN-REGULAR-FIT-",
-        "source": "b2b",
-        "colours": [
-            "Beige"
-        ],
-        "images": [
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3-1.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3-2.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3-3.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3-5.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3-4.avif"
-        ],
-        "siblings": [
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6"
-        ],
-        "raw": []
-    },
-    "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2": {
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — Red",
-        "brand": "LACOSTE",
-        "sku": "LACOSTE-MEN-REGULAR-FIT-",
-        "source": "b2b",
-        "colours": [
-            "Red"
-        ],
-        "images": [
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2-1.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2-2.webp",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2-3.webp",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2-4.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2-5.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2-6.webp"
-        ],
-        "siblings": [
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6"
-        ],
-        "raw": []
-    },
-    "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1": {
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — White",
-        "brand": "LACOSTE",
-        "sku": "LACOSTE-MEN-REGULAR-FIT-",
+    "dgx-g8nc5t-fugk4": {
+        "name": "Logo Plaque T-Shirt — White",
+        "brand": "Dolce & Gabbana",
+        "sku": "G8NC5T FUGK4",
         "source": "b2b",
         "colours": [
             "White"
         ],
         "images": [
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1-1.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1-6.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1-5.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1-2.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1-2-p1.jpg",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1-3.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1-4.avif"
+            "/uploads/dg-dropbox/d-g-g8nc5t-fugk4.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8nc5t-fugk4-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8nc5t-fugk4-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8nc5t-fugk4-p3.jpg"
         ],
         "siblings": [
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6"
+            "dgn-g8nc5tfugk4",
+            "dgx-g8nc5t-fugk4"
         ],
-        "raw": []
+        "raw": {
+            "name": "Logo Plaque T-Shirt — White",
+            "sku": "G8NC5T FUGK4",
+            "images": [
+                "/uploads/dg-dropbox/d-g-g8nc5t-fugk4.jpg"
+            ],
+            "colors": [
+                "White"
+            ]
+        }
     },
-    "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt": {
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — Black",
-        "brand": "LACOSTE",
-        "sku": "LACOSTE-MEN-REGULAR-FIT-",
+    "dgx-g8nc5t-hs7kg": {
+        "name": "Monogram T-Shirt",
+        "brand": "Dolce & Gabbana",
+        "sku": "G8NC5T HS7KG",
+        "source": "b2b",
+        "colours": [
+            "Black",
+            "White"
+        ],
+        "images": [
+            "/uploads/dg-dropbox/d-g-g8nc5t-hs7kg.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p3.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p2-p1.jpg"
+        ],
+        "siblings": [
+            "dgn-g8nc5ths7kg",
+            "dgx-g8nc5t-hs7kg"
+        ],
+        "raw": {
+            "name": "Monogram T-Shirt",
+            "sku": "G8NC5T HS7KG",
+            "images": [
+                "/uploads/dg-dropbox/d-g-g8nc5t-hs7kg.jpg"
+            ],
+            "colors": [
+                "Black",
+                "White"
+            ]
+        }
+    },
+    "dgx-g8ol6z-g7c8g": {
+        "name": "Tonal Logo T-Shirt",
+        "brand": "Dolce & Gabbana",
+        "sku": "G8OL6Z G7C8G",
+        "source": "b2b",
+        "colours": [
+            "White",
+            "Red",
+            "Black",
+            "Orange"
+        ],
+        "images": [
+            "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g.jpg",
+            "/uploads/dg-dropbox/d-g-g8ol6zg7c8g.jpg",
+            "/uploads/dg-dropbox/d-g-g8ol6zg7c8g1.jpg",
+            "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g-1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g-p2-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g-p2-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p1-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p1-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v1-v1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v1-v2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v2.jpg"
+        ],
+        "siblings": [
+            "dgn-g8ol6zg7c8g",
+            "dgx-g8ol6z-g7c8g"
+        ],
+        "raw": {
+            "name": "Tonal Logo T-Shirt",
+            "sku": "G8OL6Z G7C8G",
+            "images": [
+                "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g.jpg",
+                "/uploads/dg-dropbox/d-g-g8ol6zg7c8g.jpg",
+                "/uploads/dg-dropbox/d-g-g8ol6zg7c8g1.jpg",
+                "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g-1.jpg"
+            ],
+            "colors": [
+                "White",
+                "Red",
+                "Black",
+                "Orange"
+            ]
+        }
+    },
+    "dgx-g8pj4z-hu7ma": {
+        "name": "DG Print T-Shirt",
+        "brand": "Dolce & Gabbana",
+        "sku": "G8PJ4Z HU7MA",
+        "source": "b2b",
+        "colours": [
+            "White",
+            "Black"
+        ],
+        "images": [
+            "/uploads/dg-dropbox/d-g-g8pj4z-hu7ma.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8pj4z-hu7ma-v1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8pj4z-hu7ma-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8pj4z-hu7ma-v2.jpg"
+        ],
+        "siblings": [
+            "dgn-g8pj4zhu7ma",
+            "dgx-g8pj4z-hu7ma"
+        ],
+        "raw": {
+            "name": "DG Print T-Shirt",
+            "sku": "G8PJ4Z HU7MA",
+            "images": [
+                "/uploads/dg-dropbox/d-g-g8pj4z-hu7ma.jpg"
+            ],
+            "colors": [
+                "White",
+                "Black"
+            ]
+        }
+    },
+    "dgx-g8pj4z-hu7mab": {
+        "name": "Logo Plaque T-Shirt — Navy",
+        "brand": "Dolce & Gabbana",
+        "sku": "G8PJ4Z HU7MAB",
+        "source": "b2b",
+        "colours": [
+            "Navy"
+        ],
+        "images": [
+            "/uploads/dg-dropbox/d-g-g8pj4z-hu7mab.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8pj4z-hu7mab-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8pj4z-hu7mab-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8pj4z-hu7mab-p3.jpg"
+        ],
+        "siblings": [
+            "dgn-g8pj4zhu7mab",
+            "dgx-g8pj4z-hu7mab"
+        ],
+        "raw": {
+            "name": "Logo Plaque T-Shirt — Navy",
+            "sku": "G8PJ4Z HU7MAB",
+            "images": [
+                "/uploads/dg-dropbox/d-g-g8pj4z-hu7mab.jpg"
+            ],
+            "colors": [
+                "Navy"
+            ]
+        }
+    },
+    "dgn-g7ded": {
+        "name": "Dolce & Gabbana T-Shirt G7DED",
+        "brand": "Dolce & Gabbana",
+        "sku": "G7DED",
         "source": "b2b",
         "colours": [
             "Black"
         ],
         "images": [
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6.webp",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4.avif",
-            "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5.avif"
+            "/uploads/balenciaga-burberry/d-g-g7ded-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g7ded-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g7ded-v2.jpg",
+            "/uploads/dg-dropbox/d-g-g7ded.jpg"
         ],
         "siblings": [
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3",
-            "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6"
+            "dgn-g7ded",
+            "dgx-g7ded"
+        ],
+        "raw": []
+    },
+    "dgn-g8nc5tfugk4": {
+        "name": "Dolce & Gabbana T-Shirt G8NC5TFUGK4",
+        "brand": "Dolce & Gabbana",
+        "sku": "G8NC5TFUGK4",
+        "source": "b2b",
+        "colours": [
+            "White"
+        ],
+        "images": [
+            "/uploads/balenciaga-burberry/d-g-g8nc5t-fugk4-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8nc5t-fugk4-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8nc5t-fugk4-p3.jpg",
+            "/uploads/dg-dropbox/d-g-g8nc5t-fugk4.jpg"
+        ],
+        "siblings": [
+            "dgn-g8nc5tfugk4",
+            "dgx-g8nc5t-fugk4"
+        ],
+        "raw": []
+    },
+    "dgn-g8nc5ths7kg": {
+        "name": "Dolce & Gabbana T-Shirt G8NC5THS7KG",
+        "brand": "Dolce & Gabbana",
+        "sku": "G8NC5THS7KG",
+        "source": "b2b",
+        "colours": [
+            "Black/White"
+        ],
+        "images": [
+            "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p3.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8nc5t-hs7kg-p2-p1.jpg",
+            "/uploads/dg-dropbox/d-g-g8nc5t-hs7kg.jpg"
+        ],
+        "siblings": [
+            "dgn-g8nc5ths7kg",
+            "dgx-g8nc5t-hs7kg"
+        ],
+        "raw": []
+    },
+    "dgn-g8ol6zg7c8g": {
+        "name": "Dolce & Gabbana T-Shirt G8OL6ZG7C8G",
+        "brand": "Dolce & Gabbana",
+        "sku": "G8OL6ZG7C8G",
+        "source": "b2b",
+        "colours": [
+            "Orange"
+        ],
+        "images": [
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g-p2-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g-p2-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p1-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-p1-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v1-v1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v1-v2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v2.jpg",
+            "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g.jpg",
+            "/uploads/dg-dropbox/d-g-g8ol6zg7c8g.jpg",
+            "/uploads/dg-dropbox/d-g-g8ol6zg7c8g1.jpg",
+            "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g-1.jpg"
+        ],
+        "siblings": [
+            "dgn-g8ol6zg7c8g",
+            "dgx-g8ol6z-g7c8g"
+        ],
+        "raw": []
+    },
+    "dgn-g8ol6zg7c8g1": {
+        "name": "Dolce & Gabbana T-Shirt G8OL6ZG7C8G1",
+        "brand": "Dolce & Gabbana",
+        "sku": "G8OL6ZG7C8G1",
+        "source": "b2b",
+        "colours": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g1-p1-p1-v1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g1-p1-p1-v2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g1-p1-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g1-p1-p1.jpg"
+        ],
+        "siblings": [],
+        "raw": []
+    },
+    "dgn-g8pj4zhu7ma": {
+        "name": "Dolce & Gabbana T-Shirt G8PJ4ZHU7MA",
+        "brand": "Dolce & Gabbana",
+        "sku": "G8PJ4ZHU7MA",
+        "source": "b2b",
+        "colours": [
+            "White"
+        ],
+        "images": [
+            "/uploads/balenciaga-burberry/d-g-g8pj4z-hu7ma-v1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8pj4z-hu7ma-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8pj4z-hu7ma-v2.jpg",
+            "/uploads/dg-dropbox/d-g-g8pj4z-hu7ma.jpg"
+        ],
+        "siblings": [
+            "dgn-g8pj4zhu7ma",
+            "dgx-g8pj4z-hu7ma"
+        ],
+        "raw": []
+    },
+    "dgn-g8pj4zhu7mab": {
+        "name": "Dolce & Gabbana T-Shirt G8PJ4ZHU7MAB",
+        "brand": "Dolce & Gabbana",
+        "sku": "G8PJ4ZHU7MAB",
+        "source": "b2b",
+        "colours": [
+            "Navy"
+        ],
+        "images": [
+            "/uploads/balenciaga-burberry/d-g-g8pj4z-hu7mab-p2.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8pj4z-hu7mab-p1.jpg",
+            "/uploads/balenciaga-burberry/d-g-g8pj4z-hu7mab-p3.jpg",
+            "/uploads/dg-dropbox/d-g-g8pj4z-hu7mab.jpg"
+        ],
+        "siblings": [
+            "dgn-g8pj4zhu7mab",
+            "dgx-g8pj4z-hu7mab"
         ],
         "raw": []
     }
