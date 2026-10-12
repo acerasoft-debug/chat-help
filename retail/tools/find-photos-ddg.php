@@ -121,17 +121,23 @@ foreach ($targets as $t) {
     $skuFlat = fd_flat($sku);
     if (strlen($skuFlat) < 5) { fwrite(STDERR, "$id: kod yok\n"); continue; }
     if ($blocked >= 2) { fwrite(STDERR, "$id: arama engellendi, atlandı\n"); $out[$id] = ['blocked' => true] + $t; continue; }
-    $res = fd_search($brand . ' ' . $sku, $blocked);
-    $sources = []; $seen = [];
-    foreach (array_slice($res, 0, 8) as [$title, $u]) {
-        if (count($sources) >= 3) break;
-        $host = (string)parse_url($u, PHP_URL_HOST);
-        if (isset($seen[$host])) continue;
-        [$imgs, $has] = fd_page($u, $skuFlat);
-        if (!$has || !$imgs) continue;
-        $seen[$host] = 1;
-        $sources[] = ['page' => $u, 'title' => $title, 'images' => array_slice($imgs, 0, 6)];
-        usleep(400000);
+    // 1) "<marka> <kod>"; hiçbir sayfa kodu taşımıyorsa 2) yalnız kod, tırnakla
+    //    (bazı butikler markayı başlıkta farklı yazıyor: "D&G", "Dsquared²").
+    $sources = []; $seen = []; $res = [];
+    foreach ([$brand . ' ' . $sku, '"' . $sku . '"'] as $qi => $q) {
+        if ($qi > 0 && ($sources || $blocked >= 2)) break;
+        if ($qi > 0) sleep(random_int(5, 9));
+        $res = fd_search($q, $blocked);
+        foreach (array_slice($res, 0, 8) as [$title, $u]) {
+            if (count($sources) >= 3) break;
+            $host = (string)parse_url($u, PHP_URL_HOST);
+            if (isset($seen[$host])) continue;
+            [$imgs, $has] = fd_page($u, $skuFlat);
+            if (!$has || !$imgs) continue;
+            $seen[$host] = 1;
+            $sources[] = ['page' => $u, 'title' => $title, 'images' => array_slice($imgs, 0, 6)];
+            usleep(400000);
+        }
     }
     $out[$id] = ['note' => $brand . ' ' . $sku . ' — ' . (string)$t['name'] . ' ' . (string)($t['colour'] ?? ''),
                  'brand' => $brand, 'name' => (string)$t['name'], 'colour' => (string)($t['colour'] ?? ''),
