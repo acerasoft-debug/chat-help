@@ -64,7 +64,8 @@ jobs:
             foreach ($imgs as $i => $r) {
               $im = @imagecreatefromstring((string)@file_get_contents("srv" . $r)); $x0 = ($i % $cols) * ($cw + 8); $y0 = 24 + intdiv($i, $cols) * ($ch + 22);
               if ($im) { $sc = min($cw / imagesx($im), $ch / imagesy($im)); imagecopyresampled($s, $im, $x0, $y0, 0, 0, (int)(imagesx($im)*$sc), (int)(imagesy($im)*$sc), imagesx($im), imagesy($im)); }
-              imagestring($s, 2, $x0, $y0 + $ch + 4, ($i + 1) . " " . basename($r), $ink);
+              imagestring($s, 2, $x0, $y0 + $ch + 4, ($i + 1) . " " . basename($r) . ($im ? " " . imagesx($im) . "x" . imagesy($im) : ""), $ink);
+              printf("%s  %2d  %-70s %s\n", $id, $i + 1, $r, $im ? imagesx($im) . "x" . imagesy($im) : "-");
             }
             imagejpeg($s, "diag/product/" . preg_replace("/[^a-z0-9_-]/i", "_", $id) . ".jpg", 80);
           }'
