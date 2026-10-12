@@ -1,0 +1,28 @@
+01 200 text/html; charset=UTF-8 14962 https://www.thebs.com/us/cotton-polo-burberry-557298
+01.src https://www.thebs.com/us/cotton-polo-burberry-557298
+02 200 text/html; charset=UTF-8 15345 https://www.thebs.com/us/cody-polo-shirt-burberry-696759
+02.src https://www.thebs.com/us/cody-polo-shirt-burberry-696759
+03 200 application/json; charset=utf-8 1720 https://www.desertblues.com/products/burberry-polo-t-shirt-3.json
+03.src https://www.desertblues.com/products/burberry-polo-t-shirt-3.json
+04 200 application/json; charset=utf-8 1767 https://www.desertblues.com/products/burberry-polo-shirt.json
+04.src https://www.desertblues.com/products/burberry-polo-shirt.json
+05 200 application/json; charset=utf-8 1115 https://gebnegozionline.com/en-us/products/beige-piquet-polo-shirt-8099167-a7405.json
+05.src https://gebnegozionline.com/en-us/products/beige-piquet-polo-shirt-8099167-a7405.json
+06 200 application/json; charset=utf-8 1146 https://gebnegozionline.com/en-us/products/white-piquet-polo-shirt-8099166-a1464.json
+06.src https://gebnegozionline.com/en-us/products/white-piquet-polo-shirt-8099166-a1464.json
+07 200 application/json; charset=utf-8 1227 https://www.boutiquederoyal.com/products/8072661-navy-burberry-man-polo.json
+07.src https://www.boutiquederoyal.com/products/8072661-navy-burberry-man-polo.json
+08 404 application/json; charset=utf-8 0 https://daniello.com/en-row/products/burberry-man-polo-shirt-8072661-b3590-18482552.json
+08.src https://daniello.com/en-row/products/burberry-man-polo-shirt-8072661-b3590-18482552.json
+09 200 application/json; charset=utf-8 1388 https://www.winniemodo.com/products/burberry-checkered-collar-cotton-polo-shirt.json
+09.src https://www.winniemodo.com/products/burberry-checkered-collar-cotton-polo-shirt.json
+10 200 text/html; charset=utf-8 184929 https://int.burberry.com/check-collar-cotton-polo-shirt-p81160071
+10.src https://int.burberry.com/check-collar-cotton-polo-shirt-p81160071/
+11 200 text/html; charset=utf-8 29901 https://www.jomashop.com/z-r6g5v.html
+11.src https://www.jomashop.com/z-r6g5v.html
+12 200 text/html; charset=utf-8 29924 https://www.jomashop.com/z-fcyg8.html
+12.src https://www.jomashop.com/z-fcyg8.html
+13 200 text/html; charset=utf-8 29921 https://www.jomashop.com/z-enze6.html
+13.src https://www.jomashop.com/z-enze6.html
+14 403 text/html; charset=UTF-8 2094 https://www.goat.com/apparel/burberry-cody-polo-black-8071620
+14.src https://www.goat.com/apparel/burberry-cody-polo-black-8071620
