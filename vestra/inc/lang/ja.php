@@ -1693,4 +1693,19 @@ return array (
 'B2B Fashion Wholesale' => 'B2Bファッション卸',
   'Verified B2B fashion wholesale marketplace — live prices, orders and messages.' => '認証済みB2Bファッション卸売マーケットプレイス — リアルタイム価格、注文、メッセージ。',
 
+  // ana sayfa kurumsal katmani (13 Eki 2026)
+  'Houses in stock' => '取扱ブランド数',
+  'Product categories' => '商品カテゴリー',
+  'Invoice currencies' => '請求通貨',
+  'Marketplace' => 'マーケットプレイス',
+  'Brands' => 'ブランド',
+  'Dropshipping' => 'ドロップシッピング',
+  'Support' => 'サポート',
+  'Payments & refunds' => '支払いと返金',
+  'Anti-counterfeit policy' => '偽造品対策ポリシー',
+  'sales to registered businesses' => '登録事業者のみへの販売',
+  'Bank transfer' => '銀行振込',
+  'Card (Stripe)' => 'カード（Stripe）',
+  'Invoice in EUR or USD' => 'EURまたはUSDで請求',
+
 );

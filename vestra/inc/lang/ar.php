@@ -1693,4 +1693,19 @@ return array (
 'B2B Fashion Wholesale' => 'جملة أزياء B2B',
   'Verified B2B fashion wholesale marketplace — live prices, orders and messages.' => 'سوق جملة أزياء B2B موثّق — أسعار مباشرة وطلبات ورسائل.',
 
+  // ana sayfa kurumsal katmani (13 Eki 2026)
+  'Houses in stock' => 'علامات متوفرة',
+  'Product categories' => 'فئات المنتجات',
+  'Invoice currencies' => 'عملات الفوترة',
+  'Marketplace' => 'السوق',
+  'Brands' => 'العلامات التجارية',
+  'Dropshipping' => 'الدروبشيبينغ',
+  'Support' => 'الدعم',
+  'Payments & refunds' => 'المدفوعات والاسترداد',
+  'Anti-counterfeit policy' => 'سياسة مكافحة التقليد',
+  'sales to registered businesses' => 'البيع للشركات المسجلة فقط',
+  'Bank transfer' => 'تحويل بنكي',
+  'Card (Stripe)' => 'بطاقة (Stripe)',
+  'Invoice in EUR or USD' => 'فاتورة باليورو أو الدولار',
+
 );

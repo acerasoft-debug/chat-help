@@ -1697,4 +1697,19 @@ return array (
 'B2B Fashion Wholesale' => 'Ingrosso moda B2B',
   'Verified B2B fashion wholesale marketplace — live prices, orders and messages.' => 'Marketplace B2B di moda verificato — prezzi in tempo reale, ordini e messaggi.',
 
+  // ana sayfa kurumsal katmani (13 Eki 2026)
+  'Houses in stock' => 'Maison disponibili',
+  'Product categories' => 'Categorie di prodotto',
+  'Invoice currencies' => 'Valute di fatturazione',
+  'Marketplace' => 'Marketplace',
+  'Brands' => 'Marchi',
+  'Dropshipping' => 'Dropshipping',
+  'Support' => 'Assistenza',
+  'Payments & refunds' => 'Pagamenti e rimborsi',
+  'Anti-counterfeit policy' => 'Politica anticontraffazione',
+  'sales to registered businesses' => 'vendita solo ad aziende registrate',
+  'Bank transfer' => 'Bonifico bancario',
+  'Card (Stripe)' => 'Carta (Stripe)',
+  'Invoice in EUR or USD' => 'Fattura in EUR o USD',
+
 );

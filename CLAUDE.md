@@ -12417,3 +12417,17 @@ sayfadaki ürünleri değiştir"* → *"avrupanın en estetik B2B sitesi olması
   *Sondanın kendi gürültüsü:* *"bu yol giriş ekranı dönüyor"* uyarısı yanlış pozitif — her sayfadaki
   `VESTRA_BOOT` sözlüğünde *"Sign in first to receive notifications."* dizgesi var ve sonda
   `Sign in` arıyor; `/buyer` aynı koşuda *"panel gövdesi geldi"* dedi.
+
+**13 Eki 2026 — Ana sayfa kurumsal katman; Gucci gizli, Balenciaga açık** (operatör: *"ana sayfadan
+gucciye çıkar ana sayfayı daha profesyonel yap. Balenciaga lafı aktif et ayrıca daha fazla ciddi siteye
+dönüştür"*).
+- Gizli marka listesi `brand_hide` ile `Gucci` yapıldı (önce yalnız Balenciaga gizliydi): Gucci 15 ilan
+  her yerden düştü, Balenciaga geri geldi, katalog 916 → 923; listings.json değişmedi (geri okundu).
+- `index.php`: üst etiket "B2B wholesale · Trade accounts only" (9 dil); ilk sipariş indirimi ince tek
+  satır (altın rozet gizli — yüzde zaten cümlede); kahramanın altında CANLI rakam şeridi (`.facts`:
+  ilan, ev, kategori sayısı + fatura birimleri); kategori ızgarası 18 → 12; uygulama düğmelerinde emoji
+  yerine çizgi simge; altbilgi kurumsal (künye imprint ile aynı adres, Pazar/Destek/Yasal sütunları,
+  ödeme yolları). Hepsi ilk `<style>`'ın SONUNDA ayrı katman — home_offer_test'in sabitlediği kurallar
+  yerinde. 13 yeni sözlük anahtarı 8 dile. Telefonda 7 dilde yatay kaydırma 0 (Almanca etiketler ilk
+  çizimde 404px'e taşıyordu → `minmax(0,1fr)`). "New arrivals"taki iç çamaşırı önceliği (25 Eyl kararı)
+  DOKUNULMADI.

@@ -168,7 +168,7 @@ $T = [
  'tagline'=>"Europe's verified B2B fashion wholesale",
  'meta'=>"A KYC-verified B2B wholesale marketplace for branded and textile fashion. Every seller is background-checked. Register free as a seller or buyer.",
  'why'=>'Why','how'=>'How it works','join_nav'=>'Get started',
- 'pill'=>'Live · Open registration',
+ 'pill'=>'B2B wholesale · Trade accounts only',
  'h1'=>'The <span class="acc">verified</span> way to trade<br>branded fashion, wholesale.',
  'sub'=>'A B2B marketplace where every seller is KYC-verified, every order runs on clear invoice terms, and every transaction is documented. Built on seller verification — not empty promises.',
  'b_sell'=>'Register as Seller','b_buy'=>'Register as Buyer','b_panel'=>'Open my dashboard',
@@ -203,7 +203,7 @@ $T = [
  'tagline'=>"La vente en gros de mode B2B vérifiée en Europe",
  'meta'=>"Une marketplace B2B avec vérification KYC des vendeurs, pour la mode de marque et le textile. Inscrivez-vous gratuitement.",
  'why'=>'Pourquoi','how'=>'Comment ça marche','join_nav'=>'Commencer',
- 'pill'=>'En ligne · Inscription ouverte',
+ 'pill'=>'Vente en gros B2B · Réservé aux professionnels',
  'h1'=>'La façon <span class="acc">vérifiée</span> de négocier<br>la mode de marque, en gros.',
  'sub'=>"Une marketplace B2B où chaque vendeur est vérifié (KYC), chaque commande repose sur des conditions de facturation claires et chaque transaction est documentée. Construite sur la vérification des vendeurs.",
  'b_sell'=>'Rejoindre comme Vendeur','b_buy'=>'Rejoindre comme Acheteur','b_panel'=>'Ouvrir mon tableau de bord',
@@ -238,7 +238,7 @@ $T = [
  'tagline'=>"Il commercio all'ingrosso di moda B2B verificato in Europa",
  'meta'=>"Un marketplace B2B con verifica KYC dei venditori, per moda di marca e tessile. Registrati gratuitamente.",
  'why'=>'Perché','how'=>'Come funziona','join_nav'=>'Inizia ora',
- 'pill'=>'Online · Registrazione aperta',
+ 'pill'=>'Ingrosso B2B · Solo per operatori',
  'h1'=>'Il modo <span class="acc">verificato</span> di commerciare<br>moda di marca, all\'ingrosso.',
  'sub'=>"Un marketplace B2B dove ogni venditore è verificato (KYC), ogni ordine si basa su chiare condizioni di fatturazione e ogni transazione è documentata.",
  'b_sell'=>'Registrati come Venditore','b_buy'=>'Registrati come Acquirente','b_panel'=>'Apri la mia dashboard',
@@ -273,7 +273,7 @@ $T = [
  'tagline'=>"La venta mayorista de moda B2B verificada en Europa",
  'meta'=>"Un marketplace B2B con verificación KYC de vendedores, para moda de marca y textil. Regístrate gratis.",
  'why'=>'Por qué','how'=>'Cómo funciona','join_nav'=>'Empezar',
- 'pill'=>'En vivo · Registro abierto',
+ 'pill'=>'Mayorista B2B · Solo profesionales',
  'h1'=>'La forma <span class="acc">verificada</span> de comerciar<br>moda de marca, al por mayor.',
  'sub'=>'Un marketplace B2B donde cada vendedor está verificado (KYC), cada pedido se basa en condiciones de facturación claras y cada transacción queda registrada.',
  'b_sell'=>'Registrarse como Vendedor','b_buy'=>'Registrarse como Comprador','b_panel'=>'Abrir mi panel',
@@ -308,7 +308,7 @@ $T = [
  'tagline'=>"Europas verifizierter B2B-Modegroßhandel",
  'meta'=>"Ein B2B-Großhandelsmarktplatz mit KYC-Verifizierung der Verkäufer für Marken- und Textilmode. Jetzt kostenlos registrieren.",
  'why'=>'Warum','how'=>"So funktioniert's",'join_nav'=>'Jetzt starten',
- 'pill'=>'Live · Registrierung offen',
+ 'pill'=>'B2B-Großhandel · Nur für Gewerbe',
  'h1'=>'Der <span class="acc">verifizierte</span> Weg, Markenmode<br>im Großhandel zu handeln.',
  'sub'=>"Ein B2B-Marktplatz, auf dem jeder Verkäufer KYC-geprüft ist, jede Bestellung auf klaren Rechnungskonditionen läuft und jede Transaktion dokumentiert ist.",
  'b_sell'=>'Als Verkäufer registrieren','b_buy'=>'Als Käufer registrieren','b_panel'=>'Mein Dashboard öffnen',
@@ -346,7 +346,7 @@ $T = [
  'tagline'=>"O grossista B2B de moda verificado da Europa",
  'meta'=>"Um marketplace grossista B2B com verificação KYC para moda de marca e têxtil. Todos os vendedores são verificados. Registe-se gratuitamente como vendedor ou comprador.",
  'why'=>'Porquê','how'=>'Como funciona','join_nav'=>'Começar',
- 'pill'=>'Ativo · Registo aberto',
+ 'pill'=>'Grossista B2B · Só para profissionais',
  'h1'=>'A forma <span class="acc">verificada</span> de comprar<br>moda de marca por grosso.',
  'sub'=>'Um marketplace B2B onde todos os vendedores têm verificação KYC, todas as encomendas seguem condições claras de pagamento por fatura e todas as transações ficam documentadas. Assente na verificação dos vendedores — não em promessas vazias.',
  'b_sell'=>'Registar como vendedor','b_buy'=>'Registar como comprador','b_panel'=>'Abrir o meu painel',
@@ -381,7 +381,7 @@ $T = [
  'tagline'=>"Проверенная B2B-оптовая торговля модой в Европе",
  'meta'=>"B2B-маркетплейс оптовой торговли брендовой одеждой и текстилем с KYC-проверкой продавцов. Каждый продавец проходит проверку. Зарегистрируйтесь бесплатно как продавец или покупатель.",
  'why'=>'Почему','how'=>'Как это работает','join_nav'=>'Начать',
- 'pill'=>'Онлайн · Регистрация открыта',
+ 'pill'=>'B2B-опт · Только для бизнеса',
  'h1'=>'<span class="acc">Проверенный</span> способ торговать<br>брендовой одеждой оптом.',
  'sub'=>'B2B-маркетплейс, где каждый продавец прошёл KYC-проверку, каждый заказ оформляется по понятным условиям оплаты по счёту, а каждая сделка документируется. Основано на проверке продавцов — а не на пустых обещаниях.',
  'b_sell'=>'Регистрация продавца','b_buy'=>'Регистрация покупателя','b_panel'=>'Открыть мой кабинет',
@@ -418,7 +418,7 @@ $T = [
  'tagline'=>"ヨーロッパの認証制B2Bファッション卸売",
  'meta'=>"ブランドファッションとテキスタイルのための、KYC認証制B2B卸売マーケットプレイス。すべての販売者が審査を受けています。販売者・バイヤーとも無料でご登録いただけます。",
  'why'=>'特長','how'=>'ご利用の流れ','join_nav'=>'はじめる',
- 'pill'=>'稼働中 · 登録受付中',
+ 'pill'=>'B2B卸売 · 事業者専用',
  'h1'=>'ブランドファッションを卸で、<br><span class="acc">認証された</span>やり方で。',
  'sub'=>'すべての販売者がKYC認証を受け、すべての注文が明確な請求条件で進み、すべての取引が記録されるB2Bマーケットプレイスです。空約束ではなく、販売者の認証に基づいて設計されています。',
  'b_sell'=>'販売者として登録','b_buy'=>'バイヤーとして登録','b_panel'=>'ダッシュボードを開く',
@@ -453,7 +453,7 @@ $T = [
  'tagline'=>"سوق الجملة B2B الموثوق للأزياء في أوروبا",
  'meta'=>"سوق جملة B2B مع تحقق KYC من البائعين، للأزياء ذات العلامات التجارية والمنسوجات. كل بائع يخضع للتحقق. سجّل مجانًا كبائع أو مشترٍ.",
  'why'=>'لماذا','how'=>'كيف يعمل','join_nav'=>'ابدأ الآن',
- 'pill'=>'مباشر · التسجيل مفتوح',
+ 'pill'=>'جملة B2B · للتجار فقط',
  'h1'=>'الطريقة <span class="acc">الموثوقة</span> لتجارة<br>الأزياء ذات العلامات التجارية بالجملة.',
  'sub'=>'سوق B2B حيث يخضع كل بائع لتحقق KYC، وتُنفَّذ كل طلبية بشروط فوترة واضحة، وتُوثَّق كل معاملة. مبني على التحقق من البائعين — لا على وعود فارغة.',
  'b_sell'=>'التسجيل كبائع','b_buy'=>'التسجيل كمشترٍ','b_panel'=>'فتح لوحتي',
@@ -1017,6 +1017,59 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
     .how{padding-bottom:56px}
     .join{margin:56px auto 48px}
   }
+  /* ── Kurumsal katman (13 Eki 2026, operator: "daha profesyonel ... daha fazla ciddi
+     site"). Ustteki kurallar testlerin sabitledigi dizgeler (home_offer_test), o yuzden
+     DOKUNULMADI: bu blok SONDA ve yalniz geri cekiyor. Ton: kampanya bandi degil,
+     bir ticaret kurumunun on sayfasi -- daha az altin, daha az hareket, daha cok kunye. */
+  .pill{letter-spacing:.16em;background:transparent;border-color:rgba(244,241,234,.18);color:rgba(244,241,234,.78)}
+  .pill .dot{animation:none;background:var(--acc);width:6px;height:6px}
+  .hero h1{letter-spacing:-.015em}
+  .offer{gap:10px;padding:8px 16px;border-radius:999px;background:transparent;box-shadow:none;
+    border-color:rgba(201,168,106,.32);backdrop-filter:none}
+  .offer:hover{background:rgba(201,168,106,.07);transform:none}
+  /* Yuzde zaten cumlede yaziyor ("5% off …"); ayri altin rozet ayni rakami ikinci kez bagiriyordu. */
+  .offer-tag{display:none}
+  .offer-tx{flex-direction:row;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .offer-t{font-size:14px}
+  .offer-s{font-size:12.5px}
+  .facts{border-bottom:1px solid var(--line);background:var(--bg)}
+  .facts-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+  .fact{min-width:0}
+  .fact{padding:26px 18px;text-align:center;border-left:1px solid var(--line)}
+  .fact:first-child{border-left:0}
+  .fact b{display:block;font-family:'Playfair Display',Georgia,serif;font-weight:600;font-size:clamp(22px,2.6vw,30px);
+    color:var(--ink);letter-spacing:-.01em;line-height:1.15}
+  .fact span{display:block;margin-top:6px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--mut)}
+  [dir="rtl"] .fact{border-left:0;border-right:1px solid var(--line)}
+  [dir="rtl"] .fact:first-child{border-right:0}
+  .appbox-btns .btn{gap:9px}
+  .appbox-btns .bi{flex:none;opacity:.9}
+  .sfoot{border-top:1px solid var(--line);padding:64px 0 0;color:var(--mut);font-size:13.5px;background:#0b0a09}
+  .sfoot-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:40px;padding-bottom:44px}
+  .sfoot-logo{font-family:'Playfair Display',Georgia,serif;font-size:22px;letter-spacing:.24em;color:var(--ink);margin-bottom:12px}
+  .sfoot-brand p{margin:0 0 14px;max-width:34ch;line-height:1.55}
+  .sfoot-brand address{font-style:normal;line-height:1.65;margin-bottom:12px;color:rgba(244,241,234,.62)}
+  .sfoot-col{display:flex;flex-direction:column;align-items:flex-start;gap:10px;text-align:start}
+  .sfoot-grid,.sfoot-base{text-align:start}
+  .sfoot-col b{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--ink);margin-bottom:4px}
+  .sfoot a{transition:color .2s}
+  .sfoot a:hover{color:var(--ink)}
+  .sfoot-base{display:flex;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;padding-top:20px;padding-bottom:28px;
+    border-top:1px solid var(--line);font-size:12px;color:rgba(159,154,143,.85)}
+  @media(max-width:900px){.sfoot-grid{grid-template-columns:1fr 1fr}.sfoot-brand{grid-column:1/-1}}
+  @media(max-width:760px){
+    .facts-row{grid-template-columns:repeat(2,minmax(0,1fr));padding:0}
+    .fact span{letter-spacing:.08em;font-size:10px;overflow-wrap:anywhere;hyphens:auto}
+    .fact{padding:18px 10px}
+    .fact:nth-child(3){border-left:0}
+    .fact:nth-child(n+3){border-top:1px solid var(--line)}
+    [dir="rtl"] .fact:nth-child(3){border-right:0}
+    .sfoot{padding-top:48px}
+    .sfoot-grid{gap:30px 20px}
+    .offer-tx{flex-direction:column;gap:2px}
+    .offer{border-radius:14px;padding:10px 16px}
+    .pill{font-size:10px;letter-spacing:.1em;padding:6px 12px;gap:7px}
+  }
 </style>
 </head>
 <body>
@@ -1176,6 +1229,23 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
       if ($_brands): ?>
 <div class="ticker" aria-hidden="true">
   <div class="ticker-track"><?php for ($_r = 0; $_r < 2; $_r++) foreach ($_brands as $_b) echo '<span>'.htmlspecialchars($_b).'</span>'; ?></div>
+</div>
+<?php endif; ?>
+<?php /* RAKAM SERIDI (operator, 13 Eki 2026: "ana sayfayi daha profesyonel yap ...
+         daha fazla ciddi siteye donustur"). Uc sayi CANLI katalogdan -- vitrinin
+         kendi okuyuculari (vestra_products, $_brands, vestra_seo_cats); elle yazilmis
+         bir "1000+ urun" bir gun yalan olurdu. Dorduncu hucre sayi degil, faturanin
+         gercekten kesildigi iki birim. Sayilar sifirsa serit hic basilmiyor. */
+      $_fxN = function_exists('vestra_products') ? count(vestra_products()) : 0;
+      $_fxC = function_exists('vestra_seo_cats') ? count(vestra_seo_cats()) : 0;
+      if ($_fxN > 0 && $_brands): ?>
+<div class="facts" role="list">
+  <div class="wrap facts-row">
+    <div class="fact" role="listitem"><b><?= number_format($_fxN, 0, '', ' ') ?></b><span><?= t('Live listings') ?></span></div>
+    <div class="fact" role="listitem"><b><?= count($_brands) ?></b><span><?= t('Houses in stock') ?></span></div>
+    <?php if ($_fxC > 0): ?><div class="fact" role="listitem"><b><?= $_fxC ?></b><span><?= t('Product categories') ?></span></div><?php endif; ?>
+    <div class="fact" role="listitem"><b>EUR · USD</b><span><?= t('Invoice currencies') ?></span></div>
+  </div>
 </div>
 <?php endif; ?>
 <?php /* KAGIT BOLGESI: buradan marka duvarina kadar her bolum acik zeminde. Icerideki
@@ -1636,7 +1706,7 @@ if ($shoePicks):
     <div class="cs-grid">
       <?php foreach (vestra_seo_collections() as $_cs => $_sec): $_r = vestra_seo_resolve($_cs); if (!$_r) continue; ?>
       <a class="cs-cell cs-coll" href="/b2b/<?= $_cs ?>"><span class="cs-name"><?= htmlspecialchars(t(vestra_section_label($_sec)).' '.$_cw) ?></span><span class="cs-n"><?= htmlspecialchars(sprintf(t('%d listings'), count($_r['items']))) ?></span></a>
-      <?php endforeach; foreach (array_slice($_cats, 0, 18, true) as $_c => $_n): ?>
+      <?php endforeach; foreach (array_slice($_cats, 0, 12, true) as $_c => $_n): ?>
       <a class="cs-cell" href="/b2b/<?= urlencode(vestra_seo_cat_slug($_c)) ?>"><span class="cs-name"><?= htmlspecialchars(t($_c).' '.$_cw) ?></span><span class="cs-n"><?= htmlspecialchars(sprintf(t('%d listings'), $_n)) ?></span></a>
       <?php endforeach; ?>
     </div>
@@ -1759,28 +1829,59 @@ if ($shoePicks):
       <p><?= $t['app_s'] ?></p>
       <div class="appbox-btns">
         <?php if($apkExists): ?>
-          <a class="btn btn-p" href="/app/vestra.apk" download>🤖 <?= $t['app_apk'] ?></a>
+          <a class="btn btn-p" href="/app/vestra.apk" download><svg class="bi" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg> <?= $t['app_apk'] ?></a>
         <?php else: ?>
-          <button class="btn btn-p" id="btnAndroid" type="button">🤖 <?= $t['app_and'] ?></button>
+          <button class="btn btn-p" id="btnAndroid" type="button"><svg class="bi" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg> <?= $t['app_and'] ?></button>
         <?php endif; ?>
-        <button class="btn btn-o" id="btnIos" type="button">📱 <?= $t['app_ios'] ?></button>
-        <button class="btn btn-o" id="btnNoti" type="button">🔔 <?= $t['app_noti'] ?></button>
+        <button class="btn btn-o" id="btnIos" type="button"><svg class="bi" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg> <?= $t['app_ios'] ?></button>
+        <button class="btn btn-o" id="btnNoti" type="button"><svg class="bi" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg> <?= $t['app_noti'] ?></button>
       </div>
       <div class="appbox-hint" id="appHint" style="display:none"></div>
     </div>
   </section>
 </div>
 
-<footer>
-  <div class="wrap foot">
-    <div><b style="color:var(--ink)"><?= htmlspecialchars($BRAND) ?></b> — <?= $t['tagline'] ?>
-      <div style="margin-top:6px;opacity:.8"><?= htmlspecialchars($COMPANY) ?></div></div>
-    <div class="foot-links">
-      <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog','pt'=>'Catálogo','ru'=>'Каталог','ar'=>'الكتالوج','ja'=>'カタログ'][$lang] ?? 'Catalog' ?></a>
-      <a href="/faq">FAQ</a>
-      <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
-      <a href="mailto:<?= htmlspecialchars($CONTACT) ?>" class="acc"><?= htmlspecialchars($CONTACT) ?></a>
+<footer class="sfoot">
+  <?php /* KURUMSAL ALTBILGI (13 Eki 2026, "ciddi site"): sirket kunyesi imprint
+           sayfasiyla AYNI metin (inc/legal.php $co/$addr) -- iki ayri adres yazimi
+           bir gun ayrisirdi. Yasal belgelerin hepsi /legal?doc=… ile; kategori ve
+           marka baglantilari zaten sayfanin govdesinde. */ ?>
+  <div class="wrap sfoot-grid">
+    <div class="sfoot-brand">
+      <div class="sfoot-logo"><?= htmlspecialchars($BRAND) ?></div>
+      <p><?= $t['tagline'] ?>.</p>
+      <address>Acerasoft LLC<br>8 The Green, Suite B<br>Dover, Delaware 19901, USA</address>
+      <a class="acc" href="mailto:<?= htmlspecialchars($CONTACT) ?>"><?= htmlspecialchars($CONTACT) ?></a>
     </div>
+    <div class="sfoot-col" role="navigation" aria-label="<?= htmlspecialchars(t('Marketplace')) ?>">
+      <b><?= t('Marketplace') ?></b>
+      <a href="/shop"><?= t('Catalog') ?></a>
+      <a href="#brands"><?= t('Brands') ?></a>
+      <a href="/dropshipping"><?= t('Dropshipping') ?></a>
+      <a href="/register?type=buyer"><?= $t['b_buy'] ?></a>
+      <a href="/register?type=seller"><?= $t['b_sell'] ?></a>
+    </div>
+    <div class="sfoot-col" role="navigation" aria-label="<?= htmlspecialchars(t('Support')) ?>">
+      <b><?= t('Support') ?></b>
+      <a href="#how"><?= $t['how'] ?></a>
+      <a href="/faq">FAQ</a>
+      <a href="/help"><?= t('Help') ?></a>
+      <a href="/faq?cat=returns"><?= t('Returns') ?></a>
+      <a href="mailto:<?= htmlspecialchars($CONTACT) ?>"><?= t('Contact') ?></a>
+    </div>
+    <div class="sfoot-col" role="navigation" aria-label="<?= htmlspecialchars(t('Legal')) ?>">
+      <b><?= t('Legal') ?></b>
+      <a href="/legal?doc=terms"><?= t('Terms') ?></a>
+      <a href="/legal?doc=privacy"><?= t('Privacy') ?></a>
+      <a href="/legal?doc=imprint"><?= t('Imprint') ?></a>
+      <a href="/legal?doc=seller"><?= t('Seller Agreement') ?></a>
+      <a href="/legal?doc=payments"><?= t('Payments & refunds') ?></a>
+      <a href="/legal?doc=ip"><?= t('Anti-counterfeit policy') ?></a>
+    </div>
+  </div>
+  <div class="wrap sfoot-base">
+    <span>© <?= date('Y') ?> <?= htmlspecialchars($COMPANY) ?> · <?= t('Trade only') ?> — <?= t('sales to registered businesses') ?></span>
+    <span><?= t('Bank transfer') ?> · <?= t('Card (Stripe)') ?> · <?= t('Invoice in EUR or USD') ?></span>
   </div>
 </footer>
 

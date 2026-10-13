@@ -1693,4 +1693,19 @@ return array (
 'B2B Fashion Wholesale' => 'Оптовая мода B2B',
   'Verified B2B fashion wholesale marketplace — live prices, orders and messages.' => 'Проверенная B2B-площадка оптовой моды — актуальные цены, заказы и сообщения.',
 
+  // ana sayfa kurumsal katmani (13 Eki 2026)
+  'Houses in stock' => 'Брендов в наличии',
+  'Product categories' => 'Категорий товаров',
+  'Invoice currencies' => 'Валюты счетов',
+  'Marketplace' => 'Маркетплейс',
+  'Brands' => 'Бренды',
+  'Dropshipping' => 'Дропшиппинг',
+  'Support' => 'Поддержка',
+  'Payments & refunds' => 'Платежи и возвраты',
+  'Anti-counterfeit policy' => 'Политика против подделок',
+  'sales to registered businesses' => 'продажа только зарегистрированным компаниям',
+  'Bank transfer' => 'Банковский перевод',
+  'Card (Stripe)' => 'Карта (Stripe)',
+  'Invoice in EUR or USD' => 'Счёт в EUR или USD',
+
 );
