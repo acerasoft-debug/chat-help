@@ -1,500 +1,666 @@
 {
-    "blm-bkbu90650": {
-        "name": "BALMAIN Bademode BKBU90650",
-        "brand": "BALMAIN",
-        "sku": "BKBU90650",
+    "csb-larch-black": {
+        "name": "L'Arch T-Shirt — Black",
+        "brand": "Casablanca",
+        "sku": "LARCH-BLACK",
         "source": "b2b",
         "colours": [
             "Black"
         ],
         "images": [
-            "/uploads/shorts-sweats/balmain-bkbu90650-b-p1.jpg",
-            "/uploads/shorts-sweats/balmain-bkbu90650-b-p2.jpg"
+            "/uploads/casablanca/larch-black.png"
         ],
         "siblings": [],
         "raw": {
-            "name": "BALMAIN Swimsuit — BKBU90650",
-            "sku": "BKBU90650",
+            "name": "L'Arch T-Shirt — Black",
+            "sku": "LARCH-BLACK",
             "images": [
-                "/uploads/shorts-sweats/balmain-bkbu90650-b.jpg",
-                "/uploads/shorts-sweats/balmain-bkbu90650.jpg"
-            ]
-        }
-    },
-    "blm-bwb210330": {
-        "name": "BALMAIN Bademode BWB210330",
-        "brand": "BALMAIN",
-        "sku": "BWB210330",
-        "source": "b2b",
-        "colours": [
-            "Black"
-        ],
-        "images": [
-            "/uploads/shorts-sweats/balmain-bwb210330-b-p1.jpg",
-            "/uploads/shorts-sweats/balmain-bwb210330-b-p2-p1.jpg",
-            "/uploads/shorts-sweats/balmain-bwb210330-b-p3.jpg"
-        ],
-        "siblings": [],
-        "raw": {
-            "name": "BALMAIN Boxer Briefs — BWB210330",
-            "sku": "BWB210330",
-            "images": [
-                "/uploads/shorts-sweats/balmain-bwb210330-b.jpg",
-                "/uploads/shorts-sweats/balmain-bwb210330.jpg"
-            ]
-        }
-    },
-    "blm-bwb210400": {
-        "name": "BALMAIN Bademode BWB210400",
-        "brand": "BALMAIN",
-        "sku": "BWB210400",
-        "source": "b2b",
-        "colours": [
-            "Black"
-        ],
-        "images": [
-            "/uploads/shorts-sweats/balmain-bwb210400-black-p1.jpg",
-            "/uploads/shorts-sweats/balmain-bwb210400-black-p2.jpg",
-            "/uploads/shorts-sweats/balmain-bwb210400-black-v1.jpg",
-            "/uploads/shorts-sweats/balmain-bwb210400-black-v2.jpg"
-        ],
-        "siblings": [],
-        "raw": {
-            "name": "BALMAIN Boxer Briefs — BWB210400",
-            "sku": "BWB210400",
-            "images": [
-                "/uploads/shorts-sweats/balmain-bwb210400-black.jpg",
-                "/uploads/shorts-sweats/balmain-bwb210400.jpg"
-            ]
-        }
-    },
-    "blm-bwb410400": {
-        "name": "BALMAIN Bademode BWB410400",
-        "brand": "BALMAIN",
-        "sku": "BWB410400",
-        "source": "b2b",
-        "colours": [
-            "Black"
-        ],
-        "images": [
-            "/uploads/shorts-sweats/balmain-bwb410400-black-p1.jpg",
-            "/uploads/shorts-sweats/balmain-bwb410400-black-p2.jpg",
-            "/uploads/shorts-sweats/balmain-bwb410400-black-v1.jpg",
-            "/uploads/shorts-sweats/balmain-bwb410400-black-v2.jpg"
-        ],
-        "siblings": [],
-        "raw": {
-            "name": "BALMAIN Boxer Trunks — BWB410400",
-            "sku": "BWB410400",
-            "images": [
-                "/uploads/shorts-sweats/balmain-bwb410400-black.jpg",
-                "/uploads/shorts-sweats/balmain-bwb410400-red.jpg",
-                "/uploads/shorts-sweats/balmain-bwb410400-white.jpg"
-            ]
-        }
-    },
-    "blm-bwb550350": {
-        "name": "BALMAIN Bademode BWB550350",
-        "brand": "BALMAIN",
-        "sku": "BWB550350",
-        "source": "b2b",
-        "colours": [
-            "Black"
-        ],
-        "images": [
-            "/uploads/shorts-sweats/balmain-bwb550350-black-p1.jpg",
-            "/uploads/shorts-sweats/balmain-bwb550350-black-p2.jpg",
-            "/uploads/shorts-sweats/balmain-bwb550350-black-v1.jpg",
-            "/uploads/licensed/web/balmain/blm-bwb550350-w2.jpg"
-        ],
-        "siblings": [],
-        "raw": {
-            "name": "BALMAIN Boxer Trunks — BWB550350",
-            "sku": "BWB550350",
-            "images": [
-                "/uploads/shorts-sweats/balmain-bwb550350-black.jpg",
-                "/uploads/shorts-sweats/balmain-bwb550350.jpg"
-            ]
-        }
-    },
-    "blm-xf1ee005bb01": {
-        "name": "BALMAIN T-Shirt XF1EE005BB01",
-        "brand": "BALMAIN",
-        "sku": "XF1EE005BB01",
-        "source": "b2b",
-        "colours": [
-            "Navy"
-        ],
-        "images": [
-            "/uploads/balenciaga-burberry/balmain-xf1ee005bb01-p2.jpg",
-            "/uploads/balenciaga-burberry/balmain-xf1ee005bb01-v1.jpg",
-            "/uploads/balenciaga-burberry/balmain-xf1ee005bb01-p1.jpg"
-        ],
-        "siblings": [],
-        "raw": {
-            "name": "BALMAIN Women's Cropped T-Shirt — XF1EE005BB01",
-            "sku": "XF1EE005BB01",
-            "images": [
-                "/uploads/balenciaga-burberry/balmain-xf1ee005-bb01.jpg",
-                "/uploads/balenciaga-burberry/balmain-xf1ee005bb01.jpg"
-            ]
-        }
-    },
-    "blc-612966tlvf1": {
-        "name": "Balenciaga T-Shirt 612966TLVF1",
-        "brand": "Balenciaga",
-        "sku": "612966TLVF1",
-        "source": "b2b",
-        "colours": [
-            "White"
-        ],
-        "images": [
-            "/uploads/balenciaga-burberry/balenciag-612966tlvf1.jpg",
-            "/uploads/balenciaga-burberry/blcg-612966tlvf1-packshot.jpg"
-        ],
-        "siblings": [],
-        "raw": {
-            "name": "Balenciaga Print T-Shirt — 612966TLVF1",
-            "sku": "612966TLVF1",
-            "images": [
-                "/uploads/balenciaga-burberry/balenciag-612966tlvf1.jpg",
-                "/uploads/balenciaga-burberry/balenciaga-612966tlvf1.jpg",
-                "/uploads/balenciaga-burberry/blcg-612966tlvf1-packshot.jpg",
-                "/uploads/balenciaga-burberry/blcg-612966tlvf1-hangtag.jpg",
-                "/uploads/balenciaga-burberry/blcg-612966tlvf1-label.jpg"
-            ]
-        }
-    },
-    "gvy-bm716g3yge": {
-        "name": "Logo T-Shirt — BM716G3YGE",
-        "brand": "Givenchy",
-        "sku": "BM716G3YGE",
-        "source": "b2b",
-        "colours": [
-            "Black"
-        ],
-        "images": [
-            "/uploads/givenchy/givenchy-bm716g3yge-b-p1-p1.jpg",
-            "/uploads/givenchy/givenchy-bm716g3yge-b-p1-p2.jpg",
-            "/uploads/givenchy/givenchy-bm716g3yge-b-p1-p3.jpg"
-        ],
-        "siblings": [],
-        "raw": {
-            "name": "Logo T-Shirt — BM716G3YGE",
-            "sku": "BM716G3YGE",
-            "images": [
-                "/uploads/givenchy/givenchy-bm716g3yge.jpg"
-            ]
-        }
-    },
-    "gvy-bm716g3ygeb": {
-        "name": "Logo T-Shirt — BM716G3YGE B",
-        "brand": "Givenchy",
-        "sku": "BM716G3YGE B",
-        "source": "b2b",
-        "colours": [
-            "Black"
-        ],
-        "images": [
-            "/uploads/givenchy/givenchy-bm716g3yge-b-p1-p1.jpg",
-            "/uploads/givenchy/givenchy-bm716g3yge-b-p1-p2.jpg",
-            "/uploads/givenchy/givenchy-bm716g3yge-b-p1-p3.jpg",
-            "/uploads/givenchy/givenchy-bm716g3yge-b.jpg"
-        ],
-        "siblings": [],
-        "raw": {
-            "name": "Logo T-Shirt — BM716G3YGE B",
-            "sku": "BM716G3YGE B",
-            "images": [
-                "/uploads/givenchy/givenchy-bm716g3yge-b.jpg"
-            ]
-        }
-    },
-    "guc-t02": {
-        "name": "Rainbow Logo T-Shirt, White — 616036 XJDV9",
-        "brand": "Gucci",
-        "sku": "616036-XJDV9",
-        "source": "b2b",
-        "colours": [
-            "White"
-        ],
-        "images": [
-            "/uploads/gucci/gucci-616036-xjdv9-p1.jpg",
-            "/uploads/gucci/gucci-616036-xjdv9-p2.jpg"
-        ],
-        "siblings": [],
-        "raw": {
-            "name": "Rainbow Logo T-Shirt, White — 616036 XJDV9",
-            "sku": "616036-XJDV9",
-            "images": [
-                "/uploads/gucci/gucci-616036-xjdv9.jpg"
-            ]
-        }
-    },
-    "dgn-g8pl4tg7f2h0": {
-        "name": "DG Logo Polo Shirt — Black",
-        "brand": "Dolce & Gabbana",
-        "sku": "G8PL4T G7F2H 0",
-        "source": "b2b",
-        "colours": [
-            "Black"
-        ],
-        "images": [
-            "/uploads/dg-root4/d-g-g8pl4t-g7f2h-0.jpg"
-        ],
-        "siblings": [],
-        "raw": {
-            "name": "DG Logo Polo Shirt — Black",
-            "sku": "G8PL4T G7F2H 0",
-            "images": [
-                "/uploads/dg-root4/d-g-g8pl4t-g7f2h-0.jpg"
+                "/uploads/casablanca/larch-black.png"
             ],
             "colors": [
                 "Black"
             ]
         }
     },
-    "fp-m7535-sweat": {
-        "name": "Fred Perry Crew Neck Sweatshirt — M7535",
-        "brand": "Fred Perry",
-        "sku": "M7535",
-        "source": "b2b",
-        "colours": [
-            "Bordeaux",
-            "White",
-            "Navy",
-            "Green",
-            "Black"
-        ],
-        "images": [
-            "/uploads/fred-perry/fp-m7535-bordeaux.jpg",
-            "/uploads/fred-perry/fp-m7535-white.jpg",
-            "/uploads/fred-perry/fp-m7535-navy.jpg",
-            "/uploads/fred-perry/fp-m7535-green.jpg",
-            "/uploads/fred-perry/fp-m7535-black.jpg"
-        ],
-        "siblings": [],
-        "raw": {
-            "name": "Fred Perry Crew Neck Sweatshirt — M7535",
-            "sku": "M7535",
-            "images": [
-                "/uploads/fred-perry/fp-m7535-bordeaux.jpg",
-                "/uploads/fred-perry/fp-m7535-white.jpg",
-                "/uploads/fred-perry/fp-m7535-navy.jpg",
-                "/uploads/fred-perry/fp-m7535-green.jpg",
-                "/uploads/fred-perry/fp-m7535-black.jpg",
-                "/uploads/fred-perry/fp-m7535-detail-front.jpg",
-                "/uploads/fred-perry/fp-m7535-detail-laurel.jpg",
-                "/uploads/fred-perry/fp-m7535-detail-neck-label.jpg",
-                "/uploads/fred-perry/fp-m7535-detail-style-label.jpg",
-                "/uploads/fred-perry/fp-m7535-detail-hangtags.jpg",
-                "/uploads/fred-perry/fp-m7535-detail-community-tag.jpg"
-            ],
-            "colors": [
-                "Bordeaux",
-                "White",
-                "Navy",
-                "Green",
-                "Black"
-            ]
-        }
-    },
-    "dgx-g8pl4t-g7f2h": {
-        "name": "Logo Plaque Polo Shirt — White",
-        "brand": "Dolce & Gabbana",
-        "sku": "G8PL4T G7F2H",
+    "csb-aiiir-printed-white": {
+        "name": "AIIIR Printed T-Shirt — White",
+        "brand": "Casablanca",
+        "sku": "AIIIR-PRINTED-WHITE",
         "source": "b2b",
         "colours": [
             "White"
         ],
         "images": [
-            "/uploads/dg-dropbox/d-g-g8pl4t-g7f2h.jpg",
-            "/uploads/balenciaga-burberry/d-g-g8pl4t-g7f2h-p1.jpg"
+            "/uploads/casablanca/aiiir-printed-white.webp",
+            "/uploads/licensed/web/casablanca/csb-aiiir-printed-white-w2.jpg",
+            "/uploads/licensed/web/casablanca/csb-aiiir-printed-white-w3.jpg"
         ],
-        "siblings": [
-            "dgn-g8pl4tg7f2h",
-            "dgx-g8pl4t-g7f2h"
-        ],
+        "siblings": [],
         "raw": {
-            "name": "Logo Plaque Polo Shirt — White",
-            "sku": "G8PL4T G7F2H",
+            "name": "AIIIR Printed T-Shirt — White",
+            "sku": "AIIIR-PRINTED-WHITE",
             "images": [
-                "/uploads/dg-dropbox/d-g-g8pl4t-g7f2h.jpg"
+                "/uploads/casablanca/aiiir-printed-white.webp"
             ],
             "colors": [
                 "White"
             ]
         }
     },
-    "dgn-g8ol6zg7c8g": {
-        "name": "Dolce & Gabbana T-Shirt G8OL6ZG7C8G",
-        "brand": "Dolce & Gabbana",
-        "sku": "G8OL6ZG7C8G",
+    "csb-larch-colore-tee-pink": {
+        "name": "Larch Colore Tee — Pink",
+        "brand": "Casablanca",
+        "sku": "LARCH-COLORE-TEE-PINK",
         "source": "b2b",
         "colours": [
-            "Orange"
+            "Pink"
         ],
         "images": [
-            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p1.jpg",
-            "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-p2.jpg",
-            "/uploads/dg-dropbox/d-g-g8ol6z-g7c8g-1.jpg"
-        ],
-        "siblings": [
-            "dgx-g8ol6z-g7c8g",
-            "dgn-g8ol6zg7c8g"
-        ],
-        "raw": []
-    },
-    "dgn-g8ol6zg7c8g1": {
-        "name": "Dolce & Gabbana T-Shirt G8OL6ZG7C8G1",
-        "brand": "Dolce & Gabbana",
-        "sku": "G8OL6ZG7C8G1",
-        "source": "b2b",
-        "colours": [
-            "Black"
-        ],
-        "images": [
-            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g1-p1-p1-v1.jpg",
-            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g1-p1-p1-v2.jpg",
-            "/uploads/balenciaga-burberry/d-g-g8ol6zg7c8g1-p1-p1.jpg"
+            "/uploads/casablanca/larch-colore-tee-pink.webp"
         ],
         "siblings": [],
-        "raw": []
+        "raw": {
+            "name": "Larch Colore Tee — Pink",
+            "sku": "LARCH-COLORE-TEE-PINK",
+            "images": [
+                "/uploads/casablanca/larch-colore-tee-pink.webp"
+            ],
+            "colors": [
+                "Pink"
+            ]
+        }
     },
-    "dgn-g8pl4tg7f2h": {
-        "name": "Dolce & Gabbana Poloshirt G8PL4TG7F2H",
-        "brand": "Dolce & Gabbana",
-        "sku": "G8PL4TG7F2H",
-        "source": "b2b",
-        "colours": [
-            "Black"
-        ],
-        "images": [
-            "/uploads/balenciaga-burberry/d-g-g8pl4t-g7f2h-0-p1.jpg",
-            "/uploads/balenciaga-burberry/d-g-g8pl4t-g7f2h-0-p2.jpg",
-            "/uploads/balenciaga-burberry/d-g-g8pl4t-g7f2h-0-p3.jpg",
-            "/uploads/licensed/web/dolce-gabbana/dgn-g8pl4tg7f2h-w1.jpg"
-        ],
-        "siblings": [
-            "dgn-g8pl4tg7f2h",
-            "dgx-g8pl4t-g7f2h"
-        ],
-        "raw": []
-    },
-    "dgn-g8pl4zg7nyy": {
-        "name": "Dolce & Gabbana Poloshirt G8PL4ZG7NYY",
-        "brand": "Dolce & Gabbana",
-        "sku": "G8PL4ZG7NYY",
-        "source": "b2b",
-        "colours": [
-            "Black"
-        ],
-        "images": [
-            "/uploads/shorts-sweats/d-g-g8pl4zg7nyy_n-v3.jpg",
-            "/uploads/shorts-sweats/d-g-g8pl4zg7nyy_n-p1.jpg",
-            "/uploads/shorts-sweats/d-g-g8pl4zg7nyy_n-v1.jpg",
-            "/uploads/shorts-sweats/d-g-g8pl4zg7nyy_n-v2.jpg"
-        ],
-        "siblings": [],
-        "raw": []
-    },
-    "dgn-g8pn9zg7nye": {
-        "name": "Dolce & Gabbana T-Shirt G8PN9ZG7NYE",
-        "brand": "Dolce & Gabbana",
-        "sku": "G8PN9ZG7NYE",
+    "csb-casaway-white": {
+        "name": "Casaway T-Shirt — White",
+        "brand": "Casablanca",
+        "sku": "CASAWAY-WHITE",
         "source": "b2b",
         "colours": [
             "White"
         ],
         "images": [
-            "/uploads/shorts-sweats/d-g-g8pn9zg7nye-p1-p1.jpg",
-            "/uploads/shorts-sweats/d-g-g8pn9zg7nye-p1-p2.jpg",
-            "/uploads/shorts-sweats/d-g-g8pn9zg7nye-p2.jpg",
-            "/uploads/shorts-sweats/d-g-g8pn9zg7nye-p1.jpg",
-            "/uploads/shorts-sweats/d-g-g8pn9zg7nye-v2.jpg",
-            "/uploads/shorts-sweats/d-g-g8pn9zg7nye-v3.jpg"
+            "/uploads/casablanca/casaway-white.jpg",
+            "/uploads/licensed/web/casablanca/csb-casaway-white-w3.jpg"
         ],
         "siblings": [],
-        "raw": []
+        "raw": {
+            "name": "Casaway T-Shirt — White",
+            "sku": "CASAWAY-WHITE",
+            "images": [
+                "/uploads/casablanca/casaway-white.jpg"
+            ],
+            "colors": [
+                "White"
+            ]
+        }
     },
-    "dgn-g8pt1tg7f2i": {
-        "name": "Dolce & Gabbana T-Shirt G8PT1TG7F2I",
-        "brand": "Dolce & Gabbana",
-        "sku": "G8PT1TG7F2I",
+    "csb-aiiiiir-navy": {
+        "name": "AIIIIIR T-Shirt — Navy",
+        "brand": "Casablanca",
+        "sku": "AIIIIIR-NAVY",
         "source": "b2b",
         "colours": [
-            "Grey"
+            "Navy"
         ],
         "images": [
-            "/uploads/balenciaga-burberry/d-g-g8pt1tg7f2i-p1.jpg",
-            "/uploads/balenciaga-burberry/d-g-g8pt1tg7f2i-p2.jpg"
+            "/uploads/casablanca/aiiiiir-navy.jpg",
+            "/uploads/licensed/web/casablanca/csb-aiiiiir-navy-w1.jpg",
+            "/uploads/licensed/web/casablanca/csb-aiiiiir-navy-w3.jpg",
+            "/uploads/licensed/web/casablanca/csb-aiiiiir-navy-w4.jpg",
+            "/uploads/licensed/web/casablanca/csb-aiiiiir-navy-w2.jpg"
         ],
         "siblings": [],
-        "raw": []
+        "raw": {
+            "name": "AIIIIIR T-Shirt — Navy",
+            "sku": "AIIIIIR-NAVY",
+            "images": [
+                "/uploads/casablanca/aiiiiir-navy.jpg"
+            ],
+            "colors": [
+                "Navy"
+            ]
+        }
     },
-    "dgn-g8rn8tg7n7a": {
-        "name": "Dolce & Gabbana T-Shirt G8RN8TG7N7A",
-        "brand": "Dolce & Gabbana",
-        "sku": "G8RN8TG7N7A",
-        "source": "b2b",
-        "colours": [
-            "Burgundy"
-        ],
-        "images": [
-            "/uploads/shorts-sweats/d-g-g8rn8tg7n7a-f0-v1.jpg",
-            "/uploads/shorts-sweats/d-g-g8rn8tg7n7a-f0-v2.jpg",
-            "/uploads/shorts-sweats/d-g-g8rn8tg7n7a-f0-v3.jpg",
-            "/uploads/shorts-sweats/d-g-g8rn8tg7n7a-f0-p1.jpg"
-        ],
-        "siblings": [],
-        "raw": []
-    },
-    "dgn-g8rn8tg7nuc": {
-        "name": "Dolce & Gabbana T-Shirt G8RN8TG7NUC",
-        "brand": "Dolce & Gabbana",
-        "sku": "G8RN8TG7NUC",
-        "source": "b2b",
-        "colours": [
-            "Black"
-        ],
-        "images": [
-            "/uploads/shorts-sweats/d-g-g8rn8tg7nuc-v1.jpg",
-            "/uploads/shorts-sweats/d-g-g8rn8tg7nuc-v2.jpg",
-            "/uploads/shorts-sweats/d-g-g8rn8tg7nuc-p1.jpg"
-        ],
-        "siblings": [],
-        "raw": []
-    },
-    "dgn-g8rn8zg7m8x": {
-        "name": "Dolce & Gabbana T-Shirt G8RN8ZG7M8X",
-        "brand": "Dolce & Gabbana",
-        "sku": "G8RN8ZG7M8X",
+    "csb-sport-logo-white": {
+        "name": "Sport Logo T-Shirt — White",
+        "brand": "Casablanca",
+        "sku": "SPORT-LOGO-WHITE",
         "source": "b2b",
         "colours": [
             "White"
         ],
         "images": [
-            "/uploads/shorts-sweats/d-g-g8rn8z-g7m8x-1.jpg"
+            "/uploads/casablanca/sport-logo-white.jpg"
         ],
         "siblings": [],
-        "raw": []
+        "raw": {
+            "name": "Sport Logo T-Shirt — White",
+            "sku": "SPORT-LOGO-WHITE",
+            "images": [
+                "/uploads/casablanca/sport-logo-white.jpg"
+            ],
+            "colors": [
+                "White"
+            ]
+        }
     },
-    "dgn-g8rn8zg7n4q": {
-        "name": "Dolce & Gabbana T-Shirt G8RN8ZG7N4Q",
-        "brand": "Dolce & Gabbana",
-        "sku": "G8RN8ZG7N4Q",
+    "csb-vue-larche-organic-white": {
+        "name": "Vue De L'arche Organic Cotton T-Shirt — White",
+        "brand": "Casablanca",
+        "sku": "VUE-LARCHE-ORGANIC-WHITE",
+        "source": "b2b",
+        "colours": [
+            "White"
+        ],
+        "images": [
+            "/uploads/casablanca/vue-larche-organic-white.png",
+            "/uploads/licensed/web/casablanca/csb-vue-larche-organic-white-w2.jpg",
+            "/uploads/licensed/web/casablanca/csb-vue-larche-organic-white-w4.jpg",
+            "/uploads/licensed/web/casablanca/csb-vue-larche-organic-white-w5.jpg"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "Vue De L'arche Organic Cotton T-Shirt — White",
+            "sku": "VUE-LARCHE-ORGANIC-WHITE",
+            "images": [
+                "/uploads/casablanca/vue-larche-organic-white.png"
+            ],
+            "colors": [
+                "White"
+            ]
+        }
+    },
+    "csb-la-joueuse-jersey-pink": {
+        "name": "La Joueuse Jersey T-Shirt — Pink",
+        "brand": "Casablanca",
+        "sku": "LA-JOUEUSE-JERSEY-PINK",
+        "source": "b2b",
+        "colours": [
+            "Pink"
+        ],
+        "images": [
+            "/uploads/casablanca/la-joueuse-jersey-pink.webp",
+            "/uploads/licensed/web/casablanca/csb-la-joueuse-jersey-pink-w2.jpg",
+            "/uploads/licensed/web/casablanca/csb-la-joueuse-jersey-pink-w4.jpg",
+            "/uploads/licensed/web/casablanca/csb-la-joueuse-jersey-pink-w5.jpg"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "La Joueuse Jersey T-Shirt — Pink",
+            "sku": "LA-JOUEUSE-JERSEY-PINK",
+            "images": [
+                "/uploads/casablanca/la-joueuse-jersey-pink.webp"
+            ],
+            "colors": [
+                "Pink"
+            ]
+        }
+    },
+    "csb-joueuse-organic-white": {
+        "name": "Joueuse Organic Cotton T-Shirt — White",
+        "brand": "Casablanca",
+        "sku": "JOUEUSE-ORGANIC-WHITE",
+        "source": "b2b",
+        "colours": [
+            "White"
+        ],
+        "images": [
+            "/uploads/casablanca/joueuse-organic-white.png",
+            "/uploads/licensed/web/casablanca/csb-joueuse-organic-white-w2.jpg",
+            "/uploads/licensed/web/casablanca/csb-joueuse-organic-white-w3.jpg",
+            "/uploads/licensed/web/casablanca/csb-joueuse-organic-white-w4.jpg"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "Joueuse Organic Cotton T-Shirt — White",
+            "sku": "JOUEUSE-ORGANIC-WHITE",
+            "images": [
+                "/uploads/casablanca/joueuse-organic-white.png"
+            ],
+            "colors": [
+                "White"
+            ]
+        }
+    },
+    "csb-gradient-arch-logo-printed-black": {
+        "name": "Gradient Arch Logo Printed T-Shirt — Black",
+        "brand": "Casablanca",
+        "sku": "GRADIENT-ARCH-LOGO-PRINTED-BLACK",
         "source": "b2b",
         "colours": [
             "Black"
         ],
         "images": [
-            "/uploads/shorts-sweats/d-g-g8rn8z-g7n4q-p1-p1.jpg",
-            "/uploads/shorts-sweats/d-g-g8rn8z-g7n4q-p1-p2.jpg",
-            "/uploads/shorts-sweats/d-g-g8rn8z-g7n4q-v1.jpg",
-            "/uploads/shorts-sweats/d-g-g8rn8z-g7n4q-v2.jpg",
-            "/uploads/shorts-sweats/d-g-g8rn8z-g7n4q-p1-p3.jpg"
+            "/uploads/casablanca/gradient-arch-logo-printed-black.jpg",
+            "/uploads/licensed/web/casablanca/csb-gradient-arch-logo-printed-black-w2.jpg",
+            "/uploads/licensed/web/casablanca/csb-gradient-arch-logo-printed-black-w5.jpg",
+            "/uploads/licensed/web/casablanca/csb-gradient-arch-logo-printed-black-w3.jpg"
         ],
         "siblings": [],
-        "raw": []
+        "raw": {
+            "name": "Gradient Arch Logo Printed T-Shirt — Black",
+            "sku": "GRADIENT-ARCH-LOGO-PRINTED-BLACK",
+            "images": [
+                "/uploads/casablanca/gradient-arch-logo-printed-black.jpg"
+            ],
+            "colors": [
+                "Black"
+            ]
+        }
+    },
+    "csb-larche-colore-printed-black": {
+        "name": "L'arche Colore Printed T-Shirt — Black",
+        "brand": "Casablanca",
+        "sku": "LARCHE-COLORE-PRINTED-BLACK",
+        "source": "b2b",
+        "colours": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/casablanca/larche-colore-printed-black.webp",
+            "/uploads/licensed/web/casablanca/csb-larche-colore-printed-black-w1.jpg",
+            "/uploads/licensed/web/casablanca/csb-larche-colore-printed-black-w2.jpg",
+            "/uploads/licensed/web/casablanca/csb-larche-colore-printed-black-w3.jpg"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "L'arche Colore Printed T-Shirt — Black",
+            "sku": "LARCHE-COLORE-PRINTED-BLACK",
+            "images": [
+                "/uploads/casablanca/larche-colore-printed-black.webp"
+            ],
+            "colors": [
+                "Black"
+            ]
+        }
+    },
+    "csb-le-joueur-printed-white": {
+        "name": "Le Joueur Printed T-Shirt — White",
+        "brand": "Casablanca",
+        "sku": "LE-JOUEUR-PRINTED-WHITE",
+        "source": "b2b",
+        "colours": [
+            "White"
+        ],
+        "images": [
+            "/uploads/casablanca/le-joueur-printed-white.webp"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "Le Joueur Printed T-Shirt — White",
+            "sku": "LE-JOUEUR-PRINTED-WHITE",
+            "images": [
+                "/uploads/casablanca/le-joueur-printed-white.webp"
+            ],
+            "colors": [
+                "White"
+            ]
+        }
+    },
+    "csb-gradient-arch-logo-white": {
+        "name": "Gradient Arch Logo T-Shirt — White",
+        "brand": "Casablanca",
+        "sku": "GRADIENT-ARCH-LOGO-WHITE",
+        "source": "b2b",
+        "colours": [
+            "White"
+        ],
+        "images": [
+            "/uploads/casablanca/gradient-arch-logo-white.webp",
+            "/uploads/licensed/web/casablanca/csb-gradient-arch-logo-white-w2.jpg",
+            "/uploads/licensed/web/casablanca/csb-gradient-arch-logo-white-w3.jpg"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "Gradient Arch Logo T-Shirt — White",
+            "sku": "GRADIENT-ARCH-LOGO-WHITE",
+            "images": [
+                "/uploads/casablanca/gradient-arch-logo-white.webp"
+            ],
+            "colors": [
+                "White"
+            ]
+        }
+    },
+    "csb-le-joueure-printed-black": {
+        "name": "Le Joueure Printed T-Shirt — Black",
+        "brand": "Casablanca",
+        "sku": "LE-JOUEURE-PRINTED-BLACK",
+        "source": "b2b",
+        "colours": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/casablanca/le-joueure-printed-black.webp"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "Le Joueure Printed T-Shirt — Black",
+            "sku": "LE-JOUEURE-PRINTED-BLACK",
+            "images": [
+                "/uploads/casablanca/le-joueure-printed-black.webp"
+            ],
+            "colors": [
+                "Black"
+            ]
+        }
+    },
+    "csb-oasis-printed-white": {
+        "name": "Oasis Printed T-Shirt — White",
+        "brand": "Casablanca",
+        "sku": "OASIS-PRINTED-WHITE",
+        "source": "b2b",
+        "colours": [
+            "White"
+        ],
+        "images": [
+            "/uploads/casablanca/oasis-printed-white.webp"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "Oasis Printed T-Shirt — White",
+            "sku": "OASIS-PRINTED-WHITE",
+            "images": [
+                "/uploads/casablanca/oasis-printed-white.webp"
+            ],
+            "colors": [
+                "White"
+            ]
+        }
+    },
+    "csb-men-larche-colore-printed-white": {
+        "name": "L'arche Colore Printed T-Shirt (Men) — White",
+        "brand": "Casablanca",
+        "sku": "MEN-LARCHE-COLORE-PRINTED-WHITE",
+        "source": "b2b",
+        "colours": [
+            "White"
+        ],
+        "images": [
+            "/uploads/casablanca/men-larche-colore-printed-white.jpg",
+            "/uploads/licensed/web/casablanca/csb-men-larche-colore-printed-white-w1.jpg",
+            "/uploads/licensed/web/casablanca/csb-men-larche-colore-printed-white-w2.jpg"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "L'arche Colore Printed T-Shirt (Men) — White",
+            "sku": "MEN-LARCHE-COLORE-PRINTED-WHITE",
+            "images": [
+                "/uploads/casablanca/men-larche-colore-printed-white.jpg"
+            ],
+            "colors": [
+                "White"
+            ]
+        }
+    },
+    "csb-la-nights-black": {
+        "name": "LA Nights T-Shirt — Black",
+        "brand": "Casablanca",
+        "sku": "LA-NIGHTS-BLACK",
+        "source": "b2b",
+        "colours": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/casablanca/la-nights-black.png",
+            "/uploads/licensed/web/casablanca/csb-la-nights-black-w1.jpg",
+            "/uploads/licensed/web/casablanca/csb-la-nights-black-w4.jpg",
+            "/uploads/licensed/web/casablanca/csb-la-nights-black-w2.jpg"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "LA Nights T-Shirt — Black",
+            "sku": "LA-NIGHTS-BLACK",
+            "images": [
+                "/uploads/casablanca/la-nights-black.png"
+            ],
+            "colors": [
+                "Black"
+            ]
+        }
+    },
+    "csb-la-colonne-black": {
+        "name": "La Colonne T-Shirt — Black",
+        "brand": "Casablanca",
+        "sku": "LA-COLONNE-BLACK",
+        "source": "b2b",
+        "colours": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/casablanca/la-colonne-black.png",
+            "/uploads/licensed/web/casablanca/csb-la-colonne-black-w2.jpg",
+            "/uploads/licensed/web/casablanca/csb-la-colonne-black-w4.jpg",
+            "/uploads/licensed/web/casablanca/csb-la-colonne-black-w3.jpg",
+            "/uploads/licensed/web/casablanca/csb-la-colonne-black-w5.jpg"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "La Colonne T-Shirt — Black",
+            "sku": "LA-COLONNE-BLACK",
+            "images": [
+                "/uploads/casablanca/la-colonne-black.png"
+            ],
+            "colors": [
+                "Black"
+            ]
+        }
+    },
+    "csb-gradient-casa-logo-white": {
+        "name": "Gradient Casa Square Logo T-Shirt — White",
+        "brand": "Casablanca",
+        "sku": "GRADIENT-CASA-LOGO-WHITE",
+        "source": "b2b",
+        "colours": [
+            "White"
+        ],
+        "images": [
+            "/uploads/casablanca/gradient-casa-logo-white.png"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "Gradient Casa Square Logo T-Shirt — White",
+            "sku": "GRADIENT-CASA-LOGO-WHITE",
+            "images": [
+                "/uploads/casablanca/gradient-casa-logo-white.png"
+            ],
+            "colors": [
+                "White"
+            ]
+        }
+    },
+    "csb-larche-de-tennis-green": {
+        "name": "L'Arche De Tennis T-Shirt — Green",
+        "brand": "Casablanca",
+        "sku": "LARCHE-DE-TENNIS-GREEN",
+        "source": "b2b",
+        "colours": [
+            "Green"
+        ],
+        "images": [
+            "/uploads/casablanca/larche-de-tennis-green.png",
+            "/uploads/licensed/web/casablanca/csb-larche-de-tennis-green-w2.jpg",
+            "/uploads/licensed/web/casablanca/csb-larche-de-tennis-green-w3.jpg",
+            "/uploads/licensed/web/casablanca/csb-larche-de-tennis-green-w4.jpg",
+            "/uploads/licensed/web/casablanca/csb-larche-de-tennis-green-w5.jpg"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "L'Arche De Tennis T-Shirt — Green",
+            "sku": "LARCHE-DE-TENNIS-GREEN",
+            "images": [
+                "/uploads/casablanca/larche-de-tennis-green.png"
+            ],
+            "colors": [
+                "Green"
+            ]
+        }
+    },
+    "csb-montagne-ondulee-white": {
+        "name": "Montagne Ondulee T-Shirt — White",
+        "brand": "Casablanca",
+        "sku": "MONTAGNE-ONDULEE-WHITE",
+        "source": "b2b",
+        "colours": [
+            "White"
+        ],
+        "images": [
+            "/uploads/casablanca/montagne-ondulee-white.png",
+            "/uploads/licensed/web/casablanca/csb-montagne-ondulee-white-w2.jpg"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "Montagne Ondulee T-Shirt — White",
+            "sku": "MONTAGNE-ONDULEE-WHITE",
+            "images": [
+                "/uploads/casablanca/montagne-ondulee-white.png"
+            ],
+            "colors": [
+                "White"
+            ]
+        }
+    },
+    "csb-montagne-ondulee-green": {
+        "name": "Montagne Ondulee T-Shirt — Green",
+        "brand": "Casablanca",
+        "sku": "MONTAGNE-ONDULEE-GREEN",
+        "source": "b2b",
+        "colours": [
+            "Green"
+        ],
+        "images": [
+            "/uploads/casablanca/montagne-ondulee-green.png",
+            "/uploads/licensed/web/casablanca/csb-montagne-ondulee-green-w5.jpg",
+            "/uploads/licensed/web/casablanca/csb-montagne-ondulee-green-w4.jpg",
+            "/uploads/licensed/web/casablanca/csb-montagne-ondulee-green-w6.jpg"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "Montagne Ondulee T-Shirt — Green",
+            "sku": "MONTAGNE-ONDULEE-GREEN",
+            "images": [
+                "/uploads/casablanca/montagne-ondulee-green.png"
+            ],
+            "colors": [
+                "Green"
+            ]
+        }
+    },
+    "csb-tennis-club-icon-lightblue": {
+        "name": "Tennis Club Icon T-Shirt — Light Blue",
+        "brand": "Casablanca",
+        "sku": "TENNIS-CLUB-ICON-LIGHTBLUE",
+        "source": "b2b",
+        "colours": [
+            "Light Blue"
+        ],
+        "images": [
+            "/uploads/casablanca/tennis-club-icon-lightblue.png"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "Tennis Club Icon T-Shirt — Light Blue",
+            "sku": "TENNIS-CLUB-ICON-LIGHTBLUE",
+            "images": [
+                "/uploads/casablanca/tennis-club-icon-lightblue.png"
+            ],
+            "colors": [
+                "Light Blue"
+            ]
+        }
+    },
+    "csb-tennis-club-icon-navyblue": {
+        "name": "Tennis Club Icon T-Shirt — Navy Blue",
+        "brand": "Casablanca",
+        "sku": "TENNIS-CLUB-ICON-NAVYBLUE",
+        "source": "b2b",
+        "colours": [
+            "Navy Blue"
+        ],
+        "images": [
+            "/uploads/casablanca/tennis-club-icon-navyblue.png"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "Tennis Club Icon T-Shirt — Navy Blue",
+            "sku": "TENNIS-CLUB-ICON-NAVYBLUE",
+            "images": [
+                "/uploads/casablanca/tennis-club-icon-navyblue.png"
+            ],
+            "colors": [
+                "Navy Blue"
+            ]
+        }
+    },
+    "csb-tennis-club-icon-white": {
+        "name": "Tennis Club Icon T-Shirt — White",
+        "brand": "Casablanca",
+        "sku": "TENNIS-CLUB-ICON-WHITE",
+        "source": "b2b",
+        "colours": [
+            "White"
+        ],
+        "images": [
+            "/uploads/casablanca/tennis-club-icon-white.png"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "Tennis Club Icon T-Shirt — White",
+            "sku": "TENNIS-CLUB-ICON-WHITE",
+            "images": [
+                "/uploads/casablanca/tennis-club-icon-white.png"
+            ],
+            "colors": [
+                "White"
+            ]
+        }
+    },
+    "csb-way-mountain-black": {
+        "name": "Way Mountain T-Shirt — Black",
+        "brand": "Casablanca",
+        "sku": "WAY-MOUNTAIN-BLACK",
+        "source": "b2b",
+        "colours": [
+            "Black"
+        ],
+        "images": [
+            "/uploads/casablanca/way-mountain-black.png",
+            "/uploads/licensed/web/casablanca/csb-way-mountain-black-w2.jpg",
+            "/uploads/licensed/web/casablanca/csb-way-mountain-black-w3.jpg"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "Way Mountain T-Shirt — Black",
+            "sku": "WAY-MOUNTAIN-BLACK",
+            "images": [
+                "/uploads/casablanca/way-mountain-black.png"
+            ],
+            "colors": [
+                "Black"
+            ]
+        }
+    },
+    "csb-casa-way-mountain-white": {
+        "name": "Casa Way Mountain T-Shirt — White",
+        "brand": "Casablanca",
+        "sku": "CASA-WAY-MOUNTAIN-WHITE",
+        "source": "b2b",
+        "colours": [
+            "White"
+        ],
+        "images": [
+            "/uploads/casablanca/casa-way-mountain-white.png"
+        ],
+        "siblings": [],
+        "raw": {
+            "name": "Casa Way Mountain T-Shirt — White",
+            "sku": "CASA-WAY-MOUNTAIN-WHITE",
+            "images": [
+                "/uploads/casablanca/casa-way-mountain-white.png"
+            ],
+            "colors": [
+                "White"
+            ]
+        }
     }
 }
