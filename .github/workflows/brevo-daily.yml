@@ -5,10 +5,17 @@ name: (Zamanlı) Brevo ikinci mektup — günde 2 × 50
 # çıkmamış, en az 1 premium markalı Avrupa leadleri; ABD/Kanada dışarıda; zincir/marka/çocuk/ayakkabı adları
 # skip_names ile elenir (13 Eki elle okunan liste). Brevo günlük hakkından 60 e-posta işlemsel postaya ayrılır;
 # hak yetmezse parti kendiliğinden küçülür. Uygun lead kalmayınca 0 gönderir.
+#
+# GECE TARAMASI (13 Eki, operatör: "her gün gece 11.45'te ne kadar açık varsa … Brevo'nun 300'ünden arta kalan …
+# en az e-posta alan butiklere"): 20:45 UTC (22:45 Avrupa yaz / 21:45 kış) — Brevo'nun o günkü kotasından kalanla
+# (rezerv 20, işlemsel posta için) 50'lik partiler arka arkaya, bir parti 0 gönderene ya da kota bitene kadar
+# (en çok 5 parti). Sunucunun kendi gece takip turu (inc/mailbox.php, 23:45 Avrupa) bundan SONRA koşar; Brevo'nun
+# bu gece yazdığı dükkân orada 5 gün dinlenir, böylece aynı dükkâna aynı gece iki mektup gitmez.
 on:
   schedule:
     - cron: '12 7 * * *'
     - cron: '12 13 * * *'
+    - cron: '45 20 * * *'
   workflow_dispatch:
     inputs:
       count:
@@ -17,6 +24,10 @@ on:
         default: "50"
       dry_run:
         description: "true = gönderme, yalnız listele"
+        required: false
+        default: "false"
+      sweep:
+        description: "true = gece taraması (kotadan kalanla 50'lik partiler, 0 gönderene kadar)"
         required: false
         default: "false"
 
@@ -30,6 +41,7 @@ concurrency:
 
 jobs:
   fire:
+    if: github.event.schedule != '45 20 * * *' && github.event.inputs.sweep != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -44,3 +56,50 @@ jobs:
             -f exclude_countries="United States,Canada" -f quota_reserve=60 \
             -f skip_names="Fielmann,BSTN,CNCPTS,Altermundi,Capel,Kaotiko,Oktshirt,Team Store,targetcenter,Racing Club,Strasbourg,Loretxiki,Fantasía Kids,Calzado,Medina Piel,Lola Jiménez,CalzadosPachi,Dos Pies,Mandarina,Visto por los Pies,Black in Black,Piluka,Glamcult,Mackintosh,Joseph,Lyle & Scott,Kicks,Hatstore,Kids Brand Store,Limoneti,Lapin House,Klamöttchen,Petit Ilu,W&G,Shi Cashmere,Kindermode,kids,Scalpers,Pedro del Hierro,Claudia Sträter,Soccerfanshop,Lesage Bridal,Ashley Stewart,Bealls,Tuckernuck,260 Sample Sale,StofShop,Atlas Stoked,Milk,Golf Club"
           echo "Brevo partisi dağıtım dalında başlatıldı (send-outreach.yml, count=${{ github.event.inputs.count || '50' }})."
+
+  sweep:
+    if: github.event.schedule == '45 20 * * *' || github.event.inputs.sweep == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      DRY: ${{ github.event.inputs.dry_run || 'false' }}
+    steps:
+      - name: Kotadan kalanla 50'lik partiler (0 gönderene kadar, en çok 5)
+        run: |
+          set -u
+          SKIP="Fielmann,BSTN,CNCPTS,Altermundi,Capel,Kaotiko,Oktshirt,Team Store,targetcenter,Racing Club,Strasbourg,Loretxiki,Fantasía Kids,Calzado,Medina Piel,Lola Jiménez,CalzadosPachi,Dos Pies,Mandarina,Visto por los Pies,Black in Black,Piluka,Glamcult,Mackintosh,Joseph,Lyle & Scott,Kicks,Hatstore,Kids Brand Store,Limoneti,Lapin House,Klamöttchen,Petit Ilu,W&G,Shi Cashmere,Kindermode,kids,Scalpers,Pedro del Hierro,Claudia Sträter,Soccerfanshop,Lesage Bridal,Ashley Stewart,Bealls,Tuckernuck,260 Sample Sale,StofShop,Atlas Stoked,Milk,Golf Club"
+          total=0
+          for n in 1 2 3 4 5; do
+            since=$(date -u +%Y-%m-%dT%H:%M:%SZ); sleep 2
+            gh workflow run send-outreach.yml --repo "$REPO" --ref claude/wizardly-planck-7ylnmk \
+              -f count=50 -f dry_run="$DRY" \
+              -f new_collection=true -f newcoll_letter=winter -f min_brands=1 -f newcoll_min_days=2 \
+              -f exclude_countries="United States,Canada" -f quota_reserve=20 -f skip_names="$SKIP" || { echo "parti $n başlatılamadı"; break; }
+            # başlattığımız koşuyu bul (bizden sonra yaratılan, bu dalda, workflow_dispatch)
+            rid=""
+            for i in $(seq 1 30); do
+              sleep 10
+              rid=$(gh run list --repo "$REPO" --workflow send-outreach.yml --branch claude/wizardly-planck-7ylnmk --event workflow_dispatch --limit 3 \
+                      --json databaseId,createdAt --jq "[.[] | select(.createdAt > \"$since\")] | sort_by(.createdAt) | .[0].databaseId // empty")
+              [ -n "$rid" ] && break
+            done
+            if [ -z "$rid" ]; then echo "parti $n: koşu bulunamadı"; break; fi
+            echo "parti $n: koşu $rid"
+            st=""
+            for i in $(seq 1 150); do
+              sleep 20
+              st=$(gh run view "$rid" --repo "$REPO" --json status,conclusion --jq '.status + "/" + .conclusion')
+              case "$st" in completed/*) break;; esac
+            done
+            echo "parti $n: $st"
+            sent=$(gh run view "$rid" --repo "$REPO" --log 2>/dev/null | grep -o 'BITTI\. gonderildi: [0-9]*' | tail -1 | grep -o '[0-9]*$' || true)
+            if [ -z "$sent" ]; then echo "parti $n: kütük okunamadı (sayı bilinmiyor)"; sent=0; known=0; else known=1; echo "parti $n: gönderildi $sent"; fi
+            total=$((total + sent))
+            case "$st" in completed/success) ;; *) echo "parti $n başarısız/kota bitti — tarama durdu"; break;; esac
+            # sayı biliniyorsa ve parti dolmadıysa uygun lead ya da kota bitmiştir; bilinmiyorsa koşu başarılı olduğu sürece sürer (0 gönderen parti zararsız)
+            [ "$known" = 1 ] && [ "$sent" -lt 50 ] && { echo "parti $n 50'den az gönderdi — uygun lead ya da kota bitti"; break; }
+          done
+          echo "GECE TARAMASI BİTTİ · toplam gönderildi: $total"
+          echo "### Brevo gece taraması · toplam gönderildi: $total" >> "$GITHUB_STEP_SUMMARY"
