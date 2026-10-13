@@ -48,6 +48,7 @@ jobs:
       - name: Fotoğrafları indir + renk örnekle
         env:
           PICKS: ${{ github.event.inputs.picks }}
+          MODE: ${{ github.event.inputs.mode }}
         run: |
           mkdir -p site/vestra/uploads diag/hero
           python3 - <<'PY'
@@ -64,11 +65,12 @@ jobs:
               os.makedirs(os.path.dirname(dst), exist_ok=True)
               r = subprocess.run(['curl', '-sS', '-f', '-A', 'Mozilla/5.0 VESTRA-hero-build', '-o', dst, 'https://vestrasales.com' + path])
               if r.returncode != 0 or os.path.getsize(dst) < 5000:
-                  raise SystemExit('indirilemedi: ' + path)
+                  if os.environ.get('MODE') == 'film': raise SystemExit('indirilemedi: ' + path)
+                  print('  ATLANDI (indirilemedi): ' + path); continue
               im = Image.open(dst).convert('RGB'); w, h = im.size
               if not col:
                   c = im.crop((int(w*.3), int(h*.3), int(w*.7), int(h*.7))).resize((60, 60))
-                  px = [p for p in c.getdata() if 60 < sum(p) < 690]
+                  px = [p for p in list(c.getdata()) if 60 < sum(p) < 690]
                   if px:
                       col = '#%02x%02x%02x' % tuple(int(statistics.median([p[i] for p in px])) for i in range(3))
                   else:
