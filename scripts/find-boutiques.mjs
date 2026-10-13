@@ -58,7 +58,8 @@ const CFG = {
   /* 10 Eki 2026 (operatör: "çok az email bulunmuş"): 9 Eki koşusu 6 şehirle 207 aday, 4 lead, 5 dk —
      40 dk'lık bütçenin %13'ü. Şehir listesi verilmemişse OSM artık hedef aday sayısına ya da süre
      bütçesinin %35'ine kadar havuzdan şehir almaya devam eder. */
-  maxCities:     num('MAX_CITIES', 40),                            // otomatik turda en çok şehir (OSM)
+  maxCities:     num('MAX_CITIES', 40),
+  euroShare:     Math.max(0, Math.min(1, Number(process.env.EURO_SHARE ?? 0.8) || 0)),   // 13 Eki: otomatik turda Avrupa kasabalarının payı                            // otomatik turda en çok şehir (OSM)
   osmTarget:     num('OSM_TARGET', 900),                           // otomatik turda hedef yeni OSM adayı
   osmPerCity:    num('OSM_PER_CITY', 150),                          // şehir başına en çok yeni OSM adayı
   braveKey:      (ENV.BRAVE_API_KEY ?? '').trim(),
@@ -917,6 +918,148 @@ const CITY_POOL = [
   'Bosnia and Herzegovina|Sarajevo', 'North Macedonia|Skopje', 'Albania|Tirana', 'Montenegro|Budva', 'Andorra|Andorra la Vella',
   'Liechtenstein|Vaduz', 'San Marino|San Marino',
 ];
+
+/* 13 Eki 2026 (operatör: "yeni müşteriler bulunmuyor, Avrupa'dan ihtiyacım var özellikle"). Ölçüm: CITY_POOL'un büyük
+   şehirleri 10 Eki'den beri birkaç kez tarandı, OSM'deki siteli giyim dükkânları tükendi (turlar "excl:seen" ile 0 ekliyordu).
+   Avrupa'nın orta büyüklükte şehirleri — il/bölge merkezleri, sayfiye ve kayak kasabaları; premium çok markalı butik
+   buralarda da var ve hiç taranmadı. Otomatik tur şehirlerinin EURO_SHARE kadarı (varsayılan %80) buradan, kendi
+   imleciyle (state.euroCursor) alınır. Almanya bilerek ölçülü (operatörün eski "az" kararı). */
+const EURO_TOWNS = [
+  "Italy|Monza", "Italy|Varese", "Italy|Lecco", "Italy|Cremona", "Italy|Mantova", "Italy|Pavia",
+  "Italy|Lodi", "Italy|Sondrio", "Italy|Novara", "Italy|Biella", "Italy|Alessandria", "Italy|Asti",
+  "Italy|Cuneo", "Italy|Vercelli", "Italy|Aosta", "Italy|Trento", "Italy|Bolzano", "Italy|Udine",
+  "Italy|Pordenone", "Italy|Trieste", "Italy|Gorizia", "Italy|Belluno", "Italy|Rovigo", "Italy|Ferrara",
+  "Italy|Ravenna", "Italy|Forlì", "Italy|Cesena", "Italy|Piacenza", "Italy|La Spezia", "Italy|Savona",
+  "Italy|Imperia", "Italy|Sanremo", "Italy|Lucca", "Italy|Pisa", "Italy|Livorno", "Italy|Arezzo",
+  "Italy|Siena", "Italy|Prato", "Italy|Pistoia", "Italy|Massa", "Italy|Carrara", "Italy|Viareggio",
+  "Italy|Forte dei Marmi", "Italy|Grosseto", "Italy|Ancona", "Italy|Pesaro", "Italy|Macerata", "Italy|Ascoli Piceno",
+  "Italy|Fermo", "Italy|Civitanova Marche", "Italy|Terni", "Italy|Viterbo", "Italy|Latina", "Italy|Frosinone",
+  "Italy|Rieti", "Italy|L'Aquila", "Italy|Teramo", "Italy|Chieti", "Italy|Campobasso", "Italy|Caserta",
+  "Italy|Avellino", "Italy|Benevento", "Italy|Potenza", "Italy|Matera", "Italy|Foggia", "Italy|Barletta",
+  "Italy|Andria", "Italy|Trani", "Italy|Taranto", "Italy|Brindisi", "Italy|Altamura", "Italy|Cosenza",
+  "Italy|Catanzaro", "Italy|Reggio Calabria", "Italy|Messina", "Italy|Siracusa", "Italy|Ragusa", "Italy|Trapani",
+  "Italy|Agrigento", "Italy|Sassari", "Italy|Olbia", "Italy|Nuoro", "Italy|Oristano", "Italy|Sorrento",
+  "Italy|Bassano del Grappa", "Italy|Schio", "Italy|Conegliano", "Italy|Castelfranco Veneto", "Italy|Jesolo", "Italy|Riccione",
+  "Italy|Cortina d'Ampezzo", "Italy|Merano", "Italy|Brunico", "Italy|Desenzano del Garda", "Italy|Busto Arsizio", "Italy|Gallarate",
+  "Italy|Legnano", "Italy|Cantù", "Italy|Saronno", "Italy|Crema", "Italy|Carpi", "Italy|Sassuolo",
+  "Italy|Imola", "Italy|Faenza", "Italy|Empoli", "Italy|Montecatini Terme", "Italy|Foligno", "Italy|Spoleto",
+  "Italy|Città di Castello", "Italy|Avezzano", "Italy|Lanciano", "Italy|Vasto", "Italy|Bitonto", "Italy|Molfetta",
+  "Italy|Monopoli", "Italy|Martina Franca", "Italy|Nardò", "Italy|Gallipoli", "Italy|Lamezia Terme", "Italy|Acireale",
+  "Italy|Marsala", "Italy|Alghero",
+  "France|Angers", "France|Le Mans", "France|Caen", "France|Rouen", "France|Le Havre", "France|Amiens",
+  "France|Orléans", "France|Clermont-Ferrand", "France|Limoges", "France|Poitiers", "France|La Rochelle", "France|Brest",
+  "France|Quimper", "France|Vannes", "France|Lorient", "France|Saint-Malo", "France|Nancy", "France|Mulhouse",
+  "France|Colmar", "France|Besançon", "France|Avignon", "France|Nîmes", "France|Perpignan", "France|Béziers",
+  "France|Toulon", "France|Antibes", "France|Menton", "France|Saint-Raphaël", "France|Fréjus", "France|Hyères",
+  "France|Arles", "France|Valence", "France|Chambéry", "France|Saint-Étienne", "France|Pau", "France|Bayonne",
+  "France|Anglet", "France|Arcachon", "France|La Baule-Escoublac", "France|Deauville", "France|Troyes", "France|Épernay",
+  "France|Versailles", "France|Neuilly-sur-Seine", "France|Saint-Germain-en-Laye", "France|Boulogne-Billancourt", "France|Le Touquet-Paris-Plage", "France|Megève",
+  "France|Chamonix-Mont-Blanc", "France|Évian-les-Bains", "France|Thonon-les-Bains", "France|Saint-Jean-de-Luz", "France|Niort", "France|Angoulême",
+  "France|Cognac", "France|Agen", "France|Montauban", "France|Albi", "France|Carcassonne", "France|Narbonne",
+  "France|Sète", "France|Bourges", "France|Nevers", "France|Auxerre", "France|Chartres", "France|Évreux",
+  "France|Beauvais", "France|Compiègne", "France|Valenciennes", "France|Arras", "France|Dunkerque", "France|Calais",
+  "France|Boulogne-sur-Mer", "France|Charleville-Mézières", "France|Épinal", "France|Belfort", "France|Mâcon", "France|Bourg-en-Bresse",
+  "France|Vichy", "France|Aurillac", "France|Rodez", "France|Cahors", "France|Périgueux", "France|Brive-la-Gaillarde",
+  "France|Tarbes", "France|Saint-Brieuc", "France|Laval", "France|Cholet", "France|Saint-Nazaire", "France|Les Sables-d'Olonne",
+  "France|Ajaccio", "France|Bastia", "France|Porto-Vecchio", "France|Gap", "France|Grasse", "France|Cagnes-sur-Mer",
+  "Spain|Córdoba", "Spain|Cádiz", "Spain|Jerez de la Frontera", "Spain|Huelva", "Spain|Almería", "Spain|Jaén",
+  "Spain|Salamanca", "Spain|Burgos", "Spain|León", "Spain|Logroño", "Spain|Vitoria-Gasteiz", "Spain|Girona",
+  "Spain|Tarragona", "Spain|Lleida", "Spain|Castelló de la Plana", "Spain|Albacete", "Spain|Toledo", "Spain|Cáceres",
+  "Spain|Badajoz", "Spain|Ciudad Real", "Spain|Guadalajara", "Spain|Segovia", "Spain|Ávila", "Spain|Palencia",
+  "Spain|Zamora", "Spain|Soria", "Spain|Huesca", "Spain|Teruel", "Spain|Cuenca", "Spain|Lugo",
+  "Spain|Ourense", "Spain|Pontevedra", "Spain|Santiago de Compostela", "Spain|Gijón", "Spain|Ferrol", "Spain|Elche",
+  "Spain|Benidorm", "Spain|Torrevieja", "Spain|Cartagena", "Spain|Estepona", "Spain|Fuengirola", "Spain|Eivissa",
+  "Spain|Maó", "Spain|Las Palmas de Gran Canaria", "Spain|Santa Cruz de Tenerife", "Spain|Sabadell", "Spain|Terrassa", "Spain|Badalona",
+  "Spain|Sitges", "Spain|Reus", "Spain|Mataró", "Spain|Getafe", "Spain|Alcalá de Henares", "Spain|Pozuelo de Alarcón",
+  "Spain|Majadahonda", "Spain|Las Rozas de Madrid", "Spain|Talavera de la Reina", "Spain|Algeciras", "Spain|Ronda",
+  "Portugal|Aveiro", "Portugal|Leiria", "Portugal|Viseu", "Portugal|Guimarães", "Portugal|Viana do Castelo", "Portugal|Setúbal",
+  "Portugal|Cascais", "Portugal|Sintra", "Portugal|Évora", "Portugal|Funchal", "Portugal|Ponta Delgada", "Portugal|Vila Nova de Gaia",
+  "Portugal|Matosinhos", "Portugal|Lagos", "Portugal|Albufeira", "Portugal|Portimão", "Portugal|Castelo Branco", "Portugal|Santarém",
+  "Netherlands|Zwolle", "Netherlands|Amersfoort", "Netherlands|Apeldoorn", "Netherlands|Enschede", "Netherlands|Deventer", "Netherlands|Delft",
+  "Netherlands|Dordrecht", "Netherlands|Alkmaar", "Netherlands|Hilversum", "Netherlands|Leeuwarden", "Netherlands|Assen", "Netherlands|Venlo",
+  "Netherlands|Roermond", "Netherlands|Heerlen", "Netherlands|Middelburg", "Netherlands|Amstelveen", "Netherlands|Zaanstad", "Netherlands|Gouda",
+  "Netherlands|Roosendaal", "Netherlands|Bergen op Zoom", "Netherlands|Helmond", "Netherlands|Oss", "Netherlands|Wassenaar", "Netherlands|Laren",
+  "Netherlands|Naarden", "Netherlands|Emmen", "Netherlands|Almere",
+  "Belgium|Kortrijk", "Belgium|Oostende", "Belgium|Aalst", "Belgium|Sint-Niklaas", "Belgium|Genk", "Belgium|Charleroi",
+  "Belgium|Mons", "Belgium|Tournai", "Belgium|Waterloo", "Belgium|Wavre", "Belgium|Roeselare", "Belgium|Turnhout",
+  "Belgium|Lier", "Belgium|Ieper", "Belgium|Spa", "Belgium|Ukkel",
+  "Luxembourg|Esch-sur-Alzette",
+  "Switzerland|Winterthur", "Switzerland|Zug", "Switzerland|Schaffhausen", "Switzerland|Chur", "Switzerland|Aarau", "Switzerland|Baden",
+  "Switzerland|Biel/Bienne", "Switzerland|Thun", "Switzerland|Fribourg", "Switzerland|Neuchâtel", "Switzerland|Sion", "Switzerland|Montreux",
+  "Switzerland|Vevey", "Switzerland|Locarno", "Switzerland|Ascona", "Switzerland|St. Moritz", "Switzerland|Davos", "Switzerland|Solothurn",
+  "Switzerland|Olten", "Switzerland|Rapperswil-Jona", "Switzerland|Wil", "Switzerland|Frauenfeld", "Switzerland|Nyon", "Switzerland|Crans-Montana",
+  "Switzerland|Saanen",
+  "Austria|Klagenfurt am Wörthersee", "Austria|Villach", "Austria|Wels", "Austria|St. Pölten", "Austria|Bregenz", "Austria|Dornbirn",
+  "Austria|Feldkirch", "Austria|Kitzbühel", "Austria|Wiener Neustadt", "Austria|Steyr", "Austria|Leoben", "Austria|Lienz",
+  "Austria|Baden", "Austria|Krems an der Donau", "Austria|Bad Ischl", "Austria|Zell am See",
+  "Germany|Aachen", "Germany|Regensburg", "Germany|Würzburg", "Germany|Ulm", "Germany|Konstanz", "Germany|Ingolstadt",
+  "Germany|Erlangen", "Germany|Bamberg", "Germany|Bayreuth", "Germany|Passau", "Germany|Rosenheim", "Germany|Garmisch-Partenkirchen",
+  "Germany|Baden-Baden", "Germany|Pforzheim", "Germany|Heilbronn", "Germany|Reutlingen", "Germany|Tübingen", "Germany|Esslingen am Neckar",
+  "Germany|Ludwigsburg", "Germany|Darmstadt", "Germany|Mainz", "Germany|Koblenz", "Germany|Trier", "Germany|Saarbrücken",
+  "Germany|Kassel", "Germany|Göttingen", "Germany|Braunschweig", "Germany|Wolfsburg", "Germany|Osnabrück", "Germany|Oldenburg",
+  "Germany|Bielefeld", "Germany|Paderborn", "Germany|Krefeld", "Germany|Mönchengladbach", "Germany|Wuppertal", "Germany|Bochum",
+  "Germany|Duisburg", "Germany|Kiel", "Germany|Lübeck", "Germany|Rostock", "Germany|Potsdam", "Germany|Erfurt",
+  "Germany|Magdeburg", "Germany|Bad Homburg vor der Höhe", "Germany|Starnberg", "Germany|Lindau (Bodensee)", "Germany|Landshut", "Germany|Kempten (Allgäu)",
+  "United Kingdom|Nottingham", "United Kingdom|Sheffield", "United Kingdom|Newcastle upon Tyne", "United Kingdom|Cardiff", "United Kingdom|Belfast", "United Kingdom|Aberdeen",
+  "United Kingdom|Brighton", "United Kingdom|Bath", "United Kingdom|Oxford", "United Kingdom|Cambridge", "United Kingdom|York", "United Kingdom|Leicester",
+  "United Kingdom|Southampton", "United Kingdom|Bournemouth", "United Kingdom|Exeter", "United Kingdom|Harrogate", "United Kingdom|Cheltenham", "United Kingdom|Chester",
+  "United Kingdom|Norwich", "United Kingdom|Reading", "United Kingdom|Guildford", "United Kingdom|Windsor", "United Kingdom|St Albans", "United Kingdom|Royal Tunbridge Wells",
+  "United Kingdom|Winchester", "United Kingdom|Canterbury", "United Kingdom|Plymouth", "United Kingdom|Coventry", "United Kingdom|Derby", "United Kingdom|Stoke-on-Trent",
+  "United Kingdom|Kingston upon Hull", "United Kingdom|Dundee", "United Kingdom|Inverness", "United Kingdom|Swansea", "United Kingdom|Wilmslow", "United Kingdom|Solihull",
+  "United Kingdom|Sevenoaks", "United Kingdom|Marlow", "United Kingdom|Henley-on-Thames", "United Kingdom|Royal Leamington Spa", "United Kingdom|Stratford-upon-Avon", "United Kingdom|Salisbury",
+  "United Kingdom|Lincoln", "United Kingdom|Durham", "United Kingdom|Preston", "United Kingdom|Lancaster", "United Kingdom|Stirling", "United Kingdom|Perth",
+  "United Kingdom|Kendal", "United Kingdom|Truro",
+  "Ireland|Galway", "Ireland|Limerick", "Ireland|Waterford", "Ireland|Kilkenny", "Ireland|Killarney", "Ireland|Sligo",
+  "Ireland|Athlone", "Ireland|Drogheda", "Ireland|Dundalk", "Ireland|Wexford", "Ireland|Ennis", "Ireland|Dún Laoghaire",
+  "Denmark|Odense", "Denmark|Aalborg", "Denmark|Esbjerg", "Denmark|Vejle", "Denmark|Kolding", "Denmark|Roskilde",
+  "Denmark|Helsingør", "Denmark|Horsens", "Denmark|Randers", "Denmark|Silkeborg", "Denmark|Herning",
+  "Sweden|Uppsala", "Sweden|Västerås", "Sweden|Örebro", "Sweden|Linköping", "Sweden|Norrköping", "Sweden|Helsingborg",
+  "Sweden|Jönköping", "Sweden|Lund", "Sweden|Umeå", "Sweden|Gävle", "Sweden|Växjö", "Sweden|Karlstad",
+  "Sweden|Halmstad", "Sweden|Kalmar", "Sweden|Visby", "Sweden|Sundsvall", "Sweden|Luleå",
+  "Norway|Trondheim", "Norway|Stavanger", "Norway|Kristiansand", "Norway|Tromsø", "Norway|Drammen", "Norway|Fredrikstad",
+  "Norway|Ålesund", "Norway|Bodø", "Norway|Sandnes", "Norway|Tønsberg", "Norway|Sandefjord", "Norway|Haugesund",
+  "Finland|Espoo", "Finland|Tampere", "Finland|Turku", "Finland|Oulu", "Finland|Jyväskylä", "Finland|Lahti",
+  "Finland|Kuopio", "Finland|Pori", "Finland|Vaasa", "Finland|Porvoo", "Finland|Rovaniemi",
+  "Iceland|Akureyri",
+  "Poland|Szczecin", "Poland|Lublin", "Poland|Katowice", "Poland|Bydgoszcz", "Poland|Białystok", "Poland|Gdynia",
+  "Poland|Sopot", "Poland|Toruń", "Poland|Rzeszów", "Poland|Kielce", "Poland|Olsztyn", "Poland|Opole",
+  "Poland|Zielona Góra", "Poland|Częstochowa", "Poland|Bielsko-Biała", "Poland|Gliwice", "Poland|Zakopane", "Poland|Radom",
+  "Czechia|Ostrava", "Czechia|Plzeň", "Czechia|Olomouc", "Czechia|Liberec", "Czechia|České Budějovice", "Czechia|Hradec Králové",
+  "Czechia|Pardubice", "Czechia|Zlín", "Czechia|Karlovy Vary", "Czechia|Jihlava", "Czechia|Ústí nad Labem",
+  "Slovakia|Košice", "Slovakia|Žilina", "Slovakia|Nitra", "Slovakia|Banská Bystrica", "Slovakia|Trnava", "Slovakia|Prešov",
+  "Slovakia|Poprad",
+  "Hungary|Debrecen", "Hungary|Szeged", "Hungary|Győr", "Hungary|Pécs", "Hungary|Miskolc", "Hungary|Székesfehérvár",
+  "Hungary|Sopron", "Hungary|Siófok", "Hungary|Eger", "Hungary|Kecskemét",
+  "Romania|Timișoara", "Romania|Iași", "Romania|Brașov", "Romania|Constanța", "Romania|Sibiu", "Romania|Oradea",
+  "Romania|Craiova", "Romania|Arad", "Romania|Ploiești", "Romania|Galați",
+  "Bulgaria|Plovdiv", "Bulgaria|Varna", "Bulgaria|Burgas", "Bulgaria|Ruse", "Bulgaria|Stara Zagora", "Bulgaria|Bansko",
+  "Croatia|Rijeka", "Croatia|Zadar", "Croatia|Dubrovnik", "Croatia|Pula", "Croatia|Osijek", "Croatia|Šibenik",
+  "Croatia|Varaždin", "Croatia|Makarska", "Croatia|Rovinj",
+  "Slovenia|Maribor", "Slovenia|Koper", "Slovenia|Celje", "Slovenia|Kranj", "Slovenia|Bled", "Slovenia|Piran",
+  "Greece|Heraklion", "Greece|Larissa", "Greece|Volos", "Greece|Ioannina", "Greece|Chania", "Greece|Rhodes",
+  "Greece|Kavala", "Greece|Corfu", "Greece|Mykonos", "Greece|Kalamata", "Greece|Chalkida", "Greece|Serres",
+  "Greece|Alexandroupoli", "Greece|Katerini", "Greece|Glyfada", "Greece|Kifisia",
+  "Cyprus|Larnaca", "Cyprus|Paphos", "Cyprus|Ayia Napa",
+  "Malta|Valletta", "Malta|St. Julian's",
+  "Lithuania|Kaunas", "Lithuania|Klaipėda", "Lithuania|Šiauliai",
+  "Latvia|Jūrmala", "Latvia|Liepāja", "Latvia|Daugavpils",
+  "Estonia|Tartu", "Estonia|Pärnu",
+  "Serbia|Novi Sad", "Serbia|Niš",
+  "Montenegro|Podgorica", "Montenegro|Kotor", "Montenegro|Tivat",
+  "Albania|Durrës",
+  "North Macedonia|Ohrid",
+  "Bosnia and Herzegovina|Mostar", "Bosnia and Herzegovina|Banja Luka",
+];
+
+/** Otomatik turun şehirleri: önce Avrupa kasabaları (kendi imleciyle), kalan pay büyük şehir havuzundan.
+ *  Sıra önemli — tur süre bütçesine takılırsa taze Avrupa kasabaları yine de taranmış olur. */
+export function pickAutoCities(state, n, euroShare) {
+  const nE = Math.min(EURO_TOWNS.length, Math.round(n * euroShare)), nP = Math.min(CITY_POOL.length, n - nE), out = [];
+  const ce = Number(state.euroCursor || 0) % EURO_TOWNS.length, cp = Number(state.placesCursor || 0) % CITY_POOL.length;
+  for (let k = 0; k < nE; k++) out.push(EURO_TOWNS[(ce + k) % EURO_TOWNS.length]);
+  for (let k = 0; k < nP; k++) out.push(CITY_POOL[(cp + k) % CITY_POOL.length]);
+  return out;
+}
 const COUNTRY_LANG = { Italy: 'it', France: 'fr', Spain: 'es', Netherlands: 'nl', Belgium: 'nl', Switzerland: 'de', Austria: 'de', Germany: 'de',
   Portugal: 'pt', Greece: 'el', Poland: 'pl', 'United Kingdom': 'en', Ireland: 'en', Denmark: 'da', Sweden: 'sv', Norway: 'nb', Czechia: 'cs', Finland: 'fi' };
 
@@ -959,9 +1102,7 @@ async function main() {
   /* Bu turun şehirleri: CITIES verilmişse onlar, yoksa havuzdan sırayla (OSM + Places). */
   let cityT = []; const autoCities = !CFG.cities.length;
   if (!autoCities) cityT = CFG.cities;
-  else { const cur = Number(state.placesCursor || 0) % CITY_POOL.length;
-    const n = Math.min(CITY_POOL.length, Math.max(CFG.placesPerRun, CFG.maxCities));
-    for (let k = 0; k < n; k++) cityT.push(CITY_POOL[(cur + k) % CITY_POOL.length]); }
+  else cityT = pickAutoCities(state, Math.max(CFG.placesPerRun, CFG.maxCities), CFG.euroShare);
   if (CFG.countries.length) cityT = cityT.filter(pc => CFG.countries.includes(COUNTRY_ISO[pc.split('|')[0].trim()] || ''));
   const osmStat = { cities: 0, shops: 0, picked: 0, errors: [] };
 
@@ -1017,11 +1158,11 @@ async function main() {
 
   /* ---- 1c) OpenStreetMap (anahtarsız): şehirdeki giyim dükkânları ---- */
   if (CFG.engines.includes('osm')) {
-    let lastPoolIdx = -1;
+    let lastPoolIdx = -1, lastEuroIdx = -1;
     for (const pc of cityT) {
       if (elapsed() > CFG.budgetSec * 0.55) { osmStat.errors.push('süre bütçesi'); break; }   // 11 Eki: 0.35 → 0.55 (inceleme ~0.8 sn/site)
       if (autoCities && osmStat.picked >= CFG.osmTarget) break;
-      if (autoCities) lastPoolIdx = CITY_POOL.indexOf(pc);
+      if (autoCities) { const ei2 = EURO_TOWNS.indexOf(pc); if (ei2 >= 0) lastEuroIdx = ei2; else lastPoolIdx = CITY_POOL.indexOf(pc); }
       const [country, city] = pc.split('|').map(x => x.trim());
       const res = await osmCity(country, city || country);
       osmStat.cities++;
@@ -1044,6 +1185,7 @@ async function main() {
     }
     /* Havuz imleci: bir sonraki tur, bu turda bakılan son şehirden sonra başlar. */
     if (autoCities && !CFG.dryRun && lastPoolIdx >= 0) state.placesCursor = (lastPoolIdx + 1) % CITY_POOL.length;
+    if (autoCities && !CFG.dryRun && lastEuroIdx >= 0) state.euroCursor = (lastEuroIdx + 1) % EURO_TOWNS.length;
   }
   for (const d of CFG.seedDomains) { let h = d.replace(/^https?:\/\//i, '').split('/')[0]; if (h) consider('https://' + h + '/', '(seed)'); }
 
@@ -1214,6 +1356,12 @@ function selftest() {
   t('havuz: dünya geneli (90+ ülke)', new Set(CITY_POOL.map(c => c.split('|')[0])).size >= 90);
   t('havuz: yaptırımlı ülke yok', !CITY_POOL.some(c => /^(Russia|Belarus|Iran|Syria|North Korea|Cuba)\|/i.test(c)));
   t('havuz: şehir tekrarı yok', new Set(CITY_POOL).size === CITY_POOL.length);
+  t('Avrupa kasabaları: 600+ ve büyük havuzla çakışmıyor', EURO_TOWNS.length >= 600 && new Set([...CITY_POOL, ...EURO_TOWNS]).size === CITY_POOL.length + EURO_TOWNS.length);
+  t('Avrupa kasabaları: Türkiye ve yaptırımlı ülke yok', !EURO_TOWNS.some(c => /^(Turkey|Russia|Belarus)\|/i.test(c)));
+  t('Avrupa kasabaları: Almanya ölçülü (%10 altı)', EURO_TOWNS.filter(c => c.startsWith('Germany|')).length < EURO_TOWNS.length * 0.1);
+  { const st = { euroCursor: 5, placesCursor: 7 }; const a = pickAutoCities(st, 10, 0.8);
+    t('otomatik tur: önce 8 Avrupa kasabası imleçten, sonra 2 büyük şehir', a.length === 10 && a[0] === EURO_TOWNS[5] && a[7] === EURO_TOWNS[12] && a[8] === CITY_POOL[7] && a[9] === CITY_POOL[8]);
+    t('otomatik tur: EURO_SHARE=0 eski davranış', pickAutoCities(st, 4, 0).every((c, i) => c === CITY_POOL[7 + i])); }
   t('ülke: alan adından (Suudi, Hong Kong, Meksika)', detectCountry('shop.com.sa', '', '') === 'Saudi Arabia' && detectCountry('x.com.hk', '', '') === 'Hong Kong' && detectCountry('m.com.mx', '', '') === 'Mexico');
   log(fails ? `\n${fails} TEST BASARISIZ` : '\nTUM TESTLER GECTI'); process.exit(fails ? 1 : 0);
 }
