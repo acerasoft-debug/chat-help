@@ -824,8 +824,8 @@ async function osmCity(country, city) {
   const cell = parseGridCell(city);
   if (cell) {
     /* Kare: Nominatim yok; yalnız sitesi ya da e-postası etiketli dükkânlar (sitesizler zaten elenirdi, trafik boşuna). */
-    const sel = '["shop"~"^(clothes|boutique|fashion)$"]', bb = cell.join(',');
-    const q = `[out:json][timeout:60];(nwr${sel}["website"](${bb});nwr${sel}["contact:website"](${bb});nwr${sel}["email"](${bb});nwr${sel}["contact:email"](${bb}););out tags;`;
+    const bb = cell.join(',');
+    const q = `[out:json][timeout:40];nwr["shop"~"^(clothes|boutique|fashion)$"][~"^(website|contact:website|email|contact:email)$"~"."](${bb});out tags;`;
     return osmQuery([q]);
   }
   await nominatimSlot();
@@ -844,7 +844,7 @@ async function osmCity(country, city) {
   return osmQuery(queries);
 }
 async function osmQuery(queries) {
-  let lastErr = 'Overpass yanıt vermedi';
+  let lastErr = 'Overpass yanıt vermedi', emptyOk = null;
   for (const q of queries) {
     for (const m of overpassOrder()) {
       const t0 = Date.now();
@@ -857,10 +857,13 @@ async function osmQuery(queries) {
         if (!j.elements.length && /runtime error|timed out|out of memory/i.test(String(j.remark || ''))) { lastErr = 'Overpass zaman aşımı'; overpassMark(m, false, Date.now() - t0); continue; }
         overpassMark(m, true, Date.now() - t0);
         if (j.elements.length) return { rows: j.elements.map(e => e.tags || {}), mirror: new URL(m).hostname };
-        break;                                                         // boş ama hatasız: bbox ile tekrar dene
+        emptyOk = new URL(m).hostname; break;                          // boş ama hatasız: varsa sonraki sorgu (bbox) denenir
       } catch (e) { lastErr = 'Overpass: ' + String(e.message || e).slice(0, 60); overpassMark(m, false, Date.now() - t0); }
     }
   }
+  /* 13 Eki 2026: boş ama geçerli yanıt HATA DEĞİL — ilk kare turunda deniz kareleri "yanıt vermedi" sayılıp
+     yeniden deneme listesine giriyordu (93 karenin 81'i). Boş kare boş döner; çağıran onu 90 gün hatırlar. */
+  if (emptyOk) return { rows: [], mirror: emptyOk };
   return { error: lastErr, rows: [] };
 }
 
@@ -1216,7 +1219,7 @@ async function main() {
         srvStat.brave = resp.stats?.brave || null; srvStat.places = resp.stats?.places || null;
         const done = new Set();
         for (const [q, urls] of Object.entries(resp.web || {})) { done.add(q); const b = cands.size; for (const u of urls) consider(u, q);
-          if (!CFG.dryRun) state.queries[q] = new Date().toISOString().slice(0, 10); log(`  [brave] ${q} -> ${urls.length} sonuc, +${cands.size - b} yeni aday`); }
+          if (!CFG.dryRun) state.queries[q] = new Date().toISOString().slice(0, 10); log(`  [${webQ.length ? 'brave' : 'sunucu web'}] ${q} -> ${urls.length} sonuc, +${cands.size - b} yeni aday`); }
         for (const [pc, rows] of Object.entries(resp.places || {})) { const country = pc.split('|')[0]; const b = cands.size;
           for (const r of rows) consider(r.url, 'places:' + pc, { name: r.name || '', countryHint: country, phone: r.phone || '' });
           log(`  [places] ${pc} -> ${rows.length} dukkan (siteli), +${cands.size - b} yeni aday`); }
