@@ -264,13 +264,14 @@ function vestra_mailbox_is_open(array $r): bool {
  * $mode: 'test' (tek örnek, $testTo'ya) | 'send'.
  */
 function vestra_mailbox_request(string $mode, int $limit, string $campaign, string $testTo, ?array $campaignKeys = null, string $pool = 'web', array $ids = []): array {
-  if (!in_array($mode, ['test', 'send'], true)) return [false, 'Geçersiz kip.'];
-  if (!preg_match('/^[A-Za-z0-9:_-]{1,40}$/', $campaign) || ($campaignKeys !== null && !in_array($campaign, $campaignKeys, true))) return [false, 'Kampanya bulunamadı.'];
+  if (!in_array($mode, ['test', 'send', 'followup'], true)) return [false, 'Geçersiz kip.'];
+  if ($mode === 'followup') $campaign = 'followup';   // kampanya lead başına seçilir (vestra_mailbox_followup_targets)
+  elseif (!preg_match('/^[A-Za-z0-9:_-]{1,40}$/', $campaign) || ($campaignKeys !== null && !in_array($campaign, $campaignKeys, true))) return [false, 'Kampanya bulunamadı.'];
   $testTo = strtolower(trim($testTo));
   if ($mode === 'test' && (!filter_var($testTo, FILTER_VALIDATE_EMAIL) || !preg_match('/^[a-z0-9@._+-]+$/', $testTo))) return [false, 'Geçerli bir test adresi yazın.'];
   $runs = vestra_mailbox_runs();
   foreach ($runs as $r) if (vestra_mailbox_is_open($r)) return [false, 'Sırada ya da gönderilmekte olan bir istek var — bitince yenisini verin.'];
-  if ($mode === 'send') {
+  if ($mode !== 'test') {
     $left = vestra_mailbox_left_today();
     if ($left <= 0) return [false, 'Bugünkü tavan ('.vestra_mailbox_cap_today().(vestra_mailbox_warmup()['on'] && vestra_mailbox_cap_today() < vestra_mailbox_daily_cap() ? ', ısınma' : '').') doldu — kalanlar yarın.'];
     if (($bs = vestra_mailbox_bounce_stats())['stop']) return [false, sprintf('Gönderim durduruldu: son '.VESTRA_MAILBOX_BOUNCE_DAYS.' günde gönderilenlerin %%%d\'i geri döndü (%d/%d). Spam klasörüne düşmemek için önce listeyi temizleyin.', (int)round($bs['rate'] * 100), $bs['bounced'], $bs['sent'])];
@@ -284,7 +285,7 @@ function vestra_mailbox_request(string $mode, int $limit, string $campaign, stri
   vestra_mailbox_runs_save($runs);
   return [true, $mode === 'test'
     ? '✓ Test isteği sıraya alındı → '.$testTo.'. En geç 10 dakika içinde gider.'
-    : '✓ Gönderim isteği sıraya alındı: '.$limit.' müşteri. En geç 10 dakika içinde başlar; e-postalar arasında '.VESTRA_MAILBOX_PAUSE_MIN.'–'.VESTRA_MAILBOX_PAUSE_MAX.' sn beklenir.'];
+    : '✓ '.($mode === 'followup' ? 'Gece takip isteği' : 'Gönderim isteği').' sıraya alındı: '.$limit.' müşteri. En geç 10 dakika içinde başlar; e-postalar arasında '.VESTRA_MAILBOX_PAUSE_MIN.'–'.VESTRA_MAILBOX_PAUSE_MAX.' sn beklenir.'];
 }
 
 /** Kuyruk (GitHub): en eski bekleyen isteği alır ve "running" yapar. Yoksa null. */
@@ -331,6 +332,7 @@ function vestra_mailbox_batch(int $limit, string $campKey, array $ids = [], stri
   require_once __DIR__.'/finder.php';
   $camps = vestra_finder_campaigns();
   if (!isset($camps[$campKey])) return ['ok' => false, 'error' => 'campaign', 'items' => []];
+  $followup = !empty($o['followup']);   // gece takip turu: kampanya lead başına seçilir (vestra_mailbox_followup_targets)
   $builder = $camps[$campKey][2];
   $limit = max(1, min(VESTRA_MAILBOX_MAX_CAP, $limit));   // 10 Eki: UI 500'e kadar izin verir; 200'lük kırpma istekle çelişiyordu
   $left = vestra_mailbox_left_today();
@@ -339,7 +341,9 @@ function vestra_mailbox_batch(int $limit, string $campKey, array $ids = [], stri
     'note' => sprintf('durduruldu: son 3 gunde geri donme %%%d (%d/%d) — liste temizlenmeli', (int)round($bs['rate'] * 100), $bs['bounced'], $bs['sent'])];
   $limit = min($limit, $left);
   $ids = array_values(array_filter(array_map('trim', $ids)));
-  if ($ids) {
+  if ($followup) {
+    $targets = vestra_mailbox_followup_targets($limit, null, $o['now'] ?? null);
+  } elseif ($ids) {
     $want = array_flip($ids); $targets = []; $seen = [];
     foreach (vestra_leads() as $i => $l) {
       if (!isset($want[(string)($l['id'] ?? '')]) || count($targets) >= $limit) continue;
@@ -373,23 +377,136 @@ function vestra_mailbox_batch(int $limit, string $campKey, array $ids = [], stri
     $seenAddr[$email] = true;
     $dom = substr((string)strrchr($email, '@'), 1);
     if (!vestra_mailbox_free_domain($dom)) { if (isset($seenShop[$dom])) continue; $seenShop[$dom] = true; }   // aynı dükkâna bir mektup
-    [$subject, $body, $opts, $from] = $builder($l);
+    $fuCamp = $followup ? (string)($l['_followup'] ?? '') : '';
+    if ($followup && !isset($camps[$fuCamp])) continue;
+    [$subject, $body, $opts, $from] = $followup ? ($camps[$fuCamp][2])($l) : $builder($l);
     $body = vestra_mailbox_with_postal((string)$body);
-    if ($from !== '') $fromName = $from;
+    if ($from !== '' && !$followup) $fromName = $from;
     $token = (string)($l['unsub_token'] ?? '');
     $items[] = [
       'leadId' => (string)($l['id'] ?? ''), 'email' => $email, 'company' => (string)($l['company'] ?? ''),
       'lang' => vestra_finder_lead_lang($l), 'subject' => $subject,
       'html' => vestra_html_email($body, '', (array)$opts), 'text' => vestra_mail_text_part($body, (array)$opts),
       'listUnsub' => $token !== '' ? 'https://vestrasales.com/lead-unsubscribe?token='.rawurlencode($token) : 'https://vestrasales.com/lead-unsubscribe',
+      'followup' => $fuCamp, 'from' => $from !== '' ? $from : 'VESTRA',
     ];
   }
-  return ['ok' => true, 'from' => $fromName, 'campaign' => $campKey, 'items' => vestra_mailbox_interleave($items)];
+  return ['ok' => true, 'from' => $fromName, 'campaign' => $followup ? 'followup' : $campKey, 'items' => vestra_mailbox_interleave($items)];
 }
 
 /** Kampanya metninde şirketin posta adresi yoksa sona ekler (CAN-SPAM / AB ticari ileti kuralı). */
 function vestra_mailbox_with_postal(string $body): string {
   return str_contains($body, '8 The Green') ? $body : rtrim($body)."\n".VESTRA_MAIL_POSTAL;
+}
+
+/* ── Gece takip turu (13 Eki 2026, operatör: "her gün gece 11.45'te ne kadar açık varsa — Brevo'nun 300'ünden ve
+   kendi sunucumun 500'ünden arta kalan e-postalar — listedeki en az e-posta alan butiklere gönderilebilir").
+   Gün boyunca yeni bulunanlar gider; gün sonunda tavandan ARTAN pay boşa gitmesin diye daha önce yazılmış ama EN AZ
+   mektup almış butiklere, henüz almadıkları bir kampanya gider (takip mektubu). Kurallar:
+   • yalnız 'contacted' (yanıt veren, kayıt olan, reddeden, geri dönen, çıkan almaz); satıcı müşterisi ve pazaryeri
+     satıcısı almaz; aynı kara listeler (vestra_lead_is_blocked, ölü/hedef dışı) uygulanır;
+   • son mektubundan (hangi yoldan olursa olsun: ilk mektup, Brevo Winter/wave3/teklif, önceki takip) en az
+     VESTRA_MAILBOX_FOLLOWUP_MIN_DAYS gün geçmiş olmalı — Brevo'nun gece turu da aynı dükkâna aynı gece yazmasın;
+   • sıra: en az mektup alan önce, eşitlikte en uzun süredir yazılmamış önce; kampanya VESTRA_MAILBOX_FOLLOWUP_ORDER'dan
+     o dükkânın almadığı ilki; hepsini almışsa atlanır;
+   • gönderim bugünkü tavana sayılır (contact_via=mailbox, last_contacted_at bugün) — tavan aşılmaz;
+   • Avrupa saatiyle 23:45'ten sonra günde bir kez (cron_mailbox.php her 10 dk çağırır; mailbox.json followup_day). */
+const VESTRA_MAILBOX_FOLLOWUP_MIN_DAYS = 5;
+const VESTRA_MAILBOX_FOLLOWUP_ORDER = ['polos', 'edit', 'lesgarage', 'standard'];
+const VESTRA_MAILBOX_FOLLOWUP_AT = '23:45';
+const VESTRA_MAILBOX_FOLLOWUP_TZ = 'Europe/Berlin';
+
+/** Bir dükkâna bugüne dek giden mektuplar: ['count', 'last' (unix), 'camps' => [kampanya anahtarları]].
+ *  İlk mektup (last_contacted_at): 10 Eki'den sonra sunucudan gidenler 'edit' (otomatik kampanya), öncekiler ve
+ *  Brevo'dan gidenler 'lesgarage' sayılır. Brevo damgaları (last_newcollection_at, last_wave3_at, offer_*_at) ve
+ *  takip kayıtları (followups[]) da sayılır. */
+function vestra_lead_letters(array $l): array {
+  $camps = []; $last = 0; $n = 0;
+  $ts = static fn($v): int => (int)(strtotime(trim((string)$v)) ?: 0);
+  $first = $ts($l['first_contacted_at'] ?? ($l['last_contacted_at'] ?? ''));
+  if ($first > 0) {
+    $n++; $last = max($last, $first);
+    $camps[] = ((string)($l['contact_via'] ?? '') === 'mailbox' && $first >= strtotime('2026-10-10')) ? 'edit' : 'lesgarage';
+  }
+  foreach (['last_newcollection_at' => 'brevo:winter', 'last_wave3_at' => 'brevo:wave3'] as $k => $c)
+    if (($t = $ts($l[$k] ?? '')) > 0) { $n++; $last = max($last, $t); $camps[] = $c; }
+  foreach ($l as $k => $v)
+    if (is_string($k) && preg_match('/^offer_[a-z0-9]{3,20}_at$/', $k) && ($t = $ts($v)) > 0) { $n++; $last = max($last, $t); $camps[] = 'brevo:'.$k; }
+  foreach ((array)($l['followups'] ?? []) as $f) {
+    if (!is_array($f)) continue;
+    $n++; $last = max($last, $ts($f['at'] ?? '')); $camps[] = (string)($f['campaign'] ?? '');
+  }
+  $last = max($last, $ts($l['last_contacted_at'] ?? ''));
+  return ['count' => $n, 'last' => $last, 'camps' => $camps];
+}
+
+/** Dükkânın henüz almadığı ilk takip kampanyası; hepsini almışsa ''. */
+function vestra_mailbox_followup_next(array $had, ?array $camps = null): string {
+  foreach (VESTRA_MAILBOX_FOLLOWUP_ORDER as $k) if (!in_array($k, $had, true) && ($camps === null || isset($camps[$k]))) return $k;
+  return '';
+}
+
+/** Takip alıcıları (en az mektup alan önce), her lead'e '_followup' => kampanya anahtarı eklenmiş. */
+function vestra_mailbox_followup_targets(int $limit, ?array $leads = null, ?int $now = null): array {
+  require_once __DIR__.'/finder.php';
+  $now = $now ?? time(); $leads = $leads ?? vestra_leads(); $camps = vestra_finder_campaigns();
+  $cut = $now - VESTRA_MAILBOX_FOLLOWUP_MIN_DAYS * 86400;
+  /* Dinlenme ADRESE göre: aynı adresin ikinci kaydı (ör. büyük/küçük harf farkı) bugün yazılmış adrese yeniden yazdırmasın. */
+  $lastByEmail = [];
+  foreach ($leads as $l) {
+    if (($e = vestra_email_clean((string)($l['email'] ?? ''))) === '') continue;
+    $lastByEmail[$e] = max($lastByEmail[$e] ?? 0, vestra_lead_letters($l)['last']);
+  }
+  $cand = [];
+  foreach ($leads as $i => $l) {
+    if (trim((string)($l['last_contacted_at'] ?? '')) === '') continue;              // hiç yazılmamış: normal sırada gider
+    if ((string)($l['status'] ?? '') !== 'contacted' || !empty($l['unsubscribed'])) continue;
+    if ((string)($l['owner_uid'] ?? '') !== '') continue;
+    if (in_array(strtolower((string)($l['source'] ?? '')), VESTRA_FINDER_NOT_BUYER_SOURCES, true)) continue;
+    $e = vestra_email_clean((string)($l['email'] ?? ''));
+    if (!filter_var($e, FILTER_VALIDATE_EMAIL) || vestra_email_is_junk($e)) continue;
+    if ((function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) || vestra_lead_looks_dead($l) || vestra_lead_off_target($l)) continue;
+    $lt = vestra_lead_letters($l);
+    if ($lt['last'] <= 0 || max($lt['last'], $lastByEmail[$e] ?? 0) > $cut) continue;
+    $next = vestra_mailbox_followup_next($lt['camps'], $camps);
+    if ($next === '') continue;
+    $cand[] = ['i' => $i, 'n' => $lt['count'], 'last' => $lt['last'], 'camp' => $next, 'email' => $e];
+  }
+  usort($cand, static fn($a, $b) => [$a['n'], $a['last'], $a['i']] <=> [$b['n'], $b['last'], $b['i']]);
+  $out = []; $seen = [];
+  foreach ($cand as $c) {
+    if (count($out) >= $limit) break;
+    if (isset($seen[$c['email']])) continue;
+    $seen[$c['email']] = true;
+    $l = $leads[$c['i']]; $l['_followup'] = $c['camp']; $out[$c['i']] = $l;
+  }
+  return $out;
+}
+
+/** Gece turu: Avrupa saatiyle 23:45'ten sonra, günde bir kez, bugünkü tavandan kalan kadar takip isteği açar.
+ *  mailbox.json: followup=false kapatır; followup_day o günün işlendiğini tutar. Döner: açılan isteğin mesajı | ''. */
+function vestra_mailbox_nightly(?int $now = null): string {
+  $cfg = vestra_mailbox_cfg();
+  if (array_key_exists('followup', $cfg) && !$cfg['followup']) return '';
+  $now = $now ?? time();
+  $dt = (new DateTimeImmutable('@'.$now))->setTimezone(new DateTimeZone(VESTRA_MAILBOX_FOLLOWUP_TZ));
+  if (strcmp($dt->format('H:i'), VESTRA_MAILBOX_FOLLOWUP_AT) < 0) return '';
+  $day = $dt->format('Y-m-d');
+  if ((string)($cfg['followup_day'] ?? '') === $day) return '';
+  foreach (vestra_mailbox_runs() as $r) if (vestra_mailbox_is_open($r)) return '';   // süren gönderim bitince (gün işaretlenmez)
+  $mark = static function (string $note) use ($cfg, $day): void {
+    $cfg['followup_day'] = $day; $cfg['followup_note'] = mb_substr($note, 0, 120);
+    $f = vestra_mailbox_file('mailbox.json');
+    file_put_contents($f, json_encode($cfg, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), LOCK_EX); @chmod($f, 0600);
+  };
+  $left = vestra_mailbox_left_today();
+  if ($left <= 0) { $mark('tavan dolu'); return ''; }
+  if (vestra_mailbox_bounce_stats()['stop']) { $mark('fren'); return ''; }
+  if (!vestra_mailbox_followup_targets(1, null, $now)) { $mark('takip alicisi yok'); return ''; }
+  [$ok, $msg] = vestra_mailbox_request('followup', $left, 'followup', '');
+  if (!$ok) return '';
+  $mark($msg);
+  return $msg;
 }
 
 /** Test: örnek dükkânla tek mektup, kayda dokunmaz. */
@@ -411,7 +528,7 @@ function vestra_mailbox_stamp(array $results): array {
   foreach ($results as $r) {
     $id = (string)($r['leadId'] ?? ''); $em = strtolower(trim((string)($r['email'] ?? '')));
     if ($id !== '') $byId[$id] = $r;
-    if ($em !== '') $byEmail[$em] = $r;
+    if ($em !== '' && (string)($r['followup'] ?? '') === '') $byEmail[$em] = $r;   // takip yalnız kayda göre: aynı adresin ikinci kaydı sayılmasın
   }
   $c = ['sent' => 0, 'bounced' => 0, 'unsub' => 0];
   if (!$byId && !$byEmail) return $c;
@@ -422,13 +539,20 @@ function vestra_mailbox_stamp(array $results): array {
     if (!$r) continue;
     $st = (string)($r['status'] ?? '');
     if ($st === 'sent') {
-      if (trim((string)($l['last_contacted_at'] ?? '')) !== '' && (string)($l['contact_via'] ?? '') !== 'lemlist') continue; // iki kez damgalama
+      $fu = (string)($r['followup'] ?? '');
+      if ($fu === '' && trim((string)($l['last_contacted_at'] ?? '')) !== '' && (string)($l['contact_via'] ?? '') !== 'lemlist') continue; // iki kez damgalama
+      if ($fu !== '') {   // takip mektubu: ilk mektubun tarihi korunur, takip kaydı eklenir
+        if (trim((string)($l['first_contacted_at'] ?? '')) === '') $l['first_contacted_at'] = (string)($l['last_contacted_at'] ?? '');
+        $fl = is_array($l['followups'] ?? null) ? $l['followups'] : [];
+        $fl[] = ['at' => date('c'), 'campaign' => $fu, 'lang' => (string)($r['lang'] ?? '')];
+        $l['followups'] = array_slice($fl, -12);
+      }
       $l['last_contacted_at'] = date('c'); $l['contact_via'] = 'mailbox';
       if (($l['status'] ?? 'new') === 'new') $l['status'] = 'contacted';
       $l['last_campaign'] = 'mailbox/'.(string)($r['lang'] ?? '');
       if (($mid = (string)($r['messageId'] ?? '')) !== '') $l['last_message_id'] = $mid;
       $note = trim((string)($l['notes'] ?? ''));
-      $l['notes'] = trim($note.($note !== '' ? ' · ' : '').'mailbox('.(string)($r['lang'] ?? '').') '.date('Y-m-d'));
+      $l['notes'] = trim($note.($note !== '' ? ' · ' : '').($fu !== '' ? 'takip/'.$fu : 'mailbox('.(string)($r['lang'] ?? '').')').' '.date('Y-m-d'));
       $c['sent']++;
     } elseif ($st === 'bounced') {
       $l['status'] = 'bounced'; $l['bounce_reason'] = 'mailbox: '.substr((string)($r['reason'] ?? 'rejected'), 0, 120); $l['bounced_at'] = date('c'); $c['bounced']++;
@@ -578,7 +702,9 @@ function vestra_mailbox_run(array $req, array $o = []): array {
     return $sum;
   }
   $ids = is_array($req['ids'] ?? null) ? $req['ids'] : array_filter(explode(',', (string)($req['ids'] ?? '')));
-  $b = vestra_mailbox_batch((int)($req['limit'] ?? 25), (string)($req['campaign'] ?? 'edit'), $ids, (string)($req['pool'] ?? 'web'), array_intersect_key($o, ['dkim_ok' => 1, 'mx' => 1]));
+  $bo = array_intersect_key($o, ['dkim_ok' => 1, 'mx' => 1, 'now' => 1]);
+  if ($mode === 'followup') { $bo['followup'] = true; $ids = []; }
+  $b = vestra_mailbox_batch((int)($req['limit'] ?? 25), $mode === 'followup' ? 'edit' : (string)($req['campaign'] ?? 'edit'), $ids, $mode === 'followup' ? 'all' : (string)($req['pool'] ?? 'web'), $bo);
   if (!$b['ok']) { $sum['note'] = 'kampanya bulunamadi'; $sum['error'] = $sum['note']; return $sum; }
   if (!$b['items']) { $sum['note'] = (string)($b['note'] ?? 'gonderilecek uygun musteri yok'); return $sum; }
   $n = count($b['items']); $failRow = 0; $sentAny = false;
@@ -596,12 +722,12 @@ function vestra_mailbox_run(array $req, array $o = []): array {
       continue;
     }
     if ($sentAny) $sleep(random_int(VESTRA_MAILBOX_PAUSE_MIN, VESTRA_MAILBOX_PAUSE_MAX));
-    [$ok, $mid, $why] = vestra_mailbox_send_local($it, (string)$b['from'], $mail);
+    [$ok, $mid, $why] = vestra_mailbox_send_local($it, (string)(($it['followup'] ?? '') !== '' ? ($it['from'] ?? $b['from']) : $b['from']), $mail);
     if ($ok) {
-      vestra_mailbox_stamp([['leadId' => $it['leadId'], 'email' => $it['email'], 'status' => 'sent', 'lang' => $it['lang'], 'messageId' => $mid]]);
+      vestra_mailbox_stamp([['leadId' => $it['leadId'], 'email' => $it['email'], 'status' => 'sent', 'lang' => $it['lang'], 'messageId' => $mid, 'followup' => (string)($it['followup'] ?? '')]]);
       if (!$sentAny) vestra_mailbox_warmup_mark();
       $sum['sent']++; $failRow = 0; $sentAny = true;
-      $log(sprintf('+ [%d/%d] %s [%s]', $k + 1, $n, vestra_mailbox_mask($it['email']), $it['lang']));
+      $log(sprintf('+ [%d/%d] %s [%s]%s', $k + 1, $n, vestra_mailbox_mask($it['email']), $it['lang'], ($it['followup'] ?? '') !== '' ? ' takip/'.$it['followup'] : ''));
     } else {
       $sum['failed']++; $failRow++;
       $log(sprintf('x [%d/%d] %s — %s', $k + 1, $n, vestra_mailbox_mask($it['email']), $why));

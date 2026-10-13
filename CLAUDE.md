@@ -4761,6 +4761,26 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   işçiyle paralel, Nominatim sırayla 1,1 sn. Ölçüm: tur başına şehir 10 → 20 → **54**; yeni butik 5 / 1 / **6**
   (hepsi İtalya, ilk 3 tur). "ulaşılamadı"nın yarısı ENOTFOUND (OSM'deki alan adı ölü), beşte biri Cloudflare 403 —
   kaynak verisi (diag-site-reach.yml). Beklenti: günde onlarca, yüzlerce değil; asıl kaldıraç Brave anahtarı.
+  **13 Eki (3), operatör "Brave çok pahalı, tamamen iptal et; 500 yeni butiği ücretsiz bul":** Brave anahtarı
+  KULLANILMIYOR (find-customers.yml `BRAVE_ALLOWED=false`, vestra-search.php'de Brave bloğu devre dışı; anahtar hiçbir
+  yere yazılmadı, panele yapıştırıldıysa silinmeli, Brave ön ödemesi operatörün tarafında iptal). Ücretsiz kaynaklar:
+  **EURO_GRID** (36 Avrupa ülkesi, 3.873 0,5° kare, `state.gridCursor`, boş kare 90 gün kapalı, Overpass zaman aşımı
+  olan kare bir sonraki tura), **kasaba adıyla Bing sorguları** (`buildTownQueries`, 16 dil, tur başına 120, sunucu
+  IP'sinden `web_free`; DDG HTML sunucudan hemen kapanıyor), marka-çifti sorguları. Ölçüm: kare turunda 93 karenin 38'i
+  zaman aşımı, 48'i boş, 7 aday; marka-çifti Bing 69 adayın 58'i zaten listedeydi. Dürüst beklenti: ücretsiz kaynaklarla
+  günde onlarca yeni butik, 500 değil.
+  **13 Eki (4), operatör "her gün gece 11.45'te ne kadar açık varsa — Brevo'nun 300'ünden ve kendi sunucumun 500'ünden
+  arta kalan — listedeki en az e-posta alan butiklere gönderilsin":** **gece takip turu** (inc/mailbox.php:
+  `vestra_mailbox_nightly()`, cron_mailbox.php her 10 dk çağırır). Avrupa saatiyle 23:45'ten sonra günde bir kez
+  (`mailbox.json followup_day`), bugünkü tavandan KALAN kadar `followup` kipinde istek açar: alıcılar daha önce yazılmış
+  (`contacted`; yanıt veren/kayıt olan/reddeden/dönen/çıkan/satıcı müşterisi/pazaryeri satıcısı almaz), son mektubundan
+  (ilk mektup, Brevo Winter/wave3/teklif, önceki takip — `vestra_lead_letters()`) en az 5 gün geçmiş; sıra EN AZ mektup
+  alan önce, eşitlikte en uzun süredir yazılmamış; kampanya `VESTRA_MAILBOX_FOLLOWUP_ORDER` = polos → edit → lesgarage →
+  standard'dan o dükkânın almadığı ilki; damga: `first_contacted_at` korunur, `followups[]` {at,campaign,lang},
+  `last_contacted_at` bugün (tavana sayılır, Brevo'nun yaş kuralını da iter → aynı gece iki mektup gitmez), not
+  `takip/<kampanya>`. Kapatmak: mailbox.json `"followup": false`. Brevo tarafı: chat-help `brevo-daily.yml` — 09:12 ve
+  15:12 Avrupa'da 50'şer Winter (yeni yazılmışlara), 22:45 Avrupa'da kotadan kalanla (rezerv 20) 50'lik partiler halinde
+  tarama; sunucu turu ondan sonra (23:45) koşar ki aynı dükkâna ikisi birden yazmasın.
   **11 Eki (4), operatör "neden böyle hata e-mailleri geliyor":** support@ kutusu okundu (diag-bounce-format.yml,
   maskeli): 7 günde ~50 teslim hatası, **44'ü Çöp (Trash) klasöründe** — tarayıcı yalnız INBOX'a baktığı için hiçbiri
   işaretlenmemişti (geri dönme oranı panelde %0 görünüyordu). Asıl bulgu: **Microsoft 365 / Outlook ve Orange

@@ -50,6 +50,8 @@ if ($dry) {
 
 /* Otomatik modda bekleyen yeni butiklere kendiliğinden istek aç (açık istek yokken, bugünkü hak varken). */
 if (($cu = vestra_mailbox_auto_catchup()) !== '') echo '[mailbox '.date('Y-m-d H:i').'] otomatik: '.$cu."\n";
+/* Gece takip turu (13 Eki 2026): Avrupa saatiyle 23:45'ten sonra bugünkü tavandan artan pay, en az mektup almış butiklere. */
+if (($nt = vestra_mailbox_nightly()) !== '') echo '[mailbox '.date('Y-m-d H:i').'] gece takip: '.$nt."\n";
 $req = vestra_mailbox_take();
 if (!$req) exit(0);
 $stamp = date('Y-m-d H:i');
