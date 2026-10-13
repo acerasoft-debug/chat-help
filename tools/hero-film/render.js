@@ -36,7 +36,7 @@ const FRAMES = parseInt(process.argv[3] || '480', 10);
  * Near-white and near-black pieces are deliberately absent: their sampled colour
  * gives no glow, and on a dark stage they read as a smudge rather than a garment.
  */
-const PICKS = [
+let PICKS = [
   ['dsquared/dsq-101230.png', '#fd8cc5'],           // DSQUARED2
   ['dg/101260.png',           '#02985d'],           // D&G
   ['dsquared/dsq-101233.png', '#bf9687'],           // DSQUARED2
@@ -48,6 +48,11 @@ const PICKS = [
   ['dsquared/dsq-101212.png', '#9a999d'],           // DSQUARED2
   ['lac-sweat/lacoste-sweat-beige.png', '#c8a886'], // Lacoste
 ];
+
+/* HERO_PICKS (JSON [[yol, renk], …]) verilirse yukaridaki liste yerine o kullanilir
+   (13 Eki 2026, hero-film-build.yml: fotograflar sunucuda, kosucu onlari canli siteden
+   indirip bu betige veriyor -- depoda olmayan bir parca da filme girebiliyor). */
+if (process.env.HERO_PICKS) PICKS = JSON.parse(process.env.HERO_PICKS);
 
 (async () => {
   const missing = PICKS.filter(([p]) => !fs.existsSync(path.join(UP, p)));
