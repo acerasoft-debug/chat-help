@@ -1,0 +1,16 @@
+01 200 image/jpeg 129910 https://cdn.shopify.com/s/files/1/0626/9065/files/MPS25-JTS-001-02_1.jpg
+01.src https://cdn.shopify.com/s/files/1/0626/9065/files/MPS25-JTS-001-02_1.jpg
+02 200 image/png 1433074 https://cdn.shopify.com/s/files/1/0806/4974/8805/files/IMG-1173.png
+02.src https://cdn.shopify.com/s/files/1/0806/4974/8805/files/IMG-1173.png
+03 404 application/json; charset=utf-8 0 https://casablancaparis.com/products/ms23-jts-001-25-casa-way-t-shirt.json
+03.src https://casablancaparis.com/products/ms23-jts-001-25-casa-way-t-shirt.json
+04 404 application/json; charset=utf-8 0 https://casablancaparis.com/en-sg/products/ms23-jts-001-26-casa-way-t-shirt.json
+04.src https://casablancaparis.com/en-sg/products/ms23-jts-001-26-casa-way-t-shirt.json
+05 403 text/html; charset=UTF-8 3289 https://www.kickscrew.com/products/casablanca-casa-way-printed-t-shirt-white-mf23-jts-001-14.json
+05.src https://www.kickscrew.com/products/casablanca-casa-way-printed-t-shirt-white-mf23-jts-001-14.json
+06 200 text/html; charset=utf-8 13405 https://www.outbacksylt.com/en/casablanca-casa-way-t-shirt-white-54714
+06.src https://www.outbacksylt.com/en/casablanca-casa-way-t-shirt-white-54714
+07 200 text/html; charset=utf-8 94496 https://www.bstn.com/ca_en/p/casablanca-casa-way-printed-t-shirt-ms23-jts-001-25-0288282
+07.src https://www.bstn.com/ca_en/p/casablanca-casa-way-printed-t-shirt-ms23-jts-001-25-0288282
+08 403 text/html; charset=UTF-8 2092 https://www.goat.com/apparel/casablanca-casa-way-printed-t-shirt-white-ms23-jts-001-25-whit
+08.src https://www.goat.com/apparel/casablanca-casa-way-printed-t-shirt-white-ms23-jts-001-25-whit
