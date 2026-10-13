@@ -4746,6 +4746,14 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   `pacemaker.yml` kendini zincirler: sonraki :20 slotuna kadar uyur, `find-customers.yml`'i `auto=true` ile
   workflow_dispatch eder (GITHUB_TOKEN bu olayı tetikleyebilir), kendini yeniden başlatır; saatlik cron yalnız kopan
   zinciri yeniden kurar. Zincir koparsa: Actions ▸ pacemaker ▸ Run workflow.
+  **13 Eki (2), operatör "Brevo'dan 100 e-mail daha gönder; sonra kendi sunucumuzdan gönderilmeyenlere yenilerle
+  birlikte; müşteri bulmayı kontrol et, kusursuz hale getir":** Brevo Winter 26/27 ikinci mektubu (send-outreach,
+  `new_collection=true newcoll_letter=winter min_brands=1 newcoll_min_days=2 exclude_countries=US,CA`, iki parti 50+50,
+  ikincisi `quota_reserve=25`) → **100 gönderildi, hata 0**; önce iki kuru koşu, 50 ad/zincir/çocuk/ayakkabı `skip_names`
+  ile elendi (RC Strasbourg, Medina Piel, Scalpers, Pedro del Hierro, Bealls, Kicks, Hatstore, kids…). Kota: 131 → ~31
+  (işlemsel posta için gece kalan). Sunucu: hiç yazılmamış UYGUN lead yok — 47 yazılmamışın hepsi engelli/dönmüş/çıkmış;
+  bulunan her yeni butik aynı saat otomatik partide gidiyor (bugün 12 + 15). Bulucu: düşen şehirler `state.osmRetry` ile
+  sonraki turun başına; tarayıcı artık "unsubscribe" konulu yanıtları `unsub` olarak işler (Apple Mail/Gmail List-Unsubscribe).
   **13 Eki, operatör "yeni müşteriler bulunmuyor, Avrupa'dan ihtiyacım var özellikle":** büyük şehir havuzu
   (CITY_POOL) tükenmişti — dört tur üst üste 0 (eleme `excl:seen`). find-boutiques.mjs: **EURO_TOWNS** (657 Avrupa
   orta şehri, Almanya <%10) + `pickAutoCities()` (turun EURO_SHARE=%80'i Avrupa, kendi imleci `state.euroCursor`);
