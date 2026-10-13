@@ -61,5 +61,23 @@ jobs:
             echo "== İşlem e-postaları son 7 gün (HTTP $c): istek ".$sp($r['requests'] ?? 0)." · teslim ".$sp($r['delivered'] ?? 0)." · dönen ".$sp(($r['hardBounces'] ?? 0) + ($r['softBounces'] ?? 0))." · engellenen ".$sp($r['blocked'] ?? 0)." · açılma ".$sp($r['uniqueOpens'] ?? 0)."\n";
             [$c, $r] = $get('/smtp/statistics/aggregatedReport?days=1');
             echo "== İşlem e-postaları bugün (HTTP $c): istek ".$sp($r['requests'] ?? 0)." · teslim ".$sp($r['delivered'] ?? 0)."\n";
+            /* Bugün ve dün ne gitti: konu (adres/numara soyulmuş) + olay türü sayımı, ve saat dağılımı. */
+            foreach ([0, 1] as $back) {
+              $day = gmdate('Y-m-d', time() - $back * 86400); $grp = []; $hours = []; $off = 0;
+              do {
+                [$c, $ev] = $get("/smtp/statistics/events?limit=2500&offset=$off&startDate=$day&endDate=$day&event=requests");
+                $rows = (array)($ev['events'] ?? []);
+                foreach ($rows as $e) {
+                  $sub = preg_replace(['/[A-Z]{2,}-?[0-9A-F]{4,}/', '/\d+/', '/[A-Za-z0-9._%+-]+@\S+/'], ['#', 'N', '@'], (string)($e['subject'] ?? ''));
+                  $k = mb_substr($sub, 0, 70); $grp[$k] = ($grp[$k] ?? 0) + 1;
+                  $h = substr((string)($e['date'] ?? ''), 11, 2); $hours[$h] = ($hours[$h] ?? 0) + 1;
+                }
+                $off += count($rows);
+              } while (count($rows) === 2500 && $off < 10000);
+              arsort($grp); ksort($hours);
+              echo "== $day gönderim istekleri (HTTP $c) · ".$sp(array_sum($grp))." ==\n";
+              foreach (array_slice($grp, 0, 15, true) as $k => $n) echo "  ".$sp($n)." × ".$k."\n";
+              echo "  saat (UTC): ".implode(' ', array_map(fn($h, $n) => "$h:".$sp($n), array_keys($hours), $hours))."\n";
+            }
             PHPEOF
             php /tmp/brevo_acct.php 2>&1 | sed -E 's/[A-Za-z0-9._%+-]{2,}@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/***@***/g'; rm -f /tmp/brevo_acct.php
