@@ -59,6 +59,7 @@ const CFG = {
      40 dk'lık bütçenin %13'ü. Şehir listesi verilmemişse OSM artık hedef aday sayısına ya da süre
      bütçesinin %35'ine kadar havuzdan şehir almaya devam eder. */
   maxCities:     num('MAX_CITIES', 40),
+  osmConcurrency: Math.max(1, Math.min(4, num('OSM_CONCURRENCY', 3))),         // 13 Eki: paralel OSM şehir işçisi
   euroShare:     Math.max(0, Math.min(1, Number(process.env.EURO_SHARE ?? 0.8) || 0)),   // 13 Eki: otomatik turda Avrupa kasabalarının payı                            // otomatik turda en çok şehir (OSM)
   osmTarget:     num('OSM_TARGET', 900),                           // otomatik turda hedef yeni OSM adayı
   osmPerCity:    num('OSM_PER_CITY', 150),                          // şehir başına en çok yeni OSM adayı
@@ -811,8 +812,13 @@ export function osmPick(tags) {
   return { web, name, email, phone: String(tags.phone || tags['contact:phone'] || '').split(';')[0].trim() };
 }
 
+/* Nominatim kullanım kuralı saniyede 1 istek: paralel şehir işçileri konum aramasını sırayla yapar. */
+let nominatimChain = Promise.resolve();
+function nominatimSlot() { const p = nominatimChain.then(() => sleep(1100)); nominatimChain = p.catch(() => {}); return p; }
+
 async function osmCity(country, city) {
   let areaId = 0, bbox = null;
+  await nominatimSlot();
   try {
     const u = 'https://nominatim.openstreetmap.org/search?' + new URLSearchParams({ city, country, format: 'jsonv2', limit: '5' });
     const r = await fetch(u, { headers: { 'user-agent': OSM_UA, 'accept-language': 'en' }, signal: AbortSignal.timeout(25000) });
@@ -821,7 +827,6 @@ async function osmCity(country, city) {
     if (hit) { if (hit.osm_type === 'relation') areaId = 3600000000 + Number(hit.osm_id); if (Array.isArray(hit.boundingbox)) bbox = hit.boundingbox.map(Number); }
   } catch { /* aşağıda hata döner */ }
   if (!areaId && !bbox) return { error: 'şehir bulunamadı (Nominatim)', rows: [] };
-  await sleep(1100);                                                   // Nominatim kullanım kuralı: saniyede 1 istek
   const sel = '["shop"~"^(clothes|boutique|fashion)$"]';
   const queries = [];
   if (areaId) queries.push(`[out:json][timeout:80];area(${areaId})->.a;nwr${sel}(area.a);out tags;`);   // 11 Eki: 150 → 80 sn — 504 veren büyük şehirler turu 10+ dk bekletiyordu
@@ -1175,31 +1180,38 @@ async function main() {
 
   /* ---- 1c) OpenStreetMap (anahtarsız): şehirdeki giyim dükkânları ---- */
   if (CFG.engines.includes('osm')) {
-    let lastPoolIdx = -1, lastEuroIdx = -1;
-    for (const pc of cityT) {
-      if (elapsed() > CFG.budgetSec * 0.55) { osmStat.errors.push('süre bütçesi'); break; }   // 11 Eki: 0.35 → 0.55 (inceleme ~0.8 sn/site)
-      if (autoCities && osmStat.picked >= CFG.osmTarget) break;
-      if (autoCities) { const ei2 = EURO_TOWNS.indexOf(pc); if (ei2 >= 0) lastEuroIdx = ei2; else lastPoolIdx = CITY_POOL.indexOf(pc); }
-      const [country, city] = pc.split('|').map(x => x.trim());
-      const res = await osmCity(country, city || country);
-      osmStat.cities++;
-      if (res.error) { osmStat.errors.push(`${city}: ${res.error}`); log(`  [osm] ${pc} -> HATA: ${res.error}`); continue; }
-      osmStat.shops += res.rows.length;
-      let picked = 0; const ex = {};
-      for (const tags of res.rows) {
-        if (picked >= CFG.osmPerCity) break;
-        const p = osmPick(tags);
-        if (p.excl) { ex[p.excl] = (ex[p.excl] || 0) + 1; continue; }
-        let reg; try { reg = registrableDomain(new URL(p.web).hostname); } catch { continue; }
-        if (known.domains.has(reg) || cands.has(reg)) continue;
-        const st = state.domains[reg]; if (st && !/^(no_email|fail)/.test(String(st.s || ''))) continue;
-        const b = cands.size; consider(p.web, 'osm:' + pc, { name: p.name, countryHint: country, phone: p.phone, osmEmail: p.email });
-        if (cands.size > b) picked++;
+    let lastPoolIdx = -1, lastEuroIdx = -1, ci = 0;
+    /* 13 Eki 2026: şehirler OSM_CONCURRENCY (varsayılan 3) işçiyle paralel — ölçüm: tek sırada turda 10-20 şehir,
+       zaman aşımına düşen bir ayna her şehri 2-3 dk bekletiyordu. Aday ekleme (consider) eşzamanlı ama tek iş
+       parçacığında; aynı alan adını iki işçi eklemez (cands kontrolü await'siz). */
+    const osmWorker = async () => {
+      while (ci < cityT.length) {
+        if (elapsed() > CFG.budgetSec * 0.55) { if (!osmStat.errors.includes('süre bütçesi')) osmStat.errors.push('süre bütçesi'); return; }
+        if (autoCities && osmStat.picked >= CFG.osmTarget) return;
+        const pc = cityT[ci++];
+        if (autoCities) { const ei2 = EURO_TOWNS.indexOf(pc); if (ei2 >= 0) lastEuroIdx = Math.max(lastEuroIdx, ei2); else lastPoolIdx = Math.max(lastPoolIdx, CITY_POOL.indexOf(pc)); }
+        const [country, city] = pc.split('|').map(x => x.trim());
+        const res = await osmCity(country, city || country);
+        osmStat.cities++;
+        if (res.error) { osmStat.errors.push(`${city}: ${res.error}`); log(`  [osm] ${pc} -> HATA: ${res.error}`); continue; }
+        osmStat.shops += res.rows.length;
+        let picked = 0; const ex = {};
+        for (const tags of res.rows) {
+          if (picked >= CFG.osmPerCity) break;
+          const p = osmPick(tags);
+          if (p.excl) { ex[p.excl] = (ex[p.excl] || 0) + 1; continue; }
+          let reg; try { reg = registrableDomain(new URL(p.web).hostname); } catch { continue; }
+          if (known.domains.has(reg) || cands.has(reg)) continue;
+          const st = state.domains[reg]; if (st && !/^(no_email|fail)/.test(String(st.s || ''))) continue;
+          const b = cands.size; consider(p.web, 'osm:' + pc, { name: p.name, countryHint: country, phone: p.phone, osmEmail: p.email });
+          if (cands.size > b) picked++;
+        }
+        osmStat.picked += picked;
+        log(`  [osm] ${pc} -> ${res.rows.length} dukkan, +${picked} yeni aday (${res.mirror}) | etiketten elenen: ${Object.entries(ex).map(([k, v]) => k + '=' + v).join(', ') || '-'}`);
+        await sleep(1000);
       }
-      osmStat.picked += picked;
-      log(`  [osm] ${pc} -> ${res.rows.length} dukkan, +${picked} yeni aday (${res.mirror}) | etiketten elenen: ${Object.entries(ex).map(([k, v]) => k + '=' + v).join(', ') || '-'}`);
-      await sleep(2000);
-    }
+    };
+    await Promise.all(Array.from({ length: Math.max(1, CFG.osmConcurrency) }, osmWorker));
     /* Havuz imleci: bir sonraki tur, bu turda bakılan son şehirden sonra başlar. */
     if (autoCities && !CFG.dryRun && lastPoolIdx >= 0) state.placesCursor = (lastPoolIdx + 1) % CITY_POOL.length;
     if (autoCities && !CFG.dryRun && lastEuroIdx >= 0) state.euroCursor = (lastEuroIdx + 1) % EURO_TOWNS.length;
