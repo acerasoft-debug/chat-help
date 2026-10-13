@@ -1,0 +1,75 @@
+name: (Lead) Adresi engelle — bir daha e-posta gitmesin
+# 13 Eki 2026 (operatör: "info@… bu emaili sil ve engelle bir daha email gönderme"). Kayıt SİLİNMEZ, engellenir:
+# silinirse bulucu aynı dükkânı yeniden bulup listeye ekler ve otomatik gönderim yeniden yazar (purge-leads.yml
+# GÜVENLİK 1). Adresi taşıyan BÜTÜN kayıtlar (satıcı listeleri dahil) status=unsubscribed + unsubscribed=true olur;
+# her gönderim yolu (sunucu partisi, gece takibi, Brevo, satıcı kutusu) bu durumu atlar; bulucu known.json'da
+# gördüğü için yeniden eklemez. Kayıt yoksa 'suppression' kaynaklı bir engel kaydı eklenir.
+# Adres girdide base64 verilir (depo herkese açık; koşu sayfasında açık yazılmasın), kütükte maskeli basılır.
+on:
+  workflow_dispatch:
+    inputs:
+      email_b64:
+        description: "Engellenecek adres, base64 (ör. echo -n info@x.com | base64)"
+        required: true
+      dry_run:
+        description: "true = yalnız göster, yazma"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+jobs:
+  block:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Engelle
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          EMAIL_B64: ${{ github.event.inputs.email_b64 }}
+          DRY: ${{ github.event.inputs.dry_run }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: EMAIL_B64,DRY
+          command_timeout: 3m
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_block.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME");
+            require      $home."/public_html/inc/products.php";
+            require_once $home."/public_html/inc/leads.php";
+            $dry = strtolower(trim((string)getenv('DRY'))) === 'true';
+            $email = strtolower(trim((string)base64_decode((string)getenv('EMAIL_B64'), true)));
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "gecersiz adres\n"); exit(1); }
+            $mask = static function (string $e): string { [$u, $d] = array_pad(explode('@', $e, 2), 2, ''); return substr($u, 0, 1).'***@'.$d; };
+            $leads = vestra_leads(); $hit = 0; $already = 0;
+            foreach ($leads as $i => $l) {
+              $e = function_exists('vestra_email_clean') ? vestra_email_clean((string)($l['email'] ?? '')) : strtolower(trim((string)($l['email'] ?? '')));
+              if ($e !== $email) continue;
+              $st = (string)($l['status'] ?? '');
+              echo "  kayit ".$l['id']." · ".mb_substr((string)($l['company'] ?? ''), 0, 40)." · durum=".$st.($l['owner_uid'] ?? '' ? " · satici=".$l['owner_uid'] : '')." · son temas=".substr((string)($l['last_contacted_at'] ?? ''), 0, 10)."\n";
+              if ($st === 'unsubscribed' && !empty($l['unsubscribed'])) { $already++; continue; }
+              $leads[$i]['status'] = 'unsubscribed'; $leads[$i]['unsubscribed'] = true; $leads[$i]['unsubscribed_at'] = date('c');
+              $note = trim((string)($l['notes'] ?? ''));
+              $leads[$i]['notes'] = trim($note.($note !== '' ? ' · ' : '').'operator engeli '.date('Y-m-d').' (bir daha yazilmaz)');
+              $hit++;
+            }
+            if ($hit === 0 && $already === 0) {
+              $leads[] = ['id' => 'LD'.substr(md5($email.microtime(true)), 0, 12), 'company' => '(engel) '.substr($email, strrpos($email, '@') + 1), 'email' => $email, 'country' => '', 'website' => '',
+                          'source' => 'suppression', 'owner_uid' => '', 'status' => 'unsubscribed', 'unsubscribed' => true, 'unsubscribed_at' => date('c'),
+                          'last_contacted_at' => '', 'notes' => 'operator engeli '.date('Y-m-d').' (bir daha yazilmaz)', 'added_at' => date('c')];
+              echo "  kayit yoktu → engel kaydi eklendi (source=suppression)\n"; $hit++;
+            }
+            if ($dry) { echo "KURU KOSU · ".$mask($email)." · isaretlenecek: {$hit} · zaten engelli: {$already}\n"; exit(0); }
+            if ($hit) { @copy(vestra_data_dir().'/leads.json', vestra_data_dir().'/leads.json.bak-block-'.date('Ymd_His')); vestra_save_leads($leads); }
+            echo "BITTI · ".$mask($email)." · engellendi: {$hit} · zaten engelli: {$already}\n";
+            PHPEOF
+            php -l /tmp/vestra_block.php 2>&1
+            php /tmp/vestra_block.php 2>&1; rc=$?
+            rm -f /tmp/vestra_block.php
+            exit $rc
