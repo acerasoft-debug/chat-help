@@ -63,6 +63,7 @@ const CFG = {
   euroShare:     Math.max(0, Math.min(1, Number(process.env.EURO_SHARE ?? 0.8) || 0)),   // 13 Eki: otomatik turda Avrupa kasabalarının payı                            // otomatik turda en çok şehir (OSM)
   osmTarget:     num('OSM_TARGET', 900),                           // otomatik turda hedef yeni OSM adayı
   osmPerCity:    num('OSM_PER_CITY', 150),                          // şehir başına en çok yeni OSM adayı
+  townQueries:   num('TOWN_QUERIES', 120),                          // 13 Eki: kasaba sorgusu (sunucudaki Bing)
   gridCells:     num('GRID_CELLS', 200),                            // 13 Eki: otomatik turda taranacak Avrupa karesi (0 = kapalı)
   gridPerCell:   num('GRID_PER_CELL', 400),                         // kare başına en çok yeni aday
   braveKey:      (ENV.BRAVE_API_KEY ?? '').trim(),
@@ -825,8 +826,8 @@ async function osmCity(country, city) {
   if (cell) {
     /* Kare: Nominatim yok; yalnız sitesi ya da e-postası etiketli dükkânlar (sitesizler zaten elenirdi, trafik boşuna). */
     const bb = cell.join(',');
-    const q = `[out:json][timeout:40];nwr["shop"~"^(clothes|boutique|fashion)$"][~"^(website|contact:website|email|contact:email)$"~"."](${bb});out tags;`;
-    return osmQuery([q]);
+    const q = `[out:json][timeout:25];nwr["shop"~"^(clothes|boutique|fashion)$"][~"^(website|contact:website|email|contact:email)$"~"."](${bb});out tags;`;
+    return osmQuery([q], 30000);
   }
   await nominatimSlot();
   try {
@@ -843,13 +844,13 @@ async function osmCity(country, city) {
   if (bbox) queries.push(`[out:json][timeout:80];nwr${sel}(${bbox[0]},${bbox[2]},${bbox[1]},${bbox[3]});out tags;`);   // Nominatim bbox: [güney, kuzey, batı, doğu]
   return osmQuery(queries);
 }
-async function osmQuery(queries) {
+async function osmQuery(queries, waitMs = OVERPASS_WAIT_MS) {
   let lastErr = 'Overpass yanıt vermedi', emptyOk = null;
   for (const q of queries) {
     for (const m of overpassOrder()) {
       const t0 = Date.now();
       try {
-        const r = await fetch(m, { method: 'POST', body: 'data=' + encodeURIComponent(q), signal: AbortSignal.timeout(OVERPASS_WAIT_MS),
+        const r = await fetch(m, { method: 'POST', body: 'data=' + encodeURIComponent(q), signal: AbortSignal.timeout(waitMs),
           headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': OSM_UA } });
         if (r.status !== 200) { lastErr = `Overpass HTTP ${r.status}`; overpassMark(m, false, Date.now() - t0); continue; }
         const j = await r.json();
@@ -1150,6 +1151,43 @@ export function pickGridCells(state, n) {
 const COUNTRY_LANG = { Italy: 'it', France: 'fr', Spain: 'es', Netherlands: 'nl', Belgium: 'nl', Switzerland: 'de', Austria: 'de', Germany: 'de',
   Portugal: 'pt', Greece: 'el', Poland: 'pl', 'United Kingdom': 'en', Ireland: 'en', Denmark: 'da', Sweden: 'sv', Norway: 'nb', Czechia: 'cs', Finland: 'fi' };
 
+/* ============================== KASABA SORGULARI (ücretsiz, 13 Eki 2026) ==============================
+   Marka-çifti sorguları aynı büyük siteleri getiriyor (ikinci turda 69 adayın 58'i "seen"). Arama motorunun iyi
+   olduğu şey yerel dükkân: "multimarka butik + kasaba adı", ülkenin dilinde, EURO_TOWNS + CITY_POOL üzerinden
+   imleçle (state.townQCursor). Her kasaba için iki sorgu: genel + marka çeşnili. Sunucudaki Bing ile çalışır. */
+const TOWN_TPL = {
+  it: ['boutique abbigliamento multimarca {c}', '{c} negozio abbigliamento uomo donna Dsquared2 Stone Island'],
+  fr: ['boutique multimarques prêt-à-porter {c}', '{c} boutique vêtements marques Moncler Off-White'],
+  es: ['tienda multimarca moda {c}', '{c} boutique ropa marcas Dsquared2 Philipp Plein'],
+  pt: ['loja multimarca moda {c}', '{c} boutique roupa marcas Hugo Boss Moncler'],
+  de: ['Multilabel Boutique Mode {c}', '{c} Modehaus Marken Stone Island Moncler Hugo Boss'],
+  nl: ['multibrand boutique kleding {c}', '{c} modezaak merken Moncler Stone Island'],
+  en: ['independent multi-brand fashion boutique {c}', '{c} boutique stockist Stone Island Moncler Off-White'],
+  pl: ['butik multibrand odzież {c}', '{c} sklep odzieżowy marki Moncler Hugo Boss'],
+  cs: ['multibrand butik oblečení {c}', '{c} obchod s oblečením značky Moncler Hugo Boss'],
+  el: ['κατάστημα ρούχων πολυμάρκα {c}', '{c} boutique ρούχα Moncler Stone Island'],
+  da: ['multibrand tøjbutik {c}', '{c} tøjbutik mærker Moncler Stone Island'],
+  sv: ['multibrand klädbutik {c}', '{c} klädbutik märken Moncler Stone Island'],
+  nb: ['multibrand klesbutikk {c}', '{c} klesbutikk merker Moncler Stone Island'],
+  fi: ['monimerkki vaateliike {c}', '{c} vaateliike merkit Moncler Stone Island'],
+  hu: ['multibrand ruhabolt {c}', '{c} ruhaüzlet márkák Moncler Hugo Boss'],
+  ro: ['magazin haine multibrand {c}', '{c} boutique haine branduri Moncler Hugo Boss'],
+};
+const TOWN_LANG_EXTRA = { Hungary: 'hu', Romania: 'ro', Slovakia: 'cs', Croatia: 'en', Slovenia: 'en', Bulgaria: 'en', Serbia: 'en', Lithuania: 'en',
+  Latvia: 'en', Estonia: 'en', Luxembourg: 'fr', Cyprus: 'el', Malta: 'en', Iceland: 'en', Montenegro: 'en', Albania: 'en', 'North Macedonia': 'en',
+  'Bosnia and Herzegovina': 'en' };
+const TOWN_SRC = [...EURO_TOWNS, ...CITY_POOL];
+export function buildTownQueries(state, n) {
+  const out = []; let cur = Number(state.townQCursor || 0) % TOWN_SRC.length, steps = 0;
+  while (out.length < n && steps < TOWN_SRC.length) {
+    const pc = TOWN_SRC[cur]; cur = (cur + 1) % TOWN_SRC.length; steps++;
+    const [country, city] = pc.split('|').map(x => x.trim()); if (!city) continue;
+    const lang = COUNTRY_LANG[country] || TOWN_LANG_EXTRA[country] || 'en';
+    for (const tpl of (TOWN_TPL[lang] || TOWN_TPL.en)) { if (out.length >= n) break; out.push({ q: tpl.replace('{c}', city), lang, town: pc }); }
+  }
+  return { queries: out, cursor: cur };
+}
+
 /* Sunucu vekili: tek SSH çağrısında tüm sorgular. Anahtar runner'a hiç gelmez. */
 export function callServerSearch(cmd, payload, timeoutSec) {
   const r = spawnSync('bash', ['-c', cmd], { input: JSON.stringify(payload), encoding: 'utf8', timeout: timeoutSec * 1000, maxBuffer: 64 * 1024 * 1024 });
@@ -1208,11 +1246,13 @@ async function main() {
     const webQ = (keys.brave && CFG.braveAllowed) ? queries.map(({ q, lang }) => ({ q, lang, cc: (LOCALE[lang] || {}).cc || '' })) : [];
     /* 13 Eki 2026 (Brave iptal): aynı sorgular ÜCRETSİZ motorlarla (DuckDuckGo HTML, Bing) sunucunun IP'sinden —
        GitHub koşucularının IP'leri bu motorlarda engelli (captcha), sunucununki değil. */
-    const webFree = webQ.length ? [] : queries.map(({ q, lang }) => ({ q, lang }));
+    const townQ = (CFG.townQueries > 0 && autoCities) ? buildTownQueries(state, CFG.townQueries) : { queries: [], cursor: 0 };
+    const webFree = webQ.length ? [] : [...townQ.queries.map(({ q, lang }) => ({ q, lang })), ...queries.map(({ q, lang }) => ({ q, lang }))];
+    if (townQ.queries.length && !CFG.dryRun) state.townQCursor = townQ.cursor;
     if (keys.brave && !CFG.braveAllowed) notes.push('Brave kapalı (operatör kararı, 13 Eki) — web araması ücretsiz motorlarla sunucudan yapıldı.');
     if (webQ.length || webFree.length || placeT.length) {
       log(`sunucu vekili: ${webQ.length} Brave + ${webFree.length} ucretsiz (ddg/bing) web sorgusu + ${placeT.length} sehir (Google Places)...`);
-      const resp = callServerSearch(CFG.searchCmd, { web: webQ, web_free: webFree, places: placeT.map(pc => ({ country: pc.split('|')[0].trim(), city: (pc.split('|')[1] || '').trim() })), places_phrases: 4, budget: 420 }, 600);
+      const resp = callServerSearch(CFG.searchCmd, { web: webQ, web_free: webFree, places: placeT.map(pc => ({ country: pc.split('|')[0].trim(), city: (pc.split('|')[1] || '').trim() })), places_phrases: 4, budget: 600 }, 780);
       srvStat.used = true;
       if (resp.error) { notes.push('Sunucu arama vekili hata verdi: ' + resp.error); log('  !! vekil hata: ' + resp.error); }
       else {
@@ -1478,6 +1518,9 @@ function selftest() {
     t('otomatik tur: EURO_SHARE=0 eski davranış', pickAutoCities(st, 4, 0).every((c, i) => c === CITY_POOL[7 + i])); }
   t('Brave izni: BRAVE_ALLOWED=false dışında açık', CFG.braveAllowed === true);
   t('kare havuzu: 3000+ kare, tekrar yok, İtalya önce', EURO_GRID.length >= 3000 && new Set(EURO_GRID).size === EURO_GRID.length && EURO_GRID[0].startsWith('Italy|grid:'));
+  { const st = { townQCursor: 3 }; const r = buildTownQueries(st, 5);
+    t('kasaba sorguları: imleçten, kasaba başına 2, ülke dilinde', r.queries.length === 5 && r.queries[0].town === TOWN_SRC[3] && r.queries[0].lang === 'it' && r.queries[0].q.includes(TOWN_SRC[3].split('|')[1]) && r.cursor === 6);
+    t('kasaba sorguları: her dil şablonunda {c} var', Object.values(TOWN_TPL).every(a => a.length === 2 && a.every(t => t.includes('{c}')))); }
   t('kare: bbox ayrıştırma', JSON.stringify(parseGridCell('grid:45.0,9.0,45.5,9.5')) === '[45,9,45.5,9.5]' && parseGridCell('Milano') === null);
   { const st = { gridCursor: 10, gridEmpty: { [EURO_GRID[10]]: new Date().toISOString().slice(0, 10), [EURO_GRID[11]]: '2020-01-01' } };
     const g = pickGridCells(st, 3);

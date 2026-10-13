@@ -181,6 +181,7 @@ jobs:
           BRAVE_ALLOWED: 'false'
           QUERIES_PER_RUN: ${{ github.event.inputs.queries_per_run || (github.event_name == 'push' && '14') || '40' }}
           MAX_SITES: ${{ github.event_name == 'push' && '60' || '1500' }}
+          TOWN_QUERIES: ${{ github.event_name == 'push' && '4' || '120' }}   # 13 Eki: kasaba adıyla Bing (sunucudan), ücretsiz
           CITIES: ${{ github.event.inputs.cities }}
           PLACES_PER_RUN: ${{ github.event_name == 'push' && '2' || '6' }}
           # Şehir verilmemişse OSM, OSM_TARGET yeni adaya ya da bütçenin %35'ine kadar havuzdan şehir alır.
