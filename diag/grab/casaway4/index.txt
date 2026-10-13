@@ -1,0 +1,20 @@
+01 403 text/html 465 https://www.farfetch.com/shopping/men/casablanca-casa-way-t-shirt-item-31686583.aspx
+01.src https://www.farfetch.com/shopping/men/casablanca-casa-way-t-shirt-item-31686583.aspx
+02 403 text/html 486 https://www.farfetch.com/shopping/men/casablanca-equipement-sportif-cotton-t-shirt-item-22612829.aspx
+02.src https://www.farfetch.com/shopping/men/casablanca-equipement-sportif-cotton-t-shirt-item-22612829.aspx
+03 403 text/html; charset=UTF-8 3302 https://www.lyst.com/clothing/casablanca-casa-way-t-shirt-90/
+03.src https://www.lyst.com/clothing/casablanca-casa-way-t-shirt-90/
+04 403 text/html; charset=UTF-8 3303 https://www.lyst.com/clothing/casablanca-casa-way-t-shirt-87/
+04.src https://www.lyst.com/clothing/casablanca-casa-way-t-shirt-87/
+05 403 text/html; charset=UTF-8 3293 https://modesens.com/product/casablanca-white-casa-way-graphicprinted-cotton-tshirt-141121522/
+05.src https://modesens.com/product/casablanca-white-casa-way-graphicprinted-cotton-tshirt-141121522/
+06 403 text/html; charset=UTF-8 3286 https://clothbase.com/items/6452ab70_casablanca-men-s-casa-way-t-shirt-in-white_casablanca
+06.src https://clothbase.com/items/6452ab70_casablanca-men-s-casa-way-t-shirt-in-white_casablanca
+07 200 text/html; charset=utf-8 89756 https://www.a-ma-maniere.com/products/casablanca-equipement-sportif-t
+07.src https://www.a-ma-maniere.com/products/casablanca-equipement-sportif-t
+08 200 application/json; charset=utf-8 7176 https://www.precasuals.com/collections/casablanca-t-shirt/products.json
+08.src https://www.precasuals.com/collections/casablanca-t-shirt/products.json
+09 200 text/html; charset=UTF-8 5427 https://html.duckduckgo.com/html/?q=casablanca+MS23-JTS-001+casa+way
+09.src https://html.duckduckgo.com/html/?q=casablanca+MS23-JTS-001+casa+way
+10 200 text/html; charset=UTF-8 4005 https://html.duckduckgo.com/html/?q=casablanca+%22casa+way%22+t-shirt+off-white+dome+tennis+doves
+10.src https://html.duckduckgo.com/html/?q=casablanca+%22casa+way%22+t-shirt+off-white+dome+tennis+doves
