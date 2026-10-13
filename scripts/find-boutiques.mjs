@@ -63,6 +63,8 @@ const CFG = {
   euroShare:     Math.max(0, Math.min(1, Number(process.env.EURO_SHARE ?? 0.8) || 0)),   // 13 Eki: otomatik turda Avrupa kasabalarının payı                            // otomatik turda en çok şehir (OSM)
   osmTarget:     num('OSM_TARGET', 900),                           // otomatik turda hedef yeni OSM adayı
   osmPerCity:    num('OSM_PER_CITY', 150),                          // şehir başına en çok yeni OSM adayı
+  gridCells:     num('GRID_CELLS', 200),                            // 13 Eki: otomatik turda taranacak Avrupa karesi (0 = kapalı)
+  gridPerCell:   num('GRID_PER_CELL', 400),                         // kare başına en çok yeni aday
   braveKey:      (ENV.BRAVE_API_KEY ?? '').trim(),
   braveAllowed:  String(ENV.BRAVE_ALLOWED ?? 'true').toLowerCase() !== 'false',   // 13 Eki: Brave yalnız operatörün aramalarında (satıcı araması OSM ile)
   extraQueries:  (ENV.EXTRA_QUERIES ?? '').split(/\r?\n|;/).map(s => s.trim()).filter(Boolean),
@@ -819,6 +821,13 @@ function nominatimSlot() { const p = nominatimChain.then(() => sleep(1100)); nom
 
 async function osmCity(country, city) {
   let areaId = 0, bbox = null;
+  const cell = parseGridCell(city);
+  if (cell) {
+    /* Kare: Nominatim yok; yalnız sitesi ya da e-postası etiketli dükkânlar (sitesizler zaten elenirdi, trafik boşuna). */
+    const sel = '["shop"~"^(clothes|boutique|fashion)$"]', bb = cell.join(',');
+    const q = `[out:json][timeout:60];(nwr${sel}["website"](${bb});nwr${sel}["contact:website"](${bb});nwr${sel}["email"](${bb});nwr${sel}["contact:email"](${bb}););out tags;`;
+    return osmQuery([q]);
+  }
   await nominatimSlot();
   try {
     const u = 'https://nominatim.openstreetmap.org/search?' + new URLSearchParams({ city, country, format: 'jsonv2', limit: '5' });
@@ -832,6 +841,9 @@ async function osmCity(country, city) {
   const queries = [];
   if (areaId) queries.push(`[out:json][timeout:80];area(${areaId})->.a;nwr${sel}(area.a);out tags;`);   // 11 Eki: 150 → 80 sn — 504 veren büyük şehirler turu 10+ dk bekletiyordu
   if (bbox) queries.push(`[out:json][timeout:80];nwr${sel}(${bbox[0]},${bbox[2]},${bbox[1]},${bbox[3]});out tags;`);   // Nominatim bbox: [güney, kuzey, batı, doğu]
+  return osmQuery(queries);
+}
+async function osmQuery(queries) {
   let lastErr = 'Overpass yanıt vermedi';
   for (const q of queries) {
     for (const m of overpassOrder()) {
@@ -1083,6 +1095,55 @@ export function pickAutoCities(state, n, euroShare) {
   for (let k = 0; k < nP; k++) out.push(CITY_POOL[(cp + k) % CITY_POOL.length]);
   return out;
 }
+
+/* ============================== AVRUPA KARE TARAMASI (ücretsiz, 13 Eki 2026) ==============================
+   Operatör: "Brave çok pahalı, iptal; 500 yeni butiği ücretsiz bul". Şehir listeleri (CITY_POOL, EURO_TOWNS) adla
+   sınırlı: Nominatim'in bulduğu sınır içine bakar, listede olmayan kasaba hiç taranmaz. Burada Avrupa ülke ülke
+   0,5°'lik karelere bölünür ve her karede SİTESİ ya da E-POSTASI etiketli giyim dükkânları Overpass'tan doğrudan
+   bbox ile çekilir (Nominatim yok, sınır yok, hızlı). Boş kare (deniz/dağ) 90 gün hatırlanır. İmleç state.gridCursor. */
+const EURO_BBOX = [   // [ülke adı, batı, güney, doğu, kuzey] — öncelik sırası: operatörün pazarları önce
+  ['Italy', 6.6, 36.6, 18.6, 47.1], ['France', -5.2, 42.3, 8.3, 51.1], ['Spain', -9.4, 36.0, 3.4, 43.8], ['Portugal', -9.6, 36.9, -6.2, 42.2],
+  ['Netherlands', 3.3, 50.7, 7.3, 53.6], ['Belgium', 2.5, 49.5, 6.4, 51.5], ['Luxembourg', 5.7, 49.4, 6.6, 50.2],
+  ['Switzerland', 5.9, 45.8, 10.5, 47.9], ['Austria', 9.5, 46.3, 17.2, 49.1], ['Germany', 5.9, 47.3, 15.1, 55.1],
+  ['United Kingdom', -8.2, 49.9, 1.8, 58.7], ['Ireland', -10.5, 51.4, -5.9, 55.4],
+  ['Denmark', 8.0, 54.5, 12.8, 57.8], ['Sweden', 11.0, 55.3, 19.0, 63.5], ['Norway', 4.6, 57.9, 13.0, 65.0], ['Finland', 20.5, 59.7, 28.0, 64.5],
+  ['Poland', 14.1, 49.0, 24.2, 54.9], ['Czechia', 12.1, 48.5, 18.9, 51.1], ['Slovakia', 16.8, 47.7, 22.6, 49.6], ['Hungary', 16.1, 45.7, 22.9, 48.6],
+  ['Romania', 20.2, 43.6, 29.7, 48.3], ['Bulgaria', 22.3, 41.2, 28.6, 44.2], ['Greece', 19.4, 34.8, 28.3, 41.8],
+  ['Croatia', 13.5, 42.4, 19.4, 46.6], ['Slovenia', 13.4, 45.4, 16.6, 46.9], ['Bosnia and Herzegovina', 15.7, 42.6, 19.6, 45.3],
+  ['Serbia', 18.8, 42.2, 23.0, 46.2], ['Montenegro', 18.4, 41.8, 20.4, 43.6], ['Albania', 19.3, 39.6, 21.1, 42.7], ['North Macedonia', 20.4, 40.8, 23.0, 42.4],
+  ['Lithuania', 20.9, 53.9, 26.8, 56.5], ['Latvia', 20.9, 55.7, 28.2, 58.1], ['Estonia', 21.8, 57.5, 28.2, 59.7],
+  ['Malta', 14.2, 35.8, 14.6, 36.1], ['Cyprus', 32.2, 34.5, 34.6, 35.7], ['Iceland', -24.5, 63.3, -13.5, 66.6],
+];
+export function buildGrid(boxes, step) {
+  const out = [], seen = new Set();
+  for (const [country, w, s, e, n] of boxes) {
+    for (let lat = Math.floor(s / step) * step; lat < n; lat += step) {
+      for (let lon = Math.floor(w / step) * step; lon < e; lon += step) {
+        const key = `${lat.toFixed(1)},${lon.toFixed(1)}`; if (seen.has(key)) continue; seen.add(key);
+        out.push(`${country}|grid:${lat.toFixed(1)},${lon.toFixed(1)},${(lat + step).toFixed(1)},${(lon + step).toFixed(1)}`);
+      }
+    }
+  }
+  return out;
+}
+export const EURO_GRID = buildGrid(EURO_BBOX, 0.5);
+/** "grid:S,W,N,E" → [S,W,N,E] ya da null. */
+export function parseGridCell(city) {
+  const m = /^grid:(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/.exec(String(city || ''));
+  return m ? m.slice(1, 5).map(Number) : null;
+}
+/** Sıradaki n kare (boş diye işaretlenenler 90 gün atlanır); imleç state.gridCursor. */
+export function pickGridCells(state, n) {
+  const empty = (state.gridEmpty && typeof state.gridEmpty === 'object') ? state.gridEmpty : {};
+  const cutoff = Date.now() - 90 * 86400000, out = []; let cur = Number(state.gridCursor || 0) % EURO_GRID.length, steps = 0;
+  while (out.length < n && steps < EURO_GRID.length) {
+    const c = EURO_GRID[cur]; cur = (cur + 1) % EURO_GRID.length; steps++;
+    const e = empty[c]; if (e && Date.parse(e) > cutoff) continue;
+    out.push(c);
+  }
+  return out;
+}
+
 const COUNTRY_LANG = { Italy: 'it', France: 'fr', Spain: 'es', Netherlands: 'nl', Belgium: 'nl', Switzerland: 'de', Austria: 'de', Germany: 'de',
   Portugal: 'pt', Greece: 'el', Poland: 'pl', 'United Kingdom': 'en', Ireland: 'en', Denmark: 'da', Sweden: 'sv', Norway: 'nb', Czechia: 'cs', Finland: 'fi' };
 
@@ -1129,8 +1190,9 @@ async function main() {
     /* 13 Eki 2026: önceki turda Overpass'tan yanıt alamayan şehirler (state.osmRetry) bu turda ÖNCE denenir — yoksa
        imleç üzerlerinden geçer ve havuz bir tur dönene kadar (günler) bir daha bakılmazdı. */
     const retry = Array.isArray(state.osmRetry) ? state.osmRetry.filter(c => typeof c === 'string' && (EURO_TOWNS.includes(c) || CITY_POOL.includes(c))).slice(0, 25) : [];
-    const picked = pickAutoCities(state, Math.max(CFG.placesPerRun, CFG.maxCities), CFG.euroShare);
-    cityT = [...retry, ...picked.filter(c => !retry.includes(c))];
+    const grid = CFG.gridCells > 0 ? pickGridCells(state, CFG.gridCells) : [];
+    const picked = grid.length ? [] : pickAutoCities(state, Math.max(CFG.placesPerRun, CFG.maxCities), CFG.euroShare);
+    cityT = [...retry, ...grid, ...picked.filter(c => !retry.includes(c))];
   }
   if (CFG.countries.length) cityT = cityT.filter(pc => CFG.countries.includes(COUNTRY_ISO[pc.split('|')[0].trim()] || ''));
   const osmStat = { cities: 0, shops: 0, picked: 0, errors: [] };
@@ -1141,10 +1203,13 @@ async function main() {
     const keys = knownRaw.keys || {};
     const placeT = keys.google ? (autoCities ? cityT.slice(0, CFG.placesPerRun) : cityT) : [];
     const webQ = (keys.brave && CFG.braveAllowed) ? queries.map(({ q, lang }) => ({ q, lang, cc: (LOCALE[lang] || {}).cc || '' })) : [];
-    if (keys.brave && !CFG.braveAllowed) notes.push('Brave anahtarı yalnız operatörün aramalarında kullanılır — bu arama OpenStreetMap ile yapıldı.');
-    if (webQ.length || placeT.length) {
-      log(`sunucu vekili: ${webQ.length} web sorgusu (Brave) + ${placeT.length} sehir (Google Places)...`);
-      const resp = callServerSearch(CFG.searchCmd, { web: webQ, places: placeT.map(pc => ({ country: pc.split('|')[0].trim(), city: (pc.split('|')[1] || '').trim() })), places_phrases: 4, budget: 420 }, 600);
+    /* 13 Eki 2026 (Brave iptal): aynı sorgular ÜCRETSİZ motorlarla (DuckDuckGo HTML, Bing) sunucunun IP'sinden —
+       GitHub koşucularının IP'leri bu motorlarda engelli (captcha), sunucununki değil. */
+    const webFree = webQ.length ? [] : queries.map(({ q, lang }) => ({ q, lang }));
+    if (keys.brave && !CFG.braveAllowed) notes.push('Brave kapalı (operatör kararı, 13 Eki) — web araması ücretsiz motorlarla sunucudan yapıldı.');
+    if (webQ.length || webFree.length || placeT.length) {
+      log(`sunucu vekili: ${webQ.length} Brave + ${webFree.length} ucretsiz (ddg/bing) web sorgusu + ${placeT.length} sehir (Google Places)...`);
+      const resp = callServerSearch(CFG.searchCmd, { web: webQ, web_free: webFree, places: placeT.map(pc => ({ country: pc.split('|')[0].trim(), city: (pc.split('|')[1] || '').trim() })), places_phrases: 4, budget: 420 }, 600);
       srvStat.used = true;
       if (resp.error) { notes.push('Sunucu arama vekili hata verdi: ' + resp.error); log('  !! vekil hata: ' + resp.error); }
       else {
@@ -1157,10 +1222,13 @@ async function main() {
           log(`  [places] ${pc} -> ${rows.length} dukkan (siteli), +${cands.size - b} yeni aday`); }
         webLeft = queries.filter(x => !done.has(x.q));
         if (srvStat.brave?.note) notes.push('Brave: ' + srvStat.brave.note);
+        srvStat.free = resp.stats?.free || null;
+        if (srvStat.free) log(`  [sunucu ddg/bing] ddg ${srvStat.free.ddg_ok || 0} ok / ${srvStat.free.ddg_err || 0} hata · bing ${srvStat.free.bing_ok || 0} ok / ${srvStat.free.bing_err || 0} hata${srvStat.free.note ? ' · ' + srvStat.free.note : ''}`);
+        if (srvStat.free?.note) notes.push('Sunucudan ücretsiz arama: ' + srvStat.free.note);
         if (srvStat.places?.note) notes.push('Google Places: ' + srvStat.places.note);
       }
     }
-    if (!keys.brave && CFG.braveAllowed) notes.push('Brave Search anahtarı yok — web araması yerine OpenStreetMap dükkân listesi kullanıldı. Brave anahtarı eklenirse sonuç artar (isteğe bağlı).');
+    if (!keys.brave && CFG.braveAllowed && false) notes.push('Brave Search anahtarı yok — web araması yerine OpenStreetMap dükkân listesi kullanıldı. Brave anahtarı eklenirse sonuç artar (isteğe bağlı).');
   }
 
   /* ---- 1b) web arama motorları (ucuz: ~40 sorgu × 3 sn) — OSM'den ÖNCE, kendi tavanıyla ---- */
@@ -1188,7 +1256,7 @@ async function main() {
 
   /* ---- 1c) OpenStreetMap (anahtarsız): şehirdeki giyim dükkânları ---- */
   if (CFG.engines.includes('osm')) {
-    let lastPoolIdx = -1, lastEuroIdx = -1, ci = 0; const osmFailed = [];
+    let lastPoolIdx = -1, lastEuroIdx = -1, lastGridIdx = -1, ci = 0; const osmFailed = [];
     /* 13 Eki 2026: şehirler OSM_CONCURRENCY (varsayılan 3) işçiyle paralel — ölçüm: tek sırada turda 10-20 şehir,
        zaman aşımına düşen bir ayna her şehri 2-3 dk bekletiyordu. Aday ekleme (consider) eşzamanlı ama tek iş
        parçacığında; aynı alan adını iki işçi eklemez (cands kontrolü await'siz). */
@@ -1199,13 +1267,16 @@ async function main() {
         const pc = cityT[ci++];
         if (autoCities) { const ei2 = EURO_TOWNS.indexOf(pc); if (ei2 >= 0) lastEuroIdx = Math.max(lastEuroIdx, ei2); else lastPoolIdx = Math.max(lastPoolIdx, CITY_POOL.indexOf(pc)); }
         const [country, city] = pc.split('|').map(x => x.trim());
+        const isGrid = !!parseGridCell(city);
+        if (isGrid) lastGridIdx = Math.max(lastGridIdx, EURO_GRID.indexOf(pc));
         const res = await osmCity(country, city || country);
         osmStat.cities++;
         if (res.error) { osmStat.errors.push(`${city}: ${res.error}`); osmFailed.push(pc); log(`  [osm] ${pc} -> HATA: ${res.error}`); continue; }
         osmStat.shops += res.rows.length;
+        if (isGrid && !res.rows.length && !CFG.dryRun) { if (!state.gridEmpty || typeof state.gridEmpty !== 'object') state.gridEmpty = {}; state.gridEmpty[pc] = new Date().toISOString().slice(0, 10); }
         let picked = 0; const ex = {};
         for (const tags of res.rows) {
-          if (picked >= CFG.osmPerCity) break;
+          if (picked >= (isGrid ? CFG.gridPerCell : CFG.osmPerCity)) break;
           const p = osmPick(tags);
           if (p.excl) { ex[p.excl] = (ex[p.excl] || 0) + 1; continue; }
           let reg; try { reg = registrableDomain(new URL(p.web).hostname); } catch { continue; }
@@ -1224,6 +1295,8 @@ async function main() {
     if (autoCities && !CFG.dryRun && lastPoolIdx >= 0) state.placesCursor = (lastPoolIdx + 1) % CITY_POOL.length;
     if (autoCities && !CFG.dryRun && lastEuroIdx >= 0) state.euroCursor = (lastEuroIdx + 1) % EURO_TOWNS.length;
     if (autoCities && !CFG.dryRun) state.osmRetry = [...new Set(osmFailed)].slice(0, 25);   // yalnız bu turda düşenler; sonraki tur önce bunları dener
+    if (autoCities && !CFG.dryRun && lastGridIdx >= 0) state.gridCursor = (lastGridIdx + 1) % EURO_GRID.length;
+    if (state.gridEmpty && Object.keys(state.gridEmpty).length > 6000) state.gridEmpty = Object.fromEntries(Object.entries(state.gridEmpty).slice(-5000));
   }
   for (const d of CFG.seedDomains) { let h = d.replace(/^https?:\/\//i, '').split('/')[0]; if (h) consider('https://' + h + '/', '(seed)'); }
 
@@ -1401,6 +1474,11 @@ function selftest() {
     t('otomatik tur: önce 8 Avrupa kasabası imleçten, sonra 2 büyük şehir', a.length === 10 && a[0] === EURO_TOWNS[5] && a[7] === EURO_TOWNS[12] && a[8] === CITY_POOL[7] && a[9] === CITY_POOL[8]);
     t('otomatik tur: EURO_SHARE=0 eski davranış', pickAutoCities(st, 4, 0).every((c, i) => c === CITY_POOL[7 + i])); }
   t('Brave izni: BRAVE_ALLOWED=false dışında açık', CFG.braveAllowed === true);
+  t('kare havuzu: 3000+ kare, tekrar yok, İtalya önce', EURO_GRID.length >= 3000 && new Set(EURO_GRID).size === EURO_GRID.length && EURO_GRID[0].startsWith('Italy|grid:'));
+  t('kare: bbox ayrıştırma', JSON.stringify(parseGridCell('grid:45.0,9.0,45.5,9.5')) === '[45,9,45.5,9.5]' && parseGridCell('Milano') === null);
+  { const st = { gridCursor: 10, gridEmpty: { [EURO_GRID[10]]: new Date().toISOString().slice(0, 10), [EURO_GRID[11]]: '2020-01-01' } };
+    const g = pickGridCells(st, 3);
+    t('kare seçimi: yeni boş kare atlanır, eski boş kare yeniden denenir', g.length === 3 && g[0] === EURO_GRID[11] && g[1] === EURO_GRID[12]); }
   { const st = { euroCursor: 0, placesCursor: 0, osmRetry: [EURO_TOWNS[100], 'Nowhere|Nope', CITY_POOL[3]] };
     const retry = st.osmRetry.filter(c => EURO_TOWNS.includes(c) || CITY_POOL.includes(c));
     t('yeniden deneme: yalnız havuzdaki şehirler kalır', retry.length === 2 && retry[0] === EURO_TOWNS[100]); }
