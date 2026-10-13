@@ -2789,10 +2789,16 @@ function vestra_home_edit_picks(array $products, ?array $front = null, ?array $l
         $b = $up($p['brand'] ?? '');
         if ($b === '') continue;
         $ts = !empty($p['added_at']) ? (strtotime((string)$p['added_at']) ?: 0) : 0;
-        $byBrand[$b][] = [!empty($p['pinned']) ? 0 : 1, -$ts, $i, $p];
+        /* Ev icinde ic giyim (slip, boxer, sutyen, corap) EN SONA (13 Eki 2026, "daha
+           ciddi site"): Balenciaga geri acilinca evin en yeni ilani bir slipti ve The
+           edit'in ikinci buyuk karosuna o oturdu. Ilan elenmiyor -- evin baska parcasi
+           yoksa yine o gelir; yalniz sira. Olcut kategori ADI (bolme 'premium' kalir). */
+        $intim = preg_match('/\b(underwear|briefs?|boxers?|trunks?|bras?|lingerie|socks?|shapewear)\b/i',
+                            (string)($p['category'] ?? '').' '.(string)($p['name'] ?? '')) ? 1 : 0;
+        $byBrand[$b][] = [$intim, !empty($p['pinned']) ? 0 : 1, -$ts, $i, $p];
         $count[$b] = ($count[$b] ?? 0) + 1;
     }
-    foreach ($byBrand as &$rows) usort($rows, fn($a, $c) => [$a[0], $a[1], $a[2]] <=> [$c[0], $c[1], $c[2]]);
+    foreach ($byBrand as &$rows) usort($rows, fn($a, $c) => [$a[0], $a[1], $a[2], $a[3]] <=> [$c[0], $c[1], $c[2], $c[3]]);
     unset($rows);
 
     /* Marka sirasi: once operatorun listeleri (liste sirasinda, yalnizca
@@ -2811,7 +2817,7 @@ function vestra_home_edit_picks(array $products, ?array $front = null, ?array $l
         $added = false;
         foreach ($order as $b) {
             if (!isset($byBrand[$b][$round])) continue;
-            $p = $byBrand[$b][$round][3];
+            $p = $byBrand[$b][$round][4];
             $id = trim((string)$p['id']);
             if (isset($seen[$id])) continue;
             $seen[$id] = true; $out[] = $p; $added = true;

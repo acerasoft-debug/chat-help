@@ -82,6 +82,14 @@ $r3 = vestra_home_edit_picks([$mk('x-1', 'Gucci', $d(1), ['sold_out' => ''])], $
 $t('bos dizge satilmis SAYILMIYOR', $ids($r3) === ['x-1']);
 
 echo "\n== 4. Pinned ev icinde en basa ==\n";
+/* 13 Eki 2026: ev icinde ic giyim en sona -- Balenciaga'nin en yeni ilani slipti ve
+   The edit'in buyuk karosuna oturuyordu. Iki yon: baska parca varsa o gelir; yalniz
+   slip varsa slip yine gelir (elenmez). */
+$r5 = vestra_home_edit_picks([$mk('bl-brief', 'Balenciaga', $d(1), ['category' => 'Underwear', 'name' => 'Balenciaga Briefs']),
+                              $mk('bl-tee', 'Balenciaga', $d(40), ['category' => 'T-Shirts', 'name' => 'Logo T-Shirt'])], $FRONT, $LEAD, 1, $NOW);
+$t('ic giyim ev icinde sona: tisort once', $ids($r5) === ['bl-tee']);
+$r6 = vestra_home_edit_picks([$mk('bl-brief', 'Balenciaga', $d(1), ['category' => 'Underwear'])], $FRONT, $LEAD, 12, $NOW);
+$t('yalniz ic giyim varsa yine gelir', $ids($r6) === ['bl-brief']);
 $r4 = vestra_home_edit_picks([$mk('a', 'Gucci', $d(1)), $mk('b', 'Gucci', $d(50), ['pinned' => true])], $FRONT, $LEAD, 12, $NOW);
 $t('pinned once, yeni olmasa da', $ids($r4) === ['b', 'a']);
 
