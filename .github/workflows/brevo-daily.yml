@@ -94,7 +94,14 @@ jobs:
               case "$st" in completed/*) break;; esac
             done
             echo "parti $n: $st"
-            sent=$(gh run view "$rid" --repo "$REPO" --log 2>/dev/null | grep -o 'BITTI\. gonderildi: [0-9]*' | tail -1 | grep -o '[0-9]*$' || true)
+            # kütük: `gh run view --log` çoğu zaman boş döner; iş kütüğü REST'ten (yönlendirmeyi gh api izler)
+            jid=$(gh run view "$rid" --repo "$REPO" --json jobs --jq '.jobs[0].databaseId' 2>/dev/null || true)
+            logtxt=$( { [ -n "$jid" ] && gh api "repos/$REPO/actions/jobs/$jid/logs" 2>/dev/null; } || gh run view "$rid" --repo "$REPO" --log 2>/dev/null || true)
+            sent=$(printf '%s' "$logtxt" | grep -a -o 'BITTI\. gonderildi: [0-9]*' | tail -1 | grep -o '[0-9]*$' || true)
+            if [ "$DRY" = "true" ]; then
+              echo "parti $n: KURU KOŞU — $(printf '%s' "$logtxt" | grep -a -c 'out:   •' || true) aday listelendi, tarama tek partide durur"
+              echo "GECE TARAMASI (kuru) BİTTİ"; echo "### Brevo gece taraması (kuru koşu): tek parti listelendi" >> "$GITHUB_STEP_SUMMARY"; exit 0
+            fi
             if [ -z "$sent" ]; then echo "parti $n: kütük okunamadı (sayı bilinmiyor)"; sent=0; known=0; else known=1; echo "parti $n: gönderildi $sent"; fi
             total=$((total + sent))
             case "$st" in completed/success) ;; *) echo "parti $n başarısız/kota bitti — tarama durdu"; break;; esac
