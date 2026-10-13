@@ -1124,7 +1124,13 @@ async function main() {
   /* Bu turun şehirleri: CITIES verilmişse onlar, yoksa havuzdan sırayla (OSM + Places). */
   let cityT = []; const autoCities = !CFG.cities.length;
   if (!autoCities) cityT = CFG.cities;
-  else cityT = pickAutoCities(state, Math.max(CFG.placesPerRun, CFG.maxCities), CFG.euroShare);
+  else {
+    /* 13 Eki 2026: önceki turda Overpass'tan yanıt alamayan şehirler (state.osmRetry) bu turda ÖNCE denenir — yoksa
+       imleç üzerlerinden geçer ve havuz bir tur dönene kadar (günler) bir daha bakılmazdı. */
+    const retry = Array.isArray(state.osmRetry) ? state.osmRetry.filter(c => typeof c === 'string' && (EURO_TOWNS.includes(c) || CITY_POOL.includes(c))).slice(0, 25) : [];
+    const picked = pickAutoCities(state, Math.max(CFG.placesPerRun, CFG.maxCities), CFG.euroShare);
+    cityT = [...retry, ...picked.filter(c => !retry.includes(c))];
+  }
   if (CFG.countries.length) cityT = cityT.filter(pc => CFG.countries.includes(COUNTRY_ISO[pc.split('|')[0].trim()] || ''));
   const osmStat = { cities: 0, shops: 0, picked: 0, errors: [] };
 
@@ -1180,7 +1186,7 @@ async function main() {
 
   /* ---- 1c) OpenStreetMap (anahtarsız): şehirdeki giyim dükkânları ---- */
   if (CFG.engines.includes('osm')) {
-    let lastPoolIdx = -1, lastEuroIdx = -1, ci = 0;
+    let lastPoolIdx = -1, lastEuroIdx = -1, ci = 0; const osmFailed = [];
     /* 13 Eki 2026: şehirler OSM_CONCURRENCY (varsayılan 3) işçiyle paralel — ölçüm: tek sırada turda 10-20 şehir,
        zaman aşımına düşen bir ayna her şehri 2-3 dk bekletiyordu. Aday ekleme (consider) eşzamanlı ama tek iş
        parçacığında; aynı alan adını iki işçi eklemez (cands kontrolü await'siz). */
@@ -1193,7 +1199,7 @@ async function main() {
         const [country, city] = pc.split('|').map(x => x.trim());
         const res = await osmCity(country, city || country);
         osmStat.cities++;
-        if (res.error) { osmStat.errors.push(`${city}: ${res.error}`); log(`  [osm] ${pc} -> HATA: ${res.error}`); continue; }
+        if (res.error) { osmStat.errors.push(`${city}: ${res.error}`); osmFailed.push(pc); log(`  [osm] ${pc} -> HATA: ${res.error}`); continue; }
         osmStat.shops += res.rows.length;
         let picked = 0; const ex = {};
         for (const tags of res.rows) {
@@ -1215,6 +1221,7 @@ async function main() {
     /* Havuz imleci: bir sonraki tur, bu turda bakılan son şehirden sonra başlar. */
     if (autoCities && !CFG.dryRun && lastPoolIdx >= 0) state.placesCursor = (lastPoolIdx + 1) % CITY_POOL.length;
     if (autoCities && !CFG.dryRun && lastEuroIdx >= 0) state.euroCursor = (lastEuroIdx + 1) % EURO_TOWNS.length;
+    if (autoCities && !CFG.dryRun) state.osmRetry = [...new Set(osmFailed)].slice(0, 25);   // yalnız bu turda düşenler; sonraki tur önce bunları dener
   }
   for (const d of CFG.seedDomains) { let h = d.replace(/^https?:\/\//i, '').split('/')[0]; if (h) consider('https://' + h + '/', '(seed)'); }
 
@@ -1391,6 +1398,9 @@ function selftest() {
   { const st = { euroCursor: 5, placesCursor: 7 }; const a = pickAutoCities(st, 10, 0.8);
     t('otomatik tur: önce 8 Avrupa kasabası imleçten, sonra 2 büyük şehir', a.length === 10 && a[0] === EURO_TOWNS[5] && a[7] === EURO_TOWNS[12] && a[8] === CITY_POOL[7] && a[9] === CITY_POOL[8]);
     t('otomatik tur: EURO_SHARE=0 eski davranış', pickAutoCities(st, 4, 0).every((c, i) => c === CITY_POOL[7 + i])); }
+  { const st = { euroCursor: 0, placesCursor: 0, osmRetry: [EURO_TOWNS[100], 'Nowhere|Nope', CITY_POOL[3]] };
+    const retry = st.osmRetry.filter(c => EURO_TOWNS.includes(c) || CITY_POOL.includes(c));
+    t('yeniden deneme: yalnız havuzdaki şehirler kalır', retry.length === 2 && retry[0] === EURO_TOWNS[100]); }
   { const [a, b, c, d] = OVERPASS; t('ayna sırası: başta varsayılan', overpassOrder()[0] === a);
     overpassMark(a, false, 45000); overpassMark(a, false, 45000); overpassMark(b, false, 45000); overpassMark(d, true, 3000);
     const o = overpassOrder(); t('ayna sırası: çalışan öne, 2 kez düşen sona', o[0] === d && o[o.length - 1] === a);

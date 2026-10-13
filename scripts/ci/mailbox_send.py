@@ -159,6 +159,8 @@ def dsn_failed_recipients(msg, own: str) -> list:
     return sorted({a.lower() for a in out if a.lower() != own and not a.lower().startswith(('mailer-daemon@', 'postmaster@'))})
 
 
+# Konu satiri (ham basliklarda): "unsubscribe", "Unsubscribe: ...", "abmelden", "desinscription", "desabonner", "cancellazione", "baja"
+UNSUB_SUBJECT = re.compile(r'(?im)^Subject:\s*(?:re:\s*|aw:\s*)?"?(?:unsubscribe|abmelden|d[ée]sinscri\w*|d[ée]sabonn\w*|cancellazione|disiscri\w*|baja|unsub)\b(?!scribed)')
 DSN_HINT = re.compile(r'(?i)delivery status notification|failed permanently|undeliver|returned to sender|could not be delivered|'
                       r'delivery (has )?failed|failure notice|mail delivery (system|subsystem)|mailer-daemon|multipart/report|'
                       r'nicht zustellbar|non remis|non recapitato|no se pudo entregar')
@@ -194,7 +196,7 @@ def scan_bounces(user: str, pw: str, host: str, days: int, move_to: str) -> list
                 folder = cand
                 break
     since = time.strftime('%d-%b-%Y', time.gmtime(time.time() - days * 86400))
-    found, scanned, hinted, moved, marked = [], 0, 0, 0, 0
+    found, scanned, hinted, moved, marked, unsubs = [], 0, 0, 0, 0, 0
     for box in _folders(m):
         if box == folder or m.select(box)[0] != 'OK':
             continue
@@ -205,7 +207,18 @@ def scan_bounces(user: str, pw: str, host: str, days: int, move_to: str) -> list
             scanned += 1
             typ, fd = m.uid('FETCH', uid, '(BODY.PEEK[])')
             raw = fd[0][1] if fd and isinstance(fd[0], tuple) else b''
-            if not DSN_HINT.search(raw[:20000].decode('utf-8', 'replace')):
+            head = raw[:20000].decode('utf-8', 'replace')
+            # 13 Eki 2026: alicinin posta programinin (Apple Mail, Gmail) List-Unsubscribe mailto'suna yolladigi
+            # "unsubscribe" konulu mektup = abonelikten cikma istegi. Eskiden tarayici bunu okumuyordu; lead
+            # "iletisime gecildi" kaliyor, satici panelden ya da ikinci bir adresle yeniden yazabiliyordu.
+            if UNSUB_SUBJECT.search(head):
+                frm = (email.utils.parseaddr(str(email.message_from_bytes(raw).get('From', '')))[1] or '').strip().lower()
+                if frm and '@' in frm and frm != user.lower() and not frm.endswith('@vestrasales.com'):
+                    found.append({'email': frm, 'status': 'unsub', 'reason': 'abonelikten cikma e-postasi'})
+                    unsubs += 1
+                    done.append(uid)
+                    continue
+            if not DSN_HINT.search(head):
                 continue
             hinted += 1
             rcpts = dsn_failed_recipients(email.message_from_bytes(raw), user)
@@ -230,7 +243,7 @@ def scan_bounces(user: str, pw: str, host: str, days: int, move_to: str) -> list
     uniq = {}
     for f in found:
         uniq[f['email']] = f
-    print(f'bildirim tarandi: {scanned} mektup · bildirime benzeyen {hinted} · hatali adres {len(uniq)}'
+    print(f'bildirim tarandi: {scanned} mektup · bildirime benzeyen {hinted} · hatali adres {len(uniq)} · abonelikten cikma {unsubs}'
           + (f' · {moved} bildirim "{folder}" klasorune tasindi' if moved else '') + (f' · {marked} okundu isaretlendi' if marked else ''))
     for a in sorted(uniq):
         print('  x', mask(a))
