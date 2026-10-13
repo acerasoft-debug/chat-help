@@ -466,6 +466,10 @@ function vestra_journal_photo_pool(bool $fresh = false): array {
     $reject = vestra_journal_photo_reject();
     foreach (vestra_journal_credits($fresh) as $file => $c) {
         if (empty($c['artist']) || !is_readable(__DIR__.'/../uploads/journal/'.$file)) continue;
+        /* art-<slug>-… bir MAKALENIN kendi fotografi (13 Eki 2026: Amazon yazisinin depo ve
+           kamyon fotograflari journal-photo-files.yml ile kunyeli indirildi). Kunyeli olduklari
+           icin bu kapidan gecerlerdi ve ilgisiz bir yazinin govdesine Amazon kamyonu dokunurdu. */
+        if (strncmp($file, 'art-', 4) === 0) continue;
         /* The same reject list is applied here, not only at fetch time. Files downloaded
            before a subject was ruled out would otherwise stay publishable forever, and
            the pool is the last gate before a picture reaches a page — so ruling something
