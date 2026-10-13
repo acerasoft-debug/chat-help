@@ -64,6 +64,7 @@ const CFG = {
   osmTarget:     num('OSM_TARGET', 900),                           // otomatik turda hedef yeni OSM adayı
   osmPerCity:    num('OSM_PER_CITY', 150),                          // şehir başına en çok yeni OSM adayı
   braveKey:      (ENV.BRAVE_API_KEY ?? '').trim(),
+  braveAllowed:  String(ENV.BRAVE_ALLOWED ?? 'true').toLowerCase() !== 'false',   // 13 Eki: Brave yalnız operatörün aramalarında (satıcı araması OSM ile)
   extraQueries:  (ENV.EXTRA_QUERIES ?? '').split(/\r?\n|;/).map(s => s.trim()).filter(Boolean),
   seedDomains:   list('SEED_DOMAINS'),
   knownFile:     ENV.KNOWN_FILE || '',
@@ -1139,7 +1140,8 @@ async function main() {
   if (CFG.engines.includes('server') && CFG.searchCmd) {
     const keys = knownRaw.keys || {};
     const placeT = keys.google ? (autoCities ? cityT.slice(0, CFG.placesPerRun) : cityT) : [];
-    const webQ = keys.brave ? queries.map(({ q, lang }) => ({ q, lang, cc: (LOCALE[lang] || {}).cc || '' })) : [];
+    const webQ = (keys.brave && CFG.braveAllowed) ? queries.map(({ q, lang }) => ({ q, lang, cc: (LOCALE[lang] || {}).cc || '' })) : [];
+    if (keys.brave && !CFG.braveAllowed) notes.push('Brave anahtarı yalnız operatörün aramalarında kullanılır — bu arama OpenStreetMap ile yapıldı.');
     if (webQ.length || placeT.length) {
       log(`sunucu vekili: ${webQ.length} web sorgusu (Brave) + ${placeT.length} sehir (Google Places)...`);
       const resp = callServerSearch(CFG.searchCmd, { web: webQ, places: placeT.map(pc => ({ country: pc.split('|')[0].trim(), city: (pc.split('|')[1] || '').trim() })), places_phrases: 4, budget: 420 }, 600);
@@ -1158,7 +1160,7 @@ async function main() {
         if (srvStat.places?.note) notes.push('Google Places: ' + srvStat.places.note);
       }
     }
-    if (!keys.brave) notes.push('Brave Search anahtarı yok — web araması yerine OpenStreetMap dükkân listesi kullanıldı. Brave anahtarı eklenirse sonuç artar (isteğe bağlı).');
+    if (!keys.brave && CFG.braveAllowed) notes.push('Brave Search anahtarı yok — web araması yerine OpenStreetMap dükkân listesi kullanıldı. Brave anahtarı eklenirse sonuç artar (isteğe bağlı).');
   }
 
   /* ---- 1b) web arama motorları (ucuz: ~40 sorgu × 3 sn) — OSM'den ÖNCE, kendi tavanıyla ---- */
@@ -1398,6 +1400,7 @@ function selftest() {
   { const st = { euroCursor: 5, placesCursor: 7 }; const a = pickAutoCities(st, 10, 0.8);
     t('otomatik tur: önce 8 Avrupa kasabası imleçten, sonra 2 büyük şehir', a.length === 10 && a[0] === EURO_TOWNS[5] && a[7] === EURO_TOWNS[12] && a[8] === CITY_POOL[7] && a[9] === CITY_POOL[8]);
     t('otomatik tur: EURO_SHARE=0 eski davranış', pickAutoCities(st, 4, 0).every((c, i) => c === CITY_POOL[7 + i])); }
+  t('Brave izni: BRAVE_ALLOWED=false dışında açık', CFG.braveAllowed === true);
   { const st = { euroCursor: 0, placesCursor: 0, osmRetry: [EURO_TOWNS[100], 'Nowhere|Nope', CITY_POOL[3]] };
     const retry = st.osmRetry.filter(c => EURO_TOWNS.includes(c) || CITY_POOL.includes(c));
     t('yeniden deneme: yalnız havuzdaki şehirler kalır', retry.length === 2 && retry[0] === EURO_TOWNS[100]); }

@@ -176,7 +176,12 @@ jobs:
         id: finder
         if: ${{ env.daily_full != 'true' }}
         env:
-          QUERIES_PER_RUN: ${{ github.event.inputs.queries_per_run || (github.event_name == 'push' && '14') || '40' }}
+          # 13 Eki 2026 (operatör: "anahtarı satıcılar kullanmayacak, sadece ben; günde 500 yeni butik"): Brave yalnız
+          # operatörün (owner_uid boş) aramalarında; satıcı araması OSM ile sürer. Operatör turu 120 marka-çifti sorgusu
+          # (≈ 0,5 sent/sorgu → 8 turda ~960/gün), web adayı tavanı 1500, inceleme 12 paralel.
+          BRAVE_ALLOWED: ${{ github.event.inputs.owner_uid == '' && 'true' || 'false' }}
+          QUERIES_PER_RUN: ${{ github.event.inputs.queries_per_run || (github.event_name == 'push' && '14') || (github.event.inputs.owner_uid != '' && '40') || '120' }}
+          MAX_SITES: ${{ github.event_name == 'push' && '60' || '1500' }}
           CITIES: ${{ github.event.inputs.cities }}
           PLACES_PER_RUN: ${{ github.event_name == 'push' && '2' || '6' }}
           # Şehir verilmemişse OSM, OSM_TARGET yeni adaya ya da bütçenin %35'ine kadar havuzdan şehir alır.
@@ -184,7 +189,7 @@ jobs:
           # 9 dk'da inceledi ve 55 dk'lık bütçenin 21 dk'sını kullandı. Şehir ve aday hedefi 3 katına çıkarıldı; bütçeye sığıyor.
           MAX_CITIES: ${{ github.event_name == 'push' && '2' || '120' }}
           OSM_TARGET: ${{ github.event_name == 'push' && '60' || '2200' }}
-          CONCURRENCY: 8
+          CONCURRENCY: 12
           LANGS: ${{ github.event.inputs.langs }}
           COUNTRIES: ${{ github.event.inputs.countries }}
           EXTRA_QUERIES: ${{ github.event.inputs.extra_queries }}

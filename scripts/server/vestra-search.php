@@ -70,7 +70,7 @@ if ($brave !== '') {
     $d = json_decode($raw, true); $urls = [];
     foreach ((array)($d['web']['results'] ?? []) as $r) { $u = (string)($r['url'] ?? ''); if ($u !== '') $urls[] = $u; }
     $web[$q] = $urls; $out['stats']['brave']['ok']++;
-    usleep(1100000);                                   // ücretsiz/kredili plan: saniyede 1 istek
+    usleep(400000);                                    // 13 Eki: kredili Search planı 50 istek/sn; 2,5/sn yeterince nazik
   }
 }
 
