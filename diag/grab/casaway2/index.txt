@@ -1,0 +1,10 @@
+01 200 text/html; charset=UTF-8 24459 https://hbx.com/men/brands/casablanca/casa-way-t-shirt-white
+01.src https://hbx.com/men/brands/casablanca/casa-way-t-shirt-white
+02 202 text/html; charset=UTF-8 0 https://editorialist.com/p/casablanca-tennis-print-casa-way-t-shirt/
+02.src https://editorialist.com/p/casablanca-tennis-print-casa-way-t-shirt/
+03 202 text/html; charset=UTF-8 0 https://editorialist.com/p/casablanca-casa-way-printed-t-shirt-42421701/
+03.src https://editorialist.com/p/casablanca-casa-way-printed-t-shirt-42421701/
+04 200 text/html; charset=UTF-8 5391 https://html.duckduckgo.com/html/?q=casablanca+casa+way+t-shirt+off+white+farfetch
+04.src https://html.duckduckgo.com/html/?q=casablanca+casa+way+t-shirt+off+white+farfetch
+05 200 text/html; charset=UTF-8 5671 https://html.duckduckgo.com/html/?q=casablanca+casa+way+t-shirt+equipement+sportif
+05.src https://html.duckduckgo.com/html/?q=casablanca+casa+way+t-shirt+equipement+sportif
