@@ -12431,3 +12431,20 @@ dönüştür"*).
   yerinde. 13 yeni sözlük anahtarı 8 dile. Telefonda 7 dilde yatay kaydırma 0 (Almanca etiketler ilk
   çizimde 404px'e taşıyordu → `minmax(0,1fr)`). "New arrivals"taki iç çamaşırı önceliği (25 Eyl kararı)
   DOKUNULMADI.
+
+**13 Eki 2026 — Brevo ile Winter 26/27 kampanyası: 169 alıcı, hata 0** (operatör: *"Bravo ile 220 kişiye
+kampanya gönder önce yeniler sonra diğerleri"*; soruldu, seçim: "önce üyeler, sonra leadler" + "Winter 26/27").
+- Operatörün AÇIK talimatıyla 10 Eki'deki "kampanya yalnız sunucudan" kuralının bu gönderim için istisnası.
+- Kuru koşu ölçümü: hiç yazılmamış yeni butik yok (sunucunun otomatik modu bulunanlara zaten yazmış;
+  `min_brands=2` → 0, `0` → 1 = Monaco Telecom). 220'ye çıkmak için süzgeç gevşetilmedi.
+- Üyeler (`to_members=true`, `member_spec=letter=winter|order=newest|skip=…`): 129 aday, 11 deneme/çöp hesap
+  atlandı (verify, pentest/example.com, =aöoehifgroweirhg, =pqit (g.ngkfn), =idfk, 389h68843j6789, =c, =ke,
+  нету, mama310107, =vestrasales) → **118** gönderildi (50+50+18). `order=newest` bu iş için eklendi
+  (send-outreach.yml, anahtarlar uasort ile korunur).
+- Leadler (`new_collection=true newcoll_letter=winter min_brands=1`): 70 aday elle okundu (KURAL 1i), **19
+  atlandı** — zincir/kendi markası: Fielmann CZ, BSTN, CNCPTS, Altermundi, Capel, Kaotiko, Oktshirt, Team Store
+  (targetcenter), RC Strasbourg butiği; hedef dışı: 8 ayakkabıcı (Loretxiki, Fantasía Kids, Medina Piel, Lola
+  Jiménez, CalzadosPachi, Dos Pies, Mandarina, Visto por los Pies), Black in Black snowboards, Piluka (gece
+  elbisesi). İkinci kuru koşu tam bu 19'un düştüğünü gösterdi → **51** gönderildi (50+1).
+- Brevo kotası son partide: 135 kalan (60 sipariş/fatura payı ayrılmış). Koşucunun IP'si Brevo'da yetkili
+  değil (`lead-stats mail_quota` 401) — kota sunucudan okunuyor, gönderim etkilenmedi.
