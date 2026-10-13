@@ -12483,3 +12483,24 @@ kampanya gönder önce yeniler sonra diğerleri"*; soruldu, seçim: "önce üyel
   elbisesi). İkinci kuru koşu tam bu 19'un düştüğünü gösterdi → **51** gönderildi (50+1).
 - Brevo kotası son partide: 135 kalan (60 sipariş/fatura payı ayrılmış). Koşucunun IP'si Brevo'da yetkili
   değil (`lead-stats mail_quota` 401) — kota sunucudan okunuyor, gönderim etkilenmedi.
+
+**13 Eki 2026 — Journal: "Amazon's $60bn B2B Engine: What Fashion Wholesale Can Learn" (9 dil, GERÇEK fotoğraf)**
+(operatör: *"vestra Journal e daha yenilikci bir haber at amazon ve b2b olabilir gorseller gercek olsun live ve
+estetik ayrintili tum dillerde"*).
+- Olgular WebSearch ile (WebFetch bu ortamda kapalı), birden çok kaynakta aynı olanlar: Amazon Business Q2 2026
+  $60 mlr yıllık brüt satış (GMV, gelir DEĞİL), 11 mn kuruluş / 11 ülke, Fortune 100'ün 97'si, H1'de 1,8 mn yeni;
+  Business Hour Delivery Rate ≥%90 (30 Eyl, 14 gün, 30 Eki'de satıcı gönderimli teklifler kapanabilir; kapsam ABD
+  mağazası — UK/DE raporları çelişkili, metinde öyle yazıldı); 31 Ağu işletmeye özel indirim (%10 / %15);
+  Reshape 27–28 Eki Nashville; JOOR 2026 (%57 / %52); Faire işletme alıcıları (DC360, Haziran). Kaynaklar paragrafı var.
+- **Fotoğraflar:** yeni `journal-photo-files.yml` (chat-help) — Commons'tan ADI verilen dosyayı sunucuya indirir,
+  lisans kapısı (CC0/PD/BY/BY-SA), künye credits.json'a BİRLEŞTİRİLİR (198 → 202, geri okundu), `|| alt metni`
+  ile alt metni elle yazılır. Alt metinler önce fotoğraflara BAKILMADAN yazıldı ve ikisi yanlıştı ("mavi kamyon"
+  = gri Prime minibüsleri) — `shot-vestra.yml` ile fotoğraflar çekilip düzeltildi. Kapak Swindon BRS2 (Auledas ·
+  CC BY 4.0), gövde: Prime minibüsleri (Todd Van Hoosear · CC BY-SA 2.0), DSY1 (Ingbife · CC BY-SA 4.0), askılık
+  (UNIFORM Studio · CC BY 2.0) + CANLI katalogdan Fred Perry M3600 (Photo: VESTRA). Gövde figüründe künye otomatik
+  basılmıyor → her dilin altyazısının SONUNDA.
+- `vestra_journal_photo_pool()` artık `art-` dosyalarını ATLIYOR: künyeli oldukları için genel havuza girer ve
+  ilgisiz yazılara Amazon kamyonu dokunurdu.
+- Çeviri 2 alt ajanla (de/fr/it/es, pt/ru/ar/ja), yapı betikle doğrulandı (17 blok, figür yolları/konumları, künye).
+- Test `journal_amazon_b2b_test.php` 322 iddia; 4 sabotajın 4'ü kırmızı (ja künyesi silindi 1, de yol 2, sıra 147,
+  havuz istisnası kaldırıldı 1). parcel_duty / destruction_ban testleri yeni sıraya göre güncellendi (2. ve 3.).
