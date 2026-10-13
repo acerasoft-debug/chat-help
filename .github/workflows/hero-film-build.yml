@@ -98,7 +98,7 @@ jobs:
         run: |
           export NODE_PATH=/tmp/pw/node_modules
           export HERO_PICKS="$(cat /tmp/picks.json)"
-          sed -i "s/^FRAMES=720 /FRAMES=${FR:-720} /" site/tools/hero-film/build.sh
+          sed -i -E "s/^FRAMES=[0-9]+ /FRAMES=${FR:-792} /" site/tools/hero-film/build.sh
           bash site/tools/hero-film/build.sh
           mkdir -p diag/hero/out diag/hero/frames
           cp site/vestra/assets/hero/hero.mp4 site/vestra/assets/hero/hero.webm site/vestra/assets/hero/hero-poster.jpg diag/hero/out/
