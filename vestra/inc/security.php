@@ -519,6 +519,17 @@ function vestra_is_bot(string $ua): bool {
  * Count one page view. Called from auth.php's bootstrap, so every page counts
  * without opting in — the same reason the ip guard lives there.
  */
+/** Ziyaret DEGIL: tarayici/OS yoklamasi, statik dosya ya da bilinen saldiri tarama yolu. */
+function vestra_track_is_probe(string $p): bool {
+    $l = strtolower($p);
+    if (str_starts_with($l, '/.well-known/') || str_starts_with($l, '/.')) return true;
+    if (preg_match('#/(wp-admin|wp-login|wp-content|wp-includes|xmlrpc\.php|phpmyadmin|cgi-bin|vendor/|ipfs/)#', $l)) return true;
+    if (preg_match('#^/(apple-touch-icon|favicon|android-chrome|mstile|browserconfig|ads\.txt|app-ads\.txt|security\.txt|sitemap)#', $l)) return true;
+    /* Uzantili istek sayfa degildir (.php ve .html haric -- eski sayfa adresleri). */
+    if (preg_match('#\.([a-z0-9]{1,5})$#', $l, $m) && !in_array($m[1], ['php', 'html', 'htm'], true)) return true;
+    return false;
+}
+
 function vestra_track_visit(): void {
     if (PHP_SAPI === 'cli') return;
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') return;   // form posts are not visits
@@ -527,6 +538,19 @@ function vestra_track_visit(): void {
     $path = (string)($_SERVER['SCRIPT_NAME'] ?? '');
     // The operator's own panel is not traffic.
     if (str_starts_with($path, '/admin')) return;
+    /* 404 (13 Eki 2026, operator: "/404.php neden cikiyor aktif ziyaretcilere baktigim sik
+       sik karsima geliyor"). SCRIPT_NAME bulunamayan her adres icin '/404.php' -- panel
+       ziyaretcinin NEREYE gitmek istedigini kaybediyordu. Istenen yol ('404 /yol') yaziliyor.
+       Sayfa olmayan istekler HIC sayilmiyor: tarayicinin/isletim sisteminin kendi yoklamalari
+       (.well-known, apple-touch-icon, favicon), uzantili dosyalar (.png, .txt, .js …) ve
+       saldiri tarayicilari (wp-admin, .env …) -- bunlar ziyaret degil. Erisim kaydi olcumu:
+       3 gunde 6.720 404'un buyuk kismi bunlardi. */
+    if ($path === '/404.php') {
+        $req = (string)(parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH) ?? '');
+        if ($req === '' || $req === '/404.php') { $req = '?'; }
+        if (vestra_track_is_probe($req)) return;
+        $path = '404 '.mb_substr($req, 0, 80);
+    }
     $ip = vestra_client_ip();
     if ($ip === '') return;
 

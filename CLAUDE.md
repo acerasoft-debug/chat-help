@@ -12516,3 +12516,14 @@ ve slayttaki ürünleri degistir pantalon da koy"*).
   Fred Perry M3600 lacivert · Gallery Dept. füme. 792 kare / 24 fps = 33 sn. Temas sayfasında 3'lü yan yana jean
   kolajları ELENDİ: kart 3:4 dikey ve `contain`, geniş kolaj kartta küçücük kalıyordu.
 - Telefon şeridi `$WANT`: Jeans, Tracksuits, Women's Jeans, Activewear (eşofman altı) ilk yarıya alındı.
+
+**13 Eki 2026 — Ziyaretçi panelindeki "/404.php"** (operatör: *"/404.php neden cikiyor aktif ziyaretcilere baktigim sik sik
+karsima geliyor"*). Sayaç `SCRIPT_NAME` yazıyordu; bulunamayan her adres .htaccess ile `404.php`'ye düştüğü için panel
+ziyaretçinin İSTEDİĞİ adresi kaybediyordu (günde 50–90 kayıt, ziyaretlerin ~%4'ü). Ölçüm (`diag-404.yml`, erişim kaydı,
+3 gün, 6.720 adet 404): `/null` 3.652 — HEPSİ Meta'nın yapay zekâ tarayıcısı `meta-externalagent` (57.141.x.x, ürün ve
+giriş sayfalarından, çoğu 30 Eyl'de tek dalga; UA'da "crawler" geçtiği için sayaca zaten girmiyor); `/product` 1.458
+(kaldırılmış/gizli ürünlerin eski bağlantıları); gizli/eski marka sayfaları (`/wholesale/gucci`, `/levi-s/…`);
+cihaz yoklamaları (iPhone passkey `/.well-known/…`, Chrome prefetch proxy `traffic-advice`, `apple-touch-icon-*`) ve
+saldırı taramaları (`wp-admin`). Düzeltme: `vestra_track_visit` 404'te `404 /istenen-yol` yazar; `vestra_track_is_probe()`
+yoklama/statik/tarama isteklerini HİÇ saymaz; `.htaccess` `apple-touch-icon(-WxH)(-precomposed).png` → tek simge.
+Test `track_404_test.php` (27). `/null`'ın sayfadaki kaynağı bulunamadı (canlı DOM'da `null` adres yok) — bot davranışı.

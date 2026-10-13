@@ -91,6 +91,13 @@
   RewriteCond %{REQUEST_FILENAME}\.php -f
   RewriteRule ^(.+?)/?$ $1.php [L]
 
+  # iPhone/iPad ana ekran simgesini kendiliğinden bu adlarla da istiyor
+  # (apple-touch-icon-precomposed.png, -120x120.png …): 3 günde ~150 istek 404
+  # alıp ziyaretçi panelinde /404.php olarak görünüyordu (13 Eki 2026). Tek
+  # dosyamız var; hepsi ona.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^apple-touch-icon(-[0-9]+x[0-9]+)?(-precomposed)?\.png$ apple-touch-icon.png [L]
+
   # Hiçbir dosyaya çıkmayan adres → markalı 404. ErrorDocument aşağıda ZATEN
   # tanımlı ama canlıda tetiklenmiyor: bilinmeyen adres 13 baytlık düz
   # "404 Not Found" alıyordu (ölçüm 29 Ağustos; /404.php'nin kendisi 19,5KB
