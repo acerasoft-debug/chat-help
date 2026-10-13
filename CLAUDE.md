@@ -12504,3 +12504,15 @@ estetik ayrintili tum dillerde"*).
 - Çeviri 2 alt ajanla (de/fr/it/es, pt/ru/ar/ja), yapı betikle doğrulandı (17 blok, figür yolları/konumları, künye).
 - Test `journal_amazon_b2b_test.php` 322 iddia; 4 sabotajın 4'ü kırmızı (ja künyesi silindi 1, de yol 2, sıra 147,
   havuz istisnası kaldırıldı 1). parcel_duty / destruction_ban testleri yeni sıraya göre güncellendi (2. ve 3.).
+
+**13 Eki 2026 — Ana sayfa filmi yeniden kurgulandı, PANTOLON eklendi** (operatör: *"ana sayfayida degistir daha estetik yap
+ve slayttaki ürünleri degistir pantalon da koy"*).
+- Masaüstü kahramanı `assets/hero/hero.mp4` (film), telefon `$HERO_FRAMES` şeridi. Film fotoğrafları SUNUCUDA, derleme
+  makinesi siteye ulaşamıyordu → yeni chat-help `hero-film-build.yml`: koşucu fotoğrafları canlı siteden indirir,
+  `sheet` kipi numaralı temas sayfası, `film` kipi `tools/hero-film/build.sh` (HERO_PICKS env, renk fotoğraftan
+  örneklenir) → çıktı diag/hero/'ya; dosyalar elle vestra/assets/hero/'ya konup deploy edilir.
+- 11 parça, tişört/pantolon dönüşümlü: DSQ pembe ICON · D&G slim jean GY07LD G8ET3 · D&G yeşil · Lacoste esofman altı
+  (mavi) · Fred Perry M7535 bordo · D&G logo bantlı eşofman takımı · D&G turuncu · D&G koyu jean G8DM8 · DSQ beyaz ICON ·
+  Fred Perry M3600 lacivert · Gallery Dept. füme. 792 kare / 24 fps = 33 sn. Temas sayfasında 3'lü yan yana jean
+  kolajları ELENDİ: kart 3:4 dikey ve `contain`, geniş kolaj kartta küçücük kalıyordu.
+- Telefon şeridi `$WANT`: Jeans, Tracksuits, Women's Jeans, Activewear (eşofman altı) ilk yarıya alındı.

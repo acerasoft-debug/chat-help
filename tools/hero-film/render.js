@@ -36,17 +36,22 @@ const FRAMES = parseInt(process.argv[3] || '480', 10);
  * Near-white and near-black pieces are deliberately absent: their sampled colour
  * gives no glow, and on a dark stage they read as a smudge rather than a garment.
  */
+/* 13 Eki 2026, operator: "slayttaki urunleri degistir pantalon da koy": on bir parca,
+   tisort ve pantolon donusumlu (D&G slim jean, Lacoste esofman alti, D&G esofman takimi,
+   D&G koyu jean). Bu dosyalar SUNUCUDA; hero-film-build.yml (chat-help) onlari canli
+   siteden indirip HERO_PICKS ile buraya veriyor. Renkler fotograftan orneklendi. */
 let PICKS = [
-  ['dsquared/dsq-101230.png', '#fd8cc5'],           // DSQUARED2
-  ['dg/101260.png',           '#02985d'],           // D&G
-  ['dsquared/dsq-101233.png', '#bf9687'],           // DSQUARED2
-  ['dg/101201.png',           '#b3c1d4'],           // D&G
-  ['dsquared/dsq-101231.png', '#cfaeb7'],           // DSQUARED2
-  ['dg/101248.png',           '#fe7f00'],           // D&G
-  ['lacoste/l1212-blue.jpg',  '#21419d'],           // Lacoste
-  ['dg/101261.png',           '#f9ce43'],           // D&G
-  ['dsquared/dsq-101212.png', '#9a999d'],           // DSQUARED2
-  ['lac-sweat/lacoste-sweat-beige.png', '#c8a886'], // Lacoste
+  ["dsquared/dsq-101230.png", "#fd8cc5"],
+  ["dg-dropbox/d-g-gy07ldg8et3.jpg", "#5a5f70"],
+  ["dg/101260.png", "#02985d"],
+  ["lacoste/slim-sweatpants/blue.jpg", "#25a6d9"],
+  ["fred-perry/fp-m7535-bordeaux.jpg", "#602d36"],
+  ["dg-dropbox/d-g-gvepazfu7du.jpg", "#201c18"],
+  ["dg/101248.png", "#fe7f00"],
+  ["dg-jeans/d-g-gy07ld-g8dm8.jpg", "#293038"],
+  ["dsquared/dsq-101233.png", "#bf9687"],
+  ["fredperry/m3600-navy.jpg", "#10171f"],
+  ["gallery-dept/gd-french-logo-chest-charcoal.jpg", "#3d3b46"]
 ];
 
 /* HERO_PICKS (JSON [[yol, renk], …]) verilirse yukaridaki liste yerine o kullanilir

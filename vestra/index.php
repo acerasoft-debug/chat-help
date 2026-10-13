@@ -45,8 +45,12 @@ if (@include_once __DIR__.'/inc/products.php') {
        there is colour or a print in the shot. Category order below IS the running
        order, so the sequence opens on swimwear and denim rather than on whatever
        happens to sort first. */
-    $WANT = ["Women's Swimwear", "Women's T-Shirts", 'Jeans', 'Swim Shorts',
-             'Hoodies & Sweatshirts', "Women's Polos", 'Polos', 'T-Shirts', 'Tracksuit Sets'];
+    /* 13 Eki 2026, operator: "slayttaki urunleri degistir pantalon da koy" -- pantolon
+       bolmeleri (kot, esofman takimi, esofman alti) siranin ON yarisinda: serit kategori
+       basina tur atiyor, sondaki bir bolme 30 karelik tavanda hic gorunmeyebilirdi. */
+    $WANT = ['T-Shirts', 'Jeans', "Women's T-Shirts", 'Tracksuits', 'Hoodies & Sweatshirts',
+             "Women's Jeans", 'Polos', 'Activewear', 'Tracksuit Sets', "Women's Swimwear",
+             'Swim Shorts', "Women's Polos"];
     /* Colour and print words that actually appear in these product names. A photo of
        a "Red Print T-Shirt" carries the screen; a "Logo T-Shirt, Black" does not. */
     $COLOUR = '/\b(red|pink|orange|yellow|green|blue|purple|turquoise|teal|cream|beige|camel|
