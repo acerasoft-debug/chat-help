@@ -75,6 +75,29 @@ jobs:
               foreach ($all as $l) if (function_exists('vestra_mailbox_strict_receiver') && vestra_mailbox_strict_receiver((string)($l['email'] ?? ''))) $strict++;
               echo "  gönderime hazır alıcı (web havuzu): ".$sp(count(vestra_finder_send_targets(5000, 'web')))." · tüm havuz: ".$sp(count($all))." · bunlardan Outlook/Orange: ".$sp($strict)."\n";
             }
+            /* Yazılmamış müşteriler neden gönderime girmiyor: ilk eleyen kural sayılır (12 Eki). */
+            $why = []; $seenE = []; $cl = fn($v) => function_exists('vestra_email_clean') ? vestra_email_clean((string)$v) : strtolower(trim((string)$v));
+            foreach ($leads as $l) if (trim((string)($l['last_contacted_at'] ?? '')) !== '' && ($e = $cl($l['email'] ?? '')) !== '') $seenE[$e] = 1;
+            foreach ($leads as $l) {
+              if (trim((string)($l['last_contacted_at'] ?? '')) !== '') continue;
+              $src = strtolower((string)($l['source'] ?? '')); $st = (string)($l['status'] ?? 'new'); $e = $cl($l['email'] ?? '');
+              $r = match (true) {
+                in_array($src, VESTRA_FINDER_NOT_BUYER_SOURCES, true) => 'kaynak alıcı değil ('.$src.')',
+                (string)($l['owner_uid'] ?? '') !== '' => 'satıcının kendi listesi',
+                $st === 'unsubscribed' || !empty($l['unsubscribed']) => 'abonelikten çıktı',
+                $st === 'bounced' => 'geri dönmüş',
+                !filter_var($e, FILTER_VALIDATE_EMAIL) => 'e-posta yok/geçersiz',
+                isset($seenE[$e]) => 'aynı adrese zaten yazıldı',
+                function_exists('vestra_email_is_junk') && vestra_email_is_junk($e) => 'çöp adres',
+                function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l) => 'engelli',
+                vestra_lead_looks_dead($l) => 'ölü alan adı',
+                vestra_lead_off_target($l) => 'hedef dışı (toptancı/ayakkabı…)',
+                default => 'UYGUN',
+              };
+              $why[$r] = ($why[$r] ?? 0) + 1;
+            }
+            arsort($why);
+            echo "\n== Yazılmamış müşteriler (".$sp(array_sum($why))."): ".implode(' · ', array_map(fn($k, $n) => "$k ".$sp($n), array_keys($why), $why))."\n";
             echo "\n== Posta kutusu istekleri (son 15) ==\n";
             $runs = vestra_mailbox_runs(); usort($runs, fn($a, $b) => strcmp((string)($b['requested_at'] ?? ''), (string)($a['requested_at'] ?? '')));
             foreach (array_slice($runs, 0, 15) as $r)
