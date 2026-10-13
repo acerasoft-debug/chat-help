@@ -1,0 +1,25 @@
+name: (Salt-okunur) Butik sitelerine erişim — hata türü
+# 13 Eki 2026: butik bulucu incelenen sitelerin ~%45'ini "ulaşılamadı" sayıyor. Bu iş aynı siteleri koşucudan
+# (bulucunun çalıştığı yer) Node fetch ile dener ve hatanın türünü basar (DNS, sertifika, 403, zaman aşımı...).
+# Hiçbir şey yazmaz, göndermez.
+on:
+  workflow_dispatch:
+    inputs:
+      domains:
+        description: "Boşlukla ayrılmış alan adları"
+        required: true
+permissions:
+  contents: read
+jobs:
+  reach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Dene
+        env:
+          DOMAINS: ${{ github.event.inputs.domains }}
+        run: node scripts/ci/site_reach.mjs "$DOMAINS"
