@@ -828,20 +828,37 @@ async function osmCity(country, city) {
   if (bbox) queries.push(`[out:json][timeout:80];nwr${sel}(${bbox[0]},${bbox[2]},${bbox[1]},${bbox[3]});out tags;`);   // Nominatim bbox: [güney, kuzey, batı, doğu]
   let lastErr = 'Overpass yanıt vermedi';
   for (const q of queries) {
-    for (const m of OVERPASS) {
+    for (const m of overpassOrder()) {
+      const t0 = Date.now();
       try {
-        const r = await fetch(m, { method: 'POST', body: 'data=' + encodeURIComponent(q), signal: AbortSignal.timeout(95000),
+        const r = await fetch(m, { method: 'POST', body: 'data=' + encodeURIComponent(q), signal: AbortSignal.timeout(OVERPASS_WAIT_MS),
           headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': OSM_UA } });
-        if (r.status !== 200) { lastErr = `Overpass HTTP ${r.status}`; continue; }
+        if (r.status !== 200) { lastErr = `Overpass HTTP ${r.status}`; overpassMark(m, false, Date.now() - t0); continue; }
         const j = await r.json();
-        if (!Array.isArray(j.elements)) continue;
-        if (!j.elements.length && /runtime error|timed out|out of memory/i.test(String(j.remark || ''))) { lastErr = 'Overpass zaman aşımı'; continue; }
+        if (!Array.isArray(j.elements)) { overpassMark(m, false, Date.now() - t0); continue; }
+        if (!j.elements.length && /runtime error|timed out|out of memory/i.test(String(j.remark || ''))) { lastErr = 'Overpass zaman aşımı'; overpassMark(m, false, Date.now() - t0); continue; }
+        overpassMark(m, true, Date.now() - t0);
         if (j.elements.length) return { rows: j.elements.map(e => e.tags || {}), mirror: new URL(m).hostname };
         break;                                                         // boş ama hatasız: bbox ile tekrar dene
-      } catch (e) { lastErr = 'Overpass: ' + String(e.message || e).slice(0, 60); }
+      } catch (e) { lastErr = 'Overpass: ' + String(e.message || e).slice(0, 60); overpassMark(m, false, Date.now() - t0); }
     }
   }
   return { error: lastErr, rows: [] };
+}
+
+/* 13 Eki 2026: aynalar arası sıra bu turun deneyimine göre. Ölçüm (run 38393121449): ilk ayna(lar) her şehirde 95 sn
+   zaman aşımına düşüyordu, yanıtı hep 4. ayna (maps.mail.ru) veriyordu — şehir başına ~3,5 dk, turda yalnız 10 şehir.
+   Kasaba sorgusu birkaç saniyede biter; bekleme 45 sn'ye indi ve üst üste 2 kez düşen ayna sonuna atılır. */
+const OVERPASS_WAIT_MS = 45000;
+const overpassHealth = new Map();   // ayna → { fails: ardışık hata, ok: başarı sayısı, ms: son başarılı süre }
+export function overpassMark(m, ok, ms) {
+  const h = overpassHealth.get(m) || { fails: 0, ok: 0, ms: 0 };
+  if (ok) { h.fails = 0; h.ok++; h.ms = ms; } else h.fails++;
+  overpassHealth.set(m, h);
+}
+export function overpassOrder() {
+  const score = (m) => { const h = overpassHealth.get(m); return h ? (h.fails >= 2 ? 1e6 + h.fails : 0) - h.ok * 10 + (h.ms || 0) / 1000 : 0; };
+  return OVERPASS.map((m, i) => [m, score(m), i]).sort((a, b) => a[1] - b[1] || a[2] - b[2]).map(x => x[0]);
 }
 
 /* Google Places için şehir havuzu (CITIES boşsa sırayla dönülür). Almanya bilerek az:
@@ -1362,6 +1379,11 @@ function selftest() {
   { const st = { euroCursor: 5, placesCursor: 7 }; const a = pickAutoCities(st, 10, 0.8);
     t('otomatik tur: önce 8 Avrupa kasabası imleçten, sonra 2 büyük şehir', a.length === 10 && a[0] === EURO_TOWNS[5] && a[7] === EURO_TOWNS[12] && a[8] === CITY_POOL[7] && a[9] === CITY_POOL[8]);
     t('otomatik tur: EURO_SHARE=0 eski davranış', pickAutoCities(st, 4, 0).every((c, i) => c === CITY_POOL[7 + i])); }
+  { const [a, b, c, d] = OVERPASS; t('ayna sırası: başta varsayılan', overpassOrder()[0] === a);
+    overpassMark(a, false, 45000); overpassMark(a, false, 45000); overpassMark(b, false, 45000); overpassMark(d, true, 3000);
+    const o = overpassOrder(); t('ayna sırası: çalışan öne, 2 kez düşen sona', o[0] === d && o[o.length - 1] === a);
+    overpassMark(a, true, 2000); t('ayna sırası: düşen ayna yanıt verince geri gelir', overpassOrder().indexOf(a) < overpassOrder().indexOf(b));
+    overpassHealth.clear(); }
   t('ülke: alan adından (Suudi, Hong Kong, Meksika)', detectCountry('shop.com.sa', '', '') === 'Saudi Arabia' && detectCountry('x.com.hk', '', '') === 'Hong Kong' && detectCountry('m.com.mx', '', '') === 'Mexico');
   log(fails ? `\n${fails} TEST BASARISIZ` : '\nTUM TESTLER GECTI'); process.exit(fails ? 1 : 0);
 }
