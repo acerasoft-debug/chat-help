@@ -1,0 +1,12 @@
+01 200 image/jpeg 30471 https://image-cdn.hypb.st/https%3A%2F%2Fs3.store.hypebeast.com%2Fmedia%2Fimage%2F73%2F74%2Ftshirt-2-1-c8abf.jpg?fit=max&w=1080&q=90
+01.src https://image-cdn.hypb.st/https%3A%2F%2Fs3.store.hypebeast.com%2Fmedia%2Fimage%2F73%2F74%2Ftshirt-2-1-c8abf.jpg?fit=max&w=1080&q=90
+02 200 image/jpeg 65157 https://image-cdn.hypb.st/https%3A%2F%2Fs3.store.hypebeast.com%2Fmedia%2Fimage%2F7b%2F25%2Ftshirt-2-2-d838f.jpg?fit=max&w=1080&q=90
+02.src https://image-cdn.hypb.st/https%3A%2F%2Fs3.store.hypebeast.com%2Fmedia%2Fimage%2F7b%2F25%2Ftshirt-2-2-d838f.jpg?fit=max&w=1080&q=90
+03 200 image/jpeg 83836 https://image-cdn.hypb.st/https%3A%2F%2Fs3.store.hypebeast.com%2Fmedia%2Fimage%2F1e%2F53%2Ftshirt-2-3h-45dea.jpg?fit=max&w=1080&q=90
+03.src https://image-cdn.hypb.st/https%3A%2F%2Fs3.store.hypebeast.com%2Fmedia%2Fimage%2F1e%2F53%2Ftshirt-2-3h-45dea.jpg?fit=max&w=1080&q=90
+04 200 image/jpeg 125663 https://image-cdn.hypb.st/https%3A%2F%2Fs3.store.hypebeast.com%2Fmedia%2Fimage%2F00%2F6e%2Ftshirt-2-4-7f6c1.jpg?fit=max&w=1080&q=90
+04.src https://image-cdn.hypb.st/https%3A%2F%2Fs3.store.hypebeast.com%2Fmedia%2Fimage%2F00%2F6e%2Ftshirt-2-4-7f6c1.jpg?fit=max&w=1080&q=90
+05 200 image/jpeg 59388 https://image-cdn.hypb.st/https%3A%2F%2Fs3.store.hypebeast.com%2Fmedia%2Fimage%2Fbb%2Fe2%2Ftshirt-2-5-9ae61.jpg?fit=max&w=1080&q=90
+05.src https://image-cdn.hypb.st/https%3A%2F%2Fs3.store.hypebeast.com%2Fmedia%2Fimage%2Fbb%2Fe2%2Ftshirt-2-5-9ae61.jpg?fit=max&w=1080&q=90
+06 200 application/json; charset=utf-8 1147 https://www.a-ma-maniere.com/products/casablanca-equipement-sportif-t.json
+06.src https://www.a-ma-maniere.com/products/casablanca-equipement-sportif-t.json
