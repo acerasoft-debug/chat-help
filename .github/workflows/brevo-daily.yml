@@ -1,0 +1,46 @@
+name: (Zamanlı) Brevo ikinci mektup — günde 2 × 50
+# 13 Eki 2026 (operatör: "her gün … 100 adet de Brevo'dan gidebilir"). Günde iki parti: 07:12 ve 13:12 UTC
+# (09:12 / 15:12 Avrupa). Her parti send-outreach.yml'i DAĞITIM dalından (claude/wizardly-planck-7ylnmk —
+# tam sürüm orada) Winter 26/27 ikinci mektubu için başlatır: ilk mektubu en az 2 gün önce almış, abonelikten
+# çıkmamış, en az 1 premium markalı Avrupa leadleri; ABD/Kanada dışarıda; zincir/marka/çocuk/ayakkabı adları
+# skip_names ile elenir (13 Eki elle okunan liste). Brevo günlük hakkından 60 e-posta işlemsel postaya ayrılır;
+# hak yetmezse parti kendiliğinden küçülür. Uygun lead kalmayınca 0 gönderir.
+on:
+  schedule:
+    - cron: '12 7 * * *'
+    - cron: '12 13 * * *'
+  workflow_dispatch:
+    inputs:
+      count:
+        description: "Bu partide en çok kaç e-posta (50'ye kadar)"
+        required: false
+        default: "50"
+      dry_run:
+        description: "true = gönderme, yalnız listele"
+        required: false
+        default: "false"
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: brevo-daily
+  cancel-in-progress: false
+
+jobs:
+  fire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Partiyi başlat
+        run: |
+          gh workflow run send-outreach.yml --repo "${{ github.repository }}" --ref claude/wizardly-planck-7ylnmk \
+            -f count="${{ github.event.inputs.count || '50' }}" \
+            -f dry_run="${{ github.event.inputs.dry_run || 'false' }}" \
+            -f new_collection=true -f newcoll_letter=winter -f min_brands=1 -f newcoll_min_days=2 \
+            -f exclude_countries="United States,Canada" -f quota_reserve=60 \
+            -f skip_names="Fielmann,BSTN,CNCPTS,Altermundi,Capel,Kaotiko,Oktshirt,Team Store,targetcenter,Racing Club,Strasbourg,Loretxiki,Fantasía Kids,Calzado,Medina Piel,Lola Jiménez,CalzadosPachi,Dos Pies,Mandarina,Visto por los Pies,Black in Black,Piluka,Glamcult,Mackintosh,Joseph,Lyle & Scott,Kicks,Hatstore,Kids Brand Store,Limoneti,Lapin House,Klamöttchen,Petit Ilu,W&G,Shi Cashmere,Kindermode,kids,Scalpers,Pedro del Hierro,Claudia Sträter,Soccerfanshop,Lesage Bridal,Ashley Stewart,Bealls,Tuckernuck,260 Sample Sale,StofShop,Atlas Stoked,Milk,Golf Club"
+          echo "Brevo partisi dağıtım dalında başlatıldı (send-outreach.yml, count=${{ github.event.inputs.count || '50' }})."
