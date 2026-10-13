@@ -6,6 +6,10 @@ on:
         description: "Kaç günlük erişim kaydı (sunucunun tuttuğu kadar)"
         required: false
         default: "3"
+      sample:
+        description: "Bu yolla biten 404'lerden ornek satirlar (IP maskeli)"
+        required: false
+        default: "/null"
 
 permissions:
   contents: read
@@ -21,13 +25,14 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           DAYS: ${{ github.event.inputs.days }}
+          SAMPLE: ${{ github.event.inputs.sample }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 4m
-          envs: DAYS
+          envs: DAYS,SAMPLE
           script: |
             echo "== erisim kayitlari =="; ls -la $HOME/access-logs/ 2>/dev/null | head; ls -la $HOME/logs/ 2>/dev/null | head
             F=$(ls -t $HOME/access-logs/* $HOME/logs/*access* 2>/dev/null | grep -v '\.gz$' | head -3)
@@ -47,6 +52,15 @@ jobs:
             awk '{split($1,a,"."); print a[1]"."a[2]".x.x"}' /tmp/v404.log | sort | uniq -c | sort -rn | head -15
             echo "== saat dagilimi =="
             awk '{print substr($4,2,14)}' /tmp/v404.log | sort | uniq -c | tail -24
+            if [ -n "$SAMPLE" ]; then
+              echo "== ornek: $SAMPLE (yonlendiren tam yol + ajan) =="
+              awk -v s="$SAMPLE" '{p=$7; sub(/\?.*/,"",p); if (substr(p, length(p)-length(s)+1)==s) print}' /tmp/v404.log > /tmp/v404s.log
+              echo "adet: $(wc -l < /tmp/v404s.log)"
+              awk -F'"' '{print $4}' /tmp/v404s.log | sort | uniq -c | sort -rn | head -15
+              awk -F'"' '{print $6}' /tmp/v404s.log | sort | uniq -c | sort -rn | head -6
+              head -5 /tmp/v404s.log | sed -E 's/^([0-9]+\.[0-9]+)\.[0-9]+\.[0-9]+/\1.x.x/'
+              rm -f /tmp/v404s.log
+            fi
             rm -f /tmp/v404_all.log /tmp/v404.log
             echo "== sayac: /404.php gunluk sayfa sayisi =="
             for f in $(ls -t $HOME/public_html/data/visits/*.json 2>/dev/null | head -7); do
