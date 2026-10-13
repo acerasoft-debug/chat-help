@@ -4746,6 +4746,13 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   `pacemaker.yml` kendini zincirler: sonraki :20 slotuna kadar uyur, `find-customers.yml`'i `auto=true` ile
   workflow_dispatch eder (GITHUB_TOKEN bu olayı tetikleyebilir), kendini yeniden başlatır; saatlik cron yalnız kopan
   zinciri yeniden kurar. Zincir koparsa: Actions ▸ pacemaker ▸ Run workflow.
+  **13 Eki, operatör "yeni müşteriler bulunmuyor, Avrupa'dan ihtiyacım var özellikle":** büyük şehir havuzu
+  (CITY_POOL) tükenmişti — dört tur üst üste 0 (eleme `excl:seen`). find-boutiques.mjs: **EURO_TOWNS** (657 Avrupa
+  orta şehri, Almanya <%10) + `pickAutoCities()` (turun EURO_SHARE=%80'i Avrupa, kendi imleci `state.euroCursor`);
+  Overpass aynaları turun deneyimine göre sıralanır (2 kez düşen sona, bekleme 95→45 sn); şehirler OSM_CONCURRENCY=3
+  işçiyle paralel, Nominatim sırayla 1,1 sn. Ölçüm: tur başına şehir 10 → 20 → **54**; yeni butik 5 / 1 / **6**
+  (hepsi İtalya, ilk 3 tur). "ulaşılamadı"nın yarısı ENOTFOUND (OSM'deki alan adı ölü), beşte biri Cloudflare 403 —
+  kaynak verisi (diag-site-reach.yml). Beklenti: günde onlarca, yüzlerce değil; asıl kaldıraç Brave anahtarı.
   **11 Eki (4), operatör "neden böyle hata e-mailleri geliyor":** support@ kutusu okundu (diag-bounce-format.yml,
   maskeli): 7 günde ~50 teslim hatası, **44'ü Çöp (Trash) klasöründe** — tarayıcı yalnız INBOX'a baktığı için hiçbiri
   işaretlenmemişti (geri dönme oranı panelde %0 görünüyordu). Asıl bulgu: **Microsoft 365 / Outlook ve Orange
