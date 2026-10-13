@@ -3,7 +3,10 @@ name: (Zamanlı) Brevo ikinci mektup — günde 2 × 50
 # (09:12 / 15:12 Avrupa). Her parti send-outreach.yml'i DAĞITIM dalından (claude/wizardly-planck-7ylnmk —
 # tam sürüm orada) Winter 26/27 ikinci mektubu için başlatır: ilk mektubu en az 2 gün önce almış, abonelikten
 # çıkmamış, en az 1 premium markalı Avrupa leadleri; ABD/Kanada dışarıda; zincir/marka/çocuk/ayakkabı adları
-# skip_names ile elenir (13 Eki elle okunan liste). Brevo günlük hakkından 60 e-posta işlemsel postaya ayrılır;
+# skip_names ile elenir (13 Eki elle okunan liste). 14 Eki (operatör: "aksesuar, lüks marka satmayanlara da gönder,
+# ayakkabı, iç çamaşırı vs. — distribütör, büyük zincir, kendi markasını satan olmasın"): min_brands=0 ve ayakkabı/deri
+# adları listeden çıktı; G. Kore dışarıda (oradaki yasa reklam e-postasının konusunun "(광고)" ile başlamasını ister —
+# sunucu yolu bunu ekliyor, Brevo şablonu eklemiyor). Brevo günlük hakkından 60 e-posta işlemsel postaya ayrılır;
 # hak yetmezse parti kendiliğinden küçülür. Uygun lead kalmayınca 0 gönderir.
 #
 # GECE TARAMASI (13 Eki, operatör: "her gün gece 11.45'te ne kadar açık varsa … Brevo'nun 300'ünden arta kalan …
@@ -52,9 +55,9 @@ jobs:
           gh workflow run send-outreach.yml --repo "${{ github.repository }}" --ref claude/wizardly-planck-7ylnmk \
             -f count="${{ github.event.inputs.count || '50' }}" \
             -f dry_run="${{ github.event.inputs.dry_run || 'false' }}" \
-            -f new_collection=true -f newcoll_letter=winter -f min_brands=1 -f newcoll_min_days=2 \
-            -f exclude_countries="United States,Canada" -f quota_reserve=60 \
-            -f skip_names="Fielmann,BSTN,CNCPTS,Altermundi,Capel,Kaotiko,Oktshirt,Team Store,targetcenter,Racing Club,Strasbourg,Loretxiki,Fantasía Kids,Calzado,Medina Piel,Lola Jiménez,CalzadosPachi,Dos Pies,Mandarina,Visto por los Pies,Black in Black,Piluka,Glamcult,Mackintosh,Joseph,Lyle & Scott,Kicks,Hatstore,Kids Brand Store,Limoneti,Lapin House,Klamöttchen,Petit Ilu,W&G,Shi Cashmere,Kindermode,kids,Scalpers,Pedro del Hierro,Claudia Sträter,Soccerfanshop,Lesage Bridal,Ashley Stewart,Bealls,Tuckernuck,260 Sample Sale,StofShop,Atlas Stoked,Milk,Golf Club"
+            -f new_collection=true -f newcoll_letter=winter -f min_brands=0 -f newcoll_min_days=2 \
+            -f exclude_countries="United States,Canada,South Korea" -f quota_reserve=60 \
+            -f skip_names="Fielmann,BSTN,CNCPTS,Altermundi,Capel,Kaotiko,Oktshirt,Team Store,targetcenter,Racing Club,Strasbourg,Loretxiki,Fantasía Kids,Lola Jiménez,Mandarina,Black in Black,Piluka,Glamcult,Mackintosh,Joseph,Lyle & Scott,Kicks,Hatstore,Kids Brand Store,Limoneti,Lapin House,Klamöttchen,Petit Ilu,W&G,Shi Cashmere,Kindermode,kids,Scalpers,Pedro del Hierro,Claudia Sträter,Soccerfanshop,Lesage Bridal,Ashley Stewart,Bealls,Tuckernuck,260 Sample Sale,StofShop,Atlas Stoked,Milk,Golf Club"
           echo "Brevo partisi dağıtım dalında başlatıldı (send-outreach.yml, count=${{ github.event.inputs.count || '50' }})."
 
   sweep:
@@ -69,14 +72,14 @@ jobs:
       - name: Kotadan kalanla 50'lik partiler (0 gönderene kadar, en çok 5)
         run: |
           set -u
-          SKIP="Fielmann,BSTN,CNCPTS,Altermundi,Capel,Kaotiko,Oktshirt,Team Store,targetcenter,Racing Club,Strasbourg,Loretxiki,Fantasía Kids,Calzado,Medina Piel,Lola Jiménez,CalzadosPachi,Dos Pies,Mandarina,Visto por los Pies,Black in Black,Piluka,Glamcult,Mackintosh,Joseph,Lyle & Scott,Kicks,Hatstore,Kids Brand Store,Limoneti,Lapin House,Klamöttchen,Petit Ilu,W&G,Shi Cashmere,Kindermode,kids,Scalpers,Pedro del Hierro,Claudia Sträter,Soccerfanshop,Lesage Bridal,Ashley Stewart,Bealls,Tuckernuck,260 Sample Sale,StofShop,Atlas Stoked,Milk,Golf Club"
+          SKIP="Fielmann,BSTN,CNCPTS,Altermundi,Capel,Kaotiko,Oktshirt,Team Store,targetcenter,Racing Club,Strasbourg,Loretxiki,Fantasía Kids,Lola Jiménez,Mandarina,Black in Black,Piluka,Glamcult,Mackintosh,Joseph,Lyle & Scott,Kicks,Hatstore,Kids Brand Store,Limoneti,Lapin House,Klamöttchen,Petit Ilu,W&G,Shi Cashmere,Kindermode,kids,Scalpers,Pedro del Hierro,Claudia Sträter,Soccerfanshop,Lesage Bridal,Ashley Stewart,Bealls,Tuckernuck,260 Sample Sale,StofShop,Atlas Stoked,Milk,Golf Club"
           total=0
           for n in 1 2 3 4 5; do
             since=$(date -u +%Y-%m-%dT%H:%M:%SZ); sleep 2
             gh workflow run send-outreach.yml --repo "$REPO" --ref claude/wizardly-planck-7ylnmk \
               -f count=50 -f dry_run="$DRY" \
-              -f new_collection=true -f newcoll_letter=winter -f min_brands=1 -f newcoll_min_days=2 \
-              -f exclude_countries="United States,Canada" -f quota_reserve=20 -f skip_names="$SKIP" || { echo "parti $n başlatılamadı"; break; }
+              -f new_collection=true -f newcoll_letter=winter -f min_brands=0 -f newcoll_min_days=2 \
+              -f exclude_countries="United States,Canada,South Korea" -f quota_reserve=20 -f skip_names="$SKIP" || { echo "parti $n başlatılamadı"; break; }
             # başlattığımız koşuyu bul (bizden sonra yaratılan, bu dalda, workflow_dispatch)
             rid=""
             for i in $(seq 1 30); do

@@ -134,8 +134,10 @@ function vs_ddg(string $q): array {
   $urls = []; foreach ($m[1] as $h) { $u = vs_unwrap(html_entity_decode($h)); if (preg_match('#^https?://#i', $u)) $urls[] = $u; }
   return [200, array_values(array_unique($urls))];
 }
-function vs_bing(string $q, string $lang): array {
-  [$c, $b] = vs_http('https://www.bing.com/search?'.http_build_query(['q' => $q, 'count' => 20, 'setlang' => $lang ?: 'en']));
+function vs_bing(string $q, string $lang, string $cc = ''): array {
+  $p = ['q' => $q, 'count' => 20, 'setlang' => $lang ?: 'en'];
+  if (preg_match('/^[A-Z]{2}$/', $cc)) $p['cc'] = $cc;   // 14 Eki: odak ülkeler (AU/CA/JP/KR) yerel sonuç için
+  [$c, $b] = vs_http('https://www.bing.com/search?'.http_build_query($p));
   if ($c !== 200) return [$c, []];
   if (preg_match('/captcha|verify you are human|b_captcha/i', $b)) return [429, []];
   preg_match_all('/<li class="b_algo".*?<h2>\s*<a[^>]+href="([^"]+)"/s', $b, $m);
@@ -153,7 +155,7 @@ if ($free) {
     $lang = preg_replace('/[^a-z]/', '', strtolower((string)($w['lang'] ?? '')));
     $urls = [];
     if (!$dead['ddg']) { [$c, $u] = vs_ddg($q); if ($c === 200 && $u) { $urls = $u; $st['ddg_ok']++; } else { $st['ddg_err']++; if (in_array($c, [403, 429, 202], true)) $dead['ddg'] = true; } usleep(2500000); }
-    if (!$urls && !$dead['bing']) { [$c, $u] = vs_bing($q, $lang); if ($c === 200 && $u) { $urls = $u; $st['bing_ok']++; } else { $st['bing_err']++; if (in_array($c, [403, 429], true)) $dead['bing'] = true; } usleep(2500000); }
+    if (!$urls && !$dead['bing']) { [$c, $u] = vs_bing($q, $lang, strtoupper(preg_replace('/[^A-Za-z]/', '', (string)($w['cc'] ?? '')))); if ($c === 200 && $u) { $urls = $u; $st['bing_ok']++; } else { $st['bing_err']++; if (in_array($c, [403, 429], true)) $dead['bing'] = true; } usleep(2500000); }
     if ($urls) $web[$q] = $urls;
   }
   $out['stats']['free'] = $st;

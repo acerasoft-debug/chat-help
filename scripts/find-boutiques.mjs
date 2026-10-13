@@ -64,6 +64,8 @@ const CFG = {
   osmTarget:     num('OSM_TARGET', 900),                           // otomatik turda hedef yeni OSM adayı
   osmPerCity:    num('OSM_PER_CITY', 150),                          // şehir başına en çok yeni OSM adayı
   townQueries:   num('TOWN_QUERIES', 120),                          // 13 Eki: kasaba sorgusu (sunucudaki Bing)
+  focusQueries:  num('FOCUS_QUERIES', 40),                          // 14 Eki: Avustralya/Kanada/Japonya/G. Kore sorgusu (her tur)
+  focusCities:   num('FOCUS_CITIES', 12),                           // 14 Eki: aynı ülkelerden OSM'de taranacak şehir (her tur)
   gridCells:     num('GRID_CELLS', 200),                            // 13 Eki: otomatik turda taranacak Avrupa karesi (0 = kapalı)
   gridPerCell:   num('GRID_PER_CELL', 400),                         // kare başına en çok yeni aday
   braveKey:      (ENV.BRAVE_API_KEY ?? '').trim(),
@@ -190,6 +192,34 @@ const BRANDS = [
   ['Björn Borg', ['bjorn borg'], 'u'], ['Jockey', ['jockey'], 'u'], ['Hunkemöller', ['hunkemoller'], 'u'],
   ['Lejaby', ['lejaby'], 'u'], ['Empreinte', ['empreinte'], 'u'], ['Felina', ['felina'], 'u'], ['Skiny', ['skiny'], 'u'],
   ['Lascana', ['lascana'], 'u'], ['Agent Provocateur', ['agent provocateur'], 'u'], ['Mey', ['mey bodywear'], 'u'],
+  /* --- 14 Eki 2026: lüks OLMAYAN ama çok markalı dükkânların taşıdığı markalar (kind m). Yalnız "bu dükkân başkalarının
+     markasını satıyor" kanıtı için sayılır; premium_brands'a girmez. Günlük dilde geçen adlar (only, vila, ecco, camper,
+     guess, opus, cream…) bilerek YOK — yanlış "çok markalı" kanıtı üretirler. */
+  ["Levi's", ["levi's", 'levis', 'levi strauss'], 'm'], ['G-Star', ['g-star raw', 'g - star raw', 'gstar raw'], 'm'],
+  ['Scotch & Soda', ['scotch & soda'], 'm'], ['Superdry', ['superdry'], 'm'], ['Gant', ['gant rugger', 'gant shirtmakers'], 'm'],
+  ['Hackett', ['hackett london'], 'm'], ['Tommy Jeans', ['tommy jeans'], 'm'], ['Mavi', ['mavi jeans'], 'm'],
+  ['Joop', ['joop!', 'joop jeans'], 'm'], ['Strellson', ['strellson'], 'm'], ['Camel Active', ['camel active'], 'm'],
+  ['Brax', ['brax'], 'm'], ['Cambio', ['cambio jeans'], 'm'], ['Mac Jeans', ['mac jeans'], 'm'], ['Marc Cain', ['marc cain'], 'm'],
+  ['Riani', ['riani'], 'm'], ['Luisa Cerano', ['luisa cerano'], 'm'], ['Rich & Royal', ['rich & royal'], 'm'],
+  ['Mos Mosh', ['mos mosh'], 'm'], ['Part Two', ['part two'], 'm'], ['InWear', ['inwear'], 'm'], ['b.young', ['b.young', 'byoung'], 'm'],
+  ['Soyaconcept', ['soyaconcept', 'soya concept'], 'm'], ['Fransa', ['fransa'], 'm'], ['Gestuz', ['gestuz'], 'm'],
+  ['Munthe', ['munthe'], 'm'], ['Casual Friday', ['casual friday'], 'm'], ['Selected Homme', ['selected homme', 'selected femme'], 'm'],
+  ['Desigual', ['desigual'], 'm'], ['Ichi', ['ichi copenhagen'], 'm'], ['Saint Tropez', ['saint tropez'], 'm'],
+  ['Alpha Industries', ['alpha industries'], 'm'], ['Schott', ['schott nyc'], 'm'], ['Blauer', ['blauer usa', 'blauer h.t'], 'm'],
+  ['Colmar', ['colmar'], 'm'], ['K-Way', ['k-way', 'k - way', 'kway'], 'm'], ['Ciesse', ['ciesse piumini'], 'm'], ['RRD', ['rrd roberto ricci'], 'm'],
+  ["Mason's", ["mason's"], 'm'], ['At.P.Co', ['at.p.co', 'atpco'], 'm'], ['Sun68', ['sun68', 'sun 68'], 'm'], ['Bomboogie', ['bomboogie'], 'm'],
+  ['Refrigiwear', ['refrigiwear'], 'm'], ['Gaudì', ['gaudi jeans'], 'm'], ['Yes Zee', ['yes zee', 'yes-zee'], 'm'],
+  ['Vicolo', ['vicolo'], 'm'], ['Kaos', ['kaos milano'], 'm'], ['Molly Bracken', ['molly bracken'], 'm'], ['Kocca', ['kocca'], 'm'],
+  ['Please', ['please jeans'], 'm'], ['Haveone', ['haveone'], 'm'], ['Berna', ['berna'], 'm'],
+  ['Vans', ['vans'], 's'], ['Skechers', ['skechers'], 's'], ['Mephisto', ['mephisto'], 's'], ['Hoka', ['hoka one one', 'hoka'], 's'],
+  ['Lloyd', ['lloyd shoes', 'lloyd schuhe'], 's'], ['Ara', ['ara shoes', 'ara schuhe'], 's'], ['Waldläufer', ['waldlaufer'], 's'],
+  ['Fossil', ['fossil'], 'm'], ['Furla', ['furla'], 'm'], ['Liebeskind', ['liebeskind'], 'm'], ['Fritzi aus Preußen', ['fritzi aus preussen'], 'm'],
+  ['Kipling', ['kipling'], 'm'], ['Eastpak', ['eastpak'], 'm'], ['Herschel', ['herschel supply'], 'm'], ['Coccinelle', ['coccinelle'], 'm'],
+  ['La Martina', ['la martina'], 'm'], ['Borbonese', ['borbonese'], 'm'], ['Piquadro', ['piquadro'], 'm'], ['The Bridge', ['the bridge firenze'], 'm'],
+  ['Picard', ['picard lederwaren', 'picard bags'], 'm'], ['Rains', ['rains copenhagen'], 'm'], ['Ray-Ban', ['ray-ban', 'ray - ban', 'rayban'], 'm'],
+  ['Becksöndergaard', ['becksondergaard', 'beck sondergaard'], 'm'], ['Roeckl', ['roeckl'], 'm'], ['Codello', ['codello'], 'm'],
+  ['Thomas Sabo', ['thomas sabo'], 'm'], ['Daniel Wellington', ['daniel wellington'], 'm'], ['Swarovski', ['swarovski'], 'm'],
+  ['Triumph', ['triumph lingerie', 'triumph dessous'], 'u'], ['Mey', ['mey'], 'u'], ['Calida', ['calida'], 'u'], ['Sloggi', ['sloggi'], 'u'],
 ].map(([name, aliases, kind, q]) => ({ name, aliases, kind, q: !!q }));
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -262,6 +292,10 @@ const TERMS = {
     'sweatshirts', 't-shirts', 'tshirts', 'shirts', 'hemden', 'dresses', 'kleider', 'abiti', 'robes', 'vestidos', 'jurken', 'hosen',
     'trousers', 'pants', 'coats', 'mantel', 'cappotti', 'manteaux', 'abrigos', 'jassen', 'knitwear', 'strick', 'maglieria', 'pulls',
     'multibrand', 'multi-brand', 'multimarca', 'multimarques', 'concept store', 'conceptstore'],
+  acc: ['accessories', 'accessoires', 'accessori', 'accesorios', 'acessorios', 'akcesoria', 'bags', 'handbags', 'taschen', 'handtaschen',
+    'borse', 'sacs', 'sacs a main', 'bolsos', 'tassen', 'torebki', 'leather goods', 'lederwaren', 'pelletteria', 'maroquinerie',
+    'marroquineria', 'sciarpe', 'scarves', 'schals', 'echarpes', 'hats', 'hute', 'cappelli', 'chapeaux', 'sombreros', 'belts', 'gurtel',
+    'cinture', 'ceintures', 'cinturones', 'sunglasses', 'sonnenbrillen', 'occhiali', 'lunettes', 'gafas'],
   vintage: ['vintage', 'second hand', 'secondhand', 'second-hand', 'friperie', 'fripes', 'thrift', 'consignment', 'pre-owned', 'preowned',
     'pre-loved', 'usato', 'seconda mano', 'depot-vente', 'depot vente', 'segunda mano', 'tweedehands', 'secondhand-mode', 'gebrauchte', 'retro'],
   wholesale: ['wholesale', 'wholesaler', 'grosshandel', 'grossist', 'grossiste', 'grossista', 'ingrosso', "all'ingrosso", 'mayorista',
@@ -270,7 +304,17 @@ const TERMS = {
     'stocklots', 'stock lots', 'stock lot', 'stockservice', 'lotti stock', 'liquidation stock', 'destockage', 'handelsagentur',
     'handelsvertretung', 'showroom agency', 'fashion agency', 'modeagentur', 'importer', 'importatore', 'sourcing'],
 };
-for (const k of Object.keys(TERMS)) TERMS[k + 'Re'] = TERMS[k].map(t => new RegExp('(?<![a-z0-9])' + esc(t) + '(?![a-z0-9])'));
+/* 14 Eki 2026: Japonya / G. Kore dükkânları ("セレクトショップ" = çok markalı butik, "편집샵" aynı anlamda). normText NFD'ye
+   çevirdiği için (Hangul hecesi harflere, ブ → フ+゛ ayrışır) terimler de aynı biçime getirilir. */
+TERMS.cloth.push('select shop', 'selectshop', 'セレクトショップ', 'ファッション', 'アパレル', '洋服', 'メンズ', 'レディース', '편집샵', '셀렉트샵', '의류', '패션', '옷가게');
+TERMS.acc.push('バッグ', 'アクセサリー', '가방', '액세서리'); TERMS.shoe.push('靴', 'シューズ', '신발'); TERMS.under.push('下着', 'ランジェリー', '속옷');
+TERMS.wholesale.push('卸', '問屋', '卸売', '도매');
+for (const k of Object.keys(TERMS)) TERMS[k + 'Re'] = TERMS[k].map(t => new RegExp('(?<![a-z0-9])' + esc(normText(t)) + '(?![a-z0-9])'));
+/* 14 Eki 2026: menüde / bağlantılarda "markalar" sayfası = çok markalı dükkân kanıtı. */
+const MULTI_NAV_RE = /(?<![a-z0-9])(brands|our brands|marken|unsere marken|marques|nos marques|marche|le nostre marche|marcas|nuestras marcas|merken|onze merken|marki|znacky|maerker|marker|merkit|designers|labels|multibrand|multi-brand|multi brand|multimarca|multimarques|multimerk|multilabel)(?![a-z0-9])/;
+/* 14 Eki 2026 (operatör: "kendi markasını satanlar olmasın"): kendi koleksiyonunu / etiketini satan dükkân. */
+const CJK_MULTI = ['取扱ブランド', '取り扱いブランド', 'ブランド一覧', 'ブランド', 'セレクトショップ', '브랜드', '편집샵', '셀렉트샵'].map(t => normText(t));
+const OWN_BRAND_RE = /(?<![a-z0-9])(our own (?:brand|label|collection)|own label|own brand|our label|designed (?:by us|in our studio|in-house)|in-house (?:brand|label|design)|eigene[sn]? (?:kollektion|label|marke)|unsere eigene[n]? (?:kollektion|marke)|aus eigener (?:herstellung|produktion)|nostr[ao] (?:marchio|collezione|produzione)|propri[ao] (?:marchio|collezione|produzione)|produzione propria|notre (?:propre )?(?:marque|collection|creation)|nos creations|nuestra (?:propia )?(?:marca|coleccion)|marca propia|onze eigen (?:collectie|merk|label)|eigen (?:merk|label|collectie)|wlasna marka|nasza marka)(?![a-z0-9])/;
 
 /* Ücretsiz posta sağlayıcıları: butik gmail kullanıyorsa adres yine gerçektir. */
 const FREE_MAIL = new Set(`gmail.com googlemail.com gmx.net gmx.de gmx.com gmx.at gmx.ch web.de hotmail.com hotmail.de hotmail.fr
@@ -360,8 +404,8 @@ export function isBlockedDomain(d) {
     const t = a.replace(/[^a-z0-9]/g, ''); if (t.length >= 5 && flat.includes(t)) return 'excl:brand-site';   // markanın kendi sitesi / monobrand
   }
   if (/(outlet|wholesale|grosshandel|grossiste|ingrosso|mayorista|groothandel|hurtownia|b2b|stocklot|dropship)/.test(flat)) return 'excl:wholesale';
-  if (/(schuh|shoes|sneaker|scarpe|calzatur|chaussure|zapat|schoen|footwear|boots)/.test(flat)) return 'excl:shoes';
-  if (/(lingerie|dessous|unterwaesche|underwear|intimo|lenceria|ondergoed|bielizna|bademode|swimwear)/.test(flat)) return 'excl:underwear';
+  /* 14 Eki 2026 (operatör: "aksesuar, lüks marka satmayanlara da gönder, ayakkabı, iç çamaşırı vs."): ayakkabı ve iç çamaşırı
+     alan adları artık elenmez — 8 Eki'deki "ayakkabı, iç çamaşırı olmayacak" kuralı operatörün kendisi tarafından kaldırıldı. */
   return '';
 }
 
@@ -523,7 +567,8 @@ const LOCALE = { en: { cc: 'GB', kl: 'uk-en', sl: 'en' }, de: { cc: 'DE', kl: 'd
   fr: { cc: 'FR', kl: 'fr-fr', sl: 'fr' }, es: { cc: 'ES', kl: 'es-es', sl: 'es' }, nl: { cc: 'NL', kl: 'nl-nl', sl: 'nl' },
   pt: { cc: 'PT', kl: 'pt-pt', sl: 'pt' }, pl: { cc: 'PL', kl: 'pl-pl', sl: 'pl' }, el: { cc: 'GR', kl: 'gr-el', sl: 'el' },
   cs: { cc: 'CZ', kl: 'cz-cs', sl: 'cs' }, da: { cc: 'DK', kl: 'dk-da', sl: 'da' }, sv: { cc: 'SE', kl: 'se-sv', sl: 'sv' },
-  nb: { cc: 'NO', kl: 'no-no', sl: 'nb' }, fi: { cc: 'FI', kl: 'fi-fi', sl: 'fi' } };
+  nb: { cc: 'NO', kl: 'no-no', sl: 'nb' }, fi: { cc: 'FI', kl: 'fi-fi', sl: 'fi' },
+  ja: { cc: 'JP', kl: 'jp-jp', sl: 'ja' }, ko: { cc: 'KR', kl: 'kr-kr', sl: 'ko' } };
 /* Şablonlar: {a} {b} {c} = marka adları. Perakende kelimesi pazar yeri/haber sonuçlarını azaltır. */
 const TEMPLATES = {
   en: ['"{a}" "{b}" boutique', '"{a}" "{b}" designer store brands', '"{a}" "{b}" "{c}" stockist'],
@@ -638,14 +683,17 @@ function classify(domain, home, pagesText, hrefsText) {
   const ident = normText([domainLabel(domain).replace(/[-_]/g, ' '), title, metaD, h1].join(' | '));
   const navN = normText(nav); const bodyN = normText(pagesText).slice(0, 400_000); const hrefN = normText(hrefsText);
   const count = (res, s) => res.reduce((n, re) => n + (re.test(s) ? 1 : 0), 0);
-  const shoeI = count(TERMS.shoeRe, ident), clothI = count(TERMS.clothRe, ident), underI = count(TERMS.underRe, ident);
-  const shoeN = count(TERMS.shoeRe, navN), clothN = count(TERMS.clothRe, navN), underN = count(TERMS.underRe, navN);
+  const shoeI = count(TERMS.shoeRe, ident), clothI = count(TERMS.clothRe, ident), underI = count(TERMS.underRe, ident), accI = count(TERMS.accRe, ident);
+  const shoeN = count(TERMS.shoeRe, navN), clothN = count(TERMS.clothRe, navN), underN = count(TERMS.underRe, navN), accN = count(TERMS.accRe, navN);
   const whI = count(TERMS.wholesaleRe, ident), whB = count(TERMS.wholesaleRe, bodyN);
 
-  const brands = { c: new Set(), s: new Set(), u: new Set() };
+  const brands = { c: new Set(), s: new Set(), u: new Set(), m: new Set() };
   const hay = bodyN + ' ' + hrefN + ' ' + navN;
   for (const b of BRANDS) if (b.re.test(hay)) brands[b.kind].add(b.name);
-  const nc = brands.c.size, ns = brands.s.size, nu = brands.u.size, tot = nc + ns + nu;
+  const nc = brands.c.size, ns = brands.s.size, nu = brands.u.size, nm = brands.m.size, tot = nc + ns + nu + nm;
+  const shopIdent = (clothI + shoeI + underI + accI + clothN + shoeN + underN + accN) > 0;   // giyim / ayakkabı / iç giyim / aksesuar dükkânı
+  const multiNav = MULTI_NAV_RE.test(navN) || MULTI_NAV_RE.test(hrefN) || MULTI_NAV_RE.test(ident) || CJK_MULTI.some(w => navN.includes(w) || ident.includes(w));
+  const ownBrand = OWN_BRAND_RE.test(ident) || OWN_BRAND_RE.test(bodyN);
 
   let reason = '';
   const identNoCloth = clothI === 0;
@@ -654,10 +702,25 @@ function classify(domain, home, pagesText, hrefsText) {
   /* 10 Eki 2026: dükkân olmayan moda yayınları (Glamcult "Independent Style Paper" lead olarak eklendi). */
   if (!reason && /(?<![a-z0-9])(magazine|rivista|revista|webzine|zeitschrift|style paper|fashion blog|modeblog|editorial|independent (?:style|fashion) (?:paper|magazine))(?![a-z0-9])/.test(ident)) reason = 'excl:media';
   if (!reason && (whI > 0 || whB >= 2)) reason = 'excl:wholesale';
-  if (!reason && ((shoeI > 0 && identNoCloth) || shoeN > clothN + 1 || (tot >= 3 && ns / tot >= 0.6))) reason = 'excl:shoes';
-  if (!reason && ((underI > 0 && identNoCloth) || underN > clothN + 1 || (tot >= 3 && nu / tot >= 0.6))) reason = 'excl:underwear';
-  if (!reason && nc < CFG.minBrands) reason = nc === 0 ? 'excl:no-brands' : 'excl:monobrand';
-  return { reason, title, brands: [...brands.c], shoeBrands: ns, underBrands: nu, signals: { shoeI, clothI, underI, shoeN, clothN, underN, whI, whB } };
+  /* 14 Eki 2026 (operatör: "aksesuar, lüks marka satmayanlara da gönder, ayakkabı, iç çamaşırı vs. — ancak kesinlikle distribütör
+     ve büyük zincir olmasın, kendi markasını satanlar da olmasın"). Ayakkabı / iç çamaşırı artık elenmez. Kabul:
+       • 2+ premium marka (eski kural, değişmedi), YA DA
+       • giyim/ayakkabı/iç giyim/aksesuar dükkânı + başkalarının markasını sattığına kanıt: toplam 2+ tanınan marka (premium,
+         ayakkabı, iç giyim, lüks olmayan), ya da menüde "Markalar / Marken / Marques…" sayfası ve en az bir tanınan marka
+         ya da açık "multibrand" ibaresi.
+     Kendi koleksiyonunu satan ("unsere eigene Kollektion", "nostra collezione", "own label") ve 2'den az tanınan markası olan
+     dükkân → excl:own-brand. Tek markalı bayi (tek marka, başka kanıt yok) → excl:monobrand. Hiç kanıt yok → excl:no-brands. */
+  const multiWord = /(?<![a-z0-9])(multibrand|multi-brand|multi brand|multimarca|multimarques|multimerk|multilabel|select shop|selectshop)(?![a-z0-9])/.test(ident + ' ' + navN)
+    || [normText('セレクトショップ'), normText('편집샵'), normText('셀렉트샵')].some(w => (ident + ' ' + navN).includes(w));
+  if (!reason && nc < CFG.minBrands) {
+    const multi = shopIdent && (tot >= 2 || (multiNav && tot >= 1) || multiWord);
+    if (ownBrand && tot < 2) reason = 'excl:own-brand';
+    else if (!multi) reason = tot === 0 ? 'excl:no-brands' : 'excl:monobrand';
+  }
+  const kind = (shoeI + shoeN > clothI + clothN && shoeI + shoeN >= underI + underN) ? 'shoes'
+    : (underI + underN > clothI + clothN) ? 'underwear' : (accI + accN > clothI + clothN) ? 'accessories' : 'fashion';
+  return { reason, title, brands: [...brands.c], otherBrands: [...brands.s, ...brands.u, ...brands.m], kind, shoeBrands: ns, underBrands: nu,
+    signals: { shoeI, clothI, underI, accI, shoeN, clothN, underN, accN, whI, whB, multiNav, ownBrand, tot } };
 }
 
 const mxCache = new Map();
@@ -791,20 +854,11 @@ export function osmPick(tags) {
   const name = String(tags.name || '').trim(); if (!name) return { excl: 'no_name' };
   if (tags['brand:wikidata'] || tags['operator:wikidata']) return { excl: 'excl:chain' };
   if (tags.brand && normText(tags.brand) !== normText(name)) return { excl: 'excl:chain' };
-  const cl = String(tags.clothes || '').toLowerCase();
-  if (/underwear|lingerie|nightwear|hosiery|socks|corset|swimwear/.test(cl)) return { excl: 'excl:underwear' };
-  if (/shoes|footwear/.test(cl)) return { excl: 'excl:shoes' };
   const nN = normText(name);
-  const hasCloth = TERMS.clothRe.some(re => re.test(nN));
   if (TERMS.wholesaleRe.some(re => re.test(nN))) return { excl: 'excl:wholesale' };
   if (TERMS.vintageRe.some(re => re.test(nN)) || /^(second|seconda|segunda)/.test(String(tags.second_hand || ''))) return { excl: 'excl:vintage' };
   if (String(tags.second_hand || '') === 'only') return { excl: 'excl:vintage' };
-  /* Dükkân adlarında bileşik kelime sık: "Schuhhaus", "Kinderschuhe", "Wäschestube",
-     "Calzaturificio". Ad için kelime sınırı yetmez, kök aranır. */
-  const SHOE_STEM = /(schuh|scarpe|calzatur|chaussur|zapat|footwear|sneaker|schoenen)/;
-  const UNDER_STEM = /(dessous|lingerie|unterwasche|wasche(?!rei)|intimo|lenceria|bielizn|underwear)/;
-  if (!hasCloth && (SHOE_STEM.test(nN) || TERMS.shoeRe.some(re => re.test(nN)))) return { excl: 'excl:shoes' };
-  if (!hasCloth && (UNDER_STEM.test(nN) || TERMS.underRe.some(re => re.test(nN)))) return { excl: 'excl:underwear' };
+  /* 14 Eki 2026: ayakkabıcı ve iç çamaşırı dükkânları artık elenmez (operatör kuralı değişti). */
   for (const bn of BLOCK_NAMES) if (new RegExp('(?<![a-z0-9])' + esc(normText(bn)) + '(?![a-z0-9])').test(nN)) return { excl: 'excl:chain' };
   let web = String(tags.website || tags['contact:website'] || tags.url || '').split(';')[0].trim();
   if (web && !/^https?:\/\//i.test(web)) web = 'https://' + web;
@@ -826,7 +880,7 @@ async function osmCity(country, city) {
   if (cell) {
     /* Kare: Nominatim yok; yalnız sitesi ya da e-postası etiketli dükkânlar (sitesizler zaten elenirdi, trafik boşuna). */
     const bb = cell.join(',');
-    const q = `[out:json][timeout:25];nwr["shop"~"^(clothes|boutique|fashion)$"][~"^(website|contact:website|email|contact:email)$"~"."](${bb});out tags;`;
+    const q = `[out:json][timeout:25];nwr["shop"~"^(clothes|boutique|fashion|shoes|bag|leather|fashion_accessories)$"][~"^(website|contact:website|email|contact:email)$"~"."](${bb});out tags;`;
     return osmQuery([q], 30000);
   }
   await nominatimSlot();
@@ -838,7 +892,7 @@ async function osmCity(country, city) {
     if (hit) { if (hit.osm_type === 'relation') areaId = 3600000000 + Number(hit.osm_id); if (Array.isArray(hit.boundingbox)) bbox = hit.boundingbox.map(Number); }
   } catch { /* aşağıda hata döner */ }
   if (!areaId && !bbox) return { error: 'şehir bulunamadı (Nominatim)', rows: [] };
-  const sel = '["shop"~"^(clothes|boutique|fashion)$"]';
+  const sel = '["shop"~"^(clothes|boutique|fashion|shoes|bag|leather|fashion_accessories)$"]';   // 14 Eki: ayakkabı/çanta/aksesuar da
   const queries = [];
   if (areaId) queries.push(`[out:json][timeout:80];area(${areaId})->.a;nwr${sel}(area.a);out tags;`);   // 11 Eki: 150 → 80 sn — 504 veren büyük şehirler turu 10+ dk bekletiyordu
   if (bbox) queries.push(`[out:json][timeout:80];nwr${sel}(${bbox[0]},${bbox[2]},${bbox[1]},${bbox[3]});out tags;`);   // Nominatim bbox: [güney, kuzey, batı, doğu]
@@ -1151,6 +1205,50 @@ export function pickGridCells(state, n) {
 const COUNTRY_LANG = { Italy: 'it', France: 'fr', Spain: 'es', Netherlands: 'nl', Belgium: 'nl', Switzerland: 'de', Austria: 'de', Germany: 'de',
   Portugal: 'pt', Greece: 'el', Poland: 'pl', 'United Kingdom': 'en', Ireland: 'en', Denmark: 'da', Sweden: 'sv', Norway: 'nb', Czechia: 'cs', Finland: 'fi' };
 
+/* ============================== ODAK ÜLKELER (14 Eki 2026) ==============================
+   Operatör: "Avustralya, G. Kore, Japonya, Kanada bunları da ara". Bu ülkeler CITY_POOL'da vardı ama otomatik turlar
+   Avrupa karelerine gittiği için (kare varken şehir havuzu hiç kullanılmıyor) neredeyse hiç sıra gelmiyordu. Her turda
+   kendi imleçleriyle FOCUS_CITIES şehir (OSM) + FOCUS_QUERIES sorgu (sunucudaki Bing, ülke dilinde ve ülke koduyla). */
+export const FOCUS_TOWNS = [
+  'Australia|Sydney', 'Japan|Tokyo', 'Canada|Toronto', 'South Korea|Seoul', 'Australia|Melbourne', 'Japan|Osaka', 'Canada|Vancouver',
+  'South Korea|Busan', 'Australia|Brisbane', 'Japan|Kyoto', 'Canada|Montréal', 'South Korea|Daegu', 'Australia|Perth', 'Japan|Yokohama',
+  'Canada|Calgary', 'South Korea|Incheon', 'Australia|Adelaide', 'Japan|Nagoya', 'Canada|Ottawa', 'South Korea|Daejeon',
+  'Australia|Gold Coast', 'Japan|Fukuoka', 'Canada|Edmonton', 'South Korea|Gwangju', 'Australia|Canberra', 'Japan|Kobe',
+  'Canada|Québec', 'South Korea|Suwon', 'Australia|Newcastle', 'Japan|Sapporo', 'Canada|Winnipeg', 'South Korea|Ulsan',
+  'Australia|Hobart', 'Japan|Sendai', 'Canada|Halifax', 'South Korea|Seongnam', 'Australia|Geelong', 'Japan|Hiroshima',
+  'Canada|Victoria', 'South Korea|Jeonju', 'Australia|Sunshine Coast', 'Japan|Kanazawa', 'Canada|Kelowna', 'South Korea|Jeju',
+  'Australia|Wollongong', 'Japan|Okayama', 'Canada|Mississauga', 'South Korea|Changwon', 'Australia|Darwin', 'Japan|Shizuoka',
+  'Canada|Oakville', 'South Korea|Goyang', 'Australia|Townsville', 'Japan|Kumamoto', 'Canada|Laval', 'South Korea|Cheongju',
+  'Australia|Cairns', 'Japan|Naha', 'Canada|London', 'Australia|Toowoomba', 'Japan|Kagoshima', 'Canada|Kitchener',
+  'Australia|Ballarat', 'Japan|Matsuyama', 'Canada|Hamilton', 'Australia|Bendigo', 'Japan|Niigata', 'Canada|Saskatoon',
+  'Australia|Launceston', 'Japan|Takamatsu', 'Canada|Regina', 'Australia|Mackay', 'Japan|Utsunomiya', 'Canada|Sherbrooke',
+  'Australia|Byron Bay', 'Japan|Nara', 'Canada|Gatineau', 'Australia|Noosa', 'Japan|Kamakura', 'Canada|Whistler',
+  'Japan|Kawasaki', 'Japan|Chiba', 'Japan|Saitama', 'Japan|Hakodate', 'Japan|Nagasaki', 'Japan|Kitakyushu', 'Japan|Gifu',
+];
+const FOCUS_CC = { Australia: 'AU', Canada: 'CA', Japan: 'JP', 'South Korea': 'KR' };
+const FOCUS_FR = new Set(['Montréal', 'Québec', 'Laval', 'Sherbrooke', 'Gatineau']);
+const FOCUS_TPL = {
+  en: ['independent fashion boutique {c} brands stockist', '{c} multi-brand clothing boutique menswear womenswear'],
+  fr: ['boutique multimarques vêtements {c}', '{c} boutique mode marques homme femme'],
+  ja: ['{c} セレクトショップ 取扱ブランド', '{c} セレクトショップ メンズ レディース'],
+  ko: ['{c} 편집샵 브랜드', '{c} 셀렉트샵 의류 브랜드'],
+};
+const focusLang = (country, city) => country === 'Japan' ? 'ja' : country === 'South Korea' ? 'ko' : (country === 'Canada' && FOCUS_FR.has(city)) ? 'fr' : 'en';
+export function pickFocusCities(state, n) {
+  const out = []; const c0 = Number(state.focusCursor || 0) % FOCUS_TOWNS.length;
+  for (let k = 0; k < Math.min(n, FOCUS_TOWNS.length); k++) out.push(FOCUS_TOWNS[(c0 + k) % FOCUS_TOWNS.length]);
+  return out;
+}
+export function buildFocusQueries(state, n) {
+  const out = []; let cur = Number(state.focusQCursor || 0) % FOCUS_TOWNS.length, steps = 0;
+  while (out.length < n && steps < FOCUS_TOWNS.length) {
+    const pc = FOCUS_TOWNS[cur]; cur = (cur + 1) % FOCUS_TOWNS.length; steps++;
+    const [country, city] = pc.split('|'); const lang = focusLang(country, city);
+    for (const tpl of FOCUS_TPL[lang]) { if (out.length >= n) break; out.push({ q: tpl.replace('{c}', city), lang, cc: FOCUS_CC[country] || '', town: pc }); }
+  }
+  return { queries: out, cursor: cur };
+}
+
 /* ============================== KASABA SORGULARI (ücretsiz, 13 Eki 2026) ==============================
    Marka-çifti sorguları aynı büyük siteleri getiriyor (ikinci turda 69 adayın 58'i "seen"). Arama motorunun iyi
    olduğu şey yerel dükkân: "multimarka butik + kasaba adı", ülkenin dilinde, EURO_TOWNS + CITY_POOL üzerinden
@@ -1230,10 +1328,12 @@ async function main() {
   else {
     /* 13 Eki 2026: önceki turda Overpass'tan yanıt alamayan şehirler (state.osmRetry) bu turda ÖNCE denenir — yoksa
        imleç üzerlerinden geçer ve havuz bir tur dönene kadar (günler) bir daha bakılmazdı. */
-    const retry = Array.isArray(state.osmRetry) ? state.osmRetry.filter(c => typeof c === 'string' && (EURO_TOWNS.includes(c) || CITY_POOL.includes(c))).slice(0, 25) : [];
+    const retry = Array.isArray(state.osmRetry) ? state.osmRetry.filter(c => typeof c === 'string' && (EURO_TOWNS.includes(c) || CITY_POOL.includes(c) || FOCUS_TOWNS.includes(c))).slice(0, 25) : [];
     const grid = CFG.gridCells > 0 ? pickGridCells(state, CFG.gridCells) : [];
     const picked = grid.length ? [] : pickAutoCities(state, Math.max(CFG.placesPerRun, CFG.maxCities), CFG.euroShare);
-    cityT = [...retry, ...grid, ...picked.filter(c => !retry.includes(c))];
+    const focus = CFG.focusCities > 0 ? pickFocusCities(state, CFG.focusCities).filter(c => !retry.includes(c)) : [];
+    if (focus.length && !CFG.dryRun) state.focusCursor = (Number(state.focusCursor || 0) + focus.length) % FOCUS_TOWNS.length;
+    cityT = [...retry, ...focus, ...grid, ...picked.filter(c => !retry.includes(c) && !focus.includes(c))];
   }
   if (CFG.countries.length) cityT = cityT.filter(pc => CFG.countries.includes(COUNTRY_ISO[pc.split('|')[0].trim()] || ''));
   const osmStat = { cities: 0, shops: 0, picked: 0, errors: [] };
@@ -1247,8 +1347,11 @@ async function main() {
     /* 13 Eki 2026 (Brave iptal): aynı sorgular ÜCRETSİZ motorlarla (DuckDuckGo HTML, Bing) sunucunun IP'sinden —
        GitHub koşucularının IP'leri bu motorlarda engelli (captcha), sunucununki değil. */
     const townQ = (CFG.townQueries > 0 && autoCities) ? buildTownQueries(state, CFG.townQueries) : { queries: [], cursor: 0 };
-    const webFree = webQ.length ? [] : [...townQ.queries.map(({ q, lang }) => ({ q, lang })), ...queries.map(({ q, lang }) => ({ q, lang }))];
+    const focusQ = (CFG.focusQueries > 0 && autoCities) ? buildFocusQueries(state, CFG.focusQueries) : { queries: [], cursor: 0 };
+    /* Odak ülke sorguları başta: sunucunun süre bütçesi kesilirse kesilen Avrupa kasaba sorgularının sonu olsun. */
+    const webFree = webQ.length ? [] : [...focusQ.queries.map(({ q, lang, cc }) => ({ q, lang, cc })), ...townQ.queries.map(({ q, lang }) => ({ q, lang })), ...queries.map(({ q, lang }) => ({ q, lang }))];
     if (townQ.queries.length && !CFG.dryRun) state.townQCursor = townQ.cursor;
+    if (focusQ.queries.length && !CFG.dryRun) state.focusQCursor = focusQ.cursor;
     if (keys.brave && !CFG.braveAllowed) notes.push('Brave kapalı (operatör kararı, 13 Eki) — web araması ücretsiz motorlarla sunucudan yapıldı.');
     if (webQ.length || webFree.length || placeT.length) {
       log(`sunucu vekili: ${webQ.length} Brave + ${webFree.length} ucretsiz (ddg/bing) web sorgusu + ${placeT.length} sehir (Google Places)...`);
@@ -1346,12 +1449,16 @@ async function main() {
   /* ---- 2) ön eleme ---- */
   const todo = []; const excl = {}; const bump = (k) => { excl[k] = (excl[k] || 0) + 1; };
   const recheckDays = { no_email: 180, fail: 30 };
+  /* 14 Eki 2026 kural değişikliği: eski kuralla ayakkabı / iç çamaşırı / markasız / tek markalı diye elenen alan adları bir kez
+     yeniden incelenir (damga tarihi kural tarihinden önceyse). */
+  const POLICY_RECHECK = new Set(['excl:shoes', 'excl:underwear', 'excl:no-brands', 'excl:monobrand']); const POLICY_DATE = '2026-10-14';
   for (const [reg, meta] of cands) {
     seenRun.add(reg);
     if (known.domains.has(reg)) { bump('excl:dup'); continue; }
     const st = state.domains[reg];
     if (st) { const days = (Date.now() - Date.parse(st.t || 0)) / 86400e3; const base = String(st.s || '').split(':')[0];
-      if (!(recheckDays[base] && days > recheckDays[base])) { bump('excl:seen'); continue; } }
+      const policy = POLICY_RECHECK.has(String(st.s || '')) && String(st.t || '') < POLICY_DATE;
+      if (!policy && !(recheckDays[base] && days > recheckDays[base])) { bump('excl:seen'); continue; } }
     const b = isBlockedDomain(reg); if (b) { bump(b); if (!CFG.dryRun) state.domains[reg] = { s: b, t: new Date().toISOString().slice(0, 10) }; continue; }
     todo.push({ reg, ...meta });
   }
@@ -1434,7 +1541,7 @@ function selftest() {
   t('block farfetch sub', isBlockedDomain('www.farfetch.com') === 'excl:chain');
   t('block brand site', isBlockedDomain('dsquared2.com') === 'excl:brand-site');
   t('block outlet', isBlockedDomain('designer-outlet-shop.de') === 'excl:wholesale');
-  t('block shoe domain', isBlockedDomain('schuh-mueller.de') === 'excl:shoes');
+  t('block shoe domain (14 Eki: artık engel değil)', isBlockedDomain('schuh-mueller.de') === '');
   t('allow boutique', isBlockedDomain('mientus.com') === '');
   t('cfemail', decodeCfEmail('54393d3a3b14313c3d3a3b7a373b39') === 'mondo@mondo.com' || decodeCfEmail('54393d3a3b14313c3d3a3b7a373b39').includes('@'));
   const html = `<html lang="de"><head><title>Boutique Müller | Designer Mode &amp; Marken</title><meta property="og:site_name" content="Boutique Müller"></head>
@@ -1465,27 +1572,38 @@ function selftest() {
   t('classify target ok', c1.reason === '');
   const shoeHtml = `<title>Schuh Müller - Schuhe online kaufen</title><nav><a href="/sneaker">Sneaker</a><a href="/stiefel">Stiefel</a><a href="/pumps">Pumps</a><a href="/sandalen">Sandalen</a></nav>
   <p>Marken: Gucci Prada Balenciaga Golden Goose Hogan</p>`;
-  t('classify shoes', classify('mueller-mode.de', shoeHtml, stripTags(shoeHtml), '').reason === 'excl:shoes');
+  t('classify: ayakkabıcı artık kabul (14 Eki kuralı)', classify('mueller-mode.de', shoeHtml, stripTags(shoeHtml), '').reason === '');
   const whHtml = `<title>Fashion Stocklots Großhandel</title><p>Dsquared2 Balmain Versace B2B wholesale</p>`;
   t('classify wholesale', classify('fs-trade.com', whHtml, stripTags(whHtml), '').reason === 'excl:wholesale');
   const monoHtml = `<title>Rossi Boutique</title><p>Dsquared2 jeans und mehr</p>`;
   t('classify monobrand', classify('rossi-boutique.it', monoHtml, stripTags(monoHtml), '').reason === 'excl:monobrand');
   const lingHtml = `<title>Dessous Paradies - Lingerie &amp; Bademode</title><nav><a>BH</a><a>Slips</a><a>Nachtwäsche</a></nav><p>Chantelle Aubade Hanro Falke Wolford</p>`;
-  t('classify underwear', classify('dessous-paradies.de', lingHtml, stripTags(lingHtml), '').reason === 'excl:underwear');
+  t('classify: iç çamaşırı dükkânı artık kabul (14 Eki)', classify('dessous-paradies.de', lingHtml, stripTags(lingHtml), '').reason === '' && classify('dessous-paradies.de', lingHtml, stripTags(lingHtml), '').kind === 'underwear');
+  const nonLuxHtml = `<title>Boutique Noi Dui – Vêtements femme</title><nav><a href="/marques">Nos marques</a><a href="/robes">Robes</a></nav><p>Salsa Jeans, Molly Bracken, Desigual</p>`;
+  t('classify: lüks olmayan çok markalı butik kabul', classify('noi-dui.fr', nonLuxHtml, stripTags(nonLuxHtml), 'marques').reason === '');
+  const accHtml = `<title>Borse &amp; Accessori Bianchi</title><nav><a>Borse</a><a>Cinture</a></nav><p>Furla, Coccinelle, Liebeskind</p>`;
+  t('classify: aksesuar dükkânı (3 marka) kabul, tür accessories', classify('bianchi-borse.it', accHtml, stripTags(accHtml), '').reason === '' && classify('bianchi-borse.it', accHtml, stripTags(accHtml), '').kind === 'accessories');
+  const ownHtml = `<title>Atelier Lina – Mode</title><nav><a>Kleider</a><a>Jacken</a></nav><p>Unsere eigene Kollektion, entworfen und genäht in Berlin.</p>`;
+  t('classify: kendi markasını satan butik elenir', classify('atelier-lina.de', ownHtml, stripTags(ownHtml), '').reason === 'excl:own-brand');
+  const travelHtml = `<title>Toskana Reiseführer – Urlaub</title><nav><a>Hotels</a><a>Strände</a></nav><p>Florenz, Siena, Lucca</p>`;
+  t('classify: turizm sitesi hâlâ elenir (no-brands)', classify('toskanatour.de', travelHtml, stripTags(travelHtml), '').reason === 'excl:no-brands');
+  const distHtml = `<title>Moda Distribuzione Srl – distributore abbigliamento</title><nav><a>Marchi</a></nav><p>Liu Jo Pinko Patrizia Pepe Furla</p>`;
+  t('classify: distribütör hâlâ elenir', classify('modadistribuzione.it', distHtml, stripTags(distHtml), '').reason === 'excl:wholesale');
+  t('isBlockedDomain: ayakkabı/iç çamaşırı alan adı artık engel değil', isBlockedDomain('schuh-mueller.de') === '' && isBlockedDomain('dessous-paradies.de') === '');
   t('bing unwrap', unwrapResultUrl('https://www.bing.com/ck/a?!&&p=x&u=a1aHR0cHM6Ly9leGFtcGxlLmNvbS9wYWdl&ntb=1') === 'https://example.com/page');
   t('ddg unwrap', unwrapResultUrl('https://duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.de%2Fx&rut=1') === 'https://example.de/x');
   t('parseBing', parseBing('<li class="b_algo"><h2><a href="https://a.de/">A</a></h2></li><li class="b_algo"><div><h2><a href="https://b.it/p">B</a></h2></div></li>').join(',') === 'https://a.de/,https://b.it/p');
   t('parseDdg', parseDdg('<a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fc.fr%2F&amp;rut=abc">C</a>').join(',') === 'https://c.fr/');
   t('osm: brand:wikidata = zincir', osmPick({ name: 'H&M', 'brand:wikidata': 'Q188326', website: 'hm.com' }).excl === 'excl:chain');
   t('osm: marka etiketi adla farklı = zincir', osmPick({ name: 'Hugo Boss Store Köln', brand: 'Hugo Boss', website: 'x.de' }).excl === 'excl:chain');
-  t('osm: clothes=underwear', osmPick({ name: 'Wäsche Weber', clothes: 'women;underwear', website: 'w.de' }).excl === 'excl:underwear');
-  t('osm: ayakkabıcı adı', osmPick({ name: 'Schuhhaus Müller', website: 'schuhhaus-mueller.de' }).excl === 'excl:shoes');
+  t('osm: clothes=underwear artık geçer (14 Eki)', !osmPick({ name: 'Wäsche Weber', clothes: 'women;underwear', website: 'w.de' }).excl);
+  t('osm: ayakkabıcı adı artık geçer (14 Eki)', !osmPick({ name: 'Schuhhaus Müller', website: 'schuhhaus-mueller.de' }).excl);
   t('osm: toptancı adı', osmPick({ name: 'Moda Ingrosso Napoli', website: 'mi.it' }).excl === 'excl:wholesale');
   t('osm: zincir adı (kelime sınırı)', osmPick({ name: 'Zara', website: 'zara.com' }).excl === 'excl:chain');
   t('osm: "Mangobay Boutique" zincir DEĞİL', !osmPick({ name: 'Mangobay Boutique', website: 'mangobay.it' }).excl);
   t('osm: butik + site', osmPick({ name: 'Boutique Rossi', website: 'boutiquerossi.it' }).web === 'https://boutiquerossi.it');
   t('osm: "Mode & Schuhe Becker" giyim de sattığı için GEÇER', !osmPick({ name: 'Mode & Schuhe Becker', website: 'becker-mode.de' }).excl);
-  t('osm: "Wäschestube" iç çamaşırı', osmPick({ name: 'Wäschestube Lenz', website: 'ws-lenz.de' }).excl === 'excl:underwear');
+  t('osm: "Wäschestube" artık geçer (14 Eki)', !osmPick({ name: 'Wäschestube Lenz', website: 'ws-lenz.de' }).excl);
   t('osm: sadece facebook = site yok', osmPick({ name: 'Bella Moda', website: 'https://www.facebook.com/bellamoda' }).excl === 'no_site');
   t('osm: sitesiz ama kurumsal e-posta = alan adı site olur', osmPick({ name: 'Mode Hansen', email: 'info@mode-hansen.dk' }).web === 'https://mode-hansen.dk/');
   t('osm: sitesiz + gmail = site yok', osmPick({ name: 'Moda Lina', email: 'modalina@gmail.com' }).excl === 'no_site');
@@ -1520,6 +1638,15 @@ function selftest() {
   t('kare havuzu: 3000+ kare, tekrar yok, İtalya önce', EURO_GRID.length >= 3000 && new Set(EURO_GRID).size === EURO_GRID.length && EURO_GRID[0].startsWith('Italy|grid:'));
   { const st = { townQCursor: 3 }; const r = buildTownQueries(st, 5);
     t('kasaba sorguları: imleçten, kasaba başına 2, ülke dilinde', r.queries.length === 5 && r.queries[0].town === TOWN_SRC[3] && r.queries[0].lang === 'it' && r.queries[0].q.includes(TOWN_SRC[3].split('|')[1]) && r.cursor === 6);
+    { const fq = buildFocusQueries({}, 8);
+      t('odak ülkeler: Sydney/Tokyo/Toronto/Seul sırayla, ülke dilinde ve kodunda', fq.queries.length === 8 && fq.queries[0].town === 'Australia|Sydney' && fq.queries[0].cc === 'AU'
+        && fq.queries[2].lang === 'ja' && fq.queries[2].cc === 'JP' && fq.queries[4].cc === 'CA' && fq.queries[6].lang === 'ko' && fq.cursor === 4);
+      t('odak ülkeler: Montréal Fransızca', buildFocusQueries({ focusQCursor: FOCUS_TOWNS.indexOf('Canada|Montréal') }, 2).queries.every(q => q.lang === 'fr' && q.cc === 'CA'));
+      t('odak şehirler: imleçten, 4 ülke', new Set(pickFocusCities({}, 12).map(c => c.split('|')[0])).size === 4 && FOCUS_TOWNS.every(c => FOCUS_CC[c.split('|')[0]]));
+      const jpHtml = `<title>SELECT SHOP KAZE｜セレクトショップ</title><nav><a>取扱ブランド</a><a>メンズ</a></nav><p>Stone Island Moncler</p>`;
+      t('Japonya: セレクトショップ + 2 premium marka kabul', classify('kaze-shop.jp', jpHtml, stripTags(jpHtml), '').reason === '');
+      const krHtml = `<title>모드 편집샵</title><nav><a>브랜드</a></nav><p>Ami Paris</p>`;
+      t('G. Kore: 편집샵 + markalar sayfası + 1 marka kabul', classify('mode-shop.kr', krHtml, stripTags(krHtml), '').reason === ''); }
     t('kasaba sorguları: her dil şablonunda {c} var', Object.values(TOWN_TPL).every(a => a.length === 2 && a.every(t => t.includes('{c}')))); }
   t('kare: bbox ayrıştırma', JSON.stringify(parseGridCell('grid:45.0,9.0,45.5,9.5')) === '[45,9,45.5,9.5]' && parseGridCell('Milano') === null);
   { const st = { gridCursor: 10, gridEmpty: { [EURO_GRID[10]]: new Date().toISOString().slice(0, 10), [EURO_GRID[11]]: '2020-01-01' } };
