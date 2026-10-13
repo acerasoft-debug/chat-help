@@ -489,33 +489,38 @@ $t('kampanya gönderimi payda DURUR (kaynak)', str_contains((string)file_get_con
 $aic = (string)file_get_contents($root.'/inc/ai_campaign.php');
 $t('istek: yapılandırılmış çıktı + ret/uzunluk durumu ele alınıyor', str_contains($aic, "'json_schema'") && str_contains($aic, "'refusal'") && str_contains($aic, "'max_tokens'"));
 
-echo "\n== 8b. hedef dışı dükkân (ayakkabı / iç çamaşırı / toptancı) kampanya almaz ==\n";
+echo "\n== 8b. hedef: ayakkabı / iç çamaşırı / aksesuar artık ALIR (14 Eki); toptancı / distribütör ALMAZ ==\n";
 foreach ([['company' => 'Schuhhaus Wittstock', 'email' => 'info@schuhhauswittstock.de'], ['company' => 'CKK', 'email' => 'info@ckk-schuhe.de'],
           ['company' => 'Lederladen Berlin', 'email' => 'info@lederladen-berlin.de'], ['company' => 'Calzature Rossi', 'email' => 'a@rossi.it'],
-          ['company' => 'Maison Lingerie', 'email' => 'a@b.fr'], ['company' => 'Moda Ingrosso Srl', 'email' => 'a@b.it'],
-          ['company' => 'X', 'email' => 'a@sneakerworld.com'], ['company' => 'Wäschestube Mayer', 'email' => 'a@b.at']] as $x)
-  $t('hedef dışı: '.$x['company'], vestra_lead_off_target($x));
-foreach ([['company' => 'BLS Fashion', 'email' => 'contact@blsfashion.com', 'website' => 'https://blsfashion.com'],
+          ['company' => 'Maison Lingerie', 'email' => 'a@b.fr'], ['company' => 'X', 'email' => 'a@sneakerworld.com'],
+          ['company' => 'Wäschestube Mayer', 'email' => 'a@b.at'], ['company' => '東京シューズ', 'email' => 'a@b.jp'],
+          ['company' => 'BLS Fashion', 'email' => 'contact@blsfashion.com', 'website' => 'https://blsfashion.com'],
           ['company' => 'Minimil', 'email' => 'info@minimil.es'], ['company' => 'The Broken Arm', 'email' => 'e@the-broken-arm.com'],
           ['company' => 'Boutique Una', 'email' => 'info@una.example', 'category' => 'Boutique (multi-brand)']] as $x)
   $t('hedef: '.$x['company'], !vestra_lead_off_target($x));
-/* Distribütör / toptancı / ithalatçı / ajans — 8 dilde (operatör 11 Eki: "distribütörler ayrılıyor mu?"). */
+/* Distribütör / toptancı / ithalatçı / ajans — 8 dilde (operatör 11 Eki: "distribütörler ayrılıyor mu?"; 14 Eki: "kesinlikle distribütör olmasın"). */
 foreach ([['company' => 'Fashion Distribution GmbH', 'email' => 'a@b.de'], ['company' => 'Distribuidora Moda SL', 'email' => 'a@b.es'],
           ['company' => 'X', 'email' => 'info@groothandel-mode.nl'], ['company' => 'Atacado Fashion', 'email' => 'a@b.pt'],
           ['company' => 'Hurtownia Odzieży', 'email' => 'a@b.pl'], ['company' => 'Nordic Engros ApS', 'email' => 'a@b.dk'],
           ['company' => 'Importatore Moda', 'email' => 'a@b.it'], ['company' => 'Brand Stocklots Ltd', 'email' => 'a@b.co.uk'],
           ['company' => 'Modeagentur Weber', 'email' => 'a@b.de'], ['company' => 'Rossi Import-Export', 'email' => 'a@b.it'],
           ['company' => 'Grossiste Paris', 'email' => 'a@b.fr'], ['company' => 'Moda al por mayor', 'email' => 'a@b.es'],
-          ['company' => '東京シューズ', 'email' => 'a@b.jp'], ['company' => 'ファッション卸 大阪', 'email' => 'a@b.jp']] as $x)
+          ['company' => 'Moda Ingrosso Srl', 'email' => 'a@b.it'], ['company' => 'ファッション卸 大阪', 'email' => 'a@b.jp']] as $x)
   $t('distribütör/toptancı ayrılır: '.$x['company'], vestra_lead_off_target($x));
 foreach ([['company' => 'Showroom Boutique Milano', 'email' => 'info@showroom-boutique.it'], ['company' => 'Maison Importante', 'email' => 'a@maison.fr'],
           ['company' => 'Henry Concept Store', 'email' => 'hello@henry.example'], ['company' => 'セレクトショップ 東京', 'email' => 'info@select.jp']] as $x)
   $t('butik yanlışlıkla ayrılmaz: '.$x['company'], !vestra_lead_off_target($x));
 vestra_write_json('leads.json', [
   ['id' => 'OT1', 'company' => 'Schuhkonzept', 'email' => 'n@schuhkonzept.de', 'country' => 'Germany', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 't'],
-  ['id' => 'OT2', 'company' => 'Boutique Una', 'email' => 'info@una.example', 'country' => 'Italy', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 't2']]);
+  ['id' => 'OT2', 'company' => 'Boutique Una', 'email' => 'info@una.example', 'country' => 'Italy', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 't2'],
+  ['id' => 'OT3', 'company' => 'Moda Ingrosso Napoli', 'email' => 'info@mi-napoli.example', 'country' => 'Italy', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 't3']]);
 $otIds = array_column(array_values(vestra_finder_send_targets(50, 'all')), 'id');
-$t('gönderim listesi (tüm havuz): ayakkabı dükkânı yok, butik var', !in_array('OT1', $otIds, true) && in_array('OT2', $otIds, true));
+$t('gönderim listesi (tüm havuz): ayakkabı dükkânı ve butik var, toptancı yok', in_array('OT1', $otIds, true) && in_array('OT2', $otIds, true) && !in_array('OT3', $otIds, true));
+require_once $root.'/inc/mailbox.php';
+$t('G. Kore: konu "(광고)" ile başlar (ülke ya da .kr), diğerleri değişmez, iki kez eklenmez',
+   vestra_mailbox_subject_law('Hello', ['country' => 'South Korea']) === '(광고) Hello' && vestra_mailbox_subject_law('Hello', ['email' => 'a@shop.co.kr']) === '(광고) Hello'
+   && vestra_mailbox_subject_law('Hello', ['website' => 'https://mode.kr/']) === '(광고) Hello' && vestra_mailbox_subject_law('Hello', ['country' => 'Japan', 'email' => 'a@b.jp']) === 'Hello'
+   && vestra_mailbox_subject_law('(광고) Hello', ['country' => 'South Korea']) === '(광고) Hello');
 
 echo "\n== 8c. gönderim modu (otomatik / manuel) + alıcı havuzu — kendi sunucumuz ==\n";
 require_once $root.'/inc/mailbox.php';
@@ -806,7 +811,7 @@ $t('23:40 Avrupa: gece turu açılmaz', vestra_mailbox_nightly($nowEarly) === ''
 $nm = vestra_mailbox_nightly($nowLate);
 $rN = vestra_mailbox_runs();
 $t('23:50 Avrupa: takip isteği açılır, kip followup, sınır bugünkü kalan', $nm !== '' && count($rN) === 1 && $rN[0]['mode'] === 'followup' && $rN[0]['status'] === 'requested' && (int)$rN[0]['limit'] === vestra_mailbox_left_today());
-$t('aynı gece ikinci kez açılmaz (followup_day)', vestra_mailbox_nightly($nowLate + 600) === '' && count(vestra_mailbox_runs()) === 1 && (vestra_mailbox_cfg()['followup_day'] ?? '') === date('Y-m-d'));
+$t('aynı gece ikinci kez açılmaz (followup_day)', vestra_mailbox_nightly($nowLate + 600) === '' && count(vestra_mailbox_runs()) === 1 && (vestra_mailbox_cfg()['followup_day'] ?? '') === (new DateTimeImmutable('@'.$nowLate))->setTimezone($berlin)->format('Y-m-d'));
 $capF = []; $fmF = function ($to, $s, $b, $h, $p) use (&$capF) { $capF[] = $to; return true; };
 $reqF = vestra_mailbox_take();
 $rf = vestra_mailbox_run($reqF, ['mail' => $fmF, 'sleep' => fn($x) => null, 'dns' => fn($d) => 'ok', 'log' => fn($m) => null, 'dkim_ok' => true]);

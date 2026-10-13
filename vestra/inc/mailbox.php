@@ -381,6 +381,7 @@ function vestra_mailbox_batch(int $limit, string $campKey, array $ids = [], stri
     if ($followup && !isset($camps[$fuCamp])) continue;
     [$subject, $body, $opts, $from] = $followup ? ($camps[$fuCamp][2])($l) : $builder($l);
     $body = vestra_mailbox_with_postal((string)$body);
+    $subject = vestra_mailbox_subject_law((string)$subject, $l);
     if ($from !== '' && !$followup) $fromName = $from;
     $token = (string)($l['unsub_token'] ?? '');
     $items[] = [
@@ -392,6 +393,16 @@ function vestra_mailbox_batch(int $limit, string $campKey, array $ids = [], stri
     ];
   }
   return ['ok' => true, 'from' => $fromName, 'campaign' => $followup ? 'followup' : $campKey, 'items' => vestra_mailbox_interleave($items)];
+}
+
+/** G. Kore (14 Eki 2026, operatör "G. Kore'yi de ara"): Bilgi ve İletişim Ağı Yasası md. 50 — reklam e-postasının konusu
+ *  "(광고)" ile başlamalı. Ülke alanı ya da .kr alan adı (e-posta / site) Kore ise önek eklenir. */
+function vestra_mailbox_subject_law(string $subject, array $l): string {
+  $c = strtolower(trim((string)($l['country'] ?? '')));
+  $kr = in_array($c, ['south korea', 'korea', 'republic of korea', 'korea, republic of', 'kr', '대한민국', '한국'], true)
+     || (bool)preg_match('/\.kr$/', strtolower((string)substr((string)strrchr((string)($l['email'] ?? ''), '@'), 1)))
+     || (bool)preg_match('#^(?:https?://)?[^/]+\.kr(?:[/:]|$)#i', trim((string)($l['website'] ?? '')));
+  return ($kr && !str_starts_with($subject, '(광고)')) ? '(광고) '.$subject : $subject;
 }
 
 /** Kampanya metninde şirketin posta adresi yoksa sona ekler (CAN-SPAM / AB ticari ileti kuralı). */

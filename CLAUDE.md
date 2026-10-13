@@ -4781,6 +4781,17 @@ kaldır marca online saticisida belli olmasin türkiyeden geldigi"*).
   `takip/<kampanya>`. Kapatmak: mailbox.json `"followup": false`. Brevo tarafı: chat-help `brevo-daily.yml` — 09:12 ve
   15:12 Avrupa'da 50'şer Winter (yeni yazılmışlara), 22:45 Avrupa'da kotadan kalanla (rezerv 20) 50'lik partiler halinde
   tarama; sunucu turu ondan sonra (23:45) koşar ki aynı dükkâna ikisi birden yazmasın.
+  **14 Eki, operatör "bundan sonra aksesuar, lüks marka satmayanlara da gönder, ayakkabı, iç çamaşırı vs. — ancak
+  kesinlikle distribütör ve büyük zincir butikler olmasın, ayrıca kendi markasını satanlar da olmasın" + "Avustralya, G. Kore,
+  Japonya, Kanada bunları da ara":** 8 Eki'deki "ayakkabı, iç çamaşırı olmayacak" kuralı OPERATÖR TARAFINDAN KALDIRILDI.
+  Sunucu: `vestra_lead_off_target()` artık yalnız toptancı/distribütör/ithalatçı/ajans/stoklot (+ 卸/問屋/批发) eler;
+  zincirler ve markanın kendi mağazası `vestra_lead_is_blocked()`'ta aynen. G. Kore alıcısına konu "(광고) " ile başlar
+  (`vestra_mailbox_subject_law`, Bilgi ve İletişim Ağı Yasası md. 50); Brevo şablonu bunu yapmadığı için brevo-daily
+  G. Kore'yi hariç tutar. Bulucu (chat-help find-boutiques.mjs): excl:shoes/underwear yok; lüks olmayan çok markalı
+  dükkân kabul (2+ tanınan marka — yeni 'm' listesi —, ya da "Markalar" menüsü + 1 marka, ya da "multibrand/セレクトショップ/
+  편집샵"); kendi koleksiyonu ibaresi + <2 marka → excl:own-brand; eski kuralla elenen alan adları bir kez yeniden incelenir.
+  Odak ülkeler FOCUS_TOWNS (AU/CA/JP/KR, 86 şehir): her tur 12 şehir OSM + 40 Bing sorgusu (ja/ko/en/fr, cc ile).
+  brevo-daily: min_brands=0, ayakkabı/deri adları skip listesinden çıktı.
   **11 Eki (4), operatör "neden böyle hata e-mailleri geliyor":** support@ kutusu okundu (diag-bounce-format.yml,
   maskeli): 7 günde ~50 teslim hatası, **44'ü Çöp (Trash) klasöründe** — tarayıcı yalnız INBOX'a baktığı için hiçbiri
   işaretlenmemişti (geri dönme oranı panelde %0 görünüyordu). Asıl bulgu: **Microsoft 365 / Outlook ve Orange

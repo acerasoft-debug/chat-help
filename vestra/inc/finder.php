@@ -517,14 +517,16 @@ const VESTRA_FINDER_NOT_BUYER_SOURCES = ['amazon seller', 'ebay seller', 'otto s
  *  "Sfera.net Park Page", "Agence immobilière", dpo-google@google.com, press.us@rains.com).
  *  Bunlara mektup gitmesi support@ adresinin itibarına zarar verir — hiçbir gönderim yolu
  *  (lemlist dışa aktarımı, Brevo, GitHub posta kutusu) bunları almasın diye TEK yerde elenir. */
-/** Operatörün ilk kuralı (8 Eki 2026: "ayakkabı, iç çamaşırı, distribütör ve zincir olmayacak"): bu
- *  dükkânlara kampanya GİTMEZ. Web araması bunları zaten eliyor; eski listeden (OSM / içe aktarma) gelenlerde
- *  süzgeç yoktu — 9 Eki gönderiminde …-schuhe.de, schuhkonzept.de, aktiv-schuh.de gibi dükkânlara gitti.
- *  Firma adı, site, e-posta alan adı ve kategoriye bakar. Zincirler vestra_lead_is_blocked()'ta. */
+/** Hedef dışı: DİSTRİBÜTÖR / TOPTANCI / İTHALATÇI / AJANS — bunlara kampanya GİTMEZ (butik alıcısı değil, satıcı).
+ *  8 Eki 2026'daki ilk kural ayakkabı ve iç çamaşırı dükkânlarını da dışarıda tutuyordu; 14 Eki 2026'da operatör kuralı
+ *  değiştirdi: "bundan sonra aksesuar, lüks marka satmayanlara da gönder, ayakkabı, iç çamaşırı vs. — ancak kesinlikle
+ *  distribütör ve büyük zincir butikler olmasın, ayrıca kendi markasını satanlar da olmasın". Ayakkabı / iç çamaşırı /
+ *  deri-aksesuar artık hedef. Zincirler ve markanın kendi mağazası vestra_lead_is_blocked()'ta (blocklist + monobrand),
+ *  kendi koleksiyonunu satan dükkân bulucuda (excl:own-brand) elenir. Firma adı, site, e-posta alan adı ve kategoriye bakar. */
 function vestra_lead_off_target(array $l): bool {
   $em = strtolower((string)($l['email'] ?? '')); $dom = ($p = strrpos($em, '@')) !== false ? substr($em, $p + 1) : '';
   $hay = mb_strtolower(implode(' ', [(string)($l['company'] ?? ''), (string)($l['website'] ?? ''), $dom, (string)($l['category'] ?? '')]));
-  return (bool)preg_match('/schuh|shoe|sneaker|footwear|scarp[ae]|calzatur|chaussur|zapat|cal[cç]ad|sapat|obuv|lingerie|dessous|unterw(?:ä|ae)sche|w(?:ä|ae)schestube|intimo|intimate|underwear|bademode|swimwear|gro(?:ß|ss)handel|wholesale|grossist|ingrosso|mayorista|al por mayor|groothandel|atacad|hurtown|engros|velkoobchod|distribu|importer|importat|import-export|stocklot|handelsvertretung|modeagentur|fashion agency|showroom agency|lederhandel|lederladen|lederwaren|靴|シューズ|スニーカー|下着|ランジェリー|卸|問屋|鞋|批发|内衣/u', $hay);
+  return (bool)preg_match('/gro(?:ß|ss)handel|wholesale|grossist|ingrosso|mayorista|al por mayor|groothandel|atacad|hurtown|engros|velkoobchod|distribu|importer|importat|import-export|stocklot|handelsvertretung|modeagentur|fashion agency|showroom agency|卸|問屋|批发/u', $hay);
 }
 
 function vestra_lead_looks_dead(array $l): bool {
