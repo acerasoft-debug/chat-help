@@ -107,6 +107,12 @@ jobs:
               echo "\n== Butik arama turları (son 10) ==\n";
               foreach (array_slice(vestra_read_json('finder_runs.json'), 0, 10) as $r)
                 printf("  %-19s %-9s eklenen %-4s incelenen %-5s aday %-5s%s\n", substr((string)($r['requested_at'] ?? ''), 0, 19), (string)($r['status'] ?? ''), (string)($r['added_count'] ?? ''), (string)($r['analyzed'] ?? ''), (string)($r['candidates'] ?? ''), !empty($r['dry']) ? ' KURU' : '');
+              foreach (array_slice(vestra_read_json('finder_runs.json'), 0, 3) as $r) {
+                echo "  -- ".substr((string)($r['requested_at'] ?? ''), 0, 16)." eleme: ".json_encode($r['excl'] ?? [], JSON_UNESCAPED_UNICODE)."\n";
+                foreach ((array)($r['notes'] ?? []) as $n) echo "     not: ".mb_substr((string)$n, 0, 220)."\n";
+                $md = (string)($r['report_md'] ?? '');
+                foreach (preg_split('/\R/', $md) as $ln) if (preg_match('/aday|kaynak|sorgu|OSM|web|engel|zaman|timeout|blocked|429|403|şehir|bilinen|known|zaten/iu', $ln)) echo "     | ".mb_substr(preg_replace('/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/', '***@***', $ln), 0, 200)."\n";
+              }
             }
             PHPEOF
             php ./vestra_traffic_tmp.php 2>&1 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/***@***/g'; rm -f ./vestra_traffic_tmp.php
