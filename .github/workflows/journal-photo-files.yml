@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       files:
-        description: "Satır satır: 'File:Commons adı.jpg => art-<slug>-cover.jpg' (hedef: art-<slug>-cover|1..9 .jpg/.png/.webp)"
+        description: "Satır satır: 'File:Commons adı.jpg => art-<slug>-cover.jpg || alt metni (isteğe bağlı, ≤140)' (hedef: art-<slug>-cover|1..9 .jpg/.png/.webp)"
         required: true
         default: ""
       width:
@@ -68,8 +68,8 @@ jobs:
             $n0 = count($credits); $saved = 0; $bad = 0;
             foreach (preg_split('/[\r\n]+/', (string)getenv("IN_FILES")) as $line) {
               $line = trim($line); if ($line === '') continue;
-              if (!preg_match('/^(File:.+?)\s*=>\s*(art-[a-z0-9-]+-(?:cover|[1-9])\.(?:jpg|png|webp))$/', $line, $m)) { echo "HATA (bicim): $line\n"; $bad++; continue; }
-              [$all, $title, $target] = $m;
+              if (!preg_match('/^(File:.+?)\s*=>\s*(art-[a-z0-9-]+-(?:cover|[1-9])\.(?:jpg|png|webp))(?:\s*\|\|\s*(.+))?$/', $line, $m)) { echo "HATA (bicim): $line\n"; $bad++; continue; }
+              $title = $m[1]; $target = $m[2]; $altOwn = trim((string)($m[3] ?? ''));
               $raw = $get('https://commons.wikimedia.org/w/api.php?action=query&format=json&prop=imageinfo&iiprop=url|size|mime|extmetadata&iiurlwidth='.$w.'&titles='.rawurlencode($title));
               $pages = $raw ? (json_decode($raw, true)['query']['pages'] ?? []) : [];
               $p = $pages ? reset($pages) : null; $ii = $p['imageinfo'][0] ?? null;
@@ -78,7 +78,9 @@ jobs:
               $lic = $clean($em['LicenseShortName']['value'] ?? '');
               $artist = $clean($em['Artist']['value'] ?? '') ?: 'Wikimedia Commons';
               if (mb_strlen($artist) > 70) $artist = mb_substr($artist, 0, 70).'…';
-              $desc = mb_substr($clean($em['ImageDescription']['value'] ?? ''), 0, 140);
+              /* '|| metin' = alt metni BIZ yaziyoruz: Commons aciklamasi cogu zaman yalniz yer adi
+                 ("Gainesville, Florida") -- ekran okuyucuya fotografta ne oldugunu soylemiyor. */
+              $desc = mb_substr($altOwn !== '' ? $altOwn : $clean($em['ImageDescription']['value'] ?? ''), 0, 140);
               $date = $clean($em['DateTimeOriginal']['value'] ?? '');
               printf("%s\n   -> %s | %dx%d | %s | lisans: %s | yazar: %s | tarih: %s\n   aciklama: %s\n", $title, $target, $ii['width'] ?? 0, $ii['height'] ?? 0, $ii['mime'] ?? '?', $lic ?: '-', $artist, $date ?: '-', $desc ?: '-');
               if (!$licOk($lic)) { echo "   RED: lisans ticari kullanima uygun degil\n"; $bad++; continue; }
