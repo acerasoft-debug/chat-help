@@ -6,8 +6,9 @@ $src = file_get_contents($root.'/vestra/inc/journal.php');
 preg_match('/^function vestra_journal_photo_reject\(.*?^}/ms', $src, $m); eval($m[0]);
 $names = array_filter(array_map('trim', file(__DIR__.'/fixtures_journal_pool_names.txt')));
 $ok=0;$bad=0;$t=function($n,$c)use(&$ok,&$bad){ $c?($ok++.print("  ok   $n\n")):($bad++.print("  HATA $n\n")); };
-$a = $d[0];
-$t('ilk sirada', str_contains($a['title'], '€150 Loophole'));
+/* 13 Eki 2026: daha yeni yazi (Amazon B2B) one gecti; bu yazi artik IKINCI. */
+$a = $d[1];
+$t('ikinci sirada (yalniz daha yeni Amazon yazisinin arkasinda)', str_contains($a['title'], '€150 Loophole'));
 $t('kategori Market & Prices', $a['category'] === 'Market & Prices');
 $cov = basename($a['cover']);
 $t('kapak sunucudaki havuzda', in_array($cov, $names, true));

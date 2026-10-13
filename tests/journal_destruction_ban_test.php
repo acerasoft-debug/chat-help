@@ -33,7 +33,8 @@ $t('makale tohumda', $art !== null);
 if (!$art) { printf("\n%d gecti, %d KALDI\n",$ok,$bad); exit(1); }
 /* 6 Eki 2026: daha yeni bir yazi (150 € paket gumrugu) one gecti; bu yazi artik
    onun HEMEN ARKASINDA -- sira tarihtir, yeni yazi basa gelir. */
-$t('tohumun basinda, yalniz daha yeni yazinin arkasinda', $idx === 1);
+/* 13 Eki 2026: Amazon B2B yazisi da one gecti -- iki daha yeni yazinin arkasinda. */
+$t('tohumun basinda, yalniz daha yeni iki yazinin arkasinda', $idx === 2);
 $t('baslik tek kez', count(array_filter($d, fn($x)=>($x['title']??'')===$TITLE)) === 1);
 preg_match("/const VESTRA_JOURNAL_CATS = \[(.*?)\];/", $src, $cm);
 $t('kategori gecerli', str_contains($cm[1] ?? '', "'".$art['category']."'"));
