@@ -120,7 +120,7 @@ on:
         required: false
         default: "winter"
       member_spec:
-        description: "KAYITLI MUSTERI KIPI ayarlari (TEKLIF kampanyasinda lead kosusu da tag/pids/copy okur), boru ile: letter=winter|fp_offer|wave3|offer · tag=<teklif adi, 3-20 kucuk harf/rakam; damga offer_<tag>_at, letter=offer ve newcoll_letter=offer icin SART> · pids=<ilan id'leri, virgulle> · skip=<hesap ID / firma adi parcasi, virgulle — ADRES YAZMAYIN, girdi herkese acik> · country=<hesabin kayitli ulkesi, virgulle, TAM esleme: Deutschland,Germany,DE> · brand_orders=<marka TAM adi, virgulle: o markadan SIPARIS vermis alici ELENIR; teklif verip siparis vermeyen elenmez, yalniz sayilir> · copy=true (mektup MUSTERIYE DEGIL yalniz operator kutusuna; hicbir damga dusmez). Ornek: letter=fp_offer|skip=849aaa5ab65a0b3f|copy=true"
+        description: "KAYITLI MUSTERI KIPI ayarlari (TEKLIF kampanyasinda lead kosusu da tag/pids/copy okur), boru ile: letter=winter|fp_offer|wave3|offer · tag=<teklif adi, 3-20 kucuk harf/rakam; damga offer_<tag>_at, letter=offer ve newcoll_letter=offer icin SART> · pids=<ilan id'leri, virgulle> · skip=<hesap ID / firma adi parcasi, virgulle — ADRES YAZMAYIN, girdi herkese acik> · country=<hesabin kayitli ulkesi, virgulle, TAM esleme: Deutschland,Germany,DE> · brand_orders=<marka TAM adi, virgulle: o markadan SIPARIS vermis alici ELENIR; teklif verip siparis vermeyen elenmez, yalniz sayilir> · copy=true (mektup MUSTERIYE DEGIL yalniz operator kutusuna; hicbir damga dusmez) · order=newest (en yeni kayit once). Ornek: letter=fp_offer|skip=849aaa5ab65a0b3f|copy=true"
         required: false
         default: ""
       newcoll_min_days:
@@ -939,6 +939,14 @@ jobs:
               }
 
               $accts = auth_accounts();
+              /* order=newest (13 Eki 2026, operator: "once yeniler sonra digerleri"):
+                 en yeni kayit ONCE. Anahtarlar KORUNUR (uasort) -- asagida
+                 $accts[$i] ayni hesabi gostermeli. 50'lik kosular arka arkaya
+                 gittigi icin sira, kota yarida keserse KIMIN alacagini belirler. */
+              if (strtolower((string)($mspec['order'] ?? '')) === 'newest') {
+                uasort($accts, fn($x, $y) => strcmp((string)($y['created'] ?? ''), (string)($x['created'] ?? '')));
+                echo "sira   : en yeni kayit once\n";
+              }
               $cand = []; $skipped = 0; $skipAccHit = 0; $gateOpen = 0; $gateShut = 0; $dupHit = 0; $tooNewHit = 0; $seenMail = [];
               $countryOut = 0;
               foreach ($accts as $i => $a) {
