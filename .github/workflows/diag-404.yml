@@ -1,0 +1,70 @@
+name: (Salt-okunur) VESTRA 404 teşhisi
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Kaç günlük erişim kaydı (sunucunun tuttuğu kadar)"
+        required: false
+        default: "3"
+      sample:
+        description: "Bu yolla biten 404'lerden ornek satirlar (IP maskeli)"
+        required: false
+        default: "/null"
+
+permissions:
+  contents: read
+
+# SALT OKUNUR. Erişim kayıtlarında 404 dönen istekleri sayar: en çok istenen yollar,
+# yönlendiren (referer) siteler, tarayıcı/bot dağılımı; sayaç dosyasında /404.php kaç
+# kez görünmüş. IP adresi BASILMAZ (yalnız ilk iki oktet). Hiçbir şey yazmaz.
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 404'ler
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DAYS: ${{ github.event.inputs.days }}
+          SAMPLE: ${{ github.event.inputs.sample }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          envs: DAYS,SAMPLE
+          script: |
+            echo "== erisim kayitlari =="; ls -la $HOME/access-logs/ 2>/dev/null | head; ls -la $HOME/logs/ 2>/dev/null | head
+            F=$(ls -t $HOME/access-logs/* $HOME/logs/*access* 2>/dev/null | grep -v '\.gz$' | head -3)
+            G=$(ls -t $HOME/logs/*.gz 2>/dev/null | head -$(( ${DAYS:-3} )))
+            echo "okunan: $F $G"
+            { for f in $F; do cat "$f"; done; for g in $G; do zcat "$g" 2>/dev/null; done; } > /tmp/v404_all.log
+            echo "toplam satir: $(wc -l < /tmp/v404_all.log)"
+            awk '$9==404' /tmp/v404_all.log > /tmp/v404.log
+            echo "404 satiri: $(wc -l < /tmp/v404.log)"
+            echo "== en cok 404 alan yollar (ilk 40) =="
+            awk '{print $7}' /tmp/v404.log | sed 's/?.*//' | sort | uniq -c | sort -rn | head -40
+            echo "== yonlendiren (referer, ilk 20) =="
+            awk -F'"' '{print $4}' /tmp/v404.log | sed -E 's#^(https?://[^/]+).*#\1#' | sort | uniq -c | sort -rn | head -20
+            echo "== tarayici / bot (ilk 20) =="
+            awk -F'"' '{print $6}' /tmp/v404.log | sed -E 's/^(.{0,90}).*/\1/' | sort | uniq -c | sort -rn | head -20
+            echo "== IP blogu (ilk iki oktet, ilk 15) =="
+            awk '{split($1,a,"."); print a[1]"."a[2]".x.x"}' /tmp/v404.log | sort | uniq -c | sort -rn | head -15
+            echo "== saat dagilimi =="
+            awk '{print substr($4,2,14)}' /tmp/v404.log | sort | uniq -c | tail -24
+            if [ -n "$SAMPLE" ]; then
+              echo "== ornek: $SAMPLE (yonlendiren tam yol + ajan) =="
+              awk -v s="$SAMPLE" '{p=$7; sub(/\?.*/,"",p); if (substr(p, length(p)-length(s)+1)==s) print}' /tmp/v404.log > /tmp/v404s.log
+              echo "adet: $(wc -l < /tmp/v404s.log)"
+              awk -F'"' '{print $4}' /tmp/v404s.log | sort | uniq -c | sort -rn | head -15
+              awk -F'"' '{print $6}' /tmp/v404s.log | sort | uniq -c | sort -rn | head -6
+              head -5 /tmp/v404s.log | sed -E 's/^([0-9]+\.[0-9]+)\.[0-9]+\.[0-9]+/\1.x.x/'
+              rm -f /tmp/v404s.log
+            fi
+            rm -f /tmp/v404_all.log /tmp/v404.log
+            echo "== sayac: /404.php gunluk sayfa sayisi =="
+            for f in $(ls -t $HOME/public_html/data/visits/*.json 2>/dev/null | head -7); do
+              php -r '$d=json_decode(file_get_contents($argv[1]),true); printf("%s  hits=%d  /404.php=%d\n", basename($argv[1]), $d["hits"]??0, $d["pages"]["/404.php"]??0);' "$f"
+            done
+            echo "== sitede su an (visits_live) yol dagilimi =="
+            php -r '$f=getenv("HOME")."/public_html/data/visits_live.json"; $l=json_decode(@file_get_contents($f),true)?:[]; $c=[]; foreach($l as $v) if(time()-($v["ts"]??0)<=300) $c[$v["path"]??"?"]=($c[$v["path"]??"?"]??0)+1; arsort($c); foreach($c as $p=>$n) echo "  $n  $p\n"; echo "  toplam: ".array_sum($c)."\n";'

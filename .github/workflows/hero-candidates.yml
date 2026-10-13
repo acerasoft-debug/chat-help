@@ -1,0 +1,57 @@
+name: (Salt-okunur) Ana sayfa filmi için aday ürünler
+on:
+  workflow_dispatch:
+    inputs:
+      cats:
+        description: "Kategori/ad deseni (PCRE, harf duyarsız)"
+        required: false
+        default: "trouser|pant|jean|jogger|chino|cargo"
+      per:
+        description: "Desen başına en çok kaç satır"
+        required: false
+        default: "60"
+
+permissions:
+  contents: read
+
+# SALT OKUNUR. Canlı katalogdan (vestra_products: gizli marka/satılmış kapıları dahil)
+# kategorisi YA DA adı desene uyan ürünleri, ilk görselin yolu ve piksel ölçüsüyle
+# basar; bir de kategori sayımı. Hiçbir şey yazmaz.
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Listele
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          IN_RE: ${{ github.event.inputs.cats }}
+          IN_PER: ${{ github.event.inputs.per }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: IN_RE,IN_PER
+          script: |
+            cat > /tmp/vestra_herocand.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            $re = '/'.str_replace('/', '\/', (string)getenv("IN_RE")).'/i';
+            $per = max(1, (int)(getenv("IN_PER") ?: 60));
+            $cats = []; $n = 0;
+            foreach (vestra_products() as $p) {
+              $c = (string)($p['cat'] ?? ''); $cats[$c] = ($cats[$c] ?? 0) + 1;
+              $nm = (string)($p['name'] ?? '');
+              if (!preg_match($re, $c.' '.$nm)) continue;
+              if (function_exists('vestra_is_sold_out') && vestra_is_sold_out($p)) continue;
+              $im = !empty($p['images'][0]) ? $p['images'][0] : (function_exists('vestra_primary_image') ? vestra_primary_image($p) : '');
+              $dim = ($im && $im[0] === '/' && is_file($doc.$im)) ? @getimagesize($doc.$im) : null;
+              printf("%-26s | %-16s | %-40s | %-18s | %s | %s\n", substr((string)($p['id'] ?? ''), 0, 26), mb_substr((string)($p['brand'] ?? ''), 0, 16),
+                     mb_substr($nm, 0, 40), mb_substr($c, 0, 18), $im ?: '-', $dim ? $dim[0].'x'.$dim[1] : 'YOK');
+              if (++$n >= $per) break;
+            }
+            echo "\n== kategori sayimi ==\n"; arsort($cats); foreach ($cats as $c => $k) echo "  $c: $k\n";
+            PHPEOF
+            php /tmp/vestra_herocand.php; RC=$?; rm -f /tmp/vestra_herocand.php; exit $RC
