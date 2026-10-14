@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../inc/view.php';
 require_once __DIR__ . '/../inc/customers.php';
+require_once __DIR__ . '/_nav.php';
 
 $email = (string)($_GET['e'] ?? $_POST['e'] ?? '');
 $token = (string)($_GET['t'] ?? $_POST['t'] ?? '');
@@ -25,41 +26,29 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 }
 
-vr_layout_start(['title' => t('acc_reset_title'), 'robots' => 'noindex,nofollow']);
+vr_auth_open(t('acc_reset_title'));
 ?>
-<section class="sec">
-  <div class="wrap wrap--narrow">
-    <h1 class="sechead__t"><?= te('acc_reset_title') ?></h1>
 
     <?php if ($done): ?>
-      <div class="flash flash--ok" style="margin:20px 0"><?= te('acc_reset_ok') ?></div>
-      <a class="btn btn--brass" href="<?= h(vr_url('account/login.php')) ?>"><span><?= te('login') ?></span></a>
+      <div class="flash flash--ok accflash"><?= te('acc_reset_ok') ?></div>
+      <a class="btn btn--block" href="<?= h(vr_url('account/login.php')) ?>"><span><?= te('login') ?></span></a>
     <?php elseif ($token === ''): ?>
-      <p class="sechead__s" style="margin:14px 0 24px"><?= te('acc_reset_fail') ?></p>
+      <p class="auth__lead"><?= te('acc_reset_fail') ?></p>
       <a class="btn btn--ghost" href="<?= h(vr_url('account/forgot.php')) ?>"><span><?= te('acc_forgot_title') ?></span></a>
     <?php else: ?>
-      <p class="sechead__s" style="margin:12px 0 28px"><?= te('acc_reset_lead') ?></p>
+      <p class="auth__lead"><?= te('acc_reset_lead') ?></p>
       <?php if ($err !== ''): ?>
-        <div class="flash flash--err" style="margin-bottom:16px"><?= h($err) ?></div>
+        <div class="flash flash--err accflash"><?= h($err) ?></div>
       <?php endif; ?>
       <form class="form" method="post" action="<?= h(vr_url('account/reset.php')) ?>">
         <?= vr_csrf_field() ?>
         <input type="hidden" name="e" value="<?= h($email) ?>">
         <input type="hidden" name="t" value="<?= h($token) ?>">
+        <?php vr_pw_field('password', t('acc_pw_new'), 'new-password', true, true, 10); ?>
+        <?php vr_pw_field('password2', t('password_again'), 'new-password', false, true, 10); ?>
         <div class="field">
-          <label for="password"><?= te('acc_pw_new') ?></label>
-          <input id="password" name="password" type="password" required minlength="10" autocomplete="new-password">
-          <small><?= te('pw_too_short') ?></small>
-        </div>
-        <div class="field">
-          <label for="password2"><?= te('password_again') ?></label>
-          <input id="password2" name="password2" type="password" required minlength="10" autocomplete="new-password">
-        </div>
-        <div class="field">
-          <button class="btn btn--brass" type="submit"><span><?= te('acc_reset_cta') ?></span></button>
+          <button class="btn btn--block" type="submit"><span><?= te('acc_reset_cta') ?></span></button>
         </div>
       </form>
     <?php endif; ?>
-  </div>
-</section>
-<?php vr_layout_end(); ?>
+<?php vr_auth_close(); ?>

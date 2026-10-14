@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../inc/view.php';
 require_once __DIR__ . '/../inc/customers.php';
+require_once __DIR__ . '/_nav.php';
 require_once __DIR__ . '/../inc/mail.php';
 
 if (vr_current_customer() !== null) vr_redirect('account/index.php');
@@ -44,20 +45,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 }
 
-vr_layout_start(['title' => t('register'), 'robots' => 'noindex,nofollow']);
+vr_auth_open($done ? t('acc_register_done_t') : t('register'));
 ?>
-<section class="sec">
-  <div class="wrap wrap--narrow">
     <?php if ($done): ?>
-      <h1 class="sechead__t"><?= te('acc_register_done_t') ?></h1>
-      <p class="sechead__s" style="margin:14px 0 26px"><?= te('acc_register_done_b') ?></p>
+      <p class="auth__lead"><?= te('acc_register_done_b') ?></p>
       <a class="btn btn--ghost" href="<?= h(vr_url('account/login.php')) ?>"><span><?= te('login') ?></span></a>
     <?php else: ?>
-      <h1 class="sechead__t"><?= te('register') ?></h1>
-      <p class="sechead__s" style="margin:12px 0 28px"><?= te('acc_register_lead') ?></p>
+      <p class="auth__lead"><?= te('acc_register_lead') ?></p>
 
       <?php if ($err !== ''): ?>
-        <div class="flash flash--err" style="margin-bottom:16px"><?= h($err) ?></div>
+        <div class="flash flash--err accflash"><?= h($err) ?></div>
       <?php endif; ?>
 
       <form class="form" method="post" action="<?= h(vr_url('account/register.php')) ?>">
@@ -70,31 +67,20 @@ vr_layout_start(['title' => t('register'), 'robots' => 'noindex,nofollow']);
           <label for="email"><?= te('email') ?> <span class="req">*</span></label>
           <input id="email" name="email" type="email" required autocomplete="email" value="<?= h($in['email']) ?>">
         </div>
-        <div class="field">
-          <label for="password"><?= te('password') ?> <span class="req">*</span></label>
-          <input id="password" name="password" type="password" required minlength="10" autocomplete="new-password">
-          <small><?= te('pw_too_short') ?></small>
-        </div>
-        <div class="field">
-          <label for="password2"><?= te('password_again') ?> <span class="req">*</span></label>
-          <input id="password2" name="password2" type="password" required minlength="10" autocomplete="new-password">
-        </div>
+        <?php vr_pw_field('password', t('password'), 'new-password', true, true, 10); ?>
+        <?php vr_pw_field('password2', t('password_again'), 'new-password', false, true, 10); ?>
 
-        <p style="font-size:12.5px;color:var(--muted)">
+        <p class="auth__fine">
           <?= te('acc_register_note') ?>
           <a class="link" href="<?= h(vr_url('legal/datenschutz.php')) ?>"><?= te('legal_privacy') ?></a>
         </p>
 
         <div class="field">
-          <button class="btn btn--brass" type="submit"><span><?= te('register') ?></span></button>
+          <button class="btn btn--block" type="submit"><span><?= te('register') ?></span></button>
         </div>
       </form>
 
-      <p style="margin-top:22px;font-size:13px;color:var(--muted)">
-        <?= te('have_account') ?>
-        <a class="link" href="<?= h(vr_url('account/login.php')) ?>"><?= te('login') ?></a>
-      </p>
+      <div class="auth__or"><span><?= te('have_account') ?></span></div>
+      <a class="btn btn--ghost btn--block" href="<?= h(vr_url('account/login.php')) ?>"><span><?= te('login') ?></span></a>
     <?php endif; ?>
-  </div>
-</section>
-<?php vr_layout_end(); ?>
+<?php vr_auth_close(); ?>

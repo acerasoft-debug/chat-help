@@ -77,11 +77,34 @@ function vr_wish_toggle(string $id): bool
     if ($pos === false) {
         array_unshift($ids, $id);
         vr_list_write(VR_WISH_COOKIE, $ids);
+        vr_wish_save_account($ids);
         return true;
     }
     unset($ids[$pos]);
     vr_list_write(VR_WISH_COOKIE, array_values($ids));
+    vr_wish_save_account(array_values($ids));
     return false;
+}
+
+/**
+ * Merkliste hesapta da duruyor (müşteri kaydında "wish"): girişli müşteri
+ * telefonda kalbe dokununca masaüstünde de görüyor. Girişsiz ziyaretçide
+ * hiçbir şey değişmez — liste yalnız çerezde.
+ */
+function vr_wish_save_account(array $ids): void
+{
+    if (!function_exists('vr_current_customer')) return;
+    $me = vr_current_customer();
+    if ($me) vr_customer_update((string)$me['id'], ['wish' => array_slice(array_values(array_unique($ids)), 0, VR_WISH_MAX)]);
+}
+
+/** Girişte: bu cihazın listesi + hesaptaki liste, ikisine de yazılır. */
+function vr_wish_merge_account(array $me): void
+{
+    $ids = array_values(array_unique(array_merge(vr_wish_ids(), array_filter((array)($me['wish'] ?? []), 'is_string'))));
+    $ids = array_slice($ids, 0, VR_WISH_MAX);
+    vr_list_write(VR_WISH_COOKIE, $ids);
+    vr_customer_update((string)$me['id'], ['wish' => $ids]);
 }
 
 /** Listedeki ürünler (artık katalogda olmayanlar sessizce düşer). */

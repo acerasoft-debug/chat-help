@@ -5,6 +5,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../inc/view.php';
 require_once __DIR__ . '/../inc/customers.php';
+require_once __DIR__ . '/_nav.php';
+require_once __DIR__ . '/../inc/lists.php';
 
 if (vr_current_customer() !== null) vr_redirect('account/index.php');
 
@@ -15,19 +17,22 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     vr_csrf_check();
     $email = trim((string)($_POST['email'] ?? ''));
     [$ok, $key] = vr_customer_login($email, (string)($_POST['password'] ?? ''));
-    if ($ok) vr_redirect('account/index.php');
+    if ($ok) {
+        // Bu cihazın merklistesi hesaptakiyle birleşir; hesabın dil tercihi
+        // siteye geçer.
+        $me = vr_current_customer();
+        if ($me) vr_wish_merge_account($me);
+        $ln = (string)($me['lang'] ?? '');
+        vr_redirect('account/index.php', $ln !== '' ? ['lang' => $ln] : []);
+    }
     $err = t($key);
 }
 
-vr_layout_start(['title' => t('login'), 'robots' => 'noindex,nofollow']);
+vr_auth_open(t('login'), t('acc_login_lead'));
 ?>
-<section class="sec">
-  <div class="wrap wrap--narrow">
-    <h1 class="sechead__t"><?= te('login') ?></h1>
-    <p class="sechead__s" style="margin:12px 0 28px"><?= te('acc_login_lead') ?></p>
 
     <?php if ($err !== ''): ?>
-      <div class="flash flash--err" style="margin-bottom:16px"><?= h($err) ?></div>
+      <div class="flash flash--err accflash"><?= h($err) ?></div>
     <?php endif; ?>
 
     <form class="form" method="post" action="<?= h(vr_url('account/login.php')) ?>">
@@ -36,27 +41,19 @@ vr_layout_start(['title' => t('login'), 'robots' => 'noindex,nofollow']);
         <label for="email"><?= te('email') ?></label>
         <input id="email" name="email" type="email" required autocomplete="email" value="<?= h($email) ?>">
       </div>
+      <?php vr_pw_field('password', t('password'), 'current-password'); ?>
       <div class="field">
-        <label for="password"><?= te('password') ?></label>
-        <input id="password" name="password" type="password" required autocomplete="current-password">
-      </div>
-      <div class="field">
-        <button class="btn btn--brass" type="submit"><span><?= te('login') ?></span></button>
+        <button class="btn btn--block" type="submit"><span><?= te('login') ?></span></button>
       </div>
     </form>
 
-    <p style="margin-top:20px;font-size:13px;color:var(--muted)">
-      <a class="link" href="<?= h(vr_url('account/forgot.php')) ?>"><?= te('acc_forgot_link') ?></a>
-    </p>
-    <p style="margin-top:8px;font-size:13px;color:var(--muted)">
-      <?= te('acc_no_account') ?>
-      <a class="link" href="<?= h(vr_url('account/register.php')) ?>"><?= te('register') ?></a>
-    </p>
-    <hr class="rule" style="margin:26px 0">
-    <p style="font-size:12.5px;color:var(--muted)">
+    <p class="auth__forgot"><a class="link" href="<?= h(vr_url('account/forgot.php')) ?>"><?= te('acc_forgot_link') ?></a></p>
+
+    <div class="auth__or"><span><?= te('acc_no_account') ?></span></div>
+    <a class="btn btn--ghost btn--block" href="<?= h(vr_url('account/register.php')) ?>"><span><?= te('acc_create') ?></span></a>
+
+    <p class="auth__fine">
       <?= te('acc_guest_track') ?>
       <a class="link" href="<?= h(vr_url('order.php')) ?>"><?= te('order_status') ?></a>
     </p>
-  </div>
-</section>
-<?php vr_layout_end(); ?>
+<?php vr_auth_close(); ?>

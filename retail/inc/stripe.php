@@ -230,6 +230,9 @@ function vr_stripe_create_checkout(array $order): array
         // ikisi aynı süreyi paylaşsın diye oturumun ömrünü sınırlıyoruz.
         'expires_at' => time() + 30 * 60,
         'billing_address_collection' => 'required',
+        // Girişli müşteride e-posta ödeme sayfasında hazır gelir.
+        'customer_email' => (function_exists('vr_current_customer') && ($vc = vr_current_customer()) && !empty($vc['verified']))
+                            ? (string)$vc['email'] : null,
         'metadata' => [
             'order_id'    => $order['id'],
             'order_token' => $order['token'],

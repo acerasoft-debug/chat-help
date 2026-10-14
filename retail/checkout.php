@@ -19,6 +19,11 @@ require_once __DIR__ . '/inc/orders.php';
 
 $allowed = vr_shipping_countries();
 $country = strtoupper(trim((string)($_POST['country'] ?? $_GET['country'] ?? '')));
+// Girişli müşteride hesaptaki teslimat ülkesi önceden seçili gelir.
+if ($country === '') {
+    require_once __DIR__ . '/inc/customers.php';
+    $country = strtoupper((string)(vr_current_customer()['address']['country'] ?? ''));
+}
 if (!in_array($country, $allowed, true)) $country = 'DE';
 
 $t = vr_cart_totals($country);

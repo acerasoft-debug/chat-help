@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/inc/view.php';
 require_once __DIR__ . '/inc/lists.php';
+require_once __DIR__ . '/inc/customers.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     vr_csrf_check();

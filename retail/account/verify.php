@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../inc/view.php';
 require_once __DIR__ . '/../inc/customers.php';
+require_once __DIR__ . '/_nav.php';
 require_once __DIR__ . '/../inc/mail.php';
 require_once __DIR__ . '/../inc/vouchers.php';
 
@@ -48,15 +49,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
     }
 }
 
-vr_layout_start(['title' => t('acc_verify_title'), 'robots' => 'noindex,nofollow']);
+vr_auth_open(t('acc_verify_title'));
 $me = vr_current_customer();
 ?>
-<section class="sec">
-  <div class="wrap wrap--narrow">
-    <h1 class="sechead__t"><?= te('acc_verify_title') ?></h1>
 
     <?php if ($state === 'ok'): ?>
-      <div class="flash flash--ok" style="margin:20px 0"><?= te('acc_verify_ok') ?></div>
+      <div class="flash flash--ok accflash"><?= te('acc_verify_ok') ?></div>
       <?php if ($welcome !== ''): ?>
         <div class="panel" style="border-top:0;padding-top:0;margin-bottom:24px">
           <h2><?= te('vou_welcome_title') ?></h2>
@@ -64,21 +62,19 @@ $me = vr_current_customer();
           <p class="vou__code"><?= h($welcome) ?></p>
         </div>
       <?php endif; ?>
-      <a class="btn btn--brass" href="<?= h(vr_url('account/orders.php')) ?>"><span><?= te('acc_nav_orders') ?></span></a>
+      <a class="btn btn--block" href="<?= h(vr_url('account/orders.php')) ?>"><span><?= te('acc_nav_orders') ?></span></a>
     <?php elseif ($state === 'sent'): ?>
-      <div class="flash flash--ok" style="margin:20px 0"><?= te('acc_verify_sent') ?></div>
+      <div class="flash flash--ok accflash"><?= te('acc_verify_sent') ?></div>
     <?php else: ?>
-      <p class="sechead__s" style="margin:14px 0 24px"><?= te('acc_verify_fail') ?></p>
+      <p class="auth__lead"><?= te('acc_verify_fail') ?></p>
       <?php if ($me !== null): ?>
         <form method="post" action="<?= h(vr_url('account/verify.php')) ?>">
           <?= vr_csrf_field() ?>
           <input type="hidden" name="action" value="resend">
-          <button class="btn btn--brass" type="submit"><span><?= te('acc_verify_resend') ?></span></button>
+          <button class="btn btn--block" type="submit"><span><?= te('acc_verify_resend') ?></span></button>
         </form>
       <?php else: ?>
         <a class="btn btn--ghost" href="<?= h(vr_url('account/login.php')) ?>"><span><?= te('login') ?></span></a>
       <?php endif; ?>
     <?php endif; ?>
-  </div>
-</section>
-<?php vr_layout_end(); ?>
+<?php vr_auth_close(); ?>

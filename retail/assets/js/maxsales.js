@@ -198,6 +198,40 @@
     setInterval(tick, 1000);
   }
 
+  /* ---------------------------------------------------------- hesap formları
+     Şifre göster/gizle, yeni şifrede güç çubuğu (uzunluk + karakter çeşidi;
+     sunucu yine yalnız en az 10 karakter şartı arıyor) ve "fatura adresi
+     teslimatla aynı" anahtarı. */
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-pw-toggle]');
+    if (!b) return;
+    var inp = document.getElementById(b.getAttribute('aria-controls'));
+    if (!inp) return;
+    var show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    b.textContent = b.getAttribute(show ? 'data-pw-hide' : 'data-pw-show');
+  });
+  document.querySelectorAll('[data-pw-meter]').forEach(function (inp) {
+    var field = inp.closest('.field');
+    var bar = field && field.querySelector('.pwmeter');
+    var txt = field && field.querySelector('.pwmeter__t');
+    if (!bar || !txt) return;
+    var rate = function () {
+      var v = inp.value, kinds = 0;
+      [/[a-z]/, /[A-Z]/, /[0-9]/, /[^A-Za-z0-9]/].forEach(function (r) { if (r.test(v)) kinds++; });
+      var l = v.length < 10 ? 0 : (v.length >= 14 && kinds >= 3 ? 3 : (kinds >= 2 ? 2 : 1));
+      bar.setAttribute('data-l', l);
+      bar.firstElementChild.style.width = (v.length === 0 ? 0 : [18, 40, 70, 100][l]) + '%';
+      txt.textContent = txt.getAttribute('data-l' + l);
+    };
+    inp.addEventListener('input', rate);
+  });
+  document.querySelectorAll('[data-toggle-target]').forEach(function (cb) {
+    var tgt = document.querySelector(cb.getAttribute('data-toggle-target'));
+    if (!tgt) return;
+    cb.addEventListener('change', function () { tgt.hidden = cb.checked; });
+  });
+
   /* ------------------------------------------------- 48 saatlik fırsat sayacı
      Bitiş anı sunucudan (data-deal-end, Unix saniye). Değişen rakam kısa bir
      kayışla yenileniyor. Süre dolunca sayfa bir kez tazeleniyor: indirim de
