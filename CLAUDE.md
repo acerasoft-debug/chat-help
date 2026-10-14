@@ -12601,3 +12601,15 @@ seller hesap yap"*). Adres açık girdiye YAZILMAZ: payload = `scripts/envelope_
 (kimden/kime/ne zaman/operator:workflow); sipariş, belge, KYB olduğu gibi kalır; satıcıya geçerken `membership_status`
 yoksa 'none'. Hesabın açık oturumları kapatılır (`$_SESSION['utype']` girişte yazılıyor). Varsayılan kuru koşu, geri okuma.
 İlk kullanım: hesap `7d68b8778cd3884c` (Francisco Javier Nicolas Macanas, İspanya, aktif/onaylı, 0 sipariş) buyer → seller.
+
+**14 Eki 2026 — Şifre sıfırlama: gönderildi + iki yol ölçüldü** (operatör: *"Hemen gönder ve adminden ve müşterinin
+kendisi yenileme kullanabiliyormu kontrol et"*). Hesap `7d68b8778cd3884c`: `password_setup` + move_apply → jeton 1 saat,
+Brevo **delivered** 20:41 (aynı mektup 17 Eyl'de 2× delivered, 18 Eyl opened — yani daha önce de gitmişti).
+- **Müşteri yolu** (`/forgot` → `/reset?token` → `/login`) kum havuzunda uçtan uca: jeton üretilir, kötü jeton reddedilir,
+  yeni şifre yazılır, jeton TEK kullanımlık (ikinci açışta "invalid or expired", kayıttan silinir), eski şifre "incorrect",
+  yeni şifre → 302 /seller. IP başına 15 dk'da 8 istek sınırı var; aşılınca yeşil "yolda" bandı YİNE basılır ama mektup
+  gitmez (error_log'a düşer) — kendi akışını test eden operatör buna takılabilir.
+- **Admin yolu**: Admin ▸ Accounts ▸ `🔑 Reset pw` (`act=reset_password`, admin.php:1378/4054): rastgele geçici şifre
+  üretir, `auth_set_password` ile yazar, BİR KEZ ekranda gösterir — mektup göndermez, operatör müşteriye kendi iletir.
+  Mektuplu yol yalnız iş akışındaki `password_setup`.
+- Canlı: `/forgot` formu, `/reset` reddi, `/login` 200 (`shot-vestra` tag=reset).
