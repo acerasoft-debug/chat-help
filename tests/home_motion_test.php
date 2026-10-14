@@ -30,5 +30,7 @@ $t('"hareketi azalt": açılış, ışık, kart ışığı kapalı; spot gizli',
 $t('JS de "hareketi azalt"ı dinliyor ve hata tüm sayfayı düşürmesin diye try içinde',
    (bool)preg_match("/try\\{\\s*var rmM = window\\.matchMedia && matchMedia\\('\\(prefers-reduced-motion: reduce\\)'\\)\\.matches;/", $src));
 $t('PHP sözdizimi', str_contains((string)shell_exec('php -l '.escapeshellarg(__DIR__.'/../vestra/index.php').' 2>&1'), 'No syntax errors'));
+/* 14 Eki 2026 (diag-pwa): uygulama en çok ana sayfadan kurulur; manifest dile göre olmalı (inc/head.php ile aynı adres). */
+$t('ana sayfa: uygulama manifesti dile göre (/manifest?lang=), sabit site.webmanifest değil', str_contains($src, '<link rel="manifest" href="/manifest?lang=<?= vlang() ?>">') && !str_contains($src, 'href="/site.webmanifest"'));
 echo "\nTOPLAM: {$ok} gecti, {$bad} kaldi\n";
 exit($bad ? 1 : 0);
