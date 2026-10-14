@@ -23,7 +23,8 @@ $root = dirname(__DIR__).'/vestra';
 $sand = sys_get_temp_dir().'/vestra_finder_'.bin2hex(random_bytes(4));
 @mkdir($sand.'/data', 0775, true);
 define('VESTRA_DATA_DIR', $sand.'/data');
-define('VESTRA_FINDER_ON', true);   // web araması 8 Eki'de kapatıldı; kapı mantığı yine de sınanır
+define('VESTRA_FINDER_ON', true);
+define('VESTRA_SEND_PAUSED_OVERRIDE', []);   // eski bölümlerin Alman örnek dükkânları; durdurma kuralı 8m'de ayrıca sınanır   // web araması 8 Eki'de kapatıldı; kapı mantığı yine de sınanır
 require $root.'/inc/products.php';
 require_once $root.'/inc/finder.php';
 
@@ -830,6 +831,26 @@ $t('followup=false ile gece turu kapalı', vestra_mailbox_nightly($nowLate) === 
 $t('cron: gece turu otomatik istekten sonra, isteği almadan önce', strpos($cm0 = (string)file_get_contents($root.'/cron_mailbox.php'), 'vestra_mailbox_nightly()') !== false
    && strpos($cm0, 'vestra_mailbox_nightly()') > strpos($cm0, 'vestra_mailbox_auto_catchup()') && strpos($cm0, 'vestra_mailbox_nightly()') < strpos($cm0, '$req = vestra_mailbox_take();'));
 @unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json'); vestra_write_json('leads.json', []);
+echo "\n== 8m. RTL olayı (14 Eki): moda dükkânı olmayan hiçbir yere gitmez; Almanya şimdilik durduruldu ==\n";
+foreach ([['company' => 'rtl.de', 'email' => 'info@rtl.de', 'website' => 'https://www.rtl.de'], ['company' => 'Kölner Stadt-Anzeiger', 'email' => 'ksta@ksta.de'],
+          ['company' => 'Belfort Tourisme -', 'email' => 'accueil@belfort-tourisme.com'], ['company' => 'Süddeutsche.de', 'email' => 'kontakt@sueddeutsche.de'],
+          ['company' => 'manager magazin', 'email' => 'kundenservice@manager-magazin.de'], ['company' => 'www.wp.pl', 'email' => 'kontakt@pomoc.wp.pl'],
+          ['company' => 'Kering', 'email' => 'contact@kering.com'], ['company' => 'size?', 'email' => 'shop@size.ca'], ['company' => 'Gémo', 'email' => 'x@gemo.fr'],
+          ['company' => 'Dagdas Projects Ihr Behördenausrüster', 'email' => 'info@dagdas.de'], ['company' => 'Feinbier unterwegs', 'email' => 'a@feinbier-unterwegs.de'],
+          ['company' => 'Mister Safety Shoes', 'email' => 'a@mistersafetyshoes.com'], ['company' => 'NK Diffusion', 'email' => 'contact@nkdiffusion.fr'],
+          ['company' => 'Boutique X', 'email' => 'zuschauerservice@example-media.com'], ['company' => 'Czech Tourist', 'email' => 'czechtourist@gmx.de']] as $x)
+  $t('moda dükkânı değil → gönderilmez: '.$x['company'], vestra_lead_off_target($x));
+foreach ([['company' => 'Venus Lingerie', 'email' => 'info@venuslingerie.ca'], ['company' => 'Maroquinerie du Sud', 'email' => 'a@maroquineriedusud.com'],
+          ['company' => 'Tendance Chaussures', 'email' => 'a@tendancechaussures.com'], ['company' => 'Rays Locker', 'email' => 'a@rayslocker.com.au'],
+          ['company' => 'Oh Carol', 'email' => 'a@ohcarolhossegor.com'], ['company' => 'The Baggage Factory', 'email' => 'sales@baggagefactory.co.uk'],
+          ['company' => 'Hutsalon Bollmann', 'email' => 'a@meinhut.de'], ['company' => 'Newstyle Boutique', 'email' => 'info@newstyle-boutique.fr']] as $x)
+  $t('gerçek moda/aksesuar dükkânı geçer: '.$x['company'], !vestra_lead_off_target($x));
+$t('Almanya durduruldu: ülke alanı, .de e-posta, .de site', vestra_lead_send_paused(['country' => 'Germany'], ['Germany']) && vestra_lead_send_paused(['country' => 'Deutschland'], ['Germany'])
+   && vestra_lead_send_paused(['country' => '', 'email' => 'a@shop.de'], ['Germany']) && vestra_lead_send_paused(['website' => 'https://www.mode-x.de/'], ['Germany']));
+$t('diğer ülkeler ve boş liste etkilenmez', !vestra_lead_send_paused(['country' => 'France', 'email' => 'a@b.fr'], ['Germany']) && !vestra_lead_send_paused(['country' => 'Germany'], []));
+$t('varsayılan durdurma listesi: Almanya', VESTRA_SEND_PAUSED_DEFAULT === ['Germany']);
+$mbs = (string)file_get_contents($root.'/inc/mailbox.php');
+$t('her mektuptan hemen önce son kontrol (hariç tutulan / durdurulan ülke) — kurulmuş parti de durur', str_contains($mbs, "if (!vestra_mailbox_still_sendable((string)\$it['leadId'], (string)\$it['email'])) {"));
 echo "\n== 8j. otomatik: günde 500'e kadar bul + kesintisiz gönder ==\n";
 $t('turlar 3 saatte bir (8 tur), find-customers.yml ile aynı', count(VESTRA_FINDER_SLOTS) === 8 && VESTRA_FINDER_SLOTS[0] === [1, 20] && VESTRA_FINDER_SLOTS[7] === [22, 20] && VESTRA_FINDER_DAILY_TARGET === 500);
 $fl = [];

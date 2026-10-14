@@ -12636,3 +12636,20 @@ Brevo **delivered** 20:41 (aynı mektup 17 Eyl'de 2× delivered, 18 Eyl opened �
   moq ve min lot'un katı olmak zorunda. Saat uygulama anında başlar (`days`), `until=` ile sabit de verilir.
 - İlk kullanım: Lacoste Fleece Hoodie €35 / Zip Up Fleece Hoodie €39.90 (moq 56→60) / Fleece Crew
   Neck Sweatshirt €29.90 — hepsi 10'lu lot, min 100, 3 gün. Test: `tests/aktion_test.php`.
+
+**14 Eki 2026 — RTL OLAYI: moda dükkânı olmayan yerlere gönderim; acil durdurma + kalıcı süzgeç; Almanya durduruldu**
+(operatör: *"Ihr RTL Zuschauerservice — buraya bile e-mail atmışsın, acil düzelt. Giden yerler sadece moda, aksesuar;
+distribütör yok; gerçek e-mailler, uydurma yok; Alman e-mailleri de şu an için yok"*).
+- Ölçüm (diag-recent-sends): 14 Eki'de 500 mektup; 225'i aynı gün gevşetilen kuraldan (lüks markasız) geçmiş. Elle okundu:
+  32 alıcı moda dükkânı DEĞİL — haber/medya (RTL, Kölner Stadt-Anzeiger, Süddeutsche, Berliner Morgenpost, BUNTE, News.de,
+  manager magazin, wp.pl: haber metninde marka adı geçtiği için ESKİ kuraldan da geçiyorlardı), turizm (Belfort/Ajaccio
+  Tourisme, Yorkshire.com, Czech Tourist, We Are Roermond), kurum/zincir (Kering, size?, Gémo, Merkal, Tape à l'oeil, Factory
+  Shoe, Pro:Direct, Mister Safety Shoes), distribütör (NK Diffusion), ilgisiz (itfaiye malzemesi, bira, motosiklet, tıbbi forma,
+  ortopedi, kostüm, av). Adresler sitelerde gerçekten yayımlanmış adreslerdi (uydurma değil) — sorun HEDEF seçimi.
+- Acil: chat-help `mailbox-pause.yml` (otomatik + gece takip KAPALI, 21:42 UTC, gece turundan 3 dk önce);
+  `leads-exclude.yml` ile 34 alan adının 35 kaydı kalıcı hariç (unsubscribed + not); Brevo: Almanya hariç, min_brands=1 geri.
+- Kalıcı: `vestra_lead_not_retail()` (finder.php) — medya/turizm/kurum/zincir/ilgisiz sektör kelimeleri + alan adı listesi
+  `VESTRA_NOT_RETAIL_DOMAINS` + "zuschauer/leserservice/redaktion…" yerel kısımları; `vestra_lead_off_target()` onu çağırır
+  (sunucu partisi, gece takip, ids yolu). `vestra_lead_send_paused()`: mailbox.json `paused_countries` (varsayılan
+  ['Germany']; ülke alanı ya da .de alan adı). Her mektuptan HEMEN önce `vestra_mailbox_still_sendable()` — kurulmuş parti de
+  durur. Testler finder_test 8m (+25). Gönderim yeniden AÇIK DEĞİL: bulucu düzeltmesi + önizleme sonrası açılacak.

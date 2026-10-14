@@ -352,7 +352,8 @@ function vestra_mailbox_batch(int $limit, string $campKey, array $ids = [], stri
       if (trim((string)($l['last_contacted_at'] ?? '')) !== '' && (string)($l['contact_via'] ?? '') !== 'lemlist') continue;
       $e = vestra_email_clean((string)($l['email'] ?? ''));
       if (!filter_var($e, FILTER_VALIDATE_EMAIL) || isset($seen[$e])) continue;
-      if (vestra_email_is_junk($e) || vestra_lead_looks_dead($l) || vestra_lead_off_target($l)) continue;
+      if (vestra_email_is_junk($e) || vestra_lead_looks_dead($l) || vestra_lead_off_target($l) || vestra_lead_send_paused($l)) continue;
+      if (function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) continue;
       $seen[$e] = true; $targets[$i] = $l;
     }
   } else {
@@ -477,6 +478,7 @@ function vestra_mailbox_followup_targets(int $limit, ?array $leads = null, ?int 
     $e = vestra_email_clean((string)($l['email'] ?? ''));
     if (!filter_var($e, FILTER_VALIDATE_EMAIL) || vestra_email_is_junk($e)) continue;
     if ((function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) || vestra_lead_looks_dead($l) || vestra_lead_off_target($l)) continue;
+    if (vestra_lead_send_paused($l)) continue;   // 14 Eki 2026: Almanya şimdilik durduruldu
     $lt = vestra_lead_letters($l);
     if ($lt['last'] <= 0 || max($lt['last'], $lastByEmail[$e] ?? 0) > $cut) continue;
     $next = vestra_mailbox_followup_next($lt['camps'], $camps);
@@ -492,6 +494,20 @@ function vestra_mailbox_followup_targets(int $limit, ?array $leads = null, ?int 
     $l = $leads[$c['i']]; $l['_followup'] = $c['camp']; $out[$c['i']] = $l;
   }
   return $out;
+}
+
+/** Her gönderimden hemen önce: kayıt hâlâ var, çıkmamış, hedef içinde ve ülkesi durdurulmamış mı? (TEST adresi hariç) */
+function vestra_mailbox_still_sendable(string $leadId, string $email): bool {
+  if ($leadId === '' || $leadId === 'TEST') return true;
+  require_once __DIR__.'/finder.php';
+  foreach (vestra_leads() as $l) {
+    if ((string)($l['id'] ?? '') !== $leadId) continue;
+    $st = (string)($l['status'] ?? '');
+    if ($st === 'unsubscribed' || $st === 'bounced' || !empty($l['unsubscribed'])) return false;
+    if (vestra_lead_off_target($l) || vestra_lead_send_paused($l)) return false;
+    return !(function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l));
+  }
+  return true;
 }
 
 /** Takip gönderiminden hemen önce: kayıt hâlâ takip alabilir mi (dinlenme süresi, durum)? */
@@ -745,6 +761,12 @@ function vestra_mailbox_run(array $req, array $o = []): array {
     }
     /* Takip mektubu: gönderimden HEMEN önce kayıt yeniden okunur — parti kurulduktan sonra (aynı gece) Brevo
        taraması ya da başka bir yol bu dükkâna yazdıysa ya da dükkân çıktıysa / geri döndüyse atlanır (14 Eki 2026). */
+    /* Son kontrol (14 Eki 2026, RTL olayı): parti kurulduktan sonra hariç tutulan / durdurulan ülkedeki kayda gitmez. */
+    if (!vestra_mailbox_still_sendable((string)$it['leadId'], (string)$it['email'])) {
+      $sum['deferred'] = ($sum['deferred'] ?? 0) + 1;
+      $log(sprintf('~ [%d/%d] %s atlandi: hariç tutuldu / ülke durduruldu', $k + 1, $n, vestra_mailbox_mask((string)$it['email'])));
+      continue;
+    }
     if (($it['followup'] ?? '') !== '' && !vestra_mailbox_followup_still_ok((string)$it['leadId'], $o['now'] ?? null)) {
       $sum['deferred'] = ($sum['deferred'] ?? 0) + 1;
       $log(sprintf('~ [%d/%d] %s atlandi: bu arada yazilmis / cikmis', $k + 1, $n, vestra_mailbox_mask((string)$it['email'])));

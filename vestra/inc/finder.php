@@ -526,7 +526,56 @@ const VESTRA_FINDER_NOT_BUYER_SOURCES = ['amazon seller', 'ebay seller', 'otto s
 function vestra_lead_off_target(array $l): bool {
   $em = strtolower((string)($l['email'] ?? '')); $dom = ($p = strrpos($em, '@')) !== false ? substr($em, $p + 1) : '';
   $hay = mb_strtolower(implode(' ', [(string)($l['company'] ?? ''), (string)($l['website'] ?? ''), $dom, (string)($l['category'] ?? '')]));
-  return (bool)preg_match('/gro(?:ß|ss)handel|wholesale|grossist|ingrosso|mayorista|al por mayor|groothandel|atacad|hurtown|engros|velkoobchod|distribu|importer|importat|import-export|stocklot|handelsvertretung|modeagentur|fashion agency|showroom agency|卸|問屋|批发/u', $hay);
+  if (preg_match('/gro(?:ß|ss)handel|wholesale|grossist|ingrosso|mayorista|al por mayor|groothandel|atacad|hurtown|engros|velkoobchod|distribu|diffusion|importer|importat|import-export|stocklot|handelsvertretung|modeagentur|fashion agency|showroom agency|卸|問屋|批发/u', $hay)) return true;
+  return vestra_lead_not_retail($l);
+}
+
+/** Moda / aksesuar DÜKKÂNI değil: haber-medya, turizm, kurum, belediye, zincir merkezi, ilgisiz sektör (14 Eki 2026 — operatör:
+ *  "RTL Zuschauerservice'e e-mail atmışsın, acil düzelt; giden yerler sadece moda, aksesuar"). O gün giden 500 mektubun
+ *  32'si böyleydi: RTL, Kölner Stadt-Anzeiger, Süddeutsche, Berliner Morgenpost, BUNTE, News.de, manager magazin, wp.pl,
+ *  Belfort/Ajaccio Tourisme, Yorkshire.com, Czech Tourist, We Are Roermond, Kering, size?, Gémo, Merkal, Tape à l'oeil,
+ *  Factory Shoe, Pro:Direct, Mister Safety Shoes, NK Diffusion, itfaiye malzemecisi, bira, motosiklet, tıbbi forma, ortopedi,
+ *  kostüm, av malzemesi. Bulucunun kasaba aramaları haber sitelerini getiriyor ve haber metninde marka adları geçiyor.
+ *  Firma adı + e-posta alan adı + site alan adına bakar (sunucunun son süzgeci; bulucu da aynısını eler). */
+function vestra_lead_not_retail(array $l): bool {
+  $em = strtolower((string)($l['email'] ?? '')); $ed = ($p = strrpos($em, '@')) !== false ? substr($em, $p + 1) : '';
+  $loc = $p !== false ? substr($em, 0, $p) : '';
+  $wd = strtolower(preg_replace('#^(https?://)?(www\.)?#', '', explode('/', preg_replace('#^https?://#', '', (string)($l['website'] ?? '')))[0]));
+  $co = mb_strtolower((string)($l['company'] ?? ''));
+  foreach ([$ed, $wd] as $d) {
+    if ($d === '') continue;
+    $labs = array_slice(explode('.', $d), 0, -1);   // TLD hariç bütün etiketler: pomoc.wp.pl → pomoc, wp
+    if (array_intersect($labs, VESTRA_NOT_RETAIL_DOMAINS) || in_array($d, VESTRA_NOT_RETAIL_DOMAINS, true)) return true;
+  }
+  if (preg_match('/^(zuschauer|leserservice|leserbrief|redaktion|redazione|redaction|newsdesk|abo(?:nnement)?\b|hinweis\b|einladung\b|tipps?\b|presse\b|press\b)/', $loc)) return true;
+  return (bool)preg_match('/touris|turism|tourist|office de tourisme|fremdenverkehr|stadtmarketing|city ?marketing|zeitung|anzeiger|morgenpost|tagblatt|nachrichten|\bnews\b|news\.|magazin|journal\b|\bpresse\b|verlag|rundfunk|fernseh|\btv\b|\bradio\b|mediathek|feuerwehr|behörden|gemeinde|\bmairie\b|ville de |ayuntamiento|\bcomune\b|\bhotel\b|camping|\bmuseum\b|brauerei|bier(?![a-zäöü])|weingut|immobili|versicherung|\bbank\b|safety shoes|scrubs|kostüm|costumes?\b|orthop|sanitätshaus|\barmy\b|surplus|jagd|waidmann|moto\b|motorrad/u', $co.' '.$ed.' '.$wd);
+}
+const VESTRA_NOT_RETAIL_DOMAINS = ['rtl', 'ksta', 'morgenpost', 'sueddeutsche', 'bunte', 'news', 'wp', 'manager-magazin', 'spiegel', 'bild',
+  'focus', 'welt', 'faz', 'stern', 'zeit', 'tagesschau', 'zdf', 'ard', 'n-tv', 'ntv', 'sat1', 'prosieben', 'vox', 't-online.de', 'gmx', 'web.de',
+  'kering', 'lvmh', 'yorkshire', 'gemo', 'merkal', 'taokids', 'size', 'sizeofficial', 'prodirectsport', 'fc-moto', 'mistersafetyshoes', 'factoryshoe',
+  'leparisien', 'lefigaro', 'ouest-france', 'lemonde', 'liberation', 'elle', 'vogue', 'gala', 'marieclaire', 'corriere', 'repubblica', 'elpais',
+  'abc', 'bbc', 'dailymail', 'theguardian', 'telegraph', 'independent', 'mirror', 'nieuwsblad', 'hln', 'telegraaf', 'nu', 'onet', 'interia'];
+
+/** Gönderimi şimdilik durdurulan ülkeler (14 Eki 2026, operatör: "Alman e-mailleri de şu an için yok"). mailbox.json
+ *  'paused_countries' (liste) varsa o, yoksa varsayılan. Ülke alanı ya da .de alan adı (e-posta / site) Almanya sayılır. */
+const VESTRA_SEND_PAUSED_DEFAULT = ['Germany'];
+function vestra_send_paused_countries(): array {
+  if (defined('VESTRA_SEND_PAUSED_OVERRIDE')) return (array)VESTRA_SEND_PAUSED_OVERRIDE;   // yalnız testler
+  $f = vestra_data_dir().'/mailbox.json';
+  $c = is_readable($f) ? json_decode((string)file_get_contents($f), true) : [];
+  return (is_array($c) && isset($c['paused_countries']) && is_array($c['paused_countries'])) ? array_values($c['paused_countries']) : VESTRA_SEND_PAUSED_DEFAULT;
+}
+function vestra_lead_send_paused(array $l, ?array $paused = null): bool {
+  $paused = array_map('strtolower', $paused ?? vestra_send_paused_countries());
+  if (!$paused) return false;
+  $c = strtolower(trim((string)($l['country'] ?? '')));
+  $alias = ['deutschland' => 'germany', 'de' => 'germany', 'allemagne' => 'germany', 'alemania' => 'germany', 'germania' => 'germany'];
+  if (in_array($alias[$c] ?? $c, $paused, true)) return true;
+  if (in_array('germany', $paused, true)) {
+    $em = strtolower((string)($l['email'] ?? '')); $site = strtolower((string)($l['website'] ?? ''));
+    if (preg_match('/\.de$/', $em) || preg_match('#^(?:https?://)?[^/]+\.de(?:[/:]|$)#', $site)) return true;
+  }
+  return false;
 }
 
 function vestra_lead_looks_dead(array $l): bool {
@@ -566,6 +615,7 @@ function vestra_finder_send_targets(int $limit = 1000, string $pool = 'web'): ar
     if (function_exists('vestra_email_is_junk') && vestra_email_is_junk($e)) continue;
     if (function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) continue;
     if (vestra_lead_looks_dead($l) || vestra_lead_off_target($l)) continue;
+    if (vestra_lead_send_paused($l)) continue;   // 14 Eki 2026: Almanya şimdilik durduruldu
     $seen[$e] = true; $out[$i] = $l;
   }
   return $out;
