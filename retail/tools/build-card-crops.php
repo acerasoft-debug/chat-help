@@ -194,7 +194,7 @@ function cc_plan(GdImage $src): ?array
    tişört, dikişsiz bitişik paneller): bunlarda kesim yapılmaz, kart kareyi
    olduğu gibi gösterir. data/card-crop-skip.json ile genişletilebilir. */
 $skip = array_flip(array_merge(
-    ['blc-612966tnvn4w', 'bur-8055206', 'dgn-m4a13tismd3', 'dgn-g8pb9thu7ma', 'blc-612966tlvf1', 'fashionb-lacoste-men-lightweight', 'dsq-s74lb0907'],
+    ['blc-612966tnvn4w', 'bur-8055206', 'dgn-m4a13tismd3', 'dgn-g8pb9thu7ma', 'blc-612966tlvf1', 'fashionb-lacoste-men-lightweight', 'dsq-s74lb0907', 'dgn-gy07cdg8fr4', 'dgx-gy07cd-g8fr4', 'dgx-g8pl4t-g7f2h', 'dgx-g8kbaz-g7c6', 'dgx-g8pb9t-hu7ma', 'dgn-g8qi4tfu7eqw'],
     array_map('strval', (array)vr_store_read('card-crop-skip.json', []))
 ));
 $res = []; $made = 0;
