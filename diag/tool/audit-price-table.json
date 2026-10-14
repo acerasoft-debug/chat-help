@@ -37,7 +37,7 @@
     },
     "BALENCIAGA|T-Shirts": {
         "n": 11,
-        "min": 42500,
+        "min": 32000,
         "max": 42500,
         "names": [
             "Balenciaga T-Shirt 612966 [612966] 425",
@@ -46,6 +46,9 @@
             "Balenciaga T-Shirt 612966TMVG7 [612966TMVG7] 425",
             "Balenciaga T-Shirt 612966TNVN4 [612966TNVN4] 425",
             "Balenciaga T-Shirt 612966TNVN4W [612966TNVN4W] 425"
+        ],
+        "rrp": [
+            49500
         ]
     },
     "BALMAIN|Bademode": {
@@ -63,14 +66,17 @@
     },
     "BALMAIN|Hoodies & Sweatshirts": {
         "n": 5,
-        "min": 58000,
+        "min": 34000,
         "max": 58000,
         "names": [
             "BALMAIN Sweatshirt WH1JQ040B139MAI [WH1JQ040B139MAI] 580",
             "BALMAIN Sweatshirt WH1JQ055275JGFQ [WH1JQ055275JGFQ] 580",
-            "BALMAIN Sweatshirt YH1JQ005BB04 [YH1JQ005BB04] 580",
+            "BALMAIN Sweatshirt YH1JQ005BB04 [YH1JQ005BB04] 340",
             "BALMAIN Sweatshirt YH1JS047 [YH1JS047] 580",
             "BALMAIN Sweatshirt YH1JS0470 [YH1JS0470] 580"
+        ],
+        "rrp": [
+            52000
         ]
     },
     "BALMAIN|Polos": {
@@ -85,25 +91,32 @@
     },
     "BALMAIN|T-Shirts": {
         "n": 16,
-        "min": 29500,
-        "max": 29500,
+        "min": 27000,
+        "max": 31000,
         "names": [
             "BALMAIN T-Shirt AH0EG000BC27 [AH0EG000BC27] 295",
-            "BALMAIN T-Shirt AH1EG010 [AH1EG010] 295",
+            "BALMAIN T-Shirt AH1EG010 [AH1EG010] 310",
             "BALMAIN T-Shirt AH1EG010BC [AH1EG010BC] 295",
             "BALMAIN T-Shirt TH01601I232 [TH01601I232] 295",
             "BALMAIN T-Shirt VH4EF000G077EAH [VH4EF000G077EAH] 295",
             "BALMAIN T-Shirt VH4EH000 [VH4EH000] 295"
+        ],
+        "rrp": [
+            47900,
+            41500
         ]
     },
     "BURBERRY|Bademode": {
         "n": 3,
         "min": 23000,
-        "max": 23000,
+        "max": 25500,
         "names": [
             "Burberry Bademode 8015515 [8015515] 230",
-            "Burberry Bademode 8017294 [8017294] 230",
+            "Burberry Bademode 8017294 [8017294] 255",
             "Burberry Bademode 8039175 [8039175] 230"
+        ],
+        "rrp": [
+            39000
         ]
     },
     "BURBERRY|Hoodies & Sweatshirts": {
@@ -142,9 +155,13 @@
     "BURBERRY|T-Shirts": {
         "n": 40,
         "min": 25500,
-        "max": 25500,
+        "max": 31000,
+        "rrp": [
+            47900,
+            47500
+        ],
         "names": [
-            "Burberry T-Shirt 4567629 [4567629] 255",
+            "Burberry T-Shirt 4567629 [4567629] 310",
             "Burberry T-Shirt 8041699 [8041699] 255",
             "Burberry T-Shirt 8041966 [8041966] 255",
             "Burberry T-Shirt 8043239 [8043239] 255",
@@ -180,7 +197,7 @@
     "DOLCE & GABBANA|Bademode": {
         "n": 12,
         "min": 25500,
-        "max": 25500,
+        "max": 26000,
         "names": [
             "Dolce & Gabbana Bademode 4A06T [4A06T] 255",
             "Dolce & Gabbana Bademode M4A06T [M4A06T] 255",
@@ -188,6 +205,9 @@
             "Dolce & Gabbana Bademode M4A13T [M4A13T] 255",
             "Dolce & Gabbana Bademode M4A13TISMD3 [M4A13TISMD3] 255",
             "Dolce & Gabbana Bademode M4B11TFUSFW [M4B11TFUSFW] 255"
+        ],
+        "rrp": [
+            40000
         ]
     },
     "DOLCE & GABBANA|Hoodies & Sweatshirts": {
@@ -248,15 +268,12 @@
             "DG Logo Polo Shirt — Black [G8PL4T G7F2H 0] 360",
             "DG Logo Polo Shirt — Black [G8OL0Z FU7EN] 360",
             "Logo Plaque Polo Shirt — White [G8PL4T G7F2H] 360"
-        ],
-        "rrp": [
-            49500
         ]
     },
     "DOLCE & GABBANA|T-Shirts": {
         "n": 129,
         "min": 29500,
-        "max": 29500,
+        "max": 41000,
         "names": [
             "Colorblock T-Shirt — White/Grey [G80A3T FU7EQ W] 295",
             "Colorblock T-Shirt — White/Navy [G8JX7TFI7Z0] 295",
@@ -264,6 +281,13 @@
             "V-Neck T-Shirt — Navy [G8KG0ZG7WIG] 295",
             "Logo T-Shirt — Red [G8NB3 ZFU7EQ] 295",
             "Milano Logo T-Shirt — White [G8NC5Z G7B9X] 295"
+        ],
+        "rrp": [
+            49500,
+            63000,
+            45000,
+            49500,
+            49500
         ]
     },
     "DOLCE & GABBANA|Tracksuit Sets": {
@@ -293,10 +317,13 @@
     "DOLCE & GABBANA|Westen": {
         "n": 2,
         "min": 62000,
-        "max": 62000,
+        "max": 81500,
         "names": [
             "Dolce & Gabbana Weste G9ABGTGF790 [G9ABGTGF790] 620",
-            "Dolce & Gabbana Weste G9AOJTGG781 [G9AOJTGG781] 620"
+            "Dolce & Gabbana Weste G9AOJTGG781 [G9AOJTGG781] 815"
+        ],
+        "rrp": [
+            125000
         ]
     },
     "DSQUARED2|Hoodies & Sweatshirts": {
@@ -314,7 +341,7 @@
     },
     "DSQUARED2|Jeans": {
         "n": 27,
-        "min": 41500,
+        "min": 31000,
         "max": 41500,
         "names": [
             "Distressed Jeans — S71LB0872 [S71LB0872] 415",
@@ -323,6 +350,10 @@
             "Distressed Jeans — S74LB0764 [S74LB0764] 415",
             "Distressed Jeans — S74LB0770 [S74LB0770] 415",
             "Clean Wash Jeans — S74LB0786 [S74LB0786] 415"
+        ],
+        "rrp": [
+            49000,
+            44000
         ]
     },
     "DSQUARED2|Jeans Shorts": {
@@ -359,14 +390,17 @@
     "DSQUARED2|T-Shirts": {
         "n": 14,
         "min": 18000,
-        "max": 18000,
+        "max": 20000,
         "names": [
             "Graphic T-Shirt [S71GD1552] 180",
-            "Graphic T-Shirt [S74GD1394] 180",
+            "Graphic T-Shirt [S74GD1394] 200",
             "Graphic T-Shirt (Oversized) [S74GD1399] 180",
             "Graphic T-Shirt [S74GD1400] 180",
             "Graphic Print T-Shirt [S74GD1106] 180",
             "ICON Mini Logo T-Shirt [S79G0010] 180"
+        ],
+        "rrp": [
+            28900
         ]
     },
     "FENDI|Hoodies & Sweatshirts": {
@@ -578,22 +612,25 @@
         "max": 11500,
         "names": [
             "Fleece Hoodie [SH9623] 115",
-            "Zip-Up High Neck Interlock Sweatshirt [SH1927] 105",
+            "Zip-Up High Neck Interlock Sweatshirt [SH1927] 100",
             "Zip Up Fleece Hoodie [SH9626] 105",
             "Fleece Crew Neck Sweatshirt [SH9608] 89.9",
             "Lacoste Men Fleece Hoodie — Beige [LACOSTE-MEN-FLEECE-HOODI] 115",
             "Lacoste Men Fleece Hoodie — Navy Blue [LACOSTE-MEN-FLEECE-HOODI] 115"
+        ],
+        "rrp": [
+            13400
         ]
     },
     "LACOSTE|Polos": {
         "n": 30,
-        "min": 8290,
+        "min": 7390,
         "max": 11500,
         "rrp": [
-            9100
+            9800
         ],
         "names": [
-            "Paris Regular Fit Polo Shirt [PH5522] 89.9",
+            "Paris Regular Fit Polo Shirt [PH5522] 73.9",
             "Regular Fit Logo Trim L.12.12 Polo Shirt [PH9863] 82.9",
             "Classic Fit Monogram Jacquard Polo Shirt [DH1417] 115",
             "Lacoste Regular Fit Logo Trim L.12.12 Polo Shirt — Bordeaux [LACOSTE-REGULAR-FIT-LOGO] 82.9",
@@ -628,10 +665,13 @@
     },
     "MARCELO BURLON|Hoodies & Sweatshirts": {
         "n": 4,
-        "min": 29500,
+        "min": 26500,
         "max": 29500,
+        "rrp": [
+            38000
+        ],
         "names": [
-            "Wings Sweatshirt — CMBB007E20FLE0010143 [CMBB007E20FLE0010143] 295",
+            "Wings Sweatshirt — CMBB007E20FLE0010143 [CMBB007E20FLE0010143] 265",
             "Eagle Print Sweatshirt [VS-MB-001] 295",
             "Logo Sweatshirt, Black [VS-MB-002] 295",
             "Wings Sweatshirt, Black [VS-MB-003] 295"
