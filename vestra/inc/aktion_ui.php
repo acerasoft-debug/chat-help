@@ -27,9 +27,10 @@ function vestra_aktion_css(): string {
 .akcd-u i{font-style:normal;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--mut);margin-top:5px}
 .akcd.sm .akcd-u{min-width:30px}.akcd.sm .akcd-u b{font-size:16px}.akcd.sm .akcd-u i{font-size:8px;letter-spacing:.1em;margin-top:3px}
 .akcd.ended .akcd-u{display:none}.akcd.ended::after{content:attr(data-ended);font-size:12px;color:var(--mut)}
-/* ana sayfa bandi */
-.aktion{padding:40px 0 8px}
-.aktion .wrap{max-width:1180px}
+/* ana sayfa bandi -- section ile sinirli: katalog rozeti de "aktion" sinifi tasir */
+section.aktion{padding:40px 0 8px}
+section.aktion .wrap{max-width:1180px}
+.ak-head .more{white-space:nowrap}
 .ak-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px}
 .ak-head h2{margin:0;font-size:clamp(24px,3vw,32px)}
 .ak-head .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#b4451f;margin-bottom:8px}
@@ -56,7 +57,7 @@ function vestra_aktion_css(): string {
 .ak-cd small{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);margin-bottom:4px}
 .ak-card.ended{opacity:.55}
 @media(max-width:1000px){.ak-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:640px){.ak-grid{grid-template-columns:1fr}.ak-card{grid-template-columns:110px 1fr;padding:12px}.ak-price .now{font-size:24px}.aktion{padding:30px 0 4px}}
+@media(max-width:640px){.ak-grid{grid-template-columns:1fr}.ak-card{grid-template-columns:110px 1fr;padding:12px}.ak-price .now{font-size:24px}section.aktion{padding:30px 0 4px}}
 /* urun sayfasi kutusu */
 .ak-box{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border:1px solid #e9c9b8;background:linear-gradient(135deg,#fff7f2,#fffdf9);border-radius:14px;padding:14px 18px;margin:0 0 16px}
 .ak-box .ak-l{display:flex;flex-direction:column;gap:3px}
