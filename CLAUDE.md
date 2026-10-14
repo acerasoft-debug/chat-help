@@ -12653,3 +12653,10 @@ distribütör yok; gerçek e-mailler, uydurma yok; Alman e-mailleri de şu an i�
   (sunucu partisi, gece takip, ids yolu). `vestra_lead_send_paused()`: mailbox.json `paused_countries` (varsayılan
   ['Germany']; ülke alanı ya da .de alan adı). Her mektuptan HEMEN önce `vestra_mailbox_still_sendable()` — kurulmuş parti de
   durur. Testler finder_test 8m (+25). Gönderim yeniden AÇIK DEĞİL: bulucu düzeltmesi + önizleme sonrası açılacak.
+- **Üye mektubu (14 Eki 2026, operatör: "komple tüm kayıtlı müşterilere gönder brevodan")**: send-outreach
+  `to_members=true newcoll_min_days=0`, `member_spec=letter=offer|tag=lacak1014|pids=lac-fleece-hoodie,lac-zip-hoodie,
+  lac-crew-sweatshirt|order=newest|skip=<kış listesi>`. `vestra_tpl_listing_offer` artık aktion taşıyan ilanı söylüyor
+  (konu "N-day offer: up to −X% from 100 pc · ends …", ürün başına teklif satırı, rozet; gün sayısı kayıttan —
+  gömülü "3-day" seller_doc_grace testine takılır). Fiyat kapısı kapalıya EUR yok. Test `tests/aktion_mail_test.php`.
+  Kuru koşu 238 aday (11 skip + 1 kural elendi; fiyat açık 232 / kapalı 6). Operatöre kopya (es) + **ilk 50 gitti,
+  hata 0**. Kota: 112 kalan / 60 ayrılmış → bugün yalnız 50; kalan ~188 için 15 Eki 05:00 UTC hatırlatması kuruldu.
