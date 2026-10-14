@@ -9,7 +9,7 @@
  * sunucuda bir satır olarak data/stats/hits-YYYY-MM-DD.jsonl dosyasına
  * ekleniyor. Satır: zaman, IP, ülke (yerel tablo), yol, önemli sorgu
  * (ürün/marka/arama), yönlendiren, cihaz/tarayıcı/işletim sistemi, dil,
- * ziyaretçi kimliği (oturum özeti), müşteri kimliği (girişliyse), bot işareti.
+ * ziyaretçi kimliği (IP+tarayıcı günlük özeti), müşteri kimliği (girişliyse), bot işareti.
  *
  * HUKUK — IP adresi kişisel veridir (DSGVO). Dayanak: meşru menfaat, Art. 6
  * Abs. 1 lit. f (güvenlik, dolandırıcılık önleme, erişim istatistiği). Ham
@@ -60,13 +60,22 @@ function vr_stats_ua(string $ua): array
     return [$d, $b, $o];
 }
 
-/** Ziyaretçi kimliği: oturum kimliğinin tuzlu özeti (ham oturum kimliği dosyaya girmez). */
+/**
+ * Ziyaretçi kimliği: IP + tarayıcı kimliğinin GÜNLÜK tuzlu özeti.
+ *
+ * Önce oturum kimliğinden türetiliyordu; canlıda ilk saatte görüldü ki çerez
+ * tutmayan bir tarayıcı (tarama aracı, bazı uygulama içi görüntüleyiciler)
+ * her istekte yeni oturum açıyor ve 9 IP'den 42 "tekil ziyaretçi" çıkıyordu.
+ * IP+UA özeti çerezsiz de kararlı; tuz güne bağlı olduğu için kimlik günler
+ * arasında eşleştirilemez (Plausible/Fathom'un yaptığı gibi), ham IP zaten
+ * satırda ayrı duruyor ve 60 günde siliniyor.
+ */
 function vr_stats_visitor_id(): string
 {
-    vr_session_start();
-    $sid = session_id();
-    if ($sid === '') return '';
-    return substr(hash_hmac('sha256', $sid, vr_stats_secret()), 0, 16);
+    $ip = vr_client_ip();
+    $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+    if ($ip === '') return '';
+    return substr(hash_hmac('sha256', $ip . '|' . $ua, vr_stats_secret() . gmdate('Y-m-d')), 0, 16);
 }
 
 function vr_stats_secret(): string
