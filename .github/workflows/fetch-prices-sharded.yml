@@ -1,0 +1,99 @@
+name: Model koduyla resmî fiyat adayları (çok parçalı)
+
+on:
+  workflow_dispatch:
+    inputs:
+      shards:
+        description: "Parça sayısı (her parça ayrı IP)"
+        required: true
+        default: "50"
+      only:
+        description: "Yalnız bu ürün id'leri (virgülle, boş = hepsi)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+# diag/tool/audit-price-targets.json (canlı vitrin, gerçek model kodlu ürünler)
+# → her parça tools/find-prices-ddg.php ile kodla arar, kodu taşıyan
+# sayfalardaki fiyatları toplar. Siteye hiçbir şey yazılmaz; sonuç
+# diag/prices/candidates.json olarak dala işlenir, karar elle/araçla verilir.
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        env:
+          N: ${{ github.event.inputs.shards }}
+          ONLY: ${{ github.event.inputs.only }}
+        run: |
+          php -r '
+            $a = json_decode(file_get_contents("diag/tool/audit-price-targets.json"), true);
+            $only = array_filter(array_map("trim", explode(",", getenv("ONLY"))));
+            $t = [];
+            foreach ($a["products"] as $p) { if ($only && !in_array($p["id"], $only, true)) continue; $t[] = $p; }
+            @mkdir("shards");
+            $n = max(1, min(60, (int)getenv("N"), count($t)));
+            $sh = array_fill(0, $n, []);
+            foreach ($t as $i => $x) $sh[$i % $n][] = $x;
+            foreach ($sh as $i => $x) file_put_contents("shards/$i.json", json_encode($x));
+            fwrite(STDERR, count($t) . " hedef, $n parça\n");
+            echo "matrix=" . json_encode(["shard" => range(0, $n - 1)]) . "\n";
+          ' >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shards
+          path: shards/
+
+  search:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: shards
+          path: shards/
+      - name: Ara
+        run: |
+          sleep $(( ${{ matrix.shard }} % 7 ))
+          php retail/tools/find-prices-ddg.php "shards/${{ matrix.shard }}.json" "found-${{ matrix.shard }}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: found-${{ matrix.shard }}
+          path: found-${{ matrix.shard }}.json
+
+  merge:
+    needs: search
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: found-*
+          path: found/
+          merge-multiple: true
+      - name: Birleştir ve dala işle
+        run: |
+          mkdir -p diag/prices
+          php -r '$o=[]; foreach(glob("found/*.json") as $f) $o += (array)json_decode(file_get_contents($f), true);
+            $old = json_decode(@file_get_contents("diag/prices/candidates.json"), true) ?: [];
+            foreach ($o as $k => $v) $old[$k] = $v;
+            ksort($old); file_put_contents("diag/prices/candidates.json", json_encode($old, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
+            $b=0;$h=0; foreach($o as $x){ if(!empty($x["blocked"])) $b++; elseif(!empty($x["sources"])) $h++; }
+            printf("%d ürün · kaynağı olan %d · engellenen %d\n", count($o), $h, $b);'
+          git config user.name "Claude"; git config user.email "noreply@anthropic.com"
+          git add -f diag/prices
+          git diff --cached --quiet && exit 0
+          git commit -q -m "Resmî fiyat adayları (çok parçalı arama)"
+          for i in 1 2 3 4; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((i*3)); done
