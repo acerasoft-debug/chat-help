@@ -15,6 +15,13 @@
             window.navigator.standalone === true || /SarvestoApp\//.test(ua);
   var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   root.setAttribute('data-platform', app ? 'app' : isIOS ? 'ios' : /Android/i.test(ua) ? 'android' : 'desktop');
+  // Hareket dili (maxsales.css "HAREKET DİLİ"): içerik ilk boyamadan gizli
+  // başlar, maxsales.js görünüme girdikçe açar. O betik 2,5 sn içinde
+  // devreye girmezse (hata, engelleme) gizleme geri alınır.
+  if (!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) && 'IntersectionObserver' in window) {
+    root.classList.add('rv');
+    setTimeout(function () { if (!root.classList.contains('rv-live')) root.classList.remove('rv'); }, 2500);
+  }
   if (!app) return;
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   var seen = '1';

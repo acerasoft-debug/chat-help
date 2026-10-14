@@ -2462,3 +2462,122 @@ html.sv-intro .tabbar{animation-delay:.9s}
   }
   .stage .btn--brass::after{background:linear-gradient(105deg,transparent,rgba(0,0,0,.13),transparent)}
 }
+
+/* ----------------------------------------------------------- tam ekran arama
+   (14 Eki 2026, operatör: "arama butonu yok app'te"). Başlıktaki arama kutusu
+   1080 px'in altında gizli; telefonda ve uygulamada arama bu panelden.
+   Panel yukarıdan iner, öneriler ve ev çipleri sırayla belirir. */
+.tool--search{display:none}
+@media (max-width:1080px){.tool--search{display:inline-flex}}
+.qsheet{position:fixed;inset:0;z-index:300;background:rgba(10,10,10,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.qsheet[hidden]{display:none}
+.qsheet__panel{
+  background:var(--bone);max-height:100%;overflow:auto;overscroll-behavior:contain;
+  padding:calc(env(safe-area-inset-top) + 14px) var(--gut) 26px;
+  box-shadow:0 30px 60px -30px rgba(0,0,0,.4);
+}
+.qsheet__form{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--ink);padding:10px 0 12px;max-width:760px;margin:0 auto}
+.qsheet__form svg{flex:0 0 auto;opacity:.7}
+.qsheet__form input{flex:1;min-width:0;border:0;background:none;font:inherit;font-family:var(--serif);font-size:clamp(20px,5.4vw,28px);color:var(--ink);padding:4px 0}
+.qsheet__form input:focus{outline:none}
+.qsheet__form input::placeholder{color:var(--muted-2)}
+.qsheet__form input::-webkit-search-cancel-button{display:none}
+.qsheet__x{border:0;background:none;font-size:30px;line-height:1;padding:4px 6px;cursor:pointer;color:var(--ink)}
+.qsheet__res,.qsheet__brands{max-width:760px;margin:0 auto}
+.qsheet__res a{display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid var(--bone-3)}
+.qsheet__res img{width:46px;height:58px;object-fit:cover;background:var(--bone-2);flex:0 0 auto}
+.qsheet__res .suggest__p{margin-left:auto}
+.qsheet__res a>span:nth-child(2){display:flex;flex-direction:column;gap:3px;min-width:0}
+.qsheet__all{justify-content:space-between;font-size:11px;letter-spacing:.2em;text-transform:uppercase}
+.qsheet__h{margin:22px 0 12px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
+.qsheet__chips{display:flex;flex-wrap:wrap;gap:8px}
+.qsheet__chip{border:1px solid var(--bone-3);padding:9px 14px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;transition:border-color .25s var(--ease),background .25s var(--ease)}
+.qsheet__chip:hover{border-color:var(--ink)}
+.qsheet--busy .qsheet__res{opacity:.55}
+@media (prefers-reduced-motion:no-preference){
+  .qsheet.is-open{animation:fade .35s var(--ease) both}
+  .qsheet.is-open .qsheet__panel{animation:qdown .5s cubic-bezier(.2,.85,.15,1) both}
+  .qsheet.is-open .qsheet__chip{animation:sup .6s cubic-bezier(.2,.8,.2,1) calc(.18s + var(--i) * 30ms) both}
+  .qsheet__res a{animation:sup .45s cubic-bezier(.2,.8,.2,1) calc(var(--i,0) * 45ms) both}
+  .qsheet.is-closing{animation:fade .25s var(--ease) reverse both}
+  .qsheet.is-closing .qsheet__panel{animation:qdown .3s var(--ease) reverse both}
+}
+@keyframes qdown{from{transform:translateY(-100%)}to{transform:none}}
+
+/* Telefonda dikey film (stage--portrait). 900 px altındaki genel kural sahne
+   görselini gizliyor; dikey film varsa yalnız o görünür, yatay film gizli. */
+.stage__vid--p{display:none}
+@media (max-width:900px){
+  .stage--portrait .stage__art{display:block}
+  .stage--portrait .stage__art .stage__vid:not(.stage__vid--p){display:none}
+  .stage--portrait .stage__vid--p{display:block;opacity:.78;animation:none;transform:none}
+  /* Film varken gezinen ışık gereksiz; çerçeve ve perde kalır. */
+  .stage--portrait .stage__light{display:none}
+}
+@media (max-width:900px) and (prefers-reduced-motion:reduce){
+  /* Hareket azaltılmışsa film oynamaz; afiş (ilk kare) durur. */
+  .stage--portrait .stage__vid--p{opacity:.7}
+}
+
+/* =========================================================================
+   HAREKET DİLİ — bütün sayfalar (14 Eki 2026, operatör: "çok daha fazla
+   animasyon, tüm sayfalara").
+   Tek bir dil: içerik aşağıdan yumuşakça yükselerek gelir, aynı anda gelenler
+   okuma sırasıyla kademelenir, fotoğraflar kadraja girerken hafifçe yerine
+   oturur. Gösterişli dönüş/zıplama yok — lüks vitrinde hareket sakin olur.
+
+   Gizleme yalnız html.rv varken: onu boot.js ilk boyamadan önce koyuyor
+   (hareket azaltılmışsa koymuyor) ve maxsales.js 2,5 sn içinde devreye
+   girmezse geri alıyor. Yani JS'siz, hatalı ya da yavaş bir durumda içerik
+   asla gizli kalmıyor. "translate" ayrı özellik: kartların ve lot
+   kutularının hover'daki transform'u ile çakışmıyor.
+   ========================================================================= */
+html.rv :is(main .sechead,main .chap,main .card,main .lot,main .jcard,main .panel,main .pdp__shot,main .pdp__head,main .notice,main .faq__q,.foot__top>*):not(.is-in){
+  opacity:0;translate:0 28px;
+}
+html.rv .rv-ing{
+  transition:opacity .9s cubic-bezier(.2,.8,.2,1) var(--rd,0ms),translate 1.15s cubic-bezier(.2,.8,.2,1) var(--rd,0ms) !important;
+}
+
+/* Fotoğraflar kadraja girerken %8 büyükten yerine oturur (kaydırmaya bağlı,
+   kendiliğinden oynamaz). Desteklemeyen tarayıcıda hiçbir şey olmaz.
+   "scale" ayrı özellik: hover yakınlaşması (transform) ile birleşir. */
+@supports (animation-timeline: view()){
+  @media (prefers-reduced-motion:no-preference){
+    .card__media .fr img,.jcard__media img,.lot__media img,.pdp__shot img,.etile img{
+      animation:rvsettle linear both;animation-timeline:view();animation-range:entry 0% cover 35%;
+    }
+  }
+}
+@keyframes rvsettle{from{scale:1.08}to{scale:1}}
+
+@media (prefers-reduced-motion:no-preference){
+  /* Ok işaretleri üzerine gelince yola çıkar. */
+  .btn svg,.sechead__more svg,.chap__more svg,.stage__link svg,.drawer__main a svg,.link svg{transition:translate .35s cubic-bezier(.2,.8,.2,1)}
+  .btn:hover svg,.sechead__more:hover svg,.chap__more:hover svg,.stage__link:hover svg,.drawer__main a:hover svg,.link:hover svg{translate:4px 0}
+
+  /* Dokunma geri bildirimi: beden, renk ve çipler basılınca hafifçe çöker. */
+  .size,.swatch,.cpic,.qsheet__chip,.pill,.tabbar__t{transition:transform .18s var(--ease),border-color .25s var(--ease),background .25s var(--ease),color .25s var(--ease)}
+  .size:active,.swatch:active,.cpic:active,.qsheet__chip:active,.pill:active{transform:scale(.95)}
+  .tabbar__t:active .tabbar__ico{transform:scale(.88)}
+  .tabbar__ico{transition:transform .2s var(--ease)}
+
+  /* Bildirimler yukarıdan kayarak gelir. */
+  .flash{animation:flashin .6s cubic-bezier(.2,.85,.15,1) both}
+
+  /* Sepet / istek sayacı değişince küçük bir atım. */
+  .bag__n.is-bump,.tabbar__n.is-bump{animation:bump .5s cubic-bezier(.3,1.6,.5,1)}
+
+  /* Çekmece menüsünün satırları sırayla gelir. */
+  .drawer:not([hidden]) .drawer__main a{animation:sup .6s cubic-bezier(.2,.8,.2,1) both}
+  .drawer:not([hidden]) .drawer__main a:nth-child(2){animation-delay:.05s}
+  .drawer:not([hidden]) .drawer__main a:nth-child(3){animation-delay:.1s}
+  .drawer:not([hidden]) .drawer__main a:nth-child(4){animation-delay:.15s}
+  .drawer:not([hidden]) .drawer__sub,.drawer:not([hidden]) .drawer__acct{animation:fade .8s var(--ease) .25s both}
+
+  /* Kelime markasının noktası sayfa açılışında bir kez yanıp söner. */
+  .site .wordmark__dot{animation:dotin 1.2s cubic-bezier(.2,.8,.2,1) .2s both}
+}
+@keyframes flashin{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.45)}100%{transform:scale(1)}}
+@keyframes dotin{0%{opacity:0;transform:scale(0)}60%{opacity:1;transform:scale(1.8)}100%{opacity:1;transform:none}}

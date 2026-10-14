@@ -74,6 +74,47 @@
     }, 2000);
   }
 
+  /* --------------------------------------------- hareket dili: beliriş
+     boot.js html'e "rv" koydu; CSS bu öğeleri gizli tutuyor. Görünüme girenler
+     okuma sırasıyla (yukarıdan aşağı, soldan sağa) 70 ms arayla açılıyor.
+     Liste maxsales.css'teki "HAREKET DİLİ" seçicisiyle AYNI olmalı.         */
+  var rootEl = document.documentElement;
+  if (rootEl.classList.contains('rv')) {
+    rootEl.classList.add('rv-live');
+    var rvSel = 'main .sechead,main .chap,main .card,main .lot,main .jcard,main .panel,main .pdp__shot,main .pdp__head,main .notice,main .faq__q,.foot__top>*';
+    var rvEls = document.querySelectorAll(rvSel);
+    var rvShow = function (el, i) {
+      el.style.setProperty('--rd', Math.min(i, 7) * 70 + 'ms');
+      el.classList.add('rv-ing', 'is-in');
+      window.setTimeout(function () { el.classList.remove('rv-ing'); el.style.removeProperty('--rd'); }, 1400 + Math.min(i, 7) * 70);
+    };
+    if (!('IntersectionObserver' in window)) {
+      rootEl.classList.remove('rv');
+    } else {
+      var rvIo = new IntersectionObserver(function (entries) {
+        var hits = entries.filter(function (en) { return en.isIntersecting; }).map(function (en) { return en.target; });
+        hits.sort(function (a, b) {
+          var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+          return (Math.round(ra.top / 40) - Math.round(rb.top / 40)) || (ra.left - rb.left);
+        });
+        hits.forEach(function (el, i) { rvShow(el, i); rvIo.unobserve(el); });
+      }, { rootMargin: '0px 0px -6% 0px', threshold: 0.04 });
+      rvEls.forEach(function (el) { rvIo.observe(el); });
+    }
+  }
+
+  /* Sayaç değişince küçük atım (CSS .is-bump). */
+  var bumpObs = window.MutationObserver && new MutationObserver(function (muts) {
+    muts.forEach(function (m) {
+      var el = m.target.nodeType === 3 ? m.target.parentNode : m.target;
+      if (!el || !el.classList || !/bag__n|tabbar__n/.test(el.className)) return;
+      el.classList.remove('is-bump'); void el.offsetWidth; el.classList.add('is-bump');
+    });
+  });
+  if (bumpObs) document.querySelectorAll('.tools,.tabbar').forEach(function (n) {
+    bumpObs.observe(n, { subtree: true, childList: true, characterData: true });
+  });
+
   /* ------------------------------------------------------ sahne: rakamlar
      Ölçü şeridindeki rakamlar şerit sahneye girdiği anda sıfırdan sayar
      (CSS açılışı: şerit +1,55 sn'de geliyor). Sunucu asıl sayıyı zaten
@@ -261,7 +302,18 @@
     }
   }
 
+  /* Telefonda dikey film: 0,8 MB, yani yatay filmin dörtte biri. Dar
+     ekranda yalnız o oynar; veri tasarrufu, yavaş bağlantı ve hareket
+     azaltma tercihi yine durdurur (afiş kalır). */
   var stageVid = document.querySelector('.stage__vid[data-autoplay]');
+  var portraitVid = document.querySelector('.stage__vid[data-autoplay-portrait]');
+  if (portraitVid && window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
+    var pc = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    var pOk = !window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
+              !(pc && (pc.saveData || /2g|slow-2g/.test(String(pc.effectiveType || ''))));
+    stageVid = pOk ? portraitVid : null;
+    vrFilms = pOk;
+  }
   if (stageVid) {
     var stageBox = document.getElementById('stage-pause');
     var stagePlay = function () {
@@ -444,6 +496,71 @@
       }
     }).catch(function () { form.submit(); });
   });
+
+  /* ----------------------------------------------------- tam ekran arama
+     Başlıktaki ikon ve uygulamanın "Ara" sekmesi açar (data-search-open).
+     Öneriler masaüstü kutusuyla aynı uç noktadan; metin textContent ile
+     basılıyor, sunucudan gelen ad HTML olarak yorumlanmasın.             */
+  var qs = document.querySelector('[data-qsheet]');
+  if (qs) {
+    var qIn = qs.querySelector('[data-qsheet-input]');
+    var qRes = qs.querySelector('[data-qsheet-res]');
+    var qBrands = qs.querySelector('[data-qsheet-brands]');
+    var qForm = qs.querySelector('form');
+    var qLast = null, qTimer = null, qSeq = 0;
+    var qOpen = function (open) {
+      if (open) {
+        qLast = document.activeElement;
+        qs.hidden = false; qs.classList.remove('is-closing'); qs.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+        window.setTimeout(function () { qIn.focus(); }, 30);
+      } else if (!qs.hidden) {
+        qs.classList.remove('is-open');
+        var done = function () { qs.hidden = true; qs.classList.remove('is-closing'); };
+        if (reduced) done(); else { qs.classList.add('is-closing'); window.setTimeout(done, 300); }
+        document.body.style.overflow = '';
+        if (qLast && qLast.focus) qLast.focus();
+      }
+    };
+    document.querySelectorAll('[data-search-open]').forEach(function (a) {
+      a.addEventListener('click', function (e) { e.preventDefault(); qOpen(true); });
+    });
+    qs.addEventListener('click', function (e) {
+      if (e.target === qs || e.target.closest('[data-qsheet-close]')) qOpen(false);
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') qOpen(false); });
+    var qRun = function () {
+      var q = qIn.value.trim(), my = ++qSeq;
+      if (q.length < 2) { qRes.textContent = ''; if (qBrands) qBrands.hidden = false; return; }
+      qs.classList.add('qsheet--busy');
+      fetch(qForm.getAttribute('action').split('?')[0].replace(/shop\.php$/, 'api/suggest.php') + '?q=' + encodeURIComponent(q),
+            { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (my !== qSeq) return;
+          qs.classList.remove('qsheet--busy');
+          qRes.textContent = '';
+          ((d && d.items) || []).forEach(function (it, i) {
+            var a = document.createElement('a'); a.href = it.url; a.style.setProperty('--i', i);
+            var im = document.createElement('img'); im.src = it.img; im.alt = ''; im.loading = 'lazy';
+            var tx = document.createElement('span');
+            var b = document.createElement('span'); b.className = 'suggest__b'; b.textContent = it.brand;
+            var n = document.createElement('span'); n.className = 'suggest__t'; n.textContent = it.name;
+            tx.appendChild(b); tx.appendChild(n);
+            var pr = document.createElement('span'); pr.className = 'suggest__p'; pr.textContent = it.price;
+            a.appendChild(im); a.appendChild(tx); a.appendChild(pr); qRes.appendChild(a);
+          });
+          var all = document.createElement('a');
+          all.className = 'qsheet__all'; all.href = qForm.getAttribute('action').split('?')[0] + '?q=' + encodeURIComponent(q);
+          all.style.setProperty('--i', qRes.children.length);
+          var lbl = document.createElement('span'); lbl.textContent = '“' + q + '”';
+          all.appendChild(lbl); all.insertAdjacentHTML('beforeend', '<span aria-hidden="true">&rarr;</span>');
+          qRes.appendChild(all);
+          if (qBrands) qBrands.hidden = qRes.children.length > 1;
+        }).catch(function () { qs.classList.remove('qsheet--busy'); });
+    };
+    qIn.addEventListener('input', function () { window.clearTimeout(qTimer); qTimer = window.setTimeout(qRun, 200); });
+  }
 
   /* ------------------------------------------------------- arama önerileri */
   var searchForm = document.querySelector('.search');

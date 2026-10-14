@@ -229,17 +229,21 @@ function vr_tabbar(string $page): void
         ['index.php',    vr_url('/'),            'home',  t('tab_home')],
         ['shop.php',     vr_url('shop.php'),     'grid',  t('nav_shop')],
         ['outlet.php',   vr_url('outlet.php'),   'tag',   t('tab_outlet')],
-        ['wishlist.php', vr_url('wishlist.php'), 'heart', t('nav_wish')],
+        // Arama sekmesi (14 Eki 2026, operatör: "arama butonu yok app'te").
+        // Uygulamada başlık kayınca arama hiçbir yerde kalmıyordu; istek
+        // listesi başlıktaki kalp ikonunda zaten duruyor. JS varsa sekme tam
+        // ekran arama panelini açar (data-search-open), yoksa mağazaya gider.
+        ['search',       vr_url('shop.php'),     'search', t('search_submit')],
         ['cart.php',     vr_url('cart.php'),     'bag',   t('nav_cart')],
     ];
     $on = -1;
     foreach ($tabs as $i => $tb) if ($tb[0] === $page) $on = $i;
     if ($on < 0 && in_array($page, ['product.php', 'brands.php', 'brand.php'], true)) $on = 1;
-    $counts = [3 => vr_wish_count(), 4 => vr_cart_count()];
+    $counts = [4 => vr_cart_count()];
     ?>
 <nav class="tabbar" data-tabbar aria-label="<?= te('menu') ?>" style="--n:<?= count($tabs) ?>;--i:<?= max(0, $on) ?>"<?= $on < 0 ? ' data-none' : '' ?>>
   <?php foreach ($tabs as $i => [$file, $href, $ico, $label]): ?>
-    <a class="tabbar__t<?= $i === $on ? ' is-on' : '' ?>" href="<?= h($href) ?>"<?= $i === $on ? ' aria-current="page"' : '' ?> data-tab="<?= $i ?>">
+    <a class="tabbar__t<?= $i === $on ? ' is-on' : '' ?>" href="<?= h($href) ?>"<?= $i === $on ? ' aria-current="page"' : '' ?> data-tab="<?= $i ?>"<?= $file === 'search' ? ' data-search-open' : '' ?>>
       <span class="tabbar__ico"><?= vr_icon($ico, 22) ?><?php if (!empty($counts[$i])): ?><i class="tabbar__n"><?= (int)$counts[$i] ?></i><?php endif; ?></span>
       <span class="tabbar__l"><?= h($label) ?></span>
     </a>
@@ -329,6 +333,10 @@ function vr_header(): void
         </div>
       </details>
 
+      <?php /* Telefonda arama kutusu başlığa sığmıyor (gizli); yerine ikon,
+               tam ekran arama panelini açar. JS yoksa mağazaya gider. */ ?>
+      <a class="tool tool--search" href="<?= h(vr_url('shop.php')) ?>" data-search-open aria-label="<?= te('search_submit') ?>"><?= vr_icon('search') ?></a>
+
       <a class="tool tool--wish" href="<?= h(vr_url('wishlist.php')) ?>" aria-label="<?= te('nav_wish') ?>">
         <?= vr_icon('heart') ?><?php $wn = vr_wish_count(); if ($wn > 0): ?><i class="bag__n"><?= (int)$wn ?></i><?php endif; ?>
       </a>
@@ -346,6 +354,31 @@ function vr_header(): void
     </div>
   </div>
 </header>
+
+<?php /* Tam ekran arama (telefon ve uygulama). Form JS'siz de çalışır:
+         mağazaya q ile gider. JS canlı öneriyi api/suggest.php'den getirir. */
+$qBrands = array_slice(array_keys(vr_facets(['exclude_vault' => true])['brands'] ?? []), 0, 14); ?>
+<div class="qsheet" data-qsheet hidden>
+  <div class="qsheet__panel" role="dialog" aria-modal="true" aria-label="<?= te('search_submit') ?>">
+    <form class="qsheet__form" role="search" action="<?= h(vr_url('shop.php')) ?>" method="get">
+      <?= vr_icon('search', 18) ?>
+      <label class="vh" for="qs"><?= te('search_submit') ?></label>
+      <input id="qs" type="search" name="q" placeholder="<?= te('search_placeholder') ?>" autocomplete="off" enterkeyhint="search" data-qsheet-input>
+      <button class="qsheet__x" type="button" data-qsheet-close aria-label="<?= te('close') ?>">&times;</button>
+    </form>
+    <div class="qsheet__res" data-qsheet-res aria-live="polite"></div>
+    <?php if ($qBrands): ?>
+      <div class="qsheet__brands" data-qsheet-brands>
+        <p class="qsheet__h"><?= te('nav_brands') ?></p>
+        <div class="qsheet__chips">
+          <?php foreach ($qBrands as $qi => $qb): ?>
+            <a class="qsheet__chip" style="--i:<?= (int)$qi ?>" href="<?= h(vr_url('shop.php', ['brand' => $qb])) ?>"><?= h($qb) ?></a>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
 
 <div class="drawer" data-drawer hidden>
   <div class="drawer__panel" role="dialog" aria-modal="true" aria-label="<?= te('menu') ?>">

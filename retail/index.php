@@ -106,6 +106,10 @@ for ($i = 0; $i < 3; $i++) {
     ]);
 }
 $stageMedia = vr_hero_media();
+// Telefon için ayrı, dikey film (tools/build-film-portrait.php). Yatay film
+// telefonda kırpılıp üç kat büyüyordu; bu baştan 9:16.
+$stagePortrait = vr_hero_media('hero-portrait');
+if ($stagePortrait && $stagePortrait['kind'] !== 'video') $stagePortrait = null;
 
 // Editoryal karolar: gerçek fotoğrafı olan ürünler öncelikli.
 $tileSkip = [];
@@ -128,7 +132,7 @@ vr_layout_start([
 ?>
 
 <!-- ----------------------------------------------------------------- sahne -->
-<section class="stage">
+<section class="stage<?= $stagePortrait ? ' stage--portrait' : '' ?>">
   <?php /* Duraklatma kutusu EN ÖNDE: kardeş seçicilerle hem filmi hem düğme
            yazısını çeviriyor, :has() gerektirmiyor. Görsel olarak gizli. */ ?>
   <input type="checkbox" id="stage-pause" class="stage__pausebox vh">
@@ -146,6 +150,16 @@ vr_layout_start([
              data-autoplay>
         <source src="<?= h($stageMedia['src']) ?>" type="<?= h($stageMedia['type']) ?>">
       </video>
+      <?php if ($stagePortrait): ?>
+        <?php /* Telefonun filmi. Hangisinin oynayacağına JS karar veriyor
+                 (dar ekranda bu, genişte yataydaki); ikisi de preload="none",
+                 yani oynamayan hiç inmiyor. */ ?>
+        <video class="stage__vid stage__vid--p" muted loop playsinline preload="none"
+               poster="<?= h($stagePortrait['poster'] ?? '') ?>" aria-hidden="true" tabindex="-1"
+               data-autoplay-portrait>
+          <source src="<?= h($stagePortrait['src']) ?>" type="<?= h($stagePortrait['type']) ?>">
+        </video>
+      <?php endif; ?>
     <?php elseif ($stageMedia): ?>
       <?php /* Gerçek kampanya fotoğrafı: hareket yok, duraklatılacak bir şey de yok. */ ?>
       <img class="stage__still" src="<?= h($stageMedia['src']) ?>" alt="" aria-hidden="true"
