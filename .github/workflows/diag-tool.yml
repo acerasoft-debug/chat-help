@@ -1,0 +1,44 @@
+name: (Salt-okunur) Sunucuda denetim aracı çalıştır
+
+on:
+  workflow_dispatch:
+    inputs:
+      tool:
+        description: "retail/tools altındaki audit-*.php dosyası"
+        required: true
+        default: "audit-vestra-coverage.php"
+
+permissions:
+  contents: write
+
+# Yalnız audit-*.php adlı salt okunur araçları sunucuda geçici bir klasörden
+# (~/.sarvesto-audit) çalıştırır ve siler; siteye ve data/ klasörüne hiçbir
+# şey yazılmaz. Çıktı diag/tool/<araç>.json olarak dala işlenir.
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sunucuda çalıştır
+        env:
+          TOOL: ${{ github.event.inputs.tool }}
+        run: |
+          set -e
+          case "$TOOL" in audit-*.php) ;; *) echo "yalnız audit-*.php"; exit 1;; esac
+          T=$(printf '%s' "$TOOL" | tr -cd 'A-Za-z0-9._-')
+          [ -f "retail/tools/$T" ] || { echo "araç yok: $T"; exit 1; }
+          mkdir -p ~/.ssh diag/tool
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy; chmod 600 ~/.ssh/id_deploy
+          SSHOPT="-i ~/.ssh/id_deploy -o StrictHostKeyChecking=no -p ${{ secrets.DEPLOY_PORT || 22 }}"
+          SRV="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+          tar -cf - -C retail/tools "$T" | ssh $SSHOPT "$SRV" "rm -rf ~/.sarvesto-audit && mkdir -p ~/.sarvesto-audit && tar -xf - -C ~/.sarvesto-audit"
+          ssh $SSHOPT "$SRV" "php -d memory_limit=1536M ~/.sarvesto-audit/$T --root=\$HOME/maxsales_de; rm -rf ~/.sarvesto-audit" > "diag/tool/${T%.php}.json"
+          head -c 3000 "diag/tool/${T%.php}.json"
+      - name: Dala işle
+        run: |
+          git config user.name "Claude"; git config user.email "noreply@anthropic.com"
+          git add -f diag/tool
+          git diff --cached --quiet && exit 0
+          git commit -q -m "Teşhis: sunucu denetim aracı çıktısı"
+          for i in 1 2 3 4; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((i*3)); done
