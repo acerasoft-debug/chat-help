@@ -12594,3 +12594,10 @@ Kendi server'dan 500 email günlük ancak halen email hataları geliyor"*).
 - Hata bildirimleri (diag-bounce-format, 2 gün): ~35 — çoğu kutu dolu / adres yok / 14 sa sonra vazgeçildi; birkaç
   DMARC reddi (GMX, Microsoft, Orange; DKIM imzası var ama yönlendirme/aktarıcı yolunda bozuluyor). Testler:
   `tests/ops_tick_test.php` (13).
+
+**14 Eki 2026 — Hesap türü değiştirme: `seller-products.yml` → `admin_mode=account_type`** (operatör: *"<adres> bu hesabı
+seller hesap yap"*). Adres açık girdiye YAZILMAZ: payload = `scripts/envelope_seal.php` zarfı (gövde
+`{"email":"…","type":"seller"}`, keygen public key'i) ya da issue_ref = hesap ID. Yalnız `type` değişir + `type_history`
+(kimden/kime/ne zaman/operator:workflow); sipariş, belge, KYB olduğu gibi kalır; satıcıya geçerken `membership_status`
+yoksa 'none'. Hesabın açık oturumları kapatılır (`$_SESSION['utype']` girişte yazılıyor). Varsayılan kuru koşu, geri okuma.
+İlk kullanım: hesap `7d68b8778cd3884c` (Francisco Javier Nicolas Macanas, İspanya, aktif/onaylı, 0 sipariş) buyer → seller.
