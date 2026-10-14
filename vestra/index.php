@@ -1297,6 +1297,13 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
   </div>
 </div>
 <?php endif; ?>
+<?php /* AKTION bandi (14 Eki 2026): aktif sureli teklif varsa kagit bolgesinin EN USTUNDE,
+         "Winter 26/27"dan once -- ziyaretcinin kaydirmadan gordugu ilk urun bolumu. Teklif
+         yoksa bolum hic basilmaz (vestra_aktion_band bos doner). Kagit token'lari icin
+         .paper sarmalayicisinin icinde. */
+      if (function_exists('vestra_aktion_products') && (@include_once __DIR__.'/inc/aktion_ui.php')): ?>
+<div class="paper"><?= vestra_aktion_band() ?></div>
+<?php endif; ?>
 <?php /* KAGIT BOLGESI: buradan marka duvarina kadar her bolum acik zeminde. Icerideki
          kurallar token okuyor (var(--ink), var(--mut), var(--acc), var(--line),
          var(--bg2)); .paper o tokenlari acik degerlere ceviriyor, bolumler kendini

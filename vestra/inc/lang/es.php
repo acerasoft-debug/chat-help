@@ -1712,4 +1712,14 @@ return array (
   'Card (Stripe)' => 'Tarjeta (Stripe)',
   'Invoice in EUR or USD' => 'Factura en EUR o USD',
 
+  // Aktion / sureli teklif (14 Eki 2026)
+  'hours' => 'horas',
+  'Offer ended' => 'Oferta finalizada',
+  'Limited offer' => 'Oferta limitada',
+  'Three days only' => 'Solo tres días',
+  'from %d pc' => 'desde %d uds.',
+  'lots of %d' => 'lotes de %d',
+  'Ends in' => 'Termina en',
+  'Offer ends %s' => 'La oferta termina el %s',
+
 );

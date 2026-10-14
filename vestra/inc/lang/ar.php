@@ -1708,4 +1708,14 @@ return array (
   'Card (Stripe)' => 'بطاقة (Stripe)',
   'Invoice in EUR or USD' => 'فاتورة باليورو أو الدولار',
 
+  // Aktion / sureli teklif (14 Eki 2026)
+  'hours' => 'ساعة',
+  'Offer ended' => 'انتهى العرض',
+  'Limited offer' => 'عرض محدود',
+  'Three days only' => 'ثلاثة أيام فقط',
+  'from %d pc' => 'ابتداءً من %d قطعة',
+  'lots of %d' => 'حزم من %d',
+  'Ends in' => 'ينتهي خلال',
+  'Offer ends %s' => 'ينتهي العرض في %s',
+
 );

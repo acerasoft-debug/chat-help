@@ -12613,3 +12613,26 @@ Brevo **delivered** 20:41 (aynı mektup 17 Eyl'de 2× delivered, 18 Eyl opened �
   üretir, `auth_set_password` ile yazar, BİR KEZ ekranda gösterir — mektup göndermez, operatör müşteriye kendi iletir.
   Mektuplu yol yalnız iş akışındaki `password_setup`.
 - Canlı: `/forgot` formu, `/reset` reddi, `/login` 200 (`shot-vestra` tag=reset).
+
+## Aktion — süreli teklif (geri sayımlı) (operatör, 14 Eki 2026)
+
+- **Model** `inc/products.php`: ilanda `aktion {price,min,until,started,prev{tiers,mode,list,pinned}}`.
+  `vestra_aktion_set($p,$price,$min,$untilTs)` eski basamakları `prev`'e saklar, `min` altındaki
+  (ve pahalı) basamakları tutar, `{min,price}` ekler, `mode=sale`, `list` yoksa ilk eski basamak,
+  `pinned=true`. `vestra_aktion_apply` okuma anında süresi dolanı `vestra_aktion_clear` ile eski
+  haline döndürür (`vestra_live_listings` üstünden; cron yok). Fiyat yolları (`vestra_unit_price`,
+  `vestra_from_price`, `vestra_discount`) değişmedi — aktion sadece bir basamaktır.
+- **Çizim** `inc/aktion_ui.php`: ana sayfa bandı (`vestra_aktion_band`, rakam şeridinden sonra, teklif
+  yoksa hiç basılmaz), ürün sayfası kutusu (`vestra_aktion_box`, üye + onay bekleyen), misafir kilit
+  paneli duyurusu (`vestra_aktion_lock_teaser`), katalog rozeti (`vestra_aktion_badge`, sale rozetinin
+  yerine). Tek JS, `.akcd[data-until]` kendi saatini sayar; biten "Offer ended" yazar, kart solar.
+- **KURAL 19 burada da geçerli**: EUR yalnız `vestra_aktion_can_price()` (admin ya da
+  `auth_prices_unlocked(auth_user())`) doğruysa; misafir/onay bekleyen yalnız **−%X, lot, adet,
+  sayaç ve "Members only"** görür. 8 dilde anahtarlar lang dosyalarının sonunda.
+- **Operasyon** chat-help `seller-products.yml` ▸ `admin_mode=aktion`, `issue_ref=<ilan id>`,
+  `payload=price=35|min=100|days=3|lot=10|moq=60` (ya da `clear`); varsayılan kuru koşu
+  (önce/sonra basamaklar, sepet 40/60/100/200, fotolar), `move_apply=true` yazar ve geri okur.
+  `lot` size_step + açıklamadaki "cartons of N"i; `moq` ilk basamağı + "Minimum order N"i değiştirir;
+  moq ve min lot'un katı olmak zorunda. Saat uygulama anında başlar (`days`), `until=` ile sabit de verilir.
+- İlk kullanım: Lacoste Fleece Hoodie €35 / Zip Up Fleece Hoodie €39.90 (moq 56→60) / Fleece Crew
+  Neck Sweatshirt €29.90 — hepsi 10'lu lot, min 100, 3 gün. Test: `tests/aktion_test.php`.

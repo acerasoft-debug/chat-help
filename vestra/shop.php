@@ -574,6 +574,7 @@ footer a{color:#d8bd86}
       <?php /* Perdede gosterilen marka kartlari: marka BASINA bir kez (kart basina basmak katalogu
                yuzlerce kez ayni SVG ile sisirirdi); JS kartin markasina gore kopyalar. */ ?>
       <template id="bcardtpl"><?php foreach (array_keys($brandCounts) as $_bn): ?><div data-b="<?= htmlspecialchars(mb_strtolower($_bn)) ?>"><?= vestra_brand_card($_bn) ?></div><?php endforeach; ?></template>
+      <?php require_once __DIR__.'/inc/aktion_ui.php'; $__akAny = false; ?>
       <div class="shopgrid" id="shopgrid">
         <?php foreach($products as $idx=>$p):
           $from = vestra_from_price($p);
@@ -633,7 +634,8 @@ footer a{color:#d8bd86}
                 <?= vestra_verified_badge() ?>
               <?php endif; ?>
               <?php if(!$img0) echo vestra_brand_card($p['brand']); ?>
-              <?php if($dmode==='sale'): ?><span class="smodetag sale">−<?= vestra_discount($p) ?>%</span>
+              <?php if($dmode==='sale' && ($__akb = vestra_aktion_badge($p)) !== ''): echo $__akb; $__akAny = true; ?>
+              <?php elseif($dmode==='sale'): ?><span class="smodetag sale">−<?= vestra_discount($p) ?>%</span>
               <?php elseif($dmode==='offer'): ?><span class="smodetag offer"><?= t('Offers') ?></span><?php endif; ?>
               <?php if($isNew): ?><span class="snewbadge"><?= t('NEW') ?></span><?php endif; ?>
               <?php if($imgCount > 1): ?><span class="sphotocount">🖼 <?= $imgCount ?></span><?php endif; ?>
@@ -666,6 +668,7 @@ footer a{color:#d8bd86}
           </a>
         <?php endforeach; ?>
       </div>
+      <?php if ($__akAny) echo vestra_aktion_css().vestra_aktion_js(); ?>
       <div class="empty" id="noresult" style="display:none"><?= t('No products match your filters.') ?></div>
     </div>
   </div>

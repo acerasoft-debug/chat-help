@@ -1708,4 +1708,14 @@ return array (
   'Card (Stripe)' => 'Карта (Stripe)',
   'Invoice in EUR or USD' => 'Счёт в EUR или USD',
 
+  // Aktion / sureli teklif (14 Eki 2026)
+  'hours' => 'ч.',
+  'Offer ended' => 'Акция завершена',
+  'Limited offer' => 'Ограниченное предложение',
+  'Three days only' => 'Только три дня',
+  'from %d pc' => 'от %d шт.',
+  'lots of %d' => 'лоты по %d',
+  'Ends in' => 'До конца',
+  'Offer ends %s' => 'Акция заканчивается %s',
+
 );

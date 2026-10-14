@@ -168,6 +168,9 @@ footer a{color:#d8bd86}
   <div class="lockwrap">
     <div class="lockveil" aria-hidden="true"></div>
     <div class="lockpanel">
+      <?php /* AKTION (14 Eki 2026): misafir detay blogu bulanik; teklifi kilit panelinde
+               duyur -> -%X + geri sayim, EUR yok (KURAL 19). */
+            require_once __DIR__.'/inc/aktion_ui.php'; echo vestra_aktion_lock_teaser($p); ?>
       <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.5"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
       <h3><?= t('Verified buyers only') ?></h3>
       <p><?= t('Register free to see this product, its photos and trade pricing.') ?></p>
@@ -413,6 +416,9 @@ footer a{color:#d8bd86}
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.6" style="margin:0 auto 8px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
           <?php /* Iki ayri sebep, iki ayri cumle: "uye olun" derken zaten uye olana
                    bunu soylemek, kullaniciya yapacak bir sey birakmiyordu. */ ?>
+          <?php /* AKTION (14 Eki 2026): onay bekleyene/misafire de kutu; KURAL 19 -> EUR yok,
+                   yalniz -%X + lot + sayac ("Members only"). */
+                require_once __DIR__.'/inc/aktion_ui.php'; echo vestra_aktion_box($p); ?>
           <?php if($PRICE_GATE==='approval'): ?>
           <?php /* Kapiyi ONAY acar (KURAL 2); belge yalnizca "bu arada" istenir. */ ?>
           <h3 style="margin:0 0 6px"><?= t('Your account is being reviewed') ?></h3>
@@ -535,13 +541,15 @@ footer a{color:#d8bd86}
             <span class="hint">/ <?= htmlspecialchars($p['unit']) ?> · <?= t('clearance') ?></span>
           </div>
         <?php endif; ?>
+        <?php /* AKTION kutusu (14 Eki 2026): geri sayim + teklif fiyati; yalniz aktif teklifte basilir. */
+              require_once __DIR__.'/inc/aktion_ui.php'; $__ak = vestra_aktion($p); echo vestra_aktion_box($p); ?>
         <table class="tiers" id="tiers">
           <thead><tr><th><?= t('Quantity') ?> (<?= htmlspecialchars($p['unit']) ?>)</th><th><?= $mode==='sale'?t('Sale unit'):t('Unit price') ?></th><th><?= t('Saving') ?></th></tr></thead>
           <tbody>
           <?php foreach($p['tiers'] as $i=>$tier):
             $base=$mode==='sale'?$p['list']:$p['tiers'][0]['price'];
             $save=(int)round(100*($base-$tier['price'])/$base); ?>
-            <tr data-min="<?= $tier['min'] ?>" data-price="<?= $tier['price'] ?>">
+            <tr data-min="<?= $tier['min'] ?>" data-price="<?= $tier['price'] ?>"<?= ($__ak && (int)$tier['min'] === $__ak['min']) ? ' class="ak-row"' : '' ?>>
               <td><?= $tier['min'] ?><?= isset($p['tiers'][$i+1])?'–'.($p['tiers'][$i+1]['min']-1):'+' ?></td>
               <td class="amt"><?= vestra_money($tier['price']) ?></td>
               <td><?= $save>0?'−'.$save.'%':'—' ?></td>

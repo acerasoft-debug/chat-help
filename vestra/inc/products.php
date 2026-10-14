@@ -717,9 +717,10 @@ function vestra_hidden_brands_save(array $brands, string $by = 'operator'): arra
 }
 function vestra_live_listings(){
     $sus = vestra_suspended_seller_uids();
-    return array_values(array_filter(vestra_listings(),
+    /* vestra_aktion_apply: suresi dolan sureli teklif okuma aninda eski haline doner. */
+    return array_values(array_map('vestra_aktion_apply', array_filter(vestra_listings(),
         fn($p) => ($p['status']??'approved')==='approved' && empty($sus[(string)($p['seller_uid'] ?? '')])
-                  && !vestra_product_brand_hidden($p)));
+                  && !vestra_product_brand_hidden($p))));
 }
 /* Bundled catalogue drops shipped in code (e.g. the DSQUARED2 model list). They show
    in the catalogue straight after a deploy — no import click needed — but are hidden
@@ -1505,6 +1506,77 @@ function vestra_on_sale($p){ return ($p['mode'] ?? '') === 'sale' && vestra_disc
 /* Vitrinde gecerli mod: gercek indirimi olmayan bir "sale" urunu sadece sabit
    fiyatli bir urundur — rozeti de, ustu cizili fiyati da, filtresi de oyle davranir. */
 function vestra_display_mode($p){ $m = $p['mode'] ?? 'fixed'; return ($m === 'sale' && !vestra_on_sale($p)) ? 'fixed' : $m; }
+
+/* ── AKTION: sureli teklif (operator, 14 Eki 2026: "bu urunu geri sayimli yapalim aktion
+   olarak 3 gunden geriye dogru gitsin … en az alim 100 adet") ─────────────────────────
+   'sale' kipinin SAATI yok; sitedeki tek geri sayim grup alimi (14 gun, kaparo, escrow)
+   ve o baska bir sey. Aktion bir ilana su bloku yazar:
+     aktion: {price, min, until (ISO), started, prev:{tiers, mode, list, pinned}}
+   ve KADEMELERI yeniden kurar: min'in ALTINDAKI ve fiyati teklifin USTUNDEKI eski
+   basamaklar kalir (40'lik dukkan hala alabilir), tepeye {min, price} eklenir, min ve
+   ustundeki eski basamaklar duser (35'in ustunde bir 100'luk basamak merdiveni bozardi).
+   Fiyat yolu DEGISMIYOR: sepet, siparis, fiyat listesi, Excel hepsi tiers'i okumaya
+   devam ediyor -- ikinci bir fiyat yolu yazilmadi (bu deponun kurali). Suresi dolunca
+   OKUMA ANINDA eski hal geri gelir (vestra_aktion_apply, vestra_live_listings icinde):
+   cron'a bagli bir geri alma, cron'un tek bir atlamasinda musteriye bir gun fazladan
+   indirim satardi. Verilmis siparisler etkilenmez: siparis kendi birim fiyatini tasir. */
+function vestra_aktion_fields(array $p): ?array {
+    $a = $p['aktion'] ?? null;
+    return (is_array($a) && isset($a['price'], $a['min'], $a['until'])) ? $a : null;
+}
+/** Aktif teklif: price, min, until (ts), was (ustu cizili), pct, started (ts); yoksa null. */
+function vestra_aktion(array $p, ?int $now = null): ?array {
+    $a = vestra_aktion_fields($p); if (!$a) return null;
+    $now = $now ?? time(); $until = strtotime((string)$a['until']) ?: 0;
+    if ($until <= $now) return null;
+    $was = (float)($a['prev']['list'] ?? $p['list'] ?? 0);
+    if ($was <= (float)$a['price']) { $pt = $a['prev']['tiers'] ?? []; $was = $pt ? (float)$pt[0]['price'] : 0.0; }
+    return ['price' => (float)$a['price'], 'min' => (int)$a['min'], 'until' => $until,
+            'started' => strtotime((string)($a['started'] ?? '')) ?: 0, 'was' => $was,
+            'pct' => $was > 0 ? (int)round(100 * ($was - (float)$a['price']) / $was) : 0];
+}
+/** Teklifi ilana YAZAR (saf: diskle isi yok). Onceki hal 'prev'e alinir, kademeler yeniden kurulur. */
+function vestra_aktion_set(array $p, float $price, int $min, int $untilTs, ?int $now = null): array {
+    if (vestra_aktion_fields($p)) $p = vestra_aktion_clear($p);   // ustuste yazilmaz: once eskisi kalkar
+    $now = $now ?? time();
+    $prevTiers = array_values((array)($p['tiers'] ?? []));
+    $p['aktion'] = ['price' => round($price, 2), 'min' => max(1, $min),
+                    'until' => date('c', $untilTs), 'started' => date('c', $now),
+                    'prev' => ['tiers' => $prevTiers, 'mode' => (string)($p['mode'] ?? 'fixed'),
+                               'list' => $p['list'] ?? null, 'pinned' => !empty($p['pinned'])]];
+    $keep = [];
+    foreach ($prevTiers as $t) { if ((int)$t['min'] < $min && (float)$t['price'] > $price) $keep[] = ['min' => (int)$t['min'], 'price' => (float)$t['price']]; }
+    $keep[] = ['min' => max(1, $min), 'price' => round($price, 2)];
+    $p['tiers'] = $keep;
+    $p['mode']  = 'sale';
+    $list = (float)($p['list'] ?? 0); $first = $prevTiers ? (float)$prevTiers[0]['price'] : 0.0;
+    if ($list <= $price) $p['list'] = max($list, $first);   // ustu cizili rakam: eski liste ya da eski ilk basamak
+    $p['pinned'] = true;                                      // vitrin basi, ana sayfa "The edit" buyuk karo, film
+    return $p;
+}
+/** Teklifi KALDIRIR, onceki hali geri yazar (saf). */
+function vestra_aktion_clear(array $p): array {
+    $a = vestra_aktion_fields($p); if (!$a) return $p;
+    $prev = (array)($a['prev'] ?? []);
+    if (!empty($prev['tiers'])) $p['tiers'] = array_values($prev['tiers']);
+    $p['mode'] = (string)($prev['mode'] ?? 'fixed');
+    if (array_key_exists('list', $prev)) { if ($prev['list'] === null) unset($p['list']); else $p['list'] = $prev['list']; }
+    if (empty($prev['pinned'])) unset($p['pinned']);
+    unset($p['aktion']);
+    return $p;
+}
+/** Okuma aninda: suresi dolmus teklif kendini geri alir. */
+function vestra_aktion_apply(array $p, ?int $now = null): array {
+    $a = vestra_aktion_fields($p); if (!$a) return $p;
+    $now = $now ?? time();
+    return ((strtotime((string)$a['until']) ?: 0) <= $now) ? vestra_aktion_clear($p) : $p;
+}
+/** Vitrindeki aktif teklifler (ana sayfa bandi). */
+function vestra_aktion_products(?int $now = null): array {
+    $out = [];
+    foreach (vestra_products() as $p) if (vestra_aktion($p, $now)) $out[] = $p;
+    return $out;
+}
 
 /* ── Disa giden listelerin (Excel/PDF/price-list) bastigi fiyat ─────────────
    'list' alani fiyat listesinin fiyati DEGIL, iki sebeple:

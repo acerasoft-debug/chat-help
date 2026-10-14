@@ -1708,4 +1708,14 @@ return array (
   'Card (Stripe)' => 'カード（Stripe）',
   'Invoice in EUR or USD' => 'EURまたはUSDで請求',
 
+  // Aktion / sureli teklif (14 Eki 2026)
+  'hours' => '時間',
+  'Offer ended' => 'オファー終了',
+  'Limited offer' => '期間限定オファー',
+  'Three days only' => '3日間限定',
+  'from %d pc' => '%d点から',
+  'lots of %d' => '%d点ロット',
+  'Ends in' => '終了まで',
+  'Offer ends %s' => 'オファーは%sに終了',
+
 );
