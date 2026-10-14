@@ -523,9 +523,33 @@
         "brand": "Dolce & Gabbana"
     },
     {
+        "sku": "G8RN8ZG7M8X",
+        "rrp": 495,
+        "src": "https://www.dolcegabbana.com/en-de/search?q=G8RN8ZG7M8XM0464",
+        "basis": "resmî site",
+        "checked": "2026-10-14",
+        "brand": "Dolce & Gabbana"
+    },
+    {
+        "sku": "G8RN8ZG7NUB",
+        "rrp": 395,
+        "src": "https://www.dolcegabbana.com/en-de/search?q=G8RN8ZG7NUBM0672",
+        "basis": "resmî site",
+        "checked": "2026-10-14",
+        "brand": "Dolce & Gabbana"
+    },
+    {
         "sku": "G8SE3TFU7EN",
         "rrp": 495,
         "src": "https://www.dolcegabbana.com/en-it/fashion/men/clothing/t-shirts-and-polos/cotton-t-shirt-with-tag-black-G8SE3TFU7ENN0000.html",
+        "basis": "resmî site",
+        "checked": "2026-10-14",
+        "brand": "Dolce & Gabbana"
+    },
+    {
+        "sku": "G9ABGTGF790",
+        "rrp": 1450,
+        "src": "https://www.dolcegabbana.com/en-de/search?q=G9ABGTGF790N0000",
         "basis": "resmî site",
         "checked": "2026-10-14",
         "brand": "Dolce & Gabbana"
@@ -539,10 +563,42 @@
         "brand": "Dolce & Gabbana"
     },
     {
+        "sku": "GY07CDG8GW9",
+        "rrp": 595,
+        "src": "https://www.dolcegabbana.com/en-de/search?q=GY07CDG8GW9S9001",
+        "basis": "resmî site",
+        "checked": "2026-10-14",
+        "brand": "Dolce & Gabbana"
+    },
+    {
+        "sku": "GY07LDG8HA7",
+        "rrp": 595,
+        "src": "https://www.dolcegabbana.com/en-de/search?q=GY07LDG8HA7S9001",
+        "basis": "resmî site",
+        "checked": "2026-10-14",
+        "brand": "Dolce & Gabbana"
+    },
+    {
+        "sku": "GY07LDG8HW4",
+        "rrp": 595,
+        "src": "https://www.dolcegabbana.com/en-de/search?q=GY07LDG8HW4S9001",
+        "basis": "resmî site",
+        "checked": "2026-10-14",
+        "brand": "Dolce & Gabbana"
+    },
+    {
         "sku": "M4E26T",
         "rrp": 400,
         "src": "https://blckthemall.com/en/products/dg-fi-m4e26t-fusfw-r0046",
         "basis": "mağaza indirimsiz fiyatı",
+        "checked": "2026-10-14",
+        "brand": "Dolce & Gabbana"
+    },
+    {
+        "sku": "M4E48TFUSFW",
+        "rrp": 395,
+        "src": "https://www.dolcegabbana.com/en-de/search?q=M4E48TFUSFWN0000",
+        "basis": "resmî site",
         "checked": "2026-10-14",
         "brand": "Dolce & Gabbana"
     },
@@ -559,6 +615,30 @@
         "rrp": 630,
         "src": "https://blckthemall.com/products/dg-fi-g8ra2z-g7j6f-n0000",
         "basis": "mağaza indirimsiz fiyatı",
+        "checked": "2026-10-14",
+        "brand": "Dolce & Gabbana"
+    },
+    {
+        "sku": "GY07CD G8GW9",
+        "rrp": 595,
+        "src": "https://www.dolcegabbana.com/en-de/search?q=GY07CDG8GW9S9001",
+        "basis": "resmî site",
+        "checked": "2026-10-14",
+        "brand": "Dolce & Gabbana"
+    },
+    {
+        "sku": "GY07LD G8HA7",
+        "rrp": 595,
+        "src": "https://www.dolcegabbana.com/en-de/search?q=GY07LDG8HA7S9001",
+        "basis": "resmî site",
+        "checked": "2026-10-14",
+        "brand": "Dolce & Gabbana"
+    },
+    {
+        "sku": "GY07LD G8HW4",
+        "rrp": 595,
+        "src": "https://www.dolcegabbana.com/en-de/search?q=GY07LDG8HW4S9001",
+        "basis": "resmî site",
         "checked": "2026-10-14",
         "brand": "Dolce & Gabbana"
     },

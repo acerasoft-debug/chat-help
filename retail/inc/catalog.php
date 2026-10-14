@@ -1047,11 +1047,33 @@ function vr_photo_colour_far(string $a, string $b): bool
 }
 
 /** Kareleri "tam ürün" sırasına diz; eşitlikte dosya sırası korunur. */
+/**
+ * Arkadan çekim cezası (operatör, 14 Eki 2026: "her zaman öndekini öne koy").
+ * Kare bir mankeni gösteriyor (üründe ten payı sa > %2) ama baş bölgesinde
+ * yüz yok (sk < %6), aynı ürünün başka bir karesinde ise yüz açıkça var
+ * (sk > %15): bu mankenin arkadan çekimidir, geriye. Düz serili ürün
+ * çekimlerine ve yüzü olmayan ürünlere karışmaz; yakın çekim yine
+ * vr_full_penalty ile geride kalır.
+ */
+function vr_back_penalty(float $skMax, $m): float
+{
+    if (!is_array($m) || !isset($m["sk"], $m["sa"])) return 0.0;
+    // Başın arkası: baş bölgesi koyu (saç/şapka, hd). Düz serili üründe
+    // yaka bölgesi kumaştır; baskıdaki ten benzeri renk yanıltmasın.
+    return ($skMax > 0.15 && (float)$m['sa'] > 0.02 && (float)$m['sk'] < 0.06 && (float)($m['hd'] ?? 0) > 0.25) ? 30.0 : 0.0;
+}
+
 function vr_order_full_first(array $imgs): array
 {
     $imgs = array_values($imgs);
+    $det = vr_photo_detail_index();
+    $skMax = 0.0;
+    foreach ($imgs as $img) $skMax = max($skMax, (float)($det[$img]['sk'] ?? 0));
     $k = [];
-    foreach ($imgs as $i => $img) $k[$i] = vr_full_penalty((string)$img) + $i * 0.5;
+    foreach ($imgs as $i => $img) {
+        $k[$i] = vr_full_penalty((string)$img) + $i * 0.5;
+        $k[$i] += vr_back_penalty($skMax, $det[$img] ?? null);                                // önden çekim öne
+    }
     asort($k);
     return array_map(fn($i) => $imgs[$i], array_keys($k));
 }
@@ -1064,9 +1086,17 @@ function vr_card_frames(array $p): array
     $grid  = vr_photo_grid_index();
     $shape = function_exists('vr_photo_shape_index') ? vr_photo_shape_index() : [];
 
+    // Ön görünüş: mankenin arkadan çekimi (yüz yok, kollar var) geriye —
+    // bkz. vr_back_penalty. Operatör, 14 Eki 2026: "her zaman öndekini ve
+    // tam fotoyu öne koy".
+    $det = vr_photo_detail_index();
+    $skMax = 0.0;
+    foreach ($imgs as $img) $skMax = max($skMax, (float)($det[$img]['sk'] ?? 0));
+
     $score = [];
     foreach ($imgs as $i => $img) {
         $s = 0.0;
+        $s += vr_back_penalty($skMax, $det[$img] ?? null);
         $iw = (int)($shape[$img]['w'] ?? 0);
         $ih = (int)($shape[$img]['h'] ?? 0);
         $small = $iw > 0 && ($iw < 600 || $ih < 700);

@@ -23,6 +23,7 @@
  *   m     kadrajın zeminden farklı payı
  *   d     1 = yakın çekim / tam ürünü göstermiyor
  *   c     ürünün baskın rengi (zeminden ayrılan piksellerde)
+ *   sk/sa baş bölgesinde / bütün üründe ten rengi payı (arkadan çekim tespiti)
  *
  * Karar: zemin açık değilse (köşeler kumaş) ya da ürün iki yan kenara da
  * dayanıyorsa ya da kadrajın %80'inden fazlası üründeyse yakın çekim.
@@ -110,13 +111,51 @@ function pd_measure(GdImage $im): array
     for ($y = 0; $y < $h; $y++) { $left[] = [1, $y]; $right[] = [$w - 2, $y]; }
     $e = [$edge($top), $edge($right), $edge($bottom), $edge($left)];
     $mm = round($m / max(1, $w * $h), 3);
+
+    // Arkadan çekim ölçüsü. Ürünün kapladığı kutuda:
+    //   sk = baş bölgesinde (üst %18, orta şerit) ten rengi payı — yüz
+    //   sa = bütün kutuda ten rengi payı — kare bir mankeni mi gösteriyor
+    // Mankenin arkadan çekiminde kollar/boyun görünür (sa var) ama yüz yok
+    // (sk düşük). Düz serili ürün çekiminde ikisi de sıfır; ona karar
+    // verilmez (logo önde de arkada da olabilir). Bkz. vr_back_penalty().
+    $x0 = $w; $y0 = $h; $x1 = 0; $y1 = 0;
+    for ($y = 0; $y < $h; $y += 2) for ($x = 0; $x < $w; $x += 2) {
+        if ($diff($rgb(imagecolorat($im, $x, $y))) > 40) { $x0 = min($x0, $x); $x1 = max($x1, $x); $y0 = min($y0, $y); $y1 = max($y1, $y); }
+    }
+    // Ten: kırmızı > yeşil ≥ mavi ve farklar ölçülü. Bordo kumaş ya da pembe
+    // baskı (yeşil maviden düşük) ten sayılmasın.
+    $isSkin = static fn(array $c): bool => $c[0] > 95 && $c[1] > 40 && $c[2] > 20 && $c[0] > $c[1] && $c[1] >= $c[2] - 4
+        && $c[0] - $c[1] > 15 && $c[0] - $c[1] < 100 && $c[0] - $c[2] < 140;
+    $sk = 0.0; $sa = 0.0; $hd = 0.0;
+    if ($x1 > $x0 + 10 && $y1 > $y0 + 10) {
+        $bw = $x1 - $x0; $bh = $y1 - $y0;
+        $n = 0; $k = 0;
+        for ($y = $y0; $y < (int)($y0 + $bh * 0.18); $y++) for ($x = (int)($x0 + $bw * 0.30); $x < (int)($x0 + $bw * 0.70); $x++) {
+            $n++; if ($isSkin($rgb(imagecolorat($im, $x, $y)))) $k++;
+        }
+        $sk = $n ? round($k / $n, 3) : 0.0;
+        // Baş bölgesinde koyu pay (saç / şapka): arkadan çekimde başın arkası.
+        $n = 0; $k = 0;
+        for ($y = $y0; $y < (int)($y0 + $bh * 0.12); $y++) for ($x = (int)($x0 + $bw * 0.38); $x < (int)($x0 + $bw * 0.62); $x++) {
+            $c = $rgb(imagecolorat($im, $x, $y)); $n++;
+            if (0.299 * $c[0] + 0.587 * $c[1] + 0.114 * $c[2] < 95) $k++;
+        }
+        $hd = $n ? round($k / $n, 3) : 0.0;
+        $n = 0; $k = 0;
+        for ($y = $y0; $y <= $y1; $y += 2) for ($x = $x0; $x <= $x1; $x += 2) {
+            $c = $rgb(imagecolorat($im, $x, $y));
+            if ($diff($c) <= 40) continue;
+            $n++; if ($isSkin($c)) $k++;
+        }
+        $sa = $n ? round($k / $n, 3) : 0.0;
+    }
     $d = (!$light || ($e[1] > 0.45 && $e[3] > 0.45) || $mm > 0.80) ? 1 : 0;
-    return ['bg' => sprintf('#%02x%02x%02x', ...$bg), 'light' => $light ? 1 : 0, 'e' => $e, 'm' => $mm, 'd' => $d, 'c' => $dom];
+    return ['bg' => sprintf('#%02x%02x%02x', ...$bg), 'light' => $light ? 1 : 0, 'e' => $e, 'm' => $mm, 'd' => $d, 'c' => $dom, 'sk' => $sk, 'sa' => $sa, 'hd' => $hd];
 }
 
 $done = $skip = $fail = $det = 0;
 foreach (array_keys($list) as $rel) {
-    if (!$all && isset($out[$rel]['c'])) { $skip++; continue; }
+    if (!$all && isset($out[$rel]['hd'])) { $skip++; continue; }       // 'hd' yoksa (eski ölçü) yeniden ölç
     $im = pd_thumb($root . $rel);
     if (!$im) { $fail++; continue; }
     $out[$rel] = pd_measure($im);

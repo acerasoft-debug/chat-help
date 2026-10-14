@@ -33,7 +33,7 @@ const OFFICIAL = '/^(?!secondemain\.)(.*\.)?(gucci|dolcegabbana|burberry|balmain
 
 $decided = []; $why = [];
 foreach ($cand as $id => $c) {
-    if (!empty($c['blocked'])) { $why['engellendi'] = ($why['engellendi'] ?? 0) + 1; continue; }
+    if (!empty($c['blocked']) && empty($c['sources'])) { $why['engellendi'] = ($why['engellendi'] ?? 0) + 1; continue; }
     $ref = (int)($c['ref'] ?? 0) / 100;
     $vals = [];                          // [değer, host, adres, tür]
     foreach ((array)($c['sources'] ?? []) as $s) {

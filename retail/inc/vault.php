@@ -52,8 +52,38 @@ function vr_vault_all(): array
         if (empty($lot['start_at']) && isset($lot['start_offset_hours'])) {
             $lots[$i]['start_at'] = $now + (int)round((float)$lot['start_offset_hours'] * 3600);
         }
+        // Açılış ve taban fiyatı resmî fiyata bağlı (bkz. vr_vault_bounds).
+        $b = vr_vault_bounds((string)($lot['product_id'] ?? ''));
+        if ($b) { $lots[$i]['open_cents'] = $b[0]; $lots[$i]['floor_cents'] = $b[1]; }
     }
     return array_values($lots);
+}
+
+/**
+ * Vault losunun açılış ve taban fiyatı, resmî fiyattan.
+ *
+ * Operatör, 14 Eki 2026: "piyasanın altı olabilir ama çok altı olamaz";
+ * lüks evlerde resmî fiyatın %30–35 altı, Lacoste / Ralph Lauren / Fred
+ * Perry gibilerde %20–25 altı. Los dosyasındaki eski elle girilmiş planlar
+ * (Gucci tişört 220 → 130) resmî fiyatın %76 altına iniyordu. Artık los
+ * mağaza fiyatından (aralığın üst ucu) açılır ve 5 puan aşağıda durur:
+ *   lüks 30 → 35 · tasarımcı 25 → 30 · diğer 20 → 25
+ * Resmî fiyatı bilinmeyen ürünün planı olduğu gibi kalır.
+ */
+function vr_vault_bounds(string $productId): ?array
+{
+    static $cache = [];
+    if ($productId === '') return null;
+    if (array_key_exists($productId, $cache)) return $cache[$productId];
+    $p = vr_catalog()[$productId] ?? null;
+    if (!$p) return $cache[$productId] = null;
+    $ref = vr_official_ref((string)$p['brand'], (string)$p['cat'], (string)($p['sku'] ?? ''), (string)$p['name']);
+    if (!$ref) return $cache[$productId] = null;
+    $bps   = vr_official_discount_bps((string)$p['brand']);          // mağaza: 3000 / 2500 / 2000
+    $open  = vr_official_round((int)round($ref['cents'] * (10000 - $bps) / 10000));
+    $floor = vr_official_round((int)round($ref['cents'] * (10000 - $bps - 500) / 10000));
+    if ($floor >= $open) $floor = (int)round($open * 0.95);
+    return $cache[$productId] = [$open, $floor];
 }
 
 /**

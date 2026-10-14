@@ -319,7 +319,9 @@ function vr_config(?string $key = null, mixed $default = null): mixed
             // sayfasında üstü çizili görünüyor. Tablo boşsa hiçbir etkisi yok.
             'official_discount_bps' => 2000,  // %20 — basamağı tanımsız ev
             // Operatör, 14 Eki 2026: en büyük indirim pahalı lüks evlerde.
-            'official_discount_tiers' => ['luxury' => 3500, 'designer' => 3000, 'casual' => 2500],
+            'official_discount_tiers' => ['luxury' => 3000, 'designer' => 2500, 'casual' => 2000],
+            // Vault (Premium Outlet) bu indirimden açılır ve 5 puan daha aşağıda durur
+            // (lüks 30 → 35, tasarımcı 25 → 30, diğer 20 → 25) — bkz. vr_vault_bounds().
             'brand_tier' => [
                 'luxury'   => ['Gucci', 'Balenciaga', 'Givenchy', 'Dolce & Gabbana', 'Fendi', 'Valentino', 'Versace',
                                'Burberry', 'Balmain', 'Prada', 'Saint Laurent', 'Bottega Veneta', 'Loewe', 'Celine',
