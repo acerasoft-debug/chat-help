@@ -29,7 +29,7 @@ $write = in_array('--write', $argv, true);
 $cand = json_decode((string)@file_get_contents((string)$in), true);
 if (!is_array($cand)) { fwrite(STDERR, "aday dosyası yok\n"); exit(1); }
 
-const OFFICIAL = '/(^|\.)(gucci|dolcegabbana|burberry|balmain|givenchy|dsquared2|lacoste|fendi|balenciaga|valentino|versace|fredperry|ralphlauren|gcds|marceloburlon|casablancaparis|jacquemus)\.(com|it|de|eu|fr|co\.uk)$/i';
+const OFFICIAL = '/^(?!secondemain\.)(.*\.)?(gucci|dolcegabbana|burberry|balmain|givenchy|dsquared2|lacoste|fendi|balenciaga|valentino|versace|fredperry|ralphlauren|gcds|marceloburlon|casablancaparis|jacquemus)\.(com|it|de|eu|fr|co\.uk)$/i';
 
 $decided = []; $why = [];
 foreach ($cand as $id => $c) {
@@ -37,6 +37,8 @@ foreach ($cand as $id => $c) {
     $ref = (int)($c['ref'] ?? 0) / 100;
     $vals = [];                          // [değer, host, adres, tür]
     foreach ((array)($c['sources'] ?? []) as $s) {
+        // İkinci el / yeniden satış bölümleri (secondemain.lacoste.com gibi) UVP kaynağı değildir.
+        if (preg_match('/secondemain|second-?hand|pre-?owned|resale|vintage/i', (string)$s['host'] . ' ' . (string)$s['page'])) continue;
         foreach ((array)($s['prices'] ?? []) as $r) {
             if (strtoupper((string)($r['cur'] ?? '')) !== 'EUR') continue;
             $isList = !empty($r['list']);

@@ -11,6 +11,10 @@ on:
         description: "Yalnız bu ürün id'leri (virgülle, boş = hepsi)"
         required: false
         default: ""
+      mode:
+        description: "search = arama · recheck = bulunan sayfaları AB sürümünden yeniden oku"
+        required: false
+        default: "search"
 
 permissions:
   contents: write
@@ -21,6 +25,7 @@ permissions:
 # diag/prices/candidates.json olarak dala işlenir, karar elle/araçla verilir.
 jobs:
   plan:
+    if: github.event.inputs.mode != 'recheck'
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.p.outputs.matrix }}
@@ -74,7 +79,7 @@ jobs:
 
   merge:
     needs: search
-    if: always()
+    if: always() && github.event.inputs.mode != 'recheck'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -96,4 +101,20 @@ jobs:
           git add -f diag/prices
           git diff --cached --quiet && exit 0
           git commit -q -m "Resmî fiyat adayları (çok parçalı arama)"
+          for i in 1 2 3 4; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((i*3)); done
+
+  recheck:
+    if: github.event.inputs.mode == 'recheck'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: AB sürümlerini oku
+        run: php retail/tools/recheck-prices-eu.php diag/prices/candidates.json
+      - name: Dala işle
+        run: |
+          git config user.name "Claude"; git config user.email "noreply@anthropic.com"
+          git add -f diag/prices
+          git diff --cached --quiet && exit 0
+          git commit -q -m "Resmî fiyat adayları: AB sürümleri yeniden okundu"
           for i in 1 2 3 4; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((i*3)); done
