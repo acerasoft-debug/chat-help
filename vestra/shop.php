@@ -273,6 +273,31 @@ footer a{color:#d8bd86}
     background:linear-gradient(0deg,#e3c98d 0,#c9a86a 2px,#1d1915 2px,#16130f 100%)}
   .mo .shopgrid .scard:not(.in) .scurt{transform:scaleY(1)}
   .mo .shopgrid .scard.in:not(.done) .scurt{transition:transform 1s cubic-bezier(.77,0,.18,1) calc(var(--d,0s) + .12s)}
+  /* KARTIN YAZISI DA ACILIR (operator, 14 Eki 2026: "animasyon urunleri acilmasi ok iyi ama urun
+     kartlarindan yani isimlerinden ... acilmasi daha estetik olacaktir"). Perde kalkarken yazi kartla
+     birlikte sadece soluyordu; simdi perdenin ARKASINDAN satir satir maskeden yukselir -- basliktaki
+     kelime maskesiyle ayni dil. Marka adinin harf araligi acilir ve altina altin bir kil cizgi cekilir.
+     Yalniz transform / opacity / clip-path / letter-spacing: kart yuksekligi degismez (CLS 0). */
+  .mo .shopgrid .scard .sbody>*{will-change:auto}
+  .mo .shopgrid .scard:not(.in) .sbody>*{opacity:0;transform:translateY(14px);clip-path:inset(0 0 100% 0)}
+  .mo .shopgrid .scard.in:not(.done) .sbody>*{transition:opacity .6s ease,transform .85s cubic-bezier(.16,.8,.12,1),clip-path .85s cubic-bezier(.16,.8,.12,1);
+    transition-delay:calc(var(--d,0s) + .62s)}
+  .mo .shopgrid .scard.in:not(.done) .sbody>:nth-child(2){transition-delay:calc(var(--d,0s) + .70s)}
+  .mo .shopgrid .scard.in:not(.done) .sbody>:nth-child(3){transition-delay:calc(var(--d,0s) + .78s)}
+  .mo .shopgrid .scard.in:not(.done) .sbody>:nth-child(4){transition-delay:calc(var(--d,0s) + .84s)}
+  .mo .shopgrid .scard.in:not(.done) .sbody>:nth-child(5){transition-delay:calc(var(--d,0s) + .90s)}
+  .mo .shopgrid .scard.in:not(.done) .sbody>:nth-child(n+6){transition-delay:calc(var(--d,0s) + .96s)}
+  .mo .shopgrid .scard:not(.in) .sbrand{letter-spacing:.02em}
+  .mo .shopgrid .scard.in:not(.done) .sbrand{transition:opacity .6s ease,transform .85s cubic-bezier(.16,.8,.12,1),clip-path .85s cubic-bezier(.16,.8,.12,1),
+    letter-spacing 1.1s cubic-bezier(.16,.8,.12,1);transition-delay:calc(var(--d,0s) + .62s)}
+  .shopwrap .sbrand{position:relative;align-self:flex-start;padding-bottom:3px}
+  .shopwrap .sbrand::after{content:'';position:absolute;left:0;bottom:0;height:1px;width:100%;
+    background:linear-gradient(90deg,var(--acc),rgba(201,168,106,0));transform-origin:0 50%;transform:scaleX(.35);opacity:.55;
+    transition:transform .6s var(--ease),opacity .6s var(--ease)}
+  .shopwrap .scard:hover .sbrand::after{transform:scaleX(1);opacity:1}
+  [dir="rtl"] .shopwrap .sbrand::after{left:auto;right:0;transform-origin:100% 50%;background:linear-gradient(270deg,var(--acc),rgba(201,168,106,0))}
+  .mo .shopgrid .scard:not(.in) .sbrand::after{transform:scaleX(0)}
+  .mo .shopgrid .scard.in:not(.done) .sbrand::after{transition:transform 1.1s cubic-bezier(.2,.7,.1,1) calc(var(--d,0s) + .9s)}
   .sglare{position:absolute;inset:0;z-index:8;pointer-events:none;opacity:0;transition:opacity .35s ease;border-radius:inherit;
     background:radial-gradient(circle at var(--gx,50%) var(--gy,30%),rgba(255,255,255,.42),rgba(255,248,230,.10) 32%,transparent 58%);mix-blend-mode:soft-light}
   .mo .shopgrid .scard.tilt{transition:transform .14s ease-out,box-shadow .35s ease,border-color .35s ease;will-change:transform}
@@ -283,6 +308,7 @@ footer a{color:#d8bd86}
   @media(prefers-reduced-motion:reduce){
     .mo .sphead-eyebrow,.mo .sphead h1 .hw>span,.mo .sphead::after,.mo .sphead p,.mo .sphead-links,.mo .secttab,.mo .brail-cell{animation:none}
     .mo .shopgrid .scard:not(.in),.mo .shopgrid .scard:not(.in) .sthumbi{opacity:1;transform:none;filter:none}
+    .mo .shopgrid .scard:not(.in) .sbody>*{opacity:1;transform:none;clip-path:none}
     .scurt,.sglare,.scprog{display:none}
   }
 </style>
@@ -723,7 +749,7 @@ if (window.matchMedia && window.matchMedia('(hover: none)').matches && 'Intersec
     list.sort(function(a, b){ var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect(); return (ra.top - rb.top) || (ra.left - rb.left); });
     list.forEach(function(c, i){
       var d = Math.min(i, 11) * 0.07; c.style.setProperty('--d', d.toFixed(2) + 's'); c.classList.add('in');
-      setTimeout(function(){ c.classList.add('done'); c.style.removeProperty('--d'); }, (d + 1.35) * 1000);
+      setTimeout(function(){ c.classList.add('done'); c.style.removeProperty('--d'); }, (d + 1.95) * 1000);   /* yazinin satir acilisi da bitsin (14 Eki): .96 gecikme + .85 sure */
     });
   };
   var io = new IntersectionObserver(function(es){

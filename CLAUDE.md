@@ -12561,3 +12561,11 @@ Test `track_404_test.php` (27). `/null`'ın sayfadaki kaynağı bulunamadı (can
 - Yerelde headless Chromium: 1440 / 390 px, en/de/ar — yatay kaydırma 0, JS hatası 0. Test `tests/shop_motion_test.php` (11).
 - DİKKAT (araç): yerel `php -S` sunucusunu `pkill -f "...8097"` ile kapatmak kabuğun kendisini de öldürüyor — desende
   `809[7]` kullan.
+
+**14 Eki 2026 — Katalog kartının YAZISI da açılır** (operatör: *"Katalogtaki animasyon ürünleri acilmasi ok iyi ama ürün
+kartlarindan yani isimlerinden ... acilmasi daha estetik olacaktir"*). Hareket sahnesinde perde fotoğraftan kalkıyor,
+yazı ise kartla birlikte yalnız soluyordu. `shop.php`: `.sbody>*` satırları perdenin ARKASINDAN maskeden (`clip-path`)
+sırayla yükselir (gecikme +.62…+.96 s), marka adının harf aralığı .02em → .15em açılır, altına altın kıl çizgi çekilir
+(hover'da tam boy). `done` zamanlayıcısı 1.35 → 1.95 s (satırlar bitmeden 3B eğim başlamasın). Azaltılmış harekette
+ve JS'siz (`html.mo` yok) hiçbiri devrede değil. Kum havuzunda kare kare ölçüldü (sayfa kırpması; eleman ekran
+görüntüsü hareketin bitmesini BEKLİYOR, ara kareyi göstermez).
