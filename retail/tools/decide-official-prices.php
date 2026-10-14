@@ -39,8 +39,15 @@ foreach ($cand as $id => $c) {
     foreach ((array)($c['sources'] ?? []) as $s) {
         // İkinci el / yeniden satış bölümleri (secondemain.lacoste.com gibi) UVP kaynağı değildir.
         if (preg_match('/secondemain|second-?hand|pre-?owned|resale|vintage|myshopify\.com/i', (string)$s['host'] . ' ' . (string)$s['page'])) continue;
+        // Aynı sayfada iki farklı Euro fiyatı varsa (ör. END.: meta'da indirim
+        // öncesi, JSON-LD'de indirimli fiyat) büyük olan mağazanın indirim
+        // öncesi fiyatıdır.
+        $eur = [];
+        foreach ((array)($s['prices'] ?? []) as $r) if (strtoupper((string)($r['cur'] ?? '')) === 'EUR' && (float)$r['price'] > 0) $eur[] = (float)$r['price'];
+        $pageList = (count(array_unique($eur)) >= 2 && max($eur) >= min($eur) * 1.10) ? max($eur) : null;
         foreach ((array)($s['prices'] ?? []) as $r) {
             if (strtoupper((string)($r['cur'] ?? '')) !== 'EUR') continue;
+            if ($pageList !== null && (float)$r['price'] === $pageList && empty($r['list'])) $r['list'] = $pageList;
             $isList = !empty($r['list']);
             $v = (float)($isList ? $r['list'] : $r['price']);
             if ($v <= 0) continue;
