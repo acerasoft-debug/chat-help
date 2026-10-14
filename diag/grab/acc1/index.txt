@@ -1,0 +1,6 @@
+01 200 text/html; charset=utf-8 5773 https://sarvesto.com/account/login.php
+01.src https://sarvesto.com/account/login.php
+02 200 text/html; charset=utf-8 5967 https://sarvesto.com/account/register.php
+02.src https://sarvesto.com/account/register.php
+03 200 text/html; charset=utf-8 5774 https://sarvesto.com/account/login.php
+03.src https://sarvesto.com/account/addresses.php
