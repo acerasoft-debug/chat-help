@@ -197,10 +197,45 @@ $skip = array_flip(array_merge(
     ['blc-612966tnvn4w', 'bur-8055206', 'dgn-m4a13tismd3', 'dgn-g8pb9thu7ma', 'blc-612966tlvf1', 'fashionb-lacoste-men-lightweight', 'dsq-s74lb0907', 'dgn-gy07cdg8fr4', 'dgx-gy07cd-g8fr4', 'dgx-g8pl4t-g7f2h', 'dgx-g8kbaz-g7c6', 'dgx-g8pb9t-hu7ma', 'dgn-g8qi4tfu7eqw'],
     array_map('strval', (array)vr_store_read('card-crop-skip.json', []))
 ));
+/* Elle işaretlenmiş panel (data/card-crop-manual.json):
+     "dgn-g7jv9": {"src": "d-g-g7jv9-1-p1.jpg", "box": [0.28, 0, 1, 1]}
+   Otomatik kesimin bulamadığı kolajlarda gözle seçilen panel: kutu kaynak
+   boyutuna oranla (x0, y0, x1, y1). Kesim 4:5 karoya beyaz zeminle
+   sığdırılır, kırpılmaz. Kaynak ürünün kendi karesi; yalnız kart için. */
+$manual = (array)vr_store_read('card-crop-manual.json', []);
 $res = []; $made = 0;
 foreach (vr_catalog() as $id => $p) {
     $id = (string)$id;
     if ($only !== '' && !str_contains($id, $only)) continue;
+    if (isset($manual[$id]['src'], $manual[$id]['box']) && count((array)$manual[$id]['box']) === 4) {
+        $m = $manual[$id];
+        $srcRel = '';
+        foreach ((array)$p['images'] as $im0) if (basename((string)$im0) === basename((string)$m['src'])) $srcRel = (string)$im0;
+        if ($srcRel === '' || !($im = cc_load($root . $srcRel))) continue;
+        [$a, $b, $c, $d] = array_map('floatval', (array)$m['box']);
+        $W = imagesx($im); $H = imagesy($im);
+        $sx = (int)round($a * $W); $sy = (int)round($b * $H); $sw = (int)round(($c - $a) * $W); $sh0 = (int)round(($d - $b) * $H);
+        $dst = imagecreatetruecolor(900, 1125);
+        imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255));
+        $sc = min(900 / max(1, $sw), 1125 / max(1, $sh0));
+        $dw = (int)round($sw * $sc); $dh = (int)round($sh0 * $sc);
+        imagecopyresampled($dst, $im, (int)((900 - $dw) / 2), (int)((1125 - $dh) / 2), $sx, $sy, $dw, $dh, $sw, $sh0);
+        imagedestroy($im);
+        $name = preg_replace('/[^a-z0-9-]/', '-', strtolower($id)) . '-m' . substr(sha1($srcRel . json_encode($m['box'])), 0, 8) . '.jpg';
+        $rel = '/uploads/_cards/' . $name;
+        if ($apply) {
+            @mkdir($root . '/uploads/_cards', 0755, true);
+            imagejpeg($dst, $root . $rel, 86);
+            $crops[$id] = ['from' => $srcRel, 'to' => $rel, 'auto' => 1, 'manual' => 1];
+        } elseif ($out !== '') {
+            @mkdir($out, 0755, true);
+            imagejpeg($dst, $out . '/' . $name, 82);
+        }
+        imagedestroy($dst);
+        $res[] = ['id' => $id, 'from' => $srcRel, 'file' => $name, 'k' => 'manual'];
+        $made++;
+        continue;
+    }
     if (isset($crops[$id]) && empty($crops[$id]['auto'])) continue;          // elle yapılmış kesim
     $skipHit = isset($skip[$id]);
     foreach (array_keys($skip) as $sk) if (str_starts_with($id, $sk)) $skipHit = true;

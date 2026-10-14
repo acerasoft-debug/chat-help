@@ -146,22 +146,80 @@ function pt_side(GdImage $im, string $side): ?array
     return ['px' => $k, 'bg' => $bg];
 }
 
-$found = $done = $skip = $fail = 0;
+/** Ölçüm sürümü: kural değişince eski "temiz" kayıtlar yeniden ölçülür. */
+const PT_VER = 2;
+
+/**
+ * Altyazı şeridi: toptancının bazı karelerinde ürünün altında beyaz zeminde
+ * küçük siyah bir model kodu yazısı ("DOLCE&GABBANA G8PT1T G7JV9"). Kartta
+ * fotoğrafın içinde yazı gibi duruyor. Aşağıdan yukarı: (beyaz) → ince yazı
+ * bandı → en az birkaç satır tam beyaz boşluk → ürün. Bulunursa yazı
+ * bandının üstündeki boşluğun ortasının oranı (0..1) döner.
+ *
+ * Tutucu: bant yüksekliği ≤ %10, boşluktan aşağısı toplam ≤ %18, bant
+ * satırlarında koyu piksel oranı düşük (yazı seyrek; giysi kenarı yoğun),
+ * bandın yatay yayılımı ≤ %75 (yazı ortada ya da bir köşede; giysi eteği
+ * genişte).
+ */
+function pt_caption(GdImage $im): ?float
+{
+    $W = imagesx($im); $H = imagesy($im);
+    $rowInfo = function (int $y) use ($im, $W): array {
+        $dark = 0; $nonwhite = 0; $minx = $W; $maxx = -1;
+        for ($x = 0; $x < $W; $x++) {
+            $c = imagecolorat($im, $x, $y);
+            $l = ((($c >> 16) & 255) + (($c >> 8) & 255) + ($c & 255)) / 3;
+            if ($l < 236) { $nonwhite++; $minx = min($minx, $x); $maxx = max($maxx, $x); }
+            if ($l < 150) $dark++;
+        }
+        return [$nonwhite / $W, $dark / $W, $maxx >= $minx ? ($maxx - $minx + 1) / $W : 0];
+    };
+    $y = $H - 1;
+    $lim = (int)floor($H * 0.18);
+    // alt beyaz
+    while ($y > $H - 1 - $lim && $rowInfo($y)[0] < 0.004) $y--;
+    $bandBot = $y; $ink = 0; $span = 0.0; $rows = 0; $sumDark = 0.0;
+    while ($y > $H - 1 - $lim) {
+        [$nw, $dk, $sp] = $rowInfo($y);
+        if ($nw < 0.004) break;             // boşluğa geldik
+        if ($nw > 0.35) return null;        // yoğun satır: giysi
+        $rows++; $sumDark += $dk; $span = max($span, $sp); if ($dk > 0) $ink++;
+        $y--;
+    }
+    if ($rows < 3 || $rows > $H * 0.10 || $ink < 2) return null;
+    if ($span > 0.75 || $sumDark / $rows < 0.01) return null;
+    $bandTop = $y + 1;
+    // boşluk: en az %1.2 tam beyaz satır, üstünde içerik
+    $gap = 0;
+    while ($y > 0 && $rowInfo($y)[0] < 0.004) { $gap++; $y--; }
+    if ($gap < max(3, (int)round($H * 0.012)) || $y <= $H * 0.5) return null;
+    return ($bandTop - $gap / 2) / $H;
+}
+
+$found = $done = $skip = $fail = $caps = 0;
 $hits = [];
 foreach ($list as $rel) {
     $abs = $root . $rel;
     $mt  = (int)@filemtime($abs);
     if (!$mt) { $fail++; continue; }
-    if (!$all && isset($out[$rel]) && (int)($out[$rel]['t'] ?? 0) === $mt) { $skip++; continue; }
+    if (!$all && isset($out[$rel]) && (int)($out[$rel]['t'] ?? 0) === $mt && (int)($out[$rel]['v'] ?? 1) === PT_VER) { $skip++; continue; }
     $im = pt_open($abs);
     if (!$im) { $fail++; continue; }
     $W = imagesx($im); $H = imagesy($im);
     $s = [];
     foreach (['t', 'b', 'l', 'r'] as $sd) { $r = pt_side($im, $sd); if ($r) $s[$sd] = $r; }
+    $cap = pt_caption($im);
     imagedestroy($im);
     $done++;
     $ok = count($s) >= 3 || (isset($s['t'], $s['b']) || isset($s['l'], $s['r']));
-    if (!$ok) { $out[$rel] = ['t' => $mt]; continue; }
+    if (!$ok && $cap !== null) {
+        // Pervaz yok ama altta model kodu yazısı var: yalnız alttan kes.
+        $out[$rel] = ['c' => [0.0, 0.0, 1.0, round($cap, 4)], 'bg' => '#ffffff', 't' => $mt, 'v' => PT_VER, 'k' => 'cap'];
+        $found++; $caps++;
+        $hits[] = sprintf('%-4s %s', 'cap', $rel);
+        continue;
+    }
+    if (!$ok) { $out[$rel] = ['t' => $mt, 'v' => PT_VER]; continue; }
     // Yanlar aynı içteki fotoğrafı göstermeli: zemin renkleri yakın.
     $bgs = array_column($s, 'bg');
     $spread = 0;
@@ -184,6 +242,7 @@ foreach ($list as $rel) {
         'c'  => array_map(fn($v) => round($v, 4), $c),
         'bg' => sprintf('#%02x%02x%02x', (int)round($bg[0]), (int)round($bg[1]), (int)round($bg[2])),
         't'  => $mt,
+        'v'  => PT_VER,
     ];
     $found++;
     $hits[] = sprintf('%-4s %s', implode('', array_keys($s)), $rel);
@@ -194,7 +253,7 @@ $keep = array_flip($list);
 foreach (array_keys($out) as $k) if (!isset($keep[$k])) unset($out[$k]);
 
 $total = count(array_filter($out, fn($e) => isset($e['c'])));
-printf("Çerçeveli kare indeksi: %d kare · ölçülen %d · atlanan %d · okunamayan %d · bu turda bulunan %d · toplam çerçeveli %d\n",
-       count($list), $done, $skip, $fail, $found, $total);
+printf("Çerçeveli kare indeksi: %d kare · ölçülen %d · atlanan %d · okunamayan %d · bu turda bulunan %d (altyazı %d) · toplam kırpılan %d\n",
+       count($list), $done, $skip, $fail, $found, $caps, $total);
 foreach (array_slice($hits, 0, 60) as $h) echo "  $h\n";
 if (!$only) vr_store_write('photo-trim.json', $out);
