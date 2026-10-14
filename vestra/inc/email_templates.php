@@ -2267,26 +2267,26 @@ function vestra_tpl_listing_offer(string $lang, string $company, array $blocks, 
     }
     if ($AK) {
         $akT = [
-          'en' => ['s'=>'VESTRA — {brand} 3-day offer: up to −{pct}% from {min} pc · ends {end}',
-                   'o'=>'{brand} for three days only: a special price from {min} pieces on the models below, with a photo of every colour. The offer ends on {end}; after that the normal price list applies again.',
+          'en' => ['s'=>'VESTRA — {brand} {days}-day offer: up to −{pct}% from {min} pc · ends {end}',
+                   'o'=>'{brand} for {days} days only: a special price from {min} pieces on the models below, with a photo of every colour. The offer ends on {end}; after that the normal price list applies again.',
                    'l'=>'Limited offer','vp'=>'{price} per piece from {min} pc instead of {was} (−{pct}%)','vn'=>'−{pct}% from {min} pc · price shown once signed in','b'=>'Limited offer · until {end}','d'=>'j M Y, H:i'],
-          'de' => ['s'=>'VESTRA — {brand} 3-Tage-Aktion: bis −{pct} % ab {min} Stück · bis {end}',
-                   'o'=>'{brand} nur drei Tage: ein Aktionspreis ab {min} Stück auf die Modelle unten, mit einem Foto zu jeder Farbe. Die Aktion endet am {end}; danach gilt wieder die normale Preisliste.',
+          'de' => ['s'=>'VESTRA — {brand} {days}-Tage-Aktion: bis −{pct} % ab {min} Stück · bis {end}',
+                   'o'=>'{brand} nur {days} Tage: ein Aktionspreis ab {min} Stück auf die Modelle unten, mit einem Foto zu jeder Farbe. Die Aktion endet am {end}; danach gilt wieder die normale Preisliste.',
                    'l'=>'Aktion','vp'=>'{price} je Stück ab {min} Stück statt {was} (−{pct} %)','vn'=>'−{pct} % ab {min} Stück · Preis nach Anmeldung sichtbar','b'=>'Aktion · bis {end}','d'=>'d.m.Y, H:i'],
-          'fr' => ['s'=>'VESTRA — offre {brand} 3 jours : jusqu’à −{pct} % dès {min} pièces · fin le {end}',
-                   'o'=>'{brand} pendant trois jours seulement : un prix spécial dès {min} pièces sur les modèles ci-dessous, avec une photo de chaque coloris. L’offre se termine le {end} ; ensuite, la grille tarifaire normale s’applique de nouveau.',
+          'fr' => ['s'=>'VESTRA — offre {brand} {days} jours : jusqu’à −{pct} % dès {min} pièces · fin le {end}',
+                   'o'=>'{brand} pendant {days} jours seulement : un prix spécial dès {min} pièces sur les modèles ci-dessous, avec une photo de chaque coloris. L’offre se termine le {end} ; ensuite, la grille tarifaire normale s’applique de nouveau.',
                    'l'=>'Offre limitée','vp'=>'{price} la pièce dès {min} pièces au lieu de {was} (−{pct} %)','vn'=>'−{pct} % dès {min} pièces · prix visible une fois connecté','b'=>'Offre limitée · jusqu’au {end}','d'=>'d/m/Y, H:i'],
-          'it' => ['s'=>'VESTRA — offerta {brand} 3 giorni: fino a −{pct}% da {min} pezzi · fino al {end}',
-                   'o'=>'{brand} solo per tre giorni: un prezzo speciale da {min} pezzi sui modelli qui sotto, con una foto di ogni colore. L’offerta termina il {end}; poi torna in vigore il listino normale.',
+          'it' => ['s'=>'VESTRA — offerta {brand} {days} giorni: fino a −{pct}% da {min} pezzi · fino al {end}',
+                   'o'=>'{brand} solo per {days} giorni: un prezzo speciale da {min} pezzi sui modelli qui sotto, con una foto di ogni colore. L’offerta termina il {end}; poi torna in vigore il listino normale.',
                    'l'=>'Offerta limitata','vp'=>'{price} al pezzo da {min} pezzi invece di {was} (−{pct}%)','vn'=>'−{pct}% da {min} pezzi · prezzo visibile dopo l’accesso','b'=>'Offerta limitata · fino al {end}','d'=>'d/m/Y, H:i'],
-          'es' => ['s'=>'VESTRA — oferta {brand} 3 días: hasta −{pct} % desde {min} piezas · hasta el {end}',
-                   'o'=>'{brand} solo durante tres días: un precio especial desde {min} piezas en los modelos de abajo, con una foto de cada color. La oferta termina el {end}; después vuelve a aplicarse la tarifa normal.',
+          'es' => ['s'=>'VESTRA — oferta {brand} {days} días: hasta −{pct} % desde {min} piezas · hasta el {end}',
+                   'o'=>'{brand} solo durante {days} días: un precio especial desde {min} piezas en los modelos de abajo, con una foto de cada color. La oferta termina el {end}; después vuelve a aplicarse la tarifa normal.',
                    'l'=>'Oferta limitada','vp'=>'{price} por pieza desde {min} piezas en lugar de {was} (−{pct} %)','vn'=>'−{pct} % desde {min} piezas · precio visible al iniciar sesión','b'=>'Oferta limitada · hasta el {end}','d'=>'d/m/Y, H:i'],
-          'pt' => ['s'=>'VESTRA — oferta {brand} 3 dias: até −{pct}% a partir de {min} peças · até {end}',
-                   'o'=>'{brand} apenas durante três dias: um preço especial a partir de {min} peças nos modelos abaixo, com uma foto de cada cor. A oferta termina a {end}; depois volta a aplicar-se a tabela normal.',
+          'pt' => ['s'=>'VESTRA — oferta {brand} {days} dias: até −{pct}% a partir de {min} peças · até {end}',
+                   'o'=>'{brand} apenas durante {days} dias: um preço especial a partir de {min} peças nos modelos abaixo, com uma foto de cada cor. A oferta termina a {end}; depois volta a aplicar-se a tabela normal.',
                    'l'=>'Oferta limitada','vp'=>'{price} por peça a partir de {min} peças em vez de {was} (−{pct}%)','vn'=>'−{pct}% a partir de {min} peças · preço visível após iniciar sessão','b'=>'Oferta limitada · até {end}','d'=>'d/m/Y, H:i'],
-          'nl' => ['s'=>'VESTRA — {brand} 3-daagse actie: tot −{pct}% vanaf {min} stuks · tot {end}',
-                   'o'=>'{brand} slechts drie dagen: een actieprijs vanaf {min} stuks op de modellen hieronder, met een foto van elke kleur. De actie eindigt op {end}; daarna geldt weer de normale prijslijst.',
+          'nl' => ['s'=>'VESTRA — {brand} {days}-daagse actie: tot −{pct}% vanaf {min} stuks · tot {end}',
+                   'o'=>'{brand} slechts {days} dagen: een actieprijs vanaf {min} stuks op de modellen hieronder, met een foto van elke kleur. De actie eindigt op {end}; daarna geldt weer de normale prijslijst.',
                    'l'=>'Actie','vp'=>'{price} per stuk vanaf {min} stuks in plaats van {was} (−{pct}%)','vn'=>'−{pct}% vanaf {min} stuks · prijs zichtbaar na inloggen','b'=>'Actie · tot {end}','d'=>'d-m-Y, H:i'],
         ];
         $at  = $akT[$lang] ?? $akT['en'];
@@ -2294,7 +2294,10 @@ function vestra_tpl_listing_offer(string $lang, string $company, array $blocks, 
         $akMin = min(array_column($AK, 'min'));
         $akPct = max(array_column($AK, 'pct'));
         $sub = fn(string $x, array $v): string => strtr($fill($x), $v);
-        $gv  = ['{pct}' => (string)$akPct, '{min}' => (string)$akMin, '{end}' => $end];
+        /* Gun sayisi KAYITTAN (until - started), metne gomulu degil: bir sonraki
+           aktion 5 gunluk olabilir. */
+        $akA0 = reset($AK); $akDays = max(1, (int)round(((int)$akA0['until'] - (int)($akA0['started'] ?: time())) / 86400));
+        $gv  = ['{pct}' => (string)$akPct, '{min}' => (string)$akMin, '{end}' => $end, '{days}' => (string)$akDays];
         $t['o'] = $sub($at['o'], $gv);
         $akLine = [];
         foreach ($AK as $k => $a) {
