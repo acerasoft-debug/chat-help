@@ -40,7 +40,7 @@ foreach ($argv as $a) {
     if (str_starts_with($a, '--json=')) $jsonOut = substr($a, 7);
     if (str_starts_with($a, '--only=')) $only = substr($a, 7);
 }
-const CC_VER = 'c6';
+const CC_VER = 'c7';
 $root  = vr_doc_root();
 $shape = vr_photo_shape_index();
 $crops = (array)vr_store_read('face-crops.json', []);
@@ -84,19 +84,15 @@ function cc_plan(GdImage $src): ?array
     imagecopyresampled($sm, $src, 0, 0, 0, 0, $w, $h, $W, $H);
     [$rows, , ] = cc_profile($sm, 0, 0, $w, $h);
 
-    // 1) Alt künye bandı: alt %30'da boş bir satır ve altı alçak, seyrek.
+    // 1) Alt künye bandı: ürünün altında boş bir satır, onun altında alçak ve
+    //    seyrek bir bant (model kodu yazısı, kenar boşluğu). Aşağıdan değil
+    //    YUKARIDAN aranıyor: en alttaki boş satır çoğu zaman yazının altındaki
+    //    kenar boşluğudur ve oradan kesmek yazıyı kartta bırakıyordu.
     $bottom = $h;
-    for ($y = $h - 1; $y >= (int)($h * 0.70); $y--) {
-        if ($rows[$y] < 0.004) {
-            $below = array_slice($rows, $y, $h - $y);
-            if ($below && max($below) < 0.45 && array_sum($below) / count($below) < 0.16 && ($h - $y) < $h * 0.22) {
-                // Boş satırların en üstüne çık: kesim ürünün hemen altından.
-                $top = $y;
-                while ($top > (int)($h * 0.6) && $rows[$top - 1] < 0.004) $top--;
-                $bottom = $top;
-                break;
-            }
-        }
+    for ($y = (int)($h * 0.72); $y < $h; $y++) {
+        if ($rows[$y] >= 0.004) continue;
+        $below = array_slice($rows, $y, $h - $y);
+        if (max($below) < 0.55 && array_sum($below) / count($below) < 0.16 && ($h - $y) < $h * 0.24) { $bottom = $y; break; }
     }
     // Üstte tamamen boş şerit varsa o da gider.
     $top = 0;
@@ -153,17 +149,26 @@ function cc_plan(GdImage $src): ?array
         }
     }
     if (getenv('CC_DEBUG')) fprintf(STDERR, "  seam=%s s=%.2f x2=%d w=%d k=%d\n", var_export($bestX, true), $bestS, $x2, $w, $k);
+    if ($k === 1) { imagedestroy($sm); return null; }       // tek özne: kırpma, karta sığdır
+    $x2 = max($x1 + 8, $x2 - (int)round($w * 0.008));      // dikişten kalan ince şeridi alma
+    // Panelin kendi sütunlarında alttan boş/yazılı kalan satırları da at
+    // (yazı panelin altına denk gelebiliyor, kolajın başka yerine değil).
+    [$prow, , ] = cc_profile($sm, $x1, $top, max(8, $x2 - $x1), $hh);
+    for ($y = (int)($hh * 0.70); $y < $hh; $y++) {
+        if ($prow[$y] >= 0.006) continue;
+        $below = array_slice($prow, $y, $hh - $y);
+        if (max($below) < 0.6 && array_sum($below) / count($below) < 0.18) { $bottom = $top + $y; $hh = $y; break; }
+    }
+    [, $cols, ] = cc_profile($sm, 0, $top, $w, $hh);
     // c) Seçilen panelin içinde iki manken yan yana olabilir (temiz zemin,
     //    basamak yok): aralarında en az 3 sütunluk boş zemin koridoru varsa
     //    ilk panel orada biter.
     if ($k >= 2) {
         $run = 0;
-        for ($x = (int)($minPanel * 0.8); $x < $x2 - (int)($minPanel * 0.8); $x++) {
+        for ($x = (int)($minPanel * 0.8); $x < $x2 - (int)($minPanel * 0.5); $x++) {
             if ($cols[$x] < 0.005) { if (++$run >= 3) { $x2 = $x - 1; break; } } else $run = 0;
         }
     }
-    if ($k === 1) { imagedestroy($sm); return null; }       // tek özne: kırpma, karta sığdır
-    $x2 = max($x1 + 8, $x2 - (int)round($w * 0.008));      // dikişten kalan ince şeridi alma
     // 3) Panel içinde içeriğin yatay ağırlık merkezi.
     $sum = 0.0; $mass = 0.0;
     for ($x = $x1; $x < $x2; $x++) { $sum += $x * $cols[$x]; $mass += $cols[$x]; }
@@ -189,7 +194,7 @@ function cc_plan(GdImage $src): ?array
    tişört, dikişsiz bitişik paneller): bunlarda kesim yapılmaz, kart kareyi
    olduğu gibi gösterir. data/card-crop-skip.json ile genişletilebilir. */
 $skip = array_flip(array_merge(
-    ['blc-612966tnvn4w', 'bur-8055206', 'dgn-m4a13tismd3', 'dgn-g8pb9thu7ma', 'blc-612966tlvf1', 'fashionb-lacoste-men-lightweight'],
+    ['blc-612966tnvn4w', 'bur-8055206', 'dgn-m4a13tismd3', 'dgn-g8pb9thu7ma', 'blc-612966tlvf1', 'fashionb-lacoste-men-lightweight', 'dsq-s74lb0907'],
     array_map('strval', (array)vr_store_read('card-crop-skip.json', []))
 ));
 $res = []; $made = 0;
