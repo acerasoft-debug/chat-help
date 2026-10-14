@@ -70,7 +70,7 @@ jobs:
             -f count="${{ github.event.inputs.count || '50' }}" \
             -f dry_run="${{ github.event.inputs.dry_run || 'false' }}" \
             -f new_collection=true -f newcoll_letter=winter -f min_brands=0 -f newcoll_min_days=2 \
-            -f exclude_countries="United States,Canada,South Korea" -f quota_reserve=100 \
+            -f exclude_countries="United States,Canada,South Korea,Germany,Deutschland" -f quota_reserve=100 \
             -f skip_names="Fielmann,BSTN,CNCPTS,Altermundi,Capel,Kaotiko,Oktshirt,Team Store,targetcenter,Racing Club,Strasbourg,Loretxiki,Fantasía Kids,Lola Jiménez,Mandarina,Black in Black,Piluka,Glamcult,Mackintosh,Joseph,Lyle & Scott,Kicks,Hatstore,Kids Brand Store,Limoneti,Lapin House,Klamöttchen,Petit Ilu,W&G,Shi Cashmere,Kindermode,kids,Scalpers,Pedro del Hierro,Claudia Sträter,Soccerfanshop,Lesage Bridal,Ashley Stewart,Bealls,Tuckernuck,260 Sample Sale,StofShop,Atlas Stoked,Milk,Golf Club"
           echo "Brevo partisi dağıtım dalında başlatıldı (send-outreach.yml, count=${{ github.event.inputs.count || '50' }})."
 
@@ -102,7 +102,7 @@ jobs:
             gh workflow run send-outreach.yml --repo "$REPO" --ref claude/wizardly-planck-7ylnmk \
               -f count=50 -f dry_run="$DRY" \
               -f new_collection=true -f newcoll_letter=winter -f min_brands=0 -f newcoll_min_days=2 \
-              -f exclude_countries="United States,Canada,South Korea" -f quota_reserve=100 -f skip_names="$SKIP" || { echo "parti $n başlatılamadı"; break; }
+              -f exclude_countries="United States,Canada,South Korea,Germany,Deutschland" -f quota_reserve=100 -f skip_names="$SKIP" || { echo "parti $n başlatılamadı"; break; }
             # başlattığımız koşuyu bul (bizden sonra yaratılan, bu dalda, workflow_dispatch)
             rid=""
             for i in $(seq 1 30); do
