@@ -163,6 +163,32 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.solesense.com",
+                "page": "https://www.solesense.com/de-de/balenciaga-medium-fit-t-shirt-washed-black-612966tmvg7",
+                "title": "Balenciaga Medium Fit T-Shirt 'Washed Black/White' - 612966TMVG7 ...",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 601,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.luxuryfashionstores.ch",
+                "page": "https://www.luxuryfashionstores.ch/de/196254/balenciaga-612966-tmvg7-medium-fit-t-shirt_p",
+                "title": "Balenciaga 612966 TMVG7 MEDIUM FIT T-Shirt - Blau",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "CHF",
+                        "price": 298,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -370,6 +396,25 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/en-de/balenciaga-x-the-simpsons-oversized-t-shirt-676589-tlvg7-1000.html",
+                "title": "Balenciaga X The Simpsons Oversized T-Shirt Black | END.",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 239,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 495,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -901,7 +946,21 @@
         "sku": "VH4EH000",
         "price": 29500,
         "ref": 45000,
-        "sources": []
+        "sources": [
+            {
+                "host": "gamashop.it",
+                "page": "https://gamashop.it/product/balmain-vh4eh000-g076-giallo/",
+                "title": "Balmain - vh4eh000-g076-giallo - GaMa e-Shop",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 287.99,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "blm-wh1ef000b138gdv": {
         "id": "blm-wh1ef000b138gdv",
@@ -979,6 +1038,19 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/t-shirt-wei%C3%9F-balmain-250255",
+                "title": "T-shirts Balmain - T-Shirt - Weiß - WH1EF000B138GDV | THEBS [iKRIX]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 375,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -1018,6 +1090,31 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "feature.com",
+                "page": "https://feature.com/products/balmain-printed-t-shirt-rouge-blanc",
+                "title": "Printed T-Shirt - Rouge/Blanc - Feature",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "USD",
+                        "price": 346,
+                        "list": 495
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 346,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "USD",
+                        "price": 346,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -1144,6 +1241,25 @@
                         "kind": "meta",
                         "cur": "USD",
                         "price": 494.44,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "thedesignerboxuk.com",
+                "page": "https://thedesignerboxuk.com/products/copy-of-balmain-paris-print-logo-white-t-shirt",
+                "title": "Balmain Paris Print Logo White T-shirt - TheDesignerBox",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "USD",
+                        "price": 155,
+                        "list": 395
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 200,
                         "list": null
                     }
                 ]
@@ -1365,6 +1481,25 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/en-de/burberry-shark-print-tee-4567629-a1464.html",
+                "title": "Burberry Shark Print T-Shirt White | END. (DE)",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 229,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 479,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -1427,6 +1562,19 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/poloshirt-grau-burberry-124180",
+                "title": "Burberry Poloshirt - Grau - Grau - Herren | 8014006 | THEBS",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 290,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -1536,6 +1684,32 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/gb/guildes-swim-shorts-burberry-139637",
+                "title": "Swim shorts & swimming trunks Burberry - Guildes swim shorts - 8017294",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "GBP",
+                        "price": 278,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.ln-cc.com",
+                "page": "https://www.ln-cc.com/en-gb/men/clothing/swimwear/burberry-vintage-check-swim-shorts-in-beige-bur0141034bei.html",
+                "title": "Burberry Vintage Check Swim Shorts in Beige | LN-CC",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "GBP",
+                        "price": 350,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -1806,6 +1980,25 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/en-de/burberry-samuel-check-hood-hoody-8045006-131471-a1420.html",
+                "title": "Burberry Samuel Check Hood Hoody Camel | END. (DE)",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 805,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 805,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -1887,6 +2080,25 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/ie/burberry-tucson-b-motif-t-shirt-8045495-a1464.html",
+                "title": "Burberry Tucson B Motif T-Shirt White | END. (IE)",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 625,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 625,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -2008,6 +2220,19 @@
                         "kind": "jsonld",
                         "cur": "USD",
                         "price": 259,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.solesense.com",
+                "page": "https://www.solesense.com/de-de/burberry-totnes-globe-logo-t-shirt-black-8048289",
+                "title": "Burberry Totnes Globe Logo T-shirt 'Black' - 8048289 | Solesense",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 219,
                         "list": null
                     }
                 ]
@@ -2191,6 +2416,38 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.solesense.com",
+                "page": "https://www.solesense.com/de-de/burberry-mac-logo-t-shirt-white-8050166",
+                "title": "Burberry Mac Logo T-shirt 'White' - 8050166 | Solesense",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 471,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/eu/burberry-mac-logo-tee-8050166-a1464.html",
+                "title": "Burberry Mac Logo T-Shirt White | END. (AT)",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 400,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 400,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -2406,6 +2663,19 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.solesense.com",
+                "page": "https://www.solesense.com/en/burberry-logo-embroidered-cotton-jersey-t-shirt-a1189-8052965-3208159",
+                "title": "Burberry Logo-Embroidered Cotton-Jersey T-Shirt 'A1189' - 8052965 ...",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 410,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -2482,6 +2752,25 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/be/burberry-parker-tb-circle-logo-t-shirt-8053424-130828-a7405.html",
+                "title": "Burberry Parker TB Circle Logo T-Shirt Soft Fawn | END.",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 359,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 359,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -2546,6 +2835,19 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.solesense.com",
+                "page": "https://www.solesense.com/en/burberry-icon-stripe-cotton-short-sleeve-polo-shirt-black-8053773",
+                "title": "Burberry Icon Stripe Cotton Short Sleeve Polo Shirt 'Black' - 8053773 ...",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 188,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -2931,14 +3233,41 @@
         ]
     },
     "bur-80572891": {
-        "blocked": true,
         "id": "bur-80572891",
         "brand": "Burberry",
         "name": "Burberry Trainingsanzug 80572891",
         "cat": "Tracksuit Sets",
         "sku": "80572891",
         "price": 97500,
-        "ref": 150000
+        "ref": 150000,
+        "sources": [
+            {
+                "host": "novelship.com",
+                "page": "https://novelship.com/women-burberry-black-logo-embroidered-knit-jogger-sweatpants-80572891",
+                "title": "(Women) Burberry Black Logo Embroidered Knit Jogger Sweatpants. 80572891",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 291,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "kickstrace23.com",
+                "page": "https://kickstrace23.com/Burberry-Embroidered-Logo-Tapered-Track-Pants-Black-80572891/5b4cf2bcd6f35ae98478b648f4bd942d",
+                "title": "Burberry Embroidered Logo Tapered Track Pants Black 80572891",
+                "prices": [
+                    {
+                        "kind": "meta",
+                        "cur": "USD",
+                        "price": 317,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "bur-8057370": {
         "id": "bur-8057370",
@@ -5697,14 +6026,46 @@
         "sources": []
     },
     "dgn-m4b11tfusfw": {
-        "blocked": true,
         "id": "dgn-m4b11tfusfw",
         "brand": "Dolce & Gabbana",
         "name": "Dolce & Gabbana Bademode M4B11TFUSFW",
         "cat": "Bademode",
         "sku": "M4B11TFUSFW",
         "price": 25500,
-        "ref": 39500
+        "ref": 39500,
+        "sources": [
+            {
+                "host": "sidekicks.co.uk",
+                "page": "https://sidekicks.co.uk/products/dolce-gabbana-logo-patch-swim-trunks-black",
+                "title": "Dolce & Gabbana Logo Patch Swim Trunks Black - Side Kicks",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "USD",
+                        "price": 521,
+                        "list": null
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 515,
+                        "list": null
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 514,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "USD",
+                        "price": 514,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "dgn-m4b85t": {
         "id": "dgn-m4b85t",
@@ -6071,14 +6432,14 @@
         ]
     },
     "dgx-g8nc5t-hs7kg": {
-        "blocked": true,
         "id": "dgx-g8nc5t-hs7kg",
         "brand": "Dolce & Gabbana",
         "name": "Monogram T-Shirt",
         "cat": "T-Shirts",
         "sku": "G8NC5T HS7KG",
         "price": 29500,
-        "ref": 45000
+        "ref": 45000,
+        "sources": []
     },
     "dgx-g8nc5z-g7c8a": {
         "id": "dgx-g8nc5z-g7c8a",
@@ -8465,6 +8826,19 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/skinny-jeans-jeansblau-dsquared2-162370",
+                "title": "Dsquared2 Skinny Jeans - Jeansblau - Jeansblau | S74LB0798S30342470",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 490,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -8590,6 +8964,19 @@
                         "kind": "jsonld",
                         "cur": "EUR",
                         "price": 343,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.luxuryfashionstores.ch",
+                "page": "https://www.luxuryfashionstores.ch/de/72081/dsquared2-s74lb0930-s30342-cool-guy-jeans_p",
+                "title": "Dsquared2 S74LB0930 S30342 COOL GUY Jeans - Blau",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "CHF",
+                        "price": 336,
                         "list": null
                     }
                 ]
@@ -9114,7 +9501,21 @@
         "sku": "S79GL0001S",
         "price": 18000,
         "ref": 26000,
-        "sources": []
+        "sources": [
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/poloshirt-wei%C3%9F-dsquared2-315970",
+                "title": "Poloshirts Dsquared2 - Poloshirt - Weiß - S79GL0001S22743100",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 320,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "dsq-s79gl0001s-m": {
         "id": "dsq-s79gl0001s-m",
@@ -9171,14 +9572,28 @@
         ]
     },
     "fnd-t02": {
-        "blocked": true,
         "id": "fnd-t02",
         "brand": "Fendi",
         "name": "FF T-Shirt, Black — FY1100AI7F",
         "cat": "T-Shirts",
         "sku": "FY1100AI7F",
         "price": 42500,
-        "ref": 65000
+        "ref": 65000,
+        "sources": [
+            {
+                "host": "muskostore.com",
+                "page": "https://muskostore.com/product/t-shirt-fendi/",
+                "title": "T-shirt FENDI - MUSKO STORE",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 680,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "fnd-t04": {
         "id": "fnd-t04",
@@ -9574,6 +9989,19 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.solesense.com",
+                "page": "https://www.solesense.com/de-de/gucci-mirror-print-t-shirt-ivory-616036-xjdv9-9275",
+                "title": "Gucci Mirror Print T-Shirt 'Ivory' - 616036-XJDV9-9275 | Solesense",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 445,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -9707,6 +10135,19 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.solesense.com",
+                "page": "https://www.solesense.com/de-de/givenchy-slim-fit-t-shirt-white-bm716g3y99-100",
+                "title": "Givenchy Slim Fit T-Shirt 'White' - BM716G3Y99-100 | Solesense",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 202,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -9806,6 +10247,19 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.solesense.com",
+                "page": "https://www.solesense.com/de-de/givenchy-slim-fit-t-shirt-light-grey-melange-bm716g3yac-055",
+                "title": "Givenchy Slim Fit T-Shirt 'Light Grey Melange' - BM716G3YAC-055 - Solesense",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 360,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -9847,6 +10301,19 @@
                         "kind": "jsonld",
                         "cur": "USD",
                         "price": 357,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.solesense.com",
+                "page": "https://www.solesense.com/de-de/givenchy-disney-logo-print-cotton-jersey-t-shirt-100-bm716g3yar-100",
+                "title": "Givenchy + Disney Logo-Print Cotton-Jersey T-Shirt '100' - BM716G3YAR ...",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 302,
                         "list": null
                     }
                 ]
@@ -10117,7 +10584,21 @@
         "sku": "BM716R3YA",
         "price": 36000,
         "ref": 55000,
-        "sources": []
+        "sources": [
+            {
+                "host": "www.solesense.com",
+                "page": "https://www.solesense.com/en/givenchy-college-t-shirt-black-bm716r3yaa-001",
+                "title": "Givenchy College T-Shirt '-Black' - BM716R3YAA-001 | Solesense",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 475,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "gvy-bm716r3yax": {
         "id": "gvy-bm716r3yax",
@@ -10152,6 +10633,19 @@
                 "host": "www.luxuryfashionstores.ch",
                 "page": "https://www.luxuryfashionstores.ch/en/120502/givenchy-bm71ct3y6b-4g-sun-print-t-shirt_p",
                 "title": "Givenchy BM71CT3Y6B 4G SUN PRINT T-shirt - Black",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "CHF",
+                        "price": 535,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.luxuryfashionstores.ch",
+                "page": "https://www.luxuryfashionstores.ch/de/120502/givenchy-bm71ct3y6b-4g-sun-print-t-shirt_p",
+                "title": "Givenchy BM71CT3Y6B 4G SUN PRINT T-Shirt - Schwarz",
                 "prices": [
                     {
                         "kind": "jsonld",
@@ -10236,6 +10730,19 @@
                         "kind": "meta",
                         "cur": "USD",
                         "price": 258,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/en/4g-embroidered-short-sleeve-t-shirt-givenchy-341205",
+                "title": "Givenchy 4g embroidered short-sleeve t-shirt - Men | BM71DK3Y6B100",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 350,
                         "list": null
                     }
                 ]
@@ -10353,6 +10860,19 @@
                         "kind": "jsonld",
                         "cur": "USD",
                         "price": 590,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.solesense.com",
+                "page": "https://www.solesense.com/de-de/givenchy-slim-fit-t-shirt-black-bm716g3y7m-011",
+                "title": "Givenchy Slim Fit T-Shirt 'Black' - BM716G3Y7M-011 | Solesense",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 388,
                         "list": null
                     }
                 ]
@@ -10600,6 +11120,44 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "eschuhe.de",
+                "page": "https://eschuhe.de/p/lacoste-poloshirt-ph9863-dunkelblau-regular-fit-0000304997044",
+                "title": "Lacoste Poloshirt PH9863 Dunkelblau Regular Fit | eschuhe.de",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 63.99,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 63.99,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "golfbase.co.uk",
+                "page": "https://golfbase.co.uk/lacoste-mens-regular-fit-l-12-12-cotton-pique-trim-straight-cut-polo-shirt-ph9863.html",
+                "title": "Lacoste Mens Regular Fit L.12.12 Cotton Piqu Trim Straight Cut Polo Shirt",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "GBP",
+                        "price": 62.99,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "GBP",
+                        "price": 62.99,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -10819,6 +11377,32 @@
                         "kind": "jsonld",
                         "cur": "GBP",
                         "price": 84.79,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.outdoorsupply.de",
+                "page": "https://www.outdoorsupply.de/poloshirt-lacoste-ph5522-regular-fit-paris-navy-herren",
+                "title": "Poloshirt Lacoste PH5522 Regular Fit Paris Navy Herren",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 97.95,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.tennisplanet.de",
+                "page": "https://www.tennisplanet.de/poloshirt-lacoste-herren-ph5522-mascara-brown",
+                "title": "Poloshirt Lacoste Herren PH5522 Mascara Brown - tennisplanet.de",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 97.95,
                         "list": null
                     }
                 ]
