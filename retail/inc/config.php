@@ -294,18 +294,10 @@ function vr_config(?string $key = null, mixed $default = null): mixed
                 'Jacken'                => 3.00,
             ],
 
-            'price_rules' => [
-                ['brand' => 'LACOSTE', 'cat' => 'Polos',    'cents' =>  8000],
-                ['brand' => 'LACOSTE', 'cat' => 'T-Shirts', 'cents' =>  3990],
-                // Kapüşonlu → 119,00
-                ['brand' => 'LACOSTE', 'cat' => 'Hoodies & Sweatshirts',
-                 'match' => '/hood|kapuz|capuch|cappucc/iu',       'cents' => 11900],
-                // Fermuarlı sweat ceket → 99,90
-                ['brand' => 'LACOSTE', 'cat' => 'Hoodies & Sweatshirts',
-                 'match' => '/zip|jacke|jacket|veste|blouson/iu',  'cents' =>  9990],
-                // Düz sweatshirt → 89,90
-                ['brand' => 'LACOSTE', 'cat' => 'Hoodies & Sweatshirts', 'cents' => 8990],
-            ],
+            // Sabit fiyat kuralları (resmî fiyatın ÖNÜNDE). 14 Eki 2026'ya kadar
+            // Lacoste burada sabitti (polo 80, tişört 39,90); artık resmî
+            // fiyattan %25 indirimle hesaplanıyor (data/official-prices.json).
+            'price_rules' => [],
 
             /**
              * ---- DOĞRULANMIŞ KESİM BİLGİSİ
@@ -325,7 +317,17 @@ function vr_config(?string $key = null, mixed $default = null): mixed
             // Resmî fiyattan (UVP) indirim. data/official-prices.json
             // doldurulduğunda satış fiyatı buradan hesaplanıyor ve UVP ürün
             // sayfasında üstü çizili görünüyor. Tablo boşsa hiçbir etkisi yok.
-            'official_discount_bps' => 2000,  // %20
+            'official_discount_bps' => 2000,  // %20 — basamağı tanımsız ev
+            // Operatör, 14 Eki 2026: en büyük indirim pahalı lüks evlerde.
+            'official_discount_tiers' => ['luxury' => 3500, 'designer' => 3000, 'casual' => 2500],
+            'brand_tier' => [
+                'luxury'   => ['Gucci', 'Balenciaga', 'Givenchy', 'Dolce & Gabbana', 'Fendi', 'Valentino', 'Versace',
+                               'Burberry', 'Balmain', 'Prada', 'Saint Laurent', 'Bottega Veneta', 'Loewe', 'Celine',
+                               'Dior', 'Louis Vuitton', 'Hermès', 'Alexander McQueen', 'Moncler'],
+                'designer' => ['Dsquared2', 'Casablanca', 'Jacquemus', 'Gallery Dept.', 'Marcelo Burlon', 'GCDS',
+                               'Off-White', 'Palm Angels', 'Moschino', 'Stone Island', 'Amiri'],
+                'casual'   => ['Lacoste', 'Ralph Lauren', 'Polo Ralph Lauren', 'Fred Perry', 'Tommy Hilfiger', 'BOSS', 'Hugo Boss'],
+            ],
 
             'welcome_discount_bps' => 500,   // %5
             'welcome_valid_days'   => 90,

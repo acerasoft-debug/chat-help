@@ -2581,3 +2581,18 @@ html.rv .rv-ing{
 @keyframes flashin{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
 @keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.45)}100%{transform:scale(1)}}
 @keyframes dotin{0%{opacity:0;transform:scale(0)}60%{opacity:1;transform:scale(1.8)}100%{opacity:1;transform:none}}
+
+/* --------------------------------------------------- uyumlu vitrin ızgarası
+   (14 Eki 2026, operatör: "yan duran fotolar iyi görünmüyor, daha estetik ve
+   uyumlu göstermek gerekli koleksiyonları").
+   1) Bulanık dolgu bandı kalkıyor: kareye sığmayan fotoğrafın iki yanında
+      kendi zemin renginde düz alan kalıyor, lekeli degrade değil.
+   2) Bütün kartlar aynı açık taş tonunda: beyaz zeminli paket çekimi ile gri
+      stüdyo çekimi yan yana farklı kutular gibi duruyordu. Fotoğraf
+      "multiply" ile bu tona oturuyor — beyaz zemin kartın rengini alıyor,
+      giysi değişmiyor. Kolajlar ayrıca tek panele kesiliyor
+      (tools/build-card-crops.php). */
+.fr--pad::before{display:none}
+.card__media .fr,.card__media{background:#f1efea}
+.card__media .fr img{mix-blend-mode:multiply}
+.card.is-out .fr img{mix-blend-mode:normal}

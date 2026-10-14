@@ -93,18 +93,22 @@ function vr_price_rule(string $brand, string $cat, string $name): ?int
 }
 
 /**
- * Resmî fiyat (UVP) ara: önce SKU, sonra marka + kategori.
- * Dönüş kuruş, yoksa null.
+ * Resmî fiyat (UVP) ara. Dönüş: ['cents' => kuruş, 'exact' => bool] ya da null.
  *
- * Tablo data/official-prices.json'da ve ELLE dolduruluyor — kaynak
- * stapellerde resmî fiyat yok. Boş bırakılan satırlar hiçbir şey yapmıyor:
- * o ürünler eski fiyatlamada kalıyor ve üstü çizili fiyat basılmıyor.
+ * data/official-prices.json üç tür satır taşıyor, bu sırayla denenir:
+ *   1) sku                 → o modelin doğrulanmış resmî fiyatı (exact)
+ *   2) brand + cat + match → aynı kategoride pahalı çizgi (ör. Lacoste
+ *                            Monogram Jacquard polo, adına göre regex)
+ *   3) brand + cat         → evin o kategorideki tipik resmî fiyatı
+ * 2 ve 3 referans: satış fiyatı onlardan hesaplanır ama ürün sayfasında
+ * üstü çizili "UVP" olarak BASILMAZ — o model için doğrulanmış bir rakam
+ * değil, uydurma bir karşılaştırma fiyatı göstermeyiz.
  */
-function vr_official_rrp(string $brand, string $cat, string $sku): ?int
+function vr_official_ref(string $brand, string $cat, string $sku, string $name): ?array
 {
-    static $bySku = null, $byCat = null;
+    static $bySku = null, $byMatch = null, $byCat = null;
     if ($bySku === null) {
-        $bySku = $byCat = [];
+        $bySku = $byMatch = $byCat = [];
         foreach ((array)vr_store_read('official-prices.json', []) as $r) {
             if (!is_array($r)) continue;
             $rrp = (float)($r['rrp'] ?? 0);
@@ -113,13 +117,53 @@ function vr_official_rrp(string $brand, string $cat, string $sku): ?int
             $s = strtoupper(trim((string)($r['sku'] ?? '')));
             if ($s !== '') { $bySku[$s] = $cents; continue; }
             $k = strtoupper(trim((string)($r['brand'] ?? ''))) . '||' . mb_strtolower(trim((string)($r['cat'] ?? '')));
+            if (($r['match'] ?? '') !== '') { $byMatch[$k][] = [(string)$r['match'], $cents]; continue; }
             $byCat[$k] = $cents;
         }
     }
     $s = strtoupper(trim($sku));
-    if ($s !== '' && isset($bySku[$s])) return $bySku[$s];
+    if ($s !== '' && isset($bySku[$s])) return ['cents' => $bySku[$s], 'exact' => true];
     $k = strtoupper(trim($brand)) . '||' . mb_strtolower(trim($cat));
-    return $byCat[$k] ?? null;
+    foreach ($byMatch[$k] ?? [] as [$re, $cents]) {
+        if (@preg_match($re, $name) === 1) return ['cents' => $cents, 'exact' => false];
+    }
+    return isset($byCat[$k]) ? ['cents' => $byCat[$k], 'exact' => false] : null;
+}
+
+/** Geriye dönük: yalnız kuruş. */
+function vr_official_rrp(string $brand, string $cat, string $sku): ?int
+{
+    $r = vr_official_ref($brand, $cat, $sku, '');
+    return $r['cents'] ?? null;
+}
+
+/**
+ * Resmî fiyattan indirim oranı (baz puan), evin basamağına göre
+ * (inc/config.php brand_tier, official_discount_tiers). Operatör, 14 Eki
+ * 2026: lüks evlerde %30–35, Lacoste / Ralph Lauren / Fred Perry gibi
+ * evlerde %20–25 — "piyasanın altı olabilir ama çok altı olamaz".
+ */
+function vr_official_discount_bps(string $brand): int
+{
+    $tiers = (array)vr_config('official_discount_tiers', []);
+    foreach ((array)vr_config('brand_tier', []) as $tier => $brands) {
+        foreach ((array)$brands as $b) {
+            if (vr_brand_key((string)$b) === vr_brand_key($brand) && isset($tiers[$tier])) return (int)$tiers[$tier];
+        }
+    }
+    return (int)vr_config('official_discount_bps', 2000);
+}
+
+/**
+ * Resmî fiyattan türeyen satış fiyatını yuvarla. 100 €'nun üstünde 5 €'luk
+ * ızgara (355, 425 — lüks vitrinde ,99 kullanılmıyor); altında bir üst tam
+ * avronun 10 sent eksiği (82,90). Yukarı yuvarlama indirimi söylenen orana
+ * yakın tutuyor, aşmıyor.
+ */
+function vr_official_round(int $cents): int
+{
+    if ($cents >= 10000) return (int)(round($cents / 500) * 500);
+    return (int)(ceil($cents / 100) * 100) - 10;
 }
 
 /**
@@ -257,22 +301,25 @@ function vr_normalize_product(array $p, string $source): ?array
         trim((string)($p['name'] ?? ''))
     );
 
-    // Resmî fiyat girilmişse satış fiyatı ondan türüyor: UVP − %20
-    // (official_discount_bps). Sabit outlet kuralları yine önde — onlar
+    // Resmî fiyat girilmişse satış fiyatı ondan türüyor: UVP − evin
+    // basamağına göre %25–35 (vr_official_discount_bps). Sabit outlet kuralları yine önde — onlar
     // işletmecinin bilerek dikte ettiği rakamlar, otomatik hesap onları
     // ezmemeli.
-    $rrpCents = vr_official_rrp(
+    $ref = vr_official_ref(
         (string)($p['brand'] ?? ''),
         (string)($p['cat'] ?? ''),
-        (string)($p['sku'] ?? '')
+        (string)($p['sku'] ?? ''),
+        trim((string)($p['name'] ?? ''))
     );
-    if ($rrpCents !== null && !isset($p['rrp'])) $p['rrp'] = $rrpCents / 100;
+    $rrpCents = $ref['cents'] ?? null;
+    // Üstü çizili UVP yalnız doğrulanmış model fiyatında (bkz. vr_official_ref).
+    if ($ref && $ref['exact'] && !isset($p['rrp'])) $p['rrp'] = $rrpCents / 100;
 
     if ($ruleCents !== null) {
         $price = $ruleCents;
     } elseif ($rrpCents !== null) {
-        $bps   = (int)vr_config('official_discount_bps', 2000);
-        $price = vr_charm_round((int)round($rrpCents * (10000 - $bps) / 10000));
+        $bps   = vr_official_discount_bps((string)($p['brand'] ?? ''));
+        $price = vr_official_round((int)round($rrpCents * (10000 - $bps) / 10000));
     } elseif (($tierCents = vr_tier_price((string)($p['brand'] ?? ''), (string)($p['cat'] ?? ''))) !== null) {
         $price = $tierCents;
     } elseif (isset($p['retail_price']) && (float)$p['retail_price'] > 0) {
