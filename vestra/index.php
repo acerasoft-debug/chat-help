@@ -1074,6 +1074,49 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
     .offer{border-radius:14px;padding:10px 16px}
     .pill{font-size:10px;letter-spacing:.1em;padding:6px 12px;gap:7px}
   }
+  /* ── HAREKET KATMANI (operatör, 14 Eki 2026: "VESTRA'nın ana sayfasına premium bir animasyon koy") ──────────
+     Bir moda evinin açılış sahnesi gibi: önce etiket, sonra manşet bulanıktan netleşerek yükselir, altın bir kıl çizgi
+     açılır, metin ve düğmeler sırayla gelir; italik vurgudan bir kez altın ışık geçer. Masaüstünde imleci izleyen
+     yumuşak altın spot, rakam şeridi görününce sıfırdan sayar, ürün kartında ince ışık süzülmesi. Hepsi yalnız
+     transform/opacity/background-position — sayfa kaymaz (CLS 0). "Hareketi azalt" seçen ziyaretçide hiçbiri yok.
+     Animasyon desteklemeyen tarayıcı son hali görür (keyframe yalnız 'from' gizler, fill-mode both). */
+  @keyframes vRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  @keyframes vRiseH{from{opacity:0;transform:translateY(34px) scale(.985);filter:blur(10px)}to{opacity:1;transform:none;filter:blur(0)}}
+  @keyframes vDrop{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+  @keyframes vRule{from{opacity:0;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
+  @keyframes vSheen{from{background-position:120% 0}to{background-position:-20% 0}}
+  @keyframes vCard{from{transform:translateX(-130%) skewX(-18deg)}to{transform:translateX(330%) skewX(-18deg)}}
+  .hero>.wrap>.pill{animation:vDrop .9s cubic-bezier(.2,.7,.1,1) .1s both}
+  .hero h1{animation:vRiseH 1.25s cubic-bezier(.16,.8,.12,1) .22s both}
+  .hero-rule{display:block;width:88px;height:1px;margin:-4px auto 26px;border:0;
+    background:linear-gradient(90deg,transparent,var(--acc) 30%,#f1dfb0 50%,var(--acc) 70%,transparent);
+    transform-origin:50% 50%;animation:vRule 1.2s cubic-bezier(.2,.7,.1,1) .95s both}
+  .hero>.wrap>p{animation:vRise 1s cubic-bezier(.2,.7,.1,1) .62s both}
+  .hero>.wrap>.offer{animation:vRise 1s cubic-bezier(.2,.7,.1,1) .78s both}
+  .hero>.wrap>.btns{animation:vRise 1s cubic-bezier(.2,.7,.1,1) .92s both}
+  .hero>.wrap>.trustline{animation:vRise 1s cubic-bezier(.2,.7,.1,1) 1.08s both}
+  .hero>.wrap>.herostrip{animation:vRise 1.2s cubic-bezier(.2,.7,.1,1) 1.2s both}
+  @supports ((-webkit-background-clip:text) or (background-clip:text)){
+    .hero h1 .acc{background:linear-gradient(105deg,currentColor 0 40%,#f6e7bf 47%,var(--acc) 52%,currentColor 60% 100%);
+      background-size:260% 100%;background-position:-20% 0;-webkit-background-clip:text;background-clip:text;
+      -webkit-text-fill-color:transparent;animation:vSheen 2.2s cubic-bezier(.45,.05,.2,1) 1.35s both;
+      /* Metin-kırpması kutunun içini boyar; italiğin sağa taşan kuyruğu ("verified"ın d'si) kesilmesin diye kutu
+         iki yana genişletilir, negatif kenar boşluğu satırı aynı yerde tutar. */
+      padding:0 .14em .06em .06em;margin:0 -.14em -.06em -.06em}
+  }
+  .hero-glow{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;transition:opacity .8s ease;
+    background:radial-gradient(560px circle at var(--mx,50%) var(--my,38%),rgba(201,168,106,.14),rgba(201,168,106,.05) 38%,transparent 66%)}
+  .hero.glow-on .hero-glow{opacity:1}
+  .hero>.wrap{position:relative;z-index:2}
+  .ed-ph::before{content:'';position:absolute;top:0;bottom:0;left:0;width:38%;z-index:2;pointer-events:none;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:translateX(-130%) skewX(-18deg)}
+  @media(hover:hover){ .ed-card:hover .ed-ph::before{animation:vCard 1.1s cubic-bezier(.3,.6,.2,1) both} }
+  .fact b{font-variant-numeric:tabular-nums}
+  @media(prefers-reduced-motion:reduce){
+    .hero>.wrap>.pill,.hero h1,.hero-rule,.hero>.wrap>p,.hero>.wrap>.offer,.hero>.wrap>.btns,.hero>.wrap>.trustline,
+    .hero>.wrap>.herostrip,.hero h1 .acc,.ed-card:hover .ed-ph::before{animation:none}
+    .hero-glow{display:none}
+  }
 </style>
 </head>
 <body>
@@ -1156,9 +1199,11 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
     <div class="herofilm-grain"></div>
   </div>
   <?php endif; ?>
+  <div class="hero-glow" aria-hidden="true"></div>
   <div class="wrap">
     <div class="pill"><span class="dot"></span> <?= $t['pill'] ?></div>
     <h1><?= $t['h1'] ?></h1>
+    <span class="hero-rule" aria-hidden="true"></span>
     <p><?= $t['sub'] ?></p>
     <?php if ($WELCOME_PCT !== null): /* Kupon modulu yoksa vaat de yok. */ ?>
     <?php /* Ikinci satir yalnizca GIRIS YAPMAMISA: uye olana "ucretsiz kayit olun"
@@ -1245,9 +1290,9 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
       if ($_fxN > 0 && $_brands): ?>
 <div class="facts" role="list">
   <div class="wrap facts-row">
-    <div class="fact" role="listitem"><b><?= number_format($_fxN, 0, '', ' ') ?></b><span><?= t('Live listings') ?></span></div>
-    <div class="fact" role="listitem"><b><?= count($_brands) ?></b><span><?= t('Houses in stock') ?></span></div>
-    <?php if ($_fxC > 0): ?><div class="fact" role="listitem"><b><?= $_fxC ?></b><span><?= t('Product categories') ?></span></div><?php endif; ?>
+    <div class="fact" role="listitem"><b data-n="<?= (int)$_fxN ?>"><?= number_format($_fxN, 0, '', ' ') ?></b><span><?= t('Live listings') ?></span></div>
+    <div class="fact" role="listitem"><b data-n="<?= count($_brands) ?>"><?= count($_brands) ?></b><span><?= t('Houses in stock') ?></span></div>
+    <?php if ($_fxC > 0): ?><div class="fact" role="listitem"><b data-n="<?= (int)$_fxC ?>"><?= $_fxC ?></b><span><?= t('Product categories') ?></span></div><?php endif; ?>
     <div class="fact" role="listitem"><b>EUR · USD</b><span><?= t('Invoice currencies') ?></span></div>
   </div>
 </div>
@@ -1970,6 +2015,34 @@ if ($shoePicks):
           }, { threshold: 0.01 }).observe(hv);
         }
       }
+    }
+  }catch(e){}
+  /* Hareket katmanı (14 Eki 2026). Rakamlar: sayfada GERÇEK değer basılı (JS'siz, arama motoru, ekran okuyucu onu
+     görür); şerit ekrana girince 0'dan o değere 1,6 sn'de sayılır ve aynı biçimle (binlik boşluk) biter. Altın spot:
+     yalnız fareli masaüstünde, kare başına bir güncelleme (rAF), kahraman dışına çıkınca söner. */
+  try{
+    var rmM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var fx = document.querySelectorAll('.fact b[data-n]');
+    if (!rmM && fx.length && 'IntersectionObserver' in window && window.requestAnimationFrame) {
+      var fmt = function(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); };
+      var run = function(b){
+        var to = parseInt(b.getAttribute('data-n'), 10) || 0, final = b.textContent, t0 = 0, dur = 1600;
+        if (to < 2) return;
+        var step = function(ts){ if (!t0) t0 = ts; var k = Math.min(1, (ts - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+          b.textContent = k < 1 ? fmt(Math.round(to * e)) : final; if (k < 1) requestAnimationFrame(step); };
+        b.textContent = '0'; requestAnimationFrame(step);
+      };
+      var fio = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting) { fio.unobserve(e.target); run(e.target); } }); }, { threshold: .6 });
+      fx.forEach(function(b){ fio.observe(b); });
+    }
+    var hero = document.querySelector('.hero'), fine = window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
+    if (hero && fine && !rmM && window.requestAnimationFrame) {
+      var px = 0, py = 0, raf = 0;
+      hero.addEventListener('pointermove', function(ev){
+        var r = hero.getBoundingClientRect(); px = ev.clientX - r.left; py = ev.clientY - r.top;
+        if (!raf) raf = requestAnimationFrame(function(){ raf = 0; hero.style.setProperty('--mx', px + 'px'); hero.style.setProperty('--my', py + 'px'); hero.classList.add('glow-on'); });
+      });
+      hero.addEventListener('pointerleave', function(){ hero.classList.remove('glow-on'); });
     }
   }catch(e){}
 </script>

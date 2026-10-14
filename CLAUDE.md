@@ -12538,3 +12538,14 @@ cihaz yoklamaları (iPhone passkey `/.well-known/…`, Chrome prefetch proxy `tr
 saldırı taramaları (`wp-admin`). Düzeltme: `vestra_track_visit` 404'te `404 /istenen-yol` yazar; `vestra_track_is_probe()`
 yoklama/statik/tarama isteklerini HİÇ saymaz; `.htaccess` `apple-touch-icon(-WxH)(-precomposed).png` → tek simge.
 Test `track_404_test.php` (27). `/null`'ın sayfadaki kaynağı bulunamadı (canlı DOM'da `null` adres yok) — bot davranışı.
+
+**14 Eki 2026 — Ana sayfaya premium hareket katmanı** (operatör: *"VESTRA'nın ana sayfasına premium bir animasyon koy"*).
+- `index.php` ilk `<style>`'ın SONUNDA ayrı katman (önceki kurallara dokunulmadı): açılış sahnesi — etiket (0,1 sn) →
+  manşet bulanıktan netleşerek yükselir (0,22 sn, 1,25 sn) → altın kıl çizgi açılır (`.hero-rule`, 0,95 sn) → alt metin /
+  teklif / düğmeler / güven satırı sırayla; italik vurgudan bir kez altın ışık geçer (background-clip:text, `@supports`
+  ile; italiğin kuyruğu kesilmesin diye kutu ±.14em genişletildi — ilk çizimde telefonda "verified"ın d'si kırpılıyordu).
+  Masaüstünde (hover+pointer:fine) imleci izleyen yumuşak altın spot (`.hero-glow`, rAF), rakam şeridi ekrana girince
+  0'dan sayar (`data-n`; sayfada GERÇEK değer basılı, sayım aynı metinle biter), ürün kartında hover ışığı.
+- Yalnız transform/opacity/filter/background-position → CLS 0. "Hareketi azalt"ta CSS de JS de kapalı.
+- Yerelde headless Chromium ile çizildi: 1440 ve 390 px, ar/de/fr/ja/ru — yatay kaydırma 0, JS hatası 0.
+  Test `tests/home_motion_test.php` (10). home_offer / home_edit_picks / home_new_picks yeşil.
