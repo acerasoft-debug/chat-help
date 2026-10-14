@@ -494,6 +494,17 @@ function vestra_mailbox_followup_targets(int $limit, ?array $leads = null, ?int 
   return $out;
 }
 
+/** Takip gönderiminden hemen önce: kayıt hâlâ takip alabilir mi (dinlenme süresi, durum)? */
+function vestra_mailbox_followup_still_ok(string $leadId, ?int $now = null): bool {
+  $now = $now ?? time();
+  foreach (vestra_leads() as $l) {
+    if ((string)($l['id'] ?? '') !== $leadId) continue;
+    if ((string)($l['status'] ?? '') !== 'contacted' || !empty($l['unsubscribed'])) return false;
+    return vestra_lead_letters($l)['last'] <= $now - VESTRA_MAILBOX_FOLLOWUP_MIN_DAYS * 86400;
+  }
+  return false;
+}
+
 /** Gece turu: Avrupa saatiyle 23:45'ten sonra, günde bir kez, bugünkü tavandan kalan kadar takip isteği açar.
  *  mailbox.json: followup=false kapatır; followup_day o günün işlendiğini tutar. Döner: açılan isteğin mesajı | ''. */
 function vestra_mailbox_nightly(?int $now = null): string {
@@ -730,6 +741,13 @@ function vestra_mailbox_run(array $req, array $o = []): array {
     if (!$dkimOk && vestra_mailbox_strict_receiver((string)$it['email'], $o['mx'] ?? null)) {
       $sum['deferred'] = ($sum['deferred'] ?? 0) + 1;
       $log(sprintf('~ [%d/%d] %s bekletildi: DKIM yok, alici DMARC reddediyor (Microsoft/Orange)', $k + 1, $n, vestra_mailbox_mask($it['email'])));
+      continue;
+    }
+    /* Takip mektubu: gönderimden HEMEN önce kayıt yeniden okunur — parti kurulduktan sonra (aynı gece) Brevo
+       taraması ya da başka bir yol bu dükkâna yazdıysa ya da dükkân çıktıysa / geri döndüyse atlanır (14 Eki 2026). */
+    if (($it['followup'] ?? '') !== '' && !vestra_mailbox_followup_still_ok((string)$it['leadId'], $o['now'] ?? null)) {
+      $sum['deferred'] = ($sum['deferred'] ?? 0) + 1;
+      $log(sprintf('~ [%d/%d] %s atlandi: bu arada yazilmis / cikmis', $k + 1, $n, vestra_mailbox_mask((string)$it['email'])));
       continue;
     }
     if ($sentAny) $sleep(random_int(VESTRA_MAILBOX_PAUSE_MIN, VESTRA_MAILBOX_PAUSE_MAX));

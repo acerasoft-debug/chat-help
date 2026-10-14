@@ -12569,3 +12569,18 @@ sırayla yükselir (gecikme +.62…+.96 s), marka adının harf aralığı .02em
 (hover'da tam boy). `done` zamanlayıcısı 1.35 → 1.95 s (satırlar bitmeden 3B eğim başlamasın). Azaltılmış harekette
 ve JS'siz (`html.mo` yok) hiçbiri devrede değil. Kum havuzunda kare kare ölçüldü (sayfa kırpması; eleman ekran
 görüntüsü hareketin bitmesini BEKLİYOR, ara kareyi göstermez).
+
+**14 Eki 2026 — Brevo 100 rezerv + 23:45 gece taraması sunucudan; ısınma kapalı (500/gün); saatlik geri dönme taraması**
+(operatör: *"Brevo'da her zaman 100 tane email hakkı kalsın, 23.45'te kontrol edilsin ve hak kaldıysa devam gönderilsin.
+Kendi server'dan 500 email günlük ancak halen email hataları geliyor"*).
+- Ölçüm: GitHub'ın zamanlaması brevo-daily'yi atlıyordu (14 Eki 09:12 hiç, 13 Eki gece taraması 3 sa geç). Yeni
+  `inc/ops_tick.php` (cron_mailbox.php her 10 dk): kayıtlı GitHub anahtarıyla brevo-daily.yml'yi 09:12 / 15:12 (50'lik
+  parti) ve 23:45 (gece taraması) Avrupa saatinde KENDİSİ başlatır, slot başına günde bir (data/ops_tick.json); saatte bir
+  mailbox-send.yml `bounces` (teslim hatası bildirimleri → adres "bounced", bildirim VESTRA-Bounces klasörüne).
+  brevo-daily.yml: quota_reserve=100 her kipte, GitHub cron'ları yedek, son 100 dk'da başka koşu varsa atlar.
+- Takip turu: her takip mektubundan HEMEN önce kayıt yeniden okunur (`vestra_mailbox_followup_still_ok`) — aynı gece
+  Brevo taraması yazdıysa / dükkân çıktıysa atlanır.
+- Isınma kapatıldı (chat-help mailbox-warmup.yml on=false): tavan 500; geri dönme freni (%8 / 3 gün) aynen.
+- Hata bildirimleri (diag-bounce-format, 2 gün): ~35 — çoğu kutu dolu / adres yok / 14 sa sonra vazgeçildi; birkaç
+  DMARC reddi (GMX, Microsoft, Orange; DKIM imzası var ama yönlendirme/aktarıcı yolunda bozuluyor). Testler:
+  `tests/ops_tick_test.php` (13).

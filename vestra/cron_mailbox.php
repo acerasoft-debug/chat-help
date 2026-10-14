@@ -25,6 +25,8 @@ $dry = in_array('--dry-run', $argv, true);
 /* Müşteri aramasını da sunucu başlatır (GitHub anahtarı kayıtlıysa): GitHub'ın kendi zamanlaması saatlerce gecikiyor.
    Gönderim kilidinden ÖNCE — uzun bir gönderim sürerken de arama zamanında başlasın. */
 if (!$dry && ($tick = vestra_finder_server_tick()) !== '') echo '[finder '.date('Y-m-d H:i').'] '.$tick."\n";
+/* Brevo partileri (09:12 / 15:12 / 23:45 Avrupa) ve saatlik geri dönme taraması da sunucudan (14 Eki 2026, inc/ops_tick.php). */
+if (!$dry) { require_once __DIR__.'/inc/ops_tick.php'; try { foreach (vestra_ops_tick() as $_ol) echo '[ops '.date('Y-m-d H:i').'] '.$_ol."\n"; } catch (\Throwable $e) { echo '[ops] '.$e->getMessage()."\n"; } }
 
 /* Satıcıların sunucu yolu (inc/seller_outbox.php, via=server): kendi kilidi — admin kampanyası saatlerce sürse de
    satıcı mektupları her 10 dk'da gider (tur başına en çok 40, 8-15 sn ara). */
