@@ -256,7 +256,7 @@ pricerunner kelkoo trovaprezzi twenga shopalike lookastic shopzilla pricegrabber
 rtl ksta morgenpost sueddeutsche bunte news wp manager-magazin spiegel bild focus welt faz stern zeit tagesschau zdf ard ntv n-tv sat1
 prosieben vox t-online gmx kering lvmh yorkshire gemo merkal taokids size sizeofficial prodirectsport fc-moto mistersafetyshoes factoryshoe
 leparisien lefigaro ouest-france lemonde liberation corriere repubblica elpais bbc dailymail theguardian telegraph mirror nieuwsblad hln
-telegraaf onet interia
+telegraaf onet interia cbc ctv globalnews lindependant ladepeche sudouest nzherald stuff smh theage news24
 `.split(/\s+/).filter(Boolean);
 const BLOCK_SET = new Set(BLOCK_DOMAINS);
 const BLOCK_PREFIX = BLOCK_DOMAINS.filter(s => s.length >= 5);

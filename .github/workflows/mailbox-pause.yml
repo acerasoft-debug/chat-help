@@ -9,6 +9,10 @@ on:
         description: "true = durdur · false = aç"
         required: false
         default: "true"
+      followup:
+        description: "Açarken gece takip turu da açılsın mı (true/false)"
+        required: false
+        default: "false"
 permissions:
   contents: read
 jobs:
@@ -18,12 +22,13 @@ jobs:
       - uses: appleboy/ssh-action@v1.0.3
         env:
           PAUSED: ${{ github.event.inputs.paused }}
+          FOLLOW: ${{ github.event.inputs.followup }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          envs: PAUSED
+          envs: PAUSED,FOLLOW
           command_timeout: 2m
           script: |
             cd ~/public_html
@@ -33,7 +38,7 @@ jobs:
             require      $home."/public_html/inc/products.php";
             require_once $home."/public_html/inc/mailbox.php";
             $p = strtolower(trim((string)getenv('PAUSED'))) !== 'false';
-            $cfg = vestra_mailbox_cfg(); $cfg['auto_send'] = !$p; $cfg['followup'] = !$p; $cfg['paused_at'] = $p ? date('c') : '';
+            $cfg = vestra_mailbox_cfg(); $cfg['auto_send'] = !$p; $cfg['followup'] = !$p && strtolower(trim((string)getenv('FOLLOW'))) === 'true'; $cfg['paused_at'] = $p ? date('c') : '';
             $f = vestra_mailbox_file('mailbox.json'); file_put_contents($f, json_encode($cfg, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE), LOCK_EX); @chmod($f, 0600);
             $runs = vestra_mailbox_runs(); $c = 0;
             if ($p) foreach ($runs as $i => $r) if (($r['status'] ?? '') === 'requested') { $runs[$i]['status'] = 'cancelled'; $runs[$i]['note'] = 'operator durdurdu'; $c++; }
