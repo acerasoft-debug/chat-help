@@ -19,6 +19,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/geo.php';
+
 require_once __DIR__ . '/boot.php';
 require_once __DIR__ . '/cart.php';
 require_once __DIR__ . '/stripe.php';
@@ -181,6 +183,12 @@ function vr_order_build(string $country): array
         'lang'       => vr_lang(),
         'currency'   => (string)vr_config('currency', 'EUR'),
         'session_id' => session_id(),
+        // Siparişi veren tarayıcı (panelde dolandırıcılık kontrolü için):
+        // adres, ülke (yerel tablo), cihaz. Kart verisi değil, Stripe'ta kalır.
+        'client'     => [
+            'ip' => vr_client_ip(), 'cc' => vr_geoip_lookup(vr_client_ip()),
+            'ua' => substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 300), 'lang' => vr_lang(),
+        ],
 
         'lines'          => $t['lines'],
         'subtotal_cents' => (int)$t['subtotal'],

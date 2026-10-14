@@ -319,7 +319,12 @@ function vr_normalize_product(array $p, string $source): ?array
     $rrpVerified = $ref && $ref['exact'];
     if ($rrpVerified) $p['rrp'] = $rrpCents / 100;
 
-    if ($ruleCents !== null) {
+    // Panelde elle girilen fiyat her şeyin önünde (category-fix-admin.json
+    // "price": kuruş). Operatörün bilerek yazdığı rakam, otomatik hesap onu ezmez.
+    $adminCents = (int)($cf[$id]['price'] ?? 0);
+    if ($adminCents > 0) {
+        $price = $adminCents;
+    } elseif ($ruleCents !== null) {
         $price = $ruleCents;
     } elseif ($rrpCents !== null) {
         $bps   = vr_official_discount_bps((string)($p['brand'] ?? ''));
@@ -1563,8 +1568,31 @@ function vr_category_fix(): array
     if ($fix === null) {
         $raw = vr_store_read('category-fix.json', []);
         $fix = is_array($raw) ? $raw : [];
+        // Panelden yapılan düzeltmeler AYRI dosyada (category-fix-admin.json):
+        // category-fix.json her yayında depodan gelir ve sunucudakini ezer;
+        // operatörün panelde yaptığı değişiklik kaybolmasın. Panel dosyası
+        // üstte: aynı ürün için panel ne dediyse o geçerli.
+        $adm = vr_store_read('category-fix-admin.json', []);
+        if (is_array($adm)) {
+            foreach ($adm as $id => $row) {
+                if (!is_array($row)) continue;
+                $fix[$id] = array_merge((array)($fix[$id] ?? []), $row);
+            }
+        }
     }
     return $fix;
+}
+
+/** Panel düzeltmesi yaz (category-fix-admin.json; null değer alanı siler). */
+function vr_category_fix_admin_set(string $id, array $patch): void
+{
+    vr_store_mutate('category-fix-admin.json', static function ($all) use ($id, $patch) {
+        if (!is_array($all)) $all = [];
+        $row = (array)($all[$id] ?? []);
+        foreach ($patch as $k => $v) { if ($v === null) unset($row[$k]); else $row[$k] = $v; }
+        if ($row) $all[$id] = $row; else unset($all[$id]);
+        return $all;
+    });
 }
 
 /**

@@ -25,6 +25,7 @@ require_once __DIR__ . '/sizing.php';   // beden tabloları — ürün sayfası 
 require_once __DIR__ . '/fx.php';       // gösterge para birimi (dünya alıcısı için)
 require_once __DIR__ . '/customers.php'; // alıcı hesapları (başlıktaki kişi ikonu)
 require_once __DIR__ . '/thumbs.php';    // hazır küçük kopyalar düz dosya olarak (PHP'siz)
+require_once __DIR__ . '/stats.php';     // ziyaretçi istatistiği, IP engeli (yönetim paneli)
 
 /** Sürüm etiketi — CSS/JS önbelleğini deploy'da tazelemek için. */
 function vr_asset_v(): string
@@ -48,6 +49,8 @@ function vr_asset_v(): string
  */
 function vr_layout_start(array $o = []): void
 {
+    vr_ip_gate();
+    vr_track_view();
     $brand = (string)vr_config('brand');
     $title = trim((string)($o['title'] ?? ''));
     $full  = $title === '' ? $brand . ' — ' . t('tagline') : $title . ' · ' . $brand;

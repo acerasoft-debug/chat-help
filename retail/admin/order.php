@@ -1,164 +1,197 @@
 <?php
 /**
- * Tek sipariş: satırlar, satıcı dağılımı, kargo kaydı, ödeme durumu.
+ * Tek sipariş: her ayrıntı — satırlar, müşteri, teslimat, ödeme kimlikleri,
+ * siparişi veren tarayıcı (IP, ülke, cihaz), zaman çizelgesi, satıcı payı,
+ * kargo kaydı, not, iptal, onay e-postasını yeniden gönderme.
  *
- * Buradan PARA HAREKETİ yapılmıyor. İade ve iptal Stripe panelinden yürür;
- * bir tıkla para iade eden bir düğme, ele geçirilen bir oturumun doğrudan
- * kasaya erişmesi demek olurdu. Burada yalnızca kargo bilgisi ve not var.
+ * PARA HAREKETİ YOK: iade Stripe panelinden. Burada yalnız durum ve kayıt.
  */
 
 declare(strict_types=1);
 
 require_once __DIR__ . '/../inc/view.php';
 require_once __DIR__ . '/../inc/admin.php';
+require_once __DIR__ . '/../inc/mail.php';
+require_once __DIR__ . '/../inc/customers.php';
 require_once __DIR__ . '/_nav.php';
 
-vr_admin_require();
+$who = vr_admin_require();
 
 $o = vr_order_get((string)($_GET['id'] ?? ''));
-if ($o === null) { http_response_code(404); require __DIR__ . '/../404.php'; exit; }
+if ($o === null) { http_response_code(404); vr_admin_head('Nicht gefunden'); echo '<p>Bestellung nicht gefunden.</p>'; vr_admin_foot(); exit; }
 
-$saved = '';
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     vr_csrf_check();
     $act = (string)($_POST['action'] ?? '');
-
+    $hist = (array)($o['history'] ?? []);
+    $push = function (string $what, string $note = '') use (&$hist, $who) { $hist[] = ['at' => time(), 'who' => $who, 'what' => $what, 'note' => $note]; };
     if ($act === 'ship') {
-        $patch = [
-            'shipped_at'  => time(),
-            'carrier'     => mb_substr(trim((string)($_POST['carrier'] ?? '')), 0, 60),
-            'tracking'    => mb_substr(trim((string)($_POST['tracking'] ?? '')), 0, 120),
-        ];
-        vr_order_update((string)$o['id'], $patch);
-        $saved = 'Als versendet vermerkt.';
+        $carrier = mb_substr(trim((string)($_POST['carrier'] ?? '')), 0, 60);
+        $tracking = mb_substr(trim((string)($_POST['tracking'] ?? '')), 0, 120);
+        $push('shipped', trim($carrier . ' ' . $tracking));
+        vr_order_update((string)$o['id'], ['shipped_at' => time(), 'carrier' => $carrier, 'tracking' => $tracking, 'history' => $hist]);
+        vr_admin_audit('order_ship', ['order' => $o['number'], 'tracking' => $tracking]);
+        vr_flash('Als versendet vermerkt.', 'ok');
     } elseif ($act === 'unship') {
-        vr_order_update((string)$o['id'], ['shipped_at' => 0, 'carrier' => '', 'tracking' => '']);
-        $saved = 'Versandvermerk entfernt.';
+        $push('unshipped');
+        vr_order_update((string)$o['id'], ['shipped_at' => 0, 'carrier' => '', 'tracking' => '', 'history' => $hist]);
+        vr_admin_audit('order_unship', ['order' => $o['number']]);
+        vr_flash('Versandvermerk entfernt.', 'ok');
     } elseif ($act === 'note') {
-        vr_order_update((string)$o['id'], ['admin_note' => mb_substr(trim((string)($_POST['note'] ?? '')), 0, 2000)]);
-        $saved = 'Notiz gespeichert.';
+        vr_order_update((string)$o['id'], ['admin_note' => mb_substr(trim((string)($_POST['note'] ?? '')), 0, 4000)]);
+        vr_flash('Notiz gespeichert.', 'ok');
+    } elseif ($act === 'cancel' && (string)$o['status'] !== 'cancelled') {
+        // Stok geri gelir; ödeme alındıysa iade Stripe'tan yapılır (burada yalnız durum).
+        if ((string)$o['status'] === 'paid') vr_stock_restore((array)$o['lines']);
+        $push('cancelled', mb_substr(trim((string)($_POST['reason'] ?? '')), 0, 300));
+        vr_order_update((string)$o['id'], ['status' => 'cancelled', 'cancelled_at' => time(), 'cancel_reason' => mb_substr(trim((string)($_POST['reason'] ?? '')), 0, 300), 'history' => $hist]);
+        vr_admin_audit('order_cancel', ['order' => $o['number']]);
+        vr_flash('Bestellung storniert. Eine Erstattung läuft über das Stripe-Dashboard.', 'ok');
+    } elseif ($act === 'refunded' && (string)$o['status'] === 'paid') {
+        $push('refunded', mb_substr(trim((string)($_POST['reason'] ?? '')), 0, 300));
+        vr_stock_restore((array)$o['lines']);
+        vr_order_update((string)$o['id'], ['status' => 'refunded', 'refunded_at' => time(), 'history' => $hist]);
+        vr_admin_audit('order_refunded', ['order' => $o['number']]);
+        vr_flash('Als erstattet vermerkt (Buchung). Die Rückzahlung selbst erfolgt bei Stripe.', 'ok');
+    } elseif ($act === 'resend' && (string)$o['status'] === 'paid') {
+        try { vr_mail_order_buyer($o); $push('mail_resent'); vr_order_update((string)$o['id'], ['history' => $hist]); vr_flash('Bestellbestätigung erneut gesendet.', 'ok'); }
+        catch (Throwable $e) { vr_flash('Versand fehlgeschlagen: ' . $e->getMessage(), 'err'); }
+        vr_admin_audit('order_resend_mail', ['order' => $o['number']]);
     }
-    $o = vr_order_get((string)$o['id']);
+    vr_redirect('admin/order.php', ['id' => $o['id']]);
 }
 
 $addr = (array)($o['customer']['address'] ?? []);
-vr_admin_head('Bestellung ' . (string)$o['number']);
-?>
-<?php if ($saved !== ''): ?>
-  <div class="flash flash--ok" style="margin-bottom:18px"><?= h($saved) ?></div>
-<?php endif; ?>
+$cl   = (array)($o['client'] ?? []);
+$cust = vr_admin_customer_by_mail((string)($o['customer']['email'] ?? ''));
+$others = array_values(array_filter(vr_orders(), fn($x) => $x['id'] !== $o['id'] && strtolower((string)($x['customer']['email'] ?? '')) === strtolower((string)($o['customer']['email'] ?? '')) && (string)($o['customer']['email'] ?? '') !== ''));
+[$dev, $br, $os] = vr_stats_ua((string)($cl['ua'] ?? ''));
 
+$timeline = [['at' => (int)$o['created_at'], 'what' => 'Bestellung angelegt', 'on' => true]];
+if (!empty($o['paid_at'])) $timeline[] = ['at' => (int)$o['paid_at'], 'what' => 'Zahlung eingegangen (Stripe)', 'on' => true];
+foreach ((array)($o['history'] ?? []) as $hx) {
+    $label = ['shipped' => 'Versendet', 'unshipped' => 'Versandvermerk entfernt', 'cancelled' => 'Storniert', 'refunded' => 'Erstattet', 'mail_resent' => 'Bestätigung erneut gesendet'][$hx['what']] ?? $hx['what'];
+    $timeline[] = ['at' => (int)$hx['at'], 'what' => $label . (($hx['note'] ?? '') !== '' ? ' — ' . $hx['note'] : '') . ' · ' . $hx['who'], 'on' => true];
+}
+if (!empty($o['shipped_at']) && !array_filter((array)($o['history'] ?? []), fn($h) => $h['what'] === 'shipped')) $timeline[] = ['at' => (int)$o['shipped_at'], 'what' => 'Versendet', 'on' => true];
+usort($timeline, fn($a, $b) => $a['at'] <=> $b['at']);
+
+$actions = '';
+if ((string)$o['status'] === 'paid') $actions .= vr_admin_button('resend', [], 'Bestätigung erneut senden', 'btn btn--ghost btn--sm', 'Bestellbestätigung an den Kunden erneut senden?');
+vr_admin_head('Bestellung ' . $o['number'], ['sub' => vr_date((int)$o['created_at'], true) . ' · ' . ($o['customer']['email'] ?? ''), 'back' => [vr_url('admin/orders.php'), 'Bestellungen'], 'actions' => $actions, 'nav' => 'orders.php']);
+?>
 <?php vr_admin_stats([
-  'Status'  => vr_order_status_label((string)$o['status']),
-  'Summe'   => vr_money((int)$o['total_cents']),
-  'Provision' => vr_money((int)($o['commission_cents'] ?? 0)),
-  'Datum'   => vr_date((int)$o['created_at']),
+  'Status'    => [strip_tags(vr_admin_order_pill($o)), ''],
+  'Summe'     => [vr_money((int)$o['total_cents']), 'davon MwSt. ' . vr_money((int)($o['vat_cents'] ?? 0))],
+  'Provision' => [vr_money((int)($o['commission_cents'] ?? 0)), (string)($o['payout_mode'] ?? '')],
+  'Land'      => [(string)($o['ship_country'] ?? '—'), vr_country_name((string)($o['ship_country'] ?? ''))],
 ]); ?>
 
-<div class="panel" style="margin-top:26px">
-  <h2>Artikel</h2>
-  <div class="tablewrap" tabindex="0">
-    <table class="table">
-      <tbody>
-      <?php foreach ((array)$o['lines'] as $l): ?>
+<div class="agrid agrid--21">
+  <div class="agrid">
+    <?php vr_admin_card_open('Artikel', '', 'acard--pad0'); ?>
+      <div class="tablewrap"><table class="table"><tbody>
+      <?php foreach ((array)$o['lines'] as $l): $p = ($l['pid'] ?? '') !== '' ? vr_product((string)$l['pid']) : null; ?>
         <tr>
-          <td><?= h((string)($l['name'] ?? '')) ?>
-            <?php if (($l['colour'] ?? '') !== ''): ?><span style="color:var(--muted)"> · <?= h((string)$l['colour']) ?></span><?php endif; ?>
-            <?php if (($l['size'] ?? '') !== ''): ?><span style="color:var(--muted)"> · <?= h((string)$l['size']) ?></span><?php endif; ?>
-            <?php if (($l['seller_type'] ?? '') === 'private'): ?>
-              <span class="pill" style="margin-left:6px">Privatverkauf</span><?php endif; ?>
-          </td>
-          <td style="text-align:right;white-space:nowrap"><?= (int)($l['qty'] ?? 1) ?> × <?= h(vr_money((int)($l['unit_cents'] ?? 0))) ?></td>
+          <td style="width:52px"><?php if ($p): ?><img class="athumb" src="<?= h(vr_img(vr_card_image($p), 180)) ?>" alt=""><?php endif; ?></td>
+          <td><?php if ($p): ?><a href="<?= h(vr_url('admin/product.php', ['id' => $p['id']])) ?>"><?= h((string)($l['brand'] ?? '') . ' ' . (string)($l['name'] ?? '')) ?></a><?php else: ?><?= h((string)($l['brand'] ?? '') . ' ' . (string)($l['name'] ?? '')) ?><?php endif; ?>
+            <br><span class="asmall"><?= h(implode(' · ', array_filter([(string)($l['colour'] ?? ''), ($l['size'] ?? '') !== '' ? 'Größe ' . $l['size'] : '', (string)($l['pid'] ?? ''), !empty($l['vault']) ? 'Vault' : '', ($l['seller_type'] ?? '') === 'private' ? 'Privatverkauf' : '']))) ?></span></td>
+          <td class="anum"><?= (int)($l['qty'] ?? 1) ?> × <?= h(vr_money((int)($l['unit_cents'] ?? 0))) ?></td>
         </tr>
       <?php endforeach; ?>
-      <tr><td>Versand<?php if (($o['ship_label'] ?? '') !== ''): ?> · <?= h((string)$o['ship_label']) ?><?php endif; ?></td>
-          <td style="text-align:right"><?= h(vr_money((int)$o['ship_cents'])) ?></td></tr>
-              <?php if ((int)($o['discount_cents'] ?? 0) > 0): ?>
-                <tr>
-                  <td><?= h('Gutschein ' . (string)($o["voucher_code"] ?? "")) ?></td>
-                  <td style="text-align:right;color:var(--ember-text)">−<?= h(vr_money((int)$o['discount_cents'])) ?></td>
-                </tr>
-              <?php endif; ?>
-      <tr><td><strong>Gesamt</strong> <span style="color:var(--muted)">(davon <?= h(vr_money((int)$o['vat_cents'])) ?> MwSt.)</span></td>
-          <td style="text-align:right"><strong><?= h(vr_money((int)$o['total_cents'])) ?></strong></td></tr>
-      </tbody>
-    </table>
+      <tr><td></td><td>Versand<?= ($o['ship_label'] ?? '') !== '' ? ' · ' . h((string)$o['ship_label']) : '' ?></td><td class="anum"><?= h(vr_money((int)$o['ship_cents'])) ?></td></tr>
+      <?php if ((int)($o['discount_cents'] ?? 0) > 0): ?><tr><td></td><td>Gutschein <?= h((string)($o['voucher_code'] ?? '')) ?></td><td class="anum abad">−<?= h(vr_money((int)$o['discount_cents'])) ?></td></tr><?php endif; ?>
+      <tr><td></td><td><b>Gesamt</b></td><td class="anum"><b><?= h(vr_money((int)$o['total_cents'])) ?></b></td></tr>
+      </tbody></table></div>
+    <?php vr_admin_card_close(); ?>
+
+    <?php vr_admin_card_open('Kunde', $cust ? '<a href="' . h(vr_url('admin/customer.php', ['id' => $cust['id']])) . '">Konto öffnen →</a>' : vr_admin_pill('Gastbestellung', 'muted')); ?>
+      <div class="agrid agrid--2">
+        <dl class="adl">
+          <dt>Name</dt><dd><?= h((string)($o['customer']['name'] ?? '—')) ?></dd>
+          <dt>E-Mail</dt><dd><a href="mailto:<?= h((string)($o['customer']['email'] ?? '')) ?>"><?= h((string)($o['customer']['email'] ?? '—')) ?></a></dd>
+          <dt>Sprache</dt><dd><?= h(strtoupper((string)($o['lang'] ?? ''))) ?></dd>
+          <dt>Weitere Bestellungen</dt><dd><?php if ($others): foreach ($others as $x): ?><a href="<?= h(vr_url('admin/order.php', ['id' => $x['id']])) ?>"><?= h($x['number']) ?></a> <?= vr_admin_order_pill($x) ?><br><?php endforeach; else: ?>keine<?php endif; ?></dd>
+        </dl>
+        <dl class="adl">
+          <dt>Lieferadresse</dt><dd><?php if (array_filter($addr)): ?>
+            <?= h(trim((string)($addr['line1'] ?? ''))) ?><?= trim((string)($addr['line2'] ?? '')) !== '' ? '<br>' . h(trim((string)$addr['line2'])) : '' ?><br>
+            <?= h(trim(((string)($addr['postal_code'] ?? '')) . ' ' . ((string)($addr['city'] ?? '')))) ?><br>
+            <?= h(vr_country_name((string)($addr['country'] ?? $o['ship_country'] ?? ''))) ?>
+          <?php else: ?><span class="asmall">noch nicht erfasst (kommt mit der Zahlung von Stripe)</span><?php endif; ?></dd>
+        </dl>
+      </div>
+    <?php vr_admin_card_close(); ?>
+
+    <?php vr_admin_card_open('Browser & Herkunft der Bestellung'); ?>
+      <dl class="adl">
+        <dt>IP-Adresse</dt><dd><?php $ip = (string)($cl['ip'] ?? ''); echo $ip !== '' ? '<a class="amono" href="' . h(vr_url('admin/visitors.php', ['ip' => $ip])) . '">' . h($ip) . '</a> ' . vr_admin_flag((string)($cl['cc'] ?? '')) : '— (ältere Bestellung)'; ?></dd>
+        <dt>Gerät</dt><dd><?= h($cl ? $dev . ' · ' . $br . ' · ' . $os : '—') ?></dd>
+        <dt>Kennung</dt><dd class="amono asmall"><?= h((string)($cl['ua'] ?? '—')) ?></dd>
+        <?php if (($cl['cc'] ?? '') !== '' && strtoupper((string)$cl['cc']) !== strtoupper((string)($o['ship_country'] ?? ''))): ?>
+          <dt>Hinweis</dt><dd class="abad">Lieferland (<?= h((string)$o['ship_country']) ?>) und IP-Land (<?= h((string)$cl['cc']) ?>) weichen ab.</dd>
+        <?php endif; ?>
+      </dl>
+    <?php vr_admin_card_close(); ?>
+
+    <?php if (!empty($o['by_seller'])): ?>
+      <?php vr_admin_card_open('Auszahlung · ' . (string)($o['payout_mode'] ?? ''), '', 'acard--pad0'); ?>
+        <?php if (!empty($o['payout_pending'])): ?><div class="flash flash--err" style="margin:12px 18px">Auszahlung offen: Der Verkäufer war bei Zahlungseingang noch nicht bei Stripe freigeschaltet.</div><?php endif; ?>
+        <div class="tablewrap"><table class="table"><thead><tr><th>Verkäufer</th><th class="anum">Anteil</th><th class="anum">Provision</th><th>Transfer</th></tr></thead><tbody>
+        <?php foreach ((array)$o['by_seller'] as $sid => $s): ?>
+          <tr><td><?= h((string)($s['label'] ?? $sid)) ?></td><td class="anum"><?= h(vr_money((int)($s['gross_cents'] ?? 0))) ?></td><td class="anum"><?= h(vr_money((int)($s['fee_cents'] ?? 0))) ?></td><td class="amono asmall"><?= h((string)(($o['transfers'][$sid] ?? '') ?: '—')) ?></td></tr>
+        <?php endforeach; ?>
+        </tbody></table></div>
+      <?php vr_admin_card_close(); ?>
+    <?php endif; ?>
+  </div>
+
+  <div class="agrid">
+    <?php vr_admin_card_open('Verlauf'); ?>
+      <ul class="atl"><?php foreach ($timeline as $t): ?><li class="is-on"><?= h($t['what']) ?><small><?= h(vr_date((int)$t['at'], true)) ?></small></li><?php endforeach; ?></ul>
+    <?php vr_admin_card_close(); ?>
+
+    <?php vr_admin_card_open('Versand'); ?>
+      <?php if (!empty($o['shipped_at'])): ?>
+        <p style="margin:0 0 12px;font-size:13.5px">Versendet am <?= h(vr_date((int)$o['shipped_at'], true)) ?><?= ($o['carrier'] ?? '') !== '' ? ' · ' . h((string)$o['carrier']) : '' ?><?= ($o['tracking'] ?? '') !== '' ? '<br><span class="amono">' . h((string)$o['tracking']) . '</span>' : '' ?></p>
+        <?= vr_admin_button('unship', [], 'Vermerk entfernen', 'btn btn--ghost btn--sm', 'Versandvermerk entfernen?') ?>
+      <?php elseif ((string)$o['status'] === 'paid'): ?>
+        <form class="form" method="post"><?= vr_csrf_field() ?><input type="hidden" name="action" value="ship">
+          <?= vr_admin_field('Versanddienst', '<input name="carrier" type="text" placeholder="DHL, UPS, GLS …" list="carriers"><datalist id="carriers"><option>DHL</option><option>DHL Express</option><option>UPS</option><option>GLS</option><option>DPD</option><option>Hermes</option><option>FedEx</option></datalist>') ?>
+          <?= vr_admin_field('Sendungsnummer', '<input name="tracking" type="text">') ?>
+          <button class="btn btn--sm" type="submit"><span>Als versendet vermerken</span></button>
+        </form>
+      <?php else: ?><p class="asmall">Erst nach Zahlungseingang.</p><?php endif; ?>
+    <?php vr_admin_card_close(); ?>
+
+    <?php vr_admin_card_open('Zahlung (Stripe)'); ?>
+      <dl class="adl">
+        <dt>Session</dt><dd class="amono asmall"><?= h((string)($o['stripe']['session_id'] ?? '') ?: '—') ?></dd>
+        <dt>PaymentIntent</dt><dd class="amono asmall"><?php $pi = (string)($o['stripe']['payment_intent'] ?? ''); echo $pi !== '' ? '<a href="https://dashboard.stripe.com/payments/' . h($pi) . '" target="_blank" rel="noopener">' . h($pi) . '</a>' : '—'; ?></dd>
+        <dt>Charge</dt><dd class="amono asmall"><?= h((string)($o['stripe']['charge_id'] ?? '') ?: '—') ?></dd>
+        <dt>Bezahlt</dt><dd><?= !empty($o['paid_at']) ? h(vr_date((int)$o['paid_at'], true)) : '—' ?></dd>
+      </dl>
+    <?php vr_admin_card_close(); ?>
+
+    <?php vr_admin_card_open('Interne Notiz'); ?>
+      <form class="form" method="post"><?= vr_csrf_field() ?><input type="hidden" name="action" value="note">
+        <div class="field"><textarea name="note" rows="4" placeholder="Nur hier sichtbar"><?= h((string)($o['admin_note'] ?? '')) ?></textarea></div>
+        <button class="btn btn--ghost btn--sm" type="submit"><span>Speichern</span></button>
+      </form>
+    <?php vr_admin_card_close(); ?>
+
+    <?php if (in_array((string)$o['status'], ['paid', 'pending'], true)): ?>
+      <?php vr_admin_card_open('Stornieren / Erstattung buchen', '', 'adanger'); ?>
+        <p class="anote">Storno setzt den Status und gibt den Bestand frei. Geld wird hier nicht bewegt — die Rückzahlung läuft im Stripe-Dashboard.</p>
+        <form class="form" method="post" data-confirm="Bestellung <?= h($o['number']) ?> wirklich stornieren?" style="margin-top:10px"><?= vr_csrf_field() ?>
+          <div class="field"><input name="reason" type="text" placeholder="Grund (für den Verlauf)"></div>
+          <div class="afilter">
+            <button class="btn btn--danger btn--sm" type="submit" name="action" value="cancel"><span>Stornieren</span></button>
+            <?php if ((string)$o['status'] === 'paid'): ?><button class="btn btn--ghost btn--sm" type="submit" name="action" value="refunded"><span>Als erstattet buchen</span></button><?php endif; ?>
+          </div>
+        </form>
+      <?php vr_admin_card_close(); ?>
+    <?php endif; ?>
   </div>
 </div>
-
-<div class="panel" style="margin-top:24px">
-  <h2>Kunde</h2>
-  <div class="dl">
-    <dt>Name</dt><dd><?= h((string)($o['customer']['name'] ?? '—')) ?></dd>
-    <dt>E-Mail</dt><dd><?= h((string)($o['customer']['email'] ?? '—')) ?></dd>
-    <dt>Adresse</dt><dd>
-      <?= h(trim((string)($addr['line1'] ?? ''))) ?><br>
-      <?= h(trim(((string)($addr['postal_code'] ?? '')) . ' ' . ((string)($addr['city'] ?? '')))) ?>
-      <?= h((string)($addr['country'] ?? $o['ship_country'] ?? '')) ?>
-    </dd>
-  </div>
-</div>
-
-<?php if (!empty($o['by_seller'])): ?>
-<div class="panel" style="margin-top:24px">
-  <h2>Auszahlung — <?= h((string)($o['payout_mode'] ?? '—')) ?></h2>
-  <?php if (!empty($o['payout_pending'])): ?>
-    <div class="notice" style="border-left-color:var(--ember)">
-      Auszahlung offen: Der Verkäufer war bei Zahlungseingang noch nicht bei Stripe freigeschaltet.
-      Nach der Freischaltung läuft <code>php tools/selftest.php</code> bzw. der nächste Webhook die Übertragung nach.
-    </div>
-  <?php endif; ?>
-  <div class="tablewrap" tabindex="0">
-    <table class="table">
-      <thead><tr><th>Verkäufer</th><th>Anteil</th><th>Provision</th><th>Transfer</th></tr></thead>
-      <tbody>
-      <?php foreach ((array)$o['by_seller'] as $sid => $s): ?>
-        <tr>
-          <td><?= h((string)($s['label'] ?? $sid)) ?></td>
-          <td><?= h(vr_money((int)($s['gross_cents'] ?? 0))) ?></td>
-          <td><?= h(vr_money((int)($s['fee_cents'] ?? 0))) ?></td>
-          <td><?= h((string)(($o['transfers'][$sid] ?? '') ?: '—')) ?></td>
-        </tr>
-      <?php endforeach; ?>
-      </tbody>
-    </table>
-  </div>
-</div>
-<?php endif; ?>
-
-<div class="panel" style="margin-top:24px">
-  <h2>Versand</h2>
-  <?php if (!empty($o['shipped_at'])): ?>
-    <p>Versendet am <?= h(vr_date((int)$o['shipped_at'], true)) ?>
-       <?php if (($o['carrier'] ?? '') !== ''): ?> · <?= h((string)$o['carrier']) ?><?php endif; ?>
-       <?php if (($o['tracking'] ?? '') !== ''): ?> · <?= h((string)$o['tracking']) ?><?php endif; ?></p>
-    <form method="post" style="margin-top:10px">
-      <?= vr_csrf_field() ?><input type="hidden" name="action" value="unship">
-      <button class="btn btn--ghost btn--sm" type="submit"><span>Vermerk entfernen</span></button>
-    </form>
-  <?php else: ?>
-    <form class="form" method="post">
-      <?= vr_csrf_field() ?><input type="hidden" name="action" value="ship">
-      <div class="field"><label for="carrier">Versanddienst</label>
-        <input id="carrier" name="carrier" type="text" placeholder="DHL"></div>
-      <div class="field"><label for="tracking">Sendungsnummer</label>
-        <input id="tracking" name="tracking" type="text"></div>
-      <div class="field"><button class="btn btn--brass btn--sm" type="submit"><span>Als versendet vermerken</span></button></div>
-    </form>
-  <?php endif; ?>
-</div>
-
-<div class="panel" style="margin-top:24px">
-  <h2>Interne Notiz</h2>
-  <form class="form" method="post">
-    <?= vr_csrf_field() ?><input type="hidden" name="action" value="note">
-    <div class="field">
-      <textarea name="note" rows="3" style="width:100%;padding:10px;border:1px solid var(--bone-3);background:var(--bone);font:inherit;font-size:13.5px"><?= h((string)($o['admin_note'] ?? '')) ?></textarea>
-      <small>Nur intern. Der Kunde sieht diese Notiz nicht.</small>
-    </div>
-    <div class="field"><button class="btn btn--ghost btn--sm" type="submit"><span>Notiz speichern</span></button></div>
-  </form>
-</div>
-
-<p style="margin-top:24px"><a class="link" href="<?= h(vr_url('admin/orders.php')) ?>">Zurück zur Liste</a></p>
 <?php vr_admin_foot(); ?>

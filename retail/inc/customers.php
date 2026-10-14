@@ -98,6 +98,10 @@ function vr_customer_create(array $in): array
         'lang'       => vr_lang(),
         'created_at' => time(),
         'last_login' => 0,
+        'created_ip' => vr_client_ip(),
+        'last_ip'    => '',
+        'last_ua'    => '',
+        'logins'     => 0,
     ];
 
     $ok = false;
@@ -267,7 +271,11 @@ function vr_customer_login(string $email, string $pw): array
     vr_session_start();
     vr_session_reid();                             // oturum sabitlemeye karşı
     $_SESSION['vr_customer_id'] = $c['id'];
-    vr_customer_update((string)$c['id'], ['last_login' => time()]);
+    vr_customer_update((string)$c['id'], [
+        'last_login' => time(), 'last_ip' => vr_client_ip(),
+        'last_ua' => substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 200),
+        'logins' => (int)($c['logins'] ?? 0) + 1,
+    ]);
     return [true, ''];
 }
 

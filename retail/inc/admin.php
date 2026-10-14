@@ -24,6 +24,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/boot.php';
+require_once __DIR__ . '/stats.php';
 
 const VR_ADMIN_FILE = 'admin.json';
 
@@ -149,12 +150,13 @@ function vr_admin_login(string $email, string $pw): array
             if ($vh !== '' && $pw !== '' && password_verify($pw, $vh)) $who = 'Vestra-Admin';
         }
     }
-    if ($who === null) return [false, 'login_failed'];
+    if ($who === null) { vr_admin_audit('login_failed', ['email' => mb_substr($email, 0, 80)]); return [false, 'login_failed']; }
 
     vr_session_start();
     vr_session_reid();
     $_SESSION['vr_admin'] = $who;
     $_SESSION['vr_admin_at'] = time();
+    vr_admin_audit('login_ok');
     return [true, ''];
 }
 
