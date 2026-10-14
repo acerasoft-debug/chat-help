@@ -234,12 +234,72 @@ footer a{color:#d8bd86}
   .sphead-links{display:flex;gap:18px;flex-wrap:wrap;margin:14px 0 0;font-size:13.5px}
   .sphead-links a{color:var(--acc);border-bottom:1px solid rgba(201,168,106,.32);padding-bottom:2px;transition:.18s}
   .sphead-links a:hover{color:var(--ink);border-bottom-color:var(--ink)}
+<style>
+  /* ── KATALOG HAREKET SAHNESİ (operatör, 14 Eki 2026: "çok daha etkili bir animasyon kataloğa koy") ──────────────
+     html.mo yalnız JS çalışıyor VE ziyaretçi "hareketi azalt" istemiyorsa konur (ızgaradan önceki satır içi betik) —
+     JS'siz ya da azaltılmış harekette bu kuralların hiçbiri devreye girmez, katalog olduğu gibi görünür.
+     1) Başlık: kelimeler maskenin altından tek tek yükselir, altın çizgi çekilir, metin ve bağlantılar sırayla.
+     2) Marka şeridi: hücreler soldan sağa akarak gelir.
+     3) Izgara: kart ekrana girince dalga hâlinde yükselir; fotoğrafın üstünden koyu-altın PERDE kalkar, fotoğraf
+        bulanıktan netleşir. Filtre/marka değişince görünen kartlar aynı dalgayla yeniden gelir.
+     4) Fareli masaüstünde kart imleci izleyerek 3B eğilir, ışık yansıması imleçle kayar.
+     5) Sayfanın tepesinde kaydırma ilerlemesini gösteren altın kıl çizgi.
+     Yalnız transform / opacity / filter / clip — ızgara yerleşimi değişmez (CLS 0). */
+  @keyframes cWord{from{transform:translateY(105%)}to{transform:none}}
+  @keyframes cRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  @keyframes cDrop{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+  @keyframes cRule{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes cCell{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
+  .mo .sphead-eyebrow{animation:cDrop .8s var(--ease) .05s both}
+  .mo .sphead h1 .hw{display:inline-block;overflow:hidden;vertical-align:top;padding:0 .02em .08em;margin:0 -.02em -.08em}
+  .mo .sphead h1 .hw>span{display:inline-block;animation:cWord 1.05s cubic-bezier(.16,.8,.12,1) both}
+  .sphead{position:relative}
+  .mo .sphead::after{content:'';position:absolute;left:0;bottom:-1px;width:min(260px,40%);height:2px;
+    background:linear-gradient(90deg,var(--acc),#f1dfb0 55%,transparent);transform-origin:0 50%;animation:cRule 1.4s cubic-bezier(.2,.7,.1,1) .55s both}
+  [dir="rtl"] .mo .sphead::after{left:auto;right:0;transform-origin:100% 50%;background:linear-gradient(270deg,var(--acc),#f1dfb0 55%,transparent)}
+  .mo .sphead p{animation:cRise .9s var(--ease) .45s both}
+  .mo .sphead-links{animation:cRise .9s var(--ease) .6s both}
+  .mo .secttab{animation:cRise .8s var(--ease) both}
+  .mo .secttab:nth-child(2){animation-delay:.1s}
+  .mo .brail-cell{animation:cCell .75s var(--ease) both}
+  <?php for ($_i = 1; $_i <= 16; $_i++) echo '.mo .brail-cell:nth-child('.$_i.'){animation-delay:'.number_format(.3 + $_i * .05, 2).'s}'; ?>
+
+  .mo .shopgrid .scard:not(.in){opacity:0;transform:translateY(46px) scale(.955)}
+  .mo .shopgrid .scard.in:not(.done){transition:opacity .9s var(--ease) var(--d,0s),transform 1.05s cubic-bezier(.16,.8,.12,1) var(--d,0s)}
+  .mo .shopgrid .scard:not(.done) .sthumbi:not(.sthumbi-reveal){transition:transform 1.25s cubic-bezier(.16,.8,.12,1),filter 1.1s ease}
+  .mo .shopgrid .scard:not(.in) .sthumbi:not(.sthumbi-reveal){transform:scale(1.16);filter:blur(9px)}
+  .mo .shopgrid .scard.in:not(.done) .sthumbi:not(.sthumbi-reveal){transition-delay:calc(var(--d,0s) + .18s)}
+  .scurt{position:absolute;inset:0;z-index:7;pointer-events:none;transform-origin:50% 0;transform:scaleY(0);
+    background:linear-gradient(0deg,#e3c98d 0,#c9a86a 2px,#1d1915 2px,#16130f 100%)}
+  .mo .shopgrid .scard:not(.in) .scurt{transform:scaleY(1)}
+  .mo .shopgrid .scard.in:not(.done) .scurt{transition:transform 1s cubic-bezier(.77,0,.18,1) calc(var(--d,0s) + .12s)}
+  .sglare{position:absolute;inset:0;z-index:8;pointer-events:none;opacity:0;transition:opacity .35s ease;border-radius:inherit;
+    background:radial-gradient(circle at var(--gx,50%) var(--gy,30%),rgba(255,255,255,.42),rgba(255,248,230,.10) 32%,transparent 58%);mix-blend-mode:soft-light}
+  .mo .shopgrid .scard.tilt{transition:transform .14s ease-out,box-shadow .35s ease,border-color .35s ease;will-change:transform}
+  .mo .shopgrid .scard.tilt .sglare{opacity:1}
+  .scprog{position:fixed;left:0;top:0;height:2px;width:100%;z-index:9999;pointer-events:none;transform-origin:0 50%;transform:scaleX(0);
+    background:linear-gradient(90deg,#a97f2c,#f1dfb0 50%,#a97f2c);box-shadow:0 0 10px rgba(201,168,106,.55)}
+  [dir="rtl"] .scprog{transform-origin:100% 50%}
+  @media(prefers-reduced-motion:reduce){
+    .mo .sphead-eyebrow,.mo .sphead h1 .hw>span,.mo .sphead::after,.mo .sphead p,.mo .sphead-links,.mo .secttab,.mo .brail-cell{animation:none}
+    .mo .shopgrid .scard:not(.in),.mo .shopgrid .scard:not(.in) .sthumbi{opacity:1;transform:none;filter:none}
+    .scurt,.sglare,.scprog{display:none}
+  }
 </style>
 <div class="wrap wide shopwrap">
+  <script>try{ if(!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) && 'IntersectionObserver' in window) document.documentElement.classList.add('mo'); }catch(e){}</script>
   <div class="phead sphead">
     <div class="crumbs"><a href="/"><?= t('Home') ?></a> · <?= t('Catalog') ?></div>
     <div class="sphead-eyebrow"><?= t('Wholesale') ?> · <?= count($brandCounts) ?> <?= t('houses') ?> · <?= count($products) ?> <?= t('references') ?></div>
     <h1><?= t('Wholesale catalog') ?></h1>
+    <script>(function(){ try{
+      /* Başlık kelime kelime: yalnız hareket sahnesi açıkken; ekran okuyucu bütün başlığı aria-label'dan okur. */
+      var h = document.currentScript.previousElementSibling;
+      if (!h || !document.documentElement.classList.contains('mo')) return;
+      var txt = h.textContent.trim(), esc = function(x){ return x.replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+      h.setAttribute('aria-label', txt);
+      h.innerHTML = txt.split(/\s+/).map(function(w, i){ return '<span class="hw" aria-hidden="true"><span style="animation-delay:' + (0.12 + i * 0.1).toFixed(2) + 's">' + esc(w) + '</span></span>'; }).join(' ');
+    }catch(e){} })();</script>
     <p><?= t('Verified branded & textile fashion — minimum order & bulk pricing per product.') ?></p>
     <?php /* The grid is for browsing one garment at a time; a buyer pricing a whole order
              wants every article, price and MOQ on one screen instead. That view exists at
@@ -648,5 +708,62 @@ if (window.matchMedia && window.matchMedia('(hover: none)').matches && 'Intersec
     if (c.querySelector('.sthumbi-reveal')) revIO.observe(c);
   });
 }
+/* ── Katalog hareket sahnesi (14 Eki 2026) ── html.mo yoksa (JS'siz / "hareketi azalt") hiçbir şey yapmaz. */
+(function(){ try{
+  var root = document.documentElement; if (!root.classList.contains('mo')) return;
+  var grid = document.getElementById('shopgrid'); if (!grid) return;
+  var cards = Array.prototype.slice.call(grid.querySelectorAll('.scard'));
+  cards.forEach(function(c){
+    var th = c.querySelector('.sthumb');
+    if (th && !th.querySelector('.scurt')) { var cu = document.createElement('i'); cu.className = 'scurt'; cu.setAttribute('aria-hidden', 'true'); th.appendChild(cu); }
+    var gl = document.createElement('i'); gl.className = 'sglare'; gl.setAttribute('aria-hidden', 'true'); c.appendChild(gl);
+  });
+  /* Dalga: aynı anda ekrana giren kartlar konumlarına göre (üstten alta, soldan sağa) 70 ms arayla. */
+  var show = function(list){
+    list.sort(function(a, b){ var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect(); return (ra.top - rb.top) || (ra.left - rb.left); });
+    list.forEach(function(c, i){
+      var d = Math.min(i, 11) * 0.07; c.style.setProperty('--d', d.toFixed(2) + 's'); c.classList.add('in');
+      setTimeout(function(){ c.classList.add('done'); c.style.removeProperty('--d'); }, (d + 1.35) * 1000);
+    });
+  };
+  var io = new IntersectionObserver(function(es){
+    var batch = [];
+    es.forEach(function(e){ if (e.isIntersecting) { io.unobserve(e.target); batch.push(e.target); } });
+    if (batch.length) show(batch);
+  }, { rootMargin: '0px 0px -6% 0px', threshold: 0.08 });
+  cards.forEach(function(c){ io.observe(c); });
+  /* Filtre / marka / sıralama değişince: ekranda görünen kartlar dalgayı yeniden oynar. */
+  if (typeof window.applyFilters === 'function') {
+    var orig = window.applyFilters;
+    window.applyFilters = function(){
+      orig.apply(this, arguments);
+      var vis = cards.filter(function(c){ if (c.style.display === 'none') return false; var r = c.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0; });
+      vis.forEach(function(c){ c.classList.remove('in', 'done'); io.unobserve(c); });
+      void grid.offsetWidth;
+      requestAnimationFrame(function(){ show(vis); });
+    };
+  }
+  /* 3B eğim + ışık yansıması: yalnız fareli masaüstü. */
+  if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    cards.forEach(function(c){
+      var raf = 0, px = 0, py = 0;
+      c.addEventListener('pointermove', function(ev){
+        if (!c.classList.contains('done')) return;
+        var r = c.getBoundingClientRect(); px = (ev.clientX - r.left) / r.width; py = (ev.clientY - r.top) / r.height;
+        if (raf) return;
+        raf = requestAnimationFrame(function(){ raf = 0;
+          c.classList.add('tilt');
+          c.style.transform = 'perspective(900px) rotateX(' + ((0.5 - py) * 7).toFixed(2) + 'deg) rotateY(' + ((px - 0.5) * 9).toFixed(2) + 'deg) translateY(-6px)';
+          c.style.setProperty('--gx', (px * 100).toFixed(1) + '%'); c.style.setProperty('--gy', (py * 100).toFixed(1) + '%');
+        });
+      });
+      c.addEventListener('pointerleave', function(){ if (raf) { cancelAnimationFrame(raf); raf = 0; } c.classList.remove('tilt'); c.style.transform = ''; });
+    });
+  }
+  /* Kaydırma ilerlemesi. */
+  var bar = document.createElement('div'); bar.className = 'scprog'; bar.setAttribute('aria-hidden', 'true'); document.body.appendChild(bar);
+  var tick = 0, upd = function(){ tick = 0; var h = document.documentElement.scrollHeight - innerHeight; bar.style.transform = 'scaleX(' + (h > 0 ? Math.min(1, scrollY / h) : 0).toFixed(4) + ')'; };
+  addEventListener('scroll', function(){ if (!tick) tick = requestAnimationFrame(upd); }, { passive: true }); upd();
+}catch(e){ document.documentElement.classList.remove('mo'); } })();
 </script>
 <?php require __DIR__.'/inc/foot.php';

@@ -12549,3 +12549,15 @@ Test `track_404_test.php` (27). `/null`'ın sayfadaki kaynağı bulunamadı (can
 - Yalnız transform/opacity/filter/background-position → CLS 0. "Hareketi azalt"ta CSS de JS de kapalı.
 - Yerelde headless Chromium ile çizildi: 1440 ve 390 px, ar/de/fr/ja/ru — yatay kaydırma 0, JS hatası 0.
   Test `tests/home_motion_test.php` (10). home_offer / home_edit_picks / home_new_picks yeşil.
+
+**14 Eki 2026 — Kataloğa (/shop) hareket sahnesi** (operatör: *"çok daha etkili bir animasyon kataloğa koy"*).
+- `html.mo` ızgaradan ÖNCE satır içi betikle konur (yalnız JS + "hareketi azalt" KAPALI + IntersectionObserver); bütün
+  gizli başlangıç durumları `.mo` altında → JS'siz / azaltılmış harekette katalog olduğu gibi. Hata olursa `mo` kaldırılır.
+- Başlık kelime kelime maskeden yükselir (aria-label'da tam başlık), altın çizgi çekilir; marka şeridi hücreleri akarak gelir.
+- Izgara: kart ekrana girince dalga (aynı anda girenler konum sırasıyla 70 ms arayla, en çok 12), fotoğrafın üstünden
+  koyu-altın PERDE kalkar (`.scurt`), fotoğraf bulanıktan netleşir; bitince `.done` → hover geçişleri normal hızda.
+  `applyFilters` sarılır: filtre/marka/sıralama sonrası ekrandaki kartlar dalgayı yeniden oynar.
+- Fareli masaüstünde kart imleci izleyerek 3B eğilir + ışık yansıması (`.sglare`); sayfa tepesinde altın kaydırma çizgisi.
+- Yerelde headless Chromium: 1440 / 390 px, en/de/ar — yatay kaydırma 0, JS hatası 0. Test `tests/shop_motion_test.php` (11).
+- DİKKAT (araç): yerel `php -S` sunucusunu `pkill -f "...8097"` ile kapatmak kabuğun kendisini de öldürüyor — desende
+  `809[7]` kullan.
