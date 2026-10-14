@@ -253,6 +253,10 @@ europages kompass wlw thomasnet indeed glassdoor kununu trustpilot trustedshops 
 vogue gq elle harpersbazaar wwd businessoffashion fashionunited textilwirtschaft fashionnetwork drapersonline nssmag
 shopify myshopify wix wordpress squarespace jimdo webflow weebly blogspot godaddy strato ionos one
 pricerunner kelkoo trovaprezzi twenga shopalike lookastic shopzilla pricegrabber billiger geizhals guenstiger
+rtl ksta morgenpost sueddeutsche bunte news wp manager-magazin spiegel bild focus welt faz stern zeit tagesschau zdf ard ntv n-tv sat1
+prosieben vox t-online gmx kering lvmh yorkshire gemo merkal taokids size sizeofficial prodirectsport fc-moto mistersafetyshoes factoryshoe
+leparisien lefigaro ouest-france lemonde liberation corriere repubblica elpais bbc dailymail theguardian telegraph mirror nieuwsblad hln
+telegraaf onet interia
 `.split(/\s+/).filter(Boolean);
 const BLOCK_SET = new Set(BLOCK_DOMAINS);
 const BLOCK_PREFIX = BLOCK_DOMAINS.filter(s => s.length >= 5);
@@ -313,6 +317,8 @@ for (const k of Object.keys(TERMS)) TERMS[k + 'Re'] = TERMS[k].map(t => new RegE
 /* 14 Eki 2026: menüde / bağlantılarda "markalar" sayfası = çok markalı dükkân kanıtı. */
 const MULTI_NAV_RE = /(?<![a-z0-9])(brands|our brands|marken|unsere marken|marques|nos marques|marche|le nostre marche|marcas|nuestras marcas|merken|onze merken|marki|znacky|maerker|marker|merkit|designers|labels|multibrand|multi-brand|multi brand|multimarca|multimarques|multimerk|multilabel)(?![a-z0-9])/;
 /* 14 Eki 2026 (operatör: "kendi markasını satanlar olmasın"): kendi koleksiyonunu / etiketini satan dükkân. */
+const NEWS_RE = /(?<![a-z0-9])(zeitung|anzeiger|morgenpost|tagblatt|tageblatt|nachrichten|news|newsroom|journal|quotidien|giornale|periodico|diario|krant|gazet|presse|verlag|rundfunk|fernsehen|television|tv|radio|mediathek|sender|redaktion|redazione|redaction|zuschauer|leser)(?![a-z0-9])/;
+const NOT_RETAIL_RE = /(?<![a-z0-9])(tourisme|tourism|turismo|tourist|toerisme|office de tourisme|tourist information|fremdenverkehr|stadtmarketing|city marketing|gemeinde|stadt [a-z]+ (?:offizielle|official)|mairie|ville de|ayuntamiento|comune di|hotel|camping|museum|brauerei|feuerwehr|behordenausruster|sanitatshaus|orthopadie|orthopedie|orthopedic|sicherheitsschuhe|safety shoes|scrubs|kostumverleih|costume rental|location de costumes|army shop|surplus|jagd|waidmann|motorrad|motorcycle|immobilien|versicherung)(?![a-z0-9])/;
 const CJK_MULTI = ['取扱ブランド', '取り扱いブランド', 'ブランド一覧', 'ブランド', 'セレクトショップ', '브랜드', '편집샵', '셀렉트샵'].map(t => normText(t));
 const OWN_BRAND_RE = /(?<![a-z0-9])(our own (?:brand|label|collection)|own label|own brand|our label|designed (?:by us|in our studio|in-house)|in-house (?:brand|label|design)|eigene[sn]? (?:kollektion|label|marke)|unsere eigene[n]? (?:kollektion|marke)|aus eigener (?:herstellung|produktion)|nostr[ao] (?:marchio|collezione|produzione)|propri[ao] (?:marchio|collezione|produzione)|produzione propria|notre (?:propre )?(?:marque|collection|creation)|nos creations|nuestra (?:propia )?(?:marca|coleccion)|marca propia|onze eigen (?:collectie|merk|label)|eigen (?:merk|label|collectie)|wlasna marka|nasza marka)(?![a-z0-9])/;
 
@@ -328,7 +334,7 @@ otenet.gr hol.gr forthnet.gr mail.ru yandex.ru bk.ru abv.bg mail.bg btinternet.c
 telia.com telenor.dk mail.dk stofanet.dk online.no live.se spray.se comhem.se elisanet.fi luukku.com kolumbus.fi`.split(/\s+/));
 
 /* Bu yerel kısımlar asla satış muhatabı değildir — tamamen reddedilir. */
-const JUNK_LOCAL = /^(redazione|redaction|redaktion|redactie|editor|editors|editorial|news|magazine|do-?not-?reply|donotreply|noreply[\w.-]*|notification[s]?|mailer-daemon|postmaster|abuse|hostmaster|webmaster|privacy|datenschutz|dpo|dsb|gdpr|rgpd|dsgvo|press|presse|pr|media|jobs?|career[s]?|karriere|recruit(ing|ment)?|hr|bewerbung|billing|invoice[s]?|rechnung(en)?|accounting|buchhaltung|fattur[a-z]*|legal|newsletter|unsubscribe|abmelden|sentry|security|spam|test|demo|example|sample|noemail|nomail|affiliate[s]?|partner(s|ship)?program|investor[s]?|ir|whistleblow[a-z]*|compliance|dev|developer[s]?|it|sysadmin|root|www|ftp)$/i;
+const JUNK_LOCAL = /^(zuschauer\w*|leserservice|leserbrief\w*|hinweis|einladung|abo|abonnement|newsdesk|redazione|redaction|redaktion|redactie|editor|editors|editorial|news|magazine|do-?not-?reply|donotreply|noreply[\w.-]*|notification[s]?|mailer-daemon|postmaster|abuse|hostmaster|webmaster|privacy|datenschutz|dpo|dsb|gdpr|rgpd|dsgvo|press|presse|pr|media|jobs?|career[s]?|karriere|recruit(ing|ment)?|hr|bewerbung|billing|invoice[s]?|rechnung(en)?|accounting|buchhaltung|fattur[a-z]*|legal|newsletter|unsubscribe|abmelden|sentry|security|spam|test|demo|example|sample|noemail|nomail|affiliate[s]?|partner(s|ship)?program|investor[s]?|ir|whistleblow[a-z]*|compliance|dev|developer[s]?|it|sysadmin|root|www|ftp)$/i;
 /* Sahte / yer tutucu / platform adresleri. */
 const JUNK_DOMAIN = /(^|\.)(example|domain|yourdomain|your-domain|mydomain|email|mail|test|sentry|wixpress|wix|shopify|myshopify|squarespace|godaddy|jimdo|webflow|wordpress|w3|schema|googleusercontent|cloudflare|cookiebot|onetrust|usercentrics|trustpilot|trustedshops|klarna|paypal|stripe|mollie|adyen|facebook|instagram|google|gmail-smtp|mailchimp|klaviyo|brevo|sendinblue|hubspot|zendesk|freshdesk|intercom|typo3|joomla|magento|prestashop|shopware|oxid|plentymarkets|jtl-software|afterbuy|ebay|amazon|apple|microsoft|adobe|fontawesome|github|npmjs|jquery|bootstrap|unpkg|jsdelivr|elementor|yoast|wpengine|siteground|hostinger|ionos|strato|1und1|one|webgo|all-inkl|hetzner|ovh)\.(com|de|net|org|io|co|eu|fr|it|es|nl|me|at|ch|uk|co\.uk)$/i;
 const IMG_EXT = /\.(png|jpe?g|gif|svg|webp|avif|ico|css|js|woff2?|ttf|pdf)$/i;
@@ -701,6 +707,10 @@ function classify(domain, home, pagesText, hrefsText) {
   if (!reason && TERMS.vintageRe.some(re => re.test(ident))) reason = 'excl:vintage';
   /* 10 Eki 2026: dükkân olmayan moda yayınları (Glamcult "Independent Style Paper" lead olarak eklendi). */
   if (!reason && /(?<![a-z0-9])(magazine|rivista|revista|webzine|zeitschrift|style paper|fashion blog|modeblog|editorial|independent (?:style|fashion) (?:paper|magazine))(?![a-z0-9])/.test(ident)) reason = 'excl:media';
+  /* 14 Eki 2026 (RTL olayı): haber/TV/radyo/yayınevi, turizm ofisi, belediye ve ilgisiz sektörler. Haber sitelerinde marka adları
+     geçtiği için "2 premium marka" kuralından geçiyorlardı (RTL, Kölner Stadt-Anzeiger, Süddeutsche, BUNTE, manager magazin…). */
+  if (!reason && NEWS_RE.test(ident)) reason = 'excl:media';
+  if (!reason && NOT_RETAIL_RE.test(ident)) reason = 'excl:not-retail';
   if (!reason && (whI > 0 || whB >= 2)) reason = 'excl:wholesale';
   /* 14 Eki 2026 (operatör: "aksesuar, lüks marka satmayanlara da gönder, ayakkabı, iç çamaşırı vs. — ancak kesinlikle distribütör
      ve büyük zincir olmasın, kendi markasını satanlar da olmasın"). Ayakkabı / iç çamaşırı artık elenmez. Kabul:
@@ -713,7 +723,10 @@ function classify(domain, home, pagesText, hrefsText) {
   const multiWord = /(?<![a-z0-9])(multibrand|multi-brand|multi brand|multimarca|multimarques|multimerk|multilabel|select shop|selectshop)(?![a-z0-9])/.test(ident + ' ' + navN)
     || [normText('セレクトショップ'), normText('편집샵'), normText('셀렉트샵')].some(w => (ident + ' ' + navN).includes(w));
   if (!reason && nc < CFG.minBrands) {
-    const multi = shopIdent && (tot >= 2 || (multiNav && tot >= 1) || multiWord);
+    /* 14 Eki 2026 (RTL olayı): lüks markasız yolda dükkân kimliği MENÜDEN değil kimlikten (alan adı / başlık / meta / h1)
+       gelmeli — haber ve turizm sitelerinin menüsünde "Mode", "Schuhe" sayfası olabiliyor. */
+    const identShop = (clothI + shoeI + underI + accI) > 0;
+    const multi = identShop && (tot >= 2 || (multiNav && tot >= 1) || multiWord);
     if (ownBrand && tot < 2) reason = 'excl:own-brand';
     else if (!multi) reason = tot === 0 ? 'excl:no-brands' : 'excl:monobrand';
   }
@@ -1589,6 +1602,16 @@ function selftest() {
   t('classify: turizm sitesi hâlâ elenir (no-brands)', classify('toskanatour.de', travelHtml, stripTags(travelHtml), '').reason === 'excl:no-brands');
   const distHtml = `<title>Moda Distribuzione Srl – distributore abbigliamento</title><nav><a>Marchi</a></nav><p>Liu Jo Pinko Patrizia Pepe Furla</p>`;
   t('classify: distribütör hâlâ elenir', classify('modadistribuzione.it', distHtml, stripTags(distHtml), '').reason === 'excl:wholesale');
+  { const rtlHtml = `<title>RTL.de – News, Stars, TV-Programm</title><nav><a>Mode</a><a>Stars</a><a>Marken</a></nav><p>Gucci Prada Versace Armani bei der Fashion Week</p>`;
+    t('RTL olayı: TV/haber sitesi elenir', classify('rtl.de', rtlHtml, stripTags(rtlHtml), '').reason === 'excl:media');
+    const kstaHtml = `<title>Kölner Stadt-Anzeiger – Nachrichten aus Köln</title><p>Versace Prada Armani Mode Shopping</p>`;
+    t('RTL olayı: gazete elenir (marka adı geçse de)', classify('ksta.de', kstaHtml, stripTags(kstaHtml), '').reason === 'excl:media');
+    const tourHtml = `<title>Belfort Tourisme - Office de Tourisme</title><nav><a>Shopping</a><a>Boutiques</a></nav><p>Mode, chaussures, Lacoste, Levi's</p>`;
+    t('RTL olayı: turizm ofisi elenir', classify('belfort-tourisme.com', tourHtml, stripTags(tourHtml), '').reason === 'excl:not-retail');
+    const navOnly = `<title>Stadtportal Musterstadt</title><nav><a>Mode</a><a>Schuhe</a><a>Marken</a></nav><p>Levi's Desigual</p>`;
+    t('lüks markasız yol: dükkân kimliği yalnız menüde ise elenir', classify('musterstadt-portal.com', navOnly, stripTags(navOnly), '').reason !== '');
+    t('RTL olayı: alan adı engel listesinde (rtl, ksta, gemo, size, kering)', ['rtl.de', 'ksta.de', 'gemo.fr', 'size.ca', 'kering.com'].every(d => isBlockedDomain(d) === 'excl:chain'));
+    t('RTL olayı: zuschauerservice@ reddedilir', scoreEmail('zuschauerservice@rtl.de', 'rtl.de') < 0); }
   t('isBlockedDomain: ayakkabı/iç çamaşırı alan adı artık engel değil', isBlockedDomain('schuh-mueller.de') === '' && isBlockedDomain('dessous-paradies.de') === '');
   t('bing unwrap', unwrapResultUrl('https://www.bing.com/ck/a?!&&p=x&u=a1aHR0cHM6Ly9leGFtcGxlLmNvbS9wYWdl&ntb=1') === 'https://example.com/page');
   t('ddg unwrap', unwrapResultUrl('https://duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.de%2Fx&rut=1') === 'https://example.de/x');
