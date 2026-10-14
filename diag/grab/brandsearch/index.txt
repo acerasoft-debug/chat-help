@@ -1,0 +1,26 @@
+01 200 text/html; charset=utf-8 358653 https://www.dolcegabbana.com/en-it/search?q=G8PT1TG7F2I
+01.src https://www.dolcegabbana.com/en-it/search?q=G8PT1TG7F2I
+02 200 text/html; charset=utf-8 355986 https://www.dolcegabbana.com/en-it/search?q=G8KBAZG7C6R
+02.src https://www.dolcegabbana.com/en-it/search?q=G8KBAZG7C6R
+03 202 text/html; charset=UTF-8 0 https://www.dsquared2.com/eu/search?q=S74LB0953
+03.src https://www.dsquared2.com/eu/search?q=S74LB0953
+04 200 text/html; charset=utf-8 88547 https://balmain.com/en-de/search?q=AH1EG010
+04.src https://www.balmain.com/en-de/search?q=AH1EG010
+05 403 text/html 395 https://www.givenchy.com/de/en/search?q=BM716G3Y99
+05.src https://www.givenchy.com/de/en/search?q=BM716G3Y99
+06 200 text/html; charset=utf-8 182089 https://de.burberry.com/search/?q=8017294
+06.src https://de.burberry.com/search/?q=8017294
+07 403 text/html 397 https://www.balenciaga.com/en-de/search?q=676589
+07.src https://www.balenciaga.com/en-de/search?q=676589
+08 000  0 https://www.gucci.com/de/en/search?searchString=616036000 - 0 https://www.gucci.com/de/en/search?searchString=616036
+08.src https://www.gucci.com/de/en/search?searchString=616036
+09 000  0 https://www.fendi.com/de-de/search?q=FY1100000 - 0 https://www.fendi.com/de-de/search?q=FY1100
+09.src https://www.fendi.com/de-de/search?q=FY1100
+10 200 text/html;charset=utf-8 37644 https://www.valentino.com/en-de/search?q=WV0MG10W7SS
+10.src https://www.valentino.com/en-de/search?q=WV0MG10W7SS
+11 403 text/html 387 https://www.lacoste.com/de/search?q=PH5522
+11.src https://www.lacoste.com/de/search?q=PH5522
+12 000  0 https://www.marceloburlon.eu/search?q=CMBB007E20FLE0010143000 - 0 https://www.marceloburlon.eu/search?q=CMBB007E20FLE0010143
+12.src https://www.marceloburlon.eu/search?q=CMBB007E20FLE0010143
+13 200 text/html; charset=utf-8 29914 https://gcdswear.com/search?q=CC94M021004
+13.src https://gcdswear.com/search?q=CC94M021004
