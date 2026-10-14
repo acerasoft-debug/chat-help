@@ -336,6 +336,16 @@ function vr_normalize_product(array $p, string $source): ?array
         return null;                             // fiyatsız satır vitrine çıkmaz
     }
 
+    // 48 saatlik fırsat (data/flash-deal.json). Yalnız doğrulanmış UVP'si
+    // olan üründe ve yalnız süresi içinde: indirim o UVP'ye göre, süre
+    // dolunca fiyat kendiliğinden normale dönüyor (sahte geri sayım yok).
+    $deal = vr_flash_deal();
+    $dealEnds = null;
+    if ($deal && $deal['id'] === $id && $rrpVerified && $rrpCents) {
+        $price    = (int)round($rrpCents * (100 - $deal['pct']) / 100);
+        $dealEnds = $deal['ends_at'];
+    }
+
     // ---- beden / stok
     $sizes = [];
     if (isset($p['size_stock']) && is_array($p['size_stock'])) {
@@ -408,6 +418,7 @@ function vr_normalize_product(array $p, string $source): ?array
         'sku'         => trim((string)($p['sku'] ?? '')),
         'price_cents' => $price,
         'rrp_cents'   => $rrpVerified && (float)($p['rrp'] ?? 0) > 0 ? (int)round((float)$p['rrp'] * 100) : null,
+        'deal_ends'   => $dealEnds,
         'images'      => $images,
         'desc'        => trim((string)($p['desc'] ?? '')),
         // Operatörün yazdığı/aktardığı metin: doluysa metin üreteci devre dışı
@@ -434,6 +445,33 @@ function vr_normalize_product(array $p, string $source): ?array
 }
 
 /** Tüm satılabilir ürünler (id → ürün). Sonuç istek başına bir kez hesaplanır. */
+/**
+ * Süresi içindeki fırsat: ['id', 'pct', 'starts_at', 'ends_at'] ya da null.
+ *
+ * Operatör, 14 Eki 2026: "ön sayfaya bir D&G ürününü yüzde 50 indirimli,
+ * geri sayımlı, 2 gün satışa koy". data/flash-deal.json:
+ *   {"id": "dgn-…", "pct": 50, "starts_at": "2026-10-14T10:30:00Z", "ends_at": "…"}
+ * Süre bitince null döner; fiyat, rozet ve ana sayfa bölümü kendiliğinden
+ * kalkar. Almanya'da süresi dolan "son fırsat"ın sürmesi yanıltıcı reklam
+ * sayılır — bu yüzden süre sunucuda, kesin.
+ */
+function vr_flash_deal(?int $now = null): ?array
+{
+    static $d = false;
+    if ($d === false) {
+        $raw = vr_store_read('flash-deal.json', []);
+        $d = null;
+        if (is_array($raw) && ($raw['id'] ?? '') !== '') {
+            $s = strtotime((string)($raw['starts_at'] ?? '')) ?: 0;
+            $e = strtotime((string)($raw['ends_at'] ?? '')) ?: 0;
+            $pct = (int)($raw['pct'] ?? 0);
+            if ($e > $s && $pct > 0 && $pct < 90) $d = ['id' => (string)$raw['id'], 'pct' => $pct, 'starts_at' => $s, 'ends_at' => $e];
+        }
+    }
+    $now ??= time();
+    return ($d && $now >= $d['starts_at'] && $now < $d['ends_at']) ? $d : null;
+}
+
 function vr_catalog(): array
 {
     static $cat = null;

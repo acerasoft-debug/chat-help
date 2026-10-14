@@ -198,6 +198,36 @@
     setInterval(tick, 1000);
   }
 
+  /* ------------------------------------------------- 48 saatlik fırsat sayacı
+     Bitiş anı sunucudan (data-deal-end, Unix saniye). Değişen rakam kısa bir
+     kayışla yenileniyor. Süre dolunca sayfa bir kez tazeleniyor: indirim de
+     bölüm de sunucuda kalkıyor, tarayıcıda fiyat hesaplanmıyor. */
+  var deal = document.querySelector('[data-deal-end]');
+  if (deal) {
+    var dealEnd = parseInt(deal.getAttribute('data-deal-end'), 10) || 0;
+    var cells = {};
+    deal.querySelectorAll('[data-u]').forEach(function (b) { cells[b.getAttribute('data-u')] = b; });
+    var dealDone = false;
+    var dealTick = function () {
+      var d = Math.max(0, Math.floor(dealEnd - Date.now() / 1000));
+      var v = { d: Math.floor(d / 86400), h: Math.floor((d % 86400) / 3600), m: Math.floor((d % 3600) / 60), s: d % 60 };
+      Object.keys(v).forEach(function (k) {
+        var el = cells[k]; if (!el) return;
+        var txt = (v[k] < 10 ? '0' : '') + v[k];
+        if (el.textContent === txt) return;
+        el.textContent = txt;
+        if (!reduced) { el.classList.remove('is-tick'); void el.offsetWidth; el.classList.add('is-tick'); }
+      });
+      if (d === 0 && !dealDone) {
+        dealDone = true;
+        deal.classList.add('is-over');
+        setTimeout(function () { window.location.reload(); }, 3000);
+      }
+    };
+    dealTick();
+    setInterval(dealTick, 1000);
+  }
+
   /* -------------------------------------------------------- adet artır/azalt */
   document.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-qty]');

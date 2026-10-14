@@ -222,6 +222,66 @@ vr_layout_start([
 
 <div class="wrap"><?php vr_demo_banner(); ?></div>
 
+<?php
+/* --------------------------------------------------------- 48 saatlik fırsat
+   Operatör, 14 Eki 2026: "ön sayfaya bir ürünü DG'den yüzde 50 indirimli,
+   geri sayımlı, 2 gün satışa koy; estetik olsun". Fiyat katalogda iniyor
+   (vr_flash_deal, data/flash-deal.json) — sepet ve ödeme aynı fiyatı
+   görüyor. Süre bitince bölüm de indirim de kendiliğinden kalkıyor.
+   İndirim üreticinin doğrulanmış UVP'sine göre; UVP ve kaynak
+   data/official-prices.json'da. */
+$dealP = null;
+if (($deal = vr_flash_deal()) && ($dp = vr_product($deal['id'])) && !empty($dp['deal_ends']) && (int)$dp['stock'] > 0) $dealP = $dp;
+?>
+<?php if ($dealP):
+  $dealName = trim((string)preg_replace('/^' . preg_quote((string)$dealP['brand'], '/') . '\s+/i', '', (string)$dealP['name']));
+  $dealImg  = vr_card_image($dealP);
+  $dealSave = (int)$dealP['rrp_cents'] - (int)$dealP['price_cents'];
+?>
+<section class="deal" aria-labelledby="deal-h" data-deal-end="<?= (int)$dealP['deal_ends'] ?>">
+  <span class="deal__aura" aria-hidden="true"></span>
+  <div class="wrap deal__in">
+    <a class="deal__media" href="<?= h(vr_product_url($dealP)) ?>">
+      <?php vr_frame($dealImg, [
+          'alt' => $dealP['brand'] . ' ' . $dealName, 'box' => 0.8, 'w' => 900,
+          'widths' => [420, 600, 900], 'sizes' => '(max-width:820px) 86vw, 520px',
+      ]); ?>
+      <span class="deal__halo" aria-hidden="true"></span>
+      <span class="deal__stamp"><b><?= h(vr_discount_label($dealP)) ?></b><i><?= te('deal_badge') ?></i></span>
+    </a>
+    <div class="deal__copy">
+      <p class="deal__kicker"><span class="deal__pulse" aria-hidden="true"></span><?= te('deal_kicker') ?></p>
+      <h2 class="deal__title" id="deal-h"><?= te('deal_title') ?></h2>
+      <p class="deal__house"><?= h($dealP['brand']) ?></p>
+      <p class="deal__name"><?= h($dealName) ?></p>
+      <p class="deal__lead"><?= te('deal_lead') ?></p>
+      <div class="deal__price">
+        <b><?= h(vr_money((int)$dealP['price_cents'])) ?></b>
+        <span class="was"><?= te('uvp') ?> <s><?= h(vr_money((int)$dealP['rrp_cents'])) ?></s></span>
+        <span class="disc"><?= h(vr_discount_label($dealP)) ?></span>
+      </div>
+      <p class="deal__save"><?= te('deal_save', ['amount' => vr_money($dealSave)]) ?></p>
+      <div class="deal__clock" role="timer" aria-label="<?= te('deal_ends_in') ?>">
+        <span class="deal__label"><?= te('deal_ends_in') ?></span>
+        <div class="deal__units">
+          <?php $left = max(0, (int)$dealP['deal_ends'] - time());
+                $units = ['d' => intdiv($left, 86400), 'h' => intdiv($left % 86400, 3600), 'm' => intdiv($left % 3600, 60), 's' => $left % 60];
+                foreach ($units as $u => $v): ?>
+            <span class="deal__unit"><b data-u="<?= $u ?>"><?= sprintf('%02d', $v) ?></b><i><?= te('deal_' . $u) ?></i></span>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <a class="btn btn--lg deal__cta" href="<?= h(vr_product_url($dealP)) ?>"><span><?= te('deal_cta') ?></span><?= vr_icon('arrow', 16) ?></a>
+      <?php // Bitiş saati Almanya saatiyle (sunucu UTC). ?>
+      <?php $tz0 = date_default_timezone_get(); date_default_timezone_set('Europe/Berlin');
+            $dealUntil = vr_date((int)$dealP['deal_ends'], true) . ' ' . date('T', (int)$dealP['deal_ends']);
+            date_default_timezone_set($tz0); ?>
+      <p class="deal__fine"><?= te('deal_until', ['date' => $dealUntil]) ?></p>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
+
 <!-- ------------------------------------------------------- I. kuratöryel ray -->
 <section class="sec">
   <div class="wrap">

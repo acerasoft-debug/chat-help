@@ -186,7 +186,7 @@ jobs:
           # sunucuda hiç oluşmuyor ve düzeltme canlıda görünmüyor — photo-shape
           # ile tam olarak bu yaşandı.
           for f in retail-imported.json photo-quality.json photo-shape.json \
-                   photo-exclude.json photo-exclude-product.json category-fix.json official-prices.json \
+                   photo-exclude.json photo-exclude-product.json category-fix.json official-prices.json flash-deal.json \
                    product-review.json face-crops.json fx-rates.json hero-frames.json \
                    product-colours.json product-images-extra.json product-codes.json; do
             [ -f "retail/data/$f" ] || { echo "   $f — depoda yok, atlandı"; continue; }

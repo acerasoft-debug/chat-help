@@ -178,6 +178,10 @@ vr_layout_start([
           <?php if (!empty($p['rrp_cents']) && (int)$p['rrp_cents'] > (int)$p['price_cents']): ?>
             <p class="pdp__uvp"><?= te('uvp_note') ?></p>
           <?php endif; ?>
+          <?php if (!empty($p['deal_ends'])): ?>
+            <p class="pdp__deal"><span class="deal__pulse" aria-hidden="true"></span><?= te('deal_kicker') ?>
+              <span class="pdp__dealcd"><?= te('deal_ends_in') ?> <b data-countdown="<?= (int)$p['deal_ends'] ?>">—</b></span></p>
+          <?php endif; ?>
           <p class="pdp__vat">
             <?= te('vat_incl', ['rate' => $vatRate]) ?>
             <?php if ((int)($shipDe['free_over'] ?? 0) > 0): ?>
