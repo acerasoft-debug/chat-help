@@ -27,8 +27,10 @@ jobs:
             cd ~/public_html
             cat > /tmp/vestra_rs.php <<'PHPEOF'
             <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
             $home = getenv("HOME");
             require $home."/public_html/inc/products.php";
+            require_once $home."/public_html/inc/leads.php";
             $since = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)getenv('SINCE')) ? getenv('SINCE') : date('Y-m-d');
             $n = 0; $byC = [];
             foreach (vestra_leads() as $l) {
