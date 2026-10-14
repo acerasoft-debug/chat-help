@@ -42,6 +42,11 @@ require_once __DIR__ . '/../inc/view.php';
 require_once __DIR__ . '/../inc/uploads.php';
 
 $all  = in_array('--all', $argv, true);
+// --budget=N: N saniye sonra o ana kadar ölçüleni yazıp çık; bir sonraki
+// çalıştırma kaldığı yerden sürer (yayın adımı zaman sınırlı).
+$budget = 0;
+foreach ($argv as $a) if (str_starts_with($a, '--budget=')) $budget = (int)substr($a, 9);
+$t0 = microtime(true);
 $only = in_array('--list', $argv, true);
 $out  = $all ? [] : (array)vr_store_read('photo-trim.json', []);
 $root = vr_doc_root();
@@ -199,6 +204,7 @@ function pt_caption(GdImage $im): ?float
 $found = $done = $skip = $fail = $caps = 0;
 $hits = [];
 foreach ($list as $rel) {
+    if ($budget > 0 && microtime(true) - $t0 > $budget) { echo "Süre doldu, kalan bir sonraki turda.\n"; break; }
     $abs = $root . $rel;
     $mt  = (int)@filemtime($abs);
     if (!$mt) { $fail++; continue; }
@@ -251,6 +257,8 @@ foreach ($list as $rel) {
 // Katalogdan düşen karelerin kaydı kalmasın.
 $keep = array_flip($list);
 foreach (array_keys($out) as $k) if (!isset($keep[$k])) unset($out[$k]);
+// Yarım turda eski sürümden kalan pervaz kayıtları geçerli kalır (kırpma
+// sürüyor); yalnız sürüm alanı yenilenmediği için bir sonraki turda ölçülür.
 
 $total = count(array_filter($out, fn($e) => isset($e['c'])));
 printf("Çerçeveli kare indeksi: %d kare · ölçülen %d · atlanan %d · okunamayan %d · bu turda bulunan %d (altyazı %d) · toplam kırpılan %d\n",

@@ -383,8 +383,11 @@ jobs:
             timeout 400 php -d memory_limit=1536M tools/build-card-crops.php --apply 2>&1 | tail -2 || true
             # Fotoğraf içinde fotoğraf: gri stüdyo karesinin çevresindeki düz
             # beyaz pervaz kopyalarda kırpılır (data/photo-trim.json). Artımlı.
-            echo "== Pervazli kareler =="
-            timeout 300 php -d memory_limit=1024M tools/index-photo-trim.php 2>&1 | head -1 || true
+            # Uzun sürebilir (her kare açılıyor): arka planda, süre sınırlı ve
+            # ara kayıtlı; kalan bir sonraki yayında sürer.
+            echo "== Pervazli kareler (arka planda, data/photo-trim.log) =="
+            setsid nohup nice -n 10 php -d memory_limit=1024M tools/index-photo-trim.php --budget=1500 \
+              > "$DIR/../data/photo-trim.log" 2>&1 < /dev/null &
             echo
             # Küçültülmüş kopyaları önceden üret: ziyaretçi sayfayı açtığında
             # sunucu yirmi görseli birden üretmeye kalkıp süreç sınırına
