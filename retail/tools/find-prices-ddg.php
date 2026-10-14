@@ -23,7 +23,7 @@ if (PHP_SAPI !== 'cli') { http_response_code(403); exit("CLI only\n"); }
 $targets = json_decode((string)@file_get_contents((string)$in), true);
 if (!is_array($targets)) { fwrite(STDERR, "hedef yok\n"); exit(1); }
 
-const FP_BLOCK = '/vestrasales|sarvesto|duckduckgo|bing\.|google\.|wikipedia|pinterest|youtube|instagram|facebook|tiktok|reddit|ebay\.|vinted|depop|grailed|poshmark|vestiaire|therealreal|stockx|goat\.com|kickscrew|replica|cheap|aliexpress|dhgate|amazon\.|yoox|outlet|lyst\.|modesens|stylight|shopstyle|clothbase|pricena|idealo|prisjagt|kleding|fashiola|editorialist|reversible/i';
+const FP_BLOCK = '/myshopify\.com|vestrasales|sarvesto|duckduckgo|bing\.|google\.|wikipedia|pinterest|youtube|instagram|facebook|tiktok|reddit|ebay\.|vinted|depop|grailed|poshmark|vestiaire|therealreal|stockx|goat\.com|kickscrew|replica|cheap|aliexpress|dhgate|amazon\.|yoox|outlet|lyst\.|modesens|stylight|shopstyle|clothbase|pricena|idealo|prisjagt|kleding|fashiola|editorialist|reversible/i';
 
 function fp_get(string $url, int $timeout = 25, ?int &$code = null): ?string
 {
@@ -57,7 +57,9 @@ function fp_num($v): ?float
 function fp_search(string $q, int &$blocked): array
 {
     $code = 0;
-    $html = fp_get('https://html.duckduckgo.com/html/?q=' . rawurlencode($q), 25, $code);
+    // Bölge (DDG_KL, ör. de-de): Avrupa mağazaları öne çıksın, fiyat Euro gelsin.
+    $kl = (string)getenv('DDG_KL');
+    $html = fp_get('https://html.duckduckgo.com/html/?q=' . rawurlencode($q) . ($kl !== '' ? '&kl=' . rawurlencode($kl) : ''), 25, $code);
     if ($html === null || $code === 202 || !str_contains($html, 'result__a')) { $blocked++; return []; }
     $out = [];
     if (preg_match_all('#class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)</a>#s', $html, $m, PREG_SET_ORDER)) {

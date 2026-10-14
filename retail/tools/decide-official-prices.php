@@ -38,7 +38,7 @@ foreach ($cand as $id => $c) {
     $vals = [];                          // [değer, host, adres, tür]
     foreach ((array)($c['sources'] ?? []) as $s) {
         // İkinci el / yeniden satış bölümleri (secondemain.lacoste.com gibi) UVP kaynağı değildir.
-        if (preg_match('/secondemain|second-?hand|pre-?owned|resale|vintage/i', (string)$s['host'] . ' ' . (string)$s['page'])) continue;
+        if (preg_match('/secondemain|second-?hand|pre-?owned|resale|vintage|myshopify\.com/i', (string)$s['host'] . ' ' . (string)$s['page'])) continue;
         foreach ((array)($s['prices'] ?? []) as $r) {
             if (strtoupper((string)($r['cur'] ?? '')) !== 'EUR') continue;
             $isList = !empty($r['list']);

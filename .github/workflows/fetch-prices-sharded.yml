@@ -11,6 +11,10 @@ on:
         description: "Yalnız bu ürün id'leri (virgülle, boş = hepsi)"
         required: false
         default: ""
+      kl:
+        description: "Arama bölgesi (ör. de-de, it-it; boş = genel)"
+        required: false
+        default: ""
       mode:
         description: "search = arama · recheck = bulunan sayfaları AB sürümünden yeniden oku"
         required: false
@@ -71,7 +75,7 @@ jobs:
       - name: Ara
         run: |
           sleep $(( ${{ matrix.shard }} % 7 ))
-          php retail/tools/find-prices-ddg.php "shards/${{ matrix.shard }}.json" "found-${{ matrix.shard }}.json"
+          DDG_KL="${{ github.event.inputs.kl }}" php retail/tools/find-prices-ddg.php "shards/${{ matrix.shard }}.json" "found-${{ matrix.shard }}.json"
       - uses: actions/upload-artifact@v4
         with:
           name: found-${{ matrix.shard }}
@@ -93,7 +97,13 @@ jobs:
           mkdir -p diag/prices
           php -r '$o=[]; foreach(glob("found/*.json") as $f) $o += (array)json_decode(file_get_contents($f), true);
             $old = json_decode(@file_get_contents("diag/prices/candidates.json"), true) ?: [];
-            foreach ($o as $k => $v) $old[$k] = $v;
+            // Önceki turun kaynakları korunur; yeni tur yalnız ekler.
+            foreach ($o as $k => $v) {
+              if (!isset($old[$k]) || !empty($old[$k]["blocked"])) { $old[$k] = $v; continue; }
+              if (!empty($v["blocked"])) continue;
+              $pages = array_column((array)($old[$k]["sources"] ?? []), "page");
+              foreach ((array)($v["sources"] ?? []) as $src) if (!in_array($src["page"], $pages, true)) $old[$k]["sources"][] = $src;
+            }
             ksort($old); file_put_contents("diag/prices/candidates.json", json_encode($old, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
             $b=0;$h=0; foreach($o as $x){ if(!empty($x["blocked"])) $b++; elseif(!empty($x["sources"])) $h++; }
             printf("%d ürün · kaynağı olan %d · engellenen %d\n", count($o), $h, $b);'
