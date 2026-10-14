@@ -1,0 +1,55 @@
+{
+    "data_dir": "/home/hhdwis4qiijc/data",
+    "stats_dir": "/home/hhdwis4qiijc/data/stats",
+    "writable": true,
+    "files": {
+        "hits-2026-10-14.jsonl": {
+            "bytes": 16630,
+            "lines": 48,
+            "mtime": "2026-10-14T19:58:21+00:00"
+        }
+    },
+    "last_row": {
+        "t": 1792007901,
+        "cc": "US",
+        "p": "/shop.php",
+        "q": {
+            "brand": "Dolce & Gabbana",
+            "cat": "Jeans"
+        },
+        "r": "",
+        "d": "phone",
+        "b": "Chrome",
+        "o": "Android",
+        "l": "az",
+        "u": "",
+        "bot": 0
+    },
+    "today": {
+        "pv": 47,
+        "uv": 42,
+        "ips": 9,
+        "bots": 1,
+        "cc": {
+            "US": 40,
+            "DE": 7
+        },
+        "d": {
+            "phone": 36,
+            "desktop": 11
+        },
+        "p": {
+            "/shop.php": 26,
+            "/product.php": 9,
+            "/": 5,
+            "/outlet.php": 4,
+            "/account/login.php": 3
+        }
+    },
+    "live_5min": 42,
+    "blocklist": 0,
+    "audit_log": 0,
+    "admin_json": false,
+    "secret": true,
+    "flash_deal": "dgn-g9abgtgf790"
+}
