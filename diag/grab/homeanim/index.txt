@@ -1,0 +1,4 @@
+01 200 text/html; charset=utf-8 17124 https://sarvesto.com/
+01.src https://sarvesto.com/
+02 200 text/html; charset=utf-8 17493 https://sarvesto.com/?lang=de
+02.src https://sarvesto.com/?lang=de
