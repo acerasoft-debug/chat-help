@@ -1,0 +1,62 @@
+name: (Hesap) Askıyı kaldır — normale döndür, sipariş verebilsin
+# 14 Eki 2026 (operatör: "bu müşterinin hesabını aç, normale döndür, sipariş verebilsin"). Admin ▸ Kullanıcılar'daki
+# "Open account" + "Activate account" düğmelerinin yazdığı alanların aynısı: status=active, suspend_reason/suspend_note
+# boş, kyb_status=approved; ödenmemiş fatura kısıtlaması (restricted_until) da kalkar. Kampanya dışı işareti
+# (no_campaigns) DEĞİŞMEZ, yalnız raporlanır. Adres girdide base64 (depo herkese açık), kütükte maskeli. Yedek alınır.
+on:
+  workflow_dispatch:
+    inputs:
+      email_b64:
+        description: "Hesabın e-postası, base64"
+        required: true
+      dry_run:
+        description: "true = yalnız göster"
+        required: false
+        default: "true"
+permissions:
+  contents: read
+jobs:
+  reopen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hesap
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          EMAIL_B64: ${{ github.event.inputs.email_b64 }}
+          DRY: ${{ github.event.inputs.dry_run }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: EMAIL_B64,DRY
+          command_timeout: 3m
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_reopen.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME");
+            require      $home."/public_html/inc/products.php";
+            require_once $home."/public_html/inc/auth.php";
+            $dry = strtolower(trim((string)getenv('DRY'))) !== 'false';
+            $email = strtolower(trim((string)base64_decode((string)getenv('EMAIL_B64'), true)));
+            $mask = static function (string $e): string { [$u, $d] = array_pad(explode('@', $e, 2), 2, ''); return substr($u, 0, 1).'***@'.$d; };
+            $acc = auth_find($email);
+            if (!$acc) { echo "hesap yok: ".$mask($email)."\n"; exit(1); }
+            $show = function (array $a) { foreach (['type','company','status','suspend_reason','suspend_note','kyb_status','kyb_status_before_suspend','restricted_until','no_campaigns','unsuspended_at','unsuspended_by'] as $k) if (array_key_exists($k, $a)) echo "   $k = ".(is_scalar($a[$k]) ? var_export($a[$k], true) : json_encode($a[$k]))."\n"; };
+            echo ($dry ? "KURU KOSU" : "GERCEK")." · ".$mask($email)." · id ".$acc['id']."\nONCE:\n"; $show($acc);
+            echo "   fiyat/siparis acik mi: ".(auth_prices_unlocked($acc) && ($acc['status'] ?? '') !== 'suspended' ? 'EVET' : 'HAYIR')." · kisitli: ".(auth_restricted_until($acc) ? date('Y-m-d', auth_restricted_until($acc)) : 'yok')."\n";
+            if (is_file($home.'/public_html/inc/unpaid_hold.php')) { require_once $home.'/public_html/inc/unpaid_hold.php'; $st = vestra_unpaid_hold_state($acc);
+              echo "   siparisler: acik/odenmemis ".count($st['open'])." (".implode(', ', array_keys($st['open'])).") · odenmis ".count($st['paid'])." · iptal ".$st['cancelled']."\n"; }
+            if ($dry) exit(0);
+            @copy(vestra_data_dir().'/accounts.json', vestra_data_dir().'/accounts.json.bak-reopen-'.date('Ymd_His'));
+            auth_update((string)$acc['id'], ['status' => 'active', 'suspend_reason' => '', 'suspend_note' => '', 'kyb_status' => 'approved',
+              'restricted_until' => '', 'restricted_lift_refs' => [], 'unsuspended_at' => date('c'), 'unsuspended_by' => 'operator (14 Eki 2026, workflow)']);
+            $back = auth_find($email);
+            echo "SONRA:\n"; $show($back);
+            $okNow = $back && ($back['status'] ?? '') === 'active' && auth_prices_unlocked($back) && !auth_restricted_until($back) && !auth_suspended_for_unpaid($back);
+            echo "   fiyat/siparis acik mi: ".($okNow ? 'EVET' : 'HAYIR')."\n";
+            exit($okNow ? 0 : 1);
+            PHPEOF
+            php /tmp/vestra_reopen.php 2>&1; rc=$?; rm -f /tmp/vestra_reopen.php; exit $rc
