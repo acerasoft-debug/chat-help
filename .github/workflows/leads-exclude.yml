@@ -1,0 +1,64 @@
+name: (Lead) Alan adına göre hariç tut — moda dükkânı değil / zincir / distribütör
+# 14 Eki 2026 (operatör: "RTL Zuschauerservice'e e-mail atmışsın, acil düzelt; giden yerler sadece moda, aksesuar,
+# distribütör yok"). Verilen alan adlarının (e-posta ya da site) BÜTÜN kayıtları status=unsubscribed + unsubscribed=true
+# + not "operatör: moda dükkânı değil" olur — hiçbir yol (sunucu, gece takip, Brevo) bir daha yazmaz; kayıt silinmez
+# (silinse bulucu yeniden ekler). Yedek alınır.
+on:
+  workflow_dispatch:
+    inputs:
+      domains:
+        description: "Alan adları, boşluk ya da virgülle"
+        required: true
+      reason:
+        description: "Not"
+        required: false
+        default: "moda dükkânı değil"
+      dry_run:
+        required: false
+        default: "true"
+permissions:
+  contents: read
+jobs:
+  exclude:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        env:
+          DOMS: ${{ github.event.inputs.domains }}
+          WHY: ${{ github.event.inputs.reason }}
+          DRY: ${{ github.event.inputs.dry_run }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: DOMS,WHY,DRY
+          command_timeout: 3m
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_lx.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME");
+            require      $home."/public_html/inc/products.php";
+            require_once $home."/public_html/inc/leads.php";
+            $dry = strtolower(trim((string)getenv('DRY'))) !== 'false';
+            $why = mb_substr(preg_replace('/[^\p{L}\p{N} .,:\/-]/u', '', (string)getenv('WHY')), 0, 80) ?: 'moda dükkânı değil';
+            $doms = array_values(array_unique(array_filter(array_map(fn($d) => strtolower(preg_replace('/^www\./', '', trim($d))), preg_split('/[\s,;]+/', (string)getenv('DOMS'))))));
+            $want = array_flip($doms); $leads = vestra_leads(); $hit = 0; $seen = [];
+            foreach ($leads as $i => $l) {
+              $em = strtolower((string)($l['email'] ?? '')); $ed = substr((string)strrchr($em, '@'), 1);
+              $wd = strtolower(preg_replace('#^(https?://)?(www\.)?#', '', explode('/', preg_replace('#^https?://#', '', (string)($l['website'] ?? '')))[0]));
+              $m = isset($want[$ed]) ? $ed : (isset($want[$wd]) ? $wd : '');
+              if ($m === '') continue;
+              $seen[$m] = ($seen[$m] ?? 0) + 1;
+              if (($l['status'] ?? '') === 'unsubscribed' && !empty($l['unsubscribed'])) continue;
+              $leads[$i]['status'] = 'unsubscribed'; $leads[$i]['unsubscribed'] = true; $leads[$i]['unsubscribed_at'] = date('c');
+              $n = trim((string)($l['notes'] ?? '')); $leads[$i]['notes'] = trim($n.($n !== '' ? ' · ' : '').'operatör: '.$why.' '.date('Y-m-d'));
+              $hit++;
+            }
+            foreach ($doms as $d) echo '  '.str_pad($d, 32).' kayit: '.($seen[$d] ?? 0)."\n";
+            if (!$dry && $hit) { @copy(vestra_data_dir().'/leads.json', vestra_data_dir().'/leads.json.bak-exclude-'.date('Ymd_His')); vestra_save_leads($leads); }
+            echo ($dry ? 'KURU KOSU' : 'BITTI')." · alan adi ".count($doms)." · isaretlenen kayit: $hit\n";
+            PHPEOF
+            php /tmp/vestra_lx.php 2>&1; rm -f /tmp/vestra_lx.php
