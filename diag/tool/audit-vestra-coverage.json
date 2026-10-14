@@ -1,0 +1,86 @@
+{
+    "files": {
+        "listings.json": 959,
+        "retail-imported.json": 478
+    },
+    "reasons": {
+        "listings.json": {
+            "shown": 406,
+            "excluded id": 1,
+            "underwear name": 4,
+            "status:rejected": 22,
+            "not premium brand": 526
+        },
+        "retail-imported.json": {
+            "shown": 471,
+            "excluded id": 5,
+            "no photo": 1,
+            "operator hidden": 1
+        }
+    },
+    "brands_out": {
+        "Pili Pérez": 335,
+        "Visatin": 72,
+        "Polvich": 44,
+        "NBB": 42,
+        "Q-EN": 32,
+        "Allison Exports": 1
+    },
+    "cats_out": [],
+    "status": {
+        "listings.json": {
+            "approved": 937,
+            "rejected": 22
+        },
+        "retail-imported.json": {
+            "": 398,
+            "active": 80
+        }
+    },
+    "samples": {
+        "excluded id": [
+            "blc-4a8b8 | Balenciaga | Balenciaga Briefs — 4A8B8 | Underwear | imgs 2",
+            "blc-4a8b8 | Balenciaga | Balenciaga Sweatshirt 4A8B8 | Hoodies & Sweatshirts | imgs 4",
+            "dgn-m4d90jfueb0 | Dolce & Gabbana | Dolce & Gabbana Sweatshirt M4D90JFUEB0 | Hoodies & Sweatshirts | imgs 5",
+            "dgn-m4e19jfueb0 | Dolce & Gabbana | Dolce & Gabbana Sweatshirt M4E19JFUEB0 | Hoodies & Sweatshirts | imgs 5",
+            "dgn-m4e67j | Dolce & Gabbana | Dolce & Gabbana Sweatshirt M4E67J | Hoodies & Sweatshirts | imgs 9",
+            "dgn-m9c03j | Dolce & Gabbana | Dolce & Gabbana Sweatshirt M9C03J | Hoodies & Sweatshirts | imgs 3"
+        ],
+        "underwear name": [
+            "dgn-g8jx7zg7wrn1 | Dolce & Gabbana | Ribbed Tank Top — White | Tank Tops | imgs 1",
+            "dgn-g8kg5tfu7avb | Dolce & Gabbana | Ribbed Tank Top — Black | Tank Tops | imgs 1",
+            "dgn-g8kg5tfu7avm | Dolce & Gabbana | Ribbed Tank Top — Light Blue | Tank Tops | imgs 1",
+            "dgn-g8kg5tfu7avw | Dolce & Gabbana | Ribbed Tank Top — White | Tank Tops | imgs 1"
+        ],
+        "status:rejected": [
+            "rl-csf-tee-black | Ralph Lauren | Custom Slim Fit T-Shirt — Black/Red Pony | T-Shirts | imgs 1",
+            "rl-csf-tee-white | Ralph Lauren | Custom Slim Fit T-Shirt — White/Navy Pony | T-Shirts | imgs 1",
+            "rl-csf-tee-grey | Ralph Lauren | Custom Slim Fit T-Shirt — Grey/Navy Pony | T-Shirts | imgs 1",
+            "rl-csf-tee-khaki | Ralph Lauren | Custom Slim Fit T-Shirt (710671438) | T-Shirts | imgs 4",
+            "rl-csf-tee-red | Ralph Lauren | Custom Slim Fit T-Shirt — Red/L.Blue Pony | T-Shirts | imgs 1",
+            "rl-csf-tee-lightblue | Ralph Lauren | Custom Slim Fit T-Shirt — L.Blue/White Pony | T-Shirts | imgs 1",
+            "rl-csf-tee-cream | Ralph Lauren | Custom Slim Fit T-Shirt — Cream/Brown Pony | T-Shirts | imgs 1",
+            "rl-csf-polo-darkgreen | Ralph Lauren | Custom Slim Fit Polo Shirt (710536856) | Polos | imgs 4"
+        ],
+        "not premium brand": [
+            "pp-1012 | Pili Pérez | Model 1012 | Sneakers | imgs 3",
+            "pp-11 | Pili Pérez | Children's sneaker 11 | Sneakers | imgs 3",
+            "pp-115 | Pili Pérez | Model 115 | Flats | imgs 5",
+            "pp-1225 | Pili Pérez | Children's barefoot-style shoe 1225 | Sneakers | imgs 2",
+            "pp-1245 | Pili Pérez | Model 1245 | Sandals | imgs 1",
+            "pp-1250 | Pili Pérez | Children's barefoot-style shoe 1250 | Sneakers | imgs 7",
+            "pp-1292 | Pili Pérez | Children's sneaker 1292 | Sneakers | imgs 4",
+            "pp-1293 | Pili Pérez | Children's sneaker 1293 | Sneakers | imgs 4"
+        ],
+        "no photo": [
+            "fashionb-lacoste-men-cotton-pima-t-shirt-2 | LACOSTE | Lacoste Men Cotton Pima T-Shirt — Light Blue | T-Shirts | imgs 0"
+        ],
+        "operator hidden": [
+            "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2 | LACOSTE | Lacoste Men Classic Fit Monogram Jacquard Polo Shirt — Beige | Polos | imgs 6"
+        ]
+    },
+    "catalog_total": 636,
+    "catalog_by_source": {
+        "b2b": 636
+    }
+}
