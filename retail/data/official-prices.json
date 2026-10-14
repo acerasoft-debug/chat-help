@@ -475,6 +475,14 @@
         "brand": "BALMAIN"
     },
     {
+        "sku": "XH1EF000",
+        "rrp": 440,
+        "src": "https://livingfashionboutique.it/products/xh1ef000-balmain",
+        "basis": "mağaza indirimsiz fiyatı",
+        "checked": "2026-10-14",
+        "brand": "BALMAIN"
+    },
+    {
         "sku": "YH1JQ005BB04",
         "rrp": 520,
         "src": "https://www.endclothing.com/eu/balmain-eco-paris-logo-crew-sweat-yh1jq005bb04-eab.html",
@@ -505,6 +513,14 @@
         "basis": "mağaza indirimsiz fiyatı",
         "checked": "2026-10-14",
         "brand": "Burberry"
+    },
+    {
+        "sku": "G8PL4TG7F2H",
+        "rrp": 396,
+        "src": "https://www.italydressboutique.com/product/dolce-gabbana-t-shirt-polo-g8pl4tg7f2h-w0800/",
+        "basis": "mağaza indirimsiz fiyatı",
+        "checked": "2026-10-14",
+        "brand": "Dolce & Gabbana"
     },
     {
         "sku": "G8PN9TG7NTW",
@@ -583,6 +599,14 @@
         "rrp": 595,
         "src": "https://www.dolcegabbana.com/en-de/search?q=GY07LDG8HW4S9001",
         "basis": "resmî site",
+        "checked": "2026-10-14",
+        "brand": "Dolce & Gabbana"
+    },
+    {
+        "sku": "M4A06T",
+        "rrp": 515,
+        "src": "https://blckthemall.com/en/products/dg-fi-m4a06t-hsmbj-hg3vk",
+        "basis": "mağaza indirimsiz fiyatı",
         "checked": "2026-10-14",
         "brand": "Dolce & Gabbana"
     },
@@ -667,6 +691,14 @@
         "brand": "DSQUARED2"
     },
     {
+        "sku": "M7535",
+        "rrp": 149,
+        "src": "https://www.facilesaldi.com/products/fred-perry-felpa-uomo-m7535-navy-blu-162237015",
+        "basis": "mağaza indirimsiz fiyatı",
+        "checked": "2026-10-14",
+        "brand": "Fred Perry"
+    },
+    {
         "sku": "SH1927",
         "rrp": 134,
         "src": "https://www.kaufmann-store.com/en/product/lacoste-1987980149",
@@ -689,5 +721,13 @@
         "basis": "mağaza indirimsiz fiyatı",
         "checked": "2026-10-14",
         "brand": "Marcelo Burlon"
+    },
+    {
+        "sku": "710680785004",
+        "rrp": 89,
+        "src": "https://www.endclothing.com/eu/polo-ralph-lauren-custom-fit-tee-710680785004.html",
+        "basis": "mağaza indirimsiz fiyatı",
+        "checked": "2026-10-14",
+        "brand": "Ralph Lauren"
     }
 ]
