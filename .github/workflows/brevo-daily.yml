@@ -9,16 +9,21 @@ name: (Zamanlı) Brevo ikinci mektup — günde 2 × 50
 # sunucu yolu bunu ekliyor, Brevo şablonu eklemiyor). Brevo günlük hakkından 60 e-posta işlemsel postaya ayrılır;
 # hak yetmezse parti kendiliğinden küçülür. Uygun lead kalmayınca 0 gönderir.
 #
+# 14 Eki 2026 (operatör: "Brevo'da her zaman 100 e-posta hakkı kalsın, 23.45'te kontrol edilsin ve hak kaldıysa devam
+# gönderilsin"): her parti Brevo'nun günlük hakkından EN AZ 100'ü bırakır (quota_reserve=100); gece taraması 23:45 Avrupa.
+# Asıl tetikleyici SUNUCU (vestra/inc/ops_tick.php, 09:12 / 15:12 / 23:45 Avrupa) — GitHub'ın kendi zamanlaması koşuları
+# atlıyordu; aşağıdaki cron'lar yalnız yedek. "Çift koşu" adımı: son 100 dk içinde başka bir brevo-daily koşusu varsa atlar.
+#
 # GECE TARAMASI (13 Eki, operatör: "her gün gece 11.45'te ne kadar açık varsa … Brevo'nun 300'ünden arta kalan …
 # en az e-posta alan butiklere"): 20:45 UTC (22:45 Avrupa yaz / 21:45 kış) — Brevo'nun o günkü kotasından kalanla
-# (rezerv 20, işlemsel posta için) 50'lik partiler arka arkaya, bir parti 0 gönderene ya da kota bitene kadar
+# (rezerv 100) 50'lik partiler arka arkaya, bir parti 0 gönderene ya da kota bitene kadar
 # (en çok 5 parti). Sunucunun kendi gece takip turu (inc/mailbox.php, 23:45 Avrupa) bundan SONRA koşar; Brevo'nun
 # bu gece yazdığı dükkân orada 5 gün dinlenir, böylece aynı dükkâna aynı gece iki mektup gitmez.
 on:
   schedule:
     - cron: '12 7 * * *'
     - cron: '12 13 * * *'
-    - cron: '45 20 * * *'
+    - cron: '45 21 * * *'
   workflow_dispatch:
     inputs:
       count:
@@ -44,24 +49,33 @@ concurrency:
 
 jobs:
   fire:
-    if: github.event.schedule != '45 20 * * *' && github.event.inputs.sweep != 'true'
+    if: github.event.schedule != '45 21 * * *' && github.event.inputs.sweep != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
+      - name: Çift koşu koruması (son 100 dk içinde başka koşu varsa atla)
+        id: guard
+        run: |
+          since=$(date -u -d '-100 min' +%Y-%m-%dT%H:%M:%SZ)
+          n=$(gh run list --repo "${{ github.repository }}" --workflow brevo-daily.yml --limit 10 --json databaseId,createdAt \
+                --jq "[.[] | select(.databaseId != ${{ github.run_id }}) | select(.createdAt > \"$since\")] | length")
+          echo "son 100 dk: $n başka koşu"
+          if [ "${n:-0}" -gt 0 ] && [ "${{ github.event.inputs.dry_run || 'false' }}" != "true" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo "atlandı: aynı slot zaten çalıştı"; fi
       - name: Partiyi başlat
+        if: steps.guard.outputs.skip != 'true'
         run: |
           gh workflow run send-outreach.yml --repo "${{ github.repository }}" --ref claude/wizardly-planck-7ylnmk \
             -f count="${{ github.event.inputs.count || '50' }}" \
             -f dry_run="${{ github.event.inputs.dry_run || 'false' }}" \
             -f new_collection=true -f newcoll_letter=winter -f min_brands=0 -f newcoll_min_days=2 \
-            -f exclude_countries="United States,Canada,South Korea" -f quota_reserve=60 \
+            -f exclude_countries="United States,Canada,South Korea" -f quota_reserve=100 \
             -f skip_names="Fielmann,BSTN,CNCPTS,Altermundi,Capel,Kaotiko,Oktshirt,Team Store,targetcenter,Racing Club,Strasbourg,Loretxiki,Fantasía Kids,Lola Jiménez,Mandarina,Black in Black,Piluka,Glamcult,Mackintosh,Joseph,Lyle & Scott,Kicks,Hatstore,Kids Brand Store,Limoneti,Lapin House,Klamöttchen,Petit Ilu,W&G,Shi Cashmere,Kindermode,kids,Scalpers,Pedro del Hierro,Claudia Sträter,Soccerfanshop,Lesage Bridal,Ashley Stewart,Bealls,Tuckernuck,260 Sample Sale,StofShop,Atlas Stoked,Milk,Golf Club"
           echo "Brevo partisi dağıtım dalında başlatıldı (send-outreach.yml, count=${{ github.event.inputs.count || '50' }})."
 
   sweep:
-    if: github.event.schedule == '45 20 * * *' || github.event.inputs.sweep == 'true'
+    if: github.event.schedule == '45 21 * * *' || github.event.inputs.sweep == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 150
     env:
@@ -69,7 +83,16 @@ jobs:
       REPO: ${{ github.repository }}
       DRY: ${{ github.event.inputs.dry_run || 'false' }}
     steps:
+      - name: Çift koşu koruması (son 100 dk içinde başka koşu varsa atla)
+        id: guard
+        run: |
+          since=$(date -u -d '-100 min' +%Y-%m-%dT%H:%M:%SZ)
+          n=$(gh run list --repo "${{ github.repository }}" --workflow brevo-daily.yml --limit 10 --json databaseId,createdAt \
+                --jq "[.[] | select(.databaseId != ${{ github.run_id }}) | select(.createdAt > \"$since\")] | length")
+          echo "son 100 dk: $n başka koşu"
+          if [ "${n:-0}" -gt 0 ] && [ "${{ github.event.inputs.dry_run || 'false' }}" != "true" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo "atlandı: aynı slot zaten çalıştı"; fi
       - name: Kotadan kalanla 50'lik partiler (0 gönderene kadar, en çok 5)
+        if: steps.guard.outputs.skip != 'true'
         run: |
           set -u
           SKIP="Fielmann,BSTN,CNCPTS,Altermundi,Capel,Kaotiko,Oktshirt,Team Store,targetcenter,Racing Club,Strasbourg,Loretxiki,Fantasía Kids,Lola Jiménez,Mandarina,Black in Black,Piluka,Glamcult,Mackintosh,Joseph,Lyle & Scott,Kicks,Hatstore,Kids Brand Store,Limoneti,Lapin House,Klamöttchen,Petit Ilu,W&G,Shi Cashmere,Kindermode,kids,Scalpers,Pedro del Hierro,Claudia Sträter,Soccerfanshop,Lesage Bridal,Ashley Stewart,Bealls,Tuckernuck,260 Sample Sale,StofShop,Atlas Stoked,Milk,Golf Club"
@@ -79,7 +102,7 @@ jobs:
             gh workflow run send-outreach.yml --repo "$REPO" --ref claude/wizardly-planck-7ylnmk \
               -f count=50 -f dry_run="$DRY" \
               -f new_collection=true -f newcoll_letter=winter -f min_brands=0 -f newcoll_min_days=2 \
-              -f exclude_countries="United States,Canada,South Korea" -f quota_reserve=20 -f skip_names="$SKIP" || { echo "parti $n başlatılamadı"; break; }
+              -f exclude_countries="United States,Canada,South Korea" -f quota_reserve=100 -f skip_names="$SKIP" || { echo "parti $n başlatılamadı"; break; }
             # başlattığımız koşuyu bul (bizden sonra yaratılan, bu dalda, workflow_dispatch)
             rid=""
             for i in $(seq 1 30); do
