@@ -140,7 +140,33 @@
         "sku": "612966TLVF1",
         "price": 42500,
         "ref": 65000,
-        "sources": []
+        "sources": [
+            {
+                "host": "maisondefashion.com",
+                "page": "https://maisondefashion.com/products/balenciaga-slime-logo-printed-crew-neck-t-shirt-black",
+                "title": "BALENCIAGA Slime Logo Printed Crew Neck T-shirt Black",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "USD",
+                        "price": 319,
+                        "list": 485
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 431.63,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "USD",
+                        "price": 431.63,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "blc-612966tmvg7": {
         "id": "blc-612966tmvg7",
@@ -186,6 +212,32 @@
                         "kind": "jsonld",
                         "cur": "CHF",
                         "price": 298,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.solesense.com",
+                "page": "https://www.solesense.com/it-it/balenciaga-medium-fit-t-shirt-washed-black-612966tmvg7",
+                "title": "Balenciaga Medium Fit T-Shirt 'Washed Black/White' - 612966TMVG7 ...",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 601,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.luxuryfashionstores.ch",
+                "page": "https://www.luxuryfashionstores.ch/en/143909/balenciaga-612966-tmvg7-medium-fit-t-shirt_p",
+                "title": "Balenciaga 612966 TMVG7 MEDIUM FIT T-shirt - Black",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "CHF",
+                        "price": 375,
                         "list": null
                     }
                 ]
@@ -496,6 +548,25 @@
                         "kind": "meta",
                         "cur": "JPY",
                         "price": 39800,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "jentestore.com",
+                "page": "https://jentestore.com/goods/view?no=426674",
+                "title": "발렌시아가 (BALENCIAGA) BEBE 베이브 로고 빈티지 유니핏 티셔츠 681314TLVH4 0553 | jentestore",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "KRW",
+                        "price": 647000,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "KRW",
+                        "price": 647000,
                         "list": null
                     }
                 ]
@@ -1263,6 +1334,31 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "livingfashionboutique.it",
+                "page": "https://livingfashionboutique.it/products/xh1ef000-balmain",
+                "title": "Xh1ef000 - - Balmain",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "EUR",
+                        "price": 200,
+                        "list": 440
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 200,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 200,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -1787,6 +1883,19 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.solesense.com",
+                "page": "https://www.solesense.com/es/burberry-cotton-crewneck-t-shirt-white-8041699",
+                "title": "Burberry Cotton Crewneck T-Shirt 'White' - 8041699 | Solesense",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 257,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -2085,6 +2194,25 @@
                 "host": "www.endclothing.com",
                 "page": "https://www.endclothing.com/ie/burberry-tucson-b-motif-t-shirt-8045495-a1464.html",
                 "title": "Burberry Tucson B Motif T-Shirt White | END. (IE)",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 625,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 625,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/it/burberry-tucson-b-motif-t-shirt-8045495-a1464.html",
+                "title": "Burberry Tucson B Motif T-Shirt White | END. (IT)",
                 "prices": [
                     {
                         "kind": "jsonld",
@@ -2448,6 +2576,25 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/it/burberry-mac-logo-t-shirt-8050166-a1464.html",
+                "title": "Burberry Mac Logo T-Shirt White | END. (IT)",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 400,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 400,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -2771,6 +2918,44 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/en-de/burberry-parker-tb-circle-logo-tee-8053424-130828-a7405.html",
+                "title": "Burberry Parker TB Circle Logo T-Shirt Soft Fawn | END.",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 359,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 359,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.mycompanero.com",
+                "page": "https://www.mycompanero.com/en-kr/products/t-shirt-parker-beige-a-logo-8053424-a7405-soft-fawn",
+                "title": "Parker Burberry Logo T-Shirt - Men's - myCompañero",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 148,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "USD",
+                        "price": 148,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -2938,14 +3123,89 @@
         ]
     },
     "bur-80553091": {
-        "blocked": true,
         "id": "bur-80553091",
         "brand": "Burberry",
         "name": "Burberry T-Shirt 80553091",
         "cat": "T-Shirts",
         "sku": "80553091",
         "price": 25500,
-        "ref": 39000
+        "ref": 39000,
+        "sources": [
+            {
+                "host": "www.solesense.com",
+                "page": "https://www.solesense.com/en-us/burberry-logo-print-cotton-oversized-t-shirt-white-80553091",
+                "title": "Burberry Logo Print Cotton Oversized T-Shirt 'White/Black' - 80553091 ...",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 242,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "sidekicks.co.uk",
+                "page": "https://sidekicks.co.uk/products/burberry-logo-print-cotton-oversized-t-shirt-white-black",
+                "title": "Burberry Logo Print Cotton Oversized T-shirt White/Black",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "USD",
+                        "price": 693,
+                        "list": null
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 712,
+                        "list": null
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 645,
+                        "list": null
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 544,
+                        "list": null
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 410,
+                        "list": null
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 650,
+                        "list": null
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 757,
+                        "list": null
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 682,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "USD",
+                        "price": 410,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "bur-8055312": {
         "id": "bur-8055312",
@@ -3085,6 +3345,19 @@
             {
                 "host": "www.solesense.com",
                 "page": "https://www.solesense.com/en-us/burberry-parker-tb-circle-logo-t-shirt-coal-blue-8056176-b1488",
+                "title": "Burberry Parker TB Circle Logo T-Shirt - solesense.com",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 288,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.solesense.com",
+                "page": "https://www.solesense.com/en/burberry-parker-tb-circle-logo-t-shirt-coal-blue-8056176-b1488",
                 "title": "Burberry Parker TB Circle Logo T-Shirt - solesense.com",
                 "prices": [
                     {
@@ -4347,8 +4620,7 @@
         "cat": "T-Shirts",
         "sku": "G8OL3ZFU7EQ",
         "price": 29500,
-        "ref": 45000,
-        "sources": []
+        "ref": 45000
     },
     "dgn-g8ol6zg7c8g": {
         "id": "dgn-g8ol6zg7c8g",
@@ -4394,8 +4666,7 @@
         "cat": "T-Shirts",
         "sku": "G8OL6ZG7C8G1",
         "price": 29500,
-        "ref": 45000,
-        "sources": []
+        "ref": 45000
     },
     "dgn-g8on5zfugk4": {
         "id": "dgn-g8on5zfugk4",
@@ -4441,8 +4712,7 @@
         "cat": "T-Shirts",
         "sku": "G8PB8TG7K4Q",
         "price": 29500,
-        "ref": 45000,
-        "sources": []
+        "ref": 45000
     },
     "dgn-g8pb8tg7k4w": {
         "id": "dgn-g8pb8tg7k4w",
@@ -4603,6 +4873,25 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.italydressboutique.com",
+                "page": "https://www.italydressboutique.com/product/dolce-gabbana-t-shirt-polo-g8pl4tg7f2h-w0800/",
+                "title": "Dolce & Gabbana T-Shirt Polo G8PL4TG7F2H W0800 -",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 396,
+                        "list": null
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 118.8,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -4624,8 +4913,7 @@
         "cat": "Polos",
         "sku": "G8PL4ZG7NYY",
         "price": 36000,
-        "ref": 55000,
-        "sources": []
+        "ref": 55000
     },
     "dgn-g8pl5zfu7eq": {
         "id": "dgn-g8pl5zfu7eq",
@@ -4707,8 +4995,7 @@
         "cat": "T-Shirts",
         "sku": "G8PN9TG7M3K",
         "price": 29500,
-        "ref": 45000,
-        "sources": []
+        "ref": 45000
     },
     "dgn-g8pn9tg7m3kx": {
         "id": "dgn-g8pn9tg7m3kx",
@@ -4769,6 +5056,31 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.bluefly.com",
+                "page": "https://www.bluefly.com/products/10087_eb-g8pn9t_g7m8fw0800-parent",
+                "title": "Dolce & Gabbana Men T-Shirt With Logo - Bluefly",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "USD",
+                        "price": 636.69,
+                        "list": 724
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 636.69,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "USD",
+                        "price": 636.69,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -4926,8 +5238,7 @@
         "cat": "T-Shirts",
         "sku": "G8PN9TG7O4T",
         "price": 29500,
-        "ref": 45000,
-        "sources": []
+        "ref": 45000
     },
     "dgn-g8pn9zg7m2f": {
         "id": "dgn-g8pn9zg7m2f",
@@ -4976,8 +5287,7 @@
         "cat": "T-Shirts",
         "sku": "G8PN9ZG7M2FW800",
         "price": 29500,
-        "ref": 45000,
-        "sources": []
+        "ref": 45000
     },
     "dgn-g8pn9zg7nye": {
         "id": "dgn-g8pn9zg7nye",
@@ -5120,7 +5430,6 @@
         "sources": []
     },
     "dgn-g8pt1tg7jv9v0396": {
-        "blocked": true,
         "id": "dgn-g8pt1tg7jv9v0396",
         "brand": "Dolce & Gabbana",
         "name": "Dolce & Gabbana T-Shirt G8PT1TG7JV9V0396",
@@ -5148,8 +5457,7 @@
         "cat": "T-Shirts",
         "sku": "G8PT2TG7F2I",
         "price": 29500,
-        "ref": 45000,
-        "sources": []
+        "ref": 45000
     },
     "dgn-g8qg3tfu7ep": {
         "blocked": true,
@@ -5159,8 +5467,7 @@
         "cat": "Polos",
         "sku": "G8QG3TFU7EP",
         "price": 36000,
-        "ref": 55000,
-        "sources": []
+        "ref": 55000
     },
     "dgn-g8qi4tfu7eq": {
         "id": "dgn-g8qi4tfu7eq",
@@ -5210,8 +5517,7 @@
         "cat": "T-Shirts",
         "sku": "G8RA2ZG7J6F",
         "price": 29500,
-        "ref": 45000,
-        "sources": []
+        "ref": 45000
     },
     "dgn-g8ra2zg7o2g": {
         "id": "dgn-g8ra2zg7o2g",
@@ -5291,8 +5597,7 @@
         "cat": "T-Shirts",
         "sku": "G8RK6TG7K4Y",
         "price": 29500,
-        "ref": 45000,
-        "sources": []
+        "ref": 45000
     },
     "dgn-g8rk6tg7lgy": {
         "id": "dgn-g8rk6tg7lgy",
@@ -5567,8 +5872,7 @@
         "cat": "Polos",
         "sku": "G8SN1TFU7EN",
         "price": 36000,
-        "ref": 55000,
-        "sources": []
+        "ref": 55000
     },
     "dgn-g9abgtgf790": {
         "id": "dgn-g9abgtgf790",
@@ -5626,8 +5930,7 @@
         "cat": "Jacken",
         "sku": "G9AOFTGG731",
         "price": 94500,
-        "ref": 145000,
-        "sources": []
+        "ref": 145000
     },
     "dgn-g9aojtgg781": {
         "id": "dgn-g9aojtgg781",
@@ -5689,8 +5992,7 @@
         "cat": "Hoodies & Sweatshirts",
         "sku": "G9OW6ZG7C8H",
         "price": 58000,
-        "ref": 89500,
-        "sources": []
+        "ref": 89500
     },
     "dgn-g9xh0zfu7du": {
         "id": "dgn-g9xh0zfu7du",
@@ -5710,8 +6012,7 @@
         "cat": "Hoodies & Sweatshirts",
         "sku": "G9XH2ZG7D0E",
         "price": 58000,
-        "ref": 89500,
-        "sources": []
+        "ref": 89500
     },
     "dgn-g9xh2zg7d0e1": {
         "id": "dgn-g9xh2zg7d0e1",
@@ -5944,8 +6245,7 @@
         "cat": "Jeans",
         "sku": "GY07LDG8EU5",
         "price": 42500,
-        "ref": 65000,
-        "sources": []
+        "ref": 65000
     },
     "dgn-gy07ldg8ha7": {
         "id": "dgn-gy07ldg8ha7",
@@ -6130,6 +6430,56 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "livingfashionboutique.it",
+                "page": "https://livingfashionboutique.it/products/m4a06t-dolce-gabbana",
+                "title": "M4A06T - - DOLCE & GABBANA - Living Fashion",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "EUR",
+                        "price": 300,
+                        "list": 415
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 300,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 300,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "blckthemall.com",
+                "page": "https://blckthemall.com/en/products/dg-fi-m4a06t-hsmbj-hg3vk",
+                "title": "SHORT SWIM TRUNKS WITH CORAL PRINT Clothing Dolce & Gabbana",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "EUR",
+                        "price": 365,
+                        "list": 515
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 365,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 365,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -6165,8 +6515,7 @@
         "cat": "Bademode",
         "sku": "M4A13T",
         "price": 25500,
-        "ref": 39500,
-        "sources": []
+        "ref": 39500
     },
     "dgn-m4a13tismd3": {
         "id": "dgn-m4a13tismd3",
@@ -6258,6 +6607,31 @@
                         "kind": "jsonld",
                         "cur": "KZT",
                         "price": 167500,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.mycompanero.com",
+                "page": "https://www.mycompanero.com/en/products/boxer-de-bain-court-m4c32t-fumqg-n0869",
+                "title": "Dolce & Gabbana short swim trunks - Men - myCompañero",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "USD",
+                        "price": 172,
+                        "list": 428
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 172,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "USD",
+                        "price": 172,
                         "list": null
                     }
                 ]
@@ -6616,10 +6990,35 @@
         "sku": "G8NC5Z G7C8A",
         "price": 29500,
         "ref": 45000,
-        "sources": []
+        "sources": [
+            {
+                "host": "instinct-premium.com",
+                "page": "https://instinct-premium.com/products/t-shirt-noir-dolce-gabbana-g8nc5zg7c8a",
+                "title": "T-shirt Dolce & Gabbana | Instinct Premium | Distributeur Officiel",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "EUR",
+                        "price": 458.33,
+                        "list": null
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 458.33,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 458.33,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "dgx-g8ol0z-fu7en": {
-        "blocked": true,
         "id": "dgx-g8ol0z-fu7en",
         "brand": "Dolce & Gabbana",
         "name": "DG Logo Polo Shirt — Black",
@@ -6815,7 +7214,6 @@
         "sources": []
     },
     "dgx-g8pj4z-hu7ma": {
-        "blocked": true,
         "id": "dgx-g8pj4z-hu7ma",
         "brand": "Dolce & Gabbana",
         "name": "DG Print T-Shirt",
@@ -6823,7 +7221,33 @@
         "sku": "G8PJ4Z HU7MA",
         "price": 29500,
         "ref": 45000,
-        "sources": []
+        "sources": [
+            {
+                "host": "www.mycompanero.pro",
+                "page": "https://www.mycompanero.pro/it/products/t-shirt-dg-g8pj4z-hu7ma-w0800",
+                "title": "T-shirt DG Dolce & Gabbana - Homme - myCompañero",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "USD",
+                        "price": 281,
+                        "list": 566
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 281,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "USD",
+                        "price": 281,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "dgx-g8pj4z-hu7mab": {
         "id": "dgx-g8pj4z-hu7mab",
@@ -7504,8 +7928,7 @@
         "cat": "Hoodies & Sweatshirts",
         "sku": "G9YI0Z HI7WK",
         "price": 58000,
-        "ref": 89500,
-        "sources": []
+        "ref": 89500
     },
     "dgx-g9zk9z-fu7du": {
         "id": "dgx-g9zk9z-fu7du",
@@ -8071,6 +8494,31 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "thataveragejoe.co.uk",
+                "page": "https://thataveragejoe.co.uk/products/dsquared2-s74gd1400-d20020-900-regular-fit-rubber-logo-t-shirt-black",
+                "title": "Dsquared2 Regular Fit Rubber Logo T Shirt Black",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "GBP",
+                        "price": 153,
+                        "list": 235
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "GBP",
+                        "price": 153,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "GBP",
+                        "price": 153,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -8275,6 +8723,31 @@
                         "kind": "meta",
                         "cur": "JPY",
                         "price": 72800,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "worldclub-1989.com",
+                "page": "https://worldclub-1989.com/products/s74gu0836-s25516-900",
+                "title": "ディースクエアード Dsquared2 メンズ スウェットシャツ ブラック - Worldclub1989",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "JPY",
+                        "price": 71300,
+                        "list": null
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "JPY",
+                        "price": 71300,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "JPY",
+                        "price": 71300,
                         "list": null
                     }
                 ]
@@ -8557,6 +9030,31 @@
                         "kind": "jsonld",
                         "cur": "EUR",
                         "price": 219,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "urbnzone.it",
+                "page": "https://urbnzone.it/products/dsquared2",
+                "title": "DSQUARED2 - Urbn Zone",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "EUR",
+                        "price": 160,
+                        "list": null
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 160,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 160,
                         "list": null
                     }
                 ]
@@ -8863,14 +9361,14 @@
         "sources": []
     },
     "dsq-s74l0851": {
-        "blocked": true,
         "id": "dsq-s74l0851",
         "brand": "DSQUARED2",
         "name": "Distressed Jeans — S74L0851",
         "cat": "Jeans",
         "sku": "S74L0851",
         "price": 41500,
-        "ref": 59500
+        "ref": 59500,
+        "sources": []
     },
     "dsq-s74lb0658": {
         "id": "dsq-s74lb0658",
@@ -8947,14 +9445,14 @@
         ]
     },
     "dsq-s74lb0770": {
-        "blocked": true,
         "id": "dsq-s74lb0770",
         "brand": "DSQUARED2",
         "name": "Distressed Jeans — S74LB0770",
         "cat": "Jeans",
         "sku": "S74LB0770",
         "price": 41500,
-        "ref": 59500
+        "ref": 59500,
+        "sources": []
     },
     "dsq-s74lb0786": {
         "id": "dsq-s74lb0786",
@@ -9588,6 +10086,19 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "auctions.yahoo.co.jp",
+                "page": "https://auctions.yahoo.co.jp/jp/auction/1145629124",
+                "title": "1円/春夏/Dsquared2/48サイズ/イタリー製ハーフパンツ S74mu0682 Dan Commando Short 伸縮性 ダメージ ...",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "JPY",
+                        "price": 12650,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -9827,7 +10338,21 @@
         "sku": "FAF532",
         "price": 42500,
         "ref": 65000,
-        "sources": []
+        "sources": [
+            {
+                "host": "www.luxuryfashionstores.ch",
+                "page": "https://www.luxuryfashionstores.ch/it/60328/fendi-faf532-ad3c-knit-t-shirt_p",
+                "title": "Fendi FAF532 AD3C KNIT T-shirt - Nero",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "CHF",
+                        "price": 490,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "fnd-t05": {
         "blocked": true,
@@ -9998,6 +10523,31 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.facilesaldi.com",
+                "page": "https://www.facilesaldi.com/products/fred-perry-felpa-uomo-m7535-navy-blu-162237015",
+                "title": "Fred Perry Felpa Uomo M7535 Navy - Blu | Facilesaldi.com",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "EUR",
+                        "price": 104.3,
+                        "list": 149
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 104.3,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 104.3,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -10043,6 +10593,19 @@
                         "kind": "meta",
                         "cur": "USD",
                         "price": 155,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.garmentory.com",
+                "page": "https://www.garmentory.com/sale/gcds/mens-t-shirts-short-sleeve/1144920-gcds-t-shirt-with-logo-patch",
+                "title": "GCDS Logo Patch T-shirt - Pink | Garmentory",
+                "prices": [
+                    {
+                        "kind": "meta",
+                        "cur": "USD",
+                        "price": 163,
                         "list": null
                     }
                 ]
@@ -10310,6 +10873,31 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "cronjager.com",
+                "page": "https://cronjager.com/products/givenchy-oversized-t-shirt-givenchy-embroidery-black",
+                "title": "Givenchy Oversized T-Shirt Givenchy Embroidery Black",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "USD",
+                        "price": 281,
+                        "list": 919
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 281,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "USD",
+                        "price": 281,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -10372,6 +10960,19 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.solesense.com",
+                "page": "https://www.solesense.com/en/givenchy-slim-fit-t-shirt-white-bm716g3y99-100",
+                "title": "Givenchy Slim Fit T-Shirt 'White' - BM716G3Y99-100 | Solesense",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "USD",
+                        "price": 238,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -10406,6 +11007,31 @@
                         "kind": "jsonld",
                         "cur": "CHF",
                         "price": 192,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "doboutique.com",
+                "page": "https://doboutique.com/it/products/logo-print-t-shirt-bm716g-3yac-100",
+                "title": "T-shirt con logo - DELL'OGLIO",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "EUR",
+                        "price": 488,
+                        "list": null
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 488,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 488,
                         "list": null
                     }
                 ]
@@ -10481,6 +11107,19 @@
                         "kind": "jsonld",
                         "cur": "EUR",
                         "price": 360,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/gb/t-shirt-givenchy-492548",
+                "title": "Givenchy T-shirt - Black - Men|BM716G3YAC001 | thebs.com",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "GBP",
+                        "price": 278,
                         "list": null
                     }
                 ]
@@ -11111,7 +11750,27 @@
         "sku": "BM716G3YBM001",
         "price": 36000,
         "ref": 55000,
-        "sources": []
+        "sources": [
+            {
+                "host": "hypevault.co",
+                "page": "https://hypevault.co/products/givenchy-x-disney-oswald-the-lucky-rabbit-tee-black-slim-fit",
+                "title": "Givenchy x Disney Oswald The Lucky Rabbit Tee Black Slim Fit",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "MYR",
+                        "price": 999,
+                        "list": 1699
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "MYR",
+                        "price": 999,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "gvy-venchybm71dm3y6": {
         "id": "gvy-venchybm71dm3y6",
@@ -11163,6 +11822,19 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "sportano.it",
+                "page": "https://sportano.it/p/370279/felpa-lacoste-uomo-sh9608-nero",
+                "title": "Felpa Lacoste uomo SH9608 nero - Sportano.it",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 69.99,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -11210,6 +11882,44 @@
                         "kind": "jsonld",
                         "cur": "USD",
                         "price": 114.99,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.sorelleramonda.com",
+                "page": "https://www.sorelleramonda.com/it_it/lacoste-felpa-con-cappuccio-00054-sh9623-031.html",
+                "title": "LACOSTE Felpa con cappuccio ABBIGLIAMENTO SPORTIVO 00054_SH9623_031 ...",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 98,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 98,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "modivo.it",
+                "page": "https://modivo.it/p/lacoste-felpa-sh9623-bianco-regular-fit-0000303719418",
+                "title": "Lacoste Felpa SH9623 Bianco Regular Fit - Modivo.it",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 140,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 140,
                         "list": null
                     }
                 ]
@@ -11379,6 +12089,25 @@
                         "kind": "meta",
                         "cur": "GBP",
                         "price": 62.99,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "escarpe.it",
+                "page": "https://escarpe.it/p/lacoste-polo-ph9863-bianco-regular-fit-0000304997020",
+                "title": "Lacoste Polo PH9863 Bianco Regular Fit | Escarpe.it",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 113.99,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 113.99,
                         "list": null
                     }
                 ]
@@ -11919,14 +12648,59 @@
         ]
     },
     "rl-csf-tee-navy": {
-        "blocked": true,
         "id": "rl-csf-tee-navy",
         "brand": "Ralph Lauren",
         "name": "Custom Slim Fit Crew Neck T-Shirt",
         "cat": "T-Shirts",
         "sku": "710680785004",
         "price": 5190,
-        "ref": 6900
+        "ref": 6900,
+        "sources": [
+            {
+                "host": "mascheronistore.it",
+                "page": "https://mascheronistore.it/products/polo-ralph-lauren-710680785-004-ink-1",
+                "title": "T-Shirt Manica Corta Custom Slim Fit Uomo Ink",
+                "prices": [
+                    {
+                        "kind": "shopify",
+                        "cur": "EUR",
+                        "price": 87,
+                        "list": null
+                    },
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 87,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 87,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/eu/polo-ralph-lauren-custom-fit-tee-710680785004.html",
+                "title": "Polo Ralph Lauren Custom Fit T-Shirt Ink | END. (AT)",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 45,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 89,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "vltn-vv3mg10v74634u": {
         "id": "vltn-vv3mg10v74634u",
