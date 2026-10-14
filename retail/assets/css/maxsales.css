@@ -2612,3 +2612,56 @@ html.rv .rv-ing{
 .pdp__price .disc{font-size:12px;padding:4px 9px;align-self:center}
 .pdp__uvp{font-size:11.5px;color:var(--muted-2);margin-top:6px}
 .vault .disc{background:var(--bone);color:var(--ink)}
+
+/* ------------------------------------------------ stüdyo zemini ve ışık
+   (14 Eki 2026, operatör: "bazı fotolar görünüşte katmanlı duruyor, arka
+   plan daha estetik ve güzel olsun, mümkünse premium animasyonlu").
+   1) Düz taş tonu yerine yumuşak bir stüdyo ışığı: üstte açık, kenarlara
+      doğru bir ton koyulaşan degrade. Beyaz zeminli fotoğraf multiply ile
+      bu ışığı alıyor, yani giysi stüdyoda çekilmiş gibi duruyor.
+   2) Kareye sığdırılan fotoğrafın kutusu artık fotoğrafın kendi oranında
+      (--fw/--fh, bkz. vr_img_fit) ve dolgu yönündeki kenarları maskeyle
+      eriyor; gri/renkli zeminli karede kart o rengi alıyor (fr--own).
+      Ortada ayrı bir dikdörtgen kalmıyor.
+   3) Hareket: kart görünür olunca fotoğraf hafifçe yerine oturuyor ve bir
+      kez ince bir ışık geçiyor; fareyle üzerine gelince ışık imleci
+      izliyor. Hepsi prefers-reduced-motion'da kapalı. */
+.card__media,.card__media .fr{
+  background:radial-gradient(135% 100% at 50% 26%,#faf8f4 0%,#f2efe9 52%,#e8e3da 100%);
+}
+.card__media .fr--own{background:var(--tint)}
+.card__media .fr--own img{mix-blend-mode:normal}
+.card__media :is(.fr--pad,.fr--tint) img{
+  position:absolute;left:50%;top:50%;width:var(--fw,100%);height:var(--fh,100%);
+  translate:-50% -50%;object-fit:cover;
+  -webkit-mask-image:linear-gradient(var(--fd,90deg),transparent 0,#000 7%,#000 93%,transparent 100%);
+          mask-image:linear-gradient(var(--fd,90deg),transparent 0,#000 7%,#000 93%,transparent 100%);
+}
+/* Işık katmanı: her karenin üstünde, rozetlerin altında. Durağan hâliyle
+   yalnız kenarlarda çok hafif bir gölge (fotoğraf ile zemini tek yüzey
+   gibi bağlıyor); üzerine gelince imleci izleyen yumuşak bir ışık. */
+.card__media .fr::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(150% 115% at 50% 45%,transparent 64%,rgba(48,38,26,.07) 100%);
+}
+@media (hover:hover){
+  .card__media:hover .fr::after{background:
+    radial-gradient(44% 36% at var(--mx,50%) var(--my,30%),rgba(255,255,255,.24),transparent 70%),
+    radial-gradient(150% 115% at 50% 45%,transparent 64%,rgba(48,38,26,.07) 100%)}
+}
+/* Tek geçişlik parıltı: kartın kendi katmanı, fotoğrafların üstünde. */
+.card__media::after{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:linear-gradient(110deg,transparent 38%,rgba(255,255,255,.34) 50%,transparent 62%) no-repeat;
+  background-size:260% 100%;background-position:130% 0;opacity:0;
+}
+.card__badge,.card__out{z-index:2}
+@keyframes cardsheen{0%{background-position:130% 0;opacity:1}100%{background-position:-30% 0;opacity:1}}
+@keyframes cardsettle{from{scale:1.07;filter:saturate(.85) brightness(1.04)}to{scale:1;filter:none}}
+@media (prefers-reduced-motion:no-preference){
+  .card.is-in .card__media::after{animation:cardsheen 1.5s .25s cubic-bezier(.4,.1,.2,1) backwards}
+  .card.is-in .card__media>.fr:first-child img{animation:cardsettle 1.3s var(--ease) backwards}
+  @media (hover:hover){
+    .card__media:hover::after{animation:cardsheen 1.1s cubic-bezier(.4,.1,.2,1)}
+  }
+}

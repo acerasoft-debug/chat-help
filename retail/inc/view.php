@@ -1098,6 +1098,13 @@ function vr_img_fit(string $rel, float $box = 0.8, bool $allowPad = true, bool $
     if (!is_array($s) || empty($s['r'])) return ['mode' => 'cover', 'style' => ''];
 
     $r = (float)$s['r'];
+    // Pervazı kırpılan kare: kopyanın oranı ve kenar rengi içteki fotoğrafın.
+    if (function_exists('vr_photo_trim') && ($t = vr_photo_trim($rel))) {
+        [$a, $b, $c, $d] = array_map('floatval', $t['c']);
+        if ($d - $b > 0) $r = $r * ($c - $a) / ($d - $b);
+        $s['bg'] = $s['side'] = (string)($t['bg'] ?? '');
+        unset($s['flat']);
+    }
 
     // Kutuya yakın: kırpma payı her iki eksende de %18'in altında kalıyor,
     // göz bunu kırpma olarak görmüyor.
@@ -1129,16 +1136,30 @@ function vr_img_fit(string $rel, float $box = 0.8, bool $allowPad = true, bool $
     }
 
     $bg = preg_match('/^#[0-9a-f]{6}$/i', (string)($s['bg'] ?? '')) ? $s['bg'] : '#f4f2ee';
-
-    if (!empty($s['flat'])) {
-        return ['mode' => 'tint', 'style' => '--tint:' . $bg];
-    }
     // Dolgu sağa-sola geliyor: yan kenarların medyan rengi (yoksa ortalama).
-    $side = preg_match('/^#[0-9a-f]{6}$/i', (string)($s['side'] ?? '')) ? $s['side'] : $bg;
-    return [
-        'mode'  => 'pad',
-        'style' => '--tint:' . $side . ';--blur:url(' . vr_img($rel, 180) . ')',
-    ];
+    $side = !empty($s['flat']) ? $bg
+          : (preg_match('/^#[0-9a-f]{6}$/i', (string)($s['side'] ?? '')) ? $s['side'] : $bg);
+
+    // KATMANLI GÖRÜNÜM (14 Eki 2026, operatör: "bazı fotolar görünüşte
+    // katmanlı duruyor"). Sığdırılan kare kartın taş tonunun ortasında kendi
+    // gri stüdyo zemininin dikdörtgeni olarak kalıyordu. Artık:
+    //   · <img> kutusu fotoğrafın kendi oranında (--fw/--fh), böylece kenar
+    //     yumuşatma maskesi tam fotoğrafın kenarına oturuyor;
+    //   · zemini beyaza yakın olmayan karede kart o fotoğrafın kendi kenar
+    //     rengini alıyor (fr--own) — dikdörtgen yerine tek parça yüzey.
+    $fw = $r < $box ? round($r / $box * 100, 2) : 100;
+    $fh = $r < $box ? 100 : round($box / $r * 100, 2);
+    $own = vr_hex_is_light($side) ? '' : ' own';
+    $st  = '--tint:' . $side . ';--fw:' . $fw . '%;--fh:' . $fh . '%;--fd:' . ($r < $box ? '90deg' : '180deg');
+    return ['mode' => (!empty($s['flat']) ? 'tint' : 'pad') . $own, 'style' => $st];
+}
+
+/** Zemin rengi "beyaz say" eşiğinde mi: açık ve renksiz (multiply onu kartın tonuna eritir). */
+function vr_hex_is_light(string $hex): bool
+{
+    if (!preg_match('/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i', $hex, $m)) return true;
+    $c = [hexdec($m[1]), hexdec($m[2]), hexdec($m[3])];
+    return min($c) >= 236 && max($c) - min($c) <= 12;
 }
 
 /**
@@ -1155,7 +1176,7 @@ function vr_frame(string $rel, array $o = []): void
     $fit  = vr_img_fit($rel, (float)($o['box'] ?? 0.8), empty($o['no_pad']), !empty($o['tile']));
     $w    = (int)($o['w'] ?? 600);
     $set  = (array)($o['widths'] ?? [300, 600, 900]);
-    $cls  = 'fr fr--' . $fit['mode'] . (!empty($o['class']) ? ' ' . $o['class'] : '');
+    $cls  = 'fr fr--' . str_replace(' own', ' fr--own', $fit['mode']) . (!empty($o['class']) ? ' ' . $o['class'] : '');
 ?>
 <span class="<?= h($cls) ?>"<?= $fit['style'] !== '' ? ' style="' . h($fit['style']) . '"' : '' ?>>
   <img src="<?= h(vr_img($rel, $w)) ?>" srcset="<?= h(vr_img_srcset($rel, $set)) ?>"

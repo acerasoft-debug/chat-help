@@ -38,6 +38,16 @@ jobs:
           $raw = [];
           foreach ((array)vr_store_read('listings.json', []) as $r) $raw[(string)($r['id'] ?? '')] = $r;
           $out = [];
+          // "__cards__": her ürünün vitrin kartındaki kare (toplu ön/tam kontrolü)
+          if ($qs === ['__cards__']) {
+            require_once 'inc/view.php';
+            foreach (vr_catalog() as $id => $p) {
+              if ((int)$p['stock'] < 1) continue;
+              $out[$id] = ['name' => $p['name'], 'brand' => $p['brand'], 'card' => 1, 'colours' => [], 'images' => [vr_card_image($p)]];
+            }
+            echo json_encode($out, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            exit;
+          }
           foreach (vr_catalog() as $id => $p) {
             $hay = mb_strtolower($id . ' ' . $p['name'] . ' ' . $p['brand']);
             $hit = false; foreach ($qs as $q) if (str_contains($hay, mb_strtolower($q))) $hit = true;
@@ -55,7 +65,29 @@ jobs:
       - name: Kolaj
         run: |
           php -r '
-          foreach (json_decode(file_get_contents("diag/product/products.json"), true) as $id => $x) {
+          $all = json_decode(file_get_contents("diag/product/products.json"), true);
+          $cards = array_filter($all, fn($x) => !empty($x["card"]));
+          if ($cards) {
+            $cw = 150; $ch = 188; $cols = 10; $per = 60; $k = 0;
+            foreach (array_chunk($cards, $per, true) as $pg => $chunk) {
+              $rows = (int)ceil(count($chunk) / $cols);
+              $s = imagecreatetruecolor($cols * ($cw + 6), $rows * ($ch + 26));
+              imagefill($s, 0, 0, imagecolorallocate($s, 255, 255, 255)); $ink = imagecolorallocate($s, 0, 0, 0);
+              $i = 0;
+              foreach ($chunk as $id => $x) {
+                $r = $x["images"][0] ?? ""; $x0 = ($i % $cols) * ($cw + 6); $y0 = intdiv($i, $cols) * ($ch + 26);
+                $im = @imagecreatefromstring((string)@file_get_contents("srv" . $r));
+                if ($im) { $sc = min($cw / imagesx($im), $ch / imagesy($im)); $w = (int)(imagesx($im)*$sc); $h = (int)(imagesy($im)*$sc);
+                  imagecopyresampled($s, $im, $x0 + intdiv($cw - $w, 2), $y0 + intdiv($ch - $h, 2), 0, 0, $w, $h, imagesx($im), imagesy($im)); }
+                imagestring($s, 1, $x0, $y0 + $ch + 2, substr($id, 0, 30), $ink);
+                imagestring($s, 1, $x0, $y0 + $ch + 12, substr($x["name"], 0, 30), $ink);
+                $i++;
+              }
+              imagejpeg($s, sprintf("diag/product/cards-%02d.jpg", $pg + 1), 72);
+            }
+            exit;
+          }
+          foreach ($all as $id => $x) {
             $imgs = $x["images"]; $n = count($imgs); if (!$n) continue;
             $cw = 220; $ch = 275; $cols = min(6, $n); $rows = (int)ceil($n / $cols);
             $s = imagecreatetruecolor($cols * ($cw + 8), $rows * ($ch + 22) + 24);

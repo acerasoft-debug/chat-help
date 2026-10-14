@@ -84,6 +84,7 @@ if (vr_thumb_fresh($cache, $src)) vr_img_send($cache, $mime);
 
 // ---- üret (önbellekte yoksa — normalde tools/warm-thumbs.php önceden üretir)
 $im = vr_thumb_open($src);
+if ($im !== null) $im = vr_thumb_prepare($im, $rel);
 if ($im === null) {
     // Okunamayan ya da çok büyük dosya: orijinali olduğu gibi ver, kart boş kalmasın.
     vr_img_original($src);

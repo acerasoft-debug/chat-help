@@ -60,6 +60,7 @@ foreach ($rels as $n => $rel) {
     }
     if (!$todo) { $st['ready']++; continue; }
     $im = vr_thumb_open($src);
+    if ($im !== null) $im = vr_thumb_prepare($im, $rel);
     if ($im === null) { $st['big']++; $fail[] = $rel . ' (çözülemedi/çok büyük)'; continue; }
     $okAll = true;
     foreach ($todo as [$w, $ext, $dest]) {

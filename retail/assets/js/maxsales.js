@@ -328,6 +328,19 @@
     }
   }
 
+  /* ------------------------------------------- kartta imleci izleyen ışık
+     Yalnız fareli cihazda ve yalnız üzerinde durulan kartta: konum CSS
+     değişkeni olarak yazılıyor, ışığı .fr::after çiziyor. */
+  if (!reduced && window.matchMedia('(hover:hover)').matches) {
+    document.addEventListener('pointermove', function (e) {
+      var m = e.target.closest && e.target.closest('.card__media');
+      if (!m) return;
+      var r = m.getBoundingClientRect();
+      m.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
+      m.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
+    }, { passive: true });
+  }
+
   /* ---------------------------------------- ürün görselleri: ilk açılış efekti
      .card__alt hariç: onun görünürlüğünü CSS hover'ı yönetiyor, buradaki satır
      içi opacity:1 o kuralı ezip ikinci kareyi kalıcı olarak açıyordu. */

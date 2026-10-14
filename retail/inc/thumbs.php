@@ -36,7 +36,44 @@ const VR_THUMB_DIR = '/uploads/_t';
  */
 function vr_thumb_rel(string $rel, int $w, string $ext): string
 {
-    return VR_THUMB_DIR . '/' . $w . '/' . str_replace('.', '-', substr($rel, strlen('/uploads/'))) . '.' . $ext;
+    // Pervazı kırpılan karenin kopyası ayrı adla: eski (pervazlı) kopya
+    // önbellekte kalsa da sayfa onu artık istemiyor (bkz. vr_photo_trim).
+    $tag = vr_photo_trim($rel) ? '-fr' : '';
+    return VR_THUMB_DIR . '/' . $w . '/' . str_replace('.', '-', substr($rel, strlen('/uploads/'))) . $tag . '.' . $ext;
+}
+
+/**
+ * Pervazlı karenin içteki fotoğrafı: ['c' => [x0,y0,x1,y1] oran, 'bg' => '#…']
+ * ya da null. Ölçüm tools/index-photo-trim.php'de (data/photo-trim.json).
+ * Toptancının bazı kareleri gri stüdyo fotoğrafının çevresinde düz beyaz bir
+ * pervaz taşıyor; kartta "katmanlı" duruyordu (operatör, 14 Eki 2026).
+ */
+function vr_photo_trim(string $rel): ?array
+{
+    static $ix = null;
+    if ($ix === null) {
+        $ix = [];
+        foreach ((array)vr_store_read('photo-trim.json', []) as $k => $e) {
+            if (is_array($e) && isset($e['c']) && is_array($e['c']) && count($e['c']) === 4) $ix[$k] = $e;
+        }
+    }
+    return $ix[$rel] ?? null;
+}
+
+/** Çözülmüş kaynağı kopyaya hazırla: pervaz varsa kırp. */
+function vr_thumb_prepare(\GdImage $im, string $rel): \GdImage
+{
+    $t = vr_photo_trim($rel);
+    if (!$t) return $im;
+    $W = imagesx($im); $H = imagesy($im);
+    [$a, $b, $c, $d] = array_map('floatval', $t['c']);
+    $x = (int)round($a * $W); $y = (int)round($b * $H);
+    $w = (int)round(($c - $a) * $W); $h = (int)round(($d - $b) * $H);
+    if ($w < 8 || $h < 8 || $x < 0 || $y < 0 || $x + $w > $W || $y + $h > $H) return $im;
+    $out = imagecrop($im, ['x' => $x, 'y' => $y, 'width' => $w, 'height' => $h]);
+    if (!$out instanceof \GdImage) return $im;
+    imagedestroy($im);
+    return $out;
 }
 
 /** Kopyanın mutlak dosya yolu ($src kullanılmıyor; imza geriye uyum için). */
