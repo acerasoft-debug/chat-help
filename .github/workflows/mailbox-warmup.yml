@@ -1,11 +1,11 @@
 name: (Posta kutusu) Isınmayı aç/kapat — günlük tavan
 # 14 Eki 2026 (operatör: "kendi server'dan 500 e-mail günlük"). Isınma (inc/mailbox.php VESTRA_MAILBOX_WARMUP) yeni
-# gönderen adresi için günlük sayıyı kademeli artırıyordu (14 Eki = 7. gün = 300). on=false → bugünden itibaren tam
-# tavan (500). Geri dönme freni (son 3 günde %8) AYNEN kalır. Panelden de değiştirilebilir (Admin ▸ 📮 ▸ ayarlar).
+# gönderen adresi için günlük sayıyı kademeli artırıyordu (14 Eki = 7. gün = 300). warmup=false → bugünden itibaren tam
+# tavan (500). (Girdinin adı 'on' OLAMAZ: YAML 1.1'de 'on' = true, GitHub girdiyi tanımıyor.) Geri dönme freni (son 3 günde %8) AYNEN kalır. Panelden de değiştirilebilir (Admin ▸ 📮 ▸ ayarlar).
 on:
   workflow_dispatch:
     inputs:
-      on:
+      warmup:
         description: "true = ısınma açık (kademeli) · false = kapalı (tam tavan)"
         required: false
         default: "false"
@@ -18,7 +18,7 @@ jobs:
       - name: Ayarla
         uses: appleboy/ssh-action@v1.0.3
         env:
-          WON: ${{ github.event.inputs.on }}
+          WON: ${{ github.event.inputs.warmup }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
