@@ -21,5 +21,7 @@
   try { seen = sessionStorage.getItem('sv-intro'); sessionStorage.setItem('sv-intro', '1'); } catch (e) {}
   if (seen) return;
   root.classList.add('sv-intro');
+  // Kalıcı işaret: ana sayfa sahnesinin açılışı perde inerken boşa oynamasın.
+  root.classList.add('sv-intro-seq');
   setTimeout(function () { root.classList.remove('sv-intro'); }, 1900);
 })();

@@ -74,6 +74,54 @@
     }, 2000);
   }
 
+  /* ------------------------------------------------------ sahne: rakamlar
+     Ölçü şeridindeki rakamlar şerit sahneye girdiği anda sıfırdan sayar
+     (CSS açılışı: şerit +1,55 sn'de geliyor). Sunucu asıl sayıyı zaten
+     yazdı; JS yoksa ya da hareket azaltılmışsa o olduğu gibi kalır.         */
+  var ups = document.querySelectorAll('.stage [data-countup]');
+  if (ups.length && !reduced && window.requestAnimationFrame) {
+    var late = document.documentElement.classList.contains('sv-intro-seq') ? 1050 : 0;
+    ups.forEach(function (el) {
+      var to = parseInt(el.getAttribute('data-countup'), 10) || 0;
+      if (to < 2) return;
+      el.textContent = '0';
+      setTimeout(function () {
+        var t0 = 0, dur = 1700;
+        var step = function (ts) {
+          if (!t0) t0 = ts;
+          var k = Math.min(1, (ts - t0) / dur);
+          var e = k === 1 ? 1 : 1 - Math.pow(2, -10 * k);   // easeOutExpo
+          el.textContent = String(Math.round(to * e));
+          if (k < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }, 1650 + late);
+    });
+  }
+
+  /* ------------------------------------------------------ sahne: derinlik
+     Masaüstünde imleç sahnede gezinirken kapak tersine, metin aynı yöne çok
+     az kayar (CSS --mx/--my). Dokunmatikte ve hareket azaltılmışsa yok.      */
+  var stageEl = document.querySelector('.stage');
+  if (stageEl && !reduced && window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine) and (min-width: 901px)').matches) {
+    var raf = 0, mx = 0, my = 0;
+    stageEl.addEventListener('mousemove', function (ev) {
+      var r = stageEl.getBoundingClientRect();
+      mx = ((ev.clientX - r.left) / r.width) * 2 - 1;
+      my = ((ev.clientY - r.top) / r.height) * 2 - 1;
+      if (raf) return;
+      raf = requestAnimationFrame(function () {
+        raf = 0;
+        stageEl.style.setProperty('--mx', mx.toFixed(3));
+        stageEl.style.setProperty('--my', my.toFixed(3));
+      });
+    });
+    stageEl.addEventListener('mouseleave', function () {
+      stageEl.style.setProperty('--mx', '0');
+      stageEl.style.setProperty('--my', '0');
+    });
+  }
+
   /* --------------------------------------------------- Vault geri sayımları
      Sunucudan gelen mutlak zaman damgasına göre sayar. Süre bittiğinde
      fiyatı tarayıcıda HESAPLAMIYORUZ — sayfayı bir kez tazeliyoruz, yeni

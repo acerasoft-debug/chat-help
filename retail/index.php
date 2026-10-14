@@ -167,12 +167,23 @@ vr_layout_start([
     <span class="vh stage__pause-b"><?= te('stage_play') ?></span>
   </label>
 
-  <span class="stage__frame" aria-hidden="true"></span>
+  <?php /* Açılış koreografisi (bkz. maxsales.css "sahne açılışı"): çerçevenin
+           dört kenarı kendini çiziyor, başlık kelime kelime maskeden çıkıyor.
+           Salt CSS: JS gerekmiyor, hareket azaltılmışsa hiç oynamıyor ve
+           metin her durumda baştan DOM'da. Kelimeler sunucuda sarılıyor ki
+           ilk boyamada yerinde dursunlar — sonradan bölünen başlık zıplıyor. */ ?>
+  <span class="stage__frame" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+  <span class="stage__light" aria-hidden="true"></span>
 
   <div class="stage__in">
     <span class="orn" aria-hidden="true"><i></i></span>
     <p class="stage__eyebrow"><?= te('hero_eyebrow') ?></p>
-    <h1><?= te('hero_title') ?></h1>
+    <h1><?php
+      $heroWords = preg_split('/\s+/u', trim(t('hero_title'))) ?: [];
+      foreach ($heroWords as $wi => $word) {
+          echo ($wi ? ' ' : ''), '<span class="sw"><span style="--i:', $wi, '">', h($word), '</span></span>';
+      }
+    ?></h1>
     <p class="stage__sub"><?= te('hero_sub') ?></p>
 
     <div class="stage__act">
@@ -186,12 +197,13 @@ vr_layout_start([
   </div>
 
   <div class="stage__meta">
-    <div><b><?= (int)$total ?></b><span><?= te('hero_stat_pieces') ?></span></div>
-    <div><b><?= count($facets['brands']) ?></b><span><?= te('hero_stat_brands') ?></span></div>
+    <div><b data-countup="<?= (int)$total ?>"><?= (int)$total ?></b><span><?= te('hero_stat_pieces') ?></span></div>
+    <div><b data-countup="<?= count($facets['brands']) ?>"><?= count($facets['brands']) ?></b><span><?= te('hero_stat_brands') ?></span></div>
     <?php if ($nextDrop): ?>
       <div><b><span data-countdown="<?= (int)$nextDrop ?>">—</span></b><span><?= te('hero_stat_drop') ?></span></div>
     <?php endif; ?>
   </div>
+  <span class="stage__cue" aria-hidden="true"></span>
 </section>
 
 <div class="wrap"><?php vr_demo_banner(); ?></div>
