@@ -16,7 +16,7 @@ on:
         required: false
         default: ""
       mode:
-        description: "search = arama · recheck = bulunan sayfaları AB sürümünden yeniden oku"
+        description: "search = arama · recheck = AB sürümünden yeniden oku · dg = D&G resmî sitesi"
         required: false
         default: "search"
 
@@ -29,7 +29,7 @@ permissions:
 # diag/prices/candidates.json olarak dala işlenir, karar elle/araçla verilir.
 jobs:
   plan:
-    if: github.event.inputs.mode != 'recheck'
+    if: github.event.inputs.mode != 'recheck' && github.event.inputs.mode != 'dg'
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.p.outputs.matrix }}
@@ -83,7 +83,7 @@ jobs:
 
   merge:
     needs: search
-    if: always() && github.event.inputs.mode != 'recheck'
+    if: always() && github.event.inputs.mode != 'recheck' && github.event.inputs.mode != 'dg'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -127,4 +127,20 @@ jobs:
           git add -f diag/prices
           git diff --cached --quiet && exit 0
           git commit -q -m "Resmî fiyat adayları: AB sürümleri yeniden okundu"
+          for i in 1 2 3 4; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((i*3)); done
+
+  dg:
+    if: github.event.inputs.mode == 'dg'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: D&G resmî sitesi
+        run: php retail/tools/find-prices-dg.php diag/prices/candidates.json
+      - name: Dala işle
+        run: |
+          git config user.name "Claude"; git config user.email "noreply@anthropic.com"
+          git add -f diag/prices
+          git diff --cached --quiet && exit 0
+          git commit -q -m "Resmî fiyat adayları: D&G resmî sitesi"
           for i in 1 2 3 4; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((i*3)); done
