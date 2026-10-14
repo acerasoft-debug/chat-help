@@ -171,9 +171,13 @@ vr_layout_start([
               <span class="fx fx--pdp" title="<?= te('fx_note') ?>"><?= h($lx) ?><i><?= te('fx_note') ?></i></span>
             <?php endif; ?>
             <?php if (!empty($p['rrp_cents']) && (int)$p['rrp_cents'] > (int)$p['price_cents']): ?>
-              <s><?= h(vr_money((int)$p['rrp_cents'])) ?></s>
+              <span class="was"><?= te('uvp') ?> <s><?= h(vr_money((int)$p['rrp_cents'])) ?></s></span>
+              <span class="disc"><?= h(vr_discount_label($p)) ?></span>
             <?php endif; ?>
           </div>
+          <?php if (!empty($p['rrp_cents']) && (int)$p['rrp_cents'] > (int)$p['price_cents']): ?>
+            <p class="pdp__uvp"><?= te('uvp_note') ?></p>
+          <?php endif; ?>
           <p class="pdp__vat">
             <?= te('vat_incl', ['rate' => $vatRate]) ?>
             <?php if ((int)($shipDe['free_over'] ?? 0) > 0): ?>

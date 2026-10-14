@@ -647,4 +647,6 @@ return [
     'appband_ios' => 'iPhone',
     'appband_android' => 'Android',
     'appband_more' => 'Alle Installationswege',
+    'uvp' => 'UVP',
+    'uvp_note' => 'UVP: unverbindliche Preisempfehlung des Herstellers für dieses Modell.',
 ];

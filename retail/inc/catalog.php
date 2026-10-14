@@ -312,8 +312,12 @@ function vr_normalize_product(array $p, string $source): ?array
         trim((string)($p['name'] ?? ''))
     );
     $rrpCents = $ref['cents'] ?? null;
-    // Üstü çizili UVP yalnız doğrulanmış model fiyatında (bkz. vr_official_ref).
-    if ($ref && $ref['exact'] && !isset($p['rrp'])) $p['rrp'] = $rrpCents / 100;
+    // Üstü çizili UVP YALNIZ doğrulanmış model fiyatında (bkz. vr_official_ref;
+    // data/official-prices.json'daki sku satırı, kaynağıyla). Tedarikçi
+    // satırında gelen "rrp" alanı doğrulanmadığı için gösterilmez — Almanya'da
+    // üstü çizili UVP o modelin gerçek resmî fiyatı olmak zorunda.
+    $rrpVerified = $ref && $ref['exact'];
+    if ($rrpVerified) $p['rrp'] = $rrpCents / 100;
 
     if ($ruleCents !== null) {
         $price = $ruleCents;
@@ -403,7 +407,7 @@ function vr_normalize_product(array $p, string $source): ?array
         'cat'         => trim((string)($p['cat'] ?? '')) ?: 'Other',
         'sku'         => trim((string)($p['sku'] ?? '')),
         'price_cents' => $price,
-        'rrp_cents'   => isset($p['rrp']) && (float)$p['rrp'] > 0 ? (int)round((float)$p['rrp'] * 100) : null,
+        'rrp_cents'   => $rrpVerified && (float)($p['rrp'] ?? 0) > 0 ? (int)round((float)$p['rrp'] * 100) : null,
         'images'      => $images,
         'desc'        => trim((string)($p['desc'] ?? '')),
         // Operatörün yazdığı/aktardığı metin: doluysa metin üreteci devre dışı

@@ -658,4 +658,6 @@ return [
     'appband_ios' => 'iPhone',
     'appband_android' => 'Android',
     'appband_more' => 'All the ways to install',
+    'uvp' => 'RRP',
+    'uvp_note' => 'RRP: the manufacturer\'s recommended retail price for this model.',
 ];

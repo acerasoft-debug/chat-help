@@ -597,6 +597,14 @@ function vr_icon(string $name, int $size = 20): string
  * Vitrin kartı. $o: eager (ilk ekrandaki görseller için lazy kapalı),
  * badge (üst köşe etiketi), size_hint (beden satırı göster)
  */
+/** "−35 %" — doğrulanmış UVP'ye göre indirim oranı, tam sayıya aşağı yuvarlanmış. */
+function vr_discount_label(array $p): string
+{
+    $rrp = (int)($p['rrp_cents'] ?? 0); $pr = (int)($p['price_cents'] ?? 0);
+    if ($rrp <= 0 || $pr >= $rrp) return '';
+    return "\u{2212}" . (int)floor(100 - $pr * 100 / $rrp) . "\u{00A0}%";
+}
+
 function vr_card(array $p, array $o = []): void
 {
     $seller = function_exists('vr_product_seller') ? vr_product_seller($p) : ['type' => 'vestra'];
@@ -640,7 +648,8 @@ function vr_card(array $p, array $o = []): void
     <p class="card__price">
       <?= h(vr_money((int)$p['price_cents'])) ?>
       <?php if (!empty($p['rrp_cents']) && (int)$p['rrp_cents'] > (int)$p['price_cents']): ?>
-        <s><?= h(vr_money((int)$p['rrp_cents'])) ?></s>
+        <span class="was"><?= te('uvp') ?> <s><?= h(vr_money((int)$p['rrp_cents'])) ?></s></span>
+        <span class="disc"><?= h(vr_discount_label($p)) ?></span>
       <?php endif; ?>
       <?php $lx = vr_money_local((int)$p['price_cents']); if ($lx !== ''): ?>
         <span class="fx"><?= h($lx) ?></span>

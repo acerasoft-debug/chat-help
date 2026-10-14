@@ -641,4 +641,6 @@ return [
     'appband_ios' => 'iPhone',
     'appband_android' => 'Android',
     'appband_more' => 'Bütün quraşdırma yolları',
+    'uvp' => 'Tövsiyə olunan qiymət',
+    'uvp_note' => 'Tövsiyə olunan qiymət: istehsalçının bu model üçün tövsiyə etdiyi pərakəndə qiymət.',
 ];

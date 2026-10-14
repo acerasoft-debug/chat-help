@@ -641,4 +641,6 @@ return [
     'appband_ios' => 'iPhone',
     'appband_android' => 'Android',
     'appband_more' => 'Todas las formas de instalar',
+    'uvp' => 'PVP recomendado',
+    'uvp_note' => 'PVP recomendado: precio de venta recomendado por el fabricante para este modelo.',
 ];
