@@ -349,6 +349,27 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/eu/balenciaga-oversized-tee-676589-tlv92-1070.html",
+                "title": "Balenciaga Oversized T-Shirt Black & White | END. (US) [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 245,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 405,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -584,6 +605,27 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/eu/balmain-monogram-oversized-tee-ah1eg010jb21-gfe.html",
+                "title": "Balmain Monogram Oversized T-Shirt Ivory & Black | END. [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 287,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 479,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -901,6 +943,42 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/eu/balmain-logo-tee-wh1ef000b138-gdv.html",
+                "title": "Balmain Logo T-Shirt White & Yellow | END. [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 210,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 415,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/t-shirt-blanc-balmain-250255",
+                "title": "T-shirts Balmain - T-Shirt - Blanc - WH1EF000B138GDV [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 375,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -925,6 +1003,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/printed-logo-t-shirt-balmain-250244",
+                "title": "Tシャツ Balmain - Tシャツ - 赤 - WH1EF000B138MAI | THEBS [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 375,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -1165,6 +1258,42 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/eu/balmain-eco-paris-logo-crew-sweat-yh1jq005bb04-eab.html",
+                "title": "Balmain Eco Paris Logo Crew Sweat Black & White | END. [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 205,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 520,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/cotton-sweatshirt-balmain-289006",
+                "title": "Sweatshirts & Sweaters Balmain - Cotton sweatshirt - YH1JQ005BB04EAB [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 550,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -1215,6 +1344,27 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/eu/burberry-shark-print-tee-4567629-a1464.html",
+                "title": "Burberry Shark Print T-Shirt White | END. [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 229,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 479,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -1262,6 +1412,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/eddie-grey-polo-shirt-burberry-124180",
+                "title": "Burberry Eddie grey polo shirt - Grey - Men | 8014006 [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 290,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -1350,6 +1515,27 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/eu/burberry-guildes-large-check-swim-shorts-8017294a7028.html",
+                "title": "Burberry Guildes Large Check Swim Shorts [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 234,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 390,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -1605,6 +1791,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/tartan-hood-sweatshirt-burberry-278806",
+                "title": "Sweatshirts & Sweaters Burberry - Tartan hood sweatshirt - 8045006 [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 820,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -1665,6 +1866,27 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/eu/burberry-tucson-b-motif-tee-8045495-a1464.html",
+                "title": "Burberry Tucson B Motif T-Shirt White | END. (US) [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 625,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 625,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -1948,6 +2170,27 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/eu/burberry-mac-logo-t-shirt-8050166-a1464.html",
+                "title": "Burberry Mac Logo T-Shirt White | END. (US) [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 400,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 400,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -2148,6 +2391,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/parker-t-shirt-burberry-276637",
+                "title": "Burberry Parker t-shirt - Black - Men|8052965 | thebs.com [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 390,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -2203,6 +2461,27 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/eu/burberry-parker-tb-circle-logo-t-shirt-8053424-130828-a7405.html",
+                "title": "Burberry Parker TB Circle Logo T-Shirt Soft Fawn | END. [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 359,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 359,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -2252,6 +2531,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/pierson-polo-shirt-burberry-281933",
+                "title": "Burberry Pierson polo shirt - Black - Men | 8053773 | thebs.com [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 450,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -2323,6 +2617,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/harriston-t-shirt-burberry-283456",
+                "title": "T-shirts Burberry - Harriston T-shirt - 8055307 | Shop online at THEBS [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 450,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -2370,6 +2679,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/burlow-sweatshirt-burberry-276636",
+                "title": "Sweatshirts & Sweaters Burberry - Burlow sweatshirt - 8055312 [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 680,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -2419,6 +2743,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/ansdell-hoodie-burberry-273829",
+                "title": "Burberry Ansdell hoodie - Black - Men|8055318 | thebs.com [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 750,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -2477,6 +2816,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/logo-t-shirt-burberry-278934",
+                "title": "T-shirts Burberry - Logo T-shirt - 8056724 | Shop online at THEBS [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 395,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -2661,6 +3015,27 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.endclothing.com",
+                "page": "https://www.endclothing.com/eu/burberry-ansdell-logo-hoody-8057525-128262-a1420.html",
+                "title": "Burberry Ansdell Logo Hoody Sky | END. (US) [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 685,
+                        "list": null
+                    },
+                    {
+                        "kind": "meta",
+                        "cur": "EUR",
+                        "price": 685,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -2685,6 +3060,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/prorsum-t-shirt-with-logo-burberry-310971",
+                "title": "T-shirts Burberry - Prorsum T-shirt with logo - 8063476 | thebs.com [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 470,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -2722,6 +3112,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/white-cotton-tee-burberry-322007",
+                "title": "T-shirts Burberry - White cotton Tee - 8064397 | Shop online at THEBS [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 510,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -2964,6 +3369,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/t-shirt-burberry-691367",
+                "title": "Burberry T-Shirt - White - Women|8118964 | Shop online at THEBS [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 344,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -4000,6 +4420,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/logo-t-shirt-dolce-gabbana-459947",
+                "title": "Dolce & Gabbana Logo T-shirt - White - Men|G8PN9TG7M8FW0800 - thebs.com [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 333,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -4049,6 +4484,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-it/fashion/men/clothing/t-shirts-and-polos/cotton-t-shirt-with-branded-tag-black-G8PN9TG7NTWN0000.html",
+                "title": "Cotton T-shirt with branded tag in Black for Men | Dolce&Gabbana® US [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 450,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -4152,6 +4602,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/cotton-t-shirt-dolce-gabbana-433356",
+                "title": "T-shirts Dolce & Gabbana - Cotton T-shirt - thebs.com [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 595,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -4254,6 +4719,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-it/fashion/men/clothing/t-shirts-and-polos/cotton-t-shirt-with-branded-tag-grey-G8PT1TG7F2IS8291.html",
+                "title": "Cotton T-shirt with branded tag - Dolce&Gabbana® US [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 495,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -4602,6 +5082,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/short-sleeve-crew-neck-t-shirt-dolce-gabbana-498691",
+                "title": "Dolce & Gabbana Short Sleeve Crew-Neck T-Shirt|G8RN8ZG7NUBN0000 [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 340,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -4639,6 +5134,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-it/fashion/men/clothing/t-shirts-and-polos/cotton-t-shirt-with-tag-black-G8SE3TFU7ENN0000.html",
+                "title": "Cotton T-shirt with tag in Black for Men | Dolce&Gabbana® US [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 495,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -4717,6 +5227,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-it/fashion/men/clothing/coats-and-jackets/nylon-vest-with-branded-tag-black-G9AOJTGG781N0000.html",
+                "title": "Nylon vest with branded tag in Black for Men | Dolce&Gabbana® US [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 1250,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -4999,6 +5524,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/straight-leg-jeans-dolce-gabbana-311790",
+                "title": "Straight leg jeans Dolce & Gabbana - Straight leg jeans - GY07LDG8HB3S9001 [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 595,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -6010,6 +6550,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-it/fashion/men/clothing/t-shirts-and-polos/cotton-t-shirt-with-branded-tag-grey-G8PT1TG7F2IS8291.html",
+                "title": "Cotton T-shirt with branded tag in Grey for Men | Dolce&Gabbana® [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 495,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -6468,6 +7023,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.luxuryfashionstores.sk",
+                "page": "https://www.luxuryfashionstores.sk/en/84234/dolce--gabbana-gy07cd-g8co7-straight-jeans_p",
+                "title": "Dolce & Gabbana GY07CD G8CO7 STRAIGHT Jeans Grey [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 1550,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 0
             }
         ]
     },
@@ -6673,6 +7243,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/straight-leg-jeans-dolce-gabbana-311790",
+                "title": "Straight leg jeans Dolce & Gabbana - Straight leg jeans - thebs.com [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 595,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -6721,6 +7306,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/t-shirt-dsquared2-578394",
+                "title": "Dsquared2 T-shirt - White - Men|S71GD1552S23009100 | thebs.com [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 107,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -8061,6 +8661,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.luxuryfashionstores.sk",
+                "page": "https://www.luxuryfashionstores.sk/en/83730/dsquared2-s74lb0953-s30342-skater-jeans_p",
+                "title": "Dsquared2 S74LB0953 S30342 SKATER Jeans - Blue [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 233,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 0
             }
         ]
     },
@@ -10412,6 +11027,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/sweat-shirts-wings-marcelo-burlon-county-of-milan-161607",
+                "title": "Sweatshirts & Pulls Marcelo Burlon County Of Milan - Sweat-Shirts ... [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 390,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -10462,6 +11092,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/white-pique-cotton-polo-shirt-polo-ralph-lauren-114834",
+                "title": "Polo Ralph Lauren White pique cotton polo shirt|710548797001 [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 107,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
@@ -10496,6 +11141,21 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.thebs.com",
+                "page": "https://www.thebs.com/de/marker-logo-print-cotton-t-shirt-valentino-200315",
+                "title": "Valentino Garavani Marker logo print cotton T-shirt | VV3MG10V74634U [EU]",
+                "prices": [
+                    {
+                        "kind": "jsonld",
+                        "cur": "EUR",
+                        "price": 320,
+                        "list": null
+                    }
+                ],
+                "eu": 1,
+                "has": 1
             }
         ]
     },
