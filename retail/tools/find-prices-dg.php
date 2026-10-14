@@ -29,6 +29,8 @@ function dg_get(string $url): ?string
 $found = 0; $tried = 0;
 foreach ($cand as $id => &$c) {
     if (stripos((string)($c['brand'] ?? ''), 'dolce') === false) continue;
+    // Önceki turdan kalan 0 fiyatlı marka kayıtlarını temizle.
+    $c['sources'] = array_values(array_filter((array)($c['sources'] ?? []), fn($s) => !(($s['prices'][0]['kind'] ?? '') === 'brand' && (float)($s['prices'][0]['price'] ?? 0) <= 0)));
     $flat = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string)$c['sku']) ?? '');
     if (strlen($flat) < 8) continue;
     $base = substr($flat, 0, 11);
@@ -49,7 +51,7 @@ foreach ($cand as $id => &$c) {
         if ($hits) break;
     }
     if (!$hits) continue;
-    $prices = array_unique(array_map(fn($h) => $h[0], $hits));
+    $prices = array_values(array_unique(array_map(fn($h) => $h[0], $hits)));
     if (count($prices) !== 1) continue;                       // renkler farklı fiyatlıysa karar verme
     $pid = array_key_first($hits);
     $c['sources'][] = ['host' => 'www.dolcegabbana.com', 'page' => 'https://www.dolcegabbana.com/en-de/search?q=' . $pid,
