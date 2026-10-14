@@ -1,0 +1,73 @@
+name: (Tanı) Açık talepler + katalog eşleşmeleri — salt okuma
+# 14 Eki 2026 (operatör: "Offene Anfragen — bunların hepsine katalog fiyatlarının %15 altından teklif ver").
+# Hiçbir şey YAZMAZ, kimseye bir şey GÖNDERMEZ: requests.csv'deki talepleri, verilmiş teklifleri ve her talep için
+# katalogdaki aday ürünleri (kategori + başlıktaki marka) katalog "from" fiyatı ve %15 altıyla listeler.
+# E-postalar maskeli basılır (depo herkese açık).
+on:
+  workflow_dispatch:
+    inputs:
+      pct:
+        description: "İndirim yüzdesi (yalnız gösterim)"
+        required: false
+        default: "15"
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Talepler
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          PCT: ${{ github.event.inputs.pct }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: PCT
+          command_timeout: 4m
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_dreq.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME");
+            require      $home."/public_html/inc/products.php";
+            require_once $home."/public_html/inc/auth.php";
+            $pct = max(0, min(50, (int)(getenv('PCT') ?: 15)));
+            $mask = static function (string $e): string { $e = strtolower(trim($e)); [$u, $d] = array_pad(explode('@', $e, 2), 2, ''); return $u === '' ? '-' : substr($u, 0, 1).'***@'.$d; };
+            $reqs = vestra_read_csv('requests.csv'); $offs = vestra_read_csv('request_offers.csv');
+            $by = []; foreach ($offs as $o) $by[$o['request_ref'] ?? ''][] = $o;
+            $prods = vestra_products();
+            echo "katalog: ".count($prods)." canli urun · talep: ".count($reqs)." · teklif: ".count($offs)."\n";
+            $brands = []; foreach ($prods as $p) { $b = trim((string)($p['brand'] ?? '')); if ($b !== '') $brands[strtolower($b)] = $b; }
+            echo "\n== saticilar (operator adayi) ==\n";
+            foreach ((array)auth_accounts() as $a) {
+              if (($a['type'] ?? '') !== 'seller') continue;
+              $co = (string)($a['company'] ?? ''); $em = (string)($a['email'] ?? '');
+              if (!preg_match('/garage|vestra|acerasoft|les garage/i', $co.' '.$em)) continue;
+              echo "  ".($a['id'] ?? '?')." · ".$co." · ".$mask($em)." · durum=".($a['status'] ?? '?')." · kyc=".($a['kyc'] ?? ($a['verified'] ?? '?'))."\n";
+            }
+            echo "\n== talepler (yeniden eskiye) ==\n";
+            foreach (array_reverse($reqs) as $r) {
+              $ref = $r['ref'] ?? ''; $acc = auth_find($r['email'] ?? '');
+              echo "\n#".$ref." · ".substr((string)($r['timestamp'] ?? ''), 0, 16)." · ".($r['title'] ?? '')."\n";
+              echo "   kat=".($r['cat'] ?? '')." · adet=".($r['qty'] ?? '')." · hedef=".($r['target'] ?? '')." · ulke=".($r['country'] ?? '')." · alici=".$mask((string)($r['email'] ?? ''))." (".($acc ? ($acc['type'] ?? '?').' hesabi' : 'hesap yok').")\n";
+              if (trim((string)($r['notes'] ?? '')) !== '') echo "   not: ".mb_substr((string)$r['notes'], 0, 220)."\n";
+              foreach ($by[$ref] ?? [] as $o) echo "   teklif ".$o['ref']." · ".($o['seller_company'] ?? '')." · €".($o['price'] ?? '')." · ".($o['qty'] ?? '')." · ".substr((string)($o['timestamp'] ?? ''), 0, 10)."\n";
+              $hay = strtolower(($r['title'] ?? '').' '.($r['notes'] ?? ''));
+              $want = []; foreach ($brands as $lb => $b) if (preg_match('/(?<![a-z])'.preg_quote($lb, '/').'(?![a-z])/', $hay)) $want[$b] = true;
+              $rc = strtolower(trim((string)($r['cat'] ?? '')));
+              $c = [];
+              foreach ($prods as $p) {
+                $s = 0; if ($want && isset($want[(string)($p['brand'] ?? '')])) $s += 2; if ($rc !== '' && strtolower((string)($p['cat'] ?? '')) === $rc) $s += 1;
+                if ($s === 0) continue; $f = (float)vestra_from_price($p); if ($f <= 0) continue;
+                $c[] = [$s, $f, $p];
+              }
+              usort($c, fn($a, $b) => [$b[0], $a[1]] <=> [$a[0], $b[1]]);
+              echo "   marka(baslikta): ".($want ? implode(', ', array_keys($want)) : '-')." · aday: ".count($c)."\n";
+              foreach (array_slice($c, 0, 6) as [$s, $f, $p]) printf("     [%d] %s · %s · %s · MOQ %s · katalog €%.2f → %%%d alti €%.2f\n", $s, $p['id'], ($p['brand'] ?? '').' '.vestra_product_name($p), $p['cat'] ?? '', $p['moq'] ?? '?', $f, $pct, round($f * (100 - $pct) / 100, 2));
+            }
+            PHPEOF
+            php /tmp/vestra_dreq.php 2>&1; rm -f /tmp/vestra_dreq.php
