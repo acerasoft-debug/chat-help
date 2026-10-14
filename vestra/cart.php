@@ -3,6 +3,7 @@ header('X-Robots-Tag: noindex, follow');   // robots.txt bu sayfayi artik engell
 require_once __DIR__.'/inc/auth.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 require_once __DIR__.'/inc/products.php';
+require_once __DIR__.'/inc/oxapay.php';   // kripto secenegi (oxapay_enabled) + yaptirim kalibi
 $PAGE=t('Your order'); $NAV='shop'; require __DIR__.'/inc/head.php';
 $placed=isset($_GET['placed']);
 $u = auth_user(); // logged-in user for pre-filling form
@@ -67,6 +68,10 @@ if (stripe_available()) {
   <?php if(isset($_GET['err']) && $_GET['err']==='escrow'): ?>
     <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
       <?= t('Secure escrow couldn’t be started for this cart — it’s available only when all items are from a single verified seller. Please choose bank transfer instead.') ?></div>
+  <?php endif; ?>
+  <?php if(isset($_GET['err']) && $_GET['err']==='crypto_blocked'): ?>
+    <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
+      <?= t('Crypto payment is not available for this delivery or billing country. Please choose bank transfer instead.') ?></div>
   <?php endif; ?>
   <?php if(isset($_GET['err']) && $_GET['err']==='escrow_max'): ?>
     <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
@@ -184,6 +189,19 @@ if (stripe_available()) {
             <span class="hint"><?= t('We send a PDF invoice with the seller’s bank details. Goods ship after your transfer arrives.') ?></span>
           </span>
         </label>
+        <?php /* KRIPTO (OxaPay, 14 Eki 2026): havaleye EK secenek -- havalenin zor oldugu
+                 ulkeler icin. Yalniz .env'de anahtar varken cizilir. Yaptirimli ulke/bolge
+                 (RU/BY/IR/KP/SY/CU, Kirim/Donetsk/Luhansk/Zaporijya/Herson) JS ile gizlenir;
+                 kapi order.php'de. Kart YOK: OxaPay kart desteklemiyor. */ ?>
+        <?php if(oxapay_enabled()): ?>
+        <label class="payopt" id="payCryptoOpt">
+          <input type="radio" name="pay" value="crypto" id="payCrypto">
+          <span class="payopt-b">
+            <b>₿ <?= t('Pay with crypto (USDT, BTC, ETH…)') ?></b>
+            <span class="hint"><?= t('Pay now in crypto via OxaPay — ideal where bank transfers are slow or hard. Goods ship once the payment is confirmed on the network.') ?></span>
+          </span>
+        </label>
+        <?php endif; ?>
       </div>
 
       <h3 style="margin:24px 0 10px"><?= t('Buyer details') ?></h3>
@@ -294,6 +312,8 @@ var PAY_LBL = {
   escrowHint: <?= json_encode(t('You pay now by card; funds are held in escrow until you confirm delivery.')) ?>,
   bankBtn: <?= json_encode(t('Place order request')) ?>,
   bankHint: <?= json_encode(t('No payment now — we confirm availability, then send your invoice.')) ?>,
+  cryptoBtn: <?= json_encode(t('Pay with crypto →')) ?>,
+  cryptoHint: <?= json_encode(t('You are taken to the OxaPay payment page; the order is recorded first.')) ?>,
   escrowSeller: <?= json_encode(t('Available when your whole cart is from one verified seller.')) ?>,
   /* Sepetteki butun tutarlar EUR basiliyor (eur() her zaman € yaziyor), sinir da
      EUR uzerinden sinaniyor -- burada goruntuleme para birimine cevirmek, sinirla
@@ -344,11 +364,25 @@ function syncPay(c, net){
     else if(why==='seller') lock.textContent=PAY_LBL.escrowSeller;
   }
   if(!ok && rEsc.checked){ rBank.checked=true; }
-  var esc=rEsc.checked;
+  /* Kripto: yaptirimli ulke/bolge metinde geciyorsa secenek gizlenir (yalniz gorunum; kapi
+     order.php'de). Olcu: ulke alani + fatura adresi + 'baska adres' metni. */
+  var cOpt=document.getElementById('payCryptoOpt'), rCry=document.getElementById('payCrypto');
+  if(cOpt && rCry){
+    var f=document.getElementById('orderForm');
+    var txt=[shipCountry(), (f&&f.querySelector('[name=address]')||{}).value||'',
+             (f&&f.querySelector('[name=ship_address]')||{}).value||''].join(' | ');
+    var blocked = CRYPTO_BLOCK_RE.test(txt);
+    cOpt.style.display = blocked?'none':'';
+    rCry.disabled = blocked;
+    if(blocked && rCry.checked){ rBank.checked=true; }
+  }
+  var esc=rEsc.checked, cry=!!(rCry&&rCry.checked);
   var btn=document.getElementById('placeBtn'), hint=document.getElementById('placeHint');
-  if(btn)  btn.textContent = esc?PAY_LBL.escrowBtn:PAY_LBL.bankBtn;
-  if(hint) hint.textContent= esc?PAY_LBL.escrowHint:PAY_LBL.bankHint;
+  if(btn)  btn.textContent = esc?PAY_LBL.escrowBtn:(cry?PAY_LBL.cryptoBtn:PAY_LBL.bankBtn);
+  if(hint) hint.textContent= esc?PAY_LBL.escrowHint:(cry?PAY_LBL.cryptoHint:PAY_LBL.bankHint);
 }
+/* Yaptirim kalibi SUNUCUDAN (vestra_sanction_js_pattern): ikinci bir liste tutulmuyor. */
+var CRYPTO_BLOCK_RE = new RegExp(<?= json_encode(vestra_sanction_js_pattern(), JSON_UNESCAPED_UNICODE) ?>, 'iu');
 /* PHP'deki vestra_brand_min_shortfall()'un aynisi: marka basina satir toplami,
    esigin altinda kalanlar. Ayni tolerans (0.005) -- tam 500.00'lik bir sepet
    kayan nokta yuzunden reddedilmesin. Karar SUNUCUDA; bu yalnizca alici
@@ -481,8 +515,12 @@ document.getElementById('rows').addEventListener('click', function(e){
 /* Ulke degisince navlun da degisir: alan formun icinde ve alici onu duzeltiyor. */
 (function(){ var el=document.querySelector('#orderForm [name=country]');
   if(el){ el.addEventListener('input', render); el.addEventListener('change', render); } })();
-['payEscrow','payBank'].forEach(function(id){
+['payEscrow','payBank','payCrypto'].forEach(function(id){
   var el=document.getElementById(id); if(el) el.addEventListener('change', function(){ render(); });
+});
+/* Adres alanlari degisince kripto secenegi yeniden olculur (ulke alani zaten render'a bagli). */
+['address','ship_address'].forEach(function(n){
+  var el=document.querySelector('#orderForm [name='+n+']'); if(el){ el.addEventListener('input', render); el.addEventListener('change', render); }
 });
 document.getElementById('orderForm') && document.getElementById('orderForm').addEventListener('submit',function(){
   document.getElementById('cartField').value=JSON.stringify(VCart.all());

@@ -47,6 +47,13 @@
   RewriteRule ^b2b/([A-Za-z0-9][A-Za-z0-9-]*)/?$ b2b.php?cat=$1 [L,QSA]
   RewriteRule ^wholesale/([A-Za-z0-9][A-Za-z0-9-]*)/?$ wholesale.php?brand=$1 [L,QSA]
 
+  # OxaPay kripto ödeme (14 Eki 2026, inc/oxapay.php). Webhook POST'u HMAC ile doğrulanır;
+  # CSRF katmanı yok (düz PHP), muafiyet gerekmez. Aşağıdaki genel "*.php → /sayfa" 301'i
+  # yalnız GET'e ve THE_REQUEST'teki ".php"ye bakıyor, bu üç adrese dokunmaz.
+  RewriteRule ^orders/([A-Za-z0-9_-]+)/pay/crypto/?$ oxapay-pay.php?ref=$1 [L,QSA]
+  RewriteRule ^orders/([A-Za-z0-9_-]+)/payment-return/?$ oxapay-return.php?ref=$1 [L,QSA]
+  RewriteRule ^oxapay/webhook/?$ oxapay-webhook.php [L]
+
   # /sitemap.xml → dinamik sitemap.php
   RewriteRule ^sitemap\.xml$ sitemap.php [L]
 

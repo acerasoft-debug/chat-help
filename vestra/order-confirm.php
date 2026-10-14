@@ -32,6 +32,17 @@ if (!$allowed) { header('Location: /login?back='.urlencode('/order-confirm?ref='
 $ld = vestra_order_lines($orderRow);
 $lines = $ld['lines'];
 
+/* Kripto (OxaPay, 14 Eki 2026): odeme durumu kayittan; odenmemisse "kripto ile ode" dugmesi
+   (yaptirimli ulke/bolge ve anahtarsiz kurulumda cizilmez). ?crypto=error|blocked bandi. */
+require_once __DIR__.'/inc/oxapay.php';
+$oxEntry  = (array)((vestra_read_json('order_statuses.json'))[$ref] ?? []);
+$oxMethod = (string)($oxEntry['payment_method'] ?? '');
+$oxPaid   = ($oxEntry['payment_status'] ?? '') === 'paid';
+$oxChosen = $oxMethod === 'oxapay' || str_contains((string)($orderRow['notes'] ?? ''), 'Payment: Crypto (OxaPay).');
+$oxCanPay = !$oxPaid && oxapay_enabled() && $me && strtolower((string)($orderRow['email'] ?? '')) === strtolower((string)($me['email'] ?? ''))
+            && !vestra_order_payment_settled($ref, $oxEntry)['settled'] && (($oxEntry['status'] ?? '') !== 'cancelled') && vestra_order_crypto_block($orderRow) === '';
+$oxFlag   = (string)($_GET['crypto'] ?? '');
+
 /* Escrow: if the buyer just returned from Stripe (paid=1) but the webhook hasn't
    marked the order held yet — e.g. connected-account events aren't enabled — verify
    the Checkout Session directly and fulfil it here. Makes escrow reliable without
@@ -74,12 +85,37 @@ $PAGE = t('Order received'); $NAV = 'shop'; require __DIR__.'/inc/head.php';
       · <?= t('A confirmation email is on its way to') ?> <b><?= htmlspecialchars($orderRow['email'] ?? '') ?></b></p>
   </div>
 
+  <?php if ($oxFlag === 'blocked'): ?>
+  <div class="banner" style="margin:22px 0;font-size:13.5px;background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">
+    <?= t('Crypto payment is not available for this delivery or billing country. Please pay by bank transfer against your invoice.') ?>
+  </div>
+  <?php elseif ($oxFlag === 'error' && $oxCanPay): ?>
+  <div class="banner" style="margin:22px 0;font-size:13.5px;background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">
+    <?= t('The crypto payment page could not be opened right now. Your order is saved — try again below, or pay by bank transfer.') ?>
+  </div>
+  <?php endif; ?>
+
+  <?php if ($oxPaid): ?>
+  <div class="banner ok" style="margin:22px 0;font-size:13.5px">
+    ₿ <b><?= t('Paid with crypto — thank you.') ?></b>
+    <?= t('The seller is preparing your shipment; you will receive tracking by email once it ships. Follow everything under My orders.') ?>
+  </div>
+  <?php elseif ($oxCanPay && $oxChosen): ?>
+  <div class="banner info" style="margin:22px 0;font-size:13.5px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between">
+    <span>₿ <b><?= t('Your order is saved. Complete the crypto payment to have it shipped.') ?></b>
+      <span class="hint"><?= t('USDT, BTC, ETH and more via OxaPay. You can also pay by bank transfer against your invoice instead.') ?></span></span>
+    <form method="post" action="/orders/<?= htmlspecialchars($ref) ?>/pay/crypto" style="display:inline;flex:none">
+      <button class="btn btn-p" type="submit">₿ <?= t('Pay with crypto →') ?></button>
+    </form>
+  </div>
+  <?php endif; ?>
+
   <?php if ($isEscrow): ?>
   <div class="banner ok" style="margin:22px 0;font-size:13.5px">
     🛡️ <b><?= t('Paid — your money is protected in escrow.') ?></b>
     <?= t('The seller ships your goods; the funds are released to them only after you confirm delivery under My orders. If anything goes wrong before then, open a dispute for a full refund.') ?>
   </div>
-  <?php else: ?>
+  <?php elseif (!$oxPaid): ?>
   <div class="banner info" style="margin:22px 0;font-size:13.5px">
     ⏳ <b><?= t('Stock is being confirmed.') ?></b>
     <?= t("Once confirmed, your invoice — with the seller's bank details — will be emailed to you and added to your account, usually within the day. Payment is by bank transfer against that invoice; goods ship after payment arrives. Track everything under My orders.") ?>
@@ -143,6 +179,11 @@ $PAGE = t('Order received'); $NAV = 'shop'; require __DIR__.'/inc/head.php';
   <?php endforeach; ?>
 
   <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:26px 0 50px">
+    <?php if ($oxCanPay && !$oxChosen): ?>
+      <form method="post" action="/orders/<?= htmlspecialchars($ref) ?>/pay/crypto" style="display:inline">
+        <button class="btn btn-o" type="submit">₿ <?= t('Pay with crypto instead') ?></button>
+      </form>
+    <?php endif; ?>
     <?php if ($me): ?>
       <a class="btn btn-p" href="/buyer?tab=orders"><?= t('Track in My orders →') ?></a>
     <?php else: ?>

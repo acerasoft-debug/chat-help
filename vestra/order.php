@@ -12,8 +12,10 @@ require_once __DIR__.'/inc/addresses.php';
 require_once __DIR__.'/inc/orders.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 $CONTACT='support@vestrasales.com'; $NOTIFY=false;
-/* Buyer's chosen payment method: 'escrow' (card, held) or 'bank' (invoice/transfer). */
-$payMethod = (($_POST['pay'] ?? 'bank') === 'escrow') ? 'escrow' : 'bank';
+/* Buyer's chosen payment method: 'escrow' (card, held), 'bank' (invoice/transfer) or 'crypto'
+   (OxaPay, 14 Eki 2026 -- havaleye EK secenek; anahtar .env'de yoksa 'bank'a duser). */
+require_once __DIR__.'/inc/oxapay.php';
+$payMethod = match ((string)($_POST['pay'] ?? 'bank')) { 'escrow' => 'escrow', 'crypto' => (oxapay_enabled() ? 'crypto' : 'bank'), default => 'bank' };
 
 if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: /cart'); exit; }
 if(!empty($_POST['website'])){ header('Location: /cart?placed=1&ref=NA'); exit; } // honeypot
@@ -54,6 +56,12 @@ $__ship=vestra_ship_addr_resolve(auth_user(), $shipPick, (string)($_POST['ship_a
 if(isset($__ship['error'])){ header('Location: /cart?err=shipaddr'); exit; }
 $shipAddr=$__ship['address']; // empty means "deliver to the billing address"
 $country=trim($_POST['country']??'');   // tarife bölgesini ve mektupları besleyen tek okuma
+/* YAPTIRIM ENGELI (operator, 14 Eki 2026): teslimat VEYA fatura ulkesi RU/BY/IR/KP/SY/CU
+   (.env SANCTIONED_COUNTRIES) ya da adres Kirim/Donetsk/Luhansk/Zaporijya/Herson ise kripto
+   YOK. Kasa secenegi zaten gizliyor; kapi BURADA (KURAL 4b: gizlemek kapi degildir). */
+if($payMethod==='crypto' && vestra_crypto_block_reason($country, '', $shipAddr, trim($_POST['address']??''))!==''){
+  header('Location: /cart?err=crypto_blocked'); exit;
+}
 
 /* Remember checkout details on the buyer's account so the next order is prefilled:
    the delivery address is always kept current; other fields only fill gaps (never
@@ -297,7 +305,7 @@ if($fh=@fopen($file,'a')){
     array_filter($lines, fn($l)=>!empty($l['colors']))));
   $sizeNotes=implode(' | ', array_map(fn($l)=>$l['sku'].': '.implode(', ',$l['sizes']),
     array_filter($lines, fn($l)=>!empty($l['sizes']))));
-  $methodLabel=$payMethod==='escrow'?'Payment: Secure escrow (card). ':'Payment: Bank transfer. ';
+  $methodLabel=$payMethod==='escrow'?'Payment: Secure escrow (card). ':($payMethod==='crypto'?'Payment: Crypto (OxaPay). ':'Payment: Bank transfer. ');
   $shipNote=$shipAddr!==''?vestra_order_delivery_segment($shipAddr).' ':''; // ic ". " korunur: bkz. inc/orders.php
   /* Kupon notu EN SONDA, alicinin kendi metninden sonra.
      vestra_order_notes_map() parcayi notlarin neresinde olursa olsun buluyor
@@ -418,9 +426,13 @@ $voucherSellerLine = $discount>0
 /* Saticiya da yaziliyor ama ODEMESINE GIRMEDIGI soylenerek: aksi halde alicinin
    odedigi toplam ile kendi odemesi arasindaki fark aciklamasiz kalirdi. */
 $shipSellerLine = $shipping>0 ? "\n{$shipLabel} (charged to the buyer, not part of your payout): €".number_format($shipping,2)."\n" : "";
-/* Confirmation to buyer — always on */
+/* Confirmation to buyer — always on. Kripto secen aliciya havale cumlesi YAZILMAZ:
+   odeme sayfasina yonlendiriliyor; sayfadan ciktiysa siparis sayfasindan yeniden acabilir. */
+$payPara = $payMethod==='crypto'
+  ? "You chose to pay with crypto (USDT, BTC, ETH…). Complete the payment on the OxaPay page you were sent to; if you left it, reopen it from your order page: https://vestrasales.com/order-confirm?ref={$ref}\nGoods ship once the payment is confirmed on the network. You can still pay by bank transfer against your invoice instead."
+  : "We are confirming stock now. Once confirmed, your PDF invoice (with the seller's bank details) will be emailed to you and added to your account — usually within the day. Payment is then by bank transfer against that invoice; goods ship after the transfer arrives. (Other payment methods are temporarily suspended.)";
 vestra_send_mail($email, "VESTRA — order {$ref} received",
-  "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\nWe are confirming stock now. Once confirmed, your PDF invoice (with the seller's bank details) will be emailed to you and added to your account — usually within the day. Payment is then by bank transfer against that invoice; goods ship after the transfer arrives. (Other payment methods are temporarily suspended.)\n\n{$voucherLine}{$shipLine}Buyer pays: €{$total}{$feeNote}\n".($shipAddr!==''?"Delivery address: {$shipAddr}\n":'')."\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":"").(!empty($l['sizes'])?" {".implode(", ",$l['sizes'])."}":""),$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+  "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\n{$payPara}\n\n{$voucherLine}{$shipLine}Buyer pays: €{$total}{$feeNote}\n".($shipAddr!==''?"Delivery address: {$shipAddr}\n":'')."\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":"").(!empty($l['sizes'])?" {".implode(", ",$l['sizes'])."}":""),$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
 
 /* Notify the seller(s) who own the ordered listings */
 if(!empty($lines)){
@@ -493,4 +505,13 @@ if($orderTok !== ''){
   if (count($_SESSION['order_token_done']) > 20) $_SESSION['order_token_done'] = array_slice($_SESSION['order_token_done'], -20, null, true);
 }
 
+/* KRIPTO: siparis diske yazildi, mektuplar gitti; simdi OxaPay faturasi ac ve odeme
+   sayfasina gonder. Fatura acilamazsa siparis KALIR (havaleyle odenebilir) ve onay
+   sayfasi "yeniden dene" dugmesini basar -- satis bir API hatasina kaybedilmez. */
+if($payMethod==='crypto'){
+  $orderRow=null; foreach(vestra_read_csv('orders.csv') as $r){ if(($r['ref']??'')===$ref){ $orderRow=$r; break; } }
+  $cr=$orderRow ? oxapay_create_invoice($orderRow) : ['ok'=>false,'error'=>'row'];
+  if($cr['ok']){ header('Location: '.$cr['payment_url'], true, 303); exit; }
+  header('Location: /order-confirm?ref='.urlencode($ref).'&crypto='.($cr['error']==='sanctioned'?'blocked':'error')); exit;
+}
 header('Location: /order-confirm?ref='.urlencode($ref)); exit;

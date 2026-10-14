@@ -28,6 +28,21 @@ if (!$dry && ($tick = vestra_finder_server_tick()) !== '') echo '[finder '.date(
 /* Brevo partileri (09:12 / 15:12 / 23:45 Avrupa) ve saatlik geri dönme taraması da sunucudan (14 Eki 2026, inc/ops_tick.php). */
 if (!$dry) { require_once __DIR__.'/inc/ops_tick.php'; try { foreach (vestra_ops_tick() as $_ol) echo '[ops '.date('Y-m-d H:i').'] '.$_ol."\n"; } catch (\Throwable $e) { echo '[ops] '.$e->getMessage()."\n"; } }
 
+/* Tedarikçiye iletme kuyruğu (OxaPay ile ödenen siparişler, inc/oxapay.php, 14 Eki 2026): kendi kilidi,
+   en çok 5 deneme (60/300/900/3600 sn). Kuyruk boşsa hiçbir şey yapmaz. */
+if (!$dry) {
+  require_once __DIR__.'/inc/auth.php'; require_once __DIR__.'/inc/orders.php'; require_once __DIR__.'/inc/invoice.php';
+  require_once __DIR__.'/inc/addresses.php'; require_once __DIR__.'/inc/oxapay.php';
+  $qlk = @fopen(vestra_data_dir().'/supplier_queue_cron.lock', 'c');
+  if ($qlk && flock($qlk, LOCK_EX | LOCK_NB)) {
+    try {
+      $qs = vestra_supplier_forward_run(['log' => static function (string $m): void { echo $m, "\n"; }]);
+      if ($qs['sent'] || $qs['retried'] || $qs['failed']) echo '[supplier '.date('Y-m-d H:i').'] iletildi '.$qs['sent'].' · yeniden '.$qs['retried'].' · vazgecildi '.$qs['failed']."\n";
+    } catch (\Throwable $e) { echo '[supplier] '.$e->getMessage()."\n"; }
+    flock($qlk, LOCK_UN); fclose($qlk);
+  }
+}
+
 /* Satıcıların sunucu yolu (inc/seller_outbox.php, via=server): kendi kilidi — admin kampanyası saatlerce sürse de
    satıcı mektupları her 10 dk'da gider (tur başına en çok 40, 8-15 sn ara). */
 require_once __DIR__.'/inc/seller_outbox.php';

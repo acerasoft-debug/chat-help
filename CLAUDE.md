@@ -12660,3 +12660,46 @@ distribütör yok; gerçek e-mailler, uydurma yok; Alman e-mailleri de şu an i�
   gömülü "3-day" seller_doc_grace testine takılır). Fiyat kapısı kapalıya EUR yok. Test `tests/aktion_mail_test.php`.
   Kuru koşu 238 aday (11 skip + 1 kural elendi; fiyat açık 232 / kapalı 6). Operatöre kopya (es) + **ilk 50 gitti,
   hata 0**. Kota: 112 kalan / 60 ayrılmış → bugün yalnız 50; kalan ~188 için 15 Eki 05:00 UTC hatırlatması kuruldu.
+
+## OxaPay kripto ödeme + yaptırım engeli + tedarikçi kuyruğu (operatör, 14 Eki 2026)
+
+Operatör: *"VESTRA'ya OxaPay kripto ödeme entegrasyonu ekle … banka havalesine alternatif ek ödeme
+seçeneği (Güney Amerika, Türkiye, Orta Doğu, Asya)… Yaptırım engeli … Sandbox'ta gerçek e-posta/API gitmesin."*
+
+- **Proje Laravel değil, düz PHP** — istenen Laravel parçaları şöyle karşılandı: `config/oxapay.php`
+  → public_html'in üstündeki `.env` (`inc/env.php`); Order modeli/migration → `orders.csv` satırı +
+  `order_statuses.json` kaydına yeni alanlar (`payment_method=oxapay`, `payment_status`
+  pending|confirming|paid|expired|failed, `oxapay_track_id`, `oxapay_payment_url`, `oxapay_sandbox`,
+  `oxapay_payload`, `paid_at`, `supplier_forwarded_at`, `fulfillment_status`); track→ref indeksi
+  `data/oxapay_index.json`; "DB transaction" → `data/oxapay.lock` flock; queue job →
+  `data/supplier_queue.json`, **`cron_mailbox.php` her 10 dk** işler (5 deneme, 60/300/900/3600 sn).
+- **Dosyalar:** `inc/oxapay.php` (servis + yaptırım + kuyruk), `oxapay-pay.php` (POST
+  `/orders/{ref}/pay/crypto`, yalnız sahibi, ödenmişse 400, yaptırımlıysa 303 `crypto=blocked`),
+  `oxapay-return.php` (GET `/orders/{ref}/payment-return`), `oxapay-webhook.php` (POST
+  `/oxapay/webhook`, HMAC-SHA512 ham gövde + `hash_equals`, geçersiz 400, her zaman 200 `ok`,
+  idempotent). Rotalar `.htaccess` + `_router_local.php`. Kasa: `cart.php` üçüncü seçenek
+  `pay=crypto` (yalnız `.env`'de anahtar varken çizilir), `order.php` siparişi yazıp OxaPay'e
+  yönlendirir; fatura açılamazsa sipariş kalır, `order-confirm` "yeniden dene" düğmesi basar.
+- **Yaptırım:** `SANCTIONED_COUNTRIES` (.env, varsayılan RU,BY,IR,KP,SY,CU) fatura VEYA teslimat
+  ülkesi; adres metninde ülke adı (çok dilli takma adlar) ya da Kırım/Donetsk/Luhansk/Zaporijya/
+  Herson bölge ve şehirleri (`vestra_sanction_regions`, `.env SANCTIONED_REGIONS` ek) → kasa JS gizler
+  (`vestra_sanction_js_pattern`), **kapı `order.php` + `oxapay-pay.php`'de** (KURAL 4b).
+- **Tedarikçi:** `SUPPLIER_FORWARD_MODE=email|api`; `SUPPLIER_ORDER_EMAIL` doluysa oraya, **boşsa
+  her satıcıya KENDİ satırları**; `api` = Bearer POST `SUPPLIER_API_URL`. Yük: `reference
+  VESTRA-{ref}`, teslimat adresi (`vestra_order_ship_to`), kalemler (`supplier_sku`/sku, ad, beden,
+  renk, adet). Ödeme gelince alıcıya/satıcıya mektup, komisyon (`vestra_charge_order_commission`),
+  askı kaldırma — mevcut `admin order_status=paid` yolunun aynısı.
+- **SANDBOX = gerçek iletim YOK:** kayıttaki `oxapay_sandbox` damgası (yoksa `.env` kipi) ile
+  müşteri/satıcı/operatör mektubu, komisyon ve tedarikçi API'si **atlanır**; `.env
+  OXAPAY_SANDBOX_TEST_EMAIL` doluysa tek "[TEST]" mektup oraya, boşsa yalnız log.
+- **Anahtar sunucudan çıkmaz:** `.env` yalnız `set-oxapay-env.yml` ile yazılır — gizli değerler
+  **şifreli zarfla** (`env_enc`, keygen public key'i, seller-products `apply` zarfıyla aynı biçim),
+  açık girdiler sandbox/lifetime/mode/yaptırım. Doğrulama: sandbox 1 EUR faturası (sipariş kaydı
+  yok) + canlı webhook yoklaması (yanlış HMAC 400, doğru HMAC + bilinmeyen track 200). Teşhis:
+  `diag-oxapay.yml` (maskeli). Operatör anahtarı sohbete yapıştırdı ve "kullanabilirsin" dedi;
+  zarf yerelde mühürlendi, repo/girdi/log'a açık yazılmadı.
+- **Test:** `tests/oxapay_test.php` (130 iddia: ayar, yaptırım, fatura gövdesi, HMAC, webhook 5×
+  tekrar = tek iş, kuyruk e-posta/API/geri çekilme, sandbox, php -S uç noktaları).
+  `_router_local.php`'ye `VESTRA_TEST_PREPEND` kancası eklendi: **auto_prepend_file yönlendirici
+  betiğiyle işlemiyor** (ölçüldü) — kum havuzu dizini/sahte anahtar bu kancayla veriliyor.
+- **Gece takip turu** bu işten bağımsız, operatör kararıyla KAPALI kalıyor.
