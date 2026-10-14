@@ -576,6 +576,28 @@ jobs:
                    vestra_cfg('mail_enabled', false) ? 'acik' : '*** KAPALI ***',
                    (string)vestra_cfg('mail_from', '(bos)'));
 
+            /* DAHA ONCE GITTI MI (14 Eki 2026, operator: "password yenileme gonder gitmediyse"):
+               (1) hesapta acik bir sifirlama jetonu var mi (auth_reset_begin 1 saatlik yazar),
+               (2) Brevo'nun KENDI kaydinda son 30 gunde bu adrese giden sifre/giris mektuplari.
+               Konu basilir, adres basilmaz. Kuru kosuda da calisir -- karar bundan once verilir. */
+            $rx = (string)($acc['reset_expires'] ?? '');
+            printf("sifirlama jetonu: %s\n", $rx === '' ? 'yok (hic istenmemis ya da kullanilmis)'
+                   : ('son istek ~'.date('Y-m-d H:i', strtotime($rx) - 3600).' UTC, '.(strtotime($rx) > time() ? 'HALA GECERLI' : 'suresi dolmus')));
+            $cfgM = json_decode((string)@file_get_contents($doc.'/data/email_settings.json'), true) ?: [];
+            $bk = (string)($cfgM['mail_api_key'] ?? $cfgM['api_key'] ?? '');
+            if ($bk !== '' && $mail !== '') {
+              $ch = curl_init('https://api.brevo.com/v3/smtp/statistics/events?limit=100&days=30&email='.rawurlencode($mail));
+              curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_HTTPHEADER => ['accept: application/json', 'api-key: '.$bk]]);
+              $raw = (string)curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+              $ev = $code === 200 ? ((json_decode($raw, true)['events'] ?? []) ?: []) : null;
+              if ($ev === null) { echo "Brevo: okunamadi (HTTP {$code})\n"; }
+              else {
+                $pwRe = '/reset|password|passwort|contrase|mot de passe|senha|parola|wachtwoord|haslo|пароль|كلمة|パスワード|account is ready|konto|sign in|log in/iu';
+                $pw = array_values(array_filter($ev, fn($e) => preg_match($pwRe, (string)($e['subject'] ?? ''))));
+                printf("Brevo 30 gun: bu adrese %d olay; sifre/giris mektubu olaylari: %d\n", count($ev), count($pw));
+                foreach (array_slice($pw, 0, 10) as $e) printf("   %s  %-12s %s\n", substr((string)($e['date'] ?? ''), 0, 16), (string)($e['event'] ?? ''), mb_substr((string)($e['subject'] ?? ''), 0, 80));
+              }
+            }
             if (!function_exists('vestra_account_ready_text')) {
               fwrite(STDERR, "\nHATA: vestra_account_ready_text sunucuda YOK -- deploy inmemis.\n"); exit(1);
             }
