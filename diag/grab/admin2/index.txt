@@ -1,0 +1,6 @@
+01 200 text/html; charset=utf-8 18767 https://sarvesto.com/?lang=de
+01.src https://sarvesto.com/?lang=de
+02 200 text/html; charset=utf-8 1063 https://sarvesto.com/admin/login.php
+02.src https://sarvesto.com/admin/login.php
+03 200 text/html; charset=utf-8 10162 https://sarvesto.com/shop.php?brand=LACOSTE
+03.src https://sarvesto.com/shop.php?brand=LACOSTE
