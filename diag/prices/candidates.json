@@ -4828,6 +4828,19 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-de/search?q=G8PN9TG7NTWN0000",
+                "title": "dolcegabbana.com G8PN9TG7NTWN0000 (15DE)",
+                "prices": [
+                    {
+                        "kind": "brand",
+                        "cur": "EUR",
+                        "price": null,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -5063,6 +5076,19 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-de/search?q=G8PT1TG7F2IS8291",
+                "title": "dolcegabbana.com G8PT1TG7F2IS8291 (15DE)",
+                "prices": [
+                    {
+                        "kind": "brand",
+                        "cur": "EUR",
+                        "price": null,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -5354,7 +5380,21 @@
         "sku": "G8RN8ZG7M8X",
         "price": 29500,
         "ref": 45000,
-        "sources": []
+        "sources": [
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-de/search?q=G8RN8ZG7M8XM0464",
+                "title": "dolcegabbana.com G8RN8ZG7M8XM0464 (15DE)",
+                "prices": [
+                    {
+                        "kind": "brand",
+                        "cur": "EUR",
+                        "price": null,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "dgn-g8rn8zg7n4q": {
         "id": "dgn-g8rn8zg7n4q",
@@ -5384,6 +5424,19 @@
                         "kind": "jsonld",
                         "cur": "EUR",
                         "price": 395,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-de/search?q=G8RN8ZG7NUBM0672",
+                "title": "dolcegabbana.com G8RN8ZG7NUBM0672 (15DE)",
+                "prices": [
+                    {
+                        "kind": "brand",
+                        "cur": "EUR",
+                        "price": null,
                         "list": null
                     }
                 ]
@@ -5478,6 +5531,19 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-de/search?q=G8SE3TFU7ENA4567",
+                "title": "dolcegabbana.com G8SE3TFU7ENA4567 (15DE)",
+                "prices": [
+                    {
+                        "kind": "brand",
+                        "cur": "EUR",
+                        "price": null,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -5499,7 +5565,21 @@
         "sku": "G9ABGTGF790",
         "price": 62000,
         "ref": 95000,
-        "sources": []
+        "sources": [
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-de/search?q=G9ABGTGF790N0000",
+                "title": "dolcegabbana.com G9ABGTGF790N0000 (15DE)",
+                "prices": [
+                    {
+                        "kind": "brand",
+                        "cur": "EUR",
+                        "price": null,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "dgn-g9abjtg7f2gba232": {
         "id": "dgn-g9abjtg7f2gba232",
@@ -5571,6 +5651,19 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-de/search?q=G9AOJTGG781N0000",
+                "title": "dolcegabbana.com G9AOJTGG781N0000 (15DE)",
+                "prices": [
+                    {
+                        "kind": "brand",
+                        "cur": "EUR",
+                        "price": null,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -5766,7 +5859,22 @@
         "cat": "Jeans",
         "sku": "GY07CDG8GW9",
         "price": 42500,
-        "ref": 65000
+        "ref": 65000,
+        "sources": [
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-de/search?q=GY07CDG8GW9S9001",
+                "title": "dolcegabbana.com GY07CDG8GW9S9001 (15DE)",
+                "prices": [
+                    {
+                        "kind": "brand",
+                        "cur": "EUR",
+                        "price": null,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "dgn-gy07cdg8ha9": {
         "id": "dgn-gy07cdg8ha9",
@@ -5830,7 +5938,21 @@
         "sku": "GY07LDG8HA7",
         "price": 42500,
         "ref": 65000,
-        "sources": []
+        "sources": [
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-de/search?q=GY07LDG8HA7S9001",
+                "title": "dolcegabbana.com GY07LDG8HA7S9001 (15DE)",
+                "prices": [
+                    {
+                        "kind": "brand",
+                        "cur": "EUR",
+                        "price": null,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "dgn-gy07ldg8hb3": {
         "id": "dgn-gy07ldg8hb3",
@@ -5889,6 +6011,19 @@
                         "kind": "jsonld",
                         "cur": "USD",
                         "price": 716,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-de/search?q=GY07LDG8HW4S9001",
+                "title": "dolcegabbana.com GY07LDG8HW4S9001 (15DE)",
+                "prices": [
+                    {
+                        "kind": "brand",
+                        "cur": "EUR",
+                        "price": null,
                         "list": null
                     }
                 ]
@@ -6216,7 +6351,21 @@
         "sku": "M4E48TFUSFW",
         "price": 25500,
         "ref": 39500,
-        "sources": []
+        "sources": [
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-de/search?q=M4E48TFUSFWN0000",
+                "title": "dolcegabbana.com M4E48TFUSFWN0000 (15DE)",
+                "prices": [
+                    {
+                        "kind": "brand",
+                        "cur": "EUR",
+                        "price": null,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "dgx-g8kbat-g7f1r": {
         "id": "dgx-g8kbat-g7f1r",
@@ -6926,6 +7075,19 @@
                 ],
                 "eu": 1,
                 "has": 1
+            },
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-de/search?q=G8PT1TG7F2IS8291",
+                "title": "dolcegabbana.com G8PT1TG7F2IS8291 (15DE)",
+                "prices": [
+                    {
+                        "kind": "brand",
+                        "cur": "EUR",
+                        "price": null,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -7477,6 +7639,19 @@
                         "list": null
                     }
                 ]
+            },
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-de/search?q=GY07CDG8GW9S9001",
+                "title": "dolcegabbana.com GY07CDG8GW9S9001 (15DE)",
+                "prices": [
+                    {
+                        "kind": "brand",
+                        "cur": "EUR",
+                        "price": null,
+                        "list": null
+                    }
+                ]
             }
         ]
     },
@@ -7581,7 +7756,22 @@
         "cat": "Jeans",
         "sku": "GY07LD G8HA7",
         "price": 42500,
-        "ref": 65000
+        "ref": 65000,
+        "sources": [
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-de/search?q=GY07LDG8HA7S9001",
+                "title": "dolcegabbana.com GY07LDG8HA7S9001 (15DE)",
+                "prices": [
+                    {
+                        "kind": "brand",
+                        "cur": "EUR",
+                        "price": null,
+                        "list": null
+                    }
+                ]
+            }
+        ]
     },
     "dgx-gy07ld-g8hb3": {
         "id": "dgx-gy07ld-g8hb3",
@@ -7640,6 +7830,19 @@
                         "kind": "jsonld",
                         "cur": "USD",
                         "price": 716,
+                        "list": null
+                    }
+                ]
+            },
+            {
+                "host": "www.dolcegabbana.com",
+                "page": "https://www.dolcegabbana.com/en-de/search?q=GY07LDG8HW4S9001",
+                "title": "dolcegabbana.com GY07LDG8HW4S9001 (15DE)",
+                "prices": [
+                    {
+                        "kind": "brand",
+                        "cur": "EUR",
+                        "price": null,
                         "list": null
                     }
                 ]
