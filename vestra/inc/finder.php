@@ -554,7 +554,7 @@ const VESTRA_NOT_RETAIL_DOMAINS = ['rtl', 'ksta', 'morgenpost', 'sueddeutsche', 
   'focus', 'welt', 'faz', 'stern', 'zeit', 'tagesschau', 'zdf', 'ard', 'n-tv', 'ntv', 'sat1', 'prosieben', 'vox', 't-online.de', 'gmx', 'web.de',
   'kering', 'lvmh', 'yorkshire', 'gemo', 'merkal', 'taokids', 'size', 'sizeofficial', 'prodirectsport', 'fc-moto', 'mistersafetyshoes', 'factoryshoe',
   'leparisien', 'lefigaro', 'ouest-france', 'lemonde', 'liberation', 'elle', 'vogue', 'gala', 'marieclaire', 'corriere', 'repubblica', 'elpais',
-  'abc', 'bbc', 'dailymail', 'theguardian', 'telegraph', 'independent', 'mirror', 'nieuwsblad', 'hln', 'telegraaf', 'nu', 'onet', 'interia'];
+  'abc', 'bbc', 'cbc', 'ctv', 'globalnews', 'lindependant', 'ladepeche', 'sudouest', 'nzherald', 'stuff', 'smh', 'theage', 'news24', 'dailymail', 'theguardian', 'telegraph', 'independent', 'mirror', 'nieuwsblad', 'hln', 'telegraaf', 'nu', 'onet', 'interia'];
 
 /** Gönderimi şimdilik durdurulan ülkeler (14 Eki 2026, operatör: "Alman e-mailleri de şu an için yok"). mailbox.json
  *  'paused_countries' (liste) varsa o, yoksa varsayılan. Ülke alanı ya da .de alan adı (e-posta / site) Almanya sayılır. */

@@ -838,7 +838,8 @@ foreach ([['company' => 'rtl.de', 'email' => 'info@rtl.de', 'website' => 'https:
           ['company' => 'Kering', 'email' => 'contact@kering.com'], ['company' => 'size?', 'email' => 'shop@size.ca'], ['company' => 'Gémo', 'email' => 'x@gemo.fr'],
           ['company' => 'Dagdas Projects Ihr Behördenausrüster', 'email' => 'info@dagdas.de'], ['company' => 'Feinbier unterwegs', 'email' => 'a@feinbier-unterwegs.de'],
           ['company' => 'Mister Safety Shoes', 'email' => 'a@mistersafetyshoes.com'], ['company' => 'NK Diffusion', 'email' => 'contact@nkdiffusion.fr'],
-          ['company' => 'Boutique X', 'email' => 'zuschauerservice@example-media.com'], ['company' => 'Czech Tourist', 'email' => 'czechtourist@gmx.de']] as $x)
+          ['company' => 'Boutique X', 'email' => 'zuschauerservice@example-media.com'], ['company' => 'Czech Tourist', 'email' => 'czechtourist@gmx.de'],
+          ['company' => 'CBC', 'email' => 'x@cbc.ca'], ['company' => 'lindependant.fr', 'email' => 'redac@lindependant.fr']] as $x)
   $t('moda dükkânı değil → gönderilmez: '.$x['company'], vestra_lead_off_target($x));
 foreach ([['company' => 'Venus Lingerie', 'email' => 'info@venuslingerie.ca'], ['company' => 'Maroquinerie du Sud', 'email' => 'a@maroquineriedusud.com'],
           ['company' => 'Tendance Chaussures', 'email' => 'a@tendancechaussures.com'], ['company' => 'Rays Locker', 'email' => 'a@rayslocker.com.au'],
