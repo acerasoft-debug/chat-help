@@ -6,6 +6,10 @@ on:
         description: "Kontrol edilecek yollar, boşlukla ayrık"
         required: false
         default: "/ /shop /seller /buyer /login /register /requests /journal /product?id=dsq-s74gl0064-900"
+      markers:
+        description: "İsteğe bağlı: gövdede sayılacak ifadeler, | ile ayrık (ör. hero-rule|hero-glow)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -23,6 +27,7 @@ jobs:
       - name: HTTP kontrolü
         env:
           PATHS: ${{ github.event.inputs.paths }}
+          MARKERS: ${{ github.event.inputs.markers }}
         run: |
           set -e
           BASE="https://vestrasales.com"
@@ -45,6 +50,10 @@ jobs:
               note="</html> yok — cikti yarida kesilmis"
             fi
             printf '%-46s %-6s %-9s %-7s %s\n' "$p" "$code" "$size" "$secs" "$note"
+            if [ -n "${MARKERS:-}" ]; then
+              IFS='|' read -ra MK <<< "$MARKERS"
+              for m in "${MK[@]}"; do printf '    %-30s %s\n' "$m" "$(grep -o -- "$m" /tmp/body.html 2>/dev/null | wc -l)"; done
+            fi
             if [ -n "$note" ]; then
               echo "    --- govdenin son 400 baytı ---"
               tail -c 400 /tmp/body.html | tr -d '\0' | sed 's/^/    /'
