@@ -4347,7 +4347,8 @@
         "cat": "T-Shirts",
         "sku": "G8OL3ZFU7EQ",
         "price": 29500,
-        "ref": 45000
+        "ref": 45000,
+        "sources": []
     },
     "dgn-g8ol6zg7c8g": {
         "id": "dgn-g8ol6zg7c8g",
@@ -4393,7 +4394,8 @@
         "cat": "T-Shirts",
         "sku": "G8OL6ZG7C8G1",
         "price": 29500,
-        "ref": 45000
+        "ref": 45000,
+        "sources": []
     },
     "dgn-g8on5zfugk4": {
         "id": "dgn-g8on5zfugk4",
@@ -4439,7 +4441,8 @@
         "cat": "T-Shirts",
         "sku": "G8PB8TG7K4Q",
         "price": 29500,
-        "ref": 45000
+        "ref": 45000,
+        "sources": []
     },
     "dgn-g8pb8tg7k4w": {
         "id": "dgn-g8pb8tg7k4w",
@@ -4621,7 +4624,8 @@
         "cat": "Polos",
         "sku": "G8PL4ZG7NYY",
         "price": 36000,
-        "ref": 55000
+        "ref": 55000,
+        "sources": []
     },
     "dgn-g8pl5zfu7eq": {
         "id": "dgn-g8pl5zfu7eq",
@@ -4703,7 +4707,8 @@
         "cat": "T-Shirts",
         "sku": "G8PN9TG7M3K",
         "price": 29500,
-        "ref": 45000
+        "ref": 45000,
+        "sources": []
     },
     "dgn-g8pn9tg7m3kx": {
         "id": "dgn-g8pn9tg7m3kx",
@@ -4837,7 +4842,7 @@
                     {
                         "kind": "brand",
                         "cur": "EUR",
-                        "price": null,
+                        "price": 450,
                         "list": null
                     }
                 ]
@@ -4921,7 +4926,8 @@
         "cat": "T-Shirts",
         "sku": "G8PN9TG7O4T",
         "price": 29500,
-        "ref": 45000
+        "ref": 45000,
+        "sources": []
     },
     "dgn-g8pn9zg7m2f": {
         "id": "dgn-g8pn9zg7m2f",
@@ -4970,7 +4976,8 @@
         "cat": "T-Shirts",
         "sku": "G8PN9ZG7M2FW800",
         "price": 29500,
-        "ref": 45000
+        "ref": 45000,
+        "sources": []
     },
     "dgn-g8pn9zg7nye": {
         "id": "dgn-g8pn9zg7nye",
@@ -5085,7 +5092,7 @@
                     {
                         "kind": "brand",
                         "cur": "EUR",
-                        "price": null,
+                        "price": 495,
                         "list": null
                     }
                 ]
@@ -5120,7 +5127,8 @@
         "cat": "T-Shirts",
         "sku": "G8PT1TG7JV9V0396",
         "price": 29500,
-        "ref": 45000
+        "ref": 45000,
+        "sources": []
     },
     "dgn-g8pt1zfu7eq": {
         "id": "dgn-g8pt1zfu7eq",
@@ -5140,7 +5148,8 @@
         "cat": "T-Shirts",
         "sku": "G8PT2TG7F2I",
         "price": 29500,
-        "ref": 45000
+        "ref": 45000,
+        "sources": []
     },
     "dgn-g8qg3tfu7ep": {
         "blocked": true,
@@ -5150,7 +5159,8 @@
         "cat": "Polos",
         "sku": "G8QG3TFU7EP",
         "price": 36000,
-        "ref": 55000
+        "ref": 55000,
+        "sources": []
     },
     "dgn-g8qi4tfu7eq": {
         "id": "dgn-g8qi4tfu7eq",
@@ -5200,7 +5210,8 @@
         "cat": "T-Shirts",
         "sku": "G8RA2ZG7J6F",
         "price": 29500,
-        "ref": 45000
+        "ref": 45000,
+        "sources": []
     },
     "dgn-g8ra2zg7o2g": {
         "id": "dgn-g8ra2zg7o2g",
@@ -5280,7 +5291,8 @@
         "cat": "T-Shirts",
         "sku": "G8RK6TG7K4Y",
         "price": 29500,
-        "ref": 45000
+        "ref": 45000,
+        "sources": []
     },
     "dgn-g8rk6tg7lgy": {
         "id": "dgn-g8rk6tg7lgy",
@@ -5389,7 +5401,7 @@
                     {
                         "kind": "brand",
                         "cur": "EUR",
-                        "price": null,
+                        "price": 495,
                         "list": null
                     }
                 ]
@@ -5436,7 +5448,7 @@
                     {
                         "kind": "brand",
                         "cur": "EUR",
-                        "price": null,
+                        "price": 395,
                         "list": null
                     }
                 ]
@@ -5540,7 +5552,7 @@
                     {
                         "kind": "brand",
                         "cur": "EUR",
-                        "price": null,
+                        "price": 495,
                         "list": null
                     }
                 ]
@@ -5555,7 +5567,8 @@
         "cat": "Polos",
         "sku": "G8SN1TFU7EN",
         "price": 36000,
-        "ref": 55000
+        "ref": 55000,
+        "sources": []
     },
     "dgn-g9abgtgf790": {
         "id": "dgn-g9abgtgf790",
@@ -5574,7 +5587,7 @@
                     {
                         "kind": "brand",
                         "cur": "EUR",
-                        "price": null,
+                        "price": 1450,
                         "list": null
                     }
                 ]
@@ -5613,7 +5626,8 @@
         "cat": "Jacken",
         "sku": "G9AOFTGG731",
         "price": 94500,
-        "ref": 145000
+        "ref": 145000,
+        "sources": []
     },
     "dgn-g9aojtgg781": {
         "id": "dgn-g9aojtgg781",
@@ -5660,7 +5674,7 @@
                     {
                         "kind": "brand",
                         "cur": "EUR",
-                        "price": null,
+                        "price": 1250,
                         "list": null
                     }
                 ]
@@ -5675,7 +5689,8 @@
         "cat": "Hoodies & Sweatshirts",
         "sku": "G9OW6ZG7C8H",
         "price": 58000,
-        "ref": 89500
+        "ref": 89500,
+        "sources": []
     },
     "dgn-g9xh0zfu7du": {
         "id": "dgn-g9xh0zfu7du",
@@ -5695,7 +5710,8 @@
         "cat": "Hoodies & Sweatshirts",
         "sku": "G9XH2ZG7D0E",
         "price": 58000,
-        "ref": 89500
+        "ref": 89500,
+        "sources": []
     },
     "dgn-g9xh2zg7d0e1": {
         "id": "dgn-g9xh2zg7d0e1",
@@ -5869,7 +5885,7 @@
                     {
                         "kind": "brand",
                         "cur": "EUR",
-                        "price": null,
+                        "price": 595,
                         "list": null
                     }
                 ]
@@ -5928,7 +5944,8 @@
         "cat": "Jeans",
         "sku": "GY07LDG8EU5",
         "price": 42500,
-        "ref": 65000
+        "ref": 65000,
+        "sources": []
     },
     "dgn-gy07ldg8ha7": {
         "id": "dgn-gy07ldg8ha7",
@@ -5947,7 +5964,7 @@
                     {
                         "kind": "brand",
                         "cur": "EUR",
-                        "price": null,
+                        "price": 595,
                         "list": null
                     }
                 ]
@@ -6023,7 +6040,7 @@
                     {
                         "kind": "brand",
                         "cur": "EUR",
-                        "price": null,
+                        "price": 595,
                         "list": null
                     }
                 ]
@@ -6148,7 +6165,8 @@
         "cat": "Bademode",
         "sku": "M4A13T",
         "price": 25500,
-        "ref": 39500
+        "ref": 39500,
+        "sources": []
     },
     "dgn-m4a13tismd3": {
         "id": "dgn-m4a13tismd3",
@@ -6360,7 +6378,7 @@
                     {
                         "kind": "brand",
                         "cur": "EUR",
-                        "price": null,
+                        "price": 395,
                         "list": null
                     }
                 ]
@@ -6608,7 +6626,8 @@
         "cat": "Polos",
         "sku": "G8OL0Z FU7EN",
         "price": 36000,
-        "ref": 55000
+        "ref": 55000,
+        "sources": []
     },
     "dgx-g8ol3z-fu7eq": {
         "id": "dgx-g8ol3z-fu7eq",
@@ -6803,7 +6822,8 @@
         "cat": "T-Shirts",
         "sku": "G8PJ4Z HU7MA",
         "price": 29500,
-        "ref": 45000
+        "ref": 45000,
+        "sources": []
     },
     "dgx-g8pj4z-hu7mab": {
         "id": "dgx-g8pj4z-hu7mab",
@@ -7084,7 +7104,7 @@
                     {
                         "kind": "brand",
                         "cur": "EUR",
-                        "price": null,
+                        "price": 495,
                         "list": null
                     }
                 ]
@@ -7484,7 +7504,8 @@
         "cat": "Hoodies & Sweatshirts",
         "sku": "G9YI0Z HI7WK",
         "price": 58000,
-        "ref": 89500
+        "ref": 89500,
+        "sources": []
     },
     "dgx-g9zk9z-fu7du": {
         "id": "dgx-g9zk9z-fu7du",
@@ -7648,7 +7669,7 @@
                     {
                         "kind": "brand",
                         "cur": "EUR",
-                        "price": null,
+                        "price": 595,
                         "list": null
                     }
                 ]
@@ -7766,7 +7787,7 @@
                     {
                         "kind": "brand",
                         "cur": "EUR",
-                        "price": null,
+                        "price": 595,
                         "list": null
                     }
                 ]
@@ -7842,7 +7863,7 @@
                     {
                         "kind": "brand",
                         "cur": "EUR",
-                        "price": null,
+                        "price": 595,
                         "list": null
                     }
                 ]
