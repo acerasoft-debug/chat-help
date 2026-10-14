@@ -3,11 +3,12 @@
 import { chromium } from 'playwright-core';
 const BASE = 'https://vestrasales.com';
 const exe = process.env.CHROME || '/usr/bin/google-chrome';
-const b = await chromium.launch({ executablePath: exe, args: ['--headless=new'] });
+/* Normal (kalıcı) profil: gizli pencerede Chrome hiçbir siteyi kurulabilir saymaz ("in-incognito"). */
+import { mkdtempSync } from 'node:fs'; import { tmpdir } from 'node:os'; import { join } from 'node:path';
 let bad = 0;
 for (const [name, path, mobile] of [['EN masaüstü', '/?lang=en', false], ['DE telefon (Android)', '/?lang=de', true], ['AR telefon', '/?lang=ar', true], ['TR telefon', '/?lang=tr', true]]) {
-  const ctx = await b.newContext(mobile ? { viewport: { width: 412, height: 915 }, isMobile: true, hasTouch: true,
-    userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36' } : { viewport: { width: 1366, height: 860 } });
+  const ctx = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), 'vpwa-')), { executablePath: exe, args: ['--headless=new'], ...(mobile ? { viewport: { width: 412, height: 915 }, isMobile: true, hasTouch: true,
+    userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36' } : { viewport: { width: 1366, height: 860 } }) });
   const p = await ctx.newPage(); const errs = [];
   p.on('pageerror', e => errs.push(e.message));
   let bip = false; await p.exposeFunction('__bip', () => { bip = true; });
@@ -31,5 +32,4 @@ for (const [name, path, mobile] of [['EN masaüstü', '/?lang=en', false], ['DE 
   console.log(`   service worker: ${sw} · beforeinstallprompt: ${bip ? 'geldi' : 'gelmedi (headless/oturum kuralı olabilir)'} · düğmeler: android ${btn.android} ios ${btn.ios} apk ${btn.apk}${hint ? ' · tıklama ipucu: ' + hint.slice(0, 90) : ''} · JS hata ${errs.length}`);
   await ctx.close();
 }
-await b.close();
 console.log(`\nSONUC: ${bad === 0 ? 'tüm sayfalarda kurulabilir' : bad + ' sayfada sorun'}`);
