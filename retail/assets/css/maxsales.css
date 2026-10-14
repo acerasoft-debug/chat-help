@@ -3082,3 +3082,12 @@ fieldset .acccard__h{margin:0 0 18px}
   .acc__aura,.acc__mono,.auth__list li,.osteps li.is-done::before,#billfields{animation:none}
   .auth__list li{opacity:1}
 }
+
+/* Kartta marka satırı (14 Eki 2026, operatör: "kartlarda marka görünmüyor").
+   Satır vardı ama 9–10 px açık gri harfle telefonda okunmuyordu. Artık
+   mürekkep renginde, kalın ve bir punto büyük; fiyat ve ad satırının üstünde
+   ilk okunan şey ev adı. */
+.card__brand{color:var(--ink);font-weight:600;font-size:11px;letter-spacing:.18em}
+@media (max-width:640px){
+  .grid:has(.card) .card__brand{font-size:10px;letter-spacing:.14em;font-weight:600;color:var(--ink)}
+}
