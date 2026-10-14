@@ -267,37 +267,51 @@ footer a{color:#d8bd86}
   .mo .shopgrid .scard:not(.in){opacity:0;transform:translateY(46px) scale(.955)}
   .mo .shopgrid .scard.in:not(.done){transition:opacity .9s var(--ease) var(--d,0s),transform 1.05s cubic-bezier(.16,.8,.12,1) var(--d,0s)}
   .mo .shopgrid .scard:not(.done) .sthumbi:not(.sthumbi-reveal){transition:transform 1.25s cubic-bezier(.16,.8,.12,1),filter 1.1s ease}
-  .mo .shopgrid .scard:not(.in) .sthumbi:not(.sthumbi-reveal){transform:scale(1.16);filter:blur(9px)}
-  .mo .shopgrid .scard.in:not(.done) .sthumbi:not(.sthumbi-reveal){transition-delay:calc(var(--d,0s) + .18s)}
-  .scurt{position:absolute;inset:0;z-index:7;pointer-events:none;transform-origin:50% 0;transform:scaleY(0);
-    background:linear-gradient(0deg,#e3c98d 0,#c9a86a 2px,#1d1915 2px,#16130f 100%)}
-  .mo .shopgrid .scard:not(.in) .scurt{transform:scaleY(1)}
-  .mo .shopgrid .scard.in:not(.done) .scurt{transition:transform 1s cubic-bezier(.77,0,.18,1) calc(var(--d,0s) + .12s)}
+  .mo .shopgrid .scard:not(.open) .sthumbi:not(.sthumbi-reveal){transform:scale(1.16);filter:blur(9px)}
+  .mo .shopgrid .scard.open:not(.done) .sthumbi:not(.sthumbi-reveal){transition-delay:calc(var(--o,0s) + .18s)}
+  /* ONCE MARKA KARTI, ASAGI INILINCE URUN (operator, 14 Eki 2026: "urunlerin acilisindaki animasyon ilk once
+     marka kartlarini gostersin asagiya gidince urun acilsin"). Perde artik duz bir panel degil: kartin MARKA
+     KARTI (koyu zemin + beyaz logo, vestra_brand_card -- marka duvariyla ayni cizim). Kart ekrana girince
+     (.in) marka karti olarak yukselir; sayfa asagi kaydirildikca kart ekranin alt ucte birlik cizgisini
+     gecince (.open) perde yukari silinir, fotograf netlesir, yazi acilir. */
+  .scurt{position:absolute;inset:0;z-index:7;pointer-events:none;display:flex;align-items:center;justify-content:center;
+    clip-path:inset(0 0 100% 0);
+    background:radial-gradient(120% 90% at 50% 35%,#26211b 0,#16130f 70%),#16130f}
+  .scurt::after{content:'';position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,#a97f2c,#f1dfb0 50%,#a97f2c)}
+  .scurt .brand-logo{width:62%;max-width:200px;height:auto;filter:none;transform:none}
+  .scurt .bmono .bmono-mark{color:#f4efe4;font-size:34px}
+  .scurt .bmono .bmono-name{color:rgba(244,239,228,.7)}
+  .scurt>*{transition:opacity .5s ease,transform .9s cubic-bezier(.16,.8,.12,1)}
+  .mo .shopgrid .scard:not(.open) .scurt{clip-path:inset(0 0 0 0)}
+  .mo .shopgrid .scard:not(.in) .scurt>*{opacity:0;transform:translateY(10px) scale(.96)}
+  .mo .shopgrid .scard.in:not(.open) .scurt>*{transition-delay:calc(var(--d,0s) + .25s)}
+  .mo .shopgrid .scard.open:not(.done) .scurt{transition:clip-path 1.05s cubic-bezier(.77,0,.18,1) calc(var(--o,0s) + .12s)}
+  .mo .shopgrid .scard.open:not(.done) .scurt>*{opacity:0;transform:translateY(-18px);transition-delay:var(--o,0s)}
   /* KARTIN YAZISI DA ACILIR (operator, 14 Eki 2026: "animasyon urunleri acilmasi ok iyi ama urun
      kartlarindan yani isimlerinden ... acilmasi daha estetik olacaktir"). Perde kalkarken yazi kartla
      birlikte sadece soluyordu; simdi perdenin ARKASINDAN satir satir maskeden yukselir -- basliktaki
      kelime maskesiyle ayni dil. Marka adinin harf araligi acilir ve altina altin bir kil cizgi cekilir.
      Yalniz transform / opacity / clip-path / letter-spacing: kart yuksekligi degismez (CLS 0). */
   .mo .shopgrid .scard .sbody>*{will-change:auto}
-  .mo .shopgrid .scard:not(.in) .sbody>*{opacity:0;transform:translateY(14px);clip-path:inset(0 0 100% 0)}
-  .mo .shopgrid .scard.in:not(.done) .sbody>*{transition:opacity .6s ease,transform .85s cubic-bezier(.16,.8,.12,1),clip-path .85s cubic-bezier(.16,.8,.12,1);
-    transition-delay:calc(var(--d,0s) + .62s)}
-  .mo .shopgrid .scard.in:not(.done) .sbody>:nth-child(2){transition-delay:calc(var(--d,0s) + .70s)}
-  .mo .shopgrid .scard.in:not(.done) .sbody>:nth-child(3){transition-delay:calc(var(--d,0s) + .78s)}
-  .mo .shopgrid .scard.in:not(.done) .sbody>:nth-child(4){transition-delay:calc(var(--d,0s) + .84s)}
-  .mo .shopgrid .scard.in:not(.done) .sbody>:nth-child(5){transition-delay:calc(var(--d,0s) + .90s)}
-  .mo .shopgrid .scard.in:not(.done) .sbody>:nth-child(n+6){transition-delay:calc(var(--d,0s) + .96s)}
-  .mo .shopgrid .scard:not(.in) .sbrand{letter-spacing:.02em}
-  .mo .shopgrid .scard.in:not(.done) .sbrand{transition:opacity .6s ease,transform .85s cubic-bezier(.16,.8,.12,1),clip-path .85s cubic-bezier(.16,.8,.12,1),
-    letter-spacing 1.1s cubic-bezier(.16,.8,.12,1);transition-delay:calc(var(--d,0s) + .62s)}
+  .mo .shopgrid .scard:not(.open) .sbody>*{opacity:0;transform:translateY(14px);clip-path:inset(0 0 100% 0)}
+  .mo .shopgrid .scard.open:not(.done) .sbody>*{transition:opacity .6s ease,transform .85s cubic-bezier(.16,.8,.12,1),clip-path .85s cubic-bezier(.16,.8,.12,1);
+    transition-delay:calc(var(--o,0s) + .62s)}
+  .mo .shopgrid .scard.open:not(.done) .sbody>:nth-child(2){transition-delay:calc(var(--o,0s) + .70s)}
+  .mo .shopgrid .scard.open:not(.done) .sbody>:nth-child(3){transition-delay:calc(var(--o,0s) + .78s)}
+  .mo .shopgrid .scard.open:not(.done) .sbody>:nth-child(4){transition-delay:calc(var(--o,0s) + .84s)}
+  .mo .shopgrid .scard.open:not(.done) .sbody>:nth-child(5){transition-delay:calc(var(--o,0s) + .90s)}
+  .mo .shopgrid .scard.open:not(.done) .sbody>:nth-child(n+6){transition-delay:calc(var(--o,0s) + .96s)}
+  .mo .shopgrid .scard:not(.open) .sbrand{letter-spacing:.02em}
+  .mo .shopgrid .scard.open:not(.done) .sbrand{transition:opacity .6s ease,transform .85s cubic-bezier(.16,.8,.12,1),clip-path .85s cubic-bezier(.16,.8,.12,1),
+    letter-spacing 1.1s cubic-bezier(.16,.8,.12,1);transition-delay:calc(var(--o,0s) + .62s)}
   .shopwrap .sbrand{position:relative;align-self:flex-start;padding-bottom:3px}
   .shopwrap .sbrand::after{content:'';position:absolute;left:0;bottom:0;height:1px;width:100%;
     background:linear-gradient(90deg,var(--acc),rgba(201,168,106,0));transform-origin:0 50%;transform:scaleX(.35);opacity:.55;
     transition:transform .6s var(--ease),opacity .6s var(--ease)}
   .shopwrap .scard:hover .sbrand::after{transform:scaleX(1);opacity:1}
   [dir="rtl"] .shopwrap .sbrand::after{left:auto;right:0;transform-origin:100% 50%;background:linear-gradient(270deg,var(--acc),rgba(201,168,106,0))}
-  .mo .shopgrid .scard:not(.in) .sbrand::after{transform:scaleX(0)}
-  .mo .shopgrid .scard.in:not(.done) .sbrand::after{transition:transform 1.1s cubic-bezier(.2,.7,.1,1) calc(var(--d,0s) + .9s)}
+  .mo .shopgrid .scard:not(.open) .sbrand::after{transform:scaleX(0)}
+  .mo .shopgrid .scard.open:not(.done) .sbrand::after{transition:transform 1.1s cubic-bezier(.2,.7,.1,1) calc(var(--o,0s) + .9s)}
   .sglare{position:absolute;inset:0;z-index:8;pointer-events:none;opacity:0;transition:opacity .35s ease;border-radius:inherit;
     background:radial-gradient(circle at var(--gx,50%) var(--gy,30%),rgba(255,255,255,.42),rgba(255,248,230,.10) 32%,transparent 58%);mix-blend-mode:soft-light}
   .mo .shopgrid .scard.tilt{transition:transform .14s ease-out,box-shadow .35s ease,border-color .35s ease;will-change:transform}
@@ -308,7 +322,8 @@ footer a{color:#d8bd86}
   @media(prefers-reduced-motion:reduce){
     .mo .sphead-eyebrow,.mo .sphead h1 .hw>span,.mo .sphead::after,.mo .sphead p,.mo .sphead-links,.mo .secttab,.mo .brail-cell{animation:none}
     .mo .shopgrid .scard:not(.in),.mo .shopgrid .scard:not(.in) .sthumbi{opacity:1;transform:none;filter:none}
-    .mo .shopgrid .scard:not(.in) .sbody>*{opacity:1;transform:none;clip-path:none}
+    .mo .shopgrid .scard:not(.in) .sbody>*,.mo .shopgrid .scard:not(.open) .sbody>*{opacity:1;transform:none;clip-path:none}
+    .mo .shopgrid .scard:not(.open) .sthumbi{transform:none;filter:none}
     .scurt,.sglare,.scprog{display:none}
   }
 </style>
@@ -556,6 +571,9 @@ footer a{color:#d8bd86}
         <?php endif; ?>
       </div>
 
+      <?php /* Perdede gosterilen marka kartlari: marka BASINA bir kez (kart basina basmak katalogu
+               yuzlerce kez ayni SVG ile sisirirdi); JS kartin markasina gore kopyalar. */ ?>
+      <template id="bcardtpl"><?php foreach (array_keys($brandCounts) as $_bn): ?><div data-b="<?= htmlspecialchars(mb_strtolower($_bn)) ?>"><?= vestra_brand_card($_bn) ?></div><?php endforeach; ?></template>
       <div class="shopgrid" id="shopgrid">
         <?php foreach($products as $idx=>$p):
           $from = vestra_from_price($p);
@@ -739,19 +757,43 @@ if (window.matchMedia && window.matchMedia('(hover: none)').matches && 'Intersec
   var root = document.documentElement; if (!root.classList.contains('mo')) return;
   var grid = document.getElementById('shopgrid'); if (!grid) return;
   var cards = Array.prototype.slice.call(grid.querySelectorAll('.scard'));
+  var tpl = document.getElementById('bcardtpl'), bmap = {};
+  if (tpl && tpl.content) Array.prototype.forEach.call(tpl.content.children, function(el){ bmap[el.getAttribute('data-b')] = el.innerHTML; });
   cards.forEach(function(c){
     var th = c.querySelector('.sthumb');
-    if (th && !th.querySelector('.scurt')) { var cu = document.createElement('i'); cu.className = 'scurt'; cu.setAttribute('aria-hidden', 'true'); th.appendChild(cu); }
+    if (th && !th.querySelector('.scurt')) { var cu = document.createElement('i'); cu.className = 'scurt'; cu.setAttribute('aria-hidden', 'true');
+      var bk = (c.getAttribute('data-brand') || '').toLowerCase(); if (bmap[bk]) cu.innerHTML = bmap[bk]; th.appendChild(cu); }
     var gl = document.createElement('i'); gl.className = 'sglare'; gl.setAttribute('aria-hidden', 'true'); c.appendChild(gl);
   });
   /* Dalga: aynı anda ekrana giren kartlar konumlarına göre (üstten alta, soldan sağa) 70 ms arayla. */
-  var show = function(list){
+  /* Iki adim: .in = MARKA KARTI olarak yukselir; .open = urun acilir. Acilis ASAGI KAYDIRINCA: kartin ustu
+     ekranin %62 cizgisini gecince. Ilk ekranda zaten o cizginin ustunde duran kartlar ilk kaydirmada (ya da
+     kaydirilmazsa 2,4 sn sonra) acilir -- kimse marka kartlarina takili kalmaz. Her kart marka karti olarak en
+     az 1,1 sn gorunur. */
+  var scrolled = false, openLine = function(){ return innerHeight * 0.62; };
+  var open = function(c){
+    if (c.classList.contains('open') || !c.classList.contains('in')) return;
+    var wait = Math.max(0, (c._inAt || 0) + 1100 - Date.now()) / 1000;
+    c.style.setProperty('--o', wait.toFixed(2) + 's'); c.classList.add('open');
+    setTimeout(function(){ c.classList.add('done'); c.style.removeProperty('--d'); c.style.removeProperty('--o'); }, (wait + 1.95) * 1000);
+  };
+  var due = function(c){ var r = c.getBoundingClientRect(); return r.top < openLine() && r.bottom > 0; };
+  var show = function(list, now){
     list.sort(function(a, b){ var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect(); return (ra.top - rb.top) || (ra.left - rb.left); });
     list.forEach(function(c, i){
-      var d = Math.min(i, 11) * 0.07; c.style.setProperty('--d', d.toFixed(2) + 's'); c.classList.add('in');
-      setTimeout(function(){ c.classList.add('done'); c.style.removeProperty('--d'); }, (d + 1.95) * 1000);   /* yazinin satir acilisi da bitsin (14 Eki): .96 gecikme + .85 sure */
+      var d = Math.min(i, 11) * 0.07; c.style.setProperty('--d', d.toFixed(2) + 's'); c.classList.add('in'); c._inAt = Date.now() + d * 1000;
+      if (now || (scrolled && due(c))) open(c); else oio.observe(c);
     });
   };
+  var oio = new IntersectionObserver(function(es){
+    es.forEach(function(e){ if (e.isIntersecting && (scrolled || e.boundingClientRect.top > openLine() - 4)) { oio.unobserve(e.target); open(e.target); } });
+  }, { rootMargin: '0px 0px -38% 0px', threshold: 0 });
+  var firstScroll = function(){
+    if (scrolled) return; scrolled = true;
+    cards.forEach(function(c){ if (c.classList.contains('in') && !c.classList.contains('open') && due(c)) { oio.unobserve(c); open(c); } });
+  };
+  addEventListener('scroll', firstScroll, { passive: true, once: true });
+  setTimeout(firstScroll, 2400);
   var io = new IntersectionObserver(function(es){
     var batch = [];
     es.forEach(function(e){ if (e.isIntersecting) { io.unobserve(e.target); batch.push(e.target); } });
@@ -764,9 +806,9 @@ if (window.matchMedia && window.matchMedia('(hover: none)').matches && 'Intersec
     window.applyFilters = function(){
       orig.apply(this, arguments);
       var vis = cards.filter(function(c){ if (c.style.display === 'none') return false; var r = c.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0; });
-      vis.forEach(function(c){ c.classList.remove('in', 'done'); io.unobserve(c); });
+      vis.forEach(function(c){ c.classList.remove('in', 'open', 'done'); io.unobserve(c); oio.unobserve(c); });
       void grid.offsetWidth;
-      requestAnimationFrame(function(){ show(vis); });
+      requestAnimationFrame(function(){ show(vis, true); });
     };
   }
   /* 3B eğim + ışık yansıması: yalnız fareli masaüstü. */

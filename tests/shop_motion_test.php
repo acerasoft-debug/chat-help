@@ -16,7 +16,11 @@ $t('başlık kelime kelime; ekran okuyucu tüm başlığı aria-label\'dan okur,
 $t('perde + bulanıktan netleşme + dalga gecikmesi (12 karta kadar 70 ms)', str_contains($src, ".scurt{position:absolute;inset:0;z-index:7;pointer-events:none") && str_contains($src, 'filter:blur(9px)')
    && str_contains($src, 'var d = Math.min(i, 11) * 0.07;'));
 $t('dalga bitince .done: hover geçişleri yeniden normal hızda', str_contains($src, '.mo .shopgrid .scard.in:not(.done){transition:') && str_contains($src, '.mo .shopgrid .scard:not(.done) .sthumbi:not(.sthumbi-reveal){transition:'));
-$t('filtre/marka/sıralama: orijinal applyFilters çağrılır, sonra ekrandaki kartlar yeniden dalgalanır', str_contains($src, 'orig.apply(this, arguments);') && str_contains($src, "c.classList.remove('in', 'done')"));
+$t('filtre/marka/sıralama: orijinal applyFilters çağrılır, sonra ekrandaki kartlar yeniden dalgalanır', str_contains($src, 'orig.apply(this, arguments);') && str_contains($src, "c.classList.remove('in', 'open', 'done')") && str_contains($src, 'show(vis, true)'));
+/* 14 Eki 2026 (2): once marka karti, asagi inince urun. */
+$t('perde = marka karti (marka basina tek sablon, JS kopyalar)', str_contains($src, '<template id="bcardtpl">') && str_contains($src, 'vestra_brand_card($_bn)') && str_contains($src, "cu.innerHTML = bmap[bk]"));
+$t('iki adim: .in marka karti, .open urun (perde/foto/yazi .open\'a bagli)', str_contains($src, '.mo .shopgrid .scard:not(.open) .scurt{clip-path:inset(0 0 0 0)}') && str_contains($src, '.mo .shopgrid .scard:not(.open) .sthumbi:not(.sthumbi-reveal){transform:scale(1.16);filter:blur(9px)}') && str_contains($src, '.mo .shopgrid .scard:not(.open) .sbody>*{opacity:0;'));
+$t('acilis kaydirmaya bagli (%62 cizgisi) + ilk ekran icin ilk kaydirma / 2,4 sn yedegi + en az 1,1 sn marka karti', str_contains($src, "rootMargin: '0px 0px -38% 0px'") && str_contains($src, 'setTimeout(firstScroll, 2400)') && str_contains($src, '+ 1100 - Date.now()'));
 $t('3B eğim yalnız fareli masaüstü, dalga bitmeden başlamaz, çıkınca sıfırlanır', str_contains($src, "matchMedia('(hover: hover) and (pointer: fine)')") && str_contains($src, "if (!c.classList.contains('done')) return;")
    && str_contains($src, "c.classList.remove('tilt'); c.style.transform = '';"));
 $t('kaydırma çizgisi pasif dinleyici + rAF; RTL\'de sağdan', str_contains($src, '{ passive: true }') && str_contains($src, '[dir="rtl"] .scprog{transform-origin:100% 50%}'));

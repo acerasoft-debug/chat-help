@@ -12570,6 +12570,16 @@ sırayla yükselir (gecikme +.62…+.96 s), marka adının harf aralığı .02em
 ve JS'siz (`html.mo` yok) hiçbiri devrede değil. Kum havuzunda kare kare ölçüldü (sayfa kırpması; eleman ekran
 görüntüsü hareketin bitmesini BEKLİYOR, ara kareyi göstermez).
 
+**14 Eki 2026 (2) — Katalog: ÖNCE MARKA KARTI, aşağı inince ürün** (operatör: *"ürünlerin acilisindaki animasyon ilk önce
+marka kartlarini göstersin asagiya gidince ürün acilsin"*). Perde düz panel değil artık: kartın marka kartı
+(`vestra_brand_card`, marka başına BİR `<template id="bcardtpl">` girdisi — kart başına basmak kataloğu yüzlerce SVG ile
+şişirirdi; JS kartın `data-brand`'ına göre kopyalar). İki adım: `.in` = kart ekrana girince MARKA KARTI olarak yükselir;
+`.open` = kartın üstü ekranın %62 çizgisini geçince (ikinci IntersectionObserver, rootMargin alt -%38) perde
+`clip-path` ile yukarı silinir, foto netleşir, yazı satır satır açılır (gecikmeler `--o`). İlk ekranda zaten çizginin
+üstündeki kartlar İLK kaydırmada ya da kaydırılmazsa 2,4 sn sonra açılır; her kart en az 1,1 sn marka kartı olarak görünür.
+Filtre/marka değişiminde görünen kartlar beklemeden açılır (`show(vis, true)`). Kum havuzu ölçümü: yüklemede `bbb.b`,
+ilk kaydırmada `OOO.O`, aşağıda yeni sıra `bbb.b` → çizgiyi geçince açılır; sayfa hatası 0.
+
 **14 Eki 2026 — Brevo 100 rezerv + 23:45 gece taraması sunucudan; ısınma kapalı (500/gün); saatlik geri dönme taraması**
 (operatör: *"Brevo'da her zaman 100 tane email hakkı kalsın, 23.45'te kontrol edilsin ve hak kaldıysa devam gönderilsin.
 Kendi server'dan 500 email günlük ancak halen email hataları geliyor"*).
