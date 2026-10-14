@@ -2255,6 +2255,71 @@ function vestra_tpl_listing_offer(string $lang, string $company, array $blocks, 
     }
     $fill = fn(string $x): string => str_replace('{brand}', $brand, $x);
 
+    /* AKTION (14 Eki 2026, operator: "komple tum kayitli musterilere gonder"):
+       ilanlardan biri suresi isleyen bir teklif tasiyorsa (inc/products.php
+       vestra_aktion) mektup onu SOYLER -- konu, giris, urun basina teklif satiri,
+       rozet. Rakamlar CANLI kayittan; bitis tarihi kayittaki until. KURAL 19:
+       fiyat kapisi kapali aliciya EUR yazilmaz, yalniz -%X ve adet esigi (sitenin
+       misafire gosterdigi kadar). Lead surumune dokunulmaz. */
+    $AK = [];
+    if (!$lead && function_exists('vestra_aktion')) {
+        foreach ($blocks as $k => $b) { $a = vestra_aktion((array)($b['p'] ?? [])); if ($a) $AK[$k] = $a; }
+    }
+    if ($AK) {
+        $akT = [
+          'en' => ['s'=>'VESTRA — {brand} 3-day offer: up to −{pct}% from {min} pc · ends {end}',
+                   'o'=>'{brand} for three days only: a special price from {min} pieces on the models below, with a photo of every colour. The offer ends on {end}; after that the normal price list applies again.',
+                   'l'=>'Limited offer','vp'=>'{price} per piece from {min} pc instead of {was} (−{pct}%)','vn'=>'−{pct}% from {min} pc · price shown once signed in','b'=>'Limited offer · until {end}','d'=>'j M Y, H:i'],
+          'de' => ['s'=>'VESTRA — {brand} 3-Tage-Aktion: bis −{pct} % ab {min} Stück · bis {end}',
+                   'o'=>'{brand} nur drei Tage: ein Aktionspreis ab {min} Stück auf die Modelle unten, mit einem Foto zu jeder Farbe. Die Aktion endet am {end}; danach gilt wieder die normale Preisliste.',
+                   'l'=>'Aktion','vp'=>'{price} je Stück ab {min} Stück statt {was} (−{pct} %)','vn'=>'−{pct} % ab {min} Stück · Preis nach Anmeldung sichtbar','b'=>'Aktion · bis {end}','d'=>'d.m.Y, H:i'],
+          'fr' => ['s'=>'VESTRA — offre {brand} 3 jours : jusqu’à −{pct} % dès {min} pièces · fin le {end}',
+                   'o'=>'{brand} pendant trois jours seulement : un prix spécial dès {min} pièces sur les modèles ci-dessous, avec une photo de chaque coloris. L’offre se termine le {end} ; ensuite, la grille tarifaire normale s’applique de nouveau.',
+                   'l'=>'Offre limitée','vp'=>'{price} la pièce dès {min} pièces au lieu de {was} (−{pct} %)','vn'=>'−{pct} % dès {min} pièces · prix visible une fois connecté','b'=>'Offre limitée · jusqu’au {end}','d'=>'d/m/Y, H:i'],
+          'it' => ['s'=>'VESTRA — offerta {brand} 3 giorni: fino a −{pct}% da {min} pezzi · fino al {end}',
+                   'o'=>'{brand} solo per tre giorni: un prezzo speciale da {min} pezzi sui modelli qui sotto, con una foto di ogni colore. L’offerta termina il {end}; poi torna in vigore il listino normale.',
+                   'l'=>'Offerta limitata','vp'=>'{price} al pezzo da {min} pezzi invece di {was} (−{pct}%)','vn'=>'−{pct}% da {min} pezzi · prezzo visibile dopo l’accesso','b'=>'Offerta limitata · fino al {end}','d'=>'d/m/Y, H:i'],
+          'es' => ['s'=>'VESTRA — oferta {brand} 3 días: hasta −{pct} % desde {min} piezas · hasta el {end}',
+                   'o'=>'{brand} solo durante tres días: un precio especial desde {min} piezas en los modelos de abajo, con una foto de cada color. La oferta termina el {end}; después vuelve a aplicarse la tarifa normal.',
+                   'l'=>'Oferta limitada','vp'=>'{price} por pieza desde {min} piezas en lugar de {was} (−{pct} %)','vn'=>'−{pct} % desde {min} piezas · precio visible al iniciar sesión','b'=>'Oferta limitada · hasta el {end}','d'=>'d/m/Y, H:i'],
+          'pt' => ['s'=>'VESTRA — oferta {brand} 3 dias: até −{pct}% a partir de {min} peças · até {end}',
+                   'o'=>'{brand} apenas durante três dias: um preço especial a partir de {min} peças nos modelos abaixo, com uma foto de cada cor. A oferta termina a {end}; depois volta a aplicar-se a tabela normal.',
+                   'l'=>'Oferta limitada','vp'=>'{price} por peça a partir de {min} peças em vez de {was} (−{pct}%)','vn'=>'−{pct}% a partir de {min} peças · preço visível após iniciar sessão','b'=>'Oferta limitada · até {end}','d'=>'d/m/Y, H:i'],
+          'nl' => ['s'=>'VESTRA — {brand} 3-daagse actie: tot −{pct}% vanaf {min} stuks · tot {end}',
+                   'o'=>'{brand} slechts drie dagen: een actieprijs vanaf {min} stuks op de modellen hieronder, met een foto van elke kleur. De actie eindigt op {end}; daarna geldt weer de normale prijslijst.',
+                   'l'=>'Actie','vp'=>'{price} per stuk vanaf {min} stuks in plaats van {was} (−{pct}%)','vn'=>'−{pct}% vanaf {min} stuks · prijs zichtbaar na inloggen','b'=>'Actie · tot {end}','d'=>'d-m-Y, H:i'],
+        ];
+        $at  = $akT[$lang] ?? $akT['en'];
+        $end = gmdate($at['d'], min(array_column($AK, 'until'))) . ' UTC';
+        $akMin = min(array_column($AK, 'min'));
+        $akPct = max(array_column($AK, 'pct'));
+        $sub = fn(string $x, array $v): string => strtr($fill($x), $v);
+        $gv  = ['{pct}' => (string)$akPct, '{min}' => (string)$akMin, '{end}' => $end];
+        $t['o'] = $sub($at['o'], $gv);
+        $akLine = [];
+        foreach ($AK as $k => $a) {
+            $v = ['{pct}' => (string)$a['pct'], '{min}' => (string)$a['min'],
+                  '{price}' => $L['money']((float)$a['price']), '{was}' => $L['money']((float)$a['was'])];
+            $akLine[$k] = strtr($withPrices ? $at['vp'] : $at['vn'], $v);
+            if (isset($parts['chunks'][$k])) {
+                $c = $parts['chunks'][$k]; $nl = strpos($c, "\n", strpos($c, "\n") + 1);   // ad + url satirindan sonra
+                $parts['chunks'][$k] = $nl === false ? $c . $at['l'] . ': ' . $akLine[$k] . "\n"
+                                                     : substr($c, 0, $nl + 1) . $at['l'] . ': ' . $akLine[$k] . "\n" . substr($c, $nl + 1);
+            }
+        }
+        /* Satirlar: her ilanin kalin ad satirinin hemen altina teklif satiri. */
+        $nm = []; foreach ($AK as $k => $a) $nm[trim((string)(((array)($blocks[$k]['p'] ?? []))['name'] ?? ''))] = $k;
+        $rows2 = [];
+        foreach ($parts['rows'] as $r) {
+            $rows2[] = $r;
+            if (!empty($r['strong']) && isset($nm[(string)$r['label']])) {
+                $rows2[] = ['label' => $at['l'], 'value' => $akLine[$nm[(string)$r['label']]], 'strong' => true];
+                unset($nm[(string)$r['label']]);
+            }
+        }
+        $parts['rows'] = $rows2;
+    }
+
     /* Her modelde TEK renk varsa (Burberry: her renk ayri model numarasi)
        "8 modeller, 8 renk" ayni sayiyi iki kez soyler; konu yalniz model sayar. */
     /* TEK ilan, birden cok renk (Burberry pike polo: 8 model TEK kayitta, 29 Eyl 2026):
@@ -2265,6 +2330,7 @@ function vestra_tpl_listing_offer(string $lang, string $company, array $blocks, 
     } else {
         $subject = $fill(($nCol === $n) ? sprintf($t['s1'], $n) : sprintf($t['s'], $n, $nCol));
     }
+    if ($AK) $subject = $sub($at['s'], $gv);
     $sign = $lead ? "—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com"
                   : "VESTRA\nvestrasales.com";
     $body = $t['g'] . ($co !== '' ? ' ' . $co : '') . ",\n\n"
@@ -2277,7 +2343,7 @@ function vestra_tpl_listing_offer(string $lang, string $company, array $blocks, 
           . $sign;
 
     $opts = [
-        'badge'       => $fill($t['badge']),
+        'badge'       => $AK ? $sub($at['b'], $gv) : $fill($t['badge']),
         'rows'        => $parts['rows'],
         'shots'       => $parts['shots'],
         'shots_title' => sprintf($t['shots'], $nCol),
