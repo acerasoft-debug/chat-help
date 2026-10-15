@@ -12758,3 +12758,7 @@ seçeneği (Güney Amerika, Türkiye, Orta Doğu, Asya)… Yaptırım engeli …
   Açınca saklanan webhook olayları elle işlenmeli.
 - **DİKKAT — seller-products.yml 512 KB sınırında** (GitHub ~512.000 bayt üstünü `startup_failure` ile
   reddediyor; 516.967'de düştü, 511.438'de çalışıyor). Yeni mod = yeni betik dosyası sitede, adım tek satır.
+- **15 Eki 2026 — OxaPay CANLI:** operatör sandbox denemesini doğruladı (sunucuda VES-1BD60D1E:
+  sandbox Paid 04:51, tedarikçi kuyruğu `sandbox-test-mail` 05:00 — gerçek mektup gitmedi), ardından
+  `set-oxapay-env.yml sandbox=false` (13:47 UTC): `OXAPAY_SANDBOX=false`, yoklama 400/200/302 geçti.
+  Bu sipariş test kaydıdır (sandbox damgalı, `paid`); operatör isterse `order_delete` ile kaldırılır.
