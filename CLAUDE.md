@@ -12703,3 +12703,12 @@ seçeneği (Güney Amerika, Türkiye, Orta Doğu, Asya)… Yaptırım engeli …
   `_router_local.php`'ye `VESTRA_TEST_PREPEND` kancası eklendi: **auto_prepend_file yönlendirici
   betiğiyle işlemiyor** (ölçüldü) — kum havuzu dizini/sahte anahtar bu kancayla veriliyor.
 - **Gece takip turu** bu işten bağımsız, operatör kararıyla KAPALI kalıyor.
+- **15 Eki 2026 eklemeleri:** kasada **posta kodu + şehir ayrı alan** (`postcode`, `city`; profil
+  zaten ayrı tutuyordu, kasa tek satıra sıkıştırıyordu) — `order.php` tek satırı
+  `vestra_account_billing_line()` ile kurar (`$billAddr`), boş hesap alanlarını doldurur.
+  **Kripto indirimi %2** (`VESTRA_CRYPTO_DISCOUNT_PCT`, `inc/oxapay.php`): kupon/hoş geldin
+  sonrası mal bedelinden; `voucher_redeem` yalnız kuponun kendi tutarını yakar (`$voucherDisc`);
+  not "applies only when paid in crypto" der — kripto seçip havaleyle ödeyen siparişte indirim
+  kayıtta kalır, operatör `order_discount` ile düzeltir. Kasa/onay/dönüş metni: "VESTRA'ya
+  ödersiniz, satıcıya değil; VESTRA ödemeyi sevkten sonra satıcıya bırakır" + cüzdansız müşteri
+  notu (borsadan USDT/BTC alıp ödeme sayfasındaki adrese gönder ya da havale).

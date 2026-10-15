@@ -103,7 +103,8 @@ $PAGE = t('Order received'); $NAV = 'shop'; require __DIR__.'/inc/head.php';
   <?php elseif ($oxCanPay && $oxChosen): ?>
   <div class="banner info" style="margin:22px 0;font-size:13.5px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between">
     <span>₿ <b><?= t('Your order is saved. Complete the crypto payment to have it shipped.') ?></b>
-      <span class="hint"><?= t('USDT, BTC, ETH and more via OxaPay. You can also pay by bank transfer against your invoice instead.') ?></span></span>
+      <span class="hint"><?= t('USDT, BTC, ETH and more via OxaPay. You pay VESTRA directly — never the seller; VESTRA releases the payment to the seller only after your goods are dispatched.') ?>
+      <?= t('No crypto wallet? Buy USDT or BTC on any exchange (Binance, Kraken, Coinbase, OKX…) and send the exact amount shown on the payment page — or pay by bank transfer against your invoice instead.') ?></span></span>
     <form method="post" action="/orders/<?= htmlspecialchars($ref) ?>/pay/crypto" style="display:inline;flex:none">
       <button class="btn btn-p" type="submit">₿ <?= t('Pay with crypto →') ?></button>
     </form>

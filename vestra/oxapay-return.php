@@ -57,6 +57,7 @@ $PAGE = t('Payment'); $NAV = 'shop'; require __DIR__.'/inc/head.php';
   <div class="banner info" style="margin:22px 0;font-size:13.5px">
     ⏳ <b><?= t('We have not seen your payment yet.') ?></b>
     <?= t('If you just paid, give the network a few minutes and refresh this page. If you left the payment page, you can reopen it below.') ?>
+    <span class="hint" style="display:block;margin-top:6px"><?= t('No crypto wallet? Buy USDT or BTC on any exchange (Binance, Kraken, Coinbase, OKX…) and send the exact amount shown on the payment page — or pay by bank transfer against your invoice instead.') ?></span>
   </div>
   <?php endif; ?>
 

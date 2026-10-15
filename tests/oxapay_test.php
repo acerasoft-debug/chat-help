@@ -360,6 +360,15 @@ if ($pid > 0) {
     $t('pay ucu: olmayan siparis -> 404',             $c6 === 404);
     [$c7, $h7] = $req('GET', '/orders/VES-OK2/payment-return');
     $t('return ucu: oturumsuz -> login\'e yonlendirir', in_array($c7, [302, 303], true) && str_contains($h7, '/login'));
+    /* Kasa (15 Eki 2026): posta kodu + sehir ayri alan; kripto secenegi + %2 indirim satiri + "VESTRA'ya odersiniz" metni + cuzdansiz musteri notu. */
+    [$c8, , $b8] = $req('GET', '/cart');
+    $t('kasa 200',                                     $c8 === 200);
+    $t('kasa: posta kodu ve sehir alanlari AYRI',      str_contains($b8, 'name="postcode"') && str_contains($b8, 'name="city"') && str_contains($b8, 'name="address"'));
+    $t('kasa: kripto secenegi + -2% etiketi',          str_contains($b8, 'id="payCrypto"') && str_contains($b8, '· −2%'));
+    $t('kasa: kripto indirim satiri + oran JS\'de',    str_contains($b8, 'id="cryptoDiscLine"') && str_contains($b8, 'CRYPTO_DISC_RATE = 0.02'));
+    $t('kasa: "VESTRA\'ya odersiniz, satici sevkten sonra" + cuzdansiz musteri notu', str_contains($b8, 'never the seller') && str_contains($b8, 'No crypto wallet?'));
+    $t('kasa: yaptirim kalibi JS\'de',                  str_contains($b8, 'CRYPTO_BLOCK_RE = new RegExp('));
+    $t('sabit: VESTRA_CRYPTO_DISCOUNT_PCT = 2',         VESTRA_CRYPTO_DISCOUNT_PCT == 2.0);
     shell_exec('kill '.$pid.' 2>/dev/null');
 } else { $t('php -S baslatilamadi', false); }
 

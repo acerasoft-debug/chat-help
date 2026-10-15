@@ -138,6 +138,7 @@ if (stripe_available()) {
       <div class="line"><span><?= t('Buyer-protection fee') ?> (<?=round(VESTRA_FEE_BUYER*100)?>%)</span><span id="bfee"></span></div>
       <?php endif; ?>
       <div class="line" id="voucherLine" style="display:none;color:var(--acc)"><span>🎟️ <?= t('Voucher') ?> <span id="voucherCodeLbl"></span></span><span id="voucherAmt"></span></div>
+      <div class="line" id="cryptoDiscLine" style="display:none;color:var(--acc)"><span>₿ <?= t('Crypto payment discount') ?> (<?= rtrim(rtrim(number_format(VESTRA_CRYPTO_DISCOUNT_PCT, 2, '.', ''), '0'), '.') ?>%)</span><span id="cryptoDiscAmt"></span></div>
       <div class="line" id="escrowFeeLine" style="display:none"><span>🛡️ <?= t('Buyer protection (escrow)') ?> (<?=round(VESTRA_ESCROW_FEE_BUYER*100,1)?>%)</span><span id="escrowFee"></span></div>
       <div class="line" id="shipLine" style="display:none"><span>🚚 <span id="shipLbl"></span></span><span id="shipAmt"></span></div>
       <div class="line big"><span><?= t('Total (you pay)') ?></span><span id="grand"></span></div>
@@ -197,8 +198,9 @@ if (stripe_available()) {
         <label class="payopt" id="payCryptoOpt">
           <input type="radio" name="pay" value="crypto" id="payCrypto">
           <span class="payopt-b">
-            <b>₿ <?= t('Pay with crypto (USDT, BTC, ETH…)') ?></b>
-            <span class="hint"><?= t('Pay now in crypto via OxaPay — ideal where bank transfers are slow or hard. Goods ship once the payment is confirmed on the network.') ?></span>
+            <b>₿ <?= t('Pay with crypto (USDT, BTC, ETH…)') ?> · −<?= rtrim(rtrim(number_format(VESTRA_CRYPTO_DISCOUNT_PCT, 2, '.', ''), '0'), '.') ?>%</b>
+            <span class="hint"><?= t('You pay VESTRA directly — never the seller. VESTRA confirms the payment and releases it to the seller only after your goods are dispatched, so your delivery is covered. Ideal where bank transfers are slow or hard.') ?></span>
+            <span class="hint"><?= t('No crypto wallet? Buy USDT or BTC on any exchange (Binance, Kraken, Coinbase, OKX…) and send the exact amount to the address shown on the payment page — or simply choose bank transfer.') ?></span>
           </span>
         </label>
         <?php endif; ?>
@@ -212,7 +214,14 @@ if (stripe_available()) {
         <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%" value="<?= htmlspecialchars($u['email']??'') ?>"></div>
         <?php /* Fatura adresi ayri posta kodu/sehir alanlarini da tasiyor (profil 24 Eyl
                  2026'dan beri ikisini ayri aliyor) -- tek biçimlendirici, fatura ile ayni. */ ?>
-        <div><label class="hint"><?= t('Billing address') ?></label><input name="address" style="width:100%" value="<?= htmlspecialchars($u ? vestra_account_billing_line($u) : '') ?>" placeholder="<?= htmlspecialchars(t('Street, postal code, city')) ?>"></div>
+        <?php /* Posta kodu + sehir AYRI (operator, 15 Eki 2026): tek satira sikistirilmis adres
+                 posta kodunu dusuruyordu; profil ikisini zaten ayri tutuyor. order.php ucunu
+                 vestra_account_billing_line ile tek satira kurar. */ ?>
+        <div><label class="hint"><?= t('Billing address') ?></label><input name="address" style="width:100%" value="<?= htmlspecialchars($u['address']??'') ?>" placeholder="<?= htmlspecialchars(t('Street and number')) ?>" autocomplete="street-address"></div>
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px">
+          <div><label class="hint"><?= t('Postcode') ?></label><input name="postcode" maxlength="16" style="width:100%" value="<?= htmlspecialchars($u['postcode']??'') ?>" autocomplete="postal-code"></div>
+          <div><label class="hint"><?= t('City') ?></label><input name="city" maxlength="60" style="width:100%" value="<?= htmlspecialchars($u['city']??'') ?>" autocomplete="address-level2"></div>
+        </div>
         <div><label class="hint"><?= t('Country') ?></label><input name="country" style="width:100%" value="<?= htmlspecialchars($u['country']??'') ?>"></div>
         <div><label class="hint"><?= t('Phone') ?></label><input name="phone" style="width:100%" value="<?= htmlspecialchars($u['phone']??'') ?>"></div>
       </div>
@@ -369,7 +378,7 @@ function syncPay(c, net){
   var cOpt=document.getElementById('payCryptoOpt'), rCry=document.getElementById('payCrypto');
   if(cOpt && rCry){
     var f=document.getElementById('orderForm');
-    var txt=[shipCountry(), (f&&f.querySelector('[name=address]')||{}).value||'',
+    var txt=[shipCountry(), (f&&f.querySelector('[name=address]')||{}).value||'', (f&&f.querySelector('[name=city]')||{}).value||'',
              (f&&f.querySelector('[name=ship_address]')||{}).value||''].join(' | ');
     var blocked = CRYPTO_BLOCK_RE.test(txt);
     cOpt.style.display = blocked?'none':'';
@@ -383,6 +392,7 @@ function syncPay(c, net){
 }
 /* Yaptirim kalibi SUNUCUDAN (vestra_sanction_js_pattern): ikinci bir liste tutulmuyor. */
 var CRYPTO_BLOCK_RE = new RegExp(<?= json_encode(vestra_sanction_js_pattern(), JSON_UNESCAPED_UNICODE) ?>, 'iu');
+var CRYPTO_DISC_RATE = <?= json_encode(VESTRA_CRYPTO_DISCOUNT_PCT / 100) ?>;   // onizleme; kapi ve hesap order.php'de
 /* PHP'deki vestra_brand_min_shortfall()'un aynisi: marka basina satir toplami,
    esigin altinda kalanlar. Ayni tolerans (0.005) -- tam 500.00'lik bir sepet
    kayan nokta yuzunden reddedilmesin. Karar SUNUCUDA; bu yalnizca alici
@@ -461,6 +471,11 @@ function render(){
   syncPay(c, net); // enable/disable escrow (may force bank) before pricing the fee
   var escR=document.getElementById('payEscrow'); var isEsc=escR&&escR.checked;
   var efee=isEsc?net*ESCROW_FEE_RATE:0;
+  /* Kripto indirimi: kupon sonrasi mal bedelinden, order.php ile ayni sira. */
+  var cryR=document.getElementById('payCrypto'); var isCry=cryR&&cryR.checked&&!cryR.disabled;
+  var cdisc=isCry?Math.round(net*CRYPTO_DISC_RATE*100)/100:0;
+  var cLine=document.getElementById('cryptoDiscLine'); if(cLine){ cLine.style.display=isCry&&cdisc>0?'':'none'; document.getElementById('cryptoDiscAmt').textContent='−'+eur(cdisc); }
+  net=net-cdisc;
   var feeLine=document.getElementById('escrowFeeLine'); if(feeLine) feeLine.style.display=isEsc?'':'none';
   var efeeEl=document.getElementById('escrowFee'); if(efeeEl) efeeEl.textContent=eur(efee);
   var vLine=document.getElementById('voucherLine');
@@ -519,7 +534,7 @@ document.getElementById('rows').addEventListener('click', function(e){
   var el=document.getElementById(id); if(el) el.addEventListener('change', function(){ render(); });
 });
 /* Adres alanlari degisince kripto secenegi yeniden olculur (ulke alani zaten render'a bagli). */
-['address','ship_address'].forEach(function(n){
+['address','city','ship_address'].forEach(function(n){
   var el=document.querySelector('#orderForm [name='+n+']'); if(el){ el.addEventListener('input', render); el.addEventListener('change', render); }
 });
 document.getElementById('orderForm') && document.getElementById('orderForm').addEventListener('submit',function(){

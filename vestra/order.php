@@ -59,7 +59,7 @@ $country=trim($_POST['country']??'');   // tarife bölgesini ve mektupları besl
 /* YAPTIRIM ENGELI (operator, 14 Eki 2026): teslimat VEYA fatura ulkesi RU/BY/IR/KP/SY/CU
    (.env SANCTIONED_COUNTRIES) ya da adres Kirim/Donetsk/Luhansk/Zaporijya/Herson ise kripto
    YOK. Kasa secenegi zaten gizliyor; kapi BURADA (KURAL 4b: gizlemek kapi degildir). */
-if($payMethod==='crypto' && vestra_crypto_block_reason($country, '', $shipAddr, trim($_POST['address']??''))!==''){
+if($payMethod==='crypto' && vestra_crypto_block_reason($country, '', $shipAddr, trim($_POST['address']??'').' '.trim($_POST['city']??''))!==''){
   header('Location: /cart?err=crypto_blocked'); exit;
 }
 
@@ -74,13 +74,19 @@ if(!empty($_SESSION['uid'])){
        secildiginde eski serbest metni ezmek, alicinin bir dahaki "baska adres"ini silerdi. */
     if(($shipPick===''||$shipPick==='other') && $shipAddr!==($me['ship_address']??'')) $patch['ship_address']=$shipAddr;
     if($shipPick!=='' && $shipPick!==(string)($me['ship_last']??'')) $patch['ship_last']=$shipPick;
-    foreach(['company'=>'company','vat'=>'vat_id','name'=>'name','address'=>'address','country'=>'country','phone'=>'phone'] as $post=>$field){
+    /* Posta kodu + sehir ARTIK AYRI alan (operator, 15 Eki 2026: "posta kodu sepette yer almiyor"):
+       profil ikisini zaten ayri tutuyor, kasa tek satira sikistiriyordu. */
+    foreach(['company'=>'company','vat'=>'vat_id','name'=>'name','address'=>'address','postcode'=>'postcode','city'=>'city','country'=>'country','phone'=>'phone'] as $post=>$field){
       $v=trim($_POST[$post]??'');
       if($v!=='' && trim($me[$field]??'')===''){ $patch[$field]=$v; }
     }
     if($patch) auth_update($me['id'],$patch);
   }
 }
+
+/* Fatura adresi TEK SATIR olarak asagida kullaniliyor (escrow kaydi, fatura kunyesi): sokak +
+   posta kodu + sehir, vestra_account_billing_line ile AYNI bicimlendirici (ikinci kopya yok). */
+$billAddr = vestra_account_billing_line(['address'=>trim($_POST['address']??''), 'postcode'=>trim($_POST['postcode']??''), 'city'=>trim($_POST['city']??'')]);
 
 $cart=json_decode($_POST['cart']??'[]', true); if(!is_array($cart)) $cart=[];
 
@@ -251,6 +257,19 @@ if ($discount <= 0) {
                  . ') = -'.eur($discount).' (first order).').' ';
   }
 }
+/* KRIPTO INDIRIMI (operator, 15 Eki 2026: "kripto ile odemeye yuzde 2 indirim"). Kupon /
+   hos geldin indirimi dustukten SONRAKI mal bedelinden; yuvarlama tek yerde (voucher_discount).
+   Kupon tutari AYRI tutuluyor ($voucherDisc): voucher_redeem yalniz kuponun kendi tutarini
+   yakmali, kripto payini degil. */
+$voucherDisc = $discount; $cryptoDisc = 0.0;
+if ($payMethod === 'crypto') {
+  $cryptoDisc = voucher_discount(['type' => 'percent', 'value' => VESTRA_CRYPTO_DISCOUNT_PCT], round($subtotal - $discount, 2));
+  if ($cryptoDisc > 0) {
+    $discount    = round($discount + $cryptoDisc, 2);
+    $voucherNote = trim($voucherNote.' Crypto payment discount (-'.rtrim(rtrim(number_format(VESTRA_CRYPTO_DISCOUNT_PCT, 2, '.', ''), '0'), '.').'%) = -'.eur($cryptoDisc).' (applies only when paid in crypto).').' ';
+  }
+}
+$discLabel = $voucherCode !== '' ? $voucherCode : 'Crypto payment discount';
 /* Everything downstream — fees, buyer total, seller payout — prices off the discounted
    goods value, so the escrow fee is charged on what the buyer actually pays. */
 $subtotalGross = $subtotal;
@@ -331,7 +350,7 @@ vestra_order_fx_stamp($ref, date('c'), true);
 
 /* Spend the code only now — after the row is on disk. Redeeming before the write would burn
    a single-use voucher on an order that never got recorded. */
-if($voucherCode!=='' && $discount>0) voucher_redeem($voucherCode,$ref,$email,$discount);
+if($voucherCode!=='' && $voucherDisc>0) voucher_redeem($voucherCode,$ref,$email,$voucherDisc);
 
 /* ── Escrow (direct charge + delayed payout) ─────────────────────────────────
    Buyer pays by card ON the seller's connected Stripe account (a direct charge);
@@ -380,7 +399,7 @@ if($payMethod==='escrow'){
     'ref'=>$ref,'seller_uid'=>$seller['id'],'acct_id'=>$seller['stripe_account_id'],
     'session_id'=>$session->id,'payment_intent'=>'','amount'=>$amountCents,'fee'=>$feeCents,
     'currency'=>'eur','status'=>'pending','created'=>date('c'),
-    'buyer'=>['company'=>$company,'name'=>$name,'email'=>$email,'vat'=>trim($_POST['vat']??''),'country'=>$country,'address'=>trim($_POST['address']??''),'ship_address'=>$shipAddr],
+    'buyer'=>['company'=>$company,'name'=>$name,'email'=>$email,'vat'=>trim($_POST['vat']??''),'country'=>$country,'address'=>$billAddr,'ship_address'=>$shipAddr],
     'buyer_id'=>(!empty($_SESSION['uid'])?$_SESSION['uid']:''),
     'items'=>array_map(fn($l)=>['sku'=>$l['sku'],'brand'=>$l['brand'],'name'=>$l['name'],'qty'=>$l['qty'],'unit'=>$l['unit'],'line'=>$l['line'],'colors'=>$l['colors'],'sizes'=>$l['sizes']],$lines),
     'subtotal'=>$subtotal,'buyer_fee'=>$buyer_fee,'seller_fee'=>$seller_fee,'commission'=>$commission,'total'=>$total,'payout'=>$payout,
@@ -394,7 +413,7 @@ if($payMethod==='escrow'){
 
 $body="New VESTRA order request {$ref}\n\nCompany: {$company}\nContact: {$name} <{$email}>\nCountry: ".$country."   Phone: ".trim($_POST['phone']??'')."\n".($shipAddr!==''?"Deliver to: {$shipAddr}\n":'')."\n";
 foreach($lines as $l){ $body.="  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":"").(!empty($l['sizes'])?" {".implode(", ",$l['sizes'])."}":"")."\n"; }
-if($discount>0) $body.="\nGoods €{$subtotalGross}\nVoucher {$voucherCode} −€{$discount}";
+if($discount>0) $body.="\nGoods €{$subtotalGross}\nDiscount {$discLabel} −€{$discount}".($cryptoDisc>0 && $voucherCode!=='' ? " (incl. crypto -€{$cryptoDisc})" : "");
 if($voucherNote!=='' && ($discount<=0 || $voucherFailed)) $body.="\n".trim($voucherNote);
 if($shipping>0) $body.="\n{$shipLabel} €{$shipping}";
 $body.="\nSubtotal €{$subtotal}\nBuyer pays €{$total}\n".($commission>0?"VESTRA commission €{$commission} (seller €{$seller_fee} + buyer €{$buyer_fee}) · Seller payout €{$payout}\n":"No platform fees (membership model) · Seller receives €{$payout}\n")."Notes: ".trim($_POST['notes']??'')."\n";
@@ -412,7 +431,7 @@ $feeNote=$FEE_BUYER_PCT>0?" (includes {$FEE_BUYER_PCT}% buyer-protection fee)":"
    dustu" duymali. Tek dala sikistirmak, kodu yazan alicinin sorusunu
    cevapsiz birakirdi. */
 $voucherLine = ($voucherFailed ? "Note: voucher code {$voucherIn} could not be applied to this order.\n" : '')
-  . ($discount>0 ? "Goods: €{$subtotalGross}\nVoucher {$voucherCode}: −€{$discount}\n" : '');
+  . ($discount>0 ? "Goods: €{$subtotalGross}\n".($voucherCode!=='' ? "Voucher {$voucherCode}" : "Discount")." (".($cryptoDisc>0 ? "incl. ".rtrim(rtrim(number_format(VESTRA_CRYPTO_DISCOUNT_PCT, 2, '.', ''), '0'), '.')."% crypto payment discount" : "applied")."): −€{$discount}\n" : '');
 /* Navlun ALICIYA yaziliyor: toplami tasiyan bir satir ekranda yoksa alici
    "neden 20 euro fazla" diye yaziyor ve cevabi hicbir yerde durmuyor. */
 $shipLine = $shipping>0 ? "{$shipLabel}: €".number_format($shipping,2)."\n" : "";
@@ -421,7 +440,7 @@ $shipLine = $shipping>0 ? "{$shipLabel}: €".number_format($shipping,2)."\n" : 
    this the mail simply does not reconcile and the first thing the seller notices is a short
    payout with no explanation. Name it on the same screen as the number. */
 $voucherSellerLine = $discount>0
-  ? "\nGoods total: €{$subtotalGross}\nBuyer voucher {$voucherCode}: −€{$discount} (deducted from the goods value)\n"
+  ? "\nGoods total: €{$subtotalGross}\nBuyer discount {$discLabel}: −€{$discount} (deducted from the goods value)\n"
   : "";
 /* Saticiya da yaziliyor ama ODEMESINE GIRMEDIGI soylenerek: aksi halde alicinin
    odedigi toplam ile kendi odemesi arasindaki fark aciklamasiz kalirdi. */
@@ -483,7 +502,7 @@ require_once __DIR__.'/inc/invoice.php';
 $orderMeta = [
   'ref'=>$ref, 'date'=>date('c'),
   'buyer'=>['company'=>$company,'vat'=>trim($_POST['vat']??''),'name'=>$name,'email'=>$email,
-            'country'=>$country,'address'=>trim($_POST['address']??'')],
+            'country'=>$country,'address'=>$billAddr],
 ];
 $bySeller=[];
 foreach($lines as $l){ $bySeller[$l['seller_uid']?:'vestra'][] = $l; }

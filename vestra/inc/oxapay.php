@@ -33,6 +33,11 @@ const VESTRA_SUPPLIER_BACKOFF    = [60, 300, 900, 3600];
 const VESTRA_OXAPAY_LOCK         = 'oxapay.lock';
 const VESTRA_OXAPAY_INDEX        = 'oxapay_index.json';     // track_id → ref
 const VESTRA_SUPPLIER_QUEUE      = 'supplier_queue.json';   // ref → iş
+/* Kripto ile ödeyene %2 indirim (operatör, 15 Eki 2026). Mal bedelinden, kupon/hoş geldin
+   indirimi düşüldükten SONRA; navluna ve ücretlere uygulanmaz. Sipariş kripto seçilip
+   havaleyle ödenirse indirim kayıtta kalır -- not açıkça "yalnız kripto ödemesinde" diyor,
+   operatör order_discount ile düzeltir. */
+const VESTRA_CRYPTO_DISCOUNT_PCT = 2.0;
 
 /* ── Ayar ─────────────────────────────────────────────────────────────────── */
 
