@@ -69,6 +69,11 @@ const CFG = {
   gridCells:     num('GRID_CELLS', 200),                            // 13 Eki: otomatik turda taranacak Avrupa karesi (0 = kapalı)
   gridPerCell:   num('GRID_PER_CELL', 400),                         // kare başına en çok yeni aday
   braveKey:      (ENV.BRAVE_API_KEY ?? '').trim(),
+  /* 15 Eki 2026 (operatör: "Google Programmable Search ücretsiz yap"): Custom Search JSON API, günde 100 sorgu ÜCRETSİZ,
+     üstü kapalı (anahtarda faturalandırma açılmadıkça 429 döner). Tur başına GOOGLE_PER_RUN sorgu (8 tur × 12 = 96/gün). */
+  googleKey:     (ENV.GOOGLE_CSE_KEY ?? '').trim(),
+  googleCx:      (ENV.GOOGLE_CSE_CX ?? '').trim(),
+  googlePerRun:  Math.max(0, num('GOOGLE_PER_RUN', 12)),
   braveAllowed:  String(ENV.BRAVE_ALLOWED ?? 'true').toLowerCase() !== 'false',   // 13 Eki: Brave yalnız operatörün aramalarında (satıcı araması OSM ile)
   extraQueries:  (ENV.EXTRA_QUERIES ?? '').split(/\r?\n|;/).map(s => s.trim()).filter(Boolean),
   seedDomains:   list('SEED_DOMAINS'),
@@ -662,6 +667,17 @@ const ENGINE = {
     const r = await httpGet(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}&kl=${L.kl}`, { timeout: 20000 });
     if (r.status === 429 || r.status === 403 || /anomaly|bots|challenge/i.test(r.text.slice(0, 3000))) throw new Error('blocked:' + r.status);
     return parseDdg(r.text); }, pause: [3000, 6000] },
+  google: { used: 0, async search(q, lang) {
+    if (!CFG.googleKey || !CFG.googleCx) throw new Error('nokey');
+    if (ENGINE.google.used >= CFG.googlePerRun) throw new Error('blocked:quota-run');   // tur tavanı: 3x = motor kapanır, ücretsiz hak aşılmaz
+    ENGINE.google.used++;
+    const L = LOCALE[lang] || LOCALE.en;
+    const r = await httpGet(`https://www.googleapis.com/customsearch/v1?key=${encodeURIComponent(CFG.googleKey)}&cx=${encodeURIComponent(CFG.googleCx)}&q=${encodeURIComponent(q)}&num=10&gl=${String(L.cc || 'us').toLowerCase()}&lr=lang_${String(L.sl || 'en').toLowerCase().slice(0, 2)}&safe=off`,
+      { timeout: 20000, headers: { accept: 'application/json' } });
+    if (r.status === 429 || /dailyLimitExceeded|rateLimitExceeded|quotaExceeded/.test(r.text.slice(0, 2000))) throw new Error('blocked:429');
+    if (r.status === 403) throw new Error('blocked:403');   // anahtar/cx yanlış ya da API kapalı — 3x sonra motor kapanır, tur sürer
+    if (r.status !== 200) throw new Error('http:' + r.status);
+    const j = JSON.parse(r.text); return (j.items || []).map(x => x.link).filter(Boolean); }, pause: [800, 1500] },
   brave: { async search(q, lang) { if (!CFG.braveKey) throw new Error('nokey'); const L = LOCALE[lang] || LOCALE.en;
     const r = await httpGet(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(q)}&count=20&country=${L.cc}&search_lang=${L.sl}`,
       { timeout: 20000, headers: { accept: 'application/json', 'x-subscription-token': CFG.braveKey } });
@@ -1324,7 +1340,8 @@ async function main() {
   /* ---- 1) sorgular ---- */
   const dayIdx = Math.floor(Date.now() / 86400e3);
   const queries = [...CFG.extraQueries.map(q => ({ q, lang: 'en', extra: true })), ...buildQueries(CFG.queriesPerRun, state, CFG.langs, dayIdx * 7919)];
-  const engines = CFG.engines.filter(e => ENGINE[e] && (e !== 'brave' || CFG.braveKey));   // 'server' ayrı yürür (1a)
+  const engines = CFG.engines.filter(e => ENGINE[e] && (e !== 'brave' || CFG.braveKey) && (e !== 'google' || (CFG.googleKey && CFG.googleCx && CFG.googlePerRun > 0)));   // 'server' ayrı yürür (1a)
+  if (CFG.engines.includes('google') && !(CFG.googleKey && CFG.googleCx)) log('google: GOOGLE_CSE_KEY / GOOGLE_CSE_CX yok -- Google Programmable Search atlandi');
   const engStat = Object.fromEntries(engines.map(e => [e, { ok: 0, empty: 0, blocked: 0, urls: 0, dead: false }]));
   const cands = new Map();                                            // reg domain -> {q, url}
   const seenRun = new Set();
@@ -1660,6 +1677,8 @@ function selftest() {
     t('otomatik tur: önce 8 Avrupa kasabası imleçten, sonra 2 büyük şehir', a.length === 10 && a[0] === EURO_TOWNS[5] && a[7] === EURO_TOWNS[12] && a[8] === CITY_POOL[7] && a[9] === CITY_POOL[8]);
     t('otomatik tur: EURO_SHARE=0 eski davranış', pickAutoCities(st, 4, 0).every((c, i) => c === CITY_POOL[7 + i])); }
   t('Brave izni: BRAVE_ALLOWED=false dışında açık', CFG.braveAllowed === true);
+  t('google: motor tanımlı, anahtarsız (selftest ortamı) motor listesine girmez', typeof ENGINE.google.search === 'function' && ENGINE.google.used === 0 && !(CFG.googleKey && CFG.googleCx));
+  t('google: tur tavanı varsayılan 12 (8 tur × 12 < 100 ücretsiz)', CFG.googlePerRun === 12);
   t('kare havuzu: 3000+ kare, tekrar yok, İtalya önce', EURO_GRID.length >= 3000 && new Set(EURO_GRID).size === EURO_GRID.length && EURO_GRID[0].startsWith('Italy|grid:'));
   { const st = { townQCursor: 3 }; const r = buildTownQueries(st, 5);
     t('kasaba sorguları: imleçten, kasaba başına 2, ülke dilinde', r.queries.length === 5 && r.queries[0].town === TOWN_SRC[3] && r.queries[0].lang === 'it' && r.queries[0].q.includes(TOWN_SRC[3].split('|')[1]) && r.cursor === 6);

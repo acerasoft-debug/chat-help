@@ -194,7 +194,12 @@ jobs:
           COUNTRIES: ${{ github.event.inputs.countries }}
           EXTRA_QUERIES: ${{ github.event.inputs.extra_queries }}
           SEED_DOMAINS: ${{ github.event.inputs.seed_domains }}
-          ENGINES: server,osm,bing,ddg
+          # 15 Eki 2026 (operatör: "Google Programmable Search ücretsiz yap"): secrets GOOGLE_CSE_KEY + GOOGLE_CSE_CX varsa
+          # Google Custom Search JSON API (günde 100 sorgu ücretsiz); tur başına GOOGLE_PER_RUN sorgu, aşımda motor kendini kapatır.
+          ENGINES: server,osm,google,bing,ddg
+          GOOGLE_CSE_KEY: ${{ secrets.GOOGLE_CSE_KEY }}
+          GOOGLE_CSE_CX: ${{ secrets.GOOGLE_CSE_CX }}
+          GOOGLE_PER_RUN: ${{ github.event_name == 'push' && '2' || '12' }}
           SEARCH_CMD: ssh vestra 'cd ~/public_html && php ~/vestra_tmp/search.php'
           TIME_BUDGET_MIN: ${{ github.event.inputs.time_budget_min || (github.event_name == 'push' && '15') || '55' }}
           HUNTER_API_KEY: ${{ secrets.HUNTER_API_KEY }}
