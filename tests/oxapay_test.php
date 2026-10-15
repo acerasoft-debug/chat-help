@@ -373,7 +373,7 @@ if ($pid > 0) {
     $t('kasa: Connect kapali -> ESCROW_MAP bos',         str_contains($b8, 'var ESCROW_MAP = {}') || str_contains($b8, 'var ESCROW_MAP = []'));
     $t('kasa: Connect kapali -> escrow secenegi HIC CIZILMEZ, yalniz havale + kripto', !str_contains($b8, 'id="payEscrow"') && str_contains($b8, 'id="payBank"') && str_contains($b8, 'id="payCrypto"') && !str_contains($b8, 'secure card escrow') && str_contains($b8, 'paid to VESTRA'));
     $t('kasa: havale secenegi "VESTRA denetler" cumlesi',  str_contains($b8, 'VESTRA oversees your order and the delivery'));
-    $t('kasa: havale secenegi "24 saat icinde fatura" cumlesi', str_contains($b8, 'Within 24 hours of your purchase, your invoice is emailed'));
+    $t('kasa: havale secenegi "24 saat icinde fatura" cumlesi', str_contains($b8, 'Within 24 hours of your purchase, your invoice with the payment details is emailed'));
     shell_exec('kill '.$pid.' 2>/dev/null');
 } else { $t('php -S baslatilamadi', false); }
 
