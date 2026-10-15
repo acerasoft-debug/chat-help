@@ -12660,6 +12660,8 @@ distribütör yok; gerçek e-mailler, uydurma yok; Alman e-mailleri de şu an i�
   gömülü "3-day" seller_doc_grace testine takılır). Fiyat kapısı kapalıya EUR yok. Test `tests/aktion_mail_test.php`.
   Kuru koşu 238 aday (11 skip + 1 kural elendi; fiyat açık 232 / kapalı 6). Operatöre kopya (es) + **ilk 50 gitti,
   hata 0**. Kota: 112 kalan / 60 ayrılmış → bugün yalnız 50; kalan ~188 için 15 Eki 05:00 UTC hatırlatması kuruldu.
+  **15 Eki 05:00 UTC tamamlandı:** kuru koşu 189 kalan (gece 1 yeni kayıt), 50+50+50+39 gitti, hata 0.
+  **Toplam 239 kayıtlı müşteri**, 0 hata. Son partide kota 144 kalan / 60 ayrılmış, sipariş/fatura payına dokunulmadı.
 
 ## OxaPay kripto ödeme + yaptırım engeli + tedarikçi kuyruğu (operatör, 14 Eki 2026)
 
