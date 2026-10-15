@@ -12735,3 +12735,26 @@ seçeneği (Güney Amerika, Türkiye, Orta Doğu, Asya)… Yaptırım engeli …
   seçeneğine operatörün cümlesi: *"Even though your payment goes to the seller, VESTRA oversees
   your order and the delivery."* OxaPay/kasa dizgelerinin **8 dil çevirisi** `inc/lang/*.php`
   sonuna eklendi (31 anahtar; dosyalar "auto-sorted" ama sırasız ek de çalışır).
+
+## Stripe ana şalteri — KAPALI (operatör, 15 Eki 2026: "vestrasales.com dan tüm Stripe API bağlantılarını inaktif yap")
+
+- **Şalter** `inc/stripe_switch.php`: `data/stripe_switch.json {"off":true}` (ya da env `STRIPE_DISABLED=1`).
+  Kapalıyken `stripe_api()` İLK satırda reddeder (Stripe'a istek gitmez), `stripe_available()` /
+  `stripe_configured()` false, `stripe_connect_status()` çağrısız `disabled`, `vestra_connect_enabled()` false
+  (escrow sunulmaz, siparişler havale/fatura yoluna düşer; satıcının `escrow_ready`'si YAZILMAZ),
+  `vestra_dropship_payments_enabled()` false. `group-checkout` / `sample-checkout` kayıt AÇMADAN
+  `error=payments_off` ile döner; ürün sayfasında numune düğmesi, grup sayfasında kapora formu gizli
+  (yerine 8 dilde "kart ödemesi duraklatıldı, havaleyle ayıralım" notu). Webhook imzayı doğrular, olayı
+  İŞLEMEDEN `data/stripe_held_events.jsonl`'e yazar, 200 döner (kayıp yok). Havuz iade cron'u iadeyi
+  ERTELER, `refund_failed` yazmaz. Admin'de kırmızı "SWITCHED OFF" bandı. Anahtarlar (.env) SİLİNMEDİ.
+- **Operasyon** chat-help `seller-products.yml` ▸ `admin_mode=stripe_switch`, `payload=off|on` (boş = durum),
+  `move_apply=true` yazar. Betik sitede: `cli_stripe_switch.php` (yalnız komut satırı, web'den 404) — ayrı
+  süreçte geri okur, kapalıyken gerçek bir çağrının reddedildiğini kanıtlar; AÇARKEN deneme çağrısı yapmaz.
+- **15 Eki 09:26 UTC uygulandı**: geri okuma `KAPALI|avail=0|cagri=REDDEDILDI(salter)`. Kapatmadan önce etki:
+  live anahtarlar mevcut, aktif üyelik aboneliği 0, Connect zaten kapalıydı (`STRIPE_CONNECT_ENABLED` yok),
+  Connect hesabı olan satıcı 3, Stripe müşteri kaydı 11, ödenmemiş escrow 1 + ödenmemiş grup kaporası 1
+  (ikisi de `pending`), dropship kart ödemesi ACIK → kapandı.
+- **Stripe tarafında site bunu YAPAMAZ**: anahtarı iptal etmek / webhook ucunu kapatmak Stripe Dashboard'dan.
+  Açınca saklanan webhook olayları elle işlenmeli.
+- **DİKKAT — seller-products.yml 512 KB sınırında** (GitHub ~512.000 bayt üstünü `startup_failure` ile
+  reddediyor; 516.967'de düştü, 511.438'de çalışıyor). Yeni mod = yeni betik dosyası sitede, adım tek satır.

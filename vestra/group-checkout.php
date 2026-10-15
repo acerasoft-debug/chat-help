@@ -26,6 +26,7 @@ $id      = trim((string) ($_POST['id'] ?? ''));
 $backUrl = '/group?id=' . rawurlencode($id);
 
 if (!empty($_POST['website'])) { header('Location: ' . $backUrl); exit; } // honeypot
+if (vestra_stripe_off()) { header('Location: ' . $backUrl . '&error=payments_off'); exit; } // Stripe salteri: kayit ACILMADAN don
 
 $p = $id !== '' ? vestra_group_pool($id) : null;
 if (!$p || !pool_has_deposit($p)) { header('Location: /groups'); exit; }

@@ -26,6 +26,7 @@ $id = trim((string)($_POST['id'] ?? ''));
 $backUrl = '/product?id=' . rawurlencode($id);
 
 if (!empty($_POST['website'])) { header('Location: ' . $backUrl); exit; } // honeypot
+if (vestra_stripe_off()) { header('Location: ' . $backUrl . '&error=payments_off'); exit; } // Stripe salteri: kayit ACILMADAN don
 
 $user = auth_user();
 if (!$user) {

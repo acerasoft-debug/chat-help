@@ -1754,4 +1754,6 @@ return array (
   'Reopen crypto payment' => 'Rouvrir le paiement crypto',
   'Order details' => 'Détails de la commande',
   'Two ways to pay: <b>🏦 bank transfer</b> by invoice, or <b>₿ crypto</b> (USDT, BTC, ETH…) paid to VESTRA. Choose below.' => 'Deux façons de payer : <b>🏦 virement bancaire</b> sur facture, ou <b>₿ crypto</b> (USDT, BTC, ETH…) versée à VESTRA. Choisissez ci-dessous.',
+  /* Stripe salteri (15 Eki 2026) */
+  'Online card payment is paused at the moment. Write to us and we will reserve your quantity by bank transfer.' => 'Le paiement en ligne par carte est suspendu pour le moment. Écrivez-nous et nous réserverons votre quantité par virement bancaire.',
 );

@@ -3385,7 +3385,11 @@ if($pendingEmail)  $att[] = ['#3366cc','✉️','Accounts with unverified email'
   </div>
 </div>
 
-<?php require_once __DIR__.'/inc/stripe.php'; if(!stripe_configured()): ?>
+<?php require_once __DIR__.'/inc/stripe.php'; if(vestra_stripe_off()): $__sw = vestra_stripe_switch(); ?>
+<div class="amsg" style="background:rgba(200,60,40,.08);border:1px solid rgba(200,60,40,.35);color:#9a3a22">
+  ⛔ Stripe is SWITCHED OFF by the operator<?= !empty($__sw['off_at']) ? ' ('.htmlspecialchars(substr((string)$__sw['off_at'],0,16)).')' : '' ?> — the site makes no Stripe API calls: no card checkout, escrow, membership checkout, dropship card payments, group deposits or samples; webhook events are stored unprocessed in <code>data/stripe_held_events.jsonl</code>. Keys are kept. Turn it back on with the <code>stripe_switch</code> workflow (payload=on).
+</div>
+<?php elseif(!stripe_configured()): ?>
 <div class="amsg" style="background:rgba(240,192,96,.08);border:1px solid rgba(240,192,96,.3);color:#a9781a">
   ⚠ Stripe is not configured — seller membership checkout is disabled.
   Missing keys: <code style="font-size:11px"><?= htmlspecialchars(implode(', ', stripe_missing_keys())) ?></code>.
