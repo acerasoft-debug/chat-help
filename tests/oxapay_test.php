@@ -371,6 +371,8 @@ if ($pid > 0) {
     $t('sabit: VESTRA_CRYPTO_DISCOUNT_PCT = 2',         VESTRA_CRYPTO_DISCOUNT_PCT == 2.0);
     $t('kasa: haric markalar JS\'de (polvich, pili perez)', str_contains($b8, 'CRYPTO_DISC_EXCL = ["polvich","pili perez"]'));
     $t('kasa: Connect kapali -> ESCROW_MAP bos',         str_contains($b8, 'var ESCROW_MAP = {}') || str_contains($b8, 'var ESCROW_MAP = []'));
+    $t('kasa: Connect kapali -> escrow secenegi HIC CIZILMEZ, yalniz havale + kripto', !str_contains($b8, 'id="payEscrow"') && str_contains($b8, 'id="payBank"') && str_contains($b8, 'id="payCrypto"') && !str_contains($b8, 'secure card escrow') && str_contains($b8, 'paid to VESTRA'));
+    $t('kasa: havale secenegi "VESTRA denetler" cumlesi',  str_contains($b8, 'VESTRA oversees your order and the delivery'));
     shell_exec('kill '.$pid.' 2>/dev/null');
 } else { $t('php -S baslatilamadi', false); }
 

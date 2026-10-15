@@ -148,7 +148,13 @@ if (stripe_available() && vestra_connect_enabled()) {   // Connect kapaliyken es
       <?php else: ?>
       <div class="hint" style="margin-top:8px"><?= t('No platform fees — you pay exactly the goods total on the seller\'s invoice.') ?></div>
       <?php endif; ?>
+      <?php /* ESCROW (kart) KALDIRILDI (operator, 15 Eki 2026: "simdilik sadece kripto ve invoice kalsin"):
+               Connect kapaliyken escrow secenegi hic cizilmez; metin de yalniz havale + kripto. */ ?>
+      <?php if (vestra_connect_enabled()): ?>
       <div class="hint" style="margin-top:6px"><?= t('Two ways to pay: <b>🛡️ secure card escrow</b> (we hold the funds and release them to the seller only after you confirm delivery) or <b>🏦 bank transfer</b> by invoice. Choose below.') ?></div>
+      <?php elseif (oxapay_enabled()): ?>
+      <div class="hint" style="margin-top:6px"><?= t('Two ways to pay: <b>🏦 bank transfer</b> by invoice, or <b>₿ crypto</b> (USDT, BTC, ETH…) paid to VESTRA. Choose below.') ?></div>
+      <?php endif; ?>
     </div></div>
 
     <form id="orderForm" method="post" action="/order">
@@ -176,6 +182,7 @@ if (stripe_available() && vestra_connect_enabled()) {   // Connect kapaliyken es
 
       <h3 style="margin:24px 0 10px"><?= t('Payment method') ?></h3>
       <div class="paysel">
+        <?php if (vestra_connect_enabled()): ?>
         <label class="payopt" id="payEscrowOpt">
           <input type="radio" name="pay" value="escrow" id="payEscrow">
           <span class="payopt-b">
@@ -184,11 +191,13 @@ if (stripe_available() && vestra_connect_enabled()) {   // Connect kapaliyken es
             <span class="hint payopt-lock" id="escrowLock" style="display:none;color:var(--mut)"><?= t('Available when your whole cart is from one verified seller.') ?></span>
           </span>
         </label>
+        <?php endif; ?>
         <label class="payopt">
           <input type="radio" name="pay" value="bank" id="payBank" checked>
           <span class="payopt-b">
             <b>🏦 <?= t('Bank transfer (invoice)') ?></b>
-            <span class="hint"><?= t('We send a PDF invoice with the seller’s bank details. Goods ship after your transfer arrives.') ?></span>
+            <span class="hint"><?= t('We send a PDF invoice with the seller’s bank details. Goods ship after your transfer arrives.') ?>
+              <?= t('Even though your payment goes to the seller, VESTRA oversees your order and the delivery.') ?></span>
           </span>
         </label>
         <?php /* KRIPTO (OxaPay, 14 Eki 2026): havaleye EK secenek -- havalenin zor oldugu
@@ -364,16 +373,19 @@ function escrowBlockedBy(c, net){
 function syncPay(c, net){
   var opt=document.getElementById('payEscrowOpt'), rEsc=document.getElementById('payEscrow'),
       rBank=document.getElementById('payBank'), lock=document.getElementById('escrowLock');
-  if(!opt) return;
-  var why=escrowBlockedBy(c, net||0), ok=(why==='');
-  rEsc.disabled=!ok;
-  opt.classList.toggle('disabled',!ok);
-  if(lock){
-    lock.style.display=ok?'none':'block';
-    if(why==='max') lock.textContent=PAY_LBL.escrowMax;
-    else if(why==='seller') lock.textContent=PAY_LBL.escrowSeller;
+  if(!rBank) return;
+  /* Escrow secenegi yalniz Connect acikken cizilir (15 Eki 2026); yoksa bu blok atlanir. */
+  if(opt && rEsc){
+    var why=escrowBlockedBy(c, net||0), ok=(why==='');
+    rEsc.disabled=!ok;
+    opt.classList.toggle('disabled',!ok);
+    if(lock){
+      lock.style.display=ok?'none':'block';
+      if(why==='max') lock.textContent=PAY_LBL.escrowMax;
+      else if(why==='seller') lock.textContent=PAY_LBL.escrowSeller;
+    }
+    if(!ok && rEsc.checked){ rBank.checked=true; }
   }
-  if(!ok && rEsc.checked){ rBank.checked=true; }
   /* Kripto: yaptirimli ulke/bolge metinde geciyorsa secenek gizlenir (yalniz gorunum; kapi
      order.php'de). Olcu: ulke alani + fatura adresi + 'baska adres' metni. */
   var cOpt=document.getElementById('payCryptoOpt'), rCry=document.getElementById('payCrypto');
@@ -386,7 +398,7 @@ function syncPay(c, net){
     rCry.disabled = blocked;
     if(blocked && rCry.checked){ rBank.checked=true; }
   }
-  var esc=rEsc.checked, cry=!!(rCry&&rCry.checked);
+  var esc=!!(rEsc&&rEsc.checked), cry=!!(rCry&&rCry.checked);
   var btn=document.getElementById('placeBtn'), hint=document.getElementById('placeHint');
   if(btn)  btn.textContent = esc?PAY_LBL.escrowBtn:(cry?PAY_LBL.cryptoBtn:PAY_LBL.bankBtn);
   if(hint) hint.textContent= esc?PAY_LBL.escrowHint:(cry?PAY_LBL.cryptoHint:PAY_LBL.bankHint);

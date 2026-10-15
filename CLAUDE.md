@@ -12730,3 +12730,8 @@ seçeneği (Güney Amerika, Türkiye, Orta Doğu, Asya)… Yaptırım engeli …
   escrow'u reddeder, numune/dropship platform hesabından tahsil eder), satıcı panelinde Connect
   kartı ve süre bandı yok, `/stripe/connect` yönlendirir. Üyelik/komisyon kartları etkilenmez.
   Test: `tests/oxapay_test.php` 157 iddia (bölüm 10 indirim, 11 connect).
+- **15 Eki 2026 (3):** Kasada **escrow (kart) seçeneği artık hiç çizilmiyor** Connect kapalıyken
+  (operatör: "sadece kripto ve invoice kalsın"); giriş metni "havale ya da kripto". Havale
+  seçeneğine operatörün cümlesi: *"Even though your payment goes to the seller, VESTRA oversees
+  your order and the delivery."* OxaPay/kasa dizgelerinin **8 dil çevirisi** `inc/lang/*.php`
+  sonuna eklendi (31 anahtar; dosyalar "auto-sorted" ama sırasız ek de çalışır).
