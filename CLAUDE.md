@@ -12792,3 +12792,9 @@ Brevo 200; 23:45 kontrol; distribütör yok; gerçek e-mailler; otomatik gönder
   engel (kapandı), ddg 3 engel (kapandı) → yalnız OSM; 30 dk'da **11 yeni lead**, çoğu turizm/haber
   elendi. Arama kaynağı olmadan "günde 500 kaliteli" dolmuyor — operatöre soruldu (Google Programmable
   Search / Brave). Gazete-spor basını + İskandinav zincirleri süzgece eklendi (8n).
+- **Google Programmable Search (15 Eki 2026, operatör: "ücretsiz yap"):** `scripts/find-boutiques.mjs`
+  `ENGINE.google` — Custom Search JSON API, `GOOGLE_CSE_KEY` + `GOOGLE_CSE_CX` repo secret'ları
+  (`find-customers.yml`, ENGINES `server,osm,google,bing,ddg`), tur başına `GOOGLE_PER_RUN=12`
+  (8 tur × 12 < günlük 100 ücretsiz); 429/quota'da motor kendini kapatır, faturalandırma
+  AÇILMADIĞI sürece ücret oluşmaz. Anahtarlar yoksa motor sessizce atlanır. Secret'ları operatör
+  GitHub ▸ Settings ▸ Secrets'a girer; bu oturum secret yazamaz.
