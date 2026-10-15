@@ -547,14 +547,19 @@ function vestra_lead_not_retail(array $l): bool {
     $labs = array_slice(explode('.', $d), 0, -1);   // TLD hariç bütün etiketler: pomoc.wp.pl → pomoc, wp
     if (array_intersect($labs, VESTRA_NOT_RETAIL_DOMAINS) || in_array($d, VESTRA_NOT_RETAIL_DOMAINS, true)) return true;
   }
-  if (preg_match('/^(zuschauer|leserservice|leserbrief|redaktion|redazione|redaction|newsdesk|abo(?:nnement)?\b|hinweis\b|einladung\b|tipps?\b|presse\b|press\b)/', $loc)) return true;
-  return (bool)preg_match('/touris|turism|tourist|office de tourisme|fremdenverkehr|stadtmarketing|city ?marketing|zeitung|anzeiger|morgenpost|tagblatt|nachrichten|\bnews\b|news\.|magazin|journal\b|\bpresse\b|verlag|rundfunk|fernseh|\btv\b|\bradio\b|mediathek|feuerwehr|behörden|gemeinde|\bmairie\b|ville de |ayuntamiento|\bcomune\b|\bhotel\b|camping|\bmuseum\b|brauerei|bier(?![a-zäöü])|weingut|immobili|versicherung|\bbank\b|safety shoes|scrubs|kostüm|costumes?\b|orthop|sanitätshaus|\barmy\b|surplus|jagd|waidmann|moto\b|motorrad/u', $co.' '.$ed.' '.$wd);
+  /* 15 Eki 2026: "redac.region@midilibre.com" (gazete) ve "mdonline@mundodeportivo.com" (spor gazetesi) mektup
+     aldi -- yerel kisim 'redac' ile baslayinca da medya; alan adlari listeye. */
+  if (preg_match('/^(zuschauer|leserservice|leserbrief|redaktion|redazione|redaction|redac\b|redac[._-]|newsdesk|newsroom|editor|abo(?:nnement)?\b|hinweis\b|einladung\b|tipps?\b|presse\b|press\b)/', $loc)) return true;
+  return (bool)preg_match('/touris|turism|tourist|office de tourisme|fremdenverkehr|stadtmarketing|city ?marketing|zeitung|anzeiger|morgenpost|tagblatt|nachrichten|\bnews\b|news\.|magazin|journal\b|\bpresse\b|verlag|rundfunk|fernseh|\btv\b|\bradio\b|mediathek|feuerwehr|behörden|gemeinde|\bmairie\b|ville de |ayuntamiento|\bcomune\b|\bhotel\b|camping|\bmuseum\b|brauerei|bier(?![a-zäöü])|weingut|immobili|versicherung|\bbank\b|safety shoes|scrubs|kostüm|costumes?\b|orthop|sanitätshaus|\barmy\b|surplus|jagd|waidmann|moto\b|motorrad|embroider|stickerei|broderie|uniform|workwear|berufsbekleidung|arbeitskleidung|deportivo|sportzeitung|gazzetta|kicker\b|eurosport|football|soccer/u', $co.' '.$ed.' '.$wd);
 }
 const VESTRA_NOT_RETAIL_DOMAINS = ['rtl', 'ksta', 'morgenpost', 'sueddeutsche', 'bunte', 'news', 'wp', 'manager-magazin', 'spiegel', 'bild',
   'focus', 'welt', 'faz', 'stern', 'zeit', 'tagesschau', 'zdf', 'ard', 'n-tv', 'ntv', 'sat1', 'prosieben', 'vox', 't-online.de', 'gmx', 'web.de',
   'kering', 'lvmh', 'yorkshire', 'gemo', 'merkal', 'taokids', 'size', 'sizeofficial', 'prodirectsport', 'fc-moto', 'mistersafetyshoes', 'factoryshoe',
   'leparisien', 'lefigaro', 'ouest-france', 'lemonde', 'liberation', 'elle', 'vogue', 'gala', 'marieclaire', 'corriere', 'repubblica', 'elpais',
-  'abc', 'bbc', 'cbc', 'ctv', 'globalnews', 'lindependant', 'ladepeche', 'sudouest', 'nzherald', 'stuff', 'smh', 'theage', 'news24', 'dailymail', 'theguardian', 'telegraph', 'independent', 'mirror', 'nieuwsblad', 'hln', 'telegraaf', 'nu', 'onet', 'interia'];
+  'abc', 'bbc', 'cbc', 'ctv', 'globalnews', 'lindependant', 'ladepeche', 'sudouest', 'nzherald', 'stuff', 'smh', 'theage', 'news24', 'dailymail', 'theguardian', 'telegraph', 'independent', 'mirror', 'nieuwsblad', 'hln', 'telegraaf', 'nu', 'onet', 'interia',
+  /* 15 Eki 2026: gazete/spor basini + buyuk zincirler (mektup aldilar: midilibre, mundodeportivo, lyko, neye) */
+  'midilibre', 'mundodeportivo', 'marca', 'lequipe', 'gazzetta', 'kicker', 'sport1', 'eurosport', 'tuttosport', 'corrieredellosport', 'nicematin', 'laprovence', 'letelegramme', 'lavoixdunord', 'dna', 'lalsace', 'lestrepublicain', 'leprogres', 'ledauphine',
+  'lyko', 'neye', 'boozt', 'nelly', 'ellos', 'zalando', 'aboutyou', 'bestseller', 'varner', 'cubus', 'dressmann', 'kappahl', 'lindex', 'hm', 'cos', 'arket', 'weekday', 'monki', 'bikbok', 'carlings', 'gina-tricot', 'ginatricot', 'stadium', 'intersport', 'xxl', 'sportamore', 'sportmaster'];
 
 /** Gönderimi şimdilik durdurulan ülkeler (14 Eki 2026, operatör: "Alman e-mailleri de şu an için yok"). mailbox.json
  *  'paused_countries' (liste) varsa o, yoksa varsayılan. Ülke alanı ya da .de alan adı (e-posta / site) Almanya sayılır. */

@@ -954,5 +954,13 @@ $t('satıcı (kendi anahtarı): PHP uyarısı yok', !preg_match('/\b(Warning|Fat
 
 if (getenv('FINDER_TEST_DUMP')) file_put_contents(getenv('FINDER_TEST_DUMP'), $hs);
 exec('rm -rf '.escapeshellarg($sand));
+/* ---- 8n (15 Eki 2026): gazete/spor basini ve buyuk zincir mektup aldi (midilibre, mundodeportivo, lyko, neye) ---- */
+$t('8n midilibre (redac.region@) = not-retail', vestra_lead_not_retail(['email' => 'redac.region@midilibre.com', 'company' => 'midilibre.fr', 'website' => 'https://midilibre.fr']));
+$t('8n mundodeportivo = not-retail',          vestra_lead_not_retail(['email' => 'mdonline@mundodeportivo.com', 'company' => 'Mundo Deportivo', 'website' => 'https://mundodeportivo.com']));
+$t('8n lyko / neye (zincir) = not-retail',     vestra_lead_not_retail(['email' => 'fraga@lyko.se', 'company' => 'Lyko', 'website' => 'https://lyko.com']) && vestra_lead_not_retail(['email' => 'kundeservice@neye.dk', 'company' => 'Neye', 'website' => 'https://neye.dk']));
+$t('8n embroidery/uniform = not-retail',       vestra_lead_not_retail(['email' => 'info@border-embroideries.co.uk', 'company' => 'Be Uniforms', 'website' => 'https://border-embroideries.co.uk']));
+$t('8n redac- yerel kisim = not-retail',       vestra_lead_not_retail(['email' => 'redac-sport@example-journal.fr', 'company' => 'X', 'website' => '']));
+$t('8n gercek butik yine GECER',               !vestra_lead_not_retail(['email' => 'info@jeansbolaget.se', 'company' => 'Jeansbolaget', 'website' => 'https://jeansbolaget.se']) && !vestra_lead_not_retail(['email' => 'hello@diffney.ie', 'company' => 'Diffneys', 'website' => 'https://diffney.ie']));
+
 echo "\nTOPLAM: {$ok} gecti, {$bad} kaldi\n";
 exit($bad === 0 ? 0 : 1);
