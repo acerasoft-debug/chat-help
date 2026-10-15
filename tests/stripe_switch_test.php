@@ -47,6 +47,10 @@ $t('havuz iade cron: kapaliyken erteler, refund_failed yazmaz', strpos($cr, 'ves
 $t('urun sayfasi: numune dugmesi salterle gizli', str_contains($r('product.php'), '$samplePrice > 0 && !vestra_stripe_off()'));
 $t('grup sayfasi: kapora formu salterle gizli', str_contains($r('group.php'), '$PAYOFF  = $DEPOSIT && vestra_stripe_off()') && str_contains($r('group.php'), '<?php if($PAYOFF): ?>'));
 $t('stripe_api salteri ILK satirda soruyor', preg_match('/function stripe_api\([^)]*\): object \{\s*if \(vestra_stripe_off\(\)\)/', $r('inc/stripe.php')) === 1);
+$cli = $r('cli_stripe_switch.php');
+$t('cli betigi: web\'den 404 (yalniz komut satiri)', str_starts_with(ltrim(substr($cli, strpos($cli, '*/') + 2)), "if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }"));
+$t('cli betigi: aciksa deneme cagrisi YAPMAZ', strpos($cli, "if (!vestra_stripe_off()) exit;") < strpos($cli, 'stripe_api("GET", "/v1/balance")'));
+$t('cli betigi: anahtar degerini basmaz', !preg_match('/echo[^;]*\$v\b/', $cli));
 $K = 'Online card payment is paused at the moment. Write to us and we will reserve your quantity by bank transfer.';
 foreach (['de','fr','it','es','pt','ru','ar','ja'] as $l) { $a = require $root."/vestra/inc/lang/$l.php"; $t("$l: uyari cevrilmis", isset($a[$K]) && $a[$K] !== $K); }
 echo "\n{$ok} gecti, {$bad} KALDI\n"; exit($bad ? 1 : 0);
