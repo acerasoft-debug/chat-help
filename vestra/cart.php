@@ -197,7 +197,7 @@ if (stripe_available() && vestra_connect_enabled()) {   // Connect kapaliyken es
           <span class="payopt-b">
             <b>🏦 <?= t('Bank transfer (invoice)') ?></b>
             <span class="hint"><?= t('We send a PDF invoice with the seller’s bank details. Goods ship after your transfer arrives.') ?>
-              <?= t('Within 24 hours of your purchase, your invoice is emailed to you and added to your account.') ?>
+              <?= t('Within 24 hours of your purchase, your invoice with the payment details is emailed to you and added to your account.') ?>
               <?= t('Even though your payment goes to the seller, VESTRA oversees your order and the delivery.') ?></span>
           </span>
         </label>
