@@ -1,0 +1,99 @@
+name: (Teşhis) Geri dönen e-postalar — neden, kaynak, alan adı, yerel kısım (salt okunur)
+
+# 15 Eki 2026, operatör: "müşteri bulmada çoğu kez hata e-maili geliyor". Hangi adresler geri dönüyor,
+# NEDEN (kutu yok / alan adı ölü / spam reddi / dolu), hangi yoldan gitti (sunucu / Brevo / satıcı),
+# hangi kaynaktan geldi (web-search / OSM / elle), yerel kısım türü (info@ / kişi adı / ücretsiz posta),
+# ülke ve TLD dağılımı. Adresler MASKELİ basılır; hiçbir şey yazmaz.
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Kaç günlük geri dönüş"
+        required: false
+        default: "7"
+      samples:
+        description: "Kaç örnek satır (maskeli)"
+        required: false
+        default: "40"
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        env:
+          IN_DAYS: ${{ github.event.inputs.days }}
+          IN_SAMPLES: ${{ github.event.inputs.samples }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: IN_DAYS,IN_SAMPLES
+          script: |
+            mkdir -p ~/vestra_tmp
+            cat > ~/vestra_tmp/bq.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors', '1'); error_reporting(E_ALL);
+            chdir(getenv('HOME').'/public_html');
+            require_once 'inc/products.php'; require_once 'inc/leads.php'; require_once 'inc/finder.php';
+            $days = max(1, (int)(getenv('IN_DAYS') ?: 7)); $nS = max(0, (int)(getenv('IN_SAMPLES') ?: 40));
+            $since = time() - $days * 86400;
+            $mask = function (string $e): string { $p = strpos($e, '@'); return $p === false ? '***' : substr($e, 0, 1).'***'.substr($e, $p); };
+            $cls = function (string $r): string {
+              $r = strtolower($r);
+              if (str_contains($r, 'gonderilmedi')) return 'alan adi olu (gonderilmedi)';
+              if (preg_match('/user unknown|unknown user|no such user|does not exist|mailbox not found|recipient.*(rejected|unknown|not found|invalid)|invalid recipient|no mailbox|unrouteable|address rejected|550 5\.1\.1|5\.1\.1|5\.1\.10|nxdomain/', $r)) return 'kutu yok (user unknown)';
+              if (preg_match('/spam|blocked|blacklist|reputation|policy|5\.7\.1|5\.7\.0|rejected for policy|denied|spamhaus|dmarc|spf/', $r)) return 'spam/politika reddi';
+              if (preg_match('/quota|mailbox full|over quota|5\.2\.2|storage/', $r)) return 'kutu dolu';
+              if (preg_match('/domain|dns|mx|host.*not found|no route|unable to resolve/', $r)) return 'alan adi/dns';
+              if (preg_match('/timed? ?out|connection|refused|deferred|temporar|4\.\d\.\d/', $r)) return 'gecici/baglanti';
+              return 'diger';
+            };
+            $localType = function (string $e): string {
+              $l = strtolower(substr($e, 0, (int)strpos($e, '@'))); $d = strtolower(substr($e, (int)strpos($e, '@') + 1));
+              if (preg_match('/^(gmail|googlemail|hotmail|outlook|live|yahoo|gmx|web|icloud|me|aol|orange|wanadoo|free|laposte|libero|tiscali|telia|t-online|bluewin|seznam|wp|o2|onet)\./', $d)) return 'ucretsiz posta';
+              if (preg_match('/^(info|kontakt|contact|contacto|contatti|hello|hallo|hi|shop|store|boutique|sales|verkauf|vendite|ventas|mail|post|office|service|kundenservice|customerservice|kundeservice|kundservice|webshop|order|ordre|bestellung)/', $l)) return 'rol adresi (info/contact/shop…)';
+              if (preg_match('/^[a-z]+([._-][a-z]+)?$/', $l) && strlen($l) >= 4) return 'kisi adi';
+              return 'diger';
+            };
+            $sent = 0; $b = []; $bySrc = []; $byVia = []; $byCls = []; $byLoc = []; $byTld = []; $byCountry = []; $sentVia = []; $sentSrc = [];
+            foreach (vestra_leads() as $l) {
+              $via = (string)($l['contact_via'] ?? ''); $src = (string)($l['source'] ?? '') ?: '?';
+              $lc = (int)strtotime((string)($l['last_contacted_at'] ?? ''));
+              if ($lc >= $since) { $sent++; $sentVia[$via ?: '?'] = ($sentVia[$via ?: '?'] ?? 0) + 1; $sentSrc[$src] = ($sentSrc[$src] ?? 0) + 1; }
+              if (($l['status'] ?? '') !== 'bounced') continue;
+              $ba = (int)strtotime((string)($l['bounced_at'] ?? '')); if ($ba < $since) continue;
+              $e = strtolower(trim((string)($l['email'] ?? ''))); $r = (string)($l['bounce_reason'] ?? '');
+              $c = $cls($r); $lt = $localType($e); $tld = substr((string)strrchr($e, '.'), 1);
+              $b[] = ['e' => $e, 'r' => $r, 'c' => $c, 'via' => $via, 'src' => $src, 'lt' => $lt, 'co' => (string)($l['country'] ?? ''), 'at' => (string)($l['bounced_at'] ?? ''), 'company' => (string)($l['company'] ?? '')];
+              $byCls[$c] = ($byCls[$c] ?? 0) + 1; $byVia[$via ?: '?'] = ($byVia[$via ?: '?'] ?? 0) + 1; $bySrc[$src] = ($bySrc[$src] ?? 0) + 1;
+              $byLoc[$lt] = ($byLoc[$lt] ?? 0) + 1; $byTld[$tld] = ($byTld[$tld] ?? 0) + 1; $byCountry[(string)($l['country'] ?? '?')] = ($byCountry[(string)($l['country'] ?? '?')] ?? 0) + 1;
+            }
+            $pct = fn(int $n, int $d) => $d ? sprintf('%d%%', round(100 * $n / $d)) : '-';
+            echo "son {$days} gun: gonderilen {$sent} · geri donen ".count($b)." (".$pct(count($b), $sent).")\n";
+            echo "gonderim yolu: ".json_encode($sentVia)." · kaynak: ".json_encode($sentSrc)."\n\n";
+            $tbl = function (string $t, array $a) { arsort($a); echo $t."\n"; foreach ($a as $k => $v) echo "  ".str_pad((string)$k, 36)." ".$v."\n"; echo "\n"; };
+            $tbl('NEDEN siniflari:', $byCls);
+            $tbl('gonderim yolu (geri donenler):', $byVia);
+            $tbl('kaynak (geri donenler):', $bySrc);
+            $tbl('yerel kisim turu (geri donenler):', $byLoc);
+            arsort($byTld); $tbl('TLD (ilk 12):', array_slice($byTld, 0, 12, true));
+            arsort($byCountry); $tbl('ulke (ilk 12):', array_slice($byCountry, 0, 12, true));
+            /* Oran kıyası: her yerel-kısım türü ve kaynak için gonderilen icindeki pay vs geri donen icindeki pay */
+            $allSent = []; foreach (vestra_leads() as $l) { if ((int)strtotime((string)($l['last_contacted_at'] ?? '')) < $since) continue; $lt = $localType(strtolower((string)($l['email'] ?? ''))); $allSent[$lt] = ($allSent[$lt] ?? 0) + 1; }
+            echo "yerel kisim turune gore GERI DONME ORANI (geri donen / gonderilen):\n";
+            foreach ($allSent as $k => $v) echo "  ".str_pad($k, 36)." ".($byLoc[$k] ?? 0)."/".$v." = ".$pct($byLoc[$k] ?? 0, $v)."\n";
+            echo "\nnot-retail suzgecine BUGUN takilan (son {$days} gunde gonderilmis ama suzgec artik reddediyor):\n";
+            $nr = 0; foreach (vestra_leads() as $l) { if ((int)strtotime((string)($l['last_contacted_at'] ?? '')) < $since) continue; if (vestra_lead_not_retail($l) || vestra_lead_off_target($l)) { $nr++; if ($nr <= 25) echo "  ".$mask((string)$l['email'])." · ".mb_substr((string)($l['company'] ?? ''), 0, 40)." · ".(string)($l['country'] ?? '')."\n"; } }
+            echo "  toplam {$nr}\n\n";
+            usort($b, fn($x, $y) => strcmp($y['at'], $x['at']));
+            echo "ornekler (en yeni ".min($nS, count($b))."):\n";
+            foreach (array_slice($b, 0, $nS) as $x) echo "  ".substr($x['at'], 0, 16)." ".str_pad($x['via'], 8)." ".str_pad($x['src'], 10)." ".str_pad($x['lt'], 30)." ".str_pad($mask($x['e']), 34)." ".$x['c']." · ".mb_substr(preg_replace('/\s+/', ' ', $x['r']), 0, 90)."\n";
+            PHPEOF
+            php ~/vestra_tmp/bq.php; rc=$?; rm -f ~/vestra_tmp/bq.php; exit $rc
