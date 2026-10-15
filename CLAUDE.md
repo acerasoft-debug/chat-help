@@ -12714,3 +12714,19 @@ seçeneği (Güney Amerika, Türkiye, Orta Doğu, Asya)… Yaptırım engeli …
   kayıtta kalır, operatör `order_discount` ile düzeltir. Kasa/onay/dönüş metni: "VESTRA'ya
   ödersiniz, satıcıya değil; VESTRA ödemeyi sevkten sonra satıcıya bırakır" + cüzdansız müşteri
   notu (borsadan USDT/BTC alıp ödeme sayfasındaki adrese gönder ya da havale).
+- **15 Eki 2026 (2):** **Kripto indirimi OTOMATİK geri alınır** kripto ödenmezse: webhook
+  Expired/Failed, cron `oxapay_expiry_sweep()` (lifetime + 15 dk, `pending` kalan fatura →
+  `expired`; `confirming`'e dokunmaz), Admin ▸ Orders'ta havaleyle `paid` işaretleme (durum
+  yazılmadan ÖNCE). Yeni kripto faturası açılınca **yeniden uygulanır**. Kayıt:
+  `crypto_discount`, `crypto_discount_state` applied|reverted, `discount_voucher_part` (kupon payı
+  KALIR). Yazıcı `vestra_order_set_discount(..., $absolute, $by)` — mutlak tutar kipi, kupon
+  yeniden yakılmaz; faturalıysa yine yazar ve operatöre "aynı numarayla yeniden çiz" mektubu.
+  **Hariç markalar:** Polvich, Pili Pérez (`VESTRA_CRYPTO_DISCOUNT_EXCLUDED_BRANDS`, aksansız) —
+  indirim yalnız uygun satırların mal bedelinden, kupon oranı yansıtılarak
+  (`vestra_crypto_discount_amount`); kasa JS aynı (`CRYPTO_DISC_EXCL`).
+- **Stripe Connect KAPALI** (operatör: "şu an için inaktif"): `vestra_connect_enabled()`
+  (inc/escrow.php) varsayılan false, `.env STRIPE_CONNECT_ENABLED=1` ile açılır. Kapalıyken
+  kasada escrow seçeneği yok (`ESCROW_MAP` boş), `escrow_seller_ready()` false (order.php
+  escrow'u reddeder, numune/dropship platform hesabından tahsil eder), satıcı panelinde Connect
+  kartı ve süre bandı yok, `/stripe/connect` yönlendirir. Üyelik/komisyon kartları etkilenmez.
+  Test: `tests/oxapay_test.php` 157 iddia (bölüm 10 indirim, 11 connect).

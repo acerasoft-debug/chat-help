@@ -1347,6 +1347,9 @@ function auth_seller_stripe_deadline(array $acc, ?int $now = null): array {
     if (($acc['type'] ?? '') !== 'seller') return $out;
     $dl = strtotime((string)($acc['stripe_deadline'] ?? '')) ?: null;
     if (!$dl) return $out;
+    /* Connect kapaliyken saat islemez: baglanamayacagi bir seyi "baglamadin" diye uyarmak olmaz. */
+    if (!function_exists('vestra_connect_enabled')) require_once __DIR__.'/escrow.php';
+    if (!vestra_connect_enabled()) return $out;
     if (!empty($acc['stripe_account_id']) && !empty($acc['escrow_ready'])) { $out['phase'] = 'ready'; return $out; }
     $out['deadline']  = $dl;
     $out['days_left'] = max(0, (int)ceil(($dl - $now) / 86400));

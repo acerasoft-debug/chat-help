@@ -263,7 +263,8 @@ if ($discount <= 0) {
    yakmali, kripto payini degil. */
 $voucherDisc = $discount; $cryptoDisc = 0.0;
 if ($payMethod === 'crypto') {
-  $cryptoDisc = voucher_discount(['type' => 'percent', 'value' => VESTRA_CRYPTO_DISCOUNT_PCT], round($subtotal - $discount, 2));
+  /* Haric markalar (Polvich, Pili Pérez) sayilmaz; kupon orani uygun kisma yansitilir. */
+  $cryptoDisc = vestra_crypto_discount_amount($lines, $subtotal, $discount);
   if ($cryptoDisc > 0) {
     $discount    = round($discount + $cryptoDisc, 2);
     $voucherNote = trim($voucherNote.' Crypto payment discount (-'.rtrim(rtrim(number_format(VESTRA_CRYPTO_DISCOUNT_PCT, 2, '.', ''), '0'), '.').'%) = -'.eur($cryptoDisc).' (applies only when paid in crypto).').' ';
@@ -524,10 +525,15 @@ if($orderTok !== ''){
   if (count($_SESSION['order_token_done']) > 20) $_SESSION['order_token_done'] = array_slice($_SESSION['order_token_done'], -20, null, true);
 }
 
-/* KRIPTO: siparis diske yazildi, mektuplar gitti; simdi OxaPay faturasi ac ve odeme
-   sayfasina gonder. Fatura acilamazsa siparis KALIR (havaleyle odenebilir) ve onay
+/* KRIPTO: siparis diske yazildi, mektuplar gitti; indirim damgasi (otomatik geri alma icin)
+   yazilir, sonra OxaPay faturasi ac ve odeme sayfasina gonder. Fatura acilamazsa siparis KALIR (havaleyle odenebilir) ve onay
    sayfasi "yeniden dene" dugmesini basar -- satis bir API hatasina kaybedilmez. */
 if($payMethod==='crypto'){
+  if($cryptoDisc>0){
+    $__st=vestra_read_json('order_statuses.json'); $__e=(array)($__st[$ref]??['status'=>'pending']);
+    $__e['payment_method']='oxapay'; $__e['crypto_discount']=$cryptoDisc; $__e['crypto_discount_state']='applied'; $__e['discount_voucher_part']=$voucherDisc; $__e['updated_at']=date('c');
+    $__st[$ref]=$__e; vestra_write_json('order_statuses.json',$__st);
+  }
   $orderRow=null; foreach(vestra_read_csv('orders.csv') as $r){ if(($r['ref']??'')===$ref){ $orderRow=$r; break; } }
   $cr=$orderRow ? oxapay_create_invoice($orderRow) : ['ok'=>false,'error'=>'row'];
   if($cr['ok']){ header('Location: '.$cr['payment_url'], true, 303); exit; }

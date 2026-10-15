@@ -2595,8 +2595,10 @@ function vestra_order_set_line_unit(string $ref, string $sku, float $unit,
  * bu dar bir hâl, ama yazılı olması gerekiyor: `total` = mal − indirim + navlun +
  * (mevcut ücret).
  */
-function vestra_order_set_discount(string $ref, float $pct, string $code = '', bool $allowInvoiced = false): array {
+function vestra_order_set_discount(string $ref, float $pct, string $code = '', bool $allowInvoiced = false, ?float $absolute = null, string $by = 'operator'): array {
     require_once __DIR__.'/vouchers.php';
+    /* $absolute (15 Eki 2026, kripto indirimi otomasyonu): yuzde yerine MUTLAK tutar; $code
+       oldugu gibi yazilir (kupon varsa korunur), kupon YENIDEN YAKILMAZ. */
 
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
     if ($ref === '') return ['error' => 'ref yok'];
@@ -2658,8 +2660,13 @@ function vestra_order_set_discount(string $ref, float $pct, string $code = '', b
     if ($fee < 0) $fee = 0.0;
     $sellerFee = round(max(0.0, $oldSub - round((float)($assoc['payout'] ?? $oldSub), 2)), 2);
 
-    $newDisc = $pct > 0 ? voucher_discount(['type' => 'percent', 'value' => $pct], $goods) : 0.0;
-    $newCode = $pct > 0 ? (trim($code) !== '' ? voucher_norm($code) : vestra_welcome_auto_code()) : '';
+    if ($absolute !== null) {
+        $newDisc = round(min(max(0.0, $absolute), $goods), 2);
+        $newCode = trim($code);
+    } else {
+        $newDisc = $pct > 0 ? voucher_discount(['type' => 'percent', 'value' => $pct], $goods) : 0.0;
+        $newCode = $pct > 0 ? (trim($code) !== '' ? voucher_norm($code) : vestra_welcome_auto_code()) : '';
+    }
     $newSub  = round(max(0.0, $goods - $newDisc), 2);
     $newTot  = round($newSub + $ship + $fee, 2);
     $newPay  = round(max(0.0, $newSub - $sellerFee), 2);
@@ -2696,14 +2703,14 @@ function vestra_order_set_discount(string $ref, float $pct, string $code = '', b
        karşılığı yok — `voucher_redeem()` onu bulamaz ve false döner, bu bir hata
        değil ve dönüşte ayrıca yazılıyor. */
     $redeemed = false;
-    if ($newDisc > 0 && $newCode !== '' && voucher_find($newCode)) {
+    if ($absolute === null && $newDisc > 0 && $newCode !== '' && voucher_find($newCode)) {
         $redeemed = voucher_redeem($newCode, $ref, (string)($back['email'] ?? ''), $newDisc);
     }
 
     $st = vestra_read_json('order_statuses.json');
     if (!isset($st[$ref]) || !is_array($st[$ref])) $st[$ref] = [];
     $st[$ref]['discount_set_at'] = date('c');
-    $st[$ref]['discount_set_by'] = 'operator';
+    $st[$ref]['discount_set_by'] = $by;
     vestra_write_json('order_statuses.json', $st);
 
     return ['ok' => true, 'goods' => $goods, 'pct' => $pct, 'code' => $newCode,

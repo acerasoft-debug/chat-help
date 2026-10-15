@@ -38,6 +38,125 @@ const VESTRA_SUPPLIER_QUEUE      = 'supplier_queue.json';   // ref → iş
    havaleyle ödenirse indirim kayıtta kalır -- not açıkça "yalnız kripto ödemesinde" diyor,
    operatör order_discount ile düzeltir. */
 const VESTRA_CRYPTO_DISCOUNT_PCT = 2.0;
+/* Indirimden HARIC markalar (operator, 15 Eki 2026: "Polvich, Pili Pérez"). Aksansiz kucuk harf. */
+const VESTRA_CRYPTO_DISCOUNT_EXCLUDED_BRANDS = ['polvich', 'pili perez'];
+const VESTRA_CRYPTO_DISCOUNT_GRACE_MIN = 15;   // OxaPay lifetime + bu kadar dakika: webhook gelmediyse cron suresi dolmus sayar
+
+/* ── Kripto indirimi: uygunluk, uygulama, geri alma ───────────────────────────
+ * Siparis kripto secilince %2 dusuyor (order.php). Kripto ODENMEZSE indirim OTOMATIK geri alinir:
+ *   - OxaPay webhook Expired/Failed (oxapay_handle_webhook)
+ *   - cron: lifetime + 15 dk gectigi halde pending kalan fatura (oxapay_expiry_sweep)
+ *   - operator siparisi havaleyle 'paid' isaretlerse (admin.php order_status)
+ * Alici yeniden kripto faturasi acarsa (oxapay_create_invoice) indirim YENIDEN uygulanir.
+ * Tutarlar order_statuses[ref]: crypto_discount (kripto payi), crypto_discount_state
+ * applied|reverted, discount_voucher_part (kupon/hos geldin payi -- geri alinca o kalir). */
+
+function vestra_crypto_brand_excluded(string $brand): bool {
+    $f = vestra_sanction_fold($brand);
+    foreach (VESTRA_CRYPTO_DISCOUNT_EXCLUDED_BRANDS as $b) if ($f === $b) return true;
+    return false;
+}
+
+/** Indirime giren mal bedeli: haric markalarin satirlari sayilmaz. $lines: [['brand'=>..,'line'=>..],..] */
+function vestra_crypto_eligible_goods(array $lines): float {
+    $sum = 0.0;
+    foreach ($lines as $l) if (!vestra_crypto_brand_excluded((string)($l['brand'] ?? ''))) $sum += (float)($l['line'] ?? 0);
+    return round($sum, 2);
+}
+
+/**
+ * Kripto indirim tutari. Kupon/hos geldin indirimi mal bedelinin tamamina oranli dustugu icin
+ * uygun kisma da ayni oranla yansitilir: 2% x uygun_mal x (kupon_sonrasi / brut).
+ */
+function vestra_crypto_discount_amount(array $lines, float $goodsGross, float $voucherDisc): float {
+    if ($goodsGross <= 0) return 0.0;
+    $elig = vestra_crypto_eligible_goods($lines);
+    if ($elig <= 0) return 0.0;
+    $base = round($elig * (max(0.0, $goodsGross - $voucherDisc) / $goodsGross), 2);
+    return round($base * VESTRA_CRYPTO_DISCOUNT_PCT / 100, 2);
+}
+
+/** Kasa JS'i icin haric marka listesi (aksansiz kucuk harf). */
+function vestra_crypto_excluded_brands_js(): array { return VESTRA_CRYPTO_DISCOUNT_EXCLUDED_BRANDS; }
+
+/**
+ * Kripto indirimini geri alir (kupon payi kalir). Odenmis siparise DOKUNMAZ. Faturasi kesilmisse
+ * yine yazar (allow_invoiced) ve operatore "ayni numarayla yeniden ciz" der.
+ * @return array{ok:bool,changed:bool,error?:string,must_redraft?:bool}
+ */
+function oxapay_crypto_discount_revert(string $ref, array $opt = []): array {
+    $all = vestra_read_json('order_statuses.json');
+    $e = (array)($all[$ref] ?? []);
+    $cd = round((float)($e['crypto_discount'] ?? 0), 2);
+    if ($cd <= 0 || ($e['crypto_discount_state'] ?? '') !== 'applied') return ['ok' => true, 'changed' => false];
+    if (($e['payment_status'] ?? '') === 'paid') return ['ok' => true, 'changed' => false];
+    $vp = round((float)($e['discount_voucher_part'] ?? 0), 2);
+    $row = oxapay_order_row($ref);
+    if (!$row) return ['ok' => false, 'changed' => false, 'error' => 'row'];
+    $r = vestra_order_set_discount($ref, 0.0, (string)($row['voucher_code'] ?? ''), true, $vp, 'system:crypto-revert');
+    if (empty($r['ok'])) return ['ok' => false, 'changed' => false, 'error' => (string)($r['error'] ?? '?')];
+    $h = oxapay_lock();
+    $all = vestra_read_json('order_statuses.json'); $e = (array)($all[$ref] ?? []);
+    $e['crypto_discount_state'] = 'reverted'; $e['crypto_discount_reverted_at'] = date('c'); $e['updated_at'] = date('c');
+    $e['history'][] = vestra_order_history_entry('discount', 'system', 'crypto discount −€'.number_format($cd, 2).' removed (not paid in crypto)');
+    $all[$ref] = $e; vestra_write_json('order_statuses.json', $all);
+    oxapay_unlock($h);
+    if (!empty($r['must_redraft']) && empty($opt['quiet']) && function_exists('vestra_notify')) {
+        try { vestra_notify("Order {$ref}: crypto discount removed — invoice must be redrawn", "The buyer chose crypto but did not pay in time. The 2% crypto discount (−€".number_format($cd, 2).") was removed from order {$ref}; an invoice was already issued (".implode(', ', (array)($r['invoiced'] ?? [])).") — redraw it with the same number (KURAL 5f).\nhttps://vestrasales.com/admin?tab=orders"); } catch (\Throwable $x) {}
+    }
+    return ['ok' => true, 'changed' => true, 'must_redraft' => !empty($r['must_redraft'])];
+}
+
+/** Geri alinmis kripto indirimini yeni fatura acilirken YENIDEN uygular. */
+function oxapay_crypto_discount_reapply(string $ref): array {
+    $all = vestra_read_json('order_statuses.json');
+    $e = (array)($all[$ref] ?? []);
+    $cd = round((float)($e['crypto_discount'] ?? 0), 2);
+    if ($cd <= 0 || ($e['crypto_discount_state'] ?? '') !== 'reverted') return ['ok' => true, 'changed' => false];
+    $vp = round((float)($e['discount_voucher_part'] ?? 0), 2);
+    $row = oxapay_order_row($ref);
+    if (!$row) return ['ok' => false, 'changed' => false, 'error' => 'row'];
+    $r = vestra_order_set_discount($ref, 0.0, (string)($row['voucher_code'] ?? ''), true, $vp + $cd, 'system:crypto-reapply');
+    if (empty($r['ok'])) return ['ok' => false, 'changed' => false, 'error' => (string)($r['error'] ?? '?')];
+    $h = oxapay_lock();
+    $all = vestra_read_json('order_statuses.json'); $e = (array)($all[$ref] ?? []);
+    $e['crypto_discount_state'] = 'applied'; unset($e['crypto_discount_reverted_at']); $e['updated_at'] = date('c');
+    $e['history'][] = vestra_order_history_entry('discount', 'system', 'crypto discount −€'.number_format($cd, 2).' re-applied (new crypto invoice)');
+    $all[$ref] = $e; vestra_write_json('order_statuses.json', $all);
+    oxapay_unlock($h);
+    return ['ok' => true, 'changed' => true];
+}
+
+/**
+ * Cron suzgeci: lifetime + 15 dk gectigi halde 'pending' kalan kripto faturalari expired sayilir
+ * ve indirim geri alinir (webhook gelmediyse). 'confirming' DOKUNULMAZ: zincirde islem gorulmus.
+ * @return array{expired:int,reverted:int}
+ */
+function oxapay_expiry_sweep(array $opt = []): array {
+    $now = (int)($opt['now'] ?? time());
+    $cfg = $opt['cfg'] ?? oxapay_cfg();
+    $out = ['expired' => 0, 'reverted' => 0];
+    $all = vestra_read_json('order_statuses.json');
+    foreach ($all as $ref => $e) {
+        $e = (array)$e;
+        if (($e['payment_method'] ?? '') !== 'oxapay') continue;
+        $ps = (string)($e['payment_status'] ?? '');
+        $made = strtotime((string)($e['oxapay_created_at'] ?? '')) ?: 0;
+        $stale = $made > 0 && ($now - $made) > ((int)$cfg['lifetime'] + VESTRA_CRYPTO_DISCOUNT_GRACE_MIN) * 60;
+        if ($ps === 'pending' && $stale) {
+            $h = oxapay_lock();
+            $cur = vestra_read_json('order_statuses.json'); $ce = (array)($cur[$ref] ?? []);
+            if (($ce['payment_status'] ?? '') === 'pending') { $ce['payment_status'] = 'expired'; $ce['oxapay_expired_by'] = 'sweep'; $ce['updated_at'] = date('c', $now); $cur[$ref] = $ce; vestra_write_json('order_statuses.json', $cur); $out['expired']++; }
+            oxapay_unlock($h);
+            $ps = 'expired';
+        }
+        if (in_array($ps, ['expired', 'failed'], true) && ($e['crypto_discount_state'] ?? '') === 'applied') {
+            $r = oxapay_crypto_discount_revert((string)$ref, $opt);
+            if (!empty($r['changed'])) $out['reverted']++;
+        }
+    }
+    return $out;
+}
 
 /* ── Ayar ─────────────────────────────────────────────────────────────────── */
 
@@ -256,6 +375,10 @@ function oxapay_create_invoice(array $row, array $opt = []): array {
     if ($amount <= 0) { $out['error'] = 'amount'; return $out; }
     if (function_exists('vestra_order_payment_settled') && vestra_order_payment_settled($ref)['settled']) { $out['error'] = 'already_paid'; return $out; }
     if (($reason = vestra_order_crypto_block($row)) !== '') { $out['error'] = 'sanctioned'; $out['reason'] = $reason; return $out; }
+    /* Daha once geri alinmis kripto indirimi: yeni fatura = yeniden kripto niyeti, indirim geri gelir
+       ve tutar GUNCEL satirdan okunur. */
+    $re = oxapay_crypto_discount_reapply($ref);
+    if (!empty($re['changed'])) { $row = oxapay_order_row($ref) ?: $row; $amount = round((float)($row['total'] ?? 0), 2); }
 
     $base = oxapay_base_url();
     $body = [
@@ -365,6 +488,8 @@ function oxapay_handle_webhook(array $p, array $opt = []): array {
     oxapay_unlock($h);
 
     if ($action === 'paid') { try { oxapay_after_paid($ref, $opt); } catch (\Throwable $x) { error_log('[VESTRA OxaPay] after-paid '.$ref.': '.$x->getMessage()); } }
+    /* Kripto odenmedi: %2 indirim geri (kilit disinda; kendi kilidini aliyor). */
+    if (in_array($action, ['expired', 'failed'], true)) { try { oxapay_crypto_discount_revert($ref, $opt); } catch (\Throwable $x) { error_log('[VESTRA OxaPay] revert '.$ref.': '.$x->getMessage()); } }
     return ['ok' => true, 'action' => $action, 'ref' => $ref];
 }
 

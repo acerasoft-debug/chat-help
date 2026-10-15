@@ -36,6 +36,8 @@ if (!$dry) {
   $qlk = @fopen(vestra_data_dir().'/supplier_queue_cron.lock', 'c');
   if ($qlk && flock($qlk, LOCK_EX | LOCK_NB)) {
     try {
+      $xs = oxapay_expiry_sweep();
+      if ($xs['expired'] || $xs['reverted']) echo '[oxapay '.date('Y-m-d H:i').'] suresi dolan fatura '.$xs['expired'].' · indirim geri alinan '.$xs['reverted']."\n";
       $qs = vestra_supplier_forward_run(['log' => static function (string $m): void { echo $m, "\n"; }]);
       if ($qs['sent'] || $qs['retried'] || $qs['failed']) echo '[supplier '.date('Y-m-d H:i').'] iletildi '.$qs['sent'].' · yeniden '.$qs['retried'].' · vazgecildi '.$qs['failed']."\n";
     } catch (\Throwable $e) { echo '[supplier] '.$e->getMessage()."\n"; }

@@ -18,7 +18,8 @@ require_once __DIR__.'/inc/stripe.php';
 require_once __DIR__.'/inc/orders.php';
 require_once __DIR__.'/inc/addresses.php';
 $escrowMap = [];
-if (stripe_available()) {
+require_once __DIR__.'/inc/escrow.php';
+if (stripe_available() && vestra_connect_enabled()) {   // Connect kapaliyken escrow hic sunulmaz
   $readySellers = [];
   foreach (auth_accounts() as $a) {
     if (($a['type']??'')==='seller' && !empty($a['escrow_ready']) && !empty($a['stripe_account_id'])) $readySellers[$a['id']] = true;
@@ -393,6 +394,8 @@ function syncPay(c, net){
 /* Yaptirim kalibi SUNUCUDAN (vestra_sanction_js_pattern): ikinci bir liste tutulmuyor. */
 var CRYPTO_BLOCK_RE = new RegExp(<?= json_encode(vestra_sanction_js_pattern(), JSON_UNESCAPED_UNICODE) ?>, 'iu');
 var CRYPTO_DISC_RATE = <?= json_encode(VESTRA_CRYPTO_DISCOUNT_PCT / 100) ?>;   // onizleme; kapi ve hesap order.php'de
+var CRYPTO_DISC_EXCL = <?= json_encode(vestra_crypto_excluded_brands_js()) ?>;   // haric markalar (aksansiz kucuk harf)
+function brandFold(b){ return String(b||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim(); }
 /* PHP'deki vestra_brand_min_shortfall()'un aynisi: marka basina satir toplami,
    esigin altinda kalanlar. Ayni tolerans (0.005) -- tam 500.00'lik bir sepet
    kayan nokta yuzunden reddedilmesin. Karar SUNUCUDA; bu yalnizca alici
@@ -473,7 +476,9 @@ function render(){
   var efee=isEsc?net*ESCROW_FEE_RATE:0;
   /* Kripto indirimi: kupon sonrasi mal bedelinden, order.php ile ayni sira. */
   var cryR=document.getElementById('payCrypto'); var isCry=cryR&&cryR.checked&&!cryR.disabled;
-  var cdisc=isCry?Math.round(net*CRYPTO_DISC_RATE*100)/100:0;
+  /* Haric markalar sayilmaz; kupon orani uygun kisma yansitilir (vestra_crypto_discount_amount ile ayni). */
+  var elig=0; c.forEach(function(x){ if(CRYPTO_DISC_EXCL.indexOf(brandFold(x.brand))<0) elig+=x.qty*x.unit; });
+  var cdisc=(isCry&&sub>0)?Math.round(Math.round(elig*(net/sub)*100)/100*CRYPTO_DISC_RATE*100)/100:0;
   var cLine=document.getElementById('cryptoDiscLine'); if(cLine){ cLine.style.display=isCry&&cdisc>0?'':'none'; document.getElementById('cryptoDiscAmt').textContent='−'+eur(cdisc); }
   net=net-cdisc;
   var feeLine=document.getElementById('escrowFeeLine'); if(feeLine) feeLine.style.display=isEsc?'':'none';

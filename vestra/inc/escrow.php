@@ -134,7 +134,19 @@ function escrow_badge(string $status): string {
  * account.updated webhook — no per-request Stripe call. When $refresh is true
  * (e.g. right after onboarding) it hits the API once and updates the cache.
  */
+/* STRIPE CONNECT KAPALI (operator, 15 Eki 2026: "stripe connect'i su an icin inaktif yap").
+   Tek anahtar, varsayilan KAPALI; .env STRIPE_CONNECT_ENABLED=1 ile geri acilir. Kapaliyken:
+   kasada escrow secenegi cizilmez (cart.php), order.php escrow'u reddeder, numune/dropship
+   platform hesabindan tahsil eder (escrow_seller_ready false), satici panelinde Connect karti
+   ve sure bandi gorunmez (seller.php, auth_seller_stripe_deadline), /stripe/connect yonlendirir.
+   Uyelik/komisyon kartlari (platform hesabi) BUNA BAGLI DEGIL. */
+function vestra_connect_enabled(): bool {
+    require_once __DIR__.'/env.php';
+    return (getenv('STRIPE_CONNECT_ENABLED') ?: (string)($_ENV['STRIPE_CONNECT_ENABLED'] ?? '')) === '1';
+}
+
 function escrow_seller_ready(array $seller, bool $refresh = false): bool {
+    if (!vestra_connect_enabled()) return false;
     if ($refresh && !empty($seller['stripe_account_id']) && function_exists('stripe_connect_status')) {
         $st = stripe_connect_status($seller);
         $ready = !empty($st['charges_enabled']);

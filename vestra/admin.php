@@ -1530,6 +1530,10 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
        but the form silently refuses is the hardest kind of bug to see, because the page
        reloads looking perfectly normal and simply does nothing. */
     if($ref && in_array($st,vestra_order_settable_statuses(),true)){
+      /* Kripto secilmis ama kriptoyla ODENMEMIS siparis havaleyle 'paid' yapiliyorsa %2 kripto
+         indirimi ONCE geri alinir (15 Eki 2026) -- durum yazildiktan sonra "parasi gelmis"
+         sayilir ve indirim bir daha dokunulamaz. */
+      if($st==='paid'){ require_once __DIR__.'/inc/oxapay.php'; try { oxapay_crypto_discount_revert($ref); } catch(\Throwable $e){ error_log('[VESTRA OxaPay] admin revert '.$ref.': '.$e->getMessage()); } }
       $all=vestra_read_json('order_statuses.json');
       $prev=$all[$ref]['status']??'pending';
       $prevTrk=trim((string)($all[$ref]['tracking']??'')); $newTrk=trim((string)($_POST['tracking']??''));

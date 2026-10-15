@@ -369,8 +369,64 @@ if ($pid > 0) {
     $t('kasa: "VESTRA\'ya odersiniz, satici sevkten sonra" + cuzdansiz musteri notu', str_contains($b8, 'never the seller') && str_contains($b8, 'No crypto wallet?'));
     $t('kasa: yaptirim kalibi JS\'de',                  str_contains($b8, 'CRYPTO_BLOCK_RE = new RegExp('));
     $t('sabit: VESTRA_CRYPTO_DISCOUNT_PCT = 2',         VESTRA_CRYPTO_DISCOUNT_PCT == 2.0);
+    $t('kasa: haric markalar JS\'de (polvich, pili perez)', str_contains($b8, 'CRYPTO_DISC_EXCL = ["polvich","pili perez"]'));
+    $t('kasa: Connect kapali -> ESCROW_MAP bos',         str_contains($b8, 'var ESCROW_MAP = {}') || str_contains($b8, 'var ESCROW_MAP = []'));
     shell_exec('kill '.$pid.' 2>/dev/null');
 } else { $t('php -S baslatilamadi', false); }
+
+/* ── 10. Kripto indirimi: haric markalar, otomatik geri alma / yeniden uygulama ─ */
+echo "10. kripto indirimi\n";
+$t('haric marka: Polvich / Pili Pérez (aksan, buyuk harf toleransli)', vestra_crypto_brand_excluded('Polvich') && vestra_crypto_brand_excluded('PILI PÉREZ') && vestra_crypto_brand_excluded('pili perez') && !vestra_crypto_brand_excluded('Lacoste'));
+$L = [['brand' => 'Lacoste', 'line' => 500.0], ['brand' => 'Polvich', 'line' => 300.0], ['brand' => 'Pili Pérez', 'line' => 200.0]];
+$t('uygun mal bedeli: yalniz Lacoste (500)',        vestra_crypto_eligible_goods($L) == 500.0);
+$t('indirim: 2% x 500 = 10.00 (kuponsuz)',           vestra_crypto_discount_amount($L, 1000.0, 0.0) == 10.0);
+$t('indirim: kupon %10 varsa 2% x 500 x 0.9 = 9.00',  vestra_crypto_discount_amount($L, 1000.0, 100.0) == 9.0);
+$t('tum sepet haric markaysa indirim 0',             vestra_crypto_discount_amount([['brand' => 'Polvich', 'line' => 900.0]], 900.0, 0.0) == 0.0);
+/* Siparis: 1300 mal, kripto indirimi 26 uygulanmis, kripto odenmemis */
+$hh = fopen($sand.'/data/orders.csv', 'a');
+fputcsv($hh, ['2026-10-15T10:00:00+00:00', 'VES-CD', 'Buyer BV', '', 'Bea', 'buyer@example.test', 'Chile', '', '10x SKU-A @50 | 2x SKU-B @400', '1274.00', '0', '1274.00', '1274.00', 'Payment: Crypto (OxaPay). Crypto payment discount (-2%) = -€26.00 (applies only when paid in crypto).', 'yes', 'v1', '', '26.00', '', ''], ',', '"', '\\');
+fputcsv($hh, ['2026-10-15T10:00:00+00:00', 'VES-CDP', 'Buyer BV', '', 'Bea', 'buyer@example.test', 'Chile', '', '10x SKU-A @50', '490.00', '0', '490.00', '490.00', 'Payment: Crypto (OxaPay).', 'yes', 'v1', '', '10.00', '', ''], ',', '"', '\\');
+fclose($hh);
+$all = $statuses();
+$all['VES-CD']  = ['status' => 'pending', 'payment_method' => 'oxapay', 'payment_status' => 'pending', 'oxapay_track_id' => 'TRK-VES-CD', 'oxapay_created_at' => date('c', 1760900000), 'crypto_discount' => 26.0, 'crypto_discount_state' => 'applied', 'discount_voucher_part' => 0.0];
+$all['VES-CDP'] = ['status' => 'pending', 'payment_method' => 'oxapay', 'payment_status' => 'paid', 'paid_at' => 'x', 'oxapay_track_id' => 'TRK-VES-CDP', 'oxapay_created_at' => date('c', 1760900000), 'crypto_discount' => 10.0, 'crypto_discount_state' => 'applied', 'discount_voucher_part' => 0.0];
+vestra_write_json('order_statuses.json', $all);
+$idx = vestra_read_json(VESTRA_OXAPAY_INDEX); $idx['TRK-VES-CD'] = 'VES-CD'; $idx['TRK-VES-CDP'] = 'VES-CDP'; vestra_write_json(VESTRA_OXAPAY_INDEX, $idx);
+$sw = oxapay_expiry_sweep(['now' => 1760900000 + 60 * 60, 'quiet' => true]);
+$t('sweep 60 dk: henuz dokunmaz (lifetime 60 + 15 dk tolerans)', $sw === ['expired' => 0, 'reverted' => 0] && (float)$rowOf('VES-CD')['total'] == 1274.0);
+$sw = oxapay_expiry_sweep(['now' => 1760900000 + 76 * 60, 'quiet' => true]);
+$rcd = $rowOf('VES-CD'); $ecd = $statuses()['VES-CD'];
+$t('sweep 76 dk: fatura expired + indirim GERI ALINDI (total 1300, discount bos)', $sw === ['expired' => 1, 'reverted' => 1] && (float)$rcd['total'] == 1300.0 && (string)$rcd['discount'] === '' && (float)$rcd['subtotal'] == 1300.0);
+$t('kayit: payment_status expired, crypto_discount_state reverted, gecmis satiri', ($ecd['payment_status'] ?? '') === 'expired' && ($ecd['crypto_discount_state'] ?? '') === 'reverted' && str_contains(json_encode($ecd['history'] ?? []), 'removed'));
+$t('ODENMIS kripto siparisine (VES-CDP) DOKUNULMADI',  (float)$rowOf('VES-CDP')['total'] == 490.0 && ($statuses()['VES-CDP']['crypto_discount_state'] ?? '') === 'applied');
+$t('ikinci sweep: hicbir sey degismez',              oxapay_expiry_sweep(['now' => 1760900000 + 90 * 60, 'quiet' => true]) === ['expired' => 0, 'reverted' => 0]);
+/* Yeniden kripto faturasi: indirim geri gelir, OxaPay tutari 1274 */
+$calls = [];
+$rc = oxapay_create_invoice($rowOf('VES-CD'), ['http' => $httpOk]);
+$t('yeni kripto faturasi: indirim YENIDEN uygulandi, tutar 1274', $rc['ok'] && ($calls[0]['body']['amount'] ?? 0) == 1274.0 && (float)$rowOf('VES-CD')['total'] == 1274.0 && ($statuses()['VES-CD']['crypto_discount_state'] ?? '') === 'applied');
+/* Webhook Failed -> geri al */
+oxapay_handle_webhook(['type' => 'invoice', 'track_id' => 'TRK-VES-CD', 'status' => 'Failed'], ['mail' => $mailer, 'now' => 1760910000, 'quiet' => true]);
+$t('webhook Failed: indirim yine geri alindi (total 1300)', (float)$rowOf('VES-CD')['total'] == 1300.0 && ($statuses()['VES-CD']['crypto_discount_state'] ?? '') === 'reverted');
+/* Kuponlu siparis: kupon payi KALIR */
+$hh = fopen($sand.'/data/orders.csv', 'a');
+fputcsv($hh, ['2026-10-15T10:00:00+00:00', 'VES-CDV', 'Buyer BV', '', 'Bea', 'buyer@example.test', 'Chile', '', '10x SKU-A @50', '465.50', '0', '465.50', '465.50', 'Payment: Crypto (OxaPay). Welcome discount WELCOME5 (-5%) = -€25.00 (first order). Crypto payment discount (-2%) = -€9.50.', 'yes', 'v1', 'WELCOME5', '34.50', '', ''], ',', '"', '\\');
+fclose($hh);
+$all = $statuses(); $all['VES-CDV'] = ['status' => 'pending', 'payment_method' => 'oxapay', 'payment_status' => 'expired', 'oxapay_track_id' => 'TRK-VES-CDV', 'crypto_discount' => 9.5, 'crypto_discount_state' => 'applied', 'discount_voucher_part' => 25.0]; vestra_write_json('order_statuses.json', $all);
+$rv = oxapay_crypto_discount_revert('VES-CDV', ['quiet' => true]);
+$rcv = $rowOf('VES-CDV');
+$t('kuponlu siparis: kripto payi gitti, kupon payi KALDI (discount 25, code WELCOME5, total 475)', $rv['changed'] && (float)$rcv['discount'] == 25.0 && $rcv['voucher_code'] === 'WELCOME5' && (float)$rcv['total'] == 475.0);
+$t('revert idempotent',                               oxapay_crypto_discount_revert('VES-CDV', ['quiet' => true])['changed'] === false);
+
+/* ── 11. Stripe Connect anahtari (kapali) ──────────────────────────────────── */
+echo "11. connect\n";
+require_once $root.'/vestra/inc/escrow.php';
+putenv('STRIPE_CONNECT_ENABLED=');
+$t('Connect varsayilan KAPALI',                       !vestra_connect_enabled());
+$t('kapaliyken hazir satici bile escrow_seller_ready FALSE', !escrow_seller_ready(['id' => 'S1', 'escrow_ready' => true, 'stripe_account_id' => 'acct_1']));
+$t('kapaliyken Stripe suresi bandi yok (phase none)',   auth_seller_stripe_deadline(['type' => 'seller', 'stripe_deadline' => '2026-01-01', 'stripe_account_id' => ''])['phase'] === 'none');
+putenv('STRIPE_CONNECT_ENABLED=1');
+$t('STRIPE_CONNECT_ENABLED=1 ile acilir',             vestra_connect_enabled() && escrow_seller_ready(['id' => 'S1', 'escrow_ready' => true, 'stripe_account_id' => 'acct_1']) && auth_seller_stripe_deadline(['type' => 'seller', 'stripe_deadline' => '2026-01-01', 'stripe_account_id' => ''])['phase'] === 'overdue');
+putenv('STRIPE_CONNECT_ENABLED=');
 
 /* ── Sizinti: kum havuzu disina yazilmadi ──────────────────────────────────── */
 $t('gercek data/ dizinine oxapay dosyasi yazilmadi', !file_exists($root.'/vestra/data/'.VESTRA_OXAPAY_INDEX) && !file_exists($root.'/vestra/data/'.VESTRA_SUPPLIER_QUEUE));

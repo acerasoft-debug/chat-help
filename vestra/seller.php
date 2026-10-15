@@ -1951,8 +1951,8 @@ function sellerSend(btn){
   <?php
     // Stripe Connect (escrow payouts) status — only hits the API when the seller
     // has actually started onboarding, so most profile loads stay fast.
-    require_once __DIR__.'/inc/stripe.php';
-    $connSt = (stripe_available() && !empty($u['stripe_account_id'])) ? stripe_connect_status($u) : ['connected' => false];
+    require_once __DIR__.'/inc/stripe.php'; require_once __DIR__.'/inc/escrow.php';
+    $connSt = (stripe_available() && vestra_connect_enabled() && !empty($u['stripe_account_id'])) ? stripe_connect_status($u) : ['connected' => false];
     $connReady = !empty($connSt['ready']);
     /* Cache escrow readiness (can this seller receive a direct charge?) so the
        cart can offer escrow without an API call — refreshed on every profile view,
@@ -1962,6 +1962,7 @@ function sellerSend(btn){
       if (($u['escrow_ready'] ?? null) !== $ready) { auth_update($u['id'], ['escrow_ready'=>$ready]); $u['escrow_ready']=$ready; }
     }
   ?>
+  <?php if (vestra_connect_enabled()): ?>
   <div class="panelcard">
     <div class="pcfhead"><h3><?= t('Payouts &amp; Escrow (Stripe)') ?></h3>
       <?php if ($connReady): ?><span class="status offers">✓ <?= t('Active') ?></span>
@@ -1992,6 +1993,7 @@ function sellerSend(btn){
       <?php endif; ?>
     </div>
   </div>
+  <?php endif; /* vestra_connect_enabled */ ?>
 
   <?php
     $msTier   = $u['membership_tier'] ?? '';

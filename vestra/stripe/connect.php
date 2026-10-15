@@ -15,7 +15,8 @@ if (!$user || ($user['type'] ?? '') !== 'seller') {
     header('Location: /login?back=' . urlencode('/seller?tab=profile'));
     exit;
 }
-if (!stripe_available()) {
+require_once __DIR__ . '/../inc/escrow.php';
+if (!stripe_available() || !vestra_connect_enabled()) {   // Connect kapali (15 Eki 2026): onboarding yok
     header('Location: /seller?tab=profile&error=notready');
     exit;
 }
