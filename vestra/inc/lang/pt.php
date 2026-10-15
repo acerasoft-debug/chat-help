@@ -1752,4 +1752,6 @@ return array (
   'Two ways to pay: <b>🏦 bank transfer</b> by invoice, or <b>₿ crypto</b> (USDT, BTC, ETH…) paid to VESTRA. Choose below.' => 'Duas formas de pagar: <b>🏦 transferência bancária</b> contra fatura, ou <b>₿ cripto</b> (USDT, BTC, ETH…) paga à VESTRA. Escolha abaixo.',
   /* Stripe salteri (15 Eki 2026) */
   'Online card payment is paused at the moment. Write to us and we will reserve your quantity by bank transfer.' => 'O pagamento online por cartão está suspenso de momento. Escreva-nos e reservamos a sua quantidade por transferência bancária.',
+  'Within 24 hours of your purchase, your invoice is emailed to you and added to your account.' => 'Em até 24 horas após a compra, a sua fatura é enviada por e-mail e adicionada à sua conta.',
+  "Within 24 hours of your purchase, your invoice — with the seller's bank details — is emailed to you and added to your account. Payment is by bank transfer against that invoice; goods ship after payment arrives. Track everything under My orders." => 'Em até 24 horas após a compra, a sua fatura — com os dados bancários do vendedor — é enviada por e-mail e adicionada à sua conta. O pagamento é por transferência contra essa fatura; a mercadoria é enviada após a chegada do pagamento. Acompanhe tudo em «Meus pedidos».',
 );

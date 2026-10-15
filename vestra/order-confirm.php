@@ -119,7 +119,7 @@ $PAGE = t('Order received'); $NAV = 'shop'; require __DIR__.'/inc/head.php';
   <?php elseif (!$oxPaid): ?>
   <div class="banner info" style="margin:22px 0;font-size:13.5px">
     ⏳ <b><?= t('Stock is being confirmed.') ?></b>
-    <?= t("Once confirmed, your invoice — with the seller's bank details — will be emailed to you and added to your account, usually within the day. Payment is by bank transfer against that invoice; goods ship after payment arrives. Track everything under My orders.") ?>
+    <?= t("Within 24 hours of your purchase, your invoice — with the seller's bank details — is emailed to you and added to your account. Payment is by bank transfer against that invoice; goods ship after payment arrives. Track everything under My orders.") ?>
   </div>
   <?php endif; ?>
 

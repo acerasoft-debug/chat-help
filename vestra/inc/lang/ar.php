@@ -1752,4 +1752,6 @@ return array (
   'Two ways to pay: <b>🏦 bank transfer</b> by invoice, or <b>₿ crypto</b> (USDT, BTC, ETH…) paid to VESTRA. Choose below.' => 'طريقتان للدفع: <b>🏦 التحويل البنكي</b> مقابل الفاتورة، أو <b>₿ العملات الرقمية</b> (USDT، BTC، ETH…) تُدفع إلى VESTRA. اختر أدناه.',
   /* Stripe salteri (15 Eki 2026) */
   'Online card payment is paused at the moment. Write to us and we will reserve your quantity by bank transfer.' => 'الدفع الإلكتروني بالبطاقة متوقف حاليًا. راسلونا وسنحجز الكمية المطلوبة بالدفع عبر التحويل المصرفي.',
+  'Within 24 hours of your purchase, your invoice is emailed to you and added to your account.' => 'خلال 24 ساعة من الشراء تُرسل فاتورتك إلى بريدك الإلكتروني وتُضاف إلى حسابك.',
+  "Within 24 hours of your purchase, your invoice — with the seller's bank details — is emailed to you and added to your account. Payment is by bank transfer against that invoice; goods ship after payment arrives. Track everything under My orders." => 'خلال 24 ساعة من الشراء تُرسل فاتورتك — مع البيانات البنكية للبائع — إلى بريدك الإلكتروني وتُضاف إلى حسابك. الدفع بالتحويل البنكي مقابل تلك الفاتورة؛ تُشحن البضاعة بعد وصول الدفعة. تابع كل شيء في «طلباتي».',
 );
