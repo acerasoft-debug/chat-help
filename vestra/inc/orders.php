@@ -2661,7 +2661,8 @@ function vestra_order_set_discount(string $ref, float $pct, string $code = '', b
     $sellerFee = round(max(0.0, $oldSub - round((float)($assoc['payout'] ?? $oldSub), 2)), 2);
 
     if ($absolute !== null) {
-        $newDisc = round(min(max(0.0, $absolute), $goods), 2);
+        $abs2    = round(max(0.0, $absolute), 2);   // mutlak tutar zaten 2 hane; yuzde yolu voucher_discount'ta kalir
+        $newDisc = min($abs2, $goods);
         $newCode = trim($code);
     } else {
         $newDisc = $pct > 0 ? voucher_discount(['type' => 'percent', 'value' => $pct], $goods) : 0.0;
