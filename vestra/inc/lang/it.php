@@ -1722,4 +1722,6 @@ return array (
   'Ends in' => 'Termina tra',
   'Offer ends %s' => 'L’offerta termina il %s',
 
+  /* Stripe salteri (15 Eki 2026) */
+  'Online card payment is paused at the moment. Write to us and we will reserve your quantity by bank transfer.' => 'Il pagamento online con carta è al momento sospeso. Scriveteci e riserveremo la vostra quantità tramite bonifico bancario.',
 );

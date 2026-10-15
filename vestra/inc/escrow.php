@@ -142,6 +142,8 @@ function escrow_badge(string $status): string {
    Uyelik/komisyon kartlari (platform hesabi) BUNA BAGLI DEGIL. */
 function vestra_connect_enabled(): bool {
     require_once __DIR__.'/env.php';
+    require_once __DIR__.'/stripe_switch.php';
+    if (vestra_stripe_off()) return false;   // Stripe salteri: escrow hic sunulmaz, satici escrow_ready'si YAZILMAZ
     return (getenv('STRIPE_CONNECT_ENABLED') ?: (string)($_ENV['STRIPE_CONNECT_ENABLED'] ?? '')) === '1';
 }
 

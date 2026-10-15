@@ -18,14 +18,17 @@
  */
 require_once __DIR__ . '/env.php';
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/stripe_switch.php';   // ana salter: kapaliyken Stripe'a hic cagri yok
 
 /** True when Stripe can actually be used: curl present + secret key configured. */
 function stripe_available(): bool {
+    if (vestra_stripe_off()) return false;
     return function_exists('curl_init') && (getenv('STRIPE_SECRET_KEY') ?: '') !== '';
 }
 
 /** True when every key the membership flow needs is present (for status banners). */
 function stripe_configured(): bool {
+    if (vestra_stripe_off()) return false;
     foreach (['STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET','PRICE_STARTER','PRICE_PRO','PRICE_PREMIUM','PRICE_ONBOARDING'] as $k) {
         if ((getenv($k) ?: '') === '') return false;
     }
@@ -105,6 +108,7 @@ function stripe_sepa_enabled(): bool {
  * still routes our commission to the platform.
  */
 function stripe_api(string $method, string $path, array $params = [], string $connectedAccount = ''): object {
+    if (vestra_stripe_off()) throw new \RuntimeException('Stripe kapali (operator salteri) — cagri yapilmadi');
     if (!stripe_available()) throw new \RuntimeException('Stripe not configured — STRIPE_SECRET_KEY missing in .env');
     $ch = curl_init('https://api.stripe.com'.$path);
     $headers = [
@@ -290,6 +294,7 @@ function stripe_connect_dashboard_link(string $acctId): string {
 function stripe_connect_status(array $seller): array {
     $id = $seller['stripe_account_id'] ?? '';
     if ($id === '') return ['connected' => false];
+    if (vestra_stripe_off()) return ['connected' => false, 'disabled' => true];
     try {
         $a = stripe_api('GET', '/v1/accounts/' . $id);
         return [

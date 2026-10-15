@@ -119,6 +119,10 @@ foreach ($pools as $p) {
     }
 
     /* ── 3. Missed after the extension → refund every deposit ─────────────── */
+    /* Stripe salteri kapali: iade CAGRISI yapilamaz. Kaporalara 'refund_failed'
+       yazmak yaniltici olur (iade denenmedi) -- havuz oldugu gibi kalir, salter
+       acilinca bir sonraki kosu iadeyi yapar. */
+    if (vestra_stripe_off()) { sweep_log('  ! Stripe kapali (operator salteri) -- iade ERTELENDI, kayit degismedi'); continue; }
     sweep_log('  uzatmadan sonra da tutmadi → kaporalar iade ediliyor');
     $ok = 0; $fail = 0;
     foreach ($commits as $c) {

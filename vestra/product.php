@@ -694,7 +694,8 @@ footer a{color:#d8bd86}
         <?php endif; ?>
         <?php $isOwnListing = $AUTH_USER && !empty($p['seller_uid']) && $AUTH_USER['id']===$p['seller_uid'];
               $samplePrice = vestra_sample_price($p); ?>
-        <?php if(!$SOLD && !$isOwnListing && $samplePrice > 0): ?>
+        <?php require_once __DIR__.'/inc/stripe_switch.php'; /* Stripe salteri: numune yalniz kartla odeniyor */ ?>
+        <?php if(!$SOLD && !$isOwnListing && $samplePrice > 0 && !vestra_stripe_off()): ?>
         <div class="order-box pd-aux">
           <div class="hint" style="margin-bottom:8px">📦 <?= t('Want to check it in hand first?') ?></div>
           <details class="offerdetails">

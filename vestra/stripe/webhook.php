@@ -39,6 +39,14 @@ if (!$event) {
 $obj  = $event->data->object;
 $type = $event->type;
 
+/* Stripe salteri kapali: olay ISLENMEZ (isleme Stripe'a geri cagri yapabiliyor) ama
+   KAYBOLMAZ -- imzasi dogrulanmis ham govde saklanir, 200 doner (Stripe tekrar
+   denemesin, ucnoktayi kapatmasin). Salter acilinca saklanan olaylar elle islenir. */
+if (vestra_stripe_off()) {
+    vestra_stripe_hold_event($payload, (string)$type);
+    http_response_code(200); echo 'held (stripe disabled)'; exit;
+}
+
 switch ($type) {
 
     // ── checkout.session.completed → trial started ────────────────────────

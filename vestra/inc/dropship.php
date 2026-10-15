@@ -240,6 +240,8 @@ function vestra_dropship_excluded_sections(): array {
 function vestra_dropship_settings_file(): string { return dirname(__DIR__).'/data/dropship_settings.json'; }
 
 function vestra_dropship_payments_enabled(): bool {
+    require_once __DIR__.'/stripe_switch.php';
+    if (vestra_stripe_off()) return false;   // Stripe salteri: kart odemesi yok
     static $on = null;
     if ($on !== null) return $on;
     $f = vestra_dropship_settings_file();

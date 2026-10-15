@@ -34,6 +34,8 @@ $saving = $from>0 ? (int)round(100*($from-$p['_gprice'])/$from) : 0;
    the other's copy — a "no charge now" line above a Stripe button would be a
    misrepresentation, not a cosmetic slip. */
 $DEPOSIT = pool_has_deposit($p);
+require_once __DIR__.'/inc/stripe_switch.php';
+$PAYOFF  = $DEPOSIT && vestra_stripe_off();   // Stripe salteri: kapora alinamaz, form gosterilmez
 $PCT     = pool_deposit_pct($p);
 $PCTLBL  = rtrim(rtrim(number_format($PCT,1),'0'),'.');
 $BALDAYS = pool_balance_days($p);
@@ -243,6 +245,9 @@ $GMINCOL = vestra_group_min_colors($p);
                    bu sayfa product.php'yi yuklemedigi icin kendi kopyasi asagida.
                    Sunucu tarafi (group-checkout.php) ayrica dogruluyor -- JS kapali
                    bir tarayici kaporayi eksik renkle odeyemesin. */ ?>
+          <?php if($PAYOFF): ?>
+          <div class="banner info"><?= t('Online card payment is paused at the moment. Write to us and we will reserve your quantity by bank transfer.') ?> <a class="acc" href="mailto:support@vestrasales.com">support@vestrasales.com</a></div>
+          <?php else: ?>
           <form method="post" action="<?= $DEPOSIT ? '/group-checkout' : '/group-join' ?>" onsubmit="return gcolOk(this)">
             <input type="hidden" name="id" value="<?=htmlspecialchars($p['id'])?>">
             <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;inset-inline-start:-9999px">
@@ -296,6 +301,7 @@ $GMINCOL = vestra_group_min_colors($p);
               <div class="hint" style="margin-top:10px"><?= t('No charge now. If the pool fails, you pay nothing.') ?></div>
             <?php endif; ?>
           </form>
+          <?php endif; ?>
         <?php endif; ?>
       </div>
     </div>
