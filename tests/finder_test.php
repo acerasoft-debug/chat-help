@@ -151,7 +151,8 @@ $ids = array_column(array_values($tg), 'id');
 $t('hedef: yalnızca yazılmamış, abonelikten çıkmamış, admin, web-search, e-postalı', (in_array('L1', $ids, true) || in_array('L7', $ids, true)) && !array_intersect(['L2', 'L3', 'L4', 'L5', 'L6'], $ids));
 $t('hedef: aynı e-posta iki kez yok (büyük/küçük harf)', count(array_filter($ids, fn($x) => in_array($x, ['L1', 'L7'], true))) === 1);
 $ia = array_column(array_values(vestra_finder_send_targets(100, 'all')), 'id');
-$t('havuz "all": OSM + elle eklenen + web; pazaryeri satıcısı / bastırma YOK', in_array('L8', $ia, true) && in_array('L5', $ia, true) && (in_array('L1', $ia, true) || in_array('L7', $ia, true))
+/* 15 Eki 2026: 'manual' (L5) artik tahmin listesi sayilir ve otomatik havuzdan DUSER (%49 geri donus) -- email_verified ile geri girer. */
+$t('havuz "all": OSM + web; elle eklenen (manual) YOK; pazaryeri satıcısı / bastırma YOK', in_array('L8', $ia, true) && !in_array('L5', $ia, true) && (in_array('L1', $ia, true) || in_array('L7', $ia, true))
    && !in_array('L9', $ia, true) && !in_array('L10', $ia, true));
 $t('havuz "all": başka kayıttan DAHA ÖNCE yazılmış adres atlanır; satıcının/çıkmışın/yazılmışın yok', !in_array('L11', $ia, true) && !array_intersect(['L2', 'L3', 'L4', 'L6'], $ia));
 $t('havuz "web" (varsayılan) OSM almaz', !in_array('L8', $ids, true));
@@ -875,6 +876,21 @@ $t('gönderilecek kimse yoksa istek açılmaz', vestra_mailbox_auto_catchup() ==
 $cm = (string)file_get_contents($root.'/cron_mailbox.php');
 $t('cron gönderim isteğini almadan önce otomatik istek açar', strpos($cm, 'vestra_mailbox_auto_catchup()') !== false && strpos($cm, 'vestra_mailbox_auto_catchup()') < strpos($cm, '$req = vestra_mailbox_take();'));
 
+/* ---- 8o (15 Eki 2026): tahminle eklenmis listeler (manual / asia-select / global-multibrand) otomatik gonderime girmez ---- */
+$t('8o manual kaynak = tahmin listesi',        vestra_lead_source_guessed(['source' => 'manual', 'email' => 'info@x.com']));
+$t('8o asia-select-4sep = tahmin listesi',     vestra_lead_source_guessed(['source' => 'asia-select-4sep']) && vestra_lead_source_guessed(['source' => 'Global-Multibrand-5sep']));
+$t('8o web-search / OSM = GECER',              !vestra_lead_source_guessed(['source' => 'web-search']) && !vestra_lead_source_guessed(['source' => 'OpenStreetMap']));
+$t('8o email_verified bayragi manual kaydi GECIRIR', !vestra_lead_source_guessed(['source' => 'manual', 'email_verified' => true]));
+$t('8o still_sendable: manual kayit gonderilmez', (function () { $L = vestra_leads(); $L[] = ['id' => 'LDMAN1', 'email' => 'info@guess-boutique.example', 'source' => 'manual', 'status' => 'new', 'company' => 'Guess Boutique']; vestra_save_leads($L); return !vestra_mailbox_still_sendable('LDMAN1', 'info@guess-boutique.example'); })());
+
+/* ---- 8n (15 Eki 2026): gazete/spor basini ve buyuk zincir mektup aldi (midilibre, mundodeportivo, lyko, neye) ---- */
+$t('8n midilibre (redac.region@) = not-retail', vestra_lead_not_retail(['email' => 'redac.region@midilibre.com', 'company' => 'midilibre.fr', 'website' => 'https://midilibre.fr']));
+$t('8n mundodeportivo = not-retail',          vestra_lead_not_retail(['email' => 'mdonline@mundodeportivo.com', 'company' => 'Mundo Deportivo', 'website' => 'https://mundodeportivo.com']));
+$t('8n lyko / neye (zincir) = not-retail',     vestra_lead_not_retail(['email' => 'fraga@lyko.se', 'company' => 'Lyko', 'website' => 'https://lyko.com']) && vestra_lead_not_retail(['email' => 'kundeservice@neye.dk', 'company' => 'Neye', 'website' => 'https://neye.dk']));
+$t('8n embroidery/uniform = not-retail',       vestra_lead_not_retail(['email' => 'info@border-embroideries.co.uk', 'company' => 'Be Uniforms', 'website' => 'https://border-embroideries.co.uk']));
+$t('8n redac- yerel kisim = not-retail',       vestra_lead_not_retail(['email' => 'redac-sport@example-journal.fr', 'company' => 'X', 'website' => '']));
+$t('8n gercek butik yine GECER',               !vestra_lead_not_retail(['email' => 'info@jeansbolaget.se', 'company' => 'Jeansbolaget', 'website' => 'https://jeansbolaget.se']) && !vestra_lead_not_retail(['email' => 'hello@diffney.ie', 'company' => 'Diffneys', 'website' => 'https://diffney.ie']));
+
 echo "\n== 7. çizim — admin ve satıcı sayfası kum havuzunda GERÇEKTEN koşuyor ==\n";
 /* php -l tanımsız fonksiyonu / değişkeni yakalamaz; bu depoda lint'ten geçen iki
    çağrı-zamanı hatası yaşandı. İki sayfa da tohumlu verilerle çiziliyor. */
@@ -954,13 +970,5 @@ $t('satıcı (kendi anahtarı): PHP uyarısı yok', !preg_match('/\b(Warning|Fat
 
 if (getenv('FINDER_TEST_DUMP')) file_put_contents(getenv('FINDER_TEST_DUMP'), $hs);
 exec('rm -rf '.escapeshellarg($sand));
-/* ---- 8n (15 Eki 2026): gazete/spor basini ve buyuk zincir mektup aldi (midilibre, mundodeportivo, lyko, neye) ---- */
-$t('8n midilibre (redac.region@) = not-retail', vestra_lead_not_retail(['email' => 'redac.region@midilibre.com', 'company' => 'midilibre.fr', 'website' => 'https://midilibre.fr']));
-$t('8n mundodeportivo = not-retail',          vestra_lead_not_retail(['email' => 'mdonline@mundodeportivo.com', 'company' => 'Mundo Deportivo', 'website' => 'https://mundodeportivo.com']));
-$t('8n lyko / neye (zincir) = not-retail',     vestra_lead_not_retail(['email' => 'fraga@lyko.se', 'company' => 'Lyko', 'website' => 'https://lyko.com']) && vestra_lead_not_retail(['email' => 'kundeservice@neye.dk', 'company' => 'Neye', 'website' => 'https://neye.dk']));
-$t('8n embroidery/uniform = not-retail',       vestra_lead_not_retail(['email' => 'info@border-embroideries.co.uk', 'company' => 'Be Uniforms', 'website' => 'https://border-embroideries.co.uk']));
-$t('8n redac- yerel kisim = not-retail',       vestra_lead_not_retail(['email' => 'redac-sport@example-journal.fr', 'company' => 'X', 'website' => '']));
-$t('8n gercek butik yine GECER',               !vestra_lead_not_retail(['email' => 'info@jeansbolaget.se', 'company' => 'Jeansbolaget', 'website' => 'https://jeansbolaget.se']) && !vestra_lead_not_retail(['email' => 'hello@diffney.ie', 'company' => 'Diffneys', 'website' => 'https://diffney.ie']));
-
 echo "\nTOPLAM: {$ok} gecti, {$bad} kaldi\n";
 exit($bad === 0 ? 0 : 1);

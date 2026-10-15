@@ -510,6 +510,15 @@ function vestra_finder_pools(): array {
   return ['web' => 'Web aramasıyla bulunanlar', 'all' => 'Tüm yazılmamış müşteriler (OpenStreetMap, listeler, elle eklenenler)'];
 }
 const VESTRA_FINDER_NOT_BUYER_SOURCES = ['amazon seller', 'ebay seller', 'otto seller', 'suppression'];
+/* TAHMINLE/ELLE EKLENMIS LISTELER (15 Eki 2026, olculdu: son 7 gunde kaynak 'manual' 72 gonderim / 35 geri donus = %49;
+   'asia-select-4sep' 21 / 8 = %38; web-search %3,5, OSM %3). Bu adresler sitede bulunmamis, kalip tahminiyle (info@…)
+   yazilmis; otomatik gonderimde (sunucu havuzu, Brevo, takip) ATLANIR -- spam itibarini yakan tam da bunlar.
+   Operator bir kaydi tek tek dogrulayip 'email_verified' bayragi koyarsa gecer. */
+const VESTRA_FINDER_GUESSED_SOURCES = ['manual', 'asia-select-4sep', 'global-multibrand-5sep'];
+function vestra_lead_source_guessed(array $l): bool {
+  if (!empty($l['email_verified'])) return false;
+  return in_array(strtolower(trim((string)($l['source'] ?? ''))), VESTRA_FINDER_GUESSED_SOURCES, true);
+}
 
 /** Lead'in firma adı "satılık / park edilmiş / yapım aşamasında" bir alan adı mı, ya da
  *  adresi butik alıcısı OLMAYAN bir kurumsal/otomatik kutu mu? 8 Eki 2026: lemlist dışa
@@ -621,6 +630,7 @@ function vestra_finder_send_targets(int $limit = 1000, string $pool = 'web'): ar
     if (function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) continue;
     if (vestra_lead_looks_dead($l) || vestra_lead_off_target($l)) continue;
     if (vestra_lead_send_paused($l)) continue;   // 14 Eki 2026: Almanya şimdilik durduruldu
+    if (vestra_lead_source_guessed($l)) continue;   // 15 Eki 2026: tahmin listeleri (%49 geri donus) otomatik gonderime girmez
     $seen[$e] = true; $out[$i] = $l;
   }
   return $out;

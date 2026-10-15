@@ -12771,3 +12771,24 @@ seçeneği (Güney Amerika, Türkiye, Orta Doğu, Asya)… Yaptırım engeli …
   `/cart?err=shipaddr_fields`; hesaba `ship_other` olarak hatırlanır (eski `ship_address`
   metni sokak kutusuna ön-dolar). Form kimlikleri/JS değişmedi; 8 dil çevirisi eklendi.
   Çizdirilip bakıldı (Playwright, 1280 + 390 px).
+
+## Gönderim kalitesi ölçümü ve tahmin listeleri (operatör, 15 Eki 2026)
+
+Operatör: *"müşteri bulmada çoğu kez hata e-maili geliyor; spama düşmeden kaliteli e-mail; günde 500 +
+Brevo 200; 23:45 kontrol; distribütör yok; gerçek e-mailler; otomatik gönderim."*
+- **Ölçüm** (`diag-bounce-quality.yml`, son 7 gün): 1.802 gönderim, 100 geri dönüş (%6). Kaynağa göre:
+  **web-search %3,5 · OSM %3 · `manual` %49 (35/72) · asia-select-4sep %38**. Yani sorun bulucunun
+  bulduğu adresler değil, **kalıp tahminiyle (info@…) elle eklenmiş listeler**. Yerel kısım türü fark
+  yaratmıyor (rol %6, kişi adı %5, ücretsiz posta %2).
+- **Geri dönüş nedeni kaydedilmiyordu**: tarayıcı `teslim edilemedi (DSN)` yazıyordu (82/100).
+  `scripts/ci/mailbox_send.py` artık `dsn_reason()` ile **sınıf + Status + Diagnostic-Code** yazar
+  ("kutu yok 5.1.1 550 …", "spam/politika 5.7.1 …", adresler `<addr>` ile maskeli).
+- **Tahmin listeleri otomatik gönderimden düştü**: `VESTRA_FINDER_GUESSED_SOURCES = ['manual',
+  'asia-select-4sep', 'global-multibrand-5sep']`, `vestra_lead_source_guessed()`; sunucu havuzu (web/all),
+  parti seçimi, takip listesi, gönderim anı (`still_sendable`) ve Brevo (`vestra-send-new.php`, artık
+  `inc/finder.php` yükler ve off-target/paused süzgeçlerini de uygular) hepsi atlar. Kayıt tek tek
+  doğrulanırsa `email_verified: true` ile geçer. Test 8o (finder_test, "havuz all" beklentisi güncellendi).
+- **Bulucu kıtlığı (ölçüldü, 15 Eki 13:20 koşusu):** brave 0 (iptal), google places 0, bing 1 ok/3
+  engel (kapandı), ddg 3 engel (kapandı) → yalnız OSM; 30 dk'da **11 yeni lead**, çoğu turizm/haber
+  elendi. Arama kaynağı olmadan "günde 500 kaliteli" dolmuyor — operatöre soruldu (Google Programmable
+  Search / Brave). Gazete-spor basını + İskandinav zincirleri süzgece eklendi (8n).

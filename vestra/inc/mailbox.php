@@ -354,6 +354,7 @@ function vestra_mailbox_batch(int $limit, string $campKey, array $ids = [], stri
       if (!filter_var($e, FILTER_VALIDATE_EMAIL) || isset($seen[$e])) continue;
       if (vestra_email_is_junk($e) || vestra_lead_looks_dead($l) || vestra_lead_off_target($l) || vestra_lead_send_paused($l)) continue;
       if (function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) continue;
+      if (vestra_lead_source_guessed($l)) continue;   // 15 Eki 2026: tahmin listeleri (%49 geri donus) gonderime girmez
       $seen[$e] = true; $targets[$i] = $l;
     }
   } else {
@@ -479,6 +480,7 @@ function vestra_mailbox_followup_targets(int $limit, ?array $leads = null, ?int 
     if (!filter_var($e, FILTER_VALIDATE_EMAIL) || vestra_email_is_junk($e)) continue;
     if ((function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) || vestra_lead_looks_dead($l) || vestra_lead_off_target($l)) continue;
     if (vestra_lead_send_paused($l)) continue;   // 14 Eki 2026: Almanya şimdilik durduruldu
+    if (vestra_lead_source_guessed($l)) continue;   // 15 Eki 2026: tahmin listelerine takip de yok
     $lt = vestra_lead_letters($l);
     if ($lt['last'] <= 0 || max($lt['last'], $lastByEmail[$e] ?? 0) > $cut) continue;
     $next = vestra_mailbox_followup_next($lt['camps'], $camps);
@@ -504,7 +506,7 @@ function vestra_mailbox_still_sendable(string $leadId, string $email): bool {
     if ((string)($l['id'] ?? '') !== $leadId) continue;
     $st = (string)($l['status'] ?? '');
     if ($st === 'unsubscribed' || $st === 'bounced' || !empty($l['unsubscribed'])) return false;
-    if (vestra_lead_off_target($l) || vestra_lead_send_paused($l)) return false;
+    if (vestra_lead_off_target($l) || vestra_lead_send_paused($l) || vestra_lead_source_guessed($l)) return false;
     return !(function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l));
   }
   return true;
