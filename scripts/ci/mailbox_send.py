@@ -124,6 +124,67 @@ def dsn_policy_reject(msg) -> bool:
     return False
 
 
+def dsn_reason(txt: str) -> str:
+    """15 Eki 2026: NEDEN de kaydedilsin ("teslim edilemedi (DSN)" tek basina hicbir sey soylemiyordu --
+    100 geri donusun 82'si bu etiketle, kutu mu yok, spam mi reddetti bilinmiyordu). Status kodu +
+    Diagnostic-Code'un ilk 110 karakteri; adres/anahtar icermez (yalniz sunucu cevabi)."""
+    st = re.search(r'(?im)^Status:\s*([245]\.\d{1,3}\.\d{1,3})', txt)
+    dg = re.search(r'(?im)^Diagnostic-Code:\s*(?:smtp;\s*)?(.+?)\s*$', txt)
+    code = st.group(1) if st else ''
+    diag = re.sub(r'\s+', ' ', dg.group(1)).strip() if dg else ''
+    diag = _ADDR.sub('<addr>', diag)[:110]
+    kind = ''
+    if re.search(r'(?i)user unknown|unknown user|no such user|does not exist|mailbox (not found|unavailable)|recipient.*(rejected|unknown|not found)|invalid recipient|no mailbox|unrouteable|address rejected|5\.1\.1|5\.1\.10', code + ' ' + diag):
+        kind = 'kutu yok'
+    elif re.search(r'(?i)quota|mailbox full|over quota|5\.2\.2', code + ' ' + diag):
+        kind = 'kutu dolu'
+    elif re.search(r'(?i)spam|blocked|blacklist|reputation|policy|5\.7\.|content rejected|denied', code + ' ' + diag):
+        kind = 'spam/politika'
+    elif re.search(r'(?i)domain|dns|mx|host .*not found|no route|5\.4\.4|5\.4\.1', code + ' ' + diag):
+        kind = 'alan adi'
+    return ' '.join(x for x in [kind, code, diag] if x)
+
+
+def dsn_failed_recipients_detail(msg, own: str) -> list:
+    """[(adres, neden), ...] -- dsn_failed_recipients ile ayni secim; neden dsn_reason() ile."""
+    if dsn_policy_reject(msg):
+        return []
+    out = []
+    for part in msg.walk():
+        if part.get_content_type() == 'message/delivery-status':
+            payload = part.get_payload()
+            blocks = payload if isinstance(payload, list) else [part]
+            for b in blocks:
+                txt = b.as_string() if hasattr(b, 'as_string') else str(b)
+                rcpt = re.search(r'(?im)^Final-Recipient:\s*[^;]*;\s*(\S+)', txt) or re.search(r'(?im)^Original-Recipient:\s*[^;]*;\s*(\S+)', txt)
+                act = re.search(r'(?im)^Action:\s*(\S+)', txt)
+                st = re.search(r'(?im)^Status:\s*(\d)\.', txt)
+                if rcpt and ((act and act.group(1).lower() == 'failed') or (st and st.group(1) == '5')):
+                    out.append((rcpt.group(1).strip('<>'), dsn_reason(txt)))
+    if not out:
+        for a in dsn_failed_recipients(msg, own):
+            out.append((a, dsn_reason(_plain_body(msg))))
+    own = own.lower()
+    seen = {}
+    for a, r in out:
+        a = a.lower()
+        if a == own or a.startswith(('mailer-daemon@', 'postmaster@')) or a in seen:
+            continue
+        seen[a] = r
+    return sorted(seen.items())
+
+
+def _plain_body(msg) -> str:
+    body = ''
+    for part in msg.walk():
+        if part.get_content_type() == 'text/plain':
+            try:
+                body += part.get_payload(decode=True).decode(part.get_content_charset() or 'utf-8', 'replace')
+            except Exception:
+                pass
+    return body[:20000]
+
+
 def dsn_failed_recipients(msg, own: str) -> list:
     """Kalici teslim hatasi bildirimindeki (DSN) alicilar. Standart multipart/report
     (Final-Recipient + Action: failed / Status 5.x.x) ya da GoDaddy'nin duz metni
@@ -221,9 +282,9 @@ def scan_bounces(user: str, pw: str, host: str, days: int, move_to: str) -> list
             if not DSN_HINT.search(head):
                 continue
             hinted += 1
-            rcpts = dsn_failed_recipients(email.message_from_bytes(raw), user)
+            rcpts = dsn_failed_recipients_detail(email.message_from_bytes(raw), user)
             if rcpts:
-                found += [{'email': a, 'status': 'bounced', 'reason': 'teslim edilemedi (DSN)'} for a in rcpts]
+                found += [{'email': a, 'status': 'bounced', 'reason': ('teslim edilemedi (DSN) ' + r).strip()} for a, r in rcpts]
                 done.append(uid)
         # YALNIZ bu bildirimler tasinir. Duz EXPUNGE kullanilmaz: kullanicinin "silindi" isaretli baska
         # mektuplarini da kalici silerdi. MOVE (RFC 6851) ya da UIDPLUS'li UID EXPUNGE; ikisi de yoksa

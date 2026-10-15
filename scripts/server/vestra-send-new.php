@@ -16,6 +16,7 @@ $home = getenv("HOME");
 require       $home."/public_html/inc/products.php";
 require_once  $home."/public_html/inc/leads.php";
 require_once  $home."/public_html/inc/notify.php";
+require_once  $home."/public_html/inc/finder.php";   // 15 Eki 2026: tahmin listesi / hedef disi / durdurulmus ulke suzgecleri
 
 $LIMIT = (int)(getenv('SEND_LIMIT') ?: 40);
 if ($LIMIT < 1) $LIMIT = 1;
@@ -52,6 +53,11 @@ for ($i = count($leads) - 1; $i >= 0; $i--) {                      // en yeni ö
   if (!filter_var($mail, FILTER_VALIDATE_EMAIL)) continue;
   if (isset($contacted[$mail]) || isset($seen[$mail])) continue;
   if (function_exists('vestra_email_is_junk') && vestra_email_is_junk($mail)) continue;
+  /* 15 Eki 2026: tahminle eklenmis listeler (kaynak manual / asia-select / global-multibrand, %38-49 geri donus)
+     Brevo'dan da gitmez -- Brevo itibari sunucununkinden daha pahali. Sunucu havuzuyla AYNI karar (inc/finder.php). */
+  if (function_exists('vestra_lead_source_guessed') && vestra_lead_source_guessed($l)) continue;
+  if (function_exists('vestra_lead_off_target') && vestra_lead_off_target($l)) continue;
+  if (function_exists('vestra_lead_send_paused') && vestra_lead_send_paused($l)) continue;
 
   /* KRİTER: en az İKİ ayrı premium marka. Tek marka = monobrand bayi, sıfır = kendi etiketi. */
   $pb = $l['premium_brands'] ?? [];
