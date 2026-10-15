@@ -1754,4 +1754,11 @@ return array (
   'Online card payment is paused at the moment. Write to us and we will reserve your quantity by bank transfer.' => 'O pagamento online por cartão está suspenso de momento. Escreva-nos e reservamos a sua quantidade por transferência bancária.',
   'Within 24 hours of your purchase, your invoice with the payment details is emailed to you and added to your account.' => 'Em até 24 horas após a compra, a sua fatura com os dados de pagamento é enviada por e-mail e adicionada à sua conta.',
   "Within 24 hours of your purchase, your invoice — with the seller's bank details — is emailed to you and added to your account. Payment is by bank transfer against that invoice; goods ship after payment arrives. Track everything under My orders." => 'Em até 24 horas após a compra, a sua fatura — com os dados bancários do vendedor — é enviada por e-mail e adicionada à sua conta. O pagamento é por transferência contra essa fatura; a mercadoria é enviada após a chegada do pagamento. Acompanhe tudo em «Meus pedidos».',
+  'Order summary' => 'Resumo do pedido',
+  'Review & confirm' => 'Revisar e confirmar',
+  'Recipient or company (optional)' => 'Destinatário ou empresa (opcional)',
+  'Phone (optional)' => 'Telefone (opcional)',
+  'Fill in the boxes below' => 'Preencha os campos abaixo',
+  'Please complete the delivery address: street, postcode, city and country.' => 'Complete o endereço de entrega: rua, código postal, cidade e país.',
+  'Complete the steps on the left and confirm at the bottom.' => 'Conclua as etapas à esquerda e confirme abaixo.',
 );

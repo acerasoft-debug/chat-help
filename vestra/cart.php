@@ -128,35 +128,16 @@ if (stripe_available() && vestra_connect_enabled()) {   // Connect kapaliyken es
   </div>
 
   <div id="filled" style="display:none">
+  <div class="ckout">
+  <div class="ckmain">
+    <section class="panelcard ckstep">
+      <div class="ckhead"><span class="cknum">1</span><h3><?= t('Items') ?></h3></div>
     <table class="ctable">
       <thead><tr><th><?= t('Product') ?></th><th><?= t('Qty') ?></th><th class="r"><?= t('Unit') ?></th><th class="r"><?= t('Line total') ?></th><th></th></tr></thead>
       <tbody id="rows"></tbody>
     </table>
 
-    <div class="summary"><div class="box">
-      <div class="line"><span><?= t('Subtotal') ?></span><span id="sub"></span></div>
-      <?php if (VESTRA_FEE_BUYER > 0): ?>
-      <div class="line"><span><?= t('Buyer-protection fee') ?> (<?=round(VESTRA_FEE_BUYER*100)?>%)</span><span id="bfee"></span></div>
-      <?php endif; ?>
-      <div class="line" id="voucherLine" style="display:none;color:var(--acc)"><span>🎟️ <?= t('Voucher') ?> <span id="voucherCodeLbl"></span></span><span id="voucherAmt"></span></div>
-      <div class="line" id="cryptoDiscLine" style="display:none;color:var(--acc)"><span>₿ <?= t('Crypto payment discount') ?> (<?= rtrim(rtrim(number_format(VESTRA_CRYPTO_DISCOUNT_PCT, 2, '.', ''), '0'), '.') ?>%)</span><span id="cryptoDiscAmt"></span></div>
-      <div class="line" id="escrowFeeLine" style="display:none"><span>🛡️ <?= t('Buyer protection (escrow)') ?> (<?=round(VESTRA_ESCROW_FEE_BUYER*100,1)?>%)</span><span id="escrowFee"></span></div>
-      <div class="line" id="shipLine" style="display:none"><span>🚚 <span id="shipLbl"></span></span><span id="shipAmt"></span></div>
-      <div class="line big"><span><?= t('Total (you pay)') ?></span><span id="grand"></span></div>
-      <?php if (VESTRA_FEE_BUYER > 0): ?>
-      <div class="hint" style="margin-top:8px"><?= sprintf(t('Includes a <b>%d%% buyer-protection fee</b> (verification + authenticity guarantee). The seller separately pays a %d%% commission.'), round(VESTRA_FEE_BUYER*100), round(VESTRA_FEE_SELLER*100)) ?></div>
-      <?php else: ?>
-      <div class="hint" style="margin-top:8px"><?= t('No platform fees — you pay exactly the goods total on the seller\'s invoice.') ?></div>
-      <?php endif; ?>
-      <?php /* ESCROW (kart) KALDIRILDI (operator, 15 Eki 2026: "simdilik sadece kripto ve invoice kalsin"):
-               Connect kapaliyken escrow secenegi hic cizilmez; metin de yalniz havale + kripto. */ ?>
-      <?php if (vestra_connect_enabled()): ?>
-      <div class="hint" style="margin-top:6px"><?= t('Two ways to pay: <b>🛡️ secure card escrow</b> (we hold the funds and release them to the seller only after you confirm delivery) or <b>🏦 bank transfer</b> by invoice. Choose below.') ?></div>
-      <?php elseif (oxapay_enabled()): ?>
-      <div class="hint" style="margin-top:6px"><?= t('Two ways to pay: <b>🏦 bank transfer</b> by invoice, or <b>₿ crypto</b> (USDT, BTC, ETH…) paid to VESTRA. Choose below.') ?></div>
-      <?php endif; ?>
-    </div></div>
-
+    </section>
     <form id="orderForm" method="post" action="/order">
       <input type="hidden" name="cart" id="cartField">
       <?php
@@ -171,16 +152,97 @@ if (stripe_available() && vestra_connect_enabled()) {   // Connect kapaliyken es
       } ?>
       <input type="hidden" name="order_token" value="<?= $orderTok ?>">
 
-      <h3 style="margin:24px 0 10px"><?= t('Voucher code') ?></h3>
-      <div style="display:flex;gap:10px;align-items:center;max-width:680px;flex-wrap:wrap">
-        <input name="voucher" id="voucherInput" value="<?= htmlspecialchars(strtoupper((string)($_GET['voucher'] ?? ''))) ?>"
-               placeholder="<?= htmlspecialchars(t('e.g. VES-A1B2-C3D4')) ?>" autocomplete="off"
-               style="flex:1;min-width:220px;text-transform:uppercase;letter-spacing:1.2px">
-        <button class="btn" type="button" id="voucherBtn"><?= t('Apply') ?></button>
+      <section class="panelcard ckstep">
+        <div class="ckhead"><span class="cknum">2</span><h3><?= t('Buyer details') ?></h3></div>
+      <div class="ckgrid">
+        <div><label class="hint"><?= t('Company') ?> *</label><input name="company" required style="width:100%" value="<?= htmlspecialchars($u['company']??'') ?>"></div>
+        <div><label class="hint"><?= t('VAT / Tax ID') ?></label><input name="vat" style="width:100%" value="<?= htmlspecialchars($u['vat_id']??'') ?>"></div>
+        <div><label class="hint"><?= t('Contact name') ?> *</label><input name="name" required style="width:100%" value="<?= htmlspecialchars($u['name']??'') ?>"></div>
+        <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%" value="<?= htmlspecialchars($u['email']??'') ?>"></div>
+        <?php /* Fatura adresi ayri posta kodu/sehir alanlarini da tasiyor (profil 24 Eyl
+                 2026'dan beri ikisini ayri aliyor) -- tek biçimlendirici, fatura ile ayni. */ ?>
+        <?php /* Posta kodu + sehir AYRI (operator, 15 Eki 2026): tek satira sikistirilmis adres
+                 posta kodunu dusuruyordu; profil ikisini zaten ayri tutuyor. order.php ucunu
+                 vestra_account_billing_line ile tek satira kurar. */ ?>
+        <div><label class="hint"><?= t('Billing address') ?></label><input name="address" style="width:100%" value="<?= htmlspecialchars($u['address']??'') ?>" placeholder="<?= htmlspecialchars(t('Street and number')) ?>" autocomplete="street-address"></div>
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px">
+          <div><label class="hint"><?= t('Postcode') ?></label><input name="postcode" maxlength="16" style="width:100%" value="<?= htmlspecialchars($u['postcode']??'') ?>" autocomplete="postal-code"></div>
+          <div><label class="hint"><?= t('City') ?></label><input name="city" maxlength="60" style="width:100%" value="<?= htmlspecialchars($u['city']??'') ?>" autocomplete="address-level2"></div>
+        </div>
+        <div><label class="hint"><?= t('Country') ?></label><input name="country" style="width:100%" value="<?= htmlspecialchars($u['country']??'') ?>"></div>
+        <div><label class="hint"><?= t('Phone') ?></label><input name="phone" style="width:100%" value="<?= htmlspecialchars($u['phone']??'') ?>"></div>
       </div>
-      <p class="hint" id="voucherMsg" style="margin:8px 0 0;max-width:680px"></p>
 
-      <h3 style="margin:24px 0 10px"><?= t('Payment method') ?></h3>
+      </section>
+      <section class="panelcard ckstep">
+        <div class="ckhead"><span class="cknum">3</span><h3><?= t('Delivery address') ?></h3></div>
+      <?php
+      /* TESLIMAT ADRESI SECICI. Kayitli defter (1./2./3.) varsa kartlar; secim yalniz
+         yuva NUMARASINI gonderir, metni order.php hesabin kendi kaydindan kurar.
+         Varsayilan: son secilen (ship_last), yoksa eski serbest metin doluysa
+         "baska adres", yoksa fatura adresi. JS kapaliyken serbest metin kutusu
+         gorunur kalir; sunucu onu yalniz 'other' secildiginde okur. */
+      $shipBook = $u ? vestra_ship_addresses($u) : [];
+      $shipLast = (string)($u['ship_last'] ?? '');
+      $shipDef  = ($shipLast !== '' && (($shipLast === 'billing' || $shipLast === 'other') || isset($shipBook[(int)$shipLast])))
+                  ? $shipLast : (trim((string)($u['ship_address'] ?? '')) !== '' ? 'other' : 'billing');
+      $billLine = $u ? vestra_account_billing_line($u) : '';
+      if (isset($_GET['err']) && $_GET['err']==='shipaddr_fields') $shipDef = 'other';
+      ?>
+      <?php if(isset($_GET['err']) && $_GET['err']==='shipaddr'): ?>
+        <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:12px;max-width:680px">
+          <?= t('The saved address you chose is missing or incomplete. Please choose again or update it in your profile.') ?></div>
+      <?php endif; ?>
+      <div class="shippick" role="radiogroup" aria-label="<?= htmlspecialchars(t('Delivery address')) ?>">
+        <label class="shipopt">
+          <input type="radio" name="ship_pick" value="billing"<?= $shipDef==='billing'?' checked':'' ?>>
+          <span class="shipico">🏢</span>
+          <span class="shipopt-b"><b><?= t('Same as billing address') ?></b><?php if($billLine!==''): ?><span class="hint"><?= htmlspecialchars($billLine) ?></span><?php endif; ?></span>
+        </label>
+        <?php foreach($shipBook as $__s => $__a): ?>
+        <label class="shipopt">
+          <input type="radio" name="ship_pick" value="<?= (int)$__s ?>"<?= $shipDef===(string)$__s?' checked':'' ?>>
+          <span class="addrnum"><?= (int)$__s ?></span>
+          <span class="shipopt-b"><b><?= htmlspecialchars($__a['label']!=='' ? $__a['label'] : sprintf(t('Address %d'), $__s)) ?></b><span class="hint"><?= htmlspecialchars(vestra_ship_addr_line($__a)) ?></span></span>
+        </label>
+        <?php endforeach; ?>
+        <label class="shipopt">
+          <input type="radio" name="ship_pick" value="other"<?= $shipDef==='other'?' checked':'' ?>>
+          <span class="shipico">✎</span>
+          <span class="shipopt-b"><b><?= t('Another address') ?></b><span class="hint"><?= t('Fill in the boxes below') ?></span></span>
+        </label>
+      </div>
+      <?php /* "BASKA ADRES" ARTIK KUTUCUKLARLA (operator, 15 Eki 2026): tek satirlik serbest metin
+               yerine alici/firma, sokak, posta kodu, sehir, ulke, telefon. order.php bunlari
+               vestra_ship_addr_line() ile adres defterinin AYNI bicimine kurar ve hesaba
+               `ship_other` olarak hatirlatir. Eski serbest metin (ship_address) varsa sokak
+               kutusuna on-doldurulur; alici duzeltir. */
+        $shipO = is_array($u['ship_other'] ?? null) ? vestra_ship_addr_clean($u['ship_other']) : vestra_ship_addr_clean([]);
+        if ($shipO['street'] === '' && trim((string)($u['ship_address'] ?? '')) !== '') $shipO['street'] = trim((string)$u['ship_address']);
+        $shipErr = (isset($_GET['err']) && $_GET['err']==='shipaddr_fields'); ?>
+      <div id="shipOther" class="shipform" style="max-width:680px">
+        <?php if($shipErr): ?><div class="banner full" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin:0 0 4px"><?= t('Please complete the delivery address: street, postcode, city and country.') ?></div><?php endif; ?>
+        <div class="full"><label class="hint"><?= t('Recipient or company (optional)') ?></label><input name="ship_recipient" maxlength="80" value="<?= htmlspecialchars($shipO['recipient']) ?>" autocomplete="shipping organization"></div>
+        <div class="full"><label class="hint"><?= t('Street and number') ?></label><input name="ship_street" maxlength="120" value="<?= htmlspecialchars($shipO['street']) ?>" autocomplete="shipping street-address"></div>
+        <div><label class="hint"><?= t('Postcode') ?></label><input name="ship_postcode" maxlength="16" value="<?= htmlspecialchars($shipO['postcode']) ?>" autocomplete="shipping postal-code"></div>
+        <div><label class="hint"><?= t('City') ?></label><input name="ship_city" maxlength="60" value="<?= htmlspecialchars($shipO['city']) ?>" autocomplete="shipping address-level2"></div>
+        <div><label class="hint"><?= t('Country') ?></label><input name="ship_country" maxlength="56" value="<?= htmlspecialchars($shipO['country']) ?>" autocomplete="shipping country-name"></div>
+        <div><label class="hint"><?= t('Phone (optional)') ?></label><input name="ship_phone" maxlength="32" value="<?= htmlspecialchars($shipO['phone']) ?>" autocomplete="shipping tel"></div>
+      </div>
+      <?php if($u): ?><p class="hint" style="margin:8px 0 0"><a class="acc" href="/buyer?tab=profile#addresses"><?= $shipBook ? t('Manage delivery addresses') : t('Save delivery addresses in your profile') ?> →</a></p><?php endif; ?>
+      <script>(function(){var o=document.getElementById('shipOther');if(!o)return;
+        function s(){var c=document.querySelector('input[name=ship_pick]:checked');o.style.display=(c&&c.value==='other')?'':'none';}
+        document.querySelectorAll('input[name=ship_pick]').forEach(function(r){r.addEventListener('change',s)});s();})();</script>
+      </section>
+      <section class="panelcard ckstep">
+        <div class="ckhead"><span class="cknum">4</span><h3><?= t('Payment method') ?></h3></div>
+      <?php /* ESCROW (kart) KALDIRILDI (operator, 15 Eki 2026: "simdilik sadece kripto ve invoice kalsin"):
+               Connect kapaliyken escrow secenegi hic cizilmez; metin de yalniz havale + kripto. */ ?>
+      <?php if (vestra_connect_enabled()): ?>
+      <div class="hint" style="margin-top:6px"><?= t('Two ways to pay: <b>🛡️ secure card escrow</b> (we hold the funds and release them to the seller only after you confirm delivery) or <b>🏦 bank transfer</b> by invoice. Choose below.') ?></div>
+      <?php elseif (oxapay_enabled()): ?>
+      <div class="hint" style="margin-top:6px"><?= t('Two ways to pay: <b>🏦 bank transfer</b> by invoice, or <b>₿ crypto</b> (USDT, BTC, ETH…) paid to VESTRA. Choose below.') ?></div>
+      <?php endif; ?>
       <div class="paysel">
         <?php if (vestra_connect_enabled()): ?>
         <label class="payopt" id="payEscrowOpt">
@@ -217,67 +279,18 @@ if (stripe_available() && vestra_connect_enabled()) {   // Connect kapaliyken es
         <?php endif; ?>
       </div>
 
-      <h3 style="margin:24px 0 10px"><?= t('Buyer details') ?></h3>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:680px">
-        <div><label class="hint"><?= t('Company') ?> *</label><input name="company" required style="width:100%" value="<?= htmlspecialchars($u['company']??'') ?>"></div>
-        <div><label class="hint"><?= t('VAT / Tax ID') ?></label><input name="vat" style="width:100%" value="<?= htmlspecialchars($u['vat_id']??'') ?>"></div>
-        <div><label class="hint"><?= t('Contact name') ?> *</label><input name="name" required style="width:100%" value="<?= htmlspecialchars($u['name']??'') ?>"></div>
-        <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%" value="<?= htmlspecialchars($u['email']??'') ?>"></div>
-        <?php /* Fatura adresi ayri posta kodu/sehir alanlarini da tasiyor (profil 24 Eyl
-                 2026'dan beri ikisini ayri aliyor) -- tek biçimlendirici, fatura ile ayni. */ ?>
-        <?php /* Posta kodu + sehir AYRI (operator, 15 Eki 2026): tek satira sikistirilmis adres
-                 posta kodunu dusuruyordu; profil ikisini zaten ayri tutuyor. order.php ucunu
-                 vestra_account_billing_line ile tek satira kurar. */ ?>
-        <div><label class="hint"><?= t('Billing address') ?></label><input name="address" style="width:100%" value="<?= htmlspecialchars($u['address']??'') ?>" placeholder="<?= htmlspecialchars(t('Street and number')) ?>" autocomplete="street-address"></div>
-        <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px">
-          <div><label class="hint"><?= t('Postcode') ?></label><input name="postcode" maxlength="16" style="width:100%" value="<?= htmlspecialchars($u['postcode']??'') ?>" autocomplete="postal-code"></div>
-          <div><label class="hint"><?= t('City') ?></label><input name="city" maxlength="60" style="width:100%" value="<?= htmlspecialchars($u['city']??'') ?>" autocomplete="address-level2"></div>
-        </div>
-        <div><label class="hint"><?= t('Country') ?></label><input name="country" style="width:100%" value="<?= htmlspecialchars($u['country']??'') ?>"></div>
-        <div><label class="hint"><?= t('Phone') ?></label><input name="phone" style="width:100%" value="<?= htmlspecialchars($u['phone']??'') ?>"></div>
+      <h4 class="cksub"><?= t('Voucher code') ?></h4>
+      <div style="display:flex;gap:10px;align-items:center;max-width:680px;flex-wrap:wrap">
+        <input name="voucher" id="voucherInput" value="<?= htmlspecialchars(strtoupper((string)($_GET['voucher'] ?? ''))) ?>"
+               placeholder="<?= htmlspecialchars(t('e.g. VES-A1B2-C3D4')) ?>" autocomplete="off"
+               style="flex:1;min-width:220px;text-transform:uppercase;letter-spacing:1.2px">
+        <button class="btn" type="button" id="voucherBtn"><?= t('Apply') ?></button>
       </div>
+      <p class="hint" id="voucherMsg" style="margin:8px 0 0;max-width:680px"></p>
 
-      <?php
-      /* TESLIMAT ADRESI SECICI. Kayitli defter (1./2./3.) varsa kartlar; secim yalniz
-         yuva NUMARASINI gonderir, metni order.php hesabin kendi kaydindan kurar.
-         Varsayilan: son secilen (ship_last), yoksa eski serbest metin doluysa
-         "baska adres", yoksa fatura adresi. JS kapaliyken serbest metin kutusu
-         gorunur kalir; sunucu onu yalniz 'other' secildiginde okur. */
-      $shipBook = $u ? vestra_ship_addresses($u) : [];
-      $shipLast = (string)($u['ship_last'] ?? '');
-      $shipDef  = ($shipLast !== '' && (($shipLast === 'billing' || $shipLast === 'other') || isset($shipBook[(int)$shipLast])))
-                  ? $shipLast : (trim((string)($u['ship_address'] ?? '')) !== '' ? 'other' : 'billing');
-      $billLine = $u ? vestra_account_billing_line($u) : '';
-      ?>
-      <h3 style="margin:22px 0 10px"><?= t('Delivery address') ?></h3>
-      <?php if(isset($_GET['err']) && $_GET['err']==='shipaddr'): ?>
-        <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:12px;max-width:680px">
-          <?= t('The saved address you chose is missing or incomplete. Please choose again or update it in your profile.') ?></div>
-      <?php endif; ?>
-      <div class="shippick" role="radiogroup" aria-label="<?= htmlspecialchars(t('Delivery address')) ?>">
-        <label class="shipopt">
-          <input type="radio" name="ship_pick" value="billing"<?= $shipDef==='billing'?' checked':'' ?>>
-          <span class="shipico">🏢</span>
-          <span class="shipopt-b"><b><?= t('Same as billing address') ?></b><?php if($billLine!==''): ?><span class="hint"><?= htmlspecialchars($billLine) ?></span><?php endif; ?></span>
-        </label>
-        <?php foreach($shipBook as $__s => $__a): ?>
-        <label class="shipopt">
-          <input type="radio" name="ship_pick" value="<?= (int)$__s ?>"<?= $shipDef===(string)$__s?' checked':'' ?>>
-          <span class="addrnum"><?= (int)$__s ?></span>
-          <span class="shipopt-b"><b><?= htmlspecialchars($__a['label']!=='' ? $__a['label'] : sprintf(t('Address %d'), $__s)) ?></b><span class="hint"><?= htmlspecialchars(vestra_ship_addr_line($__a)) ?></span></span>
-        </label>
-        <?php endforeach; ?>
-        <label class="shipopt">
-          <input type="radio" name="ship_pick" value="other"<?= $shipDef==='other'?' checked':'' ?>>
-          <span class="shipico">✎</span>
-          <span class="shipopt-b"><b><?= t('Another address') ?></b><span class="hint"><?= t('Type it below') ?></span></span>
-        </label>
-      </div>
-      <div id="shipOther" style="max-width:680px"><input name="ship_address" style="width:100%" value="<?= htmlspecialchars($u['ship_address']??'') ?>" placeholder="<?= htmlspecialchars(t('Street and number, postcode, city, country')) ?>"></div>
-      <?php if($u): ?><p class="hint" style="margin:8px 0 0"><a class="acc" href="/buyer?tab=profile#addresses"><?= $shipBook ? t('Manage delivery addresses') : t('Save delivery addresses in your profile') ?> →</a></p><?php endif; ?>
-      <script>(function(){var o=document.getElementById('shipOther');if(!o)return;
-        function s(){var c=document.querySelector('input[name=ship_pick]:checked');o.style.display=(c&&c.value==='other')?'':'none';}
-        document.querySelectorAll('input[name=ship_pick]').forEach(function(r){r.addEventListener('change',s)});s();})();</script>
+      </section>
+      <section class="panelcard ckstep">
+        <div class="ckhead"><span class="cknum">5</span><h3><?= t('Review & confirm') ?></h3></div>
       <p class="hint" style="margin:8px 0 0"><?= t('Billing details appear on your automatic PDF invoice.') ?></p>
       <div style="margin-top:10px;max-width:680px"><label class="hint"><?= t('Notes') ?></label><textarea name="notes" rows="2" style="width:100%"></textarea></div>
       <input type="text" name="website" style="position:absolute;inset-inline-start:-9999px" tabindex="-1" autocomplete="off">
@@ -302,7 +315,30 @@ if (stripe_available() && vestra_connect_enabled()) {   // Connect kapaliyken es
       <div id="brandMinNote" class="banner" style="display:none;background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin:14px 0 0;max-width:680px"></div>
       <button class="btn btn-p" type="submit" style="margin-top:14px" id="placeBtn"><?= t('Place order request') ?></button>
       <span class="hint" style="margin-left:12px" id="placeHint"><?= t('No payment now — we confirm availability, then send your invoice.') ?></span>
+      </section>
     </form>
+  </div>
+  <aside class="cksum"><div class="panelcard">
+    <h3 class="cksum-h"><?= t('Order summary') ?></h3>
+    <div class="summary"><div class="box">
+      <div class="line"><span><?= t('Subtotal') ?></span><span id="sub"></span></div>
+      <?php if (VESTRA_FEE_BUYER > 0): ?>
+      <div class="line"><span><?= t('Buyer-protection fee') ?> (<?=round(VESTRA_FEE_BUYER*100)?>%)</span><span id="bfee"></span></div>
+      <?php endif; ?>
+      <div class="line" id="voucherLine" style="display:none;color:var(--acc)"><span>🎟️ <?= t('Voucher') ?> <span id="voucherCodeLbl"></span></span><span id="voucherAmt"></span></div>
+      <div class="line" id="cryptoDiscLine" style="display:none;color:var(--acc)"><span>₿ <?= t('Crypto payment discount') ?> (<?= rtrim(rtrim(number_format(VESTRA_CRYPTO_DISCOUNT_PCT, 2, '.', ''), '0'), '.') ?>%)</span><span id="cryptoDiscAmt"></span></div>
+      <div class="line" id="escrowFeeLine" style="display:none"><span>🛡️ <?= t('Buyer protection (escrow)') ?> (<?=round(VESTRA_ESCROW_FEE_BUYER*100,1)?>%)</span><span id="escrowFee"></span></div>
+      <div class="line" id="shipLine" style="display:none"><span>🚚 <span id="shipLbl"></span></span><span id="shipAmt"></span></div>
+      <div class="line big"><span><?= t('Total (you pay)') ?></span><span id="grand"></span></div>
+      <?php if (VESTRA_FEE_BUYER > 0): ?>
+      <div class="hint" style="margin-top:8px"><?= sprintf(t('Includes a <b>%d%% buyer-protection fee</b> (verification + authenticity guarantee). The seller separately pays a %d%% commission.'), round(VESTRA_FEE_BUYER*100), round(VESTRA_FEE_SELLER*100)) ?></div>
+      <?php else: ?>
+      <div class="hint" style="margin-top:8px"><?= t('No platform fees — you pay exactly the goods total on the seller\'s invoice.') ?></div>
+      <?php endif; ?>
+    </div></div>
+    <p class="hint cksum-note"><?= t('Complete the steps on the left and confirm at the bottom.') ?></p>
+  </div></aside>
+  </div>
   </div>
 
   <?php endif; ?>
@@ -393,7 +429,8 @@ function syncPay(c, net){
   if(cOpt && rCry){
     var f=document.getElementById('orderForm');
     var txt=[shipCountry(), (f&&f.querySelector('[name=address]')||{}).value||'', (f&&f.querySelector('[name=city]')||{}).value||'',
-             (f&&f.querySelector('[name=ship_address]')||{}).value||''].join(' | ');
+             (f&&f.querySelector('[name=ship_street]')||{}).value||'', (f&&f.querySelector('[name=ship_city]')||{}).value||'',
+             (f&&f.querySelector('[name=ship_country]')||{}).value||''].join(' | ');
     var blocked = CRYPTO_BLOCK_RE.test(txt);
     cOpt.style.display = blocked?'none':'';
     rCry.disabled = blocked;
@@ -552,7 +589,7 @@ document.getElementById('rows').addEventListener('click', function(e){
   var el=document.getElementById(id); if(el) el.addEventListener('change', function(){ render(); });
 });
 /* Adres alanlari degisince kripto secenegi yeniden olculur (ulke alani zaten render'a bagli). */
-['address','city','ship_address'].forEach(function(n){
+['address','city','ship_street','ship_city','ship_country'].forEach(function(n){
   var el=document.querySelector('#orderForm [name='+n+']'); if(el){ el.addEventListener('input', render); el.addEventListener('change', render); }
 });
 document.getElementById('orderForm') && document.getElementById('orderForm').addEventListener('submit',function(){

@@ -1683,3 +1683,76 @@ h1{letter-spacing:-.024em}
   .uh-act{flex-direction:column;align-items:stretch;gap:8px}
   .uh-act .btn,.uh-act form,.uh-act form .btn{width:100%;text-align:center;justify-content:center}
 }
+
+/* ── Kasa (cart.php) yeniden düzen, 15 Eki 2026: adımlı kartlar + yapışkan özet ─────
+   Operatör: "faturadaki lieferadresseyi kutucuklar ile daha konforlu yap, komple sepet
+   sayfasini daha estetik ve konforlu yap". Sol sütun 1–5 adım (ürünler, alıcı, teslimat,
+   ödeme, onay), sağda yapışkan sipariş özeti; 900px altında tek sütun, özet en üste değil
+   ürünlerin ALTINA düşer. Form kimlikleri/alan adları değişmedi (JS ve testler aynı). */
+.ckout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:26px;align-items:start}
+.ckmain{min-width:0}
+.cksum{position:sticky;top:84px}
+.cksum .panelcard{padding:20px 22px}
+.cksum-h{margin:0 0 6px;font-size:16px}
+.cksum .summary{display:block;margin:0}
+.cksum .summary .box{min-width:0}
+.cksum .summary .line{padding:9px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.cksum .summary .line.big{border-bottom:0;border-top:1px solid var(--line);font-size:21px}
+.cksum-note{margin:12px 0 0;line-height:1.5}
+.ckstep{padding:22px 24px;margin-bottom:16px}
+.ckhead{display:flex;align-items:center;gap:12px;margin:0 0 16px}
+.ckhead h3{margin:0;font-size:17px;letter-spacing:.2px}
+.cknum{flex:none;width:28px;height:28px;border-radius:50%;display:inline-grid;place-items:center;
+  font-size:13px;font-weight:700;background:var(--acc);color:#1a1408;line-height:1}
+.cksub{margin:20px 0 8px;font-size:13.5px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.6px}
+.ckstep label.hint{display:block;margin:0 0 5px;font-size:12.5px}
+.ckstep input:not([type=radio]):not([type=checkbox]),.ckstep textarea{width:100%;min-height:44px}
+.ckstep textarea{min-height:72px}
+/* Ödeme seçenekleri alt alta, tam genişlik: iki sütun dar kartta metni sıkıştırıyordu. */
+.ckstep .paysel{grid-template-columns:1fr;max-width:none}
+.ckstep .payopt{padding:15px 16px;gap:13px}
+.ckstep .payopt .payopt-b{gap:5px}
+.ckstep .payopt .hint{line-height:1.5}
+/* Teslimat adresi kartları: daha ferah, simge yuvarlak kutuda, seçili karta altın çerçeve. */
+.ckstep .shippick{max-width:none;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.ckstep .shipopt{padding:14px 15px;border-radius:14px;gap:12px;transition:.18s;align-items:center}
+.ckstep .shipopt:hover{border-color:rgba(201,168,106,.5)}
+.ckstep .shipopt:has(input:checked){background:rgba(201,168,106,.07)}
+.ckstep .shipopt .shipico,.ckstep .shipopt .addrnum{width:32px;height:32px;border-radius:50%;display:inline-grid;place-items:center;
+  background:var(--bg3);border:1px solid var(--line);font-size:14px}
+.ckstep .shipopt:has(input:checked) .shipico,.ckstep .shipopt:has(input:checked) .addrnum{border-color:var(--acc);color:var(--acc);background:rgba(201,168,106,.1)}
+.ckstep .shipopt-b{gap:2px}
+.ckstep .shipopt-b b{font-size:14px}
+/* "Başka adres" kutucukları: 2 sütun, sokak ve alıcı tam satır. */
+.shipform{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;margin:14px 0 6px;padding:16px 18px;
+  border:1px solid var(--line);border-radius:14px;background:var(--bg3);max-width:none!important}
+.shipform .full{grid-column:1/-1}
+@media(max-width:560px){.shipform{grid-template-columns:1fr}}
+.ckstep .ctable th:first-child,.ckstep .ctable td:first-child{padding-left:0}
+.ckstep .ctable th:last-child,.ckstep .ctable td:last-child{padding-right:0}
+#placeBtn{min-height:50px;font-size:15.5px;padding:0 26px}
+@media(max-width:900px){
+  .ckout{grid-template-columns:1fr;gap:16px}
+  .cksum{position:static;order:0}
+  .ckmain{order:1}
+  .ckstep{padding:18px 16px}
+}
+/* Alıcı bilgileri ızgarası: masaüstünde 2 sütun, telefonda tek sütun (posta kodu/şehir kutuları
+   iki sütunlu halde 390px'te sıkışıyordu — çizdirilerek görüldü). */
+.ckgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:680px}
+@media(max-width:560px){.ckgrid{grid-template-columns:1fr}}
+/* Ürün tablosu telefonda satır kartı: başlık gizli, ürün solda, adet/birim/toplam sağda alt alta.
+   Yatay kaydırma (ctable'ın genel kuralı) burada kapalı — 5 sütun 390px'te okunmuyordu. */
+@media(max-width:640px){
+  .ckstep .ctable{display:table;overflow:visible}
+  .ckstep .ctable thead{display:none}
+  .ckstep .ctable tbody,.ckstep .ctable tr{display:block}
+  .ckstep .ctable tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .ckstep .ctable td{display:block;padding:0;border:0;text-align:right}
+  .ckstep .ctable td:first-child{grid-column:1;grid-row:1/4;text-align:left}
+  .ckstep .ctable td:nth-child(2){grid-column:2;grid-row:1;color:var(--mut);font-size:13px;white-space:nowrap}
+  .ckstep .ctable td:nth-child(3){grid-column:2;grid-row:2;color:var(--mut);font-size:13px}
+  .ckstep .ctable td:nth-child(4){grid-column:2;grid-row:3;font-weight:700}
+  .ckstep .ctable td.x{grid-column:1/-1;grid-row:4;text-align:right;font-size:13px;padding-top:4px}
+  .cksum .cksum-note{display:none}
+}

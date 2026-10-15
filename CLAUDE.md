@@ -12762,3 +12762,12 @@ seçeneği (Güney Amerika, Türkiye, Orta Doğu, Asya)… Yaptırım engeli …
   sandbox Paid 04:51, tedarikçi kuyruğu `sandbox-test-mail` 05:00 — gerçek mektup gitmedi), ardından
   `set-oxapay-env.yml sandbox=false` (13:47 UTC): `OXAPAY_SANDBOX=false`, yoklama 400/200/302 geçti.
   Bu sipariş test kaydıdır (sandbox damgalı, `paid`); operatör isterse `order_delete` ile kaldırılır.
+- **15 Eki 2026 — kasa yeniden düzeni** (operatör: "lieferadresse'yi kutucuklarla daha konforlu,
+  sepet sayfasını estetik yap"): `cart.php` 5 adımlı kart (Ürünler → Alıcı → Teslimat → Ödeme
+  (+kupon) → Onay) + sağda yapışkan sipariş özeti (`.ckout/.ckstep/.cksum`, `inc/style.css`);
+  900px altında tek sütun (özet üstte, ürün tablosu satır-kartı). **"Başka adres" artık
+  kutucuklar:** `ship_recipient/ship_street/ship_postcode/ship_city/ship_country/ship_phone` →
+  `order.php` `vestra_ship_addr_line()` ile defterle aynı tek satır; eksik alan
+  `/cart?err=shipaddr_fields`; hesaba `ship_other` olarak hatırlanır (eski `ship_address`
+  metni sokak kutusuna ön-dolar). Form kimlikleri/JS değişmedi; 8 dil çevirisi eklendi.
+  Çizdirilip bakıldı (Playwright, 1280 + 390 px).

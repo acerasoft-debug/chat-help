@@ -1758,4 +1758,11 @@ return array (
   'Online card payment is paused at the moment. Write to us and we will reserve your quantity by bank transfer.' => 'Die Online-Kartenzahlung ist derzeit pausiert. Schreiben Sie uns, dann reservieren wir Ihre Menge per Banküberweisung.',
   'Within 24 hours of your purchase, your invoice with the payment details is emailed to you and added to your account.' => 'Innerhalb von 24 Stunden nach dem Kauf erhalten Sie Ihre Rechnung mit den Zahlungsdaten per E-Mail und in Ihrem Konto.',
   "Within 24 hours of your purchase, your invoice — with the seller's bank details — is emailed to you and added to your account. Payment is by bank transfer against that invoice; goods ship after payment arrives. Track everything under My orders." => 'Innerhalb von 24 Stunden nach dem Kauf erhalten Sie Ihre Rechnung — mit den Bankdaten des Verkäufers — per E-Mail und in Ihrem Konto. Die Zahlung erfolgt per Überweisung gegen diese Rechnung; die Ware wird nach Zahlungseingang versandt. Alles Weitere unter „Meine Bestellungen“.',
+  'Order summary' => 'Bestellübersicht',
+  'Review & confirm' => 'Prüfen & bestätigen',
+  'Recipient or company (optional)' => 'Empfänger oder Firma (optional)',
+  'Phone (optional)' => 'Telefon (optional)',
+  'Fill in the boxes below' => 'Felder unten ausfüllen',
+  'Please complete the delivery address: street, postcode, city and country.' => 'Bitte vervollständigen Sie die Lieferadresse: Straße, Postleitzahl, Ort und Land.',
+  'Complete the steps on the left and confirm at the bottom.' => 'Füllen Sie die Schritte links aus und bestätigen Sie unten.',
 );

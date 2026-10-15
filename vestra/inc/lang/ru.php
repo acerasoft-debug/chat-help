@@ -1754,4 +1754,11 @@ return array (
   'Online card payment is paused at the moment. Write to us and we will reserve your quantity by bank transfer.' => 'Онлайн-оплата картой временно приостановлена. Напишите нам, и мы зарезервируем ваше количество с оплатой банковским переводом.',
   'Within 24 hours of your purchase, your invoice with the payment details is emailed to you and added to your account.' => 'В течение 24 часов после покупки счёт с платёжными реквизитами придёт вам по электронной почте и появится в вашем аккаунте.',
   "Within 24 hours of your purchase, your invoice — with the seller's bank details — is emailed to you and added to your account. Payment is by bank transfer against that invoice; goods ship after payment arrives. Track everything under My orders." => 'В течение 24 часов после покупки счёт — с банковскими реквизитами продавца — придёт вам по электронной почте и появится в вашем аккаунте. Оплата банковским переводом по этому счёту; товар отправляется после поступления оплаты. Следите за всем в разделе «Мои заказы».',
+  'Order summary' => 'Сводка заказа',
+  'Review & confirm' => 'Проверить и подтвердить',
+  'Recipient or company (optional)' => 'Получатель или компания (необязательно)',
+  'Phone (optional)' => 'Телефон (необязательно)',
+  'Fill in the boxes below' => 'Заполните поля ниже',
+  'Please complete the delivery address: street, postcode, city and country.' => 'Заполните адрес доставки: улица, индекс, город и страна.',
+  'Complete the steps on the left and confirm at the bottom.' => 'Заполните шаги слева и подтвердите внизу.',
 );

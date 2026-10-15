@@ -52,7 +52,19 @@ if(empty($_POST['consent'])){ header('Location: /cart'); exit; } // Terms accept
    ship_pick hic gelmezse (onbellekte kalmis eski sepet sayfasi) eski davranis:
    serbest metin, bos = fatura adresine. */
 $shipPick=isset($_POST['ship_pick']) ? trim((string)$_POST['ship_pick']) : '';
-$__ship=vestra_ship_addr_resolve(auth_user(), $shipPick, (string)($_POST['ship_address']??''));
+/* "BASKA ADRES" KUTUCUKLARLA (15 Eki 2026): sokak/posta kodu/sehir/ulke ayri geliyor ve adres
+   defteriyle AYNI bicimlendiriciden (vestra_ship_addr_line) tek satira kuruluyor. Eksik alan
+   (sokak, sehir, ulke, posta kodu -- ulke posta kodu kullanmiyorsa haric) /cart'a geri
+   dusuruyor; sessizce yarim adres yazilmaz. Eski serbest metin (ship_address) yedek. */
+$__shipIn = vestra_ship_addr_clean(['recipient'=>$_POST['ship_recipient']??'', 'street'=>$_POST['ship_street']??'', 'postcode'=>$_POST['ship_postcode']??'',
+                                    'city'=>$_POST['ship_city']??'', 'country'=>$_POST['ship_country']??'', 'phone'=>$_POST['ship_phone']??'']);
+$__shipText = (string)($_POST['ship_address']??'');
+if(($shipPick==='' || $shipPick==='other') && implode('', [$__shipIn['street'],$__shipIn['postcode'],$__shipIn['city'],$__shipIn['country']])!==''){
+  $__errs = array_diff(vestra_ship_addr_errors($__shipIn), ['country_tr']);   // TR beyani kaydin kendi kurali, burada ayri reddedilmez
+  if($__errs){ header('Location: /cart?err=shipaddr_fields'); exit; }
+  $__shipText = vestra_ship_addr_line($__shipIn);
+}
+$__ship=vestra_ship_addr_resolve(auth_user(), $shipPick, $__shipText);
 if(isset($__ship['error'])){ header('Location: /cart?err=shipaddr'); exit; }
 $shipAddr=$__ship['address']; // empty means "deliver to the billing address"
 $country=trim($_POST['country']??'');   // tarife bölgesini ve mektupları besleyen tek okuma
@@ -73,6 +85,7 @@ if(!empty($_SESSION['uid'])){
     /* Serbest metin yalniz 'baska adres' secildiginde hatirlanir: kayitli bir yuva
        secildiginde eski serbest metni ezmek, alicinin bir dahaki "baska adres"ini silerdi. */
     if(($shipPick===''||$shipPick==='other') && $shipAddr!==($me['ship_address']??'')) $patch['ship_address']=$shipAddr;
+    if(($shipPick===''||$shipPick==='other') && $__shipIn['street']!=='' && $__shipIn!==(array)($me['ship_other']??[])) $patch['ship_other']=$__shipIn;
     if($shipPick!=='' && $shipPick!==(string)($me['ship_last']??'')) $patch['ship_last']=$shipPick;
     /* Posta kodu + sehir ARTIK AYRI alan (operator, 15 Eki 2026: "posta kodu sepette yer almiyor"):
        profil ikisini zaten ayri tutuyor, kasa tek satira sikistiriyordu. */

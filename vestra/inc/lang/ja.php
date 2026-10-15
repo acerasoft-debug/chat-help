@@ -1754,4 +1754,11 @@ return array (
   'Online card payment is paused at the moment. Write to us and we will reserve your quantity by bank transfer.' => 'オンラインのカード決済は現在一時停止中です。ご連絡いただければ、銀行振込でご希望の数量をお取り置きします。',
   'Within 24 hours of your purchase, your invoice with the payment details is emailed to you and added to your account.' => 'ご購入から24時間以内に、お支払い情報を記載した請求書をメールでお送りし、アカウントにも追加します。',
   "Within 24 hours of your purchase, your invoice — with the seller's bank details — is emailed to you and added to your account. Payment is by bank transfer against that invoice; goods ship after payment arrives. Track everything under My orders." => 'ご購入から24時間以内に、販売者の銀行口座情報を記載した請求書をメールでお送りし、アカウントにも追加します。お支払いはその請求書に基づく銀行送金で、入金確認後に商品を発送します。「注文履歴」からご確認ください。',
+  'Order summary' => '注文概要',
+  'Review & confirm' => '確認して注文',
+  'Recipient or company (optional)' => '宛名または会社名（任意）',
+  'Phone (optional)' => '電話番号（任意）',
+  'Fill in the boxes below' => '下の欄に入力してください',
+  'Please complete the delivery address: street, postcode, city and country.' => '配送先住所を入力してください：番地、郵便番号、市区町村、国。',
+  'Complete the steps on the left and confirm at the bottom.' => '左側の手順を入力し、最後に確認してください。',
 );

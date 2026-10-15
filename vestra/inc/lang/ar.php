@@ -1754,4 +1754,11 @@ return array (
   'Online card payment is paused at the moment. Write to us and we will reserve your quantity by bank transfer.' => 'الدفع الإلكتروني بالبطاقة متوقف حاليًا. راسلونا وسنحجز الكمية المطلوبة بالدفع عبر التحويل المصرفي.',
   'Within 24 hours of your purchase, your invoice with the payment details is emailed to you and added to your account.' => 'خلال 24 ساعة من الشراء تُرسل فاتورتك مع بيانات الدفع إلى بريدك الإلكتروني وتُضاف إلى حسابك.',
   "Within 24 hours of your purchase, your invoice — with the seller's bank details — is emailed to you and added to your account. Payment is by bank transfer against that invoice; goods ship after payment arrives. Track everything under My orders." => 'خلال 24 ساعة من الشراء تُرسل فاتورتك — مع البيانات البنكية للبائع — إلى بريدك الإلكتروني وتُضاف إلى حسابك. الدفع بالتحويل البنكي مقابل تلك الفاتورة؛ تُشحن البضاعة بعد وصول الدفعة. تابع كل شيء في «طلباتي».',
+  'Order summary' => 'ملخص الطلب',
+  'Review & confirm' => 'المراجعة والتأكيد',
+  'Recipient or company (optional)' => 'المستلم أو الشركة (اختياري)',
+  'Phone (optional)' => 'الهاتف (اختياري)',
+  'Fill in the boxes below' => 'املأ الحقول أدناه',
+  'Please complete the delivery address: street, postcode, city and country.' => 'يرجى إكمال عنوان التسليم: الشارع والرمز البريدي والمدينة والبلد.',
+  'Complete the steps on the left and confirm at the bottom.' => 'أكمل الخطوات على اليسار ثم أكّد في الأسفل.',
 );
