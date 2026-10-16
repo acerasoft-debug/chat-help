@@ -27,7 +27,9 @@ if(!$pdo){ exit("PDO alınamadı (db.php).\n"); }
 /* 1) tablo + onay kolonu bul */
 $tbls = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
 echo "tablolar: ".implode(', ',$tbls)."\n";
-$T=''; foreach($tbls as $t){ if(preg_match('/user|member|account|kullanic/i',$t)){ $T=$t; break; } }
+$T='';
+if(in_array('users',$tbls,true)) $T='users';                       // Recht uygulamasının kullanıcı tablosu (auth.php: SELECT ... FROM users)
+else foreach($tbls as $t){ if(preg_match('/^wp_|^token_|^api_|^agent_/i',$t)) continue; if(preg_match('/user|member|kullanic/i',$t)){ $T=$t; break; } }
 if(!$T){ echo "kullanıcı tablosu bulunamadı — dökümü aşağıda incele.\n"; }
 echo "kullanıcı tablosu: ".($T?:'(?)')."\n\n";
 
@@ -35,10 +37,11 @@ $col=''; $colType='';
 if($T){
     echo "kolonlar:\n";
     $cols=$pdo->query("SHOW COLUMNS FROM `$T`")->fetchAll(PDO::FETCH_ASSOC);
-    $WL=['verified','is_verified','email_verified','confirmed','email_confirmed','is_active','active','activated'];
+    $WL=['email_verified','verified','is_verified','confirmed','email_confirmed','activated','is_active','active'];
+    $names=array_map(fn($c)=>strtolower($c['Field']),$cols);
+    foreach($WL as $w){ $k=array_search($w,$names,true); if($k!==false && preg_match('/int|bool|bit|tinyint/i',$cols[$k]['Type'])){ $col=$cols[$k]['Field']; $colType=$cols[$k]['Type']; break; } }
     foreach($cols as $c){
-        $isVer = in_array(strtolower($c['Field']),$WL,true) && preg_match('/int|bool|bit|tinyint/i',$c['Type']);
-        if($isVer && !$col){ $col=$c['Field']; $colType=$c['Type']; }
+        $isVer = (strtolower($c['Field'])===strtolower($col));
         echo "  ".str_pad($c['Field'],22)." ".str_pad($c['Type'],16)." def=".($c['Default']??'NULL').($isVer?"   <== ONAY KOLONU":"")."\n";
     }
     echo "\nseçilen onay kolonu: ".($col?:'(net kolon yok — DB açma atlanacak, PHP yaması gerekebilir)')."\n";
