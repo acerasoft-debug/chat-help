@@ -59,6 +59,10 @@ on:
         description: "true = sunucuda WP-CLI ile önbellek temizlemeyi dene (varsa)"
         required: false
         default: "false"
+      fix_root_redirect:
+        description: "true = .htaccess'teki 'RewriteRule ^$ /chat/ [R=302,L]' kök yönlendirmesini devre dışı bırak (yedekli) → yeni ana sayfa kökte"
+        required: false
+        default: "false"
       sftp_user:
         description: "GEÇİCİ: secret yoksa SFTP/SSH kullanıcı adı (loga yazılmaz)"
         required: false
@@ -308,6 +312,26 @@ jobs:
           set +e
           DEST="${{ steps.disc.outputs.dest }}"; case "$DEST" in auto|"") echo "docroot yok"; exit 0;; esac
           $SSHCMD "$SRV" "cd $DEST && echo '--- index.html ---' && ls -la index.html index.html.bak-* 2>/dev/null && head -c 400 index.html && echo && echo '--- .htaccess ---' && cat .htaccess && echo && echo '--- index.php (ilk satirlar) ---' && head -c 300 index.php && echo && echo '--- wp-cli? ---' && (command -v wp && wp --path=\$PWD --skip-plugins --skip-themes option get siteurl 2>&1 | head -3 || echo 'wp yok')"
+
+      - name: Kök yönlendirmesini kaldır (.htaccess, yedekli)
+        if: ${{ steps.mode.outputs.mode == 'ssh' && github.event.inputs.fix_root_redirect == 'true' }}
+        run: |
+          set -e
+          DEST="${{ steps.disc.outputs.dest }}"; case "$DEST" in auto|"") echo "::error::docroot yok"; exit 1;; esac
+          cat > /tmp/fix-root.sh <<'REMOTE'
+          set -e
+          cd "$1"
+          TS=$(date +%Y%m%d-%H%M%S)
+          if grep -qE '^[[:space:]]*RewriteRule \^\$ /chat/ \[R=302,L\]' .htaccess; then
+            cp .htaccess ".htaccess.bak-rootredir-$TS"
+            sed -i -E 's#^([[:space:]]*RewriteRule \^\$ /chat/ \[R=302,L\])#\# devre disi (yeni ana sayfa kokte): \1#' .htaccess
+            echo "ROOT REDIRECT DEVRE DISI (yedek: .htaccess.bak-rootredir-$TS)"
+          else
+            echo "kok yonlendirme kurali bulunamadi (zaten yok)"
+          fi
+          echo "--- .htaccess (chat/ gecen satirlar) ---"; grep -n 'chat/' .htaccess || true
+          REMOTE
+          $SSHCMD "$SRV" "bash -s $DEST" < /tmp/fix-root.sh
 
       - name: Önbellek temizle (WP-CLI, varsa)
         if: ${{ steps.mode.outputs.mode == 'ssh' && github.event.inputs.flush_cache == 'true' }}
