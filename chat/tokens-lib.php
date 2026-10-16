@@ -276,7 +276,10 @@ function th_mail(string $to, string $subject, string $html): bool {
             CURLOPT_HTTPHEADER=>['accept: application/json','api-key: '.BREVO_KEY,'content-type: application/json']]);
         curl_exec($ch); $c=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch); if($c>=200&&$c<300) return true;
     }
-    return @mail($to,'=?UTF-8?B?'.base64_encode($subject).'?=',$html,"MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: $name <$from>\r\nReply-To: $from\r\nX-Mailer: ChatHelp");
+    /* -f: Envelope-Absender = From (im Web-Kontext sonst www-data@host → Relay/Empfänger verwerfen die Mail) */
+    $ok = @mail($to,'=?UTF-8?B?'.base64_encode($subject).'?=',$html,"MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: $name <$from>\r\nReply-To: $from\r\nX-Mailer: ChatHelp",'-f'.$from);
+    if(!$ok) $ok = @mail($to,'=?UTF-8?B?'.base64_encode($subject).'?=',$html,"MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: $name <$from>\r\nReply-To: $from\r\nX-Mailer: ChatHelp");
+    return $ok;
 }
 
 /** Dinamik yanıtlar Cloudflare/platform önbelleğine girmesin (platform varsayılanı: public, 31 gün). */
