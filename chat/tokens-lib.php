@@ -227,7 +227,7 @@ function th_ai(string $system, array $messages, int $maxTokens=1200, int $timeou
     $msgs=[]; foreach($messages as $m){ $role=($m['role']??'user')==='assistant'?'assistant':'user'; $c=trim((string)($m['content']??'')); if($c!=='') $msgs[]=['role'=>$role,'content'=>$c]; }
     if(!$msgs || end($msgs)['role']!=='user') return null;
     $info=['provider'=>null,'model'=>null,'errors'=>[]];
-    $cacheF = sys_get_temp_dir().'/ch_ai_model.json';
+    $cacheF = is_writable(__DIR__) ? __DIR__.'/.ai_model.json' : sys_get_temp_dir().'/ch_ai_model.json';
     $models = th_ai_models();
     $cached = @json_decode((string)@file_get_contents($cacheF), true);
     if(!empty($cached['model']) && (time()-(int)($cached['t']??0)) < 21600 && in_array($cached['model'],$models,true)){
@@ -248,8 +248,8 @@ function th_ai(string $system, array $messages, int $maxTokens=1200, int $timeou
             }
             $et=(string)($r['error']['type']??''); $em=(string)($r['error']['message']??$cerr);
             $info['errors'][]=$model.': '.($code?:'curl').' '.$et.' '.mb_substr($em,0,120);
-            $modelProblem = $code===404 || $et==='not_found_error' || ($et==='invalid_request_error' && stripos($em,'model')!==false);
-            if(!$modelProblem) break; // anahtar / limit / sunucu hatası: başka model denemenin anlamı yok
+            if($code===401 || $et==='authentication_error' || $et==='permission_error') break; // anahtar sorunu: başka model denemenin anlamı yok
+            // bulunamayan model, aşırı yük (529), limit (429), geçici hata → sıradaki modeli dene
         }
     }
     if(defined('DEEPSEEK_KEY') && DEEPSEEK_KEY){
@@ -280,5 +280,10 @@ function th_mail(string $to, string $subject, string $html): bool {
 }
 
 /** Dinamik yanıtlar Cloudflare/platform önbelleğine girmesin (platform varsayılanı: public, 31 gün). */
-function th_nocache(): void { header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0'); header('Cloudflare-CDN-Cache-Control: no-store'); header('CDN-Cache-Control: no-store'); header('Pragma: no-cache'); header('Expires: 0'); header('Vary: Authorization, Cookie'); }
+function th_nocache(): void {
+    if(headers_sent()) return;
+    header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0'); header('Cloudflare-CDN-Cache-Control: no-store'); header('CDN-Cache-Control: no-store'); header('Pragma: no-cache'); header('Expires: 0'); header('Vary: Authorization, Cookie');
+    /* Host Europe/GoDaddy MWP: Set-Cookie içeren yanıtlar platform/edge önbelleğine alınmaz (Cache-Control tek başına yetmiyor) */
+    header('Set-Cookie: chnc=1; Path=/; Max-Age=3600; Secure; HttpOnly; SameSite=Lax', false);
+}
 function th_json(int $code, array $data): void { th_nocache(); http_response_code($code); header('Content-Type: application/json; charset=UTF-8'); echo json_encode($data, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); exit; }

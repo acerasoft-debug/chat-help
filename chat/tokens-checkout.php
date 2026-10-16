@@ -38,7 +38,7 @@ if($planId !== ''){                                                    /* ---- A
   if(!$pl){ http_response_code(404); header('Content-Type: text/plain; charset=UTF-8'); exit("Bilinmeyen paket: $planId\nMevcut: ".implode(', ',array_keys(CH_PLANS))); }
   $buy = ($pl['kind']==='buy');
   $params['mode']=$buy?'payment':'subscription';
-  $params['success_url']=SITE.'/chat/agent.php?welcome='.$pl['id'].'&session_id={CHECKOUT_SESSION_ID}';
+  $params['success_url']=SITE.'/chat/studio.php?welcome='.$pl['id'].'&session_id={CHECKOUT_SESSION_ID}';
   $params['line_items[0][price_data][currency]']='eur';
   $params['line_items[0][price_data][unit_amount]']=$pl['cents'];
   if(!$buy) $params['line_items[0][price_data][recurring][interval]']='month'; else $params['invoice_creation[enabled]']='true';
@@ -52,7 +52,7 @@ if($planId !== ''){                                                    /* ---- A
   $n=max(1000,min(5000000,(int)(round($req/1000)*1000)));
   $cents=(int)round($n*tk_unit($n)*100);
   $params['mode']='payment'; $params['invoice_creation[enabled]']='true';
-  $params['success_url']=SITE.'/chat/agent.php?tokens=success&session_id={CHECKOUT_SESSION_ID}';
+  $params['success_url']=SITE.'/chat/studio.php?tokens=success&session_id={CHECKOUT_SESSION_ID}';
   $params['line_items[0][price_data][currency]']='eur';
   $params['line_items[0][price_data][unit_amount]']=$cents;
   $params['line_items[0][price_data][tax_behavior]']='exclusive';
@@ -61,13 +61,13 @@ if($planId !== ''){                                                    /* ---- A
   $params['metadata[type]']='tokens'; $params['metadata[tokens]']=$n; $params['metadata[pack]']='custom';
 } elseif(isset($prices[$pack])){                                       /* ---- SABİT PAKET (Price ID) ---- */
   $params['mode']='payment'; $params['invoice_creation[enabled]']='true';
-  $params['success_url']=SITE.'/chat/agent.php?tokens=success&session_id={CHECKOUT_SESSION_ID}';
+  $params['success_url']=SITE.'/chat/studio.php?tokens=success&session_id={CHECKOUT_SESSION_ID}';
   $params['line_items[0][price]']=$prices[$pack];
   $params['metadata[type]']='tokens'; $params['metadata[tokens]']=PACKS[$pack] ?? 0; $params['metadata[pack]']=$pack;
 } elseif(isset(PACKS[$pack])){                                         /* ---- SABİT PAKET (Price ID tanımlı değilse price_data) ---- */
   $n=PACKS[$pack]; $cents=(int)round($n*tk_unit($n)*100);
   $params['mode']='payment'; $params['invoice_creation[enabled]']='true';
-  $params['success_url']=SITE.'/chat/agent.php?tokens=success&session_id={CHECKOUT_SESSION_ID}';
+  $params['success_url']=SITE.'/chat/studio.php?tokens=success&session_id={CHECKOUT_SESSION_ID}';
   $params['line_items[0][price_data][currency]']='eur';
   $params['line_items[0][price_data][unit_amount]']=$cents;
   $params['line_items[0][price_data][tax_behavior]']='exclusive';

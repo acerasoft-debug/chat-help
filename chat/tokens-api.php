@@ -69,7 +69,7 @@ if(($r==='auth/request' || $r==='auth/verify') && $m==='POST'){
 
 $hdr = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
 $acc = th_auth(preg_replace('/^Bearer\s+/i','',trim($hdr)));
-if(!$acc) th_json(401,['error'=>'unauthorized','message'=>'Authorization: Bearer ch_live_… fehlt oder ungültig','get_key'=>'https://chat-help.com/chat/agent.php']);
+if(!$acc) th_json(401,['error'=>'unauthorized','message'=>'Authorization: Bearer ch_live_… fehlt oder ungültig','get_key'=>'https://chat-help.com/chat/studio.php']);
 $aid=(int)$acc['id'];
 $b=body(); $lang=substr(preg_replace('/[^a-z]/','',strtolower($b['lang']??($_GET['lang']??'de'))),0,2) ?: 'de';
 $sector=preg_replace('/[^a-z]/','',strtolower($b['sector']??'marketing')); if(!isset(SECTORS[$sector])) $sector='marketing';

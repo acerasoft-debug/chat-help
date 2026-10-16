@@ -9,6 +9,7 @@ chat/tokens-api.php                 chat/tokens-api.php
 chat/tokens-checkout.php     chat/tokens-checkout.php
 chat/tokens-webhook.php      chat/tokens-webhook.php
 chat/agent.php               chat/agent.php
+chat/studio.php              chat/studio.php
 chat/widget.js               chat/widget.js
 chat/widget-api.php          chat/widget-api.php
 chat/concierge.php           chat/concierge.php

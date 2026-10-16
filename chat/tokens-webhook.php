@@ -107,7 +107,7 @@ function mail_tokens(int $tokens, int $bal, ?string $newKey): string {
       .'<h2 style="color:#b0801f">Danke! '.number_format($tokens,0,',','.').' Tokens gutgeschrieben ✅</h2>'
       .'<p>Dein ChatHelp-Guthaben: <b>'.number_format($bal,0,',','.').' Tokens</b>. Nutzbar in allen Paketen, Agenten und per API.</p>'
       .key_block($newKey)
-      .'<p><a href="https://chat-help.com/chat/agent.php" style="background:#b0801f;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Zum Arbeitsbereich →</a></p>'
+      .'<p><a href="https://chat-help.com/chat/studio.php" style="background:#b0801f;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Zum Arbeitsbereich →</a></p>'
       .'<p style="color:#666;font-size:13px">Doku: <a href="https://chat-help.com/#api">chat-help.com/#api</a> · Fragen: info@chat-help.com</p></div>';
 }
 function mail_plan(array $pl, int $bal, ?string $newKey, bool $first): string {
@@ -118,7 +118,7 @@ function mail_plan(array $pl, int $bal, ?string $newKey, bool $first): string {
       .($agent ? '<p><b>So startest du deinen Agenten:</b><br>1) Arbeitsbereich öffnen und mit deinem API-Key anmelden.<br>2) Wissensbasis einfügen (FAQ, Produkte, Öffnungszeiten, Tonalität).<br>3) Testen – und per Website-Widget oder E-Mail/Chat einbinden. Wir melden uns innerhalb von 24 Stunden für die Einrichtung.</p>'
                : '<p>Öffne den Arbeitsbereich, wähle dein Paket und starte mit den fertigen Vorlagen.</p>')
       .key_block($newKey)
-      .'<p><a href="https://chat-help.com/chat/agent.php?plan='.$pl['id'].'" style="background:#b0801f;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Arbeitsbereich öffnen →</a></p>'
+      .'<p><a href="https://chat-help.com/chat/studio.php?plan='.$pl['id'].'" style="background:#b0801f;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Arbeitsbereich öffnen →</a></p>'
       .'<p style="color:#666;font-size:13px">Monatlich kündbar · Rechnung von Stripe · Fragen: info@chat-help.com</p></div>';
 }
 function key_block(?string $newKey): string {

@@ -1,13 +1,12 @@
 <?php
-/* ChatHelp ana sayfa — PHP sarmalayıcı: platform (Cloudflare kenar) ana sayfayı GÜNLERCE önbelleğe aldığı için
-   index.html'i no-store başlıklarıyla servis eder (Recht uygulaması da aynı yöntemi kullanır). Yayın anında görünür. */
+/**
+ * ChatHelp — Ana sayfa sarmalayıcı: site/index.html'i dinamik (önbelleksiz) sunar.
+ * Host Europe / GoDaddy Managed WordPress: Cache-Control tek başına yetmez; Set-Cookie içeren yanıtlar
+ * platform- ve kenar önbelleğine (Cloudflare) alınmaz → her yanıtta çerez yenilenir.
+ */
 header('Content-Type: text/html; charset=UTF-8');
-header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0');
-header('Pragma: no-cache'); header('Expires: 0');
-header('CDN-Cache-Control: no-store'); header('Cloudflare-CDN-Cache-Control: no-store'); header('Surrogate-Control: no-store');
-header('Vary: Cookie');
-/* Recht uygulamasıyla aynı hile: Set-Cookie taşıyan yanıtlar kenar/origin önbelleğine ALINMAZ */
-if(empty($_COOKIE['chnc'])){ @setcookie('chnc','1',['expires'=>time()+3600,'path'=>'/','secure'=>true,'httponly'=>true,'samesite'=>'Lax']); }
-$f = __DIR__.'/index.html';
-if(!is_file($f)){ http_response_code(503); exit('index.html fehlt'); }
-readfile($f);
+header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0');
+header('Cloudflare-CDN-Cache-Control: no-store'); header('CDN-Cache-Control: no-store');
+header('Pragma: no-cache'); header('Expires: 0'); header('Vary: Cookie');
+header('Set-Cookie: chnc=1; Path=/; Max-Age=3600; Secure; HttpOnly; SameSite=Lax', false);
+readfile(__DIR__.'/index.html');
