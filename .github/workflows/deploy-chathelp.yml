@@ -63,6 +63,10 @@ on:
         description: "true = sunucuda WP-CLI ile önbellek temizlemeyi dene (varsa)"
         required: false
         default: "false"
+      apply_skin:
+        description: "true = Recht uygulaması (chat/index.php) </head> önüne skin.css + skin.js bağlantısını ekle/güncelle (yedekli, idempotent)"
+        required: false
+        default: "false"
       fix_root_redirect:
         description: "true = .htaccess'teki 'RewriteRule ^$ /chat/ [R=302,L]' kök yönlendirmesini devre dışı bırak (yedekli) → yeni ana sayfa kökte"
         required: false
@@ -354,6 +358,32 @@ jobs:
           echo "--- .htaccess.log (platform donusum kaydi) ---"; ls -la --time-style=full-iso .htaccess .htaccess.log 2>/dev/null; tail -n 40 .htaccess.log 2>/dev/null || echo "(okunamadi)"
           REMOTE
           $SSHCMD "$SRV" "bash -s $DEST" < /tmp/fix-root.sh
+
+      - name: Recht uygulamasına görünüm katmanı (skin) bağla
+        if: ${{ steps.mode.outputs.mode == 'ssh' && github.event.inputs.apply_skin == 'true' && github.event.inputs.dry_run != 'true' }}
+        run: |
+          set -e
+          DEST="${{ steps.disc.outputs.dest }}"; case "$DEST" in auto|"") echo "::error::docroot yok"; exit 1;; esac
+          cat > /tmp/skin.sh <<'REMOTE'
+          set -e
+          cd "$1/chat"; TS=$(date +%Y%m%d%H%M%S)
+          [ -f index.php ] || { echo "chat/index.php yok"; exit 1; }
+          [ -f skin.css ] && [ -f skin.js ] || { echo "skin.css/skin.js yok (manifest kopyalandi mi?)"; exit 1; }
+          if grep -q 'CH_SKIN' index.php; then
+            sed -i -E "s#(/chat/skin\.(css|js)\?v=)[0-9]+#\1$TS#g" index.php; echo "skin surumu guncellendi -> v=$TS"
+          else
+            cp index.php "index.php.bak-skin-$TS"
+            # ilk </head> once: tek satirlik enjeksiyon (CH_SKIN isareti idempotentlik icin)
+            awk -v ts="$TS" 'BEGIN{done=0} { if(!done && index($0,"</head>")>0){ sub(/<\/head>/, "<!--CH_SKIN--><link rel=\"stylesheet\" href=\"/chat/skin.css?v=" ts "\"><script defer src=\"/chat/skin.js?v=" ts "\"></script></head>"); done=1 } print }' index.php > index.php.new
+            grep -q 'CH_SKIN' index.php.new && mv index.php.new index.php || { rm -f index.php.new; echo "</head> bulunamadi"; exit 1; }
+            echo "skin baglandi (yedek: index.php.bak-skin-$TS)"
+          fi
+          command -v php >/dev/null && php -l index.php | head -2 || echo "(php cli yok, sozdizimi kontrolu atlandi)"
+          grep -o 'CH_SKIN[^>]*>[^>]*>[^>]*>' index.php | head -1
+          REMOTE
+          $SSHCMD "$SRV" "bash -s $DEST" < /tmp/skin.sh
+          echo "--- canli kontrol ---"; curl -sS -m 20 "https://chat-help.com/chat/?v=$(date +%s)" | grep -o 'skin\.css?v=[0-9]*' | head -1 || echo "(CDN/onbellek: birkac dk sonra gorunur)"
+          curl -sS -m 20 -o /dev/null -w "skin.css status=%{http_code}\n" "https://chat-help.com/chat/skin.css"
 
       - name: Önbellek temizle (WP-CLI + platform WPaaS Cache ban)
         if: ${{ steps.mode.outputs.mode == 'ssh' && github.event.inputs.flush_cache == 'true' }}

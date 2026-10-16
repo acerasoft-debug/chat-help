@@ -34,15 +34,16 @@ if($email) $params['customer_email']=$email;
 if($planId !== ''){                                                    /* ---- AYLIK PAKET / AGENT ---- */
   $pl = ch_plan($planId);
   if(!$pl){ http_response_code(404); header('Content-Type: text/plain; charset=UTF-8'); exit("Bilinmeyen paket: $planId\nMevcut: ".implode(', ',array_keys(CH_PLANS))); }
-  $params['mode']='subscription';
+  $buy = ($pl['kind']==='buy');
+  $params['mode']=$buy?'payment':'subscription';
   $params['success_url']=SITE.'/chat/agent.php?welcome='.$pl['id'].'&session_id={CHECKOUT_SESSION_ID}';
   $params['line_items[0][price_data][currency]']='eur';
   $params['line_items[0][price_data][unit_amount]']=$pl['cents'];
-  $params['line_items[0][price_data][recurring][interval]']='month';
+  if(!$buy) $params['line_items[0][price_data][recurring][interval]']='month'; else $params['invoice_creation[enabled]']='true';
   $params['line_items[0][price_data][tax_behavior]']='exclusive';
-  $params['line_items[0][price_data][product_data][name]']='ChatHelp '.($pl['kind']==='agent'?'Agent':'Paket').': '.$pl['name'];
-  $params['line_items[0][price_data][product_data][description]']=$pl['desc'].' · inkl. '.number_format($pl['tokens'],0,',','.').' Tokens / Monat · monatlich kündbar';
-  foreach(['metadata','subscription_data[metadata]'] as $m){
+  $params['line_items[0][price_data][product_data][name]']='ChatHelp '.($buy?'Einmalkauf':($pl['kind']==='agent'?'Agent':'Paket')).': '.$pl['name'];
+  $params['line_items[0][price_data][product_data][description]']=$pl['desc'].($buy?' · inkl. '.number_format($pl['tokens'],0,',','.').' Tokens · dauerhafter Zugang':' · inkl. '.number_format($pl['tokens'],0,',','.').' Tokens / Monat · monatlich kündbar');
+  foreach(($buy?['metadata']:['metadata','subscription_data[metadata]']) as $m){
     $params[$m.'[type]']='plan'; $params[$m.'[plan]']=$pl['id']; $params[$m.'[tokens]']=$pl['tokens']; $params[$m.'[kind]']=$pl['kind'];
   }
 } elseif($req>0){                                                      /* ---- SERBEST TOKEN MİKTARI ---- */

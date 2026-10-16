@@ -10,3 +10,6 @@ chat/tokens-webhook.php      chat/tokens-webhook.php
 chat/agent.php               chat/agent.php
 chat/widget.js               chat/widget.js
 chat/widget-api.php          chat/widget-api.php
+chat/concierge.php           chat/concierge.php
+chat/skin.css                chat/skin.css
+chat/skin.js                 chat/skin.js

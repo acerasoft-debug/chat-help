@@ -17,6 +17,11 @@ const CH_PLANS = [
   'agent-sales'     => ['Vertriebs-Agent',     11900, 30000, 'marketing', 'agent', 'Qualifiziert Leads, schreibt Follow-ups, bereitet CRM-Einträge vor'],
   'agent-content'   => ['Content-Planer',       7900, 20000, 'marketing', 'agent', 'Redaktionsplan, Posts und Captions nach deinem Kalender'],
   'agent-backoffice'=> ['Backoffice-Agent',     8900, 22000, 'finanzen',  'agent', 'Rechnungstexte, Belege erklären, Fristen und Erinnerungen'],
+  'agent-website'   => ['Website-Agent: Texte, Struktur & Setup', 12900, 30000, 'marketing', 'agent', 'Komplette Website-Texte (Start, Leistungen, Über uns, FAQ, Kontakt), Seitenstruktur, SEO-Meta, Impressum-/Datenschutz-Entwurf, WordPress-Einrichtungs-Checkliste'],
+  // Einmalkauf (Lifetime-Zugang + Token-Guthaben, keine Monatsgebühr)
+  'buy-website'     => ['Website-Komplettpaket (Einmalkauf)', 49000, 60000, 'marketing', 'buy', 'Website-Agent dauerhaft + 60.000 Tokens + persönliche Einrichtung per Video-Call (60 Min) – keine Monatsgebühr'],
+  'buy-support'     => ['Support-Agent Lifetime (Einmalkauf)', 99000, 150000, 'ecommerce', 'buy', 'Support-Agent dauerhaft + 150.000 Tokens + Widget-Einrichtung auf deiner Website – keine Monatsgebühr'],
+  'buy-content'     => ['Content-Planer Lifetime (Einmalkauf)', 69000, 100000, 'marketing', 'buy', 'Content-Planer dauerhaft + 100.000 Tokens – keine Monatsgebühr'],
   // E-Commerce
   'ec-texte'        => ['Produkttext-Studio',          4900, 12000, 'ecommerce', 'abo',   'SEO-Produkttexte, Bullet Points, Meta-Daten – Shopify/WooCommerce/Amazon'],
   'ec-support'      => ['Support-Agent 24/7 (Shop)',   9900, 25000, 'ecommerce', 'agent', 'Lieferung, Gewährleistung, Retouren – EU-Recht, Eskalation an Mensch'],
@@ -58,8 +63,11 @@ const CH_PLANS = [
 function ch_plan(string $id): ?array {
   if(!isset(CH_PLANS[$id])) return null;
   [$name,$cents,$tokens,$sector,$kind,$desc] = CH_PLANS[$id];
-  return ['id'=>$id,'name'=>$name,'cents'=>$cents,'tokens'=>$tokens,'sector'=>$sector,'kind'=>$kind,'desc'=>$desc,'rules'=>CH_AGENT_RULES[$id] ?? ''];
+  $base = CH_PLAN_BASE[$id] ?? $id;
+  return ['id'=>$id,'name'=>$name,'cents'=>$cents,'tokens'=>$tokens,'sector'=>$sector,'kind'=>$kind,'desc'=>$desc,'rules'=>CH_AGENT_RULES[$id] ?? (CH_AGENT_RULES[$base] ?? ''),'base'=>$base];
 }
+/* Einmalkauf-Pakete → zugrunde liegender Agent (Rolle/Vorlagen) */
+const CH_PLAN_BASE = ['buy-website'=>'agent-website','buy-support'=>'agent-support','buy-content'=>'agent-content'];
 
 /* ---- TARİFE (token / işlem) — siteyle aynı Richtwerte ---- */
 const CH_PRICING = [
@@ -119,6 +127,7 @@ const CH_AGENT_RULES = [
   'mkt-seo'         => 'Rolle: SEO-Redaktion. Keyword-Cluster, Blogartikel (H1-H3, 800-1500 Wörter, E-E-A-T), Meta-Title/-Description, interne Verlinkungsvorschläge, FAQ-Block.',
   'log-doku'        => 'Rolle: Fachübersetzer Technik. Übersetze fachgerecht mit konsistenter Terminologie (Glossar aus Wissensbasis), Format/Nummerierung beibehalten, Sicherheitshinweise normgerecht.',
   'log-liefer'      => 'Rolle: Lieferkommunikation. Lieferavis, Verzögerung, Schadensmeldung, Rückfrage – B2B-Ton, mehrsprachig, mit Platzhaltern (Sendungsnummer, ETA).',
+  'agent-website'   => 'Rolle: Website-Texter und Setup-Berater. Erstelle aus Branche, Zielgruppe und Angebot eine komplette Website: Seitenstruktur (Sitemap), Texte je Seite (Start mit Hero/Nutzen/CTA, Leistungen, Über uns, FAQ, Kontakt), SEO-Meta (Title ≤ 60, Description ≤ 155), Bild-Vorschläge mit Alt-Texten, Impressum- und Datenschutz-ENTWURF (Hinweis: rechtlich prüfen lassen), WordPress-Einrichtungs-Checkliste (Theme, Seiten, Menü, Cookie-Banner, Kontaktformular). Klar, verkaufsstark, ohne Übertreibung.',
 ];
 
 /** Agent/Paket için SYSTEM prompt: sektör + rol + müşteri ayarları (firma, ton, dil, bilgi tabanı). */
