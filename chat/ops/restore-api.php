@@ -165,4 +165,7 @@ $lint = (string)shell_exec('php -l '.escapeshellarg($tmp).' 2>&1');
 if (stripos($lint, 'No syntax errors') === false) { unlink($tmp); exit("  ✗ php -l HATASI, yazılmadı: ".trim($lint)."\n"); }
 rename($tmp, $target); @chmod($target, 0644);
 echo "  ✓ chat/api.php geri yüklendi (".filesize($target)." B)  php -l: ".trim($lint)."\n";
+preg_match_all('/(claude|deepseek)-[a-z0-9.\-]{3,40}/', $content, $mm);
+echo "  model dizgeleri: ".implode(', ', array_unique($mm[0]) ?: ['(yok)'])."\n";
+echo "  anahtar kaynağı: ".(preg_match("/require(_once)?\s*\(?\s*__DIR__\s*\.\s*'\/db\.php'/", $content) ? 'db.php' : (strpos($content, "define('CLAUDE_KEY'") !== false ? 'dosya içi define' : 'belirsiz'))."\n";
 echo "  Doğrulama: https://chat-help.com/chat/api.php?action=detect_location  → JSON beklenir; ve Recht uygulamasında bir soru sor (aichat).\n";
