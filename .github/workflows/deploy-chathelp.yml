@@ -343,17 +343,22 @@ jobs:
           else
             echo "kok yonlendirme kurali bulunamadi (zaten yok)"
           fi
-          if ! grep -qE '^[[:space:]]*RewriteRule \^\$ /index\.html \[L\]' .htaccess; then
+          # Kök → /home.php (no-store başlıklı PHP sarmalayıcı; kenar önbelleği ana sayfayı tutmaz). Eski /index.html kuralı varsa dönüştür.
+          if grep -qE '^[[:space:]]*RewriteRule \^\$ /index\.html \[L\]' .htaccess; then
+            cp -n .htaccess ".htaccess.bak-rootidx-$TS" 2>/dev/null || true
+            sed -i -E 's#^([[:space:]]*RewriteRule \^\$ )/index\.html( \[L\])#\1/home.php\2#' .htaccess; echo "KOK kurali /index.html -> /home.php"
+          elif ! grep -qE '^[[:space:]]*RewriteRule \^\$ /home\.php \[L\]' .htaccess; then
             cp -n .htaccess ".htaccess.bak-rootidx-$TS" 2>/dev/null || true
             if grep -qE '^# devre disi \(yeni ana sayfa kokte\)' .htaccess; then
-              sed -i -E '/^# devre disi \(yeni ana sayfa kokte\)/a RewriteRule ^$ /index.html [L]' .htaccess
+              sed -i -E '/^# devre disi \(yeni ana sayfa kokte\)/a RewriteRule ^$ /home.php [L]' .htaccess
             else
-              sed -i -E '0,/^[[:space:]]*RewriteEngine On/s//&\nRewriteRule ^$ \/index.html [L]/' .htaccess
+              sed -i -E '0,/^[[:space:]]*RewriteEngine On/s//&\nRewriteRule ^$ \/home.php [L]/' .htaccess
             fi
-            echo "KOK -> /index.html IC YONLENDIRME EKLENDI"
+            echo "KOK -> /home.php IC YONLENDIRME EKLENDI"
           else
-            echo "kok -> /index.html ic yonlendirme zaten var"
+            echo "kok -> /home.php ic yonlendirme zaten var"
           fi
+          [ -f ../home.php ] && echo "home.php var" || echo "UYARI: home.php yok (manifest kopyalandi mi?)"
           echo "--- .htaccess (ilgili satirlar) ---"; grep -nE 'chat/|index\.html|DirectoryIndex|RewriteEngine' .htaccess || true
           echo "--- .htaccess.log (platform donusum kaydi) ---"; ls -la --time-style=full-iso .htaccess .htaccess.log 2>/dev/null; tail -n 40 .htaccess.log 2>/dev/null || echo "(okunamadi)"
           REMOTE
@@ -420,5 +425,6 @@ jobs:
           chk "https://chat-help.com/index.html"
           chk "https://chat-help.com/?nocache=$(date +%s)"
           echo "=== yonlendirme takibi (/) ==="; curl -sS -m 25 -L -o /tmp/f -w "final=%{url_effective} status=%{http_code} redirects=%{num_redirects}\n" "https://chat-help.com/"; grep -q "KI, die" /tmp/f && echo "  final icerik: YENI SITE ✓" || echo "  final icerik: eski/baska -> $(grep -o '<title>[^<]*' /tmp/f | head -1)"
+          chk "https://chat-help.com/home.php"
           echo "=== /chat/api.php/v1/sectors ==="; curl -sS -m 20 -o /tmp/s.json -w "status=%{http_code}\n" "https://chat-help.com/chat/api.php/v1/sectors"; head -c 200 /tmp/s.json; echo
           echo "=== /chat/ ==="; curl -sS -m 20 -o /dev/null -w "status=%{http_code}\n" "https://chat-help.com/chat/"
