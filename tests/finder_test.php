@@ -883,6 +883,12 @@ $t('8o web-search / OSM = GECER',              !vestra_lead_source_guessed(['sou
 $t('8o email_verified bayragi manual kaydi GECIRIR', !vestra_lead_source_guessed(['source' => 'manual', 'email_verified' => true]));
 $t('8o still_sendable: manual kayit gonderilmez', (function () { $L = vestra_leads(); $L[] = ['id' => 'LDMAN1', 'email' => 'info@guess-boutique.example', 'source' => 'manual', 'status' => 'new', 'company' => 'Guess Boutique']; vestra_save_leads($L); return !vestra_mailbox_still_sendable('LDMAN1', 'info@guess-boutique.example'); })());
 
+/* ---- 8p (16 Eki 2026): spor / golf / yelken / kayak / outlet dükkânları artık hedef -- sunucu süzgeci onları ELEMEZ ---- */
+$t('8p spor dükkânı (Sport & Camping, Football Store) geçer', !vestra_lead_off_target(['email' => 'info@sport-camping-huber.at', 'company' => 'Sport & Camping Huber', 'website' => 'https://sport-camping-huber.at']) && !vestra_lead_off_target(['email' => 'shop@thefootballstore.ie', 'company' => 'The Football Store', 'website' => 'https://thefootballstore.ie']));
+$t('8p golf pro shop / yelken / outlet geçer', !vestra_lead_off_target(['email' => 'proshop@golfclub-example.it', 'company' => 'Golf Club Pro Shop', 'website' => 'https://golfclub-example.it']) && !vestra_lead_off_target(['email' => 'info@nautica-rossi.it', 'company' => 'Nautica Rossi', 'website' => '']) && !vestra_lead_off_target(['email' => 'info@outletmoda.es', 'company' => 'Outlet Moda', 'website' => 'https://outletmoda.es']));
+$t('8p kamp alanı ve spor gazetesi yine elenir', vestra_lead_not_retail(['email' => 'info@campingplatz-see.at', 'company' => 'Campingplatz am See', 'website' => '']) && vestra_lead_not_retail(['email' => 'x@mundodeportivo.com', 'company' => 'Mundo Deportivo', 'website' => '']));
+$t('8p toptancı / stocklot yine elenir', vestra_lead_off_target(['email' => 'info@stocklot-europe.com', 'company' => 'Stocklot Europe', 'website' => '']));
+
 /* ---- 8n (15 Eki 2026): gazete/spor basini ve buyuk zincir mektup aldi (midilibre, mundodeportivo, lyko, neye) ---- */
 $t('8n midilibre (redac.region@) = not-retail', vestra_lead_not_retail(['email' => 'redac.region@midilibre.com', 'company' => 'midilibre.fr', 'website' => 'https://midilibre.fr']));
 $t('8n mundodeportivo = not-retail',          vestra_lead_not_retail(['email' => 'mdonline@mundodeportivo.com', 'company' => 'Mundo Deportivo', 'website' => 'https://mundodeportivo.com']));

@@ -12798,3 +12798,29 @@ Brevo 200; 23:45 kontrol; distribütör yok; gerçek e-mailler; otomatik gönder
   (8 tur × 12 < günlük 100 ücretsiz); 429/quota'da motor kendini kapatır, faturalandırma
   AÇILMADIĞI sürece ücret oluşmaz. Anahtarlar yoksa motor sessizce atlanır. Secret'ları operatör
   GitHub ▸ Settings ▸ Secrets'a girer; bu oturum secret yazamaz.
+
+## Yeni sektörler + Avrupa ağırlığı (operatör, 16 Eki 2026)
+
+Operatör: *"hâlâ e-mail hataları geliyor, başka sektörlere de e-mail göndermeye başla, daha çok Avrupa'dan
+e-mail bul"*; sektör seçimi (AskUserQuestion, dördü de): **spor & sneaker, golf / yelken / kayak shopları,
+outlet & stok mağazaları, concept store & bağımsız büyük mağaza** — hepsi bağımsız; zincir/distribütör yok.
+- **Ölçüm:** son 2 gün 563 gönderim / 20 geri dönüş (%4; bir önceki hafta %6). Tahmin listeleri devre dışı
+  kaldıktan sonra kalan geri dönüşler web'de YAYINLANMIŞ ama artık var olmayan info@ kutuları; port 25
+  kapalı olduğu için (GitHub/GoDaddy) SMTP doğrulaması yapılamıyor — kalan yol ücretli doğrulayıcı.
+  Bulucu: 8 turda 196 aday-lead, 87'si yazıldı; tek kaynak OSM (Bing/DDG engelli, Brave/Places kapalı).
+  Bir tur (06:26) SSH zaman aşımında sunucu listesini alamadı, 106 lead'i bulup **yazamadı**.
+- **Bulucu (`scripts/find-boutiques.mjs`):** `TERMS.sport` (spor, golf, pro shop, ski, outdoor, surf,
+  sailing/nautica/voile, tennis/padel…) kimlik terimi; spor/outdoor markaları `kind p` (Patagonia, Helly
+  Hansen, Peak Performance, Musto, Henri Lloyd, J.Lindeberg, Galvin Green, FootJoy, Bogner, Kjus…;
+  sıradan kelimeler niteleyicili); `TERMS.cloth`'a department store / Kaufhaus / grands magasins /
+  lifestyle / outlet / Markenoutlet / spaccio. **"outlet" tek başına artık toptan/zincir DEĞİL**; outlet
+  zincirleri (outletcity, McArthurGlen, designer outlet) ve spor zincirleri (Intersport, Decathlon,
+  Sport 2000, Sports Direct, SportScheck, Go Sport, XXL, Stadium) engelli. Marka kanıtı kuralı aynı
+  (2+ tanınan marka / markalar menüsü / "multibrand"); tek markalı outlet = monobrand. OSM etiketleri:
+  `sports|outdoor|ski|golf|surf|department_store` eklendi. **Avrupa:** `EURO_SHARE` 0.8→0.95,
+  `FOCUS_QUERIES` 40→8, `FOCUS_CITIES` 12→2. `camping` → yalnız kamp alanı biçimleri (Sport & Camping
+  dükkânı geçer). Selftest 110.
+- **Sunucu süzgeci (`inc/finder.php`):** `football|soccer|deportivo` kaldırıldı (spor dükkânlarını
+  eliyordu; spor gazeteleri alan adı listesinde), `camping` aynı daraltma. Test 8p.
+- **find-customers.yml:** sunucu listesi 3 deneme (20/40 sn); yine olmazsa tur aramayı atlar.
+- **Geri dönüş nedeni:** GoDaddy düz metin bildiriminden de kod + cevap (`dsn_reason`).
