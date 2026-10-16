@@ -45,7 +45,9 @@ jobs:
               $ptr = @gethostbyaddr($ip); echo "PTR (ters DNS): ".($ptr && $ptr !== $ip ? $ptr : 'YOK')."\n";
               $rev = implode('.', array_reverse(explode('.', $ip)));
               foreach (['zen.spamhaus.org', 'bl.spamcop.net', 'b.barracudacentral.org', 'dnsbl.sorbs.net'] as $bl) {
-                $hit = @gethostbyname($rev.'.'.$bl); echo "kara liste ".str_pad($bl, 24).": ".($hit !== $rev.'.'.$bl ? 'LISTEDE ('.$hit.')' : 'temiz')."\n";
+                $hit = @gethostbyname($rev.'.'.$bl);
+                /* 127.255.255.x = Spamhaus sorguyu REDDETTİ (paylaşımlı/açık çözümleyici) — listeleme değil (16 Eki 2026). */
+                echo "kara liste ".str_pad($bl, 24).": ".($hit === $rev.'.'.$bl ? 'temiz' : (str_starts_with($hit, '127.255.255.') ? 'sorgu reddedildi (cozumleyici) -- bilinmiyor' : 'LISTEDE ('.$hit.')'))."\n";
               }
             }
             /* Gönderim tarafı: mail() hangi transport, gönderen adres, List-Unsubscribe */
