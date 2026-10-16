@@ -12,6 +12,7 @@ require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
 require_once __DIR__.'/appt-lib.php';
 require_once __DIR__.'/order-lib.php';
+require_once __DIR__.'/agent-tools.php';
 th_nocache(); th_bootstrap();
 
 $key=(string)($_GET['key'] ?? '');
@@ -53,7 +54,7 @@ foreach($incoming as $in){
     $cost=CH_PRICING['widget_turn'];
     if(th_balance($aid) < $cost){ $replies[]=[$from,'Wir sind gleich wieder für Sie da'.($os['phone']?' – oder rufen Sie uns an: '.$os['phone']:'').'.']; continue; }
     $sys=ch_agent_system($pl,$cfg,(string)($cfg['lang']?:'de'))."\n\nKANAL: WhatsApp. Schreib wie ein freundlicher Mitarbeiter im Chat: kurze Nachrichten (max. 4–5 Zeilen), Emojis sparsam, Aufzählungen mit „•“, kein Markdown-Fett (WhatsApp zeigt *Sternchen*). Kunde: ".($in['name']?:'unbekannt').". Telefonnummer des Kunden (nicht erfragen): +".$from.".";
-    $tk=ord_toolkit($aid,'whatsapp',$from); $sys.=$tk['hint'];
+    $tk=ch_toolkit($aid,'whatsapp',$from); $sys.=$tk['hint'];
     $reply=$tk['tools'] ? th_ai_tools($sys,$hist,$tk['tools'],$tk['exec'],700,60) : th_ai($sys,$hist,600,45);
     if($reply===null) $reply='Entschuldigung, gerade gab es ein technisches Problem. Bitte versuchen Sie es gleich noch einmal'.($os['phone']?' oder rufen Sie an: '.$os['phone']:'').'.';
     $reply=preg_replace('/\*\*(.+?)\*\*/u','*$1*',$reply);   // Markdown-Fett → WhatsApp-Fett

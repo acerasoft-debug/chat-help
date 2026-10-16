@@ -14,6 +14,7 @@
  */
 require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
+require_once __DIR__.'/agent-tools.php';   // Fachmodule (Termine, Bestellungen, Taxi, Hotel, Rückruf) + Werkzeug-Register
 th_nocache();
 header('Content-Type: text/xml; charset=UTF-8');
 
@@ -68,7 +69,8 @@ function filler(string $lang): string {
 }
 
 $key=(string)($_GET['key'] ?? '');
-$self='https://chat-help.com/chat/phone-webhook.php?key='.$key;
+$cbId=isset($_GET['cb']) ? max(0,(int)$_GET['cb']) : 0;   // KI-Rückruf (ausgehender Anruf aus der Rückrufliste)
+$self='https://chat-help.com/chat/phone-webhook.php?key='.$key.($cbId ? '&cb='.$cbId : '');
 
 if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Content-Type: text/plain; charset=UTF-8'); exit("ChatHelp Telefon-Agent – Twilio Voice Webhook. Diese URL als Voice-Webhook (POST) deiner Twilio-Nummer eintragen.\n"); }
 
@@ -85,11 +87,17 @@ $sid=preg_replace('/[^A-Za-z0-9]/','',(string)($_POST['CallSid'] ?? '')); if($si
 $from=mb_substr((string)($_POST['From'] ?? ''),0,32); $to=mb_substr((string)($_POST['To'] ?? ''),0,32);
 $status=(string)($_POST['CallStatus'] ?? ''); $speech=trim((string)($_POST['SpeechResult'] ?? ''));
 $company=$cfg['company'] ?: 'unserem Unternehmen';
+$outbound=str_starts_with((string)($_POST['Direction'] ?? ''),'outbound');
+$customer=$outbound ? $to : $from;   // bei KI-Rückrufen ist der Kunde der Angerufene
+$cbx=($cbId && function_exists('cb_call_context')) ? cb_call_context($cbId,$key) : null;
+if($cbx && (int)($cbx['account_id'] ?? -1)!==$aid) $cbx=null;
 $hints=implode(', ',array_filter([$cfg['company'],'Termin','Rückruf','Bestellung','Lieferung','Abholung','Mitarbeiter','Öffnungszeiten']));   // Erkennungshilfe für Twilio
 
 /* Anruf beendet (Status-Callback) */
 if(in_array($status,['completed','busy','failed','no-answer','canceled'],true)){
-    th_call_update($sid,['status'=>$status,'ended_at'=>date('Y-m-d H:i:s')]); twiml('');
+    th_call_update($sid,['status'=>$status,'ended_at'=>date('Y-m-d H:i:s')]);
+    if($cbId && function_exists('cb_on_call_status')){ $c=th_call($sid); cb_on_call_status($cbId,$status,(string)($_POST['AnsweredBy'] ?? ''),(int)($c['turns'] ?? 0)); }
+    ch_heartbeat(); twiml('');
 }
 
 $call=th_call($sid) ?: th_call_start($aid,$pl['id'],$sid,$from,$to);
@@ -113,8 +121,11 @@ if($wait!==null){
 
 /* Begrüßung */
 if($speech==='' && $turns===0 && !$tr){
+    /* KI-Rückruf: Anrufbeantworter erkannt → kurze Nachricht hinterlassen und auflegen (Ergebnis kommt per Status-Callback) */
+    $ab=(string)($_POST['AnsweredBy'] ?? '');
+    if($cbx && (str_starts_with($ab,'machine') || $ab==='fax')){ th_call_update($sid,['outcome'=>'voicemail','transcript'=>json_encode([['role'=>'assistant','content'=>(string)$cbx['voicemail']]],JSON_UNESCAPED_UNICODE)]); twiml(($ab==='fax'?'':say((string)$cbx['voicemail'],$lang)).'<Hangup/>'); }
     $h=(int)(new DateTimeImmutable('now',new DateTimeZone('Europe/Berlin')))->format('G'); $tag=$h<5?'Guten Abend':($h<11?'Guten Morgen':($h<18?'Guten Tag':'Guten Abend'));
-    $greet=$cfg['phone_greeting'] ?: "$tag, $company, Sie sprechen mit dem digitalen Assistenten. Was kann ich für Sie tun?";
+    $greet=$cbx ? (string)$cbx['greeting'] : ($cfg['phone_greeting'] ?: "$tag, $company, Sie sprechen mit dem digitalen Assistenten. Was kann ich für Sie tun?");
     $tr[]=['role'=>'assistant','content'=>$greet]; th_call_update($sid,['transcript'=>json_encode($tr,JSON_UNESCAPED_UNICODE)]);
     twiml(gather(say($greet,$lang),$lang,$self,$hints));
 }
@@ -136,11 +147,12 @@ if(th_balance($aid) < $cost){
 }
 $sys=ch_agent_system($pl,$cfg,substr($lang,0,2)).CH_PHONE_RULES;
 if(!empty($cfg['phone_hours'])) $sys.="\nTelefonische Erreichbarkeit des Teams (für Rückrufe): ".$cfg['phone_hours'];
-$sys.="\nAnrufer-Nummer (für Rückrufe, nicht vorlesen): ".($from ?: 'unbekannt').". Aktuelle Zeit (Deutschland): ".(new DateTimeImmutable('now',new DateTimeZone('Europe/Berlin')))->format('l, d.m.Y H:i').".";
+if($cbx) $sys.="\n\n".(string)$cbx['system'];   // Rückruf-Kontext: wen wir anrufen und warum
+$sys.="\n".($outbound?'Nummer des Gesprächspartners':'Anrufer-Nummer')." (für Rückrufe, nicht vorlesen): ".($customer ?: 'unbekannt').". Aktuelle Zeit (Deutschland): ".(new DateTimeImmutable('now',new DateTimeZone('Europe/Berlin')))->format('l, d.m.Y H:i').".";
 $msgs=array_slice(array_values(array_filter($tr,fn($m)=>in_array($m['role'],['user','assistant'],true))),-16);
 if($msgs[0]['role']!=='user') array_shift($msgs);   // Claude: erste Nachricht muss vom Nutzer sein
-require_once __DIR__.'/order-lib.php';   // Werkzeuge: Terminbuchung (appt_on) + Bestellannahme (order_on)
-$tk=ord_toolkit($aid,'phone',(string)$from);
+require_once __DIR__.'/agent-tools.php';   // Werkzeuge aller aktiven Module (Termine, Bestellungen, Taxi, Hotel, Rückruf)
+$tk=ch_toolkit($aid,'phone',preg_replace('/\D/','',(string)$customer));
 if($tk['tools']){ $sys.=$tk['hint'];
     if($tk['appt'])  $sys.="\nAm Telefon: Datum und Uhrzeit immer ausgesprochen wiederholen (z. B. „Donnerstag, den dreiundzwanzigsten Oktober um fünfzehn Uhr“).";
     if($tk['order']) $sys.="\nAm Telefon: Positionen einzeln bestätigen, Adresse mit Hausnummer und Postleitzahl wiederholen, am Ende Gesamtsumme und Zeit nennen. Die Rufnummer des Anrufers gilt als Kontaktnummer, falls er keine andere nennt.";

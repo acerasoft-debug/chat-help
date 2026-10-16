@@ -1,4 +1,4 @@
-<?php require_once __DIR__.'/pagever.php'; ch_page_version(__FILE__); header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0'); header('Cloudflare-CDN-Cache-Control: no-store'); header('CDN-Cache-Control: no-store'); header('Set-Cookie: chnc=1; Path=/; Max-Age=3600; Secure; HttpOnly; SameSite=Lax', false); header('X-Robots-Tag: noindex'); ?><!DOCTYPE html>
+<?php require_once __DIR__.'/pagever.php'; $CH_PANELS=[]; foreach(['training'=>'Training','rueckruf'=>'Rückrufe','taxi'=>'Taxi','hotel'=>'Hotel'] as $k=>$l){ $h=__DIR__."/studio-panels/$k.html"; $j=__DIR__."/studio-panels/$k.js"; if(is_file($h) && is_file($j)) $CH_PANELS[$k]=['label'=>$l,'v'=>substr(md5(filemtime($h).'|'.filemtime($j)),0,8)]; } ch_page_version(__FILE__, array_merge(...array_map(fn($k)=>[__DIR__."/studio-panels/$k.html",__DIR__."/studio-panels/$k.js"],array_keys($CH_PANELS)))); header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0'); header('Cloudflare-CDN-Cache-Control: no-store'); header('CDN-Cache-Control: no-store'); header('Set-Cookie: chnc=1; Path=/; Max-Age=3600; Secure; HttpOnly; SameSite=Lax', false); header('X-Robots-Tag: noindex'); ?><!DOCTYPE html>
 <html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ChatHelp Studio – Agenten, Telefon, Widget & Tokens</title><meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap">
@@ -9,7 +9,8 @@
 a{color:var(--gold);text-decoration:none}button,input,select,textarea{font:inherit}h1,h2,h3{font-family:var(--serif);font-weight:600;letter-spacing:-.01em;margin:0}
 .top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 22px;background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
 .logo{display:flex;align-items:center;gap:10px;font:600 19px var(--serif);color:var(--ink)}.logo .em{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#f3dfa6,#c9972f);display:grid;place-items:center}.logo span.s{color:var(--gold)}
-.tabs{display:flex;gap:4px}.tab{padding:8px 14px;border-radius:999px;border:1px solid transparent;background:transparent;color:var(--ink2);font-weight:500;cursor:pointer}.tab:hover{background:var(--sur2)}.tab.on{background:var(--ink);color:#fff}
+.nav2{position:sticky;top:61px;z-index:4;background:rgba(246,247,251,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}.nav2 .tabs{max-width:1240px;margin:0 auto;padding:8px 22px;overflow-x:auto;scrollbar-width:none}.nav2 .tabs::-webkit-scrollbar{display:none}
+.tabs{display:flex;gap:4px}.tab{white-space:nowrap}.tab .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-left:6px;vertical-align:middle}.tabsep{width:1px;background:var(--line);margin:6px 6px;flex:0 0 auto}.tab{padding:8px 14px;border-radius:999px;border:1px solid transparent;background:transparent;color:var(--ink2);font-weight:500;cursor:pointer}.tab:hover{background:var(--sur2)}.tab.on{background:var(--ink);color:#fff}
 .pill{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid var(--line);border-radius:999px;color:var(--ink2);font-size:13px;background:#fff}.pill b{color:var(--ink)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border-radius:12px;border:1px solid var(--line2);background:#fff;color:var(--ink);cursor:pointer;font-weight:600;transition:.15s;white-space:nowrap}.btn:hover{border-color:#c3c7d4;box-shadow:var(--sh1)}
 .btn.p{background:var(--ink);color:#fff;border-color:var(--ink)}.btn.p:hover{background:#1c2140}.btn.gold{background:linear-gradient(135deg,#ecd08a,#c9972f);color:#1a1407;border-color:transparent}.btn.s{padding:7px 11px;font-size:13px}.btn:disabled{opacity:.5;cursor:not-allowed}.btn.ghost{background:transparent;border-color:transparent;color:var(--gold)}
@@ -53,7 +54,6 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
 <body>
 <div class="top">
   <a class="logo" href="/"><span class="em"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span>ChatHelp <span class="s">Studio</span></a>
-  <div class="tabs hidden" id="tabs"><button class="tab on" data-v="home">Übersicht</button><button class="tab" data-v="agents">Agenten</button><button class="tab" data-v="phone">Telefon</button><button class="tab" data-v="termine">Termine</button><button class="tab" data-v="bestellungen">Bestellungen</button><button class="tab" data-v="tokens">Tokens &amp; API</button></div>
   <div class="row hidden" id="acct"><span class="pill">Guthaben <b id="bal">–</b> Tokens</span><a class="btn s gold" href="/#preise" target="_blank">Tokens kaufen</a><span class="pill small" id="who"></span><button class="btn s" id="logout">Abmelden</button></div>
 </div>
 
@@ -81,7 +81,9 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
 </div>
 
 <!-- ===== APP ===== -->
+<div class="nav2 hidden" id="nav2"><div class="tabs" id="tabs"><button class="tab on" data-v="home">Übersicht</button><button class="tab" data-v="agents">Agenten</button><?php if(isset($CH_PANELS["training"])): ?><button class="tab" data-v="training">Training</button><?php endif; ?><span class="tabsep"></span><button class="tab" data-v="phone">Telefon</button><?php if(isset($CH_PANELS["rueckruf"])): ?><button class="tab" data-v="rueckruf">Rückrufe</button><?php endif; ?><span class="tabsep"></span><button class="tab" data-v="termine">Termine</button><button class="tab" data-v="bestellungen">Bestellungen</button><?php if(isset($CH_PANELS["taxi"])): ?><button class="tab" data-v="taxi">Taxi</button><?php endif; ?><?php if(isset($CH_PANELS["hotel"])): ?><button class="tab" data-v="hotel">Hotel</button><?php endif; ?><span class="tabsep"></span><button class="tab" data-v="tokens">Tokens &amp; API</button></div></div>
 <div id="vApp" class="wrap hidden">
+  <?php foreach($CH_PANELS as $k=>$x): ?><div id="panel-<?= $k ?>" class="hidden"></div><?php endforeach; ?>
   <!-- Übersicht -->
   <div id="pHome">
     <div id="trialBanner" class="banner hidden">🎁 Willkommen! <b>&nbsp;300 Tokens&nbsp;</b> sind auf deinem Konto. Wähle einen Agenten, füge deine Wissensbasis ein und teste ihn – jede Antwort kostet ca. 6 Tokens.</div>
@@ -91,6 +93,16 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
       <div class="card"><span class="tag teal">Gespräche (30 Tage)</span><div class="num" style="margin-top:10px" id="hConv">–</div><div class="mute small">Studio · Widget · Telefon</div></div>
       <div class="card"><span class="tag gold">Telefon &amp; Termine</span><div class="num" style="margin-top:10px;font-size:22px" id="hPhone">–</div><div class="mute small">Telefon-Agent Status</div><div class="row" style="margin-top:12px"><button class="btn s" onclick="go('phone')">Telefon</button><button class="btn s" onclick="go('termine')">Termine</button><button class="btn s" onclick="go('bestellungen')">Bestellungen</button></div></div>
     </div>
+    <div class="card" style="margin-top:16px"><div class="row" style="justify-content:space-between"><h3 style="font-size:19px">Module für deinen Betrieb</h3><span class="mute small">Jedes Modul gibt deinen Agenten echte Werkzeuge – im Chat, am Telefon und per WhatsApp.</span></div>
+      <div class="grid g4" style="margin-top:12px">
+        <button class="call" style="text-align:left;cursor:pointer" onclick="go('termine')"><b>📅 Termine</b><div class="mute small">Praxis, Salon, Werkstatt: freie Zeiten, Buchung, Erinnerung</div></button>
+        <button class="call" style="text-align:left;cursor:pointer" onclick="go('bestellungen')"><b>🍕 Bestellungen</b><div class="mute small">Restaurant, Lieferdienst: Karte, Adresse, Küche, Fahrer</div></button>
+        <?php if(isset($CH_PANELS['taxi'])): ?><button class="call" style="text-align:left;cursor:pointer" onclick="go('taxi')"><b>🚕 Taxi-Zentrale</b><div class="mute small">Fahrten, Richtpreise, Taxistände, Fahrer-App</div></button><?php endif; ?>
+        <?php if(isset($CH_PANELS['hotel'])): ?><button class="call" style="text-align:left;cursor:pointer" onclick="go('hotel')"><b>🛎 Hotel-Rezeption</b><div class="mute small">Zimmer, Buchungen, Gästewünsche, Rezeptions-Board</div></button><?php endif; ?>
+        <?php if(isset($CH_PANELS['rueckruf'])): ?><button class="call" style="text-align:left;cursor:pointer" onclick="go('rueckruf')"><b>📞 Rückrufe</b><div class="mute small">Rückrufliste, KI-Rückruf, Lead-Sofortrückruf in 60 s</div></button><?php endif; ?>
+        <?php if(isset($CH_PANELS['training'])): ?><button class="call" style="text-align:left;cursor:pointer" onclick="go('training')"><b>🎓 Agent trainieren</b><div class="mute small">Website & Dokumente importieren, FAQ, Prüfung</div></button><?php endif; ?>
+        <button class="call" style="text-align:left;cursor:pointer" onclick="go('phone')"><b>☎ Telefon</b><div class="mute small">Natürliche Stimme, Weiterleitung, Transkripte</div></button>
+      </div></div>
     <div class="grid g2" style="margin-top:16px">
       <div class="card"><h3 style="font-size:19px">Schnellstart</h3>
         <div class="perk" style="margin-top:12px"><i>1</i><div><b>Agent wählen</b><span>Unter „Agenten“ – jeder Agent kennt die Regeln seines Berufs.</span></div></div>
@@ -310,10 +322,31 @@ async function boot(){if(!KEY){show('login');return;}
   try{const [me,sec]=await Promise.all([api('/me'),api('/sectors')]);ME=me;PLANS=sec.plans||[];}
   catch(e){if(e.status===401){localStorage.removeItem('ch_api_key');KEY='';show('login');msg($('#lMsg'),'Sitzung ungültig – bitte neu anmelden.','err');return;}alert('Fehler: '+e.message);return;}
   show('app');$('#who').textContent=ME.email;renderHome();renderAgents();renderPhone();renderTokens();
-  const q=new URLSearchParams(location.search);const w=q.get('welcome');if(w&&PLANS.find(p=>p.id===w)){go('agents');openAgent(w);}
+  const q=new URLSearchParams(location.search);const w=q.get('welcome');if(w&&PLANS.find(p=>p.id===w)){go('agents');openAgent(w);}else{const h=(location.hash||'').slice(1);if(h&&(STATIC_TABS[h]||PANELS[h]))go(h);}
   if(sessionStorage.getItem('ch_trial')){$('#trialBanner').classList.remove('hidden');sessionStorage.removeItem('ch_trial');}}
-function show(v){$('#vLogin').classList.toggle('hidden',v!=='login');$('#vApp').classList.toggle('hidden',v!=='app');$('#tabs').classList.toggle('hidden',v!=='app');$('#acct').classList.toggle('hidden',v!=='app');}
-function go(v){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));['Home','Agents','Phone','Termine','Bestellungen','Tokens'].forEach(p=>$('#p'+p).classList.toggle('hidden',p.toLowerCase()!==v));if(v==='termine'&&!AP)loadAppt();if(v==='bestellungen'&&!OS)loadOrd();window.scrollTo({top:0,behavior:'smooth'});}
+function show(v){$('#vLogin').classList.toggle('hidden',v!=='login');$('#vApp').classList.toggle('hidden',v!=='app');$('#nav2').classList.toggle('hidden',v!=='app');$('#acct').classList.toggle('hidden',v!=='app');}
+const STATIC_TABS={home:'pHome',agents:'pAgents',phone:'pPhone',termine:'pTermine',bestellungen:'pBestellungen',tokens:'pTokens'};
+const PANELS=<?= json_encode((object)array_map(fn($x)=>$x['v'],$CH_PANELS)) ?>;window.STUDIO_PANELS=window.STUDIO_PANELS||{};
+function go(v){if(!STATIC_TABS[v]&&!PANELS[v])v='home';document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));
+  Object.entries(STATIC_TABS).forEach(([k,id])=>{const el=document.getElementById(id);if(el)el.classList.toggle('hidden',k!==v);});
+  Object.keys(PANELS).forEach(k=>{const el=document.getElementById('panel-'+k);if(el)el.classList.toggle('hidden',k!==v);});
+  if(v==='termine'&&!AP)loadAppt();if(v==='bestellungen'&&!OS)loadOrd();if(PANELS[v])loadPanel(v);
+  const t=document.querySelector('.tab[data-v="'+v+'"]');if(t&&t.scrollIntoView)t.scrollIntoView({inline:'nearest',block:'nearest'});
+  try{history.replaceState(null,'','#'+v);}catch(e){}window.scrollTo({top:0,behavior:'smooth'});}
+/* Modul-Panels (Training, Rückrufe, Taxi, Hotel) werden beim ersten Öffnen nachgeladen: studio-panels/<key>.html + .js */
+const PANEL_LOADING={};
+function loadPanel(k){const el=document.getElementById('panel-'+k);if(!el)return Promise.resolve();
+  if(el.dataset.loaded==='1'){try{STUDIO_PANELS[k]&&STUDIO_PANELS[k].show&&STUDIO_PANELS[k].show();}catch(e){console.error(e);}return Promise.resolve();}
+  if(PANEL_LOADING[k])return PANEL_LOADING[k];
+  el.innerHTML='<div class="card mute">Wird geladen …</div>';
+  PANEL_LOADING[k]=fetch('/chat/studio-panels/'+k+'.html?v='+PANELS[k]).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(html=>{el.innerHTML=html;
+    return new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='/chat/studio-panels/'+k+'.js?v='+PANELS[k];sc.onload=ok;sc.onerror=()=>no(new Error('Script'));document.body.appendChild(sc);});})
+   .then(()=>{el.dataset.loaded='1';if(STUDIO_PANELS[k]&&STUDIO_PANELS[k].init)STUDIO_PANELS[k].init();})
+   .catch(e=>{el.innerHTML='<div class="card"><div class="msg err">Dieser Bereich konnte nicht geladen werden ('+esc(e.message)+'). Bitte Seite neu laden.</div></div>';})
+   .finally(()=>{delete PANEL_LOADING[k];});
+  return PANEL_LOADING[k];}
+/* „Antwort korrigieren“ aus Chat/Telefon-Transkript → Training */
+function correctAnswer(plan,question,answer){go('training');loadPanel('training').then(()=>{if(window.trainCorrect)window.trainCorrect(plan,question,answer);});}
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(t.dataset.v));
 async function refreshMe(){try{ME=await api('/me');$('#bal').textContent=de(ME.balance);$('#hBal').textContent=de(ME.balance);$('#tBal').textContent=de(ME.balance);}catch(e){}}
 const active=id=>!!(ME.plans||[]).find(p=>p.id===id&&p.active);
@@ -352,7 +385,8 @@ function sys(t){add('sys',t);}
 let phoneMode=false,micOn=false,rec=null;const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 async function send(text){text=(text||$('#wIn').value).trim();if(!text||!CUR)return;$('#wIn').value='';add('u',text);HIST.push({role:'user',content:text});const t=add('a','…');$('#wSend').disabled=true;
   try{const j=await api('/agent',{method:'POST',body:JSON.stringify({plan:CUR.id,messages:HIST.slice(-16),lang:$('#cLang').value||'de',channel:phoneMode?'phone':'chat'})});
-    const a=String(j.result||'');t.textContent=a;HIST.push({role:'assistant',content:a});const meta=document.createElement('span');meta.className='meta';meta.textContent=`${j.tokens_used} Tokens · Guthaben ${de(j.balance)} · ${j.access==='plan'?'Plan':'Tokens'}`;t.appendChild(meta);$('#bal').textContent=de(j.balance);
+    const a=String(j.result||'');t.textContent=a;HIST.push({role:'assistant',content:a});const meta=document.createElement('span');meta.className='meta';meta.textContent=`${j.tokens_used} Tokens · Guthaben ${de(j.balance)} · ${j.access==='plan'?'Plan':'Tokens'}`;t.appendChild(meta);
+    if(PANELS.training){const fix=document.createElement('a');fix.href='#';fix.className='meta';fix.style.color='var(--gold)';fix.textContent='✎ Antwort verbessern';const qq=text,aa=a,pp=CUR.id;fix.onclick=e=>{e.preventDefault();correctAnswer(pp,qq,aa);};t.appendChild(fix);}$('#bal').textContent=de(j.balance);
     if(phoneMode)speak(a.replace(/\[(WEITERLEITEN|ENDE)\]/g,''),()=>{if(micOn)listen();});}
   catch(e){t.textContent='⚠ '+(e.data&&e.data.message?e.data.message:e.message);if(e.status===402){const b=document.createElement('a');b.className='btn s gold';b.style.marginTop='8px';b.href=(e.data&&e.data.rent)||'/#preise';b.target='_blank';b.textContent='Agent mieten oder Tokens kaufen';t.appendChild(document.createElement('br'));t.appendChild(b);}}
   $('#wSend').disabled=false;$('#wIn').focus();}

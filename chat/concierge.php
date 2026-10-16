@@ -60,8 +60,9 @@ if($demo!==''){
         ."\n\nDEMO-HINWEIS (nur intern): Dies ist eine öffentliche Live-Demo auf chat-help.com mit der Beispiel-Firma „".$d['company']."“. Bleibe vollständig in der Rolle. Wenn jemand fragt, wie er so einen Agenten bekommt oder etwas über ChatHelp wissen will: Ein Satz – Studio auf chat-help.com, eigene Wissensbasis einfügen, in 10 Minuten startklar – dann zurück in die Rolle.";
     /* Termin- und Bestell-Demo arbeiten mit ECHTEN Werkzeugen auf Konto 0 (Salon Luna / Pizzeria Napoli): echte Slot- und Adressprüfung, echte Buchung/Bestellung – keine Benachrichtigungen */
     $tk=null;
-    if($demo==='agent-termine'){ require_once __DIR__.'/order-lib.php'; $tk=ord_toolkit(0,'demo','',false,true); }
-    elseif($demo==='agent-bestellung'){ require_once __DIR__.'/order-lib.php'; $tk=ord_toolkit(0,'demo','',true,false); }
+    require_once __DIR__.'/agent-tools.php'; ch_heartbeat();
+    $DEMO_MODS=['agent-termine'=>['appt'],'agent-bestellung'=>['order'],'agent-taxi'=>['ride'],'agent-hotel'=>['hotel','callback'],'immo-agent'=>['callback'],'agent-phone'=>['callback']];   // Demo-Konto 0: passende echte Werkzeuge je Demo
+    if(isset($DEMO_MODS[$demo])){ $only=array_values(array_filter($DEMO_MODS[$demo],fn($k)=>isset(ch_modules()[$k]))); if($only) $tk=ch_toolkit(0,'demo','',$only); }
     if($tk){
         $sys.=$tk['hint']."\nDEMO-MODUS: Kundendaten dürfen Platzhalter sein (z. B. Name „Demo“, Telefon „0170 0000000“), Bestellungen auch außerhalb der Öffnungszeiten annehmen; es wird keine echte Nachricht verschickt – sage, dass im echten Betrieb Bestätigung per E-Mail/WhatsApp/SMS kommt.";
         $answer=th_ai_tools($sys,$msgs,$tk['tools'],$tk['exec'],$phone?320:800,60);

@@ -21,6 +21,7 @@ require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
 require_once __DIR__.'/appt-lib.php';
 require_once __DIR__.'/order-lib.php';
+require_once __DIR__.'/agent-tools.php';   // Werkzeug-Register + Fachmodule (Taxi, Hotel, Rückruf, Training)
 header('Access-Control-Allow-Origin: *'); header('Access-Control-Allow-Headers: Authorization, Content-Type'); header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 if($_SERVER['REQUEST_METHOD']==='OPTIONS'){ http_response_code(204); exit; }
 th_bootstrap();
@@ -78,6 +79,9 @@ $aid=(int)$acc['id'];
 $b=body(); $lang=substr(preg_replace('/[^a-z]/','',strtolower($b['lang']??($_GET['lang']??'de'))),0,2) ?: 'de';
 $sector=preg_replace('/[^a-z]/','',strtolower($b['sector']??'marketing')); if(!isset(SECTORS[$sector])) $sector='marketing';
 $planId=preg_replace('/[^a-z0-9-]/','',strtolower($b['plan']??($_GET['plan']??'')));
+ch_heartbeat();   // fällige KI-Rückrufe nach der Antwort anstoßen
+/* Fachmodule (ride/…, hotel/…, callbacks/…, train/…) beantworten ihre eigenen Routen */
+if(($res=ch_module_api($r,$m,$aid,$b,$acc))!==null) th_json((int)$res[0],(array)$res[1]);
 
 switch(true){
   case $r==='me' && $m==='GET':
@@ -87,11 +91,11 @@ switch(true){
     $tr=th_db()->prepare("SELECT COUNT(*) FROM token_ledger WHERE account_id=? AND reason='trial'"); $tr->execute([$aid]);
     th_json(200,['email'=>$acc['email'],'balance'=>th_balance($aid),'plans'=>$plans,'configs'=>$cf->fetchAll(PDO::FETCH_ASSOC),'trial'=>(int)$tr->fetchColumn()>0,
       'pricing'=>['agent_turn'=>PRICING['agent_turn'],'widget_turn'=>PRICING['widget_turn'],'phone_turn'=>PRICING['phone_turn']],
-      'recent'=>$u->fetchAll(PDO::FETCH_ASSOC),'sectors'=>array_map(fn($k,$v)=>['id'=>$k,'name'=>$v['name']],array_keys(SECTORS),SECTORS)]);
+      'recent'=>array_map(fn($x)=>['created_at'=>th_dbiso($x['created_at'])]+$x,$u->fetchAll(PDO::FETCH_ASSOC)),'sectors'=>array_map(fn($k,$v)=>['id'=>$k,'name'=>$v['name']],array_keys(SECTORS),SECTORS)]);
 
   /* ---- Telefon-Agent: Anrufliste mit Transkripten ---- */
   case $r==='phone/calls' && $m==='GET':
-    th_json(200,['calls'=>th_calls($aid,$planId,60)]);
+    th_json(200,['calls'=>array_map(fn($c)=>['started_at'=>th_dbiso($c['started_at']),'ended_at'=>th_dbiso($c['ended_at'])]+$c,th_calls($aid,$planId,60))]);
 
   /* ---- Terminbuchung (Kalender des Kontos) ---- */
   case $r==='appt/settings' && $m==='GET':
@@ -169,7 +173,7 @@ switch(true){
     if(!$active && th_balance($aid) < $cost) th_json(402,['error'=>'insufficient_tokens','need'=>$cost,'balance'=>th_balance($aid),'message'=>'Kein Guthaben: Agent mieten oder Tokens kaufen.','rent'=>'https://chat-help.com/chat/tokens-checkout.php?plan='.$planId,'buy'=>'https://chat-help.com/#tokens']);
     $sys=ch_agent_system($pl,$cfg,$lang).($phone?CH_PHONE_RULES:'');
     /* Terminbuchung (appt_on) und/oder Bestellannahme (order_on) aktiv → Agent bekommt echte Werkzeuge; je Werkzeugaufruf +2 Tokens */
-    $tk = ord_toolkit($aid,$phone?'phone-test':'studio','',null,null,$lang);
+    $tk = ch_toolkit($aid,$phone?'phone-test':'studio','',null,$lang);
     if($tk['tools']){
         $sys .= $tk['hint'];
         $work = function() use($sys,$msgs,$phone,$tk){ $out=th_ai_tools($sys,$msgs,$tk['tools'],$tk['exec'],$phone?400:1800,90); if($out===null) th_json(503,['error'=>'ai_unavailable','detail'=>th_ai_info()['errors'] ?? []]); return $out; };

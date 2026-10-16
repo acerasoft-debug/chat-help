@@ -215,7 +215,7 @@ function ord_public(array $o, ?array $s=null): array {
     return ['id'=>(int)$o['id'],'code'=>$o['code'],'status'=>$o['status'],'type'=>$o['type'],'channel'=>$o['channel'],'name'=>$o['customer_name'],'phone'=>$o['phone'],'address'=>$o['address_text'],'plz'=>$o['plz'],'zone'=>$o['zone_name'],'distance_km'=>$o['distance_km']!==null?(float)$o['distance_km']:null,
         'lat'=>$o['lat']!==null?(float)$o['lat']:null,'lon'=>$o['lon']!==null?(float)$o['lon']:null,'items'=>$items,'items_text'=>implode(', ',array_map(fn($i)=>$i['qty'].'× '.$i['name'].($i['options']?' ('.implode(', ',$i['options']).')':''),$items)),
         'subtotal_cents'=>(int)$o['subtotal_cents'],'discount_cents'=>(int)($o['discount_cents'] ?? 0),'fee_cents'=>(int)$o['fee_cents'],'total_cents'=>(int)$o['total_cents'],'total'=>number_format($o['total_cents']/100,2,',','.').' €','payment'=>$o['payment'],'note'=>$o['note'],
-        'eta'=>$o['eta_at']?(new DateTimeImmutable($o['eta_at'],$tz))->format('H:i'):null,'created'=>(new DateTimeImmutable($o['created_at'],$tz))->format('H:i'),'created_at'=>$o['created_at'],'driver'=>$drv,
+        'eta'=>$o['eta_at']?(new DateTimeImmutable($o['eta_at'],$tz))->format('H:i'):null,'created'=>($ct=th_dbtime($o['created_at'],$tz)) ? $ct->format('H:i') : '','created_at'=>$o['created_at'],'driver'=>$drv,
         'maps'=>$o['lat']!==null?'https://www.google.com/maps/dir/?api=1&destination='.$o['lat'].','.$o['lon']:($o['address_text']?'https://www.google.com/maps/dir/?api=1&destination='.rawurlencode($o['address_text']):null),'restaurant'=>$s['name'],
         'track'=>'https://chat-help.com/chat/order.php?c='.$o['code']];
 }
@@ -313,7 +313,7 @@ function ord_exec(int $acc, string $name, array $in, string $channel, string $wa
             $words=array_values(array_filter(preg_split('/[\s,;\/+]+/u',$q) ?: [],fn($w)=>mb_strlen($w)>=3 && !in_array($w,$stop,true)));
             $match=function(array $m) use($cat,$words): bool { $hay=mb_strtolower($m['category'].' '.$m['name'].' '.$m['description'].' '.$m['tags']);
                 if($cat!=='' && !str_contains(mb_strtolower($m['category']),mb_substr($cat,0,4)) && !str_contains($hay,$cat)) return false;
-                foreach($words as $w){ if(!str_contains($hay,$w) && !str_contains($hay,mb_substr($w,0,max(3,mb_strlen($w)-2)))) return false; } return true; };
+                foreach($words as $w){ $stem=mb_strlen($w)>=7 ? mb_substr($w,0,mb_strlen($w)-1) : $w; if(!preg_match('/(^|[^\p{L}])'.preg_quote($stem,'/').'/u',$hay)) return false; } return true; };   // nur Wortanfänge („Salami“ ≠ „Insalata“)
             $menu=array_values(array_filter($all,$match)); $note=null;
             if(!$menu && ($cat!=='' || $q!=='')){ $menu=$all; $note='Kein genauer Treffer für „'.trim($cat.' '.$q).'“ – hier die vollständige Karte. Nur diese Artikel gibt es.'; }
             $st=ord_settings($acc);

@@ -343,6 +343,17 @@ function th_nocache(): void {
     /* Host Europe/GoDaddy MWP: Set-Cookie içeren yanıtlar platform/edge önbelleğine alınmaz (Cache-Control tek başına yetmiyor) */
     header('Set-Cookie: chnc=1; Path=/; Max-Age=3600; Secure; HttpOnly; SameSite=Lax', false);
 }
+/**
+ * DB-Zeitstempel (Spalten mit DEFAULT CURRENT_TIMESTAMP / NOW(), also in der Zeitzone des DB-Servers) → Zeitpunkt in $tz.
+ * Der DB-Versatz zu UTC wird einmal je Request gemessen (funktioniert unabhängig davon, ob MySQL in UTC oder Europe/Berlin läuft).
+ */
+function th_dbtime(?string $s, DateTimeZone $tz): ?DateTimeImmutable {
+    if($s===null || $s==='' || $s==='0000-00-00 00:00:00') return null; static $off=null;
+    if($off===null){ try{ $off=(int)round(((int)th_db()->query("SELECT TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), NOW())")->fetchColumn())/900)*900; }catch(Throwable $e){ $off=0; } }
+    try{ return (new DateTimeImmutable($s,new DateTimeZone('UTC')))->modify((-$off).' seconds')->setTimezone($tz); }catch(Throwable $e){ return null; }
+}
+/** DB-Zeitstempel → ISO 8601 in UTC (für JavaScript: new Date(iso) zeigt dann die richtige Ortszeit). */
+function th_dbiso(?string $s): ?string { $d=th_dbtime($s,new DateTimeZone('UTC')); return $d ? $d->format('Y-m-d\TH:i:s\Z') : null; }
 /** Dynamische HTML-Seiten (Fahrer, Termin-Verwaltung): ohne Cache-Buster per 302 auf dieselbe URL + _=<Zeit> umleiten – Redirects werden am Edge nicht gecacht, die Zielseite ist eindeutig. */
 function th_fresh(): void {
     if($_SERVER['REQUEST_METHOD']!=='GET' || isset($_GET['_']) || headers_sent()) return;
