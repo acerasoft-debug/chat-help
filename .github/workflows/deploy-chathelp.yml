@@ -15,6 +15,10 @@ name: chat-help.com yayına al (site + Token/API backend)
 #   Panel bilgisi: HTTPS 145450.eu11.myftpupload.com · SSH/SFTP 145450.eu11.ssh.myftpupload.com · eski: pzs.085.myftpupload.com
 #   Düz FTP varsa:       CHATHELP_FTP_HOST, CHATHELP_FTP_USER, CHATHELP_FTP_PASSWORD
 #
+# PLATFORM NOTU (Managed WordPress): .htaccess doğrudan işlenmez; platform onu nginx kurallarına ÇEVİRİR (~20 sn gecikme,
+# kayıt: html/.htaccess.log). DirectoryIndex/Options/Header/php_flag DESTEKLENMEZ; basit RewriteRule'lar desteklenir.
+# Kökte yeni index.html'in görünmesi için 'RewriteRule ^$ /index.html [L]' kullanılır (fix_root_redirect). Kenar CDN (Cloudflare)
+# ve origin sayfa önbelleği birkaç dakika eski kopyayı verebilir; tarayıcıya max-age=31 gün gönderilir → gizli pencere ile test et.
 # BAĞLANTI MODU otomatik: kabuk çalışıyorsa ssh+rsync, çalışmıyorsa SFTP (lftp), FTP secret'ları varsa FTP.
 # GÜVENLİ: --delete YOK; mevcut uygulama (chat/auth.php, db.php, chat/index.php, WordPress) ASLA yazılmaz; yalnız yeni
 # dosyalar kopyalanır; kök index.html ve .htaccess önce yedeklenir (*.bak-<ts>).
@@ -345,12 +349,25 @@ jobs:
           REMOTE
           $SSHCMD "$SRV" "bash -s $DEST" < /tmp/fix-root.sh
 
-      - name: Önbellek temizle (WP-CLI, varsa)
+      - name: Önbellek temizle (WP-CLI + platform WPaaS Cache ban)
         if: ${{ steps.mode.outputs.mode == 'ssh' && github.event.inputs.flush_cache == 'true' }}
         run: |
           set +e
           DEST="${{ steps.disc.outputs.dest }}"; case "$DEST" in auto|"") echo "docroot yok"; exit 0;; esac
-          $SSHCMD "$SRV" "cd $DEST && for c in 'wp cache flush' 'wp gd cache flush' 'wp godaddy cache flush' 'wp gd-system-plugin cache flush' 'wp rewrite flush'; do echo \">> \$c\"; \$c --path=\$PWD 2>&1 | head -3; done; touch index.html .htaccess; echo touched"
+          cat > /tmp/flush.sh <<'REMOTE'
+          cd "$1"
+          echo ">> mu-plugins:"; ls wp-content/mu-plugins 2>/dev/null | head -8
+          echo ">> wp cache flush"; wp cache flush --path="$PWD" 2>&1 | head -3
+          echo ">> WPaaS Cache::ban (platform CDN/Varnish tam temizlik)"
+          wp eval 'if (class_exists("\WPaaS\Cache")) { $r = \WPaaS\Cache::ban(); echo "WPaaS Cache::ban cagrildi -> ", var_export($r, true), "\n"; } else { echo "WPaaS\Cache sinifi yok\n"; }' --path="$PWD" 2>&1 | head -6
+          echo ">> WPaaS Cache::purge(home)"
+          wp eval 'if (class_exists("\WPaaS\Cache") && method_exists("\WPaaS\Cache","purge")) { $r = \WPaaS\Cache::purge(home_url("/")); echo "purge(/) -> ", var_export($r, true), "\n"; } else { echo "purge yok\n"; }' --path="$PWD" 2>&1 | head -6
+          echo ">> wpaas_flush_cache action"; wp eval 'do_action("wpaas_flush_cache"); do_action("wpaas_cache_ban"); echo "actions fired\n";' --path="$PWD" 2>&1 | head -3
+          echo ">> WPaaS sinif listesi"; wp eval 'foreach (get_declared_classes() as $c) if (stripos($c,"WPaaS")!==false && stripos($c,"cache")!==false) echo $c, "\n";' --path="$PWD" 2>&1 | head -10
+          echo ">> wp rewrite flush"; wp rewrite flush --path="$PWD" 2>&1 | head -2
+          touch index.html .htaccess; echo touched
+          REMOTE
+          $SSHCMD "$SRV" "bash -s $DEST" < /tmp/flush.sh
 
       - name: Canlı doğrulama
         if: ${{ github.event.inputs.dry_run != 'true' || github.event.inputs.verify_only == 'true' }}
