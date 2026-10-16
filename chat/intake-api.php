@@ -65,7 +65,7 @@ function ch_ds(array $messages, float $temp = 0.4, int $max = 2000): string {
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>90, CURLOPT_POST=>true,
         CURLOPT_HTTPHEADER=>['Content-Type: application/json','Authorization: Bearer '.DEEPSEEK_KEY],
-        CURLOPT_POSTFIELDS=>json_encode(['model'=>'deepseek-chat','messages'=>$messages,'temperature'=>$temp,'max_tokens'=>$max]),
+        CURLOPT_POSTFIELDS=>json_encode(['model'=>'deepseek-v4-pro','messages'=>$messages,'temperature'=>$temp,'max_tokens'=>$max]),
     ]);
     $res = curl_exec($ch); $err = curl_error($ch); curl_close($ch);
     if ($res===false){ error_log('intake ds: '.$err); return ''; }
@@ -79,7 +79,7 @@ function ch_claude(string $sys, string $usr, int $max = 4000): string {
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>120, CURLOPT_POST=>true,
         CURLOPT_HTTPHEADER=>['Content-Type: application/json','x-api-key: '.CLAUDE_KEY,'anthropic-version: 2023-06-01'],
-        CURLOPT_POSTFIELDS=>json_encode(['model'=>'claude-sonnet-4-6','max_tokens'=>$max,'system'=>$sys,'messages'=>[['role'=>'user','content'=>$usr]]]),
+        CURLOPT_POSTFIELDS=>json_encode(['model'=>'claude-sonnet-4-5','max_tokens'=>$max,'system'=>$sys,'messages'=>[['role'=>'user','content'=>$usr]]]),
     ]);
     $res = curl_exec($ch); $err = curl_error($ch); curl_close($ch);
     if ($res===false){ error_log('intake claude: '.$err); return ''; }
@@ -105,7 +105,7 @@ function ch_vision(string $sys, string $userText, array $photos, int $max = 1200
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>60, CURLOPT_POST=>true,
         CURLOPT_HTTPHEADER=>['Content-Type: application/json','x-api-key: '.CLAUDE_KEY,'anthropic-version: 2023-06-01'],
-        CURLOPT_POSTFIELDS=>json_encode(['model'=>'claude-sonnet-4-6','max_tokens'=>$max,'system'=>$sys,'messages'=>[['role'=>'user','content'=>$content]]]),
+        CURLOPT_POSTFIELDS=>json_encode(['model'=>'claude-sonnet-4-5','max_tokens'=>$max,'system'=>$sys,'messages'=>[['role'=>'user','content'=>$content]]]),
     ]);
     $res = curl_exec($ch); curl_close($ch);
     $d = json_decode($res, true);

@@ -84,7 +84,7 @@ function ch_translate_batch(array $items, string $langName): array {
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>60, CURLOPT_POST=>true,
         CURLOPT_HTTPHEADER=>['Content-Type: application/json','Authorization: Bearer '.DEEPSEEK_KEY],
-        CURLOPT_POSTFIELDS=>json_encode(['model'=>'deepseek-chat','temperature'=>0.1,'max_tokens'=>3000,
+        CURLOPT_POSTFIELDS=>json_encode(['model'=>'deepseek-v4-pro','temperature'=>0.1,'max_tokens'=>3000,
             'messages'=>[['role'=>'system','content'=>$sys],['role'=>'user','content'=>$usr]]]),
     ]);
     $res = curl_exec($ch); curl_close($ch);
