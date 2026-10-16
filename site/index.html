@@ -152,6 +152,18 @@ section{padding:100px 0;scroll-margin-top:84px}@media(max-width:720px){section{p
 .feat2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:26px}@media(max-width:560px){.feat2{grid-template-columns:1fr}}
 .feat2 .it{padding:16px;border-radius:var(--r);background:var(--sur);border:1px solid var(--line)}.feat2 .it b{display:block;font:700 15px var(--sans);margin-bottom:4px}.feat2 .it span{color:var(--ink2);font-size:13.5px}
 .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:22px}.flow span{font:600 13px var(--sans);padding:9px 13px;border-radius:999px;background:var(--sur2);border:1px solid var(--line)}.flow i{color:var(--mute2);font-style:normal}
+/* termine: echte Buchungsseite im Browser-Rahmen */
+.bookframe iframe{width:100%;height:680px;border:0;display:block;background:#f6f7fb}
+.inds{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}.inds span{font:600 12.5px var(--sans);padding:7px 11px;border-radius:999px;background:var(--sur);border:1px solid var(--line);color:var(--ink2)}
+/* bestellen: WhatsApp-Gerät + Fahrer/Küche */
+.ordgrid{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center}@media(max-width:960px){.ordgrid{grid-template-columns:1fr}}
+.ordstage{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:center}@media(max-width:700px){.ordstage{grid-template-columns:1fr;justify-items:center}}
+.phone.wa .scr{background:#0b141a}.wa .wahd{display:flex;align-items:center;gap:10px;padding:14px 14px 10px;background:#1f2c34;border-bottom:1px solid #2a3942}.wa .wahd .av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#f3dfa6,#c9972f);display:grid;place-items:center;font-size:18px}.wa .wahd b{display:block;font:700 14px var(--sans)}.wa .wahd small{color:#8696a0;font-size:11.5px}
+.phone.wa .tr{background:#0b141a}.phone.wa .tr .m{font-size:12.5px;border-radius:10px;padding:7px 10px}.phone.wa .tr .m.a{background:#1f2c34;color:#e9edef;border-top-left-radius:3px}.phone.wa .tr .m.u{background:#005c4b;color:#e9edef;border-top-right-radius:3px}.phone.wa .tr .m.sys{background:#182229;color:#d1d7db;border-radius:8px;font-size:11px;padding:5px 9px;max-width:96%}
+.phone.wa .tr .m .tm{display:block;text-align:right;font-size:10px;color:#8696a0;margin-top:3px}
+.wa .wain{display:flex;gap:8px;align-items:center;padding:8px 10px 16px;background:#1f2c34}.wa .wain span{flex:1;background:#2a3942;border-radius:18px;padding:8px 12px;font-size:12px;color:#8696a0}.wa .wain i{width:34px;height:34px;border-radius:50%;background:#00a884;display:grid;place-items:center;font-style:normal;font-size:14px;color:#fff}
+.drv{background:#0f1222;color:#fff;border-radius:18px;padding:16px;border:1px solid #2a2f4a;box-shadow:var(--sh2);font-size:13px;line-height:1.45}.drv .code{font:800 17px var(--sans)}.drv .eta{color:#e3c27a;font-weight:700}.drv .b{display:inline-flex;padding:8px 10px;border-radius:10px;font-weight:700;font-size:12px;background:#2a2f4a}.drv .b.nav{background:#4f46e5}.drv .b.done{background:#1a9e5a}
+.kit{padding:16px}.kit .hd{display:flex;justify-content:space-between;align-items:center}.kit b{font:800 15px var(--sans)}
 /* how */
 .how{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px}@media(max-width:900px){.how{grid-template-columns:1fr}}
 .how .st{padding:26px;display:flex;flex-direction:column}.how .n{font:800 13px var(--sans);color:var(--gold);letter-spacing:.1em}.how h3{font-size:24px;margin:10px 0 8px}.how p{color:var(--ink2);font-size:14.5px}
@@ -215,7 +227,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 
 <nav class="nav"><div class="wrap">
   <a class="logo" href="/"><span class="em"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span>ChatHelp</a>
-  <div class="menu" id="menu"><a href="#demo">Live-Demo</a><a href="#berufe">Agenten nach Beruf</a><a href="#telefon">Telefon-Agent</a><a href="#how">So funktioniert's</a><a href="#recht">Recht</a><a href="#preise">Preise</a></div>
+  <div class="menu" id="menu"><a href="#demo">Live-Demo</a><a href="#berufe">Agenten nach Beruf</a><a href="#telefon">Telefon</a><a href="#termine">Termine</a><a href="#bestellen">Bestellungen</a><a href="#how">So funktioniert's</a><a href="#recht">Recht</a><a href="#preise">Preise</a></div>
   <div class="navr"><a class="btn s hide-m" href="/chat/">Recht-App</a><a class="btn s p" href="/chat/studio.php">Studio starten</a>
     <button class="burger" id="burger" aria-label="Menü"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button></div>
 </div></nav>
@@ -224,7 +236,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
   <div>
     <span class="tag gold">KI-Agenten für Unternehmen · Made in Europe · DSGVO</span>
     <h1>Dein Team arbeitet 8 Stunden.<br>Dein <span class="g">Agent 24.</span></h1>
-    <p class="sub">Fertige KI-Agenten, die <b style="color:var(--ink)">Anrufe annehmen, Kunden beantworten und Akten vorbereiten</b> – für Inkasso, Kanzleien, Steuerberater, Versicherungsmakler, Hausverwaltungen, Autohäuser, Praxen und Shops. Nur mit deinen Fakten. In 10 Minuten startklar.</p>
+    <p class="sub">Fertige KI-Agenten, die <b style="color:var(--ink)">Anrufe annehmen, Termine buchen, Bestellungen aufnehmen, Kunden beantworten und Akten vorbereiten</b> – für Praxen, Salons, Restaurants, Inkasso, Kanzleien, Steuerberater, Versicherungsmakler, Hausverwaltungen, Autohäuser und Shops. Nur mit deinen Fakten. In 10 Minuten startklar.</p>
     <div class="cta"><a class="btn gold" href="/chat/studio.php">Studio starten – 300 Tokens gratis</a><a class="btn p" href="#demo" onclick="setTimeout(()=>demoSelect('phone'),300)">▶ Telefon-Agent live hören</a></div>
     <div class="trust"><span><i>✓</i> Antwortet nur aus deiner Wissensbasis</span><span><i>✓</i> Übergabe an Menschen</span><span><i>✓</i> Transkripte &amp; Audit-Log</span><span><i>✓</i> Monatlich kündbar</span></div>
   </div>
@@ -234,7 +246,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
     <div class="cap"><span>Praxis · Shop · Kanzlei · Inkasso – ein Agent pro Beruf</span></div>
   </div>
 </div>
-<div class="wrap"><div class="stats reveal"><div class="stat"><b>&lt; 2 s</b><span>Antwortzeit, rund um die Uhr</span></div><div class="stat"><b>24/7</b><span>Telefon · Website · E-Mail</span></div><div class="stat"><b>9+</b><span>Berufsgruppen mit eigenen Regeln</span></div><div class="stat"><b>0</b><span>erfundene Fakten – nur deine Wissensbasis</span></div></div></div>
+<div class="wrap"><div class="stats reveal"><div class="stat"><b>&lt; 2 s</b><span>Antwortzeit, rund um die Uhr</span></div><div class="stat"><b>24/7</b><span>Telefon · Website · WhatsApp · E-Mail</span></div><div class="stat"><b>12+</b><span>Berufsgruppen mit eigenen Regeln</span></div><div class="stat"><b>0</b><span>erfundene Fakten – nur deine Wissensbasis</span></div></div></div>
 </header>
 
 <section id="demo"><div class="wrap">
@@ -270,13 +282,59 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
       <p class="sub">Der Telefon-Agent nimmt ab, versteht das Anliegen, beantwortet Fragen aus deiner Wissensbasis, nimmt Termine und Rückrufe auf – und verbindet zu einem Menschen, wenn es wichtig ist. Jedes Gespräch landet als Transkript im Studio.</p>
       <div class="feat2">
         <div class="it"><b>Eigene Rufnummer oder Umleitung</b><span>Neue Nummer in 24 h oder Rufumleitung bei Besetzt/außerhalb der Zeiten – ohne neue Hardware.</span></div>
-        <div class="it"><b>Natürliche Stimme, 10 Sprachen</b><span>Deutsch, Englisch, Türkisch, Französisch u. a. – der Agent wechselt, wenn der Anrufer wechselt.</span></div>
-        <div class="it"><b>Termin &amp; Rückruf mit Bestätigung</b><span>Name, Nummer, Anliegen, Wunschzeit – wiederholt, bestätigt, ins Studio.</span></div>
+        <div class="it"><b>Menschlich natürliche Stimme</b><span>Neueste generative Sprachsynthese mit Atempausen und Gesprächsrhythmus – 10 Sprachen, weiblich oder männlich. Der Agent wechselt die Sprache, wenn der Anrufer wechselt.</span></div>
+        <div class="it"><b>Termin, Bestellung &amp; Rückruf</b><span>Bucht direkt im Gespräch in deinen Kalender, nimmt Bestellungen auf, wiederholt und bestätigt – alles landet im Studio.</span></div>
         <div class="it"><b>Weiterleitung an Mensch</b><span>Auf Wunsch, bei Notfällen oder Unklarheit: direkte Durchstellung an deine Nummer.</span></div>
       </div>
       <div class="flow"><span>Anruf</span><i>→</i><span>Agent begrüßt</span><i>→</i><span>Anliegen &amp; Antwort</span><i>→</i><span>Termin · Rückruf · Weiterleitung</span><i>→</i><span>Transkript im Studio</span></div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-phone">Telefon-Agent mieten · 149 €/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('phone');goLive(true);},300)">🎙️ Jetzt im Browser sprechen</a></div>
       <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 40.000 Tokens/Monat (≈ 5.000 Gesprächsantworten) · Einmalkauf 1.490 € inkl. 200.000 Tokens · Telefonie über unseren Partner, Nummern für DE/AT/CH/TR/EU.</p>
+    </div>
+  </div>
+</div></section>
+
+<section id="termine" class="alt"><div class="wrap">
+  <div class="tel" style="grid-template-columns:1.05fr .95fr">
+    <div>
+      <span class="eyebrow">Termin-Agent · Praxis, Salon, Studio, Werkstatt</span>
+      <h2 style="margin-top:12px">Termine, die sich <span class="g">selbst buchen.</span></h2>
+      <p class="sub">Kein „wir melden uns“: Der Termin-Agent kennt deinen Kalender, prüft echte freie Zeiten, bucht verbindlich, bestätigt per E-Mail und erinnert einen Tag vorher – im Website-Chat, am Telefon, per WhatsApp und auf deiner eigenen Buchungsseite. Doppelbuchungen sind technisch ausgeschlossen.</p>
+      <div class="feat2">
+        <div class="it"><b>Leistungen, Dauer, Preise</b><span>Jede Leistung bestimmt die Slot-Länge – Taktung, Puffer, Vorlauf und Horizont stellst du im Studio ein.</span></div>
+        <div class="it"><b>Bestätigung, Erinnerung, Absage</b><span>E-Mail mit Kalenderdatei (ICS), Erinnerung 24 h vorher, Absage-Link – automatisch, auch nachts.</span></div>
+        <div class="it"><b>Eigene Buchungsseite</b><span>Ein Link für Website, Google Business, Instagram oder E-Mail-Signatur – ohne Programmierung.</span></div>
+        <div class="it"><b>Alle Kanäle, ein Kalender</b><span>Chat, Telefon-Agent, WhatsApp und Buchungsseite schreiben in denselben Kalender – live im Studio.</span></div>
+      </div>
+      <div class="inds"><span>Zahnarzt &amp; Arztpraxis</span><span>Physiotherapie</span><span>Friseur</span><span>Kosmetik &amp; Nagelstudio</span><span>Massage &amp; Spa</span><span>Tattoo</span><span>Kfz-Werkstatt</span><span>Beratung &amp; Coaching</span><span>Fitness &amp; Personal Training</span><span>Fotostudio</span></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-termine">Termin-Agent mieten · 99 €/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('termine');goLive(true);},300)">💬 Im Chat einen Termin buchen</a></div>
+      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 25.000 Tokens/Monat · Einmalkauf 990 € inkl. 150.000 Tokens · mit Telefon-Agent kombinierbar: Anrufer buchen direkt im Gespräch.</p>
+    </div>
+    <div class="reveal"><div class="browser bookframe" style="max-width:none"><div class="bar"><i></i><i></i><i></i><span>chat-help.com/chat/book.php?k=demo · Salon Luna</span></div><iframe src="/chat/book.php?k=demo" loading="lazy" title="Buchungsseite Demo – Salon Luna"></iframe></div><p style="color:var(--mute);font-size:12.5px;margin-top:10px;text-align:center">Echte Demo-Buchungsseite (Salon Luna). Probier es aus – Demo-Termine werden nach 2 Tagen gelöscht.</p></div>
+  </div>
+</div></section>
+
+<section id="bestellen"><div class="wrap">
+  <span class="eyebrow">Bestell-Agent · Pizzeria, Restaurant, Lieferdienst</span>
+  <h2 style="margin-top:12px">Bestellungen per WhatsApp – <span class="g">wie ein guter Mitarbeiter.</span></h2>
+  <p class="sub">Der Bestell-Agent kennt deine Karte mit Größen und Extras, prüft die Lieferadresse gegen dein Liefergebiet, nennt Gebühr und Zeit, fasst zusammen und legt die Bestellung an. Die Küche sieht sie sofort auf dem Board, der Fahrer bekommt Route und Kundendaten aufs Handy, der Kunde die Bestätigung – kein Telefonstress zur Stoßzeit, keine Lieferportal-Provision.</p>
+  <div class="ordgrid" style="margin-top:34px">
+    <div class="ordstage reveal">
+      <div class="phone wa"><div class="scr"><div class="wahd"><div class="av">🍕</div><div><b>Pizzeria Napoli</b><small>Bestell-Agent · online</small></div></div><div class="tr" id="waTr"></div><div class="wain"><span>Nachricht</span><i>➤</i></div></div></div>
+      <div style="display:grid;gap:12px;width:100%">
+        <div class="card kit" id="kitchenCard" style="opacity:.35;transition:opacity .6s"><div class="hd"><b>Küchen-Board · Tablet</b><span class="tag gold">Neu · 1</span></div><div style="margin-top:8px;font-size:13.5px"><b>K7M2PX</b> · Lieferung · ⏱ 19:42<br><span style="color:var(--ink2)">1× Salami groß (32 cm), 1× Cola 0,33 l · Südstadt · 17,90 € bar</span></div><div style="display:flex;gap:6px;margin-top:10px"><span class="btn s p" style="pointer-events:none">✓ Bestätigen</span><span class="btn s" style="pointer-events:none">In Zubereitung</span><span class="btn s" style="pointer-events:none">Fahrer: Marco</span></div></div>
+        <div class="drv" id="drvCard" style="opacity:.35;transition:opacity .6s"><div style="display:flex;justify-content:space-between;align-items:center"><span class="code">🚗 Fahrt K7M2PX</span><span class="eta">⏱ 19:42</span></div><div style="margin-top:8px;font-weight:600">📍 Severinstraße 12, 50678 Köln</div><div style="color:#c6c9d9;margin-top:2px">Südstadt · 2,1 km · Max Mustermann · 0170 123 45 67</div><div style="margin-top:6px">1× Pizza Salami (Groß 32 cm), 1× Cola 0,33 l</div><div style="margin-top:6px;font-weight:800">17,90 € · bar (kassieren)</div><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><span class="b nav">🗺 Navigation</span><span class="b">📞 Anrufen</span><span class="b done">✅ Zugestellt</span></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="feat2" style="margin-top:0">
+        <div class="it"><b>WhatsApp, Website-Chat, Telefon</b><span>Deine WhatsApp-Business-Nummer (Meta oder Twilio), das Chat-Widget und der Telefon-Agent – eine Karte, ein Bestellbuch.</span></div>
+        <div class="it"><b>Karte mit Größen &amp; Extras</b><span>„Groß +3 €“, „Extra Käse +1,50 €“, Allergen-Hinweise – der Agent fragt nach, rechnet richtig, erfindet nichts.</span></div>
+        <div class="it"><b>Adresse prüfen, Zone erkennen</b><span>PLZ-Zonen mit Gebühr und Mindestbestellwert, Entfernung per Karte – außerhalb bietet er Abholung an.</span></div>
+        <div class="it"><b>Küche, Fahrer, Kunde</b><span>Board fürs Tablet mit Ton, Fahrer-Link mit Navigation und „Zugestellt“, Statusnachricht an den Kunden per WhatsApp.</span></div>
+      </div>
+      <div class="flow"><span>„2 Salami groß, bitte liefern“</span><i>→</i><span>Größe · Extras · Adresse</span><i>→</i><span>Zone geprüft · 2,50 € · 35 Min</span><i>→</i><span>Bestätigung · Code</span><i>→</i><span>Küche · Fahrer · Kunde</span></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-bestellung">Bestell-Agent mieten · 129 €/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('bestellung');goLive(true);},300)">🍕 Demo-Bestellung aufgeben</a></div>
+      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 35.000 Tokens/Monat (≈ 5.000 Bestell-Nachrichten) · Einmalkauf 1.290 € inkl. 180.000 Tokens · 0 % Provision pro Bestellung.</p>
     </div>
   </div>
 </div></section>
@@ -358,6 +416,9 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
     <details><summary>Mieten oder kaufen – was ist der Unterschied?</summary><p>Mieten: monatliche Gebühr, monatlich kündbar, jeden Monat frisches Token-Guthaben. Kaufen: einmal zahlen, dauerhafter Zugang plus großes Token-Guthaben; weitere Tokens kaufst du bei Bedarf nach.</p></details>
     <details><summary>Was ist ein Token?</summary><p>Die Abrechnungseinheit für alle Dienste. Richtwerte: eine Chat-Antwort 6 Tokens, eine Telefon-Antwort 8, ein Social-Post 5, ein YouTube-Skript 50. Tokens verfallen nicht und gelten für Studio, Widget, Telefon und API.</p></details>
     <details><summary>Wie binde ich den Agenten auf meiner Website ein?</summary><p>Im Studio das Widget aktivieren und eine Zeile Code vor das schließende body-Tag deiner Seite kopieren. Besucher chatten mit deinem Agenten, der nur auf deine Wissensbasis zugreift.</p></details>
+    <details><summary>Wie bucht der Termin-Agent echte Termine?</summary><p>Im Studio trägst du Leistungen (Dauer, Preis), Öffnungszeiten und Taktung ein. Der Agent sieht nur wirklich freie Zeiten, bucht mit Buchungscode, schickt die Bestätigung mit Kalenderdatei und erinnert 24 Stunden vorher. Chat, Telefon, WhatsApp und deine Buchungsseite schreiben in denselben Kalender – Doppelbuchungen sind ausgeschlossen.</p></details>
+    <details><summary>Wie kommt der Bestell-Agent auf meine WhatsApp-Nummer?</summary><p>Du verbindest deine WhatsApp-Business-Nummer über die Meta Cloud API (oder Twilio). Im Studio findest du Webhook-URL und Verify-Token; die Einrichtung dauert etwa 15 Minuten, auf Wunsch übernehmen wir sie. Danach landet jede Nachricht beim Agenten, Bestellungen erscheinen auf dem Küchen-Board, Fahrer bekommen die Route per WhatsApp oder SMS.</p></details>
+    <details><summary>Klingt der Telefon-Agent wie ein Mensch?</summary><p>Er spricht mit der neuesten generativen Sprachsynthese – mit Atempausen, natürlichem Rhythmus und kurzen, gesprochenen Sätzen statt vorgelesener Listen. Du wählst Sprache und Stimme (weiblich oder männlich). Gefragt, ob er ein Mensch ist, antwortet er ehrlich – und hilft trotzdem direkt weiter.</p></details>
     <details><summary>Kann ich den Agenten vorher testen?</summary><p>Ja: oben in der Live-Demo mit Beispiel-Firmen – und im Studio mit deiner eigenen Wissensbasis, 300 Tokens geschenkt, ohne Zahlungsdaten.</p></details>
     <details><summary>Wo laufen die Daten?</summary><p>Hosting in der EU, DSGVO-konform, Auftragsverarbeitungsvertrag für Geschäftskunden. Wissensbasis und Gespräche gehören dir und werden nicht für Training verwendet.</p></details>
   </div>
@@ -374,7 +435,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 
 <footer><div class="wrap">
   <div><a class="logo" href="/" style="font-size:18px"><span class="em" style="width:30px;height:30px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span>ChatHelp</a><div style="margin-top:10px;max-width:40ch">KI-Agenten für Telefon, Website und Backoffice. ChatHelp Recht für geprüfte Rechtsschreiben. Made in Europe.</div></div>
-  <div class="cols"><div><a href="#berufe">Agenten nach Beruf</a><br><a href="#telefon">Telefon-Agent</a><br><a href="#recht">ChatHelp Recht</a><br><a href="/chat/studio.php">Studio</a></div><div><a href="/chat/?view=impressum">Impressum</a><br><a href="/chat/?view=datenschutz">Datenschutz</a><br><a href="/chat/?view=agb">AGB</a><br><a href="/chat/tokens-api.php/v1/sectors">API</a></div><div><a href="https://instagram.com/chathelpp" rel="noopener" target="_blank">Instagram</a><br><a href="mailto:support@chat-help.com">support@chat-help.com</a><br><a href="mailto:support@chat-help.com">support@chat-help.com</a></div></div>
+  <div class="cols"><div><a href="#berufe">Agenten nach Beruf</a><br><a href="#telefon">Telefon-Agent</a><br><a href="#termine">Termin-Agent</a><br><a href="#bestellen">Bestell-Agent</a><br><a href="#recht">ChatHelp Recht</a><br><a href="/chat/studio.php">Studio</a></div><div><a href="/chat/?view=impressum">Impressum</a><br><a href="/chat/?view=datenschutz">Datenschutz</a><br><a href="/chat/?view=agb">AGB</a><br><a href="/chat/tokens-api.php/v1/sectors">API</a></div><div><a href="https://instagram.com/chathelpp" rel="noopener" target="_blank">Instagram</a><br><a href="mailto:support@chat-help.com">support@chat-help.com</a><br><a href="mailto:support@chat-help.com">support@chat-help.com</a></div></div>
 </div></footer>
 
 <!-- Beruf-Detail -->
@@ -445,6 +506,20 @@ const PRO=[
   ex:{q:'Ich hätte gern einen Termin zur Zahnreinigung.',a:'Gern. Eine professionelle Zahnreinigung dauert etwa 60 Minuten und kostet 89 Euro. Passt Ihnen Dienstag 9:30 oder Donnerstag 15:00 Uhr? Für die Bestätigung brauche ich Ihren Namen und Ihre Telefonnummer – und bitte bringen Sie Ihre Versichertenkarte mit.'},
   setup:'Öffnungszeiten, Terminarten, Leistungen/Preise, Unterlagen, Notdienst und Team in die Wissensbasis. Telefon-Agent als Rezeption außerhalb der Zeiten.',
   comp:'Keine medizinischen Auskünfte oder Diagnosen; Notfälle → 112/116117; keine Gesundheitsdaten über Chat erfragen.'},
+ {id:'agent-termine',ic:'📅',col:'teal',n:'Termin-Agent',who:'Praxen · Friseure · Kosmetik · Physio · Werkstätten · Coaches',p:99,tk:25000,buy:{id:'buy-termine',p:990,tk:150000},
+  tag:'Bucht Termine wirklich – mit echtem Kalender, Bestätigung, Erinnerung und eigener Buchungsseite.',
+  does:['Freie Zeiten aus deinem Kalender (Leistung, Dauer, Puffer, Vorlauf)','Verbindlich buchen, umbuchen, absagen – im Chat, am Telefon, per WhatsApp','Bestätigung per E-Mail mit Kalenderdatei (ICS)','Erinnerung 24 h vorher, Absage-Link','Eigene Buchungsseite für Website, Google Business & Instagram'],
+  rules:['Keine Doppelbuchung','DSGVO','Keine Medizin'],ch:['Website','Telefon','WhatsApp'],
+  ex:{q:'Ich hätte gern einen Herrenschnitt, am liebsten Donnerstag nachmittags.',a:'Gern! Donnerstag habe ich 15:00, 15:30 oder 17:00 Uhr frei (Herrenschnitt, 30 Min, 32 €). Welche Zeit passt dir? Für die Buchung brauche ich dann noch deinen Namen und deine Telefonnummer.'},
+  setup:'Leistungen mit Dauer und Preis, Öffnungszeiten, Taktung und Vorlauf im Studio eintragen – die Buchungsseite ist sofort online. Mit Telefon-Agent buchen Anrufer direkt im Gespräch.',
+  comp:'Buchungen nur über den Kalender (keine Zusagen ohne freien Slot); Absagen und Umbuchungen protokolliert; keine Gesundheitsdaten im Chat; Bestätigungen und Erinnerungen automatisch.'},
+ {id:'agent-bestellung',ic:'🍕',col:'gold',n:'Bestell-Agent',who:'Pizzerien · Restaurants · Lieferdienste · Imbisse · Cafés',p:129,tk:35000,buy:{id:'buy-bestellung',p:1290,tk:180000},
+  tag:'Bestellannahme per WhatsApp, Chat und Telefon: Karte, Adresse, Zeit, Bezahlart – Küche, Fahrer und Kunde informiert.',
+  does:['Speisekarte mit Größen, Extras und Allergen-Hinweisen','Lieferadresse prüfen: PLZ-Zone, Gebühr, Mindestbestellwert, Entfernung','Bestellung anlegen nach Bestätigung – Bestellcode & Lieferzeit','Küchen-Board (Tablet) mit Ton, Status per Tipp','Fahrer-Link mit Navigation; Statusmeldungen an den Kunden per WhatsApp'],
+  rules:['Preise nur aus der Karte','Nur im Liefergebiet','Bestätigung vor Bestellung'],ch:['WhatsApp','Website','Telefon'],
+  ex:{q:'Zwei große Salami und eine Cola nach Severinstraße 12, 50678 Köln, bitte.',a:'Gerne! 2× Salami groß (je 12,90 €) und 1× Cola 0,33 l (2,50 €). Severinstraße 12 liegt in der Südstadt – Liefergebühr 2,50 €, Lieferzeit ca. 35 Minuten. Gesamt 30,80 €. Bar oder Karte beim Fahrer? Und auf welchen Namen darf ich die Bestellung aufgeben?'},
+  setup:'Karte, Liefergebiete, Öffnungszeiten, Zahlarten und Fahrer im Studio eintragen; WhatsApp-Business-Nummer verbinden (Meta Cloud API oder Twilio) – Webhook-URL und Verify-Token stehen im Studio.',
+  comp:'Keine erfundenen Artikel oder Preise; Bestellung erst nach ausdrücklicher Bestätigung; Allergene nur aus der Karte; Reklamationen an das Restaurant; Öffnungszeiten werden eingehalten.'},
  {id:'ec-support',ic:'◎',col:'indigo',n:'Shop-Support-Agent',who:'Online-Shops · Marktplatz-Händler · D2C-Marken',p:99,tk:25000,buy:{id:'buy-support',p:990,tk:150000},
   tag:'Lieferung, Retouren, Gewährleistung – EU-Verbraucherrecht korrekt, freundlich, 24/7.',
   does:['Bestellstatus & Versandfragen aus deiner Wissensbasis','Retouren & Umtausch Schritt für Schritt','Widerruf 14 Tage, Gewährleistung 2 Jahre – korrekt erklärt','Größen-/Produktberatung aus Produktdaten','Eskalation an dein Team mit Bestellnummer'],
@@ -493,6 +568,12 @@ const DEMOS=[
  {key:'phone',plan:'agent-phone',tab:'☎ Telefon-Agent',tag:'Telefon-Agent',title:'Nimmt jeden Anruf an – auch um 23 Uhr.',text:'Beispiel: Zahnarztpraxis Dr. Weber. Der Agent begrüßt, beantwortet aus der Wissensbasis, nimmt den Termin auf und bestätigt – in natürlicher Sprache.',device:'phone',company:'Zahnarztpraxis Dr. Weber',
   steps:[['Begrüßung in deinem Namen','Stimme, Name und Firma stellst du im Studio ein.'],['Antwort nur aus der Wissensbasis','Preise, Zeiten, Abläufe – nichts wird erfunden.'],['Termin aufnehmen & bestätigen','Name, Nummer, Wunschzeit – wiederholt und ins Studio geschrieben.'],['Übergabe, wenn nötig','Schmerzen/Notfall oder Wunsch → Mensch bzw. Notdienst.']],
   script:[[0,'sys','Eingehender Anruf · +49 221 …'],[0,'a','Zahnarztpraxis Dr. Weber, hier spricht Lea, der digitale Assistent. Wie kann ich Ihnen helfen?'],[1,'u','Ich hätte gern einen Termin zur Zahnreinigung, am liebsten nachmittags.'],[1,'a','Gern. Eine Zahnreinigung dauert etwa sechzig Minuten und kostet neunundachtzig Euro. Passt Ihnen Donnerstag um fünfzehn Uhr?'],[2,'u','Ja, Donnerstag passt.'],[2,'a','Wunderbar. Darf ich Ihren Namen und Ihre Telefonnummer für die Bestätigung?'],[2,'u','Max Mustermann, null eins sieben null, eins zwei drei vier fünf sechs sieben.'],[3,'a','Danke, Herr Mustermann. Donnerstag, fünfzehn Uhr, Zahnreinigung – das Team bestätigt per SMS. Bitte bringen Sie Ihre Versichertenkarte mit. Auf Wiederhören!'],[3,'sys','Gespräch beendet · 0:48 · Termin angelegt ✓ · Transkript im Studio']]},
+ {key:'termine',plan:'agent-termine',tab:'📅 Termin-Agent',tag:'Terminbuchung · Salon & Praxis',title:'Bucht echte Termine – ohne Doppelbuchung.',text:'Beispiel: Salon Luna (Friseur & Kosmetik). Der Agent prüft freie Zeiten im echten Demo-Kalender, bucht verbindlich und nennt den Buchungscode – im Live-Modus kannst du selbst buchen.',device:'browser',url:'salon-luna.de/termine',role:'Termin-Agent · online',company:'Salon Luna',
+  steps:[['Leistung & Wunschzeit','„Herrenschnitt, Donnerstag nachmittags“ – der Agent versteht Alltagssprache.'],['Echte freie Zeiten','Kalender, Dauer, Puffer: nur Slots, die wirklich frei sind.'],['Buchen & bestätigen','Name, Telefon, Zusammenfassung, Buchungscode – E-Mail mit Kalenderdatei.'],['Umbuchen & absagen','Per Chat, Telefon oder Link – der Kalender bleibt konsistent.']],
+  script:[[0,'a','Hallo und willkommen bei Salon Luna! Ich bin Mia. Möchtest du einen Termin buchen – Schnitt, Farbe, Kosmetik?'],[0,'u','Ja, Herrenschnitt, am liebsten Donnerstag nachmittags.'],[1,'sys','⚙ get available slots · Donnerstag · Herren Schnitt (30 Min)'],[1,'a','Donnerstag habe ich für dich 15:00, 15:30 oder 17:00 Uhr frei – was passt?'],[2,'u','15:30 bitte. Jonas Weber, 0170 555 12 34.'],[2,'a','Super. Also: Herrenschnitt (32 €, 30 Min), Donnerstag um 15:30, für Jonas Weber. Soll ich das so buchen?'],[2,'u','Ja.'],[3,'sys','⚙ book appointment ✓ · Code LX7Q3M'],[3,'a','Gebucht! Dein Code ist LX7Q3M – die Bestätigung mit Kalenderdatei kommt per E-Mail, eine Erinnerung am Vortag. Bis Donnerstag, Jonas! ✓']]},
+ {key:'bestellung',plan:'agent-bestellung',tab:'🍕 Bestell-Agent',tag:'WhatsApp · Bestellannahme',title:'Nimmt Bestellungen auf wie ein guter Mitarbeiter.',text:'Beispiel: Pizzeria Napoli, Köln. Karte mit Größen, Adressprüfung mit Liefergebiet, Zusammenfassung, Bestellcode – die Küche sieht die Bestellung sofort, der Fahrer bekommt die Route. Im Live-Modus bestellst du selbst (Demo, nichts wird geliefert).',device:'wa',company:'Pizzeria Napoli',
+  steps:[['Karte kennt der Agent','Größen, Extras, Preise, Allergene – aus deiner Speisekarte im Studio.'],['Adresse prüfen','PLZ-Zone, Gebühr, Mindestbestellwert, Entfernung – außerhalb: Abholung.'],['Zusammenfassen & bestätigen','Erst nach dem „Ja“ des Kunden wird die Bestellung angelegt.'],['Küche · Fahrer · Kunde','Board mit Ton, Fahrer-Link mit Navigation, Status per WhatsApp.']],
+  script:[[0,'u','Hallo, ich hätte gern eine große Pizza Salami und eine Cola, bitte liefern.'],[0,'a','Ciao! 🍕 Gerne – eine Salami groß (32 cm) für 12,90 € und eine Cola 0,33 l für 2,50 €. Wohin dürfen wir liefern?'],[1,'u','Severinstraße 12, 50678 Köln'],[1,'sys','⚙ check delivery address ✓ · Südstadt · 2,1 km · Gebühr 2,50 €'],[1,'a','Passt, in die Südstadt liefern wir – Gebühr 2,50 €, Lieferzeit ca. 35 Minuten. Zusammen 17,90 €. Bar oder Karte beim Fahrer? Und auf welchen Namen?'],[2,'u','Bar bitte. Max Mustermann, 0170 123 45 67'],[2,'a','Alles klar, Max! Zusammenfassung: 1× Salami groß, 1× Cola 0,33 l, Lieferung Severinstraße 12, bar – 17,90 €. Soll ich die Bestellung so aufgeben?'],[2,'u','Ja 👍'],[3,'sys','⚙ create order ✓ · K7M2PX · Küche benachrichtigt'],[3,'a','Deine Bestellung K7M2PX ist in der Küche! Lieferung voraussichtlich um 19:42 – du bekommst eine Nachricht, wenn Marco losfährt. Buon appetito! 🍕 ✓']]},
  {key:'support',plan:'agent-support',tab:'💬 Support-Agent',tag:'Website-Chat',title:'Beantwortet Kundenfragen in Sekunden.',text:'Beispiel: Nordlicht Outdoor (Online-Shop). Widget auf der Website, Antworten aus Versand-, Retouren- und Bestellinfos.',device:'browser',company:'Nordlicht Outdoor',
   steps:[['Widget mit einer Zeile Code','Erscheint auf jeder Seite deines Shops.'],['Bestell- & Versandfragen','Aus deiner Wissensbasis oder deinem Shopsystem.'],['Retoure Schritt für Schritt','Rechtssicher: 14 Tage Widerruf, 2 Jahre Gewährleistung.'],['Eskalation an dein Team','Mit Bestellnummer und Verlauf.']],
   script:[[0,'a','Hallo! Ich bin der Assistent von Nordlicht Outdoor. Wobei kann ich helfen?'],[1,'u','Wo ist meine Bestellung 4711?'],[1,'a','Bestellung 4711 ist unterwegs mit DHL – Zustellung voraussichtlich morgen bis 18 Uhr. Die Sendungsnummer hast du per E-Mail bekommen.'],[2,'u','Und falls die Jacke nicht passt?'],[2,'a','Kein Problem: 30 Tage kostenlose Rückgabe über unser Retourenportal (Label oder QR-Code). Umtausch geht am schnellsten, wenn du die passende Größe direkt neu bestellst – die Erstattung kommt binnen 5 Werktagen.'],[3,'u','Super, danke!'],[3,'a','Gern! Wenn noch etwas ist, bin ich da – oder das Team: service@nordlicht-outdoor.de, Mo–Fr 9–17 Uhr. ✓']]},
@@ -523,17 +604,20 @@ function demoSelect(key){const d=DEMOS.find(x=>x.key===key)||DEMOS[0];cur=d;live
 function buildDevice(d){const st=$('#stage');
   if(d.device==='phone'){st.innerHTML=`<div class="phone"><div class="scr"><div class="notch"></div><div class="callhd"><b>${d.company}</b><small>Telefon-Agent · <span id="dTimer">00:00</span></small></div><div class="wave" id="dWave">${'<i></i>'.repeat(26)}</div><div class="tr" id="dTr"></div><div class="ctl"><i>🔇</i><i class="red">📞</i><i>⌨️</i></div></div></div>`;
     document.querySelectorAll('#dWave i').forEach((el,i)=>{el.style.animationDelay=(i*0.07)+'s';el.style.animationDuration=(0.7+((i*37)%5)/10)+'s';});}
-  else if(d.device==='browser'){st.innerHTML=`<div class="browser"><div class="bar"><i></i><i></i><i></i><span>nordlicht-outdoor.de/jacken/alpin-pro</span></div><div class="site"><div class="fake h"></div><div class="fake"></div><div class="fake w"></div><div class="fake"></div><div class="fake w"></div><div class="widget"><div class="wh"><div class="av"></div><div><b>${d.company}</b><small>Support-Agent · online</small></div></div><div class="tr" id="dTr"></div><div class="in">Nachricht schreiben …</div></div></div></div>`;}
+  else if(d.device==='browser'){st.innerHTML=`<div class="browser"><div class="bar"><i></i><i></i><i></i><span>${d.url||'nordlicht-outdoor.de/jacken/alpin-pro'}</span></div><div class="site"><div class="fake h"></div><div class="fake"></div><div class="fake w"></div><div class="fake"></div><div class="fake w"></div><div class="widget"><div class="wh"><div class="av"></div><div><b>${d.company}</b><small>${d.role||'Support-Agent · online'}</small></div></div><div class="tr" id="dTr"></div><div class="in">Nachricht schreiben …</div></div></div></div>`;}
+  else if(d.device==='wa'){st.innerHTML=`<div class="phone wa"><div class="scr"><div class="wahd"><div class="av">🍕</div><div><b>${d.company}</b><small>Bestell-Agent · online · antwortet sofort</small></div></div><div class="tr" id="dTr"></div><div class="wain"><span>Nachricht</span><i>➤</i></div></div></div>`;}
   else {const ds=d.dossier;let out='';
     if(ds.table) out=`<table>${ds.table.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}<tr class="tot"><td>${ds.total[0]}</td><td>${ds.total[1]}</td></tr></table>`;
     else out=ds.rows.map((r,i)=>`<div class="row${(ds.hot||[]).includes(i)?' hot':''}"><b>${r[0]}</b><span>${r[1]}</span></div>`).join('');
     st.innerHTML=`<div class="dossier"><div class="dh"><b>${d.company}</b><span>${d.tag}</span></div><div class="chat" id="dTr"></div><div class="out" id="dOut" style="opacity:0;transition:opacity .6s"><div class="t">${ds.title}</div>${out}<span class="stamp">✓ ${ds.stamp}</span></div></div>`;}}
-function dmsg(role,text,typing){const tr=$('#dTr');if(!tr)return null;const m=document.createElement('div');m.className='m '+role;if(typing)m.classList.add('typing');m.textContent=text;tr.appendChild(m);tr.scrollTop=tr.scrollHeight;return m;}
+function dmsg(role,text,typing){const tr=$('#dTr');if(!tr)return null;const m=document.createElement('div');m.className='m '+role;if(typing)m.classList.add('typing');m.textContent=text;tr.appendChild(m);tr.scrollTop=tr.scrollHeight;if(!typing)stamp(m,role);return m;}
+/* WhatsApp-Optik: Uhrzeit + Haken unter jeder Nachricht */
+function stamp(m,role){if(!cur||cur.device!=='wa'||role==='sys'||!m)return;const s=document.createElement('span');s.className='tm';s.textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+(role==='u'?' ✓✓':'');m.appendChild(s);}
 function stepOn(i){document.querySelectorAll('#exSteps .it').forEach(el=>el.classList.toggle('on',+el.dataset.i<=i));}
 async function playDemo(){const d=cur,my=++playId;const tr=$('#dTr');if(tr)tr.innerHTML='';stepOn(-1);const out=$('#dOut');if(out)out.style.opacity=0;
   let sec=0;const timer=$('#dTimer');const tick=setInterval(()=>{if(my!==playId||liveOn){clearInterval(tick);return;}sec++;if(timer)timer.textContent='00:'+String(sec).padStart(2,'0');},1000);
   for(const [step,role,text] of d.script){if(my!==playId||liveOn)return;stepOn(step);
-    if(role==='a'){const t=dmsg('a','',true);await sleep(600);if(my!==playId||liveOn)return;let s='';for(const ch of text){s+=ch;t.textContent=s;if(ch===' '&&Math.random()<.3)await sleep(14);if(my!==playId||liveOn)return;}t.classList.remove('typing');await sleep(900);}
+    if(role==='a'){const t=dmsg('a','',true);await sleep(600);if(my!==playId||liveOn)return;let s='';for(const ch of text){s+=ch;t.textContent=s;if(ch===' '&&Math.random()<.3)await sleep(14);if(my!==playId||liveOn)return;}t.classList.remove('typing');stamp(t,'a');await sleep(900);}
     else if(role==='u'){await sleep(500);dmsg('u',text);await sleep(700);}
     else {await sleep(400);dmsg('sys',text);await sleep(600);}
     if(text.includes('✓')&&out)out.style.opacity=1;}
@@ -543,13 +627,15 @@ $('#btnLive').onclick=()=>goLive();
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 async function goLive(voice){if(liveOn&&!voice)return;liveOn=true;playId++;liveHist=[];const d=cur;$('#live').classList.add('on');$('#btnLive').textContent='Live-Modus aktiv';
   const tr=$('#dTr');if(tr)tr.innerHTML='';stepOn(3);const out=$('#dOut');if(out)out.style.opacity=0;
-  $('#liveMic').style.display=(d.key==='phone'&&SR)?'inline-flex':'none';$('#liveNote').textContent=d.key==='phone'?'Echter Telefon-Agent (Beispiel-Praxis). Tippe – oder drück 🎙️ und sprich; die Antwort wird vorgelesen.':'Echter Agent mit Beispiel-Wissensbasis. Deine eigene fügst du im Studio ein.';
+  $('#liveMic').style.display=(d.key==='phone'&&SR)?'inline-flex':'none';$('#liveNote').textContent=d.key==='phone'?'Echter Telefon-Agent (Beispiel-Praxis). Tippe – oder drück 🎙️ und sprich; die Antwort wird vorgelesen.':d.key==='termine'?'Echter Termin-Agent mit echtem Demo-Kalender (Salon Luna). Buche ruhig – Demo-Termine werden nach 2 Tagen gelöscht.':d.key==='bestellung'?'Echter Bestell-Agent (Pizzeria Napoli, Köln). Gib eine Demo-Bestellung auf – nichts wird geliefert, keine Nachricht verschickt.':'Echter Agent mit Beispiel-Wissensbasis. Deine eigene fügst du im Studio ein.';
   dmsg('sys','Live-Modus · echter Agent · Beispiel-Firma '+d.company);
   try{const r=await fetch(DEMO_API+'?agent='+d.plan);const j=await r.json();dmsg('a',j.greeting);liveHist.push({role:'assistant',content:j.greeting});if(voice&&d.key==='phone')speak(j.greeting);}catch(e){dmsg('a','Hallo! Was kann ich für Sie tun?');}
   if(voice&&d.key==='phone'&&SR)setTimeout(listen,1200);$('#liveIn').focus();}
 async function liveSend(text){text=(text||$('#liveIn').value).trim();if(!text||!cur)return;$('#liveIn').value='';dmsg('u',text);liveHist.push({role:'user',content:text});const t=dmsg('a','',true);
   try{const r=await fetch(DEMO_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent:cur.plan,channel:cur.key==='phone'?'phone':'chat',messages:liveHist.slice(-10),lang:'de'})});const j=await r.json();
-    const a=j.reply||j.message||'Gerade nicht erreichbar – bitte gleich erneut versuchen.';t.textContent=a;t.classList.remove('typing');if(j.reply)liveHist.push({role:'assistant',content:a});
+    const a=j.reply||j.message||'Gerade nicht erreichbar – bitte gleich erneut versuchen.';
+    if(j.tools&&j.tools.length){const s=document.createElement('div');s.className='m sys';s.textContent='⚙ '+j.tools.map(x=>x.name.replace(/_/g,' ')+(x.ok?' ✓':' ✗')).join(' · ');t.parentNode.insertBefore(s,t);}
+    t.textContent=a;t.classList.remove('typing');stamp(t,'a');if(j.reply)liveHist.push({role:'assistant',content:a});
     if(cur.key==='phone'&&micWanted)speak(a,()=>{if(micWanted&&!j.end)listen();});if(j.end)dmsg('sys','Gespräch beendet ✓');if(j.forward)dmsg('sys','→ Weiterleitung an Mitarbeiter');}
   catch(e){t.textContent='Verbindungsfehler – bitte erneut versuchen.';t.classList.remove('typing');}}
 $('#liveForm').onsubmit=e=>{e.preventDefault();micWanted=false;liveSend();};
@@ -569,9 +655,22 @@ demoSelect('phone');
     for(const [r,t] of S){const m=document.createElement('div');m.className='m '+r;tr.appendChild(m);if(r==='a'){m.classList.add('typing');let s='';for(const ch of t){s+=ch;m.textContent=s;await sleep(16);}m.classList.remove('typing');}else m.textContent=t;tr.scrollTop=tr.scrollHeight;await sleep(r==='a'?1300:900);}
     clearInterval(tk);await sleep(2600);}})();
 
+/* ===== Bestell-Sektion: WhatsApp-Endlosdemo mit Küche & Fahrer ===== */
+(async function waLoop(){const tr=$('#waTr');if(!tr)return;const kit=$('#kitchenCard'),drv=$('#drvCard');
+  const S=[['u','Hallo, ich hätte gern eine große Pizza Salami und eine Cola, bitte liefern.'],['a','Ciao! 🍕 Gerne – eine Salami groß (32 cm) für 12,90 € und eine Cola 0,33 l für 2,50 €. Wohin dürfen wir liefern?'],['u','Severinstraße 12, 50678 Köln'],['sys','⚙ Adresse geprüft ✓ · Südstadt · 2,1 km · Liefergebühr 2,50 €'],['a','Passt, in die Südstadt liefern wir – Gebühr 2,50 €, Lieferzeit ca. 35 Minuten. Zusammen 17,90 €. Bar oder Karte beim Fahrer? Und auf welchen Namen?'],['u','Bar bitte. Max Mustermann, 0170 123 45 67'],['a','Alles klar, Max! 1× Salami groß, 1× Cola, Lieferung Severinstraße 12, bar – 17,90 €. Soll ich die Bestellung so aufgeben?'],['u','Ja 👍'],['sys','⚙ Bestellung K7M2PX angelegt ✓ · Küche benachrichtigt'],['a','Deine Bestellung K7M2PX ist in der Küche! Lieferung voraussichtlich um 19:42. Buon appetito! 🍕'],['sys','🚗 Fahrer Marco zugewiesen · Route per WhatsApp gesendet']];
+  const tm=()=>new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+  while(true){tr.innerHTML='';kit.style.opacity=.35;drv.style.opacity=.35;
+    for(const [r,t] of S){const m=document.createElement('div');m.className='m '+r;tr.appendChild(m);
+      if(r==='a'){m.classList.add('typing');await sleep(700);let s='';for(const ch of t){s+=ch;m.textContent=s;await sleep(14);}m.classList.remove('typing');}else{await sleep(r==='u'?500:300);m.textContent=t;}
+      if(r!=='sys'){const st=document.createElement('span');st.className='tm';st.textContent=tm()+(r==='u'?' ✓✓':'');m.appendChild(st);}
+      tr.scrollTop=tr.scrollHeight;if(t.includes('Küche'))kit.style.opacity=1;if(t.includes('Fahrer'))drv.style.opacity=1;await sleep(r==='a'?1300:800);}
+    await sleep(3200);}})();
+
 /* ===== Preise ===== */
 const AG=[
  {id:'agent-phone',n:'Telefon-Agent 24/7',p:149,tk:40000,s:'service',d:'Anrufe, Termine, Rückrufe, Weiterleitung – mit eigener Nummer.',buy:{id:'buy-phone',p:1490,tk:200000}},
+ {id:'agent-termine',n:'Termin-Agent (Praxis, Salon, Studio)',p:99,tk:25000,s:'beauty',d:'Echte Terminbuchung: Kalender, Leistungen, Bestätigung, Erinnerung, Buchungsseite.',buy:{id:'buy-termine',p:990,tk:150000}},
+ {id:'agent-bestellung',n:'Bestell-Agent (Pizzeria, Restaurant)',p:129,tk:35000,s:'gastro',d:'WhatsApp-, Chat- & Telefon-Bestellungen, Adressprüfung, Küchen-Board, Fahrer.',buy:{id:'buy-bestellung',p:1290,tk:180000}},
  {id:'agent-inkasso',n:'Inkasso-Agent',p:179,tk:45000,s:'inkasso',d:'Forderungsaufstellung, Mahnstufen, Ratenpläne, Einwände – nach RDG/BGB.',buy:{id:'buy-inkasso',p:1790,tk:250000}},
  {id:'agent-kanzlei',n:'Kanzlei-Agent',p:169,tk:45000,s:'kanzlei',d:'Mandantenaufnahme, Fristen-Vorprüfung, Aktennotizen, Entwürfe.',buy:{id:'buy-kanzlei',p:1690,tk:250000}},
  {id:'agent-steuer',n:'Steuerkanzlei-Agent',p:149,tk:40000,s:'steuer',d:'Belegabfrage, Fristen, Bescheide erklären, Onboarding.',buy:{id:'buy-steuer',p:1490,tk:200000}},
@@ -605,7 +704,7 @@ const ABO=[
 const PT=[['agents','Agenten mieten'],['buy','Einmal kaufen'],['tokens','Tokens'],['abo','Content-Pakete'],['recht','ChatHelp Recht']];
 (function(){const w=$('#ptabs');PT.forEach(([k,l])=>{const b=document.createElement('button');b.type='button';b.className='ptab';b.dataset.k=k;b.textContent=l;b.onclick=()=>renderPrice(k);w.appendChild(b);});renderPrice('agents');})();
 function renderPrice(k){document.querySelectorAll('.ptab').forEach(b=>b.classList.toggle('on',b.dataset.k===k));const el=$('#pbody');
-  if(k==='agents'){el.innerHTML=`<div class="pgrid2">${AG.map(a=>`<div class="card pk"><span class="tag indigo">Agent</span><h3>${a.n}</h3><p class="d">${a.d}</p><ul><li>Studio · Wissensbasis · Widget${a.s==='service'||['inkasso','kanzlei','steuer','versicherung','hausverwaltung','automotive','praxis'].includes(a.s)?' · Telefon':''}</li><li>${de(a.tk)} Tokens / Monat inklusive</li><li>Monatlich kündbar</li></ul><div class="pr"><b>${a.p} €</b><small>/ Monat</small></div><div class="inc">zzgl. MwSt.${a.buy?' · Einmalkauf '+de(a.buy.p)+' €':''}</div><div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${a.id}">Mieten</a>${PRO.find(p=>p.id===a.id)?`<button class="btn" type="button" onclick="openPro('${a.id}')">Details</button>`:`<a class="btn" href="${STUDIO}">Testen</a>`}</div></div>`).join('')}</div>`;}
+  if(k==='agents'){el.innerHTML=`<div class="pgrid2">${AG.map(a=>`<div class="card pk"><span class="tag indigo">Agent</span><h3>${a.n}</h3><p class="d">${a.d}</p><ul><li>Studio · Wissensbasis · Widget${a.s==='service'||['inkasso','kanzlei','steuer','versicherung','hausverwaltung','automotive','praxis','beauty','gastro'].includes(a.s)?' · Telefon':''}${a.s==='gastro'||a.s==='beauty'?' · WhatsApp':''}</li><li>${de(a.tk)} Tokens / Monat inklusive</li><li>Monatlich kündbar</li></ul><div class="pr"><b>${a.p} €</b><small>/ Monat</small></div><div class="inc">zzgl. MwSt.${a.buy?' · Einmalkauf '+de(a.buy.p)+' €':''}</div><div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${a.id}">Mieten</a>${PRO.find(p=>p.id===a.id)?`<button class="btn" type="button" onclick="openPro('${a.id}')">Details</button>`:`<a class="btn" href="${STUDIO}">Testen</a>`}</div></div>`).join('')}</div>`;}
   else if(k==='buy'){el.innerHTML=`<p class="sub center" style="margin:26px auto 0">Einmal zahlen, dauerhaft nutzen: Agent + großes Token-Guthaben + Einrichtung durch uns. Keine Monatsgebühr; weitere Tokens kaufst du bei Bedarf nach.</p><div class="pgrid2">${AG.filter(a=>a.buy).map(a=>`<div class="card pk feat"><span class="tag gold">Lifetime</span><h3>${a.n}</h3><p class="d">${a.d}</p><ul><li>Dauerhafter Zugang, keine Monatsgebühr</li><li>${de(a.buy.tk)} Tokens inklusive</li><li>Einrichtung durch uns (Video-Call)</li></ul><div class="pr"><b>${de(a.buy.p)} €</b><small>einmalig</small></div><div class="inc">zzgl. MwSt. · Rechnung</div><div class="acts"><a class="btn gold" href="${CHECKOUT}?plan=${a.buy.id}">Kaufen</a><a class="btn" href="${CHECKOUT}?plan=${a.id}">lieber mieten · ${a.p} €/M</a></div></div>`).join('')}</div>`;}
   else if(k==='tokens'){el.innerHTML=`<div class="pgrid2">
     <div class="card pk"><span class="tag">Starter</span><div class="pr" style="margin-top:12px"><b>49 €</b></div><div style="font:700 16px var(--sans)">10.000 Tokens</div><div class="inc">0,0049 € / Token</div><ul><li>Alle Agenten, Studio & API</li><li>Verfallen nicht</li></ul><a class="btn" href="${CHECKOUT}?pack=10k" style="margin-top:auto">Kaufen</a></div>

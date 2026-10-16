@@ -92,6 +92,20 @@ if ($ai) {
 }
 req('book.php (demo Buchungsseite)', "$base/chat/book.php?k=demo", null, 20, 120);
 
+/* Bestell-Agent: Demo-Karte, WhatsApp-Webhook-Hinweis, Fahrer-/Board-Seiten (ungültige Tokens → 404), Agent mit Werkzeugen (Adressprüfung + Bestellung, Konto 0) */
+$r = req('order-api — demo_menu (Pizzeria Napoli)', "$base/chat/order-api.php?a=demo_menu", null, 20, 220);
+$j = json_decode($r['body'], true); echo "  → ".(isset($j['menu']) ? "Karte ✓ ".count($j['menu'])." Artikel · ".count($j['zones'] ?? [])." Zonen · ".($j['open']['open'] ?? false ? 'geöffnet' : 'geschlossen') : "✗")."\n\n";
+req('whatsapp-webhook — GET ohne Schlüssel (404 erwartet)', "$base/chat/whatsapp-webhook.php", null, 20, 120);
+req('driver.php — ungültiger Token (404 erwartet)', "$base/chat/driver.php?t=".str_repeat('0',24), null, 20, 120);
+req('board.php — ungültiger Token (404 erwartet)', "$base/chat/board.php?t=".str_repeat('0',24), null, 20, 120);
+if ($ai) {
+    $r = req('concierge — Bestell-Agent demo mit Werkzeugen (Adresse prüfen + Bestellung anlegen)', "$base/chat/concierge.php",
+        ['agent'=>'agent-bestellung','messages'=>[['role'=>'user','content'=>'Eine große Pizza Salami und eine Cola, Lieferung an Severinstraße 12, 50678 Köln, bar, Name Live-Check, Telefon 0170 0000000. Bitte direkt aufgeben, ich bestätige hiermit.']],'lang'=>'de'], 150, 600);
+    $j = json_decode($r['body'], true); $tools = array_map(fn($t)=>$t['name'].($t['ok']?'✓':'✗'), $j['tools'] ?? []);
+    echo "  → ".(isset($j['reply']) ? "reply ✓ source=".($j['source'] ?? '?')." · Werkzeuge: ".($tools ? implode(', ', $tools) : 'keine') : "✗")."\n\n";
+    if (preg_match('/\b([A-HJ-NP-Z2-9]{6})\b/', (string)($j['reply'] ?? ''), $mm)) echo "  → Bestellcode im Text: {$mm[1]}\n\n";
+}
+
 /* Telefon-Webhook (Twilio) */
 req('phone-webhook — GET (Hinweistext)', "$base/chat/phone-webhook.php?key=wk_test", null, 20, 160);
 $r = req('phone-webhook — POST ungültiger Schlüssel (TwiML „nicht aktiv“ erwartet)', "$base/chat/phone-webhook.php?key=wk_".str_repeat('0',36), ['CallSid'=>'CAtest','From'=>'+491700000000'], 20, 220);

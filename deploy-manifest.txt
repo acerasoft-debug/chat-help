@@ -18,6 +18,12 @@ chat/appt-lib.php            chat/appt-lib.php
 chat/appt-api.php            chat/appt-api.php
 chat/appt.php                chat/appt.php
 chat/book.php                chat/book.php
+# Bestell-Agent (Restaurant/Pizzeria): Bibliothek, WhatsApp-Webhook, Küchen-Board, Fahrerseite, öffentliche Bestell-API
+chat/order-lib.php           chat/order-lib.php
+chat/whatsapp-webhook.php    chat/whatsapp-webhook.php
+chat/board.php               chat/board.php
+chat/driver.php              chat/driver.php
+chat/order-api.php           chat/order-api.php
 chat/skin.css                chat/skin.css
 chat/skin.js                 chat/skin.js
 # Ana sayfa videosu (hero): site/media-src ile üretildi
