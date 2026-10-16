@@ -250,14 +250,16 @@ function appt_notify(array $b, array $s, string $kind): bool {
         .'<div style="margin:18px 0;padding:16px;border-radius:14px;background:#f6ecd3"><b style="font-size:17px">'.htmlspecialchars($pub['service']).'</b><br>'.htmlspecialchars($pub['human']).' (bis '.htmlspecialchars($pub['end']).' Uhr)'.($s['address']?'<br>'.htmlspecialchars($s['address']):'').'<br><span style="color:#6b7083;font-size:13px">Buchungscode '.$pub['code'].'</span></div>'
         .'<p style="font-size:13px;color:#6b7083">Termin verwalten / absagen / in den Kalender: <a href="'.$pub['manage_url'].'" style="color:#b8862b">'.$pub['manage_url'].'</a></p></div>'; };
     if($kind==='confirm'){
-        if($b['email']) th_mail($b['email'],'Terminbestätigung · '.$company.' · '.$pub['human'],$box('Ihr Termin ist bestätigt ✓','<p>Hallo '.htmlspecialchars($b['customer_name']).',</p><p>vielen Dank für Ihre Buchung.'.($s['confirm_text']?' '.htmlspecialchars($s['confirm_text']):'').'</p>'));
-        $to=$s['notify_email'] ?: appt_owner_email((int)$b['account_id']); if($to) th_mail($to,'Neuer Termin: '.$pub['service'].' · '.$pub['human'],$box('Neue Buchung','<p><b>'.htmlspecialchars($b['customer_name']).'</b> · '.htmlspecialchars($b['phone']).' · '.htmlspecialchars($b['email']).'<br>Quelle: '.htmlspecialchars($b['source']).($b['note']?'<br>Notiz: '.htmlspecialchars($b['note']):'').'</p>'));
+        if($b['email']) $ok=th_mail($b['email'],'Terminbestätigung · '.$company.' · '.$pub['human'],$box('Ihr Termin ist bestätigt ✓','<p>Hallo '.htmlspecialchars($b['customer_name']).',</p><p>vielen Dank für Ihre Buchung.'.($s['confirm_text']?' '.htmlspecialchars($s['confirm_text']):'').'</p>')) && $ok;
+        $to=$s['notify_email'] ?: appt_owner_email((int)$b['account_id']); if($to) $ok=th_mail($to,'Neuer Termin: '.$pub['service'].' · '.$pub['human'],$box('Neue Buchung','<p><b>'.htmlspecialchars($b['customer_name']).'</b> · '.htmlspecialchars($b['phone']).' · '.htmlspecialchars($b['email']).'<br>Quelle: '.htmlspecialchars($b['source']).($b['note']?'<br>Notiz: '.htmlspecialchars($b['note']):'').'</p>')) && $ok;
     } elseif($kind==='cancel'){
-        if($b['email']) th_mail($b['email'],'Termin abgesagt · '.$company,$box('Ihr Termin wurde abgesagt','<p>Hallo '.htmlspecialchars($b['customer_name']).', Ihr Termin wurde storniert. Gern vereinbaren Sie einen neuen Termin.</p>'));
-        $to=$s['notify_email'] ?: appt_owner_email((int)$b['account_id']); if($to) th_mail($to,'Termin abgesagt: '.$pub['service'].' · '.$pub['human'],$box('Absage','<p>'.htmlspecialchars($b['customer_name']).' · '.htmlspecialchars($b['phone']).'</p>'));
+        if($b['email']) $ok=th_mail($b['email'],'Termin abgesagt · '.$company,$box('Ihr Termin wurde abgesagt','<p>Hallo '.htmlspecialchars($b['customer_name']).', Ihr Termin wurde storniert. Gern vereinbaren Sie einen neuen Termin.</p>')) && $ok;
+        $to=$s['notify_email'] ?: appt_owner_email((int)$b['account_id']); if($to) $ok=th_mail($to,'Termin abgesagt: '.$pub['service'].' · '.$pub['human'],$box('Absage','<p>'.htmlspecialchars($b['customer_name']).' · '.htmlspecialchars($b['phone']).'</p>')) && $ok;
     } elseif($kind==='remind'){
-        if($b['email']) th_mail($b['email'],'Erinnerung: morgen '.$pub['time'].' Uhr · '.$company,$box('Erinnerung an Ihren Termin','<p>Hallo '.htmlspecialchars($b['customer_name']).', wir freuen uns auf Sie morgen.</p>'));
+        $tz=appt_tz($s); $when=$pub['date']===(new DateTimeImmutable('today',$tz))->format('Y-m-d') ? 'heute' : ($pub['date']===(new DateTimeImmutable('tomorrow',$tz))->format('Y-m-d') ? 'morgen' : 'am '.$pub['weekday']);   // Wanduhr der Konto-Zeitzone
+        if($b['email']) $ok=th_mail($b['email'],'Erinnerung: '.$when.' '.$pub['time'].' Uhr · '.$company,$box('Erinnerung an Ihren Termin','<p>Hallo '.htmlspecialchars($b['customer_name']).', wir freuen uns auf Sie '.$when.'.</p>'));
     }
+    return $ok;
 }
 /** Öffentliche Buchungsseite des Kontos (Schlüssel = widget_key einer Agent-Konfiguration, sonst wird einer angelegt). */
 function appt_booking_url(int $acc): string {
