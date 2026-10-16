@@ -6,6 +6,8 @@ header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0');
 header('Pragma: no-cache'); header('Expires: 0');
 header('CDN-Cache-Control: no-store'); header('Cloudflare-CDN-Cache-Control: no-store'); header('Surrogate-Control: no-store');
 header('Vary: Cookie');
+/* Recht uygulamasıyla aynı hile: Set-Cookie taşıyan yanıtlar kenar/origin önbelleğine ALINMAZ */
+if(empty($_COOKIE['chnc'])){ @setcookie('chnc','1',['expires'=>time()+3600,'path'=>'/','secure'=>true,'httponly'=>true,'samesite'=>'Lax']); }
 $f = __DIR__.'/index.html';
 if(!is_file($f)){ http_response_code(503); exit('index.html fehlt'); }
 readfile($f);
