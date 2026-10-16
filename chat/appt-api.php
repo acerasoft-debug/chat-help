@@ -21,9 +21,11 @@ $ip=$_SERVER['HTTP_CF_CONNECTING_IP'] ?? ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ($
 $s=$p->prepare("SELECT COUNT(*) FROM concierge_log WHERE ip_hash=? AND created_at > (NOW() - INTERVAL 10 MINUTE)"); $s->execute([$h]);
 if((int)$s->fetchColumn() >= 40) th_json(429,['error'=>'rate_limited','message'=>'Bitte einen Moment warten.']);
 if(in_array($a,['book','cancel'],true)) $p->prepare("INSERT INTO concierge_log(ip_hash) VALUES(?)")->execute([$h]);
+/* Termin-Erinnerungen lazy mitlaufen lassen (höchstens alle 10 Min, atomar) – erst nach Auslieferung der Antwort, damit die Buchungsseite nicht wartet */
+if(in_array($a,['info','slots','days'],true)) register_shutdown_function(function(){ if(function_exists('fastcgi_finish_request')) @fastcgi_finish_request(); try{ appt_reminders_lazy(); }catch(Throwable $e){ error_log('CH appt reminders: '.$e->getMessage()); } });
 
 if($a==='booking'){ $b=appt_by_code((string)($_GET['c'] ?? $in['c'] ?? '')); if(!$b) th_json(404,['error'=>'not_found']); $st=appt_settings((int)$b['account_id']); th_json(200,['booking'=>appt_public($b,$st),'ics_url'=>'https://chat-help.com/chat/appt.php?c='.$b['code'].'&ics=1']); }
-if($a==='cancel'){ $res=appt_cancel((string)($in['code'] ?? $_GET['c'] ?? '')); th_json(isset($res['error'])?404:200,$res); }
+if($a==='cancel'){ $res=appt_cancel((string)($in['code'] ?? $_GET['c'] ?? '')); th_json(!isset($res['error'])?200:($res['error']==='not_found'?404:409),$res); }   // too_late / not_cancellable → 409 mit hint
 
 $k=(string)($_GET['k'] ?? $in['k'] ?? ''); $acc=appt_account_by_key($k);
 if($acc===null) th_json(404,['error'=>'unknown_key','message'=>'Buchungsseite nicht gefunden.']);
@@ -58,8 +60,9 @@ if($a==='info'){
     $svc=appt_services($acc); $tz=appt_tz($set);
     th_json(200,['company'=>$set['company'],'address'=>$set['address'],'tz'=>$set['tz'],'today'=>(new DateTimeImmutable('today',$tz))->format('Y-m-d'),'max_days'=>$set['max_days'],'hours'=>$set['hours'],'services'=>array_map(fn($x)=>['id'=>$x['id'],'name'=>$x['name'],'duration_min'=>$x['duration_min'],'price_cents'=>$x['price_cents']],$svc),'demo'=>$acc===0,'chat'=>$acc===0 || appt_chat_plan($acc,$k)!==null]);
 }
-if($a==='slots'){ th_json(200,appt_slots($acc,(string)($_GET['date'] ?? ''),isset($_GET['service'])&&$_GET['service']!==''?(int)$_GET['service']:null)); }
-if($a==='days'){ th_json(200,['days'=>appt_next_days($acc,isset($_GET['service'])&&$_GET['service']!==''?(int)$_GET['service']:null,14)]); }
+$sid=isset($_GET['service'])&&$_GET['service']!==''?(int)$_GET['service']:null;
+if($a==='slots'){ $r=appt_slots($acc,(string)($_GET['date'] ?? ''),$sid); th_json(isset($r['error'])?422:200,$r); }
+if($a==='days'){ [, , $err]=appt_resolve_service($acc,$sid,$set); if($err) th_json(422,$err+['days'=>[]]); th_json(200,['days'=>appt_next_days($acc,$sid,14)]); }
 if($a==='book' && $_SERVER['REQUEST_METHOD']==='POST'){
     $res=appt_book($acc,isset($in['service_id'])&&$in['service_id']!==''?(int)$in['service_id']:null,(string)($in['start']??''),(string)($in['name']??''),(string)($in['phone']??''),(string)($in['email']??''),(string)($in['note']??''),'web');
     th_json(isset($res['error'])?422:200,$res);

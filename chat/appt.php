@@ -7,7 +7,7 @@ $code=strtoupper(preg_replace('/[^A-Za-z0-9]/','',(string)($_GET['c'] ?? '')));
 $b=$code!=='' ? appt_by_code($code) : null; $s=$b ? appt_settings((int)$b['account_id']) : null;
 if($b && isset($_GET['ics'])){ header('Content-Type: text/calendar; charset=UTF-8'); header('Content-Disposition: attachment; filename="termin-'.$b['code'].'.ics"'); echo appt_ics($b,$s); exit; }
 $msg='';
-if($b && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['do'] ?? '')==='cancel'){ $r=appt_cancel($code); $b=appt_by_code($code); $msg=isset($r['error'])?'Absage nicht möglich.':'Ihr Termin wurde abgesagt.'; }
+if($b && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['do'] ?? '')==='cancel'){ $r=appt_cancel($code); $b=appt_by_code($code); $msg=isset($r['error'])?($r['hint'] ?? 'Absage nicht möglich.'):(!empty($r['already'])?'Dieser Termin war bereits abgesagt.':'Ihr Termin wurde abgesagt.'); }   // nur gebuchte, künftige Termine (appt_cancel prüft)
 $pub=$b ? appt_public($b,$s) : null;
 header('Content-Type: text/html; charset=UTF-8');
 ?><!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= $pub ? 'Termin · '.htmlspecialchars($pub['company']) : 'Termin nicht gefunden' ?></title><meta name="robots" content="noindex">
@@ -19,7 +19,7 @@ header('Content-Type: text/html; charset=UTF-8');
 <?php if($msg): ?><div class="msg"><?= htmlspecialchars($msg) ?></div><?php endif; ?>
 <div class="eb"><?= htmlspecialchars($pub['company']) ?></div><h1>Ihr Termin</h1><span class="st <?= $pub['status']==='booked'||$pub['status']==='done'?'ok':'no' ?>"><?= ['booked'=>'bestätigt','done'=>'wahrgenommen','cancelled'=>'abgesagt','noshow'=>'nicht erschienen'][$pub['status']] ?? $pub['status'] ?></span>
 <div class="box"><b><?= htmlspecialchars($pub['service']) ?></b><br><?= htmlspecialchars($pub['human']) ?> – <?= htmlspecialchars($pub['end']) ?> Uhr<?php if($pub['address']): ?><br><?= htmlspecialchars($pub['address']) ?><?php endif; ?><br><span class="m">Buchungscode <?= htmlspecialchars($pub['code']) ?> · <?= htmlspecialchars($pub['name']) ?></span></div>
-<div class="row"><?php if($pub['status']==='booked'): ?><a class="btn p" href="?c=<?= $pub['code'] ?>&ics=1">📅 In den Kalender</a><form method="post" onsubmit="return confirm('Termin wirklich absagen?')"><input type="hidden" name="do" value="cancel"><button class="btn d" type="submit">Termin absagen</button></form><?php endif; ?></div>
+<div class="row"><?php if($pub['status']==='booked'): ?><a class="btn p" href="?c=<?= $pub['code'] ?>&ics=1">📅 In den Kalender</a><?php endif; ?><?php if(!empty($pub['cancellable'])): ?><form method="post" onsubmit="return confirm('Termin wirklich absagen?')"><input type="hidden" name="do" value="cancel"><button class="btn d" type="submit">Termin absagen</button></form><?php endif; ?></div>
 <p class="m" style="margin-top:18px">Fragen? Antworten Sie einfach auf die Bestätigungs-E-Mail oder rufen Sie an. Bereitgestellt von <a href="https://chat-help.com" style="color:#b8862b">ChatHelp</a>.</p>
 <?php endif; ?>
 </div></div></body></html>

@@ -119,7 +119,7 @@
     if(r.status==='open' || r.status==='in_progress') acts+='<button class="btn s ghost" data-hr="cancelled" data-id="'+r.id+'" type="button" title="stornieren">✕</button>';
     return '<div class="call"'+(r.status==='done'||r.status==='cancelled' ? ' style="opacity:.6"' : '')+'><div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start"><div style="flex:1;min-width:200px">'
       +'<span class="tag '+(KTAG[r.kind]||'')+'">'+h((ICON[r.kind]||'')+' '+r.kind_label)+'</span> '+(r.room_no ? '<b>Zimmer '+h(r.room_no)+'</b>' : '')+(r.due_human ? ' <span class="mute">· ⏱ '+h(r.due_human)+'</span>' : '')
-      +'<div style="margin-top:5px;font-size:14px">'+h(r.details)+'</div>'
+      +(String(r.details).trim().toLowerCase()!==String(r.kind_label).toLowerCase() ? '<div style="margin-top:5px;font-size:14px">'+h(r.details)+'</div>' : '')
       +'<div class="mute">'+h(r.status_label)+' · '+(r.guest_name ? h(r.guest_name)+' · ' : '')+(r.contact ? h(r.contact)+' · ' : '')+h(r.channel)+' · '+h(r.created_day)+' '+h(r.created)+' Uhr'+(r.ride_url ? ' · <a href="'+h(r.ride_url)+'" target="_blank" rel="noopener">Fahrt '+h(r.ref)+' ↗</a>' : '')+'</div>'
       +'</div><div class="row" style="gap:6px">'+acts+'</div></div></div>';
   }

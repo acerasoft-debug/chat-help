@@ -52,7 +52,7 @@ function card(o){const del=o.type==='delivery';
   else if(o.status==='ready'&&del)acts=`<select id="d${o.id}">${drivers.map(d=>`<option value="${d.id}" ${o.driver&&o.driver.name===d.name?'selected':''}>${esc(d.name)}</option>`).join('')||'<option value="">kein Fahrer</option>'}</select><button class="b p" onclick="st(${o.id},'out_for_delivery',document.getElementById('d${o.id}').value)">🚗 Unterwegs</button>`;
   else if(o.status==='ready')acts=`<button class="b ok" onclick="st(${o.id},'delivered')">🛍️ Abgeholt</button>`;
   else if(o.status==='out_for_delivery')acts=`<button class="b ok" onclick="st(${o.id},'delivered')">✅ Zugestellt</button>`;
-  return `<div class="o ${o.status==='new'?'new':''}"><div class="top"><span class="code">${esc(o.code)}</span><span class="typ ${del?'del':''}">${del?'Lieferung':'Abholung'}</span><span class="time">⏱ ${esc(o.eta||'')}</span></div>
+  return `<div class="o ${o.status==='new'?'new':''}"><div class="top"><span class="code">${esc(o.code)}</span><span class="typ ${del?'del':''}">${del?'Lieferung':'Abholung'}</span><span class="time">⏱ ${o.eta_day?esc(o.eta_day)+' ':''}${esc(o.eta||'')}</span></div>
    <div class="items">${items}</div>
    <div class="meta">👤 ${esc(o.name)} · <a href="tel:${esc(o.phone)}" style="color:#fff">${esc(o.phone)}</a>${del?`<br>📍 ${esc(o.address)}${o.zone?' · '+esc(o.zone):''}${o.distance_km!=null?' · '+o.distance_km+' km':''}`:''}${o.driver?`<br>🚗 ${esc(o.driver.name)}`:''} · ${esc(o.channel)} · ${esc(o.created)} Uhr</div>
    ${o.note?`<div class="note">📝 ${esc(o.note)}</div>`:''}
@@ -63,6 +63,6 @@ async function load(){try{const r=await fetch(`${API}?a=board&t=${T}&_=${Date.no
   $('#n1').textContent=c1.length;$('#n2').textContent=c2.length;$('#n3').textContent=c3.length;
   const ids=new Set(o.map(x=>x.id));if(seen){const fresh=o.filter(x=>!seen.has(x.id)&&x.status==='new');if(fresh.length){if(sound)beep();const t=$('#toast');t.textContent=`Neue Bestellung ${fresh.map(f=>f.code).join(', ')}!`;t.style.display='block';setTimeout(()=>t.style.display='none',6000);}}seen=ids;
   $('#st').textContent=`${o.length} offen · aktualisiert ${new Date().toLocaleTimeString('de-DE')}`;}catch(e){$('#st').textContent='⚠ '+e.message;}}
-async function st(id,status,driver_id){try{const r=await fetch(`${API}?a=status&t=${T}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status,driver_id:driver_id||null})});const j=await r.json();if(!r.ok)throw new Error(j.error||r.status);load();}catch(e){alert('Fehler: '+e.message);}}
+async function st(id,status,driver_id){try{const r=await fetch(`${API}?a=status&t=${T}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status,driver_id:driver_id||null})});const j=await r.json();if(!r.ok)throw new Error(j.hint||j.error||r.status);load();}catch(e){alert('Fehler: '+e.message);load();}}
 load();setInterval(load,15000);
 </script></body></html>

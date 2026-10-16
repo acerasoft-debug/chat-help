@@ -73,7 +73,7 @@ button.pill{cursor:pointer}button.pill:hover{border-color:var(--gold)}.clock{fon
 <body>
 <header class="hd">
   <div class="brand"><span class="mk">🛎</span><div style="min-width:0"><b><?= htmlspecialchars($name,ENT_QUOTES,'UTF-8') ?></b><div class="st"><span class="dot off" id="dot"></span><span id="st">verbinde …</span></div></div></div>
-  <div class="tools"><span class="pill" id="date"></span><span class="pill clock" id="clock">--:--</span><button class="pill" id="snd" type="button" title="Ton bei neuen Wünschen und Anfragen">🔔 Ton an</button><button class="pill" id="thm" type="button" title="Hell / Dunkel">◐</button><button class="pill" id="fs" type="button" title="Vollbild">⛶</button></div>
+  <div class="tools"><span class="pill" id="date"></span><span class="pill clock" id="clock">--:--</span><button class="pill" id="snd" type="button" title="Ton bei neuen Wünschen und Anfragen">🔔 Ton an</button><button class="pill" id="thm" type="button" title="Hell / Dunkel" aria-label="Hell / Dunkel"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button><button class="pill" id="fs" type="button" title="Vollbild" aria-label="Vollbild"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button></div>
 </header>
 <?php if($acc===0): ?><div class="demo">Live-Demo · fiktive Gäste, Kontaktdaten ausgeblendet. Probieren Sie Check-in, Check-out und Gästewünsche aus – so sieht Ihre Rezeption alles, was der Agent per Telefon, WhatsApp und Chat aufnimmt.</div><?php endif; ?>
 <section class="kpis">
@@ -93,7 +93,7 @@ button.pill{cursor:pointer}button.pill:hover{border-color:var(--gold)}.clock{fon
 <script>
 (function(){
 'use strict';
-var T=<?= json_encode($t) ?>, API='/chat/hotel-api.php', DEMO=<?= $acc===0 ? 'true' : 'false' ?>;
+var T=<?= json_encode($t) ?>, TZ=<?= json_encode($s['tz']) ?>, API='/chat/hotel-api.php', DEMO=<?= $acc===0 ? 'true' : 'false' ?>;
 var q=function(s){return document.querySelector(s);};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
 var ls={get:function(k){try{return localStorage.getItem(k);}catch(e){return null;}},set:function(k,v){try{localStorage.setItem(k,v);}catch(e){}}};
@@ -112,7 +112,8 @@ q('#fs').onclick=function(){var d=document.documentElement;if(document.fullscree
 document.addEventListener('pointerdown',function(){audio();},{once:true});
 function segUI(){document.querySelectorAll('#rf button').forEach(function(b){b.classList.toggle('on',b.dataset.f===filter);});}
 segUI();q('#rf').onclick=function(e){var b=e.target.closest('button');if(!b)return;filter=b.dataset.f;ls.set('hb_filter',filter);segUI();if(last)render(last);};
-function tick(){var d=new Date();q('#clock').textContent=d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});q('#date').textContent=d.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'});}
+function local(d,o){try{o.timeZone=TZ;return o.weekday?d.toLocaleDateString('de-DE',o):d.toLocaleTimeString('de-DE',o);}catch(e){delete o.timeZone;return o.weekday?d.toLocaleDateString('de-DE',o):d.toLocaleTimeString('de-DE',o);}}   // Uhrzeit des Hotels, unabhängig vom Gerät
+function tick(){var d=new Date();q('#clock').textContent=local(d,{hour:'2-digit',minute:'2-digit'});q('#date').textContent=local(d,{weekday:'short',day:'2-digit',month:'2-digit'});}
 tick();setInterval(tick,1000);
 
 function rel(iso){if(!iso)return '';var m=Math.round((new Date(iso).getTime()-Date.now())/60000);if(m<=-1)return 'fällig seit '+fmtMin(-m);if(m<1)return 'jetzt fällig';return 'in '+fmtMin(m);}
@@ -129,7 +130,7 @@ function reqCard(r){
   else if(r.status==='in_progress')acts='<button class="b ok" data-k="request" data-id="'+r.id+'" data-v="done">✓ Erledigt</button><button class="b x" data-k="request" data-id="'+r.id+'" data-v="open" title="Zurück auf offen">↺</button>';
   else acts='<button class="b x" data-k="request" data-id="'+r.id+'" data-v="open">↺ Wieder öffnen</button>';
   return '<div class="'+cls+'"><div class="top"><span class="kind"><i>'+(ICON[r.kind]||'💬')+'</i>'+esc(r.kind_label)+'</span>'+(r.room_no?'<span class="room">'+esc(r.room_no)+'</span>':'')+'</div>'
-   +'<div class="det">'+esc(r.details)+'</div>'
+   +(String(r.details).trim().toLowerCase()!==String(r.kind_label).toLowerCase()?'<div class="det">'+esc(r.details)+'</div>':'<div style="height:6px"></div>')
    +(r.due_human?'<div class="due">⏱ '+esc(r.due_human)+(ds||r.status==='open'||r.status==='in_progress'?' · '+esc(rel(r.due_iso)):'')+'</div>':'')
    +'<div class="meta s">'+tag+' '+(r.guest_name?'👤 '+esc(r.guest_name)+' · ':'')+(r.contact?esc(r.contact)+' · ':'')+esc(CH[r.channel]||r.channel)+' · '+esc(r.created)+' Uhr'+(r.ride_url?' · <a href="'+esc(r.ride_url)+'" target="_blank" rel="noopener">Fahrt '+esc(r.ref)+'</a>':'')+'</div>'
    +'<div class="acts">'+acts+'</div></div>';
@@ -188,7 +189,7 @@ function diff(j){
 }
 function load(){
   return fetch(API+'?a=board&t='+encodeURIComponent(T)+'&_='+Date.now(),{cache:'no-store'}).then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.message||j.error||('HTTP '+r.status));return j;});})
-  .then(function(j){diff(j);render(j);q('#dot').classList.remove('off');q('#st').textContent='live · aktualisiert '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});})
+  .then(function(j){diff(j);render(j);q('#dot').classList.remove('off');q('#st').textContent='live · aktualisiert '+local(new Date(),{hour:'2-digit',minute:'2-digit',second:'2-digit'});})
   .catch(function(e){q('#dot').classList.add('off');q('#st').textContent='⚠ '+e.message+' – neuer Versuch in 10 s';});
 }
 function post(a,body){return fetch(API+'?a='+a+'&t='+encodeURIComponent(T)+'&_='+Date.now(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json().then(function(j){if(!r.ok){var e=new Error(j.hint||j.message||j.error||('HTTP '+r.status));throw e;}return j;});});}

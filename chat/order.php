@@ -10,7 +10,7 @@ th_nocache(); th_bootstrap(); th_fresh();
 $code=strtoupper(preg_replace('/[^A-Za-z0-9]/','',(string)($_GET['c'] ?? '')));
 $o=$code!=='' ? ord_by_code($code) : null;
 if($o && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['do'] ?? '')==='cancel' && $o['status']==='new'){
-    ord_set_status((int)$o['account_id'],(int)$o['id'],'cancelled');
+    ord_set_status((int)$o['account_id'],(int)$o['id'],'cancelled',null,'customer');   // atomar: kein Storno, falls das Restaurant inzwischen weiter ist
     header('Location: ?c='.$o['code'].'&_='.dechex(time()).'&x=1',true,303); exit;
 }
 $s=$o ? ord_settings((int)$o['account_id']) : null; $p=$o ? ord_public($o,$s) : null;
@@ -52,7 +52,7 @@ $e=fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
   <?php if($p['status']==='cancelled'): ?>
     <?php if(!isset($_GET['x'])): ?><div class="cx">Diese Bestellung wurde storniert.<?= $s['phone'] ? ' Fragen? '.$e($s['phone']) : '' ?></div><?php endif; ?>
   <?php else: ?>
-    <?php if($live && $p['eta']): ?><div class="eta"><div style="font-size:28px"><?= $p['type']==='delivery'?'🚗':'🛍️' ?></div><div><span><?= $p['type']==='delivery'?'Voraussichtliche Lieferung':'Abholbereit ab' ?></span><br><b><?= $e($p['eta']) ?> Uhr</b></div></div><?php endif; ?>
+    <?php if($live && $p['eta']): ?><div class="eta"><div style="font-size:28px"><?= $p['type']==='delivery'?'🚗':'🛍️' ?></div><div><span><?= $p['type']==='delivery'?'Voraussichtliche Lieferung':'Abholbereit ab' ?></span><br><b><?= $e(($p['eta_day'] ? $p['eta_day'].' ' : '').$p['eta']) ?> Uhr</b></div></div><?php endif; ?>
     <ul class="tl"><?php foreach($steps as $i=>[$k,$lbl,$txt]): $cls=$i<$idx?'done':($i===$idx?($p['status']==='delivered'?'done':'now'):'todo'); ?>
       <li class="<?= $cls ?>"><i><?= $cls==='done'?'✓':($i+1) ?></i><div><b><?= $e($lbl) ?><?= $k==='out_for_delivery' && $p['driver'] && $i===$idx ? ' · mit '.$e($p['driver']['name']) : '' ?></b><small><?= $e($txt) ?></small></div></li>
     <?php endforeach; ?></ul>

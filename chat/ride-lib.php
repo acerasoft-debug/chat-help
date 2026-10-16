@@ -742,7 +742,13 @@ function ride_driver_text(array $p, array $s, array $drv, string $kind): string 
 }
 function ride_notify_driver(array $r, array $s, array $drv, string $kind): void {
     $acc=(int)$r['account_id']; if($acc===0) return; $p=ride_public($r,$s); $txt=ride_driver_text($p,$s,$drv,$kind); $sent=false; $via='none';
-    if($drv['phone']!==''){ $to=ride_e164($drv['phone'],$s); $os=ord_settings($acc); if(ord_wa_send($os,$to,$txt)){ $sent=true; $via='whatsapp'; } elseif(ord_sms_send($to,$txt)){ $sent=true; $via='sms'; } }
+    if($drv['phone']!==''){
+        /* WhatsApp nur im 24-h-Fenster zuverlässig (sonst nimmt Meta/Twilio an und verwirft später) → dann SMS, sonst E-Mail an die Zentrale */
+        $to=ride_e164($drv['phone'],$s); $os=ord_settings($acc); $win=function_exists('ord_wa_window_open') ? ord_wa_window_open($acc,$to) : true;
+        if($win && ord_wa_send($os,$to,$txt)){ $sent=true; $via='whatsapp'; }
+        elseif(ord_sms_send($to,$txt,$acc)){ $sent=true; $via='sms'; }
+        elseif(!$win) ord_wa_send($os,$to,$txt);   // Versuch außerhalb des Fensters – gilt nicht als zugestellt, E-Mail folgt
+    }
     ride_notify_log(['kind'=>'driver_'.$kind,'driver'=>$drv['id'],'via'=>$via,'ok'=>$sent]);
     if(!$sent && $kind!=='withdrawn') ride_notify_zentrale($r,$s,'driver_failed','An '.$drv['name'].($drv['phone']!=='' ? ' ('.$drv['phone'].')' : ' (keine Handynummer hinterlegt)').":\n\n".$txt);
 }
@@ -755,7 +761,7 @@ function ride_notify_customer(array $r, array $s, string $kind): void {
         default=>'' };
     if($msg===''){ return; } $ok=false; $via='none';
     if($r['channel']==='whatsapp' && $r['wa_from']!==''){ $ok=ord_wa_send(ord_settings($acc),(string)$r['wa_from'],$msg); $via='whatsapp'; }
-    elseif($r['channel']==='phone' && $r['phone']!==''){ $ok=ord_sms_send(ride_e164((string)$r['phone'],$s),($kind==='arrived' ? '' : $co.': ').$msg); $via='sms'; }
+    elseif($r['channel']==='phone' && $r['phone']!==''){ $ok=ord_sms_send(ride_e164((string)$r['phone'],$s),($kind==='arrived' ? '' : $co.': ').$msg,$acc); $via='sms'; }
     ride_notify_log(['kind'=>'customer_'.$kind,'via'=>$via,'ok'=>$ok]);
 }
 

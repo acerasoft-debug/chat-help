@@ -16,5 +16,5 @@ if($a==='demo_menu'){ $s=ord_settings(0); th_json(200,['restaurant'=>$s['name'],
 $t=preg_replace('/[^a-f0-9]/','',(string)($_GET['t'] ?? $in['t'] ?? '')); if(strlen($t)!==24) th_json(401,['error'=>'token_required']);
 $s=th_db()->prepare("SELECT account_id FROM order_settings WHERE board_token=?"); $s->execute([$t]); $acc=$s->fetchColumn(); if($acc===false) th_json(403,['error'=>'bad_token']); $acc=(int)$acc;
 if($a==='board') th_json(200,['orders'=>ord_orders($acc,'open'),'drivers'=>array_map(fn($d)=>['id'=>$d['id'],'name'=>$d['name']],ord_drivers($acc,true)),'restaurant'=>ord_settings($acc)['name']]);
-if($a==='status' && $_SERVER['REQUEST_METHOD']==='POST'){ $r=ord_set_status($acc,(int)($in['id']??0),(string)($in['status']??''),isset($in['driver_id'])&&$in['driver_id']!==''?(int)$in['driver_id']:null); th_json(isset($r['error'])?400:200,$r); }
+if($a==='status' && $_SERVER['REQUEST_METHOD']==='POST'){ $r=ord_set_status($acc,(int)($in['id']??0),(string)($in['status']??''),isset($in['driver_id'])&&$in['driver_id']!==''?(int)$in['driver_id']:null); th_json(isset($r['error'])?(in_array($r['error'],['invalid_transition','bad_driver'],true)?409:400):200,$r); }   // 409: Status inzwischen geändert (veraltetes Board)
 th_json(400,['error'=>'bad_request']);

@@ -28,7 +28,8 @@ $pill=['requested'=>'ind','confirmed'=>'ok','checked_in'=>'ok','checked_out'=>'n
 $steps=[['requested','Anfrage'],['confirmed','Bestätigt'],['checked_in','Eingecheckt'],['checked_out','Abgereist']];
 $idx=array_search($st,array_column($steps,0),true);
 $live=$st==='requested'; $active=in_array($st,['requested','confirmed','checked_in'],true);
-$dayParts=function(string $ymd): array { $d=hotel_day($ymd); return [HOTEL_WD[(int)$d->format('w')],(int)$d->format('j').'. '.HOTEL_MON[(int)$d->format('n')-1],$d->format('Y')]; };
+$monS=['Jan.','Feb.','März','Apr.','Mai','Juni','Juli','Aug.','Sept.','Okt.','Nov.','Dez.'];
+$dayParts=function(string $ymd) use($monS): array { $d=hotel_day($ymd); return [HOTEL_WD[(int)$d->format('w')],(int)$d->format('j').'. '.$monS[(int)$d->format('n')-1],$d->format('Y')]; };
 $tz=$s ? hotel_tz($s) : new DateTimeZone('Europe/Berlin');
 header('Content-Type: text/html; charset=UTF-8');
 ?><!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -62,7 +63,7 @@ h2{font:600 18px Fraunces,Georgia,serif;margin:22px 0 8px}
 .btn.p{background:var(--ink);color:#fff;border-color:var(--ink)}.btn.d{color:var(--rose);border-color:#f7c6d5;background:var(--rosel)}.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.row form{margin:0}
 .addr{display:flex;gap:12px;align-items:flex-start;color:var(--ink2);font-size:14px}.addr b{color:var(--ink)}
 .foot{text-align:center;color:var(--mute);font-size:12.5px;margin-top:16px}.foot a{color:var(--gold);text-decoration:none}
-@media(max-width:520px){.hero,.c{padding-left:18px;padding-right:18px}.dates{grid-template-columns:1fr 1fr}.dates .n{grid-column:1/-1;grid-row:2;text-align:left}.dates .n i{display:inline;margin-left:6px}.dates .d b{font-size:19px}.grid{grid-template-columns:1fr}}
+@media(max-width:520px){.hero,.c{padding-left:18px;padding-right:18px}.row>.btn,.row>form{flex:1 1 100%}.row form .btn{width:100%}.dates{grid-template-columns:1fr 1fr}.dates .n{grid-column:1/-1;grid-row:2;text-align:left}.dates .n i{display:inline;margin-left:6px}.dates .d b{font-size:19px}.grid{grid-template-columns:1fr}}
 </style></head><body><div class="w">
 <?php if(!$p): ?>
   <div class="hero"><div class="eb">Ihr Aufenthalt</div><h1>Buchung nicht gefunden</h1><div class="sub">Der Buchungscode ist ungültig oder die Buchung wurde entfernt.</div></div>

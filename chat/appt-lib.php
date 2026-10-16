@@ -275,11 +275,31 @@ function appt_account_by_key(string $k): ?int {
     $s=th_db()->prepare("SELECT account_id FROM agent_configs WHERE widget_key=?"); $s->execute([$k]); $a=$s->fetchColumn(); return $a===false ? null : (int)$a;
 }
 function appt_owner_email(int $acc): string { if($acc<=0) return ''; $s=th_db()->prepare("SELECT email FROM token_accounts WHERE id=?"); $s->execute([$acc]); return (string)($s->fetchColumn() ?: ''); }
-/** Erinnerungen 20–28 h vorher – wird bei API-Aufrufen höchstens alle 10 Minuten ausgeführt (kein Cron nötig). */
-function appt_reminders_lazy(): void {
-    $lock=(is_writable(__DIR__)?__DIR__:sys_get_temp_dir()).'/.appt_reminder'; if(is_file($lock) && time()-filemtime($lock) < 600) return; @touch($lock);
-    appt_bootstrap(); $q=th_db()->query("SELECT * FROM appt_bookings WHERE status='booked' AND reminded=0 AND account_id>0 AND email<>'' AND start_at BETWEEN (NOW() + INTERVAL 20 HOUR) AND (NOW() + INTERVAL 28 HOUR) LIMIT 50");
-    foreach($q->fetchAll(PDO::FETCH_ASSOC) as $b){ appt_notify($b,appt_settings((int)$b['account_id']),'remind'); th_db()->prepare("UPDATE appt_bookings SET reminded=1 WHERE id=?")->execute([$b['id']]); }
+/** Erinnerungen 20–28 h vorher (Wanduhr der jeweiligen Konto-Zeitzone) – höchstens alle 10 Minuten (GET_LOCK + Zeitstempel in appt_jobs, kein Cron nötig;
+ *  Aufrufer: Studio-Terminliste, Buchungsseite info/slots/days, Heartbeat). Jede Zeile wird atomar beansprucht (reminded 0→2, nur bei rowCount 1 senden, dann 1;
+ *  Versandfehler → wieder 0). $force überspringt nur die 10-Minuten-Sperre. Rückgabe: Anzahl versendeter Erinnerungen. */
+function appt_reminders_lazy(bool $force=false): int {
+    if(!th_lock('appt_reminders',0)) return 0;   // läuft gerade woanders
+    $n=0;
+    try{
+        appt_bootstrap(); $p=th_db();
+        $g=$p->query("SELECT TIMESTAMPDIFF(SECOND,last_run,NOW()) FROM appt_jobs WHERE name='reminders'")->fetchColumn();
+        if(!$force && $g!==false && $g!==null && (int)$g>=0 && (int)$g<600) return 0;
+        $p->exec("INSERT INTO appt_jobs(name,last_run) VALUES('reminders',NOW()) ON DUPLICATE KEY UPDATE last_run=NOW()");
+        /* start_at ist Wanduhr der Konto-Zeitzone (UTC−12 … UTC+14): großzügiges Fenster um UTC holen, exakt je Konto in PHP filtern */
+        $utc=new DateTimeImmutable('now',new DateTimeZone('UTC'));
+        $q=$p->prepare("SELECT * FROM appt_bookings WHERE status='booked' AND reminded=0 AND account_id>0 AND email<>'' AND start_at BETWEEN ? AND ? ORDER BY start_at LIMIT 300");
+        $q->execute([$utc->modify('+7 hours')->format('Y-m-d H:i:s'),$utc->modify('+43 hours')->format('Y-m-d H:i:s')]);
+        $sets=[]; $claim=$p->prepare("UPDATE appt_bookings SET reminded=2 WHERE id=? AND reminded=0 AND status='booked'"); $fin=$p->prepare("UPDATE appt_bookings SET reminded=? WHERE id=? AND reminded=2");
+        foreach($q->fetchAll(PDO::FETCH_ASSOC) as $b){
+            $a=(int)$b['account_id']; $s=$sets[$a] ??= appt_settings($a); $tz=appt_tz($s); $now=new DateTimeImmutable('now',$tz); $st=new DateTimeImmutable($b['start_at'],$tz);
+            if($st < $now->modify('+20 hours') || $st > $now->modify('+28 hours')) continue;
+            $claim->execute([$b['id']]); if($claim->rowCount()!==1) continue;   // schon von einem anderen Lauf beansprucht
+            $ok=false; try{ $ok=appt_notify($b,$s,'remind'); }catch(Throwable $e){ error_log('CH appt remind #'.$b['id'].': '.$e->getMessage()); }
+            $fin->execute([$ok?1:0,$b['id']]); if($ok) $n++;
+        }
+    } finally { th_unlock('appt_reminders'); }
+    return $n;
 }
 
 /* ---------- Werkzeuge für den Agenten ---------- */
@@ -295,7 +315,8 @@ function appt_tools(): array {
 function appt_exec(int $acc, string $name, array $in, string $source, string $from=''): array {
     switch($name){
         case 'list_services': return ['services'=>array_map(fn($s)=>['id'=>$s['id'],'name'=>$s['name'],'duration_min'=>$s['duration_min'],'price_eur'=>$s['price_cents']?round($s['price_cents']/100,2):null],appt_services($acc))];
-        case 'get_available_slots': $sid=isset($in['service_id'])?(int)$in['service_id']:null; if(!empty($in['date'])) return appt_slots($acc,(string)$in['date'],$sid); return ['next_days'=>appt_next_days($acc,$sid,10)];
+        case 'get_available_slots': $sid=isset($in['service_id'])?(int)$in['service_id']:null; if(!empty($in['date'])) return appt_slots($acc,(string)$in['date'],$sid);
+            [, , $err]=appt_resolve_service($acc,$sid); if($err) return $err; return ['next_days'=>appt_next_days($acc,$sid,10)];
         case 'book_appointment': return appt_book($acc,isset($in['service_id'])?(int)$in['service_id']:null,(string)($in['start']??''),(string)($in['name']??''),(string)($in['phone']??''),(string)($in['email']??''),(string)($in['note']??''),$source);
         case 'find_appointments': if(!empty($in['code'])){ $b=appt_by_code((string)$in['code']); return $b && (int)$b['account_id']===$acc ? ['appointments'=>[appt_public($b)]] : ['appointments'=>[]]; } $ph=function_exists('ch_verified_phone') ? ch_verified_phone($acc,$source,$from,(string)($in['phone']??'')) : ($acc===0 ? (string)($in['phone']??'') : null);
             if($ph===null) return ['appointments'=>[],'error'=>'code_required','hint'=>defined('CH_CODE_ONLY_HINT') ? CH_CODE_ONLY_HINT : 'Bitte nach dem Buchungscode fragen.'];
