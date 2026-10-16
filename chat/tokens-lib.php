@@ -114,7 +114,7 @@ function th_call_start(int $acc, string $plan, string $sid, string $from, string
 }
 function th_call_update(string $sid, array $f): void {
     $allowed=['status','turns','silent','tokens','transcript','outcome','ended_at','pending']; $set=[]; $vals=[];
-    foreach($f as $k=>$v){ if(in_array($k,$allowed,true)){ $set[]="$k=?"; $vals[]=$v; } }
+    foreach($f as $k=>$v){ if(in_array($k,$allowed,true)){ if($v==='NOW()'){ $set[]="$k=NOW()"; continue; } $set[]="$k=?"; $vals[]=$v; } }   // 'NOW()' = DB-Zeit (wie started_at)
     if(!$set) return; $vals[]=$sid; th_db()->prepare("UPDATE phone_calls SET ".implode(',',$set)." WHERE call_sid=?")->execute($vals);
 }
 function th_calls(int $acc, string $plan='', int $limit=50): array {
@@ -195,6 +195,109 @@ function th_debit(int $acc, int $amount, string $reason, ?string $ref=null): boo
         $p->commit(); return true;
     }catch(Throwable $e){ $p->rollBack(); throw $e; }
 }
+/**
+ * Abrechnung NACH erbrachter Leistung (KI hat schon geantwortet): bucht den Betrag, höchstens aber das Restguthaben –
+ * nie negativ, nie „gratis“. Gibt den tatsächlich gebuchten Betrag zurück (0 = nichts mehr da oder Referenz schon gebucht).
+ */
+function th_charge(int $acc, int $amount, string $reason, ?string $ref=null): int {
+    if($amount<=0) return 0;
+    $p=th_db(); $p->beginTransaction();
+    try{
+        $s=$p->prepare("SELECT COALESCE(SUM(delta),0) FROM token_ledger WHERE account_id=? FOR UPDATE"); $s->execute([$acc]);
+        $amt=min($amount,max(0,(int)$s->fetchColumn()));
+        if($amt>0) $p->prepare("INSERT INTO token_ledger(account_id,delta,reason,ref) VALUES(?,?,?,?)")->execute([$acc,-$amt,$reason,$ref ?: bin2hex(random_bytes(8))]);
+        $p->commit(); return $amt;
+    }catch(Throwable $e){ $p->rollBack(); if($e instanceof PDOException && $e->getCode()==='23000') return 0; throw $e; }
+}
+
+/* ---------- Zugangsdaten je Konto (Twilio, Meta) ---------- */
+/** Optional verschlüsselt (AES-256-GCM), wenn in db.php CH_SECRET_KEY definiert ist. */
+function th_secret_box(string $v): string {
+    if(!(defined('CH_SECRET_KEY') && CH_SECRET_KEY) || !function_exists('openssl_encrypt')) return 'p:'.$v;
+    $k=hash('sha256','chs|'.CH_SECRET_KEY,true); $iv=random_bytes(12); $tag='';
+    $c=openssl_encrypt($v,'aes-256-gcm',$k,OPENSSL_RAW_DATA,$iv,$tag); return 'e:'.base64_encode($iv.$tag.$c);
+}
+function th_secret_open(string $s): string {
+    if(str_starts_with($s,'p:')) return substr($s,2);
+    if(!str_starts_with($s,'e:') || !(defined('CH_SECRET_KEY') && CH_SECRET_KEY)) return '';
+    $b=base64_decode(substr($s,2),true); if($b===false || strlen($b)<29) return '';
+    $k=hash('sha256','chs|'.CH_SECRET_KEY,true);
+    $v=openssl_decrypt(substr($b,28),'aes-256-gcm',$k,OPENSSL_RAW_DATA,substr($b,0,12),substr($b,12,16)); return $v===false?'':$v;
+}
+function th_secrets_table(): void {
+    static $done=false; if($done) return; $done=true;
+    th_db()->exec("CREATE TABLE IF NOT EXISTS acct_secrets (account_id INT NOT NULL, k VARCHAR(40) NOT NULL, v TEXT NOT NULL,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(account_id,k)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+/** Zulässige Schlüssel: twilio_sid, twilio_token, twilio_from, meta_app_secret */
+const TH_SECRET_KEYS=['twilio_sid','twilio_token','twilio_from','meta_app_secret'];
+function th_secret(int $acc, string $k): string {
+    if($acc<=0 || !in_array($k,TH_SECRET_KEYS,true)) return '';
+    if(isset($GLOBALS['__th_sec'][$acc][$k])) return $GLOBALS['__th_sec'][$acc][$k];
+    try{ th_secrets_table(); $s=th_db()->prepare("SELECT v FROM acct_secrets WHERE account_id=? AND k=?"); $s->execute([$acc,$k]); $v=$s->fetchColumn(); }catch(Throwable $e){ $v=false; }
+    return $GLOBALS['__th_sec'][$acc][$k] = ($v===false ? '' : th_secret_open((string)$v));
+}
+/** Leerer Wert löscht. */
+function th_secret_set(int $acc, string $k, string $v): void {
+    if($acc<=0 || !in_array($k,TH_SECRET_KEYS,true)) return; th_secrets_table(); $v=trim($v); unset($GLOBALS['__th_sec'][$acc][$k]);
+    if($v==='') th_db()->prepare("DELETE FROM acct_secrets WHERE account_id=? AND k=?")->execute([$acc,$k]);
+    else th_db()->prepare("INSERT INTO acct_secrets(account_id,k,v) VALUES(?,?,?) ON DUPLICATE KEY UPDATE v=VALUES(v),updated_at=NOW()")->execute([$acc,$k,th_secret_box($v)]);
+}
+/** Für die Anzeige im Studio: nie den Wert selbst, nur „hinterlegt (…1234)“. */
+function th_secret_hints(int $acc): array {
+    $o=[]; foreach(TH_SECRET_KEYS as $k){ $v=th_secret($acc,$k); $o[$k]=$v==='' ? '' : (in_array($k,['twilio_sid','twilio_from'],true) ? $v : '••••'.substr($v,-4)); } return $o;
+}
+/**
+ * Twilio-Zugang für ein Konto: eigener Account (Studio → Verbindungen) hat Vorrang, sonst der Plattform-Account aus db.php.
+ * own=true heißt: Nummern/Absender gehören dem Kunden selbst.
+ */
+function th_twilio(int $acc): ?array {
+    $sid=th_secret($acc,'twilio_sid'); $tok=th_secret($acc,'twilio_token');
+    if($sid!=='' && $tok!=='') return ['sid'=>$sid,'token'=>$tok,'own'=>true,'from'=>th_secret($acc,'twilio_from')];
+    if(defined('TWILIO_ACCOUNT_SID') && TWILIO_ACCOUNT_SID && defined('TWILIO_AUTH_TOKEN') && TWILIO_AUTH_TOKEN)
+        return ['sid'=>TWILIO_ACCOUNT_SID,'token'=>TWILIO_AUTH_TOKEN,'own'=>false,'from'=>defined('TWILIO_SMS_FROM') ? (string)TWILIO_SMS_FROM : ''];
+    return null;
+}
+/** Twilio-Webhook-Signatur (X-Twilio-Signature) gegen eine Liste möglicher Auth-Tokens prüfen. $url = exakt die bei Twilio hinterlegte URL. */
+function th_twilio_sig_valid(string $url, array $post, array $tokens): bool {
+    $sig=(string)($_SERVER['HTTP_X_TWILIO_SIGNATURE'] ?? ''); if($sig==='') return false;
+    ksort($post); $data=$url; foreach($post as $k=>$v) $data.=$k.(is_array($v)?implode('',$v):$v);
+    foreach(array_unique(array_filter($tokens)) as $t){ if(hash_equals(base64_encode(hash_hmac('sha1',$data,$t,true)),$sig)) return true; }
+    return false;
+}
+
+/** Telefonnummer → E.164 (+491701234567). Nationale Schreibweise wird mit $cc (Standard 49) ergänzt. '' wenn unbrauchbar. */
+function th_e164(string $raw, string $cc='49'): string {
+    $raw=trim(preg_replace('/^(whatsapp|tel|sms):/i','',trim($raw)));
+    $plus=str_starts_with($raw,'+'); $d=preg_replace('/\D/','',$raw);
+    if($d==='') return '';
+    if($plus) $n=$d; elseif(str_starts_with($d,'00')) $n=substr($d,2); elseif(str_starts_with($d,'0')) $n=$cc.substr($d,1); else $n=$d;
+    return (strlen($n)>=8 && strlen($n)<=15 && $n[0]!=='0') ? '+'.$n : '';
+}
+/** Gleiche Nummer? (letzte 9 Ziffern, mind. 8) */
+function th_same_phone(string $a, string $b): bool {
+    $a=preg_replace('/\D/','',$a); $b=preg_replace('/\D/','',$b);
+    if(strlen($a)<8 || strlen($b)<8) return false; return substr($a,-9)===substr($b,-9) || (strlen($a)===8 || strlen($b)===8 ? substr($a,-8)===substr($b,-8) : false);
+}
+/**
+ * Einfaches Mengenlimit (z. B. öffentliche Widget-Schlüssel gegen Token-Verbrauch durch Fremde schützen).
+ * Zählt UND bucht in einem Schritt; true = erlaubt. bucket z. B. "w:<acc>:<ip>".
+ */
+function th_rate(string $bucket, int $max, int $windowSec): bool {
+    $p=th_db(); static $t=false;
+    if(!$t){ $p->exec("CREATE TABLE IF NOT EXISTS rate_hits (id BIGINT AUTO_INCREMENT PRIMARY KEY, b CHAR(32) NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, INDEX(b,created_at), INDEX(created_at)) ENGINE=InnoDB"); $t=true; }
+    $h=md5($bucket); if(random_int(1,200)===1) $p->exec("DELETE FROM rate_hits WHERE created_at < (NOW() - INTERVAL 1 DAY)");
+    $p->prepare("INSERT INTO rate_hits(b) VALUES(?)")->execute([$h]);
+    $s=$p->prepare("SELECT COUNT(*) FROM rate_hits WHERE b=? AND created_at > (NOW() - INTERVAL ? SECOND)"); $s->execute([$h,$windowSec]);
+    return (int)$s->fetchColumn() <= $max;
+}
+/** Client-IP hinter Cloudflare */
+function th_client_ip(): string { $ip=$_SERVER['HTTP_CF_CONNECTING_IP'] ?? ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ($_SERVER['REMOTE_ADDR'] ?? '0')); return trim(explode(',',(string)$ip)[0]); }
+/** Benannte DB-Sperre (z. B. eine Unterhaltung je Absender nacheinander abarbeiten). true = Sperre erhalten. */
+function th_lock(string $name, int $wait=25): bool {
+    try{ $s=th_db()->prepare("SELECT GET_LOCK(?,?)"); $s->execute([substr('ch:'.$name,0,64),$wait]); return (int)$s->fetchColumn()===1; }catch(Throwable $e){ return false; }
+}
+function th_unlock(string $name): void { try{ th_db()->prepare("SELECT RELEASE_LOCK(?)")->execute([substr('ch:'.$name,0,64)]); }catch(Throwable $e){} }
 
 /** API anahtarı üretir; düz metin SADECE bir kez döner. */
 function th_issue_key(int $acc, string $label='default'): string {
@@ -226,8 +329,21 @@ function th_ai_info(): array { return $GLOBALS['__th_ai_info'] ?? []; }
  * KI sohbet: Claude (model zinciri; model bulunamazsa sıradakine geçer), olmazsa DeepSeek. Metin ya da null döner.
  * messages = [{role:user|assistant, content}]  — son mesaj user olmalı.
  */
+/**
+ * Verlauf für die KI aufbereiten: leere Nachrichten raus, gleiche Rollen hintereinander zusammenfassen,
+ * und beginnt der Verlauf mit der Begrüßung des Agenten, eine neutrale Nutzer-Zeile davor (Claude verlangt user zuerst).
+ */
+function th_ai_msgs(array $messages, bool $allowBlocks=false): array {
+    $o=[]; foreach($messages as $m){ $role=($m['role']??'user')==='assistant'?'assistant':'user'; $c=$m['content']??'';
+        if(is_array($c)){ if(!$allowBlocks) continue; if(!$c) continue; $o[]=['role'=>$role,'content'=>$c]; continue; }
+        $c=trim((string)$c); if($c==='') continue;
+        $n=count($o); if($n && $o[$n-1]['role']===$role && is_string($o[$n-1]['content'])){ $o[$n-1]['content'].="\n\n".$c; continue; }
+        $o[]=['role'=>$role,'content'=>$c]; }
+    if($o && $o[0]['role']==='assistant') array_unshift($o,['role'=>'user','content'=>'(Gespräch beginnt)']);
+    return $o;
+}
 function th_ai(string $system, array $messages, int $maxTokens=1200, int $timeout=60): ?string {
-    $msgs=[]; foreach($messages as $m){ $role=($m['role']??'user')==='assistant'?'assistant':'user'; $c=trim((string)($m['content']??'')); if($c!=='') $msgs[]=['role'=>$role,'content'=>$c]; }
+    $msgs=th_ai_msgs($messages);
     if(!$msgs || end($msgs)['role']!=='user') return null;
     $info=['provider'=>null,'model'=>null,'errors'=>[]];
     $cacheF = is_writable(__DIR__) ? __DIR__.'/.ai_model.json' : sys_get_temp_dir().'/ch_ai_model.json';
@@ -278,8 +394,8 @@ function th_ai(string $system, array $messages, int $maxTokens=1200, int $timeou
  */
 function th_ai_tools(string $system, array $messages, array $tools, callable $exec, int $maxTokens=900, int $timeout=60, int $maxRounds=5): ?string {
     if(!(defined('CLAUDE_KEY') && CLAUDE_KEY) || !$tools) return th_ai($system,$messages,$maxTokens,$timeout);
-    $msgs=[]; foreach($messages as $m){ $role=($m['role']??'user')==='assistant'?'assistant':'user'; $c=$m['content']??''; if(is_string($c)){ $c=trim($c); if($c==='') continue; } $msgs[]=['role'=>$role,'content'=>$c]; }
-    if(!$msgs || $msgs[0]['role']!=='user') return null;
+    $msgs=th_ai_msgs($messages,true);
+    if(!$msgs || $msgs[0]['role']!=='user' || end($msgs)['role']!=='user') return null;
     $info=['provider'=>null,'model'=>null,'errors'=>[],'tool_calls'=>[]];
     $cacheF = is_writable(__DIR__) ? __DIR__.'/.ai_model.json' : sys_get_temp_dir().'/ch_ai_model.json';
     $models = th_ai_models(); $cached=@json_decode((string)@file_get_contents($cacheF),true);
@@ -309,7 +425,8 @@ function th_ai_tools(string $system, array $messages, array $tools, callable $ex
         foreach($toolUses as $tu){
             $in=is_array($tu['input']??null)?$tu['input']:[];
             try{ $out=$exec((string)$tu['name'],$in); }catch(Throwable $e){ $out=['error'=>$e->getMessage()]; }
-            $info['tool_calls'][]=['name'=>$tu['name'],'input'=>$in,'ok'=>empty($out['error'])];
+            $ref=null; if(is_array($out)){ $ref=$out['code'] ?? null; if($ref===null) foreach($out as $v){ if(is_array($v) && isset($v['code']) && is_scalar($v['code'])){ $ref=$v['code']; break; } } }
+            $info['tool_calls'][]=['name'=>$tu['name'],'input'=>$in,'ok'=>empty($out['error']),'ref'=>is_scalar($ref)?mb_substr((string)$ref,0,40):null];
             $results[]=['type'=>'tool_result','tool_use_id'=>$tu['id'],'content'=>json_encode($out,JSON_UNESCAPED_UNICODE)];
         }
         $msgs[]=['role'=>'assistant','content'=>$resp['content']]; $msgs[]=['role'=>'user','content'=>$results];

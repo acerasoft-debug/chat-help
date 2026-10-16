@@ -18,6 +18,7 @@ require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
 require_once __DIR__.'/appt-lib.php';
 require_once __DIR__.'/order-lib.php';
+if(is_file(__DIR__.'/agent-tools.php')) require_once __DIR__.'/agent-tools.php';
 th_bootstrap(); appt_bootstrap(); ord_bootstrap();
 $BASE='https://chat-help.com'; $AI=($_GET['ai'] ?? '1')!=='0'; $KEEP=($_GET['keep'] ?? '0')==='1'; $DOCS=($_GET['docs'] ?? '1')!=='0';
 $PASS=0; $FAIL=0; $FAILS=[]; $T0=microtime(true);
@@ -49,7 +50,7 @@ $cleanup=function() use(&$ACCS,$KEEP){
     if($KEEP){ echo "\n(keep=1: Testdaten bleiben: Konten ".implode(',',$ACCS).")\n"; return; }
     $p=th_db(); $n=0;
     foreach($ACCS as $aid){
-        foreach(['orders','menu_items','drivers','order_settings','wa_sessions','appt_bookings','appt_services','appt_settings','appt_blocks','phone_calls','agent_configs','api_keys','token_ledger','api_usage','token_plans'] as $t){
+        foreach(['orders','menu_items','drivers','order_settings','wa_sessions','appt_bookings','appt_services','appt_settings','appt_blocks','phone_calls','agent_configs','api_keys','token_ledger','api_usage','token_plans','acct_secrets'] as $t){
             try{ $s=$p->prepare("DELETE FROM $t WHERE account_id=?"); $s->execute([$aid]); $n+=$s->rowCount(); }catch(Throwable $e){ echo "  cleanup $t: ".$e->getMessage()."\n"; }
         }
         $p->prepare("DELETE FROM token_accounts WHERE id=?")->execute([$aid]); $n++;
@@ -178,22 +179,42 @@ if($AI){
     $r=http('POST',"$BASE/chat/widget-api.php",['key'=>$cfgKey,'messages'=>[['role'=>'user','content'=>'Was kostet eine große Salami und habt ihr gerade offen?']],'lang'=>'de']);
     ok($r['code']===200 && !empty($r['json']['reply']),'Website-Widget antwortet aus Karte/Werkzeugen',short($r['json']['reply'] ?? $r['body'],200));
 
+    /* Verbindungen: eigener Twilio-Auth-Token (nur Token, ohne SID → Antworten weiter als TwiML) – ab jetzt Signaturpflicht für Telefon + WhatsApp */
+    $twTok=rnd(16); $r=$api('POST','connections',['twilio_token'=>$twTok]);
+    ok($r['code']===200 && ($r['json']['connections']['twilio_token'] ?? '')==='••••'.substr($twTok,-4) && !str_contains($r['body'],$twTok),'Studio-Verbindungen: Auth-Token gespeichert, nur „••••“ zurück');
+    $r=$api('POST','connections',['twilio_sid'=>'XYZ']); ok($r['code']===422,'Verbindungen: ungültige SID abgelehnt');
+    $twSign=function(string $url, array $post) use($twTok): array { $d=$url; ksort($post); foreach($post as $k=>$v) $d.=$k.$v; return ['X-Twilio-Signature: '.base64_encode(hash_hmac('sha1',$d,$twTok,true))]; };
+    th_db()->prepare("UPDATE order_settings SET wa_provider='twilio', wa_number='' WHERE account_id=?")->execute([$aid]);
+    $waUrl="$BASE/chat/whatsapp-webhook.php?key=$cfgKey";
+    $waPost=function(array $p) use($waUrl,$twSign){ return http('POST',$waUrl,$p,$twSign($waUrl,$p),'form'); };
+    $r=http('POST',$waUrl,['Body'=>'Hallo','From'=>'whatsapp:+491700009999','MessageSid'=>'SM'.rnd(16)],[],'form');
+    ok($r['code']===403,'WhatsApp (Twilio): ohne gültige Signatur → 403');
     /* WhatsApp über Twilio (synchron, TwiML) – zwei Nachrichten, Gesprächsgedächtnis */
     $wa='491700000'.random_int(100,999); $sidA='SM'.rnd(16);
-    $r=http('POST',"$BASE/chat/whatsapp-webhook.php?key=$cfgKey",['Body'=>'Hallo! Was kostet bei euch eine große Margherita?','From'=>"whatsapp:+$wa",'ProfileName'=>'WA Test','MessageSid'=>$sidA],[],'form');
+    $r=$waPost(['Body'=>'Hallo! Was kostet bei euch eine große Margherita?','From'=>"whatsapp:+$wa",'ProfileName'=>'WA Test','MessageSid'=>$sidA]);
     ok($r['code']===200 && str_contains($r['body'],'<Message>'),'WhatsApp (Twilio): Antwort als TwiML',sprintf('%.1fs · ',$r['t']).short(html_entity_decode(strip_tags($r['body'])),200));
-    $r=http('POST',"$BASE/chat/whatsapp-webhook.php?key=$cfgKey",['Body'=>'Hallo! Was kostet bei euch eine große Margherita?','From'=>"whatsapp:+$wa",'ProfileName'=>'WA Test','MessageSid'=>$sidA],[],'form');
+    $r=$waPost(['Body'=>'Hallo! Was kostet bei euch eine große Margherita?','From'=>"whatsapp:+$wa",'ProfileName'=>'WA Test','MessageSid'=>$sidA]);
     ok(!str_contains($r['body'],'<Message>'),'WhatsApp: doppelt zugestellte Nachricht wird nicht erneut beantwortet');
-    $r=http('POST',"$BASE/chat/whatsapp-webhook.php?key=$cfgKey",['Body'=>'Super, dann bitte eine große Margherita zum Abholen, Name WA Test, bar. Ja, genau so aufgeben.','From'=>"whatsapp:+$wa",'ProfileName'=>'WA Test','MessageSid'=>'SM'.rnd(16)],[],'form');
+    $r=$waPost(['Body'=>'Super, dann bitte eine große Margherita zum Abholen, Name WA Test, bar. Ja, genau so aufgeben.','From'=>"whatsapp:+$wa",'ProfileName'=>'WA Test','MessageSid'=>'SM'.rnd(16)]);
     $s=th_db()->prepare("SELECT code,total_cents,discount_cents FROM orders WHERE account_id=? AND channel='whatsapp' AND wa_from=?"); $s->execute([$aid,$wa]); $wo=$s->fetch(PDO::FETCH_ASSOC);
-    if(!$wo){ $r=http('POST',"$BASE/chat/whatsapp-webhook.php?key=$cfgKey",['Body'=>'Ja, bitte so aufgeben.','From'=>"whatsapp:+$wa",'ProfileName'=>'WA Test','MessageSid'=>'SM'.rnd(16)],[],'form'); $s->execute([$aid,$wa]); $wo=$s->fetch(PDO::FETCH_ASSOC); }
+    if(!$wo){ $r=$waPost(['Body'=>'Ja, bitte so aufgeben.','From'=>"whatsapp:+$wa",'ProfileName'=>'WA Test','MessageSid'=>'SM'.rnd(16)]); $s->execute([$aid,$wa]); $wo=$s->fetch(PDO::FETCH_ASSOC); }
     ok((bool)$wo,'WhatsApp: Bestellung im Gesprächsverlauf angelegt (Gedächtnis)',($wo?$wo['code'].' · '.number_format($wo['total_cents']/100,2,',','.').' € · ':'').sprintf('%.1fs · ',$r['t']).short(html_entity_decode(strip_tags($r['body'])),220));
 
+    /* Datenschutz: Status zu einer FREMDEN Nummer darf nicht herauskommen (Werkzeug direkt geprüft) */
+    if(function_exists('ch_toolkit') && $wo){ $tkw=ch_toolkit($aid,'widget',''); $x=($tkw['exec'])('get_order_status',['phone'=>'+'.$wa]);
+        ok(empty($x['orders']) && ($x['error'] ?? '')==='code_required','Datenschutz: Website-Chat bekommt zu fremder Nummer keine Bestellung',json_encode($x,JSON_UNESCAPED_UNICODE));
+        $tkw=ch_toolkit($aid,'whatsapp',$wa); $x=($tkw['exec'])('get_order_status',['phone'=>'+491709999999']);
+        ok(!empty($x['orders']) && ($x['orders'][0]['code'] ?? '')===$wo['code'],'Datenschutz: WhatsApp-Absender sieht nur eigene Bestellung (fremde Nummer ignoriert)'); }
     /* WhatsApp über Meta (Webhook sofort bestätigt, Antwort danach über Graph-API – ohne Zugangsdaten übersprungen) */
     $wm='491700001'.random_int(100,999);
     $meta=['object'=>'whatsapp_business_account','entry'=>[['id'=>'1','changes'=>[['field'=>'messages','value'=>['messaging_product'=>'whatsapp','contacts'=>[['wa_id'=>$wm,'profile'=>['name'=>'Meta Test']]],
           'messages'=>[['from'=>$wm,'id'=>'wamid.'.rnd(12),'timestamp'=>(string)time(),'type'=>'text','text'=>['body'=>'Hallo, bis wann kann man heute bestellen?']]]]]]]]];
-    $r=http('POST',"$BASE/chat/whatsapp-webhook.php?key=$cfgKey",$meta);
+    th_db()->prepare("UPDATE order_settings SET wa_provider='meta' WHERE account_id=?")->execute([$aid]);
+    $mSec=rnd(16); $r=$api('POST','connections',['meta_app_secret'=>$mSec]); ok($r['code']===200,'Verbindungen: Meta App-Secret gespeichert');
+    $rawMeta=json_encode($meta,JSON_UNESCAPED_UNICODE);
+    $r=http('POST',"$BASE/chat/whatsapp-webhook.php?key=$cfgKey",$rawMeta,['X-Hub-Signature-256: sha256='.hash_hmac('sha256',$rawMeta,'falsch')]);
+    ok($r['code']===403,'WhatsApp (Meta): falsche Signatur → 403');
+    $r=http('POST',"$BASE/chat/whatsapp-webhook.php?key=$cfgKey",$rawMeta,['X-Hub-Signature-256: sha256='.hash_hmac('sha256',$rawMeta,$mSec)]);
     ok($r['code']===200,'WhatsApp (Meta): Webhook bestätigt',sprintf('%.2fs (sofortige Bestätigung = %s)',$r['t'],$r['t']<3?'ja':'nein, synchron'));
     $hist=[]; for($i=0;$i<40;$i++){ $hist=ord_wa_session($aid,$wm); if(count($hist)>=2) break; usleep(500000); }
     ok(count($hist)>=2,'WhatsApp (Meta): Antwort im Hintergrund erzeugt',short(end($hist)['content'] ?? '',200));
@@ -201,7 +222,9 @@ if($AI){
     /* Telefon: Twilio-Simulation inkl. Redirect-Abholung */
     sec('Telefon-Webhook (Twilio-Simulation)');
     $self="$BASE/chat/phone-webhook.php?key=$cfgKey";
-    $sign=function(string $url, array $post): array { if(!(defined('TWILIO_AUTH_TOKEN') && TWILIO_AUTH_TOKEN)) return []; $d=$url; ksort($post); foreach($post as $k=>$v) $d.=$k.$v; return ['X-Twilio-Signature: '.base64_encode(hash_hmac('sha1',$d,TWILIO_AUTH_TOKEN,true))]; };
+    $sign=$twSign;   // Konto-Auth-Token aus den Verbindungen
+    $r=http('POST',$self,['CallSid'=>'CA'.rnd(16),'From'=>'+491700001111','To'=>'+4922100000','CallStatus'=>'ringing','Direction'=>'inbound'],[],'form');
+    ok($r['code']===403,'Telefon: Anfrage ohne gültige Twilio-Signatur → 403');
     $turn=function(array $post, ?string $speech=null) use($self,$sign): array {
         $url=$self; $p=$post; if($speech!==null){ $p['SpeechResult']=$speech; $p['Confidence']='0.93'; }
         $said=[]; $t=microtime(true); $hops=0; $twiml='';
@@ -222,10 +245,16 @@ if($AI){
     $call=th_call($sid); $s=th_db()->prepare("SELECT code,total_cents FROM orders WHERE account_id=? AND channel='phone'"); $s->execute([$aid]); $po=$s->fetch(PDO::FETCH_ASSOC);
     ok($call && (int)$call['turns']>=2 && (int)$call['tokens']>0,'Anruf protokolliert (Transkript + Tokens)','Antworten='.($call['turns'] ?? 0).' Tokens='.($call['tokens'] ?? 0).($po?' · Bestellung '.$po['code'].' '.number_format($po['total_cents']/100,2,',','.').' €':' · (noch keine Bestellung)'));
     ok(empty($call['pending']),'Keine hängende Hintergrund-Antwort');
+    $du=$self.'&dial=1'; $dp=array_merge($base,['DialCallStatus'=>'completed']); $r=http('POST',$du,$dp,$sign($du,$dp),'form');
+    ok(str_contains($r['body'],'<Hangup') && !str_contains($r['body'],'<Say'),'Weiterleitung beendet (Dial-Action): kein „niemand frei“ nach erfolgreichem Gespräch');
+    $dp=array_merge($base,['DialCallStatus'=>'no-answer']); $r=http('POST',$du,$dp,$sign($du,$dp),'form');
+    ok(str_contains($r['body'],'<Say') && str_contains($r['body'],'<Hangup'),'Weiterleitung nicht angenommen → Rückruf-Zusage');
     $end=array_merge($base,['CallStatus'=>'completed']); http('POST',$self,$end,$sign($self,$end),'form'); ok((th_call($sid)['status'] ?? '')==='completed','Anrufende (Status-Callback)');
     /* männliche Stimme */
     th_db()->prepare("UPDATE agent_configs SET phone_voice='de-DE-m' WHERE account_id=? AND plan='agent-bestellung'")->execute([$aid]);
     $g2=$turn(['CallSid'=>'CA'.rnd(16)]+$base); ok($g2['voice']!=='' && $g2['voice']!==$g['voice'],'Stimmwahl männlich wirkt',$g2['voice']);
+    th_db()->prepare("UPDATE agent_configs SET phone_voice='tr-TR' WHERE account_id=? AND plan='agent-bestellung'")->execute([$aid]);
+    $g3=$turn(['CallSid'=>'CA'.rnd(16)]+$base); ok(str_contains(implode(' ',$g3['said']),'asistan') && str_contains($g3['twiml'],'language="tr-TR"'),'Türkische Stimme: Begrüßung auf Türkisch',$g3['voice'].' · „'.short(implode(' ',$g3['said']),120).'“');
 }
 } catch(Throwable $e){ ok(false,'Unerwarteter Fehler: '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
 

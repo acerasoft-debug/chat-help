@@ -49,7 +49,7 @@ function charged(array $acc, int $cost, string $task, string $sector, callable $
     $t0=microtime(true);
     if(th_balance((int)$acc['id']) < $cost) th_json(402,['error'=>'insufficient_tokens','need'=>$cost,'balance'=>th_balance((int)$acc['id']),'buy'=>'https://chat-help.com/#tokens']);
     $result=$work();
-    th_debit((int)$acc['id'],$cost,'api:'.$task);
+    $cost=th_charge((int)$acc['id'],$cost,'api:'.$task);   // nach erbrachter Leistung: höchstens Restguthaben
     th_log_usage((int)$acc['id'],$task,$sector,$cost,(int)((microtime(true)-$t0)*1000));
     th_json(200,array_merge(['result'=>$result,'tokens_used'=>$cost,'balance'=>th_balance((int)$acc['id'])],$extra));
 }
@@ -96,6 +96,26 @@ switch(true){
   /* ---- Telefon-Agent: Anrufliste mit Transkripten ---- */
   case $r==='phone/calls' && $m==='GET':
     th_json(200,['calls'=>array_map(fn($c)=>['started_at'=>th_dbiso($c['started_at']),'ended_at'=>th_dbiso($c['ended_at'])]+$c,th_calls($aid,$planId,60))]);
+
+  /* ---- Verbindungen: eigene Twilio-/Meta-Zugangsdaten des Betriebs (Antwort enthält nie den Klartext) ---- */
+  case $r==='connections' && $m==='GET':
+    th_json(200,['connections'=>th_secret_hints($aid),'platform_twilio'=>defined('TWILIO_ACCOUNT_SID') && TWILIO_ACCOUNT_SID ? true : false,'encrypted'=>defined('CH_SECRET_KEY') && CH_SECRET_KEY ? true : false]);
+  case $r==='connections' && $m==='POST':
+    $rules=['twilio_sid'=>'/^AC[a-f0-9]{32}$/','twilio_token'=>'/^[a-f0-9]{32}$/','meta_app_secret'=>'/^[a-f0-9]{32}$/'];
+    $chg=[];
+    foreach(TH_SECRET_KEYS as $k){ if(!array_key_exists($k,$b)) continue; $v=trim((string)$b[$k]); if(str_starts_with($v,'••••')) continue;
+        if($v!=='' && $k==='twilio_from'){ $v=th_e164($v); if($v==='') th_json(422,['error'=>'bad_value','field'=>$k,'message'=>'Absender-Nummer bitte im Format +49…']); }
+        elseif($v!=='' && isset($rules[$k]) && !preg_match($rules[$k],$v)) th_json(422,['error'=>'bad_value','field'=>$k,'message'=>['twilio_sid'=>'Account SID beginnt mit AC und hat 34 Zeichen.','twilio_token'=>'Auth Token: 32 Zeichen (0–9, a–f).','meta_app_secret'=>'App-Secret: 32 Zeichen (0–9, a–f).'][$k]]);
+        $chg[$k]=$v; }
+    /* Twilio-Zugang vor dem Speichern prüfen (nur wenn beide Teile vorliegen) */
+    $sid=$chg['twilio_sid'] ?? th_secret($aid,'twilio_sid'); $tok=$chg['twilio_token'] ?? th_secret($aid,'twilio_token'); $verified=null;
+    if((isset($chg['twilio_sid']) || isset($chg['twilio_token'])) && $sid!=='' && $tok!==''){
+        $ch=curl_init('https://api.twilio.com/2010-04-01/Accounts/'.rawurlencode($sid).'.json'); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>12,CURLOPT_USERPWD=>$sid.':'.$tok]);
+        curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch); $verified=$code===200;
+        if($code===401 || $code===404) th_json(422,['error'=>'twilio_auth_failed','message'=>'Twilio hat SID/Token abgelehnt – bitte in der Twilio-Console (Account Info) prüfen.']);
+    }
+    foreach($chg as $k=>$v) th_secret_set($aid,$k,$v);
+    th_json(200,['ok'=>true,'connections'=>th_secret_hints($aid),'twilio_verified'=>$verified]);
 
   /* ---- Terminbuchung (Kalender des Kontos) ---- */
   case $r==='appt/settings' && $m==='GET':
@@ -179,7 +199,7 @@ switch(true){
         $work = function() use($sys,$msgs,$phone,$tk){ $out=th_ai_tools($sys,$msgs,$tk['tools'],$tk['exec'],$phone?400:1800,90); if($out===null) th_json(503,['error'=>'ai_unavailable','detail'=>th_ai_info()['errors'] ?? []]); return $out; };
         $t0=microtime(true); if(th_balance($aid) < $cost) th_json(402,['error'=>'insufficient_tokens','need'=>$cost,'balance'=>th_balance($aid),'buy'=>'https://chat-help.com/#preise']);
         $result=$work(); $calls=th_ai_info()['tool_calls'] ?? []; $cost += 2*count($calls);
-        th_debit($aid,$cost,($phone?'phone-test:':'agent:').$planId); th_log_usage($aid,'agent:'.$planId,$pl['sector'],$cost,(int)((microtime(true)-$t0)*1000));
+        $cost=th_charge($aid,$cost,($phone?'phone-test:':'agent:').$planId); th_log_usage($aid,'agent:'.$planId,$pl['sector'],$cost,(int)((microtime(true)-$t0)*1000));
         th_json(200,['result'=>$result,'tokens_used'=>$cost,'balance'=>th_balance($aid),'plan'=>$planId,'access'=>$active?'plan':'tokens','tools'=>array_map(fn($c)=>['name'=>$c['name'],'ok'=>$c['ok']],$calls)]);
     }
     charged($acc,$cost,($phone?'phone-test:':'agent:').$planId,$pl['sector'],fn()=>ai_chat($sys,$msgs,$phone?400:2200),['plan'=>$planId,'access'=>$active?'plan':'tokens']);

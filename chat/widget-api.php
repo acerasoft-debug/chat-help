@@ -35,9 +35,8 @@ if($_SERVER['REQUEST_METHOD']==='GET'){
       'greeting'=>($w['lang']??'de')==='en' ? "Hi! I'm the assistant of $company. How can I help?" : (($w['lang']??'de')==='tr' ? "Merhaba! $company asistanıyım. Nasıl yardımcı olabilirim?" : "Hallo! Ich bin der Assistent von $company. Wie kann ich helfen?")]);
 }
 
-/* Hız sınırı: hesap başına 60 mesaj / dakika */
-$c=th_db()->prepare("SELECT COUNT(*) FROM api_usage WHERE account_id=? AND task='widget' AND created_at > (NOW() - INTERVAL 1 MINUTE)"); $c->execute([$aid]);
-if((int)$c->fetchColumn() >= 60) th_json(429,['error'=>'rate_limited','message'=>'Bitte einen Moment warten.']);
+/* Mengenlimits (öffentlicher Schlüssel → Schutz des Token-Guthabens): je Besucher-IP 30 Nachrichten / 10 Min, je Konto 60 / Min und 1.500 / Tag */
+if(!th_rate('w:'.$aid.':'.th_client_ip(),30,600) || !th_rate('wa:'.$aid,60,60) || !th_rate('wd:'.$aid,1500,86400)) th_json(429,['error'=>'rate_limited','message'=>'Bitte einen Moment warten.']);
 
 $msgs=is_array($in['messages']??null)?array_slice($in['messages'],-12):[];
 $clean=[]; foreach($msgs as $m){ $role=($m['role']??'user')==='assistant'?'assistant':'user'; $t=trim((string)($m['content']??'')); if($t!=='') $clean[]=['role'=>$role,'content'=>mb_substr($t,0,3000)]; }
@@ -55,6 +54,6 @@ $tk=ch_toolkit($aid,'widget');
 if($tk['tools']){ $system.=$tk['hint']; $answer=th_ai_tools($system,$clean,$tk['tools'],$tk['exec'],900,75); $cost+=2*count(th_ai_info()['tool_calls'] ?? []); }
 else $answer = th_ai($system, $clean, 700, 60);   // Claude model zinciri → DeepSeek (tokens-lib)
 if($answer===null) th_json(503,['error'=>'ai_unavailable']);
-th_debit($aid,$cost,'widget:'.$pl['id']);
+$cost=th_charge($aid,$cost,'widget:'.$pl['id']);
 th_log_usage($aid,'widget',$pl['sector'],$cost,(int)((microtime(true)-$t0)*1000));
 th_json(200,['reply'=>$answer]);
