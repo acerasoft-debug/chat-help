@@ -111,10 +111,12 @@ jobs:
           set -e
           sudo apt-get update -qq && sudo apt-get install -y -qq php-cli sshpass lftp dnsutils > /dev/null
           [ -f deploy-manifest.txt ] || { echo "::error::deploy-manifest.txt yok"; exit 1; }
-          grep -vE '^\s*(#|$)' deploy-manifest.txt | while read -r SRC DST; do
+          mapfile -t MAN < <(grep -vE '^\s*(#|$)' deploy-manifest.txt)
+          for L in "${MAN[@]}"; do set -- $L; SRC="$1"
             [ -f "$SRC" ] || { echo "::error::manifest: $SRC yok"; exit 1; }
             case "$SRC" in *.php) php -l "$SRC" || exit 1;; *) echo "ok $SRC";; esac
           done
+          echo "manifest: ${#MAN[@]} dosya"
           if [ "$TOOLS" = "true" ]; then
             for f in chat/open-signup.php chat/mail-api.php chat/fix-geo.php chat/fix-mail.php; do [ -f "$f" ] && php -l "$f" || echo "(yok, atlandı) $f"; done
           fi
@@ -257,7 +259,7 @@ jobs:
           echo "docroot    : ${{ steps.disc.outputs.dest }}${{ steps.discl.outputs.dest }}"
           echo "dry_run    : ${{ github.event.inputs.dry_run }}   root_index: $ROOTIDX"
           echo "kopyalanacak:"
-          grep -vE '^\s*(#|$)' deploy-manifest.txt | while read -r SRC DST; do echo "  $SRC -> DOCROOT/$DST"; done
+          mapfile -t MAN < <(grep -vE '^\s*(#|$)' deploy-manifest.txt); for L in "${MAN[@]}"; do set -- $L; echo "  $1 -> DOCROOT/$2"; done
           echo "  (kök index.html eskisi: index.html.bak-<ts>)"
           [ "$TOOLS" = "true" ] && echo "  + chat/open-signup.php, mail-api.php, fix-geo.php, fix-mail.php (tek-seferlik, sonra sil)"
           [ "$ROOTIDX" = "true" ] && echo "  + kökte index.php varsa .htaccess: DirectoryIndex index.html index.php (eski: .htaccess.bak-<ts>)"
@@ -270,10 +272,13 @@ jobs:
           DEST="${{ steps.disc.outputs.dest }}"; TS=$(date +%Y%m%d-%H%M%S)
           case "$DEST" in auto|"") echo "::error::docroot belirlenemedi; target'i elle ver"; exit 1;; esac
           $SSHCMD "$SRV" "cd $DEST && ( [ -f index.html ] && cp index.html index.html.bak-$TS || true ) && mkdir -p chat"
-          if $SSHCMD "$SRV" "command -v rsync >/dev/null"; then CP(){ rsync -az -e "$SSHCMD" "$@"; }; echo "aktarım: rsync"; else CP(){ $SCPCMD -q "$@"; }; echo "aktarım: scp (sunucuda rsync yok)"; fi
-          grep -vE '^\s*(#|$)' deploy-manifest.txt | while read -r SRC DST; do
-            D=$(dirname "$DST"); [ "$D" = "." ] || $SSHCMD "$SRV" "mkdir -p $DEST/$D"
-            CP "$SRC" "$SRV:$DEST/$DST" && echo "  -> $DST"
+          if $SSHCMD -n "$SRV" "command -v rsync >/dev/null"; then CP(){ rsync -az -e "$SSHCMD" "$@" </dev/null; }; echo "aktarım: rsync"; else CP(){ $SCPCMD -q "$@" </dev/null; }; echo "aktarım: scp (sunucuda rsync yok)"; fi
+          # NOT: ssh/rsync stdin'i yutar → manifest önce diziye okunur (pipe+while ile 2. satırdan sonrası kayboluyordu)
+          mapfile -t MAN < <(grep -vE '^\s*(#|$)' deploy-manifest.txt)
+          DIRS=$(for L in "${MAN[@]}"; do set -- $L; dirname "$2"; done | sort -u | grep -v '^\.$' | sed "s#^#$DEST/#" | tr '\n' ' ')
+          [ -n "$DIRS" ] && $SSHCMD -n "$SRV" "mkdir -p $DIRS"
+          for L in "${MAN[@]}"; do set -- $L; SRC="$1"; DST="$2"
+            CP "$SRC" "$SRV:$DEST/$DST" </dev/null && echo "  -> $DST" || { echo "::error::kopyalanamadi: $SRC"; exit 1; }
           done
           if [ "$TOOLS" = "true" ]; then
             for f in chat/open-signup.php chat/mail-api.php chat/fix-geo.php chat/fix-mail.php; do [ -f "$f" ] && CP "$f" "$SRV:$DEST/chat/"; done
