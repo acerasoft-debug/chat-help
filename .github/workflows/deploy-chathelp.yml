@@ -1,0 +1,430 @@
+name: chat-help.com yayına al (site + Token/API backend)
+
+# BULGULAR
+# - DEPLOY_* secret'ları VESTRA sunucusuna (cPanel: vestrasales.com / sarvesto.com) çıkıyor; chat-help.com orada yok.
+# - chat-help.com → 160.153.0.182 (secureserver.net = Host Europe / GoDaddy altyapısı), Host Europe "WordPress Hosting"
+#   (Managed WordPress) ürünü. Bu üründe genelde KABUK (ssh komutu) yok, yalnız SFTP var → bu workflow SFTP ile de çalışır.
+#
+# Host Europe → Mein Hosting → Einstellungen → "Produktions-Website" sütunu → "Anzeigen": SFTP/SSH Hostname, Port,
+# Benutzername, Passwort (orada değiştirilebilir). Bunları GitHub'a secret olarak gir (sohbete YAZMA):
+#   GitHub → Settings → Secrets and variables → Actions → New repository secret
+#     CHATHELP_USER      SFTP/SSH kullanıcı adı
+#     CHATHELP_PASSWORD  şifre        —veya—   CHATHELP_SSH_KEY  (PEM özel anahtar)
+#     CHATHELP_HOST      (isteğe bağlı) varsayılan 145450.eu11.ssh.myftpupload.com  (panel: SSH/SFTP)
+#     CHATHELP_PORT      (isteğe bağlı) varsayılan 22
+#   Panel bilgisi: HTTPS 145450.eu11.myftpupload.com · SSH/SFTP 145450.eu11.ssh.myftpupload.com · eski: pzs.085.myftpupload.com
+#   Düz FTP varsa:       CHATHELP_FTP_HOST, CHATHELP_FTP_USER, CHATHELP_FTP_PASSWORD
+#
+# PLATFORM NOTU (Managed WordPress): .htaccess doğrudan işlenmez; platform onu nginx kurallarına ÇEVİRİR (~20 sn gecikme,
+# kayıt: html/.htaccess.log). DirectoryIndex/Options/Header/php_flag DESTEKLENMEZ; basit RewriteRule'lar desteklenir.
+# Kökte yeni index.html'in görünmesi için 'RewriteRule ^$ /index.html [L]' kullanılır (fix_root_redirect). Kenar CDN (Cloudflare)
+# ve origin sayfa önbelleği birkaç dakika eski kopyayı verebilir; tarayıcıya max-age=31 gün gönderilir → gizli pencere ile test et.
+# BAĞLANTI MODU otomatik: kabuk çalışıyorsa ssh+rsync, çalışmıyorsa SFTP (lftp), FTP secret'ları varsa FTP.
+# GÜVENLİ: --delete YOK; mevcut uygulama (chat/auth.php, db.php, chat/index.php, WordPress) ASLA yazılmaz; yalnız yeni
+# dosyalar kopyalanır; kök index.html ve .htaccess önce yedeklenir (*.bak-<ts>).
+# root_index=true: docroot'ta index.php (WordPress) varsa .htaccess'e "DirectoryIndex index.html index.php" konur →
+#   kökte yeni site görünür, /chat/ ve /wp-admin/ çalışmaya devam eder. WordPress ana sayfası kalsın istiyorsan false.
+#
+# 1) dry_run=true  : hosting tespiti + bağlantı testi + docroot keşfi (chat/auth.php içeren klasör) + kök analizi. KOPYALAMAZ.
+# 2) dry_run=false : kopyalar, https://chat-help.com/chat/api.php/v1/sectors ve / ile doğrular.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Dosyaların alınacağı dal (site/ + chat/*.php)"
+        required: true
+        default: "claude/chat-help-system-video-x0nofb"
+      target:
+        description: "Docroot (ör. html, /html, ~/public_html). 'auto' = chat/auth.php içeren tek klasörü bul"
+        required: true
+        default: "auto"
+      dry_run:
+        description: "true = sadece keşfet + planı yaz, KOPYALAMA"
+        required: true
+        default: "true"
+      include_tools:
+        description: "true = bekleyen tek-seferlik fix scriptlerini de kopyala (open-signup, mail-api, fix-geo, fix-mail)"
+        required: true
+        default: "true"
+      root_index:
+        description: "true = kökte index.php/WordPress varsa .htaccess DirectoryIndex ile yeni site/index.html'i öne al (yedekli)"
+        required: true
+        default: "true"
+      secrets_prefix:
+        description: "Secret ön eki (CHATHELP → CHATHELP_HOST vb.). Vestra bağlantısını denemek için DEPLOY"
+        required: true
+        default: "CHATHELP"
+      verify_only:
+        description: "true = kopyalama yok; sunucu tarafı kontrol + geniş canlı doğrulama (başlıklar, yönlendirme, önbellek)"
+        required: false
+        default: "false"
+      flush_cache:
+        description: "true = sunucuda WP-CLI ile önbellek temizlemeyi dene (varsa)"
+        required: false
+        default: "false"
+      apply_skin:
+        description: "true = Recht uygulaması (chat/index.php) </head> önüne skin.css + skin.js bağlantısını ekle/güncelle (yedekli, idempotent)"
+        required: false
+        default: "false"
+      fix_root_redirect:
+        description: "true = .htaccess'teki 'RewriteRule ^$ /chat/ [R=302,L]' kök yönlendirmesini devre dışı bırak (yedekli) → yeni ana sayfa kökte"
+        required: false
+        default: "false"
+      sftp_user:
+        description: "GEÇİCİ: secret yoksa SFTP/SSH kullanıcı adı (loga yazılmaz)"
+        required: false
+        default: ""
+      sftp_password:
+        description: "GEÇİCİ: secret yoksa SFTP/SSH şifresi (maskelenir, loga yazılmaz; sonra şifreyi değiştir)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CH_HOST: ${{ secrets[format('{0}_HOST', github.event.inputs.secrets_prefix)] || vars[format('{0}_HOST', github.event.inputs.secrets_prefix)] || secrets.SFTP_HOST || vars.SFTP_HOST }}
+      CH_USER: ${{ secrets[format('{0}_USER', github.event.inputs.secrets_prefix)] || secrets[format('{0}_USERNAME', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SFTP_USER', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SSH_USER', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SFTP_USERNAME', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SSH_USERNAME', github.event.inputs.secrets_prefix)] || secrets[format('{0}_BENUTZER', github.event.inputs.secrets_prefix)] || secrets[format('{0}_BENUTZERNAME', github.event.inputs.secrets_prefix)] || secrets[format('{0}_KULLANICI', github.event.inputs.secrets_prefix)] || secrets[format('{0}_LOGIN', github.event.inputs.secrets_prefix)] || secrets.SFTP_USER || secrets.SSH_USER || secrets.SFTP_USERNAME || secrets.SSH_USERNAME || secrets.HOSTEUROPE_USER || secrets.HE_USER || secrets.CHAT_HELP_USER || secrets.CHAT_HELP_USERNAME || secrets.CHATHELPCOM_USER || secrets.WP_SFTP_USER || secrets.USERNAME || secrets.USER || vars[format('{0}_USER', github.event.inputs.secrets_prefix)] || vars[format('{0}_USERNAME', github.event.inputs.secrets_prefix)] || vars[format('{0}_SFTP_USER', github.event.inputs.secrets_prefix)] || vars[format('{0}_SSH_USER', github.event.inputs.secrets_prefix)] || vars[format('{0}_SFTP_USERNAME', github.event.inputs.secrets_prefix)] || vars[format('{0}_SSH_USERNAME', github.event.inputs.secrets_prefix)] || vars[format('{0}_BENUTZER', github.event.inputs.secrets_prefix)] || vars[format('{0}_BENUTZERNAME', github.event.inputs.secrets_prefix)] || vars[format('{0}_KULLANICI', github.event.inputs.secrets_prefix)] || vars[format('{0}_LOGIN', github.event.inputs.secrets_prefix)] || vars.SFTP_USER || vars.SSH_USER || vars.SFTP_USERNAME || vars.SSH_USERNAME || vars.HOSTEUROPE_USER || vars.HE_USER }}
+      CH_KEY:  ${{ secrets[format('{0}_SSH_KEY', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SSH_PRIVATE_KEY', github.event.inputs.secrets_prefix)] || secrets[format('{0}_PRIVATE_KEY', github.event.inputs.secrets_prefix)] || secrets[format('{0}_KEY', github.event.inputs.secrets_prefix)] || secrets.SFTP_SSH_KEY || secrets.SSH_PRIVATE_KEY }}
+      CH_PASS: ${{ secrets[format('{0}_PASSWORD', github.event.inputs.secrets_prefix)] || secrets[format('{0}_PASS', github.event.inputs.secrets_prefix)] || secrets[format('{0}_PW', github.event.inputs.secrets_prefix)] || secrets[format('{0}_PWD', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SFTP_PASSWORD', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SSH_PASSWORD', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SFTP_PASS', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SSH_PASS', github.event.inputs.secrets_prefix)] || secrets[format('{0}_PASSWORT', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SIFRE', github.event.inputs.secrets_prefix)] || secrets.SFTP_PASSWORD || secrets.SSH_PASSWORD || secrets.SFTP_PASS || secrets.SSH_PASS || secrets.HOSTEUROPE_PASSWORD || secrets.HE_PASSWORD || secrets.CHAT_HELP_PASSWORD || secrets.CHAT_HELP_PASS || secrets.CHATHELPCOM_PASSWORD || secrets.WP_SFTP_PASSWORD || secrets.PASSWORD || secrets.PASSWORT || vars[format('{0}_PASSWORD', github.event.inputs.secrets_prefix)] || vars[format('{0}_PASS', github.event.inputs.secrets_prefix)] || vars[format('{0}_PW', github.event.inputs.secrets_prefix)] || vars[format('{0}_PWD', github.event.inputs.secrets_prefix)] || vars.SFTP_PASSWORD || vars.SSH_PASSWORD || vars.SFTP_PASS || vars.SSH_PASS }}
+      CH_PORT: ${{ secrets[format('{0}_PORT', github.event.inputs.secrets_prefix)] || vars[format('{0}_PORT', github.event.inputs.secrets_prefix)] || secrets.SFTP_PORT || vars.SFTP_PORT }}
+      FTP_HOST: ${{ secrets[format('{0}_FTP_HOST', github.event.inputs.secrets_prefix)] }}
+      FTP_USER: ${{ secrets[format('{0}_FTP_USER', github.event.inputs.secrets_prefix)] }}
+      FTP_PASS: ${{ secrets[format('{0}_FTP_PASSWORD', github.event.inputs.secrets_prefix)] }}
+      TOOLS: ${{ github.event.inputs.include_tools }}
+      ROOTIDX: ${{ github.event.inputs.root_index }}
+      TARGET_IN: ${{ github.event.inputs.target }}
+      VERIFY_ONLY: ${{ github.event.inputs.verify_only }}
+      FLUSH: ${{ github.event.inputs.flush_cache }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref }}
+
+      - name: Secret eşleşmesi (değer yazılmaz)
+        run: |
+          echo "Beklenen: ${{ github.event.inputs.secrets_prefix }}_USER + ${{ github.event.inputs.secrets_prefix }}_PASSWORD (veya _SSH_KEY); isteğe bağlı _HOST, _PORT"
+          echo "Eşleşme: USER=$([ -n "$CH_USER" ] && echo var || echo YOK)  PASSWORD/KEY=$([ -n "$CH_PASS$CH_KEY" ] && echo var || echo YOK)  HOST=$([ -n "$CH_HOST" ] && echo var || echo 'yok (varsayılan kullanılır)')  PORT=$([ -n "$CH_PORT" ] && echo var || echo 'yok (22)')"
+
+      - name: Dosyaları doğrula + PHP sözdizimi
+        run: |
+          set -e
+          sudo apt-get update -qq && sudo apt-get install -y -qq php-cli sshpass lftp dnsutils > /dev/null
+          [ -f deploy-manifest.txt ] || { echo "::error::deploy-manifest.txt yok"; exit 1; }
+          mapfile -t MAN < <(grep -vE '^\s*(#|$)' deploy-manifest.txt)
+          for L in "${MAN[@]}"; do set -- $L; SRC="$1"
+            [ -f "$SRC" ] || { echo "::error::manifest: $SRC yok"; exit 1; }
+            case "$SRC" in *.php) php -l "$SRC" || exit 1;; *) echo "ok $SRC";; esac
+          done
+          echo "manifest: ${#MAN[@]} dosya"
+          if [ "$TOOLS" = "true" ]; then
+            for f in chat/open-signup.php chat/mail-api.php chat/fix-geo.php chat/fix-mail.php; do [ -f "$f" ] && php -l "$f" || echo "(yok, atlandı) $f"; done
+          fi
+
+      - name: Hosting tespiti (DNS / sunucu başlığı)
+        run: |
+          set +e
+          echo "--- chat-help.com A kaydı ---"; IP=$(dig +short chat-help.com A | head -1); echo "${IP:-?}"
+          [ -n "$IP" ] && { echo "--- ters DNS ---"; dig +short -x "$IP"; }
+          echo "--- MX ---"; dig +short chat-help.com MX | head -3
+          echo "--- NS ---"; dig +short chat-help.com NS | head -3
+          echo "--- HTTP başlıkları ---"; curl -sSI -m 15 https://chat-help.com/ | grep -iE '^(server|x-powered-by|via|cf-ray|link):' || echo "(başlık yok)"
+          echo "--- kök WordPress mi? ---"; curl -sS -m 15 https://chat-help.com/ | grep -oiE 'wp-content|wp-includes|generator" content="WordPress[^"]*' | sort -u | head -3 || true
+          echo "--- /chat/ ---"; curl -sS -m 15 -o /dev/null -w "HTTP %{http_code}\n" https://chat-help.com/chat/
+
+      - name: Bağlantı türü + kabuk testi
+        id: mode
+        run: |
+          # Secret değerlerinin başındaki/sonundaki boşluk, CR ve satır sonlarını temizle (panelden kopyalarken sık olur)
+          trim(){ local v="$1"; v="${v//$'\r'/}"; v="${v#"${v%%[![:space:]]*}"}"; v="${v%"${v##*[![:space:]]}"}"; printf '%s' "$v"; }
+          CH_USER=$(trim "$CH_USER"); CH_PASS=$(trim "$CH_PASS"); CH_HOST=$(trim "$CH_HOST"); CH_PORT=$(trim "$CH_PORT")
+          FTP_HOST=$(trim "$FTP_HOST"); FTP_USER=$(trim "$FTP_USER"); FTP_PASS=$(trim "$FTP_PASS")
+          case "$CH_USER$CH_PASS$CH_HOST$CH_PORT" in *[[:space:]]*) echo "::error::Kullanıcı adı/şifre/host/port içinde boşluk veya satır sonu var; secret'ı tek satır olarak yeniden kaydet."; exit 1;; esac
+          MODE=none; P="${CH_PORT:-22}"
+          if [ -z "$CH_USER" ] || [ -z "$CH_PASS$CH_KEY" ]; then
+            IU=$(jq -r '.inputs.sftp_user // ""' "$GITHUB_EVENT_PATH"); IPW=$(jq -r '.inputs.sftp_password // ""' "$GITHUB_EVENT_PATH")
+            [ -n "$IPW" ] && echo "::add-mask::$IPW"; [ -n "$IU" ] && echo "::add-mask::$IU"
+            if [ -z "$CH_USER" ] && [ -n "$IU" ]; then CH_USER="$IU"; echo "kullanıcı adı: dispatch girdisinden (maskelendi)"; fi
+            if [ -z "$CH_PASS$CH_KEY" ] && [ -n "$IPW" ]; then CH_PASS="$IPW"; echo "şifre: dispatch girdisinden (maskelendi)"; echo "::warning::Şifre workflow girdisiyle verildi. Yükleme bitince Host Europe'ta şifreyi DEĞİŞTİR ve yenisini CHATHELP_PASSWORD secret'ına koy."; fi
+          fi
+          # Host Europe panelinden (Produktions-Website → Anzeigen): SSH/SFTP sunucusu. Secret verilmediyse bu kullanılır.
+          CH_HOST="${CH_HOST:-145450.eu11.ssh.myftpupload.com}"
+          if [ -n "$CH_USER" ] && { [ -n "$CH_KEY" ] || [ -n "$CH_PASS" ]; }; then
+            mkdir -p ~/.ssh
+            if [ -n "$CH_KEY" ]; then
+              printf '%s\n' "$CH_KEY" > ~/.ssh/id_deploy; chmod 600 ~/.ssh/id_deploy
+              SSHCMD="ssh -i $HOME/.ssh/id_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=25 -p $P"
+              SCPCMD="scp -i $HOME/.ssh/id_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=25 -P $P"
+              LOPEN="set sftp:connect-program \"ssh -a -x -i $HOME/.ssh/id_deploy -o StrictHostKeyChecking=no\"; open -u $CH_USER,x -p $P sftp://$CH_HOST"
+            else
+              echo "SSHPASS=$CH_PASS" >> $GITHUB_ENV; export SSHPASS="$CH_PASS"
+              SSHCMD="sshpass -e ssh -o StrictHostKeyChecking=no -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no -o ConnectTimeout=25 -p $P"
+              SCPCMD="sshpass -e scp -o StrictHostKeyChecking=no -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no -o ConnectTimeout=25 -P $P"
+              echo "LFTP_PASSWORD=$CH_PASS" >> $GITHUB_ENV
+              LOPEN="set sftp:connect-program \"sshpass -e ssh -a -x -o StrictHostKeyChecking=no -o PubkeyAuthentication=no\"; open -u $CH_USER --env-password -p $P sftp://$CH_HOST"
+            fi
+            echo "SSHCMD=$SSHCMD" >> $GITHUB_ENV; echo "SCPCMD=$SCPCMD" >> $GITHUB_ENV; echo "SRV=$CH_USER@$CH_HOST" >> $GITHUB_ENV
+            echo "LFTP_OPEN=set net:timeout 30; set net:max-retries 2; set net:reconnect-interval-base 5; set ssl:verify-certificate no; $LOPEN" >> $GITHUB_ENV
+            SRC_U="${{ github.event.inputs.secrets_prefix }}_USER"; SRC_P="${{ github.event.inputs.secrets_prefix }}_PASSWORD"; [ -n "$CH_KEY" ] && SRC_P="SSH_KEY"
+            echo "kimlik kaynağı: kullanıcı=$SRC_U  şifre/anahtar=$SRC_P  (kullanıcı adı uzunluğu ${#CH_USER}, şifre uzunluğu ${#CH_PASS})"
+            echo "kabuk testi ($CH_HOST:$P)..."
+            RC=0; OUT=$($SSHCMD "$CH_USER@$CH_HOST" 'echo SHELL_OK; echo "HOME=$HOME PWD=$(pwd)"' 2>&1) || RC=$?
+            if echo "$OUT" | grep -q SHELL_OK; then MODE=ssh; echo "$OUT"
+            elif [ "$RC" = 5 ] || echo "$OUT" | grep -qiE 'Permission denied|Authentication failed|password.*incorrect'; then
+              echo "$OUT" | tail -5
+              echo "::error::Sunucu kullanıcı adı/şifreyi REDDETTİ (rc=$RC). Kaynak: kullanıcı=$SRC_U şifre=$SRC_P. Host Europe → Produktions-Website → Anzeigen'daki SFTP Benutzername ve Passwort ile GitHub'daki CHATHELP_USER / CHATHELP_PASSWORD birebir aynı olmalı (gerekirse panelde yeni şifre belirle ve secret'ı güncelle)."
+              echo "mode=auth-failed" >> $GITHUB_OUTPUT; exit 1
+            elif [ "$RC" = 6 ] || echo "$OUT" | grep -qiE 'Could not resolve|Connection (timed out|refused)|No route to host'; then
+              echo "$OUT" | tail -5; echo "::error::Sunucuya ulaşılamadı ($CH_HOST:$P, rc=$RC). CHATHELP_HOST/PORT değerini kontrol et."
+              echo "mode=net-failed" >> $GITHUB_OUTPUT; exit 1
+            else MODE=sftp; echo "kabuk yok/kapalı (rc=$RC) -> SFTP modu. ssh çıktısı:"; echo "$OUT" | tail -5; fi
+          elif [ -n "$FTP_HOST" ] && [ -n "$FTP_USER" ] && [ -n "$FTP_PASS" ]; then
+            MODE=ftp; echo "LFTP_PASSWORD=$FTP_PASS" >> $GITHUB_ENV
+            echo "LFTP_OPEN=set net:timeout 30; set net:max-retries 2; set ssl:verify-certificate no; set ftp:ssl-allow yes; open -u $FTP_USER --env-password ftp://$FTP_HOST" >> $GITHUB_ENV
+          fi
+          echo "mode=$MODE" >> $GITHUB_OUTPUT
+          echo "BAGLANTI: $MODE  (secret ön eki: ${{ github.event.inputs.secrets_prefix }})"
+          if [ "$MODE" = none ]; then
+            case "$CH_HOST" in *.*) echo "HOST: hostname gibi görünüyor";; *) echo "::warning::HOST hostname gibi DEĞİL (içine kullanıcı adı mı girildi?)";; esac
+            if printf '%s' "$CH_PORT" | grep -qE '^[0-9]{1,5}$'; then echo "PORT: sayısal"; else echo "::warning::PORT sayısal DEĞİL (içine şifre/kullanıcı mı girildi? uzunluk: ${#CH_PORT})"; fi
+            echo "::error::chat-help.com için bağlantı secret'ları yok. Ekle: ${{ github.event.inputs.secrets_prefix }}_USER + ${{ github.event.inputs.secrets_prefix }}_PASSWORD (veya _SSH_KEY). Sunucu varsayılan: $CH_HOST:$P (_HOST/_PORT ile değiştirilebilir)  —ya da—  _FTP_HOST + _FTP_USER + _FTP_PASSWORD"
+            exit 1
+          fi
+
+      - name: Docroot keşfi (SSH kabuk)
+        if: ${{ steps.mode.outputs.mode == 'ssh' }}
+        id: disc
+        run: |
+          set -e
+          OUT=$($SSHCMD "$SRV" '
+            echo "HOME=$HOME  PWD=$(pwd)  HOST=$(hostname 2>/dev/null)"
+            for d in ~/html ~/public_html ~/www ~/htdocs ~/httpdocs ~/web ~/*/ ~/public_html/*/ ~/www/*/ ~/domains/*/public_html "$(pwd)" "$(pwd)"/*/; do
+              d="${d%/}"; [ -f "$d/chat/auth.php" ] && echo "CANDIDATE:$d"
+            done
+            find ~ "$(pwd)" -maxdepth 5 -path "*/chat/auth.php" -not -path "*/.*" 2>/dev/null | sed "s#/chat/auth.php\$##; s#^#CANDIDATE:#"
+            find ~ "$(pwd)" -maxdepth 4 -name wp-config.php -not -path "*/.*" 2>/dev/null | sed "s#/wp-config.php\$##; s#^#WPROOT:#"
+            echo "--- ev dizini ---"; ls -la ~ 2>/dev/null | head -40
+          ')
+          echo "$OUT"
+          CANDS=$(echo "$OUT" | grep '^CANDIDATE:' | sed 's/^CANDIDATE://' | sort -u)
+          N=$(echo "$CANDS" | grep -c . || true)
+          echo "aday sayisi: $N"; echo "$CANDS"
+          T="$TARGET_IN"
+          if [ "$T" = "auto" ]; then
+            if [ "$N" -eq 1 ]; then T="$CANDS"; else echo "::warning::auto icin tam 1 aday gerekli (bulunan: $N). target'i elle ver."; fi
+          fi
+          echo "dest=$T" >> $GITHUB_OUTPUT
+          echo "SECILEN DOCROOT: $T"
+          case "$T" in auto|"") ;; *)
+            echo "--- kök analizi ($T) ---"
+            $SSHCMD "$SRV" "cd $T && ls -la | head -40; [ -f wp-config.php ] && echo 'WORDPRESS: evet' || echo 'WORDPRESS: hayir'; [ -f index.php ] && echo 'index.php: var' || echo 'index.php: yok'; [ -f index.html ] && echo 'index.html: var' || echo 'index.html: yok'; echo '--- .htaccess DirectoryIndex ---'; grep -i DirectoryIndex .htaccess 2>/dev/null || echo '(yok)'";;
+          esac
+
+      - name: Docroot keşfi (SFTP/FTP)
+        if: ${{ steps.mode.outputs.mode == 'sftp' || steps.mode.outputs.mode == 'ftp' }}
+        id: discl
+        run: |
+          set -e
+          lf(){ printf '%s\n%s\nquit\n' "$LFTP_OPEN" "$1" > /tmp/lf.cmd; lftp -f /tmp/lf.cmd; }
+          echo "--- bağlantı / kök ---"
+          lf "pwd; cls -la" 2>&1 | head -60
+          echo "--- hızlı adaylar ---"
+          OUT=$(lf "cls -1 html/chat/auth.php public_html/chat/auth.php chat/auth.php www/chat/auth.php htdocs/chat/auth.php httpdocs/chat/auth.php web/chat/auth.php" 2>/dev/null || true)
+          if ! echo "$OUT" | grep -q 'chat/auth.php'; then
+            echo "(hızlı adaylarda yok, find -d 4 ...)"; OUT=$(lf "find -d 4 ." 2>/dev/null | grep -E '/chat/auth\.php$|/wp-config\.php$' || true)
+          fi
+          echo "$OUT"
+          CANDS=$(echo "$OUT" | grep -E 'chat/auth\.php$' | sed -E 's#/?chat/auth\.php$##; s#^\./##; s#^$#.#' | sort -u)
+          echo "$OUT" | grep -E 'wp-config\.php$' | sed -E 's#/wp-config\.php$##; s#^#WPROOT:#' || true
+          N=$(echo "$CANDS" | grep -c . || true)
+          echo "aday sayisi: $N"; echo "$CANDS"
+          T="$TARGET_IN"
+          if [ "$T" = "auto" ]; then
+            if [ "$N" -eq 1 ]; then T="$CANDS"; else echo "::warning::auto icin tam 1 aday gerekli (bulunan: $N). target'i elle ver."; fi
+          fi
+          echo "dest=$T" >> $GITHUB_OUTPUT
+          echo "SECILEN DOCROOT: $T"
+          case "$T" in auto|"") ;; *)
+            echo "--- kök analizi ($T) ---"; lf "cls -la $T" 2>&1 | head -40
+            lf "cls -1 $T/wp-config.php" >/dev/null 2>&1 && echo "WORDPRESS: evet" || echo "WORDPRESS: hayir"
+            lf "cls -1 $T/index.php" >/dev/null 2>&1 && echo "index.php: var" || echo "index.php: yok"
+            lf "cls -1 $T/index.html" >/dev/null 2>&1 && echo "index.html: var" || echo "index.html: yok"
+            echo "--- .htaccess DirectoryIndex ---"; lf "cat $T/.htaccess" 2>/dev/null | grep -i DirectoryIndex || echo "(yok)";;
+          esac
+
+      - name: Plan
+        run: |
+          echo "ref        : ${{ github.event.inputs.ref }}"
+          echo "baglanti   : ${{ steps.mode.outputs.mode }}"
+          echo "docroot    : ${{ steps.disc.outputs.dest }}${{ steps.discl.outputs.dest }}"
+          echo "dry_run    : ${{ github.event.inputs.dry_run }}   root_index: $ROOTIDX"
+          echo "kopyalanacak:"
+          mapfile -t MAN < <(grep -vE '^\s*(#|$)' deploy-manifest.txt); for L in "${MAN[@]}"; do set -- $L; echo "  $1 -> DOCROOT/$2"; done
+          echo "  (kök index.html eskisi: index.html.bak-<ts>)"
+          [ "$TOOLS" = "true" ] && echo "  + chat/open-signup.php, mail-api.php, fix-geo.php, fix-mail.php (tek-seferlik, sonra sil)"
+          [ "$ROOTIDX" = "true" ] && echo "  + kökte index.php varsa .htaccess: DirectoryIndex index.html index.php (eski: .htaccess.bak-<ts>)"
+          echo "DOKUNULMAYAN: chat/auth.php, chat/db.php, chat/index.php, WordPress dosyalari ve diger tum mevcut dosyalar"
+
+      - name: Sunucuya kopyala (SSH kabuk + rsync)
+        if: ${{ github.event.inputs.dry_run != 'true' && github.event.inputs.verify_only != 'true' && steps.mode.outputs.mode == 'ssh' }}
+        run: |
+          set -e
+          DEST="${{ steps.disc.outputs.dest }}"; TS=$(date +%Y%m%d-%H%M%S)
+          case "$DEST" in auto|"") echo "::error::docroot belirlenemedi; target'i elle ver"; exit 1;; esac
+          $SSHCMD "$SRV" "cd $DEST && ( [ -f index.html ] && cp index.html index.html.bak-$TS || true ) && mkdir -p chat"
+          if $SSHCMD -n "$SRV" "command -v rsync >/dev/null"; then CP(){ rsync -az -e "$SSHCMD" "$@" </dev/null; }; echo "aktarım: rsync"; else CP(){ $SCPCMD -q "$@" </dev/null; }; echo "aktarım: scp (sunucuda rsync yok)"; fi
+          # NOT: ssh/rsync stdin'i yutar → manifest önce diziye okunur (pipe+while ile 2. satırdan sonrası kayboluyordu)
+          mapfile -t MAN < <(grep -vE '^\s*(#|$)' deploy-manifest.txt)
+          DIRS=$(for L in "${MAN[@]}"; do set -- $L; dirname "$2"; done | sort -u | grep -v '^\.$' | sed "s#^#$DEST/#" | tr '\n' ' ')
+          [ -n "$DIRS" ] && $SSHCMD -n "$SRV" "mkdir -p $DIRS"
+          for L in "${MAN[@]}"; do set -- $L; SRC="$1"; DST="$2"
+            CP "$SRC" "$SRV:$DEST/$DST" </dev/null && echo "  -> $DST" || { echo "::error::kopyalanamadi: $SRC"; exit 1; }
+          done
+          if [ "$TOOLS" = "true" ]; then
+            for f in chat/open-signup.php chat/mail-api.php chat/fix-geo.php chat/fix-mail.php; do [ -f "$f" ] && CP "$f" "$SRV:$DEST/chat/"; done
+          fi
+          if [ "$ROOTIDX" = "true" ] && $SSHCMD "$SRV" "[ -f $DEST/index.php ]"; then
+            $SSHCMD "$SRV" "cd $DEST && { [ -f .htaccess ] && cp .htaccess .htaccess.bak-$TS; true; } && if grep -qiE '^[[:space:]]*DirectoryIndex' .htaccess 2>/dev/null; then sed -i -E 's/^[[:space:]]*DirectoryIndex.*/DirectoryIndex index.html index.php/' .htaccess; echo HTACCESS: DirectoryIndex guncellendi; else { echo 'DirectoryIndex index.html index.php'; [ -f .htaccess ] && cat .htaccess; } > .htaccess.new && mv .htaccess.new .htaccess; echo HTACCESS: DirectoryIndex eklendi; fi"
+          fi
+          $SSHCMD "$SRV" "cd $DEST && ls -la index.html index.php .htaccess 2>/dev/null; ls -la chat/api.php chat/tokens-lib.php chat/plans.php chat/agent.php 2>&1"
+          echo "KOPYALAMA TAMAM -> $DEST"
+
+      - name: Sunucuya kopyala (SFTP/FTP)
+        if: ${{ github.event.inputs.dry_run != 'true' && github.event.inputs.verify_only != 'true' && (steps.mode.outputs.mode == 'sftp' || steps.mode.outputs.mode == 'ftp') }}
+        run: |
+          set -e
+          lf(){ printf '%s\n%s\nquit\n' "$LFTP_OPEN" "$1" > /tmp/lf.cmd; lftp -f /tmp/lf.cmd; }
+          DEST="${{ steps.discl.outputs.dest }}"; TS=$(date +%Y%m%d-%H%M%S)
+          case "$DEST" in auto|"") echo "::error::docroot belirlenemedi; target'i elle ver"; exit 1;; esac
+          lf "cd $DEST; mv index.html index.html.bak-$TS" 2>/dev/null && echo "index.html yedeklendi" || echo "(kökte index.html yoktu)"
+          EXTRA=""; if [ "$TOOLS" = "true" ]; then for f in chat/open-signup.php chat/mail-api.php chat/fix-geo.php chat/fix-mail.php; do [ -f "$f" ] && EXTRA="$EXTRA
+          put -O $DEST/chat $f"; done; fi
+          PUTS=""; while read -r SRC DST; do D=$(dirname "$DST"); PUTS="$PUTS
+          mkdir -p $DEST/$D
+          put -o $DEST/$DST $SRC"; done < <(grep -vE '^\s*(#|$)' deploy-manifest.txt)
+          lf "set cmd:fail-exit yes
+          cd $DEST$PUTS$EXTRA
+          cls -la $DEST/index.html $DEST/chat/api.php $DEST/chat/tokens-lib.php"
+          if [ "$ROOTIDX" = "true" ] && lf "cls -1 $DEST/index.php" >/dev/null 2>&1; then
+            : > /tmp/ht; lf "get $DEST/.htaccess -o /tmp/ht" 2>/dev/null || echo "(.htaccess yoktu, yeni olusturulacak)"
+            cp /tmp/ht /tmp/ht.orig
+            if grep -qiE '^[[:space:]]*DirectoryIndex' /tmp/ht; then sed -i -E 's/^[[:space:]]*DirectoryIndex.*/DirectoryIndex index.html index.php/' /tmp/ht; MSG="guncellendi"; else { echo 'DirectoryIndex index.html index.php'; cat /tmp/ht; } > /tmp/ht2 && mv /tmp/ht2 /tmp/ht; MSG="eklendi"; fi
+            lf "set cmd:fail-exit yes
+          put /tmp/ht.orig -o $DEST/.htaccess.bak-$TS
+          put /tmp/ht -o $DEST/.htaccess"
+            echo "HTACCESS: DirectoryIndex $MSG (yedek: .htaccess.bak-$TS)"
+          fi
+          echo "KOPYALAMA TAMAM (${{ steps.mode.outputs.mode }}) -> $DEST"
+
+      - name: Sunucu tarafı kontrol (SSH)
+        if: ${{ steps.mode.outputs.mode == 'ssh' && (github.event.inputs.dry_run != 'true' || github.event.inputs.verify_only == 'true') }}
+        run: |
+          set +e
+          DEST="${{ steps.disc.outputs.dest }}"; case "$DEST" in auto|"") echo "docroot yok"; exit 0;; esac
+          $SSHCMD "$SRV" "cd $DEST && echo '--- index.html ---' && ls -la index.html index.html.bak-* 2>/dev/null && head -c 400 index.html && echo && echo '--- .htaccess ---' && cat .htaccess && echo && echo '--- index.php (ilk satirlar) ---' && head -c 300 index.php && echo && echo '--- wp-cli? ---' && (command -v wp && wp --path=\$PWD --skip-plugins --skip-themes option get siteurl 2>&1 | head -3 || echo 'wp yok')"
+
+      - name: Kök yönlendirmesini kaldır (.htaccess, yedekli)
+        if: ${{ steps.mode.outputs.mode == 'ssh' && github.event.inputs.fix_root_redirect == 'true' }}
+        run: |
+          set -e
+          DEST="${{ steps.disc.outputs.dest }}"; case "$DEST" in auto|"") echo "::error::docroot yok"; exit 1;; esac
+          cat > /tmp/fix-root.sh <<'REMOTE'
+          set -e
+          cd "$1"
+          TS=$(date +%Y%m%d-%H%M%S)
+          if grep -qE '^[[:space:]]*RewriteRule \^\$ /chat/ \[R=302,L\]' .htaccess; then
+            cp .htaccess ".htaccess.bak-rootredir-$TS"
+            sed -i -E 's#^([[:space:]]*RewriteRule \^\$ /chat/ \[R=302,L\])#\# devre disi (yeni ana sayfa kokte): \1#' .htaccess
+            echo "ROOT REDIRECT DEVRE DISI (yedek: .htaccess.bak-rootredir-$TS)"
+          else
+            echo "kok yonlendirme kurali bulunamadi (zaten yok)"
+          fi
+          # Kök → /home.php (no-store başlıklı PHP sarmalayıcı; kenar önbelleği ana sayfayı tutmaz). Eski /index.html kuralı varsa dönüştür.
+          if grep -qE '^[[:space:]]*RewriteRule \^\$ /index\.html \[L\]' .htaccess; then
+            cp -n .htaccess ".htaccess.bak-rootidx-$TS" 2>/dev/null || true
+            sed -i -E 's#^([[:space:]]*RewriteRule \^\$ )/index\.html( \[L\])#\1/home.php\2#' .htaccess; echo "KOK kurali /index.html -> /home.php"
+          elif ! grep -qE '^[[:space:]]*RewriteRule \^\$ /home\.php \[L\]' .htaccess; then
+            cp -n .htaccess ".htaccess.bak-rootidx-$TS" 2>/dev/null || true
+            if grep -qE '^# devre disi \(yeni ana sayfa kokte\)' .htaccess; then
+              sed -i -E '/^# devre disi \(yeni ana sayfa kokte\)/a RewriteRule ^$ /home.php [L]' .htaccess
+            else
+              sed -i -E '0,/^[[:space:]]*RewriteEngine On/s//&\nRewriteRule ^$ \/home.php [L]/' .htaccess
+            fi
+            echo "KOK -> /home.php IC YONLENDIRME EKLENDI"
+          else
+            echo "kok -> /home.php ic yonlendirme zaten var"
+          fi
+          [ -f ../home.php ] && echo "home.php var" || echo "UYARI: home.php yok (manifest kopyalandi mi?)"
+          echo "--- .htaccess (ilgili satirlar) ---"; grep -nE 'chat/|index\.html|DirectoryIndex|RewriteEngine' .htaccess || true
+          echo "--- .htaccess.log (platform donusum kaydi) ---"; ls -la --time-style=full-iso .htaccess .htaccess.log 2>/dev/null; tail -n 40 .htaccess.log 2>/dev/null || echo "(okunamadi)"
+          REMOTE
+          $SSHCMD "$SRV" "bash -s $DEST" < /tmp/fix-root.sh
+
+      - name: Recht uygulamasına görünüm katmanı (skin) bağla
+        if: ${{ steps.mode.outputs.mode == 'ssh' && github.event.inputs.apply_skin == 'true' && github.event.inputs.dry_run != 'true' }}
+        run: |
+          set -e
+          DEST="${{ steps.disc.outputs.dest }}"; case "$DEST" in auto|"") echo "::error::docroot yok"; exit 1;; esac
+          cat > /tmp/skin.sh <<'REMOTE'
+          set -e
+          cd "$1/chat"; TS=$(date +%Y%m%d%H%M%S)
+          [ -f index.php ] || { echo "chat/index.php yok"; exit 1; }
+          [ -f skin.css ] && [ -f skin.js ] || { echo "skin.css/skin.js yok (manifest kopyalandi mi?)"; exit 1; }
+          if grep -q 'CH_SKIN' index.php; then
+            sed -i -E "s#(/chat/skin\.(css|js)\?v=)[0-9]+#\1$TS#g" index.php; echo "skin surumu guncellendi -> v=$TS"
+          else
+            cp index.php "index.php.bak-skin-$TS"
+            # ilk </head> once: tek satirlik enjeksiyon (CH_SKIN isareti idempotentlik icin)
+            awk -v ts="$TS" 'BEGIN{done=0} { if(!done && index($0,"</head>")>0){ sub(/<\/head>/, "<!--CH_SKIN--><link rel=\"stylesheet\" href=\"/chat/skin.css?v=" ts "\"><script defer src=\"/chat/skin.js?v=" ts "\"></script></head>"); done=1 } print }' index.php > index.php.new
+            grep -q 'CH_SKIN' index.php.new && mv index.php.new index.php || { rm -f index.php.new; echo "</head> bulunamadi"; exit 1; }
+            echo "skin baglandi (yedek: index.php.bak-skin-$TS)"
+          fi
+          command -v php >/dev/null && php -l index.php | head -2 || echo "(php cli yok, sozdizimi kontrolu atlandi)"
+          grep -o 'CH_SKIN[^>]*>[^>]*>[^>]*>' index.php | head -1
+          REMOTE
+          $SSHCMD "$SRV" "bash -s $DEST" < /tmp/skin.sh
+          echo "--- canli kontrol ---"; curl -sS -m 20 "https://chat-help.com/chat/?v=$(date +%s)" | grep -o 'skin\.css?v=[0-9]*' | head -1 || echo "(CDN/onbellek: birkac dk sonra gorunur)"
+          curl -sS -m 20 -o /dev/null -w "skin.css status=%{http_code}\n" "https://chat-help.com/chat/skin.css"
+
+      - name: Önbellek temizle (WP-CLI + platform WPaaS Cache ban)
+        if: ${{ steps.mode.outputs.mode == 'ssh' && github.event.inputs.flush_cache == 'true' }}
+        run: |
+          set +e
+          DEST="${{ steps.disc.outputs.dest }}"; case "$DEST" in auto|"") echo "docroot yok"; exit 0;; esac
+          cat > /tmp/flush.sh <<'REMOTE'
+          cd "$1"
+          echo ">> mu-plugins:"; ls wp-content/mu-plugins 2>/dev/null | head -8
+          echo ">> wp cache flush"; wp cache flush --path="$PWD" 2>&1 | head -3
+          echo ">> WPaaS Cache::ban (platform CDN/Varnish tam temizlik)"
+          wp eval 'if (class_exists("\WPaaS\Cache")) { $r = \WPaaS\Cache::ban(); echo "WPaaS Cache::ban cagrildi -> ", var_export($r, true), "\n"; } else { echo "WPaaS\Cache sinifi yok\n"; }' --path="$PWD" 2>&1 | head -6
+          echo ">> WPaaS Cache::purge(home)"
+          wp eval 'if (class_exists("\WPaaS\Cache") && method_exists("\WPaaS\Cache","purge")) { $r = \WPaaS\Cache::purge(home_url("/")); echo "purge(/) -> ", var_export($r, true), "\n"; } else { echo "purge yok\n"; }' --path="$PWD" 2>&1 | head -6
+          echo ">> wpaas_flush_cache action"; wp eval 'do_action("wpaas_flush_cache"); do_action("wpaas_cache_ban"); echo "actions fired\n";' --path="$PWD" 2>&1 | head -3
+          echo ">> WPaaS sinif listesi"; wp eval 'foreach (get_declared_classes() as $c) if (stripos($c,"WPaaS")!==false && stripos($c,"cache")!==false) echo $c, "\n";' --path="$PWD" 2>&1 | head -10
+          echo ">> wp rewrite flush"; wp rewrite flush --path="$PWD" 2>&1 | head -2
+          touch index.html .htaccess; echo touched
+          REMOTE
+          $SSHCMD "$SRV" "bash -s $DEST" < /tmp/flush.sh
+
+      - name: Canlı doğrulama
+        if: ${{ github.event.inputs.dry_run != 'true' || github.event.inputs.verify_only == 'true' }}
+        run: |
+          set +e
+          chk(){ # $1=url
+            echo "=== $1 ==="
+            curl -sS -m 25 -D /tmp/h -o /tmp/b -w "status=%{http_code}  time=%{time_total}s\n" "$1"
+            grep -iE '^(HTTP/|location|cache-control|age|expires|x-cache|cf-cache-status|cf-ray|server|x-powered-by|set-cookie|vary|etag|last-modified):' /tmp/h | sed 's/^/  /'
+            if grep -q "KI, die" /tmp/b; then echo "  icerik: YENI SITE ✓"; elif grep -qiE 'wp-content|wp-includes' /tmp/b; then echo "  icerik: WORDPRESS sayfasi"; else echo "  icerik: baska/eski ($(wc -c </tmp/b) bayt) -> $(grep -o '<title>[^<]*' /tmp/b | head -1)"; fi
+          }
+          chk "https://chat-help.com/"
+          chk "https://www.chat-help.com/"
+          chk "https://chat-help.com/index.html"
+          chk "https://chat-help.com/?nocache=$(date +%s)"
+          echo "=== yonlendirme takibi (/) ==="; curl -sS -m 25 -L -o /tmp/f -w "final=%{url_effective} status=%{http_code} redirects=%{num_redirects}\n" "https://chat-help.com/"; grep -q "KI, die" /tmp/f && echo "  final icerik: YENI SITE ✓" || echo "  final icerik: eski/baska -> $(grep -o '<title>[^<]*' /tmp/f | head -1)"
+          chk "https://chat-help.com/home.php"
+          echo "=== /chat/api.php/v1/sectors ==="; curl -sS -m 20 -o /tmp/s.json -w "status=%{http_code}\n" "https://chat-help.com/chat/api.php/v1/sectors"; head -c 200 /tmp/s.json; echo
+          echo "=== /chat/ ==="; curl -sS -m 20 -o /dev/null -w "status=%{http_code}\n" "https://chat-help.com/chat/"
