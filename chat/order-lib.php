@@ -250,7 +250,14 @@ function ord_notify_restaurant(array $o, array $s): void {
 function ord_notify_driver(array $o, array $s): void {
     $p=ord_public($o,$s); $drv=null; foreach(ord_drivers((int)$o['account_id']) as $d) if((int)$d['id']===(int)$o['driver_id']) $drv=$d; if(!$drv) return;
     $txt="Neue Fahrt {$p['code']} · ".($s['name']?:'Restaurant')."\n{$p['items_text']}\n📍 {$p['address']}\n👤 {$p['name']} · {$p['phone']}\n💶 {$p['total']} ({$p['payment']})".($p['note']?"\n📝 {$p['note']}":'')."\n🗺 {$p['maps']}\n✅ Zugestellt melden: https://chat-help.com/chat/driver.php?t={$drv['token']}";
-    $sent=false; if($drv['phone']){ $sent=ord_wa_send($s,$drv['phone'],$txt); if(!$sent) $sent=ord_sms_send($drv['phone'],$txt); }
+    /* WhatsApp nur im 24-h-Fenster zuverlässig (sonst nimmt Meta/Twilio an und verwirft später) → dann zuerst SMS, danach E-Mail an das Restaurant */
+    $acc=(int)$o['account_id']; $sent=false;
+    if($drv['phone']){
+        $win=ord_wa_window_open($acc,$drv['phone']);
+        if($win) $sent=ord_wa_send($s,$drv['phone'],$txt);
+        if(!$sent) $sent=ord_sms_send($drv['phone'],$txt,$acc);
+        if(!$sent && !$win) ord_wa_send($s,$drv['phone'],$txt);   // Versuch außerhalb des Fensters – gilt nicht als zugestellt, E-Mail folgt
+    }
     if(!$sent){ $to=$s['notify_email'] ?: ord_owner_email((int)$o['account_id']); if($to) th_mail($to,'Fahrer '.$drv['name'].' konnte nicht benachrichtigt werden – Bestellung '.$p['code'],'<pre style="font-family:Inter,Arial">'.htmlspecialchars($txt).'</pre>'); }
 }
 function ord_notify_customer(array $o, array $s, string $status): void {
@@ -263,29 +270,53 @@ function ord_notify_customer(array $o, array $s, string $status): void {
     if(!$msg) return;
     if($o['channel']==='whatsapp' && $o['wa_from']){ ord_wa_send($s,$o['wa_from'],$msg); return; }
     /* Telefon-Bestellungen: SMS an die Anrufernummer (nur Bestätigung/Unterwegs/Storno, wenn Twilio-SMS eingerichtet ist) */
-    if($o['channel']==='phone' && $o['phone'] && in_array($status,['confirmed','out_for_delivery','cancelled'],true)) ord_sms_send($o['phone'],($s['name']?$s['name'].': ':'').$msg);
+    if($o['channel']==='phone' && $o['phone'] && in_array($status,['confirmed','out_for_delivery','cancelled'],true)) ord_sms_send($o['phone'],($s['name']?$s['name'].': ':'').$msg,(int)$o['account_id']);
 }
 function ord_owner_email(int $acc): string { if($acc<=0) return ''; $s=th_db()->prepare("SELECT email FROM token_accounts WHERE id=?"); $s->execute([$acc]); return (string)($s->fetchColumn() ?: ''); }
-/** WhatsApp senden: Meta Cloud API (wa_phone_id + wa_token) oder Twilio (TWILIO_ACCOUNT_SID/TWILIO_AUTH_TOKEN + wa_number). */
+/**
+ * WhatsApp senden: Meta Cloud API (wa_phone_id + wa_token) oder Twilio.
+ * Twilio: eigener Twilio-Account des Kunden (Studio → Verbindungen; Absender wa_number gehört ihm, Twilio prüft das) –
+ * der Plattform-Account darf nur Nummern verwenden, die in db.php per TWILIO_WA_NUMBERS diesem Konto zugewiesen sind
+ * ("+4922112345:17,+4930999:23"). So kann kein Kunde im Namen eines anderen Betriebs senden.
+ */
+function ord_twilio_wa_allowed(int $acc, string $num): bool {
+    if(!(defined('TWILIO_WA_NUMBERS') && TWILIO_WA_NUMBERS)) return false;
+    foreach(explode(',',(string)TWILIO_WA_NUMBERS) as $pair){ [$n,$a]=array_pad(explode(':',trim($pair),2),2,''); if($n!=='' && th_same_phone($n,$num) && (int)$a===$acc) return true; }
+    return false;
+}
 function ord_wa_send(array $s, string $to, string $text): bool {
-    $to=preg_replace('/[^0-9]/','',$to); if($to==='') return false;
+    $e=th_e164($to); if($e==='') return false; $acc=(int)($s['account_id'] ?? 0);
     if($s['wa_provider']==='meta' && $s['wa_phone_id'] && $s['wa_token']){
         $ch=curl_init('https://graph.facebook.com/v20.0/'.$s['wa_phone_id'].'/messages');
-        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>15,CURLOPT_POSTFIELDS=>json_encode(['messaging_product'=>'whatsapp','to'=>$to,'type'=>'text','text'=>['body'=>mb_substr($text,0,4000)]],JSON_UNESCAPED_UNICODE),CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$s['wa_token'],'Content-Type: application/json']]);
-        curl_exec($ch); $c=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch); return $c>=200&&$c<300;
+        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>15,CURLOPT_POSTFIELDS=>json_encode(['messaging_product'=>'whatsapp','to'=>ltrim($e,'+'),'type'=>'text','text'=>['body'=>mb_substr($text,0,4000)]],JSON_UNESCAPED_UNICODE),CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$s['wa_token'],'Content-Type: application/json']]);
+        $raw=curl_exec($ch); $c=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+        if($c<200 || $c>=300) error_log('CH wa_send meta '.$acc.': '.$c.' '.mb_substr((string)$raw,0,200));
+        return $c>=200&&$c<300;
     }
-    if($s['wa_provider']==='twilio' && defined('TWILIO_ACCOUNT_SID') && defined('TWILIO_AUTH_TOKEN') && $s['wa_number']){
-        $ch=curl_init('https://api.twilio.com/2010-04-01/Accounts/'.TWILIO_ACCOUNT_SID.'/Messages.json');
-        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>15,CURLOPT_USERPWD=>TWILIO_ACCOUNT_SID.':'.TWILIO_AUTH_TOKEN,CURLOPT_POSTFIELDS=>http_build_query(['From'=>'whatsapp:+'.ltrim($s['wa_number'],'+'),'To'=>'whatsapp:+'.$to,'Body'=>mb_substr($text,0,1600)])]);
-        curl_exec($ch); $c=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch); return $c>=200&&$c<300;
+    if($s['wa_provider']==='twilio' && $s['wa_number'] && ($tw=th_twilio($acc))){
+        $from=th_e164((string)$s['wa_number']); if($from==='' || (!$tw['own'] && !ord_twilio_wa_allowed($acc,$from))) return false;
+        $ch=curl_init('https://api.twilio.com/2010-04-01/Accounts/'.$tw['sid'].'/Messages.json');
+        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>15,CURLOPT_USERPWD=>$tw['sid'].':'.$tw['token'],CURLOPT_POSTFIELDS=>http_build_query(['From'=>'whatsapp:'.$from,'To'=>'whatsapp:'.$e,'Body'=>mb_substr($text,0,1600)])]);
+        $raw=curl_exec($ch); $c=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+        if($c<200 || $c>=300) error_log('CH wa_send twilio '.$acc.': '.$c.' '.mb_substr((string)$raw,0,200));
+        return $c>=200&&$c<300;
     }
     return false;
 }
-function ord_sms_send(string $to, string $text): bool {
-    if(!(defined('TWILIO_ACCOUNT_SID') && defined('TWILIO_AUTH_TOKEN') && defined('TWILIO_SMS_FROM'))) return false;
-    $ch=curl_init('https://api.twilio.com/2010-04-01/Accounts/'.TWILIO_ACCOUNT_SID.'/Messages.json');
-    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>15,CURLOPT_USERPWD=>TWILIO_ACCOUNT_SID.':'.TWILIO_AUTH_TOKEN,CURLOPT_POSTFIELDS=>http_build_query(['From'=>TWILIO_SMS_FROM,'To'=>'+'.preg_replace('/[^0-9]/','',$to),'Body'=>mb_substr($text,0,1500)])]);
-    curl_exec($ch); $c=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch); return $c>=200&&$c<300;
+/** SMS über Twilio: eigener Account (Absender twilio_from) oder Plattform (TWILIO_SMS_FROM). */
+function ord_sms_send(string $to, string $text, int $acc=0): bool {
+    $e=th_e164($to); $tw=th_twilio($acc); if($e==='' || !$tw) return false;
+    $from=$tw['from'] ?: ($tw['own'] ? '' : (defined('TWILIO_SMS_FROM') ? (string)TWILIO_SMS_FROM : '')); if($from==='') return false;
+    $ch=curl_init('https://api.twilio.com/2010-04-01/Accounts/'.$tw['sid'].'/Messages.json');
+    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>15,CURLOPT_USERPWD=>$tw['sid'].':'.$tw['token'],CURLOPT_POSTFIELDS=>http_build_query(['From'=>$from,'To'=>$e,'Body'=>mb_substr($text,0,1500)])]);
+    $raw=curl_exec($ch); $c=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+    if($c<200 || $c>=300) error_log('CH sms_send '.$acc.': '.$c.' '.mb_substr((string)$raw,0,200));
+    return $c>=200&&$c<300;
+}
+/** Hat diese Nummer in den letzten 23 h an den WhatsApp-Kanal des Kontos geschrieben? (Nur dann sind freie WhatsApp-Texte zustellbar.) */
+function ord_wa_window_open(int $acc, string $phone): bool {
+    $d=ltrim(th_e164($phone),'+'); if($d==='') return false;
+    $s=th_db()->prepare("SELECT COUNT(*) FROM wa_sessions WHERE account_id=? AND wa_from=? AND updated_at > (NOW() - INTERVAL 23 HOUR)"); $s->execute([$acc,$d]); return (int)$s->fetchColumn()>0;
 }
 
 /* ---------- WhatsApp-Gesprächsspeicher ---------- */
@@ -301,7 +332,7 @@ function ord_tools(): array {
       ['name'=>'get_menu','description'=>'Speisekarte mit Kategorien, Preisen, Optionen (Größen/Extras) und Hinweisen (vegetarisch, scharf …). Optional nach Kategorie oder Suchbegriff filtern.','input_schema'=>['type'=>'object','properties'=>['category'=>['type'=>'string'],'query'=>['type'=>'string']],'required'=>[]]],
       ['name'=>'check_delivery_address','description'=>'Lieferadresse prüfen: liegt sie im Liefergebiet, welche Liefergebühr und welcher Mindestbestellwert gelten, voraussichtliche Lieferzeit. Immer aufrufen, bevor eine Lieferbestellung angelegt wird.','input_schema'=>['type'=>'object','properties'=>['address'=>['type'=>'string','description'=>'Straße Hausnummer, PLZ Ort']],'required'=>['address']]],
       ['name'=>'create_order','description'=>'Bestellung verbindlich anlegen – erst nach Zusammenfassung und ausdrücklicher Bestätigung des Kunden. Positionen mit Menge und ggf. Optionen (z. B. Größe).','input_schema'=>['type'=>'object','properties'=>['type'=>['type'=>'string','enum'=>['delivery','pickup']],'items'=>['type'=>'array','items'=>['type'=>'object','properties'=>['name'=>['type'=>'string'],'id'=>['type'=>'integer'],'qty'=>['type'=>'integer'],'options'=>['type'=>'array','items'=>['type'=>'string']],'note'=>['type'=>'string']],'required'=>['qty']]],'name'=>['type'=>'string'],'phone'=>['type'=>'string'],'address'=>['type'=>'string'],'payment'=>['type'=>'string','description'=>'bar | karte | paypal | online'],'note'=>['type'=>'string'],'requested_time'=>['type'=>'string','description'=>'HH:MM, optional (Vorbestellung)']],'required'=>['type','items','name']]],
-      ['name'=>'get_order_status','description'=>'Status einer Bestellung per Bestellcode oder Telefonnummer.','input_schema'=>['type'=>'object','properties'=>['code'=>['type'=>'string'],'phone'=>['type'=>'string']],'required'=>[]]],
+      ['name'=>'get_order_status','description'=>'Status einer Bestellung per Bestellcode. Ohne Code: Bestellungen der verifizierten Absender-/Anrufernummer (WhatsApp/Telefon) – fremde Nummern sind gesperrt.','input_schema'=>['type'=>'object','properties'=>['code'=>['type'=>'string'],'phone'=>['type'=>'string']],'required'=>[]]],
       ['name'=>'cancel_order','description'=>'Bestellung stornieren (nur solange Status new/confirmed und nach Bestätigung des Kunden).','input_schema'=>['type'=>'object','properties'=>['code'=>['type'=>'string']],'required'=>['code']]],
     ];
 }
@@ -320,7 +351,10 @@ function ord_exec(int $acc, string $name, array $in, string $channel, string $wa
             return ['open'=>ord_is_open($st),'note'=>$note,'pickup_discount_pct'=>$st['pickup_discount_pct'],'items'=>array_map(fn($m)=>['id'=>$m['id'],'category'=>$m['category'],'name'=>$m['name'],'description'=>$m['description'],'price_eur'=>round($m['price_cents']/100,2),'options'=>array_map(fn($g)=>['name'=>$g['name'],'choices'=>array_map(fn($c)=>$c['label'].($c['delta']?' ('.($c['delta']>0?'+':'').number_format($c['delta']/100,2,',','.').' €)':''),$g['choices'])],$m['options']),'tags'=>$m['tags']],$menu)];
         case 'check_delivery_address': return ord_check_address($acc,(string)($in['address']??''));
         case 'create_order': if($acc===0) $in['force']=1; return ord_create($acc,$in,$channel,$waFrom);   // Demo (Konto 0): auch außerhalb der Öffnungszeiten
-        case 'get_order_status': if(!empty($in['code'])){ $o=ord_by_code((string)$in['code']); return $o&&(int)$o['account_id']===$acc?['orders'=>[ord_public($o)]]:['orders'=>[]]; } return ['orders'=>ord_find_by_phone($acc,(string)($in['phone']??$waFrom))];
+        case 'get_order_status': if(!empty($in['code'])){ $o=ord_by_code((string)$in['code']); return $o&&(int)$o['account_id']===$acc?['orders'=>[ord_public($o)]]:['orders'=>[],'hint'=>'Kein Auftrag mit diesem Code.']; }
+            $ph=function_exists('ch_verified_phone') ? ch_verified_phone($acc,$channel,$waFrom,(string)($in['phone']??'')) : ($acc===0 ? (string)($in['phone']??$waFrom) : null);
+            if($ph===null) return ['orders'=>[],'error'=>'code_required','hint'=>defined('CH_CODE_ONLY_HINT') ? CH_CODE_ONLY_HINT : 'Bitte nach dem Bestellcode fragen.'];
+            return ['orders'=>ord_find_by_phone($acc,$ph)];
         case 'cancel_order': $o=ord_by_code((string)($in['code']??'')); if(!$o||(int)$o['account_id']!==$acc) return ['error'=>'not_found']; if(!in_array($o['status'],['new','confirmed'],true)) return ['error'=>'too_late','status'=>$o['status']]; return ord_set_status($acc,(int)$o['id'],'cancelled');
     }
     return ['error'=>'unknown_tool'];
@@ -359,7 +393,7 @@ function ord_toolkit(int $acc, string $channel, string $waFrom='', ?bool $order=
     $ordNames=array_column(ord_tools(),'name');
     $exec=function(string $n,array $i) use($acc,$channel,$waFrom,$order,$appt,$ordNames){
         if($order && in_array($n,$ordNames,true)) return ord_exec($acc,$n,$i,$channel,$waFrom);
-        if($appt) return appt_exec($acc,$n,$i,$channel);
+        if($appt) return appt_exec($acc,$n,$i,$channel,$waFrom);
         return ['error'=>'unknown_tool'];
     };
     return ['hint'=>$hint,'tools'=>$tools,'exec'=>$exec,'order'=>$order,'appt'=>$appt];

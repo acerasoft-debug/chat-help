@@ -1,3 +1,5 @@
 
 # build artifacts (deliverable zips)
 marketing/*.zip
+chat/.appt_reminder
+chat/.ai_model.json

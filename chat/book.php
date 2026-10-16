@@ -45,7 +45,7 @@ async function init(){INFO=await j(API+'&a=info');if(INFO.error){$('#company').t
   $('#company').textContent=INFO.company;$('#addr').textContent=INFO.address||'';document.title='Termin buchen · '+INFO.company;
   $('#svcs').innerHTML=INFO.services.map(s=>`<div class="svc" data-id="${s.id}"><div><b>${esc(s.name)}</b><small>${s.duration_min} Min</small></div><div class="pr">${eur(s.price_cents)}</div></div>`).join('')||'<p class="m">Noch keine Leistungen hinterlegt – bitte Termin per Chat anfragen.</p>';
   document.querySelectorAll('.svc').forEach(el=>el.onclick=()=>{document.querySelectorAll('.svc').forEach(x=>x.classList.remove('on'));el.classList.add('on');svc=INFO.services.find(s=>s.id==el.dataset.id);$('#next').disabled=false;});
-  if(INFO.demo||INFO.agent_key){$('#chat').hidden=false;cmsg('a','Hallo! Ich helfe gern beim Termin. Welche Leistung und wann passt es dir?');}}
+  if(INFO.chat){$('#chat').hidden=false;cmsg('a','Hallo! Ich helfe gern beim Termin. Welche Leistung und wann passt es dir?');}}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function show(n){step=n;[1,2,3,4].forEach(i=>{$('#step'+i).hidden=i!==n;$('#s'+Math.min(i,3)).classList.toggle('on',i<=n);});$('#back').hidden=n===1||n===4;$('#nav').hidden=n===4;$('#next').textContent=n===3?'Verbindlich buchen':'Weiter →';$('#next').disabled=n===2?!(date&&time):n===3?false:!svc;}
 async function loadDays(){const d=await j(API+'&a=days&service='+(svc?svc.id:''));const el=$('#days');el.innerHTML='';const list=d.days||[];if(!list.length){el.innerHTML='<p class="m">In den nächsten 14 Tagen sind keine freien Zeiten – bitte per Chat anfragen.</p>';return;}
@@ -58,9 +58,12 @@ $('#next').onclick=async()=>{if(step===1){show(2);loadDays();}else if(step===2){
     if(r.error){$('#msg').innerHTML='<div class="msg err">'+(r.error==='slot_unavailable'?'Diese Zeit wurde gerade vergeben – bitte eine andere wählen.':esc(r.message||r.hint||r.error))+'</div>';$('#next').disabled=false;if(r.error==='slot_unavailable'){show(2);loadSlots();}return;}
     const b=r.booking;$('#doneSum').innerHTML=`<b>${esc(b.service)}</b><br>${esc(b.human)} – ${esc(b.end)} Uhr<br><span class="m">Buchungscode ${b.code}${b.address?' · '+esc(b.address):''}</span>`;$('#doneNote').textContent=INFO.demo?'Demo: Im echten Betrieb erhalten Sie jetzt eine Bestätigung per E-Mail und eine Erinnerung am Vortag.':(email?'Eine Bestätigung ist unterwegs an '+email+'. Erinnerung kommt am Vortag.':'Bitte notieren Sie Ihren Buchungscode.');$('#icsBtn').href='/chat/appt.php?c='+b.code+'&ics=1';$('#manageBtn').href=b.manage_url;show(4);}};
 $('#back').onclick=()=>{if(step===2)show(1);else if(step===3)show(2);};
-/* Chat-Buchung über die Demo-/Agent-API (Termin-Agent mit Werkzeugen) */
+/* Chat-Buchung: Demo → concierge.php, echter Betrieb → appt-api.php?a=chat (Termin-Agent dieses Betriebs, Werkzeuge) */
+function loadDaysIfOpen(){if(step===2&&svc){loadDays();if(date)loadSlots();}}
 let hist=[];function cmsg(r,t){const d=document.createElement('div');d.className=r;d.textContent=t;$('#cms').appendChild(d);$('#cms').scrollTop=1e9;return d;}
 $('#cform').onsubmit=async e=>{e.preventDefault();const t=$('#cin').value.trim();if(!t)return;$('#cin').value='';cmsg('u',t);hist.push({role:'user',content:t});const w=cmsg('a','…');
-  try{const r=await j('/chat/concierge.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent:'agent-termine',messages:hist.slice(-10),lang:'de'})});w.textContent=r.reply||'Gerade nicht erreichbar.';if(r.reply)hist.push({role:'assistant',content:r.reply});}catch(x){w.textContent='Verbindungsfehler.';}};
+  try{const r=INFO.demo?await j('/chat/concierge.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent:'agent-termine',messages:hist.slice(-10),lang:'de'})})
+      :await j(API+'&a=chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:hist.slice(-10)})});
+    if(!INFO.demo&&r.reply)loadDaysIfOpen();w.textContent=r.reply||r.message||'Gerade nicht erreichbar.';if(r.reply)hist.push({role:'assistant',content:r.reply});}catch(x){w.textContent='Verbindungsfehler.';}};
 init();
 </script></body></html>

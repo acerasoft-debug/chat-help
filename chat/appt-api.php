@@ -30,9 +30,33 @@ if($acc===null) th_json(404,['error'=>'unknown_key','message'=>'Buchungsseite ni
 $set=appt_settings($acc);
 if(!$set['appt_on']) th_json(403,['error'=>'booking_disabled','message'=>'Online-Buchung ist derzeit nicht aktiv.','company'=>$set['company']]);
 
+/* Chat auf der Buchungsseite: der echte Termin-Agent DIESES Betriebs (Tokens des Betreibers). Demo-Seite → concierge.php */
+function appt_chat_plan(int $acc, string $k): ?array {
+    if($acc===0) return null; require_once __DIR__.'/plans.php'; require_once __DIR__.'/agent-tools.php';
+    $cs=th_db()->prepare("SELECT * FROM agent_configs WHERE widget_key=?"); $cs->execute([$k]); $cfg=$cs->fetch(PDO::FETCH_ASSOC); if(!$cfg) return null;
+    $plan=ch_channel_plan($acc,(string)$cfg['plan'],['appt']); if(!$plan || !($pl=ch_plan($plan))) return null;
+    if(th_balance($acc) < CH_PRICING['widget_turn']) return null;
+    return ['plan'=>$pl,'cfg'=>$cfg];
+}
+if($a==='chat' && $_SERVER['REQUEST_METHOD']==='POST'){
+    $cp=appt_chat_plan($acc,$k); if(!$cp) th_json(402,['error'=>'chat_inactive','message'=>'Der Chat ist gerade nicht verfügbar – bitte oben direkt buchen.']);
+    $p->prepare("INSERT INTO concierge_log(ip_hash) VALUES(?)")->execute([$h]);
+    $c=$p->prepare("SELECT COUNT(*) FROM api_usage WHERE account_id=? AND task='booking' AND created_at > (NOW() - INTERVAL 1 MINUTE)"); $c->execute([$acc]);
+    if((int)$c->fetchColumn() >= 40) th_json(429,['error'=>'rate_limited','message'=>'Bitte einen Moment warten.']);
+    $clean=[]; foreach(array_slice(is_array($in['messages']??null)?$in['messages']:[],-12) as $m){ $t=trim((string)($m['content']??'')); if($t!=='') $clean[]=['role'=>($m['role']??'')==='assistant'?'assistant':'user','content'=>mb_substr($t,0,1500)]; }
+    if(!$clean || end($clean)['role']!=='user') th_json(400,['error'=>'messages_required']);
+    $pl=$cp['plan']; $t0=microtime(true);
+    $system=ch_agent_system($pl,$cp['cfg'],'de')."\n\nDu bist der Buchungsassistent auf der Online-Terminseite von ".($set['company'] ?: 'diesem Betrieb').". Du sprichst mit einem Kunden. Kurz und herzlich, höchstens 4 Sätze. Termine nur über die Werkzeuge; vor dem Buchen alles zusammenfassen und bestätigen lassen.";
+    $tk=ch_toolkit($acc,'booking','',['appt']); $system.=$tk['hint'];
+    $answer=th_ai_tools($system,$clean,$tk['tools'],$tk['exec'],700,45);
+    if($answer===null) th_json(503,['error'=>'ai_unavailable','message'=>'Gerade nicht erreichbar – bitte oben direkt buchen.']);
+    $cost=CH_PRICING['widget_turn']+2*count(th_ai_info()['tool_calls'] ?? []);
+    $charged=th_charge($acc,$cost,'booking:'.$pl['id']); th_log_usage($acc,'booking',$pl['sector'],$charged,(int)((microtime(true)-$t0)*1000));
+    th_json(200,['reply'=>$answer]);
+}
 if($a==='info'){
     $svc=appt_services($acc); $tz=appt_tz($set);
-    th_json(200,['company'=>$set['company'],'address'=>$set['address'],'tz'=>$set['tz'],'today'=>(new DateTimeImmutable('today',$tz))->format('Y-m-d'),'max_days'=>$set['max_days'],'hours'=>$set['hours'],'services'=>array_map(fn($x)=>['id'=>$x['id'],'name'=>$x['name'],'duration_min'=>$x['duration_min'],'price_cents'=>$x['price_cents']],$svc),'demo'=>$acc===0,'agent_key'=>$k]);
+    th_json(200,['company'=>$set['company'],'address'=>$set['address'],'tz'=>$set['tz'],'today'=>(new DateTimeImmutable('today',$tz))->format('Y-m-d'),'max_days'=>$set['max_days'],'hours'=>$set['hours'],'services'=>array_map(fn($x)=>['id'=>$x['id'],'name'=>$x['name'],'duration_min'=>$x['duration_min'],'price_cents'=>$x['price_cents']],$svc),'demo'=>$acc===0,'chat'=>$acc===0 || appt_chat_plan($acc,$k)!==null]);
 }
 if($a==='slots'){ th_json(200,appt_slots($acc,(string)($_GET['date'] ?? ''),isset($_GET['service'])&&$_GET['service']!==''?(int)$_GET['service']:null)); }
 if($a==='days'){ th_json(200,['days'=>appt_next_days($acc,isset($_GET['service'])&&$_GET['service']!==''?(int)$_GET['service']:null,14)]); }
